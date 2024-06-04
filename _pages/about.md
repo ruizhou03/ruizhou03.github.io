@@ -23,7 +23,7 @@ Rui Zhou is an Economics major student who shows strong interest in behavioral e
 
 # ✅ Background
 
-* [**Résumé**](../linked_files/Resume EN.pdf) (Updated in April 2024).
+* [**Curriculum Vitae**](../linked_files/CV (Rui Zhou).pdf) (Updated in June 2024).
 * Email: <a href="mailto:zircon@stu.pku.edu.cn">zircon@stu.pku.edu.cn</a>
 * **GPA: Under [PKU's standard](https://dean.pku.edu.cn/web/rules_info.php?id=12), 3.841/4.000 (11.4%); Under [WES's standard](https://applications.wes.org/accesswes/pages/TermsConds.pdf), 3.91/4.00**. Here is my [**transcript from Peking University**](../linked_files/Transcript (Peking University).pdf), and my [**transcript from University of Michigan**](../linked_files/Transcript (University of Michigan).pdf).
 * Programming Languages: **R, Python, Stata, Matlab**. Most skilled at R, familiar with Python, Stata and Matlab. Besides, I use Markdown and $\LaTeX$ everyday.
