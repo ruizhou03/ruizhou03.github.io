@@ -25,7 +25,7 @@ Rui Zhou is an Economics major student who shows strong interest in behavioral e
 
 * [**Résumé**](../linked_files/Resume EN.pdf) (Updated in April 2024).
 * Email: <a href="mailto:zircon@stu.pku.edu.cn">zircon@stu.pku.edu.cn</a>
-* **GPA: Under [PKU's standard](https://dean.pku.edu.cn/web/rules_info.php?id=12), 3.841/4.000 (11.4%); Under [WES's standard](https://applications.wes.org/accesswes/pages/TermsConds.pdf), 3.91/4.00**. Here is my [**transcript from Peking University**](../linked_files/Transcript (Peking University).pdf), and my [**transcript from University of Michigan**](../linked_files/Transcript (University of Michigan).pdf.pdf).
+* **GPA: Under [PKU's standard](https://dean.pku.edu.cn/web/rules_info.php?id=12), 3.841/4.000 (11.4%); Under [WES's standard](https://applications.wes.org/accesswes/pages/TermsConds.pdf), 3.91/4.00**. Here is my [**transcript from Peking University**](../linked_files/Transcript (Peking University).pdf), and my [**transcript from University of Michigan**](../linked_files/Transcript (University of Michigan).pdf).
 * Programming Languages: **R, Python, Stata, Matlab**. Most skilled at R, familiar with Python, Stata and Matlab. Besides, I use Markdown and $\LaTeX$ everyday.
 * English: [**TOEFL 105**](../linked_files/TOEFL_230715.pdf), Reading 29, Listening 26, Speaking 25, Writing 27.
 * [Weixin Official Account](https://mp.weixin.qq.com/s?__biz=Mzk0NTMxNjcxNg==&mid=2247491485&idx=1&sn=c4fda51b662c9130550966d2eb22787e&chksm=c316699ef461e0887070e8ffcf1063606982dde436ac0c45437d1a35dd4552d443991dd4d635#rd): I have published hundreds of original articles on my personal Weixin Official Account and gained thousands of followers. The articles mainly include lecture notes, practical skills, and personal reflections.
@@ -37,7 +37,7 @@ Rui Zhou is an Economics major student who shows strong interest in behavioral e
 - *2021.09 Till Now*, [**Guanghua School of Management**](https://en.gsm.pku.edu.cn/), [**Peking University**](https://english.pku.edu.cn/), Beijing, China.
   - Major: **Financial Economics**
   - Dual Degree: **Psychology** (in [School of Psychological and Cognitive Sciences](http://psy.pku.edu.cn/), Peking University, Beijing, China)
-  - GPA: **3.841/4.000 (11.4%)**. Here is my [**transcript from Peking University**](../linked_files/Transcript (Peking University).pdf), and my [**transcript from University of Michigan**](../linked_files/Transcript (University of Michigan).pdf.pdf).
+  - GPA: **3.841/4.000 (11.4%)**. Here is my [**transcript from Peking University**](../linked_files/Transcript (Peking University).pdf), and my [**transcript from University of Michigan**](../linked_files/Transcript (University of Michigan).pdf).
     * Graduate-Level Courses: Advanced Microeconomics (96), Advanced Econometrics (97), Real Analysis (96)
     * Core Courses: Advanced Math (98), Intermediate Microeconomics (99), Intermediate Econometrics (96), Behavioral Economics (95), Game Theory (95)
     * TA Experience: Behavioral Economics (Fall 2023, Instructor: [Juanjuan Meng](https://en.gsm.pku.edu.cn/faculty/jumeng/))
