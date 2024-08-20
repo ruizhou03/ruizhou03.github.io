@@ -19,60 +19,64 @@ redirect_from:
 Rui Zhou is an Economics major student who shows strong interest in behavioral economics and matching design. He has a solid understanding of economics and performed well in his selected courses, including graduate-level ones. He is interested in both empirical and theoretical researches, and has gained knowledge and methodologies from RA experiences and independent studies.
 
 
-<span class='anchor' id='background'></span>
-
-# ✅ Background
-
-* [**Curriculum Vitae**](../linked_files/CV (Rui Zhou).pdf) (Updated in June 2024).
-* Email: <a href="mailto:zircon@stu.pku.edu.cn">zircon@stu.pku.edu.cn</a>
-* **GPA: Under [PKU's standard](https://dean.pku.edu.cn/web/rules_info.php?id=12), 3.841/4.000 (11.4%); Under [WES's standard](https://applications.wes.org/accesswes/pages/TermsConds.pdf), 3.91/4.00**. Here is my [**transcript from Peking University**](../linked_files/Transcript (Peking University).pdf), and my [**transcript from University of Michigan**](../linked_files/Transcript (University of Michigan).pdf).
-* Programming Languages: **R, Python, Stata, Matlab**. Most skilled at R, familiar with Python, Stata and Matlab. Besides, I use Markdown and $\LaTeX$ everyday.
-* English: [**TOEFL 105**](../linked_files/TOEFL_230715.pdf), Reading 29, Listening 26, Speaking 25, Writing 27.
-* [Weixin Official Account](https://mp.weixin.qq.com/s?__biz=Mzk0NTMxNjcxNg==&mid=2247491485&idx=1&sn=c4fda51b662c9130550966d2eb22787e&chksm=c316699ef461e0887070e8ffcf1063606982dde436ac0c45437d1a35dd4552d443991dd4d635#rd): I have published hundreds of original articles on my personal Weixin Official Account and gained thousands of followers. The articles mainly include lecture notes, practical skills, and personal reflections.
 
 <span class='anchor' id='education'></span>
 
 # 🧑‍🎓 Education
 
 - *2021.09 Till Now*, [**Guanghua School of Management**](https://en.gsm.pku.edu.cn/), [**Peking University**](https://english.pku.edu.cn/), Beijing, China.
-  - Major: **Financial Economics**
-  - Dual Degree: **Psychology** (in [School of Psychological and Cognitive Sciences](http://psy.pku.edu.cn/), Peking University, Beijing, China)
-  - GPA: **3.841/4.000 (11.4%)**. Here is my [**transcript from Peking University**](../linked_files/Transcript (Peking University).pdf), and my [**transcript from University of Michigan**](../linked_files/Transcript (University of Michigan).pdf).
-    * Graduate-Level Courses: Advanced Microeconomics (96), Advanced Econometrics (97), Real Analysis (96)
+  - _Bachelor of Economics_
+  - GPA: **3.841/4.000 (Top 15%)**. Here is my [**transcript from Peking University**](../linked_files/Transcript (Peking University).pdf), and my [**transcript from University of Michigan**](../linked_files/Transcript (University of Michigan).pdf).
+    * Graduate Courses: Advanced Microeconomics (96), Advanced Econometrics (97), Real Analysis (96), Development Economics (95)
     * Core Courses: Advanced Math (98), Intermediate Microeconomics (99), Intermediate Econometrics (96), Behavioral Economics (95), Game Theory (95)
     * TA Experience: Behavioral Economics (Fall 2023, Instructor: [Juanjuan Meng](https://en.gsm.pku.edu.cn/faculty/jumeng/))
       <!-- Advanced Microeconomics (Fall 2024, Instructor: [Eric Shi](https://econ.pku.edu.cn/english/faculty/fulltimefaculty/sdfasd/357924.htm)) -->
 - *2024.01-2024.05*, [**Ross School of Business**](https://michiganross.umich.edu/), [**University of Michigan**](https://umich.edu/), Ann Arbor, USA.
+  - _Exchange Student_
+  - Courses: Introduction to Real Analysis (Graduate Course, A), Matching & Market Design (A+), Industrial Organization & Performance (A), Government Revenues (A) 
+
+<span class='anchor' id='background'></span>
+
+
+# ✅ Background
+
+* [**Curriculum Vitae**](../linked_files/CV (Rui Zhou).pdf) (Updated in August 2024).
+* Email: <a href="mailto:ruizhou@stu.pku.edu.cn">ruizhou@stu.pku.edu.cn</a>
+* **GPA: Under [PKU's standard](https://dean.pku.edu.cn/web/rules_info.php?id=12), 3.841/4.000 (11.4%); Under [WES's standard](https://applications.wes.org/accesswes/pages/TermsConds.pdf), 3.91/4.00**. Here is my [**transcript from Peking University**](../linked_files/Transcript (Peking University).pdf), and my [**transcript from University of Michigan**](../linked_files/Transcript (University of Michigan).pdf).
+* Programming Languages: **R, Python, Stata, Matlab**. Most skilled at R, familiar with Python, Stata and Matlab. Besides, I use Markdown and $\LaTeX$ everyday.
+* English Proficiency: [**TOEFL 112**](../linked_files/Rui_Zhou_TOEFL.pdf), Reading 30, Listening 29, Speaking 24, Writing 29.
+* GRE: Verbal Reasoning 158, Quantitive Reasoning 170, Analytical Writing 4.
+* [Weixin Official Account](https://mp.weixin.qq.com/s?__biz=Mzk0NTMxNjcxNg==&mid=2247491485&idx=1&sn=c4fda51b662c9130550966d2eb22787e&chksm=c316699ef461e0887070e8ffcf1063606982dde436ac0c45437d1a35dd4552d443991dd4d635#rd): I have published hundreds of original articles on my personal Weixin Official Account and gained thousands of followers. The articles mainly include lecture notes, practical skills, and personal reflections.
+
 
 <span class='anchor' id='researchexp'></span>
 
+
 # 🧪 Research Experiences
 
-* Completed: 
-  * [_Effects of Rank-Based Categorized Scoring in National College Entrance Examination (Gaokao) on Involution of Highschool Students_](../linked_files/等级赋分制对高考考生内卷程度的影响.pdf), First Co-Author, Guided by [Xi Weng](https://en.gsm.pku.edu.cn/faculty/wengxi125/), 31st Challenger Cup of Peking University, Special Prize.
+* Working Paper:
+  * [_Effects of Rank-Based Categorized Scoring in National College Entrance Examination (Gaokao) on Involution of Highschool Students_](../linked_files/等级赋分制对高考考生内卷程度的影响.pdf), Guided by [Xi Weng](https://en.gsm.pku.edu.cn/faculty/wengxi125/), 31st Challenger Cup of Peking University, Special Prize.
 
-    I cooperated with 5 other teammates and took the main responsibility for data analysis and paper writing.
-  * [_Performance or Effort? The Effect of Inter-Team Competition on Intra-Team Peer Evaluation_](../linked_files/“功劳”还是“苦劳”？——团队间竞争对团队成员互评的影响.pdf), First Co-Author, Guided by [Juanjuan Meng](https://en.gsm.pku.edu.cn/faculty/jumeng/), 32nd Challenger Cup of Peking University, Third Prize.
+    _Abstract: _This study focuses on exploring the influence of the ranking- based categorized scoring on the degree of involution among high school students in the context of the reform of China's College Entrance Examination (Gaokao). A theoretical model is constructed based on the tournament theory and the large contest theory, and it is predicted that within the major subjects, ranking-based categorized scoring will not change the degree of involution, but it will affect the degree of involution within the elective subjects; under certain conditions, an increase in the density of categories in ranking-based categorized scoring will reduce the degree of involution; the influence of implementing the ranking-based categorized scoring on involution depends on specific parameters, but the results of simulations using real-world parameters show that the implementation of the ranking-based categorized scoring in reality will reduce the overall degree of involution among students. This study then uses variables such as education expenditure and pressure level of students in the CFPS database to explore the influence of the College Entrance Examination reform on involution among highschool students in Shanghai and Zhejiang. Furthermore, a questionnaire survey is conducted to obtain updated and more comprehensive samples covering more provinces, while including controlled variables in a more detailed manner. Finally, online experiments is conducted, where typing and mental arithmetic tasks are used to simulate the College Entrance Examination scenario. The experiments deeply explore the relationship between whether and of what category density ranking-based categorized scoring is adopted and the degree of involution, ultimately verifying the theoretical predictions.
+  * [_Performance or Effort? The Effect of Inter-Team Competition on Intra-Team Peer Evaluation_](../linked_files/“功劳”还是“苦劳”？——团队间竞争对团队成员互评的影响.pdf), Guided by [Juanjuan Meng](https://en.gsm.pku.edu.cn/faculty/jumeng/), 32nd Challenger Cup of Peking University, Third Prize.
 
-    I cooperated with 2 other teammates and participated in experimental design, data analysis, and paper writing.
-* In progress:
-  * _Changes and Interventions: Property Fee Payment Behaviors_, Research Assistant, DBA Program Guided by [Juanjuan Meng](https://en.gsm.pku.edu.cn/faculty/jumeng/).
+    _Abstract: _Peer evaluation is a widely used assessment mechanism in various organizations. Our work aims to investigate the behavioral changes in peer evaluation among team members and the underlying emphasis on “effort”and“performance”following the introduction of inter-team competition. Additionally, we explore the influence of team identification on this process. Through a combination of theoretical assumptions and a series of behavioral experiments, our findings highlight that inter-team competition stimulates a heightened level of team identification among individuals, subsequently leading to a greater allocation of weight to effort during peer evaluations within teams. Notably, this effect is more pronounced among team members with relatively high abilities. Furthermore, our results indicate no significant relationship between the observed effects and project outcomes or bonuses. Importantly, when team identification is weakened, this effect significantly diminishes or even disappears. Our study addresses the existing research gap regarding the interaction between “inter-team competition,"“peer evaluation,”and“team identification”This not only provides a reference for organizations such as schools, enterprises, and governments on how to design more reasonable assessment mechanisms but also proposes possible directions for cultivating a sense of collective honor and team pride in team building.
+* Work in Progress:
+  * _Changes and Interventions: Property Fee Payment Behaviors_, Coauthored with [Juanjuan Meng](https://en.gsm.pku.edu.cn/faculty/jumeng/).
 
-    I handled data analysis and participated in the design of nudge.
-  * _Why Ordinally Inefficiency of RSD?_, First Co-Author with [Esteban Peralta](https://sites.lsa.umich.edu/eperalta/) and [Fernando Tohmé](https://gcas.ie/why-gcas/research/research-fellows/fernando-tohme).
+    This study examines the factors influencing property management fee payment behaviors in two large communities in major Chinese cities. By analyzing data and investigating several exogenous shocks, we find that group identity, mental accounting, and appreciation of the property management company significantly impact payment behaviors. Additionally, a randomized controlled trial (RCT) reveals different types of information to various groups. The RCT results indicate that providing pure information improves overall payment behavior, with different attributes of information yielding distinct effects.
+  * _Why Ordinally Inefficiency of RSD?_, Coauthored with [Esteban Peralta](https://sites.lsa.umich.edu/eperalta/) and [Fernando Tohmé](https://gcas.ie/why-gcas/research/research-fellows/fernando-tohme).
 
-    I came up with the idea and am now cooperatively pushing forward the research with two professers in this field.
+    When evaluating lotteries, agents prefer those with higher expected utility. However, the assumption that agents are expected utility maximizers implicitly requires that responsiveness holds, which partly explains the ordinal inefficiency of RSD. In reality, evaluating a lottery involves comparing bundles, allowing for other interpretations. Under different frameworks, the lottery prescribed by RSD can be rationalized.
 
 <span class='anchor' id='awards'></span>
 
 # 🎖 Awards
 
-* _Merit Student_. 2023, Peking University.
-* _Shanxi Xinghuacun Fenjiu Distillery Co.,Ltd. Scholarship_. 2023, Shanxi Xinghuacun Fenjiu Distillery Co.,Ltd.
-* _Special Prize of 31st "Challenger Cup" of Peking University (with 5 Other Teammates)_. 2023, Peking University Communist Youth League, Peking University "Challenger Cup" Project Office.
-* _Merit Student_. 2022, Peking University.
-* _Third Class Scholarship of Peking University_. 2022, Peking University.
-* _Third Class Freshman Scholarship of Peking University_. 2021, Peking University.
+* _Shanxi Xinghuacun Fenjiu Distillery Co.,Ltd. Scholarship_ (1%), 2023.
+* _Special Prize of 31st "Challenger Cup" of Peking University_ (1%), 2023.
+* _Merit Student of Peking University_ (10%), 2023.
+* _Merit Student of Peking University_ (10%), 2022.
 
 <span class='anchor' id='lecturenotes'></span>
 
