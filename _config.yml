@@ -7,7 +7,7 @@
 
 # Site Settings
 title                    : "Rui Zhou"
-description              : "Research Interest: Behavioral Economics and Matching Design."
+description              : "Research Interest: Behavioral Economics, Market Design."
 repository               : "ruizhou03/ruizhou03.github.io"
 google_scholar_stats_use_cdn : true
 
@@ -23,12 +23,12 @@ baidu_site_verification  :  # get baidu_site_verification from https://ziyuan.ba
 author:
   name             : "Rui Zhou"
   avatar           : "images/android-chrome-512x512.png"
-  bio              : "Econ Junior at Guanghua School of Management, Peking University"
+  bio              : "Econ Senior at Guanghua School of Management, Peking University"
   location         : "Beijing, China"
   employer         :
   pubmed           : 
   googlescholar    : # "https://scholar.google.com/citations?user=1Us2WCIAAAAJ&hl"
-  email            : "zircon@stu.pku.edu.cn"
+  email            : "ruizhou@stu.pku.edu.cn"
   researchgate     : 
   uri              :
   bitbucket        :
@@ -40,7 +40,7 @@ author:
   github           : ruizhou03
   google_plus      :
   keybase          :
-  instagram        : zirconeey
+  instagram        : # zirconeey
   impactstory      : # e.g., "https://profiles.impactstory.org/u/xxxx-xxxx-xxxx-xxxx"
   lastfm           :
   linkedin         : # e.g., "linkedin username"
