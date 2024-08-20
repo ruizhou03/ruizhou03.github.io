@@ -24,14 +24,14 @@ Rui Zhou is an Economics major student who shows strong interest in behavioral e
 
 # 🧑‍🎓 Education
 
-- *2021.09 Till Now*, [**Guanghua School of Management**](https://en.gsm.pku.edu.cn/), [**Peking University**](https://english.pku.edu.cn/), Beijing, China.
+- *Sept 2021 - July 2025 (Expected)*, [**Guanghua School of Management**](https://en.gsm.pku.edu.cn/), [**Peking University**](https://english.pku.edu.cn/), Beijing, China.
   - _Bachelor of Economics_
   - GPA: **3.841/4.000 (Top 15%)**. Here is my [**transcript from Peking University**](../linked_files/Transcript (Peking University).pdf).
     * Graduate Courses: Advanced Microeconomics (96), Advanced Econometrics (97), Real Analysis (96), Development Economics (95)
     * Core Courses: Advanced Math (98), Intermediate Microeconomics (99), Intermediate Econometrics (96), Behavioral Economics (95), Game Theory (95)
     * TA Experience: Behavioral Economics (Fall 2023, Instructor: [Juanjuan Meng](https://en.gsm.pku.edu.cn/faculty/jumeng/))
       <!-- Advanced Microeconomics (Fall 2024, Instructor: [Eric Shi](https://econ.pku.edu.cn/english/faculty/fulltimefaculty/sdfasd/357924.htm)) -->
-- *2024.01-2024.05*, [**Ross School of Business**](https://michiganross.umich.edu/), [**University of Michigan**](https://umich.edu/), Ann Arbor, USA.
+- *Jan 2024 - May 2024*, [**Ross School of Business**](https://michiganross.umich.edu/), [**University of Michigan**](https://umich.edu/), Ann Arbor, USA.
   - _Exchange Student_
   - GPA: **4.321/4.000**. Here is my [**transcript from University of Michigan**](../linked_files/Transcript (University of Michigan).pdf).
   - Courses: Introduction to Real Analysis (Graduate Course, A), Matching & Market Design (A+), Industrial Organization & Performance (A), Government Revenues (A) 
