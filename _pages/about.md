@@ -76,8 +76,8 @@ Rui Zhou is an Economics major student who shows strong interest in behavioral e
 
 # 🎖 Awards
 
-* _Shanxi Xinghuacun Fenjiu Distillery Co.,Ltd. Scholarship_ (1%), 2023.
 * _Special Prize of 31st "Challenger Cup" of Peking University_ (1%), 2023.
+* _Shanxi Xinghuacun Fenjiu Distillery Co.,Ltd. Scholarship_ (1%), 2023.
 * _Merit Student of Peking University_ (10%), 2023.
 * _Merit Student of Peking University_ (10%), 2022.
 
@@ -88,6 +88,7 @@ Rui Zhou is an Economics major student who shows strong interest in behavioral e
 I have been actively engaged in courses that are crucial to my economics foundation. The followings are my selected lecture notes.
 
 * [Advanced Microeconomics](../linked_files/Advanced Microeconomics.pdf)
+  * Chapter 1: 
 * [Advanced Econometrics](../linked_files/Advanced Econometrics.pdf)
 * [Intermediate Econometrics](../linked_files/Intermediate Econometrics.pdf)
 * [Public Economics](../linked_files/Public Economics.pdf)
