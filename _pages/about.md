@@ -88,13 +88,12 @@ Rui Zhou is an Economics major student who shows strong interest in behavioral e
 I have been actively engaged in courses that are crucial to my economics foundation. The followings are my selected lecture notes.
 
 * [Advanced Microeconomics](../linked_files/Advanced Microeconomics.pdf)
-  * Chapter 1: Choice Theory
-  * Chapter 2: Consumer Theory
-  * Chapter 3: Production Theory
-  * Chapter 4: Cost Minimization Problem
-  * Chapter 5: Comparative Statics Analysis
-  * Chapter 6: Uncertainty
-  * Chapter 7: General Equilibrium
+  * [Chapter 1: Choice Theory](../linked_files/Chapter1_Choice Theory.pdf)
+  * [Chapter 2: Consumer Theory](../linked_files/Chapter2_Consumer Theory.pdf)
+  * [Chapter 3: Production Theory](../linked_files/Chapter3_Production Theory.pdf)
+  * [Chapter 4: Comparative Statics Analysis](../linked_files/Chapter4_Comparative Statics.pdf)
+  * [Chapter 5: Uncertainty](../linked_files/Chapter5_Uncertainty.pdf)
+  * [Chapter 6: General Equilibrium](../linked_files/Chapter6_General Equilibrium.pdf)
 * [Advanced Econometrics](../linked_files/Advanced Econometrics.pdf)
 * [Intermediate Econometrics](../linked_files/Intermediate Econometrics.pdf)
 * [Public Economics](../linked_files/Public Economics.pdf)
