@@ -18,16 +18,18 @@ redirect_from:
 
 I am an Economics-major senior at Peking University. My primary research focus lies in **behavioral economics**, complemented by interests in **applied economics** and **matching theory**. These interests are supported by substantial research experiences and solid coursework. I am also open to exploring other fields in PhD studies.
 
+Here is my [CV](../linked_files/CV (Rui Zhou).pdf)
+
 <span class='anchor' id='education'></span>
 
 # 🎓 Education
 
 - **Bachelor of Economics**, [Peking University](https://english.pku.edu.cn/), Beijing, China. *Sept 2021 to Jul 2025 (Expected)*.
-  - GPA: **3.841/4.000 (Top 10%)**; Last Two Year GPA: 3.890; Junior GPA: 3.909 ([**PKU Transcript**](../linked_files/Transcript (Peking University).pdf)).
+  - GPA: **3.841/4.000 (Top 10%)**; Last Two Year GPA: 3.890; Junior GPA: 3.909 ([**PKU Transcript**](../linked_files/Transcript (PKU).pdf)).
     * Advanced Courses: Advanced Microeconomics Theory (96), Advanced Econometrics (97), Development Economics (95).
     * Core Courses: Advanced Math (98), Intermediate Microeconomics (99), Intermediate Econometrics (96), Behavioral Economics (95), Game Theory (95).
 - **Exchange Student**, University of Michigan, Ann Arbor, USA. *Jan 2024 to May 2024*.
-  - GPA: **4.000/4.000** ([**UofM Transcript**](../linked_files/Transcript (University of Michigan).pdf)).
+  - GPA: **4.000/4.000** ([**UofM Transcript**](../linked_files/Transcript (UofM).pdf)).
   - Courses: Introduction to Real Analysis (*Graduate-Level*, A), Matching & Market Design (A+), Industrial Organization & Performance (A), Government Revenues (A).
 
 <span class='anchor' id='TAships'></span>
@@ -45,7 +47,7 @@ I am an Economics-major senior at Peking University. My primary research focus l
 
 # 📑 Working Papers
 
-"**Grading Systems and Student Effort: Evidence from China's Gaokao Reform.**"
+"[**Grading Systems and Student Effort: Evidence from China's Gaokao Reform.**](../Writing Sample/Grading Systems and Student Effort.pdf)"
 
 China's College Entrance Examination (Gaokao) is the main channel for college admissions. The Gaokao consists of main subjects and selective subjects, both of which adopted absolute grading before the Gaokao reform. The Gaokao reform changed the grading system of selective subjects from absolute to relative. This study focuses on its potential to reduce student effort. Specifically, we document evidence of this effect through a theoretical model, a questionnaire survey, and an online experiment. The results consistently show that this change in grading systems induces less student effort, entirely driven by the effort reduction in selective subjects, with no change in main subjects. This paper is relevant to policy design, suggesting that changing the grading system from absolute to relative could serve as an indirect yet effective tool for alleviating the intense competition among high school students.
 
@@ -72,7 +74,7 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
   * Reading: 30.
   * Writing: 29.
   * Speaking: 24.
-* GRE
+* **GRE**
   * Verbal Reasoning: 158 (77$^{\mathrm{th}}$ Percentile).
   * Quantatitive Reasoning: 170 (92$^{\mathrm{nd}}$ Percentile).
   * Analytical Writing: 4.0 (59$^{\mathrm{nd}}$ Percentile).
