@@ -30,7 +30,7 @@ I am an Economics-major senior at Peking University. My primary research focus l
   - GPA: **4.000/4.000** ([**UofM Transcript**](../linked_files/Transcript (University of Michigan).pdf)).
   - Courses: Introduction to Real Analysis (*Graduate-Level*, A), Matching & Market Design (A+), Industrial Organization & Performance (A), Government Revenues (A).
 
-<span class='anchor' id='background'></span>
+<span class='anchor' id='TAships'></span>
 
 # 🧑‍🏫 Teaching Experiences
 
@@ -40,6 +40,8 @@ I am an Economics-major senior at Peking University. My primary research focus l
 * **Teaching Assistant for Advanced Microeconomics Theory** (Fall 2024, *Graduate Course*, Instructed by Prof. [Fanqi Shi](https://sites.google.com/view/fanqi-site/home)).
 
   In addition to grading and writing solutions for problems sets and exams, I gave TA sections to help the first-year PhD students review key concepts learned in lectures.
+
+<span class='anchor' id='researchexp'></span>
 
 # 📑 Working Papers
 
@@ -61,6 +63,8 @@ In China, people typically live inside a community whose daily affairs are maint
 
 When evaluating lotteries, agents typically prefer those that offer higher expected utilities. Under this notion, Randomized Serial Dictatorship (RSD) produces may produce lotteries that are ordinally inefficient. However, the assumption that agents are expected utility maximizers implicitly relies on the assumption of responsive preferences. In practice, evaluating a lottery involves comparing sets of objects, and responsiveness is often a strong assumption. This leaves room for alternative interpretations of the ordinal inefficiency. Within a different theoretical framework, the ordinal inefficiency of lotteries induced by RSD can potentially be rationalized.
 
+<span class='anchor' id='testandskill'></span>
+
 # 💯 Test Scores
 
 * **TOEFL: 112 (Total)**
@@ -77,6 +81,8 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
 * Advanced: R, $\LaTeX$, Markdown
 * Proficient: Python, Stata, Matlab
 
+<span class='anchor' id='awards'></span>
+
 # 🥇 Awards
 
 * Peking University ICBC STAR Scholarship (Top 1%), Sept 2024.
@@ -90,7 +96,7 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
 * Third-Class Scholarship of Peking University (Top 10%), Sept 2022.
 * Peking University Third-Class Freshman Scholarship (Top 10%), Sept 2021.
 
-<span class='anchor' id='researchexp'></span>
+<span class='anchor' id='lecnote'></span>
 
 # 📒 Lecture Notes
 
