@@ -35,7 +35,29 @@ I am an Economics-major senior at Peking University. My primary research focus l
 
 # Teaching Experiences
 
+* **Teaching Assistant for Behavioral Economics** (Fall 2023, Instructed by Juanjuan Meng).
 
+  I helped manage the course logistics, graded assignments and held TA sessions to provide constructive feedback and course review.
+* **Teaching Assistant for Advanced Microeconomics Theory** (Fall 2024, *Graduate Course*, Instructed by Fanqi Shi).
+
+  In addition to grading and writing solutions for problems sets and exams, I gave TA sections to help the first-year PhD students review key concepts learned in lectures.
+
+# Technical Skills
+* Advanced: R, $\LaTeX$, Markdown
+* Proficient: Python, Stata, Matlab
+
+# Awards
+
+* Peking University ICBC STAR Scholarship (Top 1%), Sept 2024.
+* Peking University Academic Excellence Award (Top 10%), Sept 2024.
+* Third Prize of 32$^{\mathrm{nd}}$ "Challenge Cup" of Peking University (10%), Jun 2024.
+* Peking University Fenjiu Group Charity Scholarship (Top 10%), Sept 2023.
+* Peking University Merit Student for the Academic Year 2022-2023 (Top 10%), Sept 2023.
+* Special Prize of 31$^{\mathrm{st}}$ "Challenge Cup" of Peking University (1%), Jun 2023.
+* First Prize of the 33$^{\mathrm{rd}}$ Beijing College Students Mathematical Competition (Economics and Management Category) (Top 1%), Dec 2022.
+* Peking University Merit Student for the Academic Year 2021-2022 (Top 10%), Sept 2022.
+* Third-Class Scholarship of Peking University (Top 10%), Sept 2022.
+* Peking University Third-Class Freshman Scholarship (Top 10%), Sept 2021.
 
 # ✅ Background
 
