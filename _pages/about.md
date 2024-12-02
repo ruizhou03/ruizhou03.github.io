@@ -16,27 +16,25 @@ redirect_from:
 {% assign url = gsDataBaseUrl | append: "google-scholar-stats/gs_data_shieldsio.json" %}
 
 
-Rui Zhou is an Economics major student who shows strong interest in behavioral economics and matching design. He has a solid understanding of economics and performed well in his selected courses, including graduate-level ones. He is interested in both empirical and theoretical researches, and has gained knowledge and methodologies from RA experiences and independent studies.
-
+I am an Economics-major senior at Peking University. My primary research focus lies in **behavioral economics**, complemented by interests in **applied economics** and **matching theory**. These interests are supported by substantial research experiences and solid coursework. I am also open to exploring other fields in PhD studies.
 
 
 <span class='anchor' id='education'></span>
 
 # 🧑‍🎓 Education
 
-- *Sept 2021 - July 2025 (Expected)*, [**Guanghua School of Management**](https://en.gsm.pku.edu.cn/), [**Peking University**](https://english.pku.edu.cn/), Beijing, China.
-  - _Bachelor of Economics_
-  - GPA: **3.841/4.000 (Top 15%)**. Here is my [**transcript from Peking University**](../linked_files/Transcript (Peking University).pdf).
-    * Graduate Courses: Advanced Microeconomics (96), Advanced Econometrics (97), Real Analysis (96), Development Economics (95)
-    * Core Courses: Advanced Math (98), Intermediate Microeconomics (99), Intermediate Econometrics (96), Behavioral Economics (95), Game Theory (95)
-    * TA Experience: Behavioral Economics (Fall 2023, Instructor: [Juanjuan Meng](https://en.gsm.pku.edu.cn/faculty/jumeng/))
-      <!-- Advanced Microeconomics (Fall 2024, Instructor: [Eric Shi](https://econ.pku.edu.cn/english/faculty/fulltimefaculty/sdfasd/357924.htm)) -->
-- *Jan 2024 - May 2024*, [**Ross School of Business**](https://michiganross.umich.edu/), [**University of Michigan**](https://umich.edu/), Ann Arbor, USA.
-  - _Exchange Student_
-  - GPA: **4.321/4.000**. Here is my [**transcript from University of Michigan**](../linked_files/Transcript (University of Michigan).pdf).
-  - Courses: Introduction to Real Analysis (Graduate Course, A), Matching & Market Design (A+), Industrial Organization & Performance (A), Government Revenues (A) 
+- **Bachelor of Economics**, [Peking University](https://english.pku.edu.cn/), Beijing, China. *Sept 2021 to July 2025 (Expected)*.
+  - GPA: **3.841/4.000 (Top 10%)**; Last Two Year GPA: 3.890; Junior GPA: 3.909 ([**PKU Transcript**](../linked_files/Transcript (Peking University).pdf)).
+    * Advanced Courses: Advanced Microeconomics Theory (96), Advanced Econometrics (97), Development Economics (95).
+    * Core Courses: Advanced Math (98), Intermediate Microeconomics (99), Intermediate Econometrics (96), Behavioral Economics (95), Game Theory (95).
+- **Exchange Student**, [**University of Michigan**](https://umich.edu/), Ann Arbor, USA. *Jan 2024 to May 2024*.
+  - GPA: **4.000/4.000** ([**UofM Transcript**](../linked_files/Transcript (University of Michigan).pdf)).
+  - Courses: Introduction to Real Analysis (*Graduate-Level*, A), Matching & Market Design (A+), Industrial Organization & Performance (A), Government Revenues (A).
 
 <span class='anchor' id='background'></span>
+
+# Teaching Experiences
+
 
 
 # ✅ Background
