@@ -20,7 +20,7 @@ I am an Economics-major senior at Peking University. My primary research focus l
 
 <span class='anchor' id='education'></span>
 
-# 🧑‍🎓 Education
+# 🎓 Education
 
 - **Bachelor of Economics**, [Peking University](https://english.pku.edu.cn/), Beijing, China. *Sept 2021 to Jul 2025 (Expected)*.
   - GPA: **3.841/4.000 (Top 10%)**; Last Two Year GPA: 3.890; Junior GPA: 3.909 ([**PKU Transcript**](../linked_files/Transcript (Peking University).pdf)).
@@ -32,7 +32,7 @@ I am an Economics-major senior at Peking University. My primary research focus l
 
 <span class='anchor' id='background'></span>
 
-# Teaching Experiences
+# 🧑‍🏫 Teaching Experiences
 
 * **Teaching Assistant for Behavioral Economics** (Fall 2023, Instructed by Prof. [Juanjuan Meng](https://sites.google.com/site/juanjuanmeng/)).
 
@@ -41,7 +41,7 @@ I am an Economics-major senior at Peking University. My primary research focus l
 
   In addition to grading and writing solutions for problems sets and exams, I gave TA sections to help the first-year PhD students review key concepts learned in lectures.
 
-# Working Papers
+# 📑 Working Papers
 
 "**Grading Systems and Student Effort: Evidence from China's Gaokao Reform.**"
 
@@ -51,7 +51,7 @@ China's College Entrance Examination (Gaokao) is the main channel for college ad
 
 Peer evaluation is a widely used assessment mechanism in various organizations. This study investigates how the introduction of inter-team competition affects intra-team peer evaluation in balancing between performance and effort. Additionally, it explores the role of team identification as a mediating channel. Through a series of questionnaire experiments, the findings reveal that inter-team competition enhances team identification among individuals, which subsequently leads to a greater emphasis on effort over performance in peer evaluations. Notably, this effect is more pronounced among teams with high-ability members but shows no correlation with project outcomes or bonus amounts. Moreover, when team identification is weakened, this effect diminishes significantly or even disappears. This study addresses an important research gap regarding the interaction between team competition, peer evaluation, and team identification.
 
-# Work in Progress
+# ✒️ Work in Progress
 
 "**What Behavioral Factors Influence Property Fee Payments? Evidence from China’s Residential Communities.**" With [Juanjuan Meng](https://sites.google.com/site/juanjuanmeng/) and Tianyi Che.
 
@@ -61,9 +61,7 @@ In China, people typically live inside a community whose daily affairs are maint
 
 When evaluating lotteries, agents typically prefer those that offer higher expected utilities. Under this notion, Randomized Serial Dictatorship (RSD) produces may produce lotteries that are ordinally inefficient. However, the assumption that agents are expected utility maximizers implicitly relies on the assumption of responsive preferences. In practice, evaluating a lottery involves comparing sets of objects, and responsiveness is often a strong assumption. This leaves room for alternative interpretations of the ordinal inefficiency. Within a different theoretical framework, the ordinal inefficiency of lotteries induced by RSD can potentially be rationalized.
 
-# Work in Progress
-
-# Test Scores
+# 💯 Test Scores
 
 * **TOEFL: 112 (Total)**
   * Listening: 29.
@@ -75,11 +73,11 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
   * Quantatitive Reasoning: 170 (92$^{\mathrm{nd}}$ Percentile).
   * Analytical Writing: 4.0 (59$^{\mathrm{nd}}$ Percentile).
 
-# Technical Skills
+# 💻 Technical Skills
 * Advanced: R, $\LaTeX$, Markdown
 * Proficient: Python, Stata, Matlab
 
-# Awards
+# 🥇 Awards
 
 * Peking University ICBC STAR Scholarship (Top 1%), Sept 2024.
 * Peking University Academic Excellence Award (Top 10%), Sept 2024.
@@ -92,49 +90,7 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
 * Third-Class Scholarship of Peking University (Top 10%), Sept 2022.
 * Peking University Third-Class Freshman Scholarship (Top 10%), Sept 2021.
 
-# ✅ Background
-
-* [**Curriculum Vitae**](../linked_files/Rui_Zhou_CV.pdf) (Updated in August 2024).
-* Email: <a href="mailto:ruizhou@stu.pku.edu.cn">ruizhou@stu.pku.edu.cn</a>
-* **GPA: 3.841/4.000 (11.4%)**
-  * [**Transcript from Peking University**](../linked_files/Transcript (Peking University).pdf)
-  * [**Transcript from University of Michigan**](../linked_files/Transcript (University of Michigan).pdf).
-* Programming Languages: **R, Python, Stata, Matlab**. Most skilled at R, familiar with Python, Stata and Matlab. Besides, I use Markdown and $\LaTeX$ everyday.
-* English Proficiency: [**TOEFL 112**](../linked_files/Rui_Zhou_TOEFL.pdf), Reading 30, Listening 29, Speaking 24, Writing 29.
-* GRE: Verbal Reasoning 158, Quantitive Reasoning 170, Analytical Writing 4.
-* [Weixin Official Account](https://mp.weixin.qq.com/s?__biz=Mzk0NTMxNjcxNg==&mid=2247491485&idx=1&sn=c4fda51b662c9130550966d2eb22787e&chksm=c316699ef461e0887070e8ffcf1063606982dde436ac0c45437d1a35dd4552d443991dd4d635#rd): I have published hundreds of original articles on my personal Weixin Official Account and gained thousands of followers. The articles mainly include lecture notes, practical skills, and personal reflections.
-
-
 <span class='anchor' id='researchexp'></span>
-
-
-# 🧪 Research Experiences
-
-* Working Paper:
-  * [_Effects of Rank-Based Categorized Scoring in National College Entrance Examination (Gaokao) on Involution of Highschool Students_](../linked_files/等级赋分制对高考考生内卷程度的影响.pdf), Guided by [Xi Weng](https://en.gsm.pku.edu.cn/faculty/wengxi125/).
-
-    *Abstract:* This study focuses on exploring the influence of the ranking- based categorized scoring on the degree of involution among high school students in the context of the reform of China's College Entrance Examination (Gaokao). A theoretical model is constructed based on the tournament theory and the large contest theory, and it is predicted that within the major subjects, ranking-based categorized scoring will not change the degree of involution, but it will affect the degree of involution within the elective subjects; under certain conditions, an increase in the density of categories in ranking-based categorized scoring will reduce the degree of involution; the influence of implementing the ranking-based categorized scoring on involution depends on specific parameters, but the results of simulations using real-world parameters show that the implementation of the ranking-based categorized scoring in reality will reduce the overall degree of involution among students. This study then uses variables such as education expenditure and pressure level of students in the CFPS database to explore the influence of the College Entrance Examination reform on involution among highschool students in Shanghai and Zhejiang. Furthermore, a questionnaire survey is conducted to obtain updated and more comprehensive samples covering more provinces, while including controlled variables in a more detailed manner. Finally, online experiments is conducted, where typing and mental arithmetic tasks are used to simulate the College Entrance Examination scenario. The experiments deeply explore the relationship between whether and of what category density ranking-based categorized scoring is adopted and the degree of involution, ultimately verifying the theoretical predictions.
-  * [_Performance or Effort? The Effect of Inter-Team Competition on Intra-Team Peer Evaluation_](../linked_files/“功劳”还是“苦劳”？——团队间竞争对团队成员互评的影响.pdf), Guided by [Juanjuan Meng](https://en.gsm.pku.edu.cn/faculty/jumeng/).
-
-    *Abstract:* Peer evaluation is a widely used assessment mechanism in various organizations. Our work aims to investigate the behavioral changes in peer evaluation among team members and the underlying emphasis on “effort”and“performance”following the introduction of inter-team competition. Additionally, we explore the influence of team identification on this process. Through a combination of theoretical assumptions and a series of behavioral experiments, our findings highlight that inter-team competition stimulates a heightened level of team identification among individuals, subsequently leading to a greater allocation of weight to effort during peer evaluations within teams. Notably, this effect is more pronounced among team members with relatively high abilities. Furthermore, our results indicate no significant relationship between the observed effects and project outcomes or bonuses. Importantly, when team identification is weakened, this effect significantly diminishes or even disappears. Our study addresses the existing research gap regarding the interaction between “inter-team competition,"“peer evaluation,”and“team identification”This not only provides a reference for organizations such as schools, enterprises, and governments on how to design more reasonable assessment mechanisms but also proposes possible directions for cultivating a sense of collective honor and team pride in team building.
-* Work in Progress:
-  * _Changes and Interventions: Property Fee Payment Behaviors_, Coauthored with [Juanjuan Meng](https://en.gsm.pku.edu.cn/faculty/jumeng/).
-
-    This study examines the factors influencing property management fee payment behaviors in two large communities in major Chinese cities. By analyzing data and investigating several exogenous shocks, we find that group identity, mental accounting, and appreciation of the property management company significantly impact payment behaviors. Additionally, a randomized controlled trial (RCT) reveals different types of information to various groups. The RCT results indicate that providing pure information improves overall payment behavior, with different attributes of information yielding distinct effects.
-  * _Why Ordinally Inefficiency of RSD?_, Coauthored with [Esteban Peralta](https://sites.lsa.umich.edu/eperalta/) and [Fernando Tohmé](https://gcas.ie/why-gcas/research/research-fellows/fernando-tohme).
-
-    When evaluating lotteries, agents prefer those with higher expected utility. However, the assumption that agents are expected utility maximizers implicitly requires that responsiveness holds, which partly explains the ordinal inefficiency of RSD. In reality, evaluating a lottery involves comparing bundles, allowing for other interpretations. Under different frameworks, the lottery prescribed by RSD can be rationalized.
-
-<span class='anchor' id='awards'></span>
-
-# 🎖 Awards
-
-* _Special Prize of 31st "Challenger Cup" of Peking University_ (1%), 2023.
-* _Shanxi Xinghuacun Fenjiu Distillery Co.,Ltd. Scholarship_ (1%), 2023.
-* _Merit Student of Peking University_ (10%), 2023.
-* _Merit Student of Peking University_ (10%), 2022.
-
-<span class='anchor' id='lecturenotes'></span>
 
 # 📒 Lecture Notes
 
