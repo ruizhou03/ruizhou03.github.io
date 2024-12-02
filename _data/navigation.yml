@@ -1,7 +1,5 @@
 # main links links
 main:
-  - title: "Background"
-    url: "/#background"
   
   - title: "Education"
     url: "/#education"
