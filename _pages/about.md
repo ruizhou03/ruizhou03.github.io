@@ -47,7 +47,7 @@ Here is my [CV](../linked_files/CV (Rui Zhou).pdf)
 
 # 📑 Working Papers
 
-"[**Grading Systems and Student Effort: Evidence from China's Gaokao Reform.**](../Writing Sample/Grading Systems and Student Effort.pdf)"
+"[**Grading Systems and Student Effort: Evidence from China's Gaokao Reform.**](../linked_files/Grading Systems and Student Effort.pdf)"
 
 China's College Entrance Examination (Gaokao) is the main channel for college admissions. The Gaokao consists of main subjects and selective subjects, both of which adopted absolute grading before the Gaokao reform. The Gaokao reform changed the grading system of selective subjects from absolute to relative. This study focuses on its potential to reduce student effort. Specifically, we document evidence of this effect through a theoretical model, a questionnaire survey, and an online experiment. The results consistently show that this change in grading systems induces less student effort, entirely driven by the effort reduction in selective subjects, with no change in main subjects. This paper is relevant to policy design, suggesting that changing the grading system from absolute to relative could serve as an indirect yet effective tool for alleviating the intense competition among high school students.
 
@@ -69,12 +69,12 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
 
 # 💯 Test Scores
 
-* **TOEFL: 112 (Total)**
+* [**TOEFL: 112 (Total)**](../linked_files/TOEFL (Rui Zhou).pdf)
   * Listening: 29.
   * Reading: 30.
   * Writing: 29.
   * Speaking: 24.
-* **GRE**
+* [**GRE**](../linked_files/GRE (Rui Zhou).pdf)
   * Verbal Reasoning: 158 (77$^{\mathrm{th}}$ Percentile).
   * Quantatitive Reasoning: 170 (92$^{\mathrm{nd}}$ Percentile).
   * Analytical Writing: 4.0 (59$^{\mathrm{nd}}$ Percentile).
