@@ -98,7 +98,7 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
 * Third-Class Scholarship of Peking University (Top 10%), Sept 2022.
 * Peking University Third-Class Freshman Scholarship (Top 10%), Sept 2021.
 
-<span class='anchor' id='lecnote'></span>
+<span class='anchor' id='lecturenotes'></span>
 
 # 📒 Lecture Notes
 
