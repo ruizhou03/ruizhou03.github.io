@@ -18,7 +18,7 @@ redirect_from:
 
 I am an Economics-major senior at Peking University. My primary research focus lies in **behavioral economics**, complemented by interests in **applied economics** and **matching theory**. These interests are supported by substantial research experiences and solid coursework. I am also open to exploring other fields in PhD studies.
 
-Here is my [CV](../linked_files/CV (Rui Zhou).pdf)
+Here is my [CV](../linked_files/CV (Rui Zhou).pdf).
 
 <span class='anchor' id='education'></span>
 
