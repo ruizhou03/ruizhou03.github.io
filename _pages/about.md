@@ -148,7 +148,14 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
 <div class='paper-box'><div class='paper-box-image'><div><div class="badge">2023.7.1</div><img src='images/econometrics.jpg' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
-[Intermediate Econometrics](../linked_files/Intermediate Econometrics.pdf)
+[Intermediate Econometrics](../linked_files/Intermediate Econometrics/Intermediate Econometrics.pdf)
+  * [Chapter 1-4: Basics about Linear Regression Model](../linked_files/Advanced Econometrics/Chapter1-4_Basics about Linear Regression Model.pdf)
+  * [Chapter 5: MLR Analysis Further Issues](../linked_files/Advanced Econometrics/Chapter5_MLR Analysis Further Issues.pdf)
+  * [Chapter 6: MLR Analysis with Dummy](../linked_files/Advanced Econometrics/Chapter6_MLR Analysis with Dummy.pdf)
+  * [Chapter 7: Heteroskedasticity](../linked_files/Advanced Econometrics/Chapter7_Heteroskedasticity.pdf)
+  * [Chapter 8: More on Specification and Data Issues](../linked_files/Advanced Econometrics/Chapter8_More on Specification and Data Issues.pdf)
+  * [Chapter 9: Panel Data](../linked_files/Advanced Econometrics/Chapter9_Panel Data.pdf)
+  * [Chapter 10: IV Estimation & 2SLS](../linked_files/Advanced Econometrics/Chapter10_IV Estimation & 2SLS.pdf)
 </div>
 </div>
 
