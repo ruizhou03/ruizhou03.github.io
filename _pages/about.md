@@ -102,15 +102,20 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
 
 # 📒 Lecture Notes
 
-I have been actively engaged in courses that are crucial to my economics foundation. The followings are my selected lecture notes.
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">2024.03.14</div><img src='images/advancedmicro.jpg' alt="sym" width="100%"></div></div>
+<div class='paper-box-text' markdown="1">
 
-* [Advanced Microeconomics](../linked_files/Advanced Microeconomics.pdf)
+[Advanced Microeconomics](../linked_files/Advanced Microeconomics.pdf)
   * [Chapter 1: Choice Theory](../linked_files/Chapter1_Choice Theory.pdf)
   * [Chapter 2: Consumer Theory](../linked_files/Chapter2_Consumer Theory.pdf)
   * [Chapter 3: Production Theory](../linked_files/Chapter3_Production Theory.pdf)
   * [Chapter 4: Comparative Statics Analysis](../linked_files/Chapter4_Comparative Statics.pdf)
   * [Chapter 5: Uncertainty](../linked_files/Chapter5_Uncertainty.pdf)
   * [Chapter 6: General Equilibrium](../linked_files/Chapter6_General Equilibrium.pdf)
+</div>
+</div>
+
+
 * [Advanced Econometrics](../linked_files/Advanced Econometrics.pdf)
 * [Intermediate Econometrics](../linked_files/Intermediate Econometrics.pdf)
 * [Public Economics](../linked_files/Public Economics.pdf)
