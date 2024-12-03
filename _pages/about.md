@@ -102,7 +102,7 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
 
 # 📒 Lecture Notes
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">2024.03.14</div><img src='images/advancedmicro.jpg' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">2024.1.1</div><img src='images/advancedmicro.png' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
 [Advanced Microeconomics](../linked_files/Advanced Microeconomics.pdf)
@@ -115,9 +115,31 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
 </div>
 </div>
 
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">2024.1.1</div><img src='images/advancedeconometrics.jpg' alt="sym" width="100%"></div></div>
+<div class='paper-box-text' markdown="1">
 
-* [Advanced Econometrics](../linked_files/Advanced Econometrics.pdf)
-* [Intermediate Econometrics](../linked_files/Intermediate Econometrics.pdf)
-* [Public Economics](../linked_files/Public Economics.pdf)
-* [Monetary Economics](../linked_files/Monetary Economics.pdf)
+[Advanced Econometrics](../linked_files/Advanced Econometrics.pdf)
+</div>
+</div>
 
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">2023.7.1</div><img src='images/econometrics.jpg' alt="sym" width="100%"></div></div>
+<div class='paper-box-text' markdown="1">
+
+[Intermediate Econometrics](../linked_files/Intermediate Econometrics.pdf)
+</div>
+</div>
+
+
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">2023.7.1</div><img src='images/public.jpg' alt="sym" width="100%"></div></div>
+<div class='paper-box-text' markdown="1">
+
+[Public Economics](../linked_files/Public Economics.pdf)
+</div>
+</div>
+
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">2023.7.1</div><img src='images/monetary.jpg' alt="sym" width="100%"></div></div>
+<div class='paper-box-text' markdown="1">
+
+[Monetary Economics](../linked_files/Monetary Economics.pdf)
+</div>
+</div>
