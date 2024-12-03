@@ -7,7 +7,7 @@
 
 # Site Settings
 title                    : "Rui Zhou"
-description              : "Research Interest: Behavioral Economics, Market Design."
+description              : "Research Interests: Behavioral Economics, Applied Economics, Matching."
 repository               : "ruizhou03/ruizhou03.github.io"
 google_scholar_stats_use_cdn : true
 
@@ -23,7 +23,7 @@ baidu_site_verification  :  # get baidu_site_verification from https://ziyuan.ba
 author:
   name             : "Rui Zhou"
   avatar           : "images/android-chrome-512x512.png"
-  bio              : "Econ Senior at Guanghua School of Management, Peking University"
+  bio              : "4$^{\mathrm{th}}$ Year Undergraduate at Peking University"
   location         : "Beijing, China"
   employer         :
   pubmed           : 
