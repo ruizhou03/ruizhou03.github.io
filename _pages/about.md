@@ -182,7 +182,7 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
 
 # 🎤 Karaoke Sessions
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">2023.7.1</div><img src='images/53dawns.jpeg' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">2023.7.1</div><img src='images/titlepic/53dawns.jpeg' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
 [53 Dawns （黑夜问白天）](../linked_files/Music/黑夜问白天.m4a)
