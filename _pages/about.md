@@ -122,6 +122,21 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
 </div>
 </div>
 
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">2024.1.1</div><img src='images/realanal.jpg' alt="sym" width="100%"></div></div>
+<div class='paper-box-text' markdown="1">
+
+[Real Analysis](../linked_files/Real Analysis.pdf)
+  * [Chpater 0: Riemann Integration](../linked_files/Chapter 0 Riemann Integration.pdf)
+  * [Chpater 1: Measure](../linked_files/Chapter 1 Measure.pdf)
+  * [Chpater 2: Integration](../linked_files/Chapter 2 Integration.pdf)
+  * [Chpater 3: Differentiation](../linked_files/Chapter 3 Differentiation.pdf)
+  * [Chpater 4: Product of Measures](../linked_files/Chapter 4 Product of Measures.pdf)
+  * [Chpater 5: Lp Spaces](../linked_files/Chapter 4 Lp Spaces.pdf)
+  * [Chpater 6: Banach Spaces](../linked_files/Chapter 6 Banach Spaces.pdf)
+</div>
+</div>
+
+
 <div class='paper-box'><div class='paper-box-image'><div><div class="badge">2023.7.1</div><img src='images/econometrics.jpg' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
