@@ -132,7 +132,15 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
 <div class='paper-box'><div class='paper-box-image'><div><div class="badge">2024.1.1</div><img src='images/advancedeconometrics.jpg' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
-[Advanced Econometrics](../linked_files/Advanced Econometrics.pdf)
+[Advanced Econometrics](../linked_files/Advanced Econometrics/Advanced Econometrics.pdf)
+  * [Chapter 1: Linear Regression Model](../linked_files/Advanced Econometrics/Chapter1_Linear Regression Model.pdf)
+  * [Chapter 2: Properties of OLS Estimation](../linked_files/Advanced Econometrics/Chapter2_Properties of OLS Estimation.pdf)
+  * [Chapter 3: Hypothesis Testing](../linked_files/Advanced Econometrics/Chapter3_Hypothesis Testing.pdf)
+  * [Chapter 4: Endogeneity and Instrumental Variable](../linked_files/Advanced Econometrics/Chapter4_Endogeneity and Instrumental Variable.pdf)
+  * [Chapter 5: Generalized Regression Model and Heteroskedasticity](../linked_files/Advanced Econometrics/Chapter5_Generalized Regression Model and Heteroskedasticity.pdf)
+  * [Chapter 6: Panel Data](../linked_files/Advanced Econometrics/Chapter6_Panel Data.pdf)
+  * [Chapter 7: Maximum Likelihood Estimation](../linked_files/Advanced Econometrics/Chapter7_Maximum Likelihood Estimation.pdf)
+  * [Chapter 8: Time Series Analysis](../linked_files/Advanced Econometrics/Chapter8_Time Series Analysis.pdf)
 </div>
 </div>
 
