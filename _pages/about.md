@@ -18,7 +18,7 @@ redirect_from:
 
 I am an Economics-major senior at Peking University. My primary research focus lies in **behavioral economics**, complemented by interests in **applied economics** and **matching theory**. These interests are supported by substantial research experiences and solid coursework. I am also open to exploring other fields in PhD studies.
 
-Here is my [CV](../linked_files/CV (Rui Zhou).pdf).
+Here is my [CV](../linked_files/Rui Zhou/CV (Rui Zhou).pdf).
 
 <span class='anchor' id='education'></span>
 
@@ -29,7 +29,7 @@ Here is my [CV](../linked_files/CV (Rui Zhou).pdf).
     * Advanced Courses: Advanced Microeconomics Theory (96), Advanced Econometrics (97), Development Economics (95).
     * Core Courses: Advanced Math (98), Intermediate Microeconomics (99), Intermediate Econometrics (96), Behavioral Economics (95), Game Theory (95).
 - **Exchange Student**, University of Michigan, Ann Arbor, USA. *Jan 2024 to May 2024*.
-  - GPA: **4.000/4.000** ([**UofM Transcript**](../linked_files/Transcript (UofM).pdf)).
+  - GPA: **4.000/4.000** ([**UofM Transcript**](../linked_files/Rui Zhou/Transcript (UofM).pdf)).
   - Courses: Introduction to Real Analysis (*Graduate-Level*, A), Matching & Market Design (A+), Industrial Organization & Performance (A), Government Revenues (A).
 
 <span class='anchor' id='TAships'></span>
@@ -47,7 +47,7 @@ Here is my [CV](../linked_files/CV (Rui Zhou).pdf).
 
 # 📑 Working Papers
 
-"[**Grading Systems and Student Effort: Evidence from China's Gaokao Reform.**](../linked_files/Grading Systems and Student Effort.pdf)"
+"[**Grading Systems and Student Effort: Evidence from China's Gaokao Reform.**](../linked_files/Rui Zhou/Grading Systems and Student Effort.pdf)"
 
 China's College Entrance Examination (Gaokao) is the main channel for college admissions. The Gaokao consists of main subjects and selective subjects, both of which adopted absolute grading before the Gaokao reform. The Gaokao reform changed the grading system of selective subjects from absolute to relative. This study focuses on its potential to reduce student effort. Specifically, we document evidence of this effect through a theoretical model, a questionnaire survey, and an online experiment. The results consistently show that this change in grading systems induces less student effort, entirely driven by the effort reduction in selective subjects, with no change in main subjects. This paper is relevant to policy design, suggesting that changing the grading system from absolute to relative could serve as an indirect yet effective tool for alleviating the intense competition among high school students.
 
@@ -69,12 +69,12 @@ When evaluating lotteries, agents typically prefer those that offer higher expec
 
 # 💯 Test Scores
 
-* [**TOEFL: 112 (Total)**](../linked_files/TOEFL (Rui Zhou).pdf)
+* [**TOEFL: 112 (Total)**](../linked_files/Rui Zhou/TOEFL (Rui Zhou).pdf)
   * Listening: 29.
   * Reading: 30.
   * Writing: 29.
   * Speaking: 24.
-* [**GRE**](../linked_files/GRE (Rui Zhou).pdf)
+* [**GRE**](../linked_files/Rui Zhou/GRE (Rui Zhou).pdf)
   * Verbal Reasoning: 158 (77$^{\mathrm{th}}$ Percentile).
   * Quantatitive Reasoning: 170 (92$^{\mathrm{nd}}$ Percentile).
   * Analytical Writing: 4.0 (59$^{\mathrm{nd}}$ Percentile).
