@@ -25,7 +25,7 @@ Here is my [CV](../linked_files/Rui Zhou/CV (Rui Zhou).pdf).
 # 🎓 Education
 
 - **Bachelor of Economics**, [Peking University](https://english.pku.edu.cn/), Beijing, China. *Sept 2021 to Jul 2025 (Expected)*.
-  - GPA: **3.841/4.000 (Top 10%)**; Last Two Year GPA: 3.890; Junior GPA: 3.909 ([**PKU Transcript**](../linked_files/Transcript (PKU).pdf)).
+  - GPA: **3.841/4.000 (Top 10%)**; Last Two Year GPA: 3.890; Junior GPA: 3.909 ([**PKU Transcript**](../linked_files/Rui Zhou/Transcript (PKU).pdf)).
     * Advanced Courses: Advanced Microeconomics Theory (96), Advanced Econometrics (97), Development Economics (95).
     * Core Courses: Advanced Math (98), Intermediate Microeconomics (99), Intermediate Econometrics (96), Behavioral Economics (95), Game Theory (95).
 - **Exchange Student**, University of Michigan, Ann Arbor, USA. *Jan 2024 to May 2024*.
