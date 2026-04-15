@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📘</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%231e3a5f'/><text x='50' y='66' font-family='Georgia,serif' font-size='48' font-weight='bold' fill='white' text-anchor='middle'>RZ</text></svg>">
   <style>
     :root {
       --color-ink: #1a1a2e;
@@ -192,6 +192,14 @@
 
     /* Misc */
     .misc-text { font-size: 0.95rem; color: var(--color-text); line-height: 1.8; margin-bottom: 0.8rem; }
+
+    /* Photo gallery */
+    .gallery-toggle { background: none; border: 1px solid var(--color-border); cursor: pointer; font-size: 0.85rem; color: var(--color-accent); font-weight: 500; padding: 0.4rem 1rem; border-radius: 4px; font-family: var(--font-body); transition: all 0.2s; margin-top: 0.5rem; display: inline-block; }
+    .gallery-toggle:hover { background: var(--color-bg-warm); border-color: var(--color-accent); }
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.8rem; margin-top: 1rem; }
+    .gallery-grid img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 5px; transition: transform 0.3s, opacity 0.3s; cursor: pointer; }
+    .gallery-grid img:hover { transform: scale(1.02); opacity: 0.9; }
+    .gallery-caption { font-size: 0.78rem; color: var(--color-light); text-align: center; margin-top: 0.25rem; }
 
     /* Footer */
     footer { max-width: var(--max-width); margin: 0 auto; padding: 3rem 2rem 4rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
@@ -509,7 +517,6 @@
     <p class="misc-text">
       I was born and raised in China. Outside of economics, I enjoy
       running, singing, and exploring new places.
-      <!-- TODO: update hobbies as you like -->
     </p>
     <p class="misc-text">
       My Chinese given name 睿 (ruì) means "wise" or "sagacious."
@@ -519,15 +526,33 @@
       I also maintain a <a href="https://zirconeey.github.io/">Chinese blog</a>
       where I share course notes, study tips, and personal reflections.
     </p>
+
+    <button class="gallery-toggle" onclick="toggleGallery(this)">&#128247; Photo gallery ▸</button>
+    <div class="gallery-grid" id="photo-gallery" style="display:none;">
+      <!-- Add your photos here. Put images in images/gallery/ folder.
+           Example:
+      <div>
+        <img src="images/gallery/singing.jpeg" alt="Performing at PKU">
+        <div class="gallery-caption">Singing at a campus event, 2023</div>
+      </div>
+      <div>
+        <img src="images/gallery/travel1.jpeg" alt="New York trip">
+        <div class="gallery-caption">New York, Spring 2024</div>
+      </div>
+      -->
+      <div style="grid-column: 1/-1; text-align:center; padding: 2rem 0; color: var(--color-light); font-size: 0.9rem; font-style: italic;">
+        Photos coming soon.
+      </div>
+    </div>
   </section>
 
   <footer>
     <div class="footer-contact">
       <strong>Rui Zhou</strong> &middot; Department of Economics, Penn State University<br>
       <a href="mailto:ruizhou@psu.edu">ruizhou@psu.edu</a> &middot;
-      University Park, PA 16802
+      303 Kern Building, University Park, PA 16802, US
     </div>
-    <div class="footer-copy">&copy; 2025 Rui Zhou</div>
+    <div class="footer-copy">&copy; 2026 Rui Zhou</div>
   </footer>
 
   <script>
@@ -541,6 +566,11 @@
       const el = document.getElementById('chapters-' + id);
       if (el.style.display === 'none') { el.style.display = 'block'; btn.textContent = 'Hide chapters ▾'; }
       else { el.style.display = 'none'; btn.textContent = 'Show chapters ▸'; }
+    }
+    function toggleGallery(btn) {
+      const el = document.getElementById('photo-gallery');
+      if (el.style.display === 'none') { el.style.display = 'grid'; btn.innerHTML = '&#128247; Photo gallery ▾'; }
+      else { el.style.display = 'none'; btn.innerHTML = '&#128247; Photo gallery ▸'; }
     }
     function playNameEN() {
       const u = new SpeechSynthesisUtterance('Rway Joe');
