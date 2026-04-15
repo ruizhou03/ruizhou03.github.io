@@ -473,8 +473,8 @@
       speechSynthesis.speak(u);
     }
     function playNameCN() {
-      // 使用“周瑞”作为同音字替身，强制 TTS 引擎发出标准的四声
-      const u = new SpeechSynthesisUtterance('周瑞');
+      // 使用发音最稳定、没有多音字歧义的“锐”
+      const u = new SpeechSynthesisUtterance('周，锐'); 
       u.lang = 'zh-CN';
       u.rate = 0.8;
       u.pitch = 1;
