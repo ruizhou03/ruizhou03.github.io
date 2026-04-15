@@ -201,6 +201,14 @@
     .gallery-grid img:hover { transform: scale(1.02); opacity: 0.9; }
     .gallery-caption { font-size: 0.78rem; color: var(--color-light); text-align: center; margin-top: 0.25rem; }
 
+    /* Lightbox */
+    .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.88); z-index: 1000; justify-content: center; align-items: center; cursor: pointer; }
+    .lightbox.open { display: flex; }
+    .lightbox img { max-width: 90vw; max-height: 85vh; object-fit: contain; border-radius: 4px; cursor: default; box-shadow: 0 4px 40px rgba(0,0,0,0.5); }
+    .lightbox-caption { position: fixed; bottom: 2rem; left: 0; right: 0; text-align: center; color: #ccc; font-size: 0.9rem; }
+    .lightbox-close { position: fixed; top: 1.2rem; right: 1.5rem; color: #aaa; font-size: 2rem; cursor: pointer; background: none; border: none; transition: color 0.2s; z-index: 1001; }
+    .lightbox-close:hover { color: #fff; }
+
     /* Footer */
     footer { max-width: var(--max-width); margin: 0 auto; padding: 3rem 2rem 4rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
     .footer-contact { font-size: 0.88rem; color: var(--color-muted); line-height: 1.8; }
@@ -530,27 +538,36 @@
     <button class="gallery-toggle" onclick="toggleGallery(this)">&#128247; Photo gallery ▸</button>
     <div class="gallery-grid" id="photo-gallery" style="display:none;">
       <div>
-        <img src="images/gallery/cherry_blossom.jpeg" alt="Cherry blossoms over a lake" loading="lazy">
+        <!-- object-position: center 30% = show upper 30% area. Adjust the % to shift crop -->
+        <!-- 0% = top edge, 50% = center (default), 100% = bottom edge -->
+        <img src="images/gallery/cherry_blossom.jpeg" alt="Cherry blossoms over a lake" loading="lazy" style="object-position: center 30%;" onclick="openLightbox(this)">
         <div class="gallery-caption">Cherry blossoms, Beijing</div>
       </div>
       <div>
-        <img src="images/gallery/star_trails.jpeg" alt="Star trails over dome tents" loading="lazy">
+        <img src="images/gallery/star_trails.jpeg" alt="Star trails over dome tents" loading="lazy" style="object-position: center 70%;" onclick="openLightbox(this)">
         <div class="gallery-caption">Star trails, Inner Mongolia</div>
       </div>
       <div>
-        <img src="images/gallery/clock_tower.jpeg" alt="Century Clock at night" loading="lazy">
+        <img src="images/gallery/clock_tower.jpeg" alt="Century Clock at night" loading="lazy" style="object-position: center 55%;" onclick="openLightbox(this)">
         <div class="gallery-caption">Century Clock, Tianjin</div>
       </div>
       <div>
-        <img src="images/gallery/grassland.jpeg" alt="Horses grazing on grassland" loading="lazy">
+        <img src="images/gallery/grassland.jpeg" alt="Horses grazing on grassland" loading="lazy" onclick="openLightbox(this)">
         <div class="gallery-caption">Grassland, Inner Mongolia</div>
       </div>
       <div>
-        <img src="images/gallery/ship_sunset.jpeg" alt="Cargo ship at sunset" loading="lazy">
+        <img src="images/gallery/ship_sunset.jpeg" alt="Cargo ship at sunset" loading="lazy" onclick="openLightbox(this)">
         <div class="gallery-caption">Sunset by the sea</div>
       </div>
     </div>
   </section>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+    <button class="lightbox-close" onclick="closeLightbox(event)">&times;</button>
+    <img id="lightbox-img" src="" alt="">
+    <div class="lightbox-caption" id="lightbox-caption"></div>
+  </div>
 
   <footer>
     <div class="footer-contact">
@@ -578,6 +595,23 @@
       if (el.style.display === 'none') { el.style.display = 'grid'; btn.innerHTML = '&#128247; Photo gallery ▾'; }
       else { el.style.display = 'none'; btn.innerHTML = '&#128247; Photo gallery ▸'; }
     }
+    function openLightbox(img) {
+      const lb = document.getElementById('lightbox');
+      document.getElementById('lightbox-img').src = img.src;
+      const caption = img.parentElement.querySelector('.gallery-caption');
+      document.getElementById('lightbox-caption').textContent = caption ? caption.textContent : '';
+      lb.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLightbox(e) {
+      if (e.target.id === 'lightbox' || e.target.classList.contains('lightbox-close')) {
+        document.getElementById('lightbox').classList.remove('open');
+        document.body.style.overflow = '';
+      }
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { document.getElementById('lightbox').classList.remove('open'); document.body.style.overflow = ''; }
+    });
     function playNameEN() {
       const u = new SpeechSynthesisUtterance('Rway Joe');
       u.rate = 0.85;
