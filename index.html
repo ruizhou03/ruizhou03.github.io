@@ -24,7 +24,7 @@
       --font-display: 'Cormorant Garamond', Georgia, serif;
       --font-body: 'Source Sans 3', -apple-system, sans-serif;
       --max-width: 960px;
-      --section-gap: 4.5rem;
+      --section-gap: 2.25rem;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; font-size: 17px; }
@@ -146,7 +146,7 @@
       .hero-links { justify-content: center; }
       .edu-item, .teaching-item { grid-template-columns: 1fr; gap: 0.2rem; }
       .notes-grid { grid-template-columns: 1fr; }
-      section { padding: 3.5rem 1.5rem; }
+      section { padding: 1.75rem 1.5rem; }
       footer { flex-direction: column; text-align: center; }
       .nav-links { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: rgba(250,250,249,0.98); backdrop-filter: blur(12px); padding: 1rem 2rem; gap: 1rem; border-bottom: 1px solid var(--color-border); }
       .nav-links.open { display: flex; }
@@ -184,9 +184,10 @@
     </div>
     <div class="hero-text fade-in" style="transition-delay: 0.15s">
       <h1 class="hero-name">Rui Zhou</h1>
-      <div class="hero-name-cn">周睿</div>
+      <div class="hero-name-cn">周睿 <span style="font-size: 0.95rem; color: var(--color-light); font-weight: 400;">(Zhōu Ruì)</span></div>
       <div class="pronunciation">
         Pronunciation: <span class="ipa">/ɹweɪ dʒoʊ/</span> — "Rway Joe"
+        <button onclick="playName()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--color-accent);padding:0.1rem 0.3rem;border-radius:3px;transition:background 0.2s;" title="Listen to pronunciation">&#128264;</button>
       </div>
       <div class="hero-affiliation">Penn State University</div>
       <div class="hero-title">PhD Student, Department of Economics</div>
@@ -195,10 +196,10 @@
         <a href="https://econ.la.psu.edu/">Penn State University</a>.
         I received my B.A. in Finance (Financial Economics) from the
         <a href="https://en.gsm.pku.edu.cn/">Guanghua School of Management</a>
-        at Peking University, where I also completed a double major in Psychology.
+        at Peking University.
       </p>
       <p class="hero-bio">
-        My research interests lie in <strong>Behavioral Economics</strong>.
+        My research interests lie in <strong>Behavioral Economics</strong> and <strong>Microeconomic Theory</strong>.
       </p>
       <div class="hero-links">
         <a href="mailto:ruizhou@psu.edu" class="primary">&#9993; Email</a>
@@ -213,9 +214,6 @@
   <!-- RESEARCH -->
   <section id="research" class="fade-in">
     <h2 class="section-title">Research</h2>
-    <div class="research-interests">
-      <span class="interest-tag">Behavioral Economics</span>
-    </div>
 
     <h3 class="subsection-title">Working Papers</h3>
 
@@ -285,7 +283,7 @@
         <div class="edu-details">
           <h3>B.A. in Finance (Financial Economics)</h3>
           <div class="school">Peking University</div>
-          <div class="field">Guanghua School of Management · Double Major in Psychology</div>
+          <div class="field">Guanghua School of Management</div>
         </div>
       </div>
     </div>
@@ -301,7 +299,16 @@
         <span class="teaching-role">TA</span>
         <div class="teaching-details">
           <span class="course-code">ECON 104</span> — Introductory Macroeconomics
-          <span class="semester">Penn State</span>
+          <span class="semester">Penn State, Spring 2026</span>
+          <span class="instructor">Instructor: <a href="https://econ.la.psu.edu/people/drb39/">Dave Brown</a></span>
+        </div>
+      </div>
+      <div class="teaching-item">
+        <span class="teaching-role">TA</span>
+        <div class="teaching-details">
+          <span class="course-code">ECON 104</span> — Introductory Macroeconomics
+          <span class="semester">Penn State, Fall 2025</span>
+          <span class="instructor">Instructor: <a href="https://econ.la.psu.edu/people/pxk18/">Paul Kagundu</a></span>
         </div>
       </div>
       <div class="teaching-item">
@@ -332,8 +339,9 @@
 
     <div class="notes-grid">
       <div class="note-card">
-        <h3><a href="files/Real%20Analysis/Real%20Analysis.pdf">Real Analysis</a></h3>
+        <h3>Real Analysis</h3>
         <div class="note-meta">University of Michigan · Spring 2024</div>
+        <div style="margin-bottom:0.5rem;"><a href="files/Real%20Analysis/Real%20Analysis.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
         <ul class="note-chapters" id="chapters-ra" style="display:none;">
           <li><a href="files/Real%20Analysis/Chapter0_Riemann%20Integration.pdf">Ch 0: Riemann Integration</a></li>
           <li><a href="files/Real%20Analysis/Chapter1_Measure.pdf">Ch 1: Measure</a></li>
@@ -347,8 +355,9 @@
       </div>
 
       <div class="note-card">
-        <h3><a href="files/Advanced%20Microeconomics.pdf">Advanced Microeconomics</a></h3>
+        <h3>Advanced Microeconomics</h3>
         <div class="note-meta">Peking University · Fall 2023</div>
+        <div style="margin-bottom:0.5rem;"><a href="files/Advanced%20Microeconomics.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
         <ul class="note-chapters" id="chapters-am" style="display:none;">
           <li><a href="files/Chapter1_Choice%20Theory.pdf">Ch 1: Choice Theory</a></li>
           <li><a href="files/Chapter2_Consumer%20Theory.pdf">Ch 2: Consumer Theory</a></li>
@@ -361,8 +370,9 @@
       </div>
 
       <div class="note-card">
-        <h3><a href="files/Advanced%20Econometrics/Advanced%20Econometrics.pdf">Advanced Econometrics</a></h3>
+        <h3>Advanced Econometrics</h3>
         <div class="note-meta">Peking University · Fall 2023</div>
+        <div style="margin-bottom:0.5rem;"><a href="files/Advanced%20Econometrics/Advanced%20Econometrics.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
         <ul class="note-chapters" id="chapters-ae" style="display:none;">
           <li><a href="files/Advanced%20Econometrics/Chapter1_Linear%20Regression%20Model.pdf">Ch 1: Linear Regression Model</a></li>
           <li><a href="files/Advanced%20Econometrics/Chapter2_Properties%20of%20OLS%20Estimation.pdf">Ch 2: Properties of OLS</a></li>
@@ -377,8 +387,9 @@
       </div>
 
       <div class="note-card">
-        <h3><a href="files/Intermediate%20Econometrics/Intermediate%20Econometrics.pdf">Intermediate Econometrics</a></h3>
+        <h3>Intermediate Econometrics</h3>
         <div class="note-meta">Peking University · Spring 2023</div>
+        <div style="margin-bottom:0.5rem;"><a href="files/Intermediate%20Econometrics/Intermediate%20Econometrics.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
         <ul class="note-chapters" id="chapters-ie" style="display:none;">
           <li><a href="files/Advanced%20Econometrics/Chapter1-4_Basics%20about%20Linear%20Regression%20Model.pdf">Ch 1–4: Linear Regression Basics</a></li>
           <li><a href="files/Advanced%20Econometrics/Chapter5_MLR%20Analysis%20Further%20Issues.pdf">Ch 5: MLR Further Issues</a></li>
@@ -392,8 +403,9 @@
       </div>
 
       <div class="note-card">
-        <h3><a href="files/Public%20Economics/Public%20Economics.pdf">Public Economics</a></h3>
+        <h3>Public Economics</h3>
         <div class="note-meta">Peking University · Spring 2023</div>
+        <div style="margin-bottom:0.5rem;"><a href="files/Public%20Economics/Public%20Economics.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
         <ul class="note-chapters" id="chapters-pe" style="display:none;">
           <li><a href="files/Public%20Economics/Chapter1_Common%20Goods.pdf">Ch 1: Common Goods</a></li>
           <li><a href="files/Public%20Economics/Chapter2_Externality.pdf">Ch 2: Externality</a></li>
@@ -406,8 +418,9 @@
       </div>
 
       <div class="note-card">
-        <h3><a href="files/Monetary%20Economics.pdf">Monetary Economics</a></h3>
+        <h3>Monetary Economics</h3>
         <div class="note-meta">Peking University · Spring 2023</div>
+        <div><a href="files/Monetary%20Economics.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
       </div>
     </div>
   </section>
@@ -452,6 +465,12 @@
       const el = document.getElementById('chapters-' + id);
       if (el.style.display === 'none') { el.style.display = 'block'; btn.textContent = 'Hide chapters ▾'; }
       else { el.style.display = 'none'; btn.textContent = 'Show chapters ▸'; }
+    }
+    function playName() {
+      const u = new SpeechSynthesisUtterance('Rway Joe');
+      u.rate = 0.85;
+      u.pitch = 1;
+      speechSynthesis.speak(u);
     }
     document.querySelectorAll('.nav-links a').forEach(link => {
       link.addEventListener('click', () => { document.querySelector('.nav-links').classList.remove('open'); });
