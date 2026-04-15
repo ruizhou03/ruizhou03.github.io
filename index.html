@@ -184,10 +184,10 @@
     </div>
     <div class="hero-text fade-in" style="transition-delay: 0.15s">
       <h1 class="hero-name">Rui Zhou</h1>
-      <div class="hero-name-cn">周睿 <span style="font-size: 0.95rem; color: var(--color-light); font-weight: 400;">(Zhōu Ruì)</span></div>
+      <div class="hero-name-cn">周睿 <span style="font-size: 0.95rem; color: var(--color-light); font-weight: 400;">(Zhōu Ruì)</span> <button onclick="playNameCN()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--color-accent);padding:0.1rem 0.3rem;border-radius:3px;" title="Listen in Mandarin">&#128264;</button></div>
       <div class="pronunciation">
         Pronunciation: <span class="ipa">/ɹweɪ dʒoʊ/</span> — "Rway Joe"
-        <button onclick="playName()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--color-accent);padding:0.1rem 0.3rem;border-radius:3px;transition:background 0.2s;" title="Listen to pronunciation">&#128264;</button>
+        <button onclick="playNameEN()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--color-accent);padding:0.1rem 0.3rem;border-radius:3px;" title="Listen in English approximation">&#128264;</button>
       </div>
       <div class="hero-affiliation">Penn State University</div>
       <div class="hero-title">PhD Student, Department of Economics</div>
@@ -466,9 +466,16 @@
       if (el.style.display === 'none') { el.style.display = 'block'; btn.textContent = 'Hide chapters ▾'; }
       else { el.style.display = 'none'; btn.textContent = 'Show chapters ▸'; }
     }
-    function playName() {
+    function playNameEN() {
       const u = new SpeechSynthesisUtterance('Rway Joe');
       u.rate = 0.85;
+      u.pitch = 1;
+      speechSynthesis.speak(u);
+    }
+    function playNameCN() {
+      const u = new SpeechSynthesisUtterance('周睿');
+      u.lang = 'zh-CN';
+      u.rate = 0.8;
       u.pitch = 1;
       speechSynthesis.speak(u);
     }
