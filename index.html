@@ -21,10 +21,74 @@
       --color-accent: #1e3a5f;
       --color-accent-light: #2d5a8e;
       --color-highlight: #c9a96e;
+      --color-card: #ffffff;
+      --color-nav-bg: rgba(250,250,249,0.92);
+      --color-nav-bg-solid: rgba(250,250,249,0.98);
+      --color-shadow: rgba(0,0,0,0.06);
+      --color-card-shadow: rgba(0,0,0,0.04);
       --font-display: 'Cormorant Garamond', Georgia, serif;
       --font-body: 'Source Sans 3', -apple-system, sans-serif;
       --max-width: 960px;
       --section-gap: 2.25rem;
+    }
+
+    /* Dark mode — auto from system */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --color-ink: #e8e6e3;
+        --color-text: #b8b5b0;
+        --color-muted: #8a8680;
+        --color-light: #6b6762;
+        --color-border: #2e2c2a;
+        --color-bg: #1a1918;
+        --color-bg-warm: #222120;
+        --color-accent: #7aaddb;
+        --color-accent-light: #9dc4e8;
+        --color-highlight: #c9a96e;
+        --color-card: #232221;
+        --color-nav-bg: rgba(26,25,24,0.92);
+        --color-nav-bg-solid: rgba(26,25,24,0.98);
+        --color-shadow: rgba(0,0,0,0.25);
+        --color-card-shadow: rgba(0,0,0,0.15);
+      }
+    }
+
+    /* Dark mode — manual override */
+    :root[data-theme="dark"] {
+      --color-ink: #e8e6e3;
+      --color-text: #b8b5b0;
+      --color-muted: #8a8680;
+      --color-light: #6b6762;
+      --color-border: #2e2c2a;
+      --color-bg: #1a1918;
+      --color-bg-warm: #222120;
+      --color-accent: #7aaddb;
+      --color-accent-light: #9dc4e8;
+      --color-highlight: #c9a96e;
+      --color-card: #232221;
+      --color-nav-bg: rgba(26,25,24,0.92);
+      --color-nav-bg-solid: rgba(26,25,24,0.98);
+      --color-shadow: rgba(0,0,0,0.25);
+      --color-card-shadow: rgba(0,0,0,0.15);
+    }
+
+    /* Light mode — manual override */
+    :root[data-theme="light"] {
+      --color-ink: #1a1a2e;
+      --color-text: #374151;
+      --color-muted: #6b7280;
+      --color-light: #9ca3af;
+      --color-border: #e5e7eb;
+      --color-bg: #fafaf9;
+      --color-bg-warm: #f5f4f0;
+      --color-accent: #1e3a5f;
+      --color-accent-light: #2d5a8e;
+      --color-highlight: #c9a96e;
+      --color-card: #ffffff;
+      --color-nav-bg: rgba(250,250,249,0.92);
+      --color-nav-bg-solid: rgba(250,250,249,0.98);
+      --color-shadow: rgba(0,0,0,0.06);
+      --color-card-shadow: rgba(0,0,0,0.04);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; font-size: 17px; }
@@ -33,8 +97,8 @@
     a:hover { color: var(--color-accent-light); }
 
     /* Navigation */
-    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(250,250,249,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-border); transition: box-shadow 0.3s ease; }
-    nav.scrolled { box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: var(--color-nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-border); transition: box-shadow 0.3s ease; }
+    nav.scrolled { box-shadow: 0 1px 8px var(--color-shadow); }
     .nav-inner { max-width: var(--max-width); margin: 0 auto; padding: 0.85rem 2rem; display: flex; justify-content: space-between; align-items: center; }
     .nav-name { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; color: var(--color-ink); text-decoration: none; }
     .nav-links { display: flex; gap: 1.8rem; list-style: none; }
@@ -44,6 +108,10 @@
     .nav-links a:hover::after { width: 100%; }
     .nav-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0.5rem; }
     .nav-toggle span { display: block; width: 22px; height: 2px; background: var(--color-ink); margin: 5px 0; transition: 0.3s; }
+
+    /* Theme toggle */
+    .theme-toggle { background: none; border: 1px solid var(--color-border); cursor: pointer; padding: 0.35rem 0.5rem; border-radius: 4px; font-size: 0.9rem; line-height: 1; transition: border-color 0.2s; color: var(--color-muted); }
+    .theme-toggle:hover { border-color: var(--color-accent); }
 
     /* Hero */
     .hero { max-width: var(--max-width); margin: 0 auto; padding: 8rem 2rem 0; display: grid; grid-template-columns: 280px 1fr; gap: 3.5rem; align-items: start; }
@@ -109,8 +177,8 @@
 
     /* Notes */
     .notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
-    .note-card { padding: 1.5rem; border: 1px solid var(--color-border); border-radius: 6px; background: #fff; transition: border-color 0.3s, box-shadow 0.3s; }
-    .note-card:hover { border-color: var(--color-highlight); box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+    .note-card { padding: 1.5rem; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-card); transition: border-color 0.3s, box-shadow 0.3s; }
+    .note-card:hover { border-color: var(--color-highlight); box-shadow: 0 2px 12px var(--color-card-shadow); }
     .note-card h3 { font-family: var(--font-display); font-size: 1.08rem; font-weight: 600; color: var(--color-ink); margin-bottom: 0.4rem; }
     .note-card h3 a { color: var(--color-ink); }
     .note-card h3 a:hover { color: var(--color-accent); }
@@ -136,6 +204,15 @@
     .fade-in { opacity: 0; transform: translateY(18px); transition: opacity 0.7s ease, transform 0.7s ease; }
     .fade-in.visible { opacity: 1; transform: translateY(0); }
 
+    /* Dark mode image adjustment */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .hero-photo { filter: brightness(0.88); }
+    }
+    :root[data-theme="dark"] .hero-photo { filter: brightness(0.88); }
+
+    /* Smooth theme transition */
+    body, nav, .note-card { transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+
     /* Responsive */
     @media (max-width: 768px) {
       html { font-size: 16px; }
@@ -148,7 +225,7 @@
       .notes-grid { grid-template-columns: 1fr; }
       section { padding: 1.75rem 1.5rem; }
       footer { flex-direction: column; text-align: center; }
-      .nav-links { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: rgba(250,250,249,0.98); backdrop-filter: blur(12px); padding: 1rem 2rem; gap: 1rem; border-bottom: 1px solid var(--color-border); }
+      .nav-links { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: var(--color-nav-bg-solid); backdrop-filter: blur(12px); padding: 1rem 2rem; gap: 1rem; border-bottom: 1px solid var(--color-border); }
       .nav-links.open { display: flex; }
       .nav-toggle { display: block; }
     }
@@ -174,6 +251,7 @@
         <li><a href="#notes">Notes</a></li>
         <li><a href="#misc">Misc</a></li>
       </ul>
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode" aria-label="Toggle theme">&#9790;</button>
     </div>
   </nav>
 
@@ -476,6 +554,36 @@
     document.querySelectorAll('.nav-links a').forEach(link => {
       link.addEventListener('click', () => { document.querySelector('.nav-links').classList.remove('open'); });
     });
+
+    // Theme toggle: cycles system → dark → light → system
+    function toggleTheme() {
+      const root = document.documentElement;
+      const current = root.getAttribute('data-theme');
+      const btn = document.querySelector('.theme-toggle');
+      if (!current) {
+        // system → forced dark
+        root.setAttribute('data-theme', 'dark');
+        btn.innerHTML = '&#9790;'; // moon
+        btn.title = 'Switch to light mode';
+      } else if (current === 'dark') {
+        // forced dark → forced light
+        root.setAttribute('data-theme', 'light');
+        btn.innerHTML = '&#9728;'; // sun
+        btn.title = 'Switch to auto (system)';
+      } else {
+        // forced light → system
+        root.removeAttribute('data-theme');
+        btn.innerHTML = '&#9683;'; // half circle = auto
+        btn.title = 'Switch to dark mode';
+      }
+    }
+
+    // Set initial icon based on system preference
+    (function() {
+      const btn = document.querySelector('.theme-toggle');
+      btn.innerHTML = '&#9683;'; // half circle = auto (following system)
+      btn.title = 'Switch to dark mode';
+    })();
   </script>
 </body>
 </html>
