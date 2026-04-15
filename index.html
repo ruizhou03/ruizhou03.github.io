@@ -473,12 +473,7 @@
       speechSynthesis.speak(u);
     }
     function playNameCN() {
-      // 使用发音最稳定、没有多音字歧义的“锐”
-      const u = new SpeechSynthesisUtterance('周，锐'); 
-      u.lang = 'zh-CN';
-      u.rate = 0.8;
-      u.pitch = 1;
-      speechSynthesis.speak(u);
+      new Audio('files/Rui%20Zhou/Name%20Pronunciation.m4a').play();
     }
     document.querySelectorAll('.nav-links a').forEach(link => {
       link.addEventListener('click', () => { document.querySelector('.nav-links').classList.remove('open'); });
