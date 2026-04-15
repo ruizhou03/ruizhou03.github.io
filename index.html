@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rui Zhou | Penn State Economics</title>
+  <meta name="description" content="Rui Zhou is a PhD student in Economics at Penn State University. Research interests: Behavioral Economics.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📘</text></svg>">
+  <style>
+    :root {
+      --color-ink: #1a1a2e;
+      --color-text: #374151;
+      --color-muted: #6b7280;
+      --color-light: #9ca3af;
+      --color-border: #e5e7eb;
+      --color-bg: #fafaf9;
+      --color-bg-warm: #f5f4f0;
+      --color-accent: #1e3a5f;
+      --color-accent-light: #2d5a8e;
+      --color-highlight: #c9a96e;
+      --font-display: 'Cormorant Garamond', Georgia, serif;
+      --font-body: 'Source Sans 3', -apple-system, sans-serif;
+      --max-width: 960px;
+      --section-gap: 4.5rem;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; font-size: 17px; }
+    body { font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+    a { color: var(--color-accent); text-decoration: none; }
+    a:hover { color: var(--color-accent-light); }
+
+    /* Navigation */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(250,250,249,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-border); transition: box-shadow 0.3s ease; }
+    nav.scrolled { box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+    .nav-inner { max-width: var(--max-width); margin: 0 auto; padding: 0.85rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .nav-name { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; color: var(--color-ink); text-decoration: none; }
+    .nav-links { display: flex; gap: 1.8rem; list-style: none; }
+    .nav-links a { font-size: 0.82rem; font-weight: 500; color: var(--color-muted); text-decoration: none; letter-spacing: 0.04em; text-transform: uppercase; transition: color 0.2s; position: relative; }
+    .nav-links a::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 1.5px; background: var(--color-accent); transition: width 0.3s ease; }
+    .nav-links a:hover { color: var(--color-accent); }
+    .nav-links a:hover::after { width: 100%; }
+    .nav-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0.5rem; }
+    .nav-toggle span { display: block; width: 22px; height: 2px; background: var(--color-ink); margin: 5px 0; transition: 0.3s; }
+
+    /* Hero */
+    .hero { max-width: var(--max-width); margin: 0 auto; padding: 8rem 2rem 0; display: grid; grid-template-columns: 280px 1fr; gap: 3.5rem; align-items: start; }
+    .hero-photo-wrapper { position: relative; }
+    .hero-photo { width: 100%; aspect-ratio: 3/4; object-fit: cover; object-position: center 15%; border-radius: 6px; }
+    .hero-photo-wrapper::after { content: ''; position: absolute; top: 10px; left: 10px; right: -10px; bottom: -10px; border: 1.5px solid var(--color-highlight); border-radius: 6px; z-index: -1; opacity: 0.5; }
+    .hero-text { padding-top: 0.5rem; }
+    .hero-name { font-family: var(--font-display); font-size: 3rem; font-weight: 600; color: var(--color-ink); line-height: 1.15; margin-bottom: 0.15rem; }
+    .hero-name-cn { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-muted); font-weight: 400; margin-bottom: 0.3rem; }
+    .pronunciation { font-size: 0.82rem; color: var(--color-light); font-style: italic; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.4rem; }
+    .pronunciation .ipa { font-style: normal; background: var(--color-bg-warm); padding: 0.15rem 0.5rem; border-radius: 3px; font-family: var(--font-body); font-size: 0.8rem; }
+    .hero-affiliation { font-size: 1.05rem; color: var(--color-accent); font-weight: 500; margin-bottom: 0.2rem; }
+    .hero-title { font-size: 0.95rem; color: var(--color-muted); margin-bottom: 1.5rem; }
+    .hero-bio { font-size: 0.98rem; line-height: 1.8; color: var(--color-text); margin-bottom: 1rem; }
+    .hero-bio:last-of-type { margin-bottom: 1.8rem; }
+    .hero-links { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .hero-links a { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 500; color: var(--color-accent); padding: 0.45rem 1rem; border: 1.5px solid var(--color-accent); border-radius: 4px; transition: all 0.25s ease; }
+    .hero-links a:hover { background: var(--color-accent); color: #fff; }
+    .hero-links a.primary { background: var(--color-accent); color: #fff; }
+    .hero-links a.primary:hover { background: var(--color-accent-light); border-color: var(--color-accent-light); }
+
+    /* Sections */
+    section { max-width: var(--max-width); margin: 0 auto; padding: var(--section-gap) 2rem; }
+    .section-title { font-family: var(--font-display); font-size: 1.9rem; font-weight: 600; color: var(--color-ink); margin-bottom: 0.6rem; position: relative; display: inline-block; }
+    .section-title::after { content: ''; display: block; width: 40px; height: 2.5px; background: var(--color-highlight); margin-top: 0.4rem; border-radius: 2px; }
+    .section-subtitle { font-size: 0.9rem; color: var(--color-muted); margin-bottom: 2rem; }
+    .divider { max-width: var(--max-width); margin: 0 auto; padding: 0 2rem; }
+    .divider hr { border: none; height: 1px; background: var(--color-border); }
+
+    /* Research */
+    .research-interests { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2.5rem; }
+    .interest-tag { padding: 0.4rem 1.1rem; background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 20px; font-size: 0.88rem; color: var(--color-text); font-weight: 450; }
+    .subsection-title { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; color: var(--color-ink); margin-top: 2.5rem; margin-bottom: 1.5rem; }
+    .paper { margin-bottom: 2.2rem; padding-left: 1.2rem; border-left: 2.5px solid var(--color-border); transition: border-color 0.3s; }
+    .paper:hover { border-left-color: var(--color-highlight); }
+    .paper-title { font-family: var(--font-display); font-size: 1.12rem; font-weight: 600; color: var(--color-ink); margin-bottom: 0.25rem; line-height: 1.4; }
+    .paper-title a { color: var(--color-ink); border-bottom: 1px solid transparent; }
+    .paper-title a:hover { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+    .paper-authors { font-size: 0.88rem; color: var(--color-muted); margin-bottom: 0.5rem; }
+    .paper-abstract details summary { cursor: pointer; font-size: 0.85rem; color: var(--color-accent); font-weight: 500; margin-bottom: 0.5rem; user-select: none; list-style: none; }
+    .paper-abstract details summary::-webkit-details-marker { display: none; }
+    .paper-abstract details summary::before { content: '▸ '; font-size: 0.75rem; }
+    .paper-abstract details[open] summary::before { content: '▾ '; }
+    .paper-abstract details p { font-size: 0.9rem; line-height: 1.75; color: var(--color-text); margin-top: 0.3rem; }
+    .paper-links { margin-top: 0.5rem; display: flex; gap: 0.8rem; }
+    .paper-links a { font-size: 0.82rem; font-weight: 500; color: var(--color-accent); padding: 0.2rem 0.6rem; border: 1px solid var(--color-border); border-radius: 3px; transition: all 0.2s; }
+    .paper-links a:hover { background: var(--color-bg-warm); border-color: var(--color-accent); }
+
+    /* Education */
+    .edu-item { display: grid; grid-template-columns: 90px 1fr; gap: 1.5rem; margin-bottom: 1.8rem; align-items: baseline; }
+    .edu-year { font-size: 0.85rem; font-weight: 500; color: var(--color-light); font-variant-numeric: tabular-nums; }
+    .edu-details h3 { font-family: var(--font-display); font-size: 1.15rem; font-weight: 600; color: var(--color-ink); margin-bottom: 0.15rem; }
+    .edu-details .school { font-size: 0.92rem; color: var(--color-accent); font-weight: 500; }
+    .edu-details .field { font-size: 0.88rem; color: var(--color-muted); margin-top: 0.1rem; }
+
+    /* Teaching */
+    .teaching-item { display: grid; grid-template-columns: 90px 1fr; gap: 1.5rem; margin-bottom: 1.2rem; align-items: baseline; }
+    .teaching-role { font-size: 0.78rem; font-weight: 600; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.06em; }
+    .teaching-details { font-size: 0.95rem; color: var(--color-text); }
+    .teaching-details .course-code { font-weight: 600; color: var(--color-ink); }
+    .teaching-details .semester { font-size: 0.85rem; color: var(--color-light); margin-left: 0.5rem; }
+    .teaching-details .instructor { font-size: 0.85rem; color: var(--color-muted); display: block; margin-top: 0.15rem; }
+
+    /* Notes */
+    .notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+    .note-card { padding: 1.5rem; border: 1px solid var(--color-border); border-radius: 6px; background: #fff; transition: border-color 0.3s, box-shadow 0.3s; }
+    .note-card:hover { border-color: var(--color-highlight); box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+    .note-card h3 { font-family: var(--font-display); font-size: 1.08rem; font-weight: 600; color: var(--color-ink); margin-bottom: 0.4rem; }
+    .note-card h3 a { color: var(--color-ink); }
+    .note-card h3 a:hover { color: var(--color-accent); }
+    .note-card .note-meta { font-size: 0.82rem; color: var(--color-light); margin-bottom: 0.6rem; }
+    .note-chapters { list-style: none; }
+    .note-chapters li { font-size: 0.85rem; color: var(--color-text); padding: 0.2rem 0; }
+    .note-chapters li a { color: var(--color-text); border-bottom: 1px solid transparent; }
+    .note-chapters li a:hover { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+    .note-toggle { background: none; border: none; cursor: pointer; font-size: 0.82rem; color: var(--color-accent); font-weight: 500; padding: 0.3rem 0; font-family: var(--font-body); }
+    .note-toggle:hover { color: var(--color-accent-light); }
+
+    /* Misc */
+    .misc-text { font-size: 0.95rem; color: var(--color-text); line-height: 1.8; margin-bottom: 0.8rem; }
+
+    /* Footer */
+    footer { max-width: var(--max-width); margin: 0 auto; padding: 3rem 2rem 4rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .footer-contact { font-size: 0.88rem; color: var(--color-muted); line-height: 1.8; }
+    .footer-contact a { color: var(--color-accent); border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+    .footer-contact a:hover { border-bottom-color: var(--color-accent); }
+    .footer-copy { font-size: 0.78rem; color: var(--color-light); }
+
+    /* Animations */
+    .fade-in { opacity: 0; transform: translateY(18px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      html { font-size: 16px; }
+      .hero { grid-template-columns: 1fr; gap: 2rem; padding-top: 6rem; text-align: center; }
+      .hero-photo-wrapper { max-width: 220px; margin: 0 auto; }
+      .hero-name { font-size: 2.4rem; }
+      .pronunciation { justify-content: center; }
+      .hero-links { justify-content: center; }
+      .edu-item, .teaching-item { grid-template-columns: 1fr; gap: 0.2rem; }
+      .notes-grid { grid-template-columns: 1fr; }
+      section { padding: 3.5rem 1.5rem; }
+      footer { flex-direction: column; text-align: center; }
+      .nav-links { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: rgba(250,250,249,0.98); backdrop-filter: blur(12px); padding: 1rem 2rem; gap: 1rem; border-bottom: 1px solid var(--color-border); }
+      .nav-links.open { display: flex; }
+      .nav-toggle { display: block; }
+    }
+    @media (max-width: 480px) {
+      .nav-inner { padding: 0.75rem 1.2rem; }
+      .hero { padding: 5.5rem 1.2rem 0; }
+      .hero-name { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav id="navbar">
+    <div class="nav-inner">
+      <a href="#" class="nav-name">Rui Zhou</a>
+      <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav-links">
+        <li><a href="#about">About</a></li>
+        <li><a href="#research">Research</a></li>
+        <li><a href="#teaching">Teaching</a></li>
+        <li><a href="#notes">Notes</a></li>
+        <li><a href="#misc">Misc</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ABOUT -->
+  <section class="hero" id="about">
+    <div class="hero-photo-wrapper fade-in">
+      <img src="images/profile_web.jpeg" alt="Photo of Rui Zhou" class="hero-photo">
+    </div>
+    <div class="hero-text fade-in" style="transition-delay: 0.15s">
+      <h1 class="hero-name">Rui Zhou</h1>
+      <div class="hero-name-cn">周睿</div>
+      <div class="pronunciation">
+        Pronunciation: <span class="ipa">/ɹweɪ dʒoʊ/</span> — "Rway Joe"
+      </div>
+      <div class="hero-affiliation">Penn State University</div>
+      <div class="hero-title">PhD Student, Department of Economics</div>
+      <p class="hero-bio">
+        I am a first-year PhD student in Economics at
+        <a href="https://econ.la.psu.edu/">Penn State University</a>.
+        I received my B.A. in Finance (Financial Economics) from the
+        <a href="https://en.gsm.pku.edu.cn/">Guanghua School of Management</a>
+        at Peking University, where I also completed a double major in Psychology.
+      </p>
+      <p class="hero-bio">
+        My research interests lie in <strong>Behavioral Economics</strong>.
+      </p>
+      <div class="hero-links">
+        <a href="mailto:ruizhou@psu.edu" class="primary">&#9993; Email</a>
+        <a href="linked_files/Rui%20Zhou/CV%20(Rui%20Zhou).pdf">CV</a>
+        <a href="https://github.com/ruizhou03">GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"><hr></div>
+
+  <!-- RESEARCH -->
+  <section id="research" class="fade-in">
+    <h2 class="section-title">Research</h2>
+    <div class="research-interests">
+      <span class="interest-tag">Behavioral Economics</span>
+    </div>
+
+    <h3 class="subsection-title">Working Papers</h3>
+
+    <div class="paper">
+      <div class="paper-title">
+        <a href="linked_files/Rui%20Zhou/Grading%20Systems%20and%20Student%20Effort.pdf">Grading Systems and Student Effort: Evidence from China's Gaokao Reform</a>
+      </div>
+      <div class="paper-abstract"><details>
+        <summary>Abstract</summary>
+        <p>China's College Entrance Examination (Gaokao) is the main channel for college admissions. The Gaokao consists of main subjects and selective subjects, both of which adopted absolute grading before the Gaokao reform. The Gaokao reform changed the grading system of selective subjects from absolute to relative. This study focuses on its potential to reduce student effort. Specifically, we document evidence of this effect through a theoretical model, a questionnaire survey, and an online experiment. The results consistently show that this change in grading systems induces less student effort, entirely driven by the effort reduction in selective subjects, with no change in main subjects. This paper is relevant to policy design, suggesting that changing the grading system from absolute to relative could serve as an indirect yet effective tool for alleviating the intense competition among high school students.</p>
+      </details></div>
+      <div class="paper-links"><a href="linked_files/Rui%20Zhou/Grading%20Systems%20and%20Student%20Effort.pdf">PDF</a></div>
+    </div>
+
+    <div class="paper">
+      <div class="paper-title">Performance or Effort? The Effect of Inter-Team Competition on Intra-Team Peer Evaluation</div>
+      <div class="paper-authors">with Penghuan Yan and Tianyi Che</div>
+      <div class="paper-abstract"><details>
+        <summary>Abstract</summary>
+        <p>Peer evaluation is a widely used assessment mechanism in various organizations. This study investigates how the introduction of inter-team competition affects intra-team peer evaluation in balancing between performance and effort. Additionally, it explores the role of team identification as a mediating channel. Through a series of questionnaire experiments, the findings reveal that inter-team competition enhances team identification among individuals, which subsequently leads to a greater emphasis on effort over performance in peer evaluations. Notably, this effect is more pronounced among teams with high-ability members but shows no correlation with project outcomes or bonus amounts. Moreover, when team identification is weakened, this effect diminishes significantly or even disappears.</p>
+      </details></div>
+    </div>
+
+    <h3 class="subsection-title">Work in Progress</h3>
+
+    <div class="paper">
+      <div class="paper-title">What Behavioral Factors Influence Property Fee Payments? Evidence from China's Residential Communities</div>
+      <div class="paper-authors">with <a href="https://sites.google.com/site/juanjuanmeng/">Juanjuan Meng</a> and Tianyi Che</div>
+      <div class="paper-abstract"><details>
+        <summary>Abstract</summary>
+        <p>In China, people typically live inside a community whose daily affairs are maintained by companies that collect property management fees to operate. However, their efforts are rarely appreciated, resulting in a low fee collection rate. Apart from economic factors, we aimed to determine how behavioral factors influence people's payment behaviors. Using decade-long panel data from thousands of households, we employed DiD and RD to study the impact of external shocks on fee payment behaviors. The results reveal that enhancing payment convenience and community identity can significantly improve payment behaviors. Mental accounting matters as well, suggesting that bundling miscellaneous fees together is sometimes more effective than listing them separately. Building on these findings, we conduct an RCT to test the effects of social comparison and information framing on payment rates.</p>
+      </details></div>
+    </div>
+
+    <div class="paper">
+      <div class="paper-title">Why Does RSD Produce Ordinally Inefficient Lotteries? A New Framework</div>
+      <div class="paper-authors">with <a href="https://sites.lsa.umich.edu/eperalta/">Esteban Peralta</a> and <a href="https://gcas.ie/why-gcas/research/research-fellows/fernando-tohme">Fernando Tohmé</a></div>
+      <div class="paper-abstract"><details>
+        <summary>Abstract</summary>
+        <p>When evaluating lotteries, agents typically prefer those that offer higher expected utilities. Under this notion, Randomized Serial Dictatorship (RSD) may produce lotteries that are ordinally inefficient. However, the assumption that agents are expected utility maximizers implicitly relies on the assumption of responsive preferences. In practice, evaluating a lottery involves comparing sets of objects, and responsiveness is often a strong assumption. This leaves room for alternative interpretations of the ordinal inefficiency. Within a different theoretical framework, the ordinal inefficiency of lotteries induced by RSD can potentially be rationalized.</p>
+      </details></div>
+    </div>
+  </section>
+
+  <div class="divider"><hr></div>
+
+  <!-- EDUCATION -->
+  <section id="education" class="fade-in">
+    <h2 class="section-title">Education</h2>
+    <div style="margin-top: 2rem;">
+      <div class="edu-item">
+        <span class="edu-year">2025 –</span>
+        <div class="edu-details">
+          <h3>Ph.D. in Economics</h3>
+          <div class="school">Penn State University</div>
+        </div>
+      </div>
+      <div class="edu-item">
+        <span class="edu-year">2024</span>
+        <div class="edu-details">
+          <h3>Exchange Student</h3>
+          <div class="school">University of Michigan, Ann Arbor</div>
+        </div>
+      </div>
+      <div class="edu-item">
+        <span class="edu-year">2021 – 25</span>
+        <div class="edu-details">
+          <h3>B.A. in Finance (Financial Economics)</h3>
+          <div class="school">Peking University</div>
+          <div class="field">Guanghua School of Management · Double Major in Psychology</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"><hr></div>
+
+  <!-- TEACHING -->
+  <section id="teaching" class="fade-in">
+    <h2 class="section-title">Teaching</h2>
+    <div style="margin-top: 2rem;">
+      <div class="teaching-item">
+        <span class="teaching-role">TA</span>
+        <div class="teaching-details">
+          <span class="course-code">ECON 104</span> — Introductory Macroeconomics
+          <span class="semester">Penn State</span>
+        </div>
+      </div>
+      <div class="teaching-item">
+        <span class="teaching-role">TA</span>
+        <div class="teaching-details">
+          <span class="course-code">Advanced Microeconomics Theory</span> (Graduate)
+          <span class="semester">Peking University, Fall 2024</span>
+          <span class="instructor">Instructor: <a href="https://sites.google.com/view/fanqi-site/home">Fanqi Shi</a></span>
+        </div>
+      </div>
+      <div class="teaching-item">
+        <span class="teaching-role">TA</span>
+        <div class="teaching-details">
+          <span class="course-code">Behavioral Economics</span>
+          <span class="semester">Peking University, Fall 2023</span>
+          <span class="instructor">Instructor: <a href="https://sites.google.com/site/juanjuanmeng/">Juanjuan Meng</a></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"><hr></div>
+
+  <!-- LECTURE NOTES -->
+  <section id="notes" class="fade-in">
+    <h2 class="section-title">Lecture Notes</h2>
+    <p class="section-subtitle">Notes from courses I have taken. Feel free to use them — corrections and suggestions are welcome.</p>
+
+    <div class="notes-grid">
+      <div class="note-card">
+        <h3><a href="linked_files/Real%20Analysis/Real%20Analysis.pdf">Real Analysis</a></h3>
+        <div class="note-meta">University of Michigan · Spring 2024</div>
+        <ul class="note-chapters" id="chapters-ra" style="display:none;">
+          <li><a href="linked_files/Real%20Analysis/Chapter0_Riemann%20Integration.pdf">Ch 0: Riemann Integration</a></li>
+          <li><a href="linked_files/Real%20Analysis/Chapter1_Measure.pdf">Ch 1: Measure</a></li>
+          <li><a href="linked_files/Real%20Analysis/Chapter2_Integration.pdf">Ch 2: Integration</a></li>
+          <li><a href="linked_files/Real%20Analysis/Chapter3_Differentiation.pdf">Ch 3: Differentiation</a></li>
+          <li><a href="linked_files/Real%20Analysis/Chapter4_Product%20of%20Measures.pdf">Ch 4: Product of Measures</a></li>
+          <li><a href="linked_files/Real%20Analysis/Chapter5_Lp%20Spaces.pdf">Ch 5: Lp Spaces</a></li>
+          <li><a href="linked_files/Real%20Analysis/Chapter6_Banach%20Spaces.pdf">Ch 6: Banach Spaces</a></li>
+        </ul>
+        <button class="note-toggle" onclick="toggleChapters('ra',this)">Show chapters ▸</button>
+      </div>
+
+      <div class="note-card">
+        <h3><a href="linked_files/Advanced%20Microeconomics.pdf">Advanced Microeconomics</a></h3>
+        <div class="note-meta">Peking University · Fall 2023</div>
+        <ul class="note-chapters" id="chapters-am" style="display:none;">
+          <li><a href="linked_files/Chapter1_Choice%20Theory.pdf">Ch 1: Choice Theory</a></li>
+          <li><a href="linked_files/Chapter2_Consumer%20Theory.pdf">Ch 2: Consumer Theory</a></li>
+          <li><a href="linked_files/Chapter3_Production%20Theory.pdf">Ch 3: Production Theory</a></li>
+          <li><a href="linked_files/Chapter4_Comparative%20Statics.pdf">Ch 4: Comparative Statics</a></li>
+          <li><a href="linked_files/Chapter5_Uncertainty.pdf">Ch 5: Uncertainty</a></li>
+          <li><a href="linked_files/Chapter6_General%20Equilibrium.pdf">Ch 6: General Equilibrium</a></li>
+        </ul>
+        <button class="note-toggle" onclick="toggleChapters('am',this)">Show chapters ▸</button>
+      </div>
+
+      <div class="note-card">
+        <h3><a href="linked_files/Advanced%20Econometrics/Advanced%20Econometrics.pdf">Advanced Econometrics</a></h3>
+        <div class="note-meta">Peking University · Fall 2023</div>
+        <ul class="note-chapters" id="chapters-ae" style="display:none;">
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter1_Linear%20Regression%20Model.pdf">Ch 1: Linear Regression Model</a></li>
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter2_Properties%20of%20OLS%20Estimation.pdf">Ch 2: Properties of OLS</a></li>
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter3_Hypothesis%20Testing.pdf">Ch 3: Hypothesis Testing</a></li>
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter4_Endogeneity%20and%20Instrumental%20Variable.pdf">Ch 4: IV Estimation</a></li>
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter5_Generalized%20Regression%20Model%20and%20Heteroskedasticity.pdf">Ch 5: GRM &amp; Heteroskedasticity</a></li>
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter6_Panel%20Data.pdf">Ch 6: Panel Data</a></li>
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter7_Maximum%20Likelihood%20Estimation.pdf">Ch 7: MLE</a></li>
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter8_Time%20Series%20Analysis.pdf">Ch 8: Time Series</a></li>
+        </ul>
+        <button class="note-toggle" onclick="toggleChapters('ae',this)">Show chapters ▸</button>
+      </div>
+
+      <div class="note-card">
+        <h3><a href="linked_files/Intermediate%20Econometrics/Intermediate%20Econometrics.pdf">Intermediate Econometrics</a></h3>
+        <div class="note-meta">Peking University · Spring 2023</div>
+        <ul class="note-chapters" id="chapters-ie" style="display:none;">
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter1-4_Basics%20about%20Linear%20Regression%20Model.pdf">Ch 1–4: Linear Regression Basics</a></li>
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter5_MLR%20Analysis%20Further%20Issues.pdf">Ch 5: MLR Further Issues</a></li>
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter6_MLR%20Analysis%20with%20Dummy.pdf">Ch 6: MLR with Dummies</a></li>
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter7_Heteroskedasticity.pdf">Ch 7: Heteroskedasticity</a></li>
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter8_More%20on%20Specification%20and%20Data%20Issues.pdf">Ch 8: Specification Issues</a></li>
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter9_Panel%20Data.pdf">Ch 9: Panel Data</a></li>
+          <li><a href="linked_files/Advanced%20Econometrics/Chapter10_IV%20Estimation%20&%202SLS.pdf">Ch 10: IV &amp; 2SLS</a></li>
+        </ul>
+        <button class="note-toggle" onclick="toggleChapters('ie',this)">Show chapters ▸</button>
+      </div>
+
+      <div class="note-card">
+        <h3><a href="linked_files/Public%20Economics/Public%20Economics.pdf">Public Economics</a></h3>
+        <div class="note-meta">Peking University · Spring 2023</div>
+        <ul class="note-chapters" id="chapters-pe" style="display:none;">
+          <li><a href="linked_files/Public%20Economics/Chapter1_Common%20Goods.pdf">Ch 1: Common Goods</a></li>
+          <li><a href="linked_files/Public%20Economics/Chapter2_Externality.pdf">Ch 2: Externality</a></li>
+          <li><a href="linked_files/Public%20Economics/Chapter3_Taxation.pdf">Ch 3: Taxation</a></li>
+          <li><a href="linked_files/Public%20Economics/Chapter4_Social%20Insurance.pdf">Ch 4: Social Insurance</a></li>
+          <li><a href="linked_files/Public%20Economics/Chapter5_Public%20Choice.pdf">Ch 5: Public Choice</a></li>
+          <li><a href="linked_files/Public%20Economics/Chapter6_Central%20&%20Local%20Government.pdf">Ch 6: Central &amp; Local Gov't</a></li>
+        </ul>
+        <button class="note-toggle" onclick="toggleChapters('pe',this)">Show chapters ▸</button>
+      </div>
+
+      <div class="note-card">
+        <h3><a href="linked_files/Monetary%20Economics.pdf">Monetary Economics</a></h3>
+        <div class="note-meta">Peking University · Spring 2023</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"><hr></div>
+
+  <!-- MISCELLANEOUS -->
+  <section id="misc" class="fade-in">
+    <h2 class="section-title">Miscellaneous</h2>
+    <p class="misc-text">
+      I was born and raised in China. Outside of economics, I enjoy
+      running, singing, and exploring new places.
+      <!-- TODO: update hobbies as you like -->
+    </p>
+    <p class="misc-text">
+      My Chinese given name 睿 (ruì) means "wise" or "sagacious."
+      The closest English approximation is "Rway" — rhymes with "way."
+    </p>
+    <p class="misc-text">
+      I also maintain a <a href="https://zirconeey.github.io/">Chinese blog</a>
+      where I share course notes, study tips, and personal reflections.
+    </p>
+  </section>
+
+  <footer>
+    <div class="footer-contact">
+      <strong>Rui Zhou</strong> &middot; Department of Economics, Penn State University<br>
+      <a href="mailto:ruizhou@psu.edu">ruizhou@psu.edu</a> &middot;
+      University Park, PA 16802
+    </div>
+    <div class="footer-copy">&copy; 2025 Rui Zhou</div>
+  </footer>
+
+  <script>
+    const nav = document.getElementById('navbar');
+    window.addEventListener('scroll', () => { nav.classList.toggle('scrolled', window.scrollY > 20); });
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+    function toggleChapters(id, btn) {
+      const el = document.getElementById('chapters-' + id);
+      if (el.style.display === 'none') { el.style.display = 'block'; btn.textContent = 'Hide chapters ▾'; }
+      else { el.style.display = 'none'; btn.textContent = 'Show chapters ▸'; }
+    }
+    document.querySelectorAll('.nav-links a').forEach(link => {
+      link.addEventListener('click', () => { document.querySelector('.nav-links').classList.remove('open'); });
+    });
+  </script>
+</body>
+</html>
