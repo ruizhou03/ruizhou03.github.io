@@ -1,0 +1,118 @@
+% Document class and font size
+\documentclass[letterpaper,11pt]{article}
+
+% Packages
+\usepackage[letterpaper, margin=0.85in]{geometry}
+\usepackage{titlesec} 
+\usepackage{enumitem} 
+\usepackage[hidelinks]{hyperref} 
+\usepackage{fontawesome5}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{xeCJK}  % Chinese characters (requires xelatex)
+
+% Custom link colors
+\newcommand\Colorhref[3][black]{\href{#2}{\color{#1}#3}}
+
+% Section formatting
+\setlist{noitemsep} 
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}[\titlerule] 
+\titlespacing*{\section}{0pt}{0.8\baselineskip}{0.5\baselineskip}
+
+% "Last updated" footer
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[L]{\footnotesize\textit{Last updated: \today}}
+\fancyfoot[R]{\footnotesize\thepage}
+
+\begin{document}
+
+% --- Header ---
+\begin{center}
+    {\Huge\textbf{Rui Zhou}} \quad {\Large 周睿}\\[8pt]
+    \small
+    Department of Economics, Pennsylvania State University \\
+    303 Kern Building, University Park, PA 16802 \\[2pt]
+    \faEnvelope \ \Colorhref[blue]{mailto:ruizhou@psu.edu}{ruizhou@psu.edu} \quad
+    \faGlobe \ \Colorhref[blue]{https://ruizhou03.github.io/}{ruizhou03.github.io}
+\end{center}
+\vspace{6pt}
+
+% --- Education ---
+\section*{Education}
+
+\noindent
+\textbf{Pennsylvania State University} \hfill State College, PA \\
+\textit{Ph.D. in Economics} \hfill \textit{Aug 2025 -- Present}
+
+\vspace{4pt}
+
+\noindent
+\textbf{Peking University, Guanghua School of Management} \hfill Beijing, China \\
+\textit{B.A. in Finance (Financial Economics)} \hfill \textit{Sept 2021 -- Jul 2025}
+
+\vspace{4pt}
+
+\noindent
+\textbf{University of Michigan, Ann Arbor} \hfill Ann Arbor, MI \\
+\textit{Visiting Student, Coursework in Economics and Mathematics} \hfill \textit{Jan 2024 -- May 2024}
+
+% --- Research Interests ---
+\section*{Research Interests}
+Behavioral Economics, Microeconomic Theory, Mechanism Design, Game Theory.
+
+% --- Working Papers ---
+\section*{Working Papers}
+\begin{itemize}[leftmargin=1.5em, noitemsep, topsep=4pt, itemsep=6pt]
+    \item ``Grading Systems and Student Effort: Evidence from China's Gaokao Reform.''
+    \item ``Performance or Effort? The Effect of Inter-Team Competition on Intra-Team Peer Evaluation.'' (with Penghuan Yan and Tianyi Che)
+\end{itemize}
+
+% --- Work in Progress ---
+\section*{Work in Progress}
+\begin{itemize}[leftmargin=1.5em, noitemsep, topsep=4pt, itemsep=6pt]
+    \item ``Negative Framing and Payment Compliance for Public Services: Evidence from a Field Experiment.'' (with Peng Chang, Tianyi Che, and Juanjuan Meng) \\
+    \textit{Accepted for presentation at the 86th Academy of Management (AOM) Annual Meeting, 2026.}
+    \item ``Why Does RSD Produce Ordinally Inefficient Lotteries? A New Framework.'' (with Esteban Peralta and Fernando Tohm\'e)
+\end{itemize}
+
+% --- Teaching ---
+\section*{Teaching Experience}
+\begin{itemize}[leftmargin=1.5em, noitemsep, topsep=4pt, itemsep=4pt]
+    \item \textbf{Teaching Assistant}, Introductory Macroeconomic Analysis and Policy \\
+    \textit{Pennsylvania State University} (Instructor: Dave Brown) \hfill \textit{Spring 2026}
+    
+    \item \textbf{Teaching Assistant}, Introductory Macroeconomic Analysis and Policy \\
+    \textit{Pennsylvania State University} (Instructor: Paul Kagundu) \hfill \textit{Fall 2025}
+    
+    \item \textbf{Teaching Assistant}, Advanced Microeconomics Theory (Graduate Course) \\
+    \textit{Peking University} (Instructor: Fanqi Shi) \hfill \textit{Fall 2024}
+
+    \item \textbf{Teaching Assistant}, Behavioral Economics \\
+    \textit{Peking University} (Instructor: Juanjuan Meng) \hfill \textit{Fall 2023}
+\end{itemize}
+
+% --- Conferences & Presentations ---
+\section*{Conferences \& Presentations}
+\begin{itemize}[leftmargin=1.5em, noitemsep, topsep=4pt, itemsep=4pt]
+    \item Academy of Management (AOM) Annual Meeting, Philadelphia, PA \hfill \textit{Aug 2026}
+\end{itemize}
+
+% --- Awards ---
+\section*{Selected Awards \& Honors}
+\begin{itemize}[leftmargin=1.5em, noitemsep, topsep=4pt]
+    \item Peking University ICBC STAR Scholarship (Top 1\%) \hfill \textit{Sept 2024}
+    \item Special Prize, $31^{\mathrm{st}}$ ``Challenge Cup'' of Peking University (Top 1\%) \hfill \textit{Jun 2023}
+    \item First Prize, $33^{\mathrm{rd}}$ Beijing College Students Mathematical Competition \hfill \textit{Dec 2022}
+\end{itemize}
+
+% --- Languages ---
+\section*{Languages}
+Mandarin, English.
+
+% --- References ---
+\section*{References}
+\noindent Available upon request.
+
+\end{document}
