@@ -1,0 +1,82 @@
+\babel@toc {english}{}\relax 
+\contentsline {chapter}{\numberline {1}Introduction}{3}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Braess' Paradox}{3}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Coin Toss}{4}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Model of Herding}{4}{section.1.3}%
+\contentsline {chapter}{\numberline {2}Representing a Game}{6}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Game Tree}{6}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Information Sets}{7}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Normal Form}{8}{section.2.3}%
+\contentsline {section}{\numberline {2.4}Strategies}{10}{section.2.4}%
+\contentsline {section}{\numberline {2.5}Iterated Elimination of Dominated Strategies}{12}{section.2.5}%
+\contentsline {chapter}{\numberline {3}Nash Equilibrium}{14}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Nash Equilibrium and Nash's Theorem}{14}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Potential Games}{15}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Definition}{16}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Existence of PSNE in Potential Games}{17}{subsection.3.2.2}%
+\contentsline {section}{\numberline {3.3}Supermodular Games}{17}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Definitions}{18}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Existence of PSNE in Supermodular Games}{19}{subsection.3.3.2}%
+\contentsline {chapter}{\numberline {4}Subgame Perfect Nash Equilibrium}{22}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Definitions and Existence}{22}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Subgame Perfection}{24}{section.4.2}%
+\contentsline {chapter}{\numberline {5}Two-Person bargaining}{26}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Nash Bargaining Solution}{26}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Dividing a Dollar}{29}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Alternating Offer Model}{30}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Unequal Discounting}{33}{section.5.4}%
+\contentsline {chapter}{\numberline {6}Private Value Auctions}{34}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Second Price Sealed Bid Auction (SPA)}{34}{section.6.1}%
+\contentsline {section}{\numberline {6.2}First Price Sealed Bid Auction (FPA)}{35}{section.6.2}%
+\contentsline {subsection}{\numberline {6.2.1}Symmetric Equilibrium of FPA}{36}{subsection.6.2.1}%
+\contentsline {section}{\numberline {6.3}Reserve Prices}{42}{section.6.3}%
+\contentsline {subsection}{\numberline {6.3.1}SPA with $n = 2$}{42}{subsection.6.3.1}%
+\contentsline {subsection}{\numberline {6.3.2}Optimal Reserve Price in a FPA}{43}{subsection.6.3.2}%
+\contentsline {section}{\numberline {6.4}Revenue Equivalence Theorem}{45}{section.6.4}%
+\contentsline {section}{\numberline {6.5}Risk Attitude and the Breakdown of Revenue Equivalence}{48}{section.6.5}%
+\contentsline {chapter}{\numberline {7}The Revelation Principle and Mechanism Design}{51}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Direct Mechanism and Revelation Principle}{51}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Optimal Mechanism Design (Myerson, 1981)}{53}{section.7.2}%
+\contentsline {subsection}{\numberline {7.2.1}Motivating Example: Monopoly Pricing}{53}{subsection.7.2.1}%
+\contentsline {subsection}{\numberline {7.2.2}Framing Seller's Problem}{54}{subsection.7.2.2}%
+\contentsline {subsection}{\numberline {7.2.3}The Monopoly Pricing Isomorphism: What is Virtual Value?}{60}{subsection.7.2.3}%
+\contentsline {chapter}{\numberline {8}The Vickrey-Clarke-Groves (VCG) Mechanism}{62}{chapter.8}%
+\contentsline {section}{\numberline {8.1}The General VCG Framework}{62}{section.8.1}%
+\contentsline {section}{\numberline {8.2}Truth-telling in VCG}{65}{section.8.2}%
+\contentsline {section}{\numberline {8.3}VCG Maximizes Revenue Among Efficient Mechanisms}{66}{section.8.3}%
+\contentsline {section}{\numberline {8.4}Budget Balance and the AGV Mechanism}{67}{section.8.4}%
+\contentsline {chapter}{\numberline {9}Matching Theory}{71}{chapter.9}%
+\contentsline {section}{\numberline {9.1}The Housing Market: Allocation with Endowments}{71}{section.9.1}%
+\contentsline {subsection}{\numberline {9.1.1}Housing Market and the Core}{71}{subsection.9.1.1}%
+\contentsline {subsection}{\numberline {9.1.2}Top Trading Cycle (TTC)}{72}{subsection.9.1.2}%
+\contentsline {subsection}{\numberline {9.1.3}Properties of TTC}{75}{subsection.9.1.3}%
+\contentsline {subsubsection}{TTC Implements the Core}{75}{section*.3}%
+\contentsline {subsubsection}{TTC is Order Independent}{76}{section*.4}%
+\contentsline {subsubsection}{TTC is Strategy-Proof}{78}{section*.5}%
+\contentsline {section}{\numberline {9.2}The Assignment Problem: Allocation without Endowments}{83}{section.9.2}%
+\contentsline {subsection}{\numberline {9.2.1}Serial Dictatorship (SD)}{84}{subsection.9.2.1}%
+\contentsline {subsection}{\numberline {9.2.2}Properties of SD}{85}{subsection.9.2.2}%
+\contentsline {subsection}{\numberline {9.2.3}Equivalence of Random SD and TTC with Random Endowments}{86}{subsection.9.2.3}%
+\contentsline {section}{\numberline {9.3}Two-Sided Matching}{90}{section.9.3}%
+\contentsline {subsection}{\numberline {9.3.1}Two-Sided Matching and Pairwise Stability}{90}{subsection.9.3.1}%
+\contentsline {subsection}{\numberline {9.3.2}Deferred Acceptance (DA)}{91}{subsection.9.3.2}%
+\contentsline {subsection}{\numberline {9.3.3}Properties of DA}{94}{subsection.9.3.3}%
+\contentsline {subsection}{\numberline {9.3.4}Many-to-One Matching (Quotas)}{96}{subsection.9.3.4}%
+\contentsline {subsection}{\numberline {9.3.5}Truncated Preferences (Unacceptable Matches)}{99}{subsection.9.3.5}%
+\contentsline {subsection}{\numberline {9.3.6}The Set of Stable Matchings}{105}{subsection.9.3.6}%
+\contentsline {subsubsection}{Student-Optimality of DA}{106}{section*.6}%
+\contentsline {subsubsection}{Opposition of Interests}{107}{section*.7}%
+\contentsline {subsubsection}{The Lattice of Stable Matchings}{107}{section*.8}%
+\contentsline {subsubsection}{The Rural Hospital Theorem}{108}{section*.9}%
+\contentsline {section}{\numberline {9.4}The Boston Mechanism (Immediate Acceptance)}{109}{section.9.4}%
+\contentsline {subsection}{\numberline {9.4.1}Properties of the Boston Mechanism}{112}{subsection.9.4.1}%
+\contentsline {chapter}{\numberline {10}Common Knowledge}{114}{chapter.10}%
+\contentsline {section}{\numberline {10.1}Motivating Example: The Corrupted Industry}{114}{section.10.1}%
+\contentsline {subsection}{\numberline {10.1.1}Iterated Reasoning}{115}{subsection.10.1.1}%
+\contentsline {subsection}{\numberline {10.1.2}Why Does a ``Vacuous'' Announcement Matter?}{116}{subsection.10.1.2}%
+\contentsline {section}{\numberline {10.2}Formal Definition}{116}{section.10.2}%
+\contentsline {section}{\numberline {10.3}The Coordinated Attack Problem}{117}{section.10.3}%
+\contentsline {subsection}{\numberline {10.3.1}Setup}{117}{subsection.10.3.1}%
+\contentsline {subsection}{\numberline {10.3.2}Information Structure}{117}{subsection.10.3.2}%
+\contentsline {subsection}{\numberline {10.3.3}The Unique Equilibrium}{118}{subsection.10.3.3}%
+\contentsline {subsection}{\numberline {10.3.4}Interpretation}{119}{subsection.10.3.4}%

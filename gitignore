@@ -1,0 +1,21 @@
+# LaTeX auxiliary files (never upload these)
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.fdb_latexmk
+*.fls
+*.bbl
+*.blg
+*.nav
+*.snm
+*.vrb
+*.dvi
+
+# Private drafts (keep locally, don't publish)
+drafts/
+
+# macOS system files
+.DS_Store
+Thumbs.db
