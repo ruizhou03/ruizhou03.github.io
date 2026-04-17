@@ -18,6 +18,32 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%231e3a5f'/><text x='50' y='66' font-family='Georgia,serif' font-size='48' font-weight='bold' fill='white' text-anchor='middle'>RZ</text></svg>">
   <style>
+     /* 精准补丁：导航栏三段式与汉堡图标 */
+    @media (max-width: 768px) {
+      .nav-inner { 
+        display: grid !important; 
+        grid-template-columns: 1fr auto 1fr !important; /* 三段分布 */
+        align-items: center; padding: 0.6rem 1.2rem;
+      }
+      .logo-box { justify-self: start; }
+      .nav-toggle { display: block !important; justify-self: center; } /* 汉堡包居中 */
+      .nav-right-box { justify-self: end; }
+
+      .nav-links { 
+        display: none; flex-direction: column; position: absolute; 
+        top: 100%; left: 0; right: 0; background: var(--nav-bg); 
+        padding: 1.5rem; gap: 1.2rem; text-align: center; border-bottom: 1px solid var(--border-color);
+      }
+      .nav-links.open { display: flex !important; }
+    }
+
+    /* 汉堡图标细节与变 X 动画 */
+    .nav-toggle { display: none; background: none; border: none; cursor: pointer; }
+    .nav-toggle span { display: block; width: 22px; height: 1.5px; background: var(--ink); margin: 5px auto; transition: 0.3s; }
+    .nav-toggle.active span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+    .nav-toggle.active span:nth-child(2) { opacity: 0; }
+    .nav-toggle.active span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+    
     :root {
       --color-ink: #1a1a2e;
       --color-text: #374151;
@@ -268,22 +294,27 @@
 </head>
 <body>
 
-  <nav id="navbar">
-    <div class="nav-inner">
-      <a href="#" class="nav-name">Rui Zhou</a>
-      <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
-        <span></span><span></span><span></span>
-      </button>
-      <ul class="nav-links">
-        <li><a href="#about">About</a></li>
-        <li><a href="#research">Research</a></li>
-        <li><a href="#teaching">Teaching</a></li>
-        <li><a href="#notes">Notes</a></li>
-        <li><a href="#misc">Misc</a></li>
-      </ul>
-      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode" aria-label="Toggle theme">&#9790;</button>
+<nav>
+  <div class="nav-inner">
+    <div class="logo-box"><a href="#">Rui Zhou</a></div>
+
+    <button class="nav-toggle" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+
+    <ul class="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#research">Research</a></li>
+      <li><a href="#teaching">Teaching</a></li>
+      <li><a href="#notes">Notes</a></li>
+      <li><a href="#misc">Misc</a></li>
+    </ul>
+
+    <div class="nav-right-box">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Switch mode">&#9683;</button>
     </div>
-  </nav>
+  </div>
+</nav>
 
   <!-- ABOUT -->
   <section class="hero" id="about">
@@ -692,6 +723,21 @@
       }
     }
 
+        // 菜单切换：控制导航栏打开/关闭，并配合 CSS 实现变 X 效果
+      function toggleMenu() {
+        const links = document.querySelector('.nav-links');
+        const toggle = document.querySelector('.nav-toggle');
+        links.classList.toggle('open');
+        toggle.classList.toggle('active');
+      }
+
+        // 优化：点击菜单项后自动收起菜单
+      document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', () => {
+          document.querySelector('.nav-links').classList.remove('open');
+          document.querySelector('.nav-toggle').classList.remove('active');
+        });
+      });
     // Set initial icon based on system preference
     (function() {
       const btn = document.querySelector('.theme-toggle');
