@@ -40,6 +40,103 @@ title: 生活攻略 | Rui Zhou
       🍳 菜谱专区 →
     </a>
   </div>
+
+  {%- assign life_posts = category_posts | where_exp: "p", "p.url" -%}
+  {%- assign life_count = 0 -%}
+  {%- for p in life_posts -%}{%- if p.published != false -%}{%- assign life_count = life_count | plus: 1 -%}{%- endif -%}{%- endfor -%}
+
+  <div id="bulk-offline" style="margin: 2.5rem auto 0; text-align: center;">
+    <button type="button" id="bulk-offline-btn"
+            style="display: inline-flex; align-items: center; gap: 0.5rem;
+                   padding: 0.75rem 1.6rem; border: 1px solid var(--color-border);
+                   border-radius: 999px; background: var(--color-bg);
+                   color: var(--color-muted); font-family: inherit;
+                   font-size: 0.95rem; cursor: pointer; transition: all 0.2s;">
+      <span class="bulk-icon">📥</span>
+      <span class="bulk-label">下载全部生活攻略到本地（{{ life_count }} 篇）</span>
+    </button>
+    <p style="margin-top: 0.6rem; color: var(--color-light); font-size: 0.82rem; line-height: 1.5;">
+      飞机 / 没网时也能离线翻阅。文字 + 图片一起缓存，约 50MB。
+    </p>
+    <div id="bulk-progress" style="display: none; margin-top: 0.6rem; color: var(--color-muted); font-size: 0.85rem;"></div>
+  </div>
+
+  <script id="bulk-offline-list" type="application/json">
+  [
+    {%- for p in life_posts -%}
+      {%- if p.published != false -%}
+        "{{ p.url | relative_url }}"{%- unless forloop.last -%},{%- endunless -%}
+      {%- endif -%}
+    {%- endfor -%}
+  ]
+  </script>
+
+  <script>
+    (function () {
+      const btn = document.getElementById('bulk-offline-btn');
+      const progress = document.getElementById('bulk-progress');
+      const labelEl = btn.querySelector('.bulk-label');
+      const iconEl = btn.querySelector('.bulk-icon');
+      const originalLabel = labelEl.textContent;
+      let urls = [];
+      try {
+        urls = JSON.parse(document.getElementById('bulk-offline-list').textContent || '[]');
+      } catch (e) { urls = []; }
+
+      if (!('serviceWorker' in navigator) || !urls.length) {
+        btn.disabled = true;
+        btn.style.opacity = '0.55';
+        btn.style.cursor = 'not-allowed';
+        labelEl.textContent = '当前浏览器不支持离线缓存';
+        return;
+      }
+
+      btn.addEventListener('mouseenter', () => {
+        if (btn.disabled) return;
+        btn.style.background = 'var(--color-bg-warm)';
+        btn.style.borderColor = 'var(--color-accent)';
+        btn.style.color = 'var(--color-accent)';
+      });
+      btn.addEventListener('mouseleave', () => {
+        if (btn.disabled || btn.dataset.done === '1') return;
+        btn.style.background = 'var(--color-bg)';
+        btn.style.borderColor = 'var(--color-border)';
+        btn.style.color = 'var(--color-muted)';
+      });
+
+      btn.addEventListener('click', async () => {
+        const reg = await navigator.serviceWorker.ready;
+        if (!reg.active) {
+          labelEl.textContent = '请刷新页面后再试';
+          return;
+        }
+        btn.disabled = true;
+        btn.style.cursor = 'wait';
+        iconEl.textContent = '⏳';
+        labelEl.textContent = '缓存中… 0 / ' + urls.length;
+        progress.style.display = '';
+        progress.textContent = '正在下载文章和图片，别关闭页面';
+
+        const ch = new MessageChannel();
+        ch.port1.onmessage = (ev) => {
+          const d = ev.data || {};
+          if (d.type === 'PREFETCH_PROGRESS') {
+            labelEl.textContent = `缓存中… ${d.done} / ${d.total}`;
+          } else if (d.type === 'PREFETCH_DONE') {
+            iconEl.textContent = '✓';
+            labelEl.textContent = `已离线（${d.total} 篇）`;
+            btn.style.borderColor = '#10b981';
+            btn.style.color = '#10b981';
+            btn.dataset.done = '1';
+            btn.disabled = false;
+            btn.style.cursor = 'pointer';
+            progress.textContent = '✅ 飞机上 / 没网时直接打开网址，能正常翻阅';
+          }
+        };
+        reg.active.postMessage({ type: 'PREFETCH_URLS', urls }, [ch.port2]);
+      });
+    })();
+  </script>
 </article>
 
 {% include category-listing-tools.html %}
