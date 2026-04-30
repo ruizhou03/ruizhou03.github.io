@@ -15,6 +15,10 @@
   }
   .post-list-title .sec-icon { color: var(--color-muted); margin-right: 0.5rem; }
 
+  .section-tools {
+    display: flex; align-items: center;
+    flex-shrink: 0; gap: 0.15rem;
+  }
   .search-wrap {
     display: flex; align-items: center;
     flex-shrink: 0;
@@ -42,6 +46,21 @@
   }
   .search-toggle:hover { color: var(--color-accent); background: var(--color-bg-warm); }
   .search-wrap.active .search-toggle { color: var(--color-accent); }
+
+  .download-toggle {
+    background: transparent; border: 0; cursor: pointer;
+    padding: 0.4rem 0.45rem; color: var(--color-muted);
+    display: inline-flex; align-items: center; gap: 0.32rem;
+    border-radius: 4px; font: inherit; font-size: 0.82rem;
+    transition: color 0.2s, background 0.2s;
+    white-space: nowrap;
+  }
+  .download-toggle:hover:not(:disabled) { color: var(--color-accent); background: var(--color-bg-warm); }
+  .download-toggle:disabled { cursor: wait; }
+  .download-toggle.dl-done { color: #10b981; }
+  .download-toggle.dl-done:hover { color: #10b981; background: transparent; }
+  .download-toggle .dl-text { letter-spacing: 0.02em; }
+  .download-toggle .dl-text:empty { display: none; }
 
   .paginated-list { list-style: none; padding: 0; margin: 0; }
   .paginated-item {
@@ -235,5 +254,55 @@
   }
 
   document.querySelectorAll('.post-list-section').forEach(wireSection);
+
+  // ─── 每个分组的下载按钮：把该组所有文章 + 同源图片缓存到本地 ───
+  function wireDownload(btn) {
+    if (!('serviceWorker' in navigator)) {
+      btn.style.display = 'none';
+      return;
+    }
+    var section = btn.closest('section');
+    if (!section) return;
+    var items = section.querySelectorAll('[data-url]');
+    var urls = Array.prototype.slice.call(items)
+      .map(function (i) { return i.getAttribute('data-url'); })
+      .filter(Boolean);
+    if (!urls.length) {
+      btn.style.display = 'none';
+      return;
+    }
+
+    var dlText = btn.querySelector('.dl-text');
+    var dlIcon = btn.querySelector('.dl-icon');
+
+    btn.addEventListener('click', async function () {
+      if (btn.disabled) return;
+      var reg;
+      try { reg = await navigator.serviceWorker.ready; } catch (e) {}
+      if (!reg || !reg.active) {
+        dlText.textContent = '请刷新';
+        setTimeout(function () { dlText.textContent = ''; }, 2400);
+        return;
+      }
+      btn.disabled = true;
+      btn.classList.remove('dl-done');
+      dlText.textContent = '0 / ' + urls.length;
+
+      var ch = new MessageChannel();
+      ch.port1.onmessage = function (ev) {
+        var d = ev.data || {};
+        if (d.type === 'PREFETCH_PROGRESS') {
+          dlText.textContent = d.done + ' / ' + d.total;
+        } else if (d.type === 'PREFETCH_DONE') {
+          btn.classList.add('dl-done');
+          dlText.textContent = '已离线 ' + d.total;
+          btn.disabled = false;
+        }
+      };
+      reg.active.postMessage({ type: 'PREFETCH_URLS', urls: urls }, [ch.port2]);
+    });
+  }
+
+  document.querySelectorAll('.download-toggle').forEach(wireDownload);
 })();
 </script>

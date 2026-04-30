@@ -7,16 +7,26 @@ inputs:
   - sub: 小节标题
   - posts: 已排序的文章对象数组
 {%- endcomment -%}
+{%- assign _ystory_count = 0 -%}
+{%- for _p in include.posts -%}{%- if _p.published != false -%}{%- assign _ystory_count = _ystory_count | plus: 1 -%}{%- endif -%}{%- endfor -%}
 <section class="yearly-story-section">
   <div class="yearly-section-head">
     <h2 class="yearly-section-title"><span class="yearly-section-icon">📂</span>{{ include.sub }}</h2>
+    <button type="button" class="download-toggle yearly-download-toggle" aria-label="下载本分类全部文章" title="缓存「{{ include.sub }}」{{ _ystory_count }} 篇文章到本地，飞机上 / 没网时也能看">
+      <svg class="dl-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      <span class="dl-text"></span>
+    </button>
   </div>
   <div class="yearly-grid">
     {% for post in include.posts %}
       {% if post.published == false %}{% continue %}{% endif %}
       {%- assign _has_cover = post.cover -%}
       {%- assign _has_age = post.age -%}
-      <a class="yearly-card{% if _has_cover %} yearly-card--cover{% endif %}{% if _has_age %} yearly-card--age{% endif %}" href="{{ post.url | relative_url }}">
+      <a class="yearly-card{% if _has_cover %} yearly-card--cover{% endif %}{% if _has_age %} yearly-card--age{% endif %}" href="{{ post.url | relative_url }}" data-url="{{ post.url | relative_url }}">
         <div class="yearly-card-banner"
           {%- if _has_cover %} style="background-image: url('{{ post.cover | relative_url }}'); background-position: {{ post.cover_position | default: 'center' }};"{% endif %}>
           <span class="yearly-deco">✦</span>
@@ -41,7 +51,12 @@ inputs:
 
 <style>
   .yearly-story-section { margin-top: 2.5rem; margin-bottom: 1.5rem; }
-  .yearly-section-head { margin-bottom: 1.4rem; }
+  .yearly-section-head {
+    margin-bottom: 1.4rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .yearly-section-head .yearly-section-title { flex: 1; min-width: 0; }
+  .yearly-download-toggle { flex-shrink: 0; }
   .yearly-section-title {
     font-size: 1.4rem; color: var(--color-accent);
     font-family: var(--font-display); margin: 0;
