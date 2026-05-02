@@ -187,8 +187,21 @@
         return;
       }
       if (visibleCount === pageSize) {
-        // 当前正在渲染满页 → 实测高度，锁定为 minHeight
-        list.style.minHeight = list.offsetHeight + 'px';
+        // 用 rAF 推到下一帧测量——保证 .hidden 类的 display:none 已经
+        // 把那些 li 从布局里抽走。如果同步读 offsetHeight，某些浏览器
+        // 时序下会返回"所有 li 都还在排队"时的高度，导致 min-height
+        // 被锁到几千 px，造成巨大空白。
+        requestAnimationFrame(function() {
+          var measured = list.offsetHeight;
+          // Sanity guard：pageSize 条目对应的合理高度 < pageSize × 80px。
+          // 测出来的值如果远超这个上限，几乎肯定是测量时机错了 → 不锁。
+          var maxReasonable = pageSize * 80;
+          if (measured > 0 && measured <= maxReasonable) {
+            list.style.minHeight = measured + 'px';
+          } else {
+            list.style.minHeight = '';
+          }
+        });
       }
       // 部分页：沿用之前满页时锁定的值，不更新
     }
