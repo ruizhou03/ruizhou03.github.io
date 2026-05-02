@@ -169,6 +169,27 @@ self.addEventListener('message', async (event) => {
     return;
   }
 
+  if (data.type === 'IS_CACHED_BATCH') {
+    // 批量查询：传入 urls 数组，返回每条 URL 的缓存状态 + 总数汇总
+    const urls = Array.isArray(data.urls) ? data.urls : [];
+    const pageCache = await caches.open(PAGE_CACHE);
+    const results = await Promise.all(urls.map(async (rawUrl) => {
+      let absUrl;
+      try { absUrl = new URL(rawUrl, self.location.origin).toString(); }
+      catch { return { url: rawUrl, cached: false }; }
+      const m = await pageCache.match(absUrl);
+      return { url: rawUrl, cached: !!m };
+    }));
+    const cached = results.filter((r) => r.cached).length;
+    reply({
+      type: 'IS_CACHED_BATCH_RESULT',
+      results,
+      cached,
+      total: urls.length
+    });
+    return;
+  }
+
   if (data.type === 'CLEAR_CACHE') {
     const names = await caches.keys();
     await Promise.all(names.filter((n) => n.startsWith('zirconeey-')).map((n) => caches.delete(n)));

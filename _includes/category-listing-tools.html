@@ -286,7 +286,48 @@
     }
 
     var dlText = btn.querySelector('.dl-text');
-    var dlIcon = btn.querySelector('.dl-icon');
+
+    function updateLabel(cached, total) {
+      if (!cached || cached === 0) {
+        dlText.textContent = '';
+        btn.classList.remove('dl-done');
+      } else if (cached >= total) {
+        dlText.textContent = '✓ ' + total;
+        btn.classList.add('dl-done');
+      } else {
+        dlText.textContent = cached + ' / ' + total;
+        btn.classList.remove('dl-done');
+      }
+    }
+
+    // 用 MessageChannel 跟 SW 单次请求-响应
+    function askSW(payload, timeoutMs) {
+      return new Promise(function (resolve) {
+        navigator.serviceWorker.ready.then(function (reg) {
+          if (!reg.active) { resolve(null); return; }
+          var ch = new MessageChannel();
+          var done = false;
+          var timer = setTimeout(function () {
+            if (done) return;
+            done = true;
+            resolve(null);
+          }, timeoutMs || 4000);
+          ch.port1.onmessage = function (ev) {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            resolve(ev.data || null);
+          };
+          reg.active.postMessage(payload, [ch.port2]);
+        }, function () { resolve(null); });
+      });
+    }
+
+    // 页面加载时 sync 一次状态——把上次缓存过的数量持久化反映到按钮文字上
+    askSW({ type: 'IS_CACHED_BATCH', urls: urls }).then(function (res) {
+      if (!res || res.type !== 'IS_CACHED_BATCH_RESULT') return;
+      updateLabel(res.cached, res.total);
+    });
 
     btn.addEventListener('click', async function () {
       if (btn.disabled) return;
@@ -297,22 +338,43 @@
         setTimeout(function () { dlText.textContent = ''; }, 2400);
         return;
       }
+
+      // 先查现状，只下载缺失的——已缓存的不重复 fetch
+      var status = await askSW({ type: 'IS_CACHED_BATCH', urls: urls });
+      var urlsToFetch = urls;
+      if (status && status.type === 'IS_CACHED_BATCH_RESULT' && Array.isArray(status.results)) {
+        var missing = status.results.filter(function (r) { return !r.cached; }).map(function (r) { return r.url; });
+        if (missing.length === 0) {
+          // 已经全部缓存：闪一下提示，不重复下载
+          var prev = dlText.textContent;
+          dlText.textContent = '✓ 已离线 ' + urls.length;
+          btn.classList.add('dl-done');
+          setTimeout(function () { dlText.textContent = prev; }, 1800);
+          return;
+        }
+        urlsToFetch = missing;
+      }
+
       btn.disabled = true;
-      btn.classList.remove('dl-done');
-      dlText.textContent = '0 / ' + urls.length;
+      dlText.textContent = '0 / ' + urlsToFetch.length;
 
       var ch = new MessageChannel();
-      ch.port1.onmessage = function (ev) {
+      ch.port1.onmessage = async function (ev) {
         var d = ev.data || {};
         if (d.type === 'PREFETCH_PROGRESS') {
           dlText.textContent = d.done + ' / ' + d.total;
         } else if (d.type === 'PREFETCH_DONE') {
-          btn.classList.add('dl-done');
-          dlText.textContent = '已离线 ' + d.total;
           btn.disabled = false;
+          // 重新查一次拿到全局缓存数（包括之前已经缓存的部分）
+          var fresh = await askSW({ type: 'IS_CACHED_BATCH', urls: urls });
+          if (fresh && fresh.type === 'IS_CACHED_BATCH_RESULT') {
+            updateLabel(fresh.cached, fresh.total);
+          } else {
+            updateLabel(urls.length, urls.length);
+          }
         }
       };
-      reg.active.postMessage({ type: 'PREFETCH_URLS', urls: urls }, [ch.port2]);
+      reg.active.postMessage({ type: 'PREFETCH_URLS', urls: urlsToFetch }, [ch.port2]);
     });
   }
 
