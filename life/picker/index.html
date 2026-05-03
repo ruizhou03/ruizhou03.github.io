@@ -213,27 +213,34 @@ permalink: /life/picker/
     gap: 0.7rem; flex-wrap: wrap;
     font-size: 0.82rem; color: var(--color-light); min-height: 1.4em;
   }
-  .spin-hint .skip-btn {
+  .skip-row {
+    text-align: center;
+    margin-top: 0.6rem;
+    min-height: 1.6em;
+  }
+  .skip-row .skip-btn {
     background: transparent; border: 1px dashed var(--color-border);
     border-radius: 12px;
-    padding: 0.15rem 0.65rem;
-    color: var(--color-muted); font-size: 0.76rem;
+    padding: 0.2rem 0.75rem;
+    color: var(--color-muted); font-size: 0.78rem;
     font: inherit; line-height: 1.3;
     cursor: pointer;
     transition: all 0.18s;
   }
-  .spin-hint .skip-btn:hover {
+  .skip-row .skip-btn:hover {
     color: var(--color-accent); border-color: var(--color-accent);
   }
 
   /* —— 转盘 ——
-     宽度由三个约束的 min() 决定：360px 上限 + 92vw 防溢出 + 50vh 防手机上独占整屏
-     带 aspect-ratio: 1/1，所以高度 = 宽度，转盘永远不超过半屏高 */
+     宽度由三个约束的 min() 决定：320px 上限 + 88vw 防溢出 + 42vh 防手机上独占整屏
+     带 aspect-ratio: 1/1，所以高度 = 宽度
+     scroll-margin-top 留出 32px 给指针（指针 top:-8px + 22px 三角 = 30px 突出量） */
   .wheel-zone {
     margin: 1.4rem auto 0;
     position: relative;
-    width: min(360px, 92vw, 50vh);
+    width: min(320px, 88vw, 42vh);
     aspect-ratio: 1 / 1;
+    scroll-margin-top: 32px;
   }
   .wheel-pointer {
     position: absolute; top: -8px; left: 50%;
@@ -427,7 +434,6 @@ permalink: /life/picker/
       <button type="button" class="spin-btn" id="spin-btn">🎲 抽！</button>
       <div class="spin-hint" id="spin-hint">
         <span id="spin-hint-text"></span>
-        <button type="button" class="skip-btn" id="skip-btn" style="display: none;">跳过动画</button>
       </div>
     </div>
   </div>
@@ -435,6 +441,10 @@ permalink: /life/picker/
   <div class="wheel-zone">
     <div class="wheel-pointer"></div>
     <svg class="wheel-svg" id="wheel-svg" viewBox="0 0 200 200" aria-label="抽签转盘"></svg>
+  </div>
+
+  <div class="skip-row">
+    <button type="button" class="skip-btn" id="skip-btn" style="display: none;">跳过动画</button>
   </div>
 
   <div class="result-zone">
