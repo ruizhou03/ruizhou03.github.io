@@ -7,7 +7,7 @@
  *  - 查询是否已缓存：postMessage('IS_CACHED')
  */
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL_CACHE = `zirconeey-shell-${VERSION}`;
 const PAGE_CACHE  = `zirconeey-pages-${VERSION}`;
 const ASSET_CACHE = `zirconeey-assets-${VERSION}`;
@@ -60,13 +60,16 @@ self.addEventListener('fetch', (event) => {
         }
         return res;
       } catch (e) {
+        // 仅当同一 URL 自己有离线副本时才返回 —— 永远不要把 / 的缓存当成其它 URL 的响应，
+        // 否则浏览器地址栏和页面内容会脱节（曾导致 /toolbox/2048/ 渲染成首页）
         const cached = await caches.match(req);
         if (cached) return cached;
-        const home = await caches.match('/');
-        return home || new Response('离线状态：这一页还没缓存过 🥲', {
-          status: 503,
-          headers: { 'Content-Type': 'text/html; charset=utf-8' }
-        });
+        return new Response(
+          '<!doctype html><meta charset="utf-8"><title>离线</title>' +
+          '<p style="font-family:serif;text-align:center;margin-top:30vh;color:#666;">' +
+          '🥲 这一页还没缓存过，等有网了再来吧。</p>',
+          { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+        );
       }
     })());
     return;
