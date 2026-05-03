@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "抽签器 | Rui Zhou"
+title: "遇事不决 | Rui Zhou"
 permalink: /life/picker/
 ---
 
@@ -385,7 +385,7 @@ permalink: /life/picker/
 
 <article class="picker-wrap">
   <header class="picker-header">
-    <h1>🎯 抽签器</h1>
+    <h1>🎯 遇事不决</h1>
     <p>Weighted Random Picker</p>
   </header>
 
@@ -748,6 +748,20 @@ permalink: /life/picker/
   // （扇形面积比例 = 权重比例 = 落入概率），但视觉上：
   //   1) 指针落点是真随机的，不会总是停在扇形中点
   //   2) 几乎不可能落在两扇形交界（连续均匀分布上落在精确边界的概率 = 0）
+
+  // 计算 spin 的目标 CSS rotation 值。关键是要正确处理 state.rotation 的累计：
+  // 我们要让 wheel-position `theta` 落到指针下（screen 角 0），
+  // 等价于 (theta + total_rotation) mod 360 === 0
+  //     => total_rotation mod 360 === (360 - theta) mod 360
+  // 新 target 必须满足 (target mod 360) === desiredMod，且至少多转 extraSpins 整圈
+  function computeSpinTarget(theta, extraSpins) {
+    const desiredMod = ((360 - theta) % 360 + 360) % 360;
+    const currentMod = ((state.rotation % 360) + 360) % 360;
+    // delta：在当前 mod 360 基础上还需要再转的角度，规约到 [0, 360)
+    const delta = ((desiredMod - currentMod) % 360 + 360) % 360;
+    return state.rotation + extraSpins * 360 + delta;
+  }
+
   // 返回 winner 的 idx
   function spinTo(fast = false) {
     return new Promise(resolve => {
@@ -758,7 +772,7 @@ permalink: /life/picker/
       if (state.skipAnimation) {
         $wheel.classList.remove('spinning', 'spinning-fast');
         void $wheel.offsetWidth;
-        const target = state.rotation + (360 - theta);
+        const target = computeSpinTarget(theta, 0);
         $wheel.style.transform = `rotate(${target}deg)`;
         state.rotation = target;
         setTimeout(() => resolve(winnerIdx), 220);
@@ -766,7 +780,7 @@ permalink: /life/picker/
       }
 
       const extraSpins = fast ? 3 : 5;
-      const target = state.rotation + 360 * extraSpins + (360 - theta);
+      const target = computeSpinTarget(theta, extraSpins);
       $wheel.classList.remove('spinning', 'spinning-fast');
       void $wheel.offsetWidth;
       $wheel.classList.add(fast ? 'spinning-fast' : 'spinning');
