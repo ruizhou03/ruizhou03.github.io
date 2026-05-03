@@ -182,6 +182,37 @@ permalink: /toolbox/tax-bracket/
   .rate-row .label { color: var(--color-muted); }
   .rate-row .value { font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums; }
 
+  /* 分档前的"应纳税所得额"highlight */
+  .taxable-callout {
+    background: var(--color-bg-warm);
+    border-left: 3px solid var(--color-accent);
+    border-radius: 0 10px 10px 0;
+    padding: 0.85rem 1.1rem;
+    margin-bottom: 1.1rem;
+  }
+  .taxable-callout .co-label {
+    font-size: 0.78rem; color: var(--color-muted);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin-bottom: 0.25rem;
+  }
+  .taxable-callout .co-value {
+    font-family: var(--font-display);
+    font-size: 1.5rem; font-weight: 600;
+    color: var(--color-accent); line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+  }
+  .taxable-callout .co-detail {
+    margin-top: 0.45rem;
+    font-size: 0.82rem; color: var(--color-muted);
+    line-height: 1.55;
+  }
+  .taxable-callout .co-hint {
+    margin-top: 0.55rem;
+    font-size: 0.78rem; color: var(--color-light);
+    line-height: 1.55;
+    font-style: italic;
+  }
+
   .disclaimer {
     margin-top: 1.4rem;
     padding: 1rem 1.2rem;
@@ -343,12 +374,14 @@ permalink: /toolbox/tax-bracket/
   <!-- ============ US 联邦税 + 州税 ============ -->
   <div class="panel" data-country="us">
     <div class="panel-title">联邦税分档（IRS 2026 Brackets）</div>
+    <div class="taxable-callout">
+      <div class="co-label">应税收入 (Taxable Income)</div>
+      <div class="co-value" id="us-taxable-value">—</div>
+      <div class="co-detail" id="us-taxable-detail"></div>
+      <div class="co-hint">下方分档进度条按此应税收入划分（不是按 gross income）。</div>
+    </div>
     <div class="bracket-list" id="federal-brackets"></div>
     <div style="margin-top: 0.9rem;">
-      <div class="rate-row">
-        <span class="label">应税收入 (Taxable Income)</span>
-        <span class="value" id="row-taxable">—</span>
-      </div>
       <div class="rate-row">
         <span class="label">联邦税</span>
         <span class="value" id="row-federal">—</span>
@@ -378,12 +411,14 @@ permalink: /toolbox/tax-bracket/
   <!-- ============ CN 应纳税所得分档 ============ -->
   <div class="panel" data-country="cn" style="display: none;">
     <div class="panel-title">综合所得分档（2024–2026 现行税率表）</div>
+    <div class="taxable-callout">
+      <div class="co-label">应纳税所得额</div>
+      <div class="co-value" id="cn-taxable-value">—</div>
+      <div class="co-detail" id="cn-taxable-detail"></div>
+      <div class="co-hint">下方分档进度条按此应纳税所得额划分（不是按年综合所得）。</div>
+    </div>
     <div class="bracket-list" id="cn-brackets"></div>
     <div style="margin-top: 0.9rem;">
-      <div class="rate-row">
-        <span class="label">应纳税所得额</span>
-        <span class="value" id="cn-row-taxable">—</span>
-      </div>
       <div class="rate-row">
         <span class="label">综合所得税额</span>
         <span class="value" id="cn-row-tax">—</span>
@@ -645,7 +680,9 @@ permalink: /toolbox/tax-bracket/
     document.getElementById('sum-tax').textContent = fmtUSD(totalTax);
     document.getElementById('sum-take').textContent = fmtUSD(takehome);
     document.getElementById('sum-eff').textContent = fmtPctRound(effective);
-    document.getElementById('row-taxable').textContent = fmtUSD(taxable) + `（已扣 ${fmtUSD(ded)}）`;
+    document.getElementById('us-taxable-value').textContent = fmtUSD(taxable);
+    document.getElementById('us-taxable-detail').textContent =
+      `Gross ${fmtUSD(gross)} − Deduction ${fmtUSD(ded)} = ${fmtUSD(taxable)}`;
     document.getElementById('row-federal').textContent = fmtUSD(federalTax);
     document.getElementById('row-marginal').textContent = (marginalRate * 100).toFixed(0) + '%';
     document.getElementById('row-state-rate').textContent = stateInfo
@@ -751,8 +788,9 @@ permalink: /toolbox/tax-bracket/
     document.getElementById('sum-take').textContent = fmtCNY(takehome);
     document.getElementById('sum-eff').textContent = fmtPctRound(effective);
 
-    document.getElementById('cn-row-taxable').textContent =
-      fmtCNY(taxable) + `（已扣 ${fmtCNY(totalDeduct)}：基本 ¥60,000 + 五险一金 ${fmtCNY(siAmount)} + 专项附加 ${fmtCNY(extraDed)}）`;
+    document.getElementById('cn-taxable-value').textContent = fmtCNY(taxable);
+    document.getElementById('cn-taxable-detail').textContent =
+      `年综合所得 ${fmtCNY(gross)} − 基本 ¥60,000 − 五险一金 ${fmtCNY(siAmount)} − 专项附加 ${fmtCNY(extraDed)} = ${fmtCNY(taxable)}`;
     document.getElementById('cn-row-tax').textContent = fmtCNY(tax);
     document.getElementById('cn-row-marginal').textContent = (marginalRate * 100).toFixed(0) + '%';
 
