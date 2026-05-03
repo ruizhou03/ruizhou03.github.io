@@ -158,8 +158,22 @@ permalink: /life/picker/
     box-shadow: none; transform: none;
   }
   .spin-hint {
-    margin-top: 0.5rem; font-size: 0.8rem;
-    color: var(--color-light); min-height: 1.1em;
+    margin-top: 0.5rem;
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.7rem; flex-wrap: wrap;
+    font-size: 0.82rem; color: var(--color-light); min-height: 1.4em;
+  }
+  .spin-hint .skip-btn {
+    background: transparent; border: 1px dashed var(--color-border);
+    border-radius: 12px;
+    padding: 0.15rem 0.65rem;
+    color: var(--color-muted); font-size: 0.76rem;
+    font: inherit; line-height: 1.3;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .spin-hint .skip-btn:hover {
+    color: var(--color-accent); border-color: var(--color-accent);
   }
 
   /* —— 转盘 —— */
@@ -350,7 +364,10 @@ permalink: /life/picker/
 
     <div class="spin-zone">
       <button type="button" class="spin-btn" id="spin-btn">🎯 抽！</button>
-      <div class="spin-hint" id="spin-hint"></div>
+      <div class="spin-hint" id="spin-hint">
+        <span id="spin-hint-text"></span>
+        <button type="button" class="skip-btn" id="skip-btn" style="display: none;">跳过动画</button>
+      </div>
     </div>
   </div>
 
@@ -398,8 +415,9 @@ permalink: /life/picker/
     ],
     draws: 1,
     busy: false,
-    rotation: 0,           // 当前累积旋转角度（CSS）
-    multiResults: [],      // 多次模式下每次抽到的 idx
+    rotation: 0,            // 当前累积旋转角度（CSS）
+    multiResults: [],       // 多次模式下每次抽到的 idx
+    skipAnimation: false,   // 用户在多次模式中点了"跳过动画"
   };
 
   // ── DOM 引用 ──────────────────────────
@@ -407,7 +425,9 @@ permalink: /life/picker/
   const $addBtn    = document.getElementById('add-btn');
   const $drawsGrp  = document.getElementById('draws-group');
   const $spinBtn   = document.getElementById('spin-btn');
-  const $spinHint  = document.getElementById('spin-hint');
+  const $spinHint     = document.getElementById('spin-hint');
+  const $spinHintText = document.getElementById('spin-hint-text');
+  const $skipBtn      = document.getElementById('skip-btn');
   const $wheel     = document.getElementById('wheel-svg');
   const $result    = document.getElementById('result-line');
   const $tallyPnl  = document.getElementById('tally-panel');
@@ -546,8 +566,19 @@ permalink: /life/picker/
       for (let i = 0; i < winnerIdx; i++) acc += ws[i];
       const midFrac = (acc + ws[winnerIdx] / 2) / total;
       const midDeg = midFrac * 360;        // 切片中点相对于 0（顶部）的顺时针角度
-      // 让 winner 的切片中点对准顶部 = 转盘整体逆时针转 midDeg
-      // 但我们用顺时针累积（更自然），所以目标 = 当前 + 几整圈 + (360 - midDeg)
+      // 让 winner 的切片中点对准顶部 = 当前 + 几整圈 + (360 - midDeg)
+
+      // 跳过动画模式：直接 snap 到目标，不加 transition
+      if (state.skipAnimation) {
+        $wheel.classList.remove('spinning', 'spinning-fast');
+        void $wheel.offsetWidth;
+        const target = state.rotation + (360 - midDeg);
+        $wheel.style.transform = `rotate(${target}deg)`;
+        state.rotation = target;
+        setTimeout(resolve, 220);  // 短暂留时间让用户看到 highlight + 计票变化
+        return;
+      }
+
       const extraSpins = fast ? 3 : 5;
       const target = state.rotation + 360 * extraSpins + (360 - midDeg);
       $wheel.classList.remove('spinning', 'spinning-fast');
@@ -556,13 +587,24 @@ permalink: /life/picker/
       $wheel.classList.add(fast ? 'spinning-fast' : 'spinning');
       $wheel.style.transform = `rotate(${target}deg)`;
       state.rotation = target;
-      const onEnd = () => {
+
+      let safety;
+      const onEnd = (e) => {
+        // 关键：必须确认是 wheel 自己的 transform transition 结束。
+        // SVG 子元素 .slice 的 filter / opacity transitionend 会冒泡到 $wheel，
+        // 不过滤的话会把 spin 提前 resolve，导致后续多次抽签时序混乱（转盘转不停 + 角度漂移）
+        if (e.target !== $wheel || e.propertyName !== 'transform') return;
         $wheel.removeEventListener('transitionend', onEnd);
+        clearTimeout(safety);
         resolve();
       };
       $wheel.addEventListener('transitionend', onEnd);
-      // safety timeout
-      setTimeout(() => resolve(), fast ? 1900 : 3500);
+      // 安全兜底：如果 transitionend 因任何原因没触发（譬如标签页切到后台），
+      // 也别把整个流程卡死
+      safety = setTimeout(() => {
+        $wheel.removeEventListener('transitionend', onEnd);
+        resolve();
+      }, fast ? 2200 : 3800);
     });
   }
   function highlightSlice(winnerIdx) {
@@ -630,6 +672,8 @@ permalink: /life/picker/
     if (state.options.length < 2) return;
 
     state.busy = true;
+    state.skipAnimation = false;   // 每次点抽都重新计起
+    $skipBtn.style.display = 'none';
     setSpinDisabled(true);
     $resetRow.style.display = 'none';
     clearHighlights();
@@ -639,9 +683,9 @@ permalink: /life/picker/
       // 单次模式
       $tallyPnl.classList.remove('show');
       const winnerIdx = weightedPickIndex();
-      $spinHint.textContent = '抽签中…';
+      $spinHintText.textContent = '抽签中…';
       await spinTo(winnerIdx, false);
-      $spinHint.textContent = '';
+      $spinHintText.textContent = '';
       highlightSlice(winnerIdx);
       const name = state.options[winnerIdx].text || ('选项' + (winnerIdx + 1));
       $result.innerHTML = `🎉 选中：<span class="winner-name">${escapeHtml(name)}</span>`;
@@ -653,7 +697,7 @@ permalink: /life/picker/
       const counts = state.options.map(() => 0);
       for (let n = 0; n < state.draws; n++) {
         const idx = weightedPickIndex();
-        $spinHint.textContent = `第 ${n + 1} / ${state.draws} 次…`;
+        $spinHintText.textContent = `第 ${n + 1} / ${state.draws} 次…`;
         $tallyHdr.textContent = `第 ${n + 1} / ${state.draws} 次`;
         const fast = n > 0;
         await spinTo(idx, fast);
@@ -663,13 +707,20 @@ permalink: /life/picker/
         state.multiResults.push(idx);
         counts[idx]++;
         updateTally();
-        // 间隔
+
+        // 第一次抽完之后亮出"跳过动画"按钮（如果还有后续轮、且用户没点过）
+        if (n === 0 && state.draws > 1 && !state.skipAnimation) {
+          $skipBtn.style.display = '';
+        }
+
+        // 间隔（跳过动画时也短一些）
         if (n < state.draws - 1) {
-          await new Promise(r => setTimeout(r, 350));
+          await new Promise(r => setTimeout(r, state.skipAnimation ? 80 : 350));
           clearHighlights();
         }
       }
-      $spinHint.textContent = '';
+      $skipBtn.style.display = 'none';
+      $spinHintText.textContent = '';
       // 找出冠军
       let max = -1, winnerIdx = 0;
       for (let i = 0; i < counts.length; i++) {
@@ -703,8 +754,10 @@ permalink: /life/picker/
     $result.innerHTML = '&nbsp;';
     $resetRow.style.display = 'none';
     $tallyPnl.classList.remove('show');
-    $spinHint.textContent = '';
+    $spinHintText.textContent = '';
+    $skipBtn.style.display = 'none';
     state.multiResults = [];
+    state.skipAnimation = false;
   }
 
   function renderAll() {
@@ -720,9 +773,9 @@ permalink: /life/picker/
     const ok = state.options.length >= 2;
     $spinBtn.disabled = !ok || state.busy;
     if (!ok) {
-      $spinHint.textContent = '至少需要两个选项';
+      $spinHintText.textContent = '至少需要两个选项';
     } else if (!state.busy) {
-      $spinHint.textContent = '';
+      $spinHintText.textContent = '';
     }
   }
 
@@ -743,6 +796,10 @@ permalink: /life/picker/
   });
   $spinBtn.addEventListener('click', spin);
   $resetBtn.addEventListener('click', reset);
+  $skipBtn.addEventListener('click', () => {
+    state.skipAnimation = true;
+    $skipBtn.style.display = 'none';
+  });
 
   // ── 初始化 ────────────────────────────
   renderAll();
