@@ -195,24 +195,6 @@ permalink: /toolbox/suika/
     overflow-y: auto;   /* 兜底：内容超高时也能滚 */
   }
 
-  /* 试玩 banner */
-  .trial-banner {
-    position: absolute;
-    top: 12px; left: 50%;
-    transform: translateX(-50%);
-    background: rgba(20, 25, 30, 0.85);
-    color: #fff;
-    padding: 0.4rem 1rem;
-    border-radius: 999px;
-    font-size: 0.82rem;
-    font-family: var(--font-display);
-    font-weight: 600;
-    pointer-events: none;
-    display: none;
-    z-index: 50;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  }
-  .trial-banner.visible { display: block; }
   .overlay-view {
     width: 100%;
     display: flex; flex-direction: column;
@@ -334,9 +316,8 @@ permalink: /toolbox/suika/
 
   <div class="game-zone" id="game-zone">
     <canvas class="game-canvas" id="game-canvas" width="380" height="540"></canvas>
-    <div class="trial-banner" id="trial-banner">试玩中 · 还能扔 10 次</div>
 
-    <!-- 开始幕（含两个视图：主页 + 调参）-->
+    <!-- 开始幕（含三个视图：主页 + 调参 + 试玩结束）-->
     <div class="game-overlay open" id="start-overlay">
 
       <!-- 主视图 -->
@@ -401,6 +382,17 @@ permalink: /toolbox/suika/
           <button type="button" id="reset-physics-btn">↻ 默认</button>
         </div>
         <button type="button" class="ov-btn" id="start-from-settings-btn" style="margin-top: 0.8rem;">▶ 开始游戏</button>
+      </div>
+
+      <!-- 试玩结束视图 -->
+      <div class="overlay-view view-trial-end" id="view-trial-end" style="display: none;">
+        <div style="font-size: 3rem; line-height: 1; margin-bottom: 0.5rem; color: #7be09a;">✓</div>
+        <h2 style="margin-bottom: 0.4rem;">试玩结束</h2>
+        <div style="color: rgba(255,255,255,0.78); font-size: 0.92rem; margin-bottom: 1.6rem; line-height: 1.55; max-width: 280px;">
+          手感对了就直接开始；想再调一调也可以
+        </div>
+        <button type="button" class="ov-btn" id="start-from-trial-btn">▶ 开始游戏</button>
+        <button type="button" class="settings-link" id="continue-tuning-btn" style="margin-top: 0.8rem;">⚙ 继续调参</button>
       </div>
     </div>
 
@@ -771,11 +763,9 @@ permalink: /toolbox/suika/
     if (trialMode) {
       trialDropsLeft--;
       if (trialDropsLeft <= 0) {
-        hideTrialBanner();
         setTimeout(endTrial, 1500);
         return;
       }
-      updateTrialBanner();
     }
 
     dropCooldown = true;
@@ -1109,7 +1099,6 @@ permalink: /toolbox/suika/
   function startGame() {
     // 试玩状态清干净
     trialMode = false;
-    hideTrialBanner();
     // 清掉「试一试」可能留下的水果
     const lingering = Composite.allBodies(world).filter(b => b.fruitLevel);
     if (lingering.length) World.remove(world, lingering);
@@ -1121,12 +1110,11 @@ permalink: /toolbox/suika/
   $startBtn.addEventListener('click', startGame);
   document.getElementById('start-from-settings-btn').addEventListener('click', startGame);
 
-  // 视图切换：主页 ↔ 调参
+  // 视图切换
   const $viewMain = document.getElementById('view-main');
   const $viewSettings = document.getElementById('view-settings');
   document.getElementById('open-settings-btn').addEventListener('click', () => {
-    $viewMain.style.display = 'none';
-    $viewSettings.style.display = '';
+    showOverlayView('settings');
   });
 
   // ============ 物理参数滑条 wiring ============
@@ -1160,46 +1148,24 @@ permalink: /toolbox/suika/
   }
 
   // ============ 试玩模式 ============
-  const $trialBanner = document.getElementById('trial-banner');
-  function showTrialBanner() {
-    $trialBanner.textContent = `试玩中 · 还能扔 ${trialDropsLeft} 次`;
-    $trialBanner.classList.add('visible');
-  }
-  function updateTrialBanner() {
-    $trialBanner.textContent = `试玩中 · 还能扔 ${trialDropsLeft} 次`;
-  }
-  function hideTrialBanner() {
-    $trialBanner.classList.remove('visible');
+  const $viewTrialEnd = document.getElementById('view-trial-end');
+
+  function showOverlayView(name) {
+    $viewMain.style.display = name === 'main' ? '' : 'none';
+    $viewSettings.style.display = name === 'settings' ? '' : 'none';
+    $viewTrialEnd.style.display = name === 'trialEnd' ? '' : 'none';
   }
 
   function endTrial() {
     trialMode = false;
     hoverFruit = null;
     setFocus(false);
-    hideTrialBanner();
     // 清水果
     const fruits = Composite.allBodies(world).filter(b => b.fruitLevel);
     if (fruits.length) World.remove(world, fruits);
-    // 切回调参视图（用户从那里点的 try）
-    $viewMain.style.display = 'none';
-    $viewSettings.style.display = '';
+    // 切到「试玩结束」视图
+    showOverlayView('trialEnd');
     $startOverlay.classList.add('open');
-    showTrialEndedToast();
-  }
-
-  function showTrialEndedToast() {
-    const el = document.createElement('div');
-    el.textContent = '✓ 试玩结束！喜欢就开始游戏';
-    el.style.cssText = `
-      position: fixed; top: 25%; left: 50%; transform: translateX(-50%);
-      background: rgba(74, 124, 89, 0.95); color: #fff;
-      padding: 0.7rem 1.4rem; border-radius: 999px;
-      font-size: 0.95rem; font-family: var(--font-display); font-weight: 600;
-      z-index: 2000; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-      animation: konamiPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    `;
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 2400);
   }
 
   document.getElementById('try-physics-btn').addEventListener('click', () => {
@@ -1207,11 +1173,9 @@ permalink: /toolbox/suika/
     trialMode = true;
     trialDropsLeft = TRIAL_DROPS;
 
-    // 清现有水果
     const old = Composite.allBodies(world).filter(b => b.fruitLevel);
     if (old.length) World.remove(world, old);
 
-    // 关 overlay
     $startOverlay.classList.remove('open');
 
     // 撒 6 颗 lv 1-3 水果到底部（错开时间）
@@ -1225,14 +1189,19 @@ permalink: /toolbox/suika/
       }, i * 150);
     });
 
-    // 1.2 秒后给玩家一个 hover fruit + 显示 banner
+    // 1.2 秒后给玩家一个 hover fruit
     setTimeout(() => {
       if (!trialMode) return;
       setFocus(true);
       spawnHoveringFruit();
-      showTrialBanner();
     }, 1200);
   });
+
+  // 试玩结束视图的两个按钮
+  document.getElementById('continue-tuning-btn').addEventListener('click', () => {
+    showOverlayView('settings');
+  });
+  document.getElementById('start-from-trial-btn').addEventListener('click', startGame);
 
   document.getElementById('reset-physics-btn').addEventListener('click', () => {
     PHYSICS.bounce = 0.5;
