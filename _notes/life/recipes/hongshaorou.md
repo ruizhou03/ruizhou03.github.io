@@ -2,7 +2,7 @@
 layout: recipe
 title: "红烧肉"
 slug: "hongshaorou"
-date: 2026-02-10
+date: 2026-01-29
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

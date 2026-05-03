@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "衣服蹭到油渍、红酒、血迹、咖啡，怎么救？"
-date: 2026-02-08
+date: 2026-04-08
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/stain-removal"

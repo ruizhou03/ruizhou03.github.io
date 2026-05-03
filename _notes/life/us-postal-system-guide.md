@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国邮政完全指南：USPS / UPS / FedEx / DHL 四大快递与寄收件实战"
-date: 2026-04-29
+date: 2026-04-25
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-postal-system-guide"

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "WiFi 为什么隔一面墙就掉？2.4G 和 5G 该怎么选？"
-date: 2026-03-23
+date: 2026-03-21
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/wifi-through-walls"

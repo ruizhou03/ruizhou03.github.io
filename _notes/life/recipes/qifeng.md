@@ -2,7 +2,7 @@
 layout: recipe
 title: "戚风蛋糕"
 slug: "qifeng"
-date: 2026-02-06
+date: 2026-01-30
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

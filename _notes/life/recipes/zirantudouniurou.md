@@ -2,7 +2,7 @@
 layout: recipe
 title: "孜然土豆牛肉"
 slug: "zirantudouniurou"
-date: 2026-03-14
+date: 2026-02-05
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

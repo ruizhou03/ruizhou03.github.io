@@ -2,7 +2,7 @@
 layout: recipe
 title: "西湖牛肉羹"
 slug: "xihuniurougeng"
-date: 2026-02-16
+date: 2026-02-21
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

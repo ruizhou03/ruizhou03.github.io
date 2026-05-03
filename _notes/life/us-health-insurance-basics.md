@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国医保完全指南（一）：基础术语与保险类型"
-date: 2026-04-24
+date: 2026-04-19
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-health-insurance-basics"

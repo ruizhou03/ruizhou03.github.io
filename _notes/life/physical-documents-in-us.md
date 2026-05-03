@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "在美国，电子版未必算数：那些非要打印出来的文件"
-date: 2026-04-02
+date: 2026-03-24
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/physical-documents-in-us"

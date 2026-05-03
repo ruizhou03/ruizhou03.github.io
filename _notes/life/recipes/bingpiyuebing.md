@@ -2,7 +2,7 @@
 layout: recipe
 title: "冰皮奶黄月饼"
 slug: "bingpiyuebing"
-date: 2026-03-06
+date: 2026-02-10
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

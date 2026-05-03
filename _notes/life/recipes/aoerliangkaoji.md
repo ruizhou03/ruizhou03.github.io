@@ -2,7 +2,7 @@
 layout: recipe
 title: "奥尔良烤鸡腿 / 烤鸡翅"
 slug: "aoerliangkaoji"
-date: 2026-04-14
+date: 2026-02-15
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

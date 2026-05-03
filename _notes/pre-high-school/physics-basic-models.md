@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "高一物理基本模型"
-date: 2026-03-09
+date: 2026-01-24
 discipline: "初升高"
 course: "物理"
 material_type: "Notes"

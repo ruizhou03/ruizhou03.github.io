@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国留学生如何玩转信用卡：从抵美到毕业的开卡时间线"
-date: 2026-04-27
+date: 2026-03-17
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/student-credit-cards-roadmap"

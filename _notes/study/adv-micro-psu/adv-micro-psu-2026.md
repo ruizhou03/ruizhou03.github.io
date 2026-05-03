@@ -4,7 +4,7 @@ title: "Advanced Microeconomics Lecture Notes"
 discipline: "经济学"
 course: "Advanced Microeconomics"
 material_type: "Notes"
-date: 2026-02-21
+date: 2026-01-16
 author: "Zircon"
 permalink: "/notes/adv-micro-psu/Micro"
 pdf_url: "/files/adv-micro-psu/Micro.pdf"

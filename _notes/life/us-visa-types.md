@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国签证完全指南：从 F-1 到绿卡，每种身份能做什么、不能做什么"
-date: 2026-01-19
+date: 2026-03-18
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-visa-types"

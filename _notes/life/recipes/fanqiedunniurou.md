@@ -2,7 +2,7 @@
 layout: recipe
 title: "番茄炖牛肉（电饭煲 / Instant Pot 版）"
 slug: "fanqiedunniurou"
-date: 2026-04-13
+date: 2026-02-18
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

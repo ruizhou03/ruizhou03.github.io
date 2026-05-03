@@ -2,7 +2,7 @@
 layout: recipe
 title: "滑蛋牛肉"
 slug: "huadanniurou"
-date: 2026-03-25
+date: 2026-02-06
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

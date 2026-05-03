@@ -2,7 +2,7 @@
 layout: recipe
 title: "香煎鸡胸肉"
 slug: "xiangjianjixiong"
-date: 2026-03-01
+date: 2026-02-03
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

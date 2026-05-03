@@ -2,7 +2,7 @@
 layout: recipe
 title: "番茄巴沙鱼"
 slug: "fanqiebashayu"
-date: 2026-03-08
+date: 2026-02-16
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

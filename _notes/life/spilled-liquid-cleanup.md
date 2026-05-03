@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "打翻液体后，先用纸吸还是先用布擦？"
-date: 2026-03-10
+date: 2026-05-01
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/spilled-liquid-cleanup"

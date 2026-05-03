@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "空气炸锅是怎么工作的？怎么用才对？"
-date: 2026-04-18
+date: 2026-03-04
 main_category: "生活攻略"
 sub_category: "生活之问"
 extra_categories:

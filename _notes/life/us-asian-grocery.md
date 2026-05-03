@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国超市完全指南（二）：亚洲超市与中餐食材性价比"
-date: 2026-01-31
+date: 2026-04-09
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-asian-grocery"

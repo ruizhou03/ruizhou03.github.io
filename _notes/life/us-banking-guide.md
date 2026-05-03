@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国银行账户完全指南：开户、汇款、HYSA 与回国处理"
-date: 2026-02-04
+date: 2026-04-22
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-banking-guide"

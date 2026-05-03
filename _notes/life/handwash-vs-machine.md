@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "手洗 vs 机洗，到底哪个更好？"
-date: 2026-04-20
+date: 2026-04-10
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/handwash-vs-machine"

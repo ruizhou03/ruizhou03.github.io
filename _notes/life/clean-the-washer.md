@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "洗衣机自己也要清洁——为什么、多久、怎么洗？"
-date: 2026-02-11
+date: 2026-04-11
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/clean-the-washer"

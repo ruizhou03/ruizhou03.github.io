@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "一元二次不等式"
-date: 2026-04-05
+date: 2026-01-21
 discipline: "初升高"
 course: "数学"
 material_type: "Notes"

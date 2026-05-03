@@ -2,7 +2,7 @@
 layout: recipe
 title: "批量预制葱油 + 拌面复合酱汁"
 slug: "congyoujiangzhi"
-date: 2026-02-17
+date: 2026-02-22
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

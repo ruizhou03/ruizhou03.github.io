@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "初升高数学思维提升"
-date: 2026-02-18
+date: 2026-01-17
 discipline: "初升高"
 course: "数学"
 material_type: "Notes"

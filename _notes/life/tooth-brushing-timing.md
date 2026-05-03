@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "早晚刷牙到底该饭前还是饭后？"
-date: 2026-01-20
+date: 2026-04-01
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/tooth-brushing-timing"

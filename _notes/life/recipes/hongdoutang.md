@@ -2,7 +2,7 @@
 layout: recipe
 title: "红豆汤"
 slug: "hongdoutang"
-date: 2026-01-24
+date: 2026-02-24
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

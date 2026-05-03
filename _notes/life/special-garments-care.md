@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "衬衫、羽绒服、牛仔裤、文胸、丝绸羊毛、鞋子怎么洗？"
-date: 2026-03-20
+date: 2026-04-07
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/special-garments-care"

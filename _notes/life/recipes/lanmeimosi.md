@@ -2,7 +2,7 @@
 layout: recipe
 title: "蓝莓慕斯蛋糕"
 slug: "lanmeimosi"
-date: 2026-04-30
+date: 2026-02-13
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

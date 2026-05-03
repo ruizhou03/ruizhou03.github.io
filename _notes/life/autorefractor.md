@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "电脑验光仪里那栋小房子，到底是给谁看的？"
-date: 2026-03-03
+date: 2026-03-16
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/autorefractor"

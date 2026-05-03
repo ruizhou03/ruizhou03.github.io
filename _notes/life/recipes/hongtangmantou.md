@@ -2,7 +2,7 @@
 layout: recipe
 title: "红糖馒头"
 slug: "hongtangmantou"
-date: 2026-01-21
+date: 2026-02-25
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

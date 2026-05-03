@@ -2,7 +2,7 @@
 layout: recipe
 title: "宫保鸡丁（家常改良版）"
 slug: "gongbaojiding"
-date: 2026-03-12
+date: 2026-02-01
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

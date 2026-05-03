@@ -2,7 +2,7 @@
 layout: recipe
 title: "虾仁滑蛋"
 slug: "xiarenhuadan"
-date: 2026-04-09
+date: 2026-02-09
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

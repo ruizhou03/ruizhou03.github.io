@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "电热水壶里的水垢能喝吗？怎么除？"
-date: 2026-04-12
+date: 2026-03-27
 main_category: "生活攻略"
 sub_category: "生活之问"
 extra_categories:

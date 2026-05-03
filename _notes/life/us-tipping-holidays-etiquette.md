@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国小费 + 节日 + 文化礼仪生存指南：从给多少到怎么过"
-date: 2026-04-06
+date: 2026-04-26
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-tipping-holidays-etiquette"

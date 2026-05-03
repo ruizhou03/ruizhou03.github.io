@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "内裤多久换一条？棉 vs 化纤到底差在哪？"
-date: 2026-02-25
+date: 2026-04-16
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/underwear-care"

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国的「身份」是什么：SSN、护照、驾照、I-20 的关系，「Show ID」时到底要什么"
-date: 2026-01-26
+date: 2026-03-23
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-id-and-identity"

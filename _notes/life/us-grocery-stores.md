@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国超市完全指南（一）：八大类型与各家定位"
-date: 2026-01-27
+date: 2026-04-06
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-grocery-stores"

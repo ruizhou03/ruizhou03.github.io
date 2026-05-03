@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国驾照完全指南（以宾州为例）：中国驾照能用吗？怎么考？能当 ID 用吗？"
-date: 2026-05-02
+date: 2026-03-20
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/pa-drivers-license"

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "为什么牛肉要逆纹切？猪肉、鸡肉同理吗？"
-date: 2026-03-18
+date: 2026-03-01
 main_category: "生活攻略"
 sub_category: "生活之问"
 extra_categories:

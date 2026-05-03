@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "烘干机 vs 自然晾干，到底哪个好？"
-date: 2026-03-24
+date: 2026-04-13
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/dryer-vs-air-dry"
