@@ -25,6 +25,45 @@ permalink: /life/picker/
     margin-bottom: 1.4rem;
   }
 
+  /* —— 方案（profile）管理条 —— */
+  .profile-bar {
+    display: flex; align-items: center; gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.3rem; padding-bottom: 1rem;
+    border-bottom: 1px dashed var(--color-border);
+    font-size: 0.88rem;
+  }
+  .profile-bar > span.profile-label {
+    color: var(--color-muted); flex-shrink: 0;
+  }
+  .profile-select {
+    flex: 1; min-width: 130px; max-width: 240px;
+    padding: 0.34rem 0.75rem;
+    font: inherit; font-size: 0.88rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-text);
+    cursor: pointer; outline: none;
+    transition: border-color 0.2s;
+  }
+  .profile-select:focus { border-color: var(--color-accent); }
+  .profile-action {
+    padding: 0.32rem 0.6rem; font-size: 0.85rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: transparent; color: var(--color-muted);
+    cursor: pointer; font: inherit; line-height: 1.2;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .profile-action:hover:not(:disabled) {
+    border-color: var(--color-accent); color: var(--color-accent);
+  }
+  .profile-action:disabled { opacity: 0.4; cursor: not-allowed; }
+  .profile-action.profile-new { border-style: dashed; }
+  .profile-toast {
+    font-size: 0.78rem; color: var(--color-accent);
+    font-style: italic;
+    transition: opacity 0.3s;
+  }
+
   .options-list { display: flex; flex-direction: column; gap: 0.7rem; }
   .option-row {
     display: grid;
@@ -351,6 +390,17 @@ permalink: /life/picker/
   </header>
 
   <div class="picker-card">
+    <div class="profile-bar">
+      <span class="profile-label">方案：</span>
+      <select class="profile-select" id="profile-select" aria-label="选择已保存的方案">
+        <option value="">（未选择方案）</option>
+      </select>
+      <button type="button" class="profile-action" id="profile-save-btn" style="display:none;" title="保存当前修改到这个方案">💾 保存</button>
+      <button type="button" class="profile-action" id="profile-rename-btn" style="display:none;" title="重命名">✏️</button>
+      <button type="button" class="profile-action" id="profile-delete-btn" style="display:none;" title="删除">🗑️</button>
+      <button type="button" class="profile-action profile-new" id="profile-new-btn" title="把当前选项保存为新方案">+ 新建</button>
+      <span class="profile-toast" id="profile-toast" style="display:none;"></span>
+    </div>
     <div class="options-list" id="options-list"></div>
     <div class="add-row">
       <button type="button" id="add-btn">+ 添加选项</button>
@@ -424,7 +474,126 @@ permalink: /life/picker/
     rotation: 0,            // 当前累积旋转角度（CSS）
     multiResults: [],       // 多次模式下每次抽到的 idx
     skipAnimation: false,   // 用户在多次模式中点了"跳过动画"
+    profiles: [],           // 本地存的所有方案（从 localStorage 读取）
+    currentProfileId: null, // 当前加载的方案 id；null = 未选择
   };
+
+  // ── Profile（本地方案）──────────────────
+  const PROFILE_STORAGE_KEY = 'picker.profiles.v1';
+  function loadProfilesFromStorage() {
+    try {
+      const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+  function saveProfilesToStorage() {
+    try {
+      localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(state.profiles));
+    } catch (e) {
+      // 配额超了 / 隐身模式 → 失败但不崩
+      showToast('保存失败：浏览器存储不可用');
+    }
+  }
+  function snapshotCurrentOptions() {
+    return state.options.map(o => ({ text: o.text, weight: o.weight }));
+  }
+  function applyProfileToState(profile) {
+    state.options = profile.options.map(o => ({
+      id: cryptoId(),
+      text: o.text,
+      weight: o.weight,
+    }));
+    state.draws = profile.draws || 1;
+  }
+  function findProfile(id) {
+    return state.profiles.find(p => p.id === id);
+  }
+  function createProfile(name) {
+    const profile = {
+      id: cryptoId(),
+      name: name,
+      options: snapshotCurrentOptions(),
+      draws: state.draws,
+      createdAt: Date.now(),
+    };
+    state.profiles.push(profile);
+    saveProfilesToStorage();
+    state.currentProfileId = profile.id;
+    renderProfileBar();
+    showToast('已新建方案');
+  }
+  function saveCurrentToProfile() {
+    const p = findProfile(state.currentProfileId);
+    if (!p) return;
+    p.options = snapshotCurrentOptions();
+    p.draws = state.draws;
+    saveProfilesToStorage();
+    showToast('已保存修改');
+  }
+  function renameCurrentProfile(newName) {
+    const p = findProfile(state.currentProfileId);
+    if (!p) return;
+    p.name = newName;
+    saveProfilesToStorage();
+    renderProfileBar();
+  }
+  function deleteCurrentProfile() {
+    state.profiles = state.profiles.filter(p => p.id !== state.currentProfileId);
+    saveProfilesToStorage();
+    state.currentProfileId = null;
+    renderProfileBar();
+    showToast('已删除');
+  }
+
+  function renderProfileBar() {
+    // 重建 select
+    const prevValue = state.currentProfileId || '';
+    $profileSelect.innerHTML = '<option value="">（未选择方案）</option>';
+    state.profiles.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name;
+      if (p.id === state.currentProfileId) opt.selected = true;
+      $profileSelect.appendChild(opt);
+    });
+    if (!findProfile(state.currentProfileId)) {
+      state.currentProfileId = null;
+      $profileSelect.value = '';
+    } else {
+      $profileSelect.value = state.currentProfileId;
+    }
+    // 操作按钮按是否有选中方案来显示
+    const has = !!state.currentProfileId;
+    $profileSaveBtn.style.display   = has ? '' : 'none';
+    $profileRenameBtn.style.display = has ? '' : 'none';
+    $profileDeleteBtn.style.display = has ? '' : 'none';
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    clearTimeout(toastTimer);
+    $profileToast.textContent = msg;
+    $profileToast.style.display = '';
+    $profileToast.style.opacity = '1';
+    toastTimer = setTimeout(() => {
+      $profileToast.style.opacity = '0';
+      setTimeout(() => { $profileToast.style.display = 'none'; }, 320);
+    }, 1800);
+  }
+
+  function updateDrawsUI() {
+    // 根据 state.draws 设置 pill / 自定义输入框的视觉
+    const presetBtn = $drawsGrp.querySelector(`button[data-draws="${state.draws}"]`);
+    if (presetBtn) {
+      setActivePreset(presetBtn);
+      $drawsCustom.value = '';
+    } else {
+      setActivePreset(null);
+      $drawsCustom.value = String(state.draws);
+    }
+  }
 
   // ── DOM 引用 ──────────────────────────
   const $list      = document.getElementById('options-list');
@@ -443,6 +612,12 @@ permalink: /life/picker/
   const $tallyBars = document.getElementById('tally-bars');
   const $resetRow  = document.getElementById('reset-row');
   const $resetBtn  = document.getElementById('reset-btn');
+  const $profileSelect    = document.getElementById('profile-select');
+  const $profileSaveBtn   = document.getElementById('profile-save-btn');
+  const $profileRenameBtn = document.getElementById('profile-rename-btn');
+  const $profileDeleteBtn = document.getElementById('profile-delete-btn');
+  const $profileNewBtn    = document.getElementById('profile-new-btn');
+  const $profileToast     = document.getElementById('profile-toast');
 
   // ── helpers ───────────────────────────
   function cryptoId() {
@@ -844,7 +1019,76 @@ permalink: /life/picker/
     $skipBtn.style.display = 'none';
   });
 
+  // ── Profile 事件绑定 ──────────────────
+  $profileSelect.addEventListener('change', (e) => {
+    if (state.busy) {
+      // 抽签中不让切，但要把 select 拉回去
+      $profileSelect.value = state.currentProfileId || '';
+      return;
+    }
+    const id = e.target.value;
+    if (!id) {
+      // "（未选择方案）"——清掉关联，保留当前选项内容不变
+      state.currentProfileId = null;
+      renderProfileBar();
+      return;
+    }
+    const p = findProfile(id);
+    if (!p) return;
+    applyProfileToState(p);
+    state.currentProfileId = id;
+    renderAll();
+    updateDrawsUI();
+    renderProfileBar();
+    reset();
+  });
+
+  $profileNewBtn.addEventListener('click', () => {
+    if (state.busy) return;
+    const name = prompt('给这个方案起个名字：', '');
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed) {
+      showToast('方案名不能为空');
+      return;
+    }
+    if (state.profiles.some(p => p.name === trimmed)) {
+      if (!confirm(`已经有同名方案"${trimmed}"，确定要再建一个？`)) return;
+    }
+    createProfile(trimmed);
+  });
+
+  $profileSaveBtn.addEventListener('click', () => {
+    if (state.busy || !state.currentProfileId) return;
+    saveCurrentToProfile();
+  });
+
+  $profileRenameBtn.addEventListener('click', () => {
+    if (state.busy || !state.currentProfileId) return;
+    const p = findProfile(state.currentProfileId);
+    if (!p) return;
+    const name = prompt('新方案名：', p.name);
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed) {
+      showToast('方案名不能为空');
+      return;
+    }
+    renameCurrentProfile(trimmed);
+    showToast('已重命名');
+  });
+
+  $profileDeleteBtn.addEventListener('click', () => {
+    if (state.busy || !state.currentProfileId) return;
+    const p = findProfile(state.currentProfileId);
+    if (!p) return;
+    if (!confirm(`确定要删除方案"${p.name}"吗？此操作不可恢复。`)) return;
+    deleteCurrentProfile();
+  });
+
   // ── 初始化 ────────────────────────────
+  state.profiles = loadProfilesFromStorage();
+  renderProfileBar();
   renderAll();
 })();
 </script>
