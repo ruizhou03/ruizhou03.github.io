@@ -1,0 +1,729 @@
+---
+layout: default
+title: "合成大西瓜 | Rui Zhou"
+permalink: /toolbox/suika/
+---
+
+<style>
+  .sk-wrap { max-width: 540px; margin: 0 auto; padding: 1rem; }
+  .sk-wrap header { text-align: center; margin-bottom: 1rem; }
+  .sk-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
+  .sk-wrap header .sub { color: var(--color-light); font-style: italic; }
+
+  .stats-bar {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;
+    margin-bottom: 0.8rem;
+  }
+  .stat-card {
+    text-align: center;
+    padding: 0.7rem 0.5rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+  }
+  .stat-card .label {
+    font-size: 0.74rem; color: var(--color-muted);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .stat-card .value {
+    font-family: var(--font-display);
+    font-size: 1.5rem; font-weight: 600;
+    color: var(--color-ink);
+    line-height: 1; font-variant-numeric: tabular-nums;
+  }
+  .stat-card.score .value { color: var(--color-accent); }
+  .stat-card.high .value { color: var(--color-highlight); }
+
+  .game-zone {
+    position: relative;
+    margin: 0 auto;
+    background: linear-gradient(180deg, #fef6e4 0%, #f9e8c4 100%);
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .game-zone {
+      background: linear-gradient(180deg, #2a2418 0%, #1f1a10 100%);
+    }
+  }
+  :root[data-theme="dark"] .game-zone {
+    background: linear-gradient(180deg, #2a2418 0%, #1f1a10 100%);
+  }
+  .game-canvas { display: block; cursor: pointer; }
+  .game-zone.over .game-canvas { cursor: not-allowed; }
+
+  .game-overlay {
+    position: absolute; inset: 0;
+    background: rgba(20, 25, 30, 0.78);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center; justify-content: center;
+    flex-direction: column;
+    color: #fff;
+    padding: 2rem;
+    text-align: center;
+  }
+  .game-overlay.open { display: flex; }
+  .game-overlay h2 {
+    font-family: var(--font-display);
+    font-size: 1.7rem; font-weight: 600; color: #fff;
+    margin-bottom: 0.7rem;
+  }
+  .game-overlay .final-score {
+    font-family: var(--font-display);
+    font-size: 3rem; font-weight: 700;
+    color: var(--color-highlight);
+    margin: 0.4rem 0;
+    line-height: 1;
+  }
+  .game-overlay .new-best {
+    font-size: 0.95rem;
+    color: var(--color-highlight);
+    margin-bottom: 0.8rem;
+    font-weight: 600;
+  }
+  .game-overlay p { color: rgba(255, 255, 255, 0.78); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.55; }
+  .game-overlay .ov-btn {
+    font: inherit; font-size: 0.95rem; font-weight: 600;
+    padding: 0.7rem 2rem;
+    border: none; border-radius: 999px;
+    background: var(--color-accent); color: #fff; cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transition: transform 0.18s;
+  }
+  .game-overlay .ov-btn:hover { transform: translateY(-1px); }
+
+  .controls-row {
+    display: flex; gap: 0.7rem; justify-content: center;
+    margin-top: 0.8rem;
+  }
+  .controls-row button {
+    font: inherit; font-size: 0.85rem;
+    padding: 0.5rem 1.2rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted); cursor: pointer;
+    transition: all 0.18s;
+  }
+  .controls-row button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+  .preview-row {
+    display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 0.8rem;
+    padding: 0.6rem 1rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+  }
+  .preview-row .next-fruit {
+    font-size: 1.6rem;
+    line-height: 1;
+  }
+  .preview-row .melon-count {
+    font-variant-numeric: tabular-nums;
+  }
+  .preview-row .melon-count strong { color: var(--color-highlight); font-weight: 600; }
+
+  /* 进化链可视化 */
+  .evo-chain {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 0.2rem;
+    margin-top: 0.8rem;
+    padding: 0.55rem 0.7rem;
+    background: var(--color-bg-warm);
+    border-radius: 10px;
+    font-size: 0.78rem;
+    color: var(--color-light);
+    justify-content: center;
+  }
+  .evo-chain .arrow { opacity: 0.5; }
+
+  .footnote {
+    margin-top: 1.2rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-bg);
+  }
+  .footnote summary {
+    padding: 0.65rem 1rem;
+    cursor: pointer; user-select: none;
+    font-size: 0.85rem; color: var(--color-muted);
+    list-style: none;
+  }
+  .footnote summary::-webkit-details-marker { display: none; }
+  .footnote summary::after {
+    content: '▸'; float: right;
+    color: var(--color-light); transition: transform 0.2s;
+  }
+  .footnote[open] summary::after { transform: rotate(90deg); }
+  .footnote summary:hover { color: var(--color-accent); }
+  .footnote-body {
+    padding: 0 1rem 0.9rem;
+    font-size: 0.85rem; color: var(--color-muted); line-height: 1.7;
+  }
+  .footnote-body kbd {
+    font-family: 'SFMono-Regular', monospace; font-size: 0.85em;
+    background: var(--color-bg-warm); padding: 0.1em 0.4em; border-radius: 3px;
+    border: 1px solid var(--color-border);
+  }
+</style>
+
+<div class="sk-wrap">
+  <header>
+    <h1>🍉 合成大西瓜</h1>
+    <p class="sub">Suika Game — 相同水果碰撞合并，目标是种出一颗大西瓜</p>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat-card score">
+      <div class="label">当前分</div>
+      <div class="value" id="cur-score">0</div>
+    </div>
+    <div class="stat-card high">
+      <div class="label">最高分</div>
+      <div class="value" id="high-score">0</div>
+    </div>
+  </div>
+
+  <div class="game-zone" id="game-zone">
+    <canvas class="game-canvas" id="game-canvas" width="380" height="540"></canvas>
+    <div class="game-overlay" id="game-overlay">
+      <h2 id="ov-title">游戏结束</h2>
+      <div class="final-score" id="ov-score">0</div>
+      <div class="new-best" id="ov-best" style="display: none;">🏆 新纪录！</div>
+      <p id="ov-message">水果堆超过红线了 · 试试更稳的策略？</p>
+      <button type="button" class="ov-btn" id="ov-restart">🔄 再来一局</button>
+    </div>
+  </div>
+
+  <div class="preview-row">
+    <span>下一个：<span class="next-fruit" id="next-fruit">🍒</span></span>
+    <span style="opacity: 0.5;">·</span>
+    <span class="melon-count">已合成 <strong id="melon-count">0</strong> 颗 🍉</span>
+  </div>
+
+  <div class="controls-row">
+    <button type="button" id="restart-btn">🔄 重开</button>
+    <button type="button" id="pause-btn">⏸ 暂停</button>
+  </div>
+
+  <div class="evo-chain" id="evo-chain">
+    <!-- JS 填充进化链 -->
+  </div>
+
+  <details class="footnote">
+    <summary>怎么玩 / 计分规则</summary>
+    <div class="footnote-body">
+      <p><strong>玩法</strong>：顶部悬浮一个水果，<kbd>鼠标拖动</kbd>或<kbd>触屏拖</kbd>调位置，<kbd>点击</kbd>或<kbd>空格</kbd>投放。两个相同水果碰到就合并成下一级。目标是种出 🍉 西瓜。</p>
+      <p><strong>键盘</strong>：<kbd>←</kbd> <kbd>→</kbd> 左右移动，<kbd>空格</kbd>投放。</p>
+      <p><strong>计分</strong>：每次合并得 level² 分（草莓 4，葡萄 9，西瓜 121）。</p>
+      <p><strong>结束条件</strong>：任何水果的顶端持续超过红色危险线 2 秒以上 → 游戏结束。</p>
+      <p><strong>提示</strong>：</p>
+      <ul style="margin: 0.3rem 0 0 1.2rem;">
+        <li>掉落水果是 <strong>1-5 级</strong>随机（樱桃 → 柿子，越小概率越大）</li>
+        <li>大水果（≥6 级）只能靠合并产出，不会从天而降</li>
+        <li>规划好底层是关键：让大水果稳稳坐着</li>
+      </ul>
+    </div>
+  </details>
+</div>
+
+<!-- Matter.js 物理引擎 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
+
+<script>
+(function () {
+  'use strict';
+  if (typeof Matter === 'undefined') {
+    document.getElementById('game-canvas').replaceWith(
+      Object.assign(document.createElement('div'), {
+        innerHTML: '<div style="padding:3rem;text-align:center;color:#c0392b;">⚠️ Matter.js 物理引擎加载失败，需要联网才能玩。</div>'
+      })
+    );
+    return;
+  }
+
+  const HIGH_KEY = 'tool.suika.highscore.v1';
+  const MELONS_KEY = 'tool.suika.melons.v1';
+
+  // ============ 水果定义（11 级） ============
+  const FRUITS = [
+    { lv: 1,  name: '樱桃',   emoji: '🍒', radius: 13, color: '#e84118', score: 1   },
+    { lv: 2,  name: '草莓',   emoji: '🍓', radius: 17, color: '#ff7675', score: 4   },
+    { lv: 3,  name: '葡萄',   emoji: '🍇', radius: 23, color: '#8e44ad', score: 9   },
+    { lv: 4,  name: '橘子',   emoji: '🍊', radius: 30, color: '#f39c12', score: 16  },
+    { lv: 5,  name: '柿子',   emoji: '🍅', radius: 38, color: '#e67e22', score: 25  },
+    { lv: 6,  name: '苹果',   emoji: '🍎', radius: 47, color: '#e74c3c', score: 36  },
+    { lv: 7,  name: '梨',     emoji: '🍐', radius: 56, color: '#7bed9f', score: 49  },
+    { lv: 8,  name: '桃',     emoji: '🍑', radius: 65, color: '#fab1a0', score: 64  },
+    { lv: 9,  name: '菠萝',   emoji: '🍍', radius: 74, color: '#feca57', score: 81  },
+    { lv: 10, name: '哈密瓜', emoji: '🍈', radius: 84, color: '#a8e6cf', score: 100 },
+    { lv: 11, name: '西瓜',   emoji: '🍉', radius: 96, color: '#27ae60', score: 121 },
+  ];
+
+  // 1-5 加权概率（小水果概率高）
+  const SPAWN_WEIGHTS = [35, 28, 20, 12, 5];
+
+  function pickSpawnLevel() {
+    const total = SPAWN_WEIGHTS.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < SPAWN_WEIGHTS.length; i++) {
+      r -= SPAWN_WEIGHTS[i];
+      if (r <= 0) return i + 1;
+    }
+    return 1;
+  }
+
+  // ============ 游戏尺寸 ============
+  const $canvas = document.getElementById('game-canvas');
+  const ctx = $canvas.getContext('2d');
+  const $gameZone = document.getElementById('game-zone');
+  const $overlay = document.getElementById('game-overlay');
+  const $ovScore = document.getElementById('ov-score');
+  const $ovBest = document.getElementById('ov-best');
+  const $ovMessage = document.getElementById('ov-message');
+  const $ovTitle = document.getElementById('ov-title');
+  const $ovRestart = document.getElementById('ov-restart');
+  const $restartBtn = document.getElementById('restart-btn');
+  const $pauseBtn = document.getElementById('pause-btn');
+  const $curScore = document.getElementById('cur-score');
+  const $highScore = document.getElementById('high-score');
+  const $nextFruit = document.getElementById('next-fruit');
+  const $melonCount = document.getElementById('melon-count');
+  const $evoChain = document.getElementById('evo-chain');
+
+  let W = 380, H = 540;     // 画布尺寸
+  const WALL = 16;          // 墙厚
+  const SPAWN_Y = 50;       // 悬浮水果 y
+  const DANGER_Y = 100;     // 危险线 y
+  const FLOOR_Y = 540;      // 底面（动态调）
+
+  // 自适应尺寸
+  function fitCanvas() {
+    const containerWidth = Math.min(420, window.innerWidth - 32);
+    W = containerWidth;
+    H = Math.round(W * 1.45);
+    $canvas.width = W;
+    $canvas.height = H;
+    $canvas.style.width = W + 'px';
+    $canvas.style.height = H + 'px';
+  }
+  fitCanvas();
+
+  // ============ Matter.js 初始化 ============
+  const { Engine, World, Bodies, Body, Events, Composite } = Matter;
+
+  let engine, world;
+  let walls = [];
+  let nextLevel = pickSpawnLevel();   // 排队中的下一个
+  let currentBody = null;             // 当前悬浮的水果
+  let score = 0;
+  let highScore = parseInt(localStorage.getItem(HIGH_KEY) || '0', 10);
+  let melonsCount = parseInt(localStorage.getItem(MELONS_KEY) || '0', 10);
+  let isOver = false;
+  let isPaused = false;
+  let dangerSince = null;
+  let dropCooldown = false;
+  let lastTick = performance.now();
+  const recentMerges = new Set();   // 防止同一次碰撞触发多次合并
+
+  function setupWorld() {
+    engine = Engine.create({
+      gravity: { x: 0, y: 1, scale: 0.0014 },
+    });
+    engine.constraintIterations = 4;
+    engine.positionIterations = 8;
+    engine.velocityIterations = 6;
+    world = engine.world;
+
+    walls = [
+      Bodies.rectangle(W / 2, H + WALL / 2, W, WALL, { isStatic: true, render: { visible: false } }),  // floor
+      Bodies.rectangle(-WALL / 2, H / 2, WALL, H * 2, { isStatic: true, render: { visible: false } }),  // left
+      Bodies.rectangle(W + WALL / 2, H / 2, WALL, H * 2, { isStatic: true, render: { visible: false } }), // right
+    ];
+    World.add(world, walls);
+
+    Events.on(engine, 'collisionStart', onCollision);
+  }
+
+  function onCollision(event) {
+    if (isOver) return;
+    event.pairs.forEach(pair => {
+      const a = pair.bodyA, b = pair.bodyB;
+      if (!a.fruitLevel || !b.fruitLevel) return;
+      if (a.fruitLevel !== b.fruitLevel) return;
+      if (a.fruitLevel >= 11) return;  // 西瓜不再合并
+      const key1 = a.id + '-' + b.id;
+      const key2 = b.id + '-' + a.id;
+      if (recentMerges.has(key1) || recentMerges.has(key2)) return;
+      recentMerges.add(key1);
+
+      mergeFruits(a, b);
+    });
+  }
+
+  function mergeFruits(a, b) {
+    const level = a.fruitLevel;
+    const newLevel = level + 1;
+    const x = (a.position.x + b.position.x) / 2;
+    const y = (a.position.y + b.position.y) / 2;
+    World.remove(world, [a, b]);
+    const merged = createFruitBody(newLevel, x, y);
+    World.add(world, merged);
+    // 合并爆炸效果（一个小弹力）
+    Body.setVelocity(merged, { x: 0, y: -2 });
+    score += FRUITS[newLevel - 1].score;
+    if (newLevel === 11) {
+      melonsCount++;
+      try { localStorage.setItem(MELONS_KEY, String(melonsCount)); } catch (e) {}
+    }
+    updateScoreUI();
+  }
+
+  function createFruitBody(level, x, y, opts = {}) {
+    const fruit = FRUITS[level - 1];
+    const body = Bodies.circle(x, y, fruit.radius, {
+      restitution: 0.18,
+      friction: 0.45,
+      frictionAir: 0.012,
+      density: 0.0015,
+      slop: 0.02,
+      ...opts,
+    });
+    body.fruitLevel = level;
+    body.spawnedAt = performance.now();
+    return body;
+  }
+
+  // ============ 悬浮水果 + 投放 ============
+  let hoverX = W / 2;
+
+  function spawnHoveringFruit() {
+    if (isOver) return;
+    const level = nextLevel;
+    nextLevel = pickSpawnLevel();
+    updateNextFruitUI();
+
+    const fruit = FRUITS[level - 1];
+    const x = clampHoverX(hoverX, fruit.radius);
+    currentBody = createFruitBody(level, x, SPAWN_Y, {
+      isStatic: true,
+      collisionFilter: { mask: 0 },  // 悬浮时不参与碰撞
+    });
+    World.add(world, currentBody);
+  }
+
+  function clampHoverX(x, radius) {
+    return Math.max(radius + 4, Math.min(W - radius - 4, x));
+  }
+
+  function moveHover(x) {
+    if (!currentBody || isOver || isPaused) return;
+    const fruit = FRUITS[currentBody.fruitLevel - 1];
+    hoverX = x;
+    const cx = clampHoverX(x, fruit.radius);
+    Body.setPosition(currentBody, { x: cx, y: SPAWN_Y });
+  }
+
+  function dropCurrent() {
+    if (!currentBody || isOver || isPaused || dropCooldown) return;
+    Body.setStatic(currentBody, false);
+    currentBody.collisionFilter = { mask: 0xFFFFFFFF };
+    currentBody = null;
+    dropCooldown = true;
+    setTimeout(() => {
+      dropCooldown = false;
+      if (!isOver && !isPaused) spawnHoveringFruit();
+    }, 500);
+  }
+
+  // ============ 输入：鼠标 / 触屏 / 键盘 ============
+  function getCanvasX(e) {
+    const rect = $canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    return ((clientX - rect.left) / rect.width) * W;
+  }
+
+  $canvas.addEventListener('mousemove', e => {
+    moveHover(getCanvasX(e));
+  });
+  $canvas.addEventListener('click', e => {
+    moveHover(getCanvasX(e));
+    dropCurrent();
+  });
+
+  let touchActive = false;
+  $canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    touchActive = true;
+    moveHover(getCanvasX(e));
+  }, { passive: false });
+  $canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (touchActive) moveHover(getCanvasX(e));
+  }, { passive: false });
+  $canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (touchActive) dropCurrent();
+    touchActive = false;
+  }, { passive: false });
+
+  document.addEventListener('keydown', e => {
+    if (isOver || isPaused) return;
+    if (!currentBody) return;
+    const fruit = FRUITS[currentBody.fruitLevel - 1];
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      moveHover(currentBody.position.x - 18);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      moveHover(currentBody.position.x + 18);
+    } else if (e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      dropCurrent();
+    }
+  });
+
+  // ============ 游戏循环 ============
+  function tick(now) {
+    if (!engine) return;
+    if (!isPaused && !isOver) {
+      const dt = Math.min(33, now - lastTick);
+      Engine.update(engine, dt);
+      checkDanger(now);
+      recentMerges.clear();
+    }
+    lastTick = now;
+    drawScene();
+    requestAnimationFrame(tick);
+  }
+
+  function checkDanger(now) {
+    let inDanger = false;
+    Composite.allBodies(world).forEach(b => {
+      if (!b.fruitLevel) return;
+      // 给水果生成后的 1.2 秒缓冲，避免刚 spawn 还没下落就被判失败
+      if (now - (b.spawnedAt || 0) < 1200) return;
+      // 如果水果几乎不动了（速度 < 阈值）且其顶端高于危险线 → 危险
+      const speed = Math.hypot(b.velocity.x, b.velocity.y);
+      if (b.position.y - b.circleRadius < DANGER_Y && speed < 0.3) {
+        inDanger = true;
+      }
+    });
+    if (inDanger) {
+      if (!dangerSince) dangerSince = now;
+      if (now - dangerSince > 2000) gameOver();
+    } else {
+      dangerSince = null;
+    }
+  }
+
+  function drawScene() {
+    ctx.clearRect(0, 0, W, H);
+
+    // 危险线
+    const dangerProgress = dangerSince ? Math.min(1, (performance.now() - dangerSince) / 2000) : 0;
+    ctx.strokeStyle = `rgba(231, 76, 60, ${0.5 + dangerProgress * 0.5})`;
+    ctx.lineWidth = dangerProgress > 0 ? 2.5 : 1.5;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.moveTo(0, DANGER_Y);
+    ctx.lineTo(W, DANGER_Y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 投放预测线（点划线）
+    if (currentBody && !isOver && !isPaused) {
+      ctx.strokeStyle = 'rgba(120, 120, 120, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 6]);
+      ctx.beginPath();
+      ctx.moveTo(currentBody.position.x, currentBody.position.y);
+      ctx.lineTo(currentBody.position.x, H - WALL);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // 所有水果
+    Composite.allBodies(world).forEach(b => {
+      if (!b.fruitLevel) return;
+      drawFruit(b);
+    });
+
+    // 暂停遮罩
+    if (isPaused) {
+      ctx.fillStyle = 'rgba(20, 25, 30, 0.65)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 32px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('⏸ 暂停', W / 2, H / 2);
+    }
+  }
+
+  function drawFruit(body) {
+    const fruit = FRUITS[body.fruitLevel - 1];
+    const { x, y } = body.position;
+    const r = body.circleRadius;
+    const angle = body.angle;
+
+    // 圆形底色（带渐变高光）
+    const grad = ctx.createRadialGradient(
+      x - r * 0.3, y - r * 0.3, r * 0.1,
+      x, y, r
+    );
+    grad.addColorStop(0, lightenColor(fruit.color, 30));
+    grad.addColorStop(1, fruit.color);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // 边框
+    ctx.strokeStyle = darkenColor(fruit.color, 20);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // emoji（带轻微旋转跟随物理）
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.font = `${r * 1.55}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(fruit.emoji, 0, r * 0.06);
+    ctx.restore();
+  }
+
+  function lightenColor(hex, amt) {
+    const c = parseInt(hex.slice(1), 16);
+    const r = Math.min(255, ((c >> 16) & 255) + amt);
+    const g = Math.min(255, ((c >> 8) & 255) + amt);
+    const b = Math.min(255, (c & 255) + amt);
+    return `rgb(${r},${g},${b})`;
+  }
+  function darkenColor(hex, amt) {
+    const c = parseInt(hex.slice(1), 16);
+    const r = Math.max(0, ((c >> 16) & 255) - amt);
+    const g = Math.max(0, ((c >> 8) & 255) - amt);
+    const b = Math.max(0, (c & 255) - amt);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  // ============ UI 更新 ============
+  function updateScoreUI() {
+    $curScore.textContent = score;
+    if (score > highScore) {
+      highScore = score;
+      try { localStorage.setItem(HIGH_KEY, String(highScore)); } catch (e) {}
+    }
+    $highScore.textContent = highScore;
+    $melonCount.textContent = melonsCount;
+  }
+
+  function updateNextFruitUI() {
+    $nextFruit.textContent = FRUITS[nextLevel - 1].emoji;
+  }
+
+  function buildEvoChain() {
+    $evoChain.innerHTML = FRUITS.map((f, i) => {
+      const arrow = i < FRUITS.length - 1 ? '<span class="arrow">→</span>' : '';
+      return `<span title="${f.name}">${f.emoji}</span>${arrow}`;
+    }).join('');
+  }
+
+  // ============ 游戏控制 ============
+  function gameOver() {
+    if (isOver) return;
+    isOver = true;
+    if (currentBody) {
+      World.remove(world, currentBody);
+      currentBody = null;
+    }
+    const wasNewBest = score >= highScore;
+    $ovTitle.textContent = '游戏结束';
+    $ovScore.textContent = score;
+    $ovBest.style.display = (score >= highScore && score > 0) ? '' : 'none';
+    $ovMessage.textContent = score === 0 ? '一颗水果都没合？再试一次。' :
+      melonsCount === 0 ? `本局得 ${score} 分，离西瓜还差点。` :
+      `本局得 ${score} 分，累计 ${melonsCount} 颗 🍉，继续！`;
+    $overlay.classList.add('open');
+    $gameZone.classList.add('over');
+  }
+
+  function restart() {
+    if (engine) {
+      Events.off(engine, 'collisionStart', onCollision);
+      World.clear(world, false);
+      Engine.clear(engine);
+    }
+    isOver = false;
+    isPaused = false;
+    score = 0;
+    dangerSince = null;
+    dropCooldown = false;
+    currentBody = null;
+    nextLevel = pickSpawnLevel();
+    $overlay.classList.remove('open');
+    $gameZone.classList.remove('over');
+    $pauseBtn.textContent = '⏸ 暂停';
+    setupWorld();
+    spawnHoveringFruit();
+    updateScoreUI();
+    updateNextFruitUI();
+  }
+
+  $ovRestart.addEventListener('click', restart);
+  $restartBtn.addEventListener('click', () => {
+    if (!isOver && score > 0) {
+      if (!confirm('确定重开？当前分数会丢失。')) return;
+    }
+    restart();
+  });
+  $pauseBtn.addEventListener('click', () => {
+    if (isOver) return;
+    isPaused = !isPaused;
+    $pauseBtn.textContent = isPaused ? '▶ 继续' : '⏸ 暂停';
+  });
+
+  // ============ Init ============
+  buildEvoChain();
+  updateScoreUI();
+  setupWorld();
+  spawnHoveringFruit();
+  updateNextFruitUI();
+  requestAnimationFrame(tick);
+
+  // 窗口尺寸变化重设
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      // 简单处理：窗口变化时重新 fit canvas，但不清局
+      const oldW = W;
+      fitCanvas();
+      // 缩放所有 fruits 的 x 坐标
+      const ratio = W / oldW;
+      Composite.allBodies(world).forEach(b => {
+        if (!b.fruitLevel && !b.isStatic) return;
+      });
+      // 重建墙体
+      walls.forEach(w => World.remove(world, w));
+      walls = [
+        Bodies.rectangle(W / 2, H + WALL / 2, W, WALL, { isStatic: true }),
+        Bodies.rectangle(-WALL / 2, H / 2, WALL, H * 2, { isStatic: true }),
+        Bodies.rectangle(W + WALL / 2, H / 2, WALL, H * 2, { isStatic: true }),
+      ];
+      World.add(world, walls);
+    }, 200);
+  });
+})();
+</script>
