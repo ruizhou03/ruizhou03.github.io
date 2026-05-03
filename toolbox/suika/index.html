@@ -56,6 +56,17 @@ permalink: /toolbox/suika/
   }
   .game-canvas { display: block; cursor: pointer; }
   .game-zone.over .game-canvas { cursor: not-allowed; }
+  .game-zone {
+    outline: 2px solid transparent;
+    transition: outline-color 0.25s;
+  }
+  .game-zone.focused {
+    outline-color: rgba(30, 58, 95, 0.55);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .game-zone.focused { outline-color: rgba(122, 173, 219, 0.65); }
+  }
+  :root[data-theme="dark"] .game-zone.focused { outline-color: rgba(122, 173, 219, 0.65); }
 
   .game-overlay {
     position: absolute; inset: 0;
@@ -199,6 +210,25 @@ permalink: /toolbox/suika/
 
   <div class="game-zone" id="game-zone">
     <canvas class="game-canvas" id="game-canvas" width="380" height="540"></canvas>
+
+    <!-- 开始幕 -->
+    <div class="game-overlay open" id="start-overlay">
+      <div style="font-size: 3.5rem; line-height: 1; margin-bottom: 0.5rem;">🍉</div>
+      <h2 style="margin-bottom: 0.4rem;">合成大西瓜</h2>
+      <div style="color: rgba(255,255,255,0.78); font-size: 0.92rem; margin-bottom: 1rem; line-height: 1.55;">
+        相同水果碰撞合并 · 一路合到西瓜
+      </div>
+      <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 0.75rem 1.4rem; margin-bottom: 1.4rem; font-size: 0.92rem;">
+        <div style="color: var(--color-highlight); font-family: var(--font-display); font-size: 1.6rem; font-weight: 600; line-height: 1;" id="start-best">0</div>
+        <div style="color: rgba(255,255,255,0.7); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.3rem;">历史最高分</div>
+      </div>
+      <button type="button" class="ov-btn" id="start-btn">▶ 开始游戏</button>
+      <p style="color: rgba(255,255,255,0.55); font-size: 0.78rem; margin-top: 0.9rem; max-width: 280px;">
+        开始后键盘 ← → 空格 由游戏接管 · 点击游戏外恢复页面滚动
+      </p>
+    </div>
+
+    <!-- 游戏结束幕 -->
     <div class="game-overlay" id="game-overlay">
       <h2 id="ov-title">游戏结束</h2>
       <div class="final-score" id="ov-score">0</div>
@@ -334,6 +364,9 @@ permalink: /toolbox/suika/
   const $nextFruit = document.getElementById('next-fruit');
   const $melonCount = document.getElementById('melon-count');
   const $evoChain = document.getElementById('evo-chain');
+  const $startOverlay = document.getElementById('start-overlay');
+  const $startBtn = document.getElementById('start-btn');
+  const $startBest = document.getElementById('start-best');
 
   let W = 380, H = 540;     // 画布尺寸
   const WALL = 16;          // 墙厚
@@ -372,6 +405,8 @@ permalink: /toolbox/suika/
   let dropCooldown = false;
   let lastTick = performance.now();
   const recentMerges = new Set();   // 防止同一次碰撞触发多次合并
+  let gameStarted = false;          // 用户是否点过「开始游戏」（决定是否要 spawn hover）
+  let gameFocused = false;          // 当前是否捕获键盘（点击 game-zone = true，点别处 = false）
 
   function setupWorld() {
     engine = Engine.create({
@@ -519,24 +554,48 @@ permalink: /toolbox/suika/
   // 按键状态（持续按住时每帧平滑移动）
   const keyState = { left: false, right: false };
   document.addEventListener('keydown', e => {
+    // konami 全程接收（无论是否聚焦），方便用户随时玩彩蛋
+    pushKonami(e.key);
+    // 没聚焦游戏 → 让浏览器自然处理（上下滚动等）
+    if (!gameFocused) return;
     if (isOver || isPaused) return;
-    if (!hoverFruit) return;
+
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      keyState.left = true;
+      if (hoverFruit) keyState.left = true;
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
-      keyState.right = true;
+      if (hoverFruit) keyState.right = true;
     } else if (e.key === ' ' || e.key === 'Spacebar') {
       e.preventDefault();
       dropCurrent();
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      // 配合 konami：阻止页面上下滚动
+      e.preventDefault();
     }
-    // 也累积到 konami buffer（见下方）
-    pushKonami(e.key);
   });
   document.addEventListener('keyup', e => {
+    if (!gameFocused) return;
     if (e.key === 'ArrowLeft') keyState.left = false;
     else if (e.key === 'ArrowRight') keyState.right = false;
+  });
+
+  // 焦点跟踪：点游戏区内 → 接管键盘；点游戏外 → 释放键盘
+  function setFocus(focused) {
+    gameFocused = focused;
+    $gameZone.classList.toggle('focused', focused);
+    // 释放焦点时清掉持续按键状态
+    if (!focused) {
+      keyState.left = false;
+      keyState.right = false;
+    }
+  }
+  document.addEventListener('click', (e) => {
+    if ($gameZone.contains(e.target)) {
+      setFocus(true);
+    } else {
+      setFocus(false);
+    }
   });
 
   // ============ 游戏循环 ============
@@ -775,7 +834,16 @@ permalink: /toolbox/suika/
     spawnHoveringFruit();
     updateScoreUI();
     updateNextFruitUI();
+    gameStarted = true;
+    setFocus(true);
   }
+
+  $startBtn.addEventListener('click', () => {
+    $startOverlay.classList.remove('open');
+    gameStarted = true;
+    setFocus(true);
+    spawnHoveringFruit();
+  });
 
   $ovRestart.addEventListener('click', restart);
   $restartBtn.addEventListener('click', () => {
@@ -794,12 +862,13 @@ permalink: /toolbox/suika/
   buildEvoChain();
   updateScoreUI();
   setupWorld();
-  spawnHoveringFruit();
+  // 不再立即 spawnHoveringFruit — 等用户点「开始游戏」
+  $startBest.textContent = highScore;
   updateNextFruitUI();
   console.log('[suika] init complete', {
     matterVersion: Matter && Matter.version,
     canvasW: W, canvasH: H,
-    hoverFruit, nextLevel,
+    hoverFruit, nextLevel, gameStarted, gameFocused,
   });
   requestAnimationFrame(tick);
 
