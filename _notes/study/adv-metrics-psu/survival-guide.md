@@ -98,7 +98,7 @@ Patrik 直说期末会从作业题里抽题。所以最后一章把 HW5–10 共
 
 **直觉优先**。每章开头一节叫 *The Story (Read This First, No Math)*，纯文字描述这一章在解什么问题、为什么需要这个工具。技术细节之后再来。比如 Bootstrap 章不上来就写 EDF 定义，而是先讲：“你的 t-statistic 在小样本里可能根本不是正态分布，那怎么办？”
 
-**每一步都讲 why**。这是我最坚持的一条。每个证明里每一步公式后跟一行斜体解释“为什么这一步是这一步”——为什么我们要 mean-value 展开 FOC 而不是直接展开 estimator（因为 estimator 没有解析式），为什么 U-WCON 不能换成 pointwise convergence（因为 $\widehat\theta_n$ 自己是随机的、必须能“跟着它走”），为什么 Kleibergen 的 $\text{LM}_\text{CUE}$ 要加 $-1$ 修正项（让 $\bar g$ 和 $D$ 渐近独立）。
+**每一步都讲 why**。这是我最坚持的一条。每个证明里每一步公式后跟一行斜体解释“为什么这一步是这一步”——为什么我们要 mean-value 展开 FOC 而不是直接展开 estimator（因为 estimator 没有解析式），为什么 U-WCON 不能换成 pointwise convergence（因为 θ̂ₙ 自己是随机的、必须能“跟着它走”），为什么 Kleibergen 的 LM-CUE 要加 −1 修正项（让 ḡ 和 D 渐近独立）。
 
 **老实承认重难点**。许多 textbook 倾向于让所有证明看起来一样难、所有结论一样重要。这本不是。它会直接说：“Q4 是出名的难，目标拿部分分，不要超过 10 分钟。” 或者：“不建议学习，性价比很低。” 这种坦白比掩饰对应试更有用。
 
