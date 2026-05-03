@@ -1,0 +1,822 @@
+---
+layout: default
+title: "种树专注计时器 | Rui Zhou"
+permalink: /toolbox/forest/
+---
+
+<style>
+  .ft-wrap { max-width: 760px; margin: 0 auto; padding: 1rem; }
+  .ft-wrap header { text-align: center; margin-bottom: 1.4rem; }
+  .ft-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem; }
+  .ft-wrap header .sub { color: var(--color-light); font-style: italic; }
+
+  /* ============ 主舞台（树 + 计时器）============ */
+  .stage {
+    background: linear-gradient(180deg, #f0f4ed 0%, var(--color-bg-warm) 100%);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    padding: 2rem 1.4rem 1.6rem;
+    text-align: center;
+    margin-bottom: 1.4rem;
+    position: relative;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .stage {
+      background: linear-gradient(180deg, #1f2418 0%, #2a2a26 100%);
+    }
+  }
+  :root[data-theme="dark"] .stage {
+    background: linear-gradient(180deg, #1f2418 0%, #2a2a26 100%);
+  }
+
+  .tree-svg {
+    width: min(220px, 50vw);
+    height: min(220px, 50vw);
+    margin: 0 auto;
+    display: block;
+  }
+  .tree-svg .tree-trunk { fill: #6b4f2e; }
+  .tree-svg .tree-canopy { transition: all 0.6s ease; }
+  .tree-svg .tree-ground { fill: #8b7250; }
+
+  .timer-display {
+    font-family: var(--font-display);
+    font-size: 3.2rem; font-weight: 600;
+    color: var(--color-ink);
+    line-height: 1;
+    margin: 1rem 0 0.4rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer-display.warn { color: #c0392b; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  .timer-status {
+    font-size: 0.9rem;
+    color: var(--color-muted);
+    min-height: 1.4em;
+  }
+
+  /* ============ 设置 ============ */
+  .settings {
+    margin: 1.4rem 0;
+    display: grid;
+    gap: 0.8rem;
+  }
+  .setting-row {
+    display: flex; align-items: center; gap: 0.7rem;
+    flex-wrap: wrap;
+    padding: 0.7rem 0.95rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+  }
+  .setting-row label {
+    font-size: 0.88rem; color: var(--color-muted);
+    flex-shrink: 0;
+  }
+  .setting-row .duration-tabs {
+    display: flex; gap: 0.3rem; flex-wrap: wrap; flex-grow: 1;
+  }
+  .setting-row .duration-tabs button {
+    font: inherit; font-size: 0.85rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted); cursor: pointer;
+    transition: all 0.18s;
+  }
+  .setting-row .duration-tabs button.active {
+    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+  }
+  .setting-row .duration-tabs button:not(.active):hover {
+    border-color: var(--color-accent); color: var(--color-accent);
+  }
+  .setting-row input[type="number"] {
+    width: 64px; padding: 0.35rem 0.5rem; text-align: center;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    background: var(--color-bg); color: var(--color-ink);
+    font: inherit;
+  }
+  .setting-row input[type="number"]:focus { outline: none; border-color: var(--color-accent); }
+  .setting-row input[type="text"] {
+    flex-grow: 1; padding: 0.5rem 0.7rem;
+    border: 1px solid var(--color-border); border-radius: 8px;
+    background: var(--color-bg); color: var(--color-ink);
+    font: inherit; font-size: 0.95rem;
+  }
+  .setting-row input[type="text"]:focus { outline: none; border-color: var(--color-accent); }
+  .setting-row .tree-types {
+    display: flex; gap: 0.4rem; flex-wrap: wrap;
+  }
+  .setting-row .tree-types button {
+    width: 36px; height: 36px;
+    border: 1px solid var(--color-border); border-radius: 50%;
+    background: var(--color-bg); cursor: pointer;
+    font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .setting-row .tree-types button.active {
+    border-color: var(--color-accent); background: var(--color-bg-warm);
+    transform: scale(1.1);
+  }
+
+  /* ============ 主操作按钮 ============ */
+  .action-row {
+    text-align: center; margin: 1.4rem 0;
+  }
+  .action-btn {
+    font: inherit; font-size: 1.1rem; font-weight: 600;
+    padding: 0.95rem 3rem;
+    border: none; border-radius: 999px;
+    background: var(--color-accent); color: #fff; cursor: pointer;
+    box-shadow: 0 3px 12px rgba(30, 58, 95, 0.28);
+    transition: all 0.2s;
+  }
+  .action-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 18px rgba(30, 58, 95, 0.35);
+  }
+  .action-btn.give-up {
+    background: transparent; color: #c0392b;
+    border: 1px dashed #c0392b;
+    box-shadow: none;
+    font-size: 0.92rem;
+    padding: 0.6rem 1.6rem;
+  }
+  .action-btn.give-up:hover { background: rgba(192, 57, 43, 0.08); }
+
+  .focus-warning {
+    margin-top: 0.7rem;
+    font-size: 0.82rem;
+    color: var(--color-light);
+    font-style: italic;
+  }
+
+  /* ============ 统计 ============ */
+  .stats-zone {
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: 14px; padding: 1.2rem 1.4rem;
+    margin-bottom: 1.4rem;
+  }
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem;
+    margin-bottom: 1rem;
+  }
+  .stat-card {
+    text-align: center;
+    padding: 0.6rem 0.4rem;
+    background: var(--color-bg-warm);
+    border-radius: 10px;
+  }
+  .stat-card .stat-num {
+    font-family: var(--font-display);
+    font-size: 1.7rem; font-weight: 600;
+    color: var(--color-accent);
+    line-height: 1;
+  }
+  .stat-card .stat-label {
+    font-size: 0.74rem;
+    color: var(--color-muted);
+    margin-top: 0.3rem;
+  }
+
+  /* 森林视图 */
+  .forest-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--color-ink);
+    margin-bottom: 0.7rem;
+    display: flex; align-items: baseline; gap: 0.5rem;
+    justify-content: space-between;
+  }
+  .forest-title small {
+    font-size: 0.78rem; font-weight: 400;
+    color: var(--color-muted);
+  }
+  .forest-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 0.5rem;
+  }
+  .forest-tree {
+    aspect-ratio: 1;
+    background: var(--color-bg-warm);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .forest-tree:hover {
+    transform: scale(1.1);
+    background: rgba(30, 58, 95, 0.1);
+    z-index: 2;
+  }
+  .forest-tree.dead { opacity: 0.35; filter: grayscale(0.8); font-size: 1.2rem; }
+
+  .empty-forest {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--color-light);
+    font-size: 0.9rem;
+  }
+
+  .reset-row { text-align: center; margin-top: 1rem; }
+  .reset-row button {
+    font: inherit; font-size: 0.78rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-light); cursor: pointer;
+    transition: all 0.18s;
+  }
+  .reset-row button:hover { color: #c0392b; border-color: #c0392b; }
+
+  @media (max-width: 600px) {
+    .stage { padding: 1.4rem 1rem 1.2rem; }
+    .timer-display { font-size: 2.6rem; }
+    .stats-grid { grid-template-columns: 1fr 1fr 1fr; }
+  }
+
+  /* 锁屏遮罩（focus 时） */
+  .focus-overlay {
+    position: fixed; inset: 0;
+    background: rgba(20, 30, 24, 0.86);
+    backdrop-filter: blur(8px);
+    z-index: 1500;
+    display: none;
+    align-items: center; justify-content: center;
+    flex-direction: column;
+    color: #fff;
+    padding: 2rem;
+  }
+  .focus-overlay.open { display: flex; }
+  .focus-overlay svg { width: min(280px, 60vw); height: min(280px, 60vw); }
+  .focus-overlay .timer-big {
+    font-family: var(--font-display);
+    font-size: 4rem; font-weight: 600;
+    margin: 1.2rem 0 0.5rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .focus-overlay .focus-tag {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.78);
+    font-style: italic;
+    margin-bottom: 1.6rem;
+    text-align: center;
+  }
+  .focus-overlay .focus-warn {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    max-width: 360px;
+    text-align: center;
+    margin-bottom: 1.4rem;
+    line-height: 1.55;
+  }
+  .focus-overlay .give-up-btn {
+    background: transparent; color: rgba(255, 255, 255, 0.7);
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 999px;
+    padding: 0.55rem 1.4rem;
+    font: inherit; font-size: 0.85rem; cursor: pointer;
+    transition: all 0.18s;
+  }
+  .focus-overlay .give-up-btn:hover {
+    color: #ff8888; border-color: #ff8888;
+  }
+  .focus-overlay .tree-svg .tree-trunk { fill: #8b6a3e; }
+  .focus-overlay .tree-svg .tree-ground { fill: #5a4530; }
+</style>
+
+<div class="ft-wrap">
+  <header>
+    <h1>🌳 种树</h1>
+    <p class="sub">Focus Forest — 种棵树，专心 25 分钟</p>
+  </header>
+
+  <!-- ========== 主舞台 ========== -->
+  <div class="stage">
+    <div id="tree-container">
+      <!-- tree SVG 动态注入 -->
+    </div>
+    <div class="timer-display" id="timer-display">25:00</div>
+    <div class="timer-status" id="timer-status">点「开始」种一棵树</div>
+  </div>
+
+  <!-- ========== 设置 ========== -->
+  <div class="settings">
+    <div class="setting-row">
+      <label>时长</label>
+      <div class="duration-tabs">
+        <button type="button" data-min="15">15 分</button>
+        <button type="button" data-min="25" class="active">25 分</button>
+        <button type="button" data-min="50">50 分</button>
+        <button type="button" data-min="90">90 分</button>
+      </div>
+      <input type="number" id="custom-min" min="1" max="180" placeholder="自定义" />
+      <span style="color: var(--color-light); font-size: 0.85rem;">分钟</span>
+    </div>
+    <div class="setting-row">
+      <label>在做什么</label>
+      <input type="text" id="task-input" placeholder="例如：写论文初稿（可选）" maxlength="60" />
+    </div>
+    <div class="setting-row">
+      <label>树种</label>
+      <div class="tree-types" id="tree-types">
+        <button type="button" data-tree="oak" class="active" title="橡树">🌳</button>
+        <button type="button" data-tree="pine" title="松树">🌲</button>
+        <button type="button" data-tree="sakura" title="樱花">🌸</button>
+        <button type="button" data-tree="palm" title="椰子树">🌴</button>
+        <button type="button" data-tree="cactus" title="仙人掌">🌵</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 主操作 ========== -->
+  <div class="action-row">
+    <button type="button" class="action-btn" id="start-btn">🌱 开始种树</button>
+    <div class="focus-warning" id="focus-warning"></div>
+  </div>
+
+  <!-- ========== 统计 ========== -->
+  <div class="stats-zone">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num" id="stat-today">0</div>
+        <div class="stat-label">今天种了</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-week">0</div>
+        <div class="stat-label">本周种了</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-total-min">0</div>
+        <div class="stat-label">累计专注分钟</div>
+      </div>
+    </div>
+
+    <div class="forest-title">
+      <span>🌲 我的森林</span>
+      <small id="forest-meta"></small>
+    </div>
+    <div class="forest-grid" id="forest-grid"></div>
+    <div class="empty-forest" id="empty-forest" style="display: none;">
+      还没有种过树——开始第一棵吧
+    </div>
+
+    <div class="reset-row">
+      <button type="button" id="reset-btn">清空所有数据</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 全屏 focus 遮罩 ========== -->
+<div class="focus-overlay" id="focus-overlay">
+  <div id="overlay-tree-container"></div>
+  <div class="timer-big" id="overlay-timer">25:00</div>
+  <div class="focus-tag" id="overlay-tag">专心</div>
+  <div class="focus-warn">离开这个页面 / 切换 tab 超过 15 秒，树会枯萎。</div>
+  <button type="button" class="give-up-btn" id="give-up-btn">放弃 · 让树死掉</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const TREES_KEY = 'tool.forest.trees.v1';
+  const ACTIVE_KEY = 'tool.forest.active.v1';
+
+  const TREE_EMOJI = {
+    oak: '🌳', pine: '🌲', sakura: '🌸', palm: '🌴', cactus: '🌵',
+  };
+  const TREE_NAME = {
+    oak: '橡树', pine: '松树', sakura: '樱花', palm: '椰子树', cactus: '仙人掌',
+  };
+  const DEAD_EMOJI = '🥀';
+
+  const state = {
+    trees: [],          // 已种成的树 / 失败记录
+    duration: 25,       // 当前选定的分钟数
+    treeType: 'oak',
+    task: '',
+    session: null,      // 进行中的 session
+    leftAt: null,       // 离开页面的时间戳
+  };
+
+  // ============ DOM ============
+  const $treeContainer = document.getElementById('tree-container');
+  const $overlayTreeContainer = document.getElementById('overlay-tree-container');
+  const $timerDisplay = document.getElementById('timer-display');
+  const $overlayTimer = document.getElementById('overlay-timer');
+  const $timerStatus = document.getElementById('timer-status');
+  const $startBtn = document.getElementById('start-btn');
+  const $giveUpBtn = document.getElementById('give-up-btn');
+  const $taskInput = document.getElementById('task-input');
+  const $customMin = document.getElementById('custom-min');
+  const $durationTabs = document.querySelectorAll('[data-min]');
+  const $treeTypes = document.querySelectorAll('[data-tree]');
+  const $overlay = document.getElementById('focus-overlay');
+  const $overlayTag = document.getElementById('overlay-tag');
+  const $focusWarning = document.getElementById('focus-warning');
+
+  const $statToday = document.getElementById('stat-today');
+  const $statWeek = document.getElementById('stat-week');
+  const $statTotalMin = document.getElementById('stat-total-min');
+  const $forestGrid = document.getElementById('forest-grid');
+  const $forestMeta = document.getElementById('forest-meta');
+  const $emptyForest = document.getElementById('empty-forest');
+  const $resetBtn = document.getElementById('reset-btn');
+
+  // ============ Storage ============
+  function loadTrees() {
+    try {
+      const raw = localStorage.getItem(TREES_KEY);
+      state.trees = raw ? JSON.parse(raw) : [];
+    } catch (e) { state.trees = []; }
+  }
+  function saveTrees() {
+    try { localStorage.setItem(TREES_KEY, JSON.stringify(state.trees)); } catch (e) {}
+  }
+  function loadActive() {
+    try {
+      const raw = localStorage.getItem(ACTIVE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+  function saveActive(s) {
+    try {
+      if (s) localStorage.setItem(ACTIVE_KEY, JSON.stringify(s));
+      else localStorage.removeItem(ACTIVE_KEY);
+    } catch (e) {}
+  }
+
+  // ============ Tree SVG ============
+  // progress: 0-1 描述树的成长进度
+  function buildTreeSvg(treeType, progress) {
+    progress = Math.max(0, Math.min(1, progress));
+    const groundY = 220;
+
+    // 通用画地面
+    const ground = `<ellipse class="tree-ground" cx="160" cy="${groundY + 8}" rx="100" ry="14" opacity="0.5"/>`;
+
+    // 树干高度随 progress 变化
+    const trunkH = 20 + progress * 110;
+    const trunkBase = groundY;
+    const trunkTop = trunkBase - trunkH;
+    const trunkW = 6 + progress * 8;
+
+    let canopy = '';
+    let trunkPath = '';
+
+    if (treeType === 'pine') {
+      // 松树：三角层叠
+      trunkPath = `<rect class="tree-trunk" x="${160 - trunkW/2}" y="${trunkTop}" width="${trunkW}" height="${trunkH + 8}" rx="2"/>`;
+      const layers = Math.max(1, Math.floor(progress * 3.5) + 1);
+      const baseY = trunkTop + 12;
+      const totalH = trunkH * 0.95;
+      const layerH = totalH / layers;
+      let c = '';
+      for (let i = 0; i < layers; i++) {
+        const ly = baseY - i * layerH;
+        const lw = 30 + (1 - i / layers) * 60 * progress;
+        c += `<polygon class="tree-canopy" fill="#3d6e3d" points="${160 - lw/2},${ly} ${160 + lw/2},${ly} 160,${ly - layerH * 1.1}"/>`;
+      }
+      canopy = c;
+    } else if (treeType === 'sakura') {
+      // 樱花：粉色圆形
+      trunkPath = `<rect class="tree-trunk" x="${160 - trunkW/2}" y="${trunkTop}" width="${trunkW}" height="${trunkH + 8}" rx="2"/>`;
+      const r = 20 + progress * 55;
+      const cx = 160, cy = trunkTop + 8;
+      canopy = `
+        <circle class="tree-canopy" fill="#f4b7c8" cx="${cx}" cy="${cy}" r="${r}"/>
+        <circle class="tree-canopy" fill="#fad5e0" cx="${cx - r * 0.4}" cy="${cy - r * 0.3}" r="${r * 0.55}"/>
+        <circle class="tree-canopy" fill="#f7c5d3" cx="${cx + r * 0.4}" cy="${cy - r * 0.2}" r="${r * 0.5}"/>
+        <circle class="tree-canopy" fill="#f8a8be" cx="${cx + r * 0.1}" cy="${cy + r * 0.2}" r="${r * 0.45}"/>
+      `;
+    } else if (treeType === 'palm') {
+      // 椰子树：长树干 + 叶片
+      const palmTrunkH = 30 + progress * 130;
+      const palmTrunkTop = groundY - palmTrunkH;
+      trunkPath = `<path class="tree-trunk" d="M ${158 - 3} ${groundY} Q ${156} ${(groundY + palmTrunkTop) / 2} ${162} ${palmTrunkTop} L ${162 + 5} ${palmTrunkTop} Q ${162} ${(groundY + palmTrunkTop) / 2 + 6} ${158 + 3} ${groundY} Z"/>`;
+      const leafL = 50 + progress * 50;
+      let l = '';
+      const leafCount = 6;
+      for (let i = 0; i < leafCount; i++) {
+        const angle = (i / leafCount) * 360 + 25;
+        const rad = angle * Math.PI / 180;
+        const ex = 162 + Math.cos(rad) * leafL;
+        const ey = palmTrunkTop + Math.sin(rad) * leafL * 0.6 - 5;
+        l += `<ellipse class="tree-canopy" fill="#3d8543" cx="${(162 + ex) / 2}" cy="${(palmTrunkTop + ey) / 2 - 3}" rx="${leafL / 2}" ry="9" transform="rotate(${angle} ${(162 + ex) / 2} ${(palmTrunkTop + ey) / 2})" opacity="0.9"/>`;
+      }
+      canopy = l;
+    } else if (treeType === 'cactus') {
+      // 仙人掌：胖矮的圆柱 + 横臂
+      const w = 26 + progress * 18;
+      const h = 30 + progress * 110;
+      const top = groundY - h;
+      trunkPath = `<rect class="tree-canopy" fill="#5fa05f" x="${160 - w/2}" y="${top}" width="${w}" height="${h}" rx="${w/2}"/>`;
+      let c = '';
+      if (progress > 0.4) {
+        const armW = 14;
+        const armH = 50 * progress;
+        c += `<rect class="tree-canopy" fill="#5fa05f" x="${160 - w/2 - armW + 2}" y="${top + h * 0.3}" width="${armW}" height="${armH}" rx="${armW/2}"/>`;
+        c += `<rect class="tree-canopy" fill="#5fa05f" x="${160 - w/2 - armW + 2}" y="${top + h * 0.3 - armW}" width="${armW + 4}" height="${armW}" rx="6"/>`;
+      }
+      if (progress > 0.7) {
+        const armW = 14;
+        const armH = 40 * progress;
+        c += `<rect class="tree-canopy" fill="#5fa05f" x="${160 + w/2 - 2}" y="${top + h * 0.5}" width="${armW}" height="${armH}" rx="${armW/2}"/>`;
+        c += `<rect class="tree-canopy" fill="#5fa05f" x="${160 + w/2 - 2 - 2}" y="${top + h * 0.5 - armW}" width="${armW + 4}" height="${armW}" rx="6"/>`;
+      }
+      // 仙人掌不画 trunk
+      trunkPath += c;
+      canopy = '';
+    } else {
+      // 默认：橡树（圆形树冠）
+      trunkPath = `<rect class="tree-trunk" x="${160 - trunkW/2}" y="${trunkTop}" width="${trunkW}" height="${trunkH + 8}" rx="2"/>`;
+      const r = 20 + progress * 55;
+      const cx = 160, cy = trunkTop + 5;
+      canopy = `
+        <circle class="tree-canopy" fill="#5a8a3e" cx="${cx}" cy="${cy}" r="${r}"/>
+        <circle class="tree-canopy" fill="#6ba053" cx="${cx - r * 0.4}" cy="${cy - r * 0.3}" r="${r * 0.55}"/>
+        <circle class="tree-canopy" fill="#5a8a3e" cx="${cx + r * 0.4}" cy="${cy - r * 0.2}" r="${r * 0.5}"/>
+        <circle class="tree-canopy" fill="#4a7a35" cx="${cx + r * 0.1}" cy="${cy + r * 0.25}" r="${r * 0.45}"/>
+      `;
+    }
+
+    // 0% 进度时只显示种子（小圆点）
+    if (progress < 0.05) {
+      return `<svg class="tree-svg" viewBox="0 0 320 240">
+        ${ground}
+        <circle cx="160" cy="${groundY - 4}" r="4" fill="#6b4f2e"/>
+        <text x="160" y="${groundY - 14}" text-anchor="middle" font-size="10" fill="#888">🌱</text>
+      </svg>`;
+    }
+
+    return `<svg class="tree-svg" viewBox="0 0 320 240">
+      ${ground}
+      ${canopy}
+      ${trunkPath}
+    </svg>`;
+  }
+
+  function renderTree(progress, target) {
+    const html = buildTreeSvg(state.treeType, progress);
+    if (!target) {
+      $treeContainer.innerHTML = html;
+      $overlayTreeContainer.innerHTML = html;
+    } else {
+      target.innerHTML = html;
+    }
+  }
+
+  // ============ Timer ============
+  function fmtTime(sec) {
+    const m = Math.floor(Math.max(0, sec) / 60);
+    const s = Math.max(0, sec) % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  let tickInterval = null;
+
+  function startSession() {
+    const minutes = state.duration;
+    const startTime = Date.now();
+    state.session = {
+      startTime,
+      duration: minutes * 60 * 1000,
+      task: state.task,
+      treeType: state.treeType,
+    };
+    saveActive(state.session);
+    $overlay.classList.add('open');
+    $overlayTag.textContent = state.task ? `📌 ${state.task}` : '专心';
+    $startBtn.disabled = true;
+    tick();
+    tickInterval = setInterval(tick, 1000);
+  }
+
+  function tick() {
+    if (!state.session) return;
+    const now = Date.now();
+    const elapsed = now - state.session.startTime;
+    const remaining = state.session.duration - elapsed;
+    const progress = Math.min(1, elapsed / state.session.duration);
+
+    const remainSec = Math.ceil(remaining / 1000);
+    const txt = fmtTime(remainSec);
+    $timerDisplay.textContent = txt;
+    $overlayTimer.textContent = txt;
+    if (remainSec <= 60 && remainSec > 0) {
+      $timerDisplay.classList.add('warn');
+      $overlayTimer.style.color = '#ffb88c';
+    }
+
+    renderTree(progress);
+
+    if (remaining <= 0) {
+      completeSession();
+    }
+  }
+
+  function completeSession() {
+    if (!state.session) return;
+    clearInterval(tickInterval); tickInterval = null;
+    const tree = {
+      id: 'tr-' + Date.now().toString(36),
+      type: state.session.treeType,
+      task: state.session.task || '',
+      durationMinutes: state.session.duration / 60000,
+      startTime: state.session.startTime,
+      endTime: Date.now(),
+      success: true,
+    };
+    state.trees.push(tree);
+    saveTrees();
+    state.session = null;
+    saveActive(null);
+    $overlay.classList.remove('open');
+    $overlayTimer.style.color = '';
+    $timerDisplay.classList.remove('warn');
+    $startBtn.disabled = false;
+    $timerDisplay.textContent = fmtTime(state.duration * 60);
+    $timerStatus.textContent = `🌳 种成功一棵 ${TREE_NAME[tree.type]}！专注了 ${tree.durationMinutes} 分钟`;
+    renderTree(0);
+    renderStats();
+    setTimeout(() => {
+      if (!state.session) $timerStatus.textContent = '点「开始」种一棵树';
+    }, 8000);
+  }
+
+  function failSession(reason) {
+    if (!state.session) return;
+    clearInterval(tickInterval); tickInterval = null;
+    const elapsedMin = (Date.now() - state.session.startTime) / 60000;
+    const tree = {
+      id: 'tr-' + Date.now().toString(36),
+      type: state.session.treeType,
+      task: state.session.task || '',
+      durationMinutes: state.session.duration / 60000,
+      attemptedMinutes: Math.round(elapsedMin * 10) / 10,
+      startTime: state.session.startTime,
+      endTime: Date.now(),
+      success: false,
+      reason: reason || 'gave_up',
+    };
+    state.trees.push(tree);
+    saveTrees();
+    state.session = null;
+    saveActive(null);
+    $overlay.classList.remove('open');
+    $overlayTimer.style.color = '';
+    $timerDisplay.classList.remove('warn');
+    $startBtn.disabled = false;
+    $timerDisplay.textContent = fmtTime(state.duration * 60);
+    $timerStatus.textContent = reason === 'left_page'
+      ? '🥀 树枯萎了——你离开了页面太久'
+      : '🥀 树死掉了——下次坚持一下';
+    renderTree(0);
+    renderStats();
+  }
+
+  $startBtn.addEventListener('click', () => {
+    state.task = $taskInput.value.trim();
+    startSession();
+  });
+  $giveUpBtn.addEventListener('click', () => {
+    if (!confirm('确定放弃这棵树吗？它会死掉。')) return;
+    failSession('gave_up');
+  });
+
+  // ============ Page visibility ============
+  document.addEventListener('visibilitychange', () => {
+    if (!state.session) return;
+    if (document.hidden) {
+      state.leftAt = Date.now();
+    } else {
+      if (state.leftAt) {
+        const awayMs = Date.now() - state.leftAt;
+        if (awayMs > 15000) {
+          failSession('left_page');
+        }
+        state.leftAt = null;
+      }
+    }
+  });
+
+  // ============ Settings UI ============
+  $durationTabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (state.session) return;
+      $durationTabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.duration = parseInt(btn.dataset.min, 10);
+      $customMin.value = '';
+      $timerDisplay.textContent = fmtTime(state.duration * 60);
+    });
+  });
+  $customMin.addEventListener('input', () => {
+    if (state.session) return;
+    const v = parseInt($customMin.value, 10);
+    if (Number.isFinite(v) && v >= 1 && v <= 180) {
+      $durationTabs.forEach(b => b.classList.remove('active'));
+      state.duration = v;
+      $timerDisplay.textContent = fmtTime(v * 60);
+    }
+  });
+  $treeTypes.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (state.session) return;
+      $treeTypes.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.treeType = btn.dataset.tree;
+      renderTree(0);
+    });
+  });
+
+  // ============ Stats ============
+  function renderStats() {
+    const now = Date.now();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay()); // 周日开始
+
+    const successTrees = state.trees.filter(t => t.success);
+    const todayCount = successTrees.filter(t => t.endTime >= startOfToday.getTime()).length;
+    const weekCount = successTrees.filter(t => t.endTime >= startOfWeek.getTime()).length;
+    const totalMin = successTrees.reduce((s, t) => s + t.durationMinutes, 0);
+
+    $statToday.textContent = todayCount;
+    $statWeek.textContent = weekCount;
+    $statTotalMin.textContent = Math.round(totalMin);
+
+    // 森林视图：最近 60 棵（包含失败的，失败的 dead）
+    const recent = state.trees.slice(-60).reverse();
+    if (recent.length === 0) {
+      $forestGrid.innerHTML = '';
+      $emptyForest.style.display = '';
+      $forestMeta.textContent = '';
+      return;
+    }
+    $emptyForest.style.display = 'none';
+    const total = state.trees.length;
+    const dead = state.trees.filter(t => !t.success).length;
+    $forestMeta.textContent = `共 ${total} 棵 · 枯萎 ${dead} 棵`;
+    $forestGrid.innerHTML = recent.map(t => {
+      const emoji = t.success ? TREE_EMOJI[t.type] || '🌳' : DEAD_EMOJI;
+      const cls = t.success ? '' : 'dead';
+      const date = new Date(t.endTime).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+      const titleParts = [
+        t.success ? `${TREE_NAME[t.type]}（成）` : `${TREE_NAME[t.type]}（枯萎）`,
+        `${t.durationMinutes} 分${t.attemptedMinutes ? `（实际 ${t.attemptedMinutes} 分）` : ''}`,
+        date,
+      ];
+      if (t.task) titleParts.push(t.task);
+      const title = titleParts.join(' · ');
+      return `<div class="forest-tree ${cls}" title="${title.replace(/"/g, '&quot;')}">${emoji}</div>`;
+    }).join('');
+  }
+
+  $resetBtn.addEventListener('click', () => {
+    if (!confirm('确定清空所有种树记录？这个操作不可撤销。')) return;
+    state.trees = [];
+    saveTrees();
+    saveActive(null);
+    renderStats();
+  });
+
+  // ============ Resume in-progress session ============
+  function resumeSession() {
+    const active = loadActive();
+    if (!active) return;
+    const elapsed = Date.now() - active.startTime;
+    if (elapsed >= active.duration) {
+      // 早就该结束了 → 标记成功（用户离开太久，但本质上时间到了）
+      state.session = active;
+      completeSession();
+      return;
+    }
+    // 还在进行中 → 按"离开页面"处理：树枯萎
+    state.session = active;
+    state.treeType = active.treeType;
+    state.task = active.task;
+    state.duration = active.duration / 60000;
+    failSession('left_page');
+  }
+
+  // ============ Init ============
+  loadTrees();
+  $timerDisplay.textContent = fmtTime(state.duration * 60);
+  renderTree(0);
+  renderStats();
+  resumeSession();
+
+  // 友好提示
+  if (!('hidden' in document)) {
+    $focusWarning.textContent = '注意：你的浏览器不支持页面可见性检测，离开 tab 不会触发树死亡。';
+  }
+})();
+</script>
