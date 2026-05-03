@@ -153,12 +153,25 @@ title: 锆铌 | Rui Zhou
     #react-widget {
       position: fixed;
       right: 1.5rem;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 195px;
+      bottom: 2rem;          /* 改为 bottom-anchored，避免与上方 right-stack-top 重叠 */
+      top: auto;
+      transform: none;
+      width: 260px;          /* 与上方 .right-stack-top 对齐 */
       margin-bottom: 0;
       z-index: 50;
       box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+    }
+  }
+  /* 短屏防御性回退：≥1250 宽但 <720 高（分屏 / iPad 横屏等少数情况），
+     催更卡退回 normal flow，避免和顶部 fixed stack 重叠 */
+  @media (min-width: 1250px) and (max-height: 720px) {
+    #react-widget {
+      position: static;
+      width: auto;
+      bottom: auto;
+      top: auto;
+      transform: none;
+      margin-bottom: 3.5rem;
     }
   }
 
