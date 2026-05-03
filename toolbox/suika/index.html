@@ -752,10 +752,12 @@ permalink: /toolbox/suika/
     ctx.stroke();
 
     // emoji（带轻微旋转跟随物理）
+    // 关键：必须显式指定 emoji 字体栈，否则 iOS Safari Canvas 不会 fallback
+    // 到 Apple Color Emoji，水果就只剩底下的纯色圆球（emoji 完全画不出来）
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
-    ctx.font = `${r * 1.55}px sans-serif`;
+    ctx.font = `${r * 1.55}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(fruit.emoji, 0, r * 0.06);
