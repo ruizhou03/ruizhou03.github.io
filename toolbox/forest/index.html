@@ -239,17 +239,43 @@ permalink: /toolbox/forest/
   .field.edit-mode {
     box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 0 2px var(--color-accent);
   }
+  /* 网格线：JS 动态写入 background-size 跟 cellWidth/cellHeight 同步 */
   .field-cell-grid {
     position: absolute; inset: 0;
     pointer-events: none;
     background-image:
-      linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
-    background-size: 12.5% 90px;
-    opacity: 0;
+      linear-gradient(to right, rgba(255,255,255,0.18) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.18) 1px, transparent 1px);
+    /* background-size 由 JS 设置 */
+    opacity: 0.55;
     transition: opacity 0.2s;
   }
   .field.edit-mode .field-cell-grid { opacity: 1; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .field-cell-grid {
+      background-image:
+        linear-gradient(to right, rgba(255,255,255,0.10) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.10) 1px, transparent 1px);
+    }
+  }
+  :root[data-theme="dark"] .field-cell-grid {
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.10) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.10) 1px, transparent 1px);
+  }
+
+  /* 拖动时的目标 cell 预览 */
+  .snap-preview {
+    position: absolute;
+    border: 2px dashed rgba(255, 255, 255, 0.85);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.18);
+    pointer-events: none;
+    transition: left 0.12s, top 0.12s;
+    display: none;
+    z-index: 4;
+  }
+  .snap-preview.visible { display: block; }
 
   .tree-instance {
     position: absolute;
@@ -294,20 +320,26 @@ permalink: /toolbox/forest/
   .tree-tooltip {
     display: none;
     position: absolute;
-    bottom: 100%;
+    /* bottom 由 tier 决定（见下方） */
     left: 50%;
     transform: translateX(-50%);
     background: rgba(20, 25, 30, 0.92);
     color: #fff;
-    padding: 0.5rem 0.75rem;
+    padding: 0.45rem 0.7rem;
     border-radius: 8px;
     font-size: 0.78rem;
     white-space: nowrap;
     pointer-events: none;
-    margin-bottom: 6px;
     line-height: 1.45;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    z-index: 8;
   }
+  /* 不同 tier 的树视觉顶端不同，tooltip 贴在树顶 */
+  .tree-instance[data-tier="1"] .tree-tooltip { bottom: 42%; }
+  .tree-instance[data-tier="2"] .tree-tooltip { bottom: 55%; }
+  .tree-instance[data-tier="3"] .tree-tooltip { bottom: 65%; }
+  .tree-instance[data-tier="4"] .tree-tooltip { bottom: 78%; }
+  .tree-instance.dead .tree-tooltip { bottom: 50%; }
   .tree-tooltip::after {
     content: '';
     position: absolute;
@@ -1208,8 +1240,8 @@ permalink: /toolbox/forest/
   // ============ Stats + 田地视图 ============
   const COLS_DESKTOP = 8;
   const COLS_MOBILE = 4;
-  const CELL_DESKTOP = 90;
-  const CELL_MOBILE = 70;
+  const ROW_HEIGHT_DESKTOP = 90;
+  const ROW_HEIGHT_MOBILE = 70;
 
   // 田地相关 DOM
   const $field = document.getElementById('field');
@@ -1219,13 +1251,15 @@ permalink: /toolbox/forest/
 
   let editMode = false;
   let openDetailId = null;
+  let $snapPreview = null;  // 拖动时的目标 cell 预览
 
   function getFieldDimensions() {
     const isMobile = window.innerWidth <= 600;
-    return {
-      cols: isMobile ? COLS_MOBILE : COLS_DESKTOP,
-      cellSize: isMobile ? CELL_MOBILE : CELL_DESKTOP,
-    };
+    const cols = isMobile ? COLS_MOBILE : COLS_DESKTOP;
+    const rowHeight = isMobile ? ROW_HEIGHT_MOBILE : ROW_HEIGHT_DESKTOP;
+    const fieldWidth = $field.clientWidth || 800;
+    const cellWidth = fieldWidth / cols;
+    return { cols, rowHeight, cellWidth, fieldWidth };
   }
 
   function ensurePositions() {
@@ -1306,29 +1340,44 @@ permalink: /toolbox/forest/
     if (grand > 0) metaParts.push(`巨树 ${grand}`);
     $forestMeta.textContent = metaParts.join(' · ');
 
-    const { cols, cellSize } = getFieldDimensions();
+    const { cols, cellWidth, rowHeight } = getFieldDimensions();
     // 计算最大行数 → field 高度
     let maxRow = 0;
     state.trees.forEach(t => { if (t.position && t.position.row > maxRow) maxRow = t.position.row; });
-    const rows = Math.max(2, maxRow + 1) + (editMode ? 1 : 0);  // 编辑模式多一行作为目标空间
-    const fieldHeight = rows * cellSize + 30;
+    const rows = Math.max(2, maxRow + 1) + (editMode ? 1 : 0);
+    const fieldHeight = rows * rowHeight + 16;
     $field.style.height = fieldHeight + 'px';
 
-    // 渲染所有树（清空再 build）
-    // 保留 .field-cell-grid 子元素，移除其它
+    // 网格 background-size 与 cellWidth × rowHeight 同步
     const grid = $field.querySelector('.field-cell-grid');
+    if (grid) {
+      grid.style.backgroundSize = `${cellWidth}px ${rowHeight}px`;
+    }
+
+    // 清空已有 tree（保留 grid 和 snap-preview）
     Array.from($field.querySelectorAll('.tree-instance')).forEach(el => el.remove());
+
+    // 确保 snap-preview 元素存在
+    if (!$snapPreview) {
+      $snapPreview = document.createElement('div');
+      $snapPreview.className = 'snap-preview';
+      $field.appendChild($snapPreview);
+    }
+    $snapPreview.style.width = (cellWidth - 4) + 'px';
+    $snapPreview.style.height = (rowHeight - 4) + 'px';
 
     state.trees.forEach(t => {
       if (!t.position) return;
       const tier = t.success ? durationToTier(t.durationMinutes) : 1;
-      const x = t.position.col * cellSize + (cellSize - (cellSize - 6)) / 2;
-      const y = t.position.row * cellSize + 5;
+      // 树占满整个 cell，居中
+      const x = t.position.col * cellWidth + 2;
+      const y = t.position.row * rowHeight + 2;
       const div = document.createElement('div');
       div.className = 'tree-instance' + (t.success ? '' : ' dead');
       div.dataset.id = t.id;
-      div.style.width = (cellSize - 6) + 'px';
-      div.style.height = (cellSize - 6) + 'px';
+      div.dataset.tier = String(tier);
+      div.style.width = (cellWidth - 4) + 'px';
+      div.style.height = (rowHeight - 4) + 'px';
       div.style.left = x + 'px';
       div.style.top = y + 'px';
       div.innerHTML = buildFieldTreeSvg(t.type, tier, !t.success);
@@ -1371,9 +1420,32 @@ permalink: /toolbox/forest/
   }
 
   // ============ 拖动 + 点击 ============
+  function snapColRow(left, top) {
+    const { cols, cellWidth, rowHeight } = getFieldDimensions();
+    let col = Math.round(left / cellWidth);
+    let row = Math.round(top / rowHeight);
+    col = Math.max(0, Math.min(cols - 1, col));
+    row = Math.max(0, row);
+    return { col, row, cellWidth, rowHeight };
+  }
+
+  function showSnapPreview(col, row) {
+    if (!$snapPreview) return;
+    const { cellWidth, rowHeight } = getFieldDimensions();
+    $snapPreview.style.left = (col * cellWidth + 2) + 'px';
+    $snapPreview.style.top = (row * rowHeight + 2) + 'px';
+    $snapPreview.style.width = (cellWidth - 4) + 'px';
+    $snapPreview.style.height = (rowHeight - 4) + 'px';
+    $snapPreview.classList.add('visible');
+  }
+  function hideSnapPreview() {
+    if (!$snapPreview) return;
+    $snapPreview.classList.remove('visible');
+  }
+
   function attachInteractions(div, treeId) {
-    let startX, startY;        // pointer position at down
-    let startLeft, startTop;   // div position at down
+    let startX, startY;
+    let startLeft, startTop;
     let dragging = false;
     let pointerId = null;
 
@@ -1394,10 +1466,14 @@ permalink: /toolbox/forest/
         if (!dragging && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
           dragging = true;
           div.classList.add('dragging');
+          hideDetail();
         }
         if (dragging) {
           div.style.left = (startLeft + dx) + 'px';
           div.style.top = (startTop + dy) + 'px';
+          // 实时更新 snap preview
+          const { col, row } = snapColRow(startLeft + dx, startTop + dy);
+          showSnapPreview(col, row);
         }
       };
 
@@ -1409,10 +1485,9 @@ permalink: /toolbox/forest/
         if (div.hasPointerCapture(pointerId)) div.releasePointerCapture(pointerId);
         if (dragging) {
           div.classList.remove('dragging');
-          // snap to nearest grid cell
+          hideSnapPreview();
           snapTreeToCell(div, treeId);
         } else {
-          // 视为单击 → 显示详情
           showDetail(treeId, div);
         }
         pointerId = null;
@@ -1427,15 +1502,11 @@ permalink: /toolbox/forest/
   function snapTreeToCell(div, treeId) {
     const t = state.trees.find(x => x.id === treeId);
     if (!t) return;
-    const { cols, cellSize } = getFieldDimensions();
     const left = parseFloat(div.style.left);
     const top = parseFloat(div.style.top);
-    let col = Math.round(left / cellSize);
-    let row = Math.round(top / cellSize);
-    col = Math.max(0, Math.min(cols - 1, col));
-    row = Math.max(0, row);
+    const { col, row } = snapColRow(left, top);
 
-    // 检测占位冲突 → 跟那棵树交换位置
+    // 检测占位冲突 → 交换
     const occupant = state.trees.find(x => x !== t && x.position && x.position.col === col && x.position.row === row);
     if (occupant) {
       occupant.position = { col: t.position.col, row: t.position.row };
