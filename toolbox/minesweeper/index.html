@@ -155,7 +155,8 @@ permalink: /toolbox/minesweeper/
   <div class="ms-modal-wrap" id="msModal"></div>
 
   <div class="ms-help">
-    桌面：左键揭格、右键插旗　·　移动端：短按揭、长按 0.4 秒插旗
+    桌面：左键揭格、右键插旗、双击数字一键揭周围八格<br>
+    移动端：短按揭、长按 0.4 秒插旗、双击数字同样可一键揭
   </div>
 </div>
 
@@ -328,6 +329,30 @@ permalink: /toolbox/minesweeper/
     }
   }
 
+  function chord(r, c) {
+    if (state.over) return;
+    if (!state.revealed[r][c]) return;
+    const v = state.grid[r][c];
+    if (v <= 0) return; // only number cells
+    const targets = [];
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (!dr && !dc) continue;
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nr >= state.rows || nc < 0 || nc >= state.cols) continue;
+        if (state.flagged[nr][nc] || state.revealed[nr][nc]) continue;
+        targets.push([nr, nc]);
+      }
+    }
+    if (targets.length === 0) return;
+    for (const [nr, nc] of targets) {
+      if (state.over) break;
+      floodFill(nr, nc);
+    }
+    paintAll();
+    if (!state.over) checkWin();
+  }
+
   function toggleFlag(r, c) {
     if (state.over) return;
     if (state.revealed[r][c]) return;
@@ -404,6 +429,14 @@ permalink: /toolbox/minesweeper/
     if (!cell) return;
     const r = +cell.dataset.r, c = +cell.dataset.c;
     toggleFlag(r, c);
+  });
+
+  boardEl.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    const cell = e.target.closest('.ms-cell');
+    if (!cell) return;
+    const r = +cell.dataset.r, c = +cell.dataset.c;
+    chord(r, c);
   });
 
   // Touch long-press for flag
