@@ -98,19 +98,43 @@ permalink: /toolbox/forest/
     background: var(--color-bg); color: var(--color-ink);
     font: inherit;
   }
-  .setting-row .theme-select {
-    font-family: var(--font-body);
-    font-size: 0.88rem;
-    color: var(--color-ink);
-    padding: 0.4rem 1.8rem 0.4rem 0.7rem;
-    border: 1px solid var(--color-border); border-radius: 6px;
-    background: var(--color-bg) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%236b7280' d='M0 0l5 6 5-6z'/></svg>") right 0.55rem center no-repeat;
-    -webkit-appearance: none; appearance: none;
-    cursor: pointer;
-    transition: border-color 0.18s;
+  /* pill 按钮组（主题/计时切换） */
+  .setting-row .pill-group {
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.22rem;
+    background: var(--color-bg-warm);
+    border-radius: 999px;
+    align-items: center;
   }
-  .setting-row .theme-select:hover { border-color: var(--color-accent); }
-  .setting-row .theme-select:focus { outline: none; border-color: var(--color-accent); }
+  .setting-row .pill-group button {
+    width: 36px; height: 36px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 1.05rem;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    padding: 0;
+  }
+  .setting-row .pill-group button:hover { background: rgba(0, 0, 0, 0.06); }
+  .setting-row .pill-group button.active {
+    background: var(--color-accent);
+    box-shadow: 0 1px 4px rgba(30, 58, 95, 0.25);
+  }
+  .setting-row .pill-group button.active:hover { background: var(--color-accent-light); }
+  .setting-row .pill-divider {
+    width: 1px; height: 22px;
+    background: var(--color-border);
+    margin: 0 0.45rem;
+  }
+  .setting-row .group-label {
+    font-size: 0.82rem;
+    color: var(--color-muted);
+    margin-right: 0.25rem;
+  }
   .setting-row input[type="number"]:focus { outline: none; border-color: var(--color-accent); }
   .setting-row input[type="text"] {
     flex-grow: 1; padding: 0.5rem 0.7rem;
@@ -790,19 +814,21 @@ permalink: /toolbox/forest/
     </div>
     <div class="setting-row">
       <label>🎨 主题</label>
-      <select id="theme-bg" class="theme-select">
-        <option value="night">🌙 沉浸夜</option>
-        <option value="bubbles">🫧 气泡</option>
-        <option value="stars">⭐ 星空</option>
-        <option value="sunrise">🌅 日出</option>
-        <option value="rain">🌧 雨</option>
-        <option value="aurora">🌌 极光</option>
-      </select>
-      <select id="theme-timer" class="theme-select">
-        <option value="countdown">⏱ 倒计时</option>
-        <option value="countup">⏳ 正计时</option>
-        <option value="hidden">🌳 只看树</option>
-      </select>
+      <div class="pill-group" id="theme-bg-pills">
+        <button type="button" data-value="night" title="沉浸夜">🌙</button>
+        <button type="button" data-value="bubbles" title="气泡">🫧</button>
+        <button type="button" data-value="stars" title="星空">⭐</button>
+        <button type="button" data-value="sunrise" title="日出">🌅</button>
+        <button type="button" data-value="rain" title="雨">🌧</button>
+        <button type="button" data-value="aurora" title="极光">🌌</button>
+      </div>
+      <span class="pill-divider"></span>
+      <span class="group-label">计时</span>
+      <div class="pill-group" id="theme-timer-pills">
+        <button type="button" data-value="countdown" title="倒计时">⏱</button>
+        <button type="button" data-value="countup" title="正计时">⏳</button>
+        <button type="button" data-value="hidden" title="只看树">🌳</button>
+      </div>
     </div>
   </div>
 
@@ -922,6 +948,7 @@ permalink: /toolbox/forest/
     cycleCount: 0,      // 当前循环里完成了几个 focus（连续完整完成的）
     breakMode: false,   // 当前 session 是 break 还是 focus
     breakMin: 5,        // 用户自定义的休息分钟（开循环时用）
+    currentChainId: null, // 当前循环链 ID（同链树共享 cycleBonus）
     fields: [],         // 田块列表 [{id, name, createdAt}]
     activeFieldId: null,
     theme: { background: 'night', timer: 'countdown' },
@@ -935,12 +962,15 @@ permalink: /toolbox/forest/
     return Math.round(focusMin / 5);
   }
 
-  // 循环连击加成：第 N 个连续完成的焦点 → 加成倍数
-  // 1 → 1.0x (普通)；2 → 1.25x；3+ → 1.5x
-  function cycleBonusFor(cycleNum) {
-    if (cycleNum >= 3) return 1.5;
-    if (cycleNum >= 2) return 1.25;
+  // 循环连击加成：完成 N 棵的链 → 全链每棵都用这个 bonus
+  // 1 → 1.0x；2 → 1.25x；3+ → 1.5x
+  function cycleBonusFor(cycleCount) {
+    if (cycleCount >= 3) return 1.5;
+    if (cycleCount >= 2) return 1.25;
     return 1.0;
+  }
+  function newChainId() {
+    return 'chain-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5);
   }
 
   // 树的有效 tier（基于 durationMinutes × bonus）
@@ -1530,26 +1560,46 @@ permalink: /toolbox/forest/
     const wasBreak = !!state.session.isBreak;
 
     if (!wasBreak) {
-      // focus 完成 → 种树。循环里第 cycleCount+1 个，加成倍数
-      const cycleNum = state.pomodoroOn ? state.cycleCount + 1 : 1;
-      const bonus = state.pomodoroOn ? cycleBonusFor(cycleNum) : 1.0;
+      // focus 完成 → 种树
+      const isInChain = state.pomodoroOn && state.currentChainId;
+      const cycleNum = isInChain ? state.cycleCount + 1 : null;
       const tree = {
         id: 'tr-' + Date.now().toString(36),
         type: state.session.treeType,
         task: state.session.task || '',
         durationMinutes: state.session.duration / 60000,
-        cycleBonus: bonus,
-        cycleNum: state.pomodoroOn ? cycleNum : null,
+        chainId: isInChain ? state.currentChainId : null,
+        cycleNum,
+        cycleBonus: 1.0,   // 占位，下面追溯更新
         startTime: state.session.startTime,
         endTime: Date.now(),
         success: true,
       };
       assignNewPosition(tree);
       state.trees.push(tree);
-      saveTrees();
       state.cycleCount++;
-      const bonusText = bonus > 1 ? `（×${bonus} 加成！）` : '';
-      $timerStatus.textContent = `🌳 种成功一棵 ${TREE_NAME[tree.type]}！专注了 ${tree.durationMinutes} 分钟${bonusText}`;
+
+      // 追溯更新：同 chain 的所有树（含刚才这棵）都改成新 bonus
+      let bonus = 1.0;
+      let chainTrees = 0;
+      if (isInChain) {
+        bonus = cycleBonusFor(state.cycleCount);
+        state.trees.forEach(t => {
+          if (t.chainId === state.currentChainId) {
+            t.cycleBonus = bonus;
+            chainTrees++;
+          }
+        });
+      }
+      saveTrees();
+
+      // toast 文案
+      let msg = `🌳 种成功一棵 ${TREE_NAME[tree.type]}！专注了 ${tree.durationMinutes} 分钟`;
+      if (isInChain && bonus > 1) {
+        msg += `· ${state.cycleCount} 连击 ×${bonus}`;
+        if (chainTrees > 1) msg += ` ✨ 本链 ${chainTrees} 棵全升级`;
+      }
+      $timerStatus.textContent = msg;
     } else {
       // break 完成
       $timerStatus.textContent = '☕ 休息结束！准备下一棵...';
@@ -1632,6 +1682,7 @@ permalink: /toolbox/forest/
     state.session = null;
     saveActive(null);
     state.cycleCount = 0;
+    state.currentChainId = null;
     $overlay.classList.remove('open');
     $overlay.classList.remove('break-mode');
     $overlayTimer.style.color = '';
@@ -1645,6 +1696,7 @@ permalink: /toolbox/forest/
   $startBtn.addEventListener('click', () => {
     state.task = $taskInput.value.trim();
     state.cycleCount = 0;
+    state.currentChainId = state.pomodoroOn ? newChainId() : null;
     startSession();
   });
   $giveUpBtn.addEventListener('click', () => {
@@ -2375,18 +2427,31 @@ permalink: /toolbox/forest/
     });
   });
 
-  // ============ Theme settings UI ============
-  const $themeBg = document.getElementById('theme-bg');
-  const $themeTimer = document.getElementById('theme-timer');
-  $themeBg.addEventListener('change', () => {
-    state.theme.background = $themeBg.value;
-    saveTheme();
-    if (state.session) applyTheme();   // 进行中也即时切
+  // ============ Theme settings UI（pill 按钮组）============
+  const $themeBgPills = document.getElementById('theme-bg-pills');
+  const $themeTimerPills = document.getElementById('theme-timer-pills');
+
+  function setActivePill($container, value) {
+    $container.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b.dataset.value === value);
+    });
+  }
+
+  $themeBgPills.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.theme.background = btn.dataset.value;
+      setActivePill($themeBgPills, btn.dataset.value);
+      saveTheme();
+      if (state.session) applyTheme();
+    });
   });
-  $themeTimer.addEventListener('change', () => {
-    state.theme.timer = $themeTimer.value;
-    saveTheme();
-    if (state.session) applyTheme();
+  $themeTimerPills.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.theme.timer = btn.dataset.value;
+      setActivePill($themeTimerPills, btn.dataset.value);
+      saveTheme();
+      if (state.session) applyTheme();
+    });
   });
 
   // ============ Init ============
@@ -2394,8 +2459,8 @@ permalink: /toolbox/forest/
   loadFields();
   loadTheme();
   migrateFieldsAndTrees();
-  $themeBg.value = state.theme.background;
-  $themeTimer.value = state.theme.timer;
+  setActivePill($themeBgPills, state.theme.background);
+  setActivePill($themeTimerPills, state.theme.timer);
   $timerDisplay.textContent = fmtTime(state.duration * 60);
   renderTree(0);
   renderFieldTabs();
