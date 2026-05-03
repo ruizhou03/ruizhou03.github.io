@@ -190,72 +190,79 @@ permalink: /toolbox/suika/
     100% { transform: translateX(-50%) scale(1); opacity: 1; }
   }
 
-  /* ============ 调参面板（在 start overlay 里）============ */
-  .settings-panel {
-    width: 100%; max-width: 320px;
-    margin-top: 1rem;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 10px;
-    overflow: hidden;
+  /* overlay 内部双视图切换 */
+  .game-overlay {
+    overflow-y: auto;   /* 兜底：内容超高时也能滚 */
   }
-  .settings-panel summary {
-    list-style: none;
+  .overlay-view {
+    width: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 100%;
+  }
+  .overlay-view.view-settings {
+    justify-content: flex-start;
+    padding-top: 1rem;
+  }
+
+  /* 主视图的「调参」入口（小一点的次按钮）*/
+  .settings-link {
+    margin-top: 0.8rem;
+    background: transparent;
+    border: 1px dashed rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
+    padding: 0.4rem 1.1rem;
+    color: rgba(255, 255, 255, 0.78);
+    font: inherit; font-size: 0.85rem;
     cursor: pointer;
-    padding: 0.55rem 0.9rem;
-    font-size: 0.88rem;
-    color: rgba(255, 255, 255, 0.85);
-    user-select: none;
+    transition: all 0.18s;
   }
-  .settings-panel summary::-webkit-details-marker { display: none; }
-  .settings-panel summary::after {
-    content: '▾'; float: right;
-    color: rgba(255, 255, 255, 0.6);
-    transition: transform 0.2s;
+  .settings-link:hover {
+    color: #fff; border-color: rgba(255, 255, 255, 0.6);
   }
-  .settings-panel[open] summary::after { transform: rotate(180deg); }
-  .settings-panel .settings-body {
-    padding: 0.5rem 0.9rem 0.7rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  /* 设置项目主体 */
+  .settings-body {
+    width: 100%; max-width: 320px;
+    margin-bottom: 0.9rem;
   }
-  .setting-item { margin-bottom: 0.7rem; }
-  .setting-item:last-of-type { margin-bottom: 0.5rem; }
+  .setting-item { margin-bottom: 0.95rem; }
   .setting-row {
     display: flex; align-items: baseline; gap: 0.4rem;
-    margin-bottom: 0.25rem;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 0.82rem;
+    margin-bottom: 0.3rem;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.88rem;
   }
   .setting-row label { flex-grow: 1; text-align: left; }
   .setting-row .setting-val {
-    font-family: 'SFMono-Regular', monospace; font-size: 0.78rem;
+    font-family: 'SFMono-Regular', monospace; font-size: 0.82rem;
     color: rgba(255, 255, 255, 0.95); font-variant-numeric: tabular-nums;
-    min-width: 2.4rem; text-align: right;
+    min-width: 2.6rem; text-align: right;
   }
   .setting-row .setting-desc {
     color: var(--color-highlight);
-    font-size: 0.74rem;
-    min-width: 4rem; text-align: right;
+    font-size: 0.78rem;
+    min-width: 4.5rem; text-align: right;
   }
-  .settings-panel input[type="range"] {
+  input[type="range"] {
     width: 100%;
     -webkit-appearance: none; appearance: none;
-    height: 4px;
+    height: 5px;
     background: rgba(255, 255, 255, 0.18);
-    border-radius: 2px;
+    border-radius: 3px;
     outline: none;
     cursor: pointer;
   }
-  .settings-panel input[type="range"]::-webkit-slider-thumb {
+  input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
-    width: 16px; height: 16px;
+    width: 18px; height: 18px;
     background: var(--color-highlight);
     border-radius: 50%;
     cursor: pointer;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   }
-  .settings-panel input[type="range"]::-moz-range-thumb {
-    width: 16px; height: 16px;
+  input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px;
     background: var(--color-highlight);
     border-radius: 50%;
     cursor: pointer;
@@ -263,11 +270,12 @@ permalink: /toolbox/suika/
   }
   .settings-actions {
     display: flex; gap: 0.5rem; justify-content: center;
-    margin-top: 0.7rem;
+    width: 100%; max-width: 320px;
   }
   .settings-actions button {
-    font: inherit; font-size: 0.82rem;
-    padding: 0.4rem 0.95rem;
+    flex: 1;
+    font: inherit; font-size: 0.86rem;
+    padding: 0.5rem 0.95rem;
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 999px;
@@ -308,24 +316,31 @@ permalink: /toolbox/suika/
   <div class="game-zone" id="game-zone">
     <canvas class="game-canvas" id="game-canvas" width="380" height="540"></canvas>
 
-    <!-- 开始幕 -->
+    <!-- 开始幕（含两个视图：主页 + 调参）-->
     <div class="game-overlay open" id="start-overlay">
-      <div style="font-size: 3.5rem; line-height: 1; margin-bottom: 0.5rem;">🍉</div>
-      <h2 style="margin-bottom: 0.4rem;">合成大西瓜</h2>
-      <div style="color: rgba(255,255,255,0.78); font-size: 0.92rem; margin-bottom: 1rem; line-height: 1.55;">
-        相同水果碰撞合并 · 一路合到西瓜
-      </div>
-      <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 0.75rem 1.4rem; margin-bottom: 1.4rem; font-size: 0.92rem;">
-        <div style="color: var(--color-highlight); font-family: var(--font-display); font-size: 1.6rem; font-weight: 600; line-height: 1;" id="start-best">0</div>
-        <div style="color: rgba(255,255,255,0.7); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.3rem;">历史最高分</div>
-      </div>
-      <button type="button" class="ov-btn" id="start-btn">▶ 开始游戏</button>
-      <p style="color: rgba(255,255,255,0.55); font-size: 0.78rem; margin-top: 0.9rem; max-width: 280px;">
-        开始后键盘 ← → 空格 由游戏接管 · 点击游戏外恢复页面滚动
-      </p>
 
-      <details class="settings-panel" id="settings-panel">
-        <summary>⚙ 调参（让游戏更适合自己）</summary>
+      <!-- 主视图 -->
+      <div class="overlay-view view-main" id="view-main">
+        <div style="font-size: 3.5rem; line-height: 1; margin-bottom: 0.5rem;">🍉</div>
+        <h2 style="margin-bottom: 0.4rem;">合成大西瓜</h2>
+        <div style="color: rgba(255,255,255,0.78); font-size: 0.92rem; margin-bottom: 1rem; line-height: 1.55;">
+          相同水果碰撞合并 · 一路合到西瓜
+        </div>
+        <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 0.75rem 1.4rem; margin-bottom: 1.4rem; font-size: 0.92rem;">
+          <div style="color: var(--color-highlight); font-family: var(--font-display); font-size: 1.6rem; font-weight: 600; line-height: 1;" id="start-best">0</div>
+          <div style="color: rgba(255,255,255,0.7); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.3rem;">历史最高分</div>
+        </div>
+        <button type="button" class="ov-btn" id="start-btn">▶ 开始游戏</button>
+        <button type="button" class="settings-link" id="open-settings-btn">⚙ 调参</button>
+      </div>
+
+      <!-- 调参视图（点击调参后切换到这里）-->
+      <div class="overlay-view view-settings" id="view-settings" style="display: none;">
+        <h2 style="margin-bottom: 0.3rem;">⚙ 调参</h2>
+        <div style="color: rgba(255,255,255,0.65); font-size: 0.82rem; margin-bottom: 1.1rem;">
+          调到自己喜欢的手感
+        </div>
+
         <div class="settings-body">
           <div class="setting-item">
             <div class="setting-row">
@@ -359,12 +374,14 @@ permalink: /toolbox/suika/
             </div>
             <input type="range" id="stickiness-slider" min="0" max="1" step="0.05" value="0.5" />
           </div>
-          <div class="settings-actions">
-            <button type="button" class="try-btn" id="try-physics-btn">🍒 试一试</button>
-            <button type="button" id="reset-physics-btn">↻ 默认</button>
-          </div>
         </div>
-      </details>
+
+        <div class="settings-actions">
+          <button type="button" class="try-btn" id="try-physics-btn">🍒 试一试</button>
+          <button type="button" id="reset-physics-btn">↻ 默认</button>
+        </div>
+        <button type="button" class="ov-btn" id="start-from-settings-btn" style="margin-top: 0.8rem;">▶ 开始游戏</button>
+      </div>
     </div>
 
     <!-- 游戏结束幕 -->
@@ -1052,7 +1069,7 @@ permalink: /toolbox/suika/
     setFocus(true);
   }
 
-  $startBtn.addEventListener('click', () => {
+  function startGame() {
     // 清掉「试一试」可能留下的水果
     const lingering = Composite.allBodies(world).filter(b => b.fruitLevel);
     if (lingering.length) World.remove(world, lingering);
@@ -1060,6 +1077,16 @@ permalink: /toolbox/suika/
     gameStarted = true;
     setFocus(true);
     spawnHoveringFruit();
+  }
+  $startBtn.addEventListener('click', startGame);
+  document.getElementById('start-from-settings-btn').addEventListener('click', startGame);
+
+  // 视图切换：主页 ↔ 调参
+  const $viewMain = document.getElementById('view-main');
+  const $viewSettings = document.getElementById('view-settings');
+  document.getElementById('open-settings-btn').addEventListener('click', () => {
+    $viewMain.style.display = 'none';
+    $viewSettings.style.display = '';
   });
 
   // ============ 物理参数滑条 wiring ============
@@ -1092,16 +1119,14 @@ permalink: /toolbox/suika/
     });
   }
 
-  // 试一试：临时关 overlay → 丢 3 颗樱桃 demo → 几秒后恢复 overlay 并清水果
+  // 试一试：临时关 overlay → 丢 3 颗樱桃 demo → 几秒后恢复回当前视图
   let isTrying = false;
   document.getElementById('try-physics-btn').addEventListener('click', () => {
     if (isTrying) return;
     isTrying = true;
-    // 清掉之前残留
     const old = Composite.allBodies(world).filter(b => b.fruitLevel);
     if (old.length) World.remove(world, old);
     $startOverlay.classList.remove('open');
-    // 错开时间丢 3 颗樱桃
     [0.30, 0.50, 0.70].forEach((px, i) => {
       setTimeout(() => {
         const x = $canvas.width * px;
@@ -1109,7 +1134,6 @@ permalink: /toolbox/suika/
         World.add(world, body);
       }, 80 + i * 220);
     });
-    // 4 秒后恢复 overlay + 清水果
     setTimeout(() => {
       const test = Composite.allBodies(world).filter(b => b.fruitLevel);
       if (test.length) World.remove(world, test);
