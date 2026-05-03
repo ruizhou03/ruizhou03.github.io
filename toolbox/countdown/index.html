@@ -238,6 +238,7 @@ permalink: /toolbox/countdown/
       <button type="button" data-filter="past">已过</button>
     </div>
     <span class="spacer"></span>
+    <button type="button" class="secondary-btn" id="presets-btn">🎉 节日</button>
     <button type="button" class="secondary-btn" id="export-btn">📤 导出</button>
     <button type="button" class="secondary-btn" id="import-btn">📥 导入</button>
   </div>
@@ -293,7 +294,82 @@ permalink: /toolbox/countdown/
       </div>
     </div>
   </div>
+
+  <!-- Holiday Presets Modal -->
+  <div class="modal-backdrop" id="presets-modal">
+    <div class="modal" style="max-width: 540px;">
+      <h2>🎉 导入节日预设</h2>
+      <p style="font-size: 0.85rem; color: var(--color-muted); margin-bottom: 1rem; line-height: 1.55;">勾选要添加的节日。系统会按今天日期自动算出每个节日的<strong>下一次发生</strong>，加为倒计时事件。</p>
+
+      <div style="margin-bottom: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <strong style="color: var(--color-ink); font-family: var(--font-display);">🇨🇳 中国节日</strong>
+          <span style="flex-grow: 1;"></span>
+          <button type="button" class="secondary-btn" data-toggle-section="cn">全选 / 全不选</button>
+        </div>
+        <div class="preset-list" id="preset-list-cn"></div>
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <strong style="color: var(--color-ink); font-family: var(--font-display);">🇺🇸 美国节日</strong>
+          <span style="flex-grow: 1;"></span>
+          <button type="button" class="secondary-btn" data-toggle-section="us">全选 / 全不选</button>
+        </div>
+        <div class="preset-list" id="preset-list-us"></div>
+      </div>
+
+      <div class="field" id="presets-feedback" style="font-size: 0.85rem; color: var(--color-muted); min-height: 1.2em;"></div>
+      <div class="modal-actions">
+        <button type="button" class="cancel" onclick="document.getElementById('presets-modal').classList.remove('open')">取消</button>
+        <button type="button" class="save" id="presets-confirm">导入勾选项</button>
+      </div>
+    </div>
+  </div>
 </div>
+
+<style>
+  .preset-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+    max-height: 30vh;
+    overflow-y: auto;
+    padding: 0.4rem;
+    background: var(--color-bg-warm);
+    border-radius: 8px;
+  }
+  .preset-list label {
+    display: flex; align-items: center; gap: 0.45rem;
+    padding: 0.4rem 0.6rem;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 0.86rem;
+    transition: background 0.15s;
+  }
+  .preset-list label:hover { background: var(--color-bg); }
+  .preset-list label .pl-emoji { font-size: 1rem; }
+  .preset-list label .pl-name { color: var(--color-ink); flex-grow: 1; }
+  .preset-list label .pl-date { font-size: 0.75rem; color: var(--color-light); font-variant-numeric: tabular-nums; }
+  .preset-list input[type="checkbox"] { cursor: pointer; }
+  .preset-list .pl-existing { opacity: 0.5; }
+  .preset-list .pl-existing .pl-name::after {
+    content: ' ✓';
+    color: #4a7c59;
+    font-size: 0.7rem;
+  }
+  @media (max-width: 600px) {
+    .preset-list { grid-template-columns: 1fr; }
+  }
+  .secondary-btn {
+    font: inherit; font-size: 0.78rem;
+    padding: 0.3rem 0.7rem; border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg); color: var(--color-muted);
+    cursor: pointer; transition: all 0.18s;
+  }
+  .secondary-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+</style>
 
 <script>
 (function () {
@@ -638,6 +714,168 @@ permalink: /toolbox/countdown/
     }
   });
 
+  // ===== Holiday presets =====
+  // Helpers for movable holidays
+  function nthWeekdayOfMonth(year, month, weekday, n) {
+    // weekday: 0=Sun..6=Sat. n=1..5
+    const first = new Date(year, month - 1, 1);
+    const offset = (weekday - first.getDay() + 7) % 7;
+    const d = new Date(year, month - 1, 1 + offset + (n - 1) * 7);
+    return d.toISOString().slice(0, 10);
+  }
+  function lastWeekdayOfMonth(year, month, weekday) {
+    const lastDay = new Date(year, month, 0).getDate();
+    const last = new Date(year, month - 1, lastDay);
+    const offset = (last.getDay() - weekday + 7) % 7;
+    const d = new Date(year, month - 1, lastDay - offset);
+    return d.toISOString().slice(0, 10);
+  }
+  function fixedDate(year, month, day) {
+    return year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+  }
+  // 阴历 → 阳历 hardcoded map（2026-2030）
+  // 数据来源：标准万年历，仅供参考；上线时建议人工核对
+  const LUNAR_DATES = {
+    '春节': { 2026: '2026-02-17', 2027: '2027-02-06', 2028: '2028-01-26', 2029: '2029-02-13', 2030: '2030-02-03' },
+    '元宵节': { 2026: '2026-03-03', 2027: '2027-02-20', 2028: '2028-02-09', 2029: '2029-02-27', 2030: '2030-02-17' },
+    '清明节': { 2026: '2026-04-05', 2027: '2027-04-05', 2028: '2028-04-04', 2029: '2029-04-04', 2030: '2030-04-05' },
+    '端午节': { 2026: '2026-06-19', 2027: '2027-06-09', 2028: '2028-05-28', 2029: '2029-06-16', 2030: '2030-06-05' },
+    '七夕': { 2026: '2026-08-19', 2027: '2027-08-08', 2028: '2028-08-26', 2029: '2029-08-16', 2030: '2030-08-05' },
+    '中秋节': { 2026: '2026-09-25', 2027: '2027-09-15', 2028: '2028-10-03', 2029: '2029-09-22', 2030: '2030-09-12' },
+    '重阳节': { 2026: '2026-10-19', 2027: '2027-10-08', 2028: '2028-10-27', 2029: '2029-10-16', 2030: '2030-10-05' },
+  };
+
+  // 给定一个 holiday spec，返回今天之后最近的一次 ISO 日期
+  function nextOccurrence(spec) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let dy = 0; dy < 6; dy++) {
+      const y = today.getFullYear() + dy;
+      let iso;
+      if (spec.kind === 'fixed') {
+        iso = fixedDate(y, spec.month, spec.day);
+      } else if (spec.kind === 'nth') {
+        iso = nthWeekdayOfMonth(y, spec.month, spec.weekday, spec.n);
+      } else if (spec.kind === 'last') {
+        iso = lastWeekdayOfMonth(y, spec.month, spec.weekday);
+      } else if (spec.kind === 'lunar') {
+        iso = (LUNAR_DATES[spec.name] || {})[y];
+        if (!iso) continue;
+      }
+      if (iso && new Date(iso) >= today) return iso;
+    }
+    return null;
+  }
+
+  const PRESETS = {
+    cn: [
+      { name: '元旦', emoji: '🎊', color: '#a04030', kind: 'fixed', month: 1, day: 1 },
+      { name: '春节', emoji: '🧧', color: '#a04030', kind: 'lunar' },
+      { name: '元宵节', emoji: '🏮', color: '#a04030', kind: 'lunar' },
+      { name: '三八妇女节', emoji: '🌷', color: '#a04030', kind: 'fixed', month: 3, day: 8 },
+      { name: '清明节', emoji: '🌿', color: '#4a7c59', kind: 'lunar' },
+      { name: '五一劳动节', emoji: '🛠️', color: '#a04030', kind: 'fixed', month: 5, day: 1 },
+      { name: '端午节', emoji: '🐉', color: '#a04030', kind: 'lunar' },
+      { name: '六一儿童节', emoji: '🎈', color: '#c9a96e', kind: 'fixed', month: 6, day: 1 },
+      { name: '七夕', emoji: '💕', color: '#a04030', kind: 'lunar' },
+      { name: '教师节', emoji: '📚', color: '#1e3a5f', kind: 'fixed', month: 9, day: 10 },
+      { name: '中秋节', emoji: '🌕', color: '#c9a96e', kind: 'lunar' },
+      { name: '国庆节', emoji: '🇨🇳', color: '#a04030', kind: 'fixed', month: 10, day: 1 },
+      { name: '重阳节', emoji: '🍂', color: '#8b5a3c', kind: 'lunar' },
+    ],
+    us: [
+      { name: "New Year's Day", emoji: '🎊', color: '#1e3a5f', kind: 'fixed', month: 1, day: 1 },
+      { name: 'MLK Day', emoji: '✊', color: '#1e3a5f', kind: 'nth', month: 1, weekday: 1, n: 3 },
+      { name: "Valentine's Day", emoji: '💝', color: '#a04030', kind: 'fixed', month: 2, day: 14 },
+      { name: 'Presidents Day', emoji: '🇺🇸', color: '#1e3a5f', kind: 'nth', month: 2, weekday: 1, n: 3 },
+      { name: "St. Patrick's Day", emoji: '🍀', color: '#4a7c59', kind: 'fixed', month: 3, day: 17 },
+      { name: 'Memorial Day', emoji: '🌹', color: '#a04030', kind: 'last', month: 5, weekday: 1 },
+      { name: "Mother's Day", emoji: '🌸', color: '#a04030', kind: 'nth', month: 5, weekday: 0, n: 2 },
+      { name: "Father's Day", emoji: '👔', color: '#1e3a5f', kind: 'nth', month: 6, weekday: 0, n: 3 },
+      { name: 'Independence Day', emoji: '🎆', color: '#1e3a5f', kind: 'fixed', month: 7, day: 4 },
+      { name: 'Labor Day', emoji: '🛠️', color: '#1e3a5f', kind: 'nth', month: 9, weekday: 1, n: 1 },
+      { name: 'Halloween', emoji: '🎃', color: '#8b5a3c', kind: 'fixed', month: 10, day: 31 },
+      { name: 'Veterans Day', emoji: '🎖️', color: '#1e3a5f', kind: 'fixed', month: 11, day: 11 },
+      { name: 'Thanksgiving', emoji: '🦃', color: '#8b5a3c', kind: 'nth', month: 11, weekday: 4, n: 4 },
+      { name: 'Christmas Eve', emoji: '🎄', color: '#a04030', kind: 'fixed', month: 12, day: 24 },
+      { name: 'Christmas', emoji: '🎁', color: '#a04030', kind: 'fixed', month: 12, day: 25 },
+      { name: "New Year's Eve", emoji: '🎇', color: '#1e3a5f', kind: 'fixed', month: 12, day: 31 },
+    ],
+  };
+
+  const $presetsBtn = document.getElementById('presets-btn');
+  const $presetsModal = document.getElementById('presets-modal');
+  const $presetsConfirm = document.getElementById('presets-confirm');
+  const $presetsFeedback = document.getElementById('presets-feedback');
+
+  function buildPresetList(section) {
+    const $container = document.getElementById('preset-list-' + section);
+    const items = PRESETS[section];
+    // 已有事件检查（按 title + date 完全匹配）
+    const existing = new Set(state.events.map(e => e.title + '|' + e.date.slice(0, 10)));
+
+    $container.innerHTML = items.map((spec, i) => {
+      const iso = nextOccurrence(spec);
+      if (!iso) return '';
+      const dateLabel = iso.slice(5);  // MM-DD
+      const exists = existing.has(spec.name + '|' + iso);
+      return `
+        <label class="${exists ? 'pl-existing' : ''}">
+          <input type="checkbox" data-section="${section}" data-idx="${i}" ${exists ? 'disabled' : ''} />
+          <span class="pl-emoji">${spec.emoji}</span>
+          <span class="pl-name">${spec.name}</span>
+          <span class="pl-date">${dateLabel}</span>
+        </label>
+      `;
+    }).join('');
+  }
+
+  $presetsBtn.addEventListener('click', () => {
+    $presetsFeedback.textContent = '';
+    buildPresetList('cn');
+    buildPresetList('us');
+    $presetsModal.classList.add('open');
+  });
+
+  document.querySelectorAll('[data-toggle-section]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sec = btn.dataset.toggleSection;
+      const boxes = document.querySelectorAll(`#preset-list-${sec} input[type="checkbox"]:not(:disabled)`);
+      const allChecked = Array.from(boxes).every(b => b.checked);
+      boxes.forEach(b => { b.checked = !allChecked; });
+    });
+  });
+
+  $presetsConfirm.addEventListener('click', () => {
+    const checkedBoxes = document.querySelectorAll('#presets-modal input[type="checkbox"]:checked:not(:disabled)');
+    if (checkedBoxes.length === 0) {
+      $presetsFeedback.textContent = '请至少勾选一个节日';
+      return;
+    }
+    let added = 0;
+    checkedBoxes.forEach(box => {
+      const section = box.dataset.section;
+      const spec = PRESETS[section][parseInt(box.dataset.idx, 10)];
+      const iso = nextOccurrence(spec);
+      if (!iso) return;
+      // 加成 datetime-local 格式（默认 09:00）
+      const dt = iso + 'T09:00';
+      state.events.push({
+        id: uuid(),
+        title: spec.name,
+        date: dt,
+        emoji: spec.emoji,
+        color: spec.color,
+        createdAt: new Date().toISOString(),
+      });
+      added++;
+    });
+    save();
+    render();
+    $presetsFeedback.textContent = `✓ 已添加 ${added} 个节日事件`;
+    setTimeout(() => $presetsModal.classList.remove('open'), 1200);
+  });
+
   // ===== Init =====
   load();
   buildEmojiPicker();
@@ -652,6 +890,7 @@ permalink: /toolbox/countdown/
     if (e.key === 'Escape') {
       $modal.classList.remove('open');
       $importModal.classList.remove('open');
+      $presetsModal.classList.remove('open');
     }
   });
 })();
