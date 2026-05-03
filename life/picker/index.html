@@ -1,0 +1,750 @@
+---
+layout: default
+title: "抽签器 | Rui Zhou"
+permalink: /life/picker/
+---
+
+<style>
+  .picker-wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+  }
+  .picker-header { text-align: center; margin-bottom: 2rem; }
+  .picker-header h1 {
+    font-size: 2.2rem; color: var(--color-ink); margin-bottom: 0.6rem;
+  }
+  .picker-header p {
+    color: var(--color-light); font-style: italic; margin: 0;
+  }
+  .picker-intro {
+    background: var(--color-bg-warm);
+    border-left: 3px solid var(--color-accent);
+    padding: 0.9rem 1.2rem;
+    border-radius: 0 6px 6px 0;
+    color: var(--color-text);
+    font-size: 0.94rem;
+    line-height: 1.7;
+    margin-bottom: 2rem;
+  }
+
+  .picker-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    padding: 1.6rem 1.4rem;
+    margin-bottom: 1.4rem;
+  }
+
+  .options-list { display: flex; flex-direction: column; gap: 0.7rem; }
+  .option-row {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1.6fr) minmax(160px, 1fr) 56px;
+    align-items: center;
+    gap: 0.7rem;
+  }
+  .option-row .opt-del {
+    width: 28px; height: 28px; border-radius: 6px;
+    border: 1px solid var(--color-border); background: transparent;
+    color: var(--color-light); cursor: pointer; font-size: 0.9rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .option-row .opt-del:hover {
+    color: #c83828; border-color: #c83828; background: rgba(200,56,40,0.08);
+  }
+  .option-row .opt-del:disabled {
+    opacity: 0.35; cursor: not-allowed;
+  }
+  .option-row .opt-text {
+    width: 100%; min-width: 0;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    padding: 0.45rem 0.7rem;
+    font: inherit; font-size: 0.95rem;
+    color: var(--color-ink); background: var(--color-bg);
+    outline: none; transition: border-color 0.2s;
+  }
+  .option-row .opt-text:focus { border-color: var(--color-accent); }
+  .option-row .opt-weight {
+    width: 100%;
+    -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px; background: var(--color-border);
+    outline: none; cursor: pointer;
+  }
+  .option-row .opt-weight::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--color-accent);
+    border: 2px solid var(--color-bg);
+    box-shadow: 0 1px 4px rgba(30,58,95,0.3);
+    cursor: pointer;
+  }
+  .option-row .opt-weight::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--color-accent); border: 2px solid var(--color-bg);
+    cursor: pointer;
+  }
+  .option-row .opt-pct {
+    text-align: right;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.95rem; color: var(--color-muted);
+    white-space: nowrap;
+    transition: color 0.2s;
+  }
+  .option-row.is-winner .opt-pct { color: #c8801c; font-weight: 700; }
+  .option-row.is-winner .opt-text {
+    background: rgba(232,200,40,0.12);
+    border-color: #e8c828;
+  }
+
+  .add-row {
+    margin-top: 0.9rem;
+    display: flex; justify-content: center;
+  }
+  .add-row button {
+    padding: 0.4rem 1rem; font-size: 0.9rem;
+    border: 1px dashed var(--color-border); border-radius: 999px;
+    background: transparent; color: var(--color-muted);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .add-row button:hover {
+    border-color: var(--color-accent); color: var(--color-accent);
+    border-style: solid;
+  }
+  .add-row button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .mode-row {
+    display: flex; align-items: center; gap: 1.2rem;
+    margin-top: 1.4rem; padding-top: 1.2rem;
+    border-top: 1px dashed var(--color-border);
+    flex-wrap: wrap;
+  }
+  .mode-row > span:first-child {
+    color: var(--color-muted); font-size: 0.9rem; flex-shrink: 0;
+  }
+  .pill-group { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+  .pill-group button {
+    padding: 0.32rem 0.85rem; font-size: 0.88rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-text);
+    cursor: pointer; transition: all 0.15s; font: inherit;
+  }
+  .pill-group button:hover:not(.active) {
+    border-color: var(--color-accent); color: var(--color-accent);
+  }
+  .pill-group button.active {
+    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+  }
+
+  .spin-zone {
+    text-align: center;
+    margin: 1.6rem 0 0;
+  }
+  .spin-btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.85rem 2.4rem;
+    border: none; border-radius: 999px;
+    background: var(--color-accent); color: #fff;
+    font-size: 1.05rem; font-weight: 600; font-family: inherit;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 3px 10px rgba(30,58,95,0.25);
+  }
+  .spin-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(30,58,95,0.32);
+  }
+  .spin-btn:disabled {
+    opacity: 0.45; cursor: not-allowed;
+    box-shadow: none; transform: none;
+  }
+  .spin-hint {
+    margin-top: 0.5rem; font-size: 0.8rem;
+    color: var(--color-light); min-height: 1.1em;
+  }
+
+  /* —— 转盘 —— */
+  .wheel-zone {
+    margin: 1.4rem auto 0;
+    position: relative;
+    width: 360px; max-width: 92vw;
+    aspect-ratio: 1 / 1;
+  }
+  .wheel-pointer {
+    position: absolute; top: -8px; left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-top: 22px solid var(--color-ink);
+    z-index: 2;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.18));
+  }
+  .wheel-svg {
+    width: 100%; height: 100%;
+    transform: rotate(0deg);
+    transition: none;
+  }
+  .wheel-svg.spinning {
+    transition: transform 3.2s cubic-bezier(0.17, 0.67, 0.23, 1.01);
+  }
+  .wheel-svg.spinning-fast {
+    transition: transform 1.6s cubic-bezier(0.17, 0.67, 0.23, 1.01);
+  }
+  .wheel-svg .slice {
+    transition: filter 0.3s, opacity 0.3s;
+  }
+  .wheel-svg .slice.dim { opacity: 0.45; }
+  .wheel-svg .slice.win { filter: brightness(1.12) saturate(1.2); }
+  .wheel-svg text {
+    font-family: var(--font-body);
+    font-weight: 600;
+    fill: #fff;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  }
+
+  /* —— 结果 —— */
+  .result-zone {
+    margin-top: 1.6rem;
+    text-align: center;
+    min-height: 2.4em;
+  }
+  .result-line {
+    font-size: 1.1rem;
+    color: var(--color-ink);
+    line-height: 1.6;
+  }
+  .result-line .winner-name {
+    font-weight: 700; color: var(--color-accent);
+    background: linear-gradient(180deg, transparent 60%, rgba(232,200,40,0.4) 60%);
+    padding: 0 0.2em;
+  }
+
+  /* —— 多次模式 计票面板 —— */
+  .tally-panel {
+    display: none;
+    margin-top: 1.4rem;
+    padding-top: 1.2rem;
+    border-top: 1px dashed var(--color-border);
+  }
+  .tally-panel.show { display: block; }
+  .tally-header {
+    font-size: 0.88rem; color: var(--color-muted);
+    margin-bottom: 0.7rem; text-align: center;
+  }
+  .tally-bars {
+    display: flex; align-items: flex-end; justify-content: center;
+    gap: 0.7rem;
+    min-height: 110px; padding: 0.4rem 0.4rem 0;
+  }
+  .tally-col {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0.4rem;
+    flex: 1; max-width: 80px; min-width: 0;
+  }
+  .tally-bar-bg {
+    position: relative;
+    width: 100%; height: 100px;
+    background: var(--color-bg-warm);
+    border-radius: 6px 6px 0 0;
+    overflow: hidden;
+  }
+  .tally-bar-fill {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--color-accent);
+    height: 0%;
+    transition: height 0.4s cubic-bezier(0.17, 0.67, 0.23, 1.01);
+  }
+  .tally-col.is-winner .tally-bar-fill {
+    background: linear-gradient(180deg, #e8c828, #d8a818);
+  }
+  .tally-count {
+    position: absolute; top: 4px; left: 0; right: 0;
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.95rem; color: var(--color-ink);
+    font-weight: 600;
+  }
+  .tally-medal {
+    position: absolute; top: -22px; left: 0; right: 0;
+    text-align: center; font-size: 1.3rem;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .tally-col.is-winner .tally-medal { opacity: 1; }
+  .tally-name {
+    font-size: 0.78rem; color: var(--color-muted);
+    text-align: center;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    width: 100%;
+  }
+  .tally-col.is-winner .tally-name { color: var(--color-ink); font-weight: 600; }
+
+  .reset-row {
+    text-align: center; margin-top: 1.4rem; min-height: 2.4em;
+  }
+  .reset-btn {
+    padding: 0.45rem 1.2rem; font-size: 0.88rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted);
+    cursor: pointer; transition: all 0.15s; font: inherit;
+  }
+  .reset-btn:hover {
+    border-color: var(--color-accent); color: var(--color-accent);
+  }
+
+  details.about {
+    margin-top: 2.2rem; font-size: 0.88rem;
+    color: var(--color-muted); line-height: 1.7;
+  }
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
+
+  @media (max-width: 600px) {
+    .picker-card { padding: 1.1rem 0.9rem; }
+    .option-row {
+      grid-template-columns: 26px minmax(0, 1.3fr) minmax(120px, 1fr) 46px;
+      gap: 0.45rem;
+    }
+    .option-row .opt-text { font-size: 0.9rem; padding: 0.4rem 0.55rem; }
+    .option-row .opt-pct { font-size: 0.85rem; }
+    .wheel-svg text { font-size: 11px; }
+  }
+</style>
+
+<article class="picker-wrap">
+  <header class="picker-header">
+    <h1>🎯 抽签器</h1>
+    <p>Weighted Random Picker</p>
+  </header>
+
+  <div class="picker-intro">
+    <strong>用得上的场景</strong>：聚餐选餐厅、周末选活动、几本书先读哪本——把选项填进去，可以给每项不同权重（你 70% 想吃火锅、30% 想吃日料就拉到 7:3），点抽签。
+    <br>
+    支持<strong>多次抽签</strong>模式：抽 3 / 5 / 7 / 9 次，最多次的胜出——奇数次避免平票。
+  </div>
+
+  <div class="picker-card">
+    <div class="options-list" id="options-list"></div>
+    <div class="add-row">
+      <button type="button" id="add-btn">+ 添加选项</button>
+    </div>
+
+    <div class="mode-row">
+      <span>抽签次数：</span>
+      <div class="pill-group" id="draws-group">
+        <button type="button" data-draws="1" class="active">1</button>
+        <button type="button" data-draws="3">3</button>
+        <button type="button" data-draws="5">5</button>
+        <button type="button" data-draws="7">7</button>
+        <button type="button" data-draws="9">9</button>
+      </div>
+    </div>
+
+    <div class="spin-zone">
+      <button type="button" class="spin-btn" id="spin-btn">🎯 抽！</button>
+      <div class="spin-hint" id="spin-hint"></div>
+    </div>
+  </div>
+
+  <div class="wheel-zone">
+    <div class="wheel-pointer"></div>
+    <svg class="wheel-svg" id="wheel-svg" viewBox="0 0 200 200" aria-label="抽签转盘"></svg>
+  </div>
+
+  <div class="result-zone">
+    <div class="result-line" id="result-line">&nbsp;</div>
+  </div>
+
+  <div class="tally-panel" id="tally-panel">
+    <div class="tally-header" id="tally-header">第 0 / 0 次</div>
+    <div class="tally-bars" id="tally-bars"></div>
+  </div>
+
+  <div class="reset-row" id="reset-row" style="display: none;">
+    <button type="button" class="reset-btn" id="reset-btn">🔁 再抽一次</button>
+  </div>
+
+  <details class="about">
+    <summary>关于这个工具</summary>
+    <p>每次抽签都会重新生成随机数（用浏览器的 <code>Math.random()</code>），不存历史、不联网、不收集任何数据。刷新页面就重置。</p>
+    <p>"加权"采用累积分布抽样：所有权重加和归一化后，落在哪个区间就选哪个——跟轮盘赌一样直观。</p>
+    <p>多次模式不是"比谁更幸运"，而是"独立同分布抽样的简单多数"——理论上权重越高的越可能胜出，但小样本（3 次、5 次）下波动比较大，这正是好玩的地方。</p>
+  </details>
+</article>
+
+<script>
+(function () {
+  // ── 调色 ──────────────────────────────
+  const SLICE_COLORS = [
+    '#d04030', '#5cb830', '#4080d0', '#e8a020',
+    '#a04098', '#20a890', '#e87830', '#7090a8',
+    '#c84878', '#609020',
+  ];
+
+  // ── 状态 ──────────────────────────────
+  const state = {
+    options: [
+      { id: cryptoId(), text: '火锅',     weight: 5 },
+      { id: cryptoId(), text: '烧烤',     weight: 5 },
+      { id: cryptoId(), text: '沙县小吃', weight: 5 },
+    ],
+    draws: 1,
+    busy: false,
+    rotation: 0,           // 当前累积旋转角度（CSS）
+    multiResults: [],      // 多次模式下每次抽到的 idx
+  };
+
+  // ── DOM 引用 ──────────────────────────
+  const $list      = document.getElementById('options-list');
+  const $addBtn    = document.getElementById('add-btn');
+  const $drawsGrp  = document.getElementById('draws-group');
+  const $spinBtn   = document.getElementById('spin-btn');
+  const $spinHint  = document.getElementById('spin-hint');
+  const $wheel     = document.getElementById('wheel-svg');
+  const $result    = document.getElementById('result-line');
+  const $tallyPnl  = document.getElementById('tally-panel');
+  const $tallyHdr  = document.getElementById('tally-header');
+  const $tallyBars = document.getElementById('tally-bars');
+  const $resetRow  = document.getElementById('reset-row');
+  const $resetBtn  = document.getElementById('reset-btn');
+
+  // ── helpers ───────────────────────────
+  function cryptoId() {
+    return Math.random().toString(36).slice(2, 9);
+  }
+  function totalWeight() {
+    return state.options.reduce((s, o) => s + Math.max(0, o.weight), 0);
+  }
+  function effectiveWeights() {
+    // 全 0 → 等权
+    let total = totalWeight();
+    if (total <= 0) {
+      return state.options.map(() => 1);
+    }
+    return state.options.map(o => Math.max(0, o.weight));
+  }
+  function weightedPickIndex() {
+    const ws = effectiveWeights();
+    const total = ws.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < ws.length; i++) {
+      r -= ws[i];
+      if (r <= 0) return i;
+    }
+    return ws.length - 1;
+  }
+
+  // ── 渲染选项行 ────────────────────────
+  function renderOptions() {
+    $list.innerHTML = '';
+    const ws = effectiveWeights();
+    const total = ws.reduce((a, b) => a + b, 0) || 1;
+    state.options.forEach((opt, idx) => {
+      const row = document.createElement('div');
+      row.className = 'option-row';
+      row.dataset.id = opt.id;
+      const pct = total > 0 ? (ws[idx] / total * 100) : 0;
+      row.innerHTML = `
+        <button type="button" class="opt-del" aria-label="删除选项" ${state.options.length <= 2 ? 'disabled' : ''}>✕</button>
+        <input type="text" class="opt-text" value="${escapeHtml(opt.text)}" placeholder="选项 ${idx + 1}" maxlength="20" />
+        <input type="range" class="opt-weight" min="0" max="10" step="1" value="${opt.weight}" />
+        <span class="opt-pct">${pct.toFixed(0)}%</span>
+      `;
+      // 事件
+      row.querySelector('.opt-del').addEventListener('click', () => {
+        if (state.busy) return;
+        state.options = state.options.filter(o => o.id !== opt.id);
+        renderAll();
+      });
+      row.querySelector('.opt-text').addEventListener('input', (e) => {
+        opt.text = e.target.value;
+        renderWheel();   // 文字变了要重画转盘
+      });
+      row.querySelector('.opt-weight').addEventListener('input', (e) => {
+        opt.weight = Number(e.target.value);
+        renderOptionsPct();
+        renderWheel();
+      });
+      $list.appendChild(row);
+    });
+  }
+  function renderOptionsPct() {
+    const ws = effectiveWeights();
+    const total = ws.reduce((a, b) => a + b, 0) || 1;
+    const rows = $list.querySelectorAll('.option-row');
+    rows.forEach((row, idx) => {
+      const pct = ws[idx] / total * 100;
+      row.querySelector('.opt-pct').textContent = pct.toFixed(0) + '%';
+    });
+  }
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // ── 渲染转盘 ──────────────────────────
+  function renderWheel() {
+    const cx = 100, cy = 100, r = 92;
+    const ws = effectiveWeights();
+    const total = ws.reduce((a, b) => a + b, 0) || 1;
+    let acc = 0;
+    let svg = '';
+    state.options.forEach((opt, idx) => {
+      const start = acc / total;
+      acc += ws[idx];
+      const end = acc / total;
+      const a0 = start * Math.PI * 2 - Math.PI / 2;  // 起点：12 点方向 = -90°
+      const a1 = end   * Math.PI * 2 - Math.PI / 2;
+      const x0 = cx + r * Math.cos(a0);
+      const y0 = cy + r * Math.sin(a0);
+      const x1 = cx + r * Math.cos(a1);
+      const y1 = cy + r * Math.sin(a1);
+      const largeArc = (end - start) > 0.5 ? 1 : 0;
+      const color = SLICE_COLORS[idx % SLICE_COLORS.length];
+      svg += `<path class="slice" data-idx="${idx}" d="M ${cx} ${cy} L ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z" fill="${color}" stroke="#fff" stroke-width="0.6"/>`;
+
+      // 文字标签：放在切片角度中点，半径 60% 处
+      const aMid = (a0 + a1) / 2;
+      const sliceFraction = end - start;
+      if (sliceFraction > 0.04) {  // 至少占 4% 才放文字
+        const tx = cx + r * 0.6 * Math.cos(aMid);
+        const ty = cy + r * 0.6 * Math.sin(aMid);
+        const rotDeg = (aMid * 180 / Math.PI) + 90;
+        const fontSize = sliceFraction > 0.18 ? 8.5 : (sliceFraction > 0.10 ? 7 : 5.6);
+        const label = truncateLabel(opt.text || ('选项' + (idx + 1)), sliceFraction);
+        svg += `<text x="${tx.toFixed(2)}" y="${ty.toFixed(2)}" transform="rotate(${rotDeg.toFixed(2)} ${tx.toFixed(2)} ${ty.toFixed(2)})" font-size="${fontSize}">${escapeHtml(label)}</text>`;
+      }
+    });
+    $wheel.innerHTML = svg;
+  }
+  function truncateLabel(text, fraction) {
+    // 切片越大允许越长。粗略：每 0.06 片段允许 1 个字
+    const maxChars = Math.max(2, Math.floor(fraction * 16));
+    if ([...text].length > maxChars) {
+      return [...text].slice(0, maxChars - 1).join('') + '…';
+    }
+    return text;
+  }
+
+  // ── 转盘动画 ──────────────────────────
+  function spinTo(winnerIdx, fast = false) {
+    return new Promise(resolve => {
+      const ws = effectiveWeights();
+      const total = ws.reduce((a, b) => a + b, 0) || 1;
+      // 计算 winner 切片中点角度（顺时针，0 = 12 点 = top）
+      let acc = 0;
+      for (let i = 0; i < winnerIdx; i++) acc += ws[i];
+      const midFrac = (acc + ws[winnerIdx] / 2) / total;
+      const midDeg = midFrac * 360;        // 切片中点相对于 0（顶部）的顺时针角度
+      // 让 winner 的切片中点对准顶部 = 转盘整体逆时针转 midDeg
+      // 但我们用顺时针累积（更自然），所以目标 = 当前 + 几整圈 + (360 - midDeg)
+      const extraSpins = fast ? 3 : 5;
+      const target = state.rotation + 360 * extraSpins + (360 - midDeg);
+      $wheel.classList.remove('spinning', 'spinning-fast');
+      // 强制 reflow 让 transition 重置
+      void $wheel.offsetWidth;
+      $wheel.classList.add(fast ? 'spinning-fast' : 'spinning');
+      $wheel.style.transform = `rotate(${target}deg)`;
+      state.rotation = target;
+      const onEnd = () => {
+        $wheel.removeEventListener('transitionend', onEnd);
+        resolve();
+      };
+      $wheel.addEventListener('transitionend', onEnd);
+      // safety timeout
+      setTimeout(() => resolve(), fast ? 1900 : 3500);
+    });
+  }
+  function highlightSlice(winnerIdx) {
+    const slices = $wheel.querySelectorAll('.slice');
+    slices.forEach((s, i) => {
+      if (i === winnerIdx) {
+        s.classList.add('win');
+        s.classList.remove('dim');
+      } else {
+        s.classList.add('dim');
+        s.classList.remove('win');
+      }
+    });
+    // 选项行也高亮
+    const rows = $list.querySelectorAll('.option-row');
+    rows.forEach((row, i) => {
+      row.classList.toggle('is-winner', i === winnerIdx);
+    });
+  }
+  function clearHighlights() {
+    $wheel.querySelectorAll('.slice').forEach(s => s.classList.remove('win', 'dim'));
+    $list.querySelectorAll('.option-row').forEach(r => r.classList.remove('is-winner'));
+  }
+
+  // ── 计票面板 ──────────────────────────
+  function buildTally() {
+    const N = state.options.length;
+    state.multiResults = [];
+    $tallyBars.innerHTML = state.options.map((o, i) => {
+      const color = SLICE_COLORS[i % SLICE_COLORS.length];
+      return `
+        <div class="tally-col" data-idx="${i}">
+          <div class="tally-bar-bg">
+            <div class="tally-bar-fill" style="background:${color};"></div>
+            <div class="tally-count">0</div>
+            <div class="tally-medal">🥇</div>
+          </div>
+          <div class="tally-name">${escapeHtml(o.text || ('选项' + (i + 1)))}</div>
+        </div>
+      `;
+    }).join('');
+  }
+  function updateTally() {
+    const counts = state.options.map(() => 0);
+    state.multiResults.forEach(idx => counts[idx]++);
+    const max = Math.max(...counts);
+    const cols = $tallyBars.querySelectorAll('.tally-col');
+    cols.forEach((col, i) => {
+      const fill = col.querySelector('.tally-bar-fill');
+      const cnt = col.querySelector('.tally-count');
+      const pct = max > 0 ? (counts[i] / max * 100) : 0;
+      fill.style.height = pct + '%';
+      cnt.textContent = counts[i];
+    });
+  }
+  function markTallyWinner(winnerIdx) {
+    $tallyBars.querySelectorAll('.tally-col').forEach((col, i) => {
+      col.classList.toggle('is-winner', i === winnerIdx);
+    });
+  }
+
+  // ── 主流程 ────────────────────────────
+  async function spin() {
+    if (state.busy) return;
+    if (state.options.length < 2) return;
+
+    state.busy = true;
+    setSpinDisabled(true);
+    $resetRow.style.display = 'none';
+    clearHighlights();
+    $result.innerHTML = '&nbsp;';
+
+    if (state.draws === 1) {
+      // 单次模式
+      $tallyPnl.classList.remove('show');
+      const winnerIdx = weightedPickIndex();
+      $spinHint.textContent = '抽签中…';
+      await spinTo(winnerIdx, false);
+      $spinHint.textContent = '';
+      highlightSlice(winnerIdx);
+      const name = state.options[winnerIdx].text || ('选项' + (winnerIdx + 1));
+      $result.innerHTML = `🎉 选中：<span class="winner-name">${escapeHtml(name)}</span>`;
+    } else {
+      // 多次模式
+      buildTally();
+      $tallyPnl.classList.add('show');
+      $tallyHdr.textContent = `第 0 / ${state.draws} 次`;
+      const counts = state.options.map(() => 0);
+      for (let n = 0; n < state.draws; n++) {
+        const idx = weightedPickIndex();
+        $spinHint.textContent = `第 ${n + 1} / ${state.draws} 次…`;
+        $tallyHdr.textContent = `第 ${n + 1} / ${state.draws} 次`;
+        const fast = n > 0;
+        await spinTo(idx, fast);
+        // 短暂展示这次的结果
+        clearHighlights();
+        highlightSlice(idx);
+        state.multiResults.push(idx);
+        counts[idx]++;
+        updateTally();
+        // 间隔
+        if (n < state.draws - 1) {
+          await new Promise(r => setTimeout(r, 350));
+          clearHighlights();
+        }
+      }
+      $spinHint.textContent = '';
+      // 找出冠军
+      let max = -1, winnerIdx = 0;
+      for (let i = 0; i < counts.length; i++) {
+        if (counts[i] > max) { max = counts[i]; winnerIdx = i; }
+      }
+      // 检查是否平票
+      const tied = counts.filter(c => c === max).length > 1;
+      markTallyWinner(winnerIdx);
+      highlightSlice(winnerIdx);
+      const name = state.options[winnerIdx].text || ('选项' + (winnerIdx + 1));
+      if (tied) {
+        $result.innerHTML = `🤝 平票（${max} : ${max}），但<span class="winner-name">${escapeHtml(name)}</span> 在第一时间到达 → 算它赢`;
+      } else {
+        $result.innerHTML = `🥇 <span class="winner-name">${escapeHtml(name)}</span> 拿下 ${max} / ${state.draws} 票`;
+      }
+    }
+
+    setSpinDisabled(false);
+    $resetRow.style.display = '';
+    state.busy = false;
+  }
+
+  function setSpinDisabled(disabled) {
+    $spinBtn.disabled = disabled;
+    $addBtn.disabled = disabled;
+  }
+
+  function reset() {
+    if (state.busy) return;
+    clearHighlights();
+    $result.innerHTML = '&nbsp;';
+    $resetRow.style.display = 'none';
+    $tallyPnl.classList.remove('show');
+    $spinHint.textContent = '';
+    state.multiResults = [];
+  }
+
+  function renderAll() {
+    renderOptions();
+    renderWheel();
+    updateAddBtn();
+    updateSpinBtn();
+  }
+  function updateAddBtn() {
+    $addBtn.disabled = state.options.length >= 10;
+  }
+  function updateSpinBtn() {
+    const ok = state.options.length >= 2;
+    $spinBtn.disabled = !ok || state.busy;
+    if (!ok) {
+      $spinHint.textContent = '至少需要两个选项';
+    } else if (!state.busy) {
+      $spinHint.textContent = '';
+    }
+  }
+
+  // ── 事件绑定 ──────────────────────────
+  $addBtn.addEventListener('click', () => {
+    if (state.busy || state.options.length >= 10) return;
+    state.options.push({ id: cryptoId(), text: '', weight: 5 });
+    renderAll();
+  });
+  $drawsGrp.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-draws]');
+    if (!btn || state.busy) return;
+    state.draws = Number(btn.dataset.draws);
+    $drawsGrp.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b === btn);
+    });
+    reset();
+  });
+  $spinBtn.addEventListener('click', spin);
+  $resetBtn.addEventListener('click', reset);
+
+  // ── 初始化 ────────────────────────────
+  renderAll();
+})();
+</script>
