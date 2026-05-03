@@ -494,14 +494,18 @@ permalink: /toolbox/suika/
   // ============ 游戏循环 ============
   function tick(now) {
     if (!engine) return;
-    if (!isPaused && !isOver) {
-      const dt = Math.min(33, now - lastTick);
-      Engine.update(engine, dt);
-      checkDanger(now);
-      recentMerges.clear();
+    try {
+      if (!isPaused && !isOver) {
+        const dt = Math.min(33, now - lastTick);
+        Engine.update(engine, dt);
+        checkDanger(now);
+        recentMerges.clear();
+      }
+      lastTick = now;
+      drawScene();
+    } catch (err) {
+      console.error('[suika] tick error:', err);
     }
-    lastTick = now;
-    drawScene();
     requestAnimationFrame(tick);
   }
 
@@ -509,9 +513,11 @@ permalink: /toolbox/suika/
     let inDanger = false;
     Composite.allBodies(world).forEach(b => {
       if (!b.fruitLevel) return;
-      // 给水果生成后的 1.2 秒缓冲，避免刚 spawn 还没下落就被判失败
-      if (now - (b.spawnedAt || 0) < 1200) return;
-      // 如果水果几乎不动了（速度 < 阈值）且其顶端高于危险线 → 危险
+      // 跳过静态 body（包括顶部悬浮的水果——它本来就在危险线上方但不算）
+      if (b.isStatic) return;
+      // 给水果生成后的 1.5 秒缓冲，避免刚下落瞬间被判
+      if (now - (b.spawnedAt || 0) < 1500) return;
+      // 速度阈值：仅当水果几乎静止（落定）才算
       const speed = Math.hypot(b.velocity.x, b.velocity.y);
       if (b.position.y - b.circleRadius < DANGER_Y && speed < 0.3) {
         inDanger = true;
