@@ -195,6 +195,43 @@ permalink: /toolbox/forest/
     font-size: 0.78rem; font-weight: 400;
     color: var(--color-muted);
   }
+  /* ============ 多块田 tabs ============ */
+  .field-tabs {
+    display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;
+    margin-bottom: 0.7rem;
+    padding: 0.5rem;
+    background: var(--color-bg-warm);
+    border-radius: 10px;
+    border: 1px solid var(--color-border);
+  }
+  .field-tab {
+    font: inherit; font-size: 0.85rem;
+    padding: 0.35rem 0.85rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted); cursor: pointer;
+    transition: all 0.18s;
+    display: inline-flex; align-items: center; gap: 0.35rem;
+  }
+  .field-tab.active {
+    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+  }
+  .field-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .field-tab .tab-count {
+    font-size: 0.72rem; opacity: 0.7;
+    padding: 0.05rem 0.4rem;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 999px;
+  }
+  .field-tab.active .tab-count { background: rgba(255, 255, 255, 0.18); }
+  .field-tab-add {
+    font: inherit; font-size: 0.85rem; font-weight: 600;
+    padding: 0.35rem 0.85rem;
+    border: 1px dashed var(--color-border); border-radius: 999px;
+    background: transparent; color: var(--color-muted); cursor: pointer;
+    transition: all 0.18s;
+  }
+  .field-tab-add:hover { border-style: solid; border-color: var(--color-accent); color: var(--color-accent); }
+
   /* ============ 田地 ============ */
   .field-toolbar {
     display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;
@@ -581,8 +618,13 @@ permalink: /toolbox/forest/
       <span>🌲 我的田地</span>
       <small id="forest-meta"></small>
     </div>
+    <div class="field-tabs" id="field-tabs">
+      <!-- JS 填充 -->
+    </div>
     <div class="field-toolbar">
       <button type="button" id="edit-mode-btn">✎ 整理</button>
+      <button type="button" id="rename-field-btn">✏ 重命名</button>
+      <button type="button" id="delete-field-btn" style="color: #c0392b;">🗑 删除此田</button>
       <span class="spacer"></span>
       <span class="field-hint" id="field-hint">点击树查看详情 · 拖动可挪位置</span>
     </div>
@@ -621,6 +663,8 @@ permalink: /toolbox/forest/
 
   const TREES_KEY = 'tool.forest.trees.v1';
   const ACTIVE_KEY = 'tool.forest.active.v1';
+  const FIELDS_KEY = 'tool.forest.fields.v1';
+  const ACTIVE_FIELD_KEY = 'tool.forest.activeField.v1';
 
   const TREE_EMOJI = {
     oak: '🌳', pine: '🌲', sakura: '🌸', palm: '🌴', cactus: '🌵',
@@ -640,6 +684,8 @@ permalink: /toolbox/forest/
     pomodoroOn: false,  // 是否开启循环模式
     cycleCount: 0,      // 当前循环里完成了几个 focus
     breakMode: false,   // 当前 session 是 break 还是 focus
+    fields: [],         // 田块列表 [{id, name, createdAt}]
+    activeFieldId: null,
   };
 
   // 焦点时长 → 推荐休息时长
@@ -699,6 +745,60 @@ permalink: /toolbox/forest/
       if (s) localStorage.setItem(ACTIVE_KEY, JSON.stringify(s));
       else localStorage.removeItem(ACTIVE_KEY);
     } catch (e) {}
+  }
+
+  // ============ Fields (多块田) ============
+  function loadFields() {
+    try {
+      const raw = localStorage.getItem(FIELDS_KEY);
+      state.fields = raw ? JSON.parse(raw) : [];
+    } catch (e) { state.fields = []; }
+    try {
+      state.activeFieldId = localStorage.getItem(ACTIVE_FIELD_KEY) || null;
+    } catch (e) { state.activeFieldId = null; }
+  }
+  function saveFields() {
+    try { localStorage.setItem(FIELDS_KEY, JSON.stringify(state.fields)); } catch (e) {}
+    try {
+      if (state.activeFieldId) localStorage.setItem(ACTIVE_FIELD_KEY, state.activeFieldId);
+    } catch (e) {}
+  }
+  function newFieldId() {
+    return 'fld-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5);
+  }
+
+  // 迁移：保证至少有 1 块田 + 老树都属于第 1 块
+  function migrateFieldsAndTrees() {
+    let migrated = false;
+    if (state.fields.length === 0) {
+      state.fields.push({
+        id: newFieldId(),
+        name: '我的田地',
+        createdAt: new Date().toISOString(),
+      });
+      state.activeFieldId = state.fields[0].id;
+      migrated = true;
+    }
+    // 校验 activeFieldId 有效
+    if (!state.fields.find(f => f.id === state.activeFieldId)) {
+      state.activeFieldId = state.fields[0].id;
+      migrated = true;
+    }
+    // 给老树补 fieldId
+    const firstId = state.fields[0].id;
+    let treeMigrated = false;
+    state.trees.forEach(t => {
+      if (!t.fieldId) {
+        t.fieldId = firstId;
+        treeMigrated = true;
+      }
+    });
+    if (migrated) saveFields();
+    if (treeMigrated) saveTrees();
+  }
+
+  function activeFieldTrees() {
+    return state.trees.filter(t => t.fieldId === state.activeFieldId);
   }
 
   // ============ Tree SVG ============
@@ -1263,37 +1363,45 @@ permalink: /toolbox/forest/
   }
 
   function ensurePositions() {
-    // 给所有 没有 position 的树自动分配
+    // 在每块田内部分别分配位置（每个 field 都有自己独立的网格）
     const { cols } = getFieldDimensions();
-    const occupied = new Set();
+    const byField = {};
     state.trees.forEach(t => {
-      if (t.position) {
-        occupied.add(`${t.position.col},${t.position.row}`);
-      }
+      const fid = t.fieldId || (state.fields[0] && state.fields[0].id);
+      if (!byField[fid]) byField[fid] = [];
+      byField[fid].push(t);
     });
-    let nextSlot = { col: 0, row: 0 };
-    function advance() {
-      nextSlot.col++;
-      if (nextSlot.col >= cols) { nextSlot.col = 0; nextSlot.row++; }
-    }
-    state.trees.forEach(t => {
-      if (!t.position) {
-        while (occupied.has(`${nextSlot.col},${nextSlot.row}`)) advance();
-        t.position = { col: nextSlot.col, row: nextSlot.row };
-        occupied.add(`${nextSlot.col},${nextSlot.row}`);
-        advance();
+    Object.keys(byField).forEach(fid => {
+      const occupied = new Set();
+      byField[fid].forEach(t => {
+        if (t.position) occupied.add(`${t.position.col},${t.position.row}`);
+      });
+      let nextSlot = { col: 0, row: 0 };
+      function advance() {
+        nextSlot.col++;
+        if (nextSlot.col >= cols) { nextSlot.col = 0; nextSlot.row++; }
       }
+      byField[fid].forEach(t => {
+        if (!t.position) {
+          while (occupied.has(`${nextSlot.col},${nextSlot.row}`)) advance();
+          t.position = { col: nextSlot.col, row: nextSlot.row };
+          occupied.add(`${nextSlot.col},${nextSlot.row}`);
+          advance();
+        }
+      });
     });
   }
 
   function assignNewPosition(newTree) {
-    // 找下一个空位（按 row, col 顺序），不影响已有 trees
+    // 找当前 active field 的下一个空位
     const { cols } = getFieldDimensions();
+    const fid = state.activeFieldId;
+    newTree.fieldId = fid;
     const occupied = new Set();
     state.trees.forEach(t => {
-      if (t.position) occupied.add(`${t.position.col},${t.position.row}`);
+      if (t.fieldId === fid && t.position) occupied.add(`${t.position.col},${t.position.row}`);
     });
-    for (let row = 0; row < 200; row++) {
+    for (let row = 0; row < 500; row++) {
       for (let col = 0; col < cols; col++) {
         if (!occupied.has(`${col},${row}`)) {
           newTree.position = { col, row };
@@ -1301,7 +1409,6 @@ permalink: /toolbox/forest/
         }
       }
     }
-    // 兜底
     newTree.position = { col: 0, row: 0 };
   }
 
@@ -1319,10 +1426,15 @@ permalink: /toolbox/forest/
     // 田地
     ensurePositions();
     renderField();
+    // 同步 tabs 计数（如果 tabs 已渲染）
+    if (document.getElementById('field-tabs') && document.getElementById('field-tabs').children.length > 0) {
+      renderFieldTabs();
+    }
   }
 
   function renderField() {
-    if (state.trees.length === 0) {
+    const trees = activeFieldTrees();
+    if (trees.length === 0) {
       $field.style.display = 'none';
       $emptyForest.style.display = '';
       $forestMeta.textContent = '';
@@ -1332,18 +1444,21 @@ permalink: /toolbox/forest/
     $emptyForest.style.display = 'none';
     $field.style.display = '';
 
-    const total = state.trees.length;
-    const dead = state.trees.filter(t => !t.success).length;
-    const grand = state.trees.filter(t => t.success && durationToTier(t.durationMinutes) === 4).length;
-    const metaParts = [`共 ${total} 棵`];
+    const total = trees.length;
+    const dead = trees.filter(t => !t.success).length;
+    const grand = trees.filter(t => t.success && durationToTier(t.durationMinutes) === 4).length;
+    const metaParts = [`本田 ${total} 棵`];
     if (dead > 0) metaParts.push(`枯萎 ${dead}`);
     if (grand > 0) metaParts.push(`巨树 ${grand}`);
+    if (state.fields.length > 1) {
+      metaParts.push(`总 ${state.trees.length} 棵 / ${state.fields.length} 块田`);
+    }
     $forestMeta.textContent = metaParts.join(' · ');
 
     const { cols, cellWidth, rowHeight } = getFieldDimensions();
     // 计算最大行数 → field 高度
     let maxRow = 0;
-    state.trees.forEach(t => { if (t.position && t.position.row > maxRow) maxRow = t.position.row; });
+    trees.forEach(t => { if (t.position && t.position.row > maxRow) maxRow = t.position.row; });
     const rows = Math.max(2, maxRow + 1) + (editMode ? 1 : 0);
     const fieldHeight = rows * rowHeight + 16;
     $field.style.height = fieldHeight + 'px';
@@ -1366,7 +1481,7 @@ permalink: /toolbox/forest/
     $snapPreview.style.width = (cellWidth - 4) + 'px';
     $snapPreview.style.height = (rowHeight - 4) + 'px';
 
-    state.trees.forEach(t => {
+    trees.forEach(t => {
       if (!t.position) return;
       const tier = t.success ? durationToTier(t.durationMinutes) : 1;
       // 树占满整个 cell，居中
@@ -1416,6 +1531,7 @@ permalink: /toolbox/forest/
     state.trees = state.trees.filter(x => x.id !== id);
     saveTrees();
     hideDetail();
+    renderFieldTabs();
     renderStats();
   }
 
@@ -1506,8 +1622,11 @@ permalink: /toolbox/forest/
     const top = parseFloat(div.style.top);
     const { col, row } = snapColRow(left, top);
 
-    // 检测占位冲突 → 交换
-    const occupant = state.trees.find(x => x !== t && x.position && x.position.col === col && x.position.row === row);
+    // 检测占位冲突（仅同田块内）→ 交换
+    const occupant = state.trees.find(x =>
+      x !== t && x.fieldId === t.fieldId &&
+      x.position && x.position.col === col && x.position.row === row
+    );
     if (occupant) {
       occupant.position = { col: t.position.col, row: t.position.row };
     }
@@ -1606,10 +1725,16 @@ permalink: /toolbox/forest/
   }
 
   $resetBtn.addEventListener('click', () => {
-    if (!confirm('确定清空所有种树记录？这个操作不可撤销。')) return;
+    if (!confirm('确定清空所有种树记录（含全部田块）？这个操作不可撤销。')) return;
     state.trees = [];
+    state.fields = [];
+    state.activeFieldId = null;
     saveTrees();
     saveActive(null);
+    saveFields();
+    try { localStorage.removeItem(ACTIVE_FIELD_KEY); } catch (e) {}
+    migrateFieldsAndTrees();  // 重建默认田
+    renderFieldTabs();
     renderStats();
   });
 
@@ -1632,10 +1757,86 @@ permalink: /toolbox/forest/
     failSession('left_page');
   }
 
+  // ============ Field tabs UI ============
+  const $fieldTabs = document.getElementById('field-tabs');
+  const $renameFieldBtn = document.getElementById('rename-field-btn');
+  const $deleteFieldBtn = document.getElementById('delete-field-btn');
+
+  function renderFieldTabs() {
+    $fieldTabs.innerHTML = state.fields.map(f => {
+      const count = state.trees.filter(t => t.fieldId === f.id).length;
+      const active = f.id === state.activeFieldId;
+      return `
+        <button type="button" class="field-tab ${active ? 'active' : ''}" data-field-id="${f.id}">
+          <span>${escapeHtml(f.name)}</span>
+          <span class="tab-count">${count}</span>
+        </button>
+      `;
+    }).join('') + '<button type="button" class="field-tab-add" id="add-field-btn">+ 新建田块</button>';
+
+    $fieldTabs.querySelectorAll('.field-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.activeFieldId = btn.dataset.fieldId;
+        saveFields();
+        hideDetail();
+        renderFieldTabs();
+        renderField();
+      });
+    });
+    document.getElementById('add-field-btn').addEventListener('click', addNewField);
+
+    // 删除按钮：只有 ≥ 2 块田时才允许删
+    $deleteFieldBtn.style.display = state.fields.length >= 2 ? '' : 'none';
+  }
+
+  function addNewField() {
+    const defaultName = `第 ${state.fields.length + 1} 块田`;
+    const name = (prompt('给这块田起个名字：', defaultName) || '').trim();
+    if (!name) return;
+    const f = { id: newFieldId(), name, createdAt: new Date().toISOString() };
+    state.fields.push(f);
+    state.activeFieldId = f.id;
+    saveFields();
+    renderFieldTabs();
+    renderField();
+  }
+
+  $renameFieldBtn.addEventListener('click', () => {
+    const f = state.fields.find(x => x.id === state.activeFieldId);
+    if (!f) return;
+    const name = (prompt('改名成：', f.name) || '').trim();
+    if (!name || name === f.name) return;
+    f.name = name;
+    saveFields();
+    renderFieldTabs();
+  });
+
+  $deleteFieldBtn.addEventListener('click', () => {
+    if (state.fields.length < 2) return;
+    const f = state.fields.find(x => x.id === state.activeFieldId);
+    if (!f) return;
+    const treesInField = state.trees.filter(t => t.fieldId === state.activeFieldId);
+    const msg = treesInField.length > 0
+      ? `删除「${f.name}」？这块田里的 ${treesInField.length} 棵树会一起被铲除（不可撤销）。`
+      : `删除「${f.name}」？`;
+    if (!confirm(msg)) return;
+    state.trees = state.trees.filter(t => t.fieldId !== state.activeFieldId);
+    state.fields = state.fields.filter(x => x.id !== state.activeFieldId);
+    state.activeFieldId = state.fields[0].id;
+    saveTrees();
+    saveFields();
+    hideDetail();
+    renderFieldTabs();
+    renderStats();
+  });
+
   // ============ Init ============
   loadTrees();
+  loadFields();
+  migrateFieldsAndTrees();
   $timerDisplay.textContent = fmtTime(state.duration * 60);
   renderTree(0);
+  renderFieldTabs();
   renderStats();
   updatePomodoroHint();
   resumeSession();
