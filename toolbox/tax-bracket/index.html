@@ -1,0 +1,452 @@
+---
+layout: default
+title: "美国报税档位估算 | Rui Zhou"
+permalink: /toolbox/tax-bracket/
+---
+
+<style>
+  .tx-wrap { max-width: 760px; margin: 0 auto; padding: 1rem; }
+  .tx-wrap header { text-align: center; margin-bottom: 1.6rem; }
+  .tx-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem; }
+  .tx-wrap header .sub { color: var(--color-light); font-style: italic; }
+
+  .panel {
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: 14px; padding: 1.4rem; margin-bottom: 1.2rem;
+  }
+  .panel-title {
+    font-family: var(--font-display); font-size: 1.05rem;
+    color: var(--color-ink); margin-bottom: 0.9rem; font-weight: 600;
+  }
+
+  .input-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem;
+  }
+  .input-grid .field { position: relative; }
+  .input-grid label { display: block; font-size: 0.85rem; color: var(--color-muted); margin-bottom: 0.3rem; }
+  .input-grid input, .input-grid select {
+    width: 100%; padding: 0.7rem 0.9rem;
+    font: inherit; font-size: 1rem; color: var(--color-ink);
+    border: 1px solid var(--color-border); border-radius: 10px;
+    background: var(--color-bg);
+    transition: border-color 0.18s;
+  }
+  .input-grid select {
+    padding-right: 2.2rem; -webkit-appearance: none; appearance: none; cursor: pointer;
+    background: var(--color-bg) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%236b7280' d='M0 0l5 6 5-6z'/></svg>") right 0.85rem center no-repeat;
+  }
+  .input-grid input:focus, .input-grid select:focus { outline: none; border-color: var(--color-accent); }
+  .input-grid input::-webkit-outer-spin-button,
+  .input-grid input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .input-grid .full-width { grid-column: 1 / -1; }
+  .input-grid .checkbox-row {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.9rem; color: var(--color-muted); cursor: pointer; user-select: none;
+  }
+
+  /* Summary cards */
+  .summary {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem;
+    margin-bottom: 1.2rem;
+  }
+  .sum-card {
+    padding: 0.85rem 0.9rem;
+    border: 1px solid var(--color-border); border-radius: 10px;
+    background: var(--color-bg);
+    text-align: center;
+  }
+  .sum-card .label {
+    font-size: 0.74rem; color: var(--color-muted);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin-bottom: 0.3rem;
+  }
+  .sum-card .value {
+    font-family: var(--font-display); font-size: 1.3rem; font-weight: 600;
+    color: var(--color-ink); line-height: 1.1;
+  }
+  .sum-card.highlight { background: var(--color-bg-warm); border-color: var(--color-accent); }
+  .sum-card.highlight .value { color: var(--color-accent); }
+  .sum-card.tax .value { color: #c0392b; }
+  .sum-card.takehome .value { color: #4a7c59; }
+
+  /* Bracket bars */
+  .bracket-list { margin-top: 0.6rem; }
+  .bracket-row {
+    display: grid;
+    grid-template-columns: 70px 1fr 90px 90px;
+    gap: 0.6rem;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed var(--color-border);
+    font-size: 0.88rem;
+  }
+  .bracket-row:last-child { border-bottom: none; }
+  .bracket-row .rate {
+    font-weight: 600; color: var(--color-ink);
+  }
+  .bracket-row .bar-wrap {
+    background: var(--color-bg-warm); border-radius: 999px;
+    height: 16px; overflow: hidden; position: relative;
+  }
+  .bracket-row .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-light));
+    border-radius: 999px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .bracket-row .range {
+    color: var(--color-muted); font-size: 0.82rem;
+    text-align: right;
+  }
+  .bracket-row .tax-due {
+    color: var(--color-text); text-align: right; font-variant-numeric: tabular-nums;
+  }
+  .bracket-row.empty .bar-fill { background: var(--color-border); }
+  .bracket-row.empty { opacity: 0.55; }
+  .bracket-row.partial .bar-fill {
+    background: linear-gradient(90deg, var(--color-highlight), #d4b67e);
+  }
+
+  .rate-row {
+    display: flex; justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed var(--color-border);
+    font-size: 0.92rem;
+  }
+  .rate-row:last-child { border-bottom: none; }
+  .rate-row .label { color: var(--color-muted); }
+  .rate-row .value { font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+
+  .disclaimer {
+    margin-top: 1.4rem;
+    padding: 1rem 1.2rem;
+    background: #fef3c7; color: #78350f;
+    border-radius: 8px; border-left: 3px solid #d97706;
+    font-size: 0.86rem; line-height: 1.6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .disclaimer { background: rgba(245,158,11,0.15); color: #fcd34d; }
+  }
+  :root[data-theme="dark"] .disclaimer { background: rgba(245,158,11,0.15); color: #fcd34d; }
+
+  /* Mobile */
+  @media (max-width: 600px) {
+    .input-grid { grid-template-columns: 1fr; }
+    .summary { grid-template-columns: 1fr 1fr; }
+    .summary .sum-card.highlight { grid-column: span 2; }
+    .bracket-row { grid-template-columns: 50px 1fr 76px; gap: 0.4rem; }
+    .bracket-row .range { display: none; }
+    .panel { padding: 1.1rem; }
+  }
+</style>
+
+<div class="tx-wrap">
+  <header>
+    <h1>🇺🇸 美国报税档位估算</h1>
+    <p class="sub">US Federal &amp; State Tax Estimator (Tax Year 2026)</p>
+  </header>
+
+  <div class="panel">
+    <div class="panel-title">基本信息</div>
+    <div class="input-grid">
+      <div class="field">
+        <label>报税身份</label>
+        <select id="filing-status">
+          <option value="single">Single（单身）</option>
+          <option value="mfj">Married Filing Jointly（夫妻合报）</option>
+          <option value="hoh">Head of Household（户主）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>所在州</label>
+        <select id="state"></select>
+      </div>
+      <div class="field full-width">
+        <label>年总收入（gross income）</label>
+        <input type="number" id="gross" inputmode="decimal" step="any" value="80000" placeholder="$" />
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="use-std" checked />
+        <span>使用 standard deduction（不扣除则填 itemized 金额到下方）</span>
+      </label>
+      <div class="field full-width" id="itemized-wrap" style="display: none;">
+        <label>Itemized deduction 金额</label>
+        <input type="number" id="itemized" inputmode="decimal" step="any" value="0" placeholder="$" />
+      </div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="sum-card tax">
+      <div class="label">总税额</div>
+      <div class="value" id="sum-tax">—</div>
+    </div>
+    <div class="sum-card highlight">
+      <div class="label">税后到手</div>
+      <div class="value" id="sum-take">—</div>
+    </div>
+    <div class="sum-card takehome">
+      <div class="label">实际税率</div>
+      <div class="value" id="sum-eff">—</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">联邦税分档（IRS 2026 Brackets）</div>
+    <div class="bracket-list" id="federal-brackets"></div>
+    <div style="margin-top: 0.9rem;">
+      <div class="rate-row">
+        <span class="label">应税收入 (Taxable Income)</span>
+        <span class="value" id="row-taxable">—</span>
+      </div>
+      <div class="rate-row">
+        <span class="label">联邦税</span>
+        <span class="value" id="row-federal">—</span>
+      </div>
+      <div class="rate-row">
+        <span class="label">边际税率（Marginal Rate）</span>
+        <span class="value" id="row-marginal">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">州税估算</div>
+    <div class="rate-row">
+      <span class="label">州 / 适用税率</span>
+      <span class="value" id="row-state-rate">—</span>
+    </div>
+    <div class="rate-row">
+      <span class="label">州税</span>
+      <span class="value" id="row-state">—</span>
+    </div>
+    <div style="margin-top: 0.7rem; font-size: 0.82rem; color: var(--color-light);">
+      州税按所在州 top marginal rate 简化估算。CA / NY 等累进州实际可能略低（低收入段适用低档）。
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <strong>⚠️ 仅供估算，不能替代正式报税。</strong>本工具按 2026 IRS brackets + 各州 top marginal rate 简化计算，不考虑：FICA / Medicare、EITC / 子女抵免、retirement contribution、AMT、qualified dividends 不同税率、phase-out 规则、签证身份（F-1 vs H-1B）、treaty benefits 等。复杂情况请用 TurboTax / FreeTaxUSA / 找会计。本工具就用来快速估个范围。
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ====== 2026 IRS Federal Brackets ======
+  // 基于 2025 brackets + ~2.5% inflation adjustment 估算（上线时手动校对最新数字）
+  const FEDERAL_2026 = {
+    single: [
+      { rate: 0.10, upTo: 12250 },
+      { rate: 0.12, upTo: 49800 },
+      { rate: 0.22, upTo: 106150 },
+      { rate: 0.24, upTo: 202650 },
+      { rate: 0.32, upTo: 257300 },
+      { rate: 0.35, upTo: 643300 },
+      { rate: 0.37, upTo: Infinity },
+    ],
+    mfj: [
+      { rate: 0.10, upTo: 24500 },
+      { rate: 0.12, upTo: 99600 },
+      { rate: 0.22, upTo: 212300 },
+      { rate: 0.24, upTo: 405300 },
+      { rate: 0.32, upTo: 514600 },
+      { rate: 0.35, upTo: 772600 },
+      { rate: 0.37, upTo: Infinity },
+    ],
+    hoh: [
+      { rate: 0.10, upTo: 17500 },
+      { rate: 0.12, upTo: 66700 },
+      { rate: 0.22, upTo: 106150 },
+      { rate: 0.24, upTo: 202650 },
+      { rate: 0.32, upTo: 257300 },
+      { rate: 0.35, upTo: 643300 },
+      { rate: 0.37, upTo: Infinity },
+    ],
+  };
+  const STD_DEDUCTION_2026 = {
+    single: 15750,
+    mfj: 31500,
+    hoh: 23625,
+  };
+
+  // ====== State top marginal rates (2025-2026 估算) ======
+  const STATES = [
+    { code: 'AL', name: 'Alabama',     rate: 0.05 },
+    { code: 'AK', name: 'Alaska',      rate: 0.00 },
+    { code: 'AZ', name: 'Arizona',     rate: 0.025 },
+    { code: 'AR', name: 'Arkansas',    rate: 0.039 },
+    { code: 'CA', name: 'California',  rate: 0.123 },
+    { code: 'CO', name: 'Colorado',    rate: 0.044 },
+    { code: 'CT', name: 'Connecticut', rate: 0.0699 },
+    { code: 'DE', name: 'Delaware',    rate: 0.066 },
+    { code: 'FL', name: 'Florida',     rate: 0.00 },
+    { code: 'GA', name: 'Georgia',     rate: 0.0539 },
+    { code: 'HI', name: 'Hawaii',      rate: 0.11 },
+    { code: 'ID', name: 'Idaho',       rate: 0.058 },
+    { code: 'IL', name: 'Illinois',    rate: 0.0495 },
+    { code: 'IN', name: 'Indiana',     rate: 0.0305 },
+    { code: 'IA', name: 'Iowa',        rate: 0.0382 },
+    { code: 'KS', name: 'Kansas',      rate: 0.057 },
+    { code: 'KY', name: 'Kentucky',    rate: 0.04 },
+    { code: 'LA', name: 'Louisiana',   rate: 0.03 },
+    { code: 'ME', name: 'Maine',       rate: 0.0715 },
+    { code: 'MD', name: 'Maryland',    rate: 0.0575 },
+    { code: 'MA', name: 'Massachusetts', rate: 0.05 },
+    { code: 'MI', name: 'Michigan',    rate: 0.0425 },
+    { code: 'MN', name: 'Minnesota',   rate: 0.0985 },
+    { code: 'MS', name: 'Mississippi', rate: 0.044 },
+    { code: 'MO', name: 'Missouri',    rate: 0.047 },
+    { code: 'MT', name: 'Montana',     rate: 0.0575 },
+    { code: 'NE', name: 'Nebraska',    rate: 0.052 },
+    { code: 'NV', name: 'Nevada',      rate: 0.00 },
+    { code: 'NH', name: 'New Hampshire', rate: 0.00 },
+    { code: 'NJ', name: 'New Jersey',  rate: 0.1075 },
+    { code: 'NM', name: 'New Mexico',  rate: 0.059 },
+    { code: 'NY', name: 'New York',    rate: 0.109 },
+    { code: 'NC', name: 'North Carolina', rate: 0.0425 },
+    { code: 'ND', name: 'North Dakota', rate: 0.025 },
+    { code: 'OH', name: 'Ohio',        rate: 0.035 },
+    { code: 'OK', name: 'Oklahoma',    rate: 0.0475 },
+    { code: 'OR', name: 'Oregon',      rate: 0.099 },
+    { code: 'PA', name: 'Pennsylvania', rate: 0.0307 },
+    { code: 'RI', name: 'Rhode Island', rate: 0.0599 },
+    { code: 'SC', name: 'South Carolina', rate: 0.064 },
+    { code: 'SD', name: 'South Dakota', rate: 0.00 },
+    { code: 'TN', name: 'Tennessee',   rate: 0.00 },
+    { code: 'TX', name: 'Texas',       rate: 0.00 },
+    { code: 'UT', name: 'Utah',        rate: 0.0455 },
+    { code: 'VT', name: 'Vermont',     rate: 0.0875 },
+    { code: 'VA', name: 'Virginia',    rate: 0.0575 },
+    { code: 'WA', name: 'Washington',  rate: 0.00 },
+    { code: 'WV', name: 'West Virginia', rate: 0.0482 },
+    { code: 'WI', name: 'Wisconsin',   rate: 0.0765 },
+    { code: 'WY', name: 'Wyoming',     rate: 0.00 },
+    { code: 'DC', name: 'D.C.',        rate: 0.1075 },
+  ];
+
+  // ====== DOM ======
+  const $status   = document.getElementById('filing-status');
+  const $state    = document.getElementById('state');
+  const $gross    = document.getElementById('gross');
+  const $useStd   = document.getElementById('use-std');
+  const $itemizedWrap = document.getElementById('itemized-wrap');
+  const $itemized = document.getElementById('itemized');
+
+  // 填充州
+  STATES.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.code;
+    opt.textContent = `${s.code} — ${s.name}${s.rate === 0 ? '（无州税）' : ''}`;
+    $state.appendChild(opt);
+  });
+  $state.value = 'PA'; // 默认作者所在地
+
+  $useStd.addEventListener('change', () => {
+    $itemizedWrap.style.display = $useStd.checked ? 'none' : '';
+    update();
+  });
+
+  [$status, $state, $gross, $itemized].forEach(el =>
+    el.addEventListener('input', update)
+  );
+  $status.addEventListener('change', update);
+  $state.addEventListener('change', update);
+
+  // ====== Helpers ======
+  function fmtMoney(n) {
+    if (!Number.isFinite(n)) return '—';
+    const sign = n < 0 ? '-' : '';
+    n = Math.abs(n);
+    return sign + '$' + Math.round(n).toLocaleString();
+  }
+  function fmtPct(n) { return (n * 100).toFixed(2) + '%'; }
+  function fmtPctRound(n) { return (n * 100).toFixed(1) + '%'; }
+  function getNum($el) { const v = parseFloat($el.value); return Number.isFinite(v) ? v : 0; }
+
+  // ====== Federal tax calculation ======
+  function computeFederalTax(taxable, status) {
+    const brackets = FEDERAL_2026[status];
+    let tax = 0;
+    let prevCap = 0;
+    let marginalRate = 0;
+    const breakdown = [];
+    for (const br of brackets) {
+      const cap = br.upTo;
+      const inThisBracket = Math.max(0, Math.min(taxable, cap) - prevCap);
+      const taxInBr = inThisBracket * br.rate;
+      tax += taxInBr;
+      breakdown.push({
+        rate: br.rate,
+        from: prevCap,
+        to: cap,
+        amountInBracket: inThisBracket,
+        taxInBracket: taxInBr,
+        bracketWidth: cap - prevCap,
+      });
+      if (taxable > prevCap) marginalRate = br.rate;
+      if (taxable <= cap) break;
+      prevCap = cap;
+    }
+    return { tax, marginalRate, breakdown };
+  }
+
+  // ====== Render ======
+  function update() {
+    const status = $status.value;
+    const stateCode = $state.value;
+    const gross = getNum($gross);
+    const stdDed = STD_DEDUCTION_2026[status];
+    const ded = $useStd.checked ? stdDed : Math.max(0, getNum($itemized));
+    const taxable = Math.max(0, gross - ded);
+
+    const { tax: federalTax, marginalRate, breakdown } = computeFederalTax(taxable, status);
+
+    const stateInfo = STATES.find(s => s.code === stateCode);
+    const stateRate = stateInfo ? stateInfo.rate : 0;
+    const stateTax = taxable * stateRate;
+
+    const totalTax = federalTax + stateTax;
+    const takehome = gross - totalTax;
+    const effective = gross > 0 ? totalTax / gross : 0;
+
+    document.getElementById('sum-tax').textContent = fmtMoney(totalTax);
+    document.getElementById('sum-take').textContent = fmtMoney(takehome);
+    document.getElementById('sum-eff').textContent = fmtPctRound(effective);
+    document.getElementById('row-taxable').textContent = fmtMoney(taxable) + `（已扣 ${fmtMoney(ded)}）`;
+    document.getElementById('row-federal').textContent = fmtMoney(federalTax);
+    document.getElementById('row-marginal').textContent = (marginalRate * 100).toFixed(0) + '%';
+    document.getElementById('row-state-rate').textContent = stateInfo
+      ? `${stateInfo.name} · ${(stateRate * 100).toFixed(2)}%`
+      : '—';
+    document.getElementById('row-state').textContent = fmtMoney(stateTax);
+
+    // 渲染分档
+    const $list = document.getElementById('federal-brackets');
+    $list.innerHTML = breakdown.map(b => {
+      const filled = b.amountInBracket / b.bracketWidth;
+      const partial = filled > 0 && filled < 1;
+      const empty = b.amountInBracket === 0;
+      const cls = empty ? 'empty' : partial ? 'partial' : '';
+      const rangeText = b.to === Infinity
+        ? `$${Math.round(b.from).toLocaleString()}+`
+        : `$${Math.round(b.from).toLocaleString()} – $${Math.round(b.to).toLocaleString()}`;
+      return `
+        <div class="bracket-row ${cls}">
+          <span class="rate">${(b.rate * 100).toFixed(0)}%</span>
+          <span class="bar-wrap">
+            <span class="bar-fill" style="width: ${(Math.min(1, filled) * 100).toFixed(1)}%;"></span>
+          </span>
+          <span class="range">${rangeText}</span>
+          <span class="tax-due">${fmtMoney(b.taxInBracket)}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 启动
+  update();
+})();
+</script>
