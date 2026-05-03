@@ -459,15 +459,18 @@ permalink: /life/picker/
     }
     return state.options.map(o => Math.max(0, o.weight));
   }
-  function weightedPickIndex() {
+  // 给定一个 [0, 360) 的角度，找出它落在哪个扇形里
+  function sliceAtAngle(theta) {
     const ws = effectiveWeights();
-    const total = ws.reduce((a, b) => a + b, 0);
-    let r = Math.random() * total;
-    for (let i = 0; i < ws.length; i++) {
-      r -= ws[i];
-      if (r <= 0) return i;
+    const total = ws.reduce((a, b) => a + b, 0) || 1;
+    let acc = 0;
+    for (let i = 0; i < state.options.length; i++) {
+      const start = (acc / total) * 360;
+      acc += ws[i];
+      const end = (acc / total) * 360;
+      if (theta >= start && theta < end) return i;
     }
-    return ws.length - 1;
+    return state.options.length - 1;
   }
 
   // ── 渲染选项行 ────────────────────────
@@ -565,32 +568,31 @@ permalink: /life/picker/
   }
 
   // ── 转盘动画 ──────────────────────────
-  function spinTo(winnerIdx, fast = false) {
+  // 关键设计：抽一个 [0, 360) 的均匀随机角度。指针停在哪个扇形里 = 中签项。
+  // 这跟"先按权重 pick winner、再让指针停在该扇形中点"在概率上完全等价
+  // （扇形面积比例 = 权重比例 = 落入概率），但视觉上：
+  //   1) 指针落点是真随机的，不会总是停在扇形中点
+  //   2) 几乎不可能落在两扇形交界（连续均匀分布上落在精确边界的概率 = 0）
+  // 返回 winner 的 idx
+  function spinTo(fast = false) {
     return new Promise(resolve => {
-      const ws = effectiveWeights();
-      const total = ws.reduce((a, b) => a + b, 0) || 1;
-      // 计算 winner 切片中点角度（顺时针，0 = 12 点 = top）
-      let acc = 0;
-      for (let i = 0; i < winnerIdx; i++) acc += ws[i];
-      const midFrac = (acc + ws[winnerIdx] / 2) / total;
-      const midDeg = midFrac * 360;        // 切片中点相对于 0（顶部）的顺时针角度
-      // 让 winner 的切片中点对准顶部 = 当前 + 几整圈 + (360 - midDeg)
+      const theta = Math.random() * 360;
+      const winnerIdx = sliceAtAngle(theta);
 
-      // 跳过动画模式：直接 snap 到目标，不加 transition
+      // 跳过动画：直接 snap
       if (state.skipAnimation) {
         $wheel.classList.remove('spinning', 'spinning-fast');
         void $wheel.offsetWidth;
-        const target = state.rotation + (360 - midDeg);
+        const target = state.rotation + (360 - theta);
         $wheel.style.transform = `rotate(${target}deg)`;
         state.rotation = target;
-        setTimeout(resolve, 220);  // 短暂留时间让用户看到 highlight + 计票变化
+        setTimeout(() => resolve(winnerIdx), 220);
         return;
       }
 
       const extraSpins = fast ? 3 : 5;
-      const target = state.rotation + 360 * extraSpins + (360 - midDeg);
+      const target = state.rotation + 360 * extraSpins + (360 - theta);
       $wheel.classList.remove('spinning', 'spinning-fast');
-      // 强制 reflow 让 transition 重置
       void $wheel.offsetWidth;
       $wheel.classList.add(fast ? 'spinning-fast' : 'spinning');
       $wheel.style.transform = `rotate(${target}deg)`;
@@ -598,20 +600,18 @@ permalink: /life/picker/
 
       let safety;
       const onEnd = (e) => {
-        // 关键：必须确认是 wheel 自己的 transform transition 结束。
+        // 必须确认是 wheel 自己的 transform transition 结束。
         // SVG 子元素 .slice 的 filter / opacity transitionend 会冒泡到 $wheel，
-        // 不过滤的话会把 spin 提前 resolve，导致后续多次抽签时序混乱（转盘转不停 + 角度漂移）
+        // 不过滤的话会提前 resolve，导致多次抽签时序混乱
         if (e.target !== $wheel || e.propertyName !== 'transform') return;
         $wheel.removeEventListener('transitionend', onEnd);
         clearTimeout(safety);
-        resolve();
+        resolve(winnerIdx);
       };
       $wheel.addEventListener('transitionend', onEnd);
-      // 安全兜底：如果 transitionend 因任何原因没触发（譬如标签页切到后台），
-      // 也别把整个流程卡死
       safety = setTimeout(() => {
         $wheel.removeEventListener('transitionend', onEnd);
-        resolve();
+        resolve(winnerIdx);
       }, fast ? 2200 : 3800);
     });
   }
@@ -690,9 +690,8 @@ permalink: /life/picker/
     if (state.draws === 1) {
       // 单次模式
       $tallyPnl.classList.remove('show');
-      const winnerIdx = weightedPickIndex();
       $spinHintText.textContent = '抽签中…';
-      await spinTo(winnerIdx, false);
+      const winnerIdx = await spinTo(false);
       $spinHintText.textContent = '';
       highlightSlice(winnerIdx);
       const name = state.options[winnerIdx].text || ('选项' + (winnerIdx + 1));
@@ -704,11 +703,10 @@ permalink: /life/picker/
       $tallyHdr.textContent = `第 0 / ${state.draws} 次`;
       const counts = state.options.map(() => 0);
       for (let n = 0; n < state.draws; n++) {
-        const idx = weightedPickIndex();
         $spinHintText.textContent = `第 ${n + 1} / ${state.draws} 次…`;
         $tallyHdr.textContent = `第 ${n + 1} / ${state.draws} 次`;
         const fast = n > 0;
-        await spinTo(idx, fast);
+        const idx = await spinTo(fast);
         // 短暂展示这次的结果
         clearHighlights();
         highlightSlice(idx);
