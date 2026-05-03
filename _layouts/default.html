@@ -541,7 +541,9 @@
   <nav>
     <div class="nav-inner">
       <div class="nav-left-zone">
-        {% if page.layout == "post" or page.collection == "notes" %}
+        {% if page.url contains "/toolbox/" and page.url != "/toolbox/" %}
+          <a href="{{ site.baseurl }}/toolbox/" class="nav-back">← 生活百宝箱</a>
+        {% elsif page.layout == "post" or page.collection == "notes" %}
           {% if page.main_category == "科研妙招" %}
             <a href="{{ site.baseurl }}/research/" class="nav-back">← 科研妙招</a>
           {% elsif page.main_category == "生活攻略" %}
@@ -573,6 +575,7 @@
         <li><a href="{{ site.baseurl }}/notes/">学习资料</a></li>
         <li><a href="{{ site.baseurl }}/research/">科研妙招</a></li>
         <li><a href="{{ site.baseurl }}/life/">生活攻略</a></li>
+        <li><a href="{{ site.baseurl }}/toolbox/">百宝箱</a></li>
         <li><a href="{{ site.baseurl }}/essays/">随笔漫谈</a></li>
       </ul>
 

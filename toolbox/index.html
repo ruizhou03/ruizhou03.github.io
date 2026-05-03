@@ -1,0 +1,149 @@
+---
+layout: default
+title: "生活百宝箱 | Rui Zhou"
+permalink: /toolbox/
+---
+
+<article style="max-width: 880px; margin: 0 auto; padding: 2rem 1rem;">
+  <header style="margin-bottom: 2.5rem; text-align: center;">
+    <h1 style="font-size: 2.2rem; color: var(--color-ink); margin-bottom: 0.6rem;">🧰 生活百宝箱</h1>
+    <p style="color: var(--color-light); font-style: italic; margin-bottom: 0.6rem;">Toolbox &mdash; 一些好玩或者好用的小工具</p>
+    <p style="color: var(--color-muted); font-size: 0.9rem; max-width: 580px; margin: 0 auto;">
+      做完作业之外攒下的零碎想法。每个工具都是一个独立网页，纯前端跑、不联网也能用（除了汇率换算那个）。
+    </p>
+  </header>
+
+  <style>
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0 2rem;
+    }
+    .tool-card {
+      display: flex; flex-direction: column;
+      padding: 1.4rem 1.2rem;
+      border: 1px solid var(--color-border);
+      border-radius: 14px;
+      background: var(--color-bg);
+      text-decoration: none;
+      transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    .tool-card.live {
+      cursor: pointer;
+    }
+    .tool-card.live:hover {
+      border-color: var(--color-accent);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 18px rgba(30, 58, 95, 0.08);
+    }
+    .tool-card.coming-soon {
+      opacity: 0.62;
+      cursor: default;
+    }
+    .tool-card.coming-soon:hover {
+      opacity: 0.78;
+    }
+    .tool-icon {
+      font-size: 2rem;
+      line-height: 1;
+      margin-bottom: 0.7rem;
+    }
+    .tool-name {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--color-ink);
+      margin-bottom: 0.4rem;
+    }
+    .tool-card.coming-soon .tool-name {
+      color: var(--color-muted);
+    }
+    .tool-desc {
+      font-size: 0.88rem;
+      color: var(--color-muted);
+      line-height: 1.55;
+      flex-grow: 1;
+    }
+    .tool-status {
+      margin-top: 0.9rem;
+      font-size: 0.76rem;
+      color: var(--color-light);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .tool-card.live .tool-status {
+      color: #10b981;
+    }
+    .tool-status .dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      margin-right: 0.4rem;
+      vertical-align: middle;
+    }
+    .toolbox-note {
+      margin-top: 2rem;
+      padding: 1rem 1.3rem;
+      background: var(--color-bg-warm);
+      border-left: 3px solid var(--color-accent);
+      border-radius: 0 8px 8px 0;
+      color: var(--color-muted);
+      font-size: 0.88rem;
+      line-height: 1.65;
+    }
+    .toolbox-note strong { color: var(--color-ink); }
+  </style>
+
+  <div class="tool-grid">
+
+    <a class="tool-card live" href="{{ '/toolbox/picker/' | relative_url }}">
+      <div class="tool-icon">🎲</div>
+      <div class="tool-name">遇事不决</div>
+      <div class="tool-desc">权重转盘抽签器。几个人吃饭选不出哪家、看什么电影时用，可以给选项不同权重，可保存方案。</div>
+      <div class="tool-status"><span class="dot"></span>已上线</div>
+    </a>
+
+    <div class="tool-card coming-soon">
+      <div class="tool-icon">👥</div>
+      <div class="tool-name">随机分组器</div>
+      <div class="tool-desc">N 个人随机分成 K 组（或每组 M 人），适合 TA 分 section、聚餐 AA、桌游开局。</div>
+      <div class="tool-status"><span class="dot"></span>即将上线</div>
+    </div>
+
+    <div class="tool-card coming-soon">
+      <div class="tool-icon">🎤</div>
+      <div class="tool-name">随机点名</div>
+      <div class="tool-desc">名单导入后随机抽人，支持「不重复模式」自动遍历完所有人。上课提问 / 组会汇报顺序。</div>
+      <div class="tool-status"><span class="dot"></span>即将上线</div>
+    </div>
+
+    <div class="tool-card coming-soon">
+      <div class="tool-icon">💱</div>
+      <div class="tool-name">汇率 + 单位换算</div>
+      <div class="tool-desc">USD ↔ RMB 等主流货币，以及 lb/kg、℉/℃、in/cm。三层 fallback：实时 → 缓存 → 兜底，离线也能用。</div>
+      <div class="tool-status"><span class="dot"></span>即将上线</div>
+    </div>
+
+    <div class="tool-card coming-soon">
+      <div class="tool-icon">📈</div>
+      <div class="tool-name">复利 / 现值</div>
+      <div class="tool-desc">本金 + 月供 + 利率 → 终值曲线；或未来金额 → 现值贴现。401k 模拟、HYSA 攒钱目标可视化。</div>
+      <div class="tool-status"><span class="dot"></span>即将上线</div>
+    </div>
+
+    <div class="tool-card coming-soon">
+      <div class="tool-icon">🇺🇸</div>
+      <div class="tool-name">美国报税档位估算</div>
+      <div class="tool-desc">输入收入 + filing status + 州，看联邦+州税分段、边际/平均税率、税后到手。和「报税完全指南」配套。</div>
+      <div class="tool-status"><span class="dot"></span>即将上线</div>
+    </div>
+
+  </div>
+
+  <div class="toolbox-note">
+    <strong>说说设计理念。</strong>这些工具都是单页 HTML，刷一次缓存之后没网也能跑（除汇率需要联网拉数据，但有兜底）。所有数据保存在你自己的浏览器 localStorage 里，**我看不到、我服务器也没有**——这不是商业产品，没必要做账号。换设备就用工具自带的「导出 / 导入」按钮搬一下。
+  </div>
+</article>
