@@ -288,6 +288,34 @@ permalink: /toolbox/forest/
   }
   .focus-overlay .tree-svg .tree-trunk { fill: #8b6a3e; }
   .focus-overlay .tree-svg .tree-ground { fill: #5a4530; }
+
+  /* break overlay 蓝色调 */
+  .focus-overlay.break-mode {
+    background: rgba(20, 30, 50, 0.86);
+  }
+  .focus-overlay .break-icon {
+    font-size: 5rem; line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+  .focus-overlay .pomodoro-counter {
+    position: absolute; top: 1.4rem; right: 1.4rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+  .focus-overlay .grace-banner {
+    position: absolute; bottom: 5rem;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.85rem;
+    font-style: italic;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+  }
+  .focus-overlay .grace-banner.hidden { display: none; }
 </style>
 
 <div class="ft-wrap">
@@ -332,6 +360,15 @@ permalink: /toolbox/forest/
         <button type="button" data-tree="cactus" title="仙人掌">🌵</button>
       </div>
     </div>
+    <div class="setting-row">
+      <label>🍅 Pomodoro</label>
+      <label class="pomodoro-toggle" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; user-select: none;">
+        <input type="checkbox" id="pomodoro-on" />
+        <span>循环模式（焦点 → 休息 → 焦点 → ...）</span>
+      </label>
+      <span style="flex-grow: 1;"></span>
+      <span style="color: var(--color-light); font-size: 0.78rem;" id="pomodoro-hint">休息 5 分</span>
+    </div>
   </div>
 
   <!-- ========== 主操作 ========== -->
@@ -374,11 +411,13 @@ permalink: /toolbox/forest/
 
 <!-- ========== 全屏 focus 遮罩 ========== -->
 <div class="focus-overlay" id="focus-overlay">
+  <div class="pomodoro-counter" id="overlay-counter" style="display: none;">第 1 个番茄</div>
   <div id="overlay-tree-container"></div>
   <div class="timer-big" id="overlay-timer">25:00</div>
   <div class="focus-tag" id="overlay-tag">专心</div>
-  <div class="focus-warn">离开这个页面 / 切换 tab 超过 15 秒，树会枯萎。</div>
+  <div class="focus-warn" id="overlay-warn">离开这个页面 / 切换 tab 超过 15 秒，树会枯萎。</div>
   <button type="button" class="give-up-btn" id="give-up-btn">放弃 · 让树死掉</button>
+  <div class="grace-banner hidden" id="grace-banner"></div>
 </div>
 
 <script>
@@ -403,7 +442,18 @@ permalink: /toolbox/forest/
     task: '',
     session: null,      // 进行中的 session
     leftAt: null,       // 离开页面的时间戳
+    pomodoroOn: false,  // 是否开启循环模式
+    cycleCount: 0,      // 当前循环里完成了几个 focus
+    breakMode: false,   // 当前 session 是 break 还是 focus
   };
+
+  // 焦点时长 → 推荐休息时长
+  function breakMinutesFor(focusMin) {
+    if (focusMin <= 25) return 5;
+    if (focusMin <= 50) return 10;
+    if (focusMin <= 90) return 20;
+    return Math.round(focusMin / 5);  // 自定义超长 focus 按 1/5 算
+  }
 
   // ============ DOM ============
   const $treeContainer = document.getElementById('tree-container');
@@ -420,6 +470,11 @@ permalink: /toolbox/forest/
   const $overlay = document.getElementById('focus-overlay');
   const $overlayTag = document.getElementById('overlay-tag');
   const $focusWarning = document.getElementById('focus-warning');
+  const $pomodoroOn = document.getElementById('pomodoro-on');
+  const $pomodoroHint = document.getElementById('pomodoro-hint');
+  const $overlayCounter = document.getElementById('overlay-counter');
+  const $overlayWarn = document.getElementById('overlay-warn');
+  const $graceBanner = document.getElementById('grace-banner');
 
   const $statToday = document.getElementById('stat-today');
   const $statWeek = document.getElementById('stat-week');
@@ -580,19 +635,44 @@ permalink: /toolbox/forest/
   }
 
   let tickInterval = null;
+  let graceTimeout = null;
 
-  function startSession() {
-    const minutes = state.duration;
+  function startSession(opts = {}) {
+    const isBreak = !!opts.isBreak;
+    const minutes = isBreak ? breakMinutesFor(state.duration) : state.duration;
     const startTime = Date.now();
     state.session = {
       startTime,
       duration: minutes * 60 * 1000,
       task: state.task,
       treeType: state.treeType,
+      isBreak,
     };
+    state.breakMode = isBreak;
     saveActive(state.session);
+
     $overlay.classList.add('open');
-    $overlayTag.textContent = state.task ? `📌 ${state.task}` : '专心';
+    $overlay.classList.toggle('break-mode', isBreak);
+
+    if (isBreak) {
+      $overlayTag.textContent = '🌊 休息一下';
+      $overlayWarn.textContent = '休息时间，可以离开屏幕；时间到自动开始下一棵';
+      $giveUpBtn.textContent = '结束循环';
+    } else {
+      $overlayTag.textContent = state.task ? `📌 ${state.task}` : '专心';
+      $overlayWarn.textContent = '离开这个页面 / 切换 tab 超过 15 秒，树会枯萎。';
+      $giveUpBtn.textContent = '放弃 · 让树死掉';
+    }
+
+    if (state.pomodoroOn) {
+      $overlayCounter.style.display = '';
+      const phaseLabel = isBreak ? '休息' : '专注';
+      const cycleNum = state.cycleCount + (isBreak ? 0 : 1);
+      $overlayCounter.textContent = `第 ${cycleNum} 个番茄 · ${phaseLabel}`;
+    } else {
+      $overlayCounter.style.display = 'none';
+    }
+
     $startBtn.disabled = true;
     tick();
     tickInterval = setInterval(tick, 1000);
@@ -611,10 +691,19 @@ permalink: /toolbox/forest/
     $overlayTimer.textContent = txt;
     if (remainSec <= 60 && remainSec > 0) {
       $timerDisplay.classList.add('warn');
-      $overlayTimer.style.color = '#ffb88c';
+      $overlayTimer.style.color = state.session.isBreak ? '#88c8ff' : '#ffb88c';
     }
 
-    renderTree(progress);
+    if (state.session.isBreak) {
+      // break 模式不画树，画一个静态的
+      $overlayTreeContainer.innerHTML = `
+        <svg class="tree-svg" viewBox="0 0 320 240" style="opacity: 0.7;">
+          <text x="160" y="130" text-anchor="middle" font-size="120">☕</text>
+        </svg>
+      `;
+    } else {
+      renderTree(progress);
+    }
 
     if (remaining <= 0) {
       completeSession();
@@ -624,68 +713,126 @@ permalink: /toolbox/forest/
   function completeSession() {
     if (!state.session) return;
     clearInterval(tickInterval); tickInterval = null;
-    const tree = {
-      id: 'tr-' + Date.now().toString(36),
-      type: state.session.treeType,
-      task: state.session.task || '',
-      durationMinutes: state.session.duration / 60000,
-      startTime: state.session.startTime,
-      endTime: Date.now(),
-      success: true,
-    };
-    state.trees.push(tree);
-    saveTrees();
+
+    const wasBreak = !!state.session.isBreak;
+
+    if (!wasBreak) {
+      // focus 完成 → 种树
+      const tree = {
+        id: 'tr-' + Date.now().toString(36),
+        type: state.session.treeType,
+        task: state.session.task || '',
+        durationMinutes: state.session.duration / 60000,
+        startTime: state.session.startTime,
+        endTime: Date.now(),
+        success: true,
+      };
+      state.trees.push(tree);
+      saveTrees();
+      state.cycleCount++;
+      $timerStatus.textContent = `🌳 种成功一棵 ${TREE_NAME[tree.type]}！专注了 ${tree.durationMinutes} 分钟`;
+    } else {
+      // break 完成
+      $timerStatus.textContent = '☕ 休息结束！准备下一棵...';
+    }
+
     state.session = null;
     saveActive(null);
-    $overlay.classList.remove('open');
     $overlayTimer.style.color = '';
     $timerDisplay.classList.remove('warn');
-    $startBtn.disabled = false;
-    $timerDisplay.textContent = fmtTime(state.duration * 60);
-    $timerStatus.textContent = `🌳 种成功一棵 ${TREE_NAME[tree.type]}！专注了 ${tree.durationMinutes} 分钟`;
-    renderTree(0);
     renderStats();
-    setTimeout(() => {
-      if (!state.session) $timerStatus.textContent = '点「开始」种一棵树';
-    }, 8000);
+
+    // Pomodoro 自动链：focus 后接 break，break 后接 focus
+    if (state.pomodoroOn) {
+      const nextIsBreak = !wasBreak;
+      const nextMin = nextIsBreak ? breakMinutesFor(state.duration) : state.duration;
+      $graceBanner.textContent = nextIsBreak
+        ? `☕ 5 秒后开始 ${nextMin} 分钟休息...`
+        : `🌱 5 秒后开始下一棵 ${state.duration} 分钟专注...`;
+      $graceBanner.classList.remove('hidden');
+      $timerDisplay.textContent = fmtTime(nextMin * 60);
+      // 不关 overlay，继续显示 grace 提示
+      let countdown = 5;
+      graceTimeout = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+          clearInterval(graceTimeout); graceTimeout = null;
+          $graceBanner.classList.add('hidden');
+          startSession({ isBreak: nextIsBreak });
+        } else {
+          $graceBanner.textContent = nextIsBreak
+            ? `☕ ${countdown} 秒后开始 ${nextMin} 分钟休息...`
+            : `🌱 ${countdown} 秒后开始下一棵 ${state.duration} 分钟专注...`;
+        }
+      }, 1000);
+    } else {
+      // 单次模式：直接结束
+      $overlay.classList.remove('open');
+      $startBtn.disabled = false;
+      $timerDisplay.textContent = fmtTime(state.duration * 60);
+      renderTree(0);
+      setTimeout(() => {
+        if (!state.session) $timerStatus.textContent = '点「开始」种一棵树';
+      }, 8000);
+    }
   }
 
   function failSession(reason) {
     if (!state.session) return;
     clearInterval(tickInterval); tickInterval = null;
-    const elapsedMin = (Date.now() - state.session.startTime) / 60000;
-    const tree = {
-      id: 'tr-' + Date.now().toString(36),
-      type: state.session.treeType,
-      task: state.session.task || '',
-      durationMinutes: state.session.duration / 60000,
-      attemptedMinutes: Math.round(elapsedMin * 10) / 10,
-      startTime: state.session.startTime,
-      endTime: Date.now(),
-      success: false,
-      reason: reason || 'gave_up',
-    };
-    state.trees.push(tree);
-    saveTrees();
+    if (graceTimeout) { clearInterval(graceTimeout); graceTimeout = null; }
+    $graceBanner.classList.add('hidden');
+
+    const wasBreak = !!state.session.isBreak;
+
+    if (!wasBreak) {
+      // focus 失败 → 树枯萎
+      const elapsedMin = (Date.now() - state.session.startTime) / 60000;
+      const tree = {
+        id: 'tr-' + Date.now().toString(36),
+        type: state.session.treeType,
+        task: state.session.task || '',
+        durationMinutes: state.session.duration / 60000,
+        attemptedMinutes: Math.round(elapsedMin * 10) / 10,
+        startTime: state.session.startTime,
+        endTime: Date.now(),
+        success: false,
+        reason: reason || 'gave_up',
+      };
+      state.trees.push(tree);
+      saveTrees();
+      $timerStatus.textContent = reason === 'left_page'
+        ? '🥀 树枯萎了——你离开了页面太久'
+        : '🥀 树死掉了——下次坚持一下';
+    } else {
+      // break 失败：用户提前结束休息（结束循环）
+      $timerStatus.textContent = '☕ 休息中断，循环结束';
+    }
+
     state.session = null;
     saveActive(null);
+    state.cycleCount = 0;
     $overlay.classList.remove('open');
+    $overlay.classList.remove('break-mode');
     $overlayTimer.style.color = '';
     $timerDisplay.classList.remove('warn');
     $startBtn.disabled = false;
     $timerDisplay.textContent = fmtTime(state.duration * 60);
-    $timerStatus.textContent = reason === 'left_page'
-      ? '🥀 树枯萎了——你离开了页面太久'
-      : '🥀 树死掉了——下次坚持一下';
     renderTree(0);
     renderStats();
   }
 
   $startBtn.addEventListener('click', () => {
     state.task = $taskInput.value.trim();
+    state.cycleCount = 0;
     startSession();
   });
   $giveUpBtn.addEventListener('click', () => {
+    if (state.session && state.session.isBreak) {
+      // break 期间放弃 = 结束循环
+      failSession('gave_up');
+      return;
+    }
     if (!confirm('确定放弃这棵树吗？它会死掉。')) return;
     failSession('gave_up');
   });
@@ -693,6 +840,8 @@ permalink: /toolbox/forest/
   // ============ Page visibility ============
   document.addEventListener('visibilitychange', () => {
     if (!state.session) return;
+    // break 模式不监控 — 用户本来就该离开屏幕休息
+    if (state.session.isBreak) return;
     if (document.hidden) {
       state.leftAt = Date.now();
     } else {
@@ -706,6 +855,20 @@ permalink: /toolbox/forest/
     }
   });
 
+  // ============ Pomodoro toggle ============
+  $pomodoroOn.addEventListener('change', () => {
+    state.pomodoroOn = $pomodoroOn.checked;
+    updatePomodoroHint();
+  });
+  function updatePomodoroHint() {
+    const breakMin = breakMinutesFor(state.duration);
+    if (state.pomodoroOn) {
+      $pomodoroHint.textContent = `休息 ${breakMin} 分 · 自动循环`;
+    } else {
+      $pomodoroHint.textContent = `休息 ${breakMin} 分（开启后才用）`;
+    }
+  }
+
   // ============ Settings UI ============
   $durationTabs.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -715,6 +878,7 @@ permalink: /toolbox/forest/
       state.duration = parseInt(btn.dataset.min, 10);
       $customMin.value = '';
       $timerDisplay.textContent = fmtTime(state.duration * 60);
+      updatePomodoroHint();
     });
   });
   $customMin.addEventListener('input', () => {
@@ -724,6 +888,7 @@ permalink: /toolbox/forest/
       $durationTabs.forEach(b => b.classList.remove('active'));
       state.duration = v;
       $timerDisplay.textContent = fmtTime(v * 60);
+      updatePomodoroHint();
     }
   });
   $treeTypes.forEach(btn => {
@@ -812,6 +977,7 @@ permalink: /toolbox/forest/
   $timerDisplay.textContent = fmtTime(state.duration * 60);
   renderTree(0);
   renderStats();
+  updatePomodoroHint();
   resumeSession();
 
   // 友好提示
