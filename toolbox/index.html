@@ -85,6 +85,20 @@ permalink: /toolbox/
 
   <div class="tool-grid">
 
+    <a class="tool-card live" href="{{ '/toolbox/converter/' | relative_url }}">
+      <div class="tool-icon">💱</div>
+      <div class="tool-name">汇率 + 单位换算</div>
+      <div class="tool-desc">USD ↔ RMB 等主流货币，以及 lb/kg、℉/℃、in/cm。三层 fallback：实时 → 缓存 → 兜底，离线也能用。</div>
+      <div class="tool-status"><span class="dot"></span>已上线</div>
+    </a>
+
+    <a class="tool-card live" href="{{ '/toolbox/countdown/' | relative_url }}">
+      <div class="tool-icon">⏳</div>
+      <div class="tool-name">倒计时面板</div>
+      <div class="tool-desc">添加自定义事件（考试、deadline、生日、回国机票），多张卡片并列显示「还剩 X 天 Y 小时」或「已过去 X 天」。剩 ≤ 3 天高亮。</div>
+      <div class="tool-status"><span class="dot"></span>已上线</div>
+    </a>
+
     <a class="tool-card live" href="{{ '/toolbox/picker/' | relative_url }}">
       <div class="tool-icon">🎲</div>
       <div class="tool-name">遇事不决</div>
@@ -99,17 +113,24 @@ permalink: /toolbox/
       <div class="tool-status"><span class="dot"></span>已上线</div>
     </a>
 
-    <a class="tool-card live" href="{{ '/toolbox/roll-call/' | relative_url }}">
-      <div class="tool-icon">🎤</div>
-      <div class="tool-name">随机点名</div>
-      <div class="tool-desc">名单导入后随机抽人，支持「不重复模式」自动遍历完所有人。上课提问 / 组会汇报顺序。</div>
+    <a class="tool-card live" href="{{ '/toolbox/forest/' | relative_url }}">
+      <div class="tool-icon">🌳</div>
+      <div class="tool-name">种树</div>
+      <div class="tool-desc">类似 Forest / 番茄钟。点开始 → 一棵树跟着 25 分钟一起长大。离开 tab 超过 15 秒树会枯萎。每棵树都进你的森林。</div>
       <div class="tool-status"><span class="dot"></span>已上线</div>
     </a>
 
-    <a class="tool-card live" href="{{ '/toolbox/converter/' | relative_url }}">
-      <div class="tool-icon">💱</div>
-      <div class="tool-name">汇率 + 单位换算</div>
-      <div class="tool-desc">USD ↔ RMB 等主流货币，以及 lb/kg、℉/℃、in/cm。三层 fallback：实时 → 缓存 → 兜底，离线也能用。</div>
+    <a class="tool-card live" href="{{ '/toolbox/goals/' | relative_url }}">
+      <div class="tool-icon">🎯</div>
+      <div class="tool-name">目标进度跟踪</div>
+      <div class="tool-desc">长期目标 + 打卡。瘦 5 kg / 读 12 本书 / GRE 写作 320 分。折线图对比实际曲线 vs 理想线，看是 on track / 落后 / 超前。</div>
+      <div class="tool-status"><span class="dot"></span>已上线</div>
+    </a>
+
+    <a class="tool-card live" href="{{ '/toolbox/vocab/' | relative_url }}">
+      <div class="tool-icon">📖</div>
+      <div class="tool-name">生词本（间隔重复）</div>
+      <div class="tool-desc">单词 + 释义 + 例句 + 标签。Leitner 5 档 box 间隔重复，答对升档答错回 Box 1。3D 翻牌动画，键盘快捷键。</div>
       <div class="tool-status"><span class="dot"></span>已上线</div>
     </a>
 
@@ -127,24 +148,10 @@ permalink: /toolbox/
       <div class="tool-status"><span class="dot"></span>已上线</div>
     </a>
 
-    <a class="tool-card live" href="{{ '/toolbox/countdown/' | relative_url }}">
-      <div class="tool-icon">⏳</div>
-      <div class="tool-name">倒计时面板</div>
-      <div class="tool-desc">添加自定义事件（考试、deadline、生日、回国机票），多张卡片并列显示「还剩 X 天 Y 小时」或「已过去 X 天」。剩 ≤ 3 天高亮。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/timemachine/' | relative_url }}">
-      <div class="tool-icon">📅</div>
-      <div class="tool-name">X 年前的今天</div>
-      <div class="tool-desc">翻翻历年同一天写过的文章。带写作热力图——一年 365 天哪天写了几篇，一目了然。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/forest/' | relative_url }}">
-      <div class="tool-icon">🌳</div>
-      <div class="tool-name">种树</div>
-      <div class="tool-desc">类似 Forest / 番茄钟。点开始 → 一棵树跟着 25 分钟一起长大。离开 tab 超过 15 秒树会枯萎。每棵树都进你的森林。</div>
+    <a class="tool-card live" href="{{ '/toolbox/roll-call/' | relative_url }}">
+      <div class="tool-icon">🎤</div>
+      <div class="tool-name">随机点名</div>
+      <div class="tool-desc">名单导入后随机抽人，支持「不重复模式」自动遍历完所有人。上课提问 / 组会汇报顺序。</div>
       <div class="tool-status"><span class="dot"></span>已上线</div>
     </a>
 
@@ -152,20 +159,6 @@ permalink: /toolbox/
       <div class="tool-icon">🔖</div>
       <div class="tool-name">引用格式转换器</div>
       <div class="tool-desc">粘贴 BibTeX → 输出 APA / Chicago / MLA / Harvard / Vancouver 6 种格式。多 entries 批量处理，一键复制。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/goals/' | relative_url }}">
-      <div class="tool-icon">🎯</div>
-      <div class="tool-name">目标进度跟踪</div>
-      <div class="tool-desc">长期目标 + 打卡。瘦 5 kg / 读 12 本书 / GRE 写作 320 分。折线图对比实际曲线 vs 理想线，看是 on track / 落后 / 超前。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/vocab/' | relative_url }}">
-      <div class="tool-icon">📖</div>
-      <div class="tool-name">生词本（间隔重复）</div>
-      <div class="tool-desc">单词 + 释义 + 例句 + 标签。Leitner 5 档 box 间隔重复，答对升档答错回 Box 1。3D 翻牌动画，键盘快捷键。</div>
       <div class="tool-status"><span class="dot"></span>已上线</div>
     </a>
 

@@ -215,16 +215,97 @@ title: 锆铌 | Rui Zhou
     color: var(--color-accent);
   }
 
+  /* 右侧 fixed 栈：站务公告 + 时光机 mini 一起 fixed，宽度统一 */
   @media (min-width: 1250px) {
-    .announcement-side {
+    .right-stack-top {
       position: fixed;
       right: 1.5rem;
-      top: 6.5rem;        /* nav (~56px) + 间距 (~48px) ≈ 104px：贴在搜索框下方独立悬浮 */
-      width: 260px;       /* 容纳 17 字标题折 2 行 */
+      top: 6.5rem;
+      width: 260px;
       z-index: 51;
+    }
+    .announcement-side {
+      margin-bottom: 0.8rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    }
+  }
+
+  /* —— 时光机 mini（侧栏卡）——
+     desktop 时叠在站务公告下；mobile 时跟着进入 normal flow */
+  .tm-side {
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    padding: 0.85rem 0.95rem;
+    margin-bottom: 1.2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+  @media (min-width: 1250px) {
+    .tm-side {
       margin-bottom: 0;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
     }
+  }
+  .tm-side-eyebrow {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin-bottom: 0.2rem;
+  }
+  .tm-side-title {
+    font-family: var(--font-display);
+    font-size: 0.96rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    margin-bottom: 0.55rem;
+    line-height: 1.25;
+  }
+  .tm-side-row {
+    display: block;
+    padding: 0.45rem 0;
+    border-top: 1px dashed var(--color-border);
+    text-decoration: none;
+    color: var(--color-ink);
+    transition: transform 0.18s, color 0.18s;
+  }
+  .tm-side-row:first-child { border-top: none; padding-top: 0.2rem; }
+  .tm-side-row:hover { color: var(--color-accent); transform: translateX(2px); text-decoration: none; }
+  .tm-side-row .tm-r-title {
+    display: block;
+    font-size: 0.84rem;
+    font-weight: 500;
+    line-height: 1.3;
+    margin-bottom: 0.1rem;
+  }
+  .tm-side-row .tm-r-meta {
+    font-size: 0.7rem;
+    color: var(--color-light);
+  }
+  .tm-side-empty {
+    font-size: 0.78rem;
+    color: var(--color-muted);
+    padding: 0.3rem 0 0.5rem;
+    font-style: italic;
+  }
+  .tm-side-more {
+    display: block;
+    margin-top: 0.55rem;
+    padding-top: 0.55rem;
+    border-top: 1px dashed var(--color-border);
+    font-size: 0.78rem;
+    color: var(--color-muted);
+    text-decoration: none;
+    text-align: right;
+    transition: color 0.18s;
+  }
+  .tm-side-more:hover { color: var(--color-accent); text-decoration: none; }
+  .tm-side-more-count {
+    font-size: 0.72rem;
+    color: var(--color-light);
+    margin-top: 0.25rem;
+    font-style: italic;
   }
   @media (max-width: 768px) {
     .announcement-side .ann-title { font-size: 0.82rem; }
@@ -284,14 +365,78 @@ title: 锆铌 | Rui Zhou
   #rw-feedback { font-size: 0.78rem; color: var(--color-accent); min-height: 1.1em; margin-top: 0.3rem; }
 </style>
 
-<a href="{{ '/essays/welcome-home' | relative_url }}" class="announcement-side">
-  <span class="ann-emoji">📢</span>
-  <span class="ann-body">
-    <span class="ann-eyebrow">站务公告</span>
-    <span class="ann-title">我给所有文章建了一个永远不会走丢的家</span>
-  </span>
-  <span class="ann-arrow">→</span>
-</a>
+<div class="right-stack-top">
+  <a href="{{ '/essays/welcome-home' | relative_url }}" class="announcement-side">
+    <span class="ann-emoji">📢</span>
+    <span class="ann-body">
+      <span class="ann-eyebrow">站务公告</span>
+      <span class="ann-title">我给所有文章建了一个永远不会走丢的家</span>
+    </span>
+    <span class="ann-arrow">→</span>
+  </a>
+
+  <div class="tm-side" id="tm-side" style="display: none;">
+    <div class="tm-side-eyebrow">TIME MACHINE</div>
+    <div class="tm-side-title" id="tm-side-title">曾经的今天</div>
+    <div class="tm-side-list" id="tm-side-list"></div>
+    <a class="tm-side-more" href="{{ '/toolbox/timemachine/' | relative_url }}">→ 完整时间线</a>
+  </div>
+</div>
+
+<script>
+(function () {
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  fetch('{{ "/assets/posts-by-mmdd.json" | relative_url }}', { cache: 'default' })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => {
+      const today = new Date();
+      const mmdd = pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
+      const currentYear = today.getFullYear();
+      const hits = (data.posts || [])
+        .filter(p => p.mmdd === mmdd && p.year < currentYear)
+        .sort((a, b) => b.year - a.year);
+
+      const $side = document.getElementById('tm-side');
+      const $list = document.getElementById('tm-side-list');
+      const $title = document.getElementById('tm-side-title');
+      if (!$side || !$list || !$title) return;
+
+      if (hits.length === 0) {
+        $title.textContent = '今天还没写过';
+        $list.innerHTML = '<div class="tm-side-empty">翻翻其他日子吧</div>';
+        $side.style.display = '';
+        return;
+      }
+
+      const top = hits.slice(0, 2);
+      const deltas = [...new Set(top.map(p => currentYear - p.year))];
+      $title.textContent = deltas.length === 1
+        ? `${deltas[0]} 年前的今天`
+        : '历年的今天';
+
+      const rows = top.map(p => {
+        const delta = currentYear - p.year;
+        const sub = p.subCategory ? ' · ' + escapeHtml(p.subCategory) : '';
+        return `
+          <a class="tm-side-row" href="${p.url}">
+            <span class="tm-r-title">${escapeHtml(p.title)}</span>
+            <span class="tm-r-meta">${delta} 年前${sub}</span>
+          </a>
+        `;
+      }).join('');
+
+      const moreNote = hits.length > 2
+        ? `<div class="tm-side-more-count">还有 ${hits.length - 2} 篇</div>`
+        : '';
+      $list.innerHTML = rows + moreNote;
+      $side.style.display = '';
+    })
+    .catch(() => { /* 静默失败，不显示 widget */ });
+})();
+</script>
 
 <div id="react-widget">
   <button class="rw-main-btn" onclick="reactClick('urge')">📣 催更！</button>
