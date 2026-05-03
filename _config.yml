@@ -33,6 +33,7 @@ collections:
 
 study_order:
   - adv-micro-psu
+  - adv-metrics-psu
   - adv-metrics-pku
   - adv-micro-pku
   - interm-metrics
