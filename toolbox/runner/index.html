@@ -208,7 +208,7 @@ permalink: /toolbox/runner/
   <details class="about">
     <summary>关于这个游戏</summary>
     <p><strong>玩法：</strong>无限跑酷，速度越来越快。地面会出现高高低低的<strong>纸堆</strong>（论文 / 文献综述 / reviewer 报告），半空会飞过<strong>邮件信封</strong>（Reviewer 2、IRB 修改意见、deadline 提醒）。撞到任意一个就结束，看你能跑多远。</p>
-    <p><strong>跳跃（按压时长 = 跳多高）：</strong>瞬点跳约 1/3 屏高，过小/中纸堆；半按跳约 1/2 屏高，过双连堆或高纸堆；按住到峰值后会进入<strong>滑翔</strong>（手臂横展，最多 0.4 秒），用来跨密集段。<strong>滑翔起点 = 这次按出来的实际峰值</strong>——按多久就从多高滑过去，是同一根连续的"力度"。松手任何时候立刻恢复正常重力。</p>
+    <p><strong>跳跃（按压时长 = 跳多高）：</strong>瞬点跳约 1/5 屏高 (~28 px)，过小纸堆和高位飞邮件；半按 3–5 帧跳约 1/3 屏高 (~43–57 px)，过高纸堆和双连堆；按住到峰值后会进入<strong>滑翔</strong>（手臂 accent 色横展，最长 0.5 秒），峰值约 5/8 屏高 (~93 px)，用来跨密集段或飞过低位飞邮件。<strong>滑翔起点 = 这次按出来的实际峰值</strong>——按多久就从多高滑过去，是同一根连续的"力度"。松手期间会立刻把上升斩掉、恢复正常重力，瞬点的"小跳"靠的就是这一斩。</p>
     <p><strong>蹲：</strong><code>↓</code> 蹲下钻过低位飞邮件（envelope-duck，站着会撞）。空中按 <code>↓</code> 会取消滑翔、加速降落。</p>
     <p><strong>速度：</strong>从 6 px/帧 起步，每往前 100 米快一点，到 14 px/帧 封顶——真到这速度，眼睛已经反应不过来了。</p>
     <p><strong>纯本地：</strong>最高分本机 localStorage 保存，不联网、不上传。刷新还在，换浏览器没了。</p>
@@ -221,15 +221,18 @@ permalink: /toolbox/runner/
   const GAME_W = 600, GAME_H = 150;          // 逻辑空间
   const GROUND_Y = 130;                       // 地平线 y 值（玩家脚底）
   // 跳跃 = "按压时长 → 跳多高 + 滑翔起点" 的统一模型：
-  //  起跳给固定冲量 -6.5；上升期按住用更小重力 0.18（飞得久 = 飞得高）；
-  //  下降期按住用很小重力 0.22 = 滑翔；松手任何时候立刻恢复正常重力 0.55。
-  // 实测峰值：瞬点 ~42 px / 半按 ~54 px / 全按 ~64 px + 24 帧滑翔。
-  const JUMP_VY = -6.5;
+  //   起跳给固定冲量 -8.0；上升期按住用更小重力 0.18（飞得久 = 飞得高）。
+  //   关键一环：上升期一旦松开，立刻把 vy 斩到 CUT_VY_RELEASED = -5.0
+  //   （否则 vy 还有 -6 ~ -8 量级，得好几帧才能停止上升 — 瞬点和按住差距就被抹平了）。
+  //   下降期按住用 0.10 重力 ≈ 18% 正常重力 = 真正"滑翔"感；最多 30 帧。
+  // 实测峰值：瞬点 ~28 px / 半按 3 帧 ~43 px / 半按 5 帧 ~57 px / 全按 ~91 px + 30 帧悬停。
+  const JUMP_VY = -8.0;
+  const CUT_VY_RELEASED = -5.0;
   const GRAV_NORMAL = 0.55;
   const GRAV_RISE_HELD = 0.18;
-  const GRAV_FALL_HELD = 0.22;
+  const GRAV_FALL_HELD = 0.10;
   const HOLD_RISE_MAX_FRAMES = 8;
-  const HOLD_GLIDE_MAX_FRAMES = 24;
+  const HOLD_GLIDE_MAX_FRAMES = 30;
   const SPEED_MIN = 6;
   const SPEED_MAX = 14;
   const SPEED_RAMP = 0.0008;                  // 每帧速度增量
@@ -534,10 +537,17 @@ permalink: /toolbox/runner/
     const p = state.player;
 
     if (p.jumping) {
-      // 重力切换：上升按住 → 慢减速 = 高跳；下降按住 → 慢加速 = 滑翔；松手即正常重力
       const rising     = p.vy < 0;
       const inRiseHold = state.input.jumpDown && rising  && p.jumpHeldFrames < HOLD_RISE_MAX_FRAMES;
       const inGlide    = state.input.jumpDown && !rising && p.glideFrames    < HOLD_GLIDE_MAX_FRAMES;
+
+      // 变高跳的关键：上升期松手 → 立即斩 vy 到 CUT_VY_RELEASED，让"瞬点"真正只跳一小下
+      // 不做这步的话，vy 还在 -6 ~ -8 之间靠重力慢慢减速，瞬点和按住区分不出来
+      if (rising && !state.input.jumpDown && p.vy < CUT_VY_RELEASED) {
+        p.vy = CUT_VY_RELEASED;
+      }
+
+      // 重力切换：上升按住 → 慢减速 = 高跳；下降按住 → 极慢下落 = 滑翔；其他 → 正常重力
       let g;
       if (inRiseHold)       g = GRAV_RISE_HELD;
       else if (inGlide)   { g = GRAV_FALL_HELD; p.glideFrames++; }
