@@ -350,6 +350,9 @@ permalink: /toolbox/suika/
     $canvas.height = H;
     $canvas.style.width = W + 'px';
     $canvas.style.height = H + 'px';
+    // 关键：把 game-zone 也收窄到 canvas 宽度，避免右侧空白看起来"画布更宽"
+    $gameZone.style.width = W + 'px';
+    $gameZone.style.margin = '0 auto';
   }
   fitCanvas();
 
@@ -372,39 +375,20 @@ permalink: /toolbox/suika/
 
   function setupWorld() {
     engine = Engine.create({
-      gravity: { x: 0, y: 1, scale: 0.0016 },
+      gravity: { x: 0, y: 1, scale: 0.0013 },
       enableSleeping: false,
     });
-    // 高迭代次数 → 大幅减少水果"卡在不可能位置"的物理 bug
-    engine.constraintIterations = 6;
-    engine.positionIterations = 14;
-    engine.velocityIterations = 12;
+    engine.constraintIterations = 4;
+    engine.positionIterations = 10;
+    engine.velocityIterations = 8;
     world = engine.world;
 
     walls = [
-      Bodies.rectangle(W / 2, H + WALL / 2, W, WALL, { isStatic: true, render: { visible: false } }),  // floor
-      Bodies.rectangle(-WALL / 2, H / 2, WALL, H * 2, { isStatic: true, render: { visible: false } }),  // left
-      Bodies.rectangle(W + WALL / 2, H / 2, WALL, H * 2, { isStatic: true, render: { visible: false } }), // right
+      Bodies.rectangle(W / 2, H + WALL / 2, W, WALL, { isStatic: true, friction: 0.4 }),  // floor
+      Bodies.rectangle(-WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: 0.4 }),  // left
+      Bodies.rectangle(W + WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: 0.4 }), // right
     ];
     World.add(world, walls);
-
-    Events.on(engine, 'collisionStart', onCollision);
-  }
-
-  function onCollision(event) {
-    if (isOver) return;
-    event.pairs.forEach(pair => {
-      const a = pair.bodyA, b = pair.bodyB;
-      if (!a.fruitLevel || !b.fruitLevel) return;
-      if (a.fruitLevel !== b.fruitLevel) return;
-      if (a.fruitLevel >= 11) return;  // 西瓜不再合并
-      const key1 = a.id + '-' + b.id;
-      const key2 = b.id + '-' + a.id;
-      if (recentMerges.has(key1) || recentMerges.has(key2)) return;
-      recentMerges.add(key1);
-
-      mergeFruits(a, b);
-    });
   }
 
   function mergeFruits(a, b) {
@@ -428,12 +412,13 @@ permalink: /toolbox/suika/
   function createFruitBody(level, x, y, opts = {}) {
     const fruit = FRUITS[level - 1];
     const body = Bodies.circle(x, y, fruit.radius, {
-      restitution: 0.05,    // 几乎不弹（避免水果飞起来卡奇怪位置）
-      friction: 0.6,        // 高摩擦：水果之间不会滑来滑去
-      frictionStatic: 1.2,  // 静摩擦更高 → 落定后不松动
-      frictionAir: 0.005,   // 空气阻力更低 → 自然下落
+      // 经过调参：兼顾"落地有手感"+"settle 后能再触碰合并"
+      restitution: 0.12,    // 落地有少量反弹（不是死贴地）
+      friction: 0.35,       // 中等摩擦：能滚到位置但不会一直滑
+      frictionStatic: 0.5,  // 静摩擦正常，避免卡死
+      frictionAir: 0.008,   // 适度空气阻力
       density: 0.0015,
-      slop: 0.05,           // Matter 默认值，避免过紧导致解算错误
+      slop: 0.05,           // Matter 默认值
       ...opts,
     });
     body.fruitLevel = level;
@@ -539,7 +524,7 @@ permalink: /toolbox/suika/
     try {
       if (!isPaused && !isOver) {
         const dt = Math.min(33, now - lastTick);
-        // 持续按键 → 每帧平滑移动 hover（约 240 px/秒，连续而非阶梯）
+        // 持续按键 → 每帧平滑移动 hover
         if (hoverFruit) {
           const dir = (keyState.right ? 1 : 0) - (keyState.left ? 1 : 0);
           if (dir !== 0) {
@@ -547,6 +532,7 @@ permalink: /toolbox/suika/
           }
         }
         Engine.update(engine, dt);
+        checkProximityMerges();   // 接触合并（替代 collisionStart）
         checkDanger(now);
         recentMerges.clear();
       }
@@ -556,6 +542,41 @@ permalink: /toolbox/suika/
       console.error('[suika] tick error:', err);
     }
     requestAnimationFrame(tick);
+  }
+
+  // 每帧扫一次：所有同 level 水果对，距离 ≤ 半径和×1.02 → 合并
+  // 这比 Matter 的 collisionStart 更可靠：collisionStart 只在首次接触触发一次，
+  // settle 后两个水果靠在一起但不再 collide → 不合并；这里距离判断永远生效。
+  function checkProximityMerges() {
+    const fruits = Composite.allBodies(world).filter(b => b.fruitLevel);
+    const byLv = {};
+    fruits.forEach(b => {
+      if (b.fruitLevel >= 11) return;  // 西瓜不再合
+      if (!byLv[b.fruitLevel]) byLv[b.fruitLevel] = [];
+      byLv[b.fruitLevel].push(b);
+    });
+    Object.values(byLv).forEach(arr => {
+      for (let i = 0; i < arr.length; i++) {
+        const a = arr[i];
+        if (!a._alive) a._alive = true;
+        for (let j = i + 1; j < arr.length; j++) {
+          const b = arr[j];
+          if (!a._alive || !b._alive) continue;
+          if (recentMerges.has(a.id) || recentMerges.has(b.id)) continue;
+          const dx = a.position.x - b.position.x;
+          const dy = a.position.y - b.position.y;
+          const dist = Math.hypot(dx, dy);
+          const touchDist = (a.circleRadius + b.circleRadius) * 1.02;
+          if (dist < touchDist) {
+            recentMerges.add(a.id);
+            recentMerges.add(b.id);
+            a._alive = false;
+            b._alive = false;
+            mergeFruits(a, b);
+          }
+        }
+      }
+    });
   }
 
   function checkDanger(now) {
@@ -720,7 +741,6 @@ permalink: /toolbox/suika/
 
   function restart() {
     if (engine) {
-      Events.off(engine, 'collisionStart', onCollision);
       World.clear(world, false);
       Engine.clear(engine);
     }
