@@ -1027,17 +1027,18 @@ permalink: /toolbox/forest/
     return 'chain-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5);
   }
 
-  // 树的有效 tier（基于 durationMinutes × bonus）
+  // 树的有效 tier（基于 durationMinutes × bonus × revivalDiscount）
   function effectiveTier(tree) {
     if (!tree.success) return 1;
     const bonus = tree.cycleBonus || 1.0;
-    return durationToTier(tree.durationMinutes * bonus);
+    const discount = tree.revivalDiscount || 1.0;
+    return durationToTier(tree.durationMinutes * bonus * discount);
   }
 
   // 树带来的 "经验值"（图表用）
   function treeExp(tree) {
     if (!tree.success) return 0;
-    return tree.durationMinutes * (tree.cycleBonus || 1.0);
+    return tree.durationMinutes * (tree.cycleBonus || 1.0) * (tree.revivalDiscount || 1.0);
   }
 
   // ============ DOM ============
@@ -1612,40 +1613,35 @@ permalink: /toolbox/forest/
     clearInterval(tickInterval); tickInterval = null;
 
     const wasBreak = !!state.session.isBreak;
+    const wasRevival = !!state.revivalTargetId;
+    let revivedTreeName = null;
+    let revivedExp = 0;
 
-    // 优先处理灌溉完成
-    if (!wasBreak && state.revivalTargetId) {
+    // 灌溉处理：mutate 那棵枯萎树（attemptedMinutes 形态 + ×0.5 折扣）
+    // 注意：不 return，继续走下面正常种树逻辑
+    if (!wasBreak && wasRevival) {
       const target = state.trees.find(x => x.id === state.revivalTargetId);
       if (target) {
-        const newSize = target.attemptedMinutes || 5;
+        const attempted = target.attemptedMinutes || 5;
         target.success = true;
-        target.durationMinutes = newSize;
+        target.durationMinutes = attempted;
+        target.revivalDiscount = 0.5;
         target.endTime = Date.now();
         target.cycleBonus = 1.0;
         target.chainId = null;
         target.cycleNum = null;
         delete target.attemptedMinutes;
         delete target.reason;
-        saveTrees();
+        revivedTreeName = TREE_NAME[target.type];
+        revivedExp = attempted * 0.5;
       }
-      const revivedName = target ? TREE_NAME[target.type] : '树';
-      $timerStatus.textContent = `🌱 灌溉成功！${revivedName}复活了 ✨`;
-      state.session = null;
-      saveActive(null);
       cancelRevival();
-      $overlay.classList.remove('open');
-      $overlayTimer.style.color = '';
-      $timerDisplay.classList.remove('warn');
-      $startBtn.disabled = false;
-      $timerDisplay.textContent = fmtTime(state.duration * 60);
-      renderTree(0);
-      renderStats();
-      return;
     }
 
     if (!wasBreak) {
-      // focus 完成 → 种树
-      const isInChain = state.pomodoroOn && state.currentChainId;
+      // focus 完成 → 种新树（灌溉模式也种一棵新的）
+      // 灌溉模式下不进 chain（保留连击 bonus 给纯粹的连续专注）
+      const isInChain = state.pomodoroOn && state.currentChainId && !wasRevival;
       const cycleNum = isInChain ? state.cycleCount + 1 : null;
       const tree = {
         id: 'tr-' + Date.now().toString(36),
@@ -1678,10 +1674,15 @@ permalink: /toolbox/forest/
       saveTrees();
 
       // toast 文案
-      let msg = `🌳 种成功一棵 ${TREE_NAME[tree.type]}！专注了 ${tree.durationMinutes} 分钟`;
-      if (isInChain && bonus > 1) {
-        msg += `· ${state.cycleCount} 连击 ×${bonus}`;
-        if (chainTrees > 1) msg += ` ✨ 本链 ${chainTrees} 棵全升级`;
+      let msg;
+      if (wasRevival) {
+        msg = `🌱 灌溉成功！新种 ${TREE_NAME[tree.type]}（${tree.durationMinutes} 分）+ 复活 ${revivedTreeName}（${revivedExp.toFixed(0)} 经验）✨`;
+      } else {
+        msg = `🌳 种成功一棵 ${TREE_NAME[tree.type]}！专注了 ${tree.durationMinutes} 分钟`;
+        if (isInChain && bonus > 1) {
+          msg += ` · ${state.cycleCount} 连击 ×${bonus}`;
+          if (chainTrees > 1) msg += ` ✨ 本链 ${chainTrees} 棵全升级`;
+        }
       }
       $timerStatus.textContent = msg;
     } else {
@@ -2036,8 +2037,9 @@ permalink: /toolbox/forest/
       div.innerHTML = buildFieldTreeSvg(t.type, tier, !t.success);
       // 工具提示（hover 显示在 tree 上方）
       const date = new Date(t.endTime).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+      const isRevivedTip = t.success && t.revivalDiscount && t.revivalDiscount < 1;
       const tipText = t.success
-        ? `${TREE_NAME[t.type]}（${TIER_NAME[tier]}）· ${t.durationMinutes} 分 · ${date}`
+        ? `${TREE_NAME[t.type]}（${TIER_NAME[tier]}${isRevivedTip ? ' · 灌溉复活' : ''}）· ${treeExp(t).toFixed(0)} 经验 · ${date}`
         : `${TREE_NAME[t.type]}（枯萎）· ${date}`;
       const tip = document.createElement('div');
       tip.className = 'tree-tooltip';
@@ -2082,7 +2084,8 @@ permalink: /toolbox/forest/
   // ============ 灌溉机制 ============
   const $revivalBanner = document.getElementById('revival-banner');
   function revivalCostFor(tree) {
-    return Math.max(10, Math.round(tree.attemptedMinutes || 5));
+    // 用原目标时长（durationMinutes 在枯萎树上保留为原 target）
+    return Math.max(1, Math.round(tree.durationMinutes || 25));
   }
   function queueRevival(treeId) {
     const t = state.trees.find(x => x.id === treeId);
@@ -2097,9 +2100,10 @@ permalink: /toolbox/forest/
       $customMin.value = cost;
     }
     // 展示 banner
+    const revivedExp = ((t.attemptedMinutes || 0) * 0.5).toFixed(0);
     $revivalBanner.innerHTML = `
-      🌱 准备灌溉枯萎的 <strong>${TREE_NAME[t.type]}</strong>（曾坚持 ${t.attemptedMinutes || 0} 分）·
-      完成 <strong>${cost} 分钟</strong>专注后复活成 ${t.attemptedMinutes || 0} 分形态
+      🌱 准备灌溉枯萎的 <strong>${TREE_NAME[t.type]}</strong>（原目标 ${t.durationMinutes} 分 · 曾坚持 ${t.attemptedMinutes || 0} 分）·
+      完成 <strong>${cost} 分钟</strong>专注 → 得新 ${cost} 分树 + 复活成 ${revivedExp} 经验形态
       <button type="button" class="cancel-revival" id="cancel-revival">取消</button>
     `;
     $revivalBanner.classList.add('visible');
@@ -2241,14 +2245,18 @@ permalink: /toolbox/forest/
     const taskRow = t.task ? `
       <div class="td-row"><span class="label">任务</span><span class="value">${escapeHtml(t.task)}</span></div>
     ` : '';
+    const isRevived = t.success && t.revivalDiscount && t.revivalDiscount < 1;
     const statusRow = t.success
-      ? `<div class="td-row"><span class="label">树形</span><span class="value">${TREE_NAME[t.type]} <span class="tier-badge tier-${tier}">${TIER_NAME[tier]}</span></span></div>`
+      ? `<div class="td-row"><span class="label">树形</span><span class="value">${TREE_NAME[t.type]} <span class="tier-badge tier-${tier}">${TIER_NAME[tier]}</span>${isRevived ? ' <span class="tier-badge" style="background: rgba(201, 169, 110, 0.25); color: #b08838;">灌溉复活</span>' : ''}</span></div>`
       : `<div class="td-row"><span class="label">状态</span><span class="value" style="color:#c0392b;">🥀 枯萎了</span></div>`;
     const durationRow = t.success
-      ? `<div class="td-row"><span class="label">专注</span><span class="value"><strong>${t.durationMinutes} 分钟</strong></span></div>`
+      ? `<div class="td-row"><span class="label">专注</span><span class="value"><strong>${t.durationMinutes} 分钟</strong>${isRevived ? '（曾坚持时长）' : ''}</span></div>`
       : `<div class="td-row"><span class="label">专注</span><span class="value">坚持了 ${t.attemptedMinutes || 0} 分（目标 ${t.durationMinutes} 分）</span></div>`;
     const bonusRow = t.success && t.cycleBonus && t.cycleBonus > 1
       ? `<div class="td-row"><span class="label">加成</span><span class="value" style="color: #b08838;"><strong>×${t.cycleBonus}</strong>${t.cycleNum ? ` · 循环第 ${t.cycleNum} 个` : ''}</span></div>`
+      : '';
+    const discountRow = isRevived
+      ? `<div class="td-row"><span class="label">折扣</span><span class="value" style="color: #b08838;"><strong>×${t.revivalDiscount}</strong> · 灌溉复活</span></div>`
       : '';
     const expRow = t.success
       ? `<div class="td-row"><span class="label">经验</span><span class="value">${treeExp(t).toFixed(1)} 点</span></div>`
@@ -2263,7 +2271,7 @@ permalink: /toolbox/forest/
 
     const revivalHint = !t.success
       ? `<div style="margin-top: 0.6rem; padding: 0.55rem 0.7rem; background: var(--color-bg-warm); border-radius: 6px; font-size: 0.78rem; color: var(--color-muted); line-height: 1.5;">
-          完成 <strong style="color: var(--color-ink);">${revivalCostFor(t)} 分钟</strong>专注后，复活成 ${t.attemptedMinutes || 0} 分形态的 ${TREE_NAME[t.type]}。枯萎树不能直接铲除。
+          完成 <strong style="color: var(--color-ink);">${revivalCostFor(t)} 分钟</strong>专注 → 得一棵新的 ${revivalCostFor(t)} 分树 + 这棵复活成 <strong style="color: var(--color-ink);">${((t.attemptedMinutes || 0) * 0.5).toFixed(0)} 经验</strong>形态（×0.5 折扣）。枯萎树不能直接铲除。
         </div>`
       : '';
 
@@ -2271,6 +2279,7 @@ permalink: /toolbox/forest/
       ${statusRow}
       ${durationRow}
       ${bonusRow}
+      ${discountRow}
       ${expRow}
       <div class="td-row"><span class="label">时间</span><span class="value">${startDate}–${endDate}</span></div>
       <div class="td-row"><span class="label">日期</span><span class="value">${date.split(' ')[0]}</span></div>
