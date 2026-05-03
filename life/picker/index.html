@@ -17,17 +17,6 @@ permalink: /life/picker/
   .picker-header p {
     color: var(--color-light); font-style: italic; margin: 0;
   }
-  .picker-intro {
-    background: var(--color-bg-warm);
-    border-left: 3px solid var(--color-accent);
-    padding: 0.9rem 1.2rem;
-    border-radius: 0 6px 6px 0;
-    color: var(--color-text);
-    font-size: 0.94rem;
-    line-height: 1.7;
-    margin-bottom: 2rem;
-  }
-
   .picker-card {
     background: var(--color-bg);
     border: 1px solid var(--color-border);
@@ -135,6 +124,28 @@ permalink: /life/picker/
   .pill-group button.active {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
   }
+  /* 自定义抽签次数：input 元素长得跟 pill 一致 */
+  .pill-group .draws-custom {
+    -webkit-appearance: none; -moz-appearance: textfield; appearance: none;
+    width: 5.4em;
+    padding: 0.32rem 0.85rem;
+    font: inherit; font-size: 0.88rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-text);
+    text-align: center;
+    outline: none;
+    transition: all 0.15s;
+  }
+  .pill-group .draws-custom::-webkit-outer-spin-button,
+  .pill-group .draws-custom::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  .pill-group .draws-custom:focus { border-color: var(--color-accent); }
+  .pill-group .draws-custom.active {
+    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+  }
+  .pill-group .draws-custom::placeholder { color: var(--color-light); }
+  .pill-group .draws-custom.active::placeholder { color: rgba(255,255,255,0.7); }
 
   .spin-zone {
     text-align: center;
@@ -339,12 +350,6 @@ permalink: /life/picker/
     <p>Weighted Random Picker</p>
   </header>
 
-  <div class="picker-intro">
-    <strong>用得上的场景</strong>：聚餐选餐厅、周末选活动、几本书先读哪本——把选项填进去，可以给每项不同权重（你 70% 想吃火锅、30% 想吃日料就拉到 7:3），点抽签。
-    <br>
-    支持<strong>多次抽签</strong>模式：抽 3 / 5 / 7 / 9 次，最多次的胜出——奇数次避免平票。
-  </div>
-
   <div class="picker-card">
     <div class="options-list" id="options-list"></div>
     <div class="add-row">
@@ -357,8 +362,9 @@ permalink: /life/picker/
         <button type="button" data-draws="1" class="active">1</button>
         <button type="button" data-draws="3">3</button>
         <button type="button" data-draws="5">5</button>
-        <button type="button" data-draws="7">7</button>
-        <button type="button" data-draws="9">9</button>
+        <input type="number" class="draws-custom" id="draws-custom"
+               inputmode="numeric" min="1" max="100" step="1"
+               placeholder="自定义" aria-label="自定义抽签次数（1–100）" />
       </div>
     </div>
 
@@ -424,6 +430,8 @@ permalink: /life/picker/
   const $list      = document.getElementById('options-list');
   const $addBtn    = document.getElementById('add-btn');
   const $drawsGrp  = document.getElementById('draws-group');
+  const $drawsCustom = document.getElementById('draws-custom');
+  const DRAWS_MAX = 100;
   const $spinBtn   = document.getElementById('spin-btn');
   const $spinHint     = document.getElementById('spin-hint');
   const $spinHintText = document.getElementById('spin-hint-text');
@@ -785,14 +793,51 @@ permalink: /life/picker/
     state.options.push({ id: cryptoId(), text: '', weight: 5 });
     renderAll();
   });
+  function setActivePreset(btnOrNull) {
+    $drawsGrp.querySelectorAll('button[data-draws]').forEach(b => {
+      b.classList.toggle('active', b === btnOrNull);
+    });
+    $drawsCustom.classList.toggle('active', !btnOrNull);
+  }
+
   $drawsGrp.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-draws]');
     if (!btn || state.busy) return;
     state.draws = Number(btn.dataset.draws);
-    $drawsGrp.querySelectorAll('button').forEach(b => {
-      b.classList.toggle('active', b === btn);
-    });
+    setActivePreset(btn);
+    // 切到 preset 时清空自定义框，免得视觉上同时有"自定义已填值 + 别的 pill 高亮"的歧义
+    $drawsCustom.value = '';
     reset();
+  });
+
+  // 自定义抽签次数：用户输入数字 → 立即生效（约束到 1-100）
+  $drawsCustom.addEventListener('input', () => {
+    if (state.busy) return;
+    const raw = $drawsCustom.value.trim();
+    if (raw === '') {
+      // 输入框被清空：fall back 到 1（保证 state 始终有效）
+      state.draws = 1;
+      const presetBtn = $drawsGrp.querySelector('button[data-draws="1"]');
+      setActivePreset(presetBtn);
+      reset();
+      return;
+    }
+    let n = parseInt(raw, 10);
+    if (isNaN(n) || n < 1) n = 1;
+    if (n > DRAWS_MAX) n = DRAWS_MAX;
+    state.draws = n;
+    setActivePreset(null);  // 当前激活态归到 custom 输入框
+    reset();
+  });
+
+  // 失焦时把超界 / 非数字的 raw 值规范化展示出来
+  $drawsCustom.addEventListener('blur', () => {
+    const raw = $drawsCustom.value.trim();
+    if (raw === '') return;  // 空就保持空（placeholder 显示）
+    let n = parseInt(raw, 10);
+    if (isNaN(n) || n < 1) n = 1;
+    if (n > DRAWS_MAX) n = DRAWS_MAX;
+    $drawsCustom.value = String(n);
   });
   $spinBtn.addEventListener('click', spin);
   $resetBtn.addEventListener('click', reset);
