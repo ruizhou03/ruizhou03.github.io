@@ -399,8 +399,29 @@ permalink: /toolbox/suika/
     World.remove(world, [a, b]);
     const merged = createFruitBody(newLevel, x, y);
     World.add(world, merged);
-    // 合并爆炸效果（一个小弹力）
-    Body.setVelocity(merged, { x: 0, y: -2 });
+
+    // 合并爆炸：向上反弹（越大越冲）+ 径向推开附近水果
+    const popVel = -3.5 - newLevel * 0.4;
+    Body.setVelocity(merged, { x: (Math.random() - 0.5) * 1.2, y: popVel });
+
+    const newRadius = FRUITS[newLevel - 1].radius;
+    const pushRange = newRadius * 2.2;     // 影响范围
+    const pushStrength = 0.025 + newLevel * 0.005;  // 越大爆炸越强
+    Composite.allBodies(world).forEach(other => {
+      if (other === merged || !other.fruitLevel) return;
+      const dx = other.position.x - x;
+      const dy = other.position.y - y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 0.1 && dist < pushRange) {
+        // 距离越近推得越狠（线性衰减）
+        const factor = pushStrength * (1 - dist / pushRange);
+        Body.applyForce(other, other.position, {
+          x: (dx / dist) * factor * other.mass,
+          y: (dy / dist) * factor * other.mass - 0.001 * other.mass, // 微微往上抛
+        });
+      }
+    });
+
     score += FRUITS[newLevel - 1].score;
     if (newLevel === 11) {
       melonsCount++;
@@ -544,34 +565,30 @@ permalink: /toolbox/suika/
     requestAnimationFrame(tick);
   }
 
-  // 每帧扫一次：所有同 level 水果对，距离 ≤ 半径和×1.02 → 合并
-  // 这比 Matter 的 collisionStart 更可靠：collisionStart 只在首次接触触发一次，
-  // settle 后两个水果靠在一起但不再 collide → 不合并；这里距离判断永远生效。
+  // 每帧扫一次：所有同 level 水果对，距离 ≤ 半径和×1.05 → 合并
+  // recentMerges 在 tick 末尾 clear，所以一帧内每个 body 最多参与 1 次 merge
   function checkProximityMerges() {
-    const fruits = Composite.allBodies(world).filter(b => b.fruitLevel);
     const byLv = {};
-    fruits.forEach(b => {
-      if (b.fruitLevel >= 11) return;  // 西瓜不再合
+    Composite.allBodies(world).forEach(b => {
+      if (!b.fruitLevel) return;
+      if (b.fruitLevel >= 11) return;
       if (!byLv[b.fruitLevel]) byLv[b.fruitLevel] = [];
       byLv[b.fruitLevel].push(b);
     });
     Object.values(byLv).forEach(arr => {
       for (let i = 0; i < arr.length; i++) {
         const a = arr[i];
-        if (!a._alive) a._alive = true;
+        if (recentMerges.has(a.id)) continue;
         for (let j = i + 1; j < arr.length; j++) {
           const b = arr[j];
-          if (!a._alive || !b._alive) continue;
           if (recentMerges.has(a.id) || recentMerges.has(b.id)) continue;
           const dx = a.position.x - b.position.x;
           const dy = a.position.y - b.position.y;
           const dist = Math.hypot(dx, dy);
-          const touchDist = (a.circleRadius + b.circleRadius) * 1.02;
+          const touchDist = (a.circleRadius + b.circleRadius) * 1.05;
           if (dist < touchDist) {
             recentMerges.add(a.id);
             recentMerges.add(b.id);
-            a._alive = false;
-            b._alive = false;
             mergeFruits(a, b);
           }
         }
