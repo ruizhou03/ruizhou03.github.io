@@ -206,24 +206,33 @@ permalink: /toolbox/tax-bracket/
     font-size: 0.82rem; color: var(--color-muted);
     line-height: 1.55;
   }
-  .taxable-callout .co-hint {
-    margin-top: 0.55rem;
-    font-size: 0.78rem; color: var(--color-light);
-    line-height: 1.55;
-    font-style: italic;
-  }
 
-  .disclaimer {
+  /* 折叠免责声明 */
+  .footnote {
     margin-top: 1.4rem;
-    padding: 1rem 1.2rem;
-    background: #fef3c7; color: #78350f;
-    border-radius: 8px; border-left: 3px solid #d97706;
-    font-size: 0.86rem; line-height: 1.6;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-bg);
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .disclaimer { background: rgba(245,158,11,0.15); color: #fcd34d; }
+  .footnote summary {
+    padding: 0.65rem 1rem;
+    cursor: pointer; user-select: none;
+    font-size: 0.85rem; color: var(--color-muted);
+    list-style: none;
   }
-  :root[data-theme="dark"] .disclaimer { background: rgba(245,158,11,0.15); color: #fcd34d; }
+  .footnote summary::-webkit-details-marker { display: none; }
+  .footnote summary::after {
+    content: '▸'; float: right;
+    color: var(--color-light);
+    transition: transform 0.2s;
+    display: inline-block;
+  }
+  .footnote[open] summary::after { transform: rotate(90deg); }
+  .footnote summary:hover { color: var(--color-accent); }
+  .footnote-body {
+    padding: 0 1rem 0.9rem;
+    font-size: 0.85rem; color: var(--color-muted); line-height: 1.7;
+  }
 
   /* Mobile */
   @media (max-width: 600px) {
@@ -378,7 +387,6 @@ permalink: /toolbox/tax-bracket/
       <div class="co-label">应税收入 (Taxable Income)</div>
       <div class="co-value" id="us-taxable-value">—</div>
       <div class="co-detail" id="us-taxable-detail"></div>
-      <div class="co-hint">下方分档进度条按此应税收入划分（不是按 gross income）。</div>
     </div>
     <div class="bracket-list" id="federal-brackets"></div>
     <div style="margin-top: 0.9rem;">
@@ -403,9 +411,6 @@ permalink: /toolbox/tax-bracket/
       <span class="label">州税</span>
       <span class="value" id="row-state">—</span>
     </div>
-    <div style="margin-top: 0.7rem; font-size: 0.82rem; color: var(--color-light);">
-      州税按所在州 top marginal rate 简化估算。CA / NY 等累进州实际可能略低（低收入段适用低档）。
-    </div>
   </div>
 
   <!-- ============ CN 应纳税所得分档 ============ -->
@@ -415,7 +420,6 @@ permalink: /toolbox/tax-bracket/
       <div class="co-label">应纳税所得额</div>
       <div class="co-value" id="cn-taxable-value">—</div>
       <div class="co-detail" id="cn-taxable-detail"></div>
-      <div class="co-hint">下方分档进度条按此应纳税所得额划分（不是按年综合所得）。</div>
     </div>
     <div class="bracket-list" id="cn-brackets"></div>
     <div style="margin-top: 0.9rem;">
@@ -430,14 +434,20 @@ permalink: /toolbox/tax-bracket/
     </div>
   </div>
 
-  <!-- ============ Disclaimers ============ -->
-  <div class="disclaimer" data-country="us">
-    <strong>⚠️ 仅供估算，不能替代正式报税。</strong>本工具按 2026 IRS brackets + 各州 top marginal rate 简化计算，不考虑：FICA / Medicare、EITC / 子女抵免、retirement contribution、AMT、qualified dividends 不同税率、phase-out 规则、签证身份（F-1 vs H-1B）、treaty benefits 等。复杂情况请用 TurboTax / FreeTaxUSA / 找会计。
-  </div>
+  <!-- ============ Disclaimers (折叠) ============ -->
+  <details class="footnote" data-country="us">
+    <summary>⚠️ 仅供估算 · 点开看免责声明</summary>
+    <div class="footnote-body">
+      本工具按 2026 IRS brackets + 各州 top marginal rate 简化计算，不考虑：FICA / Medicare、EITC / 子女抵免、retirement contribution、AMT、qualified dividends 不同税率、phase-out 规则、签证身份（F-1 vs H-1B）、treaty benefits 等。州税按 top marginal rate 估算，CA/NY 等累进州实际可能略低。复杂情况请用 TurboTax / FreeTaxUSA / 找会计。
+    </div>
+  </details>
 
-  <div class="disclaimer" data-country="cn" style="display: none;">
-    <strong>⚠️ 仅供估算，不能替代正式汇算。</strong>本工具按 2024–2026 现行《个人所得税法》及实施条例的<strong>居民个人综合所得</strong>（工资薪金、劳务报酬、稿酬、特许权使用费合并年度汇算）计算。<strong>不包含</strong>：经营所得（5%–35% 单独税率表）、利息股息红利（20% flat）、财产转让所得、年终奖单独计税选项、外籍员工 / 港澳台居民身份差异、税收协定优惠、年度一次性奖金的"全年一次性奖金计税方法"等。各地五险一金缴费基数和比例差异较大，本工具按 22% 估算。如需精确数字，请登录 <a href="https://etax.chinatax.gov.cn/" target="_blank" rel="noopener">个人所得税 APP</a> 查实际汇算结果。
-  </div>
+  <details class="footnote" data-country="cn" style="display: none;">
+    <summary>⚠️ 仅供估算 · 点开看免责声明</summary>
+    <div class="footnote-body">
+      本工具按 2024–2026 现行《个人所得税法》及实施条例的<strong>居民个人综合所得</strong>（工资薪金、劳务报酬、稿酬、特许权使用费合并年度汇算）计算。<strong>不包含</strong>：经营所得（5%–35% 单独税率表）、利息股息红利（20% flat）、财产转让所得、年终奖单独计税选项、外籍员工 / 港澳台居民身份差异、税收协定优惠、年度一次性奖金的"全年一次性奖金计税方法"等。各地五险一金缴费基数和比例差异较大，本工具按 22% 估算。如需精确数字，请登录 <a href="https://etax.chinatax.gov.cn/" target="_blank" rel="noopener">个人所得税 APP</a> 查实际汇算结果。
+    </div>
+  </details>
 </div>
 
 <script>

@@ -50,12 +50,13 @@ permalink: /toolbox/converter/
   }
   .conv-row select {
     font: inherit; font-size: 1rem;
-    padding: 0.85rem 0.7rem; padding-right: 2rem;
+    padding: 0.85rem 0.9rem; padding-right: 2.2rem;
     border: 1px solid var(--color-border); border-radius: 10px;
-    background: var(--color-bg) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%236b7280' d='M0 0l5 6 5-6z'/></svg>") right 0.7rem center no-repeat;
+    background: var(--color-bg) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%236b7280' d='M0 0l5 6 5-6z'/></svg>") right 0.85rem center no-repeat;
     -webkit-appearance: none; appearance: none;
     color: var(--color-ink);
-    min-width: 105px;
+    flex-shrink: 0;
+    min-width: 145px;
     cursor: pointer;
   }
   .conv-row select:focus { outline: none; border-color: var(--color-accent); }
@@ -125,20 +126,42 @@ permalink: /toolbox/converter/
   }
   .quick-row .quick:hover { border-color: var(--color-accent); border-style: solid; color: var(--color-accent); }
 
-  .note {
+  .footnote {
     margin-top: 1.4rem;
-    padding: 0.9rem 1.1rem;
-    border-left: 3px solid var(--color-accent);
-    background: var(--color-bg-warm);
-    border-radius: 0 8px 8px 0;
-    color: var(--color-muted); font-size: 0.85rem; line-height: 1.6;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-bg);
+  }
+  .footnote summary {
+    padding: 0.65rem 1rem;
+    cursor: pointer; user-select: none;
+    font-size: 0.85rem; color: var(--color-muted);
+    list-style: none;
+  }
+  .footnote summary::-webkit-details-marker { display: none; }
+  .footnote summary::before {
+    content: '?'; display: inline-block;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--color-light); color: var(--color-bg);
+    font-size: 0.72rem; font-weight: 700;
+    text-align: center; line-height: 16px;
+    margin-right: 0.55rem;
+    vertical-align: 1px;
+    transition: background 0.18s;
+  }
+  .footnote[open] summary::before { background: var(--color-accent); }
+  .footnote summary:hover::before { background: var(--color-accent); }
+  .footnote-body {
+    padding: 0 1rem 0.9rem;
+    font-size: 0.85rem; color: var(--color-muted); line-height: 1.65;
   }
 
   /* Mobile */
   @media (max-width: 600px) {
     .conv-row { gap: 0.5rem; }
     .conv-row input { font-size: 1.2rem; padding: 0.75rem 0.85rem; }
-    .conv-row select { min-width: 90px; padding: 0.75rem 0.6rem; padding-right: 1.8rem; font-size: 0.9rem; }
+    .conv-row select { min-width: 128px; padding: 0.75rem 0.7rem; padding-right: 1.9rem; font-size: 0.9rem; }
     .panel { padding: 1.2rem; }
   }
 </style>
@@ -235,9 +258,12 @@ permalink: /toolbox/converter/
     </div>
   </div>
 
-  <div class="note">
-    <strong>关于汇率三层 fallback。</strong>实时拉取自 <a href="https://www.exchangerate-api.com/" target="_blank" rel="noopener">exchangerate-api.com</a> 的开放接口，成功后缓存 24 小时。如果接口挂了或离线，用上次缓存；连缓存都没有就用我编译进页面的兜底汇率（截至 2026-05-03）。所有物理单位换算是常数公式，零网络依赖。
-  </div>
+  <details class="footnote">
+    <summary>离线 fallback 怎么工作</summary>
+    <div class="footnote-body">
+      实时数据拉自 <a href="https://www.exchangerate-api.com/" target="_blank" rel="noopener">exchangerate-api.com</a>，成功后缓存 24 小时。如果接口挂了或离线，用上次缓存；连缓存都没有就用我编译进页面的兜底汇率（截至 2026-05-03）。物理单位换算是常数公式，零网络依赖。
+    </div>
+  </details>
 </div>
 
 <script>

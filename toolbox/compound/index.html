@@ -103,11 +103,30 @@ permalink: /toolbox/compound/
   .chart-grid           { stroke: var(--color-border); stroke-width: 0.5; stroke-dasharray: 2 4; opacity: 0.5; }
   .chart-tick           { fill: var(--color-light); font-size: 11px; }
 
-  .pv-explain {
-    background: var(--color-bg-warm); border-left: 3px solid var(--color-accent);
-    padding: 0.85rem 1rem; border-radius: 0 8px 8px 0;
-    margin-top: 1rem;
-    color: var(--color-muted); font-size: 0.88rem; line-height: 1.65;
+  /* 折叠 footnote */
+  .footnote {
+    margin-top: 1.2rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-bg);
+  }
+  .footnote summary {
+    padding: 0.65rem 1rem;
+    cursor: pointer; user-select: none;
+    font-size: 0.85rem; color: var(--color-muted);
+    list-style: none;
+  }
+  .footnote summary::-webkit-details-marker { display: none; }
+  .footnote summary::after {
+    content: '▸'; float: right;
+    color: var(--color-light);
+    transition: transform 0.2s;
+  }
+  .footnote[open] summary::after { transform: rotate(90deg); }
+  .footnote summary:hover { color: var(--color-accent); }
+  .footnote-body {
+    padding: 0 1rem 0.9rem;
+    font-size: 0.85rem; color: var(--color-muted); line-height: 1.7;
   }
 
   /* Mobile */
@@ -229,9 +248,12 @@ permalink: /toolbox/compound/
       </div>
     </div>
 
-    <div class="pv-explain">
-      <strong>怎么理解。</strong>「未来 n 年后拿到 X 元」≠「今天就拿到 X 元」。在贴现率 r 下，今天的 PV 元放进银行 / 投资，n 年后会涨成 X 元。所以这两件事「价值相等」。曲线展示了把未来金额倒推回 0、1、2…n 年前各自的现值，越往左（越早）越值钱。
-    </div>
+    <details class="footnote">
+      <summary>为什么未来的钱比今天的钱不值钱</summary>
+      <div class="footnote-body">
+        在贴现率 r 下，今天的 PV 元投资 / 存银行 n 年后会涨成 FV 元——所以「今天的 PV」和「未来的 FV」价值相等。曲线把未来金额倒推回各年的现值，越靠左越值钱。
+      </div>
+    </details>
   </div>
 </div>
 
