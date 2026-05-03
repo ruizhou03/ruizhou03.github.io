@@ -189,6 +189,103 @@ permalink: /toolbox/suika/
     0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
     100% { transform: translateX(-50%) scale(1); opacity: 1; }
   }
+
+  /* ============ 调参面板（在 start overlay 里）============ */
+  .settings-panel {
+    width: 100%; max-width: 320px;
+    margin-top: 1rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .settings-panel summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.85);
+    user-select: none;
+  }
+  .settings-panel summary::-webkit-details-marker { display: none; }
+  .settings-panel summary::after {
+    content: '▾'; float: right;
+    color: rgba(255, 255, 255, 0.6);
+    transition: transform 0.2s;
+  }
+  .settings-panel[open] summary::after { transform: rotate(180deg); }
+  .settings-panel .settings-body {
+    padding: 0.5rem 0.9rem 0.7rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .setting-item { margin-bottom: 0.7rem; }
+  .setting-item:last-of-type { margin-bottom: 0.5rem; }
+  .setting-row {
+    display: flex; align-items: baseline; gap: 0.4rem;
+    margin-bottom: 0.25rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.82rem;
+  }
+  .setting-row label { flex-grow: 1; text-align: left; }
+  .setting-row .setting-val {
+    font-family: 'SFMono-Regular', monospace; font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.95); font-variant-numeric: tabular-nums;
+    min-width: 2.4rem; text-align: right;
+  }
+  .setting-row .setting-desc {
+    color: var(--color-highlight);
+    font-size: 0.74rem;
+    min-width: 4rem; text-align: right;
+  }
+  .settings-panel input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none; appearance: none;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  .settings-panel input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px;
+    background: var(--color-highlight);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  }
+  .settings-panel input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    background: var(--color-highlight);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+  .settings-actions {
+    display: flex; gap: 0.5rem; justify-content: center;
+    margin-top: 0.7rem;
+  }
+  .settings-actions button {
+    font: inherit; font-size: 0.82rem;
+    padding: 0.4rem 0.95rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.92);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .settings-actions button:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+  .settings-actions .try-btn {
+    background: var(--color-highlight);
+    color: rgba(20, 20, 20, 0.92);
+    border-color: var(--color-highlight);
+    font-weight: 600;
+  }
+  .settings-actions .try-btn:hover { background: #d8b876; }
 </style>
 
 <div class="sk-wrap">
@@ -226,6 +323,48 @@ permalink: /toolbox/suika/
       <p style="color: rgba(255,255,255,0.55); font-size: 0.78rem; margin-top: 0.9rem; max-width: 280px;">
         开始后键盘 ← → 空格 由游戏接管 · 点击游戏外恢复页面滚动
       </p>
+
+      <details class="settings-panel" id="settings-panel">
+        <summary>⚙ 调参（让游戏更适合自己）</summary>
+        <div class="settings-body">
+          <div class="setting-item">
+            <div class="setting-row">
+              <label>🎈 回弹</label>
+              <span class="setting-desc" id="bounce-desc">中等</span>
+              <span class="setting-val" id="bounce-val">0.50</span>
+            </div>
+            <input type="range" id="bounce-slider" min="0" max="1" step="0.05" value="0.5" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-row">
+              <label>💥 合并爆炸</label>
+              <span class="setting-desc" id="explosion-desc">中等</span>
+              <span class="setting-val" id="explosion-val">0.50</span>
+            </div>
+            <input type="range" id="explosion-slider" min="0" max="1" step="0.05" value="0.5" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-row">
+              <label>🌍 重力</label>
+              <span class="setting-desc" id="gravity-desc">中等</span>
+              <span class="setting-val" id="gravity-val">0.50</span>
+            </div>
+            <input type="range" id="gravity-slider" min="0" max="1" step="0.05" value="0.5" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-row">
+              <label>🤝 合并粘性</label>
+              <span class="setting-desc" id="stickiness-desc">标准</span>
+              <span class="setting-val" id="stickiness-val">0.50</span>
+            </div>
+            <input type="range" id="stickiness-slider" min="0" max="1" step="0.05" value="0.5" />
+          </div>
+          <div class="settings-actions">
+            <button type="button" class="try-btn" id="try-physics-btn">🍒 试一试</button>
+            <button type="button" id="reset-physics-btn">↻ 默认</button>
+          </div>
+        </div>
+      </details>
     </div>
 
     <!-- 游戏结束幕 -->
@@ -287,6 +426,75 @@ permalink: /toolbox/suika/
 
   const HIGH_KEY = 'tool.suika.highscore.v1';
   const MELONS_KEY = 'tool.suika.melons.v1';
+  const PHYSICS_KEY = 'tool.suika.physics.v1';
+
+  // 4 个用户可调参数（0-1 滑条 → 实际物理值）
+  const PHYSICS = { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5 };
+  function mapPhysics() {
+    return {
+      // 回弹：0-1 → 0.05-0.40
+      restitution: 0.05 + PHYSICS.bounce * 0.35,
+      // 合并爆炸：0-1 → 0.5x-1.8x（基础推力的乘数）
+      explosionMult: 0.5 + PHYSICS.explosion * 1.3,
+      // 重力：0-1 → 0.0008-0.0022
+      gravityScale: 0.0008 + PHYSICS.gravity * 0.0014,
+      // 合并粘性：0-1 → 1.02-1.15（合并触发距离倍率）
+      mergeTolerance: 1.02 + PHYSICS.stickiness * 0.13,
+    };
+  }
+  function loadPhysics() {
+    try {
+      const raw = localStorage.getItem(PHYSICS_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        ['bounce', 'explosion', 'gravity', 'stickiness'].forEach(k => {
+          if (typeof p[k] === 'number') PHYSICS[k] = Math.max(0, Math.min(1, p[k]));
+        });
+      }
+    } catch (e) {}
+  }
+  function savePhysics() {
+    try { localStorage.setItem(PHYSICS_KEY, JSON.stringify(PHYSICS)); } catch (e) {}
+  }
+  // 改了参数立即应用：重力是 engine 全局；restitution 是 body 属性，每个已有水果都更新一遍
+  function applyPhysicsLive() {
+    if (!engine) return;
+    const m = mapPhysics();
+    engine.gravity.scale = m.gravityScale;
+    Composite.allBodies(world).forEach(b => {
+      if (b.fruitLevel) b.restitution = m.restitution;
+    });
+    // explosionMult 和 mergeTolerance 在 mergeFruits / checkProximityMerges 里 on-demand 读
+  }
+
+  function describeBounce(v) {
+    if (v < 0.2) return '微弹';
+    if (v < 0.4) return '弱弹';
+    if (v < 0.6) return '中等';
+    if (v < 0.8) return '强弹';
+    return '跳跳球';
+  }
+  function describeExplosion(v) {
+    if (v < 0.2) return '温柔';
+    if (v < 0.4) return '轻爆';
+    if (v < 0.6) return '中等';
+    if (v < 0.8) return '强力';
+    return '核爆';
+  }
+  function describeGravity(v) {
+    if (v < 0.2) return '羽毛';
+    if (v < 0.4) return '缓降';
+    if (v < 0.6) return '中等';
+    if (v < 0.8) return '快坠';
+    return '重力炸弹';
+  }
+  function describeStickiness(v) {
+    if (v < 0.2) return '极挑剔';
+    if (v < 0.4) return '精准';
+    if (v < 0.6) return '标准';
+    if (v < 0.8) return '宽容';
+    return '靠近就合';
+  }
 
   // ============ 水果定义（11 级） ============
   const FRUITS = [
@@ -409,8 +617,9 @@ permalink: /toolbox/suika/
   let gameFocused = false;          // 当前是否捕获键盘（点击 game-zone = true，点别处 = false）
 
   function setupWorld() {
+    const m = mapPhysics();
     engine = Engine.create({
-      gravity: { x: 0, y: 1, scale: 0.0013 },
+      gravity: { x: 0, y: 1, scale: m.gravityScale },
       enableSleeping: false,
     });
     engine.constraintIterations = 4;
@@ -435,24 +644,26 @@ permalink: /toolbox/suika/
     const merged = createFruitBody(newLevel, x, y);
     World.add(world, merged);
 
-    // 合并爆炸：向上反弹（越大越冲）+ 径向推开附近水果
-    const popVel = -3.5 - newLevel * 0.4;
-    Body.setVelocity(merged, { x: (Math.random() - 0.5) * 1.2, y: popVel });
+    // 合并爆炸：受用户的「合并爆炸」滑条调节
+    const m = mapPhysics();
+    const expMult = m.explosionMult;
+
+    const popVel = (-3.5 - newLevel * 0.4) * expMult;
+    Body.setVelocity(merged, { x: (Math.random() - 0.5) * 1.2 * expMult, y: popVel });
 
     const newRadius = FRUITS[newLevel - 1].radius;
-    const pushRange = newRadius * 2.2;     // 影响范围
-    const pushStrength = 0.025 + newLevel * 0.005;  // 越大爆炸越强
+    const pushRange = newRadius * 2.2;
+    const pushStrength = (0.025 + newLevel * 0.005) * expMult;
     Composite.allBodies(world).forEach(other => {
       if (other === merged || !other.fruitLevel) return;
       const dx = other.position.x - x;
       const dy = other.position.y - y;
       const dist = Math.hypot(dx, dy);
       if (dist > 0.1 && dist < pushRange) {
-        // 距离越近推得越狠（线性衰减）
         const factor = pushStrength * (1 - dist / pushRange);
         Body.applyForce(other, other.position, {
           x: (dx / dist) * factor * other.mass,
-          y: (dy / dist) * factor * other.mass - 0.001 * other.mass, // 微微往上抛
+          y: (dy / dist) * factor * other.mass - 0.001 * other.mass,
         });
       }
     });
@@ -467,14 +678,14 @@ permalink: /toolbox/suika/
 
   function createFruitBody(level, x, y, opts = {}) {
     const fruit = FRUITS[level - 1];
+    const m = mapPhysics();
     const body = Bodies.circle(x, y, fruit.radius, {
-      // 经过调参：兼顾"落地有手感"+"settle 后能再触碰合并"
-      restitution: 0.12,    // 落地有少量反弹（不是死贴地）
-      friction: 0.35,       // 中等摩擦：能滚到位置但不会一直滑
-      frictionStatic: 0.5,  // 静摩擦正常，避免卡死
-      frictionAir: 0.008,   // 适度空气阻力
+      restitution: m.restitution,    // 用户可调
+      friction: 0.35,
+      frictionStatic: 0.5,
+      frictionAir: 0.008,
       density: 0.0015,
-      slop: 0.05,           // Matter 默认值
+      slop: 0.05,
       ...opts,
     });
     body.fruitLevel = level;
@@ -624,9 +835,9 @@ permalink: /toolbox/suika/
     requestAnimationFrame(tick);
   }
 
-  // 每帧扫一次：所有同 level 水果对，距离 ≤ 半径和×1.05 → 合并
-  // recentMerges 在 tick 末尾 clear，所以一帧内每个 body 最多参与 1 次 merge
+  // 每帧扫一次：所有同 level 水果对，距离 ≤ 半径和 × 用户设置粘性 → 合并
   function checkProximityMerges() {
+    const tolerance = mapPhysics().mergeTolerance;
     const byLv = {};
     Composite.allBodies(world).forEach(b => {
       if (!b.fruitLevel) return;
@@ -644,7 +855,7 @@ permalink: /toolbox/suika/
           const dx = a.position.x - b.position.x;
           const dy = a.position.y - b.position.y;
           const dist = Math.hypot(dx, dy);
-          const touchDist = (a.circleRadius + b.circleRadius) * 1.05;
+          const touchDist = (a.circleRadius + b.circleRadius) * tolerance;
           if (dist < touchDist) {
             recentMerges.add(a.id);
             recentMerges.add(b.id);
@@ -656,6 +867,7 @@ permalink: /toolbox/suika/
   }
 
   function checkDanger(now) {
+    if (!gameStarted) return;  // 试一试 / 开始幕未关闭时不判 game over
     let inDanger = false;
     Composite.allBodies(world).forEach(b => {
       if (!b.fruitLevel) return;
@@ -841,10 +1053,79 @@ permalink: /toolbox/suika/
   }
 
   $startBtn.addEventListener('click', () => {
+    // 清掉「试一试」可能留下的水果
+    const lingering = Composite.allBodies(world).filter(b => b.fruitLevel);
+    if (lingering.length) World.remove(world, lingering);
     $startOverlay.classList.remove('open');
     gameStarted = true;
     setFocus(true);
     spawnHoveringFruit();
+  });
+
+  // ============ 物理参数滑条 wiring ============
+  const SLIDERS = [
+    { key: 'bounce',     describe: describeBounce },
+    { key: 'explosion',  describe: describeExplosion },
+    { key: 'gravity',    describe: describeGravity },
+    { key: 'stickiness', describe: describeStickiness },
+  ];
+  const sliderEls = {};
+  SLIDERS.forEach(({ key, describe }) => {
+    const $slider = document.getElementById(key + '-slider');
+    const $val = document.getElementById(key + '-val');
+    const $desc = document.getElementById(key + '-desc');
+    sliderEls[key] = { slider: $slider, val: $val, desc: $desc, describe };
+    $slider.addEventListener('input', () => {
+      PHYSICS[key] = parseFloat($slider.value);
+      $val.textContent = PHYSICS[key].toFixed(2);
+      $desc.textContent = describe(PHYSICS[key]);
+      savePhysics();
+      applyPhysicsLive();
+    });
+  });
+  function refreshSliderUI() {
+    SLIDERS.forEach(({ key, describe }) => {
+      const els = sliderEls[key];
+      els.slider.value = PHYSICS[key];
+      els.val.textContent = PHYSICS[key].toFixed(2);
+      els.desc.textContent = describe(PHYSICS[key]);
+    });
+  }
+
+  // 试一试：临时关 overlay → 丢 3 颗樱桃 demo → 几秒后恢复 overlay 并清水果
+  let isTrying = false;
+  document.getElementById('try-physics-btn').addEventListener('click', () => {
+    if (isTrying) return;
+    isTrying = true;
+    // 清掉之前残留
+    const old = Composite.allBodies(world).filter(b => b.fruitLevel);
+    if (old.length) World.remove(world, old);
+    $startOverlay.classList.remove('open');
+    // 错开时间丢 3 颗樱桃
+    [0.30, 0.50, 0.70].forEach((px, i) => {
+      setTimeout(() => {
+        const x = $canvas.width * px;
+        const body = createFruitBody(1, x, 30);
+        World.add(world, body);
+      }, 80 + i * 220);
+    });
+    // 4 秒后恢复 overlay + 清水果
+    setTimeout(() => {
+      const test = Composite.allBodies(world).filter(b => b.fruitLevel);
+      if (test.length) World.remove(world, test);
+      if (!gameStarted) $startOverlay.classList.add('open');
+      isTrying = false;
+    }, 4500);
+  });
+
+  document.getElementById('reset-physics-btn').addEventListener('click', () => {
+    PHYSICS.bounce = 0.5;
+    PHYSICS.explosion = 0.5;
+    PHYSICS.gravity = 0.5;
+    PHYSICS.stickiness = 0.5;
+    savePhysics();
+    refreshSliderUI();
+    applyPhysicsLive();
   });
 
   $ovRestart.addEventListener('click', restart);
@@ -863,6 +1144,8 @@ permalink: /toolbox/suika/
   // ============ Init ============
   buildEvoChain();
   updateScoreUI();
+  loadPhysics();
+  refreshSliderUI();
   setupWorld();
   // 不再立即 spawnHoveringFruit — 等用户点「开始游戏」
   $startBest.textContent = highScore;
@@ -870,7 +1153,7 @@ permalink: /toolbox/suika/
   console.log('[suika] init complete', {
     matterVersion: Matter && Matter.version,
     canvasW: W, canvasH: H,
-    hoverFruit, nextLevel, gameStarted, gameFocused,
+    PHYSICS, gameStarted, gameFocused,
   });
   requestAnimationFrame(tick);
 
