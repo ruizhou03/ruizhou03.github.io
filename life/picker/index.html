@@ -226,11 +226,13 @@ permalink: /life/picker/
     color: var(--color-accent); border-color: var(--color-accent);
   }
 
-  /* —— 转盘 —— */
+  /* —— 转盘 ——
+     宽度由三个约束的 min() 决定：360px 上限 + 92vw 防溢出 + 50vh 防手机上独占整屏
+     带 aspect-ratio: 1/1，所以高度 = 宽度，转盘永远不超过半屏高 */
   .wheel-zone {
     margin: 1.4rem auto 0;
     position: relative;
-    width: 360px; max-width: 92vw;
+    width: min(360px, 92vw, 50vh);
     aspect-ratio: 1 / 1;
   }
   .wheel-pointer {
@@ -301,13 +303,22 @@ permalink: /life/picker/
   .tally-bars {
     display: flex; align-items: flex-end; justify-content: center;
     gap: 0.7rem;
-    min-height: 110px; padding: 0.4rem 0.4rem 0;
+    min-height: 150px; padding: 0.4rem 0.4rem 0;
   }
   .tally-col {
     display: flex; flex-direction: column; align-items: center;
-    gap: 0.4rem;
+    gap: 0.35rem;
     flex: 1; max-width: 80px; min-width: 0;
   }
+  /* 医牌作为 col 的正常 flex 子元素，永远占住高度（hidden 时也占空间），
+     避免：1) 之前在 overflow:hidden 的 bar-bg 内被裁掉一半
+           2) 显示/隐藏切换时引起列高度跳动 */
+  .tally-medal {
+    font-size: 1.3rem; line-height: 1;
+    opacity: 0; transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .tally-col.is-winner .tally-medal { opacity: 1; }
   .tally-bar-bg {
     position: relative;
     width: 100%; height: 100px;
@@ -331,12 +342,6 @@ permalink: /life/picker/
     font-size: 0.95rem; color: var(--color-ink);
     font-weight: 600;
   }
-  .tally-medal {
-    position: absolute; top: -22px; left: 0; right: 0;
-    text-align: center; font-size: 1.3rem;
-    opacity: 0; transition: opacity 0.3s;
-  }
-  .tally-col.is-winner .tally-medal { opacity: 1; }
   .tally-name {
     font-size: 0.78rem; color: var(--color-muted);
     text-align: center;
@@ -834,10 +839,10 @@ permalink: /life/picker/
       const color = SLICE_COLORS[i % SLICE_COLORS.length];
       return `
         <div class="tally-col" data-idx="${i}">
+          <div class="tally-medal">🥇</div>
           <div class="tally-bar-bg">
             <div class="tally-bar-fill" style="background:${color};"></div>
             <div class="tally-count">0</div>
-            <div class="tally-medal">🥇</div>
           </div>
           <div class="tally-name">${escapeHtml(o.text || ('选项' + (i + 1)))}</div>
         </div>
@@ -875,6 +880,10 @@ permalink: /life/picker/
     $resetRow.style.display = 'none';
     clearHighlights();
     $result.innerHTML = '&nbsp;';
+
+    // 把转盘 zone 滚到视口顶——保证手机上转盘 + 结果 + 计票都同时可见
+    // 不用纠结"已经在视口里了要不要滚"——smooth scroll 距离零时本来也不会有视觉干扰
+    $wheel.parentElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     if (state.draws === 1) {
       // 单次模式
