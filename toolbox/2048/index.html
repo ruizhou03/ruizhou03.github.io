@@ -111,18 +111,19 @@ permalink: /toolbox/2048/
     color: #776e65;
     transition: transform 130ms ease-out;
     will-change: transform;
+    transform: translate(var(--tx, 0), var(--ty, 0));
   }
   .tile.pop { animation: pop 200ms ease-out; }
   .tile.merge { animation: merge 220ms ease-out; }
   @keyframes pop {
-    0% { transform: scale(0); }
-    60% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+    0%   { transform: translate(var(--tx, 0), var(--ty, 0)) scale(0); }
+    60%  { transform: translate(var(--tx, 0), var(--ty, 0)) scale(1.1); }
+    100% { transform: translate(var(--tx, 0), var(--ty, 0)) scale(1); }
   }
   @keyframes merge {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.18); }
-    100% { transform: scale(1); }
+    0%   { transform: translate(var(--tx, 0), var(--ty, 0)) scale(1); }
+    50%  { transform: translate(var(--tx, 0), var(--ty, 0)) scale(1.18); }
+    100% { transform: translate(var(--tx, 0), var(--ty, 0)) scale(1); }
   }
 
   /* Tile colors — classic 2048 palette */
@@ -409,7 +410,8 @@ permalink: /toolbox/2048/
         t.style.width = ts + 'px';
         t.style.height = ts + 'px';
         t.style.fontSize = tileFontSize(v, n);
-        t.style.transform = `translate(${c * (ts + gap)}px, ${r * (ts + gap)}px)`;
+        t.style.setProperty('--tx', `${c * (ts + gap)}px`);
+        t.style.setProperty('--ty', `${r * (ts + gap)}px`);
         t.textContent = v;
         if (mergedMap && mergedMap[r][c]) t.classList.add('merge');
         if (freshlyAddedAt && freshlyAddedAt[0] === r && freshlyAddedAt[1] === c) t.classList.add('pop');
