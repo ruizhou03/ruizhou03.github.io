@@ -733,6 +733,13 @@ permalink: /toolbox/suika/
   // 这样彻底避开 Matter 的 isStatic/collisionFilter/mass-restoration 等坑。
   let hoverX = W / 2;
 
+  // 键盘左右控制 = 给水果一个力，速度随时间累积（按住越久越快）
+  // ACCEL 加速度、MAX_VX 限速、FRICTION 松手摩擦减速；都按 px / ms（与 Matter dt 一致）
+  let hoverVx = 0;
+  const HOVER_ACCEL    = 0.0018;
+  const HOVER_MAX_VX   = 0.45;
+  const HOVER_FRICTION = 0.0040;
+
   function clampHoverX(x, radius) {
     return Math.max(radius + 4, Math.min(W - radius - 4, x));
   }
@@ -758,6 +765,7 @@ permalink: /toolbox/suika/
     const body = createFruitBody(hoverFruit.level, x, SPAWN_Y);
     World.add(world, body);
     hoverFruit = null;
+    hoverVx = 0;             // 下个水果从静止开始，方向键速度不残留
 
     // 试玩模式：每扔一次减 1，到 0 后等 1.5 秒结束试玩
     if (trialMode) {
@@ -782,11 +790,14 @@ permalink: /toolbox/suika/
     return ((clientX - rect.left) / rect.width) * W;
   }
 
+  // 鼠标 / 触屏直接定位水果时清零键盘累积速度，避免松开方向键后还在漂
   $canvas.addEventListener('mousemove', e => {
     moveHover(getCanvasX(e));
+    hoverVx = 0;
   });
   $canvas.addEventListener('click', e => {
     moveHover(getCanvasX(e));
+    hoverVx = 0;
     dropCurrent();
   });
 
@@ -795,10 +806,11 @@ permalink: /toolbox/suika/
     e.preventDefault();
     touchActive = true;
     moveHover(getCanvasX(e));
+    hoverVx = 0;
   }, { passive: false });
   $canvas.addEventListener('touchmove', e => {
     e.preventDefault();
-    if (touchActive) moveHover(getCanvasX(e));
+    if (touchActive) { moveHover(getCanvasX(e)); hoverVx = 0; }
   }, { passive: false });
   $canvas.addEventListener('touchend', e => {
     e.preventDefault();
@@ -859,11 +871,25 @@ permalink: /toolbox/suika/
     try {
       if (!isPaused && !isOver) {
         const dt = Math.min(33, now - lastTick);
-        // 持续按键 → 每帧平滑移动 hover
+        // 持续按键 → 给水果一个加速度，velocity 随时间累积（按住越久越快）
+        // 松手时摩擦让 velocity 衰减回 0，撞墙立刻清零（不残留方向积压）
         if (hoverFruit) {
           const dir = (keyState.right ? 1 : 0) - (keyState.left ? 1 : 0);
           if (dir !== 0) {
-            moveHover(hoverFruit.x + dir * (dt * 0.24));
+            hoverVx += dir * HOVER_ACCEL * dt;
+            if (hoverVx >  HOVER_MAX_VX) hoverVx =  HOVER_MAX_VX;
+            if (hoverVx < -HOVER_MAX_VX) hoverVx = -HOVER_MAX_VX;
+          } else if (hoverVx !== 0) {
+            const decay = HOVER_FRICTION * dt;
+            if (hoverVx > 0) hoverVx = Math.max(0, hoverVx - decay);
+            else             hoverVx = Math.min(0, hoverVx + decay);
+          }
+          if (hoverVx !== 0) {
+            const fruit = FRUITS[hoverFruit.level - 1];
+            const newX = hoverFruit.x + hoverVx * dt;
+            const clampedX = clampHoverX(newX, fruit.radius);
+            if (clampedX !== newX) hoverVx = 0;     // 撞墙 → 速度清零
+            moveHover(clampedX);
           }
         }
         Engine.update(engine, dt);
@@ -1062,6 +1088,7 @@ permalink: /toolbox/suika/
     if (isOver) return;
     isOver = true;
     hoverFruit = null;  // 清掉悬浮（纯数据，不需要 World.remove）
+    hoverVx = 0;
     const wasNewBest = score >= highScore;
     $ovTitle.textContent = '游戏结束';
     $ovScore.textContent = score;
@@ -1084,6 +1111,7 @@ permalink: /toolbox/suika/
     dangerSince = null;
     dropCooldown = false;
     hoverFruit = null;
+    hoverVx = 0;
     nextLevel = pickSpawnLevel();
     $overlay.classList.remove('open');
     $gameZone.classList.remove('over');
@@ -1159,6 +1187,7 @@ permalink: /toolbox/suika/
   function endTrial() {
     trialMode = false;
     hoverFruit = null;
+    hoverVx = 0;
     setFocus(false);
     // 清水果
     const fruits = Composite.allBodies(world).filter(b => b.fruitLevel);
