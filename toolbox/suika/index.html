@@ -173,6 +173,11 @@ permalink: /toolbox/suika/
     background: var(--color-bg-warm); padding: 0.1em 0.4em; border-radius: 3px;
     border: 1px solid var(--color-border);
   }
+
+  @keyframes konamiPop {
+    0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+    100% { transform: translateX(-50%) scale(1); opacity: 1; }
+  }
 </style>
 
 <div class="sk-wrap">
@@ -271,6 +276,37 @@ permalink: /toolbox/suika/
   // 1-5 加权概率（小水果概率高）
   const SPAWN_WEIGHTS = [35, 28, 20, 12, 5];
 
+  // ============ Konami code 彩蛋 ============
+  // 上上下下左右左右 BABA → 天降一颗西瓜
+  const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  let konamiBuf = [];
+  function pushKonami(key) {
+    konamiBuf.push(key.length === 1 ? key.toLowerCase() : key);
+    if (konamiBuf.length > KONAMI.length) konamiBuf.shift();
+    if (konamiBuf.length === KONAMI.length && konamiBuf.every((k, i) => k === KONAMI[i])) {
+      konamiBuf = [];
+      triggerKonami();
+    }
+  }
+  function triggerKonami() {
+    if (isOver || !world) return;
+    // 在画面中央上方丢一颗西瓜
+    const watermelon = createFruitBody(11, $canvas.width / 2, SPAWN_Y + 20);
+    World.add(world, watermelon);
+    melonsCount++;
+    score += FRUITS[10].score;  // 西瓜分
+    try { localStorage.setItem(MELONS_KEY, String(melonsCount)); } catch (e) {}
+    updateScoreUI();
+    showKonamiToast();
+  }
+  function showKonamiToast() {
+    const el = document.createElement('div');
+    el.textContent = '🍉 BABA！天降西瓜';
+    el.style.cssText = 'position:fixed;top:20%;left:50%;transform:translateX(-50%);background:rgba(20,25,30,0.92);color:#ffd700;padding:1rem 2rem;border-radius:14px;font-size:1.4rem;font-weight:600;z-index:2000;box-shadow:0 8px 28px rgba(0,0,0,0.45);font-family:var(--font-display);animation:konamiPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2400);
+  }
+
   function pickSpawnLevel() {
     const total = SPAWN_WEIGHTS.reduce((a, b) => a + b, 0);
     let r = Math.random() * total;
@@ -336,11 +372,13 @@ permalink: /toolbox/suika/
 
   function setupWorld() {
     engine = Engine.create({
-      gravity: { x: 0, y: 1, scale: 0.0014 },
+      gravity: { x: 0, y: 1, scale: 0.0016 },
+      enableSleeping: false,
     });
-    engine.constraintIterations = 4;
-    engine.positionIterations = 8;
-    engine.velocityIterations = 6;
+    // 高迭代次数 → 大幅减少水果"卡在不可能位置"的物理 bug
+    engine.constraintIterations = 6;
+    engine.positionIterations = 14;
+    engine.velocityIterations = 12;
     world = engine.world;
 
     walls = [
@@ -390,11 +428,12 @@ permalink: /toolbox/suika/
   function createFruitBody(level, x, y, opts = {}) {
     const fruit = FRUITS[level - 1];
     const body = Bodies.circle(x, y, fruit.radius, {
-      restitution: 0.18,
-      friction: 0.45,
-      frictionAir: 0.012,
+      restitution: 0.05,    // 几乎不弹（避免水果飞起来卡奇怪位置）
+      friction: 0.6,        // 高摩擦：水果之间不会滑来滑去
+      frictionStatic: 1.2,  // 静摩擦更高 → 落定后不松动
+      frictionAir: 0.005,   // 空气阻力更低 → 自然下落
       density: 0.0015,
-      slop: 0.02,
+      slop: 0.05,           // Matter 默认值，避免过紧导致解算错误
       ...opts,
     });
     body.fruitLevel = level;
@@ -471,19 +510,27 @@ permalink: /toolbox/suika/
     touchActive = false;
   }, { passive: false });
 
+  // 按键状态（持续按住时每帧平滑移动）
+  const keyState = { left: false, right: false };
   document.addEventListener('keydown', e => {
     if (isOver || isPaused) return;
     if (!hoverFruit) return;
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      moveHover(hoverFruit.x - 18);
+      keyState.left = true;
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
-      moveHover(hoverFruit.x + 18);
+      keyState.right = true;
     } else if (e.key === ' ' || e.key === 'Spacebar') {
       e.preventDefault();
       dropCurrent();
     }
+    // 也累积到 konami buffer（见下方）
+    pushKonami(e.key);
+  });
+  document.addEventListener('keyup', e => {
+    if (e.key === 'ArrowLeft') keyState.left = false;
+    else if (e.key === 'ArrowRight') keyState.right = false;
   });
 
   // ============ 游戏循环 ============
@@ -492,6 +539,13 @@ permalink: /toolbox/suika/
     try {
       if (!isPaused && !isOver) {
         const dt = Math.min(33, now - lastTick);
+        // 持续按键 → 每帧平滑移动 hover（约 240 px/秒，连续而非阶梯）
+        if (hoverFruit) {
+          const dir = (keyState.right ? 1 : 0) - (keyState.left ? 1 : 0);
+          if (dir !== 0) {
+            moveHover(hoverFruit.x + dir * (dt * 0.24));
+          }
+        }
         Engine.update(engine, dt);
         checkDanger(now);
         recentMerges.clear();
@@ -529,16 +583,19 @@ permalink: /toolbox/suika/
   function drawScene() {
     ctx.clearRect(0, 0, W, H);
 
-    // 危险线
+    // 危险线 — 画到 canvas 实际宽度（避免 W 跟 canvas.width 之间任何不同步导致截短）
+    const cw = $canvas.width;
     const dangerProgress = dangerSince ? Math.min(1, (performance.now() - dangerSince) / 2000) : 0;
     ctx.strokeStyle = `rgba(231, 76, 60, ${0.5 + dangerProgress * 0.5})`;
     ctx.lineWidth = dangerProgress > 0 ? 2.5 : 1.5;
     ctx.setLineDash([8, 6]);
+    ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(0, DANGER_Y);
-    ctx.lineTo(W, DANGER_Y);
+    ctx.lineTo(cw, DANGER_Y);
     ctx.stroke();
     ctx.setLineDash([]);
+    ctx.lineCap = 'butt';
 
     // 投放预测线（点划线）
     if (hoverFruit && !isOver && !isPaused) {
