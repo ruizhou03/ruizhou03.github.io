@@ -156,6 +156,28 @@ permalink: /toolbox/converter/
     padding: 0 1rem 0.9rem;
     font-size: 0.85rem; color: var(--color-muted); line-height: 1.65;
   }
+  .footnote-body p { margin: 0.6rem 0 0.2rem; }
+  .footnote-body p:first-child { margin-top: 0; }
+  .footnote-body p strong { color: var(--color-ink); }
+  .footnote-body ul { margin: 0.2rem 0 0.6rem 1.4rem; padding: 0; }
+  .footnote-body li { margin-bottom: 0.25rem; }
+  .footnote-body .rules-fineprint {
+    margin-top: 0.7rem;
+    font-size: 0.78rem; color: var(--color-light);
+  }
+
+  /* 比例行：紧贴第二个输入下方，提示选定单位间的换算关系 */
+  .ratio-line {
+    text-align: center;
+    margin-top: 0.95rem;
+    padding-top: 0.85rem;
+    border-top: 1px dashed var(--color-border);
+    font-size: 0.92rem;
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+  }
+  .ratio-line strong { color: var(--color-ink); font-weight: 600; }
 
   /* Mobile */
   @media (max-width: 600px) {
@@ -192,6 +214,7 @@ permalink: /toolbox/converter/
       <input type="number" id="cur-b-val" inputmode="decimal" step="any" />
       <select id="cur-b-unit"></select>
     </div>
+    <div class="ratio-line" id="cur-ratio">—</div>
     <div class="source-bar">
       <div class="left">
         <span class="tag" id="cur-tag">…</span>
@@ -220,6 +243,7 @@ permalink: /toolbox/converter/
       <input type="number" id="w-b-val" inputmode="decimal" step="any" />
       <select id="w-b-unit"></select>
     </div>
+    <div class="ratio-line" id="w-ratio">—</div>
   </div>
 
   <!-- Temperature -->
@@ -235,6 +259,7 @@ permalink: /toolbox/converter/
       <input type="number" id="t-b-val" inputmode="decimal" step="any" />
       <select id="t-b-unit"></select>
     </div>
+    <div class="ratio-line" id="t-ratio">—</div>
     <div class="quick-row">
       <button type="button" class="quick" data-t-quick="350,F">烤箱 350℉</button>
       <button type="button" class="quick" data-t-quick="425,F">烤箱 425℉</button>
@@ -256,12 +281,39 @@ permalink: /toolbox/converter/
       <input type="number" id="l-b-val" inputmode="decimal" step="any" />
       <select id="l-b-unit"></select>
     </div>
+    <div class="ratio-line" id="l-ratio">—</div>
   </div>
 
-  <details class="footnote">
-    <summary>离线 fallback 怎么工作</summary>
+  <details class="footnote" data-panel="currency">
+    <summary>没网时怎么办</summary>
     <div class="footnote-body">
-      实时数据拉自 <a href="https://www.exchangerate-api.com/" target="_blank" rel="noopener">exchangerate-api.com</a>，成功后缓存 24 小时。如果接口挂了或离线，用上次缓存；连缓存都没有就用我编译进页面的兜底汇率（截至 2026-05-03）。物理单位换算是常数公式，零网络依赖。
+      实时汇率拉自 <a href="https://www.exchangerate-api.com/" target="_blank" rel="noopener">exchangerate-api.com</a>，成功后缓存 24 小时。如果接口挂了或离线，用上次缓存；连缓存都没有就用我编译进页面的兜底汇率（截至 2026-05-03）。物理单位换算是常数公式，零网络依赖。
+    </div>
+  </details>
+
+  <details class="footnote rules-table">
+    <summary>📋 全部换算规则一览（不含汇率）</summary>
+    <div class="footnote-body">
+      <p><strong>重量</strong></p>
+      <ul>
+        <li>1 kg = 1,000 g ≈ 2.2046 lb ≈ 35.274 oz</li>
+        <li>1 lb = 16 oz = 453.59 g</li>
+      </ul>
+      <p><strong>温度</strong></p>
+      <ul>
+        <li>℉ = ℃ × 9/5 + 32</li>
+        <li>K = ℃ + 273.15</li>
+        <li>典型值：0 ℃ = 32 ℉ = 273.15 K；100 ℃ = 212 ℉ = 373.15 K</li>
+      </ul>
+      <p><strong>长度</strong></p>
+      <ul>
+        <li>1 m = 100 cm = 1,000 mm</li>
+        <li>1 km = 1,000 m ≈ 0.6214 mi</li>
+        <li>1 in = 2.54 cm</li>
+        <li>1 ft = 12 in = 30.48 cm</li>
+        <li>1 mi = 1,609.344 m = 5,280 ft</li>
+      </ul>
+      <p class="rules-fineprint">汇率随市场变动，此表仅列常数关系；汇率请用上方实时模式。</p>
     </div>
   </details>
 </div>
@@ -403,6 +455,20 @@ permalink: /toolbox/converter/
     }
   }
 
+  const $curRatio = document.getElementById('cur-ratio');
+  function updateCurRatio() {
+    if (!fxRates) return;
+    const a = $curAu.value, b = $curBu.value;
+    if (a === b) {
+      $curRatio.textContent = `1 ${a} = 1 ${b}`;
+      return;
+    }
+    const rA = fxRates[a], rB = fxRates[b];
+    if (!rA || !rB) return;
+    const r = rB / rA;
+    $curRatio.innerHTML = `1 ${a} = <strong>${fmt(r)}</strong> ${b}`;
+  }
+
   function convertCurrency(direction = 'a-to-b') {
     if (!fxRates) return;
     const aCode = $curAu.value, bCode = $curBu.value;
@@ -417,6 +483,7 @@ permalink: /toolbox/converter/
       const a = (v / rB) * rA;
       $curA.value = fmt(a);
     }
+    updateCurRatio();
   }
 
   $curA.addEventListener('input', () => convertCurrency('a-to-b'));
@@ -471,11 +538,23 @@ permalink: /toolbox/converter/
     const $au = document.getElementById(`${prefix}-a-unit`);
     const $b  = document.getElementById(`${prefix}-b-val`);
     const $bu = document.getElementById(`${prefix}-b-unit`);
+    const $ratio = document.getElementById(`${prefix}-ratio`);
     Object.keys(factorMap).forEach(u => {
       const o1 = document.createElement('option'); o1.value = u; o1.textContent = labelMap[u]; $au.appendChild(o1);
       const o2 = document.createElement('option'); o2.value = u; o2.textContent = labelMap[u]; $bu.appendChild(o2);
     });
     $au.value = defaultA; $bu.value = defaultB;
+    function updateRatio() {
+      const ua = $au.value, ub = $bu.value;
+      const symA = labelMap[ua].split(' ')[0];
+      const symB = labelMap[ub].split(' ')[0];
+      if (ua === ub) {
+        $ratio.textContent = `1 ${symA} = 1 ${symB}`;
+        return;
+      }
+      const r = factorMap[ua] / factorMap[ub];
+      $ratio.innerHTML = `1 ${symA} = <strong>${fmt(r)}</strong> ${symB}`;
+    }
     function conv(direction) {
       const fA = factorMap[$au.value], fB = factorMap[$bu.value];
       if (direction === 'a-to-b') {
@@ -483,6 +562,7 @@ permalink: /toolbox/converter/
       } else {
         $a.value = fmt(getNum($b) * fB / fA);
       }
+      updateRatio();
     }
     $a.addEventListener('input', () => conv('a-to-b'));
     $b.addEventListener('input', () => conv('b-to-a'));
@@ -522,6 +602,26 @@ permalink: /toolbox/converter/
     if (u === 'K') return c + 273.15;
     return c;
   }
+  // 温度公式（非线性，按 a→b 方向给）
+  const T_FORMULA = {
+    'C-F': '℃ × 9/5 + 32',
+    'F-C': '(℉ − 32) × 5/9',
+    'C-K': '℃ + 273.15',
+    'K-C': 'K − 273.15',
+    'F-K': '(℉ − 32) × 5/9 + 273.15',
+    'K-F': '(K − 273.15) × 9/5 + 32',
+  };
+  const T_SYM = { C: '℃', F: '℉', K: 'K' };
+  const $tRatio = document.getElementById('t-ratio');
+  function updateTRatio() {
+    const a = $tAu.value, b = $tBu.value;
+    if (a === b) {
+      $tRatio.textContent = `${T_SYM[a]} = ${T_SYM[b]}`;
+      return;
+    }
+    $tRatio.innerHTML = `${T_SYM[b]} = <strong>${T_FORMULA[a + '-' + b]}</strong>`;
+  }
+
   function convT(direction) {
     if (direction === 'a-to-b') {
       const c = toCelsius(getNum($tA), $tAu.value);
@@ -530,6 +630,7 @@ permalink: /toolbox/converter/
       const c = toCelsius(getNum($tB), $tBu.value);
       $tA.value = fmt(fromCelsius(c, $tAu.value), 2);
     }
+    updateTRatio();
   }
   $tA.addEventListener('input', () => convT('a-to-b'));
   $tB.addEventListener('input', () => convT('b-to-a'));
