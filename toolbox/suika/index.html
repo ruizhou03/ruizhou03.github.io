@@ -435,7 +435,9 @@ permalink: /toolbox/suika/
   function dropCurrent() {
     if (!currentBody || isOver || isPaused || dropCooldown) return;
     Body.setStatic(currentBody, false);
-    currentBody.collisionFilter = { mask: 0xFFFFFFFF };
+    // 只改 mask 字段，不要替换整个 collisionFilter 对象
+    // （否则 category / group 会丢，碰撞检测全失效，水果穿过地板）
+    currentBody.collisionFilter.mask = 0xFFFFFFFF;
     currentBody = null;
     dropCooldown = true;
     setTimeout(() => {
