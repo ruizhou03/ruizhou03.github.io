@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "各科考试时间分配参考"
-date: 2026-04-23
+date: 2026-01-17
 discipline: "初升高"
 course: "经验"
 material_type: "Notes"

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "能爆刷信用卡然后回国吗？拖欠房租水电话费的法理与实务"
-date: 2026-04-28
+date: 2026-01-18
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/can-i-default-and-leave-us"

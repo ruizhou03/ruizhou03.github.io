@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "微波炉是怎么把食物加热的？怎么用才对？"
-date: 2026-04-27
+date: 2026-03-31
 main_category: "生活攻略"
 sub_category: "生活之问"
 extra_categories:

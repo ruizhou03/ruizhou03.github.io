@@ -2,7 +2,7 @@
 layout: recipe
 title: "翘脚牛肉（极简 BTB 版）"
 slug: "qiaojiaoniurou"
-date: 2026-04-23
+date: 2026-03-13
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

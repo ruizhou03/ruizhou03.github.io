@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国超市完全指南（三）：场景化采购、省钱招数与配送服务"
-date: 2026-04-28
+date: 2026-02-23
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-grocery-tactics"

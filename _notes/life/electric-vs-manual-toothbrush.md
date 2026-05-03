@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "电动牙刷还是传统牙刷？顺带聊聊洗牙和牙线（无任何品牌赞助）"
-date: 2026-04-28
+date: 2026-02-15
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/electric-vs-manual-toothbrush"

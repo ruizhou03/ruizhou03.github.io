@@ -2,7 +2,7 @@
 layout: recipe
 title: "酱香太阳肉盖饭"
 slug: "jiangxiangtaiyangrou"
-date: 2026-04-23
+date: 2026-02-14
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

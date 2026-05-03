@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国租房完全指南：从找房到退租，留学生第一年的破局路径"
-date: 2026-04-29
+date: 2026-01-30
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-renting-guide"

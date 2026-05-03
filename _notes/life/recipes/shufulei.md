@@ -2,7 +2,7 @@
 layout: recipe
 title: "舒芙蕾"
 slug: "shufulei"
-date: 2026-04-23
+date: 2026-02-28
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

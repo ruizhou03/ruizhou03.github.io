@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "香蕉变黑了还能吃吗？表皮黑 vs 果肉黑要分开看"
-date: 2026-04-27
+date: 2026-04-16
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/black-banana"

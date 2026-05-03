@@ -4,7 +4,7 @@ title: "我和 Claude Code 合力，写了份计量 8 天自救指南"
 discipline: "经济学"
 course: "Advanced Econometrics"
 material_type: "Notes"
-date: 2026-05-02
+date: 2026-02-07
 author: "Zircon"
 permalink: "/notes/adv-metrics-psu/survival-guide"
 pdf_url: "/files/adv-metrics-psu/metrics-survival-guide.pdf"

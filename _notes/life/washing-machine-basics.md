@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "洗衣机到底怎么用？温度、程序、装载量和「内裤袜子能不能一起洗」"
-date: 2026-04-28
+date: 2026-04-15
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/washing-machine-basics"

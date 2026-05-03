@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国合约机的「免费 iPhone」逻辑：bill credit、分期、套利与陷阱"
-date: 2026-04-28
+date: 2026-01-28
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-carrier-deals-decoded"

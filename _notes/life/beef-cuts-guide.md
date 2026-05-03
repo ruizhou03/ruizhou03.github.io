@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "牛肉的部位有什么区别？什么菜该用什么部位？"
-date: 2026-04-27
+date: 2026-02-02
 main_category: "生活攻略"
 sub_category: "生活之问"
 extra_categories:

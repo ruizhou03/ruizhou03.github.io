@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "色盲到底是看不见颜色，还是看到不一样的颜色？"
-date: 2026-05-02
+date: 2026-04-21
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/color-blindness-mechanism"

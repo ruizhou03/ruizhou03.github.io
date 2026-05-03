@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "初升高物理思维提升"
-date: 2026-04-22
+date: 2026-03-16
 discipline: "初升高"
 course: "物理"
 material_type: "Notes"

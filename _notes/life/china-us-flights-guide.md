@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "中美航班完全指南：联程、行李、中转、海关、关税、飞行时长"
-date: 2026-04-28
+date: 2026-03-22
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/china-us-flights-guide"

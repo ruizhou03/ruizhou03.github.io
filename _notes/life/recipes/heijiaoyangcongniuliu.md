@@ -2,7 +2,7 @@
 layout: recipe
 title: "黑椒洋葱牛柳"
 slug: "heijiaoyangcongniuliu"
-date: 2026-04-24
+date: 2026-01-23
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

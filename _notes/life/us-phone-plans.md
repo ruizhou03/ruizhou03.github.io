@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国手机话费完全指南：从选运营商到保留中国号码"
-date: 2026-04-28
+date: 2026-04-07
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-phone-plans"

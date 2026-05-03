@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "洗涤剂全家桶：洗衣液、凝珠、消毒液、漂白剂、亮白剂、柔顺剂分别干什么？"
-date: 2026-04-28
+date: 2026-02-03
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/laundry-detergents"

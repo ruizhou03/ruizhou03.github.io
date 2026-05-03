@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "厨房里那些「粉」：生粉、澄粉、糯米粉、玉米淀粉的区别和用法"
-date: 2026-04-27
+date: 2026-03-19
 main_category: "生活攻略"
 sub_category: "生活之问"
 extra_categories:

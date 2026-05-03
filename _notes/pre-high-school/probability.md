@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "概率（必修二部分）"
-date: 2026-04-23
+date: 2026-03-27
 discipline: "初升高"
 course: "数学"
 material_type: "Notes"

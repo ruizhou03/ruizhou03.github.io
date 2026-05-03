@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国超市的 Drinking / Purified / Spring / Mineral Water 到底有什么区别？"
-date: 2026-04-28
+date: 2026-02-13
 main_category: "生活攻略"
 sub_category: "生活之问"
 extra_categories:

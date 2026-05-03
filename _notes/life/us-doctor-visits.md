@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国看病完全指南（二）：从 PCP 到 ER 的就医流程"
-date: 2026-04-28
+date: 2026-01-25
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-doctor-visits"

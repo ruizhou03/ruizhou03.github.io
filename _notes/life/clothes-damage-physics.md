@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "衣服为什么会缩水、变形、起球、变黄、起静电？"
-date: 2026-04-28
+date: 2026-03-21
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/clothes-damage-physics"

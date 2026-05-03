@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国医疗实战（三）：账单、谈判、省钱与留学生特殊场景"
-date: 2026-04-28
+date: 2026-04-17
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-medical-bills-and-tips"

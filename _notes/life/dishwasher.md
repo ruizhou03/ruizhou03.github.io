@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "洗碗机的原理：和手洗到底有什么区别？什么时候要先冲一遍？"
-date: 2026-04-28
+date: 2026-03-26
 main_category: "生活攻略"
 sub_category: "生活之问"
 extra_categories:

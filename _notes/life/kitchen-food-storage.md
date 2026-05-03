@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "厨房里的东西到底该怎么保存？食材、调味料、剩菜、罐头一网打尽"
-date: 2026-04-28
+date: 2026-03-29
 main_category: "生活攻略"
 sub_category: "生活之问"
 extra_categories:

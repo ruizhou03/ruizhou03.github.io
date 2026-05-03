@@ -2,7 +2,7 @@
 layout: recipe
 title: "家庭版麦乐鸡块"
 slug: "mailejikuai"
-date: 2026-04-23
+date: 2026-01-22
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

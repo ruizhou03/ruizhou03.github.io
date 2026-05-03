@@ -2,7 +2,7 @@
 layout: recipe
 title: "空气炸锅薯条"
 slug: "zhashutiao"
-date: 2026-04-23
+date: 2026-03-28
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

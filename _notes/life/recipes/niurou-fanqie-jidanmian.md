@@ -2,7 +2,7 @@
 layout: recipe
 title: "牛肉番茄鸡蛋面"
 slug: "niurou-fanqie-jidanmian"
-date: 2026-04-29
+date: 2026-04-04
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

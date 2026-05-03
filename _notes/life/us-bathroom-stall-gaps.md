@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国公共厕所的门为什么留那么多缝隙？"
-date: 2026-05-02
+date: 2026-04-28
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/us-bathroom-stall-gaps"

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "不同衣物多久洗一次合理？牛仔裤穿 10 次再洗的传说是真的吗？"
-date: 2026-04-28
+date: 2026-04-03
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/laundry-frequency"

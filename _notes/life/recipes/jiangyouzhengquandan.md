@@ -2,7 +2,7 @@
 layout: recipe
 title: "酱油蒸全蛋"
 slug: "jiangyouzhengquandan"
-date: 2026-04-23
+date: 2026-02-24
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"

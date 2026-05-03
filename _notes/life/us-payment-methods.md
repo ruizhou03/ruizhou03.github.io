@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "美国支付潜规则：Walmart 不收 Apple Pay、小店拒 Amex、现金折扣背后的逻辑"
-date: 2026-04-28
+date: 2026-02-27
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-payment-methods"

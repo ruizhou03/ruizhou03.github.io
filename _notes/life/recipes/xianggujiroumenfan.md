@@ -2,7 +2,7 @@
 layout: recipe
 title: "香菇鸡肉焖饭"
 slug: "xianggujiroumenfan"
-date: 2026-04-23
+date: 2026-03-04
 author: "Zircon"
 main_category: "生活攻略"
 sub_category: "菜谱"
