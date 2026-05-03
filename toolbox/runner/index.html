@@ -208,8 +208,8 @@ permalink: /toolbox/runner/
   <details class="about">
     <summary>关于这个游戏</summary>
     <p><strong>玩法：</strong>无限跑酷，速度越来越快。地面会出现高高低低的<strong>纸堆</strong>（论文 / 文献综述 / reviewer 报告），半空会飞过<strong>邮件信封</strong>（Reviewer 2、IRB 修改意见、deadline 提醒）。撞到任意一个就结束，看你能跑多远。</p>
-    <p><strong>变高跳：</strong>按住跳跃键能跳更高，松手就开始下落。短按用来过矮的纸堆，长按用来过双连堆或飞得高的信封。</p>
-    <p><strong>蹲：</strong>遇到飞过来的信封按 <code>↓</code> 蹲下钻过去（有些信封太低跳不过，只能蹲）。</p>
+    <p><strong>跳跃（按压时长 = 跳多高）：</strong>瞬点跳约 1/3 屏高，过小/中纸堆；半按跳约 1/2 屏高，过双连堆或高纸堆；按住到峰值后会进入<strong>滑翔</strong>（手臂横展，最多 0.4 秒），用来跨密集段。<strong>滑翔起点 = 这次按出来的实际峰值</strong>——按多久就从多高滑过去，是同一根连续的"力度"。松手任何时候立刻恢复正常重力。</p>
+    <p><strong>蹲：</strong><code>↓</code> 蹲下钻过低位飞邮件（envelope-duck，站着会撞）。空中按 <code>↓</code> 会取消滑翔、加速降落。</p>
     <p><strong>速度：</strong>从 6 px/帧 起步，每往前 100 米快一点，到 14 px/帧 封顶——真到这速度，眼睛已经反应不过来了。</p>
     <p><strong>纯本地：</strong>最高分本机 localStorage 保存，不联网、不上传。刷新还在，换浏览器没了。</p>
   </details>
@@ -220,12 +220,16 @@ permalink: /toolbox/runner/
   // ── 常量 ──────────────────────────────
   const GAME_W = 600, GAME_H = 150;          // 逻辑空间
   const GROUND_Y = 130;                       // 地平线 y 值（玩家脚底）
-  const GRAVITY = 0.55;
-  const JUMP_VY = -10.5;
-  // 按住跳更高：5 帧内每帧给 -0.30 上升加成，加成 + 重力净 +0.25/帧（接近 0 减速）。
-  // 短按峰值约 100 px（≈ y=30），长按峰值约 127 px（≈ y=3，画布顶部边缘）。
-  const HOLD_BONUS_FRAMES = 5;
-  const HOLD_BONUS_VY = -0.30;
+  // 跳跃 = "按压时长 → 跳多高 + 滑翔起点" 的统一模型：
+  //  起跳给固定冲量 -6.5；上升期按住用更小重力 0.18（飞得久 = 飞得高）；
+  //  下降期按住用很小重力 0.22 = 滑翔；松手任何时候立刻恢复正常重力 0.55。
+  // 实测峰值：瞬点 ~42 px / 半按 ~54 px / 全按 ~64 px + 24 帧滑翔。
+  const JUMP_VY = -6.5;
+  const GRAV_NORMAL = 0.55;
+  const GRAV_RISE_HELD = 0.18;
+  const GRAV_FALL_HELD = 0.22;
+  const HOLD_RISE_MAX_FRAMES = 8;
+  const HOLD_GLIDE_MAX_FRAMES = 24;
   const SPEED_MIN = 6;
   const SPEED_MAX = 14;
   const SPEED_RAMP = 0.0008;                  // 每帧速度增量
@@ -285,6 +289,7 @@ permalink: /toolbox/runner/
       jumping: false,
       ducking: false,
       jumpHeldFrames: 0,
+      glideFrames: 0,        // 滑翔已持续多少帧（仅在下降+按住时累加）
       runFrame: 0,
     },
     input: {
@@ -321,6 +326,7 @@ permalink: /toolbox/runner/
     state.player.jumping = false;
     state.player.ducking = false;
     state.player.jumpHeldFrames = 0;
+    state.player.glideFrames = 0;
     state.player.runFrame = 0;
   }
 
@@ -356,6 +362,7 @@ permalink: /toolbox/runner/
       p.vy = JUMP_VY;
       p.jumping = true;
       p.jumpHeldFrames = 0;
+      p.glideFrames = 0;
       p.ducking = false;
     }
   }
@@ -527,24 +534,38 @@ permalink: /toolbox/runner/
     const p = state.player;
 
     if (p.jumping) {
-      // 变高跳：起跳早期还按着 jump，向上速度再加成
-      if (state.input.jumpDown && p.jumpHeldFrames < HOLD_BONUS_FRAMES && p.vy < 0) {
-        p.vy += HOLD_BONUS_VY;
-      }
+      // 重力切换：上升按住 → 慢减速 = 高跳；下降按住 → 慢加速 = 滑翔；松手即正常重力
+      const rising     = p.vy < 0;
+      const inRiseHold = state.input.jumpDown && rising  && p.jumpHeldFrames < HOLD_RISE_MAX_FRAMES;
+      const inGlide    = state.input.jumpDown && !rising && p.glideFrames    < HOLD_GLIDE_MAX_FRAMES;
+      let g;
+      if (inRiseHold)       g = GRAV_RISE_HELD;
+      else if (inGlide)   { g = GRAV_FALL_HELD; p.glideFrames++; }
+      else                  g = GRAV_NORMAL;
+
+      p.vy += g;
+      p.y  += p.vy;
       p.jumpHeldFrames++;
-      p.vy += GRAVITY;
-      p.y += p.vy;
+
       if (p.y >= GROUND_Y) {
         p.y = GROUND_Y;
         p.vy = 0;
         p.jumping = false;
         p.jumpHeldFrames = 0;
+        p.glideFrames = 0;
         // 落地时如果还按着 ↓，进入蹲
         if (state.input.duckDown) p.ducking = true;
       }
     } else {
       p.runFrame++;
     }
+  }
+
+  // 滑翔判定（drawPlayer 用，state 也可读）
+  function isGliding() {
+    const p = state.player;
+    return p.jumping && p.vy >= 0 && state.input.jumpDown
+      && p.glideFrames > 0 && p.glideFrames < HOLD_GLIDE_MAX_FRAMES;
   }
 
   // ── 碰撞 ──────────────────────────────
@@ -666,8 +687,18 @@ permalink: /toolbox/runner/
       ctx.fillStyle = palette.ink;
       // 身体
       roundRect(x - 7, y - 22, 14, 14, 2);
-      // 手臂（跑步：前后摆；跳：前伸）
-      if (jumping) {
+      // 手臂（跑步：前后摆；跳：前伸；滑翔：横向展开成"翼"）
+      const gliding = isGliding();
+      if (gliding) {
+        // 滑翔：双臂大幅横展，accent 色，一眼能看出"在滑翔"
+        ctx.fillStyle = palette.accent;
+        ctx.fillRect(x - 17, y - 19, 9, 3);   // 左翼
+        ctx.fillRect(x + 8,  y - 19, 9, 3);   // 右翼
+        // 翼尖小点装饰
+        ctx.fillRect(x - 18, y - 18, 1, 1);
+        ctx.fillRect(x + 17, y - 18, 1, 1);
+        ctx.fillStyle = palette.ink;
+      } else if (jumping) {
         ctx.fillRect(x + 6, y - 21, 6, 3);   // 前伸右臂
         ctx.fillRect(x - 12, y - 19, 5, 3);  // 略后左臂
       } else {
