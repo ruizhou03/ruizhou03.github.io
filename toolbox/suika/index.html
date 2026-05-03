@@ -323,7 +323,7 @@ permalink: /toolbox/suika/
   let engine, world;
   let walls = [];
   let nextLevel = pickSpawnLevel();   // 排队中的下一个
-  let currentBody = null;             // 当前悬浮的水果
+  let hoverFruit = null;              // 当前悬浮的水果（纯数据，不是 Matter body）
   let score = 0;
   let highScore = parseInt(localStorage.getItem(HIGH_KEY) || '0', 10);
   let melonsCount = parseInt(localStorage.getItem(MELONS_KEY) || '0', 10);
@@ -403,42 +403,36 @@ permalink: /toolbox/suika/
   }
 
   // ============ 悬浮水果 + 投放 ============
+  // 关键设计：悬浮水果 *不是* Matter body。它只是 {level, x} 数据 + canvas 直接画。
+  // 投放时才把它转成一个真正的 dynamic Matter body 加入 world。
+  // 这样彻底避开 Matter 的 isStatic/collisionFilter/mass-restoration 等坑。
   let hoverX = W / 2;
-
-  function spawnHoveringFruit() {
-    if (isOver) return;
-    const level = nextLevel;
-    nextLevel = pickSpawnLevel();
-    updateNextFruitUI();
-
-    const fruit = FRUITS[level - 1];
-    const x = clampHoverX(hoverX, fruit.radius);
-    currentBody = createFruitBody(level, x, SPAWN_Y, {
-      isStatic: true,
-      collisionFilter: { mask: 0 },  // 悬浮时不参与碰撞
-    });
-    World.add(world, currentBody);
-  }
 
   function clampHoverX(x, radius) {
     return Math.max(radius + 4, Math.min(W - radius - 4, x));
   }
 
+  function spawnHoveringFruit() {
+    if (isOver) return;
+    hoverFruit = { level: nextLevel, x: hoverX };
+    nextLevel = pickSpawnLevel();
+    updateNextFruitUI();
+  }
+
   function moveHover(x) {
-    if (!currentBody || isOver || isPaused) return;
-    const fruit = FRUITS[currentBody.fruitLevel - 1];
+    if (!hoverFruit || isOver || isPaused) return;
     hoverX = x;
-    const cx = clampHoverX(x, fruit.radius);
-    Body.setPosition(currentBody, { x: cx, y: SPAWN_Y });
+    hoverFruit.x = x;
   }
 
   function dropCurrent() {
-    if (!currentBody || isOver || isPaused || dropCooldown) return;
-    Body.setStatic(currentBody, false);
-    // 只改 mask 字段，不要替换整个 collisionFilter 对象
-    // （否则 category / group 会丢，碰撞检测全失效，水果穿过地板）
-    currentBody.collisionFilter.mask = 0xFFFFFFFF;
-    currentBody = null;
+    if (!hoverFruit || isOver || isPaused || dropCooldown) return;
+    const fruit = FRUITS[hoverFruit.level - 1];
+    const x = clampHoverX(hoverFruit.x, fruit.radius);
+    // 直接创建 dynamic body — 不走 isStatic/collisionFilter 那一套
+    const body = createFruitBody(hoverFruit.level, x, SPAWN_Y);
+    World.add(world, body);
+    hoverFruit = null;
     dropCooldown = true;
     setTimeout(() => {
       dropCooldown = false;
@@ -479,14 +473,13 @@ permalink: /toolbox/suika/
 
   document.addEventListener('keydown', e => {
     if (isOver || isPaused) return;
-    if (!currentBody) return;
-    const fruit = FRUITS[currentBody.fruitLevel - 1];
+    if (!hoverFruit) return;
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      moveHover(currentBody.position.x - 18);
+      moveHover(hoverFruit.x - 18);
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
-      moveHover(currentBody.position.x + 18);
+      moveHover(hoverFruit.x + 18);
     } else if (e.key === ' ' || e.key === 'Spacebar') {
       e.preventDefault();
       dropCurrent();
@@ -548,22 +541,31 @@ permalink: /toolbox/suika/
     ctx.setLineDash([]);
 
     // 投放预测线（点划线）
-    if (currentBody && !isOver && !isPaused) {
+    if (hoverFruit && !isOver && !isPaused) {
+      const fruit = FRUITS[hoverFruit.level - 1];
+      const x = clampHoverX(hoverFruit.x, fruit.radius);
       ctx.strokeStyle = 'rgba(120, 120, 120, 0.35)';
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 6]);
       ctx.beginPath();
-      ctx.moveTo(currentBody.position.x, currentBody.position.y);
-      ctx.lineTo(currentBody.position.x, H - WALL);
+      ctx.moveTo(x, SPAWN_Y);
+      ctx.lineTo(x, H - WALL);
       ctx.stroke();
       ctx.setLineDash([]);
     }
 
-    // 所有水果
+    // 所有已投放的水果（在 Matter 里）
     Composite.allBodies(world).forEach(b => {
       if (!b.fruitLevel) return;
-      drawFruit(b);
+      drawFruitAt(FRUITS[b.fruitLevel - 1], b.position.x, b.position.y, b.circleRadius, b.angle);
     });
+
+    // 悬浮水果（不在 Matter 里，最后画在最上层）
+    if (hoverFruit && !isOver && !isPaused) {
+      const fruit = FRUITS[hoverFruit.level - 1];
+      const x = clampHoverX(hoverFruit.x, fruit.radius);
+      drawFruitAt(fruit, x, SPAWN_Y, fruit.radius, 0);
+    }
 
     // 暂停遮罩
     if (isPaused) {
@@ -577,12 +579,7 @@ permalink: /toolbox/suika/
     }
   }
 
-  function drawFruit(body) {
-    const fruit = FRUITS[body.fruitLevel - 1];
-    const { x, y } = body.position;
-    const r = body.circleRadius;
-    const angle = body.angle;
-
+  function drawFruitAt(fruit, x, y, r, angle) {
     // 圆形底色（带渐变高光）
     const grad = ctx.createRadialGradient(
       x - r * 0.3, y - r * 0.3, r * 0.1,
@@ -652,10 +649,7 @@ permalink: /toolbox/suika/
   function gameOver() {
     if (isOver) return;
     isOver = true;
-    if (currentBody) {
-      World.remove(world, currentBody);
-      currentBody = null;
-    }
+    hoverFruit = null;  // 清掉悬浮（纯数据，不需要 World.remove）
     const wasNewBest = score >= highScore;
     $ovTitle.textContent = '游戏结束';
     $ovScore.textContent = score;
@@ -678,7 +672,7 @@ permalink: /toolbox/suika/
     score = 0;
     dangerSince = null;
     dropCooldown = false;
-    currentBody = null;
+    hoverFruit = null;
     nextLevel = pickSpawnLevel();
     $overlay.classList.remove('open');
     $gameZone.classList.remove('over');
@@ -708,6 +702,11 @@ permalink: /toolbox/suika/
   setupWorld();
   spawnHoveringFruit();
   updateNextFruitUI();
+  console.log('[suika] init complete', {
+    matterVersion: Matter && Matter.version,
+    canvasW: W, canvasH: H,
+    hoverFruit, nextLevel,
+  });
   requestAnimationFrame(tick);
 
   // 窗口尺寸变化重设
