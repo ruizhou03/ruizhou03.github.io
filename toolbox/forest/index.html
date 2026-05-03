@@ -195,33 +195,181 @@ permalink: /toolbox/forest/
     font-size: 0.78rem; font-weight: 400;
     color: var(--color-muted);
   }
-  .forest-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 0.5rem;
+  /* ============ 田地 ============ */
+  .field-toolbar {
+    display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;
+    margin-bottom: 0.7rem;
   }
-  .forest-tree {
-    aspect-ratio: 1;
-    background: var(--color-bg-warm);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.6rem;
-    cursor: pointer;
-    transition: all 0.15s;
+  .field-toolbar button {
+    font: inherit; font-size: 0.8rem;
+    padding: 0.35rem 0.85rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted);
+    cursor: pointer; transition: all 0.18s;
+  }
+  .field-toolbar button.active {
+    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+  }
+  .field-toolbar button:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .field-toolbar .spacer { flex-grow: 1; }
+  .field-toolbar .field-hint {
+    font-size: 0.78rem; color: var(--color-light);
+    font-style: italic;
+  }
+
+  .field {
     position: relative;
+    width: 100%;
+    background: linear-gradient(180deg, #c8d8a8 0%, #b3c790 60%, #a3b87f 100%);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.06);
+    user-select: none;
+    -webkit-user-select: none;
   }
-  .forest-tree:hover {
-    transform: scale(1.1);
-    background: rgba(30, 58, 95, 0.1);
-    z-index: 2;
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .field {
+      background: linear-gradient(180deg, #3d4a32 0%, #2e3826 60%, #232a1e 100%);
+    }
   }
-  .forest-tree.dead { opacity: 0.35; filter: grayscale(0.8); font-size: 1.2rem; }
+  :root[data-theme="dark"] .field {
+    background: linear-gradient(180deg, #3d4a32 0%, #2e3826 60%, #232a1e 100%);
+  }
+  .field.edit-mode {
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 0 2px var(--color-accent);
+  }
+  .field-cell-grid {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 12.5% 90px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .field.edit-mode .field-cell-grid { opacity: 1; }
+
+  .tree-instance {
+    position: absolute;
+    width: 90px; height: 90px;
+    display: flex; align-items: flex-end; justify-content: center;
+    cursor: pointer;
+    transition: transform 0.18s, filter 0.18s;
+    will-change: transform;
+  }
+  .tree-instance svg {
+    width: 100%; height: 100%; pointer-events: none;
+  }
+  .tree-instance:hover { z-index: 5; }
+  .tree-instance:hover .tree-tooltip { display: block; }
+  .tree-instance.selected { z-index: 6; filter: drop-shadow(0 0 6px rgba(30, 58, 95, 0.5)); }
+  .tree-instance.dragging {
+    z-index: 10; cursor: grabbing;
+    transition: none;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  }
+  .field.edit-mode .tree-instance { cursor: grab; }
+  .tree-instance.dead {
+    opacity: 0.7;
+    filter: grayscale(0.7);
+  }
+  .tree-instance .delete-x {
+    position: absolute;
+    top: -4px; right: -4px;
+    width: 22px; height: 22px;
+    background: #c0392b; color: #fff;
+    border-radius: 50%;
+    display: none;
+    align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    z-index: 7;
+  }
+  .field.edit-mode .tree-instance .delete-x { display: flex; }
+  .tree-instance .delete-x:hover { background: #e74c3c; transform: scale(1.1); }
+
+  .tree-tooltip {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(20, 25, 30, 0.92);
+    color: #fff;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    pointer-events: none;
+    margin-bottom: 6px;
+    line-height: 1.45;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+  .tree-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(20, 25, 30, 0.92);
+  }
+
+  /* 详情 popover */
+  .tree-detail {
+    position: fixed;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    z-index: 100;
+    min-width: 240px;
+    max-width: 90vw;
+    display: none;
+  }
+  .tree-detail.open { display: block; }
+  .tree-detail .td-row {
+    display: flex; align-items: baseline; gap: 0.5rem;
+    margin-bottom: 0.35rem;
+    font-size: 0.88rem;
+  }
+  .tree-detail .td-row .label { color: var(--color-muted); width: 60px; flex-shrink: 0; font-size: 0.78rem; }
+  .tree-detail .td-row .value { color: var(--color-ink); }
+  .tree-detail .td-actions {
+    display: flex; gap: 0.4rem; margin-top: 0.85rem;
+    border-top: 1px solid var(--color-border); padding-top: 0.7rem;
+  }
+  .tree-detail .td-actions button {
+    flex-grow: 1;
+    font: inherit; font-size: 0.82rem;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    background: var(--color-bg); color: var(--color-muted);
+    cursor: pointer; transition: all 0.18s;
+  }
+  .tree-detail .td-actions button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .tree-detail .td-actions button.danger:hover { border-color: #c0392b; color: #c0392b; }
+  .tree-detail .tier-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background: var(--color-bg-warm);
+    color: var(--color-muted);
+    margin-left: 0.4rem;
+  }
+  .tree-detail .tier-badge.tier-4 { background: rgba(201, 169, 110, 0.25); color: #b08838; }
 
   .empty-forest {
     text-align: center;
-    padding: 2rem 1rem;
+    padding: 2.5rem 1rem;
     color: var(--color-light);
     font-size: 0.9rem;
+    background: var(--color-bg-warm);
+    border-radius: 10px;
   }
 
   .reset-row { text-align: center; margin-top: 1rem; }
@@ -238,6 +386,9 @@ permalink: /toolbox/forest/
     .stage { padding: 1.4rem 1rem 1.2rem; }
     .timer-display { font-size: 2.6rem; }
     .stats-grid { grid-template-columns: 1fr 1fr 1fr; }
+    .tree-instance { width: 70px; height: 70px; }
+    .field-cell-grid { background-size: 25% 70px; }
+    .tree-tooltip { font-size: 0.72rem; }
   }
 
   /* 锁屏遮罩（focus 时） */
@@ -395,12 +546,24 @@ permalink: /toolbox/forest/
     </div>
 
     <div class="forest-title">
-      <span>🌲 我的森林</span>
+      <span>🌲 我的田地</span>
       <small id="forest-meta"></small>
     </div>
-    <div class="forest-grid" id="forest-grid"></div>
+    <div class="field-toolbar">
+      <button type="button" id="edit-mode-btn">✎ 整理</button>
+      <span class="spacer"></span>
+      <span class="field-hint" id="field-hint">点击树查看详情 · 拖动可挪位置</span>
+    </div>
+    <div class="field" id="field">
+      <div class="field-cell-grid"></div>
+      <!-- 树由 JS 动态渲染 -->
+    </div>
     <div class="empty-forest" id="empty-forest" style="display: none;">
-      还没有种过树——开始第一棵吧
+      🌱 田地空空如也——种第一棵吧
+    </div>
+
+    <div class="tree-detail" id="tree-detail">
+      <!-- 详情内容由 JS 动态填充 -->
     </div>
 
     <div class="reset-row">
@@ -479,7 +642,6 @@ permalink: /toolbox/forest/
   const $statToday = document.getElementById('stat-today');
   const $statWeek = document.getElementById('stat-week');
   const $statTotalMin = document.getElementById('stat-total-min');
-  const $forestGrid = document.getElementById('forest-grid');
   const $forestMeta = document.getElementById('forest-meta');
   const $emptyForest = document.getElementById('empty-forest');
   const $resetBtn = document.getElementById('reset-btn');
@@ -627,6 +789,146 @@ permalink: /toolbox/forest/
     }
   }
 
+  // ============ 田地树（按 tier 渲染最终形态）============
+  // tier 1-4 对应不同的形态/大小
+  function durationToTier(min) {
+    if (min < 20) return 1;       // 幼苗
+    if (min < 40) return 2;       // 成树
+    if (min < 70) return 3;       // 大树
+    return 4;                     // 巨树（带装饰）
+  }
+  const TIER_NAME = { 1: '幼苗', 2: '成树', 3: '大树', 4: '巨树' };
+  // 每个 tier 的 base scale（应用到 SVG 内部尺寸）
+  const TIER_SCALE = { 1: 0.55, 2: 0.78, 3: 1.0, 4: 1.25 };
+
+  function buildFieldTreeSvg(type, tier, dead) {
+    if (dead) {
+      // 枯萎树：所有 tier 都画成枯枝形态
+      return `<svg viewBox="0 0 100 100">
+        <ellipse cx="50" cy="92" rx="20" ry="3.5" fill="#7a6248" opacity="0.35"/>
+        <path d="M50 88 L50 60 M50 75 L42 65 M50 70 L57 60 M50 65 L45 55" stroke="#7a6248" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        <circle cx="42" cy="64" r="1.5" fill="#7a6248"/>
+        <circle cx="57" cy="59" r="1.5" fill="#7a6248"/>
+      </svg>`;
+    }
+
+    const s = TIER_SCALE[tier] || 1;
+    const cx = 50;          // SVG 横向中心
+    const groundY = 92;     // 树根所在 y
+    const ground = `<ellipse cx="${cx}" cy="${groundY}" rx="22" ry="3" fill="rgba(0,0,0,0.18)"/>`;
+
+    let body = '';
+    let decoration = '';
+
+    if (type === 'pine') {
+      // 松树：三角层叠
+      const layers = tier;
+      const baseW = 28 * s;
+      const layerH = 18 * s;
+      const trunkH = 8 * s;
+      const trunkW = 3 * s;
+      const trunkTop = groundY - trunkH;
+      body = `<rect x="${cx - trunkW/2}" y="${trunkTop}" width="${trunkW}" height="${trunkH + 2}" fill="#6b4f2e" rx="0.5"/>`;
+      for (let i = 0; i < layers; i++) {
+        const ly = trunkTop - i * layerH * 0.85;
+        const lw = baseW * (1 - i * 0.2);
+        body += `<polygon fill="#3d6e3d" points="${cx - lw/2},${ly} ${cx + lw/2},${ly} ${cx},${ly - layerH * 1.05}"/>`;
+      }
+      if (tier === 4) {
+        // 巨树松树：顶上挂个小星星
+        const top = trunkTop - layers * layerH * 0.85 - layerH * 1.05;
+        decoration = `<text x="${cx}" y="${top + 3}" text-anchor="middle" font-size="6">⭐</text>`;
+      }
+    } else if (type === 'sakura') {
+      const trunkH = 14 * s;
+      const trunkW = 3 * s;
+      const trunkTop = groundY - trunkH;
+      body = `<rect x="${cx - trunkW/2}" y="${trunkTop}" width="${trunkW}" height="${trunkH + 2}" fill="#6b4f2e" rx="0.5"/>`;
+      const r = 12 * s + tier * 1.5;
+      body += `
+        <circle fill="#f4b7c8" cx="${cx}" cy="${trunkTop - r * 0.55}" r="${r}"/>
+        <circle fill="#fad5e0" cx="${cx - r * 0.5}" cy="${trunkTop - r * 0.85}" r="${r * 0.6}"/>
+        <circle fill="#f7c5d3" cx="${cx + r * 0.5}" cy="${trunkTop - r * 0.75}" r="${r * 0.55}"/>
+      `;
+      if (tier === 4) {
+        // 巨树樱花：飘落花瓣
+        decoration = `
+          <text x="${cx + r * 0.7}" y="${groundY - 6}" font-size="5">🌸</text>
+          <text x="${cx - r * 0.9}" y="${groundY - 16}" font-size="4" opacity="0.7">🌸</text>
+        `;
+      }
+    } else if (type === 'palm') {
+      const trunkH = 24 * s;
+      const trunkW = 3 * s;
+      const trunkTop = groundY - trunkH;
+      body = `<path d="M ${cx - trunkW/2} ${groundY} Q ${cx - trunkW/2 - 1.5} ${(groundY + trunkTop)/2} ${cx + 1} ${trunkTop} L ${cx + 1 + trunkW} ${trunkTop} Q ${cx + 0.5} ${(groundY + trunkTop)/2 + 1.5} ${cx + trunkW/2} ${groundY} Z" fill="#6b4f2e"/>`;
+      const leafL = 14 + tier * 4;
+      const leafCount = Math.min(7, 3 + tier);
+      for (let i = 0; i < leafCount; i++) {
+        const angle = (i / leafCount) * 360 + 30;
+        const rad = angle * Math.PI / 180;
+        const ex = cx + Math.cos(rad) * leafL;
+        const ey = trunkTop + Math.sin(rad) * leafL * 0.55;
+        body += `<ellipse fill="#3d8543" cx="${(cx + ex)/2}" cy="${(trunkTop + ey)/2 - 1}" rx="${leafL/2}" ry="2.5" transform="rotate(${angle} ${(cx + ex)/2} ${(trunkTop + ey)/2})" opacity="0.92"/>`;
+      }
+      if (tier === 4) {
+        // 巨树椰子树：挂椰子
+        decoration = `
+          <circle fill="#5e4327" cx="${cx + 4}" cy="${trunkTop + 2}" r="2.2"/>
+          <circle fill="#5e4327" cx="${cx - 4}" cy="${trunkTop + 4}" r="2"/>
+          <circle fill="#5e4327" cx="${cx}" cy="${trunkTop}" r="1.8"/>
+        `;
+      }
+    } else if (type === 'cactus') {
+      const w = 9 + tier * 1.2;
+      const h = 24 + tier * 6;
+      const top = groundY - h;
+      body = `<rect fill="#5fa05f" x="${cx - w/2}" y="${top}" width="${w}" height="${h}" rx="${w/2}"/>`;
+      if (tier >= 2) {
+        const armW = 4;
+        body += `<rect fill="#5fa05f" x="${cx - w/2 - armW + 0.5}" y="${top + h * 0.35}" width="${armW}" height="${h * 0.4}" rx="${armW/2}"/>`;
+        body += `<rect fill="#5fa05f" x="${cx - w/2 - armW + 0.5}" y="${top + h * 0.35 - armW}" width="${armW + 1}" height="${armW}" rx="2"/>`;
+      }
+      if (tier >= 3) {
+        const armW = 4;
+        body += `<rect fill="#5fa05f" x="${cx + w/2 - 0.5}" y="${top + h * 0.5}" width="${armW}" height="${h * 0.32}" rx="${armW/2}"/>`;
+        body += `<rect fill="#5fa05f" x="${cx + w/2 - 1}" y="${top + h * 0.5 - armW}" width="${armW + 1}" height="${armW}" rx="2"/>`;
+      }
+      // 仙人掌的小毛刺
+      for (let i = 0; i < tier + 1; i++) {
+        const yy = top + (i + 1) * h / (tier + 2);
+        body += `<line x1="${cx - 0.5}" y1="${yy}" x2="${cx + 0.5}" y2="${yy}" stroke="#3a6535" stroke-width="0.5"/>`;
+      }
+      if (tier === 4) {
+        // 巨树仙人掌：顶上开花
+        decoration = `<text x="${cx}" y="${top + 1}" text-anchor="middle" font-size="6">🌸</text>`;
+      }
+    } else {
+      // 默认：橡树（圆形树冠）
+      const trunkH = 12 * s;
+      const trunkW = 3 * s;
+      const trunkTop = groundY - trunkH;
+      body = `<rect x="${cx - trunkW/2}" y="${trunkTop}" width="${trunkW}" height="${trunkH + 2}" fill="#6b4f2e" rx="0.5"/>`;
+      const r = 11 * s + tier * 2;
+      body += `
+        <circle fill="#5a8a3e" cx="${cx}" cy="${trunkTop - r * 0.5}" r="${r}"/>
+        <circle fill="#6ba053" cx="${cx - r * 0.45}" cy="${trunkTop - r * 0.85}" r="${r * 0.6}"/>
+        <circle fill="#5a8a3e" cx="${cx + r * 0.45}" cy="${trunkTop - r * 0.75}" r="${r * 0.55}"/>
+        <circle fill="#4a7a35" cx="${cx + r * 0.05}" cy="${trunkTop - r * 0.25}" r="${r * 0.45}"/>
+      `;
+      if (tier === 4) {
+        // 巨橡树：果实（红色小点）
+        decoration = `
+          <circle fill="#c0392b" cx="${cx - r * 0.3}" cy="${trunkTop - r * 0.55}" r="1.8"/>
+          <circle fill="#c0392b" cx="${cx + r * 0.4}" cy="${trunkTop - r * 0.4}" r="1.6"/>
+          <circle fill="#e74c3c" cx="${cx - r * 0.05}" cy="${trunkTop - r * 0.95}" r="1.5"/>
+        `;
+      }
+    }
+
+    return `<svg viewBox="0 0 100 100">${ground}${body}${decoration}</svg>`;
+  }
+
   // ============ Timer ============
   function fmtTime(sec) {
     const m = Math.floor(Math.max(0, sec) / 60);
@@ -727,6 +1029,7 @@ permalink: /toolbox/forest/
         endTime: Date.now(),
         success: true,
       };
+      assignNewPosition(tree);
       state.trees.push(tree);
       saveTrees();
       state.cycleCount++;
@@ -799,6 +1102,7 @@ permalink: /toolbox/forest/
         success: false,
         reason: reason || 'gave_up',
       };
+      assignNewPosition(tree);
       state.trees.push(tree);
       saveTrees();
       $timerStatus.textContent = reason === 'left_page'
@@ -901,48 +1205,333 @@ permalink: /toolbox/forest/
     });
   });
 
-  // ============ Stats ============
+  // ============ Stats + 田地视图 ============
+  const COLS_DESKTOP = 8;
+  const COLS_MOBILE = 4;
+  const CELL_DESKTOP = 90;
+  const CELL_MOBILE = 70;
+
+  // 田地相关 DOM
+  const $field = document.getElementById('field');
+  const $editModeBtn = document.getElementById('edit-mode-btn');
+  const $fieldHint = document.getElementById('field-hint');
+  const $treeDetail = document.getElementById('tree-detail');
+
+  let editMode = false;
+  let openDetailId = null;
+
+  function getFieldDimensions() {
+    const isMobile = window.innerWidth <= 600;
+    return {
+      cols: isMobile ? COLS_MOBILE : COLS_DESKTOP,
+      cellSize: isMobile ? CELL_MOBILE : CELL_DESKTOP,
+    };
+  }
+
+  function ensurePositions() {
+    // 给所有 没有 position 的树自动分配
+    const { cols } = getFieldDimensions();
+    const occupied = new Set();
+    state.trees.forEach(t => {
+      if (t.position) {
+        occupied.add(`${t.position.col},${t.position.row}`);
+      }
+    });
+    let nextSlot = { col: 0, row: 0 };
+    function advance() {
+      nextSlot.col++;
+      if (nextSlot.col >= cols) { nextSlot.col = 0; nextSlot.row++; }
+    }
+    state.trees.forEach(t => {
+      if (!t.position) {
+        while (occupied.has(`${nextSlot.col},${nextSlot.row}`)) advance();
+        t.position = { col: nextSlot.col, row: nextSlot.row };
+        occupied.add(`${nextSlot.col},${nextSlot.row}`);
+        advance();
+      }
+    });
+  }
+
+  function assignNewPosition(newTree) {
+    // 找下一个空位（按 row, col 顺序），不影响已有 trees
+    const { cols } = getFieldDimensions();
+    const occupied = new Set();
+    state.trees.forEach(t => {
+      if (t.position) occupied.add(`${t.position.col},${t.position.row}`);
+    });
+    for (let row = 0; row < 200; row++) {
+      for (let col = 0; col < cols; col++) {
+        if (!occupied.has(`${col},${row}`)) {
+          newTree.position = { col, row };
+          return;
+        }
+      }
+    }
+    // 兜底
+    newTree.position = { col: 0, row: 0 };
+  }
+
   function renderStats() {
-    const now = Date.now();
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const startOfWeek = new Date(startOfToday);
-    startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay()); // 周日开始
+    startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
 
     const successTrees = state.trees.filter(t => t.success);
-    const todayCount = successTrees.filter(t => t.endTime >= startOfToday.getTime()).length;
-    const weekCount = successTrees.filter(t => t.endTime >= startOfWeek.getTime()).length;
-    const totalMin = successTrees.reduce((s, t) => s + t.durationMinutes, 0);
+    $statToday.textContent = successTrees.filter(t => t.endTime >= startOfToday.getTime()).length;
+    $statWeek.textContent = successTrees.filter(t => t.endTime >= startOfWeek.getTime()).length;
+    $statTotalMin.textContent = Math.round(successTrees.reduce((s, t) => s + t.durationMinutes, 0));
 
-    $statToday.textContent = todayCount;
-    $statWeek.textContent = weekCount;
-    $statTotalMin.textContent = Math.round(totalMin);
+    // 田地
+    ensurePositions();
+    renderField();
+  }
 
-    // 森林视图：最近 60 棵（包含失败的，失败的 dead）
-    const recent = state.trees.slice(-60).reverse();
-    if (recent.length === 0) {
-      $forestGrid.innerHTML = '';
+  function renderField() {
+    if (state.trees.length === 0) {
+      $field.style.display = 'none';
       $emptyForest.style.display = '';
       $forestMeta.textContent = '';
+      hideDetail();
       return;
     }
     $emptyForest.style.display = 'none';
+    $field.style.display = '';
+
     const total = state.trees.length;
     const dead = state.trees.filter(t => !t.success).length;
-    $forestMeta.textContent = `共 ${total} 棵 · 枯萎 ${dead} 棵`;
-    $forestGrid.innerHTML = recent.map(t => {
-      const emoji = t.success ? TREE_EMOJI[t.type] || '🌳' : DEAD_EMOJI;
-      const cls = t.success ? '' : 'dead';
-      const date = new Date(t.endTime).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
-      const titleParts = [
-        t.success ? `${TREE_NAME[t.type]}（成）` : `${TREE_NAME[t.type]}（枯萎）`,
-        `${t.durationMinutes} 分${t.attemptedMinutes ? `（实际 ${t.attemptedMinutes} 分）` : ''}`,
-        date,
-      ];
-      if (t.task) titleParts.push(t.task);
-      const title = titleParts.join(' · ');
-      return `<div class="forest-tree ${cls}" title="${title.replace(/"/g, '&quot;')}">${emoji}</div>`;
-    }).join('');
+    const grand = state.trees.filter(t => t.success && durationToTier(t.durationMinutes) === 4).length;
+    const metaParts = [`共 ${total} 棵`];
+    if (dead > 0) metaParts.push(`枯萎 ${dead}`);
+    if (grand > 0) metaParts.push(`巨树 ${grand}`);
+    $forestMeta.textContent = metaParts.join(' · ');
+
+    const { cols, cellSize } = getFieldDimensions();
+    // 计算最大行数 → field 高度
+    let maxRow = 0;
+    state.trees.forEach(t => { if (t.position && t.position.row > maxRow) maxRow = t.position.row; });
+    const rows = Math.max(2, maxRow + 1) + (editMode ? 1 : 0);  // 编辑模式多一行作为目标空间
+    const fieldHeight = rows * cellSize + 30;
+    $field.style.height = fieldHeight + 'px';
+
+    // 渲染所有树（清空再 build）
+    // 保留 .field-cell-grid 子元素，移除其它
+    const grid = $field.querySelector('.field-cell-grid');
+    Array.from($field.querySelectorAll('.tree-instance')).forEach(el => el.remove());
+
+    state.trees.forEach(t => {
+      if (!t.position) return;
+      const tier = t.success ? durationToTier(t.durationMinutes) : 1;
+      const x = t.position.col * cellSize + (cellSize - (cellSize - 6)) / 2;
+      const y = t.position.row * cellSize + 5;
+      const div = document.createElement('div');
+      div.className = 'tree-instance' + (t.success ? '' : ' dead');
+      div.dataset.id = t.id;
+      div.style.width = (cellSize - 6) + 'px';
+      div.style.height = (cellSize - 6) + 'px';
+      div.style.left = x + 'px';
+      div.style.top = y + 'px';
+      div.innerHTML = buildFieldTreeSvg(t.type, tier, !t.success);
+      // 工具提示（hover 显示在 tree 上方）
+      const date = new Date(t.endTime).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+      const tipText = t.success
+        ? `${TREE_NAME[t.type]}（${TIER_NAME[tier]}）· ${t.durationMinutes} 分 · ${date}`
+        : `${TREE_NAME[t.type]}（枯萎）· ${date}`;
+      const tip = document.createElement('div');
+      tip.className = 'tree-tooltip';
+      tip.textContent = tipText;
+      div.appendChild(tip);
+      // 编辑模式删除按钮
+      const deleteX = document.createElement('div');
+      deleteX.className = 'delete-x';
+      deleteX.textContent = '×';
+      deleteX.dataset.id = t.id;
+      deleteX.addEventListener('click', e => {
+        e.stopPropagation();
+        deleteTree(t.id);
+      });
+      div.appendChild(deleteX);
+
+      // 拖动 + 点击
+      attachInteractions(div, t.id);
+
+      $field.appendChild(div);
+    });
+  }
+
+  function deleteTree(id) {
+    const t = state.trees.find(x => x.id === id);
+    if (!t) return;
+    const label = t.success ? `${TREE_NAME[t.type]}（${t.durationMinutes} 分）` : `${TREE_NAME[t.type]}（枯萎）`;
+    if (!confirm(`铲除这棵${label}？该操作不可撤销。`)) return;
+    state.trees = state.trees.filter(x => x.id !== id);
+    saveTrees();
+    hideDetail();
+    renderStats();
+  }
+
+  // ============ 拖动 + 点击 ============
+  function attachInteractions(div, treeId) {
+    let startX, startY;        // pointer position at down
+    let startLeft, startTop;   // div position at down
+    let dragging = false;
+    let pointerId = null;
+
+    div.addEventListener('pointerdown', (e) => {
+      if (e.target.classList.contains('delete-x')) return;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      startLeft = parseFloat(div.style.left);
+      startTop = parseFloat(div.style.top);
+      dragging = false;
+      div.setPointerCapture(pointerId);
+
+      const onMove = (ev) => {
+        if (ev.pointerId !== pointerId) return;
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        if (!dragging && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+          dragging = true;
+          div.classList.add('dragging');
+        }
+        if (dragging) {
+          div.style.left = (startLeft + dx) + 'px';
+          div.style.top = (startTop + dy) + 'px';
+        }
+      };
+
+      const onUp = (ev) => {
+        if (ev.pointerId !== pointerId) return;
+        div.removeEventListener('pointermove', onMove);
+        div.removeEventListener('pointerup', onUp);
+        div.removeEventListener('pointercancel', onUp);
+        if (div.hasPointerCapture(pointerId)) div.releasePointerCapture(pointerId);
+        if (dragging) {
+          div.classList.remove('dragging');
+          // snap to nearest grid cell
+          snapTreeToCell(div, treeId);
+        } else {
+          // 视为单击 → 显示详情
+          showDetail(treeId, div);
+        }
+        pointerId = null;
+      };
+
+      div.addEventListener('pointermove', onMove);
+      div.addEventListener('pointerup', onUp);
+      div.addEventListener('pointercancel', onUp);
+    });
+  }
+
+  function snapTreeToCell(div, treeId) {
+    const t = state.trees.find(x => x.id === treeId);
+    if (!t) return;
+    const { cols, cellSize } = getFieldDimensions();
+    const left = parseFloat(div.style.left);
+    const top = parseFloat(div.style.top);
+    let col = Math.round(left / cellSize);
+    let row = Math.round(top / cellSize);
+    col = Math.max(0, Math.min(cols - 1, col));
+    row = Math.max(0, row);
+
+    // 检测占位冲突 → 跟那棵树交换位置
+    const occupant = state.trees.find(x => x !== t && x.position && x.position.col === col && x.position.row === row);
+    if (occupant) {
+      occupant.position = { col: t.position.col, row: t.position.row };
+    }
+    t.position = { col, row };
+    saveTrees();
+    renderField();
+  }
+
+  // ============ 详情 popover ============
+  function showDetail(treeId, anchorEl) {
+    const t = state.trees.find(x => x.id === treeId);
+    if (!t) return;
+    const tier = t.success ? durationToTier(t.durationMinutes) : 0;
+    const date = new Date(t.endTime).toLocaleString('zh-CN', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+    });
+    const startDate = new Date(t.startTime).toLocaleTimeString('zh-CN', {
+      hour: '2-digit', minute: '2-digit',
+    });
+    const endDate = new Date(t.endTime).toLocaleTimeString('zh-CN', {
+      hour: '2-digit', minute: '2-digit',
+    });
+    const taskRow = t.task ? `
+      <div class="td-row"><span class="label">任务</span><span class="value">${escapeHtml(t.task)}</span></div>
+    ` : '';
+    const statusRow = t.success
+      ? `<div class="td-row"><span class="label">树形</span><span class="value">${TREE_NAME[t.type]} <span class="tier-badge tier-${tier}">${TIER_NAME[tier]}</span></span></div>`
+      : `<div class="td-row"><span class="label">状态</span><span class="value" style="color:#c0392b;">🥀 枯萎了</span></div>`;
+    const durationRow = t.success
+      ? `<div class="td-row"><span class="label">专注</span><span class="value"><strong>${t.durationMinutes} 分钟</strong></span></div>`
+      : `<div class="td-row"><span class="label">专注</span><span class="value">坚持了 ${t.attemptedMinutes || 0} 分（目标 ${t.durationMinutes} 分）</span></div>`;
+
+    $treeDetail.innerHTML = `
+      ${statusRow}
+      ${durationRow}
+      <div class="td-row"><span class="label">时间</span><span class="value">${startDate}–${endDate}</span></div>
+      <div class="td-row"><span class="label">日期</span><span class="value">${date.split(' ')[0]}</span></div>
+      ${taskRow}
+      <div class="td-actions">
+        <button type="button" class="danger" id="td-delete">🪓 铲除</button>
+        <button type="button" id="td-close">关闭</button>
+      </div>
+    `;
+
+    // 定位：贴在树上方/下方
+    const rect = anchorEl.getBoundingClientRect();
+    const popH = 220;  // approximate
+    const popW = 280;
+    let top = rect.top - popH - 8;
+    if (top < 8) top = rect.bottom + 8;
+    let left = rect.left + rect.width / 2 - popW / 2;
+    left = Math.max(8, Math.min(window.innerWidth - popW - 8, left));
+    $treeDetail.style.top = top + 'px';
+    $treeDetail.style.left = left + 'px';
+    $treeDetail.classList.add('open');
+    openDetailId = treeId;
+
+    document.getElementById('td-delete').addEventListener('click', () => deleteTree(treeId));
+    document.getElementById('td-close').addEventListener('click', hideDetail);
+  }
+
+  function hideDetail() {
+    $treeDetail.classList.remove('open');
+    openDetailId = null;
+  }
+
+  document.addEventListener('click', e => {
+    if (!openDetailId) return;
+    if (e.target.closest('.tree-detail') || e.target.closest('.tree-instance')) return;
+    hideDetail();
+  });
+
+  // ============ Edit mode toggle ============
+  $editModeBtn.addEventListener('click', () => {
+    editMode = !editMode;
+    $field.classList.toggle('edit-mode', editMode);
+    $editModeBtn.classList.toggle('active', editMode);
+    $editModeBtn.textContent = editMode ? '✓ 完成整理' : '✎ 整理';
+    $fieldHint.textContent = editMode
+      ? '拖动树挪位置 · 点 × 铲除 · 完成后再点一次按钮'
+      : '点击树查看详情 · 拖动可挪位置';
+    hideDetail();
+    renderField();
+  });
+
+  // 窗口尺寸变化 → 重新计算
+  window.addEventListener('resize', () => {
+    if (state.trees.length > 0) renderField();
+  });
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
   }
 
   $resetBtn.addEventListener('click', () => {
