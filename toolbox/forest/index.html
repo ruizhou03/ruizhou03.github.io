@@ -471,7 +471,124 @@ permalink: /toolbox/forest/
     flex-direction: column;
     color: #fff;
     padding: 2rem;
+    overflow: hidden;
+    transition: background 0.6s;
   }
+  /* 主题：背景层 */
+  .focus-overlay.theme-night { background: linear-gradient(180deg, #1a2818 0%, #0d150a 100%); }
+  .focus-overlay.theme-bubbles { background: linear-gradient(180deg, #1a3a5e 0%, #0d2540 100%); }
+  .focus-overlay.theme-stars { background: linear-gradient(180deg, #1f0f3a 0%, #0a0518 100%); }
+  .focus-overlay.theme-sunrise {
+    background: linear-gradient(180deg, #d35a45 0%, #e88a5a 40%, #f0c478 100%);
+    animation: sunriseShift 90s ease-in-out infinite alternate;
+  }
+  .focus-overlay.theme-rain { background: linear-gradient(180deg, #2d3a4a 0%, #15202d 100%); }
+  .focus-overlay.theme-aurora {
+    background: linear-gradient(180deg, #0a1a3e 0%, #1a3a5a 60%, #0a2840 100%);
+  }
+  .focus-overlay.theme-aurora::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 30%, rgba(80, 220, 180, 0.35), transparent 50%),
+      radial-gradient(ellipse at 70% 50%, rgba(140, 100, 220, 0.3), transparent 55%),
+      radial-gradient(ellipse at 50% 20%, rgba(70, 200, 230, 0.25), transparent 60%);
+    animation: auroraDrift 20s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  @keyframes sunriseShift {
+    0% { background: linear-gradient(180deg, #b34e3a 0%, #d68658 40%, #e8b86a 100%); }
+    50% { background: linear-gradient(180deg, #d35a45 0%, #e88a5a 40%, #f0c478 100%); }
+    100% { background: linear-gradient(180deg, #6b3a2a 0%, #b3614a 40%, #e0a060 100%); }
+  }
+  @keyframes auroraDrift {
+    0% { transform: translateY(0) scale(1); }
+    100% { transform: translateY(-20px) scale(1.05); }
+  }
+
+  /* particles container */
+  .overlay-particles {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  /* 气泡 */
+  .particle.bubble {
+    position: absolute;
+    bottom: -60px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.5), rgba(135, 206, 250, 0.2));
+    box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.3);
+    animation: bubbleRise linear infinite;
+  }
+  @keyframes bubbleRise {
+    0% { bottom: -60px; opacity: 0; transform: translateX(0); }
+    8% { opacity: 0.7; }
+    50% { transform: translateX(15px); }
+    100% { bottom: 110%; opacity: 0; transform: translateX(-10px); }
+  }
+  /* 星星 */
+  .particle.star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+    animation: twinkle ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; transform: scale(0.7); }
+    50% { opacity: 1; transform: scale(1.4); }
+  }
+  /* 雨 */
+  .particle.raindrop {
+    position: absolute;
+    width: 1.5px;
+    background: linear-gradient(180deg, transparent 0%, rgba(180, 200, 255, 0.65) 100%);
+    animation: rainFall linear infinite;
+  }
+  @keyframes rainFall {
+    0% { transform: translateY(-120px); opacity: 0; }
+    15% { opacity: 1; }
+    100% { transform: translateY(115vh); opacity: 0; }
+  }
+  /* 极光：用浮动光斑 */
+  .particle.aurora-blob {
+    position: absolute;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.4;
+    animation: auroraFloat ease-in-out infinite alternate;
+  }
+  @keyframes auroraFloat {
+    0% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+    100% { transform: translate(30px, -20px) scale(1.15); opacity: 0.55; }
+  }
+  /* 太阳光晕（日出主题） */
+  .particle.sun {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 230, 150, 0.7) 0%, rgba(255, 200, 100, 0.3) 40%, transparent 70%);
+    filter: blur(2px);
+    animation: sunPulse 6s ease-in-out infinite alternate;
+  }
+  @keyframes sunPulse {
+    0% { opacity: 0.6; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1.08); }
+  }
+
+  /* 树位置 */
+  .overlay-tree-zone { position: relative; z-index: 2; }
+  .focus-overlay .timer-big,
+  .focus-overlay .focus-tag,
+  .focus-overlay .focus-warn,
+  .focus-overlay .give-up-btn,
+  .focus-overlay .pomodoro-counter,
+  .focus-overlay .grace-banner { position: relative; z-index: 3; }
+
+  /* 计时风格 */
+  .focus-overlay.timer-hidden .timer-big { display: none; }
   .focus-overlay.open { display: flex; }
   .focus-overlay svg { width: min(280px, 60vw); height: min(280px, 60vw); }
   .focus-overlay .timer-big {
@@ -589,6 +706,22 @@ permalink: /toolbox/forest/
       <span style="flex-grow: 1;"></span>
       <span style="color: var(--color-light); font-size: 0.78rem;" id="pomodoro-hint">休息 5 分</span>
     </div>
+    <div class="setting-row">
+      <label>🎨 主题</label>
+      <select id="theme-bg" style="font: inherit; padding: 0.35rem 0.5rem; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); color: var(--color-ink); cursor: pointer;">
+        <option value="night">🌙 沉浸夜</option>
+        <option value="bubbles">🫧 气泡</option>
+        <option value="stars">⭐ 星空</option>
+        <option value="sunrise">🌅 日出</option>
+        <option value="rain">🌧 雨</option>
+        <option value="aurora">🌌 极光</option>
+      </select>
+      <select id="theme-timer" style="font: inherit; padding: 0.35rem 0.5rem; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); color: var(--color-ink); cursor: pointer;">
+        <option value="countdown">⏱ 倒计时</option>
+        <option value="countup">⏳ 正计时</option>
+        <option value="hidden">🌳 只看树</option>
+      </select>
+    </div>
   </div>
 
   <!-- ========== 主操作 ========== -->
@@ -648,8 +781,9 @@ permalink: /toolbox/forest/
 
 <!-- ========== 全屏 focus 遮罩 ========== -->
 <div class="focus-overlay" id="focus-overlay">
+  <div class="overlay-particles" id="overlay-particles"></div>
   <div class="pomodoro-counter" id="overlay-counter" style="display: none;">第 1 个番茄</div>
-  <div id="overlay-tree-container"></div>
+  <div id="overlay-tree-container" class="overlay-tree-zone"></div>
   <div class="timer-big" id="overlay-timer">25:00</div>
   <div class="focus-tag" id="overlay-tag">专心</div>
   <div class="focus-warn" id="overlay-warn">离开这个页面 / 切换 tab 超过 15 秒，树会枯萎。</div>
@@ -665,6 +799,7 @@ permalink: /toolbox/forest/
   const ACTIVE_KEY = 'tool.forest.active.v1';
   const FIELDS_KEY = 'tool.forest.fields.v1';
   const ACTIVE_FIELD_KEY = 'tool.forest.activeField.v1';
+  const THEME_KEY = 'tool.forest.theme.v1';
 
   const TREE_EMOJI = {
     oak: '🌳', pine: '🌲', sakura: '🌸', palm: '🌴', cactus: '🌵',
@@ -686,6 +821,7 @@ permalink: /toolbox/forest/
     breakMode: false,   // 当前 session 是 break 还是 focus
     fields: [],         // 田块列表 [{id, name, createdAt}]
     activeFieldId: null,
+    theme: { background: 'night', timer: 'countdown' },
   };
 
   // 焦点时长 → 推荐休息时长
@@ -799,6 +935,116 @@ permalink: /toolbox/forest/
 
   function activeFieldTrees() {
     return state.trees.filter(t => t.fieldId === state.activeFieldId);
+  }
+
+  // ============ Theme ============
+  function loadTheme() {
+    try {
+      const raw = localStorage.getItem(THEME_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.background) state.theme.background = parsed.background;
+        if (parsed.timer) state.theme.timer = parsed.timer;
+      }
+    } catch (e) {}
+  }
+  function saveTheme() {
+    try { localStorage.setItem(THEME_KEY, JSON.stringify(state.theme)); } catch (e) {}
+  }
+
+  function rand(min, max) { return min + Math.random() * (max - min); }
+
+  function applyTheme() {
+    if (!$overlay) return;
+    // 清掉所有 theme-* 类，只加当前
+    $overlay.className = $overlay.className.replace(/\btheme-\w+\b/g, '').replace(/\btimer-\w+\b/g, '');
+    $overlay.classList.add('theme-' + state.theme.background);
+    $overlay.classList.add('timer-' + state.theme.timer);
+    renderParticles();
+  }
+
+  function renderParticles() {
+    const $particles = document.getElementById('overlay-particles');
+    if (!$particles) return;
+    $particles.innerHTML = '';
+    const bg = state.theme.background;
+
+    if (bg === 'bubbles') {
+      for (let i = 0; i < 18; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle bubble';
+        const size = rand(8, 22);
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = rand(0, 100) + '%';
+        p.style.animationDuration = rand(7, 14) + 's';
+        p.style.animationDelay = rand(0, 10) + 's';
+        $particles.appendChild(p);
+      }
+    } else if (bg === 'stars') {
+      for (let i = 0; i < 80; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle star';
+        const size = rand(1.2, 2.8);
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = rand(0, 100) + '%';
+        p.style.top = rand(0, 80) + '%';
+        p.style.animationDuration = rand(2, 5) + 's';
+        p.style.animationDelay = rand(0, 5) + 's';
+        $particles.appendChild(p);
+      }
+    } else if (bg === 'rain') {
+      for (let i = 0; i < 60; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle raindrop';
+        p.style.height = rand(20, 50) + 'px';
+        p.style.left = rand(0, 100) + '%';
+        p.style.top = rand(-50, -20) + 'px';
+        p.style.animationDuration = rand(0.5, 1.2) + 's';
+        p.style.animationDelay = rand(0, 1.5) + 's';
+        $particles.appendChild(p);
+      }
+    } else if (bg === 'aurora') {
+      const colors = [
+        'radial-gradient(circle, rgba(80, 220, 180, 0.6), transparent 70%)',
+        'radial-gradient(circle, rgba(140, 100, 220, 0.55), transparent 70%)',
+        'radial-gradient(circle, rgba(70, 200, 230, 0.5), transparent 70%)',
+        'radial-gradient(circle, rgba(180, 100, 200, 0.5), transparent 70%)',
+      ];
+      for (let i = 0; i < 4; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle aurora-blob';
+        p.style.background = colors[i];
+        p.style.left = rand(10, 75) + '%';
+        p.style.top = rand(10, 50) + '%';
+        p.style.animationDuration = rand(8, 14) + 's';
+        p.style.animationDelay = rand(0, 4) + 's';
+        $particles.appendChild(p);
+      }
+    } else if (bg === 'sunrise') {
+      // 太阳 + 几个云朵感
+      const sun = document.createElement('div');
+      sun.className = 'particle sun';
+      sun.style.width = '180px';
+      sun.style.height = '180px';
+      sun.style.left = '60%';
+      sun.style.top = '12%';
+      $particles.appendChild(sun);
+      // 几个小光晕
+      for (let i = 0; i < 3; i++) {
+        const halo = document.createElement('div');
+        halo.className = 'particle sun';
+        halo.style.width = rand(60, 100) + 'px';
+        halo.style.height = halo.style.width;
+        halo.style.left = rand(10, 80) + '%';
+        halo.style.top = rand(20, 60) + '%';
+        halo.style.opacity = '0.5';
+        halo.style.animationDelay = rand(0, 4) + 's';
+        $particles.appendChild(halo);
+      }
+    }
+    // night: 不加粒子，纯背景
   }
 
   // ============ Tree SVG ============
@@ -1085,6 +1331,7 @@ permalink: /toolbox/forest/
     state.breakMode = isBreak;
     saveActive(state.session);
 
+    applyTheme();   // 套用主题 + 生成粒子
     $overlay.classList.add('open');
     $overlay.classList.toggle('break-mode', isBreak);
 
@@ -1120,9 +1367,17 @@ permalink: /toolbox/forest/
     const progress = Math.min(1, elapsed / state.session.duration);
 
     const remainSec = Math.ceil(remaining / 1000);
-    const txt = fmtTime(remainSec);
-    $timerDisplay.textContent = txt;
-    $overlayTimer.textContent = txt;
+    const elapsedSec = Math.floor(elapsed / 1000);
+    const remainTxt = fmtTime(remainSec);
+    const elapsedTxt = fmtTime(elapsedSec);
+    // 主页 timer 始终倒计时（不被 theme 影响）
+    $timerDisplay.textContent = remainTxt;
+    // overlay timer 跟随 theme.timer 设定
+    if (state.theme.timer === 'countup') {
+      $overlayTimer.textContent = elapsedTxt;
+    } else {
+      $overlayTimer.textContent = remainTxt;  // countdown / hidden 都用 remainTxt（hidden 时 CSS 隐藏）
+    }
     if (remainSec <= 60 && remainSec > 0) {
       $timerDisplay.classList.add('warn');
       $overlayTimer.style.color = state.session.isBreak ? '#88c8ff' : '#ffb88c';
@@ -1830,10 +2085,27 @@ permalink: /toolbox/forest/
     renderStats();
   });
 
+  // ============ Theme settings UI ============
+  const $themeBg = document.getElementById('theme-bg');
+  const $themeTimer = document.getElementById('theme-timer');
+  $themeBg.addEventListener('change', () => {
+    state.theme.background = $themeBg.value;
+    saveTheme();
+    if (state.session) applyTheme();   // 进行中也即时切
+  });
+  $themeTimer.addEventListener('change', () => {
+    state.theme.timer = $themeTimer.value;
+    saveTheme();
+    if (state.session) applyTheme();
+  });
+
   // ============ Init ============
   loadTrees();
   loadFields();
+  loadTheme();
   migrateFieldsAndTrees();
+  $themeBg.value = state.theme.background;
+  $themeTimer.value = state.theme.timer;
   $timerDisplay.textContent = fmtTime(state.duration * 60);
   renderTree(0);
   renderFieldTabs();
