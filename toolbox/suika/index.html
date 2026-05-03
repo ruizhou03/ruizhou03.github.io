@@ -670,8 +670,17 @@ permalink: /toolbox/suika/
   function mergeFruits(a, b) {
     const level = a.fruitLevel;
     const newLevel = level + 1;
-    const x = (a.position.x + b.position.x) / 2;
-    const y = (a.position.y + b.position.y) / 2;
+    let x = (a.position.x + b.position.x) / 2;
+    let y = (a.position.y + b.position.y) / 2;
+
+    // 关键：合成位置必须夹紧到墙体内，否则新水果（半径变大）可能直接嵌进底面 —
+    // Matter 的 slop 只有 0.05 px，大幅穿模 + 合并爆炸 popVel 一推就直接穿出去消失。
+    // 葡萄（r=23）→ 橘子（r=30）正好踩这个坑：两葡萄贴底面 y≈517，midpoint 还是 ≈517，
+    // 但橘子下边缘 =547 > 地面顶 540 = 嵌进 7 px，Matter 处理不了 → 水果"消失"。
+    const newRadius = FRUITS[newLevel - 1].radius;
+    x = Math.max(newRadius + 1, Math.min(W - newRadius - 1, x));
+    y = Math.min(H - newRadius - 1, y);
+
     World.remove(world, [a, b]);
     const merged = createFruitBody(newLevel, x, y);
     World.add(world, merged);
@@ -683,7 +692,6 @@ permalink: /toolbox/suika/
     const popVel = (-3.5 - newLevel * 0.4) * expMult;
     Body.setVelocity(merged, { x: (Math.random() - 0.5) * 1.2 * expMult, y: popVel });
 
-    const newRadius = FRUITS[newLevel - 1].radius;
     const pushRange = newRadius * 2.2;
     const pushStrength = (0.025 + newLevel * 0.005) * expMult;
     Composite.allBodies(world).forEach(other => {
