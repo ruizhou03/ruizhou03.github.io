@@ -81,6 +81,23 @@ permalink: /toolbox/
       margin-right: 0.4rem;
       vertical-align: middle;
     }
+    .section-divider {
+      margin: 2.4rem 0 1rem;
+      padding-top: 1.6rem;
+      border-top: 1px dashed var(--color-border);
+      text-align: center;
+    }
+    .section-divider h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: var(--color-ink);
+      margin: 0 0 0.3rem;
+    }
+    .section-divider .sub {
+      color: var(--color-light);
+      font-style: italic;
+      font-size: 0.9rem;
+    }
   </style>
 
   <div class="tool-grid">
@@ -166,6 +183,43 @@ permalink: /toolbox/
       <div class="tool-icon">👁️</div>
       <div class="tool-name">视力自测</div>
       <div class="tool-desc">浏览器内的家庭视力筛查：信用卡校准 + 距离预设 + Tumbling E 自适应 + 散光盘。左右眼分测，结果以 20/X 给。仅作筛查参考，不替代验光。</div>
+      <div class="tool-status"><span class="dot"></span>已上线</div>
+    </a>
+
+  </div>
+
+  <div class="section-divider">
+    <h2>🎮 小游戏</h2>
+    <div class="sub">纯离线，打发碎片时间</div>
+  </div>
+
+  <div class="tool-grid">
+
+    <a class="tool-card live" href="{{ '/toolbox/2048/' | relative_url }}">
+      <div class="tool-icon">🎯</div>
+      <div class="tool-name">2048</div>
+      <div class="tool-desc">滑动合并相同数字凑 2048。3×3 / 4×4 / 5×5 三种棋盘，撤销一步、自动存档、按尺寸分别记最高分，通关后还能继续到 4096。</div>
+      <div class="tool-status"><span class="dot"></span>已上线</div>
+    </a>
+
+    <a class="tool-card live" href="{{ '/toolbox/snake/' | relative_url }}">
+      <div class="tool-icon">🐍</div>
+      <div class="tool-name">贪吃蛇</div>
+      <div class="tool-desc">经典街机款。方向键 / WASD / 移动端虚拟方向键，慢中快三档速度各自记最高分。空格暂停。</div>
+      <div class="tool-status"><span class="dot"></span>已上线</div>
+    </a>
+
+    <a class="tool-card live" href="{{ '/toolbox/minesweeper/' | relative_url }}">
+      <div class="tool-icon">💣</div>
+      <div class="tool-name">扫雷</div>
+      <div class="tool-desc">Windows 经典三难度（9×9 / 16×16 / 16×30）。首次点击保证不踩雷，空格自动 flood-fill。桌面右键插旗，移动端长按 0.4s 插旗，按难度记最佳用时。</div>
+      <div class="tool-status"><span class="dot"></span>已上线</div>
+    </a>
+
+    <a class="tool-card live" href="{{ '/toolbox/gomoku/' | relative_url }}">
+      <div class="tool-icon">⚫</div>
+      <div class="tool-name">五子棋</div>
+      <div class="tool-desc">15×15 木纹棋盘。双人同机或人机对战（可选执黑/白），启发式 AI 评估活四 / 冲四 / 活三等棋型。支持悔棋、胜负计数。</div>
       <div class="tool-status"><span class="dot"></span>已上线</div>
     </a>
 

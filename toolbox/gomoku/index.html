@@ -1,0 +1,487 @@
+---
+layout: default
+title: "五子棋 | Rui Zhou"
+permalink: /toolbox/gomoku/
+---
+
+<style>
+  .gm-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; }
+  .gm-wrap header { text-align: center; margin-bottom: 1.2rem; }
+  .gm-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
+  .gm-wrap header .sub { color: var(--color-light); font-style: italic; font-size: 0.92rem; }
+
+  .gm-controls {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    justify-content: center; align-items: center;
+    margin-bottom: 0.9rem;
+  }
+  .gm-mode-tabs { display: inline-flex; gap: 0.25rem; }
+  .gm-mode-tab {
+    padding: 0.36rem 0.72rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--color-muted);
+    transition: all 0.18s ease;
+  }
+  .gm-mode-tab.active {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+  }
+  .gm-mode-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  .gm-btn {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.86rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--color-ink);
+    transition: all 0.18s ease;
+  }
+  .gm-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  .gm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .gm-statusbar {
+    display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+    font-size: 0.92rem;
+    color: var(--color-ink);
+  }
+  .gm-turn {
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+  }
+  .gm-tally {
+    display: flex; gap: 0.3rem;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    align-items: center;
+  }
+  .gm-tally span { padding: 0.18rem 0.45rem; background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 6px; }
+
+  .gm-canvas-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    aspect-ratio: 1 / 1;
+    background: #e8c896;
+    border: 1px solid #b89870;
+    border-radius: 6px;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  :root[data-theme="dark"] .gm-canvas-wrap { background: #8a6f4f; border-color: #5a4530; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .gm-canvas-wrap { background: #8a6f4f; border-color: #5a4530; }
+  }
+  .gm-canvas-wrap canvas { display: block; width: 100%; height: 100%; }
+
+  .gm-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0.6rem;
+    text-align: center;
+    color: #fff;
+    padding: 1rem;
+  }
+  .gm-overlay.show { display: flex; }
+  .gm-overlay h2 { font-size: 1.6rem; margin: 0; font-family: var(--font-display); }
+
+  .gm-help {
+    margin-top: 1rem;
+    font-size: 0.82rem;
+    color: var(--color-muted);
+    text-align: center;
+    line-height: 1.7;
+  }
+</style>
+
+<div class="gm-wrap">
+  <header>
+    <h1>⚫ 五子棋</h1>
+    <div class="sub">先连成五子者胜 — 横、竖、斜均可</div>
+  </header>
+
+  <div class="gm-controls">
+    <div class="gm-mode-tabs" id="gmModeTabs">
+      <button class="gm-mode-tab active" data-mode="pvp">双人同机</button>
+      <button class="gm-mode-tab" data-mode="ai-black">人机（执黑）</button>
+      <button class="gm-mode-tab" data-mode="ai-white">人机（执白）</button>
+    </div>
+    <button class="gm-btn" id="gmUndoBtn">↶ 悔棋</button>
+    <button class="gm-btn" id="gmNewBtn">🔄 新棋局</button>
+  </div>
+
+  <div class="gm-statusbar">
+    <div class="gm-turn" id="gmTurn">⚫ 黑方下子</div>
+    <div class="gm-tally">
+      <span>黑 <b id="gmTallyB">0</b></span>
+      <span>白 <b id="gmTallyW">0</b></span>
+    </div>
+  </div>
+
+  <div class="gm-canvas-wrap">
+    <canvas id="gmCanvas" width="560" height="560"></canvas>
+    <div class="gm-overlay" id="gmOverlay">
+      <h2 id="gmOvTitle">游戏结束</h2>
+      <button class="gm-btn" id="gmOvBtn">再来一局</button>
+    </div>
+  </div>
+
+  <div class="gm-help">15×15 标准棋盘　·　人机模式 AI 思考约 0.3 秒</div>
+</div>
+
+<script>
+(() => {
+  const STORE_KEY = 'tool.gomoku.v1';
+  const N = 15;
+  const EMPTY = 0, BLACK = 1, WHITE = 2;
+
+  const stored = (() => {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
+    catch { return {}; }
+  })();
+
+  const state = {
+    mode: stored.lastMode || 'pvp',
+    tally: Object.assign({ black: 0, white: 0 }, stored.tally || {}),
+    board: [],
+    history: [],
+    turn: BLACK,
+    over: false,
+    winLine: null,
+    aiThinking: false
+  };
+
+  const canvas = document.getElementById('gmCanvas');
+  const ctx = canvas.getContext('2d');
+  const turnEl = document.getElementById('gmTurn');
+  const tallyB = document.getElementById('gmTallyB');
+  const tallyW = document.getElementById('gmTallyW');
+  const undoBtn = document.getElementById('gmUndoBtn');
+  const newBtn = document.getElementById('gmNewBtn');
+  const overlay = document.getElementById('gmOverlay');
+  const ovTitle = document.getElementById('gmOvTitle');
+  const ovBtn = document.getElementById('gmOvBtn');
+
+  function persist() {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ tally: state.tally, lastMode: state.mode }));
+  }
+
+  function newGame() {
+    state.board = Array.from({ length: N }, () => Array(N).fill(EMPTY));
+    state.history = [];
+    state.turn = BLACK;
+    state.over = false;
+    state.winLine = null;
+    overlay.classList.remove('show');
+    updateStatus();
+    draw();
+    if (state.mode === 'ai-white' && state.turn === BLACK) {
+      // AI plays black first
+      setTimeout(aiMove, 300);
+    }
+  }
+
+  function aiSide() {
+    if (state.mode === 'ai-black') return WHITE;
+    if (state.mode === 'ai-white') return BLACK;
+    return null;
+  }
+  function humanSide() {
+    if (state.mode === 'ai-black') return BLACK;
+    if (state.mode === 'ai-white') return WHITE;
+    return null;
+  }
+
+  function updateStatus() {
+    if (state.over) {
+      turnEl.textContent = state.winLine
+        ? (state.winLine.who === BLACK ? '⚫ 黑方胜' : '⚪ 白方胜')
+        : '— 平局 —';
+    } else {
+      turnEl.textContent = state.turn === BLACK ? '⚫ 黑方下子' : '⚪ 白方下子';
+    }
+    tallyB.textContent = state.tally.black;
+    tallyW.textContent = state.tally.white;
+    undoBtn.disabled = state.history.length === 0 || state.aiThinking;
+    document.querySelectorAll('.gm-mode-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.mode === state.mode);
+    });
+  }
+
+  function draw() {
+    const W = canvas.clientWidth;
+    if (canvas.width !== W) { canvas.width = W; canvas.height = W; }
+    const cs = canvas.width / N;
+    const off = cs / 2;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Grid lines
+    ctx.strokeStyle = '#5a4530';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < N; i++) {
+      ctx.beginPath();
+      ctx.moveTo(off + i * cs, off);
+      ctx.lineTo(off + i * cs, off + (N - 1) * cs);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(off, off + i * cs);
+      ctx.lineTo(off + (N - 1) * cs, off + i * cs);
+      ctx.stroke();
+    }
+    // Star points
+    [[3,3],[3,11],[11,3],[11,11],[7,7]].forEach(([r,c]) => {
+      ctx.fillStyle = '#5a4530';
+      ctx.beginPath();
+      ctx.arc(off + c * cs, off + r * cs, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Stones
+    const stoneR = cs * 0.42;
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const v = state.board[r][c];
+        if (v === EMPTY) continue;
+        const x = off + c * cs, y = off + r * cs;
+        const grad = ctx.createRadialGradient(x - stoneR / 3, y - stoneR / 3, stoneR / 6, x, y, stoneR);
+        if (v === BLACK) {
+          grad.addColorStop(0, '#666');
+          grad.addColorStop(1, '#000');
+        } else {
+          grad.addColorStop(0, '#fff');
+          grad.addColorStop(1, '#c8c8c8');
+        }
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, stoneR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Last-move marker
+    if (state.history.length > 0) {
+      const last = state.history[state.history.length - 1];
+      const x = off + last.c * cs, y = off + last.r * cs;
+      ctx.strokeStyle = '#e74c3c';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, stoneR * 0.35, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Win line highlight
+    if (state.winLine) {
+      ctx.strokeStyle = '#e74c3c';
+      ctx.lineWidth = 3;
+      const a = state.winLine.cells[0];
+      const b = state.winLine.cells[4];
+      ctx.beginPath();
+      ctx.moveTo(off + a.c * cs, off + a.r * cs);
+      ctx.lineTo(off + b.c * cs, off + b.r * cs);
+      ctx.stroke();
+    }
+  }
+
+  function place(r, c, who) {
+    state.board[r][c] = who;
+    state.history.push({ r, c, who });
+    const win = checkWin(r, c, who);
+    if (win) {
+      state.over = true;
+      state.winLine = { cells: win, who };
+      if (who === BLACK) state.tally.black++; else state.tally.white++;
+      persist();
+      ovTitle.textContent = (who === BLACK ? '⚫ 黑方胜' : '⚪ 白方胜');
+      overlay.classList.add('show');
+    } else if (state.history.length === N * N) {
+      state.over = true;
+      ovTitle.textContent = '— 平局 —';
+      overlay.classList.add('show');
+    } else {
+      state.turn = who === BLACK ? WHITE : BLACK;
+    }
+    draw();
+    updateStatus();
+  }
+
+  function checkWin(r, c, who) {
+    const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+    for (const [dr, dc] of dirs) {
+      const cells = [{ r, c }];
+      for (let k = 1; k < 5; k++) {
+        const nr = r + dr * k, nc = c + dc * k;
+        if (nr<0||nr>=N||nc<0||nc>=N||state.board[nr][nc]!==who) break;
+        cells.push({ r: nr, c: nc });
+      }
+      for (let k = 1; k < 5; k++) {
+        const nr = r - dr * k, nc = c - dc * k;
+        if (nr<0||nr>=N||nc<0||nc>=N||state.board[nr][nc]!==who) break;
+        cells.unshift({ r: nr, c: nc });
+      }
+      if (cells.length >= 5) return cells.slice(0, 5);
+    }
+    return null;
+  }
+
+  // ============ AI ============
+  // Heuristic evaluation: scan each line for patterns
+  // Patterns scored: live 4 / live 3 / sleep 4 / sleep 3 / live 2 / sleep 2
+  function evaluatePoint(r, c, who) {
+    const opp = who === BLACK ? WHITE : BLACK;
+    let score = 0;
+    const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+    for (const [dr, dc] of dirs) {
+      // Build a line of 9 centered at (r,c)
+      const line = [];
+      for (let k = -4; k <= 4; k++) {
+        const nr = r + dr * k, nc = c + dc * k;
+        if (nr < 0 || nr >= N || nc < 0 || nc >= N) line.push(-1);
+        else line.push(state.board[nr][nc]);
+      }
+      line[4] = who; // hypothetical move
+      score += scoreLineFor(line, who);
+      line[4] = opp;
+      score += scoreLineFor(line, opp) * 0.85; // defensive
+    }
+    return score;
+  }
+
+  function scoreLineFor(line, who) {
+    // Scan windows of 6 (or 5) and score
+    let s = 0;
+    const opp = who === BLACK ? WHITE : BLACK;
+    const str = line.map(x => x === who ? 'X' : x === opp ? 'O' : x === -1 ? 'B' : '.').join('');
+    const patterns = [
+      ['XXXXX', 100000],
+      ['.XXXX.', 10000],
+      ['.XXXX', 1000], ['XXXX.', 1000],
+      ['XX.XX', 1000], ['X.XXX', 1000], ['XXX.X', 1000],
+      ['.XXX.', 800],
+      ['.XXX', 100], ['XXX.', 100],
+      ['XX.X', 100], ['X.XX', 100],
+      ['.XX.', 50],
+      ['.X.X.', 30],
+      ['.X.', 5]
+    ];
+    for (const [p, v] of patterns) {
+      let i = str.indexOf(p);
+      while (i !== -1) {
+        s += v;
+        i = str.indexOf(p, i + 1);
+      }
+    }
+    return s;
+  }
+
+  function aiMove() {
+    if (state.over) return;
+    const ai = aiSide();
+    if (ai !== state.turn) return;
+    state.aiThinking = true;
+    updateStatus();
+
+    // Find candidate cells (within distance 2 of any stone, or center if first)
+    let candidates = [];
+    if (state.history.length === 0) {
+      candidates.push({ r: 7, c: 7 });
+    } else {
+      const seen = new Set();
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          if (state.board[r][c] !== EMPTY) continue;
+          let near = false;
+          for (let dr = -2; dr <= 2 && !near; dr++)
+            for (let dc = -2; dc <= 2 && !near; dc++) {
+              const nr = r + dr, nc = c + dc;
+              if (nr>=0&&nr<N&&nc>=0&&nc<N&&state.board[nr][nc]!==EMPTY) near = true;
+            }
+          if (near) {
+            const k = r * N + c;
+            if (!seen.has(k)) { seen.add(k); candidates.push({ r, c }); }
+          }
+        }
+      }
+    }
+
+    let best = null, bestScore = -Infinity;
+    for (const { r, c } of candidates) {
+      const s = evaluatePoint(r, c, ai);
+      if (s > bestScore) { bestScore = s; best = { r, c }; }
+    }
+    setTimeout(() => {
+      state.aiThinking = false;
+      if (best) place(best.r, best.c, ai);
+      else updateStatus();
+    }, 280);
+  }
+
+  // Click to place
+  canvas.addEventListener('click', (e) => {
+    if (state.over || state.aiThinking) return;
+    const ai = aiSide();
+    if (ai !== null && state.turn === ai) return;
+    const rect = canvas.getBoundingClientRect();
+    const cs = canvas.width / N;
+    const off = cs / 2;
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const c = Math.round((x - off) / cs);
+    const r = Math.round((y - off) / cs);
+    if (r < 0 || r >= N || c < 0 || c >= N) return;
+    if (state.board[r][c] !== EMPTY) return;
+    place(r, c, state.turn);
+    if (!state.over && aiSide() === state.turn) {
+      setTimeout(aiMove, 100);
+    }
+  });
+
+  // Mode tabs
+  document.getElementById('gmModeTabs').addEventListener('click', (e) => {
+    const t = e.target.closest('.gm-mode-tab');
+    if (!t) return;
+    state.mode = t.dataset.mode;
+    persist();
+    newGame();
+  });
+
+  // Undo: in PvP rollback 1 step; in AI mode rollback 2 steps (to player's previous turn)
+  undoBtn.onclick = () => {
+    if (state.history.length === 0 || state.aiThinking) return;
+    const steps = aiSide() != null ? Math.min(2, state.history.length) : 1;
+    for (let i = 0; i < steps; i++) {
+      const last = state.history.pop();
+      state.board[last.r][last.c] = EMPTY;
+    }
+    state.over = false;
+    state.winLine = null;
+    overlay.classList.remove('show');
+    state.turn = state.history.length === 0 ? BLACK :
+      (state.history[state.history.length - 1].who === BLACK ? WHITE : BLACK);
+    draw();
+    updateStatus();
+  };
+
+  newBtn.onclick = newGame;
+  ovBtn.onclick = newGame;
+
+  window.addEventListener('resize', draw);
+
+  newGame();
+})();
+</script>

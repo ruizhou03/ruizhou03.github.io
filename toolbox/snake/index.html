@@ -1,0 +1,390 @@
+---
+layout: default
+title: "贪吃蛇 | Rui Zhou"
+permalink: /toolbox/snake/
+---
+
+<style>
+  .sn-wrap { max-width: 560px; margin: 0 auto; padding: 1rem; }
+  .sn-wrap header { text-align: center; margin-bottom: 1.2rem; }
+  .sn-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
+  .sn-wrap header .sub { color: var(--color-light); font-style: italic; font-size: 0.92rem; }
+
+  .sn-scorebar {
+    display: flex; gap: 0.6rem; justify-content: center;
+    margin-bottom: 0.9rem;
+  }
+  .sn-score-box {
+    flex: 1; max-width: 130px;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 0.5rem 0.6rem;
+    text-align: center;
+  }
+  .sn-score-box .label {
+    font-size: 0.72rem; color: var(--color-muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 0.1rem;
+  }
+  .sn-score-box .value {
+    font-family: var(--font-display);
+    font-size: 1.5rem; font-weight: 600;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .sn-controls {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    justify-content: center; align-items: center;
+    margin-bottom: 0.9rem;
+  }
+  .sn-speed-tabs { display: inline-flex; gap: 0.25rem; }
+  .sn-speed-tab {
+    padding: 0.36rem 0.72rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--color-muted);
+    transition: all 0.18s ease;
+  }
+  .sn-speed-tab.active {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+  }
+  .sn-speed-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  .sn-btn {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.86rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--color-ink);
+    transition: all 0.18s ease;
+  }
+  .sn-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+  .sn-canvas-wrap {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    background: #ddd6c8;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  :root[data-theme="dark"] .sn-canvas-wrap { background: #2a2a26; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .sn-canvas-wrap { background: #2a2a26; }
+  }
+  .sn-canvas-wrap canvas { display: block; width: 100%; height: 100%; }
+
+  .sn-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0.6rem;
+    text-align: center;
+    color: #fff;
+    padding: 1rem;
+  }
+  .sn-overlay.show { display: flex; }
+  .sn-overlay h2 { font-size: 1.6rem; margin: 0; font-family: var(--font-display); }
+
+  .sn-dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 56px);
+    grid-template-rows: repeat(3, 56px);
+    gap: 0.3rem;
+    margin: 1rem auto 0;
+    justify-content: center;
+  }
+  .sn-dpad button {
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    font-size: 1.4rem;
+    color: var(--color-ink);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  .sn-dpad button:active { background: var(--color-accent); color: #fff; }
+  .sn-dpad .dp-up    { grid-column: 2; grid-row: 1; }
+  .sn-dpad .dp-left  { grid-column: 1; grid-row: 2; }
+  .sn-dpad .dp-pause { grid-column: 2; grid-row: 2; font-size: 1rem; }
+  .sn-dpad .dp-right { grid-column: 3; grid-row: 2; }
+  .sn-dpad .dp-down  { grid-column: 2; grid-row: 3; }
+
+  .sn-help {
+    margin-top: 1rem;
+    font-size: 0.82rem;
+    color: var(--color-muted);
+    text-align: center;
+    line-height: 1.7;
+  }
+  .sn-help kbd {
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 0.05rem 0.35rem;
+    font-family: ui-monospace, monospace;
+    font-size: 0.78rem;
+  }
+</style>
+
+<div class="sn-wrap">
+  <header>
+    <h1>🐍 贪吃蛇</h1>
+    <div class="sub">吃豆子，别撞墙也别咬到自己</div>
+  </header>
+
+  <div class="sn-scorebar">
+    <div class="sn-score-box">
+      <div class="label">Score</div>
+      <div class="value" id="snScore">0</div>
+    </div>
+    <div class="sn-score-box">
+      <div class="label">Best</div>
+      <div class="value" id="snBest">0</div>
+    </div>
+  </div>
+
+  <div class="sn-controls">
+    <div class="sn-speed-tabs" id="snSpeedTabs">
+      <button class="sn-speed-tab" data-speed="slow">慢</button>
+      <button class="sn-speed-tab active" data-speed="mid">中</button>
+      <button class="sn-speed-tab" data-speed="fast">快</button>
+    </div>
+    <button class="sn-btn" id="snPauseBtn">⏸ 暂停</button>
+    <button class="sn-btn" id="snNewBtn">🔄 新游戏</button>
+  </div>
+
+  <div class="sn-canvas-wrap">
+    <canvas id="snCanvas" width="400" height="400"></canvas>
+    <div class="sn-overlay" id="snOverlay">
+      <h2 id="snOvTitle">Game Over</h2>
+      <div id="snOvMsg"></div>
+      <button class="sn-btn" id="snOvBtn">再来一局</button>
+    </div>
+  </div>
+
+  <div class="sn-dpad">
+    <button class="dp-up" data-dir="up">↑</button>
+    <button class="dp-left" data-dir="left">←</button>
+    <button class="dp-pause" data-dir="pause">||</button>
+    <button class="dp-right" data-dir="right">→</button>
+    <button class="dp-down" data-dir="down">↓</button>
+  </div>
+
+  <div class="sn-help">
+    <kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd> 或 <kbd>WASD</kbd>　·　<kbd>空格</kbd> 暂停
+  </div>
+</div>
+
+<script>
+(() => {
+  const STORE_KEY = 'tool.snake.v1';
+  const GRID = 20;
+  const SPEEDS = { slow: 150, mid: 100, fast: 70 };
+
+  const stored = (() => {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
+    catch { return {}; }
+  })();
+
+  const state = {
+    speed: stored.lastSpeed || 'mid',
+    best: Object.assign({ slow: 0, mid: 0, fast: 0 }, stored.best || {}),
+    snake: [],
+    dir: 'right',
+    nextDir: 'right',
+    food: null,
+    score: 0,
+    running: false,
+    paused: false,
+    over: false,
+    timer: null
+  };
+
+  const canvas = document.getElementById('snCanvas');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('snScore');
+  const bestEl = document.getElementById('snBest');
+  const pauseBtn = document.getElementById('snPauseBtn');
+  const newBtn = document.getElementById('snNewBtn');
+  const overlay = document.getElementById('snOverlay');
+  const ovTitle = document.getElementById('snOvTitle');
+  const ovMsg = document.getElementById('snOvMsg');
+  const ovBtn = document.getElementById('snOvBtn');
+
+  function persist() {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ best: state.best, lastSpeed: state.speed }));
+  }
+
+  function placeFood() {
+    while (true) {
+      const x = Math.floor(Math.random() * GRID);
+      const y = Math.floor(Math.random() * GRID);
+      if (!state.snake.some(s => s.x === x && s.y === y)) {
+        state.food = { x, y };
+        return;
+      }
+    }
+  }
+
+  function reset() {
+    const mid = Math.floor(GRID / 2);
+    state.snake = [{ x: mid - 1, y: mid }, { x: mid - 2, y: mid }, { x: mid - 3, y: mid }];
+    state.dir = 'right';
+    state.nextDir = 'right';
+    state.score = 0;
+    state.running = true;
+    state.paused = false;
+    state.over = false;
+    placeFood();
+    overlay.classList.remove('show');
+    pauseBtn.textContent = '⏸ 暂停';
+    updateScores();
+    draw();
+    startLoop();
+  }
+
+  function updateScores() {
+    scoreEl.textContent = state.score;
+    bestEl.textContent = state.best[state.speed] || 0;
+    document.querySelectorAll('.sn-speed-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.speed === state.speed);
+    });
+  }
+
+  function startLoop() {
+    if (state.timer) clearInterval(state.timer);
+    state.timer = setInterval(tick, SPEEDS[state.speed]);
+  }
+  function stopLoop() {
+    if (state.timer) clearInterval(state.timer);
+    state.timer = null;
+  }
+
+  function tick() {
+    if (!state.running || state.paused || state.over) return;
+    state.dir = state.nextDir;
+    const head = { ...state.snake[0] };
+    if (state.dir === 'right') head.x++;
+    else if (state.dir === 'left') head.x--;
+    else if (state.dir === 'up') head.y--;
+    else if (state.dir === 'down') head.y++;
+
+    if (head.x < 0 || head.x >= GRID || head.y < 0 || head.y >= GRID) return gameOver();
+    if (state.snake.some(s => s.x === head.x && s.y === head.y)) return gameOver();
+
+    state.snake.unshift(head);
+    if (head.x === state.food.x && head.y === state.food.y) {
+      state.score++;
+      if (state.score > (state.best[state.speed] || 0)) {
+        state.best[state.speed] = state.score;
+        persist();
+      }
+      placeFood();
+      updateScores();
+    } else {
+      state.snake.pop();
+    }
+    draw();
+  }
+
+  function gameOver() {
+    state.over = true;
+    state.running = false;
+    stopLoop();
+    ovTitle.textContent = 'Game Over';
+    ovMsg.textContent = `本局 ${state.score}　·　最高 ${state.best[state.speed] || 0}`;
+    overlay.classList.add('show');
+  }
+
+  function draw() {
+    const W = canvas.clientWidth;
+    if (canvas.width !== W) {
+      canvas.width = W;
+      canvas.height = W;
+    }
+    const cs = canvas.width / GRID;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Snake
+    state.snake.forEach((s, i) => {
+      ctx.fillStyle = i === 0 ? '#1e3a5f' : '#3a6ea5';
+      ctx.fillRect(s.x * cs + 1, s.y * cs + 1, cs - 2, cs - 2);
+    });
+
+    // Food
+    if (state.food) {
+      ctx.fillStyle = '#e74c3c';
+      ctx.beginPath();
+      ctx.arc(state.food.x * cs + cs / 2, state.food.y * cs + cs / 2, cs * 0.38, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function setDir(d) {
+    if (state.over) return;
+    const opp = { up: 'down', down: 'up', left: 'right', right: 'left' };
+    if (opp[d] === state.dir) return;
+    state.nextDir = d;
+  }
+
+  function togglePause() {
+    if (state.over) return;
+    state.paused = !state.paused;
+    pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+  }
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    if (k === 'arrowup' || k === 'w') { setDir('up'); e.preventDefault(); }
+    else if (k === 'arrowdown' || k === 's') { setDir('down'); e.preventDefault(); }
+    else if (k === 'arrowleft' || k === 'a') { setDir('left'); e.preventDefault(); }
+    else if (k === 'arrowright' || k === 'd') { setDir('right'); e.preventDefault(); }
+    else if (k === ' ') { togglePause(); e.preventDefault(); }
+  });
+
+  // D-pad
+  document.querySelectorAll('.sn-dpad button').forEach(b => {
+    b.addEventListener('click', () => {
+      const d = b.dataset.dir;
+      if (d === 'pause') togglePause();
+      else setDir(d);
+    });
+  });
+
+  // Speed tabs
+  document.getElementById('snSpeedTabs').addEventListener('click', (e) => {
+    const t = e.target.closest('.sn-speed-tab');
+    if (!t) return;
+    state.speed = t.dataset.speed;
+    persist();
+    updateScores();
+    if (state.running) startLoop();
+  });
+
+  pauseBtn.onclick = togglePause;
+  newBtn.onclick = reset;
+  ovBtn.onclick = reset;
+
+  window.addEventListener('resize', draw);
+
+  reset();
+})();
+</script>
