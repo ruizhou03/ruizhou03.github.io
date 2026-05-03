@@ -454,6 +454,71 @@ permalink: /toolbox/forest/
     border-radius: 10px;
   }
 
+  /* ============ 经验值图表 ============ */
+  .exp-chart-zone {
+    margin-top: 1.4rem;
+    padding: 1.1rem 1.2rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+  }
+  .exp-chart-header {
+    display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+  }
+  .exp-chart-header .title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--color-ink);
+    font-size: 1rem;
+  }
+  .exp-chart-header .summary {
+    font-size: 0.8rem;
+    color: var(--color-muted);
+  }
+  .exp-chart-header .summary strong {
+    color: var(--color-accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .exp-range-tabs {
+    display: flex; gap: 0.3rem; flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+  }
+  .exp-range-tabs button {
+    font: inherit; font-size: 0.78rem;
+    padding: 0.32rem 0.7rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted); cursor: pointer;
+    transition: all 0.18s;
+  }
+  .exp-range-tabs button.active {
+    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+  }
+  .exp-range-tabs button:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .exp-chart-svg-wrap { position: relative; }
+  .exp-chart-svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .exp-bar-tooltip {
+    position: absolute;
+    background: rgba(20, 25, 30, 0.92);
+    color: #fff;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    pointer-events: none;
+    white-space: nowrap;
+    transform: translate(-50%, -100%);
+    margin-top: -6px;
+    display: none;
+    z-index: 20;
+    line-height: 1.4;
+  }
+  .exp-empty {
+    text-align: center;
+    padding: 2rem;
+    color: var(--color-light);
+    font-size: 0.85rem;
+  }
+
   .reset-row { text-align: center; margin-top: 1rem; }
   .reset-row button {
     font: inherit; font-size: 0.78rem;
@@ -714,10 +779,14 @@ permalink: /toolbox/forest/
       <label>🍅 Pomodoro</label>
       <label class="pomodoro-toggle" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; user-select: none;">
         <input type="checkbox" id="pomodoro-on" />
-        <span>循环模式（焦点 → 休息 → 焦点 → ...）</span>
+        <span>循环模式（专心 → 休息 → 专心 → 休息）</span>
       </label>
       <span style="flex-grow: 1;"></span>
-      <span style="color: var(--color-light); font-size: 0.78rem;" id="pomodoro-hint">休息 5 分</span>
+      <span style="color: var(--color-muted); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+        休息
+        <input type="number" id="break-min" min="1" max="60" value="5" style="width: 56px; padding: 0.3rem 0.45rem; text-align: center; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); color: var(--color-ink); font: inherit; font-size: 0.88rem;" />
+        分
+      </span>
     </div>
     <div class="setting-row">
       <label>🎨 主题</label>
@@ -786,6 +855,26 @@ permalink: /toolbox/forest/
       <!-- 详情内容由 JS 动态填充 -->
     </div>
 
+    <div class="exp-chart-zone" id="exp-chart-zone">
+      <div class="exp-chart-header">
+        <span class="title">📊 专注经验值</span>
+        <span class="summary" id="exp-summary">—</span>
+      </div>
+      <div class="exp-range-tabs" id="exp-range-tabs">
+        <button type="button" data-range="today">今日（按小时）</button>
+        <button type="button" data-range="7" class="active">最近 7 天</button>
+        <button type="button" data-range="30">最近 30 天</button>
+        <button type="button" data-range="90">最近 90 天</button>
+      </div>
+      <div class="exp-chart-svg-wrap" id="exp-chart-svg-wrap">
+        <svg class="exp-chart-svg" id="exp-chart-svg" viewBox="0 0 720 200" preserveAspectRatio="none"></svg>
+        <div class="exp-bar-tooltip" id="exp-bar-tooltip"></div>
+      </div>
+      <div class="exp-empty" id="exp-empty" style="display: none;">
+        🌱 这个范围内还没专注过——种棵树吧
+      </div>
+    </div>
+
     <div class="reset-row">
       <button type="button" id="reset-btn">清空所有数据</button>
     </div>
@@ -830,19 +919,41 @@ permalink: /toolbox/forest/
     session: null,      // 进行中的 session
     leftAt: null,       // 离开页面的时间戳
     pomodoroOn: false,  // 是否开启循环模式
-    cycleCount: 0,      // 当前循环里完成了几个 focus
+    cycleCount: 0,      // 当前循环里完成了几个 focus（连续完整完成的）
     breakMode: false,   // 当前 session 是 break 还是 focus
+    breakMin: 5,        // 用户自定义的休息分钟（开循环时用）
     fields: [],         // 田块列表 [{id, name, createdAt}]
     activeFieldId: null,
     theme: { background: 'night', timer: 'countdown' },
   };
 
-  // 焦点时长 → 推荐休息时长
+  // 焦点时长 → 推荐休息时长（用户没改时的 default）
   function breakMinutesFor(focusMin) {
     if (focusMin <= 25) return 5;
     if (focusMin <= 50) return 10;
     if (focusMin <= 90) return 20;
-    return Math.round(focusMin / 5);  // 自定义超长 focus 按 1/5 算
+    return Math.round(focusMin / 5);
+  }
+
+  // 循环连击加成：第 N 个连续完成的焦点 → 加成倍数
+  // 1 → 1.0x (普通)；2 → 1.25x；3+ → 1.5x
+  function cycleBonusFor(cycleNum) {
+    if (cycleNum >= 3) return 1.5;
+    if (cycleNum >= 2) return 1.25;
+    return 1.0;
+  }
+
+  // 树的有效 tier（基于 durationMinutes × bonus）
+  function effectiveTier(tree) {
+    if (!tree.success) return 1;
+    const bonus = tree.cycleBonus || 1.0;
+    return durationToTier(tree.durationMinutes * bonus);
+  }
+
+  // 树带来的 "经验值"（图表用）
+  function treeExp(tree) {
+    if (!tree.success) return 0;
+    return tree.durationMinutes * (tree.cycleBonus || 1.0);
   }
 
   // ============ DOM ============
@@ -1332,7 +1443,7 @@ permalink: /toolbox/forest/
 
   function startSession(opts = {}) {
     const isBreak = !!opts.isBreak;
-    const minutes = isBreak ? breakMinutesFor(state.duration) : state.duration;
+    const minutes = isBreak ? state.breakMin : state.duration;
     const startTime = Date.now();
     state.session = {
       startTime,
@@ -1419,12 +1530,16 @@ permalink: /toolbox/forest/
     const wasBreak = !!state.session.isBreak;
 
     if (!wasBreak) {
-      // focus 完成 → 种树
+      // focus 完成 → 种树。循环里第 cycleCount+1 个，加成倍数
+      const cycleNum = state.pomodoroOn ? state.cycleCount + 1 : 1;
+      const bonus = state.pomodoroOn ? cycleBonusFor(cycleNum) : 1.0;
       const tree = {
         id: 'tr-' + Date.now().toString(36),
         type: state.session.treeType,
         task: state.session.task || '',
         durationMinutes: state.session.duration / 60000,
+        cycleBonus: bonus,
+        cycleNum: state.pomodoroOn ? cycleNum : null,
         startTime: state.session.startTime,
         endTime: Date.now(),
         success: true,
@@ -1433,7 +1548,8 @@ permalink: /toolbox/forest/
       state.trees.push(tree);
       saveTrees();
       state.cycleCount++;
-      $timerStatus.textContent = `🌳 种成功一棵 ${TREE_NAME[tree.type]}！专注了 ${tree.durationMinutes} 分钟`;
+      const bonusText = bonus > 1 ? `（×${bonus} 加成！）` : '';
+      $timerStatus.textContent = `🌳 种成功一棵 ${TREE_NAME[tree.type]}！专注了 ${tree.durationMinutes} 分钟${bonusText}`;
     } else {
       // break 完成
       $timerStatus.textContent = '☕ 休息结束！准备下一棵...';
@@ -1448,7 +1564,7 @@ permalink: /toolbox/forest/
     // Pomodoro 自动链：focus 后接 break，break 后接 focus
     if (state.pomodoroOn) {
       const nextIsBreak = !wasBreak;
-      const nextMin = nextIsBreak ? breakMinutesFor(state.duration) : state.duration;
+      const nextMin = nextIsBreak ? state.breakMin : state.duration;
       $graceBanner.textContent = nextIsBreak
         ? `☕ 5 秒后开始 ${nextMin} 分钟休息...`
         : `🌱 5 秒后开始下一棵 ${state.duration} 分钟专注...`;
@@ -1559,18 +1675,20 @@ permalink: /toolbox/forest/
     }
   });
 
-  // ============ Pomodoro toggle ============
+  // ============ Pomodoro toggle + 自定义休息 ============
+  const $breakMin = document.getElementById('break-min');
   $pomodoroOn.addEventListener('change', () => {
     state.pomodoroOn = $pomodoroOn.checked;
-    updatePomodoroHint();
+  });
+  $breakMin.addEventListener('input', () => {
+    const v = parseInt($breakMin.value, 10);
+    if (Number.isFinite(v) && v >= 1 && v <= 60) state.breakMin = v;
   });
   function updatePomodoroHint() {
-    const breakMin = breakMinutesFor(state.duration);
-    if (state.pomodoroOn) {
-      $pomodoroHint.textContent = `休息 ${breakMin} 分 · 自动循环`;
-    } else {
-      $pomodoroHint.textContent = `休息 ${breakMin} 分（开启后才用）`;
-    }
+    // 切换专注时长时，自动建议一个对应的休息时长（用户可手动改）
+    const suggested = breakMinutesFor(state.duration);
+    state.breakMin = suggested;
+    $breakMin.value = suggested;
   }
 
   // ============ Settings UI ============
@@ -1698,6 +1816,8 @@ permalink: /toolbox/forest/
     if (document.getElementById('field-tabs') && document.getElementById('field-tabs').children.length > 0) {
       renderFieldTabs();
     }
+    // 经验值图表
+    if (typeof renderExpChart === 'function') renderExpChart();
   }
 
   function renderField() {
@@ -1714,7 +1834,7 @@ permalink: /toolbox/forest/
 
     const total = trees.length;
     const dead = trees.filter(t => !t.success).length;
-    const grand = trees.filter(t => t.success && durationToTier(t.durationMinutes) === 4).length;
+    const grand = trees.filter(t => t.success && effectiveTier(t) === 4).length;
     const metaParts = [`本田 ${total} 棵`];
     if (dead > 0) metaParts.push(`枯萎 ${dead}`);
     if (grand > 0) metaParts.push(`巨树 ${grand}`);
@@ -1751,7 +1871,7 @@ permalink: /toolbox/forest/
 
     trees.forEach(t => {
       if (!t.position) return;
-      const tier = t.success ? durationToTier(t.durationMinutes) : 1;
+      const tier = t.success ? effectiveTier(t) : 1;
       // 树占满整个 cell，居中
       const x = t.position.col * cellWidth + 2;
       const y = t.position.row * rowHeight + 2;
@@ -1907,7 +2027,7 @@ permalink: /toolbox/forest/
   function showDetail(treeId, anchorEl) {
     const t = state.trees.find(x => x.id === treeId);
     if (!t) return;
-    const tier = t.success ? durationToTier(t.durationMinutes) : 0;
+    const tier = t.success ? effectiveTier(t) : 0;
     const date = new Date(t.endTime).toLocaleString('zh-CN', {
       year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit',
@@ -1927,10 +2047,18 @@ permalink: /toolbox/forest/
     const durationRow = t.success
       ? `<div class="td-row"><span class="label">专注</span><span class="value"><strong>${t.durationMinutes} 分钟</strong></span></div>`
       : `<div class="td-row"><span class="label">专注</span><span class="value">坚持了 ${t.attemptedMinutes || 0} 分（目标 ${t.durationMinutes} 分）</span></div>`;
+    const bonusRow = t.success && t.cycleBonus && t.cycleBonus > 1
+      ? `<div class="td-row"><span class="label">加成</span><span class="value" style="color: #b08838;"><strong>×${t.cycleBonus}</strong>${t.cycleNum ? ` · 循环第 ${t.cycleNum} 个` : ''}</span></div>`
+      : '';
+    const expRow = t.success
+      ? `<div class="td-row"><span class="label">经验</span><span class="value">${treeExp(t).toFixed(1)} 点</span></div>`
+      : '';
 
     $treeDetail.innerHTML = `
       ${statusRow}
       ${durationRow}
+      ${bonusRow}
+      ${expRow}
       <div class="td-row"><span class="label">时间</span><span class="value">${startDate}–${endDate}</span></div>
       <div class="td-row"><span class="label">日期</span><span class="value">${date.split(' ')[0]}</span></div>
       ${taskRow}
@@ -2096,6 +2224,155 @@ permalink: /toolbox/forest/
     hideDetail();
     renderFieldTabs();
     renderStats();
+  });
+
+  // ============ 经验值图表 ============
+  const $expRangeTabs = document.getElementById('exp-range-tabs');
+  const $expSvg = document.getElementById('exp-chart-svg');
+  const $expSummary = document.getElementById('exp-summary');
+  const $expEmpty = document.getElementById('exp-empty');
+  const $expSvgWrap = document.getElementById('exp-chart-svg-wrap');
+  const $expTooltip = document.getElementById('exp-bar-tooltip');
+
+  let expRange = '7';  // today / 7 / 30 / 90
+
+  function buildBuckets(range) {
+    // 返回 [{label, exp, count, key}] 数组
+    const now = new Date();
+    const buckets = [];
+    if (range === 'today') {
+      // 24 小时
+      const startOfToday = new Date(now);
+      startOfToday.setHours(0, 0, 0, 0);
+      const startMs = startOfToday.getTime();
+      const HOUR_MS = 60 * 60 * 1000;
+      for (let h = 0; h < 24; h++) {
+        buckets.push({
+          label: h % 6 === 0 ? `${h}时` : '',
+          fullLabel: `${h}–${h + 1} 点`,
+          exp: 0, count: 0,
+          startMs: startMs + h * HOUR_MS,
+          endMs: startMs + (h + 1) * HOUR_MS,
+        });
+      }
+    } else {
+      const days = parseInt(range, 10);
+      const startOfToday = new Date(now);
+      startOfToday.setHours(0, 0, 0, 0);
+      const DAY_MS = 24 * 60 * 60 * 1000;
+      const startMs = startOfToday.getTime() - (days - 1) * DAY_MS;
+      // 选择标签密度：7 天每天显示，30/90 天稀疏
+      const labelInterval = days === 7 ? 1 : days === 30 ? 5 : 14;
+      for (let i = 0; i < days; i++) {
+        const dt = new Date(startMs + i * DAY_MS);
+        const m = dt.getMonth() + 1;
+        const d = dt.getDate();
+        buckets.push({
+          label: i % labelInterval === 0 || i === days - 1 ? `${m}/${d}` : '',
+          fullLabel: `${dt.getFullYear()}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`,
+          exp: 0, count: 0,
+          startMs: startMs + i * DAY_MS,
+          endMs: startMs + (i + 1) * DAY_MS,
+        });
+      }
+    }
+    // 累加 trees（只算成功的，且只在当前 active field 还存在的树都算？或全部？
+    // 数据角度：所有种过的（包括其它田、已删除的——其实已删除的没了）。
+    // 现实是 state.trees 已经是当前所有，含全部 fields。统计跨 fields。
+    state.trees.forEach(t => {
+      if (!t.success) return;
+      const ms = t.endTime;
+      const b = buckets.find(x => ms >= x.startMs && ms < x.endMs);
+      if (b) {
+        b.exp += treeExp(t);
+        b.count += 1;
+      }
+    });
+    return buckets;
+  }
+
+  function renderExpChart() {
+    const buckets = buildBuckets(expRange);
+    const total = buckets.reduce((s, b) => s + b.exp, 0);
+    const peak = Math.max(0.1, ...buckets.map(b => b.exp));
+
+    if (total <= 0) {
+      $expSvg.style.display = 'none';
+      $expEmpty.style.display = '';
+      $expSummary.textContent = '';
+      return;
+    }
+    $expSvg.style.display = '';
+    $expEmpty.style.display = 'none';
+
+    const totalCount = buckets.reduce((s, b) => s + b.count, 0);
+    $expSummary.innerHTML = `本范围共 <strong>${total.toFixed(0)}</strong> 经验 · ${totalCount} 棵树`;
+
+    const W = 720, H = 200;
+    const m = { l: 38, r: 8, t: 12, b: 28 };
+    const innerW = W - m.l - m.r;
+    const innerH = H - m.t - m.b;
+    const N = buckets.length;
+    const barW = innerW / N;
+    const barInnerW = Math.max(2, barW - 4);
+
+    // y ticks 3 档
+    const yMax = peak * 1.1;
+    const yTicks = [0, yMax / 2, yMax];
+
+    let html = '';
+    // 网格
+    yTicks.forEach(v => {
+      const y = m.t + innerH - (v / yMax) * innerH;
+      html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="var(--color-border)" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.6"/>`;
+      html += `<text x="${m.l - 6}" y="${y + 3}" text-anchor="end" fill="var(--color-light)" font-size="9.5">${Math.round(v)}</text>`;
+    });
+    // bars
+    buckets.forEach((b, i) => {
+      const x = m.l + i * barW + (barW - barInnerW) / 2;
+      const h = (b.exp / yMax) * innerH;
+      const y = m.t + innerH - h;
+      // grad: 浅 → 深绿
+      const fill = b.exp > 0 ? 'var(--color-accent)' : 'transparent';
+      const opacity = b.exp > 0 ? (0.55 + 0.45 * (b.exp / peak)) : 0;
+      html += `<rect class="exp-bar" data-idx="${i}" x="${x}" y="${y}" width="${barInnerW}" height="${Math.max(0, h)}" fill="${fill}" opacity="${opacity}" rx="2"/>`;
+      // label
+      if (b.label) {
+        const labelX = m.l + i * barW + barW / 2;
+        html += `<text x="${labelX}" y="${H - 10}" text-anchor="middle" fill="var(--color-light)" font-size="9.5">${b.label}</text>`;
+      }
+    });
+    // baseline
+    html += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + innerH}" y2="${m.t + innerH}" stroke="var(--color-border)" stroke-width="1"/>`;
+
+    $expSvg.innerHTML = html;
+
+    // 交互：hover bar 显示工具提示
+    $expSvg.querySelectorAll('.exp-bar').forEach(bar => {
+      bar.style.cursor = 'pointer';
+      bar.addEventListener('mouseenter', (e) => {
+        const idx = parseInt(bar.dataset.idx, 10);
+        const b = buckets[idx];
+        if (b.exp <= 0) { hideExpTooltip(); return; }
+        $expTooltip.innerHTML = `<strong>${b.fullLabel}</strong><br/>${b.exp.toFixed(1)} 经验 · ${b.count} 棵`;
+        $expTooltip.style.display = 'block';
+      });
+      bar.addEventListener('mousemove', (e) => {
+        const wrapRect = $expSvgWrap.getBoundingClientRect();
+        $expTooltip.style.left = (e.clientX - wrapRect.left) + 'px';
+        $expTooltip.style.top = (e.clientY - wrapRect.top) + 'px';
+      });
+      bar.addEventListener('mouseleave', hideExpTooltip);
+    });
+  }
+  function hideExpTooltip() { $expTooltip.style.display = 'none'; }
+
+  $expRangeTabs.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $expRangeTabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+      expRange = btn.dataset.range;
+      renderExpChart();
+    });
   });
 
   // ============ Theme settings UI ============
