@@ -193,6 +193,52 @@ permalink: /toolbox/forest/
     font-style: italic;
   }
 
+  /* 灌溉队列 banner */
+  .revival-banner {
+    display: none;
+    margin: 1rem auto 0;
+    max-width: 520px;
+    padding: 0.85rem 1.1rem;
+    background: linear-gradient(135deg, #fff8e7, #fef3c7);
+    border: 1px solid #d4b67e;
+    border-left: 4px solid #c9a96e;
+    border-radius: 10px;
+    color: #78350f;
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .revival-banner {
+      background: linear-gradient(135deg, rgba(201, 169, 110, 0.15), rgba(245, 158, 11, 0.1));
+      color: #fcd34d;
+      border-color: #c9a96e;
+    }
+  }
+  :root[data-theme="dark"] .revival-banner {
+    background: linear-gradient(135deg, rgba(201, 169, 110, 0.15), rgba(245, 158, 11, 0.1));
+    color: #fcd34d;
+    border-color: #c9a96e;
+  }
+  .revival-banner.visible { display: block; }
+  .revival-banner strong { color: var(--color-ink); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .revival-banner strong { color: #fff; }
+  }
+  :root[data-theme="dark"] .revival-banner strong { color: #fff; }
+  .revival-banner .cancel-revival {
+    margin-left: 0.5rem;
+    font: inherit; font-size: 0.78rem;
+    padding: 0.2rem 0.55rem;
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.75;
+    transition: opacity 0.18s;
+  }
+  .revival-banner .cancel-revival:hover { opacity: 1; }
+
   /* ============ 统计 ============ */
   .stats-zone {
     background: var(--color-bg); border: 1px solid var(--color-border);
@@ -834,6 +880,11 @@ permalink: /toolbox/forest/
     </div>
   </div>
 
+  <!-- ========== 灌溉 banner ========== -->
+  <div class="revival-banner" id="revival-banner">
+    <!-- JS 动态填 -->
+  </div>
+
   <!-- ========== 主操作 ========== -->
   <div class="action-row">
     <button type="button" class="action-btn" id="start-btn">🌱 开始种树</button>
@@ -951,6 +1002,7 @@ permalink: /toolbox/forest/
     breakMode: false,   // 当前 session 是 break 还是 focus
     breakMin: 5,        // 用户自定义的休息分钟（开循环时用）
     currentChainId: null, // 当前循环链 ID（同链树共享 cycleBonus）
+    revivalTargetId: null, // 正在准备灌溉的枯萎树 id（null 时是普通 session）
     fields: [],         // 田块列表 [{id, name, createdAt}]
     activeFieldId: null,
     theme: { background: 'night', timer: 'countdown' },
@@ -1561,6 +1613,36 @@ permalink: /toolbox/forest/
 
     const wasBreak = !!state.session.isBreak;
 
+    // 优先处理灌溉完成
+    if (!wasBreak && state.revivalTargetId) {
+      const target = state.trees.find(x => x.id === state.revivalTargetId);
+      if (target) {
+        const newSize = target.attemptedMinutes || 5;
+        target.success = true;
+        target.durationMinutes = newSize;
+        target.endTime = Date.now();
+        target.cycleBonus = 1.0;
+        target.chainId = null;
+        target.cycleNum = null;
+        delete target.attemptedMinutes;
+        delete target.reason;
+        saveTrees();
+      }
+      const revivedName = target ? TREE_NAME[target.type] : '树';
+      $timerStatus.textContent = `🌱 灌溉成功！${revivedName}复活了 ✨`;
+      state.session = null;
+      saveActive(null);
+      cancelRevival();
+      $overlay.classList.remove('open');
+      $overlayTimer.style.color = '';
+      $timerDisplay.classList.remove('warn');
+      $startBtn.disabled = false;
+      $timerDisplay.textContent = fmtTime(state.duration * 60);
+      renderTree(0);
+      renderStats();
+      return;
+    }
+
     if (!wasBreak) {
       // focus 完成 → 种树
       const isInChain = state.pomodoroOn && state.currentChainId;
@@ -1648,6 +1730,8 @@ permalink: /toolbox/forest/
     }
   }
 
+  const GRACE_MS = 60 * 1000;  // 1 分钟宽限期：失败不计
+
   function failSession(reason) {
     if (!state.session) return;
     clearInterval(tickInterval); tickInterval = null;
@@ -1655,27 +1739,38 @@ permalink: /toolbox/forest/
     $graceBanner.classList.add('hidden');
 
     const wasBreak = !!state.session.isBreak;
+    const elapsed = Date.now() - state.session.startTime;
 
     if (!wasBreak) {
-      // focus 失败 → 树枯萎
-      const elapsedMin = (Date.now() - state.session.startTime) / 60000;
-      const tree = {
-        id: 'tr-' + Date.now().toString(36),
-        type: state.session.treeType,
-        task: state.session.task || '',
-        durationMinutes: state.session.duration / 60000,
-        attemptedMinutes: Math.round(elapsedMin * 10) / 10,
-        startTime: state.session.startTime,
-        endTime: Date.now(),
-        success: false,
-        reason: reason || 'gave_up',
-      };
-      assignNewPosition(tree);
-      state.trees.push(tree);
-      saveTrees();
-      $timerStatus.textContent = reason === 'left_page'
-        ? '🥀 树枯萎了——你离开了页面太久'
-        : '🥀 树死掉了——下次坚持一下';
+      const elapsedMin = elapsed / 60000;
+      const inRevival = !!state.revivalTargetId;
+
+      if (elapsed < GRACE_MS) {
+        // 1 分钟宽限期：当作误操作，不留枯萎树
+        $timerStatus.textContent = '↺ 不算（1 分钟内退出，没事）';
+      } else if (inRevival) {
+        // 灌溉失败：树原状不动，不做二次惩罚
+        $timerStatus.textContent = '🥀 灌溉中断了，那棵树还在等下次';
+      } else {
+        // 正常失败 → 树枯萎
+        const tree = {
+          id: 'tr-' + Date.now().toString(36),
+          type: state.session.treeType,
+          task: state.session.task || '',
+          durationMinutes: state.session.duration / 60000,
+          attemptedMinutes: Math.round(elapsedMin * 10) / 10,
+          startTime: state.session.startTime,
+          endTime: Date.now(),
+          success: false,
+          reason: reason || 'gave_up',
+        };
+        assignNewPosition(tree);
+        state.trees.push(tree);
+        saveTrees();
+        $timerStatus.textContent = reason === 'left_page'
+          ? '🥀 树枯萎了——你离开了页面太久'
+          : '🥀 树死掉了——下次坚持一下';
+      }
     } else {
       // break 失败：用户提前结束休息（结束循环）
       $timerStatus.textContent = '☕ 休息中断，循环结束';
@@ -1685,6 +1780,7 @@ permalink: /toolbox/forest/
     saveActive(null);
     state.cycleCount = 0;
     state.currentChainId = null;
+    cancelRevival();
     $overlay.classList.remove('open');
     $overlay.classList.remove('break-mode');
     $overlayTimer.style.color = '';
@@ -1947,16 +2043,18 @@ permalink: /toolbox/forest/
       tip.className = 'tree-tooltip';
       tip.textContent = tipText;
       div.appendChild(tip);
-      // 编辑模式删除按钮
-      const deleteX = document.createElement('div');
-      deleteX.className = 'delete-x';
-      deleteX.textContent = '×';
-      deleteX.dataset.id = t.id;
-      deleteX.addEventListener('click', e => {
-        e.stopPropagation();
-        deleteTree(t.id);
-      });
-      div.appendChild(deleteX);
+      // 编辑模式删除按钮（仅成功的树才能铲除）
+      if (t.success) {
+        const deleteX = document.createElement('div');
+        deleteX.className = 'delete-x';
+        deleteX.textContent = '×';
+        deleteX.dataset.id = t.id;
+        deleteX.addEventListener('click', e => {
+          e.stopPropagation();
+          deleteTree(t.id);
+        });
+        div.appendChild(deleteX);
+      }
 
       // 拖动 + 点击
       attachInteractions(div, t.id);
@@ -1968,13 +2066,61 @@ permalink: /toolbox/forest/
   function deleteTree(id) {
     const t = state.trees.find(x => x.id === id);
     if (!t) return;
-    const label = t.success ? `${TREE_NAME[t.type]}（${t.durationMinutes} 分）` : `${TREE_NAME[t.type]}（枯萎）`;
+    if (!t.success) {
+      alert('枯萎的树不能直接铲除——只能通过灌溉复活。');
+      return;
+    }
+    const label = `${TREE_NAME[t.type]}（${t.durationMinutes} 分）`;
     if (!confirm(`铲除这棵${label}？该操作不可撤销。`)) return;
     state.trees = state.trees.filter(x => x.id !== id);
     saveTrees();
     hideDetail();
     renderFieldTabs();
     renderStats();
+  }
+
+  // ============ 灌溉机制 ============
+  const $revivalBanner = document.getElementById('revival-banner');
+  function revivalCostFor(tree) {
+    return Math.max(10, Math.round(tree.attemptedMinutes || 5));
+  }
+  function queueRevival(treeId) {
+    const t = state.trees.find(x => x.id === treeId);
+    if (!t || t.success) return;
+    state.revivalTargetId = treeId;
+    const cost = revivalCostFor(t);
+    state.duration = cost;
+    $timerDisplay.textContent = fmtTime(cost * 60);
+    // 选中对应的 duration tab（如果匹配）
+    $durationTabs.forEach(b => b.classList.toggle('active', parseInt(b.dataset.min, 10) === cost));
+    if (!Array.from($durationTabs).some(b => b.classList.contains('active'))) {
+      $customMin.value = cost;
+    }
+    // 展示 banner
+    $revivalBanner.innerHTML = `
+      🌱 准备灌溉枯萎的 <strong>${TREE_NAME[t.type]}</strong>（曾坚持 ${t.attemptedMinutes || 0} 分）·
+      完成 <strong>${cost} 分钟</strong>专注后复活成 ${t.attemptedMinutes || 0} 分形态
+      <button type="button" class="cancel-revival" id="cancel-revival">取消</button>
+    `;
+    $revivalBanner.classList.add('visible');
+    document.getElementById('cancel-revival').addEventListener('click', cancelRevival);
+    // 时长锁定：禁用 duration tabs + custom min
+    $durationTabs.forEach(b => b.disabled = true);
+    $customMin.disabled = true;
+    // 修改 startBtn 文案
+    $startBtn.textContent = `🌱 开始灌溉 (${cost} 分)`;
+    // 滚到设置区
+    $revivalBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function cancelRevival() {
+    if (!state.revivalTargetId) return;
+    state.revivalTargetId = null;
+    $revivalBanner.classList.remove('visible');
+    $revivalBanner.innerHTML = '';
+    $durationTabs.forEach(b => b.disabled = false);
+    $customMin.disabled = false;
+    $startBtn.textContent = '🌱 开始种树';
+    // duration 不重置——用户可以保留之前选的
   }
 
   // ============ 拖动 + 点击 ============
@@ -2108,6 +2254,19 @@ permalink: /toolbox/forest/
       ? `<div class="td-row"><span class="label">经验</span><span class="value">${treeExp(t).toFixed(1)} 点</span></div>`
       : '';
 
+    // 操作按钮：枯萎树 → 灌溉；正常树 → 铲除
+    const actionsHtml = t.success
+      ? `<button type="button" class="danger" id="td-delete">🪓 铲除</button>
+         <button type="button" id="td-close">关闭</button>`
+      : `<button type="button" id="td-revive" style="background: var(--color-bg-warm); border-color: #c9a96e; color: #b08838; font-weight: 600;">🌱 灌溉这棵 (${revivalCostFor(t)} 分)</button>
+         <button type="button" id="td-close">关闭</button>`;
+
+    const revivalHint = !t.success
+      ? `<div style="margin-top: 0.6rem; padding: 0.55rem 0.7rem; background: var(--color-bg-warm); border-radius: 6px; font-size: 0.78rem; color: var(--color-muted); line-height: 1.5;">
+          完成 <strong style="color: var(--color-ink);">${revivalCostFor(t)} 分钟</strong>专注后，复活成 ${t.attemptedMinutes || 0} 分形态的 ${TREE_NAME[t.type]}。枯萎树不能直接铲除。
+        </div>`
+      : '';
+
     $treeDetail.innerHTML = `
       ${statusRow}
       ${durationRow}
@@ -2116,9 +2275,9 @@ permalink: /toolbox/forest/
       <div class="td-row"><span class="label">时间</span><span class="value">${startDate}–${endDate}</span></div>
       <div class="td-row"><span class="label">日期</span><span class="value">${date.split(' ')[0]}</span></div>
       ${taskRow}
+      ${revivalHint}
       <div class="td-actions">
-        <button type="button" class="danger" id="td-delete">🪓 铲除</button>
-        <button type="button" id="td-close">关闭</button>
+        ${actionsHtml}
       </div>
     `;
 
@@ -2135,7 +2294,14 @@ permalink: /toolbox/forest/
     $treeDetail.classList.add('open');
     openDetailId = treeId;
 
-    document.getElementById('td-delete').addEventListener('click', () => deleteTree(treeId));
+    if (t.success) {
+      document.getElementById('td-delete').addEventListener('click', () => deleteTree(treeId));
+    } else {
+      document.getElementById('td-revive').addEventListener('click', () => {
+        queueRevival(treeId);
+        hideDetail();
+      });
+    }
     document.getElementById('td-close').addEventListener('click', hideDetail);
   }
 
