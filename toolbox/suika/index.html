@@ -682,11 +682,11 @@ permalink: /toolbox/suika/
     const m = mapPhysics();
     engine = Engine.create({
       gravity: { x: 0, y: 1, scale: m.gravityScale },
-      // 必须开 sleeping：否则静止水果每帧都会被 Verlet 积分一次，浮点舍入
-      // 误差 + restitution 反弹会自激出可见的"莫名弹起"。开了之后 Matter 把
-      // 长时间低 motion 的 body 标 sleeping，跳过积分，被碰撞或 applyForce
-      // 时自动唤醒——既不影响合并爆炸，又彻底消掉自激震荡。
-      enableSleeping: true,
+      // 不能开 sleeping：sleeping body 跳过积分包括重力，合并爆炸把新水果向上
+      // 推到抛物线顶点 (v≈0) 时一旦被标 sleeping，就永远卡在空中——Matter 必须
+      // 等另一个 body 撞上来才会唤醒，但合并已经把附近水果都吃掉了。
+      // 自激弹起改用 tick 里的"主动归零有支撑的低速水果"治本（见 tick 里 dampen）。
+      enableSleeping: false,
     });
     engine.constraintIterations = 4;
     engine.positionIterations = 10;
@@ -939,18 +939,48 @@ permalink: /toolbox/suika/
             moveHover(clampedX);
           }
         }
-        // 速度上限：单步位移不能超过「墙厚 + 最小半径」（16 + 13 = 29），否则
-        // Matter 离散仿真会漏掉碰撞、水果穿墙消失。14 留足安全边距，正常玩法
-        // 终端速度只有 8-10，根本碰不到；只有重力拉满 + 合并连锁时才会触发兜住。
+        // 速度上限 + 主动归零，合并到一次遍历里
+        // - MAX_VEL 14：单步位移不能超过「墙厚 + 最小半径」（16 + 13 = 29），否则
+        //   Matter 离散仿真会漏掉碰撞、水果穿墙消失。14 留足安全边距，正常玩法
+        //   终端速度只有 8-10，根本碰不到；只有重力拉满 + 合并连锁时才会触发兜住。
+        // - 主动归零：替代 enableSleeping。检查每颗水果，如果速度极低且下方有
+        //   支撑（地面 / 其他水果），就把 v 和 ω 强制清零——既消掉 verlet 误差
+        //   累积导致的"莫名弹起"，又不会冻结空中水果（抛物线顶点不会有支撑）。
         const MAX_VEL = 14;
-        Composite.allBodies(world).forEach(b => {
-          if (!b.fruitLevel) return;
+        const REST_VEL = 0.4;
+        const REST_OMEGA = 0.02;
+        const SUPPORT_MARGIN = 1.5;
+        const fruits = Composite.allBodies(world).filter(b => b.fruitLevel);
+        fruits.forEach(b => {
           const vx = b.velocity.x, vy = b.velocity.y;
           if (Math.abs(vx) > MAX_VEL || Math.abs(vy) > MAX_VEL) {
             Body.setVelocity(b, {
               x: Math.max(-MAX_VEL, Math.min(MAX_VEL, vx)),
               y: Math.max(-MAX_VEL, Math.min(MAX_VEL, vy)),
             });
+          }
+          const speed = Math.hypot(b.velocity.x, b.velocity.y);
+          if (speed > REST_VEL || Math.abs(b.angularVelocity) > REST_OMEGA) return;
+          let supported = false;
+          if (b.position.y + b.circleRadius >= H - WALL / 2 - SUPPORT_MARGIN) supported = true;
+          if (!supported) {
+            for (let i = 0; i < fruits.length; i++) {
+              const o = fruits[i];
+              if (o === b) continue;
+              const dx = b.position.x - o.position.x;
+              const dy = b.position.y - o.position.y;
+              const dist = Math.hypot(dx, dy);
+              const touchDist = b.circleRadius + o.circleRadius + SUPPORT_MARGIN;
+              // 必须从下方 / 侧下方支撑（dy ≤ 自身半径的一半），否则同高度的邻居会被误判
+              if (dist < touchDist && dy <= b.circleRadius * 0.5) {
+                supported = true;
+                break;
+              }
+            }
+          }
+          if (supported) {
+            Body.setVelocity(b, { x: 0, y: 0 });
+            Body.setAngularVelocity(b, 0);
           }
         });
         Engine.update(engine, dt);
