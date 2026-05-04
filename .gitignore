@@ -1,6 +1,9 @@
 .DS_Store
 _site/
 .jekyll-cache/
+Gemfile
+Gemfile.lock
+vendor/
 *.pyc
 __pycache__/
 admin_web.py
