@@ -1,0 +1,1295 @@
+---
+layout: default
+title: "随机数生成器 | Rui Zhou"
+permalink: /toolbox/random/
+---
+
+<style>
+  .rng-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+  }
+  .rng-header { text-align: center; margin-bottom: 1.6rem; }
+  .rng-header h1 {
+    font-size: 2.2rem; color: var(--color-ink); margin-bottom: 0.6rem;
+  }
+  .rng-header p {
+    color: var(--color-light); font-style: italic; margin: 0;
+  }
+
+  .rng-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    padding: 1.2rem 1.2rem;
+    margin-bottom: 1.2rem;
+  }
+
+  /* —— 控制面板 —— */
+  .ctrl-row {
+    display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
+    margin-bottom: 0.8rem;
+  }
+  .ctrl-row label {
+    font-size: 0.9rem; color: var(--color-muted);
+    margin-right: 0.4rem;
+  }
+  .dist-select {
+    flex: 1; min-width: 180px;
+    padding: 0.5rem 0.8rem;
+    font: inherit; font-size: 0.95rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+  .dist-formula {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    color: var(--color-muted);
+    padding: 0.3rem 0.6rem;
+    background: var(--color-bg-warm);
+    border-radius: 6px;
+  }
+
+  .params {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.8rem 1.2rem;
+    margin-top: 0.4rem;
+  }
+  .param {
+    display: flex; flex-direction: column; gap: 0.3rem;
+  }
+  .param-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 0.86rem; color: var(--color-muted);
+  }
+  .param-head .key {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem; color: var(--color-ink); font-weight: 600;
+  }
+  .param-head .val {
+    color: var(--color-accent); font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .param input[type="range"] {
+    width: 100%; accent-color: var(--color-accent);
+  }
+
+  /* —— SVG 数轴 —— */
+  .viz-card {
+    padding: 1rem 0.4rem 0.6rem;
+  }
+  .viz-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+  .viz-svg .axis {
+    stroke: var(--color-muted);
+    stroke-width: 1;
+  }
+  .viz-svg .tick-line { stroke: var(--color-border); stroke-width: 1; }
+  .viz-svg .tick-text {
+    fill: var(--color-muted); font-size: 11px;
+    font-family: 'Cormorant Garamond', serif;
+  }
+  .viz-svg .pdf-curve {
+    fill: none;
+    stroke: var(--color-accent);
+    stroke-width: 1.8;
+  }
+  .viz-svg .pdf-fill {
+    fill: var(--color-accent);
+    fill-opacity: 0.08;
+  }
+  .viz-svg .stem-line {
+    stroke: var(--color-accent);
+    stroke-width: 2;
+  }
+  .viz-svg .stem-dot {
+    fill: var(--color-accent);
+  }
+  .viz-svg .interval-rect {
+    fill: var(--color-accent);
+    fill-opacity: 0.18;
+  }
+  .viz-svg .interval-stem {
+    stroke: #c47b1f;
+    stroke-width: 2;
+  }
+  .viz-svg .interval-dot {
+    fill: #c47b1f;
+  }
+  .viz-svg .handle {
+    fill: #fff;
+    stroke: #c47b1f;
+    stroke-width: 2.5;
+    cursor: ew-resize;
+  }
+  .viz-svg .handle-line {
+    stroke: #c47b1f;
+    stroke-width: 1.5;
+    stroke-dasharray: 3 3;
+  }
+  .viz-svg .hist-bar {
+    fill: var(--color-ink);
+    fill-opacity: 0.32;
+  }
+  .viz-svg .sample-dot {
+    fill: var(--color-ink);
+    fill-opacity: 0.8;
+  }
+  .viz-svg .axis-label {
+    fill: var(--color-muted);
+    font-size: 11px;
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  .interval-panel {
+    display: flex; gap: 1.4rem; flex-wrap: wrap;
+    align-items: baseline;
+    padding: 0.4rem 0.6rem 0;
+    font-size: 0.92rem;
+    color: var(--color-muted);
+  }
+  .interval-panel .label { color: var(--color-light); }
+  .interval-panel .value {
+    color: var(--color-accent); font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.05rem;
+  }
+  .interval-input {
+    width: 5rem;
+    padding: 0.18rem 0.4rem;
+    font: inherit; font-size: 0.92rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* —— 抽样面板 —— */
+  .sample-controls {
+    display: flex; gap: 0.6rem; flex-wrap: wrap;
+    margin-bottom: 0.8rem;
+  }
+  .sample-btn {
+    padding: 0.45rem 0.95rem;
+    font: inherit; font-size: 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .sample-btn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .sample-btn.primary {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+  }
+  .sample-btn.primary:hover { color: #fff; }
+  .sample-btn.danger {
+    color: var(--color-muted);
+  }
+  .sample-btn.danger:hover {
+    border-color: #c0392b;
+    color: #c0392b;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.6rem 1.4rem;
+    font-size: 0.88rem;
+    color: var(--color-muted);
+    padding: 0.6rem 0.4rem;
+    border-top: 1px dashed var(--color-border);
+    margin-top: 0.6rem;
+  }
+  .stats .stat {
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .stats .stat .name { color: var(--color-light); }
+  .stats .stat .v {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .stats .stat .v.theo {
+    color: var(--color-accent);
+  }
+  .last-sample {
+    text-align: center;
+    margin: 0.6rem 0 0;
+    font-size: 1.1rem;
+    color: var(--color-muted);
+    font-family: 'Cormorant Garamond', serif;
+  }
+  .last-sample .v {
+    color: var(--color-ink);
+    font-weight: 600;
+    font-size: 1.4rem;
+  }
+
+  details.about {
+    margin-top: 2rem;
+    font-size: 0.88rem;
+    color: var(--color-muted);
+    line-height: 1.7;
+  }
+  details.about summary {
+    cursor: pointer;
+    padding: 0.4rem 0;
+    color: var(--color-muted);
+    font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
+  details.about code {
+    background: var(--color-bg-warm);
+    padding: 0.05em 0.4em;
+    border-radius: 4px;
+    font-size: 0.92em;
+  }
+</style>
+
+<article class="rng-wrap">
+  <header class="rng-header">
+    <h1>🎰 随机数生成器</h1>
+    <p>Distribution sampler with PDF visualization</p>
+  </header>
+
+  <!-- 控制面板 -->
+  <section class="rng-card">
+    <div class="ctrl-row">
+      <label for="dist-select">分布</label>
+      <select id="dist-select" class="dist-select"></select>
+      <span id="dist-formula" class="dist-formula"></span>
+    </div>
+    <div class="params" id="params"></div>
+  </section>
+
+  <!-- 数轴可视化 -->
+  <section class="rng-card viz-card">
+    <svg class="viz-svg" id="viz" viewBox="0 0 800 280" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="interval-panel">
+      <span><span class="label">区间</span>
+        [<input type="number" class="interval-input" id="interval-a" step="0.01">,
+        <input type="number" class="interval-input" id="interval-b" step="0.01">]
+      </span>
+      <span><span class="label">P(a ≤ X ≤ b) =</span> <span class="value" id="interval-prob">—</span></span>
+    </div>
+  </section>
+
+  <!-- 抽样面板 -->
+  <section class="rng-card">
+    <div class="sample-controls">
+      <button class="sample-btn primary" data-n="1">抽 1 个</button>
+      <button class="sample-btn" data-n="10">抽 10 个</button>
+      <button class="sample-btn" data-n="100">抽 100 个</button>
+      <button class="sample-btn" data-n="1000">抽 1000 个</button>
+      <button class="sample-btn danger" id="btn-clear">清空</button>
+    </div>
+    <div class="last-sample">最近一次抽样：<span class="v" id="last-sample">—</span></div>
+    <div class="stats">
+      <div class="stat"><span class="name">样本数</span><span class="v" id="stat-n">0</span></div>
+      <div class="stat"><span class="name">样本均值</span><span class="v" id="stat-mean">—</span></div>
+      <div class="stat"><span class="name">理论均值</span><span class="v theo" id="theo-mean">—</span></div>
+      <div class="stat"><span class="name">样本方差</span><span class="v" id="stat-var">—</span></div>
+      <div class="stat"><span class="name">理论方差</span><span class="v theo" id="theo-var">—</span></div>
+      <div class="stat"><span class="name">区间命中率</span><span class="v" id="stat-hit">—</span></div>
+    </div>
+  </section>
+
+  <details class="about">
+    <summary>关于这个工具</summary>
+    <p><strong>用途：</strong>统计课、模拟实验、做题验证概率结果。挑分布、调参数 → 数轴上画出 PDF/PMF → 拖两个橘色 handle 选区间，实时算 <code>P(a ≤ X ≤ b)</code>（连续用复合辛普森积分，离散用 PMF 求和）。</p>
+    <p><strong>抽样：</strong>四档样本数。每抽一次，样本会从顶部"落"到对应位置；超过 50 个样本后画成直方图叠在 PDF 上。底部统计区给样本均值/方差，并和理论值对照——大数定律的可视化。</p>
+    <p><strong>抽样算法：</strong>正态用 Box–Muller，Gamma 用 Marsaglia–Tsang，Beta = Gamma/(Gamma+Gamma)，χ²/t/F 都从 Gamma/Normal 派生；泊松小 λ 用 Knuth、大 λ 用正态近似；二项用累加伯努利。</p>
+    <p><strong>纯本地：</strong>所有计算和抽样都在浏览器里跑，不上传任何东西。</p>
+  </details>
+</article>
+
+<script>
+(function () {
+  // ====================================================================
+  // 数学工具函数
+  // ====================================================================
+  // Lanczos approximation for log Γ(x) — 7 阶 9 项系数，相对误差 < 1e-15
+  const LZ_G = 7;
+  const LZ_C = [
+    0.99999999999980993,
+    676.5203681218851, -1259.1392167224028, 771.32342877765313,
+    -176.61502916214059, 12.507343278686905, -0.13857109526572012,
+    9.9843695780195716e-6, 1.5056327351493116e-7,
+  ];
+  function logGamma(x) {
+    if (x < 0.5) {
+      return Math.log(Math.PI / Math.sin(Math.PI * x)) - logGamma(1 - x);
+    }
+    x -= 1;
+    let a = LZ_C[0];
+    const t = x + LZ_G + 0.5;
+    for (let i = 1; i < 9; i++) a += LZ_C[i] / (x + i);
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+  }
+  function gammaFn(x) { return Math.exp(logGamma(x)); }
+  function logBeta(a, b) { return logGamma(a) + logGamma(b) - logGamma(a + b); }
+  // log(n!) — 用 logGamma(n+1)
+  function logFact(n) { return logGamma(n + 1); }
+  // log C(n,k)
+  function logBinomCoef(n, k) {
+    return logFact(n) - logFact(k) - logFact(n - k);
+  }
+
+  // ====================================================================
+  // 抽样函数
+  // ====================================================================
+  function sampleNormal(mu = 0, sigma = 1) {
+    // Box–Muller
+    let u1 = Math.random();
+    while (u1 === 0) u1 = Math.random();   // 防 log(0)
+    const u2 = Math.random();
+    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    return mu + sigma * z;
+  }
+  function sampleExp(lambda) {
+    let u = Math.random();
+    while (u === 0) u = Math.random();
+    return -Math.log(u) / lambda;
+  }
+  // Marsaglia–Tsang Gamma(α, scale=1)，再乘 scale。α<1 用 boost。
+  function sampleGammaShape(alpha) {
+    if (alpha < 1) {
+      let u = Math.random();
+      while (u === 0) u = Math.random();
+      return sampleGammaShape(alpha + 1) * Math.pow(u, 1 / alpha);
+    }
+    const d = alpha - 1 / 3;
+    const c = 1 / Math.sqrt(9 * d);
+    while (true) {
+      let x, v;
+      do {
+        x = sampleNormal(0, 1);
+        v = 1 + c * x;
+      } while (v <= 0);
+      v = v * v * v;
+      const u = Math.random();
+      if (u < 1 - 0.0331 * x * x * x * x) return d * v;
+      if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+    }
+  }
+  function sampleGamma(alpha, scale) { return sampleGammaShape(alpha) * scale; }
+  function sampleBeta(a, b) {
+    const x = sampleGammaShape(a);
+    const y = sampleGammaShape(b);
+    return x / (x + y);
+  }
+  function sampleChi2(k) { return sampleGamma(k / 2, 2); }
+  function sampleStudentT(nu) {
+    const z = sampleNormal(0, 1);
+    const v = sampleChi2(nu);
+    return z / Math.sqrt(v / nu);
+  }
+  function sampleF(d1, d2) {
+    const u = sampleChi2(d1) / d1;
+    const v = sampleChi2(d2) / d2;
+    return u / v;
+  }
+  function samplePoisson(lambda) {
+    if (lambda < 30) {
+      // Knuth
+      const L = Math.exp(-lambda);
+      let k = 0, p = 1;
+      do {
+        k++;
+        p *= Math.random();
+      } while (p > L);
+      return k - 1;
+    } else {
+      // 正态近似 + 连续性矫正
+      const z = sampleNormal(0, 1);
+      return Math.max(0, Math.round(lambda + Math.sqrt(lambda) * z));
+    }
+  }
+  function sampleBinomial(n, p) {
+    if (n <= 200) {
+      let count = 0;
+      for (let i = 0; i < n; i++) if (Math.random() < p) count++;
+      return count;
+    } else {
+      const z = sampleNormal(0, 1);
+      const v = Math.round(n * p + Math.sqrt(n * p * (1 - p)) * z);
+      return Math.max(0, Math.min(n, v));
+    }
+  }
+  function sampleGeometric(p) {
+    let u = Math.random();
+    while (u === 0 || u === 1) u = Math.random();
+    return Math.ceil(Math.log(u) / Math.log(1 - p));
+  }
+
+  // ====================================================================
+  // 13 个分布定义
+  // ====================================================================
+  // pdf: x → density (continuous) / probability (discrete)
+  // domain: 给绘图用的 x 轴范围 [xmin, xmax]
+  // mean / variance: 理论值，给统计对照
+  // sample: 抽一个样本
+  // discrete: true 表示离散（画 stem，区间用 PMF 求和）
+  // formula: HTML 标签格式，给标题旁的注释用
+  const DIST = {
+    uniform_c: {
+      label: '均匀连续 U(a, b)',
+      formula: 'f(x) = 1/(b−a)，x ∈ [a, b]',
+      discrete: false,
+      params: [
+        { key: 'a', label: 'a', def: 0,  min: -5, max: 5,  step: 0.1 },
+        { key: 'b', label: 'b', def: 1,  min: -5, max: 5,  step: 0.1 },
+      ],
+      validate: p => p.b > p.a,
+      pdf: (x, p) => (x >= p.a && x <= p.b) ? 1 / (p.b - p.a) : 0,
+      domain: p => {
+        const w = p.b - p.a;
+        return [p.a - 0.15 * w, p.b + 0.15 * w];
+      },
+      mean: p => (p.a + p.b) / 2,
+      variance: p => (p.b - p.a) ** 2 / 12,
+      sample: p => p.a + (p.b - p.a) * Math.random(),
+    },
+    uniform_d: {
+      label: '均匀离散 DU(a, b)',
+      formula: 'P(X=k) = 1/(b−a+1)，k = a, a+1, …, b',
+      discrete: true,
+      params: [
+        { key: 'a', label: 'a', def: 1, min: -10, max: 10, step: 1, integer: true },
+        { key: 'b', label: 'b', def: 6, min: -10, max: 20, step: 1, integer: true },
+      ],
+      validate: p => p.b >= p.a,
+      pdf: (k, p) => (k >= p.a && k <= p.b && Number.isInteger(k)) ? 1 / (p.b - p.a + 1) : 0,
+      domain: p => [p.a - 1, p.b + 1],
+      mean: p => (p.a + p.b) / 2,
+      variance: p => ((p.b - p.a + 1) ** 2 - 1) / 12,
+      sample: p => p.a + Math.floor((p.b - p.a + 1) * Math.random()),
+    },
+    normal: {
+      label: '正态 N(μ, σ²)',
+      formula: 'f(x) = (1/√(2π)σ) exp(−(x−μ)²/(2σ²))',
+      discrete: false,
+      params: [
+        { key: 'mu',    label: 'μ', def: 0, min: -5, max: 5, step: 0.1 },
+        { key: 'sigma', label: 'σ', def: 1, min: 0.2, max: 5, step: 0.05 },
+      ],
+      validate: p => p.sigma > 0,
+      pdf: (x, p) => Math.exp(-((x - p.mu) ** 2) / (2 * p.sigma ** 2)) / (p.sigma * Math.sqrt(2 * Math.PI)),
+      domain: p => [p.mu - 4 * p.sigma, p.mu + 4 * p.sigma],
+      mean: p => p.mu,
+      variance: p => p.sigma ** 2,
+      sample: p => sampleNormal(p.mu, p.sigma),
+    },
+    exp: {
+      label: '指数 Exp(λ)',
+      formula: 'f(x) = λ e^(−λx)，x ≥ 0',
+      discrete: false,
+      params: [
+        { key: 'lambda', label: 'λ', def: 1, min: 0.1, max: 5, step: 0.05 },
+      ],
+      validate: p => p.lambda > 0,
+      pdf: (x, p) => x >= 0 ? p.lambda * Math.exp(-p.lambda * x) : 0,
+      domain: p => [0, 6 / p.lambda],
+      mean: p => 1 / p.lambda,
+      variance: p => 1 / (p.lambda ** 2),
+      sample: p => sampleExp(p.lambda),
+    },
+    poisson: {
+      label: '泊松 Pois(λ)',
+      formula: 'P(X=k) = e^(−λ) λ^k / k!',
+      discrete: true,
+      params: [
+        { key: 'lambda', label: 'λ', def: 4, min: 0.5, max: 30, step: 0.5 },
+      ],
+      validate: p => p.lambda > 0,
+      pdf: (k, p) => {
+        if (!Number.isInteger(k) || k < 0) return 0;
+        // exp(k log λ - λ - log k!)
+        return Math.exp(k * Math.log(p.lambda) - p.lambda - logFact(k));
+      },
+      domain: p => {
+        const sd = Math.sqrt(p.lambda);
+        return [Math.max(-1, p.lambda - 4 * sd - 1), p.lambda + 4 * sd + 2];
+      },
+      mean: p => p.lambda,
+      variance: p => p.lambda,
+      sample: p => samplePoisson(p.lambda),
+    },
+    binomial: {
+      label: '二项 Bin(n, p)',
+      formula: 'P(X=k) = C(n,k) p^k (1−p)^(n−k)',
+      discrete: true,
+      params: [
+        { key: 'n', label: 'n', def: 20,  min: 1, max: 100, step: 1, integer: true },
+        { key: 'p', label: 'p', def: 0.5, min: 0.01, max: 0.99, step: 0.01 },
+      ],
+      validate: p => p.n >= 1 && p.p > 0 && p.p < 1,
+      pdf: (k, p) => {
+        if (!Number.isInteger(k) || k < 0 || k > p.n) return 0;
+        const lp = logBinomCoef(p.n, k) + k * Math.log(p.p) + (p.n - k) * Math.log(1 - p.p);
+        return Math.exp(lp);
+      },
+      domain: p => {
+        const m = p.n * p.p;
+        const sd = Math.sqrt(p.n * p.p * (1 - p.p));
+        return [Math.max(-1, m - 4 * sd - 1), Math.min(p.n + 1, m + 4 * sd + 1)];
+      },
+      mean: p => p.n * p.p,
+      variance: p => p.n * p.p * (1 - p.p),
+      sample: p => sampleBinomial(p.n, p.p),
+    },
+    bernoulli: {
+      label: '伯努利 Ber(p)',
+      formula: 'P(X=1) = p, P(X=0) = 1−p',
+      discrete: true,
+      params: [
+        { key: 'p', label: 'p', def: 0.5, min: 0.01, max: 0.99, step: 0.01 },
+      ],
+      validate: p => p.p >= 0 && p.p <= 1,
+      pdf: (k, p) => k === 0 ? 1 - p.p : (k === 1 ? p.p : 0),
+      domain: () => [-0.5, 1.5],
+      mean: p => p.p,
+      variance: p => p.p * (1 - p.p),
+      sample: p => Math.random() < p.p ? 1 : 0,
+    },
+    beta: {
+      label: 'Beta(α, β)',
+      formula: 'f(x) = x^(α−1) (1−x)^(β−1) / B(α, β)，x ∈ [0, 1]',
+      discrete: false,
+      params: [
+        { key: 'alpha', label: 'α', def: 2, min: 0.5, max: 10, step: 0.1 },
+        { key: 'beta',  label: 'β', def: 5, min: 0.5, max: 10, step: 0.1 },
+      ],
+      validate: p => p.alpha > 0 && p.beta > 0,
+      pdf: (x, p) => {
+        if (x <= 0 || x >= 1) return 0;
+        const lp = (p.alpha - 1) * Math.log(x) + (p.beta - 1) * Math.log(1 - x) - logBeta(p.alpha, p.beta);
+        return Math.exp(lp);
+      },
+      domain: () => [0, 1],
+      mean: p => p.alpha / (p.alpha + p.beta),
+      variance: p => (p.alpha * p.beta) / ((p.alpha + p.beta) ** 2 * (p.alpha + p.beta + 1)),
+      sample: p => sampleBeta(p.alpha, p.beta),
+    },
+    gamma: {
+      label: 'Gamma(α, θ) — scale',
+      formula: 'f(x) = x^(α−1) e^(−x/θ) / (θ^α Γ(α))，x ≥ 0',
+      discrete: false,
+      params: [
+        { key: 'alpha', label: 'α', def: 2, min: 0.5, max: 10, step: 0.1 },
+        { key: 'theta', label: 'θ', def: 2, min: 0.2, max: 5,  step: 0.1 },
+      ],
+      validate: p => p.alpha > 0 && p.theta > 0,
+      pdf: (x, p) => {
+        if (x <= 0) return 0;
+        const lp = (p.alpha - 1) * Math.log(x) - x / p.theta - p.alpha * Math.log(p.theta) - logGamma(p.alpha);
+        return Math.exp(lp);
+      },
+      domain: p => [0, p.theta * (p.alpha + 4 * Math.sqrt(p.alpha) + 2)],
+      mean: p => p.alpha * p.theta,
+      variance: p => p.alpha * p.theta ** 2,
+      sample: p => sampleGamma(p.alpha, p.theta),
+    },
+    chi2: {
+      label: '卡方 χ²(k)',
+      formula: 'f(x) = x^(k/2−1) e^(−x/2) / (2^(k/2) Γ(k/2))',
+      discrete: false,
+      params: [
+        { key: 'k', label: 'k', def: 5, min: 1, max: 30, step: 1, integer: true },
+      ],
+      validate: p => p.k >= 1,
+      pdf: (x, p) => {
+        if (x <= 0) return 0;
+        const lp = (p.k / 2 - 1) * Math.log(x) - x / 2 - (p.k / 2) * Math.log(2) - logGamma(p.k / 2);
+        return Math.exp(lp);
+      },
+      domain: p => [0, p.k + 4 * Math.sqrt(2 * p.k) + 2],
+      mean: p => p.k,
+      variance: p => 2 * p.k,
+      sample: p => sampleChi2(p.k),
+    },
+    student_t: {
+      label: 'Student-t(ν)',
+      formula: 'f(x) = Γ((ν+1)/2) / (√(νπ) Γ(ν/2)) (1 + x²/ν)^(−(ν+1)/2)',
+      discrete: false,
+      params: [
+        { key: 'nu', label: 'ν', def: 5, min: 1, max: 30, step: 1, integer: true },
+      ],
+      validate: p => p.nu >= 1,
+      pdf: (x, p) => {
+        const lc = logGamma((p.nu + 1) / 2) - 0.5 * Math.log(p.nu * Math.PI) - logGamma(p.nu / 2);
+        const lp = lc - ((p.nu + 1) / 2) * Math.log(1 + x * x / p.nu);
+        return Math.exp(lp);
+      },
+      domain: p => {
+        const r = Math.max(4, 4 * Math.sqrt(p.nu / Math.max(1, p.nu - 2)));
+        return [-r, r];
+      },
+      mean: p => p.nu > 1 ? 0 : NaN,
+      variance: p => p.nu > 2 ? p.nu / (p.nu - 2) : (p.nu > 1 ? Infinity : NaN),
+      sample: p => sampleStudentT(p.nu),
+    },
+    f: {
+      label: 'F(d₁, d₂)',
+      formula: 'F 分布 — 两个 χ² 之比，常用于方差检验',
+      discrete: false,
+      params: [
+        { key: 'd1', label: 'd₁', def: 5,  min: 1, max: 30, step: 1, integer: true },
+        { key: 'd2', label: 'd₂', def: 10, min: 1, max: 30, step: 1, integer: true },
+      ],
+      validate: p => p.d1 >= 1 && p.d2 >= 1,
+      pdf: (x, p) => {
+        if (x <= 0) return 0;
+        const lc = (p.d1 / 2) * Math.log(p.d1) + (p.d2 / 2) * Math.log(p.d2) - logBeta(p.d1 / 2, p.d2 / 2);
+        const lp = lc + (p.d1 / 2 - 1) * Math.log(x) - ((p.d1 + p.d2) / 2) * Math.log(p.d1 * x + p.d2);
+        return Math.exp(lp);
+      },
+      domain: p => {
+        const m = p.d2 > 2 ? p.d2 / (p.d2 - 2) : 2;
+        return [0, Math.max(5, m * 4)];
+      },
+      mean: p => p.d2 > 2 ? p.d2 / (p.d2 - 2) : NaN,
+      variance: p => p.d2 > 4
+        ? (2 * p.d2 ** 2 * (p.d1 + p.d2 - 2)) / (p.d1 * (p.d2 - 2) ** 2 * (p.d2 - 4))
+        : NaN,
+      sample: p => sampleF(p.d1, p.d2),
+    },
+    geom: {
+      label: '几何 Geom(p) — 直到首次成功的试验数',
+      formula: 'P(X=k) = (1−p)^(k−1) p，k = 1, 2, 3, …',
+      discrete: true,
+      params: [
+        { key: 'p', label: 'p', def: 0.3, min: 0.05, max: 0.95, step: 0.01 },
+      ],
+      validate: p => p.p > 0 && p.p < 1,
+      pdf: (k, p) => {
+        if (!Number.isInteger(k) || k < 1) return 0;
+        return Math.pow(1 - p.p, k - 1) * p.p;
+      },
+      domain: p => [0, Math.min(50, Math.ceil(6 / p.p))],
+      mean: p => 1 / p.p,
+      variance: p => (1 - p.p) / (p.p ** 2),
+      sample: p => sampleGeometric(p.p),
+    },
+  };
+  const DIST_KEYS = Object.keys(DIST);
+
+  // ====================================================================
+  // 状态
+  // ====================================================================
+  const state = {
+    distKey: 'normal',
+    params: {},          // 当前分布的参数值
+    samples: [],         // 已抽出的样本
+    intervalA: null,     // 区间左端（数据坐标）
+    intervalB: null,     // 区间右端
+  };
+  // 存：每个分布上次用过的参数和区间 — 这样切来切去不会重置
+  const persisted = {};
+  // 当前数轴的 domain（缓存，draw 时用）
+  let currentDomain = [0, 1];
+  let currentMaxY = 1;
+
+  // ====================================================================
+  // DOM
+  // ====================================================================
+  const $select  = document.getElementById('dist-select');
+  const $formula = document.getElementById('dist-formula');
+  const $params  = document.getElementById('params');
+  const $svg     = document.getElementById('viz');
+  const $intvA   = document.getElementById('interval-a');
+  const $intvB   = document.getElementById('interval-b');
+  const $intvP   = document.getElementById('interval-prob');
+  const $statN   = document.getElementById('stat-n');
+  const $statM   = document.getElementById('stat-mean');
+  const $theoM   = document.getElementById('theo-mean');
+  const $statV   = document.getElementById('stat-var');
+  const $theoV   = document.getElementById('theo-var');
+  const $statH   = document.getElementById('stat-hit');
+  const $lastS   = document.getElementById('last-sample');
+
+  // 填分布下拉
+  for (const k of DIST_KEYS) {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = DIST[k].label;
+    $select.appendChild(opt);
+  }
+  $select.value = state.distKey;
+
+  // ====================================================================
+  // 切换分布 / 重新生成参数面板
+  // ====================================================================
+  function switchDist(key) {
+    state.distKey = key;
+    $select.value = key;
+    const dist = DIST[key];
+    $formula.textContent = dist.formula;
+
+    // 取或建参数 — 切回来时保留之前的参数
+    if (persisted[key]) {
+      state.params = { ...persisted[key].params };
+      state.intervalA = persisted[key].intervalA;
+      state.intervalB = persisted[key].intervalB;
+      state.samples = [];
+    } else {
+      state.params = {};
+      for (const p of dist.params) state.params[p.key] = p.def;
+      state.samples = [];
+      state.intervalA = state.intervalB = null;
+    }
+
+    // 渲染参数 sliders
+    $params.innerHTML = '';
+    for (const p of dist.params) {
+      const wrap = document.createElement('div');
+      wrap.className = 'param';
+      wrap.innerHTML = `
+        <div class="param-head">
+          <span class="key">${p.label}</span>
+          <span class="val" data-val="${p.key}">${formatVal(state.params[p.key], p)}</span>
+        </div>
+        <input type="range" min="${p.min}" max="${p.max}" step="${p.step}"
+               value="${state.params[p.key]}" data-param="${p.key}">
+      `;
+      $params.appendChild(wrap);
+      const input = wrap.querySelector('input');
+      const valSpan = wrap.querySelector('[data-val]');
+      input.addEventListener('input', () => {
+        let v = parseFloat(input.value);
+        if (p.integer) v = Math.round(v);
+        state.params[p.key] = v;
+        valSpan.textContent = formatVal(v, p);
+        if (DIST[state.distKey].validate(state.params)) {
+          state.samples = [];      // 参数变了，旧样本失效
+          if (!intervalIsValid()) state.intervalA = state.intervalB = null;
+          rerender();
+        }
+      });
+    }
+
+    if (!intervalIsValid()) state.intervalA = state.intervalB = null;
+    rerender();
+  }
+
+  function formatVal(v, p) {
+    if (p.integer) return String(Math.round(v));
+    // 决定小数位
+    const step = p.step;
+    if (step >= 1) return v.toFixed(0);
+    if (step >= 0.1) return v.toFixed(1);
+    return v.toFixed(2);
+  }
+
+  function intervalIsValid() {
+    if (state.intervalA == null || state.intervalB == null) return false;
+    const dom = DIST[state.distKey].domain(state.params);
+    return state.intervalA >= dom[0] && state.intervalB <= dom[1] && state.intervalA <= state.intervalB;
+  }
+
+  $select.addEventListener('change', () => switchDist($select.value));
+
+  // ====================================================================
+  // 主渲染
+  // ====================================================================
+  function rerender() {
+    persisted[state.distKey] = {
+      params: { ...state.params },
+      intervalA: state.intervalA,
+      intervalB: state.intervalB,
+    };
+
+    const dist = DIST[state.distKey];
+    if (!dist.validate(state.params)) return;
+
+    currentDomain = dist.domain(state.params);
+    // 如果区间还没初始化，给个默认（domain 中段）
+    if (state.intervalA == null) {
+      const w = currentDomain[1] - currentDomain[0];
+      state.intervalA = currentDomain[0] + 0.3 * w;
+      state.intervalB = currentDomain[0] + 0.7 * w;
+      if (dist.discrete) {
+        state.intervalA = Math.round(state.intervalA);
+        state.intervalB = Math.round(state.intervalB);
+      }
+    }
+
+    drawSVG();
+    updateIntervalUI();
+    updateStats();
+  }
+
+  // ====================================================================
+  // SVG 绘图
+  // ====================================================================
+  // viewBox 800×280；画布区域：x ∈ [50, 770]，y ∈ [30, 240]
+  const VB_W = 800, VB_H = 280;
+  const PAD_L = 50, PAD_R = 30, PAD_T = 30, PAD_B = 40;
+  const CHART_W = VB_W - PAD_L - PAD_R;   // 720
+  const CHART_H = VB_H - PAD_T - PAD_B;   // 210
+  const X0 = PAD_L, X1 = VB_W - PAD_R;
+  const Y0 = PAD_T, Y1 = VB_H - PAD_B;
+
+  function xToPx(x) {
+    return X0 + ((x - currentDomain[0]) / (currentDomain[1] - currentDomain[0])) * CHART_W;
+  }
+  function pxToX(px) {
+    return currentDomain[0] + ((px - X0) / CHART_W) * (currentDomain[1] - currentDomain[0]);
+  }
+  function yToPx(y) {
+    return Y1 - (y / currentMaxY) * CHART_H;
+  }
+
+  function drawSVG() {
+    const dist = DIST[state.distKey];
+    const ns = 'http://www.w3.org/2000/svg';
+    // 计算 PDF 最大值
+    if (dist.discrete) {
+      let maxY = 0;
+      for (let k = Math.ceil(currentDomain[0]); k <= Math.floor(currentDomain[1]); k++) {
+        const v = dist.pdf(k, state.params);
+        if (v > maxY) maxY = v;
+      }
+      currentMaxY = maxY * 1.15 || 1;
+    } else {
+      const N = 240;
+      let maxY = 0;
+      for (let i = 0; i <= N; i++) {
+        const x = currentDomain[0] + (i / N) * (currentDomain[1] - currentDomain[0]);
+        const v = dist.pdf(x, state.params);
+        if (isFinite(v) && v > maxY) maxY = v;
+      }
+      currentMaxY = maxY * 1.15 || 1;
+    }
+
+    // 重建 SVG 内容
+    const parts = [];
+
+    // —— 背景 + 轴
+    parts.push(`<line class="axis" x1="${X0}" y1="${Y1}" x2="${X1}" y2="${Y1}" />`);
+
+    // —— x 轴刻度
+    const ticks = computeTicks(currentDomain[0], currentDomain[1], 8);
+    for (const t of ticks) {
+      const x = xToPx(t);
+      if (x < X0 - 0.1 || x > X1 + 0.1) continue;
+      parts.push(`<line class="tick-line" x1="${x}" y1="${Y0}" x2="${x}" y2="${Y1}" stroke-opacity="0.4" />`);
+      parts.push(`<line class="axis" x1="${x}" y1="${Y1}" x2="${x}" y2="${Y1 + 4}" />`);
+      parts.push(`<text class="tick-text" x="${x}" y="${Y1 + 16}" text-anchor="middle">${formatTick(t, dist.discrete)}</text>`);
+    }
+
+    // —— 区间填色（在 PDF 下方）+ 直方图（不在区间高亮内）
+    // 直方图先画，区间高亮叠在上面
+    if (state.samples.length >= 50) {
+      parts.push(drawHistogram(dist));
+    }
+
+    // 区间高亮（rect 从 axis 到 chart top）
+    const ax = state.intervalA, bx = state.intervalB;
+    if (ax != null && bx != null && ax < bx) {
+      const px1 = Math.max(X0, xToPx(ax));
+      const px2 = Math.min(X1, xToPx(bx));
+      parts.push(`<rect class="interval-rect" x="${px1}" y="${Y0}" width="${Math.max(0, px2 - px1)}" height="${Y1 - Y0}" />`);
+    }
+
+    // —— PDF / PMF 主体
+    if (dist.discrete) {
+      // stem plot
+      for (let k = Math.ceil(currentDomain[0]); k <= Math.floor(currentDomain[1]); k++) {
+        const v = dist.pdf(k, state.params);
+        if (v <= 0) continue;
+        const x = xToPx(k);
+        const y = yToPx(v);
+        const inInterval = (ax != null && bx != null && k >= ax && k <= bx);
+        parts.push(`<line class="${inInterval ? 'interval-stem' : 'stem-line'}" x1="${x}" y1="${Y1}" x2="${x}" y2="${y}" />`);
+        parts.push(`<circle class="${inInterval ? 'interval-dot' : 'stem-dot'}" cx="${x}" cy="${y}" r="3.5" />`);
+      }
+    } else {
+      // 连续：先画浅色填充再画曲线
+      const N = 240;
+      const pts = [];
+      for (let i = 0; i <= N; i++) {
+        const x = currentDomain[0] + (i / N) * (currentDomain[1] - currentDomain[0]);
+        const v = dist.pdf(x, state.params);
+        const px = xToPx(x);
+        const py = isFinite(v) ? yToPx(Math.max(0, v)) : Y1;
+        pts.push([px, py]);
+      }
+      // fill
+      let d = `M ${pts[0][0]} ${Y1} `;
+      for (const [px, py] of pts) d += `L ${px} ${py} `;
+      d += `L ${pts[pts.length - 1][0]} ${Y1} Z`;
+      parts.push(`<path class="pdf-fill" d="${d}" />`);
+      // curve
+      let dc = '';
+      for (let i = 0; i < pts.length; i++) {
+        dc += (i === 0 ? 'M' : 'L') + ` ${pts[i][0]} ${pts[i][1]} `;
+      }
+      parts.push(`<path class="pdf-curve" d="${dc}" />`);
+    }
+
+    // —— 样本散点（< 50 时画散点，≥50 时已经画了直方图所以这里跳过）
+    if (state.samples.length < 50) {
+      for (const s of state.samples) {
+        const px = xToPx(s);
+        if (px < X0 - 5 || px > X1 + 5) continue;
+        parts.push(`<circle class="sample-dot" cx="${px}" cy="${Y1 + 22}" r="2.4" />`);
+      }
+    }
+
+    // —— 区间 handle
+    if (ax != null && bx != null) {
+      // 两条虚线 + 两个圆 handle
+      const pxA = xToPx(ax), pxB = xToPx(bx);
+      parts.push(`<line class="handle-line" x1="${pxA}" y1="${Y0}" x2="${pxA}" y2="${Y1}" />`);
+      parts.push(`<line class="handle-line" x1="${pxB}" y1="${Y0}" x2="${pxB}" y2="${Y1}" />`);
+      parts.push(`<circle class="handle" data-h="a" cx="${pxA}" cy="${Y1}" r="8" />`);
+      parts.push(`<circle class="handle" data-h="b" cx="${pxB}" cy="${Y1}" r="8" />`);
+    }
+
+    // —— y 轴刻度（上限标注）
+    parts.push(`<text class="axis-label" x="${X0 - 6}" y="${Y0 + 4}" text-anchor="end">${currentMaxY.toFixed(2)}</text>`);
+    parts.push(`<text class="axis-label" x="${X0 - 6}" y="${Y1 + 4}" text-anchor="end">0</text>`);
+    parts.push(`<text class="axis-label" x="${X1}" y="${Y1 + 36}" text-anchor="end">x</text>`);
+
+    $svg.innerHTML = parts.join('\n');
+
+    // 绑定 handle 拖动
+    bindHandleDrag();
+  }
+
+  function drawHistogram(dist) {
+    if (state.samples.length === 0) return '';
+    if (dist.discrete) {
+      // 按整数计数
+      const counts = {};
+      for (const s of state.samples) {
+        const k = Math.round(s);
+        counts[k] = (counts[k] || 0) + 1;
+      }
+      const keys = Object.keys(counts).map(Number);
+      if (keys.length === 0) return '';
+      // 高度归一化为概率（counts/N），不超过 currentMaxY
+      const N = state.samples.length;
+      const parts = [];
+      for (const k of keys) {
+        const p = counts[k] / N;
+        const x = xToPx(k);
+        // 用一个小宽度的矩形包住 stem
+        const halfW = 8;
+        const py = yToPx(p);
+        parts.push(`<rect class="hist-bar" x="${x - halfW}" y="${py}" width="${halfW * 2}" height="${Y1 - py}" />`);
+      }
+      return parts.join('');
+    } else {
+      // 连续：30 个 bin
+      const NBIN = 30;
+      const dom = currentDomain;
+      const w = (dom[1] - dom[0]) / NBIN;
+      const bins = new Array(NBIN).fill(0);
+      let inDomain = 0;
+      for (const s of state.samples) {
+        if (s < dom[0] || s > dom[1]) continue;
+        const idx = Math.min(NBIN - 1, Math.floor((s - dom[0]) / w));
+        bins[idx]++;
+        inDomain++;
+      }
+      if (inDomain === 0) return '';
+      const N = state.samples.length;
+      const parts = [];
+      for (let i = 0; i < NBIN; i++) {
+        if (bins[i] === 0) continue;
+        const density = bins[i] / N / w;     // 估计 PDF
+        const x0 = xToPx(dom[0] + i * w);
+        const x1px = xToPx(dom[0] + (i + 1) * w);
+        const py = yToPx(density);
+        parts.push(`<rect class="hist-bar" x="${x0}" y="${py}" width="${Math.max(0.5, x1px - x0 - 1)}" height="${Y1 - py}" />`);
+      }
+      return parts.join('');
+    }
+  }
+
+  // 计算"漂亮的"刻度位置
+  function computeTicks(min, max, target) {
+    const range = max - min;
+    if (range <= 0) return [min];
+    const rough = range / target;
+    const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+    const m = rough / mag;
+    let step;
+    if (m < 1.5) step = 1 * mag;
+    else if (m < 3) step = 2 * mag;
+    else if (m < 7) step = 5 * mag;
+    else step = 10 * mag;
+    const start = Math.ceil(min / step) * step;
+    const ticks = [];
+    for (let t = start; t <= max + step * 0.0001; t += step) {
+      ticks.push(Math.round(t * 1e10) / 1e10);
+    }
+    return ticks;
+  }
+  function formatTick(t, isInteger) {
+    if (isInteger) return String(Math.round(t));
+    if (Math.abs(t) >= 1000) return t.toExponential(1);
+    if (Math.abs(t) < 0.01 && t !== 0) return t.toExponential(1);
+    if (Number.isInteger(t)) return String(t);
+    return t.toFixed(Math.abs(t) < 1 ? 2 : 1);
+  }
+
+  // ====================================================================
+  // 拖动 handle
+  // ====================================================================
+  function bindHandleDrag() {
+    const handles = $svg.querySelectorAll('.handle');
+    for (const h of handles) {
+      h.addEventListener('pointerdown', onHandleDown);
+    }
+  }
+  let dragging = null;       // 'a' | 'b' | null
+  function onHandleDown(e) {
+    e.preventDefault();
+    dragging = e.target.dataset.h;
+    e.target.setPointerCapture(e.pointerId);
+    e.target.addEventListener('pointermove', onHandleMove);
+    e.target.addEventListener('pointerup', onHandleUp);
+    e.target.addEventListener('pointercancel', onHandleUp);
+  }
+  function onHandleMove(e) {
+    if (!dragging) return;
+    // 把 client 坐标转 SVG viewBox 坐标
+    const pt = $svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const local = pt.matrixTransform($svg.getScreenCTM().inverse());
+    let x = pxToX(Math.max(X0, Math.min(X1, local.x)));
+
+    const dist = DIST[state.distKey];
+    if (dist.discrete) x = Math.round(x);
+
+    if (dragging === 'a') {
+      state.intervalA = Math.min(x, state.intervalB);
+    } else {
+      state.intervalB = Math.max(x, state.intervalA);
+    }
+    drawSVG();
+    updateIntervalUI();
+    updateStats();
+  }
+  function onHandleUp(e) {
+    dragging = null;
+    e.target.releasePointerCapture(e.pointerId);
+    e.target.removeEventListener('pointermove', onHandleMove);
+    e.target.removeEventListener('pointerup', onHandleUp);
+    e.target.removeEventListener('pointercancel', onHandleUp);
+  }
+
+  // 区间数字输入框 → 区间状态
+  $intvA.addEventListener('input', () => {
+    const v = parseFloat($intvA.value);
+    if (!isFinite(v)) return;
+    state.intervalA = v;
+    if (state.intervalB != null && state.intervalA > state.intervalB) {
+      state.intervalA = state.intervalB;
+    }
+    drawSVG();
+    updateStats();
+  });
+  $intvB.addEventListener('input', () => {
+    const v = parseFloat($intvB.value);
+    if (!isFinite(v)) return;
+    state.intervalB = v;
+    if (state.intervalA != null && state.intervalB < state.intervalA) {
+      state.intervalB = state.intervalA;
+    }
+    drawSVG();
+    updateStats();
+  });
+
+  // ====================================================================
+  // P(a ≤ X ≤ b)
+  // ====================================================================
+  function intervalProb() {
+    if (state.intervalA == null || state.intervalB == null) return 0;
+    const dist = DIST[state.distKey];
+    const a = state.intervalA, b = state.intervalB;
+    if (dist.discrete) {
+      // PMF 求和
+      let s = 0;
+      const lo = Math.ceil(a - 1e-9), hi = Math.floor(b + 1e-9);
+      for (let k = lo; k <= hi; k++) s += dist.pdf(k, state.params);
+      return s;
+    } else {
+      // 复合辛普森 1/3
+      return simpson(x => dist.pdf(x, state.params), a, b, 200);
+    }
+  }
+  function simpson(f, a, b, n) {
+    if (b <= a) return 0;
+    if (n % 2) n++;
+    const h = (b - a) / n;
+    let s = f(a) + f(b);
+    for (let i = 1; i < n; i++) {
+      s += (i % 2 ? 4 : 2) * f(a + i * h);
+    }
+    return s * h / 3;
+  }
+
+  function updateIntervalUI() {
+    if (state.intervalA == null || state.intervalB == null) {
+      $intvA.value = ''; $intvB.value = ''; $intvP.textContent = '—';
+      return;
+    }
+    const dist = DIST[state.distKey];
+    const fmt = dist.discrete
+      ? (v) => Math.round(v).toString()
+      : (v) => Math.abs(v) < 100 ? v.toFixed(2) : v.toFixed(1);
+    if (document.activeElement !== $intvA) $intvA.value = fmt(state.intervalA);
+    if (document.activeElement !== $intvB) $intvB.value = fmt(state.intervalB);
+    const prob = intervalProb();
+    $intvP.textContent = prob.toFixed(4);
+  }
+
+  // ====================================================================
+  // 统计 & 抽样
+  // ====================================================================
+  function updateStats() {
+    const dist = DIST[state.distKey];
+    const N = state.samples.length;
+    $statN.textContent = N;
+    if (N === 0) {
+      $statM.textContent = '—';
+      $statV.textContent = '—';
+      $statH.textContent = '—';
+    } else {
+      let sum = 0, sumSq = 0, hits = 0;
+      const a = state.intervalA, b = state.intervalB;
+      for (const s of state.samples) {
+        sum += s;
+        sumSq += s * s;
+        if (a != null && b != null && s >= a && s <= b) hits++;
+      }
+      const mean = sum / N;
+      const variance = sumSq / N - mean * mean;
+      $statM.textContent = formatStat(mean);
+      $statV.textContent = formatStat(variance);
+      $statH.textContent = a != null && b != null ? `${(hits / N * 100).toFixed(1)}%` : '—';
+    }
+    const tm = dist.mean(state.params);
+    const tv = dist.variance(state.params);
+    $theoM.textContent = isFinite(tm) ? formatStat(tm) : (Number.isNaN(tm) ? '不存在' : '∞');
+    $theoV.textContent = isFinite(tv) ? formatStat(tv) : (Number.isNaN(tv) ? '不存在' : '∞');
+    $lastS.textContent = state.samples.length === 0 ? '—' : formatStat(state.samples[state.samples.length - 1]);
+  }
+  function formatStat(v) {
+    if (!isFinite(v)) return v > 0 ? '∞' : '-∞';
+    if (Math.abs(v) < 0.01 && v !== 0) return v.toExponential(2);
+    if (Math.abs(v) >= 10000) return v.toExponential(2);
+    return v.toFixed(3);
+  }
+
+  // 抽样按钮
+  document.querySelectorAll('.sample-btn[data-n]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const n = parseInt(btn.dataset.n, 10);
+      drawSamples(n);
+    });
+  });
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    state.samples = [];
+    drawSVG();
+    updateStats();
+  });
+
+  function drawSamples(n) {
+    const dist = DIST[state.distKey];
+    if (!dist.validate(state.params)) return;
+    const newSamples = [];
+    for (let i = 0; i < n; i++) {
+      newSamples.push(dist.sample(state.params));
+    }
+    if (n === 1) {
+      // 单个样本：动画"落下"
+      animateSampleDrop(newSamples[0]);
+    } else if (n <= 10) {
+      // 10 个：每 80ms 落一个
+      let i = 0;
+      const tick = () => {
+        if (i >= newSamples.length) return;
+        animateSampleDrop(newSamples[i]);
+        i++;
+        setTimeout(tick, 80);
+      };
+      tick();
+    } else {
+      // 100 / 1000：直接加进去重画
+      state.samples.push(...newSamples);
+      // 控制最多 5000 个，防 SVG 太重
+      if (state.samples.length > 5000) {
+        state.samples = state.samples.slice(-5000);
+      }
+      drawSVG();
+      updateStats();
+    }
+  }
+
+  function animateSampleDrop(value) {
+    state.samples.push(value);
+    if (state.samples.length > 5000) state.samples = state.samples.slice(-5000);
+    drawSVG();
+    updateStats();
+    // 再叠一个动画圆点
+    const px = xToPx(value);
+    if (px < X0 - 5 || px > X1 + 5) return;
+    const ns = 'http://www.w3.org/2000/svg';
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', px);
+    c.setAttribute('cy', Y0);
+    c.setAttribute('r', 4);
+    c.style.fill = 'var(--color-accent)';
+    c.setAttribute('opacity', '0.9');
+    $svg.appendChild(c);
+    const dur = 420;
+    const start = performance.now();
+    const yEnd = Y1 + 22;
+    function tick(t) {
+      const k = Math.min(1, (t - start) / dur);
+      const ease = 1 - Math.pow(1 - k, 3);    // ease-out cubic
+      c.setAttribute('cy', Y0 + (yEnd - Y0) * ease);
+      c.setAttribute('opacity', 0.9 * (1 - 0.5 * ease));
+      if (k < 1) requestAnimationFrame(tick);
+      else c.remove();
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // ====================================================================
+  // 启动
+  // ====================================================================
+  switchDist(state.distKey);
+
+  // 窗口尺寸变化时不需要重画 — SVG 自适应宽度
+})();
+</script>
