@@ -2601,6 +2601,7 @@ permalink: /toolbox/suika/
     $ovNickForm.style.display = 'none';
     $ovNickTag.style.display = 'none';
     highlightEvoChain(0);
+    fitCanvas();   // 把上局期间被跳过的 viewport 变化（如手机屏旋转）补上
     setupWorld();
     spawnHoveringFruit();
     updateScoreUI();
