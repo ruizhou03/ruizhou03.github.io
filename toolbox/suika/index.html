@@ -144,17 +144,22 @@ permalink: /toolbox/suika/
 
   /* 进化链可视化 */
   .evo-chain {
-    display: flex; align-items: center; flex-wrap: wrap;
-    gap: 0.2rem;
+    display: flex; align-items: center;
+    gap: 0.35rem;
     margin-top: 0.8rem;
-    padding: 0.55rem 0.7rem;
+    padding: 0.6rem 0.8rem;
     background: var(--color-bg-warm);
     border-radius: 10px;
-    font-size: 0.78rem;
+    font-size: 1.05rem;
     color: var(--color-light);
-    justify-content: center;
+    justify-content: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
   }
-  .evo-chain .arrow { opacity: 0.5; }
+  .evo-chain .arrow { opacity: 0.5; font-size: 0.8rem; flex-shrink: 0; }
+  .evo-chain span { flex-shrink: 0; }
 
   .footnote {
     margin-top: 1.2rem;
