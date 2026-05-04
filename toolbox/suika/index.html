@@ -723,7 +723,12 @@ permalink: /toolbox/suika/
     Body.setVelocity(merged, { x: (Math.random() - 0.5) * 1.2 * expMult, y: popVel });
 
     const pushRange = newRadius * 2.2;
-    const pushStrength = (0.025 + newLevel * 0.005) * expMult;
+    // pushStrength 系数缩到 1/3：Matter.js 的 applyForce 实际注入速度是
+    // (force/mass) × dt²（dt=16ms 时 dt²=256），这里 force=factor×mass 所以
+    // Δv = factor × 256。原系数下 lv 4 橘子合并能给邻居注入 13 px/step、
+    // lv 11 能注入 24 px/step，邻居直接被踹飞——表现就是"莫名弹起"
+    // （加 cap 前甚至直接飞出画布消失）。缩到 1/3 后最高也只 12 px/step。
+    const pushStrength = (0.008 + newLevel * 0.0017) * expMult;
     Composite.allBodies(world).forEach(other => {
       if (other === merged || !other.fruitLevel) return;
       const dx = other.position.x - x;
@@ -733,7 +738,7 @@ permalink: /toolbox/suika/
         const factor = pushStrength * (1 - dist / pushRange);
         Body.applyForce(other, other.position, {
           x: (dx / dist) * factor * other.mass,
-          y: (dy / dist) * factor * other.mass - 0.001 * other.mass,
+          y: (dy / dist) * factor * other.mass,
         });
       }
     });
