@@ -630,14 +630,27 @@ permalink: /toolbox/suika/
 
   // 自适应尺寸
   function fitCanvas() {
-    const containerWidth = Math.min(420, window.innerWidth - 32);
+    // 量 sk-wrap 实际 content 宽度（自动适应 default layout 的 main padding +
+    // sk-wrap 自己的 padding）。之前用 window.innerWidth - 32 只减了 32，漏了
+    // main 的 2rem padding，手机端 canvas 算成 361 实际容器只有 297，被 margin
+    // auto 在过约束下推去左边 → 视觉没居中、画幅也撑出去看不全。
+    const parent = $gameZone.parentElement;
+    let parentInnerW = 0;
+    if (parent) {
+      const cs = getComputedStyle(parent);
+      parentInnerW = parent.clientWidth
+        - parseFloat(cs.paddingLeft || 0)
+        - parseFloat(cs.paddingRight || 0);
+    }
+    const containerWidth = Math.min(420,
+      parentInnerW > 0 ? parentInnerW : (window.innerWidth - 32)
+    );
     W = containerWidth;
     H = Math.round(W * 1.45);
     $canvas.width = W;
     $canvas.height = H;
     $canvas.style.width = W + 'px';
     $canvas.style.height = H + 'px';
-    // 关键：把 game-zone 也收窄到 canvas 宽度，避免右侧空白看起来"画布更宽"
     $gameZone.style.width = W + 'px';
     $gameZone.style.margin = '0 auto';
   }
