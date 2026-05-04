@@ -630,6 +630,134 @@ permalink: /toolbox/suika/
     cursor: pointer;
   }
 
+  /* ============ 排行榜面板 ============ */
+  /* 默认（窄屏）：inline 出现在游戏下方，宽度跟随 .sk-wrap */
+  .sk-leaderboard {
+    margin-top: 1.5rem;
+    padding: 0.9rem 1rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+  }
+  .sk-lb-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+  }
+  .sk-lb-header h3 {
+    font-size: 1rem;
+    color: var(--color-ink);
+    margin: 0;
+    display: flex; align-items: baseline; gap: 0.5rem;
+    font-weight: 600;
+  }
+  .sk-lb-total {
+    font-size: 0.78rem;
+    color: var(--color-muted);
+    font-weight: normal;
+  }
+  .sk-lb-refresh {
+    font: inherit; font-size: 0.95rem;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-bg);
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .sk-lb-refresh:hover { color: var(--color-accent); border-color: var(--color-accent); }
+  .sk-lb-refresh.spinning { animation: sk-lb-spin 0.8s linear infinite; }
+  @keyframes sk-lb-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .sk-lb-list {
+    list-style: none; padding: 0; margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .sk-lb-list li {
+    display: grid;
+    grid-template-columns: 2.2rem 1fr auto;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.4rem 0.2rem;
+    border-bottom: 1px dashed var(--color-border);
+    font-size: 0.88rem;
+  }
+  .sk-lb-list li:last-child { border-bottom: none; }
+  .sk-lb-list li.sk-lb-empty {
+    grid-template-columns: 1fr;
+    text-align: center;
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    padding: 0.8rem 0;
+  }
+  .sk-lb-list .sk-lb-rank {
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    text-align: right;
+  }
+  .sk-lb-list li:nth-child(1) .sk-lb-rank { color: #d4a015; font-weight: 700; }
+  .sk-lb-list li:nth-child(2) .sk-lb-rank { color: #9aa0a6; font-weight: 700; }
+  .sk-lb-list li:nth-child(3) .sk-lb-rank { color: #b87333; font-weight: 700; }
+  .sk-lb-list .sk-lb-nick {
+    color: var(--color-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .sk-lb-list .sk-lb-score {
+    font-family: var(--font-display);
+    color: var(--color-highlight);
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: right;
+  }
+  .sk-lb-list .sk-lb-time {
+    grid-column: 2 / 4;
+    font-size: 0.72rem;
+    color: var(--color-muted);
+    margin-top: 0.1rem;
+  }
+  .sk-lb-list li.is-self {
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(240, 198, 116, 0.18) 30%,
+      rgba(240, 198, 116, 0.18) 70%,
+      transparent 100%);
+    border-radius: 6px;
+    padding-left: 0.5rem; padding-right: 0.5rem;
+  }
+  .sk-lb-list li.is-self .sk-lb-nick { font-weight: 600; }
+  .sk-lb-footer {
+    margin-top: 0.5rem;
+    font-size: 0.72rem;
+    color: var(--color-muted);
+    text-align: center;
+  }
+
+  /* 桌面宽屏：浮在 main 右侧空白处，跟着滚动 */
+  @media (min-width: 1280px) {
+    .sk-leaderboard {
+      position: fixed;
+      top: 7rem;
+      left: calc(50vw + 280px);
+      width: 260px;
+      max-height: calc(100vh - 9rem);
+      overflow-y: auto;
+      margin-top: 0;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    }
+  }
+  /* 超宽屏（≥1600px）再向右挪一点，离主内容更远 */
+  @media (min-width: 1600px) {
+    .sk-leaderboard {
+      left: calc(50vw + 320px);
+      width: 280px;
+    }
+  }
+
   /* Waline 嵌入区（沿用 recipe.html 样式约定） */
   #suika-waline-wrap {
     margin-top: 2.5rem;
@@ -856,6 +984,18 @@ permalink: /toolbox/suika/
   <div class="evo-chain" id="evo-chain">
     <!-- JS 填充进化链 -->
   </div>
+
+  <!-- 排行榜面板（桌面端 fixed 浮在右侧空白处；窄屏 inline 显示在游戏下方） -->
+  <aside class="sk-leaderboard" id="sk-leaderboard" aria-label="合成大西瓜排行榜">
+    <div class="sk-lb-header">
+      <h3>🏆 排行榜 <span class="sk-lb-total" id="sk-lb-total"></span></h3>
+      <button type="button" class="sk-lb-refresh" id="sk-lb-refresh" title="刷新榜单">↻</button>
+    </div>
+    <ol class="sk-lb-list" id="sk-lb-list">
+      <li class="sk-lb-empty">榜单加载中…</li>
+    </ol>
+    <div class="sk-lb-footer" id="sk-lb-footer"></div>
+  </aside>
 
   <details class="footnote">
     <summary>怎么玩 / 计分规则</summary>
@@ -2307,6 +2447,94 @@ permalink: /toolbox/suika/
   $startBtn.addEventListener('click', startGame);
   document.getElementById('start-from-settings-btn').addEventListener('click', startGame);
 
+  // ============ 排行榜面板：拉 top + 渲染 ============
+  const $lbPanel = document.getElementById('sk-leaderboard');
+  const $lbList = document.getElementById('sk-lb-list');
+  const $lbTotal = document.getElementById('sk-lb-total');
+  const $lbFooter = document.getElementById('sk-lb-footer');
+  const $lbRefresh = document.getElementById('sk-lb-refresh');
+  let lbLastFetch = 0;
+  let lbInflight = false;
+  const LB_LIMIT = 20;
+
+  function relTime(ts) {
+    if (!ts || !Number.isFinite(ts)) return '';
+    const dt = (Date.now() - ts) / 1000;
+    if (dt < 60) return '刚刚';
+    if (dt < 3600) return `${Math.floor(dt / 60)} 分钟前`;
+    if (dt < 86400) return `${Math.floor(dt / 3600)} 小时前`;
+    if (dt < 30 * 86400) return `${Math.floor(dt / 86400)} 天前`;
+    const d = new Date(ts);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function renderLeaderboard(entries, total, currentNick) {
+    while ($lbList.firstChild) $lbList.removeChild($lbList.firstChild);
+    if (!entries || !entries.length) {
+      const li = document.createElement('li');
+      li.className = 'sk-lb-empty';
+      li.textContent = '榜单还空着，第一个上榜的就是你 ~';
+      $lbList.appendChild(li);
+      $lbTotal.textContent = '';
+      return;
+    }
+    entries.forEach(e => {
+      const li = document.createElement('li');
+      if (currentNick && e.nick === currentNick) li.classList.add('is-self');
+      const rk = document.createElement('span');
+      rk.className = 'sk-lb-rank';
+      rk.textContent = '#' + e.rank;
+      const nk = document.createElement('span');
+      nk.className = 'sk-lb-nick';
+      nk.textContent = e.nick;       // textContent — 防 XSS
+      nk.title = e.nick;
+      const sc = document.createElement('span');
+      sc.className = 'sk-lb-score';
+      sc.textContent = e.score;
+      const tm = document.createElement('span');
+      tm.className = 'sk-lb-time';
+      tm.textContent = relTime(e.ts);
+      li.append(rk, nk, sc, tm);
+      $lbList.appendChild(li);
+    });
+    $lbTotal.textContent = `共 ${total} 位玩家`;
+  }
+
+  async function loadLeaderboard(force) {
+    if (lbInflight) return;
+    if (!force && Date.now() - lbLastFetch < 10000) return; // 10s 内不重复打
+    lbInflight = true;
+    $lbRefresh.classList.add('spinning');
+    const r = await callBackend(LEADERBOARD_API + '?action=top&limit=' + LB_LIMIT, {}, 5000);
+    $lbRefresh.classList.remove('spinning');
+    lbInflight = false;
+    if (r.ok && r.data && Array.isArray(r.data.entries)) {
+      lbLastFetch = Date.now();
+      renderLeaderboard(r.data.entries, r.data.total, getNick());
+      $lbFooter.textContent = `更新于 ${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+    } else {
+      // 失败时保留上次结果，仅在第一次失败时显示提示
+      if (!lbLastFetch) {
+        while ($lbList.firstChild) $lbList.removeChild($lbList.firstChild);
+        const li = document.createElement('li');
+        li.className = 'sk-lb-empty';
+        li.textContent = '榜单暂时拉不到，稍后再试';
+        $lbList.appendChild(li);
+      }
+      $lbFooter.textContent = '更新失败，下次再试';
+    }
+  }
+
+  $lbRefresh.addEventListener('click', () => loadLeaderboard(true));
+  // 初次进页面就拉一次
+  loadLeaderboard(true);
+  // 每 60s 自动刷新一次（避免长开页面看不到新人；rate limit 60/min/IP 完全足够）
+  setInterval(() => loadLeaderboard(false), 60000);
+  // 页面重新可见时（切回 tab）也刷一下
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') loadLeaderboard(false);
+  });
+
   // ============ 排行榜：上传 / 排名 / 截图 ============
   // 三态 UI：loading → success（"第 X 名 / 共 Y 人"）/ failed（"排行榜暂时不可用"）
   function renderRankSlot(state, data) {
@@ -2410,6 +2638,8 @@ permalink: /toolbox/suika/
       const rankInfo = { rank: r.data.rank, total: r.data.total };
       renderRankSlot('success', rankInfo);
       refreshSnapshot(rankInfo);   // 排名到了，重新合成截图把"第 X 名"也画进去
+      // 自己上榜了，同步刷一次右侧榜单（force=true 跳过 10s 节流）
+      loadLeaderboard(true);
     } else {
       renderRankSlot('failed');
       refreshSnapshot({ failed: true });
@@ -2488,10 +2718,49 @@ permalink: /toolbox/suika/
       ctx.lineTo(W - PAD, HEADER_H - 0.5);
       ctx.stroke();
 
-      // 3. 游戏画面（直接 drawImage 当前 canvas）
-      ctx.drawImage($canvas, PAD, HEADER_H);
+      // 3. 游戏画面：圆角裁剪 + 内嵌阴影，避免水果贴边看起来"被切过"。
+      //    跟 .game-zone 的 border-radius 一致（14px），视觉跟在线游戏一致。
+      const RADIUS = 14;
+      const gx = PAD, gy = HEADER_H, gw = baseW, gh = baseH;
+      ctx.save();
+      // 圆角矩形 path
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(gx, gy, gw, gh, RADIUS);
+      } else {
+        // fallback for older browsers
+        const r = RADIUS;
+        ctx.moveTo(gx + r, gy);
+        ctx.arcTo(gx + gw, gy, gx + gw, gy + gh, r);
+        ctx.arcTo(gx + gw, gy + gh, gx, gy + gh, r);
+        ctx.arcTo(gx, gy + gh, gx, gy, r);
+        ctx.arcTo(gx, gy, gx + gw, gy, r);
+        ctx.closePath();
+      }
+      ctx.clip();
+      ctx.drawImage($canvas, gx, gy);
+      ctx.restore();
 
-      // game / footer 间分隔线
+      // 给游戏区加一圈淡边框 + 微微阴影，更像"卡片"
+      ctx.save();
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(gx + 0.5, gy + 0.5, gw - 1, gh - 1, RADIUS);
+      } else {
+        const r = RADIUS;
+        ctx.moveTo(gx + r, gy);
+        ctx.arcTo(gx + gw, gy, gx + gw, gy + gh, r);
+        ctx.arcTo(gx + gw, gy + gh, gx, gy + gh, r);
+        ctx.arcTo(gx, gy + gh, gx, gy, r);
+        ctx.arcTo(gx, gy, gx + gw, gy, r);
+        ctx.closePath();
+      }
+      ctx.strokeStyle = colors.divider;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+
+      // game / footer 间分隔线（继续保留，给 footer 视觉划分用）
       ctx.beginPath();
       ctx.moveTo(PAD, HEADER_H + baseH + 0.5);
       ctx.lineTo(W - PAD, HEADER_H + baseH + 0.5);
