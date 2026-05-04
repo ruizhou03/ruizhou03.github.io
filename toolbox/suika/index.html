@@ -491,7 +491,8 @@ permalink: /toolbox/suika/
       // 地震：tremor=0 关，tremor=1 平均每 500ms 触发一次大扰动；
       //       0-1 之间间隔反比例延长 + 幅度等比缩小，时间和幅度都带 ±30% 噪声
       tremorIntervalMs: PHYSICS.tremor > 0 ? 500 / PHYSICS.tremor : Infinity,
-      tremorAmplitude: 0.0085 * PHYSICS.tremor,
+      tremorAmplitude: 0.014 * PHYSICS.tremor,
+      tremorShakePx: 5 + PHYSICS.tremor * 13,    // camera shake 像素幅度 5-18 px
     };
   }
   function loadPhysics() {
@@ -702,6 +703,9 @@ permalink: /toolbox/suika/
   let dangerSince = null;
   let lastInDangerTime = 0;
   let nextTremorAt = 0;       // 下一次地震时间戳，0 = 还没初始化
+  let lastTremorTime = -10000;       // 最近一次地震发生时刻（用于 camera shake 衰减）
+  let tremorShakeAmpX = 0;           // 本次地震的 x 方向 camera shake 振幅
+  let tremorShakeAmpY = 0;           // 本次地震的 y 方向 camera shake 振幅
   let dropCooldown = false;
   let lastTick = performance.now();
   const recentMerges = new Set();   // 防止同一次碰撞触发多次合并
@@ -1086,20 +1090,43 @@ permalink: /toolbox/suika/
     });
   }
 
-  // 地震：每隔 tremorIntervalMs（带 ±30% 噪声）给所有水果一个随机方向的微小冲击。
-  // 间隔 tremor=1 时 500ms，tremor 越低间隔反比例越长；幅度也按 tremor 缩小。
+  // 地震：每隔 tremorIntervalMs（带 ±30% 噪声）给所有「已落定」水果一个随机
+  // 方向的微小冲击。同时设置 camera shake 状态，让 drawScene 给整个画幅加
+  // 一个临时 translate 偏移——视觉上是"画面在抖"。
+  // 关键：跳过仍在自由下落的水果（spawnedAt 1.5s 缓冲 + |vy| 阈值），让下落
+  // 物体保持惯性参考系——地面在动但空中物体保持原本竖直轨迹，符合物理直觉。
   function triggerTremor() {
     const m = mapPhysics();
     const baseAmp = m.tremorAmplitude;
+    const now = performance.now();
     Composite.allBodies(world).forEach(b => {
       if (!b.fruitLevel || b.isStatic) return;
+      if (now - (b.spawnedAt || 0) < 1500) return;       // 刚落下的不抖
+      if (Math.abs(b.velocity.y) > 1.5) return;          // 仍在显著下落的不抖
       const ampl = baseAmp * (0.7 + Math.random() * 0.6);
       const angle = Math.random() * Math.PI * 2;
       Body.applyForce(b, b.position, {
         x: Math.cos(angle) * ampl * b.mass,
-        y: Math.sin(angle) * ampl * b.mass * 0.4,   // y 方向减弱，主要是横向晃动
+        y: Math.sin(angle) * ampl * b.mass,              // y 方向不再减半，全方位震
       });
     });
+    // Camera shake：随机方向 + ±30% 振幅噪声，drawScene 用 sine 衰减振荡
+    lastTremorTime = now;
+    const shakeBase = m.tremorShakePx;
+    const shakeAngle = Math.random() * Math.PI * 2;
+    tremorShakeAmpX = Math.cos(shakeAngle) * shakeBase * (0.7 + Math.random() * 0.6);
+    tremorShakeAmpY = Math.sin(shakeAngle) * shakeBase * (0.7 + Math.random() * 0.6);
+  }
+  // 当前帧 camera shake 偏移：振荡频率 ~16Hz、指数衰减、~600ms 后归零
+  function getShakeOffset(now) {
+    const dt = now - lastTremorTime;
+    if (dt < 0 || dt > 600) return { x: 0, y: 0 };
+    const decay = Math.exp(-dt / 130);
+    const phase = dt * 0.1;     // 0.1 cycle/ms ≈ 16 Hz
+    return {
+      x: tremorShakeAmpX * Math.sin(phase * 2 * Math.PI) * decay,
+      y: tremorShakeAmpY * Math.sin(phase * 2 * Math.PI + Math.PI / 3) * decay,
+    };
   }
   function maybeTriggerTremor(now) {
     if (PHYSICS.tremor <= 0) return;
@@ -1151,6 +1178,11 @@ permalink: /toolbox/suika/
   function drawScene() {
     ctx.clearRect(0, 0, W, H);
 
+    // Camera shake：所有 draw 操作都跟着 translate 一起偏移，视觉上"画面在抖"
+    const shake = getShakeOffset(performance.now());
+    ctx.save();
+    ctx.translate(shake.x, shake.y);
+
     // 危险线 — 画到 canvas 实际宽度（避免 W 跟 canvas.width 之间任何不同步导致截短）
     const cw = $canvas.width;
     const dangerProgress = dangerSince ? Math.min(1, (performance.now() - dangerSince) / 2000) : 0;
@@ -1192,7 +1224,9 @@ permalink: /toolbox/suika/
       drawFruitAt(fruit, x, SPAWN_Y, fruit.radius, 0);
     }
 
-    // 暂停遮罩
+    ctx.restore();   // 结束 camera shake translate
+
+    // 暂停遮罩在 shake 之外，不跟着抖
     if (isPaused) {
       ctx.fillStyle = 'rgba(20, 25, 30, 0.65)';
       ctx.fillRect(0, 0, W, H);
