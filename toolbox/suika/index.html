@@ -1206,16 +1206,31 @@ permalink: /toolbox/suika/
   // 1-5 加权概率（小水果概率高）
   const SPAWN_WEIGHTS = [35, 28, 20, 12, 5];
 
-  // ============ Konami code 彩蛋 ============
+  // ============ Konami code 彩蛋 + 开发者暗号 ============
   // 上上下下左右左右 BABA → 天降一颗西瓜
+  // 输入 full → 天降 6 颗西瓜，强制游戏结束（开发者测试结算流程用）
   const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  const SECRET_FULL = ['f', 'u', 'l', 'l'];
   let konamiBuf = [];
+  let secretFullBuf = [];
   function pushKonami(key) {
-    konamiBuf.push(key.length === 1 ? key.toLowerCase() : key);
+    // 在 input/textarea 里不触发暗号（昵称表单 / waline 评论框等）
+    const ae = document.activeElement;
+    if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
+    const k = key.length === 1 ? key.toLowerCase() : key;
+    // Konami code
+    konamiBuf.push(k);
     if (konamiBuf.length > KONAMI.length) konamiBuf.shift();
-    if (konamiBuf.length === KONAMI.length && konamiBuf.every((k, i) => k === KONAMI[i])) {
+    if (konamiBuf.length === KONAMI.length && konamiBuf.every((kk, i) => kk === KONAMI[i])) {
       konamiBuf = [];
       triggerKonami();
+    }
+    // FULL 开发者暗号
+    secretFullBuf.push(k);
+    if (secretFullBuf.length > SECRET_FULL.length) secretFullBuf.shift();
+    if (secretFullBuf.length === SECRET_FULL.length && secretFullBuf.every((kk, i) => kk === SECRET_FULL[i])) {
+      secretFullBuf = [];
+      triggerFull();
     }
   }
   function triggerKonami() {
@@ -1236,6 +1251,33 @@ permalink: /toolbox/suika/
   function showKonamiToast() {
     const el = document.createElement('div');
     el.textContent = '🍉 BABA！天降西瓜';
+    el.style.cssText = 'position:fixed;top:20%;left:50%;transform:translateX(-50%);background:rgba(20,25,30,0.92);color:#ffd700;padding:1rem 2rem;border-radius:14px;font-size:1.4rem;font-weight:600;z-index:2000;box-shadow:0 8px 28px rgba(0,0,0,0.45);font-family:var(--font-display);animation:konamiPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2400);
+  }
+
+  // FULL 暗号：天降 6 颗西瓜错开 x + 错开 150ms 落下，必然撑满到危险线
+  // 触发 game over。开发者测试结算流程用。
+  function triggerFull() {
+    if (isOver || !world || !gameStarted) return;
+    const positions = [0.18, 0.5, 0.82, 0.32, 0.68, 0.5];
+    positions.forEach((px, i) => {
+      setTimeout(() => {
+        if (isOver) return;
+        const w = createFruitBody(11, $canvas.width * px, 110);
+        World.add(world, w);
+        melonsCount++;
+        runMelons++;
+        score += FRUITS[10].score;
+        try { localStorage.setItem(MELONS_KEY, String(melonsCount)); } catch (e) {}
+        updateScoreUI();
+      }, i * 150);
+    });
+    showFullToast();
+  }
+  function showFullToast() {
+    const el = document.createElement('div');
+    el.textContent = '🍉🍉🍉 FULL！强制结算';
     el.style.cssText = 'position:fixed;top:20%;left:50%;transform:translateX(-50%);background:rgba(20,25,30,0.92);color:#ffd700;padding:1rem 2rem;border-radius:14px;font-size:1.4rem;font-weight:600;z-index:2000;box-shadow:0 8px 28px rgba(0,0,0,0.45);font-family:var(--font-display);animation:konamiPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);';
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 2400);
