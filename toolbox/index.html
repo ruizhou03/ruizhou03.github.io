@@ -87,6 +87,9 @@ permalink: /toolbox/
       border-top: 1px dashed var(--color-border);
       text-align: center;
     }
+    .section-divider:first-of-type {
+      margin-top: 0; padding-top: 0; border-top: none;
+    }
     .section-divider h2 {
       font-family: var(--font-display);
       font-size: 1.5rem;
@@ -100,54 +103,17 @@ permalink: /toolbox/
     }
   </style>
 
+  <div class="section-divider">
+    <h2>🧰 实用工具</h2>
+    <div class="sub">日常 / 学术 / 健康 / 兴趣</div>
+  </div>
+
   <div class="tool-grid">
 
     <a class="tool-card live" href="{{ '/toolbox/converter/' | relative_url }}">
       <div class="tool-icon">💱</div>
       <div class="tool-name">汇率 + 单位换算</div>
       <div class="tool-desc">USD ↔ RMB 等主流货币，以及 lb/kg、℉/℃、in/cm。三层 fallback：实时 → 缓存 → 兜底，离线也能用。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/countdown/' | relative_url }}">
-      <div class="tool-icon">⏳</div>
-      <div class="tool-name">倒计时面板</div>
-      <div class="tool-desc">添加自定义事件（考试、deadline、生日、回国机票），多张卡片并列显示「还剩 X 天 Y 小时」或「已过去 X 天」。剩 ≤ 3 天高亮。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/picker/' | relative_url }}">
-      <div class="tool-icon">🎲</div>
-      <div class="tool-name">遇事不决</div>
-      <div class="tool-desc">权重转盘抽签器。几个人吃饭选不出哪家、看什么电影时用，可以给选项不同权重，可保存方案。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/grouper/' | relative_url }}">
-      <div class="tool-icon">👥</div>
-      <div class="tool-name">随机分组器</div>
-      <div class="tool-desc">N 个人随机分成 K 组（或每组 M 人），适合 TA 分 section、聚餐 AA、桌游开局。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/forest/' | relative_url }}">
-      <div class="tool-icon">🌳</div>
-      <div class="tool-name">种树</div>
-      <div class="tool-desc">类似 Forest / 番茄钟。点开始 → 一棵树跟着 25 分钟一起长大。离开 tab 超过 15 秒树会枯萎。每棵树都进你的森林。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/goals/' | relative_url }}">
-      <div class="tool-icon">🎯</div>
-      <div class="tool-name">目标进度跟踪</div>
-      <div class="tool-desc">长期目标 + 打卡。瘦 5 kg / 读 12 本书 / GRE 写作 320 分。折线图对比实际曲线 vs 理想线，看是 on track / 落后 / 超前。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/vocab/' | relative_url }}">
-      <div class="tool-icon">📖</div>
-      <div class="tool-name">生词本（间隔重复）</div>
-      <div class="tool-desc">单词 + 释义 + 例句 + 标签。Leitner 5 档 box 间隔重复，答对升档答错回 Box 1。3D 翻牌动画，键盘快捷键。</div>
       <div class="tool-status"><span class="dot"></span>已上线</div>
     </a>
 
@@ -165,24 +131,10 @@ permalink: /toolbox/
       <div class="tool-status"><span class="dot"></span>已上线</div>
     </a>
 
-    <a class="tool-card live" href="{{ '/toolbox/roll-call/' | relative_url }}">
-      <div class="tool-icon">🎤</div>
-      <div class="tool-name">随机点名</div>
-      <div class="tool-desc">名单导入后随机抽人，支持「不重复模式」自动遍历完所有人。上课提问 / 组会汇报顺序。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
     <a class="tool-card live" href="{{ '/toolbox/citation/' | relative_url }}">
       <div class="tool-icon">🔖</div>
       <div class="tool-name">引用格式转换器</div>
-      <div class="tool-desc">粘贴 BibTeX → 输出 APA / Chicago / MLA / Harvard / Vancouver 6 种格式。多 entries 批量处理，一键复制。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/suika/' | relative_url }}">
-      <div class="tool-icon">🍉</div>
-      <div class="tool-name">合成大西瓜</div>
-      <div class="tool-desc">物理小游戏。同种水果碰撞合并升级，从樱桃一路合到西瓜。基于 Matter.js，支持鼠标/触屏/键盘。</div>
+      <div class="tool-desc">粘贴 BibTeX → 输出 APA / Chicago / MLA / Harvard / Vancouver 6 种格式。多 entries 批量处理,一键复制。</div>
       <div class="tool-status"><span class="dot"></span>已上线</div>
     </a>
 
@@ -207,14 +159,65 @@ permalink: /toolbox/
       <div class="tool-status"><span class="dot"></span>已上线</div>
     </a>
 
+    <a class="tool-card live" href="{{ '/toolbox/forest/' | relative_url }}">
+      <div class="tool-icon">🌳</div>
+      <div class="tool-name">种树</div>
+      <div class="tool-desc">类似 Forest / 番茄钟。点开始 → 一棵树跟着 25 分钟一起长大。离开 tab 超过 15 秒树会枯萎。每棵树都进你的森林。</div>
+      <div class="tool-status"><span class="dot"></span>已上线</div>
+    </a>
+
   </div>
 
   <div class="section-divider">
-    <h2>🎮 小游戏</h2>
+    <h2>🎲 决策 & 随机</h2>
+    <div class="sub">抽签、分组、采样</div>
+  </div>
+
+  <div class="tool-grid">
+
+    <a class="tool-card live" href="{{ '/toolbox/picker/' | relative_url }}">
+      <div class="tool-icon">🎯</div>
+      <div class="tool-name">遇事不决</div>
+      <div class="tool-desc">权重转盘抽签器。几个人吃饭选不出哪家、看什么电影时用，可以给选项不同权重，可保存方案。</div>
+      <div class="tool-status"><span class="dot"></span>已上线</div>
+    </a>
+
+    <a class="tool-card live" href="{{ '/toolbox/grouper/' | relative_url }}">
+      <div class="tool-icon">👥</div>
+      <div class="tool-name">随机分组器</div>
+      <div class="tool-desc">N 个人随机分成 K 组（或每组 M 人），适合 TA 分 section、聚餐 AA、桌游开局。</div>
+      <div class="tool-status"><span class="dot"></span>已上线</div>
+    </a>
+
+    <a class="tool-card live" href="{{ '/toolbox/roll-call/' | relative_url }}">
+      <div class="tool-icon">🎤</div>
+      <div class="tool-name">随机点名</div>
+      <div class="tool-desc">名单导入后随机抽人，支持「不重复模式」自动遍历完所有人。上课提问 / 组会汇报顺序。</div>
+      <div class="tool-status"><span class="dot"></span>已上线</div>
+    </a>
+
+    <a class="tool-card coming-soon">
+      <div class="tool-icon">🎰</div>
+      <div class="tool-name">随机数生成器</div>
+      <div class="tool-desc">12 种概率分布（正态 / 泊松 / Beta / Gamma / 卡方 / t / F …）的 PDF 可视化、区间概率、抽样直方图。统计课和模拟好用。</div>
+      <div class="tool-status"><span class="dot"></span>敬请期待</div>
+    </a>
+
+  </div>
+
+  <div class="section-divider">
+    <h2>🎮 单人小游戏</h2>
     <div class="sub">纯离线，打发碎片时间</div>
   </div>
 
   <div class="tool-grid">
+
+    <a class="tool-card live" href="{{ '/toolbox/suika/' | relative_url }}">
+      <div class="tool-icon">🍉</div>
+      <div class="tool-name">合成大西瓜</div>
+      <div class="tool-desc">物理小游戏。同种水果碰撞合并升级，从樱桃一路合到西瓜。基于 Matter.js，支持鼠标/触屏/键盘。</div>
+      <div class="tool-status"><span class="dot"></span>已上线</div>
+    </a>
 
     <a class="tool-card live" href="{{ '/toolbox/2048/' | relative_url }}">
       <div class="tool-icon">🎯</div>
@@ -251,11 +254,48 @@ permalink: /toolbox/
       <div class="tool-status"><span class="dot"></span>已上线</div>
     </a>
 
-    <a class="tool-card live" href="{{ '/toolbox/leap/' | relative_url }}">
-      <div class="tool-icon">📅</div>
-      <div class="tool-name">跳过 Deadline</div>
-      <div class="tool-desc">梅花桩 / 微信跳一跳 的本地化变体。每根桩 = 一周 deadline，长按蓄力松开就跳。短了掉空隙、长了飞过头。落点正中桩心翻倍记分。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
+  </div>
+
+  <div class="section-divider">
+    <h2>🎉 派对游戏</h2>
+    <div class="sub">朋友聚会，掏出手机就玩</div>
+  </div>
+
+  <div class="tool-grid">
+
+    <a class="tool-card coming-soon">
+      <div class="tool-icon">🃏</div>
+      <div class="tool-name">不要做挑战</div>
+      <div class="tool-desc">一系列不能做的行为，做了就输。3-2-1 倒计时翻牌，可以反转屏幕给别人看。纯本地，不联网。</div>
+      <div class="tool-status"><span class="dot"></span>敬请期待</div>
+    </a>
+
+    <a class="tool-card coming-soon">
+      <div class="tool-icon">🐺</div>
+      <div class="tool-name">狼人杀发身份牌</div>
+      <div class="tool-desc">配置玩家数 + 角色 → 一台手机轮流传，长按看自己的身份，松开自动覆盖。主持人可查看完整配置。</div>
+      <div class="tool-status"><span class="dot"></span>敬请期待</div>
+    </a>
+
+    <a class="tool-card coming-soon">
+      <div class="tool-icon">♟️</div>
+      <div class="tool-name">同机象棋</div>
+      <div class="tool-desc">中国象棋。9×10 棋盘红黑双人轮流，合法走子约束（马蹩腿、象眼、过河兵等）。共用一台设备。</div>
+      <div class="tool-status"><span class="dot"></span>敬请期待</div>
+    </a>
+
+    <a class="tool-card coming-soon">
+      <div class="tool-icon">✏️</div>
+      <div class="tool-name">你画我猜</div>
+      <div class="tool-desc">2–4 人联机。房主创建房间 → 别人输房间码加入 → P2P 直连。画画的人看词，其他人在聊天框猜。</div>
+      <div class="tool-status"><span class="dot"></span>敬请期待</div>
+    </a>
+
+    <a class="tool-card coming-soon">
+      <div class="tool-icon">⭐</div>
+      <div class="tool-name">多人跳棋</div>
+      <div class="tool-desc">六角星形棋盘的中国跳棋。支持 2 / 3 / 4 / 6 人，先把所有棋子移到对面星角的人胜。同机轮流。</div>
+      <div class="tool-status"><span class="dot"></span>敬请期待</div>
     </a>
 
   </div>
