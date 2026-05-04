@@ -207,11 +207,10 @@ permalink: /toolbox/runner/
 
   <details class="about">
     <summary>关于这个游戏</summary>
-    <p><strong>玩法：</strong>无限跑酷，速度越来越快。地面会出现高高低低的<strong>纸堆</strong>（论文 / 文献综述 / reviewer 报告），半空会飞过<strong>邮件信封</strong>（Reviewer 2、IRB 修改意见、deadline 提醒）。撞到任意一个就结束，看你能跑多远。</p>
-    <p><strong>跳跃（按压时长 = 跳多高）：</strong>瞬点跳约 1/5 屏高 (~28 px)，过小纸堆和高位飞邮件；半按 3–5 帧跳约 1/3 屏高 (~43–57 px)，过高纸堆和双连堆；按住到峰值后会进入<strong>滑翔</strong>（手臂 accent 色横展，最长 0.5 秒），峰值约 5/8 屏高 (~93 px)，用来跨密集段或飞过低位飞邮件。<strong>滑翔起点 = 这次按出来的实际峰值</strong>——按多久就从多高滑过去，是同一根连续的"力度"。松手期间会立刻把上升斩掉、恢复正常重力，瞬点的"小跳"靠的就是这一斩。</p>
-    <p><strong>蹲：</strong><code>↓</code> 蹲下钻过低位飞邮件（envelope-duck，站着会撞）。空中按 <code>↓</code> 会取消滑翔、加速降落。</p>
-    <p><strong>速度：</strong>从 6 px/帧 起步，每往前 100 米快一点，到 14 px/帧 封顶——真到这速度，眼睛已经反应不过来了。</p>
-    <p><strong>纯本地：</strong>最高分本机 localStorage 保存，不联网、不上传。刷新还在，换浏览器没了。</p>
+    <p><strong>玩法：</strong>无限跑酷。地面是纸堆（论文 / 文献综述 / reviewer 报告），半空是飞邮件（Reviewer 2 / IRB 修改意见 / deadline 提醒），撞到任意一个就结束。速度会越跑越快。</p>
+    <p><strong>跳：</strong>按一下小跳，按住跳得高，再按住到下落会进入<strong>滑翔</strong>。</p>
+    <p><strong>蹲：</strong><code>↓</code> 钻过低位飞邮件，空中按 <code>↓</code> 立刻收掉滑翔、加速落地。</p>
+    <p><strong>纯本地：</strong>最高分本机存，不联网、不上传。换浏览器没了。</p>
   </details>
 </article>
 
@@ -303,8 +302,10 @@ permalink: /toolbox/runner/
 
   function loadBest() {
     try {
-      const v = parseInt(localStorage.getItem(BEST_KEY) || '0', 10);
-      state.best = isNaN(v) ? 0 : v;
+      // 兼容旧版浮点存档：parseFloat 后再 floor，避免老用户看到 247.36... 这种垃圾数字
+      const raw = localStorage.getItem(BEST_KEY) || '0';
+      const v = Math.floor(parseFloat(raw));
+      state.best = isFinite(v) && v > 0 ? v : 0;
     } catch (e) { state.best = 0; }
     $hudBest.textContent = `最高 ${state.best} 米`;
   }
@@ -342,12 +343,13 @@ permalink: /toolbox/runner/
 
   function gameOver() {
     state.phase = 'gameover';
-    if (state.score > state.best) {
-      state.best = state.score;
+    const finalScore = Math.floor(state.score);   // 显示和存档都用整数
+    if (finalScore > state.best) {
+      state.best = finalScore;
       saveBest();
     }
     $hudBest.textContent = `最高 ${state.best} 米`;
-    $overScore.textContent = `${state.score} 米`;
+    $overScore.textContent = `${finalScore} 米`;
     $overBest.textContent = `${state.best} 米`;
     $overOver.classList.remove('hidden');
   }
