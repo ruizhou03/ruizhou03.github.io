@@ -386,6 +386,14 @@ permalink: /toolbox/suika/
             </div>
             <input type="range" id="stickiness-slider" min="0" max="1" step="0.05" value="0.5" />
           </div>
+          <div class="setting-item">
+            <div class="setting-row">
+              <label>🌋 地震</label>
+              <span class="setting-desc" id="tremor-desc">关闭</span>
+              <span class="setting-val" id="tremor-val">0.00</span>
+            </div>
+            <input type="range" id="tremor-slider" min="0" max="1" step="0.05" value="0" />
+          </div>
         </div>
 
         <div class="settings-actions">
@@ -468,8 +476,8 @@ permalink: /toolbox/suika/
   const MELONS_KEY = 'tool.suika.melons.v1';
   const PHYSICS_KEY = 'tool.suika.physics.v1';
 
-  // 4 个用户可调参数（0-1 滑条 → 实际物理值）
-  const PHYSICS = { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5 };
+  // 5 个用户可调参数（0-1 滑条 → 实际物理值）
+  const PHYSICS = { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5, tremor: 0 };
   function mapPhysics() {
     return {
       // 回弹：0-1 → 0.05-0.40
@@ -480,6 +488,10 @@ permalink: /toolbox/suika/
       gravityScale: 0.0008 + PHYSICS.gravity * 0.0014,
       // 合并粘性：0-1 → 1.02-1.15（合并触发距离倍率）
       mergeTolerance: 1.02 + PHYSICS.stickiness * 0.13,
+      // 地震：tremor=0 关，tremor=1 平均每 500ms 触发一次大扰动；
+      //       0-1 之间间隔反比例延长 + 幅度等比缩小，时间和幅度都带 ±30% 噪声
+      tremorIntervalMs: PHYSICS.tremor > 0 ? 500 / PHYSICS.tremor : Infinity,
+      tremorAmplitude: 0.0085 * PHYSICS.tremor,
     };
   }
   function loadPhysics() {
@@ -487,7 +499,7 @@ permalink: /toolbox/suika/
       const raw = localStorage.getItem(PHYSICS_KEY);
       if (raw) {
         const p = JSON.parse(raw);
-        ['bounce', 'explosion', 'gravity', 'stickiness'].forEach(k => {
+        ['bounce', 'explosion', 'gravity', 'stickiness', 'tremor'].forEach(k => {
           if (typeof p[k] === 'number') PHYSICS[k] = Math.max(0, Math.min(1, p[k]));
         });
       }
@@ -534,6 +546,14 @@ permalink: /toolbox/suika/
     if (v < 0.6) return '标准';
     if (v < 0.8) return '宽容';
     return '靠近就合';
+  }
+  function describeTremor(v) {
+    if (v === 0) return '关闭';
+    if (v < 0.2) return '微震';
+    if (v < 0.4) return '小震';
+    if (v < 0.6) return '中震';
+    if (v < 0.8) return '强震';
+    return '末日';
   }
 
   // ============ 水果定义（11 级） ============
@@ -681,6 +701,7 @@ permalink: /toolbox/suika/
   let isPaused = false;
   let dangerSince = null;
   let lastInDangerTime = 0;
+  let nextTremorAt = 0;       // 下一次地震时间戳，0 = 还没初始化
   let dropCooldown = false;
   let lastTick = performance.now();
   const recentMerges = new Set();   // 防止同一次碰撞触发多次合并
@@ -1022,6 +1043,7 @@ permalink: /toolbox/suika/
           }
         });
         checkProximityMerges();   // 接触合并（替代 collisionStart）
+        maybeTriggerTremor(now);  // 地震 feature：定时给所有水果随机扰动
         checkDanger(now);
         recentMerges.clear();
       }
@@ -1062,6 +1084,39 @@ permalink: /toolbox/suika/
         }
       }
     });
+  }
+
+  // 地震：每隔 tremorIntervalMs（带 ±30% 噪声）给所有水果一个随机方向的微小冲击。
+  // 间隔 tremor=1 时 500ms，tremor 越低间隔反比例越长；幅度也按 tremor 缩小。
+  function triggerTremor() {
+    const m = mapPhysics();
+    const baseAmp = m.tremorAmplitude;
+    Composite.allBodies(world).forEach(b => {
+      if (!b.fruitLevel || b.isStatic) return;
+      const ampl = baseAmp * (0.7 + Math.random() * 0.6);
+      const angle = Math.random() * Math.PI * 2;
+      Body.applyForce(b, b.position, {
+        x: Math.cos(angle) * ampl * b.mass,
+        y: Math.sin(angle) * ampl * b.mass * 0.4,   // y 方向减弱，主要是横向晃动
+      });
+    });
+  }
+  function maybeTriggerTremor(now) {
+    if (PHYSICS.tremor <= 0) return;
+    if (isPaused || isOver) return;
+    // 试玩模式也允许触发，方便用户调参时立刻感受效果
+    if (!gameStarted && !trialMode) return;
+    if (nextTremorAt === 0) {
+      // 第一次：随机延迟，避免开局就抖
+      nextTremorAt = now + 1000 + Math.random() * 1500;
+      return;
+    }
+    if (now >= nextTremorAt) {
+      triggerTremor();
+      const m = mapPhysics();
+      const interval = m.tremorIntervalMs * (0.7 + Math.random() * 0.6);
+      nextTremorAt = now + interval;
+    }
   }
 
   function checkDanger(now) {
@@ -1250,6 +1305,7 @@ permalink: /toolbox/suika/
     score = 0;
     dangerSince = null;
     lastInDangerTime = 0;
+    nextTremorAt = 0;
     dropCooldown = false;
     hoverFruit = null;
     hoverVx = 0;
@@ -1292,6 +1348,7 @@ permalink: /toolbox/suika/
     { key: 'explosion',  describe: describeExplosion },
     { key: 'gravity',    describe: describeGravity },
     { key: 'stickiness', describe: describeStickiness },
+    { key: 'tremor',     describe: describeTremor },
   ];
   const sliderEls = {};
   SLIDERS.forEach(({ key, describe }) => {
@@ -1378,6 +1435,7 @@ permalink: /toolbox/suika/
     PHYSICS.explosion = 0.5;
     PHYSICS.gravity = 0.5;
     PHYSICS.stickiness = 0.5;
+    PHYSICS.tremor = 0;
     savePhysics();
     refreshSliderUI();
     applyPhysicsLive();
