@@ -574,8 +574,9 @@ permalink: /toolbox/suika/
   }
   function triggerKonami() {
     if (isOver || !world) return;
-    // 在画面中央上方丢一颗西瓜
-    const watermelon = createFruitBody(11, $canvas.width / 2, SPAWN_Y + 20);
+    // 在画面中部丢一颗西瓜：西瓜 r=96，从 y=110 出发 top edge=14 仍在 canvas 内、
+    // 且刚好在 DANGER_Y=100 下方，避免一出现就触发 game over。
+    const watermelon = createFruitBody(11, $canvas.width / 2, 110);
     World.add(world, watermelon);
     melonsCount++;
     score += FRUITS[10].score;  // 西瓜分
