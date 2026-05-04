@@ -146,6 +146,87 @@ permalink: /toolbox/suika/
   }
   .preview-row .melon-count strong { color: var(--color-highlight); font-weight: 600; }
 
+  /* 调参面板：合成链表情自定义 */
+  .custom-chain-section {
+    padding-top: 0.7rem;
+    border-top: 1px dashed var(--color-border);
+    margin-top: 0.6rem;
+  }
+  .custom-chain-section .setting-row {
+    margin-bottom: 0.3rem;
+  }
+  .custom-chain-display {
+    display: flex; align-items: center; gap: 0.2rem;
+    padding: 0.5rem 0.6rem;
+    background: var(--color-bg-warm);
+    border-radius: 8px;
+    overflow-x: auto; flex-wrap: nowrap;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .custom-chain-slot {
+    flex-shrink: 0;
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 0.15rem 0.3rem;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    line-height: 1;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .custom-chain-slot:hover { background: rgba(255,255,255,0.5); }
+  .custom-chain-slot.selected {
+    border-color: var(--color-accent);
+    background: rgba(255,255,255,0.85);
+  }
+  .custom-chain-arrow {
+    opacity: 0.4; font-size: 0.7rem; flex-shrink: 0;
+  }
+  .custom-chain-reset {
+    font: inherit; font-size: 0.78rem;
+    padding: 0.25rem 0.7rem;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    background: var(--color-bg);
+    color: var(--color-muted);
+    cursor: pointer;
+  }
+  .custom-chain-reset:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .custom-chain-picker {
+    margin-top: 0.5rem;
+    padding: 0.55rem 0.6rem;
+    background: var(--color-bg);
+    border: 1px dashed var(--color-border);
+    border-radius: 8px;
+  }
+  .custom-chain-picker-hint {
+    font-size: 0.78rem;
+    color: var(--color-muted);
+    margin-bottom: 0.45rem;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .custom-chain-picker-hint strong {
+    color: var(--color-accent); font-weight: 600;
+  }
+  .custom-chain-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(2rem, 1fr));
+    gap: 0.2rem;
+    max-height: 11rem;
+    overflow-y: auto;
+    padding-right: 0.2rem;
+  }
+  .custom-chain-picker-item {
+    font-size: 1.3rem;
+    padding: 0.25rem;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 5px;
+    line-height: 1;
+    transition: background 0.15s;
+  }
+  .custom-chain-picker-item:hover { background: var(--color-bg-warm); }
+
   /* 进化链可视化 */
   .evo-chain {
     display: flex; align-items: center;
@@ -394,6 +475,17 @@ permalink: /toolbox/suika/
             </div>
             <input type="range" id="tremor-slider" min="0" max="1" step="0.05" value="0" />
           </div>
+          <div class="setting-item custom-chain-section">
+            <div class="setting-row">
+              <label>🎨 合成链表情</label>
+              <button type="button" class="custom-chain-reset" id="custom-chain-reset-btn">↻ 默认</button>
+            </div>
+            <div class="custom-chain-display" id="custom-chain-display"></div>
+            <div class="custom-chain-picker" id="custom-chain-picker" style="display: none;">
+              <div class="custom-chain-picker-hint" id="custom-chain-picker-hint">点选一个表情替换，或点链上另一格交换位置</div>
+              <div class="custom-chain-picker-grid" id="custom-chain-picker-grid"></div>
+            </div>
+          </div>
         </div>
 
         <div class="settings-actions">
@@ -475,6 +567,7 @@ permalink: /toolbox/suika/
   const HIGH_KEY = 'tool.suika.highscore.v1';
   const MELONS_KEY = 'tool.suika.melons.v1';
   const PHYSICS_KEY = 'tool.suika.physics.v1';
+  const CHAIN_KEY = 'tool.suika.chain.v1';
 
   // 5 个用户可调参数（0-1 滑条 → 实际物理值）
   const PHYSICS = { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5, tremor: 0 };
@@ -572,6 +665,113 @@ permalink: /toolbox/suika/
     { lv: 10, name: '哈密瓜', emoji: '🍈', cp: '1f348', radius: 84, color: '#a8e6cf', score: 100 },
     { lv: 11, name: '西瓜',   emoji: '🍉', cp: '1f349', radius: 96, color: '#27ae60', score: 121 },
   ];
+
+  // ============ 表情库（合成链可自定义替换） ============
+  // 用户在调参面板里可以把任意 slot 换成下面任意一个表情；半径/分数不变，
+  // 只换 emoji 字符 / 中文名 / 底色渐变。颜色是手挑的视觉近似，仅用于绘制
+  // 圆背景 — 即使有 emoji 跟主体不太像也是可控的。
+  const EMOJI_LIBRARY = [
+    // 默认链中的水果
+    { cp: '1f352', emoji: '🍒', name: '樱桃',     color: '#e84118' },
+    { cp: '1f353', emoji: '🍓', name: '草莓',     color: '#ff7675' },
+    { cp: '1f347', emoji: '🍇', name: '葡萄',     color: '#8e44ad' },
+    { cp: '1f34a', emoji: '🍊', name: '橘子',     color: '#f39c12' },
+    { cp: '1f345', emoji: '🍅', name: '柿子',     color: '#e67e22' },
+    { cp: '1f34e', emoji: '🍎', name: '苹果',     color: '#e74c3c' },
+    { cp: '1f350', emoji: '🍐', name: '梨',       color: '#7bed9f' },
+    { cp: '1f351', emoji: '🍑', name: '桃',       color: '#fab1a0' },
+    { cp: '1f34d', emoji: '🍍', name: '菠萝',     color: '#feca57' },
+    { cp: '1f348', emoji: '🍈', name: '哈密瓜',   color: '#a8e6cf' },
+    { cp: '1f349', emoji: '🍉', name: '西瓜',     color: '#27ae60' },
+    // 其他水果
+    { cp: '1f34f', emoji: '🍏', name: '青苹果',   color: '#52d97e' },
+    { cp: '1f34c', emoji: '🍌', name: '香蕉',     color: '#f1c40f' },
+    { cp: '1f95d', emoji: '🥝', name: '猕猴桃',   color: '#8c6e3a' },
+    { cp: '1f96d', emoji: '🥭', name: '芒果',     color: '#ff9f43' },
+    { cp: '1f965', emoji: '🥥', name: '椰子',     color: '#a87c5b' },
+    { cp: '1f951', emoji: '🥑', name: '牛油果',   color: '#67762f' },
+    { cp: '1f34b', emoji: '🍋', name: '柠檬',     color: '#f7d716' },
+    // 蔬菜
+    { cp: '1f955', emoji: '🥕', name: '胡萝卜',   color: '#e88f3a' },
+    { cp: '1f33d', emoji: '🌽', name: '玉米',     color: '#f1c40f' },
+    { cp: '1f346', emoji: '🍆', name: '茄子',     color: '#7d3c98' },
+    { cp: '1f954', emoji: '🥔', name: '土豆',     color: '#b08968' },
+    { cp: '1f952', emoji: '🥒', name: '黄瓜',     color: '#52b788' },
+    { cp: '1f9c4', emoji: '🧄', name: '大蒜',     color: '#f3d2c1' },
+    { cp: '1f9c5', emoji: '🧅', name: '洋葱',     color: '#d4a373' },
+    // 甜点
+    { cp: '1f369', emoji: '🍩', name: '甜甜圈',   color: '#deb887' },
+    { cp: '1f9c1', emoji: '🧁', name: '杯子蛋糕', color: '#f4a6c5' },
+    { cp: '1f370', emoji: '🍰', name: '蛋糕',     color: '#fec8d8' },
+    { cp: '1f36a', emoji: '🍪', name: '饼干',     color: '#c69c6d' },
+    { cp: '1f366', emoji: '🍦', name: '冰淇淋',   color: '#ffe4b5' },
+    { cp: '1f36b', emoji: '🍫', name: '巧克力',   color: '#6b3e2e' },
+    { cp: '1f36c', emoji: '🍬', name: '糖果',     color: '#ff6b9d' },
+    { cp: '1f36d', emoji: '🍭', name: '棒棒糖',   color: '#ff85c1' },
+    // 动物
+    { cp: '1f436', emoji: '🐶', name: '小狗',     color: '#d4a373' },
+    { cp: '1f431', emoji: '🐱', name: '小猫',     color: '#fcbf49' },
+    { cp: '1f43b', emoji: '🐻', name: '熊',       color: '#8b5a2b' },
+    { cp: '1f43c', emoji: '🐼', name: '熊猫',     color: '#e6e6e6' },
+    { cp: '1f42f', emoji: '🐯', name: '虎',       color: '#f9a826' },
+    { cp: '1f981', emoji: '🦁', name: '狮子',     color: '#e9b94a' },
+    { cp: '1f438', emoji: '🐸', name: '青蛙',     color: '#52d97e' },
+    { cp: '1f435', emoji: '🐵', name: '猴子',     color: '#a0522d' },
+    { cp: '1f427', emoji: '🐧', name: '企鹅',     color: '#2c3e50' },
+    { cp: '1f984', emoji: '🦄', name: '独角兽',   color: '#dda0dd' },
+    // 球类 / 天体 / 节日
+    { cp: '26bd',  emoji: '⚽', name: '足球',     color: '#2c3e50' },
+    { cp: '1f3c0', emoji: '🏀', name: '篮球',     color: '#e67e22' },
+    { cp: '26be',  emoji: '⚾', name: '棒球',     color: '#ecf0f1' },
+    { cp: '1f3be', emoji: '🎾', name: '网球',     color: '#c0fa3b' },
+    { cp: '1f315', emoji: '🌕', name: '满月',     color: '#f1c40f' },
+    { cp: '2b50',  emoji: '⭐', name: '星星',     color: '#f1c40f' },
+    { cp: '1f31f', emoji: '🌟', name: '亮星',     color: '#f9d71c' },
+    { cp: '1f383', emoji: '🎃', name: '南瓜灯',   color: '#e67e22' },
+  ];
+
+  // 默认 cp 序列（用于 reset）
+  const DEFAULT_CHAIN_CPS = FRUITS.map(f => f.cp);
+  // 当前 chain 序列（11 个 cp）—— load 后可被覆盖；后续修改都改这里再 apply
+  let chainCps = [...DEFAULT_CHAIN_CPS];
+  // 调参面板中当前选中的 slot level（null = 没选中，picker 不显示）
+  let selectedSlotLevel = null;
+
+  function loadChain() {
+    try {
+      const raw = localStorage.getItem(CHAIN_KEY);
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr) || arr.length !== FRUITS.length) return;
+      // 校验：每个元素必须是库里有的 cp
+      const validCps = new Set(EMOJI_LIBRARY.map(e => e.cp));
+      const cleaned = arr.map((cp, i) =>
+        (typeof cp === 'string' && validCps.has(cp)) ? cp : DEFAULT_CHAIN_CPS[i]
+      );
+      chainCps = cleaned;
+    } catch (e) {}
+  }
+  function saveChain() {
+    try { localStorage.setItem(CHAIN_KEY, JSON.stringify(chainCps)); } catch (e) {}
+  }
+  // 把 chainCps 应用到 FRUITS：改 emoji/name/color/cp，同时重新加载对应图
+  function applyChainCps() {
+    chainCps.forEach((cp, i) => {
+      const lib = EMOJI_LIBRARY.find(e => e.cp === cp);
+      if (!lib) return;
+      const f = FRUITS[i];
+      if (f.cp === lib.cp) return;   // cp 已经匹配，跳过（图片由 loadFruitImages 在 init 统一加载）
+      f.cp = lib.cp;
+      f.emoji = lib.emoji;
+      f.name = lib.name;
+      f.color = lib.color;
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => { fruitImages[f.lv] = img; };
+      img.onerror = () => { console.warn('[suika] 水果图加载失败 lv=' + f.lv + ' cp=' + lib.cp); };
+      img.src = `https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/${lib.cp}.png`;
+    });
+  }
 
   // ============ Twemoji 图片预加载 ============
   // Canvas 在 iOS Safari 上 fillText emoji 不可靠（即使指定 Apple Color Emoji
@@ -1312,6 +1512,92 @@ permalink: /toolbox/suika/
     }).join('');
   }
 
+  // ============ 调参面板：合成链表情自定义 ============
+  function renderChainEditor() {
+    const $disp = document.getElementById('custom-chain-display');
+    if (!$disp) return;
+    $disp.innerHTML = chainCps.map((cp, i) => {
+      const lib = EMOJI_LIBRARY.find(e => e.cp === cp) || { emoji: '?', name: '?' };
+      const lv = i + 1;
+      const sel = selectedSlotLevel === lv ? ' selected' : '';
+      const arrow = i < chainCps.length - 1 ? '<span class="custom-chain-arrow">→</span>' : '';
+      return `<span class="custom-chain-slot${sel}" data-level="${lv}" title="lv ${lv}：${lib.name}">${lib.emoji}</span>${arrow}`;
+    }).join('');
+    $disp.querySelectorAll('.custom-chain-slot').forEach(el => {
+      el.addEventListener('click', () => onChainSlotClick(parseInt(el.dataset.level, 10)));
+    });
+    renderEmojiPicker();
+  }
+
+  function renderEmojiPicker() {
+    const $picker = document.getElementById('custom-chain-picker');
+    const $grid = document.getElementById('custom-chain-picker-grid');
+    const $hint = document.getElementById('custom-chain-picker-hint');
+    if (!$picker || !$grid) return;
+    if (selectedSlotLevel === null) {
+      $picker.style.display = 'none';
+      return;
+    }
+    $picker.style.display = '';
+    const currentLib = EMOJI_LIBRARY.find(e => e.cp === chainCps[selectedSlotLevel - 1]);
+    if ($hint) {
+      $hint.innerHTML = `选中 <strong>lv ${selectedSlotLevel}（当前 ${currentLib?.emoji || '?'}）</strong>。点下方任意表情替换；或点合成链上另一格交换位置；再次点当前格取消。`;
+    }
+    // 排除已在链上的 cp（含当前 slot）—— 想用链上的就走"点链上另一格"路径
+    const usedSet = new Set(chainCps);
+    const candidates = EMOJI_LIBRARY.filter(e => !usedSet.has(e.cp));
+    $grid.innerHTML = candidates.map(e =>
+      `<span class="custom-chain-picker-item" data-cp="${e.cp}" title="${e.name}">${e.emoji}</span>`
+    ).join('');
+    $grid.querySelectorAll('.custom-chain-picker-item').forEach(el => {
+      el.addEventListener('click', () => {
+        setChainSlot(selectedSlotLevel, el.dataset.cp);
+        selectedSlotLevel = null;
+        renderChainEditor();
+      });
+    });
+  }
+
+  function onChainSlotClick(level) {
+    if (selectedSlotLevel === null) {
+      selectedSlotLevel = level;
+    } else if (selectedSlotLevel === level) {
+      selectedSlotLevel = null;     // 再次点当前 → 取消
+    } else {
+      swapChainSlots(selectedSlotLevel, level);
+      selectedSlotLevel = null;
+    }
+    renderChainEditor();
+  }
+
+  function setChainSlot(level, cp) {
+    chainCps[level - 1] = cp;
+    applyChainCps();
+    saveChain();
+    buildEvoChain();
+    updateNextFruitUI();          // 下一个水果显示也可能受影响
+  }
+
+  function swapChainSlots(la, lb) {
+    const tmp = chainCps[la - 1];
+    chainCps[la - 1] = chainCps[lb - 1];
+    chainCps[lb - 1] = tmp;
+    applyChainCps();
+    saveChain();
+    buildEvoChain();
+    updateNextFruitUI();
+  }
+
+  function resetChain() {
+    chainCps = [...DEFAULT_CHAIN_CPS];
+    applyChainCps();
+    saveChain();
+    selectedSlotLevel = null;
+    renderChainEditor();
+    buildEvoChain();
+    updateNextFruitUI();
+  }
+
   // ============ 游戏控制 ============
   function gameOver() {
     if (isOver) return;
@@ -1474,6 +1760,7 @@ permalink: /toolbox/suika/
     refreshSliderUI();
     applyPhysicsLive();
   });
+  document.getElementById('custom-chain-reset-btn').addEventListener('click', resetChain);
 
   $ovRestart.addEventListener('click', restart);
   $restartBtn.addEventListener('click', () => {
@@ -1489,7 +1776,10 @@ permalink: /toolbox/suika/
   });
 
   // ============ Init ============
+  loadChain();           // 必须在 buildEvoChain / setupWorld 之前 —— FRUITS 要先被覆盖
+  applyChainCps();
   buildEvoChain();
+  renderChainEditor();
   updateScoreUI();
   loadPhysics();
   refreshSliderUI();
