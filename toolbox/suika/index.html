@@ -493,6 +493,8 @@ permalink: /toolbox/suika/
           <button type="button" id="reset-physics-btn">↻ 默认</button>
         </div>
         <button type="button" class="ov-btn" id="start-from-settings-btn" style="margin-top: 0.8rem;">▶ 开始游戏</button>
+        <button type="button" class="ov-btn" id="resume-from-settings-btn" style="margin-top: 0.8rem; display: none;">▶ 继续游戏</button>
+        <button type="button" class="settings-link" id="restart-from-settings-btn" style="margin-top: 0.8rem; display: none;">↻ 重新开始</button>
       </div>
 
       <!-- 试玩结束视图 -->
@@ -526,6 +528,7 @@ permalink: /toolbox/suika/
   <div class="controls-row">
     <button type="button" id="restart-btn">🔄 重开</button>
     <button type="button" id="pause-btn">⏸ 暂停</button>
+    <button type="button" id="settings-btn">⚙ 调参</button>
   </div>
 
   <div class="evo-chain" id="evo-chain">
@@ -1655,10 +1658,58 @@ permalink: /toolbox/suika/
   $startBtn.addEventListener('click', startGame);
   document.getElementById('start-from-settings-btn').addEventListener('click', startGame);
 
+  // ============ 调参入口（起始幕 + 游戏中两条路径） ============
+  let inGameSettings = false;          // settings overlay 是否从游戏中打开
+  let wasPausedBeforeSettings = false; // 进 settings 前的 isPaused 状态（关 settings 时还原）
+  const $settingsBtn = document.getElementById('settings-btn');
+  const $resumeFromSettingsBtn = document.getElementById('resume-from-settings-btn');
+  const $restartFromSettingsBtn = document.getElementById('restart-from-settings-btn');
+  const $tryPhysicsBtn = document.getElementById('try-physics-btn');
+  const $startFromSettingsBtn = document.getElementById('start-from-settings-btn');
+
+  // 根据 inGameSettings 切换设置面板底部按钮组
+  function refreshSettingsActions() {
+    const inGame = inGameSettings;
+    $tryPhysicsBtn.style.display       = inGame ? 'none' : '';
+    $startFromSettingsBtn.style.display = inGame ? 'none' : '';
+    $resumeFromSettingsBtn.style.display = inGame ? '' : 'none';
+    $restartFromSettingsBtn.style.display = inGame ? '' : 'none';
+  }
+
+  // 控制栏「⚙ 调参」按钮
+  $settingsBtn.addEventListener('click', () => {
+    if (gameStarted && !isOver && !trialMode) {
+      // 游戏中：自动暂停 + inGameSettings 模式
+      inGameSettings = true;
+      wasPausedBeforeSettings = isPaused;
+      isPaused = true;
+      $pauseBtn.textContent = '▶ 继续';
+    } else {
+      inGameSettings = false;
+    }
+    refreshSettingsActions();
+    $startOverlay.classList.add('open');
+    showOverlayView('settings');
+  });
+
+  $resumeFromSettingsBtn.addEventListener('click', () => {
+    $startOverlay.classList.remove('open');
+    isPaused = wasPausedBeforeSettings;
+    $pauseBtn.textContent = isPaused ? '▶ 继续' : '⏸ 暂停';
+    inGameSettings = false;
+  });
+
+  $restartFromSettingsBtn.addEventListener('click', () => {
+    inGameSettings = false;
+    restart();   // 已有函数：清 world + reset score + 关 overlay + 重新 setupWorld
+  });
+
   // 视图切换
   const $viewMain = document.getElementById('view-main');
   const $viewSettings = document.getElementById('view-settings');
   document.getElementById('open-settings-btn').addEventListener('click', () => {
+    inGameSettings = false;
+    refreshSettingsActions();
     showOverlayView('settings');
   });
 
@@ -1746,6 +1797,8 @@ permalink: /toolbox/suika/
 
   // 试玩结束视图的两个按钮
   document.getElementById('continue-tuning-btn').addEventListener('click', () => {
+    inGameSettings = false;
+    refreshSettingsActions();
     showOverlayView('settings');
   });
   document.getElementById('start-from-trial-btn').addEventListener('click', startGame);
