@@ -173,6 +173,13 @@ permalink: /toolbox/suika/
   .canvas-size-btn.active {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
   }
+  .canvas-size-hint {
+    margin-top: 0.35rem;
+    font-size: 0.72rem;
+    color: var(--color-muted);
+    opacity: 0.75;
+    text-align: center;
+  }
 
   /* 调参面板：合成链表情自定义 */
   .custom-chain-section {
@@ -270,7 +277,7 @@ permalink: /toolbox/suika/
   }
   .custom-chain-picker-item:hover { background: var(--color-bg-warm); }
 
-  /* 进化链可视化（主游戏底部，单行 + 箭头，溢出时横向滚动） */
+  /* 进化链可视化（主游戏底部，单行 + 箭头，溢出时横向滚动 + 居中） */
   .evo-chain {
     display: flex; align-items: center;
     gap: 0.25rem;
@@ -284,13 +291,22 @@ permalink: /toolbox/suika/
     flex-wrap: nowrap;
     scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
-    justify-content: flex-start;
+    justify-content: center;
   }
-  .evo-chain .evo-emoji { flex-shrink: 0; line-height: 1; }
+  .evo-chain .evo-emoji {
+    flex-shrink: 0; line-height: 1;
+    transition: transform 0.2s, filter 0.2s;
+  }
   .evo-chain .evo-arrow {
     flex-shrink: 0;
     opacity: 0.45; font-size: 0.7rem;
     color: var(--color-muted);
+  }
+  /* halo：当前本局最高级合成的水果（不含暗号召唤的西瓜） */
+  .evo-chain .evo-emoji.reached {
+    transform: scale(1.25);
+    filter: drop-shadow(0 0 6px rgba(255, 200, 60, 0.95))
+            drop-shadow(0 0 12px rgba(255, 200, 60, 0.55));
   }
 
   .footnote {
@@ -435,12 +451,7 @@ permalink: /toolbox/suika/
 
   /* ============ 排行榜 / 昵称 / 结算页 ============ */
 
-  /* 进化链：本局合到的最高级高亮 */
-  .evo-chain span.reached {
-    transform: scale(1.25);
-    transition: transform 0.3s, filter 0.3s;
-    filter: drop-shadow(0 0 4px var(--color-highlight, #f0c674));
-  }
+  /* （旧的 .evo-chain span.reached 已合并到 .evo-emoji.reached 上方更亮的版本） */
 
   /* 结算面板里的子模块都用统一的 max-width，让排版整齐 */
   .ov-block { width: 100%; max-width: 320px; }
@@ -737,11 +748,10 @@ permalink: /toolbox/suika/
               <span class="setting-desc" id="canvas-size-desc">标准</span>
             </div>
             <div class="canvas-size-row" id="canvas-size-row">
-              <button type="button" class="canvas-size-btn" data-size="compact">紧凑</button>
-              <button type="button" class="canvas-size-btn" data-size="standard">标准</button>
-              <button type="button" class="canvas-size-btn" data-size="large">加大</button>
-              <button type="button" class="canvas-size-btn" data-size="tall">高瘦</button>
+              <button type="button" class="canvas-size-btn" data-size="medium">中</button>
+              <button type="button" class="canvas-size-btn" data-size="large">大</button>
             </div>
+            <div class="canvas-size-hint">改画幅会重新开始当前局</div>
           </div>
           <div class="setting-item custom-chain-section">
             <div class="setting-row">
@@ -880,7 +890,7 @@ permalink: /toolbox/suika/
   const NICK_REJECT_RE = /[<>&"'\/\\\x00-\x1F​-‏﻿‪-‮]/;
 
   // 5 个用户可调参数（0-1 滑条 → 实际物理值） + 布尔开关 + 字符串 preset
-  const PHYSICS = { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5, tremor: 0, shakeView: true, canvasSize: 'standard' };
+  const PHYSICS = { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5, tremor: 0, shakeView: true, canvasSize: 'medium' };
   function mapPhysics() {
     return {
       // 回弹：0-1 → 0.05-0.40
@@ -1196,8 +1206,9 @@ permalink: /toolbox/suika/
     World.add(world, watermelon);
     melonsCount++;
     runMelons++;
-    if (runMaxLevel < 11) runMaxLevel = 11;
-    score += FRUITS[10].score;  // 西瓜分
+    // 注意：不更新 runMaxLevel —— 暗号召唤的最高级不算本局合成成就，halo 仍只
+    // 反映靠合并自然达到的最高级
+    score += FRUITS[10].score;
     try { localStorage.setItem(MELONS_KEY, String(melonsCount)); } catch (e) {}
     updateScoreUI();
     showKonamiToast();
@@ -1261,11 +1272,10 @@ permalink: /toolbox/suika/
   const DANGER_Y = 100;     // 危险线 y
 
   // 画幅 preset：(maxW, aspect) 决定画布尺寸。实际 W 还会被父容器宽度兜住。
+  // 只留两档：太小不容易合到大水果。
   const CANVAS_SIZES = {
-    compact:  { maxW: 380, aspect: 1.40, label: '紧凑' },
-    standard: { maxW: 430, aspect: 1.45, label: '标准' },
-    large:    { maxW: 480, aspect: 1.50, label: '加大' },
-    tall:     { maxW: 400, aspect: 1.65, label: '高瘦' },
+    medium: { maxW: 430, aspect: 1.45, label: '中' },
+    large:  { maxW: 480, aspect: 1.55, label: '大' },
   };
 
   // 自适应尺寸
@@ -1282,7 +1292,7 @@ permalink: /toolbox/suika/
         - parseFloat(cs.paddingLeft || 0)
         - parseFloat(cs.paddingRight || 0);
     }
-    const preset = CANVAS_SIZES[PHYSICS.canvasSize] || CANVAS_SIZES.standard;
+    const preset = CANVAS_SIZES[PHYSICS.canvasSize] || CANVAS_SIZES.medium;
     const containerWidth = Math.min(preset.maxW,
       parentInnerW > 0 ? parentInnerW : (window.innerWidth - 32)
     );
@@ -1452,7 +1462,10 @@ permalink: /toolbox/suika/
 
     if (!trialMode) {
       score += FRUITS[newLevel - 1].score;
-      if (newLevel > runMaxLevel) runMaxLevel = newLevel;
+      if (newLevel > runMaxLevel) {
+        runMaxLevel = newLevel;
+        highlightEvoChain(runMaxLevel);   // 实时 halo：合到新最高级立刻高亮
+      }
       if (newLevel === 11) {
         melonsCount++;
         runMelons++;
@@ -1983,6 +1996,10 @@ permalink: /toolbox/suika/
       const arrow = i < FRUITS.length - 1 ? '<span class="evo-arrow">→</span>' : '';
       return `<span class="evo-emoji" data-lv="${i + 1}" title="lv ${i + 1}：${f.name}">${f.emoji}</span>${arrow}`;
     }).join('');
+    // 重建 DOM 后 .reached class 会丢，重新涂一遍
+    if (typeof runMaxLevel !== 'undefined' && runMaxLevel > 0) {
+      highlightEvoChain(runMaxLevel);
+    }
   }
   // 给本局合到的最高级水果在进化链里加 .reached 高亮。
   function highlightEvoChain(maxLv) {
@@ -2006,10 +2023,14 @@ permalink: /toolbox/suika/
       const sel = selectedSlotLevel === lv ? ' selected' : '';
       let style;
       if (lv <= 6) {
+        // row 1: lv 1→cols 1-2, lv 2→3-4, ..., lv 6→11-12
         const startCol = 2 * lv - 1;
         style = `grid-row: 1; grid-column: ${startCol} / span 2;`;
       } else {
-        const startCol = 2 * (13 - lv);   // lv=7 → col 10, lv=11 → col 2
+        // row 2: lv 7→cols 10-11（slot 7 在 slot 5/6 之间下方）, lv 11→cols 2-3
+        // 公式必须是 2*(12-lv) —— 之前写成 2*(13-lv) 把 lv 7 算到 col 12-13 隐式
+        // 扩展到 13 列，row 2 整体右移 1 格，slot 7 跑到画外。
+        const startCol = 2 * (12 - lv);
         style = `grid-row: 2; grid-column: ${startCol} / span 2;`;
       }
       return `<div class="custom-chain-cell" style="${style}">`
@@ -2833,15 +2854,34 @@ permalink: /toolbox/suika/
     $canvasSizeRow.querySelectorAll('.canvas-size-btn').forEach(el => {
       el.classList.toggle('active', el.dataset.size === PHYSICS.canvasSize);
     });
-    const preset = CANVAS_SIZES[PHYSICS.canvasSize] || CANVAS_SIZES.standard;
+    const preset = CANVAS_SIZES[PHYSICS.canvasSize] || CANVAS_SIZES.medium;
     $canvasSizeDesc.textContent = preset.label;
   }
   $canvasSizeRow.querySelectorAll('.canvas-size-btn').forEach(el => {
     el.addEventListener('click', () => {
-      PHYSICS.canvasSize = el.dataset.size;
+      const newSize = el.dataset.size;
+      if (newSize === PHYSICS.canvasSize) return;
+      // 改画幅必须强制重启：mid-game refit 把现有水果 setVelocity(0,0) + 强行
+      // 搬位置可能让水果叠在墙内，下一帧物理求解把它弹出去 → sanity cleanup
+      // 删掉 → 视觉上"消失"。直接 restart 是干净路径。
+      const inProgress = gameStarted && !isOver;
+      if (inProgress) {
+        const ok = confirm('修改画幅会重新开始当前局，分数会丢失。继续吗？');
+        if (!ok) return;
+      }
+      PHYSICS.canvasSize = newSize;
       savePhysics();
       refreshCanvasSizeUI();
-      refitCanvas();
+      fitCanvas();   // 立刻应用新尺寸
+      if (inProgress) {
+        // 关 settings overlay + restart（restart 内部会 setupWorld 用最新 W/H）
+        $startOverlay.classList.remove('open');
+        inGameSettings = false;
+        restart();
+      } else {
+        // 起始幕 / 已结束：refit + 重建墙体（无水果或可安全 rescale）
+        refitCanvas();
+      }
     });
   });
   refreshCanvasSizeUI();
