@@ -1384,20 +1384,27 @@ permalink: /toolbox/suika/
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-      // 简单处理：窗口变化时重新 fit canvas，但不清局
-      const oldW = W;
+      // 窗口变化时重新 fit canvas，等比把水果 x 坐标搬到新画面，但不清局
+      const oldW = W, oldH = H;
       fitCanvas();
-      // 缩放所有 fruits 的 x 坐标
       const ratio = W / oldW;
       Composite.allBodies(world).forEach(b => {
-        if (!b.fruitLevel && !b.isStatic) return;
+        if (!b.fruitLevel) return;
+        Body.setPosition(b, {
+          x: Math.max(b.circleRadius + 1, Math.min(W - b.circleRadius - 1, b.position.x * ratio)),
+          y: Math.min(H - b.circleRadius - 1, b.position.y * (H / oldH)),
+        });
+        Body.setVelocity(b, { x: 0, y: 0 });
+        Body.setAngularVelocity(b, 0);
       });
+      hoverX = Math.max(20, Math.min(W - 20, hoverX * ratio));
+      if (hoverFruit) hoverFruit.x = hoverX;
       // 重建墙体
       walls.forEach(w => World.remove(world, w));
       walls = [
-        Bodies.rectangle(W / 2, H + WALL / 2, W, WALL, { isStatic: true }),
-        Bodies.rectangle(-WALL / 2, H / 2, WALL, H * 2, { isStatic: true }),
-        Bodies.rectangle(W + WALL / 2, H / 2, WALL, H * 2, { isStatic: true }),
+        Bodies.rectangle(W / 2, H + WALL / 2, W, WALL, { isStatic: true, friction: 0.4 }),
+        Bodies.rectangle(-WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: 0.4 }),
+        Bodies.rectangle(W + WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: 0.4 }),
       ];
       World.add(world, walls);
     }, 200);
