@@ -1650,7 +1650,6 @@ permalink: /toolbox/suika/
   let lastTremorTime = -10000;       // 最近一次地震发生时刻（用于 camera shake 衰减）
   let tremorShakeAmpX = 0;           // 本次地震的 x 方向 camera shake 振幅
   let tremorShakeAmpY = 0;           // 本次地震的 y 方向 camera shake 振幅
-  let dropCooldown = false;
   let lastTick = performance.now();
   const recentMerges = new Set();   // 防止同一次碰撞触发多次合并
   let gameStarted = false;          // 用户是否点过「开始游戏」（决定是否要 spawn hover）
@@ -1851,7 +1850,7 @@ permalink: /toolbox/suika/
   }
 
   function dropCurrent() {
-    if (!hoverFruit || isOver || isPaused || dropCooldown) return;
+    if (!hoverFruit || isOver || isPaused) return;
     const fruit = FRUITS[hoverFruit.level - 1];
     const x = clampHoverX(hoverFruit.x, fruit.radius);
     // 直接创建 dynamic body — 不走 isStatic/collisionFilter 那一套
@@ -1869,11 +1868,8 @@ permalink: /toolbox/suika/
       }
     }
 
-    dropCooldown = true;
-    setTimeout(() => {
-      dropCooldown = false;
-      if (!isOver && !isPaused) spawnHoveringFruit();
-    }, 500);
+    // 立刻 spawn 下一个 hover —— 不再有 500ms 冷却，一释放马上能继续放
+    spawnHoveringFruit();
   }
 
   // ============ 输入：鼠标 / 触屏 / 键盘 ============
@@ -2052,21 +2048,6 @@ permalink: /toolbox/suika/
             }
           });
           Engine.update(engine, stepDt);
-          // Post-Engine clamp：MAX_VEL 在 Engine.update **前** clamp 不够用！
-          // 碰撞冲量在 Engine.update **内**产生，单步可能让 velocity 远超
-          // MAX_VEL（特别是小水果被大水果撞），单步位移可达数百 px → 出界 →
-          // 被 sanity cleanup 删掉。Engine.update 后再 clamp 一次，下一子步
-          // 的位置更新就不会再爆炸。
-          Composite.allBodies(world).forEach(b => {
-            if (!b.fruitLevel) return;
-            const vx = b.velocity.x, vy = b.velocity.y;
-            if (Math.abs(vx) > MAX_VEL || Math.abs(vy) > MAX_VEL) {
-              Body.setVelocity(b, {
-                x: Math.max(-MAX_VEL, Math.min(MAX_VEL, vx)),
-                y: Math.max(-MAX_VEL, Math.min(MAX_VEL, vy)),
-              });
-            }
-          });
         }
         // Sanity cleanup：teleport 优先 + 极端越界才 remove。
         // 之前一律删掉的写法太狠：小草莓被 watermelon 冲量弹出 50px 就直接消失，
@@ -2578,7 +2559,6 @@ permalink: /toolbox/suika/
     dangerSince = null;
     lastInDangerTime = 0;
     nextTremorAt = 0;
-    dropCooldown = false;
     hoverFruit = null;
     hoverVx = 0;
     runMaxLevel = 0;
