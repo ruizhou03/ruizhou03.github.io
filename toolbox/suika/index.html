@@ -1195,6 +1195,8 @@ permalink: /toolbox/suika/
     const watermelon = createFruitBody(11, $canvas.width / 2, 110);
     World.add(world, watermelon);
     melonsCount++;
+    runMelons++;
+    if (runMaxLevel < 11) runMaxLevel = 11;
     score += FRUITS[10].score;  // 西瓜分
     try { localStorage.setItem(MELONS_KEY, String(melonsCount)); } catch (e) {}
     updateScoreUI();
@@ -1324,6 +1326,7 @@ permalink: /toolbox/suika/
 
   // —— 排行榜状态 ——
   let runMaxLevel = 0;          // 本局合到的最高水果级别（用于结算高亮）
+  let runMelons = 0;            // 本局合到的西瓜数（不是累计，给服务端 score>=melons*121 校验用）
   let runStartedAt = 0;         // 本局开始时间戳（用于服务端 durationMs）
   let currentRunNonce = '';     // 本局唯一 nonce（防重放，整局不变）
   let nicknameMem = '';         // localStorage 禁用时的内存兜底
@@ -1452,6 +1455,7 @@ permalink: /toolbox/suika/
       if (newLevel > runMaxLevel) runMaxLevel = newLevel;
       if (newLevel === 11) {
         melonsCount++;
+        runMelons++;
         try { localStorage.setItem(MELONS_KEY, String(melonsCount)); } catch (e) {}
       }
     }
@@ -2108,17 +2112,9 @@ permalink: /toolbox/suika/
       melonsCount === 0 ? `本局得 ${score} 分，离 ${topEmoji} 还差点。` :
       `本局得 ${score} 分，累计 ${melonsCount} 个 ${topEmoji}，继续！`;
 
-    // 截图：用 toDataURL 把当前 canvas 冻结成 PNG 缩略图。
-    // 注意：tick() 此时仍在跑（line ~1505），但场景已无新合并，画面静止；
-    // Twemoji 已设 crossOrigin='anonymous'，canvas 不会 tainted。
-    try {
-      const dataUrl = $canvas.toDataURL('image/png');
-      $ovSnapshot.src = dataUrl;
-      $ovSnapshot.dataset.dataUrl = dataUrl;
-      $ovSnapshot.style.display = score > 0 ? '' : 'none';
-    } catch (e) {
-      $ovSnapshot.style.display = 'none';
-    }
+    // 截图：composeSnapshot 把游戏画面 + 标题/分数/进化总结合成一张分享卡。
+    // 这里 rankInfo=null 表示「排名还在 loading」，submitToLeaderboard 完成后会再 compose 一次。
+    refreshSnapshot(null);
 
     // 进化链高亮 + 结算 summary
     highlightEvoChain(runMaxLevel);
@@ -2155,6 +2151,7 @@ permalink: /toolbox/suika/
     hoverFruit = null;
     hoverVx = 0;
     runMaxLevel = 0;
+    runMelons = 0;
     runStartedAt = Date.now();
     currentRunNonce = newRunNonce();
     pendingSubmitForRun = false;
@@ -2190,6 +2187,7 @@ permalink: /toolbox/suika/
     setFocus(true);
     // 开局重置 leaderboard 相关本局状态（restart 也走这个分支）
     runMaxLevel = 0;
+    runMelons = 0;
     runStartedAt = Date.now();
     currentRunNonce = newRunNonce();
     pendingSubmitForRun = false;
@@ -2267,14 +2265,20 @@ permalink: /toolbox/suika/
     if (pendingSubmitForRun) return;
     if (score <= 0) { renderRankSlot('hidden'); return; }
     const nick = getNick();
-    if (!nick) { renderRankSlot('pending'); return; }
+    if (!nick) {
+      renderRankSlot('pending');
+      refreshSnapshot({ pending: true });
+      return;
+    }
     pendingSubmitForRun = true;
     renderRankSlot('loading');
 
     const durationMs = Math.max(5000, Date.now() - (runStartedAt || Date.now()));
     const body = {
       nick, score,
-      melons: melonsCount,
+      // 关键：送本局 runMelons，不是累计 melonsCount。服务端校验 score>=melons*121
+      // 用累计西瓜数会把"本局没合西瓜但累计 20 颗"算成 score>=2420，必拒。
+      melons: runMelons,
       maxLevel: Math.max(1, runMaxLevel),
       durationMs,
       clientNonce: currentRunNonce || newRunNonce(),
@@ -2288,12 +2292,187 @@ permalink: /toolbox/suika/
     }, 5000);
 
     if (r.ok && r.data && r.data.ok) {
-      renderRankSlot('success', { rank: r.data.rank, total: r.data.total });
+      const rankInfo = { rank: r.data.rank, total: r.data.total };
+      renderRankSlot('success', rankInfo);
+      refreshSnapshot(rankInfo);   // 排名到了，重新合成截图把"第 X 名"也画进去
     } else {
       renderRankSlot('failed');
+      refreshSnapshot({ failed: true });
       if (r.data && r.data.reason) console.warn('[suika] submit rejected:', r.data.reason);
       else console.warn('[suika] submit failed:', r);
     }
+  }
+
+  // 把 game canvas + 标题/分数/排名/进化总结合成一张分享卡。
+  // rankInfo: { rank, total } 或 null。返回 dataURL 字符串；失败返回空串。
+  function composeSnapshot(rankInfo) {
+    try {
+      const baseW = $canvas.width;
+      const baseH = $canvas.height;
+      const PAD = 18;
+      const HEADER_H = 56;
+      const FOOTER_H = 220;
+      const W = baseW + PAD * 2;
+      const H = HEADER_H + baseH + FOOTER_H;
+
+      const off = document.createElement('canvas');
+      off.width = W;
+      off.height = H;
+      const ctx = off.getContext('2d');
+
+      // 主题色：跟 game-zone 一致
+      const isDark = (typeof matchMedia === 'function')
+        && (matchMedia('(prefers-color-scheme: dark)').matches
+            || document.documentElement.getAttribute('data-theme') === 'dark');
+      const colors = isDark ? {
+        bgTop: '#2a2418', bgBot: '#1f1a10',
+        ink: '#e8d8b8', muted: '#9c8e72',
+        accent: '#f0c674', divider: 'rgba(255,255,255,0.08)',
+      } : {
+        bgTop: '#fef6e4', bgBot: '#f9e8c4',
+        ink: '#1e3a5f', muted: '#7d8a9c',
+        accent: '#c4923f', divider: 'rgba(30,58,95,0.08)',
+      };
+
+      // 1. 背景渐变（贯穿整个图，与 game-zone 一致）
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, colors.bgTop);
+      grad.addColorStop(1, colors.bgBot);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      const FONT_STACK = '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+      const SERIF_STACK = 'Georgia, "Times New Roman", "STSong", serif';
+
+      // 2. Header 区
+      // 西瓜图标（用 Twemoji，避免 iOS canvas fillText emoji 不可靠）
+      const wmImg = fruitImages[11];
+      if (wmImg && wmImg.complete) {
+        ctx.drawImage(wmImg, PAD, (HEADER_H - 32) / 2, 32, 32);
+      }
+      ctx.fillStyle = colors.ink;
+      ctx.font = `600 20px ${FONT_STACK}`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('合成大西瓜', PAD + 38, HEADER_H / 2);
+
+      // 玩家昵称（右上）
+      const nick = getNick();
+      if (nick) {
+        ctx.fillStyle = colors.muted;
+        ctx.font = `13px ${FONT_STACK}`;
+        ctx.textAlign = 'right';
+        ctx.fillText('玩家  ' + nick, W - PAD, HEADER_H / 2);
+      }
+
+      // header / game 间分隔线
+      ctx.strokeStyle = colors.divider;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(PAD, HEADER_H - 0.5);
+      ctx.lineTo(W - PAD, HEADER_H - 0.5);
+      ctx.stroke();
+
+      // 3. 游戏画面（直接 drawImage 当前 canvas）
+      ctx.drawImage($canvas, PAD, HEADER_H);
+
+      // game / footer 间分隔线
+      ctx.beginPath();
+      ctx.moveTo(PAD, HEADER_H + baseH + 0.5);
+      ctx.lineTo(W - PAD, HEADER_H + baseH + 0.5);
+      ctx.stroke();
+
+      // 4. Footer 区
+      const footerTop = HEADER_H + baseH;
+      let y = footerTop + 22;
+
+      // 「本 局 得 分」小标签
+      ctx.fillStyle = colors.muted;
+      ctx.font = `11px ${FONT_STACK}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('本 局 得 分', W / 2, y);
+      y += 50;
+
+      // 大分数
+      ctx.fillStyle = colors.accent;
+      ctx.font = `700 56px ${SERIF_STACK}`;
+      ctx.fillText(String(score), W / 2, y);
+      y += 36;
+
+      // 排名行
+      ctx.fillStyle = colors.ink;
+      ctx.font = `14px ${FONT_STACK}`;
+      let rankText;
+      if (rankInfo && rankInfo.rank && rankInfo.total) {
+        rankText = `第 ${rankInfo.rank} 名 · 共 ${rankInfo.total} 位玩家`;
+      } else if (rankInfo && rankInfo.failed) {
+        rankText = '排行榜暂时不可用';
+      } else if (rankInfo && rankInfo.pending) {
+        rankText = '本局未上传到排行榜';
+      } else {
+        rankText = '排名加载中…';
+      }
+      ctx.fillText(rankText, W / 2, y);
+      y += 28;
+
+      // 本局合到 lv X · 进化链 emoji
+      if (runMaxLevel > 0) {
+        const f = FRUITS[runMaxLevel - 1];
+        const emojiImg = fruitImages[runMaxLevel];
+        const labelText = `本局合到 lv ${runMaxLevel}    ${f.name}`;
+        ctx.font = `13px ${FONT_STACK}`;
+        ctx.fillStyle = colors.ink;
+        const textW = ctx.measureText(labelText).width;
+        const emojiSize = 18;
+        const gap = 6;
+        const totalW = (emojiImg && emojiImg.complete ? emojiSize + gap : 0) + textW;
+        const startX = (W - totalW) / 2;
+        if (emojiImg && emojiImg.complete) {
+          ctx.drawImage(emojiImg, startX, y - emojiSize / 2, emojiSize, emojiSize);
+          ctx.textAlign = 'left';
+          ctx.fillText(labelText, startX + emojiSize + gap, y);
+          ctx.textAlign = 'center';
+        } else {
+          ctx.fillText(labelText, W / 2, y);
+        }
+        y += 24;
+      }
+
+      // 历史最高 + 累计西瓜
+      ctx.fillStyle = colors.muted;
+      ctx.font = `12px ${FONT_STACK}`;
+      const bestNow = Math.max(score, highScore);
+      ctx.fillText(`历史最高 ${bestNow}    累计 ${melonsCount} 颗`, W / 2, y);
+      y += 20;
+
+      // 站点水印（最底）
+      ctx.fillStyle = colors.muted;
+      ctx.font = `10px ${FONT_STACK}`;
+      ctx.fillText('zirconeey.github.io/toolbox/suika', W / 2, H - 14);
+
+      return off.toDataURL('image/png');
+    } catch (e) {
+      console.warn('[suika] composeSnapshot failed:', e);
+      return '';
+    }
+  }
+
+  // 把 composeSnapshot 的 dataURL 同时填到 <img> 预览和 dataset（供下载用）
+  function refreshSnapshot(rankInfo) {
+    if (score <= 0) {
+      $ovSnapshot.style.display = 'none';
+      delete $ovSnapshot.dataset.dataUrl;
+      return;
+    }
+    const dataUrl = composeSnapshot(rankInfo);
+    if (!dataUrl) {
+      $ovSnapshot.style.display = 'none';
+      return;
+    }
+    $ovSnapshot.src = dataUrl;
+    $ovSnapshot.dataset.dataUrl = dataUrl;
+    $ovSnapshot.style.display = '';
   }
 
   // 截图按钮：把面板里冻结的 dataURL 触发下载（iOS Safari 走打开新 tab）
@@ -2349,6 +2528,7 @@ permalink: /toolbox/suika/
   $ovNickSkip.addEventListener('click', () => {
     $ovNickForm.style.display = 'none';
     renderRankSlot('hidden');
+    refreshSnapshot({ pending: true });
   });
   $ovNickChange.addEventListener('click', () => {
     clearNick();
