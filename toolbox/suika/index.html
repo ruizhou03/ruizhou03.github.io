@@ -917,9 +917,23 @@ permalink: /toolbox/suika/
             moveHover(clampedX);
           }
         }
+        // 速度上限：单步位移不能超过「墙厚 + 最小半径」（16 + 13 = 29），否则
+        // Matter 离散仿真会漏掉碰撞、水果穿墙消失。14 留足安全边距，正常玩法
+        // 终端速度只有 8-10，根本碰不到；只有重力拉满 + 合并连锁时才会触发兜住。
+        const MAX_VEL = 14;
+        Composite.allBodies(world).forEach(b => {
+          if (!b.fruitLevel) return;
+          const vx = b.velocity.x, vy = b.velocity.y;
+          if (Math.abs(vx) > MAX_VEL || Math.abs(vy) > MAX_VEL) {
+            Body.setVelocity(b, {
+              x: Math.max(-MAX_VEL, Math.min(MAX_VEL, vx)),
+              y: Math.max(-MAX_VEL, Math.min(MAX_VEL, vy)),
+            });
+          }
+        });
         Engine.update(engine, dt);
-        // Sanity cleanup：任何水果跑到 canvas 边界外 → 一定是 tunneling 穿墙了
-        // 直接删掉，避免后续 mergeFruits 拿到无效坐标继续传染
+        // Sanity cleanup：兜底——万一还是有水果跑到 canvas 边界外（理论上速度
+        // 限了之后不该发生），直接删掉避免无效坐标继续传染 mergeFruits
         Composite.allBodies(world).forEach(b => {
           if (!b.fruitLevel) return;
           if (b.position.y > H + 50 ||
