@@ -1090,7 +1090,10 @@ permalink: /toolbox/suika/
   function applyPhysicsLive() {
     if (!engine) return;
     const m = mapPhysics();
-    engine.gravity.scale = m.gravityScale;
+    // 重力：默认走 mapPhysics 的滑条值；gravity 暗号期间反转。
+    // 注意：tick 里每帧也调一次 applyPhysicsLive（见后面），所以暗号过期能自动恢复。
+    const reversed = performance.now() < gravityReversalUntil;
+    engine.gravity.scale = reversed ? -m.gravityScale : m.gravityScale;
     Composite.allBodies(world).forEach(b => {
       if (b.fruitLevel) b.restitution = m.restitution;
     });
@@ -1425,6 +1428,116 @@ permalink: /toolbox/suika/
     setTimeout(() => el.remove(), 2400);
   }
 
+  // ============ 打字暗号系统 ============
+  // 缓冲单字符按键，命中预设词触发对应函数。在 input/textarea/contentEditable
+  // 内自动跳过；不调 preventDefault（不影响其他键监听）。
+  let typedBuf = '';
+  let gravityReversalUntil = 0;   // 重力反转截止 ms（0 = 关）
+  let _gravityWasReversed = false; // tick 里检测变化用
+  let discoModeUntil = 0;         // disco 模式截止 ms（0 = 关）
+
+  function pushTypedSecret(key) {
+    const ae = document.activeElement;
+    if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
+    if (typeof key !== 'string') return;
+    // Enter / Space 清空 buffer 防"跨词连接"（aclean → clean，但 a clean → 没匹配）
+    if (key === ' ' || key === 'Spacebar' || key === 'Enter') { typedBuf = ''; return; }
+    // 只缓冲单字符键 + ?
+    if (key.length !== 1) return;
+    typedBuf += key.toLowerCase();
+    // 滑动窗口：保留最长暗号长度（'gravity' 7）
+    const maxLen = 12;
+    if (typedBuf.length > maxLen) typedBuf = typedBuf.slice(-maxLen);
+    for (const [secret, handler] of Object.entries(TYPED_SECRETS)) {
+      if (typedBuf.endsWith(secret)) {
+        typedBuf = '';
+        handler();
+        break;
+      }
+    }
+  }
+
+  function showCheatToast(text, color) {
+    const el = document.createElement('div');
+    el.textContent = text;
+    const fg = color || '#9ee6a3';
+    el.style.cssText = `position:fixed;top:20%;left:50%;transform:translateX(-50%);background:rgba(20,25,30,0.92);color:${fg};padding:0.8rem 1.6rem;border-radius:12px;font-size:1.05rem;font-weight:600;z-index:2000;box-shadow:0 8px 28px rgba(0,0,0,0.45);font-family:var(--font-display);animation:konamiPop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);max-width:88vw;text-align:center;line-height:1.5;`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2600);
+  }
+
+  // —— 6 个暗号 trigger ——
+
+  function triggerClean() {
+    if (isOver || !world || !gameStarted) return;
+    const targets = Composite.allBodies(world).filter(b => b.fruitLevel === 1);
+    if (!targets.length) { showCheatToast('clean: 没有樱桃可清', '#9aa0a6'); return; }
+    World.remove(world, targets);
+    showCheatToast(`✨ clean: 蒸发了 ${targets.length} 颗樱桃`, '#9ee6a3');
+  }
+
+  function triggerFuck() {
+    if (isOver || !world || !gameStarted) return;
+    const allFruits = Composite.allBodies(world).filter(b => b.fruitLevel >= 1);
+    if (!allFruits.length) { showCheatToast('fuck: 画面是空的', '#9aa0a6'); return; }
+    const small = allFruits.filter(b => b.fruitLevel <= 3);
+    const maxLv = Math.max.apply(null, allFruits.map(b => b.fruitLevel));
+    const biggest = allFruits.find(b => b.fruitLevel === maxLv && maxLv > 3);
+    const removeList = small.slice();
+    if (biggest) removeList.push(biggest);
+    if (!removeList.length) { showCheatToast('fuck: 没有可清的目标', '#9aa0a6'); return; }
+    World.remove(world, removeList);
+    if (biggest) {
+      showCheatToast(`💥 fuck: 清 ${small.length} 个小果，失去 lv ${maxLv} ${FRUITS[maxLv - 1].name}（分数不退）`, '#ff8a80');
+    } else {
+      showCheatToast(`💥 fuck: 清 ${small.length} 个小果（最大也只有 lv ${maxLv}）`, '#ff8a80');
+    }
+  }
+
+  function triggerPeek() {
+    ensureQueueFilled();
+    const preview = nextLevelQueue.slice(0, 5);
+    const lines = preview.map((lv, i) => `${i + 1}. ${FRUITS[lv - 1].emoji} ${FRUITS[lv - 1].name}`).join('  ');
+    showCheatToast(`🔮 接下来 5 个：  ${lines}`, '#bcd9ff');
+  }
+
+  function triggerGravity() {
+    if (isOver || !world || !gameStarted || isPaused) return;
+    gravityReversalUntil = performance.now() + 3000;
+    applyPhysicsLive();          // 立即生效一次
+    showCheatToast('🌌 gravity: 重力反转 3 秒', '#d4a3ff');
+  }
+
+  function triggerDisco() {
+    if (isOver || !world || !gameStarted) return;
+    discoModeUntil = performance.now() + 5000;
+    showCheatToast('🌈 disco: 彩虹 5 秒', '#ffb3d9');
+  }
+
+  async function triggerScoreQuery() {
+    const nick = getNick();
+    if (!nick) { showCheatToast('?score: 先起个昵称才能查排名', '#9aa0a6'); return; }
+    showCheatToast('?score: 查询中…', '#bcd9ff');
+    const r = await callBackend(LEADERBOARD_API + '?action=me&nick=' + encodeURIComponent(nick), {}, 5000);
+    if (!r.ok || !r.data) { showCheatToast('?score: 查询失败', '#ff8a80'); return; }
+    const { best, rank, total } = r.data;
+    if (rank == null) {
+      showCheatToast(`?score: ${nick} 还没上榜（总 ${total || 0} 人）`, '#bcd9ff');
+    } else {
+      showCheatToast(`🏆 ${nick} 历史最高 ${best || 0} · 第 ${rank} 名 / 共 ${total} 人`, '#f0c674');
+    }
+  }
+
+  // 暗号映射表（注意：长前缀放后面，避免短前缀截胡 — 这里 6 个互不重叠，无所谓）
+  const TYPED_SECRETS = {
+    'clean':   triggerClean,
+    'fuck':    triggerFuck,
+    'peek':    triggerPeek,
+    'gravity': triggerGravity,
+    'disco':   triggerDisco,
+    '?score':  triggerScoreQuery,
+  };
+
   function pickSpawnLevel() {
     const total = SPAWN_WEIGHTS.reduce((a, b) => a + b, 0);
     let r = Math.random() * total;
@@ -1516,7 +1629,15 @@ permalink: /toolbox/suika/
 
   let engine, world;
   let walls = [];
-  let nextLevel = pickSpawnLevel();   // 排队中的下一个
+  // 预生成的 spawn 队列（5 长）。peek 暗号要看未来 5 个 → 必须预生成才能"承诺"。
+  // nextLevel 沿用变量名作为接口（指向 queue[0]），避免改 UI / 历史代码。
+  const SPAWN_QUEUE_LEN = 5;
+  let nextLevelQueue = [];
+  function ensureQueueFilled() {
+    while (nextLevelQueue.length < SPAWN_QUEUE_LEN) nextLevelQueue.push(pickSpawnLevel());
+  }
+  ensureQueueFilled();
+  let nextLevel = nextLevelQueue[0];   // 排队中的下一个（对外接口；实际从 queue 出）
   let hoverFruit = null;              // 当前悬浮的水果（纯数据，不是 Matter body）
   let score = 0;
   let highScore = parseInt(localStorage.getItem(HIGH_KEY) || '0', 10);
@@ -1715,8 +1836,11 @@ permalink: /toolbox/suika/
 
   function spawnHoveringFruit() {
     if (isOver) return;
-    hoverFruit = { level: nextLevel, x: hoverX };
-    nextLevel = pickSpawnLevel();
+    ensureQueueFilled();
+    const lv = nextLevelQueue.shift();
+    hoverFruit = { level: lv, x: hoverX };
+    ensureQueueFilled();              // 拿走一个立刻补到 5
+    nextLevel = nextLevelQueue[0];    // 维持对外接口
     updateNextFruitUI();
   }
 
@@ -1792,6 +1916,7 @@ permalink: /toolbox/suika/
   document.addEventListener('keydown', e => {
     // konami 全程接收（无论是否聚焦），方便用户随时玩彩蛋
     pushKonami(e.key);
+    pushTypedSecret(e.key);   // 打字暗号（clean/fuck/peek/gravity/disco/?score）
     // 没聚焦游戏 → 让浏览器自然处理（上下滚动等）
     if (!gameFocused) return;
     if (isOver || isPaused) return;
@@ -1838,6 +1963,13 @@ permalink: /toolbox/suika/
   function tick(now) {
     if (!engine) return;
     try {
+      // 重力暗号到期自动恢复：每帧检查一次，如果状态变了就 sync 一下 engine.gravity.
+      // 用本地标志比较，避免每帧都 setBaseScale 一遍 engine（其实代价微薄，但显式更清晰）
+      const wantReversed = performance.now() < gravityReversalUntil;
+      if (wantReversed !== _gravityWasReversed) {
+        applyPhysicsLive();
+        _gravityWasReversed = wantReversed;
+      }
       if (!isPaused && !isOver) {
         // 真实 dt：手机端 touchstart preventDefault 会占用主线程几十 ms，
         // 下一帧 RAF 回来时 now - lastTick 可能 > 30 ms。cap 到 64 ms 防止
@@ -1920,15 +2052,47 @@ permalink: /toolbox/suika/
             }
           });
           Engine.update(engine, stepDt);
+          // Post-Engine clamp：MAX_VEL 在 Engine.update **前** clamp 不够用！
+          // 碰撞冲量在 Engine.update **内**产生，单步可能让 velocity 远超
+          // MAX_VEL（特别是小水果被大水果撞），单步位移可达数百 px → 出界 →
+          // 被 sanity cleanup 删掉。Engine.update 后再 clamp 一次，下一子步
+          // 的位置更新就不会再爆炸。
+          Composite.allBodies(world).forEach(b => {
+            if (!b.fruitLevel) return;
+            const vx = b.velocity.x, vy = b.velocity.y;
+            if (Math.abs(vx) > MAX_VEL || Math.abs(vy) > MAX_VEL) {
+              Body.setVelocity(b, {
+                x: Math.max(-MAX_VEL, Math.min(MAX_VEL, vx)),
+                y: Math.max(-MAX_VEL, Math.min(MAX_VEL, vy)),
+              });
+            }
+          });
         }
-        // Sanity cleanup：兜底——万一还是有水果跑到 canvas 边界外（理论上速度
-        // 限了之后不该发生），直接删掉避免无效坐标继续传染 mergeFruits
+        // Sanity cleanup：teleport 优先 + 极端越界才 remove。
+        // 之前一律删掉的写法太狠：小草莓被 watermelon 冲量弹出 50px 就直接消失，
+        // 玩家体感"无端蒸发"。改成先把"轻微越界"（边缘外 < 200 px）水果teleport
+        // 回界内 + 清速度；只有 NaN 或 >200px 极端越界才删（说明物理炸了）。
         Composite.allBodies(world).forEach(b => {
           if (!b.fruitLevel) return;
-          if (b.position.y > H + 50 ||
-              b.position.x < -50 ||
-              b.position.x > W + 50) {
+          const x = b.position.x, y = b.position.y;
+          // 极端：NaN 或越界 200px+ 才删
+          if (!Number.isFinite(x) || !Number.isFinite(y) ||
+              y > H + 200 || x < -200 || x > W + 200) {
             World.remove(world, b);
+            return;
+          }
+          // 轻微越界：teleport 回界内
+          let nx = x, ny = y, fixed = false;
+          const minX = b.circleRadius + 1;
+          const maxX = W - b.circleRadius - 1;
+          const maxY = H - b.circleRadius - 1;
+          if (nx < minX) { nx = minX; fixed = true; }
+          else if (nx > maxX) { nx = maxX; fixed = true; }
+          if (ny > maxY) { ny = maxY; fixed = true; }
+          if (fixed) {
+            Body.setPosition(b, { x: nx, y: ny });
+            Body.setVelocity(b, { x: 0, y: 0 });
+            Body.setAngularVelocity(b, 0);
           }
         });
         checkProximityMerges();   // 接触合并（替代 collisionStart）
@@ -2128,20 +2292,36 @@ permalink: /toolbox/suika/
 
   // 简洁方案：彩色渐变圆 + Twemoji PNG 居中（统一图源，跨平台一致，物理也是真的圆）
   function drawFruitAt(fruit, x, y, r, angle) {
+    // 计算 fillColor / lightColor / darkColor。
+    // 默认走 fruit.color (hex)，配 lightenColor / darkenColor。
+    // disco 暗号期间改成 HSL，hue 由 level + 时间漂移（lighten/darken 直接调 HSL lightness）。
+    let fillColor, lightColor, darkColor;
+    const now = performance.now();
+    if (now < discoModeUntil) {
+      const hue = (fruit.lv * 50 + now / 8) % 360;
+      const h = (hue + 360) % 360;
+      fillColor  = `hsl(${h.toFixed(0)}, 78%, 55%)`;
+      lightColor = `hsl(${h.toFixed(0)}, 80%, 75%)`;
+      darkColor  = `hsl(${h.toFixed(0)}, 70%, 38%)`;
+    } else {
+      fillColor  = fruit.color;
+      lightColor = lightenColor(fruit.color, 30);
+      darkColor  = darkenColor(fruit.color, 20);
+    }
     // 彩色渐变圆（高光在左上）
     const grad = ctx.createRadialGradient(
       x - r * 0.3, y - r * 0.3, r * 0.1,
       x, y, r
     );
-    grad.addColorStop(0, lightenColor(fruit.color, 30));
-    grad.addColorStop(1, fruit.color);
+    grad.addColorStop(0, lightColor);
+    grad.addColorStop(1, fillColor);
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, 2 * Math.PI);
     ctx.fill();
 
-    // 边框（跟随 fruit.color 加深）
-    ctx.strokeStyle = darkenColor(fruit.color, 20);
+    // 边框（跟随当前色加深）
+    ctx.strokeStyle = darkColor;
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
@@ -2406,7 +2586,9 @@ permalink: /toolbox/suika/
     runStartedAt = Date.now();
     currentRunNonce = newRunNonce();
     pendingSubmitForRun = false;
-    nextLevel = pickSpawnLevel();
+    nextLevelQueue = [];
+    ensureQueueFilled();
+    nextLevel = nextLevelQueue[0];
     $overlay.classList.remove('open');
     $gameZone.classList.remove('over');
     $pauseBtn.textContent = '⏸ 暂停';
@@ -2455,7 +2637,8 @@ permalink: /toolbox/suika/
   const $lbRefresh = document.getElementById('sk-lb-refresh');
   let lbLastFetch = 0;
   let lbInflight = false;
-  const LB_LIMIT = 20;
+  const LB_LIMIT = 5;
+  const LB_MEDALS = ['🥇', '🥈', '🥉'];
 
   function relTime(ts) {
     if (!ts || !Number.isFinite(ts)) return '';
@@ -2483,7 +2666,8 @@ permalink: /toolbox/suika/
       if (currentNick && e.nick === currentNick) li.classList.add('is-self');
       const rk = document.createElement('span');
       rk.className = 'sk-lb-rank';
-      rk.textContent = '#' + e.rank;
+      // 前三名颁发奖章 emoji，其余维持 #N
+      rk.textContent = e.rank <= 3 ? LB_MEDALS[e.rank - 1] : '#' + e.rank;
       const nk = document.createElement('span');
       nk.className = 'sk-lb-nick';
       nk.textContent = e.nick;       // textContent — 防 XSS
@@ -3174,6 +3358,25 @@ permalink: /toolbox/suika/
     fitCanvas();
     if (oldW === W && oldH === H) return;
     if (!world) return;
+
+    // 关键安全：游戏进行中绝不 rescale 现有水果。把所有水果按 ratio 重新
+    // setPosition 会让相邻水果距离按 ratio 缩短 → 互相挤压 → Matter 用强冲量
+    // 分离 → 小水果（草莓 r=17）单步位移可达数百 px → sanity cleanup 删掉 →
+    // 视觉上"消失"。
+    // iOS Safari 在 URL 栏出现/隐藏时会自动 fire resize，必须在这里拦住，
+    // 不然用户什么都没干就被炸局。canvas 保持原尺寸；下次 restart 时 fitCanvas
+    // 会把新 viewport 应用上。
+    if (gameStarted && !isOver) {
+      W = oldW;
+      H = oldH;
+      $canvas.width = W;
+      $canvas.height = H;
+      $canvas.style.width = W + 'px';
+      $canvas.style.height = H + 'px';
+      $gameZone.style.width = W + 'px';
+      return;
+    }
+
     const ratio = W / oldW;
     Composite.allBodies(world).forEach(b => {
       if (!b.fruitLevel) return;
