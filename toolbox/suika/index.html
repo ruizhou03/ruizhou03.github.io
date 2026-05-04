@@ -526,19 +526,36 @@ permalink: /toolbox/suika/
   }
 
   // ============ 水果定义（11 级） ============
+  // codepoint 对应 Twemoji PNG 文件名（统一图源，跨平台一致）
   const FRUITS = [
-    { lv: 1,  name: '樱桃',   emoji: '🍒', radius: 13, color: '#e84118', score: 1   },
-    { lv: 2,  name: '草莓',   emoji: '🍓', radius: 17, color: '#ff7675', score: 4   },
-    { lv: 3,  name: '葡萄',   emoji: '🍇', radius: 23, color: '#8e44ad', score: 9   },
-    { lv: 4,  name: '橘子',   emoji: '🍊', radius: 30, color: '#f39c12', score: 16  },
-    { lv: 5,  name: '柿子',   emoji: '🍅', radius: 38, color: '#e67e22', score: 25  },
-    { lv: 6,  name: '苹果',   emoji: '🍎', radius: 47, color: '#e74c3c', score: 36  },
-    { lv: 7,  name: '梨',     emoji: '🍐', radius: 56, color: '#7bed9f', score: 49  },
-    { lv: 8,  name: '桃',     emoji: '🍑', radius: 65, color: '#fab1a0', score: 64  },
-    { lv: 9,  name: '菠萝',   emoji: '🍍', radius: 74, color: '#feca57', score: 81  },
-    { lv: 10, name: '哈密瓜', emoji: '🍈', radius: 84, color: '#a8e6cf', score: 100 },
-    { lv: 11, name: '西瓜',   emoji: '🍉', radius: 96, color: '#27ae60', score: 121 },
+    { lv: 1,  name: '樱桃',   emoji: '🍒', cp: '1f352', radius: 13, color: '#e84118', score: 1   },
+    { lv: 2,  name: '草莓',   emoji: '🍓', cp: '1f353', radius: 17, color: '#ff7675', score: 4   },
+    { lv: 3,  name: '葡萄',   emoji: '🍇', cp: '1f347', radius: 23, color: '#8e44ad', score: 9   },
+    { lv: 4,  name: '橘子',   emoji: '🍊', cp: '1f34a', radius: 30, color: '#f39c12', score: 16  },
+    { lv: 5,  name: '柿子',   emoji: '🍅', cp: '1f345', radius: 38, color: '#e67e22', score: 25  },
+    { lv: 6,  name: '苹果',   emoji: '🍎', cp: '1f34e', radius: 47, color: '#e74c3c', score: 36  },
+    { lv: 7,  name: '梨',     emoji: '🍐', cp: '1f350', radius: 56, color: '#7bed9f', score: 49  },
+    { lv: 8,  name: '桃',     emoji: '🍑', cp: '1f351', radius: 65, color: '#fab1a0', score: 64  },
+    { lv: 9,  name: '菠萝',   emoji: '🍍', cp: '1f34d', radius: 74, color: '#feca57', score: 81  },
+    { lv: 10, name: '哈密瓜', emoji: '🍈', cp: '1f348', radius: 84, color: '#a8e6cf', score: 100 },
+    { lv: 11, name: '西瓜',   emoji: '🍉', cp: '1f349', radius: 96, color: '#27ae60', score: 121 },
   ];
+
+  // ============ Twemoji 图片预加载 ============
+  // Canvas 在 iOS Safari 上 fillText emoji 不可靠（即使指定 Apple Color Emoji
+  // 也常常静默失败画空白）。改用 Twemoji PNG → drawImage，跨平台稳定。
+  const fruitImages = {};
+  let imagesLoaded = 0;
+  function loadFruitImages() {
+    FRUITS.forEach(f => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => { fruitImages[f.lv] = img; imagesLoaded++; };
+      img.onerror = () => { console.warn('[suika] 水果图加载失败 lv=' + f.lv); };
+      img.src = `https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/${f.cp}.png`;
+    });
+  }
+  loadFruitImages();
 
   // 1-5 加权概率（小水果概率高）
   const SPAWN_WEIGHTS = [35, 28, 20, 12, 5];
@@ -1023,346 +1040,41 @@ permalink: /toolbox/suika/
     }
   }
 
-  // 自绘几何水果，替代 emoji（iOS Safari Canvas 渲染 emoji 有静默失败 bug，
-  // 而且 emoji 风格与站点的几何极简调性也不一致）。每个绘制函数假设 ctx 已经
-  // translate 到水果中心 + rotate 到角度，绘图坐标以中心 (0,0) 为原点。
+  // 简洁方案：彩色渐变圆 + Twemoji PNG 居中（统一图源，跨平台一致，物理也是真的圆）
   function drawFruitAt(fruit, x, y, r, angle) {
+    // 彩色渐变圆（高光在左上）
+    const grad = ctx.createRadialGradient(
+      x - r * 0.3, y - r * 0.3, r * 0.1,
+      x, y, r
+    );
+    grad.addColorStop(0, lightenColor(fruit.color, 30));
+    grad.addColorStop(1, fruit.color);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // 边框（跟随 fruit.color 加深）
+    ctx.strokeStyle = darkenColor(fruit.color, 20);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // 中央水果（Twemoji PNG，跟着物理 angle 旋转）
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
-    switch (fruit.lv) {
-      case 1:  drawCherry(r, fruit.color); break;
-      case 2:  drawStrawberry(r, fruit.color); break;
-      case 3:  drawGrape(r, fruit.color); break;
-      case 4:  drawOrange(r, fruit.color); break;
-      case 5:  drawPersimmon(r, fruit.color); break;
-      case 6:  drawApple(r, fruit.color); break;
-      case 7:  drawPear(r, fruit.color); break;
-      case 8:  drawPeach(r, fruit.color); break;
-      case 9:  drawPineapple(r, fruit.color); break;
-      case 10: drawMelon(r, fruit.color); break;
-      case 11: drawWatermelon(r, fruit.color); break;
-      default: drawGenericBall(r, fruit.color);
+    const drawSize = r * 1.65;   // 略大于圆内接，让水果撑出可见范围
+    const img = fruitImages[fruit.lv];
+    if (img && img.complete && img.naturalWidth > 0) {
+      ctx.drawImage(img, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+    } else {
+      // 兜底：图还没加载完时用 emoji 字符（iOS 可能画不出，但加载完成后就切换）
+      ctx.font = `${r * 1.55}px "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(fruit.emoji, 0, r * 0.06);
     }
     ctx.restore();
-  }
-
-  // ── 通用绘制原语 ──────────────────────
-  function fillCircle(cx, cy, rad) {
-    ctx.beginPath();
-    ctx.arc(cx, cy, rad, 0, 2 * Math.PI);
-    ctx.fill();
-  }
-  function fillEllipse(cx, cy, rx, ry, rot) {
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, rx, ry, rot || 0, 0, 2 * Math.PI);
-    ctx.fill();
-  }
-  function fillHighlight(cx, cy, rx, ry, alpha) {
-    ctx.save();
-    ctx.globalAlpha = alpha == null ? 0.32 : alpha;
-    ctx.fillStyle = '#fff';
-    fillEllipse(cx, cy, rx, ry);
-    ctx.restore();
-  }
-
-  function drawGenericBall(r, color) {
-    ctx.fillStyle = color;
-    fillCircle(0, 0, r * 0.95);
-    fillHighlight(-r * 0.35, -r * 0.35, r * 0.22, r * 0.16);
-  }
-
-  // ── 11 种水果 ─────────────────────────
-  function drawCherry(r, color) {
-    // 茎从顶往下弯，叶子小一点
-    ctx.strokeStyle = '#7d5b3a';
-    ctx.lineWidth = Math.max(1.2, r * 0.09);
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(0, -r * 0.05);
-    ctx.quadraticCurveTo(r * 0.3, -r * 0.7, r * 0.05, -r * 0.95);
-    ctx.stroke();
-    // 叶子
-    ctx.fillStyle = '#5cb830';
-    fillEllipse(-r * 0.18, -r * 0.85, r * 0.25, r * 0.1, -0.5);
-    // 果身（圆，稍下偏让茎有空间）
-    ctx.fillStyle = color;
-    fillCircle(0, r * 0.18, r * 0.8);
-    fillHighlight(-r * 0.28, -r * 0.05, r * 0.18, r * 0.13);
-  }
-
-  function drawStrawberry(r, color) {
-    // 红色心形 / 圆锥
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(-r * 0.85, -r * 0.15);
-    ctx.bezierCurveTo(-r * 0.85, r * 0.5, -r * 0.35, r * 0.95, 0, r * 0.95);
-    ctx.bezierCurveTo(r * 0.35, r * 0.95, r * 0.85, r * 0.5, r * 0.85, -r * 0.15);
-    ctx.bezierCurveTo(r * 0.55, -r * 0.4, -r * 0.55, -r * 0.4, -r * 0.85, -r * 0.15);
-    ctx.fill();
-    // 黄色种子（小点）
-    ctx.fillStyle = '#fde79f';
-    const seedR = Math.max(0.9, r * 0.07);
-    const seeds = [
-      [-r*0.42, -r*0.02], [r*0.42, -r*0.02],
-      [-r*0.18, r*0.18], [r*0.18, r*0.18],
-      [0, r*0.45], [-r*0.32, r*0.45], [r*0.32, r*0.45],
-      [-r*0.15, -r*0.18], [r*0.15, -r*0.18],
-    ];
-    for (const [sx, sy] of seeds) fillCircle(sx, sy, seedR);
-    // 顶部绿色花萼（5 片小尖瓣）
-    ctx.fillStyle = '#5cb830';
-    ctx.beginPath();
-    for (let i = -2; i <= 2; i++) {
-      const cx = i * r * 0.32;
-      ctx.moveTo(cx - r * 0.16, -r * 0.25);
-      ctx.lineTo(cx, -r * 0.85);
-      ctx.lineTo(cx + r * 0.16, -r * 0.25);
-      ctx.closePath();
-    }
-    ctx.fill();
-    // 中央覆盖（让花萼连成一片）
-    fillEllipse(0, -r * 0.25, r * 0.7, r * 0.13);
-  }
-
-  function drawGrape(r, color) {
-    // 顶部小茎
-    ctx.strokeStyle = '#5d4037';
-    ctx.lineWidth = Math.max(1, r * 0.06);
-    ctx.beginPath();
-    ctx.moveTo(0, -r);
-    ctx.lineTo(r * 0.05, -r * 0.78);
-    ctx.stroke();
-    // 顶部绿叶
-    ctx.fillStyle = '#7bc043';
-    ctx.beginPath();
-    ctx.moveTo(0, -r * 0.85);
-    ctx.bezierCurveTo(r * 0.4, -r * 0.95, r * 0.45, -r * 0.55, r * 0.18, -r * 0.5);
-    ctx.bezierCurveTo(r * 0.05, -r * 0.6, -r * 0.05, -r * 0.6, -r * 0.18, -r * 0.5);
-    ctx.bezierCurveTo(-r * 0.45, -r * 0.55, -r * 0.4, -r * 0.95, 0, -r * 0.85);
-    ctx.fill();
-    // 葡萄串：菱形排布 9 颗
-    const dr = r * 0.3;
-    const positions = [
-      [0, -r * 0.45],                                 // 顶
-      [-r * 0.32, -r * 0.18], [r * 0.32, -r * 0.18],  // 第二排
-      [-r * 0.6, r * 0.1], [0, r * 0.05], [r * 0.6, r * 0.1],   // 第三排
-      [-r * 0.32, r * 0.4], [r * 0.32, r * 0.4],      // 第四排
-      [0, r * 0.65],                                   // 底
-    ];
-    ctx.fillStyle = color;
-    for (const [px, py] of positions) fillCircle(px, py, dr);
-    // 高光打在中间几颗上
-    ctx.save();
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = '#fff';
-    fillEllipse(-r * 0.4, r * 0.0, dr * 0.3, dr * 0.18);
-    fillEllipse(r * 0.2, -r * 0.25, dr * 0.25, dr * 0.15);
-    ctx.restore();
-  }
-
-  function drawOrange(r, color) {
-    // 主体
-    ctx.fillStyle = color;
-    fillCircle(0, 0, r * 0.95);
-    // 6 道果瓣浅刻
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.93, 0, 2 * Math.PI);
-    ctx.clip();
-    ctx.strokeStyle = darkenColor(color, 14);
-    ctx.lineWidth = Math.max(0.7, r * 0.022);
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * 2 * Math.PI;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-      ctx.stroke();
-    }
-    ctx.restore();
-    // 顶部小绿蒂
-    ctx.fillStyle = '#5cb830';
-    fillCircle(0, -r * 0.85, r * 0.11);
-    fillHighlight(-r * 0.35, -r * 0.35, r * 0.2, r * 0.14);
-  }
-
-  function drawPersimmon(r, color) {
-    // 略扁果身
-    ctx.fillStyle = color;
-    fillEllipse(0, r * 0.05, r * 0.95, r * 0.85);
-    fillHighlight(-r * 0.35, -r * 0.25, r * 0.2, r * 0.14);
-    // 顶部 4 瓣绿色花萼（向四方铺开）
-    ctx.fillStyle = '#5d8c3a';
-    for (let i = 0; i < 4; i++) {
-      const a = (i / 4) * 2 * Math.PI - Math.PI / 2;
-      ctx.save();
-      ctx.translate(Math.cos(a) * r * 0.2, Math.sin(a) * r * 0.2 - r * 0.45);
-      ctx.rotate(a + Math.PI / 2);
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.bezierCurveTo(r * 0.18, -r * 0.1, r * 0.15, -r * 0.4, 0, -r * 0.5);
-      ctx.bezierCurveTo(-r * 0.15, -r * 0.4, -r * 0.18, -r * 0.1, 0, 0);
-      ctx.fill();
-      ctx.restore();
-    }
-    // 中央小绿核
-    ctx.fillStyle = '#3d6e1a';
-    fillCircle(0, -r * 0.45, r * 0.07);
-  }
-
-  function drawApple(r, color) {
-    // 顶部小凹陷的苹果形
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(0, -r * 0.7);
-    ctx.bezierCurveTo(-r * 0.4, -r * 0.95, -r * 0.95, -r * 0.55, -r * 0.95, -r * 0.05);
-    ctx.bezierCurveTo(-r * 0.95, r * 0.6, -r * 0.6, r * 0.95, 0, r * 0.95);
-    ctx.bezierCurveTo(r * 0.6, r * 0.95, r * 0.95, r * 0.6, r * 0.95, -r * 0.05);
-    ctx.bezierCurveTo(r * 0.95, -r * 0.55, r * 0.4, -r * 0.95, 0, -r * 0.7);
-    ctx.fill();
-    // 果茎
-    ctx.fillStyle = '#5d4037';
-    ctx.fillRect(-r * 0.04, -r * 0.92, r * 0.08, r * 0.18);
-    // 叶子
-    ctx.fillStyle = '#5cb830';
-    fillEllipse(r * 0.22, -r * 0.78, r * 0.2, r * 0.09, -0.35);
-    fillHighlight(-r * 0.4, -r * 0.3, r * 0.2, r * 0.13);
-  }
-
-  function drawPear(r, color) {
-    // 用底大顶小两个椭圆叠出梨形
-    ctx.fillStyle = color;
-    fillEllipse(0, r * 0.3, r * 0.78, r * 0.6);
-    fillEllipse(0, -r * 0.2, r * 0.5, r * 0.45);
-    // 茎
-    ctx.fillStyle = '#5d4037';
-    ctx.fillRect(-r * 0.04, -r * 0.85, r * 0.08, r * 0.2);
-    // 叶
-    ctx.fillStyle = '#3d8b1a';
-    fillEllipse(r * 0.22, -r * 0.7, r * 0.18, r * 0.08, -0.35);
-    fillHighlight(-r * 0.3, 0, r * 0.18, r * 0.16);
-  }
-
-  function drawPeach(r, color) {
-    // 底色
-    ctx.fillStyle = color;
-    fillCircle(0, 0, r * 0.95);
-    // 暗一些的右下半（把"另一面"做出来）
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.95, 0, 2 * Math.PI);
-    ctx.clip();
-    ctx.fillStyle = darkenColor(color, 10);
-    fillEllipse(r * 0.25, r * 0.25, r * 0.85, r * 0.85);
-    ctx.restore();
-    // 中线沟
-    ctx.strokeStyle = darkenColor(color, 20);
-    ctx.lineWidth = Math.max(0.8, r * 0.025);
-    ctx.beginPath();
-    ctx.moveTo(0, -r * 0.85);
-    ctx.quadraticCurveTo(r * 0.18, 0, 0, r * 0.85);
-    ctx.stroke();
-    // 顶部叶子
-    ctx.fillStyle = '#5cb830';
-    fillEllipse(r * 0.05, -r * 0.85, r * 0.22, r * 0.09, -0.4);
-    fillHighlight(-r * 0.4, -r * 0.4, r * 0.2, r * 0.14);
-  }
-
-  function drawPineapple(r, color) {
-    // 椭圆果身
-    ctx.fillStyle = color;
-    fillEllipse(0, r * 0.1, r * 0.82, r * 0.85);
-    // 菱形交叉网格
-    ctx.save();
-    ctx.beginPath();
-    ctx.ellipse(0, r * 0.1, r * 0.8, r * 0.83, 0, 0, 2 * Math.PI);
-    ctx.clip();
-    ctx.strokeStyle = darkenColor(color, 25);
-    ctx.lineWidth = Math.max(0.7, r * 0.022);
-    const step = r * 0.22;
-    for (let off = -r * 1.5; off <= r * 1.5; off += step) {
-      ctx.beginPath();
-      ctx.moveTo(off - r, -r);
-      ctx.lineTo(off + r, r);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(off - r, r);
-      ctx.lineTo(off + r, -r);
-      ctx.stroke();
-    }
-    ctx.restore();
-    // 顶部叶冠（5 片三角尖）
-    ctx.fillStyle = '#3d8b1a';
-    const leafCount = 5;
-    for (let i = 0; i < leafCount; i++) {
-      const baseX = (i - (leafCount - 1) / 2) * r * 0.18;
-      const tipY = -r - r * (0.05 + Math.abs(i - (leafCount - 1) / 2) * 0.04);
-      ctx.beginPath();
-      ctx.moveTo(baseX - r * 0.11, -r * 0.65);
-      ctx.lineTo(baseX, tipY);
-      ctx.lineTo(baseX + r * 0.11, -r * 0.65);
-      ctx.closePath();
-      ctx.fill();
-    }
-    fillHighlight(-r * 0.32, -r * 0.15, r * 0.18, r * 0.14);
-  }
-
-  function drawMelon(r, color) {
-    // 主体
-    ctx.fillStyle = color;
-    fillCircle(0, 0, r * 0.95);
-    // 网纹（哈密瓜的纹路 — 用细波浪线模拟）
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.93, 0, 2 * Math.PI);
-    ctx.clip();
-    ctx.strokeStyle = darkenColor(color, 20);
-    ctx.lineWidth = Math.max(0.6, r * 0.018);
-    // 横向波浪线 4-5 条
-    for (let yLoc = -r * 0.7; yLoc <= r * 0.7; yLoc += r * 0.28) {
-      ctx.beginPath();
-      for (let xLoc = -r; xLoc <= r; xLoc += r * 0.08) {
-        const wob = Math.sin(xLoc * 0.4) * r * 0.06;
-        if (xLoc === -r) ctx.moveTo(xLoc, yLoc + wob);
-        else ctx.lineTo(xLoc, yLoc + wob);
-      }
-      ctx.stroke();
-    }
-    // 纵向波浪线
-    for (let xLoc = -r * 0.7; xLoc <= r * 0.7; xLoc += r * 0.28) {
-      ctx.beginPath();
-      for (let yLoc = -r; yLoc <= r; yLoc += r * 0.08) {
-        const wob = Math.cos(yLoc * 0.4) * r * 0.06;
-        if (yLoc === -r) ctx.moveTo(xLoc + wob, yLoc);
-        else ctx.lineTo(xLoc + wob, yLoc);
-      }
-      ctx.stroke();
-    }
-    ctx.restore();
-    // 茎
-    ctx.fillStyle = '#5d4037';
-    ctx.fillRect(-r * 0.05, -r * 0.99, r * 0.1, r * 0.13);
-    fillHighlight(-r * 0.32, -r * 0.32, r * 0.22, r * 0.16);
-  }
-
-  function drawWatermelon(r, color) {
-    // 主体
-    ctx.fillStyle = color;
-    fillCircle(0, 0, r * 0.95);
-    // 5 道纵向深绿条纹（裁剪在球内）
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.93, 0, 2 * Math.PI);
-    ctx.clip();
-    ctx.fillStyle = darkenColor(color, 28);
-    for (let i = -2; i <= 2; i++) {
-      fillEllipse(i * r * 0.34, 0, r * 0.07, r * 0.95);
-    }
-    ctx.restore();
-    fillHighlight(-r * 0.32, -r * 0.32, r * 0.25, r * 0.18);
-    // 顶部小蒂
-    ctx.fillStyle = '#3d6e1a';
-    fillCircle(0, -r * 0.86, r * 0.07);
   }
 
   function lightenColor(hex, amt) {
