@@ -680,6 +680,7 @@ permalink: /toolbox/suika/
   let isOver = false;
   let isPaused = false;
   let dangerSince = null;
+  let lastInDangerTime = 0;
   let dropCooldown = false;
   let lastTick = performance.now();
   const recentMerges = new Set();   // 防止同一次碰撞触发多次合并
@@ -1072,17 +1073,23 @@ permalink: /toolbox/suika/
       if (b.isStatic) return;
       // 给水果生成后的 1.5 秒缓冲，避免刚下落瞬间被判
       if (now - (b.spawnedAt || 0) < 1500) return;
-      // 速度阈值：仅当水果几乎静止（落定）才算
-      const speed = Math.hypot(b.velocity.x, b.velocity.y);
-      if (b.position.y - b.circleRadius < DANGER_Y && speed < 0.3) {
+      // 顶端越过危险线就算（不再加 speed 阈值——堆叠的水果常因新水果撞击有
+      // 微小晃动 speed > 0.3，原来的"且 speed < 0.3"几乎永远不成立，导致水果
+      // 堆超过危险线很久也不被判败）
+      if (b.position.y - b.circleRadius < DANGER_Y) {
         inDanger = true;
       }
     });
     if (inDanger) {
+      lastInDangerTime = now;
       if (!dangerSince) dangerSince = now;
       if (now - dangerSince > 2000) gameOver();
-    } else {
-      dangerSince = null;
+    } else if (dangerSince) {
+      // 800ms grace：短暂离开危险区（合并爆炸把堆顶水果推开瞬间）不立即
+      // reset 倒计时，否则反复 reset 永远凑不满 2 秒
+      if (now - lastInDangerTime > 800) {
+        dangerSince = null;
+      }
     }
   }
 
@@ -1242,6 +1249,7 @@ permalink: /toolbox/suika/
     isPaused = false;
     score = 0;
     dangerSince = null;
+    lastInDangerTime = 0;
     dropCooldown = false;
     hoverFruit = null;
     hoverVx = 0;
