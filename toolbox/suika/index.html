@@ -623,7 +623,7 @@ permalink: /toolbox/suika/
   const $startBest = document.getElementById('start-best');
 
   let W = 380, H = 540;     // 画布尺寸
-  const WALL = 16;          // 墙厚
+  const WALL = 100;         // 墙厚（够厚才能防止水果一帧 tunneling 穿过）
   const SPAWN_Y = 50;       // 悬浮水果 y
   const DANGER_Y = 100;     // 危险线 y
   const FLOOR_Y = 540;      // 底面（动态调）
@@ -918,6 +918,16 @@ permalink: /toolbox/suika/
           }
         }
         Engine.update(engine, dt);
+        // Sanity cleanup：任何水果跑到 canvas 边界外 → 一定是 tunneling 穿墙了
+        // 直接删掉，避免后续 mergeFruits 拿到无效坐标继续传染
+        Composite.allBodies(world).forEach(b => {
+          if (!b.fruitLevel) return;
+          if (b.position.y > H + 50 ||
+              b.position.x < -50 ||
+              b.position.x > W + 50) {
+            World.remove(world, b);
+          }
+        });
         checkProximityMerges();   // 接触合并（替代 collisionStart）
         checkDanger(now);
         recentMerges.clear();
