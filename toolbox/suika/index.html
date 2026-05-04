@@ -146,6 +146,34 @@ permalink: /toolbox/suika/
   }
   .preview-row .melon-count strong { color: var(--color-highlight); font-weight: 600; }
 
+  .setting-checkbox-row {
+    display: flex; align-items: center; gap: 0.45rem;
+    margin-top: 0.4rem;
+    font-size: 0.78rem;
+    color: var(--color-muted);
+    cursor: pointer;
+  }
+  .setting-checkbox-row input[type="checkbox"] { cursor: pointer; }
+
+  .canvas-size-row {
+    display: flex; gap: 0.4rem; flex-wrap: wrap;
+    margin-top: 0.3rem;
+  }
+  .canvas-size-btn {
+    flex: 1 1 auto; min-width: 0;
+    font: inherit; font-size: 0.82rem;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    background: var(--color-bg);
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .canvas-size-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .canvas-size-btn.active {
+    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+  }
+
   /* 调参面板：合成链表情自定义 */
   .custom-chain-section {
     padding-top: 0;
@@ -155,13 +183,15 @@ permalink: /toolbox/suika/
     margin-bottom: 0.3rem;
   }
   .custom-chain-display {
-    display: flex; align-items: center; gap: 0.2rem;
-    padding: 0.5rem 0.6rem;
+    display: grid;
+    grid-template-columns: repeat(6, auto);
+    column-gap: 0.3rem;
+    row-gap: 0.4rem;
+    justify-content: center;
+    align-items: center;
+    padding: 0.55rem 0.6rem;
     background: var(--color-bg-warm);
     border-radius: 8px;
-    overflow-x: auto; flex-wrap: nowrap;
-    scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
   }
   .custom-chain-slot {
     flex-shrink: 0;
@@ -226,24 +256,25 @@ permalink: /toolbox/suika/
   }
   .custom-chain-picker-item:hover { background: var(--color-bg-warm); }
 
-  /* 进化链可视化 */
+  /* 进化链可视化（S 型 6+5） */
   .evo-chain {
-    display: flex; align-items: center;
-    gap: 0.35rem;
+    display: grid;
+    grid-template-columns: repeat(6, auto);
+    column-gap: 0.5rem;
+    row-gap: 0.45rem;
+    justify-content: center;
+    align-items: center;
     margin-top: 0.8rem;
     padding: 0.6rem 0.8rem;
     background: var(--color-bg-warm);
     border-radius: 10px;
-    font-size: 1.05rem;
+    font-size: 1.15rem;
     color: var(--color-light);
-    justify-content: flex-start;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
   }
-  .evo-chain .arrow { opacity: 0.5; font-size: 0.8rem; flex-shrink: 0; }
-  .evo-chain span { flex-shrink: 0; }
+  .evo-chain span {
+    text-align: center;
+    line-height: 1;
+  }
 
   .footnote {
     margin-top: 1.2rem;
@@ -384,6 +415,211 @@ permalink: /toolbox/suika/
     font-weight: 600;
   }
   .settings-actions .try-btn:hover { background: #d8b876; }
+
+  /* ============ 排行榜 / 昵称 / 结算页 ============ */
+
+  /* 进化链：本局合到的最高级高亮 */
+  .evo-chain span.reached {
+    transform: scale(1.25);
+    transition: transform 0.3s, filter 0.3s;
+    filter: drop-shadow(0 0 4px var(--color-highlight, #f0c674));
+  }
+
+  /* 结算面板里的子模块都用统一的 max-width，让排版整齐 */
+  .ov-block { width: 100%; max-width: 320px; }
+
+  /* 截图缩略图 */
+  .ov-snapshot {
+    width: 140px; max-width: 50vw;
+    border-radius: 10px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
+    margin: 0.6rem auto 0.4rem;
+    display: block;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  /* 排名 slot */
+  .ov-rank-row {
+    min-height: 1.4rem;
+    margin: 0.3rem 0 0.6rem;
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.4;
+  }
+  .ov-rank-row strong {
+    color: var(--color-highlight);
+    font-weight: 700;
+    font-size: 1.05em;
+  }
+  .ov-rank-row.failed {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.82rem;
+  }
+  .ov-rank-row.loading::after {
+    content: '…';
+    display: inline-block;
+    animation: ov-rank-loading-dots 1.2s steps(4) infinite;
+  }
+  @keyframes ov-rank-loading-dots {
+    0%   { content: ''; }
+    25%  { content: '.'; }
+    50%  { content: '..'; }
+    75%  { content: '...'; }
+    100% { content: '...'; }
+  }
+
+  /* 进化链 summary（结算面板里的小字） */
+  .ov-evo-summary {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.78);
+    margin-bottom: 0.7rem;
+    line-height: 1.55;
+  }
+  .ov-evo-summary .reached-emoji {
+    font-size: 1.1em;
+    margin: 0 0.1em;
+  }
+
+  /* 结算面板按钮组 */
+  .ov-actions {
+    display: flex; gap: 0.6rem; flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+  .ov-actions .ov-btn-secondary {
+    font: inherit; font-size: 0.85rem;
+    padding: 0.55rem 1.2rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.92);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .ov-actions .ov-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.45);
+  }
+
+  /* 昵称表单 */
+  .ov-nick-form {
+    margin: 0.7rem auto 0.4rem;
+    padding: 0.8rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px dashed rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+  }
+  .ov-nick-form .ov-nick-prompt {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 0.45rem;
+    line-height: 1.5;
+  }
+  .ov-nick-form .ov-nick-privacy {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 0.55rem;
+    line-height: 1.5;
+  }
+  .ov-nick-form input {
+    width: 100%;
+    font: inherit; font-size: 0.95rem;
+    padding: 0.45rem 0.7rem;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    color: #1e3a5f;
+    outline: none;
+    text-align: center;
+  }
+  .ov-nick-form input:focus {
+    border-color: var(--color-highlight);
+    box-shadow: 0 0 0 3px rgba(240, 198, 116, 0.25);
+  }
+  .ov-nick-form .ov-nick-error {
+    color: #ff8a80;
+    font-size: 0.78rem;
+    margin-top: 0.4rem;
+    min-height: 1em;
+  }
+  .ov-nick-form .ov-nick-buttons {
+    display: flex; gap: 0.5rem; margin-top: 0.55rem;
+  }
+  .ov-nick-form .ov-nick-buttons button {
+    flex: 1;
+    font: inherit; font-size: 0.82rem;
+    padding: 0.45rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .ov-nick-form .ov-nick-submit {
+    background: var(--color-highlight);
+    border: 1px solid var(--color-highlight);
+    color: rgba(20, 20, 20, 0.92);
+    font-weight: 600;
+  }
+  .ov-nick-form .ov-nick-submit:hover { background: #d8b876; }
+  .ov-nick-form .ov-nick-skip {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .ov-nick-form .ov-nick-skip:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+
+  /* 当前昵称小标签 */
+  .ov-nick-tag {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.55);
+    margin-bottom: 0.5rem;
+  }
+  .ov-nick-tag a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* Waline 嵌入区（沿用 recipe.html 样式约定） */
+  #suika-waline-wrap {
+    margin-top: 2.5rem;
+    padding-top: 1.6rem;
+    border-top: 1px dashed var(--color-border);
+  }
+  #suika-waline-wrap h3 {
+    font-size: 1.15rem;
+    color: var(--color-ink);
+    margin-bottom: 0.4rem;
+  }
+  #suika-waline-wrap .waline-intro {
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    line-height: 1.55;
+  }
+  .wl-actions a { display: none !important; }
+  .wl-editor, .wl-input, .wl-btn { font-family: inherit !important; }
+  #suika-waline .wl-avatar,
+  #suika-waline img.wl-avatar,
+  #suika-waline .wl-badge-wrap { display: none !important; }
+  #suika-waline .wl-panel {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    width: 100% !important;
+  }
+  #suika-waline .wl-header { margin-left: 0 !important; }
+  @media (max-width: 768px) {
+    #suika-waline [data-waline-field="mail"],
+    #suika-waline [data-waline-field="link"] { display: none !important; }
+    #suika-waline [data-waline-field="nick"] {
+      flex: 1 1 100% !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    #suika-waline .wl-header { flex-wrap: wrap !important; }
+  }
 </style>
 
 <div class="sk-wrap">
@@ -473,6 +709,22 @@ permalink: /toolbox/suika/
               <span class="setting-val" id="tremor-val">0.00</span>
             </div>
             <input type="range" id="tremor-slider" min="0" max="1" step="0.05" value="0" />
+            <label class="setting-checkbox-row">
+              <input type="checkbox" id="shake-view-check" checked />
+              <span>画幅抖动（关掉只保留水果物理扰动，护眼）</span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <div class="setting-row">
+              <label>📐 画幅</label>
+              <span class="setting-desc" id="canvas-size-desc">标准</span>
+            </div>
+            <div class="canvas-size-row" id="canvas-size-row">
+              <button type="button" class="canvas-size-btn" data-size="compact">紧凑</button>
+              <button type="button" class="canvas-size-btn" data-size="standard">标准</button>
+              <button type="button" class="canvas-size-btn" data-size="large">加大</button>
+              <button type="button" class="canvas-size-btn" data-size="tall">高瘦</button>
+            </div>
           </div>
           <div class="setting-item custom-chain-section">
             <div class="setting-row">
@@ -511,17 +763,41 @@ permalink: /toolbox/suika/
     <!-- 游戏结束幕 -->
     <div class="game-overlay" id="game-overlay">
       <h2 id="ov-title">游戏结束</h2>
+      <img class="ov-snapshot" id="ov-snapshot" alt="本局画面" style="display: none;" />
       <div class="final-score" id="ov-score">0</div>
       <div class="new-best" id="ov-best" style="display: none;">🏆 新纪录！</div>
+      <div class="ov-rank-row" id="ov-rank"></div>
+      <div class="ov-evo-summary" id="ov-evo-summary"></div>
       <p id="ov-message">水果堆超过红线了 · 试试更稳的策略？</p>
-      <button type="button" class="ov-btn" id="ov-restart">🔄 再来一局</button>
+
+      <!-- 昵称表单：nick 不存在 + 想上榜时显示 -->
+      <div class="ov-nick-form ov-block" id="ov-nick-form" style="display: none;">
+        <div class="ov-nick-prompt" id="ov-nick-prompt">想上排行榜？起个昵称吧</div>
+        <div class="ov-nick-privacy">提交后，本局分数会和昵称一起送到我自己的小服务器，仅用于显示排行榜</div>
+        <input type="text" id="ov-nick-input" maxlength="36" placeholder="3-12 字 / 中英文 / emoji" autocomplete="off" />
+        <div class="ov-nick-error" id="ov-nick-error"></div>
+        <div class="ov-nick-buttons">
+          <button type="button" class="ov-nick-skip" id="ov-nick-skip">本局不上传</button>
+          <button type="button" class="ov-nick-submit" id="ov-nick-submit">上榜</button>
+        </div>
+      </div>
+
+      <!-- nick 已存在时显示当前昵称 + 「换昵称」入口 -->
+      <div class="ov-nick-tag" id="ov-nick-tag" style="display: none;">
+        以 <strong id="ov-nick-current"></strong> 上传 · <a id="ov-nick-change">换昵称</a>
+      </div>
+
+      <div class="ov-actions">
+        <button type="button" class="ov-btn-secondary" id="ov-screenshot-btn">📸 保存图片</button>
+        <button type="button" class="ov-btn" id="ov-restart">🔄 再来一局</button>
+      </div>
     </div>
   </div>
 
   <div class="preview-row">
     <span>下一个：<span class="next-fruit" id="next-fruit">🍒</span></span>
     <span style="opacity: 0.5;">·</span>
-    <span class="melon-count">已合成 <strong id="melon-count">0</strong> 颗 🍉</span>
+    <span class="melon-count">已合成 <strong id="melon-count">0</strong> 个 <span id="melon-emoji">🍉</span></span>
   </div>
 
   <div class="controls-row">
@@ -549,6 +825,13 @@ permalink: /toolbox/suika/
       </ul>
     </div>
   </details>
+
+  <!-- 评论区（Waline，按 reachable 检测加载，挂掉静默隐藏） -->
+  <div id="suika-waline-wrap" style="display: none;">
+    <h3>💬 来玩玩交流</h3>
+    <p class="waline-intro">分享你的最高分截图、玩法心得、合到西瓜的玄学姿势——欢迎留言。</p>
+    <div id="suika-waline"></div>
+  </div>
 </div>
 
 <!-- Matter.js 物理引擎 -->
@@ -570,9 +853,17 @@ permalink: /toolbox/suika/
   const MELONS_KEY = 'tool.suika.melons.v1';
   const PHYSICS_KEY = 'tool.suika.physics.v1';
   const CHAIN_KEY = 'tool.suika.chain.v1';
+  const NICK_KEY = 'tool.suika.nick.v1';
 
-  // 5 个用户可调参数（0-1 滑条 → 实际物理值）
-  const PHYSICS = { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5, tremor: 0 };
+  // 排行榜后端（zircon-urge Vercel + Upstash Redis）。
+  // 灭火开关：把 LEADERBOARD_ENABLED 改成 false 后 push，前端立即回到纯本地模式。
+  const LEADERBOARD_API = 'https://zircon-urge.vercel.app/api/suika';
+  const LEADERBOARD_ENABLED = true;
+  // 后端 nick 校验：3-12 codepoint，正则与服务端保持一致。
+  const NICK_REJECT_RE = /[<>&"'\/\\\x00-\x1F​-‏﻿‪-‮]/;
+
+  // 5 个用户可调参数（0-1 滑条 → 实际物理值） + 布尔开关 + 字符串 preset
+  const PHYSICS = { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5, tremor: 0, shakeView: true, canvasSize: 'standard' };
   function mapPhysics() {
     return {
       // 回弹：0-1 → 0.05-0.40
@@ -598,6 +889,10 @@ permalink: /toolbox/suika/
         ['bounce', 'explosion', 'gravity', 'stickiness', 'tremor'].forEach(k => {
           if (typeof p[k] === 'number') PHYSICS[k] = Math.max(0, Math.min(1, p[k]));
         });
+        if (typeof p.shakeView === 'boolean') PHYSICS.shakeView = p.shakeView;
+        if (typeof p.canvasSize === 'string' && CANVAS_SIZES[p.canvasSize]) {
+          PHYSICS.canvasSize = p.canvasSize;
+        }
       }
     } catch (e) {}
   }
@@ -913,12 +1208,26 @@ permalink: /toolbox/suika/
   const $ovMessage = document.getElementById('ov-message');
   const $ovTitle = document.getElementById('ov-title');
   const $ovRestart = document.getElementById('ov-restart');
+  const $ovSnapshot = document.getElementById('ov-snapshot');
+  const $ovRank = document.getElementById('ov-rank');
+  const $ovEvoSummary = document.getElementById('ov-evo-summary');
+  const $ovScreenshotBtn = document.getElementById('ov-screenshot-btn');
+  const $ovNickForm = document.getElementById('ov-nick-form');
+  const $ovNickInput = document.getElementById('ov-nick-input');
+  const $ovNickError = document.getElementById('ov-nick-error');
+  const $ovNickSubmit = document.getElementById('ov-nick-submit');
+  const $ovNickSkip = document.getElementById('ov-nick-skip');
+  const $ovNickPrompt = document.getElementById('ov-nick-prompt');
+  const $ovNickTag = document.getElementById('ov-nick-tag');
+  const $ovNickCurrent = document.getElementById('ov-nick-current');
+  const $ovNickChange = document.getElementById('ov-nick-change');
   const $restartBtn = document.getElementById('restart-btn');
   const $pauseBtn = document.getElementById('pause-btn');
   const $curScore = document.getElementById('cur-score');
   const $highScore = document.getElementById('high-score');
   const $nextFruit = document.getElementById('next-fruit');
   const $melonCount = document.getElementById('melon-count');
+  const $melonEmoji = document.getElementById('melon-emoji');
   const $evoChain = document.getElementById('evo-chain');
   const $startOverlay = document.getElementById('start-overlay');
   const $startBtn = document.getElementById('start-btn');
@@ -928,6 +1237,14 @@ permalink: /toolbox/suika/
   const WALL = 16;          // 墙厚（保持薄墙的手感；穿墙的极端情况由 sanity cleanup 兜底）
   const SPAWN_Y = 50;       // 悬浮水果 y
   const DANGER_Y = 100;     // 危险线 y
+
+  // 画幅 preset：(maxW, aspect) 决定画布尺寸。实际 W 还会被父容器宽度兜住。
+  const CANVAS_SIZES = {
+    compact:  { maxW: 380, aspect: 1.40, label: '紧凑' },
+    standard: { maxW: 430, aspect: 1.45, label: '标准' },
+    large:    { maxW: 480, aspect: 1.50, label: '加大' },
+    tall:     { maxW: 400, aspect: 1.65, label: '高瘦' },
+  };
 
   // 自适应尺寸
   function fitCanvas() {
@@ -943,11 +1260,12 @@ permalink: /toolbox/suika/
         - parseFloat(cs.paddingLeft || 0)
         - parseFloat(cs.paddingRight || 0);
     }
-    const containerWidth = Math.min(480,
+    const preset = CANVAS_SIZES[PHYSICS.canvasSize] || CANVAS_SIZES.standard;
+    const containerWidth = Math.min(preset.maxW,
       parentInnerW > 0 ? parentInnerW : (window.innerWidth - 32)
     );
     W = containerWidth;
-    H = Math.round(W * 1.45);
+    H = Math.round(W * preset.aspect);
     $canvas.width = W;
     $canvas.height = H;
     $canvas.style.width = W + 'px';
@@ -983,6 +1301,62 @@ permalink: /toolbox/suika/
   let trialMode = false;            // 是否在「试一试」试玩模式
   let trialDropsLeft = 0;
   const TRIAL_DROPS = 10;
+
+  // —— 排行榜状态 ——
+  let runMaxLevel = 0;          // 本局合到的最高水果级别（用于结算高亮）
+  let runStartedAt = 0;         // 本局开始时间戳（用于服务端 durationMs）
+  let currentRunNonce = '';     // 本局唯一 nonce（防重放，整局不变）
+  let nicknameMem = '';         // localStorage 禁用时的内存兜底
+  let pendingSubmitForRun = false; // 标记已经为本局提交过分（防止用户连点）
+
+  function newRunNonce() {
+    if (window.crypto && crypto.randomUUID) return 'r-' + crypto.randomUUID();
+    return 'r-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  }
+  function getNick() {
+    try { return localStorage.getItem(NICK_KEY) || nicknameMem || ''; }
+    catch (_) { return nicknameMem || ''; }
+  }
+  function setNick(nick) {
+    nicknameMem = nick;
+    try { localStorage.setItem(NICK_KEY, nick); } catch (_) {}
+  }
+  function clearNick() {
+    nicknameMem = '';
+    try { localStorage.removeItem(NICK_KEY); } catch (_) {}
+  }
+  // 前端校验（与后端一致）：3-12 codepoint，剔除危险字符。
+  function validateNick(raw) {
+    if (typeof raw !== 'string') return { ok: false, msg: '请输入昵称' };
+    const nick = raw.trim();
+    if (!nick) return { ok: false, msg: '昵称不能为空' };
+    if (NICK_REJECT_RE.test(nick)) return { ok: false, msg: '不能包含 < > & " \' / \\ 等特殊字符' };
+    const len = [...nick].length;
+    if (len < 3) return { ok: false, msg: '昵称太短（≥3 字）' };
+    if (len > 12) return { ok: false, msg: '昵称太长（≤12 字）' };
+    return { ok: true, nick };
+  }
+
+  // 通用 fetch 包装：5s timeout、cache:no-store、错误归一化。
+  async function callBackend(url, opts, timeoutMs) {
+    if (!LEADERBOARD_ENABLED) return { ok: false, error: 'disabled' };
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs || 5000);
+    try {
+      const res = await fetch(url, Object.assign({}, opts || {}, {
+        signal: ctrl.signal,
+        cache: 'no-store',
+      }));
+      let data = null;
+      try { data = await res.json(); } catch (_) {}
+      if (!res.ok) return { ok: false, status: res.status, data };
+      return { ok: true, data };
+    } catch (e) {
+      return { ok: false, error: String(e && e.message || e) };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 
   function setupWorld() {
     const m = mapPhysics();
@@ -1055,6 +1429,7 @@ permalink: /toolbox/suika/
 
     if (!trialMode) {
       score += FRUITS[newLevel - 1].score;
+      if (newLevel > runMaxLevel) runMaxLevel = newLevel;
       if (newLevel === 11) {
         melonsCount++;
         try { localStorage.setItem(MELONS_KEY, String(melonsCount)); } catch (e) {}
@@ -1379,12 +1754,15 @@ permalink: /toolbox/suika/
         y: Math.sin(angle) * ampl * b.mass,              // y 方向不再减半，全方位震
       });
     });
-    // Camera shake：随机方向 + ±30% 振幅噪声，drawScene 用 sine 衰减振荡
-    lastTremorTime = now;
-    const shakeBase = m.tremorShakePx;
-    const shakeAngle = Math.random() * Math.PI * 2;
-    tremorShakeAmpX = Math.cos(shakeAngle) * shakeBase * (0.7 + Math.random() * 0.6);
-    tremorShakeAmpY = Math.sin(shakeAngle) * shakeBase * (0.7 + Math.random() * 0.6);
+    // Camera shake（可被 PHYSICS.shakeView 关掉，护眼）：
+    // 关闭时只跑物理扰动，不触发画面位移
+    if (PHYSICS.shakeView) {
+      lastTremorTime = now;
+      const shakeBase = m.tremorShakePx;
+      const shakeAngle = Math.random() * Math.PI * 2;
+      tremorShakeAmpX = Math.cos(shakeAngle) * shakeBase * (0.7 + Math.random() * 0.6);
+      tremorShakeAmpY = Math.sin(shakeAngle) * shakeBase * (0.7 + Math.random() * 0.6);
+    }
   }
   // 当前帧 camera shake 偏移：振荡频率 ~16Hz、指数衰减、~600ms 后归零
   function getShakeOffset(now) {
@@ -1568,29 +1946,49 @@ permalink: /toolbox/suika/
     }
     $highScore.textContent = highScore;
     $melonCount.textContent = melonsCount;
+    $melonEmoji.textContent = FRUITS[FRUITS.length - 1].emoji;   // 跟随用户自定义最高级
   }
 
   function updateNextFruitUI() {
     $nextFruit.textContent = FRUITS[nextLevel - 1].emoji;
   }
 
+  // S 型 6+5 布局：lv 1-6 在第一行（cols 1-6），lv 7-11 在第二行（cols 6→2，
+  // 反向铺）。slot 7 直接在 slot 6 正下方，连续往左到 slot 11，视觉上是「S」。
   function buildEvoChain() {
     $evoChain.innerHTML = FRUITS.map((f, i) => {
-      const arrow = i < FRUITS.length - 1 ? '<span class="arrow">→</span>' : '';
-      return `<span title="${f.name}">${f.emoji}</span>${arrow}`;
+      const lv = i + 1;
+      let style = '';
+      if (lv >= 7) {
+        const col = 13 - lv;   // lv=7→col=6, lv=11→col=2
+        style = `grid-row: 2; grid-column: ${col};`;
+      }
+      return `<span data-lv="${lv}" style="${style}" title="lv ${lv}：${f.name}">${f.emoji}</span>`;
     }).join('');
+  }
+  // 给本局合到的最高级水果在进化链里加 .reached 高亮。
+  function highlightEvoChain(maxLv) {
+    $evoChain.querySelectorAll('span.reached').forEach(s => s.classList.remove('reached'));
+    if (!maxLv || maxLv < 1) return;
+    const target = $evoChain.querySelector(`span[data-lv="${maxLv}"]`);
+    if (target) target.classList.add('reached');
   }
 
   // ============ 调参面板：合成链表情自定义 ============
   function renderChainEditor() {
     const $disp = document.getElementById('custom-chain-display');
     if (!$disp) return;
+    // 同样的 S 型 6+5 布局：lv 7-11 显式 grid-column 反向铺
     $disp.innerHTML = chainCps.map((cp, i) => {
       const lib = EMOJI_LIBRARY.find(e => e.cp === cp) || { emoji: '?', name: '?' };
       const lv = i + 1;
       const sel = selectedSlotLevel === lv ? ' selected' : '';
-      const arrow = i < chainCps.length - 1 ? '<span class="custom-chain-arrow">→</span>' : '';
-      return `<span class="custom-chain-slot${sel}" data-level="${lv}" title="lv ${lv}：${lib.name}">${lib.emoji}</span>${arrow}`;
+      let style = '';
+      if (lv >= 7) {
+        const col = 13 - lv;
+        style = `grid-row: 2; grid-column: ${col};`;
+      }
+      return `<span class="custom-chain-slot${sel}" data-level="${lv}" style="${style}" title="lv ${lv}：${lib.name}">${lib.emoji}</span>`;
     }).join('');
     $disp.querySelectorAll('.custom-chain-slot').forEach(el => {
       el.addEventListener('click', () => onChainSlotClick(parseInt(el.dataset.level, 10)));
@@ -1644,7 +2042,8 @@ permalink: /toolbox/suika/
     applyChainCps();
     saveChain();
     buildEvoChain();
-    updateNextFruitUI();          // 下一个水果显示也可能受影响
+    updateNextFruitUI();           // 下一个水果显示也可能受影响
+    updateScoreUI();               // melon-emoji 也跟着最高级表情刷新
   }
 
   function swapChainSlots(la, lb) {
@@ -1655,6 +2054,7 @@ permalink: /toolbox/suika/
     saveChain();
     buildEvoChain();
     updateNextFruitUI();
+    updateScoreUI();              // melon-emoji 也跟着最高级表情刷新
   }
 
   function resetChain() {
@@ -1665,6 +2065,7 @@ permalink: /toolbox/suika/
     renderChainEditor();
     buildEvoChain();
     updateNextFruitUI();
+    updateScoreUI();              // melon-emoji 也跟着最高级表情刷新
   }
 
   // ============ 游戏控制 ============
@@ -1673,15 +2074,44 @@ permalink: /toolbox/suika/
     isOver = true;
     hoverFruit = null;  // 清掉悬浮（纯数据，不需要 World.remove）
     hoverVx = 0;
-    const wasNewBest = score >= highScore;
     $ovTitle.textContent = '游戏结束';
     $ovScore.textContent = score;
     $ovBest.style.display = (score >= highScore && score > 0) ? '' : 'none';
-    $ovMessage.textContent = score === 0 ? '一颗水果都没合？再试一次。' :
-      melonsCount === 0 ? `本局得 ${score} 分，离西瓜还差点。` :
-      `本局得 ${score} 分，累计 ${melonsCount} 颗 🍉，继续！`;
+    const topEmoji = FRUITS[FRUITS.length - 1].emoji;
+    $ovMessage.textContent = score === 0 ? '一个表情都没合？再试一次。' :
+      melonsCount === 0 ? `本局得 ${score} 分，离 ${topEmoji} 还差点。` :
+      `本局得 ${score} 分，累计 ${melonsCount} 个 ${topEmoji}，继续！`;
+
+    // 截图：用 toDataURL 把当前 canvas 冻结成 PNG 缩略图。
+    // 注意：tick() 此时仍在跑（line ~1505），但场景已无新合并，画面静止；
+    // Twemoji 已设 crossOrigin='anonymous'，canvas 不会 tainted。
+    try {
+      const dataUrl = $canvas.toDataURL('image/png');
+      $ovSnapshot.src = dataUrl;
+      $ovSnapshot.dataset.dataUrl = dataUrl;
+      $ovSnapshot.style.display = score > 0 ? '' : 'none';
+    } catch (e) {
+      $ovSnapshot.style.display = 'none';
+    }
+
+    // 进化链高亮 + 结算 summary
+    highlightEvoChain(runMaxLevel);
+    if (runMaxLevel > 0) {
+      const f = FRUITS[runMaxLevel - 1];
+      $ovEvoSummary.innerHTML =
+        `本局合到 <strong>lv ${runMaxLevel}</strong> ` +
+        `<span class="reached-emoji">${f.emoji}</span> ${f.name}` +
+        ` · 累计 <strong>${melonsCount}</strong> 颗 🍉`;
+    } else {
+      $ovEvoSummary.textContent = '一颗水果都没合，下一局加油。';
+    }
+
     $overlay.classList.add('open');
     $gameZone.classList.add('over');
+
+    // 异步提交分数到排行榜（不阻塞 overlay 显示）
+    setupNicknameUI();
+    submitToLeaderboard();
   }
 
   function restart() {
@@ -1698,10 +2128,23 @@ permalink: /toolbox/suika/
     dropCooldown = false;
     hoverFruit = null;
     hoverVx = 0;
+    runMaxLevel = 0;
+    runStartedAt = Date.now();
+    currentRunNonce = newRunNonce();
+    pendingSubmitForRun = false;
     nextLevel = pickSpawnLevel();
     $overlay.classList.remove('open');
     $gameZone.classList.remove('over');
     $pauseBtn.textContent = '⏸ 暂停';
+    // 清结算面板的 leaderboard 子组件，避免下次 game over 前看到旧数据闪现
+    $ovSnapshot.style.display = 'none';
+    $ovSnapshot.removeAttribute('src');
+    $ovRank.className = 'ov-rank-row';
+    $ovRank.innerHTML = '';
+    $ovEvoSummary.innerHTML = '';
+    $ovNickForm.style.display = 'none';
+    $ovNickTag.style.display = 'none';
+    highlightEvoChain(0);
     setupWorld();
     spawnHoveringFruit();
     updateScoreUI();
@@ -1719,6 +2162,11 @@ permalink: /toolbox/suika/
     $startOverlay.classList.remove('open');
     gameStarted = true;
     setFocus(true);
+    // 开局重置 leaderboard 相关本局状态（restart 也走这个分支）
+    runMaxLevel = 0;
+    runStartedAt = Date.now();
+    currentRunNonce = newRunNonce();
+    pendingSubmitForRun = false;
     spawnHoveringFruit();
   }
   $startBtn.addEventListener('click', startGame);
@@ -1808,7 +2256,21 @@ permalink: /toolbox/suika/
       els.val.textContent = PHYSICS[key].toFixed(2);
       els.desc.textContent = describe(PHYSICS[key]);
     });
+    $shakeViewCheck.checked = PHYSICS.shakeView;
   }
+
+  // 画幅抖动开关
+  const $shakeViewCheck = document.getElementById('shake-view-check');
+  $shakeViewCheck.addEventListener('change', () => {
+    PHYSICS.shakeView = $shakeViewCheck.checked;
+    if (!PHYSICS.shakeView) {
+      // 立刻清掉当前正在衰减的 shake
+      lastTremorTime = -10000;
+      tremorShakeAmpX = 0;
+      tremorShakeAmpY = 0;
+    }
+    savePhysics();
+  });
 
   // ============ 试玩模式 ============
   const $viewTrialEnd = document.getElementById('view-trial-end');
@@ -1875,6 +2337,7 @@ permalink: /toolbox/suika/
     PHYSICS.gravity = 0.5;
     PHYSICS.stickiness = 0.5;
     PHYSICS.tremor = 0;
+    PHYSICS.shakeView = true;
     savePhysics();
     refreshSliderUI();
     applyPhysicsLive();
@@ -1901,6 +2364,7 @@ permalink: /toolbox/suika/
   renderChainEditor();
   updateScoreUI();
   loadPhysics();
+  fitCanvas();           // 保存的 canvasSize preset 在这里才被应用（之前 fitCanvas 用的是默认 standard）
   refreshSliderUI();
   setupWorld();
   // 不再立即 spawnHoveringFruit — 等用户点「开始游戏」
@@ -1913,35 +2377,58 @@ permalink: /toolbox/suika/
   });
   requestAnimationFrame(tick);
 
+  // 重新 fit canvas + 等比搬移现有水果 + 重建墙体（resize / 切换 preset 共用）
+  function refitCanvas() {
+    const oldW = W, oldH = H;
+    fitCanvas();
+    if (oldW === W && oldH === H) return;
+    if (!world) return;
+    const ratio = W / oldW;
+    Composite.allBodies(world).forEach(b => {
+      if (!b.fruitLevel) return;
+      Body.setPosition(b, {
+        x: Math.max(b.circleRadius + 1, Math.min(W - b.circleRadius - 1, b.position.x * ratio)),
+        y: Math.min(H - b.circleRadius - 1, b.position.y * (H / oldH)),
+      });
+      Body.setVelocity(b, { x: 0, y: 0 });
+      Body.setAngularVelocity(b, 0);
+    });
+    hoverX = Math.max(20, Math.min(W - 20, hoverX * ratio));
+    if (hoverFruit) hoverFruit.x = hoverX;
+    walls.forEach(w => World.remove(world, w));
+    walls = [
+      Bodies.rectangle(W / 2, H + WALL / 2, W, WALL, { isStatic: true, friction: 0.4 }),
+      Bodies.rectangle(-WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: 0.4 }),
+      Bodies.rectangle(W + WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: 0.4 }),
+    ];
+    World.add(world, walls);
+  }
+
   // 窗口尺寸变化重设
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-      // 窗口变化时重新 fit canvas，等比把水果 x 坐标搬到新画面，但不清局
-      const oldW = W, oldH = H;
-      fitCanvas();
-      const ratio = W / oldW;
-      Composite.allBodies(world).forEach(b => {
-        if (!b.fruitLevel) return;
-        Body.setPosition(b, {
-          x: Math.max(b.circleRadius + 1, Math.min(W - b.circleRadius - 1, b.position.x * ratio)),
-          y: Math.min(H - b.circleRadius - 1, b.position.y * (H / oldH)),
-        });
-        Body.setVelocity(b, { x: 0, y: 0 });
-        Body.setAngularVelocity(b, 0);
-      });
-      hoverX = Math.max(20, Math.min(W - 20, hoverX * ratio));
-      if (hoverFruit) hoverFruit.x = hoverX;
-      // 重建墙体
-      walls.forEach(w => World.remove(world, w));
-      walls = [
-        Bodies.rectangle(W / 2, H + WALL / 2, W, WALL, { isStatic: true, friction: 0.4 }),
-        Bodies.rectangle(-WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: 0.4 }),
-        Bodies.rectangle(W + WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: 0.4 }),
-      ];
-      World.add(world, walls);
-    }, 200);
+    resizeTimer = setTimeout(refitCanvas, 200);
   });
+
+  // 画幅 preset 按钮
+  const $canvasSizeRow = document.getElementById('canvas-size-row');
+  const $canvasSizeDesc = document.getElementById('canvas-size-desc');
+  function refreshCanvasSizeUI() {
+    $canvasSizeRow.querySelectorAll('.canvas-size-btn').forEach(el => {
+      el.classList.toggle('active', el.dataset.size === PHYSICS.canvasSize);
+    });
+    const preset = CANVAS_SIZES[PHYSICS.canvasSize] || CANVAS_SIZES.standard;
+    $canvasSizeDesc.textContent = preset.label;
+  }
+  $canvasSizeRow.querySelectorAll('.canvas-size-btn').forEach(el => {
+    el.addEventListener('click', () => {
+      PHYSICS.canvasSize = el.dataset.size;
+      savePhysics();
+      refreshCanvasSizeUI();
+      refitCanvas();
+    });
+  });
+  refreshCanvasSizeUI();
 })();
 </script>
