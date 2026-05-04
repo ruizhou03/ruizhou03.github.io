@@ -1,0 +1,646 @@
+---
+layout: default
+title: "狼人杀发身份牌 | Rui Zhou"
+permalink: /toolbox/werewolf/
+---
+
+<style>
+  .ww-wrap {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 1.6rem 1rem 4rem;
+  }
+  .ww-header { text-align: center; margin-bottom: 1.4rem; }
+  .ww-header h1 {
+    font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem;
+  }
+  .ww-header p {
+    color: var(--color-light); font-style: italic; margin: 0;
+    font-size: 0.95rem;
+  }
+
+  .ww-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    padding: 1.2rem 1.2rem;
+    margin-bottom: 1.2rem;
+  }
+
+  /* —— 配置阶段 —— */
+  .preset-row {
+    display: flex; gap: 0.5rem; flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .preset-btn {
+    padding: 0.35rem 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-muted);
+    font: inherit; font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .preset-btn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .preset-btn.active {
+    background: var(--color-accent);
+    color: #fff; border-color: var(--color-accent);
+  }
+
+  .role-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.6rem 1rem;
+  }
+  .role-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-bg-warm);
+  }
+  .role-info {
+    display: flex; align-items: center; gap: 0.6rem;
+    flex: 1; min-width: 0;
+  }
+  .role-emoji { font-size: 1.4rem; line-height: 1; }
+  .role-name {
+    color: var(--color-ink); font-weight: 600; font-size: 0.95rem;
+    margin-bottom: 1px;
+  }
+  .role-desc {
+    color: var(--color-light); font-size: 0.78rem; line-height: 1.3;
+  }
+  .role-counter {
+    display: flex; align-items: center; gap: 0.2rem;
+  }
+  .counter-btn {
+    width: 28px; height: 28px;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-bg);
+    font-size: 1rem; font-weight: 600;
+    color: var(--color-muted);
+    cursor: pointer;
+    line-height: 1;
+  }
+  .counter-btn:hover { color: var(--color-accent); border-color: var(--color-accent); }
+  .counter-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .counter-val {
+    width: 26px; text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem; color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .config-summary {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.9rem 0;
+    border-top: 1px dashed var(--color-border);
+    margin-top: 1rem;
+    font-size: 0.95rem;
+  }
+  .summary-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+  }
+  .summary-num.ok { color: #10b981; }
+  .summary-num.bad { color: #c0392b; }
+
+  /* —— 发牌阶段 —— */
+  .ww-stage {
+    text-align: center;
+    padding: 1.4rem 0.6rem;
+  }
+  .stage-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--color-muted);
+    margin: 0 0 0.4rem;
+  }
+  .stage-num {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 12vw, 4.5rem);
+    font-weight: 700;
+    color: var(--color-accent);
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+  .stage-hint {
+    color: var(--color-muted);
+    font-size: 0.95rem;
+    margin: 0.6rem 0 1.4rem;
+    line-height: 1.6;
+  }
+
+  .reveal-btn {
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 4 / 3;
+    margin: 1rem auto;
+    background: linear-gradient(135deg, #2a3f5f 0%, #1e3a5f 100%);
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    font: inherit;
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    box-shadow: 0 6px 18px rgba(30, 58, 95, 0.25);
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    transition: transform 0.1s;
+  }
+  .reveal-btn:active { transform: scale(0.98); }
+  .reveal-btn .rev-icon {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.4;
+  }
+  .reveal-btn .rev-text {
+    font-size: 1rem;
+    opacity: 0.9;
+  }
+  .reveal-btn .rev-progress {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 0%; height: 4px;
+    background: var(--color-accent);
+    transition: width 0.05s linear;
+  }
+  /* 揭示态 */
+  .reveal-btn.revealed {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    border: 2px solid var(--color-accent);
+    box-shadow: 0 4px 14px rgba(196, 123, 31, 0.18);
+  }
+  .reveal-btn.revealed .rev-icon {
+    font-size: 5rem;
+    opacity: 1;
+    margin-bottom: 0.6rem;
+  }
+  .reveal-btn.revealed .rev-text {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 700;
+    opacity: 1;
+    color: var(--color-ink);
+    margin-bottom: 0.3rem;
+  }
+  .reveal-btn.revealed .rev-desc {
+    font-size: 0.88rem;
+    color: var(--color-muted);
+    line-height: 1.5;
+    max-width: 80%;
+    text-align: center;
+  }
+
+  .next-row {
+    margin-top: 1.4rem;
+    text-align: center;
+  }
+  .next-row.hidden { visibility: hidden; }
+
+  .ww-btn {
+    padding: 0.6rem 1.4rem;
+    font: inherit; font-size: 0.95rem; font-weight: 600;
+    border: none; border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .ww-btn.primary {
+    background: var(--color-accent); color: #fff;
+    box-shadow: 0 3px 10px rgba(30,58,95,0.25);
+  }
+  .ww-btn.primary:hover { transform: translateY(-1px); }
+  .ww-btn.primary:disabled {
+    opacity: 0.4; cursor: not-allowed; transform: none;
+  }
+  .ww-btn.ghost {
+    background: transparent;
+    color: var(--color-muted);
+    border: 1px solid var(--color-border);
+  }
+  .ww-btn.ghost:hover {
+    color: var(--color-accent); border-color: var(--color-accent);
+  }
+
+  /* —— 完成阶段 —— */
+  .done-icon {
+    text-align: center; font-size: 4rem; margin-bottom: 0.5rem;
+  }
+  .done-title {
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--color-ink);
+    margin-bottom: 0.8rem;
+  }
+  .done-sub {
+    text-align: center; color: var(--color-muted);
+    margin-bottom: 1.4rem;
+  }
+
+  details.host-panel {
+    border: 1px dashed var(--color-border);
+    border-radius: 10px;
+    padding: 0.6rem 0.9rem;
+    margin: 1rem 0;
+    color: var(--color-muted);
+    font-size: 0.88rem;
+  }
+  details.host-panel summary {
+    cursor: pointer; font-weight: 500;
+    color: var(--color-accent);
+    list-style: none;
+  }
+  details.host-panel summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].host-panel summary::before { content: '▾ '; }
+  details.host-panel ul {
+    margin: 0.6rem 0 0;
+    padding-left: 0;
+    list-style: none;
+  }
+  details.host-panel li {
+    padding: 0.18rem 0;
+    border-bottom: 1px solid var(--color-border);
+    display: flex; justify-content: space-between;
+  }
+  details.host-panel li:last-child { border-bottom: none; }
+
+  .step-hide { display: none; }
+  .step-show { display: block; }
+
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--color-bg-warm);
+    border-radius: 999px;
+    margin: 1rem 0;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: var(--color-accent);
+    transition: width 0.3s ease;
+  }
+
+  details.about {
+    margin-top: 1.4rem; font-size: 0.88rem;
+    color: var(--color-muted); line-height: 1.7;
+  }
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
+</style>
+
+<article class="ww-wrap">
+  <header class="ww-header">
+    <h1>🐺 狼人杀发身份牌</h1>
+    <p>One-phone role distributor</p>
+  </header>
+
+  <!-- ========== 阶段 1：配置 ========== -->
+  <section class="ww-card step-show" id="step-config">
+    <h3 style="margin: 0 0 0.8rem; color: var(--color-ink); font-size: 1.05rem;">板子预设</h3>
+    <div class="preset-row" id="preset-row"></div>
+
+    <h3 style="margin: 1rem 0 0.6rem; color: var(--color-ink); font-size: 1.05rem;">角色配置</h3>
+    <div class="role-grid" id="role-grid"></div>
+
+    <div class="config-summary">
+      <div>
+        <span style="color: var(--color-light)">人数</span>
+        <span class="summary-num" id="sum-total">0</span>
+        <span style="color: var(--color-light); font-size: 0.85rem">/ 角色</span>
+        <span class="summary-num" id="sum-roles">0</span>
+      </div>
+      <button class="ww-btn primary" id="btn-start" disabled>开始发牌</button>
+    </div>
+  </section>
+
+  <!-- ========== 阶段 2：发牌 ========== -->
+  <section class="ww-card step-hide" id="step-deal">
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+    <div class="ww-stage">
+      <div class="stage-title">玩家</div>
+      <div class="stage-num" id="player-num">1 / 8</div>
+      <div class="stage-hint" id="deal-hint">把手机给 <strong>玩家 1</strong>，对方按住下方卡片不放，看完松开。</div>
+
+      <button class="reveal-btn" id="reveal-btn">
+        <div class="rev-icon" id="rev-icon">🎴</div>
+        <div class="rev-text" id="rev-text">按住查看身份</div>
+        <div class="rev-desc" id="rev-desc"></div>
+        <div class="rev-progress" id="rev-progress"></div>
+      </button>
+
+      <div class="next-row hidden" id="next-row">
+        <button class="ww-btn primary" id="btn-next-player">下一位 →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 阶段 3：完成 ========== -->
+  <section class="ww-card step-hide" id="step-done">
+    <div class="done-icon">🌙</div>
+    <div class="done-title">已发牌完毕</div>
+    <div class="done-sub">主持人请准备开局——天黑请闭眼。</div>
+
+    <details class="host-panel">
+      <summary>🎩 主持人查看完整配置</summary>
+      <ul id="host-list"></ul>
+    </details>
+
+    <div class="next-row" style="visibility: visible">
+      <button class="ww-btn ghost" id="btn-restart">重开一局</button>
+    </div>
+  </section>
+
+  <details class="about">
+    <summary>关于这个工具</summary>
+    <p><strong>玩法：</strong>选板子或自定义角色 → 一台手机轮流传，每个玩家按住卡片看自己的身份，松开后自动给下一位发牌。整局只用一台设备。</p>
+    <p><strong>误触保护：</strong>需要按住 0.2 秒卡片才会翻开；松开之后等 0.3 秒"下一位"按钮才会出现，避免连点把别人的牌看了。</p>
+    <p><strong>主持人面板：</strong>发完牌之后，主持人可以展开查看完整角色分配（仅在最后阶段，发牌过程中是隐藏的）。</p>
+    <p><strong>纯本地：</strong>所有信息只存在内存里，刷新即清空，不上传任何东西。</p>
+  </details>
+</article>
+
+<script>
+(function () {
+  // ====================================================================
+  // 角色定义
+  // ====================================================================
+  const ROLES = {
+    werewolf:  { name: '狼人',    emoji: '🐺', side: '狼人阵营', desc: '夜晚商量杀人，目标是杀光好人。' },
+    seer:      { name: '预言家',  emoji: '🔮', side: '神职',     desc: '每晚查验一名玩家身份（好/坏）。' },
+    witch:     { name: '女巫',    emoji: '🧪', side: '神职',     desc: '一瓶解药一瓶毒药，全局各用一次。' },
+    hunter:    { name: '猎人',    emoji: '🎯', side: '神职',     desc: '被投票或被狼杀时，可以开枪带走一人（被毒不能开枪）。' },
+    idiot:     { name: '白痴',    emoji: '🤡', side: '平民',     desc: '被票出后翻牌存活，但失去投票权。' },
+    guard:     { name: '守卫',    emoji: '🛡️', side: '神职',     desc: '每晚守一人不被狼杀；不能连续两晚守同一个人。' },
+    cupid:     { name: '丘比特',  emoji: '💘', side: '平民',     desc: '首夜连结两个玩家成情侣，一方死另一方殉情。' },
+    villager:  { name: '村民',    emoji: '👨‍🌾', side: '平民',     desc: '没有特殊技能，靠投票翻盘。' },
+  };
+  const ROLE_KEYS = Object.keys(ROLES);
+
+  // 板子预设
+  const PRESETS = [
+    { name: '6 人新手', counts: { werewolf: 2, seer: 1, witch: 1, villager: 2 } },
+    { name: '8 人经典', counts: { werewolf: 3, seer: 1, witch: 1, hunter: 1, villager: 2 } },
+    { name: '9 人标准', counts: { werewolf: 3, seer: 1, witch: 1, hunter: 1, villager: 3 } },
+    { name: '10 人加白痴', counts: { werewolf: 3, seer: 1, witch: 1, hunter: 1, idiot: 1, villager: 3 } },
+    { name: '12 人豪华', counts: { werewolf: 4, seer: 1, witch: 1, hunter: 1, idiot: 1, guard: 1, villager: 3 } },
+  ];
+
+  // ====================================================================
+  // DOM
+  // ====================================================================
+  const $presetRow = document.getElementById('preset-row');
+  const $roleGrid  = document.getElementById('role-grid');
+  const $sumTotal  = document.getElementById('sum-total');
+  const $sumRoles  = document.getElementById('sum-roles');
+  const $btnStart  = document.getElementById('btn-start');
+
+  const $stepConfig = document.getElementById('step-config');
+  const $stepDeal   = document.getElementById('step-deal');
+  const $stepDone   = document.getElementById('step-done');
+
+  const $progress  = document.getElementById('progress');
+  const $playerNum = document.getElementById('player-num');
+  const $dealHint  = document.getElementById('deal-hint');
+  const $revealBtn = document.getElementById('reveal-btn');
+  const $revIcon   = document.getElementById('rev-icon');
+  const $revText   = document.getElementById('rev-text');
+  const $revDesc   = document.getElementById('rev-desc');
+  const $revProg   = document.getElementById('rev-progress');
+  const $nextRow   = document.getElementById('next-row');
+  const $btnNextPlayer = document.getElementById('btn-next-player');
+  const $hostList  = document.getElementById('host-list');
+  const $btnRestart = document.getElementById('btn-restart');
+
+  // ====================================================================
+  // 状态
+  // ====================================================================
+  const counts = { werewolf: 0, seer: 0, witch: 0, hunter: 0, idiot: 0, guard: 0, cupid: 0, villager: 0 };
+  let totalPlayers = 0;
+  let deck = [];           // shuffle 后的角色 key 数组（长度 = totalPlayers）
+  let currentIdx = 0;      // 0..totalPlayers-1
+
+  // ====================================================================
+  // 渲染配置面板
+  // ====================================================================
+  function renderPresets() {
+    $presetRow.innerHTML = '';
+    for (const p of PRESETS) {
+      const btn = document.createElement('button');
+      btn.className = 'preset-btn';
+      btn.textContent = p.name;
+      btn.addEventListener('click', () => applyPreset(p));
+      $presetRow.appendChild(btn);
+    }
+  }
+  function applyPreset(preset) {
+    for (const k of ROLE_KEYS) counts[k] = 0;
+    for (const k in preset.counts) counts[k] = preset.counts[k];
+    document.querySelectorAll('.preset-btn').forEach(b => {
+      b.classList.toggle('active', b.textContent === preset.name);
+    });
+    syncRoleUI();
+  }
+
+  function renderRoleGrid() {
+    $roleGrid.innerHTML = '';
+    for (const k of ROLE_KEYS) {
+      const r = ROLES[k];
+      const wrap = document.createElement('div');
+      wrap.className = 'role-row';
+      wrap.innerHTML = `
+        <div class="role-info">
+          <div class="role-emoji">${r.emoji}</div>
+          <div>
+            <div class="role-name">${r.name}</div>
+            <div class="role-desc">${r.side}</div>
+          </div>
+        </div>
+        <div class="role-counter">
+          <button class="counter-btn" data-act="dec" data-k="${k}">−</button>
+          <div class="counter-val" data-v="${k}">0</div>
+          <button class="counter-btn" data-act="inc" data-k="${k}">+</button>
+        </div>
+      `;
+      $roleGrid.appendChild(wrap);
+    }
+    $roleGrid.addEventListener('click', (e) => {
+      const btn = e.target.closest('.counter-btn');
+      if (!btn) return;
+      const k = btn.dataset.k;
+      const act = btn.dataset.act;
+      if (act === 'inc') counts[k]++;
+      else if (act === 'dec' && counts[k] > 0) counts[k]--;
+      // 取消 preset 选中（用户改动了）
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      syncRoleUI();
+    });
+  }
+  function syncRoleUI() {
+    let total = 0;
+    for (const k of ROLE_KEYS) {
+      const v = counts[k];
+      const el = $roleGrid.querySelector(`[data-v="${k}"]`);
+      if (el) el.textContent = v;
+      total += v;
+    }
+    totalPlayers = total;
+    $sumRoles.textContent = total;
+    $sumTotal.textContent = total;
+    $sumRoles.className = 'summary-num ' + (total >= 6 && total <= 18 ? 'ok' : 'bad');
+    $btnStart.disabled = !(total >= 4 && counts.werewolf >= 1);
+  }
+
+  // ====================================================================
+  // 开始发牌
+  // ====================================================================
+  function startDeal() {
+    // 构造 deck
+    deck = [];
+    for (const k of ROLE_KEYS) {
+      for (let i = 0; i < counts[k]; i++) deck.push(k);
+    }
+    // Fisher–Yates
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    currentIdx = 0;
+    showStep('deal');
+    showCurrentPlayer();
+  }
+  function showStep(name) {
+    $stepConfig.className = 'ww-card ' + (name === 'config' ? 'step-show' : 'step-hide');
+    $stepDeal.className   = 'ww-card ' + (name === 'deal'   ? 'step-show' : 'step-hide');
+    $stepDone.className   = 'ww-card ' + (name === 'done'   ? 'step-show' : 'step-hide');
+  }
+  function showCurrentPlayer() {
+    $progress.style.width = `${(currentIdx / deck.length) * 100}%`;
+    $playerNum.textContent = `${currentIdx + 1} / ${deck.length}`;
+    $dealHint.innerHTML = `把手机给 <strong>玩家 ${currentIdx + 1}</strong>，对方按住下方卡片不放，看完松开自动覆盖。`;
+    resetRevealCard();
+    $nextRow.classList.add('hidden');
+  }
+  function resetRevealCard() {
+    $revealBtn.classList.remove('revealed');
+    $revIcon.textContent = '🎴';
+    $revText.textContent = '按住查看身份';
+    $revDesc.textContent = '';
+    $revProg.style.width = '0%';
+    $revProg.style.transition = '';
+  }
+  function revealCardForPlayer() {
+    const role = ROLES[deck[currentIdx]];
+    $revealBtn.classList.add('revealed');
+    $revIcon.textContent = role.emoji;
+    $revText.textContent = role.name;
+    $revDesc.textContent = role.desc;
+  }
+
+  // ====================================================================
+  // 长按检测
+  // ====================================================================
+  const HOLD_THRESHOLD = 200;       // 200ms
+  let holdTimer = null;
+  let holdStart = 0;
+  let revealed = false;
+
+  function onHoldDown(e) {
+    e.preventDefault();
+    if (revealed) return;            // 已揭示状态，不响应（应该不发生，揭示后等用户松开）
+    holdStart = performance.now();
+    $revProg.style.transition = `width ${HOLD_THRESHOLD}ms linear`;
+    $revProg.style.width = '100%';
+    holdTimer = setTimeout(() => {
+      revealed = true;
+      revealCardForPlayer();
+      holdTimer = null;
+    }, HOLD_THRESHOLD);
+  }
+  function onHoldUp(e) {
+    e.preventDefault();
+    if (holdTimer) {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+      $revProg.style.transition = 'width 0.15s ease';
+      $revProg.style.width = '0%';
+    }
+    if (revealed) {
+      revealed = false;
+      resetRevealCard();
+      // 等 300ms 再显示"下一位"按钮，避免误触
+      setTimeout(() => {
+        if (currentIdx + 1 >= deck.length) {
+          showDone();
+        } else {
+          $nextRow.classList.remove('hidden');
+        }
+      }, 300);
+    }
+  }
+  $revealBtn.addEventListener('pointerdown', onHoldDown);
+  $revealBtn.addEventListener('pointerup',   onHoldUp);
+  $revealBtn.addEventListener('pointercancel', onHoldUp);
+  $revealBtn.addEventListener('pointerleave', (e) => {
+    // 手指/鼠标离开按钮也算松开
+    if (holdTimer || revealed) onHoldUp(e);
+  });
+
+  $btnNextPlayer.addEventListener('click', () => {
+    currentIdx++;
+    showCurrentPlayer();
+  });
+
+  // ====================================================================
+  // 完成
+  // ====================================================================
+  function showDone() {
+    // 主持人面板：按出现顺序列出每个玩家的身份
+    $hostList.innerHTML = '';
+    for (let i = 0; i < deck.length; i++) {
+      const role = ROLES[deck[i]];
+      const li = document.createElement('li');
+      li.innerHTML = `<span>玩家 ${i + 1}</span><span>${role.emoji} ${role.name}</span>`;
+      $hostList.appendChild(li);
+    }
+    showStep('done');
+  }
+
+  $btnRestart.addEventListener('click', () => {
+    deck = [];
+    currentIdx = 0;
+    revealed = false;
+    showStep('config');
+  });
+
+  $btnStart.addEventListener('click', startDeal);
+
+  // ====================================================================
+  // 启动
+  // ====================================================================
+  renderPresets();
+  renderRoleGrid();
+  applyPreset(PRESETS[1]);    // 默认 8 人经典
+})();
+</script>
