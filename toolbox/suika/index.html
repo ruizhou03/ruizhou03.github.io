@@ -682,7 +682,11 @@ permalink: /toolbox/suika/
     const m = mapPhysics();
     engine = Engine.create({
       gravity: { x: 0, y: 1, scale: m.gravityScale },
-      enableSleeping: false,
+      // 必须开 sleeping：否则静止水果每帧都会被 Verlet 积分一次，浮点舍入
+      // 误差 + restitution 反弹会自激出可见的"莫名弹起"。开了之后 Matter 把
+      // 长时间低 motion 的 body 标 sleeping，跳过积分，被碰撞或 applyForce
+      // 时自动唤醒——既不影响合并爆炸，又彻底消掉自激震荡。
+      enableSleeping: true,
     });
     engine.constraintIterations = 4;
     engine.positionIterations = 10;
