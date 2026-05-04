@@ -928,73 +928,88 @@ permalink: /toolbox/suika/
     if (!engine) return;
     try {
       if (!isPaused && !isOver) {
-        const dt = Math.min(33, now - lastTick);
+        // 真实 dt：手机端 touchstart preventDefault 会占用主线程几十 ms，
+        // 下一帧 RAF 回来时 now - lastTick 可能 > 30 ms。cap 到 64 ms 防止
+        // tab 切换长时间冻结后的回弹积累。
+        const realDt = Math.min(64, now - lastTick);
         // 持续按键 → 给水果一个加速度，velocity 随时间累积（按住越久越快）
         // 松手时摩擦让 velocity 衰减回 0，撞墙立刻清零（不残留方向积压）
         if (hoverFruit) {
           const dir = (keyState.right ? 1 : 0) - (keyState.left ? 1 : 0);
           if (dir !== 0) {
-            hoverVx += dir * HOVER_ACCEL * dt;
+            hoverVx += dir * HOVER_ACCEL * realDt;
             if (hoverVx >  HOVER_MAX_VX) hoverVx =  HOVER_MAX_VX;
             if (hoverVx < -HOVER_MAX_VX) hoverVx = -HOVER_MAX_VX;
           } else if (hoverVx !== 0) {
-            const decay = HOVER_FRICTION * dt;
+            const decay = HOVER_FRICTION * realDt;
             if (hoverVx > 0) hoverVx = Math.max(0, hoverVx - decay);
             else             hoverVx = Math.min(0, hoverVx + decay);
           }
           if (hoverVx !== 0) {
             const fruit = FRUITS[hoverFruit.level - 1];
-            const newX = hoverFruit.x + hoverVx * dt;
+            const newX = hoverFruit.x + hoverVx * realDt;
             const clampedX = clampHoverX(newX, fruit.radius);
             if (clampedX !== newX) hoverVx = 0;     // 撞墙 → 速度清零
             moveHover(clampedX);
           }
         }
-        // 速度上限 + 主动归零，合并到一次遍历里
-        // - MAX_VEL 14：单步位移不能超过「墙厚 + 最小半径」（16 + 13 = 29），否则
-        //   Matter 离散仿真会漏掉碰撞、水果穿墙消失。14 留足安全边距，正常玩法
-        //   终端速度只有 8-10，根本碰不到；只有重力拉满 + 合并连锁时才会触发兜住。
-        // - 主动归零：替代 enableSleeping。检查每颗水果，如果速度极低且下方有
-        //   支撑（地面 / 其他水果），就把 v 和 ω 强制清零——既消掉 verlet 误差
-        //   累积导致的"莫名弹起"，又不会冻结空中水果（抛物线顶点不会有支撑）。
-        const MAX_VEL = 14;
+        // ============ 物理积分：固定子步长 ============
+        // Matter.js 的位置积分是 verlet：accel × dt² 进入加速度。dt=33ms 的 dt²
+        // 比正常 dt=16ms 的大 4 倍多，会把堆叠水果的微小穿入一次性 resolve、
+        // restitution 反弹放大——表现就是手机端 touchstart 后下一帧"瞬间炸开"。
+        // 修复：把 realDt 拆成 N 个 ~16ms 子步，每步独立 Engine.update + 速度
+        // 校准，物理永远是稳定的小步长。realDt 60ms 时跑 4 步，每步 15ms。
+        const subSteps = Math.max(1, Math.min(4, Math.ceil(realDt / 18)));
+        const stepDt = realDt / subSteps;
+        // MAX_VEL 22：墙半厚 8 + 樱桃半径 13 + 1 安全边距。配合 sub-stepping
+        // 后单步真实位移 ≤ 22 × stepDt/16 ≈ 22，仍小于穿墙阈值。提到 22 是
+        // 因为 14 太低——frictionAir 终端速度 48 永远达不到，14 直接锁死下落
+        // 后半段，看起来像"明显减速"。22 仍能保证安全又给下落留自然加速感。
+        const MAX_VEL = 22;
         const REST_VEL = 0.4;
         const REST_OMEGA = 0.02;
         const SUPPORT_MARGIN = 1.5;
-        const fruits = Composite.allBodies(world).filter(b => b.fruitLevel);
-        fruits.forEach(b => {
-          const vx = b.velocity.x, vy = b.velocity.y;
-          if (Math.abs(vx) > MAX_VEL || Math.abs(vy) > MAX_VEL) {
-            Body.setVelocity(b, {
-              x: Math.max(-MAX_VEL, Math.min(MAX_VEL, vx)),
-              y: Math.max(-MAX_VEL, Math.min(MAX_VEL, vy)),
-            });
-          }
-          const speed = Math.hypot(b.velocity.x, b.velocity.y);
-          if (speed > REST_VEL || Math.abs(b.angularVelocity) > REST_OMEGA) return;
-          let supported = false;
-          if (b.position.y + b.circleRadius >= H - WALL / 2 - SUPPORT_MARGIN) supported = true;
-          if (!supported) {
-            for (let i = 0; i < fruits.length; i++) {
-              const o = fruits[i];
-              if (o === b) continue;
-              const dx = b.position.x - o.position.x;
-              const dy = b.position.y - o.position.y;
-              const dist = Math.hypot(dx, dy);
-              const touchDist = b.circleRadius + o.circleRadius + SUPPORT_MARGIN;
-              // 必须从下方 / 侧下方支撑（dy ≤ 自身半径的一半），否则同高度的邻居会被误判
-              if (dist < touchDist && dy <= b.circleRadius * 0.5) {
-                supported = true;
-                break;
+
+        for (let step = 0; step < subSteps; step++) {
+          const fruits = Composite.allBodies(world).filter(b => b.fruitLevel);
+          fruits.forEach(b => {
+            const vx = b.velocity.x, vy = b.velocity.y;
+            if (Math.abs(vx) > MAX_VEL || Math.abs(vy) > MAX_VEL) {
+              Body.setVelocity(b, {
+                x: Math.max(-MAX_VEL, Math.min(MAX_VEL, vx)),
+                y: Math.max(-MAX_VEL, Math.min(MAX_VEL, vy)),
+              });
+            }
+            // 主动归零：替代 enableSleeping。检查每颗水果，如果速度极低且
+            // 下方有支撑（地面 / 其他水果），就把 v 和 ω 强制清零——既消掉
+            // verlet 误差累积导致的"莫名弹起"，又不会冻结空中水果（抛物线
+            // 顶点不会有支撑）。
+            const speed = Math.hypot(b.velocity.x, b.velocity.y);
+            if (speed > REST_VEL || Math.abs(b.angularVelocity) > REST_OMEGA) return;
+            let supported = false;
+            if (b.position.y + b.circleRadius >= H - WALL / 2 - SUPPORT_MARGIN) supported = true;
+            if (!supported) {
+              for (let i = 0; i < fruits.length; i++) {
+                const o = fruits[i];
+                if (o === b) continue;
+                const dx = b.position.x - o.position.x;
+                const dy = b.position.y - o.position.y;
+                const dist = Math.hypot(dx, dy);
+                const touchDist = b.circleRadius + o.circleRadius + SUPPORT_MARGIN;
+                // 必须从下方 / 侧下方支撑（dy ≤ 自身半径的一半），否则同高度的邻居会被误判
+                if (dist < touchDist && dy <= b.circleRadius * 0.5) {
+                  supported = true;
+                  break;
+                }
               }
             }
-          }
-          if (supported) {
-            Body.setVelocity(b, { x: 0, y: 0 });
-            Body.setAngularVelocity(b, 0);
-          }
-        });
-        Engine.update(engine, dt);
+            if (supported) {
+              Body.setVelocity(b, { x: 0, y: 0 });
+              Body.setAngularVelocity(b, 0);
+            }
+          });
+          Engine.update(engine, stepDt);
+        }
         // Sanity cleanup：兜底——万一还是有水果跑到 canvas 边界外（理论上速度
         // 限了之后不该发生），直接删掉避免无效坐标继续传染 mergeFruits
         Composite.allBodies(world).forEach(b => {
