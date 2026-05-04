@@ -121,6 +121,10 @@ permalink: /toolbox/suika/
     transition: all 0.18s;
   }
   .controls-row button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .controls-row button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
 
   .preview-row {
     display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
@@ -320,7 +324,9 @@ permalink: /toolbox/suika/
   </div>
 
   <div class="game-zone" id="game-zone">
-    <canvas class="game-canvas" id="game-canvas" width="380" height="540"></canvas>
+    <canvas class="game-canvas" id="game-canvas" width="380" height="540"
+            role="application"
+            aria-label="合成大西瓜游戏区域：鼠标拖动定位、点击或空格投放，方向键左右移动"></canvas>
 
     <!-- 开始幕（含三个视图：主页 + 调参 + 试玩结束）-->
     <div class="game-overlay open" id="start-overlay">
