@@ -189,19 +189,24 @@ permalink: /toolbox/suika/
   .custom-chain-section .setting-row {
     margin-bottom: 0.3rem;
   }
-  /* 调参面板的链编辑器：12 列错位 S 型
-   * row 1: lv 1-6 占奇数列起 (1,3,5,7,9,11)，每格 span 2
-   * row 2: lv 7-11 占偶数列起 (10,8,6,4,2)，每格 span 2 → 视觉上插在 row 1 两个表情中间下方 */
+  /* 调参面板的链编辑器：23 列错位 S 型 + 行内箭头
+   * row 1: lv 1-6 在 cols 1-3, 5-7, 9-11, 13-15, 17-19, 21-23（每格 span 3）
+   *        箭头 → 在 cols 4, 8, 12, 16, 20（中间）
+   * row 2: lv 11-7 在 cols 3-5, 7-9, 11-13, 15-17, 19-21（HTML 顺序，每格 span 3）
+   *        箭头 ← 在 cols 6, 10, 14, 18
+   *        slot 11 在 row 1 slot 1 / slot 2 中间下方；slot 7 在 row 1 slot 5 / slot 6 中间下方
+   * 弯曲箭头 SVG 跨 row 1-2 cols 21-23，从 slot 6 弯到 slot 7 */
   .custom-chain-display {
     display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    column-gap: 0.15rem;
-    row-gap: 0.45rem;
+    grid-template-columns: repeat(23, 1fr);
+    column-gap: 0;
+    row-gap: 0.5rem;
     justify-items: center;
     align-items: center;
     padding: 0.55rem 0.5rem;
     background: var(--color-bg-warm);
     border-radius: 8px;
+    position: relative;
   }
   .custom-chain-cell {
     display: flex; flex-direction: column;
@@ -214,6 +219,18 @@ permalink: /toolbox/suika/
     opacity: 0.7;
     font-variant-numeric: tabular-nums;
     line-height: 1;
+  }
+  .custom-chain-arrow-inline {
+    font-size: 0.85rem;
+    opacity: 0.45;
+    color: var(--color-muted);
+    line-height: 1;
+  }
+  .custom-chain-bend {
+    width: 100%; height: 100%;
+    display: block;
+    opacity: 0.55;
+    color: var(--color-muted);
   }
   .custom-chain-slot {
     font-size: 1.5rem;
@@ -2010,34 +2027,63 @@ permalink: /toolbox/suika/
   }
 
   // ============ 调参面板：合成链表情自定义 ============
-  // 错位 S 型 12 列：
-  // - lv 1-6 在 row 1，每格 span 2，起始列 1,3,5,7,9,11
-  // - lv 7-11 在 row 2，每格 span 2，起始列 10,8,6,4,2 → 视觉上插在 row 1 两个表情中间下方
-  // - 每格底下显示 lv 数字（明确进度引导）
+  // 23 列错位 S 型 + 行内箭头 + SVG 弯曲连接：
+  // - row 1: lv 1-6 各占 3 cols，箭头 → 占 1 col 中间
+  // - row 2: lv 11..7 各占 3 cols（HTML 顺序），箭头 ← 占 1 col 中间，
+  //          整体相对 row 1 偏移 2 cols，让 row 2 各 slot 真正插在 row 1 两 slot 之间下方
+  // - 弯曲 SVG 跨 row 1-2 cols 21-23，从 slot 6（右上）弯到 slot 7（左下）
   function renderChainEditor() {
     const $disp = document.getElementById('custom-chain-display');
     if (!$disp) return;
-    $disp.innerHTML = chainCps.map((cp, i) => {
+    const html = [];
+
+    // Row 1: slot 1-6 + 5 个 → 箭头
+    for (let lv = 1; lv <= 6; lv++) {
+      const cp = chainCps[lv - 1];
       const lib = EMOJI_LIBRARY.find(e => e.cp === cp) || { emoji: '?', name: '?' };
-      const lv = i + 1;
       const sel = selectedSlotLevel === lv ? ' selected' : '';
-      let style;
-      if (lv <= 6) {
-        // row 1: lv 1→cols 1-2, lv 2→3-4, ..., lv 6→11-12
-        const startCol = 2 * lv - 1;
-        style = `grid-row: 1; grid-column: ${startCol} / span 2;`;
-      } else {
-        // row 2: lv 7→cols 10-11（slot 7 在 slot 5/6 之间下方）, lv 11→cols 2-3
-        // 公式必须是 2*(12-lv) —— 之前写成 2*(13-lv) 把 lv 7 算到 col 12-13 隐式
-        // 扩展到 13 列，row 2 整体右移 1 格，slot 7 跑到画外。
-        const startCol = 2 * (12 - lv);
-        style = `grid-row: 2; grid-column: ${startCol} / span 2;`;
-      }
-      return `<div class="custom-chain-cell" style="${style}">`
+      const slotStartCol = (lv - 1) * 4 + 1;   // 1, 5, 9, 13, 17, 21
+      html.push(
+        `<div class="custom-chain-cell" style="grid-row: 1; grid-column: ${slotStartCol} / span 3">`
         + `<span class="custom-chain-slot${sel}" data-level="${lv}" title="lv ${lv}：${lib.name}">${lib.emoji}</span>`
         + `<span class="custom-chain-lv">${lv}</span>`
-        + `</div>`;
-    }).join('');
+        + `</div>`
+      );
+      if (lv < 6) {
+        const arrowCol = slotStartCol + 3;     // 4, 8, 12, 16, 20
+        html.push(`<span class="custom-chain-arrow-inline" style="grid-row: 1; grid-column: ${arrowCol}">→</span>`);
+      }
+    }
+
+    // Bend：跨 row 1-2 cols 21-23 区域的 SVG 弯曲箭头（slot 6 → slot 7）
+    html.push(
+      `<svg class="custom-chain-bend" style="grid-row: 1 / span 2; grid-column: 21 / span 3"`
+      + ` viewBox="0 0 32 50" preserveAspectRatio="xMidYMid meet" aria-hidden="true">`
+      + `<path d="M 24 6 Q 24 28 14 36" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"/>`
+      + `<polyline points="19 30 14 36 18 41" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`
+      + `</svg>`
+    );
+
+    // Row 2: HTML 顺序 slot 11, 10, 9, 8, 7 + 4 个 ← 箭头
+    for (let i = 0; i < 5; i++) {
+      const lv = 11 - i;
+      const cp = chainCps[lv - 1];
+      const lib = EMOJI_LIBRARY.find(e => e.cp === cp) || { emoji: '?', name: '?' };
+      const sel = selectedSlotLevel === lv ? ' selected' : '';
+      const slotStartCol = i * 4 + 3;          // 3, 7, 11, 15, 19
+      html.push(
+        `<div class="custom-chain-cell" style="grid-row: 2; grid-column: ${slotStartCol} / span 3">`
+        + `<span class="custom-chain-slot${sel}" data-level="${lv}" title="lv ${lv}：${lib.name}">${lib.emoji}</span>`
+        + `<span class="custom-chain-lv">${lv}</span>`
+        + `</div>`
+      );
+      if (i < 4) {
+        const arrowCol = slotStartCol + 3;     // 6, 10, 14, 18
+        html.push(`<span class="custom-chain-arrow-inline" style="grid-row: 2; grid-column: ${arrowCol}">←</span>`);
+      }
+    }
+
+    $disp.innerHTML = html.join('');
     $disp.querySelectorAll('.custom-chain-slot').forEach(el => {
       el.addEventListener('click', () => onChainSlotClick(parseInt(el.dataset.level, 10)));
     });
@@ -2768,49 +2814,41 @@ permalink: /toolbox/suika/
   });
   requestAnimationFrame(tick);
 
-  // ============ Waline 评论区（reachable 检测，挂掉静默隐藏）============
-  // 跟 _layouts/recipe.html 第 162-226 行同款写法
+  // ============ Waline 评论区（直接 init，挂掉静默隐藏）============
+  // 之前用 4s reachable 探测后端可达性，但 zircon-comments.vercel.app 是 Vercel
+  // serverless，冷启动经常 > 4s。第一次访问被判 unreachable → wrap 隐藏；后续
+  // 访问 backend warm 又能加载 → 时有时无。直接尝试 init，让 waline 自己处理
+  // 网络问题，加载成功才显示 wrap。
   (function loadWaline() {
-    const reachable = (url, ms) => {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), ms);
-      return fetch(url, { signal: ctrl.signal, cache: 'no-store' })
-        .then(() => true).catch(() => false).finally(() => clearTimeout(timer));
-    };
-    reachable('https://zircon-comments.vercel.app/api/comment?type=count&path=/', 4000).then(ok => {
-      if (!ok) return;
+    import('https://unpkg.com/@waline/client@v2/dist/waline.mjs').then(({ init }) => {
       const wrap = document.getElementById('suika-waline-wrap');
       if (wrap) wrap.style.display = '';
-      // 动态 import 模块化 waline 客户端
-      import('https://unpkg.com/@waline/client@v2/dist/waline.mjs').then(({ init }) => {
-        init({
-          el: '#suika-waline',
-          serverURL: 'https://zircon-comments.vercel.app',
-          dark: 'auto',
-          lang: 'zh-CN',
-          emoji: ['//unpkg.com/@waline/emojis@1.1.0/tieba'],
-          placeholder: '聊聊你的合成大西瓜心得 ~',
-          pageview: true,
-          comment: true,
-          requiredMeta: [],
-          locale: { reactionTitle: '', preview: '👀 开启 Markdown 预览', anonymous: '神秘玩家' },
+      init({
+        el: '#suika-waline',
+        serverURL: 'https://zircon-comments.vercel.app',
+        dark: 'auto',
+        lang: 'zh-CN',
+        emoji: ['//unpkg.com/@waline/emojis@1.1.0/tieba'],
+        placeholder: '聊聊你的合成大西瓜心得 ~',
+        pageview: true,
+        comment: true,
+        requiredMeta: [],
+        locale: { reactionTitle: '', preview: '👀 开启 Markdown 预览', anonymous: '神秘玩家' },
+      });
+      const walineEl = document.getElementById('suika-waline');
+      if (!walineEl) return;
+      const metaFields = { nick: '昵称（可选）', mail: '邮箱（可选）', link: '网址（可选）' };
+      const patchMeta = () => {
+        Object.entries(metaFields).forEach(([name, ph]) => {
+          const input = walineEl.querySelector(`input[name="${name}"]`);
+          if (!input) return;
+          if (input.placeholder !== ph) input.placeholder = ph;
+          const w2 = input.closest('.wl-header-item') || input.parentElement;
+          if (w2 && w2.dataset.walineField !== name) w2.dataset.walineField = name;
         });
-        // 把 placeholder 中文化（与 recipe.html 一致）
-        const walineEl = document.getElementById('suika-waline');
-        if (!walineEl) return;
-        const metaFields = { nick: '昵称（可选）', mail: '邮箱（可选）', link: '网址（可选）' };
-        const patchMeta = () => {
-          Object.entries(metaFields).forEach(([name, ph]) => {
-            const input = walineEl.querySelector(`input[name="${name}"]`);
-            if (!input) return;
-            if (input.placeholder !== ph) input.placeholder = ph;
-            const w2 = input.closest('.wl-header-item') || input.parentElement;
-            if (w2 && w2.dataset.walineField !== name) w2.dataset.walineField = name;
-          });
-        };
-        new MutationObserver(patchMeta).observe(walineEl, { childList: true, subtree: true });
-      }).catch(e => console.warn('[suika] waline load failed:', e));
-    });
+      };
+      new MutationObserver(patchMeta).observe(walineEl, { childList: true, subtree: true });
+    }).catch(e => console.warn('[suika] waline load failed:', e));
   })();
 
   // 重新 fit canvas + 等比搬移现有水果 + 重建墙体（resize / 切换 preset 共用）
