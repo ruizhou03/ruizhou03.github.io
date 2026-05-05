@@ -1697,13 +1697,18 @@ permalink: /toolbox/suika/
 
   function triggerDisco() {
     if (isOver || !world || !gameStarted) return;
-    if (!checkAndConsumeCheatBudget('disco')) return;
+    // disco 不影响 gameplay，无次数上限
     discoModeUntil = performance.now() + 5000;
     showCheatToast('🌈 disco: 彩虹 5 秒（无惩罚）', '#ffb3d9');
   }
 
   async function triggerScoreQuery() {
-    if (!checkAndConsumeCheatBudget('?score')) return;
+    // ?score 是纯查询，无次数上限
+    // unlimited 模式下查询没意义（不上传），给特殊提示
+    if (unlimitedMode) {
+      showCheatToast('♾ unlimited 模式 · 玩的尽兴 · 本局不计入排名', '#d4a3ff');
+      return;
+    }
     const nick = getNick();
     if (!nick) { showCheatToast('?score: 先起个昵称才能查排名', '#9aa0a6'); return; }
     showCheatToast('?score: 查询中…', '#bcd9ff');
@@ -1721,7 +1726,7 @@ permalink: /toolbox/suika/
   function triggerUnlimited() {
     if (isOver) return;
     if (unlimitedMode) {
-      showCheatToast('♾ 已经在 unlimited 模式了', '#bcd9ff');
+      showCheatToast('♾ 已经在 unlimited 模式 · 玩的尽兴 · 本局不计入排名', '#d4a3ff');
       return;
     }
     unlimitedMode = true;
@@ -2551,6 +2556,13 @@ permalink: /toolbox/suika/
 
   function checkDanger(now) {
     if (!gameStarted) return;  // 试一试 / 开始幕未关闭时不判 game over
+    // gravity 暗号期间 + 2s 缓冲跳过危险检测：暗号本来就是让水果飞起来"洗局"，
+    // 不能拿 DANGER_Y 反过来惩罚玩家；2s grace 给水果落回稳定位置的时间。
+    if (now < gravityReversalUntil + 2000) {
+      dangerSince = null;
+      lastInDangerTime = 0;
+      return;
+    }
     let inDanger = false;
     Composite.allBodies(world).forEach(b => {
       if (!b.fruitLevel) return;
