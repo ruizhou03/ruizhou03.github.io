@@ -2758,6 +2758,10 @@ permalink: /toolbox/suika/
     hoverVx = 0;
     runMaxLevel = 0;
     runMelons = 0;
+    runCheatUsage = {};
+    unlimitedMode = false;
+    spaceHeldSince = null;
+    fountainCooldownUntil = 0;
     runStartedAt = Date.now();
     currentRunNonce = newRunNonce();
     pendingSubmitForRun = false;
@@ -2797,6 +2801,10 @@ permalink: /toolbox/suika/
     // 开局重置 leaderboard 相关本局状态（restart 也走这个分支）
     runMaxLevel = 0;
     runMelons = 0;
+    runCheatUsage = {};
+    unlimitedMode = false;
+    spaceHeldSince = null;
+    fountainCooldownUntil = 0;
     runStartedAt = Date.now();
     currentRunNonce = newRunNonce();
     pendingSubmitForRun = false;
@@ -3033,6 +3041,11 @@ permalink: /toolbox/suika/
       $ovRank.textContent = '想上排行榜？看下面的昵称表单 ↓';
       return;
     }
+    if (state === 'unlimited') {
+      $ovRank.className = 'ov-rank-row failed';
+      $ovRank.textContent = '♾ unlimited 模式 · 本局不计入排行榜';
+      return;
+    }
   }
 
   function setupNicknameUI() {
@@ -3057,6 +3070,15 @@ permalink: /toolbox/suika/
   async function submitToLeaderboard() {
     if (!LEADERBOARD_ENABLED) return;
     if (pendingSubmitForRun) return;
+    // unlimited 模式：本局不上传。直接渲染对应 UI + 截图。
+    if (unlimitedMode) {
+      pendingSubmitForRun = true;
+      renderRankSlot('unlimited');
+      refreshSnapshot({ unlimited: true });
+      // 隐藏昵称表单（在这局没意义）
+      $ovNickForm.style.display = 'none';
+      return;
+    }
     if (score <= 0) { renderRankSlot('hidden'); return; }
     const nick = getNick();
     if (!nick) {
@@ -3078,10 +3100,13 @@ permalink: /toolbox/suika/
       clientNonce: currentRunNonce || newRunNonce(),
       did: getDeviceId(),                 // 跨昵称追踪，给"我的排名"用
     };
-    // 双向一致性兜底：服务端校验 maxLevel===11 当且仅当 melons>=1
-    if (body.maxLevel === 11 && body.melons < 1) body.melons = 1;
-    // 反向：如果 maxLevel<11 但 melons>0（说明有 cheat 漏算到 runMelons），
-    // 不上报"虚假"西瓜数，宁可 0 颗也别上报矛盾 body 被服务器拒。
+    // 一致性兜底（按顺序）：
+    // (a) 暗号 fuck/clean 扣分后，score 可能 < melons*121。把 melons 调到 score 能支撑的范围。
+    const maxMelonsByScore = Math.floor(body.score / 121);
+    if (body.melons > maxMelonsByScore) body.melons = maxMelonsByScore;
+    // (b) 服务端要求 maxLevel===11 ⟺ melons>=1。melons==0 时 maxLevel 必须 < 11
+    if (body.maxLevel === 11 && body.melons < 1) body.maxLevel = 10;
+    // (c) 反向：maxLevel<11 但 melons>0 → 把 melons 设 0（防 cheat 漏算）
     if (body.maxLevel < 11 && body.melons > 0) body.melons = 0;
 
     const r = await callBackend(LEADERBOARD_API + '?action=submit', {
@@ -3245,7 +3270,9 @@ permalink: /toolbox/suika/
       ctx.fillStyle = colors.ink;
       ctx.font = `14px ${FONT_STACK}`;
       let rankText;
-      if (rankInfo && rankInfo.rank && rankInfo.total) {
+      if (rankInfo && rankInfo.unlimited) {
+        rankText = '♾ unlimited 模式 · 本局不计入排行榜';
+      } else if (rankInfo && rankInfo.rank && rankInfo.total) {
         rankText = `第 ${rankInfo.rank} 名 · 共 ${rankInfo.total} 位玩家`;
       } else if (rankInfo && rankInfo.failed) {
         rankText = '排行榜暂时不可用';
