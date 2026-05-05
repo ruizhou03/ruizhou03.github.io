@@ -2787,15 +2787,19 @@ permalink: /toolbox/suika/
     if (!force && Date.now() - lbLastFetch < 10000) return; // 10s 内不重复打
     lbInflight = true;
     $lbRefresh.classList.add('spinning');
-    const r = await callBackend(LEADERBOARD_API + '?action=top&limit=' + LB_LIMIT, {}, 5000);
+    // 折叠：top 5；展开：第 N 页 LB_PAGE_SIZE 条
+    const limit = lbExpanded ? LB_PAGE_SIZE : LB_LIMIT;
+    const offset = lbExpanded ? (lbPage - 1) * LB_PAGE_SIZE : 0;
+    const url = `${LEADERBOARD_API}?action=top&limit=${limit}&offset=${offset}`;
+    const r = await callBackend(url, {}, 5000);
     $lbRefresh.classList.remove('spinning');
     lbInflight = false;
     if (r.ok && r.data && Array.isArray(r.data.entries)) {
       lbLastFetch = Date.now();
       renderLeaderboard(r.data.entries, r.data.total, getNick());
       $lbFooter.textContent = `更新于 ${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+      updatePagerUI(r.data.total);
     } else {
-      // 失败时保留上次结果，仅在第一次失败时显示提示
       if (!lbLastFetch) {
         while ($lbList.firstChild) $lbList.removeChild($lbList.firstChild);
         const li = document.createElement('li');
@@ -2807,14 +2811,96 @@ permalink: /toolbox/suika/
     }
   }
 
-  $lbRefresh.addEventListener('click', () => loadLeaderboard(true));
-  // 初次进页面就拉一次
+  function updatePagerUI(total) {
+    if (!lbExpanded) {
+      $lbPager.style.display = 'none';
+      $lbExpand.textContent = '展开完整榜 ↓';
+      return;
+    }
+    const totalPages = Math.max(1, Math.ceil((total || 0) / LB_PAGE_SIZE));
+    if (lbPage > totalPages) lbPage = totalPages;
+    $lbPager.style.display = '';
+    $lbExpand.textContent = '收起 ↑';
+    $lbPginfo.textContent = `${lbPage} / ${totalPages}`;
+    $lbPrev.disabled = lbPage <= 1;
+    $lbNext.disabled = lbPage >= totalPages;
+  }
+
+  // —— 我的排名 widget（按 device id 跨昵称追踪） ——
+  let mineLastData = null;
+  async function loadMyRank() {
+    const did = getDeviceId();
+    if (!did) return;
+    const r = await callBackend(`${LEADERBOARD_API}?action=mine&did=${encodeURIComponent(did)}`, {}, 5000);
+    if (!r.ok || !r.data) {
+      if (!mineLastData) renderMyRank(null);
+      return;
+    }
+    mineLastData = r.data;
+    renderMyRank(r.data);
+  }
+  function renderMyRank(data) {
+    while ($lbMine.firstChild) $lbMine.removeChild($lbMine.firstChild);
+    if (!data || !data.exists) {
+      const span = document.createElement('span');
+      span.className = 'sk-lb-mine-label';
+      span.textContent = (data && data.plays > 0)
+        ? '上次成绩还没上传成功 ~'
+        : '还没玩过 — 来一局看看你的排名 ~';
+      $lbMine.appendChild(span);
+      return;
+    }
+    const lbl = document.createElement('span');
+    lbl.className = 'sk-lb-mine-label';
+    lbl.textContent = '我的最高';
+    const line = document.createElement('span');
+    line.className = 'sk-lb-mine-line';
+    const sc = document.createElement('strong');
+    sc.textContent = String(data.bestScore);
+    line.appendChild(sc);
+    line.appendChild(document.createTextNode(' 分 · 第 '));
+    const rk = document.createElement('strong');
+    rk.textContent = String(data.rank);
+    line.appendChild(rk);
+    line.appendChild(document.createTextNode(' 名 / 共 ' + (data.total || 0) + ' 人'));
+    $lbMine.append(lbl, line);
+    if (data.bestNick || data.plays || data.bestTs) {
+      const meta = document.createElement('span');
+      meta.className = 'sk-lb-mine-meta';
+      const parts = [];
+      if (data.bestNick) parts.push('昵称 ' + data.bestNick);
+      if (data.plays) parts.push('玩了 ' + data.plays + ' 局');
+      if (data.bestTs) parts.push(relTime(data.bestTs));
+      meta.textContent = parts.join(' · ');
+      $lbMine.appendChild(meta);
+    }
+  }
+
+  // —— 展开 / 收起 / 翻页事件 ——
+  $lbExpand.addEventListener('click', () => {
+    lbExpanded = !lbExpanded;
+    lbPage = 1;
+    loadLeaderboard(true);
+  });
+  $lbPrev.addEventListener('click', () => {
+    if (lbPage > 1) { lbPage--; loadLeaderboard(true); }
+  });
+  $lbNext.addEventListener('click', () => {
+    lbPage++;
+    loadLeaderboard(true);
+  });
+
+  $lbRefresh.addEventListener('click', () => { loadLeaderboard(true); loadMyRank(); });
+  // 初次进页面就拉一次（榜单 + 自己）
   loadLeaderboard(true);
-  // 每 60s 自动刷新一次（避免长开页面看不到新人；rate limit 60/min/IP 完全足够）
-  setInterval(() => loadLeaderboard(false), 60000);
-  // 页面重新可见时（切回 tab）也刷一下
+  loadMyRank();
+  // 每 60s 自动刷新一次榜单 + 我的排名
+  setInterval(() => { loadLeaderboard(false); loadMyRank(); }, 60000);
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') loadLeaderboard(false);
+    if (document.visibilityState === 'visible') {
+      loadLeaderboard(false);
+      loadMyRank();
+    }
   });
 
   // ============ 排行榜：上传 / 排名 / 截图 ============
@@ -2921,8 +3007,9 @@ permalink: /toolbox/suika/
       const rankInfo = { rank: r.data.rank, total: r.data.total };
       renderRankSlot('success', rankInfo);
       refreshSnapshot(rankInfo);   // 排名到了，重新合成截图把"第 X 名"也画进去
-      // 自己上榜了，同步刷一次右侧榜单（force=true 跳过 10s 节流）
+      // 自己上榜了，同步刷一次右侧榜单 + 我的排名
       loadLeaderboard(true);
+      loadMyRank();
     } else {
       renderRankSlot('failed');
       refreshSnapshot({ failed: true });
