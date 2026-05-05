@@ -1,0 +1,11 @@
+---
+layout: post
+title: "Advanced Microeconomics Midterm 2 (2026)"
+discipline: "经济学"
+course: "Advanced Microeconomics"
+material_type: "Exams"
+date: 2026-04-01
+author: "Zircon"
+permalink: "/notes/adv-micro-psu/2026-midterm-2"
+pdf_url: "/files/adv-micro-psu/2026-midterm-2.pdf"
+---
