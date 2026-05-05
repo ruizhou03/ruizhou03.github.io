@@ -1148,8 +1148,10 @@ permalink: /toolbox/suika/
   const PHYSICS = { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5, tremor: 0, shakeView: true, canvasSize: 'medium' };
   function mapPhysics() {
     return {
-      // 回弹：0-1 → 0.05-0.40
-      restitution: 0.05 + PHYSICS.bounce * 0.35,
+      // 回弹：0-1 → 0.05-0.60（之前上限 0.40 太低，"跳跳球"档其实只是中等
+      // 橡胶。提到 0.60 才有真正"弹来弹去"的手感。MAX_VEL=22 clamp +
+      // positionIterations=16 兜得住，不会引发出界 / 嵌入）
+      restitution: 0.05 + PHYSICS.bounce * 0.55,
       // 合并爆炸：0-1 → 0.5x-1.8x（基础推力的乘数）
       explosionMult: 0.5 + PHYSICS.explosion * 1.3,
       // 重力：0-1 → 0.0008-0.0022
