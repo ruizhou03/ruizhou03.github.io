@@ -6,7 +6,7 @@ course: "Advanced Microeconomics"
 material_type: "Notes"
 date: 2026-05-04
 author: "Zircon"
-permalink: "/notes/adv-micro-psu/Micro"
+permalink: "/notes/adv-micro-psu/lecture-notes"
 pdf_url: "/files/adv-micro-psu/Micro.pdf"
 # reactions: ['👍', '🎓', '📝', '🔥']
 ---
