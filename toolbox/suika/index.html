@@ -1540,6 +1540,8 @@ permalink: /toolbox/suika/
   // 触发 game over。开发者测试结算流程用。
   function triggerFull() {
     if (isOver || !world || !gameStarted) return;
+    // 限 1 次/局：防 full（+726 分 × 6 颗西瓜）+ gravity（拖延 game over）反复刷分。
+    if (!checkAndConsumeCheatBudget('full', 1)) return;
     const positions = [0.18, 0.5, 0.82, 0.32, 0.68, 0.5];
     positions.forEach((px, i) => {
       setTimeout(() => {
@@ -1583,11 +1585,14 @@ permalink: /toolbox/suika/
   const FOUNTAIN_MAX_MS = 3000;   // 单次连按最长 3s
   const FOUNTAIN_COOLDOWN_MS = 3000; // 满 3s 后冷却 3s
 
-  function checkAndConsumeCheatBudget(name) {
+  // limit 可选；不传走全局默认 CHEAT_PER_RUN_LIMIT。给 full 这种特别危险的暗号
+  // 用 limit=1（防 full+gravity 反复刷分漏洞）。
+  function checkAndConsumeCheatBudget(name, limit) {
     if (unlimitedMode) return true;
+    const max = (typeof limit === 'number' && limit > 0) ? limit : CHEAT_PER_RUN_LIMIT;
     const used = runCheatUsage[name] || 0;
-    if (used >= CHEAT_PER_RUN_LIMIT) {
-      showCheatToast(`${name}: 本局已用满 ${CHEAT_PER_RUN_LIMIT} 次`, '#9aa0a6');
+    if (used >= max) {
+      showCheatToast(`${name}: 本局已用满 ${max} 次`, '#9aa0a6');
       return false;
     }
     runCheatUsage[name] = used + 1;
@@ -2556,9 +2561,10 @@ permalink: /toolbox/suika/
 
   function checkDanger(now) {
     if (!gameStarted) return;  // 试一试 / 开始幕未关闭时不判 game over
-    // gravity 暗号期间 + 2s 缓冲跳过危险检测：暗号本来就是让水果飞起来"洗局"，
-    // 不能拿 DANGER_Y 反过来惩罚玩家；2s grace 给水果落回稳定位置的时间。
-    if (now < gravityReversalUntil + 2000) {
+    // gravity 暗号期间 + 6s 缓冲跳过危险检测。3s 反转水果加速到 MAX_VEL 飞出顶部，
+    // 重力恢复后还要：减速到停（~1-2s）+ 从画面外（高至 -数百 px）落回（~1-2s）+
+    // 触底反弹合并稳定（~1-2s）。整个 6s 是保守覆盖最不利情况，避免误杀。
+    if (now < gravityReversalUntil + 6000) {
       dangerSince = null;
       lastInDangerTime = 0;
       return;
