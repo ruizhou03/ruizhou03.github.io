@@ -1533,6 +1533,38 @@ permalink: /toolbox/suika/
   let _gravityWasReversed = false; // tick 里检测变化用
   let discoModeUntil = 0;         // disco 模式截止 ms（0 = 关）
 
+  // 暗号 budget（每个暗号每局上限 3 次；unlimitedMode 跳过）
+  const CHEAT_PER_RUN_LIMIT = 3;
+  let runCheatUsage = {};         // { clean: 2, fuck: 1, ... }
+  let unlimitedMode = false;      // 触发 unlimited 后：跳过所有 budget + 不上传分数
+
+  // 长按空格"喷泉"限制
+  let spaceHeldSince = null;      // ms：当前按下空格的起始时间（null = 未按）
+  let fountainCooldownUntil = 0;  // ms：当前喷泉冷却截止
+  const FOUNTAIN_MAX_MS = 3000;   // 单次连按最长 3s
+  const FOUNTAIN_COOLDOWN_MS = 3000; // 满 3s 后冷却 3s
+
+  function checkAndConsumeCheatBudget(name) {
+    if (unlimitedMode) return true;
+    const used = runCheatUsage[name] || 0;
+    if (used >= CHEAT_PER_RUN_LIMIT) {
+      showCheatToast(`${name}: 本局已用满 ${CHEAT_PER_RUN_LIMIT} 次`, '#9aa0a6');
+      return false;
+    }
+    runCheatUsage[name] = used + 1;
+    return true;
+  }
+
+  // 应用暗号惩罚分（unlimited 模式 0 惩罚）。带 floor 0 + 视觉反馈。
+  function applyCheatPenalty(amount, label) {
+    if (!amount || unlimitedMode) return 0;
+    const before = score;
+    score = Math.max(0, score - amount);
+    const real = before - score;
+    updateScoreUI();
+    return real;
+  }
+
   function pushTypedSecret(key) {
     const ae = document.activeElement;
     if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
@@ -1563,14 +1595,22 @@ permalink: /toolbox/suika/
     setTimeout(() => el.remove(), 2600);
   }
 
-  // —— 6 个暗号 trigger ——
+  // —— 7 个暗号 trigger ——
+  // 每个暗号都先 checkAndConsumeCheatBudget（unlimitedMode 跳过）；
+  // 触发成功后 applyCheatPenalty 扣分（unlimitedMode 跳过）；
+  // 状态守卫（gameStarted、isOver 等）放在 budget 之前 — 不在游戏中根本不消耗 budget。
 
   function triggerClean() {
     if (isOver || !world || !gameStarted) return;
     const targets = Composite.allBodies(world).filter(b => b.fruitLevel === 1);
     if (!targets.length) { showCheatToast('clean: 没有樱桃可清', '#9aa0a6'); return; }
+    if (!checkAndConsumeCheatBudget('clean')) return;
     World.remove(world, targets);
-    showCheatToast(`✨ clean: 蒸发了 ${targets.length} 颗樱桃`, '#9ee6a3');
+    // 惩罚：N × lv3.score = N × 9
+    const penalty = targets.length * FRUITS[2].score;
+    const real = applyCheatPenalty(penalty);
+    const tail = unlimitedMode ? '（unlimited 不扣分）' : (real > 0 ? ` · -${real} 分` : '');
+    showCheatToast(`✨ clean: 蒸发 ${targets.length} 颗樱桃${tail}`, '#9ee6a3');
   }
 
   function triggerFuck() {
@@ -1583,35 +1623,48 @@ permalink: /toolbox/suika/
     const removeList = small.slice();
     if (biggest) removeList.push(biggest);
     if (!removeList.length) { showCheatToast('fuck: 没有可清的目标', '#9aa0a6'); return; }
+    if (!checkAndConsumeCheatBudget('fuck')) return;
     World.remove(world, removeList);
+    // 惩罚：所有被清水果分数之和
+    const penalty = removeList.reduce((s, b) => s + (FRUITS[b.fruitLevel - 1].score || 0), 0);
+    const real = applyCheatPenalty(penalty);
+    const tail = unlimitedMode ? '（unlimited 不扣分）' : ` · -${real} 分`;
     if (biggest) {
-      showCheatToast(`💥 fuck: 清 ${small.length} 个小果，失去 lv ${maxLv} ${FRUITS[maxLv - 1].name}（分数不退）`, '#ff8a80');
+      showCheatToast(`💥 fuck: 清 ${small.length} 个小果，失去 lv ${maxLv} ${FRUITS[maxLv - 1].name}${tail}`, '#ff8a80');
     } else {
-      showCheatToast(`💥 fuck: 清 ${small.length} 个小果（最大也只有 lv ${maxLv}）`, '#ff8a80');
+      showCheatToast(`💥 fuck: 清 ${small.length} 个小果${tail}`, '#ff8a80');
     }
   }
 
   function triggerPeek() {
+    if (!checkAndConsumeCheatBudget('peek')) return;
     ensureQueueFilled();
     const preview = nextLevelQueue.slice(0, 5);
     const lines = preview.map((lv, i) => `${i + 1}. ${FRUITS[lv - 1].emoji} ${FRUITS[lv - 1].name}`).join('  ');
-    showCheatToast(`🔮 接下来 5 个：  ${lines}`, '#bcd9ff');
+    const real = applyCheatPenalty(25);
+    const tail = unlimitedMode ? '（unlimited 不扣分）' : (real > 0 ? `  -${real} 分` : '');
+    showCheatToast(`🔮 接下来 5 个：  ${lines}${tail}`, '#bcd9ff');
   }
 
   function triggerGravity() {
     if (isOver || !world || !gameStarted || isPaused) return;
+    if (!checkAndConsumeCheatBudget('gravity')) return;
     gravityReversalUntil = performance.now() + 3000;
     applyPhysicsLive();          // 立即生效一次
-    showCheatToast('🌌 gravity: 重力反转 3 秒', '#d4a3ff');
+    const real = applyCheatPenalty(150);
+    const tail = unlimitedMode ? '（unlimited 不扣分）' : ` · -${real} 分`;
+    showCheatToast(`🌌 gravity: 重力反转 3 秒${tail}`, '#d4a3ff');
   }
 
   function triggerDisco() {
     if (isOver || !world || !gameStarted) return;
+    if (!checkAndConsumeCheatBudget('disco')) return;
     discoModeUntil = performance.now() + 5000;
-    showCheatToast('🌈 disco: 彩虹 5 秒', '#ffb3d9');
+    showCheatToast('🌈 disco: 彩虹 5 秒（无惩罚）', '#ffb3d9');
   }
 
   async function triggerScoreQuery() {
+    if (!checkAndConsumeCheatBudget('?score')) return;
     const nick = getNick();
     if (!nick) { showCheatToast('?score: 先起个昵称才能查排名', '#9aa0a6'); return; }
     showCheatToast('?score: 查询中…', '#bcd9ff');
@@ -1625,14 +1678,26 @@ permalink: /toolbox/suika/
     }
   }
 
-  // 暗号映射表（注意：长前缀放后面，避免短前缀截胡 — 这里 6 个互不重叠，无所谓）
+  // unlimited：开局尽兴，跳过所有 budget + 喷泉限制；本局分数不上传
+  function triggerUnlimited() {
+    if (isOver) return;
+    if (unlimitedMode) {
+      showCheatToast('♾ 已经在 unlimited 模式了', '#bcd9ff');
+      return;
+    }
+    unlimitedMode = true;
+    showCheatToast('♾ unlimited：本局尽兴玩，不计入排行榜', '#d4a3ff');
+  }
+
+  // 暗号映射表（注意：长前缀放后面，避免短前缀截胡 — 这里 7 个互不重叠，无所谓）
   const TYPED_SECRETS = {
-    'clean':   triggerClean,
-    'fuck':    triggerFuck,
-    'peek':    triggerPeek,
-    'gravity': triggerGravity,
-    'disco':   triggerDisco,
-    '?score':  triggerScoreQuery,
+    'clean':     triggerClean,
+    'fuck':      triggerFuck,
+    'peek':      triggerPeek,
+    'gravity':   triggerGravity,
+    'disco':     triggerDisco,
+    '?score':    triggerScoreQuery,
+    'unlimited': triggerUnlimited,
   };
 
   function pickSpawnLevel() {
@@ -2045,6 +2110,25 @@ permalink: /toolbox/suika/
       if (hoverFruit) keyState.right = true;
     } else if (e.key === ' ' || e.key === 'Spacebar') {
       e.preventDefault();
+      const now = performance.now();
+      // 第一次按下（非 autorepeat）记录起始时间
+      if (!e.repeat) spaceHeldSince = now;
+      if (!unlimitedMode) {
+        // 当前在喷泉冷却中？silently reject
+        if (now < fountainCooldownUntil) return;
+        // 刚出冷却 + 按键按着没松：重新开 3s 窗
+        if (fountainCooldownUntil > 0 && spaceHeldSince === null) {
+          spaceHeldSince = now;
+          fountainCooldownUntil = 0;
+        }
+        // 这一次连按已经超 3s？触发 3s 冷却
+        if (spaceHeldSince !== null && now - spaceHeldSince >= FOUNTAIN_MAX_MS) {
+          fountainCooldownUntil = now + FOUNTAIN_COOLDOWN_MS;
+          spaceHeldSince = null;
+          showCheatToast(`🚿 喷泉冷却 ${FOUNTAIN_COOLDOWN_MS / 1000} 秒`, '#ffb380');
+          return;
+        }
+      }
       dropCurrent();
     } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       // 配合 konami：阻止页面上下滚动
@@ -2055,6 +2139,7 @@ permalink: /toolbox/suika/
     if (!gameFocused) return;
     if (e.key === 'ArrowLeft') keyState.left = false;
     else if (e.key === 'ArrowRight') keyState.right = false;
+    else if (e.key === ' ' || e.key === 'Spacebar') spaceHeldSince = null;
   });
 
   // 焦点跟踪：点游戏区内 → 接管键盘；点游戏外 → 释放键盘
@@ -3515,6 +3600,10 @@ permalink: /toolbox/suika/
       init({
         el: '#suika-waline',
         serverURL: 'https://zircon-comments.vercel.app',
+        // 显式写死 path：waline 默认用 window.location.pathname，不同浏览器
+        // 对 GitHub Pages 重定向后的规范化可能不一致，导致桌面 / 手机查不同
+        // key（trailing slash 差异）。写死可消除该差异。
+        path: '/toolbox/suika/',
         dark: 'auto',
         lang: 'zh-CN',
         emoji: ['//unpkg.com/@waline/emojis@1.1.0/tieba'],
