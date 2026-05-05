@@ -116,7 +116,7 @@ Part VII 是 2025 春全套（midterm 1 + midterm 2 + final）+ 2026 春两次 m
 
 **直觉先于形式**。Krishna 上课经常一句话点出某个定理“为什么是这个样子”——这种洞察 slide 上不会写、课本里也不一定有。这种洞察我尽量都收在了 Remark / Intuition box 里，避免讲义变成纯定理-证明的堆砌。
 
-**每一步都讲 why**。证明里每一步公式后面我会跟一行斜体解释“为什么这一步是这一步”。比如 chain store paradox 那个 reputation 的 backward induction 里，为什么 invariant $V_k(\bar\mu_k) = 1$？因为 normal store 要在 $F$ 和 $A$ 之间无差异，$A$ 的总价值是 0，$F = -1 + \text{harvest}$，要等于 0 就需要 harvest = 1——这种“卡住过一次的小地方”的注释，是我作为同样卡住过的学生最能贡献的部分。
+**每一步都讲 why**。证明里每一步公式后面我会跟一行斜体解释“为什么这一步是这一步”。比如 first-price auction 里，type $x$ 的期望收益（信息租）等于 $U(x) = \int_0^x F(t)^{n-1}\, dt$。我没有上来就给这个积分，而是先用 envelope theorem 把“为什么是积分”讲清楚：当 bidder 已经在最优地选 bid 时，期望收益对 type 求导 $U'(x) = q(x) = F(x)^{n-1}$（因为 bid 已最优，再调整一阶不改进，导数只来自 type 直接进入 payoff 的那一项）；再从 $x = 0$ 处的零收益基线积分上来，自然得到 $\int_0^x F(t)^{n-1}\, dt$。它不是一个突兀的积分，而是“低 type 也能伪装成 $x$，所以 $x$ 的 surplus 被低 type 一段一段顶起来”的几何累积——这种“卡住过一次的小地方”的注释，是我作为同样卡住过的学生最能贡献的部分。
 
 **Problem set 不省略原文**。第一年学生最痛苦的是看不懂题面，所以我把 Krishna 写的题目原文一字不落地放出来再给思路。后人看一遍就知道题在问什么、为什么这么问。
 
@@ -137,7 +137,7 @@ Part VII 是 2025 春全套（midterm 1 + midterm 2 + final）+ 2026 春两次 m
 
 ## 写在最后
 
-ECON 521 是博一这一学期我最喜欢的一门课。Krishna 讲博弈论时有一种“举重若轻”的优雅——同一个 mechanism design 公式，在 auction 里是 marginal revenue，在 matching 里是 priority score，在 bargaining 里是 outside option——他把这些跨章节的联系一一拎出来给你看。
+ECON 521 是博一这一学期我最喜欢的一门课。Krishna 讲博弈论时有一种“举重若轻”的优雅——他能在看似独立的章节之间不动声色地架起桥梁，让你一次次意识到“诶，这个工具我之前在另一章也见过”。这种跨章节的洞察 slide 上不会写，课本里也未必有。
 
 我做的事其实很简单：把这些联系用 LaTeX 排好版，配上证明细节，做成一本可以反复读、可以离线读、可以从任何一章切入的书。Krishna 的内容是骨架，我做的是把它落到纸面上的工艺。
 
