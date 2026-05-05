@@ -379,6 +379,31 @@ permalink: /toolbox/suika/
     padding-top: 1rem;
   }
 
+  /* 进度恢复视图 */
+  .resume-summary {
+    background: rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 0.7rem 1.2rem;
+    margin: 0.4rem auto 1.2rem;
+    color: rgba(255,255,255,0.86);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    max-width: 280px;
+    text-align: center;
+  }
+  .resume-summary strong {
+    color: var(--color-highlight, #f0c674);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.4em;
+  }
+  .resume-summary .resume-meta {
+    display: block;
+    color: rgba(255,255,255,0.55);
+    font-size: 0.78rem;
+    margin-top: 0.3rem;
+  }
+
   /* 主视图的「调参」入口（小一点的次按钮）*/
   .settings-link {
     margin-top: 0.8rem;
@@ -1010,6 +1035,19 @@ permalink: /toolbox/suika/
         <button type="button" class="ov-btn" id="start-from-trial-btn">▶ 开始游戏</button>
         <button type="button" class="settings-link" id="continue-tuning-btn" style="margin-top: 0.8rem;">⚙ 继续调参</button>
       </div>
+
+      <!-- 进度恢复视图（init 时若发现 < 48h 的存档就显示这里） -->
+      <div class="overlay-view view-resume" id="view-resume" style="display: none;">
+        <div style="font-size: 3rem; line-height: 1; margin-bottom: 0.4rem;">👋</div>
+        <h2 style="margin-bottom: 0.4rem;">上次还没玩完</h2>
+        <div class="resume-summary" id="resume-summary"></div>
+        <button type="button" class="ov-btn" id="resume-continue-btn">▶ 继续上次</button>
+        <button type="button" class="ov-btn" id="resume-settle-btn"
+                style="margin-top: 0.7rem; background: var(--color-highlight, #f0c674); color: rgba(20,20,20,0.92);">
+          🏁 直接结算
+        </button>
+        <button type="button" class="settings-link" id="resume-discard-btn" style="margin-top: 0.7rem;">🗑 丢掉重新开始</button>
+      </div>
     </div>
 
     <!-- 游戏结束幕 -->
@@ -1055,6 +1093,7 @@ permalink: /toolbox/suika/
   <div class="controls-row">
     <button type="button" id="restart-btn">🔄 重开</button>
     <button type="button" id="pause-btn">⏸ 暂停</button>
+    <button type="button" id="settle-btn">🏁 结算</button>
     <button type="button" id="settings-btn">⚙ 调参</button>
   </div>
 
@@ -1897,6 +1936,142 @@ permalink: /toolbox/suika/
     }
   }
 
+  // ============ 进度保存 / 恢复（中途离开能回来续局） ============
+  const SAVESTATE_KEY = 'tool.suika.savestate.v1';
+  const SAVE_EXPIRY_MS = 48 * 3600 * 1000;     // 48h 后存档过期，silent 丢
+  const SAVE_INTERVAL_MS = 5000;               // 5s 自动存一次
+
+  function serializeState() {
+    if (!engine || !world) return null;
+    const fruits = [];
+    Composite.allBodies(world).forEach(b => {
+      if (!b.fruitLevel) return;
+      fruits.push({
+        lv: b.fruitLevel,
+        x: b.position.x, y: b.position.y,
+        vx: b.velocity.x, vy: b.velocity.y,
+        a: b.angle, av: b.angularVelocity,
+      });
+    });
+    return {
+      v: 1,
+      savedAt: Date.now(),
+      score, melonsCount,
+      runMaxLevel, runMelons,
+      runStartedAt,
+      currentRunNonce,
+      runCheatUsage: { ...runCheatUsage },
+      unlimitedMode,
+      nextLevelQueue: [...nextLevelQueue],
+      fruits,
+      hover: hoverFruit ? { level: hoverFruit.level, x: hoverFruit.x } : null,
+    };
+  }
+
+  function saveCurrentState() {
+    if (!gameStarted || isOver || trialMode) return;
+    try {
+      const data = serializeState();
+      if (!data) return;
+      localStorage.setItem(SAVESTATE_KEY, JSON.stringify(data));
+    } catch (_) { /* quota or 隐私模式禁用，silent 失败 */ }
+  }
+
+  function clearSaveState() {
+    try { localStorage.removeItem(SAVESTATE_KEY); } catch (_) {}
+  }
+
+  function loadSaveState() {
+    try {
+      const raw = localStorage.getItem(SAVESTATE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || data.v !== 1) { clearSaveState(); return null; }
+      if (Date.now() - (data.savedAt || 0) > SAVE_EXPIRY_MS) {
+        clearSaveState();
+        return null;
+      }
+      return data;
+    } catch (_) { return null; }
+  }
+
+  // 把存档贴回内存：清旧 world、setupWorld、恢复每个 body、恢复 run 变量
+  function applySavedState(save) {
+    if (!save) return;
+    if (engine) {
+      World.clear(world, false);
+      Engine.clear(engine);
+    }
+    setupWorld();
+
+    score = Number(save.score) || 0;
+    if (Number.isFinite(save.melonsCount)) melonsCount = save.melonsCount;
+    runMaxLevel = Number(save.runMaxLevel) || 0;
+    runMelons = Number(save.runMelons) || 0;
+    runStartedAt = Number(save.runStartedAt) || Date.now();
+    currentRunNonce = String(save.currentRunNonce || newRunNonce());
+    runCheatUsage = (save.runCheatUsage && typeof save.runCheatUsage === 'object') ? { ...save.runCheatUsage } : {};
+    unlimitedMode = !!save.unlimitedMode;
+
+    nextLevelQueue = Array.isArray(save.nextLevelQueue) ? save.nextLevelQueue.slice() : [];
+    ensureQueueFilled();
+    nextLevel = nextLevelQueue[0];
+
+    if (Array.isArray(save.fruits)) {
+      save.fruits.forEach(f => {
+        if (!f || !Number.isInteger(f.lv) || f.lv < 1 || f.lv > FRUITS.length) return;
+        const x = Number.isFinite(f.x) ? f.x : $canvas.width / 2;
+        const y = Number.isFinite(f.y) ? f.y : 100;
+        const body = createFruitBody(f.lv, x, y);
+        Body.setVelocity(body, { x: Number(f.vx) || 0, y: Number(f.vy) || 0 });
+        Body.setAngle(body, Number(f.a) || 0);
+        Body.setAngularVelocity(body, Number(f.av) || 0);
+        World.add(world, body);
+      });
+    }
+
+    if (save.hover && Number.isInteger(save.hover.level) && save.hover.level >= 1) {
+      hoverFruit = {
+        level: save.hover.level,
+        x: Number.isFinite(save.hover.x) ? save.hover.x : $canvas.width / 2,
+      };
+    } else {
+      hoverFruit = null;
+      spawnHoveringFruit();
+    }
+
+    isOver = false;
+    isPaused = false;
+    pendingSubmitForRun = false;
+    spaceHeldSince = null;
+    fountainCooldownUntil = 0;
+    dangerSince = null;
+    lastInDangerTime = 0;
+    dropCooldown = false;
+
+    $overlay.classList.remove('open');
+    $gameZone.classList.remove('over');
+    $startOverlay.classList.remove('open');
+    $pauseBtn.textContent = '⏸ 暂停';
+    gameStarted = true;
+    setFocus(true);
+    highlightEvoChain(runMaxLevel);
+    updateScoreUI();
+    updateNextFruitUI();
+  }
+
+  // —— 自动保存触发 ——
+  setInterval(saveCurrentState, SAVE_INTERVAL_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') saveCurrentState();
+  });
+  window.addEventListener('beforeunload', saveCurrentState);
+
+  // —— 随机昵称（auto-settle 没昵称时用，不写 localStorage） ——
+  function generateRandomNick() {
+    return '路人' + Math.floor(1000 + Math.random() * 9000);
+  }
+
   function setupWorld() {
     const m = mapPhysics();
     engine = Engine.create({
@@ -2711,6 +2886,7 @@ permalink: /toolbox/suika/
     isOver = true;
     hoverFruit = null;  // 清掉悬浮（纯数据，不需要 World.remove）
     hoverVx = 0;
+    clearSaveState();   // 局已结束，存档没意义了
     $ovTitle.textContent = '游戏结束';
     $ovScore.textContent = score;
     $ovBest.style.display = (score >= highScore && score > 0) ? '' : 'none';
@@ -3056,7 +3232,10 @@ permalink: /toolbox/suika/
       $ovNickCurrent.textContent = nick;
     } else {
       $ovNickTag.style.display = 'none';
-      if (score > 0) {
+      // autoSettle 模式不弹昵称表单（submit 会用 generateRandomNick 兜底）
+      if (settleAutoSettle) {
+        $ovNickForm.style.display = 'none';
+      } else if (score > 0) {
         $ovNickForm.style.display = '';
         $ovNickError.textContent = '';
         $ovNickInput.value = '';
@@ -3080,7 +3259,13 @@ permalink: /toolbox/suika/
       return;
     }
     if (score <= 0) { renderRankSlot('hidden'); return; }
-    const nick = getNick();
+    let nick = getNick();
+    // autoSettle: "直接结算" 时没昵称就用随机的（不写 localStorage，下局还能起自己的）
+    let nickIsAuto = false;
+    if (!nick && settleAutoSettle) {
+      nick = generateRandomNick();
+      nickIsAuto = true;
+    }
     if (!nick) {
       renderRankSlot('pending');
       refreshSnapshot({ pending: true });
@@ -3122,12 +3307,17 @@ permalink: /toolbox/suika/
       // 自己上榜了，同步刷一次右侧榜单 + 我的排名
       loadLeaderboard(true);
       loadMyRank();
+      // 用了随机昵称就 toast 告诉一声
+      if (nickIsAuto) {
+        showCheatToast(`✅ 已用随机昵称 ${nick} 上传，下局可以起自己的`, '#9ee6a3');
+      }
     } else {
       renderRankSlot('failed');
       refreshSnapshot({ failed: true });
       if (r.data && r.data.reason) console.warn('[suika] submit rejected:', r.data.reason);
       else console.warn('[suika] submit failed:', r);
     }
+    settleAutoSettle = false; // 一次性 flag，submit 完就清
   }
 
   // 把 game canvas + 标题/分数/排名/进化总结合成一张分享卡。
@@ -3511,11 +3701,13 @@ permalink: /toolbox/suika/
 
   // ============ 试玩模式 ============
   const $viewTrialEnd = document.getElementById('view-trial-end');
+  const $viewResume = document.getElementById('view-resume');
 
   function showOverlayView(name) {
     $viewMain.style.display = name === 'main' ? '' : 'none';
     $viewSettings.style.display = name === 'settings' ? '' : 'none';
     $viewTrialEnd.style.display = name === 'trialEnd' ? '' : 'none';
+    $viewResume.style.display = name === 'resume' ? '' : 'none';
   }
 
   function endTrial() {
@@ -3614,6 +3806,68 @@ permalink: /toolbox/suika/
     PHYSICS, gameStarted, gameFocused,
   });
   requestAnimationFrame(tick);
+
+  // ============ 进度恢复入口 ============
+  // 有 < 48h 的存档 → 显示「上次还没玩完」面板替代主菜单。
+  (function maybeShowResume() {
+    const save = loadSaveState();
+    if (!save) return;
+    // 摘要文案
+    const $summary = document.getElementById('resume-summary');
+    if ($summary) {
+      const minsAgo = Math.max(1, Math.floor((Date.now() - save.savedAt) / 60000));
+      const ago = minsAgo < 60
+        ? `${minsAgo} 分钟前`
+        : minsAgo < 1440
+          ? `${Math.floor(minsAgo / 60)} 小时前`
+          : `${Math.floor(minsAgo / 1440)} 天前`;
+      const lvText = save.runMaxLevel ? `合到 lv ${save.runMaxLevel}` : '还没合到任何水果';
+      $summary.innerHTML = `<strong>${save.score || 0}</strong> 分<br>${lvText}<span class="resume-meta">${ago}保存</span>`;
+    }
+    showOverlayView('resume');
+  })();
+
+  // —— 进度恢复按钮事件 ——
+  document.getElementById('resume-continue-btn').addEventListener('click', () => {
+    const save = loadSaveState();
+    if (!save) {
+      showOverlayView('main');
+      return;
+    }
+    applySavedState(save);
+    // 不清存档：玩家仍在玩，下次离开还是会自动 save 覆盖
+  });
+
+  document.getElementById('resume-discard-btn').addEventListener('click', () => {
+    clearSaveState();
+    showOverlayView('main');
+  });
+
+  document.getElementById('resume-settle-btn').addEventListener('click', () => {
+    const save = loadSaveState();
+    if (!save) { showOverlayView('main'); return; }
+    // 把状态恢复进来，然后立刻 gameOver（autoSettle 模式：没昵称就用随机的）
+    applySavedState(save);
+    clearSaveState();
+    settleNow({ autoSettle: true });
+  });
+
+  // —— 「🏁 结算」按钮（mid-game 主动结算） ——
+  document.getElementById('settle-btn').addEventListener('click', () => {
+    if (isOver) return;
+    if (!gameStarted) { showCheatToast('还没开局呢', '#9aa0a6'); return; }
+    if (score > 0 && !confirm('确定结算本局？分数会上传排行榜。')) return;
+    settleNow({ autoSettle: false });
+  });
+
+  // 通用结算入口：触发 gameOver 流程；可选 autoSettle 让 submit 用随机昵称兜底
+  function settleNow(opts) {
+    settleAutoSettle = !!(opts && opts.autoSettle);  // 给 submitToLeaderboard 看
+    gameOver();
+  }
+  // 全局 flag：本次 gameOver 是不是 autoSettle 触发的
+  // （声明用 var 是为了 hoisting 到 IIFE 顶部 — let 因为在使用前才声明会 TDZ 报错）
+  var settleAutoSettle = false;
 
   // ============ Waline 评论区（直接 init，挂掉静默隐藏）============
   // 之前用 4s reachable 探测后端可达性，但 zircon-comments.vercel.app 是 Vercel
