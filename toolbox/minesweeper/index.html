@@ -5,7 +5,56 @@ permalink: /toolbox/minesweeper/
 ---
 
 <style>
-  .ms-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; }
+  .ms-wrap {
+    max-width: 860px; margin: 0 auto; padding: 1rem;
+    /* light mode defaults */
+    --ms-cell-size: 28px;
+    --ms-cell-hidden: #d1d5db;
+    --ms-cell-hidden-text: #1a1a2e;
+    --ms-cell-hidden-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+    --ms-cell-revealed: #f5f4f0;
+    --ms-cell-revealed-shadow: inset 0 1px 2px rgba(0,0,0,0.06);
+    --ms-grid-line: #b8bcc2;
+    --ms-mine-bg: #e74c3c;
+    --ms-wrong-bg: #95a5a6;
+    --ms-n1: #1976d2; --ms-n2: #388e3c; --ms-n3: #d32f2f; --ms-n4: #7b1fa2;
+    --ms-n5: #c2185b; --ms-n6: #00838f; --ms-n7: #424242; --ms-n8: #616161;
+  }
+  :root[data-theme="dark"] .ms-wrap {
+    --ms-cell-hidden: #5a5b58;
+    --ms-cell-hidden-text: #f0f0f0;
+    --ms-cell-hidden-shadow: inset 0 1px 0 rgba(255,255,255,0.07);
+    --ms-cell-revealed: #252422;
+    --ms-cell-revealed-shadow: inset 0 1px 2px rgba(0,0,0,0.45);
+    --ms-grid-line: #15140f;
+    --ms-mine-bg: #c0392b;
+    --ms-wrong-bg: #4f5b5d;
+    --ms-n1: #5fa8ff; --ms-n2: #8bd17c; --ms-n3: #ff7a73; --ms-n4: #c79bff;
+    --ms-n5: #ff8fc1; --ms-n6: #5fd0d9; --ms-n7: #e0e0e0; --ms-n8: #bdbdbd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .ms-wrap {
+      --ms-cell-hidden: #5a5b58;
+      --ms-cell-hidden-text: #f0f0f0;
+      --ms-cell-hidden-shadow: inset 0 1px 0 rgba(255,255,255,0.07);
+      --ms-cell-revealed: #252422;
+      --ms-cell-revealed-shadow: inset 0 1px 2px rgba(0,0,0,0.45);
+      --ms-grid-line: #15140f;
+      --ms-mine-bg: #c0392b;
+      --ms-wrong-bg: #4f5b5d;
+      --ms-n1: #5fa8ff; --ms-n2: #8bd17c; --ms-n3: #ff7a73; --ms-n4: #c79bff;
+      --ms-n5: #ff8fc1; --ms-n6: #5fd0d9; --ms-n7: #e0e0e0; --ms-n8: #bdbdbd;
+    }
+  }
+  .ms-wrap[data-diff="easy"] { --ms-cell-size: 42px; }
+  .ms-wrap[data-diff="mid"]  { --ms-cell-size: 32px; }
+  .ms-wrap[data-diff="hard"] { --ms-cell-size: 26px; }
+  @media (max-width: 600px) {
+    .ms-wrap[data-diff="easy"] { --ms-cell-size: 36px; }
+    .ms-wrap[data-diff="mid"]  { --ms-cell-size: 28px; }
+    .ms-wrap[data-diff="hard"] { --ms-cell-size: 22px; }
+  }
+
   .ms-wrap header { text-align: center; margin-bottom: 1.2rem; }
   .ms-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
   .ms-wrap header .sub { color: var(--color-light); font-style: italic; font-size: 0.92rem; }
@@ -71,42 +120,42 @@ permalink: /toolbox/minesweeper/
   .ms-board {
     display: grid;
     gap: 1px;
-    background: var(--color-border);
-    border: 1px solid var(--color-border);
+    background: var(--ms-grid-line);
+    border: 1px solid var(--ms-grid-line);
     user-select: none;
     -webkit-user-select: none;
     touch-action: manipulation;
   }
   .ms-cell {
-    width: 28px; height: 28px;
-    background: #d1d5db;
+    width: var(--ms-cell-size); height: var(--ms-cell-size);
+    background: var(--ms-cell-hidden);
+    color: var(--ms-cell-hidden-text);
+    box-shadow: var(--ms-cell-hidden-shadow);
     display: flex; align-items: center; justify-content: center;
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: calc(var(--ms-cell-size) * 0.55);
+    line-height: 1;
     cursor: pointer;
   }
-  :root[data-theme="dark"] .ms-cell { background: #4a4a48; color: #f0f0f0; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .ms-cell { background: #4a4a48; color: #f0f0f0; }
-  }
   .ms-cell.revealed {
-    background: var(--color-bg-warm);
+    background: var(--ms-cell-revealed);
+    box-shadow: var(--ms-cell-revealed-shadow);
     cursor: default;
   }
-  .ms-cell.flagged::before { content: '🚩'; font-size: 1rem; }
-  .ms-cell.mine { background: #e74c3c; color: #fff; }
-  .ms-cell.mine::before { content: '💣'; font-size: 1rem; }
-  .ms-cell.wrong { background: #95a5a6; }
-  .ms-cell.wrong::before { content: '❌'; font-size: 1rem; }
-  .ms-cell.n1 { color: #1976d2; }
-  .ms-cell.n2 { color: #388e3c; }
-  .ms-cell.n3 { color: #d32f2f; }
-  .ms-cell.n4 { color: #7b1fa2; }
-  .ms-cell.n5 { color: #c2185b; }
-  .ms-cell.n6 { color: #00838f; }
-  .ms-cell.n7 { color: #424242; }
-  .ms-cell.n8 { color: #616161; }
+  .ms-cell.flagged::before { content: '🚩'; font-size: calc(var(--ms-cell-size) * 0.55); }
+  .ms-cell.mine { background: var(--ms-mine-bg); color: #fff; box-shadow: none; }
+  .ms-cell.mine::before { content: '💣'; font-size: calc(var(--ms-cell-size) * 0.55); }
+  .ms-cell.wrong { background: var(--ms-wrong-bg); }
+  .ms-cell.wrong::before { content: '❌'; font-size: calc(var(--ms-cell-size) * 0.55); }
+  .ms-cell.n1 { color: var(--ms-n1); }
+  .ms-cell.n2 { color: var(--ms-n2); }
+  .ms-cell.n3 { color: var(--ms-n3); }
+  .ms-cell.n4 { color: var(--ms-n4); }
+  .ms-cell.n5 { color: var(--ms-n5); }
+  .ms-cell.n6 { color: var(--ms-n6); }
+  .ms-cell.n7 { color: var(--ms-n7); }
+  .ms-cell.n8 { color: var(--ms-n8); }
 
   .ms-modal-wrap {
     margin-top: 1rem;
@@ -191,6 +240,7 @@ permalink: /toolbox/minesweeper/
     longPressFired: false
   };
 
+  const wrapEl = document.querySelector('.ms-wrap');
   const boardEl = document.getElementById('msBoard');
   const flagsEl = document.getElementById('msFlags');
   const timeEl = document.getElementById('msTime');
@@ -249,7 +299,8 @@ permalink: /toolbox/minesweeper/
   }
 
   function renderBoard() {
-    boardEl.style.gridTemplateColumns = `repeat(${state.cols}, 28px)`;
+    wrapEl.dataset.diff = state.diff;
+    boardEl.style.gridTemplateColumns = `repeat(${state.cols}, var(--ms-cell-size))`;
     boardEl.innerHTML = '';
     for (let r = 0; r < state.rows; r++) {
       for (let c = 0; c < state.cols; c++) {
