@@ -84,7 +84,7 @@ permalink: /toolbox/snake/
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) .sn-canvas-wrap { background: #2a2a26; }
   }
-  .sn-canvas-wrap canvas { display: block; width: 100%; height: 100%; }
+  .sn-canvas-wrap canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
   .sn-overlay {
     position: absolute; inset: 0;
@@ -99,6 +99,8 @@ permalink: /toolbox/snake/
   }
   .sn-overlay.show { display: flex; }
   .sn-overlay h2 { font-size: 1.6rem; margin: 0; font-family: var(--font-display); }
+  .sn-overlay--pause { background: rgba(0, 0, 0, 0.32); }
+  .sn-overlay--pause #snOvBtn { display: none; }
 
   .sn-dpad {
     display: grid;
@@ -197,11 +199,31 @@ permalink: /toolbox/snake/
   const STORE_KEY = 'tool.snake.v1';
   const GRID = 20;
   const SPEEDS = { slow: 150, mid: 100, fast: 70 };
+  const BIG_LIFETIME_MS = 8000;
+  const BONUS_MIN = 5;
+  const BONUS_MAX = 20;
+  const BIG_GAUSS_MEAN = 5;
+  const BIG_GAUSS_STD = 1.5;
+  const BIG_N_MIN = 2;
+  const BIG_N_MAX = 10;
+  const POPUP_LIFETIME_MS = 700;
+  const SWIPE_THRESHOLD = 24;
 
   const stored = (() => {
     try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
     catch { return {}; }
   })();
+
+  function sampleGaussianN() {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    let n = Math.round(BIG_GAUSS_MEAN + z * BIG_GAUSS_STD);
+    if (n < BIG_N_MIN) n = BIG_N_MIN;
+    if (n > BIG_N_MAX) n = BIG_N_MAX;
+    return n;
+  }
 
   const state = {
     speed: stored.lastSpeed || 'mid',
@@ -210,11 +232,18 @@ permalink: /toolbox/snake/
     dir: 'right',
     nextDir: 'right',
     food: null,
+    bigFood: null,
+    pendingBigFood: false,
+    foodsUntilBigFood: 5,
+    pendingGrowth: 0,
+    popups: [],
+    gameTime: 0,
     score: 0,
     running: false,
     paused: false,
     over: false,
-    timer: null
+    timer: null,
+    rafId: null
   };
 
   const canvas = document.getElementById('snCanvas');
@@ -232,15 +261,56 @@ permalink: /toolbox/snake/
     localStorage.setItem(STORE_KEY, JSON.stringify({ best: state.best, lastSpeed: state.speed }));
   }
 
+  function bigFoodCovers(x, y) {
+    const b = state.bigFood;
+    if (!b) return false;
+    return (x === b.x || x === b.x + 1) && (y === b.y || y === b.y + 1);
+  }
+
   function placeFood() {
     while (true) {
       const x = Math.floor(Math.random() * GRID);
       const y = Math.floor(Math.random() * GRID);
-      if (!state.snake.some(s => s.x === x && s.y === y)) {
-        state.food = { x, y };
-        return;
-      }
+      if (state.snake.some(s => s.x === x && s.y === y)) continue;
+      if (bigFoodCovers(x, y)) continue;
+      state.food = { x, y };
+      return;
     }
+  }
+
+  function placeBigFood() {
+    for (let i = 0; i < 50; i++) {
+      const x = Math.floor(Math.random() * (GRID - 1));
+      const y = Math.floor(Math.random() * (GRID - 1));
+      const cells = [[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]];
+      const blocked = cells.some(([cx, cy]) =>
+        state.snake.some(s => s.x === cx && s.y === cy) ||
+        (state.food && state.food.x === cx && state.food.y === cy)
+      );
+      if (blocked) continue;
+      state.bigFood = { x, y, remaining: BIG_LIFETIME_MS };
+      state.pendingBigFood = false;
+      return;
+    }
+    state.pendingBigFood = true;
+  }
+
+  function consumeBigFood(headX, headY) {
+    const remaining = state.bigFood.remaining;
+    const bonus = Math.max(
+      BONUS_MIN,
+      Math.round(BONUS_MIN + (BONUS_MAX - BONUS_MIN) * remaining / BIG_LIFETIME_MS)
+    );
+    state.score += bonus;
+    if (state.score > (state.best[state.speed] || 0)) {
+      state.best[state.speed] = state.score;
+      persist();
+    }
+    state.popups.push({ x: headX, y: headY, text: `+${bonus}`, t0: state.gameTime });
+    state.pendingGrowth += 1; // tick already skips pop-tail; +1 more = +2 total growth
+    state.bigFood = null;
+    state.foodsUntilBigFood = sampleGaussianN();
+    updateScores();
   }
 
   function reset() {
@@ -252,12 +322,20 @@ permalink: /toolbox/snake/
     state.running = true;
     state.paused = false;
     state.over = false;
+    state.bigFood = null;
+    state.pendingBigFood = false;
+    state.foodsUntilBigFood = sampleGaussianN();
+    state.popups = [];
+    state.pendingGrowth = 0;
+    state.gameTime = 0;
+    state.food = null;
     placeFood();
     overlay.classList.remove('show');
+    overlay.classList.remove('sn-overlay--pause');
     pauseBtn.textContent = '⏸ 暂停';
     updateScores();
-    draw();
     startLoop();
+    startAnim();
   }
 
   function updateScores() {
@@ -277,6 +355,35 @@ permalink: /toolbox/snake/
     state.timer = null;
   }
 
+  function startAnim() {
+    if (state.rafId !== null) return;
+    let last = performance.now();
+    const step = (now) => {
+      const delta = now - last;
+      last = now;
+      if (state.running && !state.paused && !state.over) {
+        state.gameTime += delta;
+        if (state.bigFood) {
+          state.bigFood.remaining -= delta;
+          if (state.bigFood.remaining <= 0) {
+            state.bigFood = null;
+            state.foodsUntilBigFood = sampleGaussianN();
+          }
+        }
+        if (state.popups.length) {
+          state.popups = state.popups.filter(p => state.gameTime - p.t0 < POPUP_LIFETIME_MS);
+        }
+      }
+      draw();
+      state.rafId = requestAnimationFrame(step);
+    };
+    state.rafId = requestAnimationFrame(step);
+  }
+  function stopAnim() {
+    if (state.rafId !== null) cancelAnimationFrame(state.rafId);
+    state.rafId = null;
+  }
+
   function tick() {
     if (!state.running || state.paused || state.over) return;
     state.dir = state.nextDir;
@@ -290,7 +397,16 @@ permalink: /toolbox/snake/
     if (state.snake.some(s => s.x === head.x && s.y === head.y)) return gameOver();
 
     state.snake.unshift(head);
-    if (head.x === state.food.x && head.y === state.food.y) {
+    let grew = false;
+
+    if (state.bigFood &&
+        (head.x === state.bigFood.x || head.x === state.bigFood.x + 1) &&
+        (head.y === state.bigFood.y || head.y === state.bigFood.y + 1)) {
+      consumeBigFood(head.x, head.y);
+      grew = true;
+    }
+
+    if (state.food && head.x === state.food.x && head.y === state.food.y) {
       state.score++;
       if (state.score > (state.best[state.speed] || 0)) {
         state.best[state.speed] = state.score;
@@ -298,29 +414,90 @@ permalink: /toolbox/snake/
       }
       placeFood();
       updateScores();
-    } else {
-      state.snake.pop();
+      grew = true;
+      state.foodsUntilBigFood--;
+      if (state.foodsUntilBigFood <= 0 && !state.bigFood && !state.pendingBigFood) {
+        placeBigFood();
+      }
     }
-    draw();
+
+    if (state.pendingBigFood && !state.bigFood) {
+      placeBigFood();
+    }
+
+    if (state.pendingGrowth > 0 && !grew) {
+      state.pendingGrowth--;
+      grew = true;
+    }
+
+    if (!grew) state.snake.pop();
   }
 
   function gameOver() {
     state.over = true;
     state.running = false;
     stopLoop();
+    stopAnim();
+    state.bigFood = null;
+    state.popups = [];
+    state.pendingBigFood = false;
+    state.pendingGrowth = 0;
     ovTitle.textContent = 'Game Over';
     ovMsg.textContent = `本局 ${state.score}　·　最高 ${state.best[state.speed] || 0}`;
+    overlay.classList.remove('sn-overlay--pause');
     overlay.classList.add('show');
+    draw();
   }
 
   function draw() {
     const W = canvas.clientWidth;
-    if (canvas.width !== W) {
+    if (W && canvas.width !== W) {
       canvas.width = W;
       canvas.height = W;
     }
     const cs = canvas.width / GRID;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Normal food
+    if (state.food) {
+      ctx.fillStyle = '#e74c3c';
+      ctx.beginPath();
+      ctx.arc(state.food.x * cs + cs / 2, state.food.y * cs + cs / 2, cs * 0.38, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Big (bonus) food
+    if (state.bigFood) {
+      const b = state.bigFood;
+      const ratio = Math.max(0, b.remaining / BIG_LIFETIME_MS);
+      const warning = ratio < 0.25;
+      const cx = (b.x + 1) * cs;
+      const cy = (b.y + 1) * cs;
+      const pulseFreq = warning ? 120 : 240;
+      const pulse = 1 + 0.06 * Math.sin(state.gameTime / pulseFreq);
+      const r = cs * 0.9 * pulse;
+
+      ctx.fillStyle = warning ? '#e74c3c' : '#f1c40f';
+      ctx.strokeStyle = warning ? '#922b21' : '#b9870c';
+      ctx.lineWidth = Math.max(1, cs * 0.08);
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // sparkle highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.beginPath();
+      ctx.arc(cx - r * 0.35, cy - r * 0.35, r * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+
+      // countdown ring
+      ctx.strokeStyle = warning ? 'rgba(255, 100, 100, 0.95)' : 'rgba(255, 255, 255, 0.85)';
+      ctx.lineWidth = Math.max(2, cs * 0.12);
+      ctx.beginPath();
+      ctx.arc(cx, cy, r + cs * 0.16, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
+      ctx.stroke();
+    }
 
     // Snake
     state.snake.forEach((s, i) => {
@@ -328,12 +505,26 @@ permalink: /toolbox/snake/
       ctx.fillRect(s.x * cs + 1, s.y * cs + 1, cs - 2, cs - 2);
     });
 
-    // Food
-    if (state.food) {
-      ctx.fillStyle = '#e74c3c';
-      ctx.beginPath();
-      ctx.arc(state.food.x * cs + cs / 2, state.food.y * cs + cs / 2, cs * 0.38, 0, Math.PI * 2);
-      ctx.fill();
+    // Score popups (e.g. +15 floating up)
+    if (state.popups.length) {
+      state.popups.forEach(p => {
+        const t = (state.gameTime - p.t0) / POPUP_LIFETIME_MS;
+        if (t < 0 || t >= 1) return;
+        const alpha = 1 - t;
+        const lift = t * cs * 1.5;
+        ctx.save();
+        ctx.fillStyle = `rgba(241, 196, 15, ${alpha})`;
+        ctx.strokeStyle = `rgba(80, 50, 0, ${alpha})`;
+        ctx.lineWidth = 2;
+        ctx.font = `bold ${Math.max(14, Math.floor(cs * 0.9))}px system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const px = p.x * cs + cs / 2;
+        const py = p.y * cs + cs / 2 - lift;
+        ctx.strokeText(p.text, px, py);
+        ctx.fillText(p.text, px, py);
+        ctx.restore();
+      });
     }
   }
 
@@ -348,6 +539,15 @@ permalink: /toolbox/snake/
     if (state.over) return;
     state.paused = !state.paused;
     pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+    if (state.paused) {
+      ovTitle.textContent = '暂停中';
+      ovMsg.textContent = '按空格或继续按钮恢复';
+      overlay.classList.add('sn-overlay--pause');
+      overlay.classList.add('show');
+    } else {
+      overlay.classList.remove('show');
+      overlay.classList.remove('sn-overlay--pause');
+    }
   }
 
   // Keyboard
@@ -368,6 +568,25 @@ permalink: /toolbox/snake/
       else setDir(d);
     });
   });
+
+  // Touch swipe on canvas
+  let touchStart = null;
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    touchStart = { x: t.clientX, y: t.clientY };
+  }, { passive: true });
+  canvas.addEventListener('touchend', (e) => {
+    if (!touchStart) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.x;
+    const dy = t.clientY - touchStart.y;
+    touchStart = null;
+    if (Math.abs(dx) < SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) return;
+    if (Math.abs(dx) > Math.abs(dy)) setDir(dx > 0 ? 'right' : 'left');
+    else setDir(dy > 0 ? 'down' : 'up');
+  }, { passive: true });
+  canvas.addEventListener('touchcancel', () => { touchStart = null; }, { passive: true });
 
   // Speed tabs
   document.getElementById('snSpeedTabs').addEventListener('click', (e) => {
