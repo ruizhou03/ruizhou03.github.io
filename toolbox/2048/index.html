@@ -255,6 +255,8 @@ permalink: /toolbox/2048/
 
   <!-- 排行榜（每 boardSize 各自一榜） -->
   <div id="lbMount" style="margin-top: 1.5rem;"></div>
+  <!-- 结算图按钮（settlement.js 注入） -->
+  <div id="settleBtnMount"></div>
 
   <!-- 评论区 -->
   <div id="cmMount"></div>
@@ -265,6 +267,7 @@ permalink: /toolbox/2048/
 <script src="/assets/js/games-shell/leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
 
 <script>
 (() => {
@@ -502,6 +505,8 @@ permalink: /toolbox/2048/
     runStartedAt = Date.now();
     runNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     pendingSubmit = false;
+    lastRankInfo = null;
+    if (settleBtn) settleBtn.setEnabled(false);
     if (lbWidget) lbWidget.setSplit(String(state.size));
   }
 
@@ -536,6 +541,7 @@ permalink: /toolbox/2048/
       ]);
       // 凑出 2048 也算一次"里程碑战绩"，提交到排行榜
       tryAutoSubmit();
+      if (settleBtn) settleBtn.setEnabled(true);
       return;
     }
 
@@ -544,6 +550,7 @@ permalink: /toolbox/2048/
         { label: '再来一局', action: () => newGame() }
       ]);
       tryAutoSubmit();
+      if (settleBtn) settleBtn.setEnabled(true);
     }
   }
 
@@ -563,11 +570,99 @@ permalink: /toolbox/2048/
   // ============ 排行榜接入 ============
   let lbWidget = null;
   let nickPrompt = null;
+  let settleBtn = null;
+  let lastRankInfo = null;   // 同步 setRank 状态，结算图取最新值
+
+  // 结算图：4×4 数字格盘面绘制
+  const TILE_COLORS = {
+    2:    ['#eee4da', '#776e65'],
+    4:    ['#ede0c8', '#776e65'],
+    8:    ['#f2b179', '#f9f6f2'],
+    16:   ['#f59563', '#f9f6f2'],
+    32:   ['#f67c5f', '#f9f6f2'],
+    64:   ['#f65e3b', '#f9f6f2'],
+    128:  ['#edcf72', '#f9f6f2'],
+    256:  ['#edcc61', '#f9f6f2'],
+    512:  ['#edc850', '#f9f6f2'],
+    1024: ['#edc53f', '#f9f6f2'],
+    2048: ['#edc22e', '#f9f6f2'],
+  };
+  const TILE_VBIG = ['#3c3a32', '#f9f6f2'];
+
+  function paint2048Board(ctx, x, y, w, h) {
+    const n = state.size;
+    const gap = Math.max(4, Math.round(w * 0.018));
+    const cell = (Math.min(w, h) - gap * (n + 1)) / n;
+    const boardW = cell * n + gap * (n + 1);
+    const ox = x + (w - boardW) / 2;
+    const oy = y + (h - boardW) / 2;
+    // 棋盘底色
+    ctx.fillStyle = '#bbada0';
+    ctx.fillRect(x, y, w, h);
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        const cx = ox + gap + c * (cell + gap);
+        const cy = oy + gap + r * (cell + gap);
+        const v = state.board[r][c];
+        const radius = Math.max(4, cell * 0.08);
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') ctx.roundRect(cx, cy, cell, cell, radius);
+        else ctx.rect(cx, cy, cell, cell);
+        if (v === 0) ctx.fillStyle = 'rgba(238,228,218,0.35)';
+        else ctx.fillStyle = (TILE_COLORS[v] ? TILE_COLORS[v][0] : TILE_VBIG[0]);
+        ctx.fill();
+        if (v !== 0) {
+          let factor = 0.42;
+          if (v >= 1024) factor = 0.32;
+          else if (v >= 128) factor = 0.38;
+          ctx.fillStyle = (TILE_COLORS[v] ? TILE_COLORS[v][1] : TILE_VBIG[1]);
+          ctx.font = `700 ${Math.max(14, cell * factor)}px Georgia, "Times New Roman", "STSong", serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(String(v), cx + cell / 2, cy + cell / 2);
+        }
+      }
+    }
+  }
+
+  function maxTile() {
+    let m = 0;
+    for (let r = 0; r < state.size; r++) {
+      for (let c = 0; c < state.size; c++) {
+        if (state.board[r][c] > m) m = state.board[r][c];
+      }
+    }
+    return m;
+  }
+
+  function getSettlementOpts() {
+    const ri = lastRankInfo || {};
+    return {
+      kind: 'single',
+      gameId: '2048',
+      title: '2048',
+      emoji: '🎯',
+      nick: GamesShell.Identity.getNick(),
+      score: state.score,
+      scoreLabel: '本 局 得 分',
+      scoreFormatter: v => Number(v).toLocaleString(),
+      rankInfo: ri,
+      stats: [
+        { label: '最大方块', value: maxTile() },
+        { label: '棋盘', value: `${state.size}×${state.size}` },
+        { label: '历史最高', value: Number(state.best[state.size] || 0).toLocaleString() },
+      ],
+      paintBoard: paint2048Board,
+      boardAspect: 1,
+      watermark: 'zirconeey.github.io/toolbox/2048',
+    };
+  }
 
   function setRank(stateName, data) {
     if (stateName === 'hidden') {
       rankRow.classList.remove('show', 'loading', 'failed');
       rankRow.innerHTML = '';
+      lastRankInfo = null;
       return;
     }
     rankRow.classList.add('show');
@@ -575,12 +670,15 @@ permalink: /toolbox/2048/
     if (stateName === 'loading') {
       rankRow.classList.add('loading');
       rankRow.textContent = '排名上传中…';
+      lastRankInfo = { mode: state.size + '×' + state.size };
     } else if (stateName === 'failed') {
       rankRow.classList.add('failed');
       rankRow.textContent = '排行榜暂时不可用（不影响游戏）';
+      lastRankInfo = { failed: true, mode: state.size + '×' + state.size };
     } else if (stateName === 'pending') {
       rankRow.classList.add('failed');
       rankRow.textContent = '想上排行榜？看下面的昵称表单 ↓';
+      lastRankInfo = { pending: true, mode: state.size + '×' + state.size };
     } else if (stateName === 'success' && data && data.rank && data.total) {
       rankRow.innerHTML = '';
       rankRow.append(
@@ -590,6 +688,7 @@ permalink: /toolbox/2048/
         Object.assign(document.createElement('strong'), { textContent: String(data.total) }),
         document.createTextNode(' 位玩家'),
       );
+      lastRankInfo = { rank: data.rank, total: data.total, mode: state.size + '×' + state.size };
     }
   }
 
@@ -736,6 +835,15 @@ permalink: /toolbox/2048/
         onSkip: () => setRank('hidden'),
       });
     }
+    // 结算图按钮（游戏结束才能点）
+    if (window.GamesShell && GamesShell.Settlement) {
+      settleBtn = GamesShell.Settlement.mountButton({
+        container: document.getElementById('settleBtnMount'),
+        gameId: '2048',
+        getOpts: getSettlementOpts,
+        startDisabled: !(resumedGameOver || (state.score > 0 && !canMove(state.board))),
+      });
+    }
 
     // 进页面时如果发现是从老版本（没排行榜的 JS）遗留下来的 GG 局，
     // 同样尝试上传——不然玩家这局好成绩白瞎。
@@ -745,6 +853,7 @@ permalink: /toolbox/2048/
       runNonce = stable;
       runStartedAt = Date.now() - 60000;   // 假设至少玩了 1 分钟
       tryAutoSubmit();
+      if (settleBtn) settleBtn.setEnabled(true);
     }
   }
   init();

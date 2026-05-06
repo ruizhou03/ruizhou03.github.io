@@ -540,3 +540,104 @@
   background: var(--color-accent);
   color: #fff;
 }
+
+/* ================== 结算图（settlement.js） ================== */
+/* 触发按钮：挂在排行榜下方的 settle-btn-mount 容器里 */
+.gs-settle-btn {
+  font: inherit;
+  font-size: 0.84rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.6rem auto 0;
+  padding: 0.45rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.gs-settle-btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.gs-settle-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.gs-settle-btn-emoji { font-size: 0.95rem; line-height: 1; }
+/* 让按钮在父 container 里居中 */
+[id$="settle-btn-mount"] {
+  display: flex;
+  justify-content: center;
+}
+
+/* 浮层 */
+.gs-settle-overlay {
+  position: fixed; inset: 0;
+  background: rgba(20, 20, 20, 0.6);
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 9100;
+  padding: 1rem;
+  overflow-y: auto;
+}
+.gs-settle-overlay.gs-open {
+  display: flex;
+  animation: gs-fade-in 220ms ease-out;
+}
+.gs-settle-card {
+  max-width: 420px;
+  width: 100%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 1rem 1rem 1.1rem;
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+  margin: auto;
+}
+.gs-settle-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.gs-settle-tip {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  margin: 0.7rem 0 0.9rem;
+  line-height: 1.5;
+}
+.gs-settle-actions {
+  display: flex;
+  gap: 0.55rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.gs-settle-actions button {
+  font: inherit; font-size: 0.88rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.gs-settle-primary {
+  background: var(--color-accent);
+  color: #fff;
+  border: 1px solid var(--color-accent);
+  font-weight: 600;
+}
+.gs-settle-primary:hover { filter: brightness(1.05); }
+.gs-settle-secondary {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  border: 1px solid var(--color-border);
+}
+.gs-settle-secondary:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
