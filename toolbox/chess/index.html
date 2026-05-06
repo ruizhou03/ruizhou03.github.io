@@ -1,0 +1,782 @@
+---
+layout: default
+title: "国际象棋 | Rui Zhou"
+permalink: /toolbox/chess/
+---
+
+<style>
+  .ch-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; }
+  .ch-wrap header { text-align: center; margin-bottom: 1.2rem; }
+  .ch-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
+  .ch-wrap header .sub { color: var(--color-light); font-style: italic; font-size: 0.92rem; }
+
+  .ch-controls {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    justify-content: center; align-items: center;
+    margin-bottom: 0.9rem;
+  }
+  .ch-mode-tabs { display: inline-flex; gap: 0.25rem; }
+  .ch-mode-tab {
+    padding: 0.36rem 0.72rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--color-muted);
+    transition: all 0.18s ease;
+  }
+  .ch-mode-tab.active {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+  }
+  .ch-mode-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  .ch-btn {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.86rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--color-ink);
+    transition: all 0.18s ease;
+  }
+  .ch-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  .ch-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .ch-row-label { font-size: 0.82rem; color: var(--color-muted); margin-right: 0.15rem; }
+  .ch-difficulty-row { margin-top: -0.3rem; }
+
+  .ch-statusbar {
+    display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+    font-size: 0.92rem;
+    color: var(--color-ink);
+  }
+  .ch-turn {
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+  }
+  .ch-tally {
+    display: flex; gap: 0.3rem;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    align-items: center;
+  }
+  .ch-tally span { padding: 0.18rem 0.45rem; background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 6px; }
+
+  .ch-board-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    aspect-ratio: 1 / 1;
+    border: 1px solid #5a4530;
+    border-radius: 6px;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  .ch-board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    width: 100%; height: 100%;
+  }
+  .ch-cell {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: filter 0.12s;
+  }
+  .ch-cell.light { background: #f0d9b5; }
+  .ch-cell.dark { background: #b58863; }
+  :root[data-theme="dark"] .ch-cell.light { background: #c8a878; }
+  :root[data-theme="dark"] .ch-cell.dark { background: #8a6f4f; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .ch-cell.light { background: #c8a878; }
+    :root:not([data-theme="light"]) .ch-cell.dark { background: #8a6f4f; }
+  }
+  .ch-cell.last-from { box-shadow: inset 0 0 0 100px rgba(245, 209, 66, 0.32); }
+  .ch-cell.last-to { box-shadow: inset 0 0 0 100px rgba(245, 209, 66, 0.45); }
+  .ch-cell.selected { box-shadow: inset 0 0 0 4px #e6b400; }
+  .ch-cell.in-check { box-shadow: inset 0 0 0 4px #e74c3c; background: rgba(231, 76, 60, 0.25) !important; }
+  .ch-cell:hover { filter: brightness(1.05); }
+
+  .ch-piece {
+    font-size: clamp(28px, 7.5vw, 56px);
+    line-height: 1;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .ch-piece.white { color: #fff; text-shadow: 0 0 1px #1a1a1a, 0 0 2px #1a1a1a, 1px 1px 1px rgba(0,0,0,0.5); }
+  .ch-piece.black { color: #1a1a1a; text-shadow: 0 1px 1px rgba(255,255,255,0.4); }
+
+  .ch-dot {
+    position: absolute;
+    width: 26%; height: 26%;
+    border-radius: 50%;
+    background: rgba(20, 20, 20, 0.32);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .ch-cell.target-capture .ch-dot {
+    width: 86%; height: 86%;
+    background: transparent;
+    border: 4px solid rgba(220, 60, 60, 0.55);
+    box-sizing: border-box;
+  }
+
+  .ch-coord {
+    position: absolute;
+    font-size: 9px;
+    font-family: var(--font-display);
+    line-height: 1;
+    pointer-events: none;
+    font-weight: 600;
+  }
+  .ch-cell.light .ch-coord { color: #b58863; }
+  .ch-cell.dark .ch-coord { color: #f0d9b5; }
+  .ch-coord.file { right: 4px; bottom: 2px; }
+  .ch-coord.rank { left: 4px; top: 2px; }
+
+  .ch-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0.6rem;
+    text-align: center;
+    color: #fff;
+    padding: 1rem;
+    z-index: 10;
+  }
+  .ch-overlay.show { display: flex; }
+  .ch-overlay h2 { font-size: 1.6rem; margin: 0; font-family: var(--font-display); }
+  .ch-paused-overlay { background: rgba(0, 0, 0, 0.35); }
+
+  .ch-help {
+    margin-top: 1rem;
+    font-size: 0.82rem;
+    color: var(--color-muted);
+    text-align: center;
+    line-height: 1.7;
+  }
+</style>
+
+<div class="ch-wrap">
+  <header>
+    <h1>♟️ 国际象棋</h1>
+    <div class="sub">同机对弈 / 人机对战 — 三档 AI 难度</div>
+  </header>
+
+  <div class="ch-controls">
+    <div class="ch-mode-tabs" id="chModeTabs">
+      <button class="ch-mode-tab active" data-mode="pvp">双人同机</button>
+      <button class="ch-mode-tab" data-mode="ai-black">人机（执黑）</button>
+      <button class="ch-mode-tab" data-mode="ai-white">人机（执白）</button>
+    </div>
+  </div>
+
+  <div class="ch-controls ch-difficulty-row" id="chDifficultyRow" hidden>
+    <span class="ch-row-label">难度</span>
+    <div class="ch-mode-tabs" id="chDifficultyTabs">
+      <button class="ch-mode-tab" data-diff="easy">🌱 新手</button>
+      <button class="ch-mode-tab active" data-diff="normal">🙂 普通</button>
+      <button class="ch-mode-tab" data-diff="hard">🔥 高手</button>
+    </div>
+  </div>
+
+  <div class="ch-controls">
+    <button class="ch-btn" id="chUndoBtn">↶ 悔棋</button>
+    <button class="ch-btn" id="chPauseBtn" hidden>⏸ 暂停</button>
+    <button class="ch-btn" id="chNewBtn">🔄 重新开始</button>
+  </div>
+
+  <div class="ch-statusbar">
+    <div class="ch-turn" id="chTurn">⚪ 白方走子</div>
+    <div class="ch-tally">
+      <span>白胜 <b id="chTallyW">0</b></span>
+      <span>黑胜 <b id="chTallyB">0</b></span>
+      <span>和 <b id="chTallyD">0</b></span>
+    </div>
+  </div>
+
+  <div class="ch-board-wrap">
+    <div class="ch-board" id="chBoard"></div>
+    <div class="ch-overlay" id="chOverlay">
+      <h2 id="chOvTitle">游戏结束</h2>
+      <button class="ch-btn" id="chOvBtn">再来一局</button>
+    </div>
+    <div class="ch-overlay ch-paused-overlay" id="chPausedOverlay">
+      <h2>⏸ 已暂停</h2>
+      <button class="ch-btn" id="chResumeBtn">▶ 继续</button>
+    </div>
+  </div>
+
+  <div class="ch-help">点击棋子选中后再点目标格落子。规则全套：王车易位、吃过路兵、兵升变（自动选后）、将军 / 将死 / 逼和 / 三次重复 / 50 步规则。</div>
+</div>
+
+<script src="{{ '/assets/lib/chess.min.js' | relative_url }}"></script>
+<script>
+(() => {
+  const STORE_KEY = 'tool.chess.v1';
+  const FILES = ['a','b','c','d','e','f','g','h'];
+  const RANKS = ['8','7','6','5','4','3','2','1'];
+  const PIECE_GLYPH = {
+    w: { p: '♙', n: '♘', b: '♗', r: '♖', q: '♕', k: '♔' },
+    b: { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛', k: '♚' }
+  };
+
+  // Difficulty knobs:
+  //   depth      — minimax search depth (plies)
+  //   randomTopK — pick weighted-random from top-K candidates (>1 = noisier)
+  //   noise      — multiplicative jitter on leaf evals (easy mode plays imperfectly)
+  //   delayMs    — minimum thinking delay before move shows
+  const DIFFICULTY = {
+    easy:   { depth: 1, randomTopK: 4, noise: 0.18, delayMs: 250 },
+    normal: { depth: 2, randomTopK: 1, noise: 0,    delayMs: 380 },
+    hard:   { depth: 3, randomTopK: 1, noise: 0,    delayMs: 600 }
+  };
+
+  // Centipawn material values
+  const PIECE_VALUE = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
+
+  // Piece-square tables (from white's POV; flip for black). Encourages dev/center.
+  // Source: classic Tomasz Michniewski simplified evaluation.
+  const PST = {
+    p: [
+       0,  0,  0,  0,  0,  0,  0,  0,
+      50, 50, 50, 50, 50, 50, 50, 50,
+      10, 10, 20, 30, 30, 20, 10, 10,
+       5,  5, 10, 25, 25, 10,  5,  5,
+       0,  0,  0, 20, 20,  0,  0,  0,
+       5, -5,-10,  0,  0,-10, -5,  5,
+       5, 10, 10,-20,-20, 10, 10,  5,
+       0,  0,  0,  0,  0,  0,  0,  0
+    ],
+    n: [
+     -50,-40,-30,-30,-30,-30,-40,-50,
+     -40,-20,  0,  0,  0,  0,-20,-40,
+     -30,  0, 10, 15, 15, 10,  0,-30,
+     -30,  5, 15, 20, 20, 15,  5,-30,
+     -30,  0, 15, 20, 20, 15,  0,-30,
+     -30,  5, 10, 15, 15, 10,  5,-30,
+     -40,-20,  0,  5,  5,  0,-20,-40,
+     -50,-40,-30,-30,-30,-30,-40,-50
+    ],
+    b: [
+     -20,-10,-10,-10,-10,-10,-10,-20,
+     -10,  0,  0,  0,  0,  0,  0,-10,
+     -10,  0,  5, 10, 10,  5,  0,-10,
+     -10,  5,  5, 10, 10,  5,  5,-10,
+     -10,  0, 10, 10, 10, 10,  0,-10,
+     -10, 10, 10, 10, 10, 10, 10,-10,
+     -10,  5,  0,  0,  0,  0,  5,-10,
+     -20,-10,-10,-10,-10,-10,-10,-20
+    ],
+    r: [
+       0,  0,  0,  0,  0,  0,  0,  0,
+       5, 10, 10, 10, 10, 10, 10,  5,
+      -5,  0,  0,  0,  0,  0,  0, -5,
+      -5,  0,  0,  0,  0,  0,  0, -5,
+      -5,  0,  0,  0,  0,  0,  0, -5,
+      -5,  0,  0,  0,  0,  0,  0, -5,
+      -5,  0,  0,  0,  0,  0,  0, -5,
+       0,  0,  0,  5,  5,  0,  0,  0
+    ],
+    q: [
+     -20,-10,-10, -5, -5,-10,-10,-20,
+     -10,  0,  0,  0,  0,  0,  0,-10,
+     -10,  0,  5,  5,  5,  5,  0,-10,
+      -5,  0,  5,  5,  5,  5,  0, -5,
+       0,  0,  5,  5,  5,  5,  0, -5,
+     -10,  5,  5,  5,  5,  5,  0,-10,
+     -10,  0,  5,  0,  0,  0,  0,-10,
+     -20,-10,-10, -5, -5,-10,-10,-20
+    ],
+    k: [
+     -30,-40,-40,-50,-50,-40,-40,-30,
+     -30,-40,-40,-50,-50,-40,-40,-30,
+     -30,-40,-40,-50,-50,-40,-40,-30,
+     -30,-40,-40,-50,-50,-40,-40,-30,
+     -20,-30,-30,-40,-40,-30,-30,-20,
+     -10,-20,-20,-20,-20,-20,-20,-10,
+      20, 20,  0,  0,  0,  0, 20, 20,
+      20, 30, 10,  0,  0, 10, 30, 20
+    ]
+  };
+
+  function squareIndex(sq) {
+    // a8=0..h8=7, a7=8..h7=15, ..., a1=56..h1=63
+    const file = sq.charCodeAt(0) - 97;       // a..h → 0..7
+    const rank = 8 - parseInt(sq[1], 10);     // 8..1 → 0..7
+    return rank * 8 + file;
+  }
+
+  function pstScore(piece, color, sq) {
+    const idx = squareIndex(sq);
+    const tableIdx = color === 'w' ? idx : (idx ^ 56); // mirror vertically for black
+    return PST[piece][tableIdx];
+  }
+
+  // Static evaluation from White's perspective (positive = good for white)
+  function evaluateBoard(game) {
+    if (game.in_checkmate()) {
+      // The side to move is checkmated
+      return game.turn() === 'w' ? -1e6 : 1e6;
+    }
+    if (game.in_draw() || game.in_stalemate() || game.in_threefold_repetition() || game.insufficient_material()) {
+      return 0;
+    }
+    let score = 0;
+    const board = game.board(); // 8x8 from rank 8 to rank 1
+    for (let r = 0; r < 8; r++) {
+      for (let f = 0; f < 8; f++) {
+        const cell = board[r][f];
+        if (!cell) continue;
+        const sq = FILES[f] + RANKS[r];
+        const matVal = PIECE_VALUE[cell.type];
+        const posVal = pstScore(cell.type, cell.color, sq);
+        const sign = cell.color === 'w' ? 1 : -1;
+        score += sign * (matVal + posVal);
+      }
+    }
+    return score;
+  }
+
+  // Move ordering hint: captures + checks first, helps α-β pruning
+  function moveOrderKey(m) {
+    let k = 0;
+    if (m.flags.indexOf('c') !== -1 || m.flags.indexOf('e') !== -1) {
+      // MVV-LVA approximation: capturing higher-value with lower-value first
+      const victim = PIECE_VALUE[m.captured || 'p'];
+      const attacker = PIECE_VALUE[m.piece];
+      k += 10000 + victim * 10 - attacker;
+    }
+    if (m.flags.indexOf('p') !== -1) k += 9000;
+    if (m.flags.indexOf('k') !== -1 || m.flags.indexOf('q') !== -1) k += 100;
+    return k;
+  }
+
+  // Minimax with α-β pruning. Returns {score, move} where score is from white's POV.
+  function negamax(game, depth, alpha, beta, color) {
+    // color = +1 for white-to-move, -1 for black-to-move
+    if (depth === 0 || game.game_over()) {
+      return { score: color * evaluateBoard(game), move: null };
+    }
+    const moves = game.moves({ verbose: true });
+    moves.sort((a, b) => moveOrderKey(b) - moveOrderKey(a));
+    let bestMove = moves[0];
+    let bestScore = -Infinity;
+    for (const m of moves) {
+      game.move(m);
+      const child = negamax(game, depth - 1, -beta, -alpha, -color);
+      const score = -child.score;
+      game.undo();
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = m;
+      }
+      if (score > alpha) alpha = score;
+      if (alpha >= beta) break;
+    }
+    return { score: bestScore, move: bestMove };
+  }
+
+  // Top-level AI move picker. Honors difficulty's depth, noise, randomTopK.
+  function pickAiMove(game, cfg) {
+    const moves = game.moves({ verbose: true });
+    if (moves.length === 0) return null;
+    moves.sort((a, b) => moveOrderKey(b) - moveOrderKey(a));
+
+    const colorSign = game.turn() === 'w' ? 1 : -1;
+    const scored = moves.map(m => {
+      game.move(m);
+      const child = negamax(game, cfg.depth - 1, -Infinity, Infinity, -colorSign);
+      let score = -child.score;
+      game.undo();
+      if (cfg.noise > 0) score += (Math.random() - 0.5) * 2 * cfg.noise * Math.abs(score || 50);
+      return { move: m, score };
+    });
+    scored.sort((a, b) => b.score - a.score);
+
+    if (cfg.randomTopK > 1 && scored.length > 1) {
+      const k = Math.min(cfg.randomTopK, scored.length);
+      const top = scored.slice(0, k);
+      const minS = Math.min(...top.map(x => x.score));
+      const weights = top.map(x => Math.max(1, x.score - minS + 30));
+      const sum = weights.reduce((a, b) => a + b, 0);
+      let r = Math.random() * sum;
+      for (let i = 0; i < top.length; i++) {
+        r -= weights[i];
+        if (r <= 0) return top[i].move;
+      }
+      return top[0].move;
+    }
+    return scored[0].move;
+  }
+
+  // ============ State + DOM ============
+
+  const stored = (() => {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
+    catch { return {}; }
+  })();
+
+  const state = {
+    mode: stored.lastMode || 'pvp',
+    difficulty: DIFFICULTY[stored.difficulty] ? stored.difficulty : 'normal',
+    tally: Object.assign({ w: 0, b: 0, d: 0 }, stored.tally || {}),
+    game: new Chess(),
+    selected: null,
+    legalTargets: [],     // verbose moves from `selected`
+    aiThinking: false,
+    paused: false,
+    over: false,
+    lastMove: null
+  };
+
+  const board = document.getElementById('chBoard');
+  const turnEl = document.getElementById('chTurn');
+  const tallyW = document.getElementById('chTallyW');
+  const tallyB = document.getElementById('chTallyB');
+  const tallyD = document.getElementById('chTallyD');
+  const undoBtn = document.getElementById('chUndoBtn');
+  const newBtn = document.getElementById('chNewBtn');
+  const pauseBtn = document.getElementById('chPauseBtn');
+  const overlay = document.getElementById('chOverlay');
+  const ovTitle = document.getElementById('chOvTitle');
+  const ovBtn = document.getElementById('chOvBtn');
+  const pausedOverlay = document.getElementById('chPausedOverlay');
+  const resumeBtn = document.getElementById('chResumeBtn');
+  const difficultyRow = document.getElementById('chDifficultyRow');
+  const difficultyTabs = document.getElementById('chDifficultyTabs');
+
+  function persist() {
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      tally: state.tally,
+      lastMode: state.mode,
+      difficulty: state.difficulty
+    }));
+  }
+
+  // Convention (matches gomoku): 'ai-black' means human plays black; AI plays white.
+  function aiSide() {
+    if (state.mode === 'ai-black') return 'w';   // human is black → AI is white
+    if (state.mode === 'ai-white') return 'b';   // human is white → AI is black
+    return null;
+  }
+
+  function humanSide() {
+    if (state.mode === 'ai-black') return 'b';
+    if (state.mode === 'ai-white') return 'w';
+    return null;
+  }
+
+  // Show the human's side at the bottom: PvP and ai-white → white at bottom; ai-black flips.
+  function isFlipped() {
+    return state.mode === 'ai-black';
+  }
+
+  function renderBoard() {
+    board.innerHTML = '';
+    const flipped = isFlipped();
+    const checkSq = state.game.in_check() ? findKingSquare(state.game.turn()) : null;
+    const lastMove = state.lastMove;
+    const cells = state.game.board();
+    for (let r = 0; r < 8; r++) {
+      for (let f = 0; f < 8; f++) {
+        const dispR = flipped ? 7 - r : r;
+        const dispF = flipped ? 7 - f : f;
+        const cellPiece = cells[dispR][dispF];
+        const sq = FILES[dispF] + RANKS[dispR];
+        const cellEl = document.createElement('div');
+        cellEl.className = 'ch-cell ' + ((dispR + dispF) % 2 === 0 ? 'light' : 'dark');
+        cellEl.dataset.sq = sq;
+        if (state.selected === sq) cellEl.classList.add('selected');
+        if (lastMove && lastMove.from === sq) cellEl.classList.add('last-from');
+        if (lastMove && lastMove.to === sq) cellEl.classList.add('last-to');
+        if (checkSq === sq) cellEl.classList.add('in-check');
+
+        if (cellPiece) {
+          const pieceEl = document.createElement('span');
+          pieceEl.className = 'ch-piece ' + (cellPiece.color === 'w' ? 'white' : 'black');
+          pieceEl.textContent = PIECE_GLYPH[cellPiece.color][cellPiece.type];
+          cellEl.appendChild(pieceEl);
+        }
+
+        // Coordinate labels on edge cells
+        if ((flipped && dispR === 0) || (!flipped && dispR === 7)) {
+          const fileLabel = document.createElement('span');
+          fileLabel.className = 'ch-coord file';
+          fileLabel.textContent = FILES[dispF];
+          cellEl.appendChild(fileLabel);
+        }
+        if ((flipped && dispF === 7) || (!flipped && dispF === 0)) {
+          const rankLabel = document.createElement('span');
+          rankLabel.className = 'ch-coord rank';
+          rankLabel.textContent = RANKS[dispR];
+          cellEl.appendChild(rankLabel);
+        }
+
+        // Target indicator dots
+        const target = state.legalTargets.find(m => m.to === sq);
+        if (target) {
+          const isCapture = target.flags.indexOf('c') !== -1 || target.flags.indexOf('e') !== -1;
+          if (isCapture) cellEl.classList.add('target-capture');
+          const dot = document.createElement('span');
+          dot.className = 'ch-dot';
+          cellEl.appendChild(dot);
+        }
+
+        board.appendChild(cellEl);
+      }
+    }
+  }
+
+  function findKingSquare(color) {
+    const cells = state.game.board();
+    for (let r = 0; r < 8; r++) {
+      for (let f = 0; f < 8; f++) {
+        const c = cells[r][f];
+        if (c && c.type === 'k' && c.color === color) return FILES[f] + RANKS[r];
+      }
+    }
+    return null;
+  }
+
+  function updateStatus() {
+    const turn = state.game.turn();
+    let label;
+    if (state.paused) {
+      label = '⏸ 已暂停';
+    } else if (state.over) {
+      if (state.game.in_checkmate()) {
+        label = (turn === 'w' ? '⚫ 黑方将死 — 黑胜' : '⚪ 白方将死 — 白胜');
+      } else if (state.game.in_stalemate()) {
+        label = '— 逼和 —';
+      } else if (state.game.in_threefold_repetition()) {
+        label = '— 三次重复，和棋 —';
+      } else if (state.game.insufficient_material()) {
+        label = '— 子力不足，和棋 —';
+      } else if (state.game.in_draw()) {
+        label = '— 和棋 —';
+      } else {
+        label = '— 游戏结束 —';
+      }
+    } else if (state.aiThinking) {
+      label = '🤖 AI 思考中…';
+    } else {
+      const inCheck = state.game.in_check();
+      label = (turn === 'w' ? '⚪ 白方走子' : '⚫ 黑方走子') + (inCheck ? ' — 将军！' : '');
+    }
+    turnEl.textContent = label;
+
+    tallyW.textContent = state.tally.w;
+    tallyB.textContent = state.tally.b;
+    tallyD.textContent = state.tally.d;
+
+    undoBtn.disabled = state.game.history().length === 0 || state.aiThinking || state.paused;
+
+    document.querySelectorAll('#chModeTabs .ch-mode-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.mode === state.mode);
+    });
+    document.querySelectorAll('#chDifficultyTabs .ch-mode-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.diff === state.difficulty);
+    });
+
+    const isAi = aiSide() !== null;
+    difficultyRow.hidden = !isAi;
+    pauseBtn.hidden = !isAi;
+    pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+    pauseBtn.disabled = state.over;
+    pausedOverlay.classList.toggle('show', state.paused && !state.over);
+  }
+
+  function newGame() {
+    state.game = new Chess();
+    state.selected = null;
+    state.legalTargets = [];
+    state.aiThinking = false;
+    state.paused = false;
+    state.over = false;
+    state.lastMove = null;
+    overlay.classList.remove('show');
+    pausedOverlay.classList.remove('show');
+    renderBoard();
+    updateStatus();
+    // AI plays white when human is black → AI moves first
+    if (state.mode === 'ai-black') {
+      setTimeout(triggerAiMove, 320);
+    }
+  }
+
+  function endGameIfOver() {
+    if (!state.game.game_over()) return false;
+    state.over = true;
+    let title;
+    if (state.game.in_checkmate()) {
+      // The side that just moved won (opposite of current turn)
+      const winner = state.game.turn() === 'w' ? 'b' : 'w';
+      if (winner === 'w') { state.tally.w++; title = '⚪ 白方将死黑方'; }
+      else { state.tally.b++; title = '⚫ 黑方将死白方'; }
+    } else {
+      state.tally.d++;
+      if (state.game.in_stalemate()) title = '— 逼和 —';
+      else if (state.game.in_threefold_repetition()) title = '— 三次重复，和棋 —';
+      else if (state.game.insufficient_material()) title = '— 子力不足，和棋 —';
+      else title = '— 50 步规则，和棋 —';
+    }
+    persist();
+    ovTitle.textContent = title;
+    overlay.classList.add('show');
+    return true;
+  }
+
+  function applyMove(moveObj) {
+    // moveObj must include from/to (and optionally promotion)
+    const result = state.game.move(moveObj);
+    if (!result) return null;
+    state.lastMove = { from: result.from, to: result.to };
+    state.selected = null;
+    state.legalTargets = [];
+    renderBoard();
+    if (!endGameIfOver()) {
+      updateStatus();
+      // If AI's turn now, queue AI move
+      if (!state.paused && aiSide() === state.game.turn()) {
+        setTimeout(triggerAiMove, 100);
+      }
+    } else {
+      updateStatus();
+    }
+    return result;
+  }
+
+  function triggerAiMove() {
+    if (state.over || state.paused) return;
+    if (aiSide() !== state.game.turn()) return;
+    state.aiThinking = true;
+    updateStatus();
+    const cfg = DIFFICULTY[state.difficulty];
+    setTimeout(() => {
+      const startedAt = Date.now();
+      const move = pickAiMove(state.game, cfg);
+      const elapsed = Date.now() - startedAt;
+      const wait = Math.max(0, cfg.delayMs - elapsed);
+      setTimeout(() => {
+        state.aiThinking = false;
+        if (state.paused || state.over) { updateStatus(); return; }
+        if (move) applyMove({ from: move.from, to: move.to, promotion: move.promotion || 'q' });
+        else { updateStatus(); }
+      }, wait);
+    }, 30);
+  }
+
+  // Click handling
+  board.addEventListener('click', (e) => {
+    if (state.over || state.aiThinking || state.paused) return;
+    const cell = e.target.closest('.ch-cell');
+    if (!cell) return;
+    const sq = cell.dataset.sq;
+    const turn = state.game.turn();
+    const piece = state.game.get(sq);
+
+    // In AI mode, prevent the human from moving the AI's pieces
+    if (aiSide() !== null && turn !== humanSide()) return;
+
+    // If a target was clicked, attempt move
+    if (state.selected) {
+      const target = state.legalTargets.find(m => m.to === sq);
+      if (target) {
+        applyMove({ from: state.selected, to: sq, promotion: target.promotion || 'q' });
+        return;
+      }
+      // Re-select if clicking another own piece
+      if (piece && piece.color === turn) {
+        state.selected = sq;
+        state.legalTargets = state.game.moves({ square: sq, verbose: true });
+        renderBoard();
+        return;
+      }
+      // Otherwise deselect
+      state.selected = null;
+      state.legalTargets = [];
+      renderBoard();
+      return;
+    }
+
+    // No selection → select if it's own piece
+    if (piece && piece.color === turn) {
+      state.selected = sq;
+      state.legalTargets = state.game.moves({ square: sq, verbose: true });
+      renderBoard();
+    }
+  });
+
+  // Mode tabs
+  document.getElementById('chModeTabs').addEventListener('click', (e) => {
+    const t = e.target.closest('.ch-mode-tab');
+    if (!t) return;
+    state.mode = t.dataset.mode;
+    persist();
+    newGame();
+  });
+
+  // Difficulty tabs
+  difficultyTabs.addEventListener('click', (e) => {
+    const t = e.target.closest('.ch-mode-tab');
+    if (!t || !DIFFICULTY[t.dataset.diff]) return;
+    if (state.difficulty === t.dataset.diff) return;
+    state.difficulty = t.dataset.diff;
+    persist();
+    newGame();
+  });
+
+  // Pause toggle
+  function togglePause() {
+    if (aiSide() === null || state.over) return;
+    state.paused = !state.paused;
+    updateStatus();
+    if (!state.paused && aiSide() === state.game.turn() && !state.aiThinking) {
+      setTimeout(triggerAiMove, 100);
+    }
+  }
+  pauseBtn.onclick = togglePause;
+  resumeBtn.onclick = togglePause;
+
+  // Undo: PvP rolls back 1 ply, AI mode rolls back to player's previous turn (2 plies)
+  undoBtn.onclick = () => {
+    if (state.aiThinking || state.paused) return;
+    const steps = aiSide() != null ? 2 : 1;
+    let undone = 0;
+    for (let i = 0; i < steps; i++) {
+      if (state.game.history().length === 0) break;
+      state.game.undo();
+      undone++;
+    }
+    if (undone === 0) return;
+    state.over = false;
+    state.selected = null;
+    state.legalTargets = [];
+    const hist = state.game.history({ verbose: true });
+    state.lastMove = hist.length > 0 ? { from: hist[hist.length-1].from, to: hist[hist.length-1].to } : null;
+    overlay.classList.remove('show');
+    renderBoard();
+    updateStatus();
+  };
+
+  newBtn.onclick = newGame;
+  ovBtn.onclick = newGame;
+
+  newGame();
+})();
+</script>
