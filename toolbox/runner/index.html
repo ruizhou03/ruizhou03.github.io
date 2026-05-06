@@ -238,6 +238,7 @@ permalink: /toolbox/runner/
   </details>
 
   <div id="runner-lb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="runner-settle-btn-mount"></div>
   <div id="runner-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </article>
 
@@ -245,6 +246,7 @@ permalink: /toolbox/runner/
 <script src="/assets/js/games-shell/leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
 
 <script>
 (function () {
@@ -374,8 +376,10 @@ permalink: /toolbox/runner/
     runnerRunStartedAt = Date.now();
     runnerRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     runnerPendingSubmit = false;
+    runnerLastRankInfo = null;
     runnerSetRank('hidden');
     if (runnerNickPrompt) runnerNickPrompt.hide();
+    if (runnerSettleBtn) runnerSettleBtn.setEnabled(false);
   }
 
   function gameOver() {
@@ -390,6 +394,7 @@ permalink: /toolbox/runner/
     $overScore.textContent = `${finalScore} 米`;
     $overBest.textContent = `${state.best} 米`;
     $overOver.classList.remove('hidden');
+    if (runnerSettleBtn && finalScore > 0) runnerSettleBtn.setEnabled(true);
   }
 
   // ── 输入 ──────────────────────────────
@@ -899,19 +904,61 @@ permalink: /toolbox/runner/
   let runnerRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
   let runnerPendingSubmit = false;
   let runnerLastFinalScore = 0;
+  let runnerSettleBtn = null;
+  let runnerLastRankInfo = null;
   const $runnerRankRow = document.getElementById('runner-rank-row');
+
+  function runnerPaintBoard(ctx, x, y, w, h) {
+    const $canvas = document.getElementById('game-canvas');
+    if ($canvas && $canvas.width > 0 && $canvas.height > 0) {
+      ctx.drawImage($canvas, x, y, w, h);
+    }
+  }
+  function runnerGetSettlementOpts() {
+    const ri = runnerLastRankInfo || {};
+    const $canvas = document.getElementById('game-canvas');
+    const aspect = ($canvas && $canvas.height > 0) ? ($canvas.width / $canvas.height) : 16 / 9;
+    return {
+      kind: 'single',
+      gameId: 'runner',
+      title: 'Deadline 大逃亡',
+      emoji: '🏃',
+      nick: GamesShell.Identity.getNick(),
+      score: runnerLastFinalScore || Math.floor(state.score),
+      scoreLabel: '本 局 距 离',
+      scoreFormatter: v => v + ' 米',
+      rankInfo: ri,
+      stats: [
+        { label: '历史最远', value: state.best + ' 米' },
+      ],
+      paintBoard: runnerPaintBoard,
+      boardW: 540,
+      boardAspect: aspect,
+      watermark: 'zirconeey.github.io/toolbox/runner',
+    };
+  }
 
   function runnerSetRank(name, data) {
     if (name === 'hidden') {
       $runnerRankRow.classList.remove('show', 'loading', 'failed');
       $runnerRankRow.innerHTML = '';
+      runnerLastRankInfo = null;
       return;
     }
     $runnerRankRow.classList.add('show');
     $runnerRankRow.classList.remove('loading', 'failed');
-    if (name === 'loading') { $runnerRankRow.classList.add('loading'); $runnerRankRow.textContent = '排名上传中…'; }
-    else if (name === 'failed') { $runnerRankRow.classList.add('failed'); $runnerRankRow.textContent = '排行榜暂时不可用（不影响游戏）'; }
-    else if (name === 'pending') { $runnerRankRow.classList.add('failed'); $runnerRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓'; }
+    if (name === 'loading') {
+      $runnerRankRow.classList.add('loading'); $runnerRankRow.textContent = '排名上传中…';
+      runnerLastRankInfo = {};
+    }
+    else if (name === 'failed') {
+      $runnerRankRow.classList.add('failed'); $runnerRankRow.textContent = '排行榜暂时不可用（不影响游戏）';
+      runnerLastRankInfo = { failed: true };
+    }
+    else if (name === 'pending') {
+      $runnerRankRow.classList.add('failed'); $runnerRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓';
+      runnerLastRankInfo = { pending: true };
+    }
     else if (name === 'success' && data && data.rank && data.total) {
       $runnerRankRow.innerHTML = '';
       $runnerRankRow.append(
@@ -921,6 +968,7 @@ permalink: /toolbox/runner/
         Object.assign(document.createElement('strong'), { textContent: String(data.total) }),
         document.createTextNode(' 位玩家'),
       );
+      runnerLastRankInfo = { rank: data.rank, total: data.total };
     }
   }
 
@@ -977,6 +1025,14 @@ permalink: /toolbox/runner/
       onSubmit: nick => runnerSubmitWithNick(nick),
       onSkip: () => runnerSetRank('hidden'),
     });
+    if (GamesShell.Settlement) {
+      runnerSettleBtn = GamesShell.Settlement.mountButton({
+        container: document.getElementById('runner-settle-btn-mount'),
+        gameId: 'runner',
+        getOpts: runnerGetSettlementOpts,
+        startDisabled: true,
+      });
+    }
   }
 
   // ── 启动 ──────────────────────────────

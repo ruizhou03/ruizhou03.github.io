@@ -246,6 +246,7 @@ permalink: /toolbox/minesweeper/
   <div id="ms-nick-mount" style="max-width: 600px; margin: 0.6rem auto 0;"></div>
 
   <div id="ms-lb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="ms-settle-btn-mount"></div>
   <div id="ms-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
 
@@ -254,6 +255,7 @@ permalink: /toolbox/minesweeper/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
 
 <script>
 (() => {
@@ -332,7 +334,9 @@ permalink: /toolbox/minesweeper/
     // 重置上榜状态：上一局的 PendingSubmit 锁要清，否则下一局赢了会被
     // msSubmitWithNick 第一行的 `if (msPendingSubmit) return` 静默挡掉
     if (typeof msPendingSubmit !== 'undefined') msPendingSubmit = false;
+    if (typeof msLastRankInfo !== 'undefined') msLastRankInfo = null;
     if (typeof msSetRank === 'function') msSetRank('hidden');
+    if (typeof msSettleBtn !== 'undefined' && msSettleBtn) msSettleBtn.setEnabled(false);
     renderBoard();
     updateStatus();
     document.querySelectorAll('.ms-diff-tab').forEach(t => {
@@ -638,6 +642,7 @@ permalink: /toolbox/minesweeper/
     if (won || state.mustGuess) msTryAutoSubmit();
     else msSetRank('hidden');
     if (typeof msSave !== 'undefined' && msSave) msSave.discard();
+    if (typeof msSettleBtn !== 'undefined' && msSettleBtn) msSettleBtn.setEnabled(true);
   }
 
   function updateStatus() {
@@ -752,19 +757,127 @@ permalink: /toolbox/minesweeper/
   let msNickPrompt = null;
   let msPendingSubmit = false;
   let msRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+  let msSettleBtn = null;
+  let msLastRankInfo = null;
   const $msRankRow = document.getElementById('ms-rank-row');
+
+  const MS_DIFF_LABEL = { easy: '简单', mid: '中等', hard: '高级' };
+  const MS_NUMBER_COLORS = { 1: '#1976d2', 2: '#388e3c', 3: '#d32f2f', 4: '#1a237e',
+                              5: '#7b1fa2', 6: '#00796b', 7: '#212121', 8: '#616161' };
+
+  function msPaintBoard(ctx, x, y, w, h) {
+    const cols = state.cols;
+    const rows = state.rows;
+    const cell = Math.min(w / cols, h / rows);
+    const ox = x + (w - cell * cols) / 2;
+    const oy = y + (h - cell * rows) / 2;
+    ctx.fillStyle = '#bdbdbd';
+    ctx.fillRect(x, y, w, h);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cx = ox + c * cell;
+        const cy = oy + r * cell;
+        const v = state.grid[r][c];
+        const revealed = state.revealed[r][c];
+        const flagged = state.flagged[r][c];
+        const wrong = state.wrong && state.wrong[r][c];
+        // 底色
+        if (!revealed) {
+          ctx.fillStyle = '#cfcfcf';
+          ctx.fillRect(cx + 1, cy + 1, cell - 2, cell - 2);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = Math.max(1, cell * 0.06);
+          ctx.beginPath();
+          ctx.moveTo(cx + 1, cy + cell - 1);
+          ctx.lineTo(cx + 1, cy + 1);
+          ctx.lineTo(cx + cell - 1, cy + 1);
+          ctx.stroke();
+          ctx.strokeStyle = '#8a8a8a';
+          ctx.beginPath();
+          ctx.moveTo(cx + 1, cy + cell - 1);
+          ctx.lineTo(cx + cell - 1, cy + cell - 1);
+          ctx.lineTo(cx + cell - 1, cy + 1);
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = (v === -1 && !flagged) ? '#ef9a9a' : '#e0e0e0';
+          ctx.fillRect(cx + 1, cy + 1, cell - 2, cell - 2);
+          ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(cx + 0.5, cy + 0.5, cell, cell);
+        }
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        if (flagged) {
+          ctx.fillStyle = '#d32f2f';
+          ctx.font = `${Math.max(8, cell * 0.6)}px sans-serif`;
+          ctx.fillText(wrong && revealed ? '✗' : '⚑', cx + cell / 2, cy + cell / 2 + cell * 0.04);
+        } else if (revealed) {
+          if (v === -1) {
+            ctx.fillStyle = '#212121';
+            ctx.font = `${Math.max(8, cell * 0.55)}px sans-serif`;
+            ctx.fillText('💣', cx + cell / 2, cy + cell / 2 + cell * 0.04);
+          } else if (v > 0) {
+            ctx.fillStyle = MS_NUMBER_COLORS[v] || '#212121';
+            ctx.font = `700 ${Math.max(8, cell * 0.6)}px Georgia, serif`;
+            ctx.fillText(String(v), cx + cell / 2, cy + cell / 2 + cell * 0.04);
+          }
+        }
+      }
+    }
+  }
+
+  function msGetSettlementOpts() {
+    const ri = msLastRankInfo || {};
+    const won = state.won;
+    const mustGuess = state.mustGuess;
+    const resultLabel = won
+      ? (mustGuess ? '🍀 运气通关' : '🎉 通关')
+      : (mustGuess ? '💔 必猜遗憾' : '💥 踩雷');
+    return {
+      kind: 'single',
+      gameId: 'minesweeper',
+      title: '扫雷',
+      emoji: '💣',
+      nick: GamesShell.Identity.getNick(),
+      score: state.elapsed,
+      scoreLabel: won ? '通 关 用 时' : '坚 持 用 时',
+      scoreFormatter: v => v + ' s',
+      rankInfo: ri,
+      stats: [
+        { label: '难度', value: MS_DIFF_LABEL[state.diff] || state.diff },
+        { label: '盘面', value: `${state.cols}×${state.rows}　雷 ${state.mines}` },
+        { label: '结果', value: resultLabel },
+        { label: '历史最佳', value: state.best[state.diff] != null ? state.best[state.diff] + ' s' : '—' },
+      ],
+      paintBoard: msPaintBoard,
+      boardW: 480,
+      boardAspect: state.cols / state.rows,
+      watermark: 'zirconeey.github.io/toolbox/minesweeper',
+    };
+  }
 
   function msSetRank(name, data) {
     if (name === 'hidden') {
       $msRankRow.classList.remove('show', 'loading', 'failed');
       $msRankRow.innerHTML = '';
+      msLastRankInfo = null;
       return;
     }
     $msRankRow.classList.add('show');
     $msRankRow.classList.remove('loading', 'failed');
-    if (name === 'loading') { $msRankRow.classList.add('loading'); $msRankRow.textContent = '排名上传中…'; }
-    else if (name === 'failed') { $msRankRow.classList.add('failed'); $msRankRow.textContent = '排行榜暂时不可用（不影响游戏）'; }
-    else if (name === 'pending') { $msRankRow.classList.add('failed'); $msRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓'; }
+    const mode = MS_DIFF_LABEL[state.diff] || state.diff;
+    if (name === 'loading') {
+      $msRankRow.classList.add('loading'); $msRankRow.textContent = '排名上传中…';
+      msLastRankInfo = { mode };
+    }
+    else if (name === 'failed') {
+      $msRankRow.classList.add('failed'); $msRankRow.textContent = '排行榜暂时不可用（不影响游戏）';
+      msLastRankInfo = { failed: true, mode };
+    }
+    else if (name === 'pending') {
+      $msRankRow.classList.add('failed'); $msRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓';
+      msLastRankInfo = { pending: true, mode };
+    }
     else if (name === 'success' && data && data.rank && data.total) {
       $msRankRow.innerHTML = '';
       $msRankRow.append(
@@ -774,6 +887,7 @@ permalink: /toolbox/minesweeper/
         Object.assign(document.createElement('strong'), { textContent: String(data.total) }),
         document.createTextNode(' 位玩家'),
       );
+      msLastRankInfo = { rank: data.rank, total: data.total, mode };
     }
     else if (name === 'not-best' && data) {
       $msRankRow.innerHTML = '';
@@ -786,6 +900,7 @@ permalink: /toolbox/minesweeper/
         Object.assign(document.createElement('strong'), { textContent: best + ' s' }),
         document.createTextNode('）'),
       );
+      msLastRankInfo = { mode, pending: false };
     }
   }
 
@@ -868,6 +983,14 @@ permalink: /toolbox/minesweeper/
       onSubmit: nick => msSubmitWithNick(nick),
       onSkip: () => msSetRank('hidden'),
     });
+    if (GamesShell.Settlement) {
+      msSettleBtn = GamesShell.Settlement.mountButton({
+        container: document.getElementById('ms-settle-btn-mount'),
+        gameId: 'minesweeper',
+        getOpts: msGetSettlementOpts,
+        startDisabled: !state.over,
+      });
+    }
   }
 
   // 切换难度后排行榜面板同步切到对应 tab + 丢当前局存档

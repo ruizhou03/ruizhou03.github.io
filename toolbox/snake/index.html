@@ -218,6 +218,7 @@ permalink: /toolbox/snake/
   <div id="sn-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
 
   <div id="sn-lb-mount" style="margin-top: 1.5rem;"></div>
+  <div id="sn-settle-btn-mount"></div>
   <div id="sn-cm-mount"></div>
 </div>
 
@@ -226,6 +227,7 @@ permalink: /toolbox/snake/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
 
 <script>
 (() => {
@@ -482,6 +484,7 @@ permalink: /toolbox/snake/
     draw();
     if (snSave) snSave.discard();    // 死了就清存档，不弹续局
     snTryAutoSubmit();
+    if (snSettleBtn) snSettleBtn.setEnabled(true);
   }
 
   function draw() {
@@ -650,20 +653,100 @@ permalink: /toolbox/snake/
   let snRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
   let snPendingSubmit = false;
   let snSave = null;
+  let snSettleBtn = null;
+  let snLastRankInfo = null;
   const $snRankRow = document.getElementById('sn-rank-row');
+
+  const SPEED_LABEL = { slow: '慢速', mid: '中速', fast: '快速' };
+
+  function snPaintBoard(ctx, x, y, w, h) {
+    const cs = w / GRID;
+    // 背景：用 game-zone 的浅黄底色
+    ctx.fillStyle = '#fef6e4';
+    ctx.fillRect(x, y, w, h);
+    // 网格线（淡）
+    ctx.strokeStyle = 'rgba(30, 58, 95, 0.06)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < GRID; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x + i * cs, y);
+      ctx.lineTo(x + i * cs, y + h);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, y + i * cs);
+      ctx.lineTo(x + w, y + i * cs);
+      ctx.stroke();
+    }
+    // 食物
+    if (state.food) {
+      ctx.fillStyle = '#e74c3c';
+      ctx.beginPath();
+      ctx.arc(x + state.food.x * cs + cs / 2, y + state.food.y * cs + cs / 2, cs * 0.38, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 大食物
+    if (state.bigFood) {
+      const b = state.bigFood;
+      const cx = x + (b.x + 1) * cs;
+      const cy = y + (b.y + 1) * cs;
+      ctx.fillStyle = '#f1c40f';
+      ctx.beginPath();
+      ctx.arc(cx, cy, cs * 0.9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#b9870c';
+      ctx.lineWidth = Math.max(1, cs * 0.08);
+      ctx.stroke();
+    }
+    // 蛇
+    state.snake.forEach((s, i) => {
+      ctx.fillStyle = i === 0 ? '#c0392b' : (i % 2 === 0 ? '#1e3a5f' : '#3a6ea5');
+      ctx.fillRect(x + s.x * cs + 1, y + s.y * cs + 1, cs - 2, cs - 2);
+    });
+  }
+
+  function snGetSettlementOpts() {
+    const ri = snLastRankInfo || {};
+    return {
+      kind: 'single',
+      gameId: 'snake',
+      title: '贪吃蛇',
+      emoji: '🐍',
+      nick: GamesShell.Identity.getNick(),
+      score: state.score,
+      scoreLabel: '本 局 得 分',
+      scoreFormatter: v => Number(v).toLocaleString(),
+      rankInfo: ri,
+      stats: [
+        { label: '蛇身长度', value: state.snake.length },
+        { label: '速度', value: SPEED_LABEL[state.speed] || state.speed },
+        { label: '历史最高', value: Number(state.best[state.speed] || 0).toLocaleString() },
+      ],
+      paintBoard: snPaintBoard,
+      boardAspect: 1,
+      watermark: 'zirconeey.github.io/toolbox/snake',
+    };
+  }
 
   function snSetRank(name, data) {
     if (name === 'hidden') {
       $snRankRow.classList.remove('show', 'loading', 'failed');
       $snRankRow.innerHTML = '';
+      snLastRankInfo = null;
       return;
     }
     $snRankRow.classList.add('show');
     $snRankRow.classList.remove('loading', 'failed');
-    if (name === 'loading') { $snRankRow.classList.add('loading'); $snRankRow.textContent = '排名上传中…'; }
-    else if (name === 'failed') { $snRankRow.classList.add('failed'); $snRankRow.textContent = '排行榜暂时不可用（不影响游戏）'; }
-    else if (name === 'pending') { $snRankRow.classList.add('failed'); $snRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓'; }
-    else if (name === 'success' && data && data.rank && data.total) {
+    const mode = SPEED_LABEL[state.speed] || state.speed;
+    if (name === 'loading') {
+      $snRankRow.classList.add('loading'); $snRankRow.textContent = '排名上传中…';
+      snLastRankInfo = { mode };
+    } else if (name === 'failed') {
+      $snRankRow.classList.add('failed'); $snRankRow.textContent = '排行榜暂时不可用（不影响游戏）';
+      snLastRankInfo = { failed: true, mode };
+    } else if (name === 'pending') {
+      $snRankRow.classList.add('failed'); $snRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓';
+      snLastRankInfo = { pending: true, mode };
+    } else if (name === 'success' && data && data.rank && data.total) {
       $snRankRow.innerHTML = '';
       $snRankRow.append(
         document.createTextNode('第 '),
@@ -672,6 +755,7 @@ permalink: /toolbox/snake/
         Object.assign(document.createElement('strong'), { textContent: String(data.total) }),
         document.createTextNode(' 位玩家'),
       );
+      snLastRankInfo = { rank: data.rank, total: data.total, mode };
     }
   }
 
@@ -754,8 +838,10 @@ permalink: /toolbox/snake/
     snRunStartedAt = Date.now();
     snRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     snPendingSubmit = false;
+    snLastRankInfo = null;
     snSetRank('hidden');
     if (snNickPrompt) snNickPrompt.hide();
+    if (snSettleBtn) snSettleBtn.setEnabled(false);
     reset();
     if (snSave) snSave.start();
   }
@@ -791,6 +877,14 @@ permalink: /toolbox/snake/
       onSubmit: nick => snSubmitWithNick(nick),
       onSkip: () => snSetRank('hidden'),
     });
+    if (GamesShell.Settlement) {
+      snSettleBtn = GamesShell.Settlement.mountButton({
+        container: document.getElementById('sn-settle-btn-mount'),
+        gameId: 'snake',
+        getOpts: snGetSettlementOpts,
+        startDisabled: true,
+      });
+    }
     snSave = GamesShell.SaveState.create({
       key: 'tool.snake.savestate.v1',
       ttlMs: 48 * 3600 * 1000,

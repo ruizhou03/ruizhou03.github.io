@@ -234,6 +234,7 @@ permalink: /toolbox/leap/
   </details>
 
   <div id="leap-lb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="leap-settle-btn-mount"></div>
   <div id="leap-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </article>
 
@@ -241,6 +242,7 @@ permalink: /toolbox/leap/
 <script src="/assets/js/games-shell/leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
 
 <script>
 (function () {
@@ -439,8 +441,10 @@ permalink: /toolbox/leap/
     leapRunStartedAt = Date.now();
     leapRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     leapPendingSubmit = false;
+    leapLastRankInfo = null;
     leapSetRank('hidden');
     if (leapNickPrompt) leapNickPrompt.hide();
+    if (leapSettleBtn) leapSettleBtn.setEnabled(false);
   }
 
   function gameOver(reason) {
@@ -468,6 +472,7 @@ permalink: /toolbox/leap/
       gameOverTimer = null;
     }, GAMEOVER_DELAY_MS);
     leapTryAutoSubmit();
+    if (leapSettleBtn && state.score > 0) leapSettleBtn.setEnabled(true);
   }
 
   // ── 蓄力 / 起跳 ────────────────────────
@@ -935,19 +940,62 @@ permalink: /toolbox/leap/
   let leapRunStartedAt = Date.now();
   let leapRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
   let leapPendingSubmit = false;
+  let leapSettleBtn = null;
+  let leapLastRankInfo = null;
   const $leapRankRow = document.getElementById('leap-rank-row');
+
+  // 结算图：直接 drawImage 当前游戏画布（含死亡瞬间）
+  function leapPaintBoard(ctx, x, y, w, h) {
+    const $canvas = document.getElementById('game-canvas');
+    if ($canvas && $canvas.width > 0 && $canvas.height > 0) {
+      ctx.drawImage($canvas, x, y, w, h);
+    }
+  }
+  function leapGetSettlementOpts() {
+    const ri = leapLastRankInfo || {};
+    const $canvas = document.getElementById('game-canvas');
+    const aspect = ($canvas && $canvas.height > 0) ? ($canvas.width / $canvas.height) : 16 / 10;
+    return {
+      kind: 'single',
+      gameId: 'leap',
+      title: '跳过 Deadline',
+      emoji: '🐦',
+      nick: GamesShell.Identity.getNick(),
+      score: state.score,
+      scoreLabel: '本 局 跳 数',
+      scoreFormatter: v => v + ' 跳',
+      rankInfo: ri,
+      stats: [
+        { label: '历史最远', value: state.best + ' 跳' },
+      ],
+      paintBoard: leapPaintBoard,
+      boardW: 540,
+      boardAspect: aspect,
+      watermark: 'zirconeey.github.io/toolbox/leap',
+    };
+  }
 
   function leapSetRank(name, data) {
     if (name === 'hidden') {
       $leapRankRow.classList.remove('show', 'loading', 'failed');
       $leapRankRow.innerHTML = '';
+      leapLastRankInfo = null;
       return;
     }
     $leapRankRow.classList.add('show');
     $leapRankRow.classList.remove('loading', 'failed');
-    if (name === 'loading') { $leapRankRow.classList.add('loading'); $leapRankRow.textContent = '排名上传中…'; }
-    else if (name === 'failed') { $leapRankRow.classList.add('failed'); $leapRankRow.textContent = '排行榜暂时不可用（不影响游戏）'; }
-    else if (name === 'pending') { $leapRankRow.classList.add('failed'); $leapRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓'; }
+    if (name === 'loading') {
+      $leapRankRow.classList.add('loading'); $leapRankRow.textContent = '排名上传中…';
+      leapLastRankInfo = {};
+    }
+    else if (name === 'failed') {
+      $leapRankRow.classList.add('failed'); $leapRankRow.textContent = '排行榜暂时不可用（不影响游戏）';
+      leapLastRankInfo = { failed: true };
+    }
+    else if (name === 'pending') {
+      $leapRankRow.classList.add('failed'); $leapRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓';
+      leapLastRankInfo = { pending: true };
+    }
     else if (name === 'success' && data && data.rank && data.total) {
       $leapRankRow.innerHTML = '';
       $leapRankRow.append(
@@ -957,6 +1005,7 @@ permalink: /toolbox/leap/
         Object.assign(document.createElement('strong'), { textContent: String(data.total) }),
         document.createTextNode(' 位玩家'),
       );
+      leapLastRankInfo = { rank: data.rank, total: data.total };
     }
   }
 
@@ -1012,6 +1061,14 @@ permalink: /toolbox/leap/
       onSubmit: nick => leapSubmitWithNick(nick),
       onSkip: () => leapSetRank('hidden'),
     });
+    if (GamesShell.Settlement) {
+      leapSettleBtn = GamesShell.Settlement.mountButton({
+        container: document.getElementById('leap-settle-btn-mount'),
+        gameId: 'leap',
+        getOpts: leapGetSettlementOpts,
+        startDisabled: true,
+      });
+    }
   }
 
   // ── 启动 ──────────────────────────────
