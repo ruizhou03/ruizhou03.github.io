@@ -76,12 +76,15 @@ permalink: /toolbox/minesweeper/
   .ms-wrap[data-diff="mid"]  { --ms-cell-size: 32px; }
   .ms-wrap[data-diff="hard"] { --ms-cell-size: 26px; }
   /* On mobile, shrink to fit viewport so the whole board is visible without horizontal scroll.
-     Buffer = 2×wrap padding + (cols-1) gap + 2 border ≈ 1rem + cols+1 px; use generous rem values. */
+     Buffer = 2×wrap padding + (cols-1) gap + 2 border ≈ 1rem + cols+1 px; use generous rem values.
+     hard 在手机竖屏下被 JS 转置成 30×16（data-orient="tall"）→ 按 16 列算宽，腾出
+     更大的格子（~22px vs 横版 ~12px），代价是页面会出现一段竖向滚动（700px+ 屏幕基本能装下）。 */
   @media (max-width: 600px) {
     .ms-wrap { padding: 0.5rem; }
     .ms-wrap[data-diff="easy"] { --ms-cell-size: min(42px, calc((100vw - 2rem) / 9)); }
     .ms-wrap[data-diff="mid"]  { --ms-cell-size: min(32px, calc((100vw - 2.5rem) / 16)); }
     .ms-wrap[data-diff="hard"] { --ms-cell-size: min(26px, calc((100vw - 3.5rem) / 30)); }
+    .ms-wrap[data-diff="hard"][data-orient="tall"] { --ms-cell-size: min(34px, calc((100vw - 2.5rem) / 16)); }
   }
 
   .ms-wrap header { text-align: center; margin-bottom: 1.2rem; }
@@ -298,13 +301,25 @@ permalink: /toolbox/minesweeper/
     localStorage.setItem(STORE_KEY, JSON.stringify({ best: state.best, lastDiff: state.diff }));
   }
 
+  // 手机竖屏下把 hard 的 16×30 转置成 30×16，让宽方向只有 16 列、
+  // 在 393px 屏幕能拿到 ~22px/格（vs 横版 ~12px），几乎翻倍。
+  // 平板 / 桌面 / 横屏不触发，保留原版竞速布局。
+  function shouldTransposeHardForPortrait() {
+    return typeof window !== 'undefined' && window.matchMedia
+      && window.matchMedia('(max-width: 600px) and (orientation: portrait)').matches;
+  }
+
   function newGame() {
     const d = DIFF[state.diff];
-    state.rows = d.rows; state.cols = d.cols; state.mines = d.mines;
-    state.grid = Array.from({ length: d.rows }, () => Array(d.cols).fill(0));
-    state.revealed = Array.from({ length: d.rows }, () => Array(d.cols).fill(false));
-    state.flagged = Array.from({ length: d.rows }, () => Array(d.cols).fill(false));
-    state.wrong = Array.from({ length: d.rows }, () => Array(d.cols).fill(false));
+    let rows = d.rows, cols = d.cols;
+    if (state.diff === 'hard' && cols > rows && shouldTransposeHardForPortrait()) {
+      [rows, cols] = [cols, rows];
+    }
+    state.rows = rows; state.cols = cols; state.mines = d.mines;
+    state.grid = Array.from({ length: rows }, () => Array(cols).fill(0));
+    state.revealed = Array.from({ length: rows }, () => Array(cols).fill(false));
+    state.flagged = Array.from({ length: rows }, () => Array(cols).fill(false));
+    state.wrong = Array.from({ length: rows }, () => Array(cols).fill(false));
     state.started = false;
     state.over = false;
     state.won = false;
@@ -433,6 +448,8 @@ permalink: /toolbox/minesweeper/
 
   function renderBoard() {
     wrapEl.dataset.diff = state.diff;
+    // tall: 行多于列（手机竖屏转置过的 hard）。CSS 据此切换 cell-size 公式。
+    wrapEl.dataset.orient = (state.rows > state.cols) ? 'tall' : 'wide';
     boardEl.style.gridTemplateColumns = `repeat(${state.cols}, var(--ms-cell-size))`;
     boardEl.innerHTML = '';
     for (let r = 0; r < state.rows; r++) {
