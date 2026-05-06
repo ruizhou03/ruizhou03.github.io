@@ -4,6 +4,27 @@ title: "跳过 Deadline | Rui Zhou"
 permalink: /toolbox/leap/
 ---
 
+<link rel="stylesheet" href="/assets/css/games-shell.css">
+
+<style>
+  .leap-rank-row {
+    margin: 0.9rem auto 0;
+    padding: 0.55rem 0.8rem;
+    max-width: 600px;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    text-align: center;
+    font-size: 0.92rem;
+    color: var(--color-ink);
+    display: none;
+  }
+  .leap-rank-row.show { display: block; }
+  .leap-rank-row strong { color: var(--color-highlight); font-weight: 700; }
+  .leap-rank-row.loading { color: var(--color-muted); }
+  .leap-rank-row.failed { color: var(--color-muted); font-size: 0.84rem; }
+</style>
+
 <style>
   .leap-wrap {
     max-width: 760px;
@@ -201,14 +222,24 @@ permalink: /toolbox/leap/
     </div>
   </div>
 
+  <div class="leap-rank-row" id="leap-rank-row"></div>
+  <div id="leap-nick-mount" style="max-width: 600px; margin: 0.6rem auto 0;"></div>
+
   <details class="about">
     <summary>关于这个游戏</summary>
     <p><strong>玩法：</strong>每根桩代表 PhD 生活里的一个 deadline（投稿、IRB、reviewer 反馈、组会汇报）。长按蓄力，松开就以那个力度跳出去。</p>
     <p><strong>蓄力 = 跳的距离</strong>，线性映射：蓄力 50% 就跨越 50% 距离。蓄力条上有一道横线，是「刚好够下一桩」的最低蓄力——低于它必掉空隙。</p>
     <p><strong>四种死法：</strong>蓄力不够掉空隙、飞过头、撞到桩侧面、擦边没站稳。落点越靠桩心给分越多（正中 +N×3，普通 +N，N 是这一跳跨越的桩数）。</p>
-    <p><strong>纯本地：</strong>最高分本机存，不联网、不上传。</p>
   </details>
+
+  <div id="leap-lb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="leap-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </article>
+
+<script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/leaderboard.js"></script>
+<script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
 
 <script>
 (function () {
@@ -388,6 +419,11 @@ permalink: /toolbox/leap/
     resetGame();
     $overStart.classList.add('hidden');
     $overOver.classList.add('hidden');
+    leapRunStartedAt = Date.now();
+    leapRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+    leapPendingSubmit = false;
+    leapSetRank('hidden');
+    if (leapNickPrompt) leapNickPrompt.hide();
   }
 
   function gameOver(reason) {
@@ -406,6 +442,7 @@ permalink: /toolbox/leap/
     $overBest.textContent  = `${state.best} 跳`;
     updateScoreUI();
     $overOver.classList.remove('hidden');
+    leapTryAutoSubmit();
   }
 
   // ── 蓄力 / 起跳 ────────────────────────
@@ -849,6 +886,91 @@ permalink: /toolbox/leap/
     requestAnimationFrame(tick);
   }
 
+  // ── games-shell 接入：排行榜 / 评论 / 昵称 ──
+  let leapLbWidget = null;
+  let leapNickPrompt = null;
+  let leapRunStartedAt = Date.now();
+  let leapRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+  let leapPendingSubmit = false;
+  const $leapRankRow = document.getElementById('leap-rank-row');
+
+  function leapSetRank(name, data) {
+    if (name === 'hidden') {
+      $leapRankRow.classList.remove('show', 'loading', 'failed');
+      $leapRankRow.innerHTML = '';
+      return;
+    }
+    $leapRankRow.classList.add('show');
+    $leapRankRow.classList.remove('loading', 'failed');
+    if (name === 'loading') { $leapRankRow.classList.add('loading'); $leapRankRow.textContent = '排名上传中…'; }
+    else if (name === 'failed') { $leapRankRow.classList.add('failed'); $leapRankRow.textContent = '排行榜暂时不可用（不影响游戏）'; }
+    else if (name === 'pending') { $leapRankRow.classList.add('failed'); $leapRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓'; }
+    else if (name === 'success' && data && data.rank && data.total) {
+      $leapRankRow.innerHTML = '';
+      $leapRankRow.append(
+        document.createTextNode('第 '),
+        Object.assign(document.createElement('strong'), { textContent: String(data.rank) }),
+        document.createTextNode(' 名 · 共 '),
+        Object.assign(document.createElement('strong'), { textContent: String(data.total) }),
+        document.createTextNode(' 位玩家'),
+      );
+    }
+  }
+
+  async function leapSubmitWithNick(nick) {
+    if (!nick || leapPendingSubmit || state.score <= 0) return;
+    leapPendingSubmit = true;
+    leapSetRank('loading');
+    const r = await GamesShell.Leaderboard.submit({
+      gameId: 'leap',
+      nick,
+      score: state.score,
+      durationMs: Math.max(1000, Date.now() - leapRunStartedAt),
+      clientNonce: leapRunNonce,
+      did: GamesShell.Identity.getDeviceId(),
+    });
+    if (r && r.ok) {
+      leapSetRank('success', { rank: r.rank, total: r.total });
+      if (leapLbWidget) leapLbWidget.refresh();
+    } else {
+      leapSetRank('failed');
+      leapPendingSubmit = false;
+      if (r && r.data && r.data.reason) console.warn('[leap] submit rejected:', r.data.reason);
+    }
+  }
+
+  function leapTryAutoSubmit() {
+    if (!window.GamesShell) return;
+    if (state.score <= 0) { leapSetRank('hidden'); return; }
+    const nick = GamesShell.Identity.getNick();
+    if (nick) leapSubmitWithNick(nick);
+    else { leapSetRank('pending'); leapNickPrompt && leapNickPrompt.show(); }
+  }
+
+  function leapInitShell() {
+    if (!window.GamesShell) return;
+    leapLbWidget = GamesShell.Leaderboard.mount({
+      container: document.getElementById('leap-lb-mount'),
+      gameId: 'leap',
+      title: '🏆 跳过 Deadline 排行榜',
+      scoreFormatter: v => v + ' 跳',
+      getCurrentNick: () => GamesShell.Identity.getNick(),
+    });
+    GamesShell.Comments.mount({
+      container: document.getElementById('leap-cm-mount'),
+      path: '/toolbox/leap/',
+      title: '💬 跳得怎么样',
+      intro: '聊聊你的最佳跳法、踩点心得、被哪类 deadline 卡死过 ~',
+      placeholder: '聊聊你的跳点心得 ~',
+    });
+    leapNickPrompt = GamesShell.NickPrompt.mount({
+      container: document.getElementById('leap-nick-mount'),
+      prompt: '想上排行榜？起个昵称吧',
+      onSubmit: nick => leapSubmitWithNick(nick),
+      onSkip: () => leapSetRank('hidden'),
+    });
+  }
+
   // ── 启动 ──────────────────────────────
   function init() {
     loadPalette();
@@ -864,6 +986,7 @@ permalink: /toolbox/leap/
       document.fonts.ready.then(drawScene);
     }
     requestAnimationFrame((t) => { lastTime = t; tick(t); });
+    leapInitShell();
   }
   init();
 

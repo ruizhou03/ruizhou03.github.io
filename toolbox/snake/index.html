@@ -4,6 +4,27 @@ title: "贪吃蛇 | Rui Zhou"
 permalink: /toolbox/snake/
 ---
 
+<link rel="stylesheet" href="/assets/css/games-shell.css">
+
+<style>
+  .sn-rank-row {
+    margin: 0.9rem auto 0;
+    padding: 0.55rem 0.8rem;
+    max-width: 480px;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    text-align: center;
+    font-size: 0.92rem;
+    color: var(--color-ink);
+    display: none;
+  }
+  .sn-rank-row.show { display: block; }
+  .sn-rank-row strong { color: var(--color-highlight); font-weight: 700; }
+  .sn-rank-row.loading { color: var(--color-muted); }
+  .sn-rank-row.failed { color: var(--color-muted); font-size: 0.84rem; }
+</style>
+
 <style>
   .sn-wrap { max-width: 560px; margin: 0 auto; padding: 1rem; }
   .sn-wrap header { text-align: center; margin-bottom: 1.2rem; }
@@ -192,7 +213,19 @@ permalink: /toolbox/snake/
   <div class="sn-help">
     <kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd> 或 <kbd>WASD</kbd>　·　<kbd>空格</kbd> 暂停
   </div>
+
+  <div class="sn-rank-row" id="sn-rank-row"></div>
+  <div id="sn-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
+
+  <div id="sn-lb-mount" style="margin-top: 1.5rem;"></div>
+  <div id="sn-cm-mount"></div>
 </div>
+
+<script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/leaderboard.js"></script>
+<script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
+<script src="/assets/js/games-shell/save-state.js"></script>
 
 <script>
 (() => {
@@ -447,6 +480,8 @@ permalink: /toolbox/snake/
     overlay.classList.remove('sn-overlay--pause');
     overlay.classList.add('show');
     draw();
+    if (snSave) snSave.discard();    // 死了就清存档，不弹续局
+    snTryAutoSubmit();
   }
 
   function draw() {
@@ -599,11 +634,178 @@ permalink: /toolbox/snake/
   });
 
   pauseBtn.onclick = togglePause;
-  newBtn.onclick = reset;
-  ovBtn.onclick = reset;
+  newBtn.onclick = () => { snStartFresh(); };
+  ovBtn.onclick = () => { snStartFresh(); };
 
   window.addEventListener('resize', draw);
 
-  reset();
+  // ═══════════════════════════════════════════════════════════════════
+  // games-shell 接入：排行榜 / 评论 / 昵称 / 48h 续局
+  // ═══════════════════════════════════════════════════════════════════
+  let snLbWidget = null;
+  let snNickPrompt = null;
+  let snRunStartedAt = Date.now();
+  let snRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+  let snPendingSubmit = false;
+  let snSave = null;
+  const $snRankRow = document.getElementById('sn-rank-row');
+
+  function snSetRank(name, data) {
+    if (name === 'hidden') {
+      $snRankRow.classList.remove('show', 'loading', 'failed');
+      $snRankRow.innerHTML = '';
+      return;
+    }
+    $snRankRow.classList.add('show');
+    $snRankRow.classList.remove('loading', 'failed');
+    if (name === 'loading') { $snRankRow.classList.add('loading'); $snRankRow.textContent = '排名上传中…'; }
+    else if (name === 'failed') { $snRankRow.classList.add('failed'); $snRankRow.textContent = '排行榜暂时不可用（不影响游戏）'; }
+    else if (name === 'pending') { $snRankRow.classList.add('failed'); $snRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓'; }
+    else if (name === 'success' && data && data.rank && data.total) {
+      $snRankRow.innerHTML = '';
+      $snRankRow.append(
+        document.createTextNode('第 '),
+        Object.assign(document.createElement('strong'), { textContent: String(data.rank) }),
+        document.createTextNode(' 名 · 共 '),
+        Object.assign(document.createElement('strong'), { textContent: String(data.total) }),
+        document.createTextNode(' 位玩家'),
+      );
+    }
+  }
+
+  async function snSubmitWithNick(nick) {
+    if (!nick || snPendingSubmit || state.score <= 0) return;
+    snPendingSubmit = true;
+    snSetRank('loading');
+    const r = await GamesShell.Leaderboard.submit({
+      gameId: 'snake',
+      nick,
+      score: state.score,
+      durationMs: Math.max(3000, Date.now() - snRunStartedAt),
+      clientNonce: snRunNonce,
+      did: GamesShell.Identity.getDeviceId(),
+      extra: { speed: state.speed },
+    });
+    if (r && r.ok) {
+      snSetRank('success', { rank: r.rank, total: r.total });
+      if (snLbWidget) snLbWidget.refresh();
+    } else {
+      snSetRank('failed');
+      snPendingSubmit = false;
+      if (r && r.data && r.data.reason) console.warn('[snake] submit rejected:', r.data.reason);
+    }
+  }
+
+  function snTryAutoSubmit() {
+    if (!window.GamesShell) return;
+    if (state.score <= 0) { snSetRank('hidden'); return; }
+    const nick = GamesShell.Identity.getNick();
+    if (nick) snSubmitWithNick(nick);
+    else { snSetRank('pending'); snNickPrompt && snNickPrompt.show(); }
+  }
+
+  // 序列化进行中的一局。bigFood 倒计时和 popups 都不存（弃用）。
+  function snSerialize() {
+    if (!state.running || state.over) return null;
+    return {
+      speed: state.speed,
+      snake: state.snake.map(s => ({ x: s.x, y: s.y })),
+      dir: state.dir,
+      nextDir: state.nextDir,
+      food: state.food,
+      score: state.score,
+      pendingGrowth: state.pendingGrowth,
+      foodsUntilBigFood: state.foodsUntilBigFood,
+    };
+  }
+
+  function snRestore(saved) {
+    if (!saved || !Array.isArray(saved.snake) || !saved.snake.length) return false;
+    state.speed = saved.speed && SPEEDS[saved.speed] ? saved.speed : 'mid';
+    state.snake = saved.snake.map(s => ({ x: s.x, y: s.y }));
+    state.dir = saved.dir || 'right';
+    state.nextDir = saved.nextDir || state.dir;
+    state.food = saved.food || null;
+    state.score = Number(saved.score) || 0;
+    state.pendingGrowth = Number(saved.pendingGrowth) || 0;
+    state.foodsUntilBigFood = Number.isFinite(saved.foodsUntilBigFood) ? saved.foodsUntilBigFood : sampleGaussianN();
+    state.bigFood = null;
+    state.pendingBigFood = false;
+    state.popups = [];
+    state.gameTime = 0;
+    if (!state.food) placeFood();
+    state.over = false;
+    state.paused = false;
+    state.running = true;
+    overlay.classList.remove('show');
+    overlay.classList.remove('sn-overlay--pause');
+    pauseBtn.textContent = '⏸ 暂停';
+    persist();
+    updateScores();
+    startLoop();
+    startAnim();
+    return true;
+  }
+
+  function snStartFresh() {
+    if (snSave) snSave.discard();
+    snRunStartedAt = Date.now();
+    snRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+    snPendingSubmit = false;
+    snSetRank('hidden');
+    if (snNickPrompt) snNickPrompt.hide();
+    reset();
+    if (snSave) snSave.start();
+  }
+
+  function snInitShell() {
+    if (!window.GamesShell) {
+      reset();
+      return;
+    }
+    snLbWidget = GamesShell.Leaderboard.mount({
+      container: document.getElementById('sn-lb-mount'),
+      gameId: 'snake',
+      title: '🏆 贪吃蛇 排行榜',
+      scoreFormatter: v => Number(v).toLocaleString(),
+      getCurrentNick: () => GamesShell.Identity.getNick(),
+    });
+    GamesShell.Comments.mount({
+      container: document.getElementById('sn-cm-mount'),
+      path: '/toolbox/snake/',
+      title: '💬 蛇友交流',
+      intro: '聊聊你的最高分、追大食物的玄学手感 ~',
+      placeholder: '聊聊你的贪吃蛇心得 ~',
+    });
+    snNickPrompt = GamesShell.NickPrompt.mount({
+      container: document.getElementById('sn-nick-mount'),
+      prompt: '想上排行榜？起个昵称吧',
+      onSubmit: nick => snSubmitWithNick(nick),
+      onSkip: () => snSetRank('hidden'),
+    });
+    snSave = GamesShell.SaveState.create({
+      key: 'tool.snake.savestate.v1',
+      ttlMs: 48 * 3600 * 1000,
+      serialize: snSerialize,
+    });
+    const peek = snSave.peek();
+    if (peek && peek.data && Array.isArray(peek.data.snake) && peek.data.snake.length) {
+      // 不重置开新局——直接显示 resume 浮层
+      reset();           // 先把界面准备好（重置 overlay 等）
+      stopLoop();        // 但别开始 tick
+      stopAnim();
+      state.running = false;
+      GamesShell.SaveState.showResumeModal({
+        summaryHtml: `上次玩到 <strong>${peek.data.score || 0}</strong> 分（${peek.data.speed} 速）<span class="gs-resume-meta">${peek.agoText}保存</span>`,
+        onResume: () => { snRestore(peek.data); snRunStartedAt = Date.now() - peek.agoMs; snSave.start(); },
+        onDiscard: () => { snSave.discard(); snStartFresh(); },
+      });
+    } else {
+      reset();
+      snSave.start();
+    }
+  }
+
+  snInitShell();
 })();
 </script>

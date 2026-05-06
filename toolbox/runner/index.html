@@ -4,6 +4,27 @@ title: "Deadline 大逃亡 | Rui Zhou"
 permalink: /toolbox/runner/
 ---
 
+<link rel="stylesheet" href="/assets/css/games-shell.css">
+
+<style>
+  .runner-rank-row {
+    margin: 0.9rem auto 0;
+    padding: 0.55rem 0.8rem;
+    max-width: 600px;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    text-align: center;
+    font-size: 0.92rem;
+    color: var(--color-ink);
+    display: none;
+  }
+  .runner-rank-row.show { display: block; }
+  .runner-rank-row strong { color: var(--color-highlight); font-weight: 700; }
+  .runner-rank-row.loading { color: var(--color-muted); }
+  .runner-rank-row.failed { color: var(--color-muted); font-size: 0.84rem; }
+</style>
+
 <style>
   .runner-wrap {
     max-width: 760px;
@@ -205,14 +226,24 @@ permalink: /toolbox/runner/
     </div>
   </div>
 
+  <div class="runner-rank-row" id="runner-rank-row"></div>
+  <div id="runner-nick-mount" style="max-width: 600px; margin: 0.6rem auto 0;"></div>
+
   <details class="about">
     <summary>关于这个游戏</summary>
     <p><strong>玩法：</strong>无限跑酷。地面是纸堆（论文 / 文献综述 / reviewer 报告），半空是飞邮件（Reviewer 2 / IRB 修改意见 / deadline 提醒），撞到任意一个就结束。速度会越跑越快。</p>
     <p><strong>跳：</strong>按一下小跳，按住跳得高，再按住到下落会进入<strong>滑翔</strong>。</p>
     <p><strong>蹲：</strong><code>↓</code> 钻过低位飞邮件，空中按 <code>↓</code> 立刻收掉滑翔、加速落地。</p>
-    <p><strong>纯本地：</strong>最高分本机存，不联网、不上传。换浏览器没了。</p>
   </details>
+
+  <div id="runner-lb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="runner-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </article>
+
+<script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/leaderboard.js"></script>
+<script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
 
 <script>
 (function () {
@@ -339,11 +370,17 @@ permalink: /toolbox/runner/
     state.phase = 'playing';
     $overStart.classList.add('hidden');
     $overOver.classList.add('hidden');
+    runnerRunStartedAt = Date.now();
+    runnerRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+    runnerPendingSubmit = false;
+    runnerSetRank('hidden');
+    if (runnerNickPrompt) runnerNickPrompt.hide();
   }
 
   function gameOver() {
     state.phase = 'gameover';
     const finalScore = Math.floor(state.score);   // 显示和存档都用整数
+    runnerTryAutoSubmit(finalScore);
     if (finalScore > state.best) {
       state.best = finalScore;
       saveBest();
@@ -854,6 +891,93 @@ permalink: /toolbox/runner/
     $hudScore.textContent = `${Math.floor(state.score)} 米`;
   }
 
+  // ── games-shell 接入 ──────────────────────
+  let runnerLbWidget = null;
+  let runnerNickPrompt = null;
+  let runnerRunStartedAt = Date.now();
+  let runnerRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+  let runnerPendingSubmit = false;
+  let runnerLastFinalScore = 0;
+  const $runnerRankRow = document.getElementById('runner-rank-row');
+
+  function runnerSetRank(name, data) {
+    if (name === 'hidden') {
+      $runnerRankRow.classList.remove('show', 'loading', 'failed');
+      $runnerRankRow.innerHTML = '';
+      return;
+    }
+    $runnerRankRow.classList.add('show');
+    $runnerRankRow.classList.remove('loading', 'failed');
+    if (name === 'loading') { $runnerRankRow.classList.add('loading'); $runnerRankRow.textContent = '排名上传中…'; }
+    else if (name === 'failed') { $runnerRankRow.classList.add('failed'); $runnerRankRow.textContent = '排行榜暂时不可用（不影响游戏）'; }
+    else if (name === 'pending') { $runnerRankRow.classList.add('failed'); $runnerRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓'; }
+    else if (name === 'success' && data && data.rank && data.total) {
+      $runnerRankRow.innerHTML = '';
+      $runnerRankRow.append(
+        document.createTextNode('第 '),
+        Object.assign(document.createElement('strong'), { textContent: String(data.rank) }),
+        document.createTextNode(' 名 · 共 '),
+        Object.assign(document.createElement('strong'), { textContent: String(data.total) }),
+        document.createTextNode(' 位玩家'),
+      );
+    }
+  }
+
+  async function runnerSubmitWithNick(nick) {
+    if (!nick || runnerPendingSubmit || runnerLastFinalScore <= 0) return;
+    runnerPendingSubmit = true;
+    runnerSetRank('loading');
+    const r = await GamesShell.Leaderboard.submit({
+      gameId: 'runner',
+      nick,
+      score: runnerLastFinalScore,
+      durationMs: Math.max(1000, Date.now() - runnerRunStartedAt),
+      clientNonce: runnerRunNonce,
+      did: GamesShell.Identity.getDeviceId(),
+    });
+    if (r && r.ok) {
+      runnerSetRank('success', { rank: r.rank, total: r.total });
+      if (runnerLbWidget) runnerLbWidget.refresh();
+    } else {
+      runnerSetRank('failed');
+      runnerPendingSubmit = false;
+      if (r && r.data && r.data.reason) console.warn('[runner] submit rejected:', r.data.reason);
+    }
+  }
+
+  function runnerTryAutoSubmit(finalScore) {
+    if (!window.GamesShell) return;
+    runnerLastFinalScore = finalScore || 0;
+    if (runnerLastFinalScore <= 0) { runnerSetRank('hidden'); return; }
+    const nick = GamesShell.Identity.getNick();
+    if (nick) runnerSubmitWithNick(nick);
+    else { runnerSetRank('pending'); runnerNickPrompt && runnerNickPrompt.show(); }
+  }
+
+  function runnerInitShell() {
+    if (!window.GamesShell) return;
+    runnerLbWidget = GamesShell.Leaderboard.mount({
+      container: document.getElementById('runner-lb-mount'),
+      gameId: 'runner',
+      title: '🏆 Deadline 大逃亡 排行榜',
+      scoreFormatter: v => v + ' 米',
+      getCurrentNick: () => GamesShell.Identity.getNick(),
+    });
+    GamesShell.Comments.mount({
+      container: document.getElementById('runner-cm-mount'),
+      path: '/toolbox/runner/',
+      title: '💬 你跑了多远',
+      intro: '聊聊你最大的连跳、被哪种 deadline 撞死最多 ~',
+      placeholder: '聊聊你的跑酷心得 ~',
+    });
+    runnerNickPrompt = GamesShell.NickPrompt.mount({
+      container: document.getElementById('runner-nick-mount'),
+      prompt: '想上排行榜？起个昵称吧',
+      onSubmit: nick => runnerSubmitWithNick(nick),
+      onSkip: () => runnerSetRank('hidden'),
+    });
+  }
+
   // ── 启动 ──────────────────────────────
   function init() {
     loadPalette();
@@ -863,6 +987,7 @@ permalink: /toolbox/runner/
     // 静止帧画一下，给"开始"页一个底图
     render();
     requestAnimationFrame((t) => { lastTime = t; tick(t); });
+    runnerInitShell();
   }
   init();
 
