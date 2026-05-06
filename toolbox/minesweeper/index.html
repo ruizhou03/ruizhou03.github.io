@@ -306,6 +306,10 @@ permalink: /toolbox/minesweeper/
     if (state.timer) { clearInterval(state.timer); state.timer = null; }
     modalEl.textContent = '';
     modalEl.className = 'ms-modal-wrap';
+    // 重置上榜状态：上一局的 PendingSubmit 锁要清，否则下一局赢了会被
+    // msSubmitWithNick 第一行的 `if (msPendingSubmit) return` 静默挡掉
+    if (typeof msPendingSubmit !== 'undefined') msPendingSubmit = false;
+    if (typeof msSetRank === 'function') msSetRank('hidden');
     renderBoard();
     updateStatus();
     document.querySelectorAll('.ms-diff-tab').forEach(t => {
@@ -657,6 +661,18 @@ permalink: /toolbox/minesweeper/
         document.createTextNode(' 位玩家'),
       );
     }
+    else if (name === 'not-best' && data) {
+      $msRankRow.innerHTML = '';
+      const cur = (Number(data.score) / 1000).toFixed(1);
+      const best = (Number(data.best) / 1000).toFixed(1);
+      $msRankRow.append(
+        document.createTextNode('本局 '),
+        Object.assign(document.createElement('strong'), { textContent: cur + ' s' }),
+        document.createTextNode(' · 未刷新最佳（'),
+        Object.assign(document.createElement('strong'), { textContent: best + ' s' }),
+        document.createTextNode('）'),
+      );
+    }
   }
 
   async function msSubmitWithNick(nick) {
@@ -674,7 +690,13 @@ permalink: /toolbox/minesweeper/
       extra: { difficulty: state.diff },
     });
     if (r && r.ok) {
-      msSetRank('success', { rank: r.rank, total: r.total });
+      // 后端按 sortDir:'asc' + ZADD LT 处理：只在用时**更短**时才会替换。
+      // isNewBest=false 说明这局没刷新自己的最佳——告知玩家避免误会。
+      if (r.isNewBest === false) {
+        msSetRank('not-best', { score: timeMs, best: r.best });
+      } else {
+        msSetRank('success', { rank: r.rank, total: r.total });
+      }
       if (msLbWidget) msLbWidget.refresh();
     } else {
       msSetRank('failed');
