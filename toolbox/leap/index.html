@@ -291,8 +291,18 @@ permalink: /toolbox/leap/
       { x: 280, y: 22, w: 28 },
       { x: 480, y: 50, w: 44 },
     ],
-    input: { down: false },
+    input: { down: false, touchId: null },
   };
+
+  // 蓄力中 → 取消（不起跳，回到 idle）
+  function cancelCharge() {
+    if (state.phase === 'charging') {
+      state.phase = 'idle';
+      state.charge = 0;
+      state.chargeStart = 0;
+    }
+    state.input.down = false;
+  }
 
   // ── localStorage best ────────────────
   function loadBest() {
@@ -381,9 +391,12 @@ permalink: /toolbox/leap/
       state.best = state.score;
       saveBest();
     }
-    $overTitle.textContent = reason === 'short' ? '💥 蓄力不够，掉空隙了' :
-                              reason === 'long'  ? '💥 飞过头了' :
-                                                    '💥 没跨过去';
+    $overTitle.textContent =
+      reason === 'short' ? '💥 蓄力不够，掉空隙了' :
+      reason === 'long'  ? '💥 飞过头了' :
+      reason === 'wall'  ? '💥 撞到桩侧面了' :
+      reason === 'edge'  ? '💥 差一点没站稳' :
+                            '💥 没跨过去';
     $overScore.textContent = `${state.score} 跳`;
     $overBest.textContent  = `${state.best} 跳`;
     updateScoreUI();
@@ -440,10 +453,11 @@ permalink: /toolbox/leap/
       // 落地检测：仅在下降阶段（vy > 0）+ 此帧从桩顶上方穿到下方
       if (p.vy > 0) {
         const hits = [];
-        for (let i = state.currentIdx + 1; i < state.posts.length; i++) {
+        // 从当前桩开始扫——附加 prevY < top_y 守卫，避免起跳第一帧被自己脚下抓回
+        for (let i = state.currentIdx; i < state.posts.length; i++) {
           const post = state.posts[i];
           if (p.x >= post.x && p.x <= post.x + post.w
-              && prevY <= post.top_y && p.y >= post.top_y) {
+              && prevY < post.top_y && p.y >= post.top_y) {
             hits.push(i);
           }
         }
@@ -476,12 +490,26 @@ permalink: /toolbox/leap/
         }
       }
 
+      // 撞墙：x 在某根桩矩形内但 y 已经低于桩顶（贴桩侧面飞过去）
+      for (let i = state.currentIdx + 1; i < state.posts.length; i++) {
+        const post = state.posts[i];
+        if (p.x >= post.x && p.x <= post.x + post.w
+            && p.y > post.top_y + 2) {
+          gameOver('wall');
+          return;
+        }
+      }
+
       // 死亡：掉地面 或 越过最后一根桩
       const last = state.posts[state.posts.length - 1];
       if (p.y >= GROUND_Y) {
-        // 区分原因：是没到下一根（短）还是已超过下一根（长）
+        // 三段式判定：短了 / 擦边 / 长了
         const nextPost = state.posts[state.currentIdx + 1];
-        const reason = (nextPost && p.x < nextPost.x) ? 'short' : 'long';
+        let reason;
+        if (!nextPost)                         reason = 'long';
+        else if (p.x < nextPost.x)             reason = 'short';
+        else if (p.x > nextPost.x + POST_W)    reason = 'long';
+        else                                   reason = 'edge';
         gameOver(reason);
         return;
       }
@@ -701,18 +729,62 @@ permalink: /toolbox/leap/
   // 鼠标
   $canvas.addEventListener('mousedown', (e) => { e.preventDefault(); pressInput(); });
   $canvas.addEventListener('mouseup',   (e) => { e.preventDefault(); releaseInput(); });
-  $canvas.addEventListener('mouseleave', releaseInput);
+  // 鼠标移出 canvas：不强制起跳，而是取消蓄力——避免误操作
+  $canvas.addEventListener('mouseleave', cancelCharge);
 
-  // 触屏
-  $canvas.addEventListener('touchstart', (e) => { e.preventDefault(); pressInput(); }, { passive: false });
-  $canvas.addEventListener('touchend',   (e) => { e.preventDefault(); releaseInput(); }, { passive: false });
-  $canvas.addEventListener('touchcancel', releaseInput);
+  // 触屏：只跟踪首根手指，避免多指误触发起跳
+  $canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (state.input.touchId !== null) return;
+    state.input.touchId = e.changedTouches[0].identifier;
+    pressInput();
+  }, { passive: false });
+  function isTrackedTouch(e) {
+    if (state.input.touchId === null) return false;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === state.input.touchId) return true;
+    }
+    return false;
+  }
+  $canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if (!isTrackedTouch(e)) return;
+    state.input.touchId = null;
+    releaseInput();
+  }, { passive: false });
+  $canvas.addEventListener('touchcancel', (e) => {
+    if (!isTrackedTouch(e)) return;
+    state.input.touchId = null;
+    releaseInput();
+  });
 
   // 移动端按钮（虽然 canvas 上也能触发，但显式按钮 UX 更明显）
   function bindHold(btn, onDown, onUp) {
-    btn.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); }, { passive: false });
-    btn.addEventListener('touchend',   (e) => { e.preventDefault(); onUp(); });
-    btn.addEventListener('touchcancel', onUp);
+    let btnTouchId = null;
+    btn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (btnTouchId !== null) return;
+      btnTouchId = e.changedTouches[0].identifier;
+      onDown();
+    }, { passive: false });
+    const trackedHere = (e) => {
+      if (btnTouchId === null) return false;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === btnTouchId) return true;
+      }
+      return false;
+    };
+    btn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      if (!trackedHere(e)) return;
+      btnTouchId = null;
+      onUp();
+    });
+    btn.addEventListener('touchcancel', (e) => {
+      if (!trackedHere(e)) return;
+      btnTouchId = null;
+      onUp();
+    });
     btn.addEventListener('mousedown', (e) => { e.preventDefault(); onDown(); });
     btn.addEventListener('mouseup',   (e) => { e.preventDefault(); onUp(); });
     btn.addEventListener('mouseleave', onUp);
@@ -722,6 +794,17 @@ permalink: /toolbox/leap/
   // overlay 按钮
   $btnStart.addEventListener('click', startGame);
   $btnRestart.addEventListener('click', startGame);
+
+  // tab 切走时取消蓄力，避免回来时 chargeStart 已过期导致瞬间满力起跳
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      cancelCharge();
+      state.input.touchId = null;
+    } else {
+      // 回到前台：canvas 可能在隐藏期间被缩成 0，强制重 resize 一次
+      resizeCanvas();
+    }
+  });
 
   // ── 主循环 ────────────────────────────
   let lastTime = performance.now();
