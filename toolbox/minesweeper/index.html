@@ -229,6 +229,7 @@ permalink: /toolbox/minesweeper/
     grid: [],
     revealed: [],
     flagged: [],
+    wrong: [],
     rows: 0, cols: 0, mines: 0,
     started: false,
     over: false,
@@ -258,6 +259,7 @@ permalink: /toolbox/minesweeper/
     state.grid = Array.from({ length: d.rows }, () => Array(d.cols).fill(0));
     state.revealed = Array.from({ length: d.rows }, () => Array(d.cols).fill(false));
     state.flagged = Array.from({ length: d.rows }, () => Array(d.cols).fill(false));
+    state.wrong = Array.from({ length: d.rows }, () => Array(d.cols).fill(false));
     state.started = false;
     state.over = false;
     state.won = false;
@@ -333,6 +335,7 @@ permalink: /toolbox/minesweeper/
     }
     if (!state.revealed[r][c]) return;
     el.classList.add('revealed');
+    if (state.wrong[r][c]) { el.classList.add('wrong'); return; }
     const v = state.grid[r][c];
     if (v === -1) { el.classList.add('mine'); return; }
     if (v > 0) {
@@ -385,16 +388,19 @@ permalink: /toolbox/minesweeper/
     if (!state.revealed[r][c]) return;
     const v = state.grid[r][c];
     if (v <= 0) return; // only number cells
+    let flagCount = 0;
     const targets = [];
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
         if (!dr && !dc) continue;
         const nr = r + dr, nc = c + dc;
         if (nr < 0 || nr >= state.rows || nc < 0 || nc >= state.cols) continue;
-        if (state.flagged[nr][nc] || state.revealed[nr][nc]) continue;
+        if (state.flagged[nr][nc]) { flagCount++; continue; }
+        if (state.revealed[nr][nc]) continue;
         targets.push([nr, nc]);
       }
     }
+    if (flagCount !== v) return; // standard chord rule: only fire when flags match
     if (targets.length === 0) return;
     for (const [nr, nc] of targets) {
       if (state.over) break;
@@ -410,14 +416,33 @@ permalink: /toolbox/minesweeper/
     state.flagged[r][c] = !state.flagged[r][c];
     paintCell(r, c);
     updateStatus();
+    if (state.started) checkWin();
   }
 
   function checkWin() {
+    // Win 1: all non-mine cells revealed (standard)
     let unrevealed = 0;
     for (let r = 0; r < state.rows; r++)
       for (let c = 0; c < state.cols; c++)
         if (!state.revealed[r][c]) unrevealed++;
-    if (unrevealed === state.mines) gameOver(true);
+    if (unrevealed === state.mines) { gameOver(true); return; }
+
+    // Win 2: all mines correctly flagged → auto-reveal remaining safe cells
+    let flagCount = 0, allCorrect = true;
+    for (let r = 0; r < state.rows; r++) {
+      for (let c = 0; c < state.cols; c++) {
+        if (state.flagged[r][c]) {
+          flagCount++;
+          if (state.grid[r][c] !== -1) { allCorrect = false; }
+        }
+      }
+    }
+    if (flagCount === state.mines && allCorrect) {
+      for (let r = 0; r < state.rows; r++)
+        for (let c = 0; c < state.cols; c++)
+          if (!state.flagged[r][c] && !state.revealed[r][c]) state.revealed[r][c] = true;
+      gameOver(true);
+    }
   }
 
   function gameOver(won) {
@@ -440,15 +465,13 @@ permalink: /toolbox/minesweeper/
     } else {
       modalEl.textContent = '💥 踩到雷了';
       modalEl.className = 'ms-modal-wrap lose';
-      // Reveal all mines + mark wrong flags
+      // Reveal all mines + mark wrong flags via state (paintCell will render)
       for (let r = 0; r < state.rows; r++) {
         for (let c = 0; c < state.cols; c++) {
           if (state.grid[r][c] === -1 && !state.flagged[r][c]) state.revealed[r][c] = true;
           if (state.grid[r][c] !== -1 && state.flagged[r][c]) {
             state.revealed[r][c] = true;
-            const idx = r * state.cols + c;
-            const el = boardEl.children[idx];
-            el.classList.add('wrong');
+            state.wrong[r][c] = true;
           }
         }
       }
