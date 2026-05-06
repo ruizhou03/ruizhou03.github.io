@@ -2186,9 +2186,9 @@ permalink: /toolbox/suika/
     pendingSubmitForRun = false;
     spaceHeldSince = null;
     fountainCooldownUntil = 0;
+    lastDropAt = 0;
     dangerSince = null;
     lastInDangerTime = 0;
-    dropCooldown = false;
 
     $overlay.classList.remove('open');
     $gameZone.classList.remove('over');
@@ -2350,8 +2350,18 @@ permalink: /toolbox/suika/
     hoverFruit.x = x;
   }
 
+  // 基础版防"鼠标狂点 = 喷泉"：相邻两次 drop 之间至少 100ms。
+  // fountain / unlimited 模式不受限（fountain 自己有 5s+1s 节流，unlimited 不限）。
+  const BASIC_DROP_MIN_MS = 100;
+  let lastDropAt = 0;
+
   function dropCurrent() {
     if (!hoverFruit || isOver || isPaused) return;
+    if (gameMode === 'basic' && !unlimitedMode) {
+      const now = performance.now();
+      if (now - lastDropAt < BASIC_DROP_MIN_MS) return;
+      lastDropAt = now;
+    }
     const fruit = FRUITS[hoverFruit.level - 1];
     const x = clampHoverX(hoverFruit.x, fruit.radius);
     // 直接创建 dynamic body — 不走 isStatic/collisionFilter 那一套
@@ -3096,6 +3106,7 @@ permalink: /toolbox/suika/
     unlimitedMode = (gameMode === 'unlimited');
     spaceHeldSince = null;
     fountainCooldownUntil = 0;
+    lastDropAt = 0;
     runStartedAt = Date.now();
     currentRunNonce = newRunNonce();
     pendingSubmitForRun = false;
@@ -3140,6 +3151,7 @@ permalink: /toolbox/suika/
     unlimitedMode = (gameMode === 'unlimited');
     spaceHeldSince = null;
     fountainCooldownUntil = 0;
+    lastDropAt = 0;
     runStartedAt = Date.now();
     currentRunNonce = newRunNonce();
     pendingSubmitForRun = false;
@@ -3167,6 +3179,7 @@ permalink: /toolbox/suika/
     hoverFruit = null;
     spaceHeldSince = null;
     fountainCooldownUntil = 0;
+    lastDropAt = 0;
     pendingSubmitForRun = false;
     nextLevelQueue = [];
     ensureQueueFilled();
