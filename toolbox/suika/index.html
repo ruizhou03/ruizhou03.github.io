@@ -3852,8 +3852,19 @@ permalink: /toolbox/suika/
       showOverlayView('main');
       return;
     }
-    applySavedState(save);
-    // 不清存档：玩家仍在玩，下次离开还是会自动 save 覆盖
+    // 先把 modal 关掉再恢复状态：applySavedState 末尾本来也会移除 .open，
+    // 但中间的 World.clear / setupWorld / createFruitBody 任一步抛异常都会
+    // 让玩家困在 modal 里。先关 overlay 是双保险。
+    showOverlayView('main');
+    $startOverlay.classList.remove('open');
+    try {
+      applySavedState(save);
+      // 不清存档：玩家仍在玩，下次离开还是会自动 save 覆盖
+    } catch (e) {
+      console.error('[suika] applySavedState failed', e);
+      clearSaveState();
+      $startOverlay.classList.add('open');   // 恢复菜单态，让玩家能重开一局
+    }
   });
 
   document.getElementById('resume-discard-btn').addEventListener('click', () => {
@@ -3864,8 +3875,15 @@ permalink: /toolbox/suika/
   document.getElementById('resume-settle-btn').addEventListener('click', () => {
     const save = loadSaveState();
     if (!save) { showOverlayView('main'); return; }
-    // 把状态恢复进来，然后立刻 gameOver（autoSettle 模式：没昵称就用随机的）
-    applySavedState(save);
+    showOverlayView('main');
+    $startOverlay.classList.remove('open');
+    try {
+      applySavedState(save);
+    } catch (e) {
+      console.error('[suika] applySavedState (settle) failed', e);
+      // applySavedState 失败的话 score/runMaxLevel 没装回内存，但用户语义
+      // 就是"直接结算"，把存档干掉走 gameOver 兜底（提交 0 分总比卡住强）。
+    }
     clearSaveState();
     settleNow({ autoSettle: true });
   });
