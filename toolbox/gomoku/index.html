@@ -100,6 +100,14 @@ permalink: /toolbox/gomoku/
   }
   .gm-overlay.show { display: flex; }
   .gm-overlay h2 { font-size: 1.6rem; margin: 0; font-family: var(--font-display); }
+  .gm-paused-overlay { background: rgba(0, 0, 0, 0.35); }
+
+  .gm-difficulty-row { margin-top: -0.3rem; }
+  .gm-row-label {
+    font-size: 0.82rem;
+    color: var(--color-muted);
+    margin-right: 0.15rem;
+  }
 
   .gm-help {
     margin-top: 1rem;
@@ -122,8 +130,21 @@ permalink: /toolbox/gomoku/
       <button class="gm-mode-tab" data-mode="ai-black">人机（执黑）</button>
       <button class="gm-mode-tab" data-mode="ai-white">人机（执白）</button>
     </div>
+  </div>
+
+  <div class="gm-controls gm-difficulty-row" id="gmDifficultyRow" hidden>
+    <span class="gm-row-label">难度</span>
+    <div class="gm-mode-tabs" id="gmDifficultyTabs">
+      <button class="gm-mode-tab" data-diff="easy">🌱 新手</button>
+      <button class="gm-mode-tab active" data-diff="normal">🙂 普通</button>
+      <button class="gm-mode-tab" data-diff="hard">🔥 高手</button>
+    </div>
+  </div>
+
+  <div class="gm-controls">
     <button class="gm-btn" id="gmUndoBtn">↶ 悔棋</button>
-    <button class="gm-btn" id="gmNewBtn">🔄 新棋局</button>
+    <button class="gm-btn" id="gmPauseBtn" hidden>⏸ 暂停</button>
+    <button class="gm-btn" id="gmNewBtn">🔄 重新开始</button>
   </div>
 
   <div class="gm-statusbar">
@@ -140,9 +161,13 @@ permalink: /toolbox/gomoku/
       <h2 id="gmOvTitle">游戏结束</h2>
       <button class="gm-btn" id="gmOvBtn">再来一局</button>
     </div>
+    <div class="gm-overlay gm-paused-overlay" id="gmPausedOverlay">
+      <h2>⏸ 已暂停</h2>
+      <button class="gm-btn" id="gmResumeBtn">▶ 继续</button>
+    </div>
   </div>
 
-  <div class="gm-help">15×15 标准棋盘　·　人机模式 AI 思考约 0.3 秒</div>
+  <div class="gm-help">15×15 标准棋盘　·　人机模式可选三档难度</div>
 </div>
 
 <script>
@@ -151,6 +176,12 @@ permalink: /toolbox/gomoku/
   const N = 15;
   const EMPTY = 0, BLACK = 1, WHITE = 2;
 
+  const DIFFICULTY = {
+    easy:   { defenseWeight: 0.30, windowRadius: 1, scoreNoise: 0.20, topK: 5,  lookahead: 0, delayMs: 200 },
+    normal: { defenseWeight: 0.85, windowRadius: 2, scoreNoise: 0,    topK: 1,  lookahead: 0, delayMs: 280 },
+    hard:   { defenseWeight: 1.10, windowRadius: 2, scoreNoise: 0,    topK: 12, lookahead: 2, delayMs: 500 }
+  };
+
   const stored = (() => {
     try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
     catch { return {}; }
@@ -158,13 +189,15 @@ permalink: /toolbox/gomoku/
 
   const state = {
     mode: stored.lastMode || 'pvp',
+    difficulty: DIFFICULTY[stored.difficulty] ? stored.difficulty : 'normal',
     tally: Object.assign({ black: 0, white: 0 }, stored.tally || {}),
     board: [],
     history: [],
     turn: BLACK,
     over: false,
     winLine: null,
-    aiThinking: false
+    aiThinking: false,
+    paused: false
   };
 
   const canvas = document.getElementById('gmCanvas');
@@ -174,12 +207,21 @@ permalink: /toolbox/gomoku/
   const tallyW = document.getElementById('gmTallyW');
   const undoBtn = document.getElementById('gmUndoBtn');
   const newBtn = document.getElementById('gmNewBtn');
+  const pauseBtn = document.getElementById('gmPauseBtn');
   const overlay = document.getElementById('gmOverlay');
   const ovTitle = document.getElementById('gmOvTitle');
   const ovBtn = document.getElementById('gmOvBtn');
+  const pausedOverlay = document.getElementById('gmPausedOverlay');
+  const resumeBtn = document.getElementById('gmResumeBtn');
+  const difficultyRow = document.getElementById('gmDifficultyRow');
+  const difficultyTabs = document.getElementById('gmDifficultyTabs');
 
   function persist() {
-    localStorage.setItem(STORE_KEY, JSON.stringify({ tally: state.tally, lastMode: state.mode }));
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      tally: state.tally,
+      lastMode: state.mode,
+      difficulty: state.difficulty
+    }));
   }
 
   function newGame() {
@@ -188,7 +230,9 @@ permalink: /toolbox/gomoku/
     state.turn = BLACK;
     state.over = false;
     state.winLine = null;
+    state.paused = false;
     overlay.classList.remove('show');
+    pausedOverlay.classList.remove('show');
     updateStatus();
     draw();
     if (state.mode === 'ai-white' && state.turn === BLACK) {
@@ -209,19 +253,34 @@ permalink: /toolbox/gomoku/
   }
 
   function updateStatus() {
-    if (state.over) {
+    if (state.paused) {
+      turnEl.textContent = '⏸ 已暂停';
+    } else if (state.over) {
       turnEl.textContent = state.winLine
         ? (state.winLine.who === BLACK ? '⚫ 黑方胜' : '⚪ 白方胜')
         : '— 平局 —';
+    } else if (state.aiThinking) {
+      turnEl.textContent = '🤖 AI 思考中…';
     } else {
       turnEl.textContent = state.turn === BLACK ? '⚫ 黑方下子' : '⚪ 白方下子';
     }
     tallyB.textContent = state.tally.black;
     tallyW.textContent = state.tally.white;
-    undoBtn.disabled = state.history.length === 0 || state.aiThinking;
-    document.querySelectorAll('.gm-mode-tab').forEach(t => {
+    undoBtn.disabled = state.history.length === 0 || state.aiThinking || state.paused;
+
+    document.querySelectorAll('#gmModeTabs .gm-mode-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.mode === state.mode);
     });
+    document.querySelectorAll('#gmDifficultyTabs .gm-mode-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.diff === state.difficulty);
+    });
+
+    const isAi = aiSide() !== null;
+    difficultyRow.hidden = !isAi;
+    pauseBtn.hidden = !isAi;
+    pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+    pauseBtn.disabled = state.over;
+    pausedOverlay.classList.toggle('show', state.paused && !state.over);
   }
 
   function draw() {
@@ -342,7 +401,7 @@ permalink: /toolbox/gomoku/
   // ============ AI ============
   // Heuristic evaluation: scan each line for patterns
   // Patterns scored: live 4 / live 3 / sleep 4 / sleep 3 / live 2 / sleep 2
-  function evaluatePoint(r, c, who) {
+  function evaluatePoint(r, c, who, defenseWeight) {
     const opp = who === BLACK ? WHITE : BLACK;
     let score = 0;
     const dirs = [[0,1],[1,0],[1,1],[1,-1]];
@@ -357,7 +416,7 @@ permalink: /toolbox/gomoku/
       line[4] = who; // hypothetical move
       score += scoreLineFor(line, who);
       line[4] = opp;
-      score += scoreLineFor(line, opp) * 0.85; // defensive
+      score += scoreLineFor(line, opp) * defenseWeight;
     }
     return score;
   }
@@ -389,51 +448,103 @@ permalink: /toolbox/gomoku/
     return s;
   }
 
+  function getCandidates(radius) {
+    if (state.history.length === 0) return [{ r: 7, c: 7 }];
+    const out = [];
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        if (state.board[r][c] !== EMPTY) continue;
+        let near = false;
+        for (let dr = -radius; dr <= radius && !near; dr++)
+          for (let dc = -radius; dc <= radius && !near; dc++) {
+            const nr = r + dr, nc = c + dc;
+            if (nr>=0 && nr<N && nc>=0 && nc<N && state.board[nr][nc] !== EMPTY) near = true;
+          }
+        if (near) out.push({ r, c });
+      }
+    }
+    return out;
+  }
+
+  function pickAiMove(ai) {
+    const cfg = DIFFICULTY[state.difficulty];
+    const opp = ai === BLACK ? WHITE : BLACK;
+    const cands = getCandidates(cfg.windowRadius);
+    if (cands.length === 0) return { r: 7, c: 7 };
+
+    // Single-ply scoring (with optional noise)
+    const scored = cands.map(({ r, c }) => {
+      let s = evaluatePoint(r, c, ai, cfg.defenseWeight);
+      if (cfg.scoreNoise > 0) s *= (1 + (Math.random() - 0.5) * cfg.scoreNoise * 2);
+      return { r, c, s };
+    });
+    scored.sort((a, b) => b.s - a.s);
+
+    // Easy: weighted random pick from top-K
+    if (cfg.lookahead === 0 && cfg.topK > 1) {
+      const top = scored.slice(0, Math.min(cfg.topK, scored.length));
+      const minS = Math.min(...top.map(x => x.s));
+      const weights = top.map(x => Math.max(1, x.s - minS + 50));
+      const sum = weights.reduce((a, b) => a + b, 0);
+      let r = Math.random() * sum;
+      for (let i = 0; i < top.length; i++) {
+        r -= weights[i];
+        if (r <= 0) return { r: top[i].r, c: top[i].c };
+      }
+      return { r: top[0].r, c: top[0].c };
+    }
+
+    // Normal: greedy top-1
+    if (cfg.lookahead === 0) return { r: scored[0].r, c: scored[0].c };
+
+    // Hard: 2-ply minimax — for each top candidate, simulate, find opp's best response
+    const top = scored.slice(0, Math.min(cfg.topK, scored.length));
+    let best = top[0], bestVal = -Infinity;
+    for (const cand of top) {
+      state.board[cand.r][cand.c] = ai;
+      let val;
+      if (checkWin(cand.r, cand.c, ai)) {
+        val = 1e9;
+      } else {
+        const oppCands = getCandidates(cfg.windowRadius);
+        let oppBest = 0, oppWins = false;
+        for (const oc of oppCands) {
+          state.board[oc.r][oc.c] = opp;
+          if (checkWin(oc.r, oc.c, opp)) { oppWins = true; state.board[oc.r][oc.c] = EMPTY; break; }
+          state.board[oc.r][oc.c] = EMPTY;
+          const os = evaluatePoint(oc.r, oc.c, opp, cfg.defenseWeight);
+          if (os > oppBest) oppBest = os;
+        }
+        val = oppWins ? -1e8 : (cand.s - oppBest * cfg.defenseWeight);
+      }
+      state.board[cand.r][cand.c] = EMPTY;
+      if (val > bestVal) { bestVal = val; best = cand; }
+    }
+    return { r: best.r, c: best.c };
+  }
+
   function aiMove() {
-    if (state.over) return;
+    if (state.over || state.paused) return;
     const ai = aiSide();
     if (ai !== state.turn) return;
     state.aiThinking = true;
     updateStatus();
 
-    // Find candidate cells (within distance 2 of any stone, or center if first)
-    let candidates = [];
-    if (state.history.length === 0) {
-      candidates.push({ r: 7, c: 7 });
-    } else {
-      const seen = new Set();
-      for (let r = 0; r < N; r++) {
-        for (let c = 0; c < N; c++) {
-          if (state.board[r][c] !== EMPTY) continue;
-          let near = false;
-          for (let dr = -2; dr <= 2 && !near; dr++)
-            for (let dc = -2; dc <= 2 && !near; dc++) {
-              const nr = r + dr, nc = c + dc;
-              if (nr>=0&&nr<N&&nc>=0&&nc<N&&state.board[nr][nc]!==EMPTY) near = true;
-            }
-          if (near) {
-            const k = r * N + c;
-            if (!seen.has(k)) { seen.add(k); candidates.push({ r, c }); }
-          }
-        }
-      }
-    }
-
-    let best = null, bestScore = -Infinity;
-    for (const { r, c } of candidates) {
-      const s = evaluatePoint(r, c, ai);
-      if (s > bestScore) { bestScore = s; best = { r, c }; }
-    }
+    const cfg = DIFFICULTY[state.difficulty];
+    // Defer compute via setTimeout so UI repaints "thinking" state first
     setTimeout(() => {
-      state.aiThinking = false;
-      if (best) place(best.r, best.c, ai);
-      else updateStatus();
-    }, 280);
+      const move = pickAiMove(ai);
+      setTimeout(() => {
+        state.aiThinking = false;
+        if (state.paused) { updateStatus(); return; }
+        place(move.r, move.c, ai);
+      }, Math.max(0, cfg.delayMs - 50));
+    }, 50);
   }
 
   // Click to place
   canvas.addEventListener('click', (e) => {
-    if (state.over || state.aiThinking) return;
+    if (state.over || state.aiThinking || state.paused) return;
     const ai = aiSide();
     if (ai !== null && state.turn === ai) return;
     const rect = canvas.getBoundingClientRect();
@@ -460,9 +571,31 @@ permalink: /toolbox/gomoku/
     newGame();
   });
 
+  // Difficulty tabs (only meaningful in AI mode; switching restarts the game)
+  difficultyTabs.addEventListener('click', (e) => {
+    const t = e.target.closest('.gm-mode-tab');
+    if (!t || !DIFFICULTY[t.dataset.diff]) return;
+    if (state.difficulty === t.dataset.diff) return;
+    state.difficulty = t.dataset.diff;
+    persist();
+    newGame();
+  });
+
+  // Pause toggle (AI mode only)
+  function togglePause() {
+    if (aiSide() === null || state.over) return;
+    state.paused = !state.paused;
+    updateStatus();
+    if (!state.paused && !state.over && aiSide() === state.turn && !state.aiThinking) {
+      setTimeout(aiMove, 100);
+    }
+  }
+  pauseBtn.onclick = togglePause;
+  resumeBtn.onclick = togglePause;
+
   // Undo: in PvP rollback 1 step; in AI mode rollback 2 steps (to player's previous turn)
   undoBtn.onclick = () => {
-    if (state.history.length === 0 || state.aiThinking) return;
+    if (state.history.length === 0 || state.aiThinking || state.paused) return;
     const steps = aiSide() != null ? Math.min(2, state.history.length) : 1;
     for (let i = 0; i < steps; i++) {
       const last = state.history.pop();
