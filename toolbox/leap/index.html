@@ -354,8 +354,18 @@ permalink: /toolbox/leap/
   }
 
   // ── 桩生成 ────────────────────────────
-  function makePost(x, week) {
-    const h = POST_H_MIN + Math.floor(Math.random() * (POST_H_MAX - POST_H_MIN + 1));
+  // 物理可达性约束：起跳角度固定 45°，射程 R = v²/g、最高点比起跳低 R/4。
+  // 要从矮桩跳到高桩（Δh = h_next - h_current > 0），需 R ≥ 4·Δh；
+  // 同时落点要落在下一桩 X 范围内，需 R ≤ POST_W/2 + gap + POST_W/2 = 84 + gap。
+  // 即 4·Δh ≤ 84 + gap → Δh ≤ (84 + gap) / 4。spawn 时按此限制下一桩高度上限。
+  function makePost(x, week, prevPost, gap) {
+    let hMaxAllowed = POST_H_MAX;
+    if (prevPost) {
+      const reachable = Math.floor(prevPost.h + (84 + gap) / 4 - 4);  // 留 4px 安全边
+      hMaxAllowed = Math.min(POST_H_MAX, reachable);
+    }
+    if (hMaxAllowed < POST_H_MIN) hMaxAllowed = POST_H_MIN;
+    const h = POST_H_MIN + Math.floor(Math.random() * (hMaxAllowed - POST_H_MIN + 1));
     return { x, w: POST_W, h, top_y: GROUND_Y - h, week };
   }
   function spawnInitialPosts() {
@@ -365,8 +375,9 @@ permalink: /toolbox/leap/
     state.posts.push({ x, w: POST_W, h: 100, top_y: GROUND_Y - 100, week: 1 });
     for (let i = 1; i < KEEP_POSTS_AHEAD + 2; i++) {
       const gap = GAP_MIN + Math.random() * (GAP_MAX - GAP_MIN);
-      x = state.posts[state.posts.length - 1].x + POST_W + gap;
-      state.posts.push(makePost(x, i + 1));
+      const prev = state.posts[state.posts.length - 1];
+      x = prev.x + POST_W + gap;
+      state.posts.push(makePost(x, i + 1, prev, gap));
     }
   }
   function ensureEnoughPosts() {
@@ -374,7 +385,7 @@ permalink: /toolbox/leap/
       const last = state.posts[state.posts.length - 1];
       const gap = GAP_MIN + Math.random() * (GAP_MAX - GAP_MIN);
       const x = last.x + POST_W + gap;
-      state.posts.push(makePost(x, last.week + 1));
+      state.posts.push(makePost(x, last.week + 1, last, gap));
     }
     // 修剪：当前桩之前 5 根之外的桩可以删掉，省内存
     if (state.currentIdx > 5) {
@@ -496,12 +507,14 @@ permalink: /toolbox/leap/
       p.y  += p.vy;
 
       // 落地检测：仅在下降阶段（vy > 0）+ 此帧从桩顶上方穿到下方
+      // 落地 X 容差：擦边也算接住，避免视觉看着压上桩沿却被判 'short' / 'edge'
+      const LANDING_TOL = 5;
       if (p.vy > 0) {
         const hits = [];
         // 从当前桩开始扫——附加 prevY < top_y 守卫，避免起跳第一帧被自己脚下抓回
         for (let i = state.currentIdx; i < state.posts.length; i++) {
           const post = state.posts[i];
-          if (p.x >= post.x && p.x <= post.x + post.w
+          if (p.x >= post.x - LANDING_TOL && p.x <= post.x + post.w + LANDING_TOL
               && prevY < post.top_y && p.y >= post.top_y) {
             hits.push(i);
           }
@@ -511,14 +524,17 @@ permalink: /toolbox/leap/
           const idx = hits[0];
           const post = state.posts[idx];
           const advance = idx - state.currentIdx;
+          // 擦边落地：把玩家 x 吸进桩内（仅限 tolerance 区间，最多 5px 校正）
+          if (state.player.x < post.x)              state.player.x = post.x;
+          else if (state.player.x > post.x + post.w) state.player.x = post.x + post.w;
           // 完美居中？
-          const dxToCenter = Math.abs(p.x - (post.x + post.w / 2));
+          const dxToCenter = Math.abs(state.player.x - (post.x + post.w / 2));
           const isPerfect = dxToCenter <= PERFECT_PX;
           const points = isPerfect ? advance * 3 : advance;
           state.score += points;
           // 浮动文字
           state.floats.push({
-            x: p.x, y: post.top_y - 20,
+            x: state.player.x, y: post.top_y - 20,
             text: '+' + points + (isPerfect ? '!' : ''),
             age: 0, ttl: 50,
             color: isPerfect ? '#c8801c' : palette.muted,
@@ -527,7 +543,7 @@ permalink: /toolbox/leap/
             state.pulse = 18;
             state.pulseIdx = idx;
           }
-          // 落地：保留实际落点 x（不强制吸到桩心），仅清零速度并更新当前桩
+          // 落地：保留实际落点 x（已 clamp），仅清零速度并更新当前桩
           state.player.y = post.top_y;
           state.player.vx = 0;
           state.player.vy = 0;
