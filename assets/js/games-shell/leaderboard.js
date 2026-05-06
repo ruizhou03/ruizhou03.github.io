@@ -64,14 +64,35 @@
     }
   }
 
-  // 渲染骨架到 container。返回 { panel, list, total, refresh, mine, footer, ... } DOM 引用
+  // ── split tab 持久化（仿 Suika：用户上次看的 tab 下次还原）─────────
+  function tabStorageKey(gameId) { return `gs.lb.tab.v1.${gameId}`; }
+  function readStoredTab(gameId) {
+    try { return localStorage.getItem(tabStorageKey(gameId)); } catch { return null; }
+  }
+  function writeStoredTab(gameId, value) {
+    try {
+      if (value == null) localStorage.removeItem(tabStorageKey(gameId));
+      else localStorage.setItem(tabStorageKey(gameId), String(value));
+    } catch {}
+  }
+
+  // 渲染骨架到 container。返回 { panel, list, total, refresh, mine, footer, tabs?, ... } DOM 引用
   function renderSkeleton(container, opts) {
     container.classList.add('gs-leaderboard');
+    const hasTabs = Array.isArray(opts.splitTabs) && opts.splitTabs.length > 0;
+    const tabsHtml = hasTabs
+      ? `<div class="gs-lb-tabs">${
+          opts.splitTabs.map(t =>
+            `<button type="button" class="gs-lb-tab" data-value="${String(t.value).replace(/"/g, '&quot;')}">${t.label}</button>`
+          ).join('')
+        }</div>`
+      : '';
     container.innerHTML = `
       <div class="gs-lb-header">
         <h3>${opts.title || '🏆 排行榜'} <span class="gs-lb-total"></span></h3>
         <button type="button" class="gs-lb-refresh" title="刷新榜单">↻</button>
       </div>
+      ${tabsHtml}
       <div class="gs-lb-mine">
         <span class="gs-lb-mine-label">${opts.emptyMineText || '还没玩过 — 来一局看看你的排名 ~'}</span>
       </div>
@@ -98,6 +119,7 @@
       next: container.querySelector('.gs-lb-next'),
       pginfo: container.querySelector('.gs-lb-pginfo'),
       footer: container.querySelector('.gs-lb-footer'),
+      tabs: hasTabs ? Array.from(container.querySelectorAll('.gs-lb-tab')) : null,
     };
   }
 
@@ -110,6 +132,21 @@
     const getNick = opts.getCurrentNick || (() => null);
     // 可选：getSplit() —> 'easy' / '4' 等。每个 split 是独立排行榜。
     const getSplit = typeof opts.getSplit === 'function' ? opts.getSplit : null;
+    const splitTabs = Array.isArray(opts.splitTabs) ? opts.splitTabs : null;
+
+    // 决定初始 split：用户上次点过的 tab > 游戏当前状态 > splitTabs 第一项 > null
+    function pickInitialSplit() {
+      if (splitTabs) {
+        const stored = readStoredTab(opts.gameId);
+        if (stored != null && splitTabs.some(t => String(t.value) === stored)) return stored;
+      }
+      if (getSplit) {
+        const v = getSplit();
+        if (v != null) return String(v);
+      }
+      if (splitTabs && splitTabs[0]) return String(splitTabs[0].value);
+      return null;
+    }
 
     const state = {
       lastFetch: 0,
@@ -118,14 +155,21 @@
       page: 1,
       lastTotal: 0,
       mineLast: null,
-      currentSplit: getSplit ? getSplit() : null,
+      currentSplit: pickInitialSplit(),
     };
 
     function splitParam() {
-      if (!getSplit) return '';
-      const v = getSplit();
-      return v != null ? `&split=${encodeURIComponent(v)}` : '';
+      if (state.currentSplit == null) return '';
+      return `&split=${encodeURIComponent(state.currentSplit)}`;
     }
+
+    function paintTabs() {
+      if (!ui.tabs) return;
+      ui.tabs.forEach(btn => {
+        btn.classList.toggle('gs-lb-tab-active', String(btn.dataset.value) === String(state.currentSplit));
+      });
+    }
+    paintTabs();
 
     function renderEntries(entries, total, currentNick) {
       ui.list.innerHTML = '';
@@ -154,6 +198,9 @@
         tm.className = 'gs-lb-time';
         tm.textContent = relTime(e.ts);
         li.append(rk, nk, sc, tm);
+        if (typeof opts.entryDecorator === 'function') {
+          try { opts.entryDecorator(li, e); } catch {}
+        }
         ui.list.appendChild(li);
       });
       ui.total.textContent = `共 ${total} 位玩家`;
@@ -266,6 +313,25 @@
     });
     ui.refreshBtn.addEventListener('click', () => { loadTop(true); loadMine(); });
 
+    // tab 点击 → 切换 split + 持久化 + 重拉
+    if (ui.tabs) {
+      ui.tabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const v = String(btn.dataset.value);
+          if (state.currentSplit === v) return;
+          state.currentSplit = v;
+          writeStoredTab(opts.gameId, v);
+          paintTabs();
+          state.expanded = false;
+          state.page = 1;
+          state.mineLast = null;
+          state.lastFetch = 0;
+          loadTop(true);
+          loadMine();
+        });
+      });
+    }
+
     // 初次拉一次
     loadTop(true);
     loadMine();
@@ -288,7 +354,28 @@
     }
 
     function onSplitChange() {
-      // 切换 split 后排行榜内容完全不一样，重置分页 + 强制刷新
+      // 兼容老 API：从 getSplit() 重读，等价于 setSplit(getSplit())
+      if (getSplit) {
+        const v = getSplit();
+        setSplit(v);
+      } else {
+        state.expanded = false;
+        state.page = 1;
+        state.mineLast = null;
+        state.lastFetch = 0;
+        loadTop(true);
+        loadMine();
+      }
+    }
+
+    // 程序化切 tab —— 玩家在游戏里改难度时，游戏调这个把面板同步过去。
+    // 同时持久化，下次刷新页面会还原到这个 tab。
+    function setSplit(value) {
+      const v = value == null ? null : String(value);
+      if (state.currentSplit === v) return;
+      state.currentSplit = v;
+      if (v != null) writeStoredTab(opts.gameId, v);
+      paintTabs();
       state.expanded = false;
       state.page = 1;
       state.mineLast = null;
@@ -302,6 +389,8 @@
       destroy: () => clearInterval(intervalId),
       setTitle,
       onSplitChange,
+      setSplit,
+      currentSplit: () => state.currentSplit,
     };
   }
 

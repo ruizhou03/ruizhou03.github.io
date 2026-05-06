@@ -24,6 +24,10 @@ permalink: /toolbox/minesweeper/
   .ms-rank-row strong { color: var(--color-highlight); font-weight: 700; }
   .ms-rank-row.loading { color: var(--color-muted); }
   .ms-rank-row.failed { color: var(--color-muted); font-size: 0.84rem; }
+
+  /* 排行榜上的"幸运草"角标：必猜局通关绿、必猜局失败灰 */
+  .gs-lb-clover { margin-left: 0.4rem; font-size: 0.95em; line-height: 1; }
+  .gs-lb-clover.gs-clover-loss { filter: grayscale(1) opacity(0.6); }
 </style>
 
 <style>
@@ -273,6 +277,8 @@ permalink: /toolbox/minesweeper/
     started: false,
     over: false,
     won: false,
+    mustGuess: false,
+    firstR: -1, firstC: -1,
     startTime: 0,
     timer: null,
     elapsed: 0,
@@ -302,6 +308,8 @@ permalink: /toolbox/minesweeper/
     state.started = false;
     state.over = false;
     state.won = false;
+    state.mustGuess = false;
+    state.firstR = -1; state.firstC = -1;
     state.elapsed = 0;
     if (state.timer) { clearInterval(state.timer); state.timer = null; }
     modalEl.textContent = '';
@@ -317,13 +325,15 @@ permalink: /toolbox/minesweeper/
     });
   }
 
-  function plantMines(safeR, safeC) {
+  // Single-attempt mine placement: clears state.grid, places mines avoiding the 3x3
+  // safe area around the first click, then computes adjacent mine counts.
+  function _plantMinesOnce(safeR, safeC) {
+    state.grid = Array.from({ length: state.rows }, () => Array(state.cols).fill(0));
     let placed = 0;
     while (placed < state.mines) {
       const r = Math.floor(Math.random() * state.rows);
       const c = Math.floor(Math.random() * state.cols);
       if (state.grid[r][c] === -1) continue;
-      // Keep first click and its neighbors safe
       if (Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1) continue;
       state.grid[r][c] = -1;
       placed++;
@@ -341,6 +351,84 @@ permalink: /toolbox/minesweeper/
         state.grid[r][c] = n;
       }
     }
+  }
+
+  // Basic constraint-propagation solver. Returns true iff the board is logically
+  // solvable from (firstR, firstC) using only single-cell adjacency rules
+  // (no subset / SAT). Used both for no-guess generation and end-of-game
+  // must-guess detection. False positives (truly solvable boards labelled
+  // "must-guess" because advanced patterns are needed) are intentional — the
+  // game treats them as "lucky" rather than punishing the player.
+  function simulateLogicSolver(grid, firstR, firstC, rows, cols) {
+    const revealed = Array.from({ length: rows }, () => Array(cols).fill(false));
+    const flagged = Array.from({ length: rows }, () => Array(cols).fill(false));
+    const flood = (sr, sc) => {
+      const stk = [[sr, sc]];
+      while (stk.length) {
+        const [r, c] = stk.pop();
+        if (r < 0 || r >= rows || c < 0 || c >= cols) continue;
+        if (revealed[r][c] || flagged[r][c]) continue;
+        if (grid[r][c] === -1) return true; // contradiction; caller treats as unsolvable
+        revealed[r][c] = true;
+        if (grid[r][c] === 0) {
+          for (let dr = -1; dr <= 1; dr++)
+            for (let dc = -1; dc <= 1; dc++) {
+              if (!dr && !dc) continue;
+              stk.push([r + dr, c + dc]);
+            }
+        }
+      }
+      return false;
+    };
+    if (flood(firstR, firstC)) return false;
+    let progress = true;
+    while (progress) {
+      progress = false;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (!revealed[r][c]) continue;
+          const v = grid[r][c];
+          if (v <= 0) continue;
+          let flagCount = 0;
+          const unknown = [];
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              if (!dr && !dc) continue;
+              const nr = r + dr, nc = c + dc;
+              if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+              if (flagged[nr][nc]) flagCount++;
+              else if (!revealed[nr][nc]) unknown.push([nr, nc]);
+            }
+          }
+          if (unknown.length === 0) continue;
+          if (flagCount === v) {
+            for (const [nr, nc] of unknown) if (flood(nr, nc)) return false;
+            progress = true;
+          } else if (v - flagCount === unknown.length) {
+            for (const [nr, nc] of unknown) flagged[nr][nc] = true;
+            progress = true;
+          }
+        }
+      }
+    }
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        if (grid[r][c] !== -1 && !revealed[r][c]) return false;
+    return true;
+  }
+
+  // easy/mid: retry until a no-guess board is generated (or hit retry cap).
+  // hard: density too high — accept the first random layout and rely on
+  // end-of-game detection instead of retry generation.
+  function plantMines(safeR, safeC) {
+    const MAX_RETRY = (state.diff === 'hard') ? 1 : 50;
+    for (let attempt = 0; attempt < MAX_RETRY; attempt++) {
+      _plantMinesOnce(safeR, safeC);
+      if (state.diff === 'hard') return;
+      if (simulateLogicSolver(state.grid, safeR, safeC, state.rows, state.cols)) return;
+    }
+    // Fallback: cap exhausted. Keep the last random layout — must-guess
+    // detection at end-of-game will still credit/excuse the player.
   }
 
   function renderBoard() {
@@ -393,6 +481,7 @@ permalink: /toolbox/minesweeper/
     if (!state.started) {
       plantMines(r, c);
       state.started = true;
+      state.firstR = r; state.firstC = c;
       state.startTime = Date.now();
       state.timer = setInterval(() => {
         state.elapsed = Math.floor((Date.now() - state.startTime) / 1000);
@@ -492,8 +581,16 @@ permalink: /toolbox/minesweeper/
     state.over = true;
     state.won = won;
     if (state.timer) { clearInterval(state.timer); state.timer = null; }
+    // Detect "must-guess" boards: rerun the solver from the first click on the
+    // final mine layout. If solver can't fully resolve, the player had to guess
+    // at some point — credit a win as luck and excuse a loss.
+    if (state.started && state.firstR >= 0) {
+      state.mustGuess = !simulateLogicSolver(state.grid, state.firstR, state.firstC, state.rows, state.cols);
+    }
     if (won) {
-      modalEl.textContent = `🎉 ${state.elapsed} 秒通关！`;
+      const prefix = state.mustGuess ? '🍀' : '🎉';
+      const suffix = state.mustGuess ? '，运气真好' : '';
+      modalEl.textContent = `${prefix} ${state.elapsed} 秒通关${suffix}！`;
       modalEl.className = 'ms-modal-wrap win';
       const prev = state.best[state.diff];
       if (prev == null || state.elapsed < prev) {
@@ -506,7 +603,7 @@ permalink: /toolbox/minesweeper/
         for (let c = 0; c < state.cols; c++)
           if (state.grid[r][c] === -1) state.flagged[r][c] = true;
     } else {
-      modalEl.textContent = '💥 踩到雷了';
+      modalEl.textContent = state.mustGuess ? '💔 这局本来就要靠猜，不怪你' : '💥 踩到雷了';
       modalEl.className = 'ms-modal-wrap lose';
       // Reveal all mines + mark wrong flags via state (paintCell will render)
       for (let r = 0; r < state.rows; r++) {
@@ -521,7 +618,7 @@ permalink: /toolbox/minesweeper/
     }
     paintAll();
     updateStatus();
-    if (won) msTryAutoSubmit();
+    if (won || state.mustGuess) msTryAutoSubmit();
     else msSetRank('hidden');
     if (typeof msSave !== 'undefined' && msSave) msSave.discard();
   }
@@ -676,10 +773,14 @@ permalink: /toolbox/minesweeper/
   }
 
   async function msSubmitWithNick(nick) {
-    if (!nick || msPendingSubmit || !state.won) return;
+    // Widened gate: allow must-guess losses to submit too (no time penalty —
+    // they show as a grey 🍀 badge on the leaderboard, not a clean win).
+    if (!nick || msPendingSubmit || (!state.won && !state.mustGuess)) return;
     msPendingSubmit = true;
     msSetRank('loading');
     const timeMs = state.elapsed * 1000;
+    const extra = { difficulty: state.diff };
+    if (state.mustGuess) { extra.lucky = true; extra.won = state.won; }
     const r = await GamesShell.Leaderboard.submit({
       gameId: 'minesweeper',
       nick,
@@ -687,7 +788,7 @@ permalink: /toolbox/minesweeper/
       durationMs: Math.max(1000, timeMs),
       clientNonce: msRunNonce,
       did: GamesShell.Identity.getDeviceId(),
-      extra: { difficulty: state.diff },
+      extra,
     });
     if (r && r.ok) {
       // 后端按 sortDir:'asc' + ZADD LT 处理：只在用时**更短**时才会替换。
@@ -707,7 +808,7 @@ permalink: /toolbox/minesweeper/
 
   function msTryAutoSubmit() {
     if (!window.GamesShell) return;
-    if (!state.won) { msSetRank('hidden'); return; }
+    if (!state.won && !state.mustGuess) { msSetRank('hidden'); return; }
     msRunNonce = GamesShell.Identity.newRunNonce();
     const nick = GamesShell.Identity.getNick();
     if (nick) msSubmitWithNick(nick);
@@ -723,6 +824,19 @@ permalink: /toolbox/minesweeper/
       scoreFormatter: v => (Number(v) / 1000).toFixed(1) + ' s',
       getCurrentNick: () => GamesShell.Identity.getNick(),
       getSplit: () => state.diff,
+      splitTabs: [
+        { value: 'easy', label: '简单' },
+        { value: 'mid',  label: '中等' },
+        { value: 'hard', label: '高级' },
+      ],
+      entryDecorator: (li, e) => {
+        if (!e || !e.extra || !e.extra.lucky) return;
+        const clover = document.createElement('span');
+        clover.className = 'gs-lb-clover ' + (e.extra.won ? 'gs-clover-win' : 'gs-clover-loss');
+        clover.textContent = '🍀';
+        clover.title = e.extra.won ? '运气好通关' : '必猜遗憾失败';
+        li.appendChild(clover);
+      },
     });
     GamesShell.Comments.mount({
       container: document.getElementById('ms-cm-mount'),
@@ -739,10 +853,10 @@ permalink: /toolbox/minesweeper/
     });
   }
 
-  // 切换难度后排行榜要刷新（onSplitChange）+ 丢当前局存档
+  // 切换难度后排行榜面板同步切到对应 tab + 丢当前局存档
   document.getElementById('msDiffTabs').addEventListener('click', () => {
     if (typeof msSave !== 'undefined' && msSave) msSave.discard();
-    if (msLbWidget) msLbWidget.onSplitChange();
+    if (msLbWidget) msLbWidget.setSplit(state.diff);
   });
 
   // ── 48h 续局 ─────────────────────────────
