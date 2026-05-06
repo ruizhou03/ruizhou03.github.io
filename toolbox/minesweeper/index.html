@@ -71,10 +71,13 @@ permalink: /toolbox/minesweeper/
   .ms-wrap[data-diff="easy"] { --ms-cell-size: 42px; }
   .ms-wrap[data-diff="mid"]  { --ms-cell-size: 32px; }
   .ms-wrap[data-diff="hard"] { --ms-cell-size: 26px; }
+  /* On mobile, shrink to fit viewport so the whole board is visible without horizontal scroll.
+     Buffer = 2×wrap padding + (cols-1) gap + 2 border ≈ 1rem + cols+1 px; use generous rem values. */
   @media (max-width: 600px) {
-    .ms-wrap[data-diff="easy"] { --ms-cell-size: 36px; }
-    .ms-wrap[data-diff="mid"]  { --ms-cell-size: 28px; }
-    .ms-wrap[data-diff="hard"] { --ms-cell-size: 22px; }
+    .ms-wrap { padding: 0.5rem; }
+    .ms-wrap[data-diff="easy"] { --ms-cell-size: min(42px, calc((100vw - 2rem) / 9)); }
+    .ms-wrap[data-diff="mid"]  { --ms-cell-size: min(32px, calc((100vw - 2.5rem) / 16)); }
+    .ms-wrap[data-diff="hard"] { --ms-cell-size: min(26px, calc((100vw - 3.5rem) / 30)); }
   }
 
   .ms-wrap header { text-align: center; margin-bottom: 1.2rem; }
@@ -146,6 +149,8 @@ permalink: /toolbox/minesweeper/
     border: 1px solid var(--ms-grid-line);
     user-select: none;
     -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
   .ms-cell {
@@ -227,7 +232,7 @@ permalink: /toolbox/minesweeper/
 
   <div class="ms-help">
     桌面：左键揭格、右键插旗、双击数字一键揭周围八格<br>
-    移动端：短按揭、长按 0.4 秒插旗、双击数字同样可一键揭
+    手机：单击揭格、双击插旗（已揭数字双击 = 一键揭周围八格），长按也能插旗
   </div>
 
   <div class="ms-rank-row" id="ms-rank-row"></div>
@@ -526,14 +531,9 @@ permalink: /toolbox/minesweeper/
     bestEl.textContent = state.best[state.diff] != null ? state.best[state.diff] + 's' : '—';
   }
 
-  // Click handlers
-  boardEl.addEventListener('click', (e) => {
-    if (state.longPressFired) { state.longPressFired = false; return; }
-    const cell = e.target.closest('.ms-cell');
-    if (!cell) return;
-    const r = +cell.dataset.r, c = +cell.dataset.c;
-    reveal(r, c);
-  });
+  const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+  // Right-click flag — works for desktop mice and touch devices with pointer access
   boardEl.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     const cell = e.target.closest('.ms-cell');
@@ -542,30 +542,81 @@ permalink: /toolbox/minesweeper/
     toggleFlag(r, c);
   });
 
-  boardEl.addEventListener('dblclick', (e) => {
-    e.preventDefault();
-    const cell = e.target.closest('.ms-cell');
-    if (!cell) return;
-    const r = +cell.dataset.r, c = +cell.dataset.c;
-    chord(r, c);
-  });
+  function dblTapAction(r, c) {
+    if (state.revealed[r][c]) chord(r, c);
+    else toggleFlag(r, c);
+  }
 
-  // Touch long-press for flag
-  boardEl.addEventListener('touchstart', (e) => {
-    const cell = e.target.closest('.ms-cell');
-    if (!cell) return;
-    const r = +cell.dataset.r, c = +cell.dataset.c;
-    state.longPressTimer = setTimeout(() => {
-      state.longPressFired = true;
-      toggleFlag(r, c);
-    }, 400);
-  }, { passive: true });
-  boardEl.addEventListener('touchend', () => {
-    if (state.longPressTimer) { clearTimeout(state.longPressTimer); state.longPressTimer = null; }
-  });
-  boardEl.addEventListener('touchmove', () => {
-    if (state.longPressTimer) { clearTimeout(state.longPressTimer); state.longPressTimer = null; }
-  });
+  if (isTouch) {
+    // Touch device: delay single-tap to disambiguate from double-tap.
+    // Tap = reveal (after ~280ms); double-tap = flag (or chord if revealed); long-press = flag (backup).
+    let pending = null; // { r, c, timer }
+    const DBL_TAP_MS = 280;
+
+    boardEl.addEventListener('click', (e) => {
+      if (state.longPressFired) { state.longPressFired = false; return; }
+      const cell = e.target.closest('.ms-cell');
+      if (!cell) return;
+      const r = +cell.dataset.r, c = +cell.dataset.c;
+      if (pending && pending.r === r && pending.c === c) {
+        clearTimeout(pending.timer);
+        pending = null;
+        dblTapAction(r, c);
+        return;
+      }
+      if (pending) clearTimeout(pending.timer);
+      pending = {
+        r, c,
+        timer: setTimeout(() => { reveal(r, c); pending = null; }, DBL_TAP_MS)
+      };
+    });
+
+    let touchAnchor = null;
+    boardEl.addEventListener('touchstart', (e) => {
+      const cell = e.target.closest('.ms-cell');
+      if (!cell) return;
+      const r = +cell.dataset.r, c = +cell.dataset.c;
+      const t = e.touches[0];
+      touchAnchor = { x: t.clientX, y: t.clientY };
+      state.longPressTimer = setTimeout(() => {
+        state.longPressFired = true;
+        toggleFlag(r, c);
+        if (pending) { clearTimeout(pending.timer); pending = null; }
+        state.longPressTimer = null;
+      }, 400);
+    }, { passive: true });
+    boardEl.addEventListener('touchend', () => {
+      if (state.longPressTimer) { clearTimeout(state.longPressTimer); state.longPressTimer = null; }
+      touchAnchor = null;
+    });
+    // Lenient: only cancel long-press if the finger moves > 10px (avoids 1px jitter false-cancels)
+    boardEl.addEventListener('touchmove', (e) => {
+      if (!state.longPressTimer || !touchAnchor) return;
+      const t = e.touches[0];
+      const dx = t.clientX - touchAnchor.x;
+      const dy = t.clientY - touchAnchor.y;
+      if (dx * dx + dy * dy > 100) {
+        clearTimeout(state.longPressTimer);
+        state.longPressTimer = null;
+        touchAnchor = null;
+      }
+    }, { passive: true });
+  } else {
+    // Desktop: instant click reveal, dblclick chord-or-flag (no latency)
+    boardEl.addEventListener('click', (e) => {
+      const cell = e.target.closest('.ms-cell');
+      if (!cell) return;
+      const r = +cell.dataset.r, c = +cell.dataset.c;
+      reveal(r, c);
+    });
+    boardEl.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      const cell = e.target.closest('.ms-cell');
+      if (!cell) return;
+      const r = +cell.dataset.r, c = +cell.dataset.c;
+      dblTapAction(r, c);
+    });
+  }
 
   // Difficulty tabs
   document.getElementById('msDiffTabs').addEventListener('click', (e) => {
