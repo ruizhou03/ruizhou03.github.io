@@ -427,7 +427,12 @@ permalink: /toolbox/leap/
     $hudBest.textContent  = `最高 ${state.best} 跳`;
   }
 
+  // 死亡 → 显示结算 overlay 之间的延迟 timer，让玩家看清死亡瞬间
+  let gameOverTimer = null;
+  const GAMEOVER_DELAY_MS = 1000;
+
   function startGame() {
+    if (gameOverTimer) { clearTimeout(gameOverTimer); gameOverTimer = null; }
     resetGame();
     $overStart.classList.add('hidden');
     $overOver.classList.add('hidden');
@@ -439,11 +444,14 @@ permalink: /toolbox/leap/
   }
 
   function gameOver(reason) {
+    if (state.phase === 'gameover') return;  // 防重入
     state.phase = 'gameover';
     if (state.score > state.best) {
       state.best = state.score;
       saveBest();
     }
+    // 落到地面以下不要陷下去；撞墙时保留挂在桩侧的位置
+    if (state.player.y > GROUND_Y) state.player.y = GROUND_Y;
     $overTitle.textContent =
       reason === 'short' ? '💥 蓄力不够，掉空隙了' :
       reason === 'long'  ? '💥 飞过头了' :
@@ -453,11 +461,23 @@ permalink: /toolbox/leap/
     $overScore.textContent = `${state.score} 跳`;
     $overBest.textContent  = `${state.best} 跳`;
     updateScoreUI();
-    $overOver.classList.remove('hidden');
+    // 延迟显示结算 overlay，给玩家"卡住/挂住"的视觉停顿
+    if (gameOverTimer) clearTimeout(gameOverTimer);
+    gameOverTimer = setTimeout(() => {
+      if (state.phase === 'gameover') $overOver.classList.remove('hidden');
+      gameOverTimer = null;
+    }, GAMEOVER_DELAY_MS);
     leapTryAutoSubmit();
   }
 
   // ── 蓄力 / 起跳 ────────────────────────
+  // 三角波：0 → 1 → 0 → 1 → ...，按住到顶不放就回落，回落到 0 又上涨
+  // 给玩家"必须把握时机松手"的紧张感
+  function computeCharge(elapsed) {
+    const cycle = 2 * CHARGE_FULL_MS;
+    const phase = (elapsed % cycle) / CHARGE_FULL_MS;
+    return phase < 1 ? phase : 2 - phase;
+  }
   function startCharge() {
     if (state.phase !== 'idle') return;
     state.phase = 'charging';
@@ -467,7 +487,7 @@ permalink: /toolbox/leap/
   function releaseCharge() {
     if (state.phase !== 'charging') return;
     const elapsed = performance.now() - state.chargeStart;
-    state.charge = Math.max(0, Math.min(1, elapsed / CHARGE_FULL_MS));
+    state.charge = computeCharge(elapsed);
     // 蓄力线性映射到射程，再反推初速度（角度 45° 固定）
     const R = R_MIN + state.charge * (R_MAX - R_MIN);
     const v = Math.sqrt(R * GRAVITY);
@@ -493,10 +513,9 @@ permalink: /toolbox/leap/
 
   // ── 主循环：物理 + 落地 + 死亡 ───────────
   function step() {
-    // 蓄力中：实时更新 charge 用于绘制蓄力条
+    // 蓄力中：每帧用三角波公式更新 charge（绘制蓄力条用）
     if (state.phase === 'charging') {
-      const elapsed = performance.now() - state.chargeStart;
-      state.charge = Math.max(0, Math.min(1, elapsed / CHARGE_FULL_MS));
+      state.charge = computeCharge(performance.now() - state.chargeStart);
     }
 
     if (state.phase === 'jumping') {
@@ -694,7 +713,9 @@ permalink: /toolbox/leap/
     const y = p.y;
     if (x < -50 || x > GAME_W + 50) return;
 
-    const jumping = state.phase === 'jumping';
+    // gameover 时若玩家还在空中（撞墙死），保持跳跃姿势挂在桩侧
+    const jumping = state.phase === 'jumping'
+      || (state.phase === 'gameover' && state.player.y < GROUND_Y - 1);
 
     // 学位帽
     ctx.fillStyle = palette.ink;
