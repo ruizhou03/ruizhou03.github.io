@@ -631,6 +631,8 @@ permalink: /toolbox/snake/
     persist();
     updateScores();
     if (state.running) startLoop();
+    // 排行榜面板同步切到对应速度 tab
+    if (typeof snLbWidget !== 'undefined' && snLbWidget) snLbWidget.setSplit(state.speed);
   });
 
   pauseBtn.onclick = togglePause;
@@ -769,6 +771,12 @@ permalink: /toolbox/snake/
       title: '🏆 贪吃蛇 排行榜',
       scoreFormatter: v => Number(v).toLocaleString(),
       getCurrentNick: () => GamesShell.Identity.getNick(),
+      getSplit: () => state.speed,
+      splitTabs: [
+        { value: 'slow', label: '慢' },
+        { value: 'mid',  label: '中' },
+        { value: 'fast', label: '快' },
+      ],
     });
     GamesShell.Comments.mount({
       container: document.getElementById('sn-cm-mount'),

@@ -502,7 +502,7 @@ permalink: /toolbox/2048/
     runStartedAt = Date.now();
     runNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     pendingSubmit = false;
-    if (lbWidget) lbWidget.onSplitChange();
+    if (lbWidget) lbWidget.setSplit(String(state.size));
   }
 
   function attemptMove(dir) {
@@ -710,6 +710,11 @@ permalink: /toolbox/2048/
         scoreFormatter: v => Number(v).toLocaleString(),
         getCurrentNick: () => GamesShell.Identity.getNick(),
         getSplit: () => String(state.size),
+        splitTabs: [
+          { value: '3', label: '3×3' },
+          { value: '4', label: '4×4' },
+          { value: '5', label: '5×5' },
+        ],
       });
     }
     // 评论

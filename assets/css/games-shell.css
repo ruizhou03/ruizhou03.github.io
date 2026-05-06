@@ -165,6 +165,32 @@
 .gs-wlb-tally span[title="normal"] { color: #d4a015; }
 .gs-wlb-tally span[title="easy"]   { color: #5fa66e; }
 
+/* 难度 / 模式 tab —— 仿 Suika basic/fountain/unlimited */
+.gs-lb-tabs {
+  display: flex;
+  gap: 0.3rem;
+  margin: 0 0 0.6rem;
+  flex-wrap: wrap;
+}
+.gs-lb-tab {
+  font: inherit; font-size: 0.78rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-muted);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.gs-lb-tab:hover { border-color: var(--color-accent); color: var(--color-ink); }
+.gs-lb-tab.gs-lb-tab-active {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+  font-weight: 600;
+}
+
 .gs-lb-mine {
   margin: 0 0 0.6rem;
   padding: 0.55rem 0.7rem;
