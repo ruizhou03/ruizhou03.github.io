@@ -820,7 +820,7 @@ permalink: /toolbox/minesweeper/
     msLbWidget = GamesShell.Leaderboard.mount({
       container: document.getElementById('ms-lb-mount'),
       gameId: 'minesweeper',
-      title: '🏆 扫雷 排行榜（用时短在前）',
+      title: '🏆 扫雷 排行榜',
       scoreFormatter: v => (Number(v) / 1000).toFixed(1) + ' s',
       getCurrentNick: () => GamesShell.Identity.getNick(),
       getSplit: () => state.diff,
