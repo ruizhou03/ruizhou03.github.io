@@ -204,7 +204,8 @@ permalink: /toolbox/leap/
   <details class="about">
     <summary>关于这个游戏</summary>
     <p><strong>玩法：</strong>每根桩代表 PhD 生活里的一个 deadline（投稿、IRB、reviewer 反馈、组会汇报）。长按蓄力，松开就以那个力度跳出去。</p>
-    <p><strong>蓄力时长 = 跳的距离</strong>。短了掉空隙，长了飞过桩——两种死法都常见。落点越靠桩心，给的分越多（正中 +2，普通 +1）。</p>
+    <p><strong>蓄力 = 跳的距离</strong>，线性映射：蓄力 50% 就跨越 50% 距离。蓄力条上有一道横线，是「刚好够下一桩」的最低蓄力——低于它必掉空隙。</p>
+    <p><strong>四种死法：</strong>蓄力不够掉空隙、飞过头、撞到桩侧面、擦边没站稳。落点越靠桩心给分越多（正中 +N×3，普通 +N，N 是这一跳跨越的桩数）。</p>
     <p><strong>纯本地：</strong>最高分本机存，不联网、不上传。</p>
   </details>
 </article>
@@ -249,6 +250,8 @@ permalink: /toolbox/leap/
     const dpr = window.devicePixelRatio || 1;
     const cssW = $canvas.clientWidth;
     const cssH = $canvas.clientHeight;
+    // 容器隐藏 / tab 隐藏时尺寸为 0，setTransform(0,0,0,0,…) 会让后续绘制全废
+    if (cssW <= 0 || cssH <= 0) return;
     $canvas.width  = Math.round(cssW * dpr);
     $canvas.height = Math.round(cssH * dpr);
     const sx = $canvas.width  / GAME_W;
@@ -478,7 +481,7 @@ permalink: /toolbox/leap/
           // 浮动文字
           state.floats.push({
             x: p.x, y: post.top_y - 20,
-            text: (isPerfect ? '+' : '+') + points + (isPerfect ? '!' : ''),
+            text: '+' + points + (isPerfect ? '!' : ''),
             age: 0, ttl: 50,
             color: isPerfect ? '#c8801c' : palette.muted,
           });
@@ -540,8 +543,8 @@ permalink: /toolbox/leap/
     state.floats = state.floats.filter(f => f.age < f.ttl);
     if (state.pulse > 0) state.pulse--;
 
-    // 云缓慢漂移（仅在游戏进行中）
-    if (state.phase === 'idle' || state.phase === 'charging' || state.phase === 'jumping') {
+    // 云缓慢漂移（gameover 时停下，其余状态包括开始页都漂）
+    if (state.phase !== 'gameover') {
       for (const c of state.clouds) {
         c.x -= 0.1;
         if (c.x + c.w < state.cameraX - 30) {
@@ -856,6 +859,10 @@ permalink: /toolbox/leap/
     placePlayerOnPost(0);
     state.cameraX = state.targetCameraX;
     drawScene();
+    // 自定义字体晚加载时重画一次，避免首帧 fallback 字体
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(drawScene);
+    }
     requestAnimationFrame((t) => { lastTime = t; tick(t); });
   }
   init();
