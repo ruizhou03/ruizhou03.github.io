@@ -220,9 +220,11 @@ permalink: /toolbox/leap/
   const GAP_MIN = 30, GAP_MAX = 160;          // 桩边缘空隙 px
   const FIRST_POST_X = 80;                    // 第一根桩的 x（左边缘）
   const GRAVITY = 0.5;
-  const MIN_V = 4.5, MAX_V = 11.5;
+  // 蓄力 → 射程（线性）：R_MIN 刚够跨 GAP_MIN 落到下一桩左缘；R_MAX 跨 GAP_MAX 略过头容错
+  // 起跳角度固定 45°，故 v = sqrt(R · g)
+  const R_MIN = 58, R_MAX = 230;
   const CHARGE_FULL_MS = 1100;
-  const PERFECT_PX = 8;                        // 距桩心 < 这个 = 完美
+  const PERFECT_PX = 12;                       // 距桩心 < 这个 = 完美（28% 桩宽 → 43%）
   const KEEP_POSTS_AHEAD = 5;                  // 始终保持当前桩之后 N 根
   const CAMERA_LERP = 0.12;                    // 摄像机平滑跟随系数
   const BEST_KEY = 'leap.best.v1';
@@ -414,7 +416,9 @@ permalink: /toolbox/leap/
     if (state.phase !== 'charging') return;
     const elapsed = performance.now() - state.chargeStart;
     state.charge = Math.max(0, Math.min(1, elapsed / CHARGE_FULL_MS));
-    const v = MIN_V + state.charge * (MAX_V - MIN_V);
+    // 蓄力线性映射到射程，再反推初速度（角度 45° 固定）
+    const R = R_MIN + state.charge * (R_MAX - R_MIN);
+    const v = Math.sqrt(R * GRAVITY);
     const inv = v / Math.SQRT2;
     state.player.vx = inv;
     state.player.vy = -inv;
@@ -469,7 +473,7 @@ permalink: /toolbox/leap/
           // 完美居中？
           const dxToCenter = Math.abs(p.x - (post.x + post.w / 2));
           const isPerfect = dxToCenter <= PERFECT_PX;
-          const points = isPerfect ? advance * 2 : advance;
+          const points = isPerfect ? advance * 3 : advance;
           state.score += points;
           // 浮动文字
           state.floats.push({
@@ -486,6 +490,8 @@ permalink: /toolbox/leap/
           state.phase = 'idle';
           ensureEnoughPosts();
           updateScoreUI();
+          // 长按穿越：落地瞬间若按键还按着，立刻续上下一次蓄力
+          if (state.input.down) startCharge();
           return;
         }
       }
@@ -660,6 +666,16 @@ permalink: /toolbox/leap/
     }
   }
 
+  // 下一桩需要的最低蓄力比例（刚好落到下一桩左缘所需）
+  function minChargeForNext() {
+    const me = state.posts[state.currentIdx];
+    const nxt = state.posts[state.currentIdx + 1];
+    if (!me || !nxt) return 0;
+    // 玩家中心到下一桩左缘的距离
+    const reachNeeded = nxt.x - (me.x + me.w / 2);
+    return Math.max(0, Math.min(1, (reachNeeded - R_MIN) / (R_MAX - R_MIN)));
+  }
+
   function drawChargeMeter() {
     if (state.phase !== 'charging') return;
     const p = state.player;
@@ -675,6 +691,13 @@ permalink: /toolbox/leap/
     ctx.fillStyle = state.charge >= 0.99 ? '#c8801c' : palette.accent;
     const fillH = barH * state.charge;
     roundRectFill(x - barW / 2, baseY - fillH, barW, fillH, 2);
+    // 最低蓄力刻度：低于这里必掉空隙到下一桩之前
+    const minTick = minChargeForNext();
+    if (minTick > 0.01) {
+      ctx.fillStyle = palette.muted;
+      const tickY = baseY - barH * minTick;
+      ctx.fillRect(x - barW / 2 - 2, tickY, barW + 4, 1);
+    }
     // 满蓄力时尖端闪烁警告
     if (state.charge >= 0.99 && Math.floor(performance.now() / 120) % 2 === 0) {
       ctx.fillStyle = '#fff';
