@@ -1,13 +1,14 @@
 /* Zirconeey site service worker
  * 策略：
  *  - 同源 HTML：network-first，更新缓存；离线时返回缓存
- *  - 同源静态资源（图、CSS、JS、字体）：cache-first
+ *  - 同源静态资源（图、CSS、JS、字体）：stale-while-revalidate
+ *    （cache-first 会让用户改不动 CSS——上次踩了 v3→v4 的坑）
  *  - 跨域：透传，不缓存
  *  - 手动批量预取：通过 postMessage('PREFETCH_URLS') 触发
  *  - 查询是否已缓存：postMessage('IS_CACHED')
  */
 
-const VERSION = 'v3';
+const VERSION = 'v4';
 const SHELL_CACHE = `zirconeey-shell-${VERSION}`;
 const PAGE_CACHE  = `zirconeey-pages-${VERSION}`;
 const ASSET_CACHE = `zirconeey-assets-${VERSION}`;
@@ -75,20 +76,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // stale-while-revalidate：有缓存立即返回，同时后台拉新版本写回缓存。
+  // 下一次访问就能拿到刚部署的更新，不需要 Cmd+Shift+R。
   event.respondWith((async () => {
-    const cached = await caches.match(req);
-    if (cached) return cached;
-    try {
-      const res = await fetch(req);
+    const cache = await caches.open(ASSET_CACHE);
+    const cached = await cache.match(req);
+    const fetchPromise = fetch(req).then((res) => {
       if (res && res.ok && res.type === 'basic') {
-        const copy = res.clone();
-        const cache = await caches.open(ASSET_CACHE);
-        cache.put(req, copy).catch(() => {});
+        cache.put(req, res.clone()).catch(() => {});
       }
       return res;
-    } catch (e) {
-      return new Response('', { status: 504 });
+    }).catch(() => null);
+    if (cached) {
+      // 后台 promise 也消化掉，避免 unhandled rejection
+      fetchPromise.catch(() => {});
+      return cached;
     }
+    const res = await fetchPromise;
+    if (res) return res;
+    return new Response('', { status: 504 });
   })());
 });
 
