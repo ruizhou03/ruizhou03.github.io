@@ -526,7 +526,12 @@ permalink: /toolbox/leap/
             state.pulse = 18;
             state.pulseIdx = idx;
           }
-          placePlayerOnPost(idx);
+          // 落地：保留实际落点 x（不强制吸到桩心），仅清零速度并更新当前桩
+          state.player.y = post.top_y;
+          state.player.vx = 0;
+          state.player.vy = 0;
+          state.currentIdx = idx;
+          state.targetCameraX = state.player.x - PLAYER_SCREEN_X;
           state.phase = 'idle';
           ensureEnoughPosts();
           updateScoreUI();
@@ -706,13 +711,11 @@ permalink: /toolbox/leap/
     }
   }
 
-  // 下一桩需要的最低蓄力比例（刚好落到下一桩左缘所需）
+  // 下一桩需要的最低蓄力比例（从玩家实际 x 出发，刚好够下一桩左缘所需）
   function minChargeForNext() {
-    const me = state.posts[state.currentIdx];
     const nxt = state.posts[state.currentIdx + 1];
-    if (!me || !nxt) return 0;
-    // 玩家中心到下一桩左缘的距离
-    const reachNeeded = nxt.x - (me.x + me.w / 2);
+    if (!nxt) return 0;
+    const reachNeeded = nxt.x - state.player.x;
     return Math.max(0, Math.min(1, (reachNeeded - R_MIN) / (R_MAX - R_MIN)));
   }
 
