@@ -12,27 +12,53 @@
 }
 
 /* 桌面宽屏：浮在主内容右侧空白处。
- * --gs-wrap-half 是承载游戏的 wrap 元素 max-width 的一半，每个游戏在
- * 自己的 <style> 里 override（默认 280 适配 560 宽 wrap，如 2048 / snake）。
- * 计算口径：left = 50vw + half(wrap) + gap，width 280，距视口右边至少 1.5rem。 */
-@media (min-width: 1280px) {
-  .gs-leaderboard {
-    position: fixed;
-    top: 6rem;
-    left: calc(50vw + var(--gs-wrap-half, 280px) + 30px);
-    right: auto;
-    width: 280px;
-    max-height: calc(100vh - 8rem);
-    overflow-y: auto;
-    margin-top: 0;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-    z-index: 5;
+ * 不与主游戏重叠的最小视口 = 2 * (wrap-half + 296)
+ *   2048/snake (560)   wrap-half=280  → 阈值 1180
+ *   chess/gomoku/xiangqi (720) wrap-half=360 → 1320
+ *   leap/runner (760)  wrap-half=380  → 1360
+ *   minesweeper (860)  wrap-half=430  → 1460
+ * 用 right 锚点 + max() clamp，即使算出负 X 也保 1.2rem 安全边距，永远不会
+ * 推出屏幕外。
+ * 关键：每个 @media 只匹配该游戏 wrap 内部的 .gs-leaderboard——避免在视口
+ * 不够时硬塞导致和主区重叠。 */
+@media (min-width: 1180px) {
+  .g2048-wrap .gs-leaderboard,
+  .sn-wrap    .gs-leaderboard {
+    position: fixed; top: 6rem;
+    right: max(1.2rem, calc(50vw - var(--gs-wrap-half, 280px) - 310px));
+    width: 280px; max-height: calc(100vh - 8rem);
+    overflow-y: auto; margin-top: 0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06); z-index: 5;
   }
 }
-/* 超宽屏（≥1700px）窝得离主内容更远不好看，限上限 */
-@media (min-width: 1700px) {
-  .gs-leaderboard {
-    left: min(calc(50vw + var(--gs-wrap-half, 280px) + 60px), calc(100vw - 320px));
+@media (min-width: 1320px) {
+  .ch-wrap .gs-leaderboard,
+  .gm-wrap .gs-leaderboard,
+  .xq-wrap .gs-leaderboard {
+    position: fixed; top: 6rem;
+    right: max(1.2rem, calc(50vw - var(--gs-wrap-half, 360px) - 310px));
+    width: 280px; max-height: calc(100vh - 8rem);
+    overflow-y: auto; margin-top: 0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06); z-index: 5;
+  }
+}
+@media (min-width: 1360px) {
+  .leap-wrap   .gs-leaderboard,
+  .runner-wrap .gs-leaderboard {
+    position: fixed; top: 6rem;
+    right: max(1.2rem, calc(50vw - var(--gs-wrap-half, 380px) - 310px));
+    width: 280px; max-height: calc(100vh - 8rem);
+    overflow-y: auto; margin-top: 0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06); z-index: 5;
+  }
+}
+@media (min-width: 1460px) {
+  .ms-wrap .gs-leaderboard {
+    position: fixed; top: 6rem;
+    right: max(1.2rem, calc(50vw - var(--gs-wrap-half, 430px) - 310px));
+    width: 280px; max-height: calc(100vh - 8rem);
+    overflow-y: auto; margin-top: 0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06); z-index: 5;
   }
 }
 .gs-lb-header {
