@@ -2186,7 +2186,7 @@ permalink: /toolbox/suika/
     pendingSubmitForRun = false;
     spaceHeldSince = null;
     fountainCooldownUntil = 0;
-    lastDropAt = 0;
+    clearHoverRespawn();
     dangerSince = null;
     lastInDangerTime = 0;
 
@@ -2350,18 +2350,20 @@ permalink: /toolbox/suika/
     hoverFruit.x = x;
   }
 
-  // 基础版防"鼠标狂点 = 喷泉"：相邻两次 drop 之间至少 100ms。
-  // fountain / unlimited 模式不受限（fountain 自己有 5s+1s 节流，unlimited 不限）。
-  const BASIC_DROP_MIN_MS = 100;
-  let lastDropAt = 0;
+  // 基础版防"鼠标狂点 = 喷泉"：放下水果后等 X ms 才 spawn 下一颗 hover。
+  // 视觉上"光标位置没水果可放" → 自然就压住了狂点；hover 出来再点。
+  // fountain / unlimited 不延迟（fountain 自己有 5s+1s 节流，unlimited 全开）。
+  const BASIC_RESPAWN_MS = 300;
+  let hoverRespawnTimer = null;
+  function clearHoverRespawn() {
+    if (hoverRespawnTimer) {
+      clearTimeout(hoverRespawnTimer);
+      hoverRespawnTimer = null;
+    }
+  }
 
   function dropCurrent() {
     if (!hoverFruit || isOver || isPaused) return;
-    if (gameMode === 'basic' && !unlimitedMode) {
-      const now = performance.now();
-      if (now - lastDropAt < BASIC_DROP_MIN_MS) return;
-      lastDropAt = now;
-    }
     const fruit = FRUITS[hoverFruit.level - 1];
     const x = clampHoverX(hoverFruit.x, fruit.radius);
     // 直接创建 dynamic body — 不走 isStatic/collisionFilter 那一套
@@ -2379,8 +2381,16 @@ permalink: /toolbox/suika/
       }
     }
 
-    // 立刻 spawn 下一个 hover —— 不再有 500ms 冷却，一释放马上能继续放
-    spawnHoveringFruit();
+    // 基础版：延迟 spawn hover 防鼠标狂点；其它模式立刻 spawn。
+    clearHoverRespawn();
+    if (gameMode === 'basic' && !unlimitedMode) {
+      hoverRespawnTimer = setTimeout(() => {
+        hoverRespawnTimer = null;
+        if (!isOver && gameStarted) spawnHoveringFruit();
+      }, BASIC_RESPAWN_MS);
+    } else {
+      spawnHoveringFruit();
+    }
   }
 
   // ============ 输入：鼠标 / 触屏 / 键盘 ============
@@ -3052,6 +3062,7 @@ permalink: /toolbox/suika/
     if (isOver) return;
     isOver = true;
     hoverFruit = null;  // 清掉悬浮（纯数据，不需要 World.remove）
+    clearHoverRespawn(); // 也清掉等待 spawn 的 timer，免得 game-over 后冒出 hover
     hoverVx = 0;
     clearSaveState();   // 局已结束，存档没意义了
     $ovTitle.textContent = '游戏结束';
@@ -3106,7 +3117,7 @@ permalink: /toolbox/suika/
     unlimitedMode = (gameMode === 'unlimited');
     spaceHeldSince = null;
     fountainCooldownUntil = 0;
-    lastDropAt = 0;
+    clearHoverRespawn();
     runStartedAt = Date.now();
     currentRunNonce = newRunNonce();
     pendingSubmitForRun = false;
@@ -3151,7 +3162,7 @@ permalink: /toolbox/suika/
     unlimitedMode = (gameMode === 'unlimited');
     spaceHeldSince = null;
     fountainCooldownUntil = 0;
-    lastDropAt = 0;
+    clearHoverRespawn();
     runStartedAt = Date.now();
     currentRunNonce = newRunNonce();
     pendingSubmitForRun = false;
@@ -3179,7 +3190,7 @@ permalink: /toolbox/suika/
     hoverFruit = null;
     spaceHeldSince = null;
     fountainCooldownUntil = 0;
-    lastDropAt = 0;
+    clearHoverRespawn();
     pendingSubmitForRun = false;
     nextLevelQueue = [];
     ensureQueueFilled();
