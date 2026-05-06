@@ -379,6 +379,51 @@ permalink: /toolbox/suika/
     padding-top: 1rem;
   }
 
+  /* 模式选择器（segmented control） */
+  .mode-picker {
+    display: flex;
+    gap: 0.25rem;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    padding: 4px;
+    margin: 0 auto 0.5rem;
+    max-width: 280px;
+  }
+  .mode-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.45rem 0.4rem;
+    border: none;
+    background: transparent;
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.62);
+    font: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+    line-height: 1;
+  }
+  .mode-tab:hover { color: rgba(255, 255, 255, 0.9); }
+  .mode-tab.selected {
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  }
+  .mode-tab .mode-emoji { font-size: 1.2rem; line-height: 1; }
+  .mode-tab .mode-name { font-weight: 500; }
+  .mode-desc {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 auto 1.1rem;
+    min-height: 1em;
+    text-align: center;
+    max-width: 280px;
+    line-height: 1.45;
+  }
+
   /* 进度恢复视图 */
   .resume-summary {
     background: rgba(255,255,255,0.08);
@@ -932,10 +977,23 @@ permalink: /toolbox/suika/
         <div style="color: rgba(255,255,255,0.78); font-size: 0.92rem; margin-bottom: 1rem; line-height: 1.55;">
           相同水果碰撞合并 · 一路合到西瓜
         </div>
-        <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 0.75rem 1.4rem; margin-bottom: 1.4rem; font-size: 0.92rem;">
+        <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 0.75rem 1.4rem; margin-bottom: 1rem; font-size: 0.92rem;">
           <div style="color: var(--color-highlight); font-family: var(--font-display); font-size: 1.6rem; font-weight: 600; line-height: 1;" id="start-best">0</div>
           <div style="color: rgba(255,255,255,0.7); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.3rem;">历史最高分</div>
         </div>
+        <!-- 模式选择：三个并行排行榜 -->
+        <div class="mode-picker" id="mode-picker" role="radiogroup" aria-label="游戏模式">
+          <button type="button" class="mode-tab" data-mode="basic" role="radio" aria-checked="true">
+            <span class="mode-emoji">🎯</span><span class="mode-name">基础</span>
+          </button>
+          <button type="button" class="mode-tab" data-mode="fountain" role="radio" aria-checked="false">
+            <span class="mode-emoji">🚿</span><span class="mode-name">喷泉</span>
+          </button>
+          <button type="button" class="mode-tab" data-mode="unlimited" role="radio" aria-checked="false">
+            <span class="mode-emoji">♾</span><span class="mode-name">尽兴</span>
+          </button>
+        </div>
+        <div class="mode-desc" id="mode-desc"></div>
         <button type="button" class="ov-btn" id="start-btn">▶ 开始游戏</button>
         <button type="button" class="settings-link" id="open-settings-btn">⚙ 调参</button>
       </div>
@@ -1081,6 +1139,7 @@ permalink: /toolbox/suika/
         <button type="button" class="ov-btn-secondary" id="ov-screenshot-btn">📸 保存图片</button>
         <button type="button" class="ov-btn" id="ov-restart">🔄 再来一局</button>
       </div>
+      <button type="button" class="settings-link" id="ov-to-menu" style="margin-top: 0.6rem;">↶ 回主菜单（换模式）</button>
     </div>
   </div>
 
@@ -1175,6 +1234,20 @@ permalink: /toolbox/suika/
   const CHAIN_KEY = 'tool.suika.chain.v1';
   const NICK_KEY = 'tool.suika.nick.v1';
   const DEVICE_KEY = 'tool.suika.did.v1';
+  const GAMEMODE_KEY = 'tool.suika.gameMode.v1';
+
+  // ============ 游戏模式（三个并行排行榜） ============
+  // basic     - 严格模式：禁喷泉（按住空格 autorepeat 不生效）。计入主榜。
+  // fountain  - 喷泉模式：5s 长按 + 1s 冷却。计入喷泉榜。
+  // unlimited - 尽兴模式：跳过所有暗号 budget + 无喷泉限制。计入尽兴榜。
+  // 中途从 basic/fountain 输 unlimited 暗号 → unlimitedMode 升级 → 提交去尽兴榜
+  // （理由：开局更严格 = 玩起来更难，归到尽兴榜公平）。
+  const VALID_GAME_MODES = ['basic', 'fountain', 'unlimited'];
+  function loadGameMode() {
+    const v = localStorage.getItem(GAMEMODE_KEY);
+    return VALID_GAME_MODES.includes(v) ? v : 'basic';
+  }
+  let gameMode = loadGameMode();
 
   // 排行榜后端（zircon-urge Vercel + Upstash Redis）。
   // 灭火开关：把 LEADERBOARD_ENABLED 改成 false 后 push，前端立即回到纯本地模式。
@@ -1577,13 +1650,13 @@ permalink: /toolbox/suika/
   // 暗号 budget（每个暗号每局上限 3 次；unlimitedMode 跳过）
   const CHEAT_PER_RUN_LIMIT = 3;
   let runCheatUsage = {};         // { clean: 2, fuck: 1, ... }
-  let unlimitedMode = false;      // 触发 unlimited 后：跳过所有 budget + 不上传分数
+  let unlimitedMode = false;      // 触发 unlimited / 菜单选尽兴 → true：跳过所有 budget；本局仍上传，但去 unlimited 榜单。
 
-  // 长按空格"喷泉"限制
+  // 长按空格"喷泉"限制（仅 fountain 模式生效；basic 完全禁、unlimited 不限）
   let spaceHeldSince = null;      // ms：当前按下空格的起始时间（null = 未按）
   let fountainCooldownUntil = 0;  // ms：当前喷泉冷却截止
-  const FOUNTAIN_MAX_MS = 3000;   // 单次连按最长 3s
-  const FOUNTAIN_COOLDOWN_MS = 3000; // 满 3s 后冷却 3s
+  const FOUNTAIN_MAX_MS = 5000;   // fountain 模式：单次长按最长 5s
+  const FOUNTAIN_COOLDOWN_MS = 1000; // 满 5s 后冷却 1s
 
   // limit 可选；不传走全局默认 CHEAT_PER_RUN_LIMIT。给 full 这种特别危险的暗号
   // 用 limit=1（防 full+gravity 反复刷分漏洞）。
@@ -1727,15 +1800,16 @@ permalink: /toolbox/suika/
     }
   }
 
-  // unlimited：开局尽兴，跳过所有 budget + 喷泉限制；本局分数不上传
+  // unlimited：跳过所有 budget + 喷泉限制；本局上传到尽兴模式（unlimited）榜
+  // 中途从 basic / fountain 触发：这局算"严格开局 + 尽兴收尾"，归到 unlimited 榜
   function triggerUnlimited() {
     if (isOver) return;
     if (unlimitedMode) {
-      showCheatToast('♾ 已经在 unlimited 模式 · 玩的尽兴 · 本局不计入排名', '#d4a3ff');
+      showCheatToast('♾ 已经在尽兴模式 · 本局上 unlimited 榜', '#d4a3ff');
       return;
     }
     unlimitedMode = true;
-    showCheatToast('♾ unlimited：本局尽兴玩，不计入排行榜', '#d4a3ff');
+    showCheatToast('♾ unlimited：跳过所有限制 · 本局上 unlimited 榜', '#d4a3ff');
   }
 
   // 暗号映射表（注意：长前缀放后面，避免短前缀截胡 — 这里 7 个互不重叠，无所谓）
@@ -1972,6 +2046,7 @@ permalink: /toolbox/suika/
       currentRunNonce,
       runCheatUsage: { ...runCheatUsage },
       unlimitedMode,
+      gameMode,
       nextLevelQueue: [...nextLevelQueue],
       fruits,
       hover: hoverFruit ? { level: hoverFruit.level, x: hoverFruit.x } : null,
@@ -2022,6 +2097,10 @@ permalink: /toolbox/suika/
     currentRunNonce = String(save.currentRunNonce || newRunNonce());
     runCheatUsage = (save.runCheatUsage && typeof save.runCheatUsage === 'object') ? { ...save.runCheatUsage } : {};
     unlimitedMode = !!save.unlimitedMode;
+    if (VALID_GAME_MODES.includes(save.gameMode)) {
+      gameMode = save.gameMode;
+      // 不写 localStorage：菜单偏好保留用户最后一次主动选择，不被存档恢复污染
+    }
 
     nextLevelQueue = Array.isArray(save.nextLevelQueue) ? save.nextLevelQueue.slice() : [];
     ensureQueueFilled();
@@ -2299,20 +2378,28 @@ permalink: /toolbox/suika/
       // 第一次按下（非 autorepeat）记录起始时间
       if (!e.repeat) spaceHeldSince = now;
       if (!unlimitedMode) {
-        // 当前在喷泉冷却中？silently reject
-        if (now < fountainCooldownUntil) return;
-        // 刚出冷却 + 按键按着没松：重新开 3s 窗
-        if (fountainCooldownUntil > 0 && spaceHeldSince === null) {
-          spaceHeldSince = now;
-          fountainCooldownUntil = 0;
+        if (gameMode === 'basic') {
+          // 基础版：完全禁喷泉。autorepeat（按住空格连发）一律拦截，
+          // 只让首次 keydown 落一颗。
+          if (e.repeat) return;
+        } else if (gameMode === 'fountain') {
+          // 喷泉模式：5s 长按 + 1s 冷却。
+          if (now < fountainCooldownUntil) return;
+          // 刚出冷却 + 按键按着没松：重新开 5s 窗
+          if (fountainCooldownUntil > 0 && spaceHeldSince === null) {
+            spaceHeldSince = now;
+            fountainCooldownUntil = 0;
+          }
+          // 这一次连按已经超 5s？触发 1s 冷却
+          if (spaceHeldSince !== null && now - spaceHeldSince >= FOUNTAIN_MAX_MS) {
+            fountainCooldownUntil = now + FOUNTAIN_COOLDOWN_MS;
+            spaceHeldSince = null;
+            showCheatToast(`🚿 喷泉冷却 ${FOUNTAIN_COOLDOWN_MS / 1000} 秒`, '#ffb380');
+            return;
+          }
         }
-        // 这一次连按已经超 3s？触发 3s 冷却
-        if (spaceHeldSince !== null && now - spaceHeldSince >= FOUNTAIN_MAX_MS) {
-          fountainCooldownUntil = now + FOUNTAIN_COOLDOWN_MS;
-          spaceHeldSince = null;
-          showCheatToast(`🚿 喷泉冷却 ${FOUNTAIN_COOLDOWN_MS / 1000} 秒`, '#ffb380');
-          return;
-        }
+        // gameMode === 'unlimited' 但 unlimitedMode 还没 set：不应该到这里
+        // （startGame 会同步 set），但万一也无限制走。
       }
       dropCurrent();
     } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -2953,7 +3040,8 @@ permalink: /toolbox/suika/
     runMaxLevel = 0;
     runMelons = 0;
     runCheatUsage = {};
-    unlimitedMode = false;
+    // 重开时 gameMode 沿用上局菜单选择；unlimited 模式重开仍是 unlimited。
+    unlimitedMode = (gameMode === 'unlimited');
     spaceHeldSince = null;
     fountainCooldownUntil = 0;
     runStartedAt = Date.now();
@@ -2996,7 +3084,8 @@ permalink: /toolbox/suika/
     runMaxLevel = 0;
     runMelons = 0;
     runCheatUsage = {};
-    unlimitedMode = false;
+    // 菜单选了尽兴模式 → 立即进 unlimitedMode（跳过暗号 budget），上 unlimited 榜。
+    unlimitedMode = (gameMode === 'unlimited');
     spaceHeldSince = null;
     fountainCooldownUntil = 0;
     runStartedAt = Date.now();
@@ -3006,6 +3095,69 @@ permalink: /toolbox/suika/
   }
   $startBtn.addEventListener('click', startGame);
   document.getElementById('start-from-settings-btn').addEventListener('click', startGame);
+
+  // 回主菜单：清掉游戏结束幕 + 重置 run state + 打开 start-overlay 主视图
+  // 让玩家在结算后能换模式/换链/换调参，不必刷新整页。
+  document.getElementById('ov-to-menu').addEventListener('click', () => {
+    if (engine) {
+      World.clear(world, false);
+      Engine.clear(engine);
+    }
+    setupWorld();
+    isOver = false;
+    isPaused = false;
+    score = 0;
+    runMaxLevel = 0;
+    runMelons = 0;
+    runCheatUsage = {};
+    unlimitedMode = false;
+    gameStarted = false;
+    hoverFruit = null;
+    spaceHeldSince = null;
+    fountainCooldownUntil = 0;
+    pendingSubmitForRun = false;
+    nextLevelQueue = [];
+    ensureQueueFilled();
+    nextLevel = nextLevelQueue[0];
+    $overlay.classList.remove('open');
+    $gameZone.classList.remove('over');
+    $startOverlay.classList.add('open');
+    showOverlayView('main');
+    setFocus(false);
+    updateScoreUI();
+    updateNextFruitUI();
+    highlightEvoChain(0);
+    applyModeSelection();   // 反映当前 gameMode（万一是从 unlimited 局回来）
+  });
+
+  // ============ 模式选择器（segmented control）============
+  const MODE_DESC_TEXT = {
+    basic:     '🎯 不能喷泉 · 计入基础榜',
+    fountain:  '🚿 长按空格喷 5s · 冷却 1s · 计入喷泉榜',
+    unlimited: '♾ 跳过所有限制 · 暗号无次数 · 计入尽兴榜',
+  };
+  const $modePicker = document.getElementById('mode-picker');
+  const $modeDesc = document.getElementById('mode-desc');
+  const $modeTabs = $modePicker ? Array.from($modePicker.querySelectorAll('.mode-tab')) : [];
+  function applyModeSelection() {
+    $modeTabs.forEach(t => {
+      const sel = t.dataset.mode === gameMode;
+      t.classList.toggle('selected', sel);
+      t.setAttribute('aria-checked', String(sel));
+    });
+    if ($modeDesc) $modeDesc.textContent = MODE_DESC_TEXT[gameMode] || '';
+  }
+  $modeTabs.forEach(t => {
+    t.addEventListener('click', () => {
+      const m = t.dataset.mode;
+      if (!VALID_GAME_MODES.includes(m)) return;
+      if (m === gameMode) return;
+      gameMode = m;
+      try { localStorage.setItem(GAMEMODE_KEY, m); } catch (_) {}
+      applyModeSelection();
+    });
+  });
+  applyModeSelection();
 
   // ============ 排行榜面板：拉 top + 渲染 ============
   const $lbPanel = document.getElementById('sk-leaderboard');
