@@ -4,6 +4,8 @@ title: "中国象棋 | Rui Zhou"
 permalink: /toolbox/xiangqi/
 ---
 
+<link rel="stylesheet" href="/assets/css/games-shell.css">
+
 <style>
   .xq-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; }
   .xq-wrap header { text-align: center; margin-bottom: 1.2rem; }
@@ -214,7 +216,14 @@ permalink: /toolbox/xiangqi/
   </div>
 
   <div class="xq-help">点击棋子选中后再点目标点落子。规则全套：马蹩腿、象眼、炮翻子、过河兵、不能照面（双将不可同列直对）、将军 / 将死 / 困毙判负。</div>
+
+  <div id="xq-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="xq-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
+
+<script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/wins-leaderboard.js"></script>
+<script src="/assets/js/games-shell/comments.js"></script>
 
 <script>
 (() => {
@@ -839,6 +848,8 @@ permalink: /toolbox/xiangqi/
     pausedOverlay.classList.remove('show');
     renderBoard();
     updateStatus();
+    xqRunStartedAt = Date.now();
+    xqRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     if (aiSide() === RED) setTimeout(triggerAiMove, 320);
   }
 
@@ -855,6 +866,9 @@ permalink: /toolbox/xiangqi/
     else title = (winner === RED ? '🔴 黑方困毙 — 红胜' : '⚫ 红方困毙 — 黑胜');
     ovTitle.textContent = title;
     overlay.classList.add('show');
+    // 仅当 AI 模式下"人类方"获胜，才上传战绩榜
+    const human = humanSide();
+    if (human != null && winner === human) xqTryAutoSubmit();
     return true;
   }
 
@@ -989,6 +1003,55 @@ permalink: /toolbox/xiangqi/
 
   newBtn.onclick = newGame;
   ovBtn.onclick = newGame;
+
+  // ── games-shell：战绩榜 + 评论 ─────────────
+  let xqWlbWidget = null;
+  let xqRunStartedAt = Date.now();
+  let xqRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+
+  function xqTryAutoSubmit() {
+    if (!window.GamesShell) return;
+    if (!state.mode || !state.mode.startsWith('ai-')) return;
+    if (!['easy', 'normal', 'hard'].includes(state.difficulty)) return;
+    let nick = GamesShell.Identity.getNick();
+    if (!nick) {
+      const v = prompt('恭喜击败 AI！起个昵称上传战绩榜？(3-12 字 / 中英文 / emoji；按取消则不上传)');
+      if (!v) return;
+      const r = GamesShell.Identity.setNick(v);
+      if (!r.ok) { alert(r.reason || '昵称无效'); return; }
+      nick = r.nick;
+    }
+    GamesShell.WinsLeaderboard.submit({
+      gameId: 'xiangqi',
+      nick,
+      did: GamesShell.Identity.getDeviceId(),
+      aiLevel: state.difficulty,
+      moves: state.history.length,
+      durationMs: Math.max(5000, Date.now() - xqRunStartedAt),
+      clientNonce: xqRunNonce,
+    }).then(r => {
+      if (r && r.ok && xqWlbWidget) xqWlbWidget.refresh();
+      else if (r && r.data && r.data.reason) console.warn('[xiangqi] wins submit rejected:', r.data.reason);
+    });
+  }
+
+  function xqInitShell() {
+    if (!window.GamesShell || !GamesShell.WinsLeaderboard) return;
+    xqWlbWidget = GamesShell.WinsLeaderboard.mount({
+      container: document.getElementById('xq-wlb-mount'),
+      gameId: 'xiangqi',
+      title: '🏆 中国象棋 战绩榜',
+      getCurrentNick: () => GamesShell.Identity.getNick(),
+    });
+    GamesShell.Comments.mount({
+      container: document.getElementById('xq-cm-mount'),
+      path: '/toolbox/xiangqi/',
+      title: '💬 棋友交流',
+      intro: '聊聊击败 AI 的开局、跑炮 / 飞马心得 ~',
+      placeholder: '聊聊你的中国象棋心得 ~',
+    });
+  }
+  setTimeout(xqInitShell, 0);
 
   newGame();
 })();

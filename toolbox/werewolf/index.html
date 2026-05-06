@@ -379,8 +379,12 @@ permalink: /toolbox/werewolf/
     <p><strong>主持人面板：</strong>发完牌之后，主持人可以展开查看完整角色分配（仅在最后阶段，发牌过程中是隐藏的）。</p>
     <p><strong>纯本地：</strong>所有信息只存在内存里，刷新即清空，不上传任何东西。</p>
   </details>
+
+  <link rel="stylesheet" href="/assets/css/games-shell.css">
+  <div id="ww-cm-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
 </article>
 
+<script src="/assets/js/games-shell/comments.js"></script>
 <script>
 (function () {
   // ====================================================================
@@ -643,4 +647,17 @@ permalink: /toolbox/werewolf/
   renderRoleGrid();
   applyPreset(PRESETS[1]);    // 默认 8 人经典
 })();
+
+// 评论区（games-shell）
+window.addEventListener('DOMContentLoaded', () => {
+  if (window.GamesShell && GamesShell.Comments) {
+    GamesShell.Comments.mount({
+      container: document.getElementById('ww-cm-mount'),
+      path: '/toolbox/werewolf/',
+      title: '💬 主持人交流',
+      intro: '聊聊你常用的板子、自定义角色、组局心得 ~',
+      placeholder: '聊聊你的狼人杀心得 ~',
+    });
+  }
+});
 </script>

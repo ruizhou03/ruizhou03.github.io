@@ -4,6 +4,8 @@ title: "国际象棋 | Rui Zhou"
 permalink: /toolbox/chess/
 ---
 
+<link rel="stylesheet" href="/assets/css/games-shell.css">
+
 <style>
   .ch-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; }
   .ch-wrap header { text-align: center; margin-bottom: 1.2rem; }
@@ -222,8 +224,14 @@ permalink: /toolbox/chess/
   </div>
 
   <div class="ch-help">点击棋子选中后再点目标格落子。规则全套：王车易位、吃过路兵、兵升变（自动选后）、将军 / 将死 / 逼和 / 三次重复 / 50 步规则。</div>
+
+  <div id="ch-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="ch-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
 
+<script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/wins-leaderboard.js"></script>
+<script src="/assets/js/games-shell/comments.js"></script>
 <script src="{{ '/assets/lib/chess.min.js' | relative_url }}"></script>
 <script>
 (() => {
@@ -613,6 +621,8 @@ permalink: /toolbox/chess/
     pausedOverlay.classList.remove('show');
     renderBoard();
     updateStatus();
+    chRunStartedAt = Date.now();
+    chRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     // AI plays white when human is black → AI moves first
     if (state.mode === 'ai-black') {
       setTimeout(triggerAiMove, 320);
@@ -623,11 +633,17 @@ permalink: /toolbox/chess/
     if (!state.game.game_over()) return false;
     state.over = true;
     let title;
+    let humanWon = false;
     if (state.game.in_checkmate()) {
       // The side that just moved won (opposite of current turn)
       const winner = state.game.turn() === 'w' ? 'b' : 'w';
       if (winner === 'w') { state.tally.w++; title = '⚪ 白方将死黑方'; }
       else { state.tally.b++; title = '⚫ 黑方将死白方'; }
+      // 仅当 AI 模式下"人类方"获胜，才上传战绩榜
+      const humanIsW = state.mode === 'ai-black';
+      const humanIsB = state.mode === 'ai-white';
+      if (humanIsW && winner === 'w') humanWon = true;
+      if (humanIsB && winner === 'b') humanWon = true;
     } else {
       state.tally.d++;
       if (state.game.in_stalemate()) title = '— 逼和 —';
@@ -638,6 +654,7 @@ permalink: /toolbox/chess/
     persist();
     ovTitle.textContent = title;
     overlay.classList.add('show');
+    if (humanWon) chTryAutoSubmit();
     return true;
   }
 
@@ -777,6 +794,63 @@ permalink: /toolbox/chess/
   newBtn.onclick = newGame;
   ovBtn.onclick = newGame;
 
+  // ── games-shell：战绩榜 + 评论 ──────────────
+  let chWlbWidget = null;
+  let chRunStartedAt = Date.now();
+  let chRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+
+  function promptForNickAndSubmit() {
+    let nick = GamesShell.Identity.getNick();
+    if (!nick) {
+      const v = prompt('恭喜击败 AI！起个昵称上传战绩榜？(3-12 字 / 中英文 / emoji；按取消则不上传)');
+      if (!v) return;
+      const r = GamesShell.Identity.setNick(v);
+      if (!r.ok) { alert(r.reason || '昵称无效'); return; }
+      nick = r.nick;
+    }
+    const moveCount = state.game.history().length;
+    GamesShell.WinsLeaderboard.submit({
+      gameId: 'chess',
+      nick,
+      did: GamesShell.Identity.getDeviceId(),
+      aiLevel: state.difficulty,
+      moves: moveCount,
+      durationMs: Math.max(5000, Date.now() - chRunStartedAt),
+      clientNonce: chRunNonce,
+    }).then(r => {
+      if (r && r.ok) {
+        if (chWlbWidget) chWlbWidget.refresh();
+      } else if (r && r.data && r.data.reason) {
+        console.warn('[chess] wins submit rejected:', r.data.reason);
+      }
+    });
+  }
+
+  function chTryAutoSubmit() {
+    if (!window.GamesShell) return;
+    if (!state.mode || !state.mode.startsWith('ai-')) return;
+    if (state.difficulty !== 'easy' && state.difficulty !== 'normal' && state.difficulty !== 'hard') return;
+    promptForNickAndSubmit();
+  }
+
+  function chInitShell() {
+    if (!window.GamesShell || !GamesShell.WinsLeaderboard) return;
+    chWlbWidget = GamesShell.WinsLeaderboard.mount({
+      container: document.getElementById('ch-wlb-mount'),
+      gameId: 'chess',
+      title: '🏆 国际象棋 战绩榜',
+      getCurrentNick: () => GamesShell.Identity.getNick(),
+    });
+    GamesShell.Comments.mount({
+      container: document.getElementById('ch-cm-mount'),
+      path: '/toolbox/chess/',
+      title: '💬 棋友交流',
+      intro: 'AI 在 hard 难度下的真实水平如何？开局心得 · 残局技巧 ~',
+      placeholder: '聊聊你的国际象棋心得 ~',
+    });
+  }
+
   newGame();
+  chInitShell();
 })();
 </script>

@@ -4,6 +4,8 @@ title: "五子棋 | Rui Zhou"
 permalink: /toolbox/gomoku/
 ---
 
+<link rel="stylesheet" href="/assets/css/games-shell.css">
+
 <style>
   .gm-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; }
   .gm-wrap header { text-align: center; margin-bottom: 1.2rem; }
@@ -168,7 +170,14 @@ permalink: /toolbox/gomoku/
   </div>
 
   <div class="gm-help">15×15 标准棋盘　·　人机模式可选三档难度</div>
+
+  <div id="gm-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="gm-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
+
+<script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/wins-leaderboard.js"></script>
+<script src="/assets/js/games-shell/comments.js"></script>
 
 <script>
 (() => {
@@ -235,6 +244,8 @@ permalink: /toolbox/gomoku/
     pausedOverlay.classList.remove('show');
     updateStatus();
     draw();
+    gmRunStartedAt = Date.now();
+    gmRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     if (state.mode === 'ai-white' && state.turn === BLACK) {
       // AI plays black first
       setTimeout(aiMove, 300);
@@ -368,6 +379,9 @@ permalink: /toolbox/gomoku/
       persist();
       ovTitle.textContent = (who === BLACK ? '⚫ 黑方胜' : '⚪ 白方胜');
       overlay.classList.add('show');
+      // 仅当 AI 模式下"人类方"获胜，才上传战绩榜
+      const human = humanSide();
+      if (human != null && who === human) gmTryAutoSubmit();
     } else if (state.history.length === N * N) {
       state.over = true;
       ovTitle.textContent = '— 平局 —';
@@ -615,6 +629,55 @@ permalink: /toolbox/gomoku/
 
   window.addEventListener('resize', draw);
 
+  // ── games-shell：战绩榜 + 评论 ─────────────
+  let gmWlbWidget = null;
+  let gmRunStartedAt = Date.now();
+  let gmRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+
+  function gmTryAutoSubmit() {
+    if (!window.GamesShell) return;
+    if (!state.mode || !state.mode.startsWith('ai-')) return;
+    if (!['easy', 'normal', 'hard'].includes(state.difficulty)) return;
+    let nick = GamesShell.Identity.getNick();
+    if (!nick) {
+      const v = prompt('恭喜击败 AI！起个昵称上传战绩榜？(3-12 字 / 中英文 / emoji；按取消则不上传)');
+      if (!v) return;
+      const r = GamesShell.Identity.setNick(v);
+      if (!r.ok) { alert(r.reason || '昵称无效'); return; }
+      nick = r.nick;
+    }
+    GamesShell.WinsLeaderboard.submit({
+      gameId: 'gomoku',
+      nick,
+      did: GamesShell.Identity.getDeviceId(),
+      aiLevel: state.difficulty,
+      moves: state.history.length,
+      durationMs: Math.max(5000, Date.now() - gmRunStartedAt),
+      clientNonce: gmRunNonce,
+    }).then(r => {
+      if (r && r.ok && gmWlbWidget) gmWlbWidget.refresh();
+      else if (r && r.data && r.data.reason) console.warn('[gomoku] wins submit rejected:', r.data.reason);
+    });
+  }
+
+  function gmInitShell() {
+    if (!window.GamesShell || !GamesShell.WinsLeaderboard) return;
+    gmWlbWidget = GamesShell.WinsLeaderboard.mount({
+      container: document.getElementById('gm-wlb-mount'),
+      gameId: 'gomoku',
+      title: '🏆 五子棋 战绩榜',
+      getCurrentNick: () => GamesShell.Identity.getNick(),
+    });
+    GamesShell.Comments.mount({
+      container: document.getElementById('gm-cm-mount'),
+      path: '/toolbox/gomoku/',
+      title: '💬 棋友交流',
+      intro: '聊聊你击败 AI 的开局、决胜手 ~',
+      placeholder: '聊聊你的五子棋心得 ~',
+    });
+  }
+
   newGame();
+  gmInitShell();
 })();
 </script>

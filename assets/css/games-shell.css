@@ -102,6 +102,18 @@
 }
 .gs-lb-list li.gs-is-self .gs-lb-nick { font-weight: 600; }
 
+/* wins-leaderboard 专用：H/M/E 三档胜场 */
+.gs-wlb-row { grid-template-columns: 2.2rem 1fr auto !important; }
+.gs-wlb-tally {
+  font-family: var(--font-display);
+  font-size: 0.86rem !important;
+  color: var(--color-ink) !important;
+  font-weight: 600;
+}
+.gs-wlb-tally span[title="hard"]   { color: #d32f2f; }
+.gs-wlb-tally span[title="normal"] { color: #d4a015; }
+.gs-wlb-tally span[title="easy"]   { color: #5fa66e; }
+
 .gs-lb-mine {
   margin: 0 0 0.6rem;
   padding: 0.55rem 0.7rem;

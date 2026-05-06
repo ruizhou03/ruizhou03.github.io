@@ -283,8 +283,12 @@ permalink: /toolbox/dare/
     <p><strong>不重复：</strong>用 sessionStorage 记忆已抽过的牌，刷新或离开重进都不会重复。一副 50 张全抽完才会自动洗牌重来。</p>
     <p><strong>纯本地：</strong>战绩只存当前会话，关闭页面就清零。</p>
   </details>
+
+  <link rel="stylesheet" href="/assets/css/games-shell.css">
+  <div id="dare-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </article>
 
+<script src="/assets/js/games-shell/comments.js"></script>
 <script>
 (function () {
   const STORAGE_KEY = 'dare.session.v1';
@@ -535,4 +539,17 @@ permalink: /toolbox/dare/
     }
   }
 })();
+
+// 评论区（games-shell）
+window.addEventListener('DOMContentLoaded', () => {
+  if (window.GamesShell && GamesShell.Comments) {
+    GamesShell.Comments.mount({
+      container: document.getElementById('dare-cm-mount'),
+      path: '/toolbox/dare/',
+      title: '💬 玩友交流',
+      intro: '聊聊最离谱的失败、最经典的反向解题瞬间 ~',
+      placeholder: '聊聊你的「不要做挑战」战绩 ~',
+    });
+  }
+});
 </script>

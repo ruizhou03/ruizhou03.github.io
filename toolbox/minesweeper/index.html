@@ -4,6 +4,27 @@ title: "扫雷 | Rui Zhou"
 permalink: /toolbox/minesweeper/
 ---
 
+<link rel="stylesheet" href="/assets/css/games-shell.css">
+
+<style>
+  .ms-rank-row {
+    margin: 0.9rem auto 0;
+    padding: 0.55rem 0.8rem;
+    max-width: 600px;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    text-align: center;
+    font-size: 0.92rem;
+    color: var(--color-ink);
+    display: none;
+  }
+  .ms-rank-row.show { display: block; }
+  .ms-rank-row strong { color: var(--color-highlight); font-weight: 700; }
+  .ms-rank-row.loading { color: var(--color-muted); }
+  .ms-rank-row.failed { color: var(--color-muted); font-size: 0.84rem; }
+</style>
+
 <style>
   .ms-wrap {
     max-width: 860px; margin: 0 auto; padding: 1rem;
@@ -207,7 +228,18 @@ permalink: /toolbox/minesweeper/
     桌面：左键揭格、右键插旗、双击数字一键揭周围八格<br>
     移动端：短按揭、长按 0.4 秒插旗、双击数字同样可一键揭
   </div>
+
+  <div class="ms-rank-row" id="ms-rank-row"></div>
+  <div id="ms-nick-mount" style="max-width: 600px; margin: 0.6rem auto 0;"></div>
+
+  <div id="ms-lb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="ms-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
+
+<script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/leaderboard.js"></script>
+<script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
 
 <script>
 (() => {
@@ -478,6 +510,8 @@ permalink: /toolbox/minesweeper/
     }
     paintAll();
     updateStatus();
+    if (won) msTryAutoSubmit();
+    else msSetRank('hidden');
   }
 
   function updateStatus() {
@@ -541,6 +575,100 @@ permalink: /toolbox/minesweeper/
 
   newBtn.onclick = newGame;
 
+  // ── games-shell 接入 ──────────────────────
+  let msLbWidget = null;
+  let msNickPrompt = null;
+  let msPendingSubmit = false;
+  let msRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+  const $msRankRow = document.getElementById('ms-rank-row');
+
+  function msSetRank(name, data) {
+    if (name === 'hidden') {
+      $msRankRow.classList.remove('show', 'loading', 'failed');
+      $msRankRow.innerHTML = '';
+      return;
+    }
+    $msRankRow.classList.add('show');
+    $msRankRow.classList.remove('loading', 'failed');
+    if (name === 'loading') { $msRankRow.classList.add('loading'); $msRankRow.textContent = '排名上传中…'; }
+    else if (name === 'failed') { $msRankRow.classList.add('failed'); $msRankRow.textContent = '排行榜暂时不可用（不影响游戏）'; }
+    else if (name === 'pending') { $msRankRow.classList.add('failed'); $msRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓'; }
+    else if (name === 'success' && data && data.rank && data.total) {
+      $msRankRow.innerHTML = '';
+      $msRankRow.append(
+        document.createTextNode('第 '),
+        Object.assign(document.createElement('strong'), { textContent: String(data.rank) }),
+        document.createTextNode(' 名 · 共 '),
+        Object.assign(document.createElement('strong'), { textContent: String(data.total) }),
+        document.createTextNode(' 位玩家'),
+      );
+    }
+  }
+
+  async function msSubmitWithNick(nick) {
+    if (!nick || msPendingSubmit || !state.won) return;
+    msPendingSubmit = true;
+    msSetRank('loading');
+    const timeMs = state.elapsed * 1000;
+    const r = await GamesShell.Leaderboard.submit({
+      gameId: 'minesweeper',
+      nick,
+      score: timeMs,
+      durationMs: Math.max(1000, timeMs),
+      clientNonce: msRunNonce,
+      did: GamesShell.Identity.getDeviceId(),
+      extra: { difficulty: state.diff },
+    });
+    if (r && r.ok) {
+      msSetRank('success', { rank: r.rank, total: r.total });
+      if (msLbWidget) msLbWidget.refresh();
+    } else {
+      msSetRank('failed');
+      msPendingSubmit = false;
+      if (r && r.data && r.data.reason) console.warn('[ms] submit rejected:', r.data.reason);
+    }
+  }
+
+  function msTryAutoSubmit() {
+    if (!window.GamesShell) return;
+    if (!state.won) { msSetRank('hidden'); return; }
+    msRunNonce = GamesShell.Identity.newRunNonce();
+    const nick = GamesShell.Identity.getNick();
+    if (nick) msSubmitWithNick(nick);
+    else { msSetRank('pending'); msNickPrompt && msNickPrompt.show(); }
+  }
+
+  function msInitShell() {
+    if (!window.GamesShell) return;
+    msLbWidget = GamesShell.Leaderboard.mount({
+      container: document.getElementById('ms-lb-mount'),
+      gameId: 'minesweeper',
+      title: '🏆 扫雷 排行榜（用时短在前）',
+      scoreFormatter: v => (Number(v) / 1000).toFixed(1) + ' s',
+      getCurrentNick: () => GamesShell.Identity.getNick(),
+      getSplit: () => state.diff,
+    });
+    GamesShell.Comments.mount({
+      container: document.getElementById('ms-cm-mount'),
+      path: '/toolbox/minesweeper/',
+      title: '💬 扫雷心得',
+      intro: '聊聊 hard 难度的最佳成绩、经典开局、踩雷大笑话 ~',
+      placeholder: '聊聊你的扫雷心得 ~',
+    });
+    msNickPrompt = GamesShell.NickPrompt.mount({
+      container: document.getElementById('ms-nick-mount'),
+      prompt: '想上排行榜？起个昵称吧',
+      onSubmit: nick => msSubmitWithNick(nick),
+      onSkip: () => msSetRank('hidden'),
+    });
+  }
+
+  // 切换难度后排行榜要刷新（onSplitChange）
+  document.getElementById('msDiffTabs').addEventListener('click', () => {
+    if (msLbWidget) msLbWidget.onSplitChange();
+  });
+
   newGame();
+  msInitShell();
 })();
 </script>
