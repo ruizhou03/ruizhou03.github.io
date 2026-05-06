@@ -831,6 +831,20 @@ permalink: /toolbox/suika/
     padding-left: 0.5rem; padding-right: 0.5rem;
   }
   .sk-lb-list li.is-self .sk-lb-nick { font-weight: 600; }
+  /* 这台设备过去用过但现在没在用的昵称：浅一档高亮，让玩家认得出"哦这是我以前的名字" */
+  .sk-lb-list li.is-self-past {
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(240, 198, 116, 0.07) 30%,
+      rgba(240, 198, 116, 0.07) 70%,
+      transparent 100%);
+    border-radius: 6px;
+    padding-left: 0.5rem; padding-right: 0.5rem;
+  }
+  .sk-lb-list li.is-self-past .sk-lb-nick {
+    font-style: italic;
+    color: var(--color-muted);
+  }
 
   /* "我的排名"小卡片，浮在 top 列表上方 */
   .sk-lb-mine {
@@ -3224,6 +3238,19 @@ permalink: /toolbox/suika/
   // 初始 mirror gameMode，菜单换模式时跟着切；点榜单 tab 只切 lbViewMode 不动 gameMode。
   let lbViewMode = gameMode;
   let mineLastByMode = { basic: null, fountain: null, unlimited: null };
+  // 也缓存 lb 拉到的 entries/total，以便在 loadMyRank 后续回来时拿到 nicks 集合
+  // 重新渲染一次（淡色高亮"过去用过的名字"）；切 tab 也能立刻显示已缓存的榜。
+  let lbLastByMode = { basic: null, fountain: null, unlimited: null };
+
+  function paintCurrentLeaderboard() {
+    const cached = lbLastByMode[lbViewMode];
+    if (!cached) return;
+    const mine = mineLastByMode[lbViewMode];
+    const pastNicks = mine && Array.isArray(mine.nicks) && mine.nicks.length
+      ? new Set(mine.nicks)
+      : null;
+    renderLeaderboard(cached.entries, cached.total, getNick(), pastNicks);
+  }
 
   function applyLbTabUI() {
     if (!$lbTabs) return;
@@ -3246,8 +3273,10 @@ permalink: /toolbox/suika/
     // 拦掉；旧请求落地后会被 fetchMode !== lbViewMode 的 race guard 丢弃。
     lbInflight = false;
     applyLbTabUI();
-    // 切榜时立刻反映已缓存的"我的最高"（即使没 refetch 也能换显示）
+    // 切榜时立刻反映已缓存的"我的最高" + 已缓存的 lb 列表（即使没 refetch
+    // 也能换显示，体感更顺）
     renderMyRank(mineLastByMode[mode]);
+    paintCurrentLeaderboard();
     if (refetch !== false) {
       loadLeaderboard(true);
       loadMyRank();
@@ -3265,7 +3294,7 @@ permalink: /toolbox/suika/
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  function renderLeaderboard(entries, total, currentNick) {
+  function renderLeaderboard(entries, total, currentNick, pastNicks) {
     while ($lbList.firstChild) $lbList.removeChild($lbList.firstChild);
     if (!entries || !entries.length) {
       const li = document.createElement('li');
@@ -3277,7 +3306,12 @@ permalink: /toolbox/suika/
     }
     entries.forEach(e => {
       const li = document.createElement('li');
-      if (currentNick && e.nick === currentNick) li.classList.add('is-self');
+      if (currentNick && e.nick === currentNick) {
+        li.classList.add('is-self');
+      } else if (pastNicks && pastNicks.has(e.nick)) {
+        // 这台设备过去用过的昵称（改名前的成绩）：浅色高亮
+        li.classList.add('is-self-past');
+      }
       const rk = document.createElement('span');
       rk.className = 'sk-lb-rank';
       // 前三名颁发奖章 emoji，其余维持 #N
@@ -3319,7 +3353,8 @@ permalink: /toolbox/suika/
     lbInflight = false;
     if (r.ok && r.data && Array.isArray(r.data.entries)) {
       lbLastFetch = Date.now();
-      renderLeaderboard(r.data.entries, r.data.total, getNick());
+      lbLastByMode[fetchMode] = { entries: r.data.entries, total: r.data.total };
+      paintCurrentLeaderboard();
       $lbFooter.textContent = `更新于 ${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
       updatePagerUI(r.data.total);
     } else {
@@ -3360,7 +3395,11 @@ permalink: /toolbox/suika/
       return;
     }
     mineLastByMode[fetchMode] = r.data;
-    if (fetchMode === lbViewMode) renderMyRank(r.data);
+    if (fetchMode === lbViewMode) {
+      renderMyRank(r.data);
+      // mine 拉回来后顺便重绘一次榜单，把"过去用过的名字"那条淡色高亮也铺上
+      paintCurrentLeaderboard();
+    }
   }
   function renderMyRank(data) {
     while ($lbMine.firstChild) $lbMine.removeChild($lbMine.firstChild);
