@@ -305,14 +305,35 @@
     };
   }
 
-  // 提交分数。payload: { gameId, nick, score, durationMs, clientNonce, did, extra }
-  // 返回 { ok, rank, total, isNewBest, duplicate, reason } 或 { ok: false, ... }
-  async function submit(payload) {
-    if (!ENABLED) return { ok: false, error: 'disabled' };
-    if (!payload || !payload.gameId || !payload.nick || typeof payload.score !== 'number') {
-      return { ok: false, error: 'bad_payload' };
+  // ── 未提交自动续传 ───────────────────────────────────────
+  // 关 tab / 网断 / 后端冷启动失败 → 把 payload 留在 localStorage，
+  // 下次访问站点（任何带 leaderboard.js 的页面）init 时 auto-flush。
+  // 后端 nonce 24h 幂等，重试不会重复入榜。
+  const PENDING_KEY = 'gs.lb.pending.v1';
+  const PENDING_TTL_MS = 24 * 3600 * 1000;
+  const PENDING_MAX = 10;
+
+  function readPending() {
+    try { return JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function writePending(arr) {
+    try { localStorage.setItem(PENDING_KEY, JSON.stringify(arr.slice(-PENDING_MAX))); } catch {}
+  }
+  function enqueuePending(payload) {
+    const list = readPending();
+    if (!list.some(p => p.clientNonce === payload.clientNonce)) {
+      list.push(Object.assign({ _enqAt: Date.now() }, payload));
+      writePending(list);
     }
-    const r = await callBackend(`${API_BASE}?action=submit`, {
+  }
+  function dequeuePending(nonce) {
+    const list = readPending();
+    writePending(list.filter(p => p.clientNonce !== nonce));
+  }
+
+  async function callSubmit(payload) {
+    return await callBackend(`${API_BASE}?action=submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -325,9 +346,52 @@
         extra: payload.extra || {},
       }),
     }, 8000);
-    if (!r.ok) return { ok: false, error: r.error || 'http_error', status: r.status, data: r.data };
-    return r.data || { ok: false, error: 'empty_response' };
   }
 
-  GS.Leaderboard = { mount, submit, relTime, _api: API_BASE };
+  // 提交分数。payload: { gameId, nick, score, durationMs, clientNonce, did, extra }
+  async function submit(payload) {
+    if (!ENABLED) return { ok: false, error: 'disabled' };
+    if (!payload || !payload.gameId || !payload.nick || typeof payload.score !== 'number') {
+      return { ok: false, error: 'bad_payload' };
+    }
+    enqueuePending(payload);                       // 先入队再发，保证至少能续传
+    const r = await callSubmit(payload);
+    if (r.ok && r.data && (r.data.ok || r.data.duplicate)) {
+      dequeuePending(payload.clientNonce);
+      return r.data;
+    }
+    // 4xx/422（数据本身不合法）→ 重试也没用，dequeue
+    if (r.status && r.status >= 400 && r.status < 500) {
+      dequeuePending(payload.clientNonce);
+      return r.data || { ok: false, error: 'http_error', status: r.status };
+    }
+    // 5xx / 网络错 → 留在队列等下次
+    return r.data || { ok: false, error: r.error || 'http_error' };
+  }
+
+  // 模块加载时触发，一次性扫队列重试。后台进行，不影响 UI。
+  async function flushPending() {
+    const list = readPending();
+    if (!list.length) return;
+    // 过期的（> 24h）直接丢，因为 nonce 也过期了，重试一定 422
+    const fresh = list.filter(p => Date.now() - (p._enqAt || 0) < PENDING_TTL_MS);
+    if (fresh.length !== list.length) writePending(fresh);
+    for (const p of fresh) {
+      try {
+        const r = await callSubmit(p);
+        if (r.ok && r.data && (r.data.ok || r.data.duplicate)) {
+          dequeuePending(p.clientNonce);
+        } else if (r.status && r.status >= 400 && r.status < 500) {
+          dequeuePending(p.clientNonce);
+        }
+      } catch {}
+    }
+  }
+
+  // 自动续传一次（轻微延迟，让页面其他东西先加载）
+  if (typeof window !== 'undefined') {
+    setTimeout(() => { try { flushPending(); } catch (e) { console.warn('[gs:lb] flush', e); } }, 1500);
+  }
+
+  GS.Leaderboard = { mount, submit, relTime, flushPending, _api: API_BASE };
 })();

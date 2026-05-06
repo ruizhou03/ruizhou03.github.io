@@ -10,6 +10,31 @@
   border: 1px solid var(--color-border);
   border-radius: 12px;
 }
+
+/* 桌面宽屏：浮在主内容右侧空白处。
+ * --gs-wrap-half 是承载游戏的 wrap 元素 max-width 的一半，每个游戏在
+ * 自己的 <style> 里 override（默认 280 适配 560 宽 wrap，如 2048 / snake）。
+ * 计算口径：left = 50vw + half(wrap) + gap，width 280，距视口右边至少 1.5rem。 */
+@media (min-width: 1280px) {
+  .gs-leaderboard {
+    position: fixed;
+    top: 6rem;
+    left: calc(50vw + var(--gs-wrap-half, 280px) + 30px);
+    right: auto;
+    width: 280px;
+    max-height: calc(100vh - 8rem);
+    overflow-y: auto;
+    margin-top: 0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    z-index: 5;
+  }
+}
+/* 超宽屏（≥1700px）窝得离主内容更远不好看，限上限 */
+@media (min-width: 1700px) {
+  .gs-leaderboard {
+    left: min(calc(50vw + var(--gs-wrap-half, 280px) + 60px), calc(100vw - 320px));
+  }
+}
 .gs-lb-header {
   display: flex; align-items: center; justify-content: space-between;
   gap: 0.5rem;

@@ -7,7 +7,7 @@ permalink: /toolbox/xiangqi/
 <link rel="stylesheet" href="/assets/css/games-shell.css">
 
 <style>
-  .xq-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; }
+  .xq-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; --gs-wrap-half: 360px; }
   .xq-wrap header { text-align: center; margin-bottom: 1.2rem; }
   .xq-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
   .xq-wrap header .sub { color: var(--color-light); font-style: italic; font-size: 0.92rem; }
@@ -224,6 +224,7 @@ permalink: /toolbox/xiangqi/
 <script src="/assets/js/games-shell/identity.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/save-state.js"></script>
 
 <script>
 (() => {
@@ -835,6 +836,7 @@ permalink: /toolbox/xiangqi/
   }
 
   function newGame() {
+    if (typeof xqSave !== 'undefined' && xqSave) xqSave.discard();
     state.board = startingBoard();
     state.turn = RED;
     state.history = [];
@@ -869,6 +871,7 @@ permalink: /toolbox/xiangqi/
     // 仅当 AI 模式下"人类方"获胜，才上传战绩榜
     const human = humanSide();
     if (human != null && winner === human) xqTryAutoSubmit();
+    if (typeof xqSave !== 'undefined' && xqSave) xqSave.discard();
     return true;
   }
 
@@ -1051,8 +1054,68 @@ permalink: /toolbox/xiangqi/
       placeholder: '聊聊你的中国象棋心得 ~',
     });
   }
-  setTimeout(xqInitShell, 0);
+  xqInitShell();
 
-  newGame();
+  // ── 48h 续局 ─────────────────────────────
+  let xqSave = null;
+  function xqSerialize() {
+    if (state.over || state.history.length === 0) return null;
+    return {
+      mode: state.mode,
+      difficulty: state.difficulty,
+      board: state.board,
+      turn: state.turn,
+      history: state.history.length, // 仅记步数（undo 链对外不可见，恢复后从此 count 起算）
+      lastMove: state.lastMove,
+      runStartedAt: xqRunStartedAt,
+      runNonce: xqRunNonce,
+    };
+  }
+  function xqRestore(saved) {
+    state.mode = saved.mode || state.mode;
+    state.difficulty = saved.difficulty || state.difficulty;
+    state.board = saved.board.map(col => col.slice());
+    state.turn = saved.turn || RED;
+    state.history = [];   // undo 链丢失，但棋局可继续
+    state.selected = null;
+    state.legalTargets = [];
+    state.aiThinking = false;
+    state.paused = false;
+    state.over = false;
+    state.lastMove = saved.lastMove || null;
+    xqRunStartedAt = Number(saved.runStartedAt) || Date.now();
+    xqRunNonce = saved.runNonce || ((window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now()));
+    overlay.classList.remove('show');
+    pausedOverlay.classList.remove('show');
+    document.querySelectorAll('[data-mode]').forEach(t => t.classList.toggle('active', t.dataset.mode === state.mode));
+    document.querySelectorAll('[data-difficulty]').forEach(t => t.classList.toggle('active', t.dataset.difficulty === state.difficulty));
+    renderBoard();
+    updateStatus();
+    if (!state.paused && aiSide() === state.turn) {
+      setTimeout(triggerAiMove, 320);
+    }
+  }
+
+  if (window.GamesShell && GamesShell.SaveState) {
+    xqSave = GamesShell.SaveState.create({
+      key: 'tool.xiangqi.savestate.v1',
+      ttlMs: 48 * 3600 * 1000,
+      serialize: xqSerialize,
+    });
+    const peek = xqSave.peek();
+    if (peek && peek.data && Array.isArray(peek.data.board)) {
+      const moveCount = Number(peek.data.history) || 0;
+      GamesShell.SaveState.showResumeModal({
+        summaryHtml: `<strong>${peek.data.mode === 'pvp' ? 'PvP' : 'AI ' + (peek.data.difficulty || '')}</strong> 已走 <strong>${moveCount}</strong> 步<span class="gs-resume-meta">${peek.agoText}保存</span>`,
+        onResume: () => { xqRestore(peek.data); xqSave.start(); },
+        onDiscard: () => { xqSave.discard(); newGame(); xqSave.start(); },
+      });
+    } else {
+      newGame();
+      xqSave.start();
+    }
+  } else {
+    newGame();
+  }
 })();
 </script>

@@ -7,7 +7,7 @@ permalink: /toolbox/gomoku/
 <link rel="stylesheet" href="/assets/css/games-shell.css">
 
 <style>
-  .gm-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; }
+  .gm-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; --gs-wrap-half: 360px; }
   .gm-wrap header { text-align: center; margin-bottom: 1.2rem; }
   .gm-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
   .gm-wrap header .sub { color: var(--color-light); font-style: italic; font-size: 0.92rem; }
@@ -178,6 +178,7 @@ permalink: /toolbox/gomoku/
 <script src="/assets/js/games-shell/identity.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/save-state.js"></script>
 
 <script>
 (() => {
@@ -234,6 +235,7 @@ permalink: /toolbox/gomoku/
   }
 
   function newGame() {
+    if (typeof gmSave !== 'undefined' && gmSave) gmSave.discard();
     state.board = Array.from({ length: N }, () => Array(N).fill(EMPTY));
     state.history = [];
     state.turn = BLACK;
@@ -382,10 +384,12 @@ permalink: /toolbox/gomoku/
       // 仅当 AI 模式下"人类方"获胜，才上传战绩榜
       const human = humanSide();
       if (human != null && who === human) gmTryAutoSubmit();
+      if (typeof gmSave !== 'undefined' && gmSave) gmSave.discard();
     } else if (state.history.length === N * N) {
       state.over = true;
       ovTitle.textContent = '— 平局 —';
       overlay.classList.add('show');
+      if (typeof gmSave !== 'undefined' && gmSave) gmSave.discard();
     } else {
       state.turn = who === BLACK ? WHITE : BLACK;
     }
@@ -677,7 +681,65 @@ permalink: /toolbox/gomoku/
     });
   }
 
-  newGame();
+  // ── 48h 续局 ─────────────────────────────
+  let gmSave = null;
+  function gmSerialize() {
+    if (state.over || state.history.length === 0) return null;
+    return {
+      mode: state.mode,
+      difficulty: state.difficulty,
+      board: state.board,
+      history: state.history,
+      turn: state.turn,
+      runStartedAt: gmRunStartedAt,
+      runNonce: gmRunNonce,
+    };
+  }
+  function gmRestore(saved) {
+    state.mode = saved.mode || state.mode;
+    state.difficulty = saved.difficulty || state.difficulty;
+    state.board = saved.board.map(row => row.slice());
+    state.history = saved.history.slice();
+    state.turn = saved.turn || BLACK;
+    state.over = false;
+    state.winLine = null;
+    state.paused = false;
+    gmRunStartedAt = Number(saved.runStartedAt) || Date.now();
+    gmRunNonce = saved.runNonce || ((window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now()));
+    overlay.classList.remove('show');
+    pausedOverlay.classList.remove('show');
+    document.querySelectorAll('[data-mode]').forEach(t => t.classList.toggle('active', t.dataset.mode === state.mode));
+    document.querySelectorAll('[data-difficulty]').forEach(t => t.classList.toggle('active', t.dataset.difficulty === state.difficulty));
+    updateStatus();
+    draw();
+    // AI 该走就走
+    if (!state.paused && aiSide() === state.turn) {
+      setTimeout(aiMove, 320);
+    }
+  }
+
   gmInitShell();
+
+  if (window.GamesShell && GamesShell.SaveState) {
+    gmSave = GamesShell.SaveState.create({
+      key: 'tool.gomoku.savestate.v1',
+      ttlMs: 48 * 3600 * 1000,
+      serialize: gmSerialize,
+    });
+    const peek = gmSave.peek();
+    if (peek && peek.data && Array.isArray(peek.data.board)) {
+      const moveCount = (peek.data.history || []).length;
+      GamesShell.SaveState.showResumeModal({
+        summaryHtml: `<strong>${peek.data.mode === 'pvp' ? 'PvP' : 'AI ' + (peek.data.difficulty || '')}</strong> 已走 <strong>${moveCount}</strong> 子<span class="gs-resume-meta">${peek.agoText}保存</span>`,
+        onResume: () => { gmRestore(peek.data); gmSave.start(); },
+        onDiscard: () => { gmSave.discard(); newGame(); gmSave.start(); },
+      });
+    } else {
+      newGame();
+      gmSave.start();
+    }
+  } else {
+    newGame();
+  }
 })();
 </script>

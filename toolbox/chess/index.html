@@ -7,7 +7,7 @@ permalink: /toolbox/chess/
 <link rel="stylesheet" href="/assets/css/games-shell.css">
 
 <style>
-  .ch-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; }
+  .ch-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; --gs-wrap-half: 360px; }
   .ch-wrap header { text-align: center; margin-bottom: 1.2rem; }
   .ch-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
   .ch-wrap header .sub { color: var(--color-light); font-style: italic; font-size: 0.92rem; }
@@ -232,6 +232,7 @@ permalink: /toolbox/chess/
 <script src="/assets/js/games-shell/identity.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/save-state.js"></script>
 <script src="{{ '/assets/lib/chess.min.js' | relative_url }}"></script>
 <script>
 (() => {
@@ -610,6 +611,7 @@ permalink: /toolbox/chess/
   }
 
   function newGame() {
+    if (typeof chSave !== 'undefined' && chSave) chSave.discard();
     state.game = new Chess();
     state.selected = null;
     state.legalTargets = [];
@@ -655,6 +657,7 @@ permalink: /toolbox/chess/
     ovTitle.textContent = title;
     overlay.classList.add('show');
     if (humanWon) chTryAutoSubmit();
+    if (typeof chSave !== 'undefined' && chSave) chSave.discard();
     return true;
   }
 
@@ -850,7 +853,77 @@ permalink: /toolbox/chess/
     });
   }
 
-  newGame();
+  // ── 48h 续局 ─────────────────────────────
+  let chSave = null;
+  function chSerialize() {
+    if (state.over) return null;
+    if (state.game.history().length === 0) return null;  // 还没走子，不存
+    return {
+      fen: state.game.fen(),
+      mode: state.mode,
+      difficulty: state.difficulty,
+      lastMove: state.lastMove,
+      runStartedAt: chRunStartedAt,
+      runNonce: chRunNonce,
+    };
+  }
+  function chRestore(saved) {
+    state.mode = saved.mode || state.mode;
+    state.difficulty = saved.difficulty || state.difficulty;
+    state.game = new Chess();
+    if (!state.game.load(saved.fen)) return false;  // 存档损坏
+    state.selected = null;
+    state.legalTargets = [];
+    state.aiThinking = false;
+    state.paused = false;
+    state.over = false;
+    state.lastMove = saved.lastMove || null;
+    chRunStartedAt = Number(saved.runStartedAt) || Date.now();
+    chRunNonce = saved.runNonce || ((window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now()));
+    overlay.classList.remove('show');
+    pausedOverlay.classList.remove('show');
+    document.querySelectorAll('[data-mode]').forEach(t => t.classList.toggle('active', t.dataset.mode === state.mode));
+    document.querySelectorAll('[data-difficulty]').forEach(t => t.classList.toggle('active', t.dataset.difficulty === state.difficulty));
+    renderBoard();
+    updateStatus();
+    // 如果恢复后该 AI 走，主动触发
+    if (!state.paused && aiSide() === state.game.turn()) {
+      setTimeout(triggerAiMove, 320);
+    }
+    return true;
+  }
+
   chInitShell();
+
+  if (window.GamesShell && GamesShell.SaveState) {
+    chSave = GamesShell.SaveState.create({
+      key: 'tool.chess.savestate.v1',
+      ttlMs: 48 * 3600 * 1000,
+      serialize: chSerialize,
+    });
+    const peek = chSave.peek();
+    if (peek && peek.data && peek.data.fen) {
+      const tmpGame = new Chess();
+      const validFen = tmpGame.load(peek.data.fen);
+      const moveCount = validFen ? tmpGame.history().length : 0;
+      if (validFen) {
+        const tally = `${state.tally.w}/${state.tally.d}/${state.tally.b}`;
+        GamesShell.SaveState.showResumeModal({
+          summaryHtml: `<strong>${peek.data.mode === 'pvp' ? 'PvP' : 'AI ' + (peek.data.difficulty || '')}</strong> 已走 <strong>${moveCount}</strong> 步<span class="gs-resume-meta">${peek.agoText}保存</span>`,
+          onResume: () => { chRestore(peek.data); chSave.start(); },
+          onDiscard: () => { chSave.discard(); newGame(); chSave.start(); },
+        });
+      } else {
+        chSave.discard();
+        newGame();
+        chSave.start();
+      }
+    } else {
+      newGame();
+      chSave.start();
+    }
+  } else {
+    newGame();
+  }
 })();
 </script>

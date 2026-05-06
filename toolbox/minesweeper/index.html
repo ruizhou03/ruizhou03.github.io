@@ -7,6 +7,7 @@ permalink: /toolbox/minesweeper/
 <link rel="stylesheet" href="/assets/css/games-shell.css">
 
 <style>
+  .ms-wrap { --gs-wrap-half: 430px; }
   .ms-rank-row {
     margin: 0.9rem auto 0;
     padding: 0.55rem 0.8rem;
@@ -240,6 +241,7 @@ permalink: /toolbox/minesweeper/
 <script src="/assets/js/games-shell/leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
+<script src="/assets/js/games-shell/save-state.js"></script>
 
 <script>
 (() => {
@@ -512,6 +514,7 @@ permalink: /toolbox/minesweeper/
     updateStatus();
     if (won) msTryAutoSubmit();
     else msSetRank('hidden');
+    if (typeof msSave !== 'undefined' && msSave) msSave.discard();
   }
 
   function updateStatus() {
@@ -573,7 +576,7 @@ permalink: /toolbox/minesweeper/
     newGame();
   });
 
-  newBtn.onclick = newGame;
+  newBtn.onclick = () => { if (typeof msSave !== 'undefined' && msSave) msSave.discard(); newGame(); };
 
   // ── games-shell 接入 ──────────────────────
   let msLbWidget = null;
@@ -663,12 +666,83 @@ permalink: /toolbox/minesweeper/
     });
   }
 
-  // 切换难度后排行榜要刷新（onSplitChange）
+  // 切换难度后排行榜要刷新（onSplitChange）+ 丢当前局存档
   document.getElementById('msDiffTabs').addEventListener('click', () => {
+    if (typeof msSave !== 'undefined' && msSave) msSave.discard();
     if (msLbWidget) msLbWidget.onSplitChange();
   });
 
-  newGame();
+  // ── 48h 续局 ─────────────────────────────
+  // 注意：minesweeper 计分是用时（越短越好）。续局后玩家的 elapsed
+  // 会带上离开期间的时间——也就是说"暂停 12 h 再回来速通"实际上会让
+  // 这局成绩**变差**，不会作弊。后端 60 min 上限 + 已有的"用时短在前"
+  // 自然约束。所以续局走原排行榜路径不需要任何特殊标记。
+  let msSave = null;
+
+  function msSerialize() {
+    if (state.over || !state.started) return null;
+    return {
+      diff: state.diff,
+      grid: state.grid,
+      revealed: state.revealed,
+      flagged: state.flagged,
+      wrong: state.wrong,
+      rows: state.rows, cols: state.cols, mines: state.mines,
+      elapsed: state.elapsed,
+    };
+  }
+  function msRestore(saved) {
+    state.diff = saved.diff || 'easy';
+    state.rows = saved.rows;
+    state.cols = saved.cols;
+    state.mines = saved.mines;
+    state.grid = saved.grid;
+    state.revealed = saved.revealed;
+    state.flagged = saved.flagged;
+    state.wrong = saved.wrong || Array.from({ length: saved.rows }, () => Array(saved.cols).fill(false));
+    state.started = true;
+    state.over = false;
+    state.won = false;
+    state.elapsed = Number(saved.elapsed) || 0;
+    state.startTime = Date.now() - state.elapsed * 1000;
+    if (state.timer) { clearInterval(state.timer); }
+    state.timer = setInterval(() => {
+      if (state.over) return;
+      state.elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+      timeEl.textContent = state.elapsed;
+    }, 1000);
+    modalEl.textContent = '';
+    modalEl.className = 'ms-modal-wrap';
+    renderBoard();
+    updateStatus();
+    document.querySelectorAll('.ms-diff-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.diff === state.diff);
+    });
+  }
+
   msInitShell();
+  if (window.GamesShell && GamesShell.SaveState) {
+    msSave = GamesShell.SaveState.create({
+      key: 'tool.minesweeper.savestate.v1',
+      ttlMs: 48 * 3600 * 1000,
+      serialize: msSerialize,
+    });
+    const peek = msSave.peek();
+    if (peek && peek.data && peek.data.grid) {
+      // 直接把存档界面渲染出来（在 modal 后面可见）
+      msRestore(peek.data);
+      GamesShell.SaveState.showResumeModal({
+        summaryHtml: `继续 <strong>${peek.data.diff || 'easy'}</strong> 难度（已用 <strong>${peek.data.elapsed || 0}</strong> s）<span class="gs-resume-meta">${peek.agoText}保存</span>`,
+        onResume: () => { msSave.start(); },
+        onDiscard: () => { msSave.discard(); newGame(); msSave.start(); },
+      });
+    } else {
+      newGame();
+      msSave.start();
+    }
+  } else {
+    newGame();
+  }
+
 })();
 </script>

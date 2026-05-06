@@ -686,6 +686,7 @@ permalink: /toolbox/2048/
 
   // ============ Init ============
   function init() {
+    let resumedGameOver = false;
     if (!state.board || state.board.length !== state.size) {
       newGame(state.size);
     } else {
@@ -696,6 +697,7 @@ permalink: /toolbox/2048/
         showOverlay('Game Over', `最终得分 ${state.score}`, [
           { label: '再来一局', action: () => newGame() }
         ]);
+        resumedGameOver = true;
       }
     }
 
@@ -728,6 +730,16 @@ permalink: /toolbox/2048/
         onSubmit: nick => submitWithNick(nick),
         onSkip: () => setRank('hidden'),
       });
+    }
+
+    // 进页面时如果发现是从老版本（没排行榜的 JS）遗留下来的 GG 局，
+    // 同样尝试上传——不然玩家这局好成绩白瞎。
+    // 用 score+size+won 派生稳定 nonce，刷新多次也不会重复入榜。
+    if (resumedGameOver && state.score > 0 && window.GamesShell) {
+      const stable = `2048-resume-${state.size}-${state.score}-${state.won ? 1 : 0}`;
+      runNonce = stable;
+      runStartedAt = Date.now() - 60000;   // 假设至少玩了 1 分钟
+      tryAutoSubmit();
     }
   }
   init();

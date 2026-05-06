@@ -230,13 +230,32 @@
     return { refresh: () => { loadTop(true); loadMine(); }, destroy: () => clearInterval(intervalId) };
   }
 
-  // 提交一场胜利。payload: { gameId, nick, did, aiLevel, moves, durationMs, clientNonce }
-  async function submit(payload) {
-    if (!ENABLED) return { ok: false, error: 'disabled' };
-    if (!payload || !payload.gameId || !payload.nick || !payload.aiLevel) {
-      return { ok: false, error: 'bad_payload' };
+  // ── 未提交自动续传（同 leaderboard.js 的逻辑，独立队列 key）──────────
+  const PENDING_KEY = 'gs.wins.pending.v1';
+  const PENDING_TTL_MS = 24 * 3600 * 1000;
+  const PENDING_MAX = 10;
+
+  function readPending() {
+    try { return JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function writePending(arr) {
+    try { localStorage.setItem(PENDING_KEY, JSON.stringify(arr.slice(-PENDING_MAX))); } catch {}
+  }
+  function enqueuePending(payload) {
+    const list = readPending();
+    if (!list.some(p => p.clientNonce === payload.clientNonce)) {
+      list.push(Object.assign({ _enqAt: Date.now() }, payload));
+      writePending(list);
     }
-    const r = await callBackend(`${API_BASE}?action=submit`, {
+  }
+  function dequeuePending(nonce) {
+    const list = readPending();
+    writePending(list.filter(p => p.clientNonce !== nonce));
+  }
+
+  async function callSubmit(payload) {
+    return await callBackend(`${API_BASE}?action=submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -249,9 +268,43 @@
         clientNonce: payload.clientNonce,
       }),
     }, 8000);
-    if (!r.ok) return { ok: false, error: r.error || 'http_error', status: r.status, data: r.data };
-    return r.data || { ok: false, error: 'empty_response' };
   }
 
-  GS.WinsLeaderboard = { mount, submit, _api: API_BASE };
+  async function submit(payload) {
+    if (!ENABLED) return { ok: false, error: 'disabled' };
+    if (!payload || !payload.gameId || !payload.nick || !payload.aiLevel) {
+      return { ok: false, error: 'bad_payload' };
+    }
+    enqueuePending(payload);
+    const r = await callSubmit(payload);
+    if (r.ok && r.data && (r.data.ok || r.data.duplicate)) {
+      dequeuePending(payload.clientNonce);
+      return r.data;
+    }
+    if (r.status && r.status >= 400 && r.status < 500) {
+      dequeuePending(payload.clientNonce);
+      return r.data || { ok: false, error: 'http_error', status: r.status };
+    }
+    return r.data || { ok: false, error: r.error || 'http_error' };
+  }
+
+  async function flushPending() {
+    const list = readPending();
+    if (!list.length) return;
+    const fresh = list.filter(p => Date.now() - (p._enqAt || 0) < PENDING_TTL_MS);
+    if (fresh.length !== list.length) writePending(fresh);
+    for (const p of fresh) {
+      try {
+        const r = await callSubmit(p);
+        if (r.ok && r.data && (r.data.ok || r.data.duplicate)) dequeuePending(p.clientNonce);
+        else if (r.status && r.status >= 400 && r.status < 500) dequeuePending(p.clientNonce);
+      } catch {}
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    setTimeout(() => { try { flushPending(); } catch (e) { console.warn('[gs:wins] flush', e); } }, 1500);
+  }
+
+  GS.WinsLeaderboard = { mount, submit, flushPending, _api: API_BASE };
 })();
