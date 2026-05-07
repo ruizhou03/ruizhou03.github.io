@@ -556,7 +556,7 @@ permalink: /toolbox/feixingqi/
   const state = {
     setupConfig: stored.setupConfig || defaultSetup(),
     difficulty: DIFFICULTY[stored.difficulty] ? stored.difficulty : 'normal',
-    layoutKey: LAYOUTS[stored.layoutKey] ? stored.layoutKey : 'ring',
+    layoutKey: LAYOUTS[stored.layoutKey] ? stored.layoutKey : 'cross',
     started: false,
     players: [],         // ordered by turn (subset of TURN_ORDER)
     playerKinds: {},     // color → 'human' | 'ai'
@@ -1471,11 +1471,23 @@ permalink: /toolbox/feixingqi/
     // Distance progress (more cells = more progress)
     s += (preview.cellsAdvanced || 0) * 2;
 
-    // Already on stretch — push forward (closer to goal)
+    // Stretch movement — only reward genuine forward progress.
+    // A piece already on the stretch that bounces back wastes the dice;
+    // the AI should prefer moving another piece in that case.
     if (preview.toStatus === 'stretch') {
-      s += 50 + preview.toPos * 8;
-      // A bounce that doesn't progress is wasted
-      if (piece.status === 'stretch' && preview.toPos <= piece.pos) s -= 30;
+      if (piece.status === 'stretch') {
+        const advance = preview.toPos - piece.pos;
+        if (advance > 0) {
+          s += 30 + preview.toPos * 8;
+        } else if (advance === 0) {
+          s -= 80;   // bounced back to the same cell — pure waste
+        } else {
+          s -= 100 + Math.abs(advance) * 12;  // bounced backward, the further the worse
+        }
+      } else {
+        // Just entered the stretch from track — always good
+        s += 60 + preview.toPos * 6;
+      }
     }
 
     // Hard: subtract risk of being captured next turn
