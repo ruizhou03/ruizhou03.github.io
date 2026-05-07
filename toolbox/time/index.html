@@ -424,15 +424,22 @@ permalink: /toolbox/time/
       <div class="dt-row">
         <label>方向</label>
         <select id="bday-dir">
+          <option value="past2this">公历生日（含出生年）→ 今年农历生日的公历</option>
           <option value="l2s">农历生日 → 今年公历</option>
-          <option value="s2l">公历生日 → 今年农历</option>
+          <option value="s2l">公历日期 → 该年农历</option>
         </select>
       </div>
       <div class="dt-row">
         <label>目标年份</label>
         <input type="number" id="bday-year" min="1900" max="2100" value="2026" />
       </div>
-      <div id="bday-l-input">
+      <div id="bday-past-input">
+        <div class="dt-row">
+          <label>出生公历</label>
+          <input type="date" id="bday-past" />
+        </div>
+      </div>
+      <div id="bday-l-input" style="display: none;">
         <div class="dt-row">
           <label>农历月</label>
           <select id="bday-l-m"></select>
@@ -1209,6 +1216,7 @@ permalink: /toolbox/time/
   // ============== 生日 ==============
   const bdayDir = document.getElementById('bday-dir');
   const bdayYear = document.getElementById('bday-year');
+  const bdayPast = document.getElementById('bday-past');
   const bdayLM = document.getElementById('bday-l-m');
   const bdayLD = document.getElementById('bday-l-d');
   const bdayLLeap = document.getElementById('bday-l-leap');
@@ -1245,6 +1253,10 @@ permalink: /toolbox/time/
   bdaySD.value = todayObj.getDate();
   bdayLM.value = '8';
   bdayLD.value = '15';
+  // 出生公历默认 30 年前的今天（一个示意值）
+  const pastObj = new Date(todayObj.getTime());
+  pastObj.setFullYear(pastObj.getFullYear() - 30);
+  bdayPast.value = `${pastObj.getFullYear()}-${String(pastObj.getMonth() + 1).padStart(2, '0')}-${String(pastObj.getDate()).padStart(2, '0')}`;
 
   function refreshBdayLeap() {
     const y = +bdayYear.value;
@@ -1270,6 +1282,7 @@ permalink: /toolbox/time/
 
   function bdayCalc() {
     const dir = bdayDir.value;
+    document.getElementById('bday-past-input').style.display = dir === 'past2this' ? '' : 'none';
     document.getElementById('bday-l-input').style.display = dir === 'l2s' ? '' : 'none';
     document.getElementById('bday-s-input').style.display = dir === 's2l' ? '' : 'none';
     const y = +bdayYear.value;
@@ -1279,7 +1292,50 @@ permalink: /toolbox/time/
       return;
     }
 
-    if (dir === 'l2s') {
+    if (dir === 'past2this') {
+      if (!bdayPast.value) return;
+      const [py, pm, pd] = bdayPast.value.split('-').map(Number);
+      if (py < 1900 || py > 2100) {
+        document.getElementById('bday-out').textContent = '出生年份超出 1900-2100 范围';
+        document.getElementById('bday-detail').textContent = '';
+        return;
+      }
+      const birthLun = solarToLunar(py, pm, pd);
+      if (!birthLun) {
+        document.getElementById('bday-out').textContent = '出生日期无法换算农历';
+        document.getElementById('bday-detail').textContent = '';
+        return;
+      }
+      // 今年农历同月日的公历
+      const yearLeap = leapMonth(y);
+      let useLeap = birthLun.isLeap;
+      let note = '';
+      if (birthLun.isLeap && yearLeap !== birthLun.month) {
+        useLeap = false;
+        note = `（出生年闰${LUNAR_MONTHS[birthLun.month - 1]}月，但 ${y} 年无此闰月，按正月计算）`;
+      }
+      // 处理 30 日不存在的情况（农历小月没有 30 日）
+      let useDay = birthLun.day;
+      const cap = useLeap ? leapDays(y) : monthDays(y, birthLun.month);
+      if (useDay > cap) {
+        useDay = cap;
+        note += `（${y} 年农历此月仅 ${cap} 天，已取末日）`;
+      }
+      const sol = lunarToSolar(y, birthLun.month, useDay, useLeap);
+      if (!sol) {
+        document.getElementById('bday-out').textContent = '换算失败';
+        document.getElementById('bday-detail').textContent = '';
+        return;
+      }
+      const dateStr = `${sol.y}-${String(sol.m).padStart(2, '0')}-${String(sol.d).padStart(2, '0')}`;
+      const ms = Date.UTC(sol.y, sol.m - 1, sol.d);
+      const birthLunLabel = `${(birthLun.isLeap ? '闰' : '')}${LUNAR_MONTHS[birthLun.month - 1]}月${LUNAR_DAYS_NAMES[birthLun.day - 1]}`;
+      const todayLunLabel = `${(useLeap ? '闰' : '')}${LUNAR_MONTHS[birthLun.month - 1]}月${LUNAR_DAYS_NAMES[useDay - 1]}`;
+      const age = y - py;
+      document.getElementById('bday-out').textContent = `${y} 年公历 ${dateStr}  ${weekdayCn(ms)}`;
+      document.getElementById('bday-detail').innerHTML =
+        `<span>出生 ${bdayPast.value} = ${ganzhi(birthLun.year)}年 ${birthLunLabel}</span><span>${y} 年农历 ${todayLunLabel}（虚岁 ${age + 1}）</span><span>${daysFromTodayLabel(ms)}</span>${note ? '<span>' + note + '</span>' : ''}`;
+    } else if (dir === 'l2s') {
       refreshBdayLeap();
       const m = +bdayLM.value, d = +bdayLD.value;
       const wantLeap = bdayLLeap.checked;
@@ -1328,6 +1384,7 @@ permalink: /toolbox/time/
 
   bdayDir.addEventListener('change', bdayCalc);
   bdayYear.addEventListener('input', () => { refreshBdayLeap(); bdayCalc(); });
+  bdayPast.addEventListener('input', bdayCalc);
   bdayLM.addEventListener('change', () => { refreshBdayLeap(); bdayCalc(); });
   bdayLD.addEventListener('change', bdayCalc);
   bdayLLeap.addEventListener('change', bdayCalc);
