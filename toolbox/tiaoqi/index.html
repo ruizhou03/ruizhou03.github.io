@@ -315,6 +315,7 @@ permalink: /toolbox/tiaoqi/
   <!-- Game-only controls (hidden until a game starts) -->
   <div id="tqGameControls" hidden>
     <div class="tq-controls" style="margin-top: 0.9rem;">
+      <button class="tq-btn primary" id="tqEndChainBtn" hidden>✓ 结束跳跃</button>
       <button class="tq-btn" id="tqUndoBtn">↶ 悔棋</button>
       <button class="tq-btn" id="tqPauseBtn" hidden>⏸ 暂停</button>
       <button class="tq-btn" id="tqNewBtn">🔄 重新配置</button>
@@ -407,7 +408,8 @@ permalink: /toolbox/tiaoqi/
     return b;
   }
 
-  function stepMoves(board, r, c) {
+  // 6 hex-neighbor empty cells from (r, c) — 1-step walks.
+  function stepDestinations(board, r, c) {
     const out = [];
     for (const [dr, dc] of DIRS) {
       const nr = r + dr, nc = c + dc;
@@ -417,58 +419,90 @@ permalink: /toolbox/tiaoqi/
     }
     return out;
   }
-  // Long-jump rule (传统中式跳棋): from (cr,cc) in a hex direction, find the
-  // first piece on that line (at distance k≥1 with all cells before it empty),
-  // and "mirror" to the cell at distance 2k. The cells between the screen and
-  // the landing must also all be empty, and the landing must be empty.
-  // Chain hops are allowed; player may stop at any intermediate landing because
-  // every reachable cell is added to `out`, not just the final ones.
-  function hopMoves(board, r, c) {
-    const visited = new Set([key(r, c)]);
+
+  // Long-jump rule (传统中式跳棋): from (r,c) along each hex direction, find the
+  // first piece (the "screen") at some distance k≥1 with all cells before it
+  // empty; the landing is the cell at distance 2k (the "mirror" point). All
+  // cells between screen and landing must be empty, and the landing must be
+  // empty. Returns landing cells reachable in exactly ONE hop (no chaining).
+  function singleJumpDestinations(board, r, c) {
+    const out = [];
+    for (const [dr, dc] of DIRS) {
+      let k = 1;
+      let mr = r + dr, mc = c + dc;
+      while (isValid(mr, mc) && board[key(mr, mc)] === null) {
+        k++;
+        mr = r + dr * k;
+        mc = c + dc * k;
+      }
+      if (!isValid(mr, mc)) continue;        // no screen on this line
+      const tr = r + dr * 2 * k;
+      const tc = c + dc * 2 * k;
+      if (!isValid(tr, tc)) continue;
+      let blocked = false;
+      for (let j = k + 1; j < 2 * k; j++) {
+        const ir = r + dr * j;
+        const ic = c + dc * j;
+        if (!isValid(ir, ic) || board[key(ir, ic)] !== null) { blocked = true; break; }
+      }
+      if (blocked) continue;
+      if (board[key(tr, tc)] !== null) continue;
+      out.push([tr, tc]);
+    }
+    return out;
+  }
+
+  // Chain-hop BFS with parent tracking. Returns [{to:[r,c], path:[[r,c], ...]}]
+  // where `path` is the ordered list of intermediate landings starting from the
+  // first hop (excluding the original start cell). path.length === 1 means a
+  // single hop; path.length ≥ 2 means a multi-hop chain.
+  // The piece at (r, c) is treated as "in transit" — temporarily ghosted from
+  // the board so chain searches can pass back through its origin.
+  function hopPaths(board, r, c) {
+    const startK = key(r, c);
+    const piece = board[startK];
+    board[startK] = null;
+    const parent = new Map();
+    parent.set(startK, null);
     const out = [];
     const frontier = [[r, c]];
     while (frontier.length > 0) {
       const [cr, cc] = frontier.shift();
-      for (const [dr, dc] of DIRS) {
-        // Walk outward until we find a piece (the "screen").
-        let k = 1;
-        let mr = cr + dr, mc = cc + dc;
-        while (isValid(mr, mc) && board[key(mr, mc)] === null) {
-          k++;
-          mr = cr + dr * k;
-          mc = cc + dc * k;
-        }
-        if (!isValid(mr, mc)) continue;       // ran off the board, no screen
-        // Landing must be at the mirror distance 2k.
-        const tr = cr + dr * 2 * k;
-        const tc = cc + dc * 2 * k;
-        if (!isValid(tr, tc)) continue;
-        // Cells strictly between the screen and the landing must all be empty.
-        let blocked = false;
-        for (let j = k + 1; j < 2 * k; j++) {
-          const ir = cr + dr * j;
-          const ic = cc + dc * j;
-          if (!isValid(ir, ic) || board[key(ir, ic)] !== null) { blocked = true; break; }
-        }
-        if (blocked) continue;
-        // Landing itself must be empty.
-        if (board[key(tr, tc)] !== null) continue;
+      const fromK = key(cr, cc);
+      for (const [tr, tc] of singleJumpDestinations(board, cr, cc)) {
         const tk = key(tr, tc);
-        if (visited.has(tk)) continue;
-        visited.add(tk);
-        out.push([tr, tc]);
+        if (parent.has(tk)) continue;
+        parent.set(tk, fromK);
+        const path = [];
+        let curK = tk;
+        while (curK !== startK) {
+          path.unshift(fromKey(curK));
+          curK = parent.get(curK);
+        }
+        out.push({ to: [tr, tc], path });
         frontier.push([tr, tc]);
       }
     }
+    board[startK] = piece;
     return out;
   }
+
+  // All legal moves for `player`. Each move carries a `path` field (the sequence
+  // of intermediate landings, length ≥ 1). Used by AI search and for end-of-game
+  // "any legal move?" checks. The human UI does NOT call this — it uses the per-
+  // piece helpers (stepDestinations + singleJumpDestinations) to build its own
+  // step-by-step interaction.
   function legalMoves(board, player) {
     const out = [];
     for (const k in board) {
       if (board[k] !== player) continue;
       const [r, c] = fromKey(parseInt(k, 10));
-      for (const [tr, tc] of stepMoves(board, r, c)) out.push({ from: [r, c], to: [tr, tc], hop: false });
-      for (const [tr, tc] of hopMoves(board, r, c)) out.push({ from: [r, c], to: [tr, tc], hop: true });
+      for (const [tr, tc] of stepDestinations(board, r, c)) {
+        out.push({ from: [r, c], to: [tr, tc], hop: false, path: [[tr, tc]] });
+      }
+      for (const { to, path } of hopPaths(board, r, c)) {
+        out.push({ from: [r, c], to, hop: true, path });
+      }
     }
     return out;
   }
@@ -662,8 +696,10 @@ permalink: /toolbox/tiaoqi/
     playerKinds: {},      // corner → 'human'|'ai'
     board: null,
     turnIdx: 0,           // index into players array
-    selected: null,       // [r, c]
-    legalTargets: [],
+    selected: null,       // [r, c] of the piece the human is operating on
+    legalTargets: [],     // each: {to:[r,c], kind:'step'|'jump'} for the selected/chain piece
+    chainPiece: null,     // [r, c] — set during a multi-hop chain (after the first jump)
+    chainStartFrom: null, // [r, c] — original position before the chain began
     history: [],          // [{undo, prevTurnIdx}]
     aiThinking: false,
     paused: false,
@@ -691,6 +727,7 @@ permalink: /toolbox/tiaoqi/
   const undoBtn = document.getElementById('tqUndoBtn');
   const pauseBtn = document.getElementById('tqPauseBtn');
   const newBtn = document.getElementById('tqNewBtn');
+  const endChainBtn = document.getElementById('tqEndChainBtn');
   const chips = {};
   document.querySelectorAll('.tq-corner-chip').forEach(el => { chips[el.dataset.corner] = el; });
 
@@ -779,6 +816,8 @@ permalink: /toolbox/tiaoqi/
     state.turnIdx = 0;
     state.selected = null;
     state.legalTargets = [];
+    state.chainPiece = null;
+    state.chainStartFrom = null;
     state.history = [];
     state.aiThinking = false;
     state.paused = false;
@@ -815,6 +854,8 @@ permalink: /toolbox/tiaoqi/
     state.winner = null;
     state.selected = null;
     state.legalTargets = [];
+    state.chainPiece = null;
+    state.chainStartFrom = null;
     setupControls.hidden = false;
     gameControls.hidden = true;
     rosterEl.hidden = true;
@@ -847,6 +888,10 @@ permalink: /toolbox/tiaoqi/
         : '— 游戏结束 —';
     } else if (state.aiThinking) {
       label = '🤖 AI 思考中…';
+    } else if (state.chainPiece) {
+      const p = currentPlayer();
+      const c = CORNERS[p];
+      label = `<span class="swatch" style="background:${c.color}"></span>${c.label}方连跳中——继续点目标格，或点「✓ 结束跳跃」`;
     } else {
       const p = currentPlayer();
       const c = CORNERS[p];
@@ -872,10 +917,11 @@ permalink: /toolbox/tiaoqi/
       rosterEl.appendChild(item);
     });
 
-    undoBtn.disabled = state.history.length === 0 || state.aiThinking || state.paused || state.over;
+    undoBtn.disabled = state.history.length === 0 || state.aiThinking || state.paused || state.over || !!state.chainPiece;
     pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
-    pauseBtn.disabled = state.over || !Object.values(state.playerKinds).includes('ai');
+    pauseBtn.disabled = state.over || !Object.values(state.playerKinds).includes('ai') || !!state.chainPiece;
     pausedOverlay.classList.toggle('show', state.paused && !state.over);
+    endChainBtn.hidden = !state.chainPiece;
   }
 
   function svgEl(tag, attrs) {
@@ -942,14 +988,15 @@ permalink: /toolbox/tiaoqi/
     }
     svg.appendChild(pcs);
 
-    // Layer 4: target dots
+    // Layer 4: target dots (legalTargets contains {to, kind} where kind='step'|'jump')
     if (state.legalTargets.length > 0) {
       const dots = svgEl('g');
-      for (const m of state.legalTargets) {
+      for (const t of state.legalTargets) {
+        const isHop = t.kind === 'jump';
         dots.appendChild(svgEl('circle', {
-          class: 'target-dot' + (m.hop ? ' hop' : ''),
-          cx: svgX(m.to[1]), cy: svgY(m.to[0]),
-          r: m.hop ? 9 : 6,
+          class: 'target-dot' + (isHop ? ' hop' : ''),
+          cx: svgX(t.to[1]), cy: svgY(t.to[0]),
+          r: isHop ? 9 : 6,
         }));
       }
       svg.appendChild(dots);
@@ -972,13 +1019,32 @@ permalink: /toolbox/tiaoqi/
   // ============================================================
   // Actions
   // ============================================================
-  function applyMove(m) {
-    const undo = makeMove(state.board, m);
-    state.history.push({ undo, prevTurnIdx: state.turnIdx });
-    state.lastMove = { from: m.from.slice(), to: m.to.slice() };
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // Show step + single-jump destinations for the human's selected piece.
+  function computeHumanTargets(board, r, c) {
+    const out = [];
+    for (const [tr, tc] of stepDestinations(board, r, c)) out.push({ to: [tr, tc], kind: 'step' });
+    for (const [tr, tc] of singleJumpDestinations(board, r, c)) out.push({ to: [tr, tc], kind: 'jump' });
+    return out;
+  }
+
+  // End-of-turn bookkeeping shared by step move, single hop, full chain. Pushes
+  // one history entry covering the whole turn (originalFrom → finalTo, no captures
+  // since long-jump doesn't take pieces), runs the win check, hands off the turn.
+  function commitTurn(originalFrom, finalTo, piece) {
+    const fk = key(originalFrom[0], originalFrom[1]);
+    const tk = key(finalTo[0], finalTo[1]);
+    state.history.push({
+      undo: { fk, tk, piece, captured: null, movingPiece: piece, from: originalFrom.slice(), to: finalTo.slice() },
+      prevTurnIdx: state.turnIdx
+    });
+    state.lastMove = { from: originalFrom.slice(), to: finalTo.slice() };
     state.selected = null;
     state.legalTargets = [];
-    // Win check: did current player just win?
+    state.chainPiece = null;
+    state.chainStartFrom = null;
+    endChainBtn.hidden = true;
     const cur = currentPlayer();
     if (hasWon(state.board, cur)) {
       state.over = true;
@@ -993,6 +1059,88 @@ permalink: /toolbox/tiaoqi/
     renderBoard();
     updateStatus();
     if (!state.paused && currentKindIsAi()) setTimeout(triggerAiMove, 100);
+  }
+
+  // Human single-step (1-cell walk). Fully commits the turn.
+  function applyHumanStep(from, to) {
+    const fromK = key(from[0], from[1]);
+    const piece = state.board[fromK];
+    state.board[fromK] = null;
+    state.board[key(to[0], to[1])] = piece;
+    commitTurn(from, to, piece);
+  }
+
+  // Human first hop: moves the piece, then either auto-commits (no further hops)
+  // or enters CHAIN mode (more hops available).
+  function applyHumanFirstHop(from, to) {
+    const fromK = key(from[0], from[1]);
+    const piece = state.board[fromK];
+    state.board[fromK] = null;
+    state.board[key(to[0], to[1])] = piece;
+    state.lastMove = { from: from.slice(), to: to.slice() };
+    state.chainStartFrom = from.slice();
+    state.chainPiece = to.slice();
+    state.selected = to.slice();
+    const nextHops = singleJumpDestinations(state.board, to[0], to[1]);
+    if (nextHops.length === 0) {
+      commitTurn(state.chainStartFrom, state.chainPiece, piece);
+    } else {
+      state.legalTargets = nextHops.map(([tr, tc]) => ({ to: [tr, tc], kind: 'jump' }));
+      endChainBtn.hidden = false;
+      renderBoard();
+      updateStatus();
+    }
+  }
+
+  // Human chain hop: piece is already in CHAIN mode (chainPiece set). Hops to
+  // the new cell, then either continues CHAIN or auto-commits.
+  function applyHumanChainHop(to) {
+    const cp = state.chainPiece;
+    const fromK = key(cp[0], cp[1]);
+    const piece = state.board[fromK];
+    state.board[fromK] = null;
+    state.board[key(to[0], to[1])] = piece;
+    state.lastMove = { from: cp.slice(), to: to.slice() };
+    state.chainPiece = to.slice();
+    state.selected = to.slice();
+    const nextHops = singleJumpDestinations(state.board, to[0], to[1]);
+    if (nextHops.length === 0) {
+      commitTurn(state.chainStartFrom, state.chainPiece, piece);
+    } else {
+      state.legalTargets = nextHops.map(([tr, tc]) => ({ to: [tr, tc], kind: 'jump' }));
+      renderBoard();
+      updateStatus();
+    }
+  }
+
+  // Manually end a chain (button or click chain piece). Commits at current chain pos.
+  function commitChain() {
+    if (!state.chainPiece || !state.chainStartFrom) return;
+    const piece = state.board[key(state.chainPiece[0], state.chainPiece[1])];
+    commitTurn(state.chainStartFrom, state.chainPiece, piece);
+  }
+
+  // AI move with full path. path.length === 1 → instant move (step or single hop).
+  // path.length > 1 → animate each hop in sequence with a 450ms gap.
+  async function applyAiMove(move) {
+    const fromK = key(move.from[0], move.from[1]);
+    const piece = state.board[fromK];
+    state.board[fromK] = null;
+    let prev = move.from.slice();
+    for (let i = 0; i < move.path.length; i++) {
+      const cur = move.path[i];
+      state.board[key(cur[0], cur[1])] = piece;
+      state.lastMove = { from: prev, to: cur.slice() };
+      renderBoard();
+      if (i < move.path.length - 1) {
+        await sleep(450);
+        // Ghost the piece briefly so the next render shows movement
+        state.board[key(cur[0], cur[1])] = null;
+        prev = cur.slice();
+      }
+    }
+    const finalTo = move.path[move.path.length - 1];
+    commitTurn(move.from, finalTo, piece);
   }
 
   function computeFinalRanking() {
@@ -1053,17 +1201,21 @@ permalink: /toolbox/tiaoqi/
       const move = pickAiMove(state.board, state.players, state.turnIdx, cfg);
       const elapsed = Date.now() - t0;
       const wait = Math.max(0, cfg.delayMs - elapsed);
-      setTimeout(() => {
+      setTimeout(async () => {
         state.aiThinking = false;
         if (state.paused || state.over) { updateStatus(); return; }
-        if (move) applyMove(move);
-        else { nextTurn(); updateStatus(); if (currentKindIsAi()) setTimeout(triggerAiMove, 100); }
+        if (move) {
+          await applyAiMove(move);
+        } else {
+          nextTurn(); updateStatus();
+          if (currentKindIsAi()) setTimeout(triggerAiMove, 100);
+        }
       }, wait);
     }, 30);
   }
 
   // ============================================================
-  // Input
+  // Input — three-state machine: IDLE / SELECTED / CHAIN
   // ============================================================
   svg.addEventListener('click', (e) => {
     const target = e.target.closest('.cell-hit');
@@ -1071,7 +1223,7 @@ permalink: /toolbox/tiaoqi/
     const r = parseInt(target.getAttribute('data-row'), 10);
     const c = parseInt(target.getAttribute('data-col'), 10);
 
-    // Config mode: clicking any cell of a starting triangle cycles that corner.
+    // Config mode
     if (!state.started) {
       const ck = CELL_TRIANGLE[key(r, c)];
       if (ck) cycleKind(ck);
@@ -1083,23 +1235,46 @@ permalink: /toolbox/tiaoqi/
     const owner = state.board[key(r, c)];
     const me = currentPlayer();
 
+    // CHAIN mode: only allow continuing the chain or ending it.
+    if (state.chainPiece) {
+      // Click on the chain piece itself → end chain
+      if (state.chainPiece[0] === r && state.chainPiece[1] === c) {
+        commitChain();
+        return;
+      }
+      // Click on a legal next-hop target → continue chain
+      const t = state.legalTargets.find(t => t.to[0] === r && t.to[1] === c);
+      if (t) applyHumanChainHop([r, c]);
+      return;
+    }
+
+    // SELECTED mode
     if (state.selected) {
-      const m = state.legalTargets.find(mm => mm.to[0] === r && mm.to[1] === c);
-      if (m) { applyMove(m); return; }
+      const t = state.legalTargets.find(t => t.to[0] === r && t.to[1] === c);
+      if (t) {
+        const from = state.selected.slice();
+        if (t.kind === 'step') applyHumanStep(from, [r, c]);
+        else applyHumanFirstHop(from, [r, c]);
+        return;
+      }
+      // Click another own piece → switch selection
       if (owner === me) {
         state.selected = [r, c];
-        state.legalTargets = legalMoves(state.board, me).filter(mm => mm.from[0] === r && mm.from[1] === c);
+        state.legalTargets = computeHumanTargets(state.board, r, c);
         renderBoard();
         return;
       }
+      // Click empty/opponent cell → deselect
       state.selected = null;
       state.legalTargets = [];
       renderBoard();
       return;
     }
+
+    // IDLE mode → select own piece
     if (owner === me) {
       state.selected = [r, c];
-      state.legalTargets = legalMoves(state.board, me).filter(mm => mm.from[0] === r && mm.from[1] === c);
+      state.legalTargets = computeHumanTargets(state.board, r, c);
       renderBoard();
     }
   });
@@ -1120,9 +1295,10 @@ permalink: /toolbox/tiaoqi/
   }
   pauseBtn.onclick = togglePause;
   resumeBtn.onclick = togglePause;
+  endChainBtn.onclick = commitChain;
 
   undoBtn.onclick = () => {
-    if (state.aiThinking || state.paused || state.history.length === 0 || state.over) return;
+    if (state.aiThinking || state.paused || state.history.length === 0 || state.over || state.chainPiece) return;
     // Undo: in vs-AI mode, roll back enough plies so it's the human's turn again.
     // Simpler: undo 1 ply if no AI in game; otherwise keep undoing until last move
     // taker is a human and current turn is a human's turn.
@@ -1319,6 +1495,8 @@ permalink: /toolbox/tiaoqi/
   let tqSave = null;
   function tqSerialize() {
     if (!state.started || state.over) return null;
+    // Don't snapshot mid-chain — wait until the turn fully commits.
+    if (state.chainPiece) return null;
     return {
       setupConfig: state.setupConfig,
       difficulty: state.difficulty,
@@ -1342,6 +1520,8 @@ permalink: /toolbox/tiaoqi/
     state.history = [];
     state.selected = null;
     state.legalTargets = [];
+    state.chainPiece = null;
+    state.chainStartFrom = null;
     state.aiThinking = false;
     state.paused = false;
     state.over = false;
