@@ -324,6 +324,7 @@ permalink: /toolbox/time/
       <button type="button" data-pill="addsub">加减天数</button>
       <button type="button" data-pill="work">工作日</button>
       <button type="button" data-pill="lunar">农历</button>
+      <button type="button" data-pill="bday">生日</button>
     </div>
 
     <!-- 天数差 -->
@@ -335,6 +336,11 @@ permalink: /toolbox/time/
       <div class="dt-row">
         <label>结束日期</label>
         <input type="date" id="diff-b" />
+      </div>
+      <div class="dt-row">
+        <label style="min-width:auto;">
+          <input type="checkbox" id="diff-inclusive" /> 包含起止两天（首尾都算）
+        </label>
       </div>
       <div class="dt-output">
         <div class="primary" id="diff-out">—</div>
@@ -413,12 +419,55 @@ permalink: /toolbox/time/
       </div>
     </div>
 
+    <!-- 生日 -->
+    <div class="pill-content" data-pill-content="bday" style="display: none;">
+      <div class="dt-row">
+        <label>方向</label>
+        <select id="bday-dir">
+          <option value="l2s">农历生日 → 今年公历</option>
+          <option value="s2l">公历生日 → 今年农历</option>
+        </select>
+      </div>
+      <div class="dt-row">
+        <label>目标年份</label>
+        <input type="number" id="bday-year" min="1900" max="2100" value="2026" />
+      </div>
+      <div id="bday-l-input">
+        <div class="dt-row">
+          <label>农历月</label>
+          <select id="bday-l-m"></select>
+          <label style="min-width:auto;">
+            <input type="checkbox" id="bday-l-leap" /> 闰月
+          </label>
+        </div>
+        <div class="dt-row">
+          <label>农历日</label>
+          <select id="bday-l-d"></select>
+        </div>
+      </div>
+      <div id="bday-s-input" style="display: none;">
+        <div class="dt-row">
+          <label>公历月</label>
+          <select id="bday-s-m"></select>
+        </div>
+        <div class="dt-row">
+          <label>公历日</label>
+          <select id="bday-s-d"></select>
+        </div>
+      </div>
+      <div class="dt-output">
+        <div class="primary" id="bday-out">—</div>
+        <div class="secondary" id="bday-detail"></div>
+      </div>
+    </div>
+
     <details class="footnote">
       <summary>关于日期计算</summary>
       <div class="footnote-body">
-        <p><strong>天数差 / 加减天数</strong>：内部用 UTC 日期相减，避开夏令时干扰，结果就是日历日数。</p>
+        <p><strong>天数差 / 加减天数</strong>：内部用 UTC 日期相减，避开夏令时干扰。"包含起止两天" 勾上后会把首尾两天都算进去（A → A+1 = 2 天而非 1 天），未勾时为标准日数差。</p>
         <p><strong>工作日</strong>：单纯跳过周六周日，不识别中国法定节假日（春节 / 国庆等需要每年人工维护数据，本工具不做）。</p>
         <p><strong>农历</strong>：内置 1900–2100 农历数据表（标准查表法），含闰月、生肖、天干地支；不计算 24 节气。农历范围之外不支持。</p>
+        <p><strong>生日</strong>：把农历或公历生日按"今年"重新换算到另一历，方便提前知道何时庆祝。如目标年份没有对应闰月，会回退到正月并提示。</p>
       </div>
     </details>
   </div>
@@ -868,19 +917,25 @@ permalink: /toolbox/time/
   // ============== 天数差 ==============
   const diffA = document.getElementById('diff-a');
   const diffB = document.getElementById('diff-b');
+  const diffInclusive = document.getElementById('diff-inclusive');
   function diffCalc() {
     if (!diffA.value || !diffB.value) return;
     const aMs = parseDateUtc(diffA.value);
     const bMs = parseDateUtc(diffB.value);
-    const days = (bMs - aMs) / 86400000;
+    const rawDays = (bMs - aMs) / 86400000;
+    const inclusive = diffInclusive.checked;
+    const adj = inclusive ? Math.sign(rawDays || 1) : 0;
+    const days = rawDays + adj;
     const sign = days < 0 ? '-' : '';
     const abs = Math.abs(days);
-    document.getElementById('diff-out').textContent = `${sign}${abs} 天`;
+    const tag = inclusive ? '（含起止）' : '';
+    document.getElementById('diff-out').textContent = `${sign}${abs} 天${tag}`;
     const weeks = Math.floor(abs / 7), wdRem = abs % 7;
     const cd = calendarDiff(aMs, bMs);
     const cdStr = `${cd.years} 年 ${cd.months} 月 ${cd.days} 天`;
+    const cdLabel = inclusive ? '原始日历差（不含起止）' : '≈';
     document.getElementById('diff-detail').innerHTML =
-      `<span>≈ ${weeks} 周 ${wdRem} 天</span><span>≈ ${cdStr}</span><span>${diffA.value}（${weekdayCn(aMs)}） → ${diffB.value}（${weekdayCn(bMs)}）</span>`;
+      `<span>≈ ${weeks} 周 ${wdRem} 天</span><span>${cdLabel} ${cdStr}</span><span>${diffA.value}（${weekdayCn(aMs)}） → ${diffB.value}（${weekdayCn(bMs)}）</span>`;
   }
   diffA.value = todayStr();
   // 默认 B = A + 30 天
@@ -889,6 +944,7 @@ permalink: /toolbox/time/
   diffB.value = `${future.y}-${String(future.m).padStart(2, '0')}-${String(future.d).padStart(2, '0')}`;
   diffA.addEventListener('input', diffCalc);
   diffB.addEventListener('input', diffCalc);
+  diffInclusive.addEventListener('change', diffCalc);
   diffCalc();
 
   // ============== 加减天数 ==============
@@ -1149,5 +1205,135 @@ permalink: /toolbox/time/
   refreshLunarLeapAvailable();
   lunarCalc();
   addCalc();
+
+  // ============== 生日 ==============
+  const bdayDir = document.getElementById('bday-dir');
+  const bdayYear = document.getElementById('bday-year');
+  const bdayLM = document.getElementById('bday-l-m');
+  const bdayLD = document.getElementById('bday-l-d');
+  const bdayLLeap = document.getElementById('bday-l-leap');
+  const bdaySM = document.getElementById('bday-s-m');
+  const bdaySD = document.getElementById('bday-s-d');
+
+  // 农历月/日下拉
+  for (let i = 1; i <= 12; i++) {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = LUNAR_MONTHS[i - 1] + '月';
+    bdayLM.appendChild(o);
+  }
+  for (let i = 1; i <= 30; i++) {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = LUNAR_DAYS_NAMES[i - 1];
+    bdayLD.appendChild(o);
+  }
+  // 公历月/日下拉
+  for (let i = 1; i <= 12; i++) {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = i + ' 月';
+    bdaySM.appendChild(o);
+  }
+  for (let i = 1; i <= 31; i++) {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = i + ' 日';
+    bdaySD.appendChild(o);
+  }
+
+  // 默认值：今年 + 今天月日
+  const todayObj = new Date();
+  bdayYear.value = todayObj.getFullYear();
+  bdaySM.value = todayObj.getMonth() + 1;
+  bdaySD.value = todayObj.getDate();
+  bdayLM.value = '8';
+  bdayLD.value = '15';
+
+  function refreshBdayLeap() {
+    const y = +bdayYear.value;
+    if (y < 1900 || y > 2100) { bdayLLeap.disabled = true; return; }
+    const leap = leapMonth(y);
+    const m = +bdayLM.value;
+    if (leap > 0 && m === leap) {
+      bdayLLeap.disabled = false;
+    } else {
+      bdayLLeap.disabled = true;
+      bdayLLeap.checked = false;
+    }
+  }
+
+  function daysFromTodayLabel(targetMs) {
+    const now = new Date();
+    const todayMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    const diff = Math.floor((targetMs - todayMs) / 86400000);
+    if (diff === 0) return '就是今天';
+    if (diff > 0) return `还有 ${diff} 天`;
+    return `已过 ${-diff} 天`;
+  }
+
+  function bdayCalc() {
+    const dir = bdayDir.value;
+    document.getElementById('bday-l-input').style.display = dir === 'l2s' ? '' : 'none';
+    document.getElementById('bday-s-input').style.display = dir === 's2l' ? '' : 'none';
+    const y = +bdayYear.value;
+    if (y < 1900 || y > 2100) {
+      document.getElementById('bday-out').textContent = '年份超出 1900-2100 范围';
+      document.getElementById('bday-detail').textContent = '';
+      return;
+    }
+
+    if (dir === 'l2s') {
+      refreshBdayLeap();
+      const m = +bdayLM.value, d = +bdayLD.value;
+      const wantLeap = bdayLLeap.checked;
+      const yearLeap = leapMonth(y);
+      let useLeap = wantLeap;
+      let note = '';
+      if (wantLeap && yearLeap !== m) {
+        useLeap = false;
+        note = `（${y} 年无闰${LUNAR_MONTHS[m - 1]}月，按正月计算）`;
+      }
+      const sol = lunarToSolar(y, m, d, useLeap);
+      if (!sol) {
+        document.getElementById('bday-out').textContent = '该农历日期不存在';
+        document.getElementById('bday-detail').textContent = '';
+        return;
+      }
+      const dateStr = `${sol.y}-${String(sol.m).padStart(2, '0')}-${String(sol.d).padStart(2, '0')}`;
+      const ms = Date.UTC(sol.y, sol.m - 1, sol.d);
+      const lunLabel = `${(useLeap ? '闰' : '')}${LUNAR_MONTHS[m - 1]}月${LUNAR_DAYS_NAMES[d - 1]}`;
+      document.getElementById('bday-out').textContent = `${y} 年公历 ${dateStr}  ${weekdayCn(ms)}`;
+      document.getElementById('bday-detail').innerHTML =
+        `<span>${y} 年农历 ${lunLabel}</span><span>${daysFromTodayLabel(ms)}</span>${note ? '<span>' + note + '</span>' : ''}`;
+    } else {
+      const m = +bdaySM.value, d = +bdaySD.value;
+      // 验证 公历 m/d 在 y 年是否存在
+      const test = new Date(Date.UTC(y, m - 1, d));
+      if (test.getUTCMonth() !== m - 1 || test.getUTCDate() !== d) {
+        document.getElementById('bday-out').textContent = `${y} 年公历 ${m}-${d} 不存在`;
+        document.getElementById('bday-detail').textContent = '';
+        return;
+      }
+      const ms = Date.UTC(y, m - 1, d);
+      const lun = solarToLunar(y, m, d);
+      if (!lun) {
+        document.getElementById('bday-out').textContent = '范围之外';
+        document.getElementById('bday-detail').textContent = '';
+        return;
+      }
+      const lunLabel = `${(lun.isLeap ? '闰' : '')}${LUNAR_MONTHS[lun.month - 1]}月${LUNAR_DAYS_NAMES[lun.day - 1]}`;
+      const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      document.getElementById('bday-out').textContent = `${y} 年农历 ${ganzhi(lun.year)}年 ${lunLabel}`;
+      document.getElementById('bday-detail').innerHTML =
+        `<span>公历 ${dateStr}（${weekdayCn(ms)}）</span><span>生肖：${shengxiao(lun.year)}</span><span>${daysFromTodayLabel(ms)}</span>`;
+    }
+  }
+
+  bdayDir.addEventListener('change', bdayCalc);
+  bdayYear.addEventListener('input', () => { refreshBdayLeap(); bdayCalc(); });
+  bdayLM.addEventListener('change', () => { refreshBdayLeap(); bdayCalc(); });
+  bdayLD.addEventListener('change', bdayCalc);
+  bdayLLeap.addEventListener('change', bdayCalc);
+  bdaySM.addEventListener('change', bdayCalc);
+  bdaySD.addEventListener('change', bdayCalc);
+  refreshBdayLeap();
+  bdayCalc();
 })();
 </script>
