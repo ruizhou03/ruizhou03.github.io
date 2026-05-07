@@ -1017,12 +1017,15 @@ permalink: /toolbox/xiangqi/
     if (!state.mode || !state.mode.startsWith('ai-')) return;
     if (!['easy', 'normal', 'hard'].includes(state.difficulty)) return;
     let nick = GamesShell.Identity.getNick();
-    if (!nick) {
-      const v = prompt('恭喜击败 AI！起个昵称上传战绩榜？(3-12 字 / 中英文 / emoji；按取消则不上传)');
-      if (!v) return;
+    // 不合法就提示后再让用户重输，别一次失败就把战绩扔了
+    let lastErr = '';
+    while (!nick) {
+      const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : '恭喜击败 AI！起个昵称上传战绩榜？\n\n';
+      const v = prompt(hint + '3-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
+      if (v === null) return;
       const r = GamesShell.Identity.setNick(v);
-      if (!r.ok) { alert(r.reason || '昵称无效'); return; }
-      nick = r.nick;
+      if (r.ok) { nick = r.nick; break; }
+      lastErr = r.reason || '昵称无效';
     }
     GamesShell.WinsLeaderboard.submit({
       gameId: 'xiangqi',

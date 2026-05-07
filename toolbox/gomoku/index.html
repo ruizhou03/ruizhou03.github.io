@@ -172,6 +172,7 @@ permalink: /toolbox/gomoku/
   <div class="gm-help">15×15 标准棋盘　·　人机模式可选三档难度</div>
 
   <div id="gm-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="gm-settle-btn-mount"></div>
   <div id="gm-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
 
@@ -179,6 +180,7 @@ permalink: /toolbox/gomoku/
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
 
 <script>
 (() => {
@@ -248,6 +250,8 @@ permalink: /toolbox/gomoku/
     draw();
     gmRunStartedAt = Date.now();
     gmRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+    gmLastResult = null;
+    if (typeof gmSettleBtn !== 'undefined' && gmSettleBtn) gmSettleBtn.setEnabled(false);
     if (state.mode === 'ai-white' && state.turn === BLACK) {
       // AI plays black first
       setTimeout(aiMove, 300);
@@ -385,11 +389,20 @@ permalink: /toolbox/gomoku/
       const human = humanSide();
       if (human != null && who === human) gmTryAutoSubmit();
       if (typeof gmSave !== 'undefined' && gmSave) gmSave.discard();
+      // 结算图：仅 AI 模式
+      if (state.mode && state.mode.startsWith('ai-') && human != null) {
+        gmLastResult = (who === human) ? 'win' : 'lose';
+        if (gmSettleBtn) gmSettleBtn.setEnabled(true);
+      }
     } else if (state.history.length === N * N) {
       state.over = true;
       ovTitle.textContent = '— 平局 —';
       overlay.classList.add('show');
       if (typeof gmSave !== 'undefined' && gmSave) gmSave.discard();
+      if (state.mode && state.mode.startsWith('ai-')) {
+        gmLastResult = 'draw';
+        if (gmSettleBtn) gmSettleBtn.setEnabled(true);
+      }
     } else {
       state.turn = who === BLACK ? WHITE : BLACK;
     }
@@ -637,18 +650,134 @@ permalink: /toolbox/gomoku/
   let gmWlbWidget = null;
   let gmRunStartedAt = Date.now();
   let gmRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+  let gmSettleBtn = null;
+  let gmLastResult = null;     // 'win' | 'lose' | 'draw'
+
+  const GM_DIFF_LABEL = { easy: '简单', normal: '普通', hard: '困难' };
+
+  function gmFormatDuration(sec) {
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  function gmPaintBoard(ctx, x, y, w, h) {
+    const side = Math.min(w, h);
+    const margin = side * 0.04;
+    const inner = side - margin * 2;
+    const cs = inner / (N - 1);
+    const ox = x + (w - side) / 2 + margin;
+    const oy = y + (h - side) / 2 + margin;
+    // 棋盘底色（木色）
+    ctx.fillStyle = '#e6c98a';
+    ctx.fillRect(x + (w - side) / 2, y + (h - side) / 2, side, side);
+    // 网格线
+    ctx.strokeStyle = '#5a4520';
+    ctx.lineWidth = Math.max(1, cs * 0.05);
+    for (let i = 0; i < N; i++) {
+      ctx.beginPath();
+      ctx.moveTo(ox, oy + i * cs);
+      ctx.lineTo(ox + (N - 1) * cs, oy + i * cs);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(ox + i * cs, oy);
+      ctx.lineTo(ox + i * cs, oy + (N - 1) * cs);
+      ctx.stroke();
+    }
+    // 五个星位（标准 15×15）
+    const stars = [[3,3],[3,11],[11,3],[11,11],[7,7]];
+    ctx.fillStyle = '#5a4520';
+    for (const [r, c] of stars) {
+      ctx.beginPath();
+      ctx.arc(ox + c * cs, oy + r * cs, Math.max(2, cs * 0.12), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 棋子
+    const radius = cs * 0.42;
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const v = state.board[r][c];
+        if (v === EMPTY) continue;
+        const cx = ox + c * cs, cy = oy + r * cs;
+        // 阴影
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        ctx.beginPath();
+        ctx.arc(cx + 1, cy + 2, radius, 0, Math.PI * 2);
+        ctx.fill();
+        // 主体
+        const grad = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, radius * 0.1, cx, cy, radius);
+        if (v === BLACK) {
+          grad.addColorStop(0, '#5a5a5a'); grad.addColorStop(1, '#0a0a0a');
+        } else {
+          grad.addColorStop(0, '#ffffff'); grad.addColorStop(1, '#cfcfcf');
+        }
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    // 最后一手标记（红圈）
+    if (state.history.length) {
+      const last = state.history[state.history.length - 1];
+      ctx.strokeStyle = '#e74c3c';
+      ctx.lineWidth = Math.max(2, cs * 0.08);
+      ctx.beginPath();
+      ctx.arc(ox + last.c * cs, oy + last.r * cs, radius * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // 五连高亮
+    if (state.winLine && state.winLine.cells && state.winLine.cells.length === 5) {
+      const a = state.winLine.cells[0];
+      const b = state.winLine.cells[4];
+      ctx.strokeStyle = 'rgba(231, 76, 60, 0.85)';
+      ctx.lineWidth = Math.max(3, cs * 0.12);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(ox + a.c * cs, oy + a.r * cs);
+      ctx.lineTo(ox + b.c * cs, oy + b.r * cs);
+      ctx.stroke();
+    }
+  }
+
+  function gmGetSettlementOpts() {
+    const isAi = state.mode && state.mode.startsWith('ai-');
+    if (!isAi) return null;
+    if (!gmLastResult) return null;
+    const elapsed = Math.floor((Date.now() - gmRunStartedAt) / 1000);
+    return {
+      kind: 'duel',
+      gameId: 'gomoku',
+      title: '五子棋',
+      emoji: '⚫',
+      nick: GamesShell.Identity.getNick() || '匿名',
+      opponent: 'vs AI · ' + (GM_DIFF_LABEL[state.difficulty] || state.difficulty),
+      result: gmLastResult,
+      stats: [
+        { label: '我执', value: state.mode === 'ai-white' ? '黑' : '白' },
+        { label: '总落子', value: state.history.length + ' 子' },
+        { label: '用时', value: gmFormatDuration(elapsed) },
+      ],
+      paintBoard: gmPaintBoard,
+      boardW: 480,
+      boardAspect: 1,
+      watermark: 'zirconeey.github.io/toolbox/gomoku',
+    };
+  }
 
   function gmTryAutoSubmit() {
     if (!window.GamesShell) return;
     if (!state.mode || !state.mode.startsWith('ai-')) return;
     if (!['easy', 'normal', 'hard'].includes(state.difficulty)) return;
     let nick = GamesShell.Identity.getNick();
-    if (!nick) {
-      const v = prompt('恭喜击败 AI！起个昵称上传战绩榜？(3-12 字 / 中英文 / emoji；按取消则不上传)');
-      if (!v) return;
+    // 不合法就提示后再让用户重输，别一次失败就把战绩扔了
+    let lastErr = '';
+    while (!nick) {
+      const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : '恭喜击败 AI！起个昵称上传战绩榜？\n\n';
+      const v = prompt(hint + '3-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
+      if (v === null) return;
       const r = GamesShell.Identity.setNick(v);
-      if (!r.ok) { alert(r.reason || '昵称无效'); return; }
-      nick = r.nick;
+      if (r.ok) { nick = r.nick; break; }
+      lastErr = r.reason || '昵称无效';
     }
     GamesShell.WinsLeaderboard.submit({
       gameId: 'gomoku',
@@ -679,6 +808,14 @@ permalink: /toolbox/gomoku/
       intro: '聊聊你击败 AI 的开局、决胜手 ~',
       placeholder: '聊聊你的五子棋心得 ~',
     });
+    if (GamesShell.Settlement) {
+      gmSettleBtn = GamesShell.Settlement.mountButton({
+        container: document.getElementById('gm-settle-btn-mount'),
+        gameId: 'gomoku',
+        getOpts: gmGetSettlementOpts,
+        startDisabled: true,
+      });
+    }
   }
 
   // ── 48h 续局 ─────────────────────────────

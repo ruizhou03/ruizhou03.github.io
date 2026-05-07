@@ -226,6 +226,7 @@ permalink: /toolbox/chess/
   <div class="ch-help">点击棋子选中后再点目标格落子。规则全套：王车易位、吃过路兵、兵升变（自动选后）、将军 / 将死 / 逼和 / 三次重复 / 50 步规则。</div>
 
   <div id="ch-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="ch-settle-btn-mount"></div>
   <div id="ch-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
 
@@ -233,6 +234,7 @@ permalink: /toolbox/chess/
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
 <script src="{{ '/assets/lib/chess.min.js' | relative_url }}"></script>
 <script>
 (() => {
@@ -625,6 +627,8 @@ permalink: /toolbox/chess/
     updateStatus();
     chRunStartedAt = Date.now();
     chRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+    chLastResult = null;
+    if (chSettleBtn) chSettleBtn.setEnabled(false);
     // AI plays white when human is black → AI moves first
     if (state.mode === 'ai-black') {
       setTimeout(triggerAiMove, 320);
@@ -636,6 +640,8 @@ permalink: /toolbox/chess/
     state.over = true;
     let title;
     let humanWon = false;
+    let humanLost = false;
+    let isDraw = false;
     if (state.game.in_checkmate()) {
       // The side that just moved won (opposite of current turn)
       const winner = state.game.turn() === 'w' ? 'b' : 'w';
@@ -646,8 +652,10 @@ permalink: /toolbox/chess/
       const humanIsB = state.mode === 'ai-white';
       if (humanIsW && winner === 'w') humanWon = true;
       if (humanIsB && winner === 'b') humanWon = true;
+      if ((humanIsW && winner === 'b') || (humanIsB && winner === 'w')) humanLost = true;
     } else {
       state.tally.d++;
+      isDraw = true;
       if (state.game.in_stalemate()) title = '— 逼和 —';
       else if (state.game.in_threefold_repetition()) title = '— 三次重复，和棋 —';
       else if (state.game.insufficient_material()) title = '— 子力不足，和棋 —';
@@ -658,6 +666,11 @@ permalink: /toolbox/chess/
     overlay.classList.add('show');
     if (humanWon) chTryAutoSubmit();
     if (typeof chSave !== 'undefined' && chSave) chSave.discard();
+    // 结算图：仅 AI 模式才有 win/lose/draw 概念
+    if (state.mode && state.mode.startsWith('ai-')) {
+      chLastResult = humanWon ? 'win' : (humanLost ? 'lose' : (isDraw ? 'draw' : null));
+      if (chSettleBtn && chLastResult) chSettleBtn.setEnabled(true);
+    }
     return true;
   }
 
@@ -801,15 +814,95 @@ permalink: /toolbox/chess/
   let chWlbWidget = null;
   let chRunStartedAt = Date.now();
   let chRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+  let chSettleBtn = null;
+  let chLastResult = null;   // 'win' | 'lose' | 'draw' | null
+
+  const CH_DIFF_LABEL = { easy: '简单', normal: '普通', hard: '困难' };
+  const CH_PIECE = {
+    'wK': '♔', 'wQ': '♕', 'wR': '♖', 'wB': '♗', 'wN': '♘', 'wP': '♙',
+    'bK': '♚', 'bQ': '♛', 'bR': '♜', 'bB': '♝', 'bN': '♞', 'bP': '♟',
+  };
+
+  function chFormatDuration(sec) {
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  function chPaintBoard(ctx, x, y, w, h) {
+    const cell = Math.min(w, h) / 8;
+    const ox = x + (w - cell * 8) / 2;
+    const oy = y + (h - cell * 8) / 2;
+    // 棋盘格
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        ctx.fillStyle = ((r + c) % 2 === 0) ? '#f0d9b5' : '#b58863';
+        ctx.fillRect(ox + c * cell, oy + r * cell, cell, cell);
+      }
+    }
+    // 最后一手高亮
+    if (state.lastMove) {
+      ctx.fillStyle = 'rgba(255, 215, 0, 0.45)';
+      [state.lastMove.from, state.lastMove.to].forEach(sq => {
+        const file = sq.charCodeAt(0) - 'a'.charCodeAt(0);
+        const rank = 8 - parseInt(sq[1], 10);
+        ctx.fillRect(ox + file * cell, oy + rank * cell, cell, cell);
+      });
+    }
+    // 棋子
+    if (!state.game) return;
+    const board = state.game.board();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${cell * 0.78}px "Noto Sans Symbols 2", "Segoe UI Symbol", "Arial Unicode MS", sans-serif`;
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const p = board[r][c];
+        if (!p) continue;
+        const ch = CH_PIECE[p.color + p.type.toUpperCase()];
+        if (!ch) continue;
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillText(ch, ox + c * cell + cell / 2, oy + r * cell + cell / 2 + cell * 0.04);
+      }
+    }
+  }
+
+  function chGetSettlementOpts() {
+    const isAi = state.mode && state.mode.startsWith('ai-');
+    if (!isAi) return null;
+    if (!chLastResult) return null;
+    const moveCount = state.game ? state.game.history().length : 0;
+    const elapsed = Math.floor((Date.now() - chRunStartedAt) / 1000);
+    return {
+      kind: 'duel',
+      gameId: 'chess',
+      title: '国际象棋',
+      emoji: '♟',
+      nick: GamesShell.Identity.getNick() || '匿名',
+      opponent: 'vs AI · ' + (CH_DIFF_LABEL[state.difficulty] || state.difficulty),
+      result: chLastResult,
+      stats: [
+        { label: '我执', value: state.mode === 'ai-black' ? '白' : '黑' },
+        { label: '走子数', value: moveCount + ' 步' },
+        { label: '用时', value: chFormatDuration(elapsed) },
+      ],
+      paintBoard: chPaintBoard,
+      boardW: 480,
+      boardAspect: 1,
+      watermark: 'zirconeey.github.io/toolbox/chess',
+    };
+  }
 
   function promptForNickAndSubmit() {
     let nick = GamesShell.Identity.getNick();
-    if (!nick) {
-      const v = prompt('恭喜击败 AI！起个昵称上传战绩榜？(3-12 字 / 中英文 / emoji；按取消则不上传)');
-      if (!v) return;
+    // 不合法就提示后再让用户重输，别一次失败就把战绩扔了
+    let lastErr = '';
+    while (!nick) {
+      const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : '恭喜击败 AI！起个昵称上传战绩榜？\n\n';
+      const v = prompt(hint + '3-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
+      if (v === null) return;            // 用户按取消
       const r = GamesShell.Identity.setNick(v);
-      if (!r.ok) { alert(r.reason || '昵称无效'); return; }
-      nick = r.nick;
+      if (r.ok) { nick = r.nick; break; }
+      lastErr = r.reason || '昵称无效';
     }
     const moveCount = state.game.history().length;
     GamesShell.WinsLeaderboard.submit({
@@ -851,6 +944,14 @@ permalink: /toolbox/chess/
       intro: 'AI 在 hard 难度下的真实水平如何？开局心得 · 残局技巧 ~',
       placeholder: '聊聊你的国际象棋心得 ~',
     });
+    if (GamesShell.Settlement) {
+      chSettleBtn = GamesShell.Settlement.mountButton({
+        container: document.getElementById('ch-settle-btn-mount'),
+        gameId: 'chess',
+        getOpts: chGetSettlementOpts,
+        startDisabled: true,
+      });
+    }
   }
 
   // ── 48h 续局 ─────────────────────────────
