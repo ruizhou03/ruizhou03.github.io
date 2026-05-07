@@ -56,18 +56,26 @@ permalink: /toolbox/tiaoqi/
 
   .difficulty-row { margin-top: 0.6rem; }
 
-  /* === Board stage: holds the bordered wrap + 6 floating chips === */
+  /* === Board stage: holds the bordered wrap + 6 floating chips ===
+     Outer margin (1.7rem) gives N/S chips somewhere to live above/below the wrap;
+     side chips overflow horizontally into the surrounding page space. */
   .tq-board-stage {
     position: relative;
     width: 100%;
     max-width: 600px;
-    margin: 0 auto;
+    margin: 1.7rem auto;
   }
 
-  /* === Corner chips (config-mode buttons → game-mode read-only labels) === */
+  /* === Corner chips (config-mode buttons → game-mode read-only labels) ===
+     Each chip sits OUTSIDE its corner's tip cell (no overlap with cells).
+     Per-direction rules set the anchor edge + a custom translate so the
+     chip lands fully beyond the wrap with a 0.3rem gap. */
   .tq-corner-chip {
     position: absolute;
-    transform: translate(-50%, -50%);
+    --tq-tx: -50%;
+    --tq-ty: -50%;
+    --tq-scale: 1;
+    transform: translate(var(--tq-tx), var(--tq-ty)) scale(var(--tq-scale));
     display: inline-flex; align-items: center; gap: 0.3rem;
     padding: 0.32rem 0.65rem;
     font-size: 0.78rem;
@@ -88,7 +96,7 @@ permalink: /toolbox/tiaoqi/
   }
   .tq-corner-chip:hover:not(:disabled) {
     filter: brightness(1.05);
-    transform: translate(-50%, -50%) scale(1.06);
+    --tq-scale: 1.06;
   }
   .tq-corner-chip[data-kind="empty"] {
     color: var(--color-muted);
@@ -111,10 +119,7 @@ permalink: /toolbox/tiaoqi/
     cursor: default;
     border-style: solid;
   }
-  .tq-corner-chip.locked:hover {
-    transform: translate(-50%, -50%);
-    filter: none;
-  }
+  .tq-corner-chip.locked:hover { --tq-scale: 1; filter: none; }
   .tq-corner-chip .swatch {
     width: 0.7rem; height: 0.7rem;
     border-radius: 50%;
@@ -122,20 +127,21 @@ permalink: /toolbox/tiaoqi/
     flex-shrink: 0;
   }
 
-  /* Chip positions: % within stage (matches SVG outer-tip cells in 0 0 660 753 viewBox) */
-  .tq-corner-chip.at-N  { top: 4%;    left: 50%; }
-  .tq-corner-chip.at-NE { top: 27%;   left: 95.5%; }
-  .tq-corner-chip.at-SE { top: 73%;   left: 95.5%; }
-  .tq-corner-chip.at-S  { top: 96%;   left: 50%; }
-  .tq-corner-chip.at-SW { top: 73%;   left: 4.5%; }
-  .tq-corner-chip.at-NW { top: 27%;   left: 4.5%; }
+  /* Per-direction anchors. Translate moves chip fully outside the wrap edge;
+     negative margin on the anchor side adds a 0.3rem visual gap. */
+  .tq-corner-chip.at-N  { top: 0;     left: 50%;  --tq-ty: -100%; margin-top: -0.3rem; }
+  .tq-corner-chip.at-S  { bottom: 0;  left: 50%;  --tq-ty: 100%;  margin-bottom: -0.3rem; }
+  .tq-corner-chip.at-NE { top: 27%;   right: 0;   --tq-tx: 100%;  --tq-ty: -50%; margin-right: -0.3rem; }
+  .tq-corner-chip.at-SE { top: 73%;   right: 0;   --tq-tx: 100%;  --tq-ty: -50%; margin-right: -0.3rem; }
+  .tq-corner-chip.at-NW { top: 27%;   left: 0;    --tq-tx: -100%; --tq-ty: -50%; margin-left: -0.3rem; }
+  .tq-corner-chip.at-SW { top: 73%;   left: 0;    --tq-tx: -100%; --tq-ty: -50%; margin-left: -0.3rem; }
 
-  /* Narrow viewports: smaller chips so they don't crowd the board */
-  @media (max-width: 480px) {
+  /* Narrow viewports: shrink the chip so it can fit (or at least overhang less). */
+  @media (max-width: 600px) {
     .tq-corner-chip {
       font-size: 0.7rem;
       padding: 0.22rem 0.5rem;
-      min-width: 3.4rem;
+      min-width: 3.2rem;
       gap: 0.22rem;
     }
     .tq-corner-chip .swatch { width: 0.6rem; height: 0.6rem; }
