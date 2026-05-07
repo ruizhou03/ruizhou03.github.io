@@ -1063,24 +1063,24 @@ permalink: /toolbox/random/
   // ====================================================================
   // 拖动 handle
   // ====================================================================
+  // pointermove/up 一次性绑在 $svg（永不重建）上——
+  // .handle 元素每次 drawSVG 都会被 innerHTML 重建，绑在它身上的监听器会立刻失效。
+  let dragging = null;       // 'a' | 'b' | null
+  let dragPointerId = null;
   function bindHandleDrag() {
     const handles = $svg.querySelectorAll('.handle');
     for (const h of handles) {
       h.addEventListener('pointerdown', onHandleDown);
     }
   }
-  let dragging = null;       // 'a' | 'b' | null
   function onHandleDown(e) {
     e.preventDefault();
     dragging = e.target.dataset.h;
-    e.target.setPointerCapture(e.pointerId);
-    e.target.addEventListener('pointermove', onHandleMove);
-    e.target.addEventListener('pointerup', onHandleUp);
-    e.target.addEventListener('pointercancel', onHandleUp);
+    dragPointerId = e.pointerId;
+    try { $svg.setPointerCapture(e.pointerId); } catch (_) {}
   }
-  function onHandleMove(e) {
-    if (!dragging) return;
-    // 把 client 坐标转 SVG viewBox 坐标
+  function onSvgMove(e) {
+    if (dragging == null || e.pointerId !== dragPointerId) return;
     const pt = $svg.createSVGPoint();
     pt.x = e.clientX; pt.y = e.clientY;
     const local = pt.matrixTransform($svg.getScreenCTM().inverse());
@@ -1098,13 +1098,15 @@ permalink: /toolbox/random/
     updateIntervalUI();
     updateStats();
   }
-  function onHandleUp(e) {
+  function onSvgUp(e) {
+    if (e.pointerId !== dragPointerId) return;
     dragging = null;
-    e.target.releasePointerCapture(e.pointerId);
-    e.target.removeEventListener('pointermove', onHandleMove);
-    e.target.removeEventListener('pointerup', onHandleUp);
-    e.target.removeEventListener('pointercancel', onHandleUp);
+    dragPointerId = null;
+    try { $svg.releasePointerCapture(e.pointerId); } catch (_) {}
   }
+  $svg.addEventListener('pointermove', onSvgMove);
+  $svg.addEventListener('pointerup', onSvgUp);
+  $svg.addEventListener('pointercancel', onSvgUp);
 
   // 区间数字输入框 → 区间状态
   $intvA.addEventListener('input', () => {
