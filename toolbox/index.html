@@ -5,7 +5,7 @@ permalink: /toolbox/
 ---
 
 <article style="max-width: 880px; margin: 0 auto; padding: 2rem 1rem;">
-  <header style="margin-bottom: 2.5rem; text-align: center;">
+  <header style="margin-bottom: 2.2rem; text-align: center;">
     <h1 style="font-size: 2.2rem; color: var(--color-ink); margin-bottom: 0.6rem;">🧰 生活百宝箱</h1>
     <p style="color: var(--color-light); font-style: italic;">Toolbox</p>
   </header>
@@ -13,77 +13,59 @@ permalink: /toolbox/
   <style>
     .tool-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 1rem;
-      margin: 1rem 0 2rem;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.7rem;
+      margin: 0.6rem 0 1.4rem;
     }
     .tool-card {
       display: flex; flex-direction: column;
-      padding: 1.4rem 1.2rem;
+      padding: 0.9rem 0.8rem 0.85rem;
       border: 1px solid var(--color-border);
-      border-radius: 14px;
+      border-radius: 12px;
       background: var(--color-bg);
       text-decoration: none;
-      transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .tool-card.live {
-      cursor: pointer;
-    }
+    .tool-card.live { cursor: pointer; }
     .tool-card.live:hover {
       border-color: var(--color-accent);
-      transform: translateY(-3px);
-      box-shadow: 0 6px 18px rgba(30, 58, 95, 0.08);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(30, 58, 95, 0.07);
     }
-    .tool-card.coming-soon {
-      opacity: 0.62;
-      cursor: default;
-    }
-    .tool-card.coming-soon:hover {
-      opacity: 0.78;
-    }
+    .tool-card.coming-soon { opacity: 0.6; cursor: default; }
+    .tool-card.coming-soon:hover { opacity: 0.78; }
     .tool-icon {
-      font-size: 2rem;
+      font-size: 1.55rem;
       line-height: 1;
-      margin-bottom: 0.7rem;
+      margin-bottom: 0.45rem;
     }
     .tool-name {
       font-family: var(--font-display);
-      font-size: 1.2rem;
+      font-size: 1rem;
       font-weight: 600;
       color: var(--color-ink);
-      margin-bottom: 0.4rem;
+      margin-bottom: 0.2rem;
+      line-height: 1.3;
     }
-    .tool-card.coming-soon .tool-name {
+    .tool-card.coming-soon .tool-name { color: var(--color-muted); }
+    .tool-tagline {
+      font-size: 0.78rem;
       color: var(--color-muted);
-    }
-    .tool-desc {
-      font-size: 0.88rem;
-      color: var(--color-muted);
-      line-height: 1.55;
-      flex-grow: 1;
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     .tool-status {
-      margin-top: 0.9rem;
-      font-size: 0.76rem;
+      margin-top: 0.5rem;
+      font-size: 0.7rem;
       color: var(--color-light);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .tool-card.live .tool-status {
-      color: #10b981;
-    }
-    .tool-status .dot {
-      display: inline-block;
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: currentColor;
-      margin-right: 0.4rem;
-      vertical-align: middle;
+      letter-spacing: 0.04em;
     }
     .section-divider {
-      margin: 2.4rem 0 1rem;
-      padding-top: 1.6rem;
+      margin: 2rem 0 0.6rem;
+      padding-top: 1.4rem;
       border-top: 1px dashed var(--color-border);
       text-align: center;
     }
@@ -92,28 +74,29 @@ permalink: /toolbox/
     }
     .section-divider h2 {
       font-family: var(--font-display);
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       color: var(--color-ink);
-      margin: 0 0 0.3rem;
+      margin: 0 0 0.25rem;
     }
     .section-divider .sub {
       color: var(--color-light);
       font-style: italic;
-      font-size: 0.9rem;
+      font-size: 0.86rem;
     }
     .subsection-title {
       font-family: var(--font-display);
-      font-size: 1.05rem;
+      font-size: 0.95rem;
       font-weight: 500;
       color: var(--color-light);
       text-align: center;
-      margin: 1.6rem 0 0.4rem;
+      margin: 1.1rem 0 0.4rem;
       letter-spacing: 0.02em;
     }
-    .subsection-title:first-child {
-      margin-top: 0.4rem;
-    }
   </style>
+
+  {%- assign games = site.data.toolbox | where: "category", "游戏" -%}
+  {%- assign work  = site.data.toolbox | where: "category", "工作" -%}
+  {%- assign life  = site.data.toolbox | where: "category", "生活" -%}
 
   <!-- ============ 一、游戏 ============ -->
   <div class="section-divider">
@@ -121,110 +104,28 @@ permalink: /toolbox/
     <div class="sub">棋类 / 单人 / 派对，纯离线</div>
   </div>
 
+  {%- assign chess_games = games | where: "subcategory", "棋类对战" -%}
   <h3 class="subsection-title">♟ 棋类对战</h3>
   <div class="tool-grid">
-
-    <a class="tool-card live" href="{{ '/toolbox/gomoku/' | relative_url }}">
-      <div class="tool-icon">⚫</div>
-      <div class="tool-name">五子棋</div>
-      <div class="tool-desc">15×15 木纹棋盘。双人同机或人机对战（可选执黑/白），启发式 AI 评估活四 / 冲四 / 活三等棋型。支持悔棋、胜负计数。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/chess/' | relative_url }}">
-      <div class="tool-icon">♟️</div>
-      <div class="tool-name">国际象棋</div>
-      <div class="tool-desc">8×8 全套规则（王车易位、过路兵、升变、将军/将死/逼和/三次重复/50 步）。同机或人机三档难度（minimax + α-β + 棋子价值/位置表）。Unicode 棋子，点击落子。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/xiangqi/' | relative_url }}">
-      <div class="tool-icon">♟</div>
-      <div class="tool-name">中国象棋</div>
-      <div class="tool-desc">9×10 楚河汉界。同机或人机对战三档难度。规则全套：马蹩腿、象眼、过河兵、炮翻子、双将不可照面、将军 / 将死 / 困毙判负。SVG 棋盘 + minimax + α-β 剪枝 AI。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card coming-soon">
-      <div class="tool-icon">⭐</div>
-      <div class="tool-name">多人跳棋</div>
-      <div class="tool-desc">六角星形棋盘的中国跳棋。支持 2 / 3 / 4 / 6 人，先把所有棋子移到对面星角的人胜。同机轮流。</div>
-      <div class="tool-status"><span class="dot"></span>敬请期待</div>
-    </a>
-
+    {%- for t in chess_games -%}
+      {%- include tool-card.html tool=t -%}
+    {%- endfor -%}
   </div>
 
+  {%- assign solo_games = games | where: "subcategory", "单人小游戏" -%}
   <h3 class="subsection-title">🎮 单人小游戏</h3>
   <div class="tool-grid">
-
-    <a class="tool-card live" href="{{ '/toolbox/suika/' | relative_url }}">
-      <div class="tool-icon">🍉</div>
-      <div class="tool-name">合成大西瓜</div>
-      <div class="tool-desc">物理小游戏。同种水果碰撞合并升级，从樱桃一路合到西瓜。基于 Matter.js，支持鼠标/触屏/键盘。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/2048/' | relative_url }}">
-      <div class="tool-icon">🎯</div>
-      <div class="tool-name">2048</div>
-      <div class="tool-desc">滑动合并相同数字凑 2048。3×3 / 4×4 / 5×5 三种棋盘，撤销一步、自动存档、按尺寸分别记最高分，通关后还能继续到 4096。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/snake/' | relative_url }}">
-      <div class="tool-icon">🐍</div>
-      <div class="tool-name">贪吃蛇</div>
-      <div class="tool-desc">经典街机款。方向键 / WASD / 移动端虚拟方向键,慢中快三档速度各自记最高分。空格暂停。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/minesweeper/' | relative_url }}">
-      <div class="tool-icon">💣</div>
-      <div class="tool-name">扫雷</div>
-      <div class="tool-desc">Windows 经典三难度（9×9 / 16×16 / 16×30）。首次点击保证不踩雷，空格自动 flood-fill。桌面右键插旗，移动端长按 0.4s 插旗，按难度记最佳用时。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/runner/' | relative_url }}">
-      <div class="tool-icon">🎓</div>
-      <div class="tool-name">Deadline 大逃亡</div>
-      <div class="tool-desc">Chrome 断网恐龙的本地化版本。博士生跑酷，跳过文献综述纸堆，钻过 Reviewer 2 的飞邮件。变高跳 + 蹲、速度逐渐加快、撞到就 GG，最高分本机存。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/leap/' | relative_url }}">
-      <div class="tool-icon">📅</div>
-      <div class="tool-name">跳过 Deadline</div>
-      <div class="tool-desc">微信跳一跳的本地化变体。每根桩 = 一个 deadline（投稿 / IRB / reviewer 反馈 / 组会）。长按蓄力，松开按 45° 抛物线跳出。短了掉空隙，长了飞过头。最高分本机存。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
+    {%- for t in solo_games -%}
+      {%- include tool-card.html tool=t -%}
+    {%- endfor -%}
   </div>
 
+  {%- assign party_games = games | where: "subcategory", "派对多人" -%}
   <h3 class="subsection-title">🎉 派对 / 多人</h3>
   <div class="tool-grid">
-
-    <a class="tool-card live" href="{{ '/toolbox/dare/' | relative_url }}">
-      <div class="tool-icon">🃏</div>
-      <div class="tool-name">不要做挑战</div>
-      <div class="tool-desc">一系列不能做的行为，做了就输。3-2-1 倒计时翻牌，可以反转屏幕给别人看。纯本地，不联网。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/werewolf/' | relative_url }}">
-      <div class="tool-icon">🐺</div>
-      <div class="tool-name">狼人杀发身份牌</div>
-      <div class="tool-desc">配置玩家数 + 角色 → 一台手机轮流传，长按看自己的身份，松开自动覆盖。主持人可查看完整配置。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card coming-soon">
-      <div class="tool-icon">✏️</div>
-      <div class="tool-name">你画我猜</div>
-      <div class="tool-desc">2–4 人联机。房主创建房间 → 别人输房间码加入 → P2P 直连。画画的人看词，其他人在聊天框猜。</div>
-      <div class="tool-status"><span class="dot"></span>敬请期待</div>
-    </a>
-
+    {%- for t in party_games -%}
+      {%- include tool-card.html tool=t -%}
+    {%- endfor -%}
   </div>
 
   <!-- ============ 二、工作 / 效率 ============ -->
@@ -232,58 +133,10 @@ permalink: /toolbox/
     <h2>📚 工作 / 效率</h2>
     <div class="sub">学术 / 财务 / 学习 / 专注</div>
   </div>
-
   <div class="tool-grid">
-
-    <a class="tool-card live" href="{{ '/toolbox/citation/' | relative_url }}">
-      <div class="tool-icon">🔖</div>
-      <div class="tool-name">引用格式转换器</div>
-      <div class="tool-desc">粘贴 BibTeX → 输出 APA / Chicago / MLA / Harvard / Vancouver 6 种格式。多 entries 批量处理,一键复制。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/random/' | relative_url }}">
-      <div class="tool-icon">🎰</div>
-      <div class="tool-name">随机数生成器</div>
-      <div class="tool-desc">13 种概率分布（正态 / 泊松 / Beta / Gamma / 卡方 / t / F …）的 PDF 可视化、区间概率、抽样直方图。统计课和模拟好用。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/compound/' | relative_url }}">
-      <div class="tool-icon">📈</div>
-      <div class="tool-name">复利 / 现值</div>
-      <div class="tool-desc">本金 + 月供 + 利率 → 终值曲线；或未来金额 → 现值贴现。401k 模拟、HYSA 攒钱目标可视化。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/tax-bracket/' | relative_url }}">
-      <div class="tool-icon">📊</div>
-      <div class="tool-name">报税档位估算（US / CN）</div>
-      <div class="tool-desc">🇺🇸 美国 federal+州税 / 🇨🇳 中国综合所得+五险一金+专项附加扣除。看分段税率、边际/实际税率、税后到手。顶部一键切国家。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/converter/' | relative_url }}">
-      <div class="tool-icon">💱</div>
-      <div class="tool-name">汇率 + 单位换算</div>
-      <div class="tool-desc">USD ↔ RMB 等主流货币，以及 lb/kg、℉/℃、in/cm。三层 fallback：实时 → 缓存 → 兜底，离线也能用。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/vocab/' | relative_url }}">
-      <div class="tool-icon">📖</div>
-      <div class="tool-name">生词本（间隔重复）</div>
-      <div class="tool-desc">Leitner 间隔重复算法。卡片正反面 + 5 级盒子，到期才考你；按"会 / 不会"自动调整下次出现时间。本地存储，支持 JSON 导入导出。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/forest/' | relative_url }}">
-      <div class="tool-icon">🌳</div>
-      <div class="tool-name">种树（番茄钟）</div>
-      <div class="tool-desc">类似 Forest / 番茄钟。点开始 → 一棵树跟着 25 分钟一起长大。离开 tab 超过 15 秒树会枯萎。每棵树都进你的森林。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
+    {%- for t in work -%}
+      {%- include tool-card.html tool=t -%}
+    {%- endfor -%}
   </div>
 
   <!-- ============ 三、生活 ============ -->
@@ -291,72 +144,10 @@ permalink: /toolbox/
     <h2>🌿 生活</h2>
     <div class="sub">健康 / 兴趣 / 日常 / 回顾</div>
   </div>
-
   <div class="tool-grid">
-
-    <a class="tool-card live" href="{{ '/toolbox/vision/' | relative_url }}">
-      <div class="tool-icon">👁️</div>
-      <div class="tool-name">视力自测</div>
-      <div class="tool-desc">浏览器内的家庭视力筛查：信用卡校准 + 距离预设 + Tumbling E 自适应 + 散光盘。左右眼分测，结果以 20/X 给。仅作筛查参考，不替代验光。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/metronome/' | relative_url }}">
-      <div class="tool-icon">🥁</div>
-      <div class="tool-name">节拍器</div>
-      <div class="tool-desc">练琴 / 节奏训练 / 跑步配速。BPM 30–300、常见拍号一键切换、第一拍重音、Tap Tempo 反推 BPM。Web Audio look-ahead 调度，长时间不漂移。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/pitch/' | relative_url }}">
-      <div class="tool-icon">🎵</div>
-      <div class="tool-name">音高测量</div>
-      <div class="tool-desc">麦克风实时检测或上传音频文件 → autocorrelation 算法识别音高，给音名 + 频率 + cents 偏差，文件模式画 pitch contour。声乐 / 调音 / 跟唱跑调自查。麦克风音频只在浏览器内处理，不上传。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/picker/' | relative_url }}">
-      <div class="tool-icon">🎯</div>
-      <div class="tool-name">遇事不决</div>
-      <div class="tool-desc">权重转盘抽签器。几个人吃饭选不出哪家、看什么电影时用，可以给选项不同权重，可保存方案。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/grouper/' | relative_url }}">
-      <div class="tool-icon">👥</div>
-      <div class="tool-name">随机分组器</div>
-      <div class="tool-desc">N 个人随机分成 K 组（或每组 M 人），适合 TA 分 section、聚餐 AA、桌游开局。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/roll-call/' | relative_url }}">
-      <div class="tool-icon">🎤</div>
-      <div class="tool-name">随机点名</div>
-      <div class="tool-desc">名单导入后随机抽人，支持「不重复模式」自动遍历完所有人。上课提问 / 组会汇报顺序。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/countdown/' | relative_url }}">
-      <div class="tool-icon">⏳</div>
-      <div class="tool-name">倒计时面板</div>
-      <div class="tool-desc">自定义事件 → 显示剩余天数（精确到秒）。支持节日预设一键导入（春节 / 中秋 / 圣诞 …）、JSON 批量导入、本地存储。生日 / 旅行 / 论文截稿都能挂上去。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/goals/' | relative_url }}">
-      <div class="tool-icon">🚩</div>
-      <div class="tool-name">目标进度跟踪</div>
-      <div class="tool-desc">长期目标 + 周打卡。设定终点（看 50 本书 / 减 10 斤 / 跑 500 km）→ 每周记录 → 自动算进度条和预计完成日。本地存储。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
-    <a class="tool-card live" href="{{ '/toolbox/timemachine/' | relative_url }}">
-      <div class="tool-icon">🕰️</div>
-      <div class="tool-name">X 年前的今天</div>
-      <div class="tool-desc">翻翻历年同一天本站发的文章。点开看 1 年前 / 3 年前 / 5 年前的自己写了啥，朋友圈式时间轴回顾。</div>
-      <div class="tool-status"><span class="dot"></span>已上线</div>
-    </a>
-
+    {%- for t in life -%}
+      {%- include tool-card.html tool=t -%}
+    {%- endfor -%}
   </div>
 
 </article>
