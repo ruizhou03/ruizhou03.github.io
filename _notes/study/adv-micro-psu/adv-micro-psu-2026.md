@@ -18,7 +18,7 @@ pdf_url: "/files/adv-micro-psu/Micro.pdf"
 
 两天前我贴了一份 [计量 8 天自救指南](/notes/adv-metrics-psu/survival-guide)。那本是临考前赶出来的应试讲义——目标是 B-、活下去、把时间留给研究。
 
-这本不一样。这本是**跟着 Krishna 教授一整学期，每周写一点、每章迭代两三遍**写出来的高微讲义。从一月开学到现在四个多月，最终是一本 293 页的 PDF：9 章、5 个 part，外加 13 套 problem set 和 5 套考试的完整解答。
+这本不一样。这本是**跟着 Krishna 教授一整学期，每周写一点、每章迭代两三遍**写出来的高微讲义。从一月开学到现在四个多月，最终是一本 299 页的 PDF：9 章、5 个 part，外加 13 套 problem set 和 6 套考试的完整解答。
 
 写它的初衷其实很简单。Krishna 是 Penn State 经济系教博弈论的传奇教授（[*Auction Theory*](https://www.elsevier.com/books/auction-theory/krishna/978-0-12-374507-1) 那本书的作者），他上课的板书清晰、节奏稳、几乎不用 slides。我上课时就在 LaTeX 里实时记，下课后再补充直觉、对照课本、把每个证明的“为什么这一步是这一步”写出来。一学期下来，笔记就长成了一本可以独立读的教材。
 
@@ -40,7 +40,7 @@ pdf_url: "/files/adv-micro-psu/Micro.pdf"
 |  | Ch. 8 Repeated Games | 有限/无限重复博弈、Folk 定理 |
 |  | Ch. 9 Perfect Bayesian Equilibrium | PBE、信号博弈、reputation |
 
-外加 **Part VI（13 套 PS 题目原文 + 解答）** 和 **Part VII（2025–2026 全部 5 套考试题目 + 解答）**。
+外加 **Part VI（13 套 PS 题目原文 + 解答）** 和 **Part VII（2025–2026 全部 6 套考试题目 + 解答）**。
 
 ## 这本讲义适合谁
 
@@ -108,9 +108,9 @@ pdf_url: "/files/adv-micro-psu/Micro.pdf"
 
 Part VI 把所有 13 个 PS 的**题目原文（不省略不压缩）**+ 详细解答放进去。第一年最痛苦的从来不是不会做，而是看不懂题目在问什么——所以题目原文必须完整。
 
-Part VII 是 2025 春全套（midterm 1 + midterm 2 + final）+ 2026 春两次 midterm 的 **5 套考试题 + 完整解答**。
+Part VII 是 2025 春全套（midterm 1 + midterm 2 + final）+ 2026 春全套（midterm 1 + midterm 2 + final）的 **6 套考试题 + 完整解答**。
 
-如果你只想刷题，5 套考题也单独挂在了「Exams」分类下，方便直接拿走打印。
+如果你只想刷题，6 套考题也单独挂在了「Exams」分类下，方便直接拿走打印。
 
 ## 几个我觉得做对的事
 
@@ -131,8 +131,8 @@ Part VII 是 2025 春全套（midterm 1 + midterm 2 + final）+ 2026 春两次 m
 
 ## 怎么获取
 
-- **PDF 完整下载**：本文顶部 / 底部按钮（[`Micro.pdf`](/files/adv-micro-psu/Micro.pdf)，293 页）
-- **5 套往年题单独下载**：见站内「Exams」分类，包含 2025 春全套 + 2026 春两次 midterm
+- **PDF 完整下载**：本文顶部 / 底部按钮（[`Micro.pdf`](/files/adv-micro-psu/Micro.pdf)，299 页）
+- **6 套往年题单独下载**：见站内「Exams」分类，包含 2025 春全套 + 2026 春全套
 - **Source code**：暂未开源，未来可能上 GitHub。如果你对某一章的 LaTeX 源码感兴趣可以联系我
 
 ## 写在最后
