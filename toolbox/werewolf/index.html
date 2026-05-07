@@ -438,6 +438,24 @@ permalink: /toolbox/werewolf/
   }
   .ww-toast.show { opacity: 1; }
 
+  /* Modal */
+  .ww-modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 1rem;
+  }
+  .ww-modal-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    padding: 1.1rem 1.1rem 0.9rem;
+    max-width: 420px; width: 100%;
+    max-height: 80vh; overflow-y: auto;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+  }
+
   details.about {
     margin-top: 1.2rem; font-size: 0.86rem;
     color: var(--color-muted); line-height: 1.6;
@@ -606,7 +624,15 @@ permalink: /toolbox/werewolf/
       'cant_self_save_first_night': '首夜不能自救',
       'cant_vote_self': '不能投自己',
       'cant_self_shot': '不能开枪打自己',
+      'host_must_transfer_or_dissolve': '房主离开前必须指定新房主或解散房间',
+      'already_host': '该玩家已经是房主',
     }[t]) || (t || e.message || '未知错误');
+  }
+
+  // 是不是当前用户在该房间是房主
+  function amIHost() {
+    if (!state.session || !state.roomState) return false;
+    return state.roomState.hostPlayerId === state.session.playerId;
   }
 
   // ====================================================================
@@ -1109,7 +1135,7 @@ permalink: /toolbox/werewolf/
     const seatList = el('div', { class: 'seat-list' });
     const totalSeats = r.config.totalPlayers;
     const players = (r.players || []).filter((p) => !p.kicked);
-    const isHost = !!(state.session && state.session.hostToken);
+    const isHost = amIHost();
     for (let i = 0; i < totalSeats; i++) {
       const p = players[i];
       if (!p) {
@@ -1181,12 +1207,16 @@ permalink: /toolbox/werewolf/
     ]));
     wrap.appendChild(sum);
 
-    // 离开
-    wrap.appendChild(el('div', { style: { textAlign: 'center', marginTop: '0.6rem' } }, [
+    // 离开 / 解散
+    wrap.appendChild(el('div', { style: { textAlign: 'center', marginTop: '0.6rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' } }, [
       el('button', {
         class: 'ww-btn ghost tiny',
         on: { click: doLeave },
       }, '退出房间'),
+      isHost ? el('button', {
+        class: 'ww-btn danger tiny',
+        on: { click: () => doDissolve(false) },
+      }, '🗑 解散房间') : null,
     ]));
 
     return wrap;
@@ -1211,7 +1241,7 @@ permalink: /toolbox/werewolf/
     try {
       await api('POST', 'kick', {
         code: state.session.code,
-        hostToken: state.session.hostToken,
+        token: state.session.token,
         targetPid,
       });
       toast('已踢出');
@@ -1222,19 +1252,63 @@ permalink: /toolbox/werewolf/
     try {
       await api('POST', 'start', {
         code: state.session.code,
-        hostToken: state.session.hostToken,
+        token: state.session.token,
       });
     } catch (e) { toast(errMsg(e)); }
   }
 
+  // 普通玩家直接走简单 leave；房主弹出 transfer/dissolve modal
   async function doLeave() {
+    if (amIHost()) {
+      showHostLeaveModal();
+      return;
+    }
     if (!confirm('确认离开房间？')) return;
     try {
       await api('POST', 'leave', {
         code: state.session.code,
         token: state.session.token,
       });
-    } catch {}
+    } catch (e) {
+      toast(errMsg(e));
+      return;
+    }
+    saveSession(null);
+    state.session = null;
+    state.roomState = null;
+    nav('#/');
+  }
+
+  async function doDissolve(skipConfirm) {
+    if (!skipConfirm && !confirm('确认解散房间？所有玩家会被踢回首页。')) return;
+    try {
+      await api('POST', 'dissolve', {
+        code: state.session.code,
+        token: state.session.token,
+      });
+      toast('房间已解散');
+    } catch (e) {
+      toast(errMsg(e));
+      return;
+    }
+    // 解散后本地也清掉，回首页
+    saveSession(null);
+    state.session = null;
+    state.roomState = null;
+    nav('#/');
+  }
+
+  async function doTransferAndLeave(targetPid) {
+    try {
+      await api('POST', 'leave', {
+        code: state.session.code,
+        token: state.session.token,
+        transferTo: targetPid,
+      });
+    } catch (e) {
+      toast(errMsg(e));
+      return;
+    }
     saveSession(null);
     state.session = null;
     state.roomState = null;
@@ -1242,13 +1316,62 @@ permalink: /toolbox/werewolf/
   }
 
   async function doAdvance() {
-    if (!state.session || !state.session.hostToken) return;
+    if (!amIHost()) return;
     try {
       await api('POST', 'advance', {
         code: state.session.code,
-        hostToken: state.session.hostToken,
+        token: state.session.token,
       });
     } catch (e) { toast(errMsg(e)); }
+  }
+
+  // 房主退出弹窗：选新房主 or 解散
+  function showHostLeaveModal() {
+    closeModal();  // 防重复
+    const r = state.roomState;
+    if (!r) return;
+    const candidates = (r.players || []).filter((p) => !p.kicked && p.id !== state.session.playerId);
+
+    const bg = el('div', { id: 'ww-modal', class: 'ww-modal-bg', on: { click: closeModal } });
+    const card = el('div', { class: 'ww-modal-card', on: { click: (e) => e.stopPropagation() } });
+    card.appendChild(el('h3', { style: { margin: '0 0 0.5rem' } }, '房主离开'));
+    card.appendChild(el('p', { style: { fontSize: '0.88rem', color: 'var(--color-muted)', margin: '0 0 0.8rem' } },
+      '你是房主。离开前请指定一个玩家成为新房主，或者直接解散房间。'));
+
+    if (candidates.length > 0) {
+      card.appendChild(el('div', { style: { fontSize: '0.86rem', color: 'var(--color-light)', marginBottom: '0.4rem' } }, '指定新房主：'));
+      const list = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.8rem' } });
+      for (const p of candidates) {
+        list.appendChild(el('button', {
+          class: 'ww-btn ghost',
+          style: { textAlign: 'left', padding: '0.55rem 0.8rem' },
+          on: { click: () => { closeModal(); doTransferAndLeave(p.id); } },
+        }, `${p.seat}号 ${p.nick}` + (!p.online ? '（离线）' : '')));
+      }
+      card.appendChild(list);
+    } else {
+      card.appendChild(el('p', { style: { fontSize: '0.86rem', color: 'var(--color-light)', marginBottom: '0.8rem' } },
+        '没有其他玩家可以接手，只能解散房间。'));
+    }
+
+    card.appendChild(el('div', { style: { display: 'flex', gap: '0.5rem', justifyContent: 'space-between', borderTop: '1px dashed var(--color-border)', paddingTop: '0.7rem' } }, [
+      el('button', {
+        class: 'ww-btn ghost',
+        on: { click: closeModal },
+      }, '取消'),
+      el('button', {
+        class: 'ww-btn danger',
+        on: { click: () => { closeModal(); doDissolve(true); } },
+      }, '🗑 解散房间'),
+    ]));
+
+    bg.appendChild(card);
+    document.body.appendChild(bg);
+  }
+
+  function closeModal() {
+    const m = document.getElementById('ww-modal');
+    if (m) m.remove();
   }
 
   // ====================================================================
@@ -1341,15 +1464,25 @@ permalink: /toolbox/werewolf/
     }, (state.showLog ? '▾' : '▸') + ' 公共事件流（' + (r.publicLog ? r.publicLog.length : 0) + '）'));
     if (state.showLog) wrap.appendChild(renderPublicLog(r.publicLog));
 
-    // 房主控制
-    if (state.session.hostToken) {
-      wrap.appendChild(el('div', { style: { textAlign: 'center', marginTop: '0.8rem' } }, [
-        el('button', {
-          class: 'ww-btn ghost tiny',
-          on: { click: doAdvance },
-        }, '🔧 房主：推进当前阶段'),
-      ]));
+    // 控制按钮（房主额外有推进/解散）
+    const ctrl = el('div', { style: { textAlign: 'center', marginTop: '0.8rem', display: 'flex', gap: '0.4rem', justifyContent: 'center', flexWrap: 'wrap' } });
+    if (amIHost()) {
+      ctrl.appendChild(el('button', {
+        class: 'ww-btn ghost tiny',
+        on: { click: doAdvance },
+      }, '🔧 推进阶段'));
     }
+    ctrl.appendChild(el('button', {
+      class: 'ww-btn ghost tiny',
+      on: { click: doLeave },
+    }, '退出房间'));
+    if (amIHost()) {
+      ctrl.appendChild(el('button', {
+        class: 'ww-btn danger tiny',
+        on: { click: () => doDissolve(false) },
+      }, '🗑 解散房间'));
+    }
+    wrap.appendChild(ctrl);
 
     return wrap;
   }
@@ -1965,15 +2098,25 @@ permalink: /toolbox/werewolf/
     }, (state.showLog ? '▾' : '▸') + ' 公共事件流'));
     if (state.showLog) wrap.appendChild(renderPublicLog(r.publicLog));
 
-    // 房主控制
-    if (state.session.hostToken) {
-      wrap.appendChild(el('div', { style: { textAlign: 'center', marginTop: '0.8rem' } }, [
-        el('button', {
-          class: 'ww-btn ghost tiny',
-          on: { click: doAdvance },
-        }, '🔧 推进当前阶段'),
-      ]));
+    // 上帝/房主控制
+    const ctrl = el('div', { style: { textAlign: 'center', marginTop: '0.8rem', display: 'flex', gap: '0.4rem', justifyContent: 'center', flexWrap: 'wrap' } });
+    if (amIHost()) {
+      ctrl.appendChild(el('button', {
+        class: 'ww-btn ghost tiny',
+        on: { click: doAdvance },
+      }, '🔧 推进阶段'));
     }
+    ctrl.appendChild(el('button', {
+      class: 'ww-btn ghost tiny',
+      on: { click: doLeave },
+    }, '退出房间'));
+    if (amIHost()) {
+      ctrl.appendChild(el('button', {
+        class: 'ww-btn danger tiny',
+        on: { click: () => doDissolve(false) },
+      }, '🗑 解散房间'));
+    }
+    wrap.appendChild(ctrl);
 
     return wrap;
   }
@@ -2073,6 +2216,16 @@ permalink: /toolbox/werewolf/
   }
 
   function onStateUpdate(r) {
+    // 房间被解散
+    if (r.state === 'dissolved') {
+      toast('房主已解散房间');
+      saveSession(null);
+      state.session = null;
+      state.roomState = null;
+      state.polling = false;
+      nav('#/');
+      return;
+    }
     // 检查是否被踢（仅限普通玩家）
     if (r.me && !r.me.isGod) {
       const meEntry = (r.players || []).find((p) => p.id === r.me.playerId);
