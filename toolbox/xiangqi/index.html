@@ -1167,6 +1167,7 @@ permalink: /toolbox/xiangqi/
       if (r.ok) { nick = r.nick; break; }
       lastErr = r.reason || '昵称无效';
     }
+    const submittedNick = nick;
     GamesShell.WinsLeaderboard.submit({
       gameId: 'xiangqi',
       nick,
@@ -1176,8 +1177,17 @@ permalink: /toolbox/xiangqi/
       durationMs: Math.max(5000, Date.now() - xqRunStartedAt),
       clientNonce: xqRunNonce,
     }).then(r => {
-      if (r && r.ok && xqWlbWidget) xqWlbWidget.refresh();
-      else if (r && r.data && r.data.reason) console.warn('[xiangqi] wins submit rejected:', r.data.reason);
+      if (r && r.ok) {
+        if (xqWlbWidget) xqWlbWidget.refresh();
+        return;
+      }
+      if (r && r.reason === 'nick_taken') {
+        GamesShell.Identity.clearNick();
+        alert('“' + submittedNick + '” 已被别的玩家占用，请换一个昵称');
+        xqTryAutoSubmit();
+        return;
+      }
+      if (r && r.reason) console.warn('[xiangqi] wins submit rejected:', r.reason);
     });
   }
 

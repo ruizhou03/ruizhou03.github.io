@@ -905,6 +905,7 @@ permalink: /toolbox/chess/
       lastErr = r.reason || '昵称无效';
     }
     const moveCount = state.game.history().length;
+    const submittedNick = nick;
     GamesShell.WinsLeaderboard.submit({
       gameId: 'chess',
       nick,
@@ -916,9 +917,15 @@ permalink: /toolbox/chess/
     }).then(r => {
       if (r && r.ok) {
         if (chWlbWidget) chWlbWidget.refresh();
-      } else if (r && r.data && r.data.reason) {
-        console.warn('[chess] wins submit rejected:', r.data.reason);
+        return;
       }
+      if (r && r.reason === 'nick_taken') {
+        GamesShell.Identity.clearNick();
+        alert('“' + submittedNick + '” 已被别的玩家占用，请换一个昵称');
+        promptForNickAndSubmit();    // 递归重提示
+        return;
+      }
+      if (r && r.reason) console.warn('[chess] wins submit rejected:', r.reason);
     });
   }
 

@@ -1024,11 +1024,18 @@ permalink: /toolbox/leap/
     if (r && r.ok) {
       leapSetRank('success', { rank: r.rank, total: r.total });
       if (leapLbWidget) leapLbWidget.refresh();
-    } else {
-      leapSetRank('failed');
-      leapPendingSubmit = false;
-      if (r && r.data && r.data.reason) console.warn('[leap] submit rejected:', r.data.reason);
+      return;
     }
+    leapPendingSubmit = false;
+    if (r && r.reason === 'nick_taken') {
+      GamesShell.Identity.clearNick();
+      alert('“' + nick + '” 已被别的玩家占用，请换一个昵称');
+      leapSetRank('pending');
+      if (leapNickPrompt) { leapNickPrompt.refresh(); leapNickPrompt.show(); }
+      return;
+    }
+    leapSetRank('failed');
+    if (r && r.reason) console.warn('[leap] submit rejected:', r.reason);
   }
 
   function leapTryAutoSubmit() {

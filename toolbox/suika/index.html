@@ -3637,6 +3637,15 @@ permalink: /toolbox/suika/
       if (nickIsAuto) {
         showCheatToast(`✅ 已用随机昵称 ${nick} 上传，下局可以起自己的`, '#9ee6a3');
       }
+    } else if (r.data && r.data.reason === 'nick_taken') {
+      // 昵称被别的设备占用——清掉本地，弹表单让用户换一个
+      clearNick();
+      pendingSubmitForRun = false;
+      renderRankSlot('pending');
+      $ovNickForm.style.display = '';
+      $ovNickError.textContent = `"${nick}" 已被别的玩家占用，换一个吧`;
+      $ovNickInput.value = '';
+      $ovNickTag.style.display = 'none';
     } else {
       renderRankSlot('failed');
       refreshSnapshot({ failed: true });

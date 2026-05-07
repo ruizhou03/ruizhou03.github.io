@@ -708,11 +708,18 @@ permalink: /toolbox/2048/
     if (r && r.ok) {
       setRank('success', { rank: r.rank, total: r.total });
       if (lbWidget) lbWidget.refresh();
-    } else {
-      setRank('failed');
-      pendingSubmit = false; // 失败可重试
-      if (r && r.data && r.data.reason) console.warn('[2048] submit rejected:', r.data.reason);
+      return;
     }
+    pendingSubmit = false;
+    if (r && r.reason === 'nick_taken') {
+      GamesShell.Identity.clearNick();
+      alert('“' + nick + '” 已被别的玩家占用，请换一个昵称');
+      setRank('pending');
+      if (nickPrompt) { nickPrompt.refresh(); nickPrompt.show(); }
+      return;
+    }
+    setRank('failed');
+    if (r && r.reason) console.warn('[2048] submit rejected:', r.reason);
   }
 
   function tryAutoSubmit() {

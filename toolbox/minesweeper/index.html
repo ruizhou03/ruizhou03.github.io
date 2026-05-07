@@ -931,11 +931,18 @@ permalink: /toolbox/minesweeper/
         msSetRank('success', { rank: r.rank, total: r.total });
       }
       if (msLbWidget) msLbWidget.refresh();
-    } else {
-      msSetRank('failed');
-      msPendingSubmit = false;
-      if (r && r.data && r.data.reason) console.warn('[ms] submit rejected:', r.data.reason);
+      return;
     }
+    msPendingSubmit = false;
+    if (r && r.reason === 'nick_taken') {
+      GamesShell.Identity.clearNick();
+      alert('“' + nick + '” 已被别的玩家占用，请换一个昵称');
+      msSetRank('pending');
+      if (msNickPrompt) { msNickPrompt.refresh(); msNickPrompt.show(); }
+      return;
+    }
+    msSetRank('failed');
+    if (r && r.reason) console.warn('[ms] submit rejected:', r.reason);
   }
 
   function msTryAutoSubmit() {

@@ -987,11 +987,18 @@ permalink: /toolbox/runner/
     if (r && r.ok) {
       runnerSetRank('success', { rank: r.rank, total: r.total });
       if (runnerLbWidget) runnerLbWidget.refresh();
-    } else {
-      runnerSetRank('failed');
-      runnerPendingSubmit = false;
-      if (r && r.data && r.data.reason) console.warn('[runner] submit rejected:', r.data.reason);
+      return;
     }
+    runnerPendingSubmit = false;
+    if (r && r.reason === 'nick_taken') {
+      GamesShell.Identity.clearNick();
+      alert('“' + nick + '” 已被别的玩家占用，请换一个昵称');
+      runnerSetRank('pending');
+      if (runnerNickPrompt) { runnerNickPrompt.refresh(); runnerNickPrompt.show(); }
+      return;
+    }
+    runnerSetRank('failed');
+    if (r && r.reason) console.warn('[runner] submit rejected:', r.reason);
   }
 
   function runnerTryAutoSubmit(finalScore) {

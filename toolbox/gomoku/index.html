@@ -779,6 +779,7 @@ permalink: /toolbox/gomoku/
       if (r.ok) { nick = r.nick; break; }
       lastErr = r.reason || '昵称无效';
     }
+    const submittedNick = nick;
     GamesShell.WinsLeaderboard.submit({
       gameId: 'gomoku',
       nick,
@@ -788,8 +789,17 @@ permalink: /toolbox/gomoku/
       durationMs: Math.max(5000, Date.now() - gmRunStartedAt),
       clientNonce: gmRunNonce,
     }).then(r => {
-      if (r && r.ok && gmWlbWidget) gmWlbWidget.refresh();
-      else if (r && r.data && r.data.reason) console.warn('[gomoku] wins submit rejected:', r.data.reason);
+      if (r && r.ok) {
+        if (gmWlbWidget) gmWlbWidget.refresh();
+        return;
+      }
+      if (r && r.reason === 'nick_taken') {
+        GamesShell.Identity.clearNick();
+        alert('“' + submittedNick + '” 已被别的玩家占用，请换一个昵称');
+        gmTryAutoSubmit();
+        return;
+      }
+      if (r && r.reason) console.warn('[gomoku] wins submit rejected:', r.reason);
     });
   }
 

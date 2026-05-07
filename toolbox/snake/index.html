@@ -775,11 +775,18 @@ permalink: /toolbox/snake/
     if (r && r.ok) {
       snSetRank('success', { rank: r.rank, total: r.total });
       if (snLbWidget) snLbWidget.refresh();
-    } else {
-      snSetRank('failed');
-      snPendingSubmit = false;
-      if (r && r.data && r.data.reason) console.warn('[snake] submit rejected:', r.data.reason);
+      return;
     }
+    snPendingSubmit = false;
+    if (r && r.reason === 'nick_taken') {
+      GamesShell.Identity.clearNick();
+      alert('“' + nick + '” 已被别的玩家占用，请换一个昵称');
+      snSetRank('pending');
+      if (snNickPrompt) { snNickPrompt.refresh(); snNickPrompt.show(); }
+      return;
+    }
+    snSetRank('failed');
+    if (r && r.reason) console.warn('[snake] submit rejected:', r.reason);
   }
 
   function snTryAutoSubmit() {
