@@ -7,23 +7,30 @@ permalink: /toolbox/fruit-ninja/
 <link rel="stylesheet" href="/assets/css/games-shell.css">
 
 <style>
-  .fn-wrap { max-width: 760px; margin: 0 auto; padding: 1rem; }
+  /* 防御：hidden 属性必须始终生效，避免被 .overlay { display: flex } 等覆盖 */
+  [hidden] { display: none !important; }
+
+  .fn-wrap { max-width: 600px; margin: 0 auto; padding: 1rem; }
   .fn-wrap header { text-align: center; margin-bottom: 1rem; }
   .fn-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
   .fn-wrap header .sub { color: var(--color-light); font-style: italic; font-size: 0.92rem; }
 
-  .fn-stage-wrap { position: relative; }
+  .fn-stage-wrap { position: relative; max-width: 540px; margin: 0 auto; }
   #fn-canvas {
     display: block;
     width: 100%;
-    max-width: 720px;
-    aspect-ratio: 4 / 3;
+    max-width: 540px;
+    aspect-ratio: 3 / 4;
     margin: 0 auto;
     background: linear-gradient(180deg, #2a3a52 0%, #1a2436 100%);
     border-radius: 14px;
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
     cursor: crosshair;
     touch-action: none;
+  }
+  @media (max-width: 600px) {
+    #fn-canvas { border-radius: 10px; }
+    .fn-wrap { padding: 0.6rem; }
   }
 
   .hud {
@@ -88,9 +95,9 @@ permalink: /toolbox/fruit-ninja/
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
     border-color: var(--color-accent);
   }
-  .mode-card .mc-emoji { font-size: 1.6rem; margin-bottom: 0.4rem; }
-  .mode-card .mc-name { font-size: 1.05rem; color: var(--color-ink); font-weight: 600; margin-bottom: 0.2rem; }
-  .mode-card .mc-desc { font-size: 0.82rem; color: var(--color-muted); line-height: 1.5; }
+  .mode-card .mc-emoji { display: block; font-size: 1.6rem; margin-bottom: 0.4rem; }
+  .mode-card .mc-name { display: block; font-size: 1.05rem; color: var(--color-ink); font-weight: 600; margin-bottom: 0.2rem; }
+  .mode-card .mc-desc { display: block; font-size: 0.82rem; color: var(--color-muted); line-height: 1.5; }
 
   .overlay {
     position: absolute;
@@ -164,27 +171,27 @@ permalink: /toolbox/fruit-ninja/
 
   <section id="mode-select" class="mode-select">
     <div class="mode-cards">
-      <button class="mode-card" data-mode="classic">
-        <div class="mc-emoji">⏱️</div>
-        <div class="mc-name">经典 60 秒</div>
-        <div class="mc-desc">限时 60 秒，连切水果加奖励分。切到炸弹立即结束。</div>
+      <button class="mode-card" type="button" data-mode="classic">
+        <span class="mc-emoji">⏱️</span>
+        <span class="mc-name">经典 60 秒</span>
+        <span class="mc-desc">限时 60 秒，连切水果加奖励分。切到炸弹立即结束。</span>
       </button>
-      <button class="mode-card" data-mode="arcade">
-        <div class="mc-emoji">❤️</div>
-        <div class="mc-name">街机三命</div>
-        <div class="mc-desc">无时限，但漏切 3 个或切到炸弹就 game over。</div>
+      <button class="mode-card" type="button" data-mode="arcade">
+        <span class="mc-emoji">❤️</span>
+        <span class="mc-name">街机三命</span>
+        <span class="mc-desc">无时限，但漏切 3 个或切到炸弹就 game over。</span>
       </button>
-      <button class="mode-card" data-mode="zen">
-        <div class="mc-emoji">🧘</div>
-        <div class="mc-name">禅意无炸弹</div>
-        <div class="mc-desc">无失败、无炸弹、纯练连击。比谁单局连击最高。</div>
+      <button class="mode-card" type="button" data-mode="zen">
+        <span class="mc-emoji">🧘</span>
+        <span class="mc-name">禅意无炸弹</span>
+        <span class="mc-desc">无失败、无炸弹、纯练连击。比谁单局连击最高。</span>
       </button>
     </div>
     <p class="fn-tips">桌面：按住鼠标拖动切水果 · 手机：手指滑动</p>
   </section>
 
   <section id="game-stage" class="fn-stage-wrap" hidden>
-    <canvas id="fn-canvas" width="1440" height="1080"></canvas>
+    <canvas id="fn-canvas" width="1080" height="1440"></canvas>
     <div class="hud">
       <div class="hud-left">
         <span class="hud-timer" hidden><span class="label">⏱</span><span data-bind="timer">60</span></span>
@@ -387,7 +394,8 @@ permalink: /toolbox/fruit-ninja/
   const rankRow = document.getElementById('rank-row');
 
   // ============ Logical canvas size ============
-  const LOG_W = 720, LOG_H = 540;
+  // portrait 3:4，移动友好；桌面端 max-width 540 限制不至于过大
+  const LOG_W = 540, LOG_H = 720;
   function resizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.round(LOG_W * dpr);
