@@ -236,8 +236,20 @@
         if (myRole === 'peasant' && landlordHand <= 2) {
           return nonBombs.reduce((b, p) => p.weight > b.weight ? p : b, nonBombs[0]);
         }
-        // 否则出最小那张
-        return nonBombs.reduce((b, p) => p.weight < b.weight ? p : b, nonBombs[0]);
+        const candidate = nonBombs.reduce((b, p) => p.weight < b.weight ? p : b, nonBombs[0]);
+        // 反压预测：仅当我是农民且上家是地主时
+        if (myRole === 'peasant' && ctx.lastTrickSeat === landlordIdx) {
+          const remaining = remainingByWeight(ctx.seen || new Array(15).fill(0), hand);
+          const landlordCounter = minBeaterIn(remaining, candidate);
+          if (landlordCounter != null && landlordCounter < 50) {
+            // 地主能用普通牌反压
+            if (candidate.weight >= 11 && partnerHand > 4) {
+              // 我出 A/2 但地主能反压 → 浪费大牌，pass 留给以后
+              return null;
+            }
+          }
+        }
+        return candidate;
       }
 
       // 只剩炸弹/王炸

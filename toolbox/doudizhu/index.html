@@ -160,6 +160,29 @@ permalink: /toolbox/doudizhu/
     color: #fffac8;
     font-size: 0.78rem;
   }
+  .ddz-played .think-tag {
+    padding: 0.18rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(255,221,89,0.2);
+    color: #fffac8;
+    font-size: 0.78rem;
+    font-family: monospace;
+  }
+  .ddz-played .think-tag::after {
+    content: '…';
+    display: inline-block;
+    animation: ddz-dots 1.2s steps(4, end) infinite;
+    width: 1em;
+    text-align: left;
+    margin-left: 2px;
+  }
+  @keyframes ddz-dots {
+    0%   { content: ''; }
+    25%  { content: '·'; }
+    50%  { content: '··'; }
+    75%  { content: '···'; }
+    100% { content: ''; }
+  }
 
   /* 中央台面 */
   .ddz-center {
@@ -341,9 +364,9 @@ permalink: /toolbox/doudizhu/
       <button class="ddz-btn primary" id="ddzStartBtn" type="button">🎮 开始游戏</button>
     </div>
     <div class="ddz-help">
-      斗地主是中国最流行的三人扑克游戏。54 张牌发出 51 张，剩 3 张底牌。叫到地主的玩家拿走底牌（共 20 张），单挑另外两人（农民）。
-      牌型：单 / 对 / 三 / 三带一/二 / 顺子（5+ 单牌连续）/ 连对（3+ 对子连续）/ 飞机 / 四带二 / 炸弹 / 王炸。
-      点击牌选中（向上凸起），再点「出牌」打出。先把手牌出完的一方获胜。
+      斗地主是中国最流行的三人扑克游戏。54 张牌发出 51 张，剩 3 张底牌。<strong>抢地主</strong>阶段三家依次决定是否抢，最后抢的人当地主，每多一次抢倍数 ×2；揭牌后还可<strong>加倍</strong>（×2）。
+      牌型：单 / 对 / 三 / 三带一/二 / 顺子（5+ 单牌连续）/ 连对（3+ 对子连续）/ 飞机 / 四带二 / 炸弹 / 王炸。每个炸弹/王炸 ×2；春天 / 反春天 ×2。
+      赢局上榜积分 = 底分 × 倍数 × 角色（地主 ×2，农民 ×1）。
     </div>
   </div>
 
@@ -373,15 +396,10 @@ permalink: /toolbox/doudizhu/
       </div>
     </div>
 
-    <!-- 叫地主面板 -->
+    <!-- 叫 / 抢 / 加倍 面板（动态渲染按钮）-->
     <div class="ddz-bid-panel" id="ddzBidPanel" hidden>
-      <div class="ddz-bid-title" id="ddzBidTitle">轮到你叫分</div>
-      <div class="ddz-bid-buttons">
-        <button data-bid="0" type="button">不叫</button>
-        <button data-bid="1" type="button">1 分</button>
-        <button data-bid="2" type="button">2 分</button>
-        <button data-bid="3" type="button">3 分</button>
-      </div>
+      <div class="ddz-bid-title" id="ddzBidTitle">轮到你</div>
+      <div class="ddz-bid-buttons" id="ddzBidButtons"></div>
     </div>
 
     <!-- 我的座位 -->
@@ -413,8 +431,7 @@ permalink: /toolbox/doudizhu/
   </div>
 
   <div id="ddz-settle-btn-mount"></div>
-  <div id="ddz-wlb-landlord-mount" style="max-width: 600px; margin: 1.2rem auto 0;"></div>
-  <div id="ddz-wlb-peasant-mount" style="max-width: 600px; margin: 1rem auto 0;"></div>
+  <div id="ddz-wlb-mount" style="max-width: 600px; margin: 1.2rem auto 0;"></div>
   <div id="ddz-cm-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
 </div>
 
@@ -438,8 +455,9 @@ permalink: /toolbox/doudizhu/
   const PHASE = {
     IDLE: 'idle',
     DEALING: 'dealing',
-    BIDDING: 'bidding',
+    BIDDING: 'bidding',         // 抢地主阶段（轮叫 / 抢）
     REVEAL: 'reveal',
+    DOUBLING: 'doubling',        // 揭牌后加倍阶段
     PLAYING: 'playing',
     SETTLEMENT: 'settlement',
   };
@@ -450,22 +468,32 @@ permalink: /toolbox/doudizhu/
     hands: [[], [], []],         // 索引 0=玩家, 1=右上 AI(下家), 2=左上 AI(上家)
     bottom: [],                   // 3 张底牌（揭示后并入地主手牌）
     bottomRevealed: false,
-    landlordIdx: -1,
-    bidScore: 0,
-    bidHistory: [],              // [{seat, score}]
+    // 抢地主
+    landlordIdx: -1,             // 最终地主
+    landlordCandidate: -1,       // 当前抢到的候选地主
     bidStartSeat: 0,
-    bidTurnIdx: 0,                // 在 BIDDING 阶段轮到谁
-    bidPasses: 0,                 // 连续不叫数
+    bidTurnIdx: 0,
+    bidActions: [],               // [{seat, action: 'rob'|'pass'}]
+    robCount: 0,                  // 总抢次数（决定 base multiplier）
+    // 加倍
+    doubleTurnIdx: 0,
+    doubleActions: [],            // [{seat, double: bool}]
+    // 通用倍数
+    multiplier: 1,                // = baseFromRob × 2^doubles × 2^bombs × spring
+    bombCount: 0,
+    spring: 0,                    // 0 / 1 / 2（春天 / 反春天 each ×2）
+    landlordPlayCount: 0,        // 地主出牌次数（用于反春天）
+    peasantPlayCount: 0,         // 农民出牌次数（用于春天）
+    // 出牌
     turnIdx: 0,
     lastTrick: null,             // {seat, pattern}
     passCount: 0,
     selected: new Set(),
-    bombCount: 0,
     seen: new Array(15).fill(0),
     runStartedAt: 0,
     runNonce: '',
-    result: null,                // { winnerRole, multiplier }
-    resumed: false,              // 是否从存档恢复
+    result: null,                // { winnerRole, multiplier, score }
+    resumed: false,
   };
 
   // ============================================================
@@ -481,6 +509,7 @@ permalink: /toolbox/doudizhu/
   const hintBtn = $('ddzHintBtn');
   const bidPanel = $('ddzBidPanel');
   const bidTitle = $('ddzBidTitle');
+  const bidButtonsEl = $('ddzBidButtons');
   const statusMsg = $('ddzStatusMsg');
   const multiEl = $('ddzMultiplier');
   const bottomPileEl = $('ddzBottomPile');
@@ -511,15 +540,7 @@ permalink: /toolbox/doudizhu/
     if (ddzSettleBtn) ddzSettleBtn.setEnabled(false);
   });
 
-  // 叫地主面板按钮
-  bidPanel.querySelectorAll('button').forEach(b => {
-    b.addEventListener('click', () => {
-      if (state.phase !== PHASE.BIDDING) return;
-      if (state.bidTurnIdx !== 0) return;  // 不是玩家回合
-      const v = parseInt(b.dataset.bid, 10);
-      handleBid(0, v);
-    });
-  });
+  // 叫 / 抢 / 加倍 按钮的 click 在 renderBidButtons 时绑定（动态）
 
   // 出牌按钮
   playBtn.addEventListener('click', () => playerPlay());
@@ -636,18 +657,19 @@ permalink: /toolbox/doudizhu/
   }
 
   function renderMultiplier() {
-    if (state.phase === PHASE.PLAYING || state.phase === PHASE.SETTLEMENT) {
-      const m = currentMultiplier();
-      multiEl.textContent = `底分 ${state.bidScore || 1} × 倍率 ${m / Math.max(1, state.bidScore || 1)} = ${m}`;
-    } else {
+    if (state.phase === PHASE.IDLE || state.phase === PHASE.DEALING) {
       multiEl.textContent = '';
+      return;
     }
+    const m = currentMultiplier();
+    const parts = [`底 ×${state.multiplier}`];
+    if (state.bombCount > 0) parts.push(`炸 ×${1 << state.bombCount}`);
+    if (state.spring > 0) parts.push(`春 ×${1 << state.spring}`);
+    multiEl.textContent = `${parts.join(' · ')} = ${m}`;
   }
 
   function currentMultiplier() {
-    let mult = state.bidScore || 1;
-    for (let i = 0; i < state.bombCount; i++) mult *= 2;
-    return mult;
+    return state.multiplier * (1 << state.bombCount) * (1 << state.spring);
   }
 
   function updatePlayBtnState() {
@@ -678,13 +700,18 @@ permalink: /toolbox/doudizhu/
     state.bottom = [];
     state.bottomRevealed = false;
     state.landlordIdx = -1;
-    state.bidScore = 0;
-    state.bidHistory = [];
-    state.bidPasses = 0;
+    state.landlordCandidate = -1;
+    state.bidActions = [];
+    state.robCount = 0;
+    state.doubleActions = [];
+    state.multiplier = 1;
+    state.bombCount = 0;
+    state.spring = 0;
+    state.landlordPlayCount = 0;
+    state.peasantPlayCount = 0;
     state.lastTrick = null;
     state.passCount = 0;
     state.selected.clear();
-    state.bombCount = 0;
     state.seen = new Array(15).fill(0);
     state.runStartedAt = Date.now();
     state.runNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
@@ -707,84 +734,93 @@ permalink: /toolbox/doudizhu/
     setStatus('发牌完毕');
     multiEl.textContent = '';
 
-    // 进入叫地主
     setTimeout(() => enterBidding(), 600);
   }
 
-  // ----- 叫地主 -----
+  // ============================================================
+  // 抢地主：三家依次决定 抢/不抢；最后抢的当地主，每抢一次倍数 ×2
+  // ============================================================
   function enterBidding() {
     state.phase = PHASE.BIDDING;
-    state.bidScore = 0;
-    state.bidHistory = [];
-    state.bidPasses = 0;
     state.bidStartSeat = Math.floor(Math.random() * 3);
     state.bidTurnIdx = state.bidStartSeat;
-    state.landlordIdx = -1;
+    state.bidActions = [];
+    state.landlordCandidate = -1;
+    state.robCount = 0;
     renderRoles();
     nextBidTurn();
   }
 
   function nextBidTurn() {
-    if (state.bidPasses >= 3) {
-      // 三家都不叫 → 重新发牌
-      setStatus('三家都没叫地主，重新发牌');
-      setTimeout(() => startNewGame(), 1200);
-      return;
-    }
-    if (state.bidScore === 3) {
-      // 已有人叫到 3 分，截止
-      finalizeLandlord();
-      return;
-    }
-    // 检查是否已经轮过一圈：从 bidStartSeat 开始，三家都叫过一次了？
-    if (state.bidHistory.length >= 3) {
+    if (state.bidActions.length >= 3) {
       finalizeLandlord();
       return;
     }
     const seat = state.bidTurnIdx;
-    setStatus(`轮到 ${seatLabel(seat)} 叫分（当前 ${state.bidScore} 分）`);
+    const isFirst = state.landlordCandidate < 0;
+    const verb = isFirst ? '叫地主' : '抢地主';
+    setStatus(`轮到 ${seatLabel(seat)} ${verb}`);
     if (seat === 0) {
       bidPanel.hidden = false;
-      // 禁掉 ≤ 当前 bidScore 的按钮
-      bidPanel.querySelectorAll('button').forEach(b => {
-        const v = parseInt(b.dataset.bid, 10);
-        b.disabled = (v !== 0 && v <= state.bidScore);
-      });
-      bidTitle.textContent = state.bidScore === 0 ? '叫地主吗？' : `当前 ${state.bidScore} 分，加叫吗？`;
+      bidTitle.textContent = isFirst
+        ? '叫地主吗？'
+        : `已有 ${seatLabel(state.landlordCandidate)} ${state.robCount > 1 ? '抢地主' : '叫地主'}，要抢吗？（当前倍数 ×${state.multiplier}）`;
+      renderBidButtons([
+        { label: isFirst ? '叫地主' : '抢地主', value: 'rob', primary: true },
+        { label: isFirst ? '不叫' : '不抢', value: 'pass' },
+      ], handleBid);
     } else {
       bidPanel.hidden = true;
       setTimeout(() => {
-        const v = AI.bid(state.hands[seat], state.bidScore);
-        handleBid(seat, v);
-      }, 600);
+        // AI: 用现有 evaluateHand 判断要不要叫/抢
+        const score = AI.evaluateHand(state.hands[seat]);
+        // 阈值：有人已经叫了的话提高门槛（避免无脑抢）
+        const threshold = isFirst ? 3 : 8;
+        const want = score >= threshold ? 'rob' : 'pass';
+        handleBid(seat, want);
+      }, 700);
     }
   }
 
-  function handleBid(seat, value) {
-    bidPanel.hidden = true;
-    state.bidHistory.push({ seat, score: value });
-    if (value > 0) {
-      state.bidScore = value;
-      state.landlordIdx = seat;
-      state.bidPasses = 0;
-      setStatus(`${seatLabel(seat)} 叫 ${value} 分`);
+  function handleBid(seatOrAction, action) {
+    // 玩家点击：第一个参数是 action（'rob'/'pass'），需要从 state 读 seat
+    let seat, act;
+    if (typeof seatOrAction === 'number') {
+      seat = seatOrAction;
+      act = action;
     } else {
-      state.bidPasses++;
-      setStatus(`${seatLabel(seat)} 不叫`);
+      seat = 0;
+      act = seatOrAction;
+    }
+    bidPanel.hidden = true;
+    state.bidActions.push({ seat, action: act });
+    if (act === 'rob') {
+      if (state.landlordCandidate < 0) {
+        state.landlordCandidate = seat;
+        state.multiplier = 1;
+        state.robCount = 1;
+        setStatus(`${seatLabel(seat)} 叫地主`);
+      } else {
+        state.landlordCandidate = seat;
+        state.multiplier *= 2;
+        state.robCount++;
+        setStatus(`${seatLabel(seat)} 抢地主（倍数 ×${state.multiplier}）`);
+      }
+    } else {
+      setStatus(`${seatLabel(seat)} ${state.landlordCandidate < 0 ? '不叫' : '不抢'}`);
     }
     state.bidTurnIdx = (state.bidTurnIdx + 1) % 3;
     setTimeout(() => nextBidTurn(), 700);
   }
 
   function finalizeLandlord() {
-    if (state.landlordIdx < 0) {
-      // 没人叫 → 重发
-      setStatus('没人叫地主，重新发牌');
+    if (state.landlordCandidate < 0) {
+      setStatus('三家都没叫地主，重新发牌');
       setTimeout(() => startNewGame(), 1200);
       return;
     }
-    if (state.bidScore < 1) state.bidScore = 1;
-    setStatus(`${seatLabel(state.landlordIdx)} 当地主（${state.bidScore} 分）`);
+    state.landlordIdx = state.landlordCandidate;
+    setStatus(`${seatLabel(state.landlordIdx)} 当地主（底分 ×${state.multiplier}）`);
     state.phase = PHASE.REVEAL;
     setTimeout(() => revealBottom(), 600);
   }
@@ -793,21 +829,88 @@ permalink: /toolbox/doudizhu/
     state.bottomRevealed = true;
     renderBottomPile();
     setTimeout(() => {
-      // 把底牌加到地主手里
       state.hands[state.landlordIdx] = state.hands[state.landlordIdx].concat(state.bottom);
-      // 注意：bottom 公开 → seen 计数（让 hard AI 能感知）
       for (const c of state.bottom) state.seen[E.cardWeight(c)]++;
       renderHand();
       renderHandCounts();
       renderRoles();
-      setStatus('开始出牌');
+      enterDoubling();
+    }, 1100);
+  }
+
+  // ============================================================
+  // 加倍：3 家依次选 加倍 / 不加倍（顺序：地主先）；每个加倍 ×2
+  // ============================================================
+  function enterDoubling() {
+    state.phase = PHASE.DOUBLING;
+    state.doubleTurnIdx = state.landlordIdx;
+    state.doubleActions = [];
+    setStatus('加倍阶段');
+    renderMultiplier();
+    nextDoubleTurn();
+  }
+
+  function nextDoubleTurn() {
+    if (state.doubleActions.length >= 3) {
+      // 加倍结束 → 进入出牌
+      bidPanel.hidden = true;
       state.phase = PHASE.PLAYING;
       state.turnIdx = state.landlordIdx;
       state.lastTrick = null;
       state.passCount = 0;
+      renderRoles();
       renderMultiplier();
+      setStatus('开始出牌');
       proceedTurn();
-    }, 1200);
+      return;
+    }
+    const seat = state.doubleTurnIdx;
+    if (seat === 0) {
+      bidPanel.hidden = false;
+      bidTitle.textContent = `要加倍吗？（当前 ×${state.multiplier}，加倍后 ×${state.multiplier * 2}）`;
+      renderBidButtons([
+        { label: '加倍 (×2)', value: 'double', primary: true },
+        { label: '不加倍', value: 'pass' },
+      ], handleDouble);
+    } else {
+      bidPanel.hidden = true;
+      setStatus(`${seatLabel(seat)} 思考是否加倍…`);
+      setTimeout(() => {
+        // AI: 手牌强度 ≥ 8 才加倍
+        const score = AI.evaluateHand(state.hands[seat]);
+        const want = score >= 8 ? 'double' : 'pass';
+        handleDouble(seat, want);
+      }, 700);
+    }
+  }
+
+  function handleDouble(seatOrAction, action) {
+    let seat, act;
+    if (typeof seatOrAction === 'number') { seat = seatOrAction; act = action; }
+    else { seat = 0; act = seatOrAction; }
+    bidPanel.hidden = true;
+    state.doubleActions.push({ seat, double: act === 'double' });
+    if (act === 'double') {
+      state.multiplier *= 2;
+      setStatus(`${seatLabel(seat)} 加倍（倍数 ×${state.multiplier}）`);
+    } else {
+      setStatus(`${seatLabel(seat)} 不加倍`);
+    }
+    state.doubleTurnIdx = (state.doubleTurnIdx + 1) % 3;
+    renderMultiplier();
+    setTimeout(() => nextDoubleTurn(), 700);
+  }
+
+  function renderBidButtons(items, onClick) {
+    bidButtonsEl.innerHTML = '';
+    for (const it of items) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = it.label;
+      if (it.primary) b.style.fontWeight = '600';
+      b.addEventListener('click', () => onClick(it.value));
+      bidButtonsEl.appendChild(b);
+    }
   }
 
   // ----- 出牌轮转 -----
@@ -829,6 +932,9 @@ permalink: /toolbox/doudizhu/
     } else {
       playActions.hidden = true;
       setStatus(`${seatLabel(seat)} 思考中…`);
+      // 在 AI 出牌区显示 ... 动画
+      const playedEl = $('ddzPlayed' + seat);
+      playedEl.innerHTML = '<span class="think-tag">思考</span>';
       setTimeout(() => aiTakeTurn(seat), 700 + Math.random() * 400);
     }
   }
@@ -863,6 +969,8 @@ permalink: /toolbox/doudizhu/
     state.hands[seat] = E.removeCards(state.hands[seat], pattern.cards);
     for (const c of pattern.cards) state.seen[E.cardWeight(c)]++;
     if (pattern.type === T.BOMB || pattern.type === T.ROCKET) state.bombCount++;
+    if (seat === state.landlordIdx) state.landlordPlayCount++;
+    else state.peasantPlayCount++;
     state.lastTrick = { seat, pattern };
     state.passCount = 0;
     state.selected.clear();
@@ -938,17 +1046,29 @@ permalink: /toolbox/doudizhu/
   function finishGame(winnerSeat) {
     state.phase = PHASE.SETTLEMENT;
     const winnerRole = winnerSeat === state.landlordIdx ? 'landlord' : 'peasant';
+    // 春天 / 反春天判定
+    if (winnerRole === 'landlord' && state.peasantPlayCount === 0) {
+      state.spring = 1; // 春天
+    } else if (winnerRole === 'peasant' && state.landlordPlayCount === 1) {
+      state.spring = 1; // 反春天
+    }
     const multiplier = currentMultiplier();
-    state.result = { winnerSeat, winnerRole, multiplier };
+    // 角色加权：地主胜 ×2，农民胜 ×1
+    const roleMul = winnerRole === 'landlord' ? 2 : 1;
+    const score = multiplier * roleMul;
+    state.result = { winnerSeat, winnerRole, multiplier, score };
     if (ddzSave) ddzSave.discard();
+    renderMultiplier();
 
     const playerWon = (winnerRole === 'landlord' && state.landlordIdx === 0) ||
                       (winnerRole === 'peasant' && state.landlordIdx !== 0);
     gameOverTitle.textContent = playerWon ? '🎉 你赢了！' : '😢 你输了';
     const myRole = state.landlordIdx === 0 ? '地主' : '农民';
     const winText = winnerRole === 'landlord' ? '地主' : '农民';
+    const springText = state.spring > 0 ? (winnerRole === 'landlord' ? '春天 ×2 · ' : '反春天 ×2 · ') : '';
     gameOverDetail.innerHTML =
-      `${winText}获胜 · 倍数 ×${multiplier} · 你是${myRole}<br>` +
+      `${winText}获胜 · ${springText}倍数 ×${multiplier} · 你是${myRole}<br>` +
+      `本局积分 <strong>${score}</strong>（角色加权 ×${roleMul}）<br>` +
       `难度：${difficultyLabel(state.difficulty)} · 用时 ${formatDuration(Date.now() - state.runStartedAt)}`;
     gameOverOverlay.classList.add('show');
     if (ddzSettleBtn) ddzSettleBtn.setEnabled(true);
@@ -968,7 +1088,7 @@ permalink: /toolbox/doudizhu/
   // ============================================================
   // 排行榜 / 续局 / 结算 集成
   // ============================================================
-  let ddzWlbLandlord = null, ddzWlbPeasant = null, ddzSettleBtn = null;
+  let ddzWlb = null, ddzSettleBtn = null;
   let ddzSave = null;
 
   function ddzGetSettlementOpts() {
@@ -986,8 +1106,9 @@ permalink: /toolbox/doudizhu/
       result: playerWon ? 'win' : 'lose',
       stats: [
         { label: '角色', value: playerRole === 'landlord' ? '地主 👑' : '农民' },
-        { label: '倍数', value: '×' + state.result.multiplier },
+        { label: '倍数', value: '×' + state.result.multiplier + (state.spring > 0 ? '（含春天）' : '') },
         { label: '炸弹', value: state.bombCount + ' 个' },
+        { label: '本局积分', value: state.result.score },
         { label: '用时', value: formatDuration(Date.now() - state.runStartedAt) },
       ],
       paintBoard: ddzPaintBoard,
@@ -1043,16 +1164,17 @@ permalink: /toolbox/doudizhu/
     if (!state.result) return;
     const playerRole = state.landlordIdx === 0 ? 'landlord' : 'peasant';
     if (state.result.winnerRole !== playerRole) return; // 输了不上传
-    const gameId = 'doudizhu-' + playerRole;
     const aiLevel = state.difficulty;
     if (!['easy', 'normal', 'hard'].includes(aiLevel)) return;
-    const moves = (state.bidHistory.length || 0) + Math.max(8, Math.min(500, /* 估全场动作数：每家 4-30 次出牌 */
-      Math.max(0, state.seen.reduce((s, x) => s + x, 0))));
+    // moves 字段后端要求 4-500：用全场出牌动作数（含 pass）
+    const totalActions = state.landlordPlayCount + state.peasantPlayCount + (state.bidActions.length || 0);
+    const moves = Math.max(4, Math.min(500, totalActions));
     const durationMs = Math.max(5000, Date.now() - state.runStartedAt);
+    const score = state.result.score;
     let nick = GamesShell.Identity.getNick();
     let lastErr = '';
     while (!nick) {
-      const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : '恭喜赢得本局！起个昵称上传战绩榜？\n\n';
+      const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : `恭喜赢得本局（积分 +${score}）！起个昵称上传积分榜？\n\n`;
       const v = prompt(hint + '2-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
       if (v === null) return;
       const r = GamesShell.Identity.setNick(v);
@@ -1060,18 +1182,16 @@ permalink: /toolbox/doudizhu/
       lastErr = r.reason || '昵称无效';
     }
     GamesShell.WinsLeaderboard.submit({
-      gameId, nick,
+      gameId: 'doudizhu',
+      nick,
       did: GamesShell.Identity.getDeviceId(),
       aiLevel,
       moves,
       durationMs,
       clientNonce: state.runNonce,
+      score,
     }).then(r => {
-      if (r && r.ok) {
-        if (playerRole === 'landlord' && ddzWlbLandlord) ddzWlbLandlord.refresh();
-        if (playerRole === 'peasant' && ddzWlbPeasant) ddzWlbPeasant.refresh();
-        return;
-      }
+      if (r && r.ok) { if (ddzWlb) ddzWlb.refresh(); return; }
       if (r && r.reason === 'nick_taken') {
         GamesShell.Identity.clearNick();
         alert('"' + nick + '" 已被占用，请换一个昵称');
@@ -1084,16 +1204,11 @@ permalink: /toolbox/doudizhu/
 
   function initShell() {
     if (!window.GamesShell || !GamesShell.WinsLeaderboard) return;
-    ddzWlbLandlord = GamesShell.WinsLeaderboard.mount({
-      container: $('ddz-wlb-landlord-mount'),
-      gameId: 'doudizhu-landlord',
-      title: '🏆 斗地主 · 地主胜场榜',
-      getCurrentNick: () => GamesShell.Identity.getNick(),
-    });
-    ddzWlbPeasant = GamesShell.WinsLeaderboard.mount({
-      container: $('ddz-wlb-peasant-mount'),
-      gameId: 'doudizhu-peasant',
-      title: '🌾 斗地主 · 农民胜场榜',
+    ddzWlb = GamesShell.WinsLeaderboard.mount({
+      container: $('ddz-wlb-mount'),
+      gameId: 'doudizhu',
+      title: '🏆 斗地主 · 积分榜',
+      unit: '分',
       getCurrentNick: () => GamesShell.Identity.getNick(),
     });
     GamesShell.Comments.mount({
@@ -1118,24 +1233,30 @@ permalink: /toolbox/doudizhu/
   // 续局
   // ============================================================
   function ddzSerialize() {
-    if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.BIDDING) return null;
+    if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.BIDDING && state.phase !== PHASE.DOUBLING) return null;
     return {
-      v: 1,
+      v: 2,
       phase: state.phase,
       difficulty: state.difficulty,
       hands: state.hands.map(h => h.slice()),
       bottom: state.bottom.slice(),
       bottomRevealed: state.bottomRevealed,
       landlordIdx: state.landlordIdx,
-      bidScore: state.bidScore,
-      bidHistory: state.bidHistory.slice(),
+      landlordCandidate: state.landlordCandidate,
       bidStartSeat: state.bidStartSeat,
       bidTurnIdx: state.bidTurnIdx,
-      bidPasses: state.bidPasses,
+      bidActions: state.bidActions.slice(),
+      robCount: state.robCount,
+      doubleTurnIdx: state.doubleTurnIdx,
+      doubleActions: state.doubleActions.slice(),
+      multiplier: state.multiplier,
+      bombCount: state.bombCount,
+      spring: state.spring,
+      landlordPlayCount: state.landlordPlayCount,
+      peasantPlayCount: state.peasantPlayCount,
       turnIdx: state.turnIdx,
       lastTrick: state.lastTrick,
       passCount: state.passCount,
-      bombCount: state.bombCount,
       seen: state.seen.slice(),
       runStartedAt: state.runStartedAt,
       runNonce: state.runNonce,
@@ -1150,15 +1271,21 @@ permalink: /toolbox/doudizhu/
       bottom: saved.bottom || [],
       bottomRevealed: !!saved.bottomRevealed,
       landlordIdx: typeof saved.landlordIdx === 'number' ? saved.landlordIdx : -1,
-      bidScore: saved.bidScore || 0,
-      bidHistory: saved.bidHistory || [],
+      landlordCandidate: typeof saved.landlordCandidate === 'number' ? saved.landlordCandidate : -1,
       bidStartSeat: saved.bidStartSeat || 0,
       bidTurnIdx: saved.bidTurnIdx || 0,
-      bidPasses: saved.bidPasses || 0,
+      bidActions: saved.bidActions || [],
+      robCount: saved.robCount || 0,
+      doubleTurnIdx: saved.doubleTurnIdx || 0,
+      doubleActions: saved.doubleActions || [],
+      multiplier: saved.multiplier || 1,
+      bombCount: saved.bombCount || 0,
+      spring: saved.spring || 0,
+      landlordPlayCount: saved.landlordPlayCount || 0,
+      peasantPlayCount: saved.peasantPlayCount || 0,
       turnIdx: saved.turnIdx || 0,
       lastTrick: saved.lastTrick || null,
       passCount: saved.passCount || 0,
-      bombCount: saved.bombCount || 0,
       seen: saved.seen || new Array(15).fill(0),
       runStartedAt: saved.runStartedAt || Date.now(),
       runNonce: saved.runNonce || (window.GamesShell ? GamesShell.Identity.newRunNonce() : 'r-' + Date.now()),
@@ -1166,7 +1293,6 @@ permalink: /toolbox/doudizhu/
       result: null,
       resumed: true,
     });
-    // 把对应难度 tab 同步
     document.querySelectorAll('.ddz-mode-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.diff === state.difficulty);
     });
@@ -1181,6 +1307,8 @@ permalink: /toolbox/doudizhu/
     if (state.lastTrick) renderPlayedAt(state.lastTrick.seat, state.lastTrick.pattern);
     if (state.phase === PHASE.BIDDING) {
       nextBidTurn();
+    } else if (state.phase === PHASE.DOUBLING) {
+      nextDoubleTurn();
     } else if (state.phase === PHASE.PLAYING) {
       proceedTurn();
     }
@@ -1193,14 +1321,18 @@ permalink: /toolbox/doudizhu/
       serialize: ddzSerialize,
     });
     const peek = ddzSave.peek();
-    if (peek && peek.data && peek.data.phase) {
+    if (peek && peek.data && peek.data.phase && (peek.data.v == null || peek.data.v >= 2)) {
       const handsTotal = (peek.data.hands || []).reduce((s, h) => s + (h ? h.length : 0), 0);
+      const phaseLabel = peek.data.phase === 'bidding' ? '抢地主中' :
+                          peek.data.phase === 'doubling' ? '加倍中' : '出牌中';
       GamesShell.SaveState.showResumeModal({
-        summaryHtml: `<strong>${difficultyLabel(peek.data.difficulty || 'normal')}</strong> · 牌桌剩 <strong>${handsTotal}</strong> 张<span class="gs-resume-meta">${peek.agoText}保存</span>`,
+        summaryHtml: `<strong>${difficultyLabel(peek.data.difficulty || 'normal')}</strong> · ${phaseLabel} · 牌桌剩 <strong>${handsTotal}</strong> 张<span class="gs-resume-meta">${peek.agoText}保存</span>`,
         onResume: () => { ddzRestore(peek.data); ddzSave.start(); },
         onDiscard: () => { ddzSave.discard(); ddzSave.start(); },
       });
     } else {
+      // 旧版 (v=1) 存档不兼容新流程，丢弃
+      if (peek) ddzSave.discard();
       ddzSave.start();
     }
   }

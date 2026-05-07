@@ -1,17 +1,22 @@
 /* games-shell/wins-leaderboard.js
- * 对弈类游戏专用排行榜（chess / gomoku / xiangqi）。
- * 每条记录展示 easy / medium / hard 三档胜场，按"高难度优先"排序。
+ * 对弈类游戏专用排行榜（chess / gomoku / xiangqi / doudizhu）。
+ * 每条记录展示 easy / medium / hard 三档积分，按"高难度优先"排序。
+ *
+ * 默认每局 +1 胜（"胜"为单位）；可在 mount 时传 unit:'分' 切换文案，
+ * 同时 submit 时传 score 作为本局得分（默认 1）。
  *
  *   const wlb = GamesShell.WinsLeaderboard.mount({
  *     container: document.getElementById('wlb-mount'),
  *     gameId: 'chess',
  *     title: '🏆 国际象棋 战绩榜',
+ *     unit: '胜',                   // 可选：'胜' | '分' | …
  *     getCurrentNick: () => GamesShell.Identity.getNick(),
  *   });
  *
  *   await GamesShell.WinsLeaderboard.submit({
  *     gameId: 'chess', nick, did, aiLevel: 'medium',
  *     moves: 38, durationMs: 312000, clientNonce,
+ *     score: 1,                     // 可选：本局得分（默认 1，整数 1-1024）
  *   });
  *   wlb.refresh();
  */
@@ -95,6 +100,7 @@
     }
     const ui = renderSkeleton(opts.container, opts);
     const getNick = opts.getCurrentNick || (() => null);
+    const unit = opts.unit || '胜';
     const state = { lastFetch: 0, inflight: false, expanded: false, page: 1, mineLast: null };
 
     function renderEntries(entries, total, currentNick) {
@@ -125,7 +131,7 @@
         const tm = document.createElement('span');
         tm.className = 'gs-lb-time';
         const total = e.easy + e.normal + e.hard;
-        tm.textContent = `共 ${total} 胜${e.ts ? ' · ' + relTime(e.ts) : ''}`;
+        tm.textContent = `共 ${total} ${unit}${e.ts ? ' · ' + relTime(e.ts) : ''}`;
         li.append(rk, nk, wins, tm);
         ui.list.appendChild(li);
       });
