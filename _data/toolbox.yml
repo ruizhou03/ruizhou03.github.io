@@ -153,9 +153,9 @@
   status: live
 
 - id: werewolf
-  name: 狼人杀发身份牌
+  name: 狼人杀联机房间
   icon: 🐺
-  tagline: 一台手机轮传
+  tagline: 多设备无须上帝
   url: /toolbox/werewolf/
   category: 游戏
   subcategory: 派对多人
