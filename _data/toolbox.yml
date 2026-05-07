@@ -133,6 +133,15 @@
   subcategory: 单人小游戏
   status: live
 
+- id: fruit-ninja
+  name: 水果忍者
+  icon: 🍉
+  tagline: 滑动切水果·三模式
+  url: /toolbox/fruit-ninja/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
 # 派对 / 多人
 - id: dare
   name: 不要做挑战
