@@ -1,0 +1,1213 @@
+---
+layout: default
+title: "弹珠机 | Rui Zhou"
+permalink: /toolbox/pinball/
+---
+
+<link rel="stylesheet" href="/assets/css/games-shell.css">
+
+<style>
+  .pb-rank-row {
+    margin: 0.9rem auto 0;
+    padding: 0.55rem 0.8rem;
+    max-width: 480px;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    text-align: center;
+    font-size: 0.92rem;
+    color: var(--color-ink);
+    display: none;
+  }
+  .pb-rank-row.show { display: block; }
+  .pb-rank-row strong { color: var(--color-highlight); font-weight: 700; }
+  .pb-rank-row.loading { color: var(--color-muted); }
+  .pb-rank-row.failed { color: var(--color-muted); font-size: 0.84rem; }
+</style>
+
+<style>
+  .pb-wrap { max-width: 560px; margin: 0 auto; padding: 1rem; }
+  .pb-wrap header { text-align: center; margin-bottom: 1.0rem; }
+  .pb-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
+  .pb-wrap header .sub { color: var(--color-light); font-style: italic; font-size: 0.92rem; }
+
+  .pb-scorebar {
+    display: flex; gap: 0.5rem; justify-content: center;
+    margin-bottom: 0.9rem;
+  }
+  .pb-score-box {
+    flex: 1; max-width: 130px;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 0.5rem 0.6rem;
+    text-align: center;
+  }
+  .pb-score-box .label {
+    font-size: 0.72rem; color: var(--color-muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 0.1rem;
+  }
+  .pb-score-box .value {
+    font-family: var(--font-display);
+    font-size: 1.5rem; font-weight: 600;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .pb-score-box .value.balls { letter-spacing: 0.1em; }
+
+  .pb-toolbar {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    justify-content: center; align-items: center;
+    margin-bottom: 0.7rem;
+  }
+  .pb-btn {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.86rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--color-ink);
+    transition: all 0.18s ease;
+  }
+  .pb-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+  .pb-canvas-wrap {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    background: #1b1b22;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  }
+  .pb-canvas-wrap canvas {
+    display: block; width: 100%; height: 100%;
+    touch-action: none;
+  }
+
+  .pb-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0, 0, 0, 0.62);
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0.6rem;
+    text-align: center;
+    color: #fff;
+    padding: 1rem;
+  }
+  .pb-overlay.show { display: flex; }
+  .pb-overlay h2 { font-size: 1.6rem; margin: 0; font-family: var(--font-display); }
+  .pb-overlay--pause { background: rgba(0, 0, 0, 0.32); }
+  .pb-overlay--start { background: rgba(0, 0, 0, 0.5); }
+
+  .pb-controls {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr 1fr;
+    gap: 0.4rem;
+    margin: 0.8rem auto 0;
+    max-width: 480px;
+  }
+  .pb-controls button {
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    color: var(--color-ink);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+    font-size: 1.0rem;
+    padding: 0.85rem 0.4rem;
+    line-height: 1.1;
+    text-align: center;
+  }
+  .pb-controls button.active,
+  .pb-controls button:active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .pb-controls .pb-flip-btn { font-size: 1.4rem; font-weight: 600; }
+  .pb-controls .pb-plunger-btn {
+    position: relative;
+    overflow: hidden;
+    font-size: 0.95rem;
+  }
+  .pb-controls .pb-plunger-btn .charge-bar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 6px;
+    background: linear-gradient(90deg, #f1c40f, #e74c3c);
+    width: 0%;
+    transition: width 0.05s linear;
+  }
+
+  .pb-help {
+    margin-top: 1rem;
+    font-size: 0.82rem;
+    color: var(--color-muted);
+    text-align: center;
+    line-height: 1.7;
+  }
+  .pb-help kbd {
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 0.05rem 0.35rem;
+    font-family: ui-monospace, monospace;
+    font-size: 0.78rem;
+  }
+</style>
+
+<div class="pb-wrap">
+  <header>
+    <h1>🎱 弹珠机</h1>
+    <div class="sub">蓄力发射，拨挡板把球弹回去——别让它漏掉</div>
+  </header>
+
+  <div class="pb-scorebar">
+    <div class="pb-score-box">
+      <div class="label">Score</div>
+      <div class="value" id="pbScore">0</div>
+    </div>
+    <div class="pb-score-box">
+      <div class="label">Balls</div>
+      <div class="value balls" id="pbBalls">●●●</div>
+    </div>
+    <div class="pb-score-box">
+      <div class="label">Best</div>
+      <div class="value" id="pbBest">0</div>
+    </div>
+  </div>
+
+  <div class="pb-toolbar">
+    <button class="pb-btn" id="pbPauseBtn">⏸ 暂停</button>
+    <button class="pb-btn" id="pbNewBtn">🔄 新游戏</button>
+  </div>
+
+  <div class="pb-canvas-wrap">
+    <canvas id="pbCanvas" width="480" height="640"></canvas>
+    <div class="pb-overlay pb-overlay--start show" id="pbOverlay">
+      <h2 id="pbOvTitle">准备发射</h2>
+      <div id="pbOvMsg">按住空格 / 「蓄力发射」按钮蓄力，松开发射</div>
+      <button class="pb-btn" id="pbOvBtn" style="display:none;">再来一局</button>
+    </div>
+  </div>
+
+  <div class="pb-controls">
+    <button class="pb-flip-btn" id="pbFlipL" data-action="flipL">◀</button>
+    <button class="pb-plunger-btn" id="pbPlungerBtn" data-action="plunger">
+      <span>蓄力发射</span>
+      <div class="charge-bar" id="pbChargeBar"></div>
+    </button>
+    <button class="pb-flip-btn" id="pbFlipR" data-action="flipR">▶</button>
+  </div>
+
+  <div class="pb-help">
+    <kbd>←</kbd>/<kbd>A</kbd> 左拨　·　<kbd>→</kbd>/<kbd>D</kbd> 右拨　·　按住 <kbd>空格</kbd> 蓄力发射　·　<kbd>P</kbd> 暂停
+  </div>
+
+  <div class="pb-rank-row" id="pb-rank-row"></div>
+  <div id="pb-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
+
+  <div id="pb-lb-mount" style="margin-top: 1.5rem;"></div>
+  <div id="pb-settle-btn-mount"></div>
+  <div id="pb-cm-mount"></div>
+</div>
+
+<script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/leaderboard.js"></script>
+<script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
+
+<script>
+(() => {
+  // ───────── 常量与设计坐标 ─────────
+  const STORE_KEY = 'tool.pinball.v1';
+  const DESIGN_W = 480;
+  const DESIGN_H = 640;
+
+  // 物理参数（设计像素 / 秒）
+  const GRAVITY = 1100;        // 像素/秒²
+  const AIR_DRAG = 0.999;      // 每帧水平速度衰减系数（在 60fps 下）
+  const SUBSTEPS = 6;          // 每帧子步进次数（防隧穿）
+  const MAX_SPEED = 1400;      // 球速上限，防爆炸
+
+  const BALL_R = 9;
+  const FLIP_LENGTH = 70;
+  const FLIP_THICK = 7;        // 挡板半厚（碰撞胶囊半径）
+  const FLIP_SPEED = 28;       // rad/s（拨动角速度）
+  const FLIP_REST_DEG = 25;    // 静止角（与水平夹角，向下）
+  const FLIP_UP_DEG = -32;     // 抬起角
+
+  const BUMPER_R = 20;
+  const BUMPER_KICK = 320;     // 撞柱反推冲量（px/s）
+  const BUMPER_SCORE = 100;
+  const SLING_KICK = 220;
+  const SLING_SCORE = 25;
+  const WALL_RESTITUTION = 0.78;
+  const SLING_RESTITUTION = 0.7;
+
+  const PLUNGER_X = 458;       // 弹簧轨道中心 x
+  const PLUNGER_LANE_LEFT = 442;
+  const PLUNGER_LANE_RIGHT = 474;
+  const PLUNGER_REST_Y = 600;  // 球放在弹簧上时的 y
+  const PLUNGER_MAX_CHARGE = 1.0;      // 0..1
+  const PLUNGER_CHARGE_RATE = 1.6;     // 每秒涨多少 charge
+  const PLUNGER_LAUNCH_VEL = 1500;     // 满档发射 vy（向上）
+  const PLUNGER_MIN_VEL = 520;         // 最低可弹出 plunger lane 的 vy
+
+  const DRAIN_Y = 626;         // 主区底部判定线（球下沿到这里就算掉）
+  const TOTAL_BALLS = 3;
+
+  // ───────── 状态 ─────────
+  const stored = (() => {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
+    catch { return {}; }
+  })();
+
+  const state = {
+    // 球
+    ball: { x: PLUNGER_X, y: PLUNGER_REST_Y, vx: 0, vy: 0, r: BALL_R,
+             onPlunger: true, trail: [] },
+    // 挡板
+    flipL: { pivot: { x: 158, y: 590 }, length: FLIP_LENGTH,
+             angle: deg(FLIP_REST_DEG), target: deg(FLIP_REST_DEG),
+             angularVelocity: 0,
+             restAngle: deg(FLIP_REST_DEG), upAngle: deg(FLIP_UP_DEG),
+             side: 'L' },
+    flipR: { pivot: { x: 332, y: 590 }, length: FLIP_LENGTH,
+             angle: deg(180 - FLIP_REST_DEG), target: deg(180 - FLIP_REST_DEG),
+             angularVelocity: 0,
+             restAngle: deg(180 - FLIP_REST_DEG), upAngle: deg(180 - FLIP_UP_DEG),
+             side: 'R' },
+    // 弹簧
+    plunger: { charge: 0, charging: false },
+    // 撞柱
+    bumpers: [
+      { x: 130, y: 200, r: BUMPER_R, flashTill: 0, hitCount: 0 },
+      { x: 220, y: 158, r: BUMPER_R, flashTill: 0, hitCount: 0 },
+      { x: 310, y: 200, r: BUMPER_R, flashTill: 0, hitCount: 0 },
+      { x: 220, y: 290, r: 16, flashTill: 0, hitCount: 0 },
+    ],
+    // 墙：线段集
+    walls: [],
+    slings: [],
+
+    score: 0,
+    balls: TOTAL_BALLS,
+    bumperHits: 0,
+    best: Number(stored.best) || 0,
+    status: 'idle',     // idle | inplay | gameover | paused
+    startedAt: null,
+    runNonce: null,
+    paused: false,
+    rafId: null,
+    lastFrameTime: 0,
+    popups: [],         // {x, y, text, t0}
+    flashTill: 0,       // 整体 score flash
+  };
+
+  function deg(d) { return d * Math.PI / 180; }
+
+  // ───────── 几何：构造台型 ─────────
+  function buildTable() {
+    state.walls = [];
+    state.slings = [];
+
+    const R = WALL_RESTITUTION;
+    function wall(ax, ay, bx, by, rest = R, kick = 0) {
+      state.walls.push({ ax, ay, bx, by, restitution: rest, kick });
+    }
+    function sling(ax, ay, bx, by) {
+      state.slings.push({ ax, ay, bx, by, restitution: SLING_RESTITUTION, kick: SLING_KICK });
+    }
+
+    // 顶部圆弧：横跨整个台面（含 plunger lane 上方），最右段斜向下到 (474, 30)
+    // —— 这样从 plunger lane 上来的球会被斜段反射回主区左下方
+    const topArc = [
+      [16, 80], [16, 56], [40, 28], [80, 14], [200, 6], [340, 6], [400, 18], [440, 14], [474, 30],
+    ];
+    for (let i = 0; i < topArc.length - 1; i++) {
+      wall(topArc[i][0], topArc[i][1], topArc[i+1][0], topArc[i+1][1]);
+    }
+    // 主区左外墙
+    wall(16, 80, 16, 540);
+    // 主区左下斜面（导向左 flipper 的漏斗，至 pivot 高度 590）
+    wall(16, 540, 108, 590);
+    // 左 flipper 外侧抵柱（与 pivot 平齐）
+    wall(108, 590, 158, 590);
+    // 中间漏球缺口：左 flipper 尖到右 flipper 尖之间不画底墙
+    // 右 flipper 外侧抵柱
+    wall(332, 590, 382, 590);
+    // 主区右下斜面
+    wall(382, 590, 442, 540);
+    // 主区与 plunger lane 之间的隔板：从底向上到 y=90，顶部留 90→30 的开口让球冲出
+    wall(442, 540, 442, 90);
+    // plunger lane 右外墙（从顶弧末端 474,30 一直到底）
+    wall(474, 30, 474, 612);
+    // 弹簧底部托板
+    wall(442, 612, 474, 612);
+
+    // Slingshot：左右两个三角形，撞到斜面会被弹飞
+    // 左 sling：三角顶点 (44, 470), (98, 460), (132, 528) — 关键斜边是 (98,460)→(132,528)
+    sling(98, 460, 132, 528);
+    wall(44, 470, 98, 460);   // 上沿（普通墙）
+    wall(44, 470, 44, 528);   // 左竖
+    wall(44, 528, 132, 528);  // 下沿
+    // 右 sling：镜像
+    sling(310, 528, 344, 460);
+    wall(344, 460, 398, 470);
+    wall(398, 470, 398, 528);
+    wall(310, 528, 398, 528);
+  }
+
+  // ───────── 工具：向量 ─────────
+  function clampSpeed(b) {
+    const sp = Math.hypot(b.vx, b.vy);
+    if (sp > MAX_SPEED) {
+      const k = MAX_SPEED / sp;
+      b.vx *= k; b.vy *= k;
+    }
+  }
+
+  function closestPointOnSeg(px, py, ax, ay, bx, by) {
+    const ABx = bx - ax, ABy = by - ay;
+    const ABlenSq = ABx*ABx + ABy*ABy;
+    if (ABlenSq < 1e-6) return { x: ax, y: ay, t: 0 };
+    let t = ((px - ax) * ABx + (py - ay) * ABy) / ABlenSq;
+    t = Math.max(0, Math.min(1, t));
+    return { x: ax + t * ABx, y: ay + t * ABy, t };
+  }
+
+  // ───────── 碰撞 ─────────
+  function collideBumper(ball, bumper, now) {
+    const dx = ball.x - bumper.x;
+    const dy = ball.y - bumper.y;
+    const dist = Math.hypot(dx, dy);
+    const minDist = ball.r + bumper.r;
+    if (dist >= minDist || dist < 1e-6) return false;
+    const nx = dx / dist, ny = dy / dist;
+    const overlap = minDist - dist;
+    ball.x += nx * overlap;
+    ball.y += ny * overlap;
+    const vDotN = ball.vx * nx + ball.vy * ny;
+    if (vDotN < 0) {
+      const r = 0.92;
+      ball.vx -= (1 + r) * vDotN * nx;
+      ball.vy -= (1 + r) * vDotN * ny;
+    }
+    ball.vx += nx * BUMPER_KICK;
+    ball.vy += ny * BUMPER_KICK;
+    bumper.flashTill = now + 180;
+    bumper.hitCount++;
+    state.score += BUMPER_SCORE;
+    state.bumperHits++;
+    state.flashTill = now + 100;
+    state.popups.push({ x: bumper.x, y: bumper.y - bumper.r, text: '+' + BUMPER_SCORE, t0: now });
+    if (state.score > state.best) {
+      state.best = state.score;
+      persist();
+    }
+    return true;
+  }
+
+  function collideSegment(ball, seg, now, isSling = false) {
+    const cp = closestPointOnSeg(ball.x, ball.y, seg.ax, seg.ay, seg.bx, seg.by);
+    const dx = ball.x - cp.x;
+    const dy = ball.y - cp.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist >= ball.r) return false;
+    let nx, ny;
+    if (dist < 1e-6) {
+      // 退化情况：取线段法向
+      const ABx = seg.bx - seg.ax, ABy = seg.by - seg.ay;
+      const len = Math.hypot(ABx, ABy) || 1;
+      nx = -ABy / len; ny = ABx / len;
+    } else {
+      nx = dx / dist; ny = dy / dist;
+    }
+    const overlap = ball.r - dist;
+    ball.x += nx * overlap;
+    ball.y += ny * overlap;
+    const vDotN = ball.vx * nx + ball.vy * ny;
+    if (vDotN < 0) {
+      const r = seg.restitution || WALL_RESTITUTION;
+      ball.vx -= (1 + r) * vDotN * nx;
+      ball.vy -= (1 + r) * vDotN * ny;
+    }
+    if (isSling && seg.kick) {
+      ball.vx += nx * seg.kick;
+      ball.vy += ny * seg.kick;
+      state.score += SLING_SCORE;
+      state.flashTill = now + 80;
+      state.popups.push({ x: cp.x, y: cp.y - 14, text: '+' + SLING_SCORE, t0: now });
+      if (state.score > state.best) {
+        state.best = state.score;
+        persist();
+      }
+    }
+    return true;
+  }
+
+  function collideFlipper(ball, flip) {
+    const ax = flip.pivot.x, ay = flip.pivot.y;
+    const bx = ax + Math.cos(flip.angle) * flip.length;
+    const by = ay + Math.sin(flip.angle) * flip.length;
+    const cp = closestPointOnSeg(ball.x, ball.y, ax, ay, bx, by);
+    const dx = ball.x - cp.x;
+    const dy = ball.y - cp.y;
+    const dist = Math.hypot(dx, dy);
+    const minDist = ball.r + FLIP_THICK;
+    if (dist >= minDist) return false;
+    let nx, ny;
+    if (dist < 1e-6) {
+      const ABx = bx - ax, ABy = by - ay;
+      const len = Math.hypot(ABx, ABy) || 1;
+      nx = -ABy / len; ny = ABx / len;
+      // 法向应朝上（远离 pivot）
+      if ((flip.side === 'L' && nx < 0) || (flip.side === 'R' && nx > 0)) {
+        nx = -nx; ny = -ny;
+      }
+    } else {
+      nx = dx / dist; ny = dy / dist;
+    }
+    const overlap = minDist - dist + 0.01;
+    ball.x += nx * overlap;
+    ball.y += ny * overlap;
+    // 接触点对 pivot 的相对位置
+    const cpDx = cp.x - ax;
+    const cpDy = cp.y - ay;
+    const omega = flip.angularVelocity;
+    // 接触点的速度 = ω × r
+    const flipVx = -cpDy * omega;
+    const flipVy = cpDx * omega;
+    const relVx = ball.vx - flipVx;
+    const relVy = ball.vy - flipVy;
+    const relVDotN = relVx * nx + relVy * ny;
+    if (relVDotN < 0) {
+      const r = 0.55;
+      ball.vx -= (1 + r) * relVDotN * nx;
+      ball.vy -= (1 + r) * relVDotN * ny;
+      // 切向附加：如果挡板正在向上拨，给球一个额外向上推
+      if (Math.abs(omega) > 2) {
+        ball.vx += flipVx * 0.45;
+        ball.vy += flipVy * 0.45;
+      }
+    }
+    return true;
+  }
+
+  // ───────── 主循环 ─────────
+  function step(now) {
+    if (!state.lastFrameTime) state.lastFrameTime = now;
+    const rawDt = (now - state.lastFrameTime) / 1000;
+    state.lastFrameTime = now;
+    // 钳制 dt 防卡顿后大跳
+    const dt = Math.min(rawDt, 0.033);
+
+    if (!state.paused && state.status !== 'gameover') {
+      updatePhysics(dt, now);
+      updatePlunger(dt);
+      updateFlippers(dt);
+    }
+    render(now);
+    state.rafId = requestAnimationFrame(step);
+  }
+
+  function updatePlunger(dt) {
+    const p = state.plunger;
+    if (p.charging) {
+      p.charge = Math.min(PLUNGER_MAX_CHARGE, p.charge + PLUNGER_CHARGE_RATE * dt);
+    }
+    // 视觉条
+    const cb = document.getElementById('pbChargeBar');
+    if (cb) cb.style.width = (p.charge * 100) + '%';
+    // 球停在 plunger 上：随蓄力下沉
+    if (state.ball.onPlunger) {
+      state.ball.x = PLUNGER_X;
+      state.ball.y = PLUNGER_REST_Y + p.charge * 12;
+      state.ball.vx = 0;
+      state.ball.vy = 0;
+    }
+  }
+
+  function launchPlunger() {
+    if (!state.ball.onPlunger) return;
+    const p = state.plunger;
+    if (p.charge < 0.05) { p.charge = 0; return; }
+    const v = PLUNGER_MIN_VEL + (PLUNGER_LAUNCH_VEL - PLUNGER_MIN_VEL) * p.charge;
+    state.ball.vy = -v;
+    state.ball.vx = 0;
+    state.ball.onPlunger = false;
+    p.charge = 0;
+    if (state.status === 'idle') {
+      state.status = 'inplay';
+      state.startedAt = state.startedAt || Date.now();
+      hideOverlay();
+    }
+  }
+
+  function updateFlippers(dt) {
+    [state.flipL, state.flipR].forEach(f => {
+      const oldAngle = f.angle;
+      const dir = Math.sign(f.target - f.angle);
+      if (dir === 0) {
+        f.angularVelocity = 0;
+        return;
+      }
+      const nextAngle = f.angle + dir * FLIP_SPEED * dt;
+      // 越过 target 则钳制
+      if ((dir > 0 && nextAngle > f.target) || (dir < 0 && nextAngle < f.target)) {
+        f.angle = f.target;
+      } else {
+        f.angle = nextAngle;
+      }
+      f.angularVelocity = (f.angle - oldAngle) / Math.max(dt, 0.0001);
+    });
+  }
+
+  function updatePhysics(dt, now) {
+    if (state.ball.onPlunger) return;
+    const subDt = dt / SUBSTEPS;
+
+    for (let s = 0; s < SUBSTEPS; s++) {
+      // 重力 + 阻尼
+      state.ball.vy += GRAVITY * subDt;
+      state.ball.vx *= Math.pow(AIR_DRAG, subDt * 60);
+
+      state.ball.x += state.ball.vx * subDt;
+      state.ball.y += state.ball.vy * subDt;
+
+      // 漏球判定
+      if (state.ball.y - state.ball.r > DRAIN_Y &&
+          state.ball.x > 100 && state.ball.x < 442) {
+        onBallDrain();
+        return;
+      }
+
+      // 碰撞检测
+      state.bumpers.forEach(b => collideBumper(state.ball, b, now));
+      state.walls.forEach(w => collideSegment(state.ball, w, now, false));
+      state.slings.forEach(sg => collideSegment(state.ball, sg, now, true));
+      collideFlipper(state.ball, state.flipL);
+      collideFlipper(state.ball, state.flipR);
+
+      clampSpeed(state.ball);
+    }
+
+    // 弱发射救援：球安静地停在 plunger lane 内 → 自动重置到弹簧上
+    if (state.ball.x > PLUNGER_LANE_LEFT && state.ball.x < PLUNGER_LANE_RIGHT &&
+        state.ball.y > 560 &&
+        Math.hypot(state.ball.vx, state.ball.vy) < 80) {
+      state.ball.x = PLUNGER_X;
+      state.ball.y = PLUNGER_REST_Y;
+      state.ball.vx = 0; state.ball.vy = 0;
+      state.ball.onPlunger = true;
+      state.plunger.charge = 0;
+    }
+
+    // 拖尾
+    state.ball.trail.unshift({ x: state.ball.x, y: state.ball.y });
+    if (state.ball.trail.length > 4) state.ball.trail.length = 4;
+
+    // popup 过期清理
+    if (state.popups.length) {
+      state.popups = state.popups.filter(p => now - p.t0 < 700);
+    }
+  }
+
+  function onBallDrain() {
+    state.balls--;
+    state.ball.trail = [];
+    if (state.balls <= 0) {
+      state.balls = 0;
+      gameOver();
+    } else {
+      // 重置到 plunger
+      state.ball.x = PLUNGER_X;
+      state.ball.y = PLUNGER_REST_Y;
+      state.ball.vx = 0; state.ball.vy = 0;
+      state.ball.onPlunger = true;
+      state.plunger.charge = 0;
+      state.status = 'idle';
+      showOverlay({ title: '上球准备', msg: `还剩 ${state.balls} 球——蓄力发射`, btn: false });
+    }
+    updateHud();
+  }
+
+  function gameOver() {
+    state.status = 'gameover';
+    state.ball.onPlunger = false;
+    state.ball.vx = 0; state.ball.vy = 0;
+    showOverlay({
+      title: 'Game Over',
+      msg: `本局 ${state.score}　·　最高 ${state.best}　·　撞柱 ${state.bumperHits} 次`,
+      btn: true,
+    });
+    pbTryAutoSubmit();
+    if (pbSettleBtn) pbSettleBtn.setEnabled(true);
+    updateHud();
+  }
+
+  // ───────── 渲染 ─────────
+  function render(now) {
+    const canvas = pbCanvas;
+    const ctx = pbCtx;
+    // DPR + 设计坐标缩放
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const targetW = Math.max(1, Math.round(rect.width * dpr));
+    const targetH = Math.max(1, Math.round(rect.height * dpr));
+    if (canvas.width !== targetW || canvas.height !== targetH) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+    }
+    const sx = (canvas.width / DESIGN_W);
+    const sy = (canvas.height / DESIGN_H);
+    ctx.setTransform(sx, 0, 0, sy, 0, 0);
+
+    // 背景
+    const grad = ctx.createLinearGradient(0, 0, 0, DESIGN_H);
+    grad.addColorStop(0, '#2c2540');
+    grad.addColorStop(1, '#181828');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, DESIGN_W, DESIGN_H);
+
+    // 网状装饰：画几条暗色斜线
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    for (let y = -DESIGN_H; y < DESIGN_H * 2; y += 24) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(DESIGN_W, y + DESIGN_W);
+      ctx.stroke();
+    }
+
+    // Slings：先画填充三角
+    ctx.fillStyle = 'rgba(241, 196, 15, 0.85)';
+    // 左 sling 三角（外接的 wall + sling 围出来的区域）
+    drawTriangle(ctx, 44, 470, 98, 460, 132, 528);
+    drawTriangle(ctx, 344, 460, 398, 470, 310, 528);
+
+    // 墙：画线（金属感）
+    ctx.strokeStyle = '#9aa3b2';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    state.walls.forEach(w => {
+      ctx.beginPath();
+      ctx.moveTo(w.ax, w.ay);
+      ctx.lineTo(w.bx, w.by);
+      ctx.stroke();
+    });
+
+    // 漏球缺口提示（底部中间）
+    ctx.strokeStyle = 'rgba(231, 76, 60, 0.5)';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(130, 620);
+    ctx.lineTo(312, 620);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Bumpers
+    state.bumpers.forEach(b => {
+      const flash = b.flashTill > now;
+      const r = b.r + (flash ? 4 : 0);
+      const grd = ctx.createRadialGradient(b.x - 4, b.y - 4, 2, b.x, b.y, r);
+      if (flash) {
+        grd.addColorStop(0, '#fff8c8');
+        grd.addColorStop(0.5, '#f1c40f');
+        grd.addColorStop(1, '#b9870c');
+      } else {
+        grd.addColorStop(0, '#7fb6ff');
+        grd.addColorStop(0.5, '#3a6ea5');
+        grd.addColorStop(1, '#1e3a5f');
+      }
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      // 高光
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.beginPath();
+      ctx.arc(b.x - r * 0.35, b.y - r * 0.35, r * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      // 外圈
+      ctx.strokeStyle = flash ? '#fff' : 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+
+    // 弹簧（在 plunger lane 底部）
+    drawPlunger(ctx);
+
+    // 挡板
+    drawFlipper(ctx, state.flipL);
+    drawFlipper(ctx, state.flipR);
+
+    // 球（拖尾 + 球）
+    state.ball.trail.forEach((t, i) => {
+      const a = (1 - i / state.ball.trail.length) * 0.4;
+      ctx.fillStyle = `rgba(255, 255, 255, ${a})`;
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, BALL_R * (1 - i * 0.15), 0, Math.PI * 2);
+      ctx.fill();
+    });
+    const bg = ctx.createRadialGradient(
+      state.ball.x - 3, state.ball.y - 3, 1,
+      state.ball.x, state.ball.y, BALL_R
+    );
+    bg.addColorStop(0, '#ffffff');
+    bg.addColorStop(0.6, '#dcdcdc');
+    bg.addColorStop(1, '#7a7a7a');
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.arc(state.ball.x, state.ball.y, BALL_R, 0, Math.PI * 2);
+    ctx.fill();
+
+    // popups
+    state.popups.forEach(p => {
+      const t = (now - p.t0) / 700;
+      if (t < 0 || t >= 1) return;
+      const alpha = 1 - t;
+      const lift = t * 28;
+      ctx.save();
+      ctx.fillStyle = `rgba(255, 235, 130, ${alpha})`;
+      ctx.strokeStyle = `rgba(60, 40, 0, ${alpha})`;
+      ctx.lineWidth = 2;
+      ctx.font = 'bold 18px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.strokeText(p.text, p.x, p.y - lift);
+      ctx.fillText(p.text, p.x, p.y - lift);
+      ctx.restore();
+    });
+
+    // 顶部分数闪光
+    if (state.flashTill > now) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.fillRect(0, 0, DESIGN_W, DESIGN_H);
+    }
+  }
+
+  function drawTriangle(ctx, ax, ay, bx, by, cx, cy) {
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(bx, by);
+    ctx.lineTo(cx, cy);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawFlipper(ctx, flip) {
+    const ax = flip.pivot.x, ay = flip.pivot.y;
+    const bx = ax + Math.cos(flip.angle) * flip.length;
+    const by = ay + Math.sin(flip.angle) * flip.length;
+    // 主体
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = FLIP_THICK * 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+    // 高光线
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+    // pivot 轴
+    ctx.fillStyle = '#3a3a3a';
+    ctx.beginPath();
+    ctx.arc(ax, ay, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawPlunger(ctx) {
+    const x = PLUNGER_X;
+    const baseY = 620;
+    const compress = state.plunger.charge * 14;
+    // 弹簧底座
+    ctx.fillStyle = '#444';
+    ctx.fillRect(x - 14, baseY - 4, 28, 6);
+    // 弹簧 zigzag
+    ctx.strokeStyle = '#8a8a8a';
+    ctx.lineWidth = 2;
+    const top = PLUNGER_REST_Y + 12 + compress;
+    const bot = baseY - 4;
+    const segs = 4;
+    ctx.beginPath();
+    for (let i = 0; i <= segs; i++) {
+      const t = i / segs;
+      const y = top + (bot - top) * t;
+      const sx = x + (i % 2 === 0 ? -8 : 8);
+      if (i === 0) ctx.moveTo(sx, y);
+      else ctx.lineTo(sx, y);
+    }
+    ctx.stroke();
+    // 顶板
+    ctx.fillStyle = '#9aa3b2';
+    ctx.fillRect(x - 12, top - 4, 24, 4);
+  }
+
+  // ───────── HUD / Overlay ─────────
+  const pbCanvas = document.getElementById('pbCanvas');
+  const pbCtx = pbCanvas.getContext('2d');
+  const $score = document.getElementById('pbScore');
+  const $balls = document.getElementById('pbBalls');
+  const $best = document.getElementById('pbBest');
+  const $overlay = document.getElementById('pbOverlay');
+  const $ovTitle = document.getElementById('pbOvTitle');
+  const $ovMsg = document.getElementById('pbOvMsg');
+  const $ovBtn = document.getElementById('pbOvBtn');
+  const $pauseBtn = document.getElementById('pbPauseBtn');
+  const $newBtn = document.getElementById('pbNewBtn');
+
+  function updateHud() {
+    $score.textContent = state.score;
+    $balls.textContent = state.balls > 0 ? '●'.repeat(state.balls) : '×';
+    $best.textContent = state.best;
+  }
+
+  function showOverlay({ title, msg, btn }) {
+    $ovTitle.textContent = title;
+    $ovMsg.textContent = msg;
+    $ovBtn.style.display = btn ? 'inline-block' : 'none';
+    $overlay.classList.add('show');
+  }
+  function hideOverlay() {
+    $overlay.classList.remove('show');
+    $overlay.classList.remove('pb-overlay--pause');
+  }
+
+  function persist() {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ best: state.best }));
+  }
+
+  function togglePause() {
+    if (state.status === 'gameover') return;
+    state.paused = !state.paused;
+    $pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+    if (state.paused) {
+      showOverlay({ title: '暂停中', msg: '按 P 或继续按钮恢复', btn: false });
+      $overlay.classList.add('pb-overlay--pause');
+    } else {
+      hideOverlay();
+    }
+  }
+
+  function startFresh() {
+    state.score = 0;
+    state.balls = TOTAL_BALLS;
+    state.bumperHits = 0;
+    state.bumpers.forEach(b => { b.flashTill = 0; b.hitCount = 0; });
+    state.popups = [];
+    state.ball.x = PLUNGER_X;
+    state.ball.y = PLUNGER_REST_Y;
+    state.ball.vx = 0; state.ball.vy = 0;
+    state.ball.onPlunger = true;
+    state.ball.trail = [];
+    state.plunger.charge = 0;
+    state.plunger.charging = false;
+    state.flipL.angle = state.flipL.restAngle;
+    state.flipL.target = state.flipL.restAngle;
+    state.flipR.angle = state.flipR.restAngle;
+    state.flipR.target = state.flipR.restAngle;
+    state.status = 'idle';
+    state.paused = false;
+    state.startedAt = Date.now();
+    state.runNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+    pbPendingSubmit = false;
+    pbLastRankInfo = null;
+    pbSetRank('hidden');
+    if (pbNickPrompt) pbNickPrompt.hide();
+    if (pbSettleBtn) pbSettleBtn.setEnabled(false);
+    $pauseBtn.textContent = '⏸ 暂停';
+    showOverlay({ title: '准备发射', msg: '按住空格 / 「蓄力发射」按钮蓄力，松开发射', btn: false });
+    updateHud();
+  }
+
+  // ───────── 输入 ─────────
+  // 同侧 flipper 可能被键盘 + 触屏同时按住；任一来源仍按下时挡板就保持抬起。
+  const flipHold = { L: { kbd: false, touch: false }, R: { kbd: false, touch: false } };
+  function setFlipper(side, source, on) {
+    if (state.status === 'gameover' || state.paused) return;
+    flipHold[side][source] = on;
+    const f = side === 'L' ? state.flipL : state.flipR;
+    const held = flipHold[side].kbd || flipHold[side].touch;
+    f.target = held ? f.upAngle : f.restAngle;
+  }
+
+  function setPlunger(on) {
+    if (state.status === 'gameover' || state.paused) return;
+    if (!state.ball.onPlunger) {
+      // 球不在弹簧上时，按下不蓄力
+      state.plunger.charging = false;
+      return;
+    }
+    if (on) {
+      state.plunger.charging = true;
+    } else {
+      state.plunger.charging = false;
+      launchPlunger();
+    }
+  }
+
+  // 键盘
+  const keysDown = new Set();
+  document.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    if (keysDown.has(k)) return;  // 防 repeat
+    keysDown.add(k);
+    if (k === 'arrowleft' || k === 'a') { setFlipper('L', 'kbd', true); e.preventDefault(); }
+    else if (k === 'arrowright' || k === 'd') { setFlipper('R', 'kbd', true); e.preventDefault(); }
+    else if (k === ' ') { setPlunger(true); e.preventDefault(); }
+    else if (k === 'p') { togglePause(); e.preventDefault(); }
+    else if (k === 'r') { startFresh(); e.preventDefault(); }
+  });
+  document.addEventListener('keyup', (e) => {
+    const k = e.key.toLowerCase();
+    keysDown.delete(k);
+    if (k === 'arrowleft' || k === 'a') setFlipper('L', 'kbd', false);
+    else if (k === 'arrowright' || k === 'd') setFlipper('R', 'kbd', false);
+    else if (k === ' ') setPlunger(false);
+  });
+
+  // 触屏 + 鼠标按钮（统一用 pointer 事件）
+  function bindHoldButton(el, onDown, onUp) {
+    let active = false;
+    const start = (e) => {
+      if (active) return;
+      active = true;
+      el.classList.add('active');
+      onDown();
+      e.preventDefault();
+    };
+    const end = (e) => {
+      if (!active) return;
+      active = false;
+      el.classList.remove('active');
+      onUp();
+      if (e) e.preventDefault();
+    };
+    el.addEventListener('pointerdown', start);
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    el.addEventListener('pointerleave', end);
+    // 防止双击导致的页面缩放或文本选择
+    el.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+  }
+
+  bindHoldButton(document.getElementById('pbFlipL'),
+    () => setFlipper('L', 'touch', true), () => setFlipper('L', 'touch', false));
+  bindHoldButton(document.getElementById('pbFlipR'),
+    () => setFlipper('R', 'touch', true), () => setFlipper('R', 'touch', false));
+  bindHoldButton(document.getElementById('pbPlungerBtn'),
+    () => setPlunger(true), () => setPlunger(false));
+
+  // 工具栏按钮
+  $pauseBtn.addEventListener('click', togglePause);
+  $newBtn.addEventListener('click', startFresh);
+  $ovBtn.addEventListener('click', startFresh);
+
+  // 切后台暂停
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state.status === 'inplay' && !state.paused) {
+      togglePause();
+    }
+  });
+
+  // ───────── games-shell 接入 ─────────
+  let pbLbWidget = null;
+  let pbNickPrompt = null;
+  let pbSettleBtn = null;
+  let pbPendingSubmit = false;
+  let pbLastRankInfo = null;
+  const $pbRankRow = document.getElementById('pb-rank-row');
+
+  function pbPaintBoard(ctx, x, y, w, h) {
+    // 给结算图绘制一张静态台面快照
+    const sx = w / DESIGN_W;
+    const sy = h / DESIGN_H;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(sx, sy);
+    // 背景
+    const g = ctx.createLinearGradient(0, 0, 0, DESIGN_H);
+    g.addColorStop(0, '#2c2540');
+    g.addColorStop(1, '#181828');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, DESIGN_W, DESIGN_H);
+    // 墙
+    ctx.strokeStyle = '#9aa3b2';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    state.walls.forEach(w => {
+      ctx.beginPath();
+      ctx.moveTo(w.ax, w.ay);
+      ctx.lineTo(w.bx, w.by);
+      ctx.stroke();
+    });
+    // bumpers
+    state.bumpers.forEach(b => {
+      ctx.fillStyle = '#3a6ea5';
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+    // slings
+    ctx.fillStyle = '#f1c40f';
+    drawTriangle(ctx, 44, 470, 98, 460, 132, 528);
+    drawTriangle(ctx, 344, 460, 398, 470, 310, 528);
+    // flippers
+    drawFlipper(ctx, { pivot: state.flipL.pivot, angle: state.flipL.restAngle,
+                        length: state.flipL.length, side: 'L' });
+    drawFlipper(ctx, { pivot: state.flipR.pivot, angle: state.flipR.restAngle,
+                        length: state.flipR.length, side: 'R' });
+    ctx.restore();
+  }
+
+  function pbGetSettlementOpts() {
+    const ri = pbLastRankInfo || {};
+    return {
+      kind: 'single',
+      gameId: 'pinball',
+      title: '弹珠机',
+      emoji: '🎱',
+      nick: GamesShell.Identity.getNick(),
+      score: state.score,
+      scoreLabel: '本 局 得 分',
+      scoreFormatter: v => Number(v).toLocaleString(),
+      rankInfo: ri,
+      stats: [
+        { label: '撞柱次数', value: state.bumperHits },
+        { label: '使用球数', value: TOTAL_BALLS },
+        { label: '历史最高', value: Number(state.best || 0).toLocaleString() },
+      ],
+      paintBoard: pbPaintBoard,
+      boardAspect: DESIGN_W / DESIGN_H,
+      watermark: 'zirconeey.github.io/toolbox/pinball',
+    };
+  }
+
+  function pbSetRank(name, data) {
+    if (name === 'hidden') {
+      $pbRankRow.classList.remove('show', 'loading', 'failed');
+      $pbRankRow.innerHTML = '';
+      pbLastRankInfo = null;
+      return;
+    }
+    $pbRankRow.classList.add('show');
+    $pbRankRow.classList.remove('loading', 'failed');
+    if (name === 'loading') {
+      $pbRankRow.classList.add('loading'); $pbRankRow.textContent = '排名上传中…';
+      pbLastRankInfo = {};
+    } else if (name === 'failed') {
+      $pbRankRow.classList.add('failed'); $pbRankRow.textContent = '排行榜暂时不可用（不影响游戏）';
+      pbLastRankInfo = { failed: true };
+    } else if (name === 'pending') {
+      $pbRankRow.classList.add('failed'); $pbRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓';
+      pbLastRankInfo = { pending: true };
+    } else if (name === 'success' && data && data.rank && data.total) {
+      $pbRankRow.innerHTML = '';
+      $pbRankRow.append(
+        document.createTextNode('第 '),
+        Object.assign(document.createElement('strong'), { textContent: String(data.rank) }),
+        document.createTextNode(' 名 · 共 '),
+        Object.assign(document.createElement('strong'), { textContent: String(data.total) }),
+        document.createTextNode(' 位玩家'),
+      );
+      pbLastRankInfo = { rank: data.rank, total: data.total };
+    }
+  }
+
+  async function pbSubmitWithNick(nick) {
+    if (!nick || pbPendingSubmit || state.score <= 0) return;
+    pbPendingSubmit = true;
+    pbSetRank('loading');
+    const r = await GamesShell.Leaderboard.submit({
+      gameId: 'pinball',
+      nick,
+      score: state.score,
+      durationMs: Math.max(3000, Date.now() - (state.startedAt || Date.now())),
+      clientNonce: state.runNonce,
+      did: GamesShell.Identity.getDeviceId(),
+      extra: { bumperHits: state.bumperHits, balls: TOTAL_BALLS },
+    });
+    if (r && r.ok) {
+      pbSetRank('success', { rank: r.rank, total: r.total });
+      if (pbLbWidget) pbLbWidget.refresh();
+      return;
+    }
+    pbPendingSubmit = false;
+    if (r && r.reason === 'nick_taken') {
+      GamesShell.Identity.clearNick();
+      alert('“' + nick + '” 已被别的玩家占用，请换一个昵称');
+      pbSetRank('pending');
+      if (pbNickPrompt) { pbNickPrompt.refresh(); pbNickPrompt.show(); }
+      return;
+    }
+    pbSetRank('failed');
+    if (r && r.reason) console.warn('[pinball] submit rejected:', r.reason);
+  }
+
+  function pbTryAutoSubmit() {
+    if (!window.GamesShell) return;
+    if (state.score <= 0) { pbSetRank('hidden'); return; }
+    const nick = GamesShell.Identity.getNick();
+    if (nick) pbSubmitWithNick(nick);
+    else { pbSetRank('pending'); pbNickPrompt && pbNickPrompt.show(); }
+  }
+
+  function pbInitShell() {
+    if (!window.GamesShell) return;
+    pbLbWidget = GamesShell.Leaderboard.mount({
+      container: document.getElementById('pb-lb-mount'),
+      gameId: 'pinball',
+      title: '🏆 弹珠机 排行榜',
+      scoreFormatter: v => Number(v).toLocaleString(),
+      getCurrentNick: () => GamesShell.Identity.getNick(),
+    });
+    GamesShell.Comments.mount({
+      container: document.getElementById('pb-cm-mount'),
+      path: '/toolbox/pinball/',
+      title: '💬 弹珠玩家交流',
+      intro: '聊聊你的最高分、撞柱手感 ~',
+      placeholder: '聊聊你的弹珠机心得 ~',
+    });
+    pbNickPrompt = GamesShell.NickPrompt.mount({
+      container: document.getElementById('pb-nick-mount'),
+      prompt: '想上排行榜？起个昵称吧',
+      onSubmit: nick => pbSubmitWithNick(nick),
+      onSkip: () => pbSetRank('hidden'),
+    });
+    if (GamesShell.Settlement) {
+      pbSettleBtn = GamesShell.Settlement.mountButton({
+        container: document.getElementById('pb-settle-btn-mount'),
+        gameId: 'pinball',
+        getOpts: pbGetSettlementOpts,
+        startDisabled: true,
+      });
+    }
+  }
+
+  // ───────── 初始化 ─────────
+  buildTable();
+  pbInitShell();
+  startFresh();
+  state.rafId = requestAnimationFrame(step);
+})();
+</script>
