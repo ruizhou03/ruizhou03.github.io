@@ -15,12 +15,12 @@ permalink: /toolbox/fruit-ninja/
   .fn-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
   .fn-wrap header .sub { color: var(--color-light); font-style: italic; font-size: 0.92rem; }
 
-  .fn-stage-wrap { position: relative; max-width: 540px; margin: 0 auto; }
+  .fn-stage-wrap { position: relative; max-width: 600px; margin: 0 auto; width: 100%; }
   #fn-canvas {
     display: block;
     width: 100%;
-    max-width: 540px;
-    aspect-ratio: 3 / 4;
+    max-width: 600px;
+    aspect-ratio: 2 / 3;
     margin: 0 auto;
     background: linear-gradient(180deg, #2a3a52 0%, #1a2436 100%);
     border-radius: 14px;
@@ -28,9 +28,10 @@ permalink: /toolbox/fruit-ninja/
     cursor: crosshair;
     touch-action: none;
   }
-  @media (max-width: 600px) {
-    #fn-canvas { border-radius: 10px; }
-    .fn-wrap { padding: 0.6rem; }
+  @media (max-width: 700px) {
+    .fn-wrap { padding: 0.4rem; }
+    .fn-stage-wrap { max-width: 100%; margin-left: -0.4rem; margin-right: -0.4rem; width: auto; }
+    #fn-canvas { border-radius: 0; max-width: 100%; }
   }
 
   .hud {
@@ -191,7 +192,7 @@ permalink: /toolbox/fruit-ninja/
   </section>
 
   <section id="game-stage" class="fn-stage-wrap" hidden>
-    <canvas id="fn-canvas" width="1080" height="1440"></canvas>
+    <canvas id="fn-canvas" width="1080" height="1620"></canvas>
     <div class="hud">
       <div class="hud-left">
         <span class="hud-timer" hidden><span class="label">⏱</span><span data-bind="timer">60</span></span>
@@ -394,14 +395,21 @@ permalink: /toolbox/fruit-ninja/
   const rankRow = document.getElementById('rank-row');
 
   // ============ Logical canvas size ============
-  // portrait 3:4，移动友好；桌面端 max-width 540 限制不至于过大
-  const LOG_W = 540, LOG_H = 720;
+  // portrait 2:3，手机利用更多屏幕高度；桌面 max-width 600
+  const LOG_W = 540, LOG_H = 810;
+  // DPR cap 到 2：iPhone 默认 3 会让 backing buffer 像素 ×2.25，
+  // 每帧 fill / drawImage 慢得多，限制 2 帧率明显回升
   function resizeCanvas() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(LOG_W * dpr);
     canvas.height = Math.round(LOG_H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // 缓存背景渐变，避免每帧重新创建
+    bgGradient = ctx.createLinearGradient(0, 0, 0, LOG_H);
+    bgGradient.addColorStop(0, '#2a3a52');
+    bgGradient.addColorStop(1, '#1a2436');
   }
+  let bgGradient = null;
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
 
@@ -447,6 +455,9 @@ permalink: /toolbox/fruit-ninja/
     if (!pointerActive) return;
     const p = canvasPos(e);
     trail.push({ x: p.x, y: p.y, t: performance.now() });
+    if (state.running && !state.paused && !state.over) {
+      checkSliceLastSegment();
+    }
   });
   function endPointer() { pointerActive = false; }
   canvas.addEventListener('pointerup', endPointer);
@@ -521,6 +532,20 @@ permalink: /toolbox/fruit-ninja/
           onSlice(f, angle);
           break;
         }
+      }
+    }
+  }
+
+  // 仅检测最后一段轨迹 — 在 pointermove 立即调用，让切片响应不等下一帧
+  function checkSliceLastSegment() {
+    if (trail.length < 2) return;
+    const a = trail[trail.length - 2];
+    const b = trail[trail.length - 1];
+    for (const f of fruits) {
+      if (f.kind !== 'whole' || f.sliced) continue;
+      if (segCircleHit(a, b, f.x, f.y, f.r)) {
+        const angle = Math.atan2(b.y - a.y, b.x - a.x);
+        onSlice(f, angle);
       }
     }
   }
@@ -616,8 +641,9 @@ permalink: /toolbox/fruit-ninja/
       f.rot += f.vrot * dt;
     }
 
-    // 出屏处理
+    // 出屏处理 + 移除 sliced 的 whole（不再渲染原水果，只剩两个 half 飞出）
     fruits = fruits.filter(f => {
+      if (f.kind === 'whole' && f.sliced) return false;
       if (f.y > LOG_H + 100) {
         if (f.kind === 'whole' && !f.sliced && f.type !== 'bomb') {
           onMissed(f);
@@ -710,11 +736,8 @@ permalink: /toolbox/fruit-ninja/
   }
 
   function render() {
-    // 背景
-    const grad = ctx.createLinearGradient(0, 0, 0, LOG_H);
-    grad.addColorStop(0, '#2a3a52');
-    grad.addColorStop(1, '#1a2436');
-    ctx.fillStyle = grad;
+    // 背景（用缓存的渐变）
+    ctx.fillStyle = bgGradient;
     ctx.fillRect(0, 0, LOG_W, LOG_H);
 
     // 装饰：星点
