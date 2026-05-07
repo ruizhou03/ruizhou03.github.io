@@ -141,8 +141,10 @@ permalink: /toolbox/dare/
     font-variant-numeric: tabular-nums;
   }
 
-  /* —— 卡片翻转动画 —— */
-  .stage-screen.flipping .scene {
+  /* —— 卡片翻转动画 ——
+     只对当前可见的 scene 跑翻转，否则隐藏 scene 末态会被 fill-mode 拉到 opacity:1
+     在 .flipping 期间穿透到卡片上。 */
+  .stage-screen.flipping .scene:not(.hidden) {
     animation: flipIn 0.55s ease both;
   }
   @keyframes flipIn {
@@ -231,9 +233,9 @@ permalink: /toolbox/dare/
       <!-- 待抽 -->
       <div class="scene scene-idle" id="scene-idle">
         <div class="icon">🃏</div>
-        <div class="hint">点下面按钮，3-2-1 倒计时之后翻面给朋友看（或反转屏幕）。看到题目就要立刻执行——做了就输。</div>
+        <div class="hint" id="idle-hint">点下面按钮，3-2-1 倒计时之后翻面给朋友看（或反转屏幕）。看到题目就要立刻执行——做了就输。</div>
         <div class="btn-row">
-          <button class="dare-btn primary" id="btn-draw">下一张</button>
+          <button class="dare-btn primary" id="btn-draw" disabled>加载中…</button>
         </div>
       </div>
 
@@ -314,6 +316,7 @@ permalink: /toolbox/dare/
   const $sCount    = document.getElementById('scene-countdown');
   const $sCard     = document.getElementById('scene-card');
   const $cdNum     = document.getElementById('cd-num');
+  const $idleHint  = document.getElementById('idle-hint');
   const $cardTag   = document.getElementById('card-tag');
   const $cardId    = document.getElementById('card-id');
   const $cardPrompt = document.getElementById('card-prompt');
@@ -331,15 +334,23 @@ permalink: /toolbox/dare/
 
   // ========== 加载卡池 ==========
   fetch('{{ "/toolbox/dare/cards.json" | relative_url }}')
-    .then(r => r.json())
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
     .then(cards => {
       state.cards = cards;
       $hudTotal.textContent = cards.length;
+      $btnDraw.textContent = '下一张';
+      $btnDraw.disabled = false;
       restoreOrInit();
     })
     .catch(err => {
-      $cardPrompt.textContent = '加载卡池失败';
-      console.error(err);
+      console.error('[dare] cards.json 加载失败:', err);
+      $idleHint.innerHTML = '⚠️ 加载卡池失败<br>请刷新页面重试。';
+      $idleHint.style.color = '#c0392b';
+      $btnDraw.textContent = '加载失败';
+      $btnDraw.disabled = true;
     });
 
   function restoreOrInit() {
@@ -484,6 +495,10 @@ permalink: /toolbox/dare/
       $durText.style.display = 'none';
     }
 
+    // 新卡：恢复 ✓/✗ 可点击（上一张被点过会被禁用）
+    $btnWin.disabled = false;
+    $btnLose.disabled = false;
+
     showScene('card');
     // 触发卡片翻转动画 — 重置 .flipping
     $stage.classList.remove('flipping');
@@ -491,7 +506,7 @@ permalink: /toolbox/dare/
     $stage.classList.add('flipping');
     setTimeout(() => $stage.classList.remove('flipping'), 600);
 
-    if (navigator.vibrate) navigator.vibrate(120);
+    if ($optVib.checked && navigator.vibrate) navigator.vibrate(120);
   }
   function formatDuration(s) {
     if (s >= 60) return `还剩 ${Math.floor(s / 60)} 分 ${(s % 60).toString().padStart(2, '0')} 秒`;
@@ -503,11 +518,15 @@ permalink: /toolbox/dare/
     state.wins++;
     persist();
     updateHUD();
+    $btnWin.disabled = true;
+    $btnLose.disabled = true;
   }
   function recordLose() {
     state.losses++;
     persist();
     updateHUD();
+    $btnWin.disabled = true;
+    $btnLose.disabled = true;
   }
 
   // ========== 事件绑定 ==========
