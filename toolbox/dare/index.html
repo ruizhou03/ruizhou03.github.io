@@ -19,27 +19,145 @@ permalink: /toolbox/dare/
     font-size: 0.95rem;
   }
 
-  .dare-hud {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 0.6rem 0 1rem;
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 0.92rem;
-    color: var(--color-muted);
-    border-bottom: 1px dashed var(--color-border);
-    margin-bottom: 1.4rem;
+  /* —— 配置区 —— */
+  .dare-setup {
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    padding: 1.4rem 1.2rem 1.2rem;
+    margin-bottom: 1rem;
   }
-  .hud-left, .hud-right { display: flex; gap: 1rem; }
-  .hud-left .v, .hud-right .v {
-    color: var(--color-ink); font-weight: 600;
+  .dare-setup h2 {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: var(--color-ink);
+    margin: 0 0 1.1rem;
+    text-align: center;
+  }
+  .setup-row { margin-bottom: 1.1rem; }
+  .setup-row label.field-label {
+    display: block;
+    font-size: 0.86rem;
+    color: var(--color-muted);
+    margin-bottom: 0.45rem;
+    font-family: var(--font-display);
+  }
+  .player-count-chips {
+    display: flex; flex-wrap: wrap; gap: 0.4rem;
+  }
+  .player-count-chips button {
+    flex: 1 1 12%;
+    min-width: 2.4rem;
+    padding: 0.5rem 0;
+    font-size: 0.95rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--color-ink);
+    transition: all 0.15s;
+  }
+  .player-count-chips button:hover { border-color: var(--color-accent); }
+  .player-count-chips button.active {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+  }
+
+  .cpp-row {
+    display: flex; align-items: center; gap: 0.7rem;
+  }
+  .cpp-row input[type="range"] {
+    flex: 1;
+    accent-color: var(--color-accent);
+  }
+  .cpp-row .cpp-val {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+    min-width: 3.4rem;
+    text-align: right;
+    font-size: 0.95rem;
+  }
+
+  .setup-help {
+    color: var(--color-muted);
+    font-size: 0.84rem;
+    line-height: 1.7;
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px dashed var(--color-border);
+  }
+
+  /* —— HUD（游戏中）—— */
+  .dare-hud {
+    margin-bottom: 1rem;
+  }
+  .player-roster {
+    display: flex; flex-wrap: wrap; gap: 0.35rem;
+    margin-bottom: 0.7rem;
+    justify-content: center;
+  }
+  .player-card {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-family: var(--font-display);
+    color: var(--color-muted);
+    transition: all 0.18s;
+  }
+  .player-card .pid { font-weight: 600; color: var(--color-ink); }
+  .player-card .rem {
+    color: var(--color-muted);
     font-variant-numeric: tabular-nums;
   }
-  .hud-right .v.win  { color: #10b981; }
-  .hud-right .v.lose { color: #c0392b; }
+  .player-card.current {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(30, 58, 95, 0.2);
+  }
+  .player-card.current .pid,
+  .player-card.current .rem { color: #fff; }
+  .player-card.out {
+    color: #c0392b;
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+  .player-card.out .pid { color: #c0392b; }
+  .player-card.won {
+    color: #10b981;
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.08);
+  }
+  .player-card.won .pid { color: #10b981; }
 
+  .turn-banner {
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    color: var(--color-ink);
+    padding: 0.4rem 0;
+    border-bottom: 1px dashed var(--color-border);
+    margin-bottom: 1.2rem;
+  }
+  .turn-banner .pid {
+    font-weight: 700;
+    color: var(--color-accent);
+  }
+
+  /* —— Stage / 场景（保留原结构）—— */
   .dare-stage {
     position: relative;
     width: 100%;
-    aspect-ratio: 5 / 7;          /* 5:7 像扑克牌 */
+    aspect-ratio: 5 / 7;
     max-height: 70vh;
     perspective: 1200px;
     margin-bottom: 1.2rem;
@@ -142,8 +260,8 @@ permalink: /toolbox/dare/
   }
 
   /* —— 卡片翻转动画 ——
-     只对当前可见的 scene 跑翻转，否则隐藏 scene 末态会被 fill-mode 拉到 opacity:1
-     在 .flipping 期间穿透到卡片上。 */
+     只对当前可见的 scene 跑翻转，否则隐藏 scene 末态会被 fill-mode 拉到
+     opacity:1 在 .flipping 期间穿透到卡片上。 */
   .stage-screen.flipping .scene:not(.hidden) {
     animation: flipIn 0.55s ease both;
   }
@@ -187,6 +305,11 @@ permalink: /toolbox/dare/
     opacity: 0.4; cursor: not-allowed; transform: none;
   }
 
+  .quit-row {
+    text-align: center;
+    margin-top: 1rem;
+  }
+
   .footer-options {
     margin-top: 1rem; text-align: center;
     color: var(--color-light); font-size: 0.86rem;
@@ -197,6 +320,47 @@ permalink: /toolbox/dare/
     margin-right: 1rem;
   }
   .footer-options input { vertical-align: middle; margin-right: 0.3rem; }
+
+  /* —— 结算 modal —— */
+  .dare-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+  }
+  .dare-modal[hidden] { display: none; }
+  .dare-modal-card {
+    background: var(--color-bg);
+    border-radius: 16px;
+    padding: 1.6rem 1.4rem;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+  .dare-modal-card h2 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--color-ink);
+    margin: 0 0 1rem;
+  }
+  .modal-ranking {
+    text-align: left;
+    margin: 0 0 1.2rem;
+    padding: 0.8rem 1rem;
+    background: var(--color-bg-warm);
+    border-radius: 10px;
+    font-size: 0.92rem;
+    line-height: 1.9;
+    color: var(--color-ink);
+  }
+  .modal-ranking .rk { display: flex; justify-content: space-between; }
+  .modal-ranking .rk.win  { color: #10b981; font-weight: 600; }
+  .modal-ranking .rk.lose { color: #c0392b; }
 
   details.about {
     margin-top: 1.4rem; font-size: 0.88rem;
@@ -218,69 +382,114 @@ permalink: /toolbox/dare/
     <p>Don't Do It Challenge</p>
   </header>
 
-  <div class="dare-hud">
-    <div class="hud-left">
-      <span>已抽 <span class="v" id="hud-drawn">0</span> / <span class="v" id="hud-total">0</span></span>
-    </div>
-    <div class="hud-right">
-      <span><span class="v win" id="hud-wins">0</span> 胜</span>
-      <span><span class="v lose" id="hud-losses">0</span> 败</span>
-    </div>
-  </div>
+  <!-- ===== 配置阶段 ===== -->
+  <section class="dare-setup" id="setup-screen">
+    <h2>开始新对局</h2>
 
-  <div class="dare-stage">
-    <div class="stage-screen" id="stage">
-      <!-- 待抽 -->
-      <div class="scene scene-idle" id="scene-idle">
-        <div class="icon">🃏</div>
-        <div class="hint" id="idle-hint">点下面按钮，3-2-1 倒计时之后翻面给朋友看（或反转屏幕）。看到题目就要立刻执行——做了就输。</div>
-        <div class="btn-row">
-          <button class="dare-btn primary" id="btn-draw" disabled>加载中…</button>
-        </div>
-      </div>
-
-      <!-- 倒计时 -->
-      <div class="scene scene-countdown hidden" id="scene-countdown">
-        <div class="num" id="cd-num">3</div>
-        <div class="sub">把手机翻给对面…</div>
-      </div>
-
-      <!-- 卡片 -->
-      <div class="scene scene-card hidden" id="scene-card">
-        <div class="tag" id="card-tag">—</div>
-        <div class="id-num" id="card-id">#0</div>
-        <div class="prompt" id="card-prompt">—</div>
-        <div class="duration-bar" id="duration-bar" style="display:none">
-          <div class="duration-fill" id="duration-fill"></div>
-        </div>
-        <div class="duration-text" id="duration-text" style="display:none">—</div>
-        <div class="btn-row" style="margin-top: 1.4rem">
-          <button class="dare-btn success" id="btn-win">✓ 我没做</button>
-          <button class="dare-btn danger"  id="btn-lose">✗ 我做了</button>
-        </div>
+    <div class="setup-row">
+      <label class="field-label">玩家人数</label>
+      <div class="player-count-chips" id="player-count-chips">
+        <button type="button" data-n="2">2</button>
+        <button type="button" data-n="3">3</button>
+        <button type="button" data-n="4">4</button>
+        <button type="button" data-n="5">5</button>
+        <button type="button" data-n="6">6</button>
+        <button type="button" data-n="7">7</button>
+        <button type="button" data-n="8">8</button>
       </div>
     </div>
-  </div>
 
-  <div class="btn-row" id="post-card-row" style="display:none">
-    <button class="dare-btn primary" id="btn-next">下一张</button>
-    <button class="dare-btn ghost" id="btn-reset">重新洗牌</button>
-  </div>
+    <div class="setup-row">
+      <label class="field-label">每人额度</label>
+      <div class="cpp-row">
+        <input type="range" id="cpp-slider" min="5" max="20" value="10" step="1">
+        <span class="cpp-val"><span id="cpp-val">10</span> 张</span>
+      </div>
+    </div>
 
-  <div class="footer-options">
-    <label>
-      <input type="checkbox" id="opt-flip">
-      反向显示（让对面看正向）
-    </label>
-    <label>
-      <input type="checkbox" id="opt-vibrate" checked>
-      倒计时震动
-    </label>
+    <div class="btn-row">
+      <button class="dare-btn primary" id="btn-start" disabled>请先选玩家人数</button>
+    </div>
+
+    <div class="setup-help">
+      <strong>玩法：</strong>每人 N 张挑战卡的额度。看到题目立刻执行——做了就出局，没做就用掉一张。最后剩下没出局的玩家获胜。
+    </div>
+  </section>
+
+  <!-- ===== 游戏阶段 ===== -->
+  <section class="dare-game" id="game-screen" hidden>
+    <div class="dare-hud">
+      <div class="player-roster" id="player-roster"></div>
+      <div class="turn-banner" id="turn-banner">轮到 <span class="pid">P1</span> · 还剩 10 张</div>
+    </div>
+
+    <div class="dare-stage">
+      <div class="stage-screen" id="stage">
+        <!-- 待抽 -->
+        <div class="scene scene-idle" id="scene-idle">
+          <div class="icon">🃏</div>
+          <div class="hint" id="idle-hint">点下面按钮，3-2-1 倒计时之后翻面给当前玩家看。看到题目就要立刻执行——做了就出局。</div>
+          <div class="btn-row">
+            <button class="dare-btn primary" id="btn-draw" disabled>加载中…</button>
+          </div>
+        </div>
+
+        <!-- 倒计时 -->
+        <div class="scene scene-countdown hidden" id="scene-countdown">
+          <div class="num" id="cd-num">3</div>
+          <div class="sub">把手机翻给当前玩家…</div>
+        </div>
+
+        <!-- 卡片 -->
+        <div class="scene scene-card hidden" id="scene-card">
+          <div class="tag" id="card-tag">—</div>
+          <div class="id-num" id="card-id">#0</div>
+          <div class="prompt" id="card-prompt">—</div>
+          <div class="duration-bar" id="duration-bar" style="display:none">
+            <div class="duration-fill" id="duration-fill"></div>
+          </div>
+          <div class="duration-text" id="duration-text" style="display:none">—</div>
+          <div class="btn-row" style="margin-top: 1.4rem">
+            <button class="dare-btn success" id="btn-win">✓ 我没做</button>
+            <button class="dare-btn danger"  id="btn-lose">✗ 我做了</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row" id="post-card-row" style="display:none">
+      <button class="dare-btn primary" id="btn-next">下一张</button>
+    </div>
+
+    <div class="footer-options">
+      <label>
+        <input type="checkbox" id="opt-flip">
+        反向显示（让对面看正向）
+      </label>
+      <label>
+        <input type="checkbox" id="opt-vibrate" checked>
+        倒计时震动
+      </label>
+    </div>
+
+    <div class="quit-row">
+      <button class="dare-btn ghost" id="btn-quit">放弃当前对局</button>
+    </div>
+  </section>
+
+  <!-- ===== 结算 modal ===== -->
+  <div class="dare-modal" id="modal-gameover" hidden>
+    <div class="dare-modal-card">
+      <h2 id="winner-title">🎉 P3 获胜！</h2>
+      <div class="modal-ranking" id="winner-ranking"></div>
+      <button class="dare-btn primary" id="btn-replay">再来一局</button>
+    </div>
   </div>
 
   <details class="about">
     <summary>关于这个游戏</summary>
-    <p><strong>玩法：</strong>每次点「下一张」会出 3-2-1 倒计时（用于把手机翻给对面），倒计时结束揭示题目。看到题目的人要立刻执行限制规则，违反了就算输。</p>
+    <p><strong>玩法：</strong>2-8 人轮流抽卡，每人有 N 张额度（默认 10）。每次点「下一张」会出 3-2-1 倒计时（用于把手机翻给当前玩家），倒计时结束揭示题目。看到题目的玩家要立刻执行限制规则，做了就出局；没做就用掉一张额度，轮到下一玩家。</p>
+    <p><strong>胜利条件：</strong>最后还没出局的玩家获胜。如果所有人都用完了额度还没出局，全员通关并列胜出。</p>
     <p><strong>反向显示：</strong>如果不想物理翻手机，勾上「反向显示」会让卡片旋转 180°，对面看是正的，自己看是倒的。</p>
     <p><strong>不重复：</strong>用 sessionStorage 记忆已抽过的牌，刷新或离开重进都不会重复。一副 50 张全抽完才会自动洗牌重来。</p>
     <p><strong>纯本地：</strong>战绩只存当前会话，关闭页面就清零。</p>
@@ -293,46 +502,62 @@ permalink: /toolbox/dare/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script>
 (function () {
-  const STORAGE_KEY = 'dare.session.v1';
+  const STORAGE_KEY = 'dare.session.v2';
 
   const state = {
-    cards: [],          // 加载后的卡池
-    deck: [],           // 当前洗牌顺序（card id 数组）
-    cursor: 0,          // deck 中下一张的 index
-    wins: 0,
-    losses: 0,
-    phase: 'idle',      // 'idle' | 'countdown' | 'card'
+    cards: [],            // 加载后的卡池
+    deck: [],             // 共享牌堆（card id 数组）
+    cursor: 0,            // deck 中下一张
+    // setup
+    numPlayers: null,     // 2-8
+    cardsPerPlayer: 10,   // 5-20
+    // game
+    started: false,
+    players: [],          // [{id:'P1', remaining:10, status:'alive'|'out'|'won'}]
+    currentIdx: 0,
+    phase: 'idle',
     current: null,
     durationTimer: null,
     countdownTimer: null,
   };
 
-  const $hudDrawn  = document.getElementById('hud-drawn');
-  const $hudTotal  = document.getElementById('hud-total');
-  const $hudWins   = document.getElementById('hud-wins');
-  const $hudLosses = document.getElementById('hud-losses');
-  const $stage     = document.getElementById('stage');
-  const $sIdle     = document.getElementById('scene-idle');
-  const $sCount    = document.getElementById('scene-countdown');
-  const $sCard     = document.getElementById('scene-card');
-  const $cdNum     = document.getElementById('cd-num');
-  const $idleHint  = document.getElementById('idle-hint');
-  const $cardTag   = document.getElementById('card-tag');
-  const $cardId    = document.getElementById('card-id');
-  const $cardPrompt = document.getElementById('card-prompt');
-  const $durBar    = document.getElementById('duration-bar');
-  const $durFill   = document.getElementById('duration-fill');
-  const $durText   = document.getElementById('duration-text');
-  const $btnDraw   = document.getElementById('btn-draw');
-  const $btnWin    = document.getElementById('btn-win');
-  const $btnLose   = document.getElementById('btn-lose');
-  const $btnNext   = document.getElementById('btn-next');
-  const $btnReset  = document.getElementById('btn-reset');
-  const $postRow   = document.getElementById('post-card-row');
-  const $optFlip   = document.getElementById('opt-flip');
-  const $optVib    = document.getElementById('opt-vibrate');
+  // —— DOM refs ——
+  const $setup        = document.getElementById('setup-screen');
+  const $game         = document.getElementById('game-screen');
+  const $countChips   = document.getElementById('player-count-chips');
+  const $cppSlider    = document.getElementById('cpp-slider');
+  const $cppVal       = document.getElementById('cpp-val');
+  const $btnStart     = document.getElementById('btn-start');
+  const $roster       = document.getElementById('player-roster');
+  const $turnBanner   = document.getElementById('turn-banner');
+  const $stage        = document.getElementById('stage');
+  const $sIdle        = document.getElementById('scene-idle');
+  const $sCount       = document.getElementById('scene-countdown');
+  const $sCard        = document.getElementById('scene-card');
+  const $cdNum        = document.getElementById('cd-num');
+  const $idleHint     = document.getElementById('idle-hint');
+  const $cardTag      = document.getElementById('card-tag');
+  const $cardId       = document.getElementById('card-id');
+  const $cardPrompt   = document.getElementById('card-prompt');
+  const $durBar       = document.getElementById('duration-bar');
+  const $durFill      = document.getElementById('duration-fill');
+  const $durText      = document.getElementById('duration-text');
+  const $btnDraw      = document.getElementById('btn-draw');
+  const $btnWin       = document.getElementById('btn-win');
+  const $btnLose      = document.getElementById('btn-lose');
+  const $btnNext      = document.getElementById('btn-next');
+  const $btnQuit      = document.getElementById('btn-quit');
+  const $postRow      = document.getElementById('post-card-row');
+  const $optFlip      = document.getElementById('opt-flip');
+  const $optVib       = document.getElementById('opt-vibrate');
+  const $modal        = document.getElementById('modal-gameover');
+  const $winnerTitle  = document.getElementById('winner-title');
+  const $winnerRank   = document.getElementById('winner-ranking');
+  const $btnReplay    = document.getElementById('btn-replay');
 
-  // ========== 加载卡池 ==========
+  // ============================================================
+  // 加载卡池
+  // ============================================================
   fetch('{{ "/toolbox/dare/cards.json" | relative_url }}')
     .then(r => {
       if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -340,7 +565,6 @@ permalink: /toolbox/dare/
     })
     .then(cards => {
       state.cards = cards;
-      $hudTotal.textContent = cards.length;
       $btnDraw.textContent = '下一张';
       $btnDraw.disabled = false;
       restoreOrInit();
@@ -351,6 +575,8 @@ permalink: /toolbox/dare/
       $idleHint.style.color = '#c0392b';
       $btnDraw.textContent = '加载失败';
       $btnDraw.disabled = true;
+      $btnStart.disabled = true;
+      $btnStart.textContent = '加载失败';
     });
 
   function restoreOrInit() {
@@ -358,37 +584,46 @@ permalink: /toolbox/dare/
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
-        // 校验：deck 长度对得上
-        if (saved && Array.isArray(saved.deck) && saved.deck.length === state.cards.length) {
-          state.deck = saved.deck;
-          state.cursor = saved.cursor || 0;
-          state.wins = saved.wins || 0;
-          state.losses = saved.losses || 0;
-          updateHUD();
+        if (
+          saved && saved.started &&
+          Array.isArray(saved.players) && saved.players.length >= 2 &&
+          Array.isArray(saved.deck) && saved.deck.length === state.cards.length &&
+          typeof saved.cursor === 'number' &&
+          typeof saved.currentIdx === 'number'
+        ) {
+          state.numPlayers     = saved.players.length;
+          state.cardsPerPlayer = saved.cardsPerPlayer || 10;
+          state.deck           = saved.deck;
+          state.cursor         = saved.cursor;
+          state.players        = saved.players;
+          state.currentIdx     = saved.currentIdx;
+          state.started        = true;
+          enterGame();
+          // 如果存档时游戏其实已经结束（理论上不会存盘，但守卫一下）
+          const alive = state.players.filter(p => p.status === 'alive');
+          if (alive.length <= 1) showGameOver();
           return;
         }
       }
-    } catch (e) {}
-    initDeck();
+    } catch (e) { /* ignore */ }
+    // 没有存档：留在 setup
+    showSetup();
   }
-  function initDeck() {
-    const ids = state.cards.map(c => c.id);
-    state.deck = shuffle(ids);
-    state.cursor = 0;
-    state.wins = 0;
-    state.losses = 0;
-    persist();
-    updateHUD();
-  }
+
   function persist() {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-        deck: state.deck,
-        cursor: state.cursor,
-        wins: state.wins,
-        losses: state.losses,
+        started:        state.started,
+        cardsPerPlayer: state.cardsPerPlayer,
+        deck:           state.deck,
+        cursor:         state.cursor,
+        players:        state.players,
+        currentIdx:     state.currentIdx,
       }));
     } catch (e) {}
+  }
+  function clearSave() {
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch (e) {}
   }
   function shuffle(arr) {
     const a = arr.slice();
@@ -398,13 +633,118 @@ permalink: /toolbox/dare/
     }
     return a;
   }
-  function updateHUD() {
-    $hudDrawn.textContent = state.cursor;
-    $hudWins.textContent  = state.wins;
-    $hudLosses.textContent = state.losses;
+
+  // ============================================================
+  // 配置阶段
+  // ============================================================
+  function showSetup() {
+    state.started = false;
+    $setup.hidden = false;
+    $game.hidden = true;
+    $modal.hidden = true;
+    refreshSetupButtons();
   }
 
-  // ========== 场景切换 ==========
+  function refreshSetupButtons() {
+    $countChips.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', Number(b.dataset.n) === state.numPlayers);
+    });
+    $cppVal.textContent = state.cardsPerPlayer;
+    $cppSlider.value = state.cardsPerPlayer;
+    if (!state.cards.length) {
+      $btnStart.disabled = true;
+      $btnStart.textContent = '加载中…';
+    } else if (state.numPlayers == null) {
+      $btnStart.disabled = true;
+      $btnStart.textContent = '请先选玩家人数';
+    } else {
+      $btnStart.disabled = false;
+      $btnStart.textContent = `🎮 开始游戏（${state.numPlayers} 人 · 每人 ${state.cardsPerPlayer} 张）`;
+    }
+  }
+
+  $countChips.addEventListener('click', e => {
+    const b = e.target.closest('button[data-n]');
+    if (!b) return;
+    state.numPlayers = Number(b.dataset.n);
+    refreshSetupButtons();
+  });
+  $cppSlider.addEventListener('input', () => {
+    state.cardsPerPlayer = Number($cppSlider.value);
+    refreshSetupButtons();
+  });
+  $btnStart.addEventListener('click', () => {
+    if ($btnStart.disabled) return;
+    startGame();
+  });
+
+  // ============================================================
+  // 游戏开局
+  // ============================================================
+  function startGame() {
+    state.players = [];
+    for (let i = 0; i < state.numPlayers; i++) {
+      state.players.push({
+        id: 'P' + (i + 1),
+        remaining: state.cardsPerPlayer,
+        status: 'alive',
+      });
+    }
+    state.currentIdx = 0;
+    state.deck = shuffle(state.cards.map(c => c.id));
+    state.cursor = 0;
+    state.started = true;
+    state.current = null;
+    persist();
+    enterGame();
+  }
+
+  function enterGame() {
+    $setup.hidden = true;
+    $game.hidden = false;
+    $modal.hidden = true;
+    showScene('idle');
+    renderHUD();
+  }
+
+  // ============================================================
+  // HUD
+  // ============================================================
+  function renderHUD() {
+    $roster.innerHTML = '';
+    state.players.forEach((p, i) => {
+      const card = document.createElement('span');
+      card.className = 'player-card';
+      if (p.status === 'out')  card.classList.add('out');
+      if (p.status === 'won')  card.classList.add('won');
+      if (p.status === 'alive' && i === state.currentIdx) card.classList.add('current');
+
+      const pid = document.createElement('span');
+      pid.className = 'pid';
+      pid.textContent = p.id;
+      card.appendChild(pid);
+
+      const rem = document.createElement('span');
+      rem.className = 'rem';
+      if (p.status === 'out')      rem.textContent = '✗';
+      else if (p.status === 'won') rem.textContent = '✓';
+      else                          rem.textContent = '· ' + p.remaining;
+      card.appendChild(rem);
+
+      $roster.appendChild(card);
+    });
+
+    const cur = state.players[state.currentIdx];
+    if (cur && cur.status === 'alive') {
+      $turnBanner.innerHTML = `轮到 <span class="pid">${cur.id}</span> · 还剩 ${cur.remaining} 张`;
+    } else {
+      $turnBanner.textContent = '—';
+    }
+  }
+
+  // ============================================================
+  // 场景切换
+  // ============================================================
   function showScene(name) {
     $sIdle.classList.toggle('hidden', name !== 'idle');
     $sCount.classList.toggle('hidden', name !== 'countdown');
@@ -413,29 +753,30 @@ permalink: /toolbox/dare/
     $postRow.style.display = (name === 'card') ? 'flex' : 'none';
   }
 
-  // ========== 抽卡 ==========
+  // ============================================================
+  // 抽卡
+  // ============================================================
   function startDraw() {
     if (state.cards.length === 0) return;
     if (state.cursor >= state.deck.length) {
-      // 洗牌
+      // 重新洗牌（只是补充牌堆，不动玩家状态）
       state.deck = shuffle(state.cards.map(c => c.id));
       state.cursor = 0;
       persist();
-      updateHUD();
     }
     runCountdown();
   }
+
   function runCountdown() {
     showScene('countdown');
     let n = 3;
     $cdNum.textContent = n;
-    // 重启动画 — remove & re-add element
     $cdNum.style.animation = 'none';
-    void $cdNum.offsetWidth;       // reflow trigger
+    void $cdNum.offsetWidth;
     $cdNum.style.animation = '';
 
     if ($optVib.checked && navigator.vibrate) {
-      navigator.vibrate([60, 940, 60, 940, 200]);    // 三次短震
+      navigator.vibrate([60, 940, 60, 940, 200]);
     }
 
     state.countdownTimer = setInterval(() => {
@@ -452,19 +793,18 @@ permalink: /toolbox/dare/
       $cdNum.style.animation = '';
     }, 1000);
   }
+
   function revealCard() {
     const id = state.deck[state.cursor];
     const card = state.cards.find(c => c.id === id);
     state.current = card;
     state.cursor++;
     persist();
-    updateHUD();
 
     $cardTag.textContent = card.tag || '挑战';
     $cardId.textContent = `#${card.id}`;
     $cardPrompt.textContent = card.prompt;
 
-    // duration 倒计时
     if (state.durationTimer) {
       clearInterval(state.durationTimer);
       state.durationTimer = null;
@@ -495,12 +835,11 @@ permalink: /toolbox/dare/
       $durText.style.display = 'none';
     }
 
-    // 新卡：恢复 ✓/✗ 可点击（上一张被点过会被禁用）
+    // 新卡：恢复 ✓/✗ 可点击
     $btnWin.disabled = false;
     $btnLose.disabled = false;
 
     showScene('card');
-    // 触发卡片翻转动画 — 重置 .flipping
     $stage.classList.remove('flipping');
     void $stage.offsetWidth;
     $stage.classList.add('flipping');
@@ -513,33 +852,133 @@ permalink: /toolbox/dare/
     return `还剩 ${s} 秒`;
   }
 
-  // ========== 战绩 ==========
+  // ============================================================
+  // 回合 / 结算
+  // ============================================================
   function recordWin() {
-    state.wins++;
-    persist();
-    updateHUD();
+    const cur = state.players[state.currentIdx];
+    if (!cur || cur.status !== 'alive') return;
+    cur.remaining = Math.max(0, cur.remaining - 1);
+    if (cur.remaining === 0) cur.status = 'won';
     $btnWin.disabled = true;
     $btnLose.disabled = true;
+    persist();
+    afterTurnAction();
   }
   function recordLose() {
-    state.losses++;
-    persist();
-    updateHUD();
+    const cur = state.players[state.currentIdx];
+    if (!cur || cur.status !== 'alive') return;
+    cur.status = 'out';
     $btnWin.disabled = true;
     $btnLose.disabled = true;
+    persist();
+    afterTurnAction();
+  }
+  function afterTurnAction() {
+    if (checkGameEnd()) return;
+    advanceToNextAlive();
+    renderHUD();
   }
 
-  // ========== 事件绑定 ==========
+  // 找下一个 alive 玩家。注意：如果当前 idx 还活着但已被换状态 (won/out)，
+  // 就从下一个开始；否则从当前开始往后扫一圈。
+  function advanceToNextAlive() {
+    const n = state.players.length;
+    for (let step = 1; step <= n; step++) {
+      const idx = (state.currentIdx + step) % n;
+      if (state.players[idx].status === 'alive') {
+        state.currentIdx = idx;
+        return;
+      }
+    }
+    // 没人活了 — 由 checkGameEnd 处理，这里保持 currentIdx 不变
+  }
+
+  function checkGameEnd() {
+    const alive = state.players.filter(p => p.status === 'alive');
+    if (alive.length <= 1) {
+      showGameOver();
+      return true;
+    }
+    return false;
+  }
+
+  function showGameOver() {
+    state.started = false;  // 防止之后误触
+    clearSave();
+
+    const aliveList = state.players.filter(p => p.status === 'alive');
+    const wonList   = state.players.filter(p => p.status === 'won');
+    const outList   = state.players.filter(p => p.status === 'out');
+    const N = state.players.length;
+
+    // 标题：6 种结束态
+    let title;
+    if (outList.length === N) {
+      title = `💀 全军覆没`;
+    } else if (aliveList.length === 0) {
+      if (wonList.length === N) {
+        title = `🏆 全员通关！`;
+      } else if (wonList.length === 1) {
+        title = `🎉 ${wonList[0].id} 获胜！`;
+      } else {
+        title = `🏆 ${wonList.map(p => p.id).join(' / ')} 并列胜出`;
+      }
+    } else {
+      // alive = 1
+      const ls = aliveList[0];
+      if (wonList.length === 0) {
+        title = `🎉 ${ls.id} 独存为胜！`;
+      } else {
+        const ids = [ls.id, ...wonList.map(p => p.id)].sort();
+        title = `🏆 ${ids.join(' / ')} 共同获胜`;
+      }
+    }
+    $winnerTitle.textContent = title;
+
+    $winnerRank.innerHTML = state.players.map(p => {
+      let label, cls;
+      if (p.status === 'alive')      { label = '🟢 独存'; cls = 'win'; }
+      else if (p.status === 'won')   { label = '✓ 通关'; cls = 'win'; }
+      else                           { label = '✗ 出局'; cls = 'lose'; }
+      const used = state.cardsPerPlayer - p.remaining;
+      const right = `走过 ${used}/${state.cardsPerPlayer}`;
+      return `<div class="rk ${cls}"><span><strong>${p.id}</strong> · ${label}</span><span>${right}</span></div>`;
+    }).join('');
+
+    $modal.hidden = false;
+  }
+
+  // ============================================================
+  // 事件绑定
+  // ============================================================
   $btnDraw.addEventListener('click', startDraw);
   $btnNext.addEventListener('click', () => {
-    cleanup();
+    cleanupTimers();
     startDraw();
   });
   $btnWin.addEventListener('click', () => { recordWin(); });
   $btnLose.addEventListener('click', () => { recordLose(); });
-  $btnReset.addEventListener('click', () => {
-    cleanup();
-    initDeck();
+
+  $btnQuit.addEventListener('click', () => {
+    if (!confirm('确定放弃当前对局并回到配置页？战绩不会保存。')) return;
+    cleanupTimers();
+    clearSave();
+    state.started = false;
+    state.players = [];
+    state.numPlayers = null;
+    showSetup();
+    showScene('idle');
+  });
+
+  $btnReplay.addEventListener('click', () => {
+    cleanupTimers();
+    clearSave();
+    state.started = false;
+    state.players = [];
+    state.numPlayers = null;
+    $modal.hidden = true;
+    showSetup();
     showScene('idle');
   });
 
@@ -547,7 +986,7 @@ permalink: /toolbox/dare/
     $stage.classList.toggle('flipped', $optFlip.checked);
   });
 
-  function cleanup() {
+  function cleanupTimers() {
     if (state.durationTimer) {
       clearInterval(state.durationTimer);
       state.durationTimer = null;
