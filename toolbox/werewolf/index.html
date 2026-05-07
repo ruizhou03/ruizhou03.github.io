@@ -1055,12 +1055,15 @@ permalink: /toolbox/werewolf/
       const r = await api('POST', 'join', {
         code: joinForm.code, nick: nickV.nick, deviceId: did,
       });
+      // 如果当前 session 是同一房间，保留 hostToken（防止房主点自己的链接丢失房主权限）
+      const preservedHostToken = (state.session && state.session.code === r.code)
+        ? state.session.hostToken : null;
       const sess = {
         code: r.code,
         token: r.godToken || r.playerToken,
         kind: r.godToken ? 'god' : 'player',
         playerId: r.godId || r.playerId,
-        hostToken: null,
+        hostToken: preservedHostToken,
         isGod: !!r.godToken,
         deviceId: did,
         nick: nickV.nick,
@@ -1095,12 +1098,8 @@ permalink: /toolbox/werewolf/
     banner.appendChild(el('div', { class: 'actions' }, [
       el('button', {
         class: 'ww-btn tiny',
-        on: { click: () => copyToClipboard(r.code, '房号已复制') },
-      }, '复制房号'),
-      el('button', {
-        class: 'ww-btn tiny',
-        on: { click: () => shareLink(r.code) },
-      }, '📤 分享链接'),
+        on: { click: () => copyShareLink(r.code) },
+      }, '📤 复制链接'),
     ]));
     wrap.appendChild(banner);
 
@@ -1202,15 +1201,9 @@ permalink: /toolbox/werewolf/
     }
   }
 
-  async function shareLink(code) {
+  function copyShareLink(code) {
     const url = location.origin + location.pathname + '?room=' + code;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: '狼人杀房间', text: `加入房间 ${code}`, url });
-        return;
-      } catch {}
-    }
-    copyToClipboard(url, '链接已复制');
+    copyToClipboard(`${url}\n加入房间 ${code}`, '已复制邀请文案');
   }
 
   async function doKick(targetPid, nick) {
@@ -2108,12 +2101,18 @@ permalink: /toolbox/werewolf/
     const s = loadSession();
     if (s && s.code && s.token) state.session = s;
 
-    // ?room=XXXX → 加入页
+    // ?room=XXXX → 智能跳转
     const params = new URLSearchParams(location.search);
-    if (params.get('room') && /^\d{4}$/.test(params.get('room'))) {
-      joinForm.code = params.get('room');
+    const roomParam = params.get('room');
+    if (roomParam && /^\d{4}$/.test(roomParam)) {
+      joinForm.code = roomParam;
       history.replaceState(null, '', location.pathname);
-      location.hash = '#/join?code=' + joinForm.code;
+      // 已有该房间的 session（房主点了自己的分享链接），直接进 lobby 而不是覆盖成 joiner
+      if (state.session && state.session.code === roomParam) {
+        location.hash = '#/lobby';
+      } else {
+        location.hash = '#/join?code=' + roomParam;
+      }
     } else if (state.session && (location.hash === '' || location.hash === '#/')) {
       // 有 session 但在 landing → 试着进 lobby
       location.hash = '#/lobby';
