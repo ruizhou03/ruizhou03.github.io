@@ -319,7 +319,7 @@ permalink: /toolbox/tiaoqi/
       <button class="tq-btn" id="tqPauseBtn" hidden>⏸ 暂停</button>
       <button class="tq-btn" id="tqNewBtn">🔄 重新配置</button>
     </div>
-    <div class="tq-help">点击棋子选中，再点目标点落子。同色点 = 步走，红色圈 = 跳跃（含连跳）。胜利条件：把全部 10 颗棋子放到正对面三角形里。</div>
+    <div class="tq-help">点击棋子选中，再点目标点落子。同色点 = 步走，红色圈 = 跳跃。跳跃可跨过同一直线上任意距离的一颗棋子，落到对侧等距离的空孔；连跳途中任一站均可作为终点。胜利条件：把全部 10 颗棋子放到正对面三角形里。</div>
   </div>
 
   <div id="tq-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
@@ -417,6 +417,12 @@ permalink: /toolbox/tiaoqi/
     }
     return out;
   }
+  // Long-jump rule (传统中式跳棋): from (cr,cc) in a hex direction, find the
+  // first piece on that line (at distance k≥1 with all cells before it empty),
+  // and "mirror" to the cell at distance 2k. The cells between the screen and
+  // the landing must also all be empty, and the landing must be empty.
+  // Chain hops are allowed; player may stop at any intermediate landing because
+  // every reachable cell is added to `out`, not just the final ones.
   function hopMoves(board, r, c) {
     const visited = new Set([key(r, c)]);
     const out = [];
@@ -424,14 +430,32 @@ permalink: /toolbox/tiaoqi/
     while (frontier.length > 0) {
       const [cr, cc] = frontier.shift();
       for (const [dr, dc] of DIRS) {
-        const mr = cr + dr, mc = cc + dc;
-        const tr = cr + 2 * dr, tc = cc + 2 * dc;
+        // Walk outward until we find a piece (the "screen").
+        let k = 1;
+        let mr = cr + dr, mc = cc + dc;
+        while (isValid(mr, mc) && board[key(mr, mc)] === null) {
+          k++;
+          mr = cr + dr * k;
+          mc = cc + dc * k;
+        }
+        if (!isValid(mr, mc)) continue;       // ran off the board, no screen
+        // Landing must be at the mirror distance 2k.
+        const tr = cr + dr * 2 * k;
+        const tc = cc + dc * 2 * k;
         if (!isValid(tr, tc)) continue;
-        if (board[key(mr, mc)] === null) continue;
+        // Cells strictly between the screen and the landing must all be empty.
+        let blocked = false;
+        for (let j = k + 1; j < 2 * k; j++) {
+          const ir = cr + dr * j;
+          const ic = cc + dc * j;
+          if (!isValid(ir, ic) || board[key(ir, ic)] !== null) { blocked = true; break; }
+        }
+        if (blocked) continue;
+        // Landing itself must be empty.
         if (board[key(tr, tc)] !== null) continue;
-        const k = key(tr, tc);
-        if (visited.has(k)) continue;
-        visited.add(k);
+        const tk = key(tr, tc);
+        if (visited.has(tk)) continue;
+        visited.add(tk);
         out.push([tr, tc]);
         frontier.push([tr, tc]);
       }
