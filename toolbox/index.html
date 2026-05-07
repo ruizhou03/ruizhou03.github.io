@@ -101,13 +101,21 @@ permalink: /toolbox/
   <!-- ============ 一、游戏 ============ -->
   <div class="section-divider">
     <h2>🎮 游戏</h2>
-    <div class="sub">棋类 / 单人 / 派对，纯离线</div>
+    <div class="sub">棋类 / 牌类 / 单人 / 派对，纯离线</div>
   </div>
 
   {%- assign chess_games = games | where: "subcategory", "棋类对战" -%}
   <h3 class="subsection-title">♟ 棋类对战</h3>
   <div class="tool-grid">
     {%- for t in chess_games -%}
+      {%- include tool-card.html tool=t -%}
+    {%- endfor -%}
+  </div>
+
+  {%- assign card_games = games | where: "subcategory", "牌类游戏" -%}
+  <h3 class="subsection-title">🃏 牌类游戏</h3>
+  <div class="tool-grid">
+    {%- for t in card_games -%}
       {%- include tool-card.html tool=t -%}
     {%- endfor -%}
   </div>

@@ -6,7 +6,7 @@
 #   tagline     — 8-12 字精简描述
 #   url         — 工具页面 permalink
 #   category    — 游戏 / 工作 / 生活
-#   subcategory — 仅游戏类用：棋类对战 / 单人小游戏 / 派对多人
+#   subcategory — 仅游戏类用：棋类对战 / 牌类游戏 / 单人小游戏 / 派对多人
 #   status      — live | coming
 #
 # 顺序即页面渲染顺序（Liquid where filter 保持原序）。
@@ -50,6 +50,25 @@
   subcategory: 棋类对战
   status: live
 
+- id: feixingqi
+  name: 飞行棋
+  icon: ✈️
+  tagline: 2-4 人 + AI 三档
+  url: /toolbox/feixingqi/
+  category: 游戏
+  subcategory: 棋类对战
+  status: live
+
+# 牌类游戏
+- id: doudizhu
+  name: 斗地主
+  icon: 🃏
+  tagline: 你 + 2 AI 三档难度
+  url: /toolbox/doudizhu/
+  category: 游戏
+  subcategory: 牌类游戏
+  status: live
+
 # 单人小游戏
 - id: suika
   name: 合成大西瓜
@@ -74,6 +93,15 @@
   icon: 🐍
   tagline: 经典 + 三档速度
   url: /toolbox/snake/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
+- id: pinball
+  name: 弹珠机
+  icon: 🎱
+  tagline: 太空军校生致敬
+  url: /toolbox/pinball/
   category: 游戏
   subcategory: 单人小游戏
   status: live
@@ -172,6 +200,14 @@
   icon: 💱
   tagline: 实时 + 离线兜底
   url: /toolbox/converter/
+  category: 工作
+  status: live
+
+- id: time
+  name: 时间工具
+  icon: 🕐
+  tagline: 时区换算 + 日期计算
+  url: /toolbox/time/
   category: 工作
   status: live
 
