@@ -4,6 +4,9 @@ title: "随机数生成器 | Rui Zhou"
 permalink: /toolbox/random/
 ---
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+
 <style>
   .rng-wrap {
     max-width: 900px;
@@ -46,13 +49,15 @@ permalink: /toolbox/random/
     cursor: pointer;
   }
   .dist-formula {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1rem;
     color: var(--color-muted);
-    padding: 0.3rem 0.6rem;
+    padding: 0.4rem 0.7rem;
     background: var(--color-bg-warm);
     border-radius: 6px;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
   }
+  .dist-formula .katex { font-size: 1.05em; }
 
   .params {
     display: grid;
@@ -485,7 +490,7 @@ permalink: /toolbox/random/
   const DIST = {
     uniform_c: {
       label: '均匀连续 U(a, b)',
-      formula: 'f(x) = 1/(b−a)，x ∈ [a, b]',
+      formula: String.raw`f(x) = \frac{1}{b-a},\ x \in [a, b]`,
       discrete: false,
       params: [
         { key: 'a', label: 'a', def: 0,  min: -5, max: 5,  step: 0.1 },
@@ -503,7 +508,7 @@ permalink: /toolbox/random/
     },
     uniform_d: {
       label: '均匀离散 DU(a, b)',
-      formula: 'P(X=k) = 1/(b−a+1)，k = a, a+1, …, b',
+      formula: String.raw`P(X=k) = \frac{1}{b-a+1},\ k \in \{a, a+1, \ldots, b\}`,
       discrete: true,
       params: [
         { key: 'a', label: 'a', def: 1, min: -10, max: 10, step: 1, integer: true },
@@ -518,7 +523,7 @@ permalink: /toolbox/random/
     },
     normal: {
       label: '正态 N(μ, σ²)',
-      formula: 'f(x) = (1/√(2π)σ) exp(−(x−μ)²/(2σ²))',
+      formula: String.raw`f(x) = \frac{1}{\sigma\sqrt{2\pi}}\, \exp\!\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)`,
       discrete: false,
       params: [
         { key: 'mu',    label: 'μ', def: 0, min: -5, max: 5, step: 0.1 },
@@ -533,7 +538,7 @@ permalink: /toolbox/random/
     },
     exp: {
       label: '指数 Exp(λ)',
-      formula: 'f(x) = λ e^(−λx)，x ≥ 0',
+      formula: String.raw`f(x) = \lambda e^{-\lambda x},\ x \geq 0`,
       discrete: false,
       params: [
         { key: 'lambda', label: 'λ', def: 1, min: 0.1, max: 5, step: 0.05 },
@@ -547,7 +552,7 @@ permalink: /toolbox/random/
     },
     poisson: {
       label: '泊松 Pois(λ)',
-      formula: 'P(X=k) = e^(−λ) λ^k / k!',
+      formula: String.raw`P(X=k) = \frac{e^{-\lambda}\, \lambda^k}{k!}`,
       discrete: true,
       params: [
         { key: 'lambda', label: 'λ', def: 4, min: 0.5, max: 30, step: 0.5 },
@@ -568,7 +573,7 @@ permalink: /toolbox/random/
     },
     binomial: {
       label: '二项 Bin(n, p)',
-      formula: 'P(X=k) = C(n,k) p^k (1−p)^(n−k)',
+      formula: String.raw`P(X=k) = \binom{n}{k} p^k (1-p)^{n-k}`,
       discrete: true,
       params: [
         { key: 'n', label: 'n', def: 20,  min: 1, max: 100, step: 1, integer: true },
@@ -591,7 +596,7 @@ permalink: /toolbox/random/
     },
     bernoulli: {
       label: '伯努利 Ber(p)',
-      formula: 'P(X=1) = p, P(X=0) = 1−p',
+      formula: String.raw`P(X=1) = p,\quad P(X=0) = 1-p`,
       discrete: true,
       params: [
         { key: 'p', label: 'p', def: 0.5, min: 0.01, max: 0.99, step: 0.01 },
@@ -605,7 +610,7 @@ permalink: /toolbox/random/
     },
     beta: {
       label: 'Beta(α, β)',
-      formula: 'f(x) = x^(α−1) (1−x)^(β−1) / B(α, β)，x ∈ [0, 1]',
+      formula: String.raw`f(x) = \frac{x^{\alpha-1}(1-x)^{\beta-1}}{B(\alpha, \beta)},\ x \in [0, 1]`,
       discrete: false,
       params: [
         { key: 'alpha', label: 'α', def: 2, min: 0.5, max: 10, step: 0.1 },
@@ -624,7 +629,7 @@ permalink: /toolbox/random/
     },
     gamma: {
       label: 'Gamma(α, θ) — scale',
-      formula: 'f(x) = x^(α−1) e^(−x/θ) / (θ^α Γ(α))，x ≥ 0',
+      formula: String.raw`f(x) = \frac{x^{\alpha-1} e^{-x/\theta}}{\theta^{\alpha}\, \Gamma(\alpha)},\ x \geq 0`,
       discrete: false,
       params: [
         { key: 'alpha', label: 'α', def: 2, min: 0.5, max: 10, step: 0.1 },
@@ -643,7 +648,7 @@ permalink: /toolbox/random/
     },
     chi2: {
       label: '卡方 χ²(k)',
-      formula: 'f(x) = x^(k/2−1) e^(−x/2) / (2^(k/2) Γ(k/2))',
+      formula: String.raw`f(x) = \frac{x^{k/2-1} e^{-x/2}}{2^{k/2}\, \Gamma(k/2)}`,
       discrete: false,
       params: [
         { key: 'k', label: 'k', def: 5, min: 1, max: 30, step: 1, integer: true },
@@ -661,7 +666,7 @@ permalink: /toolbox/random/
     },
     student_t: {
       label: 'Student-t(ν)',
-      formula: 'f(x) = Γ((ν+1)/2) / (√(νπ) Γ(ν/2)) (1 + x²/ν)^(−(ν+1)/2)',
+      formula: String.raw`f(x) = \frac{\Gamma\!\left(\tfrac{\nu+1}{2}\right)}{\sqrt{\nu\pi}\, \Gamma\!\left(\tfrac{\nu}{2}\right)} \left(1 + \frac{x^2}{\nu}\right)^{-(\nu+1)/2}`,
       discrete: false,
       params: [
         { key: 'nu', label: 'ν', def: 5, min: 1, max: 30, step: 1, integer: true },
@@ -682,7 +687,7 @@ permalink: /toolbox/random/
     },
     f: {
       label: 'F(d₁, d₂)',
-      formula: 'F 分布 — 两个 χ² 之比，常用于方差检验',
+      formula: String.raw`f(x) = \frac{1}{B(d_1/2,\, d_2/2)} \left(\frac{d_1}{d_2}\right)^{\!d_1/2} \frac{x^{d_1/2 - 1}}{\left(1 + \tfrac{d_1 x}{d_2}\right)^{(d_1+d_2)/2}}`,
       discrete: false,
       params: [
         { key: 'd1', label: 'd₁', def: 5,  min: 1, max: 30, step: 1, integer: true },
@@ -707,7 +712,7 @@ permalink: /toolbox/random/
     },
     geom: {
       label: '几何 Geom(p) — 直到首次成功的试验数',
-      formula: 'P(X=k) = (1−p)^(k−1) p，k = 1, 2, 3, …',
+      formula: String.raw`P(X=k) = (1-p)^{k-1} p,\ k = 1, 2, 3, \ldots`,
       discrete: true,
       params: [
         { key: 'p', label: 'p', def: 0.3, min: 0.05, max: 0.95, step: 0.01 },
@@ -775,7 +780,11 @@ permalink: /toolbox/random/
     state.distKey = key;
     $select.value = key;
     const dist = DIST[key];
-    $formula.textContent = dist.formula;
+    if (window.katex) {
+      katex.render(dist.formula, $formula, { throwOnError: false, displayMode: false });
+    } else {
+      $formula.textContent = dist.formula;
+    }
 
     // 取或建参数 — 切回来时保留之前的参数
     if (persisted[key]) {
