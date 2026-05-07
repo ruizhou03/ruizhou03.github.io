@@ -218,6 +218,7 @@ permalink: /toolbox/xiangqi/
   <div class="xq-help">点击棋子选中后再点目标点落子。规则全套：马蹩腿、象眼、炮翻子、过河兵、不能照面（双将不可同列直对）、将军 / 将死 / 困毙判负。</div>
 
   <div id="xq-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="xq-settle-btn-mount"></div>
   <div id="xq-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
 
@@ -225,6 +226,7 @@ permalink: /toolbox/xiangqi/
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
 
 <script>
 (() => {
@@ -852,6 +854,8 @@ permalink: /toolbox/xiangqi/
     updateStatus();
     xqRunStartedAt = Date.now();
     xqRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+    xqLastResult = null;
+    if (typeof xqSettleBtn !== 'undefined' && xqSettleBtn) xqSettleBtn.setEnabled(false);
     if (aiSide() === RED) setTimeout(triggerAiMove, 320);
   }
 
@@ -872,6 +876,11 @@ permalink: /toolbox/xiangqi/
     const human = humanSide();
     if (human != null && winner === human) xqTryAutoSubmit();
     if (typeof xqSave !== 'undefined' && xqSave) xqSave.discard();
+    // 结算图：仅 AI 模式
+    if (state.mode && state.mode.startsWith('ai-') && human != null) {
+      xqLastResult = (winner === human) ? 'win' : 'lose';
+      if (typeof xqSettleBtn !== 'undefined' && xqSettleBtn) xqSettleBtn.setEnabled(true);
+    }
     return true;
   }
 
@@ -1011,6 +1020,137 @@ permalink: /toolbox/xiangqi/
   let xqWlbWidget = null;
   let xqRunStartedAt = Date.now();
   let xqRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+  let xqSettleBtn = null;
+  let xqLastResult = null;     // 'win' | 'lose' | 'draw'
+
+  const XQ_DIFF_LABEL = { easy: '简单', normal: '普通', hard: '困难' };
+
+  function xqFormatDuration(sec) {
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  function xqPaintBoard(ctx, x, y, w, h) {
+    const aspect = N_FILES / N_RANKS;     // 0.9
+    const targetH = Math.min(h, w / aspect);
+    const targetW = targetH * aspect;
+    const ox = x + (w - targetW) / 2;
+    const oy = y + (h - targetH) / 2;
+    const margin = targetW * 0.06;
+    const spacing = (targetW - margin * 2) / (N_FILES - 1);
+    const startX = ox + margin;
+    const topY = oy + margin;
+    const xAt = f => startX + f * spacing;
+    const yAt = r => topY + (N_RANKS - 1 - r) * spacing;
+    const flipped = (state.mode === 'ai-red');
+    const dispCoord = (f, r) => flipped ? [N_FILES - 1 - f, N_RANKS - 1 - r] : [f, r];
+
+    // 背景（木色）
+    ctx.fillStyle = '#f4d8a8';
+    ctx.fillRect(x, y, w, h);
+
+    // 网格
+    ctx.strokeStyle = '#3a2a1a';
+    ctx.lineWidth = Math.max(1, spacing * 0.025);
+    for (let r = 0; r < N_RANKS; r++) {
+      const py = yAt(r);
+      ctx.beginPath();
+      ctx.moveTo(xAt(0), py);
+      ctx.lineTo(xAt(N_FILES - 1), py);
+      ctx.stroke();
+    }
+    for (let f = 0; f < N_FILES; f++) {
+      const px = xAt(f);
+      ctx.beginPath();
+      if (f === 0 || f === N_FILES - 1) {
+        ctx.moveTo(px, yAt(0));
+        ctx.lineTo(px, yAt(N_RANKS - 1));
+      } else {
+        ctx.moveTo(px, yAt(0));
+        ctx.lineTo(px, yAt(4));
+        ctx.moveTo(px, yAt(5));
+        ctx.lineTo(px, yAt(N_RANKS - 1));
+      }
+      ctx.stroke();
+    }
+    // 九宫 X
+    ctx.beginPath();
+    ctx.moveTo(xAt(3), yAt(0)); ctx.lineTo(xAt(5), yAt(2));
+    ctx.moveTo(xAt(5), yAt(0)); ctx.lineTo(xAt(3), yAt(2));
+    ctx.moveTo(xAt(3), yAt(7)); ctx.lineTo(xAt(5), yAt(9));
+    ctx.moveTo(xAt(5), yAt(7)); ctx.lineTo(xAt(3), yAt(9));
+    ctx.stroke();
+
+    // 楚河 漢界
+    ctx.fillStyle = '#5a4030';
+    ctx.font = `${spacing * 0.5}px "STKaiti", "KaiTi", "Songti SC", "Microsoft YaHei", serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const riverY = (yAt(4) + yAt(5)) / 2;
+    ctx.fillText('楚 河', xAt(2), riverY);
+    ctx.fillText('漢 界', xAt(6), riverY);
+
+    // 最后一手高亮
+    if (state.lastMove) {
+      ctx.fillStyle = 'rgba(255, 215, 0, 0.45)';
+      for (const sq of [state.lastMove.from, state.lastMove.to]) {
+        const [df, dr] = dispCoord(sq[0], sq[1]);
+        ctx.beginPath();
+        ctx.arc(xAt(df), yAt(dr), spacing * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // 棋子
+    const r0 = spacing * 0.42;
+    for (let r = 0; r < N_RANKS; r++) {
+      for (let f = 0; f < N_FILES; f++) {
+        const p = state.board[r][f];
+        if (!p) continue;
+        const [df, dr] = dispCoord(f, r);
+        const cx = xAt(df), cy = yAt(dr);
+        ctx.fillStyle = '#fbe6c2';
+        ctx.beginPath();
+        ctx.arc(cx, cy, r0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = (p.color === RED) ? '#c0392b' : '#1a1a1a';
+        ctx.lineWidth = Math.max(1, spacing * 0.04);
+        ctx.beginPath();
+        ctx.arc(cx, cy, r0 - 1, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = (p.color === RED) ? '#c0392b' : '#1a1a1a';
+        ctx.font = `bold ${spacing * 0.55}px "STKaiti", "KaiTi", "Songti SC", "Microsoft YaHei", serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText((PIECE_GLYPH[p.color] && PIECE_GLYPH[p.color][p.type]) || '?', cx, cy + spacing * 0.04);
+      }
+    }
+  }
+
+  function xqGetSettlementOpts() {
+    const isAi = state.mode && state.mode.startsWith('ai-');
+    if (!isAi) return null;
+    if (!xqLastResult) return null;
+    const elapsed = Math.floor((Date.now() - xqRunStartedAt) / 1000);
+    return {
+      kind: 'duel',
+      gameId: 'xiangqi',
+      title: '中国象棋',
+      emoji: '♘',
+      nick: GamesShell.Identity.getNick() || '匿名',
+      opponent: 'vs AI · ' + (XQ_DIFF_LABEL[state.difficulty] || state.difficulty),
+      result: xqLastResult,
+      stats: [
+        { label: '我执', value: state.mode === 'ai-black' ? '红' : '黑' },
+        { label: '走子数', value: state.history.length + ' 步' },
+        { label: '用时', value: xqFormatDuration(elapsed) },
+      ],
+      paintBoard: xqPaintBoard,
+      boardW: 432,
+      boardAspect: N_FILES / N_RANKS,
+      watermark: 'zirconeey.github.io/toolbox/xiangqi',
+    };
+  }
 
   function xqTryAutoSubmit() {
     if (!window.GamesShell) return;
@@ -1021,7 +1161,7 @@ permalink: /toolbox/xiangqi/
     let lastErr = '';
     while (!nick) {
       const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : '恭喜击败 AI！起个昵称上传战绩榜？\n\n';
-      const v = prompt(hint + '3-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
+      const v = prompt(hint + '2-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
       if (v === null) return;
       const r = GamesShell.Identity.setNick(v);
       if (r.ok) { nick = r.nick; break; }
@@ -1056,6 +1196,14 @@ permalink: /toolbox/xiangqi/
       intro: '聊聊击败 AI 的开局、跑炮 / 飞马心得 ~',
       placeholder: '聊聊你的中国象棋心得 ~',
     });
+    if (GamesShell.Settlement) {
+      xqSettleBtn = GamesShell.Settlement.mountButton({
+        container: document.getElementById('xq-settle-btn-mount'),
+        gameId: 'xiangqi',
+        getOpts: xqGetSettlementOpts,
+        startDisabled: true,
+      });
+    }
   }
   xqInitShell();
 

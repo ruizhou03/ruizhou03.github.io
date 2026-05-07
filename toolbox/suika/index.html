@@ -1167,7 +1167,7 @@ permalink: /toolbox/suika/
       <div class="ov-nick-form ov-block" id="ov-nick-form" style="display: none;">
         <div class="ov-nick-prompt" id="ov-nick-prompt">想上排行榜？起个昵称吧</div>
         <div class="ov-nick-privacy">提交后，本局分数会和昵称一起送到我自己的小服务器，仅用于显示排行榜</div>
-        <input type="text" id="ov-nick-input" maxlength="36" placeholder="3-12 字 / 中英文 / emoji" autocomplete="off" />
+        <input type="text" id="ov-nick-input" maxlength="36" placeholder="2-12 字 / 中英 / 数字 / 标点 / emoji" autocomplete="off" />
         <div class="ov-nick-error" id="ov-nick-error"></div>
         <div class="ov-nick-buttons">
           <button type="button" class="ov-nick-skip" id="ov-nick-skip">本局不上传</button>
@@ -1305,7 +1305,7 @@ permalink: /toolbox/suika/
   // 灭火开关：把 LEADERBOARD_ENABLED 改成 false 后 push，前端立即回到纯本地模式。
   const LEADERBOARD_API = 'https://zircon-urge.vercel.app/api/suika';
   const LEADERBOARD_ENABLED = true;
-  // 后端 nick 校验：3-12 codepoint，正则与服务端保持一致。
+  // 后端 nick 校验：2-12 codepoint，正则与服务端保持一致。
   const NICK_REJECT_RE = /[<>&"'\/\\\x00-\x1F​-‏﻿‪-‮]/;
 
   // 5 个用户可调参数（0-1 滑条 → 实际物理值） + 布尔开关 + 字符串 preset
@@ -2039,14 +2039,14 @@ permalink: /toolbox/suika/
       return deviceIdMem;
     }
   }
-  // 前端校验（与后端一致）：3-12 codepoint，剔除危险字符。
+  // 前端校验（与后端一致）：2-12 codepoint，剔除危险字符。
   function validateNick(raw) {
     if (typeof raw !== 'string') return { ok: false, msg: '请输入昵称' };
     const nick = raw.trim();
     if (!nick) return { ok: false, msg: '昵称不能为空' };
     if (NICK_REJECT_RE.test(nick)) return { ok: false, msg: '不能包含 < > & " \' / \\ 等特殊字符' };
     const len = [...nick].length;
-    if (len < 3) return { ok: false, msg: '昵称太短（≥3 字）' };
+    if (len < 2) return { ok: false, msg: '昵称太短（≥2 字）' };
     if (len > 12) return { ok: false, msg: '昵称太长（≤12 字）' };
     return { ok: true, nick };
   }

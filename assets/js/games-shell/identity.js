@@ -11,7 +11,7 @@
 
   const NICK_KEY = 'gs.nick.v1';
   const DEVICE_KEY = 'gs.did.v1';
-  const NICK_MIN_CP = 3;
+  const NICK_MIN_CP = 2;
   const NICK_MAX_CP = 12;
   // 拒：HTML 危险字符、控制字符、零宽 / 双向控制字符（与后端正则一致）
   const NICK_REJECT_RE = /[<>&"'\/\\\x00-\x1F​-‏﻿‪-‮]/;

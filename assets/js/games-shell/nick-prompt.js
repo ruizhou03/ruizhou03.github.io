@@ -24,7 +24,7 @@
       <div class="gs-nick-form">
         <div class="gs-nick-prompt"></div>
         <div class="gs-nick-privacy"></div>
-        <input type="text" maxlength="36" placeholder="3-12 字 · 中英 / 数字 / 标点 / emoji 都算" autocomplete="off" />
+        <input type="text" maxlength="36" placeholder="2-12 字 · 中英 / 数字 / 标点 / emoji 都算" autocomplete="off" />
         <div class="gs-nick-error"></div>
         <div class="gs-nick-buttons">
           <button type="button" class="gs-nick-skip">本局不上传</button>

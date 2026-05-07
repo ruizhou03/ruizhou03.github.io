@@ -773,7 +773,7 @@ permalink: /toolbox/gomoku/
     let lastErr = '';
     while (!nick) {
       const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : '恭喜击败 AI！起个昵称上传战绩榜？\n\n';
-      const v = prompt(hint + '3-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
+      const v = prompt(hint + '2-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
       if (v === null) return;
       const r = GamesShell.Identity.setNick(v);
       if (r.ok) { nick = r.nick; break; }
