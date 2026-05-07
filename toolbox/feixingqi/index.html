@@ -336,6 +336,13 @@ permalink: /toolbox/feixingqi/
   </div>
 
   <div id="fxqSetupControls">
+    <div class="fxq-controls">
+      <span style="font-size: 0.82rem; color: var(--color-muted); margin-right: 0.15rem;">棋盘</span>
+      <div class="fxq-mode-tabs" id="fxqLayoutTabs">
+        <button class="fxq-mode-tab" data-layout="ring">🟦 方形跑道</button>
+        <button class="fxq-mode-tab" data-layout="cross">✚ 十字盘</button>
+      </div>
+    </div>
     <div class="fxq-controls" id="fxqDifficultyRow" hidden>
       <span style="font-size: 0.82rem; color: var(--color-muted); margin-right: 0.15rem;">AI 难度</span>
       <div class="fxq-mode-tabs" id="fxqDifficultyTabs">
@@ -381,11 +388,10 @@ permalink: /toolbox/feixingqi/
 <script>
 (() => {
   // ============================================================
-  // Constants — board geometry
+  // Constants — board geometry (two layouts share game logic)
   // ============================================================
-  const GRID = 15;                       // 15×15 visual cells
-  const CELL = 660 / GRID;               // 44px per cell
   const SVG_W = 660, SVG_H = 660;
+  const TRACK_LEN = 52;
 
   const COLORS = ['red', 'yellow', 'blue', 'green'];
   const COLOR_INFO = {
@@ -396,86 +402,133 @@ permalink: /toolbox/feixingqi/
   };
   const CORNER_TO_COLOR = { NW: 'red', NE: 'yellow', SE: 'blue', SW: 'green' };
   const CORNER_KEYS = ['NW', 'NE', 'SE', 'SW'];
-  // Turn order goes clockwise: red(NW) → yellow(NE) → blue(SE) → green(SW)
   const TURN_ORDER = ['red', 'yellow', 'blue', 'green'];
 
-  // 52-cell track, clockwise starting from top-left of top arm tip.
-  const TRACK = [
-    // Top arm: top edge + right edge (8 cells)
-    [0,6],[0,7],[0,8],
-    [1,8],[2,8],[3,8],[4,8],[5,8],
-    // Right arm: top edge + right edge + bottom edge (13 cells)
-    [6,9],[6,10],[6,11],[6,12],[6,13],[6,14],
-    [7,14],[8,14],
-    [8,13],[8,12],[8,11],[8,10],[8,9],
-    // Bottom arm: right edge + bottom edge + left edge (13 cells)
-    [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],
-    [14,7],[14,6],
-    [13,6],[12,6],[11,6],[10,6],[9,6],
-    // Left arm: bottom edge + left edge + top edge (13 cells)
-    [8,5],[8,4],[8,3],[8,2],[8,1],[8,0],
-    [7,0],[6,0],
-    [6,1],[6,2],[6,3],[6,4],[6,5],
-    // Top arm left edge (5 cells)
-    [5,6],[4,6],[3,6],[2,6],[1,6],
-  ];
-  const TRACK_LEN = 52;
-
-  // Player exits + stretch transitions (clockwise spacing of 13).
-  const EXIT_INDEX = { red: 0, yellow: 13, blue: 26, green: 39 };
-  // Cell where plane TURNS into stretch (one before exit, going clockwise).
-  const STRETCH_TRANSITION = { red: 51, yellow: 12, blue: 25, green: 38 };
-
-  // 6-cell home stretches per color (position 0..5; goal beyond position 5).
-  const STRETCH_CELLS = {
-    red:    [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],
-    yellow: [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],
-    blue:   [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],
-    green:  [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],
-  };
-  const GOAL_CELL = [7, 7];
-
-  // 4 hangar slots per color, 2×2 inside each home (fractional row/col centers).
-  const HANGAR_CELLS = {
-    red:    [[1.5,1.5],[1.5,3.5],[3.5,1.5],[3.5,3.5]],
-    yellow: [[1.5,10.5],[1.5,12.5],[3.5,10.5],[3.5,12.5]],
-    blue:   [[10.5,10.5],[10.5,12.5],[12.5,10.5],[12.5,12.5]],
-    green:  [[10.5,1.5],[10.5,3.5],[12.5,1.5],[12.5,3.5]],
-  };
-
-  // Home zone backgrounds (rows × cols).
-  const HOME_ZONES = {
-    red:    { r0: 0,  r1: 5,  c0: 0,  c1: 5  },
-    yellow: { r0: 0,  r1: 5,  c0: 9,  c1: 14 },
-    blue:   { r0: 9,  r1: 14, c0: 9,  c1: 14 },
-    green:  { r0: 9,  r1: 14, c0: 0,  c1: 5  },
+  // ===== Layout: cross perimeter (planes walk around a cross-shaped track) =====
+  // Each player exits at one of the 4 outer arm tips and walks clockwise.
+  // Stretches lie along the middle of each arm, leading to a single shared goal at center.
+  const LAYOUT_CROSS = {
+    label: '十字盘',
+    GRID: 15,
+    TRACK: [
+      [0,6],[0,7],[0,8],
+      [1,8],[2,8],[3,8],[4,8],[5,8],
+      [6,9],[6,10],[6,11],[6,12],[6,13],[6,14],
+      [7,14],[8,14],
+      [8,13],[8,12],[8,11],[8,10],[8,9],
+      [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],
+      [14,7],[14,6],
+      [13,6],[12,6],[11,6],[10,6],[9,6],
+      [8,5],[8,4],[8,3],[8,2],[8,1],[8,0],
+      [7,0],[6,0],
+      [6,1],[6,2],[6,3],[6,4],[6,5],
+      [5,6],[4,6],[3,6],[2,6],[1,6],
+    ],
+    EXIT_INDEX: { red: 0, yellow: 13, blue: 26, green: 39 },
+    STRETCH_TRANSITION: { red: 51, yellow: 12, blue: 25, green: 38 },
+    STRETCH_CELLS: {
+      red:    [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],
+      yellow: [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],
+      blue:   [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],
+      green:  [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],
+    },
+    STRETCH_LEN: 6,
+    HANGAR_CELLS: {
+      red:    [[1.5,1.5],[1.5,3.5],[3.5,1.5],[3.5,3.5]],
+      yellow: [[1.5,10.5],[1.5,12.5],[3.5,10.5],[3.5,12.5]],
+      blue:   [[10.5,10.5],[10.5,12.5],[12.5,10.5],[12.5,12.5]],
+      green:  [[10.5,1.5],[10.5,3.5],[12.5,1.5],[12.5,3.5]],
+    },
+    HOME_ZONES: {
+      red:    { r0: 0,  r1: 5,  c0: 0,  c1: 5  },
+      yellow: { r0: 0,  r1: 5,  c0: 9,  c1: 14 },
+      blue:   { r0: 9,  r1: 14, c0: 9,  c1: 14 },
+      green:  { r0: 9,  r1: 14, c0: 0,  c1: 5  },
+    },
+    GOAL: { kind: 'shared', cell: [7, 7], boxR0: 6, boxR1: 8, boxC0: 6, boxC1: 8 },
   };
 
-  // Same-color jump cells: +4, +12, +18 from exit. The +18 is the BIG JUMP.
-  function jumpIndices(color) {
-    const e = EXIT_INDEX[color];
-    return { c4: (e + 4) % TRACK_LEN, c12: (e + 12) % TRACK_LEN, c18: (e + 18) % TRACK_LEN };
+  // ===== Layout: square ring (classic Chinese 飞行棋, like in childhood boards) =====
+  // 14×14 grid. Track wraps the OUTER perimeter; 4 colored corner homes inside;
+  // 4 stretches along the middle of each side meeting in the central 2×2 goal.
+  const LAYOUT_RING = {
+    label: '方形跑道',
+    GRID: 14,
+    TRACK: [
+      // Top: row 0, cols 0..13 (idx 0..13)
+      [0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],[0,10],[0,11],[0,12],[0,13],
+      // Right: col 13, rows 1..13 (idx 14..26)
+      [1,13],[2,13],[3,13],[4,13],[5,13],[6,13],[7,13],[8,13],[9,13],[10,13],[11,13],[12,13],[13,13],
+      // Bottom: row 13, cols 12..0 going right→left (idx 27..39)
+      [13,12],[13,11],[13,10],[13,9],[13,8],[13,7],[13,6],[13,5],[13,4],[13,3],[13,2],[13,1],[13,0],
+      // Left: col 0, rows 12..1 going bottom→top (idx 40..51)
+      [12,0],[11,0],[10,0],[9,0],[8,0],[7,0],[6,0],[5,0],[4,0],[3,0],[2,0],[1,0],
+    ],
+    EXIT_INDEX:        { red: 7, yellow: 20, blue: 33, green: 46 },
+    STRETCH_TRANSITION:{ red: 6, yellow: 19, blue: 32, green: 45 },
+    STRETCH_CELLS: {
+      // Each stretch has 5 cells leading to a per-color goal cell in the central 2×2.
+      red:    [[1,6],[2,6],[3,6],[4,6],[5,6]],   // entered from top, going down col 6
+      yellow: [[6,12],[6,11],[6,10],[6,9],[6,8]], // entered from right, going left row 6
+      blue:   [[12,7],[11,7],[10,7],[9,7],[8,7]], // entered from bottom, going up col 7
+      green:  [[7,1],[7,2],[7,3],[7,4],[7,5]],   // entered from left, going right row 7
+    },
+    STRETCH_LEN: 5,
+    HANGAR_CELLS: {
+      // 4×4 homes at the inner corners; hangar centered as a 2×2 with fractional positions.
+      red:    [[1.5,1.5],[1.5,3.5],[3.5,1.5],[3.5,3.5]],
+      yellow: [[1.5,9.5],[1.5,11.5],[3.5,9.5],[3.5,11.5]],
+      blue:   [[9.5,9.5],[9.5,11.5],[11.5,9.5],[11.5,11.5]],
+      green:  [[9.5,1.5],[9.5,3.5],[11.5,1.5],[11.5,3.5]],
+    },
+    HOME_ZONES: {
+      red:    { r0: 1,  r1: 4,  c0: 1,  c1: 4  },
+      yellow: { r0: 1,  r1: 4,  c0: 9,  c1: 12 },
+      blue:   { r0: 9,  r1: 12, c0: 9,  c1: 12 },
+      green:  { r0: 9,  r1: 12, c0: 1,  c1: 4  },
+    },
+    GOAL: {
+      kind: 'per-color',
+      cells: { red: [6, 6], yellow: [6, 7], blue: [7, 7], green: [7, 6] },
+      boxR0: 6, boxR1: 7, boxC0: 6, boxC1: 7,
+    },
+  };
+
+  const LAYOUTS = { cross: LAYOUT_CROSS, ring: LAYOUT_RING };
+  const LAYOUT_KEYS = ['ring', 'cross'];  // display order in selector
+
+  // Same-color jump cells: +4, +12, +18 from exit. Pre-computed per layout.
+  for (const key in LAYOUTS) {
+    const layout = LAYOUTS[key];
+    layout.CELL_COLOR = {};
+    layout.BIG_JUMP_CELLS = {};
+    for (const c of COLORS) {
+      const e = layout.EXIT_INDEX[c];
+      const c4 = (e + 4) % TRACK_LEN, c12 = (e + 12) % TRACK_LEN, c18 = (e + 18) % TRACK_LEN;
+      layout.CELL_COLOR[c4]  = c;
+      layout.CELL_COLOR[c12] = c;
+      layout.CELL_COLOR[c18] = c;
+      layout.BIG_JUMP_CELLS[c18] = c;
+    }
   }
-  // Track-index → owning color (only for cells painted that color, not exits).
-  // Cells painted: c4, c12, c18 for each of 4 colors = 12 cells.
-  const CELL_COLOR = {};
-  const BIG_JUMP_CELLS = {};  // index → owner color (only the c18 cells)
-  for (const c of COLORS) {
-    const { c4, c12, c18 } = jumpIndices(c);
-    CELL_COLOR[c4]  = c;
-    CELL_COLOR[c12] = c;
-    CELL_COLOR[c18] = c;
-    BIG_JUMP_CELLS[c18] = c;
+
+  // Layout accessor — uses current state.layoutKey.
+  function L() { return LAYOUTS[state.layoutKey] || LAYOUT_RING; }
+  function CELL() { return SVG_W / L().GRID; }
+  function goalCellFor(color) {
+    const g = L().GOAL;
+    return g.kind === 'shared' ? g.cell : g.cells[color];
   }
 
   // ============================================================
-  // SVG helpers — pixel coords
+  // SVG helpers — pixel coords (depend on current layout's grid)
   // ============================================================
-  function svgX(col) { return (col + 0.5) * CELL; }
-  function svgY(row) { return (row + 0.5) * CELL; }
-  function trackXY(idx) { const [r, c] = TRACK[idx]; return { x: svgX(c), y: svgY(r) }; }
-  function stretchXY(color, pos) { const [r, c] = STRETCH_CELLS[color][pos]; return { x: svgX(c), y: svgY(r) }; }
-  function hangarXY(color, slot) { const [r, c] = HANGAR_CELLS[color][slot]; return { x: svgX(c), y: svgY(r) }; }
+  function svgX(col) { return (col + 0.5) * CELL(); }
+  function svgY(row) { return (row + 0.5) * CELL(); }
+  function trackXY(idx) { const [r, c] = L().TRACK[idx]; return { x: svgX(c), y: svgY(r) }; }
+  function stretchXY(color, pos) { const [r, c] = L().STRETCH_CELLS[color][pos]; return { x: svgX(c), y: svgY(r) }; }
+  function hangarXY(color, slot) { const [r, c] = L().HANGAR_CELLS[color][slot]; return { x: svgX(c), y: svgY(r) }; }
+  function goalXYFor(color) { const [r, c] = goalCellFor(color); return { x: svgX(c), y: svgY(r) }; }
 
   // ============================================================
   // State
@@ -503,6 +556,7 @@ permalink: /toolbox/feixingqi/
   const state = {
     setupConfig: stored.setupConfig || defaultSetup(),
     difficulty: DIFFICULTY[stored.difficulty] ? stored.difficulty : 'normal',
+    layoutKey: LAYOUTS[stored.layoutKey] ? stored.layoutKey : 'ring',
     started: false,
     players: [],         // ordered by turn (subset of TURN_ORDER)
     playerKinds: {},     // color → 'human' | 'ai'
@@ -530,6 +584,7 @@ permalink: /toolbox/feixingqi/
   const startBtn = document.getElementById('fxqStartBtn');
   const difficultyRow = document.getElementById('fxqDifficultyRow');
   const difficultyTabs = document.getElementById('fxqDifficultyTabs');
+  const layoutTabs = document.getElementById('fxqLayoutTabs');
   const turnEl = document.getElementById('fxqTurn');
   const rosterEl = document.getElementById('fxqRoster');
   const svg = document.getElementById('fxqSvg');
@@ -552,6 +607,7 @@ permalink: /toolbox/feixingqi/
     localStorage.setItem(STORE_KEY, JSON.stringify({
       setupConfig: state.setupConfig,
       difficulty: state.difficulty,
+      layoutKey: state.layoutKey,
     }));
   }
 
@@ -618,6 +674,9 @@ permalink: /toolbox/feixingqi/
     document.querySelectorAll('#fxqDifficultyTabs .fxq-mode-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.diff === state.difficulty);
     });
+    document.querySelectorAll('#fxqLayoutTabs .fxq-mode-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.layout === state.layoutKey);
+    });
     const activeCount = Object.values(state.setupConfig).filter(v => v !== 'empty').length;
     startBtn.disabled = activeCount < 2;
     startBtn.textContent = activeCount < 2 ? '需要至少 2 个玩家' : `🎮 开始游戏（${activeCount} 人）`;
@@ -632,6 +691,15 @@ permalink: /toolbox/feixingqi/
     state.difficulty = t.dataset.diff;
     persist();
     refreshSetupControls();
+  });
+  layoutTabs.addEventListener('click', (e) => {
+    if (state.started) return;
+    const t = e.target.closest('.fxq-mode-tab');
+    if (!t || !LAYOUTS[t.dataset.layout]) return;
+    state.layoutKey = t.dataset.layout;
+    persist();
+    refreshSetupControls();
+    renderBoard();
   });
 
   function startGame() {
@@ -759,11 +827,12 @@ permalink: /toolbox/feixingqi/
   }
 
   function rectAttrs(r0, c0, r1, c1) {
+    const cell = CELL();
     return {
-      x: c0 * CELL,
-      y: r0 * CELL,
-      width: (c1 - c0 + 1) * CELL,
-      height: (r1 - r0 + 1) * CELL,
+      x: c0 * cell,
+      y: r0 * cell,
+      width: (c1 - c0 + 1) * cell,
+      height: (r1 - r0 + 1) * cell,
     };
   }
 
@@ -774,14 +843,16 @@ permalink: /toolbox/feixingqi/
 
   function renderBoard() {
     svg.innerHTML = '';
+    const layout = L();
+    const cell = CELL();
     const activeColors = activeCornerSet();
-    const tileR = CELL * 0.4;
-    const planeR = CELL * 0.36;
+    const tileR = cell * 0.4;
+    const planeR = cell * 0.36;
 
     // === Layer: home zone backgrounds (4 corners) ===
     const homeGroup = svgEl('g', { class: 'homes' });
     for (const color of COLORS) {
-      const z = HOME_ZONES[color];
+      const z = layout.HOME_ZONES[color];
       const info = COLOR_INFO[color];
       const isActive = activeColors.has(color);
       const fill = isActive ? info.light : '#ece2cd';
@@ -811,12 +882,12 @@ permalink: /toolbox/feixingqi/
     for (const color of COLORS) {
       if (!activeColors.has(color)) continue;
       const info = COLOR_INFO[color];
-      for (const [r, c] of STRETCH_CELLS[color]) {
+      for (const [r, c] of layout.STRETCH_CELLS[color]) {
         stretchGroup.appendChild(svgEl('rect', {
-          x: c * CELL + CELL * 0.08,
-          y: r * CELL + CELL * 0.08,
-          width: CELL * 0.84,
-          height: CELL * 0.84,
+          x: c * cell + cell * 0.08,
+          y: r * cell + cell * 0.08,
+          width: cell * 0.84,
+          height: cell * 0.84,
           class: 'stretch-cell',
           fill: info.light,
           rx: 4,
@@ -828,27 +899,27 @@ permalink: /toolbox/feixingqi/
     // === Layer: track cells ===
     const trackGroup = svgEl('g', { class: 'track' });
     for (let i = 0; i < TRACK_LEN; i++) {
-      const [r, c] = TRACK[i];
-      const ownerColor = CELL_COLOR[i];
+      const [r, c] = layout.TRACK[i];
+      const ownerColor = layout.CELL_COLOR[i];
       let fill = '#fff8e8';
       if (ownerColor) fill = COLOR_INFO[ownerColor].light;
       trackGroup.appendChild(svgEl('rect', {
-        x: c * CELL + CELL * 0.08,
-        y: r * CELL + CELL * 0.08,
-        width: CELL * 0.84,
-        height: CELL * 0.84,
+        x: c * cell + cell * 0.08,
+        y: r * cell + cell * 0.08,
+        width: cell * 0.84,
+        height: cell * 0.84,
         class: 'track-cell',
         fill,
         rx: 4,
       }));
       // Mark big-jump cells with ✈
-      if (BIG_JUMP_CELLS[i] !== undefined) {
+      if (layout.BIG_JUMP_CELLS[i] !== undefined) {
         trackGroup.appendChild(svgEl('text', {
           x: svgX(c),
           y: svgY(r) + 6,
           'text-anchor': 'middle',
           class: 'big-mark',
-          fill: COLOR_INFO[BIG_JUMP_CELLS[i]].hex,
+          fill: COLOR_INFO[layout.BIG_JUMP_CELLS[i]].hex,
         })).textContent = '✈';
       } else if (ownerColor) {
         trackGroup.appendChild(svgEl('text', {
@@ -864,44 +935,75 @@ permalink: /toolbox/feixingqi/
 
     // === Layer: goal at center ===
     const goalGroup = svgEl('g', { class: 'goal' });
-    const [gr, gc] = GOAL_CELL;
+    const goal = layout.GOAL;
+    // Background box covering the goal area (cross: 3×3 around (7,7); ring: 2×2)
+    const boxX = goal.boxC0 * cell;
+    const boxY = goal.boxR0 * cell;
+    const boxW = (goal.boxC1 - goal.boxC0 + 1) * cell;
+    const boxH = (goal.boxR1 - goal.boxR0 + 1) * cell;
     goalGroup.appendChild(svgEl('rect', {
-      x: gc * CELL - CELL * 0.4,
-      y: gr * CELL - CELL * 0.4,
-      width: CELL * 1.8,
-      height: CELL * 1.8,
+      x: boxX, y: boxY, width: boxW, height: boxH,
       class: 'goal-bg',
       fill: '#fff8e8',
       stroke: '#5a4530',
       rx: 8,
     }));
-    // Quartered goal (each color gets one quarter)
-    const segs = [
-      { color: 'red',    cx: -0.45, cy: -0.45 },
-      { color: 'yellow', cx:  0.45, cy: -0.45 },
-      { color: 'blue',   cx:  0.45, cy:  0.45 },
-      { color: 'green',  cx: -0.45, cy:  0.45 },
-    ];
-    for (const s of segs) {
-      goalGroup.appendChild(svgEl('rect', {
-        x: gc * CELL + s.cx * CELL * 0.85 + CELL * 0.04,
-        y: gr * CELL + s.cy * CELL * 0.85 + CELL * 0.04,
-        width: CELL * 0.84,
-        height: CELL * 0.84,
-        fill: activeColors.has(s.color) ? COLOR_INFO[s.color].light : '#ece2cd',
-        stroke: '#888',
-        'stroke-width': 0.8,
-        rx: 4,
-      }));
+    if (goal.kind === 'shared') {
+      // Cross layout: 4 quartered cells laid out around the shared goal cell
+      const [gr, gc] = goal.cell;
+      const segs = [
+        { color: 'red',    cx: -0.45, cy: -0.45 },
+        { color: 'yellow', cx:  0.45, cy: -0.45 },
+        { color: 'blue',   cx:  0.45, cy:  0.45 },
+        { color: 'green',  cx: -0.45, cy:  0.45 },
+      ];
+      for (const s of segs) {
+        goalGroup.appendChild(svgEl('rect', {
+          x: gc * cell + s.cx * cell * 0.85 + cell * 0.04,
+          y: gr * cell + s.cy * cell * 0.85 + cell * 0.04,
+          width: cell * 0.84,
+          height: cell * 0.84,
+          fill: activeColors.has(s.color) ? COLOR_INFO[s.color].light : '#ece2cd',
+          stroke: '#888',
+          'stroke-width': 0.8,
+          rx: 4,
+        }));
+      }
+      goalGroup.appendChild(svgEl('text', {
+        x: svgX(gc),
+        y: svgY(gr) + 6,
+        'text-anchor': 'middle',
+        'font-size': 22,
+        'font-weight': 700,
+        fill: '#5a4530',
+      })).textContent = '🏆';
+    } else {
+      // Ring layout: 4 per-color goal cells in the central 2×2
+      for (const color of COLORS) {
+        const [r, c] = goal.cells[color];
+        goalGroup.appendChild(svgEl('rect', {
+          x: c * cell + cell * 0.08,
+          y: r * cell + cell * 0.08,
+          width: cell * 0.84,
+          height: cell * 0.84,
+          fill: activeColors.has(color) ? COLOR_INFO[color].light : '#ece2cd',
+          stroke: '#888',
+          'stroke-width': 0.8,
+          rx: 4,
+        }));
+      }
+      // Trophy at the center of the 2×2 box
+      const cxPx = boxX + boxW / 2;
+      const cyPx = boxY + boxH / 2;
+      goalGroup.appendChild(svgEl('text', {
+        x: cxPx,
+        y: cyPx + 6,
+        'text-anchor': 'middle',
+        'font-size': 22,
+        'font-weight': 700,
+        fill: '#5a4530',
+      })).textContent = '🏆';
     }
-    goalGroup.appendChild(svgEl('text', {
-      x: svgX(gc),
-      y: svgY(gr) + 6,
-      'text-anchor': 'middle',
-      'font-size': 22,
-      'font-weight': 700,
-      fill: '#5a4530',
-    })).textContent = '🏆';
     svg.appendChild(goalGroup);
 
     // === Layer: planes ===
@@ -935,11 +1037,12 @@ permalink: /toolbox/feixingqi/
           } else if (piece.status === 'stretch') {
             xy = stretchXY(c, piece.pos);
           } else { // goal
-            // Distribute 4 goal slots in 2x2 inside center
+            // Cluster 4 goal slots around the color's goal cell
+            const [gr, gc] = goalCellFor(c);
             const idx = i;
-            const ox = (idx % 2 === 0 ? -0.18 : 0.18) * CELL;
-            const oy = (idx < 2 ? -0.18 : 0.18) * CELL;
-            xy = { x: svgX(GOAL_CELL[1]) + ox, y: svgY(GOAL_CELL[0]) + oy };
+            const ox = (idx % 2 === 0 ? -0.18 : 0.18) * cell;
+            const oy = (idx < 2 ? -0.18 : 0.18) * cell;
+            xy = { x: svgX(gc) + ox, y: svgY(gr) + oy };
           }
           // Stack offset for multiple planes on same cell
           if (piece.status === 'track' || piece.status === 'stretch') {
@@ -949,7 +1052,7 @@ permalink: /toolbox/feixingqi/
             cellPlaced[k] = placed + 1;
             if (total > 1) {
               const angle = (placed / total) * Math.PI * 2;
-              const offR = CELL * 0.12;
+              const offR = cell * 0.12;
               xy.x += Math.cos(angle) * offR;
               xy.y += Math.sin(angle) * offR;
             }
@@ -963,7 +1066,7 @@ permalink: /toolbox/feixingqi/
           if (state.lastMove && state.lastMove.color === c && state.lastMove.pieceIdx === i) {
             cls.push('last-moved');
           }
-          const r = piece.status === 'goal' ? CELL * 0.16 : planeR;
+          const r = piece.status === 'goal' ? cell * 0.16 : planeR;
           const g = svgEl('g', { class: cls.join(' '), 'data-color': c, 'data-idx': i });
           g.appendChild(svgEl('circle', {
             cx: xy.x, cy: xy.y, r,
@@ -993,7 +1096,7 @@ permalink: /toolbox/feixingqi/
       // Setup mode: clicking any hangar slot or home cell cycles that corner
       for (const ck of CORNER_KEYS) {
         const color = CORNER_TO_COLOR[ck];
-        const z = HOME_ZONES[color];
+        const z = layout.HOME_ZONES[color];
         hits.appendChild(svgEl('rect', {
           ...rectAttrs(z.r0, z.c0, z.r1, z.c1),
           class: 'cell-hit',
@@ -1011,7 +1114,7 @@ permalink: /toolbox/feixingqi/
   // Apply jump cascade. Regular jumps chain c4 → c12 → c18; landing on c18 triggers
   // the BIG JUMP (advance 12 cells, no further chain).
   function resolveJumps(player, idx) {
-    const e = EXIT_INDEX[player];
+    const e = L().EXIT_INDEX[player];
     const c4 = (e + 4) % TRACK_LEN, c12 = (e + 12) % TRACK_LEN, c18 = (e + 18) % TRACK_LEN;
     let triggered = { jumped: false, bigJumped: false };
     if (idx === c4)  { idx = c12; triggered.jumped = true; }
@@ -1023,7 +1126,7 @@ permalink: /toolbox/feixingqi/
   // Walk along track for `steps` cells. Returns where the plane ends up.
   // {kind:'track', pos} | {kind:'stretch', pos} | {kind:'goal'}
   function advanceOnTrack(player, fromTrackIdx, steps) {
-    const transition = STRETCH_TRANSITION[player];
+    const transition = L().STRETCH_TRANSITION[player];
     let cur = fromTrackIdx;
     for (let i = 0; i < steps; i++) {
       if (cur === transition) {
@@ -1035,12 +1138,12 @@ permalink: /toolbox/feixingqi/
     return { kind: 'track', pos: cur };
   }
 
-  // Stretch positions 0..5; goal at virtual position 6. Bounce on overshoot.
+  // Stretch positions 0..(STRETCH_LEN-1); goal at virtual position STRETCH_LEN. Bounce on overshoot.
   function advanceInStretch(fromStretchIdx, steps) {
-    // fromStretchIdx: -1 means "entering from track transition"
+    const len = L().STRETCH_LEN;
     let target = fromStretchIdx + steps;
-    if (target === 6) return { kind: 'goal' };
-    if (target > 6) target = 12 - target;  // bounce
+    if (target === len) return { kind: 'goal' };
+    if (target > len) target = 2 * len - target;  // reflect off the goal end
     if (target < 0) target = 0;
     return { kind: 'stretch', pos: target };
   }
@@ -1055,7 +1158,7 @@ permalink: /toolbox/feixingqi/
         ok: true,
         kind: 'exit',
         toStatus: 'track',
-        toPos: EXIT_INDEX[player],
+        toPos: L().EXIT_INDEX[player],
         cellsAdvanced: 0,
         triggered: { jumped: false, bigJumped: false },
       };
@@ -1083,7 +1186,7 @@ permalink: /toolbox/feixingqi/
       if (r.kind === 'stretch') {
         return { ok: true, kind: 'stretch', toStatus: 'stretch', toPos: r.pos, cellsAdvanced: r.pos - piece.pos, triggered: { jumped: false, bigJumped: false } };
       } else {
-        return { ok: true, kind: 'finish', toStatus: 'goal', toPos: 0, cellsAdvanced: 6 - piece.pos, triggered: { jumped: false, bigJumped: false } };
+        return { ok: true, kind: 'finish', toStatus: 'goal', toPos: 0, cellsAdvanced: L().STRETCH_LEN - piece.pos, triggered: { jumped: false, bigJumped: false } };
       }
     }
     return { ok: false };
@@ -1121,7 +1224,7 @@ permalink: /toolbox/feixingqi/
     let captures = [];
     if (piece.status === 'hangar') {
       piece.status = 'track';
-      piece.pos = EXIT_INDEX[player];
+      piece.pos = L().EXIT_INDEX[player];
       captures = opponentsOnCell(player, piece.pos);
     } else if (preview.toStatus === 'track') {
       piece.status = 'track';
@@ -1402,7 +1505,7 @@ permalink: /toolbox/feixingqi/
         // If opponent has plane in hangar, count "exit and immediately reach" possibility
       }
       // If opponent has any plane in hangar AND their exit is within 6 of our landing, add small risk
-      const oppExit = EXIT_INDEX[c];
+      const oppExit = L().EXIT_INDEX[c];
       const distExit = (trackIdx - oppExit + TRACK_LEN) % TRACK_LEN;
       const inHangar = state.pieces[c].filter(p => p.status === 'hangar').length;
       if (inHangar > 0 && distExit === 0) risk += 0.5;
@@ -1411,7 +1514,7 @@ permalink: /toolbox/feixingqi/
   }
 
   function distToStretchTransition(player, trackIdx) {
-    const t = STRETCH_TRANSITION[player];
+    const t = L().STRETCH_TRANSITION[player];
     return (t - trackIdx + TRACK_LEN) % TRACK_LEN;
   }
 
@@ -1497,12 +1600,13 @@ permalink: /toolbox/feixingqi/
 
   // Paint final board onto a Canvas — for Settlement screenshot.
   function fxqPaintBoard(ctx, ox, oy, ow, oh) {
+    const layout = L();
     const target = Math.min(oh, ow);
     const dx = ox + (ow - target) / 2;
     const dy = oy + (oh - target) / 2;
     const sx = target / SVG_W;
-    const sy = target / SVG_H;
-    const cell = CELL * sx;
+    const baseCell = CELL();
+    const cell = baseCell * sx;
 
     // Background
     ctx.fillStyle = '#f8f3e6';
@@ -1511,7 +1615,7 @@ permalink: /toolbox/feixingqi/
     // Home zones
     const activeColors = new Set(state.players);
     for (const color of COLORS) {
-      const z = HOME_ZONES[color];
+      const z = layout.HOME_ZONES[color];
       const info = COLOR_INFO[color];
       ctx.fillStyle = activeColors.has(color) ? info.light : '#ece2cd';
       ctx.strokeStyle = '#5a4530';
@@ -1528,7 +1632,7 @@ permalink: /toolbox/feixingqi/
       ctx.fillStyle = info.light;
       ctx.strokeStyle = '#8a7050';
       ctx.lineWidth = 1 * sx;
-      for (const [r, c] of STRETCH_CELLS[color]) {
+      for (const [r, c] of layout.STRETCH_CELLS[color]) {
         ctx.beginPath();
         ctx.rect(dx + c * cell + cell * 0.08, dy + r * cell + cell * 0.08, cell * 0.84, cell * 0.84);
         ctx.fill();
@@ -1537,8 +1641,8 @@ permalink: /toolbox/feixingqi/
     }
     // Track
     for (let i = 0; i < TRACK_LEN; i++) {
-      const [r, c] = TRACK[i];
-      const ownerColor = CELL_COLOR[i];
+      const [r, c] = layout.TRACK[i];
+      const ownerColor = layout.CELL_COLOR[i];
       ctx.fillStyle = ownerColor ? COLOR_INFO[ownerColor].light : '#fff8e8';
       ctx.strokeStyle = '#8a7050';
       ctx.lineWidth = 1 * sx;
@@ -1547,15 +1651,54 @@ permalink: /toolbox/feixingqi/
       ctx.fill();
       ctx.stroke();
     }
-    // Goal
-    const [gr, gc] = GOAL_CELL;
+    // Goal box (cross: 3×3 around (7,7); ring: 2×2 around (6-7, 6-7))
+    const goal = layout.GOAL;
+    const boxX = goal.boxC0 * cell;
+    const boxY = goal.boxR0 * cell;
+    const boxW = (goal.boxC1 - goal.boxC0 + 1) * cell;
+    const boxH = (goal.boxR1 - goal.boxR0 + 1) * cell;
     ctx.fillStyle = '#fff8e8';
     ctx.strokeStyle = '#5a4530';
     ctx.lineWidth = 2 * sx;
     ctx.beginPath();
-    ctx.rect(dx + gc * cell - cell * 0.4, dy + gr * cell - cell * 0.4, cell * 1.8, cell * 1.8);
+    ctx.rect(dx + boxX, dy + boxY, boxW, boxH);
     ctx.fill();
     ctx.stroke();
+    // Goal cells
+    if (goal.kind === 'shared') {
+      const [gr, gc] = goal.cell;
+      const segs = [
+        { color: 'red',    cx: -0.45, cy: -0.45 },
+        { color: 'yellow', cx:  0.45, cy: -0.45 },
+        { color: 'blue',   cx:  0.45, cy:  0.45 },
+        { color: 'green',  cx: -0.45, cy:  0.45 },
+      ];
+      for (const s of segs) {
+        ctx.fillStyle = activeColors.has(s.color) ? COLOR_INFO[s.color].light : '#ece2cd';
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 0.8 * sx;
+        ctx.beginPath();
+        ctx.rect(
+          dx + gc * cell + s.cx * cell * 0.85 + cell * 0.04,
+          dy + gr * cell + s.cy * cell * 0.85 + cell * 0.04,
+          cell * 0.84,
+          cell * 0.84,
+        );
+        ctx.fill();
+        ctx.stroke();
+      }
+    } else {
+      for (const color of COLORS) {
+        const [r, c] = goal.cells[color];
+        ctx.fillStyle = activeColors.has(color) ? COLOR_INFO[color].light : '#ece2cd';
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 0.8 * sx;
+        ctx.beginPath();
+        ctx.rect(dx + c * cell + cell * 0.08, dy + r * cell + cell * 0.08, cell * 0.84, cell * 0.84);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
 
     // Planes
     for (const color of state.players) {
@@ -1567,11 +1710,12 @@ permalink: /toolbox/feixingqi/
         else if (p.status === 'track') pxy = trackXY(p.pos);
         else if (p.status === 'stretch') pxy = stretchXY(color, p.pos);
         else {
-          const ox2 = (i % 2 === 0 ? -0.18 : 0.18) * CELL;
-          const oy2 = (i < 2 ? -0.18 : 0.18) * CELL;
-          pxy = { x: svgX(GOAL_CELL[1]) + ox2, y: svgY(GOAL_CELL[0]) + oy2 };
+          const [gr2, gc2] = goalCellFor(color);
+          const ox2 = (i % 2 === 0 ? -0.18 : 0.18) * baseCell;
+          const oy2 = (i < 2 ? -0.18 : 0.18) * baseCell;
+          pxy = { x: svgX(gc2) + ox2, y: svgY(gr2) + oy2 };
         }
-        const r = (p.status === 'goal' ? CELL * 0.16 : CELL * 0.36) * sx;
+        const r = (p.status === 'goal' ? baseCell * 0.16 : baseCell * 0.36) * sx;
         ctx.fillStyle = COLOR_INFO[color].hex;
         ctx.strokeStyle = '#1a1a1a';
         ctx.lineWidth = 1.5 * sx;
@@ -1696,6 +1840,7 @@ permalink: /toolbox/feixingqi/
     return {
       setupConfig: state.setupConfig,
       difficulty: state.difficulty,
+      layoutKey: state.layoutKey,
       players: state.players,
       playerKinds: state.playerKinds,
       pieces: state.pieces,
@@ -1714,6 +1859,7 @@ permalink: /toolbox/feixingqi/
   function fxqRestore(saved) {
     state.setupConfig = saved.setupConfig || defaultSetup();
     state.difficulty = saved.difficulty || 'normal';
+    state.layoutKey = LAYOUTS[saved.layoutKey] ? saved.layoutKey : state.layoutKey;
     state.players = saved.players || [];
     state.playerKinds = saved.playerKinds || {};
     state.pieces = saved.pieces || freshPieces();
