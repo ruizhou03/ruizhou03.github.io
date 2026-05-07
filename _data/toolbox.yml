@@ -1,0 +1,266 @@
+# 百宝箱（toolbox）单一数据源
+# 字段说明：
+#   id          — 标识符（保留以便日后接 stats / 活动图等用）
+#   name        — 显示名（不带 " | Rui Zhou" 后缀）
+#   icon        — 卡片左上角 emoji
+#   tagline     — 8-12 字精简描述
+#   url         — 工具页面 permalink
+#   category    — 游戏 / 工作 / 生活
+#   subcategory — 仅游戏类用：棋类对战 / 单人小游戏 / 派对多人
+#   status      — live | coming
+#
+# 顺序即页面渲染顺序（Liquid where filter 保持原序）。
+
+# ===== 一、游戏 =====
+
+# 棋类对战
+- id: gomoku
+  name: 五子棋
+  icon: ⚫
+  tagline: 15×15 + 启发式 AI
+  url: /toolbox/gomoku/
+  category: 游戏
+  subcategory: 棋类对战
+  status: live
+
+- id: chess
+  name: 国际象棋
+  icon: ♟️
+  tagline: 全套规则 + AI 三档
+  url: /toolbox/chess/
+  category: 游戏
+  subcategory: 棋类对战
+  status: live
+
+- id: xiangqi
+  name: 中国象棋
+  icon: ♟
+  tagline: 全规则 + AI 三档
+  url: /toolbox/xiangqi/
+  category: 游戏
+  subcategory: 棋类对战
+  status: live
+
+- id: tiaoqi
+  name: 跳棋
+  icon: ⭐
+  tagline: 2-6 人 + AI 三档
+  url: /toolbox/tiaoqi/
+  category: 游戏
+  subcategory: 棋类对战
+  status: live
+
+# 单人小游戏
+- id: suika
+  name: 合成大西瓜
+  icon: 🍉
+  tagline: 物理碰撞合并
+  url: /toolbox/suika/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
+- id: "2048"
+  name: "2048"
+  icon: 🎯
+  tagline: 三尺寸 + 撤销
+  url: /toolbox/2048/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
+- id: snake
+  name: 贪吃蛇
+  icon: 🐍
+  tagline: 经典 + 三档速度
+  url: /toolbox/snake/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
+- id: minesweeper
+  name: 扫雷
+  icon: 💣
+  tagline: Win 经典三难度
+  url: /toolbox/minesweeper/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
+- id: runner
+  name: Deadline 大逃亡
+  icon: 🎓
+  tagline: 博士跑酷
+  url: /toolbox/runner/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
+- id: leap
+  name: 跳过 Deadline
+  icon: 📅
+  tagline: 跳一跳本地化
+  url: /toolbox/leap/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
+# 派对 / 多人
+- id: dare
+  name: 不要做挑战
+  icon: 🃏
+  tagline: 翻牌挑战
+  url: /toolbox/dare/
+  category: 游戏
+  subcategory: 派对多人
+  status: live
+
+- id: werewolf
+  name: 狼人杀发身份牌
+  icon: 🐺
+  tagline: 一台手机轮传
+  url: /toolbox/werewolf/
+  category: 游戏
+  subcategory: 派对多人
+  status: live
+
+- id: drawing
+  name: 你画我猜
+  icon: ✏️
+  tagline: P2P 联机房间
+  url: /toolbox/drawing/
+  category: 游戏
+  subcategory: 派对多人
+  status: coming
+
+# ===== 二、工作 / 效率 =====
+
+- id: citation
+  name: 引用格式转换器
+  icon: 🔖
+  tagline: BibTeX → 6 种格式
+  url: /toolbox/citation/
+  category: 工作
+  status: live
+
+- id: random
+  name: 随机数生成器
+  icon: 🎰
+  tagline: 13 种概率分布
+  url: /toolbox/random/
+  category: 工作
+  status: live
+
+- id: compound
+  name: 复利 / 现值
+  icon: 📈
+  tagline: 401k + HYSA 模拟
+  url: /toolbox/compound/
+  category: 工作
+  status: live
+
+- id: tax-bracket
+  name: 报税档位估算
+  icon: 📊
+  tagline: 美国 / 中国双切
+  url: /toolbox/tax-bracket/
+  category: 工作
+  status: live
+
+- id: converter
+  name: 汇率 + 单位换算
+  icon: 💱
+  tagline: 实时 + 离线兜底
+  url: /toolbox/converter/
+  category: 工作
+  status: live
+
+- id: vocab
+  name: 生词本
+  icon: 📖
+  tagline: Leitner 间隔重复
+  url: /toolbox/vocab/
+  category: 工作
+  status: live
+
+- id: forest
+  name: 种树
+  icon: 🌳
+  tagline: 番茄钟 + 森林
+  url: /toolbox/forest/
+  category: 工作
+  status: live
+
+# ===== 三、生活 =====
+
+- id: vision
+  name: 视力自测
+  icon: 👁️
+  tagline: Tumbling E 筛查
+  url: /toolbox/vision/
+  category: 生活
+  status: live
+
+- id: metronome
+  name: 节拍器
+  icon: 🥁
+  tagline: BPM 30-300
+  url: /toolbox/metronome/
+  category: 生活
+  status: live
+
+- id: pitch
+  name: 音高测量
+  icon: 🎵
+  tagline: 麦克风实时识别
+  url: /toolbox/pitch/
+  category: 生活
+  status: live
+
+- id: picker
+  name: 遇事不决
+  icon: 🎯
+  tagline: 权重转盘抽签
+  url: /toolbox/picker/
+  category: 生活
+  status: live
+
+- id: grouper
+  name: 随机分组器
+  icon: 👥
+  tagline: N 人分 K 组
+  url: /toolbox/grouper/
+  category: 生活
+  status: live
+
+- id: roll-call
+  name: 随机点名
+  icon: 🎤
+  tagline: 上课提问 / 汇报
+  url: /toolbox/roll-call/
+  category: 生活
+  status: live
+
+- id: countdown
+  name: 倒计时面板
+  icon: ⏳
+  tagline: 节日 + 截稿剩余天
+  url: /toolbox/countdown/
+  category: 生活
+  status: live
+
+- id: goals
+  name: 目标进度跟踪
+  icon: 🚩
+  tagline: 长期目标 + 周打卡
+  url: /toolbox/goals/
+  category: 生活
+  status: live
+
+- id: timemachine
+  name: X 年前的今天
+  icon: 🕰️
+  tagline: 翻历年同一天
+  url: /toolbox/timemachine/
+  category: 生活
+  status: live
