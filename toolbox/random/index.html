@@ -209,6 +209,28 @@ permalink: /toolbox/random/
     border-color: #c0392b;
     color: #c0392b;
   }
+  .sample-custom {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+  }
+  .sample-n-input {
+    width: 7rem;
+    padding: 0.45rem 0.8rem;
+    font: inherit; font-size: 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .sample-n-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+  .sample-n-input::-webkit-outer-spin-button,
+  .sample-n-input::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  .sample-n-input { -moz-appearance: textfield; }
 
   .stats {
     display: grid;
@@ -305,6 +327,11 @@ permalink: /toolbox/random/
       <button class="sample-btn" data-n="10">抽 10 个</button>
       <button class="sample-btn" data-n="100">抽 100 个</button>
       <button class="sample-btn" data-n="1000">抽 1000 个</button>
+      <span class="sample-custom">
+        <input type="number" class="sample-n-input" id="sample-n"
+               min="1" max="1000000" step="1" placeholder="自定义 N">
+        <button class="sample-btn" id="btn-sample-custom">抽 N 个</button>
+      </span>
       <button class="sample-btn danger" id="btn-clear">清空</button>
     </div>
     <div class="last-sample">最近一次抽样：<span class="v" id="last-sample">—</span></div>
@@ -321,7 +348,7 @@ permalink: /toolbox/random/
   <details class="about">
     <summary>关于这个工具</summary>
     <p><strong>用途：</strong>统计课、模拟实验、做题验证概率结果。挑分布、调参数 → 数轴上画出 PDF/PMF → 拖两个橘色 handle 选区间，实时算 <code>P(a ≤ X ≤ b)</code>（连续用复合辛普森积分，离散用 PMF 求和）。</p>
-    <p><strong>抽样：</strong>四档样本数。每抽一次，样本会从顶部"落"到对应位置；超过 50 个样本后画成直方图叠在 PDF 上。底部统计区给样本均值/方差，并和理论值对照——大数定律的可视化。</p>
+    <p><strong>抽样：</strong>四档预设 + 自定义 N（上限 1,000,000）。每抽一次，样本会从顶部"落"到对应位置；超过 50 个样本后画成直方图叠在 PDF 上。底部统计区给样本均值/方差，并和理论值对照——大数定律的可视化。</p>
     <p><strong>抽样算法：</strong>正态用 Box–Muller，Gamma 用 Marsaglia–Tsang，Beta = Gamma/(Gamma+Gamma)，χ²/t/F 都从 Gamma/Normal 派生；泊松小 λ 用 Knuth、大 λ 用正态近似；二项用累加伯努利。</p>
     <p><strong>纯本地：</strong>所有计算和抽样都在浏览器里跑，不上传任何东西。</p>
   </details>
@@ -1212,12 +1239,31 @@ permalink: /toolbox/random/
     return v.toFixed(3);
   }
 
+  // 上限设到 100 万——纯本地抽样在现代浏览器里抽 1e6 次只要几十毫秒，
+  // 既不会卡住也不会爆内存；再大就考虑分块或 Web Worker。
+  const MAX_N = 1_000_000;
+
   // 抽样按钮
   document.querySelectorAll('.sample-btn[data-n]').forEach(btn => {
     btn.addEventListener('click', () => {
       const n = parseInt(btn.dataset.n, 10);
       drawSamples(n);
     });
+  });
+  const $sampleN = document.getElementById('sample-n');
+  const $btnSampleCustom = document.getElementById('btn-sample-custom');
+  function triggerCustomSample() {
+    let n = parseInt($sampleN.value, 10);
+    if (!Number.isFinite(n) || n < 1) return;
+    if (n > MAX_N) {
+      n = MAX_N;
+      $sampleN.value = MAX_N;
+    }
+    drawSamples(n);
+  }
+  $btnSampleCustom.addEventListener('click', triggerCustomSample);
+  $sampleN.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); triggerCustomSample(); }
   });
   document.getElementById('btn-clear').addEventListener('click', () => {
     state.samples = [];
@@ -1228,30 +1274,24 @@ permalink: /toolbox/random/
   function drawSamples(n) {
     const dist = DIST[state.distKey];
     if (!dist.validate(state.params)) return;
-    const newSamples = [];
-    for (let i = 0; i < n; i++) {
-      newSamples.push(dist.sample(state.params));
-    }
     if (n === 1) {
       // 单个样本：动画"落下"
-      animateSampleDrop(newSamples[0]);
+      animateSampleDrop(dist.sample(state.params));
     } else if (n <= 10) {
-      // 10 个：每 80ms 落一个
+      // ≤10：每 80ms 落一个
       let i = 0;
       const tick = () => {
-        if (i >= newSamples.length) return;
-        animateSampleDrop(newSamples[i]);
+        if (i >= n) return;
+        animateSampleDrop(dist.sample(state.params));
         i++;
         setTimeout(tick, 80);
       };
       tick();
     } else {
-      // 100 / 1000：直接加进去重画
-      state.samples.push(...newSamples);
-      // 控制最多 5000 个，防 SVG 太重
-      if (state.samples.length > 5000) {
-        state.samples = state.samples.slice(-5000);
-      }
+      // 大批量：直接 push，不再做 5000 截断
+      // 用 for 循环而不是 push(...arr)——后者在 n 很大时可能撞栈上限
+      const arr = state.samples;
+      for (let i = 0; i < n; i++) arr.push(dist.sample(state.params));
       drawSVG();
       updateStats();
     }
@@ -1259,7 +1299,6 @@ permalink: /toolbox/random/
 
   function animateSampleDrop(value) {
     state.samples.push(value);
-    if (state.samples.length > 5000) state.samples = state.samples.slice(-5000);
     drawSVG();
     updateStats();
     // 再叠一个动画圆点
