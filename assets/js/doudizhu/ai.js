@@ -64,6 +64,13 @@
     if (!beats.length) return null;
 
     if (prev) {
+      // 简易农民协作：上一手是队友（不是地主、也不是我）→ 默认 pass，让队友收牌
+      if (ctx && ctx.myRole === 'peasant' && ctx.lastTrickSeat >= 0
+          && ctx.lastTrickSeat !== ctx.landlordIdx
+          && ctx.lastTrickSeat !== ctx.myIdx) {
+        // 例外：我自己也快收完牌（≤2 张），可以试着压清；或者地主只剩 1 张要赢了
+        if (hand.length > 2 && ctx.handSizes[ctx.landlordIdx] > 1) return null;
+      }
       // 跟牌
       const nonBombs = beats.filter(p => p.type !== T.BOMB && p.type !== T.ROCKET);
       if (nonBombs.length) {
@@ -199,12 +206,10 @@
 
     const beats = E.enumerateBeats(hand, prev);
 
-    // 农民协作规则 1: 队友刚出且地主没盖 → 永远 pass（除非自己手牌 ≤ 2 直接收）
+    // 农民协作规则 1: 队友刚出且地主没盖 → 默认 pass（让队友收牌 / 继续主导）
+    //   例外：(a) 我手里已经 ≤ 2 张可以直接收；(b) 地主只剩 1 张眼看要赢，必须不惜代价压
     if (prev && myRole === 'peasant' && ctx.lastTrickSeat === partnerIdx) {
-      // 例外：如果我的手牌已经很少（≤ 2），或者队友手牌还多（>10）反而该自己接
-      if (hand.length > 2 && partnerHand <= 10) {
-        return null;
-      }
+      if (hand.length > 2 && landlordHand > 1) return null;
     }
 
     if (!beats.length) return null;

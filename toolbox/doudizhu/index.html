@@ -832,6 +832,25 @@ permalink: /toolbox/doudizhu/
     opacity: 0.35;
     cursor: not-allowed;
   }
+  /* 明牌 badge：明牌的玩家头像左侧挂红色「明牌」 */
+  .ddz-declared-badge {
+    position: absolute;
+    bottom: -6px; left: -10px;
+    background: linear-gradient(135deg, #c14b46, #8b2e2e);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.05rem 0.42rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    border: 1.5px solid #fff5d4;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    z-index: 5;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    line-height: 1.2;
+    pointer-events: none;
+  }
+
   /* 加倍 badge：选了加倍的玩家头像旁挂个金色 ×2 */
   .ddz-doubled-badge {
     position: absolute;
@@ -1168,8 +1187,9 @@ permalink: /toolbox/doudizhu/
         <button class="ddz-mode-tab active" data-diff="normal" type="button">🙂 普通</button>
         <button class="ddz-mode-tab" data-diff="hard" type="button">🔥 高手</button>
       </div>
-      <div style="margin-top: 0.6rem;">
+      <div style="margin-top: 0.6rem; display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap;">
         <button class="ddz-btn primary" id="ddzStartBtn" type="button">🎮 开始游戏</button>
+        <button class="ddz-btn" id="ddzDeclareStartBtn" type="button" title="开局直接当地主，倍数 ×5">🎴 明牌开始 ×5</button>
       </div>
     </div>
 
@@ -1195,6 +1215,7 @@ permalink: /toolbox/doudizhu/
 
     <div class="ddz-help">
       斗地主是中国最流行的三人扑克游戏。54 张牌发出 51 张，剩 3 张底牌。<strong>抢地主</strong>阶段三家依次决定是否抢，最后抢的人当地主，每多一次抢倍数 ×2；揭牌后还可<strong>加倍</strong>（×2）。
+      <strong>明牌</strong>：开局直接「明牌开始」 ×5 跳过抢地主当地主；或抢到地主揭底后选「明牌」 ×2。
       牌型：单 / 对 / 三 / 三带一/二 / 顺子（5+ 单牌连续）/ 连对（3+ 对子连续）/ 飞机 / 四带二 / 炸弹 / 王炸。每个炸弹/王炸 ×2；春天 / 反春天 ×2。
       赢局上榜积分 = 底分 × 倍数 × 角色（地主 ×2，农民 ×1） × <strong>难度权重</strong>（新手 ×1 / 普通 ×2 / 高手 ×3 / 联机 ×3）。联机模式有<strong>独立排行榜</strong>。
     </div>
@@ -1225,7 +1246,7 @@ permalink: /toolbox/doudizhu/
   <div class="ddz-table" id="ddzTable" hidden>
     <div class="ddz-tops">
       <div class="ddz-seat-ai" data-seat="2">
-        <div class="ddz-avatar" id="ddzAvatar2">🤖<span class="ddz-clock" id="ddzClock2" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled2" hidden>×2</span></div>
+        <div class="ddz-avatar" id="ddzAvatar2">🤖<span class="ddz-clock" id="ddzClock2" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled2" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared2" hidden>明牌</span></div>
         <div class="ddz-name" id="ddzName2">AI · 上家</div>
         <div class="ddz-handcount" id="ddzCount2">17</div>
         <div class="ddz-played" id="ddzPlayed2"></div>
@@ -1240,7 +1261,7 @@ permalink: /toolbox/doudizhu/
         <div class="ddz-multiplier" id="ddzMultiplier"></div>
       </div>
       <div class="ddz-seat-ai" data-seat="1">
-        <div class="ddz-avatar" id="ddzAvatar1">🤖<span class="ddz-clock" id="ddzClock1" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled1" hidden>×2</span></div>
+        <div class="ddz-avatar" id="ddzAvatar1">🤖<span class="ddz-clock" id="ddzClock1" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled1" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared1" hidden>明牌</span></div>
         <div class="ddz-name" id="ddzName1">AI · 下家</div>
         <div class="ddz-handcount" id="ddzCount1">17</div>
         <div class="ddz-played" id="ddzPlayed1"></div>
@@ -1255,7 +1276,7 @@ permalink: /toolbox/doudizhu/
 
     <!-- 我的座位 -->
     <div class="ddz-self">
-      <div class="ddz-avatar" id="ddzAvatar0">😎<span class="ddz-clock" id="ddzClock0" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled0" hidden>×2</span></div>
+      <div class="ddz-avatar" id="ddzAvatar0">😎<span class="ddz-clock" id="ddzClock0" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled0" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared0" hidden>明牌</span></div>
       <div class="ddz-self-info">
         <div class="ddz-name" id="ddzName0">我</div>
         <div class="ddz-handcount" id="ddzCount0">17</div>
@@ -1344,6 +1365,9 @@ permalink: /toolbox/doudizhu/
     lastTrick: null,             // {seat, pattern}
     passCount: 0,
     selected: new Set(),
+    declared: false,                                // 是否明牌（任一玩家明牌）
+    declaredSeat: -1,                               // 谁明牌
+    initialHands: null,                             // 开局快照 [arr0, arr1, arr2]（含地主底牌）— 春天结算图用
     seen: new Array(15).fill(0),                   // 真实已出统计（仅供调试 / 玩家视角）
     aiPerceivedSeen: [                              // 每个 AI 自己的"记忆"，可能有噪声
       null,
@@ -1438,6 +1462,7 @@ permalink: /toolbox/doudizhu/
   });
 
   $('ddzStartBtn').addEventListener('click', () => startNewGame());
+  $('ddzDeclareStartBtn').addEventListener('click', () => startNewGame({ declareStart: true }));
   $('ddzPlayAgainBtn').addEventListener('click', () => {
     gameOverOverlay.classList.remove('show', 'has-spring');
     startNewGame();
@@ -1702,6 +1727,9 @@ permalink: /toolbox/doudizhu/
       // 加倍 badge
       const dbBadge = $('ddzDoubled' + i);
       if (dbBadge) dbBadge.hidden = !seatDoubled(i);
+      // 明牌 badge
+      const dcBadge = $('ddzDeclared' + i);
+      if (dcBadge) dcBadge.hidden = (state.declaredSeat !== i);
     }
     if (state.landlordIdx >= 0) {
       const role = state.landlordIdx === 0 ? '地主' : '农民';
@@ -1825,7 +1853,8 @@ permalink: /toolbox/doudizhu/
   // ============================================================
   // 流程控制
   // ============================================================
-  function startNewGame() {
+  function startNewGame(opts) {
+    opts = opts || {};
     setupView.style.display = 'none';
     tableView.hidden = false;
     state.phase = PHASE.DEALING;
@@ -1840,6 +1869,8 @@ permalink: /toolbox/doudizhu/
     state.multiplier = 1;
     state.bombCount = 0;
     state.spring = 0;
+    state.declared = false;
+    state.declaredSeat = -1;
     state.landlordPlayCount = 0;
     state.peasantPlayCount = 0;
     state.lastTrick = null;
@@ -1869,10 +1900,28 @@ permalink: /toolbox/doudizhu/
     renderHandCounts();
     renderBottomPile();
     renderRoles();
-    setStatus('发牌完毕');
     multiEl.textContent = '';
 
-    setTimeout(() => enterBidding(), 600);
+    if (opts.declareStart) {
+      // 明牌开局：玩家直接当地主，倍数 ×5，跳过抢地主
+      state.declared = true;
+      state.declaredSeat = 0;
+      state.landlordIdx = 0;
+      state.landlordCandidate = 0;
+      state.robCount = 1;
+      state.multiplier = 5;
+      pushSplashLog('🎴 明牌开局 ×5！');
+      setStatus('明牌 ×5 — 你直接当地主');
+      setTimeout(() => revealBottom(), 900);
+    } else {
+      setStatus('发牌完毕');
+      setTimeout(() => enterBidding(), 600);
+    }
+  }
+
+  function pushSplashLog(text) {
+    // 简化：暂时只 setStatus；将来可以做 toast 动画
+    setStatus(text);
   }
 
   // ============================================================
@@ -1969,12 +2018,65 @@ permalink: /toolbox/doudizhu/
     setTimeout(() => {
       state.hands[state.landlordIdx] = state.hands[state.landlordIdx].concat(state.bottom);
       for (const c of state.bottom) state.seen[E.cardWeight(c)]++;
-      aiPerceiveBottom();                  // AI 也"看见"底牌（按难度过滤）
+      aiPerceiveBottom();
+      // 揭底牌后 snapshot 三家完整初始手牌（地主含底牌） — 给春天结算图用
+      state.initialHands = [
+        state.hands[0].slice(),
+        state.hands[1].slice(),
+        state.hands[2].slice(),
+      ];
       renderHand();
       renderHandCounts();
       renderRoles();
-      enterDoubling();
+      // 地主明牌选择（mode 3，仅未明牌且玩家是地主时）
+      if (!state.declared && state.landlordIdx === 0) {
+        offerLandlordDeclare();
+      } else {
+        enterDoubling();
+      }
     }, 1100);
+  }
+
+  function offerLandlordDeclare() {
+    state.phase = PHASE.BIDDING;       // 借用 BIDDING phase 关闭其它 input；不影响视觉
+    bidPanel.hidden = false;
+    bidTitle.innerHTML = '<span>地主明牌？×2</span><span class="countdown-badge" id="ddzLDCountdown">5s</span>';
+    bidButtonsEl.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex; gap:0.7rem; justify-content:center; flex-wrap:wrap;';
+    const yes = document.createElement('button');
+    yes.type = 'button'; yes.className = 'primary';
+    yes.textContent = '🎴 明牌 ×2';
+    yes.addEventListener('click', () => { finalizeLandlordDeclare(true); });
+    const no = document.createElement('button');
+    no.type = 'button';
+    no.textContent = '不明牌';
+    no.addEventListener('click', () => { finalizeLandlordDeclare(false); });
+    wrap.appendChild(yes); wrap.appendChild(no);
+    bidButtonsEl.appendChild(wrap);
+    // 5s 倒计时（默认不明牌）
+    let endAt = Date.now() + 5000;
+    let id = setInterval(() => {
+      const left = Math.max(0, endAt - Date.now());
+      const s = Math.ceil(left / 1000);
+      const cd = document.getElementById('ddzLDCountdown');
+      if (cd) cd.textContent = s + 's';
+      if (left <= 0) { clearInterval(id); finalizeLandlordDeclare(false); }
+    }, 200);
+    bidPanel.dataset.timerId = String(id);
+  }
+  function finalizeLandlordDeclare(yes) {
+    const id = parseInt(bidPanel.dataset.timerId || '0', 10);
+    if (id) clearInterval(id);
+    bidPanel.dataset.timerId = '';
+    bidPanel.hidden = true;
+    if (yes) {
+      state.declared = true;
+      state.declaredSeat = 0;
+      state.multiplier *= 2;
+      pushSplashLog('🎴 你明牌了！倍数 ×2');
+    }
+    enterDoubling();
   }
 
   // ============================================================
@@ -2474,10 +2576,27 @@ permalink: /toolbox/doudizhu/
       `<div>难度：${difficultyLabel(state.difficulty)} · 用时 ${formatDuration(Date.now() - state.runStartedAt)}</div>`;
     gameOverOverlay.classList.toggle('has-spring', state.spring > 0);
     gameOverOverlay.classList.add('show');
-    if (ddzSettleBtn) ddzSettleBtn.setEnabled(true);
+    // 平时不显示结算图按钮；只有春天 / 反春天才弹
+    if (ddzSettleBtn && ddzSettleBtn.element) ddzSettleBtn.element.hidden = true;
+    if (state.spring > 0) {
+      setTimeout(() => triggerSpringSettlement(), 700);
+    }
     renderRoles();
 
     if (playerWon) tryAutoSubmit();
+  }
+
+  // 春天 / 反春天专用结算图：弹出春天那人的初始手牌
+  function triggerSpringSettlement() {
+    if (!window.GamesShell || !GamesShell.Settlement) return;
+    if (!state.initialHands || !state.result) return;
+    const opts = ddzGetSpringOpts();
+    if (!opts) return;
+    const dataURL = GamesShell.Settlement.compose(opts);
+    if (!dataURL) return;
+    const ts = Date.now();
+    const filename = `doudizhu_spring_${ts}.png`;
+    GamesShell.Settlement.present({ dataURL, filename });
   }
 
   function difficultyLabel(d) { return { easy: '🌱 新手', normal: '🙂 普通', hard: '🔥 高手' }[d] || d; }
@@ -2494,94 +2613,149 @@ permalink: /toolbox/doudizhu/
   let ddzWlb = null, ddzSettleBtn = null;
   let ddzSave = null;
 
-  function ddzGetSettlementOpts() {
-    if (!state.result) return null;
-    const playerRole = state.landlordIdx === 0 ? 'landlord' : 'peasant';
-    const playerWon = state.result.winnerRole === playerRole;
-    const elapsed = Math.floor((Date.now() - state.runStartedAt) / 1000);
+  // 春天 / 反春天结算图：标题 + 「那一方」的初始手牌（行）
+  function ddzGetSpringOpts() {
+    if (!state.result || state.spring <= 0 || !state.initialHands) return null;
+    const isSpring = state.result.winnerRole === 'landlord';   // 春天=地主胜
+    const subtitle = isSpring ? '🌸 春天' : '🍁 反春天';
+    // 收集要展示的「赢家」初始手牌
+    let rows;
+    if (isSpring) {
+      // 春天：展示地主初始 20 张
+      const seat = state.landlordIdx;
+      rows = [{ label: seatLongLabel(seat) + '（地主）· 初始 20 张', cards: state.initialHands[seat] }];
+    } else {
+      // 反春天：展示两个农民各自 17 张
+      rows = [];
+      for (let s = 0; s < 3; s++) {
+        if (s === state.landlordIdx) continue;
+        rows.push({ label: seatLongLabel(s) + '（农民）· 初始 17 张', cards: state.initialHands[s] });
+      }
+    }
     return {
       kind: 'duel',
       gameId: 'doudizhu',
-      title: '斗地主',
-      emoji: '🃏',
+      title: '斗地主 · ' + subtitle,
+      emoji: isSpring ? '🌸' : '🍁',
       nick: (window.GamesShell && GamesShell.Identity.getNick()) || '匿名',
       opponent: 'AI · ' + difficultyLabel(state.difficulty),
-      result: playerWon ? 'win' : 'lose',
+      result: state.landlordIdx === 0
+        ? (isSpring ? 'win' : 'lose')
+        : (isSpring ? 'lose' : 'win'),
       stats: [
-        { label: '角色', value: playerRole === 'landlord' ? '地主 👑' : '农民' },
-        { label: '倍数', value: '×' + state.result.multiplier + (state.spring > 0 ? '（含春天）' : '') },
-        { label: '炸弹', value: state.bombCount + ' 个' },
+        { label: subtitle.replace(/^[^\s]+\s/, '') + ' 加成', value: '×2' },
+        { label: '总倍数', value: '×' + state.result.multiplier },
         { label: '本局积分', value: state.result.score },
-        { label: '用时', value: formatDuration(Date.now() - state.runStartedAt) },
       ],
-      paintBoard: ddzPaintBoard,
-      boardW: 480,
-      boardAspect: 1.4,
+      paintBoard: (ctx, x, y, w, h) => paintSpringBoard(ctx, x, y, w, h, rows, subtitle),
+      boardW: 520,
+      boardAspect: rows.length === 1 ? 1.05 : 1.45,
       watermark: 'zirconeey.github.io/toolbox/doudizhu',
     };
   }
 
-  function ddzPaintBoard(ctx, x, y, w, h) {
-    // 背景：绿绒梯度
+  function seatLongLabel(seat) {
+    if (seat === 0) return '我';
+    if (seat === 1) return 'AI · 下家';
+    return 'AI · 上家';
+  }
+
+  function paintSpringBoard(ctx, x, y, w, h, rows, subtitle) {
+    // 海军蓝绒底（呼应主站调色）
     const grad = ctx.createLinearGradient(x, y, x, y + h);
-    grad.addColorStop(0, '#1a6a36');
-    grad.addColorStop(1, '#093a1a');
+    grad.addColorStop(0, '#243f63');
+    grad.addColorStop(0.65, '#14253f');
+    grad.addColorStop(1, '#0d182b');
     ctx.fillStyle = grad;
     ctx.fillRect(x, y, w, h);
 
-    // 三家剩余牌（自下到上）
-    const seats = [
-      { idx: 0, label: state.landlordIdx === 0 ? '我（地主）' : '我（农民）', y: y + h - 90 },
-      { idx: 1, label: state.landlordIdx === 1 ? 'AI 下家（地主）' : 'AI 下家', y: y + h - 200 },
-      { idx: 2, label: state.landlordIdx === 2 ? 'AI 上家（地主）' : 'AI 上家', y: y + h - 310 },
-    ];
-    for (const s of seats) {
-      // label
-      ctx.fillStyle = '#fdf6e3';
+    // 顶部标题：春天 / 反春天 + ×2 高光
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '700 30px Georgia, "STSong", serif';
+    ctx.fillStyle = '#f5d142';
+    ctx.shadowColor = 'rgba(245,209,66,0.55)';
+    ctx.shadowBlur = 14;
+    ctx.fillText(subtitle + ' ×2', x + w / 2, y + 36);
+    ctx.shadowBlur = 0;
+
+    // 副标题
+    ctx.font = '14px -apple-system, "PingFang SC", sans-serif';
+    ctx.fillStyle = '#f0e8d5';
+    ctx.fillText('赢家初始手牌', x + w / 2, y + 64);
+
+    // 牌行布局
+    const padX = 24;
+    const rowH = (h - 100) / rows.length;
+    let ry = y + 92;
+    for (const row of rows) {
+      // row label
       ctx.font = '13px -apple-system, "PingFang SC", sans-serif';
+      ctx.fillStyle = '#c9a96e';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-      ctx.fillText(s.label + ' · 剩 ' + state.hands[s.idx].length + ' 张', x + 18, s.y);
-      // CSS 风格小卡片：rank + suit
-      const sortedC = E.sortHand(state.hands[s.idx]);
-      const cardW = 22, cardH = 34, gap = -10;
-      let cx = x + 18;
-      const cy = s.y + 20;
-      for (const c of sortedC) {
-        if (cx + cardW > x + w - 18) break;
-        const info = cardDisplayInfo(c);
-        // 卡片底
-        ctx.fillStyle = '#fff8e8';
-        roundRect(ctx, cx, cy, cardW, cardH, 3);
-        ctx.fill();
-        ctx.strokeStyle = '#6b5634';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        // rank 角标
-        ctx.fillStyle = info.red ? '#c8262a' : '#1f1f1f';
-        ctx.font = '700 9px Georgia, serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(info.rank, cx + 2, cy + 2);
-        // pip 居中（小字）
-        ctx.font = '14px "Apple Symbols", "Segoe UI Symbol", monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(info.isJoker ? info.pip : info.suit, cx + cardW / 2, cy + cardH / 2 + 2);
-        cx += cardW + gap;
+      ctx.fillText(row.label, x + padX, ry);
+      // 牌
+      const sortedC = E.sortHand(row.cards);
+      const total = sortedC.length;
+      const cardH = Math.min(56, rowH - 28);
+      const cardW = Math.round(cardH * 0.71);
+      const overlap = Math.min(cardW * 0.55, (w - padX * 2 - cardW) / Math.max(1, total - 1));
+      const startX = x + padX;
+      const cy = ry + 22;
+      for (let i = 0; i < total; i++) {
+        const c = sortedC[i];
+        const cx = startX + i * (cardW - overlap);
+        paintCardOnCanvas(ctx, c, cx, cy, cardW, cardH);
       }
+      ry += rowH;
     }
+  }
 
-    // 顶部 result
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.font = '700 32px Georgia, "STSong", serif';
-    const winText = state.result.winnerRole === 'landlord' ? '地主胜' : '农民胜';
-    ctx.fillStyle = '#f5d142';
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-    ctx.shadowBlur = 4;
-    ctx.fillText(winText, x + w / 2, y + 22);
-    ctx.shadowBlur = 0;
+  function paintCardOnCanvas(ctx, c, cx, cy, cw, ch) {
+    const info = cardDisplayInfo(c);
+    // 卡片底（奶白）
+    const cardGrad = ctx.createLinearGradient(cx, cy, cx, cy + ch);
+    cardGrad.addColorStop(0, '#fafaf9');
+    cardGrad.addColorStop(1, '#f5f4f0');
+    ctx.fillStyle = cardGrad;
+    roundRect(ctx, cx, cy, cw, ch, 4);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(201,169,110,0.7)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    if (info.isJoker) {
+      const isBig = info.jokerKind === 'big';
+      ctx.fillStyle = isBig ? '#8b2e2e' : '#4a4a4a';
+      // 角标星
+      ctx.font = `${Math.round(cw * 0.32)}px Georgia, serif`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('★', cx + 3, cy + 2);
+      // 中央 JOKER + 王冠
+      ctx.font = `700 ${Math.round(cw * 0.22)}px Georgia, serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('JOKER', cx + cw / 2, cy + ch / 2 - ch * 0.12);
+      ctx.font = `${Math.round(cw * 0.5)}px "Apple Symbols", monospace`;
+      ctx.fillText(isBig ? '♛' : '♚', cx + cw / 2, cy + ch / 2 + ch * 0.18);
+    } else {
+      ctx.fillStyle = info.red ? '#8b2e2e' : '#1a1a2e';
+      // rank
+      ctx.font = `700 ${Math.round(cw * 0.40)}px Georgia, serif`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(info.rank, cx + 3, cy + 2);
+      // suit small below rank
+      ctx.font = `${Math.round(cw * 0.30)}px "Apple Symbols", monospace`;
+      ctx.fillText(info.suit, cx + 3, cy + Math.round(cw * 0.42));
+      // 中央 pip
+      ctx.font = `${Math.round(cw * 0.7)}px "Apple Symbols", monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(info.suit, cx + cw / 2, cy + ch / 2 + 2);
+    }
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -2664,12 +2838,8 @@ permalink: /toolbox/doudizhu/
       placeholder: '聊聊你的斗地主心得 ~',
     });
     if (GamesShell.Settlement) {
-      ddzSettleBtn = GamesShell.Settlement.mountButton({
-        container: $('ddz-settle-btn-mount'),
-        gameId: 'doudizhu',
-        getOpts: ddzGetSettlementOpts,
-        startDisabled: true,
-      });
+      // 平时不挂结算按钮，只在春天时主动 compose+present
+      ddzSettleBtn = null;
     }
   }
   initShell();
