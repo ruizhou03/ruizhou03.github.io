@@ -206,17 +206,13 @@ permalink: /toolbox/pinball/
 <div class="pb-wrap">
   <header>
     <h1>🎱 弹珠机</h1>
-    <div class="sub">蓄力发射，拨挡板把球弹回去——别让它漏掉</div>
+    <div class="sub">一球一局：蓄力发射，拨挡板把球弹回去——漏掉就结算，按空格再来一球</div>
   </header>
 
   <div class="pb-scorebar">
     <div class="pb-score-box">
       <div class="label">Score</div>
       <div class="value" id="pbScore">0</div>
-    </div>
-    <div class="pb-score-box">
-      <div class="label">Balls</div>
-      <div class="value balls" id="pbBalls">●●●</div>
     </div>
     <div class="pb-score-box">
       <div class="label">Best</div>
@@ -249,7 +245,7 @@ permalink: /toolbox/pinball/
   </div>
 
   <div class="pb-help">
-    <kbd>←</kbd>/<kbd>A</kbd> 左拨　·　<kbd>→</kbd>/<kbd>D</kbd> 右拨　·　按住 <kbd>空格</kbd> 蓄力发射　·　<kbd>P</kbd> 暂停
+    <kbd>←</kbd>/<kbd>A</kbd> 左拨　·　<kbd>→</kbd>/<kbd>D</kbd> 右拨　·　按住 <kbd>空格</kbd> 蓄力发射 / 局后再开一球　·　<kbd>P</kbd> 暂停
   </div>
 
   <div class="pb-rank-row" id="pb-rank-row"></div>
@@ -304,7 +300,7 @@ permalink: /toolbox/pinball/
   const PLUNGER_MIN_VEL = 520;         // 最低可弹出 plunger lane 的 vy
 
   const DRAIN_Y = 626;         // 主区底部判定线（球下沿到这里就算掉）
-  const TOTAL_BALLS = 3;
+  const TOTAL_BALLS = 1;       // 一局 = 一个球；漏球即结算，单球得分入榜
 
   // ───────── 状态 ─────────
   const stored = (() => {
@@ -757,7 +753,7 @@ permalink: /toolbox/pinball/
     state.ball.vx = 0; state.ball.vy = 0;
     showOverlay({
       title: 'Game Over',
-      msg: `本局 ${state.score}　·　最高 ${state.best}　·　撞柱 ${state.bumperHits} 次`,
+      msg: `本球 ${state.score}　·　历史最高 ${state.best}　·　撞柱 ${state.bumperHits} 次　·　按 空格 / 「再来一局」开下一局`,
       btn: true,
     });
     pbTryAutoSubmit();
@@ -1070,7 +1066,6 @@ permalink: /toolbox/pinball/
   const pbCanvas = document.getElementById('pbCanvas');
   const pbCtx = pbCanvas.getContext('2d');
   const $score = document.getElementById('pbScore');
-  const $balls = document.getElementById('pbBalls');
   const $best = document.getElementById('pbBest');
   const $overlay = document.getElementById('pbOverlay');
   const $ovTitle = document.getElementById('pbOvTitle');
@@ -1085,7 +1080,7 @@ permalink: /toolbox/pinball/
   $launchHint.textContent = IS_TOUCH ? '按住「蓄力发射」' : '按住空格蓄力';
 
   // HUD 缓存：避免每帧无谓的 DOM 写入；分数 / Best 变化时触发弹跳动画
-  const _hudCache = { score: -1, balls: -1, best: -1 };
+  const _hudCache = { score: -1, best: -1 };
   function updateHud() {
     if (state.score !== _hudCache.score) {
       $score.textContent = state.score;
@@ -1096,10 +1091,6 @@ permalink: /toolbox/pinball/
         $score.classList.add('bump');
       }
       _hudCache.score = state.score;
-    }
-    if (state.balls !== _hudCache.balls) {
-      $balls.textContent = state.balls > 0 ? '●'.repeat(state.balls) : '×';
-      _hudCache.balls = state.balls;
     }
     if (state.best !== _hudCache.best) {
       $best.textContent = state.best;
@@ -1212,7 +1203,11 @@ permalink: /toolbox/pinball/
     keysDown.add(k);
     if (k === 'arrowleft' || k === 'a') setFlipper('L', 'kbd', true);
     else if (k === 'arrowright' || k === 'd') setFlipper('R', 'kbd', true);
-    else if (k === ' ') setPlunger(true);
+    else if (k === ' ') {
+      // gameover 时空格直接开下一局，并接着蓄力（松开 → 发射）
+      if (state.status === 'gameover') startFresh();
+      setPlunger(true);
+    }
     else if (k === 'p') togglePause();
     else if (k === 'r') startFresh();
   }, { capture: true });
