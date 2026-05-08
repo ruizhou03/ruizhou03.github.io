@@ -429,13 +429,10 @@ permalink: /toolbox/fruit-ninja/
     score: 0,
     combo: 0,
     bestCombo: 0,
-    lastSliceAt: 0,
     timeLeft: 60,
     lives: 3,
     runStartedAt: 0,
     runNonce: '',
-    strokeCount: 0,         // 一笔切到的水果数
-    bestStroke: 0,          // 最高一刀多连
     stage: 1,               // 无尽模式 stage 等级
     stageStartedAt: 0,      // 当前 stage 开始时间
   };
@@ -446,7 +443,6 @@ permalink: /toolbox/fruit-ninja/
   let popups = [];        // 多连切提示文字
 
   const GRAVITY = 900;     // px/s²
-  const COMBO_TIMEOUT = 900;
 
   // ============ 输入 ============
   let pointerActive = false;
@@ -458,7 +454,8 @@ permalink: /toolbox/fruit-ninja/
   canvas.addEventListener('pointerdown', e => {
     if (!state.running || state.paused || state.over) return;
     pointerActive = true;
-    state.strokeCount = 0;        // 新一笔，重置 stroke combo
+    state.combo = 0;              // 新一笔，重置 combo
+    updateHud();
     canvas.setPointerCapture(e.pointerId);
     const p = canvasPos(e);
     trail.push({ x: p.x, y: p.y, t: performance.now() });
@@ -474,7 +471,8 @@ permalink: /toolbox/fruit-ninja/
   });
   function endPointer() {
     pointerActive = false;
-    state.strokeCount = 0;
+    state.combo = 0;
+    updateHud();
   }
   canvas.addEventListener('pointerup', endPointer);
   canvas.addEventListener('pointercancel', endPointer);
@@ -501,9 +499,11 @@ permalink: /toolbox/fruit-ninja/
       vx = (targetX - x) / dt + (Math.random() - 0.5) * 80;
     }
     let type = FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
-    if (state.mode !== 'zen') {
-      let bombP = opts.fan === 'pinata' ? 0.10 : opts.fan === 'burst' ? 0.05 : 0.07;
-      if (state.mode === 'endless') bombP += endlessFactor() * 0.005;
+    // burst / pinata 大波次不混炸弹（经典 Fruit Ninja 同款约定）；
+    // 炸弹只出现在 normal phase 的单/双果里
+    if (state.mode !== 'zen' && !opts.fan) {
+      let bombP = 0.07;
+      if (state.mode === 'endless') bombP += endlessFactor() * 0.006;
       if (Math.random() < bombP) type = 'bomb';
     }
     const r = (type === 'watermelon') ? 38 : (type === 'kiwi') ? 32 : 30;
@@ -652,26 +652,22 @@ permalink: /toolbox/fruit-ninja/
       bombHit();
       return;
     }
+    // combo 即「一笔切到的水果数」（pointerdown 时清零，pointerup 重置）
     state.combo += 1;
-    state.strokeCount += 1;
     if (state.combo > state.bestCombo) state.bestCombo = state.combo;
-    if (state.strokeCount > state.bestStroke) state.bestStroke = state.strokeCount;
 
-    // 一笔切第 N 个水果分数：10 + (N-1)*10（多切爽感指数）
-    const strokeBonus = (state.strokeCount - 1) * 10;
-    const rallyBonus = state.combo > 1 ? Math.min(state.combo, 10) * 5 : 0;
-    const points = 10 + strokeBonus + rallyBonus;
+    // 第 N 个水果分数：10 + (N-1)*10（指数爽感）
+    const points = 10 + (state.combo - 1) * 10;
     state.score += points;
-    state.lastSliceAt = performance.now();
 
     // 多连提示
-    if (state.strokeCount === 2) {
+    if (state.combo === 2) {
       showPopup(f.x, f.y - 38, '+' + points, '#fff');
-    } else if (state.strokeCount >= 3) {
+    } else if (state.combo >= 3) {
       const labels = { 3: '三连切！', 4: '四连切！', 5: '五连切！', 6: '超神！', 7: '不可阻挡！' };
-      const lbl = labels[state.strokeCount] || (state.strokeCount + ' 连切！');
-      const color = state.strokeCount >= 5 ? '#ff7878' : '#ffd95a';
-      const extra = state.strokeCount * 20;
+      const lbl = labels[state.combo] || (state.combo + ' 连切！');
+      const color = state.combo >= 5 ? '#ff7878' : '#ffd95a';
+      const extra = state.combo * 20;
       state.score += extra;
       showPopup(LOG_W / 2, LOG_H * 0.32, lbl, color, true);
       showPopup(LOG_W / 2, LOG_H * 0.32 + 46, '+' + (points + extra), '#fff');
@@ -821,12 +817,6 @@ permalink: /toolbox/fruit-ninja/
 
     for (const pp of popups) pp.age += dt;
     popups = popups.filter(pp => pp.age < pp.life);
-
-    // 连击衰减
-    if (state.combo > 0 && now - state.lastSliceAt > COMBO_TIMEOUT) {
-      state.combo = 0;
-      updateHud();
-    }
 
     // trail 老化
     while (trail.length > 0 && now - trail[0].t > 220) trail.shift();
@@ -1004,7 +994,6 @@ permalink: /toolbox/fruit-ninja/
     state.score = 0;
     state.combo = 0;
     state.bestCombo = 0;
-    state.lastSliceAt = 0;
     state.timeLeft = 60;
     state.lives = 3;
     state.runStartedAt = performance.now();
@@ -1019,8 +1008,6 @@ permalink: /toolbox/fruit-ninja/
     nextEventAt = state.runStartedAt + 600;
     lastBurstAt = -Infinity;
     lastPinataAt = -Infinity;
-    state.strokeCount = 0;
-    state.bestStroke = 0;
     state.stage = 1;
     state.stageStartedAt = state.runStartedAt;
 
@@ -1064,7 +1051,7 @@ permalink: /toolbox/fruit-ninja/
       ? `<strong>最高连击 ${state.bestCombo}</strong>`
       : `<strong>${Math.round(state.score)} 分</strong>`);
     if (state.mode === 'endless') {
-      lines.push(`Stage ${state.stage} · 一刀最多 ${state.bestStroke} 连切 · 用时 ${((performance.now() - state.runStartedAt)/1000).toFixed(0)}s`);
+      lines.push(`Stage ${state.stage} · 最高一刀 ${state.bestCombo} 连切 · 用时 ${((performance.now() - state.runStartedAt)/1000).toFixed(0)}s`);
     } else if (state.mode !== 'zen') {
       lines.push(`最高连击 ${state.bestCombo} · 用时 ${((performance.now() - state.runStartedAt)/1000).toFixed(0)}s`);
     } else {
@@ -1207,7 +1194,7 @@ permalink: /toolbox/fruit-ninja/
       durationMs: Math.max(3000, Math.round(performance.now() - state.runStartedAt)),
       clientNonce: state.runNonce,
       did: GamesShell.Identity.getDeviceId(),
-      extra: { mode: state.mode, bestCombo: state.bestCombo, bestStroke: state.bestStroke, stage: state.stage },
+      extra: { mode: state.mode, bestCombo: state.bestCombo, stage: state.stage },
     });
     if (r && r.ok) {
       setRank('success', { rank: r.rank, total: r.total });
@@ -1295,13 +1282,12 @@ permalink: /toolbox/fruit-ninja/
         ? [
             { label: '模式', value: modeLabel(mode) },
             { label: '撑到', value: 'Stage ' + state.stage },
-            { label: '一刀最多', value: state.bestStroke + ' 连切' },
+            { label: '最高一刀', value: state.bestCombo + ' 连切' },
             { label: '用时', value: `${((performance.now() - state.runStartedAt) / 1000).toFixed(0)} s` },
           ]
         : [
             { label: '模式', value: modeLabel(mode) },
-            { label: '最高连击', value: state.bestCombo },
-            { label: '一刀最多', value: state.bestStroke + ' 连切' },
+            { label: '最高一刀', value: state.bestCombo + ' 连切' },
             { label: '用时', value: `${((performance.now() - state.runStartedAt) / 1000).toFixed(0)} s` },
           ]),
       paintBoard: paintSettlementBoard,
