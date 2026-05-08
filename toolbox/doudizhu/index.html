@@ -1395,9 +1395,9 @@ permalink: /toolbox/doudizhu/
     <div class="ddz-hand" id="ddzHand"></div>
 
     <div class="ddz-actions" id="ddzPlayActions" hidden>
-      <button class="ddz-btn" id="ddzPassBtn" type="button">不要 (Space)</button>
-      <button class="ddz-btn" id="ddzHintBtn" type="button">提示 (H)</button>
-      <button class="ddz-btn primary" id="ddzPlayBtn" type="button">出牌 (Enter)</button>
+      <button class="ddz-btn" id="ddzPassBtn" type="button">不要</button>
+      <button class="ddz-btn" id="ddzHintBtn" type="button">提示</button>
+      <button class="ddz-btn primary" id="ddzPlayBtn" type="button">出牌</button>
     </div>
 
     <div class="ddz-tip">
@@ -1512,10 +1512,11 @@ permalink: /toolbox/doudizhu/
   let turnCountdownTimer = null;
   let turnCountdownEndAt = 0;
   let turnCountdownSeat = 0;
-  function startTurnCountdown(onTimeout) {
+  // seat = 显示座位 (0/1/2)；onTimeout 仅在 seat===0 时触发玩家自动出
+  function startTurnCountdown(onTimeout, seat) {
     stopTurnCountdown();
     turnCountdownEndAt = Date.now() + TURN_TIMEOUT_MS;
-    turnCountdownSeat = 0;             // 单机模式倒计时只针对玩家自己
+    turnCountdownSeat = (typeof seat === 'number') ? seat : 0;
     const el = clockEl(turnCountdownSeat);
     if (!el) return;
     el.hidden = false;
@@ -1677,10 +1678,15 @@ permalink: /toolbox/doudizhu/
     return el;
   }
 
+  // 渲染用降序排序：从大到小（左 → 右），玩家更直观
+  function sortHandDesc(cards) {
+    return cards.slice().sort((a, b) => E.cardWeight(b) - E.cardWeight(a) || E.cardSuit(b) - E.cardSuit(a));
+  }
+
   function renderHand() {
     handEl.innerHTML = '';
     if (!state.hands[0].length) return;
-    const sorted = E.sortHand(state.hands[0]);
+    const sorted = sortHandDesc(state.hands[0]);
     for (const c of sorted) {
       const cardEl = buildCardEl(c, 'size-full', { cid: c, selected: state.selected.has(c) });
       // 用 pointerdown 统一处理 鼠标 + 触屏；setPointerCapture 让后续 move/up 都派发到这张卡
@@ -1877,7 +1883,7 @@ permalink: /toolbox/doudizhu/
     // 按牌型加 fx-* class
     const fxClass = patternFxClass(pattern.type);
     if (fxClass) el.classList.add(fxClass);
-    const sortedCards = E.sortHand(pattern.cards);
+    const sortedCards = sortHandDesc(pattern.cards);
     for (const c of sortedCards) {
       el.appendChild(buildCardEl(c, 'size-mini'));
     }
@@ -1910,7 +1916,7 @@ permalink: /toolbox/doudizhu/
       }
       return;
     }
-    for (const c of state.bottom) {
+    for (const c of sortHandDesc(state.bottom)) {
       bottomPileEl.appendChild(buildCardEl(c, 'size-bottom'));
     }
   }
@@ -2357,17 +2363,16 @@ permalink: /toolbox/doudizhu/
       playActions.hidden = false;
       const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
       setStatus(prev ? '轮到你 — 出牌或不要' : '轮到你 — 你做庄');
-      // 重置提示循环（新一轮出牌）
       resetHintCycle();
-      // 启动倒计时：超时自动按提示出（首出场景：用 decompose 第一手；跟牌场景：用最小 beat）
-      startTurnCountdown(() => autoPlayOnTimeout());
+      startTurnCountdown(() => autoPlayOnTimeout(), 0);
     } else {
       playActions.hidden = true;
-      stopTurnCountdown();
       setStatus(`${seatLabel(seat)} 思考中…`);
       const playedEl = $('ddzPlayed' + seat);
       playedEl.className = 'ddz-played';
       playedEl.innerHTML = '<span class="think-tag">思考</span>';
+      // AI 也亮闹钟，跟玩家观感一致
+      startTurnCountdown(null, seat);
       setTimeout(() => aiTakeTurn(seat), 700 + Math.random() * 400);
     }
   }
@@ -2429,7 +2434,7 @@ permalink: /toolbox/doudizhu/
   }
 
   function commitPlay(seat, pattern) {
-    if (seat === 0) stopTurnCountdown();
+    stopTurnCountdown();   // 任何人出牌都关闹钟（下个 proceedTurn 会再开）
     state.hands[seat] = E.removeCards(state.hands[seat], pattern.cards);
     for (const c of pattern.cards) state.seen[E.cardWeight(c)]++;
     updateAiPerception(pattern);          // AI 感知（带噪声）
@@ -2458,7 +2463,7 @@ permalink: /toolbox/doudizhu/
   }
 
   function commitPass(seat) {
-    if (seat === 0) stopTurnCountdown();
+    stopTurnCountdown();   // 任何人出牌都关闹钟（下个 proceedTurn 会再开）
     state.passCount++;
     renderPlayedAt(seat, 'pass');
     if (state.passCount >= 2) {
@@ -2540,18 +2545,12 @@ permalink: /toolbox/doudizhu/
     if (sig !== state.hintForPrev || !state.hintCycle.length) {
       // 重新枚举候选
       const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
-      let beats;
-      if (prev) {
-        beats = E.enumerateBeats(state.hands[0], prev);
-      } else {
-        // 首出：用 enumerateBeats(hand, null) 拿全部合法牌型，再去重排序
-        beats = E.enumerateBeats(state.hands[0], null);
-      }
+      const beats = E.enumerateBeats(state.hands[0], prev);
       if (!beats.length) {
         setStatus(sig === 'first' ? '没合法牌型，请检查' : '没牌可出，请「不要」');
         return;
       }
-      // 去重 + 排序
+      // 去重
       const seen = new Set();
       const uniq = [];
       for (const p of beats) {
@@ -2559,8 +2558,25 @@ permalink: /toolbox/doudizhu/
         if (seen.has(k)) continue;
         seen.add(k); uniq.push(p);
       }
-      uniq.sort(comparePlay);
-      state.hintCycle = uniq;
+      // 调 AI 同档难度作为「首选」推荐（避免无谓推炸弹）
+      const level = (state.mode === 'online') ? 'normal' : (state.difficulty || 'normal');
+      const myRole = state.landlordIdx === 0 ? 'landlord' : 'peasant';
+      const ctx = {
+        myIdx: 0, myRole,
+        landlordIdx: state.landlordIdx,
+        handSizes: state.hands.map(h => h.length),
+        seen: state.seen ? state.seen.slice() : new Array(15).fill(0),
+        lastTrickSeat: state.lastTrick ? state.lastTrick.seat : -1,
+      };
+      const aiPick = AI.chooseMove(state.hands[0], prev, ctx, level);
+      // 把 AI 推荐排到最前；剩下的按 comparePlay 排
+      let primary = null;
+      if (aiPick) {
+        const aiKey = playKey(aiPick);
+        primary = uniq.find(p => playKey(p) === aiKey);
+      }
+      const rest = uniq.filter(p => p !== primary).sort(comparePlay);
+      state.hintCycle = primary ? [primary, ...rest] : rest;
       state.hintIdx = -1;
       state.hintForPrev = sig;
     }
@@ -2803,7 +2819,7 @@ permalink: /toolbox/doudizhu/
       ctx.textBaseline = 'top';
       ctx.fillText(row.label, x + padX, ry);
       // 牌
-      const sortedC = E.sortHand(row.cards);
+      const sortedC = sortHandDesc(row.cards);
       const total = sortedC.length;
       const cardH = Math.min(56, rowH - 28);
       const cardW = Math.round(cardH * 0.71);
@@ -3272,7 +3288,11 @@ permalink: /toolbox/doudizhu/
       state.landlordPlayCount = srv.landlordPlayCount || 0;
       state.peasantPlayCount = srv.peasantPlayCount || 0;
 
-      // 根据 phase 拉对应字段
+      // 阶段相关字段：每次 apply 都重置，再按当前 srv.phase 填，避免上一阶段残留
+      state.bidActions = [];
+      state.bidTurnIdx = -1;
+      state.landlordCandidate = -1;
+      state.robCount = 0;
       if (srv.phase === 'bidding') {
         state.bidActions = (srv.bidActions || []).map(a => ({ seat: rotateSeat(a.seat), action: a.action }));
         state.bidTurnIdx = rotateSeat(srv.bidTurnIdx);
@@ -3291,14 +3311,16 @@ permalink: /toolbox/doudizhu/
         state.online.doubleChoice = dChoice;
         if (srv.phase === 'doubling') state.online.doubleEndAt = srv.doubleEndAt || 0;
       }
+      // 出牌阶段字段：也每次 apply 都重置（避免下一盘开局看到上盘 lastTrick）
+      state.turnIdx = -1;
+      state.lastTrick = null;
+      state.passCount = 0;
+      state.online.turnEndAt = 0;
       if (srv.phase === 'playing') {
         state.turnIdx = rotateSeat(srv.turnIdx);
-        const newLastTrick = srv.lastTrick
+        state.lastTrick = srv.lastTrick
           ? { seat: rotateSeat(srv.lastTrick.seat), pattern: srv.lastTrick.pattern }
           : null;
-        // 如果 lastTrick 变了 → 重新渲染对应座位的出牌
-        const oldLastTrick = state.lastTrick;
-        state.lastTrick = newLastTrick;
         state.passCount = srv.passCount || 0;
         state.online.turnEndAt = srv.turnEndAt || 0;
       }
@@ -3359,30 +3381,23 @@ permalink: /toolbox/doudizhu/
     }
   }
 
-  // 根据 publicLog 渲染最近一手到 played 区
+  // 只渲染"当前 trick"（最近一次未结束的轮次）的牌；轮次结束（lastTrick=null）就清空
   function renderRecentActionsFromLog(srv) {
-    if (!srv.publicLog) return;
-    // 找出每家最近一条 play / pass，从尾部往前扫
-    const seenSeats = new Set();
-    for (let i = srv.publicLog.length - 1; i >= 0 && seenSeats.size < 3; i--) {
-      const e = srv.publicLog[i];
-      if ((e.type === 'play' || e.type === 'pass') && typeof e.seat === 'number') {
-        const ds = rotateSeat(e.seat);
-        if (seenSeats.has(ds)) continue;
-        seenSeats.add(ds);
-        if (e.type === 'play' && e.pattern) {
-          renderPlayedAt(ds, e.pattern);
-        } else if (e.type === 'pass') {
-          renderPlayedAt(ds, 'pass');
-        }
-      }
-      if (e.type === 'deal' || e.type === 'reveal-bottom' || e.type === 'landlord-decided') break;
-    }
-    // 没在最近 publicLog 里出现的座位 → 清空
-    for (let i = 0; i < 3; i++) {
-      if (!seenSeats.has(i)) {
-        const el = $('ddzPlayed' + i);
-        if (el) { el.innerHTML = ''; el.className = 'ddz-played'; }
+    // 没有当前 trick 就全清
+    if (!srv.lastTrick) {
+      clearAllPlayed();
+    } else {
+      // lastTrick.seat 是这一 trick 的领出者；他的牌一直留在桌面
+      const leaderServerSeat = srv.lastTrick.seat;
+      const leaderDS = rotateSeat(leaderServerSeat);
+      // 先全清，再画当前 trick
+      clearAllPlayed();
+      renderPlayedAt(leaderDS, srv.lastTrick.pattern);
+      // 之后顺时针 passCount 个座位都是 pass
+      const passCount = srv.passCount || 0;
+      for (let i = 1; i <= passCount; i++) {
+        const passServerSeat = (leaderServerSeat + i) % 3;
+        renderPlayedAt(rotateSeat(passServerSeat), 'pass');
       }
     }
     // 当前正在思考的对家：显示思考动画
