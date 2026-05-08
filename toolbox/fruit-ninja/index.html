@@ -182,6 +182,11 @@ permalink: /toolbox/fruit-ninja/
         <span class="mc-name">街机三命</span>
         <span class="mc-desc">无时限，但漏切 3 个或切到炸弹就 game over。</span>
       </button>
+      <button class="mode-card" type="button" data-mode="endless">
+        <span class="mc-emoji">🔥</span>
+        <span class="mc-name">无尽闯关</span>
+        <span class="mc-desc">每 25 秒升 1 阶，难度无上限。3 命；过 5 / 10 / 15 阶各回 1 命。看你能撑到 Stage 几。</span>
+      </button>
       <button class="mode-card" type="button" data-mode="zen">
         <span class="mc-emoji">🧘</span>
         <span class="mc-name">禅意无炸弹</span>
@@ -197,6 +202,7 @@ permalink: /toolbox/fruit-ninja/
       <div class="hud-left">
         <span class="hud-timer" hidden><span class="label">⏱</span><span data-bind="timer">60</span></span>
         <span class="hud-lives" hidden><span class="label">❤</span><span data-bind="lives">❤❤❤</span></span>
+        <span class="hud-stage" hidden><span class="label">阶</span><span data-bind="stage">1</span></span>
       </div>
       <div class="hud-right">
         <span class="hud-score"><span class="label">分</span><span data-bind="score">0</span></span>
@@ -387,6 +393,7 @@ permalink: /toolbox/fruit-ninja/
   const gameoverOverlay = document.getElementById('gameover-overlay');
   const hudTimer = document.querySelector('.hud-timer');
   const hudLives = document.querySelector('.hud-lives');
+  const hudStage = document.querySelector('.hud-stage');
   const hudCombo = document.querySelector('.hud-combo');
   const bind = {};
   document.querySelectorAll('[data-bind]').forEach(el => {
@@ -429,6 +436,8 @@ permalink: /toolbox/fruit-ninja/
     runNonce: '',
     strokeCount: 0,         // 一笔切到的水果数
     bestStroke: 0,          // 最高一刀多连
+    stage: 1,               // 无尽模式 stage 等级
+    stageStartedAt: 0,      // 当前 stage 开始时间
   };
 
   let fruits = [];        // active 水果 / 半个水果 / 炸弹
@@ -493,7 +502,8 @@ permalink: /toolbox/fruit-ninja/
     }
     let type = FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
     if (state.mode !== 'zen') {
-      const bombP = opts.fan === 'pinata' ? 0.10 : opts.fan === 'burst' ? 0.05 : 0.07;
+      let bombP = opts.fan === 'pinata' ? 0.10 : opts.fan === 'burst' ? 0.05 : 0.07;
+      if (state.mode === 'endless') bombP += endlessFactor() * 0.005;
       if (Math.random() < bombP) type = 'bomb';
     }
     const r = (type === 'watermelon') ? 38 : (type === 'kiwi') ? 32 : 30;
@@ -517,7 +527,12 @@ permalink: /toolbox/fruit-ninja/
   function scheduleNextNormal(now) {
     const elapsed = (now - state.runStartedAt) / 1000;
     let interval = 1100 - Math.min(elapsed * 4, 280);
-    interval *= 0.8 + Math.random() * 0.4;            // ±20% 抖动
+    if (state.mode === 'endless') {
+      // 每升 1 阶 spawn 间隔 ×0.93，stage 10 时 ≈0.48，节奏明显加快
+      interval *= Math.pow(0.93, endlessFactor());
+      interval = Math.max(interval, 280);
+    }
+    interval *= 0.8 + Math.random() * 0.4;
     if (state.mode === 'zen') interval = Math.max(interval, 700);
     nextEventAt = now + interval;
   }
@@ -567,13 +582,19 @@ permalink: /toolbox/fruit-ninja/
       return;
     }
     const elapsed = (now - state.runStartedAt) / 1000;
-    // pinata：游戏 22s 后有可能；间隔 ≥ 26s
-    if (elapsed > 22 && now - lastPinataAt > 26000 && Math.random() < 0.20) {
+    const sf = state.mode === 'endless' ? endlessFactor() : 0;
+    // pinata：经典/街机 22s 后；endless 12s 起，stage 升级时间隔变短
+    const pinataReady = state.mode === 'endless' ? elapsed > 12 : elapsed > 22;
+    const pinataGap = Math.max(12000, 26000 - sf * 1500);
+    const pinataP = Math.min(0.45, 0.20 + sf * 0.025);
+    if (pinataReady && now - lastPinataAt > pinataGap && Math.random() < pinataP) {
       triggerPinata(now);
       return;
     }
-    // burst：每 ~9s 有概率
-    if (now - lastBurstAt > 9000 && Math.random() < 0.32) {
+    // burst：每 ~9s 有概率（endless 越往后越频繁）
+    const burstGap = Math.max(4500, 9000 - sf * 500);
+    const burstP = Math.min(0.6, 0.32 + sf * 0.025);
+    if (now - lastBurstAt > burstGap && Math.random() < burstP) {
       triggerBurst(now);
       return;
     }
@@ -716,7 +737,38 @@ permalink: /toolbox/fruit-ninja/
   function bombHit() {
     flashScreen();
     state.combo = 0;
+    if (state.mode === 'endless') {
+      state.lives -= 1;
+      updateHud();
+      showPopup(LOG_W / 2, LOG_H * 0.4, '💥 炸弹 -1 命', '#ff7878', true);
+      if (state.lives <= 0) setTimeout(() => endRun('boom'), 400);
+      return;
+    }
     setTimeout(() => endRun('boom'), 350);
+  }
+
+  // 无尽模式 stage 升级 + 难度系数
+  const STAGE_DURATION = 25;            // 每 stage 秒数
+  function checkStageUp(now) {
+    if (state.mode !== 'endless') return;
+    const elapsed = (now - state.stageStartedAt) / 1000;
+    if (elapsed < STAGE_DURATION) return;
+    state.stage += 1;
+    state.stageStartedAt = now;
+    state.score += 100;
+    let lifeMsg = '';
+    // 每过 5 阶里程碑回 1 命（最多 3）
+    if (state.stage % 5 === 1 && state.stage > 1 && state.lives < 3) {
+      state.lives += 1;
+      lifeMsg = ' · ❤+1';
+    }
+    showPopup(LOG_W / 2, LOG_H * 0.30, '🔥 STAGE ' + state.stage, '#ff9a44', true);
+    showPopup(LOG_W / 2, LOG_H * 0.30 + 50, '难度提升 +100' + lifeMsg, '#fff');
+    updateHud();
+  }
+  function endlessFactor() {
+    // 每升 1 阶难度系数：spawn 间隔 ×0.93，burst 间隔 ×0.92，炸弹概率 +0.5%
+    return Math.max(0, state.stage - 1);
   }
 
   let flashUntil = 0;
@@ -737,6 +789,7 @@ permalink: /toolbox/fruit-ninja/
         return;
       }
     }
+    if (state.mode === 'endless') checkStageUp(now);
 
     for (const f of fruits) {
       f.vy += GRAVITY * dt;
@@ -784,7 +837,7 @@ permalink: /toolbox/fruit-ninja/
   }
 
   function onMissed(f) {
-    if (state.mode !== 'arcade') return;
+    if (state.mode !== 'arcade' && state.mode !== 'endless') return;
     state.lives -= 1;
     state.combo = 0;
     flashScreen();
@@ -918,8 +971,11 @@ permalink: /toolbox/fruit-ninja/
     if (state.mode === 'classic') {
       bind.timer.textContent = state.timeLeft.toFixed(1);
     }
-    if (state.mode === 'arcade') {
+    if (state.mode === 'arcade' || state.mode === 'endless') {
       bind.lives.textContent = '❤'.repeat(state.lives) + '🤍'.repeat(Math.max(0, 3 - state.lives));
+    }
+    if (state.mode === 'endless') {
+      bind.stage.textContent = String(state.stage);
     }
   }
 
@@ -965,6 +1021,8 @@ permalink: /toolbox/fruit-ninja/
     lastPinataAt = -Infinity;
     state.strokeCount = 0;
     state.bestStroke = 0;
+    state.stage = 1;
+    state.stageStartedAt = state.runStartedAt;
 
     modeSelect.hidden = true;
     stage.hidden = false;
@@ -973,10 +1031,12 @@ permalink: /toolbox/fruit-ninja/
     pausedOverlay.hidden = true;
 
     hudTimer.hidden = mode !== 'classic';
-    hudLives.hidden = mode !== 'arcade';
+    hudLives.hidden = !(mode === 'arcade' || mode === 'endless');
+    hudStage.hidden = mode !== 'endless';
     bind.score.textContent = '0';
     bind.timer.textContent = '60.0';
     bind.lives.textContent = '❤❤❤';
+    bind.stage.textContent = '1';
     hudCombo.classList.add('hidden');
 
     pendingSubmit = false;
@@ -995,15 +1055,17 @@ permalink: /toolbox/fruit-ninja/
     cancelAnimationFrame(rafId);
 
     let title = '时间到';
-    if (reason === 'boom') title = '炸弹被切到了！';
-    else if (reason === 'lives') title = '漏切太多';
+    if (reason === 'boom') title = state.mode === 'endless' ? '撑住了，但还是炸了 💥' : '炸弹被切到了！';
+    else if (reason === 'lives') title = state.mode === 'endless' ? `撑到 Stage ${state.stage}！` : '漏切太多';
     else if (reason === 'manual') title = '本局结束';
 
     const lines = [];
     lines.push(state.mode === 'zen'
       ? `<strong>最高连击 ${state.bestCombo}</strong>`
       : `<strong>${Math.round(state.score)} 分</strong>`);
-    if (state.mode !== 'zen') {
+    if (state.mode === 'endless') {
+      lines.push(`Stage ${state.stage} · 一刀最多 ${state.bestStroke} 连切 · 用时 ${((performance.now() - state.runStartedAt)/1000).toFixed(0)}s`);
+    } else if (state.mode !== 'zen') {
       lines.push(`最高连击 ${state.bestCombo} · 用时 ${((performance.now() - state.runStartedAt)/1000).toFixed(0)}s`);
     } else {
       lines.push(`累计得分 ${Math.round(state.score)}`);
@@ -1085,7 +1147,10 @@ permalink: /toolbox/fruit-ninja/
   let lastRankInfo = null;
 
   function modeLabel(m) {
-    return m === 'classic' ? '经典 60s' : m === 'arcade' ? '街机三命' : '禅意';
+    if (m === 'classic') return '经典 60s';
+    if (m === 'arcade') return '街机三命';
+    if (m === 'endless') return '无尽闯关';
+    return '禅意';
   }
 
   function getSubmitScore() {
@@ -1142,7 +1207,7 @@ permalink: /toolbox/fruit-ninja/
       durationMs: Math.max(3000, Math.round(performance.now() - state.runStartedAt)),
       clientNonce: state.runNonce,
       did: GamesShell.Identity.getDeviceId(),
-      extra: { mode: state.mode, bestCombo: state.bestCombo, bestStroke: state.bestStroke },
+      extra: { mode: state.mode, bestCombo: state.bestCombo, bestStroke: state.bestStroke, stage: state.stage },
     });
     if (r && r.ok) {
       setRank('success', { rank: r.rank, total: r.total });
@@ -1226,12 +1291,19 @@ permalink: /toolbox/fruit-ninja/
       scoreLabel: mode === 'zen' ? '最 高 连 击 × 100' : '本 局 得 分',
       scoreFormatter: fmtScore,
       rankInfo: ri,
-      stats: [
-        { label: '模式', value: modeLabel(mode) },
-        { label: '最高连击', value: state.bestCombo },
-        { label: '一刀最多', value: state.bestStroke + ' 连切' },
-        { label: '用时', value: `${((performance.now() - state.runStartedAt) / 1000).toFixed(0)} s` },
-      ],
+      stats: (mode === 'endless'
+        ? [
+            { label: '模式', value: modeLabel(mode) },
+            { label: '撑到', value: 'Stage ' + state.stage },
+            { label: '一刀最多', value: state.bestStroke + ' 连切' },
+            { label: '用时', value: `${((performance.now() - state.runStartedAt) / 1000).toFixed(0)} s` },
+          ]
+        : [
+            { label: '模式', value: modeLabel(mode) },
+            { label: '最高连击', value: state.bestCombo },
+            { label: '一刀最多', value: state.bestStroke + ' 连切' },
+            { label: '用时', value: `${((performance.now() - state.runStartedAt) / 1000).toFixed(0)} s` },
+          ]),
       paintBoard: paintSettlementBoard,
       boardAspect: 4 / 3,
       watermark: 'zirconeey.github.io/toolbox/fruit-ninja',
@@ -1253,6 +1325,7 @@ permalink: /toolbox/fruit-ninja/
         splitTabs: [
           { value: 'classic', label: '经典 60s' },
           { value: 'arcade', label: '街机三命' },
+          { value: 'endless', label: '无尽闯关' },
           { value: 'zen', label: '禅意（连击×100）' },
         ],
       });
