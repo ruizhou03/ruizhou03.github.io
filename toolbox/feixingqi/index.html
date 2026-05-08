@@ -800,8 +800,13 @@ permalink: /toolbox/feixingqi/
     const layout = L();
     const cell = CELL();
     const activeColors = activeCornerSet();
-    const tileR = cell * 0.4;
     const planeR = cell * 0.36;
+
+    // === Layer 0: cream-tan board background, like a printed board ===
+    svg.appendChild(svgEl('rect', {
+      x: 0, y: 0, width: SVG_W, height: SVG_H,
+      fill: '#f4ecd6',
+    }));
 
     // === Layer: home corners (X diagonals + parking circles + decorative planes) ===
     const homeGroup = svgEl('g', { class: 'homes' });
@@ -818,36 +823,47 @@ permalink: /toolbox/feixingqi/
         x: x0, y: y0, width: w, height: h,
         class: 'home-bg',
         fill: isActive ? info.hex : '#cdc3b0',
-        stroke: isActive ? '#1a1a1a' : '#8a7050',
+        stroke: '#1a1a1a',
         'stroke-width': 2.5,
         rx: 4,
       }));
-      // 2. X diagonals across the corner — divides into 4 triangle compartments
-      const diagStroke = isActive ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.45)';
+      // 2. X diagonals across the corner — bold so the 4 triangles read clearly
+      const diagStroke = isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)';
       homeGroup.appendChild(svgEl('line', {
         x1: x0, y1: y0, x2: x0 + w, y2: y0 + h,
-        stroke: diagStroke, 'stroke-width': 2,
+        stroke: diagStroke, 'stroke-width': 3,
       }));
       homeGroup.appendChild(svgEl('line', {
         x1: x0 + w, y1: y0, x2: x0, y2: y0 + h,
-        stroke: diagStroke, 'stroke-width': 2,
+        stroke: diagStroke, 'stroke-width': 3,
       }));
-      // 3. Decorative plane icons at the 4 triangle centroids (outer half of each triangle)
-      const triangleCentroids = [
-        [z.r0 + 1, z.c0 + 3],  // top
-        [z.r0 + 3, z.c0 + 5],  // right
-        [z.r0 + 5, z.c0 + 3],  // bottom
-        [z.r0 + 3, z.c0 + 1],  // left
+      // 3. Decorative plane icons in the OUTER half of each of the 4 triangles.
+      // Each plane is rotated to point outward (away from the central goal),
+      // matching the classic 飞行棋 board aesthetic.
+      // For NW corner (rows 0-5, cols 0-5):
+      //   top triangle plane sits high (row ~0.6) pointing up;
+      //   right plane sits to the right (col ~5.4) pointing right; etc.
+      const triCenter = (z.r0 + z.r1 + 1) / 2;  // center row of corner in cell units
+      const triCenterC = (z.c0 + z.c1 + 1) / 2; // center col
+      const offset = (z.r1 - z.r0 + 1) / 2 - 0.6;  // how far from center
+      const triangles = [
+        { r: triCenter - offset, c: triCenterC,        rot: 0   },  // top — points up (rotated 0° from default ✈)
+        { r: triCenter,          c: triCenterC + offset, rot: 90  }, // right
+        { r: triCenter + offset, c: triCenterC,        rot: 180 }, // bottom
+        { r: triCenter,          c: triCenterC - offset, rot: 270 }, // left
       ];
-      for (const [tr, tc] of triangleCentroids) {
+      for (const t of triangles) {
+        const cx = svgX(t.c);
+        const cy = svgY(t.r);
         const tx = svgEl('text', {
-          x: svgX(tc),
-          y: svgY(tr) + cell * 0.18,
+          x: cx,
+          y: cy + cell * 0.15,
           'text-anchor': 'middle',
-          'font-size': cell * 0.55,
+          'font-size': cell * 0.62,
           fill: isActive ? '#fff' : 'rgba(255,255,255,0.55)',
-          opacity: 0.92,
+          'font-weight': 700,
           'pointer-events': 'none',
+          transform: `rotate(${t.rot} ${cx} ${cy})`,
         });
         tx.textContent = '✈';
         homeGroup.appendChild(tx);
@@ -857,10 +873,10 @@ permalink: /toolbox/feixingqi/
         const { x, y } = hangarXY(color, i);
         homeGroup.appendChild(svgEl('circle', {
           cx: x, cy: y,
-          r: cell * 0.42,
+          r: cell * 0.40,
           class: 'hangar-slot',
           fill: '#ffffff',
-          stroke: isActive ? info.hex : '#666',
+          stroke: '#1a1a1a',
           'stroke-width': 2,
         }));
       }
@@ -876,22 +892,23 @@ permalink: /toolbox/feixingqi/
       const dir = STRETCH_DIR[color];
       for (const [r, c] of layout.STRETCH_CELLS[color]) {
         stretchGroup.appendChild(svgEl('rect', {
-          x: c * cell + cell * 0.06,
-          y: r * cell + cell * 0.06,
-          width: cell * 0.88,
-          height: cell * 0.88,
+          x: c * cell + cell * 0.04,
+          y: r * cell + cell * 0.04,
+          width: cell * 0.92,
+          height: cell * 0.92,
           class: 'stretch-cell',
           fill: info.hex,
           stroke: '#1a1a1a',
-          'stroke-width': 1.2,
+          'stroke-width': 1.5,
           rx: 4,
         }));
         const arrow = svgEl('text', {
           x: svgX(c),
-          y: svgY(r) + cell * 0.13,
+          y: svgY(r) + cell * 0.18,
           'text-anchor': 'middle',
-          'font-size': cell * 0.58,
+          'font-size': cell * 0.7,
           fill: '#ffffff',
+          'font-weight': 700,
           'pointer-events': 'none',
         });
         arrow.textContent = arrowFor[dir];
@@ -908,23 +925,30 @@ permalink: /toolbox/feixingqi/
       const isBig = layout.BIG_JUMP_CELLS[i] !== undefined;
       // Cell base square
       trackGroup.appendChild(svgEl('rect', {
-        x: c * cell + cell * 0.06,
-        y: r * cell + cell * 0.06,
-        width: cell * 0.88,
-        height: cell * 0.88,
+        x: c * cell + cell * 0.04,
+        y: r * cell + cell * 0.04,
+        width: cell * 0.92,
+        height: cell * 0.92,
         class: 'track-cell',
         fill: ownerColor ? COLOR_INFO[ownerColor].hex : '#ffffff',
-        stroke: '#5a4530',
-        'stroke-width': 1.2,
+        stroke: '#1a1a1a',
+        'stroke-width': 1.4,
         rx: 4,
       }));
       if (ownerColor) {
-        // Painted jump cell — show a glyph (✈ for big jump, ↷ for regular)
+        // Painted jump cell — bigger inner circle of own colour with the glyph centred on it
+        trackGroup.appendChild(svgEl('circle', {
+          cx: svgX(c), cy: svgY(r),
+          r: cell * 0.32,
+          fill: 'rgba(255,255,255,0.18)',
+          stroke: '#ffffff',
+          'stroke-width': 1.5,
+        }));
         const glyph = svgEl('text', {
           x: svgX(c),
-          y: svgY(r) + cell * (isBig ? 0.16 : 0.13),
+          y: svgY(r) + cell * (isBig ? 0.2 : 0.16),
           'text-anchor': 'middle',
-          'font-size': cell * (isBig ? 0.6 : 0.55),
+          'font-size': cell * (isBig ? 0.66 : 0.6),
           fill: '#ffffff',
           'font-weight': 700,
           'pointer-events': 'none',
@@ -932,12 +956,12 @@ permalink: /toolbox/feixingqi/
         glyph.textContent = isBig ? '✈' : '↷';
         trackGroup.appendChild(glyph);
       } else {
-        // Plain track cell — small "bus stop" white circle with thin colored ring
+        // Plain track cell — clearly visible white circle marker
         trackGroup.appendChild(svgEl('circle', {
           cx: svgX(c), cy: svgY(r),
-          r: cell * 0.28,
-          fill: '#fff8e8',
-          stroke: '#a18a6a',
+          r: cell * 0.30,
+          fill: '#fff5dc',
+          stroke: '#1a1a1a',
           'stroke-width': 1.2,
         }));
       }
@@ -1736,13 +1760,13 @@ permalink: /toolbox/feixingqi/
     const baseCell = CELL();
     const cell = baseCell * sx;
 
-    // Background
-    ctx.fillStyle = '#f8f3e6';
+    // Cream-tan board background
+    ctx.fillStyle = '#f4ecd6';
     ctx.fillRect(ox, oy, ow, oh);
 
     const activeColors = new Set(state.players);
 
-    // Home corners — solid colored block + X diagonals + 4 decorative ✈ + 4 white parking circles
+    // Home corners — solid colored block + bold X diagonals + 4 rotated ✈ + 4 white parking circles
     for (const color of COLORS) {
       const z = layout.HOME_ZONES[color];
       const info = COLOR_INFO[color];
@@ -1752,45 +1776,56 @@ permalink: /toolbox/feixingqi/
       const w = (z.c1 - z.c0 + 1) * cell;
       const h = (z.r1 - z.r0 + 1) * cell;
       ctx.fillStyle = isActive ? info.hex : '#cdc3b0';
-      ctx.strokeStyle = isActive ? '#1a1a1a' : '#8a7050';
+      ctx.strokeStyle = '#1a1a1a';
       ctx.lineWidth = 2.5 * sx;
       ctx.beginPath();
       ctx.rect(x0, y0, w, h);
       ctx.fill();
       ctx.stroke();
       // X diagonals
-      ctx.strokeStyle = isActive ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.45)';
-      ctx.lineWidth = 2 * sx;
+      ctx.strokeStyle = isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)';
+      ctx.lineWidth = 3 * sx;
       ctx.beginPath();
       ctx.moveTo(x0, y0); ctx.lineTo(x0 + w, y0 + h);
       ctx.moveTo(x0 + w, y0); ctx.lineTo(x0, y0 + h);
       ctx.stroke();
-      // Decorative ✈ at the 4 triangle centroids
-      const triCent = [
-        [z.r0 + 1, z.c0 + 3], [z.r0 + 3, z.c0 + 5],
-        [z.r0 + 5, z.c0 + 3], [z.r0 + 3, z.c0 + 1],
+      // Decorative rotated ✈ in the 4 triangle compartments
+      const triCenter = (z.r0 + z.r1 + 1) / 2;
+      const triCenterC = (z.c0 + z.c1 + 1) / 2;
+      const offset = (z.r1 - z.r0 + 1) / 2 - 0.6;
+      const tris = [
+        { r: triCenter - offset, c: triCenterC,        rot: 0   },
+        { r: triCenter,          c: triCenterC + offset, rot: 90  },
+        { r: triCenter + offset, c: triCenterC,        rot: 180 },
+        { r: triCenter,          c: triCenterC - offset, rot: 270 },
       ];
       ctx.fillStyle = isActive ? '#fff' : 'rgba(255,255,255,0.55)';
-      ctx.font = `${baseCell * 0.55 * sx}px sans-serif`;
+      ctx.font = `bold ${baseCell * 0.62 * sx}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      for (const [tr, tc] of triCent) {
-        ctx.fillText('✈', dx + svgX(tc) * sx, dy + svgY(tr) * sx);
+      for (const t of tris) {
+        const cx = dx + svgX(t.c) * sx;
+        const cy = dy + svgY(t.r) * sx;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(t.rot * Math.PI / 180);
+        ctx.fillText('✈', 0, 0);
+        ctx.restore();
       }
-      // 4 parking circles
+      // 4 parking circles — black border to pop on the colored corner
       for (let i = 0; i < 4; i++) {
         const { x, y } = hangarXY(color, i);
         ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = isActive ? info.hex : '#666';
+        ctx.strokeStyle = '#1a1a1a';
         ctx.lineWidth = 2 * sx;
         ctx.beginPath();
-        ctx.arc(dx + x * sx, dy + y * sx, baseCell * 0.42 * sx, 0, Math.PI * 2);
+        ctx.arc(dx + x * sx, dy + y * sx, baseCell * 0.40 * sx, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       }
     }
 
-    // Stretches — colored cells with directional arrows toward center
+    // Stretches — saturated colored cells with bold inward arrows
     const arrowFor = { down: '▼', up: '▲', left: '◀', right: '▶' };
     for (const color of COLORS) {
       if (!activeColors.has(color)) continue;
@@ -1798,15 +1833,15 @@ permalink: /toolbox/feixingqi/
       const dir = STRETCH_DIR[color];
       ctx.fillStyle = info.hex;
       ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 1.2 * sx;
+      ctx.lineWidth = 1.5 * sx;
       for (const [r, c] of layout.STRETCH_CELLS[color]) {
         ctx.beginPath();
-        ctx.rect(dx + c * cell + cell * 0.06, dy + r * cell + cell * 0.06, cell * 0.88, cell * 0.88);
+        ctx.rect(dx + c * cell + cell * 0.04, dy + r * cell + cell * 0.04, cell * 0.92, cell * 0.92);
         ctx.fill();
         ctx.stroke();
       }
       ctx.fillStyle = '#fff';
-      ctx.font = `${baseCell * 0.58 * sx}px sans-serif`;
+      ctx.font = `bold ${baseCell * 0.7 * sx}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       for (const [r, c] of layout.STRETCH_CELLS[color]) {
@@ -1814,30 +1849,39 @@ permalink: /toolbox/feixingqi/
       }
     }
 
-    // Track — white cells with circle markers; colored jump cells with glyphs
+    // Track — white squares with crisp circle markers; colored jump cells with glyphs
     for (let i = 0; i < TRACK_LEN; i++) {
       const [r, c] = layout.TRACK[i];
       const ownerColor = layout.CELL_COLOR[i];
       const isBig = layout.BIG_JUMP_CELLS[i] !== undefined;
       ctx.fillStyle = ownerColor ? COLOR_INFO[ownerColor].hex : '#ffffff';
-      ctx.strokeStyle = '#5a4530';
-      ctx.lineWidth = 1.2 * sx;
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 1.4 * sx;
       ctx.beginPath();
-      ctx.rect(dx + c * cell + cell * 0.06, dy + r * cell + cell * 0.06, cell * 0.88, cell * 0.88);
+      ctx.rect(dx + c * cell + cell * 0.04, dy + r * cell + cell * 0.04, cell * 0.92, cell * 0.92);
       ctx.fill();
       ctx.stroke();
       if (ownerColor) {
+        // White ring + glyph on colored jump cell
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5 * sx;
+        ctx.beginPath();
+        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.32 * sx, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${baseCell * (isBig ? 0.6 : 0.55) * sx}px sans-serif`;
+        ctx.font = `bold ${baseCell * (isBig ? 0.66 : 0.6) * sx}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(isBig ? '✈' : '↷', dx + svgX(c) * sx, dy + svgY(r) * sx);
       } else {
-        ctx.fillStyle = '#fff8e8';
-        ctx.strokeStyle = '#a18a6a';
+        // Crisp white circular station marker
+        ctx.fillStyle = '#fff5dc';
+        ctx.strokeStyle = '#1a1a1a';
         ctx.lineWidth = 1.2 * sx;
         ctx.beginPath();
-        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.28 * sx, 0, Math.PI * 2);
+        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.30 * sx, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       }
