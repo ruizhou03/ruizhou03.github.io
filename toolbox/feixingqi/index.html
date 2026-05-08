@@ -224,6 +224,8 @@ permalink: /toolbox/feixingqi/
     100% { transform: translateY(-3px); }
   }
   .fxq-svg .plane.last-moved { filter: drop-shadow(0 0 5px rgba(78, 154, 241, 0.85)); }
+  .fxq-svg .plane.animating { filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.35)); }
+  .fxq-svg .plane.animating circle { transform-box: fill-box; transform-origin: center; transform: scale(1.1); }
   .fxq-svg .jump-mark { font-size: 14px; pointer-events: none; }
   .fxq-svg .big-mark { font-size: 16px; pointer-events: none; font-weight: 700; }
   .fxq-svg .cell-hit { fill: transparent; cursor: pointer; }
@@ -484,7 +486,16 @@ permalink: /toolbox/feixingqi/
   function svgX(col) { return (col + 0.5) * CELL(); }
   function svgY(row) { return (row + 0.5) * CELL(); }
   function trackXY(idx) { const [r, c] = L().TRACK[idx]; return { x: svgX(c), y: svgY(r) }; }
-  function stretchXY(color, pos) { const [r, c] = L().STRETCH_CELLS[color][pos]; return { x: svgX(c), y: svgY(r) }; }
+  function stretchXY(color, pos) {
+    const cells = L().STRETCH_CELLS[color];
+    if (pos >= 0 && pos < cells.length) {
+      const [r, c] = cells[pos];
+      return { x: svgX(c), y: svgY(r) };
+    }
+    // pos === stretchLen — used during bounce animation to "kiss" the goal cell.
+    const [r, c] = goalCellFor(color);
+    return { x: svgX(c), y: svgY(r) };
+  }
   function hangarXY(color, slot) { const [r, c] = L().HANGAR_CELLS[color][slot]; return { x: svgX(c), y: svgY(r) }; }
   function goalXYFor(color) { const [r, c] = goalCellFor(color); return { x: svgX(c), y: svgY(r) }; }
 
@@ -531,6 +542,7 @@ permalink: /toolbox/feixingqi/
     winner: null,
     finalRanking: [],    // [color] in finishing order
     lastMove: null,      // {color, pieceIdx}
+    animating: null,     // {color, pieceIdx, status, pos} — set during step animation
   };
 
   // ============================================================
@@ -1001,8 +1013,25 @@ permalink: /toolbox/feixingqi/
         const pieces = state.pieces[c];
         for (let i = 0; i < 4; i++) {
           const piece = pieces[i];
+          // If THIS piece is currently being animated, render it at the animation position
+          // (and skip the stacking offset so it sits cleanly on the cell).
+          const isAnimatingThis = state.animating
+            && state.animating.color === c
+            && state.animating.pieceIdx === i;
           let xy;
-          if (piece.status === 'hangar') {
+          let animStatus = null;
+          if (isAnimatingThis) {
+            const a = state.animating;
+            animStatus = a.status;
+            if (a.status === 'track') xy = trackXY(a.pos);
+            else if (a.status === 'stretch') xy = stretchXY(c, a.pos);
+            else if (a.status === 'goal') {
+              const [gr, gc] = goalCellFor(c);
+              xy = { x: svgX(gc), y: svgY(gr) };
+            } else {
+              xy = hangarXY(c, piece.pos);
+            }
+          } else if (piece.status === 'hangar') {
             xy = hangarXY(c, piece.pos);
           } else if (piece.status === 'track') {
             xy = trackXY(piece.pos);
@@ -1016,8 +1045,8 @@ permalink: /toolbox/feixingqi/
             const oy = (idx < 2 ? -0.18 : 0.18) * cell;
             xy = { x: svgX(gc) + ox, y: svgY(gr) + oy };
           }
-          // Stack offset for multiple planes on same cell
-          if (piece.status === 'track' || piece.status === 'stretch') {
+          // Stack offset for multiple planes on same cell (skip during animation of this piece)
+          if (!isAnimatingThis && (piece.status === 'track' || piece.status === 'stretch')) {
             const k = cellKey(piece, c);
             const total = cellCounts[k];
             const placed = cellPlaced[k] || 0;
@@ -1035,17 +1064,20 @@ permalink: /toolbox/feixingqi/
             && state.legalPieces.includes(i)
             && !currentKindIsAi();
           if (isLegal) cls.push('legal');
-          if (state.lastMove && state.lastMove.color === c && state.lastMove.pieceIdx === i) {
+          if (isAnimatingThis) cls.push('animating');
+          if (state.lastMove && state.lastMove.color === c && state.lastMove.pieceIdx === i && !isAnimatingThis) {
             cls.push('last-moved');
           }
-          const r = piece.status === 'goal' ? cell * 0.16 : planeR;
+          // Effective status for size selection (use animation status when animating)
+          const effStatus = isAnimatingThis ? animStatus : piece.status;
+          const r = effStatus === 'goal' ? cell * 0.16 : planeR;
           const g = svgEl('g', { class: cls.join(' '), 'data-color': c, 'data-idx': i });
           g.appendChild(svgEl('circle', {
             cx: xy.x, cy: xy.y, r,
             fill: COLOR_INFO[c].hex,
           }));
           // Plane glyph inside (subtle ✈)
-          if (piece.status !== 'goal') {
+          if (effStatus !== 'goal') {
             const t = svgEl('text', {
               x: xy.x, y: xy.y + r * 0.34,
               'text-anchor': 'middle',
@@ -1188,6 +1220,115 @@ permalink: /toolbox/feixingqi/
     return out;
   }
 
+  // ============================================================
+  // Animation — step-by-step move visualisation
+  // ============================================================
+  // Build the ordered sequence of positions a piece visits during a move.
+  // Each entry: { status: 'track'|'stretch'|'goal', pos? }.
+  // The animation walks through these one step at a time so the player can
+  // see the plane move (incl. cascading jumps and bounces).
+  // Helper: build the stretch portion of the path. startPos = -1 means
+  // entering from the track transition cell.
+  function stretchSubPath(startPos, steps, stretchLen) {
+    const target = startPos + steps;
+    const path = [];
+    if (target === stretchLen) {
+      // Walk forward, last entry locks at goal.
+      for (let p = startPos + 1; p < stretchLen; p++) path.push({ status: 'stretch', pos: p });
+      path.push({ status: 'goal' });
+    } else if (target > stretchLen) {
+      // Bounce: walk forward to stretchLen ("kiss" the goal cell), then back to final.
+      const final = 2 * stretchLen - target;
+      for (let p = startPos + 1; p <= stretchLen; p++) path.push({ status: 'stretch', pos: p });
+      for (let p = stretchLen - 1; p >= final; p--) path.push({ status: 'stretch', pos: p });
+    } else {
+      // Plain forward walk.
+      for (let p = startPos + 1; p <= target; p++) path.push({ status: 'stretch', pos: p });
+    }
+    return path;
+  }
+
+  function computeAnimationPath(player, pieceIdx, dice) {
+    const piece = state.pieces[player][pieceIdx];
+    const path = [];
+    const stretchLen = L().STRETCH_LEN;
+    const e = L().EXIT_INDEX[player];
+    const c4 = (e + 4) % TRACK_LEN, c12 = (e + 12) % TRACK_LEN, c18 = (e + 18) % TRACK_LEN;
+    const transition = L().STRETCH_TRANSITION[player];
+
+    if (piece.status === 'hangar') {
+      if (dice !== 6) return [];
+      // Plane lifts out of hangar onto the exit cell — single hop.
+      path.push({ status: 'track', pos: e });
+      return path;
+    }
+
+    if (piece.status === 'track') {
+      let cur = piece.pos;
+      let stepsLeft = dice;
+      // Walk along the track. If we cross the stretch transition, switch into stretch mode.
+      while (stepsLeft > 0) {
+        if (cur === transition) {
+          for (const step of stretchSubPath(-1, stepsLeft, stretchLen)) path.push(step);
+          return path;
+        }
+        cur = (cur + 1) % TRACK_LEN;
+        path.push({ status: 'track', pos: cur });
+        stepsLeft--;
+      }
+      // After the dice-walk, resolve any jump chain by walking each skipped cell too.
+      let safety = 0;
+      while (safety++ < 4) {
+        if (cur === c4) {
+          for (let k = 1; k <= 8; k++) path.push({ status: 'track', pos: (cur + k) % TRACK_LEN });
+          cur = c12;
+        } else if (cur === c12) {
+          for (let k = 1; k <= 6; k++) path.push({ status: 'track', pos: (cur + k) % TRACK_LEN });
+          cur = c18;
+        } else if (cur === c18) {
+          for (let k = 1; k <= 12; k++) path.push({ status: 'track', pos: (cur + k) % TRACK_LEN });
+          break; // big jump terminates the chain
+        } else {
+          break;
+        }
+      }
+      return path;
+    }
+
+    if (piece.status === 'stretch') {
+      return stretchSubPath(piece.pos, dice, stretchLen);
+    }
+
+    return path;
+  }
+
+  let animationTimer = null;
+  const STEP_MS_BASE = 150;
+  const STEP_MS_MIN = 70;
+
+  // Animate a piece along the computed path, then call onDone().
+  function animatePieceMove(player, pieceIdx, dice, onDone) {
+    const path = computeAnimationPath(player, pieceIdx, dice);
+    if (path.length === 0) { onDone(); return; }
+    // Speed up slightly when there are many steps (e.g. big jumps), so
+    // long flights don't drag on too long.
+    const stepMs = Math.max(STEP_MS_MIN, STEP_MS_BASE - path.length * 4);
+    let i = 0;
+    function step() {
+      if (i >= path.length) {
+        state.animating = null;
+        onDone();
+        return;
+      }
+      const p = path[i];
+      state.animating = { color: player, pieceIdx, status: p.status, pos: p.pos || 0 };
+      renderBoard();
+      i++;
+      animationTimer = setTimeout(step, stepMs);
+    }
+    step();
+  }
+
   // Apply (mutate) the move for a piece. Returns details (captures, triggered).
   function applyMove(player, pieceIdx, dice) {
     const piece = state.pieces[player][pieceIdx];
@@ -1303,60 +1444,63 @@ permalink: /toolbox/feixingqi/
     const player = currentPlayer();
     if (!state.legalPieces.includes(pieceIdx)) return;
     const dice = state.dice;
-    const result = applyMove(player, pieceIdx, dice);
-    if (!result) return;
-    state.lastMove = { color: player, pieceIdx };
-    state.history.push({ color: player, pieceIdx, dice });
 
-    if (result.captures.length > 0) {
-      toast(`💥 ${COLOR_INFO[player].label}方踩格 — 送回 ${result.captures.length} 架`);
-    } else if (result.triggered && result.triggered.bigJumped) {
-      toast('✈ 大飞跃！');
-    } else if (result.triggered && result.triggered.jumped) {
-      toast('↷ 同色跳跃');
-    }
-
+    // Lock further input. Clear the "legal" highlight so it doesn't pulse during animation.
     state.awaitingPick = false;
     state.legalPieces = [];
+    renderBoard();
 
-    // Win check
-    const allInGoal = state.pieces[player].every(p => p.status === 'goal');
-    if (allInGoal && !state.finalRanking.includes(player)) {
-      state.finalRanking.push(player);
-      if (state.winner === null) state.winner = player;
-      // Game ends if only one or zero players have planes left
-      const remaining = state.players.filter(c => !state.finalRanking.includes(c));
-      if (remaining.length <= 1) {
-        // Push remaining player(s) to ranking too
-        for (const c of remaining) state.finalRanking.push(c);
-        state.over = true;
-        finishGame();
+    animatePieceMove(player, pieceIdx, dice, () => {
+      // Animation done — now apply the actual state transition.
+      const result = applyMove(player, pieceIdx, dice);
+      if (!result) return;
+      state.lastMove = { color: player, pieceIdx };
+      state.history.push({ color: player, pieceIdx, dice });
+
+      if (result.captures.length > 0) {
+        toast(`💥 ${COLOR_INFO[player].label}方踩格 — 送回 ${result.captures.length} 架`);
+      } else if (result.triggered && result.triggered.bigJumped) {
+        toast('✈ 大飞跃！');
+      } else if (result.triggered && result.triggered.jumped) {
+        toast('↷ 同色跳跃');
+      }
+
+      // Win check
+      const allInGoal = state.pieces[player].every(p => p.status === 'goal');
+      if (allInGoal && !state.finalRanking.includes(player)) {
+        state.finalRanking.push(player);
+        if (state.winner === null) state.winner = player;
+        const remaining = state.players.filter(c => !state.finalRanking.includes(c));
+        if (remaining.length <= 1) {
+          for (const c of remaining) state.finalRanking.push(c);
+          state.over = true;
+          finishGame();
+          renderBoard();
+          updateStatus();
+          autosave();
+          return;
+        }
+      }
+
+      // Roll-again on 6 (unless we just won)
+      if (dice === 6 && !allInGoal && state.consecutiveSixes < 3) {
+        state.dice = null;
         renderBoard();
         updateStatus();
         autosave();
+        maybeTriggerAi(true);
         return;
       }
-    }
-
-    // Roll-again on 6 (unless we just won)
-    if (dice === 6 && !allInGoal && state.consecutiveSixes < 3) {
+      // Otherwise turn passes
       state.dice = null;
+      state.consecutiveSixes = 0;
+      state.rollsThisTurn = 0;
+      nextTurn();
       renderBoard();
       updateStatus();
       autosave();
-      // Same player rolls again
-      maybeTriggerAi(true);
-      return;
-    }
-    // Otherwise turn passes
-    state.dice = null;
-    state.consecutiveSixes = 0;
-    state.rollsThisTurn = 0;
-    nextTurn();
-    renderBoard();
-    updateStatus();
-    autosave();
-    maybeTriggerAi();
+      maybeTriggerAi();
+    });
   }
 
   function maybeTriggerAi(sameTurn) {
