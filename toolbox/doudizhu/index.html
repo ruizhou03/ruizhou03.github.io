@@ -7,6 +7,13 @@ permalink: /toolbox/doudizhu/
 <link rel="stylesheet" href="/assets/css/games-shell.css">
 
 <style>
+  /* ============================================================
+     调色板：与主站协调
+     - 主站：奶白底 / 海军蓝 ink+accent / 暖金 highlight / 衬线字
+     - 牌桌：深海军蓝绒（呼应 --color-accent #1e3a5f），暖金细边
+     - 卡片：奶白纸面（同 --color-bg），暖金边框，红 #8b2e2e / 黑 #1a1a2e
+     - 强调色：暖金 #c9a96e（同 --color-highlight），不再用饱和金黄
+     ============================================================ */
   .ddz-wrap {
     max-width: 820px;
     margin: 0 auto;
@@ -20,15 +27,36 @@ permalink: /toolbox/doudizhu/
     --ddz-card-mini-overlap: 22px;
     --ddz-card-bottom-w: 36px;
     --ddz-card-bottom-h: 52px;
-    --ddz-suit-red: #c8262a;
-    --ddz-suit-black: #1f1f1f;
-    --ddz-card-border: #6b5634;
-    --ddz-gold: #f0c674;
-    --ddz-gold-2: #c4923f;
+    /* 牌面 */
+    --ddz-card-bg: #fafaf9;
+    --ddz-card-bg-2: #f5f4f0;
+    --ddz-card-border: rgba(201,169,110,0.55);
+    --ddz-card-border-strong: rgba(201,169,110,0.85);
+    --ddz-suit-red: #8b2e2e;
+    --ddz-suit-black: #1a1a2e;
+    /* 牌桌（深海军蓝） */
+    --ddz-felt-1: #243f63;
+    --ddz-felt-2: #14253f;
+    --ddz-felt-3: #0d182b;
+    --ddz-frame: #c9a96e;          /* 暖金细边 */
+    --ddz-frame-2: rgba(201,169,110,0.45);
+    /* 文字 / 强调 */
+    --ddz-text-on-felt: #f0e8d5;
+    --ddz-text-on-felt-mute: rgba(240,232,213,0.65);
+    --ddz-accent: #c9a96e;
+    --ddz-accent-strong: #d8b87a;
+    --ddz-joker-red: #8b2e2e;
+    --ddz-joker-grey: #4a4a4a;
   }
   :root[data-theme="dark"] .ddz-wrap {
-    --ddz-suit-red: #d8322c;
-    --ddz-suit-black: #1f1f1f;
+    --ddz-card-bg: #ece8de;
+    --ddz-card-bg-2: #ddd6c5;
+    --ddz-suit-red: #8b2e2e;
+    --ddz-suit-black: #1a1a2e;
+    --ddz-felt-1: #1c324f;
+    --ddz-felt-2: #0e1c33;
+    --ddz-felt-3: #08111f;
+    --ddz-joker-grey: #3a3a3a;
   }
 
   .ddz-wrap header { text-align: center; margin-bottom: 1rem; }
@@ -75,37 +103,45 @@ permalink: /toolbox/doudizhu/
   }
   .ddz-btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
 
-  /* ======== 牌桌 (绿绒 + 木边 + 内阴影) ======== */
+  /* ======== 牌桌：深海军蓝绒 + 暖金细边 ======== */
   .ddz-table {
     background:
-      radial-gradient(ellipse at 50% 35%, rgba(255,255,255,0.10) 0%, rgba(0,0,0,0) 60%),
-      radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 70%),
-      linear-gradient(160deg, #1a6a36 0%, #0e4a23 60%, #093a1a 100%);
-    border: 6px solid #5a3a1a;
-    border-radius: 18px;
-    padding: 1.4rem 1rem 1.2rem;
+      radial-gradient(ellipse at 50% 35%, rgba(255,255,255,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.30) 0%, transparent 70%),
+      linear-gradient(160deg, var(--ddz-felt-1) 0%, var(--ddz-felt-2) 65%, var(--ddz-felt-3) 100%);
+    border: 1px solid var(--ddz-frame-2);
+    border-radius: 14px;
+    padding: 1.4rem 1.1rem 1.2rem;
     margin: 1rem auto 0;
     max-width: 760px;
-    color: #fdf6e3;
+    color: var(--ddz-text-on-felt);
     user-select: none;
     -webkit-user-select: none;
     touch-action: manipulation;
     box-shadow:
-      inset 0 0 60px rgba(0,0,0,0.45),
-      inset 0 0 0 2px rgba(0,0,0,0.25),
-      inset 0 0 0 4px rgba(245,209,66,0.18),
-      0 4px 16px rgba(0,0,0,0.2);
+      inset 0 0 0 1px rgba(255,255,255,0.05),
+      inset 0 0 80px rgba(0,0,0,0.30),
+      0 4px 18px rgba(20,37,63,0.18);
     position: relative;
     overflow: hidden;
+    font-family: var(--font-display);
   }
   .ddz-table::before {
-    /* 绿绒纹理：很轻的 noise (CSS pattern) */
+    /* 极淡的纹理纹路 */
     content: '';
     position: absolute; inset: 0;
     pointer-events: none;
     background:
-      repeating-linear-gradient(45deg, rgba(255,255,255,0.012) 0 2px, transparent 2px 4px),
-      repeating-linear-gradient(-45deg, rgba(0,0,0,0.02) 0 2px, transparent 2px 4px);
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.010) 0 2px, transparent 2px 5px),
+      repeating-linear-gradient(-45deg, rgba(0,0,0,0.020) 0 2px, transparent 2px 5px);
+  }
+  .ddz-table::after {
+    /* 内层暖金细线，让边框更精致 */
+    content: '';
+    position: absolute; inset: 4px;
+    border: 1px solid var(--ddz-frame-2);
+    border-radius: 10px;
+    pointer-events: none;
   }
 
   /* ======== 头像 / 座位 ======== */
@@ -124,81 +160,76 @@ permalink: /toolbox/doudizhu/
   .ddz-center { flex: 1 1 auto; text-align: center; min-height: 130px; padding: 0 0.4rem; }
 
   .ddz-avatar {
-    width: 64px; height: 64px;
+    width: 56px; height: 56px;
     border-radius: 50%;
-    background:
-      radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.05) 60%),
-      linear-gradient(135deg, #4a6f8a, #2d4a60);
-    border: 3px solid rgba(255,255,255,0.4);
+    background: linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 100%);
+    border: 1px solid var(--ddz-frame-2);
     display: flex; align-items: center; justify-content: center;
-    font-size: 2rem;
+    font-size: 1.7rem;
     position: relative;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.2);
-    transition: all 0.2s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 4px rgba(0,0,0,0.18);
+    transition: all 0.25s;
   }
   .ddz-self .ddz-avatar {
-    background:
-      radial-gradient(circle at 30% 30%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.05) 60%),
-      linear-gradient(135deg, #f5d142, #c4923f);
-    border-color: #f5d142;
+    background: linear-gradient(160deg, rgba(201,169,110,0.20) 0%, rgba(201,169,110,0.05) 100%);
+    border-color: var(--ddz-accent);
   }
   .ddz-avatar.is-landlord {
-    background:
-      radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.05) 60%),
-      linear-gradient(135deg, #b91d1d, #6e0d0d);
-    border-color: #f0c674;
+    background: linear-gradient(160deg, rgba(139,46,46,0.30) 0%, rgba(139,46,46,0.10) 100%);
+    border-color: var(--ddz-accent);
   }
   .ddz-avatar.is-landlord::after {
     content: "👑";
     position: absolute;
-    top: -14px; left: 50%;
+    top: -13px; left: 50%;
     transform: translateX(-50%);
-    font-size: 1.4rem;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+    font-size: 1.15rem;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));
   }
   .ddz-avatar.is-current {
+    border-color: var(--ddz-accent-strong);
     box-shadow:
-      0 0 0 3px #f5d142,
-      0 0 18px rgba(245,209,66,0.7),
-      0 2px 6px rgba(0,0,0,0.3);
-    animation: ddz-pulse 1.6s ease-in-out infinite;
+      0 0 0 2px var(--ddz-accent),
+      0 0 14px rgba(201,169,110,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+    animation: ddz-pulse 2.2s ease-in-out infinite;
   }
   @keyframes ddz-pulse {
-    0%, 100% { box-shadow: 0 0 0 3px #f5d142, 0 0 12px rgba(245,209,66,0.6), 0 2px 6px rgba(0,0,0,0.3); }
-    50%      { box-shadow: 0 0 0 3px #f5d142, 0 0 24px rgba(245,209,66,0.95), 0 2px 6px rgba(0,0,0,0.3); }
+    0%, 100% { box-shadow: 0 0 0 2px var(--ddz-accent), 0 0 8px rgba(201,169,110,0.35), inset 0 1px 0 rgba(255,255,255,0.1); }
+    50%      { box-shadow: 0 0 0 2px var(--ddz-accent), 0 0 18px rgba(201,169,110,0.65), inset 0 1px 0 rgba(255,255,255,0.1); }
   }
   .ddz-name {
-    font-size: 0.82rem; margin-top: 0.4rem;
-    color: rgba(255,255,255,0.95);
+    font-size: 0.85rem; margin-top: 0.5rem;
+    color: var(--ddz-text-on-felt);
     font-family: var(--font-display);
+    letter-spacing: 0.02em;
   }
   .ddz-handcount {
     display: inline-block;
-    margin-top: 0.25rem;
-    padding: 0.1rem 0.55rem;
-    background: rgba(0,0,0,0.4);
-    border: 1px solid rgba(255,255,255,0.2);
+    margin-top: 0.3rem;
+    padding: 0.1rem 0.6rem;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--ddz-frame-2);
     border-radius: 999px;
-    font-size: 0.85rem; font-weight: 700;
-    color: #fff;
+    font-size: 0.78rem; font-weight: 600;
+    color: var(--ddz-text-on-felt);
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
   }
   .ddz-handcount::before {
-    content: '🂠 ';
-    margin-right: 2px;
-    opacity: 0.8;
+    content: '🂠';
+    margin-right: 4px;
+    opacity: 0.7;
+    font-size: 0.9em;
   }
 
-  /* ======== 牌（CSS 自绘）======== */
-  /* 通用卡片视觉 */
+  /* ======== 牌（CSS 自绘）：奶白纸面 + 暖金细边 ======== */
   .ddz-card {
     display: inline-block;
-    background:
-      radial-gradient(circle at 80% 100%, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0) 50%),
-      linear-gradient(135deg, #ffffff 0%, #fff8e8 100%);
+    background: linear-gradient(160deg, var(--ddz-card-bg) 0%, var(--ddz-card-bg-2) 100%);
     border: 1px solid var(--ddz-card-border);
     border-radius: 5px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(255,255,255,0.5);
+    box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55);
     position: relative;
     flex-shrink: 0;
     -webkit-tap-highlight-color: transparent;
@@ -209,20 +240,17 @@ permalink: /toolbox/doudizhu/
     position: absolute;
     display: flex; flex-direction: column; align-items: center;
     line-height: 1;
-    font-family: Georgia, "STSong", "STKaiti", serif;
+    font-family: 'Cormorant Garamond', Georgia, "Songti SC", serif;
   }
-  .ddz-card .corner.tl { top: 3px; left: 4px; }
-  .ddz-card .corner.br { bottom: 3px; right: 4px; transform: rotate(180deg); }
-  .ddz-card .corner .rk { font-weight: 700; }
+  .ddz-card .corner.tl { top: 4px; left: 5px; }
+  .ddz-card .corner.br { bottom: 4px; right: 5px; transform: rotate(180deg); }
+  .ddz-card .corner .rk { font-weight: 700; letter-spacing: 0; }
   .ddz-card .pip {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", monospace;
-  }
-  .ddz-card.is-joker .pip {
-    font-family: var(--font-display);
-    font-weight: 700;
+    opacity: 0.92;
   }
 
   /* 全尺寸（手牌）*/
@@ -230,10 +258,9 @@ permalink: /toolbox/doudizhu/
     width: var(--ddz-card-w);
     height: var(--ddz-card-h);
   }
-  .ddz-card.size-full .corner .rk { font-size: 14px; }
-  .ddz-card.size-full .corner .su { font-size: 12px; }
-  .ddz-card.size-full .pip { font-size: 30px; }
-  .ddz-card.size-full.is-joker .pip { font-size: 16px; }
+  .ddz-card.size-full .corner .rk { font-size: 15px; }
+  .ddz-card.size-full .corner .su { font-size: 11px; margin-top: 1px; }
+  .ddz-card.size-full .pip { font-size: 28px; }
 
   /* mini 尺寸（已出牌区）*/
   .ddz-card.size-mini {
@@ -241,9 +268,8 @@ permalink: /toolbox/doudizhu/
     height: var(--ddz-card-mini-h);
   }
   .ddz-card.size-mini .corner .rk { font-size: 11px; }
-  .ddz-card.size-mini .corner .su { font-size: 10px; }
-  .ddz-card.size-mini .pip { font-size: 22px; }
-  .ddz-card.size-mini.is-joker .pip { font-size: 14px; }
+  .ddz-card.size-mini .corner .su { font-size: 9px; }
+  .ddz-card.size-mini .pip { font-size: 20px; }
 
   /* 底牌尺寸（中央三张）*/
   .ddz-card.size-bottom {
@@ -251,22 +277,57 @@ permalink: /toolbox/doudizhu/
     height: var(--ddz-card-bottom-h);
   }
   .ddz-card.size-bottom .corner .rk { font-size: 11px; }
-  .ddz-card.size-bottom .corner .su { font-size: 10px; }
-  .ddz-card.size-bottom .pip { font-size: 21px; }
-  .ddz-card.size-bottom.is-joker .pip { font-size: 14px; }
+  .ddz-card.size-bottom .corner .su { font-size: 9px; }
+  .ddz-card.size-bottom .pip { font-size: 19px; }
 
-  /* 卡背：双色斜纹 + 中心装饰 */
+  /* ======== 经典 Joker：JOKER 文字 + 帽子图标，红 / 灰双色 ======== */
+  .ddz-card.is-joker .pip {
+    /* pip 容器：JOKER 文字 + 小冠 */
+    display: flex; flex-direction: column; align-items: center;
+    line-height: 1;
+    gap: 2px;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    opacity: 1;
+  }
+  .ddz-card.is-joker .pip .joker-text {
+    font-weight: 800;
+    letter-spacing: 1.2px;
+  }
+  .ddz-card.is-joker .pip .joker-icon {
+    font-family: "Apple Symbols", "Segoe UI Symbol", monospace;
+    line-height: 1;
+  }
+  .ddz-card.is-joker .corner .rk {
+    font-size: 9px;
+    letter-spacing: 1px;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+  }
+  /* 王不需要花色，留空 */
+  .ddz-card.is-joker .corner .su { display: none; }
+  /* 大王（红） / 小王（灰）双色 */
+  .ddz-card.joker-big   { color: var(--ddz-joker-red); }
+  .ddz-card.joker-small { color: var(--ddz-joker-grey); }
+
+  .ddz-card.size-full.is-joker .pip .joker-text { font-size: 9px; }
+  .ddz-card.size-full.is-joker .pip .joker-icon { font-size: 22px; }
+  .ddz-card.size-mini.is-joker .pip .joker-text { font-size: 7px; }
+  .ddz-card.size-mini.is-joker .pip .joker-icon { font-size: 16px; }
+  .ddz-card.size-bottom.is-joker .pip .joker-text { font-size: 7px; }
+  .ddz-card.size-bottom.is-joker .pip .joker-icon { font-size: 15px; }
+
+  /* 卡背：暖海军蓝 + 暖金交叉纹（与桌面同系） */
   .ddz-card-back {
     display: inline-block;
     width: var(--ddz-card-bottom-w);
     height: var(--ddz-card-bottom-h);
     border-radius: 5px;
-    border: 2px solid #f8e7c5;
+    border: 1px solid var(--ddz-frame);
     background:
-      radial-gradient(circle at 50% 50%, rgba(255,221,150,0.55) 0%, transparent 40%),
-      repeating-linear-gradient(45deg, #b81e16 0 5px, #8a1610 5px 10px),
-      linear-gradient(135deg, #c8332a, #8b1d17);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(0,0,0,0.25);
+      radial-gradient(circle at 50% 50%, rgba(201,169,110,0.40) 0%, transparent 50%),
+      repeating-linear-gradient(45deg, rgba(201,169,110,0.16) 0 4px, transparent 4px 8px),
+      linear-gradient(160deg, #2a4768 0%, #15253f 100%);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.30), inset 0 0 0 1px rgba(0,0,0,0.20);
     position: relative;
   }
   .ddz-card-back::after {
@@ -274,9 +335,9 @@ permalink: /toolbox/doudizhu/
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    color: rgba(255,221,150,0.85);
-    font-size: 22px;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    color: rgba(201,169,110,0.88);
+    font-size: 18px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
   }
 
   /* 已出牌区域 */
@@ -295,14 +356,15 @@ permalink: /toolbox/doudizhu/
     font-size: 0.78rem;
   }
   .ddz-played .pass-tag {
-    background: linear-gradient(135deg, rgba(180,180,180,0.25), rgba(180,180,180,0.10));
-    border: 1px solid rgba(255,255,255,0.2);
-    color: #ddd;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--ddz-frame-2);
+    color: var(--ddz-text-on-felt-mute);
+    letter-spacing: 0.04em;
   }
   .ddz-played .think-tag {
-    background: linear-gradient(135deg, rgba(245,209,66,0.3), rgba(245,209,66,0.1));
-    border: 1px solid rgba(245,209,66,0.4);
-    color: #fffac8;
+    background: rgba(201,169,110,0.10);
+    border: 1px solid var(--ddz-frame-2);
+    color: var(--ddz-text-on-felt);
     font-family: monospace;
   }
   .ddz-played .think-tag::after {
@@ -329,26 +391,26 @@ permalink: /toolbox/doudizhu/
   }
   .ddz-multiplier {
     display: inline-block;
-    padding: 0.32rem 0.85rem;
+    padding: 0.28rem 0.85rem;
     border-radius: 999px;
-    background: linear-gradient(135deg, rgba(245,209,66,0.95), rgba(196,146,63,0.95));
-    color: #2a1a05;
+    background: rgba(201,169,110,0.12);
+    color: var(--ddz-accent-strong);
     font-size: 0.82rem;
-    font-weight: 700;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
-    border: 1px solid rgba(255,255,255,0.4);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.4);
-    margin-top: 0.4rem;
-    letter-spacing: 0.02em;
+    border: 1px solid var(--ddz-frame-2);
+    margin-top: 0.5rem;
+    letter-spacing: 0.04em;
+    font-family: 'Cormorant Garamond', Georgia, serif;
   }
   .ddz-multiplier:empty { display: none; }
   .ddz-status-msg {
     font-size: 1rem;
     margin: 0.5rem 0 0.3rem;
-    color: #fff8d8;
+    color: var(--ddz-text-on-felt);
     min-height: 1.5em;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
     font-family: var(--font-display);
+    letter-spacing: 0.02em;
   }
 
   /* ======== 我的座位 + 手牌 ======== */
@@ -385,66 +447,92 @@ permalink: /toolbox/doudizhu/
   .ddz-hand .ddz-card.size-full:first-child { margin-left: 0; }
   .ddz-hand .ddz-card.size-full:hover { filter: brightness(1.05); }
   .ddz-hand .ddz-card.size-full.selected {
-    transform: translateY(-22px);
-    box-shadow: 0 8px 14px rgba(0,0,0,0.4), inset 0 0 0 2px var(--ddz-gold);
+    transform: translateY(-20px);
+    box-shadow: 0 8px 14px rgba(20,37,63,0.35), inset 0 0 0 2px var(--ddz-accent);
   }
 
   .ddz-actions {
-    display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center;
+    display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: center;
+    align-items: center;
     margin-top: 0.8rem;
     position: relative; z-index: 1;
   }
   .ddz-actions .ddz-btn {
-    padding: 0.55rem 1.1rem;
-    font-size: 0.9rem;
-    background: linear-gradient(180deg, #ffffff 0%, #f0e8d5 100%);
-    border: 1px solid #b89556;
-    color: #3a2a14;
+    padding: 0.5rem 1.2rem;
+    font-size: 0.92rem;
+    background: var(--ddz-card-bg);
+    border: 1px solid var(--ddz-frame);
+    color: var(--ddz-suit-black);
     border-radius: 999px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.6);
+    box-shadow: 0 1px 3px rgba(20,37,63,0.18);
     font-weight: 600;
-    transition: transform 0.12s, box-shadow 0.12s, filter 0.12s;
+    font-family: var(--font-display);
+    letter-spacing: 0.03em;
+    transition: transform 0.12s, box-shadow 0.12s, background 0.12s, color 0.12s;
   }
   .ddz-actions .ddz-btn:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.6);
-    color: #3a2a14;
-    filter: brightness(1.04);
+    box-shadow: 0 3px 8px rgba(20,37,63,0.25);
+    color: var(--color-accent);
   }
   .ddz-actions .ddz-btn:active:not(:disabled) {
     transform: translateY(0);
   }
   .ddz-actions .ddz-btn.primary {
-    background: linear-gradient(180deg, #1d6cb8 0%, #15518c 100%);
+    background: var(--color-accent);
     color: #fff;
-    border-color: #0c3d70;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.3);
+    border-color: var(--color-accent);
+    box-shadow: 0 2px 5px rgba(20,37,63,0.32);
   }
   .ddz-actions .ddz-btn.primary:hover:not(:disabled) {
-    background: linear-gradient(180deg, #2580d6 0%, #1d6cb8 100%);
+    background: var(--color-accent-light);
     color: #fff;
+    border-color: var(--color-accent-light);
   }
   .ddz-actions .ddz-btn:disabled {
-    opacity: 0.4;
+    opacity: 0.35;
     cursor: not-allowed;
-    filter: grayscale(0.4);
+  }
+  /* 倒计时 chip（嵌在 actions 行最右） */
+  .ddz-countdown {
+    display: inline-flex; align-items: center;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--ddz-frame-2);
+    color: var(--ddz-text-on-felt);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+  }
+  .ddz-countdown.urgent {
+    background: rgba(139,46,46,0.30);
+    border-color: var(--ddz-suit-red);
+    color: #f5d6d4;
+  }
+  .ddz-countdown::before {
+    content: '⏱';
+    margin-right: 4px;
+    opacity: 0.75;
   }
 
   /* ======== 抢 / 加倍 决策面板 ======== */
   .ddz-bid-panel {
     position: relative;
     margin: 0.6rem auto;
-    padding: 0.7rem 1rem 0.8rem;
+    padding: 0.7rem 1rem 0.85rem;
     text-align: center;
-    max-width: 420px;
-    background: linear-gradient(180deg, rgba(50,28,8,0.65) 0%, rgba(30,15,5,0.55) 100%);
-    border: 1px solid rgba(245,209,66,0.5);
-    border-radius: 12px;
+    max-width: 460px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+    border: 1px solid var(--ddz-frame-2);
+    border-radius: 10px;
     box-shadow:
-      0 4px 12px rgba(0,0,0,0.4),
-      inset 0 1px 0 rgba(255,255,255,0.08);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+      0 3px 10px rgba(0,0,0,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.05);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
     animation: ddz-fadein 0.22s ease-out;
   }
   @keyframes ddz-fadein {
@@ -453,70 +541,125 @@ permalink: /toolbox/doudizhu/
   }
   .ddz-bid-title {
     font-size: 0.92rem;
-    margin-bottom: 0.55rem;
-    color: #ffeec8;
+    margin-bottom: 0.6rem;
+    color: var(--ddz-text-on-felt);
     font-family: var(--font-display);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    letter-spacing: 0.04em;
+    display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+  }
+  .ddz-bid-title .countdown-badge {
+    display: inline-block;
+    padding: 0.05rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--ddz-frame-2);
+    color: var(--ddz-accent-strong);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
   }
   .ddz-bid-buttons {
-    display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap;
+    display: flex; gap: 0.7rem; justify-content: center; flex-wrap: wrap;
   }
   .ddz-bid-buttons button {
-    padding: 0.5rem 1.2rem;
+    padding: 0.45rem 1.3rem;
     border-radius: 999px;
-    border: 1px solid rgba(0,0,0,0.4);
-    background: linear-gradient(180deg, #f5e6c2 0%, #d8b97a 100%);
-    color: #3a2a14;
+    border: 1px solid var(--ddz-frame);
+    background: var(--ddz-card-bg);
+    color: var(--ddz-suit-black);
     cursor: pointer;
-    font-family: inherit;
+    font-family: var(--font-display);
     font-size: 0.92rem;
     font-weight: 600;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.5);
-    transition: transform 0.12s, filter 0.12s;
+    letter-spacing: 0.03em;
+    box-shadow: 0 1px 3px rgba(20,37,63,0.18);
+    transition: transform 0.12s, background 0.12s, color 0.12s;
   }
   .ddz-bid-buttons button.primary {
-    background: linear-gradient(180deg, #f5d142 0%, #c4923f 100%);
-    color: #3a1a05;
-    border-color: #6b3c0a;
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
   }
-  .ddz-bid-buttons button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+  .ddz-bid-buttons button:hover:not(:disabled) { transform: translateY(-1px); }
+  .ddz-bid-buttons button.primary:hover:not(:disabled) { background: var(--color-accent-light); border-color: var(--color-accent-light); }
   .ddz-bid-buttons button:active:not(:disabled) { transform: translateY(0); }
   .ddz-bid-buttons button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* 同时决策（加倍）三人状态行 */
+  .ddz-double-grid {
+    display: flex; justify-content: space-around; gap: 0.5rem;
+    margin: 0.5rem 0 0.7rem;
+    flex-wrap: wrap;
+  }
+  .ddz-double-cell {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0.25rem;
+    min-width: 70px;
+    padding: 0.4rem 0.5rem;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.22);
+    border: 1px solid var(--ddz-frame-2);
+    transition: all 0.18s;
+  }
+  .ddz-double-cell .who {
+    font-size: 0.78rem;
+    color: var(--ddz-text-on-felt-mute);
+    font-family: var(--font-display);
+    letter-spacing: 0.04em;
+  }
+  .ddz-double-cell .status {
+    font-size: 0.82rem;
+    color: var(--ddz-text-on-felt);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+  }
+  .ddz-double-cell.decided-yes { border-color: var(--ddz-accent); background: rgba(201,169,110,0.18); }
+  .ddz-double-cell.decided-yes .status { color: var(--ddz-accent-strong); }
+  .ddz-double-cell.decided-no  { border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.04); }
+  .ddz-double-cell.decided-no  .status { color: var(--ddz-text-on-felt-mute); }
+  .ddz-double-cell.pending     { border-style: dashed; }
+  .ddz-double-cell.pending .status::after {
+    content: '…';
+    display: inline-block;
+    animation: ddz-dots 1.2s steps(4, end) infinite;
+    width: 1em; text-align: left; margin-left: 2px;
+  }
 
   /* ======== 浮层 ======== */
   .ddz-overlay {
     position: absolute; inset: 0;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.5) 100%);
+    background: radial-gradient(ellipse at center, rgba(13,24,43,0.78) 0%, rgba(13,24,43,0.55) 100%);
     display: none;
     flex-direction: column;
     align-items: center; justify-content: center;
-    gap: 0.8rem;
-    color: #fff;
+    gap: 0.9rem;
+    color: var(--ddz-text-on-felt);
     text-align: center;
     padding: 1rem;
     z-index: 10;
     border-radius: 14px;
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
   }
   .ddz-overlay.show { display: flex; animation: ddz-fadein 0.3s; }
   .ddz-overlay h2 {
-    font-size: 2rem; margin: 0;
+    font-size: 1.9rem; margin: 0;
     font-family: var(--font-display);
-    color: #f5d142;
-    text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    color: var(--ddz-accent-strong);
+    letter-spacing: 0.04em;
   }
   .ddz-overlay .ddz-result-detail {
-    background: rgba(0,0,0,0.4);
-    border: 1px solid rgba(245,209,66,0.3);
-    padding: 0.7rem 1.1rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--ddz-frame-2);
+    padding: 0.8rem 1.2rem;
     border-radius: 10px;
     font-size: 0.95rem;
-    line-height: 1.7;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    line-height: 1.8;
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
   }
   .ddz-overlay .ddz-result-detail strong {
-    color: #f5d142;
+    color: var(--ddz-accent-strong);
     font-size: 1.1em;
   }
 
@@ -540,19 +683,22 @@ permalink: /toolbox/doudizhu/
       --ddz-card-bottom-w: 28px;
       --ddz-card-bottom-h: 40px;
     }
-    .ddz-table { padding: 1rem 0.5rem 0.8rem; }
-    .ddz-avatar { width: 50px; height: 50px; font-size: 1.6rem; }
-    .ddz-avatar.is-landlord::after { font-size: 1.1rem; top: -10px; }
+    .ddz-table { padding: 1rem 0.6rem 0.8rem; }
+    .ddz-avatar { width: 46px; height: 46px; font-size: 1.4rem; }
+    .ddz-avatar.is-landlord::after { font-size: 1rem; top: -10px; }
     .ddz-seat-ai { min-width: 78px; }
-    .ddz-card.size-full .corner .rk { font-size: 11px; }
+    .ddz-card.size-full .corner .rk { font-size: 12px; }
     .ddz-card.size-full .corner .su { font-size: 9px; }
     .ddz-card.size-full .pip { font-size: 22px; }
+    .ddz-card.size-full.is-joker .pip .joker-text { font-size: 7px; }
+    .ddz-card.size-full.is-joker .pip .joker-icon { font-size: 16px; }
     .ddz-card.size-mini .corner .rk { font-size: 9px; }
     .ddz-card.size-mini .corner .su { font-size: 8px; }
     .ddz-card.size-mini .pip { font-size: 17px; }
     .ddz-card.size-bottom .pip { font-size: 16px; }
-    .ddz-card-back::after { font-size: 16px; }
+    .ddz-card-back::after { font-size: 14px; }
     .ddz-overlay h2 { font-size: 1.5rem; }
+    .ddz-double-cell { min-width: 60px; padding: 0.3rem 0.4rem; }
   }
 </style>
 
@@ -624,9 +770,10 @@ permalink: /toolbox/doudizhu/
     <div class="ddz-hand" id="ddzHand"></div>
 
     <div class="ddz-actions" id="ddzPlayActions" hidden>
-      <button class="ddz-btn" id="ddzPassBtn" type="button">不要 (Enter)</button>
-      <button class="ddz-btn primary" id="ddzPlayBtn" type="button">出牌 (Space)</button>
+      <button class="ddz-btn" id="ddzPassBtn" type="button">不要 (Space)</button>
       <button class="ddz-btn" id="ddzHintBtn" type="button">提示 (H)</button>
+      <button class="ddz-btn primary" id="ddzPlayBtn" type="button">出牌 (Enter)</button>
+      <span class="ddz-countdown" id="ddzCountdown" hidden>20s</span>
     </div>
 
     <!-- 浮层：游戏结束 -->
@@ -704,7 +851,45 @@ permalink: /toolbox/doudizhu/
     runNonce: '',
     result: null,                // { winnerRole, multiplier, score }
     resumed: false,
+    // 提示循环
+    hintCycle: [],               // 当前 enumerateBeats 的所有候选
+    hintIdx: -1,                 // 已展示到第几个；-1 = 还未点提示
+    hintForPrev: null,           // 上次提示对应的 prev 信息（变了就重置）
   };
+
+  // ============================================================
+  // 倒计时（玩家出牌阶段 / 加倍阶段）
+  // ============================================================
+  const TURN_TIMEOUT_MS = 25000;   // 玩家出牌 25 秒
+  const DOUBLE_TIMEOUT_MS = 5000;  // 加倍决策 5 秒
+  const countdownEl = () => document.getElementById('ddzCountdown');
+  let turnCountdownTimer = null;
+  let turnCountdownEndAt = 0;
+  function startTurnCountdown(onTimeout) {
+    stopTurnCountdown();
+    turnCountdownEndAt = Date.now() + TURN_TIMEOUT_MS;
+    const el = countdownEl();
+    el.hidden = false;
+    el.classList.remove('urgent');
+    function tick() {
+      const left = Math.max(0, turnCountdownEndAt - Date.now());
+      const s = Math.ceil(left / 1000);
+      el.textContent = s + 's';
+      el.classList.toggle('urgent', s <= 5);
+      if (left <= 0) {
+        stopTurnCountdown();
+        try { onTimeout && onTimeout(); } catch (e) { console.warn(e); }
+      }
+    }
+    tick();
+    turnCountdownTimer = setInterval(tick, 250);
+  }
+  function stopTurnCountdown() {
+    if (turnCountdownTimer) clearInterval(turnCountdownTimer);
+    turnCountdownTimer = null;
+    const el = countdownEl();
+    if (el) { el.hidden = true; el.classList.remove('urgent'); }
+  }
 
   // ============================================================
   // DOM refs
@@ -757,13 +942,13 @@ permalink: /toolbox/doudizhu/
   passBtn.addEventListener('click', () => playerPass());
   hintBtn.addEventListener('click', () => playerHint());
 
-  // 键盘
+  // 键盘：Enter=出牌，Space=不要，H=提示
   document.addEventListener('keydown', e => {
     if (state.phase !== PHASE.PLAYING) return;
     if (state.turnIdx !== 0) return;
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-    if (e.code === 'Space') { e.preventDefault(); playerPlay(); }
-    else if (e.code === 'Enter') { e.preventDefault(); playerPass(); }
+    if (e.code === 'Enter') { e.preventDefault(); playerPlay(); }
+    else if (e.code === 'Space') { e.preventDefault(); playerPass(); }
     else if (e.code === 'KeyH') { e.preventDefault(); playerHint(); }
   });
 
@@ -774,8 +959,8 @@ permalink: /toolbox/doudizhu/
   const SUIT_LABELS = ['♠','♥','♦','♣'];
 
   function cardDisplayInfo(c) {
-    if (c === 52) return { rank: '小', suit: '', red: false, isJoker: true, pip: '小王' };
-    if (c === 53) return { rank: '大', suit: '', red: true,  isJoker: true, pip: '大王' };
+    if (c === 52) return { isJoker: true, jokerKind: 'small', cornerRk: 'JOKER' };
+    if (c === 53) return { isJoker: true, jokerKind: 'big',   cornerRk: 'JOKER' };
     const r = E.cardRank(c);
     const s = E.cardSuit(c);
     return {
@@ -783,7 +968,6 @@ permalink: /toolbox/doudizhu/
       suit: SUIT_LABELS[s],
       red: (s === 1 || s === 2),
       isJoker: false,
-      pip: SUIT_LABELS[s],
     };
   }
 
@@ -791,25 +975,56 @@ permalink: /toolbox/doudizhu/
     opts = opts || {};
     const info = cardDisplayInfo(c);
     const el = document.createElement('span');
-    el.className = 'ddz-card ' + sizeClass + ' ' + (info.red ? 'suit-red' : 'suit-black') +
-      (info.isJoker ? ' is-joker' : '');
+    let cls = 'ddz-card ' + sizeClass;
+    if (info.isJoker) {
+      cls += ' is-joker ' + (info.jokerKind === 'big' ? 'joker-big' : 'joker-small');
+    } else {
+      cls += ' ' + (info.red ? 'suit-red' : 'suit-black');
+    }
+    el.className = cls;
     if (opts.cid != null) el.dataset.cid = opts.cid;
     if (opts.selected) el.classList.add('selected');
-    for (const pos of ['tl', 'br']) {
-      const corner = document.createElement('span');
-      corner.className = 'corner ' + pos;
-      const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = info.rank;
-      corner.appendChild(rk);
-      if (info.suit) {
+
+    if (info.isJoker) {
+      // 角标：JOKER 竖排文字
+      for (const pos of ['tl', 'br']) {
+        const corner = document.createElement('span');
+        corner.className = 'corner ' + pos;
+        const rk = document.createElement('span');
+        rk.className = 'rk';
+        rk.textContent = info.cornerRk;
+        corner.appendChild(rk);
+        el.appendChild(corner);
+      }
+      // pip：JOKER 文字 + 小冠图标
+      const pip = document.createElement('span');
+      pip.className = 'pip';
+      const txt = document.createElement('span');
+      txt.className = 'joker-text';
+      txt.textContent = 'JOKER';
+      const icon = document.createElement('span');
+      icon.className = 'joker-icon';
+      // ♛ (大王 - 红) / ♚ (小王 - 黑)，更经典的"小丑王冠"
+      icon.textContent = info.jokerKind === 'big' ? '♛' : '♚';
+      pip.appendChild(txt);
+      pip.appendChild(icon);
+      el.appendChild(pip);
+    } else {
+      // 普通牌：双角标 + 中央 pip
+      for (const pos of ['tl', 'br']) {
+        const corner = document.createElement('span');
+        corner.className = 'corner ' + pos;
+        const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = info.rank;
+        corner.appendChild(rk);
         const su = document.createElement('span'); su.className = 'su'; su.textContent = info.suit;
         corner.appendChild(su);
+        el.appendChild(corner);
       }
-      el.appendChild(corner);
+      const pip = document.createElement('span');
+      pip.className = 'pip';
+      pip.textContent = info.suit;
+      el.appendChild(pip);
     }
-    const pip = document.createElement('span');
-    pip.className = 'pip';
-    pip.textContent = info.isJoker ? info.pip : info.suit;
-    el.appendChild(pip);
     return el;
   }
 
@@ -1080,66 +1295,148 @@ permalink: /toolbox/doudizhu/
   }
 
   // ============================================================
-  // 加倍：3 家依次选 加倍 / 不加倍（顺序：地主先）；每个加倍 ×2
+  // 加倍：3 家同时决策（5 秒）；超时未决 = 不加倍
+  // 决策一公布全员可见；倒计时一直跑直到全决完或时间到
   // ============================================================
+  let doubleTimer = null;
+  let doubleEndAt = 0;
+  let doubleDecided = [false, false, false];   // 每家是否已决定
+  let doubleChoice = [null, null, null];        // 'double' | 'pass'
+
   function enterDoubling() {
     state.phase = PHASE.DOUBLING;
-    state.doubleTurnIdx = state.landlordIdx;
     state.doubleActions = [];
-    setStatus('加倍阶段');
+    doubleDecided = [false, false, false];
+    doubleChoice = [null, null, null];
+    setStatus('加倍阶段（5 秒）');
     renderMultiplier();
-    nextDoubleTurn();
-  }
 
-  function nextDoubleTurn() {
-    if (state.doubleActions.length >= 3) {
-      // 加倍结束 → 进入出牌
-      bidPanel.hidden = true;
-      state.phase = PHASE.PLAYING;
-      state.turnIdx = state.landlordIdx;
-      state.lastTrick = null;
-      state.passCount = 0;
-      renderRoles();
-      renderMultiplier();
-      setStatus('开始出牌');
-      proceedTurn();
-      return;
-    }
-    const seat = state.doubleTurnIdx;
-    if (seat === 0) {
-      bidPanel.hidden = false;
-      bidTitle.textContent = `要加倍吗？（当前 ×${state.multiplier}，加倍后 ×${state.multiplier * 2}）`;
-      renderBidButtons([
-        { label: '加倍 (×2)', value: 'double', primary: true },
-        { label: '不加倍', value: 'pass' },
-      ], handleDouble);
-    } else {
-      bidPanel.hidden = true;
-      setStatus(`${seatLabel(seat)} 思考是否加倍…`);
+    // 渲染面板：三家状态行 + 玩家按钮
+    renderDoubleSimultaneousPanel();
+    bidPanel.hidden = false;
+
+    // AI 在 0.8 - 4.5 秒内随机做决定
+    for (let i = 1; i <= 2; i++) {
+      const seat = i;
+      const delay = 800 + Math.random() * 3700;
       setTimeout(() => {
-        // AI: 手牌强度 ≥ 8 才加倍
+        if (state.phase !== PHASE.DOUBLING) return;
+        if (doubleDecided[seat]) return;
         const score = AI.evaluateHand(state.hands[seat]);
         const want = score >= 8 ? 'double' : 'pass';
-        handleDouble(seat, want);
-      }, 700);
+        commitDouble(seat, want);
+      }, delay);
+    }
+
+    // 倒计时
+    doubleEndAt = Date.now() + DOUBLE_TIMEOUT_MS;
+    function tick() {
+      const left = Math.max(0, doubleEndAt - Date.now());
+      const s = Math.ceil(left / 1000);
+      const cb = document.getElementById('ddzDoubleCountdown');
+      if (cb) cb.textContent = s + 's';
+      if (left <= 0) {
+        clearInterval(doubleTimer); doubleTimer = null;
+        finalizeDoubling();
+      }
+    }
+    tick();
+    doubleTimer = setInterval(tick, 200);
+  }
+
+  function commitDouble(seat, choice) {
+    if (state.phase !== PHASE.DOUBLING) return;
+    if (doubleDecided[seat]) return;
+    doubleDecided[seat] = true;
+    doubleChoice[seat] = choice;
+    state.doubleActions.push({ seat, double: choice === 'double' });
+    renderDoubleSimultaneousPanel();   // 更新状态行（公开决策）
+    if (doubleDecided.every(Boolean)) {
+      // 三家全决完 — 提前结束
+      if (doubleTimer) { clearInterval(doubleTimer); doubleTimer = null; }
+      setTimeout(() => finalizeDoubling(), 500);
     }
   }
 
-  function handleDouble(seatOrAction, action) {
-    let seat, act;
-    if (typeof seatOrAction === 'number') { seat = seatOrAction; act = action; }
-    else { seat = 0; act = seatOrAction; }
-    bidPanel.hidden = true;
-    state.doubleActions.push({ seat, double: act === 'double' });
-    if (act === 'double') {
-      state.multiplier *= 2;
-      setStatus(`${seatLabel(seat)} 加倍（倍数 ×${state.multiplier}）`);
-    } else {
-      setStatus(`${seatLabel(seat)} 不加倍`);
+  function finalizeDoubling() {
+    if (state.phase !== PHASE.DOUBLING) return;
+    // 未决定的一律算 pass
+    for (let i = 0; i < 3; i++) {
+      if (!doubleDecided[i]) {
+        doubleDecided[i] = true;
+        doubleChoice[i] = 'pass';
+        state.doubleActions.push({ seat: i, double: false });
+      }
     }
-    state.doubleTurnIdx = (state.doubleTurnIdx + 1) % 3;
+    // 应用倍数
+    let doubles = 0;
+    for (let i = 0; i < 3; i++) if (doubleChoice[i] === 'double') doubles++;
+    for (let k = 0; k < doubles; k++) state.multiplier *= 2;
+    // 收尾
+    bidPanel.hidden = true;
+    state.phase = PHASE.PLAYING;
+    state.turnIdx = state.landlordIdx;
+    state.lastTrick = null;
+    state.passCount = 0;
+    renderRoles();
     renderMultiplier();
-    setTimeout(() => nextDoubleTurn(), 700);
+    setStatus(doubles > 0 ? `加倍 ×${1 << doubles}（共 ${doubles} 人）—— 开始出牌` : '无人加倍 —— 开始出牌');
+    proceedTurn();
+  }
+
+  function renderDoubleSimultaneousPanel() {
+    bidTitle.innerHTML = '<span>加倍阶段</span><span class="countdown-badge" id="ddzDoubleCountdown">5s</span>';
+    bidButtonsEl.innerHTML = '';
+
+    // 三家状态行（顺序：上家 / 我 / 下家 — 与桌面布局一致）
+    const grid = document.createElement('div');
+    grid.className = 'ddz-double-grid';
+    const seatOrder = [2, 0, 1];
+    for (const seat of seatOrder) {
+      const cell = document.createElement('div');
+      cell.className = 'ddz-double-cell';
+      const decided = doubleDecided[seat];
+      const choice = doubleChoice[seat];
+      if (decided) {
+        cell.classList.add(choice === 'double' ? 'decided-yes' : 'decided-no');
+      } else {
+        cell.classList.add('pending');
+      }
+      const who = document.createElement('span');
+      who.className = 'who';
+      who.textContent = seat === 0 ? '我' : (seat === 1 ? '下家' : '上家');
+      const status = document.createElement('span');
+      status.className = 'status';
+      if (decided) status.textContent = choice === 'double' ? '加倍 ×2' : '不加倍';
+      else status.textContent = '思考';
+      cell.appendChild(who);
+      cell.appendChild(status);
+      grid.appendChild(cell);
+    }
+    bidButtonsEl.appendChild(grid);
+
+    // 玩家未决：显示按钮
+    if (!doubleDecided[0]) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex; gap:0.7rem; justify-content:center; flex-wrap:wrap;';
+      const yes = document.createElement('button');
+      yes.type = 'button'; yes.className = 'primary';
+      yes.textContent = `加倍 ×${state.multiplier * 2}`;
+      yes.addEventListener('click', () => commitDouble(0, 'double'));
+      const no = document.createElement('button');
+      no.type = 'button';
+      no.textContent = '不加倍';
+      no.addEventListener('click', () => commitDouble(0, 'pass'));
+      wrap.appendChild(yes);
+      wrap.appendChild(no);
+      bidButtonsEl.appendChild(wrap);
+    } else {
+      // 玩家已决：显示等待
+      const tip = document.createElement('div');
+      tip.style.cssText = 'font-size:0.82rem; color:var(--ddz-text-on-felt-mute); margin-top:0.4rem; font-family:var(--font-display); letter-spacing:0.04em;';
+      tip.textContent = '等待其他人决定…';
+      bidButtonsEl.appendChild(tip);
+    }
   }
 
   function renderBidButtons(items, onClick) {
@@ -1165,18 +1462,49 @@ permalink: /toolbox/doudizhu/
     updatePlayBtnState();
     const seat = state.turnIdx;
     if (seat === 0) {
-      // 玩家
       playActions.hidden = false;
       const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
       setStatus(prev ? '轮到你 — 出牌或不要' : '轮到你 — 你做庄');
-      // 自动选中续局后的桌面 prev（不主动选）
+      // 重置提示循环（新一轮出牌）
+      resetHintCycle();
+      // 启动倒计时：超时自动按提示出（首出场景：用 decompose 第一手；跟牌场景：用最小 beat）
+      startTurnCountdown(() => autoPlayOnTimeout());
     } else {
       playActions.hidden = true;
+      stopTurnCountdown();
       setStatus(`${seatLabel(seat)} 思考中…`);
-      // 在 AI 出牌区显示 ... 动画
       const playedEl = $('ddzPlayed' + seat);
       playedEl.innerHTML = '<span class="think-tag">思考</span>';
       setTimeout(() => aiTakeTurn(seat), 700 + Math.random() * 400);
+    }
+  }
+
+  function autoPlayOnTimeout() {
+    if (state.phase !== PHASE.PLAYING || state.turnIdx !== 0) return;
+    const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
+    if (prev) {
+      // 跟牌：找一个最小可压；没有就 pass
+      const beats = E.enumerateBeats(state.hands[0], prev);
+      const nonBomb = beats.filter(p => p.type !== T.BOMB && p.type !== T.ROCKET);
+      if (nonBomb.length) {
+        const best = nonBomb.reduce((b, p) => p.weight < b.weight ? p : b, nonBomb[0]);
+        state.selected.clear();
+        commitPlay(0, best);
+      } else {
+        commitPass(0);
+      }
+    } else {
+      // 首出：用 AI normal 策略代为决定
+      const ctx = {
+        myIdx: 0,
+        myRole: state.landlordIdx === 0 ? 'landlord' : 'peasant',
+        landlordIdx: state.landlordIdx,
+        handSizes: state.hands.map(h => h.length),
+        seen: state.seen.slice(),
+        lastTrickSeat: state.lastTrick ? state.lastTrick.seat : -1,
+      };
+      const play = AI.chooseNormal(state.hands[0], null, ctx);
+      if (play) { state.selected.clear(); commitPlay(0, play); }
     }
   }
 
@@ -1207,6 +1535,7 @@ permalink: /toolbox/doudizhu/
   }
 
   function commitPlay(seat, pattern) {
+    if (seat === 0) stopTurnCountdown();
     state.hands[seat] = E.removeCards(state.hands[seat], pattern.cards);
     for (const c of pattern.cards) state.seen[E.cardWeight(c)]++;
     if (pattern.type === T.BOMB || pattern.type === T.ROCKET) state.bombCount++;
@@ -1215,6 +1544,7 @@ permalink: /toolbox/doudizhu/
     state.lastTrick = { seat, pattern };
     state.passCount = 0;
     state.selected.clear();
+    resetHintCycle();
     renderPlayedAt(seat, pattern);
     if (seat === 0) renderHand();
     renderHandCounts();
@@ -1232,15 +1562,15 @@ permalink: /toolbox/doudizhu/
   }
 
   function commitPass(seat) {
+    if (seat === 0) stopTurnCountdown();
     state.passCount++;
     renderPlayedAt(seat, 'pass');
     if (state.passCount >= 2) {
-      // 桌面清空，回到 lastTrick 主出
       state.lastTrick = null;
       state.passCount = 0;
-      // 清空所有 played 区域
       setTimeout(() => clearAllPlayed(), 400);
     }
+    resetHintCycle();
     if (ddzSave) ddzSave.tick();
     setTimeout(() => {
       state.turnIdx = (seat + 1) % 3;
@@ -1267,21 +1597,94 @@ permalink: /toolbox/doudizhu/
     commitPass(0);
   }
 
+  function resetHintCycle() {
+    state.hintCycle = [];
+    state.hintIdx = -1;
+    state.hintForPrev = null;
+  }
+
+  // prev 牌型签名（决定提示候选是否需要重算）
+  function trickSignature() {
+    const t = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
+    if (!t) return 'first';
+    return t.type + ':' + t.weight + ':' + (t.length || 0) + ':' + (t.kickerCount || 0);
+  }
+
+  // 候选排序：非炸弹小牌先，相同类型按 weight 升序，同 weight 按张数升序
+  function rankPlayForHint(p) {
+    const TYPE_RANK = {
+      [T.SINGLE]: 0, [T.PAIR]: 1, [T.TRIPLE]: 2,
+      [T.TRIPLE_ONE]: 3, [T.TRIPLE_PAIR]: 4,
+      [T.STRAIGHT]: 5, [T.PAIR_STRAIGHT]: 6,
+      [T.PLANE]: 7, [T.PLANE_ONE]: 8, [T.PLANE_PAIR]: 9,
+      [T.FOUR_TWO]: 10, [T.FOUR_TWO_PAIR]: 11,
+      [T.BOMB]: 20, [T.ROCKET]: 21,
+    };
+    return [TYPE_RANK[p.type] || 99, p.weight, (p.length || 0), p.cards.length];
+  }
+  function comparePlay(a, b) {
+    const ra = rankPlayForHint(a), rb = rankPlayForHint(b);
+    for (let i = 0; i < ra.length; i++) {
+      if (ra[i] !== rb[i]) return ra[i] - rb[i];
+    }
+    return 0;
+  }
+
+  // 去重：同类型 + 同 weight + 同 length + 同 kicker + 同主组牌集合 → 视为重复
+  function playKey(p) {
+    return p.type + '|' + p.weight + '|' + (p.length || 0) + '|' + (p.kickerCount || 0)
+      + '|' + p.cards.slice().sort((a, b) => a - b).join(',');
+  }
+
   function playerHint() {
     if (state.phase !== PHASE.PLAYING || state.turnIdx !== 0) return;
-    const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
-    const beats = E.enumerateBeats(state.hands[0], prev);
-    if (!beats.length) { setStatus('没牌可出，请「不要」'); return; }
-    // 选最小的那组
-    const best = beats.reduce((b, p) => {
-      if (p.type === T.BOMB || p.type === T.ROCKET) return b;
-      if (b.type === T.BOMB || b.type === T.ROCKET) return p;
-      return p.weight < b.weight ? p : b;
-    });
+    const sig = trickSignature();
+    if (sig !== state.hintForPrev || !state.hintCycle.length) {
+      // 重新枚举候选
+      const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
+      let beats;
+      if (prev) {
+        beats = E.enumerateBeats(state.hands[0], prev);
+      } else {
+        // 首出：用 enumerateBeats(hand, null) 拿全部合法牌型，再去重排序
+        beats = E.enumerateBeats(state.hands[0], null);
+      }
+      if (!beats.length) {
+        setStatus(sig === 'first' ? '没合法牌型，请检查' : '没牌可出，请「不要」');
+        return;
+      }
+      // 去重 + 排序
+      const seen = new Set();
+      const uniq = [];
+      for (const p of beats) {
+        const k = playKey(p);
+        if (seen.has(k)) continue;
+        seen.add(k); uniq.push(p);
+      }
+      uniq.sort(comparePlay);
+      state.hintCycle = uniq;
+      state.hintIdx = -1;
+      state.hintForPrev = sig;
+    }
+    state.hintIdx = (state.hintIdx + 1) % state.hintCycle.length;
+    const pick = state.hintCycle[state.hintIdx];
     state.selected.clear();
-    for (const c of best.cards) state.selected.add(c);
+    for (const c of pick.cards) state.selected.add(c);
     renderHand();
     updatePlayBtnState();
+    setStatus(`提示 ${state.hintIdx + 1} / ${state.hintCycle.length}：${describePattern(pick)}`);
+  }
+
+  function describePattern(p) {
+    const NAMES = {
+      [T.SINGLE]: '单', [T.PAIR]: '对', [T.TRIPLE]: '三',
+      [T.TRIPLE_ONE]: '三带一', [T.TRIPLE_PAIR]: '三带二',
+      [T.STRAIGHT]: '单顺', [T.PAIR_STRAIGHT]: '连对',
+      [T.PLANE]: '飞机', [T.PLANE_ONE]: '飞机带翼', [T.PLANE_PAIR]: '飞机带对',
+      [T.FOUR_TWO]: '四带二', [T.FOUR_TWO_PAIR]: '四带二对',
+      [T.BOMB]: '炸弹', [T.ROCKET]: '王炸',
+    };
+    return NAMES[p.type] || p.type;
   }
 
   function finishGame(winnerSeat) {
@@ -1585,7 +1988,9 @@ permalink: /toolbox/doudizhu/
     if (state.phase === PHASE.BIDDING) {
       nextBidTurn();
     } else if (state.phase === PHASE.DOUBLING) {
-      nextDoubleTurn();
+      // 加倍是同时阶段，恢复就重新开 5s 决策（已决定的 doubleActions 也清掉）
+      state.doubleActions = [];
+      enterDoubling();
     } else if (state.phase === PHASE.PLAYING) {
       proceedTurn();
     }
