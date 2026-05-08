@@ -425,10 +425,11 @@ permalink: /toolbox/feixingqi/
     },
     STRETCH_LEN: 5,
     HANGAR_CELLS: {
-      red:    [[1.5,1.5],[1.5,3.5],[3.5,1.5],[3.5,3.5]],
-      yellow: [[1.5,10.5],[1.5,12.5],[3.5,10.5],[3.5,12.5]],
-      blue:   [[10.5,10.5],[10.5,12.5],[12.5,10.5],[12.5,12.5]],
-      green:  [[10.5,1.5],[10.5,3.5],[12.5,1.5],[12.5,3.5]],
+      // Tight 2×2 cluster at the centre of each 6×6 home (cells 2–3 of the home).
+      red:    [[2,2],[2,3],[3,2],[3,3]],
+      yellow: [[2,11],[2,12],[3,11],[3,12]],
+      blue:   [[11,11],[11,12],[12,11],[12,12]],
+      green:  [[11,2],[11,3],[12,2],[12,3]],
     },
     HOME_ZONES: {
       red:    { r0: 0,  r1: 5,  c0: 0,  c1: 5  },
@@ -839,29 +840,26 @@ permalink: /toolbox/feixingqi/
         x1: x0 + w, y1: y0, x2: x0, y2: y0 + h,
         stroke: diagStroke, 'stroke-width': 3,
       }));
-      // 3. Decorative plane icons in the OUTER half of each of the 4 triangles.
-      // Each plane is rotated to point outward (away from the central goal),
-      // matching the classic 飞行棋 board aesthetic.
-      // For NW corner (rows 0-5, cols 0-5):
-      //   top triangle plane sits high (row ~0.6) pointing up;
-      //   right plane sits to the right (col ~5.4) pointing right; etc.
-      const triCenter = (z.r0 + z.r1 + 1) / 2;  // center row of corner in cell units
-      const triCenterC = (z.c0 + z.c1 + 1) / 2; // center col
-      const offset = (z.r1 - z.r0 + 1) / 2 - 0.6;  // how far from center
+      // 3. Decorative ✈ icons at the FAR-OUT tips of each of the 4 triangles —
+      // close to the home zone's outer edges so they don't crowd the parking
+      // cluster at centre. Each plane rotates to face its triangle's outer edge.
+      const triCenter = (z.r0 + z.r1 + 1) / 2;
+      const triCenterC = (z.c0 + z.c1 + 1) / 2;
+      const tipOff = (z.r1 - z.r0 + 1) / 2 - 0.5;  // ~2.5 cells from centre for 6×6
       const triangles = [
-        { r: triCenter - offset, c: triCenterC,        rot: 0   },  // top — points up (rotated 0° from default ✈)
-        { r: triCenter,          c: triCenterC + offset, rot: 90  }, // right
-        { r: triCenter + offset, c: triCenterC,        rot: 180 }, // bottom
-        { r: triCenter,          c: triCenterC - offset, rot: 270 }, // left
+        { r: triCenter - tipOff, c: triCenterC,        rot: 0   },
+        { r: triCenter,          c: triCenterC + tipOff, rot: 90  },
+        { r: triCenter + tipOff, c: triCenterC,        rot: 180 },
+        { r: triCenter,          c: triCenterC - tipOff, rot: 270 },
       ];
       for (const t of triangles) {
         const cx = svgX(t.c);
         const cy = svgY(t.r);
         const tx = svgEl('text', {
           x: cx,
-          y: cy + cell * 0.15,
+          y: cy + cell * 0.18,
           'text-anchor': 'middle',
-          'font-size': cell * 0.62,
+          'font-size': cell * 0.7,
           fill: isActive ? '#fff' : 'rgba(255,255,255,0.55)',
           'font-weight': 700,
           'pointer-events': 'none',
@@ -870,16 +868,18 @@ permalink: /toolbox/feixingqi/
         tx.textContent = '✈';
         homeGroup.appendChild(tx);
       }
-      // 4. 4 white parking circles in 2×2 inside the corner — actual hangar slots
+      // 4. 4 white parking circles in a TIGHT 2×2 at home centre.
+      // Each circle fits inside its single cell so the cluster only takes up
+      // a 2×2 patch of the 6×6 home zone.
       for (let i = 0; i < 4; i++) {
         const { x, y } = hangarXY(color, i);
         homeGroup.appendChild(svgEl('circle', {
           cx: x, cy: y,
-          r: cell * 0.40,
+          r: cell * 0.38,
           class: 'hangar-slot',
           fill: '#ffffff',
           stroke: '#1a1a1a',
-          'stroke-width': 2,
+          'stroke-width': 1.8,
         }));
       }
     }
@@ -1777,18 +1777,18 @@ permalink: /toolbox/feixingqi/
       ctx.moveTo(x0, y0); ctx.lineTo(x0 + w, y0 + h);
       ctx.moveTo(x0 + w, y0); ctx.lineTo(x0, y0 + h);
       ctx.stroke();
-      // Decorative rotated ✈ in the 4 triangle compartments
+      // Decorative ✈ at far-out triangle tips
       const triCenter = (z.r0 + z.r1 + 1) / 2;
       const triCenterC = (z.c0 + z.c1 + 1) / 2;
-      const offset = (z.r1 - z.r0 + 1) / 2 - 0.6;
+      const tipOff = (z.r1 - z.r0 + 1) / 2 - 0.5;
       const tris = [
-        { r: triCenter - offset, c: triCenterC,        rot: 0   },
-        { r: triCenter,          c: triCenterC + offset, rot: 90  },
-        { r: triCenter + offset, c: triCenterC,        rot: 180 },
-        { r: triCenter,          c: triCenterC - offset, rot: 270 },
+        { r: triCenter - tipOff, c: triCenterC,        rot: 0   },
+        { r: triCenter,          c: triCenterC + tipOff, rot: 90  },
+        { r: triCenter + tipOff, c: triCenterC,        rot: 180 },
+        { r: triCenter,          c: triCenterC - tipOff, rot: 270 },
       ];
       ctx.fillStyle = isActive ? '#fff' : 'rgba(255,255,255,0.55)';
-      ctx.font = `bold ${baseCell * 0.62 * sx}px sans-serif`;
+      ctx.font = `bold ${baseCell * 0.7 * sx}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       for (const t of tris) {
@@ -1800,14 +1800,14 @@ permalink: /toolbox/feixingqi/
         ctx.fillText('✈', 0, 0);
         ctx.restore();
       }
-      // 4 parking circles — black border to pop on the colored corner
+      // 4 parking circles — small, tight 2×2 cluster at home centre
       for (let i = 0; i < 4; i++) {
         const { x, y } = hangarXY(color, i);
         ctx.fillStyle = '#ffffff';
         ctx.strokeStyle = '#1a1a1a';
-        ctx.lineWidth = 2 * sx;
+        ctx.lineWidth = 1.8 * sx;
         ctx.beginPath();
-        ctx.arc(dx + x * sx, dy + y * sx, baseCell * 0.40 * sx, 0, Math.PI * 2);
+        ctx.arc(dx + x * sx, dy + y * sx, baseCell * 0.38 * sx, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       }
