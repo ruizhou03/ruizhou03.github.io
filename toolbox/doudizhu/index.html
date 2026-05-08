@@ -627,23 +627,59 @@ permalink: /toolbox/doudizhu/
     50%  { box-shadow: 0 0 18px rgba(200,40,40,0.7), inset 0 0 0 2px rgba(200,40,40,0.6); }
     100% { box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55); }
   }
-  /* 王炸：暖金大爆发 + 抖动更剧烈 */
+  /* 王炸：金光大爆发 — 比炸弹更夸张更长 */
   .ddz-played.fx-rocket {
-    background: radial-gradient(ellipse at center, rgba(245,215,140,0.45) 0%, rgba(201,169,110,0.18) 50%, transparent 75%);
-    animation: ddz-shake 0.6s, ddz-rocket-flash 1.5s ease-out;
+    position: relative;
+    background: radial-gradient(ellipse at center, rgba(255,235,180,0.65) 0%, rgba(245,215,140,0.40) 35%, rgba(201,169,110,0.18) 65%, transparent 90%);
+    animation: ddz-shake-strong 1s, ddz-rocket-flash 2.2s ease-out;
+  }
+  /* 金色粒子层 */
+  .ddz-played.fx-rocket::before {
+    content: '✦ ✦ ✦';
+    position: absolute; inset: 0;
+    pointer-events: none;
+    color: #fff5c4;
+    font-size: 18px;
+    text-shadow:
+      0 0 8px rgba(255,235,150,0.95),
+      0 0 16px rgba(245,209,66,0.7);
+    display: flex; align-items: center; justify-content: space-around;
+    letter-spacing: 0.6em;
+    animation: ddz-rocket-stars 1.6s ease-out forwards;
+    opacity: 0;
+  }
+  @keyframes ddz-rocket-stars {
+    0%   { opacity: 0; transform: scale(0.4); }
+    25%  { opacity: 1; transform: scale(1.2); }
+    60%  { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.4); }
   }
   @keyframes ddz-rocket-flash {
-    0%   { box-shadow: inset 0 0 0 rgba(245,215,140,0); }
-    20%  { box-shadow: inset 0 0 50px rgba(245,215,140,0.85); }
-    100% { box-shadow: inset 0 0 0 rgba(245,215,140,0); }
+    0%   { box-shadow: inset 0 0 0 rgba(255,235,150,0); }
+    12%  { box-shadow: inset 0 0 60px 8px rgba(255,235,150,1); }
+    35%  { box-shadow: inset 0 0 100px 12px rgba(245,209,66,0.85); }
+    100% { box-shadow: inset 0 0 0 rgba(255,235,150,0); }
+  }
+  @keyframes ddz-shake-strong {
+    0%, 100% { transform: translateX(0); }
+    10% { transform: translateX(-9px); }
+    22% { transform: translateX(9px); }
+    34% { transform: translateX(-7px); }
+    46% { transform: translateX(7px); }
+    58% { transform: translateX(-5px); }
+    70% { transform: translateX(5px); }
+    82% { transform: translateX(-3px); }
+    91% { transform: translateX(3px); }
   }
   .ddz-played.fx-rocket .ddz-card.size-mini {
-    animation: ddz-card-fly 0.42s cubic-bezier(0.18, 0.7, 0.28, 1.18), ddz-rocket-pulse 1.2s ease-out;
+    animation: ddz-card-fly 0.42s cubic-bezier(0.18, 0.7, 0.28, 1.18), ddz-rocket-pulse 1.8s ease-out;
+    z-index: 2;
   }
   @keyframes ddz-rocket-pulse {
     0%   { box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55); }
-    40%  { box-shadow: 0 0 24px rgba(245,215,140,0.95), inset 0 0 0 2px rgba(245,215,140,0.85); }
-    100% { box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55); }
+    25%  { box-shadow: 0 0 32px rgba(255,235,150,1), inset 0 0 0 3px rgba(245,209,66,1); transform: translateY(-4px) scale(1.06); }
+    55%  { box-shadow: 0 0 24px rgba(245,209,66,0.85), inset 0 0 0 2px rgba(245,209,66,0.85); }
+    100% { box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55); transform: none; }
   }
   .ddz-played .pass-tag, .ddz-played .think-tag {
     padding: 0.22rem 0.7rem;
@@ -686,19 +722,27 @@ permalink: /toolbox/doudizhu/
   }
   .ddz-multiplier {
     display: inline-block;
-    padding: 0.28rem 0.85rem;
+    padding: 0.32rem 0.95rem;
     border-radius: 999px;
-    background: rgba(201,169,110,0.12);
+    background: rgba(201,169,110,0.16);
     color: var(--ddz-accent-strong);
-    font-size: 0.82rem;
-    font-weight: 600;
+    font-size: 0.92rem;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
-    border: 1px solid var(--ddz-frame-2);
+    border: 1px solid var(--ddz-frame);
     margin-top: 0.5rem;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     font-family: 'Cormorant Garamond', Georgia, serif;
   }
   .ddz-multiplier:empty { display: none; }
+  .ddz-multiplier .preview {
+    margin-left: 0.5rem;
+    font-size: 0.78rem;
+    color: var(--ddz-text-on-felt-mute);
+    font-weight: 600;
+  }
+  .ddz-multiplier .preview .win  { color: #b9d8a3; }
+  .ddz-multiplier .preview .lose { color: #f0a8a4; }
   .ddz-status-msg {
     font-size: 1rem;
     margin: 0.5rem 0 0.3rem;
@@ -788,29 +832,64 @@ permalink: /toolbox/doudizhu/
     opacity: 0.35;
     cursor: not-allowed;
   }
-  /* 倒计时 chip（嵌在 actions 行最右） */
-  .ddz-countdown {
-    display: inline-flex; align-items: center;
-    padding: 0.3rem 0.7rem;
+  /* 加倍 badge：选了加倍的玩家头像旁挂个金色 ×2 */
+  .ddz-doubled-badge {
+    position: absolute;
+    bottom: -6px; right: -10px;
+    background: linear-gradient(135deg, #d8b87a, #8b6f43);
+    color: #2a1a05;
     border-radius: 999px;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid var(--ddz-frame-2);
-    color: var(--ddz-text-on-felt);
-    font-size: 0.78rem;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.05em;
+    padding: 0.05rem 0.42rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    border: 1.5px solid #fff5d4;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    z-index: 5;
     font-family: 'Cormorant Garamond', Georgia, serif;
-    transition: color 0.2s, border-color 0.2s, background 0.2s;
+    line-height: 1.2;
+    pointer-events: none;
   }
-  .ddz-countdown.urgent {
-    background: rgba(139,46,46,0.30);
-    border-color: var(--ddz-suit-red);
-    color: #f5d6d4;
+
+  /* 头像上的轮次倒计时（闹钟）*/
+  .ddz-clock {
+    position: absolute;
+    top: -10px; right: -14px;
+    background: var(--ddz-card-bg);
+    border: 2px solid var(--ddz-accent);
+    border-radius: 999px;
+    padding: 0.12rem 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--ddz-suit-black);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    box-shadow: 0 2px 6px rgba(20,37,63,0.35), 0 0 0 2px rgba(255,255,255,0.5);
+    z-index: 6;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    line-height: 1.1;
+    pointer-events: none;
+    animation: ddz-clock-pulse 1.6s ease-in-out infinite;
   }
-  .ddz-countdown::before {
+  .ddz-clock::before {
     content: '⏱';
-    margin-right: 4px;
-    opacity: 0.75;
+    margin-right: 2px;
+    font-weight: normal;
+  }
+  .ddz-clock.urgent {
+    background: var(--ddz-suit-red);
+    color: #fff;
+    border-color: #fff5d4;
+    box-shadow: 0 0 14px rgba(200,40,40,0.7), 0 0 0 2px rgba(255,255,255,0.6);
+    animation: ddz-clock-urgent 0.5s ease-in-out infinite alternate;
+  }
+  @keyframes ddz-clock-pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.08); }
+  }
+  @keyframes ddz-clock-urgent {
+    from { transform: scale(1); }
+    to   { transform: scale(1.18); }
   }
 
   /* ======== 抢 / 加倍 决策面板 ======== */
@@ -1117,7 +1196,7 @@ permalink: /toolbox/doudizhu/
     <div class="ddz-help">
       斗地主是中国最流行的三人扑克游戏。54 张牌发出 51 张，剩 3 张底牌。<strong>抢地主</strong>阶段三家依次决定是否抢，最后抢的人当地主，每多一次抢倍数 ×2；揭牌后还可<strong>加倍</strong>（×2）。
       牌型：单 / 对 / 三 / 三带一/二 / 顺子（5+ 单牌连续）/ 连对（3+ 对子连续）/ 飞机 / 四带二 / 炸弹 / 王炸。每个炸弹/王炸 ×2；春天 / 反春天 ×2。
-      赢局上榜积分 = 底分 × 倍数 × 角色（地主 ×2，农民 ×1）。联机模式有<strong>独立排行榜</strong>。
+      赢局上榜积分 = 底分 × 倍数 × 角色（地主 ×2，农民 ×1） × <strong>难度权重</strong>（新手 ×1 / 普通 ×2 / 高手 ×3 / 联机 ×3）。联机模式有<strong>独立排行榜</strong>。
     </div>
   </div>
 
@@ -1146,7 +1225,7 @@ permalink: /toolbox/doudizhu/
   <div class="ddz-table" id="ddzTable" hidden>
     <div class="ddz-tops">
       <div class="ddz-seat-ai" data-seat="2">
-        <div class="ddz-avatar" id="ddzAvatar2">🤖</div>
+        <div class="ddz-avatar" id="ddzAvatar2">🤖<span class="ddz-clock" id="ddzClock2" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled2" hidden>×2</span></div>
         <div class="ddz-name" id="ddzName2">AI · 上家</div>
         <div class="ddz-handcount" id="ddzCount2">17</div>
         <div class="ddz-played" id="ddzPlayed2"></div>
@@ -1161,7 +1240,7 @@ permalink: /toolbox/doudizhu/
         <div class="ddz-multiplier" id="ddzMultiplier"></div>
       </div>
       <div class="ddz-seat-ai" data-seat="1">
-        <div class="ddz-avatar" id="ddzAvatar1">🤖</div>
+        <div class="ddz-avatar" id="ddzAvatar1">🤖<span class="ddz-clock" id="ddzClock1" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled1" hidden>×2</span></div>
         <div class="ddz-name" id="ddzName1">AI · 下家</div>
         <div class="ddz-handcount" id="ddzCount1">17</div>
         <div class="ddz-played" id="ddzPlayed1"></div>
@@ -1176,7 +1255,7 @@ permalink: /toolbox/doudizhu/
 
     <!-- 我的座位 -->
     <div class="ddz-self">
-      <div class="ddz-avatar" id="ddzAvatar0">😎</div>
+      <div class="ddz-avatar" id="ddzAvatar0">😎<span class="ddz-clock" id="ddzClock0" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled0" hidden>×2</span></div>
       <div class="ddz-self-info">
         <div class="ddz-name" id="ddzName0">我</div>
         <div class="ddz-handcount" id="ddzCount0">17</div>
@@ -1189,7 +1268,6 @@ permalink: /toolbox/doudizhu/
       <button class="ddz-btn" id="ddzPassBtn" type="button">不要 (Space)</button>
       <button class="ddz-btn" id="ddzHintBtn" type="button">提示 (H)</button>
       <button class="ddz-btn primary" id="ddzPlayBtn" type="button">出牌 (Enter)</button>
-      <span class="ddz-countdown" id="ddzCountdown" hidden>20s</span>
     </div>
 
     <div class="ddz-tip">
@@ -1286,17 +1364,27 @@ permalink: /toolbox/doudizhu/
   };
 
   // ============================================================
-  // 倒计时（玩家出牌阶段 / 加倍阶段）
+  // 倒计时（贴到当前玩家头像上的闹钟 badge）
   // ============================================================
-  const TURN_TIMEOUT_MS = 25000;   // 玩家出牌 25 秒
-  const DOUBLE_TIMEOUT_MS = 5000;  // 加倍决策 5 秒
-  const countdownEl = () => document.getElementById('ddzCountdown');
+  const TURN_TIMEOUT_MS = 25000;
+  const DOUBLE_TIMEOUT_MS = 5000;
+  // 现在 countdownEl 接受一个 seat 参数（0/1/2 显示座位），返回对应的 .ddz-clock
+  function clockEl(seat) { return document.getElementById('ddzClock' + seat); }
+  function hideAllClocks() {
+    for (let i = 0; i < 3; i++) {
+      const el = clockEl(i);
+      if (el) { el.hidden = true; el.classList.remove('urgent'); }
+    }
+  }
   let turnCountdownTimer = null;
   let turnCountdownEndAt = 0;
+  let turnCountdownSeat = 0;
   function startTurnCountdown(onTimeout) {
     stopTurnCountdown();
     turnCountdownEndAt = Date.now() + TURN_TIMEOUT_MS;
-    const el = countdownEl();
+    turnCountdownSeat = 0;             // 单机模式倒计时只针对玩家自己
+    const el = clockEl(turnCountdownSeat);
+    if (!el) return;
     el.hidden = false;
     el.classList.remove('urgent');
     function tick() {
@@ -1315,8 +1403,7 @@ permalink: /toolbox/doudizhu/
   function stopTurnCountdown() {
     if (turnCountdownTimer) clearInterval(turnCountdownTimer);
     turnCountdownTimer = null;
-    const el = countdownEl();
-    if (el) { el.hidden = true; el.classList.remove('urgent'); }
+    hideAllClocks();
   }
 
   // ============================================================
@@ -1612,6 +1699,9 @@ permalink: /toolbox/doudizhu/
         (i === state.bidTurnIdx && state.phase === PHASE.BIDDING) ||
         (i === state.doubleTurnIdx && state.phase === PHASE.DOUBLING)
       );
+      // 加倍 badge
+      const dbBadge = $('ddzDoubled' + i);
+      if (dbBadge) dbBadge.hidden = !seatDoubled(i);
     }
     if (state.landlordIdx >= 0) {
       const role = state.landlordIdx === 0 ? '地主' : '农民';
@@ -1619,6 +1709,19 @@ permalink: /toolbox/doudizhu/
     } else {
       $('ddzName0').textContent = '我';
     }
+  }
+
+  // 判断某个显示座位是否选了加倍
+  function seatDoubled(seat) {
+    if (state.mode === 'online' && state.online && state.online.doubleChoice) {
+      return state.online.doubleChoice[seat] === 'double';
+    }
+    // 单机：在 doubleActions 里查（注意单机的 actions 也已是显示坐标）
+    if (state.doubleActions && state.doubleActions.length) {
+      const a = state.doubleActions.find(x => x.seat === seat);
+      return a && a.double;
+    }
+    return false;
   }
 
   function renderPlayedAt(seat, pattern) {
@@ -1681,14 +1784,21 @@ permalink: /toolbox/doudizhu/
 
   function renderMultiplier() {
     if (state.phase === PHASE.IDLE || state.phase === PHASE.DEALING) {
-      multiEl.textContent = '';
+      multiEl.innerHTML = '';
       return;
     }
     const m = currentMultiplier();
     const parts = [`底 ×${state.multiplier}`];
     if (state.bombCount > 0) parts.push(`炸 ×${1 << state.bombCount}`);
     if (state.spring > 0) parts.push(`春 ×${1 << state.spring}`);
-    multiEl.textContent = `${parts.join(' · ')} = ${m}`;
+    // 若我赢/输的预估积分（简化：地主场你赢就 +2m，农民场赢就 +m；输则相对扣）
+    let preview = '';
+    if (state.landlordIdx >= 0 && state.phase !== PHASE.SETTLEMENT) {
+      const myIsLandlord = state.landlordIdx === 0;
+      const winScore = myIsLandlord ? m * 2 : m;
+      preview = `<span class="preview"><span class="win">赢 +${winScore}</span> · <span class="lose">输 -${winScore}</span></span>`;
+    }
+    multiEl.innerHTML = `${parts.join(' · ')} = ${m}${preview}`;
   }
 
   function currentMultiplier() {
@@ -2488,6 +2598,11 @@ permalink: /toolbox/doudizhu/
     ctx.closePath();
   }
 
+  // 难度权重：easy=1, normal=2, hard=3, online=3
+  function difficultyWeight(d) {
+    return ({ easy: 1, normal: 2, hard: 3, online: 3 })[d] || 1;
+  }
+
   function tryAutoSubmit() {
     if (!window.GamesShell) return;
     if (!state.result) return;
@@ -2495,15 +2610,16 @@ permalink: /toolbox/doudizhu/
     if (state.result.winnerRole !== playerRole) return; // 输了不上传
     const aiLevel = state.difficulty;
     if (!['easy', 'normal', 'hard'].includes(aiLevel)) return;
-    // moves 字段后端要求 4-500：用全场出牌动作数（含 pass）
     const totalActions = state.landlordPlayCount + state.peasantPlayCount + (state.bidActions.length || 0);
     const moves = Math.max(4, Math.min(500, totalActions));
     const durationMs = Math.max(5000, Date.now() - state.runStartedAt);
-    const score = state.result.score;
+    const baseScore = state.result.score;
+    const weight = difficultyWeight(aiLevel);
+    const score = Math.min(4096, baseScore * weight);   // 后端 cap 4096
     let nick = GamesShell.Identity.getNick();
     let lastErr = '';
     while (!nick) {
-      const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : `恭喜赢得本局（积分 +${score}）！起个昵称上传积分榜？\n\n`;
+      const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : `恭喜赢得本局（积分 +${score} = 本局 ${baseScore} × 难度 ${weight}）！起个昵称上传积分榜？\n\n`;
       const v = prompt(hint + '2-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
       if (v === null) return;
       const r = GamesShell.Identity.setNick(v);
@@ -2852,8 +2968,8 @@ permalink: /toolbox/doudizhu/
         state.landlordCandidate = srv.landlordCandidate >= 0 ? rotateSeat(srv.landlordCandidate) : -1;
         state.robCount = srv.robCount || 0;
       }
-      if (srv.phase === 'doubling') {
-        // 翻译 server-seat 数组到 display-seat 数组
+      // 加倍状态（无论什么 phase，都从 srv 同步，保证 badge 正确）
+      {
         const dDecided = [false, false, false];
         const dChoice = [null, null, null];
         for (let s = 0; s < 3; s++) {
@@ -2862,7 +2978,7 @@ permalink: /toolbox/doudizhu/
         }
         state.online.doubleDecided = dDecided;
         state.online.doubleChoice = dChoice;
-        state.online.doubleEndAt = srv.doubleEndAt || 0;
+        if (srv.phase === 'doubling') state.online.doubleEndAt = srv.doubleEndAt || 0;
       }
       if (srv.phase === 'playing') {
         state.turnIdx = rotateSeat(srv.turnIdx);
@@ -2908,7 +3024,9 @@ permalink: /toolbox/doudizhu/
 
       if (state.phase === PHASE.BIDDING) {
         renderOnlineBidPanel();
+        updateOnlineCountdown();             // 闹钟贴到当前抢地主玩家
       } else if (state.phase === PHASE.DOUBLING) {
+        hideAllClocks();                      // 加倍同时决策，不在头像上显示
         renderOnlineDoublePanel();
       } else if (state.phase === PHASE.PLAYING) {
         playActions.hidden = false;
@@ -2922,6 +3040,7 @@ permalink: /toolbox/doudizhu/
         playActions.hidden = true;
         bidPanel.hidden = true;
         stopTurnCountdown();
+        hideAllClocks();
         showOnlineGameOver();
       }
     }
@@ -3229,29 +3348,42 @@ permalink: /toolbox/doudizhu/
     let nick = GamesShell.Identity.getNick();
     if (!nick) nick = state.online && (state.online.players.find(p => p.id === state.online.playerId) || {}).nick;
     if (!nick) return;
+    const weight = difficultyWeight('online');                // 联机权重 = 3
+    const score = Math.min(4096, state.result.score * weight);
     GamesShell.WinsLeaderboard.submit({
       gameId: 'doudizhu-online',
       nick,
       did: GamesShell.Identity.getDeviceId(),
-      aiLevel: 'normal',                 // 联机统一 normal 档存档（榜单不分档其实也行）
+      aiLevel: 'hard',                  // 联机投到 hard 桶（排序优先级最高）
       moves,
       durationMs,
       clientNonce: state.runNonce,
-      score: state.result.score,
+      score,
     }).then(r => {
       if (r && r.ok && ddzWlbOnline) ddzWlbOnline.refresh();
     });
   }
 
-  // ── 联机倒计时 ───────────────────────────────────────────────────────
+  // ── 联机倒计时（贴在当前出牌玩家头像上）─────────────────────────────
   let onlineTurnTimer = null;
   function updateOnlineCountdown() {
     if (onlineTurnTimer) clearInterval(onlineTurnTimer);
-    const cdEl = countdownEl();
+    hideAllClocks();
+    // 出牌阶段用 turnIdx，抢地主阶段用 bidTurnIdx
+    let seat;
+    let endAt;
+    if (state.phase === PHASE.PLAYING) {
+      seat = state.turnIdx;
+      endAt = state.online.turnEndAt;
+    } else if (state.phase === PHASE.BIDDING) {
+      seat = state.bidTurnIdx;
+      endAt = state.online.turnEndAt;       // bidding 也用 turnEndAt（server.deadlineTs）
+    } else return;
+    const cdEl = clockEl(seat);
     if (!cdEl) return;
     cdEl.hidden = false;
     function tick() {
-      const left = Math.max(0, (state.online.turnEndAt || 0) - Date.now());
+      const left = Math.max(0, (endAt || 0) - Date.now());
       const s = Math.ceil(left / 1000);
       cdEl.textContent = s + 's';
       cdEl.classList.toggle('urgent', s <= 5);
