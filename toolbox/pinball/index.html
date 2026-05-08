@@ -54,8 +54,19 @@ permalink: /toolbox/pinball/
     color: var(--color-ink);
     font-variant-numeric: tabular-nums;
     line-height: 1;
+    display: inline-block;
+    transform-origin: center;
+    transition: color 0.18s ease-out;
   }
   .pb-score-box .value.balls { letter-spacing: 0.1em; }
+  /* 分数变动时的弹跳 + 金黄闪烁 —— 由 JS 在分数增加帧给元素加 .bump */
+  .pb-score-box .value.bump { animation: pb-score-bump 0.32s ease-out; }
+  @keyframes pb-score-bump {
+    0%   { transform: scale(1);    color: var(--color-ink); }
+    35%  { transform: scale(1.22); color: #d68910; }
+    70%  { transform: scale(1.08); color: #d68910; }
+    100% { transform: scale(1);    color: var(--color-ink); }
+  }
 
   .pb-toolbar {
     display: flex; flex-wrap: wrap; gap: 0.5rem;
@@ -583,6 +594,7 @@ permalink: /toolbox/pinball/
       updatePlunger(dt);
       updatePhysics(dt, now);  // 挡板旋转已挪进子步循环，统一在这里推进
     }
+    updateHud();   // 每帧同步 HUD：撞 bumper / 连击加分立即可见
     render(now);
     state.rafId = requestAnimationFrame(step);
   }
@@ -1072,10 +1084,32 @@ permalink: /toolbox/pinball/
   const IS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   $launchHint.textContent = IS_TOUCH ? '按住「蓄力发射」' : '按住空格蓄力';
 
+  // HUD 缓存：避免每帧无谓的 DOM 写入；分数 / Best 变化时触发弹跳动画
+  const _hudCache = { score: -1, balls: -1, best: -1 };
   function updateHud() {
-    $score.textContent = state.score;
-    $balls.textContent = state.balls > 0 ? '●'.repeat(state.balls) : '×';
-    $best.textContent = state.best;
+    if (state.score !== _hudCache.score) {
+      $score.textContent = state.score;
+      if (state.score > _hudCache.score && _hudCache.score >= 0) {
+        // 强制重启 CSS 动画：先移除 class，触发 reflow，再加回去
+        $score.classList.remove('bump');
+        void $score.offsetWidth;
+        $score.classList.add('bump');
+      }
+      _hudCache.score = state.score;
+    }
+    if (state.balls !== _hudCache.balls) {
+      $balls.textContent = state.balls > 0 ? '●'.repeat(state.balls) : '×';
+      _hudCache.balls = state.balls;
+    }
+    if (state.best !== _hudCache.best) {
+      $best.textContent = state.best;
+      if (state.best > _hudCache.best && _hudCache.best >= 0) {
+        $best.classList.remove('bump');
+        void $best.offsetWidth;
+        $best.classList.add('bump');
+      }
+      _hudCache.best = state.best;
+    }
   }
 
   function showOverlay({ title, msg, btn }) {
