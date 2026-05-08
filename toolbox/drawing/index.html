@@ -419,8 +419,14 @@ permalink: /toolbox/drawing/
   }
 
   // ====================================================================
-  // API
+  // API（带超时 + 自动重试）
+  //
+  // 移动网络下访问 vercel.app 偶尔会返回 "Failed to fetch"——TCP 握手丢包、
+  // CDN 路由抖动等。POST 类业务请求（猜词/笔画/加入房间）失败一次就 toast
+  // 一次会让用户以为"功能坏了"，所以这里给 POST 加退避重试 + 8s 超时。
+  // GET（state 长轮询）不在这里重试，pollLoop 自己有重试循环。
   // ====================================================================
+  function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
   async function api(method, action, params) {
     const url = new URL(API_BASE);
     url.searchParams.set('action', action);
@@ -429,17 +435,50 @@ permalink: /toolbox/drawing/
     }
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (method === 'POST') opts.body = JSON.stringify(params || {});
-    let resp;
-    try { resp = await fetch(url, opts); }
-    catch (e) { throw Object.assign(new Error('network_error'), { network: true }); }
-    let data = {};
-    try { data = await resp.json(); } catch {}
-    if (!resp.ok) throw Object.assign(new Error(data.error || ('http_' + resp.status)), { status: resp.status, data });
-    return data;
+
+    const isPost = method === 'POST';
+    const maxAttempts = isPost ? 2 : 1;
+    const timeoutMs = isPost ? 6000 : 12000;
+
+    let lastErr = null;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const resp = await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
+        clearTimeout(tid);
+        let data = {};
+        try { data = await resp.json(); } catch {}
+        if (!resp.ok) {
+          const err = Object.assign(new Error(data.error || ('http_' + resp.status)), { status: resp.status, data });
+          // 4xx 业务错误立刻抛，不重试（除 429 外）
+          if (resp.status >= 400 && resp.status < 500 && resp.status !== 429) throw err;
+          lastErr = err;
+        } else {
+          return data;
+        }
+      } catch (e) {
+        clearTimeout(tid);
+        // 已识别的 4xx 业务错误：直接 rethrow
+        if (e.status && e.status >= 400 && e.status < 500 && e.status !== 429) throw e;
+        lastErr = e;
+      }
+      if (attempt < maxAttempts - 1) {
+        await sleep(400 * (attempt + 1));
+      }
+    }
+    // 全部尝试用完：把根因包成 network_error / timeout 抛出
+    const isAbort = lastErr && lastErr.name === 'AbortError';
+    if (lastErr && lastErr.status) throw lastErr; // 5xx / 429 透传
+    throw Object.assign(
+      new Error(isAbort ? 'timeout' : 'network_error'),
+      { network: true, timeout: !!isAbort, original: lastErr },
+    );
   }
   function errMsg(e) {
     if (!e) return '未知错误';
-    if (e.network) return '网络异常，稍后重试';
+    if (e.timeout) return '服务器响应超时，请重试';
+    if (e.network) return '连接服务器失败 · 移动网络下不稳定，建议切换 WiFi';
     const map = {
       invalid_code: '房号格式错误',
       invalid_code_format: '房号必须是 4 位数字',
