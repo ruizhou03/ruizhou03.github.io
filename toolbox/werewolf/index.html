@@ -1233,7 +1233,7 @@ permalink: /toolbox/werewolf/
 
   function copyShareLink(code) {
     const url = location.origin + location.pathname + '?room=' + code;
-    copyToClipboard(`${url}\n加入房间 ${code}`, '已复制邀请文案');
+    copyToClipboard(url, '已复制邀请链接');
   }
 
   async function doKick(targetPid, nick) {
