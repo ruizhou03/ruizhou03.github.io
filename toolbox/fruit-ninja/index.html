@@ -427,11 +427,14 @@ permalink: /toolbox/fruit-ninja/
     lives: 3,
     runStartedAt: 0,
     runNonce: '',
+    strokeCount: 0,         // 一笔切到的水果数
+    bestStroke: 0,          // 最高一刀多连
   };
 
   let fruits = [];        // active 水果 / 半个水果 / 炸弹
   let particles = [];     // 果汁飞溅
   let trail = [];         // pointer 轨迹
+  let popups = [];        // 多连切提示文字
 
   const GRAVITY = 900;     // px/s²
   const COMBO_TIMEOUT = 900;
@@ -446,6 +449,7 @@ permalink: /toolbox/fruit-ninja/
   canvas.addEventListener('pointerdown', e => {
     if (!state.running || state.paused || state.over) return;
     pointerActive = true;
+    state.strokeCount = 0;        // 新一笔，重置 stroke combo
     canvas.setPointerCapture(e.pointerId);
     const p = canvasPos(e);
     trail.push({ x: p.x, y: p.y, t: performance.now() });
@@ -459,21 +463,39 @@ permalink: /toolbox/fruit-ninja/
       checkSliceLastSegment();
     }
   });
-  function endPointer() { pointerActive = false; }
+  function endPointer() {
+    pointerActive = false;
+    state.strokeCount = 0;
+  }
   canvas.addEventListener('pointerup', endPointer);
   canvas.addEventListener('pointercancel', endPointer);
   canvas.addEventListener('pointerleave', endPointer);
 
-  // ============ 水果生成 ============
-  function spawnOne(t) {
-    const margin = 80;
-    const x = margin + Math.random() * (LOG_W - 2 * margin);
-    const targetX = LOG_W / 2 + (Math.random() - 0.5) * (LOG_W * 0.7);
-    const dt = 1.2;                                 // 大致到峰顶时间
-    const vy = -GRAVITY * dt - 80;                  // 调整使峰高接近顶部
-    const vx = (targetX - x) / dt + (Math.random() - 0.5) * 80;
+  // ============ 水果生成（phase 调度：normal / burst / pinata / lull）============
+  function spawnOne(t, opts) {
+    opts = opts || {};
+    const margin = 60;
+    let x, vx, vy;
+    if (opts.fanTotal) {
+      // 烟花扇形：起点沿屏幕底部均匀分布，朝中心略汇聚
+      const ratio = opts.fanTotal === 1 ? 0.5 : (opts.fanIndex / (opts.fanTotal - 1));
+      x = margin + ratio * (LOG_W - 2 * margin);
+      const dt = opts.fan === 'pinata' ? 1.45 : 1.3;
+      vy = -GRAVITY * dt - 60;
+      const sideOffset = (LOG_W / 2 - x) * 0.35;
+      vx = sideOffset / dt + (Math.random() - 0.5) * 50;
+    } else {
+      x = margin + Math.random() * (LOG_W - 2 * margin);
+      const targetX = LOG_W / 2 + (Math.random() - 0.5) * (LOG_W * 0.7);
+      const dt = 1.2;
+      vy = -GRAVITY * dt - 80;
+      vx = (targetX - x) / dt + (Math.random() - 0.5) * 80;
+    }
     let type = FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
-    if (state.mode !== 'zen' && Math.random() < 0.07) type = 'bomb';
+    if (state.mode !== 'zen') {
+      const bombP = opts.fan === 'pinata' ? 0.10 : opts.fan === 'burst' ? 0.05 : 0.07;
+      if (Math.random() < bombP) type = 'bomb';
+    }
     const r = (type === 'watermelon') ? 38 : (type === 'kiwi') ? 32 : 30;
     fruits.push({
       kind: 'whole', type,
@@ -486,24 +508,77 @@ permalink: /toolbox/fruit-ninja/
     });
   }
 
-  let nextSpawnAt = 0;
-  function scheduleNextSpawn(now) {
+  // phase 状态机
+  let spawnPhase = 'normal';        // 'normal' | 'lull'
+  let nextEventAt = 0;
+  let lastBurstAt = -Infinity;
+  let lastPinataAt = -Infinity;
+
+  function scheduleNextNormal(now) {
     const elapsed = (now - state.runStartedAt) / 1000;
-    let interval = 1100 - Math.min(elapsed * 6, 350);     // 难度递增
-    if (state.mode === 'zen') interval = Math.max(interval, 800);
-    nextSpawnAt = now + interval;
+    let interval = 1100 - Math.min(elapsed * 4, 280);
+    interval *= 0.8 + Math.random() * 0.4;            // ±20% 抖动
+    if (state.mode === 'zen') interval = Math.max(interval, 700);
+    nextEventAt = now + interval;
   }
 
-  function maybeSpawn(now) {
-    if (now < nextSpawnAt) return;
-    const groupSize = 1 + (Math.random() < 0.35 ? 1 : 0) + (Math.random() < 0.12 ? 1 : 0);
+  function spawnNormalGroup(now) {
+    const groupSize = 1 + (Math.random() < 0.30 ? 1 : 0);
     for (let i = 0; i < groupSize; i++) {
       setTimeout(() => {
         if (!state.running || state.paused || state.over) return;
         spawnOne(performance.now());
-      }, i * 110);
+      }, i * 100);
     }
-    scheduleNextSpawn(now);
+  }
+
+  function triggerBurst(now) {
+    lastBurstAt = now;
+    const count = 4 + Math.floor(Math.random() * 3);   // 4-6
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        if (!state.running || state.paused || state.over) return;
+        spawnOne(performance.now(), { fanIndex: i, fanTotal: count, fan: 'burst' });
+      }, i * 70);
+    }
+    spawnPhase = 'lull';
+    nextEventAt = now + count * 70 + 1500;
+  }
+
+  function triggerPinata(now) {
+    lastPinataAt = now;
+    const count = 9 + Math.floor(Math.random() * 4);   // 9-12
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        if (!state.running || state.paused || state.over) return;
+        spawnOne(performance.now(), { fanIndex: i, fanTotal: count, fan: 'pinata' });
+      }, i * 80);
+    }
+    spawnPhase = 'lull';
+    nextEventAt = now + count * 80 + 2200;
+    showPopup(LOG_W / 2, LOG_H * 0.25, '🎆 来了！', '#ff7878', true);
+  }
+
+  function tickSpawn(now) {
+    if (now < nextEventAt) return;
+    if (spawnPhase === 'lull') {
+      spawnPhase = 'normal';
+      scheduleNextNormal(now);
+      return;
+    }
+    const elapsed = (now - state.runStartedAt) / 1000;
+    // pinata：游戏 22s 后有可能；间隔 ≥ 26s
+    if (elapsed > 22 && now - lastPinataAt > 26000 && Math.random() < 0.20) {
+      triggerPinata(now);
+      return;
+    }
+    // burst：每 ~9s 有概率
+    if (now - lastBurstAt > 9000 && Math.random() < 0.32) {
+      triggerBurst(now);
+      return;
+    }
+    spawnNormalGroup(now);
+    scheduleNextNormal(now);
   }
 
   // ============ 切片检测 ============
@@ -557,10 +632,29 @@ permalink: /toolbox/fruit-ninja/
       return;
     }
     state.combo += 1;
+    state.strokeCount += 1;
     if (state.combo > state.bestCombo) state.bestCombo = state.combo;
-    const bonus = Math.min(state.combo, 10) * 5;
-    state.score += 10 + (state.combo > 1 ? bonus : 0);
+    if (state.strokeCount > state.bestStroke) state.bestStroke = state.strokeCount;
+
+    // 一笔切第 N 个水果分数：10 + (N-1)*10（多切爽感指数）
+    const strokeBonus = (state.strokeCount - 1) * 10;
+    const rallyBonus = state.combo > 1 ? Math.min(state.combo, 10) * 5 : 0;
+    const points = 10 + strokeBonus + rallyBonus;
+    state.score += points;
     state.lastSliceAt = performance.now();
+
+    // 多连提示
+    if (state.strokeCount === 2) {
+      showPopup(f.x, f.y - 38, '+' + points, '#fff');
+    } else if (state.strokeCount >= 3) {
+      const labels = { 3: '三连切！', 4: '四连切！', 5: '五连切！', 6: '超神！', 7: '不可阻挡！' };
+      const lbl = labels[state.strokeCount] || (state.strokeCount + ' 连切！');
+      const color = state.strokeCount >= 5 ? '#ff7878' : '#ffd95a';
+      const extra = state.strokeCount * 20;
+      state.score += extra;
+      showPopup(LOG_W / 2, LOG_H * 0.32, lbl, color, true);
+      showPopup(LOG_W / 2, LOG_H * 0.32 + 46, '+' + (points + extra), '#fff');
+    }
 
     spawnHalves(f, angle);
     spawnJuice(f, angle);
@@ -588,6 +682,16 @@ permalink: /toolbox/fruit-ninja/
       rot: f.rot, vrot: f.vrot + 2,
       r: f.r,
       cutAngle: angle,
+    });
+  }
+
+  function showPopup(x, y, text, color, big) {
+    popups.push({
+      x, y, text,
+      color: color || '#ffd95a',
+      big: !!big,
+      age: 0,
+      life: big ? 1.4 : 0.9,
     });
   }
 
@@ -662,6 +766,9 @@ permalink: /toolbox/fruit-ninja/
     }
     particles = particles.filter(p => p.age < p.life);
 
+    for (const pp of popups) pp.age += dt;
+    popups = popups.filter(pp => pp.age < pp.life);
+
     // 连击衰减
     if (state.combo > 0 && now - state.lastSliceAt > COMBO_TIMEOUT) {
       state.combo = 0;
@@ -673,7 +780,7 @@ permalink: /toolbox/fruit-ninja/
     if (trail.length > 14) trail.splice(0, trail.length - 14);
 
     checkSlices();
-    maybeSpawn(now);
+    tickSpawn(now);
   }
 
   function onMissed(f) {
@@ -723,6 +830,29 @@ permalink: /toolbox/fruit-ninja/
     ctx.restore();
   }
 
+  function drawPopups() {
+    for (const p of popups) {
+      const t = p.age / p.life;
+      const a = Math.max(0, 1 - t);
+      const yOff = -55 * t * t;
+      const scale = p.big ? (1 + Math.sin(Math.min(t * 6, Math.PI)) * 0.15) : 1;
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate(p.x, p.y + yOff);
+      ctx.scale(scale, scale);
+      ctx.font = (p.big ? '700 32px ' : '600 18px ') + 'Georgia, "Noto Serif SC", serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = p.big ? 4 : 2.5;
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.strokeText(p.text, 0, 0);
+      ctx.fillStyle = p.color;
+      ctx.fillText(p.text, 0, 0);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function drawParticles() {
     for (const p of particles) {
       const alpha = Math.max(0, 1 - p.age / p.life);
@@ -765,6 +895,7 @@ permalink: /toolbox/fruit-ninja/
     for (const f of fruits) drawFruit(f);
     drawParticles();
     drawTrail();
+    drawPopups();
 
     // 闪屏
     const now = performance.now();
@@ -825,9 +956,15 @@ permalink: /toolbox/fruit-ninja/
     fruits = [];
     particles = [];
     trail = [];
+    popups = [];
     lastTick = 0;
     render._stars = null;        // 重新生成星点
-    nextSpawnAt = state.runStartedAt + 600;
+    spawnPhase = 'normal';
+    nextEventAt = state.runStartedAt + 600;
+    lastBurstAt = -Infinity;
+    lastPinataAt = -Infinity;
+    state.strokeCount = 0;
+    state.bestStroke = 0;
 
     modeSelect.hidden = true;
     stage.hidden = false;
@@ -894,6 +1031,7 @@ permalink: /toolbox/fruit-ninja/
       if (state.over) {
         fruits = [];
         particles = [];
+        popups = [];
         render();
       }
     }, 1500);
@@ -926,7 +1064,7 @@ permalink: /toolbox/fruit-ninja/
     stage.hidden = true;
     modeSelect.hidden = false;
     belowStage.hidden = true;
-    fruits = []; particles = []; trail = [];
+    fruits = []; particles = []; trail = []; popups = [];
     cancelAnimationFrame(rafId);
     render();
   });
@@ -1004,7 +1142,7 @@ permalink: /toolbox/fruit-ninja/
       durationMs: Math.max(3000, Math.round(performance.now() - state.runStartedAt)),
       clientNonce: state.runNonce,
       did: GamesShell.Identity.getDeviceId(),
-      extra: { mode: state.mode, bestCombo: state.bestCombo },
+      extra: { mode: state.mode, bestCombo: state.bestCombo, bestStroke: state.bestStroke },
     });
     if (r && r.ok) {
       setRank('success', { rank: r.rank, total: r.total });
@@ -1091,6 +1229,7 @@ permalink: /toolbox/fruit-ninja/
       stats: [
         { label: '模式', value: modeLabel(mode) },
         { label: '最高连击', value: state.bestCombo },
+        { label: '一刀最多', value: state.bestStroke + ' 连切' },
         { label: '用时', value: `${((performance.now() - state.runStartedAt) / 1000).toFixed(0)} s` },
       ],
       paintBoard: paintSettlementBoard,
