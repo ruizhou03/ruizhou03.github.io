@@ -846,15 +846,20 @@ permalink: /toolbox/doudizhu/
     lastTrick: null,             // {seat, pattern}
     passCount: 0,
     selected: new Set(),
-    seen: new Array(15).fill(0),
+    seen: new Array(15).fill(0),                   // 真实已出统计（仅供调试 / 玩家视角）
+    aiPerceivedSeen: [                              // 每个 AI 自己的"记忆"，可能有噪声
+      null,
+      new Array(15).fill(0),                        // AI 1（下家）
+      new Array(15).fill(0),                        // AI 2（上家）
+    ],
     runStartedAt: 0,
     runNonce: '',
     result: null,                // { winnerRole, multiplier, score }
     resumed: false,
     // 提示循环
-    hintCycle: [],               // 当前 enumerateBeats 的所有候选
-    hintIdx: -1,                 // 已展示到第几个；-1 = 还未点提示
-    hintForPrev: null,           // 上次提示对应的 prev 信息（变了就重置）
+    hintCycle: [],
+    hintIdx: -1,
+    hintForPrev: null,
   };
 
   // ============================================================
@@ -1034,15 +1039,136 @@ permalink: /toolbox/doudizhu/
     const sorted = E.sortHand(state.hands[0]);
     for (const c of sorted) {
       const cardEl = buildCardEl(c, 'size-full', { cid: c, selected: state.selected.has(c) });
-      cardEl.addEventListener('click', () => {
-        if (state.phase !== PHASE.PLAYING) return;
-        if (state.turnIdx !== 0) return;
-        if (state.selected.has(c)) state.selected.delete(c);
-        else state.selected.add(c);
-        renderHand();
-        updatePlayBtnState();
-      });
+      // mousedown 启动 drag（含纯单击）
+      cardEl.addEventListener('mousedown', e => { e.preventDefault(); startDragSelect(cardEl, c); });
+      cardEl.addEventListener('touchstart', e => { e.preventDefault(); startDragSelect(cardEl, c); }, { passive: false });
       handEl.appendChild(cardEl);
+    }
+  }
+
+  // ============================================================
+  // 拖动连续选牌 + 智能补全
+  // ============================================================
+  function canSelectCards() {
+    // PLAYING 阶段任何回合都允许选（预选）；其它阶段不允许
+    return state.phase === PHASE.PLAYING;
+  }
+
+  let dragActive = false;
+  let dragMode = null;          // 'add' | 'remove'
+  let dragLastCid = null;
+
+  function startDragSelect(cardEl, cid) {
+    if (!canSelectCards()) return;
+    dragActive = true;
+    dragMode = state.selected.has(cid) ? 'remove' : 'add';
+    dragLastCid = null;
+    applyDragToCard(cardEl, cid);
+  }
+
+  function applyDragToCard(cardEl, cid) {
+    if (dragLastCid === cid) return;
+    dragLastCid = cid;
+    if (dragMode === 'add') state.selected.add(cid);
+    else state.selected.delete(cid);
+    cardEl.classList.toggle('selected', state.selected.has(cid));
+    updatePlayBtnState();
+  }
+
+  function endDragSelect() {
+    if (!dragActive) return;
+    dragActive = false;
+    dragLastCid = null;
+    scheduleSmartSnap();
+  }
+
+  function pointToCardEl(x, y) {
+    const target = document.elementFromPoint(x, y);
+    if (!target) return null;
+    const card = target.closest('.ddz-card.size-full');
+    if (!card || !handEl.contains(card)) return null;
+    return card;
+  }
+
+  document.addEventListener('mousemove', e => {
+    if (!dragActive) return;
+    const card = pointToCardEl(e.clientX, e.clientY);
+    if (!card) return;
+    const cid = parseInt(card.dataset.cid, 10);
+    if (!Number.isFinite(cid)) return;
+    applyDragToCard(card, cid);
+  });
+  document.addEventListener('mouseup', endDragSelect);
+  document.addEventListener('mouseleave', endDragSelect);
+
+  document.addEventListener('touchmove', e => {
+    if (!dragActive) return;
+    const t = e.touches[0]; if (!t) return;
+    const card = pointToCardEl(t.clientX, t.clientY);
+    if (!card) return;
+    const cid = parseInt(card.dataset.cid, 10);
+    if (!Number.isFinite(cid)) return;
+    applyDragToCard(card, cid);
+    e.preventDefault();
+  }, { passive: false });
+  document.addEventListener('touchend', endDragSelect);
+  document.addEventListener('touchcancel', endDragSelect);
+
+  // 智能补全：把当前选中"吸附"到最接近的合法牌型
+  // 规则：
+  //   1. 当前选中本身合法 → 不动
+  //   2. 候选 P 必须满足 overlap ≥ 选中数 × 0.5
+  //   3. 纯扩展（pattern ⊃ 选中）：dist ≤ 4 → 吸附（补全用户漏选）
+  //   4. 纯收缩（pattern ⊂ 选中）：dist ≤ 3 且 pattern.size ≥ 3 → 吸附（去掉冗余）
+  //   5. 混合改：dist ≤ 2 且 overlap ≥ 0.6 × 选中数 → 吸附
+  // 多个候选并列：按 (dist 升 → pattern.size 降 → weight 升) 选第一
+  let snapTimer = null;
+  function scheduleSmartSnap(delayMs) {
+    if (snapTimer) clearTimeout(snapTimer);
+    snapTimer = setTimeout(() => { snapTimer = null; smartSnap(); }, delayMs == null ? 280 : delayMs);
+  }
+
+  function smartSnap() {
+    if (!canSelectCards()) return;
+    if (state.selected.size < 3) return;
+    const cardsArr = Array.from(state.selected);
+    if (E.parsePattern(cardsArr)) return;  // 已合法，无需吸附
+    const hand = state.hands[0];
+    if (!hand || !hand.length) return;
+    const candidates = E.enumerateBeats(hand, null);   // 所有合法牌型
+    if (!candidates.length) return;
+    const sel = state.selected;
+    let best = null;
+    let bestKey = null;   // [dist, -pattern.size, weight]
+    for (const p of candidates) {
+      const pSet = p.cards;
+      let overlap = 0;
+      for (const c of pSet) if (sel.has(c)) overlap++;
+      const removed = sel.size - overlap;     // 选中里被吸附掉的
+      const added = pSet.length - overlap;     // 吸附进来的
+      const dist = removed + added;
+      // 重叠不够，跳过
+      if (overlap * 2 < sel.size) continue;
+      // 三种通过条件
+      const pureExpand = removed === 0 && dist <= 4;
+      const pureContract = added === 0 && dist <= 3 && pSet.length >= 3;
+      const mixed = dist <= 2 && overlap * 10 >= sel.size * 6;
+      if (!(pureExpand || pureContract || mixed)) continue;
+      const key = [dist, -pSet.length, p.weight];
+      if (!bestKey || (key[0] !== bestKey[0] ? key[0] < bestKey[0] :
+                       key[1] !== bestKey[1] ? key[1] < bestKey[1] :
+                       key[2] < bestKey[2])) {
+        bestKey = key;
+        best = p;
+      }
+    }
+    if (!best) return;
+    state.selected.clear();
+    for (const c of best.cards) state.selected.add(c);
+    renderHand();
+    updatePlayBtnState();
+    if (state.phase === PHASE.PLAYING && state.turnIdx === 0) {
+      setStatus('已自动补全为：' + describePattern(best));
     }
   }
 
@@ -1169,6 +1295,11 @@ permalink: /toolbox/doudizhu/
     state.passCount = 0;
     state.selected.clear();
     state.seen = new Array(15).fill(0);
+    state.aiPerceivedSeen = [
+      null,
+      new Array(15).fill(0),
+      new Array(15).fill(0),
+    ];
     state.runStartedAt = Date.now();
     state.runNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     state.result = null;
@@ -1287,6 +1418,7 @@ permalink: /toolbox/doudizhu/
     setTimeout(() => {
       state.hands[state.landlordIdx] = state.hands[state.landlordIdx].concat(state.bottom);
       for (const c of state.bottom) state.seen[E.cardWeight(c)]++;
+      aiPerceiveBottom();                  // AI 也"看见"底牌（按难度过滤）
       renderHand();
       renderHandCounts();
       renderRoles();
@@ -1511,12 +1643,13 @@ permalink: /toolbox/doudizhu/
   function aiTakeTurn(seat) {
     if (state.phase !== PHASE.PLAYING || state.turnIdx !== seat) return;
     const prev = (state.lastTrick && state.lastTrick.seat !== seat) ? state.lastTrick.pattern : null;
+    const perceived = state.aiPerceivedSeen[seat] || new Array(15).fill(0);
     const ctx = {
       myIdx: seat,
       myRole: seat === state.landlordIdx ? 'landlord' : 'peasant',
       landlordIdx: state.landlordIdx,
       handSizes: state.hands.map(h => h.length),
-      seen: state.seen.slice(),
+      seen: perceived.slice(),                  // ← 用 AI 自己的"记忆"，不是上帝视角
       trickHistory: [],
       lastTrickSeat: state.lastTrick ? state.lastTrick.seat : -1,
     };
@@ -1538,12 +1671,14 @@ permalink: /toolbox/doudizhu/
     if (seat === 0) stopTurnCountdown();
     state.hands[seat] = E.removeCards(state.hands[seat], pattern.cards);
     for (const c of pattern.cards) state.seen[E.cardWeight(c)]++;
+    updateAiPerception(pattern);          // AI 感知（带噪声）
     if (pattern.type === T.BOMB || pattern.type === T.ROCKET) state.bombCount++;
     if (seat === state.landlordIdx) state.landlordPlayCount++;
     else state.peasantPlayCount++;
     state.lastTrick = { seat, pattern };
     state.passCount = 0;
-    state.selected.clear();
+    if (seat === 0) state.selected.clear();   // 自己出牌：清空选；AI 出牌：保留预选
+    else pruneSelectedToHand();               // 但要确保选中的还在我手里
     resetHintCycle();
     renderPlayedAt(seat, pattern);
     if (seat === 0) renderHand();
@@ -1673,6 +1808,71 @@ permalink: /toolbox/doudizhu/
     renderHand();
     updatePlayBtnState();
     setStatus(`提示 ${state.hintIdx + 1} / ${state.hintCycle.length}：${describePattern(pick)}`);
+  }
+
+  // ============================================================
+  // 预选辅助：把不在我手里的 selected 项清掉（手牌变了之后用）
+  // ============================================================
+  function pruneSelectedToHand() {
+    const inHand = new Set(state.hands[0]);
+    for (const c of Array.from(state.selected)) {
+      if (!inHand.has(c)) state.selected.delete(c);
+    }
+  }
+
+  // ============================================================
+  // AI 感知（带难度扰动）— 不是上帝视角
+  // - easy: 完全不记
+  // - normal: 只记 2 / 王 / 炸弹（高威胁牌），其它不记
+  // - hard: 全记但有遗忘率（高 rank 记得清，小 rank 偶尔漏）
+  // - 双 AI 各自独立扰动（互相不一致）
+  // ============================================================
+  function perceiveWeight(perceived, w, level) {
+    if (level === 'easy') return;
+    if (level === 'normal') {
+      // 只关心 2(12) / 小王(13) / 大王(14)
+      if (w >= 12 && Math.random() > 0.15) perceived[w]++;
+      return;
+    }
+    // hard: rank 越大记得越准；偶尔漏
+    let missChance;
+    if (w >= 13)      missChance = 0.05;   // 王
+    else if (w === 12) missChance = 0.07;  // 2
+    else if (w >= 10)  missChance = 0.12;  // K / A
+    else if (w >= 8)   missChance = 0.18;  // J / Q
+    else               missChance = 0.25;  // 3-10
+    if (Math.random() > missChance) perceived[w]++;
+  }
+
+  function updateAiPerception(pattern) {
+    const lvl = state.difficulty;
+    if (lvl === 'easy') return;
+    for (let seat = 1; seat <= 2; seat++) {
+      const ai = state.aiPerceivedSeen[seat];
+      if (!ai) continue;
+      for (const c of pattern.cards) {
+        perceiveWeight(ai, E.cardWeight(c), lvl);
+      }
+    }
+  }
+
+  // 揭底牌时也喂给 AI（公开信息，但仍按难度过滤）
+  function aiPerceiveBottom() {
+    const lvl = state.difficulty;
+    if (lvl === 'easy') return;
+    for (let seat = 1; seat <= 2; seat++) {
+      const ai = state.aiPerceivedSeen[seat];
+      if (!ai) continue;
+      for (const c of state.bottom) {
+        const w = E.cardWeight(c);
+        // 公开揭底，记忆稍微准一点（用 hard 风格记，但 normal 仍只看大牌）
+        if (lvl === 'normal') {
+          if (w >= 12 && Math.random() > 0.05) ai[w]++;
+        } else {
+          if (Math.random() > 0.05) ai[w]++;
+        }
+      }
+    }
   }
 
   function describePattern(p) {
@@ -1938,6 +2138,7 @@ permalink: /toolbox/doudizhu/
       lastTrick: state.lastTrick,
       passCount: state.passCount,
       seen: state.seen.slice(),
+      aiPerceivedSeen: state.aiPerceivedSeen.map(x => x ? x.slice() : null),
       runStartedAt: state.runStartedAt,
       runNonce: state.runNonce,
     };
@@ -1967,6 +2168,8 @@ permalink: /toolbox/doudizhu/
       lastTrick: saved.lastTrick || null,
       passCount: saved.passCount || 0,
       seen: saved.seen || new Array(15).fill(0),
+      aiPerceivedSeen: saved.aiPerceivedSeen ||
+        [null, new Array(15).fill(0), new Array(15).fill(0)],
       runStartedAt: saved.runStartedAt || Date.now(),
       runNonce: saved.runNonce || (window.GamesShell ? GamesShell.Identity.newRunNonce() : 'r-' + Date.now()),
       selected: new Set(),
