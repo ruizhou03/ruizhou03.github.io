@@ -343,6 +343,7 @@ permalink: /toolbox/pinball/
     popups: [],         // {x, y, text, t0}
     flashTill: 0,       // 整体 score flash
     stars: [],          // 装饰星点（buildTable 时初始化）
+    lastMoveT: 0,       // 球最后一次明显移动的时间戳（卡住超时用）
   };
 
   function deg(d) { return d * Math.PI / 180; }
@@ -669,14 +670,30 @@ permalink: /toolbox/pinball/
     }
 
     // 弱发射救援：球安静地停在 plunger lane 内 → 自动重置到弹簧上
-    if (state.ball.x > PLUNGER_LANE_LEFT && state.ball.x < PLUNGER_LANE_RIGHT &&
-        state.ball.y > 560 &&
-        Math.hypot(state.ball.vx, state.ball.vy) < 80) {
-      state.ball.x = PLUNGER_X;
-      state.ball.y = PLUNGER_REST_Y;
-      state.ball.vx = 0; state.ball.vy = 0;
-      state.ball.onPlunger = true;
-      state.plunger.charge = 0;
+    // 阈值放宽，避免小幅振荡卡住
+    const speed = Math.hypot(state.ball.vx, state.ball.vy);
+    if (state.ball.x > PLUNGER_LANE_LEFT - 4 &&
+        state.ball.x < PLUNGER_LANE_RIGHT + 4 &&
+        state.ball.y > 530 &&
+        speed < 200 && state.ball.vy > -120) {
+      resetToPlunger();
+      return;
+    }
+
+    // 卡住超时兜底：球低速持续 2 秒 → 强制结算
+    // —— 任何几何 / 数值意外都救得回来
+    if (speed > 60) state.lastMoveT = now;
+    if (state.lastMoveT > 0 && now - state.lastMoveT > 2000) {
+      state.lastMoveT = now;
+      if (state.ball.x > 100 && state.ball.x < 442 &&
+          state.ball.y > 540) {
+        // 主区底部卡住 → 算漏球，让局推进
+        onBallDrain();
+        return;
+      }
+      // 其他位置（含 plunger lane）→ 重置到弹簧
+      resetToPlunger();
+      return;
     }
 
     // 拖尾
@@ -689,20 +706,26 @@ permalink: /toolbox/pinball/
     }
   }
 
+  function resetToPlunger() {
+    state.ball.x = PLUNGER_X;
+    state.ball.y = PLUNGER_REST_Y;
+    state.ball.vx = 0;
+    state.ball.vy = 0;
+    state.ball.onPlunger = true;
+    state.ball.trail = [];
+    state.plunger.charge = 0;
+    state.lastMoveT = 0;
+  }
+
   function onBallDrain() {
     state.balls--;
-    state.ball.trail = [];
     state.combo = 0;
     if (state.balls <= 0) {
       state.balls = 0;
       gameOver();
     } else {
       // 静默上球：直接放到弹簧上，不弹蒙版（提示 chip 会自然出现）
-      state.ball.x = PLUNGER_X;
-      state.ball.y = PLUNGER_REST_Y;
-      state.ball.vx = 0; state.ball.vy = 0;
-      state.ball.onPlunger = true;
-      state.plunger.charge = 0;
+      resetToPlunger();
       state.status = 'idle';
     }
     updateHud();
@@ -1080,12 +1103,7 @@ permalink: /toolbox/pinball/
     state.bumperHits = 0;
     state.bumpers.forEach(b => { b.flashTill = 0; b.hitCount = 0; });
     state.popups = [];
-    state.ball.x = PLUNGER_X;
-    state.ball.y = PLUNGER_REST_Y;
-    state.ball.vx = 0; state.ball.vy = 0;
-    state.ball.onPlunger = true;
-    state.ball.trail = [];
-    state.plunger.charge = 0;
+    resetToPlunger();
     state.plunger.charging = false;
     state.flipL.angle = state.flipL.restAngle;
     state.flipL.target = state.flipL.restAngle;
