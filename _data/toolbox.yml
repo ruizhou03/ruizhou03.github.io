@@ -164,11 +164,11 @@
 - id: drawing
   name: 你画我猜
   icon: ✏️
-  tagline: P2P 联机房间
+  tagline: 房间 / 阶梯计分 / 中文词库
   url: /toolbox/drawing/
   category: 游戏
   subcategory: 派对多人
-  status: coming
+  status: live
 
 # ===== 二、工作 / 效率 =====
 
