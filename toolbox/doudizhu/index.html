@@ -140,6 +140,53 @@ permalink: /toolbox/doudizhu/
     color: var(--color-muted);
   }
   .ddz-online-hint.error { color: var(--ddz-suit-red); }
+  .ddz-online-config {
+    display: flex; flex-direction: column; gap: 0.45rem;
+    margin: 0.6rem 0;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg-warm);
+    font-size: 0.85rem;
+    width: 100%;
+    max-width: 320px;
+  }
+  .ddz-online-config .cfg-row {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 0.5rem;
+  }
+  .ddz-online-config .cfg-row label {
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    flex: 0 0 auto;
+  }
+  .ddz-online-config .cfg-row select {
+    flex: 1 1 auto;
+    max-width: 60%;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.82rem;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: inherit;
+  }
+  .ddz-online-config .cfg-row select:focus { border-color: var(--color-accent); outline: none; }
+
+  .ddz-config-summary {
+    margin: 0.5rem 0 0.8rem;
+    padding: 0.55rem 0.85rem;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    line-height: 1.6;
+    text-align: left;
+  }
+  .ddz-config-summary strong { color: var(--color-ink); font-weight: 600; }
+  .ddz-config-summary .sep { margin: 0 0.4rem; color: var(--color-light); }
+
   .ddz-online-resume {
     margin-top: 1.2rem;
     padding: 0.55rem 0.9rem;
@@ -1202,6 +1249,67 @@ permalink: /toolbox/doudizhu/
       <div class="ddz-online-form">
         <input type="text" class="ddz-online-input" id="ddzOnlineNick" placeholder="昵称（1-12 字）" maxlength="12" autocomplete="off" />
         <input type="text" class="ddz-online-input" id="ddzOnlineCode" placeholder="4 位房号" maxlength="4" inputmode="numeric" pattern="\d{4}" autocomplete="off" hidden />
+
+        <!-- 房间配置（仅创建时显示） -->
+        <div class="ddz-online-config" id="ddzOnlineConfig">
+          <div class="cfg-row">
+            <label>玩家配置</label>
+            <select id="cfgAiCount">
+              <option value="0">3 人对战（无 AI）</option>
+              <option value="1">2 人 + 1 AI</option>
+              <option value="2">1 人 + 2 AI</option>
+            </select>
+          </div>
+          <div class="cfg-row" id="cfgAiLevelRow" hidden>
+            <label>AI 难度</label>
+            <select id="cfgAiLevel">
+              <option value="easy">🌱 新手</option>
+              <option value="normal" selected>🙂 普通</option>
+              <option value="hard">🔥 高手</option>
+            </select>
+          </div>
+          <div class="cfg-row">
+            <label>叫地主方式</label>
+            <select id="cfgBidStyle">
+              <option value="rob" selected>抢地主（每抢倍数 ×2）</option>
+              <option value="call" disabled>叫分 1/2/3（v2 上线）</option>
+            </select>
+          </div>
+          <div class="cfg-row">
+            <label>一局几盘</label>
+            <select id="cfgRounds">
+              <option value="1" selected>1 盘定胜负</option>
+              <option value="3">3 盘</option>
+              <option value="5">5 盘</option>
+              <option value="10">10 盘</option>
+            </select>
+          </div>
+          <div class="cfg-row">
+            <label>每盘封顶</label>
+            <select id="cfgMaxScore">
+              <option value="0" selected>不封顶</option>
+              <option value="32">×32</option>
+              <option value="64">×64</option>
+              <option value="128">×128</option>
+              <option value="256">×256</option>
+            </select>
+          </div>
+          <div class="cfg-row">
+            <label>下盘谁先叫</label>
+            <select id="cfgStartRule">
+              <option value="random" selected>随机</option>
+              <option value="winner">上盘赢家</option>
+            </select>
+          </div>
+          <div class="cfg-row">
+            <label>四带二 / 四带对</label>
+            <select id="cfgAllowFourTwo">
+              <option value="true" selected>允许</option>
+              <option value="false">禁用</option>
+            </select>
+          </div>
+        </div>
+
         <button class="ddz-btn primary" id="ddzOnlineSubmit" type="button">创建房间</button>
         <div class="ddz-online-hint" id="ddzOnlineHint"></div>
       </div>
@@ -1231,6 +1339,7 @@ permalink: /toolbox/doudizhu/
         <button class="ddz-btn-mini" id="ddzCopyLinkBtn" type="button">🔗 复制邀请链接</button>
       </div>
     </div>
+    <div class="ddz-config-summary" id="ddzConfigSummary"></div>
     <div class="ddz-lobby-players-wrap">
       <div class="ddz-lobby-title">玩家 <span id="ddzLobbyCount">0/3</span></div>
       <ul class="ddz-lobby-players" id="ddzLobbyPlayers"></ul>
@@ -1903,16 +2012,13 @@ permalink: /toolbox/doudizhu/
     multiEl.textContent = '';
 
     if (opts.declareStart) {
-      // 明牌开局：玩家直接当地主，倍数 ×5，跳过抢地主
+      // 明牌开局：玩家明牌（×5），由玩家先开始叫地主（仍走完整抢地主流程）
       state.declared = true;
       state.declaredSeat = 0;
-      state.landlordIdx = 0;
-      state.landlordCandidate = 0;
-      state.robCount = 1;
       state.multiplier = 5;
-      pushSplashLog('🎴 明牌开局 ×5！');
-      setStatus('明牌 ×5 — 你直接当地主');
-      setTimeout(() => revealBottom(), 900);
+      renderRoles();
+      pushSplashLog('🎴 你明牌了 ×5 — 由你先叫地主');
+      setTimeout(() => enterBidding({ startSeat: 0 }), 700);
     } else {
       setStatus('发牌完毕');
       setTimeout(() => enterBidding(), 600);
@@ -1927,9 +2033,10 @@ permalink: /toolbox/doudizhu/
   // ============================================================
   // 抢地主：三家依次决定 抢/不抢；最后抢的当地主，每抢一次倍数 ×2
   // ============================================================
-  function enterBidding() {
+  function enterBidding(opts) {
+    opts = opts || {};
     state.phase = PHASE.BIDDING;
-    state.bidStartSeat = Math.floor(Math.random() * 3);
+    state.bidStartSeat = (typeof opts.startSeat === 'number') ? opts.startSeat : Math.floor(Math.random() * 3);
     state.bidTurnIdx = state.bidStartSeat;
     state.bidActions = [];
     state.landlordCandidate = -1;
@@ -2911,11 +3018,44 @@ permalink: /toolbox/doudizhu/
       b.classList.add('active');
       onlineTab = b.dataset.tab;
       $('ddzOnlineCode').hidden = onlineTab === 'create';
+      $('ddzOnlineConfig').hidden = onlineTab !== 'create';
       $('ddzOnlineSubmit').textContent = onlineTab === 'create' ? '创建房间' : '加入房间';
       $('ddzOnlineHint').textContent = '';
       $('ddzOnlineHint').className = 'ddz-online-hint';
     });
   });
+  // AI 难度行只在 aiCount > 0 时显示
+  $('cfgAiCount').addEventListener('change', () => {
+    const c = parseInt($('cfgAiCount').value, 10) || 0;
+    $('cfgAiLevelRow').hidden = c === 0;
+  });
+
+  function collectRoomConfig() {
+    return {
+      aiCount: parseInt($('cfgAiCount').value, 10) || 0,
+      aiLevel: $('cfgAiLevel').value || 'normal',
+      bidStyle: $('cfgBidStyle').value || 'rob',
+      rounds: parseInt($('cfgRounds').value, 10) || 1,
+      maxScorePerRound: parseInt($('cfgMaxScore').value, 10) || 0,
+      startRule: $('cfgStartRule').value || 'random',
+      allowFourTwo: $('cfgAllowFourTwo').value !== 'false',
+    };
+  }
+  function configSummaryHtml(cfg) {
+    if (!cfg) return '';
+    const parts = [];
+    parts.push(`<strong>${cfg.aiCount === 0 ? '3 真人' : (cfg.aiCount === 1 ? '2 真人 + 1 AI' : '1 真人 + 2 AI')}</strong>`);
+    if (cfg.aiCount > 0) {
+      const lv = ({ easy: '🌱 新手', normal: '🙂 普通', hard: '🔥 高手' })[cfg.aiLevel] || cfg.aiLevel;
+      parts.push(`AI ${lv}`);
+    }
+    parts.push(cfg.bidStyle === 'call' ? '叫分模式' : '抢地主');
+    parts.push(`<strong>${cfg.rounds || 1}</strong> 盘`);
+    if (cfg.maxScorePerRound > 0) parts.push(`封顶 ×${cfg.maxScorePerRound}`);
+    parts.push(cfg.startRule === 'winner' ? '赢家先叫' : '随机先叫');
+    if (cfg.allowFourTwo === false) parts.push('禁四带二');
+    return parts.join(' <span class="sep">·</span> ');
+  }
 
   function setOnlineHint(text, isError) {
     const el = $('ddzOnlineHint');
@@ -2944,7 +3084,8 @@ permalink: /toolbox/doudizhu/
     if (window.GamesShell && GamesShell.Identity) GamesShell.Identity.setNick(nick);
     if (onlineTab === 'create') {
       setOnlineHint('创建中…');
-      const r = await apiCall('create', { body: { nick, deviceId: getDeviceId() } });
+      const config = collectRoomConfig();
+      const r = await apiCall('create', { body: { nick, deviceId: getDeviceId(), config } });
       if (!r.ok) { setOnlineHint('创建失败：' + (r.error || ''), true); return; }
       enterRoom(r.data);
     } else {
@@ -3184,6 +3325,8 @@ permalink: /toolbox/doudizhu/
       renderHand();
       renderHandCounts();
       renderRoles();
+      // 在联机模式下，设置每家头像 emoji + name 显示真实玩家信息
+      applyOnlinePlayerLabels(srv);
       renderBottomPile();
       renderMultiplier();
 
@@ -3255,11 +3398,18 @@ permalink: /toolbox/doudizhu/
   // ── 大厅渲染 ────────────────────────────────────────────────────────
   function renderLobbyPlayers(srv) {
     const players = srv.players || [];
+    const cfg = srv.config || {};
     $('ddzRoomCode').textContent = srv.code;
-    $('ddzLobbyCount').textContent = `${players.length}/3`;
+    // 配置 summary
+    const summaryEl = $('ddzConfigSummary');
+    if (summaryEl) summaryEl.innerHTML = configSummaryHtml(cfg);
+    // 真人需要的人数 = 3 - aiCount
+    const requiredHumans = 3 - (cfg.aiCount || 0);
+    const humanCount = players.length;
+    $('ddzLobbyCount').textContent = `${humanCount}/${requiredHumans}` + (cfg.aiCount > 0 ? ` (+${cfg.aiCount} AI)` : '');
     const ul = $('ddzLobbyPlayers');
     ul.innerHTML = '';
-    for (let s = 0; s < 3; s++) {
+    for (let s = 0; s < requiredHumans; s++) {
       const li = document.createElement('li');
       const p = players[s];
       if (!p) {
@@ -3272,7 +3422,6 @@ permalink: /toolbox/doudizhu/
         if (isMe) badges.push('<span class="badge me">我</span>');
         if (!p.online) badges.push('<span class="badge offline">离线</span>');
         li.innerHTML = `<span class="seat">座 ${p.seat}</span><span class="nick">${escHtml(p.nick)}</span>${badges.join('')}`;
-        // host 可踢
         if (state.online.isHost && !isMe) {
           const kickBtn = document.createElement('button');
           kickBtn.className = 'ddz-btn-mini';
@@ -3283,12 +3432,45 @@ permalink: /toolbox/doudizhu/
       }
       ul.appendChild(li);
     }
+    // AI 占位行
+    for (let i = 0; i < (cfg.aiCount || 0); i++) {
+      const li = document.createElement('li');
+      const seat = requiredHumans + i + 1;
+      li.innerHTML = `<span class="seat">座 ${seat}</span><span class="nick">🤖 AI · ${({ easy: '新手', normal: '普通', hard: '高手' })[cfg.aiLevel] || '普通'}</span><span class="badge">AI</span>`;
+      ul.appendChild(li);
+    }
     const startBtn = $('ddzLobbyStartBtn');
-    const ready = players.length === 3 && state.online.isHost;
+    const ready = humanCount === requiredHumans && state.online.isHost;
     startBtn.disabled = !ready;
     startBtn.textContent = state.online.isHost
-      ? (players.length < 3 ? `开始（需 3 人，已 ${players.length} 人）` : '🎮 开始游戏')
+      ? (humanCount < requiredHumans ? `开始（需 ${requiredHumans} 人，已 ${humanCount} 人）` : '🎮 开始游戏')
       : '等待房主开始…';
+  }
+
+  function setAvatarEmoji(displaySeat, emoji) {
+    const av = document.getElementById('ddzAvatar' + displaySeat);
+    if (!av) return;
+    if (av.firstChild && av.firstChild.nodeType === 3) {
+      av.firstChild.textContent = emoji;
+    }
+  }
+  function applyOnlinePlayerLabels(srv) {
+    // 把每个 server seat 的 player 信息映射到对应 displaySeat 的头像 + 名字
+    for (const p of srv.players || []) {
+      const ds = rotateSeat(p.seat - 1);
+      if (ds === 0) {
+        setAvatarEmoji(0, p.isAi ? '🤖' : '😎');
+        // 自家 name 在 renderRoles 里管：保留「我（地主/农民）」
+      } else {
+        setAvatarEmoji(ds, p.isAi ? '🤖' : '🧑');
+        const nameEl = $('ddzName' + ds);
+        if (nameEl) {
+          const baseName = p.nick;
+          const role = (p.seat - 1) === srv.landlordIdx ? '地主' : (srv.landlordIdx >= 0 ? '农民' : '');
+          nameEl.textContent = role ? `${baseName}（${role}）` : baseName;
+        }
+      }
+    }
   }
 
   function escHtml(s) {
