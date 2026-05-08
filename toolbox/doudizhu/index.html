@@ -65,6 +65,202 @@ permalink: /toolbox/doudizhu/
 
   /* ======== Setup 面板 ======== */
   .ddz-setup { text-align: center; margin: 1.2rem auto; max-width: 520px; }
+
+  .ddz-mode-row {
+    display: inline-flex; gap: 0.5rem; margin-bottom: 1.2rem;
+    padding: 0.3rem;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+  }
+  .ddz-playmode-btn {
+    padding: 0.4rem 1rem;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--color-muted);
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: all 0.18s;
+  }
+  .ddz-playmode-btn:hover { color: var(--color-ink); }
+  .ddz-playmode-btn.active {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+    font-weight: 600;
+  }
+
+  /* 联机入口 */
+  .ddz-online-tabs {
+    display: inline-flex; gap: 0.4rem;
+    margin-bottom: 0.9rem;
+    padding: 0.25rem;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+  }
+  .ddz-online-tab {
+    padding: 0.32rem 0.85rem;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--color-muted);
+    font-family: inherit; font-size: 0.85rem;
+    cursor: pointer; border-radius: 6px;
+    transition: all 0.18s;
+  }
+  .ddz-online-tab:hover { color: var(--color-ink); }
+  .ddz-online-tab.active {
+    background: var(--color-accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  .ddz-online-form {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0.5rem;
+    max-width: 320px; margin: 0 auto;
+  }
+  .ddz-online-input {
+    width: 100%;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.95rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: inherit;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+  .ddz-online-input:focus { border-color: var(--color-accent); outline: none; }
+  .ddz-online-hint {
+    min-height: 1.2em;
+    font-size: 0.82rem;
+    color: var(--color-muted);
+  }
+  .ddz-online-hint.error { color: var(--ddz-suit-red); }
+  .ddz-online-resume {
+    margin-top: 1.2rem;
+    padding: 0.55rem 0.9rem;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.84rem;
+    color: var(--color-muted);
+    display: flex; gap: 0.5rem; align-items: center; justify-content: center;
+    flex-wrap: wrap;
+  }
+  .ddz-btn-mini {
+    padding: 0.28rem 0.7rem;
+    font-size: 0.8rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-ink);
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .ddz-btn-mini:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .ddz-btn-mini.ghost { background: transparent; color: var(--color-muted); }
+
+  /* 大厅 */
+  .ddz-lobby {
+    max-width: 520px; margin: 1.2rem auto; text-align: center;
+  }
+  .ddz-room-banner {
+    background: linear-gradient(160deg, var(--ddz-felt-1), var(--ddz-felt-2));
+    color: var(--ddz-text-on-felt);
+    border: 1px solid var(--ddz-frame-2);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 3px 12px rgba(20,37,63,0.18);
+  }
+  .ddz-room-banner .label {
+    font-size: 0.78rem;
+    color: var(--ddz-text-on-felt-mute);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.2rem;
+    font-family: var(--font-display);
+  }
+  .ddz-room-banner .code {
+    font-size: 2.6rem;
+    letter-spacing: 0.5rem;
+    font-weight: 700;
+    color: var(--ddz-accent-strong);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    margin-bottom: 0.4rem;
+  }
+  .ddz-room-banner .actions {
+    display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap;
+  }
+  .ddz-room-banner .actions .ddz-btn-mini {
+    background: rgba(255,255,255,0.12);
+    border-color: var(--ddz-frame-2);
+    color: var(--ddz-text-on-felt);
+  }
+  .ddz-room-banner .actions .ddz-btn-mini:hover {
+    background: rgba(255,255,255,0.2);
+    color: var(--ddz-accent-strong);
+  }
+  .ddz-lobby-players-wrap {
+    margin: 1rem 0;
+    text-align: left;
+  }
+  .ddz-lobby-title {
+    font-size: 0.88rem; color: var(--color-muted);
+    margin-bottom: 0.4rem;
+    font-family: var(--font-display);
+    letter-spacing: 0.04em;
+  }
+  .ddz-lobby-players {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 0.4rem;
+  }
+  .ddz-lobby-players li {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.5rem 0.8rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    border-radius: 8px;
+  }
+  .ddz-lobby-players li.empty {
+    color: var(--color-light);
+    border-style: dashed;
+    background: transparent;
+  }
+  .ddz-lobby-players li .seat {
+    font-size: 0.78rem;
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+    min-width: 2.5em;
+  }
+  .ddz-lobby-players li .nick {
+    flex: 1;
+    color: var(--color-ink);
+    font-weight: 500;
+  }
+  .ddz-lobby-players li .badge {
+    font-size: 0.72rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background: var(--color-bg-warm);
+    color: var(--color-muted);
+  }
+  .ddz-lobby-players li .badge.host {
+    background: var(--color-accent);
+    color: #fff;
+  }
+  .ddz-lobby-players li .badge.me { background: var(--ddz-accent); color: #fff; }
+  .ddz-lobby-players li .badge.offline {
+    background: rgba(139,46,46,0.12);
+    color: var(--ddz-suit-red);
+  }
+  .ddz-lobby-actions {
+    display: flex; gap: 0.5rem; justify-content: center;
+    margin: 0.8rem 0;
+  }
   .ddz-mode-tabs { display: inline-flex; gap: 0.25rem; margin-bottom: 0.7rem; }
   .ddz-mode-tab {
     padding: 0.36rem 0.72rem;
@@ -879,20 +1075,71 @@ permalink: /toolbox/doudizhu/
 
   <!-- Setup 视图 -->
   <div class="ddz-setup" id="ddzSetup">
-    <div style="font-size: 0.82rem; color: var(--color-muted); margin-bottom: 0.4rem;">AI 难度</div>
-    <div class="ddz-mode-tabs" id="ddzDifficultyTabs">
-      <button class="ddz-mode-tab" data-diff="easy" type="button">🌱 新手</button>
-      <button class="ddz-mode-tab active" data-diff="normal" type="button">🙂 普通</button>
-      <button class="ddz-mode-tab" data-diff="hard" type="button">🔥 高手</button>
+    <!-- 玩法切换：单机 vs AI / 联机房间 -->
+    <div class="ddz-mode-row">
+      <button class="ddz-playmode-btn active" data-playmode="single" type="button">🤖 单人 vs AI</button>
+      <button class="ddz-playmode-btn" data-playmode="online" type="button">👥 联机房间</button>
     </div>
-    <div style="margin-top: 0.6rem;">
-      <button class="ddz-btn primary" id="ddzStartBtn" type="button">🎮 开始游戏</button>
+
+    <!-- 单机配置 -->
+    <div id="ddzSingleSetup">
+      <div style="font-size: 0.82rem; color: var(--color-muted); margin-bottom: 0.4rem;">AI 难度</div>
+      <div class="ddz-mode-tabs" id="ddzDifficultyTabs">
+        <button class="ddz-mode-tab" data-diff="easy" type="button">🌱 新手</button>
+        <button class="ddz-mode-tab active" data-diff="normal" type="button">🙂 普通</button>
+        <button class="ddz-mode-tab" data-diff="hard" type="button">🔥 高手</button>
+      </div>
+      <div style="margin-top: 0.6rem;">
+        <button class="ddz-btn primary" id="ddzStartBtn" type="button">🎮 开始游戏</button>
+      </div>
     </div>
+
+    <!-- 联机入口 -->
+    <div id="ddzOnlineSetup" hidden>
+      <div class="ddz-online-tabs" id="ddzOnlineTabs">
+        <button class="ddz-online-tab active" data-tab="create" type="button">🛠️ 创建房间</button>
+        <button class="ddz-online-tab" data-tab="join" type="button">🚪 加入房间</button>
+      </div>
+      <div class="ddz-online-form">
+        <input type="text" class="ddz-online-input" id="ddzOnlineNick" placeholder="昵称（1-12 字）" maxlength="12" autocomplete="off" />
+        <input type="text" class="ddz-online-input" id="ddzOnlineCode" placeholder="4 位房号" maxlength="4" inputmode="numeric" pattern="\d{4}" autocomplete="off" hidden />
+        <button class="ddz-btn primary" id="ddzOnlineSubmit" type="button">创建房间</button>
+        <div class="ddz-online-hint" id="ddzOnlineHint"></div>
+      </div>
+      <!-- 之前进过的房间 -->
+      <div class="ddz-online-resume" id="ddzOnlineResume" hidden>
+        <span class="label">检测到上次房间 <strong id="ddzResumeCode"></strong></span>
+        <button class="ddz-btn-mini" id="ddzResumeBtn" type="button">重新加入</button>
+        <button class="ddz-btn-mini ghost" id="ddzResumeForget" type="button">忘掉</button>
+      </div>
+    </div>
+
     <div class="ddz-help">
       斗地主是中国最流行的三人扑克游戏。54 张牌发出 51 张，剩 3 张底牌。<strong>抢地主</strong>阶段三家依次决定是否抢，最后抢的人当地主，每多一次抢倍数 ×2；揭牌后还可<strong>加倍</strong>（×2）。
       牌型：单 / 对 / 三 / 三带一/二 / 顺子（5+ 单牌连续）/ 连对（3+ 对子连续）/ 飞机 / 四带二 / 炸弹 / 王炸。每个炸弹/王炸 ×2；春天 / 反春天 ×2。
-      赢局上榜积分 = 底分 × 倍数 × 角色（地主 ×2，农民 ×1）。
+      赢局上榜积分 = 底分 × 倍数 × 角色（地主 ×2，农民 ×1）。联机模式有<strong>独立排行榜</strong>。
     </div>
+  </div>
+
+  <!-- 大厅视图（联机模式，3 人未集齐） -->
+  <div class="ddz-lobby" id="ddzLobby" hidden>
+    <div class="ddz-room-banner">
+      <div class="label">房号</div>
+      <div class="code" id="ddzRoomCode">----</div>
+      <div class="actions">
+        <button class="ddz-btn-mini" id="ddzCopyCodeBtn" type="button">📋 复制房号</button>
+        <button class="ddz-btn-mini" id="ddzCopyLinkBtn" type="button">🔗 复制邀请链接</button>
+      </div>
+    </div>
+    <div class="ddz-lobby-players-wrap">
+      <div class="ddz-lobby-title">玩家 <span id="ddzLobbyCount">0/3</span></div>
+      <ul class="ddz-lobby-players" id="ddzLobbyPlayers"></ul>
+    </div>
+    <div class="ddz-lobby-actions">
+      <button class="ddz-btn primary" id="ddzLobbyStartBtn" type="button" disabled>开始（需 3 人）</button>
+      <button class="ddz-btn" id="ddzLobbyLeaveBtn" type="button">离开房间</button>
+    </div>
+    <div class="ddz-help">分享房号或链接给两位朋友，集齐 3 人即可开始。房间 24 小时无操作自动清理。</div>
   </div>
 
   <!-- 牌桌视图 -->
@@ -1033,6 +1280,9 @@ permalink: /toolbox/doudizhu/
     hintCycle: [],
     hintIdx: -1,
     hintForPrev: null,
+    // 模式
+    mode: 'single',              // 'single' | 'online'
+    online: null,                // { code, token, playerId, mySeat, isHost, lastVersion, polling, sessionKey }
   };
 
   // ============================================================
@@ -1913,7 +2163,8 @@ permalink: /toolbox/doudizhu/
     if (!me) { setStatus('这组牌型不合法'); return; }
     const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
     if (!E.canBeat(me, prev)) { setStatus('压不住上家，请换一组'); return; }
-    commitPlay(0, me);
+    if (state.mode === 'online') sendOnlinePlay(cards);
+    else commitPlay(0, me);
   }
 
   function playerPass() {
@@ -1921,7 +2172,8 @@ permalink: /toolbox/doudizhu/
     if (!state.lastTrick || state.lastTrick.seat === 0) return;
     state.selected.clear();
     renderHand();
-    commitPass(0);
+    if (state.mode === 'online') sendOnlinePass();
+    else commitPass(0);
   }
 
   function resetHintCycle() {
@@ -2305,6 +2557,742 @@ permalink: /toolbox/doudizhu/
     }
   }
   initShell();
+
+  // ============================================================
+  // 联机模式（HTTP 长轮询 + 服务端权威）
+  // ============================================================
+  const DDZ_API = 'https://zircon-urge.vercel.app/api/ddz';
+  const SESSION_KEY = 'tool.doudizhu.online.session.v1';
+  const lobbyEl = $('ddzLobby');
+  const singleSetupEl = $('ddzSingleSetup');
+  const onlineSetupEl = $('ddzOnlineSetup');
+
+  function loadSession() {
+    try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; }
+  }
+  function saveSession(s) {
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); } catch {}
+  }
+  function clearSession() {
+    try { localStorage.removeItem(SESSION_KEY); } catch {}
+  }
+
+  async function apiCall(action, opts) {
+    opts = opts || {};
+    const isGet = !opts.body;
+    const url = `${DDZ_API}?action=${encodeURIComponent(action)}` +
+      (opts.qs ? '&' + new URLSearchParams(opts.qs).toString() : '');
+    const init = {
+      method: isGet ? 'GET' : 'POST',
+      headers: isGet ? {} : { 'Content-Type': 'application/json' },
+      body: isGet ? undefined : JSON.stringify(opts.body),
+      signal: opts.signal,
+    };
+    const res = await fetch(url, init);
+    let data = null;
+    try { data = await res.json(); } catch {}
+    if (!res.ok) {
+      return { ok: false, status: res.status, error: (data && data.error) || 'http_error', data };
+    }
+    return { ok: true, data };
+  }
+
+  // ── Mode toggle ─────────────────────────────────────────────────────
+  document.querySelectorAll('.ddz-playmode-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      if (state.phase !== PHASE.IDLE && state.phase !== PHASE.SETTLEMENT) return;
+      document.querySelectorAll('.ddz-playmode-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      const m = b.dataset.playmode;
+      if (m === 'single') {
+        singleSetupEl.hidden = false;
+        onlineSetupEl.hidden = true;
+        state.mode = 'single';
+      } else {
+        singleSetupEl.hidden = true;
+        onlineSetupEl.hidden = false;
+        state.mode = 'online';
+        renderResumeOption();
+      }
+    });
+  });
+
+  // ── 联机入口（创建 / 加入 tab） ─────────────────────────────────────
+  let onlineTab = 'create';
+  document.querySelectorAll('.ddz-online-tab').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.ddz-online-tab').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      onlineTab = b.dataset.tab;
+      $('ddzOnlineCode').hidden = onlineTab === 'create';
+      $('ddzOnlineSubmit').textContent = onlineTab === 'create' ? '创建房间' : '加入房间';
+      $('ddzOnlineHint').textContent = '';
+      $('ddzOnlineHint').className = 'ddz-online-hint';
+    });
+  });
+
+  function setOnlineHint(text, isError) {
+    const el = $('ddzOnlineHint');
+    el.textContent = text || '';
+    el.className = 'ddz-online-hint' + (isError ? ' error' : '');
+  }
+
+  function getDeviceId() {
+    if (window.GamesShell && GamesShell.Identity) return GamesShell.Identity.getDeviceId();
+    let did = localStorage.getItem('gs.did.v1');
+    if (!did) {
+      did = 'd-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now().toString(36);
+      try { localStorage.setItem('gs.did.v1', did); } catch {}
+    }
+    return did;
+  }
+
+  function preloadNick() {
+    const nickFromIdentity = window.GamesShell && GamesShell.Identity && GamesShell.Identity.getNick();
+    if (nickFromIdentity) $('ddzOnlineNick').value = nickFromIdentity;
+  }
+
+  $('ddzOnlineSubmit').addEventListener('click', async () => {
+    const nick = $('ddzOnlineNick').value.trim();
+    if (!nick || nick.length > 12) { setOnlineHint('昵称 1-12 字', true); return; }
+    if (window.GamesShell && GamesShell.Identity) GamesShell.Identity.setNick(nick);
+    if (onlineTab === 'create') {
+      setOnlineHint('创建中…');
+      const r = await apiCall('create', { body: { nick, deviceId: getDeviceId() } });
+      if (!r.ok) { setOnlineHint('创建失败：' + (r.error || ''), true); return; }
+      enterRoom(r.data);
+    } else {
+      const code = $('ddzOnlineCode').value.trim();
+      if (!/^\d{4}$/.test(code)) { setOnlineHint('请输入 4 位房号', true); return; }
+      setOnlineHint('加入中…');
+      const r = await apiCall('join', { body: { code, nick, deviceId: getDeviceId() } });
+      if (!r.ok) {
+        const msg = ({
+          'room_not_found': '房间不存在或已过期',
+          'room_in_progress': '房间已开始，无法加入',
+          'room_full': '房间已满',
+          'nick_taken_in_room': '此房间已有同名玩家',
+          'invalid_nick': '昵称不合法',
+        })[r.error] || ('加入失败：' + r.error);
+        setOnlineHint(msg, true);
+        return;
+      }
+      enterRoom(r.data);
+    }
+  });
+
+  // 重新加入（从 localStorage）
+  function renderResumeOption() {
+    const sess = loadSession();
+    const wrap = $('ddzOnlineResume');
+    if (!sess || !sess.code) { wrap.hidden = true; return; }
+    wrap.hidden = false;
+    $('ddzResumeCode').textContent = sess.code;
+  }
+  $('ddzResumeBtn').addEventListener('click', async () => {
+    const sess = loadSession();
+    if (!sess) { renderResumeOption(); return; }
+    const nick = ($('ddzOnlineNick').value.trim() || sess.nick || '').slice(0, 12);
+    if (!nick) { setOnlineHint('请输入昵称', true); return; }
+    setOnlineHint('重新加入中…');
+    const r = await apiCall('join', { body: { code: sess.code, nick, deviceId: getDeviceId() } });
+    if (!r.ok) {
+      setOnlineHint('重连失败：' + r.error, true);
+      if (r.error === 'room_not_found' || r.error === 'room_dissolved') clearSession();
+      renderResumeOption();
+      return;
+    }
+    enterRoom(r.data);
+  });
+  $('ddzResumeForget').addEventListener('click', () => { clearSession(); renderResumeOption(); });
+
+  function enterRoom(joinData) {
+    const sess = {
+      code: joinData.code,
+      token: joinData.playerToken,
+      playerId: joinData.playerId,
+      nick: $('ddzOnlineNick').value.trim(),
+      ts: Date.now(),
+    };
+    saveSession(sess);
+    state.mode = 'online';
+    state.online = {
+      code: sess.code,
+      token: sess.token,
+      playerId: sess.playerId,
+      mySeat: 0,         // will be set on first state apply
+      isHost: false,
+      lastVersion: 0,
+      polling: false,
+      players: [],
+      doubleDecided: [false, false, false],
+      doubleChoice: [null, null, null],
+      doubleEndAt: 0,
+      turnEndAt: 0,
+      lastSrvState: null,
+      pollAbort: null,
+    };
+    setOnlineHint('');
+    setupView.style.display = 'none';
+    lobbyEl.hidden = false;
+    $('ddzRoomCode').textContent = sess.code;
+    startPolling();
+  }
+
+  // ── 长轮询循环 ──────────────────────────────────────────────────────
+  async function startPolling() {
+    if (!state.online || state.online.polling) return;
+    state.online.polling = true;
+    while (state.online && state.online.polling && state.online.token) {
+      const ctrl = new AbortController();
+      state.online.pollAbort = ctrl;
+      const r = await apiCall('state', {
+        qs: { code: state.online.code, token: state.online.token, since: state.online.lastVersion },
+        signal: ctrl.signal,
+      }).catch(() => ({ ok: false, error: 'aborted' }));
+      if (!state.online || !state.online.polling) break;
+      if (r.ok && r.data) {
+        applyServerState(r.data);
+      } else if (r.status === 403 || r.status === 404) {
+        // Token失效或房间不存在
+        const errMsg = r.error === 'room_not_found' ? '房间已过期' : '会话失效';
+        setStatus(errMsg);
+        await leaveOnlineRoom(true);
+        break;
+      } else {
+        // 网络抖动 → 退避后重试
+        await new Promise(r => setTimeout(r, 1500));
+      }
+    }
+    if (state.online) { state.online.polling = false; state.online.pollAbort = null; }
+  }
+  function stopPolling() {
+    if (state.online) {
+      state.online.polling = false;
+      if (state.online.pollAbort) try { state.online.pollAbort.abort(); } catch {}
+    }
+  }
+
+  // ── 服务端 → 本地状态映射 ──────────────────────────────────────────
+  function rotateSeat(serverSeat) {
+    if (!state.online) return serverSeat;
+    return (serverSeat - state.online.mySeat + 3) % 3;
+  }
+
+  function applyServerState(srv) {
+    if (!srv || !state.online) return;
+    state.online.lastVersion = srv.version || 0;
+    state.online.players = srv.players || [];
+    state.online.hostPlayerId = srv.hostPlayerId;
+
+    // 找自己的 seat
+    const me = (srv.players || []).find(p => p.id === state.online.playerId);
+    if (me) {
+      state.online.mySeat = me.seat - 1;
+      state.online.isHost = me.isHost;
+    }
+
+    if (srv.state === 'dissolved') {
+      alert('房主解散了房间');
+      leaveOnlineRoom(true);
+      return;
+    }
+
+    if (srv.state === 'lobby') {
+      state.online.lastSrvState = 'lobby';
+      lobbyEl.hidden = false;
+      tableView.hidden = true;
+      renderLobbyPlayers(srv);
+      return;
+    }
+
+    if (srv.state === 'playing') {
+      // 大厅 → 牌桌切换
+      if (state.online.lastSrvState !== 'playing') {
+        lobbyEl.hidden = true;
+        tableView.hidden = false;
+        clearAllPlayed();
+        // 隐藏 game-over overlay（如果之前还在）
+        gameOverOverlay.classList.remove('show', 'has-spring');
+        if (ddzSettleBtn) ddzSettleBtn.setEnabled(false);
+        state.runStartedAt = Date.now();
+        state.runNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+      }
+      state.online.lastSrvState = 'playing';
+
+      // phase 映射
+      state.phase = srv.phase === 'bidding' ? PHASE.BIDDING :
+                    srv.phase === 'doubling' ? PHASE.DOUBLING :
+                    srv.phase === 'playing' ? PHASE.PLAYING :
+                    srv.phase === 'settlement' ? PHASE.SETTLEMENT : PHASE.IDLE;
+
+      // hand 数据
+      if (srv.me && srv.me.hand) state.hands[0] = srv.me.hand.slice();
+      // 其他人只有数量（用占位填充）
+      for (const p of srv.players) {
+        const ds = rotateSeat(p.seat - 1);
+        if (ds === 0) continue;
+        state.hands[ds] = new Array(p.handCount || 0).fill(0);
+      }
+      pruneSelectedToHand();
+
+      state.bottom = srv.bottom || [];
+      state.bottomRevealed = !!srv.bottomRevealed;
+      state.landlordIdx = srv.landlordIdx >= 0 ? rotateSeat(srv.landlordIdx) : -1;
+      state.multiplier = srv.multiplier || 1;
+      state.bombCount = srv.bombCount || 0;
+      state.spring = srv.spring || 0;
+      state.landlordPlayCount = srv.landlordPlayCount || 0;
+      state.peasantPlayCount = srv.peasantPlayCount || 0;
+
+      // 根据 phase 拉对应字段
+      if (srv.phase === 'bidding') {
+        state.bidActions = (srv.bidActions || []).map(a => ({ seat: rotateSeat(a.seat), action: a.action }));
+        state.bidTurnIdx = rotateSeat(srv.bidTurnIdx);
+        state.landlordCandidate = srv.landlordCandidate >= 0 ? rotateSeat(srv.landlordCandidate) : -1;
+        state.robCount = srv.robCount || 0;
+      }
+      if (srv.phase === 'doubling') {
+        // 翻译 server-seat 数组到 display-seat 数组
+        const dDecided = [false, false, false];
+        const dChoice = [null, null, null];
+        for (let s = 0; s < 3; s++) {
+          dDecided[rotateSeat(s)] = (srv.doubleDecided || [])[s] || false;
+          dChoice[rotateSeat(s)] = (srv.doubleChoice || [])[s] || null;
+        }
+        state.online.doubleDecided = dDecided;
+        state.online.doubleChoice = dChoice;
+        state.online.doubleEndAt = srv.doubleEndAt || 0;
+      }
+      if (srv.phase === 'playing') {
+        state.turnIdx = rotateSeat(srv.turnIdx);
+        const newLastTrick = srv.lastTrick
+          ? { seat: rotateSeat(srv.lastTrick.seat), pattern: srv.lastTrick.pattern }
+          : null;
+        // 如果 lastTrick 变了 → 重新渲染对应座位的出牌
+        const oldLastTrick = state.lastTrick;
+        state.lastTrick = newLastTrick;
+        state.passCount = srv.passCount || 0;
+        state.online.turnEndAt = srv.turnEndAt || 0;
+      }
+      if (srv.phase === 'settlement' && srv.result) {
+        const r = srv.result;
+        state.result = {
+          winnerSeat: rotateSeat(r.winnerSeat),
+          winnerRole: r.winnerRole,
+          multiplier: r.multiplier,
+          score: r.score,
+        };
+        state.spring = r.spring || state.spring;
+        state.bombCount = r.bombCount || state.bombCount;
+        // 揭示所有手牌
+        if (srv.allHands) {
+          for (const p of srv.players) {
+            const ds = rotateSeat(p.seat - 1);
+            state.hands[ds] = (srv.allHands[p.id] || []).slice();
+          }
+        }
+      }
+
+      // 渲染所有
+      renderHand();
+      renderHandCounts();
+      renderRoles();
+      renderBottomPile();
+      renderMultiplier();
+
+      // 根据 publicLog 推断每家的 last play 渲染（粗略：只渲染最新一手出牌 / pass）
+      // 用 srv.lastTrick + srv.passCount 即可
+      // 实际：每次有新动作就根据 publicLog 最新条 push 到对应座位
+      renderRecentActionsFromLog(srv);
+
+      if (state.phase === PHASE.BIDDING) {
+        renderOnlineBidPanel();
+      } else if (state.phase === PHASE.DOUBLING) {
+        renderOnlineDoublePanel();
+      } else if (state.phase === PHASE.PLAYING) {
+        playActions.hidden = false;
+        bidPanel.hidden = true;
+        updateOnlineCountdown();
+        const meTurn = state.turnIdx === 0;
+        if (meTurn) setStatus('轮到你 — 出牌或不要');
+        else setStatus(`等待 ${seatLabel(state.turnIdx)} 出牌…`);
+        updatePlayBtnState();
+      } else if (state.phase === PHASE.SETTLEMENT) {
+        playActions.hidden = true;
+        bidPanel.hidden = true;
+        stopTurnCountdown();
+        showOnlineGameOver();
+      }
+    }
+  }
+
+  // 根据 publicLog 渲染最近一手到 played 区
+  function renderRecentActionsFromLog(srv) {
+    if (!srv.publicLog) return;
+    // 找出每家最近一条 play / pass，从尾部往前扫
+    const seenSeats = new Set();
+    for (let i = srv.publicLog.length - 1; i >= 0 && seenSeats.size < 3; i--) {
+      const e = srv.publicLog[i];
+      if ((e.type === 'play' || e.type === 'pass') && typeof e.seat === 'number') {
+        const ds = rotateSeat(e.seat);
+        if (seenSeats.has(ds)) continue;
+        seenSeats.add(ds);
+        if (e.type === 'play' && e.pattern) {
+          renderPlayedAt(ds, e.pattern);
+        } else if (e.type === 'pass') {
+          renderPlayedAt(ds, 'pass');
+        }
+      }
+      if (e.type === 'deal' || e.type === 'reveal-bottom' || e.type === 'landlord-decided') break;
+    }
+    // 没在最近 publicLog 里出现的座位 → 清空
+    for (let i = 0; i < 3; i++) {
+      if (!seenSeats.has(i)) {
+        const el = $('ddzPlayed' + i);
+        if (el) { el.innerHTML = ''; el.className = 'ddz-played'; }
+      }
+    }
+    // 当前正在思考的对家：显示思考动画
+    if (state.phase === PHASE.PLAYING && state.turnIdx !== 0) {
+      const el = $('ddzPlayed' + state.turnIdx);
+      if (el && !el.children.length) {
+        el.className = 'ddz-played';
+        el.innerHTML = '<span class="think-tag">思考</span>';
+      }
+    }
+  }
+
+  // ── 大厅渲染 ────────────────────────────────────────────────────────
+  function renderLobbyPlayers(srv) {
+    const players = srv.players || [];
+    $('ddzRoomCode').textContent = srv.code;
+    $('ddzLobbyCount').textContent = `${players.length}/3`;
+    const ul = $('ddzLobbyPlayers');
+    ul.innerHTML = '';
+    for (let s = 0; s < 3; s++) {
+      const li = document.createElement('li');
+      const p = players[s];
+      if (!p) {
+        li.className = 'empty';
+        li.innerHTML = `<span class="seat">座 ${s + 1}</span><span class="nick">— 等待加入 —</span>`;
+      } else {
+        const isMe = p.id === state.online.playerId;
+        const badges = [];
+        if (p.isHost) badges.push('<span class="badge host">房主</span>');
+        if (isMe) badges.push('<span class="badge me">我</span>');
+        if (!p.online) badges.push('<span class="badge offline">离线</span>');
+        li.innerHTML = `<span class="seat">座 ${p.seat}</span><span class="nick">${escHtml(p.nick)}</span>${badges.join('')}`;
+        // host 可踢
+        if (state.online.isHost && !isMe) {
+          const kickBtn = document.createElement('button');
+          kickBtn.className = 'ddz-btn-mini';
+          kickBtn.textContent = '踢';
+          kickBtn.addEventListener('click', () => sendKick(p.id));
+          li.appendChild(kickBtn);
+        }
+      }
+      ul.appendChild(li);
+    }
+    const startBtn = $('ddzLobbyStartBtn');
+    const ready = players.length === 3 && state.online.isHost;
+    startBtn.disabled = !ready;
+    startBtn.textContent = state.online.isHost
+      ? (players.length < 3 ? `开始（需 3 人，已 ${players.length} 人）` : '🎮 开始游戏')
+      : '等待房主开始…';
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c]);
+  }
+
+  // 复制按钮
+  $('ddzCopyCodeBtn').addEventListener('click', () => copyText(state.online && state.online.code));
+  $('ddzCopyLinkBtn').addEventListener('click', () => {
+    const url = location.origin + location.pathname + '?room=' + (state.online && state.online.code);
+    copyText(url);
+  });
+  function copyText(t) {
+    if (!t) return;
+    if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => flashStatus('已复制'));
+    else flashStatus('请手动复制：' + t);
+  }
+  function flashStatus(msg) {
+    const old = $('ddzOnlineHint').textContent;
+    $('ddzOnlineHint').textContent = msg;
+    setTimeout(() => { if ($('ddzOnlineHint').textContent === msg) $('ddzOnlineHint').textContent = old; }, 1400);
+  }
+
+  $('ddzLobbyStartBtn').addEventListener('click', async () => {
+    if (!state.online) return;
+    const r = await apiCall('start', { body: { code: state.online.code, token: state.online.token } });
+    if (!r.ok) alert('开始失败：' + r.error);
+  });
+  $('ddzLobbyLeaveBtn').addEventListener('click', () => leaveOnlineRoom(false));
+
+  async function sendKick(targetPid) {
+    if (!state.online) return;
+    const r = await apiCall('kick', { body: { code: state.online.code, token: state.online.token, targetPid } });
+    if (!r.ok) alert('踢人失败：' + r.error);
+  }
+
+  async function leaveOnlineRoom(silent) {
+    if (state.online) {
+      try {
+        await apiCall('leave', { body: { code: state.online.code, token: state.online.token } });
+      } catch {}
+      stopPolling();
+    }
+    clearSession();
+    state.online = null;
+    state.mode = 'single';
+    document.querySelectorAll('.ddz-playmode-btn').forEach(x => x.classList.toggle('active', x.dataset.playmode === 'single'));
+    singleSetupEl.hidden = false;
+    onlineSetupEl.hidden = true;
+    lobbyEl.hidden = true;
+    tableView.hidden = true;
+    setupView.style.display = '';
+    gameOverOverlay.classList.remove('show', 'has-spring');
+    if (!silent) setOnlineHint('已离开房间');
+    renderResumeOption();
+  }
+  window.addEventListener('beforeunload', () => {
+    if (state.online && state.online.token) {
+      // 用 sendBeacon 让 leave 在页面卸载时也能发出去
+      try {
+        const body = JSON.stringify({ code: state.online.code, token: state.online.token });
+        const blob = new Blob([body], { type: 'application/json' });
+        navigator.sendBeacon(`${DDZ_API}?action=leave`, blob);
+      } catch {}
+    }
+  });
+
+  // ── 联机抢地主面板 ─────────────────────────────────────────────────
+  function renderOnlineBidPanel() {
+    bidPanel.hidden = false;
+    playActions.hidden = true;
+    const myTurn = state.bidTurnIdx === 0;
+    const isFirst = state.landlordCandidate < 0;
+    const verb = isFirst ? '叫地主' : '抢地主';
+    if (myTurn) {
+      bidTitle.textContent = isFirst ? '叫地主吗？' : `已有人叫，要抢吗？（当前倍数 ×${state.multiplier}）`;
+      renderBidButtons([
+        { label: isFirst ? '叫地主' : '抢地主', value: 'rob', primary: true },
+        { label: isFirst ? '不叫' : '不抢', value: 'pass' },
+      ], async (act) => {
+        bidPanel.hidden = true;
+        const r = await apiCall('bid', { body: { code: state.online.code, token: state.online.token, action: act } });
+        if (!r.ok) { setStatus('叫地主失败：' + r.error); }
+      });
+    } else {
+      bidTitle.textContent = `等待 ${seatLabel(state.bidTurnIdx)} ${verb}…`;
+      bidButtonsEl.innerHTML = '';
+    }
+  }
+
+  // ── 联机加倍面板（同时决策） ───────────────────────────────────────
+  let onlineDoubleTimer = null;
+  function renderOnlineDoublePanel() {
+    bidPanel.hidden = false;
+    playActions.hidden = true;
+    bidTitle.innerHTML = '<span>加倍阶段</span><span class="countdown-badge" id="ddzDoubleCountdown">5s</span>';
+    bidButtonsEl.innerHTML = '';
+
+    // 三家状态行
+    const grid = document.createElement('div');
+    grid.className = 'ddz-double-grid';
+    const seatOrder = [2, 0, 1];
+    for (const seat of seatOrder) {
+      const cell = document.createElement('div');
+      cell.className = 'ddz-double-cell';
+      const decided = state.online.doubleDecided[seat];
+      const choice = state.online.doubleChoice[seat];
+      if (decided) cell.classList.add(choice === 'double' ? 'decided-yes' : 'decided-no');
+      else cell.classList.add('pending');
+      const who = document.createElement('span');
+      who.className = 'who';
+      who.textContent = seat === 0 ? '我' : (seat === 1 ? '下家' : '上家');
+      const status = document.createElement('span');
+      status.className = 'status';
+      status.textContent = decided ? (choice === 'double' ? '加倍 ×2' : '不加倍') : '思考';
+      cell.appendChild(who);
+      cell.appendChild(status);
+      grid.appendChild(cell);
+    }
+    bidButtonsEl.appendChild(grid);
+
+    if (!state.online.doubleDecided[0]) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex; gap:0.7rem; justify-content:center; flex-wrap:wrap;';
+      const yes = document.createElement('button');
+      yes.type = 'button'; yes.className = 'primary';
+      yes.textContent = `加倍 ×${state.multiplier * 2}`;
+      yes.addEventListener('click', () => sendOnlineDouble('double'));
+      const no = document.createElement('button');
+      no.type = 'button';
+      no.textContent = '不加倍';
+      no.addEventListener('click', () => sendOnlineDouble('pass'));
+      wrap.appendChild(yes);
+      wrap.appendChild(no);
+      bidButtonsEl.appendChild(wrap);
+    } else {
+      const tip = document.createElement('div');
+      tip.style.cssText = 'font-size:0.82rem; color:var(--ddz-text-on-felt-mute); margin-top:0.4rem; font-family:var(--font-display); letter-spacing:0.04em;';
+      tip.textContent = '等待其他人决定…';
+      bidButtonsEl.appendChild(tip);
+    }
+
+    // 倒计时（用 server endAt）
+    if (onlineDoubleTimer) clearInterval(onlineDoubleTimer);
+    function tick() {
+      const left = Math.max(0, (state.online.doubleEndAt || 0) - Date.now());
+      const s = Math.ceil(left / 1000);
+      const cd = document.getElementById('ddzDoubleCountdown');
+      if (cd) cd.textContent = s + 's';
+      if (left <= 0) { clearInterval(onlineDoubleTimer); onlineDoubleTimer = null; }
+    }
+    tick();
+    onlineDoubleTimer = setInterval(tick, 250);
+  }
+
+  async function sendOnlineDouble(choice) {
+    if (!state.online) return;
+    state.online.doubleDecided[0] = true;
+    state.online.doubleChoice[0] = choice;
+    renderOnlineDoublePanel();
+    const r = await apiCall('double', { body: { code: state.online.code, token: state.online.token, action: choice } });
+    if (!r.ok && r.error !== 'already_decided') alert('加倍失败：' + r.error);
+  }
+
+  // ── 联机出牌 / pass ────────────────────────────────────────────────
+  async function sendOnlinePlay(cards) {
+    const r = await apiCall('play', { body: { code: state.online.code, token: state.online.token, cards } });
+    if (!r.ok) {
+      const msg = ({
+        'invalid_pattern': '牌型不合法',
+        'cannot_beat': '压不住上家',
+        'not_your_turn': '还没轮到你',
+        'card_not_in_hand': '有牌不在手里',
+      })[r.error] || ('出牌失败：' + r.error);
+      setStatus(msg);
+    }
+  }
+  async function sendOnlinePass() {
+    const r = await apiCall('pass', { body: { code: state.online.code, token: state.online.token } });
+    if (!r.ok) {
+      const msg = ({
+        'cannot_pass_first': '首出不能不要',
+        'not_your_turn': '还没轮到你',
+      })[r.error] || ('不要失败：' + r.error);
+      setStatus(msg);
+    }
+  }
+
+  // ── 联机结算 ────────────────────────────────────────────────────────
+  function showOnlineGameOver() {
+    if (!state.result) return;
+    const playerWon = state.result.winnerSeat === 0;
+    gameOverTitle.textContent = playerWon ? '🎉 你赢了！' : '😢 你输了';
+    const myRole = state.landlordIdx === 0 ? '地主' : '农民';
+    const winText = state.result.winnerRole === 'landlord' ? '地主' : '农民';
+    const springBadge = state.spring > 0
+      ? `<div class="ddz-spring-badge">${state.result.winnerRole === 'landlord' ? '🌸 春天' : '🍁 反春天'} ×2</div>`
+      : '';
+    const roleMul = state.result.winnerRole === 'landlord' ? 2 : 1;
+    gameOverDetail.innerHTML =
+      springBadge +
+      `<div>${winText}获胜 · 倍数 ×${state.result.multiplier} · 你是${myRole}</div>` +
+      `<div>本局积分 <strong>${state.result.score}</strong>（角色加权 ×${roleMul}）</div>` +
+      `<div>用时 ${formatDuration(Date.now() - state.runStartedAt)}</div>` +
+      (state.online.isHost ? '<div style="margin-top:0.5rem;font-size:0.82rem;color:var(--ddz-accent-strong);">房主可点「再来一局」</div>'
+                            : '<div style="margin-top:0.5rem;font-size:0.82rem;opacity:0.7;">等待房主开始下一局…</div>');
+    gameOverOverlay.classList.toggle('has-spring', state.spring > 0);
+    gameOverOverlay.classList.add('show');
+    if (ddzSettleBtn) ddzSettleBtn.setEnabled(true);
+
+    // 替换 onclick handlers for online context
+    $('ddzPlayAgainBtn').onclick = async () => {
+      if (!state.online.isHost) { alert('只有房主可以开始下一局'); return; }
+      const r = await apiCall('rematch', { body: { code: state.online.code, token: state.online.token } });
+      if (!r.ok) alert('再来一局失败：' + r.error);
+    };
+    $('ddzBackToSetupBtn').onclick = () => leaveOnlineRoom(false);
+
+    if (playerWon) tryAutoSubmitOnline();
+  }
+
+  function tryAutoSubmitOnline() {
+    if (!window.GamesShell || !state.result) return;
+    const totalActions = state.landlordPlayCount + state.peasantPlayCount;
+    const moves = Math.max(4, Math.min(500, totalActions));
+    const durationMs = Math.max(5000, Date.now() - state.runStartedAt);
+    let nick = GamesShell.Identity.getNick();
+    if (!nick) nick = state.online && (state.online.players.find(p => p.id === state.online.playerId) || {}).nick;
+    if (!nick) return;
+    GamesShell.WinsLeaderboard.submit({
+      gameId: 'doudizhu-online',
+      nick,
+      did: GamesShell.Identity.getDeviceId(),
+      aiLevel: 'normal',                 // 联机统一 normal 档存档（榜单不分档其实也行）
+      moves,
+      durationMs,
+      clientNonce: state.runNonce,
+      score: state.result.score,
+    }).then(r => {
+      if (r && r.ok && ddzWlbOnline) ddzWlbOnline.refresh();
+    });
+  }
+
+  // ── 联机倒计时 ───────────────────────────────────────────────────────
+  let onlineTurnTimer = null;
+  function updateOnlineCountdown() {
+    if (onlineTurnTimer) clearInterval(onlineTurnTimer);
+    const cdEl = countdownEl();
+    if (!cdEl) return;
+    cdEl.hidden = false;
+    function tick() {
+      const left = Math.max(0, (state.online.turnEndAt || 0) - Date.now());
+      const s = Math.ceil(left / 1000);
+      cdEl.textContent = s + 's';
+      cdEl.classList.toggle('urgent', s <= 5);
+      if (left <= 0) {
+        clearInterval(onlineTurnTimer); onlineTurnTimer = null;
+        cdEl.classList.remove('urgent');
+      }
+    }
+    tick();
+    onlineTurnTimer = setInterval(tick, 250);
+  }
+
+  // ── 挂载额外的联机榜（在初始化时一并） ───────────────────────────────
+  let ddzWlbOnline = null;
+  if (window.GamesShell && GamesShell.WinsLeaderboard) {
+    // 找一个挂载点：复用 wlb-mount 下方再加一个
+    const onlineMountWrap = document.createElement('div');
+    onlineMountWrap.id = 'ddz-wlb-online-mount';
+    onlineMountWrap.style.cssText = 'max-width: 600px; margin: 1rem auto 0;';
+    const oldMount = $('ddz-wlb-mount');
+    if (oldMount && oldMount.parentNode) oldMount.parentNode.insertBefore(onlineMountWrap, oldMount.nextSibling);
+    ddzWlbOnline = GamesShell.WinsLeaderboard.mount({
+      container: onlineMountWrap,
+      gameId: 'doudizhu-online',
+      title: '🌐 斗地主 · 联机积分榜',
+      unit: '分',
+      getCurrentNick: () => GamesShell.Identity.getNick(),
+    });
+  }
+
+  // ── URL ?room=xxxx 自动跳到加入 tab ────────────────────────────────
+  (function autoJoinFromUrl() {
+    const m = location.search.match(/[?&]room=(\d{4})/);
+    if (!m) return;
+    document.querySelector('.ddz-playmode-btn[data-playmode="online"]').click();
+    document.querySelector('.ddz-online-tab[data-tab="join"]').click();
+    $('ddzOnlineCode').value = m[1];
+  })();
+
+  preloadNick();
+  renderResumeOption();
 
   // ============================================================
   // 续局
