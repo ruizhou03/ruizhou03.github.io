@@ -298,11 +298,12 @@ permalink: /toolbox/doudizhu/
     line-height: 1;
   }
   .ddz-card.is-joker .corner .rk {
-    font-size: 9px;
-    letter-spacing: 1px;
-    writing-mode: vertical-rl;
-    text-orientation: upright;
+    font-weight: 400;
+    line-height: 1;
   }
+  .ddz-card.size-full.is-joker .corner .rk { font-size: 15px; }
+  .ddz-card.size-mini.is-joker .corner .rk { font-size: 12px; }
+  .ddz-card.size-bottom.is-joker .corner .rk { font-size: 12px; }
   /* 王不需要花色，留空 */
   .ddz-card.is-joker .corner .su { display: none; }
   /* 大王（红） / 小王（灰）双色 */
@@ -692,6 +693,9 @@ permalink: /toolbox/doudizhu/
     .ddz-card.size-full .pip { font-size: 22px; }
     .ddz-card.size-full.is-joker .pip .joker-text { font-size: 7px; }
     .ddz-card.size-full.is-joker .pip .joker-icon { font-size: 16px; }
+    .ddz-card.size-full.is-joker .corner .rk { font-size: 12px; }
+    .ddz-card.size-mini.is-joker .corner .rk { font-size: 10px; }
+    .ddz-card.size-bottom.is-joker .corner .rk { font-size: 10px; }
     .ddz-card.size-mini .corner .rk { font-size: 9px; }
     .ddz-card.size-mini .corner .su { font-size: 8px; }
     .ddz-card.size-mini .pip { font-size: 17px; }
@@ -964,8 +968,8 @@ permalink: /toolbox/doudizhu/
   const SUIT_LABELS = ['♠','♥','♦','♣'];
 
   function cardDisplayInfo(c) {
-    if (c === 52) return { isJoker: true, jokerKind: 'small', cornerRk: 'JOKER' };
-    if (c === 53) return { isJoker: true, jokerKind: 'big',   cornerRk: 'JOKER' };
+    if (c === 52) return { isJoker: true, jokerKind: 'small', cornerRk: '★' };
+    if (c === 53) return { isJoker: true, jokerKind: 'big',   cornerRk: '★' };
     const r = E.cardRank(c);
     const s = E.cardSuit(c);
     return {
