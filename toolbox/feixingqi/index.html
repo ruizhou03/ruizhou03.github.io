@@ -349,8 +349,7 @@ permalink: /toolbox/feixingqi/
     <div class="fxq-rules">
       <span class="pill">起飞</span> 掷出 6 才能从机库出一架；掷 6 后再掷一次（连续 3 个 6 视为犯规，最近一架退回机库）。
       <br>
-      <span class="pill">同色跳跃</span> 落到自己颜色格 → 跳到下一同色格。
-      <span class="pill">大飞跃</span> 落到 <span style="color:#e74c3c">✈</span> 同色格 → 直接飞 12 格。
+      <span class="pill">起飞</span> 跑道上 4 个拐角各有一架同色 <span style="color:#e74c3c">✈</span>。落到自己颜色的 ✈ 格 → 飞到对角的另一个拐角（横跨半个棋盘）。
       <br>
       <span class="pill">踩格</span> 落到对手所在格 → 对手该格上飞机全部回机库。
       <span class="pill">终点</span> 进入终点跑道后必须精确到达，多余步数反弹。
@@ -449,18 +448,21 @@ permalink: /toolbox/feixingqi/
 
   const LAYOUTS = { cross: LAYOUT_CROSS };
 
-  // Same-color jump cells: +4, +12, +18 from exit. Pre-computed.
+  // Classical 飞行棋 takeoff: each color has ONE coloured cell at +8 from its
+  // exit (the FIRST concave corner of the cross going clockwise from exit).
+  // Landing on your own takeoff flies you DIAGONALLY ACROSS the board to the
+  // opposite concave corner (+26 cells = half a lap forward).
+  const TAKEOFF_OFFSET = 8;
+  const FLIGHT_DISTANCE = 26;
   for (const key in LAYOUTS) {
     const layout = LAYOUTS[key];
-    layout.CELL_COLOR = {};
-    layout.BIG_JUMP_CELLS = {};
+    layout.CELL_COLOR = {};       // index → owner colour (only takeoff cells are coloured)
+    layout.BIG_JUMP_CELLS = {};   // index → owner colour (same set as CELL_COLOR for now)
     for (const c of COLORS) {
       const e = layout.EXIT_INDEX[c];
-      const c4 = (e + 4) % TRACK_LEN, c12 = (e + 12) % TRACK_LEN, c18 = (e + 18) % TRACK_LEN;
-      layout.CELL_COLOR[c4]  = c;
-      layout.CELL_COLOR[c12] = c;
-      layout.CELL_COLOR[c18] = c;
-      layout.BIG_JUMP_CELLS[c18] = c;
+      const takeoff = (e + TAKEOFF_OFFSET) % TRACK_LEN;
+      layout.CELL_COLOR[takeoff] = c;
+      layout.BIG_JUMP_CELLS[takeoff] = c;
     }
   }
 
@@ -936,24 +938,24 @@ permalink: /toolbox/feixingqi/
         rx: 4,
       }));
       if (ownerColor) {
-        // Painted jump cell — bigger inner circle of own colour with the glyph centred on it
+        // Takeoff cell — white inner ring + a bold ✈ glyph
         trackGroup.appendChild(svgEl('circle', {
           cx: svgX(c), cy: svgY(r),
-          r: cell * 0.32,
-          fill: 'rgba(255,255,255,0.18)',
+          r: cell * 0.34,
+          fill: 'rgba(255,255,255,0.2)',
           stroke: '#ffffff',
-          'stroke-width': 1.5,
+          'stroke-width': 1.8,
         }));
         const glyph = svgEl('text', {
           x: svgX(c),
-          y: svgY(r) + cell * (isBig ? 0.2 : 0.16),
+          y: svgY(r) + cell * 0.22,
           'text-anchor': 'middle',
-          'font-size': cell * (isBig ? 0.66 : 0.6),
+          'font-size': cell * 0.72,
           fill: '#ffffff',
           'font-weight': 700,
           'pointer-events': 'none',
         });
-        glyph.textContent = isBig ? '✈' : '↷';
+        glyph.textContent = '✈';
         trackGroup.appendChild(glyph);
       } else {
         // Plain track cell — clearly visible white circle marker
@@ -1139,15 +1141,16 @@ permalink: /toolbox/feixingqi/
   // Move resolution
   // ============================================================
 
-  // Apply jump cascade. Regular jumps chain c4 → c12 → c18; landing on c18 triggers
-  // the BIG JUMP (advance 12 cells, no further chain).
+  // Land on YOUR own takeoff cell (offset +8) → fly diagonally across the board
+  // to the opposite concave corner (+26 cells). No chains, no other jump cells.
   function resolveJumps(player, idx) {
     const e = L().EXIT_INDEX[player];
-    const c4 = (e + 4) % TRACK_LEN, c12 = (e + 12) % TRACK_LEN, c18 = (e + 18) % TRACK_LEN;
+    const takeoff = (e + TAKEOFF_OFFSET) % TRACK_LEN;
     let triggered = { jumped: false, bigJumped: false };
-    if (idx === c4)  { idx = c12; triggered.jumped = true; }
-    if (idx === c12) { idx = c18; triggered.jumped = true; }
-    if (idx === c18) { idx = (c18 + 12) % TRACK_LEN; triggered.bigJumped = true; }
+    if (idx === takeoff) {
+      idx = (takeoff + FLIGHT_DISTANCE) % TRACK_LEN;
+      triggered.bigJumped = true;
+    }
     return { idx, triggered };
   }
 
@@ -1200,7 +1203,7 @@ permalink: /toolbox/feixingqi/
           kind: 'walk',
           toStatus: 'track',
           toPos: idx,
-          cellsAdvanced: dice + (triggered.jumped ? 8 : 0) + (triggered.bigJumped ? 12 : 0),
+          cellsAdvanced: dice + (triggered.bigJumped ? FLIGHT_DISTANCE : 0),
           triggered,
         };
       } else if (r.kind === 'stretch') {
@@ -1277,12 +1280,11 @@ permalink: /toolbox/feixingqi/
     const path = [];
     const stretchLen = L().STRETCH_LEN;
     const e = L().EXIT_INDEX[player];
-    const c4 = (e + 4) % TRACK_LEN, c12 = (e + 12) % TRACK_LEN, c18 = (e + 18) % TRACK_LEN;
+    const takeoff = (e + TAKEOFF_OFFSET) % TRACK_LEN;
     const transition = L().STRETCH_TRANSITION[player];
 
     if (piece.status === 'hangar') {
       if (dice !== 6) return [];
-      // Plane lifts out of hangar onto the exit cell — single hop.
       path.push({ status: 'track', pos: e });
       return path;
     }
@@ -1290,7 +1292,6 @@ permalink: /toolbox/feixingqi/
     if (piece.status === 'track') {
       let cur = piece.pos;
       let stepsLeft = dice;
-      // Walk along the track. If we cross the stretch transition, switch into stretch mode.
       while (stepsLeft > 0) {
         if (cur === transition) {
           for (const step of stretchSubPath(-1, stepsLeft, stretchLen)) path.push(step);
@@ -1300,20 +1301,10 @@ permalink: /toolbox/feixingqi/
         path.push({ status: 'track', pos: cur });
         stepsLeft--;
       }
-      // After the dice-walk, resolve any jump chain by walking each skipped cell too.
-      let safety = 0;
-      while (safety++ < 4) {
-        if (cur === c4) {
-          for (let k = 1; k <= 8; k++) path.push({ status: 'track', pos: (cur + k) % TRACK_LEN });
-          cur = c12;
-        } else if (cur === c12) {
-          for (let k = 1; k <= 6; k++) path.push({ status: 'track', pos: (cur + k) % TRACK_LEN });
-          cur = c18;
-        } else if (cur === c18) {
-          for (let k = 1; k <= 12; k++) path.push({ status: 'track', pos: (cur + k) % TRACK_LEN });
-          break; // big jump terminates the chain
-        } else {
-          break;
+      // After the dice-walk: did we land on our own takeoff? If so, fly across.
+      if (cur === takeoff) {
+        for (let k = 1; k <= FLIGHT_DISTANCE; k++) {
+          path.push({ status: 'track', pos: (cur + k) % TRACK_LEN });
         }
       }
       return path;
@@ -1484,9 +1475,7 @@ permalink: /toolbox/feixingqi/
       if (result.captures.length > 0) {
         toast(`💥 ${COLOR_INFO[player].label}方踩格 — 送回 ${result.captures.length} 架`);
       } else if (result.triggered && result.triggered.bigJumped) {
-        toast('✈ 大飞跃！');
-      } else if (result.triggered && result.triggered.jumped) {
-        toast('↷ 同色跳跃');
+        toast('✈ 起飞！横跨半盘到对角');
       }
 
       // Win check
@@ -1605,8 +1594,7 @@ permalink: /toolbox/feixingqi/
     }
 
     // Triggered jump / big jump
-    if (preview.triggered && preview.triggered.bigJumped) s += 90;
-    else if (preview.triggered && preview.triggered.jumped) s += 45;
+    if (preview.triggered && preview.triggered.bigJumped) s += 180;
 
     // Distance progress (more cells = more progress)
     s += (preview.cellsAdvanced || 0) * 2;
@@ -1862,19 +1850,19 @@ permalink: /toolbox/feixingqi/
       ctx.fill();
       ctx.stroke();
       if (ownerColor) {
-        // White ring + glyph on colored jump cell
-        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        // Takeoff cell — white inner ring + bold ✈
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5 * sx;
+        ctx.lineWidth = 1.8 * sx;
         ctx.beginPath();
-        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.32 * sx, 0, Math.PI * 2);
+        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.34 * sx, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${baseCell * (isBig ? 0.66 : 0.6) * sx}px sans-serif`;
+        ctx.font = `bold ${baseCell * 0.72 * sx}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(isBig ? '✈' : '↷', dx + svgX(c) * sx, dy + svgY(r) * sx);
+        ctx.fillText('✈', dx + svgX(c) * sx, dy + svgY(r) * sx);
       } else {
         // Crisp white circular station marker
         ctx.fillStyle = '#fff5dc';
