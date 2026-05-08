@@ -153,7 +153,7 @@
   status: live
 
 - id: werewolf
-  name: 狼人杀联机房间
+  name: 狼人杀
   icon: 🐺
   tagline: 多设备无须上帝
   url: /toolbox/werewolf/
