@@ -265,7 +265,7 @@ permalink: /toolbox/pinball/
   // 物理参数（设计像素 / 秒）
   const GRAVITY = 1100;        // 像素/秒²
   const AIR_DRAG = 0.999;      // 每帧水平速度衰减系数（在 60fps 下）
-  const SUBSTEPS = 6;          // 每帧子步进次数（防隧穿）
+  const SUBSTEPS = 8;          // 每帧子步进次数（防隧穿，挡板扫掠也分摊到每步）
   const MAX_SPEED = 1400;      // 球速上限，防爆炸
 
   const BALL_R = 9;
@@ -580,9 +580,8 @@ permalink: /toolbox/pinball/
     const dt = Math.min(rawDt, 0.033);
 
     if (!state.paused && state.status !== 'gameover') {
-      updatePhysics(dt, now);
       updatePlunger(dt);
-      updateFlippers(dt);
+      updatePhysics(dt, now);  // 挡板旋转已挪进子步循环，统一在这里推进
     }
     render(now);
     state.rafId = requestAnimationFrame(step);
@@ -641,10 +640,19 @@ permalink: /toolbox/pinball/
   }
 
   function updatePhysics(dt, now) {
-    if (state.ball.onPlunger) return;
+    if (state.ball.onPlunger) {
+      // 球在弹簧上时也要让挡板正常转（用户可能预拨挡板等球落下）
+      updateFlippers(dt);
+      return;
+    }
     const subDt = dt / SUBSTEPS;
 
     for (let s = 0; s < SUBSTEPS; s++) {
+      // ★ 关键修复：挡板旋转拆到子步内 —— 之前一帧整个 57° 一次性 teleport，
+      // 球可能正好落在 rest / up 角度的 16px 碰撞带之外却被扫掠区域穿过，
+      // 导致挡板「打不到」球。现在每子步只转 1/8，球碰撞检测能跟上挡板移动。
+      updateFlippers(subDt);
+
       // 重力 + 阻尼
       state.ball.vy += GRAVITY * subDt;
       state.ball.vx *= Math.pow(AIR_DRAG, subDt * 60);
