@@ -119,11 +119,11 @@ permalink: /toolbox/tiaoqi/
     background: rgba(243, 156, 18, 0.16);
     color: #8a4a00;
   }
-  .tq-corner-chip.locked {
-    cursor: default;
-    border-style: solid;
-  }
-  .tq-corner-chip.locked:hover { --tq-scale: 1; filter: none; }
+  /* Locked = game-mode read-only label. Hidden because the roster row above the
+     board already names every player+kind, and the corner colors are visible
+     directly via the on-board pieces — keeping chips here only causes the top
+     chip to collide with the roster and the bottom one to crowd the controls. */
+  .tq-corner-chip.locked { display: none; }
   .tq-corner-chip .swatch {
     width: 0.7rem; height: 0.7rem;
     border-radius: 50%;
