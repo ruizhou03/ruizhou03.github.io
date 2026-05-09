@@ -288,6 +288,9 @@ permalink: /toolbox/pinball/
   const SLING_KICK = 220;
   const SLING_SCORE = 25;
   const PEG_SCORE = 25;        // 钉子每碰 +25，带 200ms 冷却防止重复触发
+  // Drop target：单根难度高（要把球打到台面顶上），单根 +250、三根全清 +1500
+  const DROP_TARGET_SCORE = 250;
+  const DROP_CLEAR_BONUS = 1500;
   const WALL_RESTITUTION = 0.78;
   const SLING_RESTITUTION = 0.7;
 
@@ -344,7 +347,7 @@ permalink: /toolbox/pinball/
       { x: 60,  y: 290, flashTill: 0 },   // 左壁中段
       { x: 420, y: 290, flashTill: 0 },   // 右壁中段
     ],
-    // Drop targets：3 根小铜柱，撞一下倒一根 +75，三根全清 +500 后 1.5s 复位
+    // Drop targets：3 根小铜柱（顶端高难度目标），单根 +250、三根全清 +1500，1.5s 后复位
     dropTargets: [
       { ax: 155, ay: 80, bx: 155, by: 102, dropped: false },
       { ax: 240, ay: 80, bx: 240, by: 102, dropped: false },
@@ -500,15 +503,15 @@ permalink: /toolbox/pinball/
       }
       // 倒下 + 计分
       t.dropped = true;
-      state.score += 75;
-      state.flashTill = now + 100;
-      state.popups.push({ x: (t.ax + t.bx) / 2, y: t.ay - 6, text: '+75', t0: now });
+      state.score += DROP_TARGET_SCORE;
+      state.flashTill = now + 140;
+      state.popups.push({ x: (t.ax + t.bx) / 2, y: t.ay - 6, text: '+' + DROP_TARGET_SCORE, t0: now });
       if (state.score > state.best) { state.best = state.score; persist(); }
       // 三根全清 → 大额加成 + 1.5s 后复位
       if (state.dropTargets.every(d => d.dropped)) {
-        state.score += 500;
-        state.flashTill = now + 280;
-        state.popups.push({ x: DESIGN_W / 2, y: 130, text: 'TARGETS  +500', t0: now });
+        state.score += DROP_CLEAR_BONUS;
+        state.flashTill = now + 320;
+        state.popups.push({ x: DESIGN_W / 2, y: 130, text: 'TARGETS  +' + DROP_CLEAR_BONUS, t0: now });
         state.dropTargetsResetAt = now + 1500;
         if (state.score > state.best) { state.best = state.score; persist(); }
       }
