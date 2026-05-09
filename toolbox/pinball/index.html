@@ -340,7 +340,16 @@ permalink: /toolbox/pinball/
       { x: 175, y: 405 },
       { x: 305, y: 405 },
       { x: 240, y: 230 },   // 菱形中心一颗，让顶/中下不直接走直线
+      { x: 60,  y: 290 },   // 左侧靠墙，球沿左壁下来时偏转
+      { x: 420, y: 290 },   // 右侧靠墙
     ],
+    // Drop targets：3 根小铜柱，撞一下倒一根 +75，三根全清 +500 后 1.5s 复位
+    dropTargets: [
+      { ax: 155, ay: 80, bx: 155, by: 102, dropped: false },
+      { ax: 240, ay: 80, bx: 240, by: 102, dropped: false },
+      { ax: 325, ay: 80, bx: 325, by: 102, dropped: false },
+    ],
+    dropTargetsResetAt: 0,
     // 墙：线段集
     walls: [],
     slings: [],
@@ -433,14 +442,12 @@ permalink: /toolbox/pinball/
     // Slingshot：左右两个三角形，撞到斜面会被弹飞
     // 左 sling：三角顶点 (44, 470), (98, 460), (132, 528) — 关键斜边是 (98,460)→(132,528)
     sling(98, 460, 132, 528);
-    wall(44, 470, 98, 460);   // 上沿（普通墙）
-    wall(44, 470, 44, 528);   // 左竖
-    wall(44, 528, 132, 528);  // 下沿
+    wall(44, 470, 98, 460);    // 上沿（与 sling 顶点接平）
+    wall(44, 470, 132, 528);   // 背边斜墙 —— 沿可见三角形的第三条边
     // 右 sling：镜像
     sling(310, 528, 344, 460);
     wall(344, 460, 398, 470);
-    wall(398, 470, 398, 528);
-    wall(310, 528, 398, 528);
+    wall(398, 470, 310, 528);  // 背边斜墙
   }
 
   // ───────── 工具：向量 ─────────
@@ -462,6 +469,51 @@ permalink: /toolbox/pinball/
   }
 
   // ───────── 碰撞 ─────────
+  // Drop target：可击倒小柱，撞掉 +75，三根全清 +500，1.5s 后整组复位
+  const DROP_HALF_W = 4;       // 柱半宽（px），决定碰撞胶囊半径
+  function collideDropTargets(ball, now) {
+    state.dropTargets.forEach(t => {
+      if (t.dropped) return;
+      const cp = closestPointOnSeg(ball.x, ball.y, t.ax, t.ay, t.bx, t.by);
+      const dx = ball.x - cp.x;
+      const dy = ball.y - cp.y;
+      const dist = Math.hypot(dx, dy);
+      const minDist = ball.r + DROP_HALF_W;
+      if (dist >= minDist) return;
+      let nx, ny;
+      if (dist < 1e-6) {
+        const ABx = t.bx - t.ax, ABy = t.by - t.ay;
+        const len = Math.hypot(ABx, ABy) || 1;
+        nx = -ABy / len; ny = ABx / len;
+      } else {
+        nx = dx / dist; ny = dy / dist;
+      }
+      const overlap = minDist - dist;
+      ball.x += nx * overlap;
+      ball.y += ny * overlap;
+      const vDotN = ball.vx * nx + ball.vy * ny;
+      if (vDotN < 0) {
+        const r = 0.62;
+        ball.vx -= (1 + r) * vDotN * nx;
+        ball.vy -= (1 + r) * vDotN * ny;
+      }
+      // 倒下 + 计分
+      t.dropped = true;
+      state.score += 75;
+      state.flashTill = now + 100;
+      state.popups.push({ x: (t.ax + t.bx) / 2, y: t.ay - 6, text: '+75', t0: now });
+      if (state.score > state.best) { state.best = state.score; persist(); }
+      // 三根全清 → 大额加成 + 1.5s 后复位
+      if (state.dropTargets.every(d => d.dropped)) {
+        state.score += 500;
+        state.flashTill = now + 280;
+        state.popups.push({ x: DESIGN_W / 2, y: 130, text: 'TARGETS  +500', t0: now });
+        state.dropTargetsResetAt = now + 1500;
+        if (state.score > state.best) { state.best = state.score; persist(); }
+      }
+    });
+  }
+
   // 静态 peg：纯偏转、不加分、不计 combo —— 视觉小钉，玩法上让球路径更难预测
   const PEG_R = 5.5;
   function collidePeg(ball, peg) {
@@ -619,6 +671,11 @@ permalink: /toolbox/pinball/
     if (!state.paused && state.status !== 'gameover') {
       updatePlunger(dt);
       updatePhysics(dt, now);  // 挡板旋转已挪进子步循环，统一在这里推进
+      // Drop targets 全清后定时复位
+      if (state.dropTargetsResetAt > 0 && now >= state.dropTargetsResetAt) {
+        state.dropTargets.forEach(t => { t.dropped = false; });
+        state.dropTargetsResetAt = 0;
+      }
     }
     updateHud();   // 每帧同步 HUD：撞 bumper / 连击加分立即可见
     render(now);
@@ -708,6 +765,7 @@ permalink: /toolbox/pinball/
       // 碰撞检测
       state.bumpers.forEach(b => collideBumper(state.ball, b, now));
       state.pegs.forEach(p => collidePeg(state.ball, p));
+      collideDropTargets(state.ball, now);
       state.walls.forEach(w => collideSegment(state.ball, w, now, false));
       state.slings.forEach(sg => collideSegment(state.ball, sg, now, true));
       collideFlipper(state.ball, state.flipL);
@@ -927,6 +985,29 @@ permalink: /toolbox/pinball/
     ctx.fillStyle = 'rgba(201, 169, 97, 0.55)';
     ctx.textAlign = 'center';
     ctx.fillText('COMBO  ×3  =  +500', DESIGN_W / 2, 78);
+
+    // ─── Drop targets：3 根铜柱，倒下后只留淡淡的轮廓 ───
+    state.dropTargets.forEach(t => {
+      const cx = (t.ax + t.bx) / 2;
+      const cy = (t.ay + t.by) / 2;
+      const len = Math.hypot(t.bx - t.ax, t.by - t.ay);
+      const w = DROP_HALF_W * 2;
+      if (t.dropped) {
+        ctx.strokeStyle = 'rgba(124, 126, 138, 0.22)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx - w / 2, cy - len / 2, w, len);
+      } else {
+        const tgrd = ctx.createLinearGradient(cx - w / 2, cy, cx + w / 2, cy);
+        tgrd.addColorStop(0, '#7a5f30');
+        tgrd.addColorStop(0.5, '#d4b478');
+        tgrd.addColorStop(1, '#7a5f30');
+        ctx.fillStyle = tgrd;
+        ctx.fillRect(cx - w / 2, cy - len / 2, w, len);
+        ctx.strokeStyle = 'rgba(245, 230, 196, 0.55)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx - w / 2, cy - len / 2, w, len);
+      }
+    });
 
     // ─── Pegs：在 bumper 之下渲染，小镍色钉 ───
     state.pegs.forEach(p => {
@@ -1178,6 +1259,8 @@ permalink: /toolbox/pinball/
     state.balls = TOTAL_BALLS;
     state.bumperHits = 0;
     state.bumpers.forEach(b => { b.flashTill = 0; b.hitCount = 0; });
+    state.dropTargets.forEach(t => { t.dropped = false; });
+    state.dropTargetsResetAt = 0;
     state.popups = [];
     resetToPlunger();
     state.plunger.charging = false;
