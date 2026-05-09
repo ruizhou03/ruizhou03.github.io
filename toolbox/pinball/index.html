@@ -287,6 +287,7 @@ permalink: /toolbox/pinball/
   const BUMPER_SCORE = 100;
   const SLING_KICK = 220;
   const SLING_SCORE = 25;
+  const PEG_SCORE = 25;        // 钉子每碰 +25，带 200ms 冷却防止重复触发
   const WALL_RESTITUTION = 0.78;
   const SLING_RESTITUTION = 0.7;
 
@@ -333,15 +334,15 @@ permalink: /toolbox/pinball/
       { x: 350, y: 230, r: BUMPER_R, flashTill: 0, hitCount: 0 },   // 右
       { x: 240, y: 320, r: 16,        flashTill: 0, hitCount: 0, score: 60 },  // 中下偏小
     ],
-    // 静态 peg：小钉子，无分值，给球做随机偏转 —— 视觉精致 + 玩法丰富
+    // 钉子：每碰 +25 分，flashTill 做 200ms 冷却防止反复计分
     pegs: [
-      { x: 80,  y: 180 },
-      { x: 400, y: 180 },
-      { x: 175, y: 405 },
-      { x: 305, y: 405 },
-      { x: 240, y: 230 },   // 菱形中心一颗，让顶/中下不直接走直线
-      { x: 60,  y: 290 },   // 左侧靠墙，球沿左壁下来时偏转
-      { x: 420, y: 290 },   // 右侧靠墙
+      { x: 80,  y: 180, flashTill: 0 },
+      { x: 400, y: 180, flashTill: 0 },
+      { x: 175, y: 405, flashTill: 0 },
+      { x: 305, y: 405, flashTill: 0 },
+      { x: 240, y: 230, flashTill: 0 },   // 菱形中心一颗
+      { x: 60,  y: 290, flashTill: 0 },   // 左壁中段
+      { x: 420, y: 290, flashTill: 0 },   // 右壁中段
     ],
     // Drop targets：3 根小铜柱，撞一下倒一根 +75，三根全清 +500 后 1.5s 复位
     dropTargets: [
@@ -514,9 +515,9 @@ permalink: /toolbox/pinball/
     });
   }
 
-  // 静态 peg：纯偏转、不加分、不计 combo —— 视觉小钉，玩法上让球路径更难预测
+  // 钉子：偏转 + 加分（带冷却防止球停在上面反复触发）
   const PEG_R = 5.5;
-  function collidePeg(ball, peg) {
+  function collidePeg(ball, peg, now) {
     const dx = ball.x - peg.x;
     const dy = ball.y - peg.y;
     const dist = Math.hypot(dx, dy);
@@ -531,6 +532,13 @@ permalink: /toolbox/pinball/
       const r = 0.82;       // 比 bumper 软一点，避免太弹
       ball.vx -= (1 + r) * vDotN * nx;
       ball.vy -= (1 + r) * vDotN * ny;
+    }
+    // 冷却内不重复计分；冷却期外才 +25 + 弹分数
+    if (peg.flashTill <= now) {
+      state.score += PEG_SCORE;
+      peg.flashTill = now + 200;
+      state.popups.push({ x: peg.x, y: peg.y - 12, text: '+' + PEG_SCORE, t0: now });
+      if (state.score > state.best) { state.best = state.score; persist(); }
     }
     return true;
   }
@@ -764,7 +772,7 @@ permalink: /toolbox/pinball/
 
       // 碰撞检测
       state.bumpers.forEach(b => collideBumper(state.ball, b, now));
-      state.pegs.forEach(p => collidePeg(state.ball, p));
+      state.pegs.forEach(p => collidePeg(state.ball, p, now));
       collideDropTargets(state.ball, now);
       state.walls.forEach(w => collideSegment(state.ball, w, now, false));
       state.slings.forEach(sg => collideSegment(state.ball, sg, now, true));
@@ -1009,17 +1017,29 @@ permalink: /toolbox/pinball/
       }
     });
 
-    // ─── Pegs：在 bumper 之下渲染，小镍色钉 ───
+    // ─── Pegs：在 bumper 之下渲染，小镍色钉（撞到时闪香槟金）───
     state.pegs.forEach(p => {
-      const pr = PEG_R + 1;
+      const pflash = p.flashTill > now;
+      const pr = PEG_R + 1 + (pflash ? 1.5 : 0);
+      if (pflash) {
+        ctx.shadowColor = '#f5e6c4';
+        ctx.shadowBlur = 12;
+      }
       const pgrd = ctx.createRadialGradient(p.x - 1.2, p.y - 1.2, 0.5, p.x, p.y, pr);
-      pgrd.addColorStop(0, '#a4a7b1');
-      pgrd.addColorStop(0.7, '#7c7e8a');
-      pgrd.addColorStop(1, '#3a3c44');
+      if (pflash) {
+        pgrd.addColorStop(0, '#fff8e0');
+        pgrd.addColorStop(0.6, '#d4b478');
+        pgrd.addColorStop(1, '#8a7040');
+      } else {
+        pgrd.addColorStop(0, '#a4a7b1');
+        pgrd.addColorStop(0.7, '#7c7e8a');
+        pgrd.addColorStop(1, '#3a3c44');
+      }
       ctx.fillStyle = pgrd;
       ctx.beginPath();
       ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
       ctx.fill();
+      ctx.shadowBlur = 0;
       ctx.fillStyle = 'rgba(245, 230, 196, 0.45)';
       ctx.beginPath();
       ctx.arc(p.x - 1.2, p.y - 1.2, 1.4, 0, Math.PI * 2);
@@ -1259,6 +1279,7 @@ permalink: /toolbox/pinball/
     state.balls = TOTAL_BALLS;
     state.bumperHits = 0;
     state.bumpers.forEach(b => { b.flashTill = 0; b.hitCount = 0; });
+    state.pegs.forEach(p => { p.flashTill = 0; });
     state.dropTargets.forEach(t => { t.dropped = false; });
     state.dropTargetsResetAt = 0;
     state.popups = [];
