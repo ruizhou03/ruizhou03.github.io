@@ -347,12 +347,14 @@ permalink: /toolbox/feixingqi/
     </div>
     <div class="fxq-help">点击棋盘四角的 chip 在「空 / 人类 / AI」之间切换。每位玩家 4 架飞机，目标是把 4 架全送到中央终点。至少需要 2 个角有玩家。</div>
     <div class="fxq-rules">
-      <span class="pill">起飞</span> 掷出 6 才能从机库出一架；掷 6 后再掷一次（连续 3 个 6 视为犯规，最近一架退回机库）。
+      <span class="pill">出库</span> 掷出 6 才能从机库出一架；掷 6 后再掷一次（连续 3 个 6 视为犯规，最近一架退回机库）。
       <br>
-      <span class="pill">起飞</span> 跑道上 4 个拐角各有一架同色 <span style="color:#e74c3c">✈</span>。落到自己颜色的 ✈ 格 → 飞到对角的另一个拐角（横跨半个棋盘）。
+      <span class="pill">起飞</span> 跑道在 4 个凹角各有一架同色 <span style="color:#e74c3c">✈</span>。落到自己颜色的 ✈ → 飞到斜对角的凹角（横跨半盘 23 格）。
+      <br>
+      <span class="pill">归航</span> 走完整圈后转进自己颜色的归航跑道（每条 6 格、带方向箭头），到达中心 4 色风车内同色三角即胜。
       <br>
       <span class="pill">踩格</span> 落到对手所在格 → 对手该格上飞机全部回机库。
-      <span class="pill">终点</span> 进入终点跑道后必须精确到达，多余步数反弹。
+      <span class="pill">精确</span> 进归航跑道后剩余步数必须精确到达终点，超出反弹。
     </div>
   </div>
 
@@ -381,18 +383,26 @@ permalink: /toolbox/feixingqi/
   // Constants — board geometry (two layouts share game logic)
   // ============================================================
   const SVG_W = 660, SVG_H = 660;
-  const TRACK_LEN = 52;
+  // 48-cell track: each arm contributes 12 cells (the 2 outer cols/rows ×
+  // 6 cells each); the middle col/row of the arm is the home stretch and is
+  // NOT part of the outer loop. So the loop "skips" the stretch cell at each
+  // arm tip — going clockwise the plane jumps from (0,6) to (0,8), (6,14) to
+  // (8,14), (14,8) to (14,6), (8,0) to (6,0).
+  const TRACK_LEN = 48;
 
-  const COLORS = ['red', 'yellow', 'blue', 'green'];
+  // Corner colors per classic Chinese 飞行棋 (also matches the user's reference image):
+  // NW = 绿 green, NE = 黄 yellow, SE = 蓝 blue, SW = 红 red.
+  const COLORS = ['green', 'yellow', 'blue', 'red'];
   const COLOR_INFO = {
-    red:    { hex: '#e74c3c', light: '#fde2dd', label: '红', corner: 'NW', name: '西北' },
+    green:  { hex: '#27ae60', light: '#cfe9d8', label: '绿', corner: 'NW', name: '西北' },
     yellow: { hex: '#f1c40f', light: '#fdf3c4', label: '黄', corner: 'NE', name: '东北' },
     blue:   { hex: '#3498db', light: '#d5e7f6', label: '蓝', corner: 'SE', name: '东南' },
-    green:  { hex: '#27ae60', light: '#cfe9d8', label: '绿', corner: 'SW', name: '西南' },
+    red:    { hex: '#e74c3c', light: '#fde2dd', label: '红', corner: 'SW', name: '西南' },
   };
-  const CORNER_TO_COLOR = { NW: 'red', NE: 'yellow', SE: 'blue', SW: 'green' };
+  const CORNER_TO_COLOR = { NW: 'green', NE: 'yellow', SE: 'blue', SW: 'red' };
   const CORNER_KEYS = ['NW', 'NE', 'SE', 'SW'];
-  const TURN_ORDER = ['red', 'yellow', 'blue', 'green'];
+  // Turn order is clockwise around the board: NW → NE → SE → SW.
+  const TURN_ORDER = ['green', 'yellow', 'blue', 'red'];
 
   // ===== Layout: cross perimeter (planes walk around a cross-shaped track) =====
   // Each player exits at one of the 4 outer arm tips and walks clockwise.
@@ -400,50 +410,70 @@ permalink: /toolbox/feixingqi/
   const LAYOUT_CROSS = {
     label: '十字盘',
     GRID: 15,
+    // 48-cell outer loop. Each arm contributes 12 track cells (2 outer cols/rows
+    // × 6 cells). The middle col/row of each arm is the home stretch — NOT in
+    // the track loop. The loop "skips" the stretch cell at each arm tip.
+    //
+    // Indexing (clockwise from green's takeoff at NW concave corner):
+    //   0..5   top arm col 6 going UP   (5,6)(4,6)(3,6)(2,6)(1,6)(0,6)
+    //   6..11  top arm col 8 going DOWN (0,8)(1,8)(2,8)(3,8)(4,8)(5,8)
+    //   12..17 right arm row 6 going RIGHT (6,9)..(6,14)
+    //   18..23 right arm row 8 going LEFT  (8,14)..(8,9)
+    //   24..29 bottom arm col 8 going DOWN (9,8)..(14,8)
+    //   30..35 bottom arm col 6 going UP   (14,6)..(9,6)
+    //   36..41 left arm row 8 going LEFT  (8,5)..(8,0)
+    //   42..47 left arm row 6 going RIGHT (6,0)..(6,5)
     TRACK: [
-      [0,6],[0,7],[0,8],
-      [1,8],[2,8],[3,8],[4,8],[5,8],
-      [6,9],[6,10],[6,11],[6,12],[6,13],[6,14],
-      [7,14],[8,14],
-      [8,13],[8,12],[8,11],[8,10],[8,9],
-      [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],
-      [14,7],[14,6],
-      [13,6],[12,6],[11,6],[10,6],[9,6],
-      [8,5],[8,4],[8,3],[8,2],[8,1],[8,0],
-      [7,0],[6,0],
-      [6,1],[6,2],[6,3],[6,4],[6,5],
-      [5,6],[4,6],[3,6],[2,6],[1,6],
+      [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],         // 0..5
+      [0,8],[1,8],[2,8],[3,8],[4,8],[5,8],         // 6..11
+      [6,9],[6,10],[6,11],[6,12],[6,13],[6,14],    // 12..17
+      [8,14],[8,13],[8,12],[8,11],[8,10],[8,9],    // 18..23
+      [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],    // 24..29
+      [14,6],[13,6],[12,6],[11,6],[10,6],[9,6],    // 30..35
+      [8,5],[8,4],[8,3],[8,2],[8,1],[8,0],         // 36..41
+      [6,0],[6,1],[6,2],[6,3],[6,4],[6,5],         // 42..47
     ],
-    EXIT_INDEX: { red: 0, yellow: 13, blue: 26, green: 39 },
-    STRETCH_TRANSITION: { red: 51, yellow: 12, blue: 25, green: 38 },
+    // Each player's takeoff/exit at the inner concave corner of their adjacent
+    // arm, pointing clockwise. 12 cells apart.
+    EXIT_INDEX:        { green: 0,  yellow: 12, blue: 24, red: 36 },
+    // Stretch transition is the cell BEFORE re-entering the takeoff, after a
+    // full clockwise loop. Plane on this cell turns into its home stretch.
+    STRETCH_TRANSITION:{ green: 47, yellow: 11, blue: 23, red: 35 },
     STRETCH_CELLS: {
-      // 5 cells of stretch per color; the goal cell sits one step inward.
-      red:    [[1,7],[2,7],[3,7],[4,7],[5,7]],     // top arm middle, going down
-      yellow: [[7,13],[7,12],[7,11],[7,10],[7,9]], // right arm middle, going left
-      blue:   [[13,7],[12,7],[11,7],[10,7],[9,7]], // bottom arm middle, going up
-      green:  [[7,1],[7,2],[7,3],[7,4],[7,5]],     // left arm middle, going right
+      // 6 cells per stretch, walking from the OUTER end inward to the centre
+      // (matching the spec arrows ↓ ← ↑ →).
+      green:  [[0,7],[1,7],[2,7],[3,7],[4,7],[5,7]],         // top arm col 7, ↓
+      yellow: [[7,14],[7,13],[7,12],[7,11],[7,10],[7,9]],    // right arm row 7, ←
+      blue:   [[14,7],[13,7],[12,7],[11,7],[10,7],[9,7]],    // bottom arm col 7, ↑
+      red:    [[7,0],[7,1],[7,2],[7,3],[7,4],[7,5]],         // left arm row 7, →
     },
-    STRETCH_LEN: 5,
+    STRETCH_LEN: 6,
     HANGAR_CELLS: {
-      // Tight 2×2 cluster at the centre of each 6×6 home (cells 2–3 of the home).
-      red:    [[2,2],[2,3],[3,2],[3,3]],
-      yellow: [[2,11],[2,12],[3,11],[3,12]],
-      blue:   [[11,11],[11,12],[12,11],[12,12]],
-      green:  [[11,2],[11,3],[12,2],[12,3]],
+      // Tight 2×2 cluster at the centre of each 6×6 home zone.
+      green:  [[2,2],[2,3],[3,2],[3,3]],          // NW
+      yellow: [[2,11],[2,12],[3,11],[3,12]],      // NE
+      blue:   [[11,11],[11,12],[12,11],[12,12]],  // SE
+      red:    [[11,2],[11,3],[12,2],[12,3]],      // SW
     },
     HOME_ZONES: {
-      red:    { r0: 0,  r1: 5,  c0: 0,  c1: 5  },
-      yellow: { r0: 0,  r1: 5,  c0: 9,  c1: 14 },
-      blue:   { r0: 9,  r1: 14, c0: 9,  c1: 14 },
-      green:  { r0: 9,  r1: 14, c0: 0,  c1: 5  },
+      green:  { r0: 0,  r1: 5,  c0: 0,  c1: 5  },  // NW
+      yellow: { r0: 0,  r1: 5,  c0: 9,  c1: 14 },  // NE
+      blue:   { r0: 9,  r1: 14, c0: 9,  c1: 14 },  // SE
+      red:    { r0: 9,  r1: 14, c0: 0,  c1: 5  },  // SW
     },
     GOAL: {
-      // Per-color goal cells form a + shape around the center (7,7).
-      // The very center is decorative (trophy + 4-quartered diamond).
-      kind: 'per-color',
-      cells: { red: [6, 7], yellow: [7, 8], blue: [8, 7], green: [7, 6] },
+      // Central 3×3 (rows 6-8, cols 6-8) as a 4-triangle pinwheel.
+      // Each triangle's base sits along one edge of the 3×3, apex at (7.5,7.5).
+      kind: 'pinwheel',
       boxR0: 6, boxR1: 8, boxC0: 6, boxC1: 8,
-      diamondCell: [7, 7],
+      // Where each colour's planes park when they reach goal — anchored just
+      // inside their own triangle of the central pinwheel.
+      anchors: {
+        green:  [6.5, 7.5],   // top triangle
+        yellow: [7.5, 8.5],   // right triangle
+        blue:   [8.5, 7.5],   // bottom triangle
+        red:    [7.5, 6.5],   // left triangle
+      },
     },
   };
 
@@ -453,8 +483,12 @@ permalink: /toolbox/feixingqi/
   // exit (the FIRST concave corner of the cross going clockwise from exit).
   // Landing on your own takeoff flies you DIAGONALLY ACROSS the board to the
   // opposite concave corner (+26 cells = half a lap forward).
-  const TAKEOFF_OFFSET = 8;
-  const FLIGHT_DISTANCE = 26;
+  // The takeoff cell IS the exit cell (offset 0 from EXIT_INDEX), located at
+  // the inner concave corner of the cross next to each player's base.
+  // Landing on YOUR own takeoff cell (with ✈) flies you 23 cells around the
+  // loop — to the diagonally opposite concave corner.
+  const TAKEOFF_OFFSET = 0;
+  const FLIGHT_DISTANCE = 23;
   for (const key in LAYOUTS) {
     const layout = LAYOUTS[key];
     layout.CELL_COLOR = {};       // index → owner colour (only takeoff cells are coloured)
@@ -471,16 +505,17 @@ permalink: /toolbox/feixingqi/
   function CELL() { return SVG_W / L().GRID; }
   function goalCellFor(color) {
     const g = L().GOAL;
-    return g.kind === 'shared' ? g.cell : g.cells[color];
+    if (g.kind === 'pinwheel') return g.anchors[color];
+    if (g.kind === 'shared')   return g.cell;
+    return g.cells[color];
   }
 
-  // Direction in which a stretch progresses INWARD toward the central goal.
-  // Used to draw arrows on each stretch cell pointing toward the goal.
+  // Direction each home stretch points (toward the central goal).
   const STRETCH_DIR = {
-    red:    'down',   // top arm: red flies down through col 7
-    yellow: 'left',   // right arm: yellow flies left through row 7
-    blue:   'up',     // bottom arm: blue flies up through col 7
-    green:  'right',  // left arm: green flies right through row 7
+    green:  'down',   // top arm middle, ↓
+    yellow: 'left',   // right arm middle, ←
+    blue:   'up',     // bottom arm middle, ↑
+    red:    'right',  // left arm middle, →
   };
 
   // ============================================================
@@ -970,50 +1005,39 @@ permalink: /toolbox/feixingqi/
     }
     svg.appendChild(trackGroup);
 
-    // === Layer: goal — 4 per-color goal cells (in + shape) + central 4-quartered diamond ===
+    // === Layer: goal — central 3×3 pinwheel of 4 coloured triangles ===
     const goalGroup = svgEl('g', { class: 'goal' });
     const goal = layout.GOAL;
-    // 4 per-color goal cells (just inside the 3×3 goal box, around the central diamond)
-    for (const color of COLORS) {
-      const [r, c] = goal.cells[color];
-      const info = COLOR_INFO[color];
-      goalGroup.appendChild(svgEl('rect', {
-        x: c * cell + cell * 0.06,
-        y: r * cell + cell * 0.06,
-        width: cell * 0.88,
-        height: cell * 0.88,
-        class: 'goal-cell',
-        fill: activeColors.has(color) ? info.hex : '#cdc3b0',
-        stroke: '#1a1a1a',
-        'stroke-width': 1.5,
-        rx: 4,
-      }));
-    }
-    // Central 4-quartered diamond (rotated square) — the meeting point of 4 stretches.
-    const [dgr, dgc] = goal.diamondCell;
-    const cxPx = svgX(dgc);
-    const cyPx = svgY(dgr);
-    const diamondR = cell * 0.46;
-    const quarterCorner = (color, p1, p2) => {
-      // Triangle from (cxPx, cyPx) to two diamond apex points.
-      const pts = [
-        [cxPx, cyPx],
-        [cxPx + p1[0] * diamondR, cyPx + p1[1] * diamondR],
-        [cxPx + p2[0] * diamondR, cyPx + p2[1] * diamondR],
-      ].map(p => p.join(',')).join(' ');
+    const gx = goal.boxC0 * cell;
+    const gy = goal.boxR0 * cell;
+    const gw = (goal.boxC1 - goal.boxC0 + 1) * cell;
+    const gh = (goal.boxR1 - goal.boxR0 + 1) * cell;
+    goalGroup.appendChild(svgEl('rect', {
+      x: gx, y: gy, width: gw, height: gh,
+      fill: '#fff5dc',
+      stroke: '#1a1a1a',
+      'stroke-width': 2,
+    }));
+    // 4 triangles meeting at centre. Each base is one edge of the 3×3 box.
+    const gcx = gx + gw / 2;
+    const gcy = gy + gh / 2;
+    const tl = [gx,        gy];
+    const tr = [gx + gw,   gy];
+    const br = [gx + gw,   gy + gh];
+    const bl = [gx,        gy + gh];
+    const triangle = (color, p1, p2) => {
+      const pts = `${p1[0]},${p1[1]} ${p2[0]},${p2[1]} ${gcx},${gcy}`;
       goalGroup.appendChild(svgEl('polygon', {
         points: pts,
         fill: activeColors.has(color) ? COLOR_INFO[color].hex : '#cdc3b0',
         stroke: '#1a1a1a',
-        'stroke-width': 1,
+        'stroke-width': 1.4,
       }));
     };
-    // Apex points (unit-vector from center): top, right, bottom, left
-    const top = [0, -1], right = [1, 0], bottom = [0, 1], left = [-1, 0];
-    quarterCorner('red',    left,   top);    // NW (red home)
-    quarterCorner('yellow', top,    right);  // NE (yellow)
-    quarterCorner('blue',   right,  bottom); // SE (blue)
-    quarterCorner('green',  bottom, left);   // SW (green)
+    triangle('green',  tl, tr);   // top triangle = green (NW)
+    triangle('yellow', tr, br);   // right triangle = yellow (NE)
+    triangle('blue',   br, bl);   // bottom triangle = blue (SE)
+    triangle('red',    bl, tl);   // left triangle = red (SW)
     svg.appendChild(goalGroup);
 
     // === Layer: planes ===
@@ -1875,39 +1899,39 @@ permalink: /toolbox/feixingqi/
       }
     }
 
-    // Goal — 4 per-color cells in + shape
+    // Goal — central 3×3 pinwheel of 4 coloured triangles
     const goal = layout.GOAL;
-    for (const color of COLORS) {
-      const [r, c] = goal.cells[color];
+    const gx = dx + goal.boxC0 * cell;
+    const gy = dy + goal.boxR0 * cell;
+    const gw = (goal.boxC1 - goal.boxC0 + 1) * cell;
+    const gh = (goal.boxR1 - goal.boxR0 + 1) * cell;
+    ctx.fillStyle = '#fff5dc';
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 2 * sx;
+    ctx.beginPath();
+    ctx.rect(gx, gy, gw, gh);
+    ctx.fill();
+    ctx.stroke();
+    const gcx = gx + gw / 2;
+    const gcy = gy + gh / 2;
+    const triPts = [
+      ['green',  [gx, gy],         [gx + gw, gy]],         // top
+      ['yellow', [gx + gw, gy],    [gx + gw, gy + gh]],    // right
+      ['blue',   [gx + gw, gy+gh], [gx, gy + gh]],         // bottom
+      ['red',    [gx, gy + gh],    [gx, gy]],              // left
+    ];
+    for (const [color, p1, p2] of triPts) {
       ctx.fillStyle = activeColors.has(color) ? COLOR_INFO[color].hex : '#cdc3b0';
       ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 1.5 * sx;
+      ctx.lineWidth = 1.4 * sx;
       ctx.beginPath();
-      ctx.rect(dx + c * cell + cell * 0.06, dy + r * cell + cell * 0.06, cell * 0.88, cell * 0.88);
-      ctx.fill();
-      ctx.stroke();
-    }
-    // Central 4-quartered diamond
-    const [dgr, dgc] = goal.diamondCell;
-    const cxPx2 = dx + svgX(dgc) * sx;
-    const cyPx2 = dy + svgY(dgr) * sx;
-    const diamondR2 = baseCell * 0.46 * sx;
-    const drawQuarter = (color, p1, p2) => {
-      ctx.fillStyle = activeColors.has(color) ? COLOR_INFO[color].hex : '#cdc3b0';
-      ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 1 * sx;
-      ctx.beginPath();
-      ctx.moveTo(cxPx2, cyPx2);
-      ctx.lineTo(cxPx2 + p1[0] * diamondR2, cyPx2 + p1[1] * diamondR2);
-      ctx.lineTo(cxPx2 + p2[0] * diamondR2, cyPx2 + p2[1] * diamondR2);
+      ctx.moveTo(p1[0], p1[1]);
+      ctx.lineTo(p2[0], p2[1]);
+      ctx.lineTo(gcx, gcy);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-    };
-    drawQuarter('red',    [-1, 0], [0, -1]);  // NW
-    drawQuarter('yellow', [0, -1], [1, 0]);   // NE
-    drawQuarter('blue',   [1, 0], [0, 1]);    // SE
-    drawQuarter('green',  [0, 1], [-1, 0]);   // SW
+    }
 
     // Planes
     for (const color of state.players) {
