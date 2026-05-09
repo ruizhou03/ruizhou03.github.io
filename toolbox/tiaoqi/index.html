@@ -233,6 +233,10 @@ permalink: /toolbox/tiaoqi/
     fill: rgba(245, 209, 66, 0.45);
     pointer-events: none;
   }
+  .tq-svg .ai-trail {
+    pointer-events: none;
+    opacity: 0.30;
+  }
 
   .tq-overlay {
     position: absolute; inset: 0;
@@ -704,6 +708,7 @@ permalink: /toolbox/tiaoqi/
     legalTargets: [],     // each: {to:[r,c], kind:'step'|'jump'} for the selected/chain piece
     chainPiece: null,     // [r, c] — set during a multi-hop chain (after the first jump)
     chainStartFrom: null, // [r, c] — original position before the chain began
+    aiTrail: null,        // {color, cells:[[r,c]…]} — last AI hop path (start + landings); rendered faded
     history: [],          // [{undo, prevTurnIdx}]
     aiThinking: false,
     paused: false,
@@ -822,6 +827,7 @@ permalink: /toolbox/tiaoqi/
     state.legalTargets = [];
     state.chainPiece = null;
     state.chainStartFrom = null;
+    state.aiTrail = null;
     state.history = [];
     state.aiThinking = false;
     state.paused = false;
@@ -860,6 +866,7 @@ permalink: /toolbox/tiaoqi/
     state.legalTargets = [];
     state.chainPiece = null;
     state.chainStartFrom = null;
+    state.aiTrail = null;
     setupControls.hidden = false;
     gameControls.hidden = true;
     rosterEl.hidden = true;
@@ -974,6 +981,22 @@ permalink: /toolbox/tiaoqi/
       svg.appendChild(halo);
     }
 
+    // Layer 2b: AI hop trail — faded ghost-pieces at every cell the AI passed
+    // through (start + each landing) during its most recent multi-hop move.
+    // Lets the human re-trace what just happened.
+    if (state.started && state.aiTrail) {
+      const trail = svgEl('g');
+      for (const [tr, tc] of state.aiTrail.cells) {
+        trail.appendChild(svgEl('circle', {
+          class: 'ai-trail',
+          cx: svgX(tc), cy: svgY(tr),
+          r: PIECE_R,
+          fill: state.aiTrail.color,
+        }));
+      }
+      svg.appendChild(trail);
+    }
+
     // Layer 3: pieces. In game mode use state.board; in config mode show a preview
     // built from setupConfig (each non-empty corner has its 10 starting pieces).
     const pcs = svgEl('g', { class: 'pieces' });
@@ -1048,6 +1071,7 @@ permalink: /toolbox/tiaoqi/
     state.legalTargets = [];
     state.chainPiece = null;
     state.chainStartFrom = null;
+    state.aiTrail = null;
     endChainBtn.hidden = true;
     const cur = currentPlayer();
     if (hasWon(state.board, cur)) {
@@ -1067,6 +1091,7 @@ permalink: /toolbox/tiaoqi/
 
   // Human single-step (1-cell walk). Fully commits the turn.
   function applyHumanStep(from, to) {
+    state.aiTrail = null; // any prior AI trail is now stale once human moves
     const fromK = key(from[0], from[1]);
     const piece = state.board[fromK];
     state.board[fromK] = null;
@@ -1077,6 +1102,7 @@ permalink: /toolbox/tiaoqi/
   // Human first hop: moves the piece, then either auto-commits (no further hops)
   // or enters CHAIN mode (more hops available).
   function applyHumanFirstHop(from, to) {
+    state.aiTrail = null;
     const fromK = key(from[0], from[1]);
     const piece = state.board[fromK];
     state.board[fromK] = null;
@@ -1125,25 +1151,33 @@ permalink: /toolbox/tiaoqi/
   }
 
   // AI move with full path. path.length === 1 → instant move (step or single hop).
-  // path.length > 1 → animate each hop in sequence with a 450ms gap.
+  // path.length > 1 → animate each hop in sequence with an 800ms gap, and leave
+  // a faded "trail" of cells the piece passed through (start + every landing) so
+  // the human can read the chain's geometry after the fact.
   async function applyAiMove(move) {
     const fromK = key(move.from[0], move.from[1]);
     const piece = state.board[fromK];
+    // Reset trail to the start cell only; landings get pushed during animation.
+    state.aiTrail = { color: CORNERS[piece].color, cells: [move.from.slice()] };
     state.board[fromK] = null;
     let prev = move.from.slice();
     for (let i = 0; i < move.path.length; i++) {
       const cur = move.path[i];
       state.board[key(cur[0], cur[1])] = piece;
       state.lastMove = { from: prev, to: cur.slice() };
+      state.aiTrail.cells.push(cur.slice());
       renderBoard();
       if (i < move.path.length - 1) {
-        await sleep(450);
+        await sleep(800);
         // Ghost the piece briefly so the next render shows movement
         state.board[key(cur[0], cur[1])] = null;
         prev = cur.slice();
       }
     }
     const finalTo = move.path[move.path.length - 1];
+    // For single-step / single-hop AI moves, a trail of just (start, end) is
+    // visually redundant with the existing last-move halo — drop it.
+    if (move.path.length === 1) state.aiTrail = null;
     commitTurn(move.from, finalTo, piece);
   }
 
@@ -1526,6 +1560,7 @@ permalink: /toolbox/tiaoqi/
     state.legalTargets = [];
     state.chainPiece = null;
     state.chainStartFrom = null;
+    state.aiTrail = null;
     state.aiThinking = false;
     state.paused = false;
     state.over = false;
