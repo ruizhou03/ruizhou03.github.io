@@ -57,13 +57,17 @@ permalink: /toolbox/tiaoqi/
   .difficulty-row { margin-top: 0.6rem; }
 
   /* === Board stage: holds the bordered wrap + 6 floating chips ===
-     Outer margin (1.7rem) gives N/S chips somewhere to live above/below the wrap;
-     side chips overflow horizontally into the surrounding page space. */
+     Asymmetric outer margin: top 1.7rem (statusbar above already adds 0.9rem of
+     its own bottom margin → ~2.6rem total clearance for the N chip). Bottom
+     2.6rem because the next sibling (#tqSetupControls / #tqGameControls) has no
+     top margin of its own, and the S chip with padding+border renders ~2rem
+     below the wrap edge. Side chips overflow horizontally into the surrounding
+     page space. */
   .tq-board-stage {
     position: relative;
     width: 100%;
     max-width: 600px;
-    margin: 1.7rem auto;
+    margin: 1.7rem auto 2.6rem;
   }
 
   /* === Corner chips (config-mode buttons → game-mode read-only labels) ===
