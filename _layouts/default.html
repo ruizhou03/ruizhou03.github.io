@@ -15,6 +15,13 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Zircon">
 
+  {%- comment -%}
+    每页的离线版本戳：文章用 page.date（写完后稳定）；
+    没有 date 的页（toolbox 游戏、列表页）退到 site.time——这种页会被
+    每次 deploy 标成"旧版"，由前端的自动后台预取自动刷新。
+  {%- endcomment -%}
+  <meta name="zircon-page-version" content="{{ page.date | default: site.time | date: '%s' }}">
+
   <script>
     // 主题持久化：在 <body> 渲染前同步读取 localStorage，避免闪烁
     (function () {
@@ -608,6 +615,11 @@
   <footer>
     &copy; {{ site.time | date: "%Y" }} Rui Zhou.
     <span style="margin-left: 0.6em; color: var(--color-light);">·</span>
+    <span id="offline-status-dot" title="离线状态加载中…" style="
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      background: #cbd5e1; margin-right: 4px; vertical-align: 0;
+      transition: background-color .2s;
+    "></span>
     <a href="#" id="offline-settings-link" style="color: var(--color-light); text-decoration: none; border-bottom: 1px dotted var(--color-light);">离线缓存</a>
   </footer>
 
@@ -769,12 +781,77 @@
       const pill = document.getElementById('offline-pill');
       const dialog = document.getElementById('offline-settings-dialog');
       const settingsLink = document.getElementById('offline-settings-link');
+      const statusDot     = document.getElementById('offline-status-dot');
       const cachedCountEl = document.getElementById('offline-cached-count');
       const totalCountEl  = document.getElementById('offline-total-count');
       const autoToggle    = document.getElementById('offline-auto-toggle');
       const recacheBtn    = document.getElementById('offline-recache-btn');
       const clearBtn      = document.getElementById('offline-clear-btn');
       const closeBtn      = document.getElementById('offline-close-btn');
+
+      // 当前页的版本戳（从 <meta name="zircon-page-version">）
+      function liveVersion() {
+        const m = document.querySelector('meta[name="zircon-page-version"]');
+        return m ? m.getAttribute('content') : null;
+      }
+
+      // 刷新页脚那个三色小点 + 文章页 📥 按钮（如果有）
+      async function refreshPageStatus(reg) {
+        if (!statusDot && !document.getElementById('offline-toggle')) return;
+        if (!reg) {
+          try { reg = await navigator.serviceWorker.ready; } catch { return; }
+        }
+        const info = await postToSW(reg, { type: 'GET_CACHE_INFO', url: location.pathname }, 5000);
+        const live = liveVersion();
+        let state;
+        if (!info || info.type !== 'CACHE_INFO' || !info.cached) {
+          state = 'absent';
+        } else if (live && info.cachedVersion && live !== info.cachedVersion) {
+          state = 'stale';
+        } else {
+          state = 'fresh';
+        }
+        applyStatus(state, info && info.cachedAt);
+      }
+
+      function applyStatus(state, cachedAt) {
+        if (statusDot) {
+          if (state === 'fresh') {
+            statusDot.style.background = '#10b981';
+            statusDot.title = '这一页已离线（最新版本）';
+          } else if (state === 'stale') {
+            statusDot.style.background = '#f59e0b';
+            statusDot.title = '这一页已离线，但有更新——进"离线缓存"面板可补齐';
+          } else {
+            statusDot.style.background = '#cbd5e1';
+            statusDot.title = '这一页未离线';
+          }
+        }
+        // 文章工具栏 📥 按钮（post.html 注入的）
+        const btn = document.getElementById('offline-toggle');
+        if (btn && !btn.disabled) {
+          const labelEl = btn.querySelector('.tool-label');
+          const iconEl = btn.querySelector('.tool-icon');
+          btn.classList.remove('cached');
+          if (state === 'fresh') {
+            iconEl.textContent = '✓';
+            labelEl.textContent = '已离线';
+            btn.classList.add('cached');
+            btn.title = cachedAt ? `已缓存最新版（${new Date(cachedAt).toLocaleString('zh-CN')}）` : '已缓存最新版';
+          } else if (state === 'stale') {
+            iconEl.textContent = '↻';
+            labelEl.textContent = '有更新';
+            btn.title = '已离线但有新版本，点这里刷新缓存';
+          } else {
+            iconEl.textContent = '📥';
+            labelEl.textContent = '下载离线';
+            btn.title = '把这篇缓存到本地，飞机/没网时可看';
+          }
+        }
+      }
+
+      // 暴露给 post.html 在它自己的下载完成后回调
+      window.__zirconRefreshOfflineStatus = () => refreshPageStatus();
 
       let pillTimer = null;
       function showPill(text, sticky) {
@@ -878,10 +955,13 @@
         });
 
         // 静默 = 不推单条进度，只在结束时回 PREFETCH_DONE
+        // excludeAssets='^/files/' = 不要顺手把文章里 150 MB 的大照片也拉了——
+        // 那批走文章页的 📥 按钮按需下，自动后台只管 18 MB 的 shell + 游戏。
         reg.active.postMessage({
           type: 'PREFETCH_URLS',
           urls,
           assets: manifest.assets || [],
+          excludeAssets: '^/files/',
           silent: !opts2.force
         }, [ch.port2]);
 
@@ -930,6 +1010,8 @@
         } else {
           hidePill();
         }
+        // 预取完后再刷一遍当前页状态（应该会从 stale 转 fresh）
+        refreshPageStatus(reg).catch(() => {});
       }
 
       // ============= 设置面板 =============
@@ -982,6 +1064,7 @@
             recacheBtn.textContent = '立即补齐缓存';
             try { localStorage.setItem(LS_LAST_VER, manifest.version); } catch {}
             showPill('✓ 缓存已刷新', false);
+            refreshPageStatus(reg).catch(() => {});
           });
         }
 
@@ -994,6 +1077,7 @@
             const manifest = await ensureManifest();
             if (manifest) await refreshDialogStatus(reg, manifest);
             showPill('已清空离线缓存', false);
+            refreshPageStatus(reg).catch(() => {});
           });
         }
 
@@ -1022,6 +1106,8 @@
             navigator.serviceWorker.addEventListener('controllerchange', () => { clearTimeout(t); r(); }, { once: true });
           });
         }
+        // 网络优先的 cache.put 是 fire-and-forget，给它一点时间落盘再读状态
+        setTimeout(() => refreshPageStatus(reg).catch(() => {}), 800);
         scheduleIdle(() => runAutoPrefetch(reg).catch(() => {}));
       });
     })();

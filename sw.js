@@ -137,6 +137,11 @@ self.addEventListener('message', async (event) => {
     // silent=true 时不发 PREFETCH_PROGRESS，只发最终 PREFETCH_DONE。
     // idle 后台批量预取走这条，避免无脑刷消息。
     const silent = !!data.silent;
+    // 自动预取要跳过 /files/ 下的大照片（150+ MB）；手动"下载文章配图"按钮则不传，全要。
+    let excludeAssets = null;
+    if (typeof data.excludeAssets === 'string' && data.excludeAssets) {
+      try { excludeAssets = new RegExp(data.excludeAssets); } catch {}
+    }
     const total = urls.length;
     let done = 0;
     const pageCache = await caches.open(PAGE_CACHE);
@@ -182,7 +187,9 @@ self.addEventListener('message', async (event) => {
             const assetUrls = extractAssetUrls(text, absUrl);
             await Promise.all(assetUrls.map(async (au) => {
               try {
-                if (new URL(au).origin !== self.location.origin) return;
+                const auUrl = new URL(au);
+                if (auUrl.origin !== self.location.origin) return;
+                if (excludeAssets && excludeAssets.test(auUrl.pathname)) return;
                 const existing = await assetCache.match(au);
                 if (existing) return;
                 const r = await fetch(au, { cache: 'no-cache' });
@@ -209,6 +216,32 @@ self.addEventListener('message', async (event) => {
     catch { reply({ type: 'IS_CACHED_RESULT', url, cached: false }); return; }
     const m = await caches.match(absUrl);
     reply({ type: 'IS_CACHED_RESULT', url: absUrl, cached: !!m });
+    return;
+  }
+
+  // 单 URL 详情：是否缓存 + 缓存里嵌入的版本戳 + Response.Date。
+  // 用于文章/页面的"已离线·最新 / 旧版"徽标。
+  if (data.type === 'GET_CACHE_INFO') {
+    const url = data.url;
+    let absUrl;
+    try { absUrl = new URL(url, self.location.origin).toString(); }
+    catch { reply({ type: 'CACHE_INFO', url, cached: false }); return; }
+    const cache = await caches.open(PAGE_CACHE);
+    const res = await cache.match(absUrl);
+    if (!res) { reply({ type: 'CACHE_INFO', url: absUrl, cached: false }); return; }
+    let cachedVersion = null;
+    try {
+      const text = await res.clone().text();
+      const m = text.match(/<meta\s+name=["']zircon-page-version["']\s+content=["']([^"']+)["']/i);
+      if (m) cachedVersion = m[1];
+    } catch {}
+    reply({
+      type: 'CACHE_INFO',
+      url: absUrl,
+      cached: true,
+      cachedVersion,
+      cachedAt: res.headers.get('date') || null
+    });
     return;
   }
 
