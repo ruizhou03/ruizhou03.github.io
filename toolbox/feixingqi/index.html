@@ -347,14 +347,14 @@ permalink: /toolbox/feixingqi/
     </div>
     <div class="fxq-help">点击棋盘四角的 chip 在「空 / 人类 / AI」之间切换。每位玩家 4 架飞机，目标是把 4 架全送到中央终点。至少需要 2 个角有玩家。</div>
     <div class="fxq-rules">
-      <span class="pill">出库</span> 掷出 6 才能从机库出一架；掷 6 后再掷一次（连续 3 个 6 视为犯规，最近一架退回机库）。
+      <span class="pill">出库</span> 掷出 6 才能从机库出一架，飞机出现在自家 <span style="color:#e74c3c">✈</span> 起飞口；掷 6 后再掷一次（连续 3 个 6 视为犯规，最近一架退回机库）。
       <br>
-      <span class="pill">起飞</span> 跑道在 4 个凹角各有一架同色 <span style="color:#e74c3c">✈</span>。落到自己颜色的 ✈ → 飞到斜对角的凹角（横跨半盘 23 格）。
-      <br>
-      <span class="pill">归航</span> 走完整圈后转进自己颜色的归航跑道（每条 6 格、带方向箭头），到达中心 4 色风车内同色三角即胜。
+      <span class="pill">归航</span> 顺时针走外圈 10 格到自家归航入口（贴在自家归航跑道远端的外圈格），自动转入归航 6 格 → 中央同色三角即胜。
       <br>
       <span class="pill">踩格</span> 落到对手所在格 → 对手该格上飞机全部回机库。
       <span class="pill">精确</span> 进归航跑道后剩余步数必须精确到达终点，超出反弹。
+      <br>
+      <span class="pill">飞跃</span> 稀有彩蛋：踩到自己颜色的 <span style="color:#e74c3c">✈</span> → 横跨半盘 23 格（被踩送回再被踩回起飞口才有机会触发）。
     </div>
   </div>
 
@@ -414,31 +414,35 @@ permalink: /toolbox/feixingqi/
     // × 6 cells). The middle col/row of each arm is the home stretch — NOT in
     // the track loop. The loop "skips" the stretch cell at each arm tip.
     //
-    // Indexing (clockwise from green's takeoff at NW concave corner):
-    //   0..5   top arm col 6 going UP   (5,6)(4,6)(3,6)(2,6)(1,6)(0,6)
-    //   6..11  top arm col 8 going DOWN (0,8)(1,8)(2,8)(3,8)(4,8)(5,8)
-    //   12..17 right arm row 6 going RIGHT (6,9)..(6,14)
-    //   18..23 right arm row 8 going LEFT  (8,14)..(8,9)
-    //   24..29 bottom arm col 8 going DOWN (9,8)..(14,8)
-    //   30..35 bottom arm col 6 going UP   (14,6)..(9,6)
-    //   36..41 left arm row 8 going LEFT  (8,5)..(8,0)
-    //   42..47 left arm row 6 going RIGHT (6,0)..(6,5)
+    // Index 0 starts at GREEN's takeoff (6, 1) — left arm top row, near green
+    // base's south side. Going clockwise around the cross perimeter:
+    //   0..4   left arm row 6 going right   (6,1)..(6,5)
+    //   5..10  top arm col 6 going UP        (5,6)..(0,6)   [10 = green stretch entry]
+    //   11..16 top arm col 8 going DOWN      (0,8)..(5,8)
+    //   17..22 right arm row 6 going RIGHT   (6,9)..(6,14)  [22 = yellow stretch entry]
+    //   23..28 right arm row 8 going LEFT    (8,14)..(8,9)
+    //   29..34 bottom arm col 8 going DOWN   (9,8)..(14,8)  [34 = blue stretch entry]
+    //   35..40 bottom arm col 6 going UP     (14,6)..(9,6)
+    //   41..46 left arm row 8 going LEFT     (8,5)..(8,0)   [46 = red stretch entry]
+    //   47     left arm row 6 leftmost       (6,0)          [closes the loop]
     TRACK: [
-      [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],         // 0..5
-      [0,8],[1,8],[2,8],[3,8],[4,8],[5,8],         // 6..11
-      [6,9],[6,10],[6,11],[6,12],[6,13],[6,14],    // 12..17
-      [8,14],[8,13],[8,12],[8,11],[8,10],[8,9],    // 18..23
-      [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],    // 24..29
-      [14,6],[13,6],[12,6],[11,6],[10,6],[9,6],    // 30..35
-      [8,5],[8,4],[8,3],[8,2],[8,1],[8,0],         // 36..41
-      [6,0],[6,1],[6,2],[6,3],[6,4],[6,5],         // 42..47
+      [6,1],[6,2],[6,3],[6,4],[6,5],               // 0..4   green takeoff at 0
+      [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],         // 5..10  10 = (0,6) green stretch entry
+      [0,8],[1,8],[2,8],[3,8],[4,8],[5,8],         // 11..16 12 = (1,8) yellow takeoff
+      [6,9],[6,10],[6,11],[6,12],[6,13],[6,14],    // 17..22 22 = (6,14) yellow stretch entry
+      [8,14],[8,13],[8,12],[8,11],[8,10],[8,9],    // 23..28 24 = (8,13) blue takeoff
+      [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],    // 29..34 34 = (14,8) blue stretch entry
+      [14,6],[13,6],[12,6],[11,6],[10,6],[9,6],    // 35..40 36 = (13,6) red takeoff
+      [8,5],[8,4],[8,3],[8,2],[8,1],[8,0],         // 41..46 46 = (8,0) red stretch entry
+      [6,0],                                        // 47     loop closes back to 0
     ],
-    // Each player's takeoff/exit at the inner concave corner of their adjacent
-    // arm, pointing clockwise. 12 cells apart.
+    // Takeoffs are placed AT the outer-loop cell adjacent to each player's base
+    // (south of green, west of yellow, north of blue, east of red). All 12 apart.
     EXIT_INDEX:        { green: 0,  yellow: 12, blue: 24, red: 36 },
-    // Stretch transition is the cell BEFORE re-entering the takeoff, after a
-    // full clockwise loop. Plane on this cell turns into its home stretch.
-    STRETCH_TRANSITION:{ green: 47, yellow: 11, blue: 23, red: 35 },
+    // Stretch entry = the outer-loop cell adjacent to the FAR end of each home
+    // stretch (away from centre). Clockwise-first occurrence per the user's spec.
+    // 10 cells walk from takeoff to stretch entry (each color).
+    STRETCH_TRANSITION:{ green: 10, yellow: 22, blue: 34, red: 46 },
     STRETCH_CELLS: {
       // 6 cells per stretch, walking from the OUTER end inward to the centre
       // (matching the spec arrows ↓ ← ↑ →).
