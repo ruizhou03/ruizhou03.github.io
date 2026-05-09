@@ -1,38 +1,43 @@
 /* Zirconeey site service worker
+ *
+ * 关键约束（曾经踩过的坑）：
+ *  1. 部署新版本绝对不能清空用户已有缓存。之前用 v1/v2/v3/v4 命名空间，
+ *     activate 阶段把不在白名单里的全删掉，结果用户上飞机前的"全站离线"
+ *     一遇到我推新版就归零。永远不要再这样。
+ *  2. cache-first 会让 CSS/JS 卡死在旧版本，stale-while-revalidate 是底线。
+ *  3. 跨域请求一律透传，不缓存（评论 / Waline 反代 / CDN 都靠这条豁免）。
+ *
  * 策略：
- *  - 同源 HTML：network-first，更新缓存；离线时返回缓存
- *  - 同源静态资源（图、CSS、JS、字体）：stale-while-revalidate
- *    （cache-first 会让用户改不动 CSS——上次踩了 v3→v4 的坑）
- *  - 跨域：透传，不缓存
- *  - 手动批量预取：通过 postMessage('PREFETCH_URLS') 触发
- *  - 查询是否已缓存：postMessage('IS_CACHED')
+ *  - 同源 HTML：network-first，更新缓存；离线时回缓存
+ *  - 同源静态资源：stale-while-revalidate
+ *  - 自动后台预缓存：访问任意页面后由前端在 idle 时分批 postMessage('PREFETCH_URLS')
+ *  - 手动批量：listing 页 / 文章页的下载按钮也走同一个 PREFETCH_URLS
+ *  - 查询缓存状态：postMessage('IS_CACHED' / 'IS_CACHED_BATCH')
  */
 
-const VERSION = 'v4';
-const SHELL_CACHE = `zirconeey-shell-${VERSION}`;
-const PAGE_CACHE  = `zirconeey-pages-${VERSION}`;
-const ASSET_CACHE = `zirconeey-assets-${VERSION}`;
-
-const SHELL_URLS = ['/', '/manifest.json'];
+// 缓存名故意不带版本号——同一个 cache 一直滚动用，靠 SWR 自然刷新内容。
+// 旧版本残留（v1/v2/v3/v4 命名空间）做一次性清理。
+const PAGE_CACHE  = 'zirconeey-pages';
+const ASSET_CACHE = 'zirconeey-assets';
+const LEGACY_PREFIXES = ['zirconeey-shell-', 'zirconeey-pages-v', 'zirconeey-assets-v'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(SHELL_CACHE)
-      .then((c) => c.addAll(SHELL_URLS).catch(() => {}))
-      .then(() => self.skipWaiting())
-  );
+  // 不预取任何东西。SW 安装要快，全站预缓存交给前端 idle 调度。
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((names) =>
-      Promise.all(
-        names
-          .filter((n) => ![SHELL_CACHE, PAGE_CACHE, ASSET_CACHE].includes(n))
-          .map((n) => caches.delete(n))
-      )
-    ).then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(
+      names
+        .filter((n) => LEGACY_PREFIXES.some((p) => n.startsWith(p)))
+        .map((n) => caches.delete(n))
+    );
+    // 注意：除了上面这批历史命名空间，其它一律不删。即使将来此文件再迭代，
+    // PAGE_CACHE / ASSET_CACHE 保持不变，用户的离线副本就一直在。
+    await self.clients.claim();
+  })());
 });
 
 const isHTMLRequest = (req) => {
@@ -48,7 +53,6 @@ self.addEventListener('fetch', (event) => {
   let url;
   try { url = new URL(req.url); } catch { return; }
   if (url.origin !== self.location.origin) return;
-  // 跳过 Waline / 评论 / waline 反代等动态接口（目前都是跨域，已被上面过滤）
 
   if (isHTMLRequest(req)) {
     event.respondWith((async () => {
@@ -88,7 +92,6 @@ self.addEventListener('fetch', (event) => {
       return res;
     }).catch(() => null);
     if (cached) {
-      // 后台 promise 也消化掉，避免 unhandled rejection
       fetchPromise.catch(() => {});
       return cached;
     }
@@ -98,15 +101,17 @@ self.addEventListener('fetch', (event) => {
   })());
 });
 
-// 提取 HTML 里的 <img src> / 同源 CSS 链接 / <link rel=stylesheet>
+// 提取 HTML 里的 <img src/srcset> + 同源 CSS / JS / 字体链接
 function extractAssetUrls(html, baseUrl) {
   const urls = new Set();
-  const reImg = /<img[^>]+src=["']([^"']+)["']/gi;
+  const reImg    = /<img[^>]+src=["']([^"']+)["']/gi;
   const reSrcset = /<img[^>]+srcset=["']([^"']+)["']/gi;
-  const reCss = /<link[^>]+rel=["']stylesheet["'][^>]+href=["']([^"']+)["']/gi;
+  const reCss    = /<link[^>]+rel=["']stylesheet["'][^>]+href=["']([^"']+)["']/gi;
+  const reScript = /<script[^>]+src=["']([^"']+)["']/gi;
   let m;
-  while ((m = reImg.exec(html))) urls.add(m[1]);
-  while ((m = reCss.exec(html))) urls.add(m[1]);
+  while ((m = reImg.exec(html)))    urls.add(m[1]);
+  while ((m = reCss.exec(html)))    urls.add(m[1]);
+  while ((m = reScript.exec(html))) urls.add(m[1]);
   while ((m = reSrcset.exec(html))) {
     m[1].split(',').forEach((part) => {
       const u = part.trim().split(/\s+/)[0];
@@ -128,18 +133,47 @@ self.addEventListener('message', async (event) => {
 
   if (data.type === 'PREFETCH_URLS') {
     const urls = Array.isArray(data.urls) ? data.urls : [];
+    const extraAssets = Array.isArray(data.assets) ? data.assets : [];
+    // silent=true 时不发 PREFETCH_PROGRESS，只发最终 PREFETCH_DONE。
+    // idle 后台批量预取走这条，避免无脑刷消息。
+    const silent = !!data.silent;
     const total = urls.length;
     let done = 0;
     const pageCache = await caches.open(PAGE_CACHE);
     const assetCache = await caches.open(ASSET_CACHE);
 
+    // 先把 manifest 显式列出的资源（非 HTML）批量塞进 asset cache
+    if (extraAssets.length) {
+      await Promise.all(extraAssets.map(async (rawUrl) => {
+        try {
+          const absUrl = new URL(rawUrl, self.location.origin).toString();
+          if (new URL(absUrl).origin !== self.location.origin) return;
+          const existing = await assetCache.match(absUrl);
+          if (existing) return;
+          const r = await fetch(absUrl, { cache: 'no-cache' });
+          if (r && r.ok) await assetCache.put(absUrl, r.clone()).catch(() => {});
+        } catch {}
+      }));
+    }
+
     for (const rawUrl of urls) {
       let absUrl;
       try { absUrl = new URL(rawUrl, self.location.origin).toString(); }
-      catch { done++; reply({ type: 'PREFETCH_PROGRESS', done, total, url: rawUrl, ok: false }); continue; }
+      catch {
+        done++;
+        if (!silent) reply({ type: 'PREFETCH_PROGRESS', done, total, url: rawUrl, ok: false });
+        continue;
+      }
 
       try {
-        const res = await fetch(absUrl, { cache: 'reload' });
+        // 已经缓存过的就跳过，省流量。SWR 会保证它最终被刷新。
+        const existing = await pageCache.match(absUrl);
+        if (existing) {
+          done++;
+          if (!silent) reply({ type: 'PREFETCH_PROGRESS', done, total, url: absUrl, ok: true, skipped: true });
+          continue;
+        }
+        const res = await fetch(absUrl, { cache: 'no-cache' });
         if (res && res.ok) {
           await pageCache.put(absUrl, res.clone()).catch(() => {});
           const ct = res.headers.get('content-type') || '';
@@ -151,17 +185,17 @@ self.addEventListener('message', async (event) => {
                 if (new URL(au).origin !== self.location.origin) return;
                 const existing = await assetCache.match(au);
                 if (existing) return;
-                const r = await fetch(au, { cache: 'reload' });
+                const r = await fetch(au, { cache: 'no-cache' });
                 if (r && r.ok) await assetCache.put(au, r.clone()).catch(() => {});
               } catch {}
             }));
           }
         }
         done++;
-        reply({ type: 'PREFETCH_PROGRESS', done, total, url: absUrl, ok: !!(res && res.ok) });
+        if (!silent) reply({ type: 'PREFETCH_PROGRESS', done, total, url: absUrl, ok: !!(res && res.ok) });
       } catch (e) {
         done++;
-        reply({ type: 'PREFETCH_PROGRESS', done, total, url: absUrl, ok: false });
+        if (!silent) reply({ type: 'PREFETCH_PROGRESS', done, total, url: absUrl, ok: false });
       }
     }
     reply({ type: 'PREFETCH_DONE', total });
@@ -179,7 +213,6 @@ self.addEventListener('message', async (event) => {
   }
 
   if (data.type === 'IS_CACHED_BATCH') {
-    // 批量查询：传入 urls 数组，返回每条 URL 的缓存状态 + 总数汇总
     const urls = Array.isArray(data.urls) ? data.urls : [];
     const pageCache = await caches.open(PAGE_CACHE);
     const results = await Promise.all(urls.map(async (rawUrl) => {
