@@ -1272,7 +1272,7 @@ permalink: /toolbox/doudizhu/
             <label>叫地主方式</label>
             <select id="cfgBidStyle">
               <option value="rob" selected>抢地主（每抢倍数 ×2）</option>
-              <option value="call" disabled>叫分 1/2/3（v2 上线）</option>
+              <option value="call">叫分 1/2/3（base = 叫分）</option>
             </select>
           </div>
           <div class="cfg-row">
@@ -3293,11 +3293,22 @@ permalink: /toolbox/doudizhu/
       state.bidTurnIdx = -1;
       state.landlordCandidate = -1;
       state.robCount = 0;
+      // 同步当前配置 / 累计分 / 轮次（始终）
+      state.online.config = srv.config || state.online.config || {};
+      state.online.cumulativeScores = srv.cumulativeScores || {};
+      state.online.currentRound = srv.currentRound || 1;
+      // 明牌：若 server 指明了明牌玩家，把对方手牌摊开
+      state.declaredSeat = srv.declaredSeat != null && srv.declaredSeat >= 0 ? rotateSeat(srv.declaredSeat) : -1;
+      state.declared = state.declaredSeat >= 0;
+      if (srv.declaredHand && state.declaredSeat >= 0) {
+        state.hands[state.declaredSeat] = srv.declaredHand.slice();
+      }
       if (srv.phase === 'bidding') {
-        state.bidActions = (srv.bidActions || []).map(a => ({ seat: rotateSeat(a.seat), action: a.action }));
+        state.bidActions = (srv.bidActions || []).map(a => ({ seat: rotateSeat(a.seat), action: a.action, score: a.score }));
         state.bidTurnIdx = rotateSeat(srv.bidTurnIdx);
         state.landlordCandidate = srv.landlordCandidate >= 0 ? rotateSeat(srv.landlordCandidate) : -1;
         state.robCount = srv.robCount || 0;
+        state.online.bidScore = srv.bidScore || 0;
       }
       // 加倍状态（无论什么 phase，都从 srv 同步，保证 badge 正确）
       {
@@ -3553,14 +3564,34 @@ permalink: /toolbox/doudizhu/
     }
   });
 
-  // ── 联机抢地主面板 ─────────────────────────────────────────────────
+  // ── 联机抢地主 / 叫分 面板 ───────────────────────────────────────
   function renderOnlineBidPanel() {
     bidPanel.hidden = false;
     playActions.hidden = true;
     const myTurn = state.bidTurnIdx === 0;
+    const cfg = state.online && state.online.config || {};
+    const isCallMode = cfg.bidStyle === 'call';
     const isFirst = state.landlordCandidate < 0;
-    const verb = isFirst ? '叫地主' : '抢地主';
-    if (myTurn) {
+
+    if (!myTurn) {
+      bidTitle.textContent = `等待 ${seatLabel(state.bidTurnIdx)} ${isCallMode ? '叫分' : (isFirst ? '叫地主' : '抢地主')}…`;
+      bidButtonsEl.innerHTML = '';
+      return;
+    }
+
+    if (isCallMode) {
+      const cur = state.online.bidScore || 0;
+      bidTitle.textContent = cur > 0 ? `当前最高 ${cur} 分，要叫更高吗？` : '叫地主吗？（按底分）';
+      const items = [{ label: '不叫', value: 'pass' }];
+      for (let n = 1; n <= 3; n++) {
+        if (n > cur) items.push({ label: n + ' 分', value: n, primary: n === 3 });
+      }
+      renderBidButtons(items, async (act) => {
+        bidPanel.hidden = true;
+        const r = await apiCall('bid', { body: { code: state.online.code, token: state.online.token, action: act } });
+        if (!r.ok) setStatus('叫分失败：' + r.error);
+      });
+    } else {
       bidTitle.textContent = isFirst ? '叫地主吗？' : `已有人叫，要抢吗？（当前倍数 ×${state.multiplier}）`;
       renderBidButtons([
         { label: isFirst ? '叫地主' : '抢地主', value: 'rob', primary: true },
@@ -3568,11 +3599,8 @@ permalink: /toolbox/doudizhu/
       ], async (act) => {
         bidPanel.hidden = true;
         const r = await apiCall('bid', { body: { code: state.online.code, token: state.online.token, action: act } });
-        if (!r.ok) { setStatus('叫地主失败：' + r.error); }
+        if (!r.ok) setStatus('叫地主失败：' + r.error);
       });
-    } else {
-      bidTitle.textContent = `等待 ${seatLabel(state.bidTurnIdx)} ${verb}…`;
-      bidButtonsEl.innerHTML = '';
     }
   }
 
@@ -3678,31 +3706,74 @@ permalink: /toolbox/doudizhu/
   function showOnlineGameOver() {
     if (!state.result) return;
     const playerWon = state.result.winnerSeat === 0;
-    gameOverTitle.textContent = playerWon ? '🎉 你赢了！' : '😢 你输了';
+    const cfg = state.online.config || {};
+    const totalRounds = state.result.totalRounds || cfg.rounds || 1;
+    const roundN = state.result.round || 1;
+    const isLastRound = !!state.result.gameEnded;
+
+    gameOverTitle.textContent = isLastRound
+      ? (playerWon ? '🏆 整局结束！你赢了' : '🏁 整局结束')
+      : (playerWon ? '🎉 你赢了' : '😢 你输了') + `（${roundN} / ${totalRounds}）`;
+
     const myRole = state.landlordIdx === 0 ? '地主' : '农民';
     const winText = state.result.winnerRole === 'landlord' ? '地主' : '农民';
     const springBadge = state.spring > 0
       ? `<div class="ddz-spring-badge">${state.result.winnerRole === 'landlord' ? '🌸 春天' : '🍁 反春天'} ×2</div>`
       : '';
     const roleMul = state.result.winnerRole === 'landlord' ? 2 : 1;
-    gameOverDetail.innerHTML =
-      springBadge +
+
+    let html = springBadge +
       `<div>${winText}获胜 · 倍数 ×${state.result.multiplier} · 你是${myRole}</div>` +
-      `<div>本局积分 <strong>${state.result.score}</strong>（角色加权 ×${roleMul}）</div>` +
-      `<div>用时 ${formatDuration(Date.now() - state.runStartedAt)}</div>` +
-      (state.online.isHost ? '<div style="margin-top:0.5rem;font-size:0.82rem;color:var(--ddz-accent-strong);">房主可点「再来一局」</div>'
-                            : '<div style="margin-top:0.5rem;font-size:0.82rem;opacity:0.7;">等待房主开始下一局…</div>');
+      `<div>本盘积分 <strong>${state.result.score}</strong>（角色加权 ×${roleMul}）</div>`;
+
+    // 累计积分排行（永远显示，最少 1 行）
+    const cum = state.online.cumulativeScores || {};
+    const players = (state.online.players || []).slice().sort((a, b) => (cum[b.id] || 0) - (cum[a.id] || 0));
+    if (players.length > 0) {
+      html += '<div style="margin-top:0.6rem; padding:0.5rem 0.7rem; background:rgba(255,255,255,0.05); border:1px solid var(--ddz-frame-2); border-radius:8px;">';
+      html += `<div style="font-size:0.85rem; color:var(--ddz-text-on-felt-mute); margin-bottom:0.3rem;">累计积分 · 第 ${roundN} / ${totalRounds} 盘</div>`;
+      const medals = ['🥇', '🥈', '🥉'];
+      for (let i = 0; i < players.length; i++) {
+        const p = players[i];
+        const sc = cum[p.id] || 0;
+        const isMe = p.id === state.online.playerId;
+        html += `<div style="display:flex; justify-content:space-between; padding:0.18rem 0; ${isMe ? 'color:var(--ddz-accent-strong); font-weight:600;' : ''}">`;
+        html += `<span>${medals[i] || ('#' + (i + 1))} ${escHtml(p.nick)}${p.isAi ? ' 🤖' : ''}${isMe ? ' (我)' : ''}</span>`;
+        html += `<span>${sc >= 0 ? '+' : ''}${sc} 分</span>`;
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    if (!isLastRound) {
+      html += state.online.isHost
+        ? `<div style="margin-top:0.5rem;font-size:0.82rem;color:var(--ddz-accent-strong);">房主可点「下一盘」</div>`
+        : `<div style="margin-top:0.5rem;font-size:0.82rem;opacity:0.7;">等待房主开始下一盘…</div>`;
+    }
+
+    gameOverDetail.innerHTML = html;
     gameOverOverlay.classList.toggle('has-spring', state.spring > 0);
     gameOverOverlay.classList.add('show');
     if (ddzSettleBtn) ddzSettleBtn.setEnabled(true);
 
-    // 替换 onclick handlers for online context
-    $('ddzPlayAgainBtn').onclick = async () => {
-      if (!state.online.isHost) { alert('只有房主可以开始下一局'); return; }
-      const r = await apiCall('rematch', { body: { code: state.online.code, token: state.online.token } });
-      if (!r.ok) alert('再来一局失败：' + r.error);
-    };
-    $('ddzBackToSetupBtn').onclick = () => leaveOnlineRoom(false);
+    // 按钮
+    const playAgainBtn = $('ddzPlayAgainBtn');
+    const backBtn = $('ddzBackToSetupBtn');
+    if (isLastRound) {
+      playAgainBtn.textContent = '退出大厅';
+      playAgainBtn.onclick = () => { gameOverOverlay.classList.remove('show', 'has-spring'); leaveOnlineRoom(false); };
+      backBtn.textContent = '关闭';
+      backBtn.onclick = () => { gameOverOverlay.classList.remove('show', 'has-spring'); };
+    } else {
+      playAgainBtn.textContent = '下一盘';
+      playAgainBtn.onclick = async () => {
+        if (!state.online.isHost) { alert('只有房主可以开始下一盘'); return; }
+        const r = await apiCall('rematch', { body: { code: state.online.code, token: state.online.token } });
+        if (!r.ok) alert('下一盘失败：' + r.error);
+      };
+      backBtn.textContent = '退出';
+      backBtn.onclick = () => { gameOverOverlay.classList.remove('show', 'has-spring'); leaveOnlineRoom(false); };
+    }
 
     if (playerWon) tryAutoSubmitOnline();
   }
