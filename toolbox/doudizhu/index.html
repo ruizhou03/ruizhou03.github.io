@@ -1110,14 +1110,30 @@ permalink: /toolbox/doudizhu/
     to   { transform: scale(1.18); }
   }
 
-  /* ======== 抢 / 加倍 决策面板 ======== */
-  /* 用 visibility 而非 display:none —— 始终保留布局占位，避免画幅跳变 */
+  /* ======== 兜底：[hidden] 必须真的隐藏 ========
+     Browser default `[hidden] { display: none }` 与 `.ddz-actions { display: flex }`
+     特异性同为 (0,1,0)，源序后者赢 → 即便 hidden 也会显示。强制 !important 修正。 */
+  .ddz-table[hidden],
+  .ddz-actions[hidden],
+  .ddz-lobby[hidden],
+  .ddz-online-config[hidden],
+  .ddz-online-resume[hidden],
+  .ddz-self[hidden],
+  .ddz-seat-ai[hidden],
+  .ddz-hand[hidden],
+  .ddz-tops[hidden],
+  .ddz-double-grid[hidden],
+  .ddz-bottom-pile[hidden] {
+    display: none !important;
+  }
+
+  /* ======== 抢 / 加倍 决策面板 ========
+     特殊：bid-panel 即便 [hidden] 也保留布局占位 — 防止画幅跳变 */
   .ddz-bid-panel[hidden] {
     display: block !important;
     visibility: hidden;
     opacity: 0;
     pointer-events: none;
-    /* 仍然占据 min-height 的空间，使桌面高度稳定 */
   }
   .ddz-bid-panel {
     position: relative;
