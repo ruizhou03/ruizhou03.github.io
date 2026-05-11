@@ -370,10 +370,52 @@ permalink: /toolbox/fruit-ninja/
   };
 
   const FRUIT_TYPES = ['apple', 'orange', 'watermelon', 'kiwi'];
-  const JUICE_COLOR = {
-    apple: '#e64545', orange: '#ffaa44',
-    watermelon: '#ff5560', kiwi: '#a8d050',
+
+  // 每种水果独立的粒子配方（按 weight 加权采样）
+  const FRUIT_PARTICLES = {
+    watermelon: {
+      count: 36,
+      types: [
+        { weight: 5, color: '#ff5560', shape: 'circle', size: [4, 8] },   // 大块红瓤
+        { weight: 4, color: '#ff7a8a', shape: 'circle', size: [2, 5] },   // 小块红瓤
+        { weight: 1, color: '#1a1a1a', shape: 'oval',   size: [1.6, 2.6] }, // 黑籽
+        { weight: 1, color: '#3a8a45', shape: 'rect',   size: [3, 6] },   // 绿皮屑
+      ],
+    },
+    orange: {
+      count: 28,
+      types: [
+        { weight: 5, color: '#ffaa44', shape: 'circle', size: [3, 6] },
+        { weight: 3, color: '#ffcc78', shape: 'circle', size: [2, 4] },
+        { weight: 2, color: '#fff2c8', shape: 'circle', size: [2, 3] },   // 果肉白
+      ],
+    },
+    apple: {
+      count: 24,
+      types: [
+        { weight: 5, color: '#e64545', shape: 'circle', size: [3, 6] },
+        { weight: 3, color: '#ff8a78', shape: 'circle', size: [2, 4] },
+        { weight: 1, color: '#fff5dc', shape: 'circle', size: [1.5, 2.5] },
+        { weight: 1, color: '#3a2410', shape: 'oval',   size: [1.4, 2.2] }, // 籽
+      ],
+    },
+    kiwi: {
+      count: 30,
+      types: [
+        { weight: 5, color: '#a8d050', shape: 'circle', size: [2.5, 5] },
+        { weight: 3, color: '#7fa838', shape: 'circle', size: [2, 3.5] },
+        { weight: 2, color: '#fff8e0', shape: 'circle', size: [1.5, 2.5] },
+        { weight: 2, color: '#1a1a1a', shape: 'oval',   size: [0.9, 1.8] }, // 黑芝麻籽
+      ],
+    },
   };
+  function pickParticleType(types) {
+    let total = 0;
+    for (const t of types) total += t.weight;
+    let r = Math.random() * total;
+    for (const t of types) { r -= t.weight; if (r <= 0) return t; }
+    return types[types.length - 1];
+  }
 
   // ============ AUDIO（Web Audio API 合成，无外部资源）============
   // chop（切水果）/ bomb（炸弹）。所有声音都是临时构建的 OscillatorNode/BufferSource，
@@ -1174,18 +1216,23 @@ permalink: /toolbox/fruit-ninja/
   }
 
   function spawnJuice(f, angle) {
-    const color = JUICE_COLOR[f.type] || '#fff';
-    const n = 12;
-    for (let i = 0; i < n; i++) {
-      const a = angle + (Math.random() - 0.5) * Math.PI;
-      const sp = 120 + Math.random() * 220;
+    const def = FRUIT_PARTICLES[f.type] || FRUIT_PARTICLES.apple;
+    for (let i = 0; i < def.count; i++) {
+      const pt = pickParticleType(def.types);
+      // 沿切割角度偏移 ±π/2，强调"裂开"方向
+      const a = angle + (Math.random() - 0.5) * Math.PI * 1.05;
+      const sp = 90 + Math.random() * 340;
+      const sz = pt.size[0] + Math.random() * (pt.size[1] - pt.size[0]);
       particles.push({
         x: f.x, y: f.y,
         vx: Math.cos(a) * sp,
-        vy: Math.sin(a) * sp - 80,
-        r: 3 + Math.random() * 4,
-        color,
-        life: 0.8,
+        vy: Math.sin(a) * sp - 90,
+        r: sz,
+        color: pt.color,
+        shape: pt.shape,
+        rot: Math.random() * Math.PI * 2,
+        vrot: (Math.random() - 0.5) * 9,
+        life: 0.7 + Math.random() * 0.55,
         age: 0,
       });
     }
@@ -1277,6 +1324,7 @@ permalink: /toolbox/fruit-ninja/
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.age += dt;
+      if (p.vrot) p.rot += p.vrot * dt;
     }
     particles = particles.filter(p => p.age < p.life);
 
@@ -1400,12 +1448,26 @@ permalink: /toolbox/fruit-ninja/
 
   function drawParticles() {
     for (const p of particles) {
-      const alpha = Math.max(0, 1 - p.age / p.life);
-      ctx.fillStyle = p.color;
+      const t = p.age / p.life;
+      const alpha = Math.max(0, 1 - t);
+      const sz = p.r * (1 - t * 0.35);
+      ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r * (1 - p.age / p.life * 0.4), 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle = p.color;
+      ctx.translate(p.x, p.y);
+      if (p.rot) ctx.rotate(p.rot);
+      if (p.shape === 'oval') {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, sz * 0.55, sz, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.shape === 'rect') {
+        ctx.fillRect(-sz, -sz * 0.45, sz * 2, sz * 0.9);
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, sz, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
   }
