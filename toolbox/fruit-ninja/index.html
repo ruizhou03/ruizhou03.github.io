@@ -22,9 +22,9 @@ permalink: /toolbox/fruit-ninja/
     max-width: 600px;
     aspect-ratio: 2 / 3;
     margin: 0 auto;
-    background: linear-gradient(180deg, #2a3a52 0%, #1a2436 100%);
+    background: radial-gradient(ellipse at 50% 30%, #2a0e44 0%, #0a0418 60%, #050010 100%);
     border-radius: 14px;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 4px 18px rgba(255, 60, 200, 0.18), 0 0 0 1px rgba(0, 220, 255, 0.12);
     cursor: crosshair;
     touch-action: none;
   }
@@ -411,12 +411,132 @@ permalink: /toolbox/fruit-ninja/
     canvas.width = Math.round(LOG_W * dpr);
     canvas.height = Math.round(LOG_H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    // 缓存背景渐变，避免每帧重新创建
-    bgGradient = ctx.createLinearGradient(0, 0, 0, LOG_H);
-    bgGradient.addColorStop(0, '#2a3a52');
-    bgGradient.addColorStop(1, '#1a2436');
+    bakeBackground();
   }
-  let bgGradient = null;
+
+  // ============ 霓虹背景（烘焙静态层 + 动画网格）============
+  // 静态层一次烘焙到离屏 canvas（深紫天空 + 粉红夕阳 + 青色地平线 + 星点）。
+  // 网格floor 每帧绘制（开销极低 ~36 条线），scroll 由 game-time 驱动。
+  let bgOffscreen = null;
+  const HORIZON_RATIO = 0.52;
+
+  function bakeBackground() {
+    if (!bgOffscreen) bgOffscreen = document.createElement('canvas');
+    bgOffscreen.width = LOG_W;
+    bgOffscreen.height = LOG_H;
+    const bx = bgOffscreen.getContext('2d');
+    const horizonY = LOG_H * HORIZON_RATIO;
+
+    // 天空：深紫渐变
+    const skyGrad = bx.createLinearGradient(0, 0, 0, horizonY);
+    skyGrad.addColorStop(0, '#06010f');
+    skyGrad.addColorStop(0.55, '#1a0838');
+    skyGrad.addColorStop(1, '#3a0e5e');
+    bx.fillStyle = skyGrad;
+    bx.fillRect(0, 0, LOG_W, horizonY);
+
+    // 夕阳（粉红 → 橙黄）
+    const sunCx = LOG_W / 2;
+    const sunCy = horizonY - 18;
+    const sunR = 120;
+    const sunGrad = bx.createRadialGradient(sunCx, sunCy, 6, sunCx, sunCy, sunR);
+    sunGrad.addColorStop(0, '#fff8c4');
+    sunGrad.addColorStop(0.28, '#ffc070');
+    sunGrad.addColorStop(0.55, '#ff4ea8');
+    sunGrad.addColorStop(1, 'rgba(120, 20, 90, 0)');
+    bx.fillStyle = sunGrad;
+    bx.beginPath();
+    bx.arc(sunCx, sunCy, sunR, 0, Math.PI * 2);
+    bx.fill();
+
+    // 夕阳横条带（80s 复古蒸汽波标志）
+    bx.globalCompositeOperation = 'destination-out';
+    for (let i = 0; i < 7; i++) {
+      const sy = sunCy + 28 + i * 10;
+      const sh = 3 + i * 0.7;
+      if (sy + sh > horizonY) break;
+      bx.fillRect(sunCx - sunR, sy, sunR * 2, sh);
+    }
+    bx.globalCompositeOperation = 'source-over';
+
+    // 地板（地平线下方）
+    const floorGrad = bx.createLinearGradient(0, horizonY, 0, LOG_H);
+    floorGrad.addColorStop(0, '#0c031e');
+    floorGrad.addColorStop(1, '#02000a');
+    bx.fillStyle = floorGrad;
+    bx.fillRect(0, horizonY, LOG_W, LOG_H - horizonY);
+
+    // 地平线 + 青色辉光
+    const glowGrad = bx.createLinearGradient(0, horizonY - 10, 0, horizonY + 10);
+    glowGrad.addColorStop(0, 'rgba(0, 220, 255, 0)');
+    glowGrad.addColorStop(0.5, 'rgba(0, 220, 255, 0.42)');
+    glowGrad.addColorStop(1, 'rgba(0, 220, 255, 0)');
+    bx.fillStyle = glowGrad;
+    bx.fillRect(0, horizonY - 10, LOG_W, 20);
+    bx.strokeStyle = 'rgba(120, 250, 255, 0.95)';
+    bx.lineWidth = 1.5;
+    bx.beginPath();
+    bx.moveTo(0, horizonY);
+    bx.lineTo(LOG_W, horizonY);
+    bx.stroke();
+
+    // 远景星点（仅天空区域）
+    bx.fillStyle = '#ffffff';
+    for (let i = 0; i < 22; i++) {
+      const sx = Math.random() * LOG_W;
+      const sy = Math.random() * horizonY * 0.75;
+      const sr = Math.random() * 1.2 + 0.3;
+      bx.globalAlpha = 0.35 + Math.random() * 0.5;
+      bx.beginPath();
+      bx.arc(sx, sy, sr, 0, Math.PI * 2);
+      bx.fill();
+    }
+    bx.globalAlpha = 1;
+  }
+
+  function drawNeonGrid(gameTimeMs) {
+    const horizonY = LOG_H * HORIZON_RATIO;
+    const floorBottom = LOG_H;
+    const numHoriz = 14;
+    // 0..1 滚动循环（每 ~6s 一周），向玩家方向流
+    const scroll = ((gameTimeMs * 0.00018) % 1 + 1) % 1;
+
+    ctx.save();
+
+    // 横向地板线（透视：靠近玩家越亮越粗，间距非线性）
+    for (let i = 0; i < numHoriz; i++) {
+      const t = ((i + scroll) / numHoriz) % 1;
+      const yT = Math.pow(t, 2.4);                       // 透视曲线
+      const y = horizonY + (floorBottom - horizonY) * yT;
+      const alpha = 0.16 + 0.55 * yT;
+      const isAccent = (Math.floor(i + scroll) % 4 === 0);
+      ctx.strokeStyle = isAccent
+        ? 'rgba(255, 90, 200, ' + alpha.toFixed(3) + ')'
+        : 'rgba(0, 220, 255, ' + alpha.toFixed(3) + ')';
+      ctx.lineWidth = isAccent ? 1.6 : 1.0;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(LOG_W, y);
+      ctx.stroke();
+    }
+
+    // 纵向放射线（消失点在地平线中心）
+    const vanishX = LOG_W / 2;
+    const verts = 13;
+    ctx.lineWidth = 0.9;
+    ctx.strokeStyle = 'rgba(0, 200, 255, 0.28)';
+    for (let i = 0; i <= verts; i++) {
+      const tX = i / verts;
+      const xBottom = -LOG_W * 0.4 + tX * (LOG_W * 1.8);
+      ctx.beginPath();
+      ctx.moveTo(vanishX, horizonY);
+      ctx.lineTo(xBottom, floorBottom);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
 
@@ -920,30 +1040,14 @@ permalink: /toolbox/fruit-ninja/
   }
 
   function render() {
-    // 背景（用缓存的渐变）
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(0, 0, LOG_W, LOG_H);
-
-    // 装饰：星点
-    if (!render._stars) {
-      render._stars = [];
-      for (let i = 0; i < 30; i++) {
-        render._stars.push({
-          x: Math.random() * LOG_W,
-          y: Math.random() * LOG_H * 0.7,
-          r: Math.random() * 1.4 + 0.3,
-          a: 0.3 + Math.random() * 0.4,
-        });
-      }
+    // 背景（烘焙的霓虹场景 + 动画网格）
+    if (bgOffscreen) {
+      ctx.drawImage(bgOffscreen, 0, 0, LOG_W, LOG_H);
+    } else {
+      ctx.fillStyle = '#0a0418';
+      ctx.fillRect(0, 0, LOG_W, LOG_H);
     }
-    ctx.fillStyle = '#fff';
-    for (const s of render._stars) {
-      ctx.globalAlpha = s.a;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
+    drawNeonGrid(Time.game);
 
     // 水果
     for (const f of fruits) drawFruit(f);
@@ -1028,7 +1132,6 @@ permalink: /toolbox/fruit-ninja/
     trail = [];
     popups = [];
     flashUntil = 0;
-    render._stars = null;        // 重新生成星点
     spawnPhase = 'normal';
     nextEventAt = 600;           // game-time 0.6s 后第一个水果
     lastBurstAt = -Infinity;
