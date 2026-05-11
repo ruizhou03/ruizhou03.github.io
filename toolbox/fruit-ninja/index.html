@@ -772,6 +772,8 @@ permalink: /toolbox/fruit-ninja/
     stage: 1,               // 无尽模式 stage 等级
     stageStartedAt: 0,      // 当前 stage 开始时间
     cameraPunchAt: 0,       // 切中后的"镜头微推"起点（wall-clock ms）
+    slowMoUntil: 0,         // slow-mo 截止 game-time（0 = 不启用）
+    slowMoFactor: 0.55,     // 当前 slow-mo 时的 Time.scale
   };
 
   let fruits = [];        // active 水果 / 半个水果 / 炸弹
@@ -1097,6 +1099,17 @@ permalink: /toolbox/fruit-ninja/
       vibrate(35);
     } else {
       vibrate(18);
+    }
+    // 连击 6 一次性触发 slow-mo（每笔最多一次：crossing combo===6 时点）
+    if (state.combo === 6) {
+      state.slowMoUntil = Time.game + 600;
+      state.slowMoFactor = 0.55;
+    } else if (state.combo === 10) {
+      // 单刀 10 连 → ULTRA 慢动作
+      state.slowMoUntil = Time.game + 850;
+      state.slowMoFactor = 0.42;
+      showPopup(LOG_W / 2, LOG_H * 0.22, 'ULTRA', '#fff48b', true);
+      triggerShake(8, 250);
     }
     // chop 音：combo 越高音越亮（detune 上行），位置在屏幕 pan 上反映
     FNAudio.play('chop', {
@@ -1439,9 +1452,25 @@ permalink: /toolbox/fruit-ninja/
   // ============ 主循环 ============
   let rafId = 0;
   let lastWall = 0;        // 上一帧的 performance.now()（wall-clock）
+
+  // 每帧根据当前情绪触发条件计算 Time.scale（≤1.0）
+  function updateTimeScale() {
+    let scale = 1.0;
+    // 高 combo slow-mo（game-time gated）
+    if (state.slowMoUntil && Time.game < state.slowMoUntil) {
+      scale = Math.min(scale, state.slowMoFactor);
+    }
+    // 经典模式最后 5 秒：戏剧性收尾
+    if (state.mode === 'classic' && state.timeLeft > 0 && state.timeLeft <= 5) {
+      scale = Math.min(scale, 0.7);
+    }
+    Time.scale = scale;
+  }
+
   function loop(now) {
     if (state.over || !state.running) return;
     if (!state.paused) {
+      updateTimeScale();
       const dtWall = lastWall ? Math.min(now - lastWall, 50) : 0;
       // hit pause：Time.game 暂停推进，但仍渲染（让玩家看到冻结瞬间）
       const isFrozen = Time.game < Time.frozenUntil;
@@ -1496,6 +1525,8 @@ permalink: /toolbox/fruit-ninja/
     state.stage = 1;
     state.stageStartedAt = 0;
     state.cameraPunchAt = 0;
+    state.slowMoUntil = 0;
+    state.slowMoFactor = 0.55;
 
     modeSelect.hidden = true;
     stage.hidden = false;
