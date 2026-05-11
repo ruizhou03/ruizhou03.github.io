@@ -347,14 +347,14 @@ permalink: /toolbox/feixingqi/
     </div>
     <div class="fxq-help">点击棋盘四角的 chip 在「空 / 人类 / AI」之间切换。每位玩家 4 架飞机，目标是把 4 架全送到中央终点。至少需要 2 个角有玩家。</div>
     <div class="fxq-rules">
-      <span class="pill">出库</span> 掷出 6 才能从机库出一架，飞机出现在自家 <span style="color:#E84545">✈</span> 起飞口；掷 6 后再掷一次（连续 3 个 6 视为犯规，最近一架退回机库）。
+      <span class="pill">出库 + 大飞</span> 摇 6 出库 → 飞机出现在自家 <span style="color:#E84545">✈</span> 起飞口并立即横跨半盘 26 格到对面棋盘臂（经典 "起飞 = 大飞" 规则）；掷 6 后再掷一次（连续 3 个 6 视为犯规，最近一架退回机库）。
       <br>
-      <span class="pill">归航</span> 沿外圈 52 格走 45 格回到自家归航入口（贴在归航跑道远端的外圈格），自动转入归航跑道 6 格 → 中央同色三角即胜。
+      <span class="pill">归航</span> 之后沿外圈顺时针前进，最终走到自家归航入口（十字臂尖中央格），自动转入 6 格归航跑道 → 中央同色三角即胜。
+      <br>
+      <span class="pill">小跳</span> 走的过程中落在自家凹角 <span style="color:#E84545">✈</span> 格（同色虚线箭头标出）→ 跨过凹角飞 4 格到下一同色格。
       <br>
       <span class="pill">踩格</span> 落到对手所在格 → 对手该格上飞机全部回机库。
       <span class="pill">精确</span> 进归航跑道后剩余步数必须精确到达终点，超出反弹。
-      <br>
-      <span class="pill">飞跃</span> 稀有彩蛋：踩到自己颜色的 <span style="color:#E84545">✈</span> → 横跨半盘 26 格（被踩送回再被踩回起飞口才有机会触发）。
     </div>
   </div>
 
@@ -398,85 +398,82 @@ permalink: /toolbox/feixingqi/
   // Corner colors per user's standard 52-cell Chinese 飞行棋 spec:
   // - NW = 红 red    (runway on TOP arm)
   // - NE = 黄 yellow (runway on RIGHT arm)
-  // - SE = 绿 green  (runway on BOTTOM arm)
-  // - SW = 蓝 blue   (runway on LEFT arm)
-  // Each color's runway is on the cross-arm adjacent to its hangar. Turn order
-  // goes clockwise: NW → NE → SE → SW.
-  const COLORS = ['red', 'yellow', 'green', 'blue'];
+  // - SE = 蓝 blue   (runway on BOTTOM arm)
+  // - SW = 绿 green  (runway on LEFT arm)
+  // Each color's home stretch is on the cross-arm adjacent to its hangar; the
+  // 4 colors cycle CLOCKWISE around the board in the order red → yellow → blue → green.
+  // Plane motion is also clockwise (TRACK indices increase as planes walk CW).
+  const COLORS = ['red', 'yellow', 'blue', 'green'];
   const COLOR_INFO = {
     red:    { hex: '#E84545', light: '#FDE0DC', label: '红', corner: 'NW', name: '西北' },
     yellow: { hex: '#F5C518', light: '#FFF8D6', label: '黄', corner: 'NE', name: '东北' },
-    green:  { hex: '#3CB371', light: '#DFF3E2', label: '绿', corner: 'SE', name: '东南' },
-    blue:   { hex: '#3C82E8', light: '#DCE9FF', label: '蓝', corner: 'SW', name: '西南' },
+    blue:   { hex: '#3C82E8', light: '#DCE9FF', label: '蓝', corner: 'SE', name: '东南' },
+    green:  { hex: '#3CB371', light: '#DFF3E2', label: '绿', corner: 'SW', name: '西南' },
   };
-  const CORNER_TO_COLOR = { NW: 'red', NE: 'yellow', SE: 'green', SW: 'blue' };
+  const CORNER_TO_COLOR = { NW: 'red', NE: 'yellow', SE: 'blue', SW: 'green' };
   const CORNER_KEYS = ['NW', 'NE', 'SE', 'SW'];
-  const TURN_ORDER = ['red', 'yellow', 'green', 'blue'];
+  const TURN_ORDER = ['red', 'yellow', 'blue', 'green'];
 
   // ===== Layout: standard Chinese 飞行棋 52-cell board (the only layout) =====
-  // Each color enters the loop at EXIT_INDEX, walks 45 cells (almost a full
-  // lap), passes through STRETCH_TRANSITION (the cross-arm tip cell), and
-  // turns into its 6-cell runway to reach the central goal (7,7).
+  // TRACK is indexed 0..51 walking CLOCKWISE around the cross perimeter,
+  // starting at the top-arm-tip's left corner (0,6). Each color enters the
+  // loop at EXIT_INDEX and walks 48 cells CW to reach STRETCH_TRANSITION
+  // (the cross-arm tip cell), then turns into its 6-cell home runway and
+  // walks 6 more cells to the central goal (7,7).
+  //
+  // The 52 loop cells cycle through 4 colors with period 4. Color mapping
+  // (idx mod 4) → owner: {1: red, 2: yellow, 3: blue, 0: green} — chosen so
+  // each color's STRETCH_TRANSITION cell and EXIT cell are themselves that
+  // color, and the CW reading order around the loop is red→yellow→blue→green.
   const LAYOUT_CROSS = {
     label: '十字盘',
     GRID: 15,
-    // Outer loop, 52 cells, counter-clockwise from a viewer perspective (path
-    // index 0..51 walks CW in [row,col] space). Comments give (col,row) form
-    // for cross-referencing the user's JSON spec.
-    //   0..4   col 6, rows 1..5  going down                  (top-left of cross)
-    //   5..10  row 6, cols 5..0  going left                  (along top edge of left arm)
-    //   11     row 7, col 0      LEFT-ARM TIP — blue exit
-    //   12..17 row 8, cols 0..5  going right                 (along bottom edge of left arm)
-    //   18..22 col 6, rows 9..13 going down                  (left of bottom arm)
-    //   23..25 row 13/14, col 6..8 going right (24=bottom tip)
-    //   23     row 14, col 6     bottom-edge cell
-    //   24     row 14, col 7     BOTTOM-ARM TIP — green exit
-    //   25     row 14, col 8     bottom-edge cell
-    //   26..30 col 8, rows 13..9 going up
-    //   31..35 row 8, cols 9..13 going right
-    //   36..38 row 8/7/6, col 14 going up (37=right tip)
-    //   36     row 8, col 14
-    //   37     row 7, col 14     RIGHT-ARM TIP — yellow exit
-    //   38     row 6, col 14
-    //   39..43 row 6, cols 13..9 going left
-    //   44..48 col 8, rows 5..1  going up
-    //   49..51 row 0, cols 8..6 going left (50=top tip)
-    //   49     row 0, col 8
-    //   50     row 0, col 7      TOP-ARM TIP — red exit
-    //   51     row 0, col 6
+    // Outer loop, 52 cells, CLOCKWISE. Index 0 = top-tip's NW corner.
+    //   0..2   row 0, cols 6..8 going right (top tip, 1 = red runway entry)
+    //   3..7   col 8, rows 1..5 going down (right edge of top arm)
+    //   [NE concave: 7→8 jump over (6,8)]
+    //   8..12  row 6, cols 9..13 going right (top edge of right arm)
+    //   13..15 col 14, rows 6..8 going down (right tip, 14 = yellow runway entry)
+    //   16..20 row 8, cols 13..9 going left (bottom edge of right arm)
+    //   [SE concave: 20→21 jump over (8,8)]
+    //   21..25 col 8, rows 9..13 going down (right edge of bottom arm)
+    //   26..28 row 14, cols 8..6 going left (bottom tip, 27 = blue runway entry)
+    //   29..33 col 6, rows 13..9 going up (left edge of bottom arm)
+    //   [SW concave: 33→34 jump over (8,6)]
+    //   34..38 row 8, cols 5..1 going left (bottom edge of left arm)
+    //   39..41 col 0, rows 8..6 going up (left tip, 40 = green runway entry)
+    //   42..46 row 6, cols 1..5 going right (top edge of left arm)
+    //   [NW concave: 46→47 jump over (6,6)]
+    //   47..51 col 6, rows 5..1 going up (left edge of top arm) → loop to 0
     TRACK: [
-      [1,6],[2,6],[3,6],[4,6],[5,6],              // 0..4
-      [6,5],[6,4],[6,3],[6,2],[6,1],[6,0],        // 5..10
-      [7,0],                                       // 11
-      [8,0],[8,1],[8,2],[8,3],[8,4],[8,5],        // 12..17
-      [9,6],[10,6],[11,6],[12,6],[13,6],          // 18..22
-      [14,6],                                      // 23
-      [14,7],                                      // 24
-      [14,8],                                      // 25
-      [13,8],[12,8],[11,8],[10,8],[9,8],          // 26..30
-      [8,9],[8,10],[8,11],[8,12],[8,13],          // 31..35
-      [8,14],                                      // 36
-      [7,14],                                      // 37
-      [6,14],                                      // 38
-      [6,13],[6,12],[6,11],[6,10],[6,9],          // 39..43
-      [5,8],[4,8],[3,8],[2,8],[1,8],              // 44..48
-      [0,8],                                       // 49
-      [0,7],                                       // 50
-      [0,6],                                       // 51
+      [0,6],[0,7],[0,8],                          // 0..2  top tip
+      [1,8],[2,8],[3,8],[4,8],[5,8],              // 3..7
+      [6,9],[6,10],[6,11],[6,12],[6,13],          // 8..12
+      [6,14],[7,14],[8,14],                       // 13..15 right tip
+      [8,13],[8,12],[8,11],[8,10],[8,9],          // 16..20
+      [9,8],[10,8],[11,8],[12,8],[13,8],          // 21..25
+      [14,8],[14,7],[14,6],                       // 26..28 bottom tip
+      [13,6],[12,6],[11,6],[10,6],[9,6],          // 29..33
+      [8,5],[8,4],[8,3],[8,2],[8,1],              // 34..38
+      [8,0],[7,0],[6,0],                          // 39..41 left tip
+      [6,1],[6,2],[6,3],[6,4],[6,5],              // 42..46
+      [5,6],[4,6],[3,6],[2,6],[1,6],              // 47..51
     ],
     // Entry cell on the loop after rolling 6 (also the takeoff/✈ cell that
-    // triggers the cross-board big jump). Each color is 13 cells apart on the
-    // 52-cell loop.
-    EXIT_INDEX:         { red: 5, yellow: 44, green: 31, blue: 18 },
-    // Exit cell at the cross-arm tip (last loop cell before turning into the
-    // home runway). For each color: STRETCH_TRANSITION = (EXIT_INDEX + 45) % 52.
-    STRETCH_TRANSITION: { red: 50, yellow: 37, green: 24, blue: 11 },
+    // triggers the cross-board big jump). Each color enters on the SAME ARM
+    // as its home stretch but on the cross-axis-opposite side, then walks 48
+    // cells CW around to its home stretch entry. EXIT cells are 13 indices
+    // apart on the 52-cell loop.
+    EXIT_INDEX:         { red: 5, yellow: 18, blue: 31, green: 44 },
+    // Last loop cell before turning into the home runway. For each color:
+    // STRETCH_TRANSITION = (EXIT_INDEX + 48) % 52 = arm-tip middle cell.
+    STRETCH_TRANSITION: { red: 1, yellow: 14, blue: 27, green: 40 },
     STRETCH_CELLS: {
       // 6 cells per runway, from outer (cross-arm tip) end inward to the goal.
       red:    [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],         // top    arm, col 7, ↓
       yellow: [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],     // right  arm, row 7, ←
-      green:  [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],     // bottom arm, col 7, ↑
-      blue:   [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],         // left   arm, row 7, →
+      blue:   [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],     // bottom arm, col 7, ↑
+      green:  [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],         // left   arm, row 7, →
     },
     STRETCH_LEN: 6,
     HANGAR_CELLS: {
@@ -484,14 +481,14 @@ permalink: /toolbox/feixingqi/
       // each axis), per user's standard spec.
       red:    [[2,2],[2,3],[3,2],[3,3]],          // NW
       yellow: [[2,11],[2,12],[3,11],[3,12]],      // NE
-      green:  [[11,11],[11,12],[12,11],[12,12]],  // SE
-      blue:   [[11,2],[11,3],[12,2],[12,3]],      // SW
+      blue:   [[11,11],[11,12],[12,11],[12,12]],  // SE
+      green:  [[11,2],[11,3],[12,2],[12,3]],      // SW
     },
     HOME_ZONES: {
       red:    { r0: 0,  r1: 5,  c0: 0,  c1: 5  },  // NW
       yellow: { r0: 0,  r1: 5,  c0: 9,  c1: 14 },  // NE
-      green:  { r0: 9,  r1: 14, c0: 9,  c1: 14 },  // SE
-      blue:   { r0: 9,  r1: 14, c0: 0,  c1: 5  },  // SW
+      blue:   { r0: 9,  r1: 14, c0: 9,  c1: 14 },  // SE
+      green:  { r0: 9,  r1: 14, c0: 0,  c1: 5  },  // SW
     },
     // Purely decorative "takeoff triangles" — one colored diagonal-split cell
     // per color in the inner quadrant of each home zone. Plane mechanics
@@ -499,31 +496,37 @@ permalink: /toolbox/feixingqi/
     TAKEOFF_TRIANGLES: {
       red:    [4,4],
       yellow: [4,10],
-      green:  [10,10],
-      blue:   [10,4],
+      blue:   [10,10],
+      green:  [10,4],
     },
     GOAL: {
       // Single cell (7,7) split into 4 inner triangles. Each color parks just
-      // inside its triangle. Top=red, Right=yellow, Bottom=green, Left=blue
-      // (matches runway-arm orientation).
+      // inside its triangle. Top=red, Right=yellow, Bottom=blue, Left=green
+      // (matches each color's home-stretch arm orientation).
       kind: 'star',
       cell: [7, 7],
       anchors: {
         red:    [7.22, 7.5],   // top triangle
         yellow: [7.5, 7.78],   // right triangle
-        green:  [7.78, 7.5],   // bottom triangle
-        blue:   [7.5, 7.22],   // left triangle
+        blue:   [7.78, 7.5],   // bottom triangle
+        green:  [7.5, 7.22],   // left triangle
       },
     },
     // 4 inner concave corners of the cross — the loop "cuts" diagonally
-    // between non-grid-adjacent cells here. We render a small marker at each
-    // pivot to signal the diagonal turn.
+    // between non-grid-adjacent cells here. The pivot is the (6,6)/(6,8)/
+    // (8,8)/(8,6) cell that the loop SKIPS via the diagonal jump.
     CORNERS: [
-      { from: 4,  to: 5,  pivot: [6, 6] },   // NW concave: (5,6)→(6,5)
-      { from: 17, to: 18, pivot: [8, 6] },   // SW concave: (8,5)→(9,6)
-      { from: 30, to: 31, pivot: [8, 8] },   // SE concave: (9,8)→(8,9)
-      { from: 43, to: 44, pivot: [6, 8] },   // NE concave: (6,9)→(5,8)
+      { from: 7,  to: 8,  pivot: [6, 8] },   // NE concave: (5,8)→(6,9)
+      { from: 20, to: 21, pivot: [8, 8] },   // SE concave: (8,9)→(9,8)
+      { from: 33, to: 34, pivot: [8, 6] },   // SW concave: (9,6)→(8,5)
+      { from: 46, to: 47, pivot: [6, 6] },   // NW concave: (6,5)→(5,6)
     ],
+    // 4 small-jump ✈ cells, one per color, located at the cell IMMEDIATELY
+    // BEFORE each concave gap in CW direction. Landing on your own small-jump
+    // cell teleports you 4 cells CW (to the next same-color cell across the
+    // gap). Visual: a same-color dashed arrow drawn from cell to target.
+    SMALL_JUMP_CELLS: { blue: 7, green: 20, red: 33, yellow: 46 },
+    SMALL_JUMP_DISTANCE: 4,
   };
 
   const LAYOUTS = { cross: LAYOUT_CROSS };
@@ -531,17 +534,38 @@ permalink: /toolbox/feixingqi/
   // Classical 飞行棋 takeoff: each color's EXIT_INDEX cell is also its "✈"
   // jump cell. Landing on your OWN ✈ cell flies you exactly half a lap (26
   // cells on the 52-cell loop) — to the diagonally opposite arm's ✈ cell.
+  // Additionally, each color has ONE small-jump ✈ at a concave-corner cell:
+  // landing there flies you 4 cells CW (to the next same-color cell across
+  // the gap).
   const TAKEOFF_OFFSET = 0;
   const FLIGHT_DISTANCE = 26;
   for (const key in LAYOUTS) {
     const layout = LAYOUTS[key];
-    layout.CELL_COLOR = {};       // index → owner colour (only takeoff cells are coloured)
-    layout.BIG_JUMP_CELLS = {};   // index → owner colour (same set as CELL_COLOR for now)
+    // CELL_COLOR maps EVERY loop index → its faction color via the 4-period
+    // cycle. Pattern (idx mod 4): 1→red, 2→yellow, 3→blue, 0→green. This
+    // makes each STRETCH_TRANSITION and EXIT cell colored matching its color.
+    const CYCLE_BY_MOD = { 0: 'green', 1: 'red', 2: 'yellow', 3: 'blue' };
+    layout.CELL_COLOR = {};
+    for (let i = 0; i < TRACK_LEN; i++) {
+      layout.CELL_COLOR[i] = CYCLE_BY_MOD[i % 4];
+    }
+    // BIG_JUMP_CELLS: only the 4 EXIT cells trigger the half-lap fly.
+    layout.BIG_JUMP_CELLS = {};
+    layout.TAKEOFF_CELLS = {};   // alias kept for future renaming
     for (const c of COLORS) {
       const e = layout.EXIT_INDEX[c];
       const takeoff = (e + TAKEOFF_OFFSET) % TRACK_LEN;
-      layout.CELL_COLOR[takeoff] = c;
       layout.BIG_JUMP_CELLS[takeoff] = c;
+      layout.TAKEOFF_CELLS[takeoff] = c;
+    }
+    // SMALL_JUMP_OWNER: idx → owner color, and SMALL_JUMP_TARGET: idx → dst.
+    layout.SMALL_JUMP_OWNER = {};
+    layout.SMALL_JUMP_TARGET = {};
+    const sjDist = layout.SMALL_JUMP_DISTANCE;
+    for (const c of COLORS) {
+      const idx = layout.SMALL_JUMP_CELLS[c];
+      layout.SMALL_JUMP_OWNER[idx] = c;
+      layout.SMALL_JUMP_TARGET[idx] = (idx + sjDist) % TRACK_LEN;
     }
   }
 
@@ -558,8 +582,8 @@ permalink: /toolbox/feixingqi/
   const STRETCH_DIR = {
     red:    'down',   // top    arm, col 7, ↓
     yellow: 'left',   // right  arm, row 7, ←
-    green:  'up',     // bottom arm, col 7, ↑
-    blue:   'right',  // left   arm, row 7, →
+    blue:   'up',     // bottom arm, col 7, ↑
+    green:  'right',  // left   arm, row 7, →
   };
 
   // ============================================================
@@ -925,6 +949,51 @@ permalink: /toolbox/feixingqi/
           'stroke-width': 2,
         }));
       }
+      // Takeoff direction hint — small ✈ + arrow on the hangar's CW-facing
+      // edge, pointing toward this color's EXIT cell on the (distant) loop.
+      // Each color's EXIT is on the arm 90° CW from its hangar.
+      if (isActive) {
+        const exitIdx = layout.EXIT_INDEX[color];
+        const [er, ec] = layout.TRACK[exitIdx];
+        // Compute the hangar 2×2 cluster center, then place the indicator at
+        // the cell-edge facing the EXIT.
+        const cells2x2 = layout.HANGAR_CELLS[color];
+        let mr = 0, mc = 0;
+        for (const [r, c] of cells2x2) { mr += r; mc += c; }
+        mr /= cells2x2.length; mc /= cells2x2.length;
+        const dr = er - mr, dc = ec - mc;
+        const adr = Math.abs(dr), adc = Math.abs(dc);
+        // Snap to the dominant axis (horizontal or vertical).
+        let arrow, dx0, dy0;
+        if (adc > adr) {
+          // Horizontal: → or ←
+          if (dc > 0) { arrow = '➜'; dx0 =  cell * 1.4; dy0 = 0; }
+          else        { arrow = '⟵'; dx0 = -cell * 1.4; dy0 = 0; }
+        } else {
+          // Vertical: ↓ or ↑
+          if (dr > 0) { arrow = '↓'; dx0 = 0; dy0 =  cell * 1.4; }
+          else        { arrow = '↑'; dx0 = 0; dy0 = -cell * 1.4; }
+        }
+        const ax = svgX(mc) + dx0;
+        const ay = svgY(mr) + dy0;
+        homeGroup.appendChild(svgEl('circle', {
+          cx: ax, cy: ay,
+          r: cell * 0.36,
+          fill: info.hex,
+          stroke: '#1a1a1a',
+          'stroke-width': 1.4,
+        }));
+        const t = svgEl('text', {
+          x: ax, y: ay + cell * 0.20,
+          'text-anchor': 'middle',
+          'font-size': cell * 0.62,
+          fill: '#ffffff',
+          'font-weight': 700,
+          'pointer-events': 'none',
+        });
+        t.textContent = arrow;
+        homeGroup.appendChild(t);
+      }
     }
     svg.appendChild(homeGroup);
 
@@ -990,37 +1059,76 @@ permalink: /toolbox/feixingqi/
     }
     svg.appendChild(takeoffGroup);
 
-    // === Layer: stretch lanes (colored cells with arrows toward center) ===
+    // === Layer: home stretch lanes (6 white circles per arm with colored
+    // borders + colored arrows between them pointing toward the center) ===
     const stretchGroup = svgEl('g', { class: 'stretches' });
-    const arrowFor = { down: '▼', up: '▲', left: '◀', right: '▶' };
+    const dirVec = {
+      down:  [0,  1],   // +row
+      up:    [0, -1],   // -row
+      left:  [-1, 0],   // -col
+      right: [ 1, 0],   // +col
+    };
     for (const color of COLORS) {
       if (!activeColors.has(color)) continue;
       const info = COLOR_INFO[color];
       const dir = STRETCH_DIR[color];
-      for (const [r, c] of layout.STRETCH_CELLS[color]) {
-        stretchGroup.appendChild(svgEl('rect', {
-          x: c * cell + cell * 0.06,
-          y: r * cell + cell * 0.06,
-          width: cell * 0.88,
-          height: cell * 0.88,
-          class: 'stretch-cell',
-          fill: info.hex,
-          stroke: '#1a1a1a',
-          'stroke-width': 1.3,
-          rx: 5,
+      const cells = layout.STRETCH_CELLS[color];
+      // Connecting arrows BETWEEN consecutive stretch cells (drawn first so
+      // the white circles sit on top).
+      for (let k = 0; k < cells.length - 1; k++) {
+        const [r1, c1] = cells[k];
+        const [r2, c2] = cells[k + 1];
+        const x1 = svgX(c1), y1 = svgY(r1);
+        const x2 = svgX(c2), y2 = svgY(r2);
+        // Trim line endpoints so they don't poke into the circles.
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.hypot(dx, dy);
+        const nx = dx / len, ny = dy / len;
+        const r = cell * 0.30;     // circle radius for stretch nodes
+        const sx = x1 + nx * r;
+        const sy = y1 + ny * r;
+        const ex = x2 - nx * r;
+        const ey = y2 - ny * r;
+        stretchGroup.appendChild(svgEl('line', {
+          x1: sx, y1: sy, x2: ex, y2: ey,
+          stroke: info.hex,
+          'stroke-width': 3,
+          'stroke-linecap': 'round',
         }));
-        const arrow = svgEl('text', {
-          x: svgX(c),
-          y: svgY(r) + cell * 0.18,
-          'text-anchor': 'middle',
-          'font-size': cell * 0.62,
-          fill: '#ffffff',
-          'font-weight': 700,
-          'pointer-events': 'none',
-        });
-        arrow.textContent = arrowFor[dir];
-        stretchGroup.appendChild(arrow);
+        // Arrow head as a small triangle pointing along the direction at the END.
+        const ahx = ex, ahy = ey;
+        const ahSize = cell * 0.14;
+        const px = -ny, py = nx;     // perpendicular
+        const head = `${ahx},${ahy} ${ahx - nx * ahSize + px * ahSize * 0.55},${ahy - ny * ahSize + py * ahSize * 0.55} ${ahx - nx * ahSize - px * ahSize * 0.55},${ahy - ny * ahSize - py * ahSize * 0.55}`;
+        stretchGroup.appendChild(svgEl('polygon', {
+          points: head,
+          fill: info.hex,
+        }));
       }
+      // 6 white circles with colored borders.
+      for (const [r, c] of cells) {
+        stretchGroup.appendChild(svgEl('circle', {
+          cx: svgX(c), cy: svgY(r),
+          r: cell * 0.30,
+          class: 'stretch-cell',
+          fill: '#ffffff',
+          stroke: info.hex,
+          'stroke-width': 2.2,
+        }));
+      }
+      // Final arrow pointing into the central goal cell from the last stretch cell.
+      const [rL, cL] = cells[cells.length - 1];
+      const [dvc, dvr] = dirVec[dir];
+      const xL = svgX(cL), yL = svgY(rL);
+      const goalX = xL + dvc * cell * 0.5;
+      const goalY = yL + dvr * cell * 0.5;
+      stretchGroup.appendChild(svgEl('line', {
+        x1: xL + dvc * cell * 0.30, y1: yL + dvr * cell * 0.30,
+        x2: goalX, y2: goalY,
+        stroke: info.hex,
+        'stroke-width': 3,
+        'stroke-linecap': 'round',
+      }));
     }
     svg.appendChild(stretchGroup);
 
@@ -1042,55 +1150,138 @@ permalink: /toolbox/feixingqi/
     }
     svg.appendChild(connGroup);
 
-    // === Layer: track cells (44 cells; corner tips are slightly distinct) ===
+    // === Layer: track cells (52 cells; all colored in 4-period CW cycle;
+    // 8 outer-tip corners drawn as triangles; EXIT and small-jump cells
+    // get a bold ✈ glyph) ===
     const trackGroup = svgEl('g', { class: 'track' });
+    // Outer-corner cells: idx → which cell-corner is "outermost" relative to
+    // the cross. Triangle is drawn over the 3 cell-corners that INCLUDE the
+    // outer one, leaving the inward-facing diagonal visible.
+    const OUTER_CORNERS = {
+      0:  'TL', 2:  'TR',     // top tip
+      13: 'TR', 15: 'BR',     // right tip
+      26: 'BR', 28: 'BL',     // bottom tip
+      39: 'BL', 41: 'TL',     // left tip
+    };
     for (let i = 0; i < TRACK_LEN; i++) {
       const [r, c] = layout.TRACK[i];
       const ownerColor = layout.CELL_COLOR[i];
-      // Cell base square
-      trackGroup.appendChild(svgEl('rect', {
-        x: c * cell + cell * 0.06,
-        y: r * cell + cell * 0.06,
-        width: cell * 0.88,
-        height: cell * 0.88,
-        class: 'track-cell',
-        fill: ownerColor ? COLOR_INFO[ownerColor].hex : '#ffffff',
-        stroke: '#1a1a1a',
-        'stroke-width': 1.3,
-        rx: 5,
-      }));
-      if (ownerColor) {
-        // ✈ takeoff cell — bold white plane glyph on color fill.
+      const isActive = activeColors.has(ownerColor);
+      const fill = isActive ? COLOR_INFO[ownerColor].hex : COLOR_INFO[ownerColor].light;
+      const x0 = c * cell + cell * 0.06;
+      const y0 = r * cell + cell * 0.06;
+      const w  = cell * 0.88;
+      const h  = cell * 0.88;
+      const cornerKey = OUTER_CORNERS[i];
+      if (cornerKey) {
+        // Outer-tip corner: triangle filling 3 of the 4 cell corners.
+        const tl = [x0,     y0    ];
+        const tr = [x0 + w, y0    ];
+        const br = [x0 + w, y0 + h];
+        const bl = [x0,     y0 + h];
+        const triPts = {
+          TL: [tl, tr, bl],
+          TR: [tr, tl, br],
+          BR: [br, tr, bl],
+          BL: [bl, tl, br],
+        }[cornerKey];
+        trackGroup.appendChild(svgEl('polygon', {
+          points: triPts.map(p => `${p[0]},${p[1]}`).join(' '),
+          class: 'track-cell track-corner',
+          fill,
+          stroke: '#1a1a1a',
+          'stroke-width': 1.3,
+          'stroke-linejoin': 'round',
+        }));
+      } else {
+        // Standard track cell — colored rounded square.
+        trackGroup.appendChild(svgEl('rect', {
+          x: x0, y: y0, width: w, height: h,
+          class: 'track-cell',
+          fill,
+          stroke: '#1a1a1a',
+          'stroke-width': 1.3,
+          rx: 5,
+        }));
+      }
+      // ✈ markers for EXIT (big jump) and small-jump cells.
+      const isExit  = layout.BIG_JUMP_CELLS[i] === ownerColor;
+      const isSmall = layout.SMALL_JUMP_OWNER[i] === ownerColor;
+      if (isExit || isSmall) {
+        const radius = isExit ? cell * 0.32 : cell * 0.26;
+        const glyphSize = isExit ? cell * 0.66 : cell * 0.50;
         trackGroup.appendChild(svgEl('circle', {
           cx: svgX(c), cy: svgY(r),
-          r: cell * 0.32,
+          r: radius,
           fill: 'rgba(255,255,255,0.15)',
           stroke: '#ffffff',
-          'stroke-width': 1.6,
+          'stroke-width': isExit ? 1.6 : 1.4,
         }));
         const glyph = svgEl('text', {
           x: svgX(c),
-          y: svgY(r) + cell * 0.20,
+          y: svgY(r) + glyphSize * 0.30,
           'text-anchor': 'middle',
-          'font-size': cell * 0.66,
+          'font-size': glyphSize,
           fill: '#ffffff',
           'font-weight': 700,
           'pointer-events': 'none',
         });
         glyph.textContent = '✈';
         trackGroup.appendChild(glyph);
-      } else {
-        // Plain track cell — small dot marker.
+      } else if (!cornerKey) {
+        // Plain colored cell — small white center dot as a waypoint.
         trackGroup.appendChild(svgEl('circle', {
           cx: svgX(c), cy: svgY(r),
-          r: cell * 0.18,
-          fill: '#f7efe0',
-          stroke: '#b0a896',
-          'stroke-width': 1,
+          r: cell * 0.14,
+          fill: '#ffffff',
+          stroke: 'rgba(0,0,0,0.25)',
+          'stroke-width': 0.8,
         }));
       }
     }
     svg.appendChild(trackGroup);
+
+    // === Layer: small-jump dashed arrows — one per color, from each color's
+    // SMALL_JUMP_CELL across the concave gap to the next same-color cell.
+    // Visual cue for the small-jump game mechanic. ===
+    const smallJumpGroup = svgEl('g', { class: 'small-jumps' });
+    for (const color of COLORS) {
+      if (!activeColors.has(color)) continue;
+      const fromIdx = layout.SMALL_JUMP_CELLS[color];
+      const toIdx   = layout.SMALL_JUMP_TARGET[fromIdx];
+      const [r1, c1] = layout.TRACK[fromIdx];
+      const [r2, c2] = layout.TRACK[toIdx];
+      const x1 = svgX(c1), y1 = svgY(r1);
+      const x2 = svgX(c2), y2 = svgY(r2);
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.hypot(dx, dy);
+      const nx = dx / len, ny = dy / len;
+      const trim = cell * 0.34;   // don't poke into the cell circles
+      const sx = x1 + nx * trim;
+      const sy = y1 + ny * trim;
+      const ex = x2 - nx * trim;
+      const ey = y2 - ny * trim;
+      const info = COLOR_INFO[color];
+      smallJumpGroup.appendChild(svgEl('line', {
+        x1: sx, y1: sy, x2: ex, y2: ey,
+        stroke: info.hex,
+        'stroke-width': 2.4,
+        'stroke-linecap': 'round',
+        'stroke-dasharray': '6 4',
+      }));
+      // Arrow head at end.
+      const ahSize = cell * 0.20;
+      const px = -ny, py = nx;
+      const head = `${ex},${ey} ${ex - nx * ahSize + px * ahSize * 0.55},${ey - ny * ahSize + py * ahSize * 0.55} ${ex - nx * ahSize - px * ahSize * 0.55},${ey - ny * ahSize - py * ahSize * 0.55}`;
+      smallJumpGroup.appendChild(svgEl('polygon', {
+        points: head,
+        fill: info.hex,
+        stroke: info.hex,
+        'stroke-width': 1,
+        'stroke-linejoin': 'round',
+      }));
+    }
+    svg.appendChild(smallJumpGroup);
 
     // === Layer: goal — single cell (7,7) with 4 inner triangles ===
     const goalGroup = svgEl('g', { class: 'goal' });
@@ -1124,8 +1315,8 @@ permalink: /toolbox/feixingqi/
     };
     triangle('red',    tl, tr);   // top triangle = red
     triangle('yellow', tr, br);   // right triangle = yellow
-    triangle('green',  br, bl);   // bottom triangle = green
-    triangle('blue',   bl, tl);   // left triangle = blue
+    triangle('blue',   br, bl);   // bottom triangle = blue
+    triangle('green',  bl, tl);   // left triangle = green
     // Small center dot to anchor the eye.
     goalGroup.appendChild(svgEl('circle', {
       cx: gcx, cy: gcy, r: cell * 0.08,
@@ -1259,15 +1450,22 @@ permalink: /toolbox/feixingqi/
   // Move resolution
   // ============================================================
 
-  // Land on YOUR own takeoff cell (offset +8) → fly diagonally across the board
-  // to the opposite concave corner (+26 cells). No chains, no other jump cells.
+  // Special-cell landing triggers (in this order, no chaining):
+  //   • Land on your OWN EXIT/✈ cell  → big jump 26 cells CW (half-lap).
+  //   • Land on your OWN small-jump ✈ → small jump 4 cells CW (next same-color).
+  // Other-color cells just count as a normal landing.
   function resolveJumps(player, idx) {
-    const e = L().EXIT_INDEX[player];
+    const layout = L();
+    const e = layout.EXIT_INDEX[player];
     const takeoff = (e + TAKEOFF_OFFSET) % TRACK_LEN;
-    let triggered = { jumped: false, bigJumped: false };
+    const smallJumpIdx = layout.SMALL_JUMP_CELLS[player];
+    let triggered = { jumped: false, bigJumped: false, smallJumped: false };
     if (idx === takeoff) {
       idx = (takeoff + FLIGHT_DISTANCE) % TRACK_LEN;
       triggered.bigJumped = true;
+    } else if (idx === smallJumpIdx) {
+      idx = layout.SMALL_JUMP_TARGET[smallJumpIdx];
+      triggered.smallJumped = true;
     }
     return { idx, triggered };
   }
@@ -1303,39 +1501,47 @@ permalink: /toolbox/feixingqi/
     // Hangar: only on 6
     if (piece.status === 'hangar') {
       if (dice !== 6) return { ok: false };
+      // Classical Chinese 飞行棋 起飞 rule: roll 6 → plane appears on its
+      // ✈ EXIT cell AND immediately big-jumps 26 cells CW to the opposite
+      // half of the board. Without this, EXIT (which sits on the arm 90°
+      // CW from the hangar) would only ever be visited once at takeoff.
+      const e = L().EXIT_INDEX[player];
+      const dest = (e + FLIGHT_DISTANCE) % TRACK_LEN;
       return {
         ok: true,
         kind: 'exit',
         toStatus: 'track',
-        toPos: L().EXIT_INDEX[player],
-        cellsAdvanced: 0,
-        triggered: { jumped: false, bigJumped: false },
+        toPos: dest,
+        cellsAdvanced: FLIGHT_DISTANCE,
+        triggered: { jumped: false, bigJumped: true, smallJumped: false },
       };
     }
     if (piece.status === 'track') {
       const r = advanceOnTrack(player, piece.pos, dice);
       if (r.kind === 'track') {
         const { idx, triggered } = resolveJumps(player, r.pos);
+        const extra = (triggered.bigJumped ? FLIGHT_DISTANCE : 0)
+                    + (triggered.smallJumped ? L().SMALL_JUMP_DISTANCE : 0);
         return {
           ok: true,
           kind: 'walk',
           toStatus: 'track',
           toPos: idx,
-          cellsAdvanced: dice + (triggered.bigJumped ? FLIGHT_DISTANCE : 0),
+          cellsAdvanced: dice + extra,
           triggered,
         };
       } else if (r.kind === 'stretch') {
-        return { ok: true, kind: 'enter-stretch', toStatus: 'stretch', toPos: r.pos, cellsAdvanced: dice, triggered: { jumped: false, bigJumped: false } };
+        return { ok: true, kind: 'enter-stretch', toStatus: 'stretch', toPos: r.pos, cellsAdvanced: dice, triggered: { jumped: false, bigJumped: false, smallJumped: false } };
       } else {
-        return { ok: true, kind: 'finish', toStatus: 'goal', toPos: 0, cellsAdvanced: dice, triggered: { jumped: false, bigJumped: false } };
+        return { ok: true, kind: 'finish', toStatus: 'goal', toPos: 0, cellsAdvanced: dice, triggered: { jumped: false, bigJumped: false, smallJumped: false } };
       }
     }
     if (piece.status === 'stretch') {
       const r = advanceInStretch(piece.pos, dice);
       if (r.kind === 'stretch') {
-        return { ok: true, kind: 'stretch', toStatus: 'stretch', toPos: r.pos, cellsAdvanced: r.pos - piece.pos, triggered: { jumped: false, bigJumped: false } };
+        return { ok: true, kind: 'stretch', toStatus: 'stretch', toPos: r.pos, cellsAdvanced: r.pos - piece.pos, triggered: { jumped: false, bigJumped: false, smallJumped: false } };
       } else {
-        return { ok: true, kind: 'finish', toStatus: 'goal', toPos: 0, cellsAdvanced: L().STRETCH_LEN - piece.pos, triggered: { jumped: false, bigJumped: false } };
+        return { ok: true, kind: 'finish', toStatus: 'goal', toPos: 0, cellsAdvanced: L().STRETCH_LEN - piece.pos, triggered: { jumped: false, bigJumped: false, smallJumped: false } };
       }
     }
     return { ok: false };
@@ -1403,11 +1609,17 @@ permalink: /toolbox/feixingqi/
 
     if (piece.status === 'hangar') {
       if (dice !== 6) return [];
+      // 起飞: appear on EXIT then immediately big-jump 26 cells CW.
       path.push({ status: 'track', pos: e });
+      for (let k = 1; k <= FLIGHT_DISTANCE; k++) {
+        path.push({ status: 'track', pos: (e + k) % TRACK_LEN });
+      }
       return path;
     }
 
     if (piece.status === 'track') {
+      const smallJumpIdx = L().SMALL_JUMP_CELLS[player];
+      const smallJumpDist = L().SMALL_JUMP_DISTANCE;
       let cur = piece.pos;
       let stepsLeft = dice;
       while (stepsLeft > 0) {
@@ -1419,9 +1631,15 @@ permalink: /toolbox/feixingqi/
         path.push({ status: 'track', pos: cur });
         stepsLeft--;
       }
-      // After the dice-walk: did we land on our own takeoff? If so, fly across.
+      // After the dice-walk: did we land on our own ✈?
+      // Big jump (own EXIT) and small jump (own concave-corner ✈) are
+      // disjoint cell sets, so the order of these checks is moot.
       if (cur === takeoff) {
         for (let k = 1; k <= FLIGHT_DISTANCE; k++) {
+          path.push({ status: 'track', pos: (cur + k) % TRACK_LEN });
+        }
+      } else if (cur === smallJumpIdx) {
+        for (let k = 1; k <= smallJumpDist; k++) {
           path.push({ status: 'track', pos: (cur + k) % TRACK_LEN });
         }
       }
@@ -1470,7 +1688,9 @@ permalink: /toolbox/feixingqi/
     let captures = [];
     if (piece.status === 'hangar') {
       piece.status = 'track';
-      piece.pos = L().EXIT_INDEX[player];
+      // 起飞 + immediate 大飞: land on the big-jump destination (NOT the EXIT
+      // cell), per the standard 飞行棋 takeoff rule.
+      piece.pos = preview.toPos;
       captures = opponentsOnCell(player, piece.pos);
     } else if (preview.toStatus === 'track') {
       piece.status = 'track';
@@ -1594,6 +1814,8 @@ permalink: /toolbox/feixingqi/
         toast(`💥 ${COLOR_INFO[player].label}方踩格 — 送回 ${result.captures.length} 架`);
       } else if (result.triggered && result.triggered.bigJumped) {
         toast('✈ 起飞！横跨半盘到对角');
+      } else if (result.triggered && result.triggered.smallJumped) {
+        toast('✈ 小跳！跨过凹角飞到下一同色格');
       }
 
       // Win check
@@ -1711,8 +1933,9 @@ permalink: /toolbox/feixingqi/
       s += 60 + inHangar * 8;
     }
 
-    // Triggered jump / big jump
+    // Triggered jump / big jump / small jump
     if (preview.triggered && preview.triggered.bigJumped) s += 180;
+    if (preview.triggered && preview.triggered.smallJumped) s += 60;
 
     // Distance progress (more cells = more progress)
     s += (preview.cellsAdvanced || 0) * 2;
@@ -1956,27 +2179,60 @@ permalink: /toolbox/feixingqi/
       ctx.fillText('✈', glyphCx, glyphCy);
     }
 
-    // Stretches — saturated colored cells with bold inward arrows
-    const arrowFor = { down: '▼', up: '▲', left: '◀', right: '▶' };
+    // Stretches — 6 white circles with colored borders + colored arrow lines
+    // pointing toward the central goal.
     for (const color of COLORS) {
       if (!activeColors.has(color)) continue;
       const info = COLOR_INFO[color];
-      const dir = STRETCH_DIR[color];
+      const cells2 = layout.STRETCH_CELLS[color];
+      // Connecting arrows between consecutive stretch cells.
+      ctx.strokeStyle = info.hex;
       ctx.fillStyle = info.hex;
-      ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 1.3 * sx;
-      for (const [r, c] of layout.STRETCH_CELLS[color]) {
+      ctx.lineWidth = 3 * sx;
+      ctx.lineCap = 'round';
+      for (let k = 0; k < cells2.length - 1; k++) {
+        const [r1, c1] = cells2[k];
+        const [r2, c2] = cells2[k + 1];
+        const x1 = dx + svgX(c1) * sx, y1 = dy + svgY(r1) * sx;
+        const x2 = dx + svgX(c2) * sx, y2 = dy + svgY(r2) * sx;
+        const ddx = x2 - x1, ddy = y2 - y1;
+        const llen = Math.hypot(ddx, ddy);
+        const nnx = ddx / llen, nny = ddy / llen;
+        const rR = baseCell * 0.30 * sx;
         ctx.beginPath();
-        ctx.rect(dx + c * cell + cell * 0.06, dy + r * cell + cell * 0.06, cell * 0.88, cell * 0.88);
+        ctx.moveTo(x1 + nnx * rR, y1 + nny * rR);
+        ctx.lineTo(x2 - nnx * rR, y2 - nny * rR);
+        ctx.stroke();
+        // Arrow head.
+        const ahSize = baseCell * 0.14 * sx;
+        const px = -nny, py = nnx;
+        const ex2 = x2 - nnx * rR;
+        const ey2 = y2 - nny * rR;
+        ctx.beginPath();
+        ctx.moveTo(ex2, ey2);
+        ctx.lineTo(ex2 - nnx * ahSize + px * ahSize * 0.55, ey2 - nny * ahSize + py * ahSize * 0.55);
+        ctx.lineTo(ex2 - nnx * ahSize - px * ahSize * 0.55, ey2 - nny * ahSize - py * ahSize * 0.55);
+        ctx.closePath();
+        ctx.fill();
+      }
+      // Final arrow into goal.
+      const dirVec2 = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] };
+      const dir = STRETCH_DIR[color];
+      const [rL, cL] = cells2[cells2.length - 1];
+      const [dvc, dvr] = dirVec2[dir];
+      const xL = dx + svgX(cL) * sx, yL = dy + svgY(rL) * sx;
+      ctx.beginPath();
+      ctx.moveTo(xL + dvc * baseCell * 0.30 * sx, yL + dvr * baseCell * 0.30 * sx);
+      ctx.lineTo(xL + dvc * baseCell * 0.50 * sx, yL + dvr * baseCell * 0.50 * sx);
+      ctx.stroke();
+      // White circles with colored borders.
+      ctx.fillStyle = '#ffffff';
+      ctx.lineWidth = 2.2 * sx;
+      for (const [r, c] of cells2) {
+        ctx.beginPath();
+        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.30 * sx, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
-      }
-      ctx.fillStyle = '#fff';
-      ctx.font = `bold ${baseCell * 0.62 * sx}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      for (const [r, c] of layout.STRETCH_CELLS[color]) {
-        ctx.fillText(arrowFor[dir], dx + svgX(c) * sx, dy + svgY(r) * sx);
       }
     }
 
@@ -1992,39 +2248,110 @@ permalink: /toolbox/feixingqi/
       ctx.stroke();
     }
 
-    // Track — white rounded cells; colored takeoff cells get a bold ✈
+    // Track — every cell colored per the 4-period cycle; 8 outer-tip corners
+    // drawn as triangles; EXIT and small-jump cells get a bold ✈ glyph.
+    const OUTER_CORNERS_C = {
+      0: 'TL', 2: 'TR', 13: 'TR', 15: 'BR',
+      26: 'BR', 28: 'BL', 39: 'BL', 41: 'TL',
+    };
     for (let i = 0; i < TRACK_LEN; i++) {
       const [r, c] = layout.TRACK[i];
       const ownerColor = layout.CELL_COLOR[i];
-      ctx.fillStyle = ownerColor ? COLOR_INFO[ownerColor].hex : '#ffffff';
+      const isActive = activeColors.has(ownerColor);
+      const fill = isActive ? COLOR_INFO[ownerColor].hex : COLOR_INFO[ownerColor].light;
+      const x0 = dx + c * cell + cell * 0.06;
+      const y0 = dy + r * cell + cell * 0.06;
+      const w  = cell * 0.88;
+      const h  = cell * 0.88;
+      const cornerKey = OUTER_CORNERS_C[i];
+      ctx.fillStyle = fill;
       ctx.strokeStyle = '#1a1a1a';
       ctx.lineWidth = 1.3 * sx;
       ctx.beginPath();
-      ctx.rect(dx + c * cell + cell * 0.06, dy + r * cell + cell * 0.06, cell * 0.88, cell * 0.88);
+      if (cornerKey) {
+        const tl = [x0,     y0    ];
+        const tr = [x0 + w, y0    ];
+        const br = [x0 + w, y0 + h];
+        const bl = [x0,     y0 + h];
+        const triPts = {
+          TL: [tl, tr, bl],
+          TR: [tr, tl, br],
+          BR: [br, tr, bl],
+          BL: [bl, tl, br],
+        }[cornerKey];
+        ctx.moveTo(triPts[0][0], triPts[0][1]);
+        ctx.lineTo(triPts[1][0], triPts[1][1]);
+        ctx.lineTo(triPts[2][0], triPts[2][1]);
+        ctx.closePath();
+      } else {
+        ctx.rect(x0, y0, w, h);
+      }
       ctx.fill();
       ctx.stroke();
-      if (ownerColor) {
+      const isExit  = layout.BIG_JUMP_CELLS[i] === ownerColor;
+      const isSmall = layout.SMALL_JUMP_OWNER[i] === ownerColor;
+      if (isExit || isSmall) {
+        const radius = (isExit ? baseCell * 0.32 : baseCell * 0.26) * sx;
+        const glyphSize = (isExit ? baseCell * 0.66 : baseCell * 0.50) * sx;
         ctx.fillStyle = 'rgba(255,255,255,0.15)';
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.6 * sx;
+        ctx.lineWidth = (isExit ? 1.6 : 1.4) * sx;
         ctx.beginPath();
-        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.32 * sx, 0, Math.PI * 2);
+        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, radius, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${baseCell * 0.66 * sx}px sans-serif`;
+        ctx.font = `bold ${glyphSize}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('✈', dx + svgX(c) * sx, dy + svgY(r) * sx);
-      } else {
-        ctx.fillStyle = '#f7efe0';
-        ctx.strokeStyle = '#b0a896';
-        ctx.lineWidth = 1 * sx;
+      } else if (!cornerKey) {
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = 0.8 * sx;
         ctx.beginPath();
-        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.18 * sx, 0, Math.PI * 2);
+        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.14 * sx, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       }
+    }
+
+    // Small-jump dashed arrows (canvas)
+    for (const color of COLORS) {
+      if (!activeColors.has(color)) continue;
+      const fromIdx = layout.SMALL_JUMP_CELLS[color];
+      const toIdx   = layout.SMALL_JUMP_TARGET[fromIdx];
+      const [r1, c1] = layout.TRACK[fromIdx];
+      const [r2, c2] = layout.TRACK[toIdx];
+      const x1 = dx + svgX(c1) * sx, y1 = dy + svgY(r1) * sx;
+      const x2 = dx + svgX(c2) * sx, y2 = dy + svgY(r2) * sx;
+      const ddx = x2 - x1, ddy = y2 - y1;
+      const llen = Math.hypot(ddx, ddy);
+      const nnx = ddx / llen, nny = ddy / llen;
+      const trim = baseCell * 0.34 * sx;
+      const sxp = x1 + nnx * trim;
+      const syp = y1 + nny * trim;
+      const exp = x2 - nnx * trim;
+      const eyp = y2 - nny * trim;
+      ctx.strokeStyle = COLOR_INFO[color].hex;
+      ctx.lineWidth = 2.4 * sx;
+      ctx.lineCap = 'round';
+      ctx.setLineDash([6 * sx, 4 * sx]);
+      ctx.beginPath();
+      ctx.moveTo(sxp, syp);
+      ctx.lineTo(exp, eyp);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Arrow head
+      const ahSize = baseCell * 0.20 * sx;
+      const px = -nny, py = nnx;
+      ctx.fillStyle = COLOR_INFO[color].hex;
+      ctx.beginPath();
+      ctx.moveTo(exp, eyp);
+      ctx.lineTo(exp - nnx * ahSize + px * ahSize * 0.55, eyp - nny * ahSize + py * ahSize * 0.55);
+      ctx.lineTo(exp - nnx * ahSize - px * ahSize * 0.55, eyp - nny * ahSize - py * ahSize * 0.55);
+      ctx.closePath();
+      ctx.fill();
     }
 
     // Goal — single cell (7,7) with 4 inner triangles
@@ -2044,8 +2371,8 @@ permalink: /toolbox/feixingqi/
     const triPts = [
       ['red',    [gx, gy],         [gx + gw, gy]],         // top
       ['yellow', [gx + gw, gy],    [gx + gw, gy + gh]],    // right
-      ['green',  [gx + gw, gy+gh], [gx, gy + gh]],         // bottom
-      ['blue',   [gx, gy + gh],    [gx, gy]],              // left
+      ['blue',   [gx + gw, gy+gh], [gx, gy + gh]],         // bottom
+      ['green',  [gx, gy + gh],    [gx, gy]],              // left
     ];
     for (const [color, p1, p2] of triPts) {
       ctx.fillStyle = activeColors.has(color) ? COLOR_INFO[color].hex : '#cdc3b0';
