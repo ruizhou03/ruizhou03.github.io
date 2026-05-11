@@ -10,7 +10,7 @@ permalink: /toolbox/pinball/pachinko/
 <div class="pb-wrap pb-theme-pachinko">
   <header>
     <h1>🎰 弹珠·机厅</h1>
-    <div class="sub">穿过钉墙落入 7 槽 · 中槽 JACKPOT 每局递增 · 连进 3 次中槽爆 4 球 multiball</div>
+    <div class="sub">每局 10 发 · 左 1000 / 中 JACKPOT / 右 50（钉墙偏右，左槽稀有但高分）· 累计 3 次中槽 → multiball</div>
   </header>
 
   <div class="pb-scorebar">
@@ -18,7 +18,7 @@ permalink: /toolbox/pinball/pachinko/
     <div class="pb-score-box"><div class="label">Best</div><div class="value" id="pbBest">0</div></div>
   </div>
 
-  <div class="pb-goal-bar" id="pbGoal">JACKPOT <strong>2000</strong> · 中槽连击 <strong>0/3</strong> → multiball</div>
+  <div class="pb-goal-bar" id="pbGoal">JACKPOT <strong>2000</strong> · 中槽累计 <strong>0/3</strong> · 剩 <strong>10</strong> 发</div>
 
   <div class="pb-toolbar">
     <button class="pb-btn" id="pbPauseBtn">⏸ 暂停</button>
@@ -80,7 +80,10 @@ permalink: /toolbox/pinball/pachinko/
     { ax: 108, ay: 590, bx: 158, by: 590 },
     { ax: 332, ay: 590, bx: 382, by: 590 },
     { ax: 382, ay: 590, bx: 442, by: 540 },
-    { ax: 442, ay: 540, bx: 442, by: 90 },
+    // 内右墙：原来到 y=90 留个口，球从右上角钉墙弹起会跑回 plunger lane
+    // 现在顶端上移到 y=60，再加一段斜钩 (442,60)→(420,30) 把上行球往左挡回钉墙
+    { ax: 442, ay: 540, bx: 442, by: 60 },
+    { ax: 442, ay: 60,  bx: 420, by: 30 },
     { ax: 474, ay: 30, bx: 474, by: 612 },
     { ax: 442, ay: 612, bx: 474, by: 612 },
   );
@@ -119,8 +122,9 @@ permalink: /toolbox/pinball/pachinko/
   // slot 底也立一道（让球在底部弹一下，trigger 之后再回 plunger）—— 实际上 trigger 立即返回，不需要
   // 但视觉上有底有助于辨认
 
-  // Slot 计分（从左到右）：100, 300, 500, JACKPOT, 500, 300, 100
-  const SLOT_SCORES = [100, 300, 500, -1, 500, 300, 100];  // -1 = jackpot
+  // Slot 计分（从左到右）：左侧难进 → 高分，右侧容易进 → 低分（顶部钉墙偏向把球往右弹）
+  // 中槽 JACKPOT 不变。设计意图：玩家要主动瞄左 / 中央，硬拼力度/角度
+  const SLOT_SCORES = [1000, 500, 250, -1, 200, 100, 50];  // -1 = jackpot
 
   // 槽底中心位置（trigger 用 rect 覆盖整个槽底）
   const slotTriggers = [];
@@ -176,12 +180,13 @@ permalink: /toolbox/pinball/pachinko/
 
   function updateGoal() {
     const jp = state.jackpotValue;
+    const livesLeft = game ? game.state.lives : 10;
     let html;
     if (state.multiballActive) {
       const rem = Math.max(0, ((state.multiballEnd - performance.now()) / 1000));
-      html = `<strong>MULTIBALL ×2</strong>  ${rem.toFixed(1)}s · 任进皆双倍`;
+      html = `<strong>MULTIBALL ×2</strong>  ${rem.toFixed(1)}s · 剩 <strong>${livesLeft}</strong> 发`;
     } else {
-      html = `JACKPOT <strong>${jp.toLocaleString()}</strong> · 中槽连击 <strong>${state.jackpotStreak}/3</strong> → multiball`;
+      html = `JACKPOT <strong>${jp.toLocaleString()}</strong> · 中槽累计 <strong>${state.jackpotStreak}/3</strong> · 剩 <strong>${livesLeft}</strong> 发`;
     }
     game.setGoal(html);
   }
@@ -198,13 +203,13 @@ permalink: /toolbox/pinball/pachinko/
         startMultiball(now);
         state.jackpotStreak = 0;
       }
-    } else {
-      state.jackpotStreak = 0;
     }
-    // 球返回 plunger（无需消耗 life）
-    ball.x = game.plg.x; ball.y = game.plg.restY;
-    ball.vx = 0; ball.vy = 0;
-    ball.onPlunger = true; ball.trail = [];
+    // 非中槽不重置累计——10 发限内"连续 3 次中槽"几乎不可能触发，改成"累计 3 次"
+    // 球进槽 = 用掉一发（移除球，让 core 走 onAllBallsDrained → 决定是续命还是结算）
+    // multiball 期间 4 球都进槽才会触发 onAllBallsDrained 一次，相当于 4 球共 1 命，是奖励
+    const arr = game.state.balls;
+    const i2 = arr.indexOf(ball);
+    if (i2 >= 0) arr.splice(i2, 1);
     updateGoal();
   }
 
@@ -212,8 +217,8 @@ permalink: /toolbox/pinball/pachinko/
     state.multiballActive = true;
     state.multiballEnd = now + 20000;
     game.setMultiplier(2);
-    // 在顶部不同位置追加 3 颗球，向下抛
-    [80, 200, 320].forEach((x, i) => {
+    // 追加 4 颗球向下抛（原球马上会被 onSlotEnter 移除，留下 4 球 multiball）
+    [80, 180, 280, 380].forEach((x, i) => {
       const vx = (Math.random() - 0.5) * 200;
       const vy = 200 + Math.random() * 80;
       game.addBall(x, 40, vx, vy);
@@ -295,7 +300,7 @@ permalink: /toolbox/pinball/pachinko/
   const canvas = document.getElementById('pbCanvas');
   game = PinballCore.createGame({
     canvas, designW: W, designH: H, id: 'pachinko',
-    totalBalls: 1,
+    totalBalls: 10,  // 每局 10 发；球进槽视为用掉一发
     drainY: 626, drainXRange: [100, 442],
     physics: { gravity: 1100, airDrag: 0.999, substeps: 8, maxSpeed: 1400, ballRadius: 9 },
     plunger: { x: 458, restY: 600, laneLeft: 442, laneRight: 474, maxCharge: 1.0, chargeRate: 1.6, maxVel: 1500, minVel: 520 },
@@ -351,6 +356,8 @@ permalink: /toolbox/pinball/pachinko/
         if (state.multiballActive && now >= state.multiballEnd) endMultiball();
         if (state.multiballActive) updateGoal();
       },
+      // 每次球出局后刷一下"剩 N 发"——core 已自动续命或结算
+      onAfterDrain: (now, g) => updateGoal(),
     },
   });
 

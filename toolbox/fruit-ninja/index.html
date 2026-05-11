@@ -1062,11 +1062,11 @@ permalink: /toolbox/fruit-ninja/
     game: 0,         // 累积游戏时间（ms），受暂停/冻结/scale 控制
     wall: 0,         // 最近一帧的 performance.now()
     scale: 1.0,      // 时间缩放（slow-mo 时 < 1）
-    frozenUntil: 0,  // hit pause 截止（game-time）；Time.game 未到则本帧 dt=0
+    frozenUntil: 0,  // hit pause 截止（wall-clock ms）；wall 未到则本帧 dt=0
   };
   function gameNow() {
     // pointer 事件等帧外回调用：基于上一帧 Time.game + 估算 wall-delta，更平滑
-    if (state.paused || Time.game < Time.frozenUntil || !Time.wall) return Time.game;
+    if (state.paused || performance.now() < Time.frozenUntil || !Time.wall) return Time.game;
     const d = Math.min(performance.now() - Time.wall, 100);
     return Time.game + d * Time.scale;
   }
@@ -1352,7 +1352,7 @@ permalink: /toolbox/fruit-ninja/
 
   function checkSlices(gameNowMs) {
     if (trail.length < 2) return;
-    if (gameNowMs < Time.frozenUntil) return;   // hit pause 期间不再切中
+    if (performance.now() < Time.frozenUntil) return;   // hit pause 期间不再切中
     for (const f of fruits) {
       if (f.kind !== 'whole' || f.sliced) continue;
       for (let i = 1; i < trail.length; i++) {
@@ -1370,7 +1370,7 @@ permalink: /toolbox/fruit-ninja/
   // 仅检测最后一段轨迹 — 在 pointermove 立即调用，让切片响应不等下一帧
   function checkSliceLastSegment() {
     if (trail.length < 2) return;
-    if (Time.game < Time.frozenUntil) return;   // hit pause 内禁止再切（防 40ms 内多次堆 combo）
+    if (performance.now() < Time.frozenUntil) return;   // hit pause 内禁止再切（防 40ms 内多次堆 combo）
     const a = trail[trail.length - 2];
     const b = trail[trail.length - 1];
     for (const f of fruits) {
@@ -1414,7 +1414,7 @@ permalink: /toolbox/fruit-ninja/
       if (state.combo > state.bestCombo) state.bestCombo = state.combo;
       const bossPoints = 80;
       state.score += bossPoints;
-      Time.frozenUntil = Time.game + 45;
+      Time.frozenUntil = performance.now() + 45;
       state.cameraPunchAt = performance.now();
       triggerShake(6, 160);
       vibrate(45);
@@ -1428,8 +1428,8 @@ permalink: /toolbox/fruit-ninja/
     // combo 即「一笔切到的水果数」（pointerdown 时清零，pointerup 重置）
     state.combo += 1;
     if (state.combo > state.bestCombo) state.bestCombo = state.combo;
-    // hit pause：冻结 ~35ms 让玩家感受到"切中"的重量
-    Time.frozenUntil = Time.game + 35;
+    // hit pause：wall-clock 冻结 ~35ms 让玩家感受到"切中"的重量
+    Time.frozenUntil = performance.now() + 35;
     // camera punch：触发后 ~200ms 缓动回零（独立于 game-time，用 wall 计时）
     state.cameraPunchAt = performance.now();
     // 高 combo 触发轻震 + 强触觉
@@ -2068,7 +2068,7 @@ permalink: /toolbox/fruit-ninja/
       const dtWall = lastWall ? Math.min(now - lastWall, 50) : 0;
       Perf.tick(dtWall);
       // hit pause：Time.game 暂停推进，但仍渲染（让玩家看到冻结瞬间）
-      const isFrozen = Time.game < Time.frozenUntil;
+      const isFrozen = now < Time.frozenUntil;
       const dtGameMs = isFrozen ? 0 : dtWall * Time.scale;
       Time.game += dtGameMs;
       Time.wall = now;

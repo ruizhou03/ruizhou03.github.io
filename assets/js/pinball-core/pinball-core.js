@@ -414,7 +414,7 @@
 
       // 所有活跃球都掉了 → 决定下一步
       if (state.balls.length === 0) {
-        onAllBallsDrained();
+        onAllBallsDrained(now);
         return;
       }
 
@@ -440,7 +440,7 @@
           if (b.x > 100 && b.x < 442 && b.y > 540) {
             state.balls.splice(0, 1);
             if (hooks.onBallDrain) hooks.onBallDrain(b, now, game);
-            if (state.balls.length === 0) { onAllBallsDrained(); return; }
+            if (state.balls.length === 0) { onAllBallsDrained(now); return; }
           } else {
             b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
             b.onPlunger = true; b.trail = [];
@@ -488,7 +488,7 @@
       }
     }
 
-    function onAllBallsDrained() {
+    function onAllBallsDrained(now) {
       state.combo = 0;
       state.multiplier = 1;
       if (state.lives > 0) {
