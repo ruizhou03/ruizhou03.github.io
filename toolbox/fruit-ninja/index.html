@@ -678,6 +678,71 @@ permalink: /toolbox/fruit-ninja/
   let bgOffscreen = null;
   const HORIZON_RATIO = 0.52;
 
+  // 果汁印染层：独立 offscreen，每帧 destination-out 微量衰减（~2.5s 后近乎透明）
+  // 性能策略：高频率小操作（一帧 destination-out fillRect），不重画所有 stain；
+  // 仅在新切割时往上盖一层 splat 形状。Phase 12 会让 'low' 档关停整块（stainsEnabled=false）。
+  let stainsCanvas = null;
+  let stainsEnabled = true;          // Phase 12 可由 perfTier 翻转
+  const JUICE_STAIN_COLOR = {
+    apple: '#a01a22', orange: '#c46010',
+    watermelon: '#a01a30', kiwi: '#5a8a2a',
+  };
+
+  function ensureStainsCanvas() {
+    if (!stainsEnabled) return null;
+    if (!stainsCanvas) {
+      stainsCanvas = document.createElement('canvas');
+      stainsCanvas.width = LOG_W;
+      stainsCanvas.height = LOG_H;
+    }
+    return stainsCanvas;
+  }
+  function clearStains() {
+    if (!stainsCanvas) return;
+    stainsCanvas.getContext('2d').clearRect(0, 0, LOG_W, LOG_H);
+  }
+  function fadeStains() {
+    if (!stainsCanvas || !stainsEnabled) return;
+    const sx = stainsCanvas.getContext('2d');
+    sx.save();
+    sx.globalCompositeOperation = 'destination-out';
+    sx.fillStyle = 'rgba(0,0,0,0.014)';   // 每帧消掉 ~1.4% alpha
+    sx.fillRect(0, 0, LOG_W, LOG_H);
+    sx.restore();
+  }
+  function spawnStain(x, y, fruitType) {
+    if (!stainsEnabled) return;
+    const cv = ensureStainsCanvas();
+    if (!cv) return;
+    const sx = cv.getContext('2d');
+    const color = JUICE_STAIN_COLOR[fruitType] || '#882244';
+    sx.save();
+    sx.translate(x, y);
+    sx.rotate(Math.random() * Math.PI * 2);
+    sx.fillStyle = color;
+    sx.globalAlpha = 0.5 + Math.random() * 0.22;
+    // 不规则 splat：8 个角点扰动半径
+    sx.beginPath();
+    const baseR = 10 + Math.random() * 8;
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2;
+      const r = baseR * (0.55 + Math.random() * 0.75);
+      const px = Math.cos(a) * r;
+      const py = Math.sin(a) * r;
+      if (i === 0) sx.moveTo(px, py);
+      else sx.lineTo(px, py);
+    }
+    sx.closePath();
+    sx.fill();
+    // 中心高亮点（给"湿润"感）
+    sx.globalAlpha *= 0.6;
+    sx.beginPath();
+    sx.arc(-baseR * 0.15, -baseR * 0.15, baseR * 0.3, 0, Math.PI * 2);
+    sx.fillStyle = 'rgba(255,255,255,0.25)';
+    sx.fill();
+    sx.restore();
+  }
+
   function bakeBackground() {
     if (!bgOffscreen) bgOffscreen = document.createElement('canvas');
     bgOffscreen.width = LOG_W;
@@ -1184,6 +1249,15 @@ permalink: /toolbox/fruit-ninja/
     spawnHalves(f, angle);
     spawnJuice(f, angle);
     spawnSlashSpark(f.x, f.y, angle);
+    // 2-3 个果汁印随机散布在 fruit 附近（不上 sliced 远端，避免污染整屏）
+    if (stainsEnabled) {
+      const stainCount = 2 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < stainCount; i++) {
+        const sx = f.x + (Math.random() - 0.5) * 90;
+        const sy = f.y + (Math.random() - 0.5) * 90;
+        spawnStain(sx, sy, f.type);
+      }
+    }
     updateHud();
   }
 
@@ -1374,6 +1448,8 @@ permalink: /toolbox/fruit-ninja/
 
     for (const sp of sparks) sp.age += dt;
     sparks = sparks.filter(sp => sp.age < sp.life);
+
+    fadeStains();
 
     // trail 老化（用 game-time 时间戳）
     while (trail.length > 0 && gameNowMs - trail[0].t > 220) trail.shift();
@@ -1566,6 +1642,11 @@ permalink: /toolbox/fruit-ninja/
     }
     drawNeonGrid(Time.game);
 
+    // 果汁残印（在水果下方）
+    if (stainsCanvas && stainsEnabled) {
+      ctx.drawImage(stainsCanvas, 0, 0, LOG_W, LOG_H);
+    }
+
     // 水果
     for (const f of fruits) drawFruit(f);
     drawParticles();
@@ -1675,6 +1756,7 @@ permalink: /toolbox/fruit-ninja/
     popups = [];
     shockwaves = [];
     sparks = [];
+    clearStains();
     flashUntil = 0;
     spawnPhase = 'normal';
     nextEventAt = 600;           // game-time 0.6s 后第一个水果
