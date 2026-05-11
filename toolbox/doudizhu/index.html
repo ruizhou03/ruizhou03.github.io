@@ -674,6 +674,87 @@ permalink: /toolbox/doudizhu/
     50%  { box-shadow: 0 0 18px rgba(200,40,40,0.7), inset 0 0 0 2px rgba(200,40,40,0.6); }
     100% { box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55); }
   }
+  /* ======== 注意力锁定：非当前 actor 的座位 / 手牌 dim ======== */
+  .ddz-self, .ddz-seat-ai, .ddz-hand {
+    transition: opacity 0.28s ease, filter 0.28s ease;
+  }
+  .ddz-self.is-dim, .ddz-seat-ai.is-dim {
+    opacity: 0.48;
+    filter: grayscale(0.45) saturate(0.7);
+  }
+  .ddz-hand.is-dim { opacity: 0.72; }
+
+  /* ======== Hover 预览：鼠标划过手牌（未选中），暂时抬起 ======== */
+  .ddz-hand .ddz-card.size-full.hover-preview:not(.selected) {
+    transform: translateY(-10px);
+    box-shadow: 0 5px 10px rgba(20,37,63,0.22);
+  }
+
+  /* ======== 关键牌视觉权重 ======== */
+  /* 2 (weight=12) — 暖金底色 hint */
+  .ddz-card.is-key-2 {
+    background: linear-gradient(160deg, #fffaea 0%, #f5e9c8 100%);
+    box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(201,169,110,0.45);
+  }
+  /* 炸弹候选（手里 4 张同 rank） — 浅金底 + 内圈 */
+  .ddz-card.is-key-bomb {
+    background: linear-gradient(160deg, #fff3d2 0%, #f0db96 100%);
+    box-shadow: 0 1px 3px rgba(180,90,30,0.25), inset 0 0 0 1.5px rgba(196,120,40,0.45);
+  }
+  /* 同时是 2 又是炸弹 → 只取 bomb 配色 */
+  .ddz-card.is-key-2.is-key-bomb { background: linear-gradient(160deg, #fff3d2 0%, #f0db96 100%); }
+
+  /* ======== B1 智能分组：组内紧凑，组间留白 ======== */
+  .ddz-hand .ddz-card.size-full.group-start {
+    /* 替代默认负 margin（覆盖 nth-child(1) 之外的）— 给组首加视觉间隔 */
+    margin-left: 8px;
+  }
+
+  /* ======== B2 微反馈：每次出牌一个浅金 ring 涟漪 ======== */
+  .ddz-played .ddz-micro-ring {
+    position: absolute;
+    width: 70px; height: 70px;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%) scale(0.35);
+    border: 2px solid var(--ddz-accent);
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0.85;
+    animation: ddz-micro-pulse 0.5s ease-out forwards;
+  }
+  .ddz-played { position: relative; }      /* 给 ring absolute 定位 */
+  @keyframes ddz-micro-pulse {
+    0%   { transform: translate(-50%, -50%) scale(0.35); opacity: 0.9; border-width: 3px; }
+    100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; border-width: 1px; }
+  }
+
+  /* ======== A4 飞行牌（FLIP 克隆从源点飞到桌面中心）======== */
+  .ddz-fly-card {
+    position: fixed;
+    z-index: 90;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(1);
+    transition: transform 0.42s cubic-bezier(0.36, 0.07, 0.32, 1.1), opacity 0.42s;
+    will-change: transform, opacity;
+  }
+
+  /* ======== 音效开关按钮（Setup 屏右上小 chip） ======== */
+  .ddz-sfx-toggle {
+    position: absolute; top: 0.6rem; right: 0.6rem;
+    padding: 0.28rem 0.65rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-muted);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.18s;
+  }
+  .ddz-sfx-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .ddz-sfx-toggle.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .ddz-wrap header { position: relative; }   /* 让音效 chip absolute 定位锚点 */
+
   /* 王炸全屏震撼：地震 + 金光闪屏 + 局部爆发 */
   .ddz-wrap.mega-quake { animation: ddz-mega-quake 1.1s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
   @keyframes ddz-mega-quake {
@@ -1285,6 +1366,7 @@ permalink: /toolbox/doudizhu/
 
 <div class="ddz-wrap">
   <header>
+    <button type="button" class="ddz-sfx-toggle" id="ddzSfxToggle" title="切换音效">🔇 静音</button>
     <h1>🃏 斗地主</h1>
     <div class="sub">单挑两个 AI · 经典三人扑克 · 三档难度</div>
   </header>
@@ -1568,6 +1650,99 @@ permalink: /toolbox/doudizhu/
   };
 
   // ============================================================
+  // 音效系统（Web Audio API，全部 procedural — 不引外部资源）
+  // 默认静音；setup 屏右上 chip 切换；偏好持久化
+  // ============================================================
+  const SFX_KEY = 'tool.doudizhu.sfx.v1';
+  let sfxEnabled = false;
+  let _audioCtx = null;
+  function audioCtx() {
+    if (!_audioCtx) {
+      try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch { _audioCtx = null; }
+    }
+    return _audioCtx;
+  }
+  function _tone(freq, dur, type, vol) {
+    const ctx = audioCtx(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.frequency.value = freq;
+    osc.type = type || 'sine';
+    g.gain.setValueAtTime(vol || 0.05, t);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + dur);
+  }
+  function _noiseBurst(dur, vol) {
+    const ctx = audioCtx(); if (!ctx) return;
+    const sr = ctx.sampleRate;
+    const buf = ctx.createBuffer(1, sr * dur, sr);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() - 0.5) * (1 - i / data.length);
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const g = ctx.createGain();
+    g.gain.value = vol || 0.18;
+    // bandpass to make it sound less harsh
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 800;
+    bp.Q.value = 0.5;
+    src.connect(bp).connect(g).connect(ctx.destination);
+    src.start();
+  }
+  const SFX = {
+    click()  { _tone(680, 0.04, 'square', 0.025); },
+    play()   { _tone(520, 0.06, 'sine', 0.05); _tone(780, 0.04, 'sine', 0.03); },
+    pass()   { _tone(220, 0.10, 'triangle', 0.04); },
+    bomb()   { _noiseBurst(0.30, 0.22); _tone(95, 0.30, 'sawtooth', 0.10); },
+    rocket() {
+      // 多频段叠加 + 大噪音
+      [220, 330, 440, 660, 880].forEach((f, i) => setTimeout(() => _tone(f, 0.45, 'sawtooth', 0.07), i * 50));
+      setTimeout(() => _noiseBurst(0.45, 0.28), 250);
+      setTimeout(() => _tone(60, 0.55, 'sine', 0.12), 280);
+    },
+    win()    { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => _tone(f, 0.16, 'sine', 0.07), i * 95)); },
+    lose()   { [440, 330, 220].forEach((f, i) => setTimeout(() => _tone(f, 0.20, 'triangle', 0.05), i * 130)); },
+    tick()   { _tone(1200, 0.03, 'square', 0.02); },
+  };
+  function playSfx(name) {
+    if (!sfxEnabled) return;
+    try {
+      const ctx = audioCtx();
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+      if (SFX[name]) SFX[name]();
+    } catch {}
+  }
+  function loadSfxPref() {
+    try { sfxEnabled = localStorage.getItem(SFX_KEY) === '1'; } catch { sfxEnabled = false; }
+  }
+  function setSfxEnabled(b) {
+    sfxEnabled = !!b;
+    try { localStorage.setItem(SFX_KEY, sfxEnabled ? '1' : '0'); } catch {}
+    refreshSfxToggle();
+    if (sfxEnabled) playSfx('click');
+  }
+  function refreshSfxToggle() {
+    const btn = document.getElementById('ddzSfxToggle');
+    if (!btn) return;
+    btn.classList.toggle('on', sfxEnabled);
+    btn.textContent = sfxEnabled ? '🔊 音效' : '🔇 静音';
+  }
+  loadSfxPref();
+  // setup 一次后再绑定按钮
+  setTimeout(() => {
+    refreshSfxToggle();
+    const btn = document.getElementById('ddzSfxToggle');
+    if (btn) btn.addEventListener('click', () => setSfxEnabled(!sfxEnabled));
+  }, 0);
+
+  // ============================================================
   // 倒计时（贴到当前玩家头像上的闹钟 badge）
   // ============================================================
   const TURN_TIMEOUT_MS = 25000;
@@ -1592,11 +1767,17 @@ permalink: /toolbox/doudizhu/
     if (!el) return;
     el.hidden = false;
     el.classList.remove('urgent');
+    let lastTickedSec = 99;       // 用于「仅在跨秒时」播放心跳音
     function tick() {
       const left = Math.max(0, turnCountdownEndAt - Date.now());
       const s = Math.ceil(left / 1000);
       el.textContent = s + 's';
       el.classList.toggle('urgent', s <= 5);
+      // 只在玩家自己（seat===0）轮次的最后 3 秒播心跳音
+      if (turnCountdownSeat === 0 && s !== lastTickedSec && s > 0 && s <= 3) {
+        playSfx('tick');
+      }
+      lastTickedSec = s;
       if (left <= 0) {
         stopTurnCountdown();
         try { onTimeout && onTimeout(); } catch (e) { console.warn(e); }
@@ -1754,16 +1935,74 @@ permalink: /toolbox/doudizhu/
     return cards.slice().sort((a, b) => E.cardWeight(b) - E.cardWeight(a) || E.cardSuit(b) - E.cardSuit(a));
   }
 
+  // ========== 智能分组排序 (B1) ==========
+  // 把手牌按 decomposeHand 拆成牌型组，组内紧凑、组间留白，整体 lead-card 大的组在左
+  // 返回 [{ card, groupId, isStart }, ...]
+  const GROUP_DISPLAY_RANK = {
+    [T.STRAIGHT]: 1, [T.PAIR_STRAIGHT]: 1,
+    [T.PLANE]: 2, [T.PLANE_ONE]: 2, [T.PLANE_PAIR]: 2,
+    [T.BOMB]: 3, [T.ROCKET]: 3,
+    [T.FOUR_TWO]: 3, [T.FOUR_TWO_PAIR]: 3,
+    [T.TRIPLE]: 4, [T.TRIPLE_ONE]: 4, [T.TRIPLE_PAIR]: 4,
+    [T.PAIR]: 5,
+    [T.SINGLE]: 6,
+  };
+  function arrangeHandByGroups(hand) {
+    if (!hand || !hand.length) return [];
+    const decomp = E.decomposeHand(hand);
+    // 每组按"组型重要性 → 组内最大 weight 降序"排序
+    decomp.sort((a, b) => {
+      const ra = GROUP_DISPLAY_RANK[a.type] || 99;
+      const rb = GROUP_DISPLAY_RANK[b.type] || 99;
+      if (ra !== rb) return ra - rb;
+      const wa = Math.max(...a.cards.map(c => E.cardWeight(c)));
+      const wb = Math.max(...b.cards.map(c => E.cardWeight(c)));
+      return wb - wa;
+    });
+    const out = [];
+    decomp.forEach((p, gi) => {
+      // 组内按 weight 降序 + 同 weight 按 suit 降序
+      const cards = p.cards.slice().sort((a, b) => E.cardWeight(b) - E.cardWeight(a) || E.cardSuit(b) - E.cardSuit(a));
+      cards.forEach((c, i) => out.push({ card: c, groupId: gi, isStart: i === 0 && gi > 0 }));
+    });
+    return out;
+  }
+
+  // ========== 关键牌识别 (A3) ==========
+  function identifyKeyCards(hand) {
+    const hist = E.histByWeight(hand);
+    const bombRanks = new Set();
+    for (const w of Object.keys(hist)) {
+      if (hist[w] >= 4) bombRanks.add(Number(w));
+    }
+    return { bombRanks };
+  }
+
   function renderHand() {
     handEl.innerHTML = '';
     if (!state.hands[0].length) return;
-    const sorted = sortHandDesc(state.hands[0]);
-    for (const c of sorted) {
+    const arranged = arrangeHandByGroups(state.hands[0]);
+    const { bombRanks } = identifyKeyCards(state.hands[0]);
+    arranged.forEach((item) => {
+      const c = item.card;
       const cardEl = buildCardEl(c, 'size-full', { cid: c, selected: state.selected.has(c) });
-      // 用 pointerdown 统一处理 鼠标 + 触屏；setPointerCapture 让后续 move/up 都派发到这张卡
+      // 关键牌视觉权重
+      const w = E.cardWeight(c);
+      if (w === 12) cardEl.classList.add('is-key-2');         // 单张 2
+      if (bombRanks.has(w)) cardEl.classList.add('is-key-bomb');
+      // 组首：加左侧间隔（覆盖默认负 margin overlap）
+      if (item.isStart) cardEl.classList.add('group-start');
+      // 拖动 / 选牌
       cardEl.addEventListener('pointerdown', e => onCardPointerDown(e, cardEl, c));
+      // hover 预览：仅 mouse；touch 不触发
+      cardEl.addEventListener('mouseenter', () => {
+        if (!canSelectCards()) return;
+        if (state.selected.has(c)) return;
+        cardEl.classList.add('hover-preview');
+      });
+      cardEl.addEventListener('mouseleave', () => cardEl.classList.remove('hover-preview'));
       handEl.appendChild(cardEl);
-    }
+    });
   }
 
   // ============================================================
@@ -1800,6 +2039,7 @@ permalink: /toolbox/doudizhu/
     if (dragMode === 'add') state.selected.add(cid);
     else state.selected.delete(cid);
     cardEl.classList.toggle('selected', state.selected.has(cid));
+    playSfx('click');
     updatePlayBtnState();
   }
 
@@ -1910,10 +2150,8 @@ permalink: /toolbox/doudizhu/
         (i === state.bidTurnIdx && state.phase === PHASE.BIDDING) ||
         (i === state.doubleTurnIdx && state.phase === PHASE.DOUBLING)
       );
-      // 加倍 badge
       const dbBadge = $('ddzDoubled' + i);
       if (dbBadge) dbBadge.hidden = !seatDoubled(i);
-      // 明牌 badge
       const dcBadge = $('ddzDeclared' + i);
       if (dcBadge) dcBadge.hidden = (state.declaredSeat !== i);
     }
@@ -1922,6 +2160,40 @@ permalink: /toolbox/doudizhu/
       $('ddzName0').textContent = '我（' + role + '）';
     } else {
       $('ddzName0').textContent = '我';
+    }
+    applyAttentionFocus();
+  }
+
+  // 注意力锁定：非当前 actor 的座位 / 我的手牌 dim 一档
+  function applyAttentionFocus() {
+    const selfEl = document.querySelector('.ddz-self');
+    const aiEls = document.querySelectorAll('.ddz-seat-ai');
+    const handEl2 = document.getElementById('ddzHand');
+    // 总是先清掉
+    if (selfEl) selfEl.classList.remove('is-dim');
+    aiEls.forEach(e => e.classList.remove('is-dim'));
+    if (handEl2) handEl2.classList.remove('is-dim');
+    if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.BIDDING) return;
+    // DOUBLING 是同时决策 — 不 dim
+    let curr = -1;
+    if (state.phase === PHASE.PLAYING) curr = state.turnIdx;
+    else if (state.phase === PHASE.BIDDING) curr = state.bidTurnIdx;
+    if (curr < 0) return;
+    if (curr === 0) {
+      // 我的轮：dim 两个 AI
+      aiEls.forEach(e => {
+        const ds = parseInt(e.dataset.seat || '0', 10);
+        if (ds !== 0) e.classList.add('is-dim');
+      });
+    } else {
+      // AI 轮：dim 自己 + 另一个 AI（保留 current AI 高亮）
+      if (selfEl) selfEl.classList.add('is-dim');
+      aiEls.forEach(e => {
+        const ds = parseInt(e.dataset.seat || '0', 10);
+        if (ds !== curr) e.classList.add('is-dim');
+      });
+      // 手牌轻微 dim（仍可预选）
+      if (handEl2) handEl2.classList.add('is-dim');
     }
   }
 
@@ -2006,6 +2278,59 @@ permalink: /toolbox/doudizhu/
     if (type === T.BOMB) return 'fx-bomb';
     if (type === T.ROCKET) return 'fx-rocket';
     return null;
+  }
+
+  // ========== A4 飞牌动画 + B2 微反馈环 ==========
+  // seat = 显示座位 (0=我 / 1=下家 / 2=上家)，cards = cardId 数组
+  function flyCardsTo(seat, cards) {
+    if (!cards || !cards.length) return;
+    const playedEl = document.getElementById('ddzPlayed' + seat);
+    if (!playedEl) return;
+    const dest = playedEl.getBoundingClientRect();
+    let origin;
+    if (seat === 0) {
+      origin = document.getElementById('ddzHand').getBoundingClientRect();
+    } else {
+      origin = document.getElementById('ddzAvatar' + seat).getBoundingClientRect();
+    }
+    const ox = origin.left + origin.width / 2;
+    const oy = origin.top + origin.height / 2;
+    const dx = dest.left + dest.width / 2;
+    const dy = dest.top + dest.height / 2;
+    // 用 sortHandDesc 让飞行时的牌序与最终展示一致
+    const flying = sortHandDesc(cards).slice(0, 16);   // 16 张以内
+    flying.forEach((c, i) => {
+      const clone = buildCardEl(c, 'size-mini');
+      clone.classList.add('ddz-fly-card');
+      clone.style.left = ox + 'px';
+      clone.style.top = oy + 'px';
+      clone.style.opacity = '0';
+      clone.style.transitionDelay = (i * 30) + 'ms';
+      document.body.appendChild(clone);
+      // 微错位让多张牌不重叠
+      const lateralOffset = (i - (flying.length - 1) / 2) * 14;
+      requestAnimationFrame(() => {
+        const tx = dx - ox + lateralOffset;
+        const ty = dy - oy;
+        const rot = (Math.random() - 0.5) * 6;
+        clone.style.opacity = '1';
+        clone.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0.96) rotate(${rot}deg)`;
+      });
+      setTimeout(() => {
+        clone.style.opacity = '0';
+        setTimeout(() => clone.remove(), 220);
+      }, 380 + i * 30);
+    });
+  }
+
+  // 桌面中心一圈金光涟漪（小反馈）
+  function spawnMicroRing(seat) {
+    const el = document.getElementById('ddzPlayed' + seat);
+    if (!el) return;
+    const ring = document.createElement('span');
+    ring.className = 'ddz-micro-ring';
+    el.appendChild(ring);
+    setTimeout(() => ring.remove(), 600);
   }
 
   function clearAllPlayed() {
@@ -2557,6 +2882,10 @@ permalink: /toolbox/doudizhu/
     else pruneSelectedToHand();               // 但要确保选中的还在我手里
     resetHintCycle();
     renderPlayedAt(seat, pattern);
+    spawnMicroRing(seat);                        // B2 涟漪
+    flyCardsTo(seat, pattern.cards);             // A4 飞牌
+    playSfx(pattern.type === T.BOMB ? 'bomb' :
+            pattern.type === T.ROCKET ? 'rocket' : 'play');
     if (seat === 0) renderHand();
     renderHandCounts();
     renderMultiplier();
@@ -2576,6 +2905,7 @@ permalink: /toolbox/doudizhu/
     stopTurnCountdown();   // 任何人出牌都关闹钟（下个 proceedTurn 会再开）
     state.passCount++;
     renderPlayedAt(seat, 'pass');
+    playSfx('pass');
     if (state.passCount >= 2) {
       state.lastTrick = null;
       state.passCount = 0;
@@ -2796,6 +3126,7 @@ permalink: /toolbox/doudizhu/
     const playerWon = (winnerRole === 'landlord' && state.landlordIdx === 0) ||
                       (winnerRole === 'peasant' && state.landlordIdx !== 0);
     gameOverTitle.textContent = playerWon ? '🎉 你赢了！' : '😢 你输了';
+    setTimeout(() => playSfx(playerWon ? 'win' : 'lose'), 300);
     const myRole = state.landlordIdx === 0 ? '地主' : '农民';
     const winText = winnerRole === 'landlord' ? '地主' : '农民';
     // 春天 / 反春天用专门的庆祝 badge
@@ -3433,6 +3764,8 @@ permalink: /toolbox/doudizhu/
         if (srv.phase === 'doubling') state.online.doubleEndAt = srv.doubleEndAt || 0;
       }
       // 出牌阶段字段：也每次 apply 都重置（避免下一盘开局看到上盘 lastTrick）
+      const prevLastTrick = state.lastTrick;
+      const prevPassCount = state.passCount || 0;
       state.turnIdx = -1;
       state.lastTrick = null;
       state.passCount = 0;
@@ -3444,6 +3777,25 @@ permalink: /toolbox/doudizhu/
           : null;
         state.passCount = srv.passCount || 0;
         state.online.turnEndAt = srv.turnEndAt || 0;
+        // 检测「新出牌」：lastTrick 变了 → 触发飞牌 + 微反馈环
+        const isNewPlay = state.lastTrick && (
+          !prevLastTrick ||
+          prevLastTrick.seat !== state.lastTrick.seat ||
+          (prevLastTrick.pattern && prevLastTrick.pattern.cards
+            ? prevLastTrick.pattern.cards.join(',')
+            : '') !== (state.lastTrick.pattern && state.lastTrick.pattern.cards
+              ? state.lastTrick.pattern.cards.join(',')
+              : '')
+        );
+        if (isNewPlay) {
+          flyCardsTo(state.lastTrick.seat, state.lastTrick.pattern.cards);
+          spawnMicroRing(state.lastTrick.seat);
+          const ptype = state.lastTrick.pattern.type;
+          playSfx(ptype === T.BOMB ? 'bomb' :
+                  ptype === T.ROCKET ? 'rocket' : 'play');
+        } else if (state.passCount > prevPassCount) {
+          playSfx('pass');
+        }
       }
       if (srv.phase === 'settlement' && srv.result) {
         const r = srv.result;
@@ -3824,6 +4176,7 @@ permalink: /toolbox/doudizhu/
     gameOverTitle.textContent = isLastRound
       ? (playerWon ? '🏆 整局结束！你赢了' : '🏁 整局结束')
       : (playerWon ? '🎉 你赢了' : '😢 你输了') + `（${roundN} / ${totalRounds}）`;
+    setTimeout(() => playSfx(playerWon ? 'win' : 'lose'), 300);
 
     const myRole = state.landlordIdx === 0 ? '地主' : '农民';
     const winText = state.result.winnerRole === 'landlord' ? '地主' : '农民';
@@ -3930,11 +4283,17 @@ permalink: /toolbox/doudizhu/
     const cdEl = clockEl(seat);
     if (!cdEl) return;
     cdEl.hidden = false;
+    let lastTickedSec = 99;
     function tick() {
       const left = Math.max(0, (endAt || 0) - Date.now());
       const s = Math.ceil(left / 1000);
       cdEl.textContent = s + 's';
       cdEl.classList.toggle('urgent', s <= 5);
+      // 只在自己（seat===0）轮次的最后 3 秒播心跳音
+      if (seat === 0 && s !== lastTickedSec && s > 0 && s <= 3) {
+        playSfx('tick');
+      }
+      lastTickedSec = s;
       if (left <= 0) {
         clearInterval(onlineTurnTimer); onlineTurnTimer = null;
         cdEl.classList.remove('urgent');
