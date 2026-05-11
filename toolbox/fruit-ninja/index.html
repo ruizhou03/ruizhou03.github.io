@@ -55,11 +55,9 @@ permalink: /toolbox/fruit-ninja/
   .hud .combo { color: #ffd95a; }
   .hud .combo.hidden { visibility: hidden; }
 
-  .pause-btn {
+  .pause-btn, .mute-btn {
     position: absolute;
     top: 0.6rem;
-    right: 50%;
-    transform: translateX(50%);
     background: rgba(0, 0, 0, 0.4);
     color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -69,7 +67,14 @@ permalink: /toolbox/fruit-ninja/
     cursor: pointer;
     pointer-events: auto;
   }
-  .pause-btn:hover { background: rgba(0, 0, 0, 0.6); }
+  .pause-btn { right: 50%; transform: translateX(50%); }
+  .mute-btn {
+    right: 0.6rem;
+    padding: 0.25rem 0.55rem;
+    min-width: 2.2rem;
+    text-align: center;
+  }
+  .pause-btn:hover, .mute-btn:hover { background: rgba(0, 0, 0, 0.6); }
 
   .mode-select {
     text-align: center;
@@ -210,6 +215,7 @@ permalink: /toolbox/fruit-ninja/
       </div>
     </div>
     <button class="pause-btn" id="pause-btn" type="button">暂停</button>
+    <button class="mute-btn" id="mute-btn" type="button" aria-label="静音切换">🔊</button>
 
     <div class="overlay" id="paused-overlay" hidden>
       <div class="overlay-card">
@@ -369,6 +375,176 @@ permalink: /toolbox/fruit-ninja/
     watermelon: '#ff5560', kiwi: '#a8d050',
   };
 
+  // ============ AUDIO（Web Audio API 合成，无外部资源）============
+  // chop（切水果）/ bomb（炸弹）。所有声音都是临时构建的 OscillatorNode/BufferSource，
+  // 走 BiquadFilter → 包络 GainNode → master → DynamicsCompressor → destination。
+  // iOS Safari 关键：ctx.resume() 必须同步在 user gesture 内调用（参见 startGame）。
+  const FNAudio = (function () {
+    let ctx = null, master = null, noiseBuffer = null;
+    let muted = false, unlocked = false;
+    try { muted = localStorage.getItem('fn:mute') === '1'; } catch (e) {}
+
+    function init() {
+      if (ctx) return ctx;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try {
+        ctx = new AC();
+      } catch (e) {
+        return null;
+      }
+      master = ctx.createGain();
+      master.gain.value = muted ? 0 : 0.65;
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -14;
+      comp.knee.value = 20;
+      comp.ratio.value = 6;
+      comp.attack.value = 0.003;
+      comp.release.value = 0.12;
+      master.connect(comp);
+      comp.connect(ctx.destination);
+      // 预生成 1.5s 白噪声 buffer
+      const dur = 1.5;
+      noiseBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      return ctx;
+    }
+
+    function unlock() {
+      init();
+      if (!ctx) return;
+      // 必须同步：不要 .then() 包装，否则 iOS 拒绝
+      if (ctx.state === 'suspended') {
+        try { ctx.resume(); } catch (e) {}
+      }
+      unlocked = true;
+    }
+
+    function noiseSource(start, duration) {
+      const src = ctx.createBufferSource();
+      src.buffer = noiseBuffer;
+      const maxOffset = Math.max(0, noiseBuffer.duration - duration - 0.05);
+      const offset = Math.random() * maxOffset;
+      src.start(start, offset);
+      src.stop(start + duration + 0.02);
+      return src;
+    }
+
+    function buildOut(pan) {
+      const out = ctx.createGain();
+      out.gain.value = 1;
+      if (ctx.createStereoPanner && pan) {
+        const panner = ctx.createStereoPanner();
+        panner.pan.value = Math.max(-1, Math.min(1, pan));
+        out.connect(panner);
+        panner.connect(master);
+      } else {
+        out.connect(master);
+      }
+      return out;
+    }
+
+    function chop(opts) {
+      const now = ctx.currentTime;
+      const gain = (opts.gain != null) ? opts.gain : 0.55;
+      const out = buildOut(opts.pan || 0);
+
+      // 噪声切击瞬态
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 1100;
+      hp.Q.value = 0.6;
+      const noiseG = ctx.createGain();
+      noiseG.gain.setValueAtTime(0, now);
+      noiseG.gain.linearRampToValueAtTime(gain * 0.95, now + 0.003);
+      noiseG.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
+      const ns = noiseSource(now, 0.12);
+      ns.connect(hp); hp.connect(noiseG); noiseG.connect(out);
+
+      // 三角波 thwack 主音（combo 越高音越亮）
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      const baseFreq = 280 + (opts.detune || 0) * 1.4;
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(80, now + 0.09);
+      const oscG = ctx.createGain();
+      oscG.gain.setValueAtTime(0, now);
+      oscG.gain.linearRampToValueAtTime(gain * 0.55, now + 0.005);
+      oscG.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.connect(oscG); oscG.connect(out);
+      osc.start(now); osc.stop(now + 0.14);
+    }
+
+    function bomb(opts) {
+      opts = opts || {};
+      const now = ctx.currentTime;
+      const gain = (opts.gain != null) ? opts.gain : 0.85;
+      const out = buildOut(0);
+
+      // 初始 pop
+      const pop = ctx.createOscillator();
+      pop.type = 'square';
+      pop.frequency.setValueAtTime(90, now);
+      pop.frequency.exponentialRampToValueAtTime(35, now + 0.05);
+      const popG = ctx.createGain();
+      popG.gain.setValueAtTime(0, now);
+      popG.gain.linearRampToValueAtTime(gain * 0.55, now + 0.003);
+      popG.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+      pop.connect(popG); popG.connect(out);
+      pop.start(now); pop.stop(now + 0.09);
+
+      // 低音下行（saw + lowpass）
+      const bass = ctx.createOscillator();
+      bass.type = 'sawtooth';
+      bass.frequency.setValueAtTime(180, now);
+      bass.frequency.exponentialRampToValueAtTime(40, now + 0.35);
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(900, now);
+      lp.frequency.exponentialRampToValueAtTime(120, now + 0.3);
+      const bassG = ctx.createGain();
+      bassG.gain.setValueAtTime(0, now);
+      bassG.gain.linearRampToValueAtTime(gain * 0.6, now + 0.012);
+      bassG.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      bass.connect(lp); lp.connect(bassG); bassG.connect(out);
+      bass.start(now); bass.stop(now + 0.55);
+
+      // 噪声尾（残响感）
+      const nlp = ctx.createBiquadFilter();
+      nlp.type = 'lowpass';
+      nlp.frequency.value = 600;
+      const nG = ctx.createGain();
+      nG.gain.setValueAtTime(0, now);
+      nG.gain.linearRampToValueAtTime(gain * 0.5, now + 0.02);
+      nG.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+      const ns = noiseSource(now, 0.7);
+      ns.connect(nlp); nlp.connect(nG); nG.connect(out);
+    }
+
+    function play(name, opts) {
+      if (muted || !unlocked || !ctx) return;
+      if (ctx.state !== 'running') return;
+      try {
+        if (name === 'chop') chop(opts || {});
+        else if (name === 'bomb') bomb(opts || {});
+      } catch (e) {
+        // 静默：音频失败不影响游戏
+      }
+    }
+
+    function setMuted(m) {
+      muted = !!m;
+      try { localStorage.setItem('fn:mute', muted ? '1' : '0'); } catch (e) {}
+      if (master) master.gain.value = muted ? 0 : 0.65;
+    }
+    function isMuted() { return muted; }
+    function suspend() { if (ctx && ctx.state === 'running') { try { ctx.suspend(); } catch (e) {} } }
+    function resume() { if (ctx && ctx.state === 'suspended') { try { ctx.resume(); } catch (e) {} } }
+
+    return { unlock, play, setMuted, isMuted, suspend, resume };
+  })();
+
   // ============ 资产加载 ============
   const sprites = {};
   function loadSprite(name, src) {
@@ -400,6 +576,19 @@ permalink: /toolbox/fruit-ninja/
     bind[el.dataset.bind] = el;
   });
   const rankRow = document.getElementById('rank-row');
+  const muteBtn = document.getElementById('mute-btn');
+
+  function syncMuteBtn() {
+    if (!muteBtn) return;
+    muteBtn.textContent = FNAudio.isMuted() ? '🔇' : '🔊';
+  }
+  syncMuteBtn();
+  if (muteBtn) {
+    muteBtn.addEventListener('click', () => {
+      FNAudio.setMuted(!FNAudio.isMuted());
+      syncMuteBtn();
+    });
+  }
 
   // ============ Logical canvas size ============
   // portrait 2:3，手机利用更多屏幕高度；桌面 max-width 600
@@ -590,6 +779,7 @@ permalink: /toolbox/fruit-ninja/
   }
   canvas.addEventListener('pointerdown', e => {
     if (!state.running || state.paused || state.over) return;
+    FNAudio.unlock();              // 安全兜底：mode-card 之外的 user gesture
     pointerActive = true;
     state.combo = 0;              // 新一笔，重置 combo
     updateHud();
@@ -791,6 +981,11 @@ permalink: /toolbox/fruit-ninja/
     // combo 即「一笔切到的水果数」（pointerdown 时清零，pointerup 重置）
     state.combo += 1;
     if (state.combo > state.bestCombo) state.bestCombo = state.combo;
+    // chop 音：combo 越高音越亮（detune 上行），位置在屏幕 pan 上反映
+    FNAudio.play('chop', {
+      detune: Math.min(state.combo - 1, 12) * 30,
+      pan: (f.x / LOG_W - 0.5) * 0.65,
+    });
 
     // 第 N 个水果分数：10 + (N-1)*10（指数爽感）
     const points = 10 + (state.combo - 1) * 10;
@@ -868,6 +1063,7 @@ permalink: /toolbox/fruit-ninja/
 
   function bombHit() {
     flashScreen();
+    FNAudio.play('bomb');
     state.combo = 0;
     if (state.mode === 'endless') {
       state.lives -= 1;
@@ -1106,7 +1302,11 @@ permalink: /toolbox/fruit-ninja/
 
   // ============ 模式 / 流程 ============
   document.querySelectorAll('.mode-card').forEach(card => {
-    card.addEventListener('click', () => startGame(card.dataset.mode));
+    card.addEventListener('click', () => {
+      // iOS Safari 需要在 user gesture 内同步 resume AudioContext
+      FNAudio.unlock();
+      startGame(card.dataset.mode);
+    });
   });
 
   function startGame(mode) {
@@ -1219,11 +1419,13 @@ permalink: /toolbox/fruit-ninja/
     if (state.over || !state.running) return;
     state.paused = true;
     pausedOverlay.hidden = false;
+    FNAudio.suspend();
   });
   document.getElementById('resume-btn').addEventListener('click', () => {
     state.paused = false;
     pausedOverlay.hidden = true;
     lastWall = 0;             // 防止 resume 后第一帧累积巨大 dt
+    FNAudio.resume();
     rafId = requestAnimationFrame(loop);
   });
   document.getElementById('quit-btn').addEventListener('click', () => {
@@ -1251,6 +1453,7 @@ permalink: /toolbox/fruit-ninja/
     if (document.hidden && state.running && !state.over && !state.paused) {
       state.paused = true;
       pausedOverlay.hidden = false;
+      FNAudio.suspend();
     }
   });
 
