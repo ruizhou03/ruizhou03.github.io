@@ -823,6 +823,7 @@ permalink: /toolbox/fruit-ninja/
   let trail = [];         // pointer 轨迹
   let popups = [];        // 多连切提示文字
   let shockwaves = [];    // 冲击波环（炸弹）
+  let sparks = [];        // 斩击火花（切中瞬间径向白光）
 
   const GRAVITY = 900;     // px/s²
 
@@ -1172,12 +1173,17 @@ permalink: /toolbox/fruit-ninja/
       const color = state.combo >= 5 ? '#ff7878' : '#ffd95a';
       const extra = state.combo * 20;
       state.score += extra;
-      showPopup(LOG_W / 2, LOG_H * 0.32, lbl, color, true);
+      // combo ≥ 4 popup 带光环；颜色随 combo 升级（青 → 粉 → 黄）
+      const auraColor = state.combo >= 7 ? '255, 220, 90'
+        : state.combo >= 5 ? '255, 80, 200'
+        : '0, 220, 255';
+      showPopup(LOG_W / 2, LOG_H * 0.32, lbl, color, true, state.combo >= 4 ? auraColor : false);
       showPopup(LOG_W / 2, LOG_H * 0.32 + 46, '+' + (points + extra), '#fff');
     }
 
     spawnHalves(f, angle);
     spawnJuice(f, angle);
+    spawnSlashSpark(f.x, f.y, angle);
     updateHud();
   }
 
@@ -1205,14 +1211,46 @@ permalink: /toolbox/fruit-ninja/
     });
   }
 
-  function showPopup(x, y, text, color, big) {
+  function showPopup(x, y, text, color, big, aura) {
     popups.push({
       x, y, text,
       color: color || '#ffd95a',
       big: !!big,
+      aura: !!aura,
+      auraColor: (typeof aura === 'string') ? aura : '255, 90, 200',
       age: 0,
       life: big ? 1.4 : 0.9,
     });
+  }
+
+  function spawnSlashSpark(x, y, angle) {
+    sparks.push({ x, y, angle, age: 0, life: 0.16 });
+  }
+  function drawSparks() {
+    if (!sparks.length) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const s of sparks) {
+      const t = s.age / s.life;
+      const alpha = (1 - t) * (1 - t);
+      const len = 62 * (1 - t * 0.45);
+      ctx.strokeStyle = 'rgba(255, 255, 255, ' + alpha.toFixed(3) + ')';
+      ctx.lineWidth = 2.2 * (1 - t);
+      ctx.lineCap = 'round';
+      // 16 道径向白光，与切割角度对齐做主轴
+      for (let i = 0; i < 16; i++) {
+        const a = s.angle + (i / 16) * Math.PI * 2;
+        const cosA = Math.cos(a), sinA = Math.sin(a);
+        // 距离主切割轴越近越长
+        const align = Math.abs(Math.cos(a - s.angle));   // 0..1
+        const r = len * (0.55 + 0.45 * align);
+        ctx.beginPath();
+        ctx.moveTo(s.x + cosA * 4, s.y + sinA * 4);
+        ctx.lineTo(s.x + cosA * r, s.y + sinA * r);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
   }
 
   function spawnJuice(f, angle) {
@@ -1334,6 +1372,9 @@ permalink: /toolbox/fruit-ninja/
     for (const w of shockwaves) w.age += dt;
     shockwaves = shockwaves.filter(w => w.age < w.life);
 
+    for (const sp of sparks) sp.age += dt;
+    sparks = sparks.filter(sp => sp.age < sp.life);
+
     // trail 老化（用 game-time 时间戳）
     while (trail.length > 0 && gameNowMs - trail[0].t > 220) trail.shift();
     if (trail.length > 14) trail.splice(0, trail.length - 14);
@@ -1428,6 +1469,25 @@ permalink: /toolbox/fruit-ninja/
       const t = p.age / p.life;
       const a = Math.max(0, 1 - t);
       const yOff = -55 * t * t;
+
+      // 连击光环：在文字下方一圈扩散彩色 ring（仅 aura popup）
+      if (p.aura) {
+        const auraT = Math.min(1, p.age / 0.6);
+        const auraR = 32 + 96 * auraT;
+        const auraA = a * (1 - auraT * 0.85);
+        if (auraA > 0.02) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.translate(p.x, p.y + yOff);
+          ctx.strokeStyle = 'rgba(' + p.auraColor + ', ' + auraA.toFixed(3) + ')';
+          ctx.lineWidth = 5 * (1 - auraT * 0.5);
+          ctx.beginPath();
+          ctx.arc(0, 0, auraR, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
       const scale = p.big ? (1 + Math.sin(Math.min(t * 6, Math.PI)) * 0.15) : 1;
       ctx.save();
       ctx.globalAlpha = a;
@@ -1510,6 +1570,7 @@ permalink: /toolbox/fruit-ninja/
     for (const f of fruits) drawFruit(f);
     drawParticles();
     drawShockwaves();
+    drawSparks();
     drawTrail();
     drawPopups();
 
@@ -1613,6 +1674,7 @@ permalink: /toolbox/fruit-ninja/
     trail = [];
     popups = [];
     shockwaves = [];
+    sparks = [];
     flashUntil = 0;
     spawnPhase = 'normal';
     nextEventAt = 600;           // game-time 0.6s 后第一个水果
