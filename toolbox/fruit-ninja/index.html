@@ -2338,47 +2338,145 @@ permalink: /toolbox/fruit-ninja/
 
   // ============ 结算图 ============
   function paintSettlementBoard(ctx2, x, y, w, h) {
-    const grad = ctx2.createLinearGradient(x, y, x, y + h);
-    grad.addColorStop(0, '#2a3a52');
-    grad.addColorStop(1, '#1a2436');
-    ctx2.fillStyle = grad;
-    ctx2.fillRect(x, y, w, h);
+    const horizonY = y + h * 0.55;
+    const minDim = Math.min(w, h);
 
-    // 散布几个水果
+    // 天空：深紫纵向渐变
+    const skyGrad = ctx2.createLinearGradient(x, y, x, horizonY);
+    skyGrad.addColorStop(0, '#06010f');
+    skyGrad.addColorStop(0.55, '#1a0838');
+    skyGrad.addColorStop(1, '#3a0e5e');
+    ctx2.fillStyle = skyGrad;
+    ctx2.fillRect(x, y, w, horizonY - y);
+
+    // 夕阳（粉红 → 橙黄）
+    const sunCx = x + w / 2;
+    const sunCy = horizonY - minDim * 0.04;
+    const sunR = minDim * 0.32;
+    const sunGrad = ctx2.createRadialGradient(sunCx, sunCy, 4, sunCx, sunCy, sunR);
+    sunGrad.addColorStop(0, '#fff8c4');
+    sunGrad.addColorStop(0.28, '#ffc070');
+    sunGrad.addColorStop(0.55, '#ff4ea8');
+    sunGrad.addColorStop(1, 'rgba(120, 20, 90, 0)');
+    ctx2.fillStyle = sunGrad;
+    ctx2.beginPath();
+    ctx2.arc(sunCx, sunCy, sunR, 0, Math.PI * 2);
+    ctx2.fill();
+    // 蒸汽波横纹
+    ctx2.save();
+    ctx2.globalCompositeOperation = 'destination-out';
+    for (let i = 0; i < 6; i++) {
+      const sy = sunCy + sunR * 0.18 + i * sunR * 0.08;
+      const sh = sunR * 0.04 + i * sunR * 0.008;
+      if (sy + sh > horizonY) break;
+      ctx2.fillRect(sunCx - sunR, sy, sunR * 2, sh);
+    }
+    ctx2.restore();
+
+    // 地板
+    const floorGrad = ctx2.createLinearGradient(x, horizonY, x, y + h);
+    floorGrad.addColorStop(0, '#0c031e');
+    floorGrad.addColorStop(1, '#02000a');
+    ctx2.fillStyle = floorGrad;
+    ctx2.fillRect(x, horizonY, w, y + h - horizonY);
+
+    // 地平线 + 辉光
+    const glowGrad = ctx2.createLinearGradient(x, horizonY - 12, x, horizonY + 12);
+    glowGrad.addColorStop(0, 'rgba(0, 220, 255, 0)');
+    glowGrad.addColorStop(0.5, 'rgba(0, 220, 255, 0.45)');
+    glowGrad.addColorStop(1, 'rgba(0, 220, 255, 0)');
+    ctx2.fillStyle = glowGrad;
+    ctx2.fillRect(x, horizonY - 12, w, 24);
+    ctx2.strokeStyle = 'rgba(120, 250, 255, 0.95)';
+    ctx2.lineWidth = Math.max(1.2, minDim * 0.003);
+    ctx2.beginPath();
+    ctx2.moveTo(x, horizonY);
+    ctx2.lineTo(x + w, horizonY);
+    ctx2.stroke();
+
+    // 透视网格（静态）
+    const vanishX = x + w / 2;
+    ctx2.strokeStyle = 'rgba(0, 200, 255, 0.25)';
+    ctx2.lineWidth = 0.8;
+    const verts = 11;
+    for (let i = 0; i <= verts; i++) {
+      const tX = i / verts;
+      const xBottom = x - w * 0.3 + tX * (w * 1.6);
+      ctx2.beginPath();
+      ctx2.moveTo(vanishX, horizonY);
+      ctx2.lineTo(xBottom, y + h);
+      ctx2.stroke();
+    }
+    const numHoriz = 7;
+    for (let i = 1; i <= numHoriz; i++) {
+      const tY = Math.pow(i / numHoriz, 2.2);
+      const ly = horizonY + (y + h - horizonY) * tY;
+      const alpha = 0.18 + 0.4 * tY;
+      const isAccent = (i % 3 === 0);
+      ctx2.strokeStyle = isAccent
+        ? 'rgba(255, 90, 200, ' + alpha.toFixed(3) + ')'
+        : 'rgba(0, 220, 255, ' + alpha.toFixed(3) + ')';
+      ctx2.lineWidth = isAccent ? 1.4 : 0.9;
+      ctx2.beginPath();
+      ctx2.moveTo(x, ly);
+      ctx2.lineTo(x + w, ly);
+      ctx2.stroke();
+    }
+
+    // 4 水果环绕在 sun 周围（上半部分）
     const samples = ['apple_whole', 'orange_whole', 'watermelon_whole', 'kiwi_whole'];
-    const cx = x + w / 2, cy = y + h / 2;
     samples.forEach((name, i) => {
       const img = sprites[name];
       if (!img) return;
-      const angle = (i / samples.length) * Math.PI * 2 - Math.PI / 2;
-      const rr = Math.min(w, h) * 0.3;
-      const fx = cx + Math.cos(angle) * rr;
-      const fy = cy + Math.sin(angle) * rr;
-      const size = Math.min(w, h) * 0.22;
+      const angle = (i / samples.length) * Math.PI - Math.PI;   // 上半圈
+      const rr = minDim * 0.32;
+      const fx = sunCx + Math.cos(angle) * rr;
+      const fy = sunCy + Math.sin(angle) * rr * 0.85;
+      const size = minDim * 0.18;
+      // 霓虹后辉
+      ctx2.save();
+      ctx2.globalCompositeOperation = 'lighter';
+      const aurG = ctx2.createRadialGradient(fx, fy, 4, fx, fy, size * 0.7);
+      aurG.addColorStop(0, 'rgba(255, 120, 220, 0.45)');
+      aurG.addColorStop(1, 'rgba(255, 120, 220, 0)');
+      ctx2.fillStyle = aurG;
+      ctx2.beginPath();
+      ctx2.arc(fx, fy, size * 0.7, 0, Math.PI * 2);
+      ctx2.fill();
+      ctx2.restore();
       ctx2.save();
       ctx2.translate(fx, fy);
-      ctx2.rotate(angle);
+      ctx2.rotate(angle * 0.6);
       ctx2.drawImage(img, -size / 2, -size / 2, size, size);
       ctx2.restore();
     });
 
-    // 中心刀光
+    // 中心霓虹刀光（cyan glow + magenta mid + 白 core）
+    const slashY1 = y + h * 0.75, slashY2 = y + h * 0.78;
+    const slashCx = x + w * 0.5, slashTop = y + h * 0.42;
+    const drawSlash = (color, width) => {
+      ctx2.strokeStyle = color;
+      ctx2.lineWidth = width;
+      ctx2.lineCap = 'round';
+      ctx2.beginPath();
+      ctx2.moveTo(x + w * 0.2, slashY1);
+      ctx2.quadraticCurveTo(slashCx, slashTop, x + w * 0.8, slashY2);
+      ctx2.stroke();
+    };
     ctx2.save();
-    ctx2.strokeStyle = 'rgba(255, 240, 180, 0.85)';
-    ctx2.lineWidth = Math.min(w, h) * 0.012;
-    ctx2.lineCap = 'round';
-    ctx2.beginPath();
-    ctx2.moveTo(x + w * 0.2, y + h * 0.7);
-    ctx2.quadraticCurveTo(x + w * 0.5, y + h * 0.2, x + w * 0.8, y + h * 0.7);
-    ctx2.stroke();
+    ctx2.globalCompositeOperation = 'lighter';
+    drawSlash('rgba(0, 220, 255, 0.35)', minDim * 0.020);
+    drawSlash('rgba(255, 90, 210, 0.65)', minDim * 0.010);
+    ctx2.globalCompositeOperation = 'source-over';
+    drawSlash('rgba(255, 255, 255, 0.95)', minDim * 0.004);
     ctx2.restore();
 
-    // 中心 emoji
+    // 中心 🍉
     ctx2.fillStyle = '#fff';
-    ctx2.font = `${Math.min(w, h) * 0.18}px Georgia, serif`;
+    ctx2.font = `${minDim * 0.18}px Georgia, serif`;
     ctx2.textAlign = 'center';
     ctx2.textBaseline = 'middle';
-    ctx2.fillText('🍉', cx, cy);
+    ctx2.fillText('🍉', sunCx, sunCy);
   }
 
   function getSettlementOpts() {
