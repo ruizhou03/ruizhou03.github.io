@@ -349,12 +349,12 @@ permalink: /toolbox/feixingqi/
     <div class="fxq-rules">
       <span class="pill">出库</span> 掷出 6 才能从机库出一架，飞机出现在自家 <span style="color:#E84545">✈</span> 起飞口；掷 6 后再掷一次（连续 3 个 6 视为犯规，最近一架退回机库）。
       <br>
-      <span class="pill">归航</span> 顺时针绕外圈 44 格一周到达自家归航入口（贴在归航跑道远端的外圈格），自动转入归航跑道 6 格 → 中央同色三角即胜。
+      <span class="pill">归航</span> 沿外圈 52 格走 45 格回到自家归航入口（贴在归航跑道远端的外圈格），自动转入归航跑道 6 格 → 中央同色三角即胜。
       <br>
       <span class="pill">踩格</span> 落到对手所在格 → 对手该格上飞机全部回机库。
       <span class="pill">精确</span> 进归航跑道后剩余步数必须精确到达终点，超出反弹。
       <br>
-      <span class="pill">飞跃</span> 稀有彩蛋：踩到自己颜色的 <span style="color:#E84545">✈</span> → 横跨半盘 22 格（被踩送回再被踩回起飞口才有机会触发）。
+      <span class="pill">飞跃</span> 稀有彩蛋：踩到自己颜色的 <span style="color:#E84545">✈</span> → 横跨半盘 26 格（被踩送回再被踩回起飞口才有机会触发）。
     </div>
   </div>
 
@@ -387,85 +387,105 @@ permalink: /toolbox/feixingqi/
   // the spec, swap the order: spec (1, 6) → code [6, 1].
   const SVG_W = 660, SVG_H = 660;
 
-  // Outer loop wraps the central cross. 44 cells: each arm contributes 10 cells
-  // (5 on row/col 6 and 5 on row/col 8) and there are 4 mid-edge "tip" cells
-  // (7,0), (0,7), (14,7), (7,14). The cross interior (row/col 7) hosts the home
-  // stretches and the central goal — NOT part of the outer loop. Corners
-  // (6,6)/(6,8)/(8,6)/(8,8) are also NOT play tiles; the plane skips them and
-  // moves diagonally between adjacent arm cells.
-  const TRACK_LEN = 44;
+  // Outer loop wraps the central cross. 52 cells: each "arm" of the loop walks
+  // through the inner concave-corner cells diagonally and the outer cross-arm
+  // tips through 3 adjacent cells per side. The cross interior (row/col 7)
+  // hosts the home runways and the central goal — NOT part of the outer loop.
+  // Concave corners (6,6)/(6,8)/(8,8)/(8,6) are skip-cells (the plane moves
+  // diagonally over them between non-grid-adjacent track cells).
+  const TRACK_LEN = 52;
 
-  // Corner colors per user's spec for the new 15×15 board:
-  // NW = 红 red, NE = 黄 yellow, SE = 绿 green, SW = 蓝 blue. Turn order is
-  // clockwise around the board: NW → NE → SE → SW.
+  // Corner colors per user's standard 52-cell Chinese 飞行棋 spec:
+  // - NW = 红 red    (runway on TOP arm)
+  // - NE = 黄 yellow (runway on RIGHT arm)
+  // - SE = 绿 green  (runway on BOTTOM arm)
+  // - SW = 蓝 blue   (runway on LEFT arm)
+  // Each color's runway is on the cross-arm adjacent to its hangar. Turn order
+  // goes clockwise: NW → NE → SE → SW.
   const COLORS = ['red', 'yellow', 'green', 'blue'];
   const COLOR_INFO = {
-    red:    { hex: '#E84545', light: '#FFD9D9', label: '红', corner: 'NW', name: '西北' },
-    yellow: { hex: '#F5C518', light: '#FFF3C2', label: '黄', corner: 'NE', name: '东北' },
-    green:  { hex: '#3CB371', light: '#D5F0DD', label: '绿', corner: 'SE', name: '东南' },
-    blue:   { hex: '#3C82E8', light: '#D6E5FB', label: '蓝', corner: 'SW', name: '西南' },
+    red:    { hex: '#E84545', light: '#FDE0DC', label: '红', corner: 'NW', name: '西北' },
+    yellow: { hex: '#F5C518', light: '#FFF8D6', label: '黄', corner: 'NE', name: '东北' },
+    green:  { hex: '#3CB371', light: '#DFF3E2', label: '绿', corner: 'SE', name: '东南' },
+    blue:   { hex: '#3C82E8', light: '#DCE9FF', label: '蓝', corner: 'SW', name: '西南' },
   };
   const CORNER_TO_COLOR = { NW: 'red', NE: 'yellow', SE: 'green', SW: 'blue' };
   const CORNER_KEYS = ['NW', 'NE', 'SE', 'SW'];
   const TURN_ORDER = ['red', 'yellow', 'green', 'blue'];
 
-  // ===== Layout: 15×15 cross board (the only layout) =====
-  // Each color enters the loop just CW of its own stretch exit cell, walks 43
-  // cells (almost a full lap), turns into its 6-cell stretch, and lands at the
-  // shared center cell (7,7).
+  // ===== Layout: standard Chinese 飞行棋 52-cell board (the only layout) =====
+  // Each color enters the loop at EXIT_INDEX, walks 45 cells (almost a full
+  // lap), passes through STRETCH_TRANSITION (the cross-arm tip cell), and
+  // turns into its 6-cell runway to reach the central goal (7,7).
   const LAYOUT_CROSS = {
     label: '十字盘',
     GRID: 15,
-    // Outer loop, 44 cells, clockwise. index 0 = red's entry, just south of
-    // red's NW hangar. Comments give the (col, row) form alongside [row, col]
-    // for cross-referencing the user's spec.
-    //   0..4   red entry — left arm, row 6 going right   (col 1..5, row 6)
-    //   5..9   top arm left side, col 6 going up         (col 6, row 5..1)
-    //   10     top corner / yellow stretch exit          (col 7, row 0)
-    //   11..15 yellow entry — top arm right, col 8 down  (col 8, row 1..5)
-    //   16..20 right arm top, row 6 going right          (col 9..13, row 6)
-    //   21     right corner / green stretch exit         (col 14, row 7)
-    //   22..26 green entry — right arm bottom, row 8 ←   (col 13..9, row 8)
-    //   27..31 bottom arm right, col 8 going down        (col 8, row 9..13)
-    //   32     bottom corner / blue stretch exit         (col 7, row 14)
-    //   33..37 blue entry — bottom arm left, col 6 ↑     (col 6, row 13..9)
-    //   38..42 left arm bottom, row 8 going left         (col 5..1, row 8)
-    //   43     left corner / red stretch exit            (col 0, row 7)
+    // Outer loop, 52 cells, counter-clockwise from a viewer perspective (path
+    // index 0..51 walks CW in [row,col] space). Comments give (col,row) form
+    // for cross-referencing the user's JSON spec.
+    //   0..4   col 6, rows 1..5  going down                  (top-left of cross)
+    //   5..10  row 6, cols 5..0  going left                  (along top edge of left arm)
+    //   11     row 7, col 0      LEFT-ARM TIP — blue exit
+    //   12..17 row 8, cols 0..5  going right                 (along bottom edge of left arm)
+    //   18..22 col 6, rows 9..13 going down                  (left of bottom arm)
+    //   23..25 row 13/14, col 6..8 going right (24=bottom tip)
+    //   23     row 14, col 6     bottom-edge cell
+    //   24     row 14, col 7     BOTTOM-ARM TIP — green exit
+    //   25     row 14, col 8     bottom-edge cell
+    //   26..30 col 8, rows 13..9 going up
+    //   31..35 row 8, cols 9..13 going right
+    //   36..38 row 8/7/6, col 14 going up (37=right tip)
+    //   36     row 8, col 14
+    //   37     row 7, col 14     RIGHT-ARM TIP — yellow exit
+    //   38     row 6, col 14
+    //   39..43 row 6, cols 13..9 going left
+    //   44..48 col 8, rows 5..1  going up
+    //   49..51 row 0, cols 8..6 going left (50=top tip)
+    //   49     row 0, col 8
+    //   50     row 0, col 7      TOP-ARM TIP — red exit
+    //   51     row 0, col 6
     TRACK: [
-      [6,1],[6,2],[6,3],[6,4],[6,5],             // 0..4   red entry
-      [5,6],[4,6],[3,6],[2,6],[1,6],             // 5..9   top arm L side
-      [0,7],                                      // 10     yellow exit
-      [1,8],[2,8],[3,8],[4,8],[5,8],             // 11..15 yellow entry
-      [6,9],[6,10],[6,11],[6,12],[6,13],         // 16..20 right arm top
-      [7,14],                                     // 21     green exit
-      [8,13],[8,12],[8,11],[8,10],[8,9],         // 22..26 green entry
-      [9,8],[10,8],[11,8],[12,8],[13,8],         // 27..31 bottom arm R
-      [14,7],                                     // 32     blue exit
-      [13,6],[12,6],[11,6],[10,6],[9,6],         // 33..37 blue entry
-      [8,5],[8,4],[8,3],[8,2],[8,1],             // 38..42 left arm bottom
-      [7,0],                                      // 43     red exit
+      [1,6],[2,6],[3,6],[4,6],[5,6],              // 0..4
+      [6,5],[6,4],[6,3],[6,2],[6,1],[6,0],        // 5..10
+      [7,0],                                       // 11
+      [8,0],[8,1],[8,2],[8,3],[8,4],[8,5],        // 12..17
+      [9,6],[10,6],[11,6],[12,6],[13,6],          // 18..22
+      [14,6],                                      // 23
+      [14,7],                                      // 24
+      [14,8],                                      // 25
+      [13,8],[12,8],[11,8],[10,8],[9,8],          // 26..30
+      [8,9],[8,10],[8,11],[8,12],[8,13],          // 31..35
+      [8,14],                                      // 36
+      [7,14],                                      // 37
+      [6,14],                                      // 38
+      [6,13],[6,12],[6,11],[6,10],[6,9],          // 39..43
+      [5,8],[4,8],[3,8],[2,8],[1,8],              // 44..48
+      [0,8],                                       // 49
+      [0,7],                                       // 50
+      [0,6],                                       // 51
     ],
-    // Each color: the first track cell after rolling 6 (also the takeoff cell
-    // for the cross-board big jump). Each color's STRETCH_TRANSITION is at
-    // (EXIT_INDEX + 43) % 44 — i.e. one full lap minus one.
-    EXIT_INDEX:         { red: 0,  yellow: 11, green: 22, blue: 33 },
-    STRETCH_TRANSITION: { red: 43, yellow: 10, green: 21, blue: 32 },
+    // Entry cell on the loop after rolling 6 (also the takeoff/✈ cell that
+    // triggers the cross-board big jump). Each color is 13 cells apart on the
+    // 52-cell loop.
+    EXIT_INDEX:         { red: 5, yellow: 44, green: 31, blue: 18 },
+    // Exit cell at the cross-arm tip (last loop cell before turning into the
+    // home runway). For each color: STRETCH_TRANSITION = (EXIT_INDEX + 45) % 52.
+    STRETCH_TRANSITION: { red: 50, yellow: 37, green: 24, blue: 11 },
     STRETCH_CELLS: {
-      // Each stretch is 6 cells from outer end to inner end; the 7th step (or
-      // overshoot bounce) lands at the central goal cell (7,7).
-      red:    [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],         // left arm, row 7, →
-      yellow: [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],         // top  arm, col 7, ↓
-      green:  [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],     // right arm, row 7, ←
-      blue:   [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],     // bottom arm, col 7, ↑
+      // 6 cells per runway, from outer (cross-arm tip) end inward to the goal.
+      red:    [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],         // top    arm, col 7, ↓
+      yellow: [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],     // right  arm, row 7, ←
+      green:  [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],     // bottom arm, col 7, ↑
+      blue:   [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],         // left   arm, row 7, →
     },
     STRETCH_LEN: 6,
     HANGAR_CELLS: {
-      // Top-left 2×2 of each 6×6 home zone (in cells [1..2,1..2] of each corner
-      // block) — per user's spec.
-      red:    [[1,1],[1,2],[2,1],[2,2]],          // NW
-      yellow: [[1,12],[1,13],[2,12],[2,13]],      // NE
-      green:  [[12,12],[12,13],[13,12],[13,13]],  // SE
-      blue:   [[12,1],[12,2],[13,1],[13,2]],      // SW
+      // 2×2 cluster at the inner quadrant of each 6×6 home zone (cells 2-3 of
+      // each axis), per user's standard spec.
+      red:    [[2,2],[2,3],[3,2],[3,3]],          // NW
+      yellow: [[2,11],[2,12],[3,11],[3,12]],      // NE
+      green:  [[11,11],[11,12],[12,11],[12,12]],  // SE
+      blue:   [[11,2],[11,3],[12,2],[12,3]],      // SW
     },
     HOME_ZONES: {
       red:    { r0: 0,  r1: 5,  c0: 0,  c1: 5  },  // NW
@@ -474,7 +494,7 @@ permalink: /toolbox/feixingqi/
       blue:   { r0: 9,  r1: 14, c0: 0,  c1: 5  },  // SW
     },
     // Purely decorative "takeoff triangles" — one colored diagonal-split cell
-    // per color, sat in the inner quadrant of each home zone. Plane mechanics
+    // per color in the inner quadrant of each home zone. Plane mechanics
     // bypass these (planes go straight from hangar → EXIT_INDEX track cell).
     TAKEOFF_TRIANGLES: {
       red:    [4,4],
@@ -484,37 +504,35 @@ permalink: /toolbox/feixingqi/
     },
     GOAL: {
       // Single cell (7,7) split into 4 inner triangles. Each color parks just
-      // inside its triangle.
+      // inside its triangle. Top=red, Right=yellow, Bottom=green, Left=blue
+      // (matches runway-arm orientation).
       kind: 'star',
       cell: [7, 7],
       anchors: {
-        // [row, col] in grid units (fractional). Each color sits ~0.22 cells
-        // off-center in its triangle.
-        yellow: [7.22, 7.5],   // top triangle
-        green:  [7.5, 7.78],   // right triangle
-        blue:   [7.78, 7.5],   // bottom triangle
-        red:    [7.5, 7.22],   // left triangle
+        red:    [7.22, 7.5],   // top triangle
+        yellow: [7.5, 7.78],   // right triangle
+        green:  [7.78, 7.5],   // bottom triangle
+        blue:   [7.5, 7.22],   // left triangle
       },
     },
-    // L-corner connectors: 4 spots where the loop bends 90° between non-grid-
-    // adjacent cells. Each entry is { from: trackIdx, to: trackIdx, pivot: [r,c] }
-    // for drawing a small turn-marker through the corner of the cross arm.
+    // 4 inner concave corners of the cross — the loop "cuts" diagonally
+    // between non-grid-adjacent cells here. We render a small marker at each
+    // pivot to signal the diagonal turn.
     CORNERS: [
-      { from: 4,  to: 5,  pivot: [6, 6] },   // NW arm corner: (6,5) → (5,6)
-      { from: 15, to: 16, pivot: [6, 8] },   // NE arm corner: (5,8) → (6,9)
-      { from: 26, to: 27, pivot: [8, 8] },   // SE arm corner: (8,9) → (9,8)
-      { from: 37, to: 38, pivot: [8, 6] },   // SW arm corner: (9,6) → (8,5)
+      { from: 4,  to: 5,  pivot: [6, 6] },   // NW concave: (5,6)→(6,5)
+      { from: 17, to: 18, pivot: [8, 6] },   // SW concave: (8,5)→(9,6)
+      { from: 30, to: 31, pivot: [8, 8] },   // SE concave: (9,8)→(8,9)
+      { from: 43, to: 44, pivot: [6, 8] },   // NE concave: (6,9)→(5,8)
     ],
   };
 
   const LAYOUTS = { cross: LAYOUT_CROSS };
 
   // Classical 飞行棋 takeoff: each color's EXIT_INDEX cell is also its "✈"
-  // jump cell. Landing on your OWN ✈ cell flies you ~half a lap (22 cells on
-  // the 44-cell loop) — to the diagonally opposite arm. No other intermediate
-  // jump cells in this variant.
+  // jump cell. Landing on your OWN ✈ cell flies you exactly half a lap (26
+  // cells on the 52-cell loop) — to the diagonally opposite arm's ✈ cell.
   const TAKEOFF_OFFSET = 0;
-  const FLIGHT_DISTANCE = 22;
+  const FLIGHT_DISTANCE = 26;
   for (const key in LAYOUTS) {
     const layout = LAYOUTS[key];
     layout.CELL_COLOR = {};       // index → owner colour (only takeoff cells are coloured)
@@ -536,12 +554,12 @@ permalink: /toolbox/feixingqi/
     return g.cell || [7, 7];
   }
 
-  // Direction each home stretch points (toward the central goal).
+  // Direction each home runway points (toward the central goal).
   const STRETCH_DIR = {
-    red:    'right',  // left  arm, row 7, →
-    yellow: 'down',   // top   arm, col 7, ↓
-    green:  'left',   // right arm, row 7, ←
-    blue:   'up',     // bottom arm, col 7, ↑
+    red:    'down',   // top    arm, col 7, ↓
+    yellow: 'left',   // right  arm, row 7, ←
+    green:  'up',     // bottom arm, col 7, ↑
+    blue:   'right',  // left   arm, row 7, →
   };
 
   // ============================================================
@@ -1104,10 +1122,10 @@ permalink: /toolbox/feixingqi/
         'stroke-width': 1,
       }));
     };
-    triangle('yellow', tl, tr);   // top triangle = yellow
-    triangle('green',  tr, br);   // right triangle = green
-    triangle('blue',   br, bl);   // bottom triangle = blue
-    triangle('red',    bl, tl);   // left triangle = red
+    triangle('red',    tl, tr);   // top triangle = red
+    triangle('yellow', tr, br);   // right triangle = yellow
+    triangle('green',  br, bl);   // bottom triangle = green
+    triangle('blue',   bl, tl);   // left triangle = blue
     // Small center dot to anchor the eye.
     goalGroup.appendChild(svgEl('circle', {
       cx: gcx, cy: gcy, r: cell * 0.08,
@@ -2024,10 +2042,10 @@ permalink: /toolbox/feixingqi/
     const gcx = gx + gw / 2;
     const gcy = gy + gh / 2;
     const triPts = [
-      ['yellow', [gx, gy],         [gx + gw, gy]],         // top
-      ['green',  [gx + gw, gy],    [gx + gw, gy + gh]],    // right
-      ['blue',   [gx + gw, gy+gh], [gx, gy + gh]],         // bottom
-      ['red',    [gx, gy + gh],    [gx, gy]],              // left
+      ['red',    [gx, gy],         [gx + gw, gy]],         // top
+      ['yellow', [gx + gw, gy],    [gx + gw, gy + gh]],    // right
+      ['green',  [gx + gw, gy+gh], [gx, gy + gh]],         // bottom
+      ['blue',   [gx, gy + gh],    [gx, gy]],              // left
     ];
     for (const [color, p1, p2] of triPts) {
       ctx.fillStyle = activeColors.has(color) ? COLOR_INFO[color].hex : '#cdc3b0';
