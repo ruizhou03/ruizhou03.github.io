@@ -476,6 +476,32 @@ permalink: /toolbox/fruit-ninja/
       osc.start(now); osc.stop(now + 0.14);
     }
 
+    function whoosh(opts) {
+      const now = ctx.currentTime;
+      const gain = (opts.gain != null) ? opts.gain : 0.32;
+      const out = buildOut(opts.pan || 0);
+
+      // 高通 + bandpass 扫频：模拟刀划破空气
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 2200;
+      hp.Q.value = 0.4;
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.Q.value = 1.4;
+      bp.frequency.setValueAtTime(2400, now);
+      bp.frequency.exponentialRampToValueAtTime(5500, now + 0.075);
+      bp.frequency.exponentialRampToValueAtTime(2200, now + 0.16);
+
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(gain, now + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+      const ns = noiseSource(now, 0.20);
+      ns.connect(hp); hp.connect(bp); bp.connect(g); g.connect(out);
+    }
+
     function bomb(opts) {
       opts = opts || {};
       const now = ctx.currentTime;
@@ -528,6 +554,7 @@ permalink: /toolbox/fruit-ninja/
       try {
         if (name === 'chop') chop(opts || {});
         else if (name === 'bomb') bomb(opts || {});
+        else if (name === 'whoosh') whoosh(opts || {});
       } catch (e) {
         // 静默：音频失败不影响游戏
       }
@@ -788,12 +815,27 @@ permalink: /toolbox/fruit-ninja/
     trail.push({ x: p.x, y: p.y, t: gameNow() });
     e.preventDefault();
   });
+  let lastWhooshWall = 0;
   canvas.addEventListener('pointermove', e => {
     if (!pointerActive) return;
     const p = canvasPos(e);
     trail.push({ x: p.x, y: p.y, t: gameNow() });
     if (state.running && !state.paused && !state.over) {
       checkSliceLastSegment();
+      // 快速划动时播 whoosh（节流：120ms 内最多一次；距离阈值过滤悬停）
+      if (trail.length >= 2) {
+        const a = trail[trail.length - 2];
+        const b = trail[trail.length - 1];
+        const dist = Math.hypot(b.x - a.x, b.y - a.y);
+        const wall = performance.now();
+        if (dist > 38 && wall - lastWhooshWall > 120) {
+          lastWhooshWall = wall;
+          FNAudio.play('whoosh', {
+            pan: (p.x / LOG_W - 0.5) * 0.5,
+            gain: Math.min(0.42, 0.18 + dist * 0.002),
+          });
+        }
+      }
     }
   });
   function endPointer() {
