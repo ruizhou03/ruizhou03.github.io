@@ -1842,6 +1842,13 @@ permalink: /toolbox/doudizhu/
   const $ = id => document.getElementById(id);
   const setupView = $('ddzSetup');
   const tableView = $('ddzTable');
+  // 防御性：进入页面时强制初始为 setup 屏（不被任何残留 / 缓存影响）
+  if (tableView) tableView.hidden = true;
+  if (setupView) setupView.style.display = '';
+  const _lobbyAtInit = document.getElementById('ddzLobby');
+  if (_lobbyAtInit) _lobbyAtInit.hidden = true;
+  const _gameOverAtInit = document.getElementById('ddzGameOverOverlay');
+  if (_gameOverAtInit) _gameOverAtInit.classList.remove('show', 'has-spring');
   const handEl = $('ddzHand');
   const playActions = $('ddzPlayActions');
   const playBtn = $('ddzPlayBtn');
