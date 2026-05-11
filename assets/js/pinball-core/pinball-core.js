@@ -430,7 +430,7 @@
         }
       });
 
-      // 卡住兜底：唯一活跃球低速 2s → 强制 drain
+      // 卡住兜底 A：唯一活跃球低速 2s → 强制 drain（卡在挡板/楔形死角，球已"死"）
       if (state.balls.length === 1) {
         const b = state.balls[0];
         const sp = Math.hypot(b.vx, b.vy);
@@ -448,8 +448,32 @@
           }
         }
       } else if (state.balls.length > 1) {
-        state.lastMoveT = 0;  // 多球期间不触发兜底
+        state.lastMoveT = 0;  // 多球期间不触发兜底 A
       }
+
+      // 卡住兜底 B：球在小范围 (≤160px bounding box) 内反复弹跳超过 2s
+      // —— 这是"卡在得分点"场景（cyber 中央 4 bumper / sling V 形死循环），
+      // 球还在高速运动但位置不脱离，不算"死球" → 送回弹簧，不算 drain
+      state.balls.forEach(b => {
+        if (b.onPlunger) { b._poshist = null; return; }
+        if (!b._poshist) { b._poshist = { samples: [], lastT: now }; return; }
+        if (now - b._poshist.lastT < 100) return;
+        b._poshist.samples.push([b.x, b.y]);
+        if (b._poshist.samples.length > 20) b._poshist.samples.shift();  // 2s 窗口
+        b._poshist.lastT = now;
+        if (b._poshist.samples.length < 20) return;
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const s of b._poshist.samples) {
+          if (s[0] < minX) minX = s[0]; if (s[0] > maxX) maxX = s[0];
+          if (s[1] < minY) minY = s[1]; if (s[1] > maxY) maxY = s[1];
+        }
+        if (maxX - minX < 160 && maxY - minY < 160) {
+          b._poshist = null;
+          b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
+          b.onPlunger = true; b.trail = [];
+          plunger.charge = 0;
+        }
+      });
 
       // 拖尾
       state.balls.forEach(b => {
