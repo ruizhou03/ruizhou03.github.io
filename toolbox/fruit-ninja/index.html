@@ -778,8 +778,69 @@ permalink: /toolbox/fruit-ninja/
   let particles = [];     // 果汁飞溅
   let trail = [];         // pointer 轨迹
   let popups = [];        // 多连切提示文字
+  let shockwaves = [];    // 冲击波环（炸弹）
 
   const GRAVITY = 900;     // px/s²
+
+  // ============ 触觉 / 减少动态 ============
+  const reducedMotion = (() => {
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+    catch (e) { return false; }
+  })();
+  function vibrate(pattern) {
+    if (reducedMotion) return;
+    if (!navigator.vibrate) return;
+    try { navigator.vibrate(pattern); } catch (e) {}
+  }
+
+  // ============ 屏幕震动 ============
+  const shake = { x: 0, y: 0, startWall: 0, until: 0, strength: 0, durMs: 0 };
+  function triggerShake(strength, ms) {
+    if (reducedMotion) return;
+    const wall = performance.now();
+    // 已有震动且更强时不打断；新震动更强则覆盖
+    if (wall >= shake.until || strength * (1 - (wall - shake.startWall) / shake.durMs) < strength) {
+      shake.strength = strength;
+      shake.startWall = wall;
+      shake.until = wall + ms;
+      shake.durMs = ms;
+    }
+  }
+  function updateShake() {
+    const wall = performance.now();
+    if (wall >= shake.until) { shake.x = 0; shake.y = 0; return; }
+    const t = (wall - shake.startWall) / shake.durMs;     // 0..1
+    const k = 1 - t;
+    const amp = shake.strength * k * k;
+    shake.x = (Math.random() - 0.5) * 2 * amp;
+    shake.y = (Math.random() - 0.5) * 2 * amp;
+  }
+
+  // ============ 冲击波环 ============
+  function spawnShockwave(x, y, opts) {
+    opts = opts || {};
+    shockwaves.push({
+      x, y,
+      r0: opts.r0 || 22,
+      rMax: opts.rMax || 220,
+      life: opts.life || 0.45,
+      age: 0,
+      colorRGB: opts.colorRGB || '255, 90, 110',
+      lineWidth: opts.lineWidth || 4.5,
+    });
+  }
+  function drawShockwaves() {
+    for (const w of shockwaves) {
+      const t = Math.min(1, w.age / w.life);
+      const r = w.r0 + (w.rMax - w.r0) * t;
+      const alpha = (1 - t) * 0.9;
+      ctx.strokeStyle = 'rgba(' + w.colorRGB + ', ' + alpha.toFixed(3) + ')';
+      ctx.lineWidth = w.lineWidth * (1 - t * 0.45);
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
 
   // ============ Time 抽象 ============
   // 所有"游戏内时间"都用 Time.game（毫秒，自每局开始累计）。
@@ -1020,7 +1081,7 @@ permalink: /toolbox/fruit-ninja/
   function onSlice(f, angle) {
     f.sliced = true;
     if (f.type === 'bomb') {
-      bombHit();
+      bombHit(f);
       return;
     }
     // combo 即「一笔切到的水果数」（pointerdown 时清零，pointerup 重置）
@@ -1030,6 +1091,13 @@ permalink: /toolbox/fruit-ninja/
     Time.frozenUntil = Time.game + 35;
     // camera punch：触发后 ~200ms 缓动回零（独立于 game-time，用 wall 计时）
     state.cameraPunchAt = performance.now();
+    // 高 combo 触发轻震 + 强触觉
+    if (state.combo >= 5) {
+      triggerShake(3 + Math.min(state.combo - 5, 5), 130);
+      vibrate(35);
+    } else {
+      vibrate(18);
+    }
     // chop 音：combo 越高音越亮（detune 上行），位置在屏幕 pan 上反映
     FNAudio.play('chop', {
       detune: Math.min(state.combo - 1, 12) * 30,
@@ -1110,9 +1178,17 @@ permalink: /toolbox/fruit-ninja/
     }
   }
 
-  function bombHit() {
+  function bombHit(f) {
     flashScreen();
     FNAudio.play('bomb');
+    triggerShake(20, 420);
+    spawnShockwave(f ? f.x : LOG_W / 2, f ? f.y : LOG_H / 2, {
+      rMax: 260, colorRGB: '255, 90, 100', lineWidth: 6, life: 0.5,
+    });
+    spawnShockwave(f ? f.x : LOG_W / 2, f ? f.y : LOG_H / 2, {
+      r0: 8, rMax: 160, colorRGB: '255, 220, 90', lineWidth: 3, life: 0.35,
+    });
+    vibrate([80, 40, 80]);
     state.combo = 0;
     if (state.mode === 'endless') {
       state.lives -= 1;
@@ -1193,6 +1269,9 @@ permalink: /toolbox/fruit-ninja/
 
     for (const pp of popups) pp.age += dt;
     popups = popups.filter(pp => pp.age < pp.life);
+
+    for (const w of shockwaves) w.age += dt;
+    shockwaves = shockwaves.filter(w => w.age < w.life);
 
     // trail 老化（用 game-time 时间戳）
     while (trail.length > 0 && gameNowMs - trail[0].t > 220) trail.shift();
@@ -1285,6 +1364,13 @@ permalink: /toolbox/fruit-ninja/
   }
 
   function render() {
+    // 屏幕震动（wall-clock 驱动，叠加在 camera punch 之外）
+    updateShake();
+    const shakeOn = shake.x !== 0 || shake.y !== 0;
+    if (shakeOn) {
+      ctx.save();
+      ctx.translate(shake.x, shake.y);
+    }
     // camera punch：切中瞬间镜头微推 1.04×，200ms 内缓动回零（独立 wall-clock）
     let cs = 1.0;
     if (state.cameraPunchAt) {
@@ -1314,6 +1400,7 @@ permalink: /toolbox/fruit-ninja/
     // 水果
     for (const f of fruits) drawFruit(f);
     drawParticles();
+    drawShockwaves();
     drawTrail();
     drawPopups();
 
@@ -1326,6 +1413,7 @@ permalink: /toolbox/fruit-ninja/
     }
 
     if (cameraOn) ctx.restore();
+    if (shakeOn) ctx.restore();
   }
 
   // ============ HUD ============
@@ -1399,6 +1487,7 @@ permalink: /toolbox/fruit-ninja/
     particles = [];
     trail = [];
     popups = [];
+    shockwaves = [];
     flashUntil = 0;
     spawnPhase = 'normal';
     nextEventAt = 600;           // game-time 0.6s 后第一个水果
