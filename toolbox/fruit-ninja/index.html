@@ -444,6 +444,23 @@ permalink: /toolbox/fruit-ninja/
 
   const GRAVITY = 900;     // px/s²
 
+  // ============ Time 抽象 ============
+  // 所有"游戏内时间"都用 Time.game（毫秒，自每局开始累计）。
+  // 暂停时 Time.game 停滞；hit pause 期间 Time.game 停滞；slow-mo 时 Time.game 按 Time.scale 减速推进。
+  // wall-clock 只在 RAF 取 dt 和音频调度时使用。
+  const Time = {
+    game: 0,         // 累积游戏时间（ms），受暂停/冻结/scale 控制
+    wall: 0,         // 最近一帧的 performance.now()
+    scale: 1.0,      // 时间缩放（slow-mo 时 < 1）
+    frozenUntil: 0,  // hit pause 截止（game-time）；Time.game 未到则本帧 dt=0
+  };
+  function gameNow() {
+    // pointer 事件等帧外回调用：基于上一帧 Time.game + 估算 wall-delta，更平滑
+    if (state.paused || Time.game < Time.frozenUntil || !Time.wall) return Time.game;
+    const d = Math.min(performance.now() - Time.wall, 100);
+    return Time.game + d * Time.scale;
+  }
+
   // ============ 输入 ============
   let pointerActive = false;
   function canvasPos(e) {
@@ -458,13 +475,13 @@ permalink: /toolbox/fruit-ninja/
     updateHud();
     canvas.setPointerCapture(e.pointerId);
     const p = canvasPos(e);
-    trail.push({ x: p.x, y: p.y, t: performance.now() });
+    trail.push({ x: p.x, y: p.y, t: gameNow() });
     e.preventDefault();
   });
   canvas.addEventListener('pointermove', e => {
     if (!pointerActive) return;
     const p = canvasPos(e);
-    trail.push({ x: p.x, y: p.y, t: performance.now() });
+    trail.push({ x: p.x, y: p.y, t: gameNow() });
     if (state.running && !state.paused && !state.over) {
       checkSliceLastSegment();
     }
@@ -542,7 +559,7 @@ permalink: /toolbox/fruit-ninja/
     for (let i = 0; i < groupSize; i++) {
       setTimeout(() => {
         if (!state.running || state.paused || state.over) return;
-        spawnOne(performance.now());
+        spawnOne(gameNow());
       }, i * 100);
     }
   }
@@ -553,7 +570,7 @@ permalink: /toolbox/fruit-ninja/
     for (let i = 0; i < count; i++) {
       setTimeout(() => {
         if (!state.running || state.paused || state.over) return;
-        spawnOne(performance.now(), { fanIndex: i, fanTotal: count, fan: 'burst' });
+        spawnOne(gameNow(), { fanIndex: i, fanTotal: count, fan: 'burst' });
       }, i * 70);
     }
     spawnPhase = 'lull';
@@ -566,7 +583,7 @@ permalink: /toolbox/fruit-ninja/
     for (let i = 0; i < count; i++) {
       setTimeout(() => {
         if (!state.running || state.paused || state.over) return;
-        spawnOne(performance.now(), { fanIndex: i, fanTotal: count, fan: 'pinata' });
+        spawnOne(gameNow(), { fanIndex: i, fanTotal: count, fan: 'pinata' });
       }, i * 80);
     }
     spawnPhase = 'lull';
@@ -615,14 +632,13 @@ permalink: /toolbox/fruit-ninja/
     return Math.hypot(px - cx, py - cy) < r;
   }
 
-  function checkSlices() {
+  function checkSlices(gameNowMs) {
     if (trail.length < 2) return;
-    const now = performance.now();
     for (const f of fruits) {
       if (f.kind !== 'whole' || f.sliced) continue;
       for (let i = 1; i < trail.length; i++) {
         const a = trail[i - 1], b = trail[i];
-        if (now - b.t > 220) continue;
+        if (gameNowMs - b.t > 220) continue;
         if (segCircleHit(a, b, f.x, f.y, f.r)) {
           const angle = Math.atan2(b.y - a.y, b.x - a.x);
           onSlice(f, angle);
@@ -768,24 +784,19 @@ permalink: /toolbox/fruit-ninja/
   }
 
   let flashUntil = 0;
-  function flashScreen() { flashUntil = performance.now() + 280; }
+  function flashScreen() { flashUntil = gameNow() + 280; }
 
   // ============ 物理更新 ============
-  let lastTick = 0;
-  function update(now) {
-    if (!lastTick) lastTick = now;
-    const dt = Math.min((now - lastTick) / 1000, 0.05);
-    lastTick = now;
-
+  function update(gameNowMs, dt) {
     if (state.mode === 'classic') {
-      const elapsed = (now - state.runStartedAt) / 1000;
+      const elapsed = (gameNowMs - state.runStartedAt) / 1000;
       state.timeLeft = Math.max(0, 60 - elapsed);
       if (state.timeLeft <= 0 && !state.over) {
         endRun('time');
         return;
       }
     }
-    if (state.mode === 'endless') checkStageUp(now);
+    if (state.mode === 'endless') checkStageUp(gameNowMs);
 
     for (const f of fruits) {
       f.vy += GRAVITY * dt;
@@ -818,12 +829,12 @@ permalink: /toolbox/fruit-ninja/
     for (const pp of popups) pp.age += dt;
     popups = popups.filter(pp => pp.age < pp.life);
 
-    // trail 老化
-    while (trail.length > 0 && now - trail[0].t > 220) trail.shift();
+    // trail 老化（用 game-time 时间戳）
+    while (trail.length > 0 && gameNowMs - trail[0].t > 220) trail.shift();
     if (trail.length > 14) trail.splice(0, trail.length - 14);
 
-    checkSlices();
-    tickSpawn(now);
+    checkSlices(gameNowMs);
+    tickSpawn(gameNowMs);
   }
 
   function onMissed(f) {
@@ -858,7 +869,7 @@ permalink: /toolbox/fruit-ninja/
     ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    const now = performance.now();
+    const now = Time.game;
     for (let i = 1; i < trail.length; i++) {
       const a = trail[i - 1], b = trail[i];
       const age = (now - b.t) / 220;
@@ -941,7 +952,7 @@ permalink: /toolbox/fruit-ninja/
     drawPopups();
 
     // 闪屏
-    const now = performance.now();
+    const now = Time.game;
     if (now < flashUntil) {
       const a = (flashUntil - now) / 280;
       ctx.fillStyle = 'rgba(255, 80, 80, ' + (a * 0.5).toFixed(3) + ')';
@@ -971,13 +982,21 @@ permalink: /toolbox/fruit-ninja/
 
   // ============ 主循环 ============
   let rafId = 0;
+  let lastWall = 0;        // 上一帧的 performance.now()（wall-clock）
   function loop(now) {
     if (state.over || !state.running) return;
     if (!state.paused) {
-      update(now);
+      const dtWall = lastWall ? Math.min(now - lastWall, 50) : 0;
+      // hit pause：Time.game 暂停推进，但仍渲染（让玩家看到冻结瞬间）
+      const isFrozen = Time.game < Time.frozenUntil;
+      const dtGameMs = isFrozen ? 0 : dtWall * Time.scale;
+      Time.game += dtGameMs;
+      Time.wall = now;
+      update(Time.game, dtGameMs / 1000);
       render();
       updateHud();
     }
+    lastWall = now;
     rafId = requestAnimationFrame(loop);
   }
 
@@ -996,20 +1015,26 @@ permalink: /toolbox/fruit-ninja/
     state.bestCombo = 0;
     state.timeLeft = 60;
     state.lives = 3;
-    state.runStartedAt = performance.now();
+    // 重置 Time：每局 game-time 从 0 起算
+    Time.game = 0;
+    Time.scale = 1.0;
+    Time.frozenUntil = 0;
+    Time.wall = 0;
+    lastWall = 0;
+    state.runStartedAt = 0;
     state.runNonce = (window.GamesShell && GamesShell.Identity) ? GamesShell.Identity.newRunNonce() : ('r-' + Date.now());
     fruits = [];
     particles = [];
     trail = [];
     popups = [];
-    lastTick = 0;
+    flashUntil = 0;
     render._stars = null;        // 重新生成星点
     spawnPhase = 'normal';
-    nextEventAt = state.runStartedAt + 600;
+    nextEventAt = 600;           // game-time 0.6s 后第一个水果
     lastBurstAt = -Infinity;
     lastPinataAt = -Infinity;
     state.stage = 1;
-    state.stageStartedAt = state.runStartedAt;
+    state.stageStartedAt = 0;
 
     modeSelect.hidden = true;
     stage.hidden = false;
@@ -1051,9 +1076,9 @@ permalink: /toolbox/fruit-ninja/
       ? `<strong>最高连击 ${state.bestCombo}</strong>`
       : `<strong>${Math.round(state.score)} 分</strong>`);
     if (state.mode === 'endless') {
-      lines.push(`Stage ${state.stage} · 最高一刀 ${state.bestCombo} 连切 · 用时 ${((performance.now() - state.runStartedAt)/1000).toFixed(0)}s`);
+      lines.push(`Stage ${state.stage} · 最高一刀 ${state.bestCombo} 连切 · 用时 ${((Time.game - state.runStartedAt)/1000).toFixed(0)}s`);
     } else if (state.mode !== 'zen') {
-      lines.push(`最高连击 ${state.bestCombo} · 用时 ${((performance.now() - state.runStartedAt)/1000).toFixed(0)}s`);
+      lines.push(`最高连击 ${state.bestCombo} · 用时 ${((Time.game - state.runStartedAt)/1000).toFixed(0)}s`);
     } else {
       lines.push(`累计得分 ${Math.round(state.score)}`);
     }
@@ -1095,7 +1120,7 @@ permalink: /toolbox/fruit-ninja/
   document.getElementById('resume-btn').addEventListener('click', () => {
     state.paused = false;
     pausedOverlay.hidden = true;
-    lastTick = 0;
+    lastWall = 0;             // 防止 resume 后第一帧累积巨大 dt
     rafId = requestAnimationFrame(loop);
   });
   document.getElementById('quit-btn').addEventListener('click', () => {
@@ -1191,7 +1216,7 @@ permalink: /toolbox/fruit-ninja/
       gameId: 'fruit-ninja',
       nick,
       score,
-      durationMs: Math.max(3000, Math.round(performance.now() - state.runStartedAt)),
+      durationMs: Math.max(3000, Math.round(Time.game - state.runStartedAt)),
       clientNonce: state.runNonce,
       did: GamesShell.Identity.getDeviceId(),
       extra: { mode: state.mode, bestCombo: state.bestCombo, stage: state.stage },
@@ -1283,12 +1308,12 @@ permalink: /toolbox/fruit-ninja/
             { label: '模式', value: modeLabel(mode) },
             { label: '撑到', value: 'Stage ' + state.stage },
             { label: '最高一刀', value: state.bestCombo + ' 连切' },
-            { label: '用时', value: `${((performance.now() - state.runStartedAt) / 1000).toFixed(0)} s` },
+            { label: '用时', value: `${((Time.game - state.runStartedAt) / 1000).toFixed(0)} s` },
           ]
         : [
             { label: '模式', value: modeLabel(mode) },
             { label: '最高一刀', value: state.bestCombo + ' 连切' },
-            { label: '用时', value: `${((performance.now() - state.runStartedAt) / 1000).toFixed(0)} s` },
+            { label: '用时', value: `${((Time.game - state.runStartedAt) / 1000).toFixed(0)} s` },
           ]),
       paintBoard: paintSettlementBoard,
       boardAspect: 4 / 3,
