@@ -690,8 +690,8 @@ permalink: /toolbox/fruit-ninja/
       updatePerfBtn();
     });
   }
-  Perf.init();
-  updatePerfBtn();
+  // 注：Perf.init() / updatePerfBtn() 必须等 const Perf 声明后再调用，
+  // 否则 TDZ 抛 ReferenceError 把整个 IIFE 崩了。移到 Perf 定义之后。
 
   // ============ Logical canvas size ============
   // portrait 2:3，手机利用更多屏幕高度；桌面 max-width 600
@@ -1001,6 +1001,8 @@ permalink: /toolbox/fruit-ninja/
       stainsEnabled = (this.tier !== 'low');
     },
   };
+  Perf.init();
+  updatePerfBtn();
 
   // ============ 屏幕震动 ============
   const shake = { x: 0, y: 0, startWall: 0, until: 0, strength: 0, durMs: 0 };
