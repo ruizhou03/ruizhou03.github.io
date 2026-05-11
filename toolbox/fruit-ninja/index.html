@@ -205,6 +205,16 @@ permalink: /toolbox/fruit-ninja/
         <span class="mc-name">禅意无炸弹</span>
         <span class="mc-desc">无失败、无炸弹、纯练连击。比谁单局连击最高。</span>
       </button>
+      <button class="mode-card" type="button" data-mode="comborush">
+        <span class="mc-emoji">⚡</span>
+        <span class="mc-name">连击狂飙</span>
+        <span class="mc-desc">90 秒。连击只在切到炸弹 / 漏切时重置（松手不清零）。combo² × 10 计分，10+ 触发火焰刀痕。</span>
+      </button>
+      <button class="mode-card" type="button" data-mode="precision">
+        <span class="mc-emoji">🎯</span>
+        <span class="mc-name">精准模式</span>
+        <span class="mc-desc">水果上方有切线提示，沿提示角度（误差 &lt; 20°）切中给 ×3 奖励。水果数减半，每刀都关键。</span>
+      </button>
     </div>
     <p class="fn-tips">桌面：按住鼠标拖动切水果 · 手机：手指滑动</p>
   </section>
@@ -905,6 +915,7 @@ permalink: /toolbox/fruit-ninja/
     cameraPunchAt: 0,       // 切中后的"镜头微推"起点（wall-clock ms）
     slowMoUntil: 0,         // slow-mo 截止 game-time（0 = 不启用）
     slowMoFactor: 0.55,     // 当前 slow-mo 时的 Time.scale
+    bossSpawned: false,     // 本局是否已触发 boss（arcade/endless 才有）
   };
 
   let fruits = [];        // active 水果 / 半个水果 / 炸弹
@@ -1101,7 +1112,8 @@ permalink: /toolbox/fruit-ninja/
   });
   function endPointer() {
     pointerActive = false;
-    state.combo = 0;
+    // Combo Rush：松手不重置 combo（只有炸弹 / 漏切才重置）
+    if (state.mode !== 'comborush') state.combo = 0;
     updateHud();
   }
   canvas.addEventListener('pointerup', endPointer);
@@ -1141,7 +1153,7 @@ permalink: /toolbox/fruit-ninja/
       if (Math.random() < bombP) type = 'bomb';
     }
     const r = (type === 'watermelon') ? 38 : (type === 'kiwi') ? 32 : 30;
-    fruits.push({
+    const fruitObj = {
       kind: 'whole', type,
       x, y: LOG_H + r,
       vx, vy,
@@ -1149,7 +1161,13 @@ permalink: /toolbox/fruit-ninja/
       vrot: (Math.random() - 0.5) * 6,
       r,
       bornAt: t,
-    });
+    };
+    // 精准模式：给每个非炸弹水果分配一个随机切线提示角度
+    if (state.mode === 'precision' && type !== 'bomb') {
+      fruitObj.precisionAngle = Math.random() * Math.PI;
+      fruitObj.precisionHintBornAt = t;
+    }
+    fruits.push(fruitObj);
   }
 
   // ============ Director（导演式状态机：4 幕情绪曲线）============
@@ -1169,6 +1187,22 @@ permalink: /toolbox/fruit-ninja/
         actOrder: ['Calm', 'Flow', 'Tension', 'Climax'],
         durations: { Calm: 3500, Flow: 9000, Tension: 5500, Climax: 4500 },
         spawnK: 1.0,
+      };
+    }
+    if (mode === 'comborush') {
+      // 持续高强度流，几乎不喘气，但保留 Climax 高潮（无炸弹幕）
+      return {
+        actOrder: ['Flow', 'Climax', 'Flow', 'Tension'],
+        durations: { Flow: 8000, Climax: 3500, Tension: 4500, Calm: 2000 },
+        spawnK: 0.85,    // 更密的 spawn
+      };
+    }
+    if (mode === 'precision') {
+      // 水果稀少：长 Calm + 短 Flow，无 Climax / Tension（炸弹仍存在但低）
+      return {
+        actOrder: ['Calm', 'Flow'],
+        durations: { Calm: 6000, Flow: 7000 },
+        spawnK: 1.55,    // 间隔放大
       };
     }
     // classic / arcade
@@ -1266,6 +1300,16 @@ permalink: /toolbox/fruit-ninja/
     },
 
     tick(now) {
+      // Boss 触发（彩蛋）：arcade / endless 每局 1 次，~25s 后的 Flow 幕里
+      if (!state.bossSpawned
+          && (state.mode === 'arcade' || state.mode === 'endless')
+          && now > 25000
+          && this.act === 'Flow'
+          && !fruits.some(f => f.boss && !f.sliced)) {
+        spawnBoss(now);
+        state.bossSpawned = true;
+      }
+
       if (now - this.actStartedAt >= this.actDuration) {
         this.advance(now);
         return;
@@ -1273,6 +1317,23 @@ permalink: /toolbox/fruit-ninja/
       if (now >= this.nextSpawnAt) this.spawn(now);
     },
   };
+
+  function spawnBoss(t) {
+    const x = LOG_W * 0.5 + (Math.random() - 0.5) * 160;
+    fruits.push({
+      kind: 'whole', type: 'watermelon',
+      boss: true, hp: 4, maxHp: 4,
+      x, y: LOG_H + 90,
+      vx: (Math.random() - 0.5) * 40,
+      vy: -GRAVITY * 1.55 - 40,    // 抛得更高更慢，给玩家时间反应
+      rot: 0, vrot: 0.4,
+      r: 78,
+      bornAt: t,
+    });
+    showPopup(LOG_W / 2, LOG_H * 0.18, 'BOSS', '#ff7ec0', true, '255, 80, 200');
+    triggerShake(7, 240);
+    FNAudio.play('bomb', { gain: 0.55 });   // 低吼登场
+  }
 
   // ============ 切片检测 ============
   function segCircleHit(a, b, cx, cy, r) {
@@ -1325,6 +1386,43 @@ permalink: /toolbox/fruit-ninja/
       bombHit(f);
       return;
     }
+    // Boss：前几刀只扣 HP，不分裂；最后一刀（hp 已减到 1）正常 split + reward shower
+    if (f.boss && f.hp > 1) {
+      f.sliced = false;   // 仍允许下次再切
+      f.hp -= 1;
+      // 半量粒子 + 火花
+      spawnSlashSpark(f.x, f.y, angle);
+      const def = FRUIT_PARTICLES[f.type] || FRUIT_PARTICLES.apple;
+      const count = Math.floor(def.count * 0.45);
+      for (let i = 0; i < count; i++) {
+        const pt = pickParticleType(def.types);
+        const a = angle + (Math.random() - 0.5) * Math.PI * 1.1;
+        const sp = 100 + Math.random() * 280;
+        const sz = pt.size[0] + Math.random() * (pt.size[1] - pt.size[0]);
+        particles.push({
+          x: f.x, y: f.y,
+          vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 80,
+          r: sz, color: pt.color, shape: pt.shape,
+          rot: Math.random() * Math.PI * 2, vrot: (Math.random() - 0.5) * 9,
+          life: 0.6 + Math.random() * 0.4, age: 0,
+        });
+      }
+      // 计分 / 反馈
+      state.combo += 1;
+      if (state.combo > state.bestCombo) state.bestCombo = state.combo;
+      const bossPoints = 80;
+      state.score += bossPoints;
+      Time.frozenUntil = Time.game + 45;
+      state.cameraPunchAt = performance.now();
+      triggerShake(6, 160);
+      vibrate(45);
+      FNAudio.play('chop', { gain: 0.65, detune: -200 });   // 低沉一些
+      showPopup(f.x, f.y - 54, '+' + bossPoints, '#ff9ad5', false);
+      updateHud();
+      return;
+    }
+    // Boss 最后一刀：标记 reward shower
+    const isBossKill = !!f.boss;
     // combo 即「一笔切到的水果数」（pointerdown 时清零，pointerup 重置）
     state.combo += 1;
     if (state.combo > state.bestCombo) state.bestCombo = state.combo;
@@ -1356,8 +1454,22 @@ permalink: /toolbox/fruit-ninja/
       pan: (f.x / LOG_W - 0.5) * 0.65,
     });
 
-    // 第 N 个水果分数：10 + (N-1)*10（指数爽感）
-    const points = 10 + (state.combo - 1) * 10;
+    // 精准模式：切割角度与提示角度差 < 20° 则 ×3 奖励
+    let precisionMult = 1;
+    if (state.mode === 'precision' && f.precisionAngle != null) {
+      let diff = ((angle - f.precisionAngle) % Math.PI + Math.PI) % Math.PI;
+      if (diff > Math.PI / 2) diff = Math.PI - diff;
+      if (diff < Math.PI / 9) {     // < 20°
+        precisionMult = 3;
+        showPopup(f.x, f.y - 42, 'PERFECT ×3', '#ffd95a', false);
+        FNAudio.play('chop', { detune: 600, gain: 0.5 });   // 高音清脆
+      }
+    }
+    // 计分：Combo Rush 用 combo² × 10（高 combo 指数增长），其他用 10 + (N-1)*10
+    let points = state.mode === 'comborush'
+      ? state.combo * state.combo * 10
+      : 10 + (state.combo - 1) * 10;
+    points *= precisionMult;
     state.score += points;
 
     // 多连提示
@@ -1367,7 +1479,8 @@ permalink: /toolbox/fruit-ninja/
       const labels = { 3: '三连切！', 4: '四连切！', 5: '五连切！', 6: '超神！', 7: '不可阻挡！' };
       const lbl = labels[state.combo] || (state.combo + ' 连切！');
       const color = state.combo >= 5 ? '#ff7878' : '#ffd95a';
-      const extra = state.combo * 20;
+      // Combo Rush 不再叠加 milestone 奖励分（combo² 已经爆炸增长）
+      const extra = state.mode === 'comborush' ? 0 : state.combo * 20;
       state.score += extra;
       // combo ≥ 4 popup 带光环；颜色随 combo 升级（青 → 粉 → 黄）
       const auraColor = state.combo >= 7 ? '255, 220, 90'
@@ -1387,6 +1500,23 @@ permalink: /toolbox/fruit-ninja/
         const sx = f.x + (Math.random() - 0.5) * 90;
         const sy = f.y + (Math.random() - 0.5) * 90;
         spawnStain(sx, sy, f.type);
+      }
+    }
+    // Boss 击杀：奖励雨（10 个小水果扇形落下）+ 重 shake + 大额加分
+    if (isBossKill) {
+      state.score += 300;
+      showPopup(LOG_W / 2, LOG_H * 0.22, 'BOSS DOWN', '#ffd95a', true, '255, 220, 90');
+      triggerShake(14, 380);
+      const until = Time.game + 800;
+      if (until > state.slowMoUntil) {
+        state.slowMoUntil = until; state.slowMoFactor = 0.55;
+      }
+      const count = 10;
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+          if (!state.running || state.paused || state.over) return;
+          spawnOne(gameNow(), { fanIndex: i, fanTotal: count, fan: 'pinata' });
+        }, 200 + i * 70);
       }
     }
     updateHud();
@@ -1535,9 +1665,10 @@ permalink: /toolbox/fruit-ninja/
 
   // ============ 物理更新 ============
   function update(gameNowMs, dt) {
-    if (state.mode === 'classic') {
+    if (state.mode === 'classic' || state.mode === 'comborush') {
+      const limit = state.mode === 'comborush' ? 90 : 60;
       const elapsed = (gameNowMs - state.runStartedAt) / 1000;
-      state.timeLeft = Math.max(0, 60 - elapsed);
+      state.timeLeft = Math.max(0, limit - elapsed);
       if (state.timeLeft <= 0 && !state.over) {
         endRun('time');
         return;
@@ -1594,6 +1725,15 @@ permalink: /toolbox/fruit-ninja/
   }
 
   function onMissed(f) {
+    // Combo Rush：漏切只重置 combo，不掉命也不结束
+    if (state.mode === 'comborush') {
+      if (state.combo > 0) {
+        state.combo = 0;
+        flashScreen();
+        updateHud();
+      }
+      return;
+    }
     if (state.mode !== 'arcade' && state.mode !== 'endless') return;
     state.lives -= 1;
     state.combo = 0;
@@ -1611,12 +1751,77 @@ permalink: /toolbox/fruit-ninja/
       img = sprites[f.type + '_half'];
     }
     if (!img) return;
-    const size = f.r * 2.4;     // SVG viewBox 是 80, 内容半径 ~30, 留些空间
+    const size = f.r * 2.4;
+
+    // Boss aura + HP bar
+    if (f.boss && !f.sliced) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const pulse = 0.85 + 0.15 * Math.sin(Time.game * 0.008);
+      const aR = f.r * 1.35 * pulse;
+      const ag = ctx.createRadialGradient(f.x, f.y, f.r * 0.7, f.x, f.y, aR);
+      ag.addColorStop(0, 'rgba(255, 90, 200, 0.4)');
+      ag.addColorStop(1, 'rgba(255, 90, 200, 0)');
+      ctx.fillStyle = ag;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, aR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     ctx.save();
     ctx.translate(f.x, f.y);
     ctx.rotate(f.rot);
     if (f.kind === 'half' && f.side === 'r') ctx.scale(-1, 1);
     ctx.drawImage(img, -size / 2, -size / 2, size, size);
+    ctx.restore();
+
+    // Boss HP bar（在 fruit 上方）
+    if (f.boss && !f.sliced && f.hp > 0) {
+      const w = 100, h = 6;
+      const bx = f.x - w / 2, by = f.y - f.r - 18;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(bx, by, w, h);
+      const hpR = f.hp / f.maxHp;
+      ctx.fillStyle = hpR > 0.5 ? '#ff9aa5' : '#ff4060';
+      ctx.fillRect(bx, by, w * hpR, h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bx, by, w, h);
+    }
+  }
+
+  function drawPrecisionHints() {
+    const now = Time.game;
+    ctx.save();
+    ctx.lineCap = 'round';
+    for (const f of fruits) {
+      if (f.precisionAngle == null || f.kind !== 'whole' || f.sliced) continue;
+      const age = (now - f.precisionHintBornAt) / 1000;     // 秒
+      const fade = Math.max(0.15, 1 - age / 1.2);
+      ctx.translate(0, 0);
+      ctx.save();
+      ctx.translate(f.x, f.y);
+      ctx.rotate(f.precisionAngle);
+      // 双层：外发光 + 内点划
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = 'rgba(255, 240, 90, ' + (fade * 0.32).toFixed(3) + ')';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(-f.r * 1.7, 0);
+      ctx.lineTo(f.r * 1.7, 0);
+      ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = 'rgba(255, 250, 180, ' + fade.toFixed(3) + ')';
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([7, 5]);
+      ctx.beginPath();
+      ctx.moveTo(-f.r * 1.7, 0);
+      ctx.lineTo(f.r * 1.7, 0);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
     ctx.restore();
   }
 
@@ -1642,12 +1847,17 @@ permalink: /toolbox/fruit-ninja/
     ctx.lineJoin = 'round';
 
     const tier = Perf.tier;
+    // Combo Rush 高 combo 时调色板切到火焰（红/黄）
+    const fireMode = state.mode === 'comborush' && state.combo >= 10;
+    const glowColor = fireMode ? '255, 80, 30' : '0, 220, 255';
+    const midColor  = fireMode ? '255, 200, 60' : '255, 90, 210';
+    const coreColor = fireMode ? '255, 255, 200' : '255, 255, 255';
 
-    // 外层 cyan glow（仅 high）
+    // 外层 glow（cyan / 火橙；仅 high 档）
     if (tier === 'high') {
       ctx.globalCompositeOperation = 'lighter';
       for (const s of segs) {
-        ctx.strokeStyle = 'rgba(0, 220, 255, ' + (s.alpha * 0.30).toFixed(3) + ')';
+        ctx.strokeStyle = 'rgba(' + glowColor + ', ' + (s.alpha * 0.30).toFixed(3) + ')';
         ctx.lineWidth = 17 * s.alpha * s.speedK;
         ctx.beginPath();
         ctx.moveTo(s.a.x, s.a.y);
@@ -1655,11 +1865,11 @@ permalink: /toolbox/fruit-ninja/
         ctx.stroke();
       }
     }
-    // 中层 magenta（high + med）
+    // 中层 magenta / 火黄（high + med）
     if (tier !== 'low') {
       ctx.globalCompositeOperation = 'lighter';
       for (const s of segs) {
-        ctx.strokeStyle = 'rgba(255, 90, 210, ' + (s.alpha * 0.55).toFixed(3) + ')';
+        ctx.strokeStyle = 'rgba(' + midColor + ', ' + (s.alpha * 0.55).toFixed(3) + ')';
         ctx.lineWidth = 7.5 * s.alpha * s.speedK;
         ctx.beginPath();
         ctx.moveTo(s.a.x, s.a.y);
@@ -1667,10 +1877,10 @@ permalink: /toolbox/fruit-ninja/
         ctx.stroke();
       }
     }
-    // 核心白色锐线（所有档）
+    // 核心锐线（所有档）
     ctx.globalCompositeOperation = 'source-over';
     for (const s of segs) {
-      ctx.strokeStyle = 'rgba(255, 255, 255, ' + (s.alpha * 0.95).toFixed(3) + ')';
+      ctx.strokeStyle = 'rgba(' + coreColor + ', ' + (s.alpha * 0.95).toFixed(3) + ')';
       ctx.lineWidth = 2.2 * Math.max(0.45, s.alpha);
       ctx.beginPath();
       ctx.moveTo(s.a.x, s.a.y);
@@ -1789,6 +1999,8 @@ permalink: /toolbox/fruit-ninja/
       ctx.drawImage(stainsCanvas, 0, 0, LOG_W, LOG_H);
     }
 
+    // 精准模式：切线提示（在水果之下）
+    if (state.mode === 'precision') drawPrecisionHints();
     // 水果
     for (const f of fruits) drawFruit(f);
     drawParticles();
@@ -1818,7 +2030,7 @@ permalink: /toolbox/fruit-ninja/
     } else {
       hudCombo.classList.add('hidden');
     }
-    if (state.mode === 'classic') {
+    if (state.mode === 'classic' || state.mode === 'comborush') {
       bind.timer.textContent = state.timeLeft.toFixed(1);
     }
     if (state.mode === 'arcade' || state.mode === 'endless') {
@@ -1883,7 +2095,7 @@ permalink: /toolbox/fruit-ninja/
     state.score = 0;
     state.combo = 0;
     state.bestCombo = 0;
-    state.timeLeft = 60;
+    state.timeLeft = (mode === 'comborush') ? 90 : 60;
     state.lives = 3;
     // 重置 Time：每局 game-time 从 0 起算
     Time.game = 0;
@@ -1907,6 +2119,7 @@ permalink: /toolbox/fruit-ninja/
     state.cameraPunchAt = 0;
     state.slowMoUntil = 0;
     state.slowMoFactor = 0.55;
+    state.bossSpawned = false;
 
     modeSelect.hidden = true;
     stage.hidden = false;
@@ -1914,11 +2127,11 @@ permalink: /toolbox/fruit-ninja/
     gameoverOverlay.hidden = true;
     pausedOverlay.hidden = true;
 
-    hudTimer.hidden = mode !== 'classic';
+    hudTimer.hidden = !(mode === 'classic' || mode === 'comborush');
     hudLives.hidden = !(mode === 'arcade' || mode === 'endless');
     hudStage.hidden = mode !== 'endless';
     bind.score.textContent = '0';
-    bind.timer.textContent = '60.0';
+    bind.timer.textContent = ((mode === 'comborush') ? 90 : 60).toFixed(1);
     bind.lives.textContent = '❤❤❤';
     bind.stage.textContent = '1';
     hudCombo.classList.add('hidden');
@@ -2037,7 +2250,10 @@ permalink: /toolbox/fruit-ninja/
     if (m === 'classic') return '经典 60s';
     if (m === 'arcade') return '街机三命';
     if (m === 'endless') return '无尽闯关';
-    return '禅意';
+    if (m === 'zen') return '禅意';
+    if (m === 'comborush') return '连击狂飙';
+    if (m === 'precision') return '精准模式';
+    return m;
   }
 
   function getSubmitScore() {
@@ -2213,6 +2429,8 @@ permalink: /toolbox/fruit-ninja/
           { value: 'arcade', label: '街机三命' },
           { value: 'endless', label: '无尽闯关' },
           { value: 'zen', label: '禅意（连击×100）' },
+          { value: 'comborush', label: '连击狂飙' },
+          { value: 'precision', label: '精准模式' },
         ],
       });
     }
