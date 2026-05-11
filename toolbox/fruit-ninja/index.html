@@ -771,6 +771,7 @@ permalink: /toolbox/fruit-ninja/
     runNonce: '',
     stage: 1,               // 无尽模式 stage 等级
     stageStartedAt: 0,      // 当前 stage 开始时间
+    cameraPunchAt: 0,       // 切中后的"镜头微推"起点（wall-clock ms）
   };
 
   let fruits = [];        // active 水果 / 半个水果 / 炸弹
@@ -986,6 +987,7 @@ permalink: /toolbox/fruit-ninja/
 
   function checkSlices(gameNowMs) {
     if (trail.length < 2) return;
+    if (gameNowMs < Time.frozenUntil) return;   // hit pause 期间不再切中
     for (const f of fruits) {
       if (f.kind !== 'whole' || f.sliced) continue;
       for (let i = 1; i < trail.length; i++) {
@@ -1003,6 +1005,7 @@ permalink: /toolbox/fruit-ninja/
   // 仅检测最后一段轨迹 — 在 pointermove 立即调用，让切片响应不等下一帧
   function checkSliceLastSegment() {
     if (trail.length < 2) return;
+    if (Time.game < Time.frozenUntil) return;   // hit pause 内禁止再切（防 40ms 内多次堆 combo）
     const a = trail[trail.length - 2];
     const b = trail[trail.length - 1];
     for (const f of fruits) {
@@ -1023,6 +1026,10 @@ permalink: /toolbox/fruit-ninja/
     // combo 即「一笔切到的水果数」（pointerdown 时清零，pointerup 重置）
     state.combo += 1;
     if (state.combo > state.bestCombo) state.bestCombo = state.combo;
+    // hit pause：冻结 ~35ms 让玩家感受到"切中"的重量
+    Time.frozenUntil = Time.game + 35;
+    // camera punch：触发后 ~200ms 缓动回零（独立于 game-time，用 wall 计时）
+    state.cameraPunchAt = performance.now();
     // chop 音：combo 越高音越亮（detune 上行），位置在屏幕 pan 上反映
     FNAudio.play('chop', {
       detune: Math.min(state.combo - 1, 12) * 30,
@@ -1278,6 +1285,23 @@ permalink: /toolbox/fruit-ninja/
   }
 
   function render() {
+    // camera punch：切中瞬间镜头微推 1.04×，200ms 内缓动回零（独立 wall-clock）
+    let cs = 1.0;
+    if (state.cameraPunchAt) {
+      const dt = performance.now() - state.cameraPunchAt;
+      if (dt < 200) {
+        const k = 1 - dt / 200;
+        cs = 1 + 0.04 * k * k;   // 二次缓动
+      }
+    }
+    const cameraOn = cs !== 1.0;
+    if (cameraOn) {
+      ctx.save();
+      ctx.translate(LOG_W / 2, LOG_H / 2);
+      ctx.scale(cs, cs);
+      ctx.translate(-LOG_W / 2, -LOG_H / 2);
+    }
+
     // 背景（烘焙的霓虹场景 + 动画网格）
     if (bgOffscreen) {
       ctx.drawImage(bgOffscreen, 0, 0, LOG_W, LOG_H);
@@ -1300,6 +1324,8 @@ permalink: /toolbox/fruit-ninja/
       ctx.fillStyle = 'rgba(255, 80, 80, ' + (a * 0.5).toFixed(3) + ')';
       ctx.fillRect(0, 0, LOG_W, LOG_H);
     }
+
+    if (cameraOn) ctx.restore();
   }
 
   // ============ HUD ============
@@ -1380,6 +1406,7 @@ permalink: /toolbox/fruit-ninja/
     lastPinataAt = -Infinity;
     state.stage = 1;
     state.stageStartedAt = 0;
+    state.cameraPunchAt = 0;
 
     modeSelect.hidden = true;
     stage.hidden = false;
