@@ -347,14 +347,14 @@ permalink: /toolbox/feixingqi/
     </div>
     <div class="fxq-help">点击棋盘四角的 chip 在「空 / 人类 / AI」之间切换。每位玩家 4 架飞机，目标是把 4 架全送到中央终点。至少需要 2 个角有玩家。</div>
     <div class="fxq-rules">
-      <span class="pill">出库</span> 掷出 6 才能从机库出一架，飞机出现在自家 <span style="color:#e74c3c">✈</span> 起飞口；掷 6 后再掷一次（连续 3 个 6 视为犯规，最近一架退回机库）。
+      <span class="pill">出库</span> 掷出 6 才能从机库出一架，飞机出现在自家 <span style="color:#E84545">✈</span> 起飞口；掷 6 后再掷一次（连续 3 个 6 视为犯规，最近一架退回机库）。
       <br>
-      <span class="pill">归航</span> 顺时针走外圈 10 格到自家归航入口（贴在自家归航跑道远端的外圈格），自动转入归航 6 格 → 中央同色三角即胜。
+      <span class="pill">归航</span> 顺时针绕外圈 44 格一周到达自家归航入口（贴在归航跑道远端的外圈格），自动转入归航跑道 6 格 → 中央同色三角即胜。
       <br>
       <span class="pill">踩格</span> 落到对手所在格 → 对手该格上飞机全部回机库。
       <span class="pill">精确</span> 进归航跑道后剩余步数必须精确到达终点，超出反弹。
       <br>
-      <span class="pill">飞跃</span> 稀有彩蛋：踩到自己颜色的 <span style="color:#e74c3c">✈</span> → 横跨半盘 23 格（被踩送回再被踩回起飞口才有机会触发）。
+      <span class="pill">飞跃</span> 稀有彩蛋：踩到自己颜色的 <span style="color:#E84545">✈</span> → 横跨半盘 22 格（被踩送回再被踩回起飞口才有机会触发）。
     </div>
   </div>
 
@@ -380,119 +380,141 @@ permalink: /toolbox/feixingqi/
 <script>
 (() => {
   // ============================================================
-  // Constants — board geometry (two layouts share game logic)
+  // Constants — board geometry on a strict 15×15 grid
   // ============================================================
+  // Coordinate convention (internal code): [row, col] with row 0..14 top→bottom,
+  // col 0..14 left→right. User-spec uses (x, y) = (col, row); when porting from
+  // the spec, swap the order: spec (1, 6) → code [6, 1].
   const SVG_W = 660, SVG_H = 660;
-  // 48-cell track: each arm contributes 12 cells (the 2 outer cols/rows ×
-  // 6 cells each); the middle col/row of the arm is the home stretch and is
-  // NOT part of the outer loop. So the loop "skips" the stretch cell at each
-  // arm tip — going clockwise the plane jumps from (0,6) to (0,8), (6,14) to
-  // (8,14), (14,8) to (14,6), (8,0) to (6,0).
-  const TRACK_LEN = 48;
 
-  // Corner colors per classic Chinese 飞行棋 (also matches the user's reference image):
-  // NW = 绿 green, NE = 黄 yellow, SE = 蓝 blue, SW = 红 red.
-  const COLORS = ['green', 'yellow', 'blue', 'red'];
+  // Outer loop wraps the central cross. 44 cells: each arm contributes 10 cells
+  // (5 on row/col 6 and 5 on row/col 8) and there are 4 mid-edge "tip" cells
+  // (7,0), (0,7), (14,7), (7,14). The cross interior (row/col 7) hosts the home
+  // stretches and the central goal — NOT part of the outer loop. Corners
+  // (6,6)/(6,8)/(8,6)/(8,8) are also NOT play tiles; the plane skips them and
+  // moves diagonally between adjacent arm cells.
+  const TRACK_LEN = 44;
+
+  // Corner colors per user's spec for the new 15×15 board:
+  // NW = 红 red, NE = 黄 yellow, SE = 绿 green, SW = 蓝 blue. Turn order is
+  // clockwise around the board: NW → NE → SE → SW.
+  const COLORS = ['red', 'yellow', 'green', 'blue'];
   const COLOR_INFO = {
-    green:  { hex: '#27ae60', light: '#cfe9d8', label: '绿', corner: 'NW', name: '西北' },
-    yellow: { hex: '#f1c40f', light: '#fdf3c4', label: '黄', corner: 'NE', name: '东北' },
-    blue:   { hex: '#3498db', light: '#d5e7f6', label: '蓝', corner: 'SE', name: '东南' },
-    red:    { hex: '#e74c3c', light: '#fde2dd', label: '红', corner: 'SW', name: '西南' },
+    red:    { hex: '#E84545', light: '#FFD9D9', label: '红', corner: 'NW', name: '西北' },
+    yellow: { hex: '#F5C518', light: '#FFF3C2', label: '黄', corner: 'NE', name: '东北' },
+    green:  { hex: '#3CB371', light: '#D5F0DD', label: '绿', corner: 'SE', name: '东南' },
+    blue:   { hex: '#3C82E8', light: '#D6E5FB', label: '蓝', corner: 'SW', name: '西南' },
   };
-  const CORNER_TO_COLOR = { NW: 'green', NE: 'yellow', SE: 'blue', SW: 'red' };
+  const CORNER_TO_COLOR = { NW: 'red', NE: 'yellow', SE: 'green', SW: 'blue' };
   const CORNER_KEYS = ['NW', 'NE', 'SE', 'SW'];
-  // Turn order is clockwise around the board: NW → NE → SE → SW.
-  const TURN_ORDER = ['green', 'yellow', 'blue', 'red'];
+  const TURN_ORDER = ['red', 'yellow', 'green', 'blue'];
 
-  // ===== Layout: cross perimeter (planes walk around a cross-shaped track) =====
-  // Each player exits at one of the 4 outer arm tips and walks clockwise.
-  // Stretches lie along the middle of each arm, leading to a single shared goal at center.
+  // ===== Layout: 15×15 cross board (the only layout) =====
+  // Each color enters the loop just CW of its own stretch exit cell, walks 43
+  // cells (almost a full lap), turns into its 6-cell stretch, and lands at the
+  // shared center cell (7,7).
   const LAYOUT_CROSS = {
     label: '十字盘',
     GRID: 15,
-    // 48-cell outer loop. Each arm contributes 12 track cells (2 outer cols/rows
-    // × 6 cells). The middle col/row of each arm is the home stretch — NOT in
-    // the track loop. The loop "skips" the stretch cell at each arm tip.
-    //
-    // Index 0 starts at GREEN's takeoff (6, 1) — left arm top row, near green
-    // base's south side. Going clockwise around the cross perimeter:
-    //   0..4   left arm row 6 going right   (6,1)..(6,5)
-    //   5..10  top arm col 6 going UP        (5,6)..(0,6)   [10 = green stretch entry]
-    //   11..16 top arm col 8 going DOWN      (0,8)..(5,8)
-    //   17..22 right arm row 6 going RIGHT   (6,9)..(6,14)  [22 = yellow stretch entry]
-    //   23..28 right arm row 8 going LEFT    (8,14)..(8,9)
-    //   29..34 bottom arm col 8 going DOWN   (9,8)..(14,8)  [34 = blue stretch entry]
-    //   35..40 bottom arm col 6 going UP     (14,6)..(9,6)
-    //   41..46 left arm row 8 going LEFT     (8,5)..(8,0)   [46 = red stretch entry]
-    //   47     left arm row 6 leftmost       (6,0)          [closes the loop]
+    // Outer loop, 44 cells, clockwise. index 0 = red's entry, just south of
+    // red's NW hangar. Comments give the (col, row) form alongside [row, col]
+    // for cross-referencing the user's spec.
+    //   0..4   red entry — left arm, row 6 going right   (col 1..5, row 6)
+    //   5..9   top arm left side, col 6 going up         (col 6, row 5..1)
+    //   10     top corner / yellow stretch exit          (col 7, row 0)
+    //   11..15 yellow entry — top arm right, col 8 down  (col 8, row 1..5)
+    //   16..20 right arm top, row 6 going right          (col 9..13, row 6)
+    //   21     right corner / green stretch exit         (col 14, row 7)
+    //   22..26 green entry — right arm bottom, row 8 ←   (col 13..9, row 8)
+    //   27..31 bottom arm right, col 8 going down        (col 8, row 9..13)
+    //   32     bottom corner / blue stretch exit         (col 7, row 14)
+    //   33..37 blue entry — bottom arm left, col 6 ↑     (col 6, row 13..9)
+    //   38..42 left arm bottom, row 8 going left         (col 5..1, row 8)
+    //   43     left corner / red stretch exit            (col 0, row 7)
     TRACK: [
-      [6,1],[6,2],[6,3],[6,4],[6,5],               // 0..4   green takeoff at 0
-      [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],         // 5..10  10 = (0,6) green stretch entry
-      [0,8],[1,8],[2,8],[3,8],[4,8],[5,8],         // 11..16 12 = (1,8) yellow takeoff
-      [6,9],[6,10],[6,11],[6,12],[6,13],[6,14],    // 17..22 22 = (6,14) yellow stretch entry
-      [8,14],[8,13],[8,12],[8,11],[8,10],[8,9],    // 23..28 24 = (8,13) blue takeoff
-      [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],    // 29..34 34 = (14,8) blue stretch entry
-      [14,6],[13,6],[12,6],[11,6],[10,6],[9,6],    // 35..40 36 = (13,6) red takeoff
-      [8,5],[8,4],[8,3],[8,2],[8,1],[8,0],         // 41..46 46 = (8,0) red stretch entry
-      [6,0],                                        // 47     loop closes back to 0
+      [6,1],[6,2],[6,3],[6,4],[6,5],             // 0..4   red entry
+      [5,6],[4,6],[3,6],[2,6],[1,6],             // 5..9   top arm L side
+      [0,7],                                      // 10     yellow exit
+      [1,8],[2,8],[3,8],[4,8],[5,8],             // 11..15 yellow entry
+      [6,9],[6,10],[6,11],[6,12],[6,13],         // 16..20 right arm top
+      [7,14],                                     // 21     green exit
+      [8,13],[8,12],[8,11],[8,10],[8,9],         // 22..26 green entry
+      [9,8],[10,8],[11,8],[12,8],[13,8],         // 27..31 bottom arm R
+      [14,7],                                     // 32     blue exit
+      [13,6],[12,6],[11,6],[10,6],[9,6],         // 33..37 blue entry
+      [8,5],[8,4],[8,3],[8,2],[8,1],             // 38..42 left arm bottom
+      [7,0],                                      // 43     red exit
     ],
-    // Takeoffs are placed AT the outer-loop cell adjacent to each player's base
-    // (south of green, west of yellow, north of blue, east of red). All 12 apart.
-    EXIT_INDEX:        { green: 0,  yellow: 12, blue: 24, red: 36 },
-    // Stretch entry = the outer-loop cell adjacent to the FAR end of each home
-    // stretch (away from centre). Clockwise-first occurrence per the user's spec.
-    // 10 cells walk from takeoff to stretch entry (each color).
-    STRETCH_TRANSITION:{ green: 10, yellow: 22, blue: 34, red: 46 },
+    // Each color: the first track cell after rolling 6 (also the takeoff cell
+    // for the cross-board big jump). Each color's STRETCH_TRANSITION is at
+    // (EXIT_INDEX + 43) % 44 — i.e. one full lap minus one.
+    EXIT_INDEX:         { red: 0,  yellow: 11, green: 22, blue: 33 },
+    STRETCH_TRANSITION: { red: 43, yellow: 10, green: 21, blue: 32 },
     STRETCH_CELLS: {
-      // 6 cells per stretch, walking from the OUTER end inward to the centre
-      // (matching the spec arrows ↓ ← ↑ →).
-      green:  [[0,7],[1,7],[2,7],[3,7],[4,7],[5,7]],         // top arm col 7, ↓
-      yellow: [[7,14],[7,13],[7,12],[7,11],[7,10],[7,9]],    // right arm row 7, ←
-      blue:   [[14,7],[13,7],[12,7],[11,7],[10,7],[9,7]],    // bottom arm col 7, ↑
-      red:    [[7,0],[7,1],[7,2],[7,3],[7,4],[7,5]],         // left arm row 7, →
+      // Each stretch is 6 cells from outer end to inner end; the 7th step (or
+      // overshoot bounce) lands at the central goal cell (7,7).
+      red:    [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],         // left arm, row 7, →
+      yellow: [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],         // top  arm, col 7, ↓
+      green:  [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],     // right arm, row 7, ←
+      blue:   [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],     // bottom arm, col 7, ↑
     },
     STRETCH_LEN: 6,
     HANGAR_CELLS: {
-      // Tight 2×2 cluster at the centre of each 6×6 home zone.
-      green:  [[2,2],[2,3],[3,2],[3,3]],          // NW
-      yellow: [[2,11],[2,12],[3,11],[3,12]],      // NE
-      blue:   [[11,11],[11,12],[12,11],[12,12]],  // SE
-      red:    [[11,2],[11,3],[12,2],[12,3]],      // SW
+      // Top-left 2×2 of each 6×6 home zone (in cells [1..2,1..2] of each corner
+      // block) — per user's spec.
+      red:    [[1,1],[1,2],[2,1],[2,2]],          // NW
+      yellow: [[1,12],[1,13],[2,12],[2,13]],      // NE
+      green:  [[12,12],[12,13],[13,12],[13,13]],  // SE
+      blue:   [[12,1],[12,2],[13,1],[13,2]],      // SW
     },
     HOME_ZONES: {
-      green:  { r0: 0,  r1: 5,  c0: 0,  c1: 5  },  // NW
+      red:    { r0: 0,  r1: 5,  c0: 0,  c1: 5  },  // NW
       yellow: { r0: 0,  r1: 5,  c0: 9,  c1: 14 },  // NE
-      blue:   { r0: 9,  r1: 14, c0: 9,  c1: 14 },  // SE
-      red:    { r0: 9,  r1: 14, c0: 0,  c1: 5  },  // SW
+      green:  { r0: 9,  r1: 14, c0: 9,  c1: 14 },  // SE
+      blue:   { r0: 9,  r1: 14, c0: 0,  c1: 5  },  // SW
+    },
+    // Purely decorative "takeoff triangles" — one colored diagonal-split cell
+    // per color, sat in the inner quadrant of each home zone. Plane mechanics
+    // bypass these (planes go straight from hangar → EXIT_INDEX track cell).
+    TAKEOFF_TRIANGLES: {
+      red:    [4,4],
+      yellow: [4,10],
+      green:  [10,10],
+      blue:   [10,4],
     },
     GOAL: {
-      // Central 3×3 (rows 6-8, cols 6-8) as a 4-triangle pinwheel.
-      // Each triangle's base sits along one edge of the 3×3, apex at (7.5,7.5).
-      kind: 'pinwheel',
-      boxR0: 6, boxR1: 8, boxC0: 6, boxC1: 8,
-      // Where each colour's planes park when they reach goal — anchored just
-      // inside their own triangle of the central pinwheel.
+      // Single cell (7,7) split into 4 inner triangles. Each color parks just
+      // inside its triangle.
+      kind: 'star',
+      cell: [7, 7],
       anchors: {
-        green:  [6.5, 7.5],   // top triangle
-        yellow: [7.5, 8.5],   // right triangle
-        blue:   [8.5, 7.5],   // bottom triangle
-        red:    [7.5, 6.5],   // left triangle
+        // [row, col] in grid units (fractional). Each color sits ~0.22 cells
+        // off-center in its triangle.
+        yellow: [7.22, 7.5],   // top triangle
+        green:  [7.5, 7.78],   // right triangle
+        blue:   [7.78, 7.5],   // bottom triangle
+        red:    [7.5, 7.22],   // left triangle
       },
     },
+    // L-corner connectors: 4 spots where the loop bends 90° between non-grid-
+    // adjacent cells. Each entry is { from: trackIdx, to: trackIdx, pivot: [r,c] }
+    // for drawing a small turn-marker through the corner of the cross arm.
+    CORNERS: [
+      { from: 4,  to: 5,  pivot: [6, 6] },   // NW arm corner: (6,5) → (5,6)
+      { from: 15, to: 16, pivot: [6, 8] },   // NE arm corner: (5,8) → (6,9)
+      { from: 26, to: 27, pivot: [8, 8] },   // SE arm corner: (8,9) → (9,8)
+      { from: 37, to: 38, pivot: [8, 6] },   // SW arm corner: (9,6) → (8,5)
+    ],
   };
 
   const LAYOUTS = { cross: LAYOUT_CROSS };
 
-  // Classical 飞行棋 takeoff: each color has ONE coloured cell at +8 from its
-  // exit (the FIRST concave corner of the cross going clockwise from exit).
-  // Landing on your own takeoff flies you DIAGONALLY ACROSS the board to the
-  // opposite concave corner (+26 cells = half a lap forward).
-  // The takeoff cell IS the exit cell (offset 0 from EXIT_INDEX), located at
-  // the inner concave corner of the cross next to each player's base.
-  // Landing on YOUR own takeoff cell (with ✈) flies you 23 cells around the
-  // loop — to the diagonally opposite concave corner.
+  // Classical 飞行棋 takeoff: each color's EXIT_INDEX cell is also its "✈"
+  // jump cell. Landing on your OWN ✈ cell flies you ~half a lap (22 cells on
+  // the 44-cell loop) — to the diagonally opposite arm. No other intermediate
+  // jump cells in this variant.
   const TAKEOFF_OFFSET = 0;
-  const FLIGHT_DISTANCE = 23;
+  const FLIGHT_DISTANCE = 22;
   for (const key in LAYOUTS) {
     const layout = LAYOUTS[key];
     layout.CELL_COLOR = {};       // index → owner colour (only takeoff cells are coloured)
@@ -507,19 +529,19 @@ permalink: /toolbox/feixingqi/
 
   function L() { return LAYOUT_CROSS; }
   function CELL() { return SVG_W / L().GRID; }
+  // Returns the [row, col] anchor (fractional) where a color's planes park at goal.
   function goalCellFor(color) {
     const g = L().GOAL;
-    if (g.kind === 'pinwheel') return g.anchors[color];
-    if (g.kind === 'shared')   return g.cell;
-    return g.cells[color];
+    if (g.anchors && g.anchors[color]) return g.anchors[color];
+    return g.cell || [7, 7];
   }
 
   // Direction each home stretch points (toward the central goal).
   const STRETCH_DIR = {
-    green:  'down',   // top arm middle, ↓
-    yellow: 'left',   // right arm middle, ←
-    blue:   'up',     // bottom arm middle, ↑
-    red:    'right',  // left arm middle, →
+    red:    'right',  // left  arm, row 7, →
+    yellow: 'down',   // top   arm, col 7, ↓
+    green:  'left',   // right arm, row 7, ←
+    blue:   'up',     // bottom arm, col 7, ↑
   };
 
   // ============================================================
@@ -842,15 +864,15 @@ permalink: /toolbox/feixingqi/
     const layout = L();
     const cell = CELL();
     const activeColors = activeCornerSet();
-    const planeR = cell * 0.36;
+    const planeR = cell * 0.34;
 
-    // === Layer 0: cream-tan board background, like a printed board ===
+    // === Layer 0: warm parchment background ===
     svg.appendChild(svgEl('rect', {
       x: 0, y: 0, width: SVG_W, height: SVG_H,
-      fill: '#f4ecd6',
+      fill: '#f7efe0',
     }));
 
-    // === Layer: home corners (X diagonals + parking circles + decorative planes) ===
+    // === Layer: home zones (colored 6×6 corner blocks + hangar slots) ===
     const homeGroup = svgEl('g', { class: 'homes' });
     for (const color of COLORS) {
       const z = layout.HOME_ZONES[color];
@@ -860,71 +882,97 @@ permalink: /toolbox/feixingqi/
       const y0 = z.r0 * cell;
       const w = (z.c1 - z.c0 + 1) * cell;
       const h = (z.r1 - z.r0 + 1) * cell;
-      // 1. Solid colored fill block (saturated when active, gray when empty)
+      // Solid pale-color background block when active, neutral gray when empty.
       homeGroup.appendChild(svgEl('rect', {
         x: x0, y: y0, width: w, height: h,
         class: 'home-bg',
-        fill: isActive ? info.hex : '#cdc3b0',
-        stroke: '#1a1a1a',
-        'stroke-width': 2.5,
-        rx: 4,
+        fill: isActive ? info.light : '#e6e0d2',
+        stroke: isActive ? info.hex : '#b0a896',
+        'stroke-width': 3,
+        rx: 6,
       }));
-      // 2. X diagonals across the corner — bold so the 4 triangles read clearly
-      const diagStroke = isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)';
-      homeGroup.appendChild(svgEl('line', {
-        x1: x0, y1: y0, x2: x0 + w, y2: y0 + h,
-        stroke: diagStroke, 'stroke-width': 3,
-      }));
-      homeGroup.appendChild(svgEl('line', {
-        x1: x0 + w, y1: y0, x2: x0, y2: y0 + h,
-        stroke: diagStroke, 'stroke-width': 3,
-      }));
-      // 3. Decorative ✈ icons at the FAR-OUT tips of each of the 4 triangles —
-      // close to the home zone's outer edges so they don't crowd the parking
-      // cluster at centre. Each plane rotates to face its triangle's outer edge.
-      const triCenter = (z.r0 + z.r1 + 1) / 2;
-      const triCenterC = (z.c0 + z.c1 + 1) / 2;
-      const tipOff = (z.r1 - z.r0 + 1) / 2 - 0.5;  // ~2.5 cells from centre for 6×6
-      const triangles = [
-        { r: triCenter - tipOff, c: triCenterC,        rot: 0   },
-        { r: triCenter,          c: triCenterC + tipOff, rot: 90  },
-        { r: triCenter + tipOff, c: triCenterC,        rot: 180 },
-        { r: triCenter,          c: triCenterC - tipOff, rot: 270 },
-      ];
-      for (const t of triangles) {
-        const cx = svgX(t.c);
-        const cy = svgY(t.r);
-        const tx = svgEl('text', {
-          x: cx,
-          y: cy + cell * 0.18,
-          'text-anchor': 'middle',
-          'font-size': cell * 0.7,
-          fill: isActive ? '#fff' : 'rgba(255,255,255,0.55)',
-          'font-weight': 700,
-          'pointer-events': 'none',
-          transform: `rotate(${t.rot} ${cx} ${cy})`,
-        });
-        tx.textContent = '✈';
-        homeGroup.appendChild(tx);
-      }
-      // 4. 4 white parking circles in a TIGHT 2×2 at home centre.
-      // Each circle fits inside its single cell so the cluster only takes up
-      // a 2×2 patch of the 6×6 home zone.
+      // Inner colored stripe along the OUTER edge of the home zone, away from
+      // center — a hint of the player's color framing the corner.
+      // (skipped — keep the block simple per the modern flat style)
+      // 4 white parking circles arranged in a tight 2×2 at the corner-most
+      // 2×2 cluster of the home zone.
       for (let i = 0; i < 4; i++) {
         const { x, y } = hangarXY(color, i);
         homeGroup.appendChild(svgEl('circle', {
           cx: x, cy: y,
-          r: cell * 0.38,
+          r: cell * 0.40,
           class: 'hangar-slot',
           fill: '#ffffff',
-          stroke: '#1a1a1a',
-          'stroke-width': 1.8,
+          stroke: isActive ? info.hex : '#888073',
+          'stroke-width': 2,
         }));
       }
     }
     svg.appendChild(homeGroup);
 
-    // === Layer: stretch lanes (colored corridors with arrows pointing toward center) ===
+    // === Layer: takeoff triangles (decorative diagonal-split cells) ===
+    const takeoffGroup = svgEl('g', { class: 'takeoffs' });
+    for (const color of COLORS) {
+      if (!activeColors.has(color)) continue;
+      const [r, c] = layout.TAKEOFF_TRIANGLES[color];
+      const info = COLOR_INFO[color];
+      const z = layout.HOME_ZONES[color];
+      // Determine which diagonal: the colored half should face AWAY from the
+      // home zone's hangar (i.e., toward the center cross), making the
+      // triangle "point" inward like a takeoff ramp.
+      const hangarRow = (z.r0 + z.r1) / 2 < 7 ? 'top' : 'bottom';
+      const hangarCol = (z.c0 + z.c1) / 2 < 7 ? 'left' : 'right';
+      const x0 = c * cell, y0 = r * cell;
+      const x1 = x0 + cell, y1 = y0 + cell;
+      // Background — solid color cell.
+      takeoffGroup.appendChild(svgEl('rect', {
+        x: x0 + cell * 0.04, y: y0 + cell * 0.04,
+        width: cell * 0.92, height: cell * 0.92,
+        fill: info.hex,
+        stroke: '#1a1a1a',
+        'stroke-width': 1.4,
+        rx: 5,
+      }));
+      // Diagonal half — white triangle covering the side facing the hangar.
+      // The colored half then points toward the loop / center.
+      let p1, p2, p3;
+      if (hangarRow === 'top' && hangarCol === 'left') {        // NW (red)
+        p1 = [x0, y0]; p2 = [x1, y0]; p3 = [x0, y1];
+      } else if (hangarRow === 'top' && hangarCol === 'right') { // NE (yellow)
+        p1 = [x0, y0]; p2 = [x1, y0]; p3 = [x1, y1];
+      } else if (hangarRow === 'bottom' && hangarCol === 'right') { // SE (green)
+        p1 = [x1, y0]; p2 = [x1, y1]; p3 = [x0, y1];
+      } else {                                                   // SW (blue)
+        p1 = [x0, y0]; p2 = [x0, y1]; p3 = [x1, y1];
+      }
+      takeoffGroup.appendChild(svgEl('polygon', {
+        points: `${p1[0]},${p1[1]} ${p2[0]},${p2[1]} ${p3[0]},${p3[1]}`,
+        fill: '#ffffff',
+        stroke: '#1a1a1a',
+        'stroke-width': 1.2,
+      }));
+      // Plane glyph in the colored corner.
+      const glyphCx = (hangarCol === 'left'
+        ? x1 - cell * 0.30
+        : x0 + cell * 0.30);
+      const glyphCy = (hangarRow === 'top'
+        ? y1 - cell * 0.30
+        : y0 + cell * 0.30);
+      const glyph = svgEl('text', {
+        x: glyphCx,
+        y: glyphCy + cell * 0.16,
+        'text-anchor': 'middle',
+        'font-size': cell * 0.50,
+        fill: '#ffffff',
+        'font-weight': 700,
+        'pointer-events': 'none',
+      });
+      glyph.textContent = '✈';
+      takeoffGroup.appendChild(glyph);
+    }
+    svg.appendChild(takeoffGroup);
+
+    // === Layer: stretch lanes (colored cells with arrows toward center) ===
     const stretchGroup = svgEl('g', { class: 'stretches' });
     const arrowFor = { down: '▼', up: '▲', left: '◀', right: '▶' };
     for (const color of COLORS) {
@@ -933,21 +981,21 @@ permalink: /toolbox/feixingqi/
       const dir = STRETCH_DIR[color];
       for (const [r, c] of layout.STRETCH_CELLS[color]) {
         stretchGroup.appendChild(svgEl('rect', {
-          x: c * cell + cell * 0.04,
-          y: r * cell + cell * 0.04,
-          width: cell * 0.92,
-          height: cell * 0.92,
+          x: c * cell + cell * 0.06,
+          y: r * cell + cell * 0.06,
+          width: cell * 0.88,
+          height: cell * 0.88,
           class: 'stretch-cell',
           fill: info.hex,
           stroke: '#1a1a1a',
-          'stroke-width': 1.5,
-          rx: 4,
+          'stroke-width': 1.3,
+          rx: 5,
         }));
         const arrow = svgEl('text', {
           x: svgX(c),
           y: svgY(r) + cell * 0.18,
           'text-anchor': 'middle',
-          'font-size': cell * 0.7,
+          'font-size': cell * 0.62,
           fill: '#ffffff',
           'font-weight': 700,
           'pointer-events': 'none',
@@ -958,38 +1006,55 @@ permalink: /toolbox/feixingqi/
     }
     svg.appendChild(stretchGroup);
 
-    // === Layer: track cells (white squares with circular markers; colored jump cells) ===
+    // === Layer: L-corner connector dots — small marker at each cross corner
+    // where the loop bends diagonally between non-adjacent grid cells. ===
+    const connGroup = svgEl('g', { class: 'corner-connectors' });
+    for (const corner of layout.CORNERS) {
+      const [r, c] = corner.pivot;
+      connGroup.appendChild(svgEl('rect', {
+        x: c * cell + cell * 0.34,
+        y: r * cell + cell * 0.34,
+        width: cell * 0.32,
+        height: cell * 0.32,
+        fill: '#ded5c2',
+        stroke: '#b0a896',
+        'stroke-width': 1,
+        rx: 4,
+      }));
+    }
+    svg.appendChild(connGroup);
+
+    // === Layer: track cells (44 cells; corner tips are slightly distinct) ===
     const trackGroup = svgEl('g', { class: 'track' });
     for (let i = 0; i < TRACK_LEN; i++) {
       const [r, c] = layout.TRACK[i];
       const ownerColor = layout.CELL_COLOR[i];
-      const isBig = layout.BIG_JUMP_CELLS[i] !== undefined;
       // Cell base square
       trackGroup.appendChild(svgEl('rect', {
-        x: c * cell + cell * 0.04,
-        y: r * cell + cell * 0.04,
-        width: cell * 0.92,
-        height: cell * 0.92,
+        x: c * cell + cell * 0.06,
+        y: r * cell + cell * 0.06,
+        width: cell * 0.88,
+        height: cell * 0.88,
         class: 'track-cell',
         fill: ownerColor ? COLOR_INFO[ownerColor].hex : '#ffffff',
         stroke: '#1a1a1a',
-        'stroke-width': 1.4,
-        rx: 4,
+        'stroke-width': 1.3,
+        rx: 5,
       }));
       if (ownerColor) {
-        // Takeoff cell — white inner ring + a bold ✈ glyph
+        // ✈ takeoff cell — bold white plane glyph on color fill.
         trackGroup.appendChild(svgEl('circle', {
           cx: svgX(c), cy: svgY(r),
-          r: cell * 0.34,
-          fill: 'rgba(255,255,255,0.2)',
+          r: cell * 0.32,
+          fill: 'rgba(255,255,255,0.15)',
           stroke: '#ffffff',
-          'stroke-width': 1.8,
+          'stroke-width': 1.6,
         }));
         const glyph = svgEl('text', {
           x: svgX(c),
-          y: svgY(r) + cell * 0.22,
+          y: svgY(r) + cell * 0.20,
           'text-anchor': 'middle',
-          'font-size': cell * 0.72,
+          'font-size': cell * 0.66,
           fill: '#ffffff',
           'font-weight': 700,
           'pointer-events': 'none',
@@ -997,32 +1062,33 @@ permalink: /toolbox/feixingqi/
         glyph.textContent = '✈';
         trackGroup.appendChild(glyph);
       } else {
-        // Plain track cell — clearly visible white circle marker
+        // Plain track cell — small dot marker.
         trackGroup.appendChild(svgEl('circle', {
           cx: svgX(c), cy: svgY(r),
-          r: cell * 0.30,
-          fill: '#fff5dc',
-          stroke: '#1a1a1a',
-          'stroke-width': 1.2,
+          r: cell * 0.18,
+          fill: '#f7efe0',
+          stroke: '#b0a896',
+          'stroke-width': 1,
         }));
       }
     }
     svg.appendChild(trackGroup);
 
-    // === Layer: goal — central 3×3 pinwheel of 4 coloured triangles ===
+    // === Layer: goal — single cell (7,7) with 4 inner triangles ===
     const goalGroup = svgEl('g', { class: 'goal' });
-    const goal = layout.GOAL;
-    const gx = goal.boxC0 * cell;
-    const gy = goal.boxR0 * cell;
-    const gw = (goal.boxC1 - goal.boxC0 + 1) * cell;
-    const gh = (goal.boxR1 - goal.boxR0 + 1) * cell;
+    const gx = 7 * cell;
+    const gy = 7 * cell;
+    const gw = cell;
+    const gh = cell;
+    // Backdrop
     goalGroup.appendChild(svgEl('rect', {
-      x: gx, y: gy, width: gw, height: gh,
+      x: gx + cell * 0.04, y: gy + cell * 0.04,
+      width: gw - cell * 0.08, height: gh - cell * 0.08,
       fill: '#fff5dc',
       stroke: '#1a1a1a',
       'stroke-width': 2,
+      rx: 4,
     }));
-    // 4 triangles meeting at centre. Each base is one edge of the 3×3 box.
     const gcx = gx + gw / 2;
     const gcy = gy + gh / 2;
     const tl = [gx,        gy];
@@ -1035,13 +1101,18 @@ permalink: /toolbox/feixingqi/
         points: pts,
         fill: activeColors.has(color) ? COLOR_INFO[color].hex : '#cdc3b0',
         stroke: '#1a1a1a',
-        'stroke-width': 1.4,
+        'stroke-width': 1,
       }));
     };
-    triangle('green',  tl, tr);   // top triangle = green (NW)
-    triangle('yellow', tr, br);   // right triangle = yellow (NE)
-    triangle('blue',   br, bl);   // bottom triangle = blue (SE)
-    triangle('red',    bl, tl);   // left triangle = red (SW)
+    triangle('yellow', tl, tr);   // top triangle = yellow
+    triangle('green',  tr, br);   // right triangle = green
+    triangle('blue',   br, bl);   // bottom triangle = blue
+    triangle('red',    bl, tl);   // left triangle = red
+    // Small center dot to anchor the eye.
+    goalGroup.appendChild(svgEl('circle', {
+      cx: gcx, cy: gcy, r: cell * 0.08,
+      fill: '#ffffff', stroke: '#1a1a1a', 'stroke-width': 1.2,
+    }));
     svg.appendChild(goalGroup);
 
     // === Layer: planes ===
@@ -1092,11 +1163,12 @@ permalink: /toolbox/feixingqi/
           } else if (piece.status === 'stretch') {
             xy = stretchXY(c, piece.pos);
           } else { // goal
-            // Cluster 4 goal slots around the color's goal cell
+            // Goal is a single cell with 4 inner triangles — park all 4 planes
+            // in a tight cluster at the color's anchor inside its triangle.
             const [gr, gc] = goalCellFor(c);
             const idx = i;
-            const ox = (idx % 2 === 0 ? -0.18 : 0.18) * cell;
-            const oy = (idx < 2 ? -0.18 : 0.18) * cell;
+            const ox = (idx % 2 === 0 ? -0.06 : 0.06) * cell;
+            const oy = (idx < 2 ? -0.06 : 0.06) * cell;
             xy = { x: svgX(gc) + ox, y: svgY(gr) + oy };
           }
           // Stack offset for multiple planes on same cell (skip during animation of this piece)
@@ -1124,7 +1196,7 @@ permalink: /toolbox/feixingqi/
           }
           // Effective status for size selection (use animation status when animating)
           const effStatus = isAnimatingThis ? animStatus : piece.status;
-          const r = effStatus === 'goal' ? cell * 0.16 : planeR;
+          const r = effStatus === 'goal' ? cell * 0.10 : planeR;
           const g = svgEl('g', { class: cls.join(' '), 'data-color': c, 'data-idx': i });
           g.appendChild(svgEl('circle', {
             cx: xy.x, cy: xy.y, r,
@@ -1776,13 +1848,13 @@ permalink: /toolbox/feixingqi/
     const baseCell = CELL();
     const cell = baseCell * sx;
 
-    // Cream-tan board background
-    ctx.fillStyle = '#f4ecd6';
+    // Warm parchment background
+    ctx.fillStyle = '#f7efe0';
     ctx.fillRect(ox, oy, ow, oh);
 
     const activeColors = new Set(state.players);
 
-    // Home corners — solid colored block + bold X diagonals + 4 rotated ✈ + 4 white parking circles
+    // Home zones — pale-color 6×6 corner blocks + tight 2×2 white parking circles
     for (const color of COLORS) {
       const z = layout.HOME_ZONES[color];
       const info = COLOR_INFO[color];
@@ -1791,54 +1863,79 @@ permalink: /toolbox/feixingqi/
       const y0 = dy + z.r0 * cell;
       const w = (z.c1 - z.c0 + 1) * cell;
       const h = (z.r1 - z.r0 + 1) * cell;
-      ctx.fillStyle = isActive ? info.hex : '#cdc3b0';
-      ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 2.5 * sx;
+      ctx.fillStyle = isActive ? info.light : '#e6e0d2';
+      ctx.strokeStyle = isActive ? info.hex : '#b0a896';
+      ctx.lineWidth = 3 * sx;
       ctx.beginPath();
       ctx.rect(x0, y0, w, h);
       ctx.fill();
       ctx.stroke();
-      // X diagonals
-      ctx.strokeStyle = isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)';
-      ctx.lineWidth = 3 * sx;
-      ctx.beginPath();
-      ctx.moveTo(x0, y0); ctx.lineTo(x0 + w, y0 + h);
-      ctx.moveTo(x0 + w, y0); ctx.lineTo(x0, y0 + h);
-      ctx.stroke();
-      // Decorative ✈ at far-out triangle tips
-      const triCenter = (z.r0 + z.r1 + 1) / 2;
-      const triCenterC = (z.c0 + z.c1 + 1) / 2;
-      const tipOff = (z.r1 - z.r0 + 1) / 2 - 0.5;
-      const tris = [
-        { r: triCenter - tipOff, c: triCenterC,        rot: 0   },
-        { r: triCenter,          c: triCenterC + tipOff, rot: 90  },
-        { r: triCenter + tipOff, c: triCenterC,        rot: 180 },
-        { r: triCenter,          c: triCenterC - tipOff, rot: 270 },
-      ];
-      ctx.fillStyle = isActive ? '#fff' : 'rgba(255,255,255,0.55)';
-      ctx.font = `bold ${baseCell * 0.7 * sx}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      for (const t of tris) {
-        const cx = dx + svgX(t.c) * sx;
-        const cy = dy + svgY(t.r) * sx;
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(t.rot * Math.PI / 180);
-        ctx.fillText('✈', 0, 0);
-        ctx.restore();
-      }
-      // 4 parking circles — small, tight 2×2 cluster at home centre
+      // 4 parking circles
       for (let i = 0; i < 4; i++) {
         const { x, y } = hangarXY(color, i);
         ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = '#1a1a1a';
-        ctx.lineWidth = 1.8 * sx;
+        ctx.strokeStyle = isActive ? info.hex : '#888073';
+        ctx.lineWidth = 2 * sx;
         ctx.beginPath();
-        ctx.arc(dx + x * sx, dy + y * sx, baseCell * 0.38 * sx, 0, Math.PI * 2);
+        ctx.arc(dx + x * sx, dy + y * sx, baseCell * 0.40 * sx, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       }
+    }
+
+    // Takeoff triangles — colored diagonal-split cells
+    for (const color of COLORS) {
+      if (!activeColors.has(color)) continue;
+      const [r, c] = layout.TAKEOFF_TRIANGLES[color];
+      const info = COLOR_INFO[color];
+      const z = layout.HOME_ZONES[color];
+      const hangarRow = (z.r0 + z.r1) / 2 < 7 ? 'top' : 'bottom';
+      const hangarCol = (z.c0 + z.c1) / 2 < 7 ? 'left' : 'right';
+      const x0 = dx + c * cell + cell * 0.04;
+      const y0 = dy + r * cell + cell * 0.04;
+      const ww = cell * 0.92, hh = cell * 0.92;
+      ctx.fillStyle = info.hex;
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 1.4 * sx;
+      ctx.beginPath();
+      ctx.rect(x0, y0, ww, hh);
+      ctx.fill();
+      ctx.stroke();
+      // Diagonal half — white triangle facing hangar
+      let p1, p2, p3;
+      const xL = dx + c * cell, xR = dx + (c + 1) * cell;
+      const yT = dy + r * cell, yB = dy + (r + 1) * cell;
+      if (hangarRow === 'top' && hangarCol === 'left') {
+        p1 = [xL, yT]; p2 = [xR, yT]; p3 = [xL, yB];
+      } else if (hangarRow === 'top' && hangarCol === 'right') {
+        p1 = [xL, yT]; p2 = [xR, yT]; p3 = [xR, yB];
+      } else if (hangarRow === 'bottom' && hangarCol === 'right') {
+        p1 = [xR, yT]; p2 = [xR, yB]; p3 = [xL, yB];
+      } else {
+        p1 = [xL, yT]; p2 = [xL, yB]; p3 = [xR, yB];
+      }
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 1.2 * sx;
+      ctx.beginPath();
+      ctx.moveTo(p1[0], p1[1]);
+      ctx.lineTo(p2[0], p2[1]);
+      ctx.lineTo(p3[0], p3[1]);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      // Plane glyph in the colored corner
+      const glyphCx = (hangarCol === 'left'
+        ? xR - cell * 0.30
+        : xL + cell * 0.30);
+      const glyphCy = (hangarRow === 'top'
+        ? yB - cell * 0.30
+        : yT + cell * 0.30);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${baseCell * 0.50 * sx}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('✈', glyphCx, glyphCy);
     }
 
     // Stretches — saturated colored cells with bold inward arrows
@@ -1849,15 +1946,15 @@ permalink: /toolbox/feixingqi/
       const dir = STRETCH_DIR[color];
       ctx.fillStyle = info.hex;
       ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 1.5 * sx;
+      ctx.lineWidth = 1.3 * sx;
       for (const [r, c] of layout.STRETCH_CELLS[color]) {
         ctx.beginPath();
-        ctx.rect(dx + c * cell + cell * 0.04, dy + r * cell + cell * 0.04, cell * 0.92, cell * 0.92);
+        ctx.rect(dx + c * cell + cell * 0.06, dy + r * cell + cell * 0.06, cell * 0.88, cell * 0.88);
         ctx.fill();
         ctx.stroke();
       }
       ctx.fillStyle = '#fff';
-      ctx.font = `bold ${baseCell * 0.7 * sx}px sans-serif`;
+      ctx.font = `bold ${baseCell * 0.62 * sx}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       for (const [r, c] of layout.STRETCH_CELLS[color]) {
@@ -1865,69 +1962,77 @@ permalink: /toolbox/feixingqi/
       }
     }
 
-    // Track — white squares with crisp circle markers; colored jump cells with glyphs
+    // Corner connector dots — small turn-marker at each cross corner
+    for (const corner of layout.CORNERS) {
+      const [r, c] = corner.pivot;
+      ctx.fillStyle = '#ded5c2';
+      ctx.strokeStyle = '#b0a896';
+      ctx.lineWidth = 1 * sx;
+      ctx.beginPath();
+      ctx.rect(dx + c * cell + cell * 0.34, dy + r * cell + cell * 0.34, cell * 0.32, cell * 0.32);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Track — white rounded cells; colored takeoff cells get a bold ✈
     for (let i = 0; i < TRACK_LEN; i++) {
       const [r, c] = layout.TRACK[i];
       const ownerColor = layout.CELL_COLOR[i];
-      const isBig = layout.BIG_JUMP_CELLS[i] !== undefined;
       ctx.fillStyle = ownerColor ? COLOR_INFO[ownerColor].hex : '#ffffff';
       ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 1.4 * sx;
+      ctx.lineWidth = 1.3 * sx;
       ctx.beginPath();
-      ctx.rect(dx + c * cell + cell * 0.04, dy + r * cell + cell * 0.04, cell * 0.92, cell * 0.92);
+      ctx.rect(dx + c * cell + cell * 0.06, dy + r * cell + cell * 0.06, cell * 0.88, cell * 0.88);
       ctx.fill();
       ctx.stroke();
       if (ownerColor) {
-        // Takeoff cell — white inner ring + bold ✈
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.8 * sx;
+        ctx.lineWidth = 1.6 * sx;
         ctx.beginPath();
-        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.34 * sx, 0, Math.PI * 2);
+        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.32 * sx, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${baseCell * 0.72 * sx}px sans-serif`;
+        ctx.font = `bold ${baseCell * 0.66 * sx}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('✈', dx + svgX(c) * sx, dy + svgY(r) * sx);
       } else {
-        // Crisp white circular station marker
-        ctx.fillStyle = '#fff5dc';
-        ctx.strokeStyle = '#1a1a1a';
-        ctx.lineWidth = 1.2 * sx;
+        ctx.fillStyle = '#f7efe0';
+        ctx.strokeStyle = '#b0a896';
+        ctx.lineWidth = 1 * sx;
         ctx.beginPath();
-        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.30 * sx, 0, Math.PI * 2);
+        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.18 * sx, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       }
     }
 
-    // Goal — central 3×3 pinwheel of 4 coloured triangles
-    const goal = layout.GOAL;
-    const gx = dx + goal.boxC0 * cell;
-    const gy = dy + goal.boxR0 * cell;
-    const gw = (goal.boxC1 - goal.boxC0 + 1) * cell;
-    const gh = (goal.boxR1 - goal.boxR0 + 1) * cell;
+    // Goal — single cell (7,7) with 4 inner triangles
+    const gx = dx + 7 * cell;
+    const gy = dy + 7 * cell;
+    const gw = cell;
+    const gh = cell;
     ctx.fillStyle = '#fff5dc';
     ctx.strokeStyle = '#1a1a1a';
     ctx.lineWidth = 2 * sx;
     ctx.beginPath();
-    ctx.rect(gx, gy, gw, gh);
+    ctx.rect(gx + cell * 0.04, gy + cell * 0.04, gw - cell * 0.08, gh - cell * 0.08);
     ctx.fill();
     ctx.stroke();
     const gcx = gx + gw / 2;
     const gcy = gy + gh / 2;
     const triPts = [
-      ['green',  [gx, gy],         [gx + gw, gy]],         // top
-      ['yellow', [gx + gw, gy],    [gx + gw, gy + gh]],    // right
+      ['yellow', [gx, gy],         [gx + gw, gy]],         // top
+      ['green',  [gx + gw, gy],    [gx + gw, gy + gh]],    // right
       ['blue',   [gx + gw, gy+gh], [gx, gy + gh]],         // bottom
       ['red',    [gx, gy + gh],    [gx, gy]],              // left
     ];
     for (const [color, p1, p2] of triPts) {
       ctx.fillStyle = activeColors.has(color) ? COLOR_INFO[color].hex : '#cdc3b0';
       ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 1.4 * sx;
+      ctx.lineWidth = 1 * sx;
       ctx.beginPath();
       ctx.moveTo(p1[0], p1[1]);
       ctx.lineTo(p2[0], p2[1]);
@@ -1936,6 +2041,14 @@ permalink: /toolbox/feixingqi/
       ctx.fill();
       ctx.stroke();
     }
+    // Center dot
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 1.2 * sx;
+    ctx.beginPath();
+    ctx.arc(gcx, gcy, cell * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
 
     // Planes
     for (const color of state.players) {
@@ -1948,11 +2061,11 @@ permalink: /toolbox/feixingqi/
         else if (p.status === 'stretch') pxy = stretchXY(color, p.pos);
         else {
           const [gr2, gc2] = goalCellFor(color);
-          const ox2 = (i % 2 === 0 ? -0.18 : 0.18) * baseCell;
-          const oy2 = (i < 2 ? -0.18 : 0.18) * baseCell;
+          const ox2 = (i % 2 === 0 ? -0.06 : 0.06) * baseCell;
+          const oy2 = (i < 2 ? -0.06 : 0.06) * baseCell;
           pxy = { x: svgX(gc2) + ox2, y: svgY(gr2) + oy2 };
         }
-        const r = (p.status === 'goal' ? baseCell * 0.16 : baseCell * 0.36) * sx;
+        const r = (p.status === 'goal' ? baseCell * 0.10 : baseCell * 0.34) * sx;
         ctx.fillStyle = COLOR_INFO[color].hex;
         ctx.strokeStyle = '#1a1a1a';
         ctx.lineWidth = 1.5 * sx;
