@@ -1,0 +1,359 @@
+---
+layout: default
+title: "弹珠机·机厅 | Rui Zhou"
+permalink: /toolbox/pinball/pachinko/
+---
+
+<link rel="stylesheet" href="/assets/css/games-shell.css">
+<link rel="stylesheet" href="/assets/css/pinball-core.css">
+
+<div class="pb-wrap pb-theme-pachinko">
+  <header>
+    <h1>🎰 弹珠·机厅</h1>
+    <div class="sub">穿过钉墙落入 7 槽 · 中槽 JACKPOT 每局递增 · 连进 3 次中槽爆 4 球 multiball</div>
+  </header>
+
+  <div class="pb-scorebar">
+    <div class="pb-score-box"><div class="label">Score</div><div class="value" id="pbScore">0</div></div>
+    <div class="pb-score-box"><div class="label">Best</div><div class="value" id="pbBest">0</div></div>
+  </div>
+
+  <div class="pb-goal-bar" id="pbGoal">JACKPOT <strong>2000</strong> · 中槽连击 <strong>0/3</strong> → multiball</div>
+
+  <div class="pb-toolbar">
+    <button class="pb-btn" id="pbPauseBtn">⏸ 暂停</button>
+    <button class="pb-btn" id="pbNewBtn">🔄 新游戏</button>
+    <a class="pb-btn" href="/toolbox/pinball/">← 弹珠厅</a>
+  </div>
+
+  <div class="pb-canvas-wrap">
+    <canvas id="pbCanvas" width="480" height="640"></canvas>
+    <div class="pb-launch-hint" id="pbLaunchHint">按住空格蓄力</div>
+    <div class="pb-overlay" id="pbOverlay">
+      <h2 id="pbOvTitle">Game Over</h2>
+      <div id="pbOvMsg"></div>
+      <button class="pb-btn" id="pbOvBtn">再来一局</button>
+    </div>
+  </div>
+
+  <div class="pb-controls">
+    <button class="pb-flip-btn" id="pbFlipL">◀</button>
+    <button class="pb-plunger-btn" id="pbPlungerBtn"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar"></div></button>
+    <button class="pb-flip-btn" id="pbFlipR">▶</button>
+  </div>
+
+  <div class="pb-help">
+    <kbd>←</kbd>/<kbd>A</kbd> 左拨　·　<kbd>→</kbd>/<kbd>D</kbd> 右拨　·　按住 <kbd>空格</kbd> 蓄力发射　·　<kbd>P</kbd> 暂停
+  </div>
+
+  <div class="pb-rank-row" id="pb-rank-row"></div>
+  <div id="pb-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
+
+  <div id="pb-lb-mount" style="margin-top: 1.5rem;"></div>
+  <div id="pb-settle-btn-mount"></div>
+  <div id="pb-cm-mount"></div>
+</div>
+
+<script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/leaderboard.js"></script>
+<script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/pinball-core/pinball-core.js"></script>
+
+<script>
+(() => {
+  const W = 480, H = 640;
+  const { deg } = PinballCore.utils;
+
+  // ─── 顶部弧 + 边墙 ───
+  const topArc = [
+    [16, 80], [16, 56], [40, 28], [80, 14], [200, 6], [340, 6], [400, 18], [440, 14], [474, 30],
+  ];
+  const walls = [];
+  for (let i = 0; i < topArc.length - 1; i++) {
+    walls.push({ ax: topArc[i][0], ay: topArc[i][1], bx: topArc[i+1][0], by: topArc[i+1][1] });
+  }
+  walls.push(
+    { ax: 16, ay: 80, bx: 16, by: 540 },
+    { ax: 16, ay: 540, bx: 108, by: 590 },
+    { ax: 108, ay: 590, bx: 158, by: 590 },
+    { ax: 332, ay: 590, bx: 382, by: 590 },
+    { ax: 382, ay: 590, bx: 442, by: 540 },
+    { ax: 442, ay: 540, bx: 442, by: 90 },
+    { ax: 474, ay: 30, bx: 474, by: 612 },
+    { ax: 442, ay: 612, bx: 474, by: 612 },
+  );
+
+  // ─── 钉墙：zigzag 矩阵（pachinko 核心） ───
+  const pegs = [];
+  // 8 行偶数行 + 7 行奇数行交错
+  const ROW_Y0 = 90, ROW_DY = 30, ROW_COUNT = 10;
+  for (let r = 0; r < ROW_COUNT; r++) {
+    const y = ROW_Y0 + r * ROW_DY;
+    if (r % 2 === 0) {
+      // 8 cols
+      for (let c = 0; c < 8; c++) {
+        const x = 40 + c * 50;
+        pegs.push({ x, y, score: 10 });
+      }
+    } else {
+      // 7 cols（偏移半个间距）
+      for (let c = 0; c < 7; c++) {
+        const x = 65 + c * 50;
+        pegs.push({ x, y, score: 10 });
+      }
+    }
+  }
+
+  // ─── 7 个 slot：x=80..402 共 322px，分 7 格 = 46px / slot ───
+  // 7 个分割墙 + 7 个底部 trigger
+  const SLOT_X0 = 80, SLOT_X1 = 402;
+  const SLOT_TOP = 440, SLOT_BOT = 500;
+  const SLOT_W = (SLOT_X1 - SLOT_X0) / 7;
+  // 边界分割墙（8 根）
+  for (let i = 0; i <= 7; i++) {
+    const x = SLOT_X0 + i * SLOT_W;
+    walls.push({ ax: x, ay: SLOT_TOP, bx: x, by: SLOT_BOT });
+  }
+  // slot 底也立一道（让球在底部弹一下，trigger 之后再回 plunger）—— 实际上 trigger 立即返回，不需要
+  // 但视觉上有底有助于辨认
+
+  // Slot 计分（从左到右）：100, 300, 500, JACKPOT, 500, 300, 100
+  const SLOT_SCORES = [100, 300, 500, -1, 500, 300, 100];  // -1 = jackpot
+
+  // 槽底中心位置（trigger 用 rect 覆盖整个槽底）
+  const slotTriggers = [];
+  for (let i = 0; i < 7; i++) {
+    slotTriggers.push({
+      id: 'slot' + i,
+      kind: 'rect',
+      x: SLOT_X0 + i * SLOT_W + 2,
+      y: SLOT_BOT - 18,
+      w: SLOT_W - 4,
+      h: 18,
+      on: 'enter',
+      cooldown: 100,
+      slotIndex: i,
+      cb: (now, ball, game) => onSlotEnter(now, ball, game, i),
+    });
+  }
+
+  // 下半部底层：双挡板 + 1 sling + 1 救援 bumper
+  const bumpers = [
+    { x: 240, y: 570, r: 14, score: 50, color: '#ff5252' },  // 救援 bumper（在挡板上方中央）
+  ];
+  const slings = [
+    { ax: 98, ay: 545, bx: 132, by: 590, side: 'L', color: '#ff7676', score: 25 },
+    { ax: 310, ay: 590, bx: 344, by: 545, side: 'R', color: '#ff7676', score: 25 },
+  ];
+  walls.push(
+    { ax: 44, ay: 555, bx: 98, by: 545 },
+    { ax: 44, ay: 555, bx: 132, by: 590 },
+    { ax: 344, ay: 545, bx: 398, by: 555 },
+    { ax: 398, ay: 555, bx: 310, by: 590 },
+  );
+
+  // ─── 状态 ───
+  const state = {
+    jackpotValue: 2000,
+    jackpotStreak: 0,  // 连续 jackpot 计数
+    multiballActive: false,
+    multiballEnd: 0,
+    slotHits: [0,0,0,0,0,0,0],  // 每个槽进球数
+  };
+
+  function rebuildState() {
+    state.jackpotValue = 2000;
+    state.jackpotStreak = 0;
+    state.multiballActive = false;
+    state.multiballEnd = 0;
+    state.slotHits = [0,0,0,0,0,0,0];
+  }
+  rebuildState();
+
+  let game = null;
+
+  function updateGoal() {
+    const jp = state.jackpotValue;
+    let html;
+    if (state.multiballActive) {
+      const rem = Math.max(0, ((state.multiballEnd - performance.now()) / 1000));
+      html = `<strong>MULTIBALL ×2</strong>  ${rem.toFixed(1)}s · 任进皆双倍`;
+    } else {
+      html = `JACKPOT <strong>${jp.toLocaleString()}</strong> · 中槽连击 <strong>${state.jackpotStreak}/3</strong> → multiball`;
+    }
+    game.setGoal(html);
+  }
+
+  function onSlotEnter(now, ball, gameRef, idx) {
+    const baseScore = SLOT_SCORES[idx] === -1 ? state.jackpotValue : SLOT_SCORES[idx];
+    const cx = SLOT_X0 + idx * SLOT_W + SLOT_W / 2;
+    state.slotHits[idx]++;
+    game.addScore(baseScore, cx, SLOT_BOT - 30, 'slot');
+    if (SLOT_SCORES[idx] === -1) {
+      game.addPopup(cx, SLOT_BOT - 50, 'JACKPOT', 1400);
+      state.jackpotStreak++;
+      if (state.jackpotStreak >= 3 && !state.multiballActive) {
+        startMultiball(now);
+        state.jackpotStreak = 0;
+      }
+    } else {
+      state.jackpotStreak = 0;
+    }
+    // 球返回 plunger（无需消耗 life）
+    ball.x = game.plg.x; ball.y = game.plg.restY;
+    ball.vx = 0; ball.vy = 0;
+    ball.onPlunger = true; ball.trail = [];
+    updateGoal();
+  }
+
+  function startMultiball(now) {
+    state.multiballActive = true;
+    state.multiballEnd = now + 20000;
+    game.setMultiplier(2);
+    // 在顶部不同位置追加 3 颗球，向下抛
+    [80, 200, 320].forEach((x, i) => {
+      const vx = (Math.random() - 0.5) * 200;
+      const vy = 200 + Math.random() * 80;
+      game.addBall(x, 40, vx, vy);
+    });
+    game.addPopup(W/2, 200, 'MULTIBALL!', 1600);
+    updateGoal();
+  }
+
+  function endMultiball() {
+    state.multiballActive = false;
+    game.setMultiplier(1);
+    // jackpot 递增
+    state.jackpotValue += 500;
+    updateGoal();
+  }
+
+  // ─── 渲染 ───
+  function paintBackground(ctx, now) {
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#1a0a08');
+    grad.addColorStop(0.55, '#220e0c');
+    grad.addColorStop(1, '#0d0404');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    // 红色机厅光晕
+    const g2 = ctx.createRadialGradient(W/2, 200, 40, W/2, 200, 300);
+    g2.addColorStop(0, 'rgba(255, 90, 60, 0.10)');
+    g2.addColorStop(1, 'rgba(255, 90, 60, 0)');
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, W, H);
+    // 顶部"机厅 PACHINKO" 字样
+    ctx.save();
+    ctx.font = 'bold 28px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255, 200, 80, 0.10)';
+    ctx.fillText('機 廳 PACHINKO', W/2, 56);
+    ctx.restore();
+  }
+
+  function paintMidLayer(ctx, now) {
+    // 7 个 slot 上沿"奖励标签"
+    for (let i = 0; i < 7; i++) {
+      const cx = SLOT_X0 + i * SLOT_W + SLOT_W / 2;
+      const isJackpot = SLOT_SCORES[i] === -1;
+      const label = isJackpot ? 'JKPT' : String(SLOT_SCORES[i]);
+      // 槽内底色
+      ctx.fillStyle = isJackpot
+        ? `rgba(255, 220, 80, ${0.18 + 0.10 * Math.sin(now / 200)})`
+        : (SLOT_SCORES[i] === 500 ? 'rgba(255, 100, 80, 0.18)' : 'rgba(180, 180, 200, 0.10)');
+      ctx.fillRect(SLOT_X0 + i * SLOT_W + 1, SLOT_TOP + 1, SLOT_W - 2, SLOT_BOT - SLOT_TOP - 2);
+      // 标签
+      ctx.fillStyle = isJackpot
+        ? `rgba(255, 230, 120, ${0.95})`
+        : (SLOT_SCORES[i] === 500 ? '#ffb060' : '#cccccc');
+      ctx.font = isJackpot ? 'bold 11px system-ui' : '10px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, cx, SLOT_TOP - 4);
+      // hit 计数小字
+      if (state.slotHits[i] > 0) {
+        ctx.font = '9px system-ui';
+        ctx.fillStyle = 'rgba(200, 200, 200, 0.55)';
+        ctx.fillText('×' + state.slotHits[i], cx, SLOT_BOT - 4);
+      }
+    }
+  }
+
+  function paintForeground(ctx, now) {
+    if (state.multiballActive) {
+      ctx.fillStyle = `rgba(255, 100, 100, ${0.06 + 0.04 * Math.sin(now / 100)})`;
+      ctx.fillRect(0, 0, W, H);
+      const rem = Math.max(0, (state.multiballEnd - now) / 1000);
+      ctx.fillStyle = '#ffb0a0';
+      ctx.font = 'bold 14px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('MULTIBALL  ' + rem.toFixed(1) + 's', W / 2, 80);
+    }
+  }
+
+  const canvas = document.getElementById('pbCanvas');
+  game = PinballCore.createGame({
+    canvas, designW: W, designH: H, id: 'pachinko',
+    totalBalls: 1,
+    drainY: 626, drainXRange: [100, 442],
+    physics: { gravity: 1100, airDrag: 0.999, substeps: 8, maxSpeed: 1400, ballRadius: 9 },
+    plunger: { x: 458, restY: 600, laneLeft: 442, laneRight: 474, maxCharge: 1.0, chargeRate: 1.6, maxVel: 1500, minVel: 520 },
+    flippers: [
+      { pivot: { x: 158, y: 590 }, length: 70, thick: 7, restDeg: 25, upDeg: -32, side: 'L' },
+      { pivot: { x: 332, y: 590 }, length: 70, thick: 7, restDeg: 180 - 25, upDeg: 180 - (-32), side: 'R' },
+    ],
+    walls, bumpers, pegs, slings,
+    triggers: slotTriggers,
+    hud: {
+      score: document.getElementById('pbScore'),
+      best: document.getElementById('pbBest'),
+      goalBar: document.getElementById('pbGoal'),
+      chargeBar: document.getElementById('pbChargeBar'),
+      launchHint: document.getElementById('pbLaunchHint'),
+      overlay: document.getElementById('pbOverlay'),
+      overlayTitle: document.getElementById('pbOvTitle'),
+      overlayMsg: document.getElementById('pbOvMsg'),
+      overlayBtn: document.getElementById('pbOvBtn'),
+      pauseBtn: document.getElementById('pbPauseBtn'),
+      newBtn: document.getElementById('pbNewBtn'),
+      flipLBtn: document.getElementById('pbFlipL'),
+      flipRBtn: document.getElementById('pbFlipR'),
+      plungerBtn: document.getElementById('pbPlungerBtn'),
+    },
+    render: { paintBackground, paintMidLayer, paintForeground, wallColor: '#664030' },
+    store: { key: 'tool.pinball-pachinko.v1' },
+    shell: {
+      gameId: 'pinball-pachinko',
+      title: '弹珠机·机厅',
+      emoji: '🎰',
+      rankRow: document.getElementById('pb-rank-row'),
+      lbMount: document.getElementById('pb-lb-mount'),
+      lbTitle: '🏆 机厅 排行榜',
+      commentsMount: document.getElementById('pb-cm-mount'),
+      commentsPath: '/toolbox/pinball/pachinko/',
+      commentsTitle: '💬 机厅玩家交流',
+      commentsIntro: '聊聊你的 JACKPOT 大爆发 ~',
+      commentsPlaceholder: '聊聊心得 ~',
+      nickMount: document.getElementById('pb-nick-mount'),
+      settleBtnMount: document.getElementById('pb-settle-btn-mount'),
+      extraSubmit: () => ({ jackpot: state.jackpotValue, jackpotStreak: state.slotHits[3] }),
+      statsBuilder: (s) => [
+        { label: 'JACKPOT 命中', value: state.slotHits[3] },
+        { label: 'JACKPOT 终值', value: state.jackpotValue.toLocaleString() },
+        { label: '历史最高', value: Number(s.best || 0).toLocaleString() },
+      ],
+      watermark: 'zirconeey.github.io/toolbox/pinball/pachinko',
+    },
+    hooks: {
+      onStart: () => { rebuildState(); updateGoal(); },
+      onTick: (dt, now) => {
+        if (state.multiballActive && now >= state.multiballEnd) endMultiball();
+        if (state.multiballActive) updateGoal();
+      },
+    },
+  });
+
+  updateGoal();
+})();
+</script>

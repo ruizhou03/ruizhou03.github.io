@@ -1,0 +1,434 @@
+---
+layout: default
+title: "弹珠机·黄金神庙 | Rui Zhou"
+permalink: /toolbox/pinball/temple/
+---
+
+<link rel="stylesheet" href="/assets/css/games-shell.css">
+<link rel="stylesheet" href="/assets/css/pinball-core.css">
+
+<div class="pb-wrap pb-theme-temple">
+  <header>
+    <h1>🏛️ 黄金神庙</h1>
+    <div class="sub">滚过 lane 点亮宝箱 · 3 宝箱齐开召唤神庙 · 中央转盘永远给分</div>
+  </header>
+
+  <div class="pb-scorebar">
+    <div class="pb-score-box"><div class="label">Score</div><div class="value" id="pbScore">0</div></div>
+    <div class="pb-score-box"><div class="label">Best</div><div class="value" id="pbBest">0</div></div>
+  </div>
+
+  <div class="pb-goal-bar" id="pbGoal">宝箱 <strong>0/3</strong> · spinner 每转 +50</div>
+
+  <div class="pb-toolbar">
+    <button class="pb-btn" id="pbPauseBtn">⏸ 暂停</button>
+    <button class="pb-btn" id="pbNewBtn">🔄 新游戏</button>
+    <a class="pb-btn" href="/toolbox/pinball/">← 弹珠厅</a>
+  </div>
+
+  <div class="pb-canvas-wrap">
+    <canvas id="pbCanvas" width="480" height="640"></canvas>
+    <div class="pb-launch-hint" id="pbLaunchHint">按住空格蓄力</div>
+    <div class="pb-overlay" id="pbOverlay">
+      <h2 id="pbOvTitle">Game Over</h2>
+      <div id="pbOvMsg"></div>
+      <button class="pb-btn" id="pbOvBtn">再来一局</button>
+    </div>
+  </div>
+
+  <div class="pb-controls">
+    <button class="pb-flip-btn" id="pbFlipL">◀</button>
+    <button class="pb-plunger-btn" id="pbPlungerBtn"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar"></div></button>
+    <button class="pb-flip-btn" id="pbFlipR">▶</button>
+  </div>
+
+  <div class="pb-help">
+    <kbd>←</kbd>/<kbd>A</kbd> 左拨　·　<kbd>→</kbd>/<kbd>D</kbd> 右拨　·　按住 <kbd>空格</kbd> 蓄力发射　·　<kbd>P</kbd> 暂停
+  </div>
+
+  <div class="pb-rank-row" id="pb-rank-row"></div>
+  <div id="pb-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
+
+  <div id="pb-lb-mount" style="margin-top: 1.5rem;"></div>
+  <div id="pb-settle-btn-mount"></div>
+  <div id="pb-cm-mount"></div>
+</div>
+
+<script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/leaderboard.js"></script>
+<script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/pinball-core/pinball-core.js"></script>
+
+<script>
+(() => {
+  const W = 480, H = 640;
+  const { deg } = PinballCore.utils;
+
+  const topArc = [
+    [16, 80], [16, 56], [40, 28], [80, 14], [200, 6], [340, 6], [400, 18], [440, 14], [474, 30],
+  ];
+  const walls = [];
+  for (let i = 0; i < topArc.length - 1; i++) {
+    walls.push({ ax: topArc[i][0], ay: topArc[i][1], bx: topArc[i+1][0], by: topArc[i+1][1] });
+  }
+  walls.push(
+    { ax: 16, ay: 80, bx: 16, by: 540 },
+    { ax: 16, ay: 540, bx: 108, by: 590 },
+    { ax: 108, ay: 590, bx: 158, by: 590 },
+    { ax: 332, ay: 590, bx: 382, by: 590 },
+    { ax: 382, ay: 590, bx: 442, by: 540 },
+    { ax: 442, ay: 540, bx: 442, by: 90 },
+    { ax: 474, ay: 30, bx: 474, by: 612 },
+    { ax: 442, ay: 612, bx: 474, by: 612 },
+  );
+
+  // ─── 隐藏门：左侧第二段内墙，开宝箱 2 后 hidden ───
+  const hiddenDoorWall = { ax: 60, ay: 200, bx: 60, by: 300, restitution: 0.7, hidden: false, id: 'hiddenDoor' };
+  walls.push(hiddenDoorWall);
+  // 内壁延伸（一段固定上壁让 hidden lane 有形状）
+  walls.push({ ax: 60, ay: 200, bx: 60, by: 150 });   // 上半永远在
+  walls.push({ ax: 60, ay: 350, bx: 60, by: 300 });   // 下半永远在（与隐藏段衔接）
+  // 隐藏 lane 后还有一道更内的墙（让 lane 形成走廊）
+  walls.push({ ax: 36, ay: 200, bx: 36, by: 350 });   // 走廊外侧（紧贴左外墙之内）
+  walls.push({ ax: 36, ay: 350, bx: 60, by: 380 });   // 走廊下口（导出到主区）
+
+  // ─── 中央 spinner：水平线段，trigger 区域较薄 ───
+  const SPINNER_X = 240, SPINNER_Y = 270;
+  // 用 segment trigger（球经过时触发，球速降低）
+  const spinnerTrigger = {
+    id: 'spinner', kind: 'segment',
+    ax: SPINNER_X - 16, ay: SPINNER_Y, bx: SPINNER_X + 16, by: SPINNER_Y,
+    thresh: 14, on: 'enter', cooldown: 220,
+    cb: (now, ball, game) => onSpinnerHit(now, ball, game),
+  };
+
+  // ─── 3 个 rollover lane trigger（每个对应一个宝箱）───
+  const CHEST_TRIGGERS = [
+    { id: 'rollL', kind: 'segment', ax: 24, ay: 100, bx: 60, by: 100, thresh: 12,
+      on: 'enter', cooldown: 600, chestIdx: 0,
+      cb: (now, ball, game) => onRollover(now, ball, game, 0) },
+    { id: 'rollM', kind: 'segment', ax: 212, ay: 36, bx: 268, by: 36, thresh: 12,
+      on: 'enter', cooldown: 600, chestIdx: 1,
+      cb: (now, ball, game) => onRollover(now, ball, game, 1) },
+    { id: 'rollR', kind: 'segment', ax: 420, ay: 100, bx: 456, by: 100, thresh: 12,
+      on: 'enter', cooldown: 600, chestIdx: 2,
+      cb: (now, ball, game) => onRollover(now, ball, game, 2) },
+    // hidden lane bonus trigger（在 hidden door 后面的走廊里）
+    { id: 'hiddenLane', kind: 'rect', x: 30, y: 200, w: 30, h: 100,
+      on: 'enter', cooldown: 800,
+      cb: (now, ball, game) => onHiddenLane(now, ball, game) },
+    spinnerTrigger,
+  ];
+
+  const bumpers = [
+    { x: 120, y: 220, r: 18, score: 100, color: '#c08648' },
+    { x: 360, y: 220, r: 18, score: 100, color: '#c08648' },
+    { x: 120, y: 380, r: 18, score: 100, color: '#c08648' },
+    { x: 360, y: 380, r: 18, score: 100, color: '#c08648' },
+    { x: 240, y: 410, r: 16, score: 75, color: '#e8b955' },
+  ];
+
+  const pegs = [
+    { x: 80, y: 470, score: 25 },
+    { x: 400, y: 470, score: 25 },
+    { x: 175, y: 175, score: 25 },
+    { x: 305, y: 175, score: 25 },
+    { x: 175, y: 470, score: 25 },
+    { x: 305, y: 470, score: 25 },
+  ];
+
+  const slings = [
+    { ax: 98, ay: 510, bx: 132, by: 565, side: 'L', color: '#e8b955', score: 25 },
+    { ax: 310, ay: 565, bx: 344, by: 510, side: 'R', color: '#e8b955', score: 25 },
+  ];
+  walls.push(
+    { ax: 44, ay: 522, bx: 98, by: 510 },
+    { ax: 44, ay: 522, bx: 132, by: 565 },
+    { ax: 344, ay: 510, bx: 398, by: 522 },
+    { ax: 398, ay: 522, bx: 310, by: 565 },
+  );
+
+  // ─── 状态 ───
+  const state = {
+    rolloverCounts: [0, 0, 0],
+    chestsOpen: [false, false, false],
+    hiddenDoorOpen: false,
+    templeAwakened: false,
+    multiballActive: false,
+    multiballEnd: 0,
+    spinnerSpin: 0,  // 视觉用，每命中加角度
+    spinnerHits: 0,
+  };
+
+  function rebuildState() {
+    state.rolloverCounts = [0, 0, 0];
+    state.chestsOpen = [false, false, false];
+    state.hiddenDoorOpen = false;
+    state.templeAwakened = false;
+    state.multiballActive = false;
+    state.multiballEnd = 0;
+    state.spinnerSpin = 0;
+    state.spinnerHits = 0;
+    hiddenDoorWall.hidden = false;
+  }
+  rebuildState();
+
+  let game = null;
+
+  function updateGoal() {
+    const open = state.chestsOpen.filter(x => x).length;
+    let html;
+    if (state.multiballActive) {
+      const rem = Math.max(0, (state.multiballEnd - performance.now()) / 1000);
+      html = `<strong>TEMPLE AWAKENS</strong> ${rem.toFixed(1)}s · spinner ×4`;
+    } else if (state.templeAwakened) {
+      html = '<strong>TEMPLE ACTIVATED</strong>';
+    } else {
+      const r = state.rolloverCounts.map((n, i) => state.chestsOpen[i] ? '✓' : `${n}/3`).join(' · ');
+      html = `宝箱 <strong>${open}/3</strong>　[${r}]`;
+    }
+    game.setGoal(html);
+  }
+
+  function onRollover(now, ball, gameRef, idx) {
+    if (state.chestsOpen[idx]) return;
+    state.rolloverCounts[idx]++;
+    game.addScore(25, ball.x, ball.y, 'rollover');
+    game.addPopup(ball.x, ball.y - 14, `${state.rolloverCounts[idx]}/3`);
+    if (state.rolloverCounts[idx] >= 3) {
+      openChest(now, idx);
+    }
+    updateGoal();
+  }
+
+  function openChest(now, idx) {
+    state.chestsOpen[idx] = true;
+    game.addScore(2000, [80, 240, 400][idx], 60, 'chest');
+    game.addPopup([80, 240, 400][idx], 60, 'CHEST OPEN', 1300);
+    // 开第 2 个宝箱后，隐藏门消失
+    const openedCount = state.chestsOpen.filter(x => x).length;
+    if (openedCount === 2 && !state.hiddenDoorOpen) {
+      state.hiddenDoorOpen = true;
+      hiddenDoorWall.hidden = true;
+      game.addPopup(60, 250, 'HIDDEN  DOOR  OPEN', 1400);
+    }
+    if (openedCount === 3) {
+      onTempleAwakens(now);
+    }
+  }
+
+  function onTempleAwakens(now) {
+    state.templeAwakened = true;
+    game.addScore(8000, W/2, 240, 'temple');
+    game.addPopup(W/2, 240, 'TEMPLE AWAKENS', 1800);
+    // 2 球 multiball, 60s
+    state.multiballActive = true;
+    state.multiballEnd = now + 60000;
+    game.setMultiplier(2);
+    game.addBall(240, 240, 200, -300);
+  }
+
+  function endMultiball() {
+    state.multiballActive = false;
+    game.setMultiplier(1);
+    // 允许重新积累宝箱（重启循环）
+    state.rolloverCounts = [0, 0, 0];
+    state.chestsOpen = [false, false, false];
+    state.templeAwakened = false;
+    hiddenDoorWall.hidden = false;
+    state.hiddenDoorOpen = false;
+    updateGoal();
+  }
+
+  function onSpinnerHit(now, ball, gameRef) {
+    state.spinnerSpin += Math.PI * 0.4;
+    state.spinnerHits++;
+    const baseScore = state.multiballActive ? 200 : 50;
+    game.addScore(baseScore, ball.x, ball.y - 12, 'spinner');
+    // 减速：横向 0.7x，纵向 0.85x
+    ball.vx *= 0.7;
+    ball.vy *= 0.85;
+  }
+
+  function onHiddenLane(now, ball, gameRef) {
+    if (!state.hiddenDoorOpen) return;
+    game.addScore(1000, ball.x, ball.y - 16, 'hidden');
+    game.addPopup(ball.x, ball.y - 30, 'HIDDEN +1000', 1100);
+  }
+
+  // ─── 渲染 ───
+  function paintBackground(ctx, now) {
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#3a2810');
+    grad.addColorStop(0.55, '#2a1f0e');
+    grad.addColorStop(1, '#160c04');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    // 沙漠遗迹剪影（底部）
+    ctx.fillStyle = 'rgba(80, 50, 20, 0.4)';
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    ctx.lineTo(0, 480);
+    [40, 80, 110, 150, 190, 240, 280, 320, 360, 400, 440].forEach((x, i) => {
+      const h = 380 + (i % 3) * 40 + (i % 2) * 20;
+      ctx.lineTo(x, h);
+      ctx.lineTo(x + 16, h - 30);
+      ctx.lineTo(x + 32, h);
+    });
+    ctx.lineTo(W, 480);
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    ctx.fill();
+    // 顶部装饰文
+    ctx.save();
+    ctx.font = 'bold 22px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(232, 185, 85, 0.10)';
+    ctx.fillText('GOLD  TEMPLE', W/2, 56);
+    ctx.restore();
+  }
+
+  function paintMidLayer(ctx, now) {
+    // 3 chests + rollover lights
+    const chestPos = [[60, 80], [240, 90], [420, 80]];
+    chestPos.forEach((p, i) => {
+      const [cx, cy] = p;
+      // 3 灯
+      for (let k = 0; k < 3; k++) {
+        const lit = (state.chestsOpen[i] ? 3 : state.rolloverCounts[i]) > k;
+        ctx.fillStyle = lit ? '#ffd96a' : 'rgba(140, 110, 70, 0.4)';
+        ctx.beginPath();
+        ctx.arc(cx - 14 + k * 14, cy - 22, 4, 0, Math.PI * 2);
+        ctx.fill();
+        if (lit) {
+          ctx.shadowColor = '#ffd96a'; ctx.shadowBlur = 8;
+          ctx.beginPath(); ctx.arc(cx - 14 + k * 14, cy - 22, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+      }
+      // chest 视觉
+      const open = state.chestsOpen[i];
+      ctx.fillStyle = open ? '#ffd96a' : '#7a5028';
+      ctx.fillRect(cx - 16, cy - 8, 32, 18);
+      ctx.strokeStyle = open ? '#ffe89c' : '#5a3a20';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(cx - 16, cy - 8, 32, 18);
+      if (open) {
+        ctx.shadowColor = '#ffd96a'; ctx.shadowBlur = 12;
+        ctx.fillStyle = '#fff5d0';
+        ctx.beginPath(); ctx.moveTo(cx, cy - 4); ctx.arc(cx, cy - 4, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    });
+    // hidden door 走廊（始终画走廊背景，门视觉是右侧的 wall 段）
+    if (!state.hiddenDoorOpen) {
+      // 显示门（标记为可见时）
+      ctx.fillStyle = 'rgba(232, 185, 85, 0.25)';
+      ctx.fillRect(36, 200, 24, 100);
+      ctx.strokeStyle = '#c08648';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(36, 200, 24, 100);
+    } else {
+      // 走廊照明
+      const lit = `rgba(255, 220, 120, ${0.20 + 0.10 * Math.sin(now / 200)})`;
+      ctx.fillStyle = lit;
+      ctx.fillRect(36, 200, 24, 100);
+    }
+
+    // Spinner 视觉：水平叶片，随 spinnerSpin 旋转
+    ctx.save();
+    ctx.translate(SPINNER_X, SPINNER_Y);
+    ctx.rotate(state.spinnerSpin);
+    ctx.strokeStyle = '#e8b955';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-16, 0); ctx.lineTo(16, 0); ctx.stroke();
+    ctx.fillStyle = '#5a3a20';
+    ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    // spinner 衰减旋转
+    state.spinnerSpin *= 0.95;
+    // hits 计数
+    if (state.spinnerHits > 0) {
+      ctx.fillStyle = 'rgba(255, 220, 120, 0.65)';
+      ctx.font = '10px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('SPIN ×' + state.spinnerHits, SPINNER_X, SPINNER_Y + 22);
+    }
+  }
+
+  function paintForeground(ctx, now) {
+    if (state.multiballActive) {
+      ctx.fillStyle = `rgba(255, 220, 120, ${0.06 + 0.04 * Math.sin(now / 100)})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  const canvas = document.getElementById('pbCanvas');
+  game = PinballCore.createGame({
+    canvas, designW: W, designH: H, id: 'temple',
+    totalBalls: 1,
+    drainY: 626, drainXRange: [100, 442],
+    physics: { gravity: 1100, airDrag: 0.999, substeps: 8, maxSpeed: 1400, ballRadius: 9 },
+    plunger: { x: 458, restY: 600, laneLeft: 442, laneRight: 474, maxCharge: 1.0, chargeRate: 1.6, maxVel: 1500, minVel: 520 },
+    flippers: [
+      { pivot: { x: 158, y: 590 }, length: 70, thick: 7, restDeg: 25, upDeg: -32, side: 'L' },
+      { pivot: { x: 332, y: 590 }, length: 70, thick: 7, restDeg: 180 - 25, upDeg: 180 - (-32), side: 'R' },
+    ],
+    walls, bumpers, pegs, slings,
+    triggers: CHEST_TRIGGERS,
+    hud: {
+      score: document.getElementById('pbScore'),
+      best: document.getElementById('pbBest'),
+      goalBar: document.getElementById('pbGoal'),
+      chargeBar: document.getElementById('pbChargeBar'),
+      launchHint: document.getElementById('pbLaunchHint'),
+      overlay: document.getElementById('pbOverlay'),
+      overlayTitle: document.getElementById('pbOvTitle'),
+      overlayMsg: document.getElementById('pbOvMsg'),
+      overlayBtn: document.getElementById('pbOvBtn'),
+      pauseBtn: document.getElementById('pbPauseBtn'),
+      newBtn: document.getElementById('pbNewBtn'),
+      flipLBtn: document.getElementById('pbFlipL'),
+      flipRBtn: document.getElementById('pbFlipR'),
+      plungerBtn: document.getElementById('pbPlungerBtn'),
+    },
+    render: { paintBackground, paintMidLayer, paintForeground, wallColor: '#5a3a20' },
+    store: { key: 'tool.pinball-temple.v1' },
+    shell: {
+      gameId: 'pinball-temple',
+      title: '弹珠机·黄金神庙',
+      emoji: '🏛️',
+      rankRow: document.getElementById('pb-rank-row'),
+      lbMount: document.getElementById('pb-lb-mount'),
+      lbTitle: '🏆 黄金神庙 排行榜',
+      commentsMount: document.getElementById('pb-cm-mount'),
+      commentsPath: '/toolbox/pinball/temple/',
+      commentsTitle: '💬 神庙玩家交流',
+      commentsIntro: '聊聊你的宝箱集齐 / Temple Awakens 心得 ~',
+      commentsPlaceholder: '聊聊心得 ~',
+      nickMount: document.getElementById('pb-nick-mount'),
+      settleBtnMount: document.getElementById('pb-settle-btn-mount'),
+      extraSubmit: () => ({ chestsOpen: state.chestsOpen.filter(x => x).length, spinnerHits: state.spinnerHits }),
+      statsBuilder: (s) => [
+        { label: '宝箱开启', value: state.chestsOpen.filter(x => x).length + '/3' },
+        { label: 'Spinner 命中', value: state.spinnerHits },
+        { label: '历史最高', value: Number(s.best || 0).toLocaleString() },
+      ],
+      watermark: 'zirconeey.github.io/toolbox/pinball/temple',
+    },
+    hooks: {
+      onStart: () => { rebuildState(); updateGoal(); },
+      onTick: (dt, now) => {
+        if (state.multiballActive && now >= state.multiballEnd) endMultiball();
+        if (state.multiballActive) updateGoal();
+      },
+    },
+  });
+
+  updateGoal();
+})();
+</script>

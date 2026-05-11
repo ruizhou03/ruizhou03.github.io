@@ -98,9 +98,9 @@
   status: live
 
 - id: pinball
-  name: 弹珠机
+  name: 弹珠厅
   icon: 🎱
-  tagline: 太空军校生致敬
+  tagline: 4 桌 · multiball · combo
   url: /toolbox/pinball/
   category: 游戏
   subcategory: 单人小游戏
