@@ -1040,11 +1040,15 @@ permalink: /toolbox/fruit-ninja/
       vx = (targetX - x) / dt + (Math.random() - 0.5) * 80;
     }
     let type = FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
-    // burst / pinata 大波次不混炸弹（经典 Fruit Ninja 同款约定）；
-    // 炸弹只出现在 normal phase 的单/双果里
+    // 炸弹概率按当前 Director act 调制（fan 形态——burst/pinata/climax——不出炸弹）
     if (state.mode !== 'zen' && !opts.fan) {
-      let bombP = 0.07;
-      if (state.mode === 'endless') bombP += endlessFactor() * 0.006;
+      let bombP = 0;
+      const act = Director.act;
+      if (act === 'Calm') bombP = 0.02;
+      else if (act === 'Flow') bombP = 0.06;
+      else if (act === 'Tension') bombP = 0.14;
+      // Climax: no bombs（让玩家放心连切）
+      if (state.mode === 'endless') bombP += endlessFactor() * 0.005;
       if (Math.random() < bombP) type = 'bomb';
     }
     const r = (type === 'watermelon') ? 38 : (type === 'kiwi') ? 32 : 30;
@@ -1059,89 +1063,127 @@ permalink: /toolbox/fruit-ninja/
     });
   }
 
-  // phase 状态机
-  let spawnPhase = 'normal';        // 'normal' | 'lull'
-  let nextEventAt = 0;
-  let lastBurstAt = -Infinity;
-  let lastPinataAt = -Infinity;
-
-  function scheduleNextNormal(now) {
-    const elapsed = (now - state.runStartedAt) / 1000;
-    let interval = 1100 - Math.min(elapsed * 4, 280);
-    if (state.mode === 'endless') {
-      // 每升 1 阶 spawn 间隔 ×0.93，stage 10 时 ≈0.48，节奏明显加快
-      interval *= Math.pow(0.93, endlessFactor());
-      interval = Math.max(interval, 280);
+  // ============ Director（导演式状态机：4 幕情绪曲线）============
+  // Calm → Flow → Tension → Climax → 循环。每幕固定时长 + 各自的 spawn 风格 +
+  // 炸弹概率梯度。模式适配器在 getModeCfg：zen 跳过 Tension/Climax，
+  // classic 最后 15s 压缩，endless 按 stage 收缩节奏。
+  function getModeCfg(mode) {
+    if (mode === 'zen') {
+      return {
+        actOrder: ['Calm', 'Flow'],
+        durations: { Calm: 5000, Flow: 8000 },
+        spawnK: 1.0,
+      };
     }
-    interval *= 0.8 + Math.random() * 0.4;
-    if (state.mode === 'zen') interval = Math.max(interval, 700);
-    nextEventAt = now + interval;
+    if (mode === 'endless') {
+      return {
+        actOrder: ['Calm', 'Flow', 'Tension', 'Climax'],
+        durations: { Calm: 3500, Flow: 9000, Tension: 5500, Climax: 4500 },
+        spawnK: 1.0,
+      };
+    }
+    // classic / arcade
+    return {
+      actOrder: ['Calm', 'Flow', 'Tension', 'Climax'],
+      durations: { Calm: 4000, Flow: 10000, Tension: 5500, Climax: 4000 },
+      spawnK: 1.0,
+    };
   }
 
-  function spawnNormalGroup(now) {
-    const groupSize = 1 + (Math.random() < 0.30 ? 1 : 0);
-    for (let i = 0; i < groupSize; i++) {
-      setTimeout(() => {
-        if (!state.running || state.paused || state.over) return;
-        spawnOne(gameNow());
-      }, i * 100);
-    }
-  }
+  const Director = {
+    act: 'Calm',
+    actStartedAt: 0,
+    actDuration: 4000,
+    nextSpawnAt: 0,
+    modeCfg: null,
 
-  function triggerBurst(now) {
-    lastBurstAt = now;
-    const count = 4 + Math.floor(Math.random() * 3);   // 4-6
-    for (let i = 0; i < count; i++) {
-      setTimeout(() => {
-        if (!state.running || state.paused || state.over) return;
-        spawnOne(gameNow(), { fanIndex: i, fanTotal: count, fan: 'burst' });
-      }, i * 70);
-    }
-    spawnPhase = 'lull';
-    nextEventAt = now + count * 70 + 1500;
-  }
+    reset(mode) {
+      this.modeCfg = getModeCfg(mode);
+      this.act = this.modeCfg.actOrder[0];
+      this.actStartedAt = 0;
+      this.actDuration = this.modeCfg.durations[this.act];
+      this.nextSpawnAt = 800;   // 0.8s 后第一个水果
+    },
 
-  function triggerPinata(now) {
-    lastPinataAt = now;
-    const count = 9 + Math.floor(Math.random() * 4);   // 9-12
-    for (let i = 0; i < count; i++) {
-      setTimeout(() => {
-        if (!state.running || state.paused || state.over) return;
-        spawnOne(gameNow(), { fanIndex: i, fanTotal: count, fan: 'pinata' });
-      }, i * 80);
-    }
-    spawnPhase = 'lull';
-    nextEventAt = now + count * 80 + 2200;
-    showPopup(LOG_W / 2, LOG_H * 0.25, '🎆 来了！', '#ff7878', true);
-  }
+    effectiveSpawnK() {
+      let k = this.modeCfg.spawnK;
+      if (state.mode === 'endless') k *= Math.pow(0.93, endlessFactor());
+      if (state.mode === 'classic' && state.timeLeft <= 15 && state.timeLeft > 0) k *= 0.72;
+      return Math.max(0.35, k);
+    },
 
-  function tickSpawn(now) {
-    if (now < nextEventAt) return;
-    if (spawnPhase === 'lull') {
-      spawnPhase = 'normal';
-      scheduleNextNormal(now);
-      return;
-    }
-    const elapsed = (now - state.runStartedAt) / 1000;
-    const sf = state.mode === 'endless' ? endlessFactor() : 0;
-    // pinata：经典/街机 22s 后；endless 12s 起，stage 升级时间隔变短
-    const pinataReady = state.mode === 'endless' ? elapsed > 12 : elapsed > 22;
-    const pinataGap = Math.max(12000, 26000 - sf * 1500);
-    const pinataP = Math.min(0.45, 0.20 + sf * 0.025);
-    if (pinataReady && now - lastPinataAt > pinataGap && Math.random() < pinataP) {
-      triggerPinata(now);
-      return;
-    }
-    // burst：每 ~9s 有概率（endless 越往后越频繁）
-    const burstGap = Math.max(4500, 9000 - sf * 500);
-    const burstP = Math.min(0.6, 0.32 + sf * 0.025);
-    if (now - lastBurstAt > burstGap && Math.random() < burstP) {
-      triggerBurst(now);
-      return;
-    }
-    spawnNormalGroup(now);
-    scheduleNextNormal(now);
-  }
+    advance(now) {
+      const order = this.modeCfg.actOrder;
+      const idx = order.indexOf(this.act);
+      this.act = order[(idx + 1) % order.length];
+      this.actStartedAt = now;
+      this.actDuration = this.modeCfg.durations[this.act];
+      // Climax 入场触发柔和 slow-mo（让全屏 fan 看得清）
+      if (this.act === 'Climax') {
+        const until = now + 1200;
+        if (until > state.slowMoUntil) {
+          state.slowMoUntil = until;
+          state.slowMoFactor = Math.min(state.slowMoFactor || 1, 0.78);
+        }
+        showPopup(LOG_W / 2, LOG_H * 0.24, '🎆 来了！', '#ff90d0', true);
+      }
+      this.nextSpawnAt = now + (this.act === 'Calm' ? 700 : 250);
+    },
+
+    spawn(now) {
+      const k = this.effectiveSpawnK();
+      const act = this.act;
+      if (act === 'Calm') {
+        // 1-2 个慢水果，单飞抛物线
+        spawnOne(now);
+        this.nextSpawnAt = now + (1300 + Math.random() * 700) * k;
+      } else if (act === 'Flow') {
+        const group = 1 + (Math.random() < 0.40 ? 1 : 0);
+        for (let i = 0; i < group; i++) {
+          setTimeout(() => {
+            if (state.running && !state.paused && !state.over) spawnOne(gameNow());
+          }, i * 90);
+        }
+        this.nextSpawnAt = now + (700 + Math.random() * 400) * k;
+      } else if (act === 'Tension') {
+        // 小型 burst（3-4 fan）+ 炸弹混入
+        if (Math.random() < 0.42) {
+          const count = 3 + Math.floor(Math.random() * 2);
+          for (let i = 0; i < count; i++) {
+            setTimeout(() => {
+              if (state.running && !state.paused && !state.over) {
+                spawnOne(gameNow(), { fanIndex: i, fanTotal: count, fan: 'burst' });
+              }
+            }, i * 75);
+          }
+          this.nextSpawnAt = now + count * 75 + (850 + Math.random() * 350) * k;
+        } else {
+          spawnOne(now);
+          this.nextSpawnAt = now + (550 + Math.random() * 350) * k;
+        }
+      } else if (act === 'Climax') {
+        // 大型 fan formation：7-11 水果齐发
+        const count = 7 + Math.floor(Math.random() * 5);
+        for (let i = 0; i < count; i++) {
+          setTimeout(() => {
+            if (state.running && !state.paused && !state.over) {
+              spawnOne(gameNow(), { fanIndex: i, fanTotal: count, fan: 'pinata' });
+            }
+          }, i * 75);
+        }
+        // 整个 climax 一次发完即可，剩余时间留给玩家爽切
+        this.nextSpawnAt = now + this.actDuration + 1000;
+      }
+    },
+
+    tick(now) {
+      if (now - this.actStartedAt >= this.actDuration) {
+        this.advance(now);
+        return;
+      }
+      if (now >= this.nextSpawnAt) this.spawn(now);
+    },
+  };
 
   // ============ 切片检测 ============
   function segCircleHit(a, b, cx, cy, r) {
@@ -1456,7 +1498,7 @@ permalink: /toolbox/fruit-ninja/
     if (trail.length > 14) trail.splice(0, trail.length - 14);
 
     checkSlices(gameNowMs);
-    tickSpawn(gameNowMs);
+    Director.tick(gameNowMs);
   }
 
   function onMissed(f) {
@@ -1758,10 +1800,7 @@ permalink: /toolbox/fruit-ninja/
     sparks = [];
     clearStains();
     flashUntil = 0;
-    spawnPhase = 'normal';
-    nextEventAt = 600;           // game-time 0.6s 后第一个水果
-    lastBurstAt = -Infinity;
-    lastPinataAt = -Infinity;
+    Director.reset(mode);
     state.stage = 1;
     state.stageStartedAt = 0;
     state.cameraPunchAt = 0;
