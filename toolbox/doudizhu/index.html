@@ -1111,12 +1111,22 @@ permalink: /toolbox/doudizhu/
   }
 
   /* ======== 抢 / 加倍 决策面板 ======== */
+  /* 用 visibility 而非 display:none —— 始终保留布局占位，避免画幅跳变 */
+  .ddz-bid-panel[hidden] {
+    display: block !important;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    /* 仍然占据 min-height 的空间，使桌面高度稳定 */
+  }
   .ddz-bid-panel {
     position: relative;
     margin: 0.6rem auto;
     padding: 0.7rem 1rem 0.85rem;
     text-align: center;
     max-width: 460px;
+    min-height: 130px;            /* 给 panel 预留固定高度，防止收起时 table 高度跳动 */
+    transition: opacity 0.18s ease;
     background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
     border: 1px solid var(--ddz-frame-2);
     border-radius: 10px;
@@ -1362,10 +1372,41 @@ permalink: /toolbox/doudizhu/
     .ddz-overlay h2 { font-size: 1.5rem; }
     .ddz-double-cell { min-width: 60px; padding: 0.3rem 0.4rem; }
   }
+
+  /* 手机竖屏：地主 20 张牌一行放不下 → 允许换行多行展示 */
+  @media (max-width: 600px) and (orientation: portrait) {
+    .ddz-hand {
+      flex-wrap: wrap;
+      overflow-x: visible;
+      justify-content: center;
+      row-gap: 8px;
+    }
+    /* wrap 后第一张卡需要按 row 起始抹掉 negative margin —— 用 padding-left 补 */
+    .ddz-hand .ddz-card.size-full:first-child { margin-left: 0; }
+    /* group-start 间隔在多行下保留较小 */
+    .ddz-hand .ddz-card.size-full.group-start { margin-left: 6px; }
+  }
+
+  /* 全屏按钮 chip（左上方，对称音效 chip） */
+  .ddz-fullscreen-toggle {
+    position: absolute; top: 0.6rem; left: 0.6rem;
+    padding: 0.28rem 0.65rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-muted);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.18s;
+  }
+  .ddz-fullscreen-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .ddz-fullscreen-toggle.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
 </style>
 
 <div class="ddz-wrap">
   <header>
+    <button type="button" class="ddz-fullscreen-toggle" id="ddzFullscreenToggle" title="切换全屏">⛶ 全屏</button>
     <button type="button" class="ddz-sfx-toggle" id="ddzSfxToggle" title="切换音效">🔇 静音</button>
     <h1>🃏 斗地主</h1>
     <div class="sub">单挑两个 AI · 经典三人扑克 · 三档难度</div>
@@ -1390,6 +1431,9 @@ permalink: /toolbox/doudizhu/
       <div style="margin-top: 0.6rem; display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap;">
         <button class="ddz-btn primary" id="ddzStartBtn" type="button">🎮 开始游戏</button>
         <button class="ddz-btn" id="ddzDeclareStartBtn" type="button" title="开局直接当地主，倍数 ×5">🎴 明牌开始 ×5</button>
+      </div>
+      <div style="margin-top: 0.5rem;">
+        <button class="ddz-btn" id="ddzGroupSortToggle" type="button" title="按可能的牌型自动分组排列手牌">🧩 智能分组：关</button>
       </div>
     </div>
 
@@ -1825,6 +1869,27 @@ permalink: /toolbox/doudizhu/
 
   $('ddzStartBtn').addEventListener('click', () => startNewGame());
   $('ddzDeclareStartBtn').addEventListener('click', () => startNewGame({ declareStart: true }));
+  // 智能分组开关
+  refreshGroupSortToggle();
+  $('ddzGroupSortToggle').addEventListener('click', () => setGroupSortEnabled(!groupSortEnabled));
+  // 全屏切换
+  const fsBtn = $('ddzFullscreenToggle');
+  function refreshFsBtn() {
+    if (!fsBtn) return;
+    const on = !!document.fullscreenElement;
+    fsBtn.classList.toggle('on', on);
+    fsBtn.textContent = on ? '⛶ 退出全屏' : '⛶ 全屏';
+  }
+  if (fsBtn) {
+    fsBtn.addEventListener('click', async () => {
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else await document.documentElement.requestFullscreen();
+      } catch (e) { console.warn('fullscreen', e); }
+      refreshFsBtn();
+    });
+    document.addEventListener('fullscreenchange', refreshFsBtn);
+  }
   $('ddzPlayAgainBtn').addEventListener('click', () => {
     gameOverOverlay.classList.remove('show', 'has-spring');
     startNewGame();
@@ -1981,20 +2046,20 @@ permalink: /toolbox/doudizhu/
   function renderHand() {
     handEl.innerHTML = '';
     if (!state.hands[0].length) return;
-    const arranged = arrangeHandByGroups(state.hands[0]);
+    // 是否启用智能分组（默认关，玩家自己排）— setup 屏 toggle 可开
+    const useGroups = !!groupSortEnabled;
+    const arranged = useGroups
+      ? arrangeHandByGroups(state.hands[0])
+      : sortHandDesc(state.hands[0]).map((c, i) => ({ card: c, groupId: 0, isStart: false }));
     const { bombRanks } = identifyKeyCards(state.hands[0]);
     arranged.forEach((item) => {
       const c = item.card;
       const cardEl = buildCardEl(c, 'size-full', { cid: c, selected: state.selected.has(c) });
-      // 关键牌视觉权重
       const w = E.cardWeight(c);
-      if (w === 12) cardEl.classList.add('is-key-2');         // 单张 2
+      if (w === 12) cardEl.classList.add('is-key-2');
       if (bombRanks.has(w)) cardEl.classList.add('is-key-bomb');
-      // 组首：加左侧间隔（覆盖默认负 margin overlap）
       if (item.isStart) cardEl.classList.add('group-start');
-      // 拖动 / 选牌
       cardEl.addEventListener('pointerdown', e => onCardPointerDown(e, cardEl, c));
-      // hover 预览：仅 mouse；touch 不触发
       cardEl.addEventListener('mouseenter', () => {
         if (!canSelectCards()) return;
         if (state.selected.has(c)) return;
@@ -2003,6 +2068,23 @@ permalink: /toolbox/doudizhu/
       cardEl.addEventListener('mouseleave', () => cardEl.classList.remove('hover-preview'));
       handEl.appendChild(cardEl);
     });
+  }
+
+  // 智能分组开关（默认关；玩家可在 setup 屏 toggle）
+  const GROUP_SORT_KEY = 'tool.doudizhu.groupSort.v1';
+  let groupSortEnabled = false;
+  try { groupSortEnabled = localStorage.getItem(GROUP_SORT_KEY) === '1'; } catch {}
+  function setGroupSortEnabled(b) {
+    groupSortEnabled = !!b;
+    try { localStorage.setItem(GROUP_SORT_KEY, groupSortEnabled ? '1' : '0'); } catch {}
+    if (state.hands[0] && state.hands[0].length) renderHand();
+    refreshGroupSortToggle();
+  }
+  function refreshGroupSortToggle() {
+    const btn = document.getElementById('ddzGroupSortToggle');
+    if (!btn) return;
+    btn.classList.toggle('on', groupSortEnabled);
+    btn.textContent = groupSortEnabled ? '🧩 智能分组：开' : '🧩 智能分组：关';
   }
 
   // ============================================================
@@ -2037,7 +2119,7 @@ permalink: /toolbox/doudizhu/
     if (dragLastCid !== null) dragMoved = true;
     dragLastCid = cid;
     if (dragMode === 'add') state.selected.add(cid);
-    else state.selected.delete(cid);
+    else { state.selected.delete(cid); snapLockedThisTrick = true; }   // 任何"取消"动作 → 锁
     cardEl.classList.toggle('selected', state.selected.has(cid));
     playSfx('click');
     updatePlayBtnState();
@@ -2078,15 +2160,11 @@ permalink: /toolbox/doudizhu/
   document.addEventListener('pointercancel', endDragSelect);
 
   // 智能补全：把当前选中"吸附"到最接近的合法牌型
-  // 规则：
-  //   1. 当前选中本身合法 → 不动
-  //   2. 候选 P 必须满足 overlap ≥ 选中数 × 0.5
-  //   3. 纯扩展（pattern ⊃ 选中）：dist ≤ 4 → 吸附（补全用户漏选）
-  //   4. 纯收缩（pattern ⊂ 选中）：dist ≤ 3 且 pattern.size ≥ 3 → 吸附（去掉冗余）
-  //   5. 混合改：dist ≤ 2 且 overlap ≥ 0.6 × 选中数 → 吸附
-  // 多个候选并列：按 (dist 升 → pattern.size 降 → weight 升) 选第一
+  // 规则同前；但加 lock —— 用户做过"取消选中" / 已经吸附过一次后，本 trick 内不再触发
   let snapTimer = null;
+  let snapLockedThisTrick = false;        // 本 trick 内是否已锁（用户操作过 → 听玩家）
   function scheduleSmartSnap(delayMs) {
+    if (snapLockedThisTrick) return;
     if (snapTimer) clearTimeout(snapTimer);
     snapTimer = setTimeout(() => { snapTimer = null; smartSnap(); }, delayMs == null ? 280 : delayMs);
   }
@@ -2128,10 +2206,11 @@ permalink: /toolbox/doudizhu/
     if (!best) return;
     state.selected.clear();
     for (const c of best.cards) state.selected.add(c);
+    snapLockedThisTrick = true;          // 自动补全过一次就锁，剩下听玩家
     renderHand();
     updatePlayBtnState();
     if (state.phase === PHASE.PLAYING && state.turnIdx === 0) {
-      setStatus('已自动补全为：' + describePattern(best));
+      setStatus('已自动补全为：' + describePattern(best) + '（之后听你调整）');
     }
   }
 
@@ -2882,8 +2961,7 @@ permalink: /toolbox/doudizhu/
     else pruneSelectedToHand();               // 但要确保选中的还在我手里
     resetHintCycle();
     renderPlayedAt(seat, pattern);
-    spawnMicroRing(seat);                        // B2 涟漪
-    flyCardsTo(seat, pattern.cards);             // A4 飞牌
+    flyCardsTo(seat, pattern.cards);             // A4 飞牌（去掉了涟漪）
     playSfx(pattern.type === T.BOMB ? 'bomb' :
             pattern.type === T.ROCKET ? 'rocket' : 'play');
     if (seat === 0) renderHand();
@@ -2944,6 +3022,7 @@ permalink: /toolbox/doudizhu/
     state.hintCycle = [];
     state.hintIdx = -1;
     state.hintForPrev = null;
+    snapLockedThisTrick = false;        // trick 切换 → 解锁智能补全
   }
 
   // prev 牌型签名（决定提示候选是否需要重算）
@@ -3789,7 +3868,6 @@ permalink: /toolbox/doudizhu/
         );
         if (isNewPlay) {
           flyCardsTo(state.lastTrick.seat, state.lastTrick.pattern.cards);
-          spawnMicroRing(state.lastTrick.seat);
           const ptype = state.lastTrick.pattern.type;
           playSfx(ptype === T.BOMB ? 'bomb' :
                   ptype === T.ROCKET ? 'rocket' : 'play');
