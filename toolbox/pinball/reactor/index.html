@@ -456,11 +456,13 @@ permalink: /toolbox/pinball/reactor/
     },
     hooks: {
       onStart: (s, g) => {
+        game = g;
         rebuildState();
         state._balls = s.balls;
         updateGoal();
       },
       onBuild: (env, s, g) => {
+        game = g;
         state._balls = s.balls;
       },
       onBumperHit: (bp, now, g, ball) => {

@@ -346,7 +346,7 @@ permalink: /toolbox/pinball/pachinko/
       watermark: 'zirconeey.github.io/toolbox/pinball/pachinko',
     },
     hooks: {
-      onStart: () => { rebuildState(); updateGoal(); },
+      onStart: (s, g) => { game = g; rebuildState(); updateGoal(); },
       onTick: (dt, now) => {
         if (state.multiballActive && now >= state.multiballEnd) endMultiball();
         if (state.multiballActive) updateGoal();

@@ -370,7 +370,7 @@ permalink: /toolbox/pinball/cyber/
       watermark: 'zirconeey.github.io/toolbox/pinball/cyber',
     },
     hooks: {
-      onStart: () => { rebuildState(); updateGoal(); },
+      onStart: (s, g) => { game = g; rebuildState(); updateGoal(); },
       onBumperHit: (b, now) => { bumpCombo(now); updateGoal(); },
       onPegHit: (p, now) => { /* peg 不算 combo，避免太轻松 */ },
       onTick: (dt, now) => {
