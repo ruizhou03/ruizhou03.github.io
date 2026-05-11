@@ -55,7 +55,7 @@ permalink: /toolbox/fruit-ninja/
   .hud .combo { color: #ffd95a; }
   .hud .combo.hidden { visibility: hidden; }
 
-  .pause-btn, .mute-btn {
+  .pause-btn, .mute-btn, .perf-btn {
     position: absolute;
     top: 0.6rem;
     background: rgba(0, 0, 0, 0.4);
@@ -74,7 +74,15 @@ permalink: /toolbox/fruit-ninja/
     min-width: 2.2rem;
     text-align: center;
   }
-  .pause-btn:hover, .mute-btn:hover { background: rgba(0, 0, 0, 0.6); }
+  .perf-btn {
+    right: 3.5rem;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.82);
+    font-family: var(--font-display, Georgia, serif);
+  }
+  .pause-btn:hover, .mute-btn:hover, .perf-btn:hover { background: rgba(0, 0, 0, 0.6); }
 
   .mode-select {
     text-align: center;
@@ -216,6 +224,7 @@ permalink: /toolbox/fruit-ninja/
     </div>
     <button class="pause-btn" id="pause-btn" type="button">暂停</button>
     <button class="mute-btn" id="mute-btn" type="button" aria-label="静音切换">🔊</button>
+    <button class="perf-btn" id="perf-btn" type="button" aria-label="性能档位">AUTO</button>
 
     <div class="overlay" id="paused-overlay" hidden>
       <div class="overlay-card">
@@ -646,6 +655,7 @@ permalink: /toolbox/fruit-ninja/
   });
   const rankRow = document.getElementById('rank-row');
   const muteBtn = document.getElementById('mute-btn');
+  const perfBtn = document.getElementById('perf-btn');
 
   function syncMuteBtn() {
     if (!muteBtn) return;
@@ -658,6 +668,20 @@ permalink: /toolbox/fruit-ninja/
       syncMuteBtn();
     });
   }
+
+  function updatePerfBtn() {
+    if (!perfBtn) return;
+    const label = Perf.manual ? Perf.tier.toUpperCase() : 'AUTO·' + Perf.tier.toUpperCase();
+    perfBtn.textContent = label;
+  }
+  if (perfBtn) {
+    perfBtn.addEventListener('click', () => {
+      Perf.cycleManual();
+      updatePerfBtn();
+    });
+  }
+  Perf.init();
+  updatePerfBtn();
 
   // ============ Logical canvas size ============
   // portrait 2:3，手机利用更多屏幕高度；桌面 max-width 600
@@ -903,10 +927,75 @@ permalink: /toolbox/fruit-ninja/
     try { navigator.vibrate(pattern); } catch (e) {}
   }
 
+  // ============ 性能分级（FPS EMA → tier auto-demote）============
+  // 三档：high（全开）/ med（无 stains + 粒子 0.6× + 刀痕去 cyan glow）
+  //      / low（再去 magenta 中层 + 关 stains + 关 camera punch + 关 shake）
+  // EMA < 48 持续 2s 自动降级；不自动升级（避免抖动）；用户手动按钮可强制覆盖。
+  const Perf = {
+    fpsEma: 60,
+    badStreakMs: 0,
+    autoTier: 'high',
+    tier: 'high',
+    manual: false,
+
+    init() {
+      if (reducedMotion) {
+        this.autoTier = 'med';
+        this.tier = 'med';
+      }
+      this.applyTier();
+    },
+
+    tick(dtWallMs) {
+      if (dtWallMs <= 0 || dtWallMs > 200) return;
+      const inst = 1000 / dtWallMs;
+      this.fpsEma = this.fpsEma * 0.94 + inst * 0.06;
+      if (this.manual) return;
+      if (this.fpsEma < 48) {
+        this.badStreakMs += dtWallMs;
+        if (this.badStreakMs > 2000) {
+          const next = this.autoTier === 'high' ? 'med'
+            : this.autoTier === 'med' ? 'low'
+            : 'low';
+          if (next !== this.autoTier) {
+            this.autoTier = next;
+            this.tier = next;
+            this.applyTier();
+            updatePerfBtn();
+          }
+          this.badStreakMs = 0;
+        }
+      } else {
+        this.badStreakMs = Math.max(0, this.badStreakMs - dtWallMs * 0.5);
+      }
+    },
+
+    cycleManual() {
+      // auto → high → med → low → auto
+      if (!this.manual) {
+        this.manual = true;
+        this.tier = 'high';
+      } else if (this.tier === 'high') {
+        this.tier = 'med';
+      } else if (this.tier === 'med') {
+        this.tier = 'low';
+      } else {
+        this.manual = false;
+        this.tier = this.autoTier;
+      }
+      this.applyTier();
+    },
+
+    applyTier() {
+      stainsEnabled = (this.tier !== 'low');
+    },
+  };
+
   // ============ 屏幕震动 ============
   const shake = { x: 0, y: 0, startWall: 0, until: 0, strength: 0, durMs: 0 };
   function triggerShake(strength, ms) {
     if (reducedMotion) return;
+    if (Perf.tier === 'low') return;
     const wall = performance.now();
     // 已有震动且更强时不打断；新震动更强则覆盖
     if (wall >= shake.until || strength * (1 - (wall - shake.startWall) / shake.durMs) < strength) {
@@ -1371,7 +1460,10 @@ permalink: /toolbox/fruit-ninja/
 
   function spawnJuice(f, angle) {
     const def = FRUIT_PARTICLES[f.type] || FRUIT_PARTICLES.apple;
-    for (let i = 0; i < def.count; i++) {
+    let count = def.count;
+    if (Perf.tier === 'med') count = Math.floor(count * 0.6);
+    else if (Perf.tier === 'low') count = Math.floor(count * 0.35);
+    for (let i = 0; i < count; i++) {
       const pt = pickParticleType(def.types);
       // 沿切割角度偏移 ±π/2，强调"裂开"方向
       const a = angle + (Math.random() - 0.5) * Math.PI * 1.05;
@@ -1549,26 +1641,33 @@ permalink: /toolbox/fruit-ninja/
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // 外层 cyan glow（additive blending）
-    ctx.globalCompositeOperation = 'lighter';
-    for (const s of segs) {
-      ctx.strokeStyle = 'rgba(0, 220, 255, ' + (s.alpha * 0.30).toFixed(3) + ')';
-      ctx.lineWidth = 17 * s.alpha * s.speedK;
-      ctx.beginPath();
-      ctx.moveTo(s.a.x, s.a.y);
-      ctx.lineTo(s.b.x, s.b.y);
-      ctx.stroke();
+    const tier = Perf.tier;
+
+    // 外层 cyan glow（仅 high）
+    if (tier === 'high') {
+      ctx.globalCompositeOperation = 'lighter';
+      for (const s of segs) {
+        ctx.strokeStyle = 'rgba(0, 220, 255, ' + (s.alpha * 0.30).toFixed(3) + ')';
+        ctx.lineWidth = 17 * s.alpha * s.speedK;
+        ctx.beginPath();
+        ctx.moveTo(s.a.x, s.a.y);
+        ctx.lineTo(s.b.x, s.b.y);
+        ctx.stroke();
+      }
     }
-    // 中层 magenta（additive）
-    for (const s of segs) {
-      ctx.strokeStyle = 'rgba(255, 90, 210, ' + (s.alpha * 0.55).toFixed(3) + ')';
-      ctx.lineWidth = 7.5 * s.alpha * s.speedK;
-      ctx.beginPath();
-      ctx.moveTo(s.a.x, s.a.y);
-      ctx.lineTo(s.b.x, s.b.y);
-      ctx.stroke();
+    // 中层 magenta（high + med）
+    if (tier !== 'low') {
+      ctx.globalCompositeOperation = 'lighter';
+      for (const s of segs) {
+        ctx.strokeStyle = 'rgba(255, 90, 210, ' + (s.alpha * 0.55).toFixed(3) + ')';
+        ctx.lineWidth = 7.5 * s.alpha * s.speedK;
+        ctx.beginPath();
+        ctx.moveTo(s.a.x, s.a.y);
+        ctx.lineTo(s.b.x, s.b.y);
+        ctx.stroke();
+      }
     }
-    // 核心白色锐线（普通混合）
+    // 核心白色锐线（所有档）
     ctx.globalCompositeOperation = 'source-over';
     for (const s of segs) {
       ctx.strokeStyle = 'rgba(255, 255, 255, ' + (s.alpha * 0.95).toFixed(3) + ')';
@@ -1659,8 +1758,9 @@ permalink: /toolbox/fruit-ninja/
       ctx.translate(shake.x, shake.y);
     }
     // camera punch：切中瞬间镜头微推 1.04×，200ms 内缓动回零（独立 wall-clock）
+    // 'low' 档跳过（避免移动端额外的 transform 成本）
     let cs = 1.0;
-    if (state.cameraPunchAt) {
+    if (state.cameraPunchAt && Perf.tier !== 'low') {
       const dt = performance.now() - state.cameraPunchAt;
       if (dt < 200) {
         const k = 1 - dt / 200;
@@ -1752,6 +1852,7 @@ permalink: /toolbox/fruit-ninja/
     if (!state.paused) {
       updateTimeScale();
       const dtWall = lastWall ? Math.min(now - lastWall, 50) : 0;
+      Perf.tick(dtWall);
       // hit pause：Time.game 暂停推进，但仍渲染（让玩家看到冻结瞬间）
       const isFrozen = Time.game < Time.frozenUntil;
       const dtGameMs = isFrozen ? 0 : dtWall * Time.scale;
