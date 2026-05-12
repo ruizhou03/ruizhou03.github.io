@@ -207,7 +207,55 @@
 }
 .pb-goal-bar strong { color: var(--pb-accent, var(--color-highlight)); }
 
-/* ─── 弹珠厅 hub 卡片网格 ─── */
+/* ─── 桌台底下切换栏：4 张卡片横排，当前桌台高亮（不可点） ─── */
+.pb-table-picker-label {
+  max-width: 480px;
+  margin: 1.4rem auto 0.3rem;
+  text-align: center;
+  font-size: 0.74rem;
+  color: var(--color-muted);
+  letter-spacing: 0.12em;
+}
+.pb-table-picker {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.45rem;
+  max-width: 480px;
+  margin: 0 auto;
+}
+.pb-table-picker > * {
+  display: block;
+  padding: 0.55rem 0.3rem 0.5rem;
+  background: var(--color-bg-warm);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  text-align: center;
+  text-decoration: none;
+  color: var(--color-ink);
+  font-size: 0.78rem;
+  line-height: 1.25;
+  transition: all 0.18s ease;
+}
+.pb-table-picker a:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  transform: translateY(-2px);
+}
+.pb-table-picker .active {
+  background: var(--pb-accent, var(--color-accent));
+  border-color: var(--pb-accent, var(--color-accent));
+  color: #fff;
+  cursor: default;
+}
+.pb-table-picker .pb-tp-emoji {
+  font-size: 1.35rem;
+  display: block;
+  line-height: 1;
+  margin-bottom: 0.22rem;
+}
+.pb-table-picker .pb-tp-name { font-weight: 600; letter-spacing: 0.02em; }
+
+/* ─── 弹珠厅 hub 卡片网格（旧版 hub 用，本轮已废弃但保留 CSS 以防回滚） ─── */
 .pb-hub-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

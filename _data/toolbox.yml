@@ -98,9 +98,9 @@
   status: live
 
 - id: pinball
-  name: 弹珠厅
+  name: 弹珠机
   icon: 🎱
-  tagline: 4 桌 · multiball · combo
+  tagline: 4 桌随时切 · multiball · combo
   url: /toolbox/pinball/
   category: 游戏
   subcategory: 单人小游戏
