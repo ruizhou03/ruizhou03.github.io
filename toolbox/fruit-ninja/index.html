@@ -95,34 +95,81 @@ permalink: /toolbox/fruit-ninja/
     .perf-btn { right: 5.8rem; padding: 0.2rem 0.4rem; min-width: 1.6rem; font-size: 0.78rem; }
   }
 
-  .mode-select {
-    text-align: center;
-    padding: 1.5rem 0;
-  }
-  .mode-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-    max-width: 640px;
-    margin: 0 auto 1rem;
-  }
-  .mode-card {
+  /* 底部模式切换栏（参考弹珠机的 pb-table-picker 风格）—— 不再走"进游戏前选一个"流程 */
+  .fn-mode-bar {
+    max-width: 600px;
+    margin: 1.2rem auto 0;
+    padding: 0.85rem 1rem 1rem;
     background: var(--color-bg-warm);
     border: 1px solid var(--color-border);
+    border-radius: 14px;
+  }
+  .fn-mode-bar-header {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.55rem; margin-bottom: 0.75rem;
+  }
+  .fn-mode-bar-header::before,
+  .fn-mode-bar-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+  }
+  .fn-mode-bar-header span {
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+  .fn-mode-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+  @media (max-width: 540px) {
+    .fn-mode-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  .fn-mode-tab {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.7rem 0.45rem 0.65rem;
+    background: var(--color-bg);
+    border: 1.5px solid var(--color-border);
     border-radius: 12px;
-    padding: 1.1rem 0.9rem;
     cursor: pointer;
-    transition: all 0.18s ease;
-    text-align: left;
+    font-family: inherit;
+    color: var(--color-ink);
+    text-align: center;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
   }
-  .mode-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  .fn-mode-tab:hover:not(.active) {
     border-color: var(--color-accent);
+    color: var(--color-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14);
   }
-  .mode-card .mc-emoji { display: block; font-size: 1.6rem; margin-bottom: 0.4rem; }
-  .mode-card .mc-name { display: block; font-size: 1.05rem; color: var(--color-ink); font-weight: 600; margin-bottom: 0.2rem; }
-  .mode-card .mc-desc { display: block; font-size: 0.82rem; color: var(--color-muted); line-height: 1.5; }
+  .fn-mode-tab.active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #fff;
+    cursor: default;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+                0 6px 18px -2px color-mix(in srgb, var(--color-accent) 50%, transparent);
+    transform: translateY(-1px);
+  }
+  .fn-mode-tab .emoji { font-size: 1.5rem; line-height: 1; }
+  .fn-mode-tab .name { font-weight: 600; font-size: 0.78rem; letter-spacing: 0.04em; }
+  .fn-mode-desc {
+    margin-top: 0.85rem;
+    text-align: center;
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    padding: 0 0.4rem;
+  }
 
   .overlay {
     position: absolute;
@@ -194,43 +241,7 @@ permalink: /toolbox/fruit-ninja/
     <p class="sub">滑动鼠标 / 手指切水果，避开炸弹</p>
   </header>
 
-  <section id="mode-select" class="mode-select">
-    <div class="mode-cards">
-      <button class="mode-card" type="button" data-mode="classic">
-        <span class="mc-emoji">⏱️</span>
-        <span class="mc-name">经典 60 秒</span>
-        <span class="mc-desc">限时 60 秒，连切水果加奖励分。切到炸弹立即结束。</span>
-      </button>
-      <button class="mode-card" type="button" data-mode="arcade">
-        <span class="mc-emoji">❤️</span>
-        <span class="mc-name">街机三命</span>
-        <span class="mc-desc">无时限，但漏切 3 个或切到炸弹就 game over。</span>
-      </button>
-      <button class="mode-card" type="button" data-mode="endless">
-        <span class="mc-emoji">🔥</span>
-        <span class="mc-name">无尽闯关</span>
-        <span class="mc-desc">每 25 秒升 1 阶，难度无上限。3 命；过 5 / 10 / 15 阶各回 1 命。看你能撑到 Stage 几。</span>
-      </button>
-      <button class="mode-card" type="button" data-mode="zen">
-        <span class="mc-emoji">🧘</span>
-        <span class="mc-name">禅意无炸弹</span>
-        <span class="mc-desc">无失败、无炸弹、纯练连击。比谁单局连击最高。</span>
-      </button>
-      <button class="mode-card" type="button" data-mode="comborush">
-        <span class="mc-emoji">⚡</span>
-        <span class="mc-name">连击狂飙</span>
-        <span class="mc-desc">90 秒。连击只在切到炸弹 / 漏切时重置（松手不清零）。combo² × 10 计分，10+ 触发火焰刀痕。</span>
-      </button>
-      <button class="mode-card" type="button" data-mode="precision">
-        <span class="mc-emoji">🎯</span>
-        <span class="mc-name">精准模式</span>
-        <span class="mc-desc">水果上方有切线提示，沿提示角度（误差 &lt; 20°）切中给 ×3 奖励。水果数减半，每刀都关键。</span>
-      </button>
-    </div>
-    <p class="fn-tips">桌面：按住鼠标拖动切水果 · 手机：手指滑动</p>
-  </section>
-
-  <section id="game-stage" class="fn-stage-wrap" hidden>
+  <section id="game-stage" class="fn-stage-wrap">
     <canvas id="fn-canvas" width="1080" height="1620"></canvas>
     <div class="hud">
       <span class="hud-timer" hidden><span class="label">⏱</span><span data-bind="timer">60</span></span>
@@ -257,12 +268,37 @@ permalink: /toolbox/fruit-ninja/
         <h2 data-bind="go-title">时间到</h2>
         <div class="ov-stats" data-bind="go-stats"></div>
         <button type="button" id="restart-btn">再来一局</button>
-        <button type="button" id="changemode-btn">换模式</button>
+        <p class="fn-tips" style="margin-top:0.7rem; color:rgba(255,255,255,0.55);">换模式 ↓ 用下面的切换栏</p>
       </div>
     </div>
   </section>
 
-  <div class="below-stage" id="below-stage" hidden>
+  <div class="fn-mode-bar">
+    <div class="fn-mode-bar-header"><span>切换模式</span></div>
+    <div class="fn-mode-tabs">
+      <button class="fn-mode-tab active" type="button" data-mode="classic">
+        <span class="emoji">⏱️</span><span class="name">经典 60 秒</span>
+      </button>
+      <button class="fn-mode-tab" type="button" data-mode="arcade">
+        <span class="emoji">❤️</span><span class="name">街机三命</span>
+      </button>
+      <button class="fn-mode-tab" type="button" data-mode="endless">
+        <span class="emoji">🔥</span><span class="name">无尽闯关</span>
+      </button>
+      <button class="fn-mode-tab" type="button" data-mode="zen">
+        <span class="emoji">🧘</span><span class="name">禅意无炸弹</span>
+      </button>
+      <button class="fn-mode-tab" type="button" data-mode="comborush">
+        <span class="emoji">⚡</span><span class="name">连击狂飙</span>
+      </button>
+      <button class="fn-mode-tab" type="button" data-mode="precision">
+        <span class="emoji">🎯</span><span class="name">精准模式</span>
+      </button>
+    </div>
+    <div class="fn-mode-desc" id="fn-mode-desc">限时 60 秒，连切水果加奖励分。切到炸弹立即结束。</div>
+  </div>
+
+  <div class="below-stage" id="below-stage">
     <div class="rank-row" id="rank-row"></div>
     <div id="settle-btn-mount"></div>
     <div id="lb-mount"></div>
@@ -284,30 +320,109 @@ permalink: /toolbox/fruit-ninja/
   // ============ SVG 资产 ============
   // viewBox 80x80，水果中心 (40, 40)，半径约 30
   const SVG = {
+    // 苹果：多段红色 radial 渐变 + 下方黄 blush + 5 条竖向暗纹 + 黄白色雀斑 +
+    //       镜面高光 + 底部凹陷阴影 + 木质茎 + 带叶脉的绿叶。脱离了"红圆球 + 绿三角"emoji 感
     apple_whole:
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">'
-      + '<defs><radialGradient id="a" cx="35%" cy="35%"><stop offset="0" stop-color="#ff8a78"/><stop offset="1" stop-color="#c8202a"/></radialGradient></defs>'
-      + '<path d="M40 76C58 76 70 60 70 44C70 28 58 16 48 16C44 16 42 18 40 20C38 18 36 16 32 16C22 16 10 28 10 44C10 60 22 76 40 76Z" fill="url(#a)"/>'
-      + '<path d="M44 18Q52 10 60 8Q60 16 50 20Z" fill="#5fa83a"/>'
-      + '<rect x="38.5" y="10" width="3" height="8" rx="1" fill="#5d3a1a"/>'
-      + '<ellipse cx="28" cy="32" rx="6" ry="3" fill="#fff" opacity="0.4"/>'
+      + '<defs>'
+        + '<radialGradient id="ab" cx="36%" cy="30%" r="68%">'
+          + '<stop offset="0" stop-color="#ff9080"/>'
+          + '<stop offset="0.22" stop-color="#ff4848"/>'
+          + '<stop offset="0.6" stop-color="#c8202a"/>'
+          + '<stop offset="1" stop-color="#5e0a14"/>'
+        + '</radialGradient>'
+        + '<radialGradient id="ay" cx="62%" cy="64%" r="42%">'
+          + '<stop offset="0" stop-color="#fdc060" stop-opacity="0.5"/>'
+          + '<stop offset="1" stop-color="#fdc060" stop-opacity="0"/>'
+        + '</radialGradient>'
+      + '</defs>'
+      + '<ellipse cx="40" cy="74" rx="22" ry="3" fill="#000" opacity="0.20"/>'
+      + '<path d="M40 76C58 76 71 60 70 42C68 28 56 16 48 16C44 16 41 19 40 20C39 19 36 16 32 16C24 16 12 28 10 42C9 60 22 76 40 76Z" fill="url(#ab)"/>'
+      + '<path d="M40 76C58 76 71 60 70 42C68 28 56 16 48 16C44 16 41 19 40 20C39 19 36 16 32 16C24 16 12 28 10 42C9 60 22 76 40 76Z" fill="url(#ay)"/>'
+      + '<g stroke="#7a0a16" stroke-width="0.55" fill="none" opacity="0.32">'
+        + '<path d="M28 30Q26 50 30 70"/>'
+        + '<path d="M50 28Q52 50 48 70"/>'
+        + '<path d="M40 24Q40 50 40 72"/>'
+        + '<path d="M20 38Q18 56 24 68"/>'
+        + '<path d="M60 38Q62 56 56 70"/>'
+      + '</g>'
+      + '<g fill="#fff4c0" opacity="0.55">'
+        + '<circle cx="46" cy="44" r="0.6"/>'
+        + '<circle cx="52" cy="52" r="0.5"/>'
+        + '<circle cx="42" cy="60" r="0.55"/>'
+        + '<circle cx="56" cy="56" r="0.5"/>'
+        + '<circle cx="32" cy="58" r="0.45"/>'
+        + '<circle cx="24" cy="50" r="0.55"/>'
+        + '<circle cx="38" cy="68" r="0.5"/>'
+        + '<circle cx="52" cy="46" r="0.45"/>'
+        + '<circle cx="28" cy="64" r="0.4"/>'
+        + '<circle cx="48" cy="38" r="0.4"/>'
+      + '</g>'
+      + '<ellipse cx="27" cy="30" rx="9" ry="6" transform="rotate(-25 27 30)" fill="#fff" opacity="0.30"/>'
+      + '<ellipse cx="25" cy="30" rx="4" ry="2.2" transform="rotate(-25 25 30)" fill="#fff" opacity="0.85"/>'
+      + '<ellipse cx="40" cy="73" rx="5.5" ry="1.6" fill="#3a0612" opacity="0.65"/>'
+      + '<path d="M39.5 20L40 12L41 9L40.5 16Z" fill="#4a2810"/>'
+      + '<path d="M40 20L40.5 11" stroke="#7a4a20" stroke-width="0.4" fill="none" opacity="0.7"/>'
+      + '<path d="M41 13Q50 5 60 6Q58 14 50 17Q44 17 41 13Z" fill="#5fa83a"/>'
+      + '<path d="M41 13Q50 5 60 6Q58 14 50 17Q44 17 41 13Z" fill="#000" opacity="0.16"/>'
+      + '<path d="M42 14Q50 10 58 8" stroke="#2a6a1a" stroke-width="0.5" fill="none"/>'
+      + '<path d="M44 14Q48 11 54 11" stroke="#2a6a1a" stroke-width="0.35" fill="none" opacity="0.6"/>'
       + '</svg>',
     apple_half:
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">'
-      + '<path d="M40 16C38 18 36 16 32 16C22 16 10 28 10 44C10 60 22 76 40 76L40 16Z" fill="#c8202a"/>'
-      + '<ellipse cx="32" cy="46" rx="20" ry="26" fill="#fff5dc"/>'
-      + '<ellipse cx="34" cy="34" rx="2" ry="3" transform="rotate(-15 34 34)" fill="#3a2410"/>'
-      + '<ellipse cx="34" cy="56" rx="2" ry="3" transform="rotate(15 34 56)" fill="#3a2410"/>'
-      + '<line x1="40" y1="16" x2="40" y2="76" stroke="#a0181f" stroke-width="1.5"/>'
+      + '<defs>'
+        + '<radialGradient id="ahb" cx="50%" cy="50%" r="60%">'
+          + '<stop offset="0" stop-color="#fff8e0"/>'
+          + '<stop offset="0.65" stop-color="#fde8ba"/>'
+          + '<stop offset="1" stop-color="#caa680"/>'
+        + '</radialGradient>'
+      + '</defs>'
+      + '<path d="M40 16C38 18 36 16 32 16C24 16 12 28 10 42C9 60 22 76 40 76L40 16Z" fill="#9a1018"/>'
+      + '<path d="M38 18C36 20 34 18 30 18.5C24 19 14 30 13 42C12 58 24 74 38 74L38 18Z" fill="url(#ahb)"/>'
+      + '<path d="M32 38Q26 44 32 50Q34 44 32 38Z" fill="#fff5dc" opacity="0.55"/>'
+      + '<ellipse cx="32" cy="40" rx="1.5" ry="2.5" transform="rotate(-12 32 40)" fill="#3a2410"/>'
+      + '<ellipse cx="33" cy="48" rx="1.5" ry="2.5" transform="rotate(12 33 48)" fill="#3a2410"/>'
+      + '<line x1="40" y1="16" x2="40" y2="76" stroke="#b62028" stroke-width="2"/>'
+      + '<line x1="40" y1="16" x2="40" y2="76" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>'
       + '</svg>',
 
+    // 橙子：4 段橙色 radial 渐变 + 30 个橙皮 dimple + 高光 + 顶部凹陷花萼 + 小绿叶 + 底部 occluded 阴影
     orange_whole:
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">'
-      + '<defs><radialGradient id="o" cx="35%" cy="35%"><stop offset="0" stop-color="#ffc068"/><stop offset="1" stop-color="#e8731a"/></radialGradient></defs>'
-      + '<circle cx="40" cy="44" r="30" fill="url(#o)"/>'
-      + '<g fill="#c45a0a"><circle cx="30" cy="36" r="1.2"/><circle cx="50" cy="40" r="1.2"/><circle cx="42" cy="56" r="1.2"/><circle cx="56" cy="50" r="1.2"/><circle cx="22" cy="46" r="1.2"/><circle cx="34" cy="62" r="1.2"/><circle cx="52" cy="28" r="1.2"/></g>'
-      + '<path d="M38 14L40 8L42 14Z" fill="#3a8a2a"/>'
-      + '<ellipse cx="30" cy="32" rx="6" ry="3" fill="#fff" opacity="0.35"/>'
+      + '<defs>'
+        + '<radialGradient id="ob" cx="36%" cy="30%" r="65%">'
+          + '<stop offset="0" stop-color="#ffe09a"/>'
+          + '<stop offset="0.25" stop-color="#ffb858"/>'
+          + '<stop offset="0.6" stop-color="#e8731a"/>'
+          + '<stop offset="1" stop-color="#8a3808"/>'
+        + '</radialGradient>'
+      + '</defs>'
+      + '<ellipse cx="40" cy="74" rx="22" ry="3" fill="#000" opacity="0.20"/>'
+      + '<circle cx="40" cy="44" r="30" fill="url(#ob)"/>'
+      + '<g fill="#9a3808" opacity="0.55">'
+        + '<circle cx="26" cy="32" r="0.7"/><circle cx="32" cy="28" r="0.65"/>'
+        + '<circle cx="38" cy="26" r="0.7"/><circle cx="44" cy="27" r="0.65"/>'
+        + '<circle cx="50" cy="30" r="0.7"/><circle cx="56" cy="34" r="0.65"/>'
+        + '<circle cx="60" cy="40" r="0.7"/><circle cx="62" cy="46" r="0.65"/>'
+        + '<circle cx="60" cy="52" r="0.7"/><circle cx="56" cy="58" r="0.65"/>'
+        + '<circle cx="50" cy="62" r="0.7"/><circle cx="44" cy="64" r="0.65"/>'
+        + '<circle cx="38" cy="64" r="0.7"/><circle cx="32" cy="62" r="0.65"/>'
+        + '<circle cx="26" cy="58" r="0.7"/><circle cx="22" cy="52" r="0.65"/>'
+        + '<circle cx="20" cy="46" r="0.7"/><circle cx="22" cy="40" r="0.65"/>'
+        + '<circle cx="24" cy="46" r="0.55"/><circle cx="34" cy="38" r="0.6"/>'
+        + '<circle cx="42" cy="34" r="0.55"/><circle cx="50" cy="42" r="0.6"/>'
+        + '<circle cx="48" cy="50" r="0.55"/><circle cx="40" cy="48" r="0.6"/>'
+        + '<circle cx="32" cy="50" r="0.55"/><circle cx="38" cy="56" r="0.6"/>'
+        + '<circle cx="44" cy="56" r="0.55"/><circle cx="52" cy="50" r="0.5"/>'
+        + '<circle cx="30" cy="44" r="0.55"/><circle cx="44" cy="46" r="0.5"/>'
+      + '</g>'
+      + '<ellipse cx="27" cy="30" rx="9" ry="5.5" transform="rotate(-30 27 30)" fill="#fff" opacity="0.32"/>'
+      + '<ellipse cx="25" cy="30" rx="4" ry="2.2" transform="rotate(-30 25 30)" fill="#fff" opacity="0.78"/>'
+      + '<ellipse cx="40" cy="70" rx="22" ry="3.5" fill="#7a3008" opacity="0.32"/>'
+      + '<circle cx="40" cy="16" r="3" fill="#7a4408"/>'
+      + '<path d="M40 13L41.5 16L44 17L41 18.5L42 21L40 19.5L38 21L39 18.5L36 17L38.5 16Z" fill="#4a2808" opacity="0.85"/>'
+      + '<path d="M41 13Q47 4 55 4Q53 12 47 14Q43 14 41 13Z" fill="#5fa83a"/>'
+      + '<path d="M42 12Q48 7 54 7" stroke="#2a6a1a" stroke-width="0.4" fill="none"/>'
       + '</svg>',
     orange_half:
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">'
@@ -346,61 +461,127 @@ permalink: /toolbox/fruit-ninja/
       + '<line x1="40" y1="14" x2="40" y2="74" stroke="#a8520a" stroke-width="1.5"/>'
       + '</svg>',
 
+    // 西瓜：4 段绿色 radial 渐变 + 5 条暗绿纵向条带（中间最粗）+ 高光 + 木质茎
     watermelon_whole:
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">'
-      + '<defs><radialGradient id="w" cx="35%" cy="35%"><stop offset="0" stop-color="#5cb350"/><stop offset="1" stop-color="#1a6b3a"/></radialGradient></defs>'
-      + '<circle cx="40" cy="44" r="32" fill="url(#w)"/>'
-      + '<g stroke="#0d4a26" stroke-width="2.2" fill="none" opacity="0.7">'
-        + '<path d="M14 36Q40 28 66 36"/>'
-        + '<path d="M12 50Q40 42 68 50"/>'
-        + '<path d="M16 62Q40 54 64 62"/>'
+      + '<defs>'
+        + '<radialGradient id="wb" cx="38%" cy="32%" r="66%">'
+          + '<stop offset="0" stop-color="#a8d870"/>'
+          + '<stop offset="0.28" stop-color="#5fa84a"/>'
+          + '<stop offset="0.65" stop-color="#2a7a3a"/>'
+          + '<stop offset="1" stop-color="#0a3818"/>'
+        + '</radialGradient>'
+      + '</defs>'
+      + '<ellipse cx="40" cy="74" rx="22" ry="3" fill="#000" opacity="0.20"/>'
+      + '<circle cx="40" cy="44" r="30" fill="url(#wb)"/>'
+      + '<g fill="#0d4a26" opacity="0.7">'
+        + '<path d="M18 28Q24 44 16 60Q14 44 18 28Z"/>'
+        + '<path d="M30 18Q38 44 28 70Q26 44 30 18Z"/>'
+        + '<path d="M40 14Q42 44 38 74Q40 44 40 14Z" opacity="0.55"/>'
+        + '<path d="M50 18Q58 44 50 70Q48 44 50 18Z"/>'
+        + '<path d="M62 28Q68 44 60 60Q60 44 62 28Z"/>'
       + '</g>'
-      + '<ellipse cx="30" cy="30" rx="6" ry="3" fill="#fff" opacity="0.3"/>'
+      + '<ellipse cx="28" cy="30" rx="9" ry="6" transform="rotate(-25 28 30)" fill="#fff" opacity="0.30"/>'
+      + '<ellipse cx="26" cy="30" rx="4.5" ry="2.5" transform="rotate(-25 26 30)" fill="#fff" opacity="0.75"/>'
+      + '<ellipse cx="40" cy="70" rx="22" ry="3.5" fill="#0a3818" opacity="0.36"/>'
+      + '<path d="M37 14Q44 8 48 10Q42 12 38 16Z" fill="#3a5a1a"/>'
+      + '<line x1="40" y1="16" x2="40" y2="14" stroke="#2a4a1a" stroke-width="1"/>'
       + '</svg>',
     watermelon_half:
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">'
+      + '<defs>'
+        + '<radialGradient id="whb" cx="55%" cy="50%" r="55%">'
+          + '<stop offset="0" stop-color="#ff5560"/>'
+          + '<stop offset="0.65" stop-color="#e8434e"/>'
+          + '<stop offset="1" stop-color="#a82838"/>'
+        + '</radialGradient>'
+      + '</defs>'
       + '<path d="M40 12A32 32 0 0 0 40 76L40 12Z" fill="#1a6b3a"/>'
-      + '<path d="M38 16A28 28 0 0 0 38 72L38 16Z" fill="#f0fae0"/>'
-      + '<path d="M36 18A26 26 0 0 0 36 70L36 18Z" fill="#e8434e"/>'
-      + '<g fill="#222">'
-        + '<ellipse cx="22" cy="32" rx="1.5" ry="2.6" transform="rotate(20 22 32)"/>'
-        + '<ellipse cx="18" cy="44" rx="1.5" ry="2.6"/>'
-        + '<ellipse cx="22" cy="56" rx="1.5" ry="2.6" transform="rotate(-20 22 56)"/>'
-        + '<ellipse cx="30" cy="28" rx="1.5" ry="2.6" transform="rotate(15 30 28)"/>'
-        + '<ellipse cx="30" cy="60" rx="1.5" ry="2.6" transform="rotate(-15 30 60)"/>'
-        + '<ellipse cx="28" cy="42" rx="1.5" ry="2.6"/>'
+      + '<path d="M38 14A30 30 0 0 0 38 74L38 14Z" fill="#a8d870" opacity="0.6"/>'
+      + '<path d="M37 16A29 29 0 0 0 37 72L37 16Z" fill="#f0fae0"/>'
+      + '<path d="M35 18A27 27 0 0 0 35 70L35 18Z" fill="url(#whb)"/>'
+      + '<g fill="#2a1810">'
+        + '<ellipse cx="22" cy="32" rx="1.4" ry="2.5" transform="rotate(20 22 32)"/>'
+        + '<ellipse cx="18" cy="44" rx="1.4" ry="2.5"/>'
+        + '<ellipse cx="22" cy="56" rx="1.4" ry="2.5" transform="rotate(-20 22 56)"/>'
+        + '<ellipse cx="30" cy="28" rx="1.3" ry="2.3" transform="rotate(15 30 28)"/>'
+        + '<ellipse cx="30" cy="60" rx="1.3" ry="2.3" transform="rotate(-15 30 60)"/>'
+        + '<ellipse cx="28" cy="42" rx="1.4" ry="2.5"/>'
+        + '<ellipse cx="26" cy="50" rx="1.2" ry="2.0" transform="rotate(10 26 50)"/>'
+        + '<ellipse cx="24" cy="38" rx="1.2" ry="2.0" transform="rotate(-25 24 38)"/>'
       + '</g>'
       + '<line x1="40" y1="12" x2="40" y2="76" stroke="#0d4a26" stroke-width="1.5"/>'
+      + '<line x1="40" y1="12" x2="40" y2="76" stroke="rgba(255,255,255,0.25)" stroke-width="0.5"/>'
       + '</svg>',
 
+    // 猕猴桃：4 段棕色 radial 渐变 + 40+ 短斜线模拟绒毛 + 微高光 + 顶端蒂痕
     kiwi_whole:
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">'
-      + '<ellipse cx="40" cy="44" rx="26" ry="32" fill="#9a7748"/>'
-      + '<ellipse cx="40" cy="44" rx="26" ry="32" fill="url(#kg)" opacity="0.3"/>'
-      + '<defs><radialGradient id="kg" cx="35%" cy="35%"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient></defs>'
-      + '<g fill="#5d4520" opacity="0.6">'
-        + '<circle cx="32" cy="26" r="0.8"/><circle cx="40" cy="30" r="0.8"/><circle cx="48" cy="26" r="0.8"/>'
-        + '<circle cx="34" cy="40" r="0.8"/><circle cx="46" cy="40" r="0.8"/>'
-        + '<circle cx="32" cy="54" r="0.8"/><circle cx="40" cy="58" r="0.8"/><circle cx="48" cy="54" r="0.8"/>'
-        + '<circle cx="38" cy="68" r="0.8"/><circle cx="42" cy="20" r="0.8"/>'
+      + '<defs>'
+        + '<radialGradient id="kb" cx="42%" cy="35%" r="60%">'
+          + '<stop offset="0" stop-color="#c4a070"/>'
+          + '<stop offset="0.32" stop-color="#9a7a48"/>'
+          + '<stop offset="0.78" stop-color="#7a5a30"/>'
+          + '<stop offset="1" stop-color="#3a2810"/>'
+        + '</radialGradient>'
+      + '</defs>'
+      + '<ellipse cx="40" cy="74" rx="20" ry="2.6" fill="#000" opacity="0.20"/>'
+      + '<ellipse cx="40" cy="44" rx="26" ry="32" fill="url(#kb)"/>'
+      + '<g stroke="#3a2810" stroke-width="0.5" fill="none" opacity="0.6" stroke-linecap="round">'
+        + '<line x1="26" y1="22" x2="27" y2="24"/><line x1="32" y1="18" x2="33" y2="20"/>'
+        + '<line x1="40" y1="16" x2="41" y2="18"/><line x1="48" y1="18" x2="49" y2="20"/>'
+        + '<line x1="54" y1="22" x2="55" y2="24"/><line x1="58" y1="28" x2="59" y2="30"/>'
+        + '<line x1="62" y1="36" x2="62" y2="38"/><line x1="64" y1="44" x2="64" y2="46"/>'
+        + '<line x1="62" y1="52" x2="62" y2="54"/><line x1="58" y1="60" x2="58" y2="62"/>'
+        + '<line x1="54" y1="66" x2="55" y2="68"/><line x1="48" y1="70" x2="49" y2="72"/>'
+        + '<line x1="40" y1="72" x2="41" y2="74"/><line x1="32" y1="70" x2="33" y2="72"/>'
+        + '<line x1="26" y1="66" x2="27" y2="68"/><line x1="22" y1="60" x2="22" y2="62"/>'
+        + '<line x1="18" y1="52" x2="18" y2="54"/><line x1="16" y1="44" x2="16" y2="46"/>'
+        + '<line x1="18" y1="36" x2="18" y2="38"/><line x1="22" y1="28" x2="23" y2="30"/>'
+        + '<line x1="30" y1="26" x2="31" y2="28"/><line x1="38" y1="24" x2="39" y2="26"/>'
+        + '<line x1="46" y1="24" x2="47" y2="26"/><line x1="36" y1="32" x2="36" y2="34"/>'
+        + '<line x1="44" y1="30" x2="44" y2="32"/><line x1="52" y1="32" x2="52" y2="34"/>'
+        + '<line x1="28" y1="32" x2="28" y2="34"/><line x1="32" y1="40" x2="33" y2="42"/>'
+        + '<line x1="40" y1="38" x2="40" y2="40"/><line x1="48" y1="40" x2="48" y2="42"/>'
+        + '<line x1="56" y1="40" x2="56" y2="42"/><line x1="24" y1="44" x2="25" y2="46"/>'
+        + '<line x1="36" y1="48" x2="36" y2="50"/><line x1="44" y1="48" x2="44" y2="50"/>'
+        + '<line x1="52" y1="50" x2="52" y2="52"/><line x1="28" y1="54" x2="28" y2="56"/>'
+        + '<line x1="40" y1="56" x2="40" y2="58"/><line x1="48" y1="58" x2="48" y2="60"/>'
+        + '<line x1="34" y1="62" x2="34" y2="64"/><line x1="44" y1="62" x2="44" y2="64"/>'
+        + '<line x1="32" y1="48" x2="32" y2="50"/>'
       + '</g>'
+      + '<ellipse cx="28" cy="26" rx="7" ry="5" transform="rotate(-25 28 26)" fill="#fff" opacity="0.16"/>'
+      + '<ellipse cx="40" cy="14" rx="2.6" ry="1.6" fill="#3a2510"/>'
       + '</svg>',
     kiwi_half:
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">'
-      + '<path d="M40 12A26 32 0 0 0 40 76L40 12Z" fill="#9a7748"/>'
-      + '<path d="M38 16A24 30 0 0 0 38 72L38 16Z" fill="#bcd96f"/>'
-      + '<circle cx="38" cy="44" r="6" fill="#fff8e0"/>'
-      + '<g fill="#222">'
-        + '<ellipse cx="32" cy="32" rx="0.9" ry="1.8"/>'
-        + '<ellipse cx="30" cy="44" rx="0.9" ry="1.8"/>'
-        + '<ellipse cx="32" cy="56" rx="0.9" ry="1.8"/>'
-        + '<ellipse cx="22" cy="38" rx="0.9" ry="1.8" transform="rotate(-30 22 38)"/>'
-        + '<ellipse cx="22" cy="50" rx="0.9" ry="1.8" transform="rotate(30 22 50)"/>'
-        + '<ellipse cx="14" cy="44" rx="0.9" ry="1.8"/>'
-        + '<ellipse cx="26" cy="26" rx="0.9" ry="1.8"/>'
-        + '<ellipse cx="26" cy="62" rx="0.9" ry="1.8"/>'
+      + '<defs>'
+        + '<radialGradient id="khb" cx="55%" cy="50%" r="55%">'
+          + '<stop offset="0" stop-color="#fff8e0"/>'
+          + '<stop offset="0.18" stop-color="#dcec8c"/>'
+          + '<stop offset="0.7" stop-color="#a8d050"/>'
+          + '<stop offset="1" stop-color="#7fa838"/>'
+        + '</radialGradient>'
+      + '</defs>'
+      + '<path d="M40 12A26 32 0 0 0 40 76L40 12Z" fill="#7a5a30"/>'
+      + '<path d="M38 14A24 30 0 0 0 38 74L38 14Z" fill="url(#khb)"/>'
+      + '<circle cx="38" cy="44" r="5" fill="#fff5d8"/>'
+      + '<g fill="#1a1410">'
+        + '<ellipse cx="32" cy="32" rx="0.85" ry="1.7"/>'
+        + '<ellipse cx="30" cy="44" rx="0.85" ry="1.7"/>'
+        + '<ellipse cx="32" cy="56" rx="0.85" ry="1.7"/>'
+        + '<ellipse cx="22" cy="38" rx="0.85" ry="1.7" transform="rotate(-30 22 38)"/>'
+        + '<ellipse cx="22" cy="50" rx="0.85" ry="1.7" transform="rotate(30 22 50)"/>'
+        + '<ellipse cx="14" cy="44" rx="0.85" ry="1.7"/>'
+        + '<ellipse cx="26" cy="26" rx="0.85" ry="1.7"/>'
+        + '<ellipse cx="26" cy="62" rx="0.85" ry="1.7"/>'
+        + '<ellipse cx="34" cy="38" rx="0.8" ry="1.6"/>'
+        + '<ellipse cx="34" cy="50" rx="0.8" ry="1.6"/>'
+        + '<ellipse cx="18" cy="38" rx="0.75" ry="1.5" transform="rotate(-15 18 38)"/>'
+        + '<ellipse cx="18" cy="50" rx="0.75" ry="1.5" transform="rotate(15 18 50)"/>'
       + '</g>'
       + '<line x1="40" y1="12" x2="40" y2="76" stroke="#5a4222" stroke-width="1.5"/>'
+      + '<line x1="40" y1="12" x2="40" y2="76" stroke="rgba(255,255,255,0.18)" stroke-width="0.5"/>'
       + '</svg>',
 
     bomb:
@@ -722,9 +903,24 @@ permalink: /toolbox/fruit-ninja/
   // ============ DOM ============
   const canvas = document.getElementById('fn-canvas');
   const ctx = canvas.getContext('2d');
-  const modeSelect = document.getElementById('mode-select');
   const stage = document.getElementById('game-stage');
   const belowStage = document.getElementById('below-stage');
+  const modeBar = document.querySelector('.fn-mode-bar');
+  const modeDescEl = document.getElementById('fn-mode-desc');
+  const modeTabs = Array.from(document.querySelectorAll('.fn-mode-tab'));
+  const MODE_INFO = {
+    classic:   { name: '经典 60 秒',  desc: '限时 60 秒，连切水果加奖励分。切到炸弹立即结束。' },
+    arcade:    { name: '街机三命',    desc: '无时限，但漏切 3 个或切到炸弹就 game over。' },
+    endless:   { name: '无尽闯关',    desc: '每 25 秒升 1 阶，难度无上限。3 命；过 5 / 10 / 15 阶各回 1 命。' },
+    zen:       { name: '禅意无炸弹',  desc: '无失败、无炸弹、纯练连击。比谁单局连击最高。' },
+    comborush: { name: '连击狂飙',    desc: '90 秒。连击只在切到炸弹 / 漏切时重置。combo² × 10 计分，10+ 触发火焰刀痕。' },
+    precision: { name: '精准模式',    desc: '水果上方有切线提示，沿提示角度（误差 < 20°）切中给 ×3 奖励。水果数减半，每刀都关键。' },
+  };
+  function setActiveModeTab(mode) {
+    for (const t of modeTabs) t.classList.toggle('active', t.dataset.mode === mode);
+    const info = MODE_INFO[mode];
+    if (modeDescEl && info) modeDescEl.textContent = info.desc;
+  }
   const pausedOverlay = document.getElementById('paused-overlay');
   const gameoverOverlay = document.getElementById('gameover-overlay');
   const hudTimer = document.querySelector('.hud-timer');
@@ -2007,71 +2203,151 @@ permalink: /toolbox/fruit-ninja/
   }
 
   function drawTrail() {
-    if (trail.length < 2) return;
+    const n = trail.length;
+    if (n < 2) return;
 
-    // 单 path 多 stroke：原本每段独立 beginPath 会让每段两端各画一个圆 lineCap，
-    // 慢速移动时段长接近 0，圆 cap 直径却不变 → 视觉上变成"点"。
-    // 改成整条 polyline 一次性 stroke：只在首尾各一个 cap，中间是连续 join。
+    // 关键变化：不再用等宽 stroke（那看起来像 marker 画笔），改成多边形 ribbon。
+    // 每个轨迹点带一个"半宽" hw_i，沿运动方向垂直方向各偏 hw_i 形成左/右两条边，
+    // 用 quadratic 曲线连接成一个封闭多边形然后 fill。
+    // 宽度沿位置 t∈[0..1] 走刀片轮廓：
+    //   t=0（尾，最旧）→ 0
+    //   t≈0.85       → 最宽
+    //   t=1 (头/光标) → 微微收口 ~70% 给个"利尖"
+    // 多层：halo + mid glow + 锐核 + 中线高光
 
-    // 估算这一笔的平均移动速度 → 调节刀宽（快=锐细 / 慢=厚重）
+    // 估算平均速度 → 整体半宽。快=较细锐 / 慢=较厚
     let totalDist = 0, totalDt = 0;
-    for (let i = 1; i < trail.length; i++) {
+    for (let i = 1; i < n; i++) {
       const a = trail[i - 1], b = trail[i];
       totalDist += Math.hypot(b.x - a.x, b.y - a.y);
       totalDt += Math.max(1, b.t - a.t);
     }
-    const avgSpeed = totalDt > 0 ? totalDist / totalDt * 1000 : 0;     // px/s
-    const speedK = 1 - Math.min(1, avgSpeed / 2200) * 0.22;            // 0.78..1，快也不要太细
+    const avgSpeed = totalDt > 0 ? totalDist / totalDt * 1000 : 0;
+    const speedK = 1 - Math.min(1, avgSpeed / 2400) * 0.18;             // 0.82..1
 
-    // Combo Rush ≥10 时调色板切到火焰（红橙 + 暖白）
+    // 每点切向（用前后邻居平均）→ 90° 旋转得到法向
+    const tx = new Float32Array(n), ty = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      let dx = 0, dy = 0;
+      if (i > 0) {
+        const p = trail[i - 1];
+        dx += trail[i].x - p.x;
+        dy += trail[i].y - p.y;
+      }
+      if (i < n - 1) {
+        const p = trail[i + 1];
+        dx += p.x - trail[i].x;
+        dy += p.y - trail[i].y;
+      }
+      const len = Math.hypot(dx, dy) || 1;
+      tx[i] = dx / len;
+      ty[i] = dy / len;
+    }
+    // 法向 = 切向旋转 90°：(nx, ny) = (-ty, tx)
+
+    // 宽度轮廓 w(t) ∈ [0, 1]：尾尖 → 体最宽 → 头微收
+    function widthAt(t) {
+      // 尾部用 t^0.85 快速涨；最尖那一截再收口给个利尖
+      let w;
+      if (t <= 0.88) {
+        const u = t / 0.88;
+        w = Math.pow(u, 0.85);          // 0..1
+      } else {
+        const u = (t - 0.88) / 0.12;    // 0..1 last 12%
+        w = 1 - u * 0.35;                // 1.0 → 0.65 利尖
+      }
+      return w;
+    }
+
+    // Combo Rush ≥10 时调色板切到火焰
     const fireMode = state.mode === 'comborush' && state.combo >= 10;
-    const glowRGB = fireMode ? '255, 130, 50' : '160, 220, 255';
+    const glowRGB = fireMode ? '255, 130, 50' : '170, 225, 255';
     const coreRGB = fireMode ? '255, 240, 200' : '255, 255, 255';
 
-    ctx.save();
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    function buildPath() {
+    // 构造一条 ribbon path：左边 tail→head 用 quadratic 平滑，右边 head→tail 同
+    // hwScale 控制本层半宽
+    function buildRibbon(hwScale) {
+      const lx = new Float32Array(n), ly = new Float32Array(n);
+      const rx = new Float32Array(n), ry = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        const t = (n === 1) ? 1 : i / (n - 1);
+        const hw = widthAt(t) * hwScale;
+        const nxh = -ty[i] * hw;
+        const nyh = tx[i] * hw;
+        lx[i] = trail[i].x + nxh;
+        ly[i] = trail[i].y + nyh;
+        rx[i] = trail[i].x - nxh;
+        ry[i] = trail[i].y - nyh;
+      }
       ctx.beginPath();
-      ctx.moveTo(trail[0].x, trail[0].y);
-      if (trail.length === 2) {
-        ctx.lineTo(trail[1].x, trail[1].y);
-        return;
+      // 左边：tail → head，midpoint-quadratic 平滑
+      ctx.moveTo(lx[0], ly[0]);
+      if (n === 2) {
+        ctx.lineTo(lx[1], ly[1]);
+      } else {
+        for (let i = 1; i < n - 1; i++) {
+          const mxv = (lx[i] + lx[i + 1]) / 2;
+          const myv = (ly[i] + ly[i + 1]) / 2;
+          ctx.quadraticCurveTo(lx[i], ly[i], mxv, myv);
+        }
+        ctx.lineTo(lx[n - 1], ly[n - 1]);
       }
-      // 用相邻点中点作为 quadratic 曲线锚点：让 polyline 走 Catmull-Rom 风格的平滑
-      for (let i = 1; i < trail.length - 1; i++) {
-        const mx = (trail[i].x + trail[i + 1].x) / 2;
-        const my = (trail[i].y + trail[i + 1].y) / 2;
-        ctx.quadraticCurveTo(trail[i].x, trail[i].y, mx, my);
+      // 头部封口（绕过 head 点稍微弧形过渡到右边）
+      ctx.lineTo(rx[n - 1], ry[n - 1]);
+      // 右边：head → tail
+      if (n === 2) {
+        ctx.lineTo(rx[0], ry[0]);
+      } else {
+        for (let i = n - 2; i >= 1; i--) {
+          const mxv = (rx[i] + rx[i - 1]) / 2;
+          const myv = (ry[i] + ry[i - 1]) / 2;
+          ctx.quadraticCurveTo(rx[i], ry[i], mxv, myv);
+        }
+        ctx.lineTo(rx[0], ry[0]);
       }
-      const last = trail[trail.length - 1];
-      ctx.lineTo(last.x, last.y);
+      ctx.closePath();
     }
 
     const tier = Perf.tier;
+    ctx.save();
 
-    // 外层厚重 halo（仅 high 档）
+    // 1. 外层 halo（仅 high 档）—— 厚重的发光余韵
     if (tier === 'high') {
       ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = 'rgba(' + glowRGB + ', 0.24)';
-      ctx.lineWidth = 32 * speedK;
-      buildPath();
-      ctx.stroke();
+      ctx.fillStyle = 'rgba(' + glowRGB + ', 0.22)';
+      buildRibbon(16 * speedK);
+      ctx.fill();
     }
-    // 中层 glow（high + med）—— 给厚度
+    // 2. 中层 glow —— 主体彩色发光
     if (tier !== 'low') {
       ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = 'rgba(' + glowRGB + ', 0.55)';
-      ctx.lineWidth = 15 * speedK;
-      buildPath();
-      ctx.stroke();
+      ctx.fillStyle = 'rgba(' + glowRGB + ', 0.55)';
+      buildRibbon(8 * speedK);
+      ctx.fill();
     }
-    // 锐利核心刀刃 —— 现在足够厚实，能稳住"犀利+厚重"两端
+    // 3. 锐利核心 —— 白热刀片
     ctx.globalCompositeOperation = 'source-over';
-    ctx.strokeStyle = 'rgba(' + coreRGB + ', 0.97)';
-    ctx.lineWidth = 5.6 * speedK;
-    buildPath();
+    ctx.fillStyle = 'rgba(' + coreRGB + ', 0.96)';
+    buildRibbon(3.4 * speedK);
+    ctx.fill();
+    // 4. 中线"刀脊"高光 —— 1.2px 沿中心线的极亮 stroke，给"刀刃"反光感
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
+    ctx.lineWidth = 1.3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(trail[0].x, trail[0].y);
+    if (n === 2) {
+      ctx.lineTo(trail[1].x, trail[1].y);
+    } else {
+      for (let i = 1; i < n - 1; i++) {
+        const mxv = (trail[i].x + trail[i + 1].x) / 2;
+        const myv = (trail[i].y + trail[i + 1].y) / 2;
+        ctx.quadraticCurveTo(trail[i].x, trail[i].y, mxv, myv);
+      }
+      ctx.lineTo(trail[n - 1].x, trail[n - 1].y);
+    }
     ctx.stroke();
 
     ctx.restore();
@@ -2292,13 +2568,16 @@ permalink: /toolbox/fruit-ninja/
   }
 
   // ============ 模式 / 流程 ============
-  document.querySelectorAll('.mode-card').forEach(card => {
-    card.addEventListener('click', () => {
+  // tab 始终可见。点击 = 切换 + 立即新开一局；点已激活的 tab 时若正在玩则 no-op，避免误触失分
+  for (const tab of modeTabs) {
+    tab.addEventListener('click', () => {
+      const mode = tab.dataset.mode;
       // iOS Safari 需要在 user gesture 内同步 resume AudioContext
       FNAudio.unlock();
-      startGame(card.dataset.mode);
+      if (mode === state.mode && state.running && !state.over) return;
+      startGame(mode);
     });
-  });
+  }
 
   function startGame(mode) {
     state.mode = mode;
@@ -2334,11 +2613,9 @@ permalink: /toolbox/fruit-ninja/
     state.slowMoFactor = 0.55;
     state.bossSpawned = false;
 
-    modeSelect.hidden = true;
-    stage.hidden = false;
-    belowStage.hidden = true;
     gameoverOverlay.hidden = true;
     pausedOverlay.hidden = true;
+    setActiveModeTab(mode);
 
     hudTimer.hidden = !(mode === 'classic' || mode === 'comborush');
     hudLives.hidden = !(mode === 'arcade' || mode === 'endless');
@@ -2390,7 +2667,6 @@ permalink: /toolbox/fruit-ninja/
     } else {
       gameoverOverlay.hidden = false;
     }
-    belowStage.hidden = false;
 
     // 排行榜：切到当前模式 tab
     if (lbWidget) lbWidget.setSplit(state.mode);
@@ -2431,16 +2707,6 @@ permalink: /toolbox/fruit-ninja/
   });
   document.getElementById('restart-btn').addEventListener('click', () => {
     startGame(state.mode);
-  });
-  document.getElementById('changemode-btn').addEventListener('click', () => {
-    state.over = true;
-    state.running = false;
-    stage.hidden = true;
-    modeSelect.hidden = false;
-    belowStage.hidden = true;
-    fruits = []; particles = []; trail = []; popups = [];
-    cancelAnimationFrame(rafId);
-    render();
   });
 
   // ============ Visibility：自动暂停 ============
@@ -2773,10 +3039,10 @@ permalink: /toolbox/fruit-ninja/
   }
 
   // ============ Boot ============
+  // 进页面默认起经典模式（不再需要"先选一个 mode-card"）
   preloadSprites().then(() => {
     initShell();
-    // 模式选择页面也预先画一帧
-    render();
+    startGame('classic');
   });
 })();
 </script>
