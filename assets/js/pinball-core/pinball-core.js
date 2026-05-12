@@ -430,43 +430,16 @@
         }
       });
 
-      // 卡住兜底（统一两条规则，都送回弹簧、不扣命）
-      // A. "真停了"：速度 < 15 持续 1s → 球停在挡板平台/wedge corner 类位置
-      //    阈值 15 远低于慢滚的典型速度 (30-50)，避免误伤"减速但还在动"的球
-      // B. "卡在得分点"：3s 内位置中心几乎不漂移 (前半/后半窗口中心距 < 25px)
-      //    例：停在 bumper 上反复刷分；slings V 形死循环
-      //    直线慢滚的球前半/后半中心会真的拉开，不会触发；只有原地震荡才触发
+      // 卡住兜底：速度 < 15 持续 1s → 球真的停了 (挡板平台 / 卡在 bumper 顶 / wedge corner)
+      // 送回弹簧不扣命。阈值 15 远低于慢滚速度 (30+)，不会误伤还在动的球。
+      // 之前还有一条"位置中心漂移"检测，但高速做对称运动的球 (来回弹) 前半/后半 CoM 一样，
+      // 也会被误判 — 撤掉。代价是 bumper 间死循环刷分要靠玩家自己处理或重开新局。
       state.balls.forEach(b => {
-        if (b.onPlunger) {
-          b._lastFastT = now;
-          b._poshist = null;
-          return;
-        }
+        if (b.onPlunger) { b._lastFastT = now; return; }
         const sp = Math.hypot(b.vx, b.vy);
         if (b._lastFastT == null) b._lastFastT = now;
         if (sp > 15) b._lastFastT = now;
-        // A: 球已经"停"了
         if (now - b._lastFastT > 1000) {
-          b._lastFastT = now;
-          b._poshist = null;
-          b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
-          b.onPlunger = true; b.trail = [];
-          plunger.charge = 0;
-          return;
-        }
-        // B: 中心漂移检测
-        if (!b._poshist) { b._poshist = { samples: [], lastT: now }; return; }
-        if (now - b._poshist.lastT < 100) return;
-        b._poshist.samples.push([b.x, b.y]);
-        if (b._poshist.samples.length > 30) b._poshist.samples.shift();  // 3s 窗口
-        b._poshist.lastT = now;
-        if (b._poshist.samples.length < 30) return;
-        let h1x = 0, h1y = 0, h2x = 0, h2y = 0;
-        for (let i = 0; i < 15; i++) { h1x += b._poshist.samples[i][0]; h1y += b._poshist.samples[i][1]; }
-        for (let i = 15; i < 30; i++) { h2x += b._poshist.samples[i][0]; h2y += b._poshist.samples[i][1]; }
-        h1x /= 15; h1y /= 15; h2x /= 15; h2y /= 15;
-        if (Math.hypot(h1x - h2x, h1y - h2y) < 25) {
-          b._poshist = null;
           b._lastFastT = now;
           b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
           b.onPlunger = true; b.trail = [];
@@ -709,6 +682,25 @@
       ctx.stroke();
       ctx.fillStyle = '#9aa3b2';
       ctx.fillRect(x - 12, top - 4, 24, 4);
+
+      // 多球队列指示：当前 plunger 位置上 ≥ 2 颗球时，左侧画 ×N 角标
+      // (multiball 后多颗球被送回 plunger 会叠在一起看不出来)
+      const onP = state.balls.reduce((n, b) => n + (b.onPlunger ? 1 : 0), 0);
+      if (onP >= 2) {
+        const cx = x - 22, cy = plg.restY - 14;
+        ctx.fillStyle = '#f5e6c4';
+        ctx.beginPath(); ctx.arc(cx, cy, 11, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(40,30,15,0.55)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(cx, cy, 11, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = '#1a1208';
+        ctx.font = 'bold 13px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('×' + onP, cx, cy);
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'alphabetic';
+      }
     }
 
     function drawBall(ctx, b) {
