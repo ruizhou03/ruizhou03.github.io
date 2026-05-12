@@ -207,53 +207,92 @@
 }
 .pb-goal-bar strong { color: var(--pb-accent, var(--color-highlight)); }
 
-/* ─── 桌台底下切换栏：4 张卡片横排，当前桌台高亮（不可点） ─── */
-.pb-table-picker-label {
+/* ─── 桌台底下切换栏：4 张卡片横排 ─── */
+/* 设计要点：
+   - 主体是 4 列 grid（不是 inline-flex），每张卡片真的是块，高度统一
+   - 卡片用细描边 + 微微阴影制造卡片感，hover 浮起来
+   - 当前桌台用 --pb-accent 实色填充 + 内层 box-shadow 制造发光感
+   - emoji 比文字大一档，下面文字小写细等距
+*/
+.pb-tp-wrap {
   max-width: 480px;
-  margin: 1.4rem auto 0.3rem;
-  text-align: center;
-  font-size: 0.74rem;
+  margin: 1.6rem auto 0;
+  padding: 0.9rem 1rem 1rem;
+  background: var(--color-bg-warm);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+.pb-tp-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin-bottom: 0.7rem;
+}
+.pb-tp-header::before,
+.pb-tp-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+}
+.pb-tp-header span {
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
   color: var(--color-muted);
-  letter-spacing: 0.12em;
+  white-space: nowrap;
 }
 .pb-table-picker {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.45rem;
-  max-width: 480px;
-  margin: 0 auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
 }
 .pb-table-picker > * {
-  display: block;
-  padding: 0.55rem 0.3rem 0.5rem;
-  background: var(--color-bg-warm);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.32rem;
+  padding: 0.72rem 0.35rem 0.65rem;
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: 12px;
   text-align: center;
   text-decoration: none;
   color: var(--color-ink);
-  font-size: 0.78rem;
-  line-height: 1.25;
-  transition: all 0.18s ease;
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 .pb-table-picker a:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--pb-accent, var(--color-accent));
+  color: var(--pb-accent, var(--color-accent));
   transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14);
 }
+.pb-table-picker a:active { transform: translateY(0); }
 .pb-table-picker .active {
   background: var(--pb-accent, var(--color-accent));
   border-color: var(--pb-accent, var(--color-accent));
   color: #fff;
   cursor: default;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+              0 6px 18px -2px color-mix(in srgb, var(--pb-accent, var(--color-accent)) 50%, transparent);
+  transform: translateY(-1px);
 }
 .pb-table-picker .pb-tp-emoji {
-  font-size: 1.35rem;
-  display: block;
+  font-size: 1.6rem;
   line-height: 1;
-  margin-bottom: 0.22rem;
+  display: block;
 }
-.pb-table-picker .pb-tp-name { font-weight: 600; letter-spacing: 0.02em; }
+.pb-table-picker .pb-tp-name {
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  display: block;
+}
 
 /* ─── 弹珠厅 hub 卡片网格（旧版 hub 用，本轮已废弃但保留 CSS 以防回滚） ─── */
 .pb-hub-grid {
