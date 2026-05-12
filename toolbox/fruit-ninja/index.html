@@ -34,7 +34,7 @@ permalink: /toolbox/fruit-ninja/
     #fn-canvas { border-radius: 0; max-width: 100%; }
   }
 
-  /* HUD：左对齐单行 flex；右侧 padding 给 3 个按钮留位置，避免重叠 */
+  /* HUD：左对齐单行 flex；右侧 padding 给 4 个按钮留位置（暂停 / 静音 / 性能 / 背景）*/
   .hud {
     position: absolute;
     top: 0.6rem;
@@ -43,7 +43,7 @@ permalink: /toolbox/fruit-ninja/
     align-items: center;
     gap: 0.9rem;
     padding: 0.45rem 0.9rem;
-    padding-right: 9rem;
+    padding-right: 11rem;
     pointer-events: none;
     color: #fff;
     font-family: var(--font-display, Georgia, serif);
@@ -56,8 +56,8 @@ permalink: /toolbox/fruit-ninja/
   .hud .combo { color: #ffd95a; }
   .hud .combo.hidden { visibility: hidden; }
 
-  /* 按钮组：暂停 → 静音 → 性能，全部右对齐 */
-  .pause-btn, .mute-btn, .perf-btn {
+  /* 按钮组：暂停 → 静音 → 性能 → 背景，全部右对齐 */
+  .pause-btn, .mute-btn, .perf-btn, .bg-btn {
     position: absolute;
     top: 0.6rem;
     background: rgba(0, 0, 0, 0.4);
@@ -87,12 +87,21 @@ permalink: /toolbox/fruit-ninja/
     font-size: 0.85rem;
     color: rgba(255, 255, 255, 0.92);
   }
-  .pause-btn:hover, .mute-btn:hover, .perf-btn:hover { background: rgba(0, 0, 0, 0.6); }
+  .bg-btn {
+    right: 8.7rem;
+    padding: 0.25rem 0.45rem;
+    min-width: 1.7rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.92);
+  }
+  .pause-btn:hover, .mute-btn:hover, .perf-btn:hover, .bg-btn:hover { background: rgba(0, 0, 0, 0.6); }
   @media (max-width: 700px) {
-    .hud { font-size: 0.95rem; gap: 0.6rem; padding-right: 8rem; }
+    .hud { font-size: 0.95rem; gap: 0.6rem; padding-right: 9.5rem; }
     .pause-btn { right: 0.4rem; padding: 0.2rem 0.55rem; font-size: 0.78rem; }
     .mute-btn { right: 3.5rem; padding: 0.2rem 0.4rem; min-width: 1.8rem; font-size: 0.78rem; }
     .perf-btn { right: 5.8rem; padding: 0.2rem 0.4rem; min-width: 1.6rem; font-size: 0.78rem; }
+    .bg-btn { right: 7.9rem; padding: 0.2rem 0.4rem; min-width: 1.6rem; font-size: 0.78rem; }
   }
 
   /* 底部模式切换栏（参考弹珠机的 pb-table-picker 风格）—— 不再走"进游戏前选一个"流程 */
@@ -253,6 +262,7 @@ permalink: /toolbox/fruit-ninja/
     <button class="pause-btn" id="pause-btn" type="button">暂停</button>
     <button class="mute-btn" id="mute-btn" type="button" aria-label="静音切换">🔊</button>
     <button class="perf-btn" id="perf-btn" type="button" aria-label="性能档位">AUTO</button>
+    <button class="bg-btn" id="bg-btn" type="button" aria-label="背景切换">竹</button>
 
     <div class="overlay" id="paused-overlay" hidden>
       <div class="overlay-card">
@@ -316,6 +326,26 @@ permalink: /toolbox/fruit-ninja/
 <script>
 (function () {
   'use strict';
+
+  // ============ 连击倍率表 ============
+  // combo = 单笔挥刀（pointer-down → pointer-up）斩到的水果数
+  //   combo=1 →  10  ×1
+  //   combo=2 →  25  ×2.5
+  //   combo=3 →  55  ×5.5    三连切（首个 milestone）
+  //   combo=4 →  95  ×9.5
+  //   combo=5 → 150  ×15
+  //   combo=6 → 220  ×22     超神
+  //   combo=7 → 310  ×31     不可阻挡
+  //   combo=8 → 420  ×42
+  //   combo=9 → 550  ×55
+  //   combo≥10 → combo² × 6   指数兜底
+  // Combo Rush 模式独立用 combo² × 10（且松手不清零）；precision 模式 ×3 在外层叠加
+  const COMBO_POINTS = [0, 10, 25, 55, 95, 150, 220, 310, 420, 550];
+  function comboPoints(combo) {
+    if (combo <= 0) return 0;
+    if (combo < COMBO_POINTS.length) return COMBO_POINTS[combo];
+    return Math.round(combo * combo * 6);
+  }
 
   // ============ SVG 资产 ============
   // viewBox 80x80，水果中心 (40, 40)，半径约 30
@@ -934,6 +964,7 @@ permalink: /toolbox/fruit-ninja/
   const rankRow = document.getElementById('rank-row');
   const muteBtn = document.getElementById('mute-btn');
   const perfBtn = document.getElementById('perf-btn');
+  const bgBtn = document.getElementById('bg-btn');
 
   function syncMuteBtn() {
     if (!muteBtn) return;
@@ -959,6 +990,19 @@ permalink: /toolbox/fruit-ninja/
       updatePerfBtn();
     });
   }
+
+  function updateBgBtn() {
+    if (!bgBtn) return;
+    bgBtn.textContent = Bg.chars[Bg.current] || '?';
+    bgBtn.title = '背景：' + Bg.label() + '（点击切换）';
+  }
+  updateBgBtn();
+  if (bgBtn) {
+    bgBtn.addEventListener('click', () => {
+      Bg.cycle();
+      updateBgBtn();
+    });
+  }
   // 注：Perf.init() / updatePerfBtn() 必须等 const Perf 声明后再调用，
   // 否则 TDZ 抛 ReferenceError 把整个 IIFE 崩了。移到 Perf 定义之后。
 
@@ -975,10 +1019,30 @@ permalink: /toolbox/fruit-ninja/
     bakeBackground();
   }
 
-  // ============ 霓虹背景（烘焙静态层 + 动画网格）============
-  // 静态层一次烘焙到离屏 canvas（深紫天空 + 粉红夕阳 + 青色地平线 + 星点）。
-  // 网格floor 每帧绘制（开销极低 ~36 条线），scroll 由 game-time 驱动。
+  // ============ 背景系统 ============
+  // 静态层一次性烘焙到 bgOffscreen；动画层每帧 draw（樱花飘落 / 月光波动 等）
+  // 4 个主题：竹林 / 月夜 / 极简 / 霓虹(legacy)；右上 "🎨" 按钮循环切换；localStorage 持久化
   let bgOffscreen = null;
+  const Bg = {
+    options: ['bamboo', 'moonlit', 'minimal', 'neon'],
+    labels: { bamboo: '竹林', moonlit: '月夜', minimal: '极简', neon: '霓虹' },
+    chars:  { bamboo: '竹',   moonlit: '月',   minimal: '简',   neon: '虹' },
+    current: 'bamboo',
+    init() {
+      try {
+        const saved = localStorage.getItem('fn:bg');
+        if (saved && this.options.indexOf(saved) >= 0) this.current = saved;
+      } catch (e) {}
+    },
+    cycle() {
+      const idx = this.options.indexOf(this.current);
+      this.current = this.options[(idx + 1) % this.options.length];
+      try { localStorage.setItem('fn:bg', this.current); } catch (e) {}
+      bakeBackground();
+    },
+    label() { return this.labels[this.current] || this.current; },
+  };
+  Bg.init();
   const HORIZON_RATIO = 0.52;
 
   // 果汁印染层：独立 offscreen，每帧 destination-out 微量衰减（~2.5s 后近乎透明）
@@ -1051,17 +1115,165 @@ permalink: /toolbox/fruit-ninja/
     bgOffscreen.width = LOG_W;
     bgOffscreen.height = LOG_H;
     const bx = bgOffscreen.getContext('2d');
-    const horizonY = LOG_H * HORIZON_RATIO;
+    if (Bg.current === 'bamboo') bakeBgBamboo(bx);
+    else if (Bg.current === 'moonlit') bakeBgMoonlit(bx);
+    else if (Bg.current === 'minimal') bakeBgMinimal(bx);
+    else bakeBgNeon(bx);
+    // 切换背景时把樱花/萤火虫等动画粒子重置一下
+    bgPetals.length = 0;
+  }
 
-    // 天空：深紫渐变
+  // ---------- 竹林 ----------
+  // 深绿森林：竹竿（带节）+ 顶部点点光斑（dappled light）+ 简单地面
+  function bakeBgBamboo(bx) {
+    // 整体背景渐变（深绿）
+    const g = bx.createLinearGradient(0, 0, 0, LOG_H);
+    g.addColorStop(0, '#0a1c14');
+    g.addColorStop(0.5, '#0e2a1c');
+    g.addColorStop(1, '#040d08');
+    bx.fillStyle = g;
+    bx.fillRect(0, 0, LOG_W, LOG_H);
+
+    // 用稳定 seed 让每次烘焙竹林排列一致，但局间会不同（不刷新就一致）
+    let seed = 2024;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+
+    // 竹竿：~9 根，宽 7–14 px，整高贯穿
+    const culms = [];
+    for (let i = 0; i < 9; i++) {
+      const x = 12 + i * (LOG_W - 24) / 8 + (rnd() - 0.5) * 18;
+      const w = 7 + rnd() * 7;
+      const a = 0.42 + rnd() * 0.32;
+      const shade = 0.75 + rnd() * 0.35;
+      culms.push({ x, w, a, shade, phase: rnd() * 90 });
+    }
+    for (const c of culms) {
+      const cg = bx.createLinearGradient(c.x, 0, c.x + c.w, 0);
+      cg.addColorStop(0, 'rgba(' + Math.floor(40*c.shade) + ',' + Math.floor(80*c.shade) + ',38,' + c.a + ')');
+      cg.addColorStop(0.32, 'rgba(' + Math.floor(80*c.shade) + ',' + Math.floor(150*c.shade) + ',70,' + c.a + ')');
+      cg.addColorStop(0.62, 'rgba(' + Math.floor(60*c.shade) + ',' + Math.floor(120*c.shade) + ',55,' + c.a + ')');
+      cg.addColorStop(1, 'rgba(' + Math.floor(28*c.shade) + ',' + Math.floor(70*c.shade) + ',32,' + c.a + ')');
+      bx.fillStyle = cg;
+      bx.fillRect(c.x, 0, c.w, LOG_H);
+      // 节（竹竿上的横向环）
+      const spacing = 95 + (c.phase % 30);
+      for (let y = c.phase; y < LOG_H; y += spacing) {
+        bx.fillStyle = 'rgba(18, 42, 22, ' + (c.a * 0.85).toFixed(3) + ')';
+        bx.fillRect(c.x - 1, y, c.w + 2, 2.4);
+        bx.fillStyle = 'rgba(150, 200, 120, ' + (c.a * 0.55).toFixed(3) + ')';
+        bx.fillRect(c.x + 0.5, y + 2.4, c.w - 1, 0.9);
+      }
+    }
+    // 散落的光斑 dappled light
+    for (let i = 0; i < 12; i++) {
+      const sx = rnd() * LOG_W;
+      const sy = rnd() * LOG_H * 0.55;
+      const r = 30 + rnd() * 28;
+      const lg = bx.createRadialGradient(sx, sy, 0, sx, sy, r);
+      lg.addColorStop(0, 'rgba(255, 240, 180, 0.10)');
+      lg.addColorStop(1, 'rgba(255, 240, 180, 0)');
+      bx.fillStyle = lg;
+      bx.beginPath();
+      bx.arc(sx, sy, r, 0, Math.PI * 2);
+      bx.fill();
+    }
+  }
+
+  // ---------- 月夜 ----------
+  // 深蓝夜空 + 大月亮 + 星点 + 山脊 silhouette + (动画) 樱花飘落
+  function bakeBgMoonlit(bx) {
+    const g = bx.createLinearGradient(0, 0, 0, LOG_H);
+    g.addColorStop(0, '#040820');
+    g.addColorStop(0.55, '#0a1230');
+    g.addColorStop(1, '#020410');
+    bx.fillStyle = g;
+    bx.fillRect(0, 0, LOG_W, LOG_H);
+
+    // 月亮 halo
+    const mx = LOG_W * 0.72;
+    const my = LOG_H * 0.20;
+    const mr = 64;
+    const halo = bx.createRadialGradient(mx, my, 0, mx, my, mr * 2.4);
+    halo.addColorStop(0, 'rgba(255, 240, 200, 0)');
+    halo.addColorStop(0.45, 'rgba(255, 230, 180, 0.14)');
+    halo.addColorStop(1, 'rgba(255, 230, 180, 0)');
+    bx.fillStyle = halo;
+    bx.fillRect(0, 0, LOG_W, LOG_H);
+
+    // 月亮本体
+    const moon = bx.createRadialGradient(mx - 10, my - 10, 2, mx, my, mr);
+    moon.addColorStop(0, '#fffaee');
+    moon.addColorStop(0.7, '#fff0c8');
+    moon.addColorStop(1, '#fadca0');
+    bx.fillStyle = moon;
+    bx.beginPath();
+    bx.arc(mx, my, mr, 0, Math.PI * 2);
+    bx.fill();
+    // 月坑
+    bx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+    [[16, -12, 5], [-20, 4, 7], [4, 22, 4], [22, 14, 3.5], [-10, -18, 3]].forEach(([dx, dy, cr]) => {
+      bx.beginPath();
+      bx.arc(mx + dx, my + dy, cr, 0, Math.PI * 2);
+      bx.fill();
+    });
+
+    // 星点
+    let s = 9001;
+    const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+    bx.fillStyle = '#ffffff';
+    for (let i = 0; i < 80; i++) {
+      const sx = rnd() * LOG_W;
+      const sy = rnd() * LOG_H * 0.55;
+      const sr = 0.4 + rnd() * 1.3;
+      // 避开月亮本体区域
+      if (Math.hypot(sx - mx, sy - my) < mr + 8) continue;
+      bx.globalAlpha = 0.3 + rnd() * 0.6;
+      bx.beginPath();
+      bx.arc(sx, sy, sr, 0, Math.PI * 2);
+      bx.fill();
+    }
+    bx.globalAlpha = 1;
+
+    // 远山 silhouette
+    bx.fillStyle = '#020613';
+    bx.beginPath();
+    bx.moveTo(0, LOG_H);
+    bx.lineTo(0, LOG_H * 0.80);
+    bx.lineTo(LOG_W * 0.18, LOG_H * 0.70);
+    bx.lineTo(LOG_W * 0.35, LOG_H * 0.78);
+    bx.lineTo(LOG_W * 0.5, LOG_H * 0.64);
+    bx.lineTo(LOG_W * 0.65, LOG_H * 0.74);
+    bx.lineTo(LOG_W * 0.82, LOG_H * 0.68);
+    bx.lineTo(LOG_W, LOG_H * 0.78);
+    bx.lineTo(LOG_W, LOG_H);
+    bx.closePath();
+    bx.fill();
+  }
+
+  // ---------- 极简 ----------
+  // 单色深底 + vignette；连击 / 切水果时 the action is the star，没干扰
+  function bakeBgMinimal(bx) {
+    bx.fillStyle = '#0a0e14';
+    bx.fillRect(0, 0, LOG_W, LOG_H);
+    const v = bx.createRadialGradient(LOG_W / 2, LOG_H / 2, LOG_W * 0.3, LOG_W / 2, LOG_H / 2, LOG_W * 0.78);
+    v.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    v.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
+    bx.fillStyle = v;
+    bx.fillRect(0, 0, LOG_W, LOG_H);
+    // 极淡的水平参考线
+    bx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+    bx.fillRect(0, LOG_H * 0.62, LOG_W, 1);
+  }
+
+  // ---------- 霓虹（legacy 蒸汽波）----------
+  function bakeBgNeon(bx) {
+    const horizonY = LOG_H * HORIZON_RATIO;
     const skyGrad = bx.createLinearGradient(0, 0, 0, horizonY);
     skyGrad.addColorStop(0, '#06010f');
     skyGrad.addColorStop(0.55, '#1a0838');
     skyGrad.addColorStop(1, '#3a0e5e');
     bx.fillStyle = skyGrad;
     bx.fillRect(0, 0, LOG_W, horizonY);
-
-    // 夕阳（粉红 → 橙黄）
     const sunCx = LOG_W / 2;
     const sunCy = horizonY - 18;
     const sunR = 120;
@@ -1074,8 +1286,6 @@ permalink: /toolbox/fruit-ninja/
     bx.beginPath();
     bx.arc(sunCx, sunCy, sunR, 0, Math.PI * 2);
     bx.fill();
-
-    // 夕阳横条带（80s 复古蒸汽波标志）
     bx.globalCompositeOperation = 'destination-out';
     for (let i = 0; i < 7; i++) {
       const sy = sunCy + 28 + i * 10;
@@ -1084,15 +1294,11 @@ permalink: /toolbox/fruit-ninja/
       bx.fillRect(sunCx - sunR, sy, sunR * 2, sh);
     }
     bx.globalCompositeOperation = 'source-over';
-
-    // 地板（地平线下方）
     const floorGrad = bx.createLinearGradient(0, horizonY, 0, LOG_H);
     floorGrad.addColorStop(0, '#0c031e');
     floorGrad.addColorStop(1, '#02000a');
     bx.fillStyle = floorGrad;
     bx.fillRect(0, horizonY, LOG_W, LOG_H - horizonY);
-
-    // 地平线 + 青色辉光
     const glowGrad = bx.createLinearGradient(0, horizonY - 10, 0, horizonY + 10);
     glowGrad.addColorStop(0, 'rgba(0, 220, 255, 0)');
     glowGrad.addColorStop(0.5, 'rgba(0, 220, 255, 0.42)');
@@ -1105,14 +1311,14 @@ permalink: /toolbox/fruit-ninja/
     bx.moveTo(0, horizonY);
     bx.lineTo(LOG_W, horizonY);
     bx.stroke();
-
-    // 远景星点（仅天空区域）
     bx.fillStyle = '#ffffff';
+    let s = 7777;
+    const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
     for (let i = 0; i < 22; i++) {
-      const sx = Math.random() * LOG_W;
-      const sy = Math.random() * horizonY * 0.75;
-      const sr = Math.random() * 1.2 + 0.3;
-      bx.globalAlpha = 0.35 + Math.random() * 0.5;
+      const sx = rnd() * LOG_W;
+      const sy = rnd() * horizonY * 0.75;
+      const sr = rnd() * 1.2 + 0.3;
+      bx.globalAlpha = 0.35 + rnd() * 0.5;
       bx.beginPath();
       bx.arc(sx, sy, sr, 0, Math.PI * 2);
       bx.fill();
@@ -1120,19 +1326,52 @@ permalink: /toolbox/fruit-ninja/
     bx.globalAlpha = 1;
   }
 
+  // ---------- 动画层（dispatcher）----------
+  const bgPetals = [];
+  function ensureMoonPetals() {
+    if (bgPetals.length > 0) return;
+    for (let i = 0; i < 14; i++) {
+      bgPetals.push({
+        x: Math.random() * LOG_W,
+        y: Math.random() * LOG_H,
+        vy: 18 + Math.random() * 14,
+        vx: -10 + Math.random() * 20,
+        rot: Math.random() * Math.PI * 2,
+        vrot: (Math.random() - 0.5) * 0.8,
+        sz: 3.4 + Math.random() * 2.6,
+      });
+    }
+  }
+  function drawMoonPetals(dtSec) {
+    ensureMoonPetals();
+    ctx.save();
+    for (const p of bgPetals) {
+      p.x += p.vx * dtSec;
+      p.y += p.vy * dtSec;
+      p.rot += p.vrot * dtSec;
+      if (p.y > LOG_H + 16) { p.y = -10; p.x = Math.random() * LOG_W; }
+      if (p.x < -20) p.x = LOG_W + 10;
+      if (p.x > LOG_W + 20) p.x = -10;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = 'rgba(255, 200, 220, 0.65)';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, p.sz * 0.5, p.sz, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
   function drawNeonGrid(gameTimeMs) {
     const horizonY = LOG_H * HORIZON_RATIO;
     const floorBottom = LOG_H;
     const numHoriz = 14;
-    // 0..1 滚动循环（每 ~6s 一周），向玩家方向流
     const scroll = ((gameTimeMs * 0.00018) % 1 + 1) % 1;
-
     ctx.save();
-
-    // 横向地板线（透视：靠近玩家越亮越粗，间距非线性）
     for (let i = 0; i < numHoriz; i++) {
       const t = ((i + scroll) / numHoriz) % 1;
-      const yT = Math.pow(t, 2.4);                       // 透视曲线
+      const yT = Math.pow(t, 2.4);
       const y = horizonY + (floorBottom - horizonY) * yT;
       const alpha = 0.16 + 0.55 * yT;
       const isAccent = (Math.floor(i + scroll) % 4 === 0);
@@ -1145,8 +1384,6 @@ permalink: /toolbox/fruit-ninja/
       ctx.lineTo(LOG_W, y);
       ctx.stroke();
     }
-
-    // 纵向放射线（消失点在地平线中心）
     const vanishX = LOG_W / 2;
     const verts = 13;
     ctx.lineWidth = 0.9;
@@ -1159,8 +1396,12 @@ permalink: /toolbox/fruit-ninja/
       ctx.lineTo(xBottom, floorBottom);
       ctx.stroke();
     }
-
     ctx.restore();
+  }
+  function drawBgAnimated(gameTimeMs, dtGameMs) {
+    if (Bg.current === 'neon') drawNeonGrid(gameTimeMs);
+    else if (Bg.current === 'moonlit') drawMoonPetals(Math.min(0.05, dtGameMs / 1000));
+    // bamboo / minimal：静态烘焙够了
   }
 
   resizeCanvas();
@@ -1319,13 +1560,12 @@ permalink: /toolbox/fruit-ninja/
       const r = w.r0 + (w.rMax - w.r0) * t;
       const inv = 1 - t;
 
-      // 1. 内部 radial gradient 烟雾（仅前 55% 寿命，给"爆炸内部"的体积感）
-      if (t < 0.55) {
-        const fillT = t / 0.55;
-        const fillAlpha = (1 - fillT * fillT) * 0.45;
-        const g = ctx.createRadialGradient(w.x, w.y, r * 0.32, w.x, w.y, r);
+      // 1. 内部很淡的 radial gradient 烟雾（仅前 40% 寿命）
+      if (t < 0.4) {
+        const fillT = t / 0.4;
+        const fillAlpha = (1 - fillT * fillT) * 0.22;
+        const g = ctx.createRadialGradient(w.x, w.y, r * 0.35, w.x, w.y, r);
         g.addColorStop(0, 'rgba(' + w.colorRGB + ', 0)');
-        g.addColorStop(0.75, 'rgba(' + w.colorRGB + ', ' + (fillAlpha * 0.5).toFixed(3) + ')');
         g.addColorStop(1, 'rgba(' + w.colorRGB + ', ' + fillAlpha.toFixed(3) + ')');
         ctx.fillStyle = g;
         ctx.beginPath();
@@ -1333,31 +1573,12 @@ permalink: /toolbox/fruit-ninja/
         ctx.fill();
       }
 
-      // 2. 主前沿环（亮）—— 冲击波的"边"
-      ctx.strokeStyle = 'rgba(' + w.colorRGB + ', ' + (inv * inv * 0.95).toFixed(3) + ')';
-      ctx.lineWidth = w.lineWidth * (1 - t * 0.35);
+      // 2. 主前沿环 —— 单环、细一些。爆炸感够了不需要 3-4 层圈把屏幕填满
+      ctx.strokeStyle = 'rgba(' + w.colorRGB + ', ' + (inv * inv * 0.7).toFixed(3) + ')';
+      ctx.lineWidth = w.lineWidth * 0.7 * (1 - t * 0.45);
       ctx.beginPath();
       ctx.arc(w.x, w.y, r, 0, Math.PI * 2);
       ctx.stroke();
-
-      // 3. 内 echo 环（细，半径 0.82×）—— 给"双重涟漪"层次
-      const echoR = r * 0.82;
-      if (echoR > 4) {
-        ctx.strokeStyle = 'rgba(' + w.colorRGB + ', ' + (inv * 0.55).toFixed(3) + ')';
-        ctx.lineWidth = w.lineWidth * 0.45 * inv;
-        ctx.beginPath();
-        ctx.arc(w.x, w.y, echoR, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      // 4. 外 echo 环（更细更暗，半径 1.08×）—— 给"外辐射"扩散
-      if (t < 0.75) {
-        const outerR = r * 1.08;
-        ctx.strokeStyle = 'rgba(' + w.colorRGB + ', ' + (inv * 0.32).toFixed(3) + ')';
-        ctx.lineWidth = w.lineWidth * 0.32 * inv;
-        ctx.beginPath();
-        ctx.arc(w.x, w.y, outerR, 0, Math.PI * 2);
-        ctx.stroke();
-      }
     }
     ctx.restore();
   }
@@ -1794,29 +2015,26 @@ permalink: /toolbox/fruit-ninja/
         FNAudio.play('chop', { detune: 600, gain: 0.5 });   // 高音清脆
       }
     }
-    // 计分：Combo Rush 用 combo² × 10（高 combo 指数增长），其他用 10 + (N-1)*10
-    let points = state.mode === 'comborush'
-      ? state.combo * state.combo * 10
-      : 10 + (state.combo - 1) * 10;
+    // 计分：单笔挥刀斩 N 个 = combo N。一张倍率表说清楚每个 combo 的得分，
+    // 不再做"基础线性 + 后置 milestone bonus"双段相加（玩家算不清）
+    let points = (state.mode === 'comborush')
+      ? state.combo * state.combo * 10      // Combo Rush 不清零 + 指数增长
+      : comboPoints(state.combo);
     points *= precisionMult;
     state.score += points;
 
-    // 多连提示
+    // 多连提示（不再二次加分，points 已是终值）
     if (state.combo === 2) {
       showPopup(f.x, f.y - 38, '+' + points, '#fff');
     } else if (state.combo >= 3) {
       const labels = { 3: '三连切！', 4: '四连切！', 5: '五连切！', 6: '超神！', 7: '不可阻挡！' };
       const lbl = labels[state.combo] || (state.combo + ' 连切！');
       const color = state.combo >= 5 ? '#ff7878' : '#ffd95a';
-      // Combo Rush 不再叠加 milestone 奖励分（combo² 已经爆炸增长）
-      const extra = state.mode === 'comborush' ? 0 : state.combo * 20;
-      state.score += extra;
-      // combo ≥ 4 popup 带光环；颜色随 combo 升级（青 → 粉 → 黄）
       const auraColor = state.combo >= 7 ? '255, 220, 90'
         : state.combo >= 5 ? '255, 80, 200'
         : '0, 220, 255';
       showPopup(LOG_W / 2, LOG_H * 0.32, lbl, color, true, state.combo >= 4 ? auraColor : false);
-      showPopup(LOG_W / 2, LOG_H * 0.32 + 46, '+' + (points + extra), '#fff');
+      showPopup(LOG_W / 2, LOG_H * 0.32 + 46, '+' + points, '#fff');
     }
 
     spawnHalves(f, angle);
@@ -1939,19 +2157,20 @@ permalink: /toolbox/fruit-ninja/
       const t = Math.min(1, s.age / s.life);
       const inv = 1 - t;
 
-      // 1. 中心 halo：从 ~70px 扩到 ~140px，alpha 按 (1-t)² 衰减
-      const flashSize = 92 * (0.55 + t * 0.95);
-      ctx.globalAlpha = inv * inv * 0.85;
+      // 1. 小型撞击 halo —— 固定 ~42px 不扩张，只是亮起后快速衰减
+      // 原本会从 70 扩到 140 px，那是"波纹"感的主要来源；现在不再扩散，避免抢眼
+      const flashSize = 42;
+      ctx.globalAlpha = inv * inv * 0.45;
       ctx.drawImage(
         slashFlashSprite,
         s.x - flashSize / 2, s.y - flashSize / 2,
         flashSize, flashSize
       );
 
-      // 2. 沿切刀方向的横向光束（lens-flare 感）
-      const beamW = 160 * (1 - t * 0.22);
-      const beamH = 16 * inv * inv;
-      ctx.globalAlpha = inv * 0.92;
+      // 2. 沿切刀方向的细光束 —— 给"刀刚划过"的方向感，比原来收敛
+      const beamW = 110 * (1 - t * 0.15);
+      const beamH = 9 * inv * inv;
+      ctx.globalAlpha = inv * 0.7;
       ctx.save();
       ctx.translate(s.x, s.y);
       ctx.rotate(s.angle);
@@ -1996,10 +2215,10 @@ permalink: /toolbox/fruit-ninja/
     FNAudio.play('bomb');
     triggerShake(20, 420);
     spawnShockwave(f ? f.x : LOG_W / 2, f ? f.y : LOG_H / 2, {
-      rMax: 260, colorRGB: '255, 90, 100', lineWidth: 6, life: 0.5,
+      rMax: 190, colorRGB: '255, 90, 100', lineWidth: 5, life: 0.42,
     });
     spawnShockwave(f ? f.x : LOG_W / 2, f ? f.y : LOG_H / 2, {
-      r0: 8, rMax: 160, colorRGB: '255, 220, 90', lineWidth: 3, life: 0.35,
+      r0: 8, rMax: 110, colorRGB: '255, 220, 90', lineWidth: 2.5, life: 0.32,
     });
     vibrate([80, 40, 80]);
     state.combo = 0;
@@ -2359,47 +2578,22 @@ permalink: /toolbox/fruit-ninja/
       const a = Math.max(0, 1 - t);
       const yOff = -55 * t * t;
 
-      // 连击光环：内 radial gradient 闪光 + 主前沿环 + 后随 echo 环，取代原本的单线圈
+      // 连击光环：固定大小（不再扩散成波纹）的色光垫在文字背后，仅给"重量"不抢眼
       if (p.aura) {
-        const auraT = Math.min(1, p.age / 0.7);
-        const auraR = 30 + 110 * auraT;
-        const auraInv = 1 - auraT;
-        const auraA = a * auraInv;
-        if (auraA > 0.02) {
+        const auraA = a * Math.min(1, 1.6 * (1 - t));   // 跟着文字一起淡出
+        if (auraA > 0.04) {
           ctx.save();
           ctx.globalCompositeOperation = 'lighter';
           ctx.translate(p.x, p.y + yOff);
-
-          // 内部 radial gradient 闪光（仅前半段寿命）
-          if (auraT < 0.55) {
-            const fillT = auraT / 0.55;
-            const fillAlpha = (1 - fillT * fillT) * 0.42 * a;
-            const g = ctx.createRadialGradient(0, 0, 4, 0, 0, auraR);
-            g.addColorStop(0, 'rgba(' + p.auraColor + ', ' + fillAlpha.toFixed(3) + ')');
-            g.addColorStop(0.55, 'rgba(' + p.auraColor + ', ' + (fillAlpha * 0.45).toFixed(3) + ')');
-            g.addColorStop(1, 'rgba(' + p.auraColor + ', 0)');
-            ctx.fillStyle = g;
-            ctx.beginPath();
-            ctx.arc(0, 0, auraR, 0, Math.PI * 2);
-            ctx.fill();
-          }
-
-          // 主前沿环（亮）
-          ctx.strokeStyle = 'rgba(' + p.auraColor + ', ' + (auraA * 0.9).toFixed(3) + ')';
-          ctx.lineWidth = 6.5 * auraInv * auraInv + 1.2;
+          const r = p.big ? 72 : 50;
+          const g = ctx.createRadialGradient(0, 0, 4, 0, 0, r);
+          g.addColorStop(0, 'rgba(' + p.auraColor + ', ' + (auraA * 0.55).toFixed(3) + ')');
+          g.addColorStop(0.55, 'rgba(' + p.auraColor + ', ' + (auraA * 0.18).toFixed(3) + ')');
+          g.addColorStop(1, 'rgba(' + p.auraColor + ', 0)');
+          ctx.fillStyle = g;
           ctx.beginPath();
-          ctx.arc(0, 0, auraR, 0, Math.PI * 2);
-          ctx.stroke();
-
-          // 后随 echo 环（细，靠内）
-          if (auraR > 28) {
-            ctx.strokeStyle = 'rgba(' + p.auraColor + ', ' + (auraA * 0.45).toFixed(3) + ')';
-            ctx.lineWidth = 2.2 * auraInv;
-            ctx.beginPath();
-            ctx.arc(0, 0, auraR * 0.78, 0, Math.PI * 2);
-            ctx.stroke();
-          }
-
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.fill();
           ctx.restore();
         }
       }
@@ -2481,7 +2675,7 @@ permalink: /toolbox/fruit-ninja/
       ctx.fillStyle = '#0a0418';
       ctx.fillRect(0, 0, LOG_W, LOG_H);
     }
-    drawNeonGrid(Time.game);
+    drawBgAnimated(Time.game, lastDtGameMs);
 
     // 果汁残印（在水果下方）
     if (stainsCanvas && stainsEnabled) {
@@ -2548,6 +2742,7 @@ permalink: /toolbox/fruit-ninja/
     Time.scale = scale;
   }
 
+  let lastDtGameMs = 0;        // 给背景动画层用（樱花 etc）
   function loop(now) {
     if (state.over || !state.running) return;
     if (!state.paused) {
@@ -2559,6 +2754,7 @@ permalink: /toolbox/fruit-ninja/
       const dtGameMs = isFrozen ? 0 : dtWall * Time.scale;
       Time.game += dtGameMs;
       Time.wall = now;
+      lastDtGameMs = dtGameMs;
       update(Time.game, dtGameMs / 1000);
       render();
       updateHud();
