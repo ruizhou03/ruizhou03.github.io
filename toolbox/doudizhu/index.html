@@ -1892,7 +1892,11 @@ permalink: /toolbox/doudizhu/
 
   $('ddzStartBtn').addEventListener('click', () => startNewGame());
   $('ddzDeclareStartBtn').addEventListener('click', () => startNewGame({ declareStart: true }));
-  // 智能分组开关
+  // 智能分组开关（const / let 必须在 refreshGroupSortToggle() 调用前初始化，
+  // 否则 TDZ 抛 ReferenceError，整个 IIFE 提前夭折 → 进游戏一片空白）
+  const GROUP_SORT_KEY = 'tool.doudizhu.groupSort.v1';
+  let groupSortEnabled = false;
+  try { groupSortEnabled = localStorage.getItem(GROUP_SORT_KEY) === '1'; } catch {}
   refreshGroupSortToggle();
   $('ddzGroupSortToggle').addEventListener('click', () => setGroupSortEnabled(!groupSortEnabled));
   // 全屏切换
@@ -2094,9 +2098,7 @@ permalink: /toolbox/doudizhu/
   }
 
   // 智能分组开关（默认关；玩家可在 setup 屏 toggle）
-  const GROUP_SORT_KEY = 'tool.doudizhu.groupSort.v1';
-  let groupSortEnabled = false;
-  try { groupSortEnabled = localStorage.getItem(GROUP_SORT_KEY) === '1'; } catch {}
+  // 注：const GROUP_SORT_KEY / let groupSortEnabled 已经在更上面 refreshGroupSortToggle() 调用前初始化
   function setGroupSortEnabled(b) {
     groupSortEnabled = !!b;
     try { localStorage.setItem(GROUP_SORT_KEY, groupSortEnabled ? '1' : '0'); } catch {}
