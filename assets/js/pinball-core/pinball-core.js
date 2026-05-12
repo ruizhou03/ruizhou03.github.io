@@ -430,45 +430,44 @@
         }
       });
 
-      // 卡住兜底 A：唯一活跃球低速 2s → 强制 drain（卡在挡板/楔形死角，球已"死"）
-      if (state.balls.length === 1) {
-        const b = state.balls[0];
-        const sp = Math.hypot(b.vx, b.vy);
-        if (sp > 60) state.lastMoveT = now;
-        if (state.lastMoveT > 0 && now - state.lastMoveT > 2000) {
-          state.lastMoveT = now;
-          if (b.x > 100 && b.x < 442 && b.y > 540) {
-            state.balls.splice(0, 1);
-            if (hooks.onBallDrain) hooks.onBallDrain(b, now, game);
-            if (state.balls.length === 0) { onAllBallsDrained(now); return; }
-          } else {
-            b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
-            b.onPlunger = true; b.trail = [];
-            plunger.charge = 0;
-          }
-        }
-      } else if (state.balls.length > 1) {
-        state.lastMoveT = 0;  // 多球期间不触发兜底 A
-      }
-
-      // 卡住兜底 B：球在小范围 (≤160px bounding box) 内反复弹跳超过 2s
-      // —— 这是"卡在得分点"场景（cyber 中央 4 bumper / sling V 形死循环），
-      // 球还在高速运动但位置不脱离，不算"死球" → 送回弹簧，不算 drain
+      // 卡住兜底（统一两条规则，都送回弹簧、不扣命）
+      // A. "真停了"：速度 < 15 持续 1s → 球停在挡板平台/wedge corner 类位置
+      //    阈值 15 远低于慢滚的典型速度 (30-50)，避免误伤"减速但还在动"的球
+      // B. "卡在得分点"：3s 内位置中心几乎不漂移 (前半/后半窗口中心距 < 25px)
+      //    例：停在 bumper 上反复刷分；slings V 形死循环
+      //    直线慢滚的球前半/后半中心会真的拉开，不会触发；只有原地震荡才触发
       state.balls.forEach(b => {
-        if (b.onPlunger) { b._poshist = null; return; }
+        if (b.onPlunger) {
+          b._lastFastT = now;
+          b._poshist = null;
+          return;
+        }
+        const sp = Math.hypot(b.vx, b.vy);
+        if (b._lastFastT == null) b._lastFastT = now;
+        if (sp > 15) b._lastFastT = now;
+        // A: 球已经"停"了
+        if (now - b._lastFastT > 1000) {
+          b._lastFastT = now;
+          b._poshist = null;
+          b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
+          b.onPlunger = true; b.trail = [];
+          plunger.charge = 0;
+          return;
+        }
+        // B: 中心漂移检测
         if (!b._poshist) { b._poshist = { samples: [], lastT: now }; return; }
         if (now - b._poshist.lastT < 100) return;
         b._poshist.samples.push([b.x, b.y]);
-        if (b._poshist.samples.length > 20) b._poshist.samples.shift();  // 2s 窗口
+        if (b._poshist.samples.length > 30) b._poshist.samples.shift();  // 3s 窗口
         b._poshist.lastT = now;
-        if (b._poshist.samples.length < 20) return;
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        for (const s of b._poshist.samples) {
-          if (s[0] < minX) minX = s[0]; if (s[0] > maxX) maxX = s[0];
-          if (s[1] < minY) minY = s[1]; if (s[1] > maxY) maxY = s[1];
-        }
-        if (maxX - minX < 160 && maxY - minY < 160) {
+        if (b._poshist.samples.length < 30) return;
+        let h1x = 0, h1y = 0, h2x = 0, h2y = 0;
+        for (let i = 0; i < 15; i++) { h1x += b._poshist.samples[i][0]; h1y += b._poshist.samples[i][1]; }
+        for (let i = 15; i < 30; i++) { h2x += b._poshist.samples[i][0]; h2y += b._poshist.samples[i][1]; }
+        h1x /= 15; h1y /= 15; h2x /= 15; h2y /= 15;
+        if (Math.hypot(h1x - h2x, h1y - h2y) < 25) {
           b._poshist = null;
+          b._lastFastT = now;
           b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
           b.onPlunger = true; b.trail = [];
           plunger.charge = 0;
