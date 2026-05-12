@@ -245,16 +245,16 @@
 }
 .pb-table-picker {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.4rem;
 }
 .pb-table-picker > * {
   display: flex !important;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.32rem;
-  padding: 0.72rem 0.35rem 0.65rem;
+  gap: 0.28rem;
+  padding: 0.62rem 0.2rem 0.55rem;
   background: var(--color-bg);
   border: 1.5px solid var(--color-border);
   border-radius: 12px;
@@ -283,15 +283,16 @@
   transform: translateY(-1px);
 }
 .pb-table-picker .pb-tp-emoji {
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   line-height: 1;
   display: block;
 }
 .pb-table-picker .pb-tp-name {
   font-weight: 600;
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
   display: block;
+  white-space: nowrap;
 }
 
 /* ─── 弹珠厅 hub 卡片网格（旧版 hub 用，本轮已废弃但保留 CSS 以防回滚） ─── */
@@ -360,3 +361,4 @@
 .pb-theme-temple   { --pb-bg: #2a1f0e; --pb-accent: #e8b955; }
 .pb-theme-cyber    { --pb-bg: #0a0014; --pb-accent: #ff3df8; }
 .pb-theme-pachinko { --pb-bg: #1a0808; --pb-accent: #ff5252; }
+.pb-theme-rain     { --pb-bg: #04101a; --pb-accent: #5d8ed4; }

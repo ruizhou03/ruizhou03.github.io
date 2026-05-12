@@ -5,12 +5,12 @@ permalink: /toolbox/pinball/pachinko/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=2">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=3">
 
 <div class="pb-wrap pb-theme-pachinko">
   <header>
     <h1>🎰 弹珠·机厅</h1>
-    <div class="sub">每局 10 发 · 左 1000 / 中 JACKPOT / 右 50（钉墙偏右，左槽稀有但高分）· 累计 3 次中槽 → multiball</div>
+    <div class="sub">每局 10 发 · 顶部 5 闸门定倍率 (×2 → ×20) · 槽分 × 闸门 · 累计 3 中槽 → multiball</div>
   </header>
 
   <div class="pb-scorebar">
@@ -18,7 +18,7 @@ permalink: /toolbox/pinball/pachinko/
     <div class="pb-score-box"><div class="label">Best</div><div class="value" id="pbBest">0</div></div>
   </div>
 
-  <div class="pb-goal-bar" id="pbGoal">JACKPOT <strong>2000</strong> · 中槽累计 <strong>0/3</strong> · 剩 <strong>10</strong> 发</div>
+  <div class="pb-goal-bar" id="pbGoal">本发 <strong>×1</strong> · JKPT <strong>2000</strong> · 中槽 <strong>0/3</strong> · 剩 <strong>10</strong> 发</div>
 
   <div class="pb-toolbar">
     <button class="pb-btn" id="pbPauseBtn">⏸ 暂停</button>
@@ -52,6 +52,7 @@ permalink: /toolbox/pinball/pachinko/
       <a href="/toolbox/pinball/temple/"><span class="pb-tp-emoji">🏛️</span><span class="pb-tp-name">神庙</span></a>
       <a href="/toolbox/pinball/cyber/"><span class="pb-tp-emoji">🌃</span><span class="pb-tp-name">赛博克</span></a>
       <span class="active"><span class="pb-tp-emoji">🎰</span><span class="pb-tp-name">机厅</span></span>
+      <a href="/toolbox/pinball/rain/"><span class="pb-tp-emoji">🌧️</span><span class="pb-tp-name">弹珠雨</span></a>
     </div>
   </div>
 
@@ -76,8 +77,11 @@ permalink: /toolbox/pinball/pachinko/
   const { deg } = PinballCore.utils;
 
   // ─── 顶部弧 + 边墙 ───
+  // 关键改动: deflector 从 (440,14)→(474,30) 改成 (458,14)→(474,30) 45°，
+  // 加 (440,14)→(458,14) 水平桥连接。45° deflector 把上行球反射成纯水平 (-V, 0)，
+  // 力度 ↔ 水平距离 = 直接 skill 映射。
   const topArc = [
-    [16, 80], [16, 56], [40, 28], [80, 14], [200, 6], [340, 6], [400, 18], [440, 14], [474, 30],
+    [16, 80], [16, 56], [40, 28], [80, 14], [200, 6], [340, 6], [400, 18], [440, 14], [458, 14], [474, 30],
   ];
   const walls = [];
   for (let i = 0; i < topArc.length - 1; i++) {
@@ -89,9 +93,6 @@ permalink: /toolbox/pinball/pachinko/
     { ax: 108, ay: 590, bx: 158, by: 590 },
     { ax: 332, ay: 590, bx: 382, by: 590 },
     { ax: 382, ay: 590, bx: 442, by: 540 },
-    // 内右墙到 y=90 留个口让 plunger 反射球进主区。
-    // 偶尔右上角钉墙会把球弹回 lane 是已知小问题，10 发限制下属于"瞄不准浪费一发"，
-    // 不是 bug。之前尝试加 hook 封口反而把 plunger 起飞轨迹挡住了。
     { ax: 442, ay: 540, bx: 442, by: 90 },
     { ax: 474, ay: 30, bx: 474, by: 612 },
     { ax: 442, ay: 612, bx: 474, by: 612 },
@@ -99,18 +100,15 @@ permalink: /toolbox/pinball/pachinko/
 
   // ─── 钉墙：zigzag 矩阵（pachinko 核心） ───
   const pegs = [];
-  // 8 行偶数行 + 7 行奇数行交错
-  const ROW_Y0 = 90, ROW_DY = 30, ROW_COUNT = 10;
+  const ROW_Y0 = 100, ROW_DY = 30, ROW_COUNT = 10;
   for (let r = 0; r < ROW_COUNT; r++) {
     const y = ROW_Y0 + r * ROW_DY;
     if (r % 2 === 0) {
-      // 8 cols
       for (let c = 0; c < 8; c++) {
         const x = 40 + c * 50;
         pegs.push({ x, y, score: 10 });
       }
     } else {
-      // 7 cols（偏移半个间距）
       for (let c = 0; c < 7; c++) {
         const x = 65 + c * 50;
         pegs.push({ x, y, score: 10 });
@@ -118,24 +116,40 @@ permalink: /toolbox/pinball/pachinko/
     }
   }
 
-  // ─── 7 个 slot：x=80..402 共 322px，分 7 格 = 46px / slot ───
-  // 7 个分割墙 + 7 个底部 trigger
+  // ─── 5 个 skill-shot 闸门 (×2 / ×3 / ×5 / ×10 / ×20) ───
+  // 闸门排在 deflector 反射后球必经的水平轨迹上 (y=68-82 范围)，
+  // 力度大 → 球往左飞越远 → 命中越左 (高倍率) 闸门
+  // 力度过大 → 撞左墙没碰到任何闸门 → ×1 默认 (overshoot 惩罚)
+  const LANES = [
+    { idx: 0, x: 295, w: 50, mult: 2,  color: '#88aaff' },
+    { idx: 1, x: 235, w: 50, mult: 3,  color: '#aaccff' },
+    { idx: 2, x: 175, w: 50, mult: 5,  color: '#ffcc66' },
+    { idx: 3, x: 115, w: 50, mult: 10, color: '#ff9966' },
+    { idx: 4, x: 55,  w: 50, mult: 20, color: '#ff5566' },
+  ];
+  const LANE_Y = 68, LANE_H = 14;
+  const laneTriggers = LANES.map(lane => ({
+    id: 'lane' + lane.idx,
+    kind: 'rect',
+    x: lane.x, y: LANE_Y, w: lane.w, h: LANE_H,
+    on: 'enter',
+    cooldown: 200,
+    laneInfo: lane,
+    cb: (now, ball, game) => onLaneCross(now, ball, game, lane),
+  }));
+
+  // ─── 7 个 slot ───
   const SLOT_X0 = 80, SLOT_X1 = 402;
   const SLOT_TOP = 440, SLOT_BOT = 500;
   const SLOT_W = (SLOT_X1 - SLOT_X0) / 7;
-  // 边界分割墙（8 根）
   for (let i = 0; i <= 7; i++) {
     const x = SLOT_X0 + i * SLOT_W;
     walls.push({ ax: x, ay: SLOT_TOP, bx: x, by: SLOT_BOT });
   }
-  // slot 底也立一道（让球在底部弹一下，trigger 之后再回 plunger）—— 实际上 trigger 立即返回，不需要
-  // 但视觉上有底有助于辨认
 
-  // Slot 计分（从左到右）：左侧难进 → 高分，右侧容易进 → 低分（顶部钉墙偏向把球往右弹）
-  // 中槽 JACKPOT 不变。设计意图：玩家要主动瞄左 / 中央，硬拼力度/角度
-  const SLOT_SCORES = [1000, 500, 250, -1, 200, 100, 50];  // -1 = jackpot
+  // Slot 计分仍然左侧高、右侧低 (钉墙仍然偏右弹)，配合顶部 skill-shot 倍率
+  const SLOT_SCORES = [1000, 500, 250, -1, 200, 100, 50];
 
-  // 槽底中心位置（trigger 用 rect 覆盖整个槽底）
   const slotTriggers = [];
   for (let i = 0; i < 7; i++) {
     slotTriggers.push({
@@ -152,28 +166,24 @@ permalink: /toolbox/pinball/pachinko/
     });
   }
 
-  // 下半部底层：双挡板 + 1 sling + 1 救援 bumper
+  const allTriggers = [...laneTriggers, ...slotTriggers];
+
+  // 下半部底层：只留一个救援 bumper (挡板上方中央)，slings 删了 (机厅用不到)
   const bumpers = [
-    { x: 240, y: 570, r: 14, score: 50, color: '#ff5252' },  // 救援 bumper（在挡板上方中央）
+    { x: 240, y: 570, r: 14, score: 50, color: '#ff5252' },
   ];
-  const slings = [
-    { ax: 98, ay: 545, bx: 132, by: 590, side: 'L', color: '#ff7676', score: 25 },
-    { ax: 310, ay: 590, bx: 344, by: 545, side: 'R', color: '#ff7676', score: 25 },
-  ];
-  walls.push(
-    { ax: 44, ay: 555, bx: 98, by: 545 },
-    { ax: 44, ay: 555, bx: 132, by: 590 },
-    { ax: 344, ay: 545, bx: 398, by: 555 },
-    { ax: 398, ay: 555, bx: 310, by: 590 },
-  );
+  const slings = [];  // 空：原 slings 在 pachinko 里几乎不会触发，删除省事
 
   // ─── 状态 ───
   const state = {
     jackpotValue: 2000,
-    jackpotStreak: 0,  // 连续 jackpot 计数
+    jackpotStreak: 0,
     multiballActive: false,
     multiballEnd: 0,
-    slotHits: [0,0,0,0,0,0,0],  // 每个槽进球数
+    slotHits: [0,0,0,0,0,0,0],
+    launchMult: 1,      // 本发倍率（命中闸门后更新）
+    launchLaneIdx: -1,  // 本发命中的闸门索引（-1 = 未命中任何闸门）
+    laneFlashTill: [0,0,0,0,0],  // 闸门高亮过期时间
   };
 
   function rebuildState() {
@@ -182,6 +192,9 @@ permalink: /toolbox/pinball/pachinko/
     state.multiballActive = false;
     state.multiballEnd = 0;
     state.slotHits = [0,0,0,0,0,0,0];
+    state.launchMult = 1;
+    state.launchLaneIdx = -1;
+    state.laneFlashTill = [0,0,0,0,0];
   }
   rebuildState();
 
@@ -195,27 +208,43 @@ permalink: /toolbox/pinball/pachinko/
       const rem = Math.max(0, ((state.multiballEnd - performance.now()) / 1000));
       html = `<strong>MULTIBALL ×2</strong>  ${rem.toFixed(1)}s · 剩 <strong>${livesLeft}</strong> 发`;
     } else {
-      html = `JACKPOT <strong>${jp.toLocaleString()}</strong> · 中槽累计 <strong>${state.jackpotStreak}/3</strong> · 剩 <strong>${livesLeft}</strong> 发`;
+      const m = state.launchMult;
+      const mLabel = m === 1 ? `<strong>×1</strong>` : `<strong style="color:#ffcc66">×${m}</strong>`;
+      html = `本发 ${mLabel} · JKPT <strong>${jp.toLocaleString()}</strong> · 中槽 <strong>${state.jackpotStreak}/3</strong> · 剩 <strong>${livesLeft}</strong> 发`;
     }
     game.setGoal(html);
   }
 
+  // 闸门 cb：方向过滤 (球必须向左飞，避免反弹球乱触发) + 取最高倍率
+  function onLaneCross(now, ball, gameRef, lane) {
+    if (ball.vx >= 0) return;  // 只在球向左飞越闸门时计数
+    if (lane.mult > state.launchMult) {
+      state.launchMult = lane.mult;
+      state.launchLaneIdx = lane.idx;
+      state.laneFlashTill[lane.idx] = now + 1200;
+      game.addPopup(ball.x, ball.y - 16, '×' + lane.mult + ' LOCKED', 1100);
+      updateGoal();
+    }
+  }
+
   function onSlotEnter(now, ball, gameRef, idx) {
     const baseScore = SLOT_SCORES[idx] === -1 ? state.jackpotValue : SLOT_SCORES[idx];
+    const finalScore = baseScore * state.launchMult;
     const cx = SLOT_X0 + idx * SLOT_W + SLOT_W / 2;
     state.slotHits[idx]++;
-    game.addScore(baseScore, cx, SLOT_BOT - 30, 'slot');
+    game.addScore(finalScore, cx, SLOT_BOT - 30, 'slot');
+    if (state.launchMult > 1) {
+      game.addPopup(cx, SLOT_BOT - 50, `${baseScore} × ${state.launchMult}`, 1300);
+    }
     if (SLOT_SCORES[idx] === -1) {
-      game.addPopup(cx, SLOT_BOT - 50, 'JACKPOT', 1400);
+      game.addPopup(cx, SLOT_BOT - 70, 'JACKPOT', 1400);
       state.jackpotStreak++;
       if (state.jackpotStreak >= 3 && !state.multiballActive) {
         startMultiball(now);
         state.jackpotStreak = 0;
       }
     }
-    // 非中槽不重置累计——10 发限内"连续 3 次中槽"几乎不可能触发，改成"累计 3 次"
-    // 球进槽 = 用掉一发（移除球，让 core 走 onAllBallsDrained → 决定是续命还是结算）
-    // multiball 期间 4 球都进槽才会触发 onAllBallsDrained 一次，相当于 4 球共 1 命，是奖励
+    // 球进槽 = 用掉一发（移除球，让 core 自动续命/结算）
     const arr = game.state.balls;
     const i2 = arr.indexOf(ball);
     if (i2 >= 0) arr.splice(i2, 1);
@@ -226,7 +255,7 @@ permalink: /toolbox/pinball/pachinko/
     state.multiballActive = true;
     state.multiballEnd = now + 20000;
     game.setMultiplier(2);
-    // 追加 4 颗球向下抛（原球马上会被 onSlotEnter 移除，留下 4 球 multiball）
+    // 追加 4 颗球向下抛 (multiball 期间 launchMult 也生效，加上 game.multiplier=2 是双重)
     [80, 180, 280, 380].forEach((x, i) => {
       const vx = (Math.random() - 0.5) * 200;
       const vy = 200 + Math.random() * 80;
@@ -239,7 +268,6 @@ permalink: /toolbox/pinball/pachinko/
   function endMultiball() {
     state.multiballActive = false;
     game.setMultiplier(1);
-    // jackpot 递增
     state.jackpotValue += 500;
     updateGoal();
   }
@@ -252,40 +280,55 @@ permalink: /toolbox/pinball/pachinko/
     grad.addColorStop(1, '#0d0404');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
-    // 红色机厅光晕
     const g2 = ctx.createRadialGradient(W/2, 200, 40, W/2, 200, 300);
     g2.addColorStop(0, 'rgba(255, 90, 60, 0.10)');
     g2.addColorStop(1, 'rgba(255, 90, 60, 0)');
     ctx.fillStyle = g2;
     ctx.fillRect(0, 0, W, H);
-    // 顶部"机厅 PACHINKO" 字样
     ctx.save();
-    ctx.font = 'bold 28px Georgia, serif';
+    ctx.font = 'bold 26px Georgia, serif';
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255, 200, 80, 0.10)';
-    ctx.fillText('機 廳 PACHINKO', W/2, 56);
+    ctx.fillStyle = 'rgba(255, 200, 80, 0.08)';
+    ctx.fillText('機 廳 PACHINKO', W/2, 54);
     ctx.restore();
   }
 
   function paintMidLayer(ctx, now) {
-    // 7 个 slot 上沿"奖励标签"
+    // ── Skill-shot 闸门 ──
+    LANES.forEach(lane => {
+      const flashing = state.laneFlashTill[lane.idx] > now;
+      const isActive = state.launchLaneIdx === lane.idx;
+      // 闸门底色
+      ctx.fillStyle = isActive
+        ? `rgba(255, 220, 100, ${0.40 + 0.15 * Math.sin(now / 150)})`
+        : flashing
+          ? `rgba(255, 220, 100, ${0.50})`
+          : 'rgba(255, 255, 255, 0.06)';
+      ctx.fillRect(lane.x, LANE_Y, lane.w, LANE_H);
+      // 边框
+      ctx.strokeStyle = isActive || flashing ? '#ffcc66' : 'rgba(200, 200, 220, 0.35)';
+      ctx.lineWidth = isActive ? 2 : 1;
+      ctx.strokeRect(lane.x, LANE_Y, lane.w, LANE_H);
+      // 标签 "×N"
+      ctx.fillStyle = isActive || flashing ? '#fff5d0' : 'rgba(220, 220, 240, 0.7)';
+      ctx.font = isActive ? 'bold 12px system-ui' : 'bold 11px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('×' + lane.mult, lane.x + lane.w / 2, LANE_Y + LANE_H - 3);
+    });
+
+    // ── 7 个 slot ──
     for (let i = 0; i < 7; i++) {
       const cx = SLOT_X0 + i * SLOT_W + SLOT_W / 2;
       const isJackpot = SLOT_SCORES[i] === -1;
       const label = isJackpot ? 'JKPT' : String(SLOT_SCORES[i]);
-      // 槽内底色
       ctx.fillStyle = isJackpot
         ? `rgba(255, 220, 80, ${0.18 + 0.10 * Math.sin(now / 200)})`
-        : (SLOT_SCORES[i] === 500 ? 'rgba(255, 100, 80, 0.18)' : 'rgba(180, 180, 200, 0.10)');
+        : (SLOT_SCORES[i] >= 500 ? 'rgba(255, 100, 80, 0.18)' : 'rgba(180, 180, 200, 0.10)');
       ctx.fillRect(SLOT_X0 + i * SLOT_W + 1, SLOT_TOP + 1, SLOT_W - 2, SLOT_BOT - SLOT_TOP - 2);
-      // 标签
-      ctx.fillStyle = isJackpot
-        ? `rgba(255, 230, 120, ${0.95})`
-        : (SLOT_SCORES[i] === 500 ? '#ffb060' : '#cccccc');
+      ctx.fillStyle = isJackpot ? `rgba(255, 230, 120, 0.95)` : (SLOT_SCORES[i] >= 500 ? '#ffb060' : '#cccccc');
       ctx.font = isJackpot ? 'bold 11px system-ui' : '10px system-ui';
       ctx.textAlign = 'center';
       ctx.fillText(label, cx, SLOT_TOP - 4);
-      // hit 计数小字
       if (state.slotHits[i] > 0) {
         ctx.font = '9px system-ui';
         ctx.fillStyle = 'rgba(200, 200, 200, 0.55)';
@@ -309,16 +352,19 @@ permalink: /toolbox/pinball/pachinko/
   const canvas = document.getElementById('pbCanvas');
   game = PinballCore.createGame({
     canvas, designW: W, designH: H, id: 'pachinko',
-    totalBalls: 10,  // 每局 10 发；球进槽视为用掉一发
+    totalBalls: 10,
     drainY: 626, drainXRange: [100, 442],
-    physics: { gravity: 1100, airDrag: 0.999, substeps: 8, maxSpeed: 1400, ballRadius: 9 },
-    plunger: { x: 458, restY: 600, laneLeft: 442, laneRight: 474, maxCharge: 1.0, chargeRate: 1.6, maxVel: 1500, minVel: 520 },
+    // gravity 降到 600 (其它桌 1100)：deflector 是 45° 反射，重力小一点球水平飞得更远 →
+    // 力度 ↔ 闸门 命中 V 范围更宽，可玩性强
+    physics: { gravity: 600, airDrag: 0.999, substeps: 8, maxSpeed: 1400, ballRadius: 9 },
+    // minVel 调到 870：刚好到达 deflector (y=14) + 一点点剩余 V，对应"低充能 → 撞 ×2 闸门"
+    plunger: { x: 458, restY: 600, laneLeft: 442, laneRight: 474, maxCharge: 1.0, chargeRate: 1.6, maxVel: 1500, minVel: 870 },
     flippers: [
       { pivot: { x: 158, y: 590 }, length: 70, thick: 7, restDeg: 25, upDeg: -32, side: 'L' },
       { pivot: { x: 332, y: 590 }, length: 70, thick: 7, restDeg: 180 - 25, upDeg: 180 - (-32), side: 'R' },
     ],
     walls, bumpers, pegs, slings,
-    triggers: slotTriggers,
+    triggers: allTriggers,
     hud: {
       score: document.getElementById('pbScore'),
       best: document.getElementById('pbBest'),
@@ -336,7 +382,7 @@ permalink: /toolbox/pinball/pachinko/
       plungerBtn: document.getElementById('pbPlungerBtn'),
     },
     render: { paintBackground, paintMidLayer, paintForeground, wallColor: '#664030' },
-    store: { key: 'tool.pinball-pachinko.v1' },
+    store: { key: 'tool.pinball-pachinko.v2' },  // v2: skill-shot 改版，旧最高分作废
     shell: {
       gameId: 'pinball-pachinko',
       title: '弹珠机·机厅',
@@ -347,26 +393,36 @@ permalink: /toolbox/pinball/pachinko/
       commentsMount: document.getElementById('pb-cm-mount'),
       commentsPath: '/toolbox/pinball/pachinko/',
       commentsTitle: '💬 机厅玩家交流',
-      commentsIntro: '聊聊你的 JACKPOT 大爆发 ~',
+      commentsIntro: '聊聊你的 JACKPOT × ×20 大爆发 ~',
       commentsPlaceholder: '聊聊心得 ~',
       nickMount: document.getElementById('pb-nick-mount'),
       settleBtnMount: document.getElementById('pb-settle-btn-mount'),
-      extraSubmit: () => ({ jackpot: state.jackpotValue, jackpotStreak: state.slotHits[3] }),
+      extraSubmit: () => ({ jackpot: state.jackpotValue, jackpotHits: state.slotHits[3] }),
       statsBuilder: (s) => [
         { label: 'JACKPOT 命中', value: state.slotHits[3] },
-        { label: 'JACKPOT 终值', value: state.jackpotValue.toLocaleString() },
+        { label: 'JKPT 终值', value: state.jackpotValue.toLocaleString() },
         { label: '历史最高', value: Number(s.best || 0).toLocaleString() },
       ],
       watermark: 'zirconeey.github.io/toolbox/pinball/pachinko',
     },
     hooks: {
       onStart: (s, g) => { game = g; rebuildState(); updateGoal(); },
+      onLaunch: (b, g) => {
+        // 每次重新发射重置本发倍率
+        state.launchMult = 1;
+        state.launchLaneIdx = -1;
+        updateGoal();
+      },
       onTick: (dt, now) => {
         if (state.multiballActive && now >= state.multiballEnd) endMultiball();
         if (state.multiballActive) updateGoal();
       },
-      // 每次球出局后刷一下"剩 N 发"——core 已自动续命或结算
-      onAfterDrain: (now, g) => updateGoal(),
+      onAfterDrain: (now, g) => {
+        // 球出局后刷一下"剩 N 发"+ 重置本发倍率为下一发做准备
+        state.launchMult = 1;
+        state.launchLaneIdx = -1;
+        updateGoal();
+      },
     },
   });
 
