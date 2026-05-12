@@ -347,11 +347,13 @@ permalink: /toolbox/feixingqi/
     </div>
     <div class="fxq-help">点击棋盘四角的 chip 在「空 / 人类 / AI」之间切换。每位玩家 4 架飞机，目标是把 4 架全送到中央终点。至少需要 2 个角有玩家。</div>
     <div class="fxq-rules">
-      <span class="pill">出库 + 大飞</span> 摇 6 出库 → 飞机出现在自家 <span style="color:#E84545">✈</span> 起飞口并立即横跨半盘 26 格到对面棋盘臂（经典 "起飞 = 大飞" 规则）；掷 6 后再掷一次（连续 3 个 6 视为犯规，最近一架退回机库）。
+      <span class="pill">出库</span> 摇 6 才能从机库出一架，飞机出现在紧邻基地的 <span style="color:#E84545">✈</span> 起飞圆格上；掷 6 后再掷一次（连续 3 个 6 视为犯规，最近一架退回机库）。
       <br>
-      <span class="pill">归航</span> 之后沿外圈顺时针前进，最终走到自家归航入口（十字臂尖中央格），自动转入 6 格归航跑道 → 中央同色三角即胜。
+      <span class="pill">归航</span> 沿十字外圈往前走 45 格到自家归航入口（自家臂尖中央同色格），自动转入 6 格归航跑道 → 中央同色三角即胜。
       <br>
-      <span class="pill">小跳</span> 走的过程中落在自家凹角 <span style="color:#E84545">✈</span> 格（同色虚线箭头标出）→ 跨过凹角飞 4 格到下一同色格。
+      <span class="pill">小跳</span> 走的过程中落在自家凹角 <span style="color:#E84545">✈</span> 格（同色虚线箭头标出）→ 跨过凹角飞 4 格到下一个自家颜色圆格。
+      <br>
+      <span class="pill">大飞</span> 落在自家起飞 <span style="color:#E84545">✈</span> 圆格 → 横跨半盘 26 格（罕见彩蛋，被对手踩回再起飞才有机会触发）。
       <br>
       <span class="pill">踩格</span> 落到对手所在格 → 对手该格上飞机全部回机库。
       <span class="pill">精确</span> 进归航跑道后剩余步数必须精确到达终点，超出反弹。
@@ -415,59 +417,66 @@ permalink: /toolbox/feixingqi/
   const TURN_ORDER = ['red', 'yellow', 'blue', 'green'];
 
   // ===== Layout: standard Chinese 飞行棋 52-cell board (the only layout) =====
-  // TRACK is indexed 0..51 walking CLOCKWISE around the cross perimeter,
-  // starting at the top-arm-tip's left corner (0,6). Each color enters the
-  // loop at EXIT_INDEX and walks 48 cells CW to reach STRETCH_TRANSITION
-  // (the cross-arm tip cell), then turns into its 6-cell home runway and
-  // walks 6 more cells to the central goal (7,7).
+  // TRACK is indexed 0..51 walking COUNTER-CLOCKWISE around the cross
+  // perimeter (standard 飞行棋 motion). Index 0 starts on top arm left edge at
+  // (1,6), just below NW hangar; plane walks down col 6 → left along row 6 →
+  // around the left arm tip → through SW concave → around the bottom → up
+  // the right side → through NE concave → into top tip middle (= red HS entry).
   //
-  // The 52 loop cells cycle through 4 colors with period 4. Color mapping
-  // (idx mod 4) → owner: {1: red, 2: yellow, 3: blue, 0: green} — chosen so
-  // each color's STRETCH_TRANSITION cell and EXIT cell are themselves that
-  // color, and the CW reading order around the loop is red→yellow→blue→green.
+  // Each color's EXIT cell sits IMMEDIATELY adjacent to its hangar's exit
+  // edge, and the plane walks ~almost-a-full-lap (45 cells) CCW to reach
+  // its home stretch entry at the arm tip middle.
+  //
+  // Color cycle: idx mod 4 → owner. Mapping {1:red, 2:green, 3:blue, 0:yellow}
+  // makes EVERY EXIT cell colored its own color, and the visual cycle reads
+  // CW (red→yellow→blue→green) around the loop. The 4 home-stretch entry
+  // cells (= arm tip middles) sit OFF the natural cycle and are overridden
+  // to their owner color.
   const LAYOUT_CROSS = {
     label: '十字盘',
     GRID: 15,
-    // Outer loop, 52 cells, CLOCKWISE. Index 0 = top-tip's NW corner.
-    //   0..2   row 0, cols 6..8 going right (top tip, 1 = red runway entry)
-    //   3..7   col 8, rows 1..5 going down (right edge of top arm)
-    //   [NE concave: 7→8 jump over (6,8)]
-    //   8..12  row 6, cols 9..13 going right (top edge of right arm)
-    //   13..15 col 14, rows 6..8 going down (right tip, 14 = yellow runway entry)
-    //   16..20 row 8, cols 13..9 going left (bottom edge of right arm)
-    //   [SE concave: 20→21 jump over (8,8)]
-    //   21..25 col 8, rows 9..13 going down (right edge of bottom arm)
-    //   26..28 row 14, cols 8..6 going left (bottom tip, 27 = blue runway entry)
-    //   29..33 col 6, rows 13..9 going up (left edge of bottom arm)
-    //   [SW concave: 33→34 jump over (8,6)]
-    //   34..38 row 8, cols 5..1 going left (bottom edge of left arm)
-    //   39..41 col 0, rows 8..6 going up (left tip, 40 = green runway entry)
-    //   42..46 row 6, cols 1..5 going right (top edge of left arm)
-    //   [NW concave: 46→47 jump over (6,6)]
-    //   47..51 col 6, rows 5..1 going up (left edge of top arm) → loop to 0
+    // Outer loop, 52 cells, CCW. Diagonal concave jumps over (6,6)/(8,6)/
+    // (8,8)/(6,8); the pivot cells are SKIPPED.
+    //   0..4   col 6, rows 1..5  going down  (red hangar NW → red EXIT cell)
+    //   5..10  row 6, cols 5..0  going left  (top edge of left arm)
+    //   11     row 7, col 0      LEFT-ARM TIP middle (green HS entry)
+    //   12..17 row 8, cols 0..5  going right (bottom edge of left arm)
+    //   18..22 col 6, rows 9..13 going down  (left edge of bottom arm)
+    //   23..25 row 14, cols 6..8 going right (bottom tip)
+    //   24     BOTTOM-ARM TIP middle (blue HS entry)
+    //   26..30 col 8, rows 13..9 going up    (right edge of bottom arm)
+    //   31..35 row 8, cols 9..13 going right (bottom edge of right arm)
+    //   36..38 col 14, rows 8..6 going up    (right tip)
+    //   37     RIGHT-ARM TIP middle (yellow HS entry)
+    //   39..43 row 6, cols 13..9 going left  (top edge of right arm)
+    //   44..48 col 8, rows 5..1  going up    (right edge of top arm)
+    //   49..51 row 0, cols 8..6 going left   (top tip)
+    //   50     TOP-ARM TIP middle (red HS entry)
     TRACK: [
-      [0,6],[0,7],[0,8],                          // 0..2  top tip
-      [1,8],[2,8],[3,8],[4,8],[5,8],              // 3..7
-      [6,9],[6,10],[6,11],[6,12],[6,13],          // 8..12
-      [6,14],[7,14],[8,14],                       // 13..15 right tip
-      [8,13],[8,12],[8,11],[8,10],[8,9],          // 16..20
-      [9,8],[10,8],[11,8],[12,8],[13,8],          // 21..25
-      [14,8],[14,7],[14,6],                       // 26..28 bottom tip
-      [13,6],[12,6],[11,6],[10,6],[9,6],          // 29..33
-      [8,5],[8,4],[8,3],[8,2],[8,1],              // 34..38
-      [8,0],[7,0],[6,0],                          // 39..41 left tip
-      [6,1],[6,2],[6,3],[6,4],[6,5],              // 42..46
-      [5,6],[4,6],[3,6],[2,6],[1,6],              // 47..51
+      [1,6],[2,6],[3,6],[4,6],[5,6],              // 0..4   (col 6 going down)
+      [6,5],[6,4],[6,3],[6,2],[6,1],[6,0],        // 5..10  (row 6 going left)
+      [7,0],                                       // 11     LEFT TIP middle
+      [8,0],[8,1],[8,2],[8,3],[8,4],[8,5],        // 12..17 (row 8 going right)
+      [9,6],[10,6],[11,6],[12,6],[13,6],          // 18..22 (col 6 going down)
+      [14,6],[14,7],[14,8],                       // 23..25 BOTTOM tip
+      [13,8],[12,8],[11,8],[10,8],[9,8],          // 26..30 (col 8 going up)
+      [8,9],[8,10],[8,11],[8,12],[8,13],          // 31..35 (row 8 going right)
+      [8,14],[7,14],[6,14],                       // 36..38 RIGHT tip
+      [6,13],[6,12],[6,11],[6,10],[6,9],          // 39..43 (row 6 going left)
+      [5,8],[4,8],[3,8],[2,8],[1,8],              // 44..48 (col 8 going up)
+      [0,8],[0,7],[0,6],                          // 49..51 TOP tip
     ],
-    // Entry cell on the loop after rolling 6 (also the takeoff/✈ cell that
-    // triggers the cross-board big jump). Each color enters on the SAME ARM
-    // as its home stretch but on the cross-axis-opposite side, then walks 48
-    // cells CW around to its home stretch entry. EXIT cells are 13 indices
-    // apart on the 52-cell loop.
-    EXIT_INDEX:         { red: 5, yellow: 18, blue: 31, green: 44 },
-    // Last loop cell before turning into the home runway. For each color:
-    // STRETCH_TRANSITION = (EXIT_INDEX + 48) % 52 = arm-tip middle cell.
-    STRETCH_TRANSITION: { red: 1, yellow: 14, blue: 27, green: 40 },
+    // Entry cell on the loop after rolling 6. Each color's EXIT is the loop
+    // cell immediately adjacent to its 2×2 hangar's "exit edge" — visually
+    // the takeoff point is right next to the base.
+    //   red    NW hangar @ (2-3, 2-3) → EXIT (6,5) idx  5
+    //   green  SW hangar @ (11-12, 2-3) → EXIT (9,6) idx 18
+    //   blue   SE hangar @ (11-12, 11-12) → EXIT (8,9) idx 31
+    //   yellow NE hangar @ (2-3, 11-12) → EXIT (5,8) idx 44
+    EXIT_INDEX:         { red: 5, green: 18, blue: 31, yellow: 44 },
+    // Last loop cell before turning into the home runway = arm-tip middle.
+    // STRETCH_TRANSITION = (EXIT_INDEX + 45) % 52 ⇒ "almost-full-lap" walk.
+    STRETCH_TRANSITION: { red: 50, green: 11, blue: 24, yellow: 37 },
     STRETCH_CELLS: {
       // 6 cells per runway, from outer (cross-arm tip) end inward to the goal.
       red:    [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],         // top    arm, col 7, ↓
@@ -477,27 +486,21 @@ permalink: /toolbox/feixingqi/
     },
     STRETCH_LEN: 6,
     HANGAR_CELLS: {
-      // 2×2 cluster at the inner quadrant of each 6×6 home zone (cells 2-3 of
-      // each axis), per user's standard spec.
+      // 2×2 cluster tucked into each board corner.
       red:    [[2,2],[2,3],[3,2],[3,3]],          // NW
       yellow: [[2,11],[2,12],[3,11],[3,12]],      // NE
       blue:   [[11,11],[11,12],[12,11],[12,12]],  // SE
       green:  [[11,2],[11,3],[12,2],[12,3]],      // SW
     },
+    // Each home zone is a tight 4×4 region just framing the 2×2 hangar
+    // cluster — NOT the full 6×6 quadrant. This keeps the cross visually
+    // dominant; the L-shaped space between hangar and cross arms stays
+    // empty (parchment).
     HOME_ZONES: {
-      red:    { r0: 0,  r1: 5,  c0: 0,  c1: 5  },  // NW
-      yellow: { r0: 0,  r1: 5,  c0: 9,  c1: 14 },  // NE
-      blue:   { r0: 9,  r1: 14, c0: 9,  c1: 14 },  // SE
-      green:  { r0: 9,  r1: 14, c0: 0,  c1: 5  },  // SW
-    },
-    // Purely decorative "takeoff triangles" — one colored diagonal-split cell
-    // per color in the inner quadrant of each home zone. Plane mechanics
-    // bypass these (planes go straight from hangar → EXIT_INDEX track cell).
-    TAKEOFF_TRIANGLES: {
-      red:    [4,4],
-      yellow: [4,10],
-      blue:   [10,10],
-      green:  [10,4],
+      red:    { r0: 1, r1: 4, c0: 1, c1: 4 },     // NW
+      yellow: { r0: 1, r1: 4, c0: 10, c1: 13 },   // NE
+      blue:   { r0: 10, r1: 13, c0: 10, c1: 13 }, // SE
+      green:  { r0: 10, r1: 13, c0: 1, c1: 4 },   // SW
     },
     GOAL: {
       // Single cell (7,7) split into 4 inner triangles. Each color parks just
@@ -516,16 +519,22 @@ permalink: /toolbox/feixingqi/
     // between non-grid-adjacent cells here. The pivot is the (6,6)/(6,8)/
     // (8,8)/(8,6) cell that the loop SKIPS via the diagonal jump.
     CORNERS: [
-      { from: 7,  to: 8,  pivot: [6, 8] },   // NE concave: (5,8)→(6,9)
-      { from: 20, to: 21, pivot: [8, 8] },   // SE concave: (8,9)→(9,8)
-      { from: 33, to: 34, pivot: [8, 6] },   // SW concave: (9,6)→(8,5)
-      { from: 46, to: 47, pivot: [6, 6] },   // NW concave: (6,5)→(5,6)
+      { from: 4,  to: 5,  pivot: [6, 6] },   // NW concave: (5,6)→(6,5)
+      { from: 17, to: 18, pivot: [8, 6] },   // SW concave: (8,5)→(9,6)
+      { from: 30, to: 31, pivot: [8, 8] },   // SE concave: (9,8)→(8,9)
+      { from: 43, to: 44, pivot: [6, 8] },   // NE concave: (6,9)→(5,8)
     ],
-    // 4 small-jump ✈ cells, one per color, located at the cell IMMEDIATELY
-    // BEFORE each concave gap in CW direction. Landing on your own small-jump
-    // cell teleports you 4 cells CW (to the next same-color cell across the
-    // gap). Visual: a same-color dashed arrow drawn from cell to target.
-    SMALL_JUMP_CELLS: { blue: 7, green: 20, red: 33, yellow: 46 },
+    // 4 small-jump ✈ cells (one per color). Each color's small-jump source
+    // sits at the SAME concave 90° CCW from its own hangar — i.e. the FIRST
+    // concave the plane reaches after takeoff, where two same-color cells lie
+    // on either side of the concave gap (4 indices apart in CCW direction):
+    //   red    @ NW EXIT idx 5 already; small-jump near SW: 17 → 21
+    //   green  @ SW EXIT idx 18 already; small-jump near SE: 30 → 34
+    //   blue   @ SE EXIT idx 31 already; small-jump near NE: 43 → 47
+    //   yellow @ NE EXIT idx 44 already; small-jump near NW: 4  → 8
+    // The dashed arrows visually cross each concave gap, staying inside one
+    // quadrant of the cross (never crossing the center).
+    SMALL_JUMP_CELLS: { yellow: 4, red: 17, green: 30, blue: 43 },
     SMALL_JUMP_DISTANCE: 4,
   };
 
@@ -541,13 +550,25 @@ permalink: /toolbox/feixingqi/
   const FLIGHT_DISTANCE = 26;
   for (const key in LAYOUTS) {
     const layout = LAYOUTS[key];
-    // CELL_COLOR maps EVERY loop index → its faction color via the 4-period
-    // cycle. Pattern (idx mod 4): 1→red, 2→yellow, 3→blue, 0→green. This
-    // makes each STRETCH_TRANSITION and EXIT cell colored matching its color.
-    const CYCLE_BY_MOD = { 0: 'green', 1: 'red', 2: 'yellow', 3: 'blue' };
+    // CELL_COLOR maps EVERY loop index → its faction color via the strict
+    // 4-period cycle. Pattern (idx mod 4): 1→red, 2→green, 3→blue, 0→yellow.
+    // This makes every EXIT cell (idx 5/18/31/44) colored its own color, and
+    // when the loop is READ CLOCKWISE around the cross, the visible sequence
+    // is red → yellow → blue → green (matching the user's spec).
+    const CYCLE_BY_MOD = { 0: 'yellow', 1: 'red', 2: 'green', 3: 'blue' };
     layout.CELL_COLOR = {};
     for (let i = 0; i < TRACK_LEN; i++) {
       layout.CELL_COLOR[i] = CYCLE_BY_MOD[i % 4];
+    }
+    // STRETCH_TRANSITION cells (4 arm-tip middles) sit off the natural cycle.
+    // Override them so each color's HS entry cell is visibly colored to match
+    // that color's HS — otherwise the cycle would color (0,7)/(14,7) etc.
+    // as some other color, creating an obvious break at the cross-arm tips.
+    layout.STRETCH_OWNER = {};
+    for (const c of COLORS) {
+      const t = layout.STRETCH_TRANSITION[c];
+      layout.CELL_COLOR[t] = c;
+      layout.STRETCH_OWNER[t] = c;
     }
     // BIG_JUMP_CELLS: only the 4 EXIT cells trigger the half-lap fly.
     layout.BIG_JUMP_CELLS = {};
@@ -914,7 +935,10 @@ permalink: /toolbox/feixingqi/
       fill: '#f7efe0',
     }));
 
-    // === Layer: home zones (colored 6×6 corner blocks + hangar slots) ===
+    // === Layer: hangar bases (compact 4×4 frames at corners + 2×2 white
+    // parking circles). NO big colored corner block — the cross loop stays
+    // visually dominant. The EXIT cell on the loop (just outside each
+    // hangar) doubles as the "takeoff" indicator. ===
     const homeGroup = svgEl('g', { class: 'homes' });
     for (const color of COLORS) {
       const z = layout.HOME_ZONES[color];
@@ -924,20 +948,15 @@ permalink: /toolbox/feixingqi/
       const y0 = z.r0 * cell;
       const w = (z.c1 - z.c0 + 1) * cell;
       const h = (z.r1 - z.r0 + 1) * cell;
-      // Solid pale-color background block when active, neutral gray when empty.
       homeGroup.appendChild(svgEl('rect', {
         x: x0, y: y0, width: w, height: h,
         class: 'home-bg',
-        fill: isActive ? info.light : '#e6e0d2',
+        fill: isActive ? info.light : '#efe8d6',
         stroke: isActive ? info.hex : '#b0a896',
-        'stroke-width': 3,
-        rx: 6,
+        'stroke-width': isActive ? 2.5 : 1.5,
+        rx: 8,
       }));
-      // Inner colored stripe along the OUTER edge of the home zone, away from
-      // center — a hint of the player's color framing the corner.
-      // (skipped — keep the block simple per the modern flat style)
-      // 4 white parking circles arranged in a tight 2×2 at the corner-most
-      // 2×2 cluster of the home zone.
+      // 4 white parking circles in a tight 2×2 at the hangar.
       for (let i = 0; i < 4; i++) {
         const { x, y } = hangarXY(color, i);
         homeGroup.appendChild(svgEl('circle', {
@@ -949,115 +968,12 @@ permalink: /toolbox/feixingqi/
           'stroke-width': 2,
         }));
       }
-      // Takeoff direction hint — small ✈ + arrow on the hangar's CW-facing
-      // edge, pointing toward this color's EXIT cell on the (distant) loop.
-      // Each color's EXIT is on the arm 90° CW from its hangar.
-      if (isActive) {
-        const exitIdx = layout.EXIT_INDEX[color];
-        const [er, ec] = layout.TRACK[exitIdx];
-        // Compute the hangar 2×2 cluster center, then place the indicator at
-        // the cell-edge facing the EXIT.
-        const cells2x2 = layout.HANGAR_CELLS[color];
-        let mr = 0, mc = 0;
-        for (const [r, c] of cells2x2) { mr += r; mc += c; }
-        mr /= cells2x2.length; mc /= cells2x2.length;
-        const dr = er - mr, dc = ec - mc;
-        const adr = Math.abs(dr), adc = Math.abs(dc);
-        // Snap to the dominant axis (horizontal or vertical).
-        let arrow, dx0, dy0;
-        if (adc > adr) {
-          // Horizontal: → or ←
-          if (dc > 0) { arrow = '➜'; dx0 =  cell * 1.4; dy0 = 0; }
-          else        { arrow = '⟵'; dx0 = -cell * 1.4; dy0 = 0; }
-        } else {
-          // Vertical: ↓ or ↑
-          if (dr > 0) { arrow = '↓'; dx0 = 0; dy0 =  cell * 1.4; }
-          else        { arrow = '↑'; dx0 = 0; dy0 = -cell * 1.4; }
-        }
-        const ax = svgX(mc) + dx0;
-        const ay = svgY(mr) + dy0;
-        homeGroup.appendChild(svgEl('circle', {
-          cx: ax, cy: ay,
-          r: cell * 0.36,
-          fill: info.hex,
-          stroke: '#1a1a1a',
-          'stroke-width': 1.4,
-        }));
-        const t = svgEl('text', {
-          x: ax, y: ay + cell * 0.20,
-          'text-anchor': 'middle',
-          'font-size': cell * 0.62,
-          fill: '#ffffff',
-          'font-weight': 700,
-          'pointer-events': 'none',
-        });
-        t.textContent = arrow;
-        homeGroup.appendChild(t);
-      }
     }
     svg.appendChild(homeGroup);
 
-    // === Layer: takeoff triangles (decorative diagonal-split cells) ===
-    const takeoffGroup = svgEl('g', { class: 'takeoffs' });
-    for (const color of COLORS) {
-      if (!activeColors.has(color)) continue;
-      const [r, c] = layout.TAKEOFF_TRIANGLES[color];
-      const info = COLOR_INFO[color];
-      const z = layout.HOME_ZONES[color];
-      // Determine which diagonal: the colored half should face AWAY from the
-      // home zone's hangar (i.e., toward the center cross), making the
-      // triangle "point" inward like a takeoff ramp.
-      const hangarRow = (z.r0 + z.r1) / 2 < 7 ? 'top' : 'bottom';
-      const hangarCol = (z.c0 + z.c1) / 2 < 7 ? 'left' : 'right';
-      const x0 = c * cell, y0 = r * cell;
-      const x1 = x0 + cell, y1 = y0 + cell;
-      // Background — solid color cell.
-      takeoffGroup.appendChild(svgEl('rect', {
-        x: x0 + cell * 0.04, y: y0 + cell * 0.04,
-        width: cell * 0.92, height: cell * 0.92,
-        fill: info.hex,
-        stroke: '#1a1a1a',
-        'stroke-width': 1.4,
-        rx: 5,
-      }));
-      // Diagonal half — white triangle covering the side facing the hangar.
-      // The colored half then points toward the loop / center.
-      let p1, p2, p3;
-      if (hangarRow === 'top' && hangarCol === 'left') {        // NW (red)
-        p1 = [x0, y0]; p2 = [x1, y0]; p3 = [x0, y1];
-      } else if (hangarRow === 'top' && hangarCol === 'right') { // NE (yellow)
-        p1 = [x0, y0]; p2 = [x1, y0]; p3 = [x1, y1];
-      } else if (hangarRow === 'bottom' && hangarCol === 'right') { // SE (green)
-        p1 = [x1, y0]; p2 = [x1, y1]; p3 = [x0, y1];
-      } else {                                                   // SW (blue)
-        p1 = [x0, y0]; p2 = [x0, y1]; p3 = [x1, y1];
-      }
-      takeoffGroup.appendChild(svgEl('polygon', {
-        points: `${p1[0]},${p1[1]} ${p2[0]},${p2[1]} ${p3[0]},${p3[1]}`,
-        fill: '#ffffff',
-        stroke: '#1a1a1a',
-        'stroke-width': 1.2,
-      }));
-      // Plane glyph in the colored corner.
-      const glyphCx = (hangarCol === 'left'
-        ? x1 - cell * 0.30
-        : x0 + cell * 0.30);
-      const glyphCy = (hangarRow === 'top'
-        ? y1 - cell * 0.30
-        : y0 + cell * 0.30);
-      const glyph = svgEl('text', {
-        x: glyphCx,
-        y: glyphCy + cell * 0.16,
-        'text-anchor': 'middle',
-        'font-size': cell * 0.50,
-        fill: '#ffffff',
-        'font-weight': 700,
-        'pointer-events': 'none',
-      });
-      glyph.textContent = '✈';
-      takeoffGroup.appendChild(glyph);
-    }
-    svg.appendChild(takeoffGroup);
+    // (Legacy "takeoff triangles" + "corner connector dots" layers removed:
+    // the EXIT cell on the loop now serves as the visual takeoff indicator,
+    // and the 4 concave pivots are clean parchment.)
 
     // === Layer: home stretch lanes (6 white circles per arm with colored
     // borders + colored arrows between them pointing toward the center) ===
@@ -1132,24 +1048,6 @@ permalink: /toolbox/feixingqi/
     }
     svg.appendChild(stretchGroup);
 
-    // === Layer: L-corner connector dots — small marker at each cross corner
-    // where the loop bends diagonally between non-adjacent grid cells. ===
-    const connGroup = svgEl('g', { class: 'corner-connectors' });
-    for (const corner of layout.CORNERS) {
-      const [r, c] = corner.pivot;
-      connGroup.appendChild(svgEl('rect', {
-        x: c * cell + cell * 0.34,
-        y: r * cell + cell * 0.34,
-        width: cell * 0.32,
-        height: cell * 0.32,
-        fill: '#ded5c2',
-        stroke: '#b0a896',
-        'stroke-width': 1,
-        rx: 4,
-      }));
-    }
-    svg.appendChild(connGroup);
-
     // === Layer: track cells (52 cells; all colored in 4-period CW cycle;
     // 8 outer-tip corners drawn as triangles; EXIT and small-jump cells
     // get a bold ✈ glyph) ===
@@ -1194,26 +1092,26 @@ permalink: /toolbox/feixingqi/
           'stroke-linejoin': 'round',
         }));
       } else {
-        // Standard track cell — colored rounded square.
-        trackGroup.appendChild(svgEl('rect', {
-          x: x0, y: y0, width: w, height: h,
+        // Standard track cell — colored CIRCLE node (per user spec).
+        trackGroup.appendChild(svgEl('circle', {
+          cx: svgX(c), cy: svgY(r),
+          r: cell * 0.42,
           class: 'track-cell',
           fill,
           stroke: '#1a1a1a',
           'stroke-width': 1.3,
-          rx: 5,
         }));
       }
       // ✈ markers for EXIT (big jump) and small-jump cells.
       const isExit  = layout.BIG_JUMP_CELLS[i] === ownerColor;
       const isSmall = layout.SMALL_JUMP_OWNER[i] === ownerColor;
       if (isExit || isSmall) {
-        const radius = isExit ? cell * 0.32 : cell * 0.26;
-        const glyphSize = isExit ? cell * 0.66 : cell * 0.50;
+        const radius = isExit ? cell * 0.30 : cell * 0.24;
+        const glyphSize = isExit ? cell * 0.62 : cell * 0.48;
         trackGroup.appendChild(svgEl('circle', {
           cx: svgX(c), cy: svgY(r),
           r: radius,
-          fill: 'rgba(255,255,255,0.15)',
+          fill: 'rgba(255,255,255,0.18)',
           stroke: '#ffffff',
           'stroke-width': isExit ? 1.6 : 1.4,
         }));
@@ -1228,15 +1126,6 @@ permalink: /toolbox/feixingqi/
         });
         glyph.textContent = '✈';
         trackGroup.appendChild(glyph);
-      } else if (!cornerKey) {
-        // Plain colored cell — small white center dot as a waypoint.
-        trackGroup.appendChild(svgEl('circle', {
-          cx: svgX(c), cy: svgY(r),
-          r: cell * 0.14,
-          fill: '#ffffff',
-          stroke: 'rgba(0,0,0,0.25)',
-          'stroke-width': 0.8,
-        }));
       }
     }
     svg.appendChild(trackGroup);
@@ -1501,19 +1390,15 @@ permalink: /toolbox/feixingqi/
     // Hangar: only on 6
     if (piece.status === 'hangar') {
       if (dice !== 6) return { ok: false };
-      // Classical Chinese 飞行棋 起飞 rule: roll 6 → plane appears on its
-      // ✈ EXIT cell AND immediately big-jumps 26 cells CW to the opposite
-      // half of the board. Without this, EXIT (which sits on the arm 90°
-      // CW from the hangar) would only ever be visited once at takeoff.
-      const e = L().EXIT_INDEX[player];
-      const dest = (e + FLIGHT_DISTANCE) % TRACK_LEN;
+      // Plane appears at its EXIT cell on the loop (immediately adjacent to
+      // the hangar) and stays there until the next dice roll.
       return {
         ok: true,
         kind: 'exit',
         toStatus: 'track',
-        toPos: dest,
-        cellsAdvanced: FLIGHT_DISTANCE,
-        triggered: { jumped: false, bigJumped: true, smallJumped: false },
+        toPos: L().EXIT_INDEX[player],
+        cellsAdvanced: 0,
+        triggered: { jumped: false, bigJumped: false, smallJumped: false },
       };
     }
     if (piece.status === 'track') {
@@ -1609,11 +1494,7 @@ permalink: /toolbox/feixingqi/
 
     if (piece.status === 'hangar') {
       if (dice !== 6) return [];
-      // 起飞: appear on EXIT then immediately big-jump 26 cells CW.
       path.push({ status: 'track', pos: e });
-      for (let k = 1; k <= FLIGHT_DISTANCE; k++) {
-        path.push({ status: 'track', pos: (e + k) % TRACK_LEN });
-      }
       return path;
     }
 
@@ -1688,9 +1569,7 @@ permalink: /toolbox/feixingqi/
     let captures = [];
     if (piece.status === 'hangar') {
       piece.status = 'track';
-      // 起飞 + immediate 大飞: land on the big-jump destination (NOT the EXIT
-      // cell), per the standard 飞行棋 takeoff rule.
-      piece.pos = preview.toPos;
+      piece.pos = L().EXIT_INDEX[player];
       captures = opponentsOnCell(player, piece.pos);
     } else if (preview.toStatus === 'track') {
       piece.status = 'track';
@@ -2095,7 +1974,8 @@ permalink: /toolbox/feixingqi/
 
     const activeColors = new Set(state.players);
 
-    // Home zones — pale-color 6×6 corner blocks + tight 2×2 white parking circles
+    // Compact 4×4 hangar frames + 2×2 white parking circles. No big colored
+    // corner block.
     for (const color of COLORS) {
       const z = layout.HOME_ZONES[color];
       const info = COLOR_INFO[color];
@@ -2104,14 +1984,13 @@ permalink: /toolbox/feixingqi/
       const y0 = dy + z.r0 * cell;
       const w = (z.c1 - z.c0 + 1) * cell;
       const h = (z.r1 - z.r0 + 1) * cell;
-      ctx.fillStyle = isActive ? info.light : '#e6e0d2';
+      ctx.fillStyle = isActive ? info.light : '#efe8d6';
       ctx.strokeStyle = isActive ? info.hex : '#b0a896';
-      ctx.lineWidth = 3 * sx;
+      ctx.lineWidth = (isActive ? 2.5 : 1.5) * sx;
       ctx.beginPath();
       ctx.rect(x0, y0, w, h);
       ctx.fill();
       ctx.stroke();
-      // 4 parking circles
       for (let i = 0; i < 4; i++) {
         const { x, y } = hangarXY(color, i);
         ctx.fillStyle = '#ffffff';
@@ -2122,61 +2001,6 @@ permalink: /toolbox/feixingqi/
         ctx.fill();
         ctx.stroke();
       }
-    }
-
-    // Takeoff triangles — colored diagonal-split cells
-    for (const color of COLORS) {
-      if (!activeColors.has(color)) continue;
-      const [r, c] = layout.TAKEOFF_TRIANGLES[color];
-      const info = COLOR_INFO[color];
-      const z = layout.HOME_ZONES[color];
-      const hangarRow = (z.r0 + z.r1) / 2 < 7 ? 'top' : 'bottom';
-      const hangarCol = (z.c0 + z.c1) / 2 < 7 ? 'left' : 'right';
-      const x0 = dx + c * cell + cell * 0.04;
-      const y0 = dy + r * cell + cell * 0.04;
-      const ww = cell * 0.92, hh = cell * 0.92;
-      ctx.fillStyle = info.hex;
-      ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 1.4 * sx;
-      ctx.beginPath();
-      ctx.rect(x0, y0, ww, hh);
-      ctx.fill();
-      ctx.stroke();
-      // Diagonal half — white triangle facing hangar
-      let p1, p2, p3;
-      const xL = dx + c * cell, xR = dx + (c + 1) * cell;
-      const yT = dy + r * cell, yB = dy + (r + 1) * cell;
-      if (hangarRow === 'top' && hangarCol === 'left') {
-        p1 = [xL, yT]; p2 = [xR, yT]; p3 = [xL, yB];
-      } else if (hangarRow === 'top' && hangarCol === 'right') {
-        p1 = [xL, yT]; p2 = [xR, yT]; p3 = [xR, yB];
-      } else if (hangarRow === 'bottom' && hangarCol === 'right') {
-        p1 = [xR, yT]; p2 = [xR, yB]; p3 = [xL, yB];
-      } else {
-        p1 = [xL, yT]; p2 = [xL, yB]; p3 = [xR, yB];
-      }
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 1.2 * sx;
-      ctx.beginPath();
-      ctx.moveTo(p1[0], p1[1]);
-      ctx.lineTo(p2[0], p2[1]);
-      ctx.lineTo(p3[0], p3[1]);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      // Plane glyph in the colored corner
-      const glyphCx = (hangarCol === 'left'
-        ? xR - cell * 0.30
-        : xL + cell * 0.30);
-      const glyphCy = (hangarRow === 'top'
-        ? yB - cell * 0.30
-        : yT + cell * 0.30);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `bold ${baseCell * 0.50 * sx}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('✈', glyphCx, glyphCy);
     }
 
     // Stretches — 6 white circles with colored borders + colored arrow lines
@@ -2236,20 +2060,9 @@ permalink: /toolbox/feixingqi/
       }
     }
 
-    // Corner connector dots — small turn-marker at each cross corner
-    for (const corner of layout.CORNERS) {
-      const [r, c] = corner.pivot;
-      ctx.fillStyle = '#ded5c2';
-      ctx.strokeStyle = '#b0a896';
-      ctx.lineWidth = 1 * sx;
-      ctx.beginPath();
-      ctx.rect(dx + c * cell + cell * 0.34, dy + r * cell + cell * 0.34, cell * 0.32, cell * 0.32);
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    // Track — every cell colored per the 4-period cycle; 8 outer-tip corners
-    // drawn as triangles; EXIT and small-jump cells get a bold ✈ glyph.
+    // Track — every cell colored per the 4-period cycle. Standard cells are
+    // drawn as CIRCLE nodes; the 8 outer-tip corner cells become triangles.
+    // EXIT and small-jump cells get a bold ✈ glyph.
     const OUTER_CORNERS_C = {
       0: 'TL', 2: 'TR', 13: 'TR', 15: 'BR',
       26: 'BR', 28: 'BL', 39: 'BL', 41: 'TL',
@@ -2259,16 +2072,16 @@ permalink: /toolbox/feixingqi/
       const ownerColor = layout.CELL_COLOR[i];
       const isActive = activeColors.has(ownerColor);
       const fill = isActive ? COLOR_INFO[ownerColor].hex : COLOR_INFO[ownerColor].light;
-      const x0 = dx + c * cell + cell * 0.06;
-      const y0 = dy + r * cell + cell * 0.06;
-      const w  = cell * 0.88;
-      const h  = cell * 0.88;
       const cornerKey = OUTER_CORNERS_C[i];
       ctx.fillStyle = fill;
       ctx.strokeStyle = '#1a1a1a';
       ctx.lineWidth = 1.3 * sx;
       ctx.beginPath();
       if (cornerKey) {
+        const x0 = dx + c * cell + cell * 0.06;
+        const y0 = dy + r * cell + cell * 0.06;
+        const w  = cell * 0.88;
+        const h  = cell * 0.88;
         const tl = [x0,     y0    ];
         const tr = [x0 + w, y0    ];
         const br = [x0 + w, y0 + h];
@@ -2284,16 +2097,16 @@ permalink: /toolbox/feixingqi/
         ctx.lineTo(triPts[2][0], triPts[2][1]);
         ctx.closePath();
       } else {
-        ctx.rect(x0, y0, w, h);
+        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.42 * sx, 0, Math.PI * 2);
       }
       ctx.fill();
       ctx.stroke();
       const isExit  = layout.BIG_JUMP_CELLS[i] === ownerColor;
       const isSmall = layout.SMALL_JUMP_OWNER[i] === ownerColor;
       if (isExit || isSmall) {
-        const radius = (isExit ? baseCell * 0.32 : baseCell * 0.26) * sx;
-        const glyphSize = (isExit ? baseCell * 0.66 : baseCell * 0.50) * sx;
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        const radius = (isExit ? baseCell * 0.30 : baseCell * 0.24) * sx;
+        const glyphSize = (isExit ? baseCell * 0.62 : baseCell * 0.48) * sx;
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = (isExit ? 1.6 : 1.4) * sx;
         ctx.beginPath();
@@ -2305,14 +2118,6 @@ permalink: /toolbox/feixingqi/
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('✈', dx + svgX(c) * sx, dy + svgY(r) * sx);
-      } else if (!cornerKey) {
-        ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
-        ctx.lineWidth = 0.8 * sx;
-        ctx.beginPath();
-        ctx.arc(dx + svgX(c) * sx, dy + svgY(r) * sx, baseCell * 0.14 * sx, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
       }
     }
 
