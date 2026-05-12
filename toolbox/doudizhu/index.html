@@ -34,17 +34,17 @@ permalink: /toolbox/doudizhu/
     --ddz-card-border-strong: rgba(201,169,110,0.85);
     --ddz-suit-red: #8b2e2e;
     --ddz-suit-black: #1a1a2e;
-    /* 牌桌（深海军蓝） */
-    --ddz-felt-1: #243f63;
-    --ddz-felt-2: #14253f;
-    --ddz-felt-3: #0d182b;
-    --ddz-frame: #c9a96e;          /* 暖金细边 */
-    --ddz-frame-2: rgba(201,169,110,0.45);
-    /* 文字 / 强调 */
-    --ddz-text-on-felt: #f0e8d5;
-    --ddz-text-on-felt-mute: rgba(240,232,213,0.65);
+    /* 牌桌（浅色奶油羊皮纸 — 按 UX 反馈切到亮色浅色系） */
+    --ddz-felt-1: #f5f1e6;         /* 高光端 */
+    --ddz-felt-2: #ebe5d3;         /* 中段 */
+    --ddz-felt-3: #ddd5be;         /* 阴影端（轻微更深的米色） */
+    --ddz-frame: #c9a96e;          /* 暖金细边（保留） */
+    --ddz-frame-2: rgba(201,169,110,0.55);
+    /* 文字 / 强调 — text-on-felt 变深色（深海军蓝），保证亮底高对比 */
+    --ddz-text-on-felt: #1f2a3d;
+    --ddz-text-on-felt-mute: rgba(31,42,61,0.62);
     --ddz-accent: #c9a96e;
-    --ddz-accent-strong: #d8b87a;
+    --ddz-accent-strong: #a87a2a;
     --ddz-joker-red: #8b2e2e;
     --ddz-joker-grey: #4a4a4a;
   }
@@ -53,9 +53,10 @@ permalink: /toolbox/doudizhu/
     --ddz-card-bg-2: #ddd6c5;
     --ddz-suit-red: #8b2e2e;
     --ddz-suit-black: #1a1a2e;
-    --ddz-felt-1: #1c324f;
-    --ddz-felt-2: #0e1c33;
-    --ddz-felt-3: #08111f;
+    /* 暗黑模式下牙床稍微调深一档，但仍走浅色系，不再回到深海军蓝 */
+    --ddz-felt-1: #ebe4ce;
+    --ddz-felt-2: #ddd4b7;
+    --ddz-felt-3: #cbbfa0;
     --ddz-joker-grey: #3a3a3a;
   }
 
@@ -346,11 +347,11 @@ permalink: /toolbox/doudizhu/
   }
   .ddz-btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
 
-  /* ======== 牌桌：深海军蓝绒 + 暖金细边 ======== */
+  /* ======== 牌桌：浅奶油羊皮纸 + 暖金细边 ======== */
   .ddz-table {
     background:
-      radial-gradient(ellipse at 50% 35%, rgba(255,255,255,0.06) 0%, transparent 60%),
-      radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.30) 0%, transparent 70%),
+      radial-gradient(ellipse at 50% 35%, rgba(255,253,245,0.45) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 100%, rgba(141,110,55,0.16) 0%, transparent 70%),
       linear-gradient(160deg, var(--ddz-felt-1) 0%, var(--ddz-felt-2) 65%, var(--ddz-felt-3) 100%);
     border: 1px solid var(--ddz-frame-2);
     border-radius: 14px;
@@ -362,21 +363,21 @@ permalink: /toolbox/doudizhu/
     -webkit-user-select: none;
     touch-action: manipulation;
     box-shadow:
-      inset 0 0 0 1px rgba(255,255,255,0.05),
-      inset 0 0 80px rgba(0,0,0,0.30),
-      0 4px 18px rgba(20,37,63,0.18);
+      inset 0 0 0 1px rgba(255,255,255,0.45),
+      inset 0 0 80px rgba(141,110,55,0.10),
+      0 4px 18px rgba(141,110,55,0.18);
     position: relative;
     overflow: hidden;
     font-family: var(--font-display);
   }
   .ddz-table::before {
-    /* 极淡的纹理纹路 */
+    /* 极淡的纹理纹路 — 用暖棕代替原本的白线，适配浅底 */
     content: '';
     position: absolute; inset: 0;
     pointer-events: none;
     background:
-      repeating-linear-gradient(45deg, rgba(255,255,255,0.010) 0 2px, transparent 2px 5px),
-      repeating-linear-gradient(-45deg, rgba(0,0,0,0.020) 0 2px, transparent 2px 5px);
+      repeating-linear-gradient(45deg, rgba(141,110,55,0.015) 0 2px, transparent 2px 5px),
+      repeating-linear-gradient(-45deg, rgba(141,110,55,0.025) 0 2px, transparent 2px 5px);
   }
   .ddz-table::after {
     /* 内层暖金细线，让边框更精致 */
@@ -405,12 +406,12 @@ permalink: /toolbox/doudizhu/
   .ddz-avatar {
     width: 56px; height: 56px;
     border-radius: 50%;
-    background: linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 100%);
+    background: linear-gradient(160deg, rgba(255,253,245,0.85) 0%, rgba(235,229,211,0.5) 100%);
     border: 1px solid var(--ddz-frame-2);
     display: flex; align-items: center; justify-content: center;
     font-size: 1.7rem;
     position: relative;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 4px rgba(0,0,0,0.18);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 4px rgba(141,110,55,0.18);
     transition: all 0.25s;
   }
   .ddz-self .ddz-avatar {
@@ -451,7 +452,7 @@ permalink: /toolbox/doudizhu/
     display: inline-block;
     margin-top: 0.3rem;
     padding: 0.1rem 0.6rem;
-    background: rgba(0,0,0,0.3);
+    background: rgba(141,110,55,0.10);
     border: 1px solid var(--ddz-frame-2);
     border-radius: 999px;
     font-size: 0.78rem; font-weight: 600;
@@ -656,19 +657,7 @@ permalink: /toolbox/doudizhu/
     box-shadow: 0 5px 10px rgba(20,37,63,0.22);
   }
 
-  /* ======== 关键牌视觉权重 ======== */
-  /* 2 (weight=12) — 暖金底色 hint */
-  .ddz-card.is-key-2 {
-    background: linear-gradient(160deg, #fffaea 0%, #f5e9c8 100%);
-    box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(201,169,110,0.45);
-  }
-  /* 炸弹候选（手里 4 张同 rank） — 浅金底 + 内圈 */
-  .ddz-card.is-key-bomb {
-    background: linear-gradient(160deg, #fff3d2 0%, #f0db96 100%);
-    box-shadow: 0 1px 3px rgba(180,90,30,0.25), inset 0 0 0 1.5px rgba(196,120,40,0.45);
-  }
-  /* 同时是 2 又是炸弹 → 只取 bomb 配色 */
-  .ddz-card.is-key-2.is-key-bomb { background: linear-gradient(160deg, #fff3d2 0%, #f0db96 100%); }
+  /* 关键牌高亮（2 / 炸弹）已按 UX 反馈移除 —— 所有牌底色统一 */
 
   /* ======== B1 智能分组：组内紧凑，组间留白 ======== */
   .ddz-hand .ddz-card.size-full.group-start {
@@ -837,25 +826,25 @@ permalink: /toolbox/doudizhu/
     letter-spacing: 0.04em;
   }
   .ddz-played .pass-tag {
-    background: rgba(255,255,255,0.06);
+    background: rgba(141,110,55,0.08);
     border: 1px solid var(--ddz-frame-2);
     color: var(--ddz-text-on-felt-mute);
   }
   .ddz-played .think-tag {
-    background: rgba(201,169,110,0.10);
+    background: rgba(201,169,110,0.18);
     border: 1px solid var(--ddz-frame-2);
     color: var(--ddz-text-on-felt);
     font-family: monospace;
   }
-  /* 叫/抢/不叫/不抢 决策 tag — 颜色区分"叫/抢"(暖金)和"不叫/不抢"(灰) */
+  /* 叫/抢/不叫/不抢 决策 tag — "叫/抢" 暖金、"不叫/不抢" 灰 */
   .ddz-played .bid-tag.rob {
-    background: rgba(245,209,66,0.18);
-    border: 1px solid rgba(245,209,66,0.55);
-    color: #f8e08c;
+    background: rgba(245,209,66,0.28);
+    border: 1px solid rgba(201,169,110,0.75);
+    color: #a87a2a;
     font-weight: 600;
   }
   .ddz-played .bid-tag.pass {
-    background: rgba(255,255,255,0.04);
+    background: rgba(141,110,55,0.06);
     border: 1px solid var(--ddz-frame-2);
     color: var(--ddz-text-on-felt-mute);
   }
@@ -902,8 +891,8 @@ permalink: /toolbox/doudizhu/
     color: var(--ddz-text-on-felt-mute);
     font-weight: 600;
   }
-  .ddz-multiplier .preview .win  { color: #b9d8a3; }
-  .ddz-multiplier .preview .lose { color: #f0a8a4; }
+  .ddz-multiplier .preview .win  { color: #4a7d3c; }
+  .ddz-multiplier .preview .lose { color: #8b2e2e; }
   .ddz-status-msg {
     font-size: 1rem;
     margin: 0.5rem 0 0.3rem;
@@ -925,6 +914,9 @@ permalink: /toolbox/doudizhu/
   .ddz-self-info {
     display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem;
   }
+  .ddz-hand-wrap {
+    position: relative;   /* no-play banner 用绝对定位贴在手牌中央 */
+  }
   .ddz-hand {
     display: flex;
     flex-wrap: nowrap;
@@ -937,7 +929,32 @@ permalink: /toolbox/doudizhu/
     scrollbar-width: none;
     position: relative;
     z-index: 1;
+    transition: filter 0.18s ease, opacity 0.18s ease;
   }
+  /* 当玩家"没牌压得过"时，手牌灰授 + 禁交互（仍可见以便玩家自己看牌） */
+  .ddz-hand.no-play {
+    filter: grayscale(0.85) brightness(0.78);
+    opacity: 0.72;
+    pointer-events: none;
+  }
+  .ddz-no-play-banner {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    padding: 0.5rem 1.1rem;
+    background: rgba(31,42,61,0.90);
+    color: #f5f1e6;
+    border: 1px solid var(--ddz-frame);
+    border-radius: 999px;
+    font-size: 0.92rem;
+    font-family: var(--font-display);
+    letter-spacing: 0.05em;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    pointer-events: none;     /* 不挡按钮 / 滚动 */
+    white-space: nowrap;
+  }
+  .ddz-no-play-banner[hidden] { display: none; }
   .ddz-hand::-webkit-scrollbar { display: none; }
   .ddz-hand .ddz-card.size-full {
     cursor: pointer;
@@ -1086,13 +1103,11 @@ permalink: /toolbox/doudizhu/
   }
 
   /* ======== 抢 / 加倍 决策面板 + 出牌按钮 ========
-     bid-panel / play-actions：即便 [hidden] 也保留布局占位 — 防止画幅跳变。
-     用 visibility:hidden 而非 display:none，让 hand / table 上下位置不动。 */
+     bid-panel 是 absolute 浮层 —— hidden 时 display: none 直接拿掉就行，
+     不会影响 flow 高度。
+     play-actions（出牌按钮）走 visibility: hidden，保留手牌上方占位避免抖动。 */
   .ddz-bid-panel[hidden] {
-    display: block !important;
-    visibility: hidden;
-    opacity: 0;
-    pointer-events: none;
+    display: none !important;
   }
   .ddz-actions[hidden] {
     display: flex !important;
@@ -1100,22 +1115,27 @@ permalink: /toolbox/doudizhu/
     opacity: 0;
     pointer-events: none;
   }
+  /* bid-panel：absolute 浮层，不占用 normal flow，所以 hidden / 显示 不影响牌桌总高度。
+     主要内容（手牌 / 出牌按钮 / 中央台面）的高度决定 table 高度，bid-panel 仅在
+     bidding / 加倍阶段短暂浮现于上方。 */
   .ddz-bid-panel {
-    position: relative;
-    margin: 0.6rem auto;
+    position: absolute;
+    top: 90px;                    /* 大致位于 .ddz-tops 下方、玩家手牌上方 */
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 2.2rem);
+    max-width: 440px;
+    z-index: 4;
     padding: 0.7rem 1rem 0.85rem;
     text-align: center;
-    max-width: 460px;
-    min-height: 200px;            /* 占位高度：取 bidding/加倍 两阶段中较大的（加倍含 3-cell grid），整局不跳 */
     transition: opacity 0.18s ease;
-    background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
-    border: 1px solid var(--ddz-frame-2);
-    border-radius: 10px;
+    background:
+      linear-gradient(180deg, rgba(255,253,245,0.97) 0%, rgba(245,239,224,0.95) 100%);
+    border: 1px solid var(--ddz-frame);
+    border-radius: 12px;
     box-shadow:
-      0 3px 10px rgba(0,0,0,0.25),
-      inset 0 1px 0 rgba(255,255,255,0.05);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+      0 6px 20px rgba(141,110,55,0.28),
+      inset 0 1px 0 rgba(255,255,255,0.75);
     animation: ddz-fadein 0.22s ease-out;
   }
   @keyframes ddz-fadein {
@@ -1134,7 +1154,7 @@ permalink: /toolbox/doudizhu/
     display: inline-block;
     padding: 0.05rem 0.45rem;
     border-radius: 999px;
-    background: rgba(0,0,0,0.3);
+    background: rgba(141,110,55,0.16);
     border: 1px solid var(--ddz-frame-2);
     color: var(--ddz-accent-strong);
     font-size: 0.78rem;
@@ -1180,7 +1200,7 @@ permalink: /toolbox/doudizhu/
     min-width: 70px;
     padding: 0.4rem 0.5rem;
     border-radius: 8px;
-    background: rgba(0,0,0,0.22);
+    background: rgba(141,110,55,0.08);
     border: 1px solid var(--ddz-frame-2);
     transition: all 0.18s;
   }
@@ -1196,9 +1216,9 @@ permalink: /toolbox/doudizhu/
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-weight: 600;
   }
-  .ddz-double-cell.decided-yes { border-color: var(--ddz-accent); background: rgba(201,169,110,0.18); }
+  .ddz-double-cell.decided-yes { border-color: var(--ddz-accent); background: rgba(201,169,110,0.30); }
   .ddz-double-cell.decided-yes .status { color: var(--ddz-accent-strong); }
-  .ddz-double-cell.decided-no  { border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.04); }
+  .ddz-double-cell.decided-no  { border-color: rgba(141,110,55,0.20); background: rgba(141,110,55,0.04); }
   .ddz-double-cell.decided-no  .status { color: var(--ddz-text-on-felt-mute); }
   .ddz-double-cell.pending     { border-style: dashed; }
   .ddz-double-cell.pending .status::after {
@@ -1306,7 +1326,7 @@ permalink: /toolbox/doudizhu/
     padding: 0.05rem 0.4rem;
     border: 1px solid var(--ddz-frame-2);
     border-radius: 4px;
-    background: rgba(0,0,0,0.25);
+    background: rgba(141,110,55,0.10);
     color: var(--ddz-text-on-felt);
     font-family: monospace;
     font-size: 0.78rem;
@@ -1573,12 +1593,16 @@ permalink: /toolbox/doudizhu/
 
     <!-- 出牌按钮 — 在手牌正上方；hidden 时仍占布局位（visibility:hidden），避免画幅跳变 -->
     <div class="ddz-actions" id="ddzPlayActions" hidden>
-      <button class="ddz-btn" id="ddzPassBtn" type="button">不要</button>
+      <button class="ddz-btn" id="ddzPassBtn" type="button">不出</button>
       <button class="ddz-btn" id="ddzHintBtn" type="button">提示</button>
       <button class="ddz-btn primary" id="ddzPlayBtn" type="button">出牌</button>
     </div>
 
-    <div class="ddz-hand" id="ddzHand"></div>
+    <!-- 包一层 wrap 让 no-play banner 能 absolute 定位在手牌正上方 -->
+    <div class="ddz-hand-wrap">
+      <div class="ddz-no-play-banner" id="ddzNoPlayBanner" hidden>您没有牌可以大过大家</div>
+      <div class="ddz-hand" id="ddzHand"></div>
+    </div>
 
     <div class="ddz-tip">
       点击单选 · 按住<kbd>拖动</kbd>可一次连选多张 · AI 出牌时也能<kbd>预选</kbd> · 选错也可以<kbd>智能补全</kbd>
@@ -1903,7 +1927,7 @@ permalink: /toolbox/doudizhu/
   passBtn.addEventListener('click', () => playerPass());
   hintBtn.addEventListener('click', () => playerHint());
 
-  // 键盘：Enter=出牌，Space=不要，H=提示
+  // 键盘：Enter=出牌，Space=不出，H=提示
   document.addEventListener('keydown', e => {
     if (state.phase !== PHASE.PLAYING) return;
     if (state.turnIdx !== 0) return;
@@ -2027,16 +2051,6 @@ permalink: /toolbox/doudizhu/
     return out;
   }
 
-  // ========== 关键牌识别 (A3) ==========
-  function identifyKeyCards(hand) {
-    const hist = E.histByWeight(hand);
-    const bombRanks = new Set();
-    for (const w of Object.keys(hist)) {
-      if (hist[w] >= 4) bombRanks.add(Number(w));
-    }
-    return { bombRanks };
-  }
-
   function renderHand() {
     handEl.innerHTML = '';
     if (!state.hands[0].length) return;
@@ -2045,13 +2059,9 @@ permalink: /toolbox/doudizhu/
     const arranged = useGroups
       ? arrangeHandByGroups(state.hands[0])
       : sortHandDesc(state.hands[0]).map((c, i) => ({ card: c, groupId: 0, isStart: false }));
-    const { bombRanks } = identifyKeyCards(state.hands[0]);
     arranged.forEach((item) => {
       const c = item.card;
       const cardEl = buildCardEl(c, 'size-full', { cid: c, selected: state.selected.has(c) });
-      const w = E.cardWeight(c);
-      if (w === 12) cardEl.classList.add('is-key-2');
-      if (bombRanks.has(w)) cardEl.classList.add('is-key-bomb');
       if (item.isStart) cardEl.classList.add('group-start');
       cardEl.addEventListener('pointerdown', e => onCardPointerDown(e, cardEl, c));
       cardEl.addEventListener('mouseenter', () => {
@@ -2290,7 +2300,7 @@ permalink: /toolbox/doudizhu/
     if (pattern === 'pass') {
       const tag = document.createElement('span');
       tag.className = 'pass-tag';
-      tag.textContent = '不要';
+      tag.textContent = '不出';
       el.appendChild(tag);
       return;
     }
@@ -2841,6 +2851,23 @@ permalink: /toolbox/doudizhu/
     }
   }
 
+  // 玩家"压不住"状态 — 灰授手牌 + 显示横幅。仅在 PLAYING 阶段、轮到玩家、
+  // 且有上家牌要应（即不是自己做庄）时才有意义。
+  function refreshNoPlayState() {
+    const banner = document.getElementById('ddzNoPlayBanner');
+    const hand = document.getElementById('ddzHand');
+    if (!banner || !hand) return;
+    const isMyPlayTurn = state.phase === PHASE.PLAYING && state.turnIdx === 0;
+    const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
+    let noPlay = false;
+    if (isMyPlayTurn && prev) {
+      const beats = E.enumerateBeats(state.hands[0], prev);
+      noPlay = beats.length === 0;
+    }
+    hand.classList.toggle('no-play', noPlay);
+    banner.hidden = !noPlay;
+  }
+
   // ----- 出牌轮转 -----
   function proceedTurn() {
     if (state.phase !== PHASE.PLAYING) return;
@@ -2850,11 +2877,12 @@ permalink: /toolbox/doudizhu/
     }
     renderRoles();
     updatePlayBtnState();
+    refreshNoPlayState();
     const seat = state.turnIdx;
     if (seat === 0) {
       playActions.hidden = false;
       const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
-      setStatus(prev ? '轮到你 — 出牌或不要' : '轮到你 — 你做庄');
+      setStatus(prev ? '轮到你 — 出牌或不出' : '轮到你 — 你做庄');
       resetHintCycle();
       startTurnCountdown(() => autoPlayOnTimeout(), 0);
     } else {
@@ -2959,6 +2987,13 @@ permalink: /toolbox/doudizhu/
 
   function commitPass(seat) {
     stopTurnCountdown();   // 任何人出牌都关闹钟（下个 proceedTurn 会再开）
+    // 玩家自己 pass → 立即拿掉灰授 + banner（不要等 700ms 后 proceedTurn 才清）
+    if (seat === 0) {
+      const banner = document.getElementById('ddzNoPlayBanner');
+      const hand = document.getElementById('ddzHand');
+      if (hand) hand.classList.remove('no-play');
+      if (banner) banner.hidden = true;
+    }
     state.passCount++;
     renderPlayedAt(seat, 'pass');
     playSfx('pass');
@@ -3044,7 +3079,7 @@ permalink: /toolbox/doudizhu/
       const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
       const beats = E.enumerateBeats(state.hands[0], prev);
       if (!beats.length) {
-        setStatus(sig === 'first' ? '没合法牌型，请检查' : '没牌可出，请「不要」');
+        setStatus(sig === 'first' ? '没合法牌型，请检查' : '没牌可出，请「不出」');
         return;
       }
       // 去重
@@ -3897,7 +3932,7 @@ permalink: /toolbox/doudizhu/
         bidPanel.hidden = true;
         updateOnlineCountdown();
         const meTurn = state.turnIdx === 0;
-        if (meTurn) setStatus('轮到你 — 出牌或不要');
+        if (meTurn) setStatus('轮到你 — 出牌或不出');
         else setStatus(`等待 ${seatLabel(state.turnIdx)} 出牌…`);
         updatePlayBtnState();
       } else if (state.phase === PHASE.SETTLEMENT) {
@@ -4213,9 +4248,9 @@ permalink: /toolbox/doudizhu/
     const r = await apiCall('pass', { body: { code: state.online.code, token: state.online.token } });
     if (!r.ok) {
       const msg = ({
-        'cannot_pass_first': '首出不能不要',
+        'cannot_pass_first': '首出不能不出',
         'not_your_turn': '还没轮到你',
-      })[r.error] || ('不要失败：' + r.error);
+      })[r.error] || ('不出失败：' + r.error);
       setStatus(msg);
     }
   }
