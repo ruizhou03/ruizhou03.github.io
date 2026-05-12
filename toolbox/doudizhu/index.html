@@ -870,29 +870,25 @@ permalink: /toolbox/doudizhu/
     margin-bottom: 0.7rem;
     perspective: 600px;
   }
-  .ddz-multiplier {
-    display: inline-block;
-    padding: 0.32rem 0.95rem;
+  /* 右下角积分提示：只显示"赢得分" —— 农民=倍数本身、地主=倍数×2 */
+  .ddz-score-hint {
+    position: absolute;
+    right: 0.9rem;
+    bottom: 0.7rem;
+    z-index: 3;
+    padding: 0.18rem 0.7rem;
     border-radius: 999px;
-    background: rgba(201,169,110,0.16);
+    background: rgba(201,169,110,0.18);
     color: var(--ddz-accent-strong);
-    font-size: 0.92rem;
+    font-size: 0.82rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    border: 1px solid var(--ddz-frame);
-    margin-top: 0.5rem;
-    letter-spacing: 0.05em;
+    border: 1px solid var(--ddz-frame-2);
+    letter-spacing: 0.04em;
     font-family: 'Cormorant Garamond', Georgia, serif;
+    pointer-events: none;
   }
-  .ddz-multiplier:empty { display: none; }
-  .ddz-multiplier .preview {
-    margin-left: 0.5rem;
-    font-size: 0.78rem;
-    color: var(--ddz-text-on-felt-mute);
-    font-weight: 600;
-  }
-  .ddz-multiplier .preview .win  { color: #4a7d3c; }
-  .ddz-multiplier .preview .lose { color: #8b2e2e; }
+  .ddz-score-hint:empty { display: none; }
   .ddz-status-msg {
     font-size: 1rem;
     margin: 0.5rem 0 0.3rem;
@@ -914,9 +910,6 @@ permalink: /toolbox/doudizhu/
   .ddz-self-info {
     display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem;
   }
-  .ddz-hand-wrap {
-    position: relative;   /* no-play banner 用绝对定位贴在手牌中央 */
-  }
   .ddz-hand {
     display: flex;
     flex-wrap: nowrap;
@@ -931,30 +924,15 @@ permalink: /toolbox/doudizhu/
     z-index: 1;
     transition: filter 0.18s ease, opacity 0.18s ease;
   }
-  /* 当玩家"没牌压得过"时，手牌灰授 + 禁交互（仍可见以便玩家自己看牌） */
+  /* 没有牌可以压过上家时 — 手牌灰授 + 禁交互；同时 .ddz-actions.no-play
+     会隐掉"提示"和"出牌"按钮，只剩"不出"。无需横幅文字。 */
   .ddz-hand.no-play {
     filter: grayscale(0.85) brightness(0.78);
     opacity: 0.72;
     pointer-events: none;
   }
-  .ddz-no-play-banner {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 5;
-    padding: 0.5rem 1.1rem;
-    background: rgba(31,42,61,0.90);
-    color: #f5f1e6;
-    border: 1px solid var(--ddz-frame);
-    border-radius: 999px;
-    font-size: 0.92rem;
-    font-family: var(--font-display);
-    letter-spacing: 0.05em;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-    pointer-events: none;     /* 不挡按钮 / 滚动 */
-    white-space: nowrap;
-  }
-  .ddz-no-play-banner[hidden] { display: none; }
+  .ddz-actions.no-play #ddzHintBtn,
+  .ddz-actions.no-play #ddzPlayBtn { display: none; }
   .ddz-hand::-webkit-scrollbar { display: none; }
   .ddz-hand .ddz-card.size-full {
     cursor: pointer;
@@ -1115,18 +1093,27 @@ permalink: /toolbox/doudizhu/
     opacity: 0;
     pointer-events: none;
   }
-  /* bid-panel：absolute 浮层，不占用 normal flow，所以 hidden / 显示 不影响牌桌总高度。
-     主要内容（手牌 / 出牌按钮 / 中央台面）的高度决定 table 高度，bid-panel 仅在
-     bidding / 加倍阶段短暂浮现于上方。 */
+  /* 决策位 —— 与 ddzPlayed0（已出牌展示）共用同一个固定高度槽位。
+     bidding/加倍 时 bid-panel 显示在槽位内，正常出牌时 ddzPlayed0 在原位。
+     两者互相切换不改变 table 总高度。 */
+  .ddz-decision-slot {
+    position: relative;
+    margin: 0.5rem auto 0;
+    max-width: 460px;
+    min-height: 100px;
+    max-height: 100px;
+  }
+  .ddz-decision-slot .ddz-played {
+    margin: 0;
+    min-height: 100px;
+    max-height: 100px;
+    /* ddzPlayed0 现在在固定 slot 里，bid-tag / 出牌都居中显示 */
+  }
   .ddz-bid-panel {
     position: absolute;
-    top: 90px;                    /* 大致位于 .ddz-tops 下方、玩家手牌上方 */
-    left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - 2.2rem);
-    max-width: 440px;
-    z-index: 4;
-    padding: 0.7rem 1rem 0.85rem;
+    inset: 0;
+    z-index: 2;
+    padding: 0.55rem 0.9rem 0.6rem;
     text-align: center;
     transition: opacity 0.18s ease;
     background:
@@ -1134,21 +1121,25 @@ permalink: /toolbox/doudizhu/
     border: 1px solid var(--ddz-frame);
     border-radius: 12px;
     box-shadow:
-      0 6px 20px rgba(141,110,55,0.28),
+      0 4px 12px rgba(141,110,55,0.20),
       inset 0 1px 0 rgba(255,255,255,0.75);
-    animation: ddz-fadein 0.22s ease-out;
+    animation: ddz-fadein 0.18s ease-out;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.4rem;
   }
   @keyframes ddz-fadein {
     from { opacity: 0; transform: translateY(-4px); }
     to   { opacity: 1; transform: translateY(0); }
   }
   .ddz-bid-title {
-    font-size: 0.92rem;
-    margin-bottom: 0.6rem;
+    font-size: 0.88rem;
+    margin: 0;
     color: var(--ddz-text-on-felt);
     font-family: var(--font-display);
     letter-spacing: 0.04em;
-    display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
   }
   .ddz-bid-title .countdown-badge {
     display: inline-block;
@@ -1188,30 +1179,28 @@ permalink: /toolbox/doudizhu/
   .ddz-bid-buttons button:active:not(:disabled) { transform: translateY(0); }
   .ddz-bid-buttons button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* 同时决策（加倍）三人状态行 */
+  /* 同时决策（加倍）三人状态行 — 紧凑横排，挤进 decision-slot 100px 高度 */
   .ddz-double-grid {
-    display: flex; justify-content: space-around; gap: 0.5rem;
-    margin: 0.5rem 0 0.7rem;
-    flex-wrap: wrap;
+    display: flex; justify-content: center; gap: 0.4rem;
+    margin: 0;
+    flex-wrap: nowrap;
   }
   .ddz-double-cell {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 0.25rem;
-    min-width: 70px;
-    padding: 0.4rem 0.5rem;
-    border-radius: 8px;
+    display: inline-flex; align-items: center;
+    gap: 0.35rem;
+    padding: 0.18rem 0.6rem;
+    border-radius: 999px;
     background: rgba(141,110,55,0.08);
     border: 1px solid var(--ddz-frame-2);
     transition: all 0.18s;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
   }
   .ddz-double-cell .who {
-    font-size: 0.78rem;
     color: var(--ddz-text-on-felt-mute);
     font-family: var(--font-display);
-    letter-spacing: 0.04em;
   }
   .ddz-double-cell .status {
-    font-size: 0.82rem;
     color: var(--ddz-text-on-felt);
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-weight: 600;
@@ -1310,27 +1299,6 @@ permalink: /toolbox/doudizhu/
   @keyframes ddz-spring-particles {
     0%, 100% { opacity: 0; transform: translateY(0); }
     50%      { opacity: 1; transform: translateY(-4px); }
-  }
-
-  /* UX 提示文字（牌桌底部） */
-  .ddz-tip {
-    margin-top: 0.8rem;
-    text-align: center;
-    font-size: 0.78rem;
-    color: var(--ddz-text-on-felt-mute);
-    letter-spacing: 0.04em;
-    font-family: var(--font-display);
-  }
-  .ddz-tip kbd {
-    display: inline-block;
-    padding: 0.05rem 0.4rem;
-    border: 1px solid var(--ddz-frame-2);
-    border-radius: 4px;
-    background: rgba(141,110,55,0.10);
-    color: var(--ddz-text-on-felt);
-    font-family: monospace;
-    font-size: 0.78rem;
-    margin: 0 0.1rem;
   }
 
   .ddz-help {
@@ -1565,7 +1533,6 @@ permalink: /toolbox/doudizhu/
           <span class="card-back"></span>
         </div>
         <div class="ddz-status-msg" id="ddzStatusMsg">— 准备发牌 —</div>
-        <div class="ddz-multiplier" id="ddzMultiplier"></div>
       </div>
       <div class="ddz-seat-ai" data-seat="1">
         <div class="ddz-avatar" id="ddzAvatar1">🤖<span class="ddz-clock" id="ddzClock1" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled1" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared1" hidden>明牌</span></div>
@@ -1573,12 +1540,6 @@ permalink: /toolbox/doudizhu/
         <div class="ddz-handcount" id="ddzCount1">17</div>
         <div class="ddz-played" id="ddzPlayed1"></div>
       </div>
-    </div>
-
-    <!-- 叫 / 抢 / 加倍 面板（动态渲染按钮）-->
-    <div class="ddz-bid-panel" id="ddzBidPanel" hidden>
-      <div class="ddz-bid-title" id="ddzBidTitle">轮到你</div>
-      <div class="ddz-bid-buttons" id="ddzBidButtons"></div>
     </div>
 
     <!-- 我的座位 -->
@@ -1589,7 +1550,16 @@ permalink: /toolbox/doudizhu/
         <div class="ddz-handcount" id="ddzCount0">17</div>
       </div>
     </div>
-    <div class="ddz-played" id="ddzPlayed0"></div>
+
+    <!-- 决策位 ── 平时显示我自己出的牌 / 抢地主时显示决策按钮 / 加倍时同位。
+         三者共用同一个固定高度槽位，互相切换不影响画幅。 -->
+    <div class="ddz-decision-slot">
+      <div class="ddz-played" id="ddzPlayed0"></div>
+      <div class="ddz-bid-panel" id="ddzBidPanel" hidden>
+        <div class="ddz-bid-title" id="ddzBidTitle">轮到你</div>
+        <div class="ddz-bid-buttons" id="ddzBidButtons"></div>
+      </div>
+    </div>
 
     <!-- 出牌按钮 — 在手牌正上方；hidden 时仍占布局位（visibility:hidden），避免画幅跳变 -->
     <div class="ddz-actions" id="ddzPlayActions" hidden>
@@ -1598,15 +1568,10 @@ permalink: /toolbox/doudizhu/
       <button class="ddz-btn primary" id="ddzPlayBtn" type="button">出牌</button>
     </div>
 
-    <!-- 包一层 wrap 让 no-play banner 能 absolute 定位在手牌正上方 -->
-    <div class="ddz-hand-wrap">
-      <div class="ddz-no-play-banner" id="ddzNoPlayBanner" hidden>您没有牌可以大过大家</div>
-      <div class="ddz-hand" id="ddzHand"></div>
-    </div>
+    <div class="ddz-hand" id="ddzHand"></div>
 
-    <div class="ddz-tip">
-      点击单选 · 按住<kbd>拖动</kbd>可一次连选多张 · AI 出牌时也能<kbd>预选</kbd> · 选错也可以<kbd>智能补全</kbd>
-    </div>
+    <!-- 右下角积分提示（赢可得的分） -->
+    <div class="ddz-score-hint" id="ddzMultiplier"></div>
 
     <!-- 浮层：游戏结束 -->
     <div class="ddz-overlay" id="ddzGameOverOverlay">
@@ -2403,22 +2368,16 @@ permalink: /toolbox/doudizhu/
   }
 
   function renderMultiplier() {
-    if (state.phase === PHASE.IDLE || state.phase === PHASE.DEALING) {
+    // 右下角 chip：只显示"赢可得 N 分"。农民 = 倍数本身，地主 = 倍数×2。
+    // 地主未定（bidding 阶段）就先不显示。
+    if (state.phase === PHASE.IDLE || state.phase === PHASE.DEALING || state.landlordIdx < 0) {
       multiEl.innerHTML = '';
       return;
     }
     const m = currentMultiplier();
-    const parts = [`底 ×${state.multiplier}`];
-    if (state.bombCount > 0) parts.push(`炸 ×${1 << state.bombCount}`);
-    if (state.spring > 0) parts.push(`春 ×${1 << state.spring}`);
-    // 若我赢/输的预估积分（简化：地主场你赢就 +2m，农民场赢就 +m；输则相对扣）
-    let preview = '';
-    if (state.landlordIdx >= 0 && state.phase !== PHASE.SETTLEMENT) {
-      const myIsLandlord = state.landlordIdx === 0;
-      const winScore = myIsLandlord ? m * 2 : m;
-      preview = `<span class="preview"><span class="win">赢 +${winScore}</span> · <span class="lose">输 -${winScore}</span></span>`;
-    }
-    multiEl.innerHTML = `${parts.join(' · ')} = ${m}${preview}`;
+    const myIsLandlord = state.landlordIdx === 0;
+    const score = myIsLandlord ? m * 2 : m;
+    multiEl.textContent = `赢 ${score} 分`;
   }
 
   function currentMultiplier() {
@@ -2851,12 +2810,12 @@ permalink: /toolbox/doudizhu/
     }
   }
 
-  // 玩家"压不住"状态 — 灰授手牌 + 显示横幅。仅在 PLAYING 阶段、轮到玩家、
-  // 且有上家牌要应（即不是自己做庄）时才有意义。
+  // 玩家"压不住"状态 — 手牌灰授 + 按钮区只留"不出"（隐掉"提示"和"出牌"）。
+  // 仅在 PLAYING 阶段、轮到玩家、有上家牌要应（即不是自己做庄）时检查。
   function refreshNoPlayState() {
-    const banner = document.getElementById('ddzNoPlayBanner');
     const hand = document.getElementById('ddzHand');
-    if (!banner || !hand) return;
+    const acts = document.getElementById('ddzPlayActions');
+    if (!hand || !acts) return;
     const isMyPlayTurn = state.phase === PHASE.PLAYING && state.turnIdx === 0;
     const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
     let noPlay = false;
@@ -2865,7 +2824,7 @@ permalink: /toolbox/doudizhu/
       noPlay = beats.length === 0;
     }
     hand.classList.toggle('no-play', noPlay);
-    banner.hidden = !noPlay;
+    acts.classList.toggle('no-play', noPlay);
   }
 
   // ----- 出牌轮转 -----
@@ -2987,12 +2946,12 @@ permalink: /toolbox/doudizhu/
 
   function commitPass(seat) {
     stopTurnCountdown();   // 任何人出牌都关闹钟（下个 proceedTurn 会再开）
-    // 玩家自己 pass → 立即拿掉灰授 + banner（不要等 700ms 后 proceedTurn 才清）
+    // 玩家自己 pass → 立即拿掉灰授 + 按钮恢复（不要等 700ms 后 proceedTurn 才清）
     if (seat === 0) {
-      const banner = document.getElementById('ddzNoPlayBanner');
       const hand = document.getElementById('ddzHand');
+      const acts = document.getElementById('ddzPlayActions');
       if (hand) hand.classList.remove('no-play');
-      if (banner) banner.hidden = true;
+      if (acts) acts.classList.remove('no-play');
     }
     state.passCount++;
     renderPlayedAt(seat, 'pass');
