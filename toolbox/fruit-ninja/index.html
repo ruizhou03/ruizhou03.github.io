@@ -261,7 +261,7 @@ permalink: /toolbox/fruit-ninja/
     </div>
     <button class="pause-btn" id="pause-btn" type="button">暂停</button>
     <button class="mute-btn" id="mute-btn" type="button" aria-label="静音切换">🔊</button>
-    <button class="perf-btn" id="perf-btn" type="button" aria-label="性能档位">AUTO</button>
+    <button class="perf-btn" id="perf-btn" type="button" aria-label="性能档位">自</button>
     <button class="bg-btn" id="bg-btn" type="button" aria-label="背景切换">竹</button>
 
     <div class="overlay" id="paused-overlay" hidden>
@@ -996,7 +996,8 @@ permalink: /toolbox/fruit-ninja/
     bgBtn.textContent = Bg.chars[Bg.current] || '?';
     bgBtn.title = '背景：' + Bg.label() + '（点击切换）';
   }
-  updateBgBtn();
+  // updateBgBtn() 的立即调用必须等 const Bg 声明并 init 完才能跑（TDZ）
+  // 现在 const Bg 还在下方，所以这里只挂 click handler，立即调用挪到 Bg.init() 之后
   if (bgBtn) {
     bgBtn.addEventListener('click', () => {
       Bg.cycle();
@@ -1043,6 +1044,7 @@ permalink: /toolbox/fruit-ninja/
     label() { return this.labels[this.current] || this.current; },
   };
   Bg.init();
+  updateBgBtn();    // 现在 Bg 已定义，可以同步刷出"竹/月/简/虹"按钮 label
   const HORIZON_RATIO = 0.52;
 
   // 果汁印染层：独立 offscreen，每帧 destination-out 微量衰减（~2.5s 后近乎透明）
