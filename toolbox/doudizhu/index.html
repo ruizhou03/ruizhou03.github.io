@@ -585,47 +585,28 @@ permalink: /toolbox/doudizhu/
     text-shadow: 0 1px 2px rgba(0,0,0,0.35);
   }
 
-  /* 已出牌区域 */
+  /* 已出牌区域 — 固定高度 + nowrap，多张牌不换行不撑高（防画幅跳） */
   .ddz-played {
     margin-top: 0.5rem;
     min-height: 60px;
-    display: flex; flex-wrap: wrap;
+    max-height: 60px;
+    display: flex; flex-wrap: nowrap;
     justify-content: center; align-items: center;
     gap: 0;
     border-radius: 8px;
     transition: background 0.3s, box-shadow 0.3s;
+    overflow: hidden;
   }
   .ddz-played .ddz-card.size-mini {
     margin-left: calc(-1 * var(--ddz-card-mini-overlap));
-    animation: ddz-card-fly 0.42s cubic-bezier(0.18, 0.7, 0.28, 1.18);
-    will-change: transform, opacity;
+    animation: ddz-card-appear 0.18s ease-out;
   }
   .ddz-played .ddz-card.size-mini:first-child { margin-left: 0; }
-  /* 出牌飞入动画：从下方略偏 + 旋转 + 放大 */
-  @keyframes ddz-card-fly {
-    0%   { opacity: 0; transform: translateY(28px) scale(0.78) rotate(-6deg); }
-    60%  { opacity: 1; transform: translateY(-3px) scale(1.04) rotate(1deg); }
-    100% { opacity: 1; transform: none; }
+  /* 出牌：简单的 opacity 淡入；不旋转不缩放不平移，避免"炫影" */
+  @keyframes ddz-card-appear {
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
-  /* 自家出牌区飞入方向相反（从上方进入） */
-  .ddz-self ~ .ddz-played .ddz-card.size-mini,
-  #ddzPlayed0 .ddz-card.size-mini {
-    animation-name: ddz-card-fly-from-bottom;
-  }
-  @keyframes ddz-card-fly-from-bottom {
-    0%   { opacity: 0; transform: translateY(-28px) scale(0.78) rotate(6deg); }
-    60%  { opacity: 1; transform: translateY(2px) scale(1.04) rotate(-1deg); }
-    100% { opacity: 1; transform: none; }
-  }
-  /* 渐次延迟：每张多 35ms，制造"翻牌"感（最多前 8 张有差） */
-  .ddz-played .ddz-card.size-mini:nth-child(1)  { animation-delay: 0ms; }
-  .ddz-played .ddz-card.size-mini:nth-child(2)  { animation-delay: 35ms; }
-  .ddz-played .ddz-card.size-mini:nth-child(3)  { animation-delay: 70ms; }
-  .ddz-played .ddz-card.size-mini:nth-child(4)  { animation-delay: 105ms; }
-  .ddz-played .ddz-card.size-mini:nth-child(5)  { animation-delay: 140ms; }
-  .ddz-played .ddz-card.size-mini:nth-child(6)  { animation-delay: 175ms; }
-  .ddz-played .ddz-card.size-mini:nth-child(7)  { animation-delay: 210ms; }
-  .ddz-played .ddz-card.size-mini:nth-child(8)  { animation-delay: 245ms; }
 
   /* ======== 特殊牌型 FX ======== */
   /* 顺子 / 连对：暖金底光，安静地"展开" */
@@ -639,15 +620,7 @@ permalink: /toolbox/doudizhu/
     20%  { opacity: 1; }
     100% { opacity: 0.4; }
   }
-  /* 飞机：左右轻摆 */
-  .ddz-played.fx-plane .ddz-card.size-mini {
-    animation: ddz-card-fly 0.42s cubic-bezier(0.18, 0.7, 0.28, 1.18), ddz-plane-sway 1.4s ease-in-out;
-  }
-  @keyframes ddz-plane-sway {
-    0%, 100% { transform: rotate(0deg); }
-    25%      { transform: rotate(-1.5deg); }
-    75%      { transform: rotate(1.5deg); }
-  }
+  /* 飞机：背景金光保留；卡片本身不再左右晃动（避免炫影感） */
   /* 炸弹：抖屏 + 红色闪光 */
   .ddz-played.fx-bomb {
     background: radial-gradient(ellipse at center, rgba(200,40,40,0.30) 0%, transparent 70%);
@@ -666,14 +639,7 @@ permalink: /toolbox/doudizhu/
     50%  { box-shadow: inset 0 0 38px rgba(200,40,40,0.55); }
     100% { box-shadow: inset 0 0 0 rgba(200,40,40,0); }
   }
-  .ddz-played.fx-bomb .ddz-card.size-mini {
-    animation: ddz-card-fly 0.42s cubic-bezier(0.18, 0.7, 0.28, 1.18), ddz-bomb-pulse 0.6s ease-out;
-  }
-  @keyframes ddz-bomb-pulse {
-    0%   { box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55); }
-    50%  { box-shadow: 0 0 18px rgba(200,40,40,0.7), inset 0 0 0 2px rgba(200,40,40,0.6); }
-    100% { box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55); }
-  }
+  /* 炸弹：背景红闪 + 抖屏保留；卡片本身不脉冲（不要炫影） */
   /* ======== 注意力锁定：非当前 actor 的座位 / 手牌 dim ======== */
   .ddz-self, .ddz-seat-ai, .ddz-hand {
     transition: opacity 0.28s ease, filter 0.28s ease;
@@ -728,15 +694,7 @@ permalink: /toolbox/doudizhu/
     100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; border-width: 1px; }
   }
 
-  /* ======== A4 飞行牌（FLIP 克隆从源点飞到桌面中心）======== */
-  .ddz-fly-card {
-    position: fixed;
-    z-index: 90;
-    pointer-events: none;
-    transform: translate(-50%, -50%) scale(1);
-    transition: transform 0.42s cubic-bezier(0.36, 0.07, 0.32, 1.1), opacity 0.42s;
-    will-change: transform, opacity;
-  }
+  /* 已移除：A4 飞行牌（克隆从源点飞到桌面中心）——产生"炫影"已被禁用 */
 
   /* ======== 音效开关按钮（Setup 屏右上小 chip） ======== */
   .ddz-sfx-toggle {
@@ -870,32 +828,36 @@ permalink: /toolbox/doudizhu/
     82% { transform: translateX(-3px); }
     91% { transform: translateX(3px); }
   }
-  .ddz-played.fx-rocket .ddz-card.size-mini {
-    animation: ddz-card-fly 0.42s cubic-bezier(0.18, 0.7, 0.28, 1.18), ddz-rocket-pulse 1.8s ease-out;
-    z-index: 2;
-  }
-  @keyframes ddz-rocket-pulse {
-    0%   { box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55); }
-    25%  { box-shadow: 0 0 32px rgba(255,235,150,1), inset 0 0 0 3px rgba(245,209,66,1); transform: translateY(-4px) scale(1.06); }
-    55%  { box-shadow: 0 0 24px rgba(245,209,66,0.85), inset 0 0 0 2px rgba(245,209,66,0.85); }
-    100% { box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55); transform: none; }
-  }
-  .ddz-played .pass-tag, .ddz-played .think-tag {
+  /* 王炸：全屏震撼 + 背景大金光保留；卡片本身不脉冲不浮动（不要炫影） */
+  .ddz-played.fx-rocket .ddz-card.size-mini { z-index: 2; }
+  .ddz-played .pass-tag, .ddz-played .think-tag, .ddz-played .bid-tag {
     padding: 0.22rem 0.7rem;
     border-radius: 999px;
     font-size: 0.78rem;
+    letter-spacing: 0.04em;
   }
   .ddz-played .pass-tag {
     background: rgba(255,255,255,0.06);
     border: 1px solid var(--ddz-frame-2);
     color: var(--ddz-text-on-felt-mute);
-    letter-spacing: 0.04em;
   }
   .ddz-played .think-tag {
     background: rgba(201,169,110,0.10);
     border: 1px solid var(--ddz-frame-2);
     color: var(--ddz-text-on-felt);
     font-family: monospace;
+  }
+  /* 叫/抢/不叫/不抢 决策 tag — 颜色区分"叫/抢"(暖金)和"不叫/不抢"(灰) */
+  .ddz-played .bid-tag.rob {
+    background: rgba(245,209,66,0.18);
+    border: 1px solid rgba(245,209,66,0.55);
+    color: #f8e08c;
+    font-weight: 600;
+  }
+  .ddz-played .bid-tag.pass {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--ddz-frame-2);
+    color: var(--ddz-text-on-felt-mute);
   }
   .ddz-played .think-tag::after {
     content: '…';
@@ -992,7 +954,8 @@ permalink: /toolbox/doudizhu/
   .ddz-actions {
     display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: center;
     align-items: center;
-    margin-top: 0.8rem;
+    margin-top: 0.6rem;
+    min-height: 2.5rem;     /* 占位高度：hidden 时也占这么多，避免手牌随之上下跳 */
     position: relative; z-index: 1;
   }
   .ddz-actions .ddz-btn {
@@ -1111,26 +1074,28 @@ permalink: /toolbox/doudizhu/
   }
 
   /* ======== 兜底：[hidden] 必须真的隐藏 ========
-     Browser default `[hidden] { display: none }` 与 `.ddz-actions { display: flex }`
+     Browser default `[hidden] { display: none }` 与 `.ddz-lobby { display: flex }` 等
      特异性同为 (0,1,0)，源序后者赢 → 即便 hidden 也会显示。强制 !important 修正。 */
   .ddz-table[hidden],
-  .ddz-actions[hidden],
   .ddz-lobby[hidden],
   .ddz-online-config[hidden],
   .ddz-online-resume[hidden],
-  .ddz-self[hidden],
-  .ddz-seat-ai[hidden],
-  .ddz-hand[hidden],
-  .ddz-tops[hidden],
   .ddz-double-grid[hidden],
   .ddz-bottom-pile[hidden] {
     display: none !important;
   }
 
-  /* ======== 抢 / 加倍 决策面板 ========
-     特殊：bid-panel 即便 [hidden] 也保留布局占位 — 防止画幅跳变 */
+  /* ======== 抢 / 加倍 决策面板 + 出牌按钮 ========
+     bid-panel / play-actions：即便 [hidden] 也保留布局占位 — 防止画幅跳变。
+     用 visibility:hidden 而非 display:none，让 hand / table 上下位置不动。 */
   .ddz-bid-panel[hidden] {
     display: block !important;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .ddz-actions[hidden] {
+    display: flex !important;
     visibility: hidden;
     opacity: 0;
     pointer-events: none;
@@ -1141,7 +1106,7 @@ permalink: /toolbox/doudizhu/
     padding: 0.7rem 1rem 0.85rem;
     text-align: center;
     max-width: 460px;
-    min-height: 130px;            /* 给 panel 预留固定高度，防止收起时 table 高度跳动 */
+    min-height: 200px;            /* 占位高度：取 bidding/加倍 两阶段中较大的（加倍含 3-cell grid），整局不跳 */
     transition: opacity 0.18s ease;
     background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
     border: 1px solid var(--ddz-frame-2);
@@ -1605,13 +1570,15 @@ permalink: /toolbox/doudizhu/
       </div>
     </div>
     <div class="ddz-played" id="ddzPlayed0"></div>
-    <div class="ddz-hand" id="ddzHand"></div>
 
+    <!-- 出牌按钮 — 在手牌正上方；hidden 时仍占布局位（visibility:hidden），避免画幅跳变 -->
     <div class="ddz-actions" id="ddzPlayActions" hidden>
       <button class="ddz-btn" id="ddzPassBtn" type="button">不要</button>
       <button class="ddz-btn" id="ddzHintBtn" type="button">提示</button>
       <button class="ddz-btn primary" id="ddzPlayBtn" type="button">出牌</button>
     </div>
+
+    <div class="ddz-hand" id="ddzHand"></div>
 
     <div class="ddz-tip">
       点击单选 · 按住<kbd>拖动</kbd>可一次连选多张 · AI 出牌时也能<kbd>预选</kbd> · 选错也可以<kbd>智能补全</kbd>
@@ -2384,48 +2351,9 @@ permalink: /toolbox/doudizhu/
     return null;
   }
 
-  // ========== A4 飞牌动画 + B2 微反馈环 ==========
-  // seat = 显示座位 (0=我 / 1=下家 / 2=上家)，cards = cardId 数组
-  function flyCardsTo(seat, cards) {
-    if (!cards || !cards.length) return;
-    const playedEl = document.getElementById('ddzPlayed' + seat);
-    if (!playedEl) return;
-    const dest = playedEl.getBoundingClientRect();
-    let origin;
-    if (seat === 0) {
-      origin = document.getElementById('ddzHand').getBoundingClientRect();
-    } else {
-      origin = document.getElementById('ddzAvatar' + seat).getBoundingClientRect();
-    }
-    const ox = origin.left + origin.width / 2;
-    const oy = origin.top + origin.height / 2;
-    const dx = dest.left + dest.width / 2;
-    const dy = dest.top + dest.height / 2;
-    // 用 sortHandDesc 让飞行时的牌序与最终展示一致
-    const flying = sortHandDesc(cards).slice(0, 16);   // 16 张以内
-    flying.forEach((c, i) => {
-      const clone = buildCardEl(c, 'size-mini');
-      clone.classList.add('ddz-fly-card');
-      clone.style.left = ox + 'px';
-      clone.style.top = oy + 'px';
-      clone.style.opacity = '0';
-      clone.style.transitionDelay = (i * 30) + 'ms';
-      document.body.appendChild(clone);
-      // 微错位让多张牌不重叠
-      const lateralOffset = (i - (flying.length - 1) / 2) * 14;
-      requestAnimationFrame(() => {
-        const tx = dx - ox + lateralOffset;
-        const ty = dy - oy;
-        const rot = (Math.random() - 0.5) * 6;
-        clone.style.opacity = '1';
-        clone.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0.96) rotate(${rot}deg)`;
-      });
-      setTimeout(() => {
-        clone.style.opacity = '0';
-        setTimeout(() => clone.remove(), 220);
-      }, 380 + i * 30);
-    });
-  }
+  // 已禁用：原 A4 飞牌克隆（在屏幕上拖出一道"炫影"）已按 UX 反馈移除。
+  // 保留空壳避免改其它调用点；牌通过 renderPlayedAt 直接出现在桌面区。
+  function flyCardsTo(_seat, _cards) { /* no-op */ }
 
   // 桌面中心一圈金光涟漪（小反馈）
   function spawnMicroRing(seat) {
@@ -2590,6 +2518,25 @@ permalink: /toolbox/doudizhu/
     nextBidTurn();
   }
 
+  // 在某座位的 .ddz-played 区域贴一个 bid-tag（叫/不叫/抢/不抢）
+  function renderBidTagAt(seat, act, isFirst) {
+    const el = $('ddzPlayed' + seat);
+    if (!el) return;
+    el.className = 'ddz-played';
+    const tag = document.createElement('span');
+    tag.className = 'bid-tag ' + (act === 'rob' ? 'rob' : 'pass');
+    if (act === 'rob') tag.textContent = isFirst ? '叫地主' : '抢地主';
+    else tag.textContent = isFirst ? '不叫' : '不抢';
+    el.innerHTML = '';
+    el.appendChild(tag);
+  }
+  function renderBidThinkingAt(seat) {
+    const el = $('ddzPlayed' + seat);
+    if (!el) return;
+    el.className = 'ddz-played';
+    el.innerHTML = '<span class="think-tag">思考</span>';
+  }
+
   function nextBidTurn() {
     if (state.bidActions.length >= 3) {
       finalizeLandlord();
@@ -2610,6 +2557,7 @@ permalink: /toolbox/doudizhu/
       ], handleBid);
     } else {
       bidPanel.hidden = true;
+      renderBidThinkingAt(seat);
       setTimeout(() => {
         // AI: 用现有 evaluateHand 判断要不要叫/抢
         const score = AI.evaluateHand(state.hands[seat]);
@@ -2632,7 +2580,10 @@ permalink: /toolbox/doudizhu/
       act = seatOrAction;
     }
     bidPanel.hidden = true;
+    const isFirstBid = state.landlordCandidate < 0;
     state.bidActions.push({ seat, action: act });
+    // 在该座位的 .ddz-played 显示决策 tag（叫/抢/不叫/不抢），所有人可见，保留到 bidding 结束
+    renderBidTagAt(seat, act, isFirstBid);
     if (act === 'rob') {
       if (state.landlordCandidate < 0) {
         state.landlordCandidate = seat;
@@ -2745,6 +2696,8 @@ permalink: /toolbox/doudizhu/
     state.doubleActions = [];
     doubleDecided = [false, false, false];
     doubleChoice = [null, null, null];
+    // 清掉 bidding 阶段每个座位 .ddz-played 上的"叫/抢/不叫/不抢" tag
+    clearAllPlayed();
     setStatus('加倍阶段（5 秒）');
     renderMultiplier();
 
