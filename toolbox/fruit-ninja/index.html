@@ -34,14 +34,16 @@ permalink: /toolbox/fruit-ninja/
     #fn-canvas { border-radius: 0; max-width: 100%; }
   }
 
+  /* HUD：左对齐单行 flex；右侧 padding 给 3 个按钮留位置，避免重叠 */
   .hud {
     position: absolute;
     top: 0.6rem;
     left: 0; right: 0;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 0 0.9rem;
+    gap: 0.9rem;
+    padding: 0.45rem 0.9rem;
+    padding-right: 9rem;
     pointer-events: none;
     color: #fff;
     font-family: var(--font-display, Georgia, serif);
@@ -49,12 +51,12 @@ permalink: /toolbox/fruit-ninja/
     font-variant-numeric: tabular-nums;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
   }
-  .hud-left, .hud-right { display: flex; gap: 0.9rem; align-items: center; }
   .hud .label { font-size: 0.7rem; color: rgba(255, 255, 255, 0.65); margin-right: 0.2rem; }
   .hud .lives { letter-spacing: 0.15em; }
   .hud .combo { color: #ffd95a; }
   .hud .combo.hidden { visibility: hidden; }
 
+  /* 按钮组：暂停 → 静音 → 性能，全部右对齐 */
   .pause-btn, .mute-btn, .perf-btn {
     position: absolute;
     top: 0.6rem;
@@ -62,27 +64,36 @@ permalink: /toolbox/fruit-ninja/
     color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 999px;
-    padding: 0.25rem 0.75rem;
     font-size: 0.82rem;
     cursor: pointer;
     pointer-events: auto;
+    line-height: 1.15;
   }
-  .pause-btn { right: 50%; transform: translateX(50%); }
-  .mute-btn {
+  .pause-btn {
     right: 0.6rem;
-    padding: 0.25rem 0.55rem;
-    min-width: 2.2rem;
+    padding: 0.25rem 0.7rem;
+  }
+  .mute-btn {
+    right: 4.0rem;
+    padding: 0.25rem 0.45rem;
+    min-width: 2.0rem;
     text-align: center;
   }
   .perf-btn {
-    right: 3.5rem;
-    padding: 0.25rem 0.55rem;
-    font-size: 0.62rem;
-    letter-spacing: 0.08em;
-    color: rgba(255, 255, 255, 0.82);
-    font-family: var(--font-display, Georgia, serif);
+    right: 6.5rem;
+    padding: 0.25rem 0.45rem;
+    min-width: 1.7rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.92);
   }
   .pause-btn:hover, .mute-btn:hover, .perf-btn:hover { background: rgba(0, 0, 0, 0.6); }
+  @media (max-width: 700px) {
+    .hud { font-size: 0.95rem; gap: 0.6rem; padding-right: 8rem; }
+    .pause-btn { right: 0.4rem; padding: 0.2rem 0.55rem; font-size: 0.78rem; }
+    .mute-btn { right: 3.5rem; padding: 0.2rem 0.4rem; min-width: 1.8rem; font-size: 0.78rem; }
+    .perf-btn { right: 5.8rem; padding: 0.2rem 0.4rem; min-width: 1.6rem; font-size: 0.78rem; }
+  }
 
   .mode-select {
     text-align: center;
@@ -222,15 +233,11 @@ permalink: /toolbox/fruit-ninja/
   <section id="game-stage" class="fn-stage-wrap" hidden>
     <canvas id="fn-canvas" width="1080" height="1620"></canvas>
     <div class="hud">
-      <div class="hud-left">
-        <span class="hud-timer" hidden><span class="label">⏱</span><span data-bind="timer">60</span></span>
-        <span class="hud-lives" hidden><span class="label">❤</span><span data-bind="lives">❤❤❤</span></span>
-        <span class="hud-stage" hidden><span class="label">阶</span><span data-bind="stage">1</span></span>
-      </div>
-      <div class="hud-right">
-        <span class="hud-score"><span class="label">分</span><span data-bind="score">0</span></span>
-        <span class="hud-combo combo hidden">×<span data-bind="combo">0</span></span>
-      </div>
+      <span class="hud-timer" hidden><span class="label">⏱</span><span data-bind="timer">60</span></span>
+      <span class="hud-lives" hidden><span class="label">❤</span><span data-bind="lives">❤❤❤</span></span>
+      <span class="hud-stage" hidden><span class="label">阶</span><span data-bind="stage">1</span></span>
+      <span class="hud-score"><span class="label">分</span><span data-bind="score">0</span></span>
+      <span class="hud-combo combo hidden">×<span data-bind="combo">0</span></span>
     </div>
     <button class="pause-btn" id="pause-btn" type="button">暂停</button>
     <button class="mute-btn" id="mute-btn" type="button" aria-label="静音切换">🔊</button>
@@ -528,46 +535,75 @@ permalink: /toolbox/fruit-ninja/
 
     function chop(opts) {
       const now = ctx.currentTime;
-      const gain = (opts.gain != null) ? opts.gain : 0.72;
+      const gain = (opts.gain != null) ? opts.gain : 0.82;
       const detune = opts.detune || 0;
       const out = buildOut(opts.pan || 0);
+      // 每发 ±15% 随机化关键参数，避免连切音色完全一致显得机械
+      const rvBody = 0.86 + Math.random() * 0.28;
+      const rvSquelch = 0.86 + Math.random() * 0.28;
 
-      // 1. 低频冲击 thunk —— 切中的"重量"
-      // sine 85→34Hz 极速 pitch drop，给身体感
-      const thump = ctx.createOscillator();
-      thump.type = 'sine';
-      thump.frequency.setValueAtTime(95 - Math.max(0, detune) * 0.05, now);
-      thump.frequency.exponentialRampToValueAtTime(34, now + 0.055);
-      const thumpG = ctx.createGain();
-      thumpG.gain.setValueAtTime(0, now);
-      thumpG.gain.linearRampToValueAtTime(gain * 0.62, now + 0.003);
-      thumpG.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
-      thump.connect(thumpG); thumpG.connect(out);
-      thump.start(now); thump.stop(now + 0.13);
+      // 1. Sub-bass 冲击（sine 75→28Hz）—— 切中的次声冲击，肚子里的"咚"
+      const sub = ctx.createOscillator();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(76 * rvBody, now);
+      sub.frequency.exponentialRampToValueAtTime(28, now + 0.075);
+      const subG = ctx.createGain();
+      subG.gain.setValueAtTime(0, now);
+      subG.gain.linearRampToValueAtTime(gain * 0.70, now + 0.003);
+      subG.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      sub.connect(subG); subG.connect(out);
+      sub.start(now); sub.stop(now + 0.16);
 
-      // 2. 中频湿润果肉撕裂 squelch —— bandpass 噪声向下扫
-      // 这一层取代了原本 triangle wave，给"砍进肉里"的湿感
-      const bp = ctx.createBiquadFilter();
-      bp.type = 'bandpass';
-      bp.Q.value = 1.7;
-      const bpCenter = 520 + detune * 0.55;
-      bp.frequency.setValueAtTime(bpCenter, now);
-      bp.frequency.exponentialRampToValueAtTime(bpCenter * 0.42, now + 0.085);
-      const sqG = ctx.createGain();
-      sqG.gain.setValueAtTime(0, now);
-      sqG.gain.linearRampToValueAtTime(gain * 0.55, now + 0.005);
-      sqG.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
-      const sqNs = noiseSource(now, 0.13);
-      sqNs.connect(bp); bp.connect(sqG); sqG.connect(out);
+      // 2. Body triangle（130→55Hz）—— 谐波丰富的"砍肉"身体感
+      const body = ctx.createOscillator();
+      body.type = 'triangle';
+      body.frequency.setValueAtTime(132 * rvBody - Math.max(0, detune) * 0.05, now);
+      body.frequency.exponentialRampToValueAtTime(55, now + 0.09);
+      const bodyG = ctx.createGain();
+      bodyG.gain.setValueAtTime(0, now);
+      bodyG.gain.linearRampToValueAtTime(gain * 0.42, now + 0.005);
+      bodyG.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+      body.connect(bodyG); bodyG.connect(out);
+      body.start(now); body.stop(now + 0.18);
 
-      // 3. 高频刀刃接触 tick —— 极短高通噪声尖刺，给"刃口咬住"的清脆
+      // 3. 湿润撕裂低带（bandpass 340→180Hz 噪声）—— 主"切进肉里"质感
+      const bpLow = ctx.createBiquadFilter();
+      bpLow.type = 'bandpass';
+      bpLow.Q.value = 0.95;
+      const bpLowF = 340 * rvSquelch + detune * 0.5;
+      bpLow.frequency.setValueAtTime(bpLowF, now);
+      bpLow.frequency.exponentialRampToValueAtTime(180, now + 0.10);
+      const sqLowG = ctx.createGain();
+      // 微延迟 5ms：冲击先出，撕裂感跟上，整体不发"咔"
+      sqLowG.gain.setValueAtTime(0, now);
+      sqLowG.gain.setValueAtTime(0, now + 0.005);
+      sqLowG.gain.linearRampToValueAtTime(gain * 0.55, now + 0.012);
+      sqLowG.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      const sqLowNs = noiseSource(now, 0.17);
+      sqLowNs.connect(bpLow); bpLow.connect(sqLowG); sqLowG.connect(out);
+
+      // 4. 中频"shrrr"拉撕尾（bandpass 850→430Hz）—— 给湿润扩散感
+      const bpMid = ctx.createBiquadFilter();
+      bpMid.type = 'bandpass';
+      bpMid.Q.value = 0.85;
+      bpMid.frequency.setValueAtTime(880 * rvSquelch, now);
+      bpMid.frequency.exponentialRampToValueAtTime(420, now + 0.10);
+      const sqMidG = ctx.createGain();
+      sqMidG.gain.setValueAtTime(0, now);
+      sqMidG.gain.setValueAtTime(0, now + 0.012);
+      sqMidG.gain.linearRampToValueAtTime(gain * 0.34, now + 0.022);
+      sqMidG.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      const sqMidNs = noiseSource(now, 0.16);
+      sqMidNs.connect(bpMid); bpMid.connect(sqMidG); sqMidG.connect(out);
+
+      // 5. 刀刃高频咬合（highpass>2800Hz 极短）—— 清脆"咬住"
       const hp = ctx.createBiquadFilter();
       hp.type = 'highpass';
-      hp.frequency.value = 3400 + Math.max(0, detune) * 3.5;
-      hp.Q.value = 0.4;
+      hp.frequency.value = 2800 + Math.max(0, detune) * 3.0;
+      hp.Q.value = 0.45;
       const tickG = ctx.createGain();
       tickG.gain.setValueAtTime(0, now);
-      tickG.gain.linearRampToValueAtTime(gain * 0.34, now + 0.002);
+      tickG.gain.linearRampToValueAtTime(gain * 0.38, now + 0.002);
       tickG.gain.exponentialRampToValueAtTime(0.001, now + 0.030);
       const tickNs = noiseSource(now, 0.045);
       tickNs.connect(hp); hp.connect(tickG); tickG.connect(out);
@@ -717,8 +753,9 @@ permalink: /toolbox/fruit-ninja/
 
   function updatePerfBtn() {
     if (!perfBtn) return;
-    const label = Perf.manual ? Perf.tier.toUpperCase() : 'AUTO·' + Perf.tier.toUpperCase();
-    perfBtn.textContent = label;
+    const tierChar = Perf.tier === 'high' ? '高' : Perf.tier === 'med' ? '中' : '低';
+    perfBtn.textContent = Perf.manual ? tierChar : '自';
+    perfBtn.title = Perf.manual ? '画质：' + tierChar + '（手动）' : '画质：自动（当前' + tierChar + '）';
   }
   if (perfBtn) {
     perfBtn.addEventListener('click', () => {
@@ -1078,16 +1115,55 @@ permalink: /toolbox/fruit-ninja/
     });
   }
   function drawShockwaves() {
+    if (!shockwaves.length) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
     for (const w of shockwaves) {
       const t = Math.min(1, w.age / w.life);
       const r = w.r0 + (w.rMax - w.r0) * t;
-      const alpha = (1 - t) * 0.9;
-      ctx.strokeStyle = 'rgba(' + w.colorRGB + ', ' + alpha.toFixed(3) + ')';
-      ctx.lineWidth = w.lineWidth * (1 - t * 0.45);
+      const inv = 1 - t;
+
+      // 1. 内部 radial gradient 烟雾（仅前 55% 寿命，给"爆炸内部"的体积感）
+      if (t < 0.55) {
+        const fillT = t / 0.55;
+        const fillAlpha = (1 - fillT * fillT) * 0.45;
+        const g = ctx.createRadialGradient(w.x, w.y, r * 0.32, w.x, w.y, r);
+        g.addColorStop(0, 'rgba(' + w.colorRGB + ', 0)');
+        g.addColorStop(0.75, 'rgba(' + w.colorRGB + ', ' + (fillAlpha * 0.5).toFixed(3) + ')');
+        g.addColorStop(1, 'rgba(' + w.colorRGB + ', ' + fillAlpha.toFixed(3) + ')');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(w.x, w.y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 2. 主前沿环（亮）—— 冲击波的"边"
+      ctx.strokeStyle = 'rgba(' + w.colorRGB + ', ' + (inv * inv * 0.95).toFixed(3) + ')';
+      ctx.lineWidth = w.lineWidth * (1 - t * 0.35);
       ctx.beginPath();
       ctx.arc(w.x, w.y, r, 0, Math.PI * 2);
       ctx.stroke();
+
+      // 3. 内 echo 环（细，半径 0.82×）—— 给"双重涟漪"层次
+      const echoR = r * 0.82;
+      if (echoR > 4) {
+        ctx.strokeStyle = 'rgba(' + w.colorRGB + ', ' + (inv * 0.55).toFixed(3) + ')';
+        ctx.lineWidth = w.lineWidth * 0.45 * inv;
+        ctx.beginPath();
+        ctx.arc(w.x, w.y, echoR, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      // 4. 外 echo 环（更细更暗，半径 1.08×）—— 给"外辐射"扩散
+      if (t < 0.75) {
+        const outerR = r * 1.08;
+        ctx.strokeStyle = 'rgba(' + w.colorRGB + ', ' + (inv * 0.32).toFixed(3) + ')';
+        ctx.lineWidth = w.lineWidth * 0.32 * inv;
+        ctx.beginPath();
+        ctx.arc(w.x, w.y, outerR, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
+    ctx.restore();
   }
 
   // ============ Time 抽象 ============
@@ -1945,7 +2021,7 @@ permalink: /toolbox/fruit-ninja/
       totalDt += Math.max(1, b.t - a.t);
     }
     const avgSpeed = totalDt > 0 ? totalDist / totalDt * 1000 : 0;     // px/s
-    const speedK = 1 - Math.min(1, avgSpeed / 1800) * 0.42;            // 0.58..1
+    const speedK = 1 - Math.min(1, avgSpeed / 2200) * 0.22;            // 0.78..1，快也不要太细
 
     // Combo Rush ≥10 时调色板切到火焰（红橙 + 暖白）
     const fireMode = state.mode === 'comborush' && state.combo >= 10;
@@ -1978,23 +2054,23 @@ permalink: /toolbox/fruit-ninja/
     // 外层厚重 halo（仅 high 档）
     if (tier === 'high') {
       ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = 'rgba(' + glowRGB + ', 0.22)';
-      ctx.lineWidth = 22 * speedK;
+      ctx.strokeStyle = 'rgba(' + glowRGB + ', 0.24)';
+      ctx.lineWidth = 32 * speedK;
       buildPath();
       ctx.stroke();
     }
-    // 中层 glow（high + med）
+    // 中层 glow（high + med）—— 给厚度
     if (tier !== 'low') {
       ctx.globalCompositeOperation = 'lighter';
       ctx.strokeStyle = 'rgba(' + glowRGB + ', 0.55)';
-      ctx.lineWidth = 9.5 * speedK;
+      ctx.lineWidth = 15 * speedK;
       buildPath();
       ctx.stroke();
     }
-    // 锐利核心刀刃 —— 给"犀利"感
+    // 锐利核心刀刃 —— 现在足够厚实，能稳住"犀利+厚重"两端
     ctx.globalCompositeOperation = 'source-over';
-    ctx.strokeStyle = 'rgba(' + coreRGB + ', 0.96)';
-    ctx.lineWidth = 2.7 * speedK;
+    ctx.strokeStyle = 'rgba(' + coreRGB + ', 0.97)';
+    ctx.lineWidth = 5.6 * speedK;
     buildPath();
     ctx.stroke();
 
@@ -2007,20 +2083,47 @@ permalink: /toolbox/fruit-ninja/
       const a = Math.max(0, 1 - t);
       const yOff = -55 * t * t;
 
-      // 连击光环：在文字下方一圈扩散彩色 ring（仅 aura popup）
+      // 连击光环：内 radial gradient 闪光 + 主前沿环 + 后随 echo 环，取代原本的单线圈
       if (p.aura) {
-        const auraT = Math.min(1, p.age / 0.6);
-        const auraR = 32 + 96 * auraT;
-        const auraA = a * (1 - auraT * 0.85);
+        const auraT = Math.min(1, p.age / 0.7);
+        const auraR = 30 + 110 * auraT;
+        const auraInv = 1 - auraT;
+        const auraA = a * auraInv;
         if (auraA > 0.02) {
           ctx.save();
           ctx.globalCompositeOperation = 'lighter';
           ctx.translate(p.x, p.y + yOff);
-          ctx.strokeStyle = 'rgba(' + p.auraColor + ', ' + auraA.toFixed(3) + ')';
-          ctx.lineWidth = 5 * (1 - auraT * 0.5);
+
+          // 内部 radial gradient 闪光（仅前半段寿命）
+          if (auraT < 0.55) {
+            const fillT = auraT / 0.55;
+            const fillAlpha = (1 - fillT * fillT) * 0.42 * a;
+            const g = ctx.createRadialGradient(0, 0, 4, 0, 0, auraR);
+            g.addColorStop(0, 'rgba(' + p.auraColor + ', ' + fillAlpha.toFixed(3) + ')');
+            g.addColorStop(0.55, 'rgba(' + p.auraColor + ', ' + (fillAlpha * 0.45).toFixed(3) + ')');
+            g.addColorStop(1, 'rgba(' + p.auraColor + ', 0)');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(0, 0, auraR, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // 主前沿环（亮）
+          ctx.strokeStyle = 'rgba(' + p.auraColor + ', ' + (auraA * 0.9).toFixed(3) + ')';
+          ctx.lineWidth = 6.5 * auraInv * auraInv + 1.2;
           ctx.beginPath();
           ctx.arc(0, 0, auraR, 0, Math.PI * 2);
           ctx.stroke();
+
+          // 后随 echo 环（细，靠内）
+          if (auraR > 28) {
+            ctx.strokeStyle = 'rgba(' + p.auraColor + ', ' + (auraA * 0.45).toFixed(3) + ')';
+            ctx.lineWidth = 2.2 * auraInv;
+            ctx.beginPath();
+            ctx.arc(0, 0, auraR * 0.78, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
           ctx.restore();
         }
       }
