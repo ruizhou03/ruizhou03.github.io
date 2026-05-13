@@ -115,14 +115,21 @@ permalink: /toolbox/pinball/temple/
   };
 
   // ─── 3 个 rollover lane trigger（每个对应一个宝箱）───
+  // 三条触发线位置 = 三个宝箱视觉位置，球只要进 chest 16px 范围内就算
+  // 之前 chest 画在 y=80 但 trigger 在 y=100，差 20px → 球贴 chest 也不计数
+  const ROLLOVER_LANES = [
+    { idx: 0, cx: 42,  cy: 100, segAx: 24,  segBx: 60  },
+    { idx: 1, cx: 240, cy: 50,  segAx: 212, segBx: 268 },
+    { idx: 2, cx: 438, cy: 100, segAx: 420, segBx: 456 },
+  ];
   const CHEST_TRIGGERS = [
-    { id: 'rollL', kind: 'segment', ax: 24, ay: 100, bx: 60, by: 100, thresh: 12,
+    { id: 'rollL', kind: 'segment', ax: 24, ay: 100, bx: 60, by: 100, thresh: 16,
       on: 'enter', cooldown: 600, chestIdx: 0,
       cb: (now, ball, game) => onRollover(now, ball, game, 0) },
-    { id: 'rollM', kind: 'segment', ax: 212, ay: 36, bx: 268, by: 36, thresh: 12,
+    { id: 'rollM', kind: 'segment', ax: 212, ay: 50, bx: 268, by: 50, thresh: 16,
       on: 'enter', cooldown: 600, chestIdx: 1,
       cb: (now, ball, game) => onRollover(now, ball, game, 1) },
-    { id: 'rollR', kind: 'segment', ax: 420, ay: 100, bx: 456, by: 100, thresh: 12,
+    { id: 'rollR', kind: 'segment', ax: 420, ay: 100, bx: 456, by: 100, thresh: 16,
       on: 'enter', cooldown: 600, chestIdx: 2,
       cb: (now, ball, game) => {
         // rollR 离弹射轨道 (x=442-474) 很近，球弹出时会顺路扫到 → 球第一次出 lane 不算
@@ -360,51 +367,78 @@ permalink: /toolbox/pinball/temple/
   }
 
   function paintMidLayer(ctx, now) {
-    // 3 chests + rollover lights
-    const chestPos = [[60, 80], [240, 90], [420, 80]];
-    chestPos.forEach((p, i) => {
-      const [cx, cy] = p;
-      // 3 灯
-      for (let k = 0; k < 3; k++) {
-        const lit = (state.chestsOpen[i] ? 3 : state.rolloverCounts[i]) > k;
-        ctx.fillStyle = lit ? '#ffd96a' : 'rgba(140, 110, 70, 0.4)';
-        ctx.beginPath();
-        ctx.arc(cx - 14 + k * 14, cy - 22, 4, 0, Math.PI * 2);
-        ctx.fill();
-        if (lit) {
-          ctx.shadowColor = '#ffd96a'; ctx.shadowBlur = 8;
-          ctx.beginPath(); ctx.arc(cx - 14 + k * 14, cy - 22, 4, 0, Math.PI * 2); ctx.fill();
-          ctx.shadowBlur = 0;
-        }
-      }
-      // chest 视觉
+    // 3 个 rollover lane + chest 视觉一体化：chest 画在 trigger 线正上方，
+    // 球进 chest 16px 范围内就触发；进度数字直接显示在 chest 上
+    ROLLOVER_LANES.forEach(p => {
+      const i = p.idx;
       const open = state.chestsOpen[i];
+      const progress = state.rolloverCounts[i];
+
+      // 1. trigger lane 发光横线（让玩家看到"打这条线"）
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = open
+        ? `rgba(255, 220, 120, ${0.85 + 0.15 * Math.sin(now / 220)})`
+        : `rgba(232, 185, 85, ${0.32 + progress * 0.18})`;
+      ctx.lineWidth = open ? 3.5 : 2.2;
+      ctx.beginPath();
+      ctx.moveTo(p.segAx, p.cy);
+      ctx.lineTo(p.segBx, p.cy);
+      ctx.stroke();
+
+      // 2. chest：长方体罩在 trigger 线中段（视觉=触发区）
+      const chestY = p.cy - 7;     // chest 高 14，正好罩在 y=cy 上下各 7
       ctx.fillStyle = open ? '#ffd96a' : '#7a5028';
-      ctx.fillRect(cx - 16, cy - 8, 32, 18);
+      ctx.fillRect(p.cx - 16, chestY, 32, 14);
       ctx.strokeStyle = open ? '#ffe89c' : '#5a3a20';
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(cx - 16, cy - 8, 32, 18);
+      ctx.strokeRect(p.cx - 16, chestY, 32, 14);
+
+      // 3. 进度数字直接打在 chest 上（"1/3" / "✓"）
       if (open) {
-        ctx.shadowColor = '#ffd96a'; ctx.shadowBlur = 12;
-        ctx.fillStyle = '#fff5d0';
-        ctx.beginPath(); ctx.moveTo(cx, cy - 4); ctx.arc(cx, cy - 4, 5, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
+        ctx.shadowColor = '#ffd96a'; ctx.shadowBlur = 10;
       }
+      ctx.fillStyle = open ? '#5a3a20' : '#e8b955';
+      ctx.font = 'bold 9px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(open ? '✓' : (progress + '/3'), p.cx, p.cy);
+      ctx.textBaseline = 'alphabetic';
+      ctx.shadowBlur = 0;
     });
-    // hidden door 走廊（始终画走廊背景，门视觉是右侧的 wall 段）
+
+    // Hidden door 走廊（最左边的竖条）—— 加文字标签说明用途
+    const openCount = state.chestsOpen.filter(x => x).length;
+    const need = Math.max(0, 2 - openCount);
     if (!state.hiddenDoorOpen) {
-      // 显示门（标记为可见时）
-      ctx.fillStyle = 'rgba(232, 185, 85, 0.25)';
+      ctx.fillStyle = 'rgba(232, 185, 85, 0.14)';
       ctx.fillRect(36, 200, 24, 100);
-      ctx.strokeStyle = '#c08648';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(192, 134, 72, 0.6)';
+      ctx.lineWidth = 1.5;
       ctx.strokeRect(36, 200, 24, 100);
     } else {
-      // 走廊照明
-      const lit = `rgba(255, 220, 120, ${0.20 + 0.10 * Math.sin(now / 200)})`;
+      const lit = `rgba(255, 220, 120, ${0.28 + 0.15 * Math.sin(now / 200)})`;
       ctx.fillStyle = lit;
       ctx.fillRect(36, 200, 24, 100);
+      ctx.strokeStyle = '#ffd96a';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(36, 200, 24, 100);
     }
+    // 竖排小字（旋转 90°）说明这条通道的用途
+    ctx.save();
+    ctx.translate(48, 250);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = state.hiddenDoorOpen
+      ? 'rgba(255, 245, 200, 0.85)'
+      : 'rgba(232, 185, 85, 0.55)';
+    ctx.font = 'bold 9px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      state.hiddenDoorOpen ? '✓ HIDDEN LANE · +1000' : ('HIDDEN · 还差 ' + need + ' 个宝箱'),
+      0, 0
+    );
+    ctx.textBaseline = 'alphabetic';
+    ctx.restore();
 
     // Spinner 视觉：水平叶片，随 spinnerSpin 旋转
     ctx.save();
