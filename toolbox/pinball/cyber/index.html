@@ -100,7 +100,8 @@ permalink: /toolbox/pinball/cyber/
   // 其它 4 个字母离 lane 远，不需要此判定。
   const LETTER_TRIGGERS = [];
   const LETTERS = ['H', 'A', 'C', 'K', 'S'];
-  const LETTER_X = [44, 144, 240, 336, 436];
+  // 均匀分布：pitch 98（44, 142, 240, 338, 436），以 240 为中心对称
+  const LETTER_X = [44, 142, 240, 338, 436];
   for (let i = 0; i < 5; i++) {
     LETTER_TRIGGERS.push({
       id: 'lane' + LETTERS[i],
@@ -246,14 +247,24 @@ permalink: /toolbox/pinball/cyber/
     updateGoal();
   }
 
+  // 4 档奖励系统：T1 = 100，T2 = 1000，T3 = 3000
   function onCyberLaneReturn(now, ball, gameRef) {
-    // 赛博克版回轨道奖励：数据流，3000 分（= jackpot），同时给 combo 注入 +3 hits
-    game.addScore(3000, 458, 140, 'lane-return');
-    game.addPopup(458, 110, 'DATA STREAM +3000', 1500);
+    game.addScore(1000, 458, 140, 'lane-return-t2');
+    game.addPopup(458, 110, 'DATA STREAM +1000', 1300);
     state.laneReturnFlashTill = now + 500;
     bumpCombo(now);
-    bumpCombo(now);
-    bumpCombo(now);
+  }
+  function onCyberLaunch(b, gameRef, meta) {
+    if (meta && meta.fieldReturn) {
+      game.addScore(3000, 458, 580, 'launch-t3');
+      game.addPopup(458, 560, '⚡ GRAND +3000', 1600);
+      state.laneReturnFlashTill = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 800;
+      bumpCombo(performance.now ? performance.now() : Date.now());
+      bumpCombo(performance.now ? performance.now() : Date.now());
+    } else {
+      game.addScore(100, 458, 580, 'launch-t1');
+      game.addPopup(458, 560, '+100', 700);
+    }
   }
 
   function onHacksComplete(now) {
@@ -436,6 +447,7 @@ permalink: /toolbox/pinball/cyber/
     },
     hooks: {
       onStart: (s, g) => { game = g; rebuildState(); updateGoal(); },
+      onLaunch: onCyberLaunch,
       onBumperHit: (b, now) => { bumpCombo(now); updateGoal(); },
       onPegHit: (p, now) => { /* peg 不算 combo，避免太轻松 */ },
       onTick: (dt, now) => {

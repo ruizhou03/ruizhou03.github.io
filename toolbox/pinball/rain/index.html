@@ -177,11 +177,21 @@ permalink: /toolbox/pinball/rain/
     state.laneReturnFlashTill = 0;
   }
 
+  // 4 档奖励系统：T1 = 100，T2 = 1000，T3 = 3000
   function onRainLaneReturn(now, ball, gameRef) {
-    // 弹珠雨版回轨道奖励：闪电劈下 +3000
-    game.addScore(3000, 458, 140, 'lane-return');
-    game.addPopup(458, 110, '⚡ +3000', 1500);
+    game.addScore(1000, 458, 140, 'lane-return-t2');
+    game.addPopup(458, 110, '⚡ +1000', 1300);
     state.laneReturnFlashTill = now + 500;
+  }
+  function onRainLaunch(b, gameRef, meta) {
+    if (meta && meta.fieldReturn) {
+      game.addScore(3000, 458, 580, 'launch-t3');
+      game.addPopup(458, 560, '🌩️ GRAND +3000', 1600);
+      state.laneReturnFlashTill = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 800;
+    } else {
+      game.addScore(100, 458, 580, 'launch-t1');
+      game.addPopup(458, 560, '+100', 700);
+    }
   }
   rebuildState();
 
@@ -412,6 +422,7 @@ permalink: /toolbox/pinball/rain/
         spawnRainBall();
         updateGoal();
       },
+      onLaunch: onRainLaunch,
       onTick: (dt, now, g) => {
         if (!state.gameRunning && !state.timerEnded) {
           updateGoal();

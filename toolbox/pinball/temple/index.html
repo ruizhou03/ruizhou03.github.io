@@ -292,15 +292,27 @@ permalink: /toolbox/pinball/temple/
     ball.vy *= 0.85;
   }
 
+  // 4 档奖励系统：T1 = 100（首发 / 救援重发），T2 = 1000（ricochet 穿过），
+  // T3 = 3000（ricochet 安稳停下 → 再发射），都共用同一条金光柱视觉
   function onTempleLaneReturn(now, ball, gameRef) {
-    // 神庙版的"回轨道奖励"：金光柱 + spinner combo 加 2 级
-    const baseAdd = 2000;
-    game.addScore(baseAdd, 458, 140, 'temple-lane');
-    game.addPopup(458, 110, '⛩️ +' + baseAdd, 1500);
+    game.addScore(1000, 458, 140, 'temple-lane-t2');
+    game.addPopup(458, 110, '⛩️ +1000', 1300);
     state.laneReturnFlashTill = now + 500;
-    // 帮玩家一把：直接把 spinner combo 升 2 阶（最多 cap 在表内）
-    state.spinnerHits = Math.min(state.spinnerHits + 2, SPIN_FIB.length);
+    // 帮玩家一把：spinner combo 升 1 阶
+    state.spinnerHits = Math.min(state.spinnerHits + 1, SPIN_FIB.length);
     state.spinnerLastHit = now;
+  }
+  function onTempleLaunch(b, gameRef, meta) {
+    if (meta && meta.fieldReturn) {
+      game.addScore(3000, 458, 580, 'launch-t3');
+      game.addPopup(458, 560, '🌅 GRAND +3000', 1600);
+      state.laneReturnFlashTill = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 800;
+      // T3 再多升 1 阶 spinner（合计相当于+2）
+      state.spinnerHits = Math.min(state.spinnerHits + 1, SPIN_FIB.length);
+    } else {
+      game.addScore(100, 458, 580, 'launch-t1');
+      game.addPopup(458, 560, '+100', 700);
+    }
   }
 
   function onHiddenLane(now, ball, gameRef) {
@@ -437,7 +449,7 @@ permalink: /toolbox/pinball/temple/
     ctx.beginPath(); ctx.arc(472, 130, 1.6, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = laneHit ? 'rgba(255, 230, 160, 0.95)' : 'rgba(232, 185, 85, 0.55)';
     ctx.font = '8px system-ui, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('SUN BEAM', 458, 160);
+    ctx.fillText('BEAM', 458, 160);
   }
 
   function paintForeground(ctx, now) {
@@ -502,6 +514,7 @@ permalink: /toolbox/pinball/temple/
     },
     hooks: {
       onStart: (s, g) => { game = g; rebuildState(); updateGoal(); },
+      onLaunch: onTempleLaunch,
       onTick: (dt, now) => {
         if (state.multiballActive && now >= state.multiballEnd) endMultiball();
         if (state.multiballActive) updateGoal();

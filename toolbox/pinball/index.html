@@ -289,10 +289,24 @@ permalink: /toolbox/pinball/
     updateGoal();
   }
 
+  // 弹射轨道 4 档奖励系统（T2 在这里，T1 / T3 在 onLaunch 里）
+  // T1 = 100（首发 / 救援重发）；T2 = 1000（ricochet 穿过）；T3 = 3000（ricochet → 安稳停下 → 再发）
   function onLaserHit(now, ball, gameRef) {
-    game.addScore(3000, 458, 140, 'laser');
-    game.addPopup(458, 110, 'LASER · +3000', 1500);
+    game.addScore(1000, 458, 140, 'laser-t2');
+    game.addPopup(458, 110, 'LASER · +1000', 1300);
     state.laserFlashTill = now + 500;
+  }
+  function onReactorLaunch(b, gameRef, meta) {
+    if (meta && meta.fieldReturn) {
+      // T3：球曾 ricochet 回 lane 又安稳停下来 → 满额 jackpot
+      game.addScore(3000, 458, 580, 'launch-t3');
+      game.addPopup(458, 560, '🎯 GRAND +3000', 1600);
+      state.laserFlashTill = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 800;
+    } else {
+      // T1：首发或救援重发 → 最小礼花
+      game.addScore(100, 458, 580, 'launch-t1');
+      game.addPopup(458, 560, '+100', 700);
+    }
   }
 
   // Drop target 碰撞：自定义检测（不是 trigger，是带反弹的实体）
@@ -534,6 +548,7 @@ permalink: /toolbox/pinball/
         game = g;
         state._balls = s.balls;
       },
+      onLaunch: onReactorLaunch,
       onBumperHit: (bp, now, g, ball) => {
         if (bp.x === 240 && bp.y === 240) {
           // 反应堆中心

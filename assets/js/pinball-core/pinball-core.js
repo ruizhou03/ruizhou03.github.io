@@ -106,9 +106,14 @@
         id: _ballIdSeq++, x, y, vx: vx || 0, vy: vy || 0,
         r: phys.ballRadius, onPlunger: !!onPlunger, trail: [],
         // viaLane: true 表示球目前还在"从 plunger 出来到首次离开 lane"的途中。
-        // 桌台可以用它区分"首次发射 / auto-return 重发"（viaLane=true）和
+        // 桌台用它区分"首次发射 / auto-return 重发"（viaLane=true）和
         // "球在场上 ricochet 重新回到 lane"（viaLane=false）。
         viaLane: !!onPlunger,
+        // fieldReturn: 球这一"生命"里有没有从场上 ricochet 回到 lane 一次。
+        // 通过 lane 视觉 trigger 给 T2 奖励；如果还能落回 plunger 顺利再发射，
+        // 进 hooks.onLaunch 的 meta 里就是 true → 桌台给 T3 jackpot。
+        // 发射成功后被 reset 回 false。
+        fieldReturn: false,
       };
     }
     function spawnBallOnPlunger() {
@@ -341,7 +346,12 @@
         state.startedAt = state.startedAt || Date.now();
         hideOverlay();
       }
-      if (hooks.onLaunch) hooks.onLaunch(b, game);
+      // 把"这次发射前球曾经 ricochet 回过 lane"信息透给桌台，再 reset 给下一轮
+      // fieldReturn=true → 桌台应给 T3（jackpot 级）奖励
+      // fieldReturn=false → 桌台给 T1（首发 / 救援重发）小奖励
+      const wasFieldReturn = !!b.fieldReturn;
+      b.fieldReturn = false;
+      if (hooks.onLaunch) hooks.onLaunch(b, game, { fieldReturn: wasFieldReturn });
     }
 
     // ───────── 挡板 ─────────
@@ -452,13 +462,19 @@
         }
       });
 
-      // viaLane 状态机：球在 plunger 上 / 刚被 launch、还没离开 lane → true；
-      // 球的 x 已经走出 lane 左/右边界 → false（之后再回到 lane 时不再算 viaLane）
+      // viaLane / fieldReturn 状态机：
+      // - 球在 plunger 上 → viaLane=true（onPlunger 时不清 fieldReturn）
+      // - 球离开 lane 范围 → viaLane=false
+      // - 球 viaLane=false 时进 lane 范围 → fieldReturn=true（场上 ricochet 回来）
+      // fieldReturn 一旦置 true 就保持，直到下次成功 launch 才 reset
       state.balls.forEach(b => {
+        const inLane = b.x >= plg.laneLeft - 10 && b.x <= plg.laneRight + 10;
         if (b.onPlunger) {
           b.viaLane = true;
-        } else if (b.viaLane && (b.x < plg.laneLeft - 10 || b.x > plg.laneRight + 10)) {
+        } else if (b.viaLane && !inLane) {
           b.viaLane = false;
+        } else if (!b.viaLane && inLane) {
+          b.fieldReturn = true;
         }
       });
 

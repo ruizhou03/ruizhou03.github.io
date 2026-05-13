@@ -116,16 +116,17 @@ permalink: /toolbox/pinball/pachinko/
     }
   }
 
-  // ─── 5 个 skill-shot 闸门 (×2 / ×3 / ×5 / ×10 / ×20) ───
-  // 闸门排在 deflector 反射后球必经的水平轨迹上 (y=68-82 范围)，
-  // 力度大 → 球往左飞越远 → 命中越左 (高倍率) 闸门
-  // 力度过大 → 撞左墙没碰到任何闸门 → ×1 默认 (overshoot 惩罚)
+  // ─── 6 个 skill-shot 闸门 (×1 / ×2 / ×3 / ×5 / ×10 / ×20) ───
+  // 重新均匀分布到整条顶端：x=22..412，pitch=68，width=50（gap=18）
+  // idx 按视觉顺序从左到右递增（与原来反向，但 idx 只是内部 key 无外部依赖）
+  // ×1 是新加的"轻蓄力默认"格，避免右上一大块空白
   const LANES = [
-    { idx: 0, x: 295, w: 50, mult: 2,  color: '#88aaff' },
-    { idx: 1, x: 235, w: 50, mult: 3,  color: '#aaccff' },
-    { idx: 2, x: 175, w: 50, mult: 5,  color: '#ffcc66' },
-    { idx: 3, x: 115, w: 50, mult: 10, color: '#ff9966' },
-    { idx: 4, x: 55,  w: 50, mult: 20, color: '#ff5566' },
+    { idx: 0, x: 22,  w: 50, mult: 20, color: '#ff5566' },
+    { idx: 1, x: 90,  w: 50, mult: 10, color: '#ff9966' },
+    { idx: 2, x: 158, w: 50, mult: 5,  color: '#ffcc66' },
+    { idx: 3, x: 226, w: 50, mult: 3,  color: '#aaccff' },
+    { idx: 4, x: 294, w: 50, mult: 2,  color: '#88aaff' },
+    { idx: 5, x: 362, w: 50, mult: 1,  color: '#7788aa' },
   ];
   const LANE_Y = 68, LANE_H = 14;
   const laneTriggers = LANES.map(lane => ({
@@ -197,7 +198,7 @@ permalink: /toolbox/pinball/pachinko/
     slotHits: [0,0,0,0,0,0,0],
     launchMult: 1,            // 本发倍率（命中闸门后更新）
     launchLaneIdx: -1,        // 本发命中的闸门索引（-1 = 未命中任何闸门）
-    laneFlashTill: [0,0,0,0,0],  // 闸门高亮过期时间
+    laneFlashTill: [0,0,0,0,0,0],  // 6 个闸门（×20 ×10 ×5 ×3 ×2 ×1）高亮过期时间
     pegCombo: 0,              // 钉墙连续命中数（3 s 无命中或 slot 触底重置）
     pegLastHit: 0,
     laneReturnFlashTill: 0,   // 轨道顶端"金币"高亮过期
@@ -211,15 +212,14 @@ permalink: /toolbox/pinball/pachinko/
     state.slotHits = [0,0,0,0,0,0,0];
     state.launchMult = 1;
     state.launchLaneIdx = -1;
-    state.laneFlashTill = [0,0,0,0,0];
+    state.laneFlashTill = [0,0,0,0,0,0];
     state.pegCombo = 0;
     state.pegLastHit = 0;
     state.laneReturnFlashTill = 0;
   }
 
-  // 钉墙连击梯度：base 10，每 8 击升 1 阶
-  // 阶 [10, 14, 20, 28, 38, 50]，升得慢、上限 50，避免单球弹下来分太爆
-  const PEG_TIERS = [10, 14, 20, 28, 38, 50];
+  // 钉墙连击梯度：base 10，每 8 击升 1 阶。整十数字 [10, 20, 30, 40, 50]，cap 50
+  const PEG_TIERS = [10, 20, 30, 40, 50];
   function onPegHit(peg, now, gameRef, ball) {
     if (state.pegLastHit && now - state.pegLastHit > 3000) state.pegCombo = 0;
     state.pegCombo++;
@@ -229,12 +229,21 @@ permalink: /toolbox/pinball/pachinko/
     if (bonus > 0) game.addScore(bonus, peg.x, peg.y - 12, 'peg-combo');
   }
 
+  // 4 档奖励系统：T1 = 100，T2 = 1000，T3 = 3000
   function onPachinkoLaneReturn(now, ball, gameRef) {
-    // 机厅版回轨道奖励：金币 +3000，且把 jackpot 进度 +1
-    game.addScore(3000, 458, 140, 'lane-return');
-    game.addPopup(458, 110, '🪙 +3000', 1500);
+    game.addScore(1000, 458, 140, 'lane-return-t2');
+    game.addPopup(458, 110, '🪙 +1000', 1300);
     state.laneReturnFlashTill = now + 500;
+  }
+  function onPachinkoT3Launch() {
+    game.addScore(3000, 458, 580, 'launch-t3');
+    game.addPopup(458, 560, '🎰 GRAND +3000', 1600);
+    state.laneReturnFlashTill = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 800;
     state.jackpotStreak = Math.min(state.jackpotStreak + 1, 5);
+  }
+  function onPachinkoT1Launch() {
+    game.addScore(100, 458, 580, 'launch-t1');
+    game.addPopup(458, 560, '+100', 700);
   }
   rebuildState();
 
@@ -365,15 +374,6 @@ permalink: /toolbox/pinball/pachinko/
     ctx.font = '8px system-ui'; ctx.textAlign = 'center';
     ctx.fillText('COIN', 458, 160);
 
-    // 钉墙连击 HUD（屏幕左下角附近）
-    if (state.pegCombo >= 5) {
-      const tier = Math.min(Math.floor((state.pegCombo - 1) / 8), PEG_TIERS.length - 1);
-      ctx.fillStyle = 'rgba(255, 200, 100, 0.85)';
-      ctx.font = 'bold 12px system-ui';
-      ctx.textAlign = 'center';
-      ctx.fillText('PEG ×' + state.pegCombo + '  ' + PEG_TIERS[tier] + '/钉', W / 2, H - 70);
-    }
-
     // ── Skill-shot 闸门 ──
     LANES.forEach(lane => {
       const flashing = state.laneFlashTill[lane.idx] > now;
@@ -487,13 +487,16 @@ permalink: /toolbox/pinball/pachinko/
     },
     hooks: {
       onStart: (s, g) => { game = g; rebuildState(); updateGoal(); },
-      onLaunch: (b, g) => {
+      onLaunch: (b, g, meta) => {
         // 每次重新发射重置本发倍率 + peg combo
         state.launchMult = 1;
         state.launchLaneIdx = -1;
         state.pegCombo = 0;
         state.pegLastHit = 0;
         updateGoal();
+        // 4 档奖励：T3 (fieldReturn=true) 或 T1
+        if (meta && meta.fieldReturn) onPachinkoT3Launch();
+        else onPachinkoT1Launch();
       },
       onTick: (dt, now) => {
         if (state.multiballActive && now >= state.multiballEnd) endMultiball();
