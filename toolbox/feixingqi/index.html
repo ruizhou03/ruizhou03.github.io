@@ -207,10 +207,11 @@ permalink: /toolbox/feixingqi/
   }
   .fxq-svg { display: block; width: 100%; height: 100%; }
 
-  /* Track / stretch / home / goal cell stroke styles are set inline per cell. */
+  /* Track / stretch / home / goal cell stroke styles are set inline per cell.
+     Game pieces are drawn as full drawPlane svg groups; strokes are inlined
+     on each path / polygon so we don't set any stroke at the .plane group
+     level here (it would cascade into child elements and override). */
   .fxq-svg .plane {
-    stroke: #1a1a1a;
-    stroke-width: 1.5;
     cursor: default;
     transition: filter 0.15s ease, transform 0.15s ease;
   }
@@ -225,7 +226,6 @@ permalink: /toolbox/feixingqi/
   }
   .fxq-svg .plane.last-moved { filter: drop-shadow(0 0 5px rgba(78, 154, 241, 0.85)); }
   .fxq-svg .plane.animating { filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.35)); }
-  .fxq-svg .plane.animating circle { transform-box: fill-box; transform-origin: center; transform: scale(1.1); }
   .fxq-svg .jump-mark { font-size: 14px; pointer-events: none; }
   .fxq-svg .big-mark { font-size: 16px; pointer-events: none; font-weight: 700; }
   .fxq-svg .cell-hit { fill: transparent; cursor: pointer; }
@@ -912,10 +912,15 @@ permalink: /toolbox/feixingqi/
 
   // Build SVG <g> with realistic airliner silhouette (per LaTeX board.tex option G).
   // Plane drawn pointing RIGHT in local coords. Bounding box ≈ 0.18 LaTeX units radius.
-  function drawPlane(parent, cx, cy, color, rotDeg = 0, scale = 1) {
+  // If `strokeColor` is set, every part also gets a stroke for visibility on
+  // colored backgrounds (used when drawing game pieces on top of colored cells).
+  function drawPlane(parent, cx, cy, color, rotDeg = 0, scale = 1, strokeColor = null) {
     const fill = (COLOR_INFO[color] && COLOR_INFO[color].hex) || '#888';
     const s = scale * (SVG_W / BOARD_SIZE);
     const g = svgEl('g', { transform: `translate(${cx},${cy}) rotate(${rotDeg})` });
+    const strokeAttrs = strokeColor
+      ? { stroke: strokeColor, 'stroke-width': 0.9, 'stroke-linejoin': 'round' }
+      : {};
     // Body (Bezier-curve fuselage)
     g.appendChild(svgEl('path', {
       d:
@@ -926,25 +931,25 @@ permalink: /toolbox/feixingqi/
         `C ${-0.18*s} ${-0.010*s}, ${-0.16*s} ${-0.020*s}, ${-0.12*s} ${-0.024*s} ` +
         `L ${0.05*s} ${-0.028*s} ` +
         `C ${0.13*s} ${-0.026*s}, ${0.16*s} ${-0.014*s}, ${0.17*s} 0 Z`,
-      fill,
+      fill, ...strokeAttrs,
     }));
     // Wings (swept back)
     g.appendChild(svgEl('polygon', {
       points: `${0.04*s},${0.024*s} ${-0.06*s},${0.14*s} ${-0.12*s},${0.14*s} ${-0.04*s},${0.024*s}`,
-      fill,
+      fill, ...strokeAttrs,
     }));
     g.appendChild(svgEl('polygon', {
       points: `${0.04*s},${-0.024*s} ${-0.06*s},${-0.14*s} ${-0.12*s},${-0.14*s} ${-0.04*s},${-0.024*s}`,
-      fill,
+      fill, ...strokeAttrs,
     }));
     // Horizontal stabilizers
     g.appendChild(svgEl('polygon', {
       points: `${-0.12*s},${0.020*s} ${-0.14*s},${0.06*s} ${-0.17*s},${0.055*s} ${-0.15*s},${0.020*s}`,
-      fill,
+      fill, ...strokeAttrs,
     }));
     g.appendChild(svgEl('polygon', {
       points: `${-0.12*s},${-0.020*s} ${-0.14*s},${-0.06*s} ${-0.17*s},${-0.055*s} ${-0.15*s},${-0.020*s}`,
-      fill,
+      fill, ...strokeAttrs,
     }));
     parent.appendChild(g);
   }
@@ -996,7 +1001,8 @@ permalink: /toolbox/feixingqi/
         class: 'home-bg',
         fill: isActive ? info.hex : '#e7e1d2',
       }));
-      // 4 parking circles (2×2)
+      // 4 parking circles (2×2) — visual hangar slots. The plane itself is
+      // rendered later as a game-piece on top, so no decorative plane here.
       for (let i = 0; i < 4; i++) {
         const { x, y } = hangarXY(color, i);
         homeGroup.appendChild(svgEl('circle', {
@@ -1006,10 +1012,6 @@ permalink: /toolbox/feixingqi/
           stroke: ink,
           'stroke-width': 1.2,
         }));
-        // Plane icon (large, scale 1.6) in each parking circle
-        if (isActive) {
-          drawPlane(homeGroup, x, y, color, PLAY_DIR_SVG_ROT[color], 1.6);
-        }
       }
     }
     svg.appendChild(homeGroup);
@@ -1187,22 +1189,25 @@ permalink: /toolbox/feixingqi/
           const effStatus = isAnimatingThis ? animStatus : piece.status;
           const r = effStatus === 'goal' ? planeR * 0.5 : planeR;
           const g = svgEl('g', { class: cls.join(' '), 'data-color': c, 'data-idx': i });
-          g.appendChild(svgEl('circle', {
-            cx: xy.x, cy: xy.y, r,
-            fill: COLOR_INFO[c].hex,
-            stroke: '#ffffff',
-            'stroke-width': 1.5,
-          }));
-          if (effStatus !== 'goal') {
-            const t = svgEl('text', {
-              x: xy.x, y: xy.y + r * 0.34,
-              'text-anchor': 'middle',
-              'font-size': r * 1.0,
-              fill: '#fff',
-              'pointer-events': 'none',
-            });
-            t.textContent = '✈';
-            g.appendChild(t);
+          if (effStatus === 'goal') {
+            // Completed pieces: small color dot
+            g.appendChild(svgEl('circle', {
+              cx: xy.x, cy: xy.y, r,
+              fill: COLOR_INFO[c].hex,
+              stroke: '#ffffff',
+              'stroke-width': 1.2,
+            }));
+          } else {
+            // Bigger plane in hangar (parking slots are larger), smaller on
+            // the track/stretch so we don't crowd neighbouring cells.
+            const pieceScale = effStatus === 'hangar' ? 1.45 : 1.1;
+            // Transparent hit-area circle so clicks register on the whole plane
+            g.appendChild(svgEl('circle', {
+              cx: xy.x, cy: xy.y, r: r * pieceScale,
+              fill: 'transparent',
+            }));
+            // Realistic airliner silhouette in player color, white-edged
+            drawPlane(g, xy.x, xy.y, c, PLAY_DIR_SVG_ROT[c], pieceScale, '#ffffff');
           }
           planeGroup.appendChild(g);
         }
