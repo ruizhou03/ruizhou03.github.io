@@ -1359,18 +1359,31 @@ permalink: /toolbox/doudizhu/
     .ddz-double-cell { min-width: 60px; padding: 0.3rem 0.4rem; }
   }
 
-  /* 手机竖屏：地主 20 张牌一行放不下 → 允许换行多行展示 */
+  /* 手机竖屏：进一步收紧卡牌尺寸，让地主 20 张牌也能挤在一行 */
   @media (max-width: 600px) and (orientation: portrait) {
-    .ddz-hand {
-      flex-wrap: wrap;
-      overflow-x: visible;
-      justify-content: center;
-      row-gap: 8px;
+    .ddz-wrap {
+      --ddz-card-w: 36px;
+      --ddz-card-h: 52px;
+      --ddz-card-overlap: 22px;        /* visible 14px/card → 20 cards = 302px，绝大多数手机一行能放下 */
+      --ddz-card-mini-w: 26px;
+      --ddz-card-mini-h: 38px;
+      --ddz-card-mini-overlap: 14px;   /* visible 12px/card → 长牌型仍可读 */
     }
-    /* wrap 后第一张卡需要按 row 起始抹掉 negative margin —— 用 padding-left 补 */
-    .ddz-hand .ddz-card.size-full:first-child { margin-left: 0; }
-    /* group-start 间隔在多行下保留较小 */
-    .ddz-hand .ddz-card.size-full.group-start { margin-left: 6px; }
+    .ddz-hand {
+      flex-wrap: nowrap;               /* 强制单行 — 不再换行 */
+      overflow-x: auto;                /* 真的太长（极个别 320px 屏）可横滑 */
+      justify-content: center;
+    }
+    .ddz-hand .ddz-card.size-full.group-start { margin-left: 4px; }
+    /* AI 座位的 played 区不再硬剪 — 让长牌型的边角溢出露出来，避免数字被切 */
+    .ddz-seat-ai .ddz-played { overflow: visible; }
+    /* 卡片字号微调（card-w 缩小后） */
+    .ddz-card.size-full .corner .rk { font-size: 10px; }
+    .ddz-card.size-full .corner .su { font-size: 8px; }
+    .ddz-card.size-full .pip { font-size: 18px; }
+    .ddz-card.size-mini .corner .rk { font-size: 8px; }
+    .ddz-card.size-mini .corner .su { font-size: 7px; }
+    .ddz-card.size-mini .pip { font-size: 14px; }
   }
 
   /* 全屏按钮 chip（左上方，对称音效 chip） */
@@ -1388,6 +1401,34 @@ permalink: /toolbox/doudizhu/
   }
   .ddz-fullscreen-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
   .ddz-fullscreen-toggle.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+
+  /* ======== 游戏画幅全屏模式 (跨平台) ========
+     点 "⛶ 全屏" → body 加 .ddz-game-fullscreen 类
+     - .ddz-wrap 用 position: fixed 铺满 viewport（z-index 9999 盖住站点 nav/footer）
+     - 隐排行榜 / 评论 / 帮助 / 结算按钮 → 全部腾出空间给牌桌
+     - .ddz-table 去掉 760px max-width 上限，桌面也能跟随更宽
+     - 不用浏览器 fullscreen API，桌面手机都稳定 */
+  body.ddz-game-fullscreen { overflow: hidden; }
+  body.ddz-game-fullscreen .ddz-wrap {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    margin: 0;
+    padding: 0.6rem 0.6rem 0.4rem;
+    background: var(--color-bg);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: none;
+  }
+  body.ddz-game-fullscreen .ddz-wrap header { margin-bottom: 0.4rem; }
+  body.ddz-game-fullscreen .ddz-wrap header h1 { font-size: 1.2rem; }
+  body.ddz-game-fullscreen .ddz-wrap header .sub { display: none; }
+  body.ddz-game-fullscreen .ddz-table { margin: 0 auto; max-width: 900px; }
+  body.ddz-game-fullscreen .ddz-help,
+  body.ddz-game-fullscreen #ddz-settle-btn-mount,
+  body.ddz-game-fullscreen #ddz-wlb-mount,
+  body.ddz-game-fullscreen #ddz-wlb-online-mount,
+  body.ddz-game-fullscreen #ddz-cm-mount { display: none !important; }
 </style>
 
 <div class="ddz-wrap">
@@ -1875,23 +1916,22 @@ permalink: /toolbox/doudizhu/
   try { groupSortEnabled = localStorage.getItem(GROUP_SORT_KEY) === '1'; } catch {}
   refreshGroupSortToggle();
   $('ddzGroupSortToggle').addEventListener('click', () => setGroupSortEnabled(!groupSortEnabled));
-  // 全屏切换
+  // 全屏切换 —— 用 body class 而非浏览器 fullscreen API：
+  // 1) 桌面：浏览器 fullscreen API 容易把整个浏览器进入全屏（含书签栏等）而非"游戏画幅"
+  // 2) 手机：浏览器 fullscreen API 在 Safari 等基本不支持
+  // body class 切换 → CSS 隐排行榜/评论、把 .ddz-wrap 固定铺满 viewport，跨平台稳定
   const fsBtn = $('ddzFullscreenToggle');
   function refreshFsBtn() {
     if (!fsBtn) return;
-    const on = !!document.fullscreenElement;
+    const on = document.body.classList.contains('ddz-game-fullscreen');
     fsBtn.classList.toggle('on', on);
     fsBtn.textContent = on ? '⛶ 退出全屏' : '⛶ 全屏';
   }
   if (fsBtn) {
-    fsBtn.addEventListener('click', async () => {
-      try {
-        if (document.fullscreenElement) await document.exitFullscreen();
-        else await document.documentElement.requestFullscreen();
-      } catch (e) { console.warn('fullscreen', e); }
+    fsBtn.addEventListener('click', () => {
+      document.body.classList.toggle('ddz-game-fullscreen');
       refreshFsBtn();
     });
-    document.addEventListener('fullscreenchange', refreshFsBtn);
   }
   $('ddzPlayAgainBtn').addEventListener('click', () => {
     gameOverOverlay.classList.remove('show', 'has-spring');
