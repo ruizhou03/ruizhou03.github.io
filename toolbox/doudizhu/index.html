@@ -67,8 +67,20 @@ permalink: /toolbox/doudizhu/
   /* ======== Setup 面板 ======== */
   .ddz-setup { text-align: center; margin: 1.2rem auto; max-width: 520px; }
 
+  /* 一屏内分阶段：「① 模式 → ② 参数 → ③ 开始」清晰可见 */
+  .ddz-setup-step { margin-bottom: 1.2rem; }
+  .ddz-setup-step:last-child { margin-bottom: 0; }
+  .ddz-setup-step-label {
+    font-size: 0.74rem;
+    color: var(--color-muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.55rem;
+    font-family: var(--font-display);
+  }
+
   .ddz-mode-row {
-    display: inline-flex; gap: 0.5rem; margin-bottom: 1.2rem;
+    display: inline-flex; gap: 0.5rem; margin-bottom: 0;
     padding: 0.3rem;
     background: var(--color-bg-warm);
     border: 1px solid var(--color-border);
@@ -609,32 +621,60 @@ permalink: /toolbox/doudizhu/
     to   { opacity: 1; }
   }
 
-  /* Bug 6: 发牌动画 — 开局给 .ddz-hand 加 .dealing 类，触发 17 张牌从左（最大）
-     往右（最小）依次出现。每张牌从上方滑入 + 透明度淡入，35ms stagger */
+  /* 发牌动画 — 17 张牌从大到小依次出现，让玩家有时间反应"明牌 ×N"按钮
+     每张 0.5s 滑入 + 220ms stagger → 总时长 ~4s（16 × 220 + 500） */
   .ddz-hand.dealing .ddz-card.size-full {
-    animation: ddz-card-deal 0.42s cubic-bezier(0.25, 0.5, 0.3, 1.0) backwards;
+    animation: ddz-card-deal 0.5s cubic-bezier(0.25, 0.5, 0.3, 1.0) backwards;
   }
   @keyframes ddz-card-deal {
     from { opacity: 0; transform: translateY(-46px) rotate(-6deg) scale(0.85); }
     to   { opacity: 1; transform: none; }
   }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(1)  { animation-delay: 0ms;   }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(2)  { animation-delay: 35ms;  }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(3)  { animation-delay: 70ms;  }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(4)  { animation-delay: 105ms; }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(5)  { animation-delay: 140ms; }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(6)  { animation-delay: 175ms; }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(7)  { animation-delay: 210ms; }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(8)  { animation-delay: 245ms; }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(9)  { animation-delay: 280ms; }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(10) { animation-delay: 315ms; }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(11) { animation-delay: 350ms; }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(12) { animation-delay: 385ms; }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(13) { animation-delay: 420ms; }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(14) { animation-delay: 455ms; }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(15) { animation-delay: 490ms; }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(16) { animation-delay: 525ms; }
-  .ddz-hand.dealing .ddz-card.size-full:nth-child(17) { animation-delay: 560ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(1)  { animation-delay: 0ms;    }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(2)  { animation-delay: 220ms;  }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(3)  { animation-delay: 440ms;  }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(4)  { animation-delay: 660ms;  }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(5)  { animation-delay: 880ms;  }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(6)  { animation-delay: 1100ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(7)  { animation-delay: 1320ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(8)  { animation-delay: 1540ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(9)  { animation-delay: 1760ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(10) { animation-delay: 1980ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(11) { animation-delay: 2200ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(12) { animation-delay: 2420ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(13) { animation-delay: 2640ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(14) { animation-delay: 2860ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(15) { animation-delay: 3080ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(16) { animation-delay: 3300ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(17) { animation-delay: 3520ms; }
+
+  /* 发牌阶段「明牌 ×N」按钮：浮在我自己头像上方，N 跟着发牌进度从 5 降到 2，发完即隐 */
+  .ddz-deal-declare-btn {
+    position: absolute;
+    left: 50%;
+    top: -0.4rem;
+    transform: translate(-50%, -100%);
+    z-index: 8;
+    padding: 0.32rem 0.95rem;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(135deg, #d8b87a 0%, #c4923f 100%);
+    color: #2a1a05;
+    font-family: var(--font-display);
+    font-size: 0.86rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(196,146,63,0.45), inset 0 1px 0 rgba(255,255,255,0.55);
+    white-space: nowrap;
+    animation: ddz-deal-declare-pulse 1.4s ease-in-out infinite;
+  }
+  .ddz-deal-declare-btn:hover { transform: translate(-50%, -100%) scale(1.05); }
+  .ddz-deal-declare-btn[hidden] { display: none; }
+  @keyframes ddz-deal-declare-pulse {
+    0%, 100% { box-shadow: 0 4px 14px rgba(196,146,63,0.45), inset 0 1px 0 rgba(255,255,255,0.55); }
+    50%      { box-shadow: 0 4px 22px rgba(245,209,66,0.75), inset 0 1px 0 rgba(255,255,255,0.55); }
+  }
 
   /* ======== 特殊牌型 FX ======== */
   /* 顺子 / 连对：暖金底光，安静地"展开" */
@@ -1147,14 +1187,16 @@ permalink: /toolbox/doudizhu/
     margin: 0.5rem auto 0;
     max-width: 460px;
     min-height: 100px;
-    max-height: 100px;
+    /* 加倍阶段内容比 100px 更高（问题行 + 按钮 + 状态行），允许 slot 自然增高，避免组件溢出框外 */
   }
   .ddz-decision-slot .ddz-played {
     margin: 0;
     min-height: 100px;
     max-height: 100px;
-    /* ddzPlayed0 现在在固定 slot 里，bid-tag / 出牌都居中显示 */
+    /* ddzPlayed0 仍保持 100px 固定高度 —— 平时不抖动 */
   }
+  /* 加倍 / 抢地主 时 panel 用 absolute 定位 inset:0 完全填充 slot；
+     slot 高度由 panel 内容自然撑开（没有 max-height 约束）。 */
   .ddz-bid-panel {
     position: absolute;
     inset: 0;
@@ -1535,32 +1577,36 @@ permalink: /toolbox/doudizhu/
     <button type="button" class="ddz-fullscreen-toggle" id="ddzFullscreenToggle" title="切换全屏">⛶ 全屏</button>
     <button type="button" class="ddz-sfx-toggle" id="ddzSfxToggle" title="切换音效">🔇 静音</button>
     <h1>🃏 斗地主</h1>
-    <div class="sub">单挑两个 AI · 经典三人扑克 · 三档难度</div>
   </header>
 
-  <!-- Setup 视图 -->
+  <!-- Setup 视图：模式 → 参数 → 开始（一屏内分阶段） -->
   <div class="ddz-setup" id="ddzSetup">
-    <!-- 玩法切换：单机 vs AI / 联机房间 -->
-    <div class="ddz-mode-row">
-      <button class="ddz-playmode-btn active" data-playmode="single" type="button">🤖 单人 vs AI</button>
-      <button class="ddz-playmode-btn" data-playmode="online" type="button">👥 联机房间</button>
+    <!-- ① 模式选择 -->
+    <div class="ddz-setup-step">
+      <div class="ddz-setup-step-label">① 选择模式</div>
+      <div class="ddz-mode-row">
+        <button class="ddz-playmode-btn active" data-playmode="single" type="button">🎴 经典模式</button>
+        <button class="ddz-playmode-btn" data-playmode="online" type="button">👥 好友共玩</button>
+      </div>
     </div>
 
-    <!-- 单机配置 -->
+    <!-- ② 经典模式参数 -->
     <div id="ddzSingleSetup">
-      <div style="font-size: 0.82rem; color: var(--color-muted); margin-bottom: 0.4rem;">AI 难度</div>
-      <div class="ddz-mode-tabs" id="ddzDifficultyTabs">
-        <button class="ddz-mode-tab" data-diff="easy" type="button">🌱 新手</button>
-        <button class="ddz-mode-tab active" data-diff="normal" type="button">🙂 普通</button>
-        <button class="ddz-mode-tab" data-diff="hard" type="button">🔥 高手</button>
-        <button class="ddz-mode-tab" data-diff="master" type="button">👑 大神</button>
+      <div class="ddz-setup-step">
+        <div class="ddz-setup-step-label">② AI 难度</div>
+        <div class="ddz-mode-tabs" id="ddzDifficultyTabs">
+          <button class="ddz-mode-tab" data-diff="easy" type="button">🌱 新手</button>
+          <button class="ddz-mode-tab active" data-diff="normal" type="button">🙂 普通</button>
+          <button class="ddz-mode-tab" data-diff="hard" type="button">🔥 高手</button>
+          <button class="ddz-mode-tab" data-diff="master" type="button">👑 大神</button>
+        </div>
       </div>
-      <div style="margin-top: 0.6rem; display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap;">
-        <button class="ddz-btn primary" id="ddzStartBtn" type="button">🎮 开始游戏</button>
-        <button class="ddz-btn" id="ddzDeclareStartBtn" type="button" title="开局直接当地主，倍数 ×5">🎴 明牌开始 ×5</button>
-      </div>
-      <div style="margin-top: 0.5rem;">
-        <button class="ddz-btn" id="ddzGroupSortToggle" type="button" title="按可能的牌型自动分组排列手牌">🧩 智能分组：关</button>
+      <div class="ddz-setup-step">
+        <div class="ddz-setup-step-label">③ 开始</div>
+        <div style="display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap;">
+          <button class="ddz-btn primary" id="ddzStartBtn" type="button">🎮 开始游戏</button>
+          <button class="ddz-btn" id="ddzGroupSortToggle" type="button" title="按可能的牌型自动分组排列手牌">🧩 智能分组：关</button>
+        </div>
       </div>
     </div>
 
@@ -1645,12 +1691,6 @@ permalink: /toolbox/doudizhu/
       </div>
     </div>
 
-    <div class="ddz-help">
-      斗地主是中国最流行的三人扑克游戏。54 张牌发出 51 张，剩 3 张底牌。<strong>抢地主</strong>阶段三家依次决定是否抢，最后抢的人当地主，每多一次抢倍数 ×2；揭牌后还可<strong>加倍</strong>（×2）。
-      <strong>明牌</strong>：开局直接「明牌开始」 ×5 跳过抢地主当地主；或抢到地主揭底后选「明牌」 ×2。
-      牌型：单 / 对 / 三 / 三带一/二 / 顺子（5+ 单牌连续）/ 连对（3+ 对子连续）/ 飞机 / 四带二 / 炸弹 / 王炸。每个炸弹/王炸 ×2；春天 / 反春天 ×2。
-      赢局上榜积分 = 底分 × 倍数 × 角色（地主 ×2，农民 ×1） × <strong>难度权重</strong>（新手 ×1 / 普通 ×2 / 高手 ×3 / 大神 ×4 / 联机 ×3）。<strong>大神</strong>开 MCTS + 完美记牌，建议练习后再挑。联机模式有<strong>独立排行榜</strong>。
-    </div>
   </div>
 
   <!-- 大厅视图（联机模式，3 人未集齐） -->
@@ -1701,7 +1741,7 @@ permalink: /toolbox/doudizhu/
 
     <!-- 我的座位 -->
     <div class="ddz-self">
-      <div class="ddz-avatar" id="ddzAvatar0">😎<span class="ddz-clock" id="ddzClock0" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled0" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared0" hidden>明牌</span></div>
+      <div class="ddz-avatar" id="ddzAvatar0">😎<span class="ddz-clock" id="ddzClock0" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled0" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared0" hidden>明牌</span><button class="ddz-deal-declare-btn" id="ddzDealDeclareBtn" type="button" hidden>明牌 ×5</button></div>
       <div class="ddz-self-info">
         <div class="ddz-name" id="ddzName0">我</div>
         <div class="ddz-handcount" id="ddzCount0">17</div>
@@ -2012,7 +2052,7 @@ permalink: /toolbox/doudizhu/
   });
 
   $('ddzStartBtn').addEventListener('click', () => startNewGame());
-  $('ddzDeclareStartBtn').addEventListener('click', () => startNewGame({ declareStart: true }));
+  // 旧的「明牌开始 ×5」按钮已移除——改由发牌阶段「明牌 ×N」按钮处理。
   // 智能分组开关（const / let 必须在 refreshGroupSortToggle() 调用前初始化，
   // 否则 TDZ 抛 ReferenceError，整个 IIFE 提前夭折 → 进游戏一片空白）
   const GROUP_SORT_KEY = 'tool.doudizhu.groupSort.v1';
@@ -2662,26 +2702,102 @@ permalink: /toolbox/doudizhu/
     renderRoles();
     multiEl.textContent = '';
 
-    // Bug 6: 发牌动画 — 给 .ddz-hand 加 .dealing 类，触发 17 张牌从大到小依次出现
+    // 发牌动画 — 17 张牌从大到小依次出现，4s 内逐张露出
+    // 同时挂出"明牌 ×N"按钮，倍数随发牌进度从 5 降到 2，发完即隐
     const handDealEl = document.getElementById('ddzHand');
-    if (handDealEl) {
-      handDealEl.classList.add('dealing');
-      // 17 张 × 40ms + 0.45s 单卡动画 ≈ 1.13s，留点 buffer 用 1.4s 后清类
-      setTimeout(() => handDealEl.classList.remove('dealing'), 1400);
+    if (handDealEl) handDealEl.classList.add('dealing');
+    startDealDeclareWatcher(opts.declareStart);
+  }
+
+  // 发牌阶段「明牌 ×N」逻辑：
+  //   t=0   → ×5
+  //   t≈1s  → ×4   (第 ~4-5 张牌已揭开)
+  //   t≈2s  → ×3   (~第 8-9 张)
+  //   t≈3s  → ×2   (~第 13 张)
+  //   t≈4s  → 隐藏（发牌结束）
+  // 若 opts.declareStart=true（理论上 setup 已移除该入口，保留兼容），直接当成 ×5 明牌进入。
+  const DEAL_TOTAL_MS = 4000;
+  const DEAL_DECLARE_STEPS = [
+    { atMs: 0,    mult: 5 },
+    { atMs: 1000, mult: 4 },
+    { atMs: 2000, mult: 3 },
+    { atMs: 3000, mult: 2 },
+  ];
+  let dealTickerTimer = null;
+  let dealEndAt = 0;
+  let dealDeclareLockedMult = 0;   // 玩家点了之后锁住的 ×N（避免按钮文字再变）
+
+  function startDealDeclareWatcher(declareStartImmediately) {
+    clearDealDeclareWatcher();
+    const btn = document.getElementById('ddzDealDeclareBtn');
+    if (!btn) {
+      // 没有按钮容器（极端 fallback）—— 直接发完进入叫地主
+      setTimeout(() => enterBidding(), DEAL_TOTAL_MS + 200);
+      return;
+    }
+    dealDeclareLockedMult = 0;
+    dealEndAt = Date.now() + DEAL_TOTAL_MS;
+    btn.hidden = false;
+    btn.disabled = false;
+    btn.textContent = '明牌 ×5';
+
+    // 兼容旧入口：如果调用方要求 declareStartImmediately，直接锁 ×5
+    if (declareStartImmediately) {
+      commitDealDeclare(5);
+      return;
     }
 
-    if (opts.declareStart) {
-      // 明牌开局：玩家明牌（×5），由玩家先开始叫地主（仍走完整抢地主流程）
-      state.declared = true;
-      state.declaredSeat = 0;
-      state.multiplier = 5;
-      renderRoles();
-      pushSplashLog('🎴 你明牌了 ×5 — 由你先叫地主');
-      setTimeout(() => enterBidding({ startSeat: 0 }), 1300);   // 等发牌动画完
-    } else {
-      setStatus('发牌完毕');
-      setTimeout(() => enterBidding(), 1300);   // 等发牌动画完
+    btn.onclick = () => {
+      const elapsed = Date.now() - (dealEndAt - DEAL_TOTAL_MS);
+      // 按当前阶梯定 N
+      let mult = DEAL_DECLARE_STEPS[0].mult;
+      for (const step of DEAL_DECLARE_STEPS) {
+        if (elapsed >= step.atMs) mult = step.mult;
+      }
+      commitDealDeclare(mult);
+    };
+
+    function tick() {
+      const left = dealEndAt - Date.now();
+      if (left <= 0) {
+        clearDealDeclareWatcher();
+        // 发完 → 隐按钮 → 进入叫地主
+        btn.hidden = true;
+        const handDealEl = document.getElementById('ddzHand');
+        if (handDealEl) handDealEl.classList.remove('dealing');
+        if (dealDeclareLockedMult > 0) {
+          enterBidding({ startSeat: 0 });
+        } else {
+          enterBidding();
+        }
+        return;
+      }
+      // 玩家已经锁了多少倍 → 按钮文字不再变（按钮也已隐）
+      if (dealDeclareLockedMult > 0) return;
+      const elapsed = DEAL_TOTAL_MS - left;
+      let mult = DEAL_DECLARE_STEPS[0].mult;
+      for (const step of DEAL_DECLARE_STEPS) {
+        if (elapsed >= step.atMs) mult = step.mult;
+      }
+      btn.textContent = `明牌 ×${mult}`;
     }
+    tick();
+    dealTickerTimer = setInterval(tick, 150);
+  }
+
+  function commitDealDeclare(mult) {
+    dealDeclareLockedMult = mult;
+    state.declared = true;
+    state.declaredSeat = 0;
+    state.multiplier = mult;
+    renderRoles();
+    renderMultiplier();
+    const btn = document.getElementById('ddzDealDeclareBtn');
+    if (btn) { btn.disabled = true; btn.hidden = true; }
+  }
+
+  function clearDealDeclareWatcher() {
+    if (dealTickerTimer) { clearInterval(dealTickerTimer); dealTickerTimer = null; }
   }
 
   function pushSplashLog(text) {
@@ -2778,13 +2894,11 @@ permalink: /toolbox/doudizhu/
     // 进入"叫/抢"决策 — 隐掉加倍阶段才用的 corner 倒计时
     const cdEl = document.getElementById('ddzDoubleCountdown');
     if (cdEl) cdEl.hidden = true;
-    const verb = isCall ? '叫地主' : '抢地主';
-    setStatus(`轮到 ${seatLabel(seat)} ${verb}`);
+    // 不再写"轮到 X 叫地主"之类的文字 — 按钮 / 思考 tag 已经说清楚状态了
+    setStatus('');
     if (seat === 0) {
       bidPanel.hidden = false;
-      bidTitle.textContent = isCall
-        ? '叫地主吗？'
-        : `已有 ${seatLabel(state.landlordCandidate)} ${state.robCount > 1 ? '抢地主' : '叫地主'}，要抢吗？（当前倍数 ×${state.multiplier}）`;
+      bidTitle.textContent = '';   // 只露按钮，规则三的"不要多余文字"
       renderBidButtons([
         { label: isCall ? '叫地主' : '抢地主', value: 'rob', primary: true },
         { label: isCall ? '不叫' : '不抢', value: 'pass' },
@@ -2829,28 +2943,26 @@ permalink: /toolbox/doudizhu/
         state.landlordCandidate = seat;
         // 叫地主本身不增加倍数；明牌开局的 ×5 / ×4 / ×3 不能被这里清掉。
         state.robCount = 1;
-        setStatus(`${seatLabel(seat)} 叫地主`);
       } else {
         state.landlordCandidate = seat;
         state.multiplier *= 2;
         state.robCount++;
-        setStatus(`${seatLabel(seat)} 抢地主（倍数 ×${state.multiplier}）`);
       }
-    } else {
-      setStatus(`${seatLabel(seat)} ${isCallPhase ? '不叫' : '不抢'}`);
+      renderMultiplier();
     }
+    // 决策结果通过座位上的 bid-tag 公开，不用再写状态文字
     state.bidTurnIdx = (state.bidTurnIdx + 1) % 3;
     setTimeout(() => nextBidTurn(), 700);
   }
 
   function finalizeLandlord() {
     if (state.landlordCandidate < 0) {
-      setStatus('三家都没叫地主，重新发牌');
+      // 三家都没叫，直接重发，不用状态文字
       setTimeout(() => startNewGame(), 1200);
       return;
     }
     state.landlordIdx = state.landlordCandidate;
-    setStatus(`${seatLabel(state.landlordIdx)} 当地主（底分 ×${state.multiplier}）`);
+    setStatus('');
     state.phase = PHASE.REVEAL;
     setTimeout(() => revealBottom(), 600);
   }
@@ -2961,7 +3073,7 @@ permalink: /toolbox/doudizhu/
     doubleChoice = [null, null, null];
     // 清掉 bidding 阶段每个座位 .ddz-played 上的"叫/抢/不叫/不抢" tag
     clearAllPlayed();
-    setStatus('加倍阶段（5 秒）');
+    setStatus('');
     renderMultiplier();
 
     // 渲染面板：三家状态行 + 玩家按钮
@@ -3037,7 +3149,7 @@ permalink: /toolbox/doudizhu/
     renderRoles();
     renderMultiplier();
     updateDeclareBtn();   // 进入出牌 → 地主未明牌则显示明牌按钮
-    setStatus(doubles > 0 ? `加倍 ×${1 << doubles}（共 ${doubles} 人）—— 开始出牌` : '无人加倍 —— 开始出牌');
+    setStatus('');
     proceedTurn();
   }
 
@@ -3066,15 +3178,8 @@ permalink: /toolbox/doudizhu/
     const col = document.createElement('div');
     col.className = 'ddz-double-col';
 
-    // 1) 问题行
-    const q = document.createElement('div');
-    q.className = 'ddz-double-q';
-    if (!decided[0]) {
-      q.innerHTML = `<span>是否加倍？</span><span class="mult-preview">加倍后 ×${nextMult}</span>`;
-    } else {
-      q.innerHTML = `<span>${choice[0] === 'double' ? '已加倍' : '已不加倍'}</span><span class="mult-preview">×${choice[0] === 'double' ? nextMult : state.multiplier}</span>`;
-    }
-    col.appendChild(q);
+    // 不再渲染"是否加倍？×N"问题行 — 按钮 label「加倍 ×N」已经表达倍数；
+    // 玩家已决之后，下一段"等待…"文本配底部状态胶囊也已足够。
 
     // 2) 玩家行：未决 → 按钮；已决 → 等待文本
     if (!decided[0]) {
