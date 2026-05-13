@@ -124,12 +124,24 @@ permalink: /toolbox/pinball/temple/
       cb: (now, ball, game) => onRollover(now, ball, game, 1) },
     { id: 'rollR', kind: 'segment', ax: 420, ay: 100, bx: 456, by: 100, thresh: 12,
       on: 'enter', cooldown: 600, chestIdx: 2,
-      cb: (now, ball, game) => onRollover(now, ball, game, 2) },
+      cb: (now, ball, game) => {
+        // rollR 离弹射轨道 (x=442-474) 很近，球弹出时会顺路扫到 → 球第一次出 lane 不算
+        if (ball.viaLane) return;
+        onRollover(now, ball, game, 2);
+      } },
     // hidden lane bonus trigger（在 hidden door 后面的走廊里）
     { id: 'hiddenLane', kind: 'rect', x: 30, y: 200, w: 30, h: 100,
       on: 'enter', cooldown: 800,
       cb: (now, ball, game) => onHiddenLane(now, ball, game) },
     spinnerTrigger,
+    // 弹射轨道金光柱（神庙版回轨道奖励）：把球弹回 lane 才生效
+    { id: 'templeLaneReturn', kind: 'segment',
+      ax: 442, ay: 130, bx: 474, by: 130, thresh: 9,
+      on: 'enter', cooldown: 1500,
+      cb: (now, ball, game) => {
+        if (ball.viaLane) return;
+        onTempleLaneReturn(now, ball, game);
+      } },
   ];
 
   const bumpers = [
@@ -149,15 +161,17 @@ permalink: /toolbox/pinball/temple/
     { x: 305, y: 470, score: 25 },
   ];
 
+  // slings 从 y=510-565 上移到 y=460-528（和反应堆/赛博克一致）
+  // 原位置离 flipper 太近，从 sling 底端到 flipper pivot 只剩 ~25 px
   const slings = [
-    { ax: 98, ay: 510, bx: 132, by: 565, side: 'L', color: '#e8b955', score: 25 },
-    { ax: 310, ay: 565, bx: 344, by: 510, side: 'R', color: '#e8b955', score: 25 },
+    { ax: 98, ay: 460, bx: 132, by: 528, side: 'L', color: '#e8b955', score: 25 },
+    { ax: 310, ay: 528, bx: 344, by: 460, side: 'R', color: '#e8b955', score: 25 },
   ];
   walls.push(
-    { ax: 44, ay: 522, bx: 98, by: 510 },
-    { ax: 44, ay: 522, bx: 132, by: 565 },
-    { ax: 344, ay: 510, bx: 398, by: 522 },
-    { ax: 398, ay: 522, bx: 310, by: 565 },
+    { ax: 44, ay: 470, bx: 98, by: 460 },
+    { ax: 44, ay: 470, bx: 132, by: 528 },
+    { ax: 344, ay: 460, bx: 398, by: 470 },
+    { ax: 398, ay: 470, bx: 310, by: 528 },
   );
 
   // ─── 状态 ───
@@ -168,8 +182,10 @@ permalink: /toolbox/pinball/temple/
     templeAwakened: false,
     multiballActive: false,
     multiballEnd: 0,
-    spinnerSpin: 0,  // 视觉用，每命中加角度
-    spinnerHits: 0,
+    spinnerSpin: 0,        // 视觉：每命中累加角度
+    spinnerHits: 0,        // 连击计数（3 s 没碰自动归零）
+    spinnerLastHit: 0,     // 最近一次命中时间
+    laneReturnFlashTill: 0,
   };
 
   function rebuildState() {
@@ -181,6 +197,8 @@ permalink: /toolbox/pinball/temple/
     state.multiballEnd = 0;
     state.spinnerSpin = 0;
     state.spinnerHits = 0;
+    state.spinnerLastHit = 0;
+    state.laneReturnFlashTill = 0;
     hiddenDoorWall.hidden = false;
   }
   rebuildState();
@@ -252,14 +270,37 @@ permalink: /toolbox/pinball/temple/
     updateGoal();
   }
 
+  // 斐波那契阶梯：每次连续命中（3 s 内）的得分按 fib 倍递增
+  // base 50 / multiball 期间 base 200，乘子序列 [1, 2, 3, 5, 8, 13, 21]（cap 21x）
+  const SPIN_FIB = [1, 2, 3, 5, 8, 13, 21];
   function onSpinnerHit(now, ball, gameRef) {
+    // 3 s 没碰则视为新一轮
+    if (state.spinnerLastHit && now - state.spinnerLastHit > 3000) state.spinnerHits = 0;
     state.spinnerSpin += Math.PI * 0.4;
     state.spinnerHits++;
-    const baseScore = state.multiballActive ? 200 : 50;
-    game.addScore(baseScore, ball.x, ball.y - 12, 'spinner');
+    state.spinnerLastHit = now;
+    const base = state.multiballActive ? 200 : 50;
+    const tier = Math.min(state.spinnerHits - 1, SPIN_FIB.length - 1);
+    const score = base * SPIN_FIB[tier];
+    game.addScore(score, ball.x, ball.y - 12, 'spinner');
+    // 第 3、5、7 次时弹个气势文字，让玩家感觉到爆发
+    if (state.spinnerHits === 3) game.addPopup(ball.x, ball.y - 30, 'SPIN ×3!', 1000);
+    else if (state.spinnerHits === 5) game.addPopup(ball.x, ball.y - 30, 'SPIN ×8!', 1100);
+    else if (state.spinnerHits >= 7) game.addPopup(ball.x, ball.y - 30, 'MAX SPIN!', 1200);
     // 减速：横向 0.7x，纵向 0.85x
     ball.vx *= 0.7;
     ball.vy *= 0.85;
+  }
+
+  function onTempleLaneReturn(now, ball, gameRef) {
+    // 神庙版的"回轨道奖励"：金光柱 + spinner combo 加 2 级
+    const baseAdd = 2000;
+    game.addScore(baseAdd, 458, 140, 'temple-lane');
+    game.addPopup(458, 110, '⛩️ +' + baseAdd, 1500);
+    state.laneReturnFlashTill = now + 500;
+    // 帮玩家一把：直接把 spinner combo 升 2 阶（最多 cap 在表内）
+    state.spinnerHits = Math.min(state.spinnerHits + 2, SPIN_FIB.length);
+    state.spinnerLastHit = now;
   }
 
   function onHiddenLane(now, ball, gameRef) {
@@ -361,13 +402,42 @@ permalink: /toolbox/pinball/temple/
     ctx.restore();
     // spinner 衰减旋转
     state.spinnerSpin *= 0.95;
-    // hits 计数
+    // hits 计数 + fibonacci 倍率提示
     if (state.spinnerHits > 0) {
-      ctx.fillStyle = 'rgba(255, 220, 120, 0.65)';
+      const tier = Math.min(state.spinnerHits - 1, SPIN_FIB.length - 1);
+      ctx.fillStyle = 'rgba(255, 220, 120, 0.75)';
       ctx.font = '10px system-ui';
       ctx.textAlign = 'center';
-      ctx.fillText('SPIN ×' + state.spinnerHits, SPINNER_X, SPINNER_Y + 22);
+      ctx.fillText('SPIN ×' + state.spinnerHits + '   ×' + SPIN_FIB[tier], SPINNER_X, SPINNER_Y + 22);
     }
+
+    // 弹射轨道金光柱（神庙版回轨道奖励）
+    const laneHit = state.laneReturnFlashTill > now;
+    const laneT = laneHit ? (state.laneReturnFlashTill - now) / 500 : 0;
+    const goldYs = [122, 130, 138];
+    for (const gy of goldYs) {
+      if (laneHit) {
+        ctx.shadowColor = 'rgba(255, 220, 130, 0.95)';
+        ctx.shadowBlur = 14;
+        ctx.strokeStyle = `rgba(255, 235, 170, ${0.55 + 0.45 * laneT})`;
+        ctx.lineWidth = 3.4;
+      } else {
+        ctx.strokeStyle = 'rgba(232, 185, 85, ' + (0.28 + 0.10 * Math.sin(now / 240 + gy)) + ')';
+        ctx.lineWidth = 1.3;
+      }
+      ctx.beginPath(); ctx.moveTo(444, gy); ctx.lineTo(472, gy); ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+    if (laneHit) {
+      ctx.fillStyle = `rgba(255, 220, 130, ${0.20 * laneT})`;
+      ctx.fillRect(442, 100, 32, 60);
+    }
+    ctx.fillStyle = laneHit ? '#fff2c0' : 'rgba(232, 185, 85, 0.55)';
+    ctx.beginPath(); ctx.arc(444, 130, 1.6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(472, 130, 1.6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = laneHit ? 'rgba(255, 230, 160, 0.95)' : 'rgba(232, 185, 85, 0.55)';
+    ctx.font = '8px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('SUN BEAM', 458, 160);
   }
 
   function paintForeground(ctx, now) {

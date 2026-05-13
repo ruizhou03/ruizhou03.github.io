@@ -100,6 +100,7 @@
 
     // 球工厂
     let _ballIdSeq = 1;
+    let _hintBallId = -1, _hintShownAt = 0;   // 提示 chip 计时（每个 ball.id 显示 3.5s）
     function makeBall(x, y, vx, vy, onPlunger) {
       return {
         id: _ballIdSeq++, x, y, vx: vx || 0, vy: vy || 0,
@@ -582,11 +583,26 @@
         ctx.fillRect(0, 0, W, H);
       }
 
-      // 提示 chip 显隐
+      // 提示 chip 显隐：只在球第一次进入 plunger 后 3.5 s 内显示，之后淡出
+      // 不同 ball.id 触发不同的 3.5 s 窗口（新球落到 plunger 上时重新计时）
       if (hud.launchHint) {
-        const anyOnPlunger = state.balls.some(b => b.onPlunger);
-        const show = anyOnPlunger && plunger.charge < 0.05 && state.status !== 'gameover' && !state.paused;
-        hud.launchHint.classList.toggle('show', show);
+        const ballOnP = state.balls.find(b => b.onPlunger);
+        const playable = state.status !== 'gameover' && !state.paused;
+        const charging = plunger.charge >= 0.05;
+        if (ballOnP && playable && !charging) {
+          if (ballOnP.id !== _hintBallId) {
+            _hintBallId = ballOnP.id;
+            _hintShownAt = now;
+            hud.launchHint.classList.remove('fade');
+          }
+          const visible = (now - _hintShownAt) < 3500;
+          hud.launchHint.classList.toggle('show', true);
+          hud.launchHint.classList.toggle('fade', !visible);
+        } else {
+          hud.launchHint.classList.remove('show');
+          hud.launchHint.classList.remove('fade');
+          if (!ballOnP) _hintBallId = -1;
+        }
       }
     }
 

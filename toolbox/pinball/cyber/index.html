@@ -95,6 +95,9 @@ permalink: /toolbox/pinball/cyber/
   );
 
   // ─── HACKS 5 个字母 trigger（顶部 5 个 lane） ───
+  // S 字母位置 (x=436) 离弹射轨道 (x=442-474) 很近，球弹出时几乎必然顺路扫到，
+  // 等于白送一个字母。改成只在球 ricochet 重新进入轨道时才算（viaLane=false）。
+  // 其它 4 个字母离 lane 远，不需要此判定。
   const LETTER_TRIGGERS = [];
   const LETTERS = ['H', 'A', 'C', 'K', 'S'];
   const LETTER_X = [44, 144, 240, 336, 436];
@@ -106,9 +109,23 @@ permalink: /toolbox/pinball/cyber/
       bx: LETTER_X[i] + 18, by: 100,
       thresh: 14, on: 'enter', cooldown: 800,
       letterIdx: i,
-      cb: (now, ball, game) => onLetterHit(now, ball, game, i),
+      cb: (now, ball, game) => {
+        if (i === 4 && ball.viaLane) return;   // S：首次发射 / auto-return 重发都不算
+        onLetterHit(now, ball, game, i);
+      },
     });
   }
+
+  // 弹射轨道数据流（赛博克版回轨道奖励）
+  LETTER_TRIGGERS.push({
+    id: 'cyberLaneReturn', kind: 'segment',
+    ax: 442, ay: 130, bx: 474, by: 130, thresh: 9,
+    on: 'enter', cooldown: 1500,
+    cb: (now, ball, game) => {
+      if (ball.viaLane) return;
+      onCyberLaneReturn(now, ball, game);
+    },
+  });
 
   // ─── Bumpers + Pegs ───
   const bumpers = [
@@ -149,6 +166,7 @@ permalink: /toolbox/pinball/cyber/
     hacksCompleted: 0,
     multiballActive: false, multiballEnd: 0,
     inheritedMultiplier: 1,
+    laneReturnFlashTill: 0,
   };
 
   function rebuildState() {
@@ -160,6 +178,7 @@ permalink: /toolbox/pinball/cyber/
     state.multiballActive = false;
     state.multiballEnd = 0;
     state.inheritedMultiplier = 1;
+    state.laneReturnFlashTill = 0;
   }
   rebuildState();
 
@@ -227,6 +246,16 @@ permalink: /toolbox/pinball/cyber/
     updateGoal();
   }
 
+  function onCyberLaneReturn(now, ball, gameRef) {
+    // 赛博克版回轨道奖励：数据流，3000 分（= jackpot），同时给 combo 注入 +3 hits
+    game.addScore(3000, 458, 140, 'lane-return');
+    game.addPopup(458, 110, 'DATA STREAM +3000', 1500);
+    state.laneReturnFlashTill = now + 500;
+    bumpCombo(now);
+    bumpCombo(now);
+    bumpCombo(now);
+  }
+
   function onHacksComplete(now) {
     state.hacksCompleted++;
     game.addScore(5000, W/2, 80, 'hacks');
@@ -290,6 +319,33 @@ permalink: /toolbox/pinball/cyber/
   }
 
   function paintMidLayer(ctx, now) {
+    // 弹射轨道数据流（赛博克版回轨道奖励）：lane 内 3 条粉/青脉冲数据线
+    const laneHit = state.laneReturnFlashTill > now;
+    const laneT = laneHit ? (state.laneReturnFlashTill - now) / 500 : 0;
+    const streamYs = [122, 130, 138];
+    for (let i = 0; i < streamYs.length; i++) {
+      const sy = streamYs[i];
+      const baseCol = i % 2 === 0 ? '255, 61, 248' : '61, 248, 255';
+      if (laneHit) {
+        ctx.shadowColor = `rgba(${baseCol}, 0.95)`;
+        ctx.shadowBlur = 14;
+        ctx.strokeStyle = `rgba(${baseCol}, ${0.55 + 0.45 * laneT})`;
+        ctx.lineWidth = 3.4;
+      } else {
+        ctx.strokeStyle = `rgba(${baseCol}, ${0.22 + 0.10 * Math.sin(now / 200 + sy + i)})`;
+        ctx.lineWidth = 1.3;
+      }
+      ctx.beginPath(); ctx.moveTo(444, sy); ctx.lineTo(472, sy); ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+    if (laneHit) {
+      ctx.fillStyle = `rgba(255, 200, 240, ${0.18 * laneT})`;
+      ctx.fillRect(442, 100, 32, 60);
+    }
+    ctx.fillStyle = laneHit ? 'rgba(255, 255, 255, 0.95)' : 'rgba(180, 140, 200, 0.55)';
+    ctx.font = '8px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('DATA', 458, 160);
+
     // 5 letters lane lights
     for (let i = 0; i < 5; i++) {
       const cx = LETTER_X[i];

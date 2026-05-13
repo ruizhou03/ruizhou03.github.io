@@ -164,6 +164,7 @@ permalink: /toolbox/pinball/rain/
     timerEnded: false,
     jackpotHits: 0,
     totalBallsSpawned: 0,
+    laneReturnFlashTill: 0,
   };
 
   function rebuildState() {
@@ -173,6 +174,14 @@ permalink: /toolbox/pinball/rain/
     state.timerEnded = false;
     state.jackpotHits = 0;
     state.totalBallsSpawned = 0;
+    state.laneReturnFlashTill = 0;
+  }
+
+  function onRainLaneReturn(now, ball, gameRef) {
+    // 弹珠雨版回轨道奖励：闪电劈下 +3000
+    game.addScore(3000, 458, 140, 'lane-return');
+    game.addPopup(458, 110, '⚡ +3000', 1500);
+    state.laneReturnFlashTill = now + 500;
   }
   rebuildState();
 
@@ -250,6 +259,36 @@ permalink: /toolbox/pinball/rain/
   }
 
   function paintMidLayer(ctx, now) {
+    // 弹射轨道闪电门（弹珠雨版回轨道奖励）：lane 内一条 zigzag 闪电
+    const laneHit = state.laneReturnFlashTill > now;
+    const laneT = laneHit ? (state.laneReturnFlashTill - now) / 500 : 0;
+    ctx.save();
+    if (laneHit) {
+      ctx.shadowColor = 'rgba(255, 245, 220, 0.95)';
+      ctx.shadowBlur = 16;
+      ctx.strokeStyle = `rgba(255, 255, 220, ${0.7 + 0.3 * laneT})`;
+      ctx.lineWidth = 2.6;
+    } else {
+      ctx.strokeStyle = 'rgba(180, 215, 255, ' + (0.30 + 0.10 * Math.sin(now / 180)) + ')';
+      ctx.lineWidth = 1.4;
+    }
+    ctx.beginPath();
+    ctx.moveTo(454, 110);
+    ctx.lineTo(462, 122);
+    ctx.lineTo(454, 134);
+    ctx.lineTo(462, 146);
+    ctx.lineTo(454, 158);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    if (laneHit) {
+      ctx.fillStyle = `rgba(255, 255, 220, ${0.22 * laneT})`;
+      ctx.fillRect(442, 100, 32, 60);
+    }
+    ctx.fillStyle = laneHit ? '#fff8c4' : 'rgba(180, 215, 255, 0.55)';
+    ctx.font = '8px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText('BOLT', 458, 170);
+    ctx.restore();
+
     // 11 个 slot
     for (let i = 0; i < SLOT_COUNT; i++) {
       const cx = SLOT_X0 + i * SLOT_W + SLOT_W / 2;
@@ -307,7 +346,19 @@ permalink: /toolbox/pinball/rain/
       { pivot: { x: 332, y: 590 }, length: 70, thick: 7, restDeg: 180 - 25, upDeg: 180 - (-32), side: 'R' },
     ],
     walls, bumpers, pegs, slings,
-    triggers: slotTriggers,
+    triggers: [
+      ...slotTriggers,
+      // 弹射轨道闪电（弹珠雨版回轨道奖励）
+      {
+        id: 'rainLaneReturn', kind: 'segment',
+        ax: 442, ay: 130, bx: 474, by: 130, thresh: 9,
+        on: 'enter', cooldown: 1500,
+        cb: (now, ball, game) => {
+          if (ball.viaLane) return;
+          onRainLaneReturn(now, ball, game);
+        },
+      },
+    ],
     hud: {
       score: document.getElementById('pbScore'),
       best: document.getElementById('pbBest'),
