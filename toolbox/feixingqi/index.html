@@ -611,6 +611,19 @@ permalink: /toolbox/feixingqi/
   //   - the stretch-transition cell heads INTO the stretch for the owner but
   //     stays on the loop for everyone else
   //   - rivals skip other-color takeoffs, so their "next cell" is different
+  // Rect / small-tri / takeoff cells sit on a straight segment of the loop —
+  // the plane is moving in a cardinal direction (N/S/E/W) on those, even if
+  // the literal cell-to-next-cell vector is slightly off-axis (because the
+  // next cell is a corner triangle). Tri-concave / tri-convex are the bend
+  // corners themselves, so a diagonal heading there is correct (the plane is
+  // mid-turn).
+  function snapCardinal(deg) {
+    let n = ((deg % 360) + 360) % 360;
+    if (n < 45 || n >= 315) return 0;
+    if (n < 135) return 90;
+    if (n < 225) return 180;
+    return 270;
+  }
   (function buildHeadings() {
     LAYOUT_CROSS.TRACK_HEADINGS = {};
     for (const c of COLORS) {
@@ -631,7 +644,20 @@ permalink: /toolbox/feixingqi/
           tx = LAYOUT_CROSS.TRACK[ni].cx;
           ty = LAYOUT_CROSS.TRACK[ni].cy;
         }
-        headings.push(Math.atan2(ty - cur.cy, tx - cur.cx) * 180 / Math.PI);
+        let h;
+        if (cur.type === 'takeoff') {
+          // Force the takeoff cell's heading to match the static board glyph
+          // (which is exactly the cardinal CW play direction for this color).
+          // The literal vector to idx+1 is a 45° diagonal, which snaps
+          // ambiguously, so override.
+          h = { red: 0, yellow: 90, blue: 180, green: 270 }[cur.plane];
+        } else {
+          h = Math.atan2(ty - cur.cy, tx - cur.cx) * 180 / Math.PI;
+          if (cur.type === 'rect' || cur.type === 'tri') {
+            h = snapCardinal(h);
+          }
+        }
+        headings.push(h);
       }
       LAYOUT_CROSS.TRACK_HEADINGS[c] = headings;
     }
