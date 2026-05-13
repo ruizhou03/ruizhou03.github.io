@@ -106,10 +106,11 @@ permalink: /toolbox/pinball/
 
   // Drop targets：3 根挡 ramp 入口的小柱（在右下区域，挡住通往 ramp 顶端 jackpot 的路径）
   // 用 segment 墙 + 击碎逻辑（在 hooks 中处理）
+  // 3 根挡 ramp 入口的小柱（在 R sling 上方）。整组上移 ~15 px 让最下一根脱开 R sling 顶角
   const dropTargets = [
-    { id: 'dt0', ax: 388, ay: 350, bx: 388, by: 380, dropped: false, score: 250 },
-    { id: 'dt1', ax: 388, ay: 395, bx: 388, by: 425, dropped: false, score: 250 },
-    { id: 'dt2', ax: 388, ay: 440, bx: 388, by: 470, dropped: false, score: 250 },
+    { id: 'dt0', ax: 388, ay: 335, bx: 388, by: 365, dropped: false, score: 250 },
+    { id: 'dt1', ax: 388, ay: 380, bx: 388, by: 410, dropped: false, score: 250 },
+    { id: 'dt2', ax: 388, ay: 425, bx: 388, by: 455, dropped: false, score: 250 },
   ];
 
   const bumpers = [
@@ -141,7 +142,10 @@ permalink: /toolbox/pinball/
     { ax: 398, ay: 470, bx: 310, by: 528 },
   );
 
-  // Triggers：左 orbit 完成（顶部左侧 lane）、右 ramp jackpot（顶部右侧 lane，需 drop targets 全清）
+  // Triggers：
+  // - 左 orbit 完成（顶部左侧 lane，必须向上经过）
+  // - 右 ramp jackpot（顶部右侧 lane，需 drop targets 全清）
+  // - 弹射轨道激光门 LASER：把球弹回轨道才能触发，对第一次发射 / auto-return 后发射的球不生效
   const triggers = [
     {
       id: 'orbitLeft', kind: 'segment',
@@ -160,6 +164,17 @@ permalink: /toolbox/pinball/
         if (state.dropAllCleared) onJackpot(now, ball, game);
       },
     },
+    {
+      id: 'laserGate', kind: 'segment',
+      ax: 442, ay: 130, bx: 474, by: 130, thresh: 9,
+      on: 'enter', cooldown: 1500,
+      cb: (now, ball, game) => {
+        // viaLane=true：球还在"从 plunger 出来一路向上"的途中（包括首次发射 + 救援后重发）
+        // 这些都不算"把球弹回轨道"的技巧分。只有 viaLane=false（球在场上 ricochet 重新回到 lane）才奖
+        if (ball.viaLane) return;
+        onLaserHit(now, ball, game);
+      },
+    },
   ];
 
   // ─── 状态 ───
@@ -170,6 +185,7 @@ permalink: /toolbox/pinball/
     dropAllCleared: false,
     dropResetAt: 0,
     starSeed: null,
+    laserFlashTill: 0,    // 激光击中后 ~500ms 内整条 laser 显示为命中亮态
   };
 
   function rebuildState() {
@@ -179,6 +195,7 @@ permalink: /toolbox/pinball/
     state.multiballEnd = 0;
     state.dropAllCleared = false;
     state.dropResetAt = 0;
+    state.laserFlashTill = 0;
     dropTargets.forEach(t => { t.dropped = false; });
     // 确定性星图
     let seed = 20260507;
@@ -270,6 +287,12 @@ permalink: /toolbox/pinball/
     state.dropResetAt = now + 1500;
     state.dropAllCleared = false;
     updateGoal();
+  }
+
+  function onLaserHit(now, ball, gameRef) {
+    game.addScore(3000, 458, 140, 'laser');
+    game.addPopup(458, 110, 'LASER · +3000', 1500);
+    state.laserFlashTill = now + 500;
   }
 
   // Drop target 碰撞：自定义检测（不是 trigger，是带反弹的实体）
@@ -392,6 +415,42 @@ permalink: /toolbox/pinball/
         ctx.strokeRect(mx - DROP_W, my - len / 2, DROP_W * 2, len);
       }
     });
+
+    // ── 弹射轨道激光门 ──
+    // 待机：3 条暗暗的青色激光横在 lane 内（x=442-474）
+    // 命中：500 ms 内整条变高饱亮白 + 暖光 halo + 文字"LASER"
+    const laserHit = state.laserFlashTill > now;
+    const laserT = laserHit ? (state.laserFlashTill - now) / 500 : 0;   // 1 → 0
+    const beamYs = [122, 130, 138];
+    for (const ly of beamYs) {
+      if (laserHit) {
+        ctx.shadowColor = 'rgba(255, 245, 220, 0.95)';
+        ctx.shadowBlur = 14;
+        ctx.strokeStyle = `rgba(255, 250, 230, ${0.55 + 0.45 * laserT})`;
+        ctx.lineWidth = 3.4;
+      } else {
+        ctx.strokeStyle = 'rgba(120, 215, 255, ' + (0.32 + 0.10 * Math.sin(now / 220 + ly)) + ')';
+        ctx.lineWidth = 1.3;
+      }
+      ctx.beginPath();
+      ctx.moveTo(444, ly);
+      ctx.lineTo(472, ly);
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+    // 命中时整条 lane 内泛一层暖光
+    if (laserHit) {
+      ctx.fillStyle = `rgba(255, 240, 200, ${0.18 * laserT})`;
+      ctx.fillRect(442, 100, 32, 60);
+    }
+    // 端点小灯（视觉锚，告诉玩家这是个装置）
+    ctx.fillStyle = laserHit ? '#fff6c8' : 'rgba(120, 215, 255, 0.55)';
+    ctx.beginPath(); ctx.arc(444, 130, 1.6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(472, 130, 1.6, 0, Math.PI * 2); ctx.fill();
+    // 标签 "LASER"（小号）
+    ctx.fillStyle = laserHit ? 'rgba(255, 245, 220, 0.95)' : 'rgba(120, 215, 255, 0.55)';
+    ctx.font = '8px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('LASER', 458, 160);
   }
 
   function paintForeground(ctx, now, gameRef) {

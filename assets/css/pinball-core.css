@@ -88,6 +88,8 @@
 }
 .pb-overlay.show { display: flex; }
 .pb-overlay h2 { font-size: 1.6rem; margin: 0; font-family: var(--font-display); }
+.pb-overlay #pbOvMsg { font-size: 0.95rem; line-height: 1.55; opacity: 0.92; }
+.pb-overlay .pb-ov-hint { display: inline-block; margin-top: 0.15rem; font-size: 0.85rem; opacity: 0.72; }
 .pb-overlay--pause { background: rgba(0, 0, 0, 0.32); }
 
 .pb-launch-hint {

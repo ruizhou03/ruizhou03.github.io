@@ -104,6 +104,10 @@
       return {
         id: _ballIdSeq++, x, y, vx: vx || 0, vy: vy || 0,
         r: phys.ballRadius, onPlunger: !!onPlunger, trail: [],
+        // viaLane: true 表示球目前还在"从 plunger 出来到首次离开 lane"的途中。
+        // 桌台可以用它区分"首次发射 / auto-return 重发"（viaLane=true）和
+        // "球在场上 ricochet 重新回到 lane"（viaLane=false）。
+        viaLane: !!onPlunger,
       };
     }
     function spawnBallOnPlunger() {
@@ -447,6 +451,16 @@
         }
       });
 
+      // viaLane 状态机：球在 plunger 上 / 刚被 launch、还没离开 lane → true；
+      // 球的 x 已经走出 lane 左/右边界 → false（之后再回到 lane 时不再算 viaLane）
+      state.balls.forEach(b => {
+        if (b.onPlunger) {
+          b.viaLane = true;
+        } else if (b.viaLane && (b.x < plg.laneLeft - 10 || b.x > plg.laneRight + 10)) {
+          b.viaLane = false;
+        }
+      });
+
       // 拖尾
       state.balls.forEach(b => {
         if (b.onPlunger) return;
@@ -479,9 +493,10 @@
 
     function gameOver() {
       state.status = 'gameover';
+      // 两行：上行显示得分摘要，下行显示操作提示。中文带破折号的长串单行 540 px 容易折
       showOverlay({
         title: 'Game Over',
-        msg: `本局 ${state.score}　·　历史最高 ${state.best}　·　按 空格 / 「再来一局」`,
+        msg: `本局 ${state.score}　·　历史最高 ${state.best}<br><span class="pb-ov-hint">按 空格 / 点「再来一局」</span>`,
         btn: true,
       });
       if (hooks.onGameOver) hooks.onGameOver(state, game);
@@ -624,14 +639,17 @@
     }
 
     function drawSling(ctx, sg, now) {
-      // 三角形顶点：取 (ax,ay) 与 (bx,by) 作为斜边，找垂直方向上的"内点"
-      // 简化处理：让桌台 spec 给 slings 同时传一个 tri 数组覆盖，否则用斜边 + 0
+      // 三角形顶点：取 (ax,ay) 与 (bx,by) 作为斜边，apex 沿法向偏 22 px
+      // apex 必须落在"线的 back-wall 一侧"——也就是远离桌中央那一侧。
+      // 否则视觉三角形会画到中央那一侧，球从中央飞来穿过整个三角形才在线上反弹，
+      // 看起来像"穿模"。
+      // 因为 L/R sling 两边的 (ax,ay)→(bx,by) 走向相反，自然 perp 也朝相反方向，
+      // 直接用同一公式即可，不需要再为 R side 翻号。
       const midx = (sg.ax + sg.bx) / 2, midy = (sg.ay + sg.by) / 2;
       const dxx = sg.bx - sg.ax, dyy = sg.by - sg.ay;
       const len = Math.hypot(dxx, dyy) || 1;
-      // 法向（朝向桌中央）
-      const tipX = midx + (-dyy / len) * 22 * (sg.side === 'R' ? -1 : 1);
-      const tipY = midy + (dxx / len) * 22 * (sg.side === 'R' ? -1 : 1);
+      const tipX = midx + (-dyy / len) * 22;
+      const tipY = midy + (dxx / len) * 22;
       const flash = sg.flashTill > now;
       const color = sg.color || '#c9a961';
       if (flash) { ctx.shadowColor = color; ctx.shadowBlur = 16; }
@@ -743,7 +761,8 @@
     function showOverlay({ title, msg, btn }) {
       if (!hud.overlay) return;
       if (hud.overlayTitle) hud.overlayTitle.textContent = title;
-      if (hud.overlayMsg) hud.overlayMsg.textContent = msg;
+      // msg 走 innerHTML：调用方可用 <br> 显式换行（gameOver 拼了"本局 / 历史 / 按空格"3 段，单行容易折）
+      if (hud.overlayMsg) hud.overlayMsg.innerHTML = msg;
       if (hud.overlayBtn) hud.overlayBtn.style.display = btn ? 'inline-block' : 'none';
       hud.overlay.classList.add('show');
     }
