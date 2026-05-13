@@ -116,11 +116,12 @@ permalink: /toolbox/pinball/temple/
 
   // ─── 3 个 rollover lane trigger（每个对应一个宝箱）───
   // 三条触发线位置 = 三个宝箱视觉位置，球只要进 chest 16px 范围内就算
-  // 之前 chest 画在 y=80 但 trigger 在 y=100，差 20px → 球贴 chest 也不计数
+  // 右侧宝箱原本在 cx=438 (右沿 454)，正好压在弹射轨道左壁 442 上 — 现挪到 cx=406
+  // (右沿 422)，距轨道 20 px 间距，画面里完全在轨道左侧
   const ROLLOVER_LANES = [
     { idx: 0, cx: 42,  cy: 100, segAx: 24,  segBx: 60  },
     { idx: 1, cx: 240, cy: 50,  segAx: 212, segBx: 268 },
-    { idx: 2, cx: 438, cy: 100, segAx: 420, segBx: 456 },
+    { idx: 2, cx: 406, cy: 100, segAx: 388, segBx: 424 },
   ];
   const CHEST_TRIGGERS = [
     { id: 'rollL', kind: 'segment', ax: 24, ay: 100, bx: 60, by: 100, thresh: 16,
@@ -129,10 +130,11 @@ permalink: /toolbox/pinball/temple/
     { id: 'rollM', kind: 'segment', ax: 212, ay: 50, bx: 268, by: 50, thresh: 16,
       on: 'enter', cooldown: 600, chestIdx: 1,
       cb: (now, ball, game) => onRollover(now, ball, game, 1) },
-    { id: 'rollR', kind: 'segment', ax: 420, ay: 100, bx: 456, by: 100, thresh: 16,
+    { id: 'rollR', kind: 'segment', ax: 388, ay: 100, bx: 424, by: 100, thresh: 16,
       on: 'enter', cooldown: 600, chestIdx: 2,
       cb: (now, ball, game) => {
-        // rollR 离弹射轨道 (x=442-474) 很近，球弹出时会顺路扫到 → 球第一次出 lane 不算
+        // 即便移到 cx=406，发射期间球 viaLane 时 x=458 与 trigger (x=388-424) 不重叠，
+        // 这里 viaLane 过滤保留作 defensive — 不会让首发球意外刷宝箱
         if (ball.viaLane) return;
         onRollover(now, ball, game, 2);
       } },
@@ -357,88 +359,93 @@ permalink: /toolbox/pinball/temple/
     ctx.lineTo(W, H);
     ctx.closePath();
     ctx.fill();
-    // 顶部装饰文
+    // 顶部装饰文：原 y=56 baseline + 22 px 字体跟中央宝箱 (cy=50, 视觉 y=43-57) 完全重合，
+    // 现压到 y=30 baseline (文字带 y≈14-32)，与宝箱视觉 (y=43-57) 留 11 px 间距
     ctx.save();
-    ctx.font = 'bold 22px Georgia, serif';
+    ctx.font = 'bold 20px Georgia, serif';
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(232, 185, 85, 0.10)';
-    ctx.fillText('GOLD  TEMPLE', W/2, 56);
+    ctx.fillText('GOLD  TEMPLE', W/2, 30);
     ctx.restore();
   }
 
   function paintMidLayer(ctx, now) {
-    // 3 个 rollover lane + chest 视觉一体化：chest 画在 trigger 线正上方，
-    // 球进 chest 16px 范围内就触发；进度数字直接显示在 chest 上
+    // ── 3 个 rollover 宝箱 ──
+    // 视觉规则（按用户要求改版）：
+    //   - 不再写 "1/3"/"2/3"/"✓" 文字
+    //   - 宝箱底框 32×14 暗木色；内部金色填充宽度 = 30 × (progress/3)
+    //   - 集满 3 下 → 整个宝箱进入"全亮 + 脉动"状态
+    //   - trigger lane 横线保留作"瞄准提示"，亮度跟随进度
     ROLLOVER_LANES.forEach(p => {
       const i = p.idx;
       const open = state.chestsOpen[i];
       const progress = state.rolloverCounts[i];
+      const frac = open ? 1 : Math.min(1, progress / 3);
+      const fullyLit = open;
 
-      // 1. trigger lane 发光横线（让玩家看到"打这条线"）
+      // 1. trigger lane 横线（颜色 / 粗细随进度走）
       ctx.lineCap = 'round';
-      ctx.strokeStyle = open
+      ctx.strokeStyle = fullyLit
         ? `rgba(255, 220, 120, ${0.85 + 0.15 * Math.sin(now / 220)})`
-        : `rgba(232, 185, 85, ${0.32 + progress * 0.18})`;
-      ctx.lineWidth = open ? 3.5 : 2.2;
+        : `rgba(232, 185, 85, ${0.22 + frac * 0.45})`;
+      ctx.lineWidth = fullyLit ? 3.5 : 1.8 + frac * 1.2;
       ctx.beginPath();
       ctx.moveTo(p.segAx, p.cy);
       ctx.lineTo(p.segBx, p.cy);
       ctx.stroke();
 
-      // 2. chest：长方体罩在 trigger 线中段（视觉=触发区）
-      const chestY = p.cy - 7;     // chest 高 14，正好罩在 y=cy 上下各 7
-      ctx.fillStyle = open ? '#ffd96a' : '#7a5028';
+      // 2. chest 底框（暗木色）
+      const chestY = p.cy - 7;
+      ctx.fillStyle = '#2a1808';
       ctx.fillRect(p.cx - 16, chestY, 32, 14);
-      ctx.strokeStyle = open ? '#ffe89c' : '#5a3a20';
+
+      // 3. chest 内部金色填充进度条
+      if (frac > 0) {
+        if (fullyLit) { ctx.shadowColor = '#ffd96a'; ctx.shadowBlur = 14; }
+        const pulse = fullyLit ? (0.82 + 0.18 * Math.sin(now / 200)) : 1;
+        const baseR = fullyLit ? 255 : Math.round(180 + frac * 75);
+        const baseG = fullyLit ? 220 : Math.round(140 + frac * 80);
+        const baseB = fullyLit ? 120 : Math.round(60  + frac * 60);
+        ctx.fillStyle = `rgba(${baseR}, ${baseG}, ${baseB}, ${pulse})`;
+        ctx.fillRect(p.cx - 15, chestY + 1, 30 * frac, 12);
+        ctx.shadowBlur = 0;
+      }
+
+      // 4. 边框
+      ctx.strokeStyle = fullyLit ? '#ffe89c' : 'rgba(232, 185, 85, 0.55)';
       ctx.lineWidth = 1.5;
       ctx.strokeRect(p.cx - 16, chestY, 32, 14);
-
-      // 3. 进度数字直接打在 chest 上（"1/3" / "✓"）
-      if (open) {
-        ctx.shadowColor = '#ffd96a'; ctx.shadowBlur = 10;
-      }
-      ctx.fillStyle = open ? '#5a3a20' : '#e8b955';
-      ctx.font = 'bold 9px Georgia, serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(open ? '✓' : (progress + '/3'), p.cx, p.cy);
-      ctx.textBaseline = 'alphabetic';
-      ctx.shadowBlur = 0;
     });
 
-    // Hidden door 走廊（最左边的竖条）—— 加文字标签说明用途
+    // ── 隐藏门走廊：按"已开宝箱数 / 3"渐亮 ──
+    // 0/3 暗；1/3 → 31% 亮；2/3 → 同时墙消失；3/3 → 全亮（神庙觉醒预示）
+    // 走廊上不再印"HIDDEN ·还差 N"文字 — 用户说自己看进度条会明白
     const openCount = state.chestsOpen.filter(x => x).length;
-    const need = Math.max(0, 2 - openCount);
-    if (!state.hiddenDoorOpen) {
-      ctx.fillStyle = 'rgba(232, 185, 85, 0.14)';
+    const hidFrac = Math.min(1, openCount / 3);
+    if (hidFrac <= 0) {
+      ctx.fillStyle = 'rgba(232, 185, 85, 0.06)';
       ctx.fillRect(36, 200, 24, 100);
-      ctx.strokeStyle = 'rgba(192, 134, 72, 0.6)';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(192, 134, 72, 0.35)';
+      ctx.lineWidth = 1.2;
       ctx.strokeRect(36, 200, 24, 100);
     } else {
-      const lit = `rgba(255, 220, 120, ${0.28 + 0.15 * Math.sin(now / 200)})`;
-      ctx.fillStyle = lit;
+      // 底框（暗）
+      ctx.fillStyle = 'rgba(45, 25, 8, 0.95)';
       ctx.fillRect(36, 200, 24, 100);
-      ctx.strokeStyle = '#ffd96a';
+      // 进度填充：从底向上长，hidFrac=1/3 / 2/3 / 1
+      const fillH = 100 * hidFrac;
+      const pulse = hidFrac >= 1 ? (0.72 + 0.18 * Math.sin(now / 200)) : 0.55;
+      if (hidFrac >= 1) { ctx.shadowColor = '#ffd96a'; ctx.shadowBlur = 16; }
+      ctx.fillStyle = hidFrac >= 1
+        ? `rgba(255, 235, 150, ${pulse})`
+        : `rgba(232, 185, 85, ${0.28 + hidFrac * 0.32})`;
+      ctx.fillRect(36, 300 - fillH, 24, fillH);
+      ctx.shadowBlur = 0;
+      // 边框
+      ctx.strokeStyle = hidFrac >= 1 ? '#ffe89c' : 'rgba(232, 185, 85, 0.55)';
       ctx.lineWidth = 1.5;
       ctx.strokeRect(36, 200, 24, 100);
     }
-    // 竖排小字（旋转 90°）说明这条通道的用途
-    ctx.save();
-    ctx.translate(48, 250);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillStyle = state.hiddenDoorOpen
-      ? 'rgba(255, 245, 200, 0.85)'
-      : 'rgba(232, 185, 85, 0.55)';
-    ctx.font = 'bold 9px Georgia, serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(
-      state.hiddenDoorOpen ? '✓ HIDDEN LANE · +1000' : ('HIDDEN · 还差 ' + need + ' 个宝箱'),
-      0, 0
-    );
-    ctx.textBaseline = 'alphabetic';
-    ctx.restore();
 
     // Spinner 视觉：水平叶片，随 spinnerSpin 旋转
     ctx.save();
@@ -487,9 +494,7 @@ permalink: /toolbox/pinball/temple/
     ctx.fillStyle = laneHit ? '#fff2c0' : 'rgba(232, 185, 85, 0.55)';
     ctx.beginPath(); ctx.arc(444, 130, 1.6, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(472, 130, 1.6, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = laneHit ? 'rgba(255, 230, 160, 0.95)' : 'rgba(232, 185, 85, 0.55)';
-    ctx.font = '8px system-ui, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('BEAM', 458, 160);
+    // "BEAM" 文字标签按用户要求去掉 — 玩家通过亮度/脉动自然识别
   }
 
   function paintForeground(ctx, now) {

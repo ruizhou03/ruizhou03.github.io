@@ -95,13 +95,12 @@ permalink: /toolbox/pinball/cyber/
   );
 
   // ─── HACKS 5 个字母 trigger（顶部 5 个 lane） ───
-  // S 字母位置 (x=436) 离弹射轨道 (x=442-474) 很近，球弹出时几乎必然顺路扫到，
-  // 等于白送一个字母。改成只在球 ricochet 重新进入轨道时才算（viaLane=false）。
-  // 其它 4 个字母离 lane 远，不需要此判定。
+  // 字母全部收进发射轨道 (x=442+) 左侧 — 桌面中线偏左 (~225)，pitch=88：
+  // 36, 124, 212, 300, 388。最右字母 S 中心 x=388、宽 ±18 → 右边沿 406，远离轨道左壁 442。
+  // 不再需要"S 在 viaLane 时跳过"的特例，球发射时只在 x=442-474 lane 里，不会扫到 388。
   const LETTER_TRIGGERS = [];
   const LETTERS = ['H', 'A', 'C', 'K', 'S'];
-  // 均匀分布：pitch 98（44, 142, 240, 338, 436），以 240 为中心对称
-  const LETTER_X = [44, 142, 240, 338, 436];
+  const LETTER_X = [36, 124, 212, 300, 388];
   for (let i = 0; i < 5; i++) {
     LETTER_TRIGGERS.push({
       id: 'lane' + LETTERS[i],
@@ -110,10 +109,7 @@ permalink: /toolbox/pinball/cyber/
       bx: LETTER_X[i] + 18, by: 100,
       thresh: 14, on: 'enter', cooldown: 800,
       letterIdx: i,
-      cb: (now, ball, game) => {
-        if (i === 4 && ball.viaLane) return;   // S：首次发射 / auto-return 重发都不算
-        onLetterHit(now, ball, game, i);
-      },
+      cb: (now, ball, game) => onLetterHit(now, ball, game, i),
     });
   }
 

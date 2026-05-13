@@ -10,7 +10,7 @@ permalink: /toolbox/pinball/pachinko/
 <div class="pb-wrap pb-theme-pachinko">
   <header>
     <h1>🎰 弹珠·机厅</h1>
-    <div class="sub">每局 10 发 · 顶部 5 闸门定倍率 (×2 → ×20) · 槽分 × 闸门 · 累计 3 中槽 → multiball</div>
+    <div class="sub">每局 10 发 · 顶部 6 闸门定倍率 (×1 → ×20) · 槽分 × 闸门 · 中央 JKPT 槽连中 3 次 → multiball</div>
   </header>
 
   <div class="pb-scorebar">
@@ -18,7 +18,7 @@ permalink: /toolbox/pinball/pachinko/
     <div class="pb-score-box"><div class="label">Best</div><div class="value" id="pbBest">0</div></div>
   </div>
 
-  <div class="pb-goal-bar" id="pbGoal">本发 <strong>×1</strong> · JKPT <strong>2000</strong> · 中槽 <strong>0/3</strong> · 剩 <strong>10</strong> 发</div>
+  <div class="pb-goal-bar" id="pbGoal">本发 <strong>×1</strong> · 中央 JKPT 槽 <strong>0/3</strong> → MULTIBALL · JKPT 现值 <strong>2000</strong> · 剩 <strong>10</strong> 发</div>
 
   <div class="pb-toolbar">
     <button class="pb-btn" id="pbPauseBtn">⏸ 暂停</button>
@@ -99,6 +99,8 @@ permalink: /toolbox/pinball/pachinko/
   );
 
   // ─── 钉墙：zigzag 矩阵（pachinko 核心） ───
+  // popupScale=0.55 / popupTtl=480：10 行 × 8 列的密集钉子，全用 18px 弹字会糊成一片。
+  // 缩到 ~10px + 0.48s 快淡出 → 单独弹字看得清，连击时也不至于堆叠遮挡相邻钉子。
   const pegs = [];
   const ROW_Y0 = 100, ROW_DY = 30, ROW_COUNT = 10;
   for (let r = 0; r < ROW_COUNT; r++) {
@@ -106,12 +108,12 @@ permalink: /toolbox/pinball/pachinko/
     if (r % 2 === 0) {
       for (let c = 0; c < 8; c++) {
         const x = 40 + c * 50;
-        pegs.push({ x, y, score: 10 });
+        pegs.push({ x, y, score: 10, popupScale: 0.55, popupTtl: 480 });
       }
     } else {
       for (let c = 0; c < 7; c++) {
         const x = 65 + c * 50;
-        pegs.push({ x, y, score: 10 });
+        pegs.push({ x, y, score: 10, popupScale: 0.55, popupTtl: 480 });
       }
     }
   }
@@ -230,7 +232,7 @@ permalink: /toolbox/pinball/pachinko/
     state.pegLastHit = now;
     const tier = Math.min(Math.floor((state.pegCombo - 1) / 8), PEG_TIERS.length - 1);
     const bonus = PEG_TIERS[tier] - 10;  // peg.score=10 已经被 core 加过，这里只补差额
-    if (bonus > 0) game.addScore(bonus, peg.x, peg.y - 12, 'peg-combo');
+    if (bonus > 0) game.addScore(bonus, peg.x, peg.y - 12, 'peg-combo', { popupScale: 0.6, popupTtl: 520 });
   }
 
   // 4 档奖励：全部在跨越 laser 时发
@@ -260,11 +262,11 @@ permalink: /toolbox/pinball/pachinko/
     let html;
     if (state.multiballActive) {
       const rem = Math.max(0, ((state.multiballEnd - performance.now()) / 1000));
-      html = `<strong>MULTIBALL ×2</strong>  ${rem.toFixed(1)}s · 剩 <strong>${livesLeft}</strong> 发`;
+      html = `<strong style="color:#ffcc66">MULTIBALL ×2</strong> ${rem.toFixed(1)}s · 剩 <strong>${livesLeft}</strong> 发`;
     } else {
       const m = state.launchMult;
       const mLabel = m === 1 ? `<strong>×1</strong>` : `<strong style="color:#ffcc66">×${m}</strong>`;
-      html = `本发 ${mLabel} · JKPT <strong>${jp.toLocaleString()}</strong> · 中槽 <strong>${state.jackpotStreak}/3</strong> · 剩 <strong>${livesLeft}</strong> 发`;
+      html = `本发 ${mLabel} · 中央 JKPT 槽 <strong>${state.jackpotStreak}/3</strong> → MULTIBALL · JKPT 现值 <strong>${jp.toLocaleString()}</strong> · 剩 <strong>${livesLeft}</strong> 发`;
     }
     game.setGoal(html);
   }
@@ -426,11 +428,19 @@ permalink: /toolbox/pinball/pachinko/
     if (state.multiballActive) {
       ctx.fillStyle = `rgba(255, 100, 100, ${0.06 + 0.04 * Math.sin(now / 100)})`;
       ctx.fillRect(0, 0, W, H);
+      // MULTIBALL 文案放到 slot 上方空白带 (y=420)，避开顶部 ×N 闸门区
+      // 顶部状态已经在 goal-bar 显示，这里只做现场气势
       const rem = Math.max(0, (state.multiballEnd - now) / 1000);
-      ctx.fillStyle = '#ffb0a0';
-      ctx.font = 'bold 14px system-ui, sans-serif';
+      ctx.save();
+      ctx.fillStyle = `rgba(255, 176, 160, ${0.85 + 0.15 * Math.sin(now / 120)})`;
+      ctx.font = 'bold 16px system-ui, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('MULTIBALL  ' + rem.toFixed(1) + 's', W / 2, 80);
+      ctx.strokeStyle = 'rgba(40, 10, 10, 0.85)';
+      ctx.lineWidth = 3;
+      const txt = 'MULTIBALL  ' + rem.toFixed(1) + 's';
+      ctx.strokeText(txt, W / 2, 422);
+      ctx.fillText(txt, W / 2, 422);
+      ctx.restore();
     }
   }
 

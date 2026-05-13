@@ -151,19 +151,25 @@
     }
 
     // ───────── 加分 / popup ─────────
-    function addScore(amount, x, y, reason) {
+    // opts: { popupScale: 0.5-1.5, popupTtl: ms, noPopup: bool } — 桌台可压小密集区的弹字
+    function addScore(amount, x, y, reason, opts) {
       if (!amount) return;
       const final = Math.round(amount * (state.multiplier || 1));
       state.score += final;
       if (state.score > state.best) { state.best = state.score; persist(); }
-      if (x != null && y != null) {
-        state.popups.push({ x, y, text: '+' + final, t0: performance.now() });
+      const o = opts || {};
+      if (x != null && y != null && !o.noPopup) {
+        state.popups.push({
+          x, y, text: '+' + final, t0: performance.now(),
+          scale: o.popupScale, ttl: o.popupTtl,
+        });
       }
       if (hooks.onScore) hooks.onScore(final, reason || 'misc', x, y);
     }
 
-    function addPopup(x, y, text, ttl) {
-      state.popups.push({ x, y, text, t0: performance.now(), ttl: ttl || 900 });
+    function addPopup(x, y, text, ttl, opts) {
+      const o = opts || {};
+      state.popups.push({ x, y, text, t0: performance.now(), ttl: ttl || 900, scale: o.scale });
     }
 
     function persist() {
@@ -221,7 +227,9 @@
       }
       if (peg.flashTill <= now) {
         peg.flashTill = now + 200;
-        addScore(peg.score, peg.x, peg.y - 12, 'peg');
+        addScore(peg.score, peg.x, peg.y - 12, 'peg', {
+          popupScale: peg.popupScale, popupTtl: peg.popupTtl, noPopup: peg.noPopup,
+        });
         if (hooks.onPegHit) hooks.onPegHit(peg, now, game, ball);
       }
       return true;
@@ -438,6 +446,7 @@
             b.y > 530 && sp < 200 && b.vy > -120) {
           b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
           b.onPlunger = true; b.trail = [];
+          b.fieldReturn = false;  // 救回弹簧 = 重置 T3 资格，避免下次发射穿 laser 误给 T3
           plunger.charge = 0;
         }
       });
@@ -455,6 +464,7 @@
           b._lastFastT = now;
           b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
           b.onPlunger = true; b.trail = [];
+          b.fieldReturn = false;  // 同上：卡死救援也要重置，否则 viaLane+fieldReturn 直送 T3
           plunger.charge = 0;
         }
       });
@@ -579,11 +589,14 @@
         const t = (now - p.t0) / ttl;
         if (t < 0 || t >= 1) return;
         const alpha = 1 - t, lift = t * 28;
+        const scale = p.scale || 1;
+        const fontPx = Math.max(8, Math.round(18 * scale));
+        const lineW = Math.max(1, 2 * scale);
         ctx.save();
         ctx.fillStyle = `rgba(245, 230, 196, ${alpha})`;
         ctx.strokeStyle = `rgba(40, 30, 15, ${alpha * 0.9})`;
-        ctx.lineWidth = 2;
-        ctx.font = 'bold 18px system-ui, sans-serif';
+        ctx.lineWidth = lineW;
+        ctx.font = `bold ${fontPx}px system-ui, sans-serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.strokeText(p.text, p.x, p.y - lift);
         ctx.fillText(p.text, p.x, p.y - lift);
