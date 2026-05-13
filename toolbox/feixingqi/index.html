@@ -395,7 +395,10 @@ permalink: /toolbox/feixingqi/
   // Segment 0 = red (NW), 1 = yellow (NE), 2 = blue (SE), 3 = green (SW).
   const TRACK_LEN = 56;
   const SEGMENT_LEN = 14;
-  const STRETCH_LEN = 6;
+  // Path length of the home stretch: 5 walkable cells (pos 0..4), and the
+  // 6th visual circle (= arrow-head cell, pos 5) is the GOAL itself — stepping
+  // onto it completes the piece, you don't walk past it.
+  const STRETCH_LEN = 5;
   const SMALL_JUMP_DISTANCE = 4;
 
   const COLORS = ['red', 'yellow', 'blue', 'green'];
@@ -540,12 +543,13 @@ permalink: /toolbox/feixingqi/
     HANGAR_PLANE_ROT: { red: 0, yellow: 270, blue: 180, green: 90 },
     GOAL: {
       center: [CENTER_X, CENTER_Y],
-      // Goal anchor = end of each color's stretch (in pinwheel arrow-head)
+      // Goal anchor = the arrow-head cell itself (STRETCH_CELLS[color][5]),
+      // since reaching it is the win condition (no extra step into the centre).
       anchors: {
-        yellow: [4.25, 3.85],  // top
-        blue:   [4.65, 4.25],  // right
-        green:  [4.25, 4.65],  // bottom
-        red:    [3.85, 4.25],  // left
+        yellow: [4.25, 3.75],  // top arm's arrow-head cell
+        blue:   [4.75, 4.25],  // right
+        green:  [4.25, 4.75],  // bottom
+        red:    [3.75, 4.25],  // left
       },
     },
     // Each color's takeoff cell idx (segment head)
@@ -973,6 +977,58 @@ permalink: /toolbox/feixingqi/
     parent.appendChild(g);
   }
 
+  // Chess-piece style game piece: colored disc with a small white airplane
+  // silhouette inlaid. rotDeg rotates the inlaid plane to indicate travel
+  // direction; the disc itself is rotation-symmetric.
+  function drawChessPiece(parent, cx, cy, color, rotDeg = 0, scale = 1) {
+    const fill = (COLOR_INFO[color] && COLOR_INFO[color].hex) || '#888';
+    const cellSize = SVG_W / BOARD_SIZE;
+    const r = 0.20 * cellSize * scale;
+    // Subtle drop shadow
+    parent.appendChild(svgEl('ellipse', {
+      cx, cy: cy + r * 0.35, rx: r * 0.85, ry: r * 0.22,
+      fill: '#000', 'fill-opacity': 0.18,
+    }));
+    // Disc body
+    parent.appendChild(svgEl('circle', {
+      cx, cy, r,
+      fill,
+      stroke: '#1F1F1F',
+      'stroke-width': 1.3,
+    }));
+    // Inner highlight ring
+    parent.appendChild(svgEl('circle', {
+      cx, cy, r: r * 0.82,
+      fill: 'none',
+      stroke: '#ffffff',
+      'stroke-width': 0.9,
+      'stroke-opacity': 0.55,
+    }));
+    // White airplane silhouette inlaid in the disc, sized to the disc
+    const s = r * 4.5;  // scale so plane fits in disc
+    const g = svgEl('g', { transform: `translate(${cx},${cy}) rotate(${rotDeg})` });
+    g.appendChild(svgEl('path', {
+      d:
+        `M ${0.17*s} 0 ` +
+        `C ${0.16*s} ${0.014*s}, ${0.13*s} ${0.026*s}, ${0.05*s} ${0.028*s} ` +
+        `L ${-0.12*s} ${0.024*s} ` +
+        `C ${-0.16*s} ${0.020*s}, ${-0.18*s} ${0.010*s}, ${-0.18*s} 0 ` +
+        `C ${-0.18*s} ${-0.010*s}, ${-0.16*s} ${-0.020*s}, ${-0.12*s} ${-0.024*s} ` +
+        `L ${0.05*s} ${-0.028*s} ` +
+        `C ${0.13*s} ${-0.026*s}, ${0.16*s} ${-0.014*s}, ${0.17*s} 0 Z`,
+      fill: '#ffffff',
+    }));
+    g.appendChild(svgEl('polygon', {
+      points: `${0.04*s},${0.024*s} ${-0.06*s},${0.14*s} ${-0.12*s},${0.14*s} ${-0.04*s},${0.024*s}`,
+      fill: '#ffffff',
+    }));
+    g.appendChild(svgEl('polygon', {
+      points: `${0.04*s},${-0.024*s} ${-0.06*s},${-0.14*s} ${-0.12*s},${-0.14*s} ${-0.04*s},${-0.024*s}`,
+      fill: '#ffffff',
+    }));
+    parent.appendChild(g);
+  }
+
   // Simpler triangle plane glyph (for dashed-line direction indicators).
   function drawTriPlane(parent, cx, cy, color, rotDeg = 0, scale = 1) {
     const fill = (COLOR_INFO[color] && COLOR_INFO[color].hex) || '#888';
@@ -1215,16 +1271,16 @@ permalink: /toolbox/feixingqi/
               'stroke-width': 1.2,
             }));
           } else {
-            // Bigger plane in hangar (parking slots are larger), smaller on
+            // Bigger disc in hangar (parking slots are larger), smaller on
             // the track/stretch so we don't crowd neighbouring cells.
             const pieceScale = effStatus === 'hangar' ? 1.45 : 1.1;
-            // Transparent hit-area circle so clicks register on the whole plane
+            // Transparent hit-area circle so clicks register on the whole piece
             g.appendChild(svgEl('circle', {
               cx: xy.x, cy: xy.y, r: r * pieceScale,
               fill: 'transparent',
             }));
-            // Realistic airliner silhouette in player color, white-edged
-            drawPlane(g, xy.x, xy.y, c, PLAY_DIR_SVG_ROT[c], pieceScale, '#ffffff');
+            // Chess-piece style: colored disc with white airplane inlay
+            drawChessPiece(g, xy.x, xy.y, c, PLAY_DIR_SVG_ROT[c], pieceScale);
           }
           planeGroup.appendChild(g);
         }
@@ -1273,10 +1329,23 @@ permalink: /toolbox/feixingqi/
         triggered.bigJumped = true;
       }
     } else if (cell.color === player) {
-      idx = (idx + SMALL_JUMP_DISTANCE) % TRACK_LEN;
+      for (let k = 0; k < SMALL_JUMP_DISTANCE; k++) {
+        idx = advanceOneOnLoop(player, idx);
+      }
       triggered.smallJumped = true;
     }
     return { idx, triggered };
+  }
+
+  // Advance 1 cell CW on the loop, skipping other colors' takeoff cells
+  // (planes don't stop on rival takeoff slots — those are "off-loop" parking
+  //  marks for the owner only, not a walkable square).
+  function advanceOneOnLoop(player, idx) {
+    let cur = (idx + 1) % TRACK_LEN;
+    while (L().TRACK[cur].type === 'takeoff' && L().TRACK[cur].plane !== player) {
+      cur = (cur + 1) % TRACK_LEN;
+    }
+    return cur;
   }
 
   // Walk along track for `steps` cells. Returns where the plane ends up.
@@ -1289,7 +1358,7 @@ permalink: /toolbox/feixingqi/
         // The very next step turns into stretch
         return advanceInStretch(-1, steps - i);
       }
-      cur = (cur + 1) % TRACK_LEN;
+      cur = advanceOneOnLoop(player, cur);
     }
     return { kind: 'track', pos: cur };
   }
@@ -1332,6 +1401,10 @@ permalink: /toolbox/feixingqi/
           kind: 'walk',
           toStatus: 'track',
           toPos: idx,
+          // dicePos = where the dice walk ended, BEFORE any jump. Captures fire
+          // at the dice-landing cell too, so a small-jump trigger cell with an
+          // opponent on it sends the opponent back to base.
+          dicePos: r.pos,
           cellsAdvanced: dice + extra,
           triggered,
         };
@@ -1426,7 +1499,7 @@ permalink: /toolbox/feixingqi/
           for (const step of stretchSubPath(-1, stepsLeft, stretchLen)) path.push(step);
           return path;
         }
-        cur = (cur + 1) % TRACK_LEN;
+        cur = advanceOneOnLoop(player, cur);
         path.push({ status: 'track', pos: cur });
         stepsLeft--;
       }
@@ -1441,8 +1514,10 @@ permalink: /toolbox/feixingqi/
         }
       } else if (landed.color === player) {
         // Small jump: +4 cells CW (applies to dashed-line END endpoint too).
-        for (let k = 1; k <= SMALL_JUMP_DISTANCE; k++) {
-          path.push({ status: 'track', pos: (cur + k) % TRACK_LEN });
+        let pos = cur;
+        for (let k = 0; k < SMALL_JUMP_DISTANCE; k++) {
+          pos = advanceOneOnLoop(player, pos);
+          path.push({ status: 'track', pos });
         }
       }
       return path;
@@ -1495,7 +1570,18 @@ permalink: /toolbox/feixingqi/
     } else if (preview.toStatus === 'track') {
       piece.status = 'track';
       piece.pos = preview.toPos;
-      captures = opponentsOnCell(player, piece.pos);
+      // Capture at the dice-landing cell too (the small-jump / big-jump
+      // trigger cell). Without this, a plane that walks onto an opponent and
+      // then jumps over them leaves the opponent untouched.
+      const seen = new Set();
+      const addCaps = caps => { for (const c of caps) {
+        const key = c.color + ':' + c.idx;
+        if (!seen.has(key)) { seen.add(key); captures.push(c); }
+      } };
+      if (preview.dicePos !== undefined && preview.dicePos !== preview.toPos) {
+        addCaps(opponentsOnCell(player, preview.dicePos));
+      }
+      addCaps(opponentsOnCell(player, preview.toPos));
     } else if (preview.toStatus === 'stretch') {
       piece.status = 'stretch';
       piece.pos = preview.toPos;
