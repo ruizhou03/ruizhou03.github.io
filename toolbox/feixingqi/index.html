@@ -574,12 +574,31 @@ permalink: /toolbox/feixingqi/
     }
   });
 
+  // Dashed flight lines are directional: each color's plane can only TAKE OFF
+  // on the line at the START endpoint (the one it meets first going CW from
+  // its takeoff cell) and lands at the END endpoint. Landing on the END
+  // endpoint does NOT fire a backward flight — it's just an own-color cell
+  // (so it triggers the standard small jump if the player stepped onto it).
+  LAYOUT_CROSS.BIG_JUMP_START = {};
+  LAYOUT_CROSS.BIG_JUMP_END = {};
+  for (const c of COLORS) {
+    const eps = LAYOUT_CROSS.BIG_JUMP_BY_COLOR[c] || [];
+    if (eps.length < 2) continue;
+    const exit = LAYOUT_CROSS.EXIT_INDEX[c];
+    // START = whichever endpoint is reached first walking CW from takeoff.
+    const dist = e => (e - exit + TRACK_LEN) % TRACK_LEN;
+    const [a, b] = eps;
+    const [startIdx, endIdx] = dist(a) < dist(b) ? [a, b] : [b, a];
+    LAYOUT_CROSS.BIG_JUMP_START[c] = startIdx;
+    LAYOUT_CROSS.BIG_JUMP_END[c] = endIdx;
+  }
+
   // BIG_JUMP_CELLS: idx → color, for fast lookup during move resolution.
+  // Only START endpoints fire the flight; END endpoints are excluded.
   LAYOUT_CROSS.BIG_JUMP_CELLS = {};
   for (const c of COLORS) {
-    for (const idx of LAYOUT_CROSS.BIG_JUMP_BY_COLOR[c]) {
-      LAYOUT_CROSS.BIG_JUMP_CELLS[idx] = c;
-    }
+    const s = LAYOUT_CROSS.BIG_JUMP_START[c];
+    if (s !== undefined) LAYOUT_CROSS.BIG_JUMP_CELLS[s] = c;
   }
 
   // CELL_COLOR map (kept for backwards-compatibility)
@@ -1032,8 +1051,9 @@ permalink: /toolbox/feixingqi/
         stroke: c.type === 'takeoff' ? 'none' : ink,
         'stroke-width': c.type === 'takeoff' ? 0 : 0.6,
       }));
-      // White circle marker (= "track stop") on rect + tri-convex cells (NOT on tri-concave and NOT on takeoff)
-      if (c.type === 'rect' || c.type === 'tri-convex') {
+      // White circle marker (= "track stop") on every non-takeoff cell, so
+      // inactive tri-concave corners still read as walkable cells.
+      if (c.type !== 'takeoff') {
         trackGroup.appendChild(svgEl('circle', {
           cx: px(c.cx), cy: px(c.cy), r: px(0.18),
           fill: '#ffffff', stroke: ink, 'stroke-width': 0.5,
@@ -1112,14 +1132,11 @@ permalink: /toolbox/feixingqi/
         const rot = PLAY_DIR_SVG_ROT[c.plane];
         drawPlane(cornerPlaneGroup, px(c.cx), px(c.cy), c.plane, rot, 1.0);
       } else if (c.type === 'tri-concave' && c.plane) {
-        // Concave corner: plane icon points in flight direction for that color
+        // Concave corner: plane icon points in flight direction for that color.
+        // The white circle is drawn unconditionally in the track layer; the
+        // plane glyph itself only renders when this color is in play.
         if (!activeColors.has(c.plane)) continue;
         const rot = FLIGHT_DIR_SVG_ROT[c.plane];
-        // Background white circle
-        cornerPlaneGroup.appendChild(svgEl('circle', {
-          cx: px(c.cx), cy: px(c.cy), r: px(0.18),
-          fill: '#ffffff', stroke: ink, 'stroke-width': 0.5,
-        }));
         drawPlane(cornerPlaneGroup, px(c.cx), px(c.cy), c.plane, rot, 0.8);
       }
     }
@@ -1235,36 +1252,27 @@ permalink: /toolbox/feixingqi/
   // Move resolution
   // ============================================================
 
-  // Special-cell landing triggers (per new 56-cell spec):
-  //   • Land on a cell whose PLANE matches your color (= concave-corner with
-  //     your-color airplane glyph) → big jump: fly across center along the
-  //     dashed line to the other same-color airplane endpoint, then +4 more
-  //     (since the landing cell color is your color, same-color cycling).
-  //   • Land on a cell whose COLOR matches your color (but no plane) → small
-  //     jump: advance 4 cells CW to the next same-color cell.
+  // Special-cell landing triggers (per Chinese aeroplane chess rules):
+  //   • Land on dashed-line START (concave corner with own-color plane, START
+  //     endpoint only — see BIG_JUMP_START) → big jump along the dashed line
+  //     to the END endpoint. The flight is the entire action: no chained
+  //     small jump on arrival, even though the END cell is also own-color.
+  //   • Land on a cell whose COLOR matches your color (and it's not the
+  //     dashed-line START) → small jump: advance 4 cells CW. This includes
+  //     the dashed-line END endpoint (own-color tri-concave, no flight back).
   // Stretch cells don't trigger jumps.
   function resolveJumps(player, idx) {
     const layout = L();
     const cell = layout.TRACK[idx];
     let triggered = { jumped: false, bigJumped: false, smallJumped: false };
-    // Big-jump only on concave-corner same-color plane cells. (Takeoff cells
-    // also carry the plane glyph but are exit slots, not big-jump endpoints.)
-    if (cell.plane === player && cell.type === 'tri-concave') {
-      const endpoints = layout.BIG_JUMP_BY_COLOR[player] || [];
-      const otherIdx = endpoints.find(e => e !== idx);
-      if (otherIdx !== undefined && otherIdx !== idx) {
-        idx = otherIdx;
+    const startIdx = layout.BIG_JUMP_START[player];
+    if (idx === startIdx && cell.type === 'tri-concave' && cell.plane === player) {
+      const endIdx = layout.BIG_JUMP_END[player];
+      if (endIdx !== undefined && endIdx !== idx) {
+        idx = endIdx;
         triggered.bigJumped = true;
-        // After big jump, the landed-on cell is also same-color (plane===color),
-        // so trigger same-color +4 cycling once.
-        const newCell = layout.TRACK[idx];
-        if (newCell && newCell.color === player) {
-          idx = (idx + SMALL_JUMP_DISTANCE) % TRACK_LEN;
-          triggered.smallJumped = true;
-        }
       }
     } else if (cell.color === player) {
-      // Same-color +4 cycling (small jump)
       idx = (idx + SMALL_JUMP_DISTANCE) % TRACK_LEN;
       triggered.smallJumped = true;
     }
@@ -1424,22 +1432,15 @@ permalink: /toolbox/feixingqi/
       }
       // After dice-walk: check special-cell triggers (big jump or small jump)
       const landed = layout.TRACK[cur];
-      if (landed.plane === player && landed.type === 'tri-concave') {
-        // Big jump: fly along dashed line to other endpoint
-        const endpoints = layout.BIG_JUMP_BY_COLOR[player] || [];
-        const otherIdx = endpoints.find(ep => ep !== cur);
-        if (otherIdx !== undefined && otherIdx !== cur) {
-          path.push({ status: 'track', pos: otherIdx });
-          // After big jump, landed cell is same-color (plane===color), so +4 cycling
-          const newLanded = layout.TRACK[otherIdx];
-          if (newLanded && newLanded.color === player) {
-            for (let k = 1; k <= SMALL_JUMP_DISTANCE; k++) {
-              path.push({ status: 'track', pos: (otherIdx + k) % TRACK_LEN });
-            }
-          }
+      const startIdx = layout.BIG_JUMP_START[player];
+      if (cur === startIdx && landed.type === 'tri-concave' && landed.plane === player) {
+        // Big jump: fly along dashed line to END endpoint. No chained small jump.
+        const endIdx = layout.BIG_JUMP_END[player];
+        if (endIdx !== undefined && endIdx !== cur) {
+          path.push({ status: 'track', pos: endIdx });
         }
       } else if (landed.color === player) {
-        // Small jump: +4 cells CW
+        // Small jump: +4 cells CW (applies to dashed-line END endpoint too).
         for (let k = 1; k <= SMALL_JUMP_DISTANCE; k++) {
           path.push({ status: 'track', pos: (cur + k) % TRACK_LEN });
         }
