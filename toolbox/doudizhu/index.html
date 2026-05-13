@@ -972,6 +972,29 @@ permalink: /toolbox/doudizhu/
     pointer-events: none;
   }
   .ddz-score-hint:empty { display: none; }
+
+  /* 托管按钮：右下角小 chip；开启时变绿+加 ✓；点一下关掉 */
+  .ddz-autopilot-toggle {
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    background: var(--ddz-card-bg);
+    color: var(--ddz-text-on-felt);
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid var(--ddz-frame-2);
+    letter-spacing: 0.04em;
+    font-family: var(--font-display);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .ddz-autopilot-toggle:hover { border-color: var(--ddz-accent); }
+  .ddz-autopilot-toggle.active {
+    background: linear-gradient(135deg, #5a8a5a 0%, #3e6a3e 100%);
+    color: #fff;
+    border-color: #3e6a3e;
+    box-shadow: 0 0 12px rgba(90,138,90,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .ddz-autopilot-toggle[hidden] { display: none; }
   /* 明牌按钮在 actions 行内（替"不出"位置 — 地主第一轮不可能不出） */
   .ddz-btn.declare {
     background: rgba(245,209,66,0.30);
@@ -1195,8 +1218,9 @@ permalink: /toolbox/doudizhu/
     max-height: 100px;
     /* ddzPlayed0 仍保持 100px 固定高度 —— 平时不抖动 */
   }
-  /* 加倍 / 抢地主 时 panel 用 absolute 定位 inset:0 完全填充 slot；
-     slot 高度由 panel 内容自然撑开（没有 max-height 约束）。 */
+  /* bid 面板：absolute 定位填满 decision-slot；
+     默认无背景无边框 —— 叫地主/抢地主 阶段就是几颗按钮浮在桌面上（跟"出牌"按钮一样的观感）。
+     加倍阶段的 3 列 cell 内部各自带边框/背景，所以面板本身也不需要框。 */
   .ddz-bid-panel {
     position: absolute;
     inset: 0;
@@ -1204,13 +1228,10 @@ permalink: /toolbox/doudizhu/
     padding: 0.55rem 0.9rem 0.6rem;
     text-align: center;
     transition: opacity 0.18s ease;
-    background:
-      linear-gradient(180deg, rgba(255,253,245,0.97) 0%, rgba(245,239,224,0.95) 100%);
-    border: 1px solid var(--ddz-frame);
-    border-radius: 12px;
-    box-shadow:
-      0 4px 12px rgba(141,110,55,0.20),
-      inset 0 1px 0 rgba(255,255,255,0.75);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
     animation: ddz-fadein 0.18s ease-out;
     display: flex;
     flex-direction: column;
@@ -1259,11 +1280,12 @@ permalink: /toolbox/doudizhu/
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.04em;
   }
+  /* 叫/抢按钮组：跟 .ddz-actions 行内的"出牌"按钮同观感（无外框，自身就是 chip） */
   .ddz-bid-buttons {
     display: flex; gap: 0.7rem; justify-content: center; flex-wrap: wrap;
   }
   .ddz-bid-buttons button {
-    padding: 0.45rem 1.3rem;
+    padding: 0.5rem 1.2rem;
     border-radius: 999px;
     border: 1px solid var(--ddz-frame);
     background: var(--ddz-card-bg);
@@ -1286,91 +1308,99 @@ permalink: /toolbox/doudizhu/
   .ddz-bid-buttons button:active:not(:disabled) { transform: translateY(0); }
   .ddz-bid-buttons button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* 加倍阶段：单行问题 + 大按钮 + 一条 "上家 / 下家" 微状态行
-     不再用 3 列 "上家 / 我 / 下家" grid —— 那种布局在玩家这一列既出按钮又
-     出"思考中…"两条信息，视觉冗余且容易显得空。 */
-  .ddz-double-col {
+  /* 加倍阶段：3 列等宽
+     ┌────────────┬────────────┬────────────┐
+     │ 上家        │ 我          │ 下家        │
+     │ 加倍/不加倍/│ [加倍 ×4]   │ 加倍/不加倍/│
+     │ 思考中…     │ [不加倍]    │ 思考中…     │
+     └────────────┴────────────┴────────────┘ */
+  .ddz-double-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr 1fr;
+    gap: 0.45rem;
+    width: 100%;
+    align-items: stretch;
+  }
+  .ddz-double-cell {
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-    gap: 0.4rem;
-    width: 100%;
-  }
-  .ddz-double-q {
-    font-size: 0.96rem;
-    margin: 0;
-    color: var(--ddz-text-on-felt);
-    font-family: var(--font-display);
-    letter-spacing: 0.04em;
-    font-weight: 600;
-    display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-  }
-  .ddz-double-q .mult-preview {
-    display: inline-block;
-    padding: 0.02rem 0.5rem;
-    border-radius: 999px;
-    background: linear-gradient(135deg, var(--ddz-accent), var(--ddz-accent-strong));
-    color: #fff;
-    font-size: 0.86rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    box-shadow: 0 1px 4px rgba(141,110,55,0.32);
-  }
-  .ddz-double-waiting {
-    font-size: 0.86rem;
-    color: var(--ddz-text-on-felt-mute);
-    font-family: var(--font-display);
-    letter-spacing: 0.04em;
-    text-align: center;
-    margin: 0;
-  }
-  .ddz-double-waiting .me-choice {
-    color: var(--ddz-accent-strong);
-    font-weight: 700;
-    margin-right: 0.35rem;
-  }
-  .ddz-double-others {
-    display: flex;
-    justify-content: center;
-    gap: 0.45rem;
-    font-size: 0.78rem;
-    color: var(--ddz-text-on-felt-mute);
+    gap: 0.18rem;
+    padding: 0.42rem 0.4rem;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(255,253,245,0.95) 0%, rgba(245,239,224,0.92) 100%);
+    border: 1px solid var(--ddz-frame-2);
     font-family: var(--font-display);
     letter-spacing: 0.03em;
-    margin: 0;
+    min-height: 80px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
+    transition: all 0.18s;
   }
-  .ddz-double-others .who {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.22rem;
-    padding: 0.05rem 0.5rem;
-    border-radius: 999px;
-    border: 1px solid rgba(141,110,55,0.22);
-    background: rgba(141,110,55,0.05);
+  .ddz-double-cell .who {
+    color: var(--ddz-text-on-felt-mute);
+    font-size: 0.74rem;
+    letter-spacing: 0.06em;
+  }
+  .ddz-double-cell .status {
+    color: var(--ddz-text-on-felt);
+    font-size: 0.94rem;
+    font-weight: 700;
     white-space: nowrap;
   }
-  .ddz-double-others .who.decided-yes {
+  .ddz-double-cell.decided-yes {
     border-color: var(--ddz-accent);
-    background: rgba(201,169,110,0.22);
-    color: var(--ddz-accent-strong);
-    font-weight: 600;
+    background: linear-gradient(180deg, rgba(216,184,122,0.36) 0%, rgba(196,146,63,0.18) 100%);
   }
-  .ddz-double-others .who.decided-no {
-    color: var(--ddz-text-on-felt-mute);
+  .ddz-double-cell.decided-yes .status { color: var(--ddz-accent-strong); }
+  .ddz-double-cell.decided-no {
+    border-color: rgba(141,110,55,0.20);
+    background: rgba(141,110,55,0.04);
   }
-  .ddz-double-others .who.pending {
-    border-style: dashed;
-  }
-  .ddz-double-others .who.pending::after {
+  .ddz-double-cell.decided-no .status { color: var(--ddz-text-on-felt-mute); }
+  .ddz-double-cell.pending { border-style: dashed; }
+  .ddz-double-cell.pending .status::after {
     content: '…';
     display: inline-block;
     animation: ddz-dots 1.2s steps(4, end) infinite;
-    width: 0.9em; text-align: left; margin-left: 2px;
+    width: 1em; text-align: left; margin-left: 2px;
   }
-  .ddz-double-others .ico { font-size: 0.78rem; }
+  /* 我（中间）这一列在未决时是两个堆叠按钮 */
+  .ddz-double-cell.me-pending {
+    background: linear-gradient(180deg, rgba(255,253,245,0.98) 0%, rgba(245,239,224,0.95) 100%);
+    border-style: solid;
+    border-color: var(--ddz-accent);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 8px rgba(141,110,55,0.16);
+  }
+  .ddz-double-cell .me-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 100%;
+    align-items: center;
+  }
+  .ddz-double-cell .me-btns button {
+    width: 100%;
+    max-width: 130px;
+    padding: 0.36rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid var(--ddz-frame);
+    background: var(--ddz-card-bg);
+    color: var(--ddz-suit-black);
+    cursor: pointer;
+    font-family: var(--font-display);
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    box-shadow: 0 1px 3px rgba(20,37,63,0.18);
+    transition: transform 0.12s, background 0.12s;
+  }
+  .ddz-double-cell .me-btns button.primary {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+  }
+  .ddz-double-cell .me-btns button:hover:not(:disabled) { transform: translateY(-1px); }
 
   /* ======== 浮层 ======== */
   .ddz-overlay {
@@ -1605,6 +1635,7 @@ permalink: /toolbox/doudizhu/
         <div class="ddz-setup-step-label">③ 开始</div>
         <div style="display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap;">
           <button class="ddz-btn primary" id="ddzStartBtn" type="button">🎮 开始游戏</button>
+          <button class="ddz-btn" id="ddzDeclareStartBtn" type="button" title="发牌前就明牌，倍数 ×5">🎴 明牌开始 ×5</button>
           <button class="ddz-btn" id="ddzGroupSortToggle" type="button" title="按可能的牌型自动分组排列手牌">🧩 智能分组：关</button>
         </div>
       </div>
@@ -1773,8 +1804,9 @@ permalink: /toolbox/doudizhu/
 
     <div class="ddz-hand" id="ddzHand"></div>
 
-    <!-- 右下角积分提示 -->
+    <!-- 右下角积分提示 + 托管开关 -->
     <div class="ddz-corner-chips">
+      <button class="ddz-autopilot-toggle" id="ddzAutopilotBtn" type="button" title="托管：交给电脑接管打牌">🤖 托管</button>
       <div class="ddz-score-hint" id="ddzMultiplier"></div>
     </div>
 
@@ -1824,6 +1856,7 @@ permalink: /toolbox/doudizhu/
   const state = {
     phase: PHASE.IDLE,
     difficulty: 'normal',
+    autopilot: false,            // 托管：true 时所有"我"的决策都由 AI 代打
     hands: [[], [], []],         // 索引 0=玩家, 1=右上 AI(下家), 2=左上 AI(上家)
     bottom: [],                   // 3 张底牌（揭示后并入地主手牌）
     bottomRevealed: false,
@@ -2052,7 +2085,8 @@ permalink: /toolbox/doudizhu/
   });
 
   $('ddzStartBtn').addEventListener('click', () => startNewGame());
-  // 旧的「明牌开始 ×5」按钮已移除——改由发牌阶段「明牌 ×N」按钮处理。
+  // 明牌开始 ×5：发牌前就锁定明牌；和发牌阶段按钮（×5/×4/×3/×2 递减）共存
+  $('ddzDeclareStartBtn').addEventListener('click', () => startNewGame({ declareStart: true }));
   // 智能分组开关（const / let 必须在 refreshGroupSortToggle() 调用前初始化，
   // 否则 TDZ 抛 ReferenceError，整个 IIFE 提前夭折 → 进游戏一片空白）
   const GROUP_SORT_KEY = 'tool.doudizhu.groupSort.v1';
@@ -2060,6 +2094,51 @@ permalink: /toolbox/doudizhu/
   try { groupSortEnabled = localStorage.getItem(GROUP_SORT_KEY) === '1'; } catch {}
   refreshGroupSortToggle();
   $('ddzGroupSortToggle').addEventListener('click', () => setGroupSortEnabled(!groupSortEnabled));
+
+  // 托管按钮 —— 点击切换 state.autopilot；开启后机器人会接管我的所有决策
+  // （叫地主 / 抢地主 / 加倍 / 出牌 / 不出 / 明牌）
+  const autopilotBtn = $('ddzAutopilotBtn');
+  function refreshAutopilotBtn() {
+    if (!autopilotBtn) return;
+    if (state.autopilot) {
+      autopilotBtn.classList.add('active');
+      autopilotBtn.textContent = '✓ 托管中';
+    } else {
+      autopilotBtn.classList.remove('active');
+      autopilotBtn.textContent = '🤖 托管';
+    }
+  }
+  function setAutopilot(on) {
+    state.autopilot = !!on;
+    refreshAutopilotBtn();
+    if (state.autopilot) triggerAutopilotIfMyTurn();
+  }
+  if (autopilotBtn) autopilotBtn.addEventListener('click', () => setAutopilot(!state.autopilot));
+  refreshAutopilotBtn();
+
+  // 用户点开"托管"时如果正好轮到我，立刻让 AI 接管：
+  //   - 出牌阶段：调 autoPlayOnTimeout()（已有的代打逻辑）
+  //   - 叫/抢地主：把当前按钮面板的 AI 决策路径走起
+  //   - 加倍：把"我"加进 doubling AI 决策队列
+  function triggerAutopilotIfMyTurn() {
+    if (state.phase === PHASE.PLAYING && state.turnIdx === 0) {
+      // 立刻让 AI 出牌：复用 autoPlayOnTimeout
+      autoPlayOnTimeout();
+    } else if (state.phase === PHASE.BIDDING && state.bidTurnIdx === 0
+               && !bidPanel.hidden) {
+      // 当前正在等我点叫/抢；直接走 AI 阈值决定
+      const isCallPhase = state.landlordCandidate < 0;
+      const score = AI.evaluateHand(state.hands[0]);
+      const threshold = isCallPhase ? 3 : 8;
+      const want = score >= threshold ? 'rob' : 'pass';
+      bidPanel.hidden = true;
+      handleBid(0, want);
+    } else if (state.phase === PHASE.DOUBLING && !doubleDecided[0]) {
+      const score = AI.evaluateHand(state.hands[0]);
+      const want = score >= 8 ? 'double' : 'pass';
+      commitDouble(0, want);
+    }
+  }
   // 全屏切换 —— 用 body class 而非浏览器 fullscreen API：
   // 1) 桌面：浏览器 fullscreen API 容易把整个浏览器进入全屏（含书签栏等）而非"游戏画幅"
   // 2) 手机：浏览器 fullscreen API 在 Safari 等基本不支持
@@ -2658,6 +2737,9 @@ permalink: /toolbox/doudizhu/
     setupView.style.display = 'none';
     tableView.hidden = false;
     state.phase = PHASE.DEALING;
+    // 托管开关每局自动重置，避免上局开了忘关
+    state.autopilot = false;
+    refreshAutopilotBtn();
     state.hands = [[], [], []];
     state.bottom = [];
     state.bottomRevealed = false;
@@ -2896,7 +2978,9 @@ permalink: /toolbox/doudizhu/
     if (cdEl) cdEl.hidden = true;
     // 不再写"轮到 X 叫地主"之类的文字 — 按钮 / 思考 tag 已经说清楚状态了
     setStatus('');
-    if (seat === 0) {
+    // 托管：自己这局也走 AI 路径
+    const useAi = seat !== 0 || state.autopilot;
+    if (!useAi) {
       bidPanel.hidden = false;
       bidTitle.textContent = '';   // 只露按钮，规则三的"不要多余文字"
       renderBidButtons([
@@ -3080,9 +3164,10 @@ permalink: /toolbox/doudizhu/
     renderDoubleSimultaneousPanel();
     bidPanel.hidden = false;
 
-    // AI 在 0.8 - 4.5 秒内随机做决定
-    for (let i = 1; i <= 2; i++) {
-      const seat = i;
+    // AI 在 0.8 - 4.5 秒内随机做决定；托管时把"我"也丢进去
+    const aiSeats = [1, 2];
+    if (state.autopilot) aiSeats.unshift(0);
+    for (const seat of aiSeats) {
       const delay = 800 + Math.random() * 3700;
       setTimeout(() => {
         if (state.phase !== PHASE.DOUBLING) return;
@@ -3161,13 +3246,10 @@ permalink: /toolbox/doudizhu/
     });
   }
 
-  // 单机 + 联机共用的新版加倍面板布局
-  //   - 一行清晰的"是否加倍？×N"问题
-  //   - 玩家未决：两个大按钮（加倍 / 不加倍）
-  //   - 玩家已决：一行"已加倍/已不加倍 · 等待其他玩家…"
-  //   - 最下方一行胶囊状态行，只展示"上家 / 下家"两家（"我"信息已经在按钮或上一行体现，避免冗余）
-  // 注意：bidButtonsEl 本身是 flex-row（旧的"叫地主/抢地主"两按钮用），
-  // 所以我们把三段内容包进一个 flex-column 容器，再整体塞进 bidButtonsEl。
+  // 单机 + 联机共用的加倍面板布局：3 列等宽
+  //   上家 (cell) | 我 (cell, 中间) | 下家 (cell)
+  //   - 上家/下家：根据是否已决，显示"加倍 / 不加倍 / 思考中…"文字
+  //   - 我：未决时显示两个堆叠按钮（加倍 ×N / 不加倍）；已决时显示决定文字
   function renderDoublePanelLayout({ decided, choice, onChoose }) {
     bidTitle.innerHTML = '';
     bidButtonsEl.innerHTML = '';
@@ -3175,52 +3257,54 @@ permalink: /toolbox/doudizhu/
     if (cdEl) cdEl.hidden = false;
 
     const nextMult = state.multiplier * 2;
-    const col = document.createElement('div');
-    col.className = 'ddz-double-col';
+    const grid = document.createElement('div');
+    grid.className = 'ddz-double-grid';
 
-    // 不再渲染"是否加倍？×N"问题行 — 按钮 label「加倍 ×N」已经表达倍数；
-    // 玩家已决之后，下一段"等待…"文本配底部状态胶囊也已足够。
+    // 三列顺序：上家(seat 2) | 我(seat 0) | 下家(seat 1)
+    for (const seat of [2, 0, 1]) {
+      const cell = document.createElement('div');
+      cell.className = 'ddz-double-cell';
+      const isMe = seat === 0;
+      const isDecided = decided[seat];
+      const c = choice[seat];
 
-    // 2) 玩家行：未决 → 按钮；已决 → 等待文本
-    if (!decided[0]) {
-      const wrap = document.createElement('div');
-      wrap.className = 'ddz-bid-buttons';
-      const yes = document.createElement('button');
-      yes.type = 'button'; yes.className = 'primary';
-      yes.textContent = `加倍 ×${nextMult}`;
-      yes.addEventListener('click', () => onChoose('double'));
-      const no = document.createElement('button');
-      no.type = 'button';
-      no.textContent = '不加倍';
-      no.addEventListener('click', () => onChoose('pass'));
-      wrap.appendChild(yes); wrap.appendChild(no);
-      col.appendChild(wrap);
-    } else {
-      const tip = document.createElement('p');
-      tip.className = 'ddz-double-waiting';
-      const allDone = decided.every(Boolean);
-      tip.textContent = allDone ? '所有人都已决定' : '等待其他人决定…';
-      col.appendChild(tip);
-    }
+      // 顶部"我 / 上家 / 下家"标签
+      const who = document.createElement('div');
+      who.className = 'who';
+      who.textContent = isMe ? '我' : (seat === 1 ? '下家' : '上家');
+      cell.appendChild(who);
 
-    // 3) 上家 / 下家 微状态行
-    const others = document.createElement('div');
-    others.className = 'ddz-double-others';
-    for (const seat of [2, 1]) {
-      const span = document.createElement('span');
-      span.className = 'who';
-      if (decided[seat]) {
-        span.classList.add(choice[seat] === 'double' ? 'decided-yes' : 'decided-no');
-        span.innerHTML = `<span class="ico">${choice[seat] === 'double' ? '✓' : '✗'}</span>${seat === 1 ? '下家' : '上家'} ${choice[seat] === 'double' ? '加倍' : '不加倍'}`;
+      if (isMe && !isDecided) {
+        // 中间未决：两个堆叠按钮
+        cell.classList.add('me-pending');
+        const btns = document.createElement('div');
+        btns.className = 'me-btns';
+        const yes = document.createElement('button');
+        yes.type = 'button'; yes.className = 'primary';
+        yes.textContent = `加倍 ×${nextMult}`;
+        yes.addEventListener('click', () => onChoose('double'));
+        const no = document.createElement('button');
+        no.type = 'button';
+        no.textContent = '不加倍';
+        no.addEventListener('click', () => onChoose('pass'));
+        btns.appendChild(yes); btns.appendChild(no);
+        cell.appendChild(btns);
       } else {
-        span.classList.add('pending');
-        span.textContent = `${seat === 1 ? '下家' : '上家'} 思考`;
+        // 已决 / 上家下家：状态文字
+        const status = document.createElement('div');
+        status.className = 'status';
+        if (isDecided) {
+          cell.classList.add(c === 'double' ? 'decided-yes' : 'decided-no');
+          status.textContent = c === 'double' ? '加倍' : '不加倍';
+        } else {
+          cell.classList.add('pending');
+          status.textContent = '思考中';
+        }
+        cell.appendChild(status);
       }
-      others.appendChild(span);
+      grid.appendChild(cell);
     }
-    col.appendChild(others);
-
-    bidButtonsEl.appendChild(col);
+    bidButtonsEl.appendChild(grid);
   }
 
   function renderBidButtons(items, onClick) {
@@ -3263,7 +3347,7 @@ permalink: /toolbox/doudizhu/
     updatePlayBtnState();
     refreshNoPlayState();
     const seat = state.turnIdx;
-    if (seat === 0) {
+    if (seat === 0 && !state.autopilot) {
       playActions.hidden = false;
       const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
       setStatus(prev ? '轮到你 — 出牌或不出' : '轮到你 — 你做庄');
@@ -3271,7 +3355,7 @@ permalink: /toolbox/doudizhu/
       startTurnCountdown(() => autoPlayOnTimeout(), 0);
     } else {
       playActions.hidden = true;
-      setStatus(`${seatLabel(seat)} 思考中…`);
+      setStatus(state.autopilot && seat === 0 ? '托管中…' : `${seatLabel(seat)} 思考中…`);
       const playedEl = $('ddzPlayed' + seat);
       playedEl.className = 'ddz-played';
       playedEl.innerHTML = '<span class="think-tag">思考</span>';
