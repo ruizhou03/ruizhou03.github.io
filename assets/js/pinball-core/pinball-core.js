@@ -657,10 +657,9 @@
       ctx.strokeStyle = 'rgba(245, 230, 196, 0.28)';
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
-      ctx.fillStyle = '#3a3a3a';
-      ctx.beginPath(); ctx.arc(ax, ay, 4, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#c9a961';
-      ctx.beginPath(); ctx.arc(ax, ay, 1.6, 0, Math.PI * 2); ctx.fill();
+      // 之前在 pivot 上叠一颗 4px 深灰 + 1.6px 金色圆点想模拟"铆钉"，但配合
+      // 14px 圆形 cap 一起看像一颗 3D 小金属球粘在 flipper 末端，反而很突兀。
+      // 删掉，只留下 line 自己的圆形 cap 作为 pivot 视觉锚。
     }
 
     function drawPlunger(ctx) {
