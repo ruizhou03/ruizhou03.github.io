@@ -92,30 +92,6 @@
 .pb-overlay .pb-ov-hint { display: inline-block; margin-top: 0.15rem; font-size: 0.85rem; opacity: 0.72; }
 .pb-overlay--pause { background: rgba(0, 0, 0, 0.32); }
 
-.pb-launch-hint {
-  position: absolute;
-  right: 2%;
-  bottom: 5%;
-  background: rgba(184, 148, 96, 0.88);
-  color: #1a1208;
-  padding: 0.18rem 0.42rem;
-  border-radius: 999px;
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  pointer-events: none;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-  display: none;
-  white-space: nowrap;
-  opacity: 1;
-  transition: opacity 0.6s ease;
-}
-.pb-launch-hint.show { display: block; }
-.pb-launch-hint.fade { opacity: 0; }
-@keyframes pb-pulse {
-  0%, 100% { transform: translateX(0) scale(1); opacity: 0.95; }
-  50% { transform: translateX(-3px) scale(1.04); opacity: 1; }
-}
 
 .pb-controls {
   display: grid;

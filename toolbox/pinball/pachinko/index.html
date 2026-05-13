@@ -27,7 +27,6 @@ permalink: /toolbox/pinball/pachinko/
 
   <div class="pb-canvas-wrap">
     <canvas id="pbCanvas" width="480" height="640"></canvas>
-    <div class="pb-launch-hint" id="pbLaunchHint">按住空格蓄力</div>
     <div class="pb-overlay" id="pbOverlay">
       <h2 id="pbOvTitle">Game Over</h2>
       <div id="pbOvMsg"></div>
@@ -69,7 +68,7 @@ permalink: /toolbox/pinball/pachinko/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=2"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=3"></script>
 
 <script>
 (() => {
@@ -465,7 +464,6 @@ permalink: /toolbox/pinball/pachinko/
       best: document.getElementById('pbBest'),
       goalBar: document.getElementById('pbGoal'),
       chargeBar: document.getElementById('pbChargeBar'),
-      launchHint: document.getElementById('pbLaunchHint'),
       overlay: document.getElementById('pbOverlay'),
       overlayTitle: document.getElementById('pbOvTitle'),
       overlayMsg: document.getElementById('pbOvMsg'),
