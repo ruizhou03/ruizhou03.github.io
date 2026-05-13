@@ -439,6 +439,8 @@
       }
 
       // plunger lane 弱发射救援
+      // 注意：这条 path 不 reset fieldReturn —— 球在 lane 范围内、向下、慢速时落回弹簧，
+      // 视作"自然回轨"，是预期的 T3 触发途径（玩家用低力发射、球自然漏回弹簧再发）。
       state.balls.forEach(b => {
         if (b.onPlunger) return;
         const sp = Math.hypot(b.vx, b.vy);
@@ -446,13 +448,13 @@
             b.y > 530 && sp < 200 && b.vy > -120) {
           b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
           b.onPlunger = true; b.trail = [];
-          b.fieldReturn = false;  // 救回弹簧 = 重置 T3 资格，避免下次发射穿 laser 误给 T3
           plunger.charge = 0;
         }
       });
 
       // 卡住兜底：速度 < 15 持续 1s → 球真的停了 (挡板平台 / 卡在 bumper 顶 / wedge corner)
-      // 送回弹簧不扣命。阈值 15 远低于慢滚速度 (30+)，不会误伤还在动的球。
+      // 这是"不是凭技术回来的"，所以送回弹簧后必须 reset fieldReturn=false，
+      // 避免下次发射穿 laser 误给 T3 +3000 大奖。
       // 之前还有一条"位置中心漂移"检测，但高速做对称运动的球 (来回弹) 前半/后半 CoM 一样，
       // 也会被误判 — 撤掉。代价是 bumper 间死循环刷分要靠玩家自己处理或重开新局。
       state.balls.forEach(b => {
@@ -464,7 +466,7 @@
           b._lastFastT = now;
           b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
           b.onPlunger = true; b.trail = [];
-          b.fieldReturn = false;  // 同上：卡死救援也要重置，否则 viaLane+fieldReturn 直送 T3
+          b.fieldReturn = false;
           plunger.charge = 0;
         }
       });
@@ -583,20 +585,26 @@
       // 前景：桌台自己画（覆盖在球之上的灯光/特效）
       if (render.paintForeground) render.paintForeground(ctx, now, game);
 
-      // popups
+      // popups —— 默认 scale=1 时复用常量 font string，避免每帧每条 popup 都创建新字符串
+      const DEFAULT_FONT = 'bold 18px system-ui, sans-serif';
       state.popups.forEach(p => {
         const ttl = p.ttl || 700;
         const t = (now - p.t0) / ttl;
         if (t < 0 || t >= 1) return;
         const alpha = 1 - t, lift = t * 28;
-        const scale = p.scale || 1;
-        const fontPx = Math.max(8, Math.round(18 * scale));
-        const lineW = Math.max(1, 2 * scale);
+        const scale = p.scale;
+        let fontStr, lineW;
+        if (!scale || scale === 1) {
+          fontStr = DEFAULT_FONT; lineW = 2;
+        } else {
+          fontStr = 'bold ' + Math.max(8, Math.round(18 * scale)) + 'px system-ui, sans-serif';
+          lineW = Math.max(1, 2 * scale);
+        }
         ctx.save();
         ctx.fillStyle = `rgba(245, 230, 196, ${alpha})`;
         ctx.strokeStyle = `rgba(40, 30, 15, ${alpha * 0.9})`;
         ctx.lineWidth = lineW;
-        ctx.font = `bold ${fontPx}px system-ui, sans-serif`;
+        ctx.font = fontStr;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.strokeText(p.text, p.x, p.y - lift);
         ctx.fillText(p.text, p.x, p.y - lift);
