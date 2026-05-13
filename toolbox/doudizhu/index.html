@@ -1156,6 +1156,8 @@ permalink: /toolbox/doudizhu/
     letter-spacing: 0.04em;
     display: flex; align-items: center; justify-content: center; gap: 0.5rem;
   }
+  /* 加倍阶段不渲染标题文本 → 自动腾出空间，整个面板压进 decision-slot 100px */
+  .ddz-bid-title:empty { display: none; }
   .ddz-bid-title .countdown-badge {
     display: inline-block;
     padding: 0.05rem 0.45rem;
@@ -2242,26 +2244,23 @@ permalink: /toolbox/doudizhu/
     if (selfEl) selfEl.classList.remove('is-dim');
     aiEls.forEach(e => e.classList.remove('is-dim'));
     if (handEl2) handEl2.classList.remove('is-dim');
-    if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.BIDDING) return;
-    // DOUBLING 是同时决策 — 不 dim
-    let curr = -1;
-    if (state.phase === PHASE.PLAYING) curr = state.turnIdx;
-    else if (state.phase === PHASE.BIDDING) curr = state.bidTurnIdx;
+    // BIDDING 阶段不调暗 —— 用户希望三家叫/抢决策一样明亮、一目了然
+    // DOUBLING 同时决策 也不 dim
+    // 只有 PLAYING 阶段才 dim 非 actor 座位
+    if (state.phase !== PHASE.PLAYING) return;
+    const curr = state.turnIdx;
     if (curr < 0) return;
     if (curr === 0) {
-      // 我的轮：dim 两个 AI
       aiEls.forEach(e => {
         const ds = parseInt(e.dataset.seat || '0', 10);
         if (ds !== 0) e.classList.add('is-dim');
       });
     } else {
-      // AI 轮：dim 自己 + 另一个 AI（保留 current AI 高亮）
       if (selfEl) selfEl.classList.add('is-dim');
       aiEls.forEach(e => {
         const ds = parseInt(e.dataset.seat || '0', 10);
         if (ds !== curr) e.classList.add('is-dim');
       });
-      // 手牌轻微 dim（仍可预选）
       if (handEl2) handEl2.classList.add('is-dim');
     }
   }
@@ -2533,7 +2532,9 @@ permalink: /toolbox/doudizhu/
 
   function nextBidTurn() {
     if (state.bidActions.length >= 3) {
-      finalizeLandlord();
+      // 三家都决定完 — 额外等 800ms 让玩家看清最后一家的选择再 finalize
+      // （避免上家叫、我抢之后下家决定一闪而过就变成地主的体验）
+      setTimeout(() => finalizeLandlord(), 800);
       return;
     }
     const seat = state.bidTurnIdx;
@@ -2747,10 +2748,15 @@ permalink: /toolbox/doudizhu/
   }
 
   function renderDoubleSimultaneousPanel() {
-    bidTitle.innerHTML = '<span>加倍阶段</span><span class="countdown-badge" id="ddzDoubleCountdown">5s</span>';
+    // 不再渲染"加倍阶段"标题 —— 三个 chip 和按钮已自带语境
+    // bidTitle 留空，CSS :empty 自动隐藏，节省 ~28px 高度
+    bidTitle.innerHTML = '';
     bidButtonsEl.innerHTML = '';
 
-    // 三家状态行（顺序：上家 / 我 / 下家 — 与桌面布局一致）
+    // 第一行：3 cells + 倒计时 inline（节省一行）
+    const row1 = document.createElement('div');
+    row1.style.cssText = 'display:flex; align-items:center; justify-content:center; gap:0.5rem; flex-wrap:nowrap;';
+
     const grid = document.createElement('div');
     grid.className = 'ddz-double-grid';
     const seatOrder = [2, 0, 1];
@@ -2775,12 +2781,19 @@ permalink: /toolbox/doudizhu/
       cell.appendChild(status);
       grid.appendChild(cell);
     }
-    bidButtonsEl.appendChild(grid);
+    row1.appendChild(grid);
 
-    // 玩家未决：显示按钮
+    const cd = document.createElement('span');
+    cd.className = 'countdown-badge';
+    cd.id = 'ddzDoubleCountdown';
+    cd.textContent = '5s';
+    row1.appendChild(cd);
+    bidButtonsEl.appendChild(row1);
+
+    // 第二行：玩家按钮 or 等待
     if (!doubleDecided[0]) {
       const wrap = document.createElement('div');
-      wrap.style.cssText = 'display:flex; gap:0.7rem; justify-content:center; flex-wrap:wrap;';
+      wrap.style.cssText = 'display:flex; gap:0.6rem; justify-content:center; margin-top:0.4rem;';
       const yes = document.createElement('button');
       yes.type = 'button'; yes.className = 'primary';
       yes.textContent = `加倍 ×${state.multiplier * 2}`;
@@ -2793,7 +2806,6 @@ permalink: /toolbox/doudizhu/
       wrap.appendChild(no);
       bidButtonsEl.appendChild(wrap);
     } else {
-      // 玩家已决：显示等待
       const tip = document.createElement('div');
       tip.style.cssText = 'font-size:0.82rem; color:var(--ddz-text-on-felt-mute); margin-top:0.4rem; font-family:var(--font-display); letter-spacing:0.04em;';
       tip.textContent = '等待其他人决定…';
@@ -2980,6 +2992,8 @@ permalink: /toolbox/doudizhu/
     if (!me) { setStatus('这组牌型不合法'); return; }
     const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
     if (!E.canBeat(me, prev)) { setStatus('压不住上家，请换一组'); return; }
+    // 立即隐按钮 — 避免玩家点完后那 700-800ms 还看着自己的不出/提示/出牌
+    playActions.hidden = true;
     if (state.mode === 'online') sendOnlinePlay(cards);
     else commitPlay(0, me);
   }
@@ -2989,6 +3003,11 @@ permalink: /toolbox/doudizhu/
     if (!state.lastTrick || state.lastTrick.seat === 0) return;
     state.selected.clear();
     renderHand();
+    // 立即隐按钮 + 清掉灰授（不等下一回合 proceedTurn 才清）
+    playActions.hidden = true;
+    const handEl3 = document.getElementById('ddzHand');
+    if (handEl3) handEl3.classList.remove('no-play');
+    playActions.classList.remove('no-play');
     if (state.mode === 'online') sendOnlinePass();
     else commitPass(0);
   }
@@ -4130,10 +4149,13 @@ permalink: /toolbox/doudizhu/
   function renderOnlineDoublePanel() {
     bidPanel.hidden = false;
     playActions.hidden = true;
-    bidTitle.innerHTML = '<span>加倍阶段</span><span class="countdown-badge" id="ddzDoubleCountdown">5s</span>';
+    bidTitle.innerHTML = '';   // 跟单机加倍一致：title 留空挤进 100px slot
     bidButtonsEl.innerHTML = '';
 
-    // 三家状态行
+    // 第一行：3 cells + 倒计时 inline
+    const row1 = document.createElement('div');
+    row1.style.cssText = 'display:flex; align-items:center; justify-content:center; gap:0.5rem; flex-wrap:nowrap;';
+
     const grid = document.createElement('div');
     grid.className = 'ddz-double-grid';
     const seatOrder = [2, 0, 1];
@@ -4154,11 +4176,18 @@ permalink: /toolbox/doudizhu/
       cell.appendChild(status);
       grid.appendChild(cell);
     }
-    bidButtonsEl.appendChild(grid);
+    row1.appendChild(grid);
+
+    const cd = document.createElement('span');
+    cd.className = 'countdown-badge';
+    cd.id = 'ddzDoubleCountdown';
+    cd.textContent = '5s';
+    row1.appendChild(cd);
+    bidButtonsEl.appendChild(row1);
 
     if (!state.online.doubleDecided[0]) {
       const wrap = document.createElement('div');
-      wrap.style.cssText = 'display:flex; gap:0.7rem; justify-content:center; flex-wrap:wrap;';
+      wrap.style.cssText = 'display:flex; gap:0.6rem; justify-content:center; margin-top:0.4rem;';
       const yes = document.createElement('button');
       yes.type = 'button'; yes.className = 'primary';
       yes.textContent = `加倍 ×${state.multiplier * 2}`;
