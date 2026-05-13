@@ -1,15 +1,22 @@
 /* doudizhu/ai.js
- * 三档 AI 出牌决策。所有函数严格无状态：输入 (hand, prev, ctx) → 输出 play | null。
- * 续局后状态由主循环重建 ctx，AI 行为应保持一致。
+ * 四档 AI 出牌决策（新手 / 普通 / 高手 / 大神）。
  *
+ * 设计原则：
+ *   1) 四档共用同一个决策结构 chooseUnified()，但每档对几个"聪明"功能有不同的
+ *      激活概率。未激活时回退到 baseline 贪心（最便宜的非炸压牌）。
+ *   2) 概率本身带高斯波动（noiseSigma），避免行为过于可预测。大神例外，无波动。
+ *   3) 高手 / 大神 额外在跟牌阶段跑一个轻量 MCTS — 采样若干种对手手牌分布，
+ *      对几个候选动作做"一步前瞻"评分，挑最佳。
+ *
+ * ctx 接口（由主程序填充）：
  *   ctx = {
  *     myIdx: 0|1|2,
  *     myRole: 'landlord' | 'peasant',
  *     landlordIdx: 0|1|2,
- *     handSizes: [n0, n1, n2],     // 三家剩余手牌数
- *     seen: number[15],            // 已见过的 weight 直方图（含底牌揭示后的）
+ *     handSizes: [n0, n1, n2],
+ *     seen: number[15],            // AI 自己的"记忆"，可能有噪声（主程序按难度扰动）
  *     trickHistory: [{seat, pattern}, ...],
- *     lastTrickSeat: 0|1|2|-1,     // 桌面最近一手的座位（连续两 pass 后置 -1）
+ *     lastTrickSeat: 0|1|2|-1,
  *   }
  */
 (function () {
@@ -17,24 +24,43 @@
   const E = (typeof window !== 'undefined' ? window.DDZEngine : require('./engine.js'));
   const T = E.TYPES;
 
-  // 全副牌每个 weight 的总张数：3..A(0..11)各 4 张，2(12)4 张，小王(13)1 张，大王(14)1 张
+  // 全副牌每个 weight 的总张数：3..A(0..11) 各 4 张，2(12) 4 张，小王(13) 1 张，大王(14) 1 张
   const TOTAL_BY_WEIGHT = [4,4,4,4,4,4,4,4,4,4,4,4,4,1,1];
 
   // ============================================================
-  // easy: 随机合法出牌；prev 非空时 30% 概率 pass
+  // 难度 profile：每档对各功能的激活概率 + MCTS 强度
+  //
+  //   counterPredictRate：反压预测（出 A/2 之前先看牌池能不能被反压）
+  //   peasantCoopRate   ：农民协作（让队友收牌 / 喂小单 / 顶地主）
+  //   bombSmartRate     ：炸弹时机判断（不乱甩炸，关键时刻必甩）
+  //   firstPlayLookAhead：首出时按 priority 表选最优分解（否则乱出）
+  //   randomActionRate  ：完全随机的概率（模拟"走神"，主要给 easy 用）
+  //   mctsSamples       ：MCTS 跟牌采样次数（0 = 不跑 MCTS）
+  //   noiseSigma        ：每条概率的高斯波动；大神 = 0（行为稳定）
   // ============================================================
-  function chooseEasy(hand, prev, ctx) {
-    const beats = E.enumerateBeats(hand, prev);
-    if (!beats.length) return null;
-    if (prev && Math.random() < 0.3) return null;
-    return beats[Math.floor(Math.random() * beats.length)];
+  const LEVEL_PROFILES = {
+    easy:   { counterPredictRate: 0.20, peasantCoopRate: 0.20, bombSmartRate: 0.35, firstPlayLookAhead: 0.35, randomActionRate: 0.32, mctsSamples: 0,  noiseSigma: 0.10 },
+    normal: { counterPredictRate: 0.55, peasantCoopRate: 0.50, bombSmartRate: 0.65, firstPlayLookAhead: 0.78, randomActionRate: 0.08, mctsSamples: 0,  noiseSigma: 0.08 },
+    hard:   { counterPredictRate: 0.82, peasantCoopRate: 0.80, bombSmartRate: 0.85, firstPlayLookAhead: 0.95, randomActionRate: 0.02, mctsSamples: 6,  noiseSigma: 0.06 },
+    master: { counterPredictRate: 1.0,  peasantCoopRate: 1.0,  bombSmartRate: 1.0,  firstPlayLookAhead: 1.0,  randomActionRate: 0,    mctsSamples: 20, noiseSigma: 0    },
+  };
+
+  // 高斯采样 + 钳位的功能激活骰子
+  function rollFeature(rate, sigma) {
+    if (rate >= 1.0 && (!sigma || sigma <= 0)) return true;
+    if (rate <= 0.0 && (!sigma || sigma <= 0)) return false;
+    let effective = rate;
+    if (sigma && sigma > 0) {
+      const u1 = Math.max(Math.random(), 1e-6);
+      const u2 = Math.random();
+      const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      effective = Math.max(0, Math.min(1, rate + z * sigma));
+    }
+    return Math.random() < effective;
   }
 
   // ============================================================
-  // normal: 贪心
-  // ============================================================
-  // 跟牌：优先非炸弹小牌；炸弹仅在自家≤6 或对家≤4 时甩
-  // 首出：用 decompose 后按 priority 出最值的那手
+  // 首出 priority 表 — 顺子最先打，单牌最后留
   // ============================================================
   const PLAY_PRIORITY = {
     [T.STRAIGHT]: 1,
@@ -53,61 +79,8 @@
     [T.ROCKET]: 10,
   };
 
-  function minOppHandSize(ctx) {
-    let m = 99;
-    for (let i = 0; i < 3; i++) if (i !== ctx.myIdx) m = Math.min(m, ctx.handSizes[i]);
-    return m;
-  }
-
-  function chooseNormal(hand, prev, ctx) {
-    const beats = E.enumerateBeats(hand, prev);
-    if (!beats.length) return null;
-
-    if (prev) {
-      // 简易农民协作：上一手是队友（不是地主、也不是我）→ 默认 pass，让队友收牌
-      if (ctx && ctx.myRole === 'peasant' && ctx.lastTrickSeat >= 0
-          && ctx.lastTrickSeat !== ctx.landlordIdx
-          && ctx.lastTrickSeat !== ctx.myIdx) {
-        // 例外：我自己也快收完牌（≤2 张），可以试着压清；或者地主只剩 1 张要赢了
-        if (hand.length > 2 && ctx.handSizes[ctx.landlordIdx] > 1) return null;
-      }
-      // 跟牌
-      const nonBombs = beats.filter(p => p.type !== T.BOMB && p.type !== T.ROCKET);
-      if (nonBombs.length) {
-        return nonBombs.reduce((best, p) => (p.weight < best.weight ? p : best), nonBombs[0]);
-      }
-      // 只剩炸弹 / 王炸
-      const myHand = hand.length;
-      const oppMin = minOppHandSize(ctx);
-      if (myHand <= 6 || oppMin <= 4) {
-        const bombs = beats.filter(p => p.type === T.BOMB);
-        if (bombs.length) return bombs.reduce((b, p) => p.weight < b.weight ? p : b, bombs[0]);
-        const rk = beats.find(p => p.type === T.ROCKET);
-        if (rk) return rk;
-      }
-      return null;
-    }
-
-    // 首出：从 decompose 里挑优先级最高的（值最低）
-    const plays = E.decomposeHand(hand);
-    plays.sort((a, b) => {
-      const pa = PLAY_PRIORITY[a.type] || 99;
-      const pb = PLAY_PRIORITY[b.type] || 99;
-      if (pa !== pb) return pa - pb;
-      return a.weight - b.weight;
-    });
-    // 别一上来就甩王炸/炸弹/2 单
-    for (const p of plays) {
-      if (p.type === T.BOMB || p.type === T.ROCKET) continue;
-      if (p.type === T.SINGLE && p.weight >= 12) continue; // 单 2/王 留着
-      return p;
-    }
-    // 全是炸弹/王炸/大单 — 那就出最小的
-    return plays[0];
-  }
-
   // ============================================================
-  // hard: normal + 记牌器 + 角色感知 + 农民协作
+  // 辅助：座位 / 牌池 / 反压预测
   // ============================================================
   function partnerOf(myIdx, landlordIdx) {
     if (myIdx === landlordIdx) return -1;
@@ -115,7 +88,12 @@
     return -1;
   }
 
-  // 计算"还没见过的牌池"（不在 seen、不在 myHand 里的牌池里有多少 weight）
+  function minOppHandSize(ctx) {
+    let m = 99;
+    for (let i = 0; i < 3; i++) if (i !== ctx.myIdx) m = Math.min(m, ctx.handSizes[i]);
+    return m;
+  }
+
   function remainingByWeight(seen, myHand) {
     const myHist = E.histByWeight(myHand);
     const out = new Array(15).fill(0);
@@ -126,21 +104,15 @@
     return out;
   }
 
-  // 估算"当前牌型 prev 在 remaining 里能被压住的最低 weight"
-  // 简化版：只考虑同型同长压制 + 炸弹/王炸
-  // 返回 null 表示池里压不住
+  // 给定 remaining 牌池，估计能否压住 prev（只看同型同长 + 炸弹/王炸）
   function minBeaterIn(remaining, prev) {
     if (!prev) return 0;
     if (prev.type === T.ROCKET) return null;
     if (prev.type === T.BOMB) {
-      for (let w = prev.weight + 1; w < 13; w++) {
-        if (remaining[w] >= 4) return w;
-      }
-      // 王炸
+      for (let w = prev.weight + 1; w < 13; w++) if (remaining[w] >= 4) return w;
       if (remaining[13] >= 1 && remaining[14] >= 1) return 100;
       return null;
     }
-    // 普通牌型：先看同型同长能否压；炸弹/王炸都算备选
     if (prev.type === T.SINGLE) {
       for (let w = prev.weight + 1; w < 15; w++) if (remaining[w] >= 1) return w;
     } else if (prev.type === T.PAIR) {
@@ -150,7 +122,6 @@
     } else if (prev.type === T.TRIPLE_ONE) {
       for (let w = prev.weight + 1; w < 13; w++) {
         if (remaining[w] >= 3) {
-          // 还得有任一 kicker
           for (let kw = 0; kw < 15; kw++) if (kw !== w && remaining[kw] >= 1) return w;
         }
       }
@@ -174,15 +145,7 @@
         for (let i = 0; i < len; i++) if ((remaining[w + i] || 0) < 2) { ok = false; break; }
         if (ok) return w;
       }
-    } else if (prev.type === T.PLANE) {
-      const len = prev.length;
-      for (let w = prev.weight + 1; w + len - 1 < 12; w++) {
-        let ok = true;
-        for (let i = 0; i < len; i++) if ((remaining[w + i] || 0) < 3) { ok = false; break; }
-        if (ok) return w;
-      }
-    } else if (prev.type === T.PLANE_ONE || prev.type === T.PLANE_PAIR) {
-      // 简化：只看主组够不够
+    } else if (prev.type === T.PLANE || prev.type === T.PLANE_ONE || prev.type === T.PLANE_PAIR) {
       const len = prev.length;
       for (let w = prev.weight + 1; w + len - 1 < 12; w++) {
         let ok = true;
@@ -190,13 +153,34 @@
         if (ok) return w;
       }
     }
-    // 炸弹反压
     for (let w = 0; w < 13; w++) if (remaining[w] >= 4) return 50 + w;
     if (remaining[13] >= 1 && remaining[14] >= 1) return 100;
     return null;
   }
 
-  function chooseHard(hand, prev, ctx) {
+  // ============================================================
+  // 主决策：所有难度走这个；profile 控制每条规则的激活概率
+  // ============================================================
+  function chooseUnified(hand, prev, ctx, profile) {
+    // 0. "走神"：完全随机（主要给 easy 用，模拟新手的非理性行为）
+    if (Math.random() < profile.randomActionRate) {
+      if (!prev) {
+        const plays = E.decomposeHand(hand);
+        return plays[Math.floor(Math.random() * plays.length)];
+      }
+      const beats = E.enumerateBeats(hand, prev);
+      if (!beats.length) return null;
+      // 偶尔可以压但不压（明明能 beat 但 pass）
+      if (Math.random() < 0.4) return null;
+      return beats[Math.floor(Math.random() * beats.length)];
+    }
+
+    // 1. 本轮每个功能各掷一次骰子 — 是否激活
+    const useCounter      = rollFeature(profile.counterPredictRate, profile.noiseSigma);
+    const usePeasantCoop  = rollFeature(profile.peasantCoopRate,    profile.noiseSigma);
+    const useBombSmart    = rollFeature(profile.bombSmartRate,      profile.noiseSigma);
+    const useFirstPriority = rollFeature(profile.firstPlayLookAhead, profile.noiseSigma);
+
     const myRole = ctx.myRole;
     const landlordIdx = ctx.landlordIdx;
     const myIdx = ctx.myIdx;
@@ -206,9 +190,10 @@
 
     const beats = E.enumerateBeats(hand, prev);
 
-    // 农民协作规则 1: 队友刚出且地主没盖 → 默认 pass（让队友收牌 / 继续主导）
-    //   例外：(a) 我手里已经 ≤ 2 张可以直接收；(b) 地主只剩 1 张眼看要赢，必须不惜代价压
-    if (prev && myRole === 'peasant' && ctx.lastTrickSeat === partnerIdx) {
+    // 农民协作规则 1：队友刚出且地主没盖 → 默认 pass
+    if (prev && usePeasantCoop && myRole === 'peasant'
+        && ctx.lastTrickSeat === partnerIdx
+        && ctx.lastTrickSeat !== landlordIdx) {
       if (hand.length > 2 && landlordHand > 1) return null;
     }
 
@@ -217,16 +202,14 @@
     // 跟牌阶段
     if (prev) {
       const nonBombs = beats.filter(p => p.type !== T.BOMB && p.type !== T.ROCKET);
-      const remaining = remainingByWeight(ctx.seen || new Array(15).fill(0), hand);
 
-      // 农民协作规则 2: 队友手牌 ≤ 4，地主出牌→我能压就压（防止地主转手）
-      if (myRole === 'peasant' && ctx.lastTrickSeat === landlordIdx && partnerHand <= 4) {
+      // 农民协作规则 2：队友手牌 ≤ 4 且地主刚出 → 拼命顶住
+      if (usePeasantCoop && myRole === 'peasant'
+          && ctx.lastTrickSeat === landlordIdx && partnerHand <= 4) {
         if (nonBombs.length) {
-          // 选最大那张压（让地主彻底没机会反压）
           return nonBombs.reduce((b, p) => p.weight > b.weight ? p : b, nonBombs[0]);
         }
-        // 没普通牌可压 — 如果地主手牌很少，连炸弹都甩
-        if (landlordHand <= 4) {
+        if (useBombSmart && landlordHand <= 4) {
           const bombs = beats.filter(p => p.type === T.BOMB);
           if (bombs.length) return bombs[0];
           const rk = beats.find(p => p.type === T.ROCKET);
@@ -235,21 +218,20 @@
         return null;
       }
 
-      // 地主单挑 / 农民对地主普通跟牌
+      // 普通跟牌：最便宜的非炸
       if (nonBombs.length) {
-        // 如果地主只剩 ≤2 张，必须不惜代价压
+        // 例外：地主已剩 ≤ 2 张 → 农民拼最大的
         if (myRole === 'peasant' && landlordHand <= 2) {
           return nonBombs.reduce((b, p) => p.weight > b.weight ? p : b, nonBombs[0]);
         }
         const candidate = nonBombs.reduce((b, p) => p.weight < b.weight ? p : b, nonBombs[0]);
-        // 反压预测：仅当我是农民且上家是地主时
-        if (myRole === 'peasant' && ctx.lastTrickSeat === landlordIdx) {
+
+        // 反压预测：要打 A/2 之前看牌池里地主能不能反压
+        if (useCounter && myRole === 'peasant' && ctx.lastTrickSeat === landlordIdx) {
           const remaining = remainingByWeight(ctx.seen || new Array(15).fill(0), hand);
-          const landlordCounter = minBeaterIn(remaining, candidate);
-          if (landlordCounter != null && landlordCounter < 50) {
-            // 地主能用普通牌反压
+          const counter = minBeaterIn(remaining, candidate);
+          if (counter != null && counter < 50) {
             if (candidate.weight >= 11 && partnerHand > 4) {
-              // 我出 A/2 但地主能反压 → 浪费大牌，pass 留给以后
               return null;
             }
           }
@@ -257,74 +239,237 @@
         return candidate;
       }
 
-      // 只剩炸弹/王炸
+      // 只剩炸弹 / 王炸
       const myHand = hand.length;
       const oppMin = minOppHandSize(ctx);
-      const shouldBomb =
+      const shouldBomb = useBombSmart && (
         myHand <= 6 ||
         oppMin <= 3 ||
         (myRole === 'peasant' && landlordHand <= 4) ||
-        (myRole === 'landlord' && oppMin <= 4);
+        (myRole === 'landlord' && oppMin <= 4)
+      );
       if (shouldBomb) {
         const bombs = beats.filter(p => p.type === T.BOMB);
         if (bombs.length) return bombs[0];
         const rk = beats.find(p => p.type === T.ROCKET);
         if (rk) return rk;
       }
+      // bombSmart 未激活时偶尔仍然甩（10% — 模拟"乱炸"的新手）
+      if (!useBombSmart && Math.random() < 0.10) {
+        const bombs = beats.filter(p => p.type === T.BOMB);
+        if (bombs.length) return bombs[0];
+      }
       return null;
     }
 
     // 首出阶段
-    const plays = E.decomposeHand(hand);
-
-    // 农民协作规则 3: 队友手牌 ≤ 4，主动出小单牌（不出长结构）
-    if (myRole === 'peasant' && partnerHand <= 4) {
-      const singles = plays.filter(p => p.type === T.SINGLE);
+    // 农民协作规则 3：队友手牌 ≤ 4 → 主动喂小单
+    if (usePeasantCoop && myRole === 'peasant' && partnerHand <= 4) {
+      const singles = E.decomposeHand(hand).filter(p => p.type === T.SINGLE);
       if (singles.length) {
         return singles.reduce((b, p) => p.weight < b.weight ? p : b, singles[0]);
       }
     }
 
-    // 地主：如果我手牌已经很少（≤ 3），优先打必胜
+    // 地主：手牌 ≤ 3 → 一手出完直接赢
     if (myRole === 'landlord' && hand.length <= 3) {
-      // 一手出完就赢
+      const plays = E.decomposeHand(hand);
       const winner = plays.find(p => p.cards.length === hand.length);
       if (winner) return winner;
     }
 
-    plays.sort((a, b) => {
-      const pa = PLAY_PRIORITY[a.type] || 99;
-      const pb = PLAY_PRIORITY[b.type] || 99;
-      if (pa !== pb) return pa - pb;
-      return a.weight - b.weight;
-    });
-    for (const p of plays) {
-      if (p.type === T.BOMB || p.type === T.ROCKET) continue;
-      if (p.type === T.SINGLE && p.weight >= 12 && hand.length > 4) continue;
-      return p;
+    const plays = E.decomposeHand(hand);
+    if (useFirstPriority) {
+      // 按 priority 表升序 — 顺子 / 连对先打
+      plays.sort((a, b) => {
+        const pa = PLAY_PRIORITY[a.type] || 99;
+        const pb = PLAY_PRIORITY[b.type] || 99;
+        if (pa !== pb) return pa - pb;
+        return a.weight - b.weight;
+      });
+      for (const p of plays) {
+        if (p.type === T.BOMB || p.type === T.ROCKET) continue;
+        if (p.type === T.SINGLE && p.weight >= 12 && hand.length > 4) continue;
+        return p;
+      }
+      return plays[0];
+    } else {
+      // 未激活 → 随便挑一手非炸
+      const non = plays.filter(p => p.type !== T.BOMB && p.type !== T.ROCKET);
+      if (non.length) return non[Math.floor(Math.random() * non.length)];
+      return plays[Math.floor(Math.random() * plays.length)];
     }
-    return plays[0];
+  }
+
+  // ============================================================
+  // 轻量 MCTS：仅在跟牌阶段、候选 ≥ 2 时启用
+  //
+  // 思路（"PIMC" perfect-information Monte Carlo 的简化）：
+  //   1) 采样若干种"对手手牌的可能分布"，用 seen[] 约束
+  //   2) 对几个候选动作做一步前瞻：模拟"我打 M → 两家用 normal-tier 启发式应对"
+  //   3) 打分：剩余手牌强度 - 对手剩余强度（用 evaluateHand 估算）
+  //   4) 取均值最高的候选
+  //
+  // 不跑深层 rollout — 这里只评估到一轮结束。在浏览器内 budget 充足。
+  // ============================================================
+  function shuffleArray(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+  }
+
+  // 简单牌力评估（与 evaluateHand 同口径，仅用于 MCTS 相对比较）
+  function quickHandStrength(weightArray) {
+    let s = 0;
+    const hist = new Array(15).fill(0);
+    for (const w of weightArray) hist[w]++;
+    if (hist[13] && hist[14]) s += 8;
+    else if (hist[14]) s += 4;
+    else if (hist[13]) s += 3;
+    s += (hist[12] || 0) * 2;
+    for (let w = 0; w < 13; w++) if (hist[w] >= 4) s += 6;
+    s += (hist[11] || 0) * 1;
+    return s;
+  }
+
+  // 从 weight 数组中"消耗"指定 pattern 用的牌（按 weight 数）
+  function consumeForPattern(weightArr, pattern) {
+    if (!pattern) return weightArr.slice();
+    const need = {};
+    for (const c of pattern.cards) {
+      // 这里 pattern.cards 可能是 cardId（54 张编码）；我们只关心 weight
+      const w = E.cardWeight(c);
+      need[w] = (need[w] || 0) + 1;
+    }
+    const result = weightArr.slice();
+    for (const w of Object.keys(need)) {
+      let n = need[w];
+      for (let i = result.length - 1; i >= 0 && n > 0; i--) {
+        if (result[i] === Number(w)) { result.splice(i, 1); n--; }
+      }
+    }
+    return result;
+  }
+
+  // 给一个 weight 数组找一个能压过 prev 的最便宜非炸（启发式应对）
+  function findCheapestNonBombByWeight(weightArr, prev) {
+    if (!prev) return null;
+    // 同型同长压制 — 用 minBeaterIn 找最小 weight，然后看能否凑齐
+    const hist = new Array(15).fill(0);
+    for (const w of weightArr) hist[w]++;
+    const beater = minBeaterIn(hist, prev);
+    if (beater == null || beater >= 50) return null;     // 找不到非炸压
+    // 简化：返回一个虚拟 pattern 描述（type/weight/length 同 prev）
+    return { type: prev.type, weight: beater, length: prev.length || prev.cards?.length || 1, cards: [] };
+  }
+
+  function sampleOpponentHandsWeights(ctx, myHand) {
+    const myHist = E.histByWeight(myHand);
+    const remaining = [];
+    for (let w = 0; w < 15; w++) {
+      const left = TOTAL_BY_WEIGHT[w] - (ctx.seen[w] || 0) - (myHist[w] || 0);
+      for (let i = 0; i < left; i++) remaining.push(w);
+    }
+    const otherSeats = [0, 1, 2].filter(i => i !== ctx.myIdx);
+    const total = ctx.handSizes[otherSeats[0]] + ctx.handSizes[otherSeats[1]];
+    if (total !== remaining.length) return null;
+    shuffleArray(remaining);
+    return {
+      [otherSeats[0]]: remaining.slice(0, ctx.handSizes[otherSeats[0]]),
+      [otherSeats[1]]: remaining.slice(ctx.handSizes[otherSeats[0]]),
+    };
+  }
+
+  // 一步前瞻评分：我打 M → 队友 / 对手用启发式应对 → 评估终态
+  function evalOnePly(myMove, myHandIds, oppHandsWeights, ctx) {
+    const myHandWeights = myHandIds.map(c => E.cardWeight(c));
+    const myAfter = consumeForPattern(myHandWeights, myMove);
+
+    // 对手按"最便宜非炸"应对
+    let landlordCounterCost = 0;
+    let totalOppStrength = 0;
+    for (const seatStr of Object.keys(oppHandsWeights)) {
+      const seat = Number(seatStr);
+      const oppArr = oppHandsWeights[seat];
+      const counter = findCheapestNonBombByWeight(oppArr, myMove);
+      let oppAfter = oppArr.slice();
+      if (counter) {
+        // 消耗一张同 weight 的牌（粗略：用 minBeaterIn 找到的 weight）
+        const w = counter.weight;
+        const n = myMove.cards.length;     // 大致需要相同张数
+        let consumed = 0;
+        for (let i = oppAfter.length - 1; i >= 0 && consumed < n; i--) {
+          if (oppAfter[i] === w) { oppAfter.splice(i, 1); consumed++; }
+        }
+        // 地主反压视为对农民不利
+        if (seat === ctx.landlordIdx && ctx.myRole === 'peasant' && w >= 11) {
+          landlordCounterCost += 2;       // 地主用大牌反压 — 算正分（消耗大牌）
+        }
+      }
+      totalOppStrength += quickHandStrength(oppAfter);
+    }
+    // 我方分：剩余强度高 + 对手强度低 + 地主被迫用大牌
+    return quickHandStrength(myAfter) - totalOppStrength / 2 + landlordCounterCost;
+  }
+
+  function mctsLite(hand, prev, ctx, profile, baselineMove) {
+    if (!prev || profile.mctsSamples <= 0) return baselineMove;
+    const beats = E.enumerateBeats(hand, prev);
+    if (beats.length < 2) return baselineMove;
+
+    // 候选：baseline + 最便宜非炸 + 最贵非炸 + 中位非炸
+    const nonBombs = beats.filter(p => p.type !== T.BOMB && p.type !== T.ROCKET)
+                          .sort((a,b) => a.weight - b.weight);
+    const candidates = new Set([baselineMove]);
+    if (nonBombs.length) {
+      candidates.add(nonBombs[0]);
+      candidates.add(nonBombs[nonBombs.length - 1]);
+      if (nonBombs.length >= 3) candidates.add(nonBombs[Math.floor(nonBombs.length / 2)]);
+    }
+    const candArr = Array.from(candidates);
+    if (candArr.length < 2) return baselineMove;
+
+    const scores = new Array(candArr.length).fill(0);
+    let validSamples = 0;
+    for (let s = 0; s < profile.mctsSamples; s++) {
+      const oppHands = sampleOpponentHandsWeights(ctx, hand);
+      if (!oppHands) continue;
+      validSamples++;
+      for (let i = 0; i < candArr.length; i++) {
+        scores[i] += evalOnePly(candArr[i], hand, oppHands, ctx);
+      }
+    }
+    if (validSamples === 0) return baselineMove;
+
+    let bestIdx = 0, bestScore = -Infinity;
+    for (let i = 0; i < candArr.length; i++) {
+      if (scores[i] > bestScore) { bestScore = scores[i]; bestIdx = i; }
+    }
+    return candArr[bestIdx];
   }
 
   // ============================================================
   // 总入口
   // ============================================================
   function chooseMove(hand, prev, ctx, level) {
-    if (level === 'easy') return chooseEasy(hand, prev, ctx);
-    if (level === 'hard') return chooseHard(hand, prev, ctx);
-    return chooseNormal(hand, prev, ctx);
+    const profile = LEVEL_PROFILES[level] || LEVEL_PROFILES.normal;
+    const baseline = chooseUnified(hand, prev, ctx, profile);
+    if (profile.mctsSamples > 0 && baseline) {
+      const refined = mctsLite(hand, prev, ctx, profile, baseline);
+      return refined || baseline;
+    }
+    return baseline;
   }
 
+  // 为向后兼容保留三个旧导出（薄包装）
+  function chooseEasy(hand, prev, ctx)   { return chooseMove(hand, prev, ctx, 'easy'); }
+  function chooseNormal(hand, prev, ctx) { return chooseMove(hand, prev, ctx, 'normal'); }
+  function chooseHard(hand, prev, ctx)   { return chooseMove(hand, prev, ctx, 'hard'); }
+  function chooseMaster(hand, prev, ctx) { return chooseMove(hand, prev, ctx, 'master'); }
+
   // ============================================================
-  // 叫地主决策（简化版）：根据手牌强度决定叫几分
-  // 强度评分：
-  //   王炸 (52+53)             +8
-  //   单大王                    +4
-  //   单小王                    +3
-  //   每张 2                   +2
-  //   每个炸弹                  +6
-  //   含 A 多                   +1 each
-  // 总分阈值：≥10 叫 3 分，≥6 叫 2 分，≥3 叫 1 分，否则不叫
+  // 叫地主决策（按手牌强度评分）
   // ============================================================
   function evaluateHand(hand) {
     const hist = E.histByWeight(hand);
@@ -345,15 +490,15 @@
     else if (score >= 6) want = 2;
     else if (score >= 3) want = 1;
     if (want > currentBid) return want;
-    return 0; // 不叫
+    return 0;
   }
 
   const api = {
     chooseMove,
-    chooseEasy, chooseNormal, chooseHard,
+    chooseEasy, chooseNormal, chooseHard, chooseMaster,
     evaluateHand, bid,
     remainingByWeight, minBeaterIn,
-    PLAY_PRIORITY,
+    PLAY_PRIORITY, LEVEL_PROFILES,
   };
 
   if (typeof window !== 'undefined') window.DDZAI = api;

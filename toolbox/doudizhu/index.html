@@ -309,9 +309,9 @@ permalink: /toolbox/doudizhu/
     display: flex; gap: 0.5rem; justify-content: center;
     margin: 0.8rem 0;
   }
-  .ddz-mode-tabs { display: inline-flex; gap: 0.25rem; margin-bottom: 0.7rem; }
+  .ddz-mode-tabs { display: inline-flex; gap: 0.25rem; margin-bottom: 0.7rem; flex-wrap: wrap; justify-content: center; }
   .ddz-mode-tab {
-    padding: 0.36rem 0.72rem;
+    padding: 0.36rem 0.68rem;
     font-size: 0.85rem;
     border: 1px solid var(--color-border);
     background: var(--color-bg);
@@ -1396,6 +1396,7 @@ permalink: /toolbox/doudizhu/
         <button class="ddz-mode-tab" data-diff="easy" type="button">🌱 新手</button>
         <button class="ddz-mode-tab active" data-diff="normal" type="button">🙂 普通</button>
         <button class="ddz-mode-tab" data-diff="hard" type="button">🔥 高手</button>
+        <button class="ddz-mode-tab" data-diff="master" type="button">👑 大神</button>
       </div>
       <div style="margin-top: 0.6rem; display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap;">
         <button class="ddz-btn primary" id="ddzStartBtn" type="button">🎮 开始游戏</button>
@@ -1491,7 +1492,7 @@ permalink: /toolbox/doudizhu/
       斗地主是中国最流行的三人扑克游戏。54 张牌发出 51 张，剩 3 张底牌。<strong>抢地主</strong>阶段三家依次决定是否抢，最后抢的人当地主，每多一次抢倍数 ×2；揭牌后还可<strong>加倍</strong>（×2）。
       <strong>明牌</strong>：开局直接「明牌开始」 ×5 跳过抢地主当地主；或抢到地主揭底后选「明牌」 ×2。
       牌型：单 / 对 / 三 / 三带一/二 / 顺子（5+ 单牌连续）/ 连对（3+ 对子连续）/ 飞机 / 四带二 / 炸弹 / 王炸。每个炸弹/王炸 ×2；春天 / 反春天 ×2。
-      赢局上榜积分 = 底分 × 倍数 × 角色（地主 ×2，农民 ×1） × <strong>难度权重</strong>（新手 ×1 / 普通 ×2 / 高手 ×3 / 联机 ×3）。联机模式有<strong>独立排行榜</strong>。
+      赢局上榜积分 = 底分 × 倍数 × 角色（地主 ×2，农民 ×1） × <strong>难度权重</strong>（新手 ×1 / 普通 ×2 / 高手 ×3 / 大神 ×4 / 联机 ×3）。<strong>大神</strong>开 MCTS + 完美记牌，建议练习后再挑。联机模式有<strong>独立排行榜</strong>。
     </div>
   </div>
 
@@ -3099,6 +3100,11 @@ permalink: /toolbox/doudizhu/
   // ============================================================
   function perceiveWeight(perceived, w, level) {
     if (level === 'easy') return;
+    if (level === 'master') {
+      // 大神：完美记牌（永不漏）
+      perceived[w]++;
+      return;
+    }
     if (level === 'normal') {
       // 只关心 2(12) / 小王(13) / 大王(14)
       if (w >= 12 && Math.random() > 0.15) perceived[w]++;
@@ -3214,7 +3220,7 @@ permalink: /toolbox/doudizhu/
     GamesShell.Settlement.present({ dataURL, filename });
   }
 
-  function difficultyLabel(d) { return { easy: '🌱 新手', normal: '🙂 普通', hard: '🔥 高手' }[d] || d; }
+  function difficultyLabel(d) { return { easy: '🌱 新手', normal: '🙂 普通', hard: '🔥 高手', master: '👑 大神' }[d] || d; }
   function seatLabel(s) { return s === 0 ? '你' : (s === 1 ? '下家' : '上家'); }
   function formatDuration(ms) {
     const s = Math.floor(ms / 1000);
@@ -3387,9 +3393,9 @@ permalink: /toolbox/doudizhu/
     ctx.closePath();
   }
 
-  // 难度权重：easy=1, normal=2, hard=3, online=3
+  // 难度权重：easy=1, normal=2, hard=3, master=4, online=3
   function difficultyWeight(d) {
-    return ({ easy: 1, normal: 2, hard: 3, online: 3 })[d] || 1;
+    return ({ easy: 1, normal: 2, hard: 3, master: 4, online: 3 })[d] || 1;
   }
 
   function tryAutoSubmit() {
@@ -3398,7 +3404,7 @@ permalink: /toolbox/doudizhu/
     const playerRole = state.landlordIdx === 0 ? 'landlord' : 'peasant';
     if (state.result.winnerRole !== playerRole) return; // 输了不上传
     const aiLevel = state.difficulty;
-    if (!['easy', 'normal', 'hard'].includes(aiLevel)) return;
+    if (!['easy', 'normal', 'hard', 'master'].includes(aiLevel)) return;
     const totalActions = state.landlordPlayCount + state.peasantPlayCount + (state.bidActions.length || 0);
     const moves = Math.max(4, Math.min(500, totalActions));
     const durationMs = Math.max(5000, Date.now() - state.runStartedAt);
