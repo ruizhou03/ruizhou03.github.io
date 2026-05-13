@@ -609,6 +609,33 @@ permalink: /toolbox/doudizhu/
     to   { opacity: 1; }
   }
 
+  /* Bug 6: 发牌动画 — 开局给 .ddz-hand 加 .dealing 类，触发 17 张牌从左（最大）
+     往右（最小）依次出现。每张牌从上方滑入 + 透明度淡入，35ms stagger */
+  .ddz-hand.dealing .ddz-card.size-full {
+    animation: ddz-card-deal 0.42s cubic-bezier(0.25, 0.5, 0.3, 1.0) backwards;
+  }
+  @keyframes ddz-card-deal {
+    from { opacity: 0; transform: translateY(-46px) rotate(-6deg) scale(0.85); }
+    to   { opacity: 1; transform: none; }
+  }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(1)  { animation-delay: 0ms;   }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(2)  { animation-delay: 35ms;  }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(3)  { animation-delay: 70ms;  }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(4)  { animation-delay: 105ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(5)  { animation-delay: 140ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(6)  { animation-delay: 175ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(7)  { animation-delay: 210ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(8)  { animation-delay: 245ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(9)  { animation-delay: 280ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(10) { animation-delay: 315ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(11) { animation-delay: 350ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(12) { animation-delay: 385ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(13) { animation-delay: 420ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(14) { animation-delay: 455ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(15) { animation-delay: 490ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(16) { animation-delay: 525ms; }
+  .ddz-hand.dealing .ddz-card.size-full:nth-child(17) { animation-delay: 560ms; }
+
   /* ======== 特殊牌型 FX ======== */
   /* 顺子 / 连对：暖金底光，安静地"展开" */
   .ddz-played.fx-straight, .ddz-played.fx-pair-straight {
@@ -683,7 +710,17 @@ permalink: /toolbox/doudizhu/
     100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; border-width: 1px; }
   }
 
-  /* 已移除：A4 飞行牌（克隆从源点飞到桌面中心）——产生"炫影"已被禁用 */
+  /* 已移除：A4 出牌飞行（炫影） */
+
+  /* Bug 7: 公布底牌飞行 — 3 张底牌从中央桌面飞向地主手牌区 */
+  .ddz-bottom-fly {
+    position: fixed;
+    z-index: 100;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: transform 0.55s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s ease-out;
+    will-change: transform, opacity;
+  }
 
   /* ======== 音效开关按钮（Setup 屏右上小 chip） ======== */
   .ddz-sfx-toggle {
@@ -2418,6 +2455,45 @@ permalink: /toolbox/doudizhu/
   // 保留空壳避免改其它调用点；牌通过 renderPlayedAt 直接出现在桌面区。
   function flyCardsTo(_seat, _cards) { /* no-op */ }
 
+  // Bug 7: 公布地主牌动画 — 3 张底牌从中央桌面"飞入"地主手牌区
+  // 地主 = seat 0 (我): 飞到下方 .ddz-hand 中央
+  // 地主 = seat 1/2 (AI): 飞到对应 .ddz-avatar 中央
+  function flyBottomToLandlord(bottomCards, landlordSeat) {
+    if (!bottomCards || bottomCards.length === 0) return;
+    const srcEl = document.getElementById('ddzBottomPile');
+    if (!srcEl) return;
+    const srcRect = srcEl.getBoundingClientRect();
+    const destEl = landlordSeat === 0
+      ? document.getElementById('ddzHand')
+      : document.getElementById('ddzAvatar' + landlordSeat);
+    if (!destEl) return;
+    const destRect = destEl.getBoundingClientRect();
+    const destX = destRect.left + destRect.width / 2;
+    const destY = destRect.top + destRect.height / 2;
+
+    // 用 srcEl 的 3 张底牌 children 作为基准位置
+    const cardEls = Array.from(srcEl.querySelectorAll('.ddz-card'));
+    cardEls.forEach((origCard, i) => {
+      const r = origCard.getBoundingClientRect();
+      const cardId = bottomCards[i];
+      const clone = buildCardEl(cardId, 'size-bottom');
+      clone.classList.add('ddz-bottom-fly');
+      clone.style.left = (r.left + r.width / 2) + 'px';
+      clone.style.top  = (r.top  + r.height / 2) + 'px';
+      document.body.appendChild(clone);
+      // 错开 50ms 让 3 张依次飞
+      const delay = i * 60;
+      const dx = destX - (r.left + r.width / 2);
+      const dy = destY - (r.top  + r.height / 2);
+      setTimeout(() => {
+        clone.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(0.75)`;
+        clone.style.opacity = '0.6';
+      }, delay + 30);
+      setTimeout(() => { clone.style.opacity = '0'; }, delay + 500);
+      setTimeout(() => clone.remove(), delay + 700);
+    });
+  }
+
   // 桌面中心一圈金光涟漪（小反馈）
   function spawnMicroRing(seat) {
     const el = document.getElementById('ddzPlayed' + seat);
@@ -2545,6 +2621,14 @@ permalink: /toolbox/doudizhu/
     renderRoles();
     multiEl.textContent = '';
 
+    // Bug 6: 发牌动画 — 给 .ddz-hand 加 .dealing 类，触发 17 张牌从大到小依次出现
+    const handDealEl = document.getElementById('ddzHand');
+    if (handDealEl) {
+      handDealEl.classList.add('dealing');
+      // 17 张 × 40ms + 0.45s 单卡动画 ≈ 1.13s，留点 buffer 用 1.4s 后清类
+      setTimeout(() => handDealEl.classList.remove('dealing'), 1400);
+    }
+
     if (opts.declareStart) {
       // 明牌开局：玩家明牌（×5），由玩家先开始叫地主（仍走完整抢地主流程）
       state.declared = true;
@@ -2552,10 +2636,10 @@ permalink: /toolbox/doudizhu/
       state.multiplier = 5;
       renderRoles();
       pushSplashLog('🎴 你明牌了 ×5 — 由你先叫地主');
-      setTimeout(() => enterBidding({ startSeat: 0 }), 700);
+      setTimeout(() => enterBidding({ startSeat: 0 }), 1300);   // 等发牌动画完
     } else {
       setStatus('发牌完毕');
-      setTimeout(() => enterBidding(), 600);
+      setTimeout(() => enterBidding(), 1300);   // 等发牌动画完
     }
   }
 
@@ -2723,25 +2807,65 @@ permalink: /toolbox/doudizhu/
     setTimeout(() => revealBottom(), 600);
   }
 
+  // 检测底牌特殊情形，返回 { bonus, reasons }（bonus 是倍数累乘因子）
+  function detectBottomBonus(bottom) {
+    const weights = bottom.map(c => E.cardWeight(c));
+    let bonus = 1;
+    const reasons = [];
+    const hasSmallJoker = weights.includes(13);
+    const hasBigJoker = weights.includes(14);
+    if (hasSmallJoker && hasBigJoker) {
+      bonus *= 4;
+      reasons.push('双王');
+    } else if (hasSmallJoker) {
+      bonus *= 2;
+      reasons.push('含小王');
+    } else if (hasBigJoker) {
+      bonus *= 2;
+      reasons.push('含大王');
+    }
+    const sorted = weights.slice().sort((a, b) => a - b);
+    if (sorted[0] === sorted[1] && sorted[1] === sorted[2]) {
+      bonus *= 2;
+      reasons.push('三同');
+    } else if (sorted[2] < 12 && sorted[0] + 1 === sorted[1] && sorted[1] + 1 === sorted[2]) {
+      bonus *= 2;
+      reasons.push('三连');
+    }
+    return { bonus, reasons };
+  }
+
   function revealBottom() {
     state.bottomRevealed = true;
     renderBottomPile();
+
+    // Bug 8: 底牌特殊情形加倍 — 含王 / 双王 / 三同 / 三连
+    const bonusInfo = detectBottomBonus(state.bottom);
+    if (bonusInfo.bonus > 1) {
+      state.multiplier *= bonusInfo.bonus;
+      setStatus(`底牌 ${bonusInfo.reasons.join(' + ')} — 倍数 ×${bonusInfo.bonus}`);
+      renderMultiplier();
+    }
+
     setTimeout(() => {
-      state.hands[state.landlordIdx] = state.hands[state.landlordIdx].concat(state.bottom);
-      for (const c of state.bottom) state.seen[E.cardWeight(c)]++;
-      aiPerceiveBottom();
-      // 揭底牌后 snapshot 三家完整初始手牌（地主含底牌） — 给春天结算图用
-      state.initialHands = [
-        state.hands[0].slice(),
-        state.hands[1].slice(),
-        state.hands[2].slice(),
-      ];
-      renderHand();
-      renderHandCounts();
-      renderRoles();
-      // 直接进加倍阶段；明牌按钮在出牌阶段任意时刻可点（见 ddzDeclareBtn）
-      enterDoubling();
-    }, 1100);
+      // Bug 7: 底牌"飞入"地主手牌的动画
+      flyBottomToLandlord(state.bottom, state.landlordIdx);
+      // 等飞牌动画完成再合并入手牌 + 重渲染
+      setTimeout(() => {
+        state.hands[state.landlordIdx] = state.hands[state.landlordIdx].concat(state.bottom);
+        for (const c of state.bottom) state.seen[E.cardWeight(c)]++;
+        aiPerceiveBottom();
+        state.initialHands = [
+          state.hands[0].slice(),
+          state.hands[1].slice(),
+          state.hands[2].slice(),
+        ];
+        renderHand();
+        renderHandCounts();
+        renderRoles();
+        enterDoubling();
+      }, 700);
+    }, 900);   // 给玩家看清底牌 + 特殊加成提示
   }
 
   // 玩家点"明牌"按钮：倍数 ×2 + 头像上挂明牌 badge
