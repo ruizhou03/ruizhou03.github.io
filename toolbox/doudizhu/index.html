@@ -1122,7 +1122,6 @@ permalink: /toolbox/doudizhu/
   .ddz-lobby[hidden],
   .ddz-online-config[hidden],
   .ddz-online-resume[hidden],
-  .ddz-double-grid[hidden],
   .ddz-bottom-pile[hidden] {
     display: none !important;
   }
@@ -1245,52 +1244,91 @@ permalink: /toolbox/doudizhu/
   .ddz-bid-buttons button:active:not(:disabled) { transform: translateY(0); }
   .ddz-bid-buttons button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* 同时决策（加倍）— 三列等宽，"我"居中，跟其它牌桌信息一致的字体 */
-  .ddz-double-grid {
-    display: flex;
-    gap: 0.4rem;
-    margin: 0;
-    flex-wrap: nowrap;
-    width: 100%;
-  }
-  .ddz-double-cell {
-    flex: 1 1 0;                 /* 三列等宽 */
-    min-width: 0;
+  /* 加倍阶段：单行问题 + 大按钮 + 一条 "上家 / 下家" 微状态行
+     不再用 3 列 "上家 / 我 / 下家" grid —— 那种布局在玩家这一列既出按钮又
+     出"思考中…"两条信息，视觉冗余且容易显得空。 */
+  .ddz-double-col {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+    width: 100%;
+  }
+  .ddz-double-q {
+    font-size: 0.96rem;
+    margin: 0;
+    color: var(--ddz-text-on-felt);
+    font-family: var(--font-display);
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.1rem;
-    padding: 0.25rem 0.3rem;
-    border-radius: 8px;
-    background: rgba(141,110,55,0.08);
-    border: 1px solid var(--ddz-frame-2);
-    transition: all 0.18s;
-    font-family: var(--font-display);   /* 跟其它 UI 字体一致（Bug 10） */
-    letter-spacing: 0.03em;
+    gap: 0.5rem;
   }
-  .ddz-double-cell .who {
+  .ddz-double-q .mult-preview {
+    display: inline-block;
+    padding: 0.02rem 0.5rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--ddz-accent), var(--ddz-accent-strong));
+    color: #fff;
+    font-size: 0.86rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    box-shadow: 0 1px 4px rgba(141,110,55,0.32);
+  }
+  .ddz-double-waiting {
+    font-size: 0.86rem;
     color: var(--ddz-text-on-felt-mute);
-    font-size: 0.72rem;
+    font-family: var(--font-display);
+    letter-spacing: 0.04em;
+    text-align: center;
+    margin: 0;
   }
-  .ddz-double-cell .status {
-    color: var(--ddz-text-on-felt);
-    font-size: 0.82rem;
-    font-weight: 600;
-    font-family: var(--font-display);   /* 显式覆盖以前的 Georgia serif */
+  .ddz-double-waiting .me-choice {
+    color: var(--ddz-accent-strong);
+    font-weight: 700;
+    margin-right: 0.35rem;
+  }
+  .ddz-double-others {
+    display: flex;
+    justify-content: center;
+    gap: 0.45rem;
+    font-size: 0.78rem;
+    color: var(--ddz-text-on-felt-mute);
+    font-family: var(--font-display);
+    letter-spacing: 0.03em;
+    margin: 0;
+  }
+  .ddz-double-others .who {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.22rem;
+    padding: 0.05rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(141,110,55,0.22);
+    background: rgba(141,110,55,0.05);
     white-space: nowrap;
   }
-  .ddz-double-cell.decided-yes { border-color: var(--ddz-accent); background: rgba(201,169,110,0.30); }
-  .ddz-double-cell.decided-yes .status { color: var(--ddz-accent-strong); }
-  .ddz-double-cell.decided-no  { border-color: rgba(141,110,55,0.20); background: rgba(141,110,55,0.04); }
-  .ddz-double-cell.decided-no  .status { color: var(--ddz-text-on-felt-mute); }
-  .ddz-double-cell.pending     { border-style: dashed; }
-  .ddz-double-cell.pending .status::after {
+  .ddz-double-others .who.decided-yes {
+    border-color: var(--ddz-accent);
+    background: rgba(201,169,110,0.22);
+    color: var(--ddz-accent-strong);
+    font-weight: 600;
+  }
+  .ddz-double-others .who.decided-no {
+    color: var(--ddz-text-on-felt-mute);
+  }
+  .ddz-double-others .who.pending {
+    border-style: dashed;
+  }
+  .ddz-double-others .who.pending::after {
     content: '…';
     display: inline-block;
     animation: ddz-dots 1.2s steps(4, end) infinite;
-    width: 1em; text-align: left; margin-left: 2px;
+    width: 0.9em; text-align: left; margin-left: 2px;
   }
+  .ddz-double-others .ico { font-size: 0.78rem; }
 
   /* ======== 浮层 ======== */
   .ddz-overlay {
@@ -1414,7 +1452,10 @@ permalink: /toolbox/doudizhu/
     .ddz-card.size-bottom .pip { font-size: 16px; }
     .ddz-card-back::after { font-size: 14px; }
     .ddz-overlay h2 { font-size: 1.5rem; }
-    .ddz-double-cell { min-width: 60px; padding: 0.3rem 0.4rem; }
+    .ddz-double-q { font-size: 0.9rem; }
+    .ddz-double-q .mult-preview { font-size: 0.8rem; }
+    .ddz-double-others { gap: 0.3rem; font-size: 0.74rem; }
+    .ddz-double-others .who { padding: 0.05rem 0.4rem; }
   }
 
   /* 手机竖屏：进一步收紧卡牌尺寸，让地主 20 张牌也能挤在一行 */
@@ -2669,6 +2710,7 @@ permalink: /toolbox/doudizhu/
     state.landlordCandidate = -1;
     state.robCount = 0;
     state.callDecided = [false, false, false];   // 叫阶段是否已表态
+    state.callPassed  = [false, false, false];   // 叫阶段选了"不叫"——按规则丧失"抢"资格
     state.robDecided  = [false, false, false];   // 抢阶段是否已表态
     renderRoles();
     nextBidTurn();
@@ -2717,10 +2759,12 @@ permalink: /toolbox/doudizhu/
 
     // 阶段 2：抢地主（已有 candidate）
     // 每个非 candidate 的 seat 都有 1 次抢机会
+    // 规则：在叫阶段已经"不叫"的玩家无法"抢地主"——直接跳过
     for (let i = 0; i < 3; i++) {
       const seat = (state.bidTurnIdx + i) % 3;
       if (state.robDecided[seat]) continue;
       if (seat === state.landlordCandidate) continue;   // 不能抢自己
+      if (state.callPassed[seat]) continue;              // 不叫过 → 无抢资格
       state.bidTurnIdx = seat;
       presentBidChoice(seat, /*isCall=*/false);
       return;
@@ -2773,13 +2817,17 @@ permalink: /toolbox/doudizhu/
     renderBidTagAt(seat, act, isCallPhase);
 
     // 标记本阶段已表态
-    if (isCallPhase) state.callDecided[seat] = true;
-    else             state.robDecided[seat]  = true;
+    if (isCallPhase) {
+      state.callDecided[seat] = true;
+      if (act === 'pass') state.callPassed[seat] = true;   // 失去"抢"资格（规则四·4）
+    } else {
+      state.robDecided[seat]  = true;
+    }
 
     if (act === 'rob') {
       if (isCallPhase) {
         state.landlordCandidate = seat;
-        state.multiplier = 1;
+        // 叫地主本身不增加倍数；明牌开局的 ×5 / ×4 / ×3 不能被这里清掉。
         state.robCount = 1;
         setStatus(`${seatLabel(seat)} 叫地主`);
       } else {
@@ -2994,57 +3042,80 @@ permalink: /toolbox/doudizhu/
   }
 
   function renderDoubleSimultaneousPanel() {
-    // 标题留空（CSS :empty 自动隐藏），倒计时用 absolute corner chip 浮在右上
+    renderDoublePanelLayout({
+      decided: doubleDecided.slice(),
+      choice: doubleChoice.slice(),
+      onChoose: (c) => commitDouble(0, c),
+    });
+  }
+
+  // 单机 + 联机共用的新版加倍面板布局
+  //   - 一行清晰的"是否加倍？×N"问题
+  //   - 玩家未决：两个大按钮（加倍 / 不加倍）
+  //   - 玩家已决：一行"已加倍/已不加倍 · 等待其他玩家…"
+  //   - 最下方一行胶囊状态行，只展示"上家 / 下家"两家（"我"信息已经在按钮或上一行体现，避免冗余）
+  // 注意：bidButtonsEl 本身是 flex-row（旧的"叫地主/抢地主"两按钮用），
+  // 所以我们把三段内容包进一个 flex-column 容器，再整体塞进 bidButtonsEl。
+  function renderDoublePanelLayout({ decided, choice, onChoose }) {
     bidTitle.innerHTML = '';
     bidButtonsEl.innerHTML = '';
     const cdEl = document.getElementById('ddzDoubleCountdown');
     if (cdEl) cdEl.hidden = false;
 
-    // 三列等宽：上家 / 我 / 下家
-    const grid = document.createElement('div');
-    grid.className = 'ddz-double-grid';
-    const seatOrder = [2, 0, 1];
-    for (const seat of seatOrder) {
-      const cell = document.createElement('div');
-      cell.className = 'ddz-double-cell';
-      const decided = doubleDecided[seat];
-      const choice = doubleChoice[seat];
-      if (decided) cell.classList.add(choice === 'double' ? 'decided-yes' : 'decided-no');
-      else         cell.classList.add('pending');
-      const who = document.createElement('div');
-      who.className = 'who';
-      who.textContent = seat === 0 ? '我' : (seat === 1 ? '下家' : '上家');
-      const status = document.createElement('div');
-      status.className = 'status';
-      if (decided) status.textContent = choice === 'double' ? '加倍' : '不加倍';
-      else         status.textContent = '思考中…';
-      cell.appendChild(who);
-      cell.appendChild(status);
-      grid.appendChild(cell);
-    }
-    bidButtonsEl.appendChild(grid);
+    const nextMult = state.multiplier * 2;
+    const col = document.createElement('div');
+    col.className = 'ddz-double-col';
 
-    // 玩家未决：两个按钮一排（加倍 / 不加倍）
-    if (!doubleDecided[0]) {
+    // 1) 问题行
+    const q = document.createElement('div');
+    q.className = 'ddz-double-q';
+    if (!decided[0]) {
+      q.innerHTML = `<span>是否加倍？</span><span class="mult-preview">加倍后 ×${nextMult}</span>`;
+    } else {
+      q.innerHTML = `<span>${choice[0] === 'double' ? '已加倍' : '已不加倍'}</span><span class="mult-preview">×${choice[0] === 'double' ? nextMult : state.multiplier}</span>`;
+    }
+    col.appendChild(q);
+
+    // 2) 玩家行：未决 → 按钮；已决 → 等待文本
+    if (!decided[0]) {
       const wrap = document.createElement('div');
-      wrap.style.cssText = 'display:flex; gap:0.6rem; justify-content:center; margin-top:0.4rem;';
+      wrap.className = 'ddz-bid-buttons';
       const yes = document.createElement('button');
       yes.type = 'button'; yes.className = 'primary';
-      yes.textContent = `加倍 ×${state.multiplier * 2}`;
-      yes.addEventListener('click', () => commitDouble(0, 'double'));
+      yes.textContent = `加倍 ×${nextMult}`;
+      yes.addEventListener('click', () => onChoose('double'));
       const no = document.createElement('button');
       no.type = 'button';
       no.textContent = '不加倍';
-      no.addEventListener('click', () => commitDouble(0, 'pass'));
-      wrap.appendChild(yes);
-      wrap.appendChild(no);
-      bidButtonsEl.appendChild(wrap);
+      no.addEventListener('click', () => onChoose('pass'));
+      wrap.appendChild(yes); wrap.appendChild(no);
+      col.appendChild(wrap);
     } else {
-      const tip = document.createElement('div');
-      tip.style.cssText = 'font-size:0.82rem; color:var(--ddz-text-on-felt-mute); margin-top:0.4rem; font-family:var(--font-display); letter-spacing:0.04em;';
-      tip.textContent = '等待其他人决定…';
-      bidButtonsEl.appendChild(tip);
+      const tip = document.createElement('p');
+      tip.className = 'ddz-double-waiting';
+      const allDone = decided.every(Boolean);
+      tip.textContent = allDone ? '所有人都已决定' : '等待其他人决定…';
+      col.appendChild(tip);
     }
+
+    // 3) 上家 / 下家 微状态行
+    const others = document.createElement('div');
+    others.className = 'ddz-double-others';
+    for (const seat of [2, 1]) {
+      const span = document.createElement('span');
+      span.className = 'who';
+      if (decided[seat]) {
+        span.classList.add(choice[seat] === 'double' ? 'decided-yes' : 'decided-no');
+        span.innerHTML = `<span class="ico">${choice[seat] === 'double' ? '✓' : '✗'}</span>${seat === 1 ? '下家' : '上家'} ${choice[seat] === 'double' ? '加倍' : '不加倍'}`;
+      } else {
+        span.classList.add('pending');
+        span.textContent = `${seat === 1 ? '下家' : '上家'} 思考`;
+      }
+      others.appendChild(span);
+    }
+    col.appendChild(others);
+
+    bidButtonsEl.appendChild(col);
   }
 
   function renderBidButtons(items, onClick) {
@@ -4383,54 +4454,11 @@ permalink: /toolbox/doudizhu/
   function renderOnlineDoublePanel() {
     bidPanel.hidden = false;
     playActions.hidden = true;
-    bidTitle.innerHTML = '';
-    bidButtonsEl.innerHTML = '';
-    const cdEl = document.getElementById('ddzDoubleCountdown');
-    if (cdEl) cdEl.hidden = false;
-
-    // 三列等宽：上家 / 我 / 下家
-    const grid = document.createElement('div');
-    grid.className = 'ddz-double-grid';
-    const seatOrder = [2, 0, 1];
-    for (const seat of seatOrder) {
-      const cell = document.createElement('div');
-      cell.className = 'ddz-double-cell';
-      const decided = state.online.doubleDecided[seat];
-      const choice = state.online.doubleChoice[seat];
-      if (decided) cell.classList.add(choice === 'double' ? 'decided-yes' : 'decided-no');
-      else cell.classList.add('pending');
-      const who = document.createElement('div');
-      who.className = 'who';
-      who.textContent = seat === 0 ? '我' : (seat === 1 ? '下家' : '上家');
-      const status = document.createElement('div');
-      status.className = 'status';
-      status.textContent = decided ? (choice === 'double' ? '加倍' : '不加倍') : '思考中…';
-      cell.appendChild(who);
-      cell.appendChild(status);
-      grid.appendChild(cell);
-    }
-    bidButtonsEl.appendChild(grid);
-
-    if (!state.online.doubleDecided[0]) {
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'display:flex; gap:0.6rem; justify-content:center; margin-top:0.4rem;';
-      const yes = document.createElement('button');
-      yes.type = 'button'; yes.className = 'primary';
-      yes.textContent = `加倍 ×${state.multiplier * 2}`;
-      yes.addEventListener('click', () => sendOnlineDouble('double'));
-      const no = document.createElement('button');
-      no.type = 'button';
-      no.textContent = '不加倍';
-      no.addEventListener('click', () => sendOnlineDouble('pass'));
-      wrap.appendChild(yes);
-      wrap.appendChild(no);
-      bidButtonsEl.appendChild(wrap);
-    } else {
-      const tip = document.createElement('div');
-      tip.style.cssText = 'font-size:0.82rem; color:var(--ddz-text-on-felt-mute); margin-top:0.4rem; font-family:var(--font-display); letter-spacing:0.04em;';
-      tip.textContent = '等待其他人决定…';
-      bidButtonsEl.appendChild(tip);
-    }
+    renderDoublePanelLayout({
+      decided: state.online.doubleDecided.slice(),
+      choice: state.online.doubleChoice.slice(),
+      onChoose: (c) => sendOnlineDouble(c),
+    });
 
     // 倒计时（用 server endAt）
     if (onlineDoubleTimer) clearInterval(onlineDoubleTimer);
