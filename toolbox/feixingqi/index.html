@@ -1315,9 +1315,8 @@ permalink: /toolbox/feixingqi/
             && state.animating.color === c
             && state.animating.pieceIdx === i;
           // Skip duplicate stacked pieces (we draw one icon + xN label per cell).
-          // Goal pieces still draw individually so the 4-dot completion grid
-          // stays visible.
-          if (!isAnimatingThis && piece.status !== 'hangar' && piece.status !== 'goal') {
+          // Hangar pieces sit in 4 distinct slots so they never stack.
+          if (!isAnimatingThis && piece.status !== 'hangar') {
             const k = stackKey(piece, c);
             if (stackRendered.has(k)) continue;
             stackRendered.add(k);
@@ -1338,11 +1337,8 @@ permalink: /toolbox/feixingqi/
           } else if (piece.status === 'hangar') xy = hangarXY(c, piece.pos);
           else if (piece.status === 'track') xy = trackXY(piece.pos);
           else if (piece.status === 'stretch') xy = stretchXY(c, piece.pos);
-          else { // goal — keep 2×2 offset grid so a finished player shows 4 dots
-            const baseXY = goalXYFor(c);
-            const ox = (i % 2 === 0 ? -1 : 1) * px(0.05);
-            const oy = (i < 2 ? -1 : 1) * px(0.05);
-            xy = { x: baseXY.x + ox, y: baseXY.y + oy };
+          else { // goal — arrived plane sits directly on the goal circle
+            xy = goalXYFor(c);
           }
           const cls = ['plane'];
           const isLegal = state.started && state.awaitingPick
@@ -1354,51 +1350,40 @@ permalink: /toolbox/feixingqi/
           if (state.lastMove && state.lastMove.color === c && state.lastMove.pieceIdx === i && !isAnimatingThis) {
             cls.push('last-moved');
           }
-          const r = effStatus === 'goal' ? planeR * 0.5 : planeR;
+          const r = planeR;
           const g = svgEl('g', { class: cls.join(' '), 'data-color': c, 'data-idx': i });
-          if (effStatus === 'goal') {
-            // Completed pieces: small color dot
-            g.appendChild(svgEl('circle', {
-              cx: xy.x, cy: xy.y, r,
-              fill: COLOR_INFO[c].hex,
-              stroke: '#ffffff',
-              'stroke-width': 1.2,
-            }));
-          } else {
-            // Bigger disc in hangar (parking slots are larger), smaller on
-            // the track/stretch so we don't crowd neighbouring cells.
-            const pieceScale = effStatus === 'hangar' ? 1.45 : 1.1;
-            // Transparent hit-area circle so clicks register on the whole piece
-            g.appendChild(svgEl('circle', {
-              cx: xy.x, cy: xy.y, r: r * pieceScale,
-              fill: 'transparent',
-            }));
-            // Chess-piece style: colored disc with white airplane inlay
-            const rotDeg = pieceHeading(c, effStatus, effPos, animKind);
-            drawChessPiece(g, xy.x, xy.y, c, rotDeg, pieceScale);
-            // Stack count badge: when N>1 same-color pieces share this cell,
-            // render one icon + "xN" instead of N overlapping icons.
-            if (!isAnimatingThis && piece.status !== 'hangar') {
-              const n = stackCount[stackKey(piece, c)] || 1;
-              if (n > 1) {
-                const badgeR = planeR * 0.5;
-                const badgeX = xy.x + planeR * 0.85;
-                const badgeY = xy.y - planeR * 0.85;
-                g.appendChild(svgEl('circle', {
-                  cx: badgeX, cy: badgeY, r: badgeR,
-                  fill: '#ffffff', stroke: '#1F1F1F', 'stroke-width': 0.8,
-                }));
-                const tx = svgEl('text', {
-                  x: badgeX, y: badgeY + badgeR * 0.35,
-                  'text-anchor': 'middle',
-                  'font-size': badgeR * 1.2,
-                  'font-weight': '700',
-                  'font-family': 'system-ui, sans-serif',
-                  fill: COLOR_INFO[c].hex,
-                });
-                tx.textContent = `x${n}`;
-                g.appendChild(tx);
-              }
+          // Chess-piece for every status (hangar / track / stretch / goal).
+          // Hangar pieces are larger (the parking slot is roomy); on-board
+          // pieces are a touch smaller so they don't crowd neighbours.
+          const pieceScale = effStatus === 'hangar' ? 1.45 : 1.1;
+          g.appendChild(svgEl('circle', {
+            cx: xy.x, cy: xy.y, r: r * pieceScale,
+            fill: 'transparent',
+          }));
+          const rotDeg = pieceHeading(c, effStatus, effPos, animKind);
+          drawChessPiece(g, xy.x, xy.y, c, rotDeg, pieceScale);
+          // Stack count badge: when N>1 same-color pieces share this cell,
+          // render one icon + "xN" instead of N overlapping icons.
+          if (!isAnimatingThis && piece.status !== 'hangar') {
+            const n = stackCount[stackKey(piece, c)] || 1;
+            if (n > 1) {
+              const badgeR = planeR * 0.5;
+              const badgeX = xy.x + planeR * 0.85;
+              const badgeY = xy.y - planeR * 0.85;
+              g.appendChild(svgEl('circle', {
+                cx: badgeX, cy: badgeY, r: badgeR,
+                fill: '#ffffff', stroke: '#1F1F1F', 'stroke-width': 0.8,
+              }));
+              const tx = svgEl('text', {
+                x: badgeX, y: badgeY + badgeR * 0.35,
+                'text-anchor': 'middle',
+                'font-size': badgeR * 1.2,
+                'font-weight': '700',
+                'font-family': 'system-ui, sans-serif',
+                fill: COLOR_INFO[c].hex,
+              });
+              tx.textContent = `x${n}`;
+              g.appendChild(tx);
             }
           }
           planeGroup.appendChild(g);
