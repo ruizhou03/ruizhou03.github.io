@@ -895,23 +895,18 @@ permalink: /toolbox/doudizhu/
     pointer-events: none;
   }
   .ddz-score-hint:empty { display: none; }
-  /* 明牌按钮：地主未明牌 + 出牌阶段才显示；点击 → 倍数 ×2 + 头像挂 badge */
-  .ddz-declare-btn {
-    padding: 0.18rem 0.7rem;
-    border-radius: 999px;
+  /* 明牌按钮在 actions 行内（替"不出"位置 — 地主第一轮不可能不出） */
+  .ddz-btn.declare {
     background: rgba(245,209,66,0.30);
     color: #a87a2a;
-    font-size: 0.82rem;
-    font-weight: 600;
-    border: 1px solid var(--ddz-frame);
-    cursor: pointer;
-    letter-spacing: 0.04em;
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    transition: transform 0.12s, background 0.18s;
+    border-color: var(--ddz-frame);
   }
-  .ddz-declare-btn:hover { transform: translateY(-1px); background: rgba(245,209,66,0.45); }
-  .ddz-declare-btn:active { transform: translateY(0); }
-  .ddz-declare-btn[hidden] { display: none !important; }
+  .ddz-btn.declare:hover:not(:disabled) {
+    background: rgba(245,209,66,0.45);
+    color: #a87a2a;
+    border-color: var(--ddz-frame);
+  }
+  .ddz-btn[hidden] { display: none !important; }
 
   /* ======== 我的座位 + 手牌 ======== */
   .ddz-self {
@@ -1158,6 +1153,23 @@ permalink: /toolbox/doudizhu/
   }
   /* 加倍阶段不渲染标题文本 → 自动腾出空间，整个面板压进 decision-slot 100px */
   .ddz-bid-title:empty { display: none; }
+  /* 加倍倒计时浮在 bid-panel 右上角，不占行 */
+  .ddz-bid-countdown {
+    position: absolute;
+    top: 0.3rem;
+    right: 0.5rem;
+    z-index: 3;
+    padding: 0.06rem 0.4rem;
+    border-radius: 999px;
+    background: rgba(141,110,55,0.16);
+    border: 1px solid var(--ddz-frame-2);
+    color: var(--ddz-accent-strong);
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    font-family: var(--font-display);
+  }
+  .ddz-bid-countdown[hidden] { display: none !important; }
   .ddz-bid-title .countdown-badge {
     display: inline-block;
     padding: 0.05rem 0.45rem;
@@ -1196,31 +1208,40 @@ permalink: /toolbox/doudizhu/
   .ddz-bid-buttons button:active:not(:disabled) { transform: translateY(0); }
   .ddz-bid-buttons button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* 同时决策（加倍）三人状态行 — 紧凑横排，挤进 decision-slot 100px 高度 */
+  /* 同时决策（加倍）— 三列等宽，"我"居中，跟其它牌桌信息一致的字体 */
   .ddz-double-grid {
-    display: flex; justify-content: center; gap: 0.4rem;
+    display: flex;
+    gap: 0.4rem;
     margin: 0;
     flex-wrap: nowrap;
+    width: 100%;
   }
   .ddz-double-cell {
-    display: inline-flex; align-items: center;
-    gap: 0.35rem;
-    padding: 0.18rem 0.6rem;
-    border-radius: 999px;
+    flex: 1 1 0;                 /* 三列等宽 */
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.1rem;
+    padding: 0.25rem 0.3rem;
+    border-radius: 8px;
     background: rgba(141,110,55,0.08);
     border: 1px solid var(--ddz-frame-2);
     transition: all 0.18s;
-    font-size: 0.78rem;
+    font-family: var(--font-display);   /* 跟其它 UI 字体一致（Bug 10） */
     letter-spacing: 0.03em;
   }
   .ddz-double-cell .who {
     color: var(--ddz-text-on-felt-mute);
-    font-family: var(--font-display);
+    font-size: 0.72rem;
   }
   .ddz-double-cell .status {
     color: var(--ddz-text-on-felt);
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 0.82rem;
     font-weight: 600;
+    font-family: var(--font-display);   /* 显式覆盖以前的 Georgia serif */
+    white-space: nowrap;
   }
   .ddz-double-cell.decided-yes { border-color: var(--ddz-accent); background: rgba(201,169,110,0.30); }
   .ddz-double-cell.decided-yes .status { color: var(--ddz-accent-strong); }
@@ -1614,23 +1635,28 @@ permalink: /toolbox/doudizhu/
     <div class="ddz-decision-slot">
       <div class="ddz-played" id="ddzPlayed0"></div>
       <div class="ddz-bid-panel" id="ddzBidPanel" hidden>
+        <span class="ddz-bid-countdown" id="ddzDoubleCountdown" hidden>5s</span>
         <div class="ddz-bid-title" id="ddzBidTitle">轮到你</div>
         <div class="ddz-bid-buttons" id="ddzBidButtons"></div>
       </div>
     </div>
 
-    <!-- 出牌按钮 — 在手牌正上方；hidden 时仍占布局位（visibility:hidden），避免画幅跳变 -->
+    <!-- 出牌动作区 — 在手牌正上方；hidden 时仍占布局位避免画幅跳变。
+         其中：
+         - 明牌按钮：地主未明牌且第一轮做庄时才显示（占"不出"的位置，毕竟第一轮没法不出）
+         - 不出按钮：上家不是自己时才显示（自己做庄时不可能"不出"）
+         - 提示/出牌：轮到自己时正常显示 -->
     <div class="ddz-actions" id="ddzPlayActions" hidden>
-      <button class="ddz-btn" id="ddzPassBtn" type="button">不出</button>
+      <button class="ddz-btn declare" id="ddzDeclareBtn" type="button" hidden>🎴 明牌 ×2</button>
+      <button class="ddz-btn" id="ddzPassBtn" type="button" hidden>不出</button>
       <button class="ddz-btn" id="ddzHintBtn" type="button">提示</button>
       <button class="ddz-btn primary" id="ddzPlayBtn" type="button">出牌</button>
     </div>
 
     <div class="ddz-hand" id="ddzHand"></div>
 
-    <!-- 右下角：明牌按钮（地主未明牌时可点）+ 积分提示 -->
+    <!-- 右下角积分提示 -->
     <div class="ddz-corner-chips">
-      <button class="ddz-declare-btn" id="ddzDeclareBtn" type="button" hidden>🎴 明牌 ×2</button>
       <div class="ddz-score-hint" id="ddzMultiplier"></div>
     </div>
 
@@ -2441,7 +2467,7 @@ permalink: /toolbox/doudizhu/
     const m = currentMultiplier();
     const myIsLandlord = state.landlordIdx === 0;
     const score = myIsLandlord ? m * 2 : m;
-    multiEl.textContent = `赢 ${score} 分`;
+    multiEl.textContent = `${score} 分`;
   }
 
   function currentMultiplier() {
@@ -2453,8 +2479,10 @@ permalink: /toolbox/doudizhu/
       playBtn.disabled = true; passBtn.disabled = true;
       return;
     }
-    // pass 按钮：只有当 lastTrick 是别人出的（即 lastTrick.seat !== 0）才能 pass
+    // "不出"按钮：只有上家出牌（lastTrick 存在且不是自己）才显示
+    // 自己做庄时（lastTrick=null 或 lastTrick.seat === 0）压根不该有"不出"
     const canPass = state.lastTrick && state.lastTrick.seat !== 0;
+    passBtn.hidden = !canPass;
     passBtn.disabled = !canPass;
 
     if (state.selected.size === 0) { playBtn.disabled = true; return; }
@@ -2537,7 +2565,16 @@ permalink: /toolbox/doudizhu/
   }
 
   // ============================================================
-  // 抢地主：三家依次决定 抢/不抢；最后抢的当地主，每抢一次倍数 ×2
+  // 叫/抢地主流程：
+  //   1) 叫阶段：从 bidStartSeat 起，按顺序每人 1 次 "叫/不叫" 机会
+  //      - 有人叫 → 进入抢阶段
+  //      - 全员都不叫 → 重发
+  //   2) 抢阶段：每位玩家（含原本叫地主的人）都有且仅有 1 次 "抢/不抢" 机会
+  //      - 当 candidate 已是自己时不再问（不能抢自己）
+  //      - 每抢一次 multiplier ×2
+  //   3) 抢阶段所有人决定完后 finalize，最后的 candidate 当地主
+  //
+  // 例：我叫 → 下家抢 → 上家抢 → 我还有"反抢"机会（旧实现错过了这步）
   // ============================================================
   function enterBidding(opts) {
     opts = opts || {};
@@ -2547,6 +2584,8 @@ permalink: /toolbox/doudizhu/
     state.bidActions = [];
     state.landlordCandidate = -1;
     state.robCount = 0;
+    state.callDecided = [false, false, false];   // 叫阶段是否已表态
+    state.robDecided  = [false, false, false];   // 抢阶段是否已表态
     renderRoles();
     nextBidTurn();
   }
@@ -2571,33 +2610,64 @@ permalink: /toolbox/doudizhu/
   }
 
   function nextBidTurn() {
-    if (state.bidActions.length >= 3) {
-      // 三家都决定完 — 额外等 800ms 让玩家看清最后一家的选择再 finalize
-      // （避免上家叫、我抢之后下家决定一闪而过就变成地主的体验）
-      setTimeout(() => finalizeLandlord(), 800);
+    // 阶段 1：叫地主（still no candidate, 还有人没表态）
+    if (state.landlordCandidate < 0) {
+      const callPending = state.callDecided.some(d => !d);
+      if (!callPending) {
+        // 全员都不叫 → 重发
+        setStatus('三家都没叫地主，重新发牌');
+        setTimeout(() => startNewGame(), 1200);
+        return;
+      }
+      // 从 bidTurnIdx 起找下一个未表态的 seat
+      for (let i = 0; i < 3; i++) {
+        const seat = (state.bidTurnIdx + i) % 3;
+        if (!state.callDecided[seat]) {
+          state.bidTurnIdx = seat;
+          presentBidChoice(seat, /*isCall=*/true);
+          return;
+        }
+      }
+      return; // 兜底
+    }
+
+    // 阶段 2：抢地主（已有 candidate）
+    // 每个非 candidate 的 seat 都有 1 次抢机会
+    for (let i = 0; i < 3; i++) {
+      const seat = (state.bidTurnIdx + i) % 3;
+      if (state.robDecided[seat]) continue;
+      if (seat === state.landlordCandidate) continue;   // 不能抢自己
+      state.bidTurnIdx = seat;
+      presentBidChoice(seat, /*isCall=*/false);
       return;
     }
-    const seat = state.bidTurnIdx;
-    const isFirst = state.landlordCandidate < 0;
-    const verb = isFirst ? '叫地主' : '抢地主';
+
+    // 抢阶段全员决定完 → 等 800ms 让玩家看清最后一手，再 finalize
+    setTimeout(() => finalizeLandlord(), 800);
+  }
+
+  function presentBidChoice(seat, isCall) {
+    // 进入"叫/抢"决策 — 隐掉加倍阶段才用的 corner 倒计时
+    const cdEl = document.getElementById('ddzDoubleCountdown');
+    if (cdEl) cdEl.hidden = true;
+    const verb = isCall ? '叫地主' : '抢地主';
     setStatus(`轮到 ${seatLabel(seat)} ${verb}`);
     if (seat === 0) {
       bidPanel.hidden = false;
-      bidTitle.textContent = isFirst
+      bidTitle.textContent = isCall
         ? '叫地主吗？'
         : `已有 ${seatLabel(state.landlordCandidate)} ${state.robCount > 1 ? '抢地主' : '叫地主'}，要抢吗？（当前倍数 ×${state.multiplier}）`;
       renderBidButtons([
-        { label: isFirst ? '叫地主' : '抢地主', value: 'rob', primary: true },
-        { label: isFirst ? '不叫' : '不抢', value: 'pass' },
+        { label: isCall ? '叫地主' : '抢地主', value: 'rob', primary: true },
+        { label: isCall ? '不叫' : '不抢', value: 'pass' },
       ], handleBid);
     } else {
       bidPanel.hidden = true;
       renderBidThinkingAt(seat);
       setTimeout(() => {
-        // AI: 用现有 evaluateHand 判断要不要叫/抢
         const score = AI.evaluateHand(state.hands[seat]);
-        // 阈值：有人已经叫了的话提高门槛（避免无脑抢）
-        const threshold = isFirst ? 3 : 8;
+        // AI 阈值：叫阶段 3、抢阶段 8（避免无脑抢）
+        const threshold = isCall ? 3 : 8;
         const want = score >= threshold ? 'rob' : 'pass';
         handleBid(seat, want);
       }, 700);
@@ -2605,7 +2675,6 @@ permalink: /toolbox/doudizhu/
   }
 
   function handleBid(seatOrAction, action) {
-    // 玩家点击：第一个参数是 action（'rob'/'pass'），需要从 state 读 seat
     let seat, act;
     if (typeof seatOrAction === 'number') {
       seat = seatOrAction;
@@ -2615,12 +2684,16 @@ permalink: /toolbox/doudizhu/
       act = seatOrAction;
     }
     bidPanel.hidden = true;
-    const isFirstBid = state.landlordCandidate < 0;
-    state.bidActions.push({ seat, action: act });
-    // 在该座位的 .ddz-played 显示决策 tag（叫/抢/不叫/不抢），所有人可见，保留到 bidding 结束
-    renderBidTagAt(seat, act, isFirstBid);
+    const isCallPhase = state.landlordCandidate < 0;
+    state.bidActions.push({ seat, action: act, phase: isCallPhase ? 'call' : 'rob' });
+    renderBidTagAt(seat, act, isCallPhase);
+
+    // 标记本阶段已表态
+    if (isCallPhase) state.callDecided[seat] = true;
+    else             state.robDecided[seat]  = true;
+
     if (act === 'rob') {
-      if (state.landlordCandidate < 0) {
+      if (isCallPhase) {
         state.landlordCandidate = seat;
         state.multiplier = 1;
         state.robCount = 1;
@@ -2632,7 +2705,7 @@ permalink: /toolbox/doudizhu/
         setStatus(`${seatLabel(seat)} 抢地主（倍数 ×${state.multiplier}）`);
       }
     } else {
-      setStatus(`${seatLabel(seat)} ${state.landlordCandidate < 0 ? '不叫' : '不抢'}`);
+      setStatus(`${seatLabel(seat)} ${isCallPhase ? '不叫' : '不抢'}`);
     }
     state.bidTurnIdx = (state.bidTurnIdx + 1) % 3;
     setTimeout(() => nextBidTurn(), 700);
@@ -2688,9 +2761,15 @@ permalink: /toolbox/doudizhu/
   function updateDeclareBtn() {
     const btn = document.getElementById('ddzDeclareBtn');
     if (!btn) return;
+    // 明牌只能在"地主第一轮出牌前"决定：
+    //   - 出牌阶段 + 我是地主 + 未明牌
+    //   - 地主还没出过牌（landlordPlayCount === 0）
+    //   - 必须轮到我（playActions 可见时才有意义）
     const visible = state.phase === PHASE.PLAYING
       && state.landlordIdx === 0
-      && !state.declared;
+      && !state.declared
+      && state.landlordPlayCount === 0
+      && state.turnIdx === 0;
     btn.hidden = !visible;
   }
 
@@ -2762,6 +2841,9 @@ permalink: /toolbox/doudizhu/
 
   function finalizeDoubling() {
     if (state.phase !== PHASE.DOUBLING) return;
+    // 收尾：隐 corner 倒计时
+    const cdEl = document.getElementById('ddzDoubleCountdown');
+    if (cdEl) cdEl.hidden = true;
     // 未决定的一律算 pass
     for (let i = 0; i < 3; i++) {
       if (!doubleDecided[i]) {
@@ -2788,15 +2870,13 @@ permalink: /toolbox/doudizhu/
   }
 
   function renderDoubleSimultaneousPanel() {
-    // 不再渲染"加倍阶段"标题 —— 三个 chip 和按钮已自带语境
-    // bidTitle 留空，CSS :empty 自动隐藏，节省 ~28px 高度
+    // 标题留空（CSS :empty 自动隐藏），倒计时用 absolute corner chip 浮在右上
     bidTitle.innerHTML = '';
     bidButtonsEl.innerHTML = '';
+    const cdEl = document.getElementById('ddzDoubleCountdown');
+    if (cdEl) cdEl.hidden = false;
 
-    // 第一行：3 cells + 倒计时 inline（节省一行）
-    const row1 = document.createElement('div');
-    row1.style.cssText = 'display:flex; align-items:center; justify-content:center; gap:0.5rem; flex-wrap:nowrap;';
-
+    // 三列等宽：上家 / 我 / 下家
     const grid = document.createElement('div');
     grid.className = 'ddz-double-grid';
     const seatOrder = [2, 0, 1];
@@ -2805,32 +2885,22 @@ permalink: /toolbox/doudizhu/
       cell.className = 'ddz-double-cell';
       const decided = doubleDecided[seat];
       const choice = doubleChoice[seat];
-      if (decided) {
-        cell.classList.add(choice === 'double' ? 'decided-yes' : 'decided-no');
-      } else {
-        cell.classList.add('pending');
-      }
-      const who = document.createElement('span');
+      if (decided) cell.classList.add(choice === 'double' ? 'decided-yes' : 'decided-no');
+      else         cell.classList.add('pending');
+      const who = document.createElement('div');
       who.className = 'who';
       who.textContent = seat === 0 ? '我' : (seat === 1 ? '下家' : '上家');
-      const status = document.createElement('span');
+      const status = document.createElement('div');
       status.className = 'status';
-      if (decided) status.textContent = choice === 'double' ? '加倍 ×2' : '不加倍';
-      else status.textContent = '思考';
+      if (decided) status.textContent = choice === 'double' ? '加倍' : '不加倍';
+      else         status.textContent = '思考中…';
       cell.appendChild(who);
       cell.appendChild(status);
       grid.appendChild(cell);
     }
-    row1.appendChild(grid);
+    bidButtonsEl.appendChild(grid);
 
-    const cd = document.createElement('span');
-    cd.className = 'countdown-badge';
-    cd.id = 'ddzDoubleCountdown';
-    cd.textContent = '5s';
-    row1.appendChild(cd);
-    bidButtonsEl.appendChild(row1);
-
-    // 第二行：玩家按钮 or 等待
+    // 玩家未决：两个按钮一排（加倍 / 不加倍）
     if (!doubleDecided[0]) {
       const wrap = document.createElement('div');
       wrap.style.cssText = 'display:flex; gap:0.6rem; justify-content:center; margin-top:0.4rem;';
@@ -4189,13 +4259,12 @@ permalink: /toolbox/doudizhu/
   function renderOnlineDoublePanel() {
     bidPanel.hidden = false;
     playActions.hidden = true;
-    bidTitle.innerHTML = '';   // 跟单机加倍一致：title 留空挤进 100px slot
+    bidTitle.innerHTML = '';
     bidButtonsEl.innerHTML = '';
+    const cdEl = document.getElementById('ddzDoubleCountdown');
+    if (cdEl) cdEl.hidden = false;
 
-    // 第一行：3 cells + 倒计时 inline
-    const row1 = document.createElement('div');
-    row1.style.cssText = 'display:flex; align-items:center; justify-content:center; gap:0.5rem; flex-wrap:nowrap;';
-
+    // 三列等宽：上家 / 我 / 下家
     const grid = document.createElement('div');
     grid.className = 'ddz-double-grid';
     const seatOrder = [2, 0, 1];
@@ -4206,24 +4275,17 @@ permalink: /toolbox/doudizhu/
       const choice = state.online.doubleChoice[seat];
       if (decided) cell.classList.add(choice === 'double' ? 'decided-yes' : 'decided-no');
       else cell.classList.add('pending');
-      const who = document.createElement('span');
+      const who = document.createElement('div');
       who.className = 'who';
       who.textContent = seat === 0 ? '我' : (seat === 1 ? '下家' : '上家');
-      const status = document.createElement('span');
+      const status = document.createElement('div');
       status.className = 'status';
-      status.textContent = decided ? (choice === 'double' ? '加倍 ×2' : '不加倍') : '思考';
+      status.textContent = decided ? (choice === 'double' ? '加倍' : '不加倍') : '思考中…';
       cell.appendChild(who);
       cell.appendChild(status);
       grid.appendChild(cell);
     }
-    row1.appendChild(grid);
-
-    const cd = document.createElement('span');
-    cd.className = 'countdown-badge';
-    cd.id = 'ddzDoubleCountdown';
-    cd.textContent = '5s';
-    row1.appendChild(cd);
-    bidButtonsEl.appendChild(row1);
+    bidButtonsEl.appendChild(grid);
 
     if (!state.online.doubleDecided[0]) {
       const wrap = document.createElement('div');
