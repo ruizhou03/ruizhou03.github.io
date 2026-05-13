@@ -42,7 +42,7 @@
     easy:   { counterPredictRate: 0.20, peasantCoopRate: 0.20, bombSmartRate: 0.35, firstPlayLookAhead: 0.35, randomActionRate: 0.32, mctsSamples: 0,  noiseSigma: 0.10 },
     normal: { counterPredictRate: 0.55, peasantCoopRate: 0.50, bombSmartRate: 0.65, firstPlayLookAhead: 0.78, randomActionRate: 0.08, mctsSamples: 0,  noiseSigma: 0.08 },
     hard:   { counterPredictRate: 0.82, peasantCoopRate: 0.80, bombSmartRate: 0.85, firstPlayLookAhead: 0.95, randomActionRate: 0.02, mctsSamples: 6,  noiseSigma: 0.06 },
-    master: { counterPredictRate: 1.0,  peasantCoopRate: 1.0,  bombSmartRate: 1.0,  firstPlayLookAhead: 1.0,  randomActionRate: 0,    mctsSamples: 20, noiseSigma: 0    },
+    master: { counterPredictRate: 1.0,  peasantCoopRate: 1.0,  bombSmartRate: 1.0,  firstPlayLookAhead: 1.0,  randomActionRate: 0,    mctsSamples: 30, noiseSigma: 0    },
   };
 
   // 高斯采样 + 钳位的功能激活骰子
@@ -381,36 +381,54 @@
     };
   }
 
-  // 一步前瞻评分：我打 M → 队友 / 对手用启发式应对 → 评估终态
+  // 一步前瞻评分：我打 M → 队友 / 对手用启发式应对 → 评估终态。
+  //
+  // 关键：分清"队友"和"对手"。当我是农民时，另一个农民是队友，地主才是对手。
+  //   对队友：手牌越少越好（接近赢牌）；用小牌接我的牌更好（大牌留着）
+  //   对真对手：剩余手牌强度越低越好
+  // 这样 MCTS 才不会"破坏队友协作"。
   function evalOnePly(myMove, myHandIds, oppHandsWeights, ctx) {
     const myHandWeights = myHandIds.map(c => E.cardWeight(c));
     const myAfter = consumeForPattern(myHandWeights, myMove);
+    let score = quickHandStrength(myAfter);
 
-    // 对手按"最便宜非炸"应对
-    let landlordCounterCost = 0;
-    let totalOppStrength = 0;
+    // 我自己手牌越少越接近赢，加额外鼓励
+    if (myAfter.length <= 4) score += (5 - myAfter.length) * 2;
+
+    const iAmPeasant = (ctx.myRole === 'peasant');
+
     for (const seatStr of Object.keys(oppHandsWeights)) {
       const seat = Number(seatStr);
       const oppArr = oppHandsWeights[seat];
       const counter = findCheapestNonBombByWeight(oppArr, myMove);
       let oppAfter = oppArr.slice();
+      let counterWeight = -1;
       if (counter) {
-        // 消耗一张同 weight 的牌（粗略：用 minBeaterIn 找到的 weight）
-        const w = counter.weight;
-        const n = myMove.cards.length;     // 大致需要相同张数
+        counterWeight = counter.weight;
+        const n = myMove.cards.length;
         let consumed = 0;
         for (let i = oppAfter.length - 1; i >= 0 && consumed < n; i--) {
-          if (oppAfter[i] === w) { oppAfter.splice(i, 1); consumed++; }
-        }
-        // 地主反压视为对农民不利
-        if (seat === ctx.landlordIdx && ctx.myRole === 'peasant' && w >= 11) {
-          landlordCounterCost += 2;       // 地主用大牌反压 — 算正分（消耗大牌）
+          if (oppAfter[i] === counterWeight) { oppAfter.splice(i, 1); consumed++; }
         }
       }
-      totalOppStrength += quickHandStrength(oppAfter);
+
+      const seatIsLandlord = (seat === ctx.landlordIdx);
+
+      if (iAmPeasant && !seatIsLandlord) {
+        // 这是我的农民队友 — 鼓励队友的进展
+        score += (17 - oppAfter.length) * 0.8;
+        // 队友用小牌接我的牌（大牌还留着）— 好事
+        if (counter && counterWeight < 11) score += 1.5;
+      } else {
+        // 真正的对手
+        score -= quickHandStrength(oppAfter) * 0.5;
+        // 我是农民、地主被迫用大牌反压 — 大好事
+        if (iAmPeasant && seatIsLandlord && counter && counterWeight >= 11) {
+          score += 2.5;
+        }
+      }
     }
-    // 我方分：剩余强度高 + 对手强度低 + 地主被迫用大牌
-    return quickHandStrength(myAfter) - totalOppStrength / 2 + landlordCounterCost;
+    return score;
   }
 
   function mctsLite(hand, prev, ctx, profile, baselineMove) {
