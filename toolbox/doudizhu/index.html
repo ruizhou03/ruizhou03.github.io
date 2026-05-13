@@ -870,12 +870,18 @@ permalink: /toolbox/doudizhu/
     margin-bottom: 0.7rem;
     perspective: 600px;
   }
-  /* 右下角积分提示：只显示"赢得分" —— 农民=倍数本身、地主=倍数×2 */
-  .ddz-score-hint {
+  /* 右下角 chip 组：明牌按钮 + 积分提示，水平并排 */
+  .ddz-corner-chips {
     position: absolute;
     right: 0.9rem;
     bottom: 0.7rem;
     z-index: 3;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  /* 积分提示 chip：农民=倍数本身、地主=倍数×2 */
+  .ddz-score-hint {
     padding: 0.18rem 0.7rem;
     border-radius: 999px;
     background: rgba(201,169,110,0.18);
@@ -889,14 +895,23 @@ permalink: /toolbox/doudizhu/
     pointer-events: none;
   }
   .ddz-score-hint:empty { display: none; }
-  .ddz-status-msg {
-    font-size: 1rem;
-    margin: 0.5rem 0 0.3rem;
-    color: var(--ddz-text-on-felt);
-    min-height: 1.5em;
-    font-family: var(--font-display);
-    letter-spacing: 0.02em;
+  /* 明牌按钮：地主未明牌 + 出牌阶段才显示；点击 → 倍数 ×2 + 头像挂 badge */
+  .ddz-declare-btn {
+    padding: 0.18rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(245,209,66,0.30);
+    color: #a87a2a;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid var(--ddz-frame);
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    transition: transform 0.12s, background 0.18s;
   }
+  .ddz-declare-btn:hover { transform: translateY(-1px); background: rgba(245,209,66,0.45); }
+  .ddz-declare-btn:active { transform: translateY(0); }
+  .ddz-declare-btn[hidden] { display: none !important; }
 
   /* ======== 我的座位 + 手牌 ======== */
   .ddz-self {
@@ -1533,7 +1548,6 @@ permalink: /toolbox/doudizhu/
           <span class="card-back"></span>
           <span class="card-back"></span>
         </div>
-        <div class="ddz-status-msg" id="ddzStatusMsg">— 准备发牌 —</div>
       </div>
       <div class="ddz-seat-ai" data-seat="1">
         <div class="ddz-avatar" id="ddzAvatar1">🤖<span class="ddz-clock" id="ddzClock1" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled1" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared1" hidden>明牌</span></div>
@@ -1571,8 +1585,11 @@ permalink: /toolbox/doudizhu/
 
     <div class="ddz-hand" id="ddzHand"></div>
 
-    <!-- 右下角积分提示（赢可得的分） -->
-    <div class="ddz-score-hint" id="ddzMultiplier"></div>
+    <!-- 右下角：明牌按钮（地主未明牌时可点）+ 积分提示 -->
+    <div class="ddz-corner-chips">
+      <button class="ddz-declare-btn" id="ddzDeclareBtn" type="button" hidden>🎴 明牌 ×2</button>
+      <div class="ddz-score-hint" id="ddzMultiplier"></div>
+    </div>
 
     <!-- 浮层：游戏结束 -->
     <div class="ddz-overlay" id="ddzGameOverOverlay">
@@ -1892,6 +1909,9 @@ permalink: /toolbox/doudizhu/
   playBtn.addEventListener('click', () => playerPlay());
   passBtn.addEventListener('click', () => playerPass());
   hintBtn.addEventListener('click', () => playerHint());
+  // 明牌按钮（地主未明牌 + 出牌阶段才显示）
+  const declareBtnEl = $('ddzDeclareBtn');
+  if (declareBtnEl) declareBtnEl.addEventListener('click', () => playerDeclareInPlay());
 
   // 键盘：Enter=出牌，Space=不出，H=提示
   document.addEventListener('keydown', e => {
@@ -2202,6 +2222,8 @@ permalink: /toolbox/doudizhu/
       const dcBadge = $('ddzDeclared' + i);
       if (dcBadge) dcBadge.hidden = (state.declaredSeat !== i);
     }
+    // 同步明牌按钮可见性（地主未明牌 + 出牌阶段才显示）
+    updateDeclareBtn();
     if (state.landlordIdx >= 0) {
       const role = state.landlordIdx === 0 ? '地主' : '农民';
       $('ddzName0').textContent = '我（' + role + '）';
@@ -2365,7 +2387,9 @@ permalink: /toolbox/doudizhu/
   }
 
   function setStatus(msg) {
-    statusMsg.textContent = msg;
+    // 已删除 .ddz-status-msg 视觉元素（信息冗余）；保留函数以兼容上百个调用点
+    // 真正需要弹给用户看的关键错误请用 alert()，其它直接静默
+    if (statusMsg) statusMsg.textContent = msg;
   }
 
   function renderMultiplier() {
@@ -2601,55 +2625,32 @@ permalink: /toolbox/doudizhu/
       renderHand();
       renderHandCounts();
       renderRoles();
-      // 地主明牌选择（mode 3，仅未明牌且玩家是地主时）
-      if (!state.declared && state.landlordIdx === 0) {
-        offerLandlordDeclare();
-      } else {
-        enterDoubling();
-      }
+      // 直接进加倍阶段；明牌按钮在出牌阶段任意时刻可点（见 ddzDeclareBtn）
+      enterDoubling();
     }, 1100);
   }
 
-  function offerLandlordDeclare() {
-    state.phase = PHASE.BIDDING;       // 借用 BIDDING phase 关闭其它 input；不影响视觉
-    bidPanel.hidden = false;
-    bidTitle.innerHTML = '<span>地主明牌？×2</span><span class="countdown-badge" id="ddzLDCountdown">5s</span>';
-    bidButtonsEl.innerHTML = '';
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex; gap:0.7rem; justify-content:center; flex-wrap:wrap;';
-    const yes = document.createElement('button');
-    yes.type = 'button'; yes.className = 'primary';
-    yes.textContent = '🎴 明牌 ×2';
-    yes.addEventListener('click', () => { finalizeLandlordDeclare(true); });
-    const no = document.createElement('button');
-    no.type = 'button';
-    no.textContent = '不明牌';
-    no.addEventListener('click', () => { finalizeLandlordDeclare(false); });
-    wrap.appendChild(yes); wrap.appendChild(no);
-    bidButtonsEl.appendChild(wrap);
-    // 5s 倒计时（默认不明牌）
-    let endAt = Date.now() + 5000;
-    let id = setInterval(() => {
-      const left = Math.max(0, endAt - Date.now());
-      const s = Math.ceil(left / 1000);
-      const cd = document.getElementById('ddzLDCountdown');
-      if (cd) cd.textContent = s + 's';
-      if (left <= 0) { clearInterval(id); finalizeLandlordDeclare(false); }
-    }, 200);
-    bidPanel.dataset.timerId = String(id);
+  // 玩家点"明牌"按钮：倍数 ×2 + 头像上挂明牌 badge
+  function playerDeclareInPlay() {
+    if (state.phase !== PHASE.PLAYING) return;
+    if (state.landlordIdx !== 0) return;
+    if (state.declared) return;
+    state.declared = true;
+    state.declaredSeat = 0;
+    state.multiplier *= 2;
+    renderMultiplier();
+    renderRoles();
+    updateDeclareBtn();
+    if (ddzSave) ddzSave.tick();
   }
-  function finalizeLandlordDeclare(yes) {
-    const id = parseInt(bidPanel.dataset.timerId || '0', 10);
-    if (id) clearInterval(id);
-    bidPanel.dataset.timerId = '';
-    bidPanel.hidden = true;
-    if (yes) {
-      state.declared = true;
-      state.declaredSeat = 0;
-      state.multiplier *= 2;
-      pushSplashLog('🎴 你明牌了！倍数 ×2');
-    }
-    enterDoubling();
+
+  function updateDeclareBtn() {
+    const btn = document.getElementById('ddzDeclareBtn');
+    if (!btn) return;
+    const visible = state.phase === PHASE.PLAYING
+      && state.landlordIdx === 0
+      && !state.declared;
+    btn.hidden = !visible;
   }
 
   // ============================================================
@@ -2740,6 +2741,7 @@ permalink: /toolbox/doudizhu/
     state.passCount = 0;
     renderRoles();
     renderMultiplier();
+    updateDeclareBtn();   // 进入出牌 → 地主未明牌则显示明牌按钮
     setStatus(doubles > 0 ? `加倍 ×${1 << doubles}（共 ${doubles} 人）—— 开始出牌` : '无人加倍 —— 开始出牌');
     proceedTurn();
   }
@@ -3165,6 +3167,7 @@ permalink: /toolbox/doudizhu/
 
   function finishGame(winnerSeat) {
     state.phase = PHASE.SETTLEMENT;
+    updateDeclareBtn();   // 游戏结束 → 隐藏明牌按钮
     const winnerRole = winnerSeat === state.landlordIdx ? 'landlord' : 'peasant';
     // 春天 / 反春天判定
     if (winnerRole === 'landlord' && state.peasantPlayCount === 0) {
