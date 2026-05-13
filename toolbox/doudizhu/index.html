@@ -89,9 +89,11 @@ permalink: /toolbox/doudizhu/
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: 14px;
-    padding: 1.2rem 1.4rem;
+    padding: 1rem 1.2rem;
     max-width: 460px;
     width: 100%;
+    max-height: 88vh;
+    overflow-y: auto;
     box-shadow: 0 8px 28px rgba(13,24,43,0.4);
   }
 
@@ -136,8 +138,8 @@ permalink: /toolbox/doudizhu/
   /* 联机入口 */
   .ddz-online-tabs {
     display: inline-flex; gap: 0.4rem;
-    margin-bottom: 0.9rem;
-    padding: 0.25rem;
+    margin-bottom: 0.5rem;
+    padding: 0.22rem;
     background: var(--color-bg-warm);
     border: 1px solid var(--color-border);
     border-radius: 8px;
@@ -159,13 +161,13 @@ permalink: /toolbox/doudizhu/
   }
   .ddz-online-form {
     display: flex; flex-direction: column; align-items: center;
-    gap: 0.5rem;
+    gap: 0.35rem;
     max-width: 320px; margin: 0 auto;
   }
   .ddz-online-input {
     width: 100%;
-    padding: 0.55rem 0.9rem;
-    font-size: 0.95rem;
+    padding: 0.42rem 0.8rem;
+    font-size: 0.88rem;
     border: 1px solid var(--color-border);
     border-radius: 8px;
     background: var(--color-bg);
@@ -176,36 +178,37 @@ permalink: /toolbox/doudizhu/
   }
   .ddz-online-input:focus { border-color: var(--color-accent); outline: none; }
   .ddz-online-hint {
-    min-height: 1.2em;
-    font-size: 0.82rem;
+    min-height: 1em;
+    font-size: 0.78rem;
     color: var(--color-muted);
   }
   .ddz-online-hint.error { color: var(--ddz-suit-red); }
+  /* 创建房间的参数表 —— 紧凑款，避免浮层撑出屏幕 */
   .ddz-online-config {
-    display: flex; flex-direction: column; gap: 0.45rem;
-    margin: 0.6rem 0;
-    padding: 0.7rem 0.9rem;
+    display: flex; flex-direction: column; gap: 0.28rem;
+    margin: 0.4rem 0;
+    padding: 0.5rem 0.7rem;
     border: 1px solid var(--color-border);
     border-radius: 8px;
     background: var(--color-bg-warm);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     width: 100%;
     max-width: 320px;
   }
   .ddz-online-config .cfg-row {
     display: flex; justify-content: space-between; align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
   }
   .ddz-online-config .cfg-row label {
     color: var(--color-muted);
-    font-size: 0.82rem;
+    font-size: 0.76rem;
     flex: 0 0 auto;
   }
   .ddz-online-config .cfg-row select {
     flex: 1 1 auto;
     max-width: 60%;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.82rem;
+    padding: 0.18rem 0.45rem;
+    font-size: 0.76rem;
     border: 1px solid var(--color-border);
     border-radius: 4px;
     background: var(--color-bg);
@@ -696,33 +699,9 @@ permalink: /toolbox/doudizhu/
     }
   }
 
-  /* 发牌阶段「明牌 ×N」按钮：浮在我自己头像上方，N 跟着发牌进度从 5 降到 2，发完即隐 */
-  .ddz-deal-declare-btn {
-    position: absolute;
-    left: 50%;
-    top: -0.4rem;
-    transform: translate(-50%, -100%);
-    z-index: 8;
-    padding: 0.32rem 0.95rem;
-    border-radius: 999px;
-    border: none;
-    background: linear-gradient(135deg, #d8b87a 0%, #c4923f 100%);
-    color: #2a1a05;
-    font-family: var(--font-display);
-    font-size: 0.86rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(196,146,63,0.45), inset 0 1px 0 rgba(255,255,255,0.55);
-    white-space: nowrap;
-    animation: ddz-deal-declare-pulse 1.4s ease-in-out infinite;
-  }
-  .ddz-deal-declare-btn:hover { transform: translate(-50%, -100%) scale(1.05); }
-  .ddz-deal-declare-btn[hidden] { display: none; }
-  @keyframes ddz-deal-declare-pulse {
-    0%, 100% { box-shadow: 0 4px 14px rgba(196,146,63,0.45), inset 0 1px 0 rgba(255,255,255,0.55); }
-    50%      { box-shadow: 0 4px 22px rgba(245,209,66,0.75), inset 0 1px 0 rgba(255,255,255,0.55); }
-  }
+  /* 发牌阶段「明牌 ×N」按钮：现已作为 .ddz-btn.declare 风格放进
+     .ddz-actions 行内，跟"明牌 ×2 / 不出 / 提示 / 出牌"占同一位置。
+     共用 .ddz-btn.declare 的样式，只是文字会随发牌进度从 ×5 → ×2 递减。 */
 
   /* ======== 特殊牌型 FX ======== */
   /* 顺子 / 连对：暖金底光，安静地"展开" */
@@ -1718,7 +1697,6 @@ permalink: /toolbox/doudizhu/
           <div style="display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap;">
             <button class="ddz-btn primary" id="ddzStartBtn" type="button">🎮 开始游戏</button>
             <button class="ddz-btn" id="ddzDeclareStartBtn" type="button" title="发牌前就明牌，倍数 ×5">明牌开始 ×5</button>
-            <button class="ddz-btn" id="ddzGroupSortToggle" type="button" title="按可能的牌型自动分组排列手牌">🧩 智能分组：关</button>
           </div>
         </div>
       </div>
@@ -1831,7 +1809,7 @@ permalink: /toolbox/doudizhu/
 
     <!-- 我的座位 -->
     <div class="ddz-self">
-      <div class="ddz-avatar" id="ddzAvatar0">😎<span class="ddz-clock" id="ddzClock0" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled0" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared0" hidden>明牌</span><button class="ddz-deal-declare-btn" id="ddzDealDeclareBtn" type="button" hidden>明牌 ×5</button></div>
+      <div class="ddz-avatar" id="ddzAvatar0">😎<span class="ddz-clock" id="ddzClock0" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled0" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared0" hidden>明牌</span></div>
       <div class="ddz-self-info">
         <div class="ddz-name" id="ddzName0">我</div>
         <div class="ddz-handcount" id="ddzCount0">17</div>
@@ -1854,18 +1832,20 @@ permalink: /toolbox/doudizhu/
          - 明牌按钮：地主未明牌且第一轮做庄时才显示（占"不出"的位置，毕竟第一轮没法不出）
          - 不出按钮：上家不是自己时才显示（自己做庄时不可能"不出"）
          - 提示/出牌：轮到自己时正常显示 -->
-    <div class="ddz-actions" id="ddzPlayActions" hidden>
+    <div class="ddz-actions" id="ddzPlayActions">
+      <button class="ddz-btn declare" id="ddzDealDeclareBtn" type="button" hidden>明牌 ×5</button>
       <button class="ddz-btn declare" id="ddzDeclareBtn" type="button" hidden>明牌 ×2</button>
       <button class="ddz-btn" id="ddzPassBtn" type="button" hidden>不出</button>
-      <button class="ddz-btn" id="ddzHintBtn" type="button">提示</button>
-      <button class="ddz-btn primary" id="ddzPlayBtn" type="button">出牌</button>
+      <button class="ddz-btn" id="ddzHintBtn" type="button" hidden>提示</button>
+      <button class="ddz-btn primary" id="ddzPlayBtn" type="button" hidden>出牌</button>
     </div>
 
     <div class="ddz-hand" id="ddzHand"></div>
 
-    <!-- 右下角积分提示 + 托管开关 -->
+    <!-- 右下角积分提示 + 托管 / 理牌 开关 -->
     <div class="ddz-corner-chips">
       <button class="ddz-autopilot-toggle" id="ddzAutopilotBtn" type="button" title="托管：交给电脑接管打牌">🤖 托管</button>
+      <button class="ddz-autopilot-toggle" id="ddzGroupSortToggle" type="button" title="按可能的牌型自动分组排列手牌">🧩 理牌：关</button>
       <div class="ddz-score-hint" id="ddzMultiplier"></div>
     </div>
 
@@ -2424,7 +2404,8 @@ permalink: /toolbox/doudizhu/
     const btn = document.getElementById('ddzGroupSortToggle');
     if (!btn) return;
     btn.classList.toggle('on', groupSortEnabled);
-    btn.textContent = groupSortEnabled ? '🧩 智能分组：开' : '🧩 智能分组：关';
+    btn.textContent = groupSortEnabled ? '🧩 理牌：开' : '🧩 理牌：关';
+    btn.classList.toggle('active', groupSortEnabled);
   }
 
   // ============================================================
@@ -2826,12 +2807,22 @@ permalink: /toolbox/doudizhu/
   //   农民：和地主那一对账
   function myScoreDisplay() {
     if (state.landlordIdx < 0) return currentMultiplier() * 2;   // 占位，不真正用
+    return computeMyScoreForMap(doubleSeatMap());
+  }
+
+  // 给定任意"三家加倍决定"映射，算我（座位 0）的总分。
+  //   用途：加倍按钮 label 要预测"假设我点加倍后我能拿多少"
+  function computeMyScoreForMap(dmap) {
+    const base = currentMultiplier();
+    if (state.landlordIdx < 0) return base * 2;
+    const landlordDouble = dmap[state.landlordIdx] ? 2 : 1;
+    const peasants = [0,1,2].filter(s => s !== state.landlordIdx);
     if (state.landlordIdx === 0) {
       // 地主 = 两对农民之和
-      const peasants = [0,1,2].filter(s => s !== state.landlordIdx);
-      return pairMultiplierFor(peasants[0]) + pairMultiplierFor(peasants[1]);
+      return peasants.reduce((sum, p) => sum + base * landlordDouble * (dmap[p] ? 2 : 1), 0);
     }
-    return pairMultiplierFor(0);
+    // 农民只看自己那一对
+    return base * landlordDouble * (dmap[0] ? 2 : 1);
   }
 
   function updatePlayBtnState() {
@@ -2944,6 +2935,8 @@ permalink: /toolbox/doudizhu/
     }
     dealDeclareLockedMult = 0;
     dealEndAt = Date.now() + DEAL_TOTAL_MS;
+    // 把发牌阶段的"明牌 ×N"按钮露出来：actions 行可见、只这一个按钮 visible
+    playActions.hidden = false;
     btn.hidden = false;
     btn.disabled = false;
     btn.textContent = '明牌 ×5';
@@ -2968,8 +2961,9 @@ permalink: /toolbox/doudizhu/
       const left = dealEndAt - Date.now();
       if (left <= 0) {
         clearDealDeclareWatcher();
-        // 发完 → 隐按钮 → 进入叫地主
+        // 发完 → 隐按钮 + 隐 actions 行 → 进入叫地主
         btn.hidden = true;
+        playActions.hidden = true;
         const handDealEl = document.getElementById('ddzHand');
         if (handDealEl) handDealEl.classList.remove('dealing');
         if (dealDeclareLockedMult > 0) {
@@ -3001,6 +2995,8 @@ permalink: /toolbox/doudizhu/
     renderMultiplier();
     const btn = document.getElementById('ddzDealDeclareBtn');
     if (btn) { btn.disabled = true; btn.hidden = true; }
+    // 玩家已经决定明牌 → actions 行收起来，剩下发牌动画静静走完
+    playActions.hidden = true;
   }
 
   function clearDealDeclareWatcher() {
@@ -3454,7 +3450,11 @@ permalink: /toolbox/doudizhu/
     const cdEl = document.getElementById('ddzDoubleCountdown');
     if (cdEl) cdEl.hidden = false;
 
-    const nextMult = state.multiplier * 2;
+    // 加倍按对计算（规则六）：按钮 label 显示"假设我点了加倍，其他人维持现状"
+    // 时我（座位 0）的最终得分。地主和农民因为对账方式不同，得到的 ×N 也不同。
+    const hypoMap = doubleSeatMap();
+    hypoMap[0] = true;
+    const nextMyScore = computeMyScoreForMap(hypoMap);
     const grid = document.createElement('div');
     grid.className = 'ddz-double-grid';
 
@@ -3479,7 +3479,7 @@ permalink: /toolbox/doudizhu/
         btns.className = 'me-btns';
         const yes = document.createElement('button');
         yes.type = 'button'; yes.className = 'primary';
-        yes.textContent = `加倍 ×${nextMult}`;
+        yes.textContent = `加倍 ×${nextMyScore}`;
         yes.addEventListener('click', () => onChoose('double'));
         const no = document.createElement('button');
         no.type = 'button';
@@ -3547,6 +3547,11 @@ permalink: /toolbox/doudizhu/
     const seat = state.turnIdx;
     if (seat === 0 && !state.autopilot) {
       playActions.hidden = false;
+      // 出牌/提示 在 PLAYING + 我轮才露；不出/明牌 ×2 / 明牌 ×N 由各自逻辑控制
+      $('ddzPlayBtn').hidden = false;
+      $('ddzHintBtn').hidden = false;
+      const dealBtn = document.getElementById('ddzDealDeclareBtn');
+      if (dealBtn) dealBtn.hidden = true;   // 出牌阶段把发牌阶段的明牌按钮收掉
       const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
       setStatus(prev ? '轮到你 — 出牌或不出' : '轮到你 — 你做庄');
       resetHintCycle();
