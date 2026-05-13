@@ -1,286 +1,411 @@
-% board.tex — Standard Chinese 飞行棋 (Aeroplane Chess) board,
-% reconstructed from six canonical reference images.
+% board.tex — Standard Chinese 飞行棋 (Aeroplane Chess) board
+% Reconstructed from the user's exact 10-cell spec + 4 segment-head color rules
+% + 5-rect/edge constraint.
 %
-% Compile with: pdflatex board.tex
+% Geometry (user coordinate system: x right, y down):
+%   - Board: 8.5 × 8.5 (NOT 9 — the +0.5 was excess width)
+%   - C4 rotational center: (4.25, 4.25)
+%   - 4 bases (2×2): NW red (0..2, 0..2), NE yellow (6.5..8.5, 0..2),
+%                    SE blue (6.5..8.5, 6.5..8.5), SW green (0..2, 6.5..8.5)
+%   - 4 cross arms (each 5 narrow rectangles in mid-arm):
+%       top arm rectangles: 5 cells along (3..5.5, 0..1), each 0.5 × 1
+%   - Outer loop: 56 cells (4 segments × 14 each = 1 takeoff + 13 track cells)
+%   - Colors: 4-color cycle (green, red, yellow, blue) connected around the loop.
+%       Segment head colors: red=green, yellow=red, blue=yellow, green=blue.
+%   - 4 dashed long-flight lines, each connecting two same-color airplane
+%     triangles (in opposite concave corners).
 %
-% ================================================================
-% STRUCTURAL UNDERSTANDING (distilled from the references)
-% ================================================================
-%
-% 1. Logical grid: a strict 15×15 grid, [row, col] with row 0..14
-%    top→bottom, col 0..14 left→right. TikZ y is flipped:
-%      cell [r, c] spans TikZ (c, 14-r) to (c+1, 15-r);
-%      center is (c+0.5, 14.5-r).
-%
-% 2. Four corner bases (HOME), 6×6 each, rounded corners:
-%    NW = red, NE = yellow, SE = green, SW = blue   (CW around the board)
-%    Each base contains a 2×2 cluster of 4 white "parking" circles
-%    (the 4 planes start here).
-%
-% 3. Outer loop (跑道): 52 cells, walked COUNTER-CLOCKWISE.
-%    Path: starts at (1,6) east of red base going down → row 6 going left
-%    → left-arm tip (7,0) → row 8 going right → col 6 going down →
-%    bottom tip (14,6..8) → col 8 going up → row 8 going right →
-%    right-arm tip (8,14)..(6,14) → row 6 going left → col 8 going up →
-%    top tip (0,8)..(0,6) → wraps back to (1,6).
-%    Color cycle on the loop (idx mod 4): 0→yellow, 1→red, 2→blue, 3→green.
-%    Each color's EXIT cell idx therefore lands on its own color naturally:
-%      red    EXIT idx  5 = (6,5)        [adjacent to NW base, on left arm]
-%      yellow EXIT idx 44 = (5,8)        [adjacent to NE base, on top arm]
-%      green  EXIT idx 31 = (8,9)        [adjacent to SE base, on right arm]
-%      blue   EXIT idx 18 = (9,6)        [adjacent to SW base, on bottom arm]
-%    Four "tip-middle" loop cells host the HOME-stretch entry and are
-%    overridden to their owner color regardless of mod-4 cycle:
-%      idx 50 = (0,7)  → red   (top tip middle)
-%      idx 37 = (7,14) → yellow (right tip middle)
-%      idx 24 = (14,7) → green  (bottom tip middle)
-%      idx 11 = (7,0)  → blue   (left tip middle)
-%
-% 4. Home stretches (final 直道, 冲线通道): 5 cells per color along the
-%    central row/col 7 of each cross arm, between the HS-entry cell and
-%    the central pinwheel (NOT 6 — the central pinwheel occupies the
-%    innermost cell that a 6-cell stretch would).
-%      red:    (1,7)(2,7)(3,7)(4,7)(5,7)        col 7, rows 1..5, going DOWN
-%      yellow: (7,13)(7,12)(7,11)(7,10)(7,9)    row 7, cols 13..9, going LEFT
-%      green:  (13,7)(12,7)(11,7)(10,7)(9,7)    col 7, rows 13..9, going UP
-%      blue:   (7,1)(7,2)(7,3)(7,4)(7,5)        row 7, cols 1..5, going RIGHT
-%    Each stretch cell shows a same-color framed cell with a white parking
-%    circle in it.
-%
-% 5. Central pinwheel (goal): occupies the 3×3 block (rows 6..8, cols 6..8)
-%    — a square split by both diagonals into 4 ISOCELES triangles whose
-%    APEX meets at the center (7.5, 7.5) and whose bases lie on the 3×3
-%    outer perimeter.
-%      red triangle    = top    (base from (6,9) to (9,9))    — meets NW base
-%      yellow triangle = right  (base from (9,9) to (9,6))    — meets NE base
-%      green triangle  = bottom (base from (9,6) to (6,6))    — meets SE base
-%      blue triangle   = left   (base from (6,6) to (6,9))    — meets SW base
-%    The 4 corner cells of the 3×3 ((6,6) (6,8) (8,6) (8,8)) are the
-%    concave pivots that the outer loop skips over diagonally.
-%
-% 6. Takeoff (launch) ports: each color's EXIT cell is the "launch area".
-%    A bold colored arrow runs from inside the base out to its EXIT cell;
-%    a small white plane glyph sits on the EXIT cell pointing in the
-%    direction of CCW play.
-%
-% 7. Home-stretch entry arrows: a small black arrow on each HS-entry cell
-%    points inward toward the first stretch cell.
-%
-% 8. Concave-corner small-jump dashed arrows: 4 colored dashed diagonals,
-%    one per concave inner corner, each linking two same-color loop cells
-%    that lie 4 indices apart in CCW direction across the concave gap.
-%      NW concave (yellow trigger): idx  4 (5,6)  → idx  8 (6,2)
-%      SW concave (red    trigger): idx 17 (8,5)  → idx 21 (12,6)
-%      SE concave (blue   trigger): idx 30 (9,8)  → idx 34 (8,12)
-%      NE concave (green  trigger): idx 43 (6,9)  → idx 47 (2,8)
-%
-% ================================================================
+% Compile: pdflatex board.tex
 
 \documentclass[border=12pt]{standalone}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, calc}
 
-% --- Palette ---
-\definecolor{redC}{HTML}{E63946}
-\definecolor{yellowC}{HTML}{F6C92C}
-\definecolor{greenC}{HTML}{2FA56A}
-\definecolor{blueC}{HTML}{2F7DE3}
-\definecolor{redL}{HTML}{FAD0D3}
-\definecolor{yellowL}{HTML}{FCEAA6}
-\definecolor{greenL}{HTML}{C4E8D2}
-\definecolor{blueL}{HTML}{C7DCF8}
-\definecolor{parchment}{HTML}{FAF4E6}
+\definecolor{redC}{HTML}{E33030}
+\definecolor{yellowC}{HTML}{F5C518}
+\definecolor{blueC}{HTML}{2074D6}
+\definecolor{greenC}{HTML}{38A342}
+\definecolor{parchment}{HTML}{FFFFFF}
 \definecolor{ink}{HTML}{1F1F1F}
 
-% --- Reusable plane glyph: small white triangle with dark outline.
-%     Usage: \plane{x}{y}{angle}  where angle is in degrees, 0=right.
-\newcommand{\plane}[3]{%
-    \begin{scope}[shift={(#1,#2)}, rotate=#3]
-        \fill[white] (-0.22, 0.18) -- (0.28, 0) -- (-0.22, -0.18) -- cycle;
-        \draw[ink, line width=0.45pt] (-0.22, 0.18) -- (0.28, 0) -- (-0.22, -0.18) -- cycle;
-        \fill[ink] (0.05, 0) circle (0.04);
+% Small white-circle marker on each non-takeoff track cell.
+% Usage: \dot{x}{y}
+\newcommand{\dotC}[2]{%
+    \fill[white] (#1, #2) circle (0.18);%
+    \draw[ink, line width=0.25pt] (#1, #2) circle (0.18);%
+}
+
+% Small plane glyph (triangle pointing in +x direction in local frame).
+\newcommand{\planeG}[3]{%
+    % #1 = cx, #2 = cy, #3 = color
+    \begin{scope}[shift={(#1, #2)}]
+        \fill[#3] (-0.16, 0.13) -- (0.21, 0) -- (-0.16, -0.13) -- cycle;
+        \draw[ink, line width=0.25pt] (-0.16, 0.13) -- (0.21, 0) -- (-0.16, -0.13) -- cycle;
+    \end{scope}
+}
+
+% Plane glyph with rotation: \planeR{cx}{cy}{rot}{color}
+% rot=0   -> face right, =90 -> face up, =180 -> face left, =270 -> face down
+% (Used for takeoff cells.)
+\newcommand{\planeR}[4]{%
+    \begin{scope}[shift={(#1, #2)}, rotate=#3]
+        \fill[#4] (-0.16, 0.13) -- (0.21, 0) -- (-0.16, -0.13) -- cycle;
+        \draw[ink, line width=0.25pt] (-0.16, 0.13) -- (0.21, 0) -- (-0.16, -0.13) -- cycle;
+    \end{scope}
+}
+
+% Smaller triangle plane glyph (used on dashed-line direction indicators).
+\newcommand{\planeRSmall}[4]{%
+    \begin{scope}[shift={(#1, #2)}, rotate=#3]
+        \fill[#4] (-0.10, 0.08) -- (0.13, 0) -- (-0.10, -0.08) -- cycle;
+        \draw[ink, line width=0.2pt] (-0.10, 0.08) -- (0.13, 0) -- (-0.10, -0.08) -- cycle;
+    \end{scope}
+}
+
+% Realistic airliner silhouette (option G):
+% - Smooth Bezier-curve fuselage
+% - Swept-back main wings
+% - Smaller swept horizontal stabilizers at tail
+% Used for stationary planes: concave-corner planes + planes parked in bases.
+% Fits in 0.18-radius circle.
+\newcommand{\planeIconBody}[1]{%
+    \fill[#1]
+        (0.17, 0)
+        .. controls (0.16, 0.014) and (0.13, 0.026) .. (0.05, 0.028)
+        -- (-0.12, 0.024)
+        .. controls (-0.16, 0.020) and (-0.18, 0.010) .. (-0.18, 0)
+        .. controls (-0.18, -0.010) and (-0.16, -0.020) .. (-0.12, -0.024)
+        -- (0.05, -0.028)
+        .. controls (0.13, -0.026) and (0.16, -0.014) .. (0.17, 0)
+        -- cycle;
+    \fill[#1] (0.04, 0.024) -- (-0.06, 0.14) -- (-0.12, 0.14) -- (-0.04, 0.024) -- cycle;
+    \fill[#1] (0.04, -0.024) -- (-0.06, -0.14) -- (-0.12, -0.14) -- (-0.04, -0.024) -- cycle;
+    \fill[#1] (-0.12, 0.020) -- (-0.14, 0.06) -- (-0.17, 0.055) -- (-0.15, 0.020) -- cycle;
+    \fill[#1] (-0.12, -0.020) -- (-0.14, -0.06) -- (-0.17, -0.055) -- (-0.15, -0.020) -- cycle;%
+}
+\newcommand{\planeIcon}[3]{%
+    \begin{scope}[shift={(#1, #2)}]
+        \planeIconBody{#3}
+    \end{scope}
+}
+\newcommand{\planeIconR}[4]{%
+    \begin{scope}[shift={(#1, #2)}, rotate=#3]
+        \planeIconBody{#4}
+    \end{scope}
+}
+% Larger variant for in-base parked planes
+\newcommand{\planeIconBig}[3]{%
+    \begin{scope}[shift={(#1, #2)}, scale=1.6]
+        \planeIconBody{#3}
+    \end{scope}
+}
+\newcommand{\planeIconBigR}[4]{%
+    \begin{scope}[shift={(#1, #2)}, rotate=#3, scale=1.6]
+        \planeIconBody{#4}
+    \end{scope}
+}
+% Smaller variant for concave-corner planes (flight-path endpoints)
+\newcommand{\planeIconSm}[3]{%
+    \begin{scope}[shift={(#1, #2)}, scale=0.8]
+        \planeIconBody{#3}
+    \end{scope}
+}
+\newcommand{\planeIconSmR}[4]{%
+    \begin{scope}[shift={(#1, #2)}, rotate=#3, scale=0.8]
+        \planeIconBody{#4}
     \end{scope}
 }
 
 \begin{document}
 \begin{tikzpicture}[
-    every node/.style={font=\sffamily\bfseries},
-    line cap=round,
-    line join=round,
+    x={(1cm, 0cm)}, y={(0cm, -1cm)},
+    every node/.style={font=\sffamily\footnotesize},
+    line cap=round, line join=round,
 ]
+
     % ============================================================
     % 1. Background
     % ============================================================
-    \fill[parchment] (0, 0) rectangle (15, 15);
+    \fill[parchment] (0, 0) rectangle (8.5, 8.5);
 
     % ============================================================
-    % 2. Bases — rounded 6×6 squares in each corner, with a thin
-    %    inner light frame for a "trim" effect.
+    % 2. Four corner bases (2×2 each)
     % ============================================================
-    \begin{scope}[rounded corners=10pt]
-        \fill[redC]    (0, 9) rectangle (6, 15);
-        \fill[yellowC] (9, 9) rectangle (15, 15);
-        \fill[greenC]  (9, 0) rectangle (15, 6);
-        \fill[blueC]   (0, 0) rectangle (6, 6);
+    \fill[redC]    (0,   0)   rectangle (2,   2);
+    \fill[yellowC] (6.5, 0)   rectangle (8.5, 2);
+    \fill[blueC]   (6.5, 6.5) rectangle (8.5, 8.5);
+    \fill[greenC]  (0,   6.5) rectangle (2,   8.5);
+
+    % ============================================================
+    % 3. Parking circles + plane glyphs in each base
+    %    (2×2 layout, plane direction = CW play direction after takeoff)
+    % ============================================================
+    % Red NW — face RIGHT
+    \foreach \cx/\cy in {0.5/0.5, 1.5/0.5, 0.5/1.5, 1.5/1.5} {
+        \fill[white] (\cx, \cy) circle (0.32);
+        \draw[ink, line width=0.4pt] (\cx, \cy) circle (0.32);
+        \planeIconBig{\cx}{\cy}{redC}
+    }
+    % Yellow NE — face DOWN (rotate=270) per user spec
+    \foreach \cx/\cy in {7/0.5, 8/0.5, 7/1.5, 8/1.5} {
+        \fill[white] (\cx, \cy) circle (0.32);
+        \draw[ink, line width=0.4pt] (\cx, \cy) circle (0.32);
+        \planeIconBigR{\cx}{\cy}{270}{yellowC}
+    }
+    % Blue SE — face LEFT (rotate=180)
+    \foreach \cx/\cy in {7/7, 8/7, 7/8, 8/8} {
+        \fill[white] (\cx, \cy) circle (0.32);
+        \draw[ink, line width=0.4pt] (\cx, \cy) circle (0.32);
+        \planeIconBigR{\cx}{\cy}{180}{blueC}
+    }
+    % Green SW — face UP (rotate=90)
+    \foreach \cx/\cy in {0.5/7, 1.5/7, 0.5/8, 1.5/8} {
+        \fill[white] (\cx, \cy) circle (0.32);
+        \draw[ink, line width=0.4pt] (\cx, \cy) circle (0.32);
+        \planeIconBigR{\cx}{\cy}{90}{greenC}
+    }
+
+    % ============================================================
+    % 4. Outer loop — 4 segments × 14 cells each, drawn via C4 rotation.
+    %    \cA..\cM = colors for k=1..13 of the segment.
+    %    Red segment offset 0:    green, red, yellow, blue, green, red, yellow, blue, green, red, yellow, blue, green
+    %    Yellow segment offset 1: red, yellow, blue, green, red, yellow, blue, green, red, yellow, blue, green, red
+    %    Blue segment offset 2:   yellow, blue, green, red, yellow, blue, green, red, yellow, blue, green, red, yellow
+    %    Green segment offset 3:  blue, green, red, yellow, blue, green, red, yellow, blue, green, red, yellow, blue
+    % ============================================================
+    % Note: TikZ rotate around inside x={(1,0)},y={(0,-1)} renders visually CCW
+    % (top -> left for rotate=+90), so:
+    %   rotate=0    -> NW (red segment)
+    %   rotate=+90  -> SW (green segment, head color blue)
+    %   rotate=+180 -> SE (blue segment, head color yellow)
+    %   rotate=+270 -> NE (yellow segment, head color red)
+    \foreach \rot/\cA/\cB/\cC/\cD/\cE/\cF/\cG/\cH/\cI/\cJ/\cK/\cL/\cM in {%
+        0/greenC/redC/yellowC/blueC/greenC/redC/yellowC/blueC/greenC/redC/yellowC/blueC/greenC,
+        90/blueC/greenC/redC/yellowC/blueC/greenC/redC/yellowC/blueC/greenC/redC/yellowC/blueC,
+        180/yellowC/blueC/greenC/redC/yellowC/blueC/greenC/redC/yellowC/blueC/greenC/redC/yellowC,
+        270/redC/yellowC/blueC/greenC/redC/yellowC/blueC/greenC/redC/yellowC/blueC/greenC/redC%
+    } {
+        \begin{scope}[rotate around={\rot:(4.25, 4.25)}]
+            % idx 0: takeoff (white, no border at the hypotenuse to feel "open")
+            \fill[white] (0, 2) -- (1, 2) -- (0, 3) -- cycle;
+            \draw[ink, line width=0.3pt] (0, 2) -- (1, 2);
+            \draw[ink, line width=0.3pt] (0, 2) -- (0, 3);
+
+            % idx 1 (k=1): triangle (0..1, 2..3) right-bottom half
+            \fill[\cA] (1, 2) -- (1, 3) -- (0, 3) -- cycle;
+            \draw[ink, line width=0.3pt] (1, 2) -- (1, 3) -- (0, 3) -- cycle;
+            \dotC{0.667}{2.667}
+
+            % idx 2 (k=2): rectangle (1..1.5, 2..3)
+            \fill[\cB] (1, 2) rectangle (1.5, 3);
+            \draw[ink, line width=0.3pt] (1, 2) rectangle (1.5, 3);
+            \dotC{1.25}{2.5}
+
+            % idx 3 (k=3): rectangle (1.5..2, 2..3)
+            \fill[\cC] (1.5, 2) rectangle (2, 3);
+            \draw[ink, line width=0.3pt] (1.5, 2) rectangle (2, 3);
+            \dotC{1.75}{2.5}
+
+            % idx 4 (k=4): concave triangle (2..3, 2..3) left-bottom — flight glyph anchor
+            % Position shifted from centroid (2.333, 2.667) to (2.25, 2.667) so that
+            % the flight dashed line passes through the perpendicular stretch's 4th circle.
+            % Radius unified to 0.18 (matching other track circles).
+            \fill[\cD] (2, 2) -- (2, 3) -- (3, 3) -- cycle;
+            \draw[ink, line width=0.3pt] (2, 2) -- (2, 3) -- (3, 3) -- cycle;
+            \fill[white] (2.25, 2.667) circle (0.18);
+            \draw[ink, line width=0.25pt] (2.25, 2.667) circle (0.18);
+
+            % idx 5 (k=5): concave triangle (2..3, 2..3) right-top — flight glyph anchor
+            % Position shifted from (2.667, 2.333) to (2.667, 2.25), radius 0.18.
+            \fill[\cE] (2, 2) -- (3, 2) -- (3, 3) -- cycle;
+            \draw[ink, line width=0.3pt] (2, 2) -- (3, 2) -- (3, 3) -- cycle;
+            \fill[white] (2.667, 2.25) circle (0.18);
+            \draw[ink, line width=0.25pt] (2.667, 2.25) circle (0.18);
+
+            % idx 6 (k=6): rectangle (2..3, 1.5..2)
+            \fill[\cF] (2, 1.5) rectangle (3, 2);
+            \draw[ink, line width=0.3pt] (2, 1.5) rectangle (3, 2);
+            \dotC{2.5}{1.75}
+
+            % idx 7 (k=7): rectangle (2..3, 1..1.5)
+            \fill[\cG] (2, 1) rectangle (3, 1.5);
+            \draw[ink, line width=0.3pt] (2, 1) rectangle (3, 1.5);
+            \dotC{2.5}{1.25}
+
+            % idx 8 (k=8): convex triangle (2..3, 0..1) right-bottom
+            \fill[\cH] (2, 1) -- (3, 1) -- (3, 0) -- cycle;
+            \draw[ink, line width=0.3pt] (2, 1) -- (3, 1) -- (3, 0) -- cycle;
+            \dotC{2.667}{0.667}
+
+            % idx 9..13 (k=9..13): five 0.5×1 rectangles in mid-arm (3..5.5, 0..1)
+            \fill[\cI] (3, 0) rectangle (3.5, 1);
+            \draw[ink, line width=0.3pt] (3, 0) rectangle (3.5, 1);
+            \dotC{3.25}{0.5}
+
+            \fill[\cJ] (3.5, 0) rectangle (4, 1);
+            \draw[ink, line width=0.3pt] (3.5, 0) rectangle (4, 1);
+            \dotC{3.75}{0.5}
+
+            \fill[\cK] (4, 0) rectangle (4.5, 1);
+            \draw[ink, line width=0.3pt] (4, 0) rectangle (4.5, 1);
+            \dotC{4.25}{0.5}
+
+            \fill[\cL] (4.5, 0) rectangle (5, 1);
+            \draw[ink, line width=0.3pt] (4.5, 0) rectangle (5, 1);
+            \dotC{4.75}{0.5}
+
+            \fill[\cM] (5, 0) rectangle (5.5, 1);
+            \draw[ink, line width=0.3pt] (5, 0) rectangle (5.5, 1);
+            \dotC{5.25}{0.5}
+        \end{scope}
+    }
+
+    % ============================================================
+    % 5. Plane glyphs on the 8 concave-corner triangles.
+    %    Per segment: k=4 plane color = \cD, k=5 plane color = \cE.
+    %    Direction: pointing toward the OTHER endpoint of the matching
+    %    same-color dashed flight line.
+    %
+    %    Concave corners' centroids (rotated by C4):
+    %    NW (red seg): k=4 (blue) at (2.333, 2.667), k=5 (green) at (2.667, 2.333)
+    %    NE (yel seg): k=4 (green) at (5.917, 2.333), k=5 (red) at (6.167, 2.667)
+    %      = rotate +90° around (4.25,4.25): (x,y)→(8.5-y, x)
+    %      (2.333, 2.667) → (5.833, 2.333), (2.667, 2.333) → (6.167, 2.667)
+    %    SE (blue seg): k=4 (red) at (6.167, 5.833), k=5 (yellow) at (5.833, 6.167)
+    %    SW (green seg): k=4 (yellow) at (2.667, 6.167), k=5 (blue) at (2.333, 5.833)
+    % ============================================================
+    % Plane orientation rule (in this y-down picture):
+    %   rotate=0   -> face right
+    %   rotate=90  -> face up
+    %   rotate=180 -> face left
+    %   rotate=270 -> face down
+    % User spec for concave-corner planes:
+    %   NW (red base):    blue=up,    green=right
+    %   NE (yellow base): green=right, red=down
+    %   SE (blue base):   red=down,   yellow=left
+    %   SW (green base):  yellow=left, blue=up
+    %
+    % NW — plane icons (preserving original arrow orientations)
+    \planeIconSmR{2.25}{2.667}{90}{blueC}
+    \planeIconSm{2.667}{2.25}{greenC}
+    % NE
+    \planeIconSm{5.833}{2.25}{greenC}
+    \planeIconSmR{6.25}{2.667}{270}{redC}
+    % SE
+    \planeIconSmR{6.25}{5.833}{270}{redC}
+    \planeIconSmR{5.833}{6.25}{180}{yellowC}
+    % SW
+    \planeIconSmR{2.667}{6.25}{180}{yellowC}
+    \planeIconSmR{2.25}{5.833}{90}{blueC}
+
+    % ============================================================
+    % 6. Takeoff-cell plane glyphs (in the white triangle, same color as
+    %    the base, pointing in CW play direction).
+    %    Red takeoff centroid (0..1, 2..3 left-top half): (1/3, 7/3) ≈ (0.333, 2.333)
+    % ============================================================
+    % Red takeoff: face RIGHT (no rotation)
+    \planeG{0.333}{2.333}{redC}
+    % Yellow takeoff: face DOWN (rotate=270)
+    \begin{scope}[shift={(6.167, 0.333)}, rotate=270]
+        \fill[yellowC] (-0.16, 0.13) -- (0.21, 0) -- (-0.16, -0.13) -- cycle;
+        \draw[ink, line width=0.25pt] (-0.16, 0.13) -- (0.21, 0) -- (-0.16, -0.13) -- cycle;
     \end{scope}
-    % Inner trim — slightly smaller rounded rectangle, white, gives the
-    % bases a "framed" look matching the canonical references.
-    \foreach \x/\y in {0.4/9.4, 9.4/9.4, 9.4/0.4, 0.4/0.4} {
-        \draw[white, line width=2.4pt, rounded corners=6pt]
-            (\x, \y) rectangle ({\x+5.2}, {\y+5.2});
+    % Blue takeoff: face LEFT (rotate=180)
+    \begin{scope}[shift={(8.167, 6.167)}, rotate=180]
+        \fill[blueC] (-0.16, 0.13) -- (0.21, 0) -- (-0.16, -0.13) -- cycle;
+        \draw[ink, line width=0.25pt] (-0.16, 0.13) -- (0.21, 0) -- (-0.16, -0.13) -- cycle;
+    \end{scope}
+    % Green takeoff: face UP (rotate=90)
+    \begin{scope}[shift={(2.333, 8.167)}, rotate=90]
+        \fill[greenC] (-0.16, 0.13) -- (0.21, 0) -- (-0.16, -0.13) -- cycle;
+        \draw[ink, line width=0.25pt] (-0.16, 0.13) -- (0.21, 0) -- (-0.16, -0.13) -- cycle;
+    \end{scope}
+
+    % ============================================================
+    % 7. Four long-flight dashed lines, each connecting two same-color
+    %    airplane triangles in opposite concave corners.
+    %    Blue:   NW (2.333, 2.667) ↔ SW (2.333, 5.833)
+    %    Green:  NW (2.667, 2.333) ↔ NE (5.833, 2.333)
+    %    Red:    NE (6.167, 2.667) ↔ SE (6.167, 5.833)
+    %    Yellow: SE (5.833, 6.167) ↔ SW (2.667, 6.167)
+    % ============================================================
+    % Endpoints shifted so the dashed lines pass through each perpendicular
+    % stretch's 4th circle center (yellow stretch 4th at (4.25, 2.25), etc.).
+    % Stealth arrow heads removed: direction is shown by the 2 plane-icon
+    % indicators per line (added below) plus the concave-corner planes at the ends.
+    \draw[blueC,   dashed, line width=1.2pt] (2.25, 2.667) -- (2.25, 5.833);
+    \draw[greenC,  dashed, line width=1.2pt] (2.667, 2.25) -- (5.833, 2.25);
+    \draw[redC,    dashed, line width=1.2pt] (6.25, 2.667) -- (6.25, 5.833);
+    \draw[yellowC, dashed, line width=1.2pt] (5.833, 6.25) -- (2.667, 6.25);
+
+    % Direction-indicator plane glyphs on each dashed flight path.
+    % 2 per line, facing same direction as the line's flow (= Stealth arrow direction).
+    % Placed at roughly 1/4 and 3/4 of the line (between endpoint plane and stretch crossing).
+    % Blue line (flow UP — matches the orientation of the blue concave-corner planes):
+    \planeRSmall{2.25}{3.5}{90}{blueC}
+    \planeRSmall{2.25}{5.0}{90}{blueC}
+    % Green line (NW -> NE, horizontal, flow RIGHT):
+    \planeRSmall{3.5}{2.25}{0}{greenC}
+    \planeRSmall{5.0}{2.25}{0}{greenC}
+    % Red line (NE -> SE, vertical, flow DOWN):
+    \planeRSmall{6.25}{3.5}{270}{redC}
+    \planeRSmall{6.25}{5.0}{270}{redC}
+    % Yellow line (SE -> SW, horizontal, flow LEFT):
+    \planeRSmall{5.0}{6.25}{180}{yellowC}
+    \planeRSmall{3.5}{6.25}{180}{yellowC}
+
+    % ============================================================
+    % 8. (DELETED) Previous 3×3 central pinwheel.
+    %    The center of the board is now formed entirely by the four
+    %    home-stretch arrow-heads meeting at (4.25, 4.25). Each
+    %    arrow-head is a base-1.5 isoceles triangle in its own color,
+    %    so the four together tile the 1.5×1.5 central pinwheel.
+    % ============================================================
+
+    % ============================================================
+    % 9. Four home stretches (final runways).
+    %    User's polygon (yellow stretch as example):
+    %      (4,0) (4,3.5) (3.5,3.5) (4.25,4.25) (5,3.5) (4.5,3.5) (4.5,0)
+    %    = 0.5-wide body running col 4..4.5, y=0..3.5
+    %      + arrow-head tip from (3.5,3.5)→(4.25,4.25)→(5,3.5)
+    %      + return shoulders (3.5,3.5)→(4.5,3.5) and (5,3.5)→(4.5,3.5)
+    %
+    %    7 cells along the runway = 1 entry + 6 stretch cells.
+    %    Drawn AFTER central pinwheel so the arrow-head sits on top.
+    %    Rotation by color (C4 around (4.25, 4.25)):
+    %      yellow stretch =   0° (top arm)
+    %      blue stretch   = +90° (right arm)
+    %      green stretch  = +180° (bottom arm)
+    %      red stretch    = +270° (left arm)
+    % ============================================================
+    % Rotation maps (visual CCW: top->left->bottom->right):
+    %   yellow stretch at rotate=0    -> top arm
+    %   red    stretch at rotate=+90  -> left arm
+    %   green  stretch at rotate=+180 -> bottom arm
+    %   blue   stretch at rotate=+270 -> right arm
+    % Clockwise visual order around board: yellow, blue, green, red.
+    \foreach \rot/\dC in {0/yellowC, 90/redC, 180/greenC, 270/blueC} {
+        \begin{scope}[rotate around={\rot:(4.25, 4.25)}]
+            \fill[\dC]
+                (4, 0) -- (4, 3.5) -- (3.5, 3.5) -- (4.25, 4.25) -- (5, 3.5) -- (4.5, 3.5) -- (4.5, 0) -- cycle;
+            \draw[ink, line width=0.4pt]
+                (4, 0) -- (4, 3.5) -- (3.5, 3.5) -- (4.25, 4.25) -- (5, 3.5) -- (4.5, 3.5) -- (4.5, 0) -- cycle;
+
+            % 7 white parking circles per user's spec:
+            %   1 entry (in shared track, y∈0..1)   center (4.25, 0.5)
+            %   5 stretch 0.5×0.5 squares (y∈1..3.5) centers at y=1.25, 1.75, 2.25, 2.75, 3.25
+            %   1 arrow-head triangle              centroid (4.25, 3.75)
+            \foreach \cy in {0.5, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75} {
+                \fill[white] (4.25, \cy) circle (0.18);
+                \draw[\dC, line width=0.6pt] (4.25, \cy) circle (0.18);
+            }
+        \end{scope}
     }
 
     % ============================================================
-    % 3. Parking circles — 2×2 white circles per base, centered in 6×6.
-    %    Each circle is a white disc with a thin same-color rim and a
-    %    smaller solid same-color dot at its center (gives "wheel" feel).
+    % 10. Board frame
     % ============================================================
-    \foreach \r/\c/\col in {%
-        2/2/redC, 2/3/redC, 3/2/redC, 3/3/redC,
-        2/11/yellowC, 2/12/yellowC, 3/11/yellowC, 3/12/yellowC,
-        11/11/greenC, 11/12/greenC, 12/11/greenC, 12/12/greenC,
-        11/2/blueC, 11/3/blueC, 12/2/blueC, 12/3/blueC%
-    } {
-        \fill[white] ({\c+0.5}, {14.5-\r}) circle (0.44);
-        \draw[\col, line width=1pt] ({\c+0.5}, {14.5-\r}) circle (0.44);
-        \fill[\col] ({\c+0.5}, {14.5-\r}) circle (0.16);
-    }
-
-    % ============================================================
-    % 4. Outer loop — 52 cells, colored per the cycle described in
-    %    the structural notes at the top of this file.
-    % ============================================================
-    \foreach \r/\c/\col in {%
-        1/6/yellowC, 2/6/redC, 3/6/blueC, 4/6/greenC, 5/6/yellowC,
-        6/5/redC, 6/4/blueC, 6/3/greenC, 6/2/yellowC, 6/1/redC, 6/0/blueC,
-        7/0/blueC,
-        8/0/yellowC, 8/1/redC, 8/2/blueC, 8/3/greenC, 8/4/yellowC, 8/5/redC,
-        9/6/blueC, 10/6/greenC, 11/6/yellowC, 12/6/redC, 13/6/blueC,
-        14/6/greenC, 14/7/greenC, 14/8/redC,
-        13/8/blueC, 12/8/greenC, 11/8/yellowC, 10/8/redC, 9/8/blueC,
-        8/9/greenC, 8/10/yellowC, 8/11/redC, 8/12/blueC, 8/13/greenC,
-        8/14/yellowC, 7/14/yellowC, 6/14/blueC,
-        6/13/greenC, 6/12/yellowC, 6/11/redC, 6/10/blueC, 6/9/greenC,
-        5/8/yellowC, 4/8/redC, 3/8/blueC, 2/8/greenC, 1/8/yellowC,
-        0/8/redC, 0/7/redC, 0/6/greenC%
-    } {
-        \fill[\col] (\c, {14-\r}) rectangle ({\c+1}, {15-\r});
-        \draw[ink, line width=0.45pt] (\c, {14-\r}) rectangle ({\c+1}, {15-\r});
-    }
-
-    % ============================================================
-    % 5. Home stretches — 5 cells per color along the central
-    %    row/col 7 of each cross arm. Each cell is a same-color
-    %    framed square containing a white parking circle.
-    % ============================================================
-    % Red — top arm, col 7, rows 1..5
-    \foreach \r in {1, 2, 3, 4, 5} {
-        \fill[redL] (7, {14-\r}) rectangle (8, {15-\r});
-        \draw[redC, line width=0.9pt] (7, {14-\r}) rectangle (8, {15-\r});
-        \fill[white] (7.5, {14.5-\r}) circle (0.36);
-        \draw[redC, line width=1pt] (7.5, {14.5-\r}) circle (0.36);
-    }
-    % Yellow — right arm, row 7, cols 9..13
-    \foreach \c in {9, 10, 11, 12, 13} {
-        \fill[yellowL] (\c, 7) rectangle ({\c+1}, 8);
-        \draw[yellowC, line width=0.9pt] (\c, 7) rectangle ({\c+1}, 8);
-        \fill[white] ({\c+0.5}, 7.5) circle (0.36);
-        \draw[yellowC, line width=1pt] ({\c+0.5}, 7.5) circle (0.36);
-    }
-    % Green — bottom arm, col 7, rows 9..13
-    \foreach \r in {9, 10, 11, 12, 13} {
-        \fill[greenL] (7, {14-\r}) rectangle (8, {15-\r});
-        \draw[greenC, line width=0.9pt] (7, {14-\r}) rectangle (8, {15-\r});
-        \fill[white] (7.5, {14.5-\r}) circle (0.36);
-        \draw[greenC, line width=1pt] (7.5, {14.5-\r}) circle (0.36);
-    }
-    % Blue — left arm, row 7, cols 1..5
-    \foreach \c in {1, 2, 3, 4, 5} {
-        \fill[blueL] (\c, 7) rectangle ({\c+1}, 8);
-        \draw[blueC, line width=0.9pt] (\c, 7) rectangle ({\c+1}, 8);
-        \fill[white] ({\c+0.5}, 7.5) circle (0.36);
-        \draw[blueC, line width=1pt] ({\c+0.5}, 7.5) circle (0.36);
-    }
-
-    % ============================================================
-    % 6. Central pinwheel — 3×3 block (TikZ (6,6) to (9,9)) split
-    %    into 4 isoceles triangles forming a 4-color star.
-    % ============================================================
-    \fill[redC]    (6, 9) -- (9, 9) -- (7.5, 7.5) -- cycle;  % top
-    \fill[yellowC] (9, 9) -- (9, 6) -- (7.5, 7.5) -- cycle;  % right
-    \fill[greenC]  (9, 6) -- (6, 6) -- (7.5, 7.5) -- cycle;  % bottom
-    \fill[blueC]   (6, 6) -- (6, 9) -- (7.5, 7.5) -- cycle;  % left
-    % Triangle outlines + bounding square
-    \draw[ink, line width=1.4pt] (6, 6) rectangle (9, 9);
-    \draw[ink, line width=0.9pt] (6, 6) -- (9, 9);
-    \draw[ink, line width=0.9pt] (6, 9) -- (9, 6);
-
-    % ============================================================
-    % 7. Takeoff "launch" arrows — a heavy arrow from each base's
-    %    inner area to its EXIT cell on the outer loop.
-    %    EXIT centers:
-    %      red    (6,5) → TikZ (5.5, 8.5)
-    %      yellow (5,8) → TikZ (8.5, 9.5)
-    %      green  (8,9) → TikZ (9.5, 6.5)
-    %      blue   (9,6) → TikZ (6.5, 5.5)
-    % ============================================================
-    % Drawn as a thick white shaft with a thin dark outline (legible on
-    % both the colored base and the parchment outside).
-    \draw[ink,   line width=3.4pt, ->, >=Stealth, line cap=round] (3, 11) -- (5.2, 8.85);
-    \draw[white, line width=2.0pt, ->, >=Stealth] (3, 11) -- (5.2, 8.85);
-
-    \draw[ink,   line width=3.4pt, ->, >=Stealth, line cap=round] (12, 11) -- (8.85, 9.4);
-    \draw[white, line width=2.0pt, ->, >=Stealth] (12, 11) -- (8.85, 9.4);
-
-    \draw[ink,   line width=3.4pt, ->, >=Stealth, line cap=round] (12, 4) -- (9.4, 6.2);
-    \draw[white, line width=2.0pt, ->, >=Stealth] (12, 4) -- (9.4, 6.2);
-
-    \draw[ink,   line width=3.4pt, ->, >=Stealth, line cap=round] (3, 4) -- (6.2, 5.6);
-    \draw[white, line width=2.0pt, ->, >=Stealth] (3, 4) -- (6.2, 5.6);
-
-    % Plane glyphs on the EXIT cells, pointing in the CCW play direction.
-    %   red    EXIT (6,5): plane points LEFT (next loop cell is (6,4))
-    %   yellow EXIT (5,8): plane points UP (next loop cell is (4,8))
-    %   green  EXIT (8,9): plane points RIGHT (next loop cell is (8,10))
-    %   blue   EXIT (9,6): plane points DOWN (next loop cell is (10,6))
-    \plane{5.5}{8.5}{180}
-    \plane{8.5}{9.5}{90}
-    \plane{9.5}{6.5}{0}
-    \plane{6.5}{5.5}{-90}
-
-    % ============================================================
-    % 8. Home-stretch entry arrows — small black arrows on the four
-    %    "tip middle" loop cells pointing into the first stretch cell.
-    % ============================================================
-    \draw[->, ink, line width=1.5pt, >=Stealth] (7.5, 14.18) -- (7.5, 13.55);
-    \draw[->, ink, line width=1.5pt, >=Stealth] (14.18, 7.5) -- (13.55, 7.5);
-    \draw[->, ink, line width=1.5pt, >=Stealth] (7.5,  0.82) -- (7.5,  1.45);
-    \draw[->, ink, line width=1.5pt, >=Stealth] (0.82, 7.5)  -- (1.45, 7.5);
-
-    % ============================================================
-    % 9. Concave-corner small-jump dashed arrows (4 of them)
-    % ============================================================
-    \draw[->, yellowC, line width=2pt, dashed, >=Stealth] (6.5, 9.5) -- (2.5, 8.5);
-    \draw[->, redC,    line width=2pt, dashed, >=Stealth] (5.5, 6.5) -- (6.5, 2.5);
-    \draw[->, blueC,   line width=2pt, dashed, >=Stealth] (8.5, 5.5) -- (12.5, 6.5);
-    \draw[->, greenC,  line width=2pt, dashed, >=Stealth] (9.5, 8.5) -- (8.5, 12.5);
-
-    % Small same-color "dots" on the start/end of each small-jump arrow,
-    % to visually mark the two same-color cells linked by the jump.
-    \foreach \x/\y/\col in {%
-        6.5/9.5/yellowC, 2.5/8.5/yellowC,
-        5.5/6.5/redC,    6.5/2.5/redC,
-        8.5/5.5/blueC,   12.5/6.5/blueC,
-        9.5/8.5/greenC,  8.5/12.5/greenC%
-    } {
-        \fill[white] (\x, \y) circle (0.22);
-        \draw[\col, line width=1.4pt] (\x, \y) circle (0.22);
-    }
-
-    % ============================================================
-    % 10. Outer frame
-    % ============================================================
-    \draw[ink, line width=1.4pt] (0, 0) rectangle (15, 15);
+    \draw[ink, line width=1pt] (0, 0) rectangle (8.5, 8.5);
 
 \end{tikzpicture}
 \end{document}
