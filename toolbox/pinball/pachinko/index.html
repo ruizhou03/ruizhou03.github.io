@@ -147,8 +147,11 @@ permalink: /toolbox/pinball/pachinko/
     walls.push({ ax: x, ay: SLOT_TOP, bx: x, by: SLOT_BOT });
   }
 
-  // Slot 计分仍然左侧高、右侧低 (钉墙仍然偏右弹)，配合顶部 skill-shot 倍率
-  const SLOT_SCORES = [1000, 500, 250, -1, 200, 100, 50];
+  // Slot 计分故意和顶部 skill-shot 倍率反向：
+  // skill-shot 高倍率在左侧（×20 / ×10 / ×5），slot 高基础分在右侧（1000 / 500 / 250）
+  // → 蓄力大 → 球偏左 → 高倍率 × 低基础；蓄力轻 → 球偏右 → 低倍率 × 高基础
+  // 不再"蓄力越大越占优"。JKPT 留在中间作为高技术目标
+  const SLOT_SCORES = [50, 100, 200, -1, 250, 500, 1000];
 
   const slotTriggers = [];
   for (let i = 0; i < 7; i++) {
@@ -254,14 +257,14 @@ permalink: /toolbox/pinball/pachinko/
 
   // 闸门 cb：方向过滤 (球必须向左飞，避免反弹球乱触发) + 取最高倍率
   function onLaneCross(now, ball, gameRef, lane) {
-    if (ball.vx >= 0) return;  // 只在球向左飞越闸门时计数
-    if (lane.mult > state.launchMult) {
-      state.launchMult = lane.mult;
-      state.launchLaneIdx = lane.idx;
-      state.laneFlashTill[lane.idx] = now + 1200;
-      game.addPopup(ball.x, ball.y - 16, '×' + lane.mult + ' LOCKED', 1100);
-      updateGoal();
-    }
+    // "最后一次穿过的 lane"决定本发倍率：不锁最大值、不筛 vx 方向
+    // 蓄力打过头到左墙反弹回来 → 倒着穿过 ×20/×10/.../×2 → 倍率反而被压回 ×2
+    // 让玩家必须卡准"恰好停在某个倍率 lane 内"，不能蛮力 max charge 通吃
+    state.launchMult = lane.mult;
+    state.launchLaneIdx = lane.idx;
+    state.laneFlashTill[lane.idx] = now + 800;
+    game.addPopup(ball.x, ball.y - 16, '×' + lane.mult, 700);
+    updateGoal();
   }
 
   function onSlotEnter(now, ball, gameRef, idx) {
