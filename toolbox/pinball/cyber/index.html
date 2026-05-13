@@ -276,14 +276,19 @@ permalink: /toolbox/pinball/cyber/
     state.multiballEnd = now + 25000;             // 每次触发都刷新到完整 25 s
     game.setMultiplier(state.inheritedMultiplier);
 
-    // 只有前 3 次 lifetime HACKS 喷球，方向分别 L / M / R。
-    // 之前每次都喷 2 球往字母区飞 → 下一轮直接送两字母上来 (40% 进度)，
-    // 反复 hack 完全无门槛。3 次后只刷新计时，玩家必须自己再凑字母才有效。
+    // 只有前 3 次 lifetime HACKS 喷球，每次同时喷 3 个（上左 / 正上 / 上右 各一个）。
+    // 第 4 次起就只刷新计时不再喷球，玩家必须自己再凑字母。
+    // 喷点 x 间距 20 px 避免 3 球叠在一起触发 ball-ball overlap 校正
     if (state.hacksCompleted <= 3) {
-      const LMR = [-Math.PI * 2/3, -Math.PI / 2, -Math.PI / 3]; // 上左 / 正上 / 上右 60°
-      const angle = LMR[state.hacksCompleted - 1];
+      const LMR = [
+        { x: 220, a: -Math.PI * 2/3 },  // 上左 60°
+        { x: 240, a: -Math.PI / 2 },    // 正上
+        { x: 260, a: -Math.PI / 3 },    // 上右 60°
+      ];
       const speed = 750;
-      game.addBall(240, 220, Math.cos(angle) * speed, Math.sin(angle) * speed);
+      LMR.forEach(d => {
+        game.addBall(d.x, 220, Math.cos(d.a) * speed, Math.sin(d.a) * speed);
+      });
     }
 
     game.addPopup(W/2, 200, wasActive ? 'MULTIBALL +25s' : 'HACK MULTIBALL', 1500);
