@@ -429,6 +429,36 @@
           checkTriggers(b, now);
           clampSpeed(b);
         }
+
+        // 球-球碰撞（pairwise，等质量弹性碰撞 + 位置补正）
+        // multiball 时之前球之间会直接穿过；现按等质量弹性碰撞处理。
+        // 5 球时 5C2=10 对，单帧 8 substeps 仍很轻量；
+        // ballRadius=9 + maxSpeed/substeps≈2.9px/sub-tick，远小于直径 18 px，不会 tunnel。
+        const BB_REST = 0.85;
+        const balls = state.balls;
+        for (let i = 0; i < balls.length; i++) {
+          const a = balls[i];
+          if (a.onPlunger) continue;
+          for (let j = i + 1; j < balls.length; j++) {
+            const c = balls[j];
+            if (c.onPlunger) continue;
+            const dx = c.x - a.x, dy = c.y - a.y;
+            const d2 = dx*dx + dy*dy;
+            const md = a.r + c.r;
+            if (d2 >= md*md || d2 < 1e-6) continue;
+            const d = Math.sqrt(d2);
+            const nx = dx / d, ny = dy / d;
+            const overlap = (md - d) * 0.5;
+            a.x -= nx * overlap; a.y -= ny * overlap;
+            c.x += nx * overlap; c.y += ny * overlap;
+            const rvx = c.vx - a.vx, rvy = c.vy - a.vy;
+            const vDotN = rvx * nx + rvy * ny;
+            if (vDotN >= 0) continue;  // 已经在分开，不再施加冲量
+            const J = -(1 + BB_REST) * vDotN * 0.5;
+            a.vx -= J * nx; a.vy -= J * ny;
+            c.vx += J * nx; c.vy += J * ny;
+          }
+        }
       }
 
       // 所有活跃球都掉了 → 决定下一步

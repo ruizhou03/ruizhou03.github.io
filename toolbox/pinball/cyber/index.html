@@ -68,7 +68,7 @@ permalink: /toolbox/pinball/cyber/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=3"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=4"></script>
 
 <script>
 (() => {
@@ -94,12 +94,11 @@ permalink: /toolbox/pinball/cyber/
   );
 
   // ─── HACKS 5 个字母 trigger（顶部 5 个 lane） ───
-  // 字母全部收进发射轨道 (x=442+) 左侧 — 桌面中线偏左 (~225)，pitch=88：
-  // 36, 124, 212, 300, 388。最右字母 S 中心 x=388、宽 ±18 → 右边沿 406，远离轨道左壁 442。
-  // 不再需要"S 在 viaLane 时跳过"的特例，球发射时只在 x=442-474 lane 里，不会扫到 388。
+  // 居中：在小球碰撞区 x=16..442 范围里五等分。center=229, pitch=90 →
+  // [49, 139, 229, 319, 409]。最右字母 S 中心 409 + 半宽 14 = 423，距轨道左壁 442 仍有 19 px。
   const LETTER_TRIGGERS = [];
   const LETTERS = ['H', 'A', 'C', 'K', 'S'];
-  const LETTER_X = [36, 124, 212, 300, 388];
+  const LETTER_X = [49, 139, 229, 319, 409];
   for (let i = 0; i < 5; i++) {
     LETTER_TRIGGERS.push({
       id: 'lane' + LETTERS[i],
@@ -270,21 +269,24 @@ permalink: /toolbox/pinball/cyber/
     game.addScore(5000, W/2, 80, 'hacks');
     game.addPopup(W/2, 80, 'HACKS  COMPLETE', 1400);
     state.letters = [false, false, false, false, false];
-    // multiball
     state.inheritedMultiplier = state.comboLevel;
-    startMultiball(now);
-  }
 
-  function startMultiball(now) {
+    const wasActive = state.multiballActive;
     state.multiballActive = true;
-    state.multiballEnd = now + 25000;
+    state.multiballEnd = now + 25000;             // 每次触发都刷新到完整 25 s
     game.setMultiplier(state.inheritedMultiplier);
-    [Math.PI * -0.4, Math.PI * -0.5, Math.PI * -0.6].slice(0, 2).forEach(a => {
-      const vx = Math.cos(a) * 750;
-      const vy = Math.sin(a) * 750;
-      game.addBall(240, 220, vx, vy);
-    });
-    game.addPopup(W/2, 200, 'HACK MULTIBALL', 1800);
+
+    // 只有前 3 次 lifetime HACKS 喷球，方向分别 L / M / R。
+    // 之前每次都喷 2 球往字母区飞 → 下一轮直接送两字母上来 (40% 进度)，
+    // 反复 hack 完全无门槛。3 次后只刷新计时，玩家必须自己再凑字母才有效。
+    if (state.hacksCompleted <= 3) {
+      const LMR = [-Math.PI * 2/3, -Math.PI / 2, -Math.PI / 3]; // 上左 / 正上 / 上右 60°
+      const angle = LMR[state.hacksCompleted - 1];
+      const speed = 750;
+      game.addBall(240, 220, Math.cos(angle) * speed, Math.sin(angle) * speed);
+    }
+
+    game.addPopup(W/2, 200, wasActive ? 'MULTIBALL +25s' : 'HACK MULTIBALL', 1500);
     updateGoal();
   }
 
