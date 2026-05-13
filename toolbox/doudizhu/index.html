@@ -4365,6 +4365,12 @@ permalink: /toolbox/doudizhu/
     }
   });
 
+  // 设置面板内按回车触发提交
+  ['ddzOnlineNick', 'ddzOnlineCode'].forEach((id) => {
+    const el = $(id);
+    if (el) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') $('ddzOnlineSubmit').click(); });
+  });
+
   // 重新加入（从 localStorage）
   function renderResumeOption() {
     const sess = loadSession();
@@ -5080,13 +5086,29 @@ permalink: /toolbox/doudizhu/
     });
   }
 
-  // ── URL ?room=xxxx 自动跳到加入 tab ────────────────────────────────
+  // ── URL ?room=xxxx 自动加入房间 ────────────────────────────────
   (function autoJoinFromUrl() {
     const m = location.search.match(/[?&]room=(\d{4})/);
     if (!m) return;
+    const code = m[1];
+
+    // 切到联机模式的加入 tab，预填房号
     document.querySelector('.ddz-playmode-btn[data-playmode="online"]').click();
     document.querySelector('.ddz-online-tab[data-tab="join"]').click();
-    $('ddzOnlineCode').value = m[1];
+    $('ddzOnlineCode').value = code;
+
+    // 如果有已保存的昵称，自动填入并直接加入房间
+    const savedNick = (window.GamesShell && GamesShell.Identity && GamesShell.Identity.getNick()) || '';
+    if (savedNick) {
+      $('ddzOnlineNick').value = savedNick;
+      // 延迟一小段确保 DOM 切换完成后再发起加入
+      setTimeout(() => { $('ddzOnlineSubmit').click(); }, 200);
+    } else {
+      // 没有昵称时聚焦输入框，给出清晰提示
+      $('ddzOnlineNick').focus();
+      $('ddzOnlineNick').placeholder = '取个昵称，自动加入房间';
+      setOnlineHint('输入昵称后点"加入"或按回车即可', false);
+    }
   })();
 
   preloadNick();

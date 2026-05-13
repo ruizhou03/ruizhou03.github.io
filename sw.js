@@ -69,6 +69,15 @@ self.addEventListener('fetch', (event) => {
         // 否则浏览器地址栏和页面内容会脱节（曾导致 /toolbox/2048/ 渲染成首页）
         const cached = await caches.match(req);
         if (cached) return cached;
+
+        // 带上 query string 的 URL（如 ?room=1234）大概率是同一个 HTML 页面。
+        // 网络失败时回退到无 query 参数的缓存副本，避免用户看到"没缓存过"的 503 错误。
+        if (url.search) {
+          const baseUrl = url.origin + url.pathname;
+          const baseCached = await caches.match(baseUrl);
+          if (baseCached) return baseCached;
+        }
+
         return new Response(
           '<!doctype html><meta charset="utf-8"><title>离线</title>' +
           '<p style="font-family:serif;text-align:center;margin-top:30vh;color:#666;">' +
