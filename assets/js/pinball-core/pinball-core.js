@@ -346,12 +346,9 @@
         state.startedAt = state.startedAt || Date.now();
         hideOverlay();
       }
-      // 把"这次发射前球曾经 ricochet 回过 lane"信息透给桌台，再 reset 给下一轮
-      // fieldReturn=true → 桌台应给 T3（jackpot 级）奖励
-      // fieldReturn=false → 桌台给 T1（首发 / 救援重发）小奖励
-      const wasFieldReturn = !!b.fieldReturn;
-      b.fieldReturn = false;
-      if (hooks.onLaunch) hooks.onLaunch(b, game, { fieldReturn: wasFieldReturn });
+      // fieldReturn 不在 launch 时 reset —— 要等球真的跨过 laser、给完 T3 才在 cb 里 reset。
+      // 否则蓄力很轻、球根本没到 laser 也"发射成功"就把 fieldReturn 干掉了，等于送 T3。
+      if (hooks.onLaunch) hooks.onLaunch(b, game);
     }
 
     // ───────── 挡板 ─────────

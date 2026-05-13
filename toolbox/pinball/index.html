@@ -167,12 +167,18 @@ permalink: /toolbox/pinball/
     {
       id: 'laserGate', kind: 'segment',
       ax: 442, ay: 130, bx: 474, by: 130, thresh: 9,
-      on: 'enter', cooldown: 1500,
+      on: 'enter', cooldown: 1200,
       cb: (now, ball, game) => {
-        // viaLane=true：球还在"从 plunger 出来一路向上"的途中（包括首次发射 + 救援后重发）
-        // 这些都不算"把球弹回轨道"的技巧分。只有 viaLane=false（球在场上 ricochet 重新回到 lane）才奖
-        if (ball.viaLane) return;
-        onLaserHit(now, ball, game);
+        // 4 档奖励判定（全部在 laser 跨越时，不在 launch 时）：
+        //   viaLane=false                       → T2（球在场上 ricochet 重新进 lane）
+        //   viaLane=true, fieldReturn=true      → T3（T2 之后球安稳回到 plunger 又被发射）
+        //   viaLane=true, fieldReturn=false     → T1（首发或救援后重发，纯洁出发）
+        let tier;
+        if (!ball.viaLane) tier = 'T2';
+        else if (ball.fieldReturn) tier = 'T3';
+        else tier = 'T1';
+        onLaserHit(now, ball, game, tier);
+        if (tier === 'T3') ball.fieldReturn = false;   // 用掉了
       },
     },
   ];
@@ -289,23 +295,21 @@ permalink: /toolbox/pinball/
     updateGoal();
   }
 
-  // 弹射轨道 4 档奖励系统（T2 在这里，T1 / T3 在 onLaunch 里）
-  // T1 = 100（首发 / 救援重发）；T2 = 1000（ricochet 穿过）；T3 = 3000（ricochet → 安稳停下 → 再发）
-  function onLaserHit(now, ball, gameRef) {
-    game.addScore(1000, 458, 140, 'laser-t2');
-    game.addPopup(458, 110, 'LASER · +1000', 1300);
-    state.laserFlashTill = now + 500;
-  }
-  function onReactorLaunch(b, gameRef, meta) {
-    if (meta && meta.fieldReturn) {
-      // T3：球曾 ricochet 回 lane 又安稳停下来 → 满额 jackpot
-      game.addScore(3000, 458, 580, 'launch-t3');
-      game.addPopup(458, 560, '🎯 GRAND +3000', 1600);
-      state.laserFlashTill = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 800;
+  // 弹射轨道 4 档奖励：T1 / T2 / T3 都在球跨越 laser 那一刻发，不在 launch 时白送
+  function onLaserHit(now, ball, gameRef, tier) {
+    if (tier === 'T3') {
+      game.addScore(3000, 458, 140, 'laser-t3');
+      game.addPopup(458, 110, '🎯 GRAND +3000', 1600);
+      state.laserFlashTill = now + 800;
+    } else if (tier === 'T2') {
+      game.addScore(1000, 458, 140, 'laser-t2');
+      game.addPopup(458, 110, 'LASER +1000', 1300);
+      state.laserFlashTill = now + 500;
     } else {
-      // T1：首发或救援重发 → 最小礼花
-      game.addScore(100, 458, 580, 'launch-t1');
-      game.addPopup(458, 560, '+100', 700);
+      // T1
+      game.addScore(100, 458, 140, 'laser-t1');
+      game.addPopup(458, 110, '+100', 800);
+      state.laserFlashTill = now + 250;
     }
   }
 
@@ -548,7 +552,6 @@ permalink: /toolbox/pinball/
         game = g;
         state._balls = s.balls;
       },
-      onLaunch: onReactorLaunch,
       onBumperHit: (bp, now, g, ball) => {
         if (bp.x === 240 && bp.y === 240) {
           // 反应堆中心

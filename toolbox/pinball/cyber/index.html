@@ -117,14 +117,18 @@ permalink: /toolbox/pinball/cyber/
     });
   }
 
-  // 弹射轨道数据流（赛博克版回轨道奖励）
+  // 弹射轨道数据流（赛博克版回轨道奖励）：4 档判定都在跨越时
   LETTER_TRIGGERS.push({
     id: 'cyberLaneReturn', kind: 'segment',
     ax: 442, ay: 130, bx: 474, by: 130, thresh: 9,
-    on: 'enter', cooldown: 1500,
+    on: 'enter', cooldown: 1200,
     cb: (now, ball, game) => {
-      if (ball.viaLane) return;
-      onCyberLaneReturn(now, ball, game);
+      let tier;
+      if (!ball.viaLane) tier = 'T2';
+      else if (ball.fieldReturn) tier = 'T3';
+      else tier = 'T1';
+      onCyberLaneReturn(now, ball, game, tier);
+      if (tier === 'T3') ball.fieldReturn = false;
     },
   });
 
@@ -247,23 +251,22 @@ permalink: /toolbox/pinball/cyber/
     updateGoal();
   }
 
-  // 4 档奖励系统：T1 = 100，T2 = 1000，T3 = 3000
-  function onCyberLaneReturn(now, ball, gameRef) {
-    game.addScore(1000, 458, 140, 'lane-return-t2');
-    game.addPopup(458, 110, 'DATA STREAM +1000', 1300);
-    state.laneReturnFlashTill = now + 500;
-    bumpCombo(now);
-  }
-  function onCyberLaunch(b, gameRef, meta) {
-    if (meta && meta.fieldReturn) {
-      game.addScore(3000, 458, 580, 'launch-t3');
-      game.addPopup(458, 560, '⚡ GRAND +3000', 1600);
-      state.laneReturnFlashTill = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 800;
-      bumpCombo(performance.now ? performance.now() : Date.now());
-      bumpCombo(performance.now ? performance.now() : Date.now());
+  // 4 档奖励：全部在跨越 laser 时发
+  function onCyberLaneReturn(now, ball, gameRef, tier) {
+    if (tier === 'T3') {
+      game.addScore(3000, 458, 140, 'cyber-laser-t3');
+      game.addPopup(458, 110, '⚡ GRAND +3000', 1600);
+      state.laneReturnFlashTill = now + 800;
+      bumpCombo(now); bumpCombo(now); bumpCombo(now);
+    } else if (tier === 'T2') {
+      game.addScore(1000, 458, 140, 'cyber-laser-t2');
+      game.addPopup(458, 110, 'DATA STREAM +1000', 1300);
+      state.laneReturnFlashTill = now + 500;
+      bumpCombo(now);
     } else {
-      game.addScore(100, 458, 580, 'launch-t1');
-      game.addPopup(458, 560, '+100', 700);
+      game.addScore(100, 458, 140, 'cyber-laser-t1');
+      game.addPopup(458, 110, '+100', 800);
+      state.laneReturnFlashTill = now + 250;
     }
   }
 
@@ -447,7 +450,6 @@ permalink: /toolbox/pinball/cyber/
     },
     hooks: {
       onStart: (s, g) => { game = g; rebuildState(); updateGoal(); },
-      onLaunch: onCyberLaunch,
       onBumperHit: (b, now) => { bumpCombo(now); updateGoal(); },
       onPegHit: (p, now) => { /* peg 不算 combo，避免太轻松 */ },
       onTick: (dt, now) => {
