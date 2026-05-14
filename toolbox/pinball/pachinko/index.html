@@ -7,10 +7,20 @@ permalink: /toolbox/pinball/pachinko/
 <link rel="stylesheet" href="/assets/css/games-shell.css">
 <link rel="stylesheet" href="/assets/css/pinball-core.css?v=3">
 
+<style>
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
+</style>
+
 <div class="pb-wrap pb-theme-pachinko">
   <header>
     <h1>🎰 弹珠·机厅</h1>
-    <div class="sub">每局 10 发 · 顶部 6 闸门定倍率 (×1 → ×20) · 槽分 × 闸门 · 中央 JKPT 槽连中 3 次 → multiball</div>
   </header>
 
   <div class="pb-scorebar">
@@ -40,10 +50,6 @@ permalink: /toolbox/pinball/pachinko/
     <button class="pb-flip-btn" id="pbFlipR">▶</button>
   </div>
 
-  <div class="pb-help">
-    <kbd>←</kbd>/<kbd>A</kbd> 左拨　·　<kbd>→</kbd>/<kbd>D</kbd> 右拨　·　按住 <kbd>空格</kbd> 蓄力发射　·　<kbd>P</kbd> 暂停
-  </div>
-
   <div class="pb-tp-wrap">
     <div class="pb-tp-header"><span>切换桌台</span></div>
     <div class="pb-table-picker">
@@ -54,6 +60,12 @@ permalink: /toolbox/pinball/pachinko/
       <a href="/toolbox/pinball/rain/"><span class="pb-tp-emoji">🌧️</span><span class="pb-tp-name">弹珠雨</span></a>
     </div>
   </div>
+
+  <details class="about" style="max-width:480px;margin:1rem auto 0;font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
+    <summary>游戏规则</summary>
+    <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　按住 <kbd>空格</kbd> 蓄力发射　<kbd>P</kbd> 暂停。底部按钮也支持触屏。</p>
+    <p>每局 10 发球。顶部 6 个闸门决定倍率（×1 到 ×20），槽分 × 闸门倍率。中央 JKPT 槽连中 3 次触发 multiball。</p>
+  </details>
 
   <div class="pb-rank-row" id="pb-rank-row"></div>
   <div id="pb-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>

@@ -206,6 +206,19 @@ permalink: /toolbox/2048/
   .g2048-rank-row strong { color: var(--color-highlight); font-weight: 700; }
   .g2048-rank-row.loading { color: var(--color-muted); }
   .g2048-rank-row.failed { color: var(--color-muted); font-size: 0.84rem; }
+
+  details.about {
+    margin-top: 1.5rem; font-size: 0.88rem;
+    color: var(--color-muted); line-height: 1.7;
+  }
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="g2048-wrap">
@@ -274,9 +287,10 @@ permalink: /toolbox/2048/
   <div class="g2048-rank-row" id="rankRow"></div>
   <div id="nickMount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
 
-  <div class="help">
-    桌面：<kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd> 或 <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>　移动端：滑动方向
-  </div>
+  <details class="about" style="margin-top:1.5rem;font-size:0.88rem;color:var(--color-muted);line-height:1.7;max-width:480px;margin-left:auto;margin-right:auto;">
+    <summary>游戏规则</summary>
+    <p><kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd> 或 <kbd>WASD</kbd> 滑动，移动端手指滑动。相同数字相撞合并为两数之和。每次滑动后随机出现一个 2（90%）或 4（10%）。当棋盘无法继续移动时游戏结束。凑出 2048 即获胜，之后可选择继续冲击更高数字。</p>
+  </details>
 
   <!-- 排行榜（每 boardSize 各自一榜） -->
   <div id="lbMount" style="margin-top: 1.5rem;"></div>

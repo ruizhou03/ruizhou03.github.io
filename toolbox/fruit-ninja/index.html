@@ -251,6 +251,15 @@ permalink: /toolbox/fruit-ninja/
   .fn-bg-preview-wrap { margin: 0.4rem 0; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
   .fn-bg-preview-wrap canvas { display: block; width: 100%; height: auto; }
   .fn-bg-preview-desc { font-size: 0.76rem; color: rgba(255,255,255,0.45); padding: 0.3rem 0.5rem; text-align: center; }
+
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="fn-wrap">
@@ -310,7 +319,6 @@ permalink: /toolbox/fruit-ninja/
         <h2 data-bind="go-title">时间到</h2>
         <div class="ov-stats" data-bind="go-stats"></div>
         <button type="button" id="restart-btn">再来一局</button>
-        <p class="fn-tips" style="margin-top:0.7rem; color:rgba(255,255,255,0.55);">换模式 ↓ 用下面的切换栏</p>
       </div>
     </div>
   </section>
@@ -339,6 +347,11 @@ permalink: /toolbox/fruit-ninja/
     </div>
     <div class="fn-mode-desc" id="fn-mode-desc">限时 60 秒，连切水果加奖励分。切到炸弹立即结束。</div>
   </div>
+
+  <details class="about" style="max-width:600px;margin:1rem auto 0;font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
+    <summary>游戏规则</summary>
+    <p>滑动鼠标或手指划过水果即可切开得分。切到炸弹游戏结束。连击（一刀切多果）和连切（连续出刀）都有额外奖励分。六种模式各有侧重：经典限时、街机三命、无尽闯关、禅意无炸弹、连击狂飙、精准模式（沿提示角度切中 ×3 奖励）。</p>
+  </details>
 
   <div class="below-stage" id="below-stage">
     <div class="rank-row" id="rank-row"></div>

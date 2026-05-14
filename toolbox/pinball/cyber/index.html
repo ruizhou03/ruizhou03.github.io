@@ -7,10 +7,20 @@ permalink: /toolbox/pinball/cyber/
 <link rel="stylesheet" href="/assets/css/games-shell.css">
 <link rel="stylesheet" href="/assets/css/pinball-core.css?v=3">
 
+<style>
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
+</style>
+
 <div class="pb-wrap pb-theme-cyber">
   <header>
     <h1>🌃 赛博克</h1>
-    <div class="sub">霓虹 combo 链 · 3 秒不断链 ×2/×3/×5 · 集满 HACKS 五字母触发黑客入侵 multiball</div>
   </header>
 
   <div class="pb-scorebar">
@@ -40,10 +50,6 @@ permalink: /toolbox/pinball/cyber/
     <button class="pb-flip-btn" id="pbFlipR">▶</button>
   </div>
 
-  <div class="pb-help">
-    <kbd>←</kbd>/<kbd>A</kbd> 左拨　·　<kbd>→</kbd>/<kbd>D</kbd> 右拨　·　按住 <kbd>空格</kbd> 蓄力发射　·　<kbd>P</kbd> 暂停
-  </div>
-
   <div class="pb-tp-wrap">
     <div class="pb-tp-header"><span>切换桌台</span></div>
     <div class="pb-table-picker">
@@ -54,6 +60,12 @@ permalink: /toolbox/pinball/cyber/
       <a href="/toolbox/pinball/rain/"><span class="pb-tp-emoji">🌧️</span><span class="pb-tp-name">弹珠雨</span></a>
     </div>
   </div>
+
+  <details class="about" style="max-width:480px;margin:1rem auto 0;font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
+    <summary>游戏规则</summary>
+    <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　按住 <kbd>空格</kbd> 蓄力发射　<kbd>P</kbd> 暂停。底部按钮也支持触屏。</p>
+    <p>击中 bumper/目标维持 combo 链，3 秒内连续击中 ×2/×3/×5 倍率。集满 HACKS 五字母触发黑客入侵 multiball。</p>
+  </details>
 
   <div class="pb-rank-row" id="pb-rank-row"></div>
   <div id="pb-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>

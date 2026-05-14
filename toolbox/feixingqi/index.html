@@ -262,6 +262,19 @@ permalink: /toolbox/feixingqi/
     text-align: center;
     line-height: 1.7;
   }
+
+  details.about {
+    font-size: 0.88rem;
+    color: var(--color-muted); line-height: 1.7;
+  }
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
   .fxq-rules {
     margin-top: 0.5rem;
     font-size: 0.78rem;
@@ -300,7 +313,6 @@ permalink: /toolbox/feixingqi/
 <div class="fxq-wrap">
   <header>
     <h1>✈️ 飞行棋</h1>
-    <div class="sub">十字盘 · 2-4 人 + AI 三档 · 经典中式起飞规则</div>
   </header>
 
   <div class="fxq-statusbar">
@@ -331,7 +343,6 @@ permalink: /toolbox/feixingqi/
         <div class="gs-pgo-view active" id="fxqPgoViewMain">
           <div class="gs-pgo-icon">✈️</div>
           <h2 class="gs-pgo-title">飞行棋</h2>
-          <div class="gs-pgo-subtitle">十字盘 · 2-4 人 + AI 三档 · 经典中式起飞规则</div>
           <div class="gs-pgo-local-config" id="fxqPgoConfig">
             <div class="gs-pgo-config-label">点击角配置玩家（空 / 人类 / AI）</div>
             <div class="gs-pgo-config-chips" id="fxqPgoChips"></div>
@@ -383,19 +394,6 @@ permalink: /toolbox/feixingqi/
     <div class="fxq-controls" style="margin-top: 0.6rem;">
       <button class="fxq-btn primary" id="fxqStartBtn">🎮 开始游戏</button>
     </div>
-    <div class="fxq-help">点击棋盘四角的 chip 在「空 / 人类 / AI」之间切换。每位玩家 4 架飞机，目标是把 4 架全送到中央终点。至少需要 2 个角有玩家。</div>
-    <div class="fxq-rules">
-      <span class="pill">出库</span> 摇 6 才能从机库出一架，飞机出现在紧邻基地的 <span style="color:#E84545">✈</span> 起飞圆格上；掷 6 后再掷一次（连续 3 个 6 视为犯规，最近一架退回机库）。
-      <br>
-      <span class="pill">归航</span> 沿十字外圈往前走 45 格到自家归航入口（自家臂尖中央同色格），自动转入 6 格归航跑道 → 中央同色三角即胜。
-      <br>
-      <span class="pill">小跳</span> 走的过程中落在自家凹角 <span style="color:#E84545">✈</span> 格（同色虚线箭头标出）→ 跨过凹角飞 4 格到下一个自家颜色圆格。
-      <br>
-      <span class="pill">大飞</span> 落在自家起飞 <span style="color:#E84545">✈</span> 圆格 → 横跨半盘 26 格（罕见彩蛋，被对手踩回再起飞才有机会触发）。
-      <br>
-      <span class="pill">踩格</span> 落到对手所在格 → 对手该格上飞机全部回机库。
-      <span class="pill">精确</span> 进归航跑道后剩余步数必须精确到达终点，超出反弹。
-    </div>
   </div>
 
   <div id="fxqGameControls" hidden>
@@ -403,8 +401,16 @@ permalink: /toolbox/feixingqi/
       <button class="fxq-btn" id="fxqPauseBtn" hidden>⏸ 暂停</button>
       <button class="fxq-btn" id="fxqNewBtn">🔄 重新配置</button>
     </div>
-    <div class="fxq-help">先点「掷骰」出点数，可移动的飞机会金色高亮，点击想动的那架确认。掷出 6 可以再掷一次。</div>
   </div>
+
+  <details class="about" style="max-width:600px;margin:1rem auto 0;">
+    <summary>游戏规则</summary>
+    <p>每位玩家 4 架飞机，先全部送到中央终点者胜。点击棋盘四角的圆形按钮切换「空 / 人类 / AI」。</p>
+    <p><strong>出库：</strong>掷出 6 才能出一架飞机到起飞格，掷 6 后再掷一次。连续 3 个 6 最近一架退回机库。</p>
+    <p><strong>行进：</strong>沿十字外圈走 45 格到归航入口，转入 6 格归航跑道，精确到达中央三角即完成一架。</p>
+    <p><strong>跳跃：</strong>落在自家凹角起飞格 → 飞 4 格。落在自己起飞圆格 → 飞 26 格（罕见）。</p>
+    <p><strong>踩格：</strong>落到对手所在格，对手该格飞机全部退回机库。</p>
+  </details>
 
   <div id="fxq-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
   <div id="fxq-settle-btn-mount"></div>

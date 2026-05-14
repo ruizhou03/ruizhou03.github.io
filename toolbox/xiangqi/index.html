@@ -164,12 +164,25 @@ permalink: /toolbox/xiangqi/
     text-align: center;
     line-height: 1.7;
   }
+
+  details.about {
+    font-size: 0.88rem;
+    color: var(--color-muted); line-height: 1.7;
+  }
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="xq-wrap">
   <header>
     <h1>♟ 中国象棋</h1>
-    <div class="sub">楚河汉界 — 同机对弈 / 人机对战 三档难度</div>
+    <div class="sub">楚河汉界</div>
   </header>
 
   <div class="xq-controls">
@@ -218,7 +231,6 @@ permalink: /toolbox/xiangqi/
       <div class="gs-pgo-view active" id="xqPgoViewMain">
         <div class="gs-pgo-icon">帥</div>
         <h2 class="gs-pgo-title">中国象棋</h2>
-        <div class="gs-pgo-subtitle">同机对弈 / 人机对战 · 三档 AI 难度</div>
         <div class="gs-pgo-mode-picker" id="xqPgoModePicker">
           <button class="gs-pgo-mode-tab selected" data-value="pvp">双人同机</button>
           <button class="gs-pgo-mode-tab" data-value="ai-black">人机（执黑）</button>
@@ -254,7 +266,10 @@ permalink: /toolbox/xiangqi/
     </div>
   </div>
 
-  <div class="xq-help">点击棋子选中后再点目标点落子。规则全套：马蹩腿、象眼、炮翻子、过河兵、不能照面（双将不可同列直对）、将军 / 将死 / 困毙判负。</div>
+  <details class="about" style="max-width:600px;margin:1rem auto 0;">
+    <summary>游戏规则</summary>
+    <p>点击棋子选中，再点目标格落子。支持马蹩腿、塞象眼、炮翻山、过河兵、将帅不能照面等全套规则。将军、将死、困毙判负。</p>
+  </details>
 
   <div id="xq-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
   <div id="xq-settle-btn-mount"></div>

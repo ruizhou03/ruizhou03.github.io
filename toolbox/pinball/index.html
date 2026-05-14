@@ -7,10 +7,20 @@ permalink: /toolbox/pinball/
 <link rel="stylesheet" href="/assets/css/games-shell.css">
 <link rel="stylesheet" href="/assets/css/pinball-core.css?v=3">
 
+<style>
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
+</style>
+
 <div class="pb-wrap pb-theme-reactor">
   <header>
     <h1>🚀 太空反应堆</h1>
-    <div class="sub">充能 5 格点亮反应堆 · 左侧 orbit 一圈 +500 · 右侧 ramp 通 jackpot · 3 球 multiball</div>
   </header>
 
   <div class="pb-scorebar">
@@ -40,10 +50,6 @@ permalink: /toolbox/pinball/
     <button class="pb-flip-btn" id="pbFlipR">▶</button>
   </div>
 
-  <div class="pb-help">
-    <kbd>←</kbd>/<kbd>A</kbd> 左拨　·　<kbd>→</kbd>/<kbd>D</kbd> 右拨　·　按住 <kbd>空格</kbd> 蓄力发射　·　<kbd>P</kbd> 暂停
-  </div>
-
   <div class="pb-tp-wrap">
     <div class="pb-tp-header"><span>切换桌台</span></div>
     <div class="pb-table-picker">
@@ -54,6 +60,12 @@ permalink: /toolbox/pinball/
       <a href="/toolbox/pinball/rain/"><span class="pb-tp-emoji">🌧️</span><span class="pb-tp-name">弹珠雨</span></a>
     </div>
   </div>
+
+  <details class="about" style="max-width:480px;margin:1rem auto 0;font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
+    <summary>游戏规则</summary>
+    <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　按住 <kbd>空格</kbd> 蓄力发射　<kbd>P</kbd> 暂停。底部按钮也支持触屏操作。</p>
+    <p>充能 5 格点亮反应堆；左侧 orbit 绕一圈 +500 分；右侧 ramp 通往 jackpot；击中 3 个 drop target 解锁 jackpot。3 球 multiball 期间所有得分翻倍。</p>
+  </details>
 
   <div class="pb-rank-row" id="pb-rank-row"></div>
   <div id="pb-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>

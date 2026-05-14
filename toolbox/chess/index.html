@@ -171,12 +171,24 @@ permalink: /toolbox/chess/
     text-align: center;
     line-height: 1.7;
   }
+
+  details.about {
+    font-size: 0.88rem;
+    color: var(--color-muted); line-height: 1.7;
+  }
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="ch-wrap">
   <header>
     <h1>♟️ 国际象棋</h1>
-    <div class="sub">同机对弈 / 人机对战 — 三档 AI 难度</div>
   </header>
 
   <div class="ch-controls">
@@ -226,7 +238,6 @@ permalink: /toolbox/chess/
       <div class="gs-pgo-view active" id="chPgoViewMain">
         <div class="gs-pgo-icon">♔</div>
         <h2 class="gs-pgo-title">国际象棋</h2>
-        <div class="gs-pgo-subtitle">同机对弈 / 人机对战 · 三档 AI 难度</div>
         <div class="gs-pgo-mode-picker" id="chPgoModePicker">
           <button class="gs-pgo-mode-tab selected" data-value="pvp">双人同机</button>
           <button class="gs-pgo-mode-tab" data-value="ai-black">人机（执黑）</button>
@@ -262,7 +273,10 @@ permalink: /toolbox/chess/
     </div>
   </div>
 
-  <div class="ch-help">点击棋子选中后再点目标格落子。规则全套：王车易位、吃过路兵、兵升变（自动选后）、将军 / 将死 / 逼和 / 三次重复 / 50 步规则。</div>
+  <details class="about" style="max-width:600px;margin:1rem auto 0;">
+    <summary>游戏规则</summary>
+    <p>点击棋子选中，再点目标格落子。支持王车易位、吃过路兵、兵升变（自动升后）。将军、将死、逼和、三次重复、50 步无吃子无动兵均按标准规则判胜负。</p>
+  </details>
 
   <div id="ch-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
   <div id="ch-settle-btn-mount"></div>

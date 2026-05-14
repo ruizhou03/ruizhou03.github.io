@@ -379,7 +379,6 @@ permalink: /toolbox/dare/
 <article class="dare-wrap">
   <header class="dare-header">
     <h1>🃏 不要做挑战</h1>
-    <p>Don't Do It Challenge</p>
   </header>
 
   <!-- ===== 配置阶段 ===== -->
@@ -487,12 +486,9 @@ permalink: /toolbox/dare/
   </div>
 
   <details class="about">
-    <summary>关于这个游戏</summary>
-    <p><strong>玩法：</strong>2-8 人轮流抽卡，每人有 N 张额度（默认 10）。每次点「下一张」会出 3-2-1 倒计时（用于把手机翻给当前玩家），倒计时结束揭示题目。看到题目的玩家要立刻执行限制规则，做了就出局；没做就用掉一张额度，轮到下一玩家。</p>
-    <p><strong>胜利条件：</strong>最后还没出局的玩家获胜。如果所有人都用完了额度还没出局，全员通关并列胜出。</p>
-    <p><strong>反向显示：</strong>如果不想物理翻手机，勾上「反向显示」会让卡片旋转 180°，对面看是正的，自己看是倒的。</p>
-    <p><strong>不重复：</strong>用 sessionStorage 记忆已抽过的牌，刷新或离开重进都不会重复。一副 50 张全抽完才会自动洗牌重来。</p>
-    <p><strong>纯本地：</strong>战绩只存当前会话，关闭页面就清零。</p>
+    <summary>游戏规则</summary>
+    <p>2-8 人轮流抽卡，每人 N 张额度（默认 10 张）。抽到的题目要求你做某件事——做了就出局，没做就用掉 1 张额度。最后还没出局的玩家获胜。全员用完额度且都没出局则并列胜出。</p>
+    <p>每轮抽卡时会有 3-2-1 倒计时，把手机翻给当前玩家看。不想翻手机可以勾「反向显示」，卡片会旋转 180° 对面看正的。</p>
   </details>
 
   <link rel="stylesheet" href="/assets/css/games-shell.css">

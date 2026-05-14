@@ -23,6 +23,19 @@ permalink: /toolbox/snake/
   .sn-rank-row strong { color: var(--color-highlight); font-weight: 700; }
   .sn-rank-row.loading { color: var(--color-muted); }
   .sn-rank-row.failed { color: var(--color-muted); font-size: 0.84rem; }
+
+  details.about {
+    margin-top: 1.5rem; font-size: 0.88rem;
+    color: var(--color-muted); line-height: 1.7;
+  }
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
 </style>
 
 <style>
@@ -235,12 +248,13 @@ permalink: /toolbox/snake/
     <button class="dp-down" data-dir="down">↓</button>
   </div>
 
-  <div class="sn-help">
-    <kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd> 或 <kbd>WASD</kbd>　·　<kbd>空格</kbd> 暂停
-  </div>
-
   <div class="sn-rank-row" id="sn-rank-row"></div>
   <div id="sn-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
+
+  <details class="about" style="max-width:480px;margin-left:auto;margin-right:auto;">
+    <summary>游戏规则</summary>
+    <p><kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd> 或 <kbd>WASD</kbd> 控制方向，<kbd>空格</kbd> 暂停。每吃到一个豆子得 10 分，蛇身增长一格，速度也随之加快。撞到墙壁或自己的身体游戏结束。</p>
+  </details>
 
   <div id="sn-lb-mount" style="margin-top: 1.5rem;"></div>
   <div id="sn-settle-btn-mount"></div>

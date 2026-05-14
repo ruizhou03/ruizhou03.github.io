@@ -1528,6 +1528,15 @@ permalink: /toolbox/doudizhu/
     line-height: 1.7;
   }
 
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
+
   /* ======== 移动端 ======== */
   @media (max-width: 600px) {
     .ddz-wrap {
@@ -1859,6 +1868,13 @@ permalink: /toolbox/doudizhu/
       </div>
     </div>
   </div>
+
+  <details class="about" style="max-width:600px;margin:1rem auto 0;font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
+    <summary>游戏规则</summary>
+    <p>3 人一副牌（54 张，含大小王）。叫分最高者为地主，其余两人为农民合作对抗。地主先出完牌则地主胜，任一农民先出完则农民胜。</p>
+    <p>牌型：单张、对子、三条、三带一、三带二、顺子（≥5 张）、连对（≥3 对）、飞机（≥2 个连续三条带等量单/对）、炸弹（4 张同点）、火箭（大小王）。炸弹和火箭可压任何牌型。</p>
+    <p>倍数：叫地主（1/2/3 分）、炸弹和火箭每次翻倍、春天（对手一张未出）×2。最终输赢 = 底分 × 倍数。</p>
+  </details>
 
   <div id="ddz-settle-btn-mount"></div>
   <div id="ddz-wlb-mount" style="max-width: 600px; margin: 1.2rem auto 0;"></div>

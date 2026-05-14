@@ -209,6 +209,19 @@ permalink: /toolbox/minesweeper/
     text-align: center;
     line-height: 1.7;
   }
+
+  details.about {
+    font-size: 0.88rem;
+    color: var(--color-muted); line-height: 1.7;
+  }
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="ms-wrap">
@@ -263,10 +276,11 @@ permalink: /toolbox/minesweeper/
 
   <div class="ms-modal-wrap" id="msModal"></div>
 
-  <div class="ms-help">
-    桌面：左键揭格、右键插旗、双击数字一键揭周围八格<br>
-    手机：单击揭格、双击插旗（已揭数字双击 = 一键揭周围八格），长按也能插旗
-  </div>
+  <details class="about" style="max-width:600px;margin:1rem auto 0;">
+    <summary>游戏规则</summary>
+    <p>左键揭格，右键插旗。已揭开数字格双击可一键揭开周围八格（前提是周围旗数与该格数字相等）。手机端：单击揭格，双击已揭数字同样触发一键揭周围，长按插旗。</p>
+    <p>数字代表周围 8 格中藏雷的数量。通过推理避开所有地雷并揭开全部安全格即获胜。踩雷则失败。</p>
+  </details>
 
   <div class="ms-rank-row" id="ms-rank-row"></div>
   <div id="ms-nick-mount" style="max-width: 600px; margin: 0.6rem auto 0;"></div>

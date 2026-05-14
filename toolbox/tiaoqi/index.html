@@ -269,12 +269,24 @@ permalink: /toolbox/tiaoqi/
     text-align: center;
     line-height: 1.7;
   }
+
+  details.about {
+    font-size: 0.88rem;
+    color: var(--color-muted); line-height: 1.7;
+  }
+  details.about summary {
+    cursor: pointer; padding: 0.4rem 0;
+    color: var(--color-muted); font-weight: 500;
+    list-style: none;
+  }
+  details.about summary::before { content: '▸ '; transition: 0.2s; }
+  details[open].about summary::before { content: '▾ '; }
+  details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="tq-wrap">
   <header>
     <h1>⭐ 跳棋</h1>
-    <div class="sub">六角星棋盘 · 2-6 人同机 / 人机对战 · 自由选边</div>
   </header>
 
   <div class="tq-statusbar">
@@ -300,7 +312,6 @@ permalink: /toolbox/tiaoqi/
         <div class="gs-pgo-view active" id="tqPgoViewMain">
           <div class="gs-pgo-icon">🔺</div>
           <h2 class="gs-pgo-title">跳棋</h2>
-          <div class="gs-pgo-subtitle">六角星棋盘 · 2-6 人同机 / 人机对战 · 自由选边</div>
           <div class="gs-pgo-local-config" id="tqPgoConfig">
             <div class="gs-pgo-config-label">点击角配置玩家（空 / 人类 / AI）</div>
             <div class="gs-pgo-config-chips" id="tqPgoChips"></div>
@@ -355,7 +366,6 @@ permalink: /toolbox/tiaoqi/
     <div class="tq-controls" style="margin-top: 0.6rem;">
       <button class="tq-btn primary" id="tqStartBtn">🎮 开始游戏</button>
     </div>
-    <div class="tq-help">点击棋盘上的角（chip 或任一孔位）在「空 / 人类 / AI」之间切换。每队 10 颗棋子，目标是把所有棋子移到正对面的角。至少需要 2 个角有玩家。</div>
   </div>
 
   <!-- Game-only controls (hidden until a game starts) -->
@@ -366,8 +376,13 @@ permalink: /toolbox/tiaoqi/
       <button class="tq-btn" id="tqPauseBtn" hidden>⏸ 暂停</button>
       <button class="tq-btn" id="tqNewBtn">🔄 重新配置</button>
     </div>
-    <div class="tq-help">点击棋子选中，再点目标点落子。同色点 = 步走，红色圈 = 跳跃。跳跃可跨过同一直线上任意距离的一颗棋子，落到对侧等距离的空孔；连跳途中任一站均可作为终点。胜利条件：把全部 10 颗棋子放到正对面三角形里。</div>
   </div>
+
+  <details class="about" style="max-width:600px;margin:1rem auto 0;">
+    <summary>游戏规则</summary>
+    <p>点击棋盘六角的圆形按钮切换「空 / 人类 / AI」。每队 10 颗棋子，目标是将全部棋子移到正对面的三角形里。至少需要 2 个角有玩家。</p>
+    <p>点击棋子选中，再点目标落子。同色圆点 = 步走（相邻空孔），红色圈 = 跳跃（跨过同一直线上的一颗棋子，落到对侧等距离空孔）。连跳途中任一站均可作为终点。</p>
+  </details>
 
   <div id="tq-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
   <div id="tq-settle-btn-mount"></div>
