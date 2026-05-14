@@ -981,6 +981,13 @@ permalink: /toolbox/gomoku/
     try {
       const nick = gmGetNick(), did = gmGetDid();
 
+      // Quick connectivity check first (3s timeout)
+      const ping = await gmRoomApi('GET', 'ping');
+      if (ping.error) {
+        gmShowError('无法连接到服务器，请确认网络后重试');
+        return;
+      }
+
       if (/^\d{4}$/.test(code)) {
         const r = await gmRoomApi('POST', 'join', { code, nick, deviceId: did });
         if (r.ok) { gmEnterLobby(r); return; }

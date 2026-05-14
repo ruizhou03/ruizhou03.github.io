@@ -1317,6 +1317,8 @@ permalink: /toolbox/xiangqi/
     xqShowError(''); btn.textContent = '连接中…'; btn.disabled = true;
     try {
       const nick = xqGetNick(), did = GamesShell.Identity.getDeviceId();
+      const ping = await xqRoomApi('GET', 'ping');
+      if (ping.error) { xqShowError('无法连接到服务器，请确认网络后重试'); return; }
       if (/^\d{4}$/.test(code)) {
         const r = await xqRoomApi('POST', 'join', { code, nick, deviceId: did });
         if (r.ok) { xqEnterLobby(r); return; }
