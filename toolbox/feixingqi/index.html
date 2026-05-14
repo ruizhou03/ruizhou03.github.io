@@ -2401,12 +2401,17 @@ permalink: /toolbox/feixingqi/
     const chipContainer = document.getElementById('fxqPgoChips');
     if (!chipContainer) return;
     chipContainer.innerHTML = '';
-    const labels = { NW: '🔴 西北(红)', NE: '🟡 东北(黄)', SE: '🔵 东南(蓝)', SW: '🟢 西南(绿)' };
+    const labels = { NW: '西北', NE: '东北', SE: '东南', SW: '西南' };
+    const emojis = { NW: '🔴', NE: '🟡', SE: '🔵', SW: '🟢' };
+    const gridPos = { NW: [1,1], NE: [1,2], SW: [2,1], SE: [2,2] };
     CORNER_KEYS.forEach(ck => {
       const chip = document.createElement('button');
       chip.className = 'gs-pgo-config-chip ' + state.setupConfig[ck];
       chip.dataset.corner = ck;
-      chip.textContent = labels[ck] + ' · ' + (state.setupConfig[ck] === 'human' ? '人类' : state.setupConfig[ck] === 'ai' ? 'AI' : '空');
+      chip.style.gridRow = gridPos[ck][0];
+      chip.style.gridColumn = gridPos[ck][1];
+      const kindLabel = state.setupConfig[ck] === 'human' ? '人类' : state.setupConfig[ck] === 'ai' ? 'AI' : '空';
+      chip.textContent = `${emojis[ck]} ${labels[ck]} · ${kindLabel}`;
       chip.addEventListener('click', () => {
         const cycle = { empty: 'human', human: 'ai', ai: 'empty' };
         state.setupConfig[ck] = cycle[state.setupConfig[ck]];

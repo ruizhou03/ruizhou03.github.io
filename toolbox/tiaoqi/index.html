@@ -1646,13 +1646,23 @@ permalink: /toolbox/tiaoqi/
   function tqSyncOverlayChips() {
     const chipContainer = document.getElementById('tqPgoChips');
     if (!chipContainer) return;
+    chipContainer.className = 'gs-pgo-config-chips cols-3';
     chipContainer.innerHTML = '';
-    const labels = { N: '🔴 北', NE: '🟠 东北', SE: '🟢 东南', S: '🔵 南', SW: '🟣 西南', NW: '🟤 西北' };
+    const labels = { N: '北', NE: '东北', SE: '东南', S: '南', SW: '西南', NW: '西北' };
+    const emojis = { N: '🔴', NE: '🟠', SE: '🟢', S: '🔵', SW: '🟣', NW: '🟤' };
+    // 3 列网格：上行 NW-N-NE，下行 SW-S-SE
+    const gridPos = {
+      NW: [1,1], N: [1,2], NE: [1,3],
+      SW: [2,1], S: [2,2], SE: [2,3],
+    };
     CORNER_KEYS.forEach(ck => {
       const chip = document.createElement('button');
       chip.className = 'gs-pgo-config-chip ' + state.setupConfig[ck];
       chip.dataset.corner = ck;
-      chip.textContent = labels[ck] + ' · ' + (state.setupConfig[ck] === 'human' ? '人类' : state.setupConfig[ck] === 'ai' ? 'AI' : '空');
+      chip.style.gridRow = gridPos[ck][0];
+      chip.style.gridColumn = gridPos[ck][1];
+      const kindLabel = state.setupConfig[ck] === 'human' ? '人类' : state.setupConfig[ck] === 'ai' ? 'AI' : '空';
+      chip.textContent = `${emojis[ck]} ${labels[ck]} · ${kindLabel}`;
       chip.addEventListener('click', () => {
         const cycle = { empty: 'human', human: 'ai', ai: 'empty' };
         state.setupConfig[ck] = cycle[state.setupConfig[ck]];

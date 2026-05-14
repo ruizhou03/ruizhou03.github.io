@@ -1029,7 +1029,7 @@
 /* 本地玩家配置区（feixingqi/tiaoqi chip 选择等） */
 .gs-pgo-local-config {
   width: 100%;
-  max-width: 340px;
+  max-width: 400px;
   margin-bottom: 0.8rem;
 }
 .gs-pgo-local-config .gs-pgo-config-label {
@@ -1037,12 +1037,42 @@
   color: rgba(255, 255, 255, 0.55);
   margin-bottom: 0.4rem;
 }
+/* 4-corner 默认：2×2 网格 + 十字坐标轴 */
 .gs-pgo-config-chips {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
-  justify-content: center;
+  justify-items: center;
+  align-items: center;
+  max-width: 320px;
+  margin: 0 auto;
+  position: relative;
+  padding: 0.5rem 0;
 }
+/* 十字坐标轴 */
+.gs-pgo-config-chips::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    linear-gradient(to right,
+      transparent calc(50% - 0.5px),
+      rgba(255,255,255,0.10) calc(50% - 0.5px),
+      rgba(255,255,255,0.10) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)),
+    linear-gradient(to bottom,
+      transparent calc(50% - 0.5px),
+      rgba(255,255,255,0.10) calc(50% - 0.5px),
+      rgba(255,255,255,0.10) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px));
+}
+/* 6-corner 变体：3 列 */
+.gs-pgo-config-chips.cols-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 .gs-pgo-config-chip {
   font: inherit;
   font-size: 0.82rem;
@@ -1053,6 +1083,9 @@
   color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
   transition: all 0.18s;
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
 }
 .gs-pgo-config-chip:hover { border-color: rgba(255, 255, 255, 0.4); color: rgba(255, 255, 255, 0.85); }
 .gs-pgo-config-chip.human {
