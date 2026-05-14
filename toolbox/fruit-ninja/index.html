@@ -2382,6 +2382,22 @@ permalink: /toolbox/fruit-ninja/
       ctx.restore();
     }
 
+    // 地面投影：光线从左上方来，阴影落在右下方。不跟水果旋转。
+    if (f.kind === 'whole') {
+      ctx.save();
+      const sx = f.x + f.r * 0.22;
+      const sy = f.y + f.r * 0.32;
+      const sr = f.r * 0.78;
+      const sg = ctx.createRadialGradient(sx, sy, sr * 0.08, sx, sy, sr);
+      sg.addColorStop(0, 'rgba(0,0,0,0.18)');
+      sg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = sg;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, sr, sr * 0.32, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     ctx.save();
     ctx.translate(f.x, f.y);
     ctx.rotate(f.rot);
