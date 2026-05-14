@@ -239,6 +239,18 @@ permalink: /toolbox/fruit-ninja/
 
   /* Hidden SVG sprite container */
   .fn-sprites { display: none; }
+
+  /* ── 调参面板 ── */
+  .fn-setting-group { margin-bottom: 1rem; text-align: left; }
+  .fn-setting-label { font-size: 0.88rem; color: rgba(255,255,255,0.85); font-weight: 600; margin-bottom: 0.3rem; }
+  .fn-setting-seg { display: inline-flex; gap: 0.25rem; background: rgba(255,255,255,0.06); border-radius: 999px; padding: 3px; margin-bottom: 0.3rem; }
+  .fn-setting-seg-btn { font: inherit; font-size: 0.78rem; padding: 0.3rem 0.7rem; border: none; background: transparent; border-radius: 999px; color: rgba(255,255,255,0.55); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .fn-setting-seg-btn:hover { color: rgba(255,255,255,0.85); }
+  .fn-setting-seg-btn.active { background: rgba(255,255,255,0.14); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+  .fn-setting-desc { font-size: 0.76rem; color: rgba(255,255,255,0.45); line-height: 1.45; margin-top: 0.15rem; }
+  .fn-bg-preview-wrap { margin: 0.4rem 0; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+  .fn-bg-preview-wrap canvas { display: block; width: 100%; height: auto; }
+  .fn-bg-preview-desc { font-size: 0.76rem; color: rgba(255,255,255,0.45); padding: 0.3rem 0.5rem; text-align: center; }
 </style>
 
 <div class="fn-wrap">
@@ -255,13 +267,13 @@ permalink: /toolbox/fruit-ninja/
         <div class="gs-pgo-icon">🍉🔪</div>
         <h2 class="gs-pgo-title">水果忍者</h2>
         <div class="gs-pgo-subtitle">滑动切水果 · 六种模式</div>
-        <div class="gs-pgo-mode-picker" id="fnPgoModePicker" style="flex-wrap:wrap;max-width:320px;">
-          <button class="gs-pgo-mode-tab selected" data-value="classic">经典 60s</button>
-          <button class="gs-pgo-mode-tab" data-value="arcade">街机三命</button>
-          <button class="gs-pgo-mode-tab" data-value="endless">无尽闯关</button>
-          <button class="gs-pgo-mode-tab" data-value="zen">禅意无炸弹</button>
-          <button class="gs-pgo-mode-tab" data-value="comborush">连击狂飙</button>
-          <button class="gs-pgo-mode-tab" data-value="precision">精准模式</button>
+        <div class="fn-pgo-mode-grid" id="fnPgoModePicker">
+          <button class="gs-pgo-mode-tab selected" data-value="classic" style="grid-area: 1 / 1">经典 60s</button>
+          <button class="gs-pgo-mode-tab" data-value="arcade" style="grid-area: 1 / 2">街机三命</button>
+          <button class="gs-pgo-mode-tab" data-value="endless" style="grid-area: 2 / 1">无尽闯关</button>
+          <button class="gs-pgo-mode-tab" data-value="zen" style="grid-area: 2 / 2">禅意无炸弹</button>
+          <button class="gs-pgo-mode-tab" data-value="comborush" style="grid-area: 3 / 1">连击狂飙</button>
+          <button class="gs-pgo-mode-tab" data-value="precision" style="grid-area: 3 / 2">精准模式</button>
         </div>
         <div class="gs-pgo-mode-desc" id="fnPgoModeDesc" style="font-size:0.82rem;color:rgba(255,255,255,0.55);margin-bottom:1rem;">限时 60 秒，连切水果加奖励分。切到炸弹立即结束。</div>
         <button class="gs-pgo-start-btn" id="fnPgoStartBtn">▶ 开始游戏</button>
@@ -1499,6 +1511,7 @@ permalink: /toolbox/fruit-ninja/
     function showSettings() {
       viewMain.classList.remove('active');
       viewSettings.classList.add('active');
+      renderBgPreview();
     }
     function showMain() {
       viewSettings.classList.remove('active');
@@ -1507,63 +1520,146 @@ permalink: /toolbox/fruit-ninja/
     settingsLink.addEventListener('click', showSettings);
     backLink.addEventListener('click', showMain);
 
-    const defaults = {
-      bg: Bg.current,
-      perf: Perf.manual ? Perf.tier : 'auto',
-      speed: 'mid',
-    };
-    const speedMap = { slow: 0.75, mid: 1.0, fast: 1.3 };
+    // Storage
+    const SETTINGS_KEY = 'tool.fruitninja.settings.v1';
+    let settingsVals;
+    try { settingsVals = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch(e) { settingsVals = {}; }
+    if (!settingsVals.bg) settingsVals.bg = Bg.current;
+    if (!settingsVals.perf) settingsVals.perf = Perf.manual ? Perf.tier : 'auto';
+    if (!settingsVals.speed) settingsVals.speed = 'mid';
+    function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settingsVals)); } catch(e) {} }
 
-    const panel = GamesShell.Settings.mount({
-      container: settingsBody,
-      storageKey: 'tool.fruitninja.settings.v1',
-      defaults,
-      items: [
-        { key: 'bg', label: '背景', type: 'segment',
-          options: [
-            { value: 'bamboo', label: '竹林' },
-            { value: 'moonlit', label: '月夜' },
-            { value: 'minimal', label: '极简' },
-            { value: 'neon', label: '霓虹' },
-          ] },
-        { key: 'perf', label: '画质', type: 'segment',
-          options: [
-            { value: 'auto', label: '自动' },
-            { value: 'high', label: '高' },
-            { value: 'med', label: '中' },
-            { value: 'low', label: '低' },
-          ] },
-        { key: 'speed', label: '速度', type: 'segment',
-          options: [
-            { value: 'slow', label: '慢' },
-            { value: 'mid', label: '中' },
-            { value: 'fast', label: '快' },
-          ] },
-      ],
-      onChange(key, value, all) {
-        if (key === 'bg' || key == null) {
-          Bg.current = all.bg;
-          try { localStorage.setItem('fn:bg', all.bg); } catch (e) {}
-          bakeBackground();
+    const speedMap = { slow: 0.75, mid: 1.0, fast: 1.3 };
+    const SPEED_LABELS = { slow: '慢速 (0.75×) — 水果飞得慢，适合休闲', mid: '中速 (1.0×) — 标准节奏 · 连击 8+ 短暂慢动作', fast: '快速 (1.3×) — 水果来得更猛烈，挑战极限' };
+    const PERF_LABELS = { auto: '自动 — 根据设备帧率自动调节画质，保证流畅', high: '高画质 — 飞溅汁液 + 满屏特效，60fps 设备推荐', med: '中画质 — 保留核心特效，关闭部分粒子，均衡模式', low: '低画质 — 关闭飞溅和震动，老旧设备也能流畅运行' };
+    const BG_PREVIEWS = {
+      bamboo: { bg: '#d4e8c4', fg: '#5a8a2a', desc: '竹林 — 清新嫩绿底色配暖黄光晕' },
+      moonlit: { bg: '#1a1a3e', fg: '#e8d5b7', desc: '月夜 — 深蓝夜空，月光洒落花瓣' },
+      minimal: { bg: '#f5f0e8', fg: '#c9a96e', desc: '极简 — 素雅米白，干净利落' },
+      neon:    { bg: '#1a0a2e', fg: '#ff2d95', desc: '霓虹 — 赛博暗紫配荧光网格，电子味' },
+    };
+
+    // Build custom settings HTML with previews
+    function buildSettingsHTML() {
+      let html = '';
+
+      // Background
+      html += '<div class="fn-setting-group"><div class="fn-setting-label">🎨 背景主题</div>';
+      html += '<div class="fn-setting-seg">';
+      for (const [k, v] of Object.entries(BG_PREVIEWS)) {
+        html += `<button class="fn-setting-seg-btn" data-key="bg" data-val="${k}">${Bg.labels[k] || k}</button>`;
+      }
+      html += '</div>';
+      html += '<div class="fn-bg-preview-wrap"><canvas id="fnBgPreviewCvs" width="280" height="120"></canvas><div class="fn-bg-preview-desc" id="fnBgPreviewDesc"></div></div>';
+      html += '</div>';
+
+      // Speed
+      html += '<div class="fn-setting-group"><div class="fn-setting-label">⚡ 游戏速度</div>';
+      html += '<div class="fn-setting-seg">';
+      for (const [k, v] of Object.entries(speedMap)) {
+        html += `<button class="fn-setting-seg-btn" data-key="speed" data-val="${k}">${k === 'slow' ? '慢' : k === 'mid' ? '中' : '快'}</button>`;
+      }
+      html += '</div>';
+      html += `<div class="fn-setting-desc" id="fnSpeedDesc"></div></div>`;
+
+      // Quality
+      html += '<div class="fn-setting-group"><div class="fn-setting-label">🖥 画质档位</div>';
+      html += '<div class="fn-setting-seg">';
+      for (const [k, v] of Object.entries(PERF_LABELS)) {
+        html += `<button class="fn-setting-seg-btn" data-key="perf" data-val="${k}">${k === 'auto' ? '自动' : k === 'high' ? '高' : k === 'med' ? '中' : '低'}</button>`;
+      }
+      html += '</div>';
+      html += `<div class="fn-setting-desc" id="fnPerfDesc"></div></div>`;
+
+      settingsBody.innerHTML = html;
+    }
+
+    function updateSettingsUI() {
+      // Highlight selected segment buttons
+      settingsBody.querySelectorAll('.fn-setting-seg-btn').forEach(btn => {
+        const key = btn.dataset.key, val = btn.dataset.val;
+        btn.classList.toggle('active', settingsVals[key] === val);
+      });
+      // Descriptions
+      const sd = document.getElementById('fnSpeedDesc');
+      if (sd) sd.textContent = SPEED_LABELS[settingsVals.speed] || '';
+      const pd = document.getElementById('fnPerfDesc');
+      if (pd) pd.textContent = PERF_LABELS[settingsVals.perf] || '';
+      const bd = document.getElementById('fnBgPreviewDesc');
+      if (bd) bd.textContent = (BG_PREVIEWS[settingsVals.bg] || {}).desc || '';
+    }
+
+    function applySettings() {
+      Bg.current = settingsVals.bg;
+      try { localStorage.setItem('fn:bg', settingsVals.bg); } catch (e) {}
+      bakeBackground();
+
+      if (settingsVals.perf === 'auto') { Perf.manual = false; Perf.tier = Perf.autoTier; }
+      else { Perf.manual = true; Perf.tier = settingsVals.perf; }
+      Perf.applyTier();
+
+      gameSpeed = speedMap[settingsVals.speed] || 1.0;
+    }
+
+    // Background preview render
+    function renderBgPreview() {
+      const cvs = document.getElementById('fnBgPreviewCvs');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      const w = cvs.width, h = cvs.height;
+      const cfg = BG_PREVIEWS[settingsVals.bg] || BG_PREVIEWS.bamboo;
+      // Sky
+      const g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, cfg.bg);
+      g.addColorStop(1, cfg.bg === '#d4e8c4' ? '#e8d8a0' : cfg.bg === '#1a1a3e' ? '#0d0d28' : cfg.bg === '#f5f0e8' ? '#e8dcc8' : '#0d0520');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+      // Ground / horizon
+      ctx.fillStyle = cfg.bg === '#d4e8c4' ? '#b8c898' : cfg.bg === '#1a1a3e' ? '#1a1a2e' : cfg.bg === '#f5f0e8' ? '#d8ccb0' : '#1a0a28';
+      ctx.fillRect(0, h * 0.65, w, h * 0.35);
+      // Some decorative elements
+      if (settingsVals.bg === 'bamboo') {
+        // Bamboo stalks
+        for (let i = 0; i < 5; i++) {
+          const bx = 30 + i * 55;
+          ctx.strokeStyle = '#6a9a3a'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(bx, h); ctx.lineTo(bx + 5, h * 0.3); ctx.stroke();
+          ctx.strokeStyle = '#8ab84a'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(bx + 8, h * 0.4, 12, 0.3, 2.2); ctx.stroke();
         }
-        if (key === 'perf' || key == null) {
-          if (all.perf === 'auto') {
-            Perf.manual = false;
-            Perf.tier = Perf.autoTier;
-          } else {
-            Perf.manual = true;
-            Perf.tier = all.perf;
-          }
-          Perf.applyTier();
+      } else if (settingsVals.bg === 'moonlit') {
+        ctx.fillStyle = '#ffe8c0'; ctx.beginPath(); ctx.arc(w * 0.8, h * 0.25, 20, 0, Math.PI * 2); ctx.fill();
+        for (let i = 0; i < 8; i++) {
+          ctx.fillStyle = 'rgba(255,232,192,0.3)'; ctx.beginPath();
+          ctx.arc(15 + i * 35, h * 0.5 + Math.sin(i) * 15, 3, 0, Math.PI * 2); ctx.fill();
         }
-        if (key === 'speed' || key == null) {
-          gameSpeed = speedMap[all.speed] || 1.0;
+      } else if (settingsVals.bg === 'minimal') {
+        ctx.strokeStyle = '#c9a96e'; ctx.lineWidth = 0.5;
+        for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo(0, h * 0.3 + i * 15); ctx.lineTo(w, h * 0.3 + i * 15); ctx.stroke(); }
+      } else {
+        for (let i = 0; i < 8; i++) {
+          ctx.strokeStyle = 'rgba(255,45,149,0.3)'; ctx.lineWidth = 0.5;
+          ctx.beginPath(); ctx.moveTo(0, i * 20); ctx.lineTo(w, i * 20); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(i * 40, 0); ctx.lineTo(i * 40, h); ctx.stroke();
         }
-      },
+      }
+      updateSettingsUI();
+    }
+
+    // Wire clicks
+    settingsBody.addEventListener('click', e => {
+      const btn = e.target.closest('.fn-setting-seg-btn');
+      if (!btn) return;
+      const key = btn.dataset.key, val = btn.dataset.val;
+      settingsVals[key] = val;
+      saveSettings();
+      applySettings();
+      if (key === 'bg') renderBgPreview(); else updateSettingsUI();
     });
 
-    // 初始化时同步 Bg 默认值
-    if (panel.get('bg') !== Bg.current) panel.set('bg', Bg.current);
+    buildSettingsHTML();
+    updateSettingsUI();
+    applySettings();
   })();
 
   // ============ 屏幕震动 ============
@@ -2039,14 +2135,14 @@ permalink: /toolbox/fruit-ninja/
     } else {
       vibrate(18);
     }
-    // 连击 6 一次性触发 slow-mo（每笔最多一次：crossing combo===6 时点）
-    if (state.combo === 6) {
-      state.slowMoUntil = Time.game + 600;
-      state.slowMoFactor = 0.55;
-    } else if (state.combo === 10) {
-      // 单刀 10 连 → ULTRA 慢动作
-      state.slowMoUntil = Time.game + 850;
-      state.slowMoFactor = 0.42;
+    // 连击 8 一次性触发 slow-mo（每笔最多一次）
+    if (state.combo === 8) {
+      state.slowMoUntil = Time.game + 500;
+      state.slowMoFactor = 0.60;
+    } else if (state.combo === 15) {
+      // 单刀 15 连 → ULTRA 慢动作
+      state.slowMoUntil = Time.game + 800;
+      state.slowMoFactor = 0.45;
       showPopup(LOG_W / 2, LOG_H * 0.22, 'ULTRA', '#fff48b', true);
       triggerShake(8, 250);
     }
@@ -2813,9 +2909,9 @@ permalink: /toolbox/fruit-ninja/
     if (state.slowMoUntil && Time.game < state.slowMoUntil) {
       scale = Math.min(scale, state.slowMoFactor);
     }
-    // 经典模式最后 5 秒：戏剧性收尾
+    // 经典模式最后 5 秒：轻微减速提醒
     if (state.mode === 'classic' && state.timeLeft > 0 && state.timeLeft <= 5) {
-      scale = Math.min(scale, 0.7);
+      scale = Math.min(scale, 0.85);
     }
     Time.scale = scale;
   }

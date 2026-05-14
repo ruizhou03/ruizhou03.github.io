@@ -796,6 +796,39 @@
   min-height: 1.2em;
 }
 
+/* 多模式网格（6 模式用 2 列 3 行 + 十字轴） */
+.fn-pgo-mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  max-width: 340px;
+  margin: 0 auto 0.8rem;
+  position: relative;
+  padding: 0.5rem 0;
+}
+.fn-pgo-mode-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to right,
+      transparent calc(50% - 0.5px),
+      rgba(255,255,255,0.10) calc(50% - 0.5px),
+      rgba(255,255,255,0.10) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)),
+    linear-gradient(to bottom,
+      transparent calc(33.3% - 0.5px),
+      rgba(255,255,255,0.10) calc(33.3% - 0.5px),
+      rgba(255,255,255,0.10) calc(33.3% + 0.5px),
+      transparent calc(33.3% + 0.5px)),
+    linear-gradient(to bottom,
+      transparent calc(66.7% - 0.5px),
+      rgba(255,255,255,0.10) calc(66.7% - 0.5px),
+      rgba(255,255,255,0.10) calc(66.7% + 0.5px),
+      transparent calc(66.7% + 0.5px));
+}
+
 /* 设置视图 */
 .gs-pgo-settings-title {
   font-family: var(--font-display);
