@@ -65,19 +65,32 @@ title: 锆铌 | Rui Zhou
 
 </style>
 
-{% assign valid_notes = site.notes | where_exp: "item", "item.date != nil" %}
+{% assign valid_notes = "" | split: "" %}
+{% assign total = 0 %}
+{% assign notes_count = 0 %}
+{% assign research_count = 0 %}
+{% assign life_count = 0 %}
+{% assign essay_count = 0 %}
+
+{% for n in site.notes %}
+  {% if n.published != false %}{% assign total = total | plus: 1 %}{% endif %}
+  {% if n.date %}{% assign valid_notes = valid_notes | push: n %}{% endif %}
+  {% if n.discipline %}{% assign notes_count = notes_count | plus: 1 %}{% endif %}
+  {% assign _is_research = false %}
+  {% if n.main_category == "科研妙招" %}{% assign _is_research = true %}{% endif %}
+  {% if n.extra_categories contains "科研妙招" %}{% assign _is_research = true %}{% endif %}
+  {% if _is_research %}{% assign research_count = research_count | plus: 1 %}{% endif %}
+  {% assign _is_life = false %}
+  {% if n.main_category == "生活攻略" %}{% assign _is_life = true %}{% endif %}
+  {% if n.extra_categories contains "生活攻略" %}{% assign _is_life = true %}{% endif %}
+  {% if _is_life %}{% assign life_count = life_count | plus: 1 %}{% endif %}
+  {% assign _is_essay = false %}
+  {% if n.main_category == "随笔漫谈" %}{% assign _is_essay = true %}{% endif %}
+  {% if n.extra_categories contains "随笔漫谈" %}{% assign _is_essay = true %}{% endif %}
+  {% if _is_essay %}{% assign essay_count = essay_count | plus: 1 %}{% endif %}
+{% endfor %}
+
 {% assign all_content = valid_notes | sort: "date" | reverse %}
-{% assign total = site.notes | where_exp: "item", "item.published != false" | size %}
-{% assign notes_count = site.notes | where_exp: "item", "item.discipline != nil" | size %}
-{% assign research_count = site.notes | where: "main_category", "科研妙招" | size | plus: 0 %}
-{% assign research_extra = site.notes | where_exp: "item", "item.extra_categories contains '科研妙招'" | size %}
-{% assign research_count = research_count | plus: research_extra %}
-{% assign life_count = site.notes | where: "main_category", "生活攻略" | size | plus: 0 %}
-{% assign life_extra = site.notes | where_exp: "item", "item.extra_categories contains '生活攻略'" | size %}
-{% assign life_count = life_count | plus: life_extra %}
-{% assign essay_count = site.notes | where: "main_category", "随笔漫谈" | size | plus: 0 %}
-{% assign essay_extra = site.notes | where_exp: "item", "item.extra_categories contains '随笔漫谈'" | size %}
-{% assign essay_count = essay_count | plus: essay_extra %}
 {% assign hot_posts = all_content | where: "hot", true %}
 {% assign featured = hot_posts | first %}
 
