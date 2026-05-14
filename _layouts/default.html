@@ -114,59 +114,8 @@
       background: #cbd5e1; margin-right: 4px; vertical-align: 0;
       transition: background-color .2s;
     "></span>
-    <a href="#" id="offline-settings-link" style="color: var(--color-light); text-decoration: none; border-bottom: 1px dotted var(--color-light);">离线缓存</a>
+    <span style="color: var(--color-light);">离线</span>
   </footer>
-
-  <!-- 后台缓存进度条（默认隐藏，活动时贴在右下角） -->
-  <div id="offline-pill" role="status" aria-live="polite" style="
-    position: fixed; right: 14px; bottom: 14px; z-index: 9999;
-    background: var(--color-bg, #fafaf9); color: var(--color-muted, #6b7280);
-    border: 1px solid var(--color-border, #e5e7eb); border-radius: 999px;
-    padding: 6px 12px; font-size: 0.78rem; line-height: 1;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    opacity: 0; pointer-events: none; transition: opacity .25s;
-    max-width: calc(100vw - 32px); white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis;
-  "></div>
-
-  <!-- 离线设置面板 -->
-  <dialog id="offline-settings-dialog" style="
-    border: 1px solid var(--color-border, #e5e7eb); border-radius: 12px;
-    background: var(--color-bg, #fafaf9); color: var(--color-text, #1f2937);
-    padding: 1.5rem; max-width: 92vw; width: 380px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-  ">
-    <h3 style="margin: 0 0 0.5rem; font-size: 1.05rem;">离线缓存</h3>
-    <p style="margin: 0 0 1rem; font-size: 0.85rem; color: var(--color-muted, #6b7280); line-height: 1.55;">
-      首次访问任意页面后，浏览器空闲时自动把全站文字 + 游戏（约 18 MB）存到本地，飞机上 / 没网时直接输入网址也能打开。<br>
-      <strong style="color: var(--color-text, #1f2937);">部署新版本不会清空你的缓存</strong>，只会逐个换成最新版。
-    </p>
-    <div style="font-size: 0.85rem; margin-bottom: 1rem;">
-      已缓存：<span id="offline-cached-count" style="font-weight: 600;">…</span>
-      <span style="color: var(--color-muted);">/ <span id="offline-total-count">…</span> 页</span>
-    </div>
-    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; margin-bottom: 1rem; cursor: pointer;">
-      <input type="checkbox" id="offline-auto-toggle" checked>
-      <span>访问时自动后台缓存（推荐）</span>
-    </label>
-    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-      <button id="offline-recache-btn" style="
-        flex: 1; padding: 0.5rem 0.8rem; border: 1px solid var(--color-border);
-        background: var(--color-bg); color: var(--color-text);
-        border-radius: 6px; cursor: pointer; font-size: 0.85rem; min-width: 7em;
-      ">立即补齐缓存</button>
-      <button id="offline-clear-btn" style="
-        padding: 0.5rem 0.8rem; border: 1px solid var(--color-border);
-        background: var(--color-bg); color: var(--color-muted);
-        border-radius: 6px; cursor: pointer; font-size: 0.85rem;
-      ">清空</button>
-      <button id="offline-close-btn" style="
-        padding: 0.5rem 0.8rem; border: 1px solid var(--color-border);
-        background: transparent; color: var(--color-muted);
-        border-radius: 6px; cursor: pointer; font-size: 0.85rem;
-      ">关闭</button>
-    </div>
-  </dialog>
 
   <script>
     // 菜单切换逻辑
@@ -253,43 +202,35 @@
   </script>
 
   <script>
-    // ===========================================================
-    // Service Worker + 全站后台离线缓存
-    //
-    // 设计契约（不要轻易改）：
-    //  - 部署新版本不能清空已有缓存（曾在 v3→v4 上把所有人的离线副本删掉）
-    //  - 自动预缓存默认开启，但低速网/省流模式自动跳过
-    //  - 用户可在页脚"离线缓存"里关掉自动预缓存
-    //  - 浏览器空闲时分批喂给 SW，不阻塞页面交互
-    // ===========================================================
+    // Service Worker — 网络优先缓存 + 手动离线下载
     (function () {
       if (!('serviceWorker' in navigator)) return;
 
-      const MANIFEST_URL = '{{ "/offline-manifest.json" | relative_url }}';
       const SW_URL = '{{ "/sw.js" | relative_url }}';
       const SCOPE = '{{ "/" | relative_url }}';
+      const statusDot = document.getElementById('offline-status-dot');
 
-      const LS_DISABLED   = 'zircon-offline-disabled';
-      const LS_LAST_VER   = 'zircon-offline-last-version';
-
-      const pill = document.getElementById('offline-pill');
-      const dialog = document.getElementById('offline-settings-dialog');
-      const settingsLink = document.getElementById('offline-settings-link');
-      const statusDot     = document.getElementById('offline-status-dot');
-      const cachedCountEl = document.getElementById('offline-cached-count');
-      const totalCountEl  = document.getElementById('offline-total-count');
-      const autoToggle    = document.getElementById('offline-auto-toggle');
-      const recacheBtn    = document.getElementById('offline-recache-btn');
-      const clearBtn      = document.getElementById('offline-clear-btn');
-      const closeBtn      = document.getElementById('offline-close-btn');
-
-      // 当前页的版本戳（从 <meta name="zircon-page-version">）
       function liveVersion() {
         const m = document.querySelector('meta[name="zircon-page-version"]');
         return m ? m.getAttribute('content') : null;
       }
 
-      // 刷新页脚那个三色小点 + 文章页 📥 按钮（如果有）
+      function postToSW(reg, payload, timeoutMs) {
+        return new Promise((resolve) => {
+          if (!reg.active) { resolve(null); return; }
+          const ch = new MessageChannel();
+          let done = false;
+          const timer = setTimeout(() => {
+            if (done) return; done = true; resolve(null);
+          }, timeoutMs || 60000);
+          ch.port1.onmessage = (ev) => {
+            if (done) return; done = true; clearTimeout(timer);
+            resolve(ev.data || null);
+          };
+          reg.active.postMessage(payload, [ch.port2]);
+        });
+      }
+
       async function refreshPageStatus(reg) {
         if (!statusDot && !document.getElementById('offline-toggle')) return;
         if (!reg) {
@@ -315,297 +256,52 @@
             statusDot.title = '这一页已离线（最新版本）';
           } else if (state === 'stale') {
             statusDot.style.background = '#f59e0b';
-            statusDot.title = '这一页已离线，但有更新——进"离线缓存"面板可补齐';
+            statusDot.title = '这一页已离线，但有更新——下次联网时会自动刷新';
           } else {
             statusDot.style.background = '#cbd5e1';
             statusDot.title = '这一页未离线';
           }
         }
-        // 文章工具栏 📥 按钮（post.html 注入的）
         const btn = document.getElementById('offline-toggle');
         if (btn && !btn.disabled) {
           const labelEl = btn.querySelector('.tool-label');
           const iconEl = btn.querySelector('.tool-icon');
           btn.classList.remove('cached');
           if (state === 'fresh') {
-            iconEl.textContent = '✓';
+            iconEl.textContent = '\u2713';
             labelEl.textContent = '已离线';
             btn.classList.add('cached');
-            btn.title = cachedAt ? `已缓存最新版（${new Date(cachedAt).toLocaleString('zh-CN')}）` : '已缓存最新版';
+            btn.title = cachedAt ? '已缓存最新版（' + new Date(cachedAt).toLocaleString('zh-CN') + '）' : '已缓存最新版';
           } else if (state === 'stale') {
-            iconEl.textContent = '↻';
+            iconEl.textContent = '\u21bb';
             labelEl.textContent = '有更新';
             btn.title = '已离线但有新版本，点这里刷新缓存';
           } else {
-            iconEl.textContent = '📥';
+            iconEl.textContent = '\uD83D\uDCE5';
             labelEl.textContent = '下载离线';
             btn.title = '把这篇缓存到本地，飞机/没网时可看';
           }
         }
       }
 
-      // 暴露给 post.html 在它自己的下载完成后回调
       window.__zirconRefreshOfflineStatus = () => refreshPageStatus();
 
-      let pillTimer = null;
-      function showPill(text, sticky) {
-        if (!pill) return;
-        pill.textContent = text;
-        pill.style.opacity = '1';
-        if (pillTimer) { clearTimeout(pillTimer); pillTimer = null; }
-        if (!sticky) {
-          pillTimer = setTimeout(() => { pill.style.opacity = '0'; }, 3000);
-        }
-      }
-      function hidePill() {
-        if (!pill) return;
-        if (pillTimer) { clearTimeout(pillTimer); pillTimer = null; }
-        pill.style.opacity = '0';
-      }
-
-      function isAutoEnabled() {
-        try { return localStorage.getItem(LS_DISABLED) !== '1'; }
-        catch { return true; }
-      }
-      function setAutoEnabled(on) {
-        try {
-          if (on) localStorage.removeItem(LS_DISABLED);
-          else localStorage.setItem(LS_DISABLED, '1');
-        } catch {}
-      }
-
-      // 低速网 / 省流量模式跳过自动预缓存
-      function shouldSkipForNetwork() {
-        const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-        if (!c) return false;
-        if (c.saveData) return true;
-        const t = c.effectiveType || '';
-        return t === 'slow-2g' || t === '2g';
-      }
-
-      function postToSW(reg, payload, timeoutMs) {
-        return new Promise((resolve) => {
-          if (!reg.active) { resolve(null); return; }
-          const ch = new MessageChannel();
-          let done = false;
-          const timer = setTimeout(() => {
-            if (done) return;
-            done = true;
-            resolve(null);
-          }, timeoutMs || 60000);
-          ch.port1.onmessage = (ev) => {
-            if (done) return;
-            done = true;
-            clearTimeout(timer);
-            resolve(ev.data || null);
-          };
-          reg.active.postMessage(payload, [ch.port2]);
-        });
-      }
-
-      async function refreshDialogStatus(reg, manifest) {
-        if (!cachedCountEl || !manifest) return;
-        const res = await postToSW(reg, { type: 'IS_CACHED_BATCH', urls: manifest.pages }, 8000);
-        if (res && res.type === 'IS_CACHED_BATCH_RESULT') {
-          cachedCountEl.textContent = res.cached;
-          totalCountEl.textContent = res.total;
-        } else {
-          cachedCountEl.textContent = '?';
-          totalCountEl.textContent = manifest.pages.length;
-        }
-      }
-
-      async function prefetchAll(reg, manifest, opts) {
-        const opts2 = opts || {};
-        const status = await postToSW(reg, { type: 'IS_CACHED_BATCH', urls: manifest.pages }, 8000);
-        let urls = manifest.pages.slice();
-        if (status && status.type === 'IS_CACHED_BATCH_RESULT' && Array.isArray(status.results)) {
-          const missing = status.results.filter(r => !r.cached).map(r => r.url);
-          if (missing.length === 0 && !opts2.force) {
-            // 全齐了，啥也不用做
-            return { skipped: true };
-          }
-          urls = opts2.force ? manifest.pages : missing;
-        }
-        showPill(opts2.force
-          ? `补齐离线缓存… 0 / ${urls.length}`
-          : `后台缓存全站… 0 / ${urls.length}`, true);
-
-        let lastShown = 0;
-        const ch = new MessageChannel();
-        const donePromise = new Promise((resolve) => {
-          ch.port1.onmessage = (ev) => {
-            const d = ev.data || {};
-            if (d.type === 'PREFETCH_PROGRESS') {
-              // silent 模式不会推 progress；这里是 force 模式的可见进度
-              if (d.done - lastShown >= 5 || d.done === d.total) {
-                showPill(`缓存中… ${d.done} / ${d.total}`, true);
-                lastShown = d.done;
-              }
-            } else if (d.type === 'PREFETCH_DONE') {
-              resolve();
-            }
-          };
-        });
-
-        // 静默 = 不推单条进度，只在结束时回 PREFETCH_DONE
-        // excludeAssets='^/files/' = 不要顺手把文章里 150 MB 的大照片也拉了——
-        // 那批走文章页的 📥 按钮按需下，自动后台只管 18 MB 的 shell + 游戏。
-        reg.active.postMessage({
-          type: 'PREFETCH_URLS',
-          urls,
-          assets: manifest.assets || [],
-          excludeAssets: '^/files/',
-          silent: !opts2.force
-        }, [ch.port2]);
-
-        // 静默模式给个简单的"在跑"提示
-        if (!opts2.force) {
-          showPill(`后台缓存中（${urls.length} 页）`, true);
-        }
-        await donePromise;
-        return { ran: true, count: urls.length };
-      }
-
-      // 在 idle 时跑后台预缓存
-      function scheduleIdle(fn) {
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(fn, { timeout: 5000 });
-        } else {
-          setTimeout(fn, 2500);
-        }
-      }
-
-      async function runAutoPrefetch(reg) {
-        if (!isAutoEnabled()) return;
-        if (shouldSkipForNetwork()) return;
-        let manifest;
-        try {
-          const r = await fetch(MANIFEST_URL, { cache: 'no-cache' });
-          if (!r.ok) return;
-          manifest = await r.json();
-        } catch { return; }
-        if (!manifest || !Array.isArray(manifest.pages) || !manifest.pages.length) return;
-
-        // 同一版本若已经全部缓存，整轮跳过
-        let lastVer = '';
-        try { lastVer = localStorage.getItem(LS_LAST_VER) || ''; } catch {}
-        if (lastVer === manifest.version) {
-          const status = await postToSW(reg, { type: 'IS_CACHED_BATCH', urls: manifest.pages }, 5000);
-          if (status && status.type === 'IS_CACHED_BATCH_RESULT' && status.cached === status.total) {
-            return;
-          }
-        }
-
-        const result = await prefetchAll(reg, manifest, { force: false });
-        if (result && result.ran) {
-          showPill(`✓ 全站已离线（${result.count} 页）`, false);
-          try { localStorage.setItem(LS_LAST_VER, manifest.version); } catch {}
-        } else {
-          hidePill();
-        }
-        // 预取完后再刷一遍当前页状态（应该会从 stale 转 fresh）
-        refreshPageStatus(reg).catch(() => {});
-      }
-
-      // ============= 设置面板 =============
-      let cachedManifest = null;
-      async function ensureManifest() {
-        if (cachedManifest) return cachedManifest;
-        try {
-          const r = await fetch(MANIFEST_URL, { cache: 'no-cache' });
-          if (r.ok) cachedManifest = await r.json();
-        } catch {}
-        return cachedManifest;
-      }
-
-      function bindSettings() {
-        if (!dialog || !settingsLink) return;
-
-        if (autoToggle) autoToggle.checked = isAutoEnabled();
-
-        settingsLink.addEventListener('click', async (e) => {
-          e.preventDefault();
-          if (typeof dialog.showModal === 'function') dialog.showModal();
-          else dialog.setAttribute('open', '');
-          const manifest = await ensureManifest();
-          if (manifest) {
-            const reg = await navigator.serviceWorker.ready;
-            await refreshDialogStatus(reg, manifest);
-          }
-        });
-
-        if (autoToggle) {
-          autoToggle.addEventListener('change', () => {
-            setAutoEnabled(autoToggle.checked);
-            if (autoToggle.checked) {
-              // 立即跑一遍
-              navigator.serviceWorker.ready.then((reg) => runAutoPrefetch(reg));
-            }
-          });
-        }
-
-        if (recacheBtn) {
-          recacheBtn.addEventListener('click', async () => {
-            const manifest = await ensureManifest();
-            if (!manifest) return;
-            const reg = await navigator.serviceWorker.ready;
-            recacheBtn.disabled = true;
-            recacheBtn.textContent = '正在缓存…';
-            await prefetchAll(reg, manifest, { force: true });
-            await refreshDialogStatus(reg, manifest);
-            recacheBtn.disabled = false;
-            recacheBtn.textContent = '立即补齐缓存';
-            try { localStorage.setItem(LS_LAST_VER, manifest.version); } catch {}
-            showPill('✓ 缓存已刷新', false);
-            refreshPageStatus(reg).catch(() => {});
-          });
-        }
-
-        if (clearBtn) {
-          clearBtn.addEventListener('click', async () => {
-            if (!confirm('清空全部离线缓存？下次访问会重新下载。')) return;
-            const reg = await navigator.serviceWorker.ready;
-            await postToSW(reg, { type: 'CLEAR_CACHE' }, 8000);
-            try { localStorage.removeItem(LS_LAST_VER); } catch {}
-            const manifest = await ensureManifest();
-            if (manifest) await refreshDialogStatus(reg, manifest);
-            showPill('已清空离线缓存', false);
-            refreshPageStatus(reg).catch(() => {});
-          });
-        }
-
-        if (closeBtn) {
-          closeBtn.addEventListener('click', () => {
-            if (typeof dialog.close === 'function') dialog.close();
-            else dialog.removeAttribute('open');
-          });
-        }
-      }
-
-      // ============= 启动 =============
       window.addEventListener('load', async () => {
         try {
           await navigator.serviceWorker.register(SW_URL, { scope: SCOPE });
-        } catch (err) {
-          console.warn('SW register failed:', err);
-          return;
-        }
-        bindSettings();
+        } catch (err) { console.warn('SW register failed:', err); return; }
         const reg = await navigator.serviceWorker.ready;
-        // SW 接管这次 navigation 之前 reg.active 可能为空——再等一拍
         if (!reg.active) {
           await new Promise((r) => {
             const t = setTimeout(r, 1500);
             navigator.serviceWorker.addEventListener('controllerchange', () => { clearTimeout(t); r(); }, { once: true });
           });
         }
-        // 网络优先的 cache.put 是 fire-and-forget，给它一点时间落盘再读状态
         setTimeout(() => refreshPageStatus(reg).catch(() => {}), 800);
-        scheduleIdle(() => runAutoPrefetch(reg).catch(() => {}));
       });
     })();
   </script>
+
 
   <script src="https://cdn.jsdelivr.net/npm/simple-jekyll-search@latest/dest/simple-jekyll-search.min.js"></script>
   <script>
