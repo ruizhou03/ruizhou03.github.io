@@ -200,6 +200,31 @@ permalink: /toolbox/snake/
       <div id="snOvMsg"></div>
       <button class="sn-btn" id="snOvBtn">再来一局</button>
     </div>
+    <!-- 预进入界面 -->
+    <div class="gs-pgo-overlay open" id="snPreGameOverlay">
+      <div class="gs-pgo-view active" id="snPgoViewMain">
+        <div class="gs-pgo-icon">🐍</div>
+        <h2 class="gs-pgo-title">贪吃蛇</h2>
+        <div class="gs-pgo-subtitle">吃豆子，别撞墙也别咬到自己</div>
+        <div class="gs-pgo-highscore">
+          <div class="gs-pgo-hs-value" id="snPgoHighScore">0</div>
+          <div class="gs-pgo-hs-label">历史最高分</div>
+        </div>
+        <div class="gs-pgo-mode-picker" id="snPgoSpeedPicker">
+          <button class="gs-pgo-mode-tab" data-value="slow">慢</button>
+          <button class="gs-pgo-mode-tab selected" data-value="mid">中</button>
+          <button class="gs-pgo-mode-tab" data-value="fast">快</button>
+        </div>
+        <button class="gs-pgo-start-btn" id="snPgoStartBtn">▶ 开始游戏</button>
+      </div>
+      <div class="gs-pgo-view" id="snPgoViewResume">
+        <div class="gs-pgo-icon">👋</div>
+        <h2 class="gs-pgo-title">上次还没玩完</h2>
+        <div class="gs-pgo-resume-summary" id="snPgoResumeSummary"></div>
+        <button class="gs-pgo-start-btn" id="snPgoResumeContinueBtn">▶ 继续上次</button>
+        <button class="gs-pgo-start-btn" id="snPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;">🔄 重新开始</button>
+      </div>
+    </div>
   </div>
 
   <div class="sn-dpad">
@@ -228,6 +253,7 @@ permalink: /toolbox/snake/
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/games-shell/settings-panel.js"></script>
 
 <script>
 (() => {
@@ -849,12 +875,70 @@ permalink: /toolbox/snake/
     snSetRank('hidden');
     if (snNickPrompt) snNickPrompt.hide();
     if (snSettleBtn) snSettleBtn.setEnabled(false);
+    snPgoOverlay.classList.remove('open');
     reset();
     if (snSave) snSave.start();
   }
 
+  // ============ Pre-game Overlay ============
+  const snPgoOverlay = document.getElementById('snPreGameOverlay');
+  const snPgoViewMain = document.getElementById('snPgoViewMain');
+  const snPgoViewResume = document.getElementById('snPgoViewResume');
+  const snPgoHighScore = document.getElementById('snPgoHighScore');
+
+  let snPgoSelectedSpeed = state.speed;
+
+  function snShowOverlayView(name) {
+    snPgoViewMain.classList.toggle('active', name === 'main');
+    snPgoViewResume.classList.toggle('active', name === 'resume');
+  }
+
+  function snUpdatePgoHighScore() {
+    const best = state.best[snPgoSelectedSpeed] || 0;
+    snPgoHighScore.textContent = best > 0 ? best.toLocaleString() : '--';
+    document.querySelectorAll('#snPgoSpeedPicker .gs-pgo-mode-tab').forEach(t => {
+      t.classList.toggle('selected', t.dataset.value === snPgoSelectedSpeed);
+    });
+  }
+
+  function snStartFromOverlay() {
+    state.speed = snPgoSelectedSpeed;
+    persist();
+    updateScores();
+    if (snLbWidget) snLbWidget.setSplit(state.speed);
+    snStartFresh();
+  }
+
+  // Speed picker in overlay
+  document.getElementById('snPgoSpeedPicker').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab');
+    if (!t) return;
+    snPgoSelectedSpeed = t.dataset.value;
+    snUpdatePgoHighScore();
+  });
+
+  document.getElementById('snPgoStartBtn').addEventListener('click', snStartFromOverlay);
+
+  // Resume buttons
+  document.getElementById('snPgoResumeContinueBtn').addEventListener('click', () => {
+    const peek = snSave ? snSave.peek() : null;
+    if (peek && peek.data && Array.isArray(peek.data.snake) && peek.data.snake.length) {
+      snPgoOverlay.classList.remove('open');
+      snRestore(peek.data);
+      snRunStartedAt = Date.now() - (peek.agoMs || 0);
+      if (snSave) snSave.start();
+    }
+  });
+  document.getElementById('snPgoResumeNewBtn').addEventListener('click', () => {
+    snStartFromOverlay();
+  });
+
   function snInitShell() {
+    // Always draw a preview frame
+    draw();
+
     if (!window.GamesShell) {
+      snPgoOverlay.classList.remove('open');
       reset();
       return;
     }
@@ -897,22 +981,17 @@ permalink: /toolbox/snake/
       ttlMs: 48 * 3600 * 1000,
       serialize: snSerialize,
     });
+
+    // Check for save state → show resume view
     const peek = snSave.peek();
     if (peek && peek.data && Array.isArray(peek.data.snake) && peek.data.snake.length) {
-      // 不重置开新局——直接显示 resume 浮层
-      reset();           // 先把界面准备好（重置 overlay 等）
-      stopLoop();        // 但别开始 tick
-      stopAnim();
-      state.running = false;
-      GamesShell.SaveState.showResumeModal({
-        summaryHtml: `上次玩到 <strong>${peek.data.score || 0}</strong> 分（${peek.data.speed} 速）<span class="gs-resume-meta">${peek.agoText}保存</span>`,
-        onResume: () => { snRestore(peek.data); snRunStartedAt = Date.now() - peek.agoMs; snSave.start(); },
-        onDiscard: () => { snSave.discard(); snStartFresh(); },
-      });
+      snPgoResumeSummary.innerHTML = `得分 <strong>${peek.data.score || 0}</strong> 分 · ${peek.data.speed || 'mid'} 速<span class="gs-pgo-resume-meta">${peek.agoText || ''}保存</span>`;
+      snShowOverlayView('resume');
     } else {
-      reset();
-      snSave.start();
+      snUpdatePgoHighScore();
+      snShowOverlayView('main');
     }
+    snPgoOverlay.classList.add('open');
   }
 
   snInitShell();

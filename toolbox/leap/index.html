@@ -196,10 +196,17 @@ permalink: /toolbox/leap/
     <div class="canvas-wrap">
       <canvas class="game-canvas" id="game-canvas"></canvas>
 
-      <div class="game-overlay" id="overlay-start">
-        <div class="overlay-title">📅 跳过 Deadline</div>
-        <div class="overlay-sub">每根桩 = 一周 deadline。<br>长按蓄力，松手起跳，落到下一根桩 + 1 跳。落点正中桩心 + 2。</div>
-        <button type="button" class="overlay-btn" id="btn-start">开始（按住空格蓄力）</button>
+      <div class="game-overlay gs-pgo-overlay open" id="overlay-start">
+        <div class="gs-pgo-view active">
+          <div class="gs-pgo-icon">📅</div>
+          <h2 class="gs-pgo-title">跳过 Deadline</h2>
+          <div class="gs-pgo-subtitle">每根桩 = 一周 deadline。长按蓄力，松手起跳。落点正中桩心 +2 跳。</div>
+          <div class="gs-pgo-highscore">
+            <div class="gs-pgo-hs-value" id="leapPgoBest">0 跳</div>
+            <div class="gs-pgo-hs-label">历史最佳</div>
+          </div>
+          <button type="button" class="gs-pgo-start-btn" id="leapPgoStartBtn">▶ 开始游戏</button>
+        </div>
       </div>
 
       <div class="game-overlay hidden" id="overlay-over">
@@ -243,6 +250,7 @@ permalink: /toolbox/leap/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/games-shell/settings-panel.js"></script>
 
 <script>
 (function () {
@@ -270,8 +278,9 @@ permalink: /toolbox/leap/
   const $hudScore  = document.getElementById('hud-score');
   const $overStart = document.getElementById('overlay-start');
   const $overOver  = document.getElementById('overlay-over');
-  const $btnStart  = document.getElementById('btn-start');
+  const $btnStart  = document.getElementById('leapPgoStartBtn') || document.getElementById('btn-start');
   const $btnRestart = document.getElementById('btn-restart');
+  const $leapPgoBest = document.getElementById('leapPgoBest');
   const $overTitle = document.getElementById('over-title');
   const $overScore = document.getElementById('over-score');
   const $overBest  = document.getElementById('over-best');
@@ -437,6 +446,7 @@ permalink: /toolbox/leap/
     if (gameOverTimer) { clearTimeout(gameOverTimer); gameOverTimer = null; }
     resetGame();
     $overStart.classList.add('hidden');
+    $overStart.classList.remove('open');
     $overOver.classList.add('hidden');
     leapRunStartedAt = Date.now();
     leapRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
@@ -1083,6 +1093,10 @@ permalink: /toolbox/leap/
     loadPalette();
     resizeCanvas();
     loadBest();
+    // Show best score in overlay
+    if ($leapPgoBest) {
+      $leapPgoBest.textContent = (state.best || 0) + ' 跳';
+    }
     // 静止帧画一下（开始页用）
     spawnInitialPosts();
     placePlayerOnPost(0);

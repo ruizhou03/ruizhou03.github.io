@@ -326,6 +326,40 @@ permalink: /toolbox/feixingqi/
         <h2>⏸ 已暂停</h2>
         <button class="fxq-btn" id="fxqResumeBtn">▶ 继续</button>
       </div>
+      <!-- 预进入界面 -->
+      <div class="gs-pgo-overlay open" id="fxqPreGameOverlay">
+        <div class="gs-pgo-view active" id="fxqPgoViewMain">
+          <div class="gs-pgo-icon">✈️</div>
+          <h2 class="gs-pgo-title">飞行棋</h2>
+          <div class="gs-pgo-subtitle">十字盘 · 2-4 人 + AI 三档 · 经典中式起飞规则</div>
+          <div class="gs-pgo-local-config" id="fxqPgoConfig">
+            <div class="gs-pgo-config-label">点击角配置玩家（空 / 人类 / AI）</div>
+            <div class="gs-pgo-config-chips" id="fxqPgoChips"></div>
+          </div>
+          <div class="gs-pgo-mode-picker" id="fxqPgoDiffPicker" style="display:none;">
+            <button class="gs-pgo-mode-tab" data-value="easy">新手</button>
+            <button class="gs-pgo-mode-tab selected" data-value="normal">普通</button>
+            <button class="gs-pgo-mode-tab" data-value="hard">高手</button>
+          </div>
+          <div class="gs-pgo-room-tabs" id="fxqPgoRoomTabs">
+            <button class="gs-pgo-room-tab selected" data-tab="local">🏠 本地</button>
+            <button class="gs-pgo-room-tab" data-tab="online">🌐 联机</button>
+          </div>
+          <div class="gs-pgo-room-panel active" id="fxqPgoLocalPanel"></div>
+          <div class="gs-pgo-room-panel" id="fxqPgoOnlinePanel">
+            <input type="text" class="gs-pgo-room-input" id="fxqPgoNickInput" placeholder="你的昵称" />
+            <button class="gs-pgo-room-btn primary" id="fxqPgoCreateRoomBtn">创建房间</button>
+            <div class="gs-pgo-room-code" id="fxqPgoRoomCode" style="display:none;">房号：<strong id="fxqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="fxqPgoRoomCopyBtn">📋 复制</button></div>
+            <div style="width:100%;text-align:center;color:rgba(255,255,255,0.3);font-size:0.78rem;">— 或 —</div>
+            <input type="text" class="gs-pgo-room-input" id="fxqPgoJoinCodeInput" placeholder="输入 4 位房号" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+            <button class="gs-pgo-room-btn" id="fxqPgoJoinRoomBtn">加入房间</button>
+            <div class="gs-pgo-room-error" id="fxqPgoRoomError"></div>
+            <ul class="gs-pgo-room-players" id="fxqPgoRoomPlayers"></ul>
+            <button class="gs-pgo-room-btn primary" id="fxqPgoRoomStartBtn" disabled>等待房主开始…</button>
+          </div>
+          <button class="gs-pgo-start-btn" id="fxqPgoStartBtn">▶ 开始游戏</button>
+        </div>
+      </div>
     </div>
     <button class="fxq-corner-chip at-NW" data-corner="NW" type="button"></button>
     <button class="fxq-corner-chip at-NE" data-corner="NE" type="button"></button>
@@ -378,6 +412,7 @@ permalink: /toolbox/feixingqi/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/games-shell/settings-panel.js"></script>
 
 <script>
 (() => {
@@ -912,6 +947,7 @@ permalink: /toolbox/feixingqi/
     diceArea.hidden = false;
     overlay.classList.remove('show');
     pausedOverlay.classList.remove('show');
+    fxqPgoOverlay.classList.remove('open');
     fxqRunStartedAt = Date.now();
     fxqRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     fxqLastResult = null;
@@ -2352,6 +2388,161 @@ permalink: /toolbox/feixingqi/
     updateStatus();
   }
 
+  // ============ Pre-game Overlay ============
+  const fxqPgoOverlay = document.getElementById('fxqPreGameOverlay');
+  const fxqPgoDiffPicker = document.getElementById('fxqPgoDiffPicker');
+  let fxqPgoSelectedDiff = state.difficulty || 'normal';
+
+  function fxqSyncOverlayChips() {
+    const chipContainer = document.getElementById('fxqPgoChips');
+    if (!chipContainer) return;
+    chipContainer.innerHTML = '';
+    const labels = { NW: '🔴 西北(红)', NE: '🟡 东北(黄)', SE: '🔵 东南(蓝)', SW: '🟢 西南(绿)' };
+    CORNER_KEYS.forEach(ck => {
+      const chip = document.createElement('button');
+      chip.className = 'gs-pgo-config-chip ' + state.setupConfig[ck];
+      chip.dataset.corner = ck;
+      chip.textContent = labels[ck] + ' · ' + (state.setupConfig[ck] === 'human' ? '人类' : state.setupConfig[ck] === 'ai' ? 'AI' : '空');
+      chip.addEventListener('click', () => {
+        const cycle = { empty: 'human', human: 'ai', ai: 'empty' };
+        state.setupConfig[ck] = cycle[state.setupConfig[ck]];
+        localStorage.setItem(SETUP_KEY, JSON.stringify(state.setupConfig));
+        renderCornerChips();
+        fxqSyncOverlayChips();
+        fxqUpdatePgoDiffVisibility();
+      });
+      chipContainer.appendChild(chip);
+    });
+  }
+
+  function fxqUpdatePgoDiffVisibility() {
+    const hasAI = Object.values(state.setupConfig).some(v => v === 'ai');
+    fxqPgoDiffPicker.style.display = hasAI ? '' : 'none';
+  }
+
+  document.getElementById('fxqPgoDiffPicker').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab');
+    if (!t) return;
+    fxqPgoSelectedDiff = t.dataset.value;
+    document.querySelectorAll('#fxqPgoDiffPicker .gs-pgo-mode-tab').forEach(b => {
+      b.classList.toggle('selected', b.dataset.value === fxqPgoSelectedDiff);
+    });
+  });
+
+  // ============ Room Client ============
+  const BOARD_API = 'https://zircon-urge.vercel.app/api/board';
+  let fxqRoomToken = null, fxqRoomPlayerId = null, fxqRoomCode = null, fxqRoomStatePoller = null, fxqIsOnline = false;
+
+  document.getElementById('fxqPgoRoomTabs').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-room-tab');
+    if (!t) return;
+    const tab = t.dataset.tab;
+    document.querySelectorAll('#fxqPgoRoomTabs .gs-pgo-room-tab').forEach(b => b.classList.toggle('selected', b.dataset.tab === tab));
+    document.getElementById('fxqPgoLocalPanel').classList.toggle('active', tab === 'local');
+    document.getElementById('fxqPgoOnlinePanel').classList.toggle('active', tab === 'online');
+    document.getElementById('fxqPgoConfig').style.display = tab === 'online' ? 'none' : '';
+    document.getElementById('fxqPgoDiffPicker').style.display = tab === 'online' ? 'none' : '';
+    fxqIsOnline = tab === 'online';
+  });
+
+  function fxqRoomApi(method, action, body) {
+    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(() => ({ error: 'network' }));
+  }
+
+  async function fxqCreateRoom() {
+    const nick = (document.getElementById('fxqPgoNickInput').value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
+    const r = await fxqRoomApi('POST', 'create', { gameId: 'feixingqi', nick, deviceId: GamesShell.Identity.getDeviceId() });
+    if (r.ok) {
+      fxqRoomToken = r.playerToken; fxqRoomPlayerId = r.playerId; fxqRoomCode = r.code;
+      document.getElementById('fxqPgoRoomCodeNum').textContent = r.code;
+      document.getElementById('fxqPgoRoomCode').style.display = '';
+      document.getElementById('fxqPgoCreateRoomBtn').style.display = 'none';
+      document.getElementById('fxqPgoJoinCodeInput').style.display = 'none';
+      document.getElementById('fxqPgoJoinRoomBtn').style.display = 'none';
+      fxqUpdateRoomPlayers(r.room); fxqStartPolling();
+    } else { document.getElementById('fxqPgoRoomError').textContent = r.reason === 'nick_invalid' ? '昵称格式不对' : '创建失败'; }
+  }
+
+  async function fxqJoinRoom() {
+    const code = (document.getElementById('fxqPgoJoinCodeInput').value || '').trim();
+    if (!/^\d{4}$/.test(code)) { document.getElementById('fxqPgoRoomError').textContent = '请输入 4 位数字房号'; return; }
+    const nick = (document.getElementById('fxqPgoNickInput').value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
+    const r = await fxqRoomApi('POST', 'join', { code, nick, deviceId: GamesShell.Identity.getDeviceId() });
+    if (r.ok) {
+      fxqRoomToken = r.playerToken; fxqRoomPlayerId = r.playerId; fxqRoomCode = code;
+      document.getElementById('fxqPgoRoomCodeNum').textContent = code;
+      document.getElementById('fxqPgoRoomCode').style.display = '';
+      document.getElementById('fxqPgoCreateRoomBtn').style.display = 'none';
+      document.getElementById('fxqPgoJoinCodeInput').style.display = 'none';
+      document.getElementById('fxqPgoJoinRoomBtn').style.display = 'none';
+      fxqUpdateRoomPlayers(r.room); fxqStartPolling();
+    } else {
+      const msgs = { room_not_found: '房间不存在', room_full: '房间已满', nick_taken_in_room: '昵称被占用了', room_in_progress: '游戏已开始' };
+      document.getElementById('fxqPgoRoomError').textContent = msgs[r.reason] || '加入失败';
+    }
+  }
+
+  function fxqUpdateRoomPlayers(room) {
+    const list = document.getElementById('fxqPgoRoomPlayers');
+    if (!list) return;
+    list.innerHTML = (room.players || []).map(p => `<li>${p.nick}${p.isHost ? ' <span class="gs-pgo-room-host-badge">房主</span>' : ''}${p.id === fxqRoomPlayerId ? ' (你)' : ''}</li>`).join('');
+    const startBtn = document.getElementById('fxqPgoRoomStartBtn');
+    if (startBtn) {
+      const canStart = room.youAreHost && (room.players || []).length >= 2;
+      startBtn.disabled = !canStart;
+      startBtn.textContent = canStart ? '开始游戏' : (room.youAreHost ? '至少 2 人' : '等待房主开始…');
+    }
+  }
+
+  function fxqStartPolling() {
+    if (fxqRoomStatePoller) clearTimeout(fxqRoomStatePoller);
+    let since = 0;
+    async function poll() {
+      if (!fxqRoomToken) return;
+      const r = await fxqRoomApi('GET', `state&code=${fxqRoomCode}&token=${fxqRoomToken}&since=${since}`);
+      if (r.ok && r.room) {
+        since = r.version;
+        fxqUpdateRoomPlayers(r.room);
+        if (r.room.state === 'playing') {
+          fxqPgoOverlay.classList.remove('open');
+          state.difficulty = fxqPgoSelectedDiff;
+          startGame();
+          if (typeof fxqSave !== 'undefined' && fxqSave) fxqSave.start();
+          return;
+        }
+      }
+      fxqRoomStatePoller = setTimeout(poll, 1500);
+    }
+    poll();
+  }
+
+  document.getElementById('fxqPgoCreateRoomBtn').addEventListener('click', fxqCreateRoom);
+  document.getElementById('fxqPgoJoinRoomBtn').addEventListener('click', fxqJoinRoom);
+  document.getElementById('fxqPgoRoomCopyBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(`${location.origin}/toolbox/feixingqi/?room=${fxqRoomCode}`).then(() => {
+      const btn = document.getElementById('fxqPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制'; }, 2000);
+    }).catch(() => {});
+  });
+  document.getElementById('fxqPgoRoomStartBtn').addEventListener('click', async () => {
+    const r = await fxqRoomApi('POST', 'start', { code: fxqRoomCode, token: fxqRoomToken });
+    if (r.ok) { fxqPgoOverlay.classList.remove('open'); state.difficulty = fxqPgoSelectedDiff; startGame(); if (typeof fxqSave !== 'undefined' && fxqSave) fxqSave.start(); }
+  });
+
+  if (GamesShell.Identity.getNick()) document.getElementById('fxqPgoNickInput').value = GamesShell.Identity.getNick();
+
+  document.getElementById('fxqPgoStartBtn').addEventListener('click', () => {
+    if (fxqIsOnline) return;
+    state.difficulty = fxqPgoSelectedDiff;
+    if (typeof fxqSave !== 'undefined' && fxqSave) fxqSave.discard();
+    startGame();
+    if (typeof fxqSave !== 'undefined' && fxqSave) fxqSave.start();
+  });
+
+  initialSetupRender();
+  fxqSyncOverlayChips();
+  fxqUpdatePgoDiffVisibility();
+  fxqPgoOverlay.classList.add('open');
+
   if (window.GamesShell && GamesShell.SaveState) {
     fxqSave = GamesShell.SaveState.create({
       key: 'tool.feixingqi.savestate.v1',
@@ -2361,18 +2552,14 @@ permalink: /toolbox/feixingqi/
     const peek = fxqSave.peek();
     if (peek && peek.data && peek.data.pieces && peek.data.players) {
       const np = peek.data.players.length;
-      initialSetupRender();
       GamesShell.SaveState.showResumeModal({
         summaryHtml: `<strong>${np} 人对局</strong> 已走 <strong>${peek.data.moveCount || 0}</strong> 步<span class="gs-resume-meta">${peek.agoText}保存</span>`,
         onResume: () => { fxqRestore(peek.data); fxqSave.start(); },
         onDiscard: () => { fxqSave.discard(); fxqSave.start(); },
       });
     } else {
-      initialSetupRender();
       fxqSave.start();
     }
-  } else {
-    initialSetupRender();
   }
 })();
 </script>

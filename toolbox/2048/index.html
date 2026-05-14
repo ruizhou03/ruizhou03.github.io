@@ -243,6 +243,31 @@ permalink: /toolbox/2048/
       <div class="o-msg" id="overlayMsg"></div>
       <div class="overlay-buttons" id="overlayButtons"></div>
     </div>
+    <!-- 预进入界面 -->
+    <div class="gs-pgo-overlay open" id="preGameOverlay">
+      <div class="gs-pgo-view active" id="pgoViewMain">
+        <div class="gs-pgo-icon">🟧</div>
+        <h2 class="gs-pgo-title">2048</h2>
+        <div class="gs-pgo-subtitle">滑动合并相同数字 · 凑出 2048</div>
+        <div class="gs-pgo-highscore">
+          <div class="gs-pgo-hs-value" id="pgoHighScore">0</div>
+          <div class="gs-pgo-hs-label">历史最高分</div>
+        </div>
+        <div class="gs-pgo-mode-picker" id="pgoSizePicker">
+          <button class="gs-pgo-mode-tab" data-value="3">3×3</button>
+          <button class="gs-pgo-mode-tab selected" data-value="4">4×4</button>
+          <button class="gs-pgo-mode-tab" data-value="5">5×5</button>
+        </div>
+        <button class="gs-pgo-start-btn" id="pgoStartBtn">▶ 开始游戏</button>
+      </div>
+      <div class="gs-pgo-view" id="pgoViewResume">
+        <div class="gs-pgo-icon">👋</div>
+        <h2 class="gs-pgo-title">上次还没玩完</h2>
+        <div class="gs-pgo-resume-summary" id="pgoResumeSummary"></div>
+        <button class="gs-pgo-start-btn" id="pgoResumeContinueBtn">▶ 继续上次</button>
+        <button class="gs-pgo-start-btn" id="pgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;">🔄 重新开始</button>
+      </div>
+    </div>
   </div>
 
   <!-- 结算后排名信息 + 昵称表单（只有 Game Over 时显示） -->
@@ -268,6 +293,7 @@ permalink: /toolbox/2048/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/games-shell/settings-panel.js"></script>
 
 <script>
 (() => {
@@ -499,6 +525,7 @@ permalink: /toolbox/2048/
     renderTiles();
     renderScores();
     hideOverlay();
+    pgoOverlay.classList.remove('open');
     rankRow.classList.remove('show');
     rankRow.textContent = '';
     nickPrompt && nickPrompt.hide();
@@ -790,22 +817,87 @@ permalink: /toolbox/2048/
     resizeTimer = setTimeout(() => renderTiles(), 80);
   });
 
+  // ============ Pre-game Overlay ============
+  const pgoOverlay = document.getElementById('preGameOverlay');
+  const pgoViewMain = document.getElementById('pgoViewMain');
+  const pgoViewResume = document.getElementById('pgoViewResume');
+  const pgoHighScore = document.getElementById('pgoHighScore');
+  const pgoSizePicker = document.getElementById('pgoSizePicker');
+  const pgoStartBtn = document.getElementById('pgoStartBtn');
+  const pgoResumeSummary = document.getElementById('pgoResumeSummary');
+
+  let pgoSelectedSize = state.size;
+
+  function showOverlayView(name) {
+    pgoViewMain.classList.toggle('active', name === 'main');
+    pgoViewResume.classList.toggle('active', name === 'resume');
+  }
+
+  function updatePgoHighScore() {
+    const best = state.best[state.size] || 0;
+    pgoHighScore.textContent = best > 0 ? best.toLocaleString() : '--';
+    document.querySelectorAll('#pgoSizePicker .gs-pgo-mode-tab').forEach(t => {
+      t.classList.toggle('selected', t.dataset.value === String(pgoSelectedSize));
+    });
+  }
+
+  function startGameFromOverlay() {
+    pgoOverlay.classList.remove('open');
+    state.size = pgoSelectedSize;
+    newGame(pgoSelectedSize);
+  }
+
+  // Size picker in overlay
+  pgoSizePicker.addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab');
+    if (!t) return;
+    pgoSelectedSize = Number(t.dataset.value);
+    updatePgoHighScore();
+  });
+
+  // Start button
+  pgoStartBtn.addEventListener('click', startGameFromOverlay);
+
+  // Resume buttons
+  document.getElementById('pgoResumeContinueBtn').addEventListener('click', () => {
+    pgoOverlay.classList.remove('open');
+    renderTiles();
+    renderScores();
+    if (!canMove(state.board)) {
+      showOverlay('Game Over', `最终得分 ${state.score}`, [
+        { label: '再来一局', action: () => newGame() }
+      ]);
+    }
+  });
+  document.getElementById('pgoResumeNewBtn').addEventListener('click', () => {
+    startGameFromOverlay();
+  });
+
   // ============ Init ============
   function init() {
     let resumedGameOver = false;
-    if (!state.board || state.board.length !== state.size) {
-      newGame(state.size);
-    } else {
-      renderGrid();
+    const hasActiveGame = state.board && state.board.length === state.size && canMove(state.board) && state.score > 0;
+
+    // Always render grid background so the board looks nice behind the overlay
+    state.board = state.board && state.board.length === state.size ? state.board : emptyBoard(state.size);
+    renderGrid();
+    renderScores();
+
+    if (hasActiveGame) {
+      // Has a playable saved game → show resume view
       renderTiles();
-      renderScores();
-      if (!canMove(state.board)) {
-        showOverlay('Game Over', `最终得分 ${state.score}`, [
-          { label: '再来一局', action: () => newGame() }
-        ]);
+      const bestForSize = state.best[state.size] || 0;
+      pgoResumeSummary.innerHTML = `得分 <strong>${state.score.toLocaleString()}</strong> · 棋盘 ${state.size}×${state.size}` + (bestForSize ? `<span class="gs-pgo-resume-meta">历史最高 ${bestForSize.toLocaleString()}</span>` : '');
+      showOverlayView('resume');
+    } else {
+      // No active game → show main menu
+      if (state.board && state.board.length === state.size && !canMove(state.board)) {
         resumedGameOver = true;
       }
+      updatePgoHighScore();
+      showOverlayView('main');
     }
+    pgoOverlay.classList.add('open');
 
     // 排行榜（按 boardSize 分桶）
     if (window.GamesShell && GamesShell.Leaderboard) {
@@ -854,11 +946,10 @@ permalink: /toolbox/2048/
 
     // 进页面时如果发现是从老版本（没排行榜的 JS）遗留下来的 GG 局，
     // 同样尝试上传——不然玩家这局好成绩白瞎。
-    // 用 score+size+won 派生稳定 nonce，刷新多次也不会重复入榜。
     if (resumedGameOver && state.score > 0 && window.GamesShell) {
       const stable = `2048-resume-${state.size}-${state.score}-${state.won ? 1 : 0}`;
       runNonce = stable;
-      runStartedAt = Date.now() - 60000;   // 假设至少玩了 1 分钟
+      runStartedAt = Date.now() - 60000;
       tryAutoSubmit();
       if (settleBtn) settleBtn.setEnabled(true);
     }

@@ -1107,7 +1107,7 @@ permalink: /toolbox/minesweeper/
 
   function msUpdatePgoBest() {
     const best = state.best[msPgoSelectedDiff];
-    msPgoBestTime.textContent = best != null ? best + ' s' : '—';
+    msPgoBestTime.textContent = best != null ? (best / 1000).toFixed(1) + ' s' : '—';
     document.querySelectorAll('#msPgoDiffPicker .gs-pgo-mode-tab').forEach(t => {
       t.classList.toggle('selected', t.dataset.value === msPgoSelectedDiff);
     });
@@ -1147,6 +1147,9 @@ permalink: /toolbox/minesweeper/
   });
 
   msInitShell();
+  // Render a preview board so the overlay has a visible backdrop
+  newGame();
+
   if (window.GamesShell && GamesShell.SaveState) {
     msSave = GamesShell.SaveState.create({
       key: 'tool.minesweeper.savestate.v1',

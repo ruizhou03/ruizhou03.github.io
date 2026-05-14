@@ -167,6 +167,47 @@ permalink: /toolbox/gomoku/
       <h2>⏸ 已暂停</h2>
       <button class="gm-btn" id="gmResumeBtn">▶ 继续</button>
     </div>
+    <!-- 预进入界面 -->
+    <div class="gs-pgo-overlay open" id="gmPreGameOverlay">
+      <div class="gs-pgo-view active" id="gmPgoViewMain">
+        <div class="gs-pgo-icon">⚫⚪</div>
+        <h2 class="gs-pgo-title">五子棋</h2>
+        <div class="gs-pgo-subtitle">先连成五子者胜 · 横、竖、斜均可</div>
+        <div class="gs-pgo-mode-picker" id="gmPgoModePicker">
+          <button class="gs-pgo-mode-tab selected" data-value="pvp">双人同机</button>
+          <button class="gs-pgo-mode-tab" data-value="ai-black">人机（执黑）</button>
+          <button class="gs-pgo-mode-tab" data-value="ai-white">人机（执白）</button>
+        </div>
+        <div class="gs-pgo-mode-picker" id="gmPgoDiffPicker" style="display:none;">
+          <button class="gs-pgo-mode-tab" data-value="easy">新手</button>
+          <button class="gs-pgo-mode-tab selected" data-value="normal">普通</button>
+          <button class="gs-pgo-mode-tab" data-value="hard">高手</button>
+        </div>
+        <!-- 本地 / 联机切换 -->
+        <div class="gs-pgo-room-tabs" id="gmPgoRoomTabs">
+          <button class="gs-pgo-room-tab selected" data-tab="local">🏠 本地</button>
+          <button class="gs-pgo-room-tab" data-tab="online">🌐 联机</button>
+        </div>
+        <!-- 本地面板（现有 mode/diff） -->
+        <div class="gs-pgo-room-panel active" id="gmPgoLocalPanel"></div>
+        <!-- 联机面板 -->
+        <div class="gs-pgo-room-panel" id="gmPgoOnlinePanel">
+          <input type="text" class="gs-pgo-room-input" id="gmPgoNickInput" placeholder="你的昵称" />
+          <button class="gs-pgo-room-btn primary" id="gmPgoCreateRoomBtn">创建房间</button>
+          <div class="gs-pgo-room-code" id="gmPgoRoomCode" style="display:none;">
+            房号：<strong id="gmPgoRoomCodeNum"></strong>
+            <button class="gs-pgo-room-copy-btn" id="gmPgoRoomCopyBtn">📋 复制</button>
+          </div>
+          <div style="width:100%;text-align:center;color:rgba(255,255,255,0.3);font-size:0.78rem;">— 或 —</div>
+          <input type="text" class="gs-pgo-room-input" id="gmPgoJoinCodeInput" placeholder="输入 4 位房号" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+          <button class="gs-pgo-room-btn" id="gmPgoJoinRoomBtn">加入房间</button>
+          <div class="gs-pgo-room-error" id="gmPgoRoomError"></div>
+          <ul class="gs-pgo-room-players" id="gmPgoRoomPlayers"></ul>
+          <button class="gs-pgo-room-btn primary" id="gmPgoRoomStartBtn" disabled>等待房主开始…</button>
+        </div>
+        <button class="gs-pgo-start-btn" id="gmPgoStartBtn">▶ 开始游戏</button>
+      </div>
+    </div>
   </div>
 
   <div class="gm-help">15×15 标准棋盘　·　人机模式可选三档难度</div>
@@ -181,6 +222,7 @@ permalink: /toolbox/gomoku/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/games-shell/settings-panel.js"></script>
 
 <script>
 (() => {
@@ -246,6 +288,7 @@ permalink: /toolbox/gomoku/
     state.paused = false;
     overlay.classList.remove('show');
     pausedOverlay.classList.remove('show');
+    gmPgoOverlay.classList.remove('open');
     updateStatus();
     draw();
     gmRunStartedAt = Date.now();
@@ -865,6 +908,198 @@ permalink: /toolbox/gomoku/
     }
   }
 
+  // ============ Pre-game Overlay ============
+  const gmPgoOverlay = document.getElementById('gmPreGameOverlay');
+  let gmPgoSelectedMode = state.mode;
+  let gmPgoSelectedDiff = state.difficulty || 'normal';
+
+  function gmUpdatePgoUI() {
+    document.querySelectorAll('#gmPgoModePicker .gs-pgo-mode-tab').forEach(t => {
+      t.classList.toggle('selected', t.dataset.value === gmPgoSelectedMode);
+    });
+    const diffPicker = document.getElementById('gmPgoDiffPicker');
+    diffPicker.style.display = gmPgoSelectedMode !== 'pvp' ? '' : 'none';
+    document.querySelectorAll('#gmPgoDiffPicker .gs-pgo-mode-tab').forEach(t => {
+      t.classList.toggle('selected', t.dataset.value === gmPgoSelectedDiff);
+    });
+  }
+
+  document.getElementById('gmPgoModePicker').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab');
+    if (!t) return;
+    gmPgoSelectedMode = t.dataset.value;
+    gmUpdatePgoUI();
+  });
+  document.getElementById('gmPgoDiffPicker').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab');
+    if (!t) return;
+    gmPgoSelectedDiff = t.dataset.value;
+    gmUpdatePgoUI();
+  });
+
+  // ============ Room Client ============
+  const BOARD_API = 'https://zircon-urge.vercel.app/api/board';
+  let gmRoomToken = null;
+  let gmRoomPlayerId = null;
+  let gmRoomCode = null;
+  let gmRoomStatePoller = null;
+  let gmIsOnline = false;
+
+  // Tab switching
+  document.getElementById('gmPgoRoomTabs').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-room-tab');
+    if (!t) return;
+    const tab = t.dataset.tab;
+    document.querySelectorAll('#gmPgoRoomTabs .gs-pgo-room-tab').forEach(b => b.classList.toggle('selected', b.dataset.tab === tab));
+    document.getElementById('gmPgoLocalPanel').classList.toggle('active', tab === 'local');
+    document.getElementById('gmPgoOnlinePanel').classList.toggle('active', tab === 'online');
+    document.getElementById('gmPgoModePicker').style.display = tab === 'online' ? 'none' : '';
+    document.getElementById('gmPgoDiffPicker').style.display = tab === 'online' ? 'none' : (gmPgoSelectedMode !== 'pvp' ? '' : 'none');
+    gmIsOnline = tab === 'online';
+  });
+
+  function gmRoomApi(method, action, body) {
+    const url = `${BOARD_API}?action=${action}`;
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(url, opts).then(r => r.json()).catch(() => ({ error: 'network' }));
+  }
+
+  async function gmCreateRoom() {
+    const nickInput = document.getElementById('gmPgoNickInput');
+    const nick = (nickInput.value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
+    const r = await gmRoomApi('POST', 'create', { gameId: 'gomoku', nick, deviceId: GamesShell.Identity.getDeviceId() });
+    if (r.ok) {
+      gmRoomToken = r.playerToken;
+      gmRoomPlayerId = r.playerId;
+      gmRoomCode = r.code;
+      document.getElementById('gmPgoRoomCodeNum').textContent = r.code;
+      document.getElementById('gmPgoRoomCode').style.display = '';
+      document.getElementById('gmPgoCreateRoomBtn').style.display = 'none';
+      document.getElementById('gmPgoJoinCodeInput').style.display = 'none';
+      document.getElementById('gmPgoJoinRoomBtn').style.display = 'none';
+      gmUpdateRoomPlayers(r.room);
+      gmStartPolling();
+    } else {
+      document.getElementById('gmPgoRoomError').textContent = r.reason === 'nick_invalid' ? '昵称格式不对' : '创建失败，稍后再试';
+    }
+  }
+
+  async function gmJoinRoom() {
+    const code = (document.getElementById('gmPgoJoinCodeInput').value || '').trim();
+    if (!/^\d{4}$/.test(code)) { document.getElementById('gmPgoRoomError').textContent = '请输入 4 位数字房号'; return; }
+    const nickInput = document.getElementById('gmPgoNickInput');
+    const nick = (nickInput.value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
+    const r = await gmRoomApi('POST', 'join', { code, nick, deviceId: GamesShell.Identity.getDeviceId() });
+    if (r.ok) {
+      gmRoomToken = r.playerToken;
+      gmRoomPlayerId = r.playerId;
+      gmRoomCode = code;
+      document.getElementById('gmPgoRoomCodeNum').textContent = code;
+      document.getElementById('gmPgoRoomCode').style.display = '';
+      document.getElementById('gmPgoCreateRoomBtn').style.display = 'none';
+      document.getElementById('gmPgoJoinCodeInput').style.display = 'none';
+      document.getElementById('gmPgoJoinRoomBtn').style.display = 'none';
+      gmUpdateRoomPlayers(r.room);
+      gmStartPolling();
+    } else {
+      const msgs = { room_not_found: '房间不存在或已解散', room_full: '房间已满', nick_taken_in_room: '昵称被占用了，换一个', room_in_progress: '游戏已开始，不能加入' };
+      document.getElementById('gmPgoRoomError').textContent = msgs[r.reason] || '加入失败';
+    }
+  }
+
+  async function gmStartGame() {
+    const r = await gmRoomApi('POST', 'start', { code: gmRoomCode, token: gmRoomToken });
+    if (r.ok && r.room) {
+      gmPgoOverlay.classList.remove('open');
+      state.mode = 'pvp';
+      persist();
+      newGame();
+      if (gmSave) gmSave.start();
+    }
+  }
+
+  function gmUpdateRoomPlayers(room) {
+    const list = document.getElementById('gmPgoRoomPlayers');
+    if (!list) return;
+    list.innerHTML = (room.players || []).map(p =>
+      `<li>${p.nick}${p.isHost ? ' <span class="gs-pgo-room-host-badge">房主</span>' : ''}${p.id === gmRoomPlayerId ? ' (你)' : ''}</li>`
+    ).join('');
+    const startBtn = document.getElementById('gmPgoRoomStartBtn');
+    if (startBtn) {
+      const cfg = { gomoku: { minPlayers: 2 } }[room.game] || { minPlayers: 2 };
+      const canStart = room.youAreHost && (room.players || []).length >= cfg.minPlayers;
+      startBtn.disabled = !canStart;
+      startBtn.textContent = canStart ? '开始游戏' : (room.youAreHost ? `至少 ${cfg.minPlayers} 人` : '等待房主开始…');
+    }
+  }
+
+  function gmStartPolling() {
+    if (gmRoomStatePoller) clearTimeout(gmRoomStatePoller);
+    let since = 0;
+    async function poll() {
+      if (!gmRoomToken) return;
+      const r = await gmRoomApi('GET', `state&code=${gmRoomCode}&token=${gmRoomToken}&since=${since}`);
+      if (r.ok && r.room) {
+        since = r.version;
+        gmUpdateRoomPlayers(r.room);
+        if (r.room.state === 'playing') {
+          gmPgoOverlay.classList.remove('open');
+          state.mode = 'pvp';
+          persist();
+          newGame();
+          if (gmSave) gmSave.start();
+          return;
+        }
+      }
+      gmRoomStatePoller = setTimeout(poll, 1500);
+    }
+    poll();
+  }
+
+  // Room buttons
+  document.getElementById('gmPgoCreateRoomBtn').addEventListener('click', gmCreateRoom);
+  document.getElementById('gmPgoJoinRoomBtn').addEventListener('click', gmJoinRoom);
+  document.getElementById('gmPgoRoomCopyBtn').addEventListener('click', () => {
+    const url = `${location.origin}/toolbox/gomoku/?room=${gmRoomCode}`;
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById('gmPgoRoomCopyBtn');
+      btn.textContent = '✓ 已复制';
+      setTimeout(() => { btn.textContent = '📋 复制'; }, 2000);
+    }).catch(() => {});
+  });
+  document.getElementById('gmPgoRoomStartBtn').addEventListener('click', gmStartGame);
+
+  // Auto-fill nick
+  const gmNick = GamesShell.Identity.getNick();
+  if (gmNick) document.getElementById('gmPgoNickInput').value = gmNick;
+
+  // URL room param → auto-join
+  const gmUrlRoom = new URLSearchParams(location.search).get('room');
+  if (gmUrlRoom && /^\d{4}$/.test(gmUrlRoom)) {
+    document.getElementById('gmPgoJoinCodeInput').value = gmUrlRoom;
+    // Switch to online tab
+    document.querySelector('#gmPgoRoomTabs .gs-pgo-room-tab[data-tab="online"]')?.click();
+    // Auto-join after brief delay (wait for identity)
+    setTimeout(gmJoinRoom, 800);
+  }
+
+  document.getElementById('gmPgoStartBtn').addEventListener('click', () => {
+    if (gmIsOnline) return; // Online games start via host button
+    state.mode = gmPgoSelectedMode;
+    state.difficulty = gmPgoSelectedDiff;
+    persist();
+    document.querySelectorAll('[data-mode]').forEach(t => t.classList.toggle('active', t.dataset.mode === state.mode));
+    document.querySelectorAll('[data-difficulty]').forEach(t => t.classList.toggle('active', t.dataset.difficulty === state.difficulty));
+    difficultyRow.hidden = (state.mode === 'pvp');
+    if (gmSave) gmSave.discard();
+    newGame();
+    if (gmSave) gmSave.start();
+  });
+
+  // Render a preview frame
+  draw();
+
   gmInitShell();
 
   if (window.GamesShell && GamesShell.SaveState) {
@@ -875,18 +1110,16 @@ permalink: /toolbox/gomoku/
     });
     const peek = gmSave.peek();
     if (peek && peek.data && Array.isArray(peek.data.board)) {
-      const moveCount = (peek.data.history || []).length;
-      GamesShell.SaveState.showResumeModal({
-        summaryHtml: `<strong>${peek.data.mode === 'pvp' ? 'PvP' : 'AI ' + (peek.data.difficulty || '')}</strong> 已走 <strong>${moveCount}</strong> 子<span class="gs-resume-meta">${peek.agoText}保存</span>`,
-        onResume: () => { gmRestore(peek.data); gmSave.start(); },
-        onDiscard: () => { gmSave.discard(); newGame(); gmSave.start(); },
-      });
+      gmPgoOverlay.classList.add('open');
+      // Show resume view injected into main view
+      gmUpdatePgoUI();
     } else {
-      newGame();
-      gmSave.start();
+      gmUpdatePgoUI();
+      gmPgoOverlay.classList.add('open');
     }
   } else {
-    newGame();
+    gmUpdatePgoUI();
+    gmPgoOverlay.classList.add('open');
   }
 })();
 </script>

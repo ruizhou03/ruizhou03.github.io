@@ -213,6 +213,41 @@ permalink: /toolbox/xiangqi/
       <h2>⏸ 已暂停</h2>
       <button class="xq-btn" id="xqResumeBtn">▶ 继续</button>
     </div>
+    <!-- 预进入界面 -->
+    <div class="gs-pgo-overlay open" id="xqPreGameOverlay">
+      <div class="gs-pgo-view active" id="xqPgoViewMain">
+        <div class="gs-pgo-icon">帥</div>
+        <h2 class="gs-pgo-title">中国象棋</h2>
+        <div class="gs-pgo-subtitle">同机对弈 / 人机对战 · 三档 AI 难度</div>
+        <div class="gs-pgo-mode-picker" id="xqPgoModePicker">
+          <button class="gs-pgo-mode-tab selected" data-value="pvp">双人同机</button>
+          <button class="gs-pgo-mode-tab" data-value="ai-black">人机（执黑）</button>
+          <button class="gs-pgo-mode-tab" data-value="ai-red">人机（执红）</button>
+        </div>
+        <div class="gs-pgo-mode-picker" id="xqPgoDiffPicker" style="display:none;">
+          <button class="gs-pgo-mode-tab" data-value="easy">新手</button>
+          <button class="gs-pgo-mode-tab selected" data-value="normal">普通</button>
+          <button class="gs-pgo-mode-tab" data-value="hard">高手</button>
+        </div>
+        <div class="gs-pgo-room-tabs" id="xqPgoRoomTabs">
+          <button class="gs-pgo-room-tab selected" data-tab="local">🏠 本地</button>
+          <button class="gs-pgo-room-tab" data-tab="online">🌐 联机</button>
+        </div>
+        <div class="gs-pgo-room-panel active" id="xqPgoLocalPanel"></div>
+        <div class="gs-pgo-room-panel" id="xqPgoOnlinePanel">
+          <input type="text" class="gs-pgo-room-input" id="xqPgoNickInput" placeholder="你的昵称" />
+          <button class="gs-pgo-room-btn primary" id="xqPgoCreateRoomBtn">创建房间</button>
+          <div class="gs-pgo-room-code" id="xqPgoRoomCode" style="display:none;">房号：<strong id="xqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="xqPgoRoomCopyBtn">📋 复制</button></div>
+          <div style="width:100%;text-align:center;color:rgba(255,255,255,0.3);font-size:0.78rem;">— 或 —</div>
+          <input type="text" class="gs-pgo-room-input" id="xqPgoJoinCodeInput" placeholder="输入 4 位房号" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+          <button class="gs-pgo-room-btn" id="xqPgoJoinRoomBtn">加入房间</button>
+          <div class="gs-pgo-room-error" id="xqPgoRoomError"></div>
+          <ul class="gs-pgo-room-players" id="xqPgoRoomPlayers"></ul>
+          <button class="gs-pgo-room-btn primary" id="xqPgoRoomStartBtn" disabled>等待房主开始…</button>
+        </div>
+        <button class="gs-pgo-start-btn" id="xqPgoStartBtn">▶ 开始游戏</button>
+      </div>
+    </div>
   </div>
 
   <div class="xq-help">点击棋子选中后再点目标点落子。规则全套：马蹩腿、象眼、炮翻子、过河兵、不能照面（双将不可同列直对）、将军 / 将死 / 困毙判负。</div>
@@ -227,6 +262,7 @@ permalink: /toolbox/xiangqi/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/games-shell/settings-panel.js"></script>
 
 <script>
 (() => {
@@ -850,6 +886,7 @@ permalink: /toolbox/xiangqi/
     state.lastMove = null;
     overlay.classList.remove('show');
     pausedOverlay.classList.remove('show');
+    xqPgoOverlay.classList.remove('open');
     renderBoard();
     updateStatus();
     xqRunStartedAt = Date.now();
@@ -1215,6 +1252,152 @@ permalink: /toolbox/xiangqi/
       });
     }
   }
+  // ============ Pre-game Overlay ============
+  const xqPgoOverlay = document.getElementById('xqPreGameOverlay');
+  let xqPgoSelectedMode = state.mode;
+  let xqPgoSelectedDiff = state.difficulty || 'normal';
+
+  function xqUpdatePgoUI() {
+    document.querySelectorAll('#xqPgoModePicker .gs-pgo-mode-tab').forEach(t => {
+      t.classList.toggle('selected', t.dataset.value === xqPgoSelectedMode);
+    });
+    const diffPicker = document.getElementById('xqPgoDiffPicker');
+    diffPicker.style.display = xqPgoSelectedMode !== 'pvp' ? '' : 'none';
+    document.querySelectorAll('#xqPgoDiffPicker .gs-pgo-mode-tab').forEach(t => {
+      t.classList.toggle('selected', t.dataset.value === xqPgoSelectedDiff);
+    });
+  }
+
+  document.getElementById('xqPgoModePicker').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab');
+    if (!t) return;
+    xqPgoSelectedMode = t.dataset.value;
+    xqUpdatePgoUI();
+  });
+  document.getElementById('xqPgoDiffPicker').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab');
+    if (!t) return;
+    xqPgoSelectedDiff = t.dataset.value;
+    xqUpdatePgoUI();
+  });
+
+  // ============ Room Client ============
+  const BOARD_API = 'https://zircon-urge.vercel.app/api/board';
+  let xqRoomToken = null, xqRoomPlayerId = null, xqRoomCode = null, xqRoomStatePoller = null, xqIsOnline = false;
+
+  document.getElementById('xqPgoRoomTabs').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-room-tab');
+    if (!t) return;
+    const tab = t.dataset.tab;
+    document.querySelectorAll('#xqPgoRoomTabs .gs-pgo-room-tab').forEach(b => b.classList.toggle('selected', b.dataset.tab === tab));
+    document.getElementById('xqPgoLocalPanel').classList.toggle('active', tab === 'local');
+    document.getElementById('xqPgoOnlinePanel').classList.toggle('active', tab === 'online');
+    document.getElementById('xqPgoModePicker').style.display = tab === 'online' ? 'none' : '';
+    document.getElementById('xqPgoDiffPicker').style.display = tab === 'online' ? 'none' : (xqPgoSelectedMode !== 'pvp' ? '' : 'none');
+    xqIsOnline = tab === 'online';
+  });
+
+  function xqRoomApi(method, action, body) {
+    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(() => ({ error: 'network' }));
+  }
+
+  async function xqCreateRoom() {
+    const nick = (document.getElementById('xqPgoNickInput').value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
+    const r = await xqRoomApi('POST', 'create', { gameId: 'xiangqi', nick, deviceId: GamesShell.Identity.getDeviceId() });
+    if (r.ok) {
+      xqRoomToken = r.playerToken; xqRoomPlayerId = r.playerId; xqRoomCode = r.code;
+      document.getElementById('xqPgoRoomCodeNum').textContent = r.code;
+      document.getElementById('xqPgoRoomCode').style.display = '';
+      document.getElementById('xqPgoCreateRoomBtn').style.display = 'none';
+      document.getElementById('xqPgoJoinCodeInput').style.display = 'none';
+      document.getElementById('xqPgoJoinRoomBtn').style.display = 'none';
+      xqUpdateRoomPlayers(r.room); xqStartPolling();
+    } else { document.getElementById('xqPgoRoomError').textContent = r.reason === 'nick_invalid' ? '昵称格式不对' : '创建失败'; }
+  }
+
+  async function xqJoinRoom() {
+    const code = (document.getElementById('xqPgoJoinCodeInput').value || '').trim();
+    if (!/^\d{4}$/.test(code)) { document.getElementById('xqPgoRoomError').textContent = '请输入 4 位数字房号'; return; }
+    const nick = (document.getElementById('xqPgoNickInput').value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
+    const r = await xqRoomApi('POST', 'join', { code, nick, deviceId: GamesShell.Identity.getDeviceId() });
+    if (r.ok) {
+      xqRoomToken = r.playerToken; xqRoomPlayerId = r.playerId; xqRoomCode = code;
+      document.getElementById('xqPgoRoomCodeNum').textContent = code;
+      document.getElementById('xqPgoRoomCode').style.display = '';
+      document.getElementById('xqPgoCreateRoomBtn').style.display = 'none';
+      document.getElementById('xqPgoJoinCodeInput').style.display = 'none';
+      document.getElementById('xqPgoJoinRoomBtn').style.display = 'none';
+      xqUpdateRoomPlayers(r.room); xqStartPolling();
+    } else {
+      const msgs = { room_not_found: '房间不存在', room_full: '房间已满', nick_taken_in_room: '昵称被占用了', room_in_progress: '游戏已开始' };
+      document.getElementById('xqPgoRoomError').textContent = msgs[r.reason] || '加入失败';
+    }
+  }
+
+  function xqUpdateRoomPlayers(room) {
+    const list = document.getElementById('xqPgoRoomPlayers');
+    if (!list) return;
+    list.innerHTML = (room.players || []).map(p => `<li>${p.nick}${p.isHost ? ' <span class="gs-pgo-room-host-badge">房主</span>' : ''}${p.id === xqRoomPlayerId ? ' (你)' : ''}</li>`).join('');
+    const startBtn = document.getElementById('xqPgoRoomStartBtn');
+    if (startBtn) {
+      const canStart = room.youAreHost && (room.players || []).length >= 2;
+      startBtn.disabled = !canStart;
+      startBtn.textContent = canStart ? '开始游戏' : (room.youAreHost ? '至少 2 人' : '等待房主开始…');
+    }
+  }
+
+  function xqStartPolling() {
+    if (xqRoomStatePoller) clearTimeout(xqRoomStatePoller);
+    let since = 0;
+    async function poll() {
+      if (!xqRoomToken) return;
+      const r = await xqRoomApi('GET', `state&code=${xqRoomCode}&token=${xqRoomToken}&since=${since}`);
+      if (r.ok && r.room) {
+        since = r.version;
+        xqUpdateRoomPlayers(r.room);
+        if (r.room.state === 'playing') {
+          xqPgoOverlay.classList.remove('open');
+          state.mode = 'pvp'; persist();
+          newGame(); if (typeof xqSave !== 'undefined' && xqSave) xqSave.start();
+          return;
+        }
+      }
+      xqRoomStatePoller = setTimeout(poll, 1500);
+    }
+    poll();
+  }
+
+  document.getElementById('xqPgoCreateRoomBtn').addEventListener('click', xqCreateRoom);
+  document.getElementById('xqPgoJoinRoomBtn').addEventListener('click', xqJoinRoom);
+  document.getElementById('xqPgoRoomCopyBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(`${location.origin}/toolbox/xiangqi/?room=${xqRoomCode}`).then(() => {
+      const btn = document.getElementById('xqPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制'; }, 2000);
+    }).catch(() => {});
+  });
+  document.getElementById('xqPgoRoomStartBtn').addEventListener('click', async () => {
+    const r = await xqRoomApi('POST', 'start', { code: xqRoomCode, token: xqRoomToken });
+    if (r.ok) { xqPgoOverlay.classList.remove('open'); state.mode = 'pvp'; persist(); newGame(); if (typeof xqSave !== 'undefined' && xqSave) xqSave.start(); }
+  });
+
+  if (GamesShell.Identity.getNick()) document.getElementById('xqPgoNickInput').value = GamesShell.Identity.getNick();
+
+  document.getElementById('xqPgoStartBtn').addEventListener('click', () => {
+    if (xqIsOnline) return;
+    state.mode = xqPgoSelectedMode;
+    state.difficulty = xqPgoSelectedDiff;
+    persist();
+    document.querySelectorAll('[data-mode]').forEach(t => t.classList.toggle('active', t.dataset.mode === state.mode));
+    document.querySelectorAll('[data-difficulty]').forEach(t => t.classList.toggle('active', t.dataset.difficulty === state.difficulty));
+    difficultyRow.hidden = (state.mode === 'pvp');
+    if (typeof xqSave !== 'undefined' && xqSave) xqSave.discard();
+    newGame();
+    if (typeof xqSave !== 'undefined' && xqSave) xqSave.start();
+  });
+
+  // Render a preview frame
+  renderBoard();
+  updateStatus();
+
   xqInitShell();
 
   // ── 48h 续局 ─────────────────────────────
@@ -1226,7 +1409,7 @@ permalink: /toolbox/xiangqi/
       difficulty: state.difficulty,
       board: state.board,
       turn: state.turn,
-      history: state.history.length, // 仅记步数（undo 链对外不可见，恢复后从此 count 起算）
+      history: state.history.length,
       lastMove: state.lastMove,
       runStartedAt: xqRunStartedAt,
       runNonce: xqRunNonce,
@@ -1237,7 +1420,7 @@ permalink: /toolbox/xiangqi/
     state.difficulty = saved.difficulty || state.difficulty;
     state.board = saved.board.map(col => col.slice());
     state.turn = saved.turn || RED;
-    state.history = [];   // undo 链丢失，但棋局可继续
+    state.history = [];
     state.selected = null;
     state.legalTargets = [];
     state.aiThinking = false;
@@ -1248,6 +1431,7 @@ permalink: /toolbox/xiangqi/
     xqRunNonce = saved.runNonce || ((window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now()));
     overlay.classList.remove('show');
     pausedOverlay.classList.remove('show');
+    xqPgoOverlay.classList.remove('open');
     document.querySelectorAll('[data-mode]').forEach(t => t.classList.toggle('active', t.dataset.mode === state.mode));
     document.querySelectorAll('[data-difficulty]').forEach(t => t.classList.toggle('active', t.dataset.difficulty === state.difficulty));
     renderBoard();
@@ -1265,18 +1449,15 @@ permalink: /toolbox/xiangqi/
     });
     const peek = xqSave.peek();
     if (peek && peek.data && Array.isArray(peek.data.board)) {
-      const moveCount = Number(peek.data.history) || 0;
-      GamesShell.SaveState.showResumeModal({
-        summaryHtml: `<strong>${peek.data.mode === 'pvp' ? 'PvP' : 'AI ' + (peek.data.difficulty || '')}</strong> 已走 <strong>${moveCount}</strong> 步<span class="gs-resume-meta">${peek.agoText}保存</span>`,
-        onResume: () => { xqRestore(peek.data); xqSave.start(); },
-        onDiscard: () => { xqSave.discard(); newGame(); xqSave.start(); },
-      });
+      xqUpdatePgoUI();
+      xqPgoOverlay.classList.add('open');
     } else {
-      newGame();
-      xqSave.start();
+      xqUpdatePgoUI();
+      xqPgoOverlay.classList.add('open');
     }
   } else {
-    newGame();
+    xqUpdatePgoUI();
+    xqPgoOverlay.classList.add('open');
   }
 })();
 </script>

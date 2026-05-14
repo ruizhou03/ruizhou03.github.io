@@ -252,6 +252,24 @@ permalink: /toolbox/fruit-ninja/
 
   <section id="game-stage" class="fn-stage-wrap">
     <canvas id="fn-canvas" width="1080" height="1620"></canvas>
+    <!-- 预进入界面 -->
+    <div class="gs-pgo-overlay open" id="fnPreGameOverlay">
+      <div class="gs-pgo-view active" id="fnPgoViewMain">
+        <div class="gs-pgo-icon">🍉🔪</div>
+        <h2 class="gs-pgo-title">水果忍者</h2>
+        <div class="gs-pgo-subtitle">滑动切水果 · 六种模式</div>
+        <div class="gs-pgo-mode-picker" id="fnPgoModePicker" style="flex-wrap:wrap;max-width:320px;">
+          <button class="gs-pgo-mode-tab selected" data-value="classic">经典 60s</button>
+          <button class="gs-pgo-mode-tab" data-value="arcade">街机三命</button>
+          <button class="gs-pgo-mode-tab" data-value="endless">无尽闯关</button>
+          <button class="gs-pgo-mode-tab" data-value="zen">禅意无炸弹</button>
+          <button class="gs-pgo-mode-tab" data-value="comborush">连击狂飙</button>
+          <button class="gs-pgo-mode-tab" data-value="precision">精准模式</button>
+        </div>
+        <div class="gs-pgo-mode-desc" id="fnPgoModeDesc" style="font-size:0.82rem;color:rgba(255,255,255,0.55);margin-bottom:1rem;">限时 60 秒，连切水果加奖励分。切到炸弹立即结束。</div>
+        <button class="gs-pgo-start-btn" id="fnPgoStartBtn">▶ 开始游戏</button>
+      </div>
+    </div>
     <div class="hud">
       <span class="hud-timer" hidden><span class="label">⏱</span><span data-bind="timer">60</span></span>
       <span class="hud-lives" hidden><span class="label">❤</span><span data-bind="lives">❤❤❤</span></span>
@@ -322,6 +340,7 @@ permalink: /toolbox/fruit-ninja/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
+<script src="/assets/js/games-shell/settings-panel.js"></script>
 
 <script>
 (function () {
@@ -3236,11 +3255,47 @@ permalink: /toolbox/fruit-ninja/
     }
   }
 
-  // ============ Boot ============
-  // 进页面默认起经典模式（不再需要"先选一个 mode-card"）
-  preloadSprites().then(() => {
+  // ============ Pre-game Overlay ============
+  const fnPgoOverlay = document.getElementById('fnPreGameOverlay');
+  const MODE_DESCS = {
+    classic: '限时 60 秒，连切水果加奖励分。切到炸弹立即结束。',
+    arcade: '三命制。漏掉水果扣一命，切到炸弹直接 Game Over。',
+    endless: '无限时间，难度递增。坚持越久分越高。',
+    zen: '无炸弹！纯切水果享受，连击 ×100 计分。',
+    comborush: '限时连击冲刺，最短时间凑出最高连击。',
+    precision: '精准模式，只切一个水果。切错扣分。',
+  };
+  let fnPgoSelectedMode = 'classic';
+
+  function fnUpdatePgoMode() {
+    document.querySelectorAll('#fnPgoModePicker .gs-pgo-mode-tab').forEach(t => {
+      t.classList.toggle('selected', t.dataset.value === fnPgoSelectedMode);
+    });
+    document.getElementById('fnPgoModeDesc').textContent = MODE_DESCS[fnPgoSelectedMode] || '';
+  }
+
+  document.getElementById('fnPgoModePicker').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab');
+    if (!t) return;
+    fnPgoSelectedMode = t.dataset.value;
+    fnUpdatePgoMode();
+  });
+
+  document.getElementById('fnPgoStartBtn').addEventListener('click', () => {
+    fnPgoOverlay.classList.remove('open');
     initShell();
-    startGame('classic');
+    startGame(fnPgoSelectedMode);
+    // Update the mode bar below the stage to match
+    document.querySelectorAll('.fn-mode-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.mode === fnPgoSelectedMode);
+    });
+    document.getElementById('fn-mode-desc').textContent = MODE_DESCS[fnPgoSelectedMode] || '';
+  });
+
+  // ============ Boot ============
+  preloadSprites().then(() => {
+    fnUpdatePgoMode();
+    fnPgoOverlay.classList.add('open');
   });
 })();
 </script>

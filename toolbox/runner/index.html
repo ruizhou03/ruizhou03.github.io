@@ -199,10 +199,22 @@ permalink: /toolbox/runner/
       <canvas class="game-canvas" id="game-canvas"></canvas>
 
       <!-- 开始 / 重玩 遮罩 -->
-      <div class="game-overlay" id="overlay-start">
-        <div class="overlay-title">🎓 Deadline 大逃亡</div>
-        <div class="overlay-sub">跳过文献综述，钻过 Reviewer 2 的飞邮件，能跑多远？</div>
-        <button type="button" class="overlay-btn" id="btn-start">开始 (空格)</button>
+      <div class="game-overlay gs-pgo-overlay open" id="overlay-start">
+        <div class="gs-pgo-view active" id="runnerPgoMain">
+          <div class="gs-pgo-icon">🏃</div>
+          <h2 class="gs-pgo-title">Deadline 大逃亡</h2>
+          <div class="gs-pgo-subtitle">跳过文献综述，钻过 Reviewer 2 的飞邮件，能跑多远？</div>
+          <div class="gs-pgo-highscore">
+            <div class="gs-pgo-hs-value" id="runnerPgoBest">0 米</div>
+            <div class="gs-pgo-hs-label">历史最佳</div>
+          </div>
+          <div class="gs-pgo-mode-picker" id="runnerPgoSpeedPicker">
+            <button class="gs-pgo-mode-tab" data-value="easy">休闲</button>
+            <button class="gs-pgo-mode-tab selected" data-value="normal">标准</button>
+            <button class="gs-pgo-mode-tab" data-value="hard">噩梦</button>
+          </div>
+          <button type="button" class="gs-pgo-start-btn" id="runnerPgoStartBtn">▶ 开始游戏</button>
+        </div>
       </div>
 
       <div class="game-overlay hidden" id="overlay-over">
@@ -247,6 +259,7 @@ permalink: /toolbox/runner/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/games-shell/settings-panel.js"></script>
 
 <script>
 (function () {
@@ -284,8 +297,13 @@ permalink: /toolbox/runner/
   const $hudScore  = document.getElementById('hud-score');
   const $overStart = document.getElementById('overlay-start');
   const $overOver  = document.getElementById('overlay-over');
-  const $btnStart  = document.getElementById('btn-start');
+  const $btnStart  = document.getElementById('runnerPgoStartBtn') || document.getElementById('btn-start');
   const $btnRestart = document.getElementById('btn-restart');
+  const $runnerPgoBest = document.getElementById('runnerPgoBest');
+  const $runnerPgoSpeedPicker = document.getElementById('runnerPgoSpeedPicker');
+
+  let runnerPgoSelectedSpeed = 'normal';
+  const RUNNER_SPEED_PRESETS = { easy: { min: 5, ramp: 0.0005 }, normal: { min: 6, ramp: 0.0008 }, hard: { min: 8, ramp: 0.0012 } };
   const $overScore = document.getElementById('over-score');
   const $overBest  = document.getElementById('over-best');
   const $btnJump   = document.getElementById('btn-jump');
@@ -312,6 +330,8 @@ permalink: /toolbox/runner/
   const state = {
     phase: 'start',     // 'start' | 'playing' | 'gameover' | 'paused'
     speed: SPEED_MIN,
+    speedMin: SPEED_MIN,
+    speedRamp: SPEED_RAMP,
     score: 0,
     best: 0,
     frame: 0,
@@ -348,7 +368,7 @@ permalink: /toolbox/runner/
   }
 
   function resetGame() {
-    state.speed = SPEED_MIN;
+    state.speed = state.speedMin || SPEED_MIN;
     state.score = 0;
     state.frame = 0;
     state.spawnCooldown = 30;
@@ -369,9 +389,14 @@ permalink: /toolbox/runner/
   }
 
   function startGame() {
+    // Apply selected difficulty
+    const preset = RUNNER_SPEED_PRESETS[runnerPgoSelectedSpeed] || RUNNER_SPEED_PRESETS.normal;
+    state.speedMin = preset.min;
+    state.speedRamp = preset.ramp;
     resetGame();
     state.phase = 'playing';
     $overStart.classList.add('hidden');
+    $overStart.classList.remove('open');
     $overOver.classList.add('hidden');
     runnerRunStartedAt = Date.now();
     runnerRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
@@ -882,8 +907,8 @@ permalink: /toolbox/runner/
     if (state.phase !== 'playing') return;
 
     state.frame++;
-    state.score += SCORE_PER_FRAME * (state.speed / SPEED_MIN);
-    state.speed = Math.min(SPEED_MAX, state.speed + SPEED_RAMP);
+    state.score += SCORE_PER_FRAME * (state.speed / (state.speedMin || SPEED_MIN));
+    state.speed = Math.min(SPEED_MAX, state.speed + (state.speedRamp || SPEED_RAMP));
 
     updateClouds();
     updateObstacles();
@@ -1048,6 +1073,23 @@ permalink: /toolbox/runner/
     resizeCanvas();
     loadBest();
     resetGame();
+    // Show best score in overlay
+    if ($runnerPgoBest) {
+      $runnerPgoBest.textContent = (state.best || 0) + ' 米';
+    }
+    // Speed picker
+    if ($runnerPgoSpeedPicker) {
+      $runnerPgoSpeedPicker.addEventListener('click', e => {
+        const t = e.target.closest('.gs-pgo-mode-tab');
+        if (!t) return;
+        runnerPgoSelectedSpeed = t.dataset.value;
+        $runnerPgoSpeedPicker.querySelectorAll('.gs-pgo-mode-tab').forEach(b => {
+          b.classList.toggle('selected', b.dataset.value === runnerPgoSelectedSpeed);
+        });
+      });
+      $runnerPgoSpeedPicker.querySelector('.gs-pgo-mode-tab.selected') || $runnerPgoSpeedPicker.querySelector('.gs-pgo-mode-tab[data-value="normal"]')?.classList.add('selected');
+    }
+    // Start button already wired via $btnStart
     // 静止帧画一下，给"开始"页一个底图
     render();
     requestAnimationFrame((t) => { lastTime = t; tick(t); });

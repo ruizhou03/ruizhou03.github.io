@@ -641,3 +641,423 @@
   border-color: var(--color-accent);
   color: var(--color-accent);
 }
+
+/* ================== 预进入界面（Pre-game Overlay） ================== */
+/* 参照 Suika 的 game-overlay 模式：绝对定位浮层盖在 game-zone canvas 上，
+   四视图切换（main / settings / resume）。
+   使用 .gs-pgo- 前缀，所有游戏共用，每个游戏在 own overlay 内填各自内容。 */
+
+.gs-pgo-overlay {
+  position: absolute; inset: 0;
+  background: rgba(20, 25, 30, 0.78);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center; justify-content: center;
+  flex-direction: column;
+  color: #fff;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  z-index: 10;
+  overflow-y: auto;
+}
+.gs-pgo-overlay.open { display: flex; }
+
+.gs-pgo-view { display: none; flex-direction: column; align-items: center; width: 100%; }
+.gs-pgo-view.active { display: flex; }
+
+.gs-pgo-icon {
+  font-size: 3.5rem;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.gs-pgo-title {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 0.4rem;
+}
+
+.gs-pgo-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  line-height: 1.55;
+}
+
+.gs-pgo-highscore {
+  margin-bottom: 1rem;
+  padding: 0.6rem 1.2rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+}
+.gs-pgo-highscore .gs-pgo-hs-value {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-highlight);
+  line-height: 1;
+}
+.gs-pgo-highscore .gs-pgo-hs-label {
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.gs-pgo-start-btn {
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.7rem 2.4rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  transition: transform 0.18s, filter 0.18s;
+}
+.gs-pgo-start-btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+.gs-pgo-start-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+.gs-pgo-settings-link {
+  font: inherit;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-top: 0.7rem;
+  padding: 0.3rem 0.6rem;
+  transition: color 0.18s;
+  text-decoration: underline;
+}
+.gs-pgo-settings-link:hover { color: rgba(255, 255, 255, 0.9); }
+
+/* 返回链接（从 settings 返回 main） */
+.gs-pgo-back-link {
+  font: inherit;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  transition: color 0.18s;
+}
+.gs-pgo-back-link:hover { color: rgba(255, 255, 255, 0.9); }
+
+/* 模式选择器 — 仿 Suika 的 .mode-picker 暗底 pill */
+.gs-pgo-mode-picker {
+  display: inline-flex;
+  gap: 0.25rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: 0.8rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.gs-pgo-mode-tab {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.9rem;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.62);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  white-space: nowrap;
+  line-height: 1;
+}
+.gs-pgo-mode-tab:hover { color: rgba(255, 255, 255, 0.9); }
+.gs-pgo-mode-tab.selected {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  font-weight: 600;
+}
+
+.gs-pgo-mode-desc {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 1rem;
+  min-height: 1.2em;
+}
+
+/* 设置视图 */
+.gs-pgo-settings-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 0.8rem;
+}
+.gs-pgo-settings-body {
+  width: 100%;
+  max-width: 380px;
+  text-align: left;
+}
+/* settings 视图内复用 .gs-settings 的浅色卡片，在暗底上做白字适配 */
+.gs-pgo-settings-body .gs-settings-row {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.gs-pgo-settings-body .gs-settings-head label { color: rgba(255, 255, 255, 0.9); }
+.gs-pgo-settings-body .gs-settings-desc { color: rgba(255, 255, 255, 0.55); }
+.gs-pgo-settings-body .gs-segment {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.gs-pgo-settings-body .gs-segment-btn {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.gs-pgo-settings-body .gs-segment-btn.gs-active {
+  background: var(--color-accent);
+  color: #fff;
+}
+.gs-pgo-settings-body .gs-toggle-slider {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Resume 视图 */
+.gs-pgo-resume-summary {
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0.6rem 0 1.2rem;
+  line-height: 1.55;
+}
+.gs-pgo-resume-summary strong {
+  color: var(--color-highlight);
+  font-weight: 700;
+}
+.gs-pgo-resume-summary .gs-pgo-resume-meta {
+  display: block;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 0.3rem;
+}
+
+.gs-pgo-resume-discard {
+  font: inherit;
+  font-size: 0.82rem;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  margin-top: 0.5rem;
+  text-decoration: underline;
+  transition: color 0.18s;
+}
+.gs-pgo-resume-discard:hover { color: rgba(255, 255, 255, 0.8); }
+
+/* 房间 UI */
+.gs-pgo-room-tabs {
+  display: inline-flex;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+.gs-pgo-room-tab {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.4rem 1rem;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+.gs-pgo-room-tab + .gs-pgo-room-tab {
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+}
+.gs-pgo-room-tab:hover { color: rgba(255, 255, 255, 0.9); }
+.gs-pgo-room-tab.selected {
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.gs-pgo-room-panel {
+  width: 100%;
+  max-width: 340px;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+.gs-pgo-room-panel.active { display: flex; }
+
+.gs-pgo-room-input {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: center;
+}
+.gs-pgo-room-input::placeholder { color: rgba(255, 255, 255, 0.35); }
+.gs-pgo-room-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.gs-pgo-room-btn {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  width: 100%;
+  padding: 0.55rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.gs-pgo-room-btn:hover { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.4); }
+.gs-pgo-room-btn.primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+.gs-pgo-room-btn.primary:hover { filter: brightness(1.05); }
+.gs-pgo-room-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.gs-pgo-room-code {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+}
+.gs-pgo-room-code strong {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: #fff;
+  letter-spacing: 0.12em;
+}
+
+.gs-pgo-room-copy-btn {
+  font: inherit;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.6);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  transition: color 0.18s;
+}
+.gs-pgo-room-copy-btn:hover { color: #fff; }
+
+.gs-pgo-room-players {
+  width: 100%;
+  list-style: none;
+  padding: 0; margin: 0;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+.gs-pgo-room-players li {
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.gs-pgo-room-players li:last-child { border-bottom: none; }
+.gs-pgo-room-players .gs-pgo-room-host-badge {
+  font-size: 0.7rem;
+  background: var(--color-accent);
+  color: #fff;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+
+.gs-pgo-room-error {
+  font-size: 0.82rem;
+  color: #ef5350;
+  min-height: 1.2em;
+}
+
+/* 本地玩家配置区（feixingqi/tiaoqi chip 选择等） */
+.gs-pgo-local-config {
+  width: 100%;
+  max-width: 340px;
+  margin-bottom: 0.8rem;
+}
+.gs-pgo-local-config .gs-pgo-config-label {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 0.4rem;
+}
+.gs-pgo-config-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+.gs-pgo-config-chip {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.gs-pgo-config-chip:hover { border-color: rgba(255, 255, 255, 0.4); color: rgba(255, 255, 255, 0.85); }
+.gs-pgo-config-chip.human {
+  background: rgba(76, 175, 80, 0.3);
+  border-color: rgba(76, 175, 80, 0.5);
+  color: #a5d6a7;
+}
+.gs-pgo-config-chip.ai {
+  background: rgba(255, 152, 0, 0.25);
+  border-color: rgba(255, 152, 0, 0.45);
+  color: #ffcc80;
+}
+.gs-pgo-config-chip.empty {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* 游戏规则说明（在 overlay 底部） */
+.gs-pgo-rules {
+  margin-top: 0.8rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1.55;
+  max-width: 380px;
+}
+
+/* 响应式：小屏缩小间距 */
+@media (max-width: 480px) {
+  .gs-pgo-overlay { padding: 1.5rem 1rem; }
+  .gs-pgo-icon { font-size: 2.8rem; }
+  .gs-pgo-title { font-size: 1.4rem; }
+  .gs-pgo-subtitle { font-size: 0.82rem; }
+  .gs-pgo-start-btn { font-size: 0.92rem; padding: 0.6rem 1.8rem; }
+  .gs-pgo-mode-tab { font-size: 0.78rem; padding: 0.35rem 0.7rem; }
+  .gs-pgo-room-tab { font-size: 0.78rem; padding: 0.35rem 0.7rem; }
+}

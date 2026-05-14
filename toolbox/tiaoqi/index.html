@@ -295,6 +295,40 @@ permalink: /toolbox/tiaoqi/
         <h2>⏸ 已暂停</h2>
         <button class="tq-btn" id="tqResumeBtn">▶ 继续</button>
       </div>
+      <!-- 预进入界面 -->
+      <div class="gs-pgo-overlay open" id="tqPreGameOverlay">
+        <div class="gs-pgo-view active" id="tqPgoViewMain">
+          <div class="gs-pgo-icon">🔺</div>
+          <h2 class="gs-pgo-title">跳棋</h2>
+          <div class="gs-pgo-subtitle">六角星棋盘 · 2-6 人同机 / 人机对战 · 自由选边</div>
+          <div class="gs-pgo-local-config" id="tqPgoConfig">
+            <div class="gs-pgo-config-label">点击角配置玩家（空 / 人类 / AI）</div>
+            <div class="gs-pgo-config-chips" id="tqPgoChips"></div>
+          </div>
+          <div class="gs-pgo-mode-picker" id="tqPgoDiffPicker" style="display:none;">
+            <button class="gs-pgo-mode-tab" data-value="easy">新手</button>
+            <button class="gs-pgo-mode-tab selected" data-value="normal">普通</button>
+            <button class="gs-pgo-mode-tab" data-value="hard">高手</button>
+          </div>
+          <div class="gs-pgo-room-tabs" id="tqPgoRoomTabs">
+            <button class="gs-pgo-room-tab selected" data-tab="local">🏠 本地</button>
+            <button class="gs-pgo-room-tab" data-tab="online">🌐 联机</button>
+          </div>
+          <div class="gs-pgo-room-panel active" id="tqPgoLocalPanel"></div>
+          <div class="gs-pgo-room-panel" id="tqPgoOnlinePanel">
+            <input type="text" class="gs-pgo-room-input" id="tqPgoNickInput" placeholder="你的昵称" />
+            <button class="gs-pgo-room-btn primary" id="tqPgoCreateRoomBtn">创建房间</button>
+            <div class="gs-pgo-room-code" id="tqPgoRoomCode" style="display:none;">房号：<strong id="tqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="tqPgoRoomCopyBtn">📋 复制</button></div>
+            <div style="width:100%;text-align:center;color:rgba(255,255,255,0.3);font-size:0.78rem;">— 或 —</div>
+            <input type="text" class="gs-pgo-room-input" id="tqPgoJoinCodeInput" placeholder="输入 4 位房号" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+            <button class="gs-pgo-room-btn" id="tqPgoJoinRoomBtn">加入房间</button>
+            <div class="gs-pgo-room-error" id="tqPgoRoomError"></div>
+            <ul class="gs-pgo-room-players" id="tqPgoRoomPlayers"></ul>
+            <button class="gs-pgo-room-btn primary" id="tqPgoRoomStartBtn" disabled>等待房主开始…</button>
+          </div>
+          <button class="gs-pgo-start-btn" id="tqPgoStartBtn">▶ 开始游戏</button>
+        </div>
+      </div>
     </div>
     <button class="tq-corner-chip at-N"  data-corner="N"  type="button"></button>
     <button class="tq-corner-chip at-NE" data-corner="NE" type="button"></button>
@@ -341,6 +375,7 @@ permalink: /toolbox/tiaoqi/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/games-shell/settings-panel.js"></script>
 
 <script>
 (() => {
@@ -841,6 +876,7 @@ permalink: /toolbox/tiaoqi/
     rosterEl.hidden = false;
     overlay.classList.remove('show');
     pausedOverlay.classList.remove('show');
+    tqPgoOverlay.classList.remove('open');
     tqRunStartedAt = Date.now();
     tqRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     tqLastResult = null;
@@ -1598,6 +1634,162 @@ permalink: /toolbox/tiaoqi/
     updateStatus();
   }
 
+  // ============ Pre-game Overlay ============
+  const tqPgoOverlay = document.getElementById('tqPreGameOverlay');
+  const tqPgoDiffPicker = document.getElementById('tqPgoDiffPicker');
+  let tqPgoSelectedDiff = state.difficulty || 'normal';
+
+  function tqSyncOverlayChips() {
+    const chipContainer = document.getElementById('tqPgoChips');
+    if (!chipContainer) return;
+    chipContainer.innerHTML = '';
+    const labels = { N: '🔴 北', NE: '🟠 东北', SE: '🟢 东南', S: '🔵 南', SW: '🟣 西南', NW: '🟤 西北' };
+    CORNER_KEYS.forEach(ck => {
+      const chip = document.createElement('button');
+      chip.className = 'gs-pgo-config-chip ' + state.setupConfig[ck];
+      chip.dataset.corner = ck;
+      chip.textContent = labels[ck] + ' · ' + (state.setupConfig[ck] === 'human' ? '人类' : state.setupConfig[ck] === 'ai' ? 'AI' : '空');
+      chip.addEventListener('click', () => {
+        const cycle = { empty: 'human', human: 'ai', ai: 'empty' };
+        state.setupConfig[ck] = cycle[state.setupConfig[ck]];
+        localStorage.setItem(SETUP_KEY, JSON.stringify(state.setupConfig));
+        renderCornerChips();
+        tqSyncOverlayChips();
+        tqUpdatePgoDiffVisibility();
+      });
+      chipContainer.appendChild(chip);
+    });
+  }
+
+  function tqUpdatePgoDiffVisibility() {
+    const hasAI = Object.values(state.setupConfig).some(v => v === 'ai');
+    tqPgoDiffPicker.style.display = hasAI ? '' : 'none';
+  }
+
+  document.getElementById('tqPgoDiffPicker').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab');
+    if (!t) return;
+    tqPgoSelectedDiff = t.dataset.value;
+    document.querySelectorAll('#tqPgoDiffPicker .gs-pgo-mode-tab').forEach(b => {
+      b.classList.toggle('selected', b.dataset.value === tqPgoSelectedDiff);
+    });
+  });
+
+  // ============ Room Client ============
+  const BOARD_API = 'https://zircon-urge.vercel.app/api/board';
+  let tqRoomToken = null, tqRoomPlayerId = null, tqRoomCode = null, tqRoomStatePoller = null, tqIsOnline = false;
+
+  document.getElementById('tqPgoRoomTabs').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-room-tab');
+    if (!t) return;
+    const tab = t.dataset.tab;
+    document.querySelectorAll('#tqPgoRoomTabs .gs-pgo-room-tab').forEach(b => b.classList.toggle('selected', b.dataset.tab === tab));
+    document.getElementById('tqPgoLocalPanel').classList.toggle('active', tab === 'local');
+    document.getElementById('tqPgoOnlinePanel').classList.toggle('active', tab === 'online');
+    document.getElementById('tqPgoConfig').style.display = tab === 'online' ? 'none' : '';
+    document.getElementById('tqPgoDiffPicker').style.display = tab === 'online' ? 'none' : '';
+    tqIsOnline = tab === 'online';
+  });
+
+  function tqRoomApi(method, action, body) {
+    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(() => ({ error: 'network' }));
+  }
+
+  async function tqCreateRoom() {
+    const nick = (document.getElementById('tqPgoNickInput').value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
+    const r = await tqRoomApi('POST', 'create', { gameId: 'tiaoqi', nick, deviceId: GamesShell.Identity.getDeviceId() });
+    if (r.ok) {
+      tqRoomToken = r.playerToken; tqRoomPlayerId = r.playerId; tqRoomCode = r.code;
+      document.getElementById('tqPgoRoomCodeNum').textContent = r.code;
+      document.getElementById('tqPgoRoomCode').style.display = '';
+      document.getElementById('tqPgoCreateRoomBtn').style.display = 'none';
+      document.getElementById('tqPgoJoinCodeInput').style.display = 'none';
+      document.getElementById('tqPgoJoinRoomBtn').style.display = 'none';
+      tqUpdateRoomPlayers(r.room); tqStartPolling();
+    } else { document.getElementById('tqPgoRoomError').textContent = r.reason === 'nick_invalid' ? '昵称格式不对' : '创建失败'; }
+  }
+
+  async function tqJoinRoom() {
+    const code = (document.getElementById('tqPgoJoinCodeInput').value || '').trim();
+    if (!/^\d{4}$/.test(code)) { document.getElementById('tqPgoRoomError').textContent = '请输入 4 位数字房号'; return; }
+    const nick = (document.getElementById('tqPgoNickInput').value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
+    const r = await tqRoomApi('POST', 'join', { code, nick, deviceId: GamesShell.Identity.getDeviceId() });
+    if (r.ok) {
+      tqRoomToken = r.playerToken; tqRoomPlayerId = r.playerId; tqRoomCode = code;
+      document.getElementById('tqPgoRoomCodeNum').textContent = code;
+      document.getElementById('tqPgoRoomCode').style.display = '';
+      document.getElementById('tqPgoCreateRoomBtn').style.display = 'none';
+      document.getElementById('tqPgoJoinCodeInput').style.display = 'none';
+      document.getElementById('tqPgoJoinRoomBtn').style.display = 'none';
+      tqUpdateRoomPlayers(r.room); tqStartPolling();
+    } else {
+      const msgs = { room_not_found: '房间不存在', room_full: '房间已满', nick_taken_in_room: '昵称被占用了', room_in_progress: '游戏已开始' };
+      document.getElementById('tqPgoRoomError').textContent = msgs[r.reason] || '加入失败';
+    }
+  }
+
+  function tqUpdateRoomPlayers(room) {
+    const list = document.getElementById('tqPgoRoomPlayers');
+    if (!list) return;
+    list.innerHTML = (room.players || []).map(p => `<li>${p.nick}${p.isHost ? ' <span class="gs-pgo-room-host-badge">房主</span>' : ''}${p.id === tqRoomPlayerId ? ' (你)' : ''}</li>`).join('');
+    const startBtn = document.getElementById('tqPgoRoomStartBtn');
+    if (startBtn) {
+      const canStart = room.youAreHost && (room.players || []).length >= 2;
+      startBtn.disabled = !canStart;
+      startBtn.textContent = canStart ? '开始游戏' : (room.youAreHost ? '至少 2 人' : '等待房主开始…');
+    }
+  }
+
+  function tqStartPolling() {
+    if (tqRoomStatePoller) clearTimeout(tqRoomStatePoller);
+    let since = 0;
+    async function poll() {
+      if (!tqRoomToken) return;
+      const r = await tqRoomApi('GET', `state&code=${tqRoomCode}&token=${tqRoomToken}&since=${since}`);
+      if (r.ok && r.room) {
+        since = r.version;
+        tqUpdateRoomPlayers(r.room);
+        if (r.room.state === 'playing') {
+          tqPgoOverlay.classList.remove('open');
+          state.difficulty = tqPgoSelectedDiff;
+          startGame();
+          if (typeof tqSave !== 'undefined' && tqSave) tqSave.start();
+          return;
+        }
+      }
+      tqRoomStatePoller = setTimeout(poll, 1500);
+    }
+    poll();
+  }
+
+  document.getElementById('tqPgoCreateRoomBtn').addEventListener('click', tqCreateRoom);
+  document.getElementById('tqPgoJoinRoomBtn').addEventListener('click', tqJoinRoom);
+  document.getElementById('tqPgoRoomCopyBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(`${location.origin}/toolbox/tiaoqi/?room=${tqRoomCode}`).then(() => {
+      const btn = document.getElementById('tqPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制'; }, 2000);
+    }).catch(() => {});
+  });
+  document.getElementById('tqPgoRoomStartBtn').addEventListener('click', async () => {
+    const r = await tqRoomApi('POST', 'start', { code: tqRoomCode, token: tqRoomToken });
+    if (r.ok) { tqPgoOverlay.classList.remove('open'); state.difficulty = tqPgoSelectedDiff; startGame(); if (typeof tqSave !== 'undefined' && tqSave) tqSave.start(); }
+  });
+
+  if (GamesShell.Identity.getNick()) document.getElementById('tqPgoNickInput').value = GamesShell.Identity.getNick();
+
+  document.getElementById('tqPgoStartBtn').addEventListener('click', () => {
+    if (tqIsOnline) return;
+    state.difficulty = tqPgoSelectedDiff;
+    if (typeof tqSave !== 'undefined' && tqSave) tqSave.discard();
+    startGame();
+    if (typeof tqSave !== 'undefined' && tqSave) tqSave.start();
+  });
+
+  // Render board background behind overlay
+  initialSetupRender();
+  tqSyncOverlayChips();
+  tqUpdatePgoDiffVisibility();
+  tqPgoOverlay.classList.add('open');
+
   if (window.GamesShell && GamesShell.SaveState) {
     tqSave = GamesShell.SaveState.create({
       key: 'tool.tiaoqi.savestate.v1',
@@ -1607,19 +1799,14 @@ permalink: /toolbox/tiaoqi/
     const peek = tqSave.peek();
     if (peek && peek.data && peek.data.board && peek.data.players) {
       const np = peek.data.players.length;
-      // Render setup view first so the page isn't blank behind the resume modal
-      initialSetupRender();
       GamesShell.SaveState.showResumeModal({
         summaryHtml: `<strong>${np} 人对局</strong> 已走 <strong>${peek.data.moveCount || 0}</strong> 步<span class="gs-resume-meta">${peek.agoText}保存</span>`,
         onResume: () => { tqRestore(peek.data); tqSave.start(); },
         onDiscard: () => { tqSave.discard(); tqSave.start(); },
       });
     } else {
-      initialSetupRender();
       tqSave.start();
     }
-  } else {
-    initialSetupRender();
   }
 })();
 </script>
