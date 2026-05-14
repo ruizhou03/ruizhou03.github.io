@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "Advanced Microeconomics"
 title: "Advanced Microeconomics Lecture Notes"
 discipline: "经济学"
 course: "Advanced Microeconomics"

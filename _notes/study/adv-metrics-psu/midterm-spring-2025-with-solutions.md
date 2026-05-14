@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "Advanced Econometrics"
 title: "Midterm (Spring 2025) with Solutions"
 discipline: "经济学"
 course: "Advanced Econometrics"

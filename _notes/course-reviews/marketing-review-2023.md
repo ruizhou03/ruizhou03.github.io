@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "营销学"
 title: "（个人向）营销学课程测评"
 date: 2023-01-02
 discipline: "管理学"

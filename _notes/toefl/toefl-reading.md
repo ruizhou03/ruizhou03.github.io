@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "TOEFL"
 title: "坐下来简单聊聊托福阅读"
 date: 2024-07-14
 discipline: "语言考试"

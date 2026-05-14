@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "计量因果识别方法"
 title: "（个人向）计量因果识别方法课程测评"
 date: 2023-07-18
 discipline: "经济学"

@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "网球"
 title: "（个人向）网球课程测评"
 date: 2023-08-03
 discipline: "体育"

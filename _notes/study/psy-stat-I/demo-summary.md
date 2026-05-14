@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "心理统计Ⅰ"
 title: "心理统计Ⅰ代码总结"
 discipline: "其他"
 course: "心理统计Ⅰ"

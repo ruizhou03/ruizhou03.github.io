@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "经验"
 title: "各科考试时间分配参考"
 date: 2026-01-26
 discipline: "初升高"

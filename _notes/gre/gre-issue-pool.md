@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "GRE"
 title: "GRE Issue Pool"
 date: 2024-06-22
 discipline: "语言考试"

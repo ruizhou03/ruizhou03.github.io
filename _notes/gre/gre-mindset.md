@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "GRE"
 title: "备考 GRE 少不了的总认知"
 date: 2024-06-24
 discipline: "语言考试"

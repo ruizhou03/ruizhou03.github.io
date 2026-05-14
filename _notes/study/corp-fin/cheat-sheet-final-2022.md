@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "公司财务管理"
 title: "公司财务管理期末考试Cheat Sheet（2022）"
 discipline: "其他"
 course: "公司财务管理"

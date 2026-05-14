@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "马克思主义基本原理"
 title: "马原 2023 年秋期末试题（回忆版）"
 discipline: "思政"
 course: "马克思主义基本原理"
