@@ -1292,7 +1292,7 @@ permalink: /toolbox/xiangqi/
   const XQ_MIN_PLAYERS = 2;
 
   function xqRoomApi(method, action, body) {
-    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(() => ({ error: 'network' }));
+    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(12000), body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(e => ({ error: e.name === 'TimeoutError' ? 'timeout' : 'network' }));
   }
   function xqGetNick() { return GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000)); }
 
@@ -1305,6 +1305,7 @@ permalink: /toolbox/xiangqi/
     document.getElementById('xqPgoOnlinePanel').classList.toggle('active', tab === 'online');
     document.getElementById('xqPgoModePicker').style.display = tab === 'online' ? 'none' : '';
     document.getElementById('xqPgoDiffPicker').style.display = tab === 'online' ? 'none' : (xqPgoSelectedMode !== 'pvp' ? '' : 'none');
+    document.getElementById('xqPgoStartBtn').style.display = tab === 'online' ? 'none' : '';
     xqIsOnline = tab === 'online';
   });
 
@@ -1312,21 +1313,27 @@ permalink: /toolbox/xiangqi/
 
   async function xqRoomAction() {
     const code = (document.getElementById('xqPgoRoomCodeInput').value || '').trim();
-    xqShowError('');
-    const nick = xqGetNick(), did = GamesShell.Identity.getDeviceId();
-    if (/^\d{4}$/.test(code)) {
-      const r = await xqRoomApi('POST', 'join', { code, nick, deviceId: did });
-      if (r.ok) { xqEnterLobby(r); return; }
-      if (r.reason === 'room_not_found') {
-        const cr = await xqRoomApi('POST', 'create', { gameId: 'xiangqi', nick, deviceId: did, code });
-        if (cr.ok) { xqEnterLobby(cr); return; }
+    const btn = document.getElementById('xqPgoRoomActionBtn');
+    xqShowError(''); btn.textContent = '连接中…'; btn.disabled = true;
+    try {
+      const nick = xqGetNick(), did = GamesShell.Identity.getDeviceId();
+      if (/^\d{4}$/.test(code)) {
+        const r = await xqRoomApi('POST', 'join', { code, nick, deviceId: did });
+        if (r.ok) { xqEnterLobby(r); return; }
+        if (r.reason === 'room_not_found') {
+          const cr = await xqRoomApi('POST', 'create', { gameId: 'xiangqi', nick, deviceId: did, code });
+          if (cr.ok) { xqEnterLobby(cr); return; }
+        }
+        const msgs = { room_full: '房间已满', nick_taken_in_room: '昵称已被占用', room_in_progress: '游戏已开始', code_taken: '房号已被占用', timeout: '连接超时，请检查网络', network: '网络错误，请稍后再试' };
+        xqShowError(msgs[r.reason] || msgs[r.error] || '操作失败');
+        return;
       }
-      xqShowError({ room_full: '房间已满', nick_taken_in_room: '昵称已被占用', room_in_progress: '游戏已开始', code_taken: '房号已被占用' }[r.reason] || '操作失败');
-      return;
+      const r = await xqRoomApi('POST', 'create', { gameId: 'xiangqi', nick, deviceId: did });
+      if (r.ok) { xqEnterLobby(r); return; }
+      xqShowError('创建失败');
+    } finally {
+      btn.textContent = '创建 / 加入房间'; btn.disabled = false;
     }
-    const r = await xqRoomApi('POST', 'create', { gameId: 'xiangqi', nick, deviceId: did });
-    if (r.ok) { xqEnterLobby(r); return; }
-    xqShowError('创建失败');
   }
 
   function xqEnterLobby(r) {

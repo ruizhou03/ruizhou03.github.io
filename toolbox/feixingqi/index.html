@@ -2445,7 +2445,7 @@ permalink: /toolbox/feixingqi/
   const FXQ_MIN_PLAYERS = 2;
 
   function fxqRoomApi(method, action, body) {
-    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(() => ({ error: 'network' }));
+    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(12000), body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(e => ({ error: e.name === 'TimeoutError' ? 'timeout' : 'network' }));
   }
   function fxqGetNick() { return GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000)); }
 
@@ -2458,6 +2458,7 @@ permalink: /toolbox/feixingqi/
     document.getElementById('fxqPgoOnlinePanel').classList.toggle('active', tab === 'online');
     document.getElementById('fxqPgoConfig').style.display = tab === 'online' ? 'none' : '';
     document.getElementById('fxqPgoDiffPicker').style.display = tab === 'online' ? 'none' : '';
+    document.getElementById('fxqPgoStartBtn').style.display = tab === 'online' ? 'none' : '';
     fxqIsOnline = tab === 'online';
   });
 
@@ -2465,21 +2466,27 @@ permalink: /toolbox/feixingqi/
 
   async function fxqRoomAction() {
     const code = (document.getElementById('fxqPgoRoomCodeInput').value || '').trim();
-    fxqShowError('');
-    const nick = fxqGetNick(), did = GamesShell.Identity.getDeviceId();
-    if (/^\d{4}$/.test(code)) {
-      const r = await fxqRoomApi('POST', 'join', { code, nick, deviceId: did });
-      if (r.ok) { fxqEnterLobby(r); return; }
-      if (r.reason === 'room_not_found') {
-        const cr = await fxqRoomApi('POST', 'create', { gameId: 'feixingqi', nick, deviceId: did, code });
-        if (cr.ok) { fxqEnterLobby(cr); return; }
+    const btn = document.getElementById('fxqPgoRoomActionBtn');
+    fxqShowError(''); btn.textContent = '连接中…'; btn.disabled = true;
+    try {
+      const nick = fxqGetNick(), did = GamesShell.Identity.getDeviceId();
+      if (/^\d{4}$/.test(code)) {
+        const r = await fxqRoomApi('POST', 'join', { code, nick, deviceId: did });
+        if (r.ok) { fxqEnterLobby(r); return; }
+        if (r.reason === 'room_not_found') {
+          const cr = await fxqRoomApi('POST', 'create', { gameId: 'feixingqi', nick, deviceId: did, code });
+          if (cr.ok) { fxqEnterLobby(cr); return; }
+        }
+        const msgs = { room_full: '房间已满', nick_taken_in_room: '昵称已被占用', room_in_progress: '游戏已开始', code_taken: '房号已被占用', timeout: '连接超时，请检查网络', network: '网络错误，请稍后再试' };
+        fxqShowError(msgs[r.reason] || msgs[r.error] || '操作失败');
+        return;
       }
-      fxqShowError({ room_full: '房间已满', nick_taken_in_room: '昵称已被占用', room_in_progress: '游戏已开始', code_taken: '房号已被占用' }[r.reason] || '操作失败');
-      return;
+      const r = await fxqRoomApi('POST', 'create', { gameId: 'feixingqi', nick, deviceId: did });
+      if (r.ok) { fxqEnterLobby(r); return; }
+      fxqShowError('创建失败');
+    } finally {
+      btn.textContent = '创建 / 加入房间'; btn.disabled = false;
     }
-    const r = await fxqRoomApi('POST', 'create', { gameId: 'feixingqi', nick, deviceId: did });
-    if (r.ok) { fxqEnterLobby(r); return; }
-    fxqShowError('创建失败');
   }
 
   function fxqEnterLobby(r) {

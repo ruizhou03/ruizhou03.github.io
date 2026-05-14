@@ -1079,7 +1079,7 @@ permalink: /toolbox/chess/
   const CH_MIN_PLAYERS = 2;
 
   function chRoomApi(method, action, body) {
-    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(() => ({ error: 'network' }));
+    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(12000), body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(e => ({ error: e.name === 'TimeoutError' ? 'timeout' : 'network' }));
   }
   function chGetNick() { return GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000)); }
 
@@ -1092,6 +1092,7 @@ permalink: /toolbox/chess/
     document.getElementById('chPgoOnlinePanel').classList.toggle('active', tab === 'online');
     document.getElementById('chPgoModePicker').style.display = tab === 'online' ? 'none' : '';
     document.getElementById('chPgoDiffPicker').style.display = tab === 'online' ? 'none' : (chPgoSelectedMode !== 'pvp' ? '' : 'none');
+    document.getElementById('chPgoStartBtn').style.display = tab === 'online' ? 'none' : '';
     chIsOnline = tab === 'online';
   });
 
@@ -1099,21 +1100,28 @@ permalink: /toolbox/chess/
 
   async function chRoomAction() {
     const code = (document.getElementById('chPgoRoomCodeInput').value || '').trim();
+    const btn = document.getElementById('chPgoRoomActionBtn');
     chShowError('');
-    const nick = chGetNick(), did = GamesShell.Identity.getDeviceId();
-    if (/^\d{4}$/.test(code)) {
-      const r = await chRoomApi('POST', 'join', { code, nick, deviceId: did });
-      if (r.ok) { chEnterLobby(r); return; }
-      if (r.reason === 'room_not_found') {
-        const cr = await chRoomApi('POST', 'create', { gameId: 'chess', nick, deviceId: did, code });
-        if (cr.ok) { chEnterLobby(cr); return; }
+    btn.textContent = '连接中…'; btn.disabled = true;
+    try {
+      const nick = chGetNick(), did = GamesShell.Identity.getDeviceId();
+      if (/^\d{4}$/.test(code)) {
+        const r = await chRoomApi('POST', 'join', { code, nick, deviceId: did });
+        if (r.ok) { chEnterLobby(r); return; }
+        if (r.reason === 'room_not_found') {
+          const cr = await chRoomApi('POST', 'create', { gameId: 'chess', nick, deviceId: did, code });
+          if (cr.ok) { chEnterLobby(cr); return; }
+        }
+        const msgs = { room_full: '房间已满', nick_taken_in_room: '昵称已被占用', room_in_progress: '游戏已开始', code_taken: '房号已被占用', timeout: '连接超时，请检查网络', network: '网络错误，请稍后再试' };
+        chShowError(msgs[r.reason] || msgs[r.error] || '操作失败');
+        return;
       }
-      chShowError({ room_full: '房间已满', nick_taken_in_room: '昵称已被占用', room_in_progress: '游戏已开始', code_taken: '房号已被占用' }[r.reason] || '操作失败');
-      return;
+      const r = await chRoomApi('POST', 'create', { gameId: 'chess', nick, deviceId: did });
+      if (r.ok) { chEnterLobby(r); return; }
+      chShowError('创建失败');
+    } finally {
+      btn.textContent = '创建 / 加入房间'; btn.disabled = false;
     }
-    const r = await chRoomApi('POST', 'create', { gameId: 'chess', nick, deviceId: did });
-    if (r.ok) { chEnterLobby(r); return; }
-    chShowError('创建失败');
   }
 
   function chEnterLobby(r) {

@@ -946,9 +946,9 @@ permalink: /toolbox/gomoku/
 
   function gmRoomApi(method, action, body) {
     const url = `${BOARD_API}?action=${action}`;
-    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    const opts = { method, headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(12000) };
     if (body) opts.body = JSON.stringify(body);
-    return fetch(url, opts).then(r => r.json()).catch(() => ({ error: 'network' }));
+    return fetch(url, opts).then(r => r.json()).catch(e => ({ error: e.name === 'TimeoutError' ? 'timeout' : 'network' }));
   }
 
   function gmGetNick() { return GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000)); }
@@ -964,6 +964,7 @@ permalink: /toolbox/gomoku/
     document.getElementById('gmPgoOnlinePanel').classList.toggle('active', tab === 'online');
     document.getElementById('gmPgoModePicker').style.display = tab === 'online' ? 'none' : '';
     document.getElementById('gmPgoDiffPicker').style.display = tab === 'online' ? 'none' : (gmPgoSelectedMode !== 'pvp' ? '' : 'none');
+    document.getElementById('gmPgoStartBtn').style.display = tab === 'online' ? 'none' : '';
     gmIsOnline = tab === 'online';
   });
 
@@ -972,27 +973,33 @@ permalink: /toolbox/gomoku/
   async function gmRoomAction() {
     const codeEl = document.getElementById('gmPgoRoomCodeInput');
     const code = (codeEl.value || '').trim();
+    const btn = document.getElementById('gmPgoRoomActionBtn');
     gmShowError('');
-    const nick = gmGetNick(), did = gmGetDid();
+    btn.textContent = '连接中…';
+    btn.disabled = true;
 
-    if (/^\d{4}$/.test(code)) {
-      // Try join first
-      const r = await gmRoomApi('POST', 'join', { code, nick, deviceId: did });
-      if (r.ok) { gmEnterLobby(r); return; }
-      if (r.reason === 'room_not_found') {
-        // Create with this code
-        const cr = await gmRoomApi('POST', 'create', { gameId: 'gomoku', nick, deviceId: did, code });
-        if (cr.ok) { gmEnterLobby(cr); return; }
+    try {
+      const nick = gmGetNick(), did = gmGetDid();
+
+      if (/^\d{4}$/.test(code)) {
+        const r = await gmRoomApi('POST', 'join', { code, nick, deviceId: did });
+        if (r.ok) { gmEnterLobby(r); return; }
+        if (r.reason === 'room_not_found') {
+          const cr = await gmRoomApi('POST', 'create', { gameId: 'gomoku', nick, deviceId: did, code });
+          if (cr.ok) { gmEnterLobby(cr); return; }
+        }
+        const msgs = { room_full: '房间已满', nick_taken_in_room: '昵称已被占用，换一个', room_in_progress: '游戏已开始，不能加入', code_taken: '房号已被占用', timeout: '连接超时，请检查网络', network: '网络错误，请稍后再试' };
+        gmShowError(msgs[r.reason] || msgs[r.error] || '操作失败');
+        return;
       }
-      const msgs = { room_full: '房间已满', nick_taken_in_room: '昵称已被占用，换一个', room_in_progress: '游戏已开始，不能加入', code_taken: '房号已被占用' };
-      gmShowError(msgs[r.reason] || msgs[r.error] || '操作失败');
-      return;
-    }
 
-    // Empty or invalid → create random
-    const r = await gmRoomApi('POST', 'create', { gameId: 'gomoku', nick, deviceId: did });
-    if (r.ok) { gmEnterLobby(r); return; }
-    gmShowError('创建失败，稍后再试');
+      const r = await gmRoomApi('POST', 'create', { gameId: 'gomoku', nick, deviceId: did });
+      if (r.ok) { gmEnterLobby(r); return; }
+      gmShowError('创建失败，稍后再试');
+    } finally {
+      btn.textContent = '创建 / 加入房间';
+      btn.disabled = false;
+    }
   }
 
   function gmEnterLobby(r) {
