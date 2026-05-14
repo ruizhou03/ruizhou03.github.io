@@ -79,7 +79,7 @@ title: "学习资料"
                           {% for item in type.items %}
                             {% if item.published != false %}
                             <li>
-                              <a href="{{ item.url | relative_url }}">{{ item.list_title | default: item.title }}</a>
+                              <a href="{{ item.url | relative_url }}">{% assign _t = item.list_title | default: item.title %}{% include latex-logo.html title=_t %}</a>
                             </li>
                             {% endif %}
                           {% endfor %}
@@ -112,7 +112,7 @@ title: "学习资料"
                             {% for item in type.items %}
                               {% if item.published != false %}
                               <li>
-                                <a href="{{ item.url | relative_url }}">{{ item.list_title | default: item.title }}</a>
+                                <a href="{{ item.url | relative_url }}">{% assign _t = item.list_title | default: item.title %}{% include latex-logo.html title=_t %}</a>
                               </li>
                               {% endif %}
                             {% endfor %}

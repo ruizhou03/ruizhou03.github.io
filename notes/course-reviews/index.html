@@ -67,7 +67,7 @@ permalink: /notes/course-reviews/
                       {% if item.published != false %}
                         <li>
                           <a href="{{ item.url | relative_url }}">
-                            {{ item.course | default: item.title }}
+                            {% assign _t = item.course | default: item.title %}{% include latex-logo.html title=_t %}
                           </a>
                         </li>
                       {% endif %}

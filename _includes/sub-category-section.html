@@ -34,7 +34,7 @@ JS 逻辑保留兜底：当 search-wrap 缺失时，filter/分页仍会安全降
     {% for post in include.posts %}
       {% if post.published != false %}
       <li class="paginated-item" data-title="{{ post.title | downcase }}" data-url="{{ post.url | relative_url }}">
-        <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+        <a href="{{ post.url | relative_url }}">{% include latex-logo.html title=post.title %}</a>
         <span class="post-date">{% if post.date %}{{ post.date | date: "%Y-%m-%d" }}{% endif %}</span>
       </li>
       {% endif %}

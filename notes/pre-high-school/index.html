@@ -65,7 +65,7 @@ permalink: /notes/pre-high-school/
                   {% for item in sorted_grp %}
                     {% if item.published != false %}
                       <li>
-                        <a href="{{ item.url | relative_url }}">{{ item.title }}</a>
+                        <a href="{{ item.url | relative_url }}">{% include latex-logo.html title=item.title %}</a>
                       </li>
                     {% endif %}
                   {% endfor %}
