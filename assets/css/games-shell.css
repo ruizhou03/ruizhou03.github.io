@@ -1156,3 +1156,62 @@
   .gs-pgo-mode-tab { font-size: 0.78rem; padding: 0.35rem 0.7rem; }
   .gs-pgo-room-tab { font-size: 0.78rem; padding: 0.35rem 0.7rem; }
 }
+
+/* ── 房间参数设置 ── */
+.fn-room-params {
+  width: 100%;
+  margin-bottom: 0.8rem;
+  padding: 0.6rem 0.7rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  text-align: left;
+}
+.fn-room-params-label {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.7);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.fn-room-params-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+.fn-room-params-row:last-child { margin-bottom: 0; }
+.fn-room-params-key {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.5);
+  white-space: nowrap;
+}
+.fn-room-params-row .gs-pgo-mode-picker {
+  margin-bottom: 0;
+}
+
+/* 历史配置 profile */
+.fn-room-profiles {
+  width: 100%;
+  margin-bottom: 0.6rem;
+  text-align: left;
+}
+.fn-room-profile-chip {
+  display: inline-block;
+  font: inherit;
+  font-size: 0.74rem;
+  padding: 0.3rem 0.6rem;
+  margin: 0.15rem 0.25rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.fn-room-profile-chip:hover {
+  border-color: rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.8);
+  background: rgba(255,255,255,0.08);
+}
+}

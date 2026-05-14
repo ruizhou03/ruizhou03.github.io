@@ -358,6 +358,38 @@ permalink: /toolbox/feixingqi/
           </div>
           <div class="gs-pgo-room-panel active" id="fxqPgoLocalPanel"></div>
           <div class="gs-pgo-room-panel" id="fxqPgoOnlinePanel">
+            <!-- 房间参数设置 -->
+            <div class="fn-room-params" id="fxqRoomParams">
+              <div class="fn-room-params-label">⚙ 房间设置</div>
+              <div class="fn-room-params-row">
+                <span class="fn-room-params-key">人数上限</span>
+                <div class="gs-pgo-mode-picker" id="fxqRoomMaxPlayers">
+                  <button class="gs-pgo-mode-tab" data-val="2">2</button>
+                  <button class="gs-pgo-mode-tab" data-val="3">3</button>
+                  <button class="gs-pgo-mode-tab selected" data-val="4">4</button>
+                </div>
+              </div>
+              <div class="fn-room-params-row">
+                <span class="fn-room-params-key">AI 补齐</span>
+                <div class="gs-pgo-mode-picker" id="fxqRoomAiFill">
+                  <button class="gs-pgo-mode-tab" data-val="on">开</button>
+                  <button class="gs-pgo-mode-tab selected" data-val="off">关</button>
+                </div>
+              </div>
+              <div class="fn-room-params-row" id="fxqRoomAiDiffRow" style="display:none;">
+                <span class="fn-room-params-key">AI 难度</span>
+                <div class="gs-pgo-mode-picker" id="fxqRoomAiDiff">
+                  <button class="gs-pgo-mode-tab" data-val="easy">新手</button>
+                  <button class="gs-pgo-mode-tab selected" data-val="normal">普通</button>
+                  <button class="gs-pgo-mode-tab" data-val="hard">高手</button>
+                </div>
+              </div>
+            </div>
+            <!-- 历史配置 profile -->
+            <div class="fn-room-profiles" id="fxqRoomProfiles" style="display:none;">
+              <div class="fn-room-params-label">📋 历史配置 <span style="font-weight:400;font-size:0.72rem;color:rgba(255,255,255,0.35);">点击即用</span></div>
+              <div id="fxqProfilesList"></div>
+            </div>
             <div id="fxqPgoRoomEntry">
               <input type="text" class="gs-pgo-room-input" id="fxqPgoRoomCodeInput" placeholder="输入4位房号加入（留空创建新房）" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
               <button class="gs-pgo-room-btn primary" id="fxqPgoRoomActionBtn">创建 / 加入房间</button>
@@ -2449,6 +2481,83 @@ permalink: /toolbox/feixingqi/
   let fxqRoomToken = null, fxqRoomPlayerId = null, fxqRoomCode = null, fxqRoomHost = false;
   let fxqRoomStatePoller = null, fxqIsOnline = false;
   const FXQ_MIN_PLAYERS = 2;
+  const FXQ_PROFILES_KEY = 'tool.feixingqi.room-profiles.v1';
+
+  // ── 房间参数 ──
+  let fxqRoomCfg = { maxPlayers: 4, aiFill: 'off', aiDiff: 'normal' };
+
+  // Load persisted profiles
+  let fxqProfiles = [];
+  try { fxqProfiles = JSON.parse(localStorage.getItem(FXQ_PROFILES_KEY) || '[]'); } catch(e) {}
+
+  function fxqSaveProfile(config) {
+    const entry = { ...config, ts: Date.now(), nick: GamesShell.Identity.getNick() };
+    fxqProfiles.unshift(entry);
+    if (fxqProfiles.length > 8) fxqProfiles.length = 8;
+    try { localStorage.setItem(FXQ_PROFILES_KEY, JSON.stringify(fxqProfiles)); } catch(e) {}
+    fxqRenderProfiles();
+  }
+
+  function fxqRenderProfiles() {
+    const container = document.getElementById('fxqProfilesList');
+    const wrap = document.getElementById('fxqRoomProfiles');
+    if (!container || !wrap) return;
+    container.innerHTML = '';
+    if (!fxqProfiles.length) { wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    fxqProfiles.slice(0, 5).forEach((p, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'fn-room-profile-chip';
+      const ago = fxqFmtAgo(p.ts);
+      const aiLabel = p.aiDiff === 'hard' ? 'AI高手' : p.aiDiff === 'easy' ? 'AI新手' : 'AI普通';
+      btn.textContent = `${p.maxPlayers}人 · ${p.aiFill === 'on' ? aiLabel : '纯人对战'} · ${ago}`;
+      btn.addEventListener('click', () => {
+        fxqRoomCfg = { maxPlayers: p.maxPlayers, aiFill: p.aiFill, aiDiff: p.aiDiff };
+        fxqApplyRoomCfgUI();
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  function fxqFmtAgo(ts) {
+    const m = Math.floor((Date.now() - ts) / 60000);
+    if (m < 1) return '刚才'; if (m < 60) return m + '分钟前';
+    const h = Math.floor(m / 60); if (h < 24) return h + '小时前';
+    return Math.floor(h / 24) + '天前';
+  }
+
+  function fxqApplyRoomCfgUI() {
+    document.querySelectorAll('#fxqRoomMaxPlayers .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === String(fxqRoomCfg.maxPlayers)));
+    document.querySelectorAll('#fxqRoomAiFill .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === fxqRoomCfg.aiFill));
+    document.querySelectorAll('#fxqRoomAiDiff .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === fxqRoomCfg.aiDiff));
+    document.getElementById('fxqRoomAiDiffRow').style.display = fxqRoomCfg.aiFill === 'on' ? '' : 'none';
+    FXQ_MIN_PLAYERS_VAL = fxqRoomCfg.maxPlayers;
+  }
+
+  let FXQ_MIN_PLAYERS_VAL = 4;
+
+  // Wire parameter pickers
+  document.getElementById('fxqRoomMaxPlayers').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab');
+    if (!t) return;
+    fxqRoomCfg.maxPlayers = parseInt(t.dataset.val);
+    fxqApplyRoomCfgUI();
+  });
+  document.getElementById('fxqRoomAiFill').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab');
+    if (!t) return;
+    fxqRoomCfg.aiFill = t.dataset.val;
+    fxqApplyRoomCfgUI();
+  });
+  document.getElementById('fxqRoomAiDiff').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab');
+    if (!t) return;
+    fxqRoomCfg.aiDiff = t.dataset.val;
+    fxqApplyRoomCfgUI();
+  });
+
+  fxqApplyRoomCfgUI();
+  fxqRenderProfiles();
 
   function fxqRoomApi(method, action, body) {
     return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(12000), body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(e => ({ error: e.name === 'TimeoutError' ? 'timeout' : 'network' }));
@@ -2499,9 +2608,12 @@ permalink: /toolbox/feixingqi/
 
   function fxqEnterLobby(r) {
     fxqRoomToken = r.playerToken; fxqRoomPlayerId = r.playerId; fxqRoomCode = r.code;
-    document.getElementById('fxqPgoRoomCodeInput').parentElement.style.display = 'none';
+    document.getElementById('fxqPgoRoomEntry').style.display = 'none';
+    document.getElementById('fxqRoomParams').style.display = 'none';
+    document.getElementById('fxqRoomProfiles').style.display = 'none';
     document.getElementById('fxqPgoRoomLobby').style.display = '';
     document.getElementById('fxqPgoRoomCodeNum').textContent = r.code;
+    fxqSaveProfile(fxqRoomCfg);
     fxqUpdateLobby(r.room); fxqStartPolling();
   }
 
@@ -2534,15 +2646,17 @@ permalink: /toolbox/feixingqi/
         }
       });
     });
-    document.getElementById('fxqPgoRoomStartBtn').disabled = !(fxqRoomHost && room.players.length >= FXQ_MIN_PLAYERS);
-    document.getElementById('fxqPgoRoomStartBtn').textContent = fxqRoomHost ? `开始游戏 (${room.players.length}/${FXQ_MIN_PLAYERS})` : '等待房主开始…';
+    document.getElementById('fxqPgoRoomStartBtn').disabled = !(fxqRoomHost && room.players.length >= FXQ_MIN_PLAYERS_VAL);
+    document.getElementById('fxqPgoRoomStartBtn').textContent = fxqRoomHost ? `开始游戏 (${room.players.length}/${FXQ_MIN_PLAYERS_VAL})` : '等待房主开始…';
   }
 
   async function fxqLeaveRoom() {
     if (fxqRoomStatePoller) { clearTimeout(fxqRoomStatePoller); fxqRoomStatePoller = null; }
     if (fxqRoomToken) await fxqRoomApi('POST', 'leave', { code: fxqRoomCode, token: fxqRoomToken });
     fxqRoomToken = null; fxqRoomPlayerId = null; fxqRoomCode = null; fxqRoomHost = false;
-    document.getElementById('fxqPgoRoomCodeInput').parentElement.style.display = '';
+    document.getElementById('fxqPgoRoomEntry').style.display = '';
+    document.getElementById('fxqRoomParams').style.display = '';
+    document.getElementById('fxqRoomProfiles').style.display = '';
     document.getElementById('fxqPgoRoomLobby').style.display = 'none';
     document.getElementById('fxqPgoRoomCodeInput').value = '';
   }
