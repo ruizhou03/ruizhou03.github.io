@@ -34,514 +34,9 @@
     })();
   </script>
 
-  <style>
-    :root {
-      --color-ink: #1a1a2e;
-      --color-text: #374151;
-      --color-muted: #6b7280;
-      --color-light: #9ca3af;
-      --color-border: #e5e7eb;
-      --color-bg: #fafaf9;
-      --color-bg-warm: #f5f4f0;
-      --color-accent: #1e3a5f;
-      --color-accent-light: #2d5a8e;
-      --color-highlight: #c9a96e;
-      --color-nav-bg: rgba(250,250,249,0.92);
-      
-      /* 字体变量 */
-      --font-display: 'Cormorant Garamond', 'Noto Serif SC', 'Songti SC', serif;
-      --font-body: 'Cormorant Garamond', 'Noto Serif SC', 'Songti SC', serif;
-      --font-solemn: 'Noto Serif SC', 'Songti SC', 'STZhongsong', serif;
-      --max-width: 800px;
-    }
+  <link rel=”stylesheet” href=”{{ '/assets/css/main.css' | relative_url }}”>
+  <link rel=”stylesheet” href=”https://unpkg.com/@waline/client@v2/dist/waline.css” />
 
-    /* 暗黑模式配置 */
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
-        --color-ink: #e8e6e3; --color-text: #b8b5b0; --color-border: #2e2c2a;
-        --color-bg: #1a1918; --color-bg-warm: #222120; --color-accent: #7aaddb;
-        --color-nav-bg: rgba(26,25,24,0.92);
-      }
-    }
-    :root[data-theme="dark"] {
-      --color-ink: #e8e6e3; --color-text: #b8b5b0; --color-border: #2e2c2a;
-      --color-bg: #1a1918; --color-bg-warm: #222120; --color-accent: #7aaddb;
-      --color-nav-bg: rgba(26,25,24,0.92);
-    }
-    :root[data-theme="light"] {
-      --color-ink: #1a1a2e; --color-text: #374151; --color-border: #e5e7eb;
-      --color-bg: #fafaf9; --color-bg-warm: #f5f4f0; --color-accent: #1e3a5f;
-      --color-nav-bg: rgba(250,250,249,0.92);
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); line-height: 1.8; font-size: 18px; transition: background 0.3s; }
-    
-    /* 强化的超链接 */
-    a { color: var(--color-accent); text-decoration: underline; text-decoration-color: rgba(30, 58, 95, 0.2); transition: all 0.2s; }
-    a:hover { color: var(--color-accent-light); text-decoration-color: var(--color-accent-light); }
-    
-    /* 导航栏核心布局 */
-    nav { position: fixed; top: 0; width: 100%; z-index: 1000; background: var(--color-nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-border); }
-    .nav-inner { 
-      max-width: 960px; margin: 0 auto; padding: 0.7rem 2rem; 
-      display: flex; justify-content: space-between; align-items: center; 
-    }
-    
-    /* 导航链接 (PC端显示，手机端隐藏) */
-    .nav-links { display: flex; list-style: none; gap: 1.8rem; }
-    .nav-links a { text-decoration: none; font-size: 0.95rem; font-weight: 500; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-    .nav-links a:hover { color: var(--color-accent); }
-
-    /* 返回链接样式 */
-    .nav-back { font-size: 0.9rem; font-weight: 500; color: var(--color-accent); text-decoration: none; display: flex; align-items: center; gap: 0.3rem; }
-
-    /* 汉堡菜单按钮 (默认隐藏) */
-    .nav-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0.5rem; }
-    .nav-toggle span { display: block; width: 20px; height: 1.5px; background: var(--color-ink); margin: 5px auto; transition: 0.3s; }
-
-    /* 主题切换按钮 */
-    .theme-toggle { background: none; border: 1px solid var(--color-border); cursor: pointer; padding: 0.35rem 0.5rem; border-radius: 4px; font-size: 0.9rem; color: var(--color-muted); transition: all 0.2s; }
-    .theme-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
-
-    /* 响应式：手机端调整 */
-    @media (max-width: 768px) {
-      .nav-inner { 
-        display: grid; 
-        grid-template-columns: 1fr auto 1fr; /* 三段式：左、中、右 */
-        align-items: center;
-        padding: 0.6rem 1.2rem;
-      }
-      
-      .nav-back { justify-self: start; font-size: 0.8rem; } /* 左对齐 */
-      .nav-toggle { display: block; justify-self: center; } /* 居中汉堡包 */
-      .nav-right-box { justify-self: end; } /* 右对齐亮度 */
-
-      /* 手机端下拉菜单 */
-      .nav-links { 
-        display: none; 
-        flex-direction: column; 
-        position: absolute; 
-        top: 100%; left: 0; right: 0; 
-        background: var(--color-nav-bg); 
-        padding: 1.5rem; gap: 1.2rem; 
-        border-bottom: 1px solid var(--color-border); 
-        text-align: center;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      }
-      .nav-links.open { display: flex; }
-      
-      /* 汉堡菜单变成 X */
-      .nav-toggle.active span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
-      .nav-toggle.active span:nth-child(2) { opacity: 0; }
-      .nav-toggle.active span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
-    }
-
-    /* 主体内容 */
-    main { max-width: var(--max-width); margin: 6.5rem auto 4rem; padding: 0 2rem; }
-    h1, h2, h3 { font-family: var(--font-display); color: var(--color-ink); font-weight: 600; margin-bottom: 1rem; }
-    h1 { font-size: 2.5rem; }
-    
-    footer { max-width: var(--max-width); margin: 4rem auto 0; padding: 2rem; text-align: center; font-size: 0.85rem; color: var(--color-light); border-top: 1px solid var(--color-border); }
-
-    /* LaTeX 徽标专用样式 */
-    .latex-logo { font-variant: small-caps; }
-    .latex-logo .latex-a { text-transform: uppercase; font-size: 0.75em; vertical-align: 0.25em; margin-left: -0.32em; margin-right: -0.15em; }
-    .latex-logo .latex-e { text-transform: uppercase; font-size: 0.75em; vertical-align: -0.25em; margin-left: -0.15em; margin-right: -0.05em; }
-
-    /* ======================================================
-       Doocs 风格 Markdown 正文排版 (融合典雅学术风)
-       ====================================================== */
-    .markdown-content { font-family: var(--font-body); line-height: 1.8; color: var(--color-text); word-wrap: break-word; }
-    .markdown-content p { margin-bottom: 1.2em; }
-    
-    /* 标题：加粗并拉开层次，H2 带底部边框 */
-    .markdown-content h1, .markdown-content h2, .markdown-content h3, .markdown-content h4 { color: var(--color-ink); font-family: var(--font-display); margin-top: 2em; margin-bottom: 1em; font-weight: 600; }
-    .markdown-content h2 { font-size: 1.6rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.4em; }
-    .markdown-content h3 { font-size: 1.3rem; }
-
-    /* Doocs 标志性的引用块 (Blockquote) */
-    .markdown-content blockquote { margin: 1.5em 0; padding: 0.8em 1.2em; border-left: 4px solid var(--color-accent); background-color: var(--color-bg-warm); color: var(--color-muted); border-radius: 0 4px 4px 0; }
-    .markdown-content blockquote p { margin: 0; }
-
-    /* Doocs 标志性的行内代码 (Inline Code) - 浅洋红色底色 */
-    .markdown-content code { color: #c7254e; background-color: #f9f2f4; padding: 0.2em 0.4em; border-radius: 4px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 0.85em; }
-    
-    /* 适配暗黑模式的行内代码 */
-    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .markdown-content code { background-color: rgba(255, 80, 120, 0.15); color: #ff7b93; } }
-    :root[data-theme="dark"] .markdown-content code { background-color: rgba(255, 80, 120, 0.15); color: #ff7b93; }
-
-    /* 深色代码块 (Preformatted Text) */
-    .markdown-content pre { background-color: #282c34; color: #abb2bf; padding: 1.2rem; border-radius: 6px; overflow-x: auto; margin-bottom: 1.5em; }
-    .markdown-content pre code { color: inherit; background-color: transparent; padding: 0; }
-
-    /* 列表排版 */
-    .markdown-content ul, .markdown-content ol { padding-left: 2em; margin-bottom: 1.5em; }
-    .markdown-content li { margin-bottom: 0.5em; }
-
-    /* 图片：增加相框质感与居中，限制最大宽度避免撑满全栏 */
-    .markdown-content img { max-width: 70%; display: block; margin: 1.5em auto; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-
-    /* 表格：清爽的斑马线风格 */
-    .markdown-content table { width: 100%; border-collapse: collapse; margin-bottom: 1.5em; font-size: 0.95rem; }
-    .markdown-content th, .markdown-content td { border: 1px solid var(--color-border); padding: 0.6em 1em; }
-    .markdown-content th { background-color: var(--color-bg-warm); font-weight: 600; }
-
-    /* 超链接下划线特效 */
-    .markdown-content a { color: var(--color-accent); text-decoration: none; border-bottom: 1px dashed var(--color-accent); transition: all 0.2s; padding-bottom: 1px; }
-    .markdown-content a:hover { border-bottom-style: solid; background-color: rgba(30, 58, 95, 0.05); }
-
-    /* 1. 全局平滑滚动 */
-    html { scroll-behavior: smooth; }
-
-    /* 2. 侧边栏目录容器 - 电脑端收窄，避免紧贴正文 */
-    #toc-container {
-      position: fixed;
-      left: 1.5rem;
-      top: 10rem;
-      width: 240px;
-      max-height: 65vh;
-      overflow-y: auto;
-      padding: 1.2rem 0.9rem;
-      background: var(--color-bg);
-      border-left: 2px solid var(--color-accent);
-      z-index: 100;
-      transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-      opacity: 0;
-      transform: translateX(-30px);
-      visibility: hidden;
-    }
-
-    #toc-container.open {
-      opacity: 1;
-      transform: translateX(0);
-      visibility: visible;
-      box-shadow: 10px 0 30px rgba(0,0,0,0.05);
-    }
-
-    /* 3. 目录列表样式 */
-    #toc-ul { list-style: none; padding: 0; margin: 0; }
-    #toc-ul li { position: relative; margin-bottom: 0.8rem; line-height: 1.4; }
-    
-    #toc-ul a {
-      color: var(--color-muted);
-      text-decoration: none;
-      font-size: 0.95rem;
-      transition: color 0.2s;
-      display: block;
-      padding-left: 1.3rem;
-    }
-    #toc-ul a:hover { color: var(--color-accent); }
-
-    /* 一级标题圆点 */
-    #toc-ul li > a:not(.toc-h2)::before {
-      content: "•";
-      position: absolute;
-      left: 0.35rem;
-      color: var(--color-accent);
-      font-size: 1rem;
-    }
-
-    /* 二级标题缩进与圆点 */
-    #toc-ul .toc-h2 {
-      padding-left: 2.1rem;
-      font-size: 0.9rem;
-      opacity: 0.85;
-    }
-
-    #toc-ul .toc-h2::before {
-      content: "•";
-      position: absolute;
-      left: 1.1rem;
-      color: var(--color-accent);
-      font-size: 1rem;
-    }
-
-    /* 4. 左下角经典悬浮标按钮 */
-    #toc-toggle {
-      position: fixed;
-      left: 1.5rem;
-      bottom: 2rem;
-      width: 46px;
-      height: 46px;
-      background: var(--color-accent);
-      color: white;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-      z-index: 101;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.4rem;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    /* 5. 手机端：底部抽屉 */
-    @media (max-width: 768px) {
-      #toc-backdrop {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.35);
-        z-index: 99;
-        backdrop-filter: blur(2px);
-      }
-      #toc-backdrop.active { display: block; }
-
-      #toc-container {
-        left: 0;
-        right: 0;
-        bottom: 0;
-        top: auto;
-        width: 100%;
-        max-height: 55vh;
-        border-left: none;
-        border-bottom: none;
-        border-top: 2px solid var(--color-accent);
-        border-radius: 20px 20px 0 0;
-        padding: 1.2rem 1.5rem 2rem;
-        transform: translateY(110%);
-        box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.12);
-      }
-
-      #toc-container.open {
-        transform: translateY(0);
-        opacity: 1;
-        visibility: visible;
-        box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.12);
-      }
-
-      #toc-container::before {
-        content: '';
-        display: block;
-        width: 36px;
-        height: 4px;
-        background: var(--color-border);
-        border-radius: 2px;
-        margin: 0 auto 1.2rem;
-      }
-    }
-    /* 解决目录跳转后标题被导航栏遮挡的问题 */
-    .markdown-content h1, 
-    .markdown-content h2, 
-    .markdown-content h3 {
-      scroll-margin-top: 6.5rem; /* 预留顶部导航栏高度 + 呼吸空间 */
-    }
-
-    /* ==========================================
-       最终方案 C：悬浮重力场电梯 (实心微圆角三角)
-       ========================================== */
-    .elevator-fab {
-      position: fixed;
-      right: 1.5rem;
-      bottom: 2rem;
-      display: flex;
-      flex-direction: column;
-      gap: 12px; /* 增加呼吸感缝隙 */
-      z-index: 101;
-    }
-
-    .elevator-fab button {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 0;
-      color: var(--color-accent);
-      opacity: 0.6; /* 平时保持低调，不干扰阅读 */
-      filter: drop-shadow(0 2px 4px rgba(30, 58, 95, 0.15));
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* 悬浮效果：模拟物理按键“浮起”并点亮 */
-    .elevator-fab button:hover {
-      opacity: 1;
-      transform: translateY(-4px) scale(1.1);
-      filter: drop-shadow(0 8px 16px rgba(30, 58, 95, 0.25));
-    }
-
-    /* 点击反馈：轻微下陷感 */
-    .elevator-fab button:active {
-      transform: translateY(1px) scale(0.95);
-      transition: all 0.1s;
-    }
-
-    /* 使用 SVG 绘制带圆角的等腰三角形 */
-    .elevator-fab svg {
-      width: 28px;
-      height: 20px;
-      fill: currentColor;
-      stroke: currentColor;
-      stroke-width: 4; /* 通过描边实现物理圆角 */
-      stroke-linejoin: round;
-    }
-
-    @media (max-width: 768px) {
-      .elevator-fab { right: 1rem; bottom: 1.5rem; gap: 8px; }
-      .elevator-fab svg { width: 24px; height: 16px; }
-
-      /* 手机端段落：两端对齐，避免右边距参差不齐 */
-      .markdown-content p {
-        text-align: justify;
-        overflow-wrap: break-word;
-        text-wrap: normal;
-      }
-    }
-
-    /* ======================================================
-       Mac 风格代码块装饰
-       ====================================================== */
-    .markdown-content pre { 
-      position: relative; 
-      padding-top: 38px !important; /* 顶部留出空间放那三个小圆点 */
-      background-color: #282c34; 
-      border-radius: 8px; 
-    }
-    
-    /* 使用 CSS 伪元素画出红黄绿三个小圆点 */
-    .markdown-content pre::before {
-      content: ''; 
-      position: absolute; 
-      top: 14px; 
-      left: 15px; 
-      width: 12px; 
-      height: 12px;
-      border-radius: 50%;
-      background: #ff5f56; /* Mac 的关闭红 */
-      box-shadow: 20px 0 0 #ffbd2e, 40px 0 0 #27c93f; /* 最小化黄 + 全屏绿 */
-      z-index: 2;
-    }
-
-    /* 强制删除 H2 上方的线 */
-    .markdown-content h2 {
-      border-top: none !important;    
-      border-bottom: none !important; 
-      padding-top: 1.5em;             
-      margin-top: 1em;
-    }
-    /* 同时也删除可能存在的 section 分隔线 */
-    .post-container section, .markdown-content section {
-      border-bottom: none !important;
-      border-top: none !important;
-    }
-
-    /* 现代排版魔法：智能平衡标题换行 */
-    .post-header h1, 
-    .post-container h1, 
-    .post-container h2 {
-      text-wrap: balance; /* 让多行标题自动保持长短均匀 */
-    }
-
-    /* 针对正文段落，防止最后一行只剩孤零零的一个词 */
-    .markdown-content p {
-      text-wrap: pretty; 
-    }
-
-    .knowledge-base details { margin-bottom: 1rem; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); }
-    .knowledge-base summary { padding: 1rem; cursor: pointer; font-weight: 600; color: var(--color-ink); list-style: none; transition: background 0.2s; }
-    .knowledge-base summary:hover { background: var(--color-bg-warm); }
-    .knowledge-base summary::before { content: '▸'; margin-right: 0.8rem; color: var(--color-accent); transition: transform 0.2s; display: inline-block; }
-    .knowledge-base details[open] > summary::before { transform: rotate(90deg); }
-
-    .discipline-title { font-size: 1.3rem; border-left: 4px solid var(--color-accent); }
-    .course-block { margin: 0.5rem 1.5rem 1rem 1.5rem; border: none !important; border-bottom: 1px dashed var(--color-border) !important; }
-    .course-title { font-size: 1.1rem; color: var(--color-accent); }
-    .type-section { padding-left: 3rem; margin-bottom: 1rem; }
-    .type-title { font-family: var(--font-display); font-style: italic; color: var(--color-light); margin-bottom: 0.5rem; }
-    .file-list { list-style: none; padding: 0; }
-    .file-list li { margin-bottom: 0.4rem; }
-    .file-list a { color: var(--color-text); text-decoration: none; border-bottom: 1px solid transparent; }
-    .file-list a:hover { color: var(--color-accent); border-bottom-color: var(--color-accent); }
-
-    /* ======================================================
-       双向丝滑折叠动画 (支持展开与收起)
-       ====================================================== */
-    details summary { outline: none; }
-    
-    /* 展开时的动画 */
-    details[open] summary ~ * {
-      animation: sweepDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    }
-    
-    /* 收起时的动画（配合 JS 触发） */
-    details.is-closing summary ~ * {
-      animation: sweepUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    }
-
-    @keyframes sweepDown {
-      0%   { opacity: 0; transform: translateY(-10px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes sweepUp {
-      0%   { opacity: 1; transform: translateY(0); }
-      100% { opacity: 0; transform: translateY(-10px); }
-    }
-    
-    /* ======================================================
-       全新的搜索框与移动端变身适配
-       ====================================================== */
-    #search-container { position: relative; display: flex; align-items: center; }
-    #mobile-search-btn { display: none; background: none; border: none; color: var(--color-ink); cursor: pointer; padding: 0.2rem; }
-    .search-wrapper { position: relative; display: flex; align-items: center; }
-    
-    /* 电脑端内嵌放大镜 */
-    .search-icon { position: absolute; left: 12px; color: var(--color-muted); pointer-events: none; display: flex; align-items: center; }
-    
-    #search-input {
-      padding: 0.4rem 0.8rem 0.4rem 2.2rem; /* 左侧留出 2.2rem 的空间给放大镜 */
-      border-radius: 20px;
-      border: 1px solid var(--color-border);
-      background: var(--color-bg);
-      color: var(--color-text);
-      outline: none;
-      font-size: 0.9rem;
-      width: 180px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    #search-input:focus { width: 240px; border-color: var(--color-accent); }
-    #close-search-btn { display: none; background: none; border: none; color: var(--color-ink); font-size: 1.2rem; cursor: pointer; padding: 0 10px; }
-    
-    /* 搜索结果框样式 */
-    #results-container {
-      position: absolute; top: calc(100% + 12px); right: 0; background: var(--color-nav-bg); 
-      border: 1px solid var(--color-border); border-radius: 8px; width: 280px; max-height: 400px; 
-      overflow-y: auto; list-style: none; padding: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-      z-index: 1000; display: none; backdrop-filter: blur(10px);
-    }
-
-    /* 手机端响应式魔法 */
-    @media (max-width: 768px) {
-      .nav-right-box { gap: 0.8rem !important; }
-      
-      /* 默认状态：隐藏长条输入框，显示小放大镜 */
-      .search-wrapper { display: none; }
-      #mobile-search-btn { display: block; }
-
-      /* 搜索激活状态：变身全屏搜索栏 */
-      .nav-inner.search-active { display: flex; gap: 10px; }
-      
-      /* 变身时，强行隐藏返回键、汉堡包、亮度键 */
-      .nav-inner.search-active .nav-left-zone,
-      .nav-inner.search-active .nav-toggle,
-      .nav-inner.search-active .theme-toggle { display: none; } 
-
-      /* 让搜索框霸占 100% 宽度 */
-      .nav-inner.search-active .nav-right-box { flex: 1; width: 100%; justify-content: flex-end; }
-      .nav-inner.search-active #search-container { width: 100%; }
-      .nav-inner.search-active #mobile-search-btn { display: none; }
-      .nav-inner.search-active .search-wrapper { display: flex; width: 100%; }
-      .nav-inner.search-active #search-input { width: 100%; padding-left: 1rem; }
-      .nav-inner.search-active .search-icon { display: none; } /* 全屏搜索时隐藏内嵌图标，保持极简 */
-      .nav-inner.search-active #close-search-btn { display: block; }
-      .nav-inner.search-active #results-container { width: 100%; }
-    }
-  </style>
-  <link rel="stylesheet" href="https://unpkg.com/@waline/client@v2/dist/waline.css" />
 </head>
 <body>
 
@@ -620,59 +115,9 @@
       background: #cbd5e1; margin-right: 4px; vertical-align: 0;
       transition: background-color .2s;
     "></span>
-    <a href="#" id="offline-settings-link" style="color: var(--color-light); text-decoration: none; border-bottom: 1px dotted var(--color-light);">离线缓存</a>
+    <span style="color: var(--color-light);">离线</span>
   </footer>
 
-  <!-- 后台缓存进度条（默认隐藏，活动时贴在右下角） -->
-  <div id="offline-pill" role="status" aria-live="polite" style="
-    position: fixed; right: 14px; bottom: 14px; z-index: 9999;
-    background: var(--color-bg, #fafaf9); color: var(--color-muted, #6b7280);
-    border: 1px solid var(--color-border, #e5e7eb); border-radius: 999px;
-    padding: 6px 12px; font-size: 0.78rem; line-height: 1;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    opacity: 0; pointer-events: none; transition: opacity .25s;
-    max-width: calc(100vw - 32px); white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis;
-  "></div>
-
-  <!-- 离线设置面板 -->
-  <dialog id="offline-settings-dialog" style="
-    border: 1px solid var(--color-border, #e5e7eb); border-radius: 12px;
-    background: var(--color-bg, #fafaf9); color: var(--color-text, #1f2937);
-    padding: 1.5rem; max-width: 92vw; width: 380px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-  ">
-    <h3 style="margin: 0 0 0.5rem; font-size: 1.05rem;">离线缓存</h3>
-    <p style="margin: 0 0 1rem; font-size: 0.85rem; color: var(--color-muted, #6b7280); line-height: 1.55;">
-      首次访问任意页面后，浏览器空闲时自动把全站文字 + 游戏（约 18 MB）存到本地，飞机上 / 没网时直接输入网址也能打开。<br>
-      <strong style="color: var(--color-text, #1f2937);">部署新版本不会清空你的缓存</strong>，只会逐个换成最新版。
-    </p>
-    <div style="font-size: 0.85rem; margin-bottom: 1rem;">
-      已缓存：<span id="offline-cached-count" style="font-weight: 600;">…</span>
-      <span style="color: var(--color-muted);">/ <span id="offline-total-count">…</span> 页</span>
-    </div>
-    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; margin-bottom: 1rem; cursor: pointer;">
-      <input type="checkbox" id="offline-auto-toggle" checked>
-      <span>访问时自动后台缓存（推荐）</span>
-    </label>
-    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-      <button id="offline-recache-btn" style="
-        flex: 1; padding: 0.5rem 0.8rem; border: 1px solid var(--color-border);
-        background: var(--color-bg); color: var(--color-text);
-        border-radius: 6px; cursor: pointer; font-size: 0.85rem; min-width: 7em;
-      ">立即补齐缓存</button>
-      <button id="offline-clear-btn" style="
-        padding: 0.5rem 0.8rem; border: 1px solid var(--color-border);
-        background: var(--color-bg); color: var(--color-muted);
-        border-radius: 6px; cursor: pointer; font-size: 0.85rem;
-      ">清空</button>
-      <button id="offline-close-btn" style="
-        padding: 0.5rem 0.8rem; border: 1px solid var(--color-border);
-        background: transparent; color: var(--color-muted);
-        border-radius: 6px; cursor: pointer; font-size: 0.85rem;
-      ">关闭</button>
-    </div>
-  </dialog>
 
   <script>
     // 菜单切换逻辑
@@ -759,43 +204,40 @@
   </script>
 
   <script>
-    // ===========================================================
-    // Service Worker + 全站后台离线缓存
-    //
-    // 设计契约（不要轻易改）：
-    //  - 部署新版本不能清空已有缓存（曾在 v3→v4 上把所有人的离线副本删掉）
-    //  - 自动预缓存默认开启，但低速网/省流模式自动跳过
-    //  - 用户可在页脚"离线缓存"里关掉自动预缓存
-    //  - 浏览器空闲时分批喂给 SW，不阻塞页面交互
-    // ===========================================================
+    // Service Worker — 网络优先缓存 + 手动离线下载
     (function () {
       if (!('serviceWorker' in navigator)) return;
 
-      const MANIFEST_URL = '{{ "/offline-manifest.json" | relative_url }}';
       const SW_URL = '{{ "/sw.js" | relative_url }}';
       const SCOPE = '{{ "/" | relative_url }}';
 
-      const LS_DISABLED   = 'zircon-offline-disabled';
-      const LS_LAST_VER   = 'zircon-offline-last-version';
+      const statusDot = document.getElementById('offline-status-dot');
 
-      const pill = document.getElementById('offline-pill');
-      const dialog = document.getElementById('offline-settings-dialog');
-      const settingsLink = document.getElementById('offline-settings-link');
-      const statusDot     = document.getElementById('offline-status-dot');
-      const cachedCountEl = document.getElementById('offline-cached-count');
-      const totalCountEl  = document.getElementById('offline-total-count');
-      const autoToggle    = document.getElementById('offline-auto-toggle');
-      const recacheBtn    = document.getElementById('offline-recache-btn');
-      const clearBtn      = document.getElementById('offline-clear-btn');
-      const closeBtn      = document.getElementById('offline-close-btn');
-
-      // 当前页的版本戳（从 <meta name="zircon-page-version">）
       function liveVersion() {
         const m = document.querySelector('meta[name="zircon-page-version"]');
         return m ? m.getAttribute('content') : null;
       }
 
-      // 刷新页脚那个三色小点 + 文章页 📥 按钮（如果有）
+      function postToSW(reg, payload, timeoutMs) {
+        return new Promise((resolve) => {
+          if (!reg.active) { resolve(null); return; }
+          const ch = new MessageChannel();
+          let done = false;
+          const timer = setTimeout(() => {
+            if (done) return;
+            done = true;
+            resolve(null);
+          }, timeoutMs || 60000);
+          ch.port1.onmessage = (ev) => {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            resolve(ev.data || null);
+          };
+          reg.active.postMessage(payload, [ch.port2]);
+        });
+      }
+
       async function refreshPageStatus(reg) {
         if (!statusDot && !document.getElementById('offline-toggle')) return;
         if (!reg) {
@@ -821,13 +263,12 @@
             statusDot.title = '这一页已离线（最新版本）';
           } else if (state === 'stale') {
             statusDot.style.background = '#f59e0b';
-            statusDot.title = '这一页已离线，但有更新——进"离线缓存"面板可补齐';
+            statusDot.title = '这一页已离线，但有更新——下次联网时会自动刷新';
           } else {
             statusDot.style.background = '#cbd5e1';
             statusDot.title = '这一页未离线';
           }
         }
-        // 文章工具栏 📥 按钮（post.html 注入的）
         const btn = document.getElementById('offline-toggle');
         if (btn && !btn.disabled) {
           const labelEl = btn.querySelector('.tool-label');
@@ -850,246 +291,8 @@
         }
       }
 
-      // 暴露给 post.html 在它自己的下载完成后回调
       window.__zirconRefreshOfflineStatus = () => refreshPageStatus();
 
-      let pillTimer = null;
-      function showPill(text, sticky) {
-        if (!pill) return;
-        pill.textContent = text;
-        pill.style.opacity = '1';
-        if (pillTimer) { clearTimeout(pillTimer); pillTimer = null; }
-        if (!sticky) {
-          pillTimer = setTimeout(() => { pill.style.opacity = '0'; }, 3000);
-        }
-      }
-      function hidePill() {
-        if (!pill) return;
-        if (pillTimer) { clearTimeout(pillTimer); pillTimer = null; }
-        pill.style.opacity = '0';
-      }
-
-      function isAutoEnabled() {
-        try { return localStorage.getItem(LS_DISABLED) !== '1'; }
-        catch { return true; }
-      }
-      function setAutoEnabled(on) {
-        try {
-          if (on) localStorage.removeItem(LS_DISABLED);
-          else localStorage.setItem(LS_DISABLED, '1');
-        } catch {}
-      }
-
-      // 低速网 / 省流量模式跳过自动预缓存
-      function shouldSkipForNetwork() {
-        const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-        if (!c) return false;
-        if (c.saveData) return true;
-        const t = c.effectiveType || '';
-        return t === 'slow-2g' || t === '2g';
-      }
-
-      function postToSW(reg, payload, timeoutMs) {
-        return new Promise((resolve) => {
-          if (!reg.active) { resolve(null); return; }
-          const ch = new MessageChannel();
-          let done = false;
-          const timer = setTimeout(() => {
-            if (done) return;
-            done = true;
-            resolve(null);
-          }, timeoutMs || 60000);
-          ch.port1.onmessage = (ev) => {
-            if (done) return;
-            done = true;
-            clearTimeout(timer);
-            resolve(ev.data || null);
-          };
-          reg.active.postMessage(payload, [ch.port2]);
-        });
-      }
-
-      async function refreshDialogStatus(reg, manifest) {
-        if (!cachedCountEl || !manifest) return;
-        const res = await postToSW(reg, { type: 'IS_CACHED_BATCH', urls: manifest.pages }, 8000);
-        if (res && res.type === 'IS_CACHED_BATCH_RESULT') {
-          cachedCountEl.textContent = res.cached;
-          totalCountEl.textContent = res.total;
-        } else {
-          cachedCountEl.textContent = '?';
-          totalCountEl.textContent = manifest.pages.length;
-        }
-      }
-
-      async function prefetchAll(reg, manifest, opts) {
-        const opts2 = opts || {};
-        const status = await postToSW(reg, { type: 'IS_CACHED_BATCH', urls: manifest.pages }, 8000);
-        let urls = manifest.pages.slice();
-        if (status && status.type === 'IS_CACHED_BATCH_RESULT' && Array.isArray(status.results)) {
-          const missing = status.results.filter(r => !r.cached).map(r => r.url);
-          if (missing.length === 0 && !opts2.force) {
-            // 全齐了，啥也不用做
-            return { skipped: true };
-          }
-          urls = opts2.force ? manifest.pages : missing;
-        }
-        showPill(opts2.force
-          ? `补齐离线缓存… 0 / ${urls.length}`
-          : `后台缓存全站… 0 / ${urls.length}`, true);
-
-        let lastShown = 0;
-        const ch = new MessageChannel();
-        const donePromise = new Promise((resolve) => {
-          ch.port1.onmessage = (ev) => {
-            const d = ev.data || {};
-            if (d.type === 'PREFETCH_PROGRESS') {
-              // silent 模式不会推 progress；这里是 force 模式的可见进度
-              if (d.done - lastShown >= 5 || d.done === d.total) {
-                showPill(`缓存中… ${d.done} / ${d.total}`, true);
-                lastShown = d.done;
-              }
-            } else if (d.type === 'PREFETCH_DONE') {
-              resolve();
-            }
-          };
-        });
-
-        // 静默 = 不推单条进度，只在结束时回 PREFETCH_DONE
-        // excludeAssets='^/files/' = 不要顺手把文章里 150 MB 的大照片也拉了——
-        // 那批走文章页的 📥 按钮按需下，自动后台只管 18 MB 的 shell + 游戏。
-        reg.active.postMessage({
-          type: 'PREFETCH_URLS',
-          urls,
-          assets: manifest.assets || [],
-          excludeAssets: '^/files/',
-          silent: !opts2.force
-        }, [ch.port2]);
-
-        // 静默模式给个简单的"在跑"提示
-        if (!opts2.force) {
-          showPill(`后台缓存中（${urls.length} 页）`, true);
-        }
-        await donePromise;
-        return { ran: true, count: urls.length };
-      }
-
-      // 在 idle 时跑后台预缓存
-      function scheduleIdle(fn) {
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(fn, { timeout: 5000 });
-        } else {
-          setTimeout(fn, 2500);
-        }
-      }
-
-      async function runAutoPrefetch(reg) {
-        if (!isAutoEnabled()) return;
-        if (shouldSkipForNetwork()) return;
-        let manifest;
-        try {
-          const r = await fetch(MANIFEST_URL, { cache: 'no-cache' });
-          if (!r.ok) return;
-          manifest = await r.json();
-        } catch { return; }
-        if (!manifest || !Array.isArray(manifest.pages) || !manifest.pages.length) return;
-
-        // 同一版本若已经全部缓存，整轮跳过
-        let lastVer = '';
-        try { lastVer = localStorage.getItem(LS_LAST_VER) || ''; } catch {}
-        if (lastVer === manifest.version) {
-          const status = await postToSW(reg, { type: 'IS_CACHED_BATCH', urls: manifest.pages }, 5000);
-          if (status && status.type === 'IS_CACHED_BATCH_RESULT' && status.cached === status.total) {
-            return;
-          }
-        }
-
-        const result = await prefetchAll(reg, manifest, { force: false });
-        if (result && result.ran) {
-          showPill(`✓ 全站已离线（${result.count} 页）`, false);
-          try { localStorage.setItem(LS_LAST_VER, manifest.version); } catch {}
-        } else {
-          hidePill();
-        }
-        // 预取完后再刷一遍当前页状态（应该会从 stale 转 fresh）
-        refreshPageStatus(reg).catch(() => {});
-      }
-
-      // ============= 设置面板 =============
-      let cachedManifest = null;
-      async function ensureManifest() {
-        if (cachedManifest) return cachedManifest;
-        try {
-          const r = await fetch(MANIFEST_URL, { cache: 'no-cache' });
-          if (r.ok) cachedManifest = await r.json();
-        } catch {}
-        return cachedManifest;
-      }
-
-      function bindSettings() {
-        if (!dialog || !settingsLink) return;
-
-        if (autoToggle) autoToggle.checked = isAutoEnabled();
-
-        settingsLink.addEventListener('click', async (e) => {
-          e.preventDefault();
-          if (typeof dialog.showModal === 'function') dialog.showModal();
-          else dialog.setAttribute('open', '');
-          const manifest = await ensureManifest();
-          if (manifest) {
-            const reg = await navigator.serviceWorker.ready;
-            await refreshDialogStatus(reg, manifest);
-          }
-        });
-
-        if (autoToggle) {
-          autoToggle.addEventListener('change', () => {
-            setAutoEnabled(autoToggle.checked);
-            if (autoToggle.checked) {
-              // 立即跑一遍
-              navigator.serviceWorker.ready.then((reg) => runAutoPrefetch(reg));
-            }
-          });
-        }
-
-        if (recacheBtn) {
-          recacheBtn.addEventListener('click', async () => {
-            const manifest = await ensureManifest();
-            if (!manifest) return;
-            const reg = await navigator.serviceWorker.ready;
-            recacheBtn.disabled = true;
-            recacheBtn.textContent = '正在缓存…';
-            await prefetchAll(reg, manifest, { force: true });
-            await refreshDialogStatus(reg, manifest);
-            recacheBtn.disabled = false;
-            recacheBtn.textContent = '立即补齐缓存';
-            try { localStorage.setItem(LS_LAST_VER, manifest.version); } catch {}
-            showPill('✓ 缓存已刷新', false);
-            refreshPageStatus(reg).catch(() => {});
-          });
-        }
-
-        if (clearBtn) {
-          clearBtn.addEventListener('click', async () => {
-            if (!confirm('清空全部离线缓存？下次访问会重新下载。')) return;
-            const reg = await navigator.serviceWorker.ready;
-            await postToSW(reg, { type: 'CLEAR_CACHE' }, 8000);
-            try { localStorage.removeItem(LS_LAST_VER); } catch {}
-            const manifest = await ensureManifest();
-            if (manifest) await refreshDialogStatus(reg, manifest);
-            showPill('已清空离线缓存', false);
-            refreshPageStatus(reg).catch(() => {});
-          });
-        }
-
-        if (closeBtn) {
-          closeBtn.addEventListener('click', () => {
-            if (typeof dialog.close === 'function') dialog.close();
-            else dialog.removeAttribute('open');
-          });
-        }
-      }
-
-      // ============= 启动 =============
       window.addEventListener('load', async () => {
         try {
           await navigator.serviceWorker.register(SW_URL, { scope: SCOPE });
@@ -1097,18 +300,14 @@
           console.warn('SW register failed:', err);
           return;
         }
-        bindSettings();
         const reg = await navigator.serviceWorker.ready;
-        // SW 接管这次 navigation 之前 reg.active 可能为空——再等一拍
         if (!reg.active) {
           await new Promise((r) => {
             const t = setTimeout(r, 1500);
             navigator.serviceWorker.addEventListener('controllerchange', () => { clearTimeout(t); r(); }, { once: true });
           });
         }
-        // 网络优先的 cache.put 是 fire-and-forget，给它一点时间落盘再读状态
         setTimeout(() => refreshPageStatus(reg).catch(() => {}), 800);
-        scheduleIdle(() => runAutoPrefetch(reg).catch(() => {}));
       });
     })();
   </script>

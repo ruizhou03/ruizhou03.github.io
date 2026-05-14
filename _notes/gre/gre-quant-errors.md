@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "GRE"
 title: "（个人向）GRE 数学错题本"
 date: 2024-08-14
 discipline: "语言考试"

@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "会计学"
 title: "会计学课程笔记"
 date: 2022-06-28
 discipline: "其他"

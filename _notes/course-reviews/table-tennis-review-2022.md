@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "乒乓球"
 title: "（个人向）乒乓球课程测评"
 date: 2022-12-23
 discipline: "体育"

@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "中级宏观经济学"
 title: "（个人向）中级宏观经济学课程测评"
 date: 2023-01-06
 discipline: "经济学"

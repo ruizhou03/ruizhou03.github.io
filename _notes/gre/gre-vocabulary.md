@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "GRE"
 title: "全世界都在说 GRE 的词汇很可怕？"
 date: 2024-07-10
 discipline: "语言考试"

@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "GRE"
 title: "我把 GRE 的考试界面搬到了错题本上"
 date: 2024-08-09
 discipline: "语言考试"

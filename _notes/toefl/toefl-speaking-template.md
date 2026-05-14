@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "TOEFL"
 title: "等了很久的托福口语模板"
 date: 2024-07-08
 discipline: "语言考试"

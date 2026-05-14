@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "英语创意表达-TED 演讲视听说"
 title: "（个人向）英语创意表达-TED 演讲视听说课程测评"
 date: 2022-12-29
 discipline: "通识"

@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "计量因果识别方法"
 title: "计量因果识别方法课程笔记"
 discipline: "经济学"
 course: "计量因果识别方法"

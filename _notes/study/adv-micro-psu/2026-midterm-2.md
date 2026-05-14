@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "Advanced Microeconomics"
 title: "Advanced Microeconomics Midterm 2 (2026)"
 discipline: "经济学"
 course: "Advanced Microeconomics"

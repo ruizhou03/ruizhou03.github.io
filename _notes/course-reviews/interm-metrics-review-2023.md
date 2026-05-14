@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "中级计量经济学"
 title: "（个人向）中级计量经济学课程测评"
 date: 2023-06-26
 discipline: "经济学"

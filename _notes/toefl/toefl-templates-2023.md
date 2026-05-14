@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "TOEFL"
 title: "托福写作与口语模板"
 date: 2023-07-11
 discipline: "语言考试"

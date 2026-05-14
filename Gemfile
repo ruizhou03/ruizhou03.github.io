@@ -7,6 +7,8 @@ gem 'jekyll', '~> 4.3'
 
 # _config.yml 里启用的插件
 gem 'jekyll-seo-tag'
+gem 'jekyll-sitemap'
+gem 'jekyll-feed'
 
 # Ruby 3.0+ 不再自带 webrick；jekyll serve 必须装
 gem 'webrick'

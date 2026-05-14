@@ -3,81 +3,33 @@ layout: default
 title: 锆铌 | Rui Zhou
 ---
 
-<style>
-  .cat-card {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-    padding: 1rem 1.2rem;
-    background: var(--color-bg-warm);
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    text-decoration: none;
-    color: var(--color-ink);
-    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-  }
-  .cat-card:hover {
-    border-color: var(--color-accent);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.07);
-    text-decoration: none;
-  }
-  .cat-icon { font-size: 1.5rem; line-height: 1; }
-  .cat-name { font-weight: 600; font-size: 1rem; color: var(--color-ink); }
-  .cat-count { font-size: 0.82rem; color: var(--color-muted); margin-top: 0.15rem; }
+<link rel="stylesheet" href="{{ '/assets/css/home.css' | relative_url }}">
 
-  .featured-card {
-    background: var(--color-bg-warm);
-    border-left: 3px solid var(--color-accent);
-    border-radius: 0 10px 10px 0;
-    padding: 1.1rem 1.4rem;
-    margin-bottom: 0.5rem;
-  }
-  .featured-card .featured-label {
-    font-size: 0.75rem;
-    color: var(--color-accent);
-    font-family: var(--font-display);
-    letter-spacing: 0.06em;
-    font-weight: 600;
-  }
-  .featured-card h3 {
-    margin: 0.4rem 0 0.5rem;
-    font-size: 1.15rem;
-    line-height: 1.4;
-  }
-  .featured-card h3 a {
-    color: var(--color-ink);
-    text-decoration: none;
-  }
-  .featured-card h3 a:hover { color: var(--color-accent); }
-  .featured-card .featured-excerpt {
-    font-size: 0.92rem;
-    color: var(--color-muted);
-    line-height: 1.7;
-    margin: 0.5rem 0 0;
-  }
-  .featured-card .featured-meta {
-    font-size: 0.82rem;
-    color: var(--color-light);
-    font-family: 'Cormorant Garamond', serif;
-    margin-bottom: 0.4rem;
-  }
-
-</style>
-
-{% assign valid_notes = site.notes | where_exp: "item", "item.date != nil" %}
+{% assign valid_notes = "" | split: "" %}
+{% assign all_content = "" | split: "" %}
+{% assign total = 0 %}
+{% assign notes_count = 0 %}
+{% assign research_count = 0 %}
+{% assign life_count = 0 %}
+{% assign essay_count = 0 %}
+{% for n in site.notes %}
+  {% if n.published != false %}{% assign total = total | plus: 1 %}{% endif %}
+  {% if n.date %}{% assign valid_notes = valid_notes | push: n %}{% endif %}
+  {% if n.discipline %}{% assign notes_count = notes_count | plus: 1 %}{% endif %}
+  {% assign _is_research = false %}
+  {% if n.main_category == "科研妙招" %}{% assign _is_research = true %}{% endif %}
+  {% if n.extra_categories contains "科研妙招" %}{% assign _is_research = true %}{% endif %}
+  {% if _is_research %}{% assign research_count = research_count | plus: 1 %}{% endif %}
+  {% assign _is_life = false %}
+  {% if n.main_category == "生活攻略" %}{% assign _is_life = true %}{% endif %}
+  {% if n.extra_categories contains "生活攻略" %}{% assign _is_life = true %}{% endif %}
+  {% if _is_life %}{% assign life_count = life_count | plus: 1 %}{% endif %}
+  {% assign _is_essay = false %}
+  {% if n.main_category == "随笔漫谈" %}{% assign _is_essay = true %}{% endif %}
+  {% if n.extra_categories contains "随笔漫谈" %}{% assign _is_essay = true %}{% endif %}
+  {% if _is_essay %}{% assign essay_count = essay_count | plus: 1 %}{% endif %}
+{% endfor %}
 {% assign all_content = valid_notes | sort: "date" | reverse %}
-{% assign total = site.notes | where_exp: "item", "item.published != false" | size %}
-{% assign notes_count = site.notes | where_exp: "item", "item.discipline != nil" | size %}
-{% assign research_count = site.notes | where: "main_category", "科研妙招" | size | plus: 0 %}
-{% assign research_extra = site.notes | where_exp: "item", "item.extra_categories contains '科研妙招'" | size %}
-{% assign research_count = research_count | plus: research_extra %}
-{% assign life_count = site.notes | where: "main_category", "生活攻略" | size | plus: 0 %}
-{% assign life_extra = site.notes | where_exp: "item", "item.extra_categories contains '生活攻略'" | size %}
-{% assign life_count = life_count | plus: life_extra %}
-{% assign essay_count = site.notes | where: "main_category", "随笔漫谈" | size | plus: 0 %}
-{% assign essay_extra = site.notes | where_exp: "item", "item.extra_categories contains '随笔漫谈'" | size %}
-{% assign essay_count = essay_count | plus: essay_extra %}
 {% assign hot_posts = all_content | where: "hot", true %}
 {% assign featured = hot_posts | first %}
 
@@ -140,243 +92,6 @@ title: 锆铌 | Rui Zhou
   </div>
 </section>
 
-<style>
-  #react-widget {
-    background: var(--color-bg-warm);
-    border: 1px solid var(--color-border);
-    border-radius: 14px;
-    padding: 1.2rem 1.4rem;
-    text-align: center;
-    margin-bottom: 3.5rem;
-  }
-  @media (min-width: 1250px) {
-    #react-widget {
-      position: fixed;
-      right: 1.5rem;
-      bottom: 2rem;          /* 改为 bottom-anchored，避免与上方 right-stack-top 重叠 */
-      top: auto;
-      transform: none;
-      width: 260px;          /* 与上方 .right-stack-top 对齐 */
-      margin-bottom: 0;
-      z-index: 50;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.07);
-    }
-  }
-  /* 短屏防御性回退：≥1250 宽但 <720 高（分屏 / iPad 横屏等少数情况），
-     催更卡退回 normal flow，避免和顶部 fixed stack 重叠 */
-  @media (min-width: 1250px) and (max-height: 720px) {
-    #react-widget {
-      position: static;
-      width: auto;
-      bottom: auto;
-      top: auto;
-      transform: none;
-      margin-bottom: 3.5rem;
-    }
-  }
-
-  /* —— 站务公告（小卡片，依附在右侧 react-widget 上方）—— */
-  /* 视觉与下方催更卡（#react-widget）保持同一系统：浅暖底 + 细边 + 深字；
-     仅以蓝色 eyebrow 作为「公告」身份的视觉标识，避免大块色块割裂。*/
-  .announcement-side {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.7rem 0.9rem;
-    background: var(--color-bg-warm);
-    color: var(--color-ink);
-    border: 1px solid var(--color-border);
-    border-radius: 14px;
-    text-decoration: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-    margin-bottom: 1.2rem;
-  }
-  .announcement-side:hover {
-    transform: translateY(-1px);
-    border-color: var(--color-accent);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    text-decoration: none;
-    color: var(--color-ink);
-  }
-  .announcement-side .ann-emoji { font-size: 1.05rem; flex-shrink: 0; }
-  .announcement-side .ann-body { flex: 1; min-width: 0; line-height: 1.3; display: block; }
-  .announcement-side .ann-eyebrow {
-    display: block;
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 0.7rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-    margin-bottom: 0.1rem;
-  }
-  .announcement-side .ann-title {
-    display: block;
-    font-size: 0.86rem;
-    font-weight: 500;
-    color: var(--color-ink);
-  }
-  .announcement-side .ann-arrow {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.05rem;
-    color: var(--color-muted);
-    flex-shrink: 0;
-    transition: transform 0.2s, color 0.2s;
-  }
-  .announcement-side:hover .ann-arrow {
-    transform: translateX(2px);
-    color: var(--color-accent);
-  }
-
-  /* 右侧 fixed 栈：站务公告 + 时光机 mini 一起 fixed，宽度统一 */
-  @media (min-width: 1250px) {
-    .right-stack-top {
-      position: fixed;
-      right: 1.5rem;
-      top: 6.5rem;
-      width: 260px;
-      z-index: 51;
-    }
-    .announcement-side {
-      margin-bottom: 0.8rem;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-    }
-  }
-
-  /* —— 时光机 mini（侧栏卡）——
-     desktop 时叠在站务公告下；mobile 时跟着进入 normal flow */
-  .tm-side {
-    background: var(--color-bg-warm);
-    border: 1px solid var(--color-border);
-    border-radius: 14px;
-    padding: 0.85rem 0.95rem;
-    margin-bottom: 1.2rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  }
-  @media (min-width: 1250px) {
-    .tm-side {
-      margin-bottom: 0;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-    }
-  }
-  .tm-side-eyebrow {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 0.7rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-    margin-bottom: 0.2rem;
-  }
-  .tm-side-title {
-    font-family: var(--font-display);
-    font-size: 0.96rem;
-    font-weight: 600;
-    color: var(--color-ink);
-    margin-bottom: 0.55rem;
-    line-height: 1.25;
-  }
-  .tm-side-row {
-    display: block;
-    padding: 0.45rem 0;
-    border-top: 1px dashed var(--color-border);
-    text-decoration: none;
-    color: var(--color-ink);
-    transition: transform 0.18s, color 0.18s;
-  }
-  .tm-side-row:first-child { border-top: none; padding-top: 0.2rem; }
-  .tm-side-row:hover { color: var(--color-accent); transform: translateX(2px); text-decoration: none; }
-  .tm-side-row .tm-r-title {
-    display: block;
-    font-size: 0.84rem;
-    font-weight: 500;
-    line-height: 1.3;
-    margin-bottom: 0.1rem;
-  }
-  .tm-side-row .tm-r-meta {
-    font-size: 0.7rem;
-    color: var(--color-light);
-  }
-  .tm-side-empty {
-    font-size: 0.78rem;
-    color: var(--color-muted);
-    padding: 0.3rem 0 0.5rem;
-    font-style: italic;
-  }
-  .tm-side-more {
-    display: block;
-    margin-top: 0.55rem;
-    padding-top: 0.55rem;
-    border-top: 1px dashed var(--color-border);
-    font-size: 0.78rem;
-    color: var(--color-muted);
-    text-decoration: none;
-    text-align: right;
-    transition: color 0.18s;
-  }
-  .tm-side-more:hover { color: var(--color-accent); text-decoration: none; }
-  .tm-side-more-count {
-    font-size: 0.72rem;
-    color: var(--color-light);
-    margin-top: 0.25rem;
-    font-style: italic;
-  }
-  @media (max-width: 768px) {
-    .announcement-side .ann-title { font-size: 0.82rem; }
-  }
-  .rw-main-btn {
-    width: 100%;
-    padding: 0.5rem 0.8rem;
-    border: 1.5px solid var(--color-ink);
-    background: transparent;
-    color: var(--color-ink);
-    font-family: var(--font-display);
-    font-size: 0.95rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .rw-main-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-  .rw-count-line { font-size: 0.82rem; color: var(--color-muted); margin-top: 0.5rem; }
-  .rw-num { color: var(--color-ink); display: inline-block; }
-  .rw-chart {
-    display: flex; align-items: flex-end; justify-content: center;
-    gap: 2px; height: 22px; margin: 0.5rem auto 0;
-    max-width: 170px;
-  }
-  .rw-divider { border: none; border-top: 1px dashed var(--color-border); margin: 0.8rem 0; }
-  .rw-reactions { display: flex; justify-content: space-around; }
-  .rw-reaction-btn {
-    display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
-    cursor: pointer; padding: 0.35rem 0.5rem; border-radius: 8px;
-    border: none; background: transparent;
-    transition: background 0.15s, transform 0.15s;
-  }
-  .rw-reaction-btn:hover { background: var(--color-bg); transform: scale(1.15); }
-  .rw-emoji { font-size: 1.15rem; line-height: 1; }
-  .rw-r-num { font-size: 0.72rem; color: var(--color-muted); }
-  .rw-msg-toggle {
-    width: 100%; padding: 0.4rem; border: none; background: transparent;
-    color: var(--color-muted); font-family: var(--font-body); font-size: 0.85rem;
-    cursor: pointer; transition: color 0.2s;
-  }
-  .rw-msg-toggle:hover { color: var(--color-accent); }
-  #rw-msg-form textarea {
-    width: 100%; height: 76px; resize: none;
-    border: 1px solid var(--color-border); border-radius: 6px;
-    padding: 0.45rem 0.6rem; font-family: var(--font-body); font-size: 0.82rem;
-    color: var(--color-ink); background: var(--color-bg);
-    outline: none; transition: border-color 0.2s; margin-bottom: 0.4rem;
-  }
-  #rw-msg-form textarea:focus { border-color: var(--color-accent); }
-  #rw-msg-form .rw-send-btn {
-    padding: 0.3rem 1rem; border: 1px solid var(--color-ink);
-    background: transparent; color: var(--color-ink);
-    font-family: var(--font-display); font-size: 0.85rem;
-    border-radius: 6px; cursor: pointer; transition: 0.2s;
-  }
-  #rw-msg-form .rw-send-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-  #rw-feedback { font-size: 0.78rem; color: var(--color-accent); min-height: 1.1em; margin-top: 0.3rem; }
-</style>
 
 <div class="right-stack-top">
   <a href="{{ '/essays/welcome-home' | relative_url }}" class="announcement-side">
@@ -593,7 +308,7 @@ title: 锆铌 | Rui Zhou
       {% if featured.main_category %}
         <span style="font-size: 0.75rem; background: var(--color-bg-warm); color: var(--color-accent); padding: 0.15rem 0.5rem; border-radius: 12px; margin-right: 0.5rem; border: 1px solid var(--color-border); font-weight: 400; vertical-align: middle;">{{ featured.main_category }}</span>
       {% endif %}
-      <a href="{{ featured.url | relative_url }}">{{ featured.title | replace: 'LaTeX', 'L<span class="latex-a">a</span>T<span class="latex-e">e</span>X' }}</a>
+      <a href="{{ featured.url | relative_url }}">{% include latex-logo.html title=featured.title %}</a>
     </h3>
     <div class="featured-meta">{{ featured.date | date: "%Y-%m-%d" }}</div>
     {% assign excerpt_text = featured.content | strip_html | strip | truncate: 120 %}
@@ -619,7 +334,7 @@ title: 锆铌 | Rui Zhou
           {% elsif post.discipline %}
             <span style="font-size: 0.75rem; background: var(--color-bg-warm); color: var(--color-accent); padding: 0.15rem 0.5rem; border-radius: 12px; margin-right: 0.5rem; border: 1px solid var(--color-border); vertical-align: text-bottom;">学习资料</span>
           {% endif %}
-          {{ post.title | replace: 'LaTeX', 'L<span class="latex-a">a</span>T<span class="latex-e">e</span>X' }}
+          {% include latex-logo.html title=post.title %}
         </a>
         <span class="post-meta" style="font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; color: var(--color-light); white-space: nowrap;">
           {{ post.date | date: "%Y-%m-%d" }}

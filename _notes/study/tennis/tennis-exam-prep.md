@@ -1,5 +1,7 @@
 ---
 layout: post
+main_category: "学习资料"
+sub_category: "网球"
 title: "网球笔试学习资料"
 discipline: "体育"
 course: "网球"

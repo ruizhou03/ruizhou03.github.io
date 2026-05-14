@@ -41,7 +41,7 @@ inputs:
           {% endif %}
         </div>
         <div class="yearly-card-body">
-          <h3 class="yearly-card-title">{{ post.title }}</h3>
+          <h3 class="yearly-card-title">{% include latex-logo.html title=post.title %}</h3>
           <div class="yearly-card-meta">{{ post.date | date: "%-m 月 %-d 日" }}</div>
         </div>
       </a>
