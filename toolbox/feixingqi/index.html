@@ -2608,9 +2608,12 @@ permalink: /toolbox/feixingqi/
         if (r.reason === 'room_not_found') {
           const cr = await fxqRoomApi('POST', 'create', { gameId: 'feixingqi', nick, deviceId: did, code });
           if (cr.ok) { fxqEnterLobby(cr); return; }
+          const msgs = { code_taken: '该房号已被占用，换一个试试', timeout: '连接超时，请检查网络', network: '网络错误，请稍后再试' };
+          fxqShowError(msgs[cr.reason] || msgs[cr.error] || '创建失败');
+          return;
         }
-        const msgs = { room_full: '房间已满', nick_taken_in_room: '昵称已被占用', room_in_progress: '游戏已开始', code_taken: '房号已被占用', timeout: '连接超时，请检查网络', network: '网络错误，请稍后再试' };
-        fxqShowError(msgs[r.reason] || msgs[r.error] || '操作失败');
+        const msgs = { room_full: '房间已满，换一个房号试试', nick_taken_in_room: '昵称已被占用，换一个试试', room_in_progress: '游戏已开始，不能加入', timeout: '连接超时，请检查网络', network: '网络错误，请稍后再试' };
+        fxqShowError(msgs[r.reason] || msgs[r.error] || '加入失败');
         return;
       }
       const r = await fxqRoomApi('POST', 'create', { gameId: 'feixingqi', nick, deviceId: did });
