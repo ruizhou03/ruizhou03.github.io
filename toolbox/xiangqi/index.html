@@ -235,15 +235,19 @@ permalink: /toolbox/xiangqi/
         </div>
         <div class="gs-pgo-room-panel active" id="xqPgoLocalPanel"></div>
         <div class="gs-pgo-room-panel" id="xqPgoOnlinePanel">
-          <input type="text" class="gs-pgo-room-input" id="xqPgoNickInput" placeholder="你的昵称" />
-          <button class="gs-pgo-room-btn primary" id="xqPgoCreateRoomBtn">创建房间</button>
-          <div class="gs-pgo-room-code" id="xqPgoRoomCode" style="display:none;">房号：<strong id="xqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="xqPgoRoomCopyBtn">📋 复制</button></div>
-          <div style="width:100%;text-align:center;color:rgba(255,255,255,0.3);font-size:0.78rem;">— 或 —</div>
-          <input type="text" class="gs-pgo-room-input" id="xqPgoJoinCodeInput" placeholder="输入 4 位房号" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
-          <button class="gs-pgo-room-btn" id="xqPgoJoinRoomBtn">加入房间</button>
-          <div class="gs-pgo-room-error" id="xqPgoRoomError"></div>
-          <ul class="gs-pgo-room-players" id="xqPgoRoomPlayers"></ul>
-          <button class="gs-pgo-room-btn primary" id="xqPgoRoomStartBtn" disabled>等待房主开始…</button>
+          <div id="xqPgoRoomEntry">
+            <input type="text" class="gs-pgo-room-input" id="xqPgoRoomCodeInput" placeholder="输入4位房号加入（留空创建新房）" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+            <button class="gs-pgo-room-btn primary" id="xqPgoRoomActionBtn">创建 / 加入房间</button>
+            <div class="gs-pgo-room-error" id="xqPgoRoomError"></div>
+          </div>
+          <div id="xqPgoRoomLobby" style="display:none;">
+            <div class="gs-pgo-room-code">房号：<strong id="xqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="xqPgoRoomCopyBtn">📋 复制</button></div>
+            <ul class="gs-pgo-room-players" id="xqPgoRoomPlayers"></ul>
+            <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
+              <button class="gs-pgo-room-btn primary" id="xqPgoRoomStartBtn" disabled>需要 2 人</button>
+              <button class="gs-pgo-room-btn" id="xqPgoRoomLeaveBtn">退出房间</button>
+            </div>
+          </div>
         </div>
         <button class="gs-pgo-start-btn" id="xqPgoStartBtn">▶ 开始游戏</button>
       </div>
@@ -1283,7 +1287,14 @@ permalink: /toolbox/xiangqi/
 
   // ============ Room Client ============
   const BOARD_API = 'https://zircon-urge.vercel.app/api/board';
-  let xqRoomToken = null, xqRoomPlayerId = null, xqRoomCode = null, xqRoomStatePoller = null, xqIsOnline = false;
+  let xqRoomToken = null, xqRoomPlayerId = null, xqRoomCode = null, xqRoomHost = false;
+  let xqRoomStatePoller = null, xqIsOnline = false;
+  const XQ_MIN_PLAYERS = 2;
+
+  function xqRoomApi(method, action, body) {
+    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(() => ({ error: 'network' }));
+  }
+  function xqGetNick() { return GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000)); }
 
   document.getElementById('xqPgoRoomTabs').addEventListener('click', e => {
     const t = e.target.closest('.gs-pgo-room-tab');
@@ -1297,53 +1308,75 @@ permalink: /toolbox/xiangqi/
     xqIsOnline = tab === 'online';
   });
 
-  function xqRoomApi(method, action, body) {
-    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(() => ({ error: 'network' }));
-  }
+  function xqShowError(msg) { document.getElementById('xqPgoRoomError').textContent = msg || ''; }
 
-  async function xqCreateRoom() {
-    const nick = (document.getElementById('xqPgoNickInput').value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
-    const r = await xqRoomApi('POST', 'create', { gameId: 'xiangqi', nick, deviceId: GamesShell.Identity.getDeviceId() });
-    if (r.ok) {
-      xqRoomToken = r.playerToken; xqRoomPlayerId = r.playerId; xqRoomCode = r.code;
-      document.getElementById('xqPgoRoomCodeNum').textContent = r.code;
-      document.getElementById('xqPgoRoomCode').style.display = '';
-      document.getElementById('xqPgoCreateRoomBtn').style.display = 'none';
-      document.getElementById('xqPgoJoinCodeInput').style.display = 'none';
-      document.getElementById('xqPgoJoinRoomBtn').style.display = 'none';
-      xqUpdateRoomPlayers(r.room); xqStartPolling();
-    } else { document.getElementById('xqPgoRoomError').textContent = r.reason === 'nick_invalid' ? '昵称格式不对' : '创建失败'; }
-  }
-
-  async function xqJoinRoom() {
-    const code = (document.getElementById('xqPgoJoinCodeInput').value || '').trim();
-    if (!/^\d{4}$/.test(code)) { document.getElementById('xqPgoRoomError').textContent = '请输入 4 位数字房号'; return; }
-    const nick = (document.getElementById('xqPgoNickInput').value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
-    const r = await xqRoomApi('POST', 'join', { code, nick, deviceId: GamesShell.Identity.getDeviceId() });
-    if (r.ok) {
-      xqRoomToken = r.playerToken; xqRoomPlayerId = r.playerId; xqRoomCode = code;
-      document.getElementById('xqPgoRoomCodeNum').textContent = code;
-      document.getElementById('xqPgoRoomCode').style.display = '';
-      document.getElementById('xqPgoCreateRoomBtn').style.display = 'none';
-      document.getElementById('xqPgoJoinCodeInput').style.display = 'none';
-      document.getElementById('xqPgoJoinRoomBtn').style.display = 'none';
-      xqUpdateRoomPlayers(r.room); xqStartPolling();
-    } else {
-      const msgs = { room_not_found: '房间不存在', room_full: '房间已满', nick_taken_in_room: '昵称被占用了', room_in_progress: '游戏已开始' };
-      document.getElementById('xqPgoRoomError').textContent = msgs[r.reason] || '加入失败';
+  async function xqRoomAction() {
+    const code = (document.getElementById('xqPgoRoomCodeInput').value || '').trim();
+    xqShowError('');
+    const nick = xqGetNick(), did = GamesShell.Identity.getDeviceId();
+    if (/^\d{4}$/.test(code)) {
+      const r = await xqRoomApi('POST', 'join', { code, nick, deviceId: did });
+      if (r.ok) { xqEnterLobby(r); return; }
+      if (r.reason === 'room_not_found') {
+        const cr = await xqRoomApi('POST', 'create', { gameId: 'xiangqi', nick, deviceId: did, code });
+        if (cr.ok) { xqEnterLobby(cr); return; }
+      }
+      xqShowError({ room_full: '房间已满', nick_taken_in_room: '昵称已被占用', room_in_progress: '游戏已开始', code_taken: '房号已被占用' }[r.reason] || '操作失败');
+      return;
     }
+    const r = await xqRoomApi('POST', 'create', { gameId: 'xiangqi', nick, deviceId: did });
+    if (r.ok) { xqEnterLobby(r); return; }
+    xqShowError('创建失败');
   }
 
-  function xqUpdateRoomPlayers(room) {
+  function xqEnterLobby(r) {
+    xqRoomToken = r.playerToken; xqRoomPlayerId = r.playerId; xqRoomCode = r.code;
+    document.getElementById('xqPgoRoomCodeInput').parentElement.style.display = 'none';
+    document.getElementById('xqPgoRoomLobby').style.display = '';
+    document.getElementById('xqPgoRoomCodeNum').textContent = r.code;
+    xqUpdateLobby(r.room); xqStartPolling();
+  }
+
+  function xqUpdateLobby(room) {
+    xqRoomHost = room.youAreHost;
     const list = document.getElementById('xqPgoRoomPlayers');
-    if (!list) return;
-    list.innerHTML = (room.players || []).map(p => `<li>${p.nick}${p.isHost ? ' <span class="gs-pgo-room-host-badge">房主</span>' : ''}${p.id === xqRoomPlayerId ? ' (你)' : ''}</li>`).join('');
-    const startBtn = document.getElementById('xqPgoRoomStartBtn');
-    if (startBtn) {
-      const canStart = room.youAreHost && (room.players || []).length >= 2;
-      startBtn.disabled = !canStart;
-      startBtn.textContent = canStart ? '开始游戏' : (room.youAreHost ? '至少 2 人' : '等待房主开始…');
-    }
+    list.innerHTML = (room.players || []).map((p, i) => {
+      const isMe = p.id === xqRoomPlayerId, isHost = p.isHost;
+      let h = '<li>';
+      if (xqRoomHost && room.state === 'lobby' && !isMe) {
+        if (i > 0) h += `<button class="xq-room-act up" data-act="up" data-id="${p.id}">▲</button>`;
+        if (i < room.players.length - 1) h += `<button class="xq-room-act down" data-act="down" data-id="${p.id}">▼</button>`;
+      }
+      h += p.nick;
+      if (isMe) h += ' (你)';
+      if (isHost) h += ' <span class="gs-pgo-room-host-badge">房主</span>';
+      if (xqRoomHost && room.state === 'lobby' && !isMe) h += `<button class="xq-room-kick" data-act="kick" data-id="${p.id}">✕</button>`;
+      h += '</li>';
+      return h;
+    }).join('');
+    list.querySelectorAll('[data-act]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const act = btn.dataset.act, pid = btn.dataset.id;
+        if (act === 'kick') await xqRoomApi('POST', 'kick', { code: xqRoomCode, token: xqRoomToken, targetPlayerId: pid });
+        else if (act === 'up' || act === 'down') {
+          const ids = room.players.map(p => p.id), idx = ids.indexOf(pid);
+          if (act === 'up' && idx > 0) [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
+          else if (act === 'down' && idx < ids.length - 1) [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
+          await xqRoomApi('POST', 'reorder', { code: xqRoomCode, token: xqRoomToken, playerIds: ids });
+        }
+      });
+    });
+    document.getElementById('xqPgoRoomStartBtn').disabled = !(xqRoomHost && room.players.length >= XQ_MIN_PLAYERS);
+    document.getElementById('xqPgoRoomStartBtn').textContent = xqRoomHost ? `开始游戏 (${room.players.length}/${XQ_MIN_PLAYERS})` : '等待房主开始…';
+  }
+
+  async function xqLeaveRoom() {
+    if (xqRoomStatePoller) { clearTimeout(xqRoomStatePoller); xqRoomStatePoller = null; }
+    if (xqRoomToken) await xqRoomApi('POST', 'leave', { code: xqRoomCode, token: xqRoomToken });
+    xqRoomToken = null; xqRoomPlayerId = null; xqRoomCode = null; xqRoomHost = false;
+    document.getElementById('xqPgoRoomCodeInput').parentElement.style.display = '';
+    document.getElementById('xqPgoRoomLobby').style.display = 'none';
+    document.getElementById('xqPgoRoomCodeInput').value = '';
   }
 
   function xqStartPolling() {
@@ -1352,23 +1385,20 @@ permalink: /toolbox/xiangqi/
     async function poll() {
       if (!xqRoomToken) return;
       const r = await xqRoomApi('GET', `state&code=${xqRoomCode}&token=${xqRoomToken}&since=${since}`);
-      if (r.ok && r.room) {
+      if (!r.ok) { xqRoomStatePoller = setTimeout(poll, 2000); return; }
+      if (r.room) {
         since = r.version;
-        xqUpdateRoomPlayers(r.room);
-        if (r.room.state === 'playing') {
-          xqPgoOverlay.classList.remove('open');
-          state.mode = 'pvp'; persist();
-          newGame(); if (typeof xqSave !== 'undefined' && xqSave) xqSave.start();
-          return;
-        }
+        if (r.room.state === 'playing') { xqPgoOverlay.classList.remove('open'); state.mode = 'pvp'; persist(); newGame(); if (typeof xqSave !== 'undefined' && xqSave) xqSave.start(); return; }
+        if (!r.room.players.some(p => p.id === xqRoomPlayerId)) { xqLeaveRoom(); xqShowError('你已被房主移出房间'); return; }
+        xqUpdateLobby(r.room);
       }
       xqRoomStatePoller = setTimeout(poll, 1500);
     }
     poll();
   }
 
-  document.getElementById('xqPgoCreateRoomBtn').addEventListener('click', xqCreateRoom);
-  document.getElementById('xqPgoJoinRoomBtn').addEventListener('click', xqJoinRoom);
+  document.getElementById('xqPgoRoomActionBtn').addEventListener('click', xqRoomAction);
+  document.getElementById('xqPgoRoomLeaveBtn').addEventListener('click', xqLeaveRoom);
   document.getElementById('xqPgoRoomCopyBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(`${location.origin}/toolbox/xiangqi/?room=${xqRoomCode}`).then(() => {
       const btn = document.getElementById('xqPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制'; }, 2000);
@@ -1379,19 +1409,14 @@ permalink: /toolbox/xiangqi/
     if (r.ok) { xqPgoOverlay.classList.remove('open'); state.mode = 'pvp'; persist(); newGame(); if (typeof xqSave !== 'undefined' && xqSave) xqSave.start(); }
   });
 
-  if (GamesShell.Identity.getNick()) document.getElementById('xqPgoNickInput').value = GamesShell.Identity.getNick();
-
   document.getElementById('xqPgoStartBtn').addEventListener('click', () => {
     if (xqIsOnline) return;
-    state.mode = xqPgoSelectedMode;
-    state.difficulty = xqPgoSelectedDiff;
-    persist();
+    state.mode = xqPgoSelectedMode; state.difficulty = xqPgoSelectedDiff; persist();
     document.querySelectorAll('[data-mode]').forEach(t => t.classList.toggle('active', t.dataset.mode === state.mode));
     document.querySelectorAll('[data-difficulty]').forEach(t => t.classList.toggle('active', t.dataset.difficulty === state.difficulty));
     difficultyRow.hidden = (state.mode === 'pvp');
     if (typeof xqSave !== 'undefined' && xqSave) xqSave.discard();
-    newGame();
-    if (typeof xqSave !== 'undefined' && xqSave) xqSave.start();
+    newGame(); if (typeof xqSave !== 'undefined' && xqSave) xqSave.start();
   });
 
   // Render a preview frame

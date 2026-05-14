@@ -192,18 +192,19 @@ permalink: /toolbox/gomoku/
         <div class="gs-pgo-room-panel active" id="gmPgoLocalPanel"></div>
         <!-- 联机面板 -->
         <div class="gs-pgo-room-panel" id="gmPgoOnlinePanel">
-          <input type="text" class="gs-pgo-room-input" id="gmPgoNickInput" placeholder="你的昵称" />
-          <button class="gs-pgo-room-btn primary" id="gmPgoCreateRoomBtn">创建房间</button>
-          <div class="gs-pgo-room-code" id="gmPgoRoomCode" style="display:none;">
-            房号：<strong id="gmPgoRoomCodeNum"></strong>
-            <button class="gs-pgo-room-copy-btn" id="gmPgoRoomCopyBtn">📋 复制</button>
+          <div id="gmPgoRoomEntry">
+            <input type="text" class="gs-pgo-room-input" id="gmPgoRoomCodeInput" placeholder="输入4位房号加入（留空创建新房）" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+            <button class="gs-pgo-room-btn primary" id="gmPgoRoomActionBtn">创建 / 加入房间</button>
+            <div class="gs-pgo-room-error" id="gmPgoRoomError"></div>
           </div>
-          <div style="width:100%;text-align:center;color:rgba(255,255,255,0.3);font-size:0.78rem;">— 或 —</div>
-          <input type="text" class="gs-pgo-room-input" id="gmPgoJoinCodeInput" placeholder="输入 4 位房号" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
-          <button class="gs-pgo-room-btn" id="gmPgoJoinRoomBtn">加入房间</button>
-          <div class="gs-pgo-room-error" id="gmPgoRoomError"></div>
-          <ul class="gs-pgo-room-players" id="gmPgoRoomPlayers"></ul>
-          <button class="gs-pgo-room-btn primary" id="gmPgoRoomStartBtn" disabled>等待房主开始…</button>
+          <div id="gmPgoRoomLobby" style="display:none;">
+            <div class="gs-pgo-room-code">房号：<strong id="gmPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="gmPgoRoomCopyBtn">📋 复制</button></div>
+            <ul class="gs-pgo-room-players" id="gmPgoRoomPlayers"></ul>
+            <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
+              <button class="gs-pgo-room-btn primary" id="gmPgoRoomStartBtn" disabled>需要 2 人</button>
+              <button class="gs-pgo-room-btn" id="gmPgoRoomLeaveBtn">退出房间</button>
+            </div>
+          </div>
         </div>
         <button class="gs-pgo-start-btn" id="gmPgoStartBtn">▶ 开始游戏</button>
       </div>
@@ -939,11 +940,19 @@ permalink: /toolbox/gomoku/
 
   // ============ Room Client ============
   const BOARD_API = 'https://zircon-urge.vercel.app/api/board';
-  let gmRoomToken = null;
-  let gmRoomPlayerId = null;
-  let gmRoomCode = null;
-  let gmRoomStatePoller = null;
-  let gmIsOnline = false;
+  let gmRoomToken = null, gmRoomPlayerId = null, gmRoomCode = null, gmRoomHost = false;
+  let gmRoomStatePoller = null, gmIsOnline = false;
+  const GM_MIN_PLAYERS = 2;
+
+  function gmRoomApi(method, action, body) {
+    const url = `${BOARD_API}?action=${action}`;
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(url, opts).then(r => r.json()).catch(() => ({ error: 'network' }));
+  }
+
+  function gmGetNick() { return GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000)); }
+  function gmGetDid() { return GamesShell.Identity.getDeviceId(); }
 
   // Tab switching
   document.getElementById('gmPgoRoomTabs').addEventListener('click', e => {
@@ -958,80 +967,93 @@ permalink: /toolbox/gomoku/
     gmIsOnline = tab === 'online';
   });
 
-  function gmRoomApi(method, action, body) {
-    const url = `${BOARD_API}?action=${action}`;
-    const opts = { method, headers: { 'Content-Type': 'application/json' } };
-    if (body) opts.body = JSON.stringify(body);
-    return fetch(url, opts).then(r => r.json()).catch(() => ({ error: 'network' }));
-  }
+  function gmShowError(msg) { document.getElementById('gmPgoRoomError').textContent = msg || ''; }
 
-  async function gmCreateRoom() {
-    const nickInput = document.getElementById('gmPgoNickInput');
-    const nick = (nickInput.value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
-    const r = await gmRoomApi('POST', 'create', { gameId: 'gomoku', nick, deviceId: GamesShell.Identity.getDeviceId() });
-    if (r.ok) {
-      gmRoomToken = r.playerToken;
-      gmRoomPlayerId = r.playerId;
-      gmRoomCode = r.code;
-      document.getElementById('gmPgoRoomCodeNum').textContent = r.code;
-      document.getElementById('gmPgoRoomCode').style.display = '';
-      document.getElementById('gmPgoCreateRoomBtn').style.display = 'none';
-      document.getElementById('gmPgoJoinCodeInput').style.display = 'none';
-      document.getElementById('gmPgoJoinRoomBtn').style.display = 'none';
-      gmUpdateRoomPlayers(r.room);
-      gmStartPolling();
-    } else {
-      document.getElementById('gmPgoRoomError').textContent = r.reason === 'nick_invalid' ? '昵称格式不对' : '创建失败，稍后再试';
+  async function gmRoomAction() {
+    const codeEl = document.getElementById('gmPgoRoomCodeInput');
+    const code = (codeEl.value || '').trim();
+    gmShowError('');
+    const nick = gmGetNick(), did = gmGetDid();
+
+    if (/^\d{4}$/.test(code)) {
+      // Try join first
+      const r = await gmRoomApi('POST', 'join', { code, nick, deviceId: did });
+      if (r.ok) { gmEnterLobby(r); return; }
+      if (r.reason === 'room_not_found') {
+        // Create with this code
+        const cr = await gmRoomApi('POST', 'create', { gameId: 'gomoku', nick, deviceId: did, code });
+        if (cr.ok) { gmEnterLobby(cr); return; }
+      }
+      const msgs = { room_full: '房间已满', nick_taken_in_room: '昵称已被占用，换一个', room_in_progress: '游戏已开始，不能加入', code_taken: '房号已被占用' };
+      gmShowError(msgs[r.reason] || msgs[r.error] || '操作失败');
+      return;
     }
+
+    // Empty or invalid → create random
+    const r = await gmRoomApi('POST', 'create', { gameId: 'gomoku', nick, deviceId: did });
+    if (r.ok) { gmEnterLobby(r); return; }
+    gmShowError('创建失败，稍后再试');
   }
 
-  async function gmJoinRoom() {
-    const code = (document.getElementById('gmPgoJoinCodeInput').value || '').trim();
-    if (!/^\d{4}$/.test(code)) { document.getElementById('gmPgoRoomError').textContent = '请输入 4 位数字房号'; return; }
-    const nickInput = document.getElementById('gmPgoNickInput');
-    const nick = (nickInput.value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
-    const r = await gmRoomApi('POST', 'join', { code, nick, deviceId: GamesShell.Identity.getDeviceId() });
-    if (r.ok) {
-      gmRoomToken = r.playerToken;
-      gmRoomPlayerId = r.playerId;
-      gmRoomCode = code;
-      document.getElementById('gmPgoRoomCodeNum').textContent = code;
-      document.getElementById('gmPgoRoomCode').style.display = '';
-      document.getElementById('gmPgoCreateRoomBtn').style.display = 'none';
-      document.getElementById('gmPgoJoinCodeInput').style.display = 'none';
-      document.getElementById('gmPgoJoinRoomBtn').style.display = 'none';
-      gmUpdateRoomPlayers(r.room);
-      gmStartPolling();
-    } else {
-      const msgs = { room_not_found: '房间不存在或已解散', room_full: '房间已满', nick_taken_in_room: '昵称被占用了，换一个', room_in_progress: '游戏已开始，不能加入' };
-      document.getElementById('gmPgoRoomError').textContent = msgs[r.reason] || '加入失败';
-    }
+  function gmEnterLobby(r) {
+    gmRoomToken = r.playerToken; gmRoomPlayerId = r.playerId; gmRoomCode = r.code;
+    document.getElementById('gmPgoRoomCodeInput').parentElement.style.display = 'none';
+    document.getElementById('gmPgoRoomLobby').style.display = '';
+    document.getElementById('gmPgoRoomCodeNum').textContent = r.code;
+    gmUpdateLobby(r.room);
+    gmStartPolling();
   }
 
-  async function gmStartGame() {
-    const r = await gmRoomApi('POST', 'start', { code: gmRoomCode, token: gmRoomToken });
-    if (r.ok && r.room) {
-      gmPgoOverlay.classList.remove('open');
-      state.mode = 'pvp';
-      persist();
-      newGame();
-      if (gmSave) gmSave.start();
-    }
-  }
-
-  function gmUpdateRoomPlayers(room) {
+  function gmUpdateLobby(room) {
+    gmRoomHost = room.youAreHost;
     const list = document.getElementById('gmPgoRoomPlayers');
-    if (!list) return;
-    list.innerHTML = (room.players || []).map(p =>
-      `<li>${p.nick}${p.isHost ? ' <span class="gs-pgo-room-host-badge">房主</span>' : ''}${p.id === gmRoomPlayerId ? ' (你)' : ''}</li>`
-    ).join('');
+    list.innerHTML = (room.players || []).map((p, i) => {
+      const isMe = p.id === gmRoomPlayerId, isHost = p.isHost;
+      let h = '<li>';
+      if (gmRoomHost && room.state === 'lobby' && !isMe) {
+        if (i > 0) h += `<button class="gm-room-act up" data-act="up" data-id="${p.id}">▲</button>`;
+        if (i < room.players.length - 1) h += `<button class="gm-room-act down" data-act="down" data-id="${p.id}">▼</button>`;
+      }
+      h += p.nick;
+      if (isMe) h += ' (你)';
+      if (isHost) h += ' <span class="gs-pgo-room-host-badge">房主</span>';
+      if (gmRoomHost && room.state === 'lobby' && !isMe) {
+        h += `<button class="gm-room-kick" data-act="kick" data-id="${p.id}" title="踢出">✕</button>`;
+      }
+      h += '</li>';
+      return h;
+    }).join('');
+
+    // Wire reorder/kick clicks
+    list.querySelectorAll('[data-act]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const act = btn.dataset.act, pid = btn.dataset.id;
+        if (act === 'kick') await gmRoomApi('POST', 'kick', { code: gmRoomCode, token: gmRoomToken, targetPlayerId: pid });
+        else if (act === 'up' || act === 'down') {
+          const ids = room.players.map(p => p.id);
+          const idx = ids.indexOf(pid);
+          if (act === 'up' && idx > 0) { [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]]; }
+          else if (act === 'down' && idx < ids.length - 1) { [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]]; }
+          await gmRoomApi('POST', 'reorder', { code: gmRoomCode, token: gmRoomToken, playerIds: ids });
+        }
+      });
+    });
+
     const startBtn = document.getElementById('gmPgoRoomStartBtn');
-    if (startBtn) {
-      const cfg = { gomoku: { minPlayers: 2 } }[room.game] || { minPlayers: 2 };
-      const canStart = room.youAreHost && (room.players || []).length >= cfg.minPlayers;
-      startBtn.disabled = !canStart;
-      startBtn.textContent = canStart ? '开始游戏' : (room.youAreHost ? `至少 ${cfg.minPlayers} 人` : '等待房主开始…');
+    startBtn.disabled = !(gmRoomHost && room.players.length >= GM_MIN_PLAYERS);
+    startBtn.textContent = gmRoomHost ? `开始游戏 (${room.players.length}/${GM_MIN_PLAYERS})` : '等待房主开始…';
+  }
+
+  async function gmLeaveRoom() {
+    if (gmRoomStatePoller) { clearTimeout(gmRoomStatePoller); gmRoomStatePoller = null; }
+    if (gmRoomToken) {
+      await gmRoomApi('POST', 'leave', { code: gmRoomCode, token: gmRoomToken });
     }
+    gmRoomToken = null; gmRoomPlayerId = null; gmRoomCode = null; gmRoomHost = false;
+    document.getElementById('gmPgoRoomCodeInput').parentElement.style.display = '';
+    document.getElementById('gmPgoRoomLobby').style.display = 'none';
+    document.getElementById('gmPgoRoomPlayers').innerHTML = '';
+    document.getElementById('gmPgoRoomCodeInput').value = '';
   }
 
   function gmStartPolling() {
@@ -1040,52 +1062,54 @@ permalink: /toolbox/gomoku/
     async function poll() {
       if (!gmRoomToken) return;
       const r = await gmRoomApi('GET', `state&code=${gmRoomCode}&token=${gmRoomToken}&since=${since}`);
-      if (r.ok && r.room) {
+      if (!r.ok) { gmRoomStatePoller = setTimeout(poll, 2000); return; }
+      if (r.room) {
         since = r.version;
-        gmUpdateRoomPlayers(r.room);
         if (r.room.state === 'playing') {
           gmPgoOverlay.classList.remove('open');
-          state.mode = 'pvp';
-          persist();
-          newGame();
-          if (gmSave) gmSave.start();
+          state.mode = 'pvp'; persist();
+          newGame(); if (gmSave) gmSave.start();
           return;
         }
+        // Check if current player was removed
+        if (!r.room.players.some(p => p.id === gmRoomPlayerId)) {
+          gmLeaveRoom(); gmShowError('你已被房主移出房间');
+          return;
+        }
+        gmUpdateLobby(r.room);
       }
       gmRoomStatePoller = setTimeout(poll, 1500);
     }
     poll();
   }
 
-  // Room buttons
-  document.getElementById('gmPgoCreateRoomBtn').addEventListener('click', gmCreateRoom);
-  document.getElementById('gmPgoJoinRoomBtn').addEventListener('click', gmJoinRoom);
+  // Wire buttons
+  document.getElementById('gmPgoRoomActionBtn').addEventListener('click', gmRoomAction);
+  document.getElementById('gmPgoRoomLeaveBtn').addEventListener('click', gmLeaveRoom);
   document.getElementById('gmPgoRoomCopyBtn').addEventListener('click', () => {
-    const url = `${location.origin}/toolbox/gomoku/?room=${gmRoomCode}`;
-    navigator.clipboard.writeText(url).then(() => {
-      const btn = document.getElementById('gmPgoRoomCopyBtn');
-      btn.textContent = '✓ 已复制';
-      setTimeout(() => { btn.textContent = '📋 复制'; }, 2000);
+    navigator.clipboard.writeText(`${location.origin}/toolbox/gomoku/?room=${gmRoomCode}`).then(() => {
+      const btn = document.getElementById('gmPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制'; }, 2000);
     }).catch(() => {});
   });
-  document.getElementById('gmPgoRoomStartBtn').addEventListener('click', gmStartGame);
-
-  // Auto-fill nick
-  const gmNick = GamesShell.Identity.getNick();
-  if (gmNick) document.getElementById('gmPgoNickInput').value = gmNick;
+  document.getElementById('gmPgoRoomStartBtn').addEventListener('click', async () => {
+    const r = await gmRoomApi('POST', 'start', { code: gmRoomCode, token: gmRoomToken });
+    if (r.ok) { gmPgoOverlay.classList.remove('open'); state.mode = 'pvp'; persist(); newGame(); if (gmSave) gmSave.start(); }
+  });
 
   // URL room param → auto-join
-  const gmUrlRoom = new URLSearchParams(location.search).get('room');
-  if (gmUrlRoom && /^\d{4}$/.test(gmUrlRoom)) {
-    document.getElementById('gmPgoJoinCodeInput').value = gmUrlRoom;
-    // Switch to online tab
-    document.querySelector('#gmPgoRoomTabs .gs-pgo-room-tab[data-tab="online"]')?.click();
-    // Auto-join after brief delay (wait for identity)
-    setTimeout(gmJoinRoom, 800);
-  }
+  (function gmAutoJoin() {
+    const code = new URLSearchParams(location.search).get('room');
+    if (code && /^\d{4}$/.test(code)) {
+      document.getElementById('gmPgoRoomCodeInput').value = code;
+      setTimeout(() => {
+        document.querySelector('#gmPgoRoomTabs .gs-pgo-room-tab[data-tab="online"]')?.click();
+        setTimeout(gmRoomAction, 800);
+      }, 500);
+    }
+  })();
 
   document.getElementById('gmPgoStartBtn').addEventListener('click', () => {
-    if (gmIsOnline) return; // Online games start via host button
+    if (gmIsOnline) return;
     state.mode = gmPgoSelectedMode;
     state.difficulty = gmPgoSelectedDiff;
     persist();

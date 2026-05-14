@@ -997,6 +997,35 @@
   min-height: 1.2em;
 }
 
+/* 房间内小按钮：踢人、排序 */
+[class*="-room-kick"] {
+  font: inherit;
+  font-size: 0.72rem;
+  margin-left: auto;
+  padding: 0.1rem 0.35rem;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+[class*="-room-kick"]:hover { background: rgba(239, 68, 68, 0.4); color: #fff; }
+
+[class*="-room-act"] {
+  font: inherit;
+  font-size: 0.65rem;
+  padding: 0.05rem 0.35rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-right: 0.2rem;
+}
+[class*="-room-act"]:hover { border-color: rgba(255, 255, 255, 0.4); color: rgba(255, 255, 255, 0.8); }
+
 /* 本地玩家配置区（feixingqi/tiaoqi chip 选择等） */
 .gs-pgo-local-config {
   width: 100%;

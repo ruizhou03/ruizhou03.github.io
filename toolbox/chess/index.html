@@ -243,15 +243,19 @@ permalink: /toolbox/chess/
         </div>
         <div class="gs-pgo-room-panel active" id="chPgoLocalPanel"></div>
         <div class="gs-pgo-room-panel" id="chPgoOnlinePanel">
-          <input type="text" class="gs-pgo-room-input" id="chPgoNickInput" placeholder="你的昵称" />
-          <button class="gs-pgo-room-btn primary" id="chPgoCreateRoomBtn">创建房间</button>
-          <div class="gs-pgo-room-code" id="chPgoRoomCode" style="display:none;">房号：<strong id="chPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="chPgoRoomCopyBtn">📋 复制</button></div>
-          <div style="width:100%;text-align:center;color:rgba(255,255,255,0.3);font-size:0.78rem;">— 或 —</div>
-          <input type="text" class="gs-pgo-room-input" id="chPgoJoinCodeInput" placeholder="输入 4 位房号" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
-          <button class="gs-pgo-room-btn" id="chPgoJoinRoomBtn">加入房间</button>
-          <div class="gs-pgo-room-error" id="chPgoRoomError"></div>
-          <ul class="gs-pgo-room-players" id="chPgoRoomPlayers"></ul>
-          <button class="gs-pgo-room-btn primary" id="chPgoRoomStartBtn" disabled>等待房主开始…</button>
+          <div id="chPgoRoomEntry">
+            <input type="text" class="gs-pgo-room-input" id="chPgoRoomCodeInput" placeholder="输入4位房号加入（留空创建新房）" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+            <button class="gs-pgo-room-btn primary" id="chPgoRoomActionBtn">创建 / 加入房间</button>
+            <div class="gs-pgo-room-error" id="chPgoRoomError"></div>
+          </div>
+          <div id="chPgoRoomLobby" style="display:none;">
+            <div class="gs-pgo-room-code">房号：<strong id="chPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="chPgoRoomCopyBtn">📋 复制</button></div>
+            <ul class="gs-pgo-room-players" id="chPgoRoomPlayers"></ul>
+            <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
+              <button class="gs-pgo-room-btn primary" id="chPgoRoomStartBtn" disabled>需要 2 人</button>
+              <button class="gs-pgo-room-btn" id="chPgoRoomLeaveBtn">退出房间</button>
+            </div>
+          </div>
         </div>
         <button class="gs-pgo-start-btn" id="chPgoStartBtn">▶ 开始游戏</button>
       </div>
@@ -1070,7 +1074,14 @@ permalink: /toolbox/chess/
 
   // ============ Room Client ============
   const BOARD_API = 'https://zircon-urge.vercel.app/api/board';
-  let chRoomToken = null, chRoomPlayerId = null, chRoomCode = null, chRoomStatePoller = null, chIsOnline = false;
+  let chRoomToken = null, chRoomPlayerId = null, chRoomCode = null, chRoomHost = false;
+  let chRoomStatePoller = null, chIsOnline = false;
+  const CH_MIN_PLAYERS = 2;
+
+  function chRoomApi(method, action, body) {
+    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(() => ({ error: 'network' }));
+  }
+  function chGetNick() { return GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000)); }
 
   document.getElementById('chPgoRoomTabs').addEventListener('click', e => {
     const t = e.target.closest('.gs-pgo-room-tab');
@@ -1084,53 +1095,75 @@ permalink: /toolbox/chess/
     chIsOnline = tab === 'online';
   });
 
-  function chRoomApi(method, action, body) {
-    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(() => ({ error: 'network' }));
-  }
+  function chShowError(msg) { document.getElementById('chPgoRoomError').textContent = msg || ''; }
 
-  async function chCreateRoom() {
-    const nick = (document.getElementById('chPgoNickInput').value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
-    const r = await chRoomApi('POST', 'create', { gameId: 'chess', nick, deviceId: GamesShell.Identity.getDeviceId() });
-    if (r.ok) {
-      chRoomToken = r.playerToken; chRoomPlayerId = r.playerId; chRoomCode = r.code;
-      document.getElementById('chPgoRoomCodeNum').textContent = r.code;
-      document.getElementById('chPgoRoomCode').style.display = '';
-      document.getElementById('chPgoCreateRoomBtn').style.display = 'none';
-      document.getElementById('chPgoJoinCodeInput').style.display = 'none';
-      document.getElementById('chPgoJoinRoomBtn').style.display = 'none';
-      chUpdateRoomPlayers(r.room); chStartPolling();
-    } else { document.getElementById('chPgoRoomError').textContent = r.reason === 'nick_invalid' ? '昵称格式不对' : '创建失败'; }
-  }
-
-  async function chJoinRoom() {
-    const code = (document.getElementById('chPgoJoinCodeInput').value || '').trim();
-    if (!/^\d{4}$/.test(code)) { document.getElementById('chPgoRoomError').textContent = '请输入 4 位数字房号'; return; }
-    const nick = (document.getElementById('chPgoNickInput').value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
-    const r = await chRoomApi('POST', 'join', { code, nick, deviceId: GamesShell.Identity.getDeviceId() });
-    if (r.ok) {
-      chRoomToken = r.playerToken; chRoomPlayerId = r.playerId; chRoomCode = code;
-      document.getElementById('chPgoRoomCodeNum').textContent = code;
-      document.getElementById('chPgoRoomCode').style.display = '';
-      document.getElementById('chPgoCreateRoomBtn').style.display = 'none';
-      document.getElementById('chPgoJoinCodeInput').style.display = 'none';
-      document.getElementById('chPgoJoinRoomBtn').style.display = 'none';
-      chUpdateRoomPlayers(r.room); chStartPolling();
-    } else {
-      const msgs = { room_not_found: '房间不存在', room_full: '房间已满', nick_taken_in_room: '昵称被占用了', room_in_progress: '游戏已开始' };
-      document.getElementById('chPgoRoomError').textContent = msgs[r.reason] || '加入失败';
+  async function chRoomAction() {
+    const code = (document.getElementById('chPgoRoomCodeInput').value || '').trim();
+    chShowError('');
+    const nick = chGetNick(), did = GamesShell.Identity.getDeviceId();
+    if (/^\d{4}$/.test(code)) {
+      const r = await chRoomApi('POST', 'join', { code, nick, deviceId: did });
+      if (r.ok) { chEnterLobby(r); return; }
+      if (r.reason === 'room_not_found') {
+        const cr = await chRoomApi('POST', 'create', { gameId: 'chess', nick, deviceId: did, code });
+        if (cr.ok) { chEnterLobby(cr); return; }
+      }
+      chShowError({ room_full: '房间已满', nick_taken_in_room: '昵称已被占用', room_in_progress: '游戏已开始', code_taken: '房号已被占用' }[r.reason] || '操作失败');
+      return;
     }
+    const r = await chRoomApi('POST', 'create', { gameId: 'chess', nick, deviceId: did });
+    if (r.ok) { chEnterLobby(r); return; }
+    chShowError('创建失败');
   }
 
-  function chUpdateRoomPlayers(room) {
+  function chEnterLobby(r) {
+    chRoomToken = r.playerToken; chRoomPlayerId = r.playerId; chRoomCode = r.code;
+    document.getElementById('chPgoRoomCodeInput').parentElement.style.display = 'none';
+    document.getElementById('chPgoRoomLobby').style.display = '';
+    document.getElementById('chPgoRoomCodeNum').textContent = r.code;
+    chUpdateLobby(r.room); chStartPolling();
+  }
+
+  function chUpdateLobby(room) {
+    chRoomHost = room.youAreHost;
     const list = document.getElementById('chPgoRoomPlayers');
-    if (!list) return;
-    list.innerHTML = (room.players || []).map(p => `<li>${p.nick}${p.isHost ? ' <span class="gs-pgo-room-host-badge">房主</span>' : ''}${p.id === chRoomPlayerId ? ' (你)' : ''}</li>`).join('');
-    const startBtn = document.getElementById('chPgoRoomStartBtn');
-    if (startBtn) {
-      const canStart = room.youAreHost && (room.players || []).length >= 2;
-      startBtn.disabled = !canStart;
-      startBtn.textContent = canStart ? '开始游戏' : (room.youAreHost ? '至少 2 人' : '等待房主开始…');
-    }
+    list.innerHTML = (room.players || []).map((p, i) => {
+      const isMe = p.id === chRoomPlayerId, isHost = p.isHost;
+      let h = '<li>';
+      if (chRoomHost && room.state === 'lobby' && !isMe) {
+        if (i > 0) h += `<button class="ch-room-act up" data-act="up" data-id="${p.id}">▲</button>`;
+        if (i < room.players.length - 1) h += `<button class="ch-room-act down" data-act="down" data-id="${p.id}">▼</button>`;
+      }
+      h += p.nick;
+      if (isMe) h += ' (你)';
+      if (isHost) h += ' <span class="gs-pgo-room-host-badge">房主</span>';
+      if (chRoomHost && room.state === 'lobby' && !isMe) h += `<button class="ch-room-kick" data-act="kick" data-id="${p.id}">✕</button>`;
+      h += '</li>';
+      return h;
+    }).join('');
+    list.querySelectorAll('[data-act]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const act = btn.dataset.act, pid = btn.dataset.id;
+        if (act === 'kick') await chRoomApi('POST', 'kick', { code: chRoomCode, token: chRoomToken, targetPlayerId: pid });
+        else if (act === 'up' || act === 'down') {
+          const ids = room.players.map(p => p.id), idx = ids.indexOf(pid);
+          if (act === 'up' && idx > 0) [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
+          else if (act === 'down' && idx < ids.length - 1) [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
+          await chRoomApi('POST', 'reorder', { code: chRoomCode, token: chRoomToken, playerIds: ids });
+        }
+      });
+    });
+    document.getElementById('chPgoRoomStartBtn').disabled = !(chRoomHost && room.players.length >= CH_MIN_PLAYERS);
+    document.getElementById('chPgoRoomStartBtn').textContent = chRoomHost ? `开始游戏 (${room.players.length}/${CH_MIN_PLAYERS})` : '等待房主开始…';
+  }
+
+  async function chLeaveRoom() {
+    if (chRoomStatePoller) { clearTimeout(chRoomStatePoller); chRoomStatePoller = null; }
+    if (chRoomToken) await chRoomApi('POST', 'leave', { code: chRoomCode, token: chRoomToken });
+    chRoomToken = null; chRoomPlayerId = null; chRoomCode = null; chRoomHost = false;
+    document.getElementById('chPgoRoomCodeInput').parentElement.style.display = '';
+    document.getElementById('chPgoRoomLobby').style.display = 'none';
+    document.getElementById('chPgoRoomCodeInput').value = '';
   }
 
   function chStartPolling() {
@@ -1139,23 +1172,20 @@ permalink: /toolbox/chess/
     async function poll() {
       if (!chRoomToken) return;
       const r = await chRoomApi('GET', `state&code=${chRoomCode}&token=${chRoomToken}&since=${since}`);
-      if (r.ok && r.room) {
+      if (!r.ok) { chRoomStatePoller = setTimeout(poll, 2000); return; }
+      if (r.room) {
         since = r.version;
-        chUpdateRoomPlayers(r.room);
-        if (r.room.state === 'playing') {
-          chPgoOverlay.classList.remove('open');
-          state.mode = 'pvp'; persist();
-          newGame(); if (chSave) chSave.start();
-          return;
-        }
+        if (r.room.state === 'playing') { chPgoOverlay.classList.remove('open'); state.mode = 'pvp'; persist(); newGame(); if (chSave) chSave.start(); return; }
+        if (!r.room.players.some(p => p.id === chRoomPlayerId)) { chLeaveRoom(); chShowError('你已被房主移出房间'); return; }
+        chUpdateLobby(r.room);
       }
       chRoomStatePoller = setTimeout(poll, 1500);
     }
     poll();
   }
 
-  document.getElementById('chPgoCreateRoomBtn').addEventListener('click', chCreateRoom);
-  document.getElementById('chPgoJoinRoomBtn').addEventListener('click', chJoinRoom);
+  document.getElementById('chPgoRoomActionBtn').addEventListener('click', chRoomAction);
+  document.getElementById('chPgoRoomLeaveBtn').addEventListener('click', chLeaveRoom);
   document.getElementById('chPgoRoomCopyBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(`${location.origin}/toolbox/chess/?room=${chRoomCode}`).then(() => {
       const btn = document.getElementById('chPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制'; }, 2000);
@@ -1166,19 +1196,13 @@ permalink: /toolbox/chess/
     if (r.ok) { chPgoOverlay.classList.remove('open'); state.mode = 'pvp'; persist(); newGame(); if (chSave) chSave.start(); }
   });
 
-  if (GamesShell.Identity.getNick()) document.getElementById('chPgoNickInput').value = GamesShell.Identity.getNick();
-
   document.getElementById('chPgoStartBtn').addEventListener('click', () => {
     if (chIsOnline) return;
-    state.mode = chPgoSelectedMode;
-    state.difficulty = chPgoSelectedDiff;
-    persist();
+    state.mode = chPgoSelectedMode; state.difficulty = chPgoSelectedDiff; persist();
     document.querySelectorAll('[data-mode]').forEach(t => t.classList.toggle('active', t.dataset.mode === state.mode));
     document.querySelectorAll('[data-difficulty]').forEach(t => t.classList.toggle('active', t.dataset.difficulty === state.difficulty));
     difficultyRow.hidden = (state.mode === 'pvp');
-    if (chSave) chSave.discard();
-    newGame();
-    if (chSave) chSave.start();
+    if (chSave) chSave.discard(); newGame(); if (chSave) chSave.start();
   });
 
   // Render a preview frame before game starts

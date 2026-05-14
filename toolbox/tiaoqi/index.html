@@ -316,15 +316,19 @@ permalink: /toolbox/tiaoqi/
           </div>
           <div class="gs-pgo-room-panel active" id="tqPgoLocalPanel"></div>
           <div class="gs-pgo-room-panel" id="tqPgoOnlinePanel">
-            <input type="text" class="gs-pgo-room-input" id="tqPgoNickInput" placeholder="你的昵称" />
-            <button class="gs-pgo-room-btn primary" id="tqPgoCreateRoomBtn">创建房间</button>
-            <div class="gs-pgo-room-code" id="tqPgoRoomCode" style="display:none;">房号：<strong id="tqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="tqPgoRoomCopyBtn">📋 复制</button></div>
-            <div style="width:100%;text-align:center;color:rgba(255,255,255,0.3);font-size:0.78rem;">— 或 —</div>
-            <input type="text" class="gs-pgo-room-input" id="tqPgoJoinCodeInput" placeholder="输入 4 位房号" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
-            <button class="gs-pgo-room-btn" id="tqPgoJoinRoomBtn">加入房间</button>
-            <div class="gs-pgo-room-error" id="tqPgoRoomError"></div>
-            <ul class="gs-pgo-room-players" id="tqPgoRoomPlayers"></ul>
-            <button class="gs-pgo-room-btn primary" id="tqPgoRoomStartBtn" disabled>等待房主开始…</button>
+            <div id="tqPgoRoomEntry">
+              <input type="text" class="gs-pgo-room-input" id="tqPgoRoomCodeInput" placeholder="输入4位房号加入（留空创建新房）" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+              <button class="gs-pgo-room-btn primary" id="tqPgoRoomActionBtn">创建 / 加入房间</button>
+              <div class="gs-pgo-room-error" id="tqPgoRoomError"></div>
+            </div>
+            <div id="tqPgoRoomLobby" style="display:none;">
+              <div class="gs-pgo-room-code">房号：<strong id="tqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="tqPgoRoomCopyBtn">📋 复制</button></div>
+              <ul class="gs-pgo-room-players" id="tqPgoRoomPlayers"></ul>
+              <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
+                <button class="gs-pgo-room-btn primary" id="tqPgoRoomStartBtn" disabled>需要 2 人</button>
+                <button class="gs-pgo-room-btn" id="tqPgoRoomLeaveBtn">退出房间</button>
+              </div>
+            </div>
           </div>
           <button class="gs-pgo-start-btn" id="tqPgoStartBtn">▶ 开始游戏</button>
         </div>
@@ -1652,7 +1656,7 @@ permalink: /toolbox/tiaoqi/
       chip.addEventListener('click', () => {
         const cycle = { empty: 'human', human: 'ai', ai: 'empty' };
         state.setupConfig[ck] = cycle[state.setupConfig[ck]];
-        localStorage.setItem(SETUP_KEY, JSON.stringify(state.setupConfig));
+        persist();
         renderCornerChips();
         tqSyncOverlayChips();
         tqUpdatePgoDiffVisibility();
@@ -1677,7 +1681,14 @@ permalink: /toolbox/tiaoqi/
 
   // ============ Room Client ============
   const BOARD_API = 'https://zircon-urge.vercel.app/api/board';
-  let tqRoomToken = null, tqRoomPlayerId = null, tqRoomCode = null, tqRoomStatePoller = null, tqIsOnline = false;
+  let tqRoomToken = null, tqRoomPlayerId = null, tqRoomCode = null, tqRoomHost = false;
+  let tqRoomStatePoller = null, tqIsOnline = false;
+  const TQ_MIN_PLAYERS = 2;
+
+  function tqRoomApi(method, action, body) {
+    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(() => ({ error: 'network' }));
+  }
+  function tqGetNick() { return GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000)); }
 
   document.getElementById('tqPgoRoomTabs').addEventListener('click', e => {
     const t = e.target.closest('.gs-pgo-room-tab');
@@ -1691,53 +1702,75 @@ permalink: /toolbox/tiaoqi/
     tqIsOnline = tab === 'online';
   });
 
-  function tqRoomApi(method, action, body) {
-    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(() => ({ error: 'network' }));
-  }
+  function tqShowError(msg) { document.getElementById('tqPgoRoomError').textContent = msg || ''; }
 
-  async function tqCreateRoom() {
-    const nick = (document.getElementById('tqPgoNickInput').value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
-    const r = await tqRoomApi('POST', 'create', { gameId: 'tiaoqi', nick, deviceId: GamesShell.Identity.getDeviceId() });
-    if (r.ok) {
-      tqRoomToken = r.playerToken; tqRoomPlayerId = r.playerId; tqRoomCode = r.code;
-      document.getElementById('tqPgoRoomCodeNum').textContent = r.code;
-      document.getElementById('tqPgoRoomCode').style.display = '';
-      document.getElementById('tqPgoCreateRoomBtn').style.display = 'none';
-      document.getElementById('tqPgoJoinCodeInput').style.display = 'none';
-      document.getElementById('tqPgoJoinRoomBtn').style.display = 'none';
-      tqUpdateRoomPlayers(r.room); tqStartPolling();
-    } else { document.getElementById('tqPgoRoomError').textContent = r.reason === 'nick_invalid' ? '昵称格式不对' : '创建失败'; }
-  }
-
-  async function tqJoinRoom() {
-    const code = (document.getElementById('tqPgoJoinCodeInput').value || '').trim();
-    if (!/^\d{4}$/.test(code)) { document.getElementById('tqPgoRoomError').textContent = '请输入 4 位数字房号'; return; }
-    const nick = (document.getElementById('tqPgoNickInput').value || '').trim() || GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000));
-    const r = await tqRoomApi('POST', 'join', { code, nick, deviceId: GamesShell.Identity.getDeviceId() });
-    if (r.ok) {
-      tqRoomToken = r.playerToken; tqRoomPlayerId = r.playerId; tqRoomCode = code;
-      document.getElementById('tqPgoRoomCodeNum').textContent = code;
-      document.getElementById('tqPgoRoomCode').style.display = '';
-      document.getElementById('tqPgoCreateRoomBtn').style.display = 'none';
-      document.getElementById('tqPgoJoinCodeInput').style.display = 'none';
-      document.getElementById('tqPgoJoinRoomBtn').style.display = 'none';
-      tqUpdateRoomPlayers(r.room); tqStartPolling();
-    } else {
-      const msgs = { room_not_found: '房间不存在', room_full: '房间已满', nick_taken_in_room: '昵称被占用了', room_in_progress: '游戏已开始' };
-      document.getElementById('tqPgoRoomError').textContent = msgs[r.reason] || '加入失败';
+  async function tqRoomAction() {
+    const code = (document.getElementById('tqPgoRoomCodeInput').value || '').trim();
+    tqShowError('');
+    const nick = tqGetNick(), did = GamesShell.Identity.getDeviceId();
+    if (/^\d{4}$/.test(code)) {
+      const r = await tqRoomApi('POST', 'join', { code, nick, deviceId: did });
+      if (r.ok) { tqEnterLobby(r); return; }
+      if (r.reason === 'room_not_found') {
+        const cr = await tqRoomApi('POST', 'create', { gameId: 'tiaoqi', nick, deviceId: did, code });
+        if (cr.ok) { tqEnterLobby(cr); return; }
+      }
+      tqShowError({ room_full: '房间已满', nick_taken_in_room: '昵称已被占用', room_in_progress: '游戏已开始', code_taken: '房号已被占用' }[r.reason] || '操作失败');
+      return;
     }
+    const r = await tqRoomApi('POST', 'create', { gameId: 'tiaoqi', nick, deviceId: did });
+    if (r.ok) { tqEnterLobby(r); return; }
+    tqShowError('创建失败');
   }
 
-  function tqUpdateRoomPlayers(room) {
+  function tqEnterLobby(r) {
+    tqRoomToken = r.playerToken; tqRoomPlayerId = r.playerId; tqRoomCode = r.code;
+    document.getElementById('tqPgoRoomCodeInput').parentElement.style.display = 'none';
+    document.getElementById('tqPgoRoomLobby').style.display = '';
+    document.getElementById('tqPgoRoomCodeNum').textContent = r.code;
+    tqUpdateLobby(r.room); tqStartPolling();
+  }
+
+  function tqUpdateLobby(room) {
+    tqRoomHost = room.youAreHost;
     const list = document.getElementById('tqPgoRoomPlayers');
-    if (!list) return;
-    list.innerHTML = (room.players || []).map(p => `<li>${p.nick}${p.isHost ? ' <span class="gs-pgo-room-host-badge">房主</span>' : ''}${p.id === tqRoomPlayerId ? ' (你)' : ''}</li>`).join('');
-    const startBtn = document.getElementById('tqPgoRoomStartBtn');
-    if (startBtn) {
-      const canStart = room.youAreHost && (room.players || []).length >= 2;
-      startBtn.disabled = !canStart;
-      startBtn.textContent = canStart ? '开始游戏' : (room.youAreHost ? '至少 2 人' : '等待房主开始…');
-    }
+    list.innerHTML = (room.players || []).map((p, i) => {
+      const isMe = p.id === tqRoomPlayerId, isHost = p.isHost;
+      let h = '<li>';
+      if (tqRoomHost && room.state === 'lobby' && !isMe) {
+        if (i > 0) h += `<button class="tq-room-act up" data-act="up" data-id="${p.id}">▲</button>`;
+        if (i < room.players.length - 1) h += `<button class="tq-room-act down" data-act="down" data-id="${p.id}">▼</button>`;
+      }
+      h += p.nick;
+      if (isMe) h += ' (你)';
+      if (isHost) h += ' <span class="gs-pgo-room-host-badge">房主</span>';
+      if (tqRoomHost && room.state === 'lobby' && !isMe) h += `<button class="tq-room-kick" data-act="kick" data-id="${p.id}">✕</button>`;
+      h += '</li>';
+      return h;
+    }).join('');
+    list.querySelectorAll('[data-act]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const act = btn.dataset.act, pid = btn.dataset.id;
+        if (act === 'kick') await tqRoomApi('POST', 'kick', { code: tqRoomCode, token: tqRoomToken, targetPlayerId: pid });
+        else if (act === 'up' || act === 'down') {
+          const ids = room.players.map(p => p.id), idx = ids.indexOf(pid);
+          if (act === 'up' && idx > 0) [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
+          else if (act === 'down' && idx < ids.length - 1) [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
+          await tqRoomApi('POST', 'reorder', { code: tqRoomCode, token: tqRoomToken, playerIds: ids });
+        }
+      });
+    });
+    document.getElementById('tqPgoRoomStartBtn').disabled = !(tqRoomHost && room.players.length >= TQ_MIN_PLAYERS);
+    document.getElementById('tqPgoRoomStartBtn').textContent = tqRoomHost ? `开始游戏 (${room.players.length}/${TQ_MIN_PLAYERS})` : '等待房主开始…';
+  }
+
+  async function tqLeaveRoom() {
+    if (tqRoomStatePoller) { clearTimeout(tqRoomStatePoller); tqRoomStatePoller = null; }
+    if (tqRoomToken) await tqRoomApi('POST', 'leave', { code: tqRoomCode, token: tqRoomToken });
+    tqRoomToken = null; tqRoomPlayerId = null; tqRoomCode = null; tqRoomHost = false;
+    document.getElementById('tqPgoRoomCodeInput').parentElement.style.display = '';
+    document.getElementById('tqPgoRoomLobby').style.display = 'none';
+    document.getElementById('tqPgoRoomCodeInput').value = '';
   }
 
   function tqStartPolling() {
@@ -1746,24 +1779,20 @@ permalink: /toolbox/tiaoqi/
     async function poll() {
       if (!tqRoomToken) return;
       const r = await tqRoomApi('GET', `state&code=${tqRoomCode}&token=${tqRoomToken}&since=${since}`);
-      if (r.ok && r.room) {
+      if (!r.ok) { tqRoomStatePoller = setTimeout(poll, 2000); return; }
+      if (r.room) {
         since = r.version;
-        tqUpdateRoomPlayers(r.room);
-        if (r.room.state === 'playing') {
-          tqPgoOverlay.classList.remove('open');
-          state.difficulty = tqPgoSelectedDiff;
-          startGame();
-          if (typeof tqSave !== 'undefined' && tqSave) tqSave.start();
-          return;
-        }
+        if (r.room.state === 'playing') { tqPgoOverlay.classList.remove('open'); state.difficulty = tqPgoSelectedDiff; startGame(); if (typeof tqSave !== 'undefined' && tqSave) tqSave.start(); return; }
+        if (!r.room.players.some(p => p.id === tqRoomPlayerId)) { tqLeaveRoom(); tqShowError('你已被房主移出房间'); return; }
+        tqUpdateLobby(r.room);
       }
       tqRoomStatePoller = setTimeout(poll, 1500);
     }
     poll();
   }
 
-  document.getElementById('tqPgoCreateRoomBtn').addEventListener('click', tqCreateRoom);
-  document.getElementById('tqPgoJoinRoomBtn').addEventListener('click', tqJoinRoom);
+  document.getElementById('tqPgoRoomActionBtn').addEventListener('click', tqRoomAction);
+  document.getElementById('tqPgoRoomLeaveBtn').addEventListener('click', tqLeaveRoom);
   document.getElementById('tqPgoRoomCopyBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(`${location.origin}/toolbox/tiaoqi/?room=${tqRoomCode}`).then(() => {
       const btn = document.getElementById('tqPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制'; }, 2000);
@@ -1773,8 +1802,6 @@ permalink: /toolbox/tiaoqi/
     const r = await tqRoomApi('POST', 'start', { code: tqRoomCode, token: tqRoomToken });
     if (r.ok) { tqPgoOverlay.classList.remove('open'); state.difficulty = tqPgoSelectedDiff; startGame(); if (typeof tqSave !== 'undefined' && tqSave) tqSave.start(); }
   });
-
-  if (GamesShell.Identity.getNick()) document.getElementById('tqPgoNickInput').value = GamesShell.Identity.getNick();
 
   document.getElementById('tqPgoStartBtn').addEventListener('click', () => {
     if (tqIsOnline) return;
