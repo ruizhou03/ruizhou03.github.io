@@ -80,6 +80,7 @@
 }
 .gs-lb-refresh {
   font: inherit; font-size: 0.95rem;
+  font-family: var(--font-body);
   width: 28px; height: 28px;
   display: flex; align-items: center; justify-content: center;
   border: 1px solid var(--color-border);
@@ -174,6 +175,7 @@
 }
 .gs-lb-tab {
   font: inherit; font-size: 0.78rem;
+  font-family: var(--font-body);
   padding: 0.3rem 0.7rem;
   border: 1px solid var(--color-border);
   background: var(--color-bg);
@@ -231,6 +233,7 @@
 }
 .gs-lb-expand {
   font: inherit; font-size: 0.78rem;
+  font-family: var(--font-body);
   padding: 0.35rem 0.9rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
@@ -248,6 +251,7 @@
 }
 .gs-lb-pgbtn {
   font: inherit; font-size: 0.76rem;
+  font-family: var(--font-body);
   padding: 0.25rem 0.55rem;
   border: 1px solid var(--color-border);
   border-radius: 6px;
@@ -319,6 +323,7 @@
 }
 .gs-resume-card button {
   font: inherit;
+  font-family: var(--font-body);
   width: 100%;
   padding: 0.6rem 0.9rem;
   border-radius: 8px;
@@ -378,6 +383,7 @@
   border: 1px solid var(--color-border);
   border-radius: 6px;
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.9rem;
   background: var(--color-bg);
   color: var(--color-ink);
@@ -398,6 +404,7 @@
 }
 .gs-nick-form button {
   font: inherit; font-size: 0.84rem;
+  font-family: var(--font-body);
   padding: 0.4rem 0.85rem;
   border-radius: 6px;
   cursor: pointer;
@@ -526,6 +533,7 @@
 }
 .gs-segment-btn {
   font: inherit; font-size: 0.84rem;
+  font-family: var(--font-body);
   padding: 0.32rem 0.7rem;
   border: none;
   background: var(--color-bg);
@@ -545,6 +553,7 @@
 /* 触发按钮：挂在排行榜下方的 settle-btn-mount 容器里 */
 .gs-settle-btn {
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.84rem;
   display: inline-flex;
   align-items: center;
@@ -620,6 +629,7 @@
 }
 .gs-settle-actions button {
   font: inherit; font-size: 0.88rem;
+  font-family: var(--font-body);
   padding: 0.5rem 1.1rem;
   border-radius: 8px;
   cursor: pointer;
@@ -680,6 +690,7 @@
 }
 
 .gs-pgo-subtitle {
+  font-family: var(--font-body);
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
   margin-bottom: 1rem;
@@ -701,6 +712,7 @@
   line-height: 1;
 }
 .gs-pgo-highscore .gs-pgo-hs-label {
+  font-family: var(--font-body);
   font-size: 0.74rem;
   color: rgba(255, 255, 255, 0.5);
   margin-top: 0.2rem;
@@ -710,6 +722,7 @@
 
 .gs-pgo-start-btn {
   font: inherit;
+  font-family: var(--font-body);
   font-size: 1rem;
   font-weight: 600;
   padding: 0.7rem 2.4rem;
@@ -731,6 +744,7 @@
 
 .gs-pgo-settings-link {
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
   background: none;
@@ -746,6 +760,7 @@
 /* 返回链接（从 settings 返回 main） */
 .gs-pgo-back-link {
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
   background: none;
@@ -770,6 +785,7 @@
 }
 .gs-pgo-mode-tab {
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.82rem;
   padding: 0.4rem 0.9rem;
   border: none;
@@ -790,6 +806,7 @@
 }
 
 .gs-pgo-mode-desc {
+  font-family: var(--font-body);
   font-size: 0.82rem;
   color: rgba(255, 255, 255, 0.55);
   margin-bottom: 1rem;
@@ -867,6 +884,7 @@
 
 /* Resume 视图 */
 .gs-pgo-resume-summary {
+  font-family: var(--font-body);
   font-size: 0.92rem;
   color: rgba(255, 255, 255, 0.75);
   margin: 0.6rem 0 1.2rem;
@@ -877,6 +895,7 @@
   font-weight: 700;
 }
 .gs-pgo-resume-summary .gs-pgo-resume-meta {
+  font-family: var(--font-body);
   display: block;
   font-size: 0.78rem;
   color: rgba(255, 255, 255, 0.45);
@@ -885,6 +904,7 @@
 
 .gs-pgo-resume-discard {
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.82rem;
   background: none;
   border: none;
@@ -906,6 +926,7 @@
 }
 .gs-pgo-room-tab {
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.85rem;
   padding: 0.4rem 1rem;
   border: none;
@@ -943,6 +964,7 @@
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.9rem;
   text-align: center;
 }
@@ -954,6 +976,7 @@
 
 .gs-pgo-room-btn {
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.88rem;
   font-weight: 600;
   width: 100%;
@@ -978,6 +1001,7 @@
 }
 
 .gs-pgo-room-code {
+  font-family: var(--font-body);
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.7);
   text-align: center;
@@ -991,6 +1015,7 @@
 
 .gs-pgo-room-copy-btn {
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.78rem;
   color: rgba(255, 255, 255, 0.6);
   background: none;
@@ -1002,6 +1027,7 @@
 .gs-pgo-room-copy-btn:hover { color: #fff; }
 
 .gs-pgo-room-players {
+  font-family: var(--font-body);
   width: 100%;
   list-style: none;
   padding: 0; margin: 0;
@@ -1025,6 +1051,7 @@
 }
 
 .gs-pgo-room-error {
+  font-family: var(--font-body);
   font-size: 0.82rem;
   color: #ef5350;
   min-height: 1.2em;
@@ -1033,6 +1060,7 @@
 /* 房间内小按钮：踢人、排序 */
 [class*="-room-kick"] {
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.72rem;
   margin-left: auto;
   padding: 0.1rem 0.35rem;
@@ -1047,6 +1075,7 @@
 
 [class*="-room-act"] {
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.65rem;
   padding: 0.05rem 0.35rem;
   background: transparent;
@@ -1066,6 +1095,7 @@
   margin-bottom: 0.8rem;
 }
 .gs-pgo-local-config .gs-pgo-config-label {
+  font-family: var(--font-body);
   font-size: 0.82rem;
   color: rgba(255, 255, 255, 0.55);
   margin-bottom: 0.4rem;
@@ -1108,6 +1138,7 @@
 
 .gs-pgo-config-chip {
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.82rem;
   padding: 0.4rem 0.8rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1199,6 +1230,7 @@
 .fn-room-profile-chip {
   display: inline-block;
   font: inherit;
+  font-family: var(--font-body);
   font-size: 0.74rem;
   padding: 0.3rem 0.6rem;
   margin: 0.15rem 0.25rem;

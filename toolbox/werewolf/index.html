@@ -138,7 +138,7 @@ permalink: /toolbox/werewolf/
   .counter-btn:disabled { opacity: 0.3; cursor: not-allowed; }
   .counter-val {
     width: 22px; text-align: center;
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-body);
     font-size: 1.05rem; color: var(--color-ink);
     font-variant-numeric: tabular-nums;
   }
@@ -150,7 +150,7 @@ permalink: /toolbox/werewolf/
     font-size: 0.92rem;
   }
   .summary-num {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-body);
     font-size: 1.3rem; font-weight: 600;
   }
   .summary-num.ok { color: #10b981; }
@@ -191,7 +191,7 @@ permalink: /toolbox/werewolf/
   }
   .room-code-banner .label { font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.2rem; }
   .room-code-banner .code {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-body);
     font-size: 3.6rem; font-weight: 700;
     letter-spacing: 0.4rem;
     line-height: 1;
@@ -272,7 +272,7 @@ permalink: /toolbox/werewolf/
     font-weight: 600; font-size: 0.92rem;
   }
   .play-header .countdown {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-body);
     font-size: 1.05rem; color: var(--color-muted);
     font-variant-numeric: tabular-nums;
   }
@@ -314,7 +314,7 @@ permalink: /toolbox/werewolf/
   .player-pick.selected { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
   .player-pick:disabled { opacity: 0.45; cursor: not-allowed; }
   .player-pick .pp-seat {
-    display: block; font-family: 'Cormorant Garamond', serif;
+    display: block; font-family: var(--font-body);
     font-size: 1.2rem; font-weight: 600;
   }
   .player-pick .pp-nick { display: block; font-size: 0.78rem; opacity: 0.85; }
@@ -336,7 +336,7 @@ permalink: /toolbox/werewolf/
   .wait-msg .icon { font-size: 2.4rem; margin-bottom: 0.5rem; }
   .wait-progress {
     margin-top: 0.7rem;
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-body);
     color: var(--color-light); font-size: 0.92rem;
   }
 
@@ -1007,7 +1007,7 @@ permalink: /toolbox/werewolf/
       class: 'ww-input', type: 'text', maxlength: '4', inputmode: 'numeric',
       placeholder: '0000',
       value: joinForm.code,
-      style: { fontFamily: '"Cormorant Garamond", serif', fontSize: '1.6rem', letterSpacing: '0.3rem', textAlign: 'center' },
+      style: { fontFamily: '"Cormorant Garamond", "Noto Serif SC", "Songti SC", serif', fontSize: '1.6rem', letterSpacing: '0.3rem', textAlign: 'center' },
       on: {
         input: (e) => {
           joinForm.code = e.target.value.replace(/\D/g, '').slice(0, 4);
