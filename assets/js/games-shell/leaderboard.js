@@ -24,7 +24,7 @@
   const GS = window.GamesShell = window.GamesShell || {};
 
   // 后端基址。灭火开关：把 ENABLED 改成 false，前端立即降级到纯本地。
-  const API_BASE = 'https://zircon-urge.vercel.app/api/lb';
+  const API_BASE = 'https://zircon-urge.fly.dev/api/lb';
   const ENABLED = true;
   const MEDALS = ['🥇', '🥈', '🥉'];
   const TOP_LIMIT = 5;

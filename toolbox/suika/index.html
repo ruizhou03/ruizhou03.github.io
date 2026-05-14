@@ -1296,7 +1296,7 @@ permalink: /toolbox/suika/
 
   // 排行榜后端（zircon-urge Vercel + Upstash Redis）。
   // 灭火开关：把 LEADERBOARD_ENABLED 改成 false 后 push，前端立即回到纯本地模式。
-  const LEADERBOARD_API = 'https://zircon-urge.vercel.app/api/suika';
+  const LEADERBOARD_API = 'https://zircon-urge.fly.dev/api/suika';
   const LEADERBOARD_ENABLED = true;
   // 后端 nick 校验：2-12 codepoint，正则与服务端保持一致。
   const NICK_REJECT_RE = /[<>&"'\/\\\x00-\x1F​-‏﻿‪-‮]/;

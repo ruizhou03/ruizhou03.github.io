@@ -23,7 +23,7 @@
 (function () {
   'use strict';
   const GS = window.GamesShell = window.GamesShell || {};
-  const API_BASE = 'https://zircon-urge.vercel.app/api/wins';
+  const API_BASE = 'https://zircon-urge.fly.dev/api/wins';
   const ENABLED = true;
   const MEDALS = ['🥇', '🥈', '🥉'];
   const TOP_LIMIT = 5;
