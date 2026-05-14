@@ -398,9 +398,24 @@ permalink: /toolbox/feixingqi/
             <div id="fxqPgoRoomLobby" style="display:none;">
               <div class="gs-pgo-room-code">房号：<strong id="fxqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="fxqPgoRoomCopyBtn">📋 复制</button></div>
               <ul class="gs-pgo-room-players" id="fxqPgoRoomPlayers"></ul>
+              <!-- 表决区 -->
+              <div class="fn-vote-box" id="fxqVoteBox" style="display:none;"></div>
               <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
                 <button class="gs-pgo-room-btn primary" id="fxqPgoRoomStartBtn" disabled>需要 2 人</button>
                 <button class="gs-pgo-room-btn" id="fxqPgoRoomLeaveBtn">退出房间</button>
+              </div>
+              <!-- 房主修改设置 -->
+              <button class="gs-pgo-room-btn" id="fxqRoomEditBtn" style="display:none;margin-top:0.3rem;">⚙ 修改设置</button>
+              <!-- 设置编辑面板（弹出） -->
+              <div class="fn-room-params" id="fxqRoomEditPanel" style="display:none;margin-top:0.3rem;">
+                <div class="fn-room-params-label">修改房间设置</div>
+                <div class="fn-room-params-row"><span class="fn-room-params-key">人数上限</span><div class="gs-pgo-mode-picker" id="fxqEditMaxPlayers"><button class="gs-pgo-mode-tab" data-val="2">2</button><button class="gs-pgo-mode-tab" data-val="3">3</button><button class="gs-pgo-mode-tab selected" data-val="4">4</button></div></div>
+                <div class="fn-room-params-row"><span class="fn-room-params-key">AI 补齐</span><div class="gs-pgo-mode-picker" id="fxqEditAiFill"><button class="gs-pgo-mode-tab" data-val="on">开</button><button class="gs-pgo-mode-tab selected" data-val="off">关</button></div></div>
+                <div class="fn-room-params-row" id="fxqEditAiDiffRow" style="display:none;"><span class="fn-room-params-key">AI 难度</span><div class="gs-pgo-mode-picker" id="fxqEditAiDiff"><button class="gs-pgo-mode-tab" data-val="easy">新手</button><button class="gs-pgo-mode-tab selected" data-val="normal">普通</button><button class="gs-pgo-mode-tab" data-val="hard">高手</button></div></div>
+                <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
+                  <button class="gs-pgo-room-btn primary" id="fxqProposeBtn">提议修改（需全票通过）</button>
+                  <button class="gs-pgo-room-btn" id="fxqCancelEditBtn">取消</button>
+                </div>
               </div>
             </div>
           </div>
@@ -2646,9 +2661,86 @@ permalink: /toolbox/feixingqi/
         }
       });
     });
+    // Show/hide host edit button
+    document.getElementById('fxqRoomEditBtn').style.display = fxqRoomHost ? '' : 'none';
+    // Render proposal if any
+    fxqRenderProposal(room);
     document.getElementById('fxqPgoRoomStartBtn').disabled = !(fxqRoomHost && room.players.length >= FXQ_MIN_PLAYERS_VAL);
     document.getElementById('fxqPgoRoomStartBtn').textContent = fxqRoomHost ? `开始游戏 (${room.players.length}/${FXQ_MIN_PLAYERS_VAL})` : '等待房主开始…';
   }
+
+  // ── 表决 UI ──
+  function fxqRenderProposal(room) {
+    const box = document.getElementById('fxqVoteBox'), p = room.pendingProposal;
+    if (!box) return;
+    if (!p || p.result !== null) { box.style.display = 'none'; return; }
+    box.style.display = '';
+
+    const cfg = p.config;
+    const aiLabel = cfg.aiDiff === 'hard' ? 'AI高手' : cfg.aiDiff === 'easy' ? 'AI新手' : 'AI普通';
+    const desc = `人数上限 ${cfg.maxPlayers} · AI 补齐 ${cfg.aiFill === 'on' ? '开(' + aiLabel + ')' : '关'}`;
+    const votedCount = Object.values(p.votes).filter(v => v !== null && v !== undefined).length;
+    const totalVoters = Object.keys(p.votes).filter(id => id !== p.proposedBy).length;
+    const proposerNick = room.players.find(pl => pl.id === p.proposedBy)?.nick || '房主';
+
+    let html = `<div style="font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:0.3rem;">📋 ${proposerNick} 提议：${desc}</div>`;
+    html += `<div style="font-size:0.72rem;color:rgba(255,255,255,0.35);margin-bottom:0.4rem;">需全票通过 · 已投 ${votedCount}/${totalVoters} · 30秒超时</div>`;
+
+    if (fxqRoomPlayerId !== p.proposedBy) {
+      const myVote = p.votes[fxqRoomPlayerId];
+      if (myVote === null || myVote === undefined) {
+        html += `<div style="display:flex;gap:0.4rem;"><button class="gs-pgo-room-btn primary fn-vote-btn" data-vote="yes" style="background:#4caf50;border-color:#4caf50;">✅ 同意</button><button class="gs-pgo-room-btn fn-vote-btn" data-vote="no" style="background:#ef5350;border-color:#ef5350;">❌ 拒绝</button></div>`;
+      } else {
+        html += `<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);">你已投票：${myVote === 'yes' ? '✅ 同意' : '❌ 拒绝'}</div>`;
+      }
+    } else {
+      html += `<div style="font-size:0.74rem;color:rgba(255,255,255,0.35);">你是提议者，无需投票</div>`;
+    }
+    box.innerHTML = html;
+
+    // Wire vote buttons
+    box.querySelectorAll('.fn-vote-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const v = btn.dataset.vote;
+        await fxqRoomApi('POST', 'vote', { code: fxqRoomCode, token: fxqRoomToken, vote: v });
+      });
+    });
+  }
+
+  // ── 房主修改设置 ──
+  document.getElementById('fxqRoomEditBtn').addEventListener('click', () => {
+    const panel = document.getElementById('fxqRoomEditPanel');
+    panel.style.display = panel.style.display === 'none' ? '' : 'none';
+    // Sync edit pickers with current roomCfg
+    document.querySelectorAll('#fxqEditMaxPlayers .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === String(fxqRoomCfg.maxPlayers)));
+    document.querySelectorAll('#fxqEditAiFill .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === fxqRoomCfg.aiFill));
+    document.querySelectorAll('#fxqEditAiDiff .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === fxqRoomCfg.aiDiff));
+    document.getElementById('fxqEditAiDiffRow').style.display = fxqRoomCfg.aiFill === 'on' ? '' : 'none';
+  });
+  document.getElementById('fxqCancelEditBtn').addEventListener('click', () => {
+    document.getElementById('fxqRoomEditPanel').style.display = 'none';
+  });
+  document.getElementById('fxqProposeBtn').addEventListener('click', async () => {
+    await fxqRoomApi('POST', 'propose', { code: fxqRoomCode, token: fxqRoomToken, config: fxqRoomCfg });
+    document.getElementById('fxqRoomEditPanel').style.display = 'none';
+  });
+  // Wire edit pickers
+  document.getElementById('fxqEditMaxPlayers').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
+    fxqRoomCfg.maxPlayers = parseInt(t.dataset.val);
+    document.querySelectorAll('#fxqEditMaxPlayers .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === String(fxqRoomCfg.maxPlayers)));
+  });
+  document.getElementById('fxqEditAiFill').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
+    fxqRoomCfg.aiFill = t.dataset.val;
+    document.querySelectorAll('#fxqEditAiFill .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === t.dataset.val));
+    document.getElementById('fxqEditAiDiffRow').style.display = t.dataset.val === 'on' ? '' : 'none';
+  });
+  document.getElementById('fxqEditAiDiff').addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
+    fxqRoomCfg.aiDiff = t.dataset.val;
+    document.querySelectorAll('#fxqEditAiDiff .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === t.dataset.val));
+  });
 
   async function fxqLeaveRoom() {
     if (fxqRoomStatePoller) { clearTimeout(fxqRoomStatePoller); fxqRoomStatePoller = null; }
