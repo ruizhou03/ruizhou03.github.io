@@ -145,6 +145,7 @@ permalink: /toolbox/minesweeper/
   .ms-stat .lab { font-size: 0.7rem; color: var(--color-muted); display: block; text-transform: uppercase; letter-spacing: 0.08em; font-weight: normal; }
 
   .ms-board-wrap {
+    position: relative;
     overflow-x: auto;
     display: flex;
     justify-content: center;
@@ -233,6 +234,31 @@ permalink: /toolbox/minesweeper/
 
   <div class="ms-board-wrap">
     <div class="ms-board" id="msBoard"></div>
+    <!-- 预进入界面 -->
+    <div class="gs-pgo-overlay open" id="msPreGameOverlay">
+      <div class="gs-pgo-view active" id="msPgoViewMain">
+        <div class="gs-pgo-icon">💣</div>
+        <h2 class="gs-pgo-title">扫雷</h2>
+        <div class="gs-pgo-subtitle">Win 经典三难度 · 揭格插旗</div>
+        <div class="gs-pgo-highscore">
+          <div class="gs-pgo-hs-value" id="msPgoBestTime">—</div>
+          <div class="gs-pgo-hs-label">最佳用时</div>
+        </div>
+        <div class="gs-pgo-mode-picker" id="msPgoDiffPicker">
+          <button class="gs-pgo-mode-tab selected" data-value="easy">9×9</button>
+          <button class="gs-pgo-mode-tab" data-value="mid">16×16</button>
+          <button class="gs-pgo-mode-tab" data-value="hard">16×30</button>
+        </div>
+        <button class="gs-pgo-start-btn" id="msPgoStartBtn">▶ 开始游戏</button>
+      </div>
+      <div class="gs-pgo-view" id="msPgoViewResume">
+        <div class="gs-pgo-icon">👋</div>
+        <h2 class="gs-pgo-title">上次还没玩完</h2>
+        <div class="gs-pgo-resume-summary" id="msPgoResumeSummary"></div>
+        <button class="gs-pgo-start-btn" id="msPgoResumeContinueBtn">▶ 继续上次</button>
+        <button class="gs-pgo-start-btn" id="msPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;">🔄 重新开始</button>
+      </div>
+    </div>
   </div>
 
   <div class="ms-modal-wrap" id="msModal"></div>
@@ -256,6 +282,7 @@ permalink: /toolbox/minesweeper/
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/games-shell/settings-panel.js"></script>
 
 <script>
 (() => {
@@ -601,6 +628,12 @@ permalink: /toolbox/minesweeper/
   function gameOver(won) {
     state.over = true;
     state.won = won;
+    // Use direct computation so elapsed is accurate even if the interval
+    // timer was throttled (mobile Safari, background tab, low-power mode).
+    if (state.started) {
+      state.elapsed = Math.max(state.elapsed,
+        Math.floor((Date.now() - state.startTime) / 1000));
+    }
     if (state.timer) { clearInterval(state.timer); state.timer = null; }
     // Detect "must-guess" boards: rerun the solver from the first click on the
     // final mine layout. If solver can't fully resolve, the player had to guess
@@ -1015,6 +1048,9 @@ permalink: /toolbox/minesweeper/
 
   function msSerialize() {
     if (state.over || !state.started) return null;
+    // Compute accurate elapsed in case the interval timer was throttled.
+    const elapsed = Math.max(state.elapsed,
+      Math.floor((Date.now() - state.startTime) / 1000));
     return {
       diff: state.diff,
       grid: state.grid,
@@ -1022,7 +1058,7 @@ permalink: /toolbox/minesweeper/
       flagged: state.flagged,
       wrong: state.wrong,
       rows: state.rows, cols: state.cols, mines: state.mines,
-      elapsed: state.elapsed,
+      elapsed,
     };
   }
   function msRestore(saved) {
@@ -1044,7 +1080,8 @@ permalink: /toolbox/minesweeper/
       if (state.over) return;
       state.elapsed = Math.floor((Date.now() - state.startTime) / 1000);
       timeEl.textContent = state.elapsed;
-    }, 1000);
+    }, 250);
+    timeEl.textContent = state.elapsed;
     modalEl.textContent = '';
     modalEl.className = 'ms-modal-wrap';
     renderBoard();
@@ -1053,6 +1090,61 @@ permalink: /toolbox/minesweeper/
       t.classList.toggle('active', t.dataset.diff === state.diff);
     });
   }
+
+  // ============ Pre-game Overlay ============
+  const msPgoOverlay = document.getElementById('msPreGameOverlay');
+  const msPgoViewMain = document.getElementById('msPgoViewMain');
+  const msPgoViewResume = document.getElementById('msPgoViewResume');
+  const msPgoBestTime = document.getElementById('msPgoBestTime');
+  const msPgoDiffPicker = document.getElementById('msPgoDiffPicker');
+
+  let msPgoSelectedDiff = state.diff;
+
+  function msShowOverlayView(name) {
+    msPgoViewMain.classList.toggle('active', name === 'main');
+    msPgoViewResume.classList.toggle('active', name === 'resume');
+  }
+
+  function msUpdatePgoBest() {
+    const best = state.best[msPgoSelectedDiff];
+    msPgoBestTime.textContent = best != null ? best + ' s' : '—';
+    document.querySelectorAll('#msPgoDiffPicker .gs-pgo-mode-tab').forEach(t => {
+      t.classList.toggle('selected', t.dataset.value === msPgoSelectedDiff);
+    });
+  }
+
+  function msStartFromOverlay() {
+    state.diff = msPgoSelectedDiff;
+    persist();
+    updateStatus();
+    if (msLbWidget) msLbWidget.setSplit(state.diff);
+    msPgoOverlay.classList.remove('open');
+    newGame();
+    if (msSave) msSave.start();
+  }
+
+  msPgoDiffPicker.addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab');
+    if (!t) return;
+    msPgoSelectedDiff = t.dataset.value;
+    msUpdatePgoBest();
+  });
+
+  document.getElementById('msPgoStartBtn').addEventListener('click', msStartFromOverlay);
+
+  // Resume buttons
+  document.getElementById('msPgoResumeContinueBtn').addEventListener('click', () => {
+    const peek = msSave ? msSave.peek() : null;
+    if (peek && peek.data && peek.data.grid) {
+      msPgoOverlay.classList.remove('open');
+      msRestore(peek.data);
+      msSave.start();
+    }
+  });
+  document.getElementById('msPgoResumeNewBtn').addEventListener('click', () => {
+    msSave && msSave.discard();
+    msStartFromOverlay();
+  });
 
   msInitShell();
   if (window.GamesShell && GamesShell.SaveState) {
@@ -1063,19 +1155,18 @@ permalink: /toolbox/minesweeper/
     });
     const peek = msSave.peek();
     if (peek && peek.data && peek.data.grid) {
-      // 直接把存档界面渲染出来（在 modal 后面可见）
       msRestore(peek.data);
-      GamesShell.SaveState.showResumeModal({
-        summaryHtml: `继续 <strong>${peek.data.diff || 'easy'}</strong> 难度（已用 <strong>${peek.data.elapsed || 0}</strong> s）<span class="gs-resume-meta">${peek.agoText}保存</span>`,
-        onResume: () => { msSave.start(); },
-        onDiscard: () => { msSave.discard(); newGame(); msSave.start(); },
-      });
+      msPgoResumeSummary.innerHTML = `<strong>${peek.data.diff || 'easy'}</strong> 难度 · 已用 <strong>${peek.data.elapsed || 0}</strong> s<span class="gs-pgo-resume-meta">${peek.agoText || ''}保存</span>`;
+      msShowOverlayView('resume');
     } else {
-      newGame();
-      msSave.start();
+      msUpdatePgoBest();
+      msShowOverlayView('main');
     }
+    msPgoOverlay.classList.add('open');
   } else {
-    newGame();
+    msUpdatePgoBest();
+    msShowOverlayView('main');
+    msPgoOverlay.classList.add('open');
   }
 
 })();
