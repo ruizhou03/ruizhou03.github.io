@@ -43,7 +43,7 @@ permalink: /toolbox/fruit-ninja/
     align-items: center;
     gap: 0.9rem;
     padding: 0.45rem 0.9rem;
-    padding-right: 11rem;
+    padding-right: 6.5rem;
     pointer-events: none;
     color: #fff;
     font-family: var(--font-display, Georgia, serif);
@@ -72,7 +72,7 @@ permalink: /toolbox/fruit-ninja/
   }
 
   /* 按钮组：暂停 → 静音 → 性能 → 背景，全部右对齐 */
-  .pause-btn, .mute-btn, .perf-btn, .bg-btn {
+  .pause-btn, .mute-btn {
     position: absolute;
     top: 0.6rem;
     background: rgba(0, 0, 0, 0.4);
@@ -94,29 +94,11 @@ permalink: /toolbox/fruit-ninja/
     min-width: 2.0rem;
     text-align: center;
   }
-  .perf-btn {
-    right: 6.5rem;
-    padding: 0.25rem 0.45rem;
-    min-width: 1.7rem;
-    text-align: center;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.92);
-  }
-  .bg-btn {
-    right: 8.7rem;
-    padding: 0.25rem 0.45rem;
-    min-width: 1.7rem;
-    text-align: center;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.92);
-  }
-  .pause-btn:hover, .mute-btn:hover, .perf-btn:hover, .bg-btn:hover { background: rgba(0, 0, 0, 0.6); }
+  .pause-btn:hover, .mute-btn:hover { background: rgba(0, 0, 0, 0.6); }
   @media (max-width: 700px) {
-    .hud { font-size: 0.95rem; gap: 0.6rem; padding-right: 9.5rem; }
+    .hud { font-size: 0.95rem; gap: 0.6rem; padding-right: 5.5rem; }
     .pause-btn { right: 0.4rem; padding: 0.2rem 0.55rem; font-size: 0.78rem; }
     .mute-btn { right: 3.5rem; padding: 0.2rem 0.4rem; min-width: 1.8rem; font-size: 0.78rem; }
-    .perf-btn { right: 5.8rem; padding: 0.2rem 0.4rem; min-width: 1.6rem; font-size: 0.78rem; }
-    .bg-btn { right: 7.9rem; padding: 0.2rem 0.4rem; min-width: 1.6rem; font-size: 0.78rem; }
   }
 
   /* 底部模式切换栏（参考弹珠机的 pb-table-picker 风格）—— 不再走"进游戏前选一个"流程 */
@@ -283,6 +265,12 @@ permalink: /toolbox/fruit-ninja/
         </div>
         <div class="gs-pgo-mode-desc" id="fnPgoModeDesc" style="font-size:0.82rem;color:rgba(255,255,255,0.55);margin-bottom:1rem;">限时 60 秒，连切水果加奖励分。切到炸弹立即结束。</div>
         <button class="gs-pgo-start-btn" id="fnPgoStartBtn">▶ 开始游戏</button>
+        <button class="gs-pgo-settings-link" id="fnPgoSettingsLink" type="button">⚙ 调参</button>
+      </div>
+      <div class="gs-pgo-view" id="fnPgoViewSettings">
+        <h2 class="gs-pgo-settings-title">⚙ 调参</h2>
+        <div class="gs-pgo-settings-body" id="fnPgoSettingsBody"></div>
+        <button class="gs-pgo-back-link" id="fnPgoBackLink" type="button">← 返回</button>
       </div>
     </div>
     <div class="hud">
@@ -292,10 +280,9 @@ permalink: /toolbox/fruit-ninja/
       <span class="hud-score"><span class="label">分</span><span class="score-value" data-bind="score">0</span></span>
       <span class="hud-combo combo hidden">×<span data-bind="combo">0</span></span>
     </div>
-    <button class="pause-btn" id="pause-btn" type="button">暂停</button>
+    <button class="pause-btn" id="pause-btn" type="button" aria-label="暂停">⏸</button>
     <button class="mute-btn" id="mute-btn" type="button" aria-label="静音切换">🔊</button>
-    <button class="perf-btn" id="perf-btn" type="button" aria-label="性能档位">自</button>
-    <button class="bg-btn" id="bg-btn" type="button" aria-label="背景切换">竹</button>
+
 
     <div class="overlay" id="paused-overlay" hidden>
       <div class="overlay-card">
@@ -993,49 +980,6 @@ permalink: /toolbox/fruit-ninja/
   });
   const rankRow = document.getElementById('rank-row');
   const muteBtn = document.getElementById('mute-btn');
-  const perfBtn = document.getElementById('perf-btn');
-  const bgBtn = document.getElementById('bg-btn');
-
-  function syncMuteBtn() {
-    if (!muteBtn) return;
-    muteBtn.textContent = FNAudio.isMuted() ? '🔇' : '🔊';
-  }
-  syncMuteBtn();
-  if (muteBtn) {
-    muteBtn.addEventListener('click', () => {
-      FNAudio.setMuted(!FNAudio.isMuted());
-      syncMuteBtn();
-    });
-  }
-
-  function updatePerfBtn() {
-    if (!perfBtn) return;
-    const tierChar = Perf.tier === 'high' ? '高' : Perf.tier === 'med' ? '中' : '低';
-    perfBtn.textContent = Perf.manual ? tierChar : '自';
-    perfBtn.title = Perf.manual ? '画质：' + tierChar + '（手动）' : '画质：自动（当前' + tierChar + '）';
-  }
-  if (perfBtn) {
-    perfBtn.addEventListener('click', () => {
-      Perf.cycleManual();
-      updatePerfBtn();
-    });
-  }
-
-  function updateBgBtn() {
-    if (!bgBtn) return;
-    bgBtn.textContent = Bg.chars[Bg.current] || '?';
-    bgBtn.title = '背景：' + Bg.label() + '（点击切换）';
-  }
-  // updateBgBtn() 的立即调用必须等 const Bg 声明并 init 完才能跑（TDZ）
-  // 现在 const Bg 还在下方，所以这里只挂 click handler，立即调用挪到 Bg.init() 之后
-  if (bgBtn) {
-    bgBtn.addEventListener('click', () => {
-      Bg.cycle();
-      updateBgBtn();
-    });
-  }
-  // 注：Perf.init() / updatePerfBtn() 必须等 const Perf 声明后再调用，
-  // 否则 TDZ 抛 ReferenceError 把整个 IIFE 崩了。移到 Perf 定义之后。
 
   // ============ Logical canvas size ============
   // portrait 2:3，手机利用更多屏幕高度；桌面 max-width 600
@@ -1074,7 +1018,6 @@ permalink: /toolbox/fruit-ninja/
     label() { return this.labels[this.current] || this.current; },
   };
   Bg.init();
-  updateBgBtn();    // 现在 Bg 已定义，可以同步刷出"竹/月/简/虹"按钮 label
   const HORIZON_RATIO = 0.52;
 
   // 果汁印染层：独立 offscreen，每帧 destination-out 微量衰减（~2.5s 后近乎透明）
@@ -1468,6 +1411,7 @@ permalink: /toolbox/fruit-ninja/
   let sparks = [];        // 斩击火花（切中瞬间径向白光）
 
   const GRAVITY = 900;     // px/s²
+  let gameSpeed = 1.0;    // 游戏速度倍率：慢 0.75 / 中 1.0 / 快 1.3
 
   // ============ 触觉 / 减少动态 ============
   const reducedMotion = (() => {
@@ -1514,7 +1458,6 @@ permalink: /toolbox/fruit-ninja/
             this.autoTier = next;
             this.tier = next;
             this.applyTier();
-            updatePerfBtn();
           }
           this.badStreakMs = 0;
         }
@@ -1544,7 +1487,84 @@ permalink: /toolbox/fruit-ninja/
     },
   };
   Perf.init();
-  updatePerfBtn();
+
+  // ============ 调参面板（预进入界面内的 settings 子视图）============
+  (function setupSettingsPanel() {
+    const viewMain = document.getElementById('fnPgoViewMain');
+    const viewSettings = document.getElementById('fnPgoViewSettings');
+    const settingsBody = document.getElementById('fnPgoSettingsBody');
+    const settingsLink = document.getElementById('fnPgoSettingsLink');
+    const backLink = document.getElementById('fnPgoBackLink');
+
+    function showSettings() {
+      viewMain.classList.remove('active');
+      viewSettings.classList.add('active');
+    }
+    function showMain() {
+      viewSettings.classList.remove('active');
+      viewMain.classList.add('active');
+    }
+    settingsLink.addEventListener('click', showSettings);
+    backLink.addEventListener('click', showMain);
+
+    const defaults = {
+      bg: Bg.current,
+      perf: Perf.manual ? Perf.tier : 'auto',
+      speed: 'mid',
+    };
+    const speedMap = { slow: 0.75, mid: 1.0, fast: 1.3 };
+
+    const panel = GamesShell.Settings.mount({
+      container: settingsBody,
+      storageKey: 'tool.fruitninja.settings.v1',
+      defaults,
+      items: [
+        { key: 'bg', label: '背景', type: 'segment',
+          options: [
+            { value: 'bamboo', label: '竹林' },
+            { value: 'moonlit', label: '月夜' },
+            { value: 'minimal', label: '极简' },
+            { value: 'neon', label: '霓虹' },
+          ] },
+        { key: 'perf', label: '画质', type: 'segment',
+          options: [
+            { value: 'auto', label: '自动' },
+            { value: 'high', label: '高' },
+            { value: 'med', label: '中' },
+            { value: 'low', label: '低' },
+          ] },
+        { key: 'speed', label: '速度', type: 'segment',
+          options: [
+            { value: 'slow', label: '慢' },
+            { value: 'mid', label: '中' },
+            { value: 'fast', label: '快' },
+          ] },
+      ],
+      onChange(key, value, all) {
+        if (key === 'bg' || key == null) {
+          Bg.current = all.bg;
+          try { localStorage.setItem('fn:bg', all.bg); } catch (e) {}
+          bakeBackground();
+        }
+        if (key === 'perf' || key == null) {
+          if (all.perf === 'auto') {
+            Perf.manual = false;
+            Perf.tier = Perf.autoTier;
+          } else {
+            Perf.manual = true;
+            Perf.tier = all.perf;
+          }
+          Perf.applyTier();
+        }
+        if (key === 'speed' || key == null) {
+          gameSpeed = speedMap[all.speed] || 1.0;
+        }
+      },
+    });
+
+    // 初始化时同步 Bg 默认值
+    if (panel.get('bg') !== Bg.current) panel.set('bg', Bg.current);
+  })();
 
   // ============ 屏幕震动 ============
   const shake = { x: 0, y: 0, startWall: 0, until: 0, strength: 0, durMs: 0 };
@@ -1711,14 +1731,14 @@ permalink: /toolbox/fruit-ninja/
       const ratio = opts.fanTotal === 1 ? 0.5 : (opts.fanIndex / (opts.fanTotal - 1));
       x = margin + ratio * (LOG_W - 2 * margin);
       const dt = opts.fan === 'pinata' ? 1.45 : 1.3;
-      vy = -GRAVITY * dt - 60;
+      vy = (-GRAVITY * dt - 60) * gameSpeed;
       const sideOffset = (LOG_W / 2 - x) * 0.35;
       vx = sideOffset / dt + (Math.random() - 0.5) * 50;
     } else {
       x = margin + Math.random() * (LOG_W - 2 * margin);
       const targetX = LOG_W / 2 + (Math.random() - 0.5) * (LOG_W * 0.7);
       const dt = 1.2;
-      vy = -GRAVITY * dt - 80;
+      vy = (-GRAVITY * dt - 80) * gameSpeed;
       vx = (targetX - x) / dt + (Math.random() - 0.5) * 80;
     }
     let type = FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
@@ -1906,7 +1926,7 @@ permalink: /toolbox/fruit-ninja/
       boss: true, hp: 4, maxHp: 4,
       x, y: LOG_H + 90,
       vx: (Math.random() - 0.5) * 40,
-      vy: -GRAVITY * 1.55 - 40,    // 抛得更高更慢，给玩家时间反应
+      vy: (-GRAVITY * 1.55 - 40) * gameSpeed,    // 抛得更高更慢，给玩家时间反应
       rot: 0, vrot: 0.4,
       r: 78,
       bornAt: t,
@@ -2102,12 +2122,13 @@ permalink: /toolbox/fruit-ninja/
     const nx = -Math.sin(angle), ny = Math.cos(angle);
     const speed = 280;
     const baseVx = f.vx * 0.4, baseVy = f.vy * 0.4 + 60;
+    const cutRot = angle - Math.PI / 2;  // 让切面对齐切割方向
     fruits.push({
       kind: 'half', type: f.type, side: 'l',
       x: f.x, y: f.y,
       vx: baseVx + nx * speed,
       vy: baseVy + ny * speed,
-      rot: f.rot, vrot: f.vrot - 2,
+      rot: cutRot, vrot: (Math.random() - 0.5) * 4,
       r: f.r,
       cutAngle: angle,
     });
@@ -2116,7 +2137,7 @@ permalink: /toolbox/fruit-ninja/
       x: f.x, y: f.y,
       vx: baseVx - nx * speed,
       vy: baseVy - ny * speed,
-      rot: f.rot, vrot: f.vrot + 2,
+      rot: cutRot, vrot: (Math.random() - 0.5) * 4,
       r: f.r,
       cutAngle: angle,
     });
@@ -2305,7 +2326,7 @@ permalink: /toolbox/fruit-ninja/
     if (state.mode === 'endless') checkStageUp(gameNowMs);
 
     for (const f of fruits) {
-      f.vy += GRAVITY * dt;
+      f.vy += GRAVITY * gameSpeed * dt;
       f.x += f.vx * dt;
       f.y += f.vy * dt;
       f.rot += f.vrot * dt;
