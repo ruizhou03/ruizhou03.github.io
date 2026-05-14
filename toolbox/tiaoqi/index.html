@@ -327,6 +327,13 @@ permalink: /toolbox/tiaoqi/
           </div>
           <div class="gs-pgo-room-panel active" id="tqPgoLocalPanel"></div>
           <div class="gs-pgo-room-panel" id="tqPgoOnlinePanel">
+            <div class="fn-room-params" id="tqRoomParams">
+              <div class="fn-room-params-label">⚙ 房间设置</div>
+              <div class="fn-room-params-row"><span class="fn-room-params-key">人数上限</span><div class="gs-pgo-mode-picker" id="tqRoomMaxPlayers"><button class="gs-pgo-mode-tab" data-val="2">2</button><button class="gs-pgo-mode-tab" data-val="3">3</button><button class="gs-pgo-mode-tab" data-val="4">4</button><button class="gs-pgo-mode-tab" data-val="5">5</button><button class="gs-pgo-mode-tab selected" data-val="6">6</button></div></div>
+              <div class="fn-room-params-row"><span class="fn-room-params-key">AI 补齐</span><div class="gs-pgo-mode-picker" id="tqRoomAiFill"><button class="gs-pgo-mode-tab" data-val="on">开</button><button class="gs-pgo-mode-tab selected" data-val="off">关</button></div></div>
+              <div class="fn-room-params-row" id="tqRoomAiDiffRow" style="display:none;"><span class="fn-room-params-key">AI 难度</span><div class="gs-pgo-mode-picker" id="tqRoomAiDiff"><button class="gs-pgo-mode-tab" data-val="easy">新手</button><button class="gs-pgo-mode-tab selected" data-val="normal">普通</button><button class="gs-pgo-mode-tab" data-val="hard">高手</button></div></div>
+            </div>
+            <div class="fn-room-profiles" id="tqRoomProfiles" style="display:none;"><div class="fn-room-params-label">📋 历史配置 <span style="font-weight:400;font-size:0.72rem;color:rgba(255,255,255,0.35);">点击即用</span></div><div id="tqProfilesList"></div></div>
             <div id="tqPgoRoomEntry">
               <input type="text" class="gs-pgo-room-input" id="tqPgoRoomCodeInput" placeholder="输入4位房号加入（留空创建新房）" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
               <button class="gs-pgo-room-btn primary" id="tqPgoRoomActionBtn">创建 / 加入房间</button>
@@ -1709,6 +1716,46 @@ permalink: /toolbox/tiaoqi/
   let tqRoomToken = null, tqRoomPlayerId = null, tqRoomCode = null, tqRoomHost = false;
   let tqRoomStatePoller = null, tqIsOnline = false;
   const TQ_MIN_PLAYERS = 2;
+  const TQ_PROFILES_KEY = 'tool.tiaoqi.room-profiles.v1';
+  let tqRoomCfg = { maxPlayers: 6, aiFill: 'off', aiDiff: 'normal' };
+  let tqProfiles = [];
+  try { tqProfiles = JSON.parse(localStorage.getItem(TQ_PROFILES_KEY) || '[]'); } catch(e) {}
+  let TQ_MIN_PLAYERS_VAL = 6;
+
+  function tqSaveProfile(cfg) {
+    tqProfiles.unshift({ ...cfg, ts: Date.now(), nick: GamesShell.Identity.getNick() });
+    if (tqProfiles.length > 8) tqProfiles.length = 8;
+    try { localStorage.setItem(TQ_PROFILES_KEY, JSON.stringify(tqProfiles)); } catch(e) {}
+    tqRenderProfiles();
+  }
+
+  function tqRenderProfiles() {
+    const c = document.getElementById('tqProfilesList'), w = document.getElementById('tqRoomProfiles');
+    if (!c || !w) return; c.innerHTML = '';
+    if (!tqProfiles.length) { w.style.display = 'none'; return; }
+    w.style.display = '';
+    tqProfiles.slice(0, 5).forEach(p => {
+      const b = document.createElement('button'); b.className = 'fn-room-profile-chip';
+      const ago = (m => m < 1 ? '刚才' : m < 60 ? m + '分钟前' : m < 1440 ? Math.floor(m/60) + '小时前' : Math.floor(m/1440) + '天前')(Math.floor((Date.now() - p.ts) / 60000));
+      const ai = p.aiDiff === 'hard' ? 'AI高手' : p.aiDiff === 'easy' ? 'AI新手' : 'AI普通';
+      b.textContent = `${p.maxPlayers}人 · ${p.aiFill === 'on' ? ai : '纯人对战'} · ${ago}`;
+      b.addEventListener('click', () => { tqRoomCfg = { maxPlayers: p.maxPlayers, aiFill: p.aiFill, aiDiff: p.aiDiff }; tqApplyRoomCfg(); });
+      c.appendChild(b);
+    });
+  }
+
+  function tqApplyRoomCfg() {
+    document.querySelectorAll('#tqRoomMaxPlayers .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === String(tqRoomCfg.maxPlayers)));
+    document.querySelectorAll('#tqRoomAiFill .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === tqRoomCfg.aiFill));
+    document.querySelectorAll('#tqRoomAiDiff .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === tqRoomCfg.aiDiff));
+    document.getElementById('tqRoomAiDiffRow').style.display = tqRoomCfg.aiFill === 'on' ? '' : 'none';
+    TQ_MIN_PLAYERS_VAL = tqRoomCfg.maxPlayers;
+  }
+
+  document.getElementById('tqRoomMaxPlayers').addEventListener('click', e => { const t = e.target.closest('.gs-pgo-mode-tab'); if (t) { tqRoomCfg.maxPlayers = parseInt(t.dataset.val); tqApplyRoomCfg(); } });
+  document.getElementById('tqRoomAiFill').addEventListener('click', e => { const t = e.target.closest('.gs-pgo-mode-tab'); if (t) { tqRoomCfg.aiFill = t.dataset.val; tqApplyRoomCfg(); } });
+  document.getElementById('tqRoomAiDiff').addEventListener('click', e => { const t = e.target.closest('.gs-pgo-mode-tab'); if (t) { tqRoomCfg.aiDiff = t.dataset.val; tqApplyRoomCfg(); } });
+  tqApplyRoomCfg(); tqRenderProfiles();
 
   function tqRoomApi(method, action, body) {
     return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(12000), body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(e => ({ error: e.name === 'TimeoutError' ? 'timeout' : 'network' }));
@@ -1759,15 +1806,16 @@ permalink: /toolbox/tiaoqi/
 
   function tqEnterLobby(r) {
     tqRoomToken = r.playerToken; tqRoomPlayerId = r.playerId; tqRoomCode = r.code;
-    document.getElementById('tqPgoRoomCodeInput').parentElement.style.display = 'none';
+    document.getElementById('tqPgoRoomEntry').style.display = 'none';
+    document.getElementById('tqRoomParams').style.display = 'none';
+    document.getElementById('tqRoomProfiles').style.display = 'none';
     document.getElementById('tqPgoRoomLobby').style.display = '';
     document.getElementById('tqPgoRoomCodeNum').textContent = r.code;
+    tqSaveProfile(tqRoomCfg);
     tqUpdateLobby(r.room); tqStartPolling();
   }
 
   function tqUpdateLobby(room) {
-    tqRoomHost = room.youAreHost;
-    const list = document.getElementById('tqPgoRoomPlayers');
     list.innerHTML = (room.players || []).map((p, i) => {
       const isMe = p.id === tqRoomPlayerId, isHost = p.isHost;
       let h = '<li>';
@@ -1794,17 +1842,20 @@ permalink: /toolbox/tiaoqi/
         }
       });
     });
-    document.getElementById('tqPgoRoomStartBtn').disabled = !(tqRoomHost && room.players.length >= TQ_MIN_PLAYERS);
-    document.getElementById('tqPgoRoomStartBtn').textContent = tqRoomHost ? `开始游戏 (${room.players.length}/${TQ_MIN_PLAYERS})` : '等待房主开始…';
+    document.getElementById('tqPgoRoomStartBtn').disabled = !(tqRoomHost && room.players.length >= TQ_MIN_PLAYERS_VAL);
+    document.getElementById('tqPgoRoomStartBtn').textContent = tqRoomHost ? `开始游戏 (${room.players.length}/${TQ_MIN_PLAYERS_VAL})` : '等待房主开始…';
   }
 
   async function tqLeaveRoom() {
     if (tqRoomStatePoller) { clearTimeout(tqRoomStatePoller); tqRoomStatePoller = null; }
     if (tqRoomToken) await tqRoomApi('POST', 'leave', { code: tqRoomCode, token: tqRoomToken });
     tqRoomToken = null; tqRoomPlayerId = null; tqRoomCode = null; tqRoomHost = false;
-    document.getElementById('tqPgoRoomCodeInput').parentElement.style.display = '';
+    document.getElementById('tqPgoRoomEntry').style.display = '';
+    document.getElementById('tqRoomParams').style.display = '';
+    document.getElementById('tqRoomProfiles').style.display = '';
     document.getElementById('tqPgoRoomLobby').style.display = 'none';
     document.getElementById('tqPgoRoomCodeInput').value = '';
+    tqRenderProfiles();
   }
 
   function tqStartPolling() {
