@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "数学"
 title: "球（内切球与外接球）"
 date: 2026-01-22
 discipline: "初升高"

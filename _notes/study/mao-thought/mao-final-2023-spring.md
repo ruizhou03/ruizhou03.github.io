@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "毛泽东思想和中国特色社会主义理论体系概论"
 title: "毛概 2023 年春期末考试试题（回忆版）"
 discipline: "思政"
 course: "毛泽东思想和中国特色社会主义理论体系概论"

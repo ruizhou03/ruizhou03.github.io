@@ -8,21 +8,6 @@ title: "学习资料"
   .kb-header { margin-bottom: 3rem; text-align: center; }
   .kb-header h1 { font-size: 2.2rem; color: var(--color-ink); margin-bottom: 1rem; }
   .kb-header p { color: var(--color-light); font-style: italic; }
-  .kb-search-wrap { margin-top: 1.2rem; }
-  .kb-search-input {
-    width: 100%; max-width: 360px;
-    padding: 0.55rem 1rem;
-    border: 1px solid var(--color-border);
-    border-radius: 20px;
-    background: var(--color-bg);
-    color: var(--color-text);
-    font-family: var(--font-body);
-    font-size: 0.92rem;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .kb-search-input:focus { border-color: var(--color-accent); }
-  .course-block.kb-hidden { display: none; }
 
   /* 桌面端层级缩进 */
   .knowledge-base .discipline-content { padding: 0.8rem 0 0.8rem 1rem; }
@@ -59,9 +44,6 @@ title: "学习资料"
   <header class="kb-header">
     <h1>学习资料</h1>
     <p>Academic Archives &amp; Knowledge Base</p>
-    <div class="kb-search-wrap">
-      <input type="search" id="kb-search" class="kb-search-input" placeholder="搜索课程名或学科…" aria-label="搜索课程" />
-    </div>
   </header>
 
   <div class="knowledge-base">
@@ -86,7 +68,7 @@ title: "学习资料"
               {% if bucket == "其他" and fn_disc != "经济学" and fn_disc != "思政" %}{% assign render_here = true %}{% endif %}
 
               {% if render_here %}
-                <details class="course-block" data-search="{{ first_note.course | default: folder }} {{ first_note.discipline | default: '' }}">
+                <details class="course-block">
                   <summary class="course-title">{{ first_note.course | default: folder }}</summary>
                   <div class="course-content">
                     {% assign grouped_types = folder_notes | group_by: "material_type" %}
@@ -97,7 +79,7 @@ title: "学习资料"
                           {% for item in type.items %}
                             {% if item.published != false %}
                             <li>
-                              <a href="{{ item.url | relative_url }}">{% assign _disp_title = item.list_title | default: item.title %}{% include latex-logo.html title=_disp_title %}</a>
+                              <a href="{{ item.url | relative_url }}">{{ item.list_title | default: item.title }}</a>
                             </li>
                             {% endif %}
                           {% endfor %}
@@ -130,7 +112,7 @@ title: "学习资料"
                             {% for item in type.items %}
                               {% if item.published != false %}
                               <li>
-                                <a href="{{ item.url | relative_url }}">{% assign _disp_title = item.list_title | default: item.title %}{% include latex-logo.html title=_disp_title %}</a>
+                                <a href="{{ item.url | relative_url }}">{{ item.list_title | default: item.title }}</a>
                               </li>
                               {% endif %}
                             {% endfor %}
@@ -181,22 +163,4 @@ title: "学习资料"
       🏫 高中辅导 →
     </a>
   </div>
-  <script>
-    (function() {
-      var input = document.getElementById('kb-search');
-      if (!input) return;
-      input.addEventListener('input', function() {
-        var q = this.value.trim().toLowerCase();
-        var blocks = document.querySelectorAll('.course-block[data-search]');
-        blocks.forEach(function(b) {
-          var txt = (b.getAttribute('data-search') || '').toLowerCase();
-          if (!q || txt.indexOf(q) !== -1) {
-            b.classList.remove('kb-hidden');
-          } else {
-            b.classList.add('kb-hidden');
-          }
-        });
-      });
-    })();
-  </script>
 </article>

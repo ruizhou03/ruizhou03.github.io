@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "策略与博弈"
 title: "（个人向）策略与博弈课程测评"
 date: 2023-06-30
 discipline: "经济学"

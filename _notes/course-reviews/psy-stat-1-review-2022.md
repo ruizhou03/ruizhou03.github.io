@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "心理统计Ⅰ"
 title: "（个人向）心理统计Ⅰ课程测评"
 date: 2022-12-23
 discipline: "其他"

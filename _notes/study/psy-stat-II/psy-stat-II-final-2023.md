@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "心理统计Ⅱ"
 title: "心理统计Ⅱ课程笔记（期末）"
 discipline: "其他"
 course: "心理统计Ⅱ"

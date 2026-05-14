@@ -2,7 +2,7 @@
 layout: null
 ---
 [
-  {% assign items = site.notes %}
+  {% assign items = site.posts | concat: site.notes %}
   {% for item in items %}
 
     {%- assign cat_str = "" -%}

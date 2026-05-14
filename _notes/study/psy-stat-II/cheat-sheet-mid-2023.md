@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "心理统计Ⅱ"
 title: "心理统计Ⅱ期中考试Cheat Sheet（2023）"
 discipline: "其他"
 course: "心理统计Ⅱ"

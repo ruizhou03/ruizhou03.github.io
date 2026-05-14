@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "组织与管理"
 title: "（个人向）组织与管理课程测评"
 date: 2022-12-29
 discipline: "管理学"

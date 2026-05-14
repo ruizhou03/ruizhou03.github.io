@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "数学"
 title: "数学基础思维"
 date: 2026-01-19
 discipline: "初升高"

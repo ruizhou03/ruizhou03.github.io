@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "TOEFL"
 title: "（个人向）新托福写作：样例和总结"
 date: 2024-07-07
 discipline: "语言考试"

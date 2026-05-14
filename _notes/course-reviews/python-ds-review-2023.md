@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "数据科学的 Python 基础"
 title: "（个人向）数据科学的 Python 基础课程测评"
 date: 2023-01-09
 discipline: "计算机"

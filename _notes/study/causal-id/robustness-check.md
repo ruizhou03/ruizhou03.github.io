@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "计量因果识别方法"
 title: "稳健性检验"
 discipline: "经济学"
 course: "计量因果识别方法"

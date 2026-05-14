@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "因果推断与商业应用"
 title: "因果推断与商业应用期末试题（2022）"
 discipline: "经济学"
 course: "因果推断与商业应用"

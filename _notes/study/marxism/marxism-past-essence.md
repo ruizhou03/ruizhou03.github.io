@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "马克思主义基本原理"
 title: "马原往年题精华版"
 discipline: "思政"
 course: "马克思主义基本原理"

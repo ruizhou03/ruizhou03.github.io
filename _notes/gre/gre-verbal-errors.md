@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "GRE"
 title: "（个人向）GRE 语文填空题错题本"
 date: 2024-08-17
 discipline: "语言考试"

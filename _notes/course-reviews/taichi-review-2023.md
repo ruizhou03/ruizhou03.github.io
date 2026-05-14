@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "太极拳"
 title: "（个人向）太极拳课程测评"
 date: 2023-07-17
 discipline: "体育"

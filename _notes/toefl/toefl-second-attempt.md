@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "TOEFL"
 title: "不配这个专栏的托福二战分享"
 date: 2023-07-15
 discipline: "语言考试"

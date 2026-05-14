@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "Advanced Econometrics"
 title: "我和 Claude Code 合力，写了份计量 8 天自救指南"
 list_title: "Advanced Econometrics: An 8-Day Survival Guide"
 discipline: "经济学"

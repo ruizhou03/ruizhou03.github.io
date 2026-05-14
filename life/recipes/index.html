@@ -237,7 +237,7 @@ permalink: /life/recipes/
               <div class="recipe-card-cover"></div>
             {% endif %}
             <div class="recipe-card-body">
-              <div class="recipe-card-title">{% include latex-logo.html title=r.title %}</div>
+              <div class="recipe-card-title">{{ r.title }}</div>
               {% if _t > 0 %}<div class="recipe-card-foot">⏱ {{ _t }} min</div>{% endif %}
             </div>
           </a>

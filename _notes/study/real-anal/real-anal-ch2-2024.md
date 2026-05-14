@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "Real Analysis"
 title: "Real Analysis Ch2 Integration"
 discipline: "其他"
 course: "Real Analysis"

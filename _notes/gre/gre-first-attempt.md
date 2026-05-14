@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "GRE"
 title: "GRE 一战血与泪的经验总结"
 date: 2024-06-23
 discipline: "语言考试"

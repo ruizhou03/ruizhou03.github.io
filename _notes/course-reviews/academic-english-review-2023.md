@@ -1,7 +1,5 @@
 ---
 layout: post
-main_category: "学习资料"
-sub_category: "学术英语听说"
 title: "（个人向）学术英语听说课程测评"
 date: 2023-06-27
 discipline: "通识"
