@@ -1124,208 +1124,310 @@ permalink: /toolbox/fruit-ninja/
   }
 
   // ---------- 竹林 ----------
-  // 深绿森林：竹竿（带节）+ 顶部点点光斑（dappled light）+ 简单地面
   function bakeBgBamboo(bx) {
-    // 整体背景渐变（深绿）
     const g = bx.createLinearGradient(0, 0, 0, LOG_H);
-    g.addColorStop(0, '#0a1c14');
-    g.addColorStop(0.5, '#0e2a1c');
-    g.addColorStop(1, '#040d08');
+    g.addColorStop(0, '#1a3320');
+    g.addColorStop(0.32, '#1e3d24');
+    g.addColorStop(0.65, '#0f2416');
+    g.addColorStop(1, '#06120a');
     bx.fillStyle = g;
     bx.fillRect(0, 0, LOG_W, LOG_H);
 
-    // 用稳定 seed 让每次烘焙竹林排列一致，但局间会不同（不刷新就一致）
     let seed = 2024;
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
 
-    // 竹竿：~9 根，宽 7–14 px，整高贯穿
+    // 雾层
+    for (let i = 0; i < 5; i++) {
+      const fy = LOG_H * (0.28 + i * 0.16);
+      const fg = bx.createLinearGradient(0, fy - 55, 0, fy + 55);
+      fg.addColorStop(0, 'rgba(170,210,155,0)');
+      fg.addColorStop(0.5, 'rgba(170,210,155,' + (0.035 + rnd() * 0.04).toFixed(3) + ')');
+      fg.addColorStop(1, 'rgba(170,210,155,0)');
+      bx.fillStyle = fg;
+      bx.fillRect(0, fy - 55, LOG_W, 110);
+    }
+
+    // 竹竿：7根
     const culms = [];
-    for (let i = 0; i < 9; i++) {
-      const x = 12 + i * (LOG_W - 24) / 8 + (rnd() - 0.5) * 18;
-      const w = 7 + rnd() * 7;
-      const a = 0.42 + rnd() * 0.32;
-      const shade = 0.75 + rnd() * 0.35;
-      culms.push({ x, w, a, shade, phase: rnd() * 90 });
+    for (let i = 0; i < 7; i++) {
+      const x = 18 + i * (LOG_W - 36) / 6 + (rnd() - 0.5) * 24;
+      const w = 8 + rnd() * 11;
+      const a = 0.50 + rnd() * 0.42;
+      const shade = 0.68 + rnd() * 0.42;
+      culms.push({ x, w, a, shade, phase: rnd() * 115 });
     }
     for (const c of culms) {
       const cg = bx.createLinearGradient(c.x, 0, c.x + c.w, 0);
-      cg.addColorStop(0, 'rgba(' + Math.floor(40*c.shade) + ',' + Math.floor(80*c.shade) + ',38,' + c.a + ')');
-      cg.addColorStop(0.32, 'rgba(' + Math.floor(80*c.shade) + ',' + Math.floor(150*c.shade) + ',70,' + c.a + ')');
-      cg.addColorStop(0.62, 'rgba(' + Math.floor(60*c.shade) + ',' + Math.floor(120*c.shade) + ',55,' + c.a + ')');
-      cg.addColorStop(1, 'rgba(' + Math.floor(28*c.shade) + ',' + Math.floor(70*c.shade) + ',32,' + c.a + ')');
+      cg.addColorStop(0, 'rgba(' + Math.floor(32*c.shade) + ',' + Math.floor(88*c.shade) + ',40,' + c.a + ')');
+      cg.addColorStop(0.30, 'rgba(' + Math.floor(92*c.shade) + ',' + Math.floor(168*c.shade) + ',82,' + c.a + ')');
+      cg.addColorStop(0.62, 'rgba(' + Math.floor(56*c.shade) + ',' + Math.floor(118*c.shade) + ',56,' + c.a + ')');
+      cg.addColorStop(1, 'rgba(' + Math.floor(18*c.shade) + ',' + Math.floor(52*c.shade) + ',22,' + c.a + ')');
       bx.fillStyle = cg;
       bx.fillRect(c.x, 0, c.w, LOG_H);
-      // 节（竹竿上的横向环）
-      const spacing = 95 + (c.phase % 30);
+      // 竹节
+      const spacing = 78 + (c.phase % 36);
       for (let y = c.phase; y < LOG_H; y += spacing) {
-        bx.fillStyle = 'rgba(18, 42, 22, ' + (c.a * 0.85).toFixed(3) + ')';
-        bx.fillRect(c.x - 1, y, c.w + 2, 2.4);
-        bx.fillStyle = 'rgba(150, 200, 120, ' + (c.a * 0.55).toFixed(3) + ')';
-        bx.fillRect(c.x + 0.5, y + 2.4, c.w - 1, 0.9);
+        bx.fillStyle = 'rgba(8,26,12,' + (c.a * 0.92).toFixed(3) + ')';
+        bx.fillRect(c.x - 1.5, y, c.w + 3, 3.0);
+        bx.fillStyle = 'rgba(155,210,128,' + (c.a * 0.52).toFixed(3) + ')';
+        bx.fillRect(c.x + 0.5, y + 3.0, c.w - 1, 1.0);
+      }
+      // 竹叶
+      for (let y = c.phase + 32; y < LOG_H - 55; y += spacing) {
+        const lx = c.x + c.w / 2;
+        const side = (y % (spacing * 2) < spacing) ? 1 : -1;
+        bx.fillStyle = 'rgba(72,148,54,' + (c.a * 0.72).toFixed(3) + ')';
+        bx.beginPath();
+        bx.moveTo(lx, y);
+        bx.quadraticCurveTo(lx + side * 15, y - 11, lx + side * 24, y - 4);
+        bx.quadraticCurveTo(lx + side * 10, y + 5, lx, y);
+        bx.fill();
       }
     }
-    // 散落的光斑 dappled light
-    for (let i = 0; i < 12; i++) {
+    // 光斑
+    for (let i = 0; i < 18; i++) {
       const sx = rnd() * LOG_W;
-      const sy = rnd() * LOG_H * 0.55;
-      const r = 30 + rnd() * 28;
+      const sy = rnd() * LOG_H * 0.38;
+      const r = 22 + rnd() * 34;
       const lg = bx.createRadialGradient(sx, sy, 0, sx, sy, r);
-      lg.addColorStop(0, 'rgba(255, 240, 180, 0.10)');
-      lg.addColorStop(1, 'rgba(255, 240, 180, 0)');
+      lg.addColorStop(0, 'rgba(255,248,195,0.12)');
+      lg.addColorStop(1, 'rgba(255,248,195,0)');
       bx.fillStyle = lg;
       bx.beginPath();
       bx.arc(sx, sy, r, 0, Math.PI * 2);
       bx.fill();
     }
+    // 地面
+    const ground = bx.createLinearGradient(0, LOG_H - 65, 0, LOG_H);
+    ground.addColorStop(0, 'rgba(10,26,14,0)');
+    ground.addColorStop(0.5, 'rgba(10,26,14,0.52)');
+    ground.addColorStop(1, 'rgba(6,16,8,0.82)');
+    bx.fillStyle = ground;
+    bx.fillRect(0, LOG_H - 65, LOG_W, 65);
   }
-
   // ---------- 月夜 ----------
-  // 深蓝夜空 + 大月亮 + 星点 + 山脊 silhouette + (动画) 樱花飘落
   function bakeBgMoonlit(bx) {
     const g = bx.createLinearGradient(0, 0, 0, LOG_H);
-    g.addColorStop(0, '#040820');
-    g.addColorStop(0.55, '#0a1230');
-    g.addColorStop(1, '#020410');
+    g.addColorStop(0, '#030618');
+    g.addColorStop(0.45, '#071030');
+    g.addColorStop(0.78, '#050d24');
+    g.addColorStop(1, '#020610');
     bx.fillStyle = g;
     bx.fillRect(0, 0, LOG_W, LOG_H);
 
-    // 月亮 halo
-    const mx = LOG_W * 0.72;
-    const my = LOG_H * 0.20;
-    const mr = 64;
-    const halo = bx.createRadialGradient(mx, my, 0, mx, my, mr * 2.4);
-    halo.addColorStop(0, 'rgba(255, 240, 200, 0)');
-    halo.addColorStop(0.45, 'rgba(255, 230, 180, 0.14)');
-    halo.addColorStop(1, 'rgba(255, 230, 180, 0)');
-    bx.fillStyle = halo;
+    const mx = LOG_W * 0.70;
+    const my = LOG_H * 0.19;
+    const mr = 62;
+
+    // 外光晕
+    const outerHalo = bx.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * 3.0);
+    outerHalo.addColorStop(0, 'rgba(255,245,210,0)');
+    outerHalo.addColorStop(0.38, 'rgba(255,235,190,0.10)');
+    outerHalo.addColorStop(1, 'rgba(255,230,180,0)');
+    bx.fillStyle = outerHalo;
     bx.fillRect(0, 0, LOG_W, LOG_H);
 
-    // 月亮本体
-    const moon = bx.createRadialGradient(mx - 10, my - 10, 2, mx, my, mr);
-    moon.addColorStop(0, '#fffaee');
-    moon.addColorStop(0.7, '#fff0c8');
-    moon.addColorStop(1, '#fadca0');
+    // 内光晕
+    const innerHalo = bx.createRadialGradient(mx, my, 0, mx, my, mr * 1.6);
+    innerHalo.addColorStop(0, 'rgba(255,248,225,0)');
+    innerHalo.addColorStop(0.55, 'rgba(255,240,200,0.18)');
+    innerHalo.addColorStop(1, 'rgba(255,235,185,0)');
+    bx.fillStyle = innerHalo;
+    bx.fillRect(0, 0, LOG_W, LOG_H);
+
+    // 月面
+    const moon = bx.createRadialGradient(mx - 10, my - 10, 3, mx, my, mr);
+    moon.addColorStop(0, '#fffef8');
+    moon.addColorStop(0.55, '#fff5d8');
+    moon.addColorStop(0.82, '#ffe8a8');
+    moon.addColorStop(1, '#f5c878');
     bx.fillStyle = moon;
     bx.beginPath();
     bx.arc(mx, my, mr, 0, Math.PI * 2);
     bx.fill();
+
     // 月坑
-    bx.fillStyle = 'rgba(0, 0, 0, 0.08)';
-    [[16, -12, 5], [-20, 4, 7], [4, 22, 4], [22, 14, 3.5], [-10, -18, 3]].forEach(([dx, dy, cr]) => {
+    bx.fillStyle = 'rgba(0,0,0,0.07)';
+    [[14,-10,4.5],[-18,3,6],[5,20,3.8],[22,12,3.2],[-8,-16,2.8],[0,-2,8],[-22,15,3.0],[20,-18,2.5],[-14,-4,4.0],[8,8,2.0]].forEach(([dx,dy,cr]) => {
       bx.beginPath();
       bx.arc(mx + dx, my + dy, cr, 0, Math.PI * 2);
       bx.fill();
     });
+    // 月坑高光环
+    bx.fillStyle = 'rgba(255,255,255,0.10)';
+    [[14,-10,4.5,0.6],[-18,3,6,0.7],[0,-2,8,0.8],[22,12,3.2,0.5]].forEach(([dx,dy,cr,k]) => {
+      bx.beginPath();
+      bx.arc(mx + dx + cr*k, my + dy - cr*k, cr*0.5, 0, Math.PI * 2);
+      bx.fill();
+    });
 
     // 星点
-    let s = 9001;
-    const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
-    bx.fillStyle = '#ffffff';
-    for (let i = 0; i < 80; i++) {
-      const sx = rnd() * LOG_W;
-      const sy = rnd() * LOG_H * 0.55;
-      const sr = 0.4 + rnd() * 1.3;
-      // 避开月亮本体区域
-      if (Math.hypot(sx - mx, sy - my) < mr + 8) continue;
-      bx.globalAlpha = 0.3 + rnd() * 0.6;
+    let ms = 9001;
+    const mrnd = () => { ms = (ms * 9301 + 49297) % 233280; return ms / 233280; };
+    for (let i = 0; i < 90; i++) {
+      const sx = mrnd() * LOG_W;
+      const sy = mrnd() * LOG_H * 0.60;
+      const sr = 0.3 + mrnd() * 1.6;
+      if (Math.hypot(sx - mx, sy - my) < mr + 12) continue;
+      bx.globalAlpha = 0.25 + mrnd() * 0.70;
+      bx.fillStyle = sr > 1.1 ? '#fffef0' : '#d0d8ff';
       bx.beginPath();
       bx.arc(sx, sy, sr, 0, Math.PI * 2);
       bx.fill();
     }
     bx.globalAlpha = 1;
 
-    // 远山 silhouette
-    bx.fillStyle = '#020613';
+    // 远山：两层剪影
+    bx.fillStyle = 'rgba(3,6,18,0.70)';
     bx.beginPath();
     bx.moveTo(0, LOG_H);
-    bx.lineTo(0, LOG_H * 0.80);
-    bx.lineTo(LOG_W * 0.18, LOG_H * 0.70);
-    bx.lineTo(LOG_W * 0.35, LOG_H * 0.78);
-    bx.lineTo(LOG_W * 0.5, LOG_H * 0.64);
-    bx.lineTo(LOG_W * 0.65, LOG_H * 0.74);
-    bx.lineTo(LOG_W * 0.82, LOG_H * 0.68);
-    bx.lineTo(LOG_W, LOG_H * 0.78);
+    for (let i = 0; i <= 12; i++) {
+      const tx = i / 12 * LOG_W;
+      const ty = LOG_H * (0.58 + Math.sin(i * 1.5) * 0.08 + Math.sin(i * 3.1) * 0.05);
+      bx.lineTo(tx, ty);
+    }
     bx.lineTo(LOG_W, LOG_H);
     bx.closePath();
     bx.fill();
-  }
 
+    bx.fillStyle = 'rgba(2,4,14,0.90)';
+    bx.beginPath();
+    bx.moveTo(0, LOG_H);
+    for (let i = 0; i <= 14; i++) {
+      const tx = i / 14 * LOG_W;
+      const ty = LOG_H * (0.66 + Math.sin(i * 1.8 + 0.4) * 0.06 + Math.sin(i * 3.6) * 0.04 + Math.sin(i * 6.2) * 0.02);
+      bx.lineTo(tx, ty);
+    }
+    bx.lineTo(LOG_W, LOG_H);
+    bx.closePath();
+    bx.fill();
+
+    // 湖面反光
+    const water = bx.createLinearGradient(0, LOG_H * 0.82, 0, LOG_H);
+    water.addColorStop(0, 'rgba(40,80,140,0)');
+    water.addColorStop(0.35, 'rgba(30,60,110,0.15)');
+    water.addColorStop(1, 'rgba(15,30,60,0.35)');
+    bx.fillStyle = water;
+    bx.fillRect(0, LOG_H * 0.82, LOG_W, LOG_H * 0.18);
+
+    // 月光水面倒影
+    const reflectY = LOG_H * 0.84;
+    const reflect = bx.createLinearGradient(mx - 30, reflectY, mx + 30, reflectY + 50);
+    reflect.addColorStop(0, 'rgba(255,240,190,0.14)');
+    reflect.addColorStop(0.7, 'rgba(255,230,170,0.04)');
+    reflect.addColorStop(1, 'rgba(255,220,160,0)');
+    bx.fillStyle = reflect;
+    bx.beginPath();
+    bx.ellipse(mx, reflectY + 24, 28, 60, 0, 0, Math.PI * 2);
+    bx.fill();
+
+    // 细微水面波纹
+    bx.strokeStyle = 'rgba(255,240,200,0.06)';
+    bx.lineWidth = 0.6;
+    for (let i = 0; i < 4; i++) {
+      const wy = LOG_H * (0.86 + i * 0.030);
+      bx.beginPath();
+      bx.moveTo(mx - 40, wy);
+      bx.quadraticCurveTo(mx, wy + 2, mx + 40, wy);
+      bx.stroke();
+    }
+  }
   // ---------- 极简 ----------
-  // 单色深底 + vignette；连击 / 切水果时 the action is the star，没干扰
   function bakeBgMinimal(bx) {
-    bx.fillStyle = '#0a0e14';
+    const g = bx.createLinearGradient(0, 0, 0, LOG_H);
+    g.addColorStop(0, '#0c1018');
+    g.addColorStop(1, '#080c12');
+    bx.fillStyle = g;
     bx.fillRect(0, 0, LOG_W, LOG_H);
-    const v = bx.createRadialGradient(LOG_W / 2, LOG_H / 2, LOG_W * 0.3, LOG_W / 2, LOG_H / 2, LOG_W * 0.78);
-    v.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    v.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
+
+    // 柔光 vignette
+    const v = bx.createRadialGradient(LOG_W/2, LOG_H/2, LOG_W*0.28, LOG_W/2, LOG_H/2, LOG_W*0.78);
+    v.addColorStop(0, 'rgba(0,0,0,0)');
+    v.addColorStop(1, 'rgba(0,0,0,0.58)');
     bx.fillStyle = v;
     bx.fillRect(0, 0, LOG_W, LOG_H);
-    // 极淡的水平参考线
-    bx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-    bx.fillRect(0, LOG_H * 0.62, LOG_W, 1);
-  }
 
-  // ---------- 霓虹（legacy 蒸汽波）----------
+    // 单条纤细金色水平线，带微弱光晕
+    const lineY = LOG_H * 0.618;
+    const glow = bx.createLinearGradient(0, lineY - 4, 0, lineY + 4);
+    glow.addColorStop(0, 'rgba(200,180,140,0)');
+    glow.addColorStop(0.5, 'rgba(200,180,140,0.10)');
+    glow.addColorStop(1, 'rgba(200,180,140,0)');
+    bx.fillStyle = glow;
+    bx.fillRect(0, lineY - 4, LOG_W, 8);
+    bx.strokeStyle = 'rgba(200,180,140,0.18)';
+    bx.lineWidth = 0.6;
+    bx.beginPath();
+    bx.moveTo(LOG_W * 0.12, lineY);
+    bx.lineTo(LOG_W * 0.88, lineY);
+    bx.stroke();
+  }
+  // ---------- 霓虹 ----------
   function bakeBgNeon(bx) {
     const horizonY = LOG_H * HORIZON_RATIO;
+
+    // 天空
     const skyGrad = bx.createLinearGradient(0, 0, 0, horizonY);
-    skyGrad.addColorStop(0, '#06010f');
-    skyGrad.addColorStop(0.55, '#1a0838');
-    skyGrad.addColorStop(1, '#3a0e5e');
+    skyGrad.addColorStop(0, '#05000f');
+    skyGrad.addColorStop(0.40, '#18062e');
+    skyGrad.addColorStop(0.75, '#3a1058');
+    skyGrad.addColorStop(1, '#5a1860');
     bx.fillStyle = skyGrad;
     bx.fillRect(0, 0, LOG_W, horizonY);
+
+    // 落日
     const sunCx = LOG_W / 2;
-    const sunCy = horizonY - 18;
-    const sunR = 120;
-    const sunGrad = bx.createRadialGradient(sunCx, sunCy, 6, sunCx, sunCy, sunR);
-    sunGrad.addColorStop(0, '#fff8c4');
-    sunGrad.addColorStop(0.28, '#ffc070');
-    sunGrad.addColorStop(0.55, '#ff4ea8');
-    sunGrad.addColorStop(1, 'rgba(120, 20, 90, 0)');
+    const sunCy = horizonY - 10;
+    const sunR = 130;
+    const sunGrad = bx.createRadialGradient(sunCx, sunCy, 8, sunCx, sunCy, sunR);
+    sunGrad.addColorStop(0, '#fffce8');
+    sunGrad.addColorStop(0.15, '#ffe8a0');
+    sunGrad.addColorStop(0.35, '#ff9040');
+    sunGrad.addColorStop(0.60, '#ff4090');
+    sunGrad.addColorStop(0.85, 'rgba(140,20,100,0.30)');
+    sunGrad.addColorStop(1, 'rgba(80,10,50,0)');
     bx.fillStyle = sunGrad;
     bx.beginPath();
     bx.arc(sunCx, sunCy, sunR, 0, Math.PI * 2);
     bx.fill();
-    bx.globalCompositeOperation = 'destination-out';
-    for (let i = 0; i < 7; i++) {
-      const sy = sunCy + 28 + i * 10;
-      const sh = 3 + i * 0.7;
-      if (sy + sh > horizonY) break;
-      bx.fillRect(sunCx - sunR, sy, sunR * 2, sh);
-    }
-    bx.globalCompositeOperation = 'source-over';
+
+    // 地面
     const floorGrad = bx.createLinearGradient(0, horizonY, 0, LOG_H);
-    floorGrad.addColorStop(0, '#0c031e');
-    floorGrad.addColorStop(1, '#02000a');
+    floorGrad.addColorStop(0, '#0b0218');
+    floorGrad.addColorStop(1, '#020006');
     bx.fillStyle = floorGrad;
     bx.fillRect(0, horizonY, LOG_W, LOG_H - horizonY);
-    const glowGrad = bx.createLinearGradient(0, horizonY - 10, 0, horizonY + 10);
-    glowGrad.addColorStop(0, 'rgba(0, 220, 255, 0)');
-    glowGrad.addColorStop(0.5, 'rgba(0, 220, 255, 0.42)');
-    glowGrad.addColorStop(1, 'rgba(0, 220, 255, 0)');
-    bx.fillStyle = glowGrad;
-    bx.fillRect(0, horizonY - 10, LOG_W, 20);
-    bx.strokeStyle = 'rgba(120, 250, 255, 0.95)';
-    bx.lineWidth = 1.5;
+
+    // 地平线光晕
+    const lineGlow = bx.createLinearGradient(0, horizonY - 8, 0, horizonY + 12);
+    lineGlow.addColorStop(0, 'rgba(0,220,255,0)');
+    lineGlow.addColorStop(0.45, 'rgba(0,220,255,0.48)');
+    lineGlow.addColorStop(0.55, 'rgba(255,80,200,0.32)');
+    lineGlow.addColorStop(1, 'rgba(0,180,255,0)');
+    bx.fillStyle = lineGlow;
+    bx.fillRect(0, horizonY - 8, LOG_W, 20);
+    bx.strokeStyle = 'rgba(150,250,255,0.95)';
+    bx.lineWidth = 1.6;
     bx.beginPath();
     bx.moveTo(0, horizonY);
     bx.lineTo(LOG_W, horizonY);
     bx.stroke();
-    bx.fillStyle = '#ffffff';
+
+    // 星点
     let s = 7777;
     const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
-    for (let i = 0; i < 22; i++) {
+    for (let i = 0; i < 28; i++) {
       const sx = rnd() * LOG_W;
-      const sy = rnd() * horizonY * 0.75;
-      const sr = rnd() * 1.2 + 0.3;
-      bx.globalAlpha = 0.35 + rnd() * 0.5;
+      const sy = rnd() * horizonY * 0.72;
+      const sr = rnd() * 1.5 + 0.3;
+      bx.globalAlpha = 0.30 + rnd() * 0.55;
+      bx.fillStyle = sr > 1.0 ? '#ffffff' : '#c8e0ff';
       bx.beginPath();
       bx.arc(sx, sy, sr, 0, Math.PI * 2);
       bx.fill();
     }
     bx.globalAlpha = 1;
   }
-
   // ---------- 动画层（dispatcher）----------
   const bgPetals = [];
   function ensureMoonPetals() {
@@ -1839,15 +1941,15 @@ permalink: /toolbox/fruit-ninja/
       // 烟花扇形：起点沿屏幕底部均匀分布，朝中心略汇聚
       const ratio = opts.fanTotal === 1 ? 0.5 : (opts.fanIndex / (opts.fanTotal - 1));
       x = margin + ratio * (LOG_W - 2 * margin);
-      const dt = opts.fan === 'pinata' ? 1.45 : 1.3;
-      vy = (-GRAVITY * dt - 60) * gameSpeed;
+      const dt = opts.fan === 'pinata' ? 1.2 : 1.1;
+      vy = -GRAVITY * dt - 60;
       const sideOffset = (LOG_W / 2 - x) * 0.35;
       vx = sideOffset / dt + (Math.random() - 0.5) * 50;
     } else {
       x = margin + Math.random() * (LOG_W - 2 * margin);
       const targetX = LOG_W / 2 + (Math.random() - 0.5) * (LOG_W * 0.7);
-      const dt = 1.2;
-      vy = (-GRAVITY * dt - 80) * gameSpeed;
+      const dt = 1.05;
+      vy = -GRAVITY * dt - 80;
       vx = (targetX - x) / dt + (Math.random() - 0.5) * 80;
     }
     let type = FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
@@ -2035,7 +2137,7 @@ permalink: /toolbox/fruit-ninja/
       boss: true, hp: 4, maxHp: 4,
       x, y: LOG_H + 90,
       vx: (Math.random() - 0.5) * 40,
-      vy: (-GRAVITY * 1.55 - 40) * gameSpeed,    // 抛得更高更慢，给玩家时间反应
+      vy: -GRAVITY * 1.2 - 40,    // 抛得更高更慢，给玩家时间反应
       rot: 0, vrot: 0.4,
       r: 78,
       bornAt: t,
