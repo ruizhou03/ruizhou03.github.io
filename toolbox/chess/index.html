@@ -117,6 +117,7 @@ permalink: /toolbox/chess/
     pointer-events: none;
     z-index: 1;
   }
+  .ch-piece.ch-p { font-size: clamp(24px, 6.4vw, 48px); }
   .ch-piece.white { color: #fff; text-shadow: 0 0 1px #1a1a1a, 0 0 2px #1a1a1a, 1px 1px 1px rgba(0,0,0,0.5); }
   .ch-piece.black { color: #1a1a1a; text-shadow: 0 1px 1px rgba(255,255,255,0.4); }
 
@@ -573,7 +574,7 @@ permalink: /toolbox/chess/
 
         if (cellPiece) {
           const pieceEl = document.createElement('span');
-          pieceEl.className = 'ch-piece ' + (cellPiece.color === 'w' ? 'white' : 'black');
+          pieceEl.className = 'ch-piece ch-' + cellPiece.type + ' ' + (cellPiece.color === 'w' ? 'white' : 'black');
           pieceEl.textContent = PIECE_GLYPH[cellPiece.color][cellPiece.type];
           cellEl.appendChild(pieceEl);
         }
