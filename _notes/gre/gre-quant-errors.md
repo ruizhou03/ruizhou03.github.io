@@ -25,6 +25,7 @@ material_type: "错题本"
 
 ![](/files/images/gre-quant-errors/05.jpg)
 
+{% raw %}
 ```latex
 \usepackage{tabularx}
 \usepackage{tikz}
@@ -75,3 +76,4 @@ material_type: "错题本"
 \end{center}
 }
 ```
+{% endraw %}

@@ -118,9 +118,11 @@ Verbal 填空题有三类题型：
 
 以及一个“注”命令用来写自己的解析：
 
+{% raw %}
 ```latex
 \newcommand{\note}[1]{{\heiti\textbf{注\hspace{1em}}}#1.}
 ```
+{% endraw %}
 
 把整个错题本的正文都放在 `enumerate` 的环境之下，这样自然会有题号计数，每道题用 `\item` 打头。
 
