@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "滑蛋牛肉"
+keywords: ["滑蛋牛肉", "滑蛋牛肉饭", "beef with scrambled egg", "牛肉", "牛肉片", "beef", "鸡蛋", "滑蛋", "egg", "粤菜", "中餐", "下饭菜", "家常菜", "快手菜", "滑蛋牛柳"]
 slug: "huadanniurou"
 date: 2026-02-06
 author: "Zircon"

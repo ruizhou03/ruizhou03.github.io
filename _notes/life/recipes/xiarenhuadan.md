@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "虾仁滑蛋"
+keywords: ["虾仁滑蛋", "滑蛋虾仁", "虾仁炒蛋", "shrimp scrambled eggs", "虾仁", "虾", "shrimp", "鸡蛋", "滑蛋", "egg", "粤菜", "家常菜", "下饭菜", "快手菜", "虾仁炒鸡蛋"]
 slug: "xiarenhuadan"
 date: 2026-02-09
 author: "Zircon"

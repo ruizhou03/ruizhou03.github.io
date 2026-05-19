@@ -7,7 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-cluster-analysis"
 published: true
-keywords: ["优雅地用 R 拿捏聚类分析"]
+keywords: ["R 聚类分析", "聚类分析", "cluster analysis", "k-means", "k 均值聚类", "层次聚类", "hierarchical clustering", "kmeans 函数", "hclust", "聚类树状图", "dendrogram", "距离矩阵", "类别划分", "无监督学习", "心理统计 II", "数据分组", "聚类 R", "聚类分析R", "簇 cluster"]
 ---
 
 至此，心理统计 II 的所有新知识都已经覆盖了。往回看，不得不承认心统 II 的工具性比较强，但课后回味老师上课讲的例子，加上善用搜索理解原理的过程是自己最快乐的时光了。

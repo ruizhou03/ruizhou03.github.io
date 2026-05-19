@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "家庭版麦乐鸡块"
+keywords: ["麦乐鸡块", "麦乐鸡", "鸡块", "chicken nuggets", "mcnuggets", "鸡胸肉", "鸡肉", "chicken", "面包糠", "panko", "空气炸锅", "西餐", "小食", "儿童餐", "麦辣鸡块"]
 slug: "mailejikuai"
 date: 2026-02-14
 author: "Zircon"

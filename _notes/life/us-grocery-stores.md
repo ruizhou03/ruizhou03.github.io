@@ -5,7 +5,7 @@ date: 2026-04-06
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-grocery-stores"
-keywords: ["美国超市完全指南（一） 八大类型与各家定位", "这篇文章给谁看", "美国超市的“分级地图”", "主流超市详解", "Costco", "Sam's Club", "Walmart", "Target", "3 Kroger 系（区域性传统超市）", "Trader Joe's（特色高性价比）", "Whole Foods（有机精品）", "5 Aldi / Lidl（欧洲折扣双雄）", "Aldi", "Lidl", "6 亚洲超市（简介）"]
+keywords: ["美国超市", "超市推荐", "美国买菜", "grocery store", "supermarket", "Costco", "Sam's Club", "Walmart", "Target", "Kroger", "Trader Joe's", "Whole Foods", "Aldi", "Lidl", "亚洲超市", "H Mart", "99 Ranch", "大华超市", "超市对比", "囤货", "伙食预算", "买菜省钱", "美国超市攻略"]
 ---
 
 # 1. 这篇文章给谁看

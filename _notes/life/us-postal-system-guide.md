@@ -5,7 +5,7 @@ date: 2026-04-25
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-postal-system-guide"
-keywords: ["美国邮政完全指南 USPS / UPS / FedEx / DHL 四大快递与寄收件实战", "这篇文章给谁看", "美国 4 大快递对比", "3 FedEx", "4 DHL", "5 选哪家速查表", "USPS 服务类型", "1 First Class Mail", "2 Priority Mail", "3 Priority Mail Express", "4 Media Mail", "5 Ground", "寄信流程", "1 准备", "2 写地址（关键格式）"]
+keywords: ["美国邮政", "美国快递", "寄快递", "寄信", "shipping", "USPS", "UPS", "FedEx", "DHL", "Priority Mail", "First Class", "Media Mail", "国际寄件", "寄回中国", "跨境寄件", "报关", "P.O. Box", "Amazon Locker", "包裹被偷", "porch pirate", "USPS 钓鱼短信", "写地址格式", "美国寄包裹"]
 ---
 
 # 1. 这篇文章给谁看

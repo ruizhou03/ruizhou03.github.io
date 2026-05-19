@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "香菇鸡肉焖饭"
+keywords: ["香菇鸡肉焖饭", "香菇焖饭", "鸡肉焖饭", "chicken mushroom rice", "香菇", "蘑菇", "shiitake", "mushroom", "鸡腿肉", "鸡肉", "chicken", "米饭", "rice", "一锅饭", "家常菜", "下饭菜", "香菇滑鸡饭"]
 slug: "xianggujiroumenfan"
 date: 2026-02-20
 author: "Zircon"

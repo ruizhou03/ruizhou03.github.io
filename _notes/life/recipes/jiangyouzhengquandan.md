@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "酱油蒸全蛋"
+keywords: ["酱油蒸全蛋", "酱油蒸蛋", "蒸全蛋", "steamed egg", "soy sauce egg", "鸡蛋", "全蛋", "egg", "酱油", "soy sauce", "中餐", "下饭菜", "快手菜", "懒人菜", "酱油蒸鸡蛋"]
 slug: "jiangyouzhengquandan"
 date: 2026-02-07
 author: "Zircon"

@@ -5,7 +5,7 @@ date: 2026-03-21
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/wifi-through-walls"
-keywords: ["WiFi 为什么隔一面墙就掉？2.4G 和 5G 该怎么选？", "1 WiFi 是电磁波，关键变量是频率", "2 不同建筑材料的衰减，一目了然", "3 信道 2.4G 拥挤、5G 宽敞", "4 多径效应 为什么屋里有 WiFi 死角", "5 干扰源 微波炉真的会干扰 WiFi", "1 路由器位置 三件事", "2 双频段怎么选", "3 信道选择 避开邻居", "4 隔墙怎么办", "5 三个常见误区", "WiFi 6E / WiFi 7 用", "dB", "dBm 数值最负", "current revision"]
+keywords: ["WiFi 穿墙", "WiFi 隔墙信号弱", "2.4G 还是 5G", "2.4GHz 5GHz 区别", "双频段怎么选", "WiFi 信道选择", "路由器摆放位置", "WiFi 信号衰减", "WiFi 死角 多径", "微波炉干扰 WiFi", "Mesh 中继器 电力猫", "WiFi 6E WiFi 7", "6GHz 频段", "无线信号穿透", "dBm 信号强度", "WiFi 频率波长", "WiFi 卡顿", "WiFi 信号差", "Wifi 穿墙"]
 ---
 
 # 1. 问题

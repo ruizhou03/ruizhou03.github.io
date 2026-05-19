@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "红烧肉"
+keywords: ["红烧肉", "红烧五花肉", "braised pork belly", "red braised pork", "五花肉", "猪肉", "pork belly", "pork", "冰糖", "中餐", "下饭菜", "家常菜", "硬菜", "红烧肉做法"]
 slug: "hongshaorou"
 date: 2026-01-29
 author: "Zircon"

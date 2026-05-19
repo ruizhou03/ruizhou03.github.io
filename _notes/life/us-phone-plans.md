@@ -5,7 +5,7 @@ date: 2026-03-26
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-phone-plans"
-keywords: ["美国手机话费完全指南 从选运营商到保留中国号码", "这篇文章给谁看", "美国手机生态 主网络 + MVNO 双轨", "主流运营商对比（一张大表）", "怎么选？按身份 + 使用场景", "中国号码怎么办？", "1 方案 A 完全放弃（不推荐）", "2 方案 B 保号 + 用国内备用机收验证码（推荐）", "3 方案 C 双卡 / eSIM 同时持有", "4 WiFi calling（国内号在美国接电话）", "eSIM vs 实体 SIM", "几个隐藏坑", "1 “免费 iPhone”分期套路", "2 Taxes & Fees（隐形税费）", "3 自动续费陷阱"]
+keywords: ["美国手机卡", "手机套餐", "话费套餐", "phone plan", "运营商", "carrier", "MVNO", "虚拟运营商", "Mint Mobile", "Visible", "US Mobile", "T-Mobile", "Verizon", "AT&T", "eSIM", "实体 SIM", "保留中国号码", "保号套餐", "WiFi calling", "家庭计划", "隐形税费", "美国选号", "美国手机话费"]
 ---
 
 # 1. 这篇文章给谁看

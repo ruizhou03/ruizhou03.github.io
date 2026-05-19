@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "厚蛋烧（玉子烧 / Tamagoyaki）"
+keywords: ["厚蛋烧", "玉子烧", "tamagoyaki", "japanese omelette", "鸡蛋", "蛋", "egg", "高汤", "dashi", "味醂", "mirin", "日料", "便当菜", "早餐", "厚蛋卷"]
 slug: "houdanshao"
 date: 2026-02-19
 author: "Zircon"

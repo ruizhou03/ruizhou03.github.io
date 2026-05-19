@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "黑椒洋葱牛排"
+keywords: ["黑椒洋葱牛排", "黑胡椒牛排", "black pepper steak", "牛排", "牛扒", "steak", "beef", "洋葱", "onion", "黑胡椒", "黑椒", "西餐", "煎牛排", "家常菜", "黑椒洋葱牛扒"]
 slug: "heijiaoyangcongniupai"
 date: 2026-02-17
 author: "Zircon"

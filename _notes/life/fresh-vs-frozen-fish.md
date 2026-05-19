@@ -7,7 +7,7 @@ sub_category: "生活之问"
 extra_categories:
   - 菜谱
 permalink: "/life/fresh-vs-frozen-fish"
-keywords: ["鲜鱼 vs 冷冻鱼到底差在哪？", "1 鱼捕捞后的鲜度衰减时间表", "2 IQF 急冻的物理 冰晶大小决定一切", "3 冷冻对营养的影响 几乎没有", "4 解冻 为什么慢解冻好", "1 美国超市标签解读", "2 哪些鱼买冷冻好", "3 哪些鱼鲜的更好", "4 解冻方法对比", "5 寄生虫安全 生食必须冷冻", "K 值", "rancidity", "zip-lock 或保鲜膜紧裹", "Salmo salar", "远洋捕捞"]
+keywords: ["鲜鱼 vs 冷冻鱼", "鲜鱼", "冷冻鱼", "frozen fish", "fresh fish", "冻鱼好不好", "冰鲜鱼", "IQF 急冻", "individual quick freezing", "船冻鱼", "解冻方法", "鱼怎么解冻", "慢解冻", "冷藏解冻", "刺身级三文鱼", "previously frozen", "生食寄生虫", "鱼寄生虫", "冷冻营养流失", "远洋捕捞", "超市买鱼", "鱼鲜度", "K 值", "鱼变质"]
 ---
 
 # 1. 问题

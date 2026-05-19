@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "冰皮奶黄月饼"
+keywords: ["冰皮奶黄月饼", "冰皮月饼", "奶黄月饼", "奶黄馅", "snow skin mooncake", "custard mooncake", "mooncake", "月饼", "中秋月饼", "中秋", "糯米粉", "粘米粉", "烘焙", "甜品", "点心", "免烤甜点", "中式点心"]
 slug: "bingpiyuebing"
 date: 2026-02-10
 author: "Zircon"

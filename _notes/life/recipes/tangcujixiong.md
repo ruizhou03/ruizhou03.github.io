@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "糖醋鸡胸肉"
+keywords: ["糖醋鸡胸肉", "糖醋鸡肉", "糖醋里脊", "sweet and sour chicken", "鸡胸", "鸡胸肉", "鸡肉", "chicken", "糖醋", "酸甜", "家常菜", "下饭菜", "减脂餐", "高蛋白", "糖醋鸡块"]
 slug: "tangcujixiong"
 date: 2026-02-02
 author: "Zircon"

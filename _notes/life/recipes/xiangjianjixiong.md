@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "香煎鸡胸肉"
+keywords: ["香煎鸡胸肉", "煎鸡胸", "煎鸡胸肉", "pan fried chicken breast", "鸡胸", "鸡胸肉", "鸡肉", "chicken breast", "chicken", "减脂餐", "高蛋白", "健身餐", "嫩鸡胸", "快手菜", "香煎鸡肉"]
 slug: "xiangjianjixiong"
 date: 2026-02-03
 author: "Zircon"

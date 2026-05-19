@@ -5,7 +5,7 @@ date: 2026-04-21
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-renting-guide"
-keywords: ["美国租房完全指南 从找房到退租，留学生第一年的破局路径", "这篇文章给谁看", "4 类住房选择", "4 Sublease / 转租（短期）", "找房渠道全清单", "看房 + 必问 10 问", "Application 流程", "1 标准 Application 要求", "2 留学生最大坑 没信用记录", "3 Co-signer / Guarantor", "Lease 合同必看 8 条", "1 押金（Security Deposit）返还条款", "3 Utilities 谁付", "4 Pet Policy + Pet Deposit", "5 Parking"]
+keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", "Zillow", "Apartments.com", "看房 tour", "租房申请", "rental application", "信用记录", "co-signer", "guarantor", "担保人", "lease 合同", "租约", "押金", "security deposit", "utilities", "水电费", "转租 sublease", "退租", "学校宿舍", "合租 roommate", "美国公寓"]
 ---
 
 # 1. 这篇文章给谁看

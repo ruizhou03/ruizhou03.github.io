@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "番茄巴沙鱼"
+keywords: ["番茄巴沙鱼", "西红柿巴沙鱼", "番茄龙利鱼", "tomato basa fish", "巴沙鱼", "basa fish", "龙利鱼", "番茄", "西红柿", "tomato", "鱼", "fish", "炖菜", "下饭菜", "家常菜", "快手菜", "中餐", "主菜"]
 slug: "fanqiebashayu"
 date: 2026-02-16
 author: "Zircon"

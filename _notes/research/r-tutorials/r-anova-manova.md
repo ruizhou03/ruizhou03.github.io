@@ -7,7 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-anova-manova"
 published: true
-keywords: ["优雅地用 R 拿捏 Nested ANOVA & MANOVA"]
+keywords: ["R 方差分析", "ANOVA", "方差分析", "嵌套方差分析", "nested ANOVA", "多元方差分析", "MANOVA", "aov 函数", "manova 函数", "Anova car 包", "事后检验", "post hoc", "组间差异", "因变量自变量", "F 检验", "重复测量 ANOVA", "心理统计 R", "bruceR MANOVA", "ANVOA"]
 ---
 
 ![](/files/images/r-anova-manova/01.jpg)

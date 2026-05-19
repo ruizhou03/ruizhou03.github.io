@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "舒芙蕾"
+keywords: ["舒芙蕾", "舒芙累", "souffle", "soufflé", "蛋奶酥", "烘焙", "baking", "甜点", "dessert", "鸡蛋", "蛋白打发", "下午茶", "法式甜点", "舒服蕾"]
 slug: "shufulei"
 date: 2026-01-31
 author: "Zircon"

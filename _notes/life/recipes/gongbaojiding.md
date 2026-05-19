@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "宫保鸡丁（家常改良版）"
+keywords: ["宫保鸡丁", "宫爆鸡丁", "kung pao chicken", "鸡丁", "鸡胸肉", "鸡肉", "chicken", "花生", "peanut", "川菜", "下饭菜", "家常菜", "快手菜", "宫保鸡定"]
 slug: "gongbaojiding"
 date: 2026-02-01
 author: "Zircon"

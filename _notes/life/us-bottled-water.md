@@ -7,7 +7,7 @@ sub_category: "生活之问"
 extra_categories:
   - 菜谱
 permalink: "/life/us-bottled-water"
-keywords: ["美国超市的 Drinking / Purified / Spring / Mineral Water 到底有什么区别？", "1 FDA 法定分类树", "2 关键术语 TDS、pH、硬度、电解质", "3 来源 vs 处理 水的“血统”和“工艺”", "4 美国超市常见品牌大对照", "1 按场景该选哪种", "2 看懂标签的几个要点", "3 几个误区", "4 钱该怎么花", "RO + 除氯 + 杀菌", "mg/L", "FDA 强制", "FDA 定义", "Hardness", "Electrolytes"]
+keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Purified Water 纯净水", "Spring Water 泉水", "Mineral Water 矿泉水", "Distilled Water 蒸馏水", "Sparkling Water 气泡水", "Alkaline Water 碱性水", "Artesian Water", "Electrolyte Water", "Aquafina", "Dasani", "Fiji 水", "Poland Spring", "FDA 瓶装水分类", "TDS 总溶解固体", "水的硬度", "瓶装水怎么选", "美国喝什么水", "美国瓶状水"]
 ---
 
 # 1. 问题

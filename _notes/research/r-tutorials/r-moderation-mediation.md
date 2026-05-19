@@ -7,7 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-moderation-mediation"
 published: true
-keywords: ["优雅地用 R 拿捏调节效应和中介效应"]
+keywords: ["R 调节效应", "R 中介效应", "调节效应", "中介效应", "moderation", "mediation", "交互作用", "interaction effect", "遗漏变量", "简单斜率分析", "simple slope", "emtrends", "lm 回归", "自变量因变量", "IV DV", "因果分析", "调节中介 R", "调节效用", "中介效应R"]
 ---
 
 调节效应和中介效应是因果分析中非常重要的两个板块。我仍然很清晰地记得去年《社会心理学》的助教学姐锐评我们搭建的漏洞百出的模型时，“调节效应”“中介效应”信口拈来，而那时连听到“IV”和“DV”都要反应一会儿的我真的完全懵了，只敢连声应下并事后偷偷补了补课。

@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "红豆汤"
+keywords: ["红豆汤", "红豆沙", "red bean soup", "红豆", "赤小豆", "red bean", "azuki", "甜品", "甜汤", "糖水", "汤", "夏日甜品", "红豆羹", "红豆汤水"]
 slug: "hongdoutang"
 date: 2026-02-24
 author: "Zircon"

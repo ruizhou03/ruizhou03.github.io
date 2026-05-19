@@ -5,7 +5,7 @@ date: 2026-04-12
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-grocery-tactics"
-keywords: ["美国超市完全指南（三） 场景化采购、省钱招数与配送服务", "这篇文章给谁看", "7 种典型留学生的“每月超市路线”", "1 单身宿舍党（不开车 + 食堂为主）", "2 单身公寓党（开车 + 自己做饭）", "3 两人小家 / 情侣 / 同居", "4 重度中餐家庭（两人或全家 + 完全中餐）", "5 健身党 / 高蛋白党", "6 健康有机倾向 / Vegan / 减脂", "7 留学生家庭（有娃 / 配偶 / 父母同住）", "5 招省钱实战", "3 Coupons（实体 + 数字，月省 30）", "5 信用卡 5% Cashback 卡（月省 30）", "配送服务全对比", "1 Instacart（基本所有超市）"]
+keywords: ["美国超市采购", "超市省钱", "买菜省钱", "grocery 省钱", "weekly ad", "coupon", "优惠券", "cashback", "返现", "信用卡返现", "generic 替代", "store brand", "Instacart", "生鲜配送", "grocery delivery", "Walmart+", "Target Drive Up", "伙食预算", "省钱攻略", "中餐食材", "亚超采购", "Costco 囤货", "美国超市配送"]
 ---
 
 # 1. 这篇文章给谁看

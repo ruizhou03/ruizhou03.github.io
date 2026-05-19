@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "黑胡椒西芹炒牛肉"
+keywords: ["黑胡椒西芹炒牛肉", "黑椒西芹牛肉", "black pepper beef", "牛肉", "牛肉片", "肥牛", "beef", "西芹", "芹菜", "celery", "黑胡椒", "中餐", "下饭菜", "家常菜", "减脂餐", "黑胡椒芹菜牛肉"]
 slug: "heijiaoxiqinniurou"
 date: 2026-02-23
 author: "Zircon"

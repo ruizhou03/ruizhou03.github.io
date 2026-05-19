@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "戚风蛋糕"
+keywords: ["戚风蛋糕", "chiffon cake", "蛋糕", "cake", "烘焙", "baking", "鸡蛋", "蛋白打发", "蛋糕胚", "甜点", "下午茶", "气风蛋糕", "西风蛋糕"]
 slug: "qifeng"
 date: 2026-01-30
 author: "Zircon"

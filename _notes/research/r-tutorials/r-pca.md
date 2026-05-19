@@ -7,7 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-pca"
 published: true
-keywords: ["尽量优雅地用R对付主成分分析", "PCA"]
+keywords: ["主成分分析", "PCA", "principal component analysis", "降维", "dimensionality reduction", "因子分析", "EFA", "bruceR", "prcomp", "princomp", "碎石图 scree plot", "载荷 loadings", "特征值", "特征向量", "方差解释", "协方差矩阵", "R 数据降维", "主城分分析", "PCA R"]
 ---
 
 这回之所以不优雅，是因为主成分分析的结果本身就不够优雅，但已经尽量在示例代码的基础上优雅了不少。让我们一起说，bruceR::EFA()，永远滴神！

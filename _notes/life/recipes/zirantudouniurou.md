@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "孜然土豆牛肉"
+keywords: ["孜然土豆牛肉", "孜然牛肉", "土豆牛肉", "cumin beef potato", "土豆", "马铃薯", "potato", "牛肉", "beef", "孜然", "cumin", "家常菜", "下饭菜", "炒菜", "孜然牛肉土豆"]
 slug: "zirantudouniurou"
 date: 2026-02-05
 author: "Zircon"

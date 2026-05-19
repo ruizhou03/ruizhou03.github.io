@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "蓝莓慕斯蛋糕"
+keywords: ["蓝莓慕斯蛋糕", "蓝莓慕斯", "blueberry mousse cake", "mousse", "蓝莓", "blueberry", "慕斯", "淡奶油", "吉利丁", "免烤", "烘焙", "甜品", "下午茶", "蓝莓木斯"]
 slug: "lanmeimosi"
 date: 2026-02-13
 author: "Zircon"

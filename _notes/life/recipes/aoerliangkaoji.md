@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "奥尔良烤鸡腿 / 烤鸡翅"
+keywords: ["奥尔良烤鸡腿", "奥尔良烤鸡翅", "奥尔良烤翅", "烤鸡腿", "烤鸡翅", "New Orleans chicken", "roasted chicken wings", "鸡腿", "鸡翅", "chicken", "腌鸡肉", "甜椒粉", "paprika", "烤箱菜", "家常菜", "下饭菜", "西餐", "主菜"]
 slug: "aoerliangkaoji"
 date: 2026-02-15
 author: "Zircon"

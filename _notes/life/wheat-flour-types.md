@@ -7,7 +7,7 @@ sub_category: "生活之问"
 extra_categories:
   - 菜谱
 permalink: "/life/wheat-flour-types"
-keywords: ["低筋、中筋、高筋面粉到底什么区别？", "1 什么是「面筋」？", "2 蛋白质含量决定面筋", "3 为什么蛋糕一定要低筋？", "4 为什么面包必须高筋？", "1 美超买什么", "2 替代换算（缺货时怎么办）", "3 几个常见误区", "4 揉面与不揉面的对应", "AP", "vital wheat gluten", "glutenin", "gliadin", "gluten", "hard wheat"]
+keywords: ["低筋中筋高筋面粉", "面粉区别", "面筋是什么", "蛋白质含量 面粉", "蛋糕用低筋粉", "面包用高筋粉", "cake flour", "all-purpose flour", "bread flour", "AP flour", "面筋粉", "vital wheat gluten", "gluten 麸质", "glutenin gliadin", "美超面粉对照", "面粉替代换算", "玉米淀粉降筋", "饺子馒头用粉", "面粉筋度", "低筋面粉"]
 ---
 
 # 1. 问题

@@ -7,7 +7,7 @@ sub_category: "生活之问"
 extra_categories:
   - 菜谱
 permalink: "/life/kitchen-starches"
-keywords: ["厨房里那些「粉」 生粉、澄粉、糯米粉、玉米淀粉的区别和用法", "1 直链 vs 支链淀粉", "2 厨房里 8 种常见无筋粉", "3 糊化与回生", "4 透明度", "1 八大常见粉详解", "2 替代换算（缺货时怎么办）", "3 美超 / 亚超对照速查", "4 几个易错点", "amylose", "amylopectin", "cassava", "gelatinization", "corn starch / 玉米生粉", "potato starch"]
+keywords: ["厨房各种粉的区别", "生粉", "澄粉", "糯米粉", "玉米淀粉", "corn starch", "土豆淀粉", "potato starch", "木薯粉", "tapioca starch", "粘米粉", "红薯淀粉", "绿豆淀粉", "淀粉区别", "生粉是什么", "生粉和玉米淀粉", "勾芡用什么粉", "上浆嫩肉", "直链淀粉", "支链淀粉", "糊化", "回生", "虾饺皮", "淀粉替代换算"]
 ---
 
 # 1. 问题

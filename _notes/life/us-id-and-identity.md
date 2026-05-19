@@ -5,7 +5,7 @@ date: 2026-03-23
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-id-and-identity"
-keywords: ["美国的「身份」是什么 SSN、护照、驾照、I-20 的关系，「Show ID」时到底要什么", "这篇文章给谁看", "三类“身份”凭证", "1 SSN 数字而非证件", "2 Photo ID 日常生活的“硬通货”", "3 签证身份文件 证明你合法在美", "“Show your ID” 实际指什么", "1 默认含义 政府发的 photo ID", "2 不同场景的“ID 标准”差异", "3 联邦认可 vs 州认可", "主要场景到底要什么", "1 I-9 雇主入职合规（这一栏特别复杂）", "留学生几个常见混淆", "1 I-20 不是 ID，但平时还是要带着", "2 中国护照在美国到底能不能算 ID？"]
+keywords: ["美国身份证件", "show ID", "出示证件", "SSN", "社安号", "social security", "护照", "passport", "驾照", "driver's license", "photo ID", "I-20", "DS-2019", "I-94", "签证页", "EAD", "I-9", "雇主入职", "证件区别", "钱包带什么", "护照算 ID 吗", "美国证件"]
 ---
 
 # 1. 这篇文章给谁看

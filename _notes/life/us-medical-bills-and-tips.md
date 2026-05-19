@@ -5,7 +5,7 @@ date: 2026-04-20
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-medical-bills-and-tips"
-keywords: ["美国医疗实战（三） 账单、谈判、省钱与留学生特殊场景", "这篇文章给谁看", "怎么看懂账单（最重要的一节）", "1 三层文件", "B. Medical Bill（医院 / 诊所账单）", "C. Itemized Bill（详细账单）", "2 5 步审账流程", "步骤 3 检查 Itemized Bill", "步骤 4 检查 In-Network Status", "步骤 5 核对你的 deductible / OOP", "谈判账单 4 招实战", "1 招数 1 发现错误 → 打保险公司", "4 招数 4 直接谈判", "5 几个谈判技巧", "HSA / FSA 税前账户的省税魔法"]
+keywords: ["美国医疗账单", "看懂账单", "medical bill", "EOB", "itemized bill", "账单谈判", "negotiate bill", "账单错误", "in-network", "deductible", "省医疗费", "GoodRx", "处方药省钱", "HSA FSA", "省税", "国内带药", "回国看牙", "心理咨询", "therapist", "怀孕生子", "financial assistance", "美国看病省钱"]
 ---
 
 # 1. 这篇文章给谁看

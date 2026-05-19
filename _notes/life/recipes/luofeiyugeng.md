@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "罗非鱼羹"
+keywords: ["罗非鱼羹", "鱼羹", "鱼肉羹", "tilapia soup", "fish soup", "罗非鱼", "鱼柳", "tilapia", "豆腐", "tofu", "鸡蛋", "汤", "中餐", "下饭菜", "罗非鱼汤"]
 slug: "luofeiyugeng"
 date: 2026-05-04
 author: "Zircon"

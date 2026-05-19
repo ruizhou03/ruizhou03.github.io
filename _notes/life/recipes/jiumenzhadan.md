@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "酒焖虎皮蛋"
+keywords: ["酒焖虎皮蛋", "虎皮蛋", "虎皮鸡蛋", "tiger skin egg", "braised egg", "鸡蛋", "卤蛋", "egg", "啤酒", "beer", "中餐", "下饭菜", "家常菜", "卤味", "酒焖虎皮鸡蛋"]
 slug: "jiumenzhadan"
 date: 2026-02-08
 author: "Zircon"

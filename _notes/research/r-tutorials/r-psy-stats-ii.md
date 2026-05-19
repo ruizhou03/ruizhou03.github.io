@@ -7,7 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-psy-stats-ii"
 published: true
-keywords: ["优雅地用 R 拿捏心理统计II"]
+keywords: ["优雅地用 R 拿捏心理统计II", "心理统计", "心理统计II", "心理统计学", "psychology statistics", "psych stats", "R 语言", "R tutorial", "R 教程", "统计分析", "期末复习", "数据分析", "回归分析", "regression", "方差分析", "ANOVA", "假设检验", "心统笔记"]
 ---
 
 心理统计II不是某种数据分析方法，而是这星期我期末考的科目

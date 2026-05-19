@@ -7,7 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-multiple-linear-regression"
 published: true
-keywords: ["优雅地用 R 拿捏多元线性回归"]
+keywords: ["R 多元线性回归", "多元线性回归", "multiple linear regression", "线性回归", "linear regression", "lm 函数", "回归系数", "回归模型", "最小二乘", "OLS", "逐步回归", "stepwise", "回归诊断", "多重共线性", "残差分析", "R 回归教程", "回归分析 R", "多元回归", "多元线性回归R"]
 ---
 
 ![](/files/images/r-multiple-linear-regression/01.jpg)

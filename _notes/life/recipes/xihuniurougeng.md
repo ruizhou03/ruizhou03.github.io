@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "西湖牛肉羹"
+keywords: ["西湖牛肉羹", "牛肉羹", "牛肉汤羹", "West Lake beef soup", "牛肉", "牛绞肉", "beef", "鸡蛋", "蛋花", "羹", "浓汤", "soup", "杭帮菜", "家常菜", "西湖牛肉汤"]
 slug: "xihuniurougeng"
 date: 2026-02-21
 author: "Zircon"

@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "番茄巴沙鱼面"
+keywords: ["番茄巴沙鱼面", "西红柿巴沙鱼面", "番茄鱼面", "番茄龙利鱼面", "tomato basa fish noodles", "巴沙鱼", "basa fish", "番茄", "西红柿", "tomato", "面条", "noodles", "汤面", "快手菜", "下饭菜", "家常菜", "一人食", "主食"]
 slug: "fanqiebashayumian"
 date: 2026-02-11
 author: "Zircon"

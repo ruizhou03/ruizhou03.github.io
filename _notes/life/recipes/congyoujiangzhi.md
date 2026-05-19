@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "批量预制葱油 + 拌面复合酱汁"
+keywords: ["葱油", "葱油拌面", "葱油酱汁", "拌面酱汁", "复合酱汁", "母酱", "scallion oil", "scallion oil noodles", "小葱", "scallion", "生抽", "soy sauce", "批量预制", "meal prep", "快手菜", "拌面", "饺子蘸料", "家常菜"]
 slug: "congyoujiangzhi"
 date: 2026-02-22
 author: "Zircon"

@@ -7,7 +7,7 @@ sub_category: "生活之问"
 extra_categories:
   - 菜谱
 permalink: "/life/fish-types-guide"
-keywords: ["不同的鱼吃起来是什么感觉？怎么选鱼配菜？", "1 鱼为什么有红白之分", "2 油脂含量决定什么？", "3 二维分类图谱 每条鱼的“位置”", "1 12 种常见鱼速查", "2 烹饪方法 → 选什么鱼", "3 美超 / 亚超买什么（中英对照）", "4 营养选择优先级", "myoglobin", "astaxanthin", "toro", "eicosapentaenoic acid", "docosahexaenoic acid", "mg / 100g 生食", "Atlantic mackerel"]
+keywords: ["不同的鱼怎么选", "怎么选鱼", "鱼的种类", "fish types", "鱼怎么吃", "选鱼配菜", "红肉鱼白肉鱼", "三文鱼", "鳕鱼", "金枪鱼", "沙丁鱼", "鲈鱼", "鲭鱼", "银鳕鱼", "巴沙鱼", "罗非鱼", "肌红蛋白", "myoglobin", "omega-3", "鱼油脂", "刺身用什么鱼", "清蒸鱼", "煎鱼", "鱼的营养", "美超买鱼", "鱼汞含量"]
 ---
 
 # 1. 问题

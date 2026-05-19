@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "酱香太阳肉盖饭"
+keywords: ["酱香太阳肉", "太阳肉盖饭", "太阳蛋肉饼饭", "肉末蒸蛋", "猪肉末", "肉末", "ground pork", "鸡蛋", "egg", "盖饭", "中餐", "下饭菜", "快手菜", "酱香太阳肉饭"]
 slug: "jiangxiangtaiyangrou"
 date: 2026-02-12
 author: "Zircon"

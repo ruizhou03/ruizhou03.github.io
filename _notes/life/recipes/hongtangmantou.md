@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "红糖馒头"
+keywords: ["红糖馒头", "红糖发糕", "brown sugar mantou", "steamed bun", "馒头", "mantou", "红糖", "brown sugar", "面粉", "酵母", "主食", "早餐", "面食", "红糖馍馍"]
 slug: "hongtangmantou"
 date: 2026-02-25
 author: "Zircon"

@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "牛肉番茄鸡蛋面"
+keywords: ["牛肉番茄鸡蛋面", "番茄牛肉面", "西红柿鸡蛋面", "beef tomato noodles", "番茄", "西红柿", "tomato", "牛肉", "牛肉末", "beef", "鸡蛋面", "noodles", "面条", "汤面", "家常菜", "下饭菜", "快手菜", "牛肉番茄面"]
 slug: "niurou-fanqie-jidanmian"
 date: 2026-04-27
 author: "Zircon"

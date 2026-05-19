@@ -7,7 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-brucer-moderation-mediation"
 published: true
-keywords: ["优雅地用bruceR拿捏调节效应和中介效应", "simpleSlope", "手动"]
+keywords: ["bruceR 调节效应", "bruceR 中介效应", "bruceR PROCESS", "PROCESS 宏", "moderation", "mediation", "调节效应", "中介效应", "简单斜率分析", "simple slope", "simpleSlope", "emtrends", "交互作用", "中心化标准化", "bruceR 教程", "调节中介 R", "PROCESS 模型", "brucR", "调节效用"]
 ---
 
 这次的内容大不一样！上篇是《优雅地用 R 拿捏调节效应和中介效应》，这次不是优雅地用“R”了，而是优雅地用“bruceR”，比原先用R优雅地多！

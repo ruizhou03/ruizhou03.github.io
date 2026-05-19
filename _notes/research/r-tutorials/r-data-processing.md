@@ -7,7 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-data-processing"
 published: true
-keywords: ["优雅地用 R 拿捏数据处理"]
+keywords: ["R 数据处理", "数据处理", "数据整理", "data wrangling", "data cleaning", "数据清洗", "data.frame 操作", "向量化操作", "子集筛选", "缺失值处理", "李东风 R 教程", "R 语言教程", "数据变换", "数据预处理", "数据框处理", "R 数据整理", "数据处理R", "subset apply"]
 ---
 
 给大家拜个晚年！许久不更是因为前一段才把自己的想法动态清零。

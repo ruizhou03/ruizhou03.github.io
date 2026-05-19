@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "番茄炖牛肉（电饭煲 / Instant Pot 版）"
+keywords: ["番茄炖牛肉", "西红柿炖牛肉", "番茄牛腩", "tomato beef stew", "牛肉", "beef", "番茄", "西红柿", "tomato", "炖牛肉", "电饭煲菜", "Instant Pot", "炖菜", "下饭菜", "家常菜", "懒人菜", "中餐", "主菜"]
 slug: "fanqiedunniurou"
 date: 2026-02-18
 author: "Zircon"

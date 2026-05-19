@@ -5,7 +5,7 @@ date: 2026-04-23
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-tax-basics-for-students"
-keywords: ["美国报税完全指南（一） 留学生税务身份与基础术语", "这篇文章给谁看", "美国税务身份 3 大类", "1 美国公民（U.S. Citizen）", "2 Resident Alien（RA，税务居民）", "1 5 年规则的几个细节", "2 怎么知道自己是 NRA 还是 RA", "留学生必填表格", "1 Form 1040NR（NRA 主表）", "2 Form 8843（NRA 必填，即便没收入）", "3 W-2", "4 1042-S", "6 1098-T", "中美税务协议（Tax Treaty）", "1 Article 20（学生 + 学徒）"]
+keywords: ["美国报税", "留学生报税", "税务身份", "tax return", "1040NR", "1040", "Form 8843", "W-2", "1042-S", "1098-T", "NRA", "resident alien", "5 年规则", "中美税务协议", "tax treaty", "FICA", "Social Security 税", "退税", "Sprintax", "州税", "F-1 报税", "没收入报税", "美国交税"]
 ---
 
 # 1. 这篇文章给谁看

@@ -1,6 +1,7 @@
 ---
 layout: recipe
 title: "翘脚牛肉（极简 BTB 版）"
+keywords: ["翘脚牛肉", "乐山翘脚牛肉", "qiaojiao beef", "Sichuan beef soup", "牛肉", "beef", "白萝卜", "萝卜", "daikon", "干碟", "蘸料", "川菜", "牛肉汤", "汤锅", "家常菜", "下饭菜", "敲脚牛肉"]
 slug: "qiaojiaoniurou"
 date: 2026-02-26
 author: "Zircon"

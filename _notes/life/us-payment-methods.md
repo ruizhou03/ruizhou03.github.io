@@ -5,7 +5,7 @@ date: 2026-03-31
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-payment-methods"
-keywords: ["美国支付潜规则 Walmart 不收 Apple Pay、小店拒 Amex、现金折扣背后的逻辑", "这篇文章给谁看", "美国支付方式光谱", "1 一笔信用卡交易的钱是怎么流的", "2 不同卡的手续费档位（典型值）", "3 为什么 Costco 只收 Visa？", "几个常见的”特殊店“", "1 Walmart", "2 Costco", "3 小餐馆 / 小店 经常拒 Amex", "5 Cashless 店", "6 BYOB / 中餐馆”现金 9 折“", "现金折扣 vs 刷卡附加费", "1 Cash Discount（现金折扣）", "3 你应该怎么应对？"]
+keywords: ["美国支付方式", "怎么付款", "payment method", "Apple Pay", "Google Pay", "移动支付", "信用卡", "credit card", "借记卡", "debit", "Visa", "Mastercard", "Amex", "现金折扣", "cash discount", "刷卡附加费", "surcharge", "手续费", "interchange fee", "Walmart 支付", "Costco 只收 Visa", "cashless 店", "美国刷卡"]
 ---
 
 # 1. 这篇文章给谁看

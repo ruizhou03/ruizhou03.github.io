@@ -5,7 +5,7 @@ date: 2026-03-16
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/autorefractor"
-keywords: ["电脑验光仪里那栋小房子，到底是给谁看的？", "1 仪器测的不是”视力“，是”屈光度“", "2 红外光怎么”看“出度数", "3 那栋小房子的真实工作 让眼睛”放弃努力“", "4 为什么这个度数不能直接配眼镜", "autorefraction", "visual acuity", "refraction", "accommodation", "ciliary muscle", "fogging", "自动验光", "初筛", "不能直接当配镜处方", "结果"]
+keywords: ["电脑验光仪里那栋小房子", "电脑验光仪原理", "电脑验光", "自动验光", "autorefraction", "autorefractor", "验光仪小房子", "小房子热气球", "屈光度", "refraction", "diopter", "视力 vs 度数", "visual acuity", "红外光验光", "睫状肌调节", "ciliary muscle", "accommodation", "雾视法", "fogging", "主观验光", "配镜处方", "验光准吗", "近视散光度数", "眼科检查"]
 ---
 
 # 1. 问题

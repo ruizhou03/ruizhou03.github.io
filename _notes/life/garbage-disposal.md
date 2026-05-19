@@ -5,7 +5,7 @@ date: 2026-05-03
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/garbage-disposal"
-keywords: ["美国厨房 disposal（食物垃圾处理器） 没有刀片的「研磨机」，倒错东西要赔押金", "原理 disposal 到底怎么工作？", "它 没有 刀片", "听声音判断状态", "为什么「用冷水」是核心规则", "实操 什么能扔、什么不能扔、怎么开关、怎么保养", "1 ❌ 绝对不能扔进 disposal 的东西", "2 ✅ 可以处理的（少量）", "3 油应该怎么处理？", "4 汤汁怎么处理？", "5 每次开 disposal 的标准流程", "6 月度保养（每月一次）", "出问题怎么办 reset 按钮 + 报修话术", "1 disposal 完全没反应（按开关没声音）", "2 水槽不下水了"]
+keywords: ["食物垃圾处理器", "garbage disposal", "disposal", "厨余粉碎机", "垃圾研磨机", "厨余处理器", "美国厨房水槽", "水槽下水道", "disposal 怎么用", "disposal 堵了", "水槽堵了", "下水道堵塞", "disposal reset", "复位按钮", "disposal 不转", "什么不能倒水槽", "厨房倒油", "油倒哪里", "公寓押金", "disposal 保养", "disposal 没声音", "水槽不下水", "用冷水冲"]
 ---
 
 # 1. 问题
