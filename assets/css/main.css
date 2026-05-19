@@ -127,6 +127,13 @@
     .markdown-content blockquote { margin: 1.5em 0; padding: 0.8em 1.2em; border-left: 4px solid var(--color-accent); background-color: var(--color-bg-warm); color: var(--color-muted); border-radius: 0 4px 4px 0; }
     .markdown-content blockquote p { margin: 0; }
 
+    /* PDF 资料的开场说明（post.html 自动生成或 front-matter summary） */
+    .markdown-content .pdf-lead {
+      color: var(--color-muted);
+      font-size: 1.02rem;
+      margin: 0 0 1.8em;
+    }
+
     /* Doocs 标志性的行内代码 (Inline Code) - 浅洋红色底色 */
     .markdown-content code { color: #c7254e; background-color: #f9f2f4; padding: 0.2em 0.4em; border-radius: 4px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 0.85em; }
     

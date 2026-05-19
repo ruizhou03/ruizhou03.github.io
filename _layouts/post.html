@@ -70,6 +70,16 @@ layout: default
   <div class="markdown-content" id="post-content">
     {% if page.pdf_url or page.download_url %}
       {% assign _dl_url = page.download_url | default: page.pdf_url %}
+      {% if page.material_type == "Notes" %}
+        {% assign _noun = "讲义" %}
+      {% elsif page.material_type == "Exams" %}
+        {% assign _noun = "试题" %}
+      {% elsif page.material_type == "Homework" %}
+        {% assign _noun = "作业" %}
+      {% else %}
+        {% assign _noun = "资料" %}
+      {% endif %}
+
       {% if page.download_label %}
         {% assign _btn_label = page.download_label %}
       {% elsif page.material_type == "Notes" %}
@@ -82,7 +92,34 @@ layout: default
         {% assign _btn_label = "下载文件" %}
       {% endif %}
 
-      <h2>讲义在线预览与下载</h2>
+      {%- comment -%}
+        PDF 资料的开场说明：优先用 front-matter 的 summary（每篇可手写、
+        最准确）；没写时按 课程 + 资料类型 自动生成一句不杜撰的客观说明，
+        正文里一旦写了内容就让正文接管，自动句消失。
+      {%- endcomment -%}
+      {% assign _lead_body = content | strip_html | strip %}
+      {% assign _course = page.course | default: page.sub_category %}
+      {% if page.summary %}
+        <p class="pdf-lead">{{ page.summary }}</p>
+      {% elsif _lead_body == "" and _course %}
+        {% assign _is_cheat = false %}
+        {% assign _tl = page.title | downcase %}
+        {% if _tl contains "cheat" %}{% assign _is_cheat = true %}{% endif %}
+        {% if page.title contains "速查" or page.title contains "速记" or page.title contains "小抄" %}{% assign _is_cheat = true %}{% endif %}
+        {% if _is_cheat %}
+          <p class="pdf-lead">这是我为「{{ _course }}」整理的考前速查表（cheat sheet），下方可在线预览，或下载 PDF 打印带进考场。</p>
+        {% elsif page.material_type == "Exams" %}
+          <p class="pdf-lead">这是「{{ _course }}」的往届试题，下方可在线预览，或下载 PDF 自己掐着时间做一遍。</p>
+        {% elsif page.material_type == "Notes" %}
+          <p class="pdf-lead">这是我为「{{ _course }}」整理的课程讲义，完整内容见下方 PDF，可在线预览或下载。</p>
+        {% elsif page.material_type == "Homework" %}
+          <p class="pdf-lead">这是「{{ _course }}」的作业整理，下方可在线预览或下载完整 PDF。</p>
+        {% else %}
+          <p class="pdf-lead">这份资料来自「{{ _course }}」，下方可在线预览或下载完整 PDF。</p>
+        {% endif %}
+      {% endif %}
+
+      <h2>{{ _noun }}在线预览与下载</h2>
       <blockquote><p>手机端和平板端可能不能获得最佳的预览效果，请点击下方按钮下载</p></blockquote>
 
       <div class="pdf-container" style="margin: 2rem 0;">
