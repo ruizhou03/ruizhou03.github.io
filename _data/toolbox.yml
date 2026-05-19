@@ -59,12 +59,57 @@
   subcategory: 棋类对战
   status: live
 
+- id: reversi
+  name: 黑白棋
+  icon: ⚪
+  tagline: 8×8 翻子 + AI 三档
+  url: /toolbox/reversi/
+  category: 游戏
+  subcategory: 棋类对战
+  status: live
+
+- id: connect4
+  name: 四子棋
+  icon: 🔴
+  tagline: 重力四连 + AI 三档
+  url: /toolbox/connect4/
+  category: 游戏
+  subcategory: 棋类对战
+  status: live
+
 # 牌类游戏
 - id: doudizhu
   name: 斗地主
   icon: 🃏
   tagline: 你 + 2 AI 三档难度
   url: /toolbox/doudizhu/
+  category: 游戏
+  subcategory: 牌类游戏
+  status: live
+
+- id: guandan
+  name: 掼蛋
+  icon: 🎴
+  tagline: 2v2 升级 + AI 三档
+  url: /toolbox/guandan/
+  category: 游戏
+  subcategory: 牌类游戏
+  status: live
+
+- id: blackjack
+  name: 21 点
+  icon: 🎰
+  tagline: 6 副牌 vs 庄家
+  url: /toolbox/blackjack/
+  category: 游戏
+  subcategory: 牌类游戏
+  status: live
+
+- id: solitaire
+  name: 接龙纸牌
+  icon: 🗂️
+  tagline: 经典 Klondike · 翻 1/3
+  url: /toolbox/solitaire/
   category: 游戏
   subcategory: 牌类游戏
   status: live
@@ -138,6 +183,60 @@
   icon: 🍉
   tagline: 滑动切水果·三模式
   url: /toolbox/fruit-ninja/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
+- id: tetris
+  name: 俄罗斯方块
+  icon: 🟦
+  tagline: 7-bag + 续局
+  url: /toolbox/tetris/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
+- id: sudoku
+  name: 数独
+  icon: 🔢
+  tagline: 唯一解 + 三难度
+  url: /toolbox/sudoku/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
+- id: schulte
+  name: 舒尔特方格
+  icon: 🔠
+  tagline: 注意力训练 + 计时
+  url: /toolbox/schulte/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
+- id: memory
+  name: 记忆翻牌
+  icon: 🧠
+  tagline: 翻牌配对 + 三尺寸
+  url: /toolbox/memory/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
+- id: breakout
+  name: 打砖块
+  icon: 🧱
+  tagline: 弹球消砖 + 三速度
+  url: /toolbox/breakout/
+  category: 游戏
+  subcategory: 单人小游戏
+  status: live
+
+- id: typing
+  name: 打字速度
+  icon: ⌨️
+  tagline: 中英测速 + 正确率
+  url: /toolbox/typing/
   category: 游戏
   subcategory: 单人小游戏
   status: live
