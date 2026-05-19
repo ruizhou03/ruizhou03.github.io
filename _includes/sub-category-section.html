@@ -14,12 +14,6 @@ JS 逻辑保留兜底：当 search-wrap 缺失时，filter/分页仍会安全降
   <div class="post-list-head">
     <h2 class="post-list-title"><span class="sec-icon">📂</span>{{ include.sub }}</h2>
     <div class="section-tools">
-      <div class="search-wrap">
-        <input type="search" class="search-input" placeholder="搜索 {{ include.sub }}…" aria-label="搜索 {{ include.sub }}" />
-        <button type="button" class="search-toggle" aria-label="搜索">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </button>
-      </div>
       <button type="button" class="download-toggle" aria-label="下载本分类全部文章" title="缓存「{{ include.sub }}」{{ _published_count }} 篇文章到本地，飞机上 / 没网时也能看">
         <svg class="dl-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>

@@ -19,33 +19,27 @@
     display: flex; align-items: center;
     flex-shrink: 0; gap: 0.15rem;
   }
-  .search-wrap {
-    display: flex; align-items: center;
-    flex-shrink: 0;
+  /* 顶部全局搜索框（与「学习资料」页同款，跨小节按标题筛选） */
+  .cat-search-wrap { margin: 1.2rem auto 2.5rem; text-align: center; }
+  .cat-search-input {
+    width: 100%; max-width: 360px;
+    padding: 0.55rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 0.92rem;
+    outline: none;
+    transition: border-color 0.2s;
   }
-  .search-input {
-    width: 0; padding: 0;
-    border: 1px solid transparent; border-radius: 6px;
-    background: var(--color-bg); color: var(--color-text);
-    font-family: inherit; font-size: 0.92rem;
-    opacity: 0;
-    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, border-color 0.2s ease, margin-right 0.25s ease;
-    overflow: hidden;
+  .cat-search-input:focus { border-color: var(--color-accent); }
+  .cat-search-empty {
+    margin-top: 1rem; color: var(--color-light);
+    font-style: italic; font-size: 0.92rem;
   }
-  .search-wrap.active .search-input {
-    width: 180px; padding: 0.32rem 0.55rem;
-    border-color: var(--color-border); opacity: 1;
-    margin-right: 0.3rem;
-  }
-  .search-input:focus { outline: none; border-color: var(--color-accent); }
-  .search-toggle {
-    background: transparent; border: 0; cursor: pointer;
-    padding: 0.4rem; color: var(--color-muted);
-    display: flex; align-items: center; border-radius: 4px;
-    transition: color 0.2s, background 0.2s;
-  }
-  .search-toggle:hover { color: var(--color-accent); background: var(--color-bg-warm); }
-  .search-wrap.active .search-toggle { color: var(--color-accent); }
+  .post-list-section.cat-hidden,
+  .yearly-story-section.cat-hidden { display: none; }
 
   .download-toggle {
     background: transparent; border: 0; cursor: pointer;
@@ -109,7 +103,6 @@
 
   @media (max-width: 768px) {
     .post-list-head { flex-wrap: nowrap; }
-    .search-wrap.active .search-input { width: 130px; }
   }
 </style>
 
@@ -134,33 +127,42 @@
     return result;
   }
 
+  // 全局搜索词（顶部 #cat-search 驱动，所有小节共用同一个）
+  var GQ = '';
+  var sections = [];
+
   function wireSection(section) {
     var list = section.querySelector('.paginated-list');
     if (!list) return;
     var items = Array.prototype.slice.call(list.querySelectorAll('.paginated-item'));
     var pageSize = parseInt(list.dataset.pageSize, 10) || 5;
-    var searchInput = section.querySelector('.search-input');
-    var searchToggle = section.querySelector('.search-toggle');
-    var searchWrap = section.querySelector('.search-wrap');
     var paginationEl = section.querySelector('.pagination-wrap');
     var emptyEl = section.querySelector('.paginated-empty');
-    var queryEl = section.querySelector('.paginated-query');
 
     var filteredItems = items.slice();
     var currentPage = 1;
-    var searchTimer;
 
     function applyFilter() {
-      var q = searchInput ? (searchInput.value || '').trim().toLowerCase() : '';
-      filteredItems = q ? items.filter(function(i) {
-        return (i.dataset.title || '').indexOf(q) !== -1;
+      filteredItems = GQ ? items.filter(function(i) {
+        return (i.dataset.title || '').indexOf(GQ) !== -1;
       }) : items.slice();
       currentPage = 1;
-      if (queryEl) queryEl.textContent = q;
+      // 搜索态下整块无命中就隐藏本小节（与「学习资料」页一致）
+      section.classList.toggle('cat-hidden', !!GQ && filteredItems.length === 0);
       render();
     }
 
     function render() {
+      if (emptyEl) emptyEl.hidden = true;          // 空态交给顶部统一提示
+      if (GQ) {
+        // 搜索时：命中的全部铺开，不分页、不藏在折叠里 —— 结果直接可见
+        var matchSet = new Set(filteredItems);
+        items.forEach(function(i) { i.classList.toggle('hidden', !matchSet.has(i)); });
+        list.style.display = filteredItems.length === 0 ? 'none' : '';
+        paginationEl.innerHTML = '';
+        list.style.minHeight = '';
+        return;
+      }
       var totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
       if (currentPage > totalPages) currentPage = totalPages;
       if (currentPage < 1) currentPage = 1;
@@ -172,7 +174,6 @@
         else i.classList.add('hidden');
       });
 
-      if (emptyEl) emptyEl.hidden = filteredItems.length > 0;
       list.style.display = filteredItems.length === 0 ? 'none' : '';
 
       renderPagination(totalPages);
@@ -235,38 +236,39 @@
       });
     }
 
-    if (searchToggle) {
-      searchToggle.addEventListener('click', function() {
-        var willActivate = !searchWrap.classList.contains('active');
-        searchWrap.classList.toggle('active');
-        if (willActivate) {
-          setTimeout(function() { searchInput.focus(); }, 100);
-        } else {
-          if (searchInput.value) {
-            searchInput.value = '';
-            applyFilter();
-          }
-        }
-      });
-    }
-    if (searchInput) {
-      searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(applyFilter, 120);
-      });
-      searchInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-          searchInput.value = '';
-          applyFilter();
-          searchWrap.classList.remove('active');
-        }
-      });
-    }
-
+    sections.push({ apply: applyFilter, count: function() { return filteredItems.length; } });
     applyFilter();
   }
 
   document.querySelectorAll('.post-list-section').forEach(wireSection);
+
+  // ─── 顶部全局搜索：跨所有小节按标题筛选，空小节整块隐藏 ───
+  (function () {
+    var input = document.getElementById('cat-search');
+    if (!input) return;
+    var emptyEl = document.getElementById('cat-search-empty');
+    var qEl = document.getElementById('cat-search-q');
+    // 时间线型小节（随笔·生命故事）不按标题搜 —— 搜索时整块收起，清空后恢复
+    var timelines = document.querySelectorAll('.yearly-story-section');
+    var t;
+
+    function run() {
+      GQ = (input.value || '').trim().toLowerCase();
+      sections.forEach(function (s) { s.apply(); });
+      var total = sections.reduce(function (a, s) { return a + s.count(); }, 0);
+      timelines.forEach(function (el) { el.classList.toggle('cat-hidden', !!GQ); });
+      if (emptyEl) emptyEl.hidden = !(GQ && total === 0);
+      if (qEl) qEl.textContent = GQ;
+    }
+
+    input.addEventListener('input', function () {
+      clearTimeout(t);
+      t = setTimeout(run, 120);
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { input.value = ''; run(); }
+    });
+  })();
 
   // ─── 每个分组的下载按钮：把该组所有文章 + 同源图片缓存到本地 ───
   function wireDownload(btn) {

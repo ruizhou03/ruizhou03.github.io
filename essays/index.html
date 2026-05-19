@@ -8,6 +8,8 @@ title: 随笔漫谈 | Rui Zhou
     <p style="color: var(--color-light); font-style: italic;">Random Notes &amp; Thoughts</p>
   </header>
 
+  {% include category-search.html placeholder="搜索随笔文章或专栏…" %}
+
   {% assign raw_posts_main  = site.notes | where: "main_category", "随笔漫谈" %}
   {% assign raw_posts_extra = site.notes | where_exp: "item", "item.extra_categories contains '随笔漫谈'" %}
   {% assign raw_posts = raw_posts_main | concat: raw_posts_extra %}
