@@ -24,12 +24,37 @@ exclude:
   - Gemfile.lock
   - vendor/
   - .gitignore
+  # 后台 / 导入脚本与内部文档：不应出现在公开站点上
+  - admin_web.py
+  - import_article.py
+  - batch_import_r.py
+  - download_wechat_images.py
+  - MAINTENANCE.md
+  - ARCHITECTURE_REVIEW.md
+  # 公众号导入的中间产物
+  - wx_all.json
+  - wx_candidates.md
+  - texput.log
+  - "*.log"
+  - .claude/
+  - .githooks/
+  - scripts/
 
 # Collections (if needed)
 collections:
   notes:
     output: true            # 让每一篇笔记生成独立的网页
     permalink: /notes/:path/ # URL 路径保持与文件夹结构一致
+
+# 学习资料页：学科分组与显示顺序（思政按惯例排最后）
+discipline_order:
+  - 经济学
+  - 数学
+  - 心理学
+  - 管理学
+  - 通识
+  - 体育
+  - 思政
 
 study_order:
   - adv-micro-psu

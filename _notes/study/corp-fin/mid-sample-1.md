@@ -3,7 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "公司财务管理"
 title: "公司财务管理期中样卷1试题"
-discipline: "其他"
+discipline: "管理学"
 course: "公司财务管理"
 material_type: "Exams"
 date: 2022-09-01

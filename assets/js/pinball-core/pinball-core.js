@@ -927,13 +927,29 @@
     function bindHoldButton(el, onDown, onUp) {
       if (!el) return;
       let active = false;
-      const start = (e) => { if (active) return; active = true; el.classList.add('active'); onDown(); e.preventDefault(); };
-      const end = (e) => { if (!active) return; active = false; el.classList.remove('active'); onUp(); if (e) e.preventDefault(); };
+      let pid = null;
+      const start = (e) => {
+        if (active) return;
+        active = true; pid = e.pointerId;
+        // 指针捕获：手机上手指按住 flipper 后即使滑出按钮范围，
+        // 事件仍归这个按钮 —— 不会再像以前那样手指一抖 flipper 就松开
+        try { el.setPointerCapture(e.pointerId); } catch (_) {}
+        el.classList.add('active'); onDown(); e.preventDefault();
+      };
+      const end = (e) => {
+        if (!active) return;
+        if (e && pid != null && e.pointerId != null && e.pointerId !== pid) return;
+        active = false; pid = null;
+        el.classList.remove('active'); onUp(); if (e) e.preventDefault();
+      };
       el.addEventListener('pointerdown', start);
       el.addEventListener('pointerup', end);
       el.addEventListener('pointercancel', end);
-      el.addEventListener('pointerleave', end);
+      el.addEventListener('lostpointercapture', end);
+      // 不再绑定 pointerleave —— 改用指针捕获，避免手指轻微移动就误松手
       el.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+      // 长按 flipper 时手机会弹出系统选择/快捷菜单，挡住操作，禁掉
+      el.addEventListener('contextmenu', e => e.preventDefault());
     }
     bindHoldButton(hud.flipLBtn, () => setFlipper('L', 'touch', true), () => setFlipper('L', 'touch', false));
     bindHoldButton(hud.flipRBtn, () => setFlipper('R', 'touch', true), () => setFlipper('R', 'touch', false));

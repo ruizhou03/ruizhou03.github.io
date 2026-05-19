@@ -2,9 +2,8 @@
 layout: post
 title: "优雅地为 iPhone / iPad 配置 VPN"
 date: 2023-10-07
-main_category: "生活攻略"
-extra_categories:
-  - 科研妙招
+main_category: "科研妙招"
+sub_category: "效率工具"
 permalink: "/life/vpn-setup-ios"
 ---
 

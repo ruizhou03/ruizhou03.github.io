@@ -54,9 +54,11 @@ title: 锆铌 | Rui Zhou
     本站不定期更新。如需了解我最新的学术动态，请移步我的<a href="https://ruizhou03.github.io/">英文学术主页</a>。
   </div>
 
-  <div style="font-size: 0.88rem; color: var(--color-muted); margin: 1.2rem 0 0; display: flex; gap: 1.8rem;">
+  {% assign tool_count = site.data.toolbox | where: "status", "live" | size %}
+  <div style="font-size: 0.88rem; color: var(--color-muted); margin: 1.2rem 0 0; display: flex; flex-wrap: wrap; gap: 1.2rem 1.8rem;">
     <span>📝 {{ total }} 份内容</span>
-    <span>🗂 4 个分类</span>
+    <span>🗂 4 个内容分类</span>
+    <span>🧰 百宝箱 {{ tool_count }} 个小工具</span>
   </div>
 </section>
 

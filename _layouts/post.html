@@ -424,9 +424,11 @@ layout: default
   })();
   {% endif %}
 
-  // 🚀 全局公式渲染（绝对原封不动）
-  setTimeout(() => {
-    if (window.renderMathInElement) {
+  // 🚀 全局公式渲染：KaTeX 一就绪就立刻渲染（快网不再有 800ms 生 $ 闪烁），
+  // 慢网 / CDN 被墙时轮询重试 ~10s（不再像以前那样一次失败就永久不渲染）
+  (function () {
+    function renderMath() {
+      if (!window.renderMathInElement) return false;
       window.renderMathInElement(document.body, {
         delimiters: [
           {left: '$$', right: '$$', display: true},
@@ -436,8 +438,14 @@ layout: default
         ],
         throwOnError: false
       });
+      return true;
     }
-  }, 800); 
+    if (renderMath()) return;
+    var tries = 0;
+    var timer = setInterval(function () {
+      if (renderMath() || ++tries > 50) clearInterval(timer);
+    }, 200);
+  })();
 </script>
 
 <div style="margin-top: 4rem; text-align: center;">

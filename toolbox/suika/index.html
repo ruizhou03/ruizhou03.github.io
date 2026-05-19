@@ -4129,11 +4129,6 @@ permalink: /toolbox/suika/
   // 不再立即 spawnHoveringFruit — 等用户点「开始游戏」
   $startBest.textContent = highScore;
   updateNextFruitUI();
-  console.log('[suika] init complete', {
-    matterVersion: Matter && Matter.version,
-    canvasW: W, canvasH: H,
-    PHYSICS, gameStarted, gameFocused,
-  });
   requestAnimationFrame(tick);
 
   // ============ 进度恢复入口 ============

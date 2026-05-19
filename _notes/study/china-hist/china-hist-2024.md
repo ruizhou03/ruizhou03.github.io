@@ -3,7 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "中国古代文化"
 title: "中国古代文化课程笔记"
-discipline: "其他"
+discipline: "通识"
 course: "中国古代文化"
 material_type: "Notes"
 date: 2024-09-01

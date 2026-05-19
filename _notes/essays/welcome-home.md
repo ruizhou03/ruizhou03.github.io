@@ -2,6 +2,7 @@
 layout: post
 title: "我给所有文章建了一个永远不会走丢的家"
 date: 2026-03-14
+main_category: "随笔漫谈"
 sub_category: "站务公告"
 permalink: "/essays/welcome-home"
 reactions: ["🎉", "👏", "✨", "❤️"]

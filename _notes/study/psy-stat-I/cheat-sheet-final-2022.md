@@ -3,7 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "心理统计Ⅰ"
 title: "心理统计Ⅰ期末考试Cheat Sheet（2022）"
-discipline: "其他"
+discipline: "心理学"
 course: "心理统计Ⅰ"
 material_type: "Exams"
 date: 2022-09-01

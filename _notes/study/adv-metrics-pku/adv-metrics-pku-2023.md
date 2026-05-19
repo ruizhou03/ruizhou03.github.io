@@ -1,10 +1,10 @@
 ---
 layout: post
 main_category: "学习资料"
-sub_category: "高级计量经济学"
+sub_category: "高级计量经济学（北大）"
 title: "高级计量经济学课程笔记"
 discipline: "经济学"
-course: "高级计量经济学"
+course: "高级计量经济学（北大）"
 material_type: "Notes"
 date: 2023-09-01
 author: "Zircon"
