@@ -2927,22 +2927,16 @@ permalink: /toolbox/doudizhu/
     return null;
   }
 
-  // 牌型中文名（腾讯欢乐斗地主同款文字提示）
+  // 牌型中文名：只对"看一眼能更快读懂"的大牌型给提示。
+  // 单牌/对子/三条/三带X/四带X 一目了然，不显示；飞机各变体统一显示"飞机"。
   function patternName(pattern) {
     if (!pattern || !pattern.type) return '';
     switch (pattern.type) {
-      case T.SINGLE: return '单牌';
-      case T.PAIR: return '对子';
-      case T.TRIPLE: return '三条';
-      case T.TRIPLE_ONE: return '三带一';
-      case T.TRIPLE_PAIR: return '三带二';
       case T.STRAIGHT: return '顺子';
       case T.PAIR_STRAIGHT: return '连对';
-      case T.PLANE: return '飞机';
-      case T.PLANE_ONE: return '飞机带单';
-      case T.PLANE_PAIR: return '飞机带对';
-      case T.FOUR_TWO: return '四带二';
-      case T.FOUR_TWO_PAIR: return '四带两对';
+      case T.PLANE:
+      case T.PLANE_ONE:
+      case T.PLANE_PAIR: return '飞机';
       case T.BOMB: return '炸弹';
       case T.ROCKET: return '王炸';
       default: return '';
