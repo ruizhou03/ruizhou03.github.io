@@ -1344,7 +1344,7 @@ permalink: /toolbox/xiangqi/
           xqShowError(msgs[cr.reason] || msgs[cr.error] || '创建失败');
           return;
         }
-        const msgs = { room_full: '房间已满，换一个房号试试', nick_taken_in_room: '昵称已被占用，换一个试试', room_in_progress: '游戏已开始，不能加入', timeout: '连接超时，请检查网络', network: '网络错误，请稍后再试' };
+        const msgs = { room_full: '房间已满，换一个房号试试', nick_taken_in_room: '昵称已被占用，换一个试试', room_in_progress: '游戏已开始，无法加入', timeout: '连接超时，请检查网络', network: '网络错误，请稍后再试' };
         xqShowError(msgs[r.reason] || msgs[r.error] || '加入失败');
         return;
       }
@@ -1364,6 +1364,7 @@ permalink: /toolbox/xiangqi/
     xqUpdateLobby(r.room); xqStartPolling();
   }
 
+  function gsEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function xqUpdateLobby(room) {
     xqRoomHost = room.youAreHost;
     const list = document.getElementById('xqPgoRoomPlayers');
@@ -1374,7 +1375,7 @@ permalink: /toolbox/xiangqi/
         if (i > 0) h += `<button class="xq-room-act up" data-act="up" data-id="${p.id}">▲</button>`;
         if (i < room.players.length - 1) h += `<button class="xq-room-act down" data-act="down" data-id="${p.id}">▼</button>`;
       }
-      h += p.nick;
+      h += gsEsc(p.nick);
       if (isMe) h += ' (你)';
       if (isHost) h += ' <span class="gs-pgo-room-host-badge">房主</span>';
       if (xqRoomHost && room.state === 'lobby' && !isMe) h += `<button class="xq-room-kick" data-act="kick" data-id="${p.id}">✕</button>`;

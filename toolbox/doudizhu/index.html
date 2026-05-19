@@ -4519,9 +4519,9 @@ permalink: /toolbox/doudizhu/
       if (!r.ok) {
         const msg = ({
           'room_not_found': '房间不存在或已过期',
-          'room_in_progress': '房间已开始，无法加入',
-          'room_full': '房间已满',
-          'nick_taken_in_room': '此房间已有同名玩家',
+          'room_in_progress': '游戏已开始，无法加入',
+          'room_full': '房间已满，换一个房号试试',
+          'nick_taken_in_room': '昵称已被占用，换一个试试',
           'invalid_nick': '昵称不合法',
         })[r.error] || ('加入失败：' + r.error);
         setOnlineHint(msg, true);
