@@ -225,12 +225,14 @@ permalink: /life/recipes/
           {%- else -%}{% assign _tbucket = "long" %}
           {%- endif -%}
           {%- assign _d = r.difficulty | default: 0 | plus: 0 -%}
+          {%- capture _rbase -%}{{ r.title }} {{ r.tags | join: ' ' }} {{ r.keywords | join: ' ' }} {{ r.cuisine }} {{ r.category }}{%- endcapture -%}
+          {%- capture _rexp -%}{% include search-expand.html text=_rbase %}{%- endcapture -%}
           <a class="recipe-card"
              href="{{ r.url | relative_url }}"
              data-cuisine="{{ r.cuisine | default: '' }}"
              data-tbucket="{{ _tbucket }}"
              data-difficulty="{{ _d }}"
-             data-title="{{ r.title | downcase }} {{ r.tags | join: ' ' | downcase }} {{ r.keywords | join: ' ' | downcase }} {{ r.cuisine | downcase }} {{ r.category | downcase }}">
+             data-title="{{ _rexp | downcase }}">
             {% if r.cover %}
               <img class="recipe-card-cover" src="{{ r.cover | relative_url }}" alt="{{ r.title }}" loading="lazy" />
             {% else %}

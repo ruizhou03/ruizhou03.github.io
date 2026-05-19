@@ -1,0 +1,19 @@
+{%- comment -%}
+  输入 include.text，输出 text + 所有命中的同义词组的全部词。
+  用法：{% capture x %}{% include search-expand.html text=base %}{% endcapture %}
+  让"西红柿/番茄""厕所/卫生间"这类同义词互相能搜到。
+{%- endcomment -%}
+{%- assign _ex = include.text -%}
+{%- assign _low = include.text | downcase -%}
+{%- for g in site.data.search_synonyms -%}
+  {%- assign _hit = false -%}
+  {%- for w in g -%}
+    {%- assign _wl = w | downcase -%}
+    {%- if _low contains _wl -%}{%- assign _hit = true -%}{%- break -%}{%- endif -%}
+  {%- endfor -%}
+  {%- if _hit -%}
+    {%- assign _grp = g | join: " " -%}
+    {%- assign _ex = _ex | append: " " | append: _grp -%}
+  {%- endif -%}
+{%- endfor -%}
+{{- _ex -}}

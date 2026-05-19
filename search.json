@@ -49,6 +49,7 @@ layout: null
     {%- assign _al = site.data.course_aliases[item.course] -%}
     {%- if _al -%}{%- assign kw = kw | append: ' ' | append: _al -%}{%- endif -%}
     {%- assign kw = kw | append: ' ' | append: cat_str -%}
+    {%- capture kw -%}{% include search-expand.html text=kw %}{%- endcapture -%}
     {
       "title"    : {{ item.title | jsonify }},
       "category" : {{ cat_str | jsonify }},

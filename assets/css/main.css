@@ -603,16 +603,15 @@
         margin-bottom: 0.6rem; padding-bottom: 0.55rem;
         border-bottom: 1px solid var(--color-border);
       }
+      /* 面板内不再画格子：去掉每条目的边框/底色/圆角，
+         只在相邻两条之间留一条浅浅的分割线 */
       .zone-link {
         display: flex; align-items: center; width: 100%; margin: 0;
-        padding: 0.7rem 0.1rem; border-radius: 0;
+        padding: 0.7rem 0.1rem; border: none; border-radius: 0;
         background: transparent;
-        border-top: 1px dashed var(--color-border);
       }
-      .zone-link:first-of-type { border-top: none; }
-      .zone-link:hover {
-        background: transparent; border-color: var(--color-border);
-      }
+      .zone-link + .zone-link { border-top: 1px solid var(--color-border); }
+      .zone-link:hover { background: transparent; }
       .zone-link .zl-icon { font-size: 1.15rem; }
       .zone-link .zl-body {
         flex: 1; min-width: 0; display: flex; flex-direction: column;
