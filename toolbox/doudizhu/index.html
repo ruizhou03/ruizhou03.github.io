@@ -1788,6 +1788,7 @@ permalink: /toolbox/doudizhu/
         <button class="ddz-btn-mini" id="ddzCopyCodeBtn" type="button">📋 复制房号</button>
         <button class="ddz-btn-mini" id="ddzCopyLinkBtn" type="button">🔗 复制链接</button>
       </div>
+      <div class="gs-room-qr" id="ddzRoomQr"></div>
     </div>
     <div class="ddz-config-summary" id="ddzConfigSummary"></div>
     <div class="ddz-lobby-players-wrap">
@@ -2019,6 +2020,7 @@ permalink: /toolbox/doudizhu/
 </div>
 
 <script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
@@ -4718,6 +4720,7 @@ permalink: /toolbox/doudizhu/
     tableView.hidden = true;        // 联机大厅完全替代牌桌
     lobbyEl.hidden = false;
     $('ddzRoomCode').textContent = sess.code;
+    if (window.GamesShell && GamesShell.QR) GamesShell.QR.render($('ddzRoomQr'), location.origin + location.pathname + '?room=' + sess.code);
     startPolling();
   }
 

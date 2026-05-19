@@ -341,7 +341,7 @@ permalink: /toolbox/tiaoqi/
             </div>
             <div id="tqPgoRoomLobby" style="display:none;">
               <div class="gs-pgo-room-code">房号：<strong id="tqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="tqPgoRoomCopyCodeBtn">📋 复制房号</button> <button class="gs-pgo-room-copy-btn" id="tqPgoRoomCopyBtn">🔗 复制链接</button></div>
-              <ul class="gs-pgo-room-players" id="tqPgoRoomPlayers"></ul>
+              <div class="gs-room-qr" id="tqPgoRoomQr"></div><ul class="gs-pgo-room-players" id="tqPgoRoomPlayers"></ul>
               <div class="fn-vote-box" id="tqVoteBox" style="display:none;"></div>
               <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
                 <button class="gs-pgo-room-btn primary" id="tqPgoRoomStartBtn" disabled>需要 2 人</button>
@@ -406,6 +406,7 @@ permalink: /toolbox/tiaoqi/
 </div>
 
 <script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
@@ -1823,6 +1824,7 @@ permalink: /toolbox/tiaoqi/
     document.getElementById('tqRoomProfiles').style.display = 'none';
     document.getElementById('tqPgoRoomLobby').style.display = '';
     document.getElementById('tqPgoRoomCodeNum').textContent = r.code;
+    if (window.GamesShell && GamesShell.QR) GamesShell.QR.render(document.getElementById('tqPgoRoomQr'), location.origin + '/toolbox/tiaoqi/?room=' + r.code);
     tqSaveProfile(tqRoomCfg);
     tqUpdateLobby(r.room); tqStartPolling();
   }

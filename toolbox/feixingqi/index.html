@@ -397,7 +397,7 @@ permalink: /toolbox/feixingqi/
             </div>
             <div id="fxqPgoRoomLobby" style="display:none;">
               <div class="gs-pgo-room-code">房号：<strong id="fxqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="fxqPgoRoomCopyCodeBtn">📋 复制房号</button> <button class="gs-pgo-room-copy-btn" id="fxqPgoRoomCopyBtn">🔗 复制链接</button></div>
-              <ul class="gs-pgo-room-players" id="fxqPgoRoomPlayers"></ul>
+              <div class="gs-room-qr" id="fxqPgoRoomQr"></div><ul class="gs-pgo-room-players" id="fxqPgoRoomPlayers"></ul>
               <!-- 表决区 -->
               <div class="fn-vote-box" id="fxqVoteBox" style="display:none;"></div>
               <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
@@ -465,6 +465,7 @@ permalink: /toolbox/feixingqi/
 </div>
 
 <script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
@@ -2631,6 +2632,7 @@ permalink: /toolbox/feixingqi/
     document.getElementById('fxqRoomProfiles').style.display = 'none';
     document.getElementById('fxqPgoRoomLobby').style.display = '';
     document.getElementById('fxqPgoRoomCodeNum').textContent = r.code;
+    if (window.GamesShell && GamesShell.QR) GamesShell.QR.render(document.getElementById('fxqPgoRoomQr'), location.origin + '/toolbox/feixingqi/?room=' + r.code);
     fxqSaveProfile(fxqRoomCfg);
     fxqUpdateLobby(r.room); fxqStartPolling();
   }

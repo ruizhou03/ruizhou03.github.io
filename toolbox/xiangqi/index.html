@@ -254,7 +254,7 @@ permalink: /toolbox/xiangqi/
           </div>
           <div id="xqPgoRoomLobby" style="display:none;">
             <div class="gs-pgo-room-code">房号：<strong id="xqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="xqPgoRoomCopyCodeBtn">📋 复制房号</button> <button class="gs-pgo-room-copy-btn" id="xqPgoRoomCopyBtn">🔗 复制链接</button></div>
-            <ul class="gs-pgo-room-players" id="xqPgoRoomPlayers"></ul>
+            <div class="gs-room-qr" id="xqPgoRoomQr"></div><ul class="gs-pgo-room-players" id="xqPgoRoomPlayers"></ul>
             <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
               <button class="gs-pgo-room-btn primary" id="xqPgoRoomStartBtn" disabled>需要 2 人</button>
               <button class="gs-pgo-room-btn" id="xqPgoRoomLeaveBtn">退出房间</button>
@@ -277,6 +277,7 @@ permalink: /toolbox/xiangqi/
 </div>
 
 <script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
@@ -1361,6 +1362,7 @@ permalink: /toolbox/xiangqi/
     document.getElementById('xqPgoRoomCodeInput').parentElement.style.display = 'none';
     document.getElementById('xqPgoRoomLobby').style.display = '';
     document.getElementById('xqPgoRoomCodeNum').textContent = r.code;
+    if (window.GamesShell && GamesShell.QR) GamesShell.QR.render(document.getElementById('xqPgoRoomQr'), location.origin + '/toolbox/xiangqi/?room=' + r.code);
     xqUpdateLobby(r.room); xqStartPolling();
   }
 

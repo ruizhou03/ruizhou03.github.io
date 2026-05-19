@@ -212,7 +212,7 @@ permalink: /toolbox/gomoku/
           </div>
           <div id="gmPgoRoomLobby" style="display:none;">
             <div class="gs-pgo-room-code">房号：<strong id="gmPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="gmPgoRoomCopyCodeBtn">📋 复制房号</button> <button class="gs-pgo-room-copy-btn" id="gmPgoRoomCopyBtn">🔗 复制链接</button></div>
-            <ul class="gs-pgo-room-players" id="gmPgoRoomPlayers"></ul>
+            <div class="gs-room-qr" id="gmPgoRoomQr"></div><ul class="gs-pgo-room-players" id="gmPgoRoomPlayers"></ul>
             <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
               <button class="gs-pgo-room-btn primary" id="gmPgoRoomStartBtn" disabled>需要 2 人</button>
               <button class="gs-pgo-room-btn" id="gmPgoRoomLeaveBtn">退出房间</button>
@@ -235,6 +235,7 @@ permalink: /toolbox/gomoku/
 </div>
 
 <script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
@@ -1033,6 +1034,7 @@ permalink: /toolbox/gomoku/
     document.getElementById('gmPgoRoomCodeInput').parentElement.style.display = 'none';
     document.getElementById('gmPgoRoomLobby').style.display = '';
     document.getElementById('gmPgoRoomCodeNum').textContent = r.code;
+    if (window.GamesShell && GamesShell.QR) GamesShell.QR.render(document.getElementById('gmPgoRoomQr'), location.origin + '/toolbox/gomoku/?room=' + r.code);
     gmUpdateLobby(r.room);
     gmStartPolling();
   }

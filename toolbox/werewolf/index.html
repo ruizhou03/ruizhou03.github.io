@@ -489,6 +489,7 @@ permalink: /toolbox/werewolf/
 </article>
 
 <script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 
 <script>
@@ -1131,6 +1132,10 @@ permalink: /toolbox/werewolf/
       }, '🔗 复制链接'),
     ]));
     wrap.appendChild(banner);
+
+    const qrBox = el('div', { class: 'gs-room-qr' });
+    if (window.GamesShell && GamesShell.QR) GamesShell.QR.render(qrBox, location.origin + location.pathname + '?room=' + r.code);
+    wrap.appendChild(qrBox);
 
     // 玩家列表
     const seats = el('section', { class: 'ww-card' });

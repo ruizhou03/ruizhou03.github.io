@@ -351,6 +351,7 @@ permalink: /toolbox/drawing/
 
 <link rel="stylesheet" href="/assets/css/games-shell.css">
 <script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 
 <script>
@@ -825,6 +826,8 @@ permalink: /toolbox/drawing/
     const wrap = el('div');
 
     // 房号 banner
+    const qrBox = el('div', { class: 'gs-room-qr' });
+    if (window.GamesShell && GamesShell.QR) GamesShell.QR.render(qrBox, location.origin + location.pathname + '?room=' + r.code);
     const banner = el('section', { class: 'dg-room-banner' }, [
       el('div', null, [
         el('div', { class: 'label' }, '房号'),
@@ -840,6 +843,7 @@ permalink: /toolbox/drawing/
           on: { click: () => copyShareLink(r.code) },
         }, '🔗 复制链接'),
       ]),
+      qrBox,
     ]);
     wrap.appendChild(banner);
 

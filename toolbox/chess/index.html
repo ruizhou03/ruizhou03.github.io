@@ -262,7 +262,7 @@ permalink: /toolbox/chess/
           </div>
           <div id="chPgoRoomLobby" style="display:none;">
             <div class="gs-pgo-room-code">房号：<strong id="chPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="chPgoRoomCopyCodeBtn">📋 复制房号</button> <button class="gs-pgo-room-copy-btn" id="chPgoRoomCopyBtn">🔗 复制链接</button></div>
-            <ul class="gs-pgo-room-players" id="chPgoRoomPlayers"></ul>
+            <div class="gs-room-qr" id="chPgoRoomQr"></div><ul class="gs-pgo-room-players" id="chPgoRoomPlayers"></ul>
             <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
               <button class="gs-pgo-room-btn primary" id="chPgoRoomStartBtn" disabled>需要 2 人</button>
               <button class="gs-pgo-room-btn" id="chPgoRoomLeaveBtn">退出房间</button>
@@ -285,6 +285,7 @@ permalink: /toolbox/chess/
 </div>
 
 <script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
@@ -1149,6 +1150,7 @@ permalink: /toolbox/chess/
     document.getElementById('chPgoRoomCodeInput').parentElement.style.display = 'none';
     document.getElementById('chPgoRoomLobby').style.display = '';
     document.getElementById('chPgoRoomCodeNum').textContent = r.code;
+    if (window.GamesShell && GamesShell.QR) GamesShell.QR.render(document.getElementById('chPgoRoomQr'), location.origin + '/toolbox/chess/?room=' + r.code);
     chUpdateLobby(r.room); chStartPolling();
   }
 

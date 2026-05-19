@@ -1036,6 +1036,10 @@ body { font-synthesis: weight; }
 }
 .gs-pgo-room-copy-btn:hover { color: #fff; }
 
+/* 房间邀请二维码（GamesShell.QR 渲染的 canvas）—— 8 个联机游戏共用 */
+.gs-room-qr { display: flex; justify-content: center; margin: 0.7rem 0 0.3rem; }
+.gs-room-qr canvas { border-radius: 8px; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1); }
+
 .gs-pgo-room-players {
   font-family: var(--font-body);
   width: 100%;
