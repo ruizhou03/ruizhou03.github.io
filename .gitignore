@@ -32,3 +32,6 @@ files/*/blackboard/
 files/*/recordings/
 files/*/psets/*.synctex.gz
 texput.log
+
+# Claude Code 本地配置（含权限设置，不发公开仓库）
+.claude/settings.local.json
