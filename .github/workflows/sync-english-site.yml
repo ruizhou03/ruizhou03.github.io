@@ -18,10 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout zirconeey source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout ruizhou03 target
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ruizhou03/ruizhou03.github.io
           path: target
