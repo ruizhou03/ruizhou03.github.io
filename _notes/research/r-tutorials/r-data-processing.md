@@ -7,6 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-data-processing"
 published: true
+keywords: ["优雅地用 R 拿捏数据处理"]
 ---
 
 给大家拜个晚年！许久不更是因为前一段才把自己的想法动态清零。

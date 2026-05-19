@@ -5,6 +5,7 @@ date: 2026-04-26
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-tipping-holidays-etiquette"
+keywords: ["美国小费 + 节日 + 文化礼仪生存指南 从给多少到怎么过", "这篇文章给谁看", "小费文化（Tipping Culture）", "1 为什么要给小费", "2 餐厅小费 标准 18-20%", "怎么算", "算的是税前还是税后？", "怎么操作", "大桌自动小费（auto-gratuity）", "3 快餐 / Counter Service", "4 Uber / Lyft / 外卖", "Uber / Lyft", "5 理发 / 美容", "6 酒店", "7 其他场景"]
 ---
 
 # 1. 这篇文章给谁看

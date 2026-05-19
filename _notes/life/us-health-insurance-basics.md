@@ -5,6 +5,7 @@ date: 2026-04-19
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-health-insurance-basics"
+keywords: ["美国医保完全指南（一） 基础术语与保险类型", "这篇文章给谁看", "美国医保的整体结构", "4 POS（Point of Service）", "5 怎么选？", "10 个必懂的”美国医疗黑话“", "1 Premium（保费）", "2 Deductible（自付门槛）", "3 Copay（固定共付额）", "4 Coinsurance（共保比例）", "8 Referral（转诊）", "9 Pre-authorization（预授权）", "10 HSA / FSA（税前医疗账户）", "留学生的 3 条医保路径", "1 学校学生医保（第一年默认）"]
 ---
 
 # 1. 这篇文章给谁看

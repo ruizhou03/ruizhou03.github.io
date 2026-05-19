@@ -5,6 +5,7 @@ date: 2026-03-30
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-carrier-deals-decoded"
+keywords: ["美国合约机的「免费 iPhone」逻辑 bill credit、分期、套利与陷阱", "这篇文章给谁看", "核心机制 Bill Credit + EIP 是什么", "常见的三种“合约机”模式", "2 Trade-in Promo（“用旧机抵新机”）", "3 Switcher Promo（“携号转网送钱”）", "真套利 vs 假套利", "3 玩法三 Trade-in 套利", "一个具体例子 3 年现金流", "隐藏限制条款（每家都有，要会读）", "风险边界", "1 信用分影响", "2 运营商黑名单", "3 IRS 1099 报税", "4 短期居留 vs 长期居留"]
 ---
 
 # 1. 这篇文章给谁看

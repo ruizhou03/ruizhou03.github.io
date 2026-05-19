@@ -7,6 +7,7 @@ date: "2026-04-20"
 author: "Zircon"
 permalink: "/research/latex/latex-clean-workflow"
 published: true
+keywords: ["告别 LaTeX 编译后的「文件海洋」 三招打造极致整洁的科研工作流", "第一招 VS Code 自动重定向（从源头拦截）", "操作步骤", "第二招 编写 Shell 脚本（暴力美学，一键清理）", "使用建议", "第三招 Git 忽略大法（保持云端纯净）", "Mac", "Win", "busy", "原理", "alias（别名）", ".tex", ".aux", ".log", ".toc"]
 ---
 
 每一个 LaTeX 用户恐怕都经历过这种“视觉污染”：

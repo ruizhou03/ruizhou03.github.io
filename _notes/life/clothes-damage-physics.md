@@ -5,6 +5,7 @@ date: 2026-04-15
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/clothes-damage-physics"
+keywords: ["衣服为什么会缩水、变形、起球、变黄、起静电？", "1 缩水的真相", "2 起球的物理本质", "3 变形的几个原因", "4 白色衣物变黄的原因", "5 静电的物理", "1 怎么减少缩水", "2 怎么减少起球", "3 怎么减少变形", "4 怎么避免变黄", "5 怎么减少静电", "6 几个误区", "pilling", "pre-shrunk", "spandex / lycra / 莱卡"]
 ---
 
 # 1. 问题

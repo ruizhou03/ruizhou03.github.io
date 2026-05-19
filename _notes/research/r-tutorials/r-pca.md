@@ -7,6 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-pca"
 published: true
+keywords: ["尽量优雅地用R对付主成分分析", "PCA"]
 ---
 
 这回之所以不优雅，是因为主成分分析的结果本身就不够优雅，但已经尽量在示例代码的基础上优雅了不少。让我们一起说，bruceR::EFA()，永远滴神！

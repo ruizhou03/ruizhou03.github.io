@@ -7,6 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-survival-analysis"
 published: true
+keywords: ["优雅地用 R 拿捏生存分析"]
 ---
 
 这次只有九页，说起来难得这么优雅了。

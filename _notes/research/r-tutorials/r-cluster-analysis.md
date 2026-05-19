@@ -7,6 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-cluster-analysis"
 published: true
+keywords: ["优雅地用 R 拿捏聚类分析"]
 ---
 
 至此，心理统计 II 的所有新知识都已经覆盖了。往回看，不得不承认心统 II 的工具性比较强，但课后回味老师上课讲的例子，加上善用搜索理解原理的过程是自己最快乐的时光了。

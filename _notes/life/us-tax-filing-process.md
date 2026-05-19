@@ -5,6 +5,7 @@ date: 2026-04-24
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-tax-filing-process"
+keywords: ["美国报税完全指南（二） 留学生报税实战流程", "这篇文章给谁看", "报税软件对比", "1 Sprintax（NRA 必选）", "3 FreeTaxUSA（RA 推荐）", "5 各软件的“对照表”", "NRA 报税 Sprintax 8 步实战", "步骤 1 收齐所有税表（1 月底前）", "步骤 2 注册 Sprintax 账号", "步骤 3 填基本信息", "步骤 4 上传税表 / 输入数字", "步骤 5 申报 Tax Treaty", "步骤 6 检查 + 调整", "步骤 7 提交（e-file 或邮寄）", "步骤 8 保留所有副本"]
 ---
 
 # 1. 这篇文章给谁看

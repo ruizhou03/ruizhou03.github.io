@@ -5,6 +5,7 @@ date: 2026-02-28
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/eye-chart-numbers"
+keywords: ["视力表上的 5.0 / 1.0 / 4.8 / 20/20 都是什么意思？", "1 视力到底在量什么 最小分辨角（MAR）", "2 三种制式的换算", "4 中国五分制的来历", "MAR", "An AOS Thesis", "logMAR", "同一件事", "20/20 制", "小数制", "五分制", "取对数", "等距对数刻度", "角分", "1 角分"]
 ---
 
 # 1. 问题

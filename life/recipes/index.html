@@ -230,7 +230,7 @@ permalink: /life/recipes/
              data-cuisine="{{ r.cuisine | default: '' }}"
              data-tbucket="{{ _tbucket }}"
              data-difficulty="{{ _d }}"
-             data-title="{{ r.title | downcase }}">
+             data-title="{{ r.title | downcase }} {{ r.tags | join: ' ' | downcase }} {{ r.keywords | join: ' ' | downcase }} {{ r.cuisine | downcase }} {{ r.category | downcase }}">
             {% if r.cover %}
               <img class="recipe-card-cover" src="{{ r.cover | relative_url }}" alt="{{ r.title }}" loading="lazy" />
             {% else %}

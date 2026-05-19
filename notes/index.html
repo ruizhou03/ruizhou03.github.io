@@ -67,6 +67,28 @@ title: "学习资料"
     </div>
   </header>
 
+  {% assign _z_lang = site.notes | where: "discipline", "语言考试" | where_exp: "n", "n.published != false" %}
+  {% assign _z_rev  = site.notes | where: "material_type", "课程测评" | where_exp: "n", "n.published != false" %}
+  {% assign _z_phs  = site.notes | where: "discipline", "初升高" | where_exp: "n", "n.published != false" %}
+  <aside class="zone-side">
+    <div class="zone-side-title">专区</div>
+    <a class="zone-link" href="{{ '/notes/toefl-gre/' | relative_url }}">
+      <span class="zl-icon">🎯</span>
+      <span class="zl-body"><span class="zl-name">TOEFL &amp; GRE</span><span class="zl-desc">出国语言备考 · {{ _z_lang | size }} 份</span></span>
+      <span class="zl-arrow">→</span>
+    </a>
+    <a class="zone-link" href="{{ '/notes/course-reviews/' | relative_url }}">
+      <span class="zl-icon">📝</span>
+      <span class="zl-body"><span class="zl-name">课程测评</span><span class="zl-desc">选课前的过来人参考 · {{ _z_rev | size }} 篇</span></span>
+      <span class="zl-arrow">→</span>
+    </a>
+    <a class="zone-link" href="{{ '/notes/pre-high-school/' | relative_url }}">
+      <span class="zl-icon">🏫</span>
+      <span class="zl-body"><span class="zl-name">初升高衔接</span><span class="zl-desc">给准高一的过渡讲义 · {{ _z_phs | size }} 份</span></span>
+      <span class="zl-arrow">→</span>
+    </a>
+  </aside>
+
   <div class="knowledge-base">
     {%- comment -%}
       按学科（discipline）分组：顺序由 _config.yml 的 discipline_order 控制，
@@ -119,17 +141,6 @@ title: "学习资料"
     {% endfor %}
   </div>
 
-  <div class="kb-subentries pill-row">
-    <a class="pill-link" href="{{ '/notes/toefl-gre/' | relative_url }}">
-      🎯 TOEFL &amp; GRE 专区 →
-    </a>
-    <a class="pill-link" href="{{ '/notes/course-reviews/' | relative_url }}">
-      📝 课程测评专区 →
-    </a>
-    <a class="pill-link" href="{{ '/notes/pre-high-school/' | relative_url }}">
-      🏫 高中辅导 →
-    </a>
-  </div>
   <script>
     (function() {
       var input = document.getElementById('kb-search');

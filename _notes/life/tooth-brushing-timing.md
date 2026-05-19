@@ -5,6 +5,7 @@ date: 2026-04-01
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/tooth-brushing-timing"
+keywords: ["早晚刷牙到底该饭前还是饭后？", "1 牙釉质 人体最硬的材料，但怕酸", "2 Stephan 曲线 吃东西后口腔 pH 怎么变", "3 哪些食物会让 pH 跌破 5.5", "4 早上为什么要饭前刷牙", "5 晚上的特殊重要性", "1 一天的刷牙时间表", "3 怎么刷才对", "4 牙刷 / 牙膏 / 漱口水", "5 牙线 / 冲牙器 必须用", "6 几个常见误区", "enamel", "PO₄", "remineralization", "titratable acidity"]
 ---
 
 # 1. 问题

@@ -7,6 +7,7 @@ sub_category: "生活之问"
 extra_categories:
   - 菜谱
 permalink: "/life/pan-oil-temperature"
+keywords: ["「热锅冷油」到底什么意思？四种锅油组合的科学和用法", "1 锅和油的热容差", "2 四种组合的物理图景", "3 为什么“热锅冷油”防粘？", "4 油温「几成热」对照", "1 操作流程", "2 几个最容易翻车的搭配", "3 锅烧热的判断", "4 「热锅冷油」与不粘锅的关系", "patina", "confit", "Leidenfrost 效应", "PTFE 涂层", "PTFE", "冷油"]
 ---
 
 # 1. 问题

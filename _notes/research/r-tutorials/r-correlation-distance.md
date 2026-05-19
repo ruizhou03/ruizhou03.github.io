@@ -7,6 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-correlation-distance"
 published: true
+keywords: ["优雅地用 R 拿捏相关与距离", "partial correlation"]
 ---
 
 本节的“相关”将会在之前讲的参数相关、非参相关之外讨论考虑分组时的相关，以及偏相关（partial correlation）和半偏相关（部分相关, part correlation）。有意思的是，之前在多元线性回归时也讨论过偏相关和半偏相关，但此处的概念得到了一般化，不必局限于多元线性回归的领域。不过，用回归和残差的思路理解偏相关能收获独特的见解！

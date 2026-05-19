@@ -5,6 +5,7 @@ date: 2026-04-18
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-doctor-visits"
+keywords: ["美国看病完全指南（二） 从 PCP 到 ER 的就医流程", "这篇文章给谁看", "第一步 选 PCP（人生第一个主治医师）", "1 怎么找 PCP", "A. 保险公司 Provider Directory", "B. 学校 Health Center", "C. 推荐 / 评论", "2 选 PCP 的关键标准", "3 第一次 PCP 预约 怎么 schedule", "A. 电话（最稳）", "B. 在线（保险公司 / 诊所 app）", "C. Zocdoc / 第三方平台", "4 第一次 PCP visit 干什么", "不同病去哪 5 个就医选项详解", "2 PCP Office Visit（计划性看病）"]
 ---
 
 # 1. 这篇文章给谁看

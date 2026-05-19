@@ -5,6 +5,7 @@ date: 2026-04-28
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/color-blindness-mechanism"
+keywords: ["色盲到底是看不见颜色，还是看到不一样的颜色？", "1 我们怎么“看”颜色 三种视锥细胞", "2 红 vs 绿，本质上是一道“减法题”", "3 三种色觉异常 缺一个 vs 偏一个 vs 全没了", "4 为什么是男性多发 X 染色体遗传的直接后果", "石原色盲测试图 颜色和亮度的双谜题", "几个有趣的延伸", "色弱者的“超能力” 识破迷彩伪装", "EnChroma 眼镜 为什么对色弱有效，对色盲无效", "不止人类有色觉问题，也不止人类有色觉", "一个哲学留白", "rod", "cone", "Long-wavelength", "Medium-wavelength"]
 ---
 
 # 1. 问题

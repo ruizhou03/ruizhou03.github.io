@@ -8,6 +8,7 @@ author: "Zircon"
 permalink: "/essays/college-admission-essay"
 reactions: ["🎓", "🌊", "✨", "❤️"]
 published: true
+keywords: ["携稳重的自信，赴厚重的旅行", "学生姓名 周睿", "毕业中学 三明市第二中学", "认清定位"]
 ---
 
 > 本文是笔者在收到北京大学录取通知书后，应北大招生办的约稿而写的分享文章。

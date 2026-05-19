@@ -7,6 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-psy-stats-ii"
 published: true
+keywords: ["优雅地用 R 拿捏心理统计II"]
 ---
 
 心理统计II不是某种数据分析方法，而是这星期我期末考的科目

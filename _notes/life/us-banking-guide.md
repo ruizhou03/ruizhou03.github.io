@@ -5,6 +5,7 @@ date: 2026-04-22
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-banking-guide"
+keywords: ["美国银行账户完全指南 开户、汇款、HYSA 与回国处理", "这篇文章给谁看", "美国 5 大类银行", "4 信用社（Credit Union）", "5 留学生友好银行", "4 种账户类型", "1 Checking Account（支票账户）", "2 Savings Account（储蓄账户）", "步骤 1 选银行", "步骤 2 在线 / 现场预约", "步骤 3 准备文件", "步骤 4 到银行 + 开户", "步骤 5 First Deposit", "没 SSN 怎么开户", "1 接受护照 + 学校 ID 的银行"]
 ---
 
 # 1. 这篇文章给谁看

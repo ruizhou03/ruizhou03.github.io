@@ -7,6 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-multiple-linear-regression"
 published: true
+keywords: ["优雅地用 R 拿捏多元线性回归"]
 ---
 
 ![](/files/images/r-multiple-linear-regression/01.jpg)

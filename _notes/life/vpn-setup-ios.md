@@ -5,6 +5,7 @@ date: 2023-10-07
 main_category: "科研妙招"
 sub_category: "效率工具"
 permalink: "/life/vpn-setup-ios"
+keywords: ["优雅地为 iPhone / iPad 配置 VPN", "你可能不够了解 Apple ID", "Apple ID 与下载", "Apple ID 与账户", "注册外区 Apple ID", "登录外区 Apple ID", "用外区 Apple ID 完成支付", "充值苹果礼品卡", "兑换苹果礼品卡", "get", "Montana", "Oregon", "Alaska", "Delaware", "New Hampshire"]
 ---
 
 众所周知，苹果家的一系列产品名称里喜欢有“Air”，比如 AirPods、AirTag 等，不过今天要介绍的不是的产品，而是在 iOS 系统上配置 VPN（此处本应该翻译的）。

@@ -5,6 +5,7 @@ date: 2026-05-01
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/spilled-liquid-cleanup"
+keywords: ["打翻液体后，先用纸吸还是先用布擦？", "科学原理 为什么用布擦反而扩散？", "1 抹布是“双向通道”", "2 厨房纸是“单向漏斗”", "不同液体的差异化对策", "几个延伸 + 收尾", "关于纸张选择 不是所有“纸”都一样", "地毯 / 沙发 不要“擦”，要“压”", "关于“越擦越脏”的心理学陷阱", "kitchen paper towel", "wet strength", "dinner napkin", "facial tissue / Kleenex", "抓抹布过来擦", "先用纸吸"]
 ---
 
 # 1. 问题

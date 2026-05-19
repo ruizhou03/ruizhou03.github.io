@@ -7,6 +7,7 @@ sub_category: "R 教程"
 author: "Zircon"
 permalink: "/research/r-tutorials/r-anova-manova"
 published: true
+keywords: ["优雅地用 R 拿捏 Nested ANOVA & MANOVA"]
 ---
 
 ![](/files/images/r-anova-manova/01.jpg)

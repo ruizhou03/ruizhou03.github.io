@@ -7,6 +7,7 @@ date: "2026-04-20"
 author: "Zircon"
 permalink: "/research/latex/latex-commands"
 published: true
+keywords: ["我常用的LaTeX快捷键大全", "我的 全部命令", "极致的偷懒 用“语义”替代“物理按键”", "全局的统一 应对未来可能的“反悔”", "强迫症的救星 搞定那些烦人的排版细节", "我的 核心用法解析", "极简主义 能省则省的基础替换", "自动伸缩的括号 告别排版刺客", "进阶魔法 带有默认值的可选参数", "算子（Operators）的正规化", "给自己留点余地 草稿与 TODO 模式", "number sets", "single-letter shortcuts", "auto-sizing", "keep if needed"]
 ---
 
 {% raw %}

@@ -5,6 +5,7 @@ date: 2026-03-10
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/black-banana"
+keywords: ["香蕉变黑了还能吃吗？表皮黑 vs 果肉黑要分开看", "1 香蕉的成熟阶段", "2 表皮为什么变黑", "3 内部果肉的变化（这才是判断变质的关键）", "4 营养随成熟度的变化", "1 判断流程", "2 不同状态最适合做什么", "3 储存技巧", "4 几个常见误区", "climacteric fruit", "ethylene", "enzymatic browning", "PPO", "chilling injury", "banana bread"]
 ---
 
 # 1. 问题

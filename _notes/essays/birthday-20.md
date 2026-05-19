@@ -6,6 +6,7 @@ sub_category: "生命故事"
 date: 2023-12-19
 permalink: "/essays/birthday-20"
 age: 20
+keywords: ["自洽的安定，何以寻？", "“骗自己骗成自导自演”", "而现阶段能不做的努力不胜枚举"]
 ---
 
 [**“如果要对十九岁说些什么，那就是希望二十岁看到这句话时，能露出微笑吧。”**](/essays/birthday-19)

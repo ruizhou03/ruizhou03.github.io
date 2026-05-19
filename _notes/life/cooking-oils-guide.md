@@ -7,6 +7,7 @@ sub_category: "生活之问"
 extra_categories:
   - 菜谱
 permalink: "/life/cooking-oils-guide"
+keywords: ["做菜用什么油？聊聊常见食用油的烟点和生态位", "1 烟点 决定一切的温度", "2 油的“生态位”地图", "3 精炼 vs 初榨 同一种油两种性格", "4 饱和、单不饱和、多不饱和 健康选择", "1 家庭备油的最小集合（3 瓶）", "2 烹饪方法 → 选油对照", "3 EVOO 的常见误区", "4 储存与过期", "5 重复用油（炸过的油）", "6 健康选择优先级", "smoke point", "acrolein", "MUFA", "PUFA"]
 ---
 
 # 1. 问题

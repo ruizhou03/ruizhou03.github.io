@@ -7,6 +7,7 @@ sub_category: "生活之问"
 extra_categories:
   - 菜谱
 permalink: "/life/soy-sauce-types"
+keywords: ["生抽、老抽、酱油到底什么区别？能相互替代吗？", "1 酱油是怎么做出来的", "2 颜色和味道为什么差这么多", "3 美式 / 日式酱油是哪一种？", "实践建议（替代逻辑）", "1 几个原则", "2 用生抽替代老抽（缺色怎么办）", "3 用老抽替代生抽（不推荐）", "4 等价替代速查表", "5 美国超市怎么买", "6 储存", "light soy sauce", "dark soy sauce", "E150", "brewed"]
 ---
 
 # 1. 问题
