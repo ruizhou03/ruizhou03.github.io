@@ -1000,6 +1000,73 @@ permalink: /toolbox/doudizhu/
     100% { content: ''; }
   }
 
+  /* 出牌牌型文字提示（腾讯欢乐斗地主同款）：浮在该家出牌区顶部一行小字，
+     "顺子/连对/飞机…"，炸弹 / 王炸 更醒目。absolute → 不改出牌区高度。 */
+  .ddz-ptype {
+    position: absolute;
+    top: 1px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    padding: 0.04rem 0.5rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--ddz-text-on-felt-mute);
+    background: rgba(255,253,245,0.78);
+    border: 1px solid var(--ddz-frame-2);
+    border-radius: 999px;
+    white-space: nowrap;
+    font-family: var(--font-display);
+    pointer-events: none;
+    animation: ddz-ptype-in 0.2s ease-out;
+  }
+  @keyframes ddz-ptype-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(3px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .ddz-ptype.is-bomb {
+    color: #fff;
+    background: linear-gradient(135deg, #c14b46, #8b2e2e);
+    border-color: #8b2e2e;
+    font-size: 0.72rem;
+  }
+  .ddz-ptype.is-rocket {
+    color: #5a3d00;
+    background: linear-gradient(135deg, #ffe08a, #f5d142);
+    border-color: #c9a96e;
+    font-size: 0.76rem;
+    box-shadow: 0 0 8px rgba(245,209,66,0.6);
+  }
+
+  /* "轮到你出牌" 横幅：轮到玩家出牌时短暂弹出居中、不挡操作、自动淡出 */
+  .ddz-turn-banner {
+    position: absolute;
+    left: 50%; top: 40%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    padding: 0.5rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(30,58,95,0.96), rgba(20,37,63,0.96));
+    border: 1.5px solid var(--ddz-accent);
+    border-radius: 999px;
+    box-shadow: 0 4px 20px rgba(20,37,63,0.4), 0 0 0 4px rgba(201,169,110,0.22);
+    pointer-events: none;
+    font-family: var(--font-display);
+    white-space: nowrap;
+    animation: ddz-turn-pop 1.65s ease-out forwards;
+  }
+  .ddz-turn-banner[hidden] { display: none; }
+  @keyframes ddz-turn-pop {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+    14%  { opacity: 1; transform: translate(-50%, -50%) scale(1.07); }
+    26%  { transform: translate(-50%, -50%) scale(1); }
+    76%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -58%) scale(0.96); }
+  }
+
   /* ======== 中央台面 ======== */
   .ddz-bottom-pile {
     display: inline-flex; gap: 0.4rem;
@@ -1882,6 +1949,9 @@ permalink: /toolbox/doudizhu/
         <div class="ddz-played" id="ddzPlayed1"></div>
       </div>
     </div>
+
+    <!-- 轮到你出牌：短暂弹出的居中横幅（absolute，不挤布局、不挡操作） -->
+    <div class="ddz-turn-banner" id="ddzTurnBanner" hidden>轮到你出牌</div>
 
     <!-- 我的座位 -->
     <div class="ddz-self">
@@ -2794,6 +2864,16 @@ permalink: /toolbox/doudizhu/
     for (const c of sortedCards) {
       el.appendChild(buildCardEl(c, 'size-mini'));
     }
+    // 牌型文字提示：浮在这家出牌区顶部（炸弹 / 王炸 更醒目）
+    const pname = patternName(pattern);
+    if (pname) {
+      const lbl = document.createElement('span');
+      lbl.className = 'ddz-ptype';
+      if (pattern.type === T.BOMB) { lbl.classList.add('is-bomb'); lbl.textContent = '炸弹!'; }
+      else if (pattern.type === T.ROCKET) { lbl.classList.add('is-rocket'); lbl.textContent = '王炸!'; }
+      else lbl.textContent = pname;
+      el.appendChild(lbl);
+    }
     requestAnimationFrame(fitDoudizhuRows);
     // 王炸特别处理：触发全屏地震 + 金光闪屏 + 粒子四射
     if (pattern.type === T.ROCKET) triggerRocketFullscreenFX();
@@ -2843,6 +2923,48 @@ permalink: /toolbox/doudizhu/
     if (type === T.BOMB) return 'fx-bomb';
     if (type === T.ROCKET) return 'fx-rocket';
     return null;
+  }
+
+  // 牌型中文名（腾讯欢乐斗地主同款文字提示）
+  function patternName(pattern) {
+    if (!pattern || !pattern.type) return '';
+    switch (pattern.type) {
+      case T.SINGLE: return '单牌';
+      case T.PAIR: return '对子';
+      case T.TRIPLE: return '三条';
+      case T.TRIPLE_ONE: return '三带一';
+      case T.TRIPLE_PAIR: return '三带二';
+      case T.STRAIGHT: return '顺子';
+      case T.PAIR_STRAIGHT: return '连对';
+      case T.PLANE: return '飞机';
+      case T.PLANE_ONE: return '飞机带单';
+      case T.PLANE_PAIR: return '飞机带对';
+      case T.FOUR_TWO: return '四带二';
+      case T.FOUR_TWO_PAIR: return '四带两对';
+      case T.BOMB: return '炸弹';
+      case T.ROCKET: return '王炸';
+      default: return '';
+    }
+  }
+
+  // "轮到你出牌" 横幅：轮到玩家时弹一下，1.65s 自动淡出（纯反馈，不挡操作）
+  let _turnBannerTimer = null;
+  let _lastMyTurnFlag = false;
+  function flashYourTurn() {
+    const b = $('ddzTurnBanner');
+    if (!b) return;
+    b.hidden = false;
+    b.style.animation = 'none';
+    // eslint-disable-next-line no-unused-expressions
+    b.offsetWidth;                       // force reflow → 重启动画
+    b.style.animation = '';
+    clearTimeout(_turnBannerTimer);
+    _turnBannerTimer = setTimeout(() => { b.hidden = true; }, 1650);
+  }
+  // 只在"轮到我出牌"的上升沿触发一次（联机快照会重复推，靠这个去抖）
+  function syncMyTurnEdge(isMyPlayTurn) {
+    if (isMyPlayTurn && !_lastMyTurnFlag) flashYourTurn();
+    _lastMyTurnFlag = !!isMyPlayTurn;
   }
 
   // 已禁用：原 A4 飞牌克隆（在屏幕上拖出一道"炫影"）已按 UX 反馈移除。
@@ -3018,6 +3140,7 @@ permalink: /toolbox/doudizhu/
     setupView.hidden = true;
     tableView.hidden = false;
     state.phase = PHASE.DEALING;
+    _lastMyTurnFlag = false;          // 新一局重置"轮到你"上升沿
     // 托管开关每局自动重置，避免上局开了忘关
     state.autopilot = false;
     state.consecutiveTimeouts = 0;
@@ -3722,7 +3845,9 @@ permalink: /toolbox/doudizhu/
       setStatus(prev ? '轮到你 — 出牌或不出' : '轮到你 — 你做庄');
       resetHintCycle();
       startTurnCountdown(() => autoPlayOnTimeout(), 0);
+      syncMyTurnEdge(true);
     } else {
+      syncMyTurnEdge(false);
       playActions.hidden = true;
       setStatus(state.autopilot && seat === 0 ? '托管中…' : `${seatLabel(seat)} 思考中…`);
       const playedEl = $('ddzPlayed' + seat);
@@ -4815,13 +4940,17 @@ permalink: /toolbox/doudizhu/
         const meTurn = state.turnIdx === 0;
         if (meTurn) setStatus('轮到你 — 出牌或不出');
         else setStatus(`等待 ${seatLabel(state.turnIdx)} 出牌…`);
+        syncMyTurnEdge(meTurn && !state.autopilot);
         updatePlayBtnState();
       } else if (state.phase === PHASE.SETTLEMENT) {
         playActions.hidden = true;
         bidPanel.hidden = true;
         stopTurnCountdown();
         hideAllClocks();
+        syncMyTurnEdge(false);
         showOnlineGameOver();
+      } else {
+        syncMyTurnEdge(false);
       }
     }
   }
