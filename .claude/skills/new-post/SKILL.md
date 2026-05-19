@@ -217,8 +217,9 @@ mkdir -p files/images/<dirname>   # 文章图片用
 ## 写完后
 
 1. 让用户回顾 front-matter（特别是新一级分类时，确认主页 cat-card 和 landing 页都补到位）
-2. 跑 `/fix-quotes <new-file-path>` 把 ASCII 直引号转中文弯引号
-3. 自动 `git add <new-files> && git commit -m "<中文 commit msg>" && git push`
+2. **为搜索写 `keywords:`**——按 `search-keywords` skill 的方法给这篇生成关键词（同义词 / 关联词 / 英文 / 常见错别字），让读者凭“记得的内容”也能搜到。**这一步不可跳过。**
+3. 跑 `/fix-quotes <new-file-path>` 把 ASCII 直引号转中文弯引号
+4. 自动 `git add <new-files> && git commit -m "<中文 commit msg>" && git push`（keywords 并入这次 commit，不单独提交）
    - 单文章：`add <type>: <标题>`
    - 新分类：`category: bootstrap <中文 label>`（带 landing 页 + cat-card + 第一篇）
 

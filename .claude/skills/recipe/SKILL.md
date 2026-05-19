@@ -116,8 +116,9 @@ bullet 列表，覆盖：
 ## 写完后
 
 1. 让 cover 图存在（必要时让用户提供，或从已有菜的 cover.svg 复制一个临时占位）
-2. 跑 `/fix-quotes _notes/life/recipes/<slug>.md` 把直引号转中文弯引号
-3. 自动 `git add <files> && git commit -m "add recipe: <菜名>" && git push`
+2. **为搜索写 `keywords:`**——按 `search-keywords` skill 在 `title:` 行正下方加一行 `keywords:`（菜名别名 + 食材同义 + 英文菜名 + 家常菜/下饭菜等关联词），**不要动 `tags:`**。这一步不可跳过。
+3. 跑 `/fix-quotes _notes/life/recipes/<slug>.md` 把直引号转中文弯引号
+4. 自动 `git add <files> && git commit -m "add recipe: <菜名>" && git push`（keywords 并入这次 commit）
 
 ## 参考样板
 
