@@ -7,12 +7,18 @@ inputs:
 搜索/翻页 UI 仅在 posts.size > page_size 时渲染；阈值之下文章数太少，没必要再加一层 UI。
 JS 逻辑保留兜底：当 search-wrap 缺失时，filter/分页仍会安全降级。
 {%- endcomment -%}
+{%- comment -%}
+  额外参数：
+  - search_only: true → 该小节平时不出现，只有顶部全局搜索命中时才显示
+    （用于把「专区」内容并进分类搜索，如生活攻略搜到菜谱）
+  - zone_url: 指定后小节标题变成通往该专区的链接
+{%- endcomment -%}
 {%- assign _ps = include.page_size | default: 5 -%}
 {%- assign _published_count = 0 -%}
 {%- for _p in include.posts -%}{%- if _p.published != false -%}{%- assign _published_count = _published_count | plus: 1 -%}{%- endif -%}{%- endfor -%}
-<section class="post-list-section">
+<section class="post-list-section{% if include.search_only %} cat-search-only{% endif %}">
   <div class="post-list-head">
-    <h2 class="post-list-title"><span class="sec-icon">📂</span>{{ include.sub }}</h2>
+    <h2 class="post-list-title"><span class="sec-icon">📂</span>{% if include.zone_url %}<a href="{{ include.zone_url | relative_url }}" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--color-border);">{{ include.sub }}</a>{% else %}{{ include.sub }}{% endif %}{% if include.search_only %} <span style="font-size:0.78rem;color:var(--color-light);font-weight:400;">· 来自专区，点标题进入</span>{% endif %}</h2>
     <div class="section-tools">
       <button type="button" class="download-toggle" aria-label="下载本分类全部文章" title="缓存「{{ include.sub }}」{{ _published_count }} 篇文章到本地，飞机上 / 没网时也能看">
         <svg class="dl-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -27,7 +33,7 @@ JS 逻辑保留兜底：当 search-wrap 缺失时，filter/分页仍会安全降
   <ul class="paginated-list" data-page-size="{{ _ps }}">
     {% for post in include.posts %}
       {% if post.published != false %}
-      <li class="paginated-item" data-title="{{ post.title | downcase }} {{ post.keywords | join: ' ' | downcase }}" data-url="{{ post.url | relative_url }}">
+      <li class="paginated-item" data-title="{{ post.title | downcase }} {{ post.keywords | join: ' ' | downcase }} {{ post.tags | join: ' ' | downcase }}" data-url="{{ post.url | relative_url }}">
         <a href="{{ post.url | relative_url }}">{% include latex-logo.html title=post.title %}</a>
         <span class="post-date">{% if post.date %}{{ post.date | date: "%Y-%m-%d" }}{% endif %}</span>
       </li>

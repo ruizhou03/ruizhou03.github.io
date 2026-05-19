@@ -76,7 +76,7 @@
       width: 260px;          /* 与上方 .right-stack-top 对齐 */
       margin-bottom: 0;
       z-index: 50;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);  /* 与上方两张侧卡统一阴影，整列更整 */
     }
   }
   /* 短屏防御性回退：≥1250 宽但 <720 高（分屏 / iPad 横屏等少数情况），
@@ -121,10 +121,10 @@
   .announcement-side .ann-eyebrow {
     display: block;
     font-family: 'Cormorant Garamond', serif;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--color-accent);
+    color: var(--color-light);
     margin-bottom: 0.1rem;
   }
   .announcement-side .ann-title {
@@ -178,10 +178,10 @@
   }
   .tm-side-eyebrow {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--color-accent);
+    color: var(--color-light);
     margin-bottom: 0.2rem;
   }
   .tm-side-title {

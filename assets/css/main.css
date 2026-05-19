@@ -587,23 +587,41 @@
     .zone-link .zl-desc, .zone-link .zl-arrow { display: none; }
 
     @media (min-width: 1380px) {
+      /* 宽屏：整块做成一张侧边面板（与首页侧卡同一套视觉），
+         即使只有一个专区入口也显得是刻意安排、不寒酸 */
       .zone-side {
         position: fixed; right: 1.6rem; top: 6.5rem;
-        width: 240px; max-width: 240px; margin: 0;
+        width: 248px; max-width: 248px; margin: 0;
         text-align: left; z-index: 50;
-      }
-      .zone-side-title { margin-bottom: 0.8rem; }
-      .zone-link {
-        display: flex; width: 100%; margin: 0 0 0.7rem;
-        padding: 0.7rem 0.9rem; border-radius: 12px;
         background: var(--color-bg-warm);
+        border: 1px solid var(--color-border);
+        border-radius: 14px;
+        padding: 1rem 1.1rem 0.85rem;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.06);
       }
+      .zone-side-title {
+        margin-bottom: 0.6rem; padding-bottom: 0.55rem;
+        border-bottom: 1px solid var(--color-border);
+      }
+      .zone-link {
+        display: flex; align-items: center; width: 100%; margin: 0;
+        padding: 0.7rem 0.1rem; border-radius: 0;
+        background: transparent;
+        border-top: 1px dashed var(--color-border);
+      }
+      .zone-link:first-of-type { border-top: none; }
+      .zone-link:hover {
+        background: transparent; border-color: var(--color-border);
+      }
+      .zone-link .zl-icon { font-size: 1.15rem; }
       .zone-link .zl-body {
         flex: 1; min-width: 0; display: flex; flex-direction: column;
         line-height: 1.3; text-align: left;
       }
-      .zone-link .zl-desc { display: block; margin-top: 0.1rem; }
-      .zone-link .zl-arrow { display: inline; margin-left: 0.5rem; }
+      .zone-link .zl-name { font-size: 0.92rem; }
+      .zone-link .zl-desc { display: block; margin-top: 0.15rem; font-size: 0.76rem; }
+      .zone-link .zl-arrow { display: inline; margin-left: 0.5rem; align-self: center; }
+      .zone-link:hover .zl-arrow { color: var(--color-accent); }
     }
     /* 宽但矮（分屏 / 平板横屏）：退回正文流，避免与顶部 fixed 元素打架 */
     @media (min-width: 1380px) and (max-height: 620px) {

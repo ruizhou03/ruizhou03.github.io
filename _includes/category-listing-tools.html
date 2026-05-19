@@ -40,6 +40,10 @@
   }
   .post-list-section.cat-hidden,
   .yearly-story-section.cat-hidden { display: none; }
+  /* 专区小节：平时隐藏，仅顶部搜索命中时由 JS 加 .cat-shown 显示 */
+  .post-list-section.cat-search-only { display: none; }
+  .post-list-section.cat-search-only.cat-shown { display: block; }
+  .cat-search-only .download-toggle { display: none; }
 
   .download-toggle {
     background: transparent; border: 0; cursor: pointer;
@@ -141,14 +145,20 @@
 
     var filteredItems = items.slice();
     var currentPage = 1;
+    // search-only 小节（如生活攻略里的菜谱）：平时不出现，只有搜索命中才显示
+    var searchOnly = section.classList.contains('cat-search-only');
 
     function applyFilter() {
       filteredItems = GQ ? items.filter(function(i) {
         return (i.dataset.title || '').indexOf(GQ) !== -1;
       }) : items.slice();
       currentPage = 1;
-      // 搜索态下整块无命中就隐藏本小节（与「学习资料」页一致）
-      section.classList.toggle('cat-hidden', !!GQ && filteredItems.length === 0);
+      if (searchOnly) {
+        // 默认 CSS 已隐藏；只有搜索且命中时加 cat-shown 显示出来（无闪烁）
+        section.classList.toggle('cat-shown', !!GQ && filteredItems.length > 0);
+      } else {
+        section.classList.toggle('cat-hidden', !!GQ && filteredItems.length === 0);
+      }
       render();
     }
 
