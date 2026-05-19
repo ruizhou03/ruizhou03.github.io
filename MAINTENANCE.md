@@ -41,6 +41,32 @@ Action 只在 push 改动了 `en/**`、`files/en/**`、或 workflow 文件本身
 
 和合并前完全一样——Jekyll 正常流程。笔记进 `_notes/`，随笔进 `_essays/` 等等，push 后 GitHub Pages 自动构建。不会触发英文站同步。
 
+## 分类约定（为什么有“两套”，不是 bug）
+
+站里所有内容都在 `_notes/` 这个 collection。**展示上分两类，是刻意的，别去统一：**
+
+- **博客型**（生活攻略 / 科研妙招 / 随笔漫谈）：按话题和时间读。
+  - 字段：`main_category`（一级栏目）+ `sub_category`（专栏分组）。
+  - landing 页 = 带日期、可翻页、可搜的文章流。
+- **资料型**（学习资料）：按课程查档案，下载 PDF，时间无关。
+  - 字段：`discipline`（学科分组）+ `course`（课程名）+ `material_type`
+    （Notes / Exams / Homework / 课程测评 …）。
+  - `main_category: "学习资料"` 仍然要写——只是为了让首页“近期更新”
+    和计数能统一处理；它在资料型里**不做分组用**，分组靠 `discipline`。
+  - `/notes/` 页按 `discipline` 分组，组顺序由 `_config.yml` 的
+    `discipline_order` 控制（思政恒在末尾）。**别再用 `discipline: 其他`**。
+
+命名规则：课程名用中文；同一门课在多校上过才加 `（北大）`/`（PSU）` 等
+后缀消歧，单校课程不加。`course` 与 `sub_category` 两字段保持一致。
+
+PDF-only 资料不用手写正文：`post.html` 会按 `course` + `material_type`
+自动生成一句客观说明；要手写就加 front-matter `summary:`，正文写了
+内容就由正文接管。课程搜索别名在 `_data/course_aliases.yml`（让英文/
+拼音/错别字也能搜到，key 必须和 `course` 完全一致）。
+
+一句话：**博客型用 `sub_category`，资料型用 `discipline+course`，
+`main_category` 只为首页统一服务。** 加内容照这个填就不会乱。
+
 ## 验证同步是否成功
 
 三种查法（推荐前两种）：

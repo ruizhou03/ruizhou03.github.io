@@ -81,7 +81,8 @@ title: "学习资料"
           {% if folder_notes.size > 0 %}
             {% assign first_note = folder_notes[0] %}
             {% if first_note.discipline == disc %}
-              <details class="course-block" data-search="{{ first_note.course | default: folder }} {{ disc }}">
+              {% assign _alias = site.data.course_aliases[first_note.course] %}
+              <details class="course-block" data-search="{{ first_note.course | default: folder }} {{ disc }} {{ _alias }}">
                 <summary class="course-title">{{ first_note.course | default: folder }}</summary>
                 <div class="course-content">
                   {% assign grouped_types = folder_notes | group_by: "material_type" %}
