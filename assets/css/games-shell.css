@@ -11,19 +11,22 @@
   border-radius: 12px;
 }
 
-/* 桌面宽屏：浮在主内容右侧空白处。
+/* 桌面宽屏：浮在主内容右侧空白处（对标合成大西瓜的浮动榜单）。
  * 不与主游戏重叠的最小视口 = 2 * (wrap-half + 296)
- *   2048/snake (560)   wrap-half=280  → 阈值 1180
- *   chess/gomoku/xiangqi (720) wrap-half=360 → 1320
- *   leap/runner (760)  wrap-half=380  → 1360
- *   minesweeper (860)  wrap-half=430  → 1460
+ *   2048/snake/pinball (560)   wrap-half=280  → 阈值 1180
+ *   chess/gomoku/xiangqi (720) / fruit-ninja (600) wrap-half=360/300 → 1320
+ *   leap/runner/feixingqi/tiaoqi (760) wrap-half=380 → 1360
+ *   minesweeper (860) / doudizhu      wrap-half=430/410 → 1460
  * 用 right 锚点 + max() clamp，即使算出负 X 也保 1.2rem 安全边距，永远不会
  * 推出屏幕外。
  * 关键：每个 @media 只匹配该游戏 wrap 内部的 .gs-leaderboard——避免在视口
- * 不够时硬塞导致和主区重叠。 */
+ * 不够时硬塞导致和主区重叠。
+ * 注意：用 games-shell 排行榜的新游戏必须把自己的 wrap class 加进下面对应
+ * 的 @media 块，否则榜单会一直堆在游戏正下方（不会自动浮动）。 */
 @media (min-width: 1180px) {
   .g2048-wrap .gs-leaderboard,
-  .sn-wrap    .gs-leaderboard {
+  .sn-wrap    .gs-leaderboard,
+  .pb-wrap    .gs-leaderboard {
     position: fixed; top: 6rem;
     right: max(1.2rem, calc(50vw - var(--gs-wrap-half, 280px) - 310px));
     width: 280px; max-height: calc(100vh - 8rem);
@@ -34,7 +37,8 @@
 @media (min-width: 1320px) {
   .ch-wrap .gs-leaderboard,
   .gm-wrap .gs-leaderboard,
-  .xq-wrap .gs-leaderboard {
+  .xq-wrap .gs-leaderboard,
+  .fn-wrap .gs-leaderboard {
     position: fixed; top: 6rem;
     right: max(1.2rem, calc(50vw - var(--gs-wrap-half, 360px) - 310px));
     width: 280px; max-height: calc(100vh - 8rem);
@@ -44,7 +48,9 @@
 }
 @media (min-width: 1360px) {
   .leap-wrap   .gs-leaderboard,
-  .runner-wrap .gs-leaderboard {
+  .runner-wrap .gs-leaderboard,
+  .fxq-wrap    .gs-leaderboard,
+  .tq-wrap     .gs-leaderboard {
     position: fixed; top: 6rem;
     right: max(1.2rem, calc(50vw - var(--gs-wrap-half, 380px) - 310px));
     width: 280px; max-height: calc(100vh - 8rem);
@@ -53,7 +59,8 @@
   }
 }
 @media (min-width: 1460px) {
-  .ms-wrap .gs-leaderboard {
+  .ms-wrap  .gs-leaderboard,
+  .ddz-wrap .gs-leaderboard {
     position: fixed; top: 6rem;
     right: max(1.2rem, calc(50vw - var(--gs-wrap-half, 430px) - 310px));
     width: 280px; max-height: calc(100vh - 8rem);
