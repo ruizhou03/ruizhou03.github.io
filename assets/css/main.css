@@ -503,3 +503,46 @@
       .nav-inner.search-active #close-search-btn { display: block; }
       .nav-inner.search-active #results-container { width: 100%; }
     }
+
+    /* ======================================================
+       整栏离线下载按钮（_includes/bulk-offline.html 共用）
+       ====================================================== */
+    .bulk-offline-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.7rem 1.5rem;
+      border: 1px solid var(--color-border); border-radius: 999px;
+      background: var(--color-bg); color: var(--color-muted);
+      font-family: inherit; font-size: 0.92rem; cursor: pointer;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .bulk-offline-btn:hover:not(:disabled):not(.bulk-done) {
+      border-color: var(--color-accent); color: var(--color-accent);
+      background: var(--color-bg-warm);
+    }
+    .bulk-offline-btn:disabled { cursor: wait; }
+    .bulk-offline-btn.is-disabled { opacity: 0.55; cursor: not-allowed; }
+    .bulk-offline-btn.bulk-done { border-color: #10b981; color: #10b981; }
+    .bulk-offline-btn.bulk-partial { border-color: var(--color-accent); color: var(--color-accent); }
+    .bulk-offline .bulk-hint {
+      margin-top: 0.6rem; color: var(--color-light);
+      font-size: 0.8rem; line-height: 1.55;
+    }
+    .bulk-offline .bulk-progress {
+      margin-top: 0.5rem; color: var(--color-muted); font-size: 0.82rem;
+    }
+
+    /* 分类页底部「子专区」胶囊链接（notes / life 共用） */
+    .pill-row {
+      margin-top: 3rem; text-align: center;
+      display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center;
+    }
+    .pill-link {
+      display: inline-block; padding: 0.6rem 1.4rem;
+      border: 1px solid var(--color-border); border-radius: 999px;
+      color: var(--color-accent); text-decoration: none;
+      font-size: 1rem; letter-spacing: 0.02em;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .pill-link:hover {
+      background: var(--color-bg-warm); border-color: var(--color-accent);
+    }
