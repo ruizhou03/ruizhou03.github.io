@@ -635,7 +635,7 @@ permalink: /toolbox/doudizhu/
     min-height: 60px;
     max-height: 60px;
     display: flex; flex-wrap: nowrap;
-    justify-content: center; align-items: center;
+    justify-content: safe center; align-items: center;
     gap: 0;
     border-radius: 8px;
     transition: background 0.3s, box-shadow 0.3s;
@@ -1057,7 +1057,7 @@ permalink: /toolbox/doudizhu/
   .ddz-hand {
     display: flex;
     flex-wrap: nowrap;
-    justify-content: center;
+    justify-content: safe center;
     padding: 0.4rem 0;
     min-height: calc(var(--ddz-card-h) + 32px);
     align-items: flex-end;
@@ -1586,7 +1586,7 @@ permalink: /toolbox/doudizhu/
     .ddz-hand {
       flex-wrap: nowrap;               /* 强制单行 — 不再换行 */
       overflow-x: auto;                /* 真的太长（极个别 320px 屏）可横滑 */
-      justify-content: center;
+      justify-content: safe center;    /* 放不下时左对齐而非把左边的牌挤到看不见 */
     }
     .ddz-hand .ddz-card.size-full.group-start { margin-left: 4px; }
     /* AI 座位的 played 区不再硬剪 — 让长牌型的边角溢出露出来，避免数字被切 */
@@ -2385,6 +2385,55 @@ permalink: /toolbox/doudizhu/
     return out;
   }
 
+  // ── 手机端关键修复：一行牌（手牌 / 出牌区）总能完整显示 ──
+  // 牌靠负 margin 叠放；牌多 + 屏窄时一行放不下。原来 justify-content:center
+  // 会把最左边几张牌挤到滚不到也点不到的位置（牌上 touch-action:none，
+  // 没法滑动）——这就是"看不全自己的牌 / 对手的牌"。这里按容器实际可用
+  // 宽度反算每张该露多少，动态写 --*-overlap，保证 N 张牌正好铺满、张张可见。
+  function fitCardRow(container, overlapVar, minStep, availOverride) {
+    if (!container) return;
+    container.style.removeProperty(overlapVar);            // 先回到 CSS 默认
+    const cards = container.querySelectorAll('.ddz-card, .ddz-card-back');
+    const n = cards.length;
+    if (n < 2) return;
+    const cardW = cards[0].offsetWidth;
+    const avail = availOverride || container.clientWidth;
+    if (!cardW || !avail) return;                          // 容器还没布局好（隐藏中）→ 跳过，resize/重渲染时再算
+    const cs = getComputedStyle(container);
+    const defOverlap = parseFloat(cs.getPropertyValue(overlapVar)) || 0;
+    const defStep = cardW - defOverlap;                    // CSS 默认每张露出的宽度
+    const fitStep = (avail - cardW) / (n - 1);             // 要全塞下时每张该露的宽度
+    let step = Math.min(defStep, fitStep);
+    step = Math.max(step, minStep || 12);                  // 不压到看不清
+    const overlap = Math.max(0, cardW - step);
+    if (overlap > defOverlap + 0.5) {                      // 只在确实更挤时覆盖；默认能放下就保留居中观感
+      container.style.setProperty(overlapVar, overlap.toFixed(2) + 'px');
+    }
+  }
+
+  function fitDoudizhuRows() {
+    fitCardRow(handEl, '--ddz-card-overlap', 12);
+    const tw = tableView ? tableView.clientWidth : 0;
+    for (let s = 0; s < 3; s++) {
+      const el = $('ddzPlayed' + s);
+      if (!el) continue;
+      if (s === 0) {
+        fitCardRow(el, '--ddz-card-mini-overlap', 10);     // 自己的出牌区较宽
+      } else {
+        // AI 在顶上窄座位：长牌型若撑出牌桌会被 overflow:hidden 剪掉，
+        // 所以压到牌桌宽度的一部分内，绝不外溢
+        const cap = tw ? Math.max(120, Math.min(tw * 0.42, 240)) : 0;
+        fitCardRow(el, '--ddz-card-mini-overlap', 8, cap);
+      }
+    }
+  }
+
+  let _ddzRefitTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(_ddzRefitTimer);
+    _ddzRefitTimer = setTimeout(fitDoudizhuRows, 120);
+  });
+
   function renderHand() {
     handEl.innerHTML = '';
     if (!state.hands[0].length) return;
@@ -2406,6 +2455,7 @@ permalink: /toolbox/doudizhu/
       cardEl.addEventListener('mouseleave', () => cardEl.classList.remove('hover-preview'));
       handEl.appendChild(cardEl);
     });
+    requestAnimationFrame(fitDoudizhuRows);
   }
 
   // 智能分组开关（默认关；玩家可在 setup 屏 toggle）
@@ -2645,6 +2695,7 @@ permalink: /toolbox/doudizhu/
     for (const c of sortedCards) {
       el.appendChild(buildCardEl(c, 'size-mini'));
     }
+    requestAnimationFrame(fitDoudizhuRows);
     // 王炸特别处理：触发全屏地震 + 金光闪屏 + 粒子四射
     if (pattern.type === T.ROCKET) triggerRocketFullscreenFX();
   }
