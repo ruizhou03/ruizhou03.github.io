@@ -1038,35 +1038,6 @@ permalink: /toolbox/doudizhu/
     box-shadow: 0 0 8px rgba(245,209,66,0.6);
   }
 
-  /* "轮到你出牌" 横幅：轮到玩家出牌时短暂弹出居中、不挡操作、自动淡出 */
-  .ddz-turn-banner {
-    position: absolute;
-    left: 50%; top: 40%;
-    transform: translate(-50%, -50%);
-    z-index: 20;
-    padding: 0.5rem 1.5rem;
-    font-size: 1.1rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    color: #fff;
-    background: linear-gradient(135deg, rgba(30,58,95,0.96), rgba(20,37,63,0.96));
-    border: 1.5px solid var(--ddz-accent);
-    border-radius: 999px;
-    box-shadow: 0 4px 20px rgba(20,37,63,0.4), 0 0 0 4px rgba(201,169,110,0.22);
-    pointer-events: none;
-    font-family: var(--font-display);
-    white-space: nowrap;
-    animation: ddz-turn-pop 1.65s ease-out forwards;
-  }
-  .ddz-turn-banner[hidden] { display: none; }
-  @keyframes ddz-turn-pop {
-    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
-    14%  { opacity: 1; transform: translate(-50%, -50%) scale(1.07); }
-    26%  { transform: translate(-50%, -50%) scale(1); }
-    76%  { opacity: 1; }
-    100% { opacity: 0; transform: translate(-50%, -58%) scale(0.96); }
-  }
-
   /* ======== 中央台面 ======== */
   .ddz-bottom-pile {
     display: inline-flex; gap: 0.4rem;
@@ -1950,9 +1921,6 @@ permalink: /toolbox/doudizhu/
         <div class="ddz-played" id="ddzPlayed1"></div>
       </div>
     </div>
-
-    <!-- 轮到你出牌：短暂弹出的居中横幅（absolute，不挤布局、不挡操作） -->
-    <div class="ddz-turn-banner" id="ddzTurnBanner" hidden>轮到你出牌</div>
 
     <!-- 我的座位 -->
     <div class="ddz-self">
@@ -2943,26 +2911,6 @@ permalink: /toolbox/doudizhu/
     }
   }
 
-  // "轮到你出牌" 横幅：轮到玩家时弹一下，1.65s 自动淡出（纯反馈，不挡操作）
-  let _turnBannerTimer = null;
-  let _lastMyTurnFlag = false;
-  function flashYourTurn() {
-    const b = $('ddzTurnBanner');
-    if (!b) return;
-    b.hidden = false;
-    b.style.animation = 'none';
-    // eslint-disable-next-line no-unused-expressions
-    b.offsetWidth;                       // force reflow → 重启动画
-    b.style.animation = '';
-    clearTimeout(_turnBannerTimer);
-    _turnBannerTimer = setTimeout(() => { b.hidden = true; }, 1650);
-  }
-  // 只在"轮到我出牌"的上升沿触发一次（联机快照会重复推，靠这个去抖）
-  function syncMyTurnEdge(isMyPlayTurn) {
-    if (isMyPlayTurn && !_lastMyTurnFlag) flashYourTurn();
-    _lastMyTurnFlag = !!isMyPlayTurn;
-  }
-
   // 已禁用：原 A4 飞牌克隆（在屏幕上拖出一道"炫影"）已按 UX 反馈移除。
   // 保留空壳避免改其它调用点；牌通过 renderPlayedAt 直接出现在桌面区。
   function flyCardsTo(_seat, _cards) { /* no-op */ }
@@ -3136,7 +3084,6 @@ permalink: /toolbox/doudizhu/
     setupView.hidden = true;
     tableView.hidden = false;
     state.phase = PHASE.DEALING;
-    _lastMyTurnFlag = false;          // 新一局重置"轮到你"上升沿
     // 托管开关每局自动重置，避免上局开了忘关
     state.autopilot = false;
     state.consecutiveTimeouts = 0;
@@ -3841,9 +3788,7 @@ permalink: /toolbox/doudizhu/
       setStatus(prev ? '轮到你 — 出牌或不出' : '轮到你 — 你做庄');
       resetHintCycle();
       startTurnCountdown(() => autoPlayOnTimeout(), 0);
-      syncMyTurnEdge(true);
     } else {
-      syncMyTurnEdge(false);
       playActions.hidden = true;
       setStatus(state.autopilot && seat === 0 ? '托管中…' : `${seatLabel(seat)} 思考中…`);
       const playedEl = $('ddzPlayed' + seat);
@@ -4937,17 +4882,13 @@ permalink: /toolbox/doudizhu/
         const meTurn = state.turnIdx === 0;
         if (meTurn) setStatus('轮到你 — 出牌或不出');
         else setStatus(`等待 ${seatLabel(state.turnIdx)} 出牌…`);
-        syncMyTurnEdge(meTurn && !state.autopilot);
         updatePlayBtnState();
       } else if (state.phase === PHASE.SETTLEMENT) {
         playActions.hidden = true;
         bidPanel.hidden = true;
         stopTurnCountdown();
         hideAllClocks();
-        syncMyTurnEdge(false);
         showOnlineGameOver();
-      } else {
-        syncMyTurnEdge(false);
       }
     }
   }
