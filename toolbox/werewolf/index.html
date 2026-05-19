@@ -1123,8 +1123,12 @@ permalink: /toolbox/werewolf/
     banner.appendChild(el('div', { class: 'actions' }, [
       el('button', {
         class: 'ww-btn tiny',
+        on: { click: () => copyToClipboard(r.code, '已复制房号') },
+      }, '📋 复制房号'),
+      el('button', {
+        class: 'ww-btn tiny',
         on: { click: () => copyShareLink(r.code) },
-      }, '📤 复制链接'),
+      }, '🔗 复制链接'),
     ]));
     wrap.appendChild(banner);
 

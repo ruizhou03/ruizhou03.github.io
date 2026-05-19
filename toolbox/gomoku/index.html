@@ -211,7 +211,7 @@ permalink: /toolbox/gomoku/
             <div class="gs-pgo-room-error" id="gmPgoRoomError"></div>
           </div>
           <div id="gmPgoRoomLobby" style="display:none;">
-            <div class="gs-pgo-room-code">房号：<strong id="gmPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="gmPgoRoomCopyBtn">📋 复制</button></div>
+            <div class="gs-pgo-room-code">房号：<strong id="gmPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="gmPgoRoomCopyCodeBtn">📋 复制房号</button> <button class="gs-pgo-room-copy-btn" id="gmPgoRoomCopyBtn">🔗 复制链接</button></div>
             <ul class="gs-pgo-room-players" id="gmPgoRoomPlayers"></ul>
             <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
               <button class="gs-pgo-room-btn primary" id="gmPgoRoomStartBtn" disabled>需要 2 人</button>
@@ -1121,7 +1121,12 @@ permalink: /toolbox/gomoku/
   document.getElementById('gmPgoRoomLeaveBtn').addEventListener('click', gmLeaveRoom);
   document.getElementById('gmPgoRoomCopyBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(`${location.origin}/toolbox/gomoku/?room=${gmRoomCode}`).then(() => {
-      const btn = document.getElementById('gmPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制'; }, 2000);
+      const btn = document.getElementById('gmPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '🔗 复制链接'; }, 2000);
+    }).catch(() => {});
+  });
+  document.getElementById('gmPgoRoomCopyCodeBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(gmRoomCode).then(() => {
+      const btn = document.getElementById('gmPgoRoomCopyCodeBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制房号'; }, 2000);
     }).catch(() => {});
   });
   document.getElementById('gmPgoRoomStartBtn').addEventListener('click', async () => {

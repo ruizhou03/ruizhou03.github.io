@@ -261,7 +261,7 @@ permalink: /toolbox/chess/
             <div class="gs-pgo-room-error" id="chPgoRoomError"></div>
           </div>
           <div id="chPgoRoomLobby" style="display:none;">
-            <div class="gs-pgo-room-code">房号：<strong id="chPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="chPgoRoomCopyBtn">📋 复制</button></div>
+            <div class="gs-pgo-room-code">房号：<strong id="chPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="chPgoRoomCopyCodeBtn">📋 复制房号</button> <button class="gs-pgo-room-copy-btn" id="chPgoRoomCopyBtn">🔗 复制链接</button></div>
             <ul class="gs-pgo-room-players" id="chPgoRoomPlayers"></ul>
             <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
               <button class="gs-pgo-room-btn primary" id="chPgoRoomStartBtn" disabled>需要 2 人</button>
@@ -1216,7 +1216,12 @@ permalink: /toolbox/chess/
   document.getElementById('chPgoRoomLeaveBtn').addEventListener('click', chLeaveRoom);
   document.getElementById('chPgoRoomCopyBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(`${location.origin}/toolbox/chess/?room=${chRoomCode}`).then(() => {
-      const btn = document.getElementById('chPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制'; }, 2000);
+      const btn = document.getElementById('chPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '🔗 复制链接'; }, 2000);
+    }).catch(() => {});
+  });
+  document.getElementById('chPgoRoomCopyCodeBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(chRoomCode).then(() => {
+      const btn = document.getElementById('chPgoRoomCopyCodeBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制房号'; }, 2000);
     }).catch(() => {});
   });
   document.getElementById('chPgoRoomStartBtn').addEventListener('click', async () => {

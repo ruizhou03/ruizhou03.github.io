@@ -833,8 +833,12 @@ permalink: /toolbox/drawing/
       el('div', { class: 'actions' }, [
         el('button', {
           class: 'dg-btn tiny',
+          on: { click: () => copyToClipboard(r.code, '已复制房号') },
+        }, '📋 复制房号'),
+        el('button', {
+          class: 'dg-btn tiny',
           on: { click: () => copyShareLink(r.code) },
-        }, '📤 复制链接'),
+        }, '🔗 复制链接'),
       ]),
     ]);
     wrap.appendChild(banner);

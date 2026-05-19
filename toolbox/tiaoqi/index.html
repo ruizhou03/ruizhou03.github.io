@@ -340,7 +340,7 @@ permalink: /toolbox/tiaoqi/
               <div class="gs-pgo-room-error" id="tqPgoRoomError"></div>
             </div>
             <div id="tqPgoRoomLobby" style="display:none;">
-              <div class="gs-pgo-room-code">房号：<strong id="tqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="tqPgoRoomCopyBtn">📋 复制</button></div>
+              <div class="gs-pgo-room-code">房号：<strong id="tqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="tqPgoRoomCopyCodeBtn">📋 复制房号</button> <button class="gs-pgo-room-copy-btn" id="tqPgoRoomCopyBtn">🔗 复制链接</button></div>
               <ul class="gs-pgo-room-players" id="tqPgoRoomPlayers"></ul>
               <div class="fn-vote-box" id="tqVoteBox" style="display:none;"></div>
               <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
@@ -1939,7 +1939,12 @@ permalink: /toolbox/tiaoqi/
   document.getElementById('tqPgoRoomLeaveBtn').addEventListener('click', tqLeaveRoom);
   document.getElementById('tqPgoRoomCopyBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(`${location.origin}/toolbox/tiaoqi/?room=${tqRoomCode}`).then(() => {
-      const btn = document.getElementById('tqPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制'; }, 2000);
+      const btn = document.getElementById('tqPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '🔗 复制链接'; }, 2000);
+    }).catch(() => {});
+  });
+  document.getElementById('tqPgoRoomCopyCodeBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(tqRoomCode).then(() => {
+      const btn = document.getElementById('tqPgoRoomCopyCodeBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制房号'; }, 2000);
     }).catch(() => {});
   });
   document.getElementById('tqPgoRoomStartBtn').addEventListener('click', async () => {
