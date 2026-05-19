@@ -40,7 +40,9 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     /* 表单控件默认走浏览器自带的黑体/等线，强制继承全站衬线字体，保持统一 */
     input, textarea, button, select, optgroup, option { font-family: inherit; }
-    body { font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); line-height: 1.8; font-size: 18px; transition: background 0.3s; }
+    /* 中文字体没有意大利体，浏览器会"硬掰"出丑陋的假斜体；禁止合成斜体，
+       但保留合成加粗。英文 (Cormorant Garamond 有真斜体) 不受影响。 */
+    body { font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); line-height: 1.8; font-size: 18px; transition: background 0.3s; font-synthesis: weight; }
     
     /* 强化的超链接 */
     a { color: var(--color-accent); text-decoration: underline; text-decoration-color: rgba(30, 58, 95, 0.2); transition: all 0.2s; }
@@ -423,7 +425,7 @@
     .course-block { margin: 0.5rem 1.5rem 1rem 1.5rem; border: none !important; border-bottom: 1px dashed var(--color-border) !important; }
     .course-title { font-size: 1.1rem; color: var(--color-accent); }
     .type-section { padding-left: 3rem; margin-bottom: 1rem; }
-    .type-title { font-family: var(--font-display); font-style: italic; color: var(--color-light); margin-bottom: 0.5rem; }
+    .type-title { font-family: var(--font-display); font-style: normal; color: var(--color-light); margin-bottom: 0.5rem; }
     .file-list { list-style: none; padding: 0; }
     .file-list li { margin-bottom: 0.4rem; }
     .file-list a { color: var(--color-text); text-decoration: none; border-bottom: 1px solid transparent; }

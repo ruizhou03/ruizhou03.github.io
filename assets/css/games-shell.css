@@ -2,6 +2,9 @@
    使用 .gs- 前缀避免与各游戏自有样式冲突。
    颜色变量沿用全站 default 布局 (var(--color-ink) 等)。 */
 
+/* 禁止合成假斜体（中文无意大利体），与全站 main.css 保持一致 */
+body { font-synthesis: weight; }
+
 /* ================== 排行榜 ================== */
 .gs-leaderboard {
   margin-top: 1.5rem;

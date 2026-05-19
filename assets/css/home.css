@@ -217,7 +217,7 @@
     font-size: 0.78rem;
     color: var(--color-muted);
     padding: 0.3rem 0 0.5rem;
-    font-style: italic;
+    font-style: normal;
   }
   .tm-side-more {
     display: block;
@@ -235,7 +235,7 @@
     font-size: 0.72rem;
     color: var(--color-light);
     margin-top: 0.25rem;
-    font-style: italic;
+    font-style: normal;
   }
   @media (max-width: 768px) {
     .announcement-side .ann-title { font-size: 0.82rem; }
