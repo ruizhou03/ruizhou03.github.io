@@ -10,12 +10,13 @@
 
 ## 每日工作流
 1. **先 sync**：`git fetch origin && git status`。如果本地相对 `origin/main` 有未推送的提交，先 `git push`；如果工作区脏（未提交改动），停下来在 DAILY_REVIEW 写一句「工作区有未提交改动，未做巡检」然后结束，**不要碰**那些未提交的东西。
-2. **跑自动巡检脚本**：`bash scripts/audit/run.sh > /tmp/audit_report.md 2>&1`。这是一组按日期智能调度的 audit（keywords 漏检 / 图片可发现性与体积每天跑；死链巡检每周一加跑；月度内容统计每月 1 号加跑）。把 `/tmp/audit_report.md` 完整读进来，作为本次巡检的客观依据。**这份报告里挑出来的具体问题，逐项判断是修是留**：
+2. **跑自动巡检脚本**：`bash scripts/audit/run.sh > /tmp/audit_report.md 2>&1`。一组按日期智能调度的 audit：keywords 漏检 + 图片可发现性与体积 + 后端脉搏（zircon-urge / zircon-comments 公开接口）每天跑；死链巡检每周一加跑；月度内容统计每月 1 号加跑。把 `/tmp/audit_report.md` 完整读进来，作为本次巡检的客观依据。**这份报告里挑出来的具体问题，逐项判断是修是留**：
    - keywords 完全缺 → 直接 `python3 scripts/seed_keywords.py`，build 通过后纳入“已自动修复”。
    - 单篇 keywords 太薄 → 写进待办，请站主决定是否手动补。
    - 图片“疑似漏 `<p class="img-caption">` 配文”→ 实际打开文件确认是配文之后，按 [[feedback_image_caption_style]] 包裹。无法 100% 判断的，写进待办。
    - 死链（HTTP 4xx/5xx 或网络错误）→ 高 P0：若是固定外网素材且本地有备份，可直接改成本地引用；只是临时不可达的（DNS / timeout），写进待办下次再核。
    - 月度统计 → 摘要进 DAILY_REVIEW 的“🗂 仓库卫生”或新增“📊 月度统计”小节。
+   - **后端脉搏**：把催更/反应总数、最近 15 天催更分布、排行榜 top 1 概览、最近评论列表，**摘录**进 DAILY_REVIEW 一个新小节“💓 后端脉搏”。若发现：评论里有疑似垃圾或 spam → 写进 P1 待办（不直接删）；排行榜里有可疑高分（远超合理范围、test 类昵称霸榜）→ 写进 P2 待办；首页催更近 7 天 0 次且 reaction 总数很久没动 → 写进 P2 提示“或许需要发新内容”。
 3. 跑 `bundle install` 后 `bundle exec jekyll build`，记录任何告警/报错。通读仓库找问题（audit 之外的）：信息架构与分类一致性、front-matter 缺失或矛盾、移动端/响应式、构建告警、游戏 UX、文案错别字、设计一致性、可访问性等。
 4. 只对明确无争议、低风险的问题直接修复：坏链 / 拼写 / 失效引用、明显的 front-matter 缺失或不一致、构建告警、明显样式 bug、新文章或菜谱漏写 `keywords:`（按 `.claude/skills/search-keywords/SKILL.md` 的方法补；菜谱在 `title:` 行下方加、绝不改 `tags:`）。每次修复后必须 `bundle exec jekyll build` 通过才算数。
 5. 任何需要判断、涉及设计取向、可能有争议、或大范围改动的，绝不擅自改——写进待办，交站主拍板。

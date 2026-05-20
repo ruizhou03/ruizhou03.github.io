@@ -20,7 +20,7 @@ DOM=$(date +%d)
 
 echo "# 站点巡检（$(date '+%Y-%m-%d %H:%M'))"
 echo
-echo "本次将运行：keywords + images$([ "$DOW" = 1 ] && echo " + dead_links")$([ "$DOM" = 01 ] && echo " + monthly_stats")"
+echo "本次将运行：keywords + images + backend_pulse$([ "$DOW" = 1 ] && echo " + dead_links")$([ "$DOM" = 01 ] && echo " + monthly_stats")"
 echo
 
 echo "---"
@@ -29,6 +29,10 @@ echo "---"
 echo
 echo "---"
 "$PY" "$SCRIPT_DIR/images.py"
+
+echo
+echo "---"
+"$PY" "$SCRIPT_DIR/backend_pulse.py"
 
 if [ "$DOW" = "1" ]; then
     echo
