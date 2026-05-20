@@ -138,6 +138,26 @@ else
     exit 0
 fi
 
+# ── 预检：远程 routine 今天是否已经跑过 ──
+# 远程 Anthropic routine 也按 08:00 GMT+8 调度跑同一份 prompt 并 push 到 origin/main。
+# 本机 LaunchAgent 把自己的触发推到 08:30，给远程 30 分钟头部时间。
+# 若 origin/main 上今天已经有 DAILY_REVIEW.md 的 commit → 说明远程已跑完，本机让位。
+log "git fetch origin main 检查今天远程 routine 是否已 push..."
+if git fetch origin main --quiet 2>>"$LOG"; then
+    SINCE_MIDNIGHT="$(date '+%Y-%m-%d 00:00:00')"
+    REMOTE_TODAY_COMMIT="$(git log origin/main --since="$SINCE_MIDNIGHT" --pretty=format:'%h %s' -- DAILY_REVIEW.md 2>/dev/null | head -1)"
+    if [ -n "$REMOTE_TODAY_COMMIT" ]; then
+        log "origin/main 今天已有 DAILY_REVIEW.md 提交：$REMOTE_TODAY_COMMIT → 远程 routine 已跑，本机让位"
+        echo "$TODAY" > "$LASTRUN_FILE"
+        /usr/bin/osascript -e 'display notification "远程 routine 今日已完成，本机自动让位" with title "锆铌·每日巡检" sound name "Glass"' >/dev/null 2>&1 || true
+        log "==== ceded to remote ===="
+        exit 0
+    fi
+    log "origin/main 今天暂无 DAILY_REVIEW.md 提交，本机接力跑"
+else
+    log "git fetch origin main 失败（不致命，继续走本机流程，由 claude 内部处理 push 冲突）"
+fi
+
 # 用 claude CLI 跑审查 prompt
 # --print：非交互、跑完即退
 # --model：固定 Opus 4.7
