@@ -387,7 +387,7 @@ layout: default
   {% if page.reactions %}
   // ── 自定义 reaction widget ─────────────────────────────────────────
   (() => {
-    const RXN_API = 'https://zircon-urge.vercel.app/api/reactions';
+    const RXN_API = 'https://zircon-urge.fly.dev/api/reactions';
     const RXN_EMOJIS = {{ page.reactions | jsonify }};
     const RXN_GROUPS = {% if page.reaction_groups %}{{ page.reaction_groups | jsonify }}{% else %}null{% endif %};
     const container = document.getElementById('rxn-widget');
