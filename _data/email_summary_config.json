@@ -1,6 +1,12 @@
 {
   "user_tz": "Asia/Shanghai",
   "summary_times_local": ["09:00", "21:00"],
+  "primary_gmail": "zirconeey@gmail.com",
+  "source_addresses": {
+    "zirconeey@gmail.com": "zircon",
+    "ruizhou0312@gmail.com": "ruizhou03",
+    "rzz5258@psu.edu": "psu"
+  },
   "important_senders": [],
   "low_priority_patterns": [
     "noreply@",
@@ -14,5 +20,23 @@
     "考试", "截止", "答辩", "面试", "汇报"
   ],
   "reminder_days": [7, 5, 3, 2, 1, 0],
-  "_notes": "user_tz: 搬到美东后改成 America/New_York（不需要改 cron，01:00/13:00 UTC 在两个 TZ 都自然落在早晚两端）。important_senders 留空时由 agent 自行判断；填入邮箱后会强制视作 high-priority。"
+  "auto_draft": {
+    "enabled": true,
+    "policy": "conservative",
+    "allowed_intents": [
+      "rsvp",
+      "schedule_confirmation",
+      "acknowledgment",
+      "yes_no_simple",
+      "doodle_or_time_slot_pick"
+    ],
+    "max_words": 50,
+    "skip_if_contains": [
+      "legal", "lawyer", "attorney", "lawsuit",
+      "$", "payment", "wire", "invoice",
+      "confidential", "do not forward"
+    ],
+    "language_match_sender": true
+  },
+  "_notes": "primary_gmail: Gmail MCP 当前唯一连接的账号；其它两个账户通过 forwarding 转进来。source_addresses: 用 To 字段或 Delivered-To header 判断邮件原始落地账号，在 summary 标 [zircon] / [ruizhou03] / [psu]。auto_draft.policy=conservative 只对明确简单的回复（RSVP / 日程确认 / 收悉 / 简单 yes-no）建 draft；模糊或敏感的只 flag。搬到美东后改 user_tz=America/New_York。"
 }
