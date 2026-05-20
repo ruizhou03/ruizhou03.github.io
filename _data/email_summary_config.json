@@ -1,0 +1,18 @@
+{
+  "user_tz": "Asia/Shanghai",
+  "summary_times_local": ["09:00", "21:00"],
+  "important_senders": [],
+  "low_priority_patterns": [
+    "noreply@",
+    "no-reply@",
+    "newsletter",
+    "unsubscribe"
+  ],
+  "event_keywords": [
+    "qualifier", "exam", "deadline", "due", "submission", "abstract",
+    "presentation", "defense", "meeting", "appointment", "interview",
+    "考试", "截止", "答辩", "面试", "汇报"
+  ],
+  "reminder_days": [7, 5, 3, 2, 1, 0],
+  "_notes": "user_tz: 搬到美东后改成 America/New_York（不需要改 cron，01:00/13:00 UTC 在两个 TZ 都自然落在早晚两端）。important_senders 留空时由 agent 自行判断；填入邮箱后会强制视作 high-priority。"
+}
