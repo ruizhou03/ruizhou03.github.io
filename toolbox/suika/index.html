@@ -4212,17 +4212,16 @@ permalink: /toolbox/suika/
   var settleAutoSettle = false;
 
   // ============ Waline 评论区（直接 init，挂掉静默隐藏）============
-  // 之前用 4s reachable 探测后端可达性，但 zircon-comments.vercel.app 是 Vercel
-  // serverless，冷启动经常 > 4s。第一次访问被判 unreachable → wrap 隐藏；后续
-  // 访问 backend warm 又能加载 → 时有时无。直接尝试 init，让 waline 自己处理
-  // 网络问题，加载成功才显示 wrap。
+  // 直接尝试 init，让 waline 自己处理网络问题，加载成功才显示 wrap。
+  // （历史背景：vercel 冷启动 > 4s 时 reachable 探测会误判 unreachable，
+  // 迁到 fly 后 min_machines_running=1 已不冷启动，但保留这套加载策略。）
   (function loadWaline() {
     import('https://unpkg.com/@waline/client@v2/dist/waline.mjs').then(({ init }) => {
       const wrap = document.getElementById('suika-waline-wrap');
       if (wrap) wrap.style.display = '';
       init({
         el: '#suika-waline',
-        serverURL: 'https://zircon-comments.vercel.app',
+        serverURL: 'https://zircon-comments.fly.dev',
         // 显式写死 path：waline 默认用 window.location.pathname，不同浏览器
         // 对 GitHub Pages 重定向后的规范化可能不一致，导致桌面 / 手机查不同
         // key（trailing slash 差异）。写死可消除该差异。

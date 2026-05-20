@@ -331,7 +331,7 @@ layout: default
   {% endif %}
 
   // Waline：ping 通才显示 + init；否则静默保持隐藏
-  reachable('https://zircon-comments.vercel.app/api/comment?type=count&path=/', 4000).then(ok => {
+  reachable('https://zircon-comments.fly.dev/api/comment?type=count&path=/', 4000).then(ok => {
     if (!ok) return;
 
     const walineEl = document.getElementById('waline');
@@ -341,7 +341,7 @@ layout: default
 
     init({
       el: '#waline',
-      serverURL: 'https://zircon-comments.vercel.app',
+      serverURL: 'https://zircon-comments.fly.dev',
       dark: 'auto',
       lang: 'zh-CN',
       emoji: ['//unpkg.com/@waline/emojis@1.1.0/tieba'],

@@ -15,7 +15,7 @@
 (function () {
   'use strict';
   const GS = window.GamesShell = window.GamesShell || {};
-  const WALINE_SERVER = 'https://zircon-comments.vercel.app';
+  const WALINE_SERVER = 'https://zircon-comments.fly.dev';
   const WALINE_MJS = 'https://unpkg.com/@waline/client@v2/dist/waline.mjs';
   const EMOJI_CDN = '//unpkg.com/@waline/emojis@1.1.0/tieba';
 
