@@ -57,6 +57,40 @@ if ! command -v claude >/dev/null 2>&1; then
     exit 1
 fi
 
+# ── 网络环境自适应：跟着主人位置走 ──
+# 国内（Clash 跑在 127.0.0.1:7890）→ 套代理；美国（不挂代理）→ 直连。
+# 探 7890 端口是否在听，决定是否设代理环境变量。
+PROXY_HOST="127.0.0.1"
+PROXY_PORT="7890"
+if /usr/bin/nc -z -G 2 "$PROXY_HOST" "$PROXY_PORT" 2>/dev/null; then
+    export HTTP_PROXY="http://$PROXY_HOST:$PROXY_PORT"
+    export HTTPS_PROXY="http://$PROXY_HOST:$PROXY_PORT"
+    export ALL_PROXY="http://$PROXY_HOST:$PROXY_PORT"
+    export NO_PROXY="localhost,127.0.0.1,*.local,.github.com"
+    NET_MODE="proxy"
+    log "detected local proxy on $PROXY_HOST:$PROXY_PORT → using it（推测在国内）"
+else
+    unset HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
+    NET_MODE="direct"
+    log "no local proxy → going direct（推测在美国 / 不需代理）"
+fi
+
+# ── 真探一下 Anthropic API 当前网络通不通 ──
+# 不通就优雅跳过当天，发个通知，不进 claude（省 4 分钟超时 + 0 token 消耗）。
+if /usr/bin/curl --silent --head --max-time 8 --output /dev/null https://api.anthropic.com 2>/dev/null; then
+    log "api.anthropic.com reachable via $NET_MODE，开始审查"
+else
+    log "api.anthropic.com UNREACHABLE via $NET_MODE，今天跳过（无 token 消耗）"
+    if [ "$NET_MODE" = "proxy" ]; then
+        MSG="今天连不上 Anthropic API：本机检测到 Clash 在 7890，但跑不通——检查代理订阅 / 节点是否过期"
+    else
+        MSG="今天连不上 Anthropic API：本机没起代理，若你正好在国内，请打开 Clash 再触发"
+    fi
+    /usr/bin/osascript -e "display notification \"$MSG\" with title \"锆铌·每日巡检·已跳过\" sound name \"Tink\"" >/dev/null 2>&1 || true
+    log "==== skipped ===="
+    exit 0   # 优雅退出，不算失败、不消费 lastrun，明天/下次照常再试
+fi
+
 # 用 claude CLI 跑审查 prompt
 # --print：非交互、跑完即退
 # --model：固定 Opus 4.7
