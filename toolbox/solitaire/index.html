@@ -41,7 +41,7 @@ permalink: /toolbox/solitaire/
 <style>
   /* 牌桌尺寸全靠 CSS 变量驱动，JS 按容器宽度算 --so-cw 让 7 列永不溢出 */
   .so-wrap {
-    --so-cw: 44px;                /* 单张牌宽，JS 实时算 */
+    --so-cw: 60px;                /* 单张牌宽（初值；JS 按容器宽度 fitCards 实时算） */
     --so-ch: calc(var(--so-cw) * 1.42);
     --so-gap: calc(var(--so-cw) * 0.13);
     --so-fan-up: calc(var(--so-cw) * 0.30);   /* 翻开牌纵向叠放间距 */
@@ -105,6 +105,9 @@ permalink: /toolbox/solitaire/
     border: 1px solid var(--color-border);
     border-radius: 12px;
     padding: calc(var(--so-cw) * 0.18);
+    /* 给预进入浮层 / 续局视图留足高度，否则 ▶ 开始游戏 会被裁掉。
+       发牌后实际牌局会比这高，min-height 不会挤压正常游戏。 */
+    min-height: 540px;
     overflow: hidden;
   }
   :root[data-theme="dark"] .so-table-wrap { background: #234d36; }

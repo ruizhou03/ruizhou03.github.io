@@ -401,10 +401,14 @@ permalink: /toolbox/connect4/
         const cy = g.oy + r * g.cell + g.cell / 2;
         const v = state.board[r] ? state.board[r][c] : EMPTY;
         if (v === EMPTY) {
-          ctx.fillStyle = isDark ? '#0f1e38' : '#e9eef7';
+          // 黑底空洞 + 一圈淡描边——红/黄棋子对比都拉满
+          ctx.fillStyle = '#0a1426';
           ctx.beginPath();
           ctx.arc(cx, cy, g.r, 0, Math.PI * 2);
           ctx.fill();
+          ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.18)';
+          ctx.lineWidth = Math.max(1, g.cell * 0.025);
+          ctx.stroke();
         } else {
           paintDisc(g, cx, cy, v, g.r);
         }

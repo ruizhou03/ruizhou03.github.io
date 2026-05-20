@@ -263,27 +263,60 @@ permalink: /toolbox/guandan/
     justify-content: center; margin: 0.7rem 0 0.3rem;
     flex-wrap: wrap;
   }
+  /* 按"点数"竖向堆叠成列；列内每张牌往下错开一个角的高度，露出 rank+suit 角标。
+     列横向并排（手牌多于屏宽时可滚）。长按某列可以拖到新位置，自定义理牌顺序；
+     单击/拖选则照常多选。 */
   .gd-hand {
+    --gd-stack-step: 22px;       /* 列内每张牌的纵向偏移 */
+    --gd-col-gap: 4px;           /* 列之间的横向间距 */
     display: flex; flex-wrap: nowrap;
-    overflow-x: auto; overflow-y: hidden;
-    padding: 1.6rem 0.4rem 0.5rem;
-    min-height: calc(var(--gd-card-h) + 30px);
+    align-items: flex-start;
+    gap: var(--gd-col-gap);
+    overflow-x: auto; overflow-y: visible;
+    padding: 1rem 0.4rem 1.4rem;
+    min-height: calc(var(--gd-card-h) + 6 * var(--gd-stack-step) + 30px);
     justify-content: safe center;
     scrollbar-width: none;
+    touch-action: pan-x;
+    position: relative;
   }
   .gd-hand::-webkit-scrollbar { display: none; }
-  .gd-hand .gd-card.size-full {
-    margin-left: calc(-1 * var(--gd-card-overlap));
-    transition: transform 0.12s;
-    cursor: pointer;
+  .gd-rank-col {
+    position: relative;
+    width: var(--gd-card-w);
+    flex: 0 0 var(--gd-card-w);
+    transition: transform 0.14s ease;
+    cursor: grab;
   }
-  .gd-hand .gd-card.size-full:first-child { margin-left: 0; }
-  .gd-hand .gd-card.size-full.group-start { margin-left: -8px; }
-  .gd-hand .gd-card.size-full.group-start:first-child { margin-left: 0; }
-  .gd-hand .gd-card.size-full.selected {
+  .gd-rank-col.col-dragging {
+    cursor: grabbing;
+    z-index: 30;
+    transform: translateY(-4px) scale(1.04);
+    filter: drop-shadow(0 6px 14px rgba(0,0,0,0.25));
+  }
+  .gd-rank-col .gd-card.size-full {
+    position: absolute;
+    left: 0;
+    margin: 0;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.12s;
+    /* 列叠放时不再需要 group-start 间距 */
+  }
+  .gd-rank-col .gd-card.size-full.selected {
     transform: translateY(-18px);
     box-shadow: 0 4px 10px rgba(20,37,63,0.3), 0 0 0 2px var(--gd-accent);
-    z-index: 3;
+    z-index: 999;
+  }
+  /* 拖列时的插入位置指示条 */
+  .gd-col-gap-marker {
+    position: absolute;
+    top: 4px; bottom: 4px;
+    width: 3px;
+    background: var(--gd-accent);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 31;
+    box-shadow: 0 0 8px var(--gd-accent);
   }
 
   .gd-actions {
@@ -502,7 +535,7 @@ permalink: /toolbox/guandan/
     <div class="gd-hand" id="gdHand"></div>
 
     <div class="gd-actions" id="gdActions">
-      <button class="gd-btn" id="gdSortBtn" type="button" title="按点数 / 按牌型 切换排序">🧩 理牌</button>
+      <button class="gd-btn" id="gdSortBtn" type="button" title="按点数恢复默认顺序（手动长按列拖动可自定义）">🧩 一键理牌</button>
       <button class="gd-btn" id="gdPassBtn" type="button" hidden>不要</button>
       <button class="gd-btn" id="gdHintBtn" type="button" hidden>提示</button>
       <button class="gd-btn primary" id="gdPlayBtn" type="button" hidden>出牌</button>
@@ -1318,7 +1351,8 @@ permalink: /toolbox/guandan/
     out: [],                         // 已出完的座位顺序（finishing order）
     turn: 0,
     trick: null,                     // { lead:int, best:combo|null, bestSeat:int, passes:int }
-    sortMode: stored.sortMode === 'group' ? 'group' : 'rank',
+    sortMode: stored.sortMode === 'group' ? 'group' : 'rank',  // 保留字段供旧版兼容，新逻辑不再读
+    handOrder: null,                 // 用户自定义的列顺序：[rankWeight, ...]；每局重发自动重置
     selected: new Set(),
     busy: false,
     lastPlay: [null, null, null, null],   // 每座最近一手（combo/'pass'/null）
@@ -1431,44 +1465,71 @@ permalink: /toolbox/guandan/
     return el;
   }
 
-  // 手牌排序：rank 模式按 singleWeight 降序；group 模式按拆解分组
-  function sortedHandForRender() {
+  // 把手牌按"点数权重"分组（每个 singleWeight 一列）。
+  // 列内按花色固定顺序排（黑桃→红心→方块→梅花），王和级牌单独成列。
+  function buildHandColumns() {
     const level = currentLevelLabel();
     const hand = state.hands[0];
-    if (state.sortMode === 'group') {
-      const groups = decompose(hand, level);
-      const order = { [T.JOKER_BOMB]: 0, [T.BOMB]: 1, [T.STR_FLUSH]: 1, [T.STRAIGHT]: 2,
-        [T.TRIPLE_STR]: 3, [T.PAIR_STR]: 3, [T.TRIPLE_PAIR]: 4, [T.TRIPLE]: 5,
-        [T.PAIR]: 6, [T.SINGLE]: 7 };
-      groups.sort((a, b) => {
-        const oa = order[a.type] ?? 9, ob = order[b.type] ?? 9;
-        if (oa !== ob) return oa - ob;
-        const wa = Math.max(...a.cards.map(c => singleWeight(c, level)));
-        const wb = Math.max(...b.cards.map(c => singleWeight(c, level)));
-        return wb - wa;
-      });
-      const out = [];
-      groups.forEach(g => {
-        const cs = g.cards.slice().sort((x, y) => singleWeight(y, level) - singleWeight(x, level));
-        cs.forEach((c, i) => out.push({ c, groupStart: i === 0 }));
-      });
-      return out;
+    const byW = new Map();
+    for (const c of hand) {
+      const w = singleWeight(c, level);
+      if (!byW.has(w)) byW.set(w, []);
+      byW.get(w).push(c);
     }
-    const cs = hand.slice().sort((a, b) =>
-      singleWeight(b, level) - singleWeight(a, level) || cardSuit(a) - cardSuit(b));
-    return cs.map(c => ({ c, groupStart: false }));
+    // 列内堆叠顺序：从上到下花色递增（♠ 在最上面，♣ 在最下面；王按大→小）
+    for (const arr of byW.values()) {
+      arr.sort((a, b) => {
+        const ja = isJoker(a), jb = isJoker(b);
+        if (ja && jb) return (b % 54) - (a % 54);  // 大王(53) 在上
+        if (ja) return -1;
+        if (jb) return 1;
+        return cardSuit(a) - cardSuit(b);            // ♠0 ♥1 ♣2 ♦3
+      });
+    }
+    // 列顺序：用户自定义优先；否则点数降序（高→低 从左到右）
+    let weights = [...byW.keys()];
+    if (Array.isArray(state.handOrder) && state.handOrder.length) {
+      const present = new Set(weights);
+      const filtered = state.handOrder.filter(w => present.has(w));
+      // 出过牌之后新没了的列自动剔除；如果用户排过的列里漏了某些 weight（理论不会，但保险）补到末尾
+      const seen = new Set(filtered);
+      for (const w of weights) if (!seen.has(w)) filtered.push(w);
+      weights = filtered;
+    } else {
+      weights.sort((a, b) => b - a);                 // 默认高在左
+    }
+    return weights.map(w => ({ weight: w, cards: byW.get(w) }));
   }
 
   function renderHand() {
-    const level = currentLevelLabel();
     els.hand.innerHTML = '';
     if (state.phase === PHASE.IDLE) return;
-    const arr = sortedHandForRender();
-    for (const { c, groupStart } of arr) {
-      const el = buildCardEl(c, 'size-full', level, {
-        cid: c, selected: state.selected.has(c), groupStart,
+    const level = currentLevelLabel();
+    const cols = buildHandColumns();
+    // 把当前列顺序 sync 回 state.handOrder，下次出牌后保持
+    state.handOrder = cols.map(c => c.weight);
+
+    const stackStep = parseFloat(
+      getComputedStyle(els.hand).getPropertyValue('--gd-stack-step')
+    ) || 22;
+    const cardH = parseFloat(
+      getComputedStyle(els.hand).getPropertyValue('--gd-card-h')
+    ) || 72;
+
+    for (const { weight, cards } of cols) {
+      const col = document.createElement('div');
+      col.className = 'gd-rank-col';
+      col.dataset.weight = String(weight);
+      col.style.height = ((cards.length - 1) * stackStep + cardH) + 'px';
+      cards.forEach((c, i) => {
+        const cardEl = buildCardEl(c, 'size-full', level, {
+          cid: c, selected: state.selected.has(c),
+        });
+        cardEl.style.top = (i * stackStep) + 'px';
+        cardEl.style.zIndex = String(i + 1);
+        col.appendChild(cardEl);
       });
-      els.hand.appendChild(el);
+      els.hand.appendChild(col);
     }
   }
 
@@ -1515,44 +1576,169 @@ permalink: /toolbox/guandan/
     updateActions();
   }
 
-  // ---- 选牌交互 ----
-  let dragMode = null;
-  function toggleCard(cid) {
-    if (state.selected.has(cid)) state.selected.delete(cid);
-    else state.selected.add(cid);
-  }
-  function onHandPointerDown(e) {
-    if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
-    const card = e.target.closest('.gd-card');
-    if (!card || !els.hand.contains(card)) return;
-    const cid = parseInt(card.dataset.cid, 10);
-    dragMode = state.selected.has(cid) ? 'remove' : 'add';
-    applyDrag(cid);
-    e.preventDefault();
-  }
-  function onHandPointerMove(e) {
-    if (dragMode == null) return;
-    const pt = e.touches ? e.touches[0] : e;
-    const t = document.elementFromPoint(pt.clientX, pt.clientY);
-    if (!t) return;
-    const card = t.closest && t.closest('.gd-card');
-    if (!card || !els.hand.contains(card)) return;
-    applyDrag(parseInt(card.dataset.cid, 10));
-  }
-  function onHandPointerUp() { dragMode = null; }
-  function applyDrag(cid) {
-    if (dragMode === 'add') state.selected.add(cid);
+  // ---- 选牌 + 拖列交互 ----
+  // 三种模式：
+  //   PENDING       —— pointerdown 后等待
+  //   MULTI_SELECT  —— 快速横/竖向移动 → 多选连刷（沿用旧体验）
+  //   COL_DRAG      —— 在原地长按 380ms → 列整体可拖到新位置
+  const LONG_PRESS_MS = 380;
+  const MOVE_THRESHOLD = 10;
+  let pState = null;     // { startX, startY, startCid, startCol, dragMode, mode, lpTimer, gapIdx, gapMarker }
+
+  function applySelectionDrag(cid) {
+    if (pState.dragMode === 'add') state.selected.add(cid);
     else state.selected.delete(cid);
     renderHand();
     updateSelHint();
     updateActions();
   }
+
+  function colsRectsX() {
+    const arr = [];
+    els.hand.querySelectorAll('.gd-rank-col').forEach((col, i) => {
+      const r = col.getBoundingClientRect();
+      arr.push({ idx: i, weight: parseInt(col.dataset.weight, 10), left: r.left, right: r.right, mid: (r.left + r.right) / 2, el: col });
+    });
+    return arr;
+  }
+  function computeGapIndex(rects, clientX, draggingIdx) {
+    // 返回插入索引 i：把 dragging 放在 i 位置（i ∈ [0, rects.length]）。
+    // 用 mid 比较来分边。
+    let gap = rects.length;
+    for (let i = 0; i < rects.length; i++) {
+      if (clientX < rects[i].mid) { gap = i; break; }
+    }
+    // 同位置或紧邻当前位置的两端视为不变（避免视觉抖动）
+    if (gap === draggingIdx || gap === draggingIdx + 1) return draggingIdx;
+    return gap;
+  }
+  function placeGapMarker(rects, gap) {
+    if (!pState.gapMarker) {
+      const m = document.createElement('div');
+      m.className = 'gd-col-gap-marker';
+      els.hand.appendChild(m);
+      pState.gapMarker = m;
+    }
+    const handRect = els.hand.getBoundingClientRect();
+    let x;
+    if (gap >= rects.length) x = (rects[rects.length - 1].right - handRect.left + els.hand.scrollLeft + 2);
+    else x = (rects[gap].left - handRect.left + els.hand.scrollLeft - 3);
+    pState.gapMarker.style.left = x + 'px';
+  }
+  function removeGapMarker() {
+    if (pState && pState.gapMarker) { pState.gapMarker.remove(); pState.gapMarker = null; }
+  }
+
+  function onHandPointerDown(e) {
+    if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
+    const col = e.target.closest('.gd-rank-col');
+    if (!col || !els.hand.contains(col)) return;
+    const card = e.target.closest('.gd-card');
+    const pt = e.touches ? e.touches[0] : e;
+    pState = {
+      startX: pt.clientX, startY: pt.clientY,
+      startCid: card ? parseInt(card.dataset.cid, 10) : null,
+      startCol: col,
+      dragMode: null,
+      mode: 'PENDING',
+      lpTimer: null,
+      gapIdx: null,
+      gapMarker: null,
+    };
+    pState.lpTimer = setTimeout(() => {
+      if (!pState || pState.mode !== 'PENDING') return;
+      pState.mode = 'COL_DRAG';
+      col.classList.add('col-dragging');
+      const rects = colsRectsX();
+      const draggingIdx = rects.findIndex(r => r.el === col);
+      placeGapMarker(rects, draggingIdx);
+      pState.gapIdx = draggingIdx;
+    }, LONG_PRESS_MS);
+    e.preventDefault();
+  }
+
+  function onHandPointerMove(e) {
+    if (!pState) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const dx = pt.clientX - pState.startX;
+    const dy = pt.clientY - pState.startY;
+
+    if (pState.mode === 'PENDING') {
+      if (Math.abs(dx) < MOVE_THRESHOLD && Math.abs(dy) < MOVE_THRESHOLD) return;
+      // 动了 → 取消长按，进入多选拖刷模式（沿用旧体验）
+      clearTimeout(pState.lpTimer);
+      if (pState.startCid == null) { pState = null; return; }
+      pState.mode = 'MULTI_SELECT';
+      pState.dragMode = state.selected.has(pState.startCid) ? 'remove' : 'add';
+      applySelectionDrag(pState.startCid);
+      return;
+    }
+
+    if (pState.mode === 'MULTI_SELECT') {
+      const t = document.elementFromPoint(pt.clientX, pt.clientY);
+      if (!t) return;
+      const card = t.closest && t.closest('.gd-card');
+      if (!card || !els.hand.contains(card)) return;
+      applySelectionDrag(parseInt(card.dataset.cid, 10));
+      return;
+    }
+
+    if (pState.mode === 'COL_DRAG') {
+      const rects = colsRectsX();
+      const draggingIdx = rects.findIndex(r => r.el === pState.startCol);
+      const gap = computeGapIndex(rects, pt.clientX, draggingIdx);
+      if (gap !== pState.gapIdx) {
+        pState.gapIdx = gap;
+        placeGapMarker(rects, gap);
+      }
+      e.preventDefault && e.preventDefault();
+    }
+  }
+
+  function onHandPointerUp(e) {
+    if (!pState) return;
+    if (pState.lpTimer) clearTimeout(pState.lpTimer);
+
+    if (pState.mode === 'PENDING') {
+      // 没动过 → 当作点击：切换该卡选中
+      if (pState.startCid != null) {
+        if (state.selected.has(pState.startCid)) state.selected.delete(pState.startCid);
+        else state.selected.add(pState.startCid);
+        renderHand();
+        updateSelHint();
+        updateActions();
+      }
+    } else if (pState.mode === 'COL_DRAG') {
+      const rects = colsRectsX();
+      const draggingIdx = rects.findIndex(r => r.el === pState.startCol);
+      const order = (state.handOrder && state.handOrder.length)
+        ? state.handOrder.slice()
+        : rects.map(r => r.weight);
+      const fromW = rects[draggingIdx].weight;
+      const fromIdx = order.indexOf(fromW);
+      let target = pState.gapIdx;
+      if (fromIdx >= 0 && target != null && target !== fromIdx && target !== fromIdx + 1) {
+        order.splice(fromIdx, 1);
+        if (target > fromIdx) target -= 1;
+        target = Math.max(0, Math.min(order.length, target));
+        order.splice(target, 0, fromW);
+        state.handOrder = order;
+      }
+      pState.startCol.classList.remove('col-dragging');
+      removeGapMarker();
+      renderHand();
+    }
+    pState = null;
+  }
+
   els.hand.addEventListener('mousedown', onHandPointerDown);
   els.hand.addEventListener('touchstart', onHandPointerDown, { passive: false });
   window.addEventListener('mousemove', onHandPointerMove);
   window.addEventListener('touchmove', onHandPointerMove, { passive: false });
   window.addEventListener('mouseup', onHandPointerUp);
   window.addEventListener('touchend', onHandPointerUp);
+  // 跨出 hand 时也要兜底（防止指针离开导致 ghost marker）
+  window.addEventListener('touchcancel', onHandPointerUp);
 
   function selectedCards() {
     return [...state.selected].filter(c => state.hands[0].includes(c));
@@ -1629,6 +1815,7 @@ permalink: /toolbox/guandan/
     state.phase = PHASE.PLAYING;
     state.out = [];
     state.selected.clear();
+    state.handOrder = null;          // 重新发牌 → 重置自定义列顺序
     state.lastPlay = [null, null, null, null];
     state.busy = false;
     const deck = shuffle(buildDeck());
@@ -2010,8 +2197,13 @@ permalink: /toolbox/guandan/
     const seat = state.turn;
     const delay = 360 + Math.random() * 320;
     setTimeout(() => {
+      // 先释放 busy ——否则 aiAct → commitPlay → afterMove → scheduleAI 这条链
+      // 会被自己的 busy 守卫拦截，导致出完一手就卡住（图五 bug）。
+      // aiAct 是同步的，期间没有事件循环让玩家插队，所以释放是安全的。
+      state.busy = false;
       try { aiAct(seat); }
-      finally { state.busy = false; updateActions(); }
+      catch (e) { console.error('[guandan] aiAct', e); }
+      updateActions();
     }, delay);
   }
 
@@ -2210,10 +2402,9 @@ permalink: /toolbox/guandan/
   els.passBtn.addEventListener('click', playerPass);
   els.hintBtn.addEventListener('click', playerHint);
   els.sortBtn.addEventListener('click', () => {
-    state.sortMode = state.sortMode === 'rank' ? 'group' : 'rank';
-    persist();
-    toast(state.sortMode === 'group' ? '已按牌型理牌' : '已按点数排序');
+    state.handOrder = null;   // 清掉自定义顺序 → 回到默认（点数高→低，从左到右）
     renderHand();
+    toast('已按点数恢复默认顺序');
   });
   document.addEventListener('keydown', e => {
     if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
@@ -2361,7 +2552,7 @@ permalink: /toolbox/guandan/
     '<p><strong>本实现的取胜规则</strong>：当一队级牌已到 <code>A</code>，' +
     '只要在该局再次<strong>拿到头游</strong>即「打过 A」，立刻赢下整局（不要求 A 上双下）。' +
     '你方打过 A → 战绩 +1 胜并上传战绩榜；对方打过 A → 记一负。</p>' +
-    '<p>键盘：Enter 出牌 · Space 不要 · H 提示。手牌可点选 / 拖选；「🧩 理牌」在按点数 / 按牌型间切换。</p>';
+    '<p>键盘：Enter 出牌 · Space 不要 · H 提示。手牌按点数竖向成列；点牌选中、横拖多选；「长按一列再拖到新位置」可自定义理牌顺序，「🧩 一键理牌」恢复默认（点数高→低）。</p>';
 
   // ---- 启动 ----
   refreshHs();
