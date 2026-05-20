@@ -1,6 +1,26 @@
-# 博客架构审查 & 改进建议（2026-05-14）
+# 博客架构审查 & 改进建议（2026-05-14 起草 / 2026-05-20 状态更新）
 
 > 写给未来接手的人（人或 AI）：这份文档详细记录了每条建议的**具体改法**和**为什么不能乱动**，以及一次失败改动的完整复盘。
+
+## 当前状态（2026-05-20）
+
+**所有原 2026-05-14 列出的宏观 + 微观建议已全部落地**：
+
+| 建议 | 状态 | 落地证据 |
+|---|---|---|
+| 1. CSS 提取到外部文件 | ✅ 已完成（2026-05-19） | `assets/css/main.css`（635 行）+ `assets/css/home.css`（308 行），`_layouts/default.html:37` 和 `index.html:6` 引外部 link |
+| 2. Front-matter 字段体系统一 | ✅ 已完成 | 见 [项目记忆 project_taxonomy_conventions](file:///Users/zhourui/.claude/projects/-Users-zhourui-Desktop-zirconeey-github-io/memory/project_taxonomy_conventions.md) |
+| 3. GitHub Pages Jekyll 版本漂移 | — | 接受现状（差异极小，本地 4.3 vs Pages 3.10） |
+| 4. `/notes/` 页面性能优化 | — | 当前规模够用 |
+| 5. Service Worker 离线策略精简 | — | 当前 SW 工作正常 |
+| 6. `_config.yml` 死 permalink | ✅ 已删 | 现 `_config.yml` 无 `permalink: /posts/...` |
+| 7. `index.html` Liquid 循环优化 | ✅ 已完成 | `index.html:8-33` 单循环结构 |
+| 8. `search.json` concat 清理 | ✅ 已完成 | `search.json:5` 直接 `site.notes` |
+| 9. RSS Feed + Sitemap | ✅ 已完成 | `_config.yml` plugins / `Gemfile` 已加；`_site/feed.xml` + `_site/sitemap.xml` 生成 |
+| 10. LaTeX 渲染抽 include | ✅ 已完成 | `_includes/latex-logo.html` + 12 处 call site 全部用 include |
+| 11. PWA Manifest icons | ✅ 已完成 | `manifest.json` 现有 `any` + `maskable` 双 icon |
+
+**仍未做的**：`.git` 历史瘦身（300M，需 force-push 改写历史，详见 [项目记忆 project_repo_hygiene](file:///Users/zhourui/.claude/projects/-Users-zhourui-Desktop-zirconeey-github-io/memory/project_repo_hygiene.md)）。
 
 ---
 
@@ -19,11 +39,11 @@
 | 维度 | 现状 |
 |---|---|
 | 静态站点生成器 | Jekyll 4.3 (本地) / GitHub Pages 用 3.10 |
-| 内容存储 | 全部在 `_notes/` collection（229 个 .md），没有用 `_posts/` |
+| 内容存储 | 全部在 `_notes/` collection（245 个 .md），没有用 `_posts/` |
 | 分类体系 | 两套：学习资料用 `discipline` + `course` + `material_type`；生活/科研/随笔用 `main_category` + `sub_category` |
-| CSS | ~830 行内嵌在两处：`_layouts/default.html`（~500 行）和 `index.html`（~330 行） |
+| CSS | 已抽到外部文件：`assets/css/main.css`（635 行）+ `assets/css/home.css`（308 行），可跨页缓存 |
 | Service Worker | `sw.js`（~280 行）+ `default.html` 里的前端代码（原 ~350 行），实现全站离线缓存 + 自动预取 + 设置面板 |
-| 工具箱 | `toolbox/` 下 40 个 HTML 文件，31 个工具，由 `_data/toolbox.yml` 注册 |
+| 工具箱 | `toolbox/` 下 45 个 HTML 文件，由 `_data/toolbox.yml` 注册 |
 | 部署 | push 到 `main` → GitHub Pages 自动构建部署 |
 | 英文学术站 | `en/` 目录 → CI sync 到独立仓库 `ruizhou03.github.io` |
 
