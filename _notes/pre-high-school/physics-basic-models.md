@@ -9,6 +9,6 @@ discipline: "初升高"
 course: "物理"
 material_type: "Notes"
 permalink: "/notes/pre-high-school/physics-basic-models"
-pdf_url: "/files/pre-high-school-physics-basic-models/Main.pdf"
+pdf_url: "/files/pre-high-school/physics-basic-models/Main.pdf"
 published: true
 ---

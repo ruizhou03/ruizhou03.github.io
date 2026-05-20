@@ -9,6 +9,6 @@ discipline: "初升高"
 course: "经验"
 material_type: "Notes"
 permalink: "/notes/pre-high-school/exam-timing"
-pdf_url: "/files/pre-high-school-exam-timing/Main.pdf"
+pdf_url: "/files/pre-high-school/exam-timing/Main.pdf"
 published: true
 ---

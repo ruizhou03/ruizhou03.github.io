@@ -9,6 +9,6 @@ discipline: "初升高"
 course: "数学"
 material_type: "Notes"
 permalink: "/notes/pre-high-school/probability"
-pdf_url: "/files/pre-high-school-probability/Main.pdf"
+pdf_url: "/files/pre-high-school/probability/Main.pdf"
 published: true
 ---

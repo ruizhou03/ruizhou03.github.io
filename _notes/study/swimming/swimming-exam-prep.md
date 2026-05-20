@@ -10,6 +10,6 @@ material_type: "笔试学习资料"
 date: 2026-01-28
 author: "Zircon"
 permalink: "/notes/swimming/swimming-exam-prep"
-pdf_url: "/files/swimming-exam-prep/Main.pdf"
+pdf_url: "/files/study/swimming/Main.pdf"
 ---
 

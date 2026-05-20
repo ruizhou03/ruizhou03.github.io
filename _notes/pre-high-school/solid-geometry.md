@@ -9,6 +9,6 @@ discipline: "初升高"
 course: "数学"
 material_type: "Notes"
 permalink: "/notes/pre-high-school/solid-geometry"
-pdf_url: "/files/pre-high-school-solid-geometry/Main.pdf"
+pdf_url: "/files/pre-high-school/solid-geometry/Main.pdf"
 published: true
 ---
