@@ -24,22 +24,14 @@ exclude:
   - Gemfile.lock
   - vendor/
   - .gitignore
-  # 后台 / 导入脚本与内部文档：不应出现在公开站点上
-  - admin_web.py
-  - import_article.py
-  - batch_import_r.py
-  - download_wechat_images.py
-  - MAINTENANCE.md
-  - ARCHITECTURE_REVIEW.md
+  # 内部文档（DAILY_REVIEW 是 routine 自动更新目标，保留根路径触发 workflow）
+  - docs/
   - DAILY_REVIEW.md
-  # 公众号导入的中间产物
-  - wx_all.json
-  - wx_candidates.md
-  - texput.log
   - "*.log"
   - .claude/
   - .githooks/
   - scripts/
+  - tools/
 
 # Collections (if needed)
 collections:
@@ -70,7 +62,6 @@ study_order:
   - causal-id
   - causal-inference
   - china-econ
-  - adv-macro-psu
   - real-anal
   - psy-stat-I
   - psy-stat-II

@@ -6,15 +6,16 @@ Gemfile.lock
 vendor/
 *.pyc
 __pycache__/
-admin_web.py
-download_wechat_images.py
 .env
 node_modules/
 files/adv-micro-psu/commands.tex
 files/adv-micro-psu/theorems.tex
-wx_all.json
-wx_candidates.md
-batch_import_r.py
+
+# 公众号导入工具与中间产物（本地工具链，不发仓库）
+scripts/import/admin_web.py
+scripts/import/batch_import_r.py
+scripts/import/wx_all.json
+scripts/import/wx_candidates.md
 
 # 本地存档（不发到公开仓库）
 files/_archive/
@@ -31,7 +32,6 @@ files/_archive/
 files/*/blackboard/
 files/*/recordings/
 files/*/psets/*.synctex.gz
-texput.log
 
 # Claude Code 本地配置（含权限设置，不发公开仓库）
 .claude/settings.local.json
