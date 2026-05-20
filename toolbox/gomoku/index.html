@@ -230,6 +230,7 @@ permalink: /toolbox/gomoku/
   </details>
 
   <div id="gm-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="gm-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
   <div id="gm-settle-btn-mount"></div>
   <div id="gm-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
@@ -238,6 +239,7 @@ permalink: /toolbox/gomoku/
 <script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
 <script src="/assets/js/games-shell/settings-panel.js"></script>
@@ -709,6 +711,7 @@ permalink: /toolbox/gomoku/
 
   // ── games-shell：战绩榜 + 评论 ─────────────
   let gmWlbWidget = null;
+  let gmNickPrompt = null;
   let gmRunStartedAt = Date.now();
   let gmRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
   let gmSettleBtn = null;
@@ -825,23 +828,9 @@ permalink: /toolbox/gomoku/
     };
   }
 
-  function gmTryAutoSubmit() {
-    if (!window.GamesShell) return;
-    if (!state.mode || !state.mode.startsWith('ai-')) return;
-    if (!['easy', 'normal', 'hard'].includes(state.difficulty)) return;
-    let nick = GamesShell.Identity.getNick();
-    // 不合法就提示后再让用户重输，别一次失败就把战绩扔了
-    let lastErr = '';
-    while (!nick) {
-      const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : '恭喜击败 AI！起个昵称上传战绩榜？\n\n';
-      const v = prompt(hint + '2-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
-      if (v === null) return;
-      const r = GamesShell.Identity.setNick(v);
-      if (r.ok) { nick = r.nick; break; }
-      lastErr = r.reason || '昵称无效';
-    }
+  function gmSubmitWins(nick) {
     const submittedNick = nick;
-    GamesShell.WinsLeaderboard.submit({
+    return GamesShell.WinsLeaderboard.submit({
       gameId: 'gomoku',
       nick,
       did: GamesShell.Identity.getDeviceId(),
@@ -852,16 +841,29 @@ permalink: /toolbox/gomoku/
     }).then(r => {
       if (r && r.ok) {
         if (gmWlbWidget) gmWlbWidget.refresh();
+        if (gmNickPrompt) gmNickPrompt.hide();
         return;
       }
       if (r && r.reason === 'nick_taken') {
         GamesShell.Identity.clearNick();
-        alert('“' + submittedNick + '” 已被别的玩家占用，请换一个昵称');
-        gmTryAutoSubmit();
+        alert('"' + submittedNick + '" 已被别的玩家占用，请换一个昵称');
+        if (gmNickPrompt) { gmNickPrompt.refresh(); gmNickPrompt.show(); }
         return;
       }
       if (r && r.reason) console.warn('[gomoku] wins submit rejected:', r.reason);
     });
+  }
+
+  function gmTryAutoSubmit() {
+    if (!window.GamesShell || !GamesShell.WinsLeaderboard) return;
+    if (!state.mode || !state.mode.startsWith('ai-')) return;
+    if (!['easy', 'normal', 'hard'].includes(state.difficulty)) return;
+    const nick = GamesShell.Identity.getNick();
+    if (nick) {
+      gmSubmitWins(nick);
+      return;
+    }
+    if (gmNickPrompt) gmNickPrompt.show();
   }
 
   function gmInitShell() {
@@ -879,6 +881,14 @@ permalink: /toolbox/gomoku/
       intro: '聊聊你击败 AI 的开局、决胜手 ~',
       placeholder: '聊聊你的五子棋心得 ~',
     });
+    if (GamesShell.NickPrompt) {
+      gmNickPrompt = GamesShell.NickPrompt.mount({
+        container: document.getElementById('gm-nick-mount'),
+        prompt: '击败 AI！起个昵称上榜吧',
+        onSubmit: nick => gmSubmitWins(nick),
+        onSkip: () => { if (gmNickPrompt) gmNickPrompt.hide(); },
+      });
+    }
     if (GamesShell.Settlement) {
       gmSettleBtn = GamesShell.Settlement.mountButton({
         container: document.getElementById('gm-settle-btn-mount'),

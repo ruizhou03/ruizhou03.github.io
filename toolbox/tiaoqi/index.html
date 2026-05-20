@@ -401,6 +401,7 @@ permalink: /toolbox/tiaoqi/
   </details>
 
   <div id="tq-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="tq-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
   <div id="tq-settle-btn-mount"></div>
   <div id="tq-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
@@ -409,6 +410,7 @@ permalink: /toolbox/tiaoqi/
 <script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
 <script src="/assets/js/games-shell/settings-panel.js"></script>
@@ -1447,6 +1449,7 @@ permalink: /toolbox/tiaoqi/
   // games-shell integration
   // ============================================================
   let tqWlbWidget = null;
+  let tqNickPrompt = null;
   let tqRunStartedAt = Date.now();
   let tqRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
   let tqSettleBtn = null;
@@ -1547,24 +1550,9 @@ permalink: /toolbox/tiaoqi/
     };
   }
 
-  function tqTryAutoSubmit() {
-    if (!window.GamesShell) return;
-    const humans = state.players.filter(p => state.playerKinds[p] === 'human');
-    const ais = state.players.filter(p => state.playerKinds[p] === 'ai');
-    if (humans.length !== 1 || ais.length === 0) return;
-    if (!['easy', 'normal', 'hard'].includes(state.difficulty)) return;
-    let nick = GamesShell.Identity.getNick();
-    let lastErr = '';
-    while (!nick) {
-      const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : '恭喜击败 AI！起个昵称上传战绩榜？\n\n';
-      const v = prompt(hint + '2-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
-      if (v === null) return;
-      const r = GamesShell.Identity.setNick(v);
-      if (r.ok) { nick = r.nick; break; }
-      lastErr = r.reason || '昵称无效';
-    }
+  function tqSubmitWins(nick) {
     const submittedNick = nick;
-    GamesShell.WinsLeaderboard.submit({
+    return GamesShell.WinsLeaderboard.submit({
       gameId: 'tiaoqi',
       nick,
       did: GamesShell.Identity.getDeviceId(),
@@ -1573,15 +1561,33 @@ permalink: /toolbox/tiaoqi/
       durationMs: Math.max(5000, Date.now() - tqRunStartedAt),
       clientNonce: tqRunNonce,
     }).then(r => {
-      if (r && r.ok) { if (tqWlbWidget) tqWlbWidget.refresh(); return; }
+      if (r && r.ok) {
+        if (tqWlbWidget) tqWlbWidget.refresh();
+        if (tqNickPrompt) tqNickPrompt.hide();
+        return;
+      }
       if (r && r.reason === 'nick_taken') {
         GamesShell.Identity.clearNick();
-        alert('"' + submittedNick + '" 已被占用，请换一个昵称');
-        tqTryAutoSubmit();
+        alert('"' + submittedNick + '" 已被别的玩家占用，请换一个昵称');
+        if (tqNickPrompt) { tqNickPrompt.refresh(); tqNickPrompt.show(); }
         return;
       }
       if (r && r.reason) console.warn('[tiaoqi] wins submit rejected:', r.reason);
     });
+  }
+
+  function tqTryAutoSubmit() {
+    if (!window.GamesShell) return;
+    const humans = state.players.filter(p => state.playerKinds[p] === 'human');
+    const ais = state.players.filter(p => state.playerKinds[p] === 'ai');
+    if (humans.length !== 1 || ais.length === 0) return;
+    if (!['easy', 'normal', 'hard'].includes(state.difficulty)) return;
+    const nick = GamesShell.Identity.getNick();
+    if (nick) {
+      tqSubmitWins(nick);
+      return;
+    }
+    if (tqNickPrompt) tqNickPrompt.show();
   }
 
   function tqInitShell() {
@@ -1599,6 +1605,14 @@ permalink: /toolbox/tiaoqi/
       intro: '聊聊跳棋的开局思路、围堵 / 跳跳跳的小技巧，或者吐槽 AI ~',
       placeholder: '聊聊你的跳棋心得 ~',
     });
+    if (GamesShell.NickPrompt) {
+      tqNickPrompt = GamesShell.NickPrompt.mount({
+        container: document.getElementById('tq-nick-mount'),
+        prompt: '赢一局！起个昵称上榜吧',
+        onSubmit: nick => tqSubmitWins(nick),
+        onSkip: () => { if (tqNickPrompt) tqNickPrompt.hide(); },
+      });
+    }
     if (GamesShell.Settlement) {
       tqSettleBtn = GamesShell.Settlement.mountButton({
         container: document.getElementById('tq-settle-btn-mount'),

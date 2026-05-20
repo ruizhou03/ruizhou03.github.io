@@ -272,6 +272,7 @@ permalink: /toolbox/xiangqi/
   </details>
 
   <div id="xq-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="xq-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
   <div id="xq-settle-btn-mount"></div>
   <div id="xq-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
@@ -280,6 +281,7 @@ permalink: /toolbox/xiangqi/
 <script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
 <script src="/assets/js/games-shell/settings-panel.js"></script>
@@ -1075,6 +1077,7 @@ permalink: /toolbox/xiangqi/
 
   // ── games-shell：战绩榜 + 评论 ─────────────
   let xqWlbWidget = null;
+  let xqNickPrompt = null;
   let xqRunStartedAt = Date.now();
   let xqRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
   let xqSettleBtn = null;
@@ -1209,23 +1212,9 @@ permalink: /toolbox/xiangqi/
     };
   }
 
-  function xqTryAutoSubmit() {
-    if (!window.GamesShell) return;
-    if (!state.mode || !state.mode.startsWith('ai-')) return;
-    if (!['easy', 'normal', 'hard'].includes(state.difficulty)) return;
-    let nick = GamesShell.Identity.getNick();
-    // 不合法就提示后再让用户重输，别一次失败就把战绩扔了
-    let lastErr = '';
-    while (!nick) {
-      const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : '恭喜击败 AI！起个昵称上传战绩榜？\n\n';
-      const v = prompt(hint + '2-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
-      if (v === null) return;
-      const r = GamesShell.Identity.setNick(v);
-      if (r.ok) { nick = r.nick; break; }
-      lastErr = r.reason || '昵称无效';
-    }
+  function xqSubmitWins(nick) {
     const submittedNick = nick;
-    GamesShell.WinsLeaderboard.submit({
+    return GamesShell.WinsLeaderboard.submit({
       gameId: 'xiangqi',
       nick,
       did: GamesShell.Identity.getDeviceId(),
@@ -1236,16 +1225,29 @@ permalink: /toolbox/xiangqi/
     }).then(r => {
       if (r && r.ok) {
         if (xqWlbWidget) xqWlbWidget.refresh();
+        if (xqNickPrompt) xqNickPrompt.hide();
         return;
       }
       if (r && r.reason === 'nick_taken') {
         GamesShell.Identity.clearNick();
         alert('“' + submittedNick + '” 已被别的玩家占用，请换一个昵称');
-        xqTryAutoSubmit();
+        if (xqNickPrompt) { xqNickPrompt.refresh(); xqNickPrompt.show(); }
         return;
       }
       if (r && r.reason) console.warn('[xiangqi] wins submit rejected:', r.reason);
     });
+  }
+
+  function xqTryAutoSubmit() {
+    if (!window.GamesShell) return;
+    if (!state.mode || !state.mode.startsWith('ai-')) return;
+    if (!['easy', 'normal', 'hard'].includes(state.difficulty)) return;
+    const nick = GamesShell.Identity.getNick();
+    if (nick) {
+      xqSubmitWins(nick);
+      return;
+    }
+    if (xqNickPrompt) xqNickPrompt.show();
   }
 
   function xqInitShell() {
@@ -1263,6 +1265,14 @@ permalink: /toolbox/xiangqi/
       intro: '聊聊击败 AI 的开局、跑炮 / 飞马心得 ~',
       placeholder: '聊聊你的中国象棋心得 ~',
     });
+    if (GamesShell.NickPrompt) {
+      xqNickPrompt = GamesShell.NickPrompt.mount({
+        container: document.getElementById('xq-nick-mount'),
+        prompt: '击败 AI！起个昵称上榜吧',
+        onSubmit: nick => xqSubmitWins(nick),
+        onSkip: () => { if (xqNickPrompt) xqNickPrompt.hide(); },
+      });
+    }
     if (GamesShell.Settlement) {
       xqSettleBtn = GamesShell.Settlement.mountButton({
         container: document.getElementById('xq-settle-btn-mount'),

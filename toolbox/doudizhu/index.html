@@ -1984,6 +1984,7 @@ permalink: /toolbox/doudizhu/
 
   <div id="ddz-settle-btn-mount"></div>
   <div id="ddz-wlb-mount" style="max-width: 600px; margin: 1.2rem auto 0;"></div>
+  <div id="ddz-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
   <div id="ddz-cm-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
 </div>
 
@@ -1991,6 +1992,7 @@ permalink: /toolbox/doudizhu/
 <script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
 <script src="/assets/js/doudizhu/engine.js"></script>
@@ -4207,6 +4209,7 @@ permalink: /toolbox/doudizhu/
   // 排行榜 / 续局 / 结算 集成
   // ============================================================
   let ddzWlb = null, ddzSettleBtn = null;
+  let ddzNickPrompt = null;
   let ddzSave = null;
 
   // 春天 / 反春天结算图：标题 + 「那一方」的初始手牌（行）
@@ -4373,11 +4376,9 @@ permalink: /toolbox/doudizhu/
     return ({ easy: 1, normal: 2, hard: 3, master: 4, online: 3 })[d] || 1;
   }
 
-  function tryAutoSubmit() {
-    if (!window.GamesShell) return;
+  function ddzSubmitWins(nick) {
+    const submittedNick = nick;
     if (!state.result) return;
-    const playerRole = state.landlordIdx === 0 ? 'landlord' : 'peasant';
-    if (state.result.winnerRole !== playerRole) return; // 输了不上传
     const aiLevel = state.difficulty;
     if (!['easy', 'normal', 'hard', 'master'].includes(aiLevel)) return;
     const totalActions = state.landlordPlayCount + state.peasantPlayCount + (state.bidActions.length || 0);
@@ -4386,17 +4387,7 @@ permalink: /toolbox/doudizhu/
     const baseScore = state.result.score;
     const weight = difficultyWeight(aiLevel);
     const score = Math.min(4096, baseScore * weight);   // 后端 cap 4096
-    let nick = GamesShell.Identity.getNick();
-    let lastErr = '';
-    while (!nick) {
-      const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : `恭喜赢得本局（积分 +${score} = 本局 ${baseScore} × 难度 ${weight}）！起个昵称上传积分榜？\n\n`;
-      const v = prompt(hint + '2-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
-      if (v === null) return;
-      const r = GamesShell.Identity.setNick(v);
-      if (r.ok) { nick = r.nick; break; }
-      lastErr = r.reason || '昵称无效';
-    }
-    GamesShell.WinsLeaderboard.submit({
+    return GamesShell.WinsLeaderboard.submit({
       gameId: 'doudizhu',
       nick,
       did: GamesShell.Identity.getDeviceId(),
@@ -4406,15 +4397,34 @@ permalink: /toolbox/doudizhu/
       clientNonce: state.runNonce,
       score,
     }).then(r => {
-      if (r && r.ok) { if (ddzWlb) ddzWlb.refresh(); return; }
+      if (r && r.ok) {
+        if (ddzWlb) ddzWlb.refresh();
+        if (ddzNickPrompt) ddzNickPrompt.hide();
+        return;
+      }
       if (r && r.reason === 'nick_taken') {
         GamesShell.Identity.clearNick();
-        alert('"' + nick + '" 已被占用，请换一个昵称');
-        tryAutoSubmit();
+        alert('"' + submittedNick + '" 已被别的玩家占用，请换一个昵称');
+        if (ddzNickPrompt) { ddzNickPrompt.refresh(); ddzNickPrompt.show(); }
         return;
       }
       if (r && r.reason) console.warn('[doudizhu] wins submit rejected:', r.reason);
     });
+  }
+
+  function tryAutoSubmit() {
+    if (!window.GamesShell) return;
+    if (!state.result) return;
+    const playerRole = state.landlordIdx === 0 ? 'landlord' : 'peasant';
+    if (state.result.winnerRole !== playerRole) return; // 输了不上传
+    const aiLevel = state.difficulty;
+    if (!['easy', 'normal', 'hard', 'master'].includes(aiLevel)) return;
+    const nick = GamesShell.Identity.getNick();
+    if (nick) {
+      ddzSubmitWins(nick);
+      return;
+    }
+    if (ddzNickPrompt) ddzNickPrompt.show();
   }
 
   function initShell() {
@@ -4433,6 +4443,14 @@ permalink: /toolbox/doudizhu/
       intro: '聊聊斗地主的开局思路、地主 / 农民的取舍，或者吐槽 AI ~',
       placeholder: '聊聊你的斗地主心得 ~',
     });
+    if (GamesShell.NickPrompt) {
+      ddzNickPrompt = GamesShell.NickPrompt.mount({
+        container: document.getElementById('ddz-nick-mount'),
+        prompt: '赢一局！起个昵称上榜吧',
+        onSubmit: nick => ddzSubmitWins(nick),
+        onSkip: () => { if (ddzNickPrompt) ddzNickPrompt.hide(); },
+      });
+    }
     if (GamesShell.Settlement) {
       // 平时不挂结算按钮，只在春天时主动 compose+present
       ddzSettleBtn = null;

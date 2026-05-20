@@ -280,6 +280,7 @@ permalink: /toolbox/chess/
   </details>
 
   <div id="ch-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="ch-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
   <div id="ch-settle-btn-mount"></div>
   <div id="ch-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
@@ -288,6 +289,7 @@ permalink: /toolbox/chess/
 <script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
 <script src="/assets/js/games-shell/settings-panel.js"></script>
@@ -869,6 +871,7 @@ permalink: /toolbox/chess/
 
   // ── games-shell：战绩榜 + 评论 ──────────────
   let chWlbWidget = null;
+  let chNickPrompt = null;
   let chRunStartedAt = Date.now();
   let chRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
   let chSettleBtn = null;
@@ -949,21 +952,10 @@ permalink: /toolbox/chess/
     };
   }
 
-  function promptForNickAndSubmit() {
-    let nick = GamesShell.Identity.getNick();
-    // 不合法就提示后再让用户重输，别一次失败就把战绩扔了
-    let lastErr = '';
-    while (!nick) {
-      const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : '恭喜击败 AI！起个昵称上传战绩榜？\n\n';
-      const v = prompt(hint + '2-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
-      if (v === null) return;            // 用户按取消
-      const r = GamesShell.Identity.setNick(v);
-      if (r.ok) { nick = r.nick; break; }
-      lastErr = r.reason || '昵称无效';
-    }
-    const moveCount = state.game.history().length;
+  function chSubmitWins(nick) {
     const submittedNick = nick;
-    GamesShell.WinsLeaderboard.submit({
+    const moveCount = state.game.history().length;
+    return GamesShell.WinsLeaderboard.submit({
       gameId: 'chess',
       nick,
       did: GamesShell.Identity.getDeviceId(),
@@ -974,12 +966,13 @@ permalink: /toolbox/chess/
     }).then(r => {
       if (r && r.ok) {
         if (chWlbWidget) chWlbWidget.refresh();
+        if (chNickPrompt) chNickPrompt.hide();
         return;
       }
       if (r && r.reason === 'nick_taken') {
         GamesShell.Identity.clearNick();
-        alert('“' + submittedNick + '” 已被别的玩家占用，请换一个昵称');
-        promptForNickAndSubmit();    // 递归重提示
+        alert('"' + submittedNick + '" 已被别的玩家占用，请换一个昵称');
+        if (chNickPrompt) { chNickPrompt.refresh(); chNickPrompt.show(); }
         return;
       }
       if (r && r.reason) console.warn('[chess] wins submit rejected:', r.reason);
@@ -990,7 +983,12 @@ permalink: /toolbox/chess/
     if (!window.GamesShell) return;
     if (!state.mode || !state.mode.startsWith('ai-')) return;
     if (state.difficulty !== 'easy' && state.difficulty !== 'normal' && state.difficulty !== 'hard') return;
-    promptForNickAndSubmit();
+    const nick = GamesShell.Identity.getNick();
+    if (nick) {
+      chSubmitWins(nick);
+      return;
+    }
+    if (chNickPrompt) chNickPrompt.show();
   }
 
   function chInitShell() {
@@ -1008,6 +1006,14 @@ permalink: /toolbox/chess/
       intro: 'AI 在 hard 难度下的真实水平如何？开局心得 · 残局技巧 ~',
       placeholder: '聊聊你的国际象棋心得 ~',
     });
+    if (GamesShell.NickPrompt) {
+      chNickPrompt = GamesShell.NickPrompt.mount({
+        container: document.getElementById('ch-nick-mount'),
+        prompt: '击败 AI！起个昵称上榜吧',
+        onSubmit: nick => chSubmitWins(nick),
+        onSkip: () => { if (chNickPrompt) chNickPrompt.hide(); },
+      });
+    }
     if (GamesShell.Settlement) {
       chSettleBtn = GamesShell.Settlement.mountButton({
         container: document.getElementById('ch-settle-btn-mount'),

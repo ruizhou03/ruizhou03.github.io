@@ -460,6 +460,7 @@ permalink: /toolbox/feixingqi/
   </details>
 
   <div id="fxq-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <div id="fxq-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
   <div id="fxq-settle-btn-mount"></div>
   <div id="fxq-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
@@ -468,6 +469,7 @@ permalink: /toolbox/feixingqi/
 <script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
 <script src="/assets/js/games-shell/settings-panel.js"></script>
@@ -2151,6 +2153,7 @@ permalink: /toolbox/feixingqi/
   // games-shell integration
   // ============================================================
   let fxqWlbWidget = null;
+  let fxqNickPrompt = null;
   let fxqRunStartedAt = Date.now();
   let fxqRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
   let fxqSettleBtn = null;
@@ -2314,24 +2317,9 @@ permalink: /toolbox/feixingqi/
     };
   }
 
-  function fxqTryAutoSubmit() {
-    if (!window.GamesShell) return;
-    const humans = state.players.filter(p => state.playerKinds[p] === 'human');
-    const ais = state.players.filter(p => state.playerKinds[p] === 'ai');
-    if (humans.length !== 1 || ais.length === 0) return;
-    if (!['easy', 'normal', 'hard'].includes(state.difficulty)) return;
-    let nick = GamesShell.Identity.getNick();
-    let lastErr = '';
-    while (!nick) {
-      const hint = lastErr ? `${lastErr}，请重新输入：\n\n` : '恭喜击败 AI！起个昵称上传战绩榜？\n\n';
-      const v = prompt(hint + '2-12 字（中英 / 数字 / 标点 / emoji 都算 1 字；按取消则不上传）');
-      if (v === null) return;
-      const r = GamesShell.Identity.setNick(v);
-      if (r.ok) { nick = r.nick; break; }
-      lastErr = r.reason || '昵称无效';
-    }
+  function fxqSubmitWins(nick) {
     const submittedNick = nick;
-    GamesShell.WinsLeaderboard.submit({
+    return GamesShell.WinsLeaderboard.submit({
       gameId: 'feixingqi',
       nick,
       did: GamesShell.Identity.getDeviceId(),
@@ -2340,15 +2328,33 @@ permalink: /toolbox/feixingqi/
       durationMs: Math.max(5000, Date.now() - fxqRunStartedAt),
       clientNonce: fxqRunNonce,
     }).then(r => {
-      if (r && r.ok) { if (fxqWlbWidget) fxqWlbWidget.refresh(); return; }
+      if (r && r.ok) {
+        if (fxqWlbWidget) fxqWlbWidget.refresh();
+        if (fxqNickPrompt) fxqNickPrompt.hide();
+        return;
+      }
       if (r && r.reason === 'nick_taken') {
         GamesShell.Identity.clearNick();
-        alert('"' + submittedNick + '" 已被占用，请换一个昵称');
-        fxqTryAutoSubmit();
+        alert('"' + submittedNick + '" 已被别的玩家占用，请换一个昵称');
+        if (fxqNickPrompt) { fxqNickPrompt.refresh(); fxqNickPrompt.show(); }
         return;
       }
       if (r && r.reason) console.warn('[feixingqi] wins submit rejected:', r.reason);
     });
+  }
+
+  function fxqTryAutoSubmit() {
+    if (!window.GamesShell) return;
+    const humans = state.players.filter(p => state.playerKinds[p] === 'human');
+    const ais = state.players.filter(p => state.playerKinds[p] === 'ai');
+    if (humans.length !== 1 || ais.length === 0) return;
+    if (!['easy', 'normal', 'hard'].includes(state.difficulty)) return;
+    const nick = GamesShell.Identity.getNick();
+    if (nick) {
+      fxqSubmitWins(nick);
+      return;
+    }
+    if (fxqNickPrompt) fxqNickPrompt.show();
   }
 
   function fxqInitShell() {
@@ -2366,6 +2372,14 @@ permalink: /toolbox/feixingqi/
       intro: '聊聊飞行棋的开局策略、堵截 / 大飞跃的小技巧，或者吐槽 AI ~',
       placeholder: '聊聊你的飞行棋心得 ~',
     });
+    if (GamesShell.NickPrompt) {
+      fxqNickPrompt = GamesShell.NickPrompt.mount({
+        container: document.getElementById('fxq-nick-mount'),
+        prompt: '赢一局！起个昵称上榜吧',
+        onSubmit: nick => fxqSubmitWins(nick),
+        onSkip: () => { if (fxqNickPrompt) fxqNickPrompt.hide(); },
+      });
+    }
     if (GamesShell.Settlement) {
       fxqSettleBtn = GamesShell.Settlement.mountButton({
         container: document.getElementById('fxq-settle-btn-mount'),
