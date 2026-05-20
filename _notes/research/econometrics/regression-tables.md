@@ -10,7 +10,6 @@ published: true
 keywords: ["回归表 LaTeX", "三线表", "回归结果出表", "regression table", "modelsummary", "fixest etable", "esttab estout", "stargazer", "Stata 回归表", "Stata 导出 LaTeX", "outreg2", "reghdfe esttab", "R 回归表", "回归系数表", "booktabs 表格", "显著性星号", "standard errors 括号", "固定效应 yes no 行", "手抄系数", "回归结果复制粘贴", "一键出表", "论文表格自动化", "tex 表格 input", "Word 回归表", "huxtable", "fixed effects row", "huigui biao", "回归表格模板"]
 ---
 
-{% raw %}
 
 手抄回归系数是科研里最没有产出、又最容易出错的环节之一：从 console 里一个个把系数、括号里的标准误、星号抄进 Word 或 LaTeX，改了个控制变量重新跑，再抄一遍。抄错一位小数，审稿人正好算了边际效应对不上——这种翻车每年都在发生。
 
@@ -107,4 +106,3 @@ esttab using "output/tables/wage.tex", replace ///
 
 把这套接进[可复现项目的主脚本](/research/workflow/reproducible-project)里，回归一改、`Rscript run_all.R` 一跑，论文里所有表同步刷新——这才是出表工具真正的价值：不是省那几分钟排版，是从此**数字只有一个来源**。
 
-{% endraw %}

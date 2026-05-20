@@ -10,7 +10,6 @@ published: true
 keywords: ["TikZ 教程", "TikZ 经济学图", "LaTeX 画图", "供需图 TikZ", "supply demand diagram", "需求曲线 供给曲线", "均衡点", "曲线移动", "博弈树 TikZ", "game tree", "extensive form", "博弈论树状图", "forest 宏包", "时间线 timeline", "DID 时间线", "事件研究设计图", "standalone 类", "pgfplots", "TikZ externalize", "矢量图 论文插图", "PPT 矢量图", "坐标轴 节点 箭头", "draw node arrow", "TikZ 入门", "LaTeX 矢量图", "经济学论文配图", "TikZ tu", "怎么画供需图", "怎么画博弈树"]
 ---
 
-{% raw %}
 
 经济学论文和讲义里的图，很大一部分不是数据图，而是**示意图**：一张供需图、一棵博弈树、一条识别设计的时间线。这类图用画图软件拉很难和正文字体统一、放大还糊；用 TikZ 写出来则是矢量的、字体和论文一致、改一个参数图就重排。这篇给三类最常用的图配可直接抄的代码，并把生成出来的样子画给你看。
 
@@ -158,4 +157,3 @@ keywords: ["TikZ 教程", "TikZ 经济学图", "LaTeX 画图", "供需图 TikZ",
 
 不用背命令。把这三段当模板存进 `commands.tex` 旁边的 `figures/` 目录，下次要画改数据点就行——TikZ 的价值不是炫技，是让你的图和论文是同一套排版语言。
 
-{% endraw %}

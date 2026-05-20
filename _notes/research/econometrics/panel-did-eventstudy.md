@@ -10,7 +10,6 @@ published: true
 keywords: ["固定效应", "高维固定效应", "fixed effects", "reghdfe", "fixest feols", "聚类标准误", "cluster robust SE", "clustered standard errors", "聚类在哪一层", "双向聚类", "two-way clustering", "wild bootstrap", "boottest", "DID", "双重差分", "difference in differences", "TWFE", "双向固定效应", "交错 DID", "staggered DID", "Goodman-Bacon", "负权重 negative weights", "Callaway Sant'Anna", "csdid", "did 包", "Sun Abraham", "sunab", "de Chaisemartin", "did_multiplegt", "事件研究", "event study", "动态处理效应", "事件研究图", "平行趋势", "parallel trends", "never treated", "not yet treated", "基期 omitted period", "shijian yanjiu", "DID 代码", "面板回归"]
 ---
 
-{% raw %}
 
 这篇是工具书性质的：固定效应、聚类标准误、DID、事件研究——把这四样最常用的实证操作，给一份 R（`fixest`）和 Stata（`reghdfe` / 现代 DID 包）都能直接抄走的代码，并标出每个地方最容易翻车的点。不讲推导，只讲“这行为什么这么写”。
 
@@ -152,4 +151,3 @@ Stata 端 `csdid ... ; estat event ; csdid_plot`，或经典做法用 `eventdd` 
 
 把这些回归对象接上[出表工具](/research/econometrics/regression-tables)，表和事件研究图就能跟着主脚本一起自动重生成——改个聚类层级或换个估计量，全文数字和图一次刷新，不用回去手改任何一处。
 
-{% endraw %}

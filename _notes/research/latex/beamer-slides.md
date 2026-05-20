@@ -10,7 +10,6 @@ published: true
 keywords: ["beamer 教程", "LaTeX 做幻灯片", "beamer slides", "学术 slides", "job talk", "工作坊报告", "组会 slides", "presentation 模板", "metropolis 主题", "beamer 主题推荐", "16:9 宽屏 slides", "aspectratio", "pause overlay 逐步显示", "onslide uncover", "beamer 复用论文图表", "input 表格 figure", "appendix 备份页", "backup slides", "hyperlink 跳转", "frame 页码", "allowframebreaks", "handout 模式", "讲者注释 pdfpc", "Warsaw 主题 太丑", "beamer 反例", "去掉导航栏", "beamer vs PPT", "beamer 入门", "LaTeX 演示文稿", "huandengpian", "怎么做学术报告 slides"]
 ---
 
-{% raw %}
 
 学术报告用 beamer 而不是 PowerPoint，理由很实在：公式排版和论文完全一致、图表能直接复用论文里那份 `.tex`、改了数据 slides 跟着重生成、版本可控。代价是它默认主题确实丑、上手有门槛。这篇给一套现代、干净、能直接用在 job talk 和组会的配置，并讲清楚学术报告排 slides 的几条硬规矩。
 
@@ -142,4 +141,3 @@ keywords: ["beamer 教程", "LaTeX 做幻灯片", "beamer slides", "学术 slide
 
 工作流上把 slides 也纳入[可复现项目](/research/workflow/reproducible-project)：`slides/talk.tex` 和论文共用 `output/` 里的图表，[ Git ](/research/workflow/git-for-papers)管版本，job market 季每改一版结果，论文、slides、海报一次同步——这正是当初忍着学 beamer 的回报。
 
-{% endraw %}

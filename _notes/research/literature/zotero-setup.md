@@ -10,7 +10,6 @@ published: true
 keywords: ["Zotero 教程", "Zotero 从零", "文献管理软件", "参考文献管理", "reference manager", "Zotero vs EndNote", "Zotero vs Mendeley", "Zotero Connector 浏览器插件", "一键抓取文献", "DOI 导入", "Zotero PDF 重命名", "Zotero 同步", "WebDAV", "Better BibTeX", "稳定 citekey", "引文键 citation key", "自动导出 bib", "library.bib", "Zotero LaTeX", "Zotero Word 插件", "cite while you write", "CSL 引用样式", "Chicago author-date", "APA 格式", "期刊引用格式", "Zotero 群组库", "group library 合作者", "共享文献库", "Zotero 7", "文献去重", "Zotero 标签 分类", "wenxian guanli", "Zotero 设置"]
 ---
 
-{% raw %}
 
 文献管理软件早就该是研究生的标配，但很多人要么还在文件夹里堆 `paper(3)_final.pdf`，要么被 EndNote 的体验劝退。我的结论很直接：**用 Zotero**——免费、开源、社区活跃，浏览器一键抓取，和 LaTeX、Word、R Markdown 都能干净联动。这篇从零搭一套能用一整个博士周期的配置。
 
@@ -97,4 +96,3 @@ CSL 样式去 [Zotero Style Repository](https://www.zotero.org/styles) 搜期刊
 
 把这套配好之后，文献这条线就彻底自动了：网页一键入库 → BBT 钉死 citekey 并实时同步 `.bib` →[ 论文里 `\cite` ](/research/workflow/reproducible-project)直接引。下一篇接着讲文献的上游——[怎么高效检索和持续追踪新文献](/research/literature/literature-search)，让该进库的东西先被你发现。
 
-{% endraw %}

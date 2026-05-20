@@ -10,7 +10,6 @@ published: true
 keywords: ["可复现研究", "复现 reproducibility", "replication package", "复现包", "AEA data policy", "AER 数据政策", "数据可用性政策", "data availability", "研究项目结构", "项目目录结构", "数据代码输出分离", "相对路径", "setwd 绝对路径", "here 包", "here::here", "RProject Rproj", "renv 锁依赖", "依赖管理", "set.seed 随机种子", "Stata set seed", "master do 文件", "run_all", "Makefile 复现", "README 写法", "原始数据只读", "raw data read only", "gitignore 数据", "三个月后跑不出来", "审稿复现", "kefuxian", "复现性"]
 ---
 
-{% raw %}
 
 每个做实证的人迟早会撞上这两件事的其中之一：
 
@@ -199,4 +198,3 @@ profile.do           # 各人本地路径配置，不入库
 
 最后一条最值钱：**复现性不是写出来的，是在别的机器上跑通一次验出来的。** 项目开张第一天就按这套搭，比中稿后回头考古，省的是以周计的时间。
 
-{% endraw %}

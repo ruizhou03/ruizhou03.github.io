@@ -10,7 +10,6 @@ published: true
 keywords: ["文献检索", "文献搜索技巧", "Google Scholar 高级搜索", "Scholar 搜索运算符", "intitle author source", "精确短语搜索", "cited by 被引", "related articles 相关文章", "滚雪球 snowballing", "前向引用 后向引用", "Connected Papers", "Research Rabbit", "Litmaps", "引用网络", "文献综述工具", "Google Scholar alert", "文献订阅 提醒", "期刊 TOC alert", "目录提醒", "NBER working papers", "NBER 订阅", "SSRN eJournal", "RePEc IDEAS", "NEP 报告", "arXiv econ RSS", "工作论文 working paper", "预印本", "文献追踪", "Semantic Scholar", "Elicit AI 文献", "Consensus", "AI 找文献", "学术诚信", "wenxian jiansuo", "怎么找文献", "找不到文献"]
 ---
 
-{% raw %}
 
 做研究有两个相关但不同的能力：**一次性把某个题目的文献查全**，和**持续不漏掉这个领域的新工作**。前者靠检索技巧，后者靠订阅系统。很多人第一项靠“Google 一下”凑合，第二项干脆没有——于是要么综述写漏了关键文献被审稿人抓，要么自己的点子三个月前被别人发出来了还不知道。这篇把这两套都讲透。
 
@@ -95,4 +94,3 @@ keywords: ["文献检索", "文献搜索技巧", "Google Scholar 高级搜索", 
 
 这样滚一年，你的文献库就是领域的实时地图，写综述时不是“临时去查”，而是“早就在库里”——这才是文献管理省时间的地方。
 
-{% endraw %}

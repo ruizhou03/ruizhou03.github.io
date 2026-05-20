@@ -10,7 +10,6 @@ published: true
 keywords: ["Git 写论文", "Git 论文版本管理", "LaTeX 版本控制", "论文协作", "合作者 git", "paper_final_v3", "版本命名混乱", "git 工作流 论文", "git status add commit push pull", "commit message 写法", "git 分支 branch", "审稿修改分支", "revision 分支", "merge 冲突", "LaTeX 合并冲突", "一句一行 one sentence per line", "git tag 投稿版本", "标记提交版本", "gitignore LaTeX", "忽略 aux log pdf", "gitignore 数据", "GitHub 私有仓库", "GitLab", "Overleaf git", "Overleaf 同步 git", "git restore revert", "git reflog 后悔药", "误删找回", "审稿意见 对照", "git xie lunwen", "论文怎么用 git", "多人写论文"]
 ---
 
-{% raw %}
 
 `paper_final.tex`、`paper_final_v2.tex`、`paper_final_真的最终.tex`、`paper_zircon改_合作者再改.tex`——这是没用版本控制写论文的标准结局。等审稿意见回来要你“换回上一版的那个稳健性做法”，你已经不知道是哪个文件的哪一段了。
 
@@ -139,4 +138,3 @@ git reflog                          # 连分支都误删了？这里有所有 HE
 
 把 Git 串进整条线：[可复现项目结构](/research/workflow/reproducible-project)管目录、Git 管版本与协作、[ SLURM ](/research/workflow/remote-server)管算力、[出表工具](/research/econometrics/regression-tables)和[ TikZ ](/research/latex/tikz-econ-figures)管图表、[ Zotero ](/research/literature/zotero-setup)管文献——这六篇合起来，就是一套从开题到投稿都不返工的实证科研工作流。
 
-{% endraw %}

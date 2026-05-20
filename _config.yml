@@ -31,6 +31,7 @@ exclude:
   - download_wechat_images.py
   - MAINTENANCE.md
   - ARCHITECTURE_REVIEW.md
+  - DAILY_REVIEW.md
   # 公众号导入的中间产物
   - wx_all.json
   - wx_candidates.md

@@ -10,7 +10,6 @@ published: true
 keywords: ["远程服务器", "服务器跑代码", "跑回归 服务器", "HPC 集群", "高性能计算", "ssh 教程", "ssh 连服务器", "ssh 密钥 免密", "ssh-keygen ssh-copy-id", "ssh config 别名", "跳板机 jump host", "VS Code Remote SSH", "scp rsync 传文件", "rsync 同步", "tmux 教程", "tmux 断开重连", "screen", "nohup 后台运行", "断网 任务中断", "SLURM 入门", "sbatch 提交作业", "srun 交互", "squeue scancel sacct", "登录节点 计算节点", "module load R Stata", "作业数组 array job", "蒙特卡洛 并行", "bootstrap 并行", "scratch 目录", "服务器跑 R", "Stata batch", "yuancheng fuwuqi", "怎么用学校服务器", "代码跑太慢"]
 ---
 
-{% raw %}
 
 到了博士阶段，迟早会遇到笔记本扛不动的活：几千万行的行政数据、要跑一晚上的蒙特卡洛、上百个设定的稳健性。这时候该上学校 / 院里的服务器或 HPC 集群了。门槛听起来吓人，其实就三件套：**ssh 连上去、tmux 让任务断网也不死、SLURM 排队调度**。这篇按这个顺序讲到能独立把一个回归脚本扔上去跑。
 
@@ -155,4 +154,3 @@ Rscript code/one_spec.R $SLURM_ARRAY_TASK_ID
 
 把这套和[可复现项目结构](/research/workflow/reproducible-project)、[ Git ](/research/workflow/git-for-papers)接起来：本地 `git push`、服务器 `git pull` 同步代码，重活扔给 SLURM，结果 `rsync` 拉回本地[出表出图](/research/econometrics/regression-tables)写论文——笔记本从此只负责写字，算力交给服务器。
 
-{% endraw %}
