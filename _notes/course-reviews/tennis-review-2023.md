@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "网球"
 title: "（个人向）网球课程测评"
+keywords: ["网球课程测评", "北大网球课", "戴名辉老师", "网球零基础", "tennis class", "球类体育课", "正手反手", "网球技术考核", "二体网球场", "五四网球场", "体测", "12 分钟跑", "选课参考", "网球入门", "网求课"]
 date: 2023-08-03
 discipline: "体育"
 course: "网球"

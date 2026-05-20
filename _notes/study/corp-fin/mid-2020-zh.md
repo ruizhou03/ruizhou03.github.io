@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "公司财务管理"
 title: "公司财务管理期中试题（2020，中文）"
+keywords: ["公司财务期中（2020 中文卷）", "corp fin midterm 2020 ZH", "corporate finance midterm 2020 Chinese", "公司财务 期中 中文版", "公司财务 期中 2020 中文", "财务管理 期中 中文卷", "公司财物 期中 中文"]
 discipline: "管理学"
 course: "公司财务管理"
 material_type: "Exams"

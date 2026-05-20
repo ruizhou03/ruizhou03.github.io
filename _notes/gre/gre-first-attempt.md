@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "GRE"
 title: "GRE 一战血与泪的经验总结"
+keywords: ["GRE 一战经验", "GRE 首考", "GRE first attempt", "北京 ETS 考试中心", "GRE 考场流程", "GRE 考试心态", "Report Score", "Cancel Score", "GRE 寄送成绩单", "GRE 机构代码", "GRE Verbal 调难度", "GRE 考试雷区", "GRE 备考反思", "宫霄国际", "ETS 考试中心", "GRE 一战翻车", "GRE 一战"]
 date: 2024-06-23
 discipline: "语言考试"
 course: "GRE"

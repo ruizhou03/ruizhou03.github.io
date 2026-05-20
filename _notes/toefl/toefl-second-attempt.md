@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "TOEFL"
 title: "不配这个专栏的托福二战分享"
+keywords: ["托福 二战", "TOEFL 二战 经验", "托福听力 备考", "托福听力 翻车", "托福听力 赋分", "托福 加试", "托福 艺术历史 听力", "北京工商大学 托福考点", "TOEFL second attempt", "托福 考场体验", "托福 提分", "托福 备考策略", "托福 当下享乐", "托福 时间规划", "托福 写作题目", "托福 口语题目", "交换 语言成绩 截止", "托福 复习计划"]
 date: 2023-07-15
 discipline: "语言考试"
 course: "TOEFL"

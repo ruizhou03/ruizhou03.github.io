@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "心理统计Ⅰ"
 title: "（个人向）心理统计Ⅰ课程测评"
+keywords: ["心理统计Ⅰ课程测评", "心理统计 I", "心统 1", "psychological statistics", "魏坤琳", "张昕", "叨叨魏", "心院核心课", "R 语言上机", "心统给分", "心理统计怎么样", "心理学统计", "PsyStats", "心理统计1"]
 date: 2022-12-23
 discipline: "其他"
 course: "心理统计Ⅰ"

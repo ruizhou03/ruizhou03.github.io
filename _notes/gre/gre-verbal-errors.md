@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "GRE"
 title: "（个人向）GRE 语文填空题错题本"
+keywords: ["GRE 语文错题本", "GRE 填空错题", "GRE Verbal 填空", "Text Completion", "Sentence Equivalence", "六选二", "双空题", "三空题", "GRE 填空精选", "Verbal 错题", "GRE 填空逻辑", "考满分填空", "LaTeX 错题本", "GRE 语文错提"]
 date: 2024-08-17
 discipline: "语言考试"
 course: "GRE"

@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "计量因果识别方法"
 title: "（个人向）计量因果识别方法课程测评"
+keywords: ["计量因果识别方法课程测评", "因果识别", "causal identification", "黄开兴", "北大暑校", "暑期学校", "DID 双重差分", "RDD 断点回归", "工具变量 IV", "instrumental variable", "计量经济学", "因果推断", "公选课测评", "因果识别方法详细"]
 date: 2023-07-18
 discipline: "经济学"
 course: "计量因果识别方法"

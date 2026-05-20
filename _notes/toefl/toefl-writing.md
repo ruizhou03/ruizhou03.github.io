@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "TOEFL"
 title: "（个人向）新托福写作：样例和总结"
+keywords: ["新托福 写作", "托福写作 模板", "托福 学术讨论", "TOEFL academic discussion", "托福综合写作", "TOEFL integrated writing", "新托福 改版 写作", "托福写作 样例", "托福写作 范文", "托福写作 总结", "TOEFL writing template", "托福写作 备考", "Kimi 写托福", "托福 独立写作 取消", "托福写作 章法", "托福写作 non-native"]
 date: 2024-07-07
 discipline: "语言考试"
 course: "TOEFL"

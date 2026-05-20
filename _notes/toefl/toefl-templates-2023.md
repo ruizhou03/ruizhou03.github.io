@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "TOEFL"
 title: "托福写作与口语模板"
+keywords: ["托福写作 模板", "托福口语 模板", "TOEFL writing template", "TOEFL speaking template", "老托福 模板", "托福独立写作 模板", "托福综合写作 模板", "toeflresources", "托福 模板分享", "托福 备考模板", "托福 写作套话", "托福 口语套话", "托福 模板 2023"]
 date: 2023-07-11
 discipline: "语言考试"
 course: "TOEFL"

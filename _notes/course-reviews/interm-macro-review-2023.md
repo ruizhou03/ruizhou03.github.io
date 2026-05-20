@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "中级宏观经济学"
 title: "（个人向）中级宏观经济学课程测评"
+keywords: ["中级宏观经济学课程测评", "中级宏观经济学", "宏观经济学", "macroeconomics", "颜色 老师", "光华宏经", "新古典模型", "李嘉图等价", "经济增长", "曼昆宏观", "宏经", "中宏", "intermediate macro", "宏观经济学怎么样"]
 date: 2023-01-06
 discipline: "经济学"
 course: "中级宏观经济学"

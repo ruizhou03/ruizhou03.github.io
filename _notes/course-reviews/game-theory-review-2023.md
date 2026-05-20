@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "策略与博弈"
 title: "（个人向）策略与博弈课程测评"
+keywords: ["策略与博弈课程测评", "策略与博弈", "博弈论", "game theory", "刘烁", "光华博弈论", "Nash 均衡", "完全信息博弈", "不完全信息博弈", "策博", "金融经济方向", "博弈论难度", "博弈论作业", "selcuk ozyurt", "博弈论怎么样", "GT 课"]
 date: 2023-06-30
 discipline: "经济学"
 course: "策略与博弈"

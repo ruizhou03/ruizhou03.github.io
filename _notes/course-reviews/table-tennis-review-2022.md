@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "乒乓球"
 title: "（个人向）乒乓球课程测评"
+keywords: ["乒乓球课程测评", "乒乓球课", "table tennis", "ping pong", "闵东旭", "北大体育课", "体育选课", "左推右攻", "乒乓球基础班", "体育课测评", "体测", "乒乓球怎么样", "乒乓课"]
 date: 2022-12-23
 discipline: "体育"
 course: "乒乓球"

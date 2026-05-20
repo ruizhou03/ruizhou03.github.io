@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "GRE"
 title: "（个人向）GRE 数学错题本"
+keywords: ["GRE 数学错题本", "GRE Quant 错题", "Quant Mistakes", "GRE 数学精选题", "GRE Hard Quant", "GRE 数论", "GRE 数学易错点", "Quant 备考", "GRE 数学满分", "考满分 Quant", "LaTeX 错题本", "GRE 数学错提"]
 date: 2024-08-14
 discipline: "语言考试"
 course: "GRE"

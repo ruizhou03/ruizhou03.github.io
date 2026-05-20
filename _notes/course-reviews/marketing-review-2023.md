@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "营销学"
 title: "（个人向）营销学课程测评"
+keywords: ["营销学课程测评", "营销学", "marketing", "市场营销", "涂平", "符国群", "光华营销学", "营销学核心课", "营销硬课", "开卷考试", "营销学怎么样", "Marketing 期末", "营销选课", "营销学给分"]
 date: 2023-01-02
 discipline: "管理学"
 course: "营销学"

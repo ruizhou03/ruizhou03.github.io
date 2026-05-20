@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "数据科学的 Python 基础"
 title: "（个人向）数据科学的 Python 基础课程测评"
+keywords: ["数据科学的 Python 基础课程测评", "数据科学的 Python 基础", "Python 数据科学", "Python data science", "阮敬", "光华 Python", "Python 编程基础", "数据可视化", "pandas numpy", "jupyter notebook", "Python 开卷考", "Python 数据分析基础", "Python 课怎么样"]
 date: 2023-01-09
 discipline: "计算机"
 course: "数据科学的 Python 基础"

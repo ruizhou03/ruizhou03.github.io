@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "组织与管理"
 title: "（个人向）组织与管理课程测评"
+keywords: ["组织与管理课程测评", "组织与管理", "organization management", "组管", "张建君", "刘知", "仲为国", "童立", "光华核心课", "组织行为学", "战略管理", "组织理论", "讨论班", "OB 组织行为", "组管怎么样"]
 date: 2022-12-29
 discipline: "管理学"
 course: "组织与管理"

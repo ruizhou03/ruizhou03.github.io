@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "中级计量经济学"
 title: "（个人向）中级计量经济学课程测评"
+keywords: ["中级计量经济学课程测评", "中级计量经济学", "计量经济学", "econometrics", "宋晓军", "王志诚", "伍德里奇", "Wooldridge", "Stata 实证", "多元线性回归", "异方差", "面板数据", "intermediate metrics", "中计", "计量怎么样"]
 date: 2023-06-26
 discipline: "经济学"
 course: "中级计量经济学"

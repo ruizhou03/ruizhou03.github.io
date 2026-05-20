@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "高级微观经济学（PSU）"
 title: "Advanced Microeconomics Lecture Notes"
+keywords: ["高级微观经济学 讲义", "高微 PSU 笔记", "advanced microeconomics lecture notes", "ECON 521 笔记", "Penn State 高微 讲义", "Krishna 博弈论 笔记", "game theory 讲义", "博弈论 PhD 笔记", "mechanism design 讲义", "auction theory 笔记", "matching 匹配理论", "bargaining 讨价还价", "repeated games 重复博弈", "perfect Bayesian equilibrium", "PBE 完美贝叶斯均衡", "Nash equilibrium SPE", "micro prelim 复习", "一年级博士 高微", "PhD 微观 复习", "高级微观经济学 教材", "Krishna 微观 教程", "高微讲意"]
 discipline: "经济学"
 course: "高级微观经济学（PSU）"
 material_type: "Notes"

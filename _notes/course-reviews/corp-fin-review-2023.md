@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "公司财务管理"
 title: "（个人向）公司财务管理课程测评"
+keywords: ["公司财务管理课程测评", "公司财务管理", "corporate finance", "公司理财", "杨云红", "徐江旻", "光华核心课", "中英文班对比", "MM 定理", "NPV 估值", "CorpFin", "Cheating Sheet", "公司金融课程", "公司财务怎么样"]
 date: 2023-01-09
 discipline: "其他"
 course: "公司财务管理"

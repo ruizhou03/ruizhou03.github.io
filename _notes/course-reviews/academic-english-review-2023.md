@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "学术英语听说"
 title: "（个人向）学术英语听说课程测评"
+keywords: ["学术英语听说课程测评", "学术英语听说", "academic English", "C级英语课", "大英C级", "刘红中", "光华英语课", "英语选课", "听说课测评", "英语口语课", "小组展示英语", "语伴对话", "academic listening speaking", "学术英语听说怎么样"]
 date: 2023-06-27
 discipline: "通识"
 course: "学术英语听说"

@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "TOEFL"
 title: "不配这个专栏的托福经验分享"
+keywords: ["托福 经验分享", "TOEFL 备考", "托福 一战", "托福 裸考", "托福 词汇量", "托福背单词 无用", "托福 口语 准备", "托福 听力 备考", "托福 阅读 技巧", "托福 写作", "TOEFL first attempt", "toeflresources", "交换 语言成绩", "托福 报名 经验", "托福 考位", "托福 自学", "本科生 托福", "托福经验 帖"]
 date: 2023-02-15
 discipline: "语言考试"
 course: "TOEFL"

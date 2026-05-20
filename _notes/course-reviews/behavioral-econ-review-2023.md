@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "行为经济学"
 title: "（个人向）行为经济学课程测评"
+keywords: ["（个人向）行为经济学课程测评", "行为经济学", "behavioral economics", "孟涓涓", "光华课程测评", "金融经济方向", "选课参考", "选课指南", "课程评价", "教学风格", "评分体系", "经济学专业课", "BehavioralEcon", "行为经济学好不好上", "行为金融学", "禀赋效应"]
 date: 2023-01-08
 discipline: "经济学"
 course: "行为经济学"

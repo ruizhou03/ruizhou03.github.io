@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "心理统计Ⅱ"
 title: "（个人向）心理统计Ⅱ课程测评"
+keywords: ["心理统计Ⅱ课程测评", "心理统计 II", "心统 2", "psychological statistics 2", "魏坤琳", "李健", "ANOVA 方差分析", "MANOVA", "非参数检验", "中介效应", "调节效应", "因子分析", "逻辑回归", "心理统计2", "心统怎么样"]
 date: 2023-06-25
 discipline: "其他"
 course: "心理统计Ⅱ"

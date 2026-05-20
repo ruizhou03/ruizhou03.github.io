@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "马克思主义基本原理"
 title: "马原往年题精华版"
+keywords: ["马原往年题精华版", "马原 往年题 精选", "马克思主义 往年题", "马原 31 题", "马原 备考 两天", "思政 期末 复习", "Marxism past exam essence", "马原 押题", "马原 期末 冲刺", "马原 重点 整理"]
 discipline: "思政"
 course: "马克思主义基本原理"
 material_type: "Exams"

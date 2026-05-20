@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "实分析"
 title: "Real Analysis Ch2 Integration"
+keywords: ["实分析 Ch2 积分", "Real Analysis Integration", "Lebesgue 积分", "勒贝格积分", "实分析第二章", "UMich 实分析", "密歇根 实分析", "实变 积分"]
 discipline: "数学"
 course: "实分析"
 material_type: "Notes"

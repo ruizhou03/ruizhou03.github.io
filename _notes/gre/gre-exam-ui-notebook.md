@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "GRE"
 title: "我把 GRE 的考试界面搬到了错题本上"
+keywords: ["GRE 错题本", "GRE 考试界面", "LaTeX 错题本", "GRE Verbal 填空", "GRE Quant", "六选二", "sentence equivalence", "比大小题", "Quantitative Comparison", "GRE 五选一", "GRE 多空题", "tabularx 表格", "tikz 椭圆", "考满分错题", "GRE LaTeX 模板", "错题本模板", "GRE 错提本"]
 date: 2024-08-09
 discipline: "语言考试"
 course: "GRE"

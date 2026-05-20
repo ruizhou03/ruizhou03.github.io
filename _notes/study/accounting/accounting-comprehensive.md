@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "会计学"
 title: "会计学课程笔记"
+keywords: ["会计学 课程笔记", "财务会计 入门", "会计基础", "accounting notes", "financial accounting", "资产负债表", "利润表", "现金流量表", "balance sheet", "income statement", "复式记账", "借贷记账法", "US GAAP IFRS", "会计准则", "权责发生制", "accrual accounting", "应收账款", "存货 计价", "折旧 摊销", "会计学 复习", "会记学 笔记", "财务报表 分析"]
 date: 2022-06-28
 discipline: "管理学"
 course: "会计学"

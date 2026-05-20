@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "英语创意表达-TED 演讲视听说"
 title: "（个人向）英语创意表达-TED 演讲视听说课程测评"
+keywords: ["英语创意表达课程测评", "TED 演讲视听说", "TED Talks 课", "北大英语课", "B 级英语课", "英语口语课", "English creative expression", "TED speaking", "期末演讲", "语伴对话", "期末背诵", "高级英语听说", "吴芊老师", "英语演讲课", "选课参考", "TED 课程测评", "TED 演讲", "TED 视听说"]
 date: 2022-12-29
 discipline: "通识"
 course: "英语创意表达-TED 演讲视听说"

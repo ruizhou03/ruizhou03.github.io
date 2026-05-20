@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "TOEFL"
 title: "坐下来简单聊聊托福阅读"
+keywords: ["托福阅读 技巧", "TOEFL 阅读策略", "新托福 阅读", "托福阅读 改版", "TOEFL reading", "托福阅读 时间分配", "托福阅读 容错率", "托福阅读 插句子题", "托福阅读 第十题", "托福阅读 主旨题", "托福阅读 词汇题", "托福阅读 边做题边读", "托福阅读 一遍正确率", "托福阅读 备考", "TOEFL Reading strategy", "托福阅读 考场体验", "新托福 字体 Arial", "托福阅读 高考对比"]
 date: 2024-07-14
 discipline: "语言考试"
 course: "TOEFL"

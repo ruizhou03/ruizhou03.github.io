@@ -3,6 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "TOEFL"
 title: "等了很久的托福口语模板"
+keywords: ["托福口语 模板", "TOEFL 口语模板", "新托福 口语", "托福口语 Task 1", "托福口语 Task 4", "托福口语 套话", "托福口语 备考", "托福口语 不卡壳", "TOEFL speaking template", "托福口语 评分", "托福口语 流畅度", "托福口语 独立题", "托福口语 综合题", "AI 练 口语", "托福口语 技巧"]
 date: 2024-07-08
 discipline: "语言考试"
 course: "TOEFL"
