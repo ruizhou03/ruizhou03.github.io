@@ -57,38 +57,85 @@ if ! command -v claude >/dev/null 2>&1; then
     exit 1
 fi
 
-# ── 网络环境自适应：跟着主人位置走 ──
-# 国内（Clash 跑在 127.0.0.1:7890）→ 套代理；美国（不挂代理）→ 直连。
-# 探 7890 端口是否在听，决定是否设代理环境变量。
+# ── 网络环境自适应（跨太平洋鲁棒）──
+# 三种场景一套逻辑：
+#   国内 + Clash 已开 → 套代理
+#   国内 + Clash 没开（忘了 / 重启没自启 / 关了）→ 自动拉起 Clash 再套代理
+#   美国 → 直连，根本不去捅本机不存在的代理
+# 给不出代理或代理跑不通 → 优雅跳过（不消耗 token、不写 lastrun、下次再试）。
 PROXY_HOST="127.0.0.1"
 PROXY_PORT="7890"
-if /usr/bin/nc -z -G 2 "$PROXY_HOST" "$PROXY_PORT" 2>/dev/null; then
+# 想自动拉起的代理 App，按优先级排（先 ClashX，再 Clash Party）；只要任一拉起就行
+CLASH_APPS=("ClashX" "Clash Party")
+
+probe_proxy_up() { /usr/bin/nc -z -G 2 "$PROXY_HOST" "$PROXY_PORT" 2>/dev/null; }
+probe_direct_api() {
+    # 强制不走任何代理，直接捅 Anthropic API；通则说明在直连可达的网络环境
+    HTTP_PROXY= HTTPS_PROXY= ALL_PROXY= NO_PROXY= \
+        /usr/bin/curl --silent --head --max-time 6 --output /dev/null \
+        --noproxy '*' https://api.anthropic.com 2>/dev/null
+}
+set_proxy_env() {
     export HTTP_PROXY="http://$PROXY_HOST:$PROXY_PORT"
     export HTTPS_PROXY="http://$PROXY_HOST:$PROXY_PORT"
     export ALL_PROXY="http://$PROXY_HOST:$PROXY_PORT"
     export NO_PROXY="localhost,127.0.0.1,*.local,.github.com"
-    NET_MODE="proxy"
-    log "detected local proxy on $PROXY_HOST:$PROXY_PORT → using it（推测在国内）"
+}
+unset_proxy_env() { unset HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY; }
+
+NET_MODE=""
+if probe_proxy_up; then
+    set_proxy_env; NET_MODE="proxy"
+    log "本机 $PROXY_HOST:$PROXY_PORT 在听，套代理（推测在国内、Clash 已开）"
 else
-    unset HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
-    NET_MODE="direct"
-    log "no local proxy → going direct（推测在美国 / 不需代理）"
+    # 7890 没人听。先判断是不是在直连可达的网络（美国），是的话什么也不做。
+    if probe_direct_api; then
+        unset_proxy_env; NET_MODE="direct"
+        log "直连 Anthropic 通 → 走直连（推测在美国 / 不需代理）"
+    else
+        # 直连不通 + 7890 没人听 → 在国内但 Clash 没开。试着自动拉起。
+        log "直连不通且 7890 没人听 → 推测在国内但 Clash 未开，尝试自动启动..."
+        LAUNCHED=""
+        for app in "${CLASH_APPS[@]}"; do
+            if [ -d "/Applications/$app.app" ] || [ -d "$HOME/Applications/$app.app" ]; then
+                log "  尝试 open -ga '$app'"
+                /usr/bin/open -ga "$app" 2>>"$LOG" || true
+                # 启动后等 7890 起来，每秒一探，最多 15s
+                for i in $(seq 1 15); do
+                    sleep 1
+                    if probe_proxy_up; then LAUNCHED="$app"; break 2; fi
+                done
+                log "  $app 启动后 15s $PROXY_PORT 仍未起，换下一个"
+            else
+                log "  $app 未安装，跳过"
+            fi
+        done
+        if [ -n "$LAUNCHED" ]; then
+            set_proxy_env; NET_MODE="proxy(auto-started: $LAUNCHED)"
+            log "已自动起 $LAUNCHED 并套代理"
+        else
+            log "已知代理 App 均无法拉起 $PROXY_PORT，跳过当天"
+            /usr/bin/osascript -e 'display notification "本机代理未开、直连又不通，尝试自动拉起 Clash 也失败。请手动开代理后再触发。" with title "锆铌·每日巡检·已跳过" sound name "Tink"' >/dev/null 2>&1 || true
+            log "==== skipped ===="
+            exit 0
+        fi
+    fi
 fi
 
-# ── 真探一下 Anthropic API 当前网络通不通 ──
-# 不通就优雅跳过当天，发个通知，不进 claude（省 4 分钟超时 + 0 token 消耗）。
+# ── 二次校验：当前 NET_MODE 下真的能跑通 Anthropic API 吗 ──
+# 防代理在听但订阅过期 / 节点死的情况，避免进 claude 跑 4 分钟才发现连不上。
 if /usr/bin/curl --silent --head --max-time 8 --output /dev/null https://api.anthropic.com 2>/dev/null; then
-    log "api.anthropic.com reachable via $NET_MODE，开始审查"
+    log "api.anthropic.com via $NET_MODE 可达，进入审查阶段"
 else
-    log "api.anthropic.com UNREACHABLE via $NET_MODE，今天跳过（无 token 消耗）"
-    if [ "$NET_MODE" = "proxy" ]; then
-        MSG="今天连不上 Anthropic API：本机检测到 Clash 在 7890，但跑不通——检查代理订阅 / 节点是否过期"
+    log "api.anthropic.com via $NET_MODE 跑不通，跳过当天"
+    if [[ "$NET_MODE" == proxy* ]]; then
+        MSG="代理在听但跑不通 Anthropic API——检查 Clash 订阅 / 节点是否过期"
     else
-        MSG="今天连不上 Anthropic API：本机没起代理，若你正好在国内，请打开 Clash 再触发"
+        MSG="直连不通 Anthropic API——若你正好在国内，请打开 Clash 后再触发"
     fi
     /usr/bin/osascript -e "display notification \"$MSG\" with title \"锆铌·每日巡检·已跳过\" sound name \"Tink\"" >/dev/null 2>&1 || true
     log "==== skipped ===="
-    exit 0   # 优雅退出，不算失败、不消费 lastrun，明天/下次照常再试
+    exit 0
 fi
 
 # 用 claude CLI 跑审查 prompt
