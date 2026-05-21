@@ -24,9 +24,10 @@ exclude:
   - Gemfile.lock
   - vendor/
   - .gitignore
-  # 内部文档（DAILY_REVIEW 是 routine 自动更新目标，保留根路径触发 workflow）
+  # 内部文档（DAILY_REVIEW / EMAIL_SUMMARY 是 routine 自动更新目标，保留根路径触发 workflow）
   - docs/
   - DAILY_REVIEW.md
+  - EMAIL_SUMMARY.md
   - "*.log"
   - .claude/
   - .githooks/

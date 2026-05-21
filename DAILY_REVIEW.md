@@ -1,3 +1,61 @@
+## 2026-05-21
+
+### ✅ 本次已自动修复
+
+1. **`EMAIL_SUMMARY.md` 已加入 `_config.yml` exclude**
+   - 现象：今天早些时候新加的 `EMAIL_SUMMARY.md`（routine `email-summary` 的归集文档）忘记跟 `DAILY_REVIEW.md` 一样写进 exclude，本次 `jekyll build` 后 `_site/EMAIL_SUMMARY.md` 真的存在——也就是说 `https://zirconeey.github.io/EMAIL_SUMMARY.md` 会把私人摘要原文公开。
+   - 影响：信息泄漏面有限（当前文件只有元数据骨架，没有真实邮件 summary 内容），但只要 routine 跑过一次写入实质内容，就会立刻泄漏给所有访客。
+   - 处理：紧接 `DAILY_REVIEW.md` 那一行加上 `- EMAIL_SUMMARY.md`，注释同步改成「DAILY_REVIEW / EMAIL_SUMMARY 是 routine 自动更新目标」。GitHub Action 的 `paths: ["EMAIL_SUMMARY.md"]` 触发器只看仓库路径，不受 Jekyll exclude 影响，通知链路不动。
+   - 复构建：通过、零 warning，`_site/EMAIL_SUMMARY.md` 已不再生成。
+
+2. **`.claude/skills/new-post/SKILL.md` 与 `_notes/research/` 扁平化后的现状对齐**
+   - 现象：昨天 17:52 的 `7c9b93d chore(repo): _notes/research 子目录扁平化` 把 `_notes/research/{econometrics,how-it-works,latex,literature,r-tutorials,workflow}/<slug>.md` 全部上提到 `_notes/research/<slug>.md`，但新建文章用的 `new-post` skill 文档还在 3 处写「`_notes/research/<topic>/<slug>.md`」「`_notes/research/r-tutorials/r-pca.md`」。
+   - 影响：下次有人（或 Claude session）按 skill 加新「科研妙招」时会建出已不存在的子目录，破坏新约定。
+   - 处理：
+     - L42（学习笔记路径列举）去掉 `_notes/research/<sub>/`（research 本来就是 main_category，不属于此处归类）。
+     - L96（schema 表格）：文件路径列改成 `_notes/research/<slug>.md`，例子改成 `_notes/research/r-pca.md`，并补一句「URL 中的 `<topic>` 由 permalink 显式写出」——因为实际 permalink 仍是 `/research/<topic>/<slug>`（线上 URL 不变，只是文件位置扁平了）。
+     - L139（学习笔记决策树）：`_notes/research/<sub-topic>/<slug>.md` → `_notes/research/<slug>.md`，备注「文件目录已扁平，但 URL 仍走 `/research/<sub-topic>/<slug>`，需手写 permalink」。
+
+### 📋 待你把关
+
+#### P1（有空再做）
+
+1. **65 处文章图片下面的短段落疑似漏用 `<p class="img-caption">` 包裹**
+   - 来源：`scripts/audit/images.py` 启发式扫描——会把"图片紧邻的下一段短文字"标出来，已知会把"短首段（非配文）"误报。
+   - 高频热点：
+     - `_notes/course-reviews/marketing-review-2023.md` 至少 5 处
+     - `_notes/research/r-brucer-moderation-mediation.md`、`r-data-processing-aggregation.md` 等 R 教程多处
+     - `organizational-mgmt-review-2022.md`、`causal-id-review-2023.md` 等课程测评
+   - 影响：视觉上配文不会按站内统一灰小字渲染，和已规范的图片差异较明显。
+   - 建议：用 `/image-caption` skill 一篇一篇过；高频文章先收口（marketing-review-2023 / R 教程系列）。
+   - 我没自动改：65 处里掺着真实的"短首段"误报，自动批量包会污染正文。
+
+2. **414 处图缺 `alt` 文本（可访问性 / SEO 提醒）**
+   - 影响：屏幕阅读器读不到图片含义；Google 图片搜索也少一个抓手。
+   - 建议：批量补 alt 是大改造，不属于每日修复范围，看你想不想找一段时间专门做。脚本输出已附完整列表。
+
+#### P2（看心情）
+
+3. **昨日 P0 `.git/refs/remotes/origin/main 2` 孤儿副本（仅本机 mac）**
+   - 来自 2026-05-20 小节 P0 #1，远程沙箱里没有这个文件，无法替你处理；如果你本机还没修，按昨日给的 `rm` 命令清掉即可。
+
+### 🗂 仓库卫生
+
+- **架构变化**：自昨日 daily-review 提交（`713be53`）以来新增了——
+  - `EMAIL_SUMMARY.md` + `_data/email_summary_{config,state}.json` + `.github/workflows/email-summary-notify.yml`（新 routine）
+  - `scripts/audit/backend_pulse.py`（后端脉搏巡检）
+  - `_notes/research/` 子目录扁平化（结构层面已合理，今日跟进的只是 skill 文档对齐）
+  - `files/pre-high-school-*/swim/tennis` 整合（已在 `7c9b93d` 落地，permalink 已保留）
+- **追踪卫生**：
+  - 工作树扫描无 `* 2.*` macOS 副本、无新被跟踪的 `.DS_Store`、无 `*.bak`/`*~` 编辑器副本。
+  - 密钥/凭证扫描：除既有 2 处误报（`daily-review-notify.yml` 内置 `GITHUB_TOKEN`、`toolbox/suika/index.html` 是彩蛋按键码），无新增。
+  - `_data/email_summary_config.json` 包含 3 个邮箱地址，但因 `_data/` 不会落到 `_site/`，已确认不会被 Jekyll 暴露成公开页。
+  - `email-summary-notify.yml` 全程走内置 `github.token`，无外部密钥。
+- **大文件**：与昨日一致；`files/or/or-2023.pdf` 5.30 MB 是既定基线，不动。
+- **结论**：今日修了 1 个"明天就会泄漏"的 exclude 漏网（EMAIL_SUMMARY）+ 1 个 skill 文档与新结构的对齐；除此之外仓库结构相对昨日无需再优化。
+
+---
+
 ## 2026-05-20
 
 ### ✅ 本次已自动修复

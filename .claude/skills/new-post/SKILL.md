@@ -39,7 +39,7 @@ grep -E 'cat-card.*href' index.html
 
 外加 2 种**特殊 schema**（不是 main_category 体系）：
 - 课程测评：`_notes/course-reviews/`，由 `notes/index.html` 一类汇总页接管
-- 学习笔记：`_notes/<exam>/`（gre, toefl, pre-high-school）、`_notes/study/<course>/`、`_notes/research/<sub>/`
+- 学习笔记：`_notes/<exam>/`（gre, toefl, pre-high-school）、`_notes/study/<course>/`
 
 ---
 
@@ -93,7 +93,7 @@ published: true
 |---|---|---|---|---|
 | 随笔漫谈 | `_notes/essays/<slug>.md` | `/essays/<slug>` | `sub_category`（如 生命故事 / 阅读笔记）<br>`reactions: ["🎂", "🎉", "❤️"]`（3-6 个 emoji） | `_notes/essays/birthday-21.md` |
 | 生活攻略 | `_notes/life/<slug>.md` | `/life/<slug>` | `extra_categories: [科研妙招]`（可选，跨分类聚合）<br>`sub_category`（可选） | `_notes/life/vpn-setup-ios.md` |
-| 科研妙招 | `_notes/research/<topic>/<slug>.md` | `/research/<topic>/<slug>` | `sub_category`（如 R 教程 / LaTeX） | `_notes/research/r-tutorials/r-pca.md` |
+| 科研妙招 | `_notes/research/<slug>.md` | `/research/<topic>/<slug>` | `sub_category`（如 R 教程 / LaTeX）；URL 中的 `<topic>` 由 permalink 显式写出 | `_notes/research/r-pca.md`（permalink `/research/r-tutorials/r-pca`） |
 
 > **permalink 默认值**：`_config.yml` 给 `_notes/` collection 设了默认 `/notes/:path/`。但**生活攻略**有专属 URL 前缀 `/life/<slug>`（不带 notes/，因为分类名就是 life，notes/ 多余）——必须**手写 permalink 覆盖默认**。其它分类（essays 用 `/essays/`、research 用 `/research/<topic>/<slug>`）也都各自手写 permalink。看那个分类的 landing 页里 Liquid 用什么 URL 链接到文章，就跟它对齐。
 
@@ -136,7 +136,7 @@ material_type: "<如 错题本 / 课程笔记 / 备考心得 / 讲义>"
 **目录由话题决定**（看 `_notes/` 现有划分）：
 - 大型考试 → `_notes/<exam>/<slug>.md`（gre, toefl, pre-high-school）
 - 大学课程笔记 → `_notes/study/<course-slug>/<slug>.md`
-- 科研工具/方法 → `_notes/research/<sub-topic>/<slug>.md`
+- 科研工具/方法 → `_notes/research/<slug>.md`（注意：文件目录已扁平，但 URL 仍走 `/research/<sub-topic>/<slug>`，需手写 permalink）
 
 样板：`_notes/gre/gre-verbal-errors.md`
 
