@@ -16,7 +16,7 @@ material_type: "写作"
 
 整体上看，写作部分的难度减少了（个人看法）。综合写作和学术讨论只要跟着题目走即可，写作更有“章法”可循，不像独立写作那样容易在字里行间暴露“non-native”的味道，也不需要有太多个人的观点（省去了很多构思文章的时间）。
 
-![](/files/images/toefl-writing/01.jpg)
+![新托福写作改版对比：2023年7月26日前后题型与时间变化对照](/files/images/toefl-writing/01.jpg)
 
 我的总结比较直接，就是分别做了四道综合写作和学术讨论，然后对着范文找范文的共同点，总结称为一个大致的“模板”。每个部分的四篇文章我就按照自己做题的先后顺序放上来了，自己写的原文也厚着脸皮保留了，在文档中也专门重新排版使自己的文章和范文有直接的对比。
 
@@ -26,10 +26,10 @@ material_type: "写作"
 
 把文档中综合写作和学术讨论的模板总结的两张图单独放上来了，方便参考～
 
-![](/files/images/toefl-writing/02.jpg)
+![托福综合写作模板总结，含段落结构与听力反驳句型](/files/images/toefl-writing/02.jpg)
 
 <p class="img-caption">综合写作总结</p>
 
-![](/files/images/toefl-writing/03.jpg)
+![托福学术讨论写作模板总结，含三段结构与让步论证句型](/files/images/toefl-writing/03.jpg)
 
 <p class="img-caption">学术讨论总结</p>

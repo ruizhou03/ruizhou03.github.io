@@ -23,20 +23,20 @@ keywords: ["优雅地用 R 拿捏生存分析", "生存分析", "survival analys
 
 总之，生存分析是一种非常有用的统计方法，可以帮助我们预测某个事件的发生概率，并且研究不同因素对事件发生的影响。
 
-![](/files/images/r-survival-analysis/02.jpg)
+![生存分析笔记封面：目录含 Packages、Survival Object、Surv Model、Cox Regression、Surv Plots](/files/images/r-survival-analysis/02.jpg)
 
-![](/files/images/r-survival-analysis/03.jpg)
+![lung 数据集变量说明：生存时间、删失状态、ECOG 评分等字段描述](/files/images/r-survival-analysis/03.jpg)
 
-![](/files/images/r-survival-analysis/04.jpg)
+![survfit 建立生存模型代码与整体生存摘要输出（中位数 310 天）](/files/images/r-survival-analysis/04.jpg)
 
-![](/files/images/r-survival-analysis/05.jpg)
+![按性别分组的生存模型摘要：男女各组中位生存时间对比](/files/images/r-survival-analysis/05.jpg)
 
-![](/files/images/r-survival-analysis/06.jpg)
+![Cox 比例风险回归代码与性别风险比（HR=0.588）输出结果](/files/images/r-survival-analysis/06.jpg)
 
-![](/files/images/r-survival-analysis/07.jpg)
+![survdiff 对数秩检验输出：男女生存差异卡方统计量（p=0.001）](/files/images/r-survival-analysis/07.jpg)
 
-![](/files/images/r-survival-analysis/08.jpg)
+![按性别绘制的 Kaplan-Meier 生存曲线，含置信区间与风险表](/files/images/r-survival-analysis/08.jpg)
 
-![](/files/images/r-survival-analysis/09.jpg)
+![按性别绘制的累积事件曲线（fun=“event”），p=0.0013](/files/images/r-survival-analysis/09.jpg)
 
-![](/files/images/r-survival-analysis/10.jpg)
+![按性别绘制的累积风险曲线（fun=“cumhaz”），男性高于女性](/files/images/r-survival-analysis/10.jpg)

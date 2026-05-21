@@ -46,13 +46,13 @@ semester: "2023 春"
 
 语伴会有一次对话和一次辩论，可以选择的范围很宽泛，在目前介绍过的话题中发挥就好；一次对话三分钟左右即可，实际上老师没有喜欢很长的对话，反而会更关心两人的衔接、地道的表达还有绕不开的发音。对话完成后几周还会有一次辩论，实际上跟准备对话差不多，只不过这回对话的内容可能涉及更鲜明的观点和说理。
 
-![](/files/images/academic-english-review-2023/01.jpg)
+![以“Romance”为主题的英文语伴对话练习稿首页](/files/images/academic-english-review-2023/01.jpg)
 
-![](/files/images/academic-english-review-2023/02.jpg)
+![以“捡到一百美元该怎么办”为话题的英文辩论对话练习文稿](/files/images/academic-english-review-2023/02.jpg)
 
 期末有很重要的一块就是小组展示，一个小组由四个人构成，可不必局限于当时的语伴。每个小组大约准备八分钟的展示内容即可，毕竟是听说课，老师要求每个人都要发言。
 
-![](/files/images/academic-english-review-2023/03.jpg)
+![小组期末展示 PPT 封面，主题“Bronze vs. Silver: Who is Happier?”讨论反事实思维](/files/images/academic-english-review-2023/03.jpg)
 
 期末小组展示几乎没有任何主题限制，介绍一个感兴趣的现象即可，像我们介绍的是counterfactual thinking，别的小组介绍了如MBTI, chatGPT等很有意思的话题。老师真的很看重我们是如何合作并且确定主题的，也会关心我们在展示时的主线和衔接。当然，今年似乎老师从对话到辩论再到小组展示都没有在时间上（超时）为难大家...
 

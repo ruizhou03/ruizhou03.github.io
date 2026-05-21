@@ -47,4 +47,4 @@ published: true
 - 工作日长度不变时，人工智能使劳动力价值和剩余价值发生哪些变化？为什么？（5分）
 - 人工智能普及后资本主义社会可能会发生的变化.（5分）
 
-![](/files/images/marxism-final-2023-fall/01.jpg)
+![马原2023年秋期末试题回忆版，含哲学辨析、政治经济学辨析和材料分析题](/files/images/marxism-final-2023-fall/01.jpg)

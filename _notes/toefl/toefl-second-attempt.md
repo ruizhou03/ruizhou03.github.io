@@ -16,7 +16,7 @@ material_type: "经验之谈"
 
 上次考托福要多尴尬有多尴尬。原以为出分时间绰绰有余，结果让我错过了交换填报的DDL；原本以为一次搞定，没想到还得下次再战。这两件事情已经让我非常折腾了，更不用说交换上的其他糟心事了。
 
-![](/files/images/toefl-second-attempt/01.jpg)
+![交换院校邮件回复截图，说明语言成绩要求与提交规则](/files/images/toefl-second-attempt/01.jpg)
 
 <p class="img-caption">对方院校关于语言成绩要求的回复</p>
 
@@ -39,7 +39,7 @@ material_type: "经验之谈"
 
 第二，托福的听力在我这个“**半桶水**”的状态下，是有**很大的风险**的，尤其是在托福听力难度不大、区分度不大的情况下。事实上，练过几次并且不小心翻过车的朋友都知道，但凡有一篇状态不好或者信息量巨大，导致该篇的六（或五）道题发挥不佳，那么很可能出现连环错，而托福的**听力赋分对错误是很敏感的**，对于分数的打击也是惨重的（比如错三道题可能就扣了五分）。
 
-![](/files/images/toefl-second-attempt/02.jpg)
+![托福听力赋分对照表，显示错题数与分数扣减的对应关系](/files/images/toefl-second-attempt/02.jpg)
 
 <p class="img-caption">托福听力赋分表</p>
 
@@ -51,7 +51,7 @@ material_type: "经验之谈"
 
 我报名的考点是**北京工商大学**，离贵校并不远，地铁+共享单车 35 分钟足以到达。事实上，托福考试并不需要比规定时间提早到多少，进入考点快速走完安检和寄存之后，签署保密协定稍作等候，之后核验身份进入机房考场就等待 8:45 的考试开始了。我那时候按着半小时的提前量准备的，到的比较早，在机房里也发了很久的呆......
 
-![](/files/images/toefl-second-attempt/03.jpg)
+![北京工商大学托福考场电脑屏幕显示的考场信息与座位安排](/files/images/toefl-second-attempt/03.jpg)
 
 <p class="img-caption">北京工商大学托福考场信息</p>
 
@@ -82,6 +82,6 @@ material_type: "经验之谈"
 
 好了，这一段也算是又经历了内外混乱的状态，而假期也总算打开了序章。假期快乐！！！
 
-![](/files/images/toefl-second-attempt/04.jpg)
+![手持一支 ETS TOEFL 品牌橙色圆珠笔，背景为地铁开往国家图书馆的站台标识](/files/images/toefl-second-attempt/04.jpg)
 
 <p class="img-caption">2100 元重金求得的笔</p>

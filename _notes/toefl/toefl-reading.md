@@ -46,13 +46,13 @@ material_type: "经验之谈"
 
 老托福的常规界面如下所示。
 
-![](/files/images/toefl-reading/01.jpg)
+![老版托福考满分练习界面，左侧文章右侧题目，字体偏扁长](/files/images/toefl-reading/01.jpg)
 
 新托福的考试界面主要有两点变化，这两点主要是为了区别于老的托福以及你平时的训练，因为现在托福备考网站（比如考满分等）还是沿用老托福的界面：
 
 - 字体很大。老托福的字小很多，一行的字很长以致于不能做到扫描式阅读而需要眼睛物理扫描文字（进而影响阅读速度）；而我托福实考发现字体大了不止一丁半点，变大到一行大约只有老托福的2/3文字。
 - 字体是是（默认的）Arial字体。老托福的字体在Arial的基础上偏纵向扁长，阅读体验不是最好；新托福回归到了最熟悉的Arial字体，看起来很舒服
 
-![](/files/images/toefl-reading/02.jpg)
+![Arial 字体样本展示，含大小写字母与数字](/files/images/toefl-reading/02.jpg)
 
 <p class="img-caption">Arial字体</p>

@@ -30,20 +30,20 @@ PCA的过程可以概括为以下几个步骤：
 
 PCA的应用非常广泛，例如在图像处理、语音识别、生物信息学等领域中都有应用。通过PCA，我们可以有效地减少数据的维度，从而使得数据更易于处理和分析，同时也可以发现数据中的主要模式和结构。
 
-![](/files/images/r-pca/01.jpg)
+![PCA 笔记封面：bruceR::EFA 主要参数中文说明](/files/images/r-pca/01.jpg)
 
-![](/files/images/r-pca/02.jpg)
+![PCA 数据预处理：大五人格数据缺失值处理与变量选取代码](/files/images/r-pca/02.jpg)
 
-![](/files/images/r-pca/03.jpg)
+![大五人格数据 PCA 碎石图，横轴为成分数，纵轴为特征值](/files/images/r-pca/03.jpg)
 
-![](/files/images/r-pca/04.jpg)
+![EFA 函数返回结果结构说明及 stargazer 输出方法](/files/images/r-pca/04.jpg)
 
-![](/files/images/r-pca/05.jpg)
+![EFA 方差解释表：各主成分特征值、方差比例与累积方差](/files/images/r-pca/05.jpg)
 
-![](/files/images/r-pca/06.jpg)
+![EFA 因子载荷矩阵：25 个大五人格题目在 6 个主成分上的载荷与公因子方差](/files/images/r-pca/06.jpg)
 
-![](/files/images/r-pca/07.jpg)
+![各主成分特征值与 SS 载荷汇总表（25 个成分）](/files/images/r-pca/07.jpg)
 
-![](/files/images/r-pca/08.jpg)
+![PCA 成分分析路径图：25 题到 RC2–RC4 的载荷连线](/files/images/r-pca/08.jpg)
 
-![](/files/images/r-pca/09.jpg)
+![因子分析路径图（Kaiser 标准化后）：25 题到 RC2–RC4 的载荷连线](/files/images/r-pca/09.jpg)

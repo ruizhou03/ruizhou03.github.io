@@ -12,7 +12,7 @@ keywords: ["iOS 配置 VPN", "iPhone VPN", "iPad VPN", "苹果 VPN 设置", "注
 
 众所周知，使用 **iOS 系统**设备（也即 iPhone 和 iPad）要用到不同于其他系统的 VPN。又众所周知，VPN 在国区账号是不能搜到正版软件下载的。
 
-![](/files/images/vpn-setup-ios/01.jpg)
+![App Store 提示“此 App 在你所在地区不可用”的弹窗](/files/images/vpn-setup-ios/01.jpg)
 
 即便有了外区的账号，由于多数正版 VPN 需要付费，付费又成了一道门槛。这样有共性的问题竟然没能找到整合性和可靠性高的回答，因此，在尝试快一上午之后，打算写一篇经验贴方便后人。
 
@@ -36,11 +36,11 @@ keywords: ["iOS 配置 VPN", "iPhone VPN", "iPad VPN", "苹果 VPN 设置", "注
 
 因此，苹果上的“下载”其实和通常理解的下载有一些差异。第一步“获取”（get）实际上是购买软件，无论是否需要付费，都需要你使用 Apple ID 完成这一交易（它们都可以在“App Store — 账户 — 已购项目”中查看到）。比如我试图下载原神时，就会出现如下经典的对话框（当然可能是 Face ID、Touch ID 或其他验证方式）。
 
-![](/files/images/vpn-setup-ios/02.jpg)
+![App Store 通过 Apple ID 登录并输入密码以授权交易的弹窗](/files/images/vpn-setup-ios/02.jpg)
 
 这样也就能理解，为什么同一个 Apple ID 在多设备登录时，如果在其中一个设备首先“下载”了某个软件（实际上也就是完成了购买交易），在另一设备下载时就不需要再次验证而可以直接点击这个“云朵”下载。
 
-![](/files/images/vpn-setup-ios/03.jpg)
+![App Store 中原神应用页面显示云端下载图标](/files/images/vpn-setup-ios/03.jpg)
 
 进一步地能从中得到启发，实际上每次的“获取”都是和 Apple ID 绑定的交易；或者通俗来说，你的 App 是和下载时用的 Apple ID 绑定的。因此，如果只是普通的使用，也即从不切换 Apple ID，那么或许不会意识到这一点，这一点也不会给你在使用上造成任何影响。但如果你切换过不同于当前的 Apple ID 并且用这一 ID 下载过软件，那么当你更新那部分软件时，它就会要求你登录下载时用的 Apple ID（如果不是当前登录的 ID）。
 
@@ -69,25 +69,25 @@ keywords: ["iOS 配置 VPN", "iPhone VPN", "iPad VPN", "苹果 VPN 设置", "注
 
 > <https://appleid.apple.com>
 
-![](/files/images/vpn-setup-ios/04.jpg)
+![Apple ID 官网首页，右上角标红“创建新账号”按钮](/files/images/vpn-setup-ios/04.jpg)
 
 **1. 点击右上方的“创建新账号”**
 
 之后一路顺着填写信息即可，除了地区外，其他（包括电话号码）都可以填写自己的真实信息，Apple 并不会对你填写的信息进行核实。最关键的就是地区的选择：直接选择漂亮国。同时，邮箱需要选择没有用于注册过 Apple ID 的新邮箱；输入的密码将在之后用，需要记住。
 
-![](/files/images/vpn-setup-ios/05.jpg)
+![创建 Apple ID 页面，含姓名、国家/地区、邮箱和密码填写栏](/files/images/vpn-setup-ios/05.jpg)
 
 **2. 选择地区、选择新邮箱、设置新密码**
 
 之后需要通过一个手机号来验证，这个手机号可以选用自己 (+86) 的手机，没必要通过其他途径来实现外国手机验证。
 
-![](/files/images/vpn-setup-ios/06.jpg)
+![Apple ID 注册时选择 +86 中国大陆手机号进行验证的界面](/files/images/vpn-setup-ios/06.jpg)
 
 **3. 选择 (+86) 手机准备验证**
 
 注册成功后，账号会自动登录，如果没登录的话重新登录一遍刚注册的账号即可。下一步是填写付款方式 & 账单地址。
 
-![](/files/images/vpn-setup-ios/07.jpg)
+![Apple ID 付款方式与账单地址填写界面，地区选美国、免税州地址示例](/files/images/vpn-setup-ios/07.jpg)
 
 **4. 灵活填写付款方式和账单地址**
 
@@ -140,7 +140,7 @@ keywords: ["iOS 配置 VPN", "iPhone VPN", "iPad VPN", "苹果 VPN 设置", "注
 
 > <https://www.apple.com/shop/gift-cards>
 
-![](/files/images/vpn-setup-ios/08.jpg)
+![苹果官网礼品卡购买页面，选择电邮发送方式和卡面样式及金额](/files/images/vpn-setup-ios/08.jpg)
 
 - 寄送方式：电子邮件
 - 样式选择：随意
@@ -152,15 +152,15 @@ keywords: ["iOS 配置 VPN", "iPhone VPN", "iPad VPN", "苹果 VPN 设置", "注
 
 首先要完成账号的注册。注册好后在主页找到我们要注册的礼品卡类型—— App Store & iTunes US ——也就是这个显眼的苹果图标。
 
-![](/files/images/vpn-setup-ios/09.jpg)
+![Pockyt Shop 礼品卡选购页面，标红 App Store & iTunes US 选项](/files/images/vpn-setup-ios/09.jpg)
 
 还记得我们前面讲注册 Apple ID 时所在州的选择么？这就是免税州发挥作用的时候了！如果此前你选择的是免税州，那么充值 App Store 上的价格就好了；如果非免税州，保险起见还是需要多计算进 10% 的税（不同的州的征税情况不同，10% 是相对安全的，或者直接多充 1 美元。但如果充值额恰好不足以购买是很尴尬的情况，再次充值的最低门槛是 2 美元，可能会造成些许小浪费）。
 
-![](/files/images/vpn-setup-ios/10.jpg)
+![Pockyt Shop 填写充值金额并选择支付宝等支付方式的页面](/files/images/vpn-setup-ios/10.jpg)
 
 确定充值数额后，选择支付方式按照实时汇率支付即可。交易完成，你就会有独一无二的兑换码，请妥善保存，不要忘了也不要分享给他人。不过比较贴心的一点是，Pockyt Shop 也会往你的邮箱发送这笔交易信息和兑换码。
 
-![](/files/images/vpn-setup-ios/11.jpg)
+![Pockyt 购买成功页面显示 $3 App Store 礼品卡余额和兑换码](/files/images/vpn-setup-ios/11.jpg)
 
 该礼品卡肯定已经被我兑换啦~
 
@@ -171,19 +171,19 @@ keywords: ["iOS 配置 VPN", "iPhone VPN", "iPad VPN", "苹果 VPN 设置", "注
 - 对于 iPhone 和 iPad：App Store 右上方头像点开后，选择“兑换充值卡或代码”。
 - 对于 Mac：App Store 左下方头像点击后，右上方点击“兑换礼品卡”。
 
-![](/files/images/vpn-setup-ios/12.jpg)
+![iOS App Store 账户页面，标红“兑换充值卡或代码”选项](/files/images/vpn-setup-ios/12.jpg)
 
 输入兑换码之后就完成兑换啦，如下图。
 
-![](/files/images/vpn-setup-ios/13.jpg)
+![兑换礼品卡成功后显示 $3 余额到账的 App Store 确认界面](/files/images/vpn-setup-ios/13.jpg)
 
 如果余额足够，这次点击要下载的付费软件，完成个人确认后就可以支付并开始下载啦。如果**余额不足，会出现如下对话，通常就是因为税的原因，点击“取消”回去充值够即可**（请相信你的每一步操作，也请相信我~我要买的小火箭是 $2.99，我初次只充值 3 美元，结果屡次弹窗怀疑过程中出了问题，甚至质疑礼品卡的可行性；后来突然想到可能是漂亮国的消费税原因，再充值了 2 美元就完成了支付！）
 
-![](/files/images/vpn-setup-ios/14.jpg)
+![iOS 购买时弹出“商店余额不足”提示需要继续登录的界面](/files/images/vpn-setup-ios/14.jpg)
 
 经过前前后后的探索和试错，这样一个巨大且繁琐的问题总算解决了，果然还是有 YouTube 下饭才香！过程中让我最失望的不是流程比较复杂，而是这样有共性的问题竟然没能找到整合性和可靠性高的回答，那就让我来填补一下空白吧（捂脸）。
 
-![](/files/images/vpn-setup-ios/15.jpg)
+![Apple 购买收据显示 Shadowrocket iOS App 花费 $2.99 含税共 $3.17](/files/images/vpn-setup-ios/15.jpg)
 
 本文近四千字，摸索和碰壁时参考了大量的网络上的优质回答，在此表示感谢。
 

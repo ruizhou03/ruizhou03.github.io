@@ -17,6 +17,6 @@ published: true
 
 对于背诵，没有太好的办法。如果背诵目标是掌握四级标题的话，那么可能需要两天左右的时间比较稳妥，一天半是需要保证的。背诵的时候可以坚持劳逸结合的原则，坚持学科交叉的原则，体现“全面协调可持续”的发展。
 
-![](/files/images/mao-final-2023-spring/01.jpg)
+![毛概2023年春期末试题回忆版，含简答题和材料分析题的题干及参考要点](/files/images/mao-final-2023-spring/01.jpg)
 
-![](/files/images/mao-final-2023-spring/02.jpg)
+![期末试题材料分析第二题，“逐步推进共同富裕”的原因与历史实践答题框架](/files/images/mao-final-2023-spring/02.jpg)

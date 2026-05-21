@@ -33,11 +33,11 @@ keywords: ["整合邮箱", "邮箱整合", "多邮箱管理", "邮件管理 App"
 
 邮件管理 App 在「添加账户」中默认支持以下几类常见邮箱，足以覆盖大多数需求，添加起来也比「其他」选项方便得多。
 
-![](/files/images/test-article/03.jpg)
+![Mac 邮件添加账户界面，列出 iCloud、Google、163、QQ 等常见邮箱选项](/files/images/test-article/03.jpg)
 
 以添加 163 邮箱为例，依次填写姓名、邮箱地址和密码即可。
 
-![](/files/images/test-article/04.jpg)
+![Mac 邮件添加 163 账户，填写姓名、邮箱地址和密码的表单界面](/files/images/test-article/04.jpg)
 
 这看似简单的三步，其实有几点需要说明：
 
@@ -47,13 +47,13 @@ keywords: ["整合邮箱", "邮箱整合", "多邮箱管理", "邮件管理 App"
 
 进入邮箱，在「设置」中找到「POP3/SMTP/IMAP」子菜单：
 
-![](/files/images/test-article/05.jpg)
+![163 邮箱设置页面中打开 POP3/SMTP/IMAP 服务的选项及授权密码管理入口](/files/images/test-article/05.jpg)
 
 如果从未开启过 POP3/SMTP/IMAP 服务，需要先开启（对应图中红框部分）。开启后，在下方管理授权密码，点击「新增授权密码」即可生成。
 
 **注意：授权密码生成后只会显示一次**，请立即复制保存（发到微信文件传输助手是个好办法），否则只能重新生成。
 
-![](/files/images/test-article/06.jpg)
+![163 邮箱 IMAP/SMTP 服务已开启并列出两台设备授权密码记录的设置页面](/files/images/test-article/06.jpg)
 
 将授权密码填入「密码」栏，通常配置就完成了。还可以额外设置该邮箱的开放权限（如备忘录、日历等）。
 
@@ -70,7 +70,7 @@ Mac 和 iOS 的后续配置有些许差异，分开介绍。
 
 ## Mac 上配置
 
-![](/files/images/test-article/07.jpg)
+![Mac 上配置学生邮箱，填写 IMAP 类型和收发件服务器地址的表单](/files/images/test-article/07.jpg)
 
 - **邮箱地址**：填写完整邮箱
 - **用户名**：自定义即可
@@ -81,7 +81,7 @@ Mac 和 iOS 的后续配置有些许差异，分开介绍。
 
 收发件服务器地址在邮箱官网均可查到，直接搜索「邮箱域名 + IMAP SMTP 地址」即可。
 
-![](/files/images/test-article/08.jpg)
+![网易企业邮箱服务器查询页面，列出 stu.pku.edu.cn 域名对应的 POP/SMTP/IMAP 地址和端口](/files/images/test-article/08.jpg)
 
 > 网易邮箱的服务器配置参考：https://qiye.163.com/help/client-profile.html
 
@@ -91,7 +91,7 @@ Mac 和 iOS 的后续配置有些许差异，分开介绍。
 
 在「添加账户」中选择最下方的「其他」，再选「添加邮件账户」：
 
-![](/files/images/test-article/09.jpg)
+![iOS 添加账户页面选择“添加邮件账户”选项，标红框提示](/files/images/test-article/09.jpg)
 
 填写基本信息：
 
@@ -100,11 +100,11 @@ Mac 和 iOS 的后续配置有些许差异，分开介绍。
 - **密码**：同上，视是否开启授权密码而定
 - **描述**：自定义
 
-![](/files/images/test-article/10.jpg)
+![iOS 新账户表单，填写全名、电子邮件、密码和描述的基本信息界面](/files/images/test-article/10.jpg)
 
 填写完邮箱和密码后，iOS 在此步骤不会立即验证，可以直接进入下一步（但信息还是要填准确，最终仍会审查）。
 
-![](/files/images/test-article/11.jpg)
+![iOS 配置收发件服务器的主机名、用户名和密码填写界面](/files/images/test-article/11.jpg)
 
 接下来是关键的收发件服务器信息填写：
 

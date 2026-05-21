@@ -16,7 +16,7 @@ semester: "2022 秋"
 
 《行为经济学》是光华**金融经济**方向的**专业必修**课，培养计划列在大二或大三的上学期修读。《行为经济学》由[孟涓涓老师](http://mp.weixin.qq.com/s?__biz=MjM5MDk3NDgwMQ==&mid=2661388894&idx=1&sn=11c3eecd47ab76fa97806192330e1aa2&chksm=bde9a4608a9e2d76ccdcaef81ef9c4ba233e7491d1ef177343ceff230a65ae37e646b7b10e52&scene=21#wechat_redirect)授课，2 学分，每周 3 学时，**12 周结课**。《行为经济学》的授课内容为
 
-![](/files/images/behavioral-econ-review-2023/01.jpg)
+![行为经济学课程教学计划表，列出各周讲授主题从风险偏好到市场反应](/files/images/behavioral-econ-review-2023/01.jpg)
 
 同时附有文献的 *reading list*。
 
@@ -70,7 +70,7 @@ semester: "2022 秋"
 
 说来我们选这门课的动机也都相似，出于某种想法，或是想体验，或是想探索，或是很喜欢孟老师。我其实三者兼具，更偏探索类型。我还很清楚地记得被光华录取的那个暑假，其实对光华一无所知，于是在 B 站上看了光华的在线课程，
 
-![](/files/images/behavioral-econ-review-2023/06.jpg)
+![光华管理学院 B 站在线课程《行为经济学》封面截图](/files/images/behavioral-econ-review-2023/06.jpg)
 
 <p class="img-caption">（图源bilibili-北京大学光华管理学院）</p>
 

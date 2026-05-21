@@ -16,15 +16,15 @@ material_type: "错题本"
 
 数学错题本前三页（主要内容）是精选题，第四页是易错题，第五页是额外提醒一些字面上的理解不能出错（甚至没有计入总页数）。如果你也想用复刻这样的格式（而懒得补档上一篇），我也把 header 的代码放在图片之后了，希望对大家有帮助～
 
-![](/files/images/gre-quant-errors/01.jpg)
+![GRE Quant 精选题错题本第 1–2 页，含填空题与比大小题及中文解析](/files/images/gre-quant-errors/01.jpg)
 
-![](/files/images/gre-quant-errors/02.jpg)
+![GRE Quant 精选题错题本第 3–4 页，含单选题与比大小题及解析](/files/images/gre-quant-errors/02.jpg)
 
-![](/files/images/gre-quant-errors/03.jpg)
+![GRE Quant 精选题错题本第 5–6 页，含各题型混合及中文解析](/files/images/gre-quant-errors/03.jpg)
 
-![](/files/images/gre-quant-errors/04.jpg)
+![GRE Quant 精选题错题本第 7–8 页，含易错题与知识点提醒](/files/images/gre-quant-errors/04.jpg)
 
-![](/files/images/gre-quant-errors/05.jpg)
+![GRE Quant 精选题错题本第 9–10 页，留心字面理解专项提醒](/files/images/gre-quant-errors/05.jpg)
 
 {% raw %}
 ```latex

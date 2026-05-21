@@ -46,30 +46,30 @@ material_type: "写作"
 \noindent
 ```
 
-![](/files/images/gre-issue-pool/01.jpg)
+![GRE Issue Pool LaTeX 文档封面及第一页题目（共 14 页）](/files/images/gre-issue-pool/01.jpg)
 
-![](/files/images/gre-issue-pool/02.jpg)
+![GRE Issue Pool 第 2 页，题目 11–29，按考察方式分类](/files/images/gre-issue-pool/02.jpg)
 
-![](/files/images/gre-issue-pool/03.jpg)
+![GRE Issue Pool 第 3 页，题目 30–46，包含科技教育类论题](/files/images/gre-issue-pool/03.jpg)
 
-![](/files/images/gre-issue-pool/04.jpg)
+![GRE Issue Pool 第 4 页，题目 47–53，“Might not hold true”分类末页](/files/images/gre-issue-pool/04.jpg)
 
-![](/files/images/gre-issue-pool/05.jpg)
+![GRE Issue Pool 第 5 页，包含另一分类的 Issue 题目](/files/images/gre-issue-pool/05.jpg)
 
-![](/files/images/gre-issue-pool/06.jpg)
+![GRE Issue Pool 第 6 页，Issue 题目列表续](/files/images/gre-issue-pool/06.jpg)
 
-![](/files/images/gre-issue-pool/07.jpg)
+![GRE Issue Pool 第 7 页，Issue 题目列表续](/files/images/gre-issue-pool/07.jpg)
 
-![](/files/images/gre-issue-pool/08.jpg)
+![GRE Issue Pool 第 8 页，Issue 题目列表续](/files/images/gre-issue-pool/08.jpg)
 
-![](/files/images/gre-issue-pool/09.jpg)
+![GRE Issue Pool 第 9 页，Issue 题目列表续](/files/images/gre-issue-pool/09.jpg)
 
-![](/files/images/gre-issue-pool/10.jpg)
+![GRE Issue Pool 第 10 页，Issue 题目列表续](/files/images/gre-issue-pool/10.jpg)
 
-![](/files/images/gre-issue-pool/11.jpg)
+![GRE Issue Pool 第 11 页，Issue 题目列表续](/files/images/gre-issue-pool/11.jpg)
 
-![](/files/images/gre-issue-pool/12.jpg)
+![GRE Issue Pool 第 12 页，Issue 题目列表续](/files/images/gre-issue-pool/12.jpg)
 
-![](/files/images/gre-issue-pool/13.jpg)
+![GRE Issue Pool 第 13 页，Issue 题目列表续](/files/images/gre-issue-pool/13.jpg)
 
-![](/files/images/gre-issue-pool/14.jpg)
+![GRE Issue Pool 第 14 页末页，包含 Claim-Reason 型题目 20–25](/files/images/gre-issue-pool/14.jpg)

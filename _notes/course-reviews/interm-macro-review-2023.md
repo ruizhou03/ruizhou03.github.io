@@ -18,7 +18,7 @@ semester: "2022 秋"
 
 《宏观经济学》的考核方式如下：
 
-![](/files/images/interm-macro-review-2023/01.jpg)
+![宏观经济学总评构成公式：作业20%加期中期末最优组合](/files/images/interm-macro-review-2023/01.jpg)
 
 此外，每节课会有扫码签到（这是光华教务的统一要求），不知道是否在总评中占据比例，或者是否作为扣分项目。
 
@@ -26,7 +26,7 @@ semester: "2022 秋"
 
 从今年来看，一共会有两次作业，都是布置在期中考试之前。第一次是关于经济核算的作业，
 
-![](/files/images/interm-macro-review-2023/02.jpg)
+![宏观经济学第一次作业题目：利用软件分析GDP与GDP平减指数](/files/images/interm-macro-review-2023/02.jpg)
 
 第二次是关于经济增长理论的作业，整体难度不算太大。
 
@@ -56,47 +56,47 @@ semester: "2022 秋"
 
 因此，期末考试为了**体现区分度**，卷面风格截然不同，也让我见到了久违一年的
 
-![](/files/images/interm-macro-review-2023/03.jpg)
+![鲨鱼哭泣的表情包，配文“老师菜菜捞捞鸣鸣”](/files/images/interm-macro-review-2023/03.jpg)
 
 期末考试可以说有些离奇，选择题还算常规，但也出现了不少我陌生的知识点。问答题实现了难度的过渡，李嘉图等价开始让问题变得不简单。计算题太能体现区分度了，指和卷面其他题型的区分度。计算第一题直接开幕雷击，让我怀疑微观经济学是如何过的；其他计算题在常规中显得不常规，让我颇有一种，刚进入 2021 年八省联考时做山东卷的痛苦回忆。如果作为一份练习，这能很好地考察学生对知识点的把握程度，很好地体现老师的深厚功底；但作为一份考试题，为了体现区分度，到头来可能没能体现区分度（笑
 [旺柴]
 
 做卷子时真的在怀疑人生，因为我的耳旁还不断地回想着“新古典那无非就是消费和闲暇的 tradeoff 对吧”。在简答题我还努力让自己的字尽量好看，在计算题第一题我就开始努力让自己挂的好看了。
 
-![](/files/images/interm-macro-review-2023/05.jpg)
+![期末计算题：三期消费决策模型的效用最大化与李嘉图等价](/files/images/interm-macro-review-2023/05.jpg)
 
 <p class="img-caption">（摘自期末试题）</p>
 
 考试时我满脑子只剩下了“消费和闲暇”
 😭
 
-![](/files/images/interm-macro-review-2023/07.jpg)
+![期末计算题：含对数效用函数与生产函数的一般均衡模型求解](/files/images/interm-macro-review-2023/07.jpg)
 
 <p class="img-caption">（摘自期末试题）</p>
 
 顺便提一句，今天恰巧看到了**常相对风险规避效用函数**，猛地一惊，翻回了宏观经济学的期末卷。一种高中生背不住二级结论而暴力死算圆锥曲线的回忆开始攻击我了。
 
-![](/files/images/interm-macro-review-2023/08.jpg)
+![课程笔记截图：常相对风险规避CRRA效用函数定义与跨期优化问题](/files/images/interm-macro-review-2023/08.jpg)
 
 发呆了 10 分钟，发现自己微观经济学还给周黎安老师了，感到非常抱歉，于是看向下一题
 
-![](/files/images/interm-macro-review-2023/09.jpg)
+![期末计算题：索洛增长模型Y=zK的均衡分析](/files/images/interm-macro-review-2023/09.jpg)
 
 好家伙，直接出一个反常题，这不满足常规的经济增长基本假设
 
-![](/files/images/interm-macro-review-2023/10.jpg)
+![课程笔记截图：生产函数边际报酬递减的三条数学条件](/files/images/interm-macro-review-2023/10.jpg)
 
 <p class="img-caption">（摘自课程笔记）</p>
 
 好不容易苟完了这道题，最后一道题又来了一个“聪明”的央行，能保证**实际**货币供给是一个恒定值
 
-![](/files/images/interm-macro-review-2023/11.jpg)
+![期末计算题：IS-LM模型中货币需求与货币供给方程](/files/images/interm-macro-review-2023/11.jpg)
 
 <p class="img-caption">（摘自期末试题）</p>
 
 又来了一个投资对利率不敏感的经济体
 
-![](/files/images/interm-macro-review-2023/12.jpg)
+![期末计算题：货币供给扩大对GDP和利率影响的IS-LM分析题问](/files/images/interm-macro-review-2023/12.jpg)
 
 <p class="img-caption">（摘自期末试题）</p>
 
@@ -113,7 +113,7 @@ semester: "2022 秋"
 
 - 小小总结
 
-![](/files/images/interm-macro-review-2023/14.jpg)
+![北大树洞帖：询问是否能听懂颜色老师宏观经济学](/files/images/interm-macro-review-2023/14.jpg)
 
 客观来说，过往风评一般。
 
@@ -129,9 +129,9 @@ semester: "2022 秋"
 
 但就本人而言，我认为老师的功底是非常深厚的，对经济世界有深入的理解，偶尔能从课上听到一些关于东方大国的“锐评”。老师有过业界经历，也经常在课上提起他“那帮发改委的朋友”，调侃困扰世界经济的三个“0”。
 
-![](/files/images/interm-macro-review-2023/15.jpg)
+![课程笔记截图：颜色老师关于2012年前后中国货币政策明显调整的点评](/files/images/interm-macro-review-2023/15.jpg)
 
-![](/files/images/interm-macro-review-2023/16.jpg)
+![课程笔记截图：计划生育未能摆脱马尔萨斯经济思维的论述](/files/images/interm-macro-review-2023/16.jpg)
 
 <p class="img-caption">（摘自课程笔记）</p>
 
@@ -143,12 +143,12 @@ semester: "2022 秋"
 
 《宏观经济学》也是我这学期唯一全程[认真听课并全程整理笔记](http://mp.weixin.qq.com/s?__biz=Mzk0NTMxNjcxNg==&mid=2247487426&idx=1&sn=5906681dfddad194dba9ddc85e9c9d01&chksm=c31679c1f461f0d7c6549d5e9c09020839c85fb65bea993aa42b7c04ddf0edc6cad9fb6420f1&scene=21#wechat_redirect)的课程。（“阅读原文”是蓝色的）
 
-![](/files/images/interm-macro-review-2023/17.jpg)
+![作者整理的宏观经济学课程笔记封面，颜色老师授课，2022 Fall](/files/images/interm-macro-review-2023/17.jpg)
 
 > “政治家的能力和意愿打着问号，与其让政治家相机抉择，不如相信一套规则。”
 
 当我敲完这句话时，看向Word的左下角，
 
-![](/files/images/interm-macro-review-2023/18.jpg)
+![Word文档底部状态栏显示笔记共87页40000字](/files/images/interm-macro-review-2023/18.jpg)
 
 深深叹了口气，总算结束了。它让我回忆起每周三上完心统跑去二教 101 占座，吃饭后转一圈再踩点回到大教室，接受飞速打字的三个小时。它更让我回忆起这学期对内耗的摆脱，对方向的寻找。

@@ -49,21 +49,21 @@ semester: "2023 春"
 
 在慌乱的这学期，网球也成了难得为心情带来了一点绿。在体测尽力了也扣了 7 分的情况下（体测真的太难提分了www，点击查看👉[体测的排雷提示](https://mp.weixin.qq.com/s?__biz=Mzk0NTMxNjcxNg==&mid=2247488332&idx=1&sn=c1e40ebcfadb8206ff28336cdaf811ca&chksm=c316654ff461ec5946bf7daa43b9266f04904515045ea030b69e2e0ae700ab69acb67a277455&scene=21#wechat_redirect)）
 
-![](/files/images/tennis-review-2023/01.jpg)
+![两学期体测成绩明细表，含BMI、肺活量、50米跑、立定跳远等各项数据](/files/images/tennis-review-2023/01.jpg)
 
-![](/files/images/tennis-review-2023/02.jpg)
+![体测20分成绩查询页面显示体测成绩13分](/files/images/tennis-review-2023/02.jpg)
 
 我在体育方面也很不开窍，在约球的小伙伴里打得最烂（上学期选乒乓球🏓也打得贼垃圾，下次坚决不再选球类体育课了），考核时也稳定地打出了四个失误，不过戴老师竟然给了我一个A+和A，在焦虑备考博弈论时也刷出了一个远超乎意料的 93 分，这意味着体测之外老师都**宽容地**给调满了，真的很是惊喜意外。
 
-![](/files/images/tennis-review-2023/03.jpg)
+![成绩单显示网球课最终成绩93分，戴名辉老师，绩点3.91](/files/images/tennis-review-2023/03.jpg)
 
 对了对了，今年暑校选修了[吴昊老师的太极拳课](https://mp.weixin.qq.com/s?__biz=Mzk0NTMxNjcxNg==&mid=2247489181&idx=1&sn=9b06635b262071f02c1b394a0007b1c6&chksm=c316609ef461e9886163bfb943b2bcdee26af3e6f5ed938b6bbaecbd1b5c3f0015903c337bd4&scene=21#wechat_redirect)（点击查看课程测评），课程测评里掩饰不住对于吴昊老师的喜爱。不过出分的时候还是让我失望了一把：在没有体测的情况下，12 分钟跑我也充分用力了
 
-![](/files/images/tennis-review-2023/04.jpg)
+![Keep运动记录：12分钟跑步2.84公里，配速约4分13秒](/files/images/tennis-review-2023/04.jpg)
 
 太极拳不是球类，我也不至于太笨拙，但
 
-![](/files/images/tennis-review-2023/05.jpg)
+![成绩单显示太极拳课最终成绩89分，吴昊老师，绩点3.77](/files/images/tennis-review-2023/05.jpg)
 
 还是很让我不解。说这些是因为吴昊老师也开设了网球，并且从树洞上看 2023 年春季学期给分不太友好（所以我上太极拳时其实真有点隐忧...）但这真的是我如此享受的一门体育课，也是完美颠覆了我刻板印象的一门体育课，我每天睡前都会渴望第二天的太极拳——即便是早八，我觉得就还是很值了。
 
@@ -71,7 +71,7 @@ semester: "2023 春"
 
 学校里打网球有两个场地，一个在五四，一个在二体。五四的场地比较疏于维护，地面较脏且滑（因为尘土多）；二体网球场的地面相对较好，并且四周拦球的网比五四严密多了。此外，选网球课的同学如果在二体打球，可以有最奢华的享受——“丰沛”的网球。不过，二体每小时 30 元，五四免费，但还架不住二体的体验好太多了，所以二体反而比五四难预约得多。通常来看，二体至少需要提早四天预约才保险，而五四提早一天都有场地，提早两天则一切不在话下。
 
-![](/files/images/tennis-review-2023/06.jpg)
+![一枚网球卡在铁丝围网上的特写，摄于五四网球场](/files/images/tennis-review-2023/06.jpg)
 
 <p class="img-caption">摄于五四网球场</p>
 

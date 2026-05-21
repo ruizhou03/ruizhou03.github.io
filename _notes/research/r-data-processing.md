@@ -16,4 +16,4 @@ keywords: ["R 数据处理", "数据处理", "数据整理", "data wrangling", "
 
 参考李东风的《R 语言教程》，我整理了 R 语言在数据处理过程中的强大功能，文中章节包含：
 
-![](/files/images/r-data-processing/02.jpg)
+![R 数据处理教程的六大章节目录卡片](/files/images/r-data-processing/02.jpg)

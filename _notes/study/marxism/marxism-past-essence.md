@@ -21,4 +21,4 @@ published: true
 
 希望对大家有帮助🌈！
 
-![](/files/images/marxism-past-essence/01.jpg)
+![马克思主义基本原理概论期末往年题重点 PDF 封面，2023年秋季](/files/images/marxism-past-essence/01.jpg)

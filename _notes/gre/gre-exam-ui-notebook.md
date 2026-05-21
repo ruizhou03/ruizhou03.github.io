@@ -14,9 +14,9 @@ material_type: "错题本"
 
 这篇内容可能很无聊，也可能挺有意思，但无论如何希望对大家有帮助 🌈
 
-![](/files/images/gre-exam-ui-notebook/01.jpg)
+![GRE Verbal 填空题错题本与 Quant 错题本示例页面](/files/images/gre-exam-ui-notebook/01.jpg)
 
-![](/files/images/gre-exam-ui-notebook/02.jpg)
+![GRE Quant 数学精选题错题本示例页面](/files/images/gre-exam-ui-notebook/02.jpg)
 
 ## Verbal 填空题
 
@@ -28,15 +28,15 @@ Verbal 填空题有三类题型：
 
 五选一和多空题本质上是一样的，都是把选项放在表格里，只不过是有几列、一列有几个选项之间的差别。
 
-![](/files/images/gre-exam-ui-notebook/03.jpg)
+![GRE 五选一填空题考试界面复刻效果，选项以表格形式居中排列](/files/images/gre-exam-ui-notebook/03.jpg)
 
 <p class="img-caption">五选一</p>
 
-![](/files/images/gre-exam-ui-notebook/04.jpg)
+![GRE 双空题考试界面复刻效果，Blank i 与 Blank ii 各一列三个选项](/files/images/gre-exam-ui-notebook/04.jpg)
 
 <p class="img-caption">双空题</p>
 
-![](/files/images/gre-exam-ui-notebook/05.jpg)
+![GRE 三空题考试界面复刻效果，三列选项并排显示](/files/images/gre-exam-ui-notebook/05.jpg)
 
 <p class="img-caption">三空题</p>
 
@@ -136,7 +136,7 @@ Verbal 填空题有三类题型：
 
 呈现的效果如下
 
-![](/files/images/gre-exam-ui-notebook/06.jpg)
+![LaTeX 错题本中五选一题渲染效果，题干加五行选项表格](/files/images/gre-exam-ui-notebook/06.jpg)
 
 ### 双空题
 
@@ -145,7 +145,7 @@ Verbal 填空题有三类题型：
 \multiblank{2}{\choices{apropos}{churlish}{cagey}{}{}}{\choices{admire}{envy}{emulate}{}{}}{}
 ```
 
-![](/files/images/gre-exam-ui-notebook/07.jpg)
+![LaTeX 错题本中双空题渲染效果，两列选项各三行](/files/images/gre-exam-ui-notebook/07.jpg)
 
 ### 三空题
 
@@ -154,13 +154,13 @@ Verbal 填空题有三类题型：
 \multiblank{3}{\choices{refine}{perpetuate}{subvert}{}{}}{\choices{predictable}{inescapable}{comprehensible}{}{}}{\choices{a limited}{a variable}{an inexhaustible}{}{}}{}{}
 ```
 
-![](/files/images/gre-exam-ui-notebook/08.jpg)
+![LaTeX 错题本中三空题渲染效果，三列选项并排](/files/images/gre-exam-ui-notebook/08.jpg)
 
 ### 六选二
 
 因为呈现的形式不同于其它题，六选二题单独定义呈现命令。
 
-![](/files/images/gre-exam-ui-notebook/09.jpg)
+![GRE 六选二考试界面复刻效果，六个选项前各有方形复选框](/files/images/gre-exam-ui-notebook/09.jpg)
 
 <p class="img-caption">六选二</p>
 
@@ -188,7 +188,7 @@ Verbal 填空题有三类题型：
 \senequiv{eccentric}{meager}{salutary}{proscriptive}{trendy}{exacting}
 ```
 
-![](/files/images/gre-exam-ui-notebook/10.jpg)
+![LaTeX 错题本中六选二题渲染效果，六行方块加选项的对齐排列](/files/images/gre-exam-ui-notebook/10.jpg)
 
 ## Quant
 
@@ -239,13 +239,13 @@ GRE 单选题选项的 bullet point 是一个椭圆，可惜的是 \LaTeX 里并
 \options{296}{297}{298}{299}{301}
 ```
 
-![](/files/images/gre-exam-ui-notebook/11.jpg)
+![LaTeX 错题本中 GRE 数学单选题渲染效果，椭圆 bullet 加五个选项](/files/images/gre-exam-ui-notebook/11.jpg)
 
 #### 比大小
 
 比大小其实也是选择题的一种，它们出现频繁，格式都是固定的，选项也是一样的，所以单独定义一类以图方便。
 
-![](/files/images/gre-exam-ui-notebook/12.jpg)
+![GRE Quant 比大小题考试界面复刻，Quantity A 与 Quantity B 对比排列加四个选项](/files/images/gre-exam-ui-notebook/12.jpg)
 
 定义命令 `\quantities`，接收两个参数分别作为 Quantity A 和 Quantity B，用于比大小题从 Quantity A 一直到四个选项的呈现（题干信息额外写）：
 
@@ -276,13 +276,13 @@ GRE 单选题选项的 bullet point 是一个椭圆，可惜的是 \LaTeX 里并
 \quantities{$x$}{$4$}
 ```
 
-![](/files/images/gre-exam-ui-notebook/13.jpg)
+![LaTeX 错题本中比大小题渲染效果，Quantity A 为 x、Quantity B 为 4](/files/images/gre-exam-ui-notebook/13.jpg)
 
 ### 填空题
 
 填空题其实没有什么难度，题面的叙述就是一般的正文，只要考虑添加一个长方形框用来输入答案即可。
 
-![](/files/images/gre-exam-ui-notebook/14.jpg)
+![GRE Quant 填空题考试界面复刻，题干下方显示空白答题框](/files/images/gre-exam-ui-notebook/14.jpg)
 
 这个长方形框还是用 `tikz` 画一个就好。定义一个命令 `\field` 用于生成长方形框：
 
@@ -303,8 +303,8 @@ GRE 单选题选项的 bullet point 是一个椭圆，可惜的是 \LaTeX 里并
 \field
 ```
 
-![](/files/images/gre-exam-ui-notebook/15.jpg)
+![LaTeX 错题本中数学填空题渲染效果，题干下方长方形答题框](/files/images/gre-exam-ui-notebook/15.jpg)
 
 希望对大家有帮助 🌈
 
-![](/files/images/gre-exam-ui-notebook/16.jpg)
+![收集的多支 ETS TOEFL 与 GRE 品牌圆珠笔和铅笔](/files/images/gre-exam-ui-notebook/16.jpg)

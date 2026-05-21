@@ -16,30 +16,30 @@ keywords: ["R 相关与距离", "相关分析", "correlation", "偏相关", "par
 
 本次笔记用到了“stargazer()”函数（来自stargazer包），它能帮助输出很漂亮的结果，下次重点聊聊（挖坑 ing）~
 
-![](/files/images/r-correlation-distance/01.jpg)
+![相关与距离笔记封面，含目录与加载包代码](/files/images/r-correlation-distance/01.jpg)
 
-![](/files/images/r-correlation-distance/02.jpg)
+![MPG 与销量全样本散点图及汇总相关系数输出](/files/images/r-correlation-distance/02.jpg)
 
-![](/files/images/r-correlation-distance/03.jpg)
+![对数变换后相关系数与分组代码](/files/images/r-correlation-distance/03.jpg)
 
-![](/files/images/r-correlation-distance/04.jpg)
+![按车型分组的 MPG 与销量散点图及分组相关检验输出](/files/images/r-correlation-distance/04.jpg)
 
-![](/files/images/r-correlation-distance/05.jpg)
+![分组相关系数检验结果：Pearson 相关与置信区间输出](/files/images/r-correlation-distance/05.jpg)
 
-![](/files/images/r-correlation-distance/06.jpg)
+![偏相关与半偏相关概念的韦恩图示意及公式](/files/images/r-correlation-distance/06.jpg)
 
-![](/files/images/r-correlation-distance/07.jpg)
+![偏相关通过线性回归理解的矩形叠加示意图及代码](/files/images/r-correlation-distance/07.jpg)
 
-![](/files/images/r-correlation-distance/08.jpg)
+![IV 与 DV 散点图及 pcor 偏相关函数调用](/files/images/r-correlation-distance/08.jpg)
 
-![](/files/images/r-correlation-distance/09.jpg)
+![零阶相关与偏相关对比表：funding-disease 例子中的混淆变量分析](/files/images/r-correlation-distance/09.jpg)
 
-![](/files/images/r-correlation-distance/10.jpg)
+![偏相关矩阵与半偏相关矩阵输出结果（ppcor 包）](/files/images/r-correlation-distance/10.jpg)
 
-![](/files/images/r-correlation-distance/11.jpg)
+![距离度量公式说明：欧氏距离、切比雪夫距离与余弦相似性](/files/images/r-correlation-distance/11.jpg)
 
-![](/files/images/r-correlation-distance/12.jpg)
+![变量间相关矩阵表及欧氏距离计算代码](/files/images/r-correlation-distance/12.jpg)
 
-![](/files/images/r-correlation-distance/13.jpg)
+![观测间与变量间欧氏距离矩阵输出结果](/files/images/r-correlation-distance/13.jpg)
 
-![](/files/images/r-correlation-distance/14.jpg)
+![余弦相似性矩阵输出（stargazer 格式）](/files/images/r-correlation-distance/14.jpg)

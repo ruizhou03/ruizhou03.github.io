@@ -20,23 +20,23 @@ material_type: "错题本"
 
 语文填空题错题本前四页是精选题，主要是关乎逻辑理解；后四页是因字面含义理解而错的题；最后一页摘一些过程中的生词（甚至没有计入总页数，其实就是没背到但也懒得背了）。如果你也想用复刻这样的格式（而懒得补档上一篇），我也把 header 的代码放在图片之后了（不同于昨天的数学的代码），希望对大家有帮助～
 
-![](/files/images/gre-verbal-errors/02.jpg)
+![GRE Verbal 填空精选题错题本第 1–2 页，含五选一与多空题及解析](/files/images/gre-verbal-errors/02.jpg)
 
-![](/files/images/gre-verbal-errors/03.jpg)
+![GRE Verbal 填空精选题错题本第 3–4 页，含填空题题目与注解](/files/images/gre-verbal-errors/03.jpg)
 
-![](/files/images/gre-verbal-errors/04.jpg)
+![GRE Verbal 填空精选题错题本第 5–6 页，含填空题题目与注解](/files/images/gre-verbal-errors/04.jpg)
 
-![](/files/images/gre-verbal-errors/05.jpg)
+![GRE Verbal 填空精选题错题本第 7–8 页，含填空题题目与注解](/files/images/gre-verbal-errors/05.jpg)
 
-![](/files/images/gre-verbal-errors/06.jpg)
+![GRE Verbal 填空精选题错题本第 9–10 页，含填空题题目与注解](/files/images/gre-verbal-errors/06.jpg)
 
-![](/files/images/gre-verbal-errors/07.jpg)
+![GRE Verbal 填空精选题错题本第 11–12 页，含生词理解类错题与注解](/files/images/gre-verbal-errors/07.jpg)
 
-![](/files/images/gre-verbal-errors/08.jpg)
+![GRE Verbal 填空精选题错题本第 13–14 页，含生词理解类错题与注解](/files/images/gre-verbal-errors/08.jpg)
 
-![](/files/images/gre-verbal-errors/09.jpg)
+![GRE Verbal 填空精选题错题本第 15–16 页，含三空题与双空题及解析](/files/images/gre-verbal-errors/09.jpg)
 
-![](/files/images/gre-verbal-errors/10.jpg)
+![GRE Verbal 填空精选题错题本附页，摘录备考生词列表](/files/images/gre-verbal-errors/10.jpg)
 
 {% raw %}
 ```latex

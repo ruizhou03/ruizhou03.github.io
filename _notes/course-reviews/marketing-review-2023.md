@@ -18,11 +18,11 @@ semester: "2022 秋"
 
 《营销学》是光华培养计划中大二上学期的必修课，每周 3 学时、16 周结课的3 学分硬课。《营销学》由光华的涂平和符国群老师开课，开课时间一致，两个班容量也基本一致。关于两个班的大致情况对比，可以参考如下：
 
-![](/files/images/marketing-review-2023/01.jpg)
+![树洞上关于涂平班考试和作业情况的讨论帖](/files/images/marketing-review-2023/01.jpg)
 
-![](/files/images/marketing-review-2023/02.jpg)
+![树洞上关于涂平老师批改标准和作业评分的评论](/files/images/marketing-review-2023/02.jpg)
 
-![](/files/images/marketing-review-2023/03.jpg)
+![树洞上关于营销学涂平班与符国群班情况对比的讨论](/files/images/marketing-review-2023/03.jpg)
 
 从往年相对一致的评论来看，基本可信。
 
@@ -40,15 +40,15 @@ semester: "2022 秋"
 
 - 作业一
 
-![](/files/images/marketing-review-2023/04.jpg)
+![作业一：以华为Mate50短视频广告投放渠道为背景的营销研究题](/files/images/marketing-review-2023/04.jpg)
 
 - 作业二
 
-![](/files/images/marketing-review-2023/05.jpg)
+![作业二：分析宝洁公司推出多品牌洗发水策略的利弊](/files/images/marketing-review-2023/05.jpg)
 
 - 作业三
 
-![](/files/images/marketing-review-2023/06.jpg)
+![作业三：分析故宫淘宝产品组合与品牌定位策略](/files/images/marketing-review-2023/06.jpg)
 
 作业理论上来说不算难，关键的要点逃不开课上讲的知识点，但想要呈现一份完整的作业还需要大量的前期工作。一次营销学作业的完成大约需要 6-8 小时。对我而言，营销学作业的时间投入，前期是 goods，后期是 bads，所以我往往能选择在总效用最大的区间停止，不进行自我剥削，每次都控制在 4-6 小时完成。
 
@@ -75,21 +75,21 @@ semester: "2022 秋"
 
 填空和选择主要分为两类，一类是知识点填充，另一类是案例细节。知识点填充就是靠简单的背诵，除了内存考后修复难度外没有任何难度。案例细节是对老师课上讲到的任何案例的细节的补充，在内存考后修复难度之外，如果不考虑上课认真听讲并记录的难度，那么也是没有任何难度的。案例的例题如下：
 
-![](/files/images/marketing-review-2023/07.jpg)
+![期末选择题：预测2018年中国网上零售销售额与美欧对比](/files/images/marketing-review-2023/07.jpg)
 
-![](/files/images/marketing-review-2023/08.jpg)
+![期末选择题：2015年地级行政单位人均GDP排名比较](/files/images/marketing-review-2023/08.jpg)
 
-![](/files/images/marketing-review-2023/09.jpg)
+![期末选择题：麦肯锡预测2012至2022年中国家庭数量增长类型](/files/images/marketing-review-2023/09.jpg)
 
-![](/files/images/marketing-review-2023/10.jpg)
+![期末选择题：斧牌香水目标市场定位](/files/images/marketing-review-2023/10.jpg)
 
-![](/files/images/marketing-review-2023/11.jpg)
+![期末选择题：课堂案例“情人的眼泪”所指含义](/files/images/marketing-review-2023/11.jpg)
 
-![](/files/images/marketing-review-2023/12.jpg)
+![期末选择题：戴尔公司的目标市场类型](/files/images/marketing-review-2023/12.jpg)
 
-![](/files/images/marketing-review-2023/13.jpg)
+![期末选择题：使苹果公司起死回生的产品](/files/images/marketing-review-2023/13.jpg)
 
-![](/files/images/marketing-review-2023/14.jpg)
+![期末选择题：奥特莱斯属于哪类零售商](/files/images/marketing-review-2023/14.jpg)
 
 看似听课就会，但实际上真没有这么简单，尤其是在闭卷考试的时候；开卷考也不见得简单，前提是每节课都要认真听案例，并且还要记录。之所以在前文提到《营销学》是一门硬课，理由之一就是考试是全盘的细，你根本没得“水”。而且这“硬”也指的是，考试之时这将极度占用大脑的硬盘。还指的是，我“硬”要花好几天背这种东西。
 
@@ -99,19 +99,19 @@ semester: "2022 秋"
 
 顺带提一句，只看 PPT 是能看会的，但不能保证及格，因为 PPT 相比于考试要求的范围，就相当于要你做完形填空。通常来说，上课提到的案例在 PPT 中只有一张图片，考的都是老师口述的内容。小字是期末寄补上的，我做了往年题才发现自己近似于没听过课。
 
-![](/files/images/marketing-review-2023/15.jpg)
+![营销学PPT截图：九十九顶毡房餐厅案例的课件页](/files/images/marketing-review-2023/15.jpg)
 
-![](/files/images/marketing-review-2023/16.jpg)
+![营销学PPT截图：人口细分定义与摩托车广告配图](/files/images/marketing-review-2023/16.jpg)
 
 <p class="img-caption">这个广告被给予中肯评价</p>
 
 这种算是比较完善的了↓，
 
-![](/files/images/marketing-review-2023/17.jpg)
+![营销学PPT截图：“情人的眼泪”案例介绍雪碧白桃气泡水](/files/images/marketing-review-2023/17.jpg)
 
 而想要完全理解 PPT，还是要听老师讲课，不然这就只是一些要点的陈列，不知道它和前后知识之间的关系，且不知孰轻孰重。
 
-![](/files/images/marketing-review-2023/18.jpg)
+![营销学PPT截图：内部数据类型与应用要点的课件页](/files/images/marketing-review-2023/18.jpg)
 
 我考前已经料到了今年的考题虽然不会是“能直接有答案的”，但应该还是少不了填空选择题，因此当天上午顶着越来越冷的身体做了一下往年题，考场上只要依靠“Command+F”即可放大招。我把我能收集到的往年题做成了一个大的 PDF 合集，这样即可直接全域检索。热知识，Adobe Acrobat 可以选定检索范围，我考前创建了一个名为“营销学开卷资料”的文件夹，考试时优先对当前文档检索，之后对整个文件夹检索，妈妈再也不用担心我对知识点根本不熟练了。点击如下链接可以分别对应跳转：
 
@@ -123,15 +123,15 @@ semester: "2022 秋"
 
 而至于写文字的部分，今年是有一道 20 分的简答题，和一道 4 个小问构成的 40 分的论述题。简答题如下
 
-![](/files/images/marketing-review-2023/19.jpg)
+![期末简答题：关于碳酸饮料市场调查与消费者行为分析](/files/images/marketing-review-2023/19.jpg)
 
 论述题如下，
 
-![](/files/images/marketing-review-2023/20.jpg)
+![期末论述题材料：华为品牌宣传片《在一起，就可以》文字介绍](/files/images/marketing-review-2023/20.jpg)
 
-![](/files/images/marketing-review-2023/21.jpg)
+![期末论述题材料：宣传片相关短片文案原文](/files/images/marketing-review-2023/21.jpg)
 
-![](/files/images/marketing-review-2023/22.jpg)
+![期末论述题：关于华为品牌宣传片目标受众、传播媒体与效果测评的四道论述题](/files/images/marketing-review-2023/22.jpg)
 
 其中，论述题是去年的作业题原题，前三个题目完全一致。
 
@@ -140,7 +140,7 @@ semester: "2022 秋"
 
 有点巧，刷到头或许就能看到这个↓
 
-![](/files/images/marketing-review-2023/24.jpg)
+![树洞帖：2014级学生对营销学课程考试情况和给分的历年回顾](/files/images/marketing-review-2023/24.jpg)
 
 《营销学》是这学期的专业课中出分最早的，也让原本就很混乱的很黑暗的 2022 年显得更糟了。《营销学》的成绩大大突破了下限，让我震惊的同时又感到无力，不得不重新思考很多事情。虽然我在大二前就已经做过一次排除法，学期中也不断祈祷考核方式调整，但最终仍然没有选择 pf，主要的原因还是自己太头铁，认为该面对的还是尽量面对，没想到性格中的风险喜好那面让我碰的头破血流这次。我可能不会后悔没选择 pf 的这个决定，但我会沉重反思过去的很多选择，以及再次感叹个人的渺小与无力。
 
