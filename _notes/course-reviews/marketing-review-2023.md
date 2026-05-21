@@ -103,7 +103,7 @@ semester: "2022 秋"
 
 ![](/files/images/marketing-review-2023/16.jpg)
 
-这个广告被给予中肯评价
+<p class="img-caption">这个广告被给予中肯评价</p>
 
 这种算是比较完善的了↓，
 

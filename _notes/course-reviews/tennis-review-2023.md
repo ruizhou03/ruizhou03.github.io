@@ -73,7 +73,7 @@ semester: "2023 春"
 
 ![](/files/images/tennis-review-2023/06.jpg)
 
-摄于五四网球场
+<p class="img-caption">摄于五四网球场</p>
 
 # 总结
 

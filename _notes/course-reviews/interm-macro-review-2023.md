@@ -65,14 +65,14 @@ semester: "2022 秋"
 
 ![](/files/images/interm-macro-review-2023/05.jpg)
 
-（摘自期末试题）
+<p class="img-caption">（摘自期末试题）</p>
 
 考试时我满脑子只剩下了“消费和闲暇”
 😭
 
 ![](/files/images/interm-macro-review-2023/07.jpg)
 
-（摘自期末试题）
+<p class="img-caption">（摘自期末试题）</p>
 
 顺便提一句，今天恰巧看到了**常相对风险规避效用函数**，猛地一惊，翻回了宏观经济学的期末卷。一种高中生背不住二级结论而暴力死算圆锥曲线的回忆开始攻击我了。
 
@@ -86,19 +86,19 @@ semester: "2022 秋"
 
 ![](/files/images/interm-macro-review-2023/10.jpg)
 
-（摘自课程笔记）
+<p class="img-caption">（摘自课程笔记）</p>
 
 好不容易苟完了这道题，最后一道题又来了一个“聪明”的央行，能保证**实际**货币供给是一个恒定值
 
 ![](/files/images/interm-macro-review-2023/11.jpg)
 
-（摘自期末试题）
+<p class="img-caption">（摘自期末试题）</p>
 
 又来了一个投资对利率不敏感的经济体
 
 ![](/files/images/interm-macro-review-2023/12.jpg)
 
-（摘自期末试题）
+<p class="img-caption">（摘自期末试题）</p>
 
 总的来说，还是那句话，像极了八省联考后刚刷山东卷的我，每道题都打心底里想叫好，但考起来是真的痛。
 🥀
@@ -133,7 +133,7 @@ semester: "2022 秋"
 
 ![](/files/images/interm-macro-review-2023/16.jpg)
 
-（摘自课程笔记）
+<p class="img-caption">（摘自课程笔记）</p>
 
 颜色老师能够把具体的知识点讲的很透彻，宏观数据信手拈来，这一点我很喜欢。
 

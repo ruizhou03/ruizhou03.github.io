@@ -51,4 +51,4 @@ semester: "2023 夏"
 
 ![](/files/images/taichi-review-2023/02.jpg)
 
-邱德拔体育馆西面的“单边”
+<p class="img-caption">邱德拔体育馆西面的“单边”</p>
