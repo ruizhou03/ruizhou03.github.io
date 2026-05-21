@@ -31,29 +31,44 @@ LOG="$HOME/Library/Logs/zirconeey-email-summary.log"
 STATE_DIR="$HOME/Library/Application Support/zirconeey-email-summary"
 
 mkdir -p "$(dirname "$LOG")" "$STATE_DIR"
-log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"; }
+
+# force 模式（手动测试用）：bash email_summary.sh force
+#   跳过时段窗口检查、跳过 lastrun 防重跑、并把日志同时打到终端看进度
+FORCE=""
+[ "${1:-}" = "force" ] && FORCE=1
+
+log() {
+    local l="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    echo "$l" >> "$LOG"
+    [ -n "${FORCE:-}" ] && echo "$l"
+    return 0
+}
 notify() {  # $1=正文 $2=声音
     /usr/bin/osascript -e "display notification \"$1\" with title \"锆铌·邮件 summary\" sound name \"${2:-Glass}\"" >/dev/null 2>&1 || true
 }
 
-log "==== triggered ===="
+log "==== triggered${FORCE:+ (force)} ===="
 
 TODAY="$(date '+%Y-%m-%d')"
 HOUR="$(date '+%H')"; HOUR="${HOUR#0}"; HOUR="${HOUR:-0}"
 
 # ── 1. 判定时段 ──
-if   [ "$HOUR" -ge 9 ]  && [ "$HOUR" -lt 14 ]; then SLOT="morning"
-elif [ "$HOUR" -ge 21 ];                       then SLOT="evening"
-else
-    log "current hour=$HOUR not in any run window (09–13 / 21–23), skipping"
-    log "==== skipped ===="; exit 0
-fi
+if [ "$HOUR" -lt 14 ]; then SLOT="morning"; else SLOT="evening"; fi
 LASTRUN_FILE="$STATE_DIR/lastrun_$SLOT"
 
-# ── 2. 该时段今天已跑过 → 跳过 ──
-if [ -f "$LASTRUN_FILE" ] && [ "$(cat "$LASTRUN_FILE" 2>/dev/null || echo '')" = "$TODAY" ]; then
-    log "$SLOT slot already ran today ($TODAY), skipping"
-    log "==== skipped ===="; exit 0
+if [ -n "$FORCE" ]; then
+    log "force 模式：跳过时段窗口 + lastrun 检查（SLOT=${SLOT}）"
+else
+    # 非 force：必须在运行窗口内（morning 09–13 / evening 21–23）
+    if ! { { [ "$HOUR" -ge 9 ] && [ "$HOUR" -lt 14 ]; } || [ "$HOUR" -ge 21 ]; }; then
+        log "current hour=$HOUR not in any run window (09–13 / 21–23), skipping"
+        log "==== skipped ===="; exit 0
+    fi
+    # 该时段今天已跑过 → 跳过
+    if [ -f "$LASTRUN_FILE" ] && [ "$(cat "$LASTRUN_FILE" 2>/dev/null || echo '')" = "$TODAY" ]; then
+        log "$SLOT slot already ran today ($TODAY), skipping"
+        log "==== skipped ===="; exit 0
+    fi
 fi
 
 cd "$REPO" || { log "cd to $REPO FAILED"; exit 1; }
@@ -151,6 +166,7 @@ log "IMAP fetch OK，收件箱新邮件 $COUNT 封"
 # ── 5. claude 生成 summary（只读写本地文件）──
 rm -f "$DRAFTS_JSON"
 PROMPT="$(cat "$PROMPT_FILE")"
+log "claude 生成 summary 中（约 1–3 分钟，期间无输出属正常）..."
 if claude --print \
           --model claude-sonnet-4-6 \
           --dangerously-skip-permissions \
@@ -187,7 +203,7 @@ fi
 git commit -m "ops(email-summary): $TODAY $SLOT 自动邮件 summary" >> "$LOG" 2>&1
 PUSHED=0
 for attempt in 1 2 3 4 5; do
-    if git pull --rebase origin main >> "$LOG" 2>&1 && git push origin main >> "$LOG" 2>&1; then
+    if git pull --rebase --autostash origin main >> "$LOG" 2>&1 && git push origin main >> "$LOG" 2>&1; then
         PUSHED=1; break
     fi
     log "push 第 $attempt 次失败，5s 后重试"; sleep 5

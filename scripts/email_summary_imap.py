@@ -37,6 +37,28 @@ def log(msg):
     print(f"[imap] {msg}", file=sys.stderr, flush=True)
 
 
+def _ssl_context():
+    """带 CA 根证书的 SSL context。python.org 的 macOS Python 默认不带 CA bundle，
+    会 CERTIFICATE_VERIFY_FAILED，需显式加载系统证书文件。"""
+    ctx = ssl.create_default_context()
+    if ctx.get_ca_certs():
+        return ctx                          # 默认已带证书（如 homebrew python）
+    for ca in ("/etc/ssl/cert.pem",
+               "/opt/homebrew/etc/ca-certificates/cert.pem",
+               "/opt/homebrew/etc/openssl@3/cert.pem"):
+        if os.path.exists(ca):
+            ctx.load_verify_locations(ca)
+            log(f"加载 CA bundle：{ca}")
+            return ctx
+    try:
+        import certifi
+        ctx.load_verify_locations(certifi.where())
+        log(f"加载 CA bundle：{certifi.where()}")
+    except ImportError:
+        log("警告：找不到任何 CA bundle，TLS 校验可能失败")
+    return ctx
+
+
 def load_credentials():
     if not CRED_PATH.exists():
         sys.exit(f"凭证文件不存在：{CRED_PATH}\n"
@@ -62,7 +84,7 @@ class ProxyIMAP4SSL(imaplib.IMAP4_SSL):
 
     def __init__(self, host, port, proxy_host, proxy_port):
         self._proxy = (proxy_host, int(proxy_port))
-        super().__init__(host, port, ssl_context=ssl.create_default_context())
+        super().__init__(host, port, ssl_context=_ssl_context())
 
     def _create_socket(self, timeout=None):
         log(f"经代理 {self._proxy[0]}:{self._proxy[1]} CONNECT 到 {self.host}:{self.port}")
@@ -91,7 +113,7 @@ def connect():
         imap = ProxyIMAP4SSL(IMAP_HOST, IMAP_PORT, proxy_host, proxy_port)
     else:
         log(f"直连 {IMAP_HOST}:{IMAP_PORT}")
-        imap = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
+        imap = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT, ssl_context=_ssl_context())
     imap.login(user, passwd)
     log(f"登录成功：{user}")
     return imap, user
