@@ -119,10 +119,10 @@ fi
 # 二次校验 Anthropic API
 if ! /usr/bin/curl --silent --head --max-time 8 --output /dev/null https://api.anthropic.com 2>/dev/null; then
     log "api.anthropic.com via $NET_MODE 跑不通，跳过本时段"
-    notify "跑不通 Anthropic API（$NET_MODE）——检查网络 / Clash 订阅" "Tink"
+    notify "跑不通 Anthropic API（${NET_MODE}）——检查网络 / Clash 订阅" "Tink"
     log "==== skipped ===="; exit 0
 fi
-log "网络就绪（$NET_MODE）"
+log "网络就绪（${NET_MODE}）"
 
 # ── 4. IMAP 拉收件箱 ──
 # SINCE = state 里的 last_summary_at_utc；为空则回退到 12 小时前
@@ -173,7 +173,7 @@ if [ -f "$DRAFTS_JSON" ]; then
         log "IMAP draft FAILED（不致命，summary 仍照常提交）"
     fi
 else
-    log "无 $DRAFTS_JSON，跳过草稿步骤"
+    log "无 ${DRAFTS_JSON}，跳过草稿步骤"
 fi
 
 # ── 7. git commit + push（带 rebase 重试）──
