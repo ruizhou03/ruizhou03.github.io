@@ -37,6 +37,26 @@ CAPTION_RE = re.compile(r'<p\s+class=["\']img-caption["\']')
 SHORT_PARAGRAPH_RE = re.compile(r'^[一-鿿A-Za-z0-9（(].{0,80}$')
 EXCLUDE_LINE_RE = re.compile(r'^(#|>|-|\*|`|<|!\[|\[|\d+\.)')
 
+# 已人工核对为正文（非配文）的条目，巡检时跳过——见同目录 caption_whitelist.txt
+CAPTION_WHITELIST_FILE = Path(__file__).resolve().parent / "caption_whitelist.txt"
+
+
+def load_caption_whitelist():
+    """读 caption_whitelist.txt，返回 {(markdown相对路径, 图片src)} 集合。"""
+    wl = set()
+    if not CAPTION_WHITELIST_FILE.exists():
+        return wl
+    for line in CAPTION_WHITELIST_FILE.read_text(encoding="utf-8").splitlines():
+        line = line.rstrip()
+        if not line or line.startswith("#") or "\t" not in line:
+            continue
+        path, src = line.split("\t", 1)
+        wl.add((path.strip(), src.strip()))
+    return wl
+
+
+CAPTION_WHITELIST = load_caption_whitelist()
+
 
 def resolve_img_path(md_path: Path, src: str):
     """把 markdown 里写的 src 解析成仓库内路径。绝对 / 站内根路径都给抓上来。"""
@@ -96,7 +116,8 @@ def main():
                         if (nxt
                                 and not CAPTION_RE.search(nxt)
                                 and not EXCLUDE_LINE_RE.match(nxt)
-                                and SHORT_PARAGRAPH_RE.match(nxt)):
+                                and SHORT_PARAGRAPH_RE.match(nxt)
+                                and (str(fp.relative_to(REPO)), src) not in CAPTION_WHITELIST):
                             missing_caption.append((f"{fp.relative_to(REPO)}:{i}", src, nxt[:60]))
                         # 体积
                         ip = resolve_img_path(fp, src)

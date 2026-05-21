@@ -35,3 +35,6 @@ files/*/psets/*.synctex.gz
 
 # Claude Code 本地配置（含权限设置，不发公开仓库）
 .claude/settings.local.json
+
+# audit 巡检的本地缓存（发文提醒戳记等，不发仓库）
+.audit-cache/
