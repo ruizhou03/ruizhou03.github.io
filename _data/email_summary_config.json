@@ -1,10 +1,10 @@
 {
   "user_tz": "Asia/Shanghai",
   "summary_times_local": ["09:00", "21:00"],
-  "primary_gmail": "zirconeey@gmail.com",
+  "primary_gmail": "ruizhou0312@gmail.com",
   "source_addresses": {
-    "zirconeey@gmail.com": "zircon",
     "ruizhou0312@gmail.com": "ruizhou03",
+    "zirconeey@gmail.com": "zircon",
     "rzz5258@psu.edu": "psu"
   },
   "important_senders": [],
@@ -38,5 +38,5 @@
     ],
     "language_match_sender": true
   },
-  "_notes": "primary_gmail: Gmail MCP 当前唯一连接的账号；其它两个账户通过 forwarding 转进来。source_addresses: 用 To 字段或 Delivered-To header 判断邮件原始落地账号，在 summary 标 [zircon] / [ruizhou03] / [psu]。auto_draft.policy=conservative 只对明确简单的回复（RSVP / 日程确认 / 收悉 / 简单 yes-no）建 draft；模糊或敏感的只 flag。搬到美东后改 user_tz=America/New_York。"
+  "_notes": "primary_gmail: Gmail MCP 当前唯一连接的账号（中央邮箱 ruizhou0312@gmail.com）；zirconeey 和 PSU 通过 forwarding 转进来。source_addresses: 用 To 字段或 Delivered-To header 判断邮件原始落地账号，在 summary 标 [ruizhou03] / [zircon] / [psu]。auto_draft.policy=conservative 只对明确简单的回复（RSVP / 日程确认 / 收悉 / 简单 yes-no）建 draft；模糊或敏感的只 flag。搬到美东后改 user_tz=America/New_York。"
 }
