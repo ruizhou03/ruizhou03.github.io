@@ -194,7 +194,10 @@ def cmd_fetch(since_iso, out_path):
         log(f"SINCE {search_date} 命中 {len(nums)} 封（已截到最新 {MAX_MESSAGES}）")
         messages = []
         for num in nums:
-            typ, fd = imap.fetch(num, "(FLAGS INTERNALDATE X-GM-THRID BODY.PEEK[])")
+            # 只抓前 32KB：足够拿全邮件头 + 正文开头，又避免把大附件
+            # 整个拖过墙（imaplib 解析超大 literal 会掉线/错乱）
+            typ, fd = imap.fetch(
+                num, "(FLAGS INTERNALDATE X-GM-THRID BODY.PEEK[]<0.32768>)")
             if typ != "OK" or not fd or fd[0] is None:
                 continue
             meta = b""

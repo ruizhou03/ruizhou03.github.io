@@ -76,7 +76,8 @@ else
 fi
 
 cd "$REPO" || { log "cd to $REPO FAILED"; exit 1; }
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+# ~/.local/bin 放最前 —— claude 官方 native 安装器把 claude 装在那里
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 log "starting email summary (slot=$SLOT, model=claude-sonnet-4-6)"
 
 command -v claude  >/dev/null 2>&1 || { log "claude CLI not found, abort"; exit 1; }
@@ -92,16 +93,26 @@ probe_direct_api() {
         --noproxy '*' https://api.anthropic.com 2>/dev/null
 }
 set_proxy_env() {
-    export HTTP_PROXY="http://$PROXY_HOST:$PROXY_PORT"
+    # claude CLI 不认 macOS 系统代理，必须靠环境变量。只设 HTTPS/HTTP_PROXY，
+    # 不设 ALL_PROXY（SOCKS 约定变量）和 NO_PROXY（glob 可能让 undici 出错）。
     export HTTPS_PROXY="http://$PROXY_HOST:$PROXY_PORT"
-    export ALL_PROXY="http://$PROXY_HOST:$PROXY_PORT"
-    export NO_PROXY="localhost,127.0.0.1,*.local,.github.com"
-    # IMAP 脚本经此代理对 imap.gmail.com 做 HTTP CONNECT 隧道
+    export HTTP_PROXY="http://$PROXY_HOST:$PROXY_PORT"
+    # IMAP 的 python 用这对专属变量对 imap.gmail.com 做 HTTP CONNECT 隧道
     export IMAP_PROXY_HOST="$PROXY_HOST"
     export IMAP_PROXY_PORT="$PROXY_PORT"
 }
 unset_proxy_env() {
-    unset HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY IMAP_PROXY_HOST IMAP_PROXY_PORT
+    unset HTTPS_PROXY HTTP_PROXY IMAP_PROXY_HOST IMAP_PROXY_PORT 2>/dev/null || true
+}
+# Anthropic API 连通性检查：proxy 模式用显式 --proxy，direct 模式直连
+check_api() {
+    if [[ "${NET_MODE:-}" == proxy* ]]; then
+        /usr/bin/curl --silent --head --max-time 8 --output /dev/null \
+            --proxy "http://$PROXY_HOST:$PROXY_PORT" https://api.anthropic.com 2>/dev/null
+    else
+        /usr/bin/curl --silent --head --max-time 8 --output /dev/null \
+            https://api.anthropic.com 2>/dev/null
+    fi
 }
 
 NET_MODE=""
@@ -136,12 +147,12 @@ else
 fi
 
 # 二次校验 Anthropic API
-if ! /usr/bin/curl --silent --head --max-time 8 --output /dev/null https://api.anthropic.com 2>/dev/null; then
+if ! check_api; then
     log "api.anthropic.com via $NET_MODE 跑不通，跳过本时段"
     notify "跑不通 Anthropic API（${NET_MODE}）——检查网络 / Clash 订阅" "Tink"
     log "==== skipped ===="; exit 0
 fi
-log "网络就绪（${NET_MODE}）"
+log "网络就绪（${NET_MODE}）—— claude 走 macOS 系统代理，IMAP 走专属隧道"
 
 # ── 4. IMAP 拉收件箱 ──
 # SINCE = state 里的 last_summary_at_utc；为空则回退到 12 小时前
