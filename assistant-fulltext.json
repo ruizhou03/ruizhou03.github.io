@@ -1,0 +1,17 @@
+---
+layout: null
+---
+{%- comment -%}
+  锆石小助手的全文检索库。构建期自动生成——每次更新网站随之刷新。
+  收录每篇 note 的正文纯文本（去标签、去换行，单篇截到 4000 字）。
+  仅后端 api/assistant.js 拉取使用：用 TF-IDF 在正文里挑出与问题相关的
+  文章，再把正文喂给 DeepSeek，让它能回答正文级的细节问题。
+  前端不取这个文件（体积较大），前端的离线降级仍用 assistant-index.json。
+{%- endcomment -%}
+[
+{%- for item in site.notes -%}
+{%- assign _txt = item.content | strip_html | strip_newlines | truncate: 10000, "" -%}
+{"url":{{ item.url | prepend: site.baseurl | jsonify }},"text":{{ _txt | jsonify }}}
+{%- unless forloop.last %},{% endunless -%}
+{%- endfor -%}
+]
