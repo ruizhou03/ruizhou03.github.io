@@ -39,7 +39,7 @@ exclude:
 # 播客音频根地址（Cloudflare R2 公共域名 + 前缀）。
 # post.html 检测到文章 podcast: true 就自动拼 {{ podcast_base }}/{{ slug }}.mp3。
 # 换成你 R2 bucket 开 public access 后拿到的 pub-xxxx.r2.dev 域名。
-podcast_base: "https://CHANGE-ME.r2.dev/p"
+podcast_base: "https://pub-6ce548df24434edb9fea591e78eecdbd.r2.dev/p"
 
 # Collections (if needed)
 collections:
