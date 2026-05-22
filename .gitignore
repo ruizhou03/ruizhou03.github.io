@@ -41,3 +41,11 @@ files/*/psets/*.synctex.gz
 
 # 本机 LaunchAgent 真身（含绝对路径，会暴露用户名）——只发 .template
 scripts/io.github.zirconeey.email-summary.plist
+scripts/io.github.zirconeey.flight-watch.plist
+
+# 播客流水线：本机配置（含 R2 密钥/路径）与生成的音频不进仓库；
+# 只有播客稿 audio/scripts/*.md 留档。注意必须用 audio/* 而非 audio/——
+# 否则 git 不会进入被整体忽略的目录，下面的 !audio/scripts/ 也就失效。
+scripts/podcast/config.sh
+audio/*
+!audio/scripts/

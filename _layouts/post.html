@@ -52,7 +52,105 @@ layout: default
     </div>
   </header>
 
+  {%- comment -%}
+    播客播放器：只有 front-matter 写了 podcast: true 的文章才渲染。
+    音频地址默认按约定拼 site.podcast_base + slug + .mp3；
+    个别文章可用 podcast_audio: 写死完整 URL 覆盖。
+    若音频还没上线 / 加载失败，JS 会把整块静默隐藏（见下方 error 处理）。
+  {%- endcomment -%}
+  {% if page.podcast %}
+  {%- if page.podcast_audio -%}
+    {%- assign _podcast_src = page.podcast_audio -%}
+  {%- else -%}
+    {%- assign _podcast_src = site.podcast_base | append: '/' | append: page.slug | append: '.mp3' -%}
+  {%- endif -%}
+  <div class="podcast-player" id="podcast-player">
+    <div class="pp-top">
+      <span class="pp-mic" aria-hidden="true">🎙️</span>
+      <span class="pp-label">听周睿读这篇</span>
+      <button type="button" class="pp-speed" id="pp-speed" title="播放速度">1×</button>
+    </div>
+    <div class="pp-controls">
+      <button type="button" class="pp-play" id="pp-play" aria-label="播放 / 暂停">▶</button>
+      <div class="pp-bar" id="pp-bar" role="slider" aria-label="进度" tabindex="0">
+        <div class="pp-fill" id="pp-fill"></div>
+        <div class="pp-knob" id="pp-knob"></div>
+      </div>
+      <span class="pp-time" id="pp-time">0:00 / --:--</span>
+    </div>
+    <audio id="pp-audio" preload="metadata" src="{{ _podcast_src }}"></audio>
+  </div>
+  <script>
+  (function () {
+    var wrap  = document.getElementById('podcast-player');
+    if (!wrap) return;
+    var audio = document.getElementById('pp-audio');
+    var play  = document.getElementById('pp-play');
+    var bar   = document.getElementById('pp-bar');
+    var fill  = document.getElementById('pp-fill');
+    var knob  = document.getElementById('pp-knob');
+    var timeEl  = document.getElementById('pp-time');
+    var speedEl = document.getElementById('pp-speed');
+    var speeds = [1, 1.25, 1.5, 0.75];
+    var si = 0;
+
+    function fmt(s) {
+      if (!isFinite(s) || s < 0) return '--:--';
+      s = Math.floor(s);
+      var m = Math.floor(s / 60), ss = s % 60;
+      return m + ':' + (ss < 10 ? '0' : '') + ss;
+    }
+    function render() {
+      var d = audio.duration, c = audio.currentTime;
+      var p = (d && isFinite(d)) ? (c / d * 100) : 0;
+      fill.style.width = p + '%';
+      knob.style.left  = p + '%';
+      timeEl.textContent = fmt(c) + ' / ' + fmt(d);
+    }
+    audio.addEventListener('loadedmetadata', render);
+    audio.addEventListener('timeupdate', render);
+    audio.addEventListener('ended', function () {
+      play.textContent = '▶';
+      play.classList.remove('playing');
+    });
+    // 音频还没上线 / 网络挂了 —— 整块静默隐藏，不在页面上留半截播放器
+    audio.addEventListener('error', function () { wrap.style.display = 'none'; });
+
+    play.addEventListener('click', function () {
+      if (audio.paused) {
+        audio.play();
+        play.textContent = '❚❚';
+        play.classList.add('playing');
+      } else {
+        audio.pause();
+        play.textContent = '▶';
+        play.classList.remove('playing');
+      }
+    });
+    function seek(e) {
+      var r = bar.getBoundingClientRect();
+      var clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+      var x = (clientX - r.left) / r.width;
+      x = Math.max(0, Math.min(1, x));
+      if (isFinite(audio.duration)) audio.currentTime = x * audio.duration;
+    }
+    bar.addEventListener('click', seek);
+    speedEl.addEventListener('click', function () {
+      si = (si + 1) % speeds.length;
+      audio.playbackRate = speeds[si];
+      speedEl.textContent = speeds[si] + '×';
+    });
+    window.addEventListener('beforeunload', function () { audio.pause(); });
+  })();
+  </script>
+  {% endif %}
+
   <div class="post-toolbar" id="post-toolbar" style="display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; margin: -1.5rem 0 2.5rem;">
+    {%- comment -%}
+      有播客版的文章不再显示系统语音「朗读」按钮 —— 顶部的播客播放器
+      就是更好的有声版（周睿本人的 AI 语音 + 改写过的播客稿）。
+    {%- endcomment -%}
+    {% unless page.podcast %}
     <button type="button" id="tts-toggle" class="post-tool-btn" title="朗读 / 暂停 / 继续">
       <span class="tool-icon" aria-hidden="true">🔊</span>
       <span class="tool-label">朗读</span>
@@ -61,6 +159,7 @@ layout: default
       <span class="tool-icon" aria-hidden="true">⏹</span>
       <span class="tool-label">停止</span>
     </button>
+    {% endunless %}
     <button type="button" id="offline-toggle" class="post-tool-btn" title="缓存这篇到本地，飞机上 / 没网时也能看">
       <span class="tool-icon" aria-hidden="true">📥</span>
       <span class="tool-label">下载离线</span>
@@ -286,6 +385,104 @@ layout: default
       max-width: 80%;
       font-size: 0.78rem;
     }
+  }
+
+  /* ── 播客播放器 ───────────────────────────────────────── */
+  .podcast-player {
+    max-width: 540px;
+    margin: 0 auto 2.5rem;
+    padding: 1rem 1.2rem 1.1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    background: var(--color-bg-warm);
+  }
+  .podcast-player .pp-top {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.7rem;
+  }
+  .podcast-player .pp-mic { font-size: 1.05rem; }
+  .podcast-player .pp-label {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    color: var(--color-ink);
+    letter-spacing: 0.02em;
+  }
+  .podcast-player .pp-speed {
+    margin-left: auto;
+    padding: 0.15rem 0.55rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-muted);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .podcast-player .pp-speed:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .podcast-player .pp-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+  .podcast-player .pp-play {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--color-accent);
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s, opacity 0.2s;
+  }
+  .podcast-player .pp-play:hover { transform: scale(1.06); }
+  .podcast-player .pp-play.playing { opacity: 0.9; }
+  .podcast-player .pp-bar {
+    flex: 1 1 auto;
+    position: relative;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--color-border);
+    cursor: pointer;
+  }
+  .podcast-player .pp-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0;
+    border-radius: 999px;
+    background: var(--color-accent);
+  }
+  .podcast-player .pp-knob {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 12px;
+    height: 12px;
+    margin: -6px 0 0 -6px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  }
+  .podcast-player .pp-time {
+    flex: 0 0 auto;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+  @media (max-width: 480px) {
+    .podcast-player { padding: 0.9rem 1rem 1rem; }
+    .podcast-player .pp-time { font-size: 0.8rem; }
   }
 </style>
 
