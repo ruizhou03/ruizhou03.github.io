@@ -2,7 +2,7 @@
   "name": "Rui Zhou · Zircon",
   "short_name": "Zircon",
   "description": "Rui Zhou 的中文站：随笔漫谈 / 生活攻略 / 科研妙招 / 学习资料",
-  "start_url": "/",
+  "start_url": "/zh/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#fafaf9",

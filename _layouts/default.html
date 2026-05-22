@@ -63,7 +63,7 @@
             <a href="{{ site.baseurl }}/notes/" class="nav-back">← 学习资料</a>
           {% endif %}
         {% else %}
-          <a href="https://ruizhou03.github.io" class="nav-back">← 英文主页</a>
+          <a href="{{ site.baseurl }}/" class="nav-back">← 英文主页</a>
         {% endif %}
       </div>
 
@@ -72,7 +72,7 @@
       </button>
 
       <ul class="nav-links">
-        <li><a href="{{ site.baseurl }}/">首页</a></li>
+        <li><a href="{{ site.baseurl }}/zh/">首页</a></li>
         <li><a href="{{ site.baseurl }}/notes/">学习资料</a></li>
         <li><a href="{{ site.baseurl }}/research/">科研妙招</a></li>
         <li><a href="{{ site.baseurl }}/life/">生活攻略</a></li>
@@ -98,6 +98,11 @@
         </div>
         
         <button class="theme-toggle" onclick="toggleTheme()" title="切换模式">&#9683;</button>
+
+        <a href="{{ site.baseurl }}/" class="lang-toggle" title="English homepage"
+           style="font-size:0.8rem;font-weight:600;letter-spacing:0.04em;color:var(--color-muted);
+                  border:1px solid var(--color-border);padding:0.3rem 0.5rem;border-radius:4px;
+                  text-decoration:none;white-space:nowrap;">EN</a>
       </div>
     </div>
   </nav>

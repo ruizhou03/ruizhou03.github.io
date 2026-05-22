@@ -1,0 +1,343 @@
+---
+layout: default
+title: 锆铌 | Rui Zhou
+---
+
+<link rel="stylesheet" href="{{ '/assets/css/home.css' | relative_url }}">
+
+{% assign valid_notes = "" | split: "" %}
+{% assign total = 0 %}
+{% assign notes_count = 0 %}
+{% assign research_count = 0 %}
+{% assign life_count = 0 %}
+{% assign essay_count = 0 %}
+
+{% for n in site.notes %}
+  {% if n.published != false %}{% assign total = total | plus: 1 %}{% endif %}
+  {% if n.date %}{% assign valid_notes = valid_notes | push: n %}{% endif %}
+  {% if n.discipline %}{% assign notes_count = notes_count | plus: 1 %}{% endif %}
+  {% assign _is_research = false %}
+  {% if n.main_category == "科研妙招" %}{% assign _is_research = true %}{% endif %}
+  {% if n.extra_categories contains "科研妙招" %}{% assign _is_research = true %}{% endif %}
+  {% if _is_research %}{% assign research_count = research_count | plus: 1 %}{% endif %}
+  {% assign _is_life = false %}
+  {% if n.main_category == "生活攻略" %}{% assign _is_life = true %}{% endif %}
+  {% if n.extra_categories contains "生活攻略" %}{% assign _is_life = true %}{% endif %}
+  {% if _is_life %}{% assign life_count = life_count | plus: 1 %}{% endif %}
+  {% assign _is_essay = false %}
+  {% if n.main_category == "随笔漫谈" %}{% assign _is_essay = true %}{% endif %}
+  {% if n.extra_categories contains "随笔漫谈" %}{% assign _is_essay = true %}{% endif %}
+  {% if _is_essay %}{% assign essay_count = essay_count | plus: 1 %}{% endif %}
+{% endfor %}
+
+{% assign all_content = valid_notes | sort: "date" | reverse %}
+{% assign hot_posts = all_content | where: "hot", true %}
+{% assign featured = hot_posts | first %}
+
+<section class="bio-section" style="margin-bottom: 3rem;">
+  <h1>关于这里</h1>
+  <p style="margin-bottom: 1rem;">
+    这里是微信公众号<strong>「锆铌」</strong>的网页版存档，涵盖硬核课程笔记、科研干货，以及随心写下的生活感悟。
+  </p>
+  <p style="margin-bottom: 1rem;">
+    顺便解释一下这个名字为什么这么独特——锆（Zr）是我名字首字母对应的元素，铌（Nb）紧排在锆后面……拼在一起大概就是一个高中化学竞赛生留下来的中二遗产——我承认确实挺蠢的，但由于历史原因就一直沿用至今了。
+  </p>
+  <p style="margin-bottom: 1rem;">
+    博主目前在宾夕法尼亚州立大学（Penn State，不是UPenn宾大！）攻读经济学博士，研究行为经济学与微观经济理论。平时喜欢跑步、健身和唱歌，热衷探索未知的风景——还是个重度强迫症患者，不然也不会有这个公众号。
+  </p>
+  <p style="margin-bottom: 1.5rem;">
+    相比公众号，这里的链接<strong>永不过期</strong>，支持<strong>全文搜索</strong>，学习资料可以直接下载，不用跳转外链。文章下方都有评论区，欢迎留言——这是我更新最大的动力！
+  </p>
+
+  <div class="notice-box" style="background: var(--color-bg-warm); border-left: 4px solid var(--color-muted); padding: 1rem 1.5rem; border-radius: 0 4px 4px 0; font-size: 0.95rem;">
+    <strong>📌 存档说明</strong><br>
+    本站不定期更新。如需了解我最新的学术动态，请移步我的<a href="https://ruizhou03.github.io/">英文学术主页</a>。
+  </div>
+
+  {% assign tool_count = site.data.toolbox | where: "status", "live" | size %}
+  <div style="font-size: 0.88rem; color: var(--color-muted); margin: 1.2rem 0 0; display: flex; flex-wrap: wrap; gap: 1.2rem 1.8rem;">
+    <span>📝 {{ total }} 份内容</span>
+    <span>🗂 4 个内容分类</span>
+    <span>🧰 百宝箱 {{ tool_count }} 个小工具</span>
+  </div>
+</section>
+
+<section style="margin-bottom: 3.5rem;">
+  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.85rem;">
+    <a href="/notes/" class="cat-card">
+      <span class="cat-icon">📚</span>
+      <div>
+        <div class="cat-name">学习资料</div>
+        <div class="cat-count">{{ notes_count }} 份资料</div>
+      </div>
+    </a>
+    <a href="/research/" class="cat-card">
+      <span class="cat-icon">🔬</span>
+      <div>
+        <div class="cat-name">科研妙招</div>
+        <div class="cat-count">{{ research_count }} 篇文章</div>
+      </div>
+    </a>
+    <a href="/life/" class="cat-card">
+      <span class="cat-icon">☕</span>
+      <div>
+        <div class="cat-name">生活攻略</div>
+        <div class="cat-count">{{ life_count }} 篇文章</div>
+      </div>
+    </a>
+    <a href="/essays/" class="cat-card">
+      <span class="cat-icon">✍️</span>
+      <div>
+        <div class="cat-name">随笔漫谈</div>
+        <div class="cat-count">{{ essay_count }} 篇文章</div>
+      </div>
+    </a>
+  </div>
+</section>
+
+
+<div class="right-stack-top">
+  <a href="{{ '/essays/welcome-home' | relative_url }}" class="announcement-side">
+    <span class="ann-emoji">📢</span>
+    <span class="ann-body">
+      <span class="ann-eyebrow">站务公告</span>
+      <span class="ann-title">我给所有文章建了一个永远不会走丢的家</span>
+    </span>
+    <span class="ann-arrow">→</span>
+  </a>
+
+  <div class="tm-side" id="tm-side" style="display: none;">
+    <div class="tm-side-eyebrow">TIME MACHINE</div>
+    <div class="tm-side-title" id="tm-side-title">曾经的今天</div>
+    <div class="tm-side-list" id="tm-side-list"></div>
+    <a class="tm-side-more" href="{{ '/toolbox/timemachine/' | relative_url }}">→ 完整时间线</a>
+  </div>
+</div>
+
+<script>
+(function () {
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  fetch('{{ "/assets/posts-by-mmdd.json" | relative_url }}', { cache: 'default' })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => {
+      const today = new Date();
+      const mmdd = pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
+      const currentYear = today.getFullYear();
+      const hits = (data.posts || [])
+        .filter(p => p.mmdd === mmdd && p.year < currentYear)
+        .sort((a, b) => b.year - a.year);
+
+      const $side = document.getElementById('tm-side');
+      const $list = document.getElementById('tm-side-list');
+      const $title = document.getElementById('tm-side-title');
+      if (!$side || !$list || !$title) return;
+
+      if (hits.length === 0) {
+        $title.textContent = '今天还没写过';
+        $list.innerHTML = '<div class="tm-side-empty">翻翻其他日子吧</div>';
+        $side.style.display = '';
+        return;
+      }
+
+      const top = hits.slice(0, 2);
+      const deltas = [...new Set(top.map(p => currentYear - p.year))];
+      $title.textContent = deltas.length === 1
+        ? `${deltas[0]} 年前的今天`
+        : '历年的今天';
+
+      const rows = top.map(p => {
+        const delta = currentYear - p.year;
+        const sub = p.subCategory ? ' · ' + escapeHtml(p.subCategory) : '';
+        return `
+          <a class="tm-side-row" href="${p.url}">
+            <span class="tm-r-title">${escapeHtml(p.title)}</span>
+            <span class="tm-r-meta">${delta} 年前${sub}</span>
+          </a>
+        `;
+      }).join('');
+
+      const moreNote = hits.length > 2
+        ? `<div class="tm-side-more-count">还有 ${hits.length - 2} 篇</div>`
+        : '';
+      $list.innerHTML = rows + moreNote;
+      $side.style.display = '';
+    })
+    .catch(() => { /* 静默失败，不显示 widget */ });
+})();
+</script>
+
+<div id="react-widget">
+  <button class="rw-main-btn" onclick="reactClick('urge')">📣 催更！</button>
+  <div class="rw-count-line">已有 <strong class="rw-num" id="urge-num">—</strong> 人在催了</div>
+  <div id="urge-days" style="display:none; font-size:0.75rem; color:var(--color-light); margin-top:0.2rem;">
+    距上次更新 <span id="urge-days-num"></span> 天
+  </div>
+  <div id="urge-chart" class="rw-chart"></div>
+
+  <hr class="rw-divider">
+
+  <div class="rw-reactions">
+    <button class="rw-reaction-btn" onclick="reactClick('like')">
+      <span class="rw-emoji">👍</span>
+      <span class="rw-r-num" id="like-num">—</span>
+    </button>
+    <button class="rw-reaction-btn" onclick="reactClick('heart')">
+      <span class="rw-emoji">❤️</span>
+      <span class="rw-r-num" id="heart-num">—</span>
+    </button>
+    <button class="rw-reaction-btn" onclick="reactClick('star')">
+      <span class="rw-emoji">🌟</span>
+      <span class="rw-r-num" id="star-num">—</span>
+    </button>
+  </div>
+
+  <hr class="rw-divider">
+
+  <button class="rw-msg-toggle" onclick="toggleMsgForm()">💬 给博主留言</button>
+  <div id="rw-msg-form" style="display:none; margin-top:0.5rem;">
+    <textarea id="rw-msg-text" maxlength="500" placeholder="留下你想说的话…"></textarea>
+    <button class="rw-send-btn" onclick="sendMsg()">发送</button>
+    <div style="font-size:0.7rem; color:var(--color-light); margin-top:0.3rem;">仅博主可见</div>
+  </div>
+  <div id="rw-feedback"></div>
+</div>
+
+<script>
+(function() {
+  const API = 'https://zircon-urge.fly.dev/api/urge';
+
+  async function loadData() {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    try {
+      const r = await fetch(API, { signal: ctrl.signal });
+      const d = await r.json();
+      setText('urge-num', d.urge);
+      setText('like-num', d.like);
+      setText('heart-num', d.heart);
+      setText('star-num', d.star);
+      if (d.daysSinceReset != null) {
+        setText('urge-days-num', d.daysSinceReset);
+        const el = document.getElementById('urge-days');
+        if (el) el.style.display = 'block';
+      }
+      renderChart(d.last15days);
+    } catch(e) {
+      // API 不通时静默：widget 默认是显示的，数字保持初始的 — ，催更按钮仍可点
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el && val !== undefined) el.textContent = val;
+  }
+
+  function renderChart(days) {
+    const chart = document.getElementById('urge-chart');
+    if (!chart || !days || !days.length) return;
+    const max = Math.max(...days.map(d => d.count), 1);
+    const today = new Date().toISOString().slice(0, 10);
+    chart.innerHTML = days.map(d => {
+      const h = Math.max(2, Math.round((d.count / max) * 18));
+      const isT = d.date === today;
+      return `<div title="${d.date}: ${d.count}" style="flex:1;height:${h}px;background:${isT?'var(--color-accent)':'var(--color-border)'};border-radius:2px 2px 0 0;"></div>`;
+    }).join('');
+  }
+
+  window.reactClick = async function(type) {
+    const numEl = document.getElementById(type + '-num');
+    try {
+      const r = await fetch(`${API}?type=${type}`, { method: 'POST' });
+      const d = await r.json();
+      if (d.duplicate) {
+        showFeedback('今天已经点过啦 ✓');
+      } else {
+        if (numEl) {
+          numEl.textContent = d.total;
+          numEl.style.transition = 'transform 0.15s';
+          numEl.style.transform = 'scale(1.5)';
+          setTimeout(() => numEl.style.transform = 'scale(1)', 160);
+        }
+        showFeedback(type === 'urge' ? '已记录！感谢催更 ✓' : '感谢！✓');
+      }
+    } catch(e) { showFeedback('网络错误，请稍后再试'); }
+  };
+
+  window.toggleMsgForm = function() {
+    const f = document.getElementById('rw-msg-form');
+    if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  };
+
+  window.sendMsg = async function() {
+    const ta = document.getElementById('rw-msg-text');
+    const text = (ta && ta.value || '').trim();
+    if (!text) return showFeedback('请先写点什么…');
+    try {
+      const r = await fetch(`${API}?action=msg`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      const d = await r.json();
+      if (d.ok) {
+        if (ta) ta.value = '';
+        toggleMsgForm();
+        showFeedback('留言已发送 ✓');
+      }
+    } catch(e) { showFeedback('发送失败，请稍后再试'); }
+  };
+
+  function showFeedback(text) {
+    const el = document.getElementById('rw-feedback');
+    if (el) { el.textContent = text; setTimeout(() => el.textContent = '', 4000); }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadData);
+})();
+</script>
+
+<section class="blog-preview">
+  <h2 style="margin-bottom: 1.5rem;">✨ 近期更新</h2>
+
+  {% if featured %}
+  <div class="featured-card">
+    <div class="featured-label">✦ 精选</div>
+    <h3>
+      {% include post-cat-badge.html post=featured %}
+      <a href="{{ featured.url | relative_url }}">{% include latex-logo.html title=featured.title %}</a>
+    </h3>
+    <div class="featured-meta">{{ featured.date | date: "%Y-%m-%d" }}</div>
+    {% assign excerpt_text = featured.content | strip_html | strip | truncate: 120 %}
+    {% if excerpt_text and excerpt_text != "" %}
+    <p class="featured-excerpt">{{ excerpt_text }}</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <ul class="post-list" style="list-style: none; padding: 0;">
+    {% assign limit = 8 %}
+    {% assign shown = 0 %}
+
+    {% for post in all_content %}
+      {% if shown >= limit %}{% break %}{% endif %}
+      {% if featured and post.url == featured.url %}{% continue %}{% endif %}
+
+      <li class="post-item" style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px dashed var(--color-border); padding: 1rem 0;">
+        <a href="{{ post.url | relative_url }}"
+          style="font-family: var(--font-body); font-size: 1.05rem; text-decoration: none; color: var(--color-accent); font-weight: 500; flex: 1; margin-right: 1rem; line-height: 1.5;">
+          {% include post-cat-badge.html post=post %}
+          {% include latex-logo.html title=post.title %}
+        </a>
+        <span class="post-meta" style="font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; color: var(--color-light); white-space: nowrap;">
+          {{ post.date | date: "%Y-%m-%d" }}
+        </span>
+      </li>
+      {% assign shown = shown | plus: 1 %}
+    {% endfor %}
+  </ul>
+</section>
