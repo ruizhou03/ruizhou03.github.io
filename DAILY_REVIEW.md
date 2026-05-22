@@ -1,3 +1,41 @@
+## 2026-05-22
+
+### ✅ 本次已自动修复
+
+本次巡检未发现需要自动修复的问题。仓库状态良好：
+
+- `jekyll build` 通过，**零 warning、零 error**（沙箱无 Gemfile，本次用 `gem install jekyll jekyll-feed jekyll-seo-tag jekyll-sitemap` 后用 rbenv 的 jekyll 4.4.1 构建；GitHub Pages 自身的构建链路不受影响）。
+- `_site/EMAIL_SUMMARY.md`、`_site/DAILY_REVIEW.md` 均未生成，exclude 生效。
+- 坏链/坏图巡检：`_notes` 全部 markdown 图片引用与 HTML `img src` 均指向存在的文件；站内绝对内链全部能在 `_site` 解析。`scripts/audit/dead_links.py` 报的几条均为非问题——fly.dev 的 `/api/*` 是 POST 端点，GET 返回 403 属正常；`fonts.googleapis.com`/`gstatic.com` 是 `preconnect` 主机不是页面链接；`centretax.net` 等几个 DNS 解析失败是沙箱网络策略所致，非真实坏链。
+- 前置字段一致性：245 篇 `_notes` 全部有 `main_category`；113 篇资料型全部有 `discipline`；32 篇菜谱 `title/total_time/difficulty/ingredients/steps` 必填字段齐全。
+- 关键词覆盖：**245/245 篇文章都已有 `keywords:` 字段**——2026-05-20 P1 提到的「113 篇老文章缺 keywords」已被后续会话补齐，该待办关闭。
+- 百宝箱一致性：`toolbox/` 下 45 个工具子目录与 `_data/toolbox.yml` 的 `url` 登记一一对应，无孤儿、无悬空。
+
+### 📋 待你把关
+
+#### P2（看心情）
+
+1. **新增的本机维护脚本里有 `/Users/zhourui/` 绝对路径，暴露在公开仓库**
+   - 来源：自上次巡检（`ca3034c`）新增的 `scripts/email_summary.sh`、`scripts/io.github.zirconeey.email-summary.plist`。
+     - `email_summary.sh:25` 写死 `REPO="/Users/zhourui/Desktop/zirconeey.github.io"`。
+     - `io.github.zirconeey.email-summary.plist` 5 处 `/Users/zhourui/...`（脚本路径、工作目录、日志路径、HOME）。
+   - 影响：把 macOS 本机用户名 `zhourui` 和桌面目录结构暴露在公开 GitHub 仓库里。**不是密钥泄漏**（凭证都走 `load_credentials()` 从环境/外部文件读，已确认无硬编码密码），只是轻微的个人环境信息外泄。
+   - 我没动它：这两个文件是你在 `a010dc5`「改用本地 LaunchAgent」里**有意提交**的本机 routine 配置；plist 的本质就是要写绝对路径，`email_summary.sh` 也确实在本机跑。是否值得为隐私把它们从 git 移除（`git rm --cached` + 进 `.gitignore`）、或把绝对路径改成 `$HOME` 相对写法，属于设计取向，交你拍板。若要保留可跟踪、又想脱敏，最小改动是把 `email_summary.sh` 的 `REPO` 改为 `REPO="$(cd "$(dirname "$0")/.." && pwd)"`，plist 没法脱敏（launchd 不认相对路径）。
+
+#### P2（看心情，承接昨日）
+
+2. **`scripts/audit/images.py` 报的 12 张较大图（500KB–1.5MB）**
+   - 与昨日基线一致，均为内容图、非冗余文件；`files/or/or-2023.pdf` 5.30 MB 也是既定基线。无需处理，仅记录。
+
+### 🗂 仓库卫生
+
+- **架构变化**：自上次 daily-review（`ca3034c`）以来新增文件**全部在 `scripts/` 下**——`email_summary.sh`、`email_summary_imap.py`、`email_summary.prompt.md`、`io.github.zirconeey.email-summary.plist`、`audit/caption_whitelist.txt`，均是 email-summary routine 的脚本与审计白名单，无新增内容目录、无新文件类型。`scripts/` 已在 `_config.yml` exclude 内，不会发布成站点页面。**目录结构层面较昨日无实质变化，无需再优化。**
+- **追踪卫生**：工作树扫描无 `.DS_Store`、无 `* 2.*` macOS 副本、无 `*.bak`/`*~` 编辑器垃圾；`_site/`、`.jekyll-cache/` 已被 `.gitignore` 正确忽略。
+- **密钥扫描**：新增脚本逐一扫描，无硬编码密码/令牌（IMAP 凭证走外部加载）。唯一发现是 P2#1 的本机绝对路径，已写进待办交你把关。
+- **结论**：今日无可安全自动修复项，仓库结构相对昨日无变化、无需再优化；唯一新发现是新脚本里的本机路径外泄（P2，非密钥，交你定夺）。
+
+---
+
 ## 2026-05-21
 
 ### ✅ 本次已自动修复
