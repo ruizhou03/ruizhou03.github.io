@@ -1,8 +1,7 @@
 {%- comment -%}
   锆石小助手 —— 站内问答小助手，由 default.html 全站挂载。
-  混合方案：前端先在 /assistant-index.json（构建期自动生成）里检索出候选条目，
-  再连同问题发给后端 DeepSeek 端点，让它用自然语言回答并挑出该推荐的卡片。
-  后端不可用 / 超预算 / 离线时自动降级回纯前端检索，体验不中断。
+  问题发给后端 DeepSeek 端点，后端把整站目录喂给 AI，由它判断回答与推荐卡片。
+  后端不可用 / 超预算 / 离线时，自动降级回 /assistant-index.json 上的纯前端检索。
   整段用 raw 包裹：里面的 JS 模板字符串/对象字面量不会被 Liquid 误解析。
 {%- endcomment -%}
 {% raw %}
@@ -345,28 +344,22 @@
   }
 
   // ---------- 后端 AI（DeepSeek）----------
-  // 把检索到的候选条目 + 问题发给后端；成功返回 {reply, picks}，
-  // 任何失败 / 降级 / 离线都返回 null，由调用方退回纯检索。
-  function askAI(q, hits) {
-    var ctx = hits.slice(0, 8).map(function (h) {
-      return { title: h.title, category: h.category, summary: h.summary, type: h.type };
-    });
+  // 只发用户问题；后端把整站目录喂给 DeepSeek，由 AI 自己判断回答与推荐。
+  // 成功返回 {reply, cards}，任何失败 / 降级 / 离线都返回 null，调用方退回纯检索。
+  function askAI(q) {
     var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 22000) : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 28000) : null;
     return fetch(AI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: q, context: ctx }),
+      body: JSON.stringify({ query: q }),
       signal: ctrl ? ctrl.signal : undefined
     }).then(function (r) {
       if (timer) clearTimeout(timer);
       return r.ok ? r.json() : null;
     }).then(function (d) {
       if (!d || d.fallback || !d.reply) return null;
-      var picks = Array.isArray(d.picks)
-        ? d.picks.filter(function (n) { return typeof n === 'number' && n >= 0; })
-        : [];
-      return { reply: String(d.reply), picks: picks };
+      return { reply: String(d.reply), cards: Array.isArray(d.cards) ? d.cards : [] };
     }).catch(function () {
       if (timer) clearTimeout(timer);
       return null;
@@ -409,25 +402,22 @@
     if (/^(谢谢|多谢|thx|thanks|感谢)/i.test(q)) { pushBot('不客气～还想找别的随时问我 🙂'); return; }
 
     var typing = showTyping();
-    loadIndex().then(function () {
-      var r = search(q);
-      return askAI(q, r.hits).then(function (ai) {
+    askAI(q).then(function (ai) {
+      if (ai) {
+        // AI 路径：DeepSeek 看着整站目录给出的回答 + 推荐卡片
         if (typing.parentNode) body.removeChild(typing);
-        if (ai) {
-          // AI 路径：自然语言回答 + AI 挑出的卡片
-          pushBot(ai.reply);
-          var picks = ai.picks
-            .map(function (i) { return r.hits[i]; })
-            .filter(Boolean);
-          if (picks.length) pushCards('', picks);
-        } else {
-          // 降级路径：纯检索
-          renderLocal(r, q);
-        }
+        pushBot(ai.reply);
+        if (ai.cards.length) pushCards('', ai.cards);
+        return;
+      }
+      // 降级路径：AI 不可用时回退到纯前端检索
+      return loadIndex().then(function () {
+        if (typing.parentNode) body.removeChild(typing);
+        renderLocal(search(q), q);
       });
     }).catch(function () {
       if (typing.parentNode) body.removeChild(typing);
-      pushBot('索引一时没加载出来，可能是网络问题 🙏 可以先用页面顶部的搜索框找找。');
+      pushBot('一时没连上，可以先用页面顶部的搜索框找找 🙏');
     });
   }
 
