@@ -19,7 +19,7 @@
  *       stats: [{ label: '最大方块', value: 2048 }],
  *       paintBoard: (ctx, x, y, w, h) => { ... },
  *       boardAspect: 1,                              // 默认 1
- *       watermark: 'zirconeey.github.io/toolbox/2048',
+ *       watermark: 'ruizhou03.github.io/toolbox/2048',
  *     }),
  *   });
  *   btn.setEnabled(false);                            // 游戏未结束时禁用
@@ -234,7 +234,7 @@
       // 水印
       ctx.fillStyle = colors.muted;
       ctx.font = `10px ${FONT}`;
-      ctx.fillText(opts.watermark || 'zirconeey.github.io', W / 2, H - 14);
+      ctx.fillText(opts.watermark || 'ruizhou03.github.io', W / 2, H - 14);
 
       return off.toDataURL('image/png');
     } catch (e) {

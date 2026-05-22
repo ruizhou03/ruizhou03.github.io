@@ -1,6 +1,6 @@
 ---
 name: wechat-export
-description: 把 zirconeey.github.io 站的源 markdown 文章转换成适合粘贴到 https://md.doocs.org/（公众号 markdown 排版工具）的版本，并自动拷到剪贴板。当用户说"导出公众号 / 发公众号 / 转一下排版 / wechat 版 / 转 doocs"等时使用。仅适用于 layout=post 的文章；菜谱（layout=recipe）有结构化 YAML 字段，不适用此 skill。
+description: 把 ruizhou03.github.io 站的源 markdown 文章转换成适合粘贴到 https://md.doocs.org/（公众号 markdown 排版工具）的版本，并自动拷到剪贴板。当用户说"导出公众号 / 发公众号 / 转一下排版 / wechat 版 / 转 doocs"等时使用。仅适用于 layout=post 的文章；菜谱（layout=recipe）有结构化 YAML 字段，不适用此 skill。
 ---
 
 # wechat-export — 导出公众号版 markdown
@@ -12,7 +12,7 @@ description: 把 zirconeey.github.io 站的源 markdown 文章转换成适合粘
 调用 `scripts/wx_render.py`，输入源 `.md` 文件，做三件事：
 
 1. **剥掉 YAML front-matter**（doocs/md 不识别）
-2. **图片相对路径 → 绝对 URL**：`/files/images/{slug}/01.jpg` → `https://zirconeey.github.io/files/images/{slug}/01.jpg`。GitHub Pages 充当图床，公众号粘贴后会自动转存到腾讯 CDN
+2. **图片相对路径 → 绝对 URL**：`/files/images/{slug}/01.jpg` → `https://ruizhou03.github.io/files/images/{slug}/01.jpg`。GitHub Pages 充当图床，公众号粘贴后会自动转存到腾讯 CDN
 3. **保留图片配文样式**：站点的 `<p class="img-caption">…</p>` → 等价的 inline style 版（居中、13 px、`#9ca3af` 灰）。doocs/md 原样保留这段 HTML，复制到公众号后 inline style 也保留，**视觉和站点一致**
 
 转换后内容写到 stdout，并自动 `pbcopy` 到 macOS 剪贴板。
@@ -43,7 +43,7 @@ description: 把 zirconeey.github.io 站的源 markdown 文章转换成适合粘
 ## 不适用范围
 
 - **菜谱**（`layout: recipe`）：`ingredients` / `prep` / `steps` 在 YAML 里，剥掉 YAML 后会丢失。需要单独处理（暂未实现）
-- **跨 zirconeey 链接**：文章里若有指向 `/notes/...` 的内部链接，转换后是 zirconeey.github.io 域，公众号读者点击会跳到本站；这是预期行为
+- **跨 zirconeey 链接**：文章里若有指向 `/notes/...` 的内部链接，转换后是 ruizhou03.github.io 域，公众号读者点击会跳到本站；这是预期行为
 - **代码块语法高亮**：doocs/md 自己处理，不需要 skill 干预
 
 ## 配套文件

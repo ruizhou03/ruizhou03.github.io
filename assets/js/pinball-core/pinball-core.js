@@ -1068,7 +1068,7 @@
               else paintDefaultSnapshot(ctx, x, y, w, h);
             },
             boardAspect: W / H,
-            watermark: shell.watermark || 'zirconeey.github.io/toolbox/pinball',
+            watermark: shell.watermark || 'ruizhou03.github.io/toolbox/pinball',
           }),
           startDisabled: true,
         });

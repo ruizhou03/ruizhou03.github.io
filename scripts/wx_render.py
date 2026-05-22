@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-把 zirconeey.github.io 的源 markdown 转换成适合粘贴到 https://md.doocs.org/
+把 ruizhou03.github.io 的源 markdown 转换成适合粘贴到 https://md.doocs.org/
 （公众号排版工具）的版本。
 
 转换规则：
   1. 剥掉 YAML front-matter
-  2. 图片相对路径 / -> 绝对 URL https://zirconeey.github.io/...
+  2. 图片相对路径 / -> 绝对 URL https://ruizhou03.github.io/...
   3. <p class="img-caption">…</p>
        -> <p style="text-align:center;font-size:13px;color:#9ca3af;
                     line-height:1.6;margin-top:6px;">…</p>
@@ -26,7 +26,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-SITE_BASE = "https://zirconeey.github.io"
+SITE_BASE = "https://ruizhou03.github.io"
 CAPTION_STYLE = (
     "text-align:center;font-size:13px;color:#9ca3af;"
     "line-height:1.6;margin-top:6px;"
