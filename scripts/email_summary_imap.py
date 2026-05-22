@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""邮件 summary 的 IMAP I/O —— 纯标准库，无 pip 依赖。
+"""邮件 summary 的 Gmail I/O。
 
-两个模式：
+三个模式：
   fetch <since_iso> <out_json>   从 Gmail 收件箱拉 SINCE 之后的邮件 → 写 JSON
   draft <drafts_json>            读 JSON、把回复草稿 APPEND 进 Gmail 草稿箱
+  send <subject> <body_md>       把 markdown 正文渲染成 HTML，经 SMTP 私密直投到自己邮箱
+                                 （summary 不再 commit 进公开仓库、不再走公开 GitHub Issue）
+
+fetch/draft 纯标准库；send 的 HTML 渲染用 markdown 库（缺失则退化为纯文本，不致命）。
 
 凭证：~/.config/zirconeey-email-summary/imap_credentials（chmod 600），格式：
   IMAP_USER=ruizhou0312@gmail.com
@@ -21,6 +25,7 @@ import imaplib
 import json
 import os
 import re
+import smtplib
 import socket
 import ssl
 import sys
@@ -304,10 +309,94 @@ def cmd_draft(drafts_path):
             pass
 
 
+# ─────────────────────── send：SMTP 私密直投 ───────────────────────
+
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = 465
+
+_HTML_SHELL = """<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+body{{font-family:-apple-system,"PingFang SC","Microsoft YaHei",Helvetica,Arial,sans-serif;
+color:#222;line-height:1.65;max-width:680px;margin:0 auto;padding:18px;font-size:15px}}
+h1{{font-size:21px}}
+h2{{font-size:17px;border-bottom:1px solid #e5e5e7;padding-bottom:5px;margin:24px 0 10px}}
+h3{{font-size:15px;margin:16px 0 6px}}
+table{{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0}}
+th,td{{border:1px solid #dcdce0;padding:6px 10px;text-align:left}}
+th{{background:#f5f5f7}}
+code{{background:#f4f4f6;padding:1px 5px;border-radius:3px;font-size:13px}}
+details{{margin:8px 0}} summary{{cursor:pointer;color:#0a66c2}}
+hr{{border:none;border-top:1px solid #ebebed;margin:20px 0}}
+a{{color:#0a66c2;text-decoration:none}}
+</style></head><body>
+{content}
+</body></html>"""
+
+
+class ProxySMTP_SSL(smtplib.SMTP_SSL):
+    """经 HTTP CONNECT 代理连接的 SMTP_SSL（国内经 Clash 用）。"""
+
+    def __init__(self, host, port, proxy_host, proxy_port):
+        self._proxy = (proxy_host, int(proxy_port))
+        super().__init__(host, port, context=_ssl_context(), timeout=30)
+
+    def _get_socket(self, host, port, timeout):
+        log(f"经代理 {self._proxy[0]}:{self._proxy[1]} CONNECT 到 {host}:{port}")
+        raw = socket.create_connection(self._proxy, timeout or 30)
+        raw.sendall((f"CONNECT {host}:{port} HTTP/1.1\r\n"
+                     f"Host: {host}:{port}\r\n\r\n").encode("ascii"))
+        resp = b""
+        while b"\r\n\r\n" not in resp:
+            chunk = raw.recv(4096)
+            if not chunk:
+                break
+            resp += chunk
+        status_line = resp.split(b"\r\n", 1)[0].decode("latin-1", "replace")
+        if " 200 " not in status_line:
+            raw.close()
+            raise OSError(f"代理 CONNECT 失败：{status_line}")
+        return self.context.wrap_socket(raw, server_hostname=host)
+
+
+def _render_html(md_text):
+    """markdown 正文 → HTML 邮件正文；markdown 库缺失则退化为 <pre> 块。"""
+    try:
+        import markdown
+        body = markdown.markdown(md_text, extensions=["tables", "sane_lists"])
+    except Exception as e:
+        log(f"markdown 渲染不可用，退化为纯文本：{e}")
+        body = "<pre>" + md_text.replace("&", "&amp;").replace("<", "&lt;") + "</pre>"
+    return _HTML_SHELL.format(content=body)
+
+
+def cmd_send(subject, body_path):
+    """把 markdown 正文渲染成 HTML，经 SMTP 私密直投到自己邮箱。"""
+    user, passwd = load_credentials()
+    md = Path(body_path).read_text(encoding="utf-8")
+    msg = email.message.EmailMessage()
+    msg["From"] = user
+    msg["To"] = user                       # 私密直投：发给自己
+    msg["Subject"] = subject
+    msg["Date"] = email.utils.formatdate(localtime=True)
+    msg.set_content(md)                                    # 纯文本兜底
+    msg.add_alternative(_render_html(md), subtype="html")  # 渲染版
+
+    proxy_host = os.environ.get("IMAP_PROXY_HOST", "").strip()
+    proxy_port = os.environ.get("IMAP_PROXY_PORT", "").strip()
+    if proxy_host and proxy_port:
+        srv = ProxySMTP_SSL(SMTP_HOST, SMTP_PORT, proxy_host, proxy_port)
+    else:
+        log(f"直连 {SMTP_HOST}:{SMTP_PORT}")
+        srv = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=_ssl_context(), timeout=30)
+    with srv:
+        srv.login(user, passwd)
+        srv.send_message(msg)
+    log(f"summary 邮件已发往 {user}")
+
+
 def main():
     if len(sys.argv) < 2:
         sys.exit("用法：email_summary_imap.py fetch <since_iso> <out_json> | "
-                 "draft <drafts_json>")
+                 "draft <drafts_json> | send <subject> <body_md>")
     mode = sys.argv[1]
     if mode == "fetch":
         if len(sys.argv) != 4:
@@ -317,6 +406,10 @@ def main():
         if len(sys.argv) != 3:
             sys.exit("用法：email_summary_imap.py draft <drafts_json>")
         cmd_draft(sys.argv[2])
+    elif mode == "send":
+        if len(sys.argv) != 4:
+            sys.exit("用法：email_summary_imap.py send <subject> <body_md>")
+        cmd_send(sys.argv[2], sys.argv[3])
     else:
         sys.exit(f"未知模式：{mode}")
 

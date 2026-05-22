@@ -10,7 +10,10 @@
 #   5. claude 跑 email_summary.prompt.md —— 读 inbox.json，写 EMAIL_SUMMARY.md /
 #      state / /tmp/email_summary_drafts.json（claude 只读写本地文件，不碰网络）
 #   6. email_summary_imap.py draft   —— 把草稿 APPEND 进 Gmail 草稿箱
-#   7. git commit + push（带 rebase 重试）→ GitHub Action 转 Issue 邮件
+#   7. email_summary_imap.py send    —— 抽出最新 summary 小节，SMTP 私密直投到自己邮箱
+#
+# 隐私：EMAIL_SUMMARY.md 含真实邮件主题/发件人，绝不 commit 进公开仓库、绝不走公开
+# GitHub Issue。它只作本机存档（已 gitignore）；投递一律走 SMTP 私密邮件。
 #
 # 为什么这套架构：claude.ai 的 Gmail web connector 只能在交互式会话用，
 # 远程 routine 和本地 headless claude 都加载不了它（见 GitHub issue #45306）。
@@ -216,31 +219,34 @@ else
     log "无 ${DRAFTS_JSON}，跳过草稿步骤"
 fi
 
-# ── 7. git commit + push（带 rebase 重试）──
-git add EMAIL_SUMMARY.md _data/email_summary_state.json 2>>"$LOG"
-if git diff --cached --quiet; then
-    log "无改动可提交（claude 可能没改文件），跳过 push"
-    notify "本时段 summary 跑完但无文件改动，看日志确认" "Tink"
+# ── 7. SMTP 私密直投 ──
+# EMAIL_SUMMARY.md 含真实邮件主题/发件人，绝不进公开仓库、绝不走公开 GitHub Issue。
+# 抽出本时段最新一节，经 SMTP 直发到自己邮箱。EMAIL_SUMMARY.md 只作本机存档。
+if [ ! -s "$REPO/EMAIL_SUMMARY.md" ]; then
+    log "EMAIL_SUMMARY.md 不存在或为空，无可投递"
+    notify "本时段 summary 跑完但无内容，看日志确认" "Tink"
     mark_done
-    log "==== done (nothing to commit) ===="; exit 0
+    log "==== done (nothing) ===="; exit 0
 fi
-git commit -m "ops(email-summary): $TODAY $SLOT 自动邮件 summary" >> "$LOG" 2>&1
-PUSHED=0
-for attempt in 1 2 3 4 5; do
-    if git pull --rebase --autostash origin main >> "$LOG" 2>&1 && git push origin main >> "$LOG" 2>&1; then
-        PUSHED=1; break
-    fi
-    log "push 第 $attempt 次失败，5s 后重试"; sleep 5
-done
-
-if [ "$PUSHED" = 1 ]; then
-    log "push OK (slot=$SLOT)"
+# 抽出最新一节：第一个 "## " 起、到下一个 "## " 前
+SECTION="/tmp/email_summary_section.md"
+awk 'f && /^## /{exit} /^## /{f=1} f' "$REPO/EMAIL_SUMMARY.md" > "$SECTION"
+HEADER="$(grep -m1 '^## ' "$REPO/EMAIL_SUMMARY.md" | sed 's/^##[[:space:]]*//' | tr -d '\r')"
+if [ ! -s "$SECTION" ]; then
+    log "抽不出 summary 小节，跳过投递"
+    notify "summary 小节为空，看日志确认" "Tink"
     mark_done
-    notify "$SLOT 时段邮件 summary 已完成，详情见 GitHub Issue 邮件" "Glass"
+    log "==== done (no section) ===="; exit 0
+fi
+log "SMTP 私密投递最新 summary 小节：$HEADER"
+if python3 "$IMAP_PY" send "📧 邮件 summary ${HEADER}" "$SECTION" >> "$LOG" 2>&1; then
+    log "SMTP 投递 OK (slot=$SLOT)"
+    mark_done
+    notify "$SLOT 时段邮件 summary 已发到你邮箱" "Glass"
     log "==== done ===="; exit 0
 else
-    log "push FAILED after 5 tries（commit 已在本地，下次会一并推上去）"
+    log "SMTP 投递失败"
+    notify "summary 已生成但邮件投递失败，看日志" "Basso"
     mark_done
-    notify "summary 已生成但 push 失败，下次自动补推" "Tink"
-    log "==== done (push pending) ===="; exit 0
+    log "==== done (deliver failed) ===="; exit 1
 fi
