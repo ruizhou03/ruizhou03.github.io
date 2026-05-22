@@ -2,19 +2,15 @@
 # -*- coding: utf-8 -*-
 """锆铌·机票监控 —— 通知投递层。由 flight_watch.sh 调用。
 
-读 claude 写好的裁决文件，按需三渠道投递：Bark iOS 推送 / Mac 本地通知 / SMTP 私密邮件。
-裁决 should_notify=false 时安静退出。每个渠道独立容错，一个挂了不影响其它。
+读 claude 写好的裁决文件，按需两渠道投递：Mac 本地通知 + SMTP 私密邮件。
+邮件正文把 claude 写的 markdown 报告渲染成 HTML（表格/标题正常显示，不再是源码）。
+裁决 should_notify=false 时安静退出。两渠道独立容错。
 
   flight_watch_notify.py send   读 /tmp/flight_watch_verdict.json + report.md，按裁决投递
-  flight_watch_notify.py test   发一条测试通知，验证三渠道配置
+  flight_watch_notify.py test   发一条测试通知，验证两渠道配置
 
-凭证：
-  Gmail SMTP —— 复用 ~/.config/zirconeey-email-summary/imap_credentials
-                （IMAP_USER / IMAP_APP_PASSWORD；应用专用密码同样能用于 SMTP）
-  Bark       —— ~/.config/zirconeey-flight-watch/credentials 里写：
-                  BARK_KEY=xxxxxxxx              （官方服务器）
-                  BARK_SERVER=https://api.day.app（可选，自建服务器才改）
-                没配 Bark 就自动跳过该渠道。
+凭证：Gmail SMTP 复用 ~/.config/zirconeey-email-summary/imap_credentials
+      （IMAP_USER / IMAP_APP_PASSWORD；应用专用密码同样能用于 SMTP）。
 代理：在国内时 smtp.gmail.com 走不通，环境变量 IMAP_PROXY_HOST/PORT 有值则经 Clash 隧道。
 """
 import json
@@ -24,33 +20,46 @@ import socket
 import ssl
 import subprocess
 import sys
-import urllib.request
 from email.message import EmailMessage
 from pathlib import Path
 
 VERDICT_PATH = Path("/tmp/flight_watch_verdict.json")
 REPORT_PATH = Path("/tmp/flight_watch_report.md")
 GMAIL_CRED = Path.home() / ".config" / "zirconeey-email-summary" / "imap_credentials"
-FW_CRED = Path.home() / ".config" / "zirconeey-flight-watch" / "credentials"
 
 SMTP_HOST, SMTP_PORT = "smtp.gmail.com", 465
+
+# 邮件 HTML 外壳样式（Gmail 等客户端对 <style> 支持良好）
+HTML_SHELL = """<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+body{{font-family:-apple-system,"PingFang SC","Microsoft YaHei",Helvetica,Arial,sans-serif;
+color:#222;line-height:1.65;max-width:680px;margin:0 auto;padding:18px;font-size:15px}}
+h1{{font-size:21px;margin:0 0 12px}}
+h2{{font-size:17px;border-bottom:1px solid #e5e5e7;padding-bottom:5px;margin:26px 0 10px}}
+h3{{font-size:15px;margin:18px 0 6px}}
+table{{border-collapse:collapse;width:100%;margin:10px 0;font-size:14px}}
+th,td{{border:1px solid #dcdce0;padding:6px 10px;text-align:left}}
+th{{background:#f5f5f7}}
+code{{background:#f4f4f6;padding:1px 5px;border-radius:3px;font-size:13px}}
+hr{{border:none;border-top:1px solid #ebebed;margin:22px 0}}
+a{{color:#0a66c2;text-decoration:none}}
+strong{{color:#111}}
+</style></head><body>
+{content}
+</body></html>"""
 
 
 def log(msg):
     print(f"[notify] {msg}", file=sys.stderr, flush=True)
 
 
-# ─────────────────────────── 凭证 ───────────────────────────
-
 def _read_kv(path):
     d = {}
-    if not path.exists():
-        return d
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            k, v = line.split("=", 1)
-            d[k.strip()] = v.strip()
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                d[k.strip()] = v.strip()
     return d
 
 
@@ -85,35 +94,7 @@ def notify_mac(title, body):
         return False
 
 
-# ─────────────────────────── 渠道 2：Bark iOS 推送 ───────────────────────────
-
-def notify_bark(title, body, url=None):
-    cred = _read_kv(FW_CRED)
-    key = cred.get("BARK_KEY")
-    if not key:
-        log("未配置 BARK_KEY，跳过 Bark（在 "
-            f"{FW_CRED} 写一行 BARK_KEY=... 即可启用）")
-        return None
-    server = cred.get("BARK_SERVER", "https://api.day.app").rstrip("/")
-    payload = {"title": title, "body": body, "group": "机票监控",
-               "sound": "alarm", "level": "timeSensitive"}
-    if url:
-        payload["url"] = url
-    try:
-        req = urllib.request.Request(
-            f"{server}/{key}", method="POST",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json; charset=utf-8"})
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            ok = resp.status == 200
-        log("Bark 推送 OK" if ok else f"Bark 推送返回 {resp.status}")
-        return ok
-    except Exception as e:
-        log(f"Bark 推送失败：{e}")
-        return False
-
-
-# ─────────────────────────── 渠道 3：SMTP 私密邮件 ───────────────────────────
+# ─────────────────────────── 渠道 2：SMTP 私密邮件 ───────────────────────────
 
 class _ProxySMTP_SSL(smtplib.SMTP_SSL):
     """经 HTTP CONNECT 代理连接的 SMTP_SSL（国内经 Clash 用）。"""
@@ -138,7 +119,18 @@ class _ProxySMTP_SSL(smtplib.SMTP_SSL):
         return self.context.wrap_socket(raw, server_hostname=host)
 
 
-def notify_email(subject, text_body):
+def _render_html(md_text):
+    """把 markdown 报告渲染成 HTML 邮件正文；markdown 库缺失时退化为 <pre>。"""
+    try:
+        import markdown
+        body = markdown.markdown(md_text, extensions=["tables", "sane_lists"])
+    except Exception as e:
+        log(f"markdown 渲染失败（退化为纯文本块）：{e}")
+        body = "<pre>" + (md_text.replace("&", "&amp;").replace("<", "&lt;")) + "</pre>"
+    return HTML_SHELL.format(content=body)
+
+
+def notify_email(subject, md_report):
     cred = _read_kv(GMAIL_CRED)
     user = cred.get("IMAP_USER")
     passwd = (cred.get("IMAP_APP_PASSWORD") or "").replace(" ", "")
@@ -150,7 +142,8 @@ def notify_email(subject, text_body):
     msg["From"] = user
     msg["To"] = user                       # 私密直投：发给自己
     msg["Subject"] = subject
-    msg.set_content(text_body)
+    msg.set_content(md_report)             # 纯文本兜底
+    msg.add_alternative(_render_html(md_report), subtype="html")  # 渲染版
 
     ctx = _ssl_context()
     proxy_host = os.environ.get("IMAP_PROXY_HOST", "").strip()
@@ -173,7 +166,7 @@ def notify_email(subject, text_body):
 # ─────────────────────────── 组装 ───────────────────────────
 
 def _build_messages(verdict):
-    """据裁决拼出 (推送标题, 推送短正文, 邮件主题, 跳转URL)。"""
+    """据裁决拼出 (推送标题, 推送短正文, 邮件主题)。"""
     reason = verdict.get("reason", "")
     summary = verdict.get("summary", "机票监控")
     deals = verdict.get("deals", []) or []
@@ -181,26 +174,20 @@ def _build_messages(verdict):
     if reason == "deal" and deals:
         top = deals[0]
         title = f"✈️ 捡漏！{top.get('route','')} ${top.get('price','')}"
-        lines = []
-        for d in deals[:3]:
-            lines.append(f"{d.get('route','')} {d.get('date','')}：${d.get('price','')}"
-                         f"（{d.get('price_note','')}）")
-        body = "\n".join(lines) + "\n\n快去抢 ——详情见邮件"
-        url = top.get("url")
+        lines = [f"{d.get('route','')} {d.get('date','')}：${d.get('price','')}"
+                 f"（{d.get('price_note','')}）" for d in deals[:3]]
+        body = "\n".join(lines) + "\n\n快去抢 —— 详情见邮件"
     elif reason == "first_run":
         title = "✈️ 机票监控已启动"
         body = summary
-        url = None
     elif reason == "scrape_problem":
         title = "⚠️ 机票监控抓取异常"
         body = summary + "\n可能需要修脚本，详情见邮件"
-        url = None
     else:
         title = "✈️ 机票监控"
         body = summary
-        url = None
     subject = f"{title}　{verdict.get('run_at','')[:16].replace('T',' ')}"
-    return title, body, subject, url
+    return title, body, subject
 
 
 def cmd_send():
@@ -212,24 +199,22 @@ def cmd_send():
         log(f"裁决 should_notify=false（reason={verdict.get('reason')}），安静退出")
         return 0
 
-    title, push_body, subject, url = _build_messages(verdict)
+    title, push_body, subject = _build_messages(verdict)
     report = REPORT_PATH.read_text(encoding="utf-8") if REPORT_PATH.exists() else push_body
 
     log(f"投递中：{title}")
     notify_mac(title, push_body)
-    notify_bark(title, push_body, url)
     notify_email(subject, report)
     return 0
 
 
 def cmd_test():
-    log("发送测试通知到三个渠道 ...")
-    notify_mac("✈️ 机票监控·测试", "三渠道测试通知，看到即正常。")
-    notify_bark("✈️ 机票监控·测试", "三渠道测试通知，看到即正常。",
-                "https://us.trip.com/flights/")
+    log("发送测试通知到两个渠道 ...")
+    notify_mac("✈️ 机票监控·测试", "两渠道测试通知，看到即正常。")
     notify_email("✈️ 机票监控·测试",
-                 "这是机票监控的测试邮件。\n"
-                 "收到说明 SMTP 私密直投已就绪。")
+                 "# 机票监控·测试\n\n这是机票监控的测试邮件。\n\n"
+                 "| 渠道 | 状态 |\n|---|---|\n| Mac 通知 | ✅ |\n| SMTP 邮件 | ✅ |\n\n"
+                 "收到且这个表格能正常渲染，说明 HTML 邮件就绪。")
     return 0
 
 
@@ -240,7 +225,7 @@ def main():
     elif mode == "test":
         sys.exit(cmd_test())
     else:
-        sys.exit(f"用法：flight_watch_notify.py send | test")
+        sys.exit("用法：flight_watch_notify.py send | test")
 
 
 if __name__ == "__main__":

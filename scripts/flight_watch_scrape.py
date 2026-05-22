@@ -7,10 +7,13 @@
   run                            读 config.json，遍历所有 航线×日期 抓取+硬过滤，
                                  结果写 /tmp/flight_watch_results.json，供 claude 那层判断。
 
-抓取手法：用 Playwright 开 Trip.com 的 showfarefirst 结果页，拦截页面自己发出的
-FlightListSearchSSE（航班全量列表，事件流）响应，直接解析其 JSON。
+抓取手法：用 Playwright 开 Trip.com 的 showfarefirst 结果页，拦截页面自己发出的两个接口：
+  - FlightListSearchSSE     航班全量列表（事件流）—— 解析出每条 itinerary 做硬过滤
+  - GetLowPriceInCalender   该航线未来 ~170 天的每日最低价 —— 每条航线抓一次，
+                            给 claude 做「价格趋势 / 淡旺季」分析（见 prompt 改进 3）
+
 列表 JSON 里 stops / 联程 / 托运行李 等硬性字段都是现成的，本脚本直接做硬过滤；
-「便宜到值不值得抢」的判断留给 claude 那层。
+「便宜到值不值得抢」「趋势」的判断留给 claude 那层。
 
 抓不到时如实记 status（blocked / no_data / error），绝不静默。
 依赖：Playwright，装在 ~/.config/zirconeey-flight-watch/venv。
@@ -37,7 +40,7 @@ UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
 # 中东航司 IATA 代码（与城市码互为冗余保险）
 MIDDLE_EAST_AIRLINE_CODES = {"QR", "TK", "EK", "EY", "SV", "WY", "GF", "KU", "IR", "J2", "G9", "FZ"}
 
-KEEP_TOP_N = 6           # 每个搜索保留最便宜的几条「合规」offer
+KEEP_TOP_N = 5           # 每个搜索保留最便宜的几条「合规」offer
 
 
 def log(msg):
@@ -95,22 +98,50 @@ def _wait_for_sse(bodies, rounds):
     return False
 
 
-def fetch_itineraries(ctx, dcity, acity, ddate, qty=1):
-    """开一次搜索页，回收 FlightListSearchSSE 里的全量 itineraryList。
+def _parse_calendar(body):
+    """解析 GetLowPriceInCalender 响应 → {date_iso: lowest_price}。
 
-    返回 (itinerary_list, airline_map, status)。
+    dDate 是「中国本地零点」的 epoch 秒，加 8 小时再取日期才对得上。
+    这些价是日历上的「最低价」（可能含被淘汰的拼接票），仅作趋势 / 淡旺季的形状参考。"""
+    try:
+        d = json.loads(body.decode("utf-8", "replace"))
+    except Exception:
+        return None
+    cal = {}
+    for item in d.get("lowPriceInCalenderDtoInfoList") or []:
+        ts = item.get("dDate")
+        price = item.get("currencyPrice") or item.get("originPrice")
+        if ts and price:
+            try:
+                iso = datetime.utcfromtimestamp(int(ts) + 8 * 3600).strftime("%Y-%m-%d")
+                cal[iso] = price
+            except Exception:
+                continue
+    return cal or None
+
+
+def fetch_itineraries(ctx, dcity, acity, ddate, qty=1, want_calendar=False):
+    """开一次搜索页，回收 FlightListSearchSSE 的 itineraryList（want_calendar 时连价格日历一起）。
+
+    返回 (itinerary_list, airline_map, calendar, status)。
+    calendar: {date_iso: lowest_price} 或 None。
     status: ok / no_data / blocked / error:<msg>
     """
     page = ctx.new_page()
-    bodies = []
+    bodies, cal_bodies = [], []
 
     def on_response(resp):
-        if "FlightListSearchSSE" not in resp.url:
-            return
-        try:
-            bodies.append(resp.body())
-        except Exception as e:
-            log(f"  读 SSE body 失败：{e}")
+        u = resp.url
+        if "FlightListSearchSSE" in u:
+            try:
+                bodies.append(resp.body())
+            except Exception as e:
+                log(f"  读 SSE body 失败：{e}")
+        elif want_calendar and "GetLowPriceInCalender" in u:
+            try:
+                cal_bodies.append(resp.body())
+            except Exception:
+                pass
 
     page.on("response", on_response)
     url = TRIP_URL.format(dcity=dcity.lower(), acity=acity.lower(), ddate=ddate, qty=qty)
@@ -136,8 +167,14 @@ def fetch_itineraries(ctx, dcity, acity, ddate, qty=1):
     finally:
         page.close()
 
+    calendar = None
+    for b in cal_bodies:
+        calendar = _parse_calendar(b)
+        if calendar:
+            break
+
     if status != "ok":
-        return [], {}, status
+        return [], {}, calendar, status
 
     # 合并所有 SSE 批次的 itineraryList，按 uniqueId 去重
     itineraries, seen, airline_map = [], set(), {}
@@ -160,7 +197,7 @@ def fetch_itineraries(ctx, dcity, acity, ddate, qty=1):
                 continue
             seen.add(uid)
             itineraries.append(it)
-    return itineraries, airline_map, ("ok" if itineraries else "no_data")
+    return itineraries, airline_map, calendar, ("ok" if itineraries else "no_data")
 
 
 # ─────────────────────────── 解析 + 硬过滤 ───────────────────────────
@@ -195,10 +232,9 @@ def parse_offer(it, airline_map):
     secs = journey.get("transSectionList") or []
     flight_secs = [s for s in secs if s.get("transportType") == "FLIGHT"]
     policy = (it.get("policies") or [{}])[0]
-    price = (((policy.get("price") or {}).get("totalPrice")))
+    price = (policy.get("price") or {}).get("totalPrice")
 
     pflags = _flag_set(policy.get("policyFlags"))
-    jflags = _flag_set(journey.get("journeyFlags"))
     tagkeys = {t.get("key") for t in (policy.get("tagList") or []) if isinstance(t, dict)}
 
     segments = []
@@ -207,16 +243,15 @@ def parse_offer(it, airline_map):
         fi = s.get("flightInfo") or {}
         code = fi.get("airlineCode")
         segments.append({
-            "from": dp.get("airportCode"), "from_city": dp.get("cityName"),
-            "to": ap.get("airportCode"), "to_city": ap.get("cityName"),
+            "from": dp.get("airportCode"), "to": ap.get("airportCode"),
             "dep": s.get("departDateTime"), "arr": s.get("arriveDateTime"),
-            "airline_code": code, "airline": airline_map.get(code, code),
-            "flight_no": fi.get("flightNo"),
-            "duration_min": s.get("duration"),
+            "airline": airline_map.get(code, code), "airline_code": code,
+            "flight_no": fi.get("flightNo"), "duration_min": s.get("duration"),
         })
 
     transfers = [s["to"] for s in segments[:-1]]
-    transfer_cities = [s["to_city"] for s in segments[:-1]]
+    transfer_cities = [(s.get("arrivePoint") or {}).get("cityName")
+                       for s in flight_secs[:-1]]
     stops = max(len(segments) - 1, 0)
 
     # 中转停留时长 + 过夜判定（中转区间跨任一日的 01:00–05:00 即算过夜）
@@ -236,7 +271,6 @@ def parse_offer(it, airline_map):
 
     return {
         "price": price,
-        "currency": "USD",
         "stops": stops,
         "segments": segments,
         "transfer_airports": transfers,
@@ -261,7 +295,10 @@ def parse_offer(it, airline_map):
 
 
 def hard_filter(offer, cons):
-    """按 config 的 constraints 做硬过滤。返回 (passes:bool, reasons:list[str])。"""
+    """按 config 的 constraints 做硬过滤。返回 (passes:bool, reasons:list[str])。
+
+    注意：过夜中转、2 中转 已不在硬过滤里 —— 它们交给 claude 那层按软性偏好权衡。
+    硬过滤只拦：3+ 中转、非联程、无托运、中东转、单段中转 >12h、全程 >34h。"""
     reasons = []
     if offer["price"] is None:
         reasons.append("无价格")
@@ -272,20 +309,20 @@ def hard_filter(offer, cons):
             reasons.append("非联程（拼接票/自行换乘）")
     if cons.get("min_checked_bags", 0) >= 1 and not offer["checked_bag_included"]:
         reasons.append("不含托运行李额")
-    # 中转机场 / 航司：中东排除
     bad_air = set(offer["transfer_airports"]) & set(cons.get("exclude_transfer_airports", []))
     if bad_air:
         reasons.append(f"经停中东机场 {','.join(sorted(bad_air))}")
     bad_al = set(offer["airline_codes"]) & MIDDLE_EAST_AIRLINE_CODES
     if bad_al:
         reasons.append(f"含中东航司 {','.join(sorted(bad_al))}")
-    # 中转时长 + 过夜
     maxlay = cons.get("max_layover_hours", 99) * 60
     for lay in offer["layovers_min"]:
         if lay is not None and lay > maxlay:
             reasons.append(f"中转停留 {lay // 60}h{lay % 60}m 超过 {cons['max_layover_hours']}h")
-    if cons.get("no_overnight_layover") and offer["overnight_layover"]:
-        reasons.append("含过夜中转")
+    maxdur = cons.get("max_total_duration_hours")
+    dur = offer["total_duration_min"]
+    if maxdur and dur and dur > maxdur * 60:
+        reasons.append(f"全程 {dur // 60}h{dur % 60}m 超过 {maxdur}h")
     return (not reasons), reasons
 
 
@@ -329,12 +366,16 @@ def cmd_run():
     dates = cfg["dates"]
 
     searches = []
+    route_calendars = {}            # {origin-dest: {date_iso: lowest_price}}
     with sync_playwright() as pw:
         browser, ctx = _new_browser(pw)
         try:
             for o in origins:
                 for d in dests:
+                    route_key = f"{o['code']}-{d['code']}"
                     for date in dates:
+                        # 该航线还没拿到价格日历 → 这次顺便抓（每条航线只需一次）
+                        want_cal = route_key not in route_calendars
                         rec = {"origin": o["code"], "origin_name": o["name"],
                                "dest": d["code"], "dest_name": d["name"],
                                "date": date, "status": "ok",
@@ -344,7 +385,10 @@ def cmd_run():
                                "offers": [], "cheapest_rejected": None,
                                "total_priced": 0}
                         try:
-                            itins, amap, st = fetch_itineraries(ctx, o["code"], d["code"], date, qty)
+                            itins, amap, cal, st = fetch_itineraries(
+                                ctx, o["code"], d["code"], date, qty, want_calendar=want_cal)
+                            if cal and route_key not in route_calendars:
+                                route_calendars[route_key] = cal
                             if st != "ok":
                                 rec["status"] = st
                             else:
@@ -371,10 +415,12 @@ def cmd_run():
         "ok_count": sum(1 for s in searches if s["offers"]),
         "blocked_count": sum(1 for s in searches if s["status"] == "blocked"),
         "searches": searches,
+        "route_calendars": route_calendars,
+        "_calendars_note": "每条航线未来 ~170 天的每日最低价（含被淘汰的拼接票，仅作趋势/淡旺季形状参考）",
     }
     RESULTS_PATH.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
     log(f"写出 {RESULTS_PATH}：{out['ok_count']}/{len(searches)} 个搜索有合规航班，"
-        f"{out['blocked_count']} 个疑似被拦")
+        f"{out['blocked_count']} 个疑似被拦，{len(route_calendars)} 条航线拿到价格日历")
 
 
 def cmd_probe(dcity, acity, ddate):
@@ -385,16 +431,18 @@ def cmd_probe(dcity, acity, ddate):
     with sync_playwright() as pw:
         browser, ctx = _new_browser(pw)
         try:
-            itins, amap, st = fetch_itineraries(ctx, dcity, acity, ddate)
+            itins, amap, cal, st = fetch_itineraries(
+                ctx, dcity, acity, ddate, want_calendar=True)
         finally:
             ctx.close()
             browser.close()
-    log(f"probe {dcity}→{acity} {ddate}: status={st}, {len(itins)} 条原始 itinerary")
+    log(f"probe {dcity}→{acity} {ddate}: status={st}, {len(itins)} 条原始 itinerary, "
+        f"价格日历 {len(cal or {})} 天")
     if not itins:
         return
     passed, cheap_rej, total = _process_search(itins, amap, cfg["constraints"])
     out = {"status": st, "raw_count": len(itins), "total_priced": total,
-           "compliant": passed, "cheapest_rejected": cheap_rej}
+           "compliant": passed, "cheapest_rejected": cheap_rej, "calendar": cal}
     p = DEBUG_DIR / f"probe_{dcity}_{acity}_{ddate}_{stamp}.json"
     p.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
     log(f"合规 {len(passed)} 条 / 共 {total} 条已定价。详情 → {p}")
