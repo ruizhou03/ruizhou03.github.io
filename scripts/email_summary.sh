@@ -22,7 +22,7 @@
 
 set -uo pipefail
 
-REPO="/Users/zhourui/Desktop/zirconeey.github.io"
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
 PROMPT_FILE="$REPO/scripts/email_summary.prompt.md"
 IMAP_PY="$REPO/scripts/email_summary_imap.py"
 INBOX_JSON="/tmp/email_summary_inbox.json"
@@ -45,6 +45,10 @@ log() {
 }
 notify() {  # $1=正文 $2=声音
     /usr/bin/osascript -e "display notification \"$1\" with title \"锆铌·邮件 summary\" sound name \"${2:-Glass}\"" >/dev/null 2>&1 || true
+}
+mark_done() {  # 记本时段今天已跑；force 测试模式不写，免得顶掉真正的定时运行
+    [ -z "${FORCE:-}" ] && echo "$TODAY" > "$LASTRUN_FILE"
+    return 0
 }
 
 log "==== triggered${FORCE:+ (force)} ===="
@@ -154,10 +158,19 @@ else
     log "SINCE = $SINCE"
 fi
 
-log "IMAP fetch..."
-if ! python3 "$IMAP_PY" fetch "$SINCE" "$INBOX_JSON" >> "$LOG" 2>&1; then
-    log "IMAP fetch FAILED，跳过本时段（不写 lastrun，下次重试）"
-    notify "IMAP 拉信失败，看 ~/Library/Logs/zirconeey-email-summary.log" "Basso"
+# 带重试 —— 机器刚唤醒 / 跨墙隧道偶尔会在 login 后掉线（socket EOF），重试即可
+FETCH_OK=0
+for fa in 1 2 3; do
+    log "IMAP fetch（第 ${fa} 次）..."
+    if python3 "$IMAP_PY" fetch "$SINCE" "$INBOX_JSON" >> "$LOG" 2>&1; then
+        FETCH_OK=1; break
+    fi
+    log "IMAP fetch 第 ${fa} 次失败"
+    [ "$fa" -lt 3 ] && { log "15s 后重试"; sleep 15; }
+done
+if [ "$FETCH_OK" != 1 ]; then
+    log "IMAP fetch 三次均失败，跳过本时段（不写 lastrun，下次重试）"
+    notify "IMAP 拉信失败（重试 3 次仍不行），看 ~/Library/Logs/zirconeey-email-summary.log" "Basso"
     log "==== failed ===="; exit 1
 fi
 COUNT="$(python3 -c "import json; print(json.load(open('$INBOX_JSON')).get('message_count',0))" 2>/dev/null || echo '?')"
@@ -197,7 +210,7 @@ git add EMAIL_SUMMARY.md _data/email_summary_state.json 2>>"$LOG"
 if git diff --cached --quiet; then
     log "无改动可提交（claude 可能没改文件），跳过 push"
     notify "本时段 summary 跑完但无文件改动，看日志确认" "Tink"
-    echo "$TODAY" > "$LASTRUN_FILE"
+    mark_done
     log "==== done (nothing to commit) ===="; exit 0
 fi
 git commit -m "ops(email-summary): $TODAY $SLOT 自动邮件 summary" >> "$LOG" 2>&1
@@ -211,12 +224,12 @@ done
 
 if [ "$PUSHED" = 1 ]; then
     log "push OK (slot=$SLOT)"
-    echo "$TODAY" > "$LASTRUN_FILE"
+    mark_done
     notify "$SLOT 时段邮件 summary 已完成，详情见 GitHub Issue 邮件" "Glass"
     log "==== done ===="; exit 0
 else
     log "push FAILED after 5 tries（commit 已在本地，下次会一并推上去）"
-    echo "$TODAY" > "$LASTRUN_FILE"
+    mark_done
     notify "summary 已生成但 push 失败，下次自动补推" "Tink"
     log "==== done (push pending) ===="; exit 0
 fi

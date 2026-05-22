@@ -38,3 +38,6 @@ files/*/psets/*.synctex.gz
 
 # audit 巡检的本地缓存（发文提醒戳记等，不发仓库）
 .audit-cache/
+
+# 本机 LaunchAgent 真身（含绝对路径，会暴露用户名）——只发 .template
+scripts/io.github.zirconeey.email-summary.plist
