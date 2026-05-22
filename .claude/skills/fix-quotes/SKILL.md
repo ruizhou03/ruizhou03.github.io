@@ -5,7 +5,7 @@ description: 调用仓库内 `scripts/fix_quotes.py`，把 markdown 文件正文
 
 # fix-quotes — 统一中文弯引号
 
-仓库根：`/Users/zhourui/Desktop/zirconeey.github.io`
+仓库根：`/Users/zhourui/Desktop/ruizhou03.github.io`
 脚本路径：`scripts/fix_quotes.py`
 
 ## 脚本能力（不要重写它）

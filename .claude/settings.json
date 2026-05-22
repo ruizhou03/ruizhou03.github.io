@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -n \"// ============================================================\\\\s*$\" /Users/zhourui/Desktop/zirconeey.github.io/toolbox/doudizhu/index.html)"
+      "Bash(grep -n \"// ============================================================\\\\s*$\" /Users/zhourui/Desktop/ruizhou03.github.io/toolbox/doudizhu/index.html)"
     ]
   },
   "hooks": {
@@ -11,7 +11,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/zhourui/Desktop/zirconeey.github.io/scripts/hooks/post_write_imgslim.sh"
+            "command": "/Users/zhourui/Desktop/ruizhou03.github.io/scripts/hooks/post_write_imgslim.sh"
           }
         ]
       }
@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/zhourui/Desktop/zirconeey.github.io/scripts/hooks/stop_publish_reminder.sh"
+            "command": "/Users/zhourui/Desktop/ruizhou03.github.io/scripts/hooks/stop_publish_reminder.sh"
           }
         ]
       }

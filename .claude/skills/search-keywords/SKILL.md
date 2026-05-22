@@ -5,7 +5,7 @@ description: 给 zirconeey.github.io 的文章/菜谱写好 front-matter `keywor
 
 # search-keywords — 为文章生成可被搜到的关键词
 
-仓库根：`/Users/zhourui/Desktop/zirconeey.github.io`
+仓库根：`/Users/zhourui/Desktop/ruizhou03.github.io`
 
 ## 为什么需要
 

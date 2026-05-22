@@ -7,7 +7,7 @@
 
 set -uo pipefail
 
-REPO="/Users/zhourui/Desktop/zirconeey.github.io"
+REPO="/Users/zhourui/Desktop/ruizhou03.github.io"
 LOG="$HOME/Library/Logs/zirconeey-hooks.log"
 IMGSLIM="$HOME/.local/bin/imgslim"
 THRESHOLD_KB=500   # 大于 500 KB 才跑

@@ -5,7 +5,7 @@ description: 在 zirconeey.github.io 站新建一篇符合 `_layouts/recipe.html
 
 # recipe — 新建菜谱
 
-仓库根：`/Users/zhourui/Desktop/zirconeey.github.io`
+仓库根：`/Users/zhourui/Desktop/ruizhou03.github.io`
 菜谱目录：`_notes/life/recipes/<slug>.md`
 图片目录：`/files/images/recipes/<slug>/`（cover 图必须存在，可先放占位 svg）
 

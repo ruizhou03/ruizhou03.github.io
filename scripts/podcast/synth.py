@@ -103,19 +103,42 @@ def main():
     sr = model.sample_rate
     # 当前版本 CosyVoice 的 inference_zero_shot 直接收参考音【文件路径】
 
-    gap_sentence = torch.zeros(1, int(sr * 0.10))  # 切块衔接处的小停顿（切在句号上，模型已自带句末收尾，这里只补一点点）
-    gap_paragraph = torch.zeros(1, int(sr * 0.75))  # 段间停顿
+    gap_batch = torch.zeros(1, int(sr * 0.55))  # 批次之间的停顿
+
+    # 每批音频首尾各做 20ms 淡入淡出：各批是独立合成的，直接拼会在接缝处留下
+    # 能量突变 / 边缘爆音，听感像「剪断」。淡入淡出抹平接缝。
+    fade_n = int(sr * 0.020)
+
+    def edge_fade(wav):
+        if wav.shape[1] < 2 * fade_n:
+            return wav
+        ramp = torch.linspace(0.0, 1.0, fade_n, dtype=wav.dtype)
+        wav = wav.clone()
+        wav[:, :fade_n] *= ramp
+        wav[:, -fade_n:] *= ramp.flip(0)
+        return wav
+
+    # 把相邻段落攒成一批，一次推理整批合成。段落之间的过渡因此交给 CosyVoice
+    # 在一次推理内部自然衔接（它本来就会逐句合成并衔接），不再是分段独立合成后
+    # 拿静音硬拼——后者会在段落缝处听出「断裂」。只有少数几个批次接缝才需拼接。
+    batches, buf, buf_len = [], [], 0
+    for para in paragraphs:
+        if buf and buf_len + len(para) > MAX_CHARS:
+            batches.append("".join(buf))
+            buf, buf_len = [], 0
+        buf.append(para)
+        buf_len += len(para)
+    if buf:
+        batches.append("".join(buf))
 
     pieces = []
-    for pi, para in enumerate(paragraphs, 1):
-        for chunk in split_sentences(para):
-            print(f"  [{pi}/{len(paragraphs)}] 合成 {len(chunk)} 字 …")
-            segs = [j["tts_speech"] for j in
-                    model.inference_zero_shot(chunk, ref_text, ref_wav, stream=False)]
-            if segs:
-                pieces.append(torch.cat(segs, dim=1))
-                pieces.append(gap_sentence)
-        pieces.append(gap_paragraph)
+    for bi, batch in enumerate(batches, 1):
+        print(f"  [批 {bi}/{len(batches)}] 合成 {len(batch)} 字 …")
+        segs = [j["tts_speech"] for j in
+                model.inference_zero_shot(batch, ref_text, ref_wav, stream=False)]
+        if segs:
+            pieces.append(edge_fade(torch.cat(segs, dim=1)))
+            pieces.append(gap_batch)
 
     audio = torch.cat(pieces, dim=1)
     out_path = Path(args.out)
