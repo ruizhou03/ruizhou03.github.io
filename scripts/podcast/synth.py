@@ -24,7 +24,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-MAX_CHARS = 180  # 单次送进模型的最大字符数，过长的段落按句号再切
+# 单次送进模型的字符上限。设得大，让整段一次性喂给模型——CosyVoice 内部会
+# 自己按句子切并自然衔接；只有超长段落才会被这里再切一刀。设小会在切点叠出
+# 不自然的「气口」（模型自带的句末停顿 + 这里补的硬静音双重停顿）。
+MAX_CHARS = 1000
 
 
 def read_script(path: Path):
@@ -100,7 +103,7 @@ def main():
     sr = model.sample_rate
     # 当前版本 CosyVoice 的 inference_zero_shot 直接收参考音【文件路径】
 
-    gap_sentence = torch.zeros(1, int(sr * 0.30))  # 句间停顿
+    gap_sentence = torch.zeros(1, int(sr * 0.10))  # 切块衔接处的小停顿（切在句号上，模型已自带句末收尾，这里只补一点点）
     gap_paragraph = torch.zeros(1, int(sr * 0.75))  # 段间停顿
 
     pieces = []
