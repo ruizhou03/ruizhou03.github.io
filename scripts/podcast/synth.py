@@ -93,13 +93,12 @@ def main():
     import torch
     import torchaudio
     from cosyvoice.cli.cosyvoice import CosyVoice2
-    from cosyvoice.utils.file_utils import load_wav
 
     model_dir = os.path.join(cosyvoice_dir, "pretrained_models/CosyVoice2-0.5B")
     print(f"加载模型：{model_dir}")
     model = CosyVoice2(model_dir, load_jit=False, load_trt=False, fp16=False)
     sr = model.sample_rate
-    prompt = load_wav(ref_wav, 16000)
+    # 当前版本 CosyVoice 的 inference_zero_shot 直接收参考音【文件路径】
 
     gap_sentence = torch.zeros(1, int(sr * 0.30))  # 句间停顿
     gap_paragraph = torch.zeros(1, int(sr * 0.75))  # 段间停顿
@@ -109,7 +108,7 @@ def main():
         for chunk in split_sentences(para):
             print(f"  [{pi}/{len(paragraphs)}] 合成 {len(chunk)} 字 …")
             segs = [j["tts_speech"] for j in
-                    model.inference_zero_shot(chunk, ref_text, prompt, stream=False)]
+                    model.inference_zero_shot(chunk, ref_text, ref_wav, stream=False)]
             if segs:
                 pieces.append(torch.cat(segs, dim=1))
                 pieces.append(gap_sentence)
