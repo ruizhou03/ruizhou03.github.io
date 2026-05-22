@@ -52,4 +52,5 @@ audio/*
 
 # 邮件 summary：含真实邮件主题/发件人，绝不进公开仓库。只作本机存档，走 SMTP 私密投递。
 EMAIL_SUMMARY.md
+EMAIL_SUMMARY.html
 _data/email_summary_state.json

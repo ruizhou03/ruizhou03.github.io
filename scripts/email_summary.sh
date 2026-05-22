@@ -7,13 +7,13 @@
 #   2. 该时段今天已成功跑过 → 跳过
 #   3. 网络自适应（国内套 Clash 代理 / 美国直连）
 #   4. email_summary_imap.py fetch   —— IMAP 拉收件箱 → /tmp/email_summary_inbox.json
-#   5. claude 跑 email_summary.prompt.md —— 读 inbox.json，写 EMAIL_SUMMARY.md /
-#      state / /tmp/email_summary_drafts.json（claude 只读写本地文件，不碰网络）
+#   5. claude 跑 email_summary.prompt.md —— 读 inbox.json，写 summary HTML 片段
+#      (/tmp/email_new_section.html) + 本机存档 EMAIL_SUMMARY.html + state + drafts.json
 #   6. email_summary_imap.py draft   —— 把草稿 APPEND 进 Gmail 草稿箱
-#   7. email_summary_imap.py send    —— 抽出最新 summary 小节，SMTP 私密直投到自己邮箱
+#   7. email_summary_imap.py send    —— 把 summary HTML 片段 SMTP 私密直投到自己邮箱
 #
-# 隐私：EMAIL_SUMMARY.md 含真实邮件主题/发件人，绝不 commit 进公开仓库、绝不走公开
-# GitHub Issue。它只作本机存档（已 gitignore）；投递一律走 SMTP 私密邮件。
+# 隐私：summary 含真实邮件主题/发件人，绝不 commit 进公开仓库、绝不走公开 GitHub
+# Issue。EMAIL_SUMMARY.html 只作本机存档（已 gitignore）；投递一律走 SMTP 私密邮件。
 #
 # 为什么这套架构：claude.ai 的 Gmail web connector 只能在交互式会话用，
 # 远程 routine 和本地 headless claude 都加载不了它（见 GitHub issue #45306）。
@@ -30,6 +30,7 @@ PROMPT_FILE="$REPO/scripts/email_summary.prompt.md"
 IMAP_PY="$REPO/scripts/email_summary_imap.py"
 INBOX_JSON="/tmp/email_summary_inbox.json"
 DRAFTS_JSON="/tmp/email_summary_drafts.json"
+SECTION_HTML="/tmp/email_new_section.html"
 LOG="$HOME/Library/Logs/zirconeey-email-summary.log"
 STATE_DIR="$HOME/Library/Application Support/zirconeey-email-summary"
 
@@ -191,7 +192,7 @@ COUNT="$(python3 -c "import json; print(json.load(open('$INBOX_JSON')).get('mess
 log "IMAP fetch OK，收件箱新邮件 $COUNT 封"
 
 # ── 5. claude 生成 summary（只读写本地文件）──
-rm -f "$DRAFTS_JSON"
+rm -f "$DRAFTS_JSON" "$SECTION_HTML"
 PROMPT="$(cat "$PROMPT_FILE")"
 log "claude 生成 summary 中（约 1–3 分钟，期间无输出属正常）..."
 if claude --print \
@@ -220,26 +221,19 @@ else
 fi
 
 # ── 7. SMTP 私密直投 ──
-# EMAIL_SUMMARY.md 含真实邮件主题/发件人，绝不进公开仓库、绝不走公开 GitHub Issue。
-# 抽出本时段最新一节，经 SMTP 直发到自己邮箱。EMAIL_SUMMARY.md 只作本机存档。
-if [ ! -s "$REPO/EMAIL_SUMMARY.md" ]; then
-    log "EMAIL_SUMMARY.md 不存在或为空，无可投递"
+# claude 生成的 summary HTML 片段在 $SECTION_HTML，含真实邮件主题/发件人 ——
+# 绝不进公开仓库、绝不走公开 GitHub Issue，一律 SMTP 私密直投到自己邮箱。
+# 本机存档 EMAIL_SUMMARY.html 由 claude 维护（已 gitignore），不在投递链路上。
+if [ ! -s "$SECTION_HTML" ]; then
+    log "$SECTION_HTML 不存在或为空，无可投递"
     notify "本时段 summary 跑完但无内容，看日志确认" "Tink"
     mark_done
     log "==== done (nothing) ===="; exit 0
 fi
-# 抽出最新一节：第一个 "## " 起、到下一个 "## " 前
-SECTION="/tmp/email_summary_section.md"
-awk 'f && /^## /{exit} /^## /{f=1} f' "$REPO/EMAIL_SUMMARY.md" > "$SECTION"
-HEADER="$(grep -m1 '^## ' "$REPO/EMAIL_SUMMARY.md" | sed 's/^##[[:space:]]*//' | tr -d '\r')"
-if [ ! -s "$SECTION" ]; then
-    log "抽不出 summary 小节，跳过投递"
-    notify "summary 小节为空，看日志确认" "Tink"
-    mark_done
-    log "==== done (no section) ===="; exit 0
-fi
-log "SMTP 私密投递最新 summary 小节：$HEADER"
-if python3 "$IMAP_PY" send "📧 邮件 summary ${HEADER}" "$SECTION" >> "$LOG" 2>&1; then
+SLOT_CN="晚间"; [ "$SLOT" = "morning" ] && SLOT_CN="早间"
+SUBJECT="📧 邮件 summary $(date '+%Y-%m-%d %H:%M') · ${SLOT_CN}"
+log "SMTP 私密投递：$SUBJECT"
+if python3 "$IMAP_PY" send "$SUBJECT" "$SECTION_HTML" >> "$LOG" 2>&1; then
     log "SMTP 投递 OK (slot=$SLOT)"
     mark_done
     notify "$SLOT 时段邮件 summary 已发到你邮箱" "Glass"
