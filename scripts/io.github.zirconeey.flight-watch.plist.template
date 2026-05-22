@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 机票监控的 LaunchAgent 模板。
      实际生效的 io.github.zirconeey.flight-watch.plist 含本机绝对路径，不进公开仓库（见 .gitignore）。
-     换机部署时，从本模板生成真身并安装：
+
+     重要：运行副本部署在 ~/.config/zirconeey-flight-watch/（本地盘），不从 iCloud 同步的
+     仓库目录直接跑（否则 Python import 会被 iCloud 拖死）。仓库里的 scripts/flight_watch*
+     是版本管理用的源副本；改完源副本后要重新部署：
+       D=~/.config/zirconeey-flight-watch
+       cp scripts/flight_watch.sh scripts/flight_watch_scrape.py \
+          scripts/flight_watch_notify.py scripts/flight_watch.prompt.md "$D"/
+     安装 LaunchAgent：
        sed "s|__HOME__|$HOME|g" scripts/io.github.zirconeey.flight-watch.plist.template \
          > ~/Library/LaunchAgents/io.github.zirconeey.flight-watch.plist
-       launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/io.github.zirconeey.flight-watch.plist
-     注意 __HOME__/Desktop/zirconeey.github.io 是本仓库 clone 的位置，若放别处需手动改路径。 -->
+       launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/io.github.zirconeey.flight-watch.plist -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -15,7 +21,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>__HOME__/Desktop/zirconeey.github.io/scripts/flight_watch.sh</string>
+        <string>__HOME__/.config/zirconeey-flight-watch/flight_watch.sh</string>
     </array>
 
     <!-- 每天本地时间 10:00 和 22:00 各触发一次；macOS 睡眠错过的会在唤醒后补跑。
@@ -40,8 +46,10 @@
     <key>KeepAlive</key>
     <false/>
 
+    <!-- 工作目录设 /tmp（本地盘）——仓库在 iCloud 同步的 ~/Desktop，
+         在那里 cd 会让子进程的 getcwd() 被 iCloud 间歇性拖死。脚本全用绝对路径。 -->
     <key>WorkingDirectory</key>
-    <string>__HOME__/Desktop/zirconeey.github.io</string>
+    <string>/tmp</string>
 
     <key>StandardOutPath</key>
     <string>__HOME__/Library/Logs/zirconeey-flight-watch.launchd.out</string>

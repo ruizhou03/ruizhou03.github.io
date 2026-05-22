@@ -21,10 +21,14 @@
 
 set -uo pipefail
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
-PROMPT_FILE="$REPO/scripts/flight_watch.prompt.md"
-SCRAPE_PY="$REPO/scripts/flight_watch_scrape.py"
-NOTIFY_PY="$REPO/scripts/flight_watch_notify.py"
+# 自定位：脚本和它的兄弟文件（scrape.py / notify.py / prompt.md）一起跑。
+# 部署位置应在 ~/.config/zirconeey-flight-watch/（本地盘），不要从 iCloud 同步的
+# 仓库目录直接跑 —— 否则 Python 会把脚本所在的 iCloud 目录放进 sys.path，
+# 运行时 import 在那里 stat/open 文件会被 iCloud 间歇性拖死、进程冻在 0% CPU。
+SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROMPT_FILE="$SELF_DIR/flight_watch.prompt.md"
+SCRAPE_PY="$SELF_DIR/flight_watch_scrape.py"
+NOTIFY_PY="$SELF_DIR/flight_watch_notify.py"
 VENV_PY="$HOME/.config/zirconeey-flight-watch/venv/bin/python"
 CONFIG="$HOME/.config/zirconeey-flight-watch/config.json"
 RESULTS_JSON="/tmp/flight_watch_results.json"
@@ -76,7 +80,10 @@ else
     fi
 fi
 
-cd "$REPO" || { log "cd to $REPO FAILED"; exit 1; }
+# 在 /tmp（本地盘）里跑，不在仓库目录里 —— 仓库位于 ~/Desktop（iCloud 同步区），
+# 子进程（python/claude/node）启动时的 getcwd() 会被 iCloud 间歇性拖死，把进程冻在 0% CPU。
+# 本脚本全程用绝对路径，不依赖 CWD。
+cd /tmp || { log "cd /tmp FAILED"; exit 1; }
 # ~/.local/bin —— claude CLI 新版安装位置（native installer 自更新后落点）
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 log "starting flight watch (slot=$SLOT)"
@@ -85,13 +92,29 @@ command -v claude >/dev/null 2>&1 || { log "claude CLI not found, abort"; notify
 [ -x "$VENV_PY" ] || { log "venv python 不存在：$VENV_PY，abort"; notify "Playwright venv 缺失" "Basso"; exit 1; }
 [ -f "$CONFIG" ] || { log "配置缺失：$CONFIG，abort"; notify "配置文件缺失" "Basso"; exit 1; }
 
+# 全程防休眠：抓取 30 分钟 + claude 判断期间，低 CPU 步骤会让 Mac 空闲休眠、
+# 把无人值守的进程冻在 0% CPU。caffeinate -w $$ 在本脚本退出时自动结束。
+/usr/bin/caffeinate -dimsu -w $$ &
+log "caffeinate 已挂起（防运行期间休眠），PID=$!"
+
 # ── 2. 抓取（Trip.com 全球直连，本步不挂代理）──
-log "抓取 Trip.com 中（航线×日期约 60 组，约 15–30 分钟，期间无输出属正常）..."
-rm -f "$RESULTS_JSON"
-if HTTP_PROXY= HTTPS_PROXY= ALL_PROXY= "$VENV_PY" "$SCRAPE_PY" run >> "$LOG" 2>&1; then
-    log "抓取完成"
-else
-    log "抓取脚本异常退出（exit=$?），继续——可能有部分结果"
+# 若已有 3 小时内的 results.json（如上轮抓完但 claude 那步挂了），复用、不重抓——省 ~30 分钟。
+REUSE=""
+if [ -f "$RESULTS_JSON" ]; then
+    AGE=$(( $(date +%s) - $(/usr/bin/stat -f %m "$RESULTS_JSON" 2>/dev/null || echo 0) ))
+    if [ "$AGE" -ge 0 ] && [ "$AGE" -lt 10800 ]; then
+        REUSE=1
+        log "复用 $((AGE/60)) 分钟前的 results.json，跳过抓取"
+    fi
+fi
+if [ -z "$REUSE" ]; then
+    log "抓取 Trip.com 中（航线×日期约 60 组，约 15–30 分钟，期间无输出属正常）..."
+    rm -f "$RESULTS_JSON"
+    if HTTP_PROXY= HTTPS_PROXY= ALL_PROXY= "$VENV_PY" "$SCRAPE_PY" run >> "$LOG" 2>&1; then
+        log "抓取完成"
+    else
+        log "抓取脚本异常退出（exit=$?），继续——可能有部分结果"
+    fi
 fi
 if [ ! -f "$RESULTS_JSON" ]; then
     log "无 $RESULTS_JSON，抓取彻底失败，跳过本时段"
@@ -101,15 +124,16 @@ fi
 OKCOUNT="$("$VENV_PY" -c "import json;print(json.load(open('$RESULTS_JSON')).get('ok_count','?'))" 2>/dev/null || echo '?')"
 log "抓取结果：$OKCOUNT 个搜索拿到合规航班"
 
-# ── 3. 网络自适应（claude / SMTP 用）──
+# ── 3. 网络自适应（claude / SMTP 用）—— 直连优先，每种模式都做「真的连得上 API」二次验证 ──
+# 教训：只看代理端口在不在听不够 —— Clash 开着但节点不通时 claude 会无限期挂起。
 PROXY_HOST="127.0.0.1"; PROXY_PORT="7890"
 CLASH_APPS=("ClashX" "Clash Party")
-probe_proxy_up() { /usr/bin/nc -z -G 2 "$PROXY_HOST" "$PROXY_PORT" 2>/dev/null; }
-probe_direct_api() {
-    HTTP_PROXY= HTTPS_PROXY= ALL_PROXY= NO_PROXY= \
-        /usr/bin/curl --silent --head --max-time 6 --output /dev/null \
-        --noproxy '*' https://api.anthropic.com 2>/dev/null
+API_PROBE="https://api.anthropic.com"
+
+api_reachable() {  # 当前环境（含/不含代理 env）下能否 8s 内摸到 API
+    /usr/bin/curl --silent --head --max-time 8 --output /dev/null "$API_PROBE" 2>/dev/null
 }
+proxy_port_up() { /usr/bin/nc -z -G 2 "$PROXY_HOST" "$PROXY_PORT" 2>/dev/null; }
 set_proxy_env() {
     export HTTP_PROXY="http://$PROXY_HOST:$PROXY_PORT"
     export HTTPS_PROXY="http://$PROXY_HOST:$PROXY_PORT"
@@ -121,39 +145,44 @@ set_proxy_env() {
 unset_proxy_env() { unset HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY IMAP_PROXY_HOST IMAP_PROXY_PORT; }
 
 NET_MODE=""
-if probe_proxy_up; then
-    set_proxy_env; NET_MODE="proxy"
-    log "本机 $PROXY_HOST:$PROXY_PORT 在听，套代理（推测在国内、Clash 已开）"
-elif probe_direct_api; then
-    unset_proxy_env; NET_MODE="direct"
-    log "直连 Anthropic 通 → 走直连（推测在美国）"
+unset_proxy_env
+if api_reachable; then
+    NET_MODE="direct"
+    log "直连 Anthropic API 通 → 走直连"
+elif proxy_port_up && set_proxy_env && api_reachable; then
+    NET_MODE="proxy"
+    log "直连不通、经代理 $PROXY_HOST:$PROXY_PORT 验证通 → 走代理"
 else
-    log "直连不通且代理端口没人听 → 尝试自动启动 Clash..."
+    unset_proxy_env
+    log "直连与现有代理均不通 → 尝试自动启动 Clash..."
     LAUNCHED=""
     for app in "${CLASH_APPS[@]}"; do
         if [ -d "/Applications/$app.app" ] || [ -d "$HOME/Applications/$app.app" ]; then
             /usr/bin/open -ga "$app" 2>>"$LOG" || true
             for i in $(seq 1 15); do
                 sleep 1
-                if probe_proxy_up; then LAUNCHED="$app"; break 2; fi
+                if proxy_port_up; then LAUNCHED="$app"; break 2; fi
             done
         fi
     done
-    if [ -n "$LAUNCHED" ]; then
-        set_proxy_env; NET_MODE="proxy(auto-started: $LAUNCHED)"
-        log "已自动起 $LAUNCHED 并套代理"
+    if [ -n "$LAUNCHED" ] && set_proxy_env && api_reachable; then
+        NET_MODE="proxy(auto-started: $LAUNCHED)"
+        log "已自动起 $LAUNCHED，经代理验证通"
     else
-        log "代理拉起失败，claude 判断这步可能跑不通，仍尝试一次"
-        NET_MODE="none"
+        log "网络不通（直连/代理都连不上 API），跳过本时段——results.json 已留存"
+        notify "网络不通，claude 判断没法跑，跳过本时段。检查网络 / Clash 订阅。" "Basso"
+        log "==== skipped ===="; exit 0
     fi
 fi
 log "网络模式：$NET_MODE"
 
 # ── 4. claude 判断（读 results，写 verdict/report，维护 history/state）──
+# 用 perl 的 alarm 给 claude 套 15 分钟硬超时（macOS 无 timeout 命令）——再卡死也不会无限挂。
 rm -f "$VERDICT_JSON" "$REPORT_MD"
 PROMPT="$(cat "$PROMPT_FILE")"
 log "claude 判断中（约 1–3 分钟）..."
-if claude --print \
+if perl -e 'alarm shift @ARGV; exec @ARGV' 900 \
+        claude --print \
           --model claude-sonnet-4-6 \
           --dangerously-skip-permissions \
           --append-system-prompt "你被 LaunchAgent 无人值守调用，不要等待输入，所有工具用全权限直接执行。只读写本地文件，不联网。" \
@@ -161,8 +190,8 @@ if claude --print \
     log "claude 判断 OK"
 else
     EXIT=$?
-    log "claude 判断 FAILED (exit=$EXIT)，跳过本时段"
-    notify "claude 判断失败，看日志" "Basso"
+    log "claude 判断 FAILED (exit=$EXIT，137/142 多为超时被杀)，跳过本时段"
+    notify "claude 判断失败/超时，看日志" "Basso"
     log "==== failed ===="; exit "$EXIT"
 fi
 
