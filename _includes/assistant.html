@@ -21,8 +21,8 @@
   #za-fab.za-hidden { transform: scale(0); opacity: 0; pointer-events: none; }
 
   #za-panel {
-    position: fixed; right: 1.5rem; bottom: 2rem; z-index: 1085;
-    width: 372px; max-width: calc(100vw - 3rem);
+    position: fixed; right: 1rem; bottom: 2rem; z-index: 1085;
+    width: 340px; max-width: calc(100vw - 2rem);
     height: 552px; max-height: calc(100vh - 4rem);
     background: var(--color-bg); border: 1px solid var(--color-border);
     border-radius: 16px; box-shadow: 0 16px 48px rgba(20,30,50,0.28);
@@ -33,16 +33,18 @@
   #za-panel.za-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
 
   .za-head {
-    background: var(--color-accent); color: #fff;
+    background: var(--color-bg); color: var(--color-ink);
+    border-bottom: 1px solid var(--color-border);
     padding: .85rem 1rem; display: flex; align-items: center; gap: .5rem; flex: none;
   }
-  .za-head h3 { font-size: 1rem; font-weight: 600; margin: 0; flex: 1; font-family: var(--font-display); }
-  .za-head .za-sub { font-size: .72rem; opacity: .8; font-weight: 400; }
+  .za-head h3 { font-size: 1.02rem; font-weight: 600; margin: 0; flex: 1; font-family: var(--font-display); color: var(--color-ink); }
+  .za-head .za-spark { color: var(--color-highlight); }
+  .za-head .za-sub { font-size: .72rem; color: var(--color-muted); font-weight: 400; }
   .za-close {
-    background: transparent; border: none; color: #fff; cursor: pointer;
-    font-size: 1.3rem; line-height: 1; padding: 0 .2rem; opacity: .85;
+    background: transparent; border: none; color: var(--color-muted); cursor: pointer;
+    font-size: 1.3rem; line-height: 1; padding: 0 .2rem;
   }
-  .za-close:hover { opacity: 1; }
+  .za-close:hover { color: var(--color-ink); }
 
   .za-body {
     flex: 1; overflow-y: auto; padding: 1rem .9rem;
@@ -132,12 +134,12 @@
 
 <div id="za-panel" role="dialog" aria-label="站内小助手">
   <div class="za-head">
-    <h3>锆石小助手 ✦ <span class="za-sub">站内检索</span></h3>
+    <h3>锆石小助手<span class="za-spark"> ✦ </span><span class="za-sub">站内检索</span></h3>
     <button class="za-close" aria-label="关闭">×</button>
   </div>
   <div class="za-body" id="za-body"></div>
   <div class="za-foot">
-    <input type="text" class="za-input" id="za-input" placeholder="想找什么？比如「实分析讲义」" autocomplete="off">
+    <input type="text" class="za-input" id="za-input" placeholder="有什么想找的，尽管问我～" autocomplete="off">
     <button class="za-send" id="za-send" aria-label="发送">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
@@ -184,7 +186,8 @@
   // 纯噪声词：命中也不计分，避免「什么」「资料」之类把无关项拉上来
   var STOP = {'什么':1,'怎么':1,'怎样':1,'如何':1,'哪些':1,'哪个':1,'介绍':1,'想找':1,
     '我想':1,'有没':1,'没有':1,'可以':1,'一下':1,'请问':1,'告诉':1,'关于':1,'这个':1,
-    '网站':1,'文章':1,'资料':1,'帮我':1,'谢谢':1,'一篇':1,'推荐':1,'看看':1,'是什':1};
+    '网站':1,'文章':1,'资料':1,'帮我':1,'谢谢':1,'一篇':1,'推荐':1,'看看':1,'是什':1,
+    '找找':1,'内容':1,'一些':1,'这些':1,'那些':1,'知道':1,'想看':1,'一点':1,'东西':1,'有关':1};
 
   function terms(q) {
     q = (q || '').toLowerCase();
@@ -218,7 +221,7 @@
     });
     scored.sort(function (a, b) { return b.s - a.s; });
     var top = scored.length ? scored[0].s : 0;
-    var keep = scored.filter(function (x) { return x.s >= Math.max(3, top * 0.28); }).slice(0, 8);
+    var keep = scored.filter(function (x) { return x.s >= Math.max(2, top * 0.22); }).slice(0, 8);
     return { hits: keep.map(function (x) { return x.it; }), matIntent: matIntent };
   }
 
@@ -323,11 +326,11 @@
     scrollDown();
   }
 
-  var CHIPS = ['报税攻略', '实分析讲义', 'VPN 是什么', '有什么小游戏', '推荐个菜谱'];
+  var CHIPS = ['高微的资料', '怎么报税', '有什么好玩的小游戏', 'VPN 是怎么回事', '推荐一道家常菜'];
 
   function pushChips() {
     var x = bubble('bot');
-    addText(x.b, '不知道问什么？点一个试试：');
+    addText(x.b, '要不点个话题，我帮你找找看：');
     var wrap = document.createElement('div');
     wrap.className = 'za-chips';
     CHIPS.forEach(function (c) {
