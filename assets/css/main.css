@@ -71,6 +71,18 @@
     .theme-toggle { background: none; border: 1px solid var(--color-border); cursor: pointer; padding: 0.35rem 0.5rem; border-radius: 4px; font-size: 0.9rem; color: var(--color-muted); transition: all 0.2s; }
     .theme-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
 
+    /* 右上控件：默认是普通的 flex 容器（盛 search + theme + EN） */
+    .nav-right-box { display: flex; align-items: center; gap: 1rem; }
+    .nav-controls { display: flex; align-items: center; gap: 0.6rem; }
+
+    /* 桌面端：nav-right-box 用 display: contents 把它"摊平"，让 search-container 和
+       nav-controls 成为 nav-inner 的直接 flex 子项；这样 justify-content: space-between
+       会把 4 个项目（空 left-zone / nav-links / search / controls）等距分布，搜索框
+       自然落在「随笔漫谈」和明暗按钮的正中间。 */
+    @media (min-width: 769px) {
+      .nav-right-box { display: contents; }
+    }
+
     /* 响应式：手机端调整 */
     @media (max-width: 768px) {
       .nav-inner { 

@@ -302,6 +302,8 @@
 
     /* Misc */
     .misc-text { font-size: 0.95rem; color: var(--color-text); line-height: 1.8; margin-bottom: 0.8rem; }
+    .misc-text a.misc-link { color: var(--color-accent-light); border-bottom: 1px solid var(--color-accent-light); font-weight: 500; transition: color 0.2s, border-color 0.2s; }
+    .misc-text a.misc-link:hover { color: var(--color-highlight); border-bottom-color: var(--color-highlight); }
 
     /* Photo gallery — auto-scrolling marquee */
     .gallery-section { max-width: var(--max-width); margin: 0 auto; padding: 2.5rem 2rem 3rem; }
@@ -642,15 +644,14 @@
   <section id="misc" class="fade-in">
     <h2 class="section-title">Miscellaneous</h2>
     <p class="misc-text">
-      I was born and raised in China. Outside of economics, I enjoy
-      running, singing, and exploring new places.
+      Outside of economics, I enjoy running, singing, and exploring new places.
     </p>
     <p class="misc-text">
       My Chinese given name 睿 (ruì) means "wise" or "sagacious."
       The closest English approximation is "Rway" — rhymes with "way."
     </p>
     <p class="misc-text">
-      I also maintain a <a href="/zh/">Chinese blog</a>
+      I also maintain a <a href="/zh/" class="misc-link">Chinese blog</a>
       where I share course notes, study tips, and personal reflections.
     </p>
 
@@ -745,7 +746,7 @@
       <a href="mailto:ruizhou@psu.edu">ruizhou@psu.edu</a> &middot;
       303 Kern Building, University Park, PA 16802, US
     </div>
-    <div class="footer-copy">&copy; 2026 Rui Zhou &middot; Last updated: April 24, 2026</div>
+    <div class="footer-copy">&copy; {{ site.time | date: "%Y" }} Rui Zhou &middot; Last updated: {{ site.time | date: "%B %-d, %Y" }}</div>
   </footer>
 
   <script>
@@ -757,7 +758,7 @@
     document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
     function toggleChapters(id, btn) {
       const el = document.getElementById('chapters-' + id);
-      if (el.style.display === 'none') { el.style.display = 'block'; btn.textContent = 'Hide chapters ▾'; }
+      if (el.style.display === 'none') { el.style.display = 'block'; btn.textContent = 'Hide chapters ▴'; }
       else { el.style.display = 'none'; btn.textContent = 'Show chapters ▸'; }
     }
     // Gallery: auto-scrolling marquee that yields to user input and resumes after idle.

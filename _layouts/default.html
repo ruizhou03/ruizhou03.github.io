@@ -78,7 +78,7 @@
         <li><a href="{{ site.baseurl }}/essays/">随笔漫谈</a></li>
       </ul>
 
-      <div class="nav-right-box" style="display: flex; align-items: center; gap: 1rem;">
+      <div class="nav-right-box">
         <div id="search-container">
           <button id="mobile-search-btn" onclick="toggleMobileSearch()" aria-label="搜索">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -94,13 +94,15 @@
 
           <ul id="results-container"></ul>
         </div>
-        
-        <button class="theme-toggle" onclick="toggleTheme()" title="切换模式">&#9683;</button>
 
-        <a href="{{ site.baseurl }}/" class="lang-toggle" title="English homepage"
-           style="font-size:0.8rem;font-weight:600;letter-spacing:0.04em;color:var(--color-muted);
-                  border:1px solid var(--color-border);padding:0.3rem 0.5rem;border-radius:4px;
-                  text-decoration:none;white-space:nowrap;">EN</a>
+        <div class="nav-controls">
+          <button class="theme-toggle" onclick="toggleTheme()" title="切换模式">&#9683;</button>
+
+          <a href="{{ site.baseurl }}/" class="lang-toggle" title="English homepage"
+             style="font-size:0.8rem;font-weight:600;letter-spacing:0.04em;color:var(--color-muted);
+                    border:1px solid var(--color-border);padding:0.3rem 0.5rem;border-radius:4px;
+                    text-decoration:none;white-space:nowrap;">EN</a>
+        </div>
       </div>
     </div>
   </nav>
