@@ -95,19 +95,28 @@ def classify(raw: str):
 _PROMPT_TAIL = ("请遵循 docs/MAINTENANCE.md 与 CLAUDE.md 的项目约定，"
                 "先告诉我处理方案再动手；改完按既定 git 工作流 add + commit + push。")
 
+# 占位符：「📋 待你把关」标题渲染时插入，最后整段渲染完再用真正的"全部任务" prompt 块替换它。
+# 用占位符是因为生成时还不知道总共有几张卡。
+PLACEHOLDER_ALL = "<!--__ALL_TASKS_PROMPT_PLACEHOLDER__-->"
 
-def _build_card_prompt(date: str, level: str, subj_md: str, gist_md: list[str]) -> str:
-    bullets = "\n".join(f"- {x}" for x in gist_md) if gist_md else "（无更多明细）"
+
+def _build_group_prompt(date: str, level: str, cards: list[dict]) -> str:
+    """同一 P 级别下所有任务的合并 prompt。"""
+    body_parts = []
+    for i, c in enumerate(cards, 1):
+        bullets = "\n".join(f"- {x}" for x in c["gist"]) if c["gist"] else "（无更多明细）"
+        body_parts.append(f"## {i}. {c['subj']}\n{bullets}")
+    body = "\n\n".join(body_parts)
+    plural = f"共 {len(cards)} 条" if len(cards) > 1 else "1 条"
     return (
-        f"请帮我处理 ruizhou03.github.io 项目的每日巡检待办（{date}）：\n\n"
-        f"【优先级】{level}\n"
-        f"【标题】{subj_md}\n"
-        f"【详情】\n{bullets}\n\n"
+        f"请帮我处理 ruizhou03.github.io 项目的每日巡检 {level} 待办（{date}，{plural}）：\n\n"
+        f"{body}\n\n"
         f"{_PROMPT_TAIL}"
     )
 
 
 def _build_all_prompt(date: str, cards: list[dict]) -> str:
+    """跨优先级的全部任务 prompt。"""
     if not cards:
         return ""
     body_parts = []
@@ -116,22 +125,30 @@ def _build_all_prompt(date: str, cards: list[dict]) -> str:
         body_parts.append(f"## {i}. [{c['level']}] {c['subj']}\n{bullets}")
     body = "\n\n".join(body_parts)
     return (
-        f"请帮我处理 ruizhou03.github.io 项目的每日巡检待办（{date}，共 {len(cards)} 条）：\n\n"
+        f"请帮我处理 ruizhou03.github.io 项目的每日巡检全部待办（{date}，共 {len(cards)} 条）：\n\n"
         f"{body}\n\n"
         f"请按优先级（P0 → P1 → P2）逐条告诉我处理方案，确认后再动手；按既定 git 工作流提交。"
     )
 
 
-def _details_block(label: str, text: str) -> str:
+def _details_block(label: str, text: str, accent: str = "") -> str:
     """折叠 prompt 块。Gmail/Mail.app 都支持原生 <details>/<summary>，
-    展开后是 monospace 的 <pre>，Cmd+A 全选 + Cmd+C 复制即可。"""
+    展开后是 monospace 的 <pre>，选中复制即可。accent 可选：red/yellow/blue 影响按钮配色。"""
     pre_style = ("background:#f6f8fa;border:1px solid #e1e4e8;border-radius:5px;"
-                 "padding:11px 12px;margin:8px 0 0;font-size:12.5px;"
+                 "padding:11px 12px;margin:6px 0 0;font-size:12.5px;"
                  "font-family:ui-monospace,SFMono-Regular,Menlo,monospace;"
                  "white-space:pre-wrap;word-wrap:break-word;color:#24292e;line-height:1.45")
+    btn_bg, btn_border, btn_color = {
+        "red":    ("#fdecea", "#f5b5ad", "#a4332a"),
+        "yellow": ("#fdf6e3", "#e6ce8a", "#7a5b16"),
+        "blue":   ("#eaf2fb", "#b8d0ec", "#1e4d8c"),
+    }.get(accent, ("#f0f1f3", "#d6d9de", "#3b6fb0"))
+    btn_style = (f"display:inline-block;background:{btn_bg};border:1px solid {btn_border};"
+                 f"color:{btn_color};border-radius:5px;padding:5px 10px;font-size:13px;"
+                 f"font-weight:600;cursor:pointer;user-select:none;list-style:none")
     return (
-        f'<details style="margin-top:10px;border-top:1px dashed #ddd;padding-top:7px">'
-        f'<summary style="cursor:pointer;color:#3b6fb0;font-size:12.5px;user-select:none">{label}</summary>'
+        f'<details style="margin:10px 0 4px">'
+        f'<summary style="{btn_style}">{label}</summary>'
         f'<pre style="{pre_style}">{H.escape(text, quote=False)}</pre>'
         f'</details>'
     )
@@ -150,7 +167,9 @@ def render(section: str, date: str = "") -> str:
     card_raw_gist = []        # 当前卡片的原始 markdown 子项列表
     card_raw_level = ""       # 当前卡片的优先级 P0/P1/P2
     card_raw_carry = False    # 是否承接昨日
-    cards_collected = []      # 所有已完成的卡片（用于底部总 prompt）
+    cards_collected = []      # 所有已完成的卡片（用于「待你把关」下的总 prompt 占位替换）
+    pending_group_cards = []  # 当前 P 组未输出的卡片，下次切组 / 切节时输出组级 prompt
+    pending_group_level = ""  # 当前 P 组的级别
     ul_buf = []               # 顶层 <ul> 未结束的累积
     para_buf = []             # 段落未结束的累积
 
@@ -172,22 +191,32 @@ def render(section: str, date: str = "") -> str:
             return
         gist = "".join(card_gist_buf)
         gist_html = f'<div class="gist"><ul style="margin:4px 0;padding-left:19px">{gist}</ul></div>' if gist else ""
-        # 折叠的 prompt 块（给本机 Claude Code 用：Cmd+A 全选复制后去对话粘贴）
-        prompt_text = _build_card_prompt(date or "今日", card_raw_level, card_raw_subj, list(card_raw_gist))
-        prompt_block = _details_block("📋 复制为给 Claude Code 的 prompt（点开 → Cmd+A 全选 → Cmd+C 复制）", prompt_text)
-        out.append(gist_html + prompt_block + "</div>")
-        # 收集这张卡到全局列表
-        cards_collected.append({
+        out.append(gist_html + "</div>")
+        # 这张卡入两个收集列表：全局 + 当前 P 组
+        card_record = {
             "level": card_raw_level,
             "subj": card_raw_subj,
             "gist": list(card_raw_gist),
             "carry": card_raw_carry,
-        })
+        }
+        cards_collected.append(card_record)
+        pending_group_cards.append(card_record)
         in_card = False
         card_gist_buf.clear()
         card_raw_gist.clear()
         card_raw_subj = ""
         card_raw_carry = False
+
+    def flush_group_prompt():
+        """把当前 P 组的卡片合成一个组级 prompt 折叠按钮，输出在该组所有卡片之后。"""
+        nonlocal pending_group_cards, pending_group_level
+        if pending_group_cards and pending_group_level:
+            prompt = _build_group_prompt(date or "今日", pending_group_level, pending_group_cards)
+            accent = {"P0": "red", "P1": "yellow", "P2": "blue"}.get(pending_group_level, "blue")
+            label = f"📋 复制 {pending_group_level} 全部 {len(pending_group_cards)} 条任务给 Claude"
+            out.append(_details_block(label, prompt, accent=accent))
+        pending_group_cards = []
+        pending_group_level = ""
 
     def open_card(subj_md: str, carry: bool = False):
         nonlocal in_card, card_raw_subj, card_raw_level, card_raw_carry
@@ -242,10 +271,15 @@ def render(section: str, date: str = "") -> str:
             out.append('<div class="meta">由本机 LaunchAgent 跑完后直接 SMTP 投递</div>')
         elif typ == TYPE_SEC:
             flush_para(); flush_ul(); flush_card()
-            current_card_color = ""  # 出新小节就清空 P 级别
+            flush_group_prompt()              # 切节前先 flush 当前 P 组
+            current_card_color = ""           # 出新小节就清空 P 级别
             out.append(f'<div class="sec">{inline(payload)}</div>')
+            # 「📋 待你把关」标题下立刻插占位符；最后渲染完用真正的「全部任务」prompt 替换
+            if "待你把关" in payload:
+                out.append(PLACEHOLDER_ALL)
         elif typ == TYPE_PRIORITY:
             flush_para(); flush_ul(); flush_card()
+            flush_group_prompt()              # 切组前先 flush 上一组
             level, rest = payload
             if level == "P0":
                 current_card_color = "red"
@@ -253,8 +287,8 @@ def render(section: str, date: str = "") -> str:
                 current_card_color = "yellow"
             else:
                 current_card_color = ""
+            pending_group_level = level
             # rest 形如「（看心情）」「（看心情，承接昨日）」—— 只作上下文，不必单独输出
-            # 写一行小灰提示
             label = level + (f' <span style="color:#999;font-weight:400;font-size:12.5px">{inline(rest)}</span>' if rest else "")
             out.append(f'<div style="font-size:13.5px;color:#666;margin:14px 0 6px;font-weight:600">{label}</div>')
         elif typ == TYPE_OL_ITEM:
@@ -282,17 +316,21 @@ def render(section: str, date: str = "") -> str:
         # 其他类型忽略
 
     flush_para(); flush_ul(); flush_card()
+    flush_group_prompt()  # 文件结尾把最后一组 P 也输出
 
-    # 邮件底部：若收集到 ≥2 张卡片，加一个总 prompt 折叠区（一次喂给 Claude 让它批处理）
-    if len(cards_collected) >= 2:
-        all_prompt = _build_all_prompt(date or "今日", cards_collected)
-        summary_label = f"📋 全部待办（{len(cards_collected)} 条）合并 prompt · 一次喂给 Claude Code"
-        block = _details_block(summary_label, all_prompt)
-        out.append('<hr style="margin:24px 0 12px;border:none;border-top:1px solid #ececec">')
-        out.append(f'<div style="font-size:13px;color:#888;margin-bottom:4px">合并所有待办为一段 prompt：</div>')
-        out.append(block)
+    result = "\n".join(out)
 
-    return "\n".join(out)
+    # 替换占位符：「📋 待你把关」标题下的"全部任务" prompt 按钮
+    if PLACEHOLDER_ALL in result:
+        if cards_collected:
+            all_prompt = _build_all_prompt(date or "今日", cards_collected)
+            label = f"📋 复制所有 {len(cards_collected)} 条任务给 Claude"
+            all_block = _details_block(label, all_prompt, accent="blue")
+        else:
+            all_block = ""
+        result = result.replace(PLACEHOLDER_ALL, all_block)
+
+    return result
 
 
 def main():
