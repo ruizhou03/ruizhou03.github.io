@@ -144,6 +144,135 @@
       height: 82vh; max-height: 82vh; border-radius: 16px 16px 0 0;
     }
   }
+
+  /* ===== 顶部搜索 modal（cmd-k 风格）===== */
+  #zs-mask {
+    position: fixed; inset: 0; z-index: 1090;
+    background: rgba(15,23,42,.45);
+    backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+    opacity: 0; pointer-events: none; transition: opacity .18s ease;
+  }
+  #zs-mask.zs-open { opacity: 1; pointer-events: auto; }
+
+  #zs-modal {
+    position: fixed; z-index: 1091;
+    top: 12vh; left: 50%; transform: translateX(-50%) translateY(-12px) scale(.98);
+    width: min(620px, calc(100vw - 2.4rem));
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: 14px; box-shadow: 0 24px 60px rgba(15,23,42,.32);
+    display: flex; flex-direction: column; overflow: hidden;
+    opacity: 0; pointer-events: none;
+    transition: opacity .22s ease, transform .22s cubic-bezier(.4,0,.2,1);
+    max-height: 76vh;
+  }
+  #zs-modal.zs-open { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); pointer-events: auto; }
+
+  .zs-input-row {
+    display: flex; align-items: center; gap: .65rem;
+    padding: .85rem 1rem; border-bottom: 1px solid var(--color-border);
+    flex: none;
+  }
+  .zs-input-row svg { width: 18px; height: 18px; color: var(--color-muted); flex: none; }
+  #zs-input {
+    flex: 1; border: none; outline: none; background: transparent;
+    font-family: inherit; font-size: 1rem; color: var(--color-ink);
+    padding: .2rem 0; min-width: 0;
+  }
+  #zs-input::placeholder { color: var(--color-light); }
+  .zs-esc {
+    flex: none; font-family: inherit; font-size: .72rem; color: var(--color-muted);
+    border: 1px solid var(--color-border); border-radius: 4px;
+    padding: .15rem .4rem; background: var(--color-bg-warm);
+  }
+
+  .zs-body {
+    flex: 1; overflow-y: auto; padding: .4rem 0;
+    background: var(--color-bg);
+  }
+  .zs-empty {
+    padding: 1.4rem 1rem; text-align: center;
+    color: var(--color-muted); font-size: .88rem; line-height: 1.7;
+  }
+  .zs-empty .zs-empty-strong { color: var(--color-ink); font-weight: 600; }
+  .zs-chip-row { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; margin-top: .7rem; }
+  .zs-chip {
+    background: var(--color-bg-warm); border: 1px solid var(--color-border); cursor: pointer;
+    color: var(--color-accent); font-size: .8rem; font-family: inherit;
+    padding: .32rem .7rem; border-radius: 999px; transition: border-color .15s, color .15s;
+  }
+  .zs-chip:hover { border-color: var(--color-highlight); color: var(--color-highlight); }
+
+  .zs-group {
+    font-size: .68rem; color: var(--color-muted); font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase;
+    padding: .55rem 1rem .25rem;
+  }
+  .zs-row {
+    display: flex; align-items: center; gap: .7rem;
+    padding: .55rem 1rem; cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: background .12s, border-color .12s;
+  }
+  .zs-row:hover, .zs-row.zs-sel {
+    background: var(--color-bg-warm); border-left-color: var(--color-highlight);
+  }
+  .zs-row-icon {
+    width: 24px; height: 24px; border-radius: 6px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--color-bg-warm); font-size: .85rem;
+  }
+  .zs-row.zs-sel .zs-row-icon { background: var(--color-bg); }
+  .zs-row-text { flex: 1; min-width: 0; }
+  .zs-row-title {
+    font-size: .92rem; font-weight: 500; color: var(--color-ink);
+    line-height: 1.4;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .zs-row-cat {
+    font-size: .72rem; color: var(--color-muted); margin-top: .1rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .zs-row-enter {
+    flex: none; font-size: .7rem; color: var(--color-muted);
+    opacity: 0; transition: opacity .12s;
+  }
+  .zs-row.zs-sel .zs-row-enter { opacity: 1; }
+
+  .zs-foot {
+    flex: none; padding: .7rem 1rem;
+    border-top: 1px solid var(--color-border); background: var(--color-bg-warm);
+    display: flex; align-items: center; justify-content: space-between; gap: .8rem;
+    flex-wrap: wrap;
+  }
+  .zs-foot-tip {
+    font-size: .72rem; color: var(--color-muted);
+    display: flex; align-items: center; gap: .35rem; flex-wrap: wrap;
+  }
+  .zs-foot-tip kbd {
+    font-family: inherit; font-size: .7rem; color: var(--color-muted);
+    border: 1px solid var(--color-border); border-radius: 4px;
+    padding: 0 .3rem; background: var(--color-bg);
+  }
+  .zs-ask-bridge {
+    display: inline-flex; align-items: center; gap: .35rem;
+    background: var(--color-highlight); color: #fff;
+    border: none; cursor: pointer; font-family: inherit;
+    font-size: .82rem; font-weight: 600;
+    padding: .42rem .9rem; border-radius: 999px;
+    transition: filter .15s, transform .15s;
+  }
+  .zs-ask-bridge:hover { filter: brightness(1.07); transform: translateY(-1px); }
+  .zs-ask-bridge .zs-ask-spark { letter-spacing: .04em; }
+
+  @media (max-width: 600px) {
+    #zs-modal {
+      top: 0; left: 0; right: 0; transform: none;
+      width: 100%; max-width: 100%; max-height: 100vh; height: 100vh;
+      border-radius: 0; border: none;
+    }
+    #zs-modal.zs-open { transform: none; }
+    .zs-esc { display: none; }
+  }
 </style>
 
 <button id="za-fab" aria-label="打开站内小助手" title="问问锆铌小助手">
@@ -151,6 +280,22 @@
     <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.4 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5.6a8.38 8.38 0 0 1-.9-3.9 8.5 8.5 0 0 1 8.5-8.4 8.38 8.38 0 0 1 8.5 8.4z"/>
   </svg>
 </button>
+
+<div id="zs-mask" aria-hidden="true"></div>
+<div id="zs-modal" role="dialog" aria-modal="true" aria-label="搜索">
+  <div class="zs-input-row">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="zs-input" type="text" autocomplete="off" placeholder="搜索文章、笔记或工具…">
+    <span class="zs-esc">ESC</span>
+  </div>
+  <div class="zs-body" id="zs-body"></div>
+  <div class="zs-foot">
+    <div class="zs-foot-tip"><kbd>↑</kbd><kbd>↓</kbd> 选择 · <kbd>Enter</kbd> 打开 · <kbd>Esc</kbd> 关闭</div>
+    <button class="zs-ask-bridge" id="zs-ask-bridge" type="button">
+      <span class="zs-ask-spark">✦</span> 让小助手帮我找
+    </button>
+  </div>
+</div>
 
 <div id="za-panel" role="dialog" aria-label="站内小助手">
   <div class="za-head">
@@ -547,6 +692,263 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && panel.classList.contains('za-open')) closePanel();
   });
+
+  // ============================================================
+  // 顶部搜索 modal —— cmd-k 风格，与小助手共用 search() / loadIndex()
+  // 入口：导航栏 #nav-search-btn 或 ⌘K / Ctrl+K
+  // 桥接：modal 底部「让小助手帮我找」按钮 → 关 modal、开 panel、把问题丢给 AI
+  // ============================================================
+  var mask    = document.getElementById('zs-mask');
+  var modal   = document.getElementById('zs-modal');
+  var zsInput = document.getElementById('zs-input');
+  var zsBody  = document.getElementById('zs-body');
+  var zsAsk   = document.getElementById('zs-ask-bridge');
+  var navBtn  = document.getElementById('nav-search-btn');
+
+  if (mask && modal && zsInput && zsBody) {
+    var TYPE_ICON = { article: '📄', material: '📎', tool: '🧩' };
+    var TYPE_NAME = { article: '文章', material: '资料', tool: '小工具' };
+    var EMPTY_CHIPS = ['摩擦圆', 'VPN 原理', '报税', '高微讲义', '小游戏'];
+    var curHits = [];
+    var selIdx = -1;
+    var lastQuery = '';
+
+    function renderEmpty() {
+      curHits = []; selIdx = -1;
+      zsBody.innerHTML = '';
+      var wrap = document.createElement('div');
+      wrap.className = 'zs-empty';
+      wrap.innerHTML = '<span class="zs-empty-strong">站内全局搜索</span><br>'
+        + '搜文章、课程资料、百宝箱小工具——试试这些：';
+      var chips = document.createElement('div');
+      chips.className = 'zs-chip-row';
+      EMPTY_CHIPS.forEach(function (c) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'zs-chip'; b.textContent = c;
+        b.addEventListener('click', function () {
+          zsInput.value = c; doSearch(c); zsInput.focus();
+        });
+        chips.appendChild(b);
+      });
+      wrap.appendChild(chips);
+      zsBody.appendChild(wrap);
+      updateAskLabel('');
+    }
+
+    function renderNoResults(q) {
+      curHits = []; selIdx = -1;
+      zsBody.innerHTML = '';
+      var wrap = document.createElement('div');
+      wrap.className = 'zs-empty';
+      wrap.innerHTML = '没找到和「' + escapeHtml(q) + '」直接匹配的内容 🥲<br>'
+        + '可以让小助手帮你想想——它能跨措辞猜你的意图。';
+      zsBody.appendChild(wrap);
+      updateAskLabel(q);
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    function renderResults(hits, q) {
+      curHits = hits; selIdx = hits.length ? 0 : -1;
+      zsBody.innerHTML = '';
+      // 按 type 分组
+      var groups = { article: [], material: [], tool: [] };
+      hits.forEach(function (h) {
+        (groups[h.type] || groups.article).push(h);
+      });
+      var globalIdx = 0;
+      ['article', 'material', 'tool'].forEach(function (t) {
+        if (!groups[t].length) return;
+        var head = document.createElement('div');
+        head.className = 'zs-group';
+        head.textContent = (TYPE_ICON[t] || '📄') + ' ' + TYPE_NAME[t];
+        zsBody.appendChild(head);
+        groups[t].forEach(function (it) {
+          var row = makeRow(it, globalIdx);
+          zsBody.appendChild(row);
+          globalIdx++;
+        });
+      });
+      updateSelection();
+      updateAskLabel(q);
+    }
+
+    function makeRow(it, idx) {
+      var row = document.createElement('div');
+      row.className = 'zs-row';
+      row.setAttribute('data-idx', idx);
+      var icon = document.createElement('div');
+      icon.className = 'zs-row-icon';
+      icon.textContent = TYPE_ICON[it.type] || '📄';
+      var text = document.createElement('div');
+      text.className = 'zs-row-text';
+      var title = document.createElement('div');
+      title.className = 'zs-row-title';
+      title.textContent = it.title;
+      var cat = document.createElement('div');
+      cat.className = 'zs-row-cat';
+      cat.textContent = it.category || '';
+      text.appendChild(title);
+      if (it.category) text.appendChild(cat);
+      var enter = document.createElement('span');
+      enter.className = 'zs-row-enter';
+      enter.textContent = '↵';
+      row.appendChild(icon); row.appendChild(text); row.appendChild(enter);
+      row.addEventListener('mouseenter', function () {
+        selIdx = idx; updateSelection();
+      });
+      row.addEventListener('click', function () { goToHit(it); });
+      return row;
+    }
+
+    function updateSelection() {
+      var rows = zsBody.querySelectorAll('.zs-row');
+      rows.forEach(function (r, i) {
+        r.classList.toggle('zs-sel', i === selIdx);
+        if (i === selIdx) {
+          var rect = r.getBoundingClientRect();
+          var bodyRect = zsBody.getBoundingClientRect();
+          if (rect.top < bodyRect.top) zsBody.scrollTop -= (bodyRect.top - rect.top + 8);
+          else if (rect.bottom > bodyRect.bottom) zsBody.scrollTop += (rect.bottom - bodyRect.bottom + 8);
+        }
+      });
+    }
+
+    function updateAskLabel(q) {
+      if (q && q.trim()) {
+        zsAsk.innerHTML = '<span class="zs-ask-spark">✦</span> 让小助手回答「' + escapeHtml(q.length > 14 ? q.slice(0, 14) + '…' : q) + '」';
+      } else {
+        zsAsk.innerHTML = '<span class="zs-ask-spark">✦</span> 让小助手帮我找';
+      }
+    }
+
+    function goToHit(it) {
+      if (it.type === 'material' && it.download) {
+        // material：先跳详情页（页面里有下载按钮 + 元信息），符合现有交互习惯
+        window.location.href = it.url || it.download;
+      } else {
+        window.location.href = it.url;
+      }
+    }
+
+    function doSearch(q) {
+      lastQuery = q;
+      q = (q || '').trim();
+      if (!q) { renderEmpty(); return; }
+      loadIndex().then(function () {
+        var r = search(q);
+        if (!r.hits.length) renderNoResults(q);
+        else renderResults(r.hits, q);
+      }).catch(function () {
+        renderNoResults(q);
+      });
+    }
+
+    function openSearch(prefill) {
+      mask.classList.add('zs-open');
+      modal.classList.add('zs-open');
+      document.body.style.overflow = 'hidden';
+      if (typeof prefill === 'string' && prefill) {
+        zsInput.value = prefill; doSearch(prefill);
+      } else if (!zsInput.value) {
+        renderEmpty();
+      } else {
+        doSearch(zsInput.value);
+      }
+      setTimeout(function () { zsInput.focus(); zsInput.select(); }, 80);
+    }
+    function closeSearch() {
+      mask.classList.remove('zs-open');
+      modal.classList.remove('zs-open');
+      document.body.style.overflow = '';
+    }
+
+    function bridgeToAssistant(q) {
+      q = (q || zsInput.value || '').trim();
+      closeSearch();
+      // 跳过 INTRO 直接进入对话（避免 panel 第一次打开时铺一屏欢迎语再才看到自己的问题）
+      greeted = true;
+      panel.classList.add('za-open');
+      fab.classList.add('za-hidden');
+      loadIndex().catch(function () {});
+      if (q) {
+        // 直接走聊天主流程：会 push 用户气泡 + 调 AI
+        setTimeout(function () { handle(q); }, 60);
+      } else {
+        // 没有 query 时退到普通的 INTRO 体验
+        pushBot(INTRO); pushChips();
+        setTimeout(function () { input.focus(); }, 250);
+      }
+    }
+
+    // 输入框：节流 100ms 触发搜索
+    var debounceTimer = null;
+    zsInput.addEventListener('input', function () {
+      var v = zsInput.value;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function () { doSearch(v); }, 100);
+    });
+
+    // 键盘导航
+    zsInput.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') {
+        if (!curHits.length) return;
+        e.preventDefault();
+        selIdx = Math.min(selIdx + 1, curHits.length - 1);
+        updateSelection();
+      } else if (e.key === 'ArrowUp') {
+        if (!curHits.length) return;
+        e.preventDefault();
+        selIdx = Math.max(selIdx - 1, 0);
+        updateSelection();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (selIdx >= 0 && curHits[selIdx]) {
+          goToHit(curHits[selIdx]);
+        } else if (zsInput.value.trim()) {
+          // 有 query 但无结果 → 桥接到小助手
+          bridgeToAssistant(zsInput.value);
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeSearch();
+      }
+    });
+
+    // mask 点击关闭
+    mask.addEventListener('click', closeSearch);
+
+    // ✦ 桥接按钮
+    zsAsk.addEventListener('click', function () { bridgeToAssistant(zsInput.value); });
+
+    // 导航栏入口
+    if (navBtn) navBtn.addEventListener('click', function () { openSearch(); });
+
+    // ⌘K / Ctrl+K 全局快捷键
+    document.addEventListener('keydown', function (e) {
+      var isModK = (e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey);
+      if (isModK) {
+        e.preventDefault();
+        if (modal.classList.contains('zs-open')) closeSearch();
+        else openSearch();
+      } else if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        // 「/」 也能唤起（前提：当前不在输入框里）
+        var t = e.target;
+        var tag = t && t.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+        if (modal.classList.contains('zs-open') || panel.classList.contains('za-open')) return;
+        e.preventDefault();
+        openSearch();
+      }
+    });
+
+    // 初始化空态
+    renderEmpty();
+  }
 })();
 </script>
 {% endraw %}

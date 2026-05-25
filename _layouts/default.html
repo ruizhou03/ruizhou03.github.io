@@ -79,21 +79,11 @@
       </ul>
 
       <div class="nav-right-box">
-        <div id="search-container">
-          <button id="mobile-search-btn" onclick="toggleMobileSearch()" aria-label="搜索">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          </button>
-
-          <div class="search-wrapper">
-            <span class="search-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            </span>
-            <input type="text" id="search-input" placeholder="搜索文章、笔记或工具…">
-            <button id="close-search-btn" onclick="toggleMobileSearch()">✕</button>
-          </div>
-
-          <ul id="results-container"></ul>
-        </div>
+        <button id="nav-search-btn" type="button" aria-label="搜索（⌘K）" title="搜索（⌘K / Ctrl+K）">
+          <svg class="nav-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <span class="nav-search-text">搜索</span>
+          <kbd class="nav-search-kbd">⌘K</kbd>
+        </button>
 
         <div class="nav-controls">
           <button class="theme-toggle" onclick="toggleTheme()" title="切换模式">&#9683;</button>
@@ -160,23 +150,6 @@
       }
     }
 
-    // 🚀 新增：手机端搜索栏变身逻辑
-    function toggleMobileSearch() {
-      const navInner = document.querySelector('.nav-inner');
-      const searchInput = document.getElementById('search-input');
-      const resultsDiv = document.getElementById('results-container');
-
-      navInner.classList.toggle('search-active');
-
-      if (navInner.classList.contains('search-active')) {
-        // 展开时，延迟 100ms 自动弹出手机软键盘
-        setTimeout(() => searchInput.focus(), 100);
-      } else {
-        // 收起时，清空内容并隐藏结果
-        searchInput.value = '';
-        resultsDiv.style.display = 'none';
-      }
-    }
   </script>
 
   {% include assistant.html %}
@@ -301,24 +274,5 @@
   </script>
 
 
-  <script src="https://cdn.jsdelivr.net/npm/simple-jekyll-search@latest/dest/simple-jekyll-search.min.js"></script>
-  <script>
-    // 初始化搜索功能
-    if (document.getElementById('search-input')) {
-      SimpleJekyllSearch({
-        searchInput: document.getElementById('search-input'),
-        resultsContainer: document.getElementById('results-container'),
-        json: '{{ site.baseurl }}/search.json',
-        searchResultTemplate: '<li style="padding: 0.8rem; border-bottom: 1px solid var(--color-border);"><a href="{url}" style="text-decoration: none; color: var(--color-accent); font-weight: 500; font-size: 0.95rem; display: block;">{title}</a><span style="font-size: 0.8rem; color: var(--color-muted);">{category}</span></li>',
-        noResultsText: '<li style="padding: 1rem; text-align: center; color: var(--color-muted);">没有找到相关内容 🥲</li>'
-      });
-
-      // 当输入框有内容时显示结果，失去焦点时隐藏
-      const searchInput = document.getElementById('search-input');
-      const resultsDiv = document.getElementById('results-container');
-      searchInput.addEventListener('input', () => { resultsDiv.style.display = searchInput.value ? 'block' : 'none'; });
-      document.addEventListener('click', (e) => { if(!e.target.closest('#search-container')) resultsDiv.style.display = 'none'; });
-    }
-  </script>
 </body>
 </html>

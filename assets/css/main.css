@@ -414,63 +414,37 @@
     }
     
     /* ======================================================
-       全新的搜索框与移动端变身适配
+       顶部搜索入口（按钮触发 cmd-k 弹层；弹层 DOM/JS 在 _includes/assistant.html）
        ====================================================== */
-    #search-container { position: relative; display: flex; align-items: center; }
-    #mobile-search-btn { display: none; background: none; border: none; color: var(--color-ink); cursor: pointer; padding: 0.2rem; }
-    .search-wrapper { position: relative; display: flex; align-items: center; }
-    
-    /* 电脑端内嵌放大镜 */
-    .search-icon { position: absolute; left: 12px; color: var(--color-muted); pointer-events: none; display: flex; align-items: center; }
-    
-    #search-input {
-      padding: 0.4rem 0.8rem 0.4rem 2.2rem; /* 左侧留出 2.2rem 的空间给放大镜 */
-      border-radius: 20px;
-      border: 1px solid var(--color-border);
-      background: var(--color-bg);
-      color: var(--color-text);
-      outline: none;
-      font-size: 0.9rem;
-      width: 180px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    #nav-search-btn {
+      display: inline-flex; align-items: center; gap: 0.55rem;
+      padding: 0.38rem 0.65rem 0.38rem 0.7rem;
+      background: var(--color-bg); color: var(--color-muted);
+      border: 1px solid var(--color-border); border-radius: 999px;
+      font-family: inherit; font-size: 0.85rem; cursor: pointer;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
     }
-    
-    #search-input:focus { width: 240px; border-color: var(--color-accent); }
-    #close-search-btn { display: none; background: none; border: none; color: var(--color-ink); font-size: 1.2rem; cursor: pointer; padding: 0 10px; }
-    
-    /* 搜索结果框样式 */
-    #results-container {
-      position: absolute; top: calc(100% + 12px); right: 0; background: var(--color-nav-bg); 
-      border: 1px solid var(--color-border); border-radius: 8px; width: 280px; max-height: 400px; 
-      overflow-y: auto; list-style: none; padding: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-      z-index: 1000; display: none; backdrop-filter: blur(10px);
+    #nav-search-btn:hover {
+      color: var(--color-accent); border-color: var(--color-accent);
+      background: var(--color-bg-warm);
+    }
+    #nav-search-btn .nav-search-icon { color: currentColor; flex: none; }
+    #nav-search-btn .nav-search-text { font-size: 0.85rem; }
+    #nav-search-btn .nav-search-kbd {
+      font-family: inherit; font-size: 0.7rem; color: var(--color-muted);
+      border: 1px solid var(--color-border); border-radius: 4px;
+      padding: 0.05rem 0.32rem; background: var(--color-bg-warm);
+      line-height: 1.2;
     }
 
-    /* 手机端响应式魔法 */
     @media (max-width: 768px) {
       .nav-right-box { gap: 0.8rem !important; }
-      
-      /* 默认状态：隐藏长条输入框，显示小放大镜 */
-      .search-wrapper { display: none; }
-      #mobile-search-btn { display: block; }
-
-      /* 搜索激活状态：变身全屏搜索栏 */
-      .nav-inner.search-active { display: flex; gap: 10px; }
-      
-      /* 变身时，强行隐藏返回键、汉堡包、亮度键 */
-      .nav-inner.search-active .nav-left-zone,
-      .nav-inner.search-active .nav-toggle,
-      .nav-inner.search-active .theme-toggle { display: none; } 
-
-      /* 让搜索框霸占 100% 宽度 */
-      .nav-inner.search-active .nav-right-box { flex: 1; width: 100%; justify-content: flex-end; }
-      .nav-inner.search-active #search-container { width: 100%; }
-      .nav-inner.search-active #mobile-search-btn { display: none; }
-      .nav-inner.search-active .search-wrapper { display: flex; width: 100%; }
-      .nav-inner.search-active #search-input { width: 100%; padding-left: 1rem; }
-      .nav-inner.search-active .search-icon { display: none; } /* 全屏搜索时隐藏内嵌图标，保持极简 */
-      .nav-inner.search-active #close-search-btn { display: block; }
-      .nav-inner.search-active #results-container { width: 100%; }
+      #nav-search-btn {
+        padding: 0.35rem; border-radius: 50%;
+        width: 32px; height: 32px; justify-content: center;
+      }
+      #nav-search-btn .nav-search-text,
+      #nav-search-btn .nav-search-kbd { display: none; }
     }
 
     /* ======================================================
