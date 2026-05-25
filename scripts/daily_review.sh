@@ -12,7 +12,7 @@
 
 set -uo pipefail
 
-REPO="/Users/zhourui/Desktop/ruizhou03.github.io"
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
 PROMPT_FILE="$REPO/scripts/daily_review.prompt.md"
 LOG="$HOME/Library/Logs/zirconeey-daily-review.log"
 STATE_DIR="$HOME/Library/Application Support/zirconeey-daily-review"

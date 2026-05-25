@@ -1,4 +1,4 @@
-/* Zirconeey site service worker
+/* ruizhou03.github.io site service worker
  *
  * 关键约束（曾经踩过的坑）：
  *  1. 部署新版本绝对不能清空用户已有缓存。之前用 v1/v2/v3/v4 命名空间，
@@ -16,10 +16,14 @@
  */
 
 // 缓存名故意不带版本号——同一个 cache 一直滚动用，靠 SWR 自然刷新内容。
-// 旧版本残留（v1/v2/v3/v4 命名空间）做一次性清理。
-const PAGE_CACHE  = 'zirconeey-pages';
-const ASSET_CACHE = 'zirconeey-assets';
-const LEGACY_PREFIXES = ['zirconeey-shell-', 'zirconeey-pages-v', 'zirconeey-assets-v'];
+// LEGACY_PREFIXES 命中的旧命名空间在 activate 时一次性清理：
+//   zirconeey-shell- / zirconeey-pages-v / zirconeey-assets-v 是更早的 v1–v4 残留；
+//   zirconeey-pages  / zirconeey-assets  是 2026-05 仓库从 zirconeey.github.io 改名为
+//   ruizhou03.github.io 之前的命名空间，老用户首次访问新版时清掉，下次访问按 ruizhou03-
+//   命名空间自动重建（离线副本会丢一次，是这次跨域名改名的必要代价）。
+const PAGE_CACHE  = 'ruizhou03-pages';
+const ASSET_CACHE = 'ruizhou03-assets';
+const LEGACY_PREFIXES = ['zirconeey-'];
 
 self.addEventListener('install', (event) => {
   // 不预取任何东西。SW 安装要快，全站预缓存交给前端 idle 调度。
@@ -276,7 +280,10 @@ self.addEventListener('message', async (event) => {
 
   if (data.type === 'CLEAR_CACHE') {
     const names = await caches.keys();
-    await Promise.all(names.filter((n) => n.startsWith('zirconeey-')).map((n) => caches.delete(n)));
+    await Promise.all(
+      names.filter((n) => n.startsWith('ruizhou03-') || n.startsWith('zirconeey-'))
+           .map((n) => caches.delete(n))
+    );
     reply({ type: 'CLEAR_CACHE_DONE' });
   }
 });

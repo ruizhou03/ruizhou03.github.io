@@ -5,7 +5,7 @@ description: 把 ruizhou03.github.io 站的源 markdown 文章转换成适合粘
 
 # wechat-export — 导出公众号版 markdown
 
-把 zirconeey 站的一篇博客文章转成适合贴进 [md.doocs.org](https://md.doocs.org/) 的版本。
+把 ruizhou03.github.io 站的一篇博客文章转成适合贴进 [md.doocs.org](https://md.doocs.org/) 的版本。
 
 ## 它做什么
 
@@ -43,7 +43,7 @@ description: 把 ruizhou03.github.io 站的源 markdown 文章转换成适合粘
 ## 不适用范围
 
 - **菜谱**（`layout: recipe`）：`ingredients` / `prep` / `steps` 在 YAML 里，剥掉 YAML 后会丢失。需要单独处理（暂未实现）
-- **跨 zirconeey 链接**：文章里若有指向 `/notes/...` 的内部链接，转换后是 ruizhou03.github.io 域，公众号读者点击会跳到本站；这是预期行为
+- **跨站内链**：文章里若有指向 `/notes/...` 的内部链接，转换后是 ruizhou03.github.io 域，公众号读者点击会跳到本站；这是预期行为
 - **代码块语法高亮**：doocs/md 自己处理，不需要 skill 干预
 
 ## 配套文件

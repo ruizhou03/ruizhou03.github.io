@@ -1,6 +1,6 @@
 ---
 name: search-keywords
-description: 给 zirconeey.github.io 的文章/菜谱写好 front-matter `keywords:`，让读者凭"记得的内容"（同义词、关联词、英文、错别字）也能搜到。发布博客/菜谱前的必做收尾步骤——new-post 与 recipe skill 在 commit 前都要调用本方法。也可单独触发："给这篇加搜索关键词 / 优化关键词 / 让别人搜得到这篇 / 补 keywords / 这篇搜不到"。
+description: 给 ruizhou03.github.io 的文章/菜谱写好 front-matter `keywords:`，让读者凭"记得的内容"（同义词、关联词、英文、错别字）也能搜到。发布博客/菜谱前的必做收尾步骤——new-post 与 recipe skill 在 commit 前都要调用本方法。也可单独触发："给这篇加搜索关键词 / 优化关键词 / 让别人搜得到这篇 / 补 keywords / 这篇搜不到"。
 ---
 
 # search-keywords — 为文章生成可被搜到的关键词

@@ -7,7 +7,7 @@
 
 set -uo pipefail
 
-REPO="/Users/zhourui/Desktop/ruizhou03.github.io"
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 STATE="$REPO/.audit-cache/.last_publish_reminder.commit"
 LOG="$HOME/Library/Logs/zirconeey-hooks.log"
 

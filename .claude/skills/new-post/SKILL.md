@@ -1,6 +1,6 @@
 ---
 name: new-post
-description: 在 zirconeey.github.io 站新建一篇博客文章。先运行时发现仓库现有的分类和样板，再按对应 schema 生成 front-matter；如果用户要的是全新一级分类，引导走"添加新分类"流程并补齐 landing 页和主页入口。当用户说"写一篇博客 / 新建文章 / 写一篇随笔 / 加一篇生活攻略 / 加一篇科研妙招 / 加一篇课程测评 / 加一篇错题本"等时使用。菜谱用 /recipe，不用此 skill。
+description: 在 ruizhou03.github.io 站新建一篇博客文章。先运行时发现仓库现有的分类和样板，再按对应 schema 生成 front-matter；如果用户要的是全新一级分类，引导走"添加新分类"流程并补齐 landing 页和主页入口。当用户说"写一篇博客 / 新建文章 / 写一篇随笔 / 加一篇生活攻略 / 加一篇科研妙招 / 加一篇课程测评 / 加一篇错题本"等时使用。菜谱用 /recipe，不用此 skill。
 ---
 
 # new-post — 新建博客文章

@@ -1,6 +1,6 @@
 ---
 name: recipe
-description: 在 zirconeey.github.io 站新建一篇符合 `_layouts/recipe.html` 强制 schema 的菜谱文章。当用户说"写菜谱 / 加道菜 / 新菜谱 / 把这道菜做成菜谱"等时使用。菜谱有专属布局和严格的 front-matter 字段，不能用 /new-post 替代。
+description: 在 ruizhou03.github.io 站新建一篇符合 `_layouts/recipe.html` 强制 schema 的菜谱文章。当用户说"写菜谱 / 加道菜 / 新菜谱 / 把这道菜做成菜谱"等时使用。菜谱有专属布局和严格的 front-matter 字段，不能用 /new-post 替代。
 ---
 
 # recipe — 新建菜谱

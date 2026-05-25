@@ -1,6 +1,6 @@
 ---
 name: image-caption
-description: 在 zirconeey.github.io 的 markdown 文件里给某张图片下面追加标准的 `<p class="img-caption">` 配文。当用户说"给这张图加配文 / 加 caption / 这张图下面写一句"等时使用。zirconeey 站的固定格式，由 `_layouts/post.html` 的 CSS 渲染。
+description: 在 ruizhou03.github.io 的 markdown 文件里给某张图片下面追加标准的 `<p class="img-caption">` 配文。当用户说"给这张图加配文 / 加 caption / 这张图下面写一句"等时使用。本站的固定格式，由 `_layouts/post.html` 的 CSS 渲染。
 ---
 
 # image-caption — 给图片加标准配文
