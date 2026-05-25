@@ -1,14 +1,27 @@
 \chapter{General Equilibrium}
 
-Regardless what perspective we take to analyze the market, the central idea is invariant: the market should clear. Typically, we differentiate between partial equilibrium and general equilibrium. From the perspective of partial equilibrium, we suppose the prices of all other goods are held fixed, and then analyze the equilibrium in a single market. From the general equilibrium's perspective, in contrast, we extend our focus to all markets and require all markets clear simultaneously.\\
+The unifying idea across all market analyses is \emph{market clearing}.
+What distinguishes the two standard approaches is how many markets
+they ask to clear at once. \emph{Partial equilibrium} fixes prices in
+all other markets and analyzes a single market in isolation.
+\emph{General equilibrium} requires every market in the economy to
+clear simultaneously, taking into account the cross-market price
+linkages.
 
-\noindent Superficial as the partial equilibrium may seem when juxtaposed with general equilibrium, the approach of partial equilibrium analysis is still powerful typically in cases where
+Partial equilibrium remains a useful shortcut despite its narrower
+scope. It is a defensible approximation whenever:
 \begin{itemize}
   \item
-    The prices of the goods in all other markets are held fixed; or more precisely, the effect on the prices of all other goods can be neglected.
+    Prices in all other markets are essentially unaffected by what
+    happens in the market of interest (e.g., the market is small
+    relative to the rest of the economy).
   \item
-    No wealth effect of the market of interest.
+    There are no significant wealth effects feeding back from the
+    market of interest into demand elsewhere.
   \end{itemize}
+
+The following example shows what can go wrong when these conditions
+fail.
 
 \ex{
 There are \(n\) towns in total, with $n$ being a large number. Each town has an identical price-taking firm that produces a single consumption good with the
@@ -101,10 +114,13 @@ individual(s) will bear the tax burden?
 \end{itemize}
 }
 
-\hypertarget{pure-exchange-economy}{%
-\section{Pure Exchange Economy}\label{pure-exchange-economy}}
+\section{Pure Exchange Economy}\label{pure-exchange-economy}
 
-Traditionally in analysis of a market, there are three central activities of interest: consumption, production and trade. While in pure exchange economy, each agent has an endowment that they can trade with, and there is no production; we only care about the exchange of goods.
+A full market analysis typically involves three activities:
+consumption, production, and trade. The cleanest setting to develop
+general-equilibrium intuition strips out production: in a \emph{pure
+exchange economy}, each agent starts with an endowment of goods, and
+the only economic activity is mutually beneficial trade.
 
 \ex{
 Consider a perfectly competitive economy with two agents \((i = A, B)\)
@@ -155,8 +171,7 @@ From this example, we obtain four observations in this two-agent, two-good pure 
   The equilibrium allocation is Pareto eﬀicient.
 \end{enumerate}
 
-\hypertarget{basic-setups-2}{%
-\subsection{Setups}\label{basic-setups-2}}
+\subsection{Setups}\label{basic-setups-2}
 
 \textbf{Model Preliminaries}
 
@@ -211,8 +226,7 @@ Notice that by the first assumption, the utility representation of $\pref^i$, sa
 is guaranteed for any \(i \in I\), so we can alternatively denote the
 economy as \(\mathcal E = \pr{u^i \pr\cdot,\e^i}_{i\in\mathcal I}\).
 
-\hypertarget{walrasian-equilibrium}{%
-\subsection{Walrasian Equilibrium}\label{walrasian-equilibrium}}
+\subsection{Walrasian Equilibrium}\label{walrasian-equilibrium}
 
 \defn{Walrasian Equilibrium}{
 A \textit{Walrasian
@@ -324,21 +338,21 @@ theorem, \(\exists p_1^*\in \pr{\underline p,\bar p}\) such that
 \(z_1\pr{p_1^*,1} = 0\).
 }
 
-\hypertarget{allocation}{%
-\section{Allocation}\label{allocation}}
+\section{Allocation}\label{allocation}
 
-Recap on what we have learned in intermediate microeconomics:
+Recall the two cornerstone results from intermediate micro:
 \begin{itemize}
 \item
-  First theorem of welfare economics: Any Walrasian equilibrium is
-  Pareto efficient.
+  \emph{First Welfare Theorem.} Any Walrasian equilibrium allocation
+  is Pareto efficient.
 \item
-  Second theorem of welfare economics: By adjusting the initial
-  endowments. any Pareto efficient allocation can be supported by a
-  Walrasian equilibrium.
+  \emph{Second Welfare Theorem.} Any Pareto efficient allocation can
+  be supported as a Walrasian equilibrium after a suitable
+  redistribution of initial endowments.
 \end{itemize}
 
-Before we delve deep into discussions on allocation, a rigorous definition of feasible allocation is helpful.
+We now state these rigorously and strengthen the first. Begin with
+the formal definition of a feasible allocation.
 
 \defn{Feasible Allocation}{
 For a pure exchange economy
@@ -347,8 +361,8 @@ For a pure exchange economy
 \[\sum_{i = 1}^n x_j^i\le \sum_{i=1}^n e_j^i.\]
 }
 
-Feasible allocation requires that, the total allocation for any good cannot be more than the total
-initial endowment.
+In other words, total consumption of every good cannot exceed the
+total endowment of that good.
 
 \defn{Pareto Efficient Allocation}{
 Given an economy
@@ -359,8 +373,9 @@ all \(i\in \mathcal I\), with \(\w^k\succ^k \x^k\) for some
 \(k\in \mathcal I\).
 }
 
-Under Pareto efficient allocation, there is no way to make any agent
-strictly better off without harming some other agent(s).
+A Pareto efficient allocation is one from which no agent can be made
+strictly better off without making at least one other agent strictly
+worse off.
 
 \defn{Core Allocation}{
 A feasible allocation
@@ -377,7 +392,14 @@ there is no group \(\mathcal I_0\se \mathcal I\) and an alternative allocation
 \end{enumerate}
 }
 
-Core allocation requires that, no group of agents would simultaneously form a blocking coalition in which none is made worse off and some strictly better off. Notice that an allocation being in the core implies it being Pareto efficient, but the converse is not necessarily true. Indeed, when examining Pareto efficiency, we are checking the possibility of grand blocking coalition.
+An allocation is in the core if \emph{no} group of agents — large or
+small — can find a redistribution of their own endowments that makes
+every member of the group at least as well off and some member strictly
+better off. Core allocations are Pareto efficient (taking the
+``grand coalition'' as the blocking group recovers the Pareto
+condition), but Pareto efficiency does not imply the core: an
+allocation can be Pareto efficient overall yet have a strictly
+sub-coalition that could improve on it among themselves.
 
 \thmp{Strengthened First Theorem of Welfare Economics}{
 Let \(\mathcal E\) be a perfectly competitive pure exchange
@@ -409,13 +431,19 @@ Summing over \(i\in \mathcal I_0\), we have
 \rmkb{
 \begin{itemize}
 \item
-  \(S_W\subseteq S_P\) is indicated in \textit{First Theorem of Welfare Economics}.
+  The standard First Welfare Theorem gives \(S_W\subseteq S_P\); the
+  strengthened version shows the tighter \(S_W\subseteq S_C\).
 \item
-  \(S_W\subseteq S_C\) implies that any Walrasian equilibrium is not only Pareto efficient, but also fair, which is a justification for the price mechanism.
+  \(S_W\subseteq S_C\) says that any Walrasian equilibrium is not only
+  efficient but also \emph{coalition-proof}: no group can do better
+  for itself by trading internally. This is a stronger fairness
+  justification for the price mechanism than mere Pareto efficiency.
 \item
-  The strengthened First Theorem of Welfare Economics need very minimal requirements on the agents' preference
-  relations, but assumptions on perfect competition, complete information, no
-  externality and complete markets are indispensable.
+  The theorem demands very little of preferences (rationality,
+  continuity, concavity). What it does need is the institutional
+  scaffolding: perfect competition, complete information, no
+  externalities, complete markets. Drop any of these and the
+  conclusion can fail.
 \end{itemize}
 }
 
@@ -428,11 +456,13 @@ efficient, for all \(i\), then there exists an initial endowment
 these endowments.
 }
 
-However, the second theorem of welfare economics is less exciting,
-because the government can neither arbitrarily redistribute initial endowments, nor know each agent's preferences in the economy.
+The Second Welfare Theorem is, in a sense, less operational than the
+First. To support a given Pareto-efficient allocation, the planner
+needs both the political authority to redistribute initial endowments
+freely \emph{and} full information about every agent's preferences —
+neither of which is generally available in practice.
 
-\hypertarget{ge-with-production}{%
-\section{General Equilibrium with Production}\label{ge-with-production}}
+\section{General Equilibrium with Production}\label{ge-with-production}
 
 \subsection{Setups}
 
@@ -466,9 +496,15 @@ that:
 \end{enumerate}
 }
 
-That is, in Walrasian equilibrium all markets clear at the same time, with all consumers (also shareholders of firms) and firms optimize their goals simultaneously.
+That is, a Walrasian equilibrium specifies prices, consumption
+bundles, and production plans such that every agent maximizes utility
+(taking firm profits as given dividend income), every firm maximizes
+profit, and all markets clear simultaneously.
 
-The essence of Walrasian equilibrium with production is the same as that without production. But for concerns of technical issues, we introduce three additional assumptions on production technology to pave way for the theorem of existence of Walrasian equilibrium with production.
+The conceptual structure is identical to the pure-exchange case;
+production simply adds the firms' optimization problems. For the
+existence theorem to go through, however, we need three regularity
+conditions on production technologies.
 
 \asm{Production Technology}{
 For each firm \(k\in \mathcal K\),
@@ -496,9 +532,7 @@ For each firm \(k\in \mathcal K\),
 \end{itemize}
 }
 
-\hypertarget{existence-of-walrasian-equilibrium-with-production}{%
-\subsection{Existence of Walrasian Equilibrium with
-Production}\label{existence-of-walrasian-equilibrium-with-production}}
+\subsection{Existence of Walrasian Equilibrium with Production}\label{existence-of-walrasian-equilibrium-with-production}
 
 \thm{Existence of Walrasian Equilibrium with Production}{
 Let

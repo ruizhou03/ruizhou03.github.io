@@ -1,34 +1,36 @@
 \chapter{Consumer Theory}
 
-Choice theory assumes that a rational decision-maker selects their most
-preferred option from their choice set. Consumer theory can be viewed as
-an application of choice theory. We will focus on the
-\emph{preference-based approach}, with three goals in mind:
+Choice theory says that a rational decision-maker picks the most
+preferred option from her choice set. Consumer theory specializes this
+framework to the most extensively studied application — a consumer
+choosing bundles of goods subject to a budget constraint — and uses the
+\emph{preference-based approach} throughout. The agenda has three parts:
 
 \begin{enumerate}
 
 \item
-  Formalize the ``choice set" and "preferences" of a consumer.
-
+  \textbf{Formalize the choice set and preferences.}
   \begin{itemize}
   \item
-    Set of alternatives: consumption set.
+    Set of alternatives: the \emph{consumption set}.
   \item
-    Choice set: budget set.
+    Choice set (within the consumption set): the \emph{budget set}.
   \item
-    Preferences: utility representation of a preference relation.
+    Preferences: a \emph{utility representation} of the preference
+    relation.
   \end{itemize}
 \item
-  Derive a consumer's optimal choice(s) based on the
-  information of their choice set and the preference relation.
+  \textbf{Derive optimal choices} from the budget set and the preference
+  relation.
 \item
-  Analyze the properties of optimal choices (demand).
+  \textbf{Analyze the properties} of those optimal choices — i.e., of
+  demand.
 \end{enumerate}
 
-\hypertarget{setups}{%
-\section{Setups}\label{setups}}
+\section{Setups}\label{setups}
 
-At the beginning, a few assumptions are needed in consumer theory:
+We start with four assumptions that we will maintain throughout consumer
+theory:
 \asm{}{
 \begin{enumerate}
 
@@ -45,24 +47,20 @@ At the beginning, a few assumptions are needed in consumer theory:
 
 \rmkb{
 \begin{itemize}
-    \item By assuming consumers to be price takers, we assume that prices \(\p\) are taken as known,
-  fixed and exogenous, and there is no searching or bargaining for discounts.
-    \item Linear price means that no quantity discount is offered.
-    \item The idea that goods are divisible can be formally represented by the condition of \(x\in \RR_+^n\). Note that the divisibility assumption does not
-  prevent us from applying the model to situations with discrete and
-  indivisible goods.
+    \item \emph{Price-taking} means the consumer treats prices \(\p\) as known, fixed, and exogenous — no searching for deals, no bargaining for discounts.
+    \item \emph{Linear prices} means the total cost of a bundle is just \(\p\cdot\x\); no quantity discounts or two-part tariffs.
+    \item \emph{Divisibility} is captured by working in \(\RR_+^n\). This is mostly a mathematical convenience: a discrete-good problem can still be analyzed by restricting attention to the integer points in \(\RR_+^n\), so the divisibility assumption does not rule out applications to indivisible goods.
 \end{itemize}
 }
 
-For simplicity, we will view the entire positive quadrant as the
-consumption set. 
+For simplicity, we take the consumption set to be the entire non-negative orthant.
 
 \defn{Consumption Set}{
 With \(n\) goods, the \textit{consumption set} is given by:
 \[X = \RR_+^n = \{\x \in \RR^n: x_i\ge 0 \text{ for } i  = 1,2,\cdots,n \}.\]
 }
 
-The budget set differs from consumption set in that the former is additionally defined by the agent's income (and thus the price vector).
+The budget set is a subset of the consumption set; it further restricts the bundles the consumer can actually afford given income and prices.
 
 \defn{Budget Set}{
 With \(n\) goods and income of \(m\), given a price vector
@@ -77,13 +75,12 @@ encompass other economic problems. For example, consumption-leisure
 choice, and inter-temporal choice.
 }
 
-\hypertarget{utility-representation}{%
-\section{Utility Representation}\label{utility-representation}}
+\section{Utility Representation}\label{utility-representation}
 
-The preference relation is intuitive, but difficult to work with. Having
-a utility representation for preferences is convenient because it transforms
-the problem of preference maximization into a relatively familiar
-mathematical problem.
+Preference relations are intuitive but awkward to work with directly.
+A utility representation lets us recast preference maximization as
+ordinary optimization over a real-valued function — a much more
+tractable object.
 
 \defn{Utility Representation}{
 A preference relation \(\pref\) on \(X\)
@@ -91,11 +88,10 @@ is represented by a \textit{utility function} \(u:X\to \RR\) if
 \[x\pref y \iff u(x)\ge u(y).\]
 }
 
-Under this definition, the utility function is an \emph{ordinal}
-representation. The utility level per se has no economic meaning
-and is just a convenient mathematical tool to represent the
-consumer's \emph{relative rankings} of different
-options.
+This definition makes utility an \emph{ordinal} object: the actual
+numerical values carry no economic content. Only the implied ranking
+matters — \(u\) encodes the consumer's relative preferences over
+bundles, nothing more.
 
 If \(u\) represents \(\pref\), then the choice rule defined upon budget
 set is:
@@ -107,8 +103,9 @@ An equivalent notation of such choice rule is
 \(C_\succeq(B)\).
 }
 
-A natural question is that, given a preference relation \(\pref\), whether or not we
-can always find a function \(u(\cdot)\) to represent \(\pref\). Luckily, in cases where preference relation is defined upon a \textit{finite} consumption set \(X\), the answer is yes.
+The natural question is whether \emph{every} rational preference relation
+admits a utility representation. If the consumption set \(X\) is
+\textit{finite}, the answer is yes — and the construction is direct.
 
 \propp{}{
 If \(X\) is finite, then any rational
@@ -116,21 +113,23 @@ If \(X\) is finite, then any rational
 represented by a utility function \(u:X\to \{1,\cdots,n\}\), where
 \(n = |X|\).
 }{
+Proceed by induction on \(|X|\).
 \begin{itemize}
 \item
-  For \(|X| = n = 1\), say \(X = \{x\}\), let \(u(x) = 1\).
-  . The conclusion is trivial.
+  \emph{Base case:} \(|X| = 1\), say \(X = \{x\}\). Set \(u(x) = 1\).
+  The condition holds vacuously.
 \item
-  Next, suppose that any preference can be represented as described for any
-  set with at most \(n\) elements. We move on to consider a set \(X\) with \(n+1\) elements.
+  \emph{Inductive step:} suppose any rational preference on a set of
+  size \(n\) admits the desired representation. Take any \(X\) with
+  \(|X| = n+1\).
 
   \begin{itemize}
   \item
-    Since \(C_{\pref}(X) \ne \varnothing\), the set
-    \(Y = X\backslash C_\pref(X)\) has no more than \(n\) elements. By
-    doing so, we can limit our discuss and deduction back to the
-    hypothesized case. Thus, any preference restricted to that set can be
-    represented by a utility function \(u: Y\to \{1,2,\cdots, n\}\).
+    Since \(C_{\pref}(X)\) is non-empty (Ch.~1 Proposition on finite
+    choice sets), the complement \(Y = X\setminus C_\pref(X)\) has at
+    most \(n\) elements. By the inductive hypothesis, the restriction of
+    \(\pref\) to \(Y\) admits a utility representation
+    \(u: Y\to \{1,2,\ldots,n\}\).
   \item
     We extend the domain of \(u\) to \(X\) by setting \(u(x) = n+1\) for
     each \(x \in C_\pref (X)\). By construction, we have
@@ -155,10 +154,10 @@ represented by a utility function \(u:X\to \{1,\cdots,n\}\), where
 \end{itemize}
 }
 
-However, if \(X\) is infinite, things are a bit more
-complicated. In general, given any rational preference relation
-\(\pref\) on \(\RR_+^n\), it cannot always be represented by a utility
-function \(u:\RR_+^n\to \RR\).
+When \(X\) is infinite the situation is more subtle. In general, a
+rational preference relation on \(\RR_+^n\) need not admit a utility
+representation \(u:\RR_+^n\to \RR\). The standard counter-example is
+lexicographic preferences.
 
 \ex{
 Consider the
@@ -183,10 +182,9 @@ representation. More generally, this idea is formalized into the
 proposition in countable set case.
 }
 
-Take a step forward. If a preference relation \(\pref\) is defined upon
-a countable set \(X\) (possibly infinite), then \(\pref\) admits a
-utility representation. We can always achieve this by construction, as
-it goes in the following proposition.
+For \emph{countable} \(X\) (possibly infinite), every rational
+preference relation admits a utility representation — and the
+construction below gives one explicitly.
 
 \propp{}{
 If \(X\ne\varnothing\) is countable, then any
@@ -237,14 +235,15 @@ $$
 \end{itemize}
 }
 
-Intuitively, the problem with the lexicographic preference relation is
-that there is sudden preference reversals. For instance, we know
-\((3,3)\succ (3,2)\), but \((3,2)\succ (x,3)\) for \(x\) slightly less
-than \(3\). This motivates the following additional (technical)
-restriction on preference relations. The ``continuity" restriction on
-preferences is a condition motivated from the simple and compelling
-reason that any \emph{finite} set of observed choices that is consistent
-with HARP is also consistent with continuity.
+The pathology of the lexicographic preference relation is a sudden
+preference reversal: \((3,3)\succ (3,2)\), yet \((3,2)\succ (x,3)\)
+for any \(x\) strictly less than \(3\) — the ranking jumps
+discontinuously as \(x\) crosses \(3\). To rule this out we impose a
+\emph{continuity} restriction on preferences. Continuity is also
+desirable from a revealed-preference standpoint: any finite set of
+observed choices that is consistent with HARP can be rationalized by
+a continuous preference relation, so continuity costs us nothing
+empirically.
 
 \defn{Continuity}{
 A preference relation \(\pref\) on
@@ -253,8 +252,8 @@ A preference relation \(\pref\) on
 \(x^n\pref y^n\) for all \(n\), we have \(x\pref y\).
 }
 
-Continuity condition implies not only that a utility representation
-exists, but that a \emph{continuous} representation exists.
+Continuity gives us more than mere existence of a utility
+representation — it gives us a \emph{continuous} one.
 
 \propp{}{
 Any complete, transitive and continuous
@@ -370,18 +369,15 @@ covered here.
 \end{enumerate}
 }
 
-\hypertarget{utility-maximizing-problem}{%
-\section{Utility Maximizing
-Problem}\label{utility-maximizing-problem}}
+\section{Utility Maximizing Problem}\label{utility-maximizing-problem}
 
-Apart from the general problem of choice theory, what makes consumer
-consumption decisions worthy of separate studies is its particular
-structure that allows us to derive economically meaningful results. The
-structure arises because the consumer's choice sets are
-assumed to be defined by certain prices and the
-consumer's income or wealth. With this in mind, when the
-preference relation can be represented by a utility function
-\(u(\cdot)\), the Utility Maximization Problem (UMP), or Consumer Problem (CP) is reasonably defined.
+What distinguishes consumer theory from the general choice-theoretic
+framework is the specific structure of the consumer's choice set —
+it is determined by prices and wealth. This structure is what lets us
+derive economically meaningful comparative statics. With a utility
+representation \(u(\cdot)\) of \(\pref\) in hand, the consumer's
+optimization is the \emph{Utility Maximization Problem} (UMP), also
+called the \emph{Consumer Problem} (CP).
 
 \defn{Utility Maximization Problem}{
 $$
@@ -393,20 +389,16 @@ $$
 $$
 }
 
-The idea is that, the consumer chooses a vector of goods
-\(\x = (x_1,\cdots,x_n)'\ge \0\) to maximize her utility, subject to a
-budget constraint that given a price vector
-\(\p  =(p_1,\cdots,p_n)'\ge \0,\p\ne \0\), she cannot spend more
-than her total wealth \(m\). In other words, the CP can be formulated
-as:
+That is: given prices \(\p = (p_1,\ldots,p_n)'\ge \0,\;\p\ne\0\) and
+wealth \(m\), the consumer picks a non-negative bundle
+\(\x = (x_1,\ldots,x_n)'\) to maximize utility subject to spending no
+more than \(m\). Equivalently, the CP can be written as:
 \[C(B(\p,m);\pref) = \left\{\x\ \bigg| \ \x \text{ solves }\max_{\y\in B(\p,m) } u(\y) \right\}.\]
 
-\hypertarget{existence-of-optimal-choices}{%
-\subsection{Existence of Optimal
-Choice(s)}\label{existence-of-optimal-choices}}
+\subsection{Existence of Optimal Choice(s)}\label{existence-of-optimal-choices}
 
-We are then natural to seek for the existence of an optimal choice for a
-utility-maximizing consumer. Luckily, the answer is yes.
+The first question is whether the UMP has any solution. Under mild
+conditions, it does.
 
 \propp{}{
 Suppose that the consumer has a rational
@@ -427,31 +419,22 @@ optimal choice.
 \end{itemize}
 }
 
-\hypertarget{further-assumptions}{%
-\subsection{Further Assumptions}\label{further-assumptions}}
+\subsection{Further Assumptions}\label{further-assumptions}
 
-Now that existence of optimal choice is guaranteed (under rational and
-continuous preference relations, and \((\p,m)\gg \0\), we still need to
-answer:
+Existence is guaranteed under rationality, continuity, and
+\((\p,m)\gg\0\). The remaining questions are practical:
 
 \begin{itemize}
-\item
-  How to find the optimal choice(s)?
-\item
-  In particular, what (additional) restrictions on the
-  consumer's preference relation can simplify our
-  analysis?
+\item How do we actually \emph{find} the optimal choice(s)?
+\item Which additional restrictions on \(\pref\) simplify the analysis?
 \end{itemize}
 
-\hypertarget{locally-non-satiation}{%
-\paragraph{Locally Non-Satiation}\label{locally-non-satiation}}
+\paragraph{Locally Non-Satiation}\label{locally-non-satiation}
 
-One possible simplification is to replace the inequality in the budget
-constraint with the equality: \(\p\cdot \x = m\).
-
-Intuitively, if a consumer thinks ``more of a good is good", her
-preference relation should be monotone, and she would definitely exhaust
-all her wealth when maximizing her utility.
+One useful simplification is to replace the budget inequality with the
+equality \(\p\cdot \x = m\). Intuitively, if the consumer always thinks
+``more is better,'' she should never leave money on the table — at any
+optimum, she exhausts her budget.
 
 \defn{Monotonicity}{
 A preference relation
@@ -466,8 +449,8 @@ A preference relation
 \end{itemize}
 }
 
-Indeed, the monotonicity condition proves to be a bit strong; the weaker condition of \emph{locally non-satiated}
-preferences instead serves our purpose.
+Monotonicity is more than we need; the weaker condition of
+\emph{local non-satiation} already does the job.
 
 \defn{Locally Non-Satiation}{
 A preference relation
@@ -476,9 +459,10 @@ for any \(\x\in X\) and \(\varepsilon >0\), there exists
 \(\y \in Ball(\x,\varepsilon)\cap X\) such that \(\y\succ \x\).
 }
 
-Intuitively, a preference relation is locally non-satiated if there is
-no \emph{bliss} point. Moreover, a monotone preference relation must be
-locally non-satiated.
+Intuitively, local non-satiation rules out any \emph{bliss point}: from
+any bundle, the consumer can do strictly better with an arbitrarily
+small change. Note that monotonicity implies local non-satiation (but
+not conversely).
 
 \propp{}{
 Suppose that the consumer has a complete,
@@ -511,8 +495,7 @@ locally non-satiation.
 \end{itemize}
 }
 
-\hypertarget{strict-convexity}{%
-\paragraph{Convexity}\label{strict-convexity}}
+\paragraph{Convexity}\label{strict-convexity}
 
 Another possible simplification is the case of \emph{unique} optimal
 choice. Notice that the consumer's budget set
@@ -576,8 +559,10 @@ contradiction.
 \end{itemize}
 }
 
-Not only do these assumptions of properties of preference relation play an important role in shaping the desired characteristics of the solutions to utility maximization problem, but each has a corresponding
-property in a specific preference-representing utility function \(u\).
+These assumptions on \(\pref\) each have a direct counterpart on any
+representing utility function \(u\). The translation makes it easier to
+work in the utility space and import the right structural property
+without re-deriving it.
 
 \prop{}{
 Suppose the preference relation \(\pref\) on
@@ -595,9 +580,7 @@ Suppose the preference relation \(\pref\) on
 \end{enumerate}
 }
 
-\hypertarget{marshallian-demand--indirect-utility-function}{%
-\subsection{Marshallian Demand \& Indirect Utility
-Function}\label{marshallian-demand--indirect-utility-function}}
+\subsection{Marshallian Demand \& Indirect Utility Function}\label{marshallian-demand--indirect-utility-function}
 
 \defn{Indirect Utility Function}{
 Given $(\p,m)\gg \0$, the \emph{indirect utility function} is defined to give the optimal utility level:
@@ -614,11 +597,14 @@ behave well to have a maximum.
 The \emph{Marshallian demand correspondence} is defined as the consumer's optimal choice(s):
 \[\x^M(\p,m) = \left\{\x \in B(\p,m): u(\x) = v(\p,m) \right\}.\]
 }
-$\x^M\pr{p,m}$ is, in general, a set of utility-maximizing consumption bundles.
+In general \(\x^M(\p,m)\) is a \emph{set} of utility-maximizing bundles
+— it collapses to a single point only under strict convexity (see
+below).
 
-Assume throughout the analysis of utility maximization problem that the consumer has a rational preference relation
-\(\pref\) and makes rational decisions given \((\p,m)\gg\0\). Then
-Marshallian demand and indirect utility function must satisfy the following properties.
+Throughout this section assume the consumer has a rational preference
+relation \(\pref\) and faces \((\p,m)\gg\0\). The Marshallian demand
+and indirect utility function inherit the following properties from
+\(\pref\):
 
 \prop{Properties of Marshallian Demand Correspondence and Indirect Utility Function}{
 \begin{itemize}
@@ -643,11 +629,9 @@ Marshallian demand and indirect utility function must satisfy the following prop
 \end{itemize}
 }
 
-\hypertarget{derivation-of-utility-maximization-problem}{%
-\subsection{Derivation of Utility Maximization
-Problem}\label{derivation-of-utility-maximization-problem}}
+\subsection{Derivation of Utility Maximization Problem}\label{derivation-of-utility-maximization-problem}
 
-The consumer's utility maximization problem is give by:
+The consumer's utility maximization problem is
 
 $$
 \begin{aligned}
@@ -1124,13 +1108,13 @@ Consider the following questions:
 \end{enumerate}
 }
 
-\hypertarget{expenditure-minimization-problem}{%
-\section{Expenditure Minimization
-Problem}\label{expenditure-minimization-problem}}
+\section{Expenditure Minimization Problem}\label{expenditure-minimization-problem}
 
-In order to disentangle the price effect and the income effect, we
-introduce the following expenditure minimization problem, holding the
-consumer's utility at or above a certain level.
+To separate the substitution effect from the income effect of a price
+change, we introduce a dual problem: minimize expenditure subject to
+achieving a fixed utility level. This is the \emph{Expenditure
+Minimization Problem} (EMP), and it will prove indispensable for the
+Slutsky decomposition later in this chapter.
 
 \defn{Expenditure Minimization Problem}{
 $$
@@ -1151,14 +1135,13 @@ Let \(F(\p,u) = \{\x \in \RR_+^n:u(\x)\ge u \}\) be the feasible set. Define the
 }
 
 \rmk{
-Since the consumer's utility is held at or above a certain
-level, when there is a price change, \textbf{the change in the Hicksian
-demand only captures the substitution effect}.
+Because the utility level is held fixed, a price change leaves the
+consumer's welfare unchanged by construction. The resulting movement in
+Hicksian demand is therefore a pure \textbf{substitution effect} — no
+income effect contaminates it.
 }
 
-Similar to the analysis of the consumer's utility maximization problem, before
-seeking the optimal solution(s), we approach the expenditure
-minimization problem from two aspects:
+As we did for the UMP, we approach the EMP from two angles:
 
 \begin{itemize}
 \item
@@ -1168,8 +1151,7 @@ minimization problem from two aspects:
   Properties of expenditure function and Hicksian demand correspondence.
 \end{itemize}
 
-\hypertarget{existence-of-solution}{%
-\subsection{Existence of Solution}\label{existence-of-solution}}
+\subsection{Existence of Solution}\label{existence-of-solution}
 
 \propp{}{
 Suppose \(u(\cdot)\) represents a
@@ -1211,8 +1193,7 @@ least one minimizer, i.e.,
 \end{itemize}
 }
 
-\hypertarget{biding-utility-level}{%
-\subsection{Biding Utility Level}\label{biding-utility-level}}
+\subsection{Binding Utility Level}\label{binding-utility-level}
 
 \propp{}{
 Suppose \(u(\cdot)\) represents a
@@ -1241,8 +1222,7 @@ relation. One can understand this as the objective function in EMP is
 itself locally non-satiated.
 }
 
-\hypertarget{unique-minimizer}{%
-\subsection{Unique Minimizer}\label{unique-minimizer}}
+\subsection{Unique Minimizer}\label{unique-minimizer}
 
 \propp{}{
 Suppose \(u(\cdot)\) represents a
@@ -1267,8 +1247,7 @@ is a singleton.
 \end{itemize}
 }
 
-\hypertarget{summary-of-properties}{%
-\subsection{Summary of Properties}\label{summary-of-properties}}
+\subsection{Summary of Properties}\label{summary-of-properties}
 
 \prop{Properties of Expenditure Function and Hicksian Demand Correspondence}{
 Suppose \(\p\gg\0\) and \(F(u)\ne \varnothing\).
@@ -1367,13 +1346,9 @@ $$
 Remember to check if the utility function is monotone and quasi-concave beforehand!
 }
 
-\hypertarget{duality-and-comparative-statics}{%
-\section{Duality and Comparative
-Statics}\label{duality-and-comparative-statics}}
+\section{Duality and Comparative Statics}\label{duality-and-comparative-statics}
 
-\hypertarget{duality-between-ump-and-emp}{%
-\subsection{Duality between UMP and
-EMP}\label{duality-between-ump-and-emp}}
+\subsection{Duality between UMP and EMP}\label{duality-between-ump-and-emp}
 
 Recall consumer's utility maximization problem (UMP):
 $$
@@ -1393,10 +1368,11 @@ $$
 \end{aligned}
 $$
 
-Notice that the objective function in the UMP is precisely the
-constraint in the EMP and vice versa. In mathematics, the two
-optimization problems are called \emph{dual problems}. By duality,
-Marshallian and Hicksian demand have a special relationship.
+The two problems swap the roles of objective and constraint: the UMP's
+objective \(u(\x)\) becomes the EMP's constraint, and the UMP's
+constraint \(\p\cdot\x\) becomes the EMP's objective. In optimization
+language they are \emph{dual problems}, and the duality forces a tight
+relationship between Marshallian and Hicksian demand.
 
 \propp{}{
 Suppose \(u(\cdot)\) is a utility function
@@ -1443,12 +1419,12 @@ $$
 \end{itemize}
 }
 
-Intuitively, their relationship implies that, at the
-``right" level of wealth and utility, the Marshallian demand
-correspondence is identical to the Hicksian demand correspondence.
+Intuitively: pick a wealth level \(m\) and let \(u = v(\p,m)\) be the
+utility the consumer actually attains; then the Marshallian demand at
+\((\p,m)\) and the Hicksian demand at \((\p,u)\) pick out the same
+bundles. The dual problems describe the same optimum from two angles.
 
-\hypertarget{envelope-theorem}{%
-\subsection{Envelope Theorem}\label{envelope-theorem}}
+\subsection{Envelope Theorem}\label{envelope-theorem}
 
 \thm{Envelope Theorem for Unconstrained Optimization}{
 Let \(f:X\times [\underline \theta,\bar\theta]\to \RR\) and
@@ -1501,8 +1477,9 @@ any
 \[V'(\theta) = \L_2(\x^*(\theta),\theta;\lambda^*).\]
 }
 
-Roy's identity and Shepard's lemma are
-two direct applications of envelope theorem.
+Roy's identity and Shephard's lemma are the two canonical applications
+of the envelope theorem in consumer theory — one for the UMP, one for
+the EMP.
 
 \corp{Roy's Identity}{
 Suppose \(u(\cdot)\)
@@ -1523,7 +1500,7 @@ $$
 $$
 }
 
-\corp{Shepard's Lemma}{
+\corp{Shephard's Lemma}{
 Suppose \(u(\cdot)\) represents
 a locally non-satiated and strictly convex preference relation on
 \(X = \RR_+^n\). Then, for any \(\p\gg\0\) and \(F(u)\ne\varnothing\), the
@@ -1539,12 +1516,11 @@ By the envelope theorem, we have:
 \rmk{By strict convexity, both Marshallian demand and
 Hicksian demand are single-valued.}
 
-\hypertarget{slutsky-equation}{%
-\subsection{Slutsky Equation}\label{slutsky-equation}}
+\subsection{Slutsky Equation}\label{slutsky-equation}
 
-Slutsky equation mathematically describes how Marshallian demand reacts
-to a price change, decomposing into income effect and substitution
-effect.
+The Slutsky equation is the formal decomposition we have been building
+toward: it splits the Marshallian response to a price change into a
+substitution effect (the Hicksian piece) and an income effect.
 
 \thmp{Slutsky Equation}{
 Suppose \(u(\cdot)\) represents a continuous,
@@ -1557,7 +1533,7 @@ The proof proceeds with duality of Marshallian and Hicksian demand throughout.
 \[x_i^H(\p,u) = x_i^M(\p,e(\p,u)),\text{ as long as }u\ge u(\0)\]
 Take partial derivatives with respect to \(p_j\):
 \[\frac{\partial x_i^H(\p,u)}{\partial p_j} = \frac{x_i^M(\p,e(\p,u))}{\partial p_j}+\frac{\partial x_i^M(\p,e(\p,u))}{\partial m}\cdot \frac{\partial e(\p,u)}{\partial p_j}\]
-By Shepard's lemma:
+By Shephard's lemma:
 \[\frac{\partial e(\p,u)}{\partial p_j} = x_j^H(\p,u)\]
 By duality,
 $$
@@ -1571,11 +1547,20 @@ Evaluating the partial derivative equation at \(u = v(\p,m)\), we have:
 Rearrange the terms to finish the proof of Slutsky Equation.
 }
 
-The interpretation for Slutsky Equation is that, the LHS represents how the Marshallian demand changes with respect to a price change, and that the first term on the RHS represents the substitution effect and the second term reveals the income effect.
+The economic content: the LHS is the total Marshallian response of
+good \(i\)'s demand to a change in \(p_j\); the first term on the RHS
+is the substitution effect (how the consumer would re-allocate at a
+fixed utility level), and the second term is the income effect (the
+price change effectively makes the consumer richer or poorer at the
+original bundle, by an amount proportional to her current consumption
+of good \(j\)).
 
-Slutsky Equation allows us to develop a body of comparative statics based on it. The following definitions related to comparative statics are quite useful.
+The Slutsky equation seeds a battery of comparative-statics
+classifications. We introduce them next.
 
-For comparative statics with regard to income $m$, we define normal good and inferior good. Intuitively, a good is normal if it loses its charm when its price increases.
+\paragraph{Comparative statics in income.} A normal good is one for
+which demand rises with wealth; an inferior good is one for which
+demand falls.
 
 \defn{Normal Good; Inferior Good}{
 Good \(i\) is a \emph{normal good} if \(x_i^M(\p,m)\) is increasing in
@@ -1583,10 +1568,12 @@ Good \(i\) is a \emph{normal good} if \(x_i^M(\p,m)\) is increasing in
   \(m\).
 }
 \rmk{
-Inferior good is purely a definition for goods whose demand is negatively related with the income level, but not informative of its quality.
+``Inferior'' is a technical label about how demand co-moves with income;
+it carries no claim about the good's quality.
 }
 
-Regular good and Giffen good are defined upon the comparative statics with regard to the good's own price.
+\paragraph{Comparative statics in own price.} The next pair captures how
+Marshallian demand responds to a change in the good's own price.
 
 \defn{Regular Good; Giffen Good}{
 Good \(i\) is a \emph{regular good} if \(x_i^M(\p,m)\) is decreasing in
@@ -1594,10 +1581,16 @@ Good \(i\) is a \emph{regular good} if \(x_i^M(\p,m)\) is decreasing in
   \(p_i\).
 }
 \rmk{
-A Giffen good has to be an inferior good first, because the substitution effect of a price increase will never favor the demand of that good; the income effect has to be not only positive but positive enough to counteract the negative impact of the substitution effect.
+A Giffen good must be inferior. The substitution effect of a price
+increase always pushes demand down (the Hicksian substitution matrix
+is negative semi-definite); for total demand to \emph{rise} with the
+price, the income effect must be both positive in absolute value
+\emph{and} large enough to overwhelm the substitution effect — which
+requires the good to be inferior.
 }
 
-Another aspect of comparative statics grows in the view of analyzing a good's demand change given the price change of another good. 
+\paragraph{Comparative statics in cross-price.} The last pair captures
+how the demand for good \(i\) responds to a price change in good \(j\).
 
 \defn{Substitute; Complement}{
 Good \(i\) is a \emph{substitute} for good \(j\) if \(x_i^H(\p,u)\) is
@@ -1616,22 +1609,23 @@ Good \(i\) is a \emph{gross substitute} for good \(j\) if
   \(p_j\).
 }
 
-\hypertarget{consumer-welfare}{%
-\section{Consumer Welfare}\label{consumer-welfare}}
+\section{Consumer Welfare}\label{consumer-welfare}
 
-Consumer surplus is a basic quantitative measure of consumer welfare.
-But here are some issues with it:
+The textbook measure of consumer welfare is consumer surplus —
+the area between the demand curve and the price line. But it has two
+limitations:
 
 \begin{itemize}
 \item
-  What if more than one price would change at the same time?
+  It is a partial-equilibrium tool: it does not gracefully handle
+  multiple simultaneous price changes.
 \item
-  No equivalent or immediate interpretation in utility theory.
+  It has no clean interpretation in terms of utility itself.
 \end{itemize}
 
-To address the two shortcomings, we introduce two additional measures to
-quantify changes in consumer welfare. That is, compensating variation
-and equivalent variation, on measures of ``conceived wealth".
+We supplement it with two utility-based welfare measures —
+\emph{compensating variation} and \emph{equivalent variation} — both
+expressed in dollar units of ``equivalent wealth.''
 
 \defn{Compensating Variation; Equivalent Variation}{
 Suppose the initial price is \(\p^0\) and \(u^0 = v(\p,m)\), and that
@@ -1773,7 +1767,7 @@ function is given by:
 \begin{enumerate}
 
 \item
-  By Shepard's Lemma,
+  By Shephard's Lemma,
   $$
 \begin{aligned}
   x_1^H(p_1,p_2,u) = \frac{\partial e(p_1,p_2,u)}{\partial p_1} = \frac{p_2^2u^2}{(p_1+p_2)^2}\\

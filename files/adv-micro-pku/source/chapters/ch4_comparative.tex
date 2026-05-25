@@ -1,26 +1,26 @@
 \chapter{Comparative Statics Analysis}
 
-A central question in economics is how an endogenous variable changes
-with an exogenous variable. For instance, in the indirect approach of
-single-product profit maximization:
-\[\max _{y\ge0} py-c(\w,y)\]
+A central question in economics is how an endogenous variable moves
+with an exogenous parameter. Take the firm's indirect single-product
+profit maximization:
+\[\max _{y\ge0}\;py-c(\w,y).\]
+Holding the input price vector \(\w\) fixed, how does the optimal
+supply \(y^*\) respond to the output price \(p\)?
 
-Holding the input prices \(\w\) as given, we are interested in how the
-firm's optimal supply (correspondence) \(y^*\) changes
-with the output price \(p\).
-
-\noindent More generally, let \(F: X\times \Theta \to \RR\), where
-\(X,\Theta\subset \RR\), we are interested in how the maximizer
+More generally, given an objective \(F: X\times \Theta \to \RR\) with
+\(X,\Theta\subset \RR\), we ask how the maximizer
 \[x^*(\theta) = \arg\max_{x\in X}F(x,\theta)\]
+moves with the parameter \(\theta\). The two competing approaches we
+will develop are the \emph{classical} (calculus-based, using the
+implicit function theorem) and the \emph{monotone} or \emph{lattice}
+approach (order-theoretic, requiring only complementarity). The latter
+is more robust — it works without differentiability, without
+concavity, and even when \(x^*(\theta)\) is set-valued.
 
-would change with the parameter \(\theta\).
+\section{Univariate Comparative Statics}\label{univariate-comparative-statics}
 
-\hypertarget{univariate-comparative-statics}{%
-\section{Univariate Comparative
-Statics}\label{univariate-comparative-statics}}
-
-The classical approach is to apply the implicit function theorem. We
-need at least two sets of assumptions:
+The classical approach uses the implicit function theorem. It requires
+two sets of assumptions:
 
 \begin{itemize}
 \item
@@ -57,15 +57,20 @@ If \(F\pr{\cdot,\theta}\) is strictly concave in \(x\), then
 \(x\pr{\cdot}\) is strictly increasing in \(\theta\) if
 \(F_{x\theta}\pr{\cdot,\cdot}>0\).
 
-The advantage for the classical method is straightforward that, it provides explicit expression for \(x'(\theta)\)  and makes it possible for quantitative analysis. The disadvantages, however, grow out from its proposed advantage:
+The classical method's strength is that it delivers a closed-form
+expression for \(x'(\theta)\), which is useful for quantitative work.
+The flip side is that the same machinery brings real drawbacks:
 \begin{itemize}
   \item
-    Technical issue: Strong assumptions and tedious calculation in some
-    examples.
+    \textit{Technical:} the prerequisites (twice differentiability,
+    strict concavity, interior solution) are strong, and the algebra
+    can be tedious.
   \item
-    Substantive issue: The requirement of strict concavity in \(x\) counters
-    our intuition. (Recall from consumer theory that the set of
-    maximizers is unaffected by any positive monotonic transformation.)
+    \textit{Substantive:} strict concavity in \(x\) is a particularly
+    awkward assumption, because concavity is not invariant under monotone
+    transformations — but the comparative-statics \emph{direction} of
+    \(x^*(\theta)\) is. Asking for concavity to detect a direction that
+    does not depend on concavity is overkill.
   \end{itemize}
 
 \ex{
@@ -92,18 +97,14 @@ supply curve is weakly upward sloping without any other assumption.
 }
 
 
-In conclusion, we argue that the differentiability and concavity of
-\(F\pr{\cdot,\theta}\) are not indispensable for comparative statics
-analysis. By comparison, \(F_{x\theta}\pr{\cdot,\cdot}>0\) captures the
-\emph{complementarity} between \(x\) and \(\theta\). Naturally, we would
-like to ask whether \(F_{x\theta}\pr{\cdot,\cdot}>0\) alone is
-sufficient for \(x^*\pr{\theta}\) to be increasing in \(\theta\). Our
-goal in this part is to formulate a discrete analogue of this condition
-and show that \(F_{x\theta}\pr{\cdot,\cdot}>0\) is sufficient for \(x^*\pr{\theta}\) to be increasing
-in \(\theta\).
-
-That \(F\pr{\cdot,\cdot}\) is twice \textit{continuously} differentiable is too strong an assumption. For the general case, we
-introduce the following definition of (strict) increasing differences.
+The diagnosis: differentiability and concavity of \(F(\cdot,\theta)\)
+are not what comparative statics fundamentally needs. The real driver
+is \(F_{x\theta}\ge 0\) — the \emph{complementarity} between \(x\) and
+\(\theta\). The natural question is whether this cross-partial
+condition (suitably generalized) is by itself enough for
+\(x^*(\theta)\) to be increasing. The remainder of this section
+develops a discrete, order-theoretic analogue that does not require
+\(F\) to be differentiable or concave.
 
 \defn{Increasing Differences}{
 Let
@@ -117,10 +118,12 @@ If the inequalities are strict for all such \(x,x'\in X\) and
 increasing differences} in \(\pr{x,\theta}\).
 }
 
-Intuitively, \textit{increasing differences} captures the case where the
-\emph{marginal value} of \(x\) is higher at a higher value of
-\(\theta\). In other words, there is \emph{complementarity} between
-\(x\) and \(\theta\).
+Intuitively, increasing differences says that the \emph{marginal
+value} of \(x\) is larger at higher \(\theta\) — \(x\) and \(\theta\)
+are \emph{complements}. Crucially, the condition is stated in terms of
+discrete differences, so it makes sense even when \(F\) is not
+differentiable, and it is invariant under monotone transformations of
+\(F\) (unlike concavity).
 
 \prop{Increasing Differences for Smooth Functions}{
 Suppose
@@ -149,10 +152,10 @@ Suppose
 \end{enumerate}
 }
 
-There is one technical question we need to address. When
-\(F\pr{\cdot,\theta}\) is not strictly concave in \(x\), the maximizer
-\(x^*\pr{\theta}\) need not be unique. We shall introduce two natural
-ways for comparison of sets.
+One last piece of plumbing. When \(F(\cdot,\theta)\) is not strictly
+concave, \(x^*(\theta)\) is a \emph{set}, not a single number. We need
+a way to say that one set lies ``below'' another. Two natural orders
+on sets serve this purpose:
 
 \defn{Comparison of Sets}{
 For any two sets \(A\) and
@@ -169,7 +172,11 @@ For any two sets \(A\) and
 \end{itemize}
 }
 
-Intuitively, $A\le B$ in the strong set order allows for a common range of $A$ and $B$, while for the disjoint parts, any element in $A$ is strictly less than that in $B$. $A\le B$ pointwise requires every element in $B$ be no less than any element in $A$.
+Intuitively, the \emph{strong set order} allows \(A\) and \(B\) to
+overlap (the overlap forms a shared region), but outside that overlap
+every \(A\)-element lies below every \(B\)-element. The
+\emph{pointwise} order is stricter: every element of \(B\) must lie at
+or above \emph{every} element of \(A\), regardless of overlap.
 
 \thmp{Univariate Topkis' Theorem}{
 Let
@@ -296,38 +303,34 @@ differences in \(\pr{q,-N}\), so \(q^*\pr{\cdot}\) weakly decreases with
 }
 
 
-\hypertarget{multivariate-comparative-statics}{%
-\section{Multivariate Comparative
-Statics}\label{multivariate-comparative-statics}}
+\section{Multivariate Comparative Statics}\label{multivariate-comparative-statics}
 
 Consider a two-variable maximization problem:
-\[\pr{x_1^*\pr{\theta}.x_2^*\pr{\theta}} = \arg\max_{\pr{x_1,x_2}\in X\subset \RR^2}F\pr{x_1,x_2,\theta}.\]
+\[\pr{x_1^*\pr{\theta},x_2^*\pr{\theta}} = \arg\max_{\pr{x_1,x_2}\in X\subset \RR^2}F\pr{x_1,x_2,\theta}.\]
 
-If we know \(F\) has (strictly) differences in
-\(\pr{x_1,\theta}\), we cannot conclude that \(x_1^*\pr{\theta}\) is
-weakly increasing in \(\theta\) unless \(x_2^*\) is independent of
-\(\theta\). Intuitively, as \(\theta\) varies, change in $\theta$ has direct
-effect on \(x_1\), but there is also the effect of
-\(\theta\) on \(x_2\) and consequently on $x_1$, which constitutes the indirect effect of \(\theta\) on \(x_1\).
+If \(F\) merely has increasing differences in \(\pr{x_1,\theta}\),
+that alone does not let us conclude that \(x_1^*\pr{\theta}\) is
+weakly increasing — \emph{unless} \(x_2^*\) is independent of
+\(\theta\). The reason: when \(\theta\) moves, it has a direct effect
+on \(x_1\), but also an \emph{indirect} effect channeled through
+\(x_2\) (since \(x_2^*\) may shift, which in turn changes the optimal
+\(x_1\)). To sign the total effect we need a stronger structure on
+\(F\) that controls both channels at once.
 
-Recall from univariate Topkis's theorem that \(A\le B\)
-in the strong set order if for any \(a\in A\) and \(b\in B\), we have
-\(\min\brace{a,b}\in A\) and \(\max\brace{a,b} \in B\). In the
-multivariate case, technically the definition must be properly extended to answer
+In the univariate case the strong set order used \(\min\brace{a,b}\)
+and \(\max\brace{a,b}\). Extending this to vectors raises two
+questions:
 
 \begin{itemize}
 \item
-  For two vectors \(\x\) and \(\y\), how should we define
-  \(\min\brace{\x,\y}\) and \(\max\brace{\x,\y}\)?
+  How should we define ``min'' and ``max'' of two vectors?
 \item
-  Under the proposed definition, is there any guarantee that \(\min\brace{\x,\y}\)
-  and \(\max\brace{\x,\y}\) fall within the choice set \(X\)?
+  Under that definition, will the result still lie in \(X\)?
 \end{itemize}
 
-For the first question, we introduce the definition of meet and
-\emph{join}, the first of which sets the greatest lower bound of the two
-vectors, and the second of which sets the smallest upper bound of the
-two vectors.
+For the first question, we introduce \emph{meet} and \emph{join} —
+the componentwise minimum and maximum, respectively, which give the
+greatest lower bound and the smallest upper bound of two vectors.
 
 \defn{Meet; Join}{
 For \(\x,\y\in\RR^n\), 
@@ -343,7 +346,9 @@ For \(\x,\y\in\RR^n\),
 and \(\y\).
 }
 
-For the second concern, we delineate the boundary of our discussion by defining a structure called \emph{sublattice}.
+For the second question, we restrict attention to choice sets that are
+\emph{closed under meet and join}. This structure is called a
+\emph{sublattice}.
 
 \defn{Sublattice}{
 A set \(X\subset \RR^n\) is a
@@ -369,8 +374,9 @@ and \(\x\join \y\in X\).
 \end{itemize}
 }
 
-Similar to properties of complimentarity of two variables, in the
-multivariate case we introduce the definition of \emph{supermodularity}.
+The multivariate analogue of increasing differences is
+\emph{supermodularity} — a single condition that captures
+complementarity across all pairs of choice variables simultaneously.
 
 \defn{Supermodularity}{
 Let \(F:X\to \RR\), where

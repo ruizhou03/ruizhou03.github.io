@@ -1,9 +1,15 @@
 \chapter{Production Theory}
 
-\hypertarget{setups-2}{%
-\section{Setups}\label{setups-2}}
+Production theory parallels consumer theory, with firms in place of
+consumers and profit in place of utility. We will build the firm's
+problem in stages: first describe what the firm \emph{can} do (the
+production set), then ask what the firm \emph{wants} (profit
+maximization or, when output is given, cost minimization).
 
-First of all, we need the very assumptions for firms generating profits.
+\section{Setups}\label{setups-2}
+
+We begin with the standard assumptions that justify treating the firm
+as a profit-maximizer in a competitive market.
 \asm{}{
 \begin{enumerate}
 \item
@@ -29,26 +35,28 @@ First of all, we need the very assumptions for firms generating profits.
 \begin{enumerate}
 
 \item
-  Assumptions \(1\), \(2\) and \(6\) are crucial for the
-  firm's objective of maximization:
+  Assumptions 1, 2, and 6 are what make ``maximize profit'' an
+  unambiguous objective. Drop any of them and the objective itself
+  becomes contestable:
 
   \begin{itemize}
   \item
-    Assumption \(1\): consider different risk preferences.
+    Drop 1 (perfect information): owners with different risk
+    preferences will disagree about which uncertain profit stream to
+    maximize.
   \item
-    Assumption \(2\): consider a owner who also controls part of the
-    input/output market.
+    Drop 2 (price-taking): an owner who also has market power on the
+    input or output side may prefer outcomes that distort the firm away
+    from profit maximization.
   \item
-    Assumption \(6\): consider agency problem.
+    Drop 6 (perfect alignment): managers may pursue their own
+    objectives — the agency problem.
   \end{itemize}
 \item
-  Firm's profit maximization object is determined by the
-  sixth assumptions, instead of any other assumption.
-
-  Justification: Consider a firm jointly owned by \(I\) consumers, with
-  consumer \(i\)'s share given \(\theta_i\ge 0\) (notice
-  that \(\sum_{I\in I}\theta_i = 1\)). Then consumer
-  \(i\)'s utility maximization problem is given by:
+  Why is profit maximization determined by assumption 6 specifically?
+  Consider a firm jointly owned by \(I\) consumers, with consumer \(i\)
+  holding share \(\theta_i\ge 0\) and \(\sum_i \theta_i = 1\). Consumer
+  \(i\)'s utility maximization problem is
   $$
 \begin{aligned}
   & \max_{\x_i\ge \0} u_i(\x_i)\\
@@ -56,15 +64,17 @@ First of all, we need the very assumptions for firms generating profits.
   \end{aligned}
 $$
 
-  Recall that when the preference relation is locally non-satiated, the
-  indirect utility function \(v(\p,m)\) is strictly increasing in \(m\),
-  so every consumer \(i\) would unanimously agree that a higher profit
-  \(\p\cdot\y\) is strictly more preferred.
+  Under local non-satiation, \(v(\p,m)\) is strictly increasing in
+  \(m\). Every shareholder therefore strictly prefers higher
+  \(\p\cdot\y\) — the firm's profit — regardless of how heterogeneous
+  their preferences over consumption bundles are. The unanimous
+  shareholder objective is profit maximization. Drop assumption 6
+  (perfect manager-owner alignment) and managers might not implement
+  this objective.
 \end{enumerate}
 }
 
-\hypertarget{production-set}{%
-\subsection{Production Set}\label{production-set}}
+\subsection{Production Set}\label{production-set}
 
 \defn{Production Plan; Production Set}{
 A \textit{production plan} is a vector \(\y = (y_1,y_2,\cdots,y_n)\in \RR^n\), where \(y_i\) can be either positive or negative, with
@@ -150,9 +160,7 @@ In our discussion, we will mostly focus on the \textbf{long run} in
 advanced microeconomics. That is, all inputs are by default changeable.
 }
 
-\hypertarget{firms-profit-maximization-problem}{%
-\subsection{Firm's Profit Maximization
-Problem}\label{firms-profit-maximization-problem}}
+\subsection{Firm's Profit Maximization Problem}\label{firms-profit-maximization-problem}
 
 In the spirit of rational decision-making, the firm's
 problem can be framed as choosing the profit-maximizing production plan
@@ -199,34 +207,29 @@ Similarly, we define the firm's profit function and optimal supply correspondenc
 \end{itemize}
 }
 
-\hypertarget{profit-maximization-and-rationalizability-2}{%
-\section{Profit Maximization and
-Rationalizability}\label{profit-maximization-and-rationalizability-2}}
+\section{Profit Maximization and Rationalizability}\label{profit-maximization-and-rationalizability-2}
 
-Recall our discussion in consumer theory. We will ask similar questions
-regarding the firm's profit maximization problem.
+The firm's analog of consumer theory's central questions is:
 
 \begin{enumerate}
 \item
-  Suppose we observe some or all of the firm's supply
-  decisions \(y(\p)\) (but not the production set \(Y\)), how do we know
-  whether \(y(\cdot)\) is rationalizable (i.e., consistent with profit
-  maximization for some production set)?
+  Given (some of) the firm's supply decisions \(y(\p)\) — but \emph{not}
+  the production set \(Y\) — when is \(y(\cdot)\) consistent with
+  profit maximization for some production set? (Rationalizability.)
 \item
-  Does the firm's profit maximization problem always
-  have a solution?
+  When does the firm's profit maximization problem have a solution?
 \item
-  Properties of the firm's profit function
-  \(\pi(\cdot)\) and the optimal supply correspondence \(y^*(\cdot)\).
+  What properties do the profit function \(\pi(\cdot)\) and the optimal
+  supply correspondence \(y^*(\cdot)\) inherit from the setup?
 \item
-  Derivation of the firm's profit maximization problem.
+  How do we actually solve the firm's problem?
 \end{enumerate}
 
-Note that these questions are parallel to those asked in "revealed
-preference" theory, with one important difference: In revealed
-preference theory, we observe the decision-maker's
-feasible sets and wish to infer his objective function, while here we do it reversely: we know the objective functions (profits for different prices) and want to
-infer the feasible set (production set), with the aim of rationalizing the firm's choice.
+These mirror the revealed-preference questions for consumers, but with
+the inference direction reversed. In consumer revealed preference we
+observe the feasible set and try to recover the objective; here we
+observe the objective (profits at various prices) and try to recover
+the feasible set (the production set).
 
 In practice, we do not know a firm's production set
 \(Y\), but observe some of its supply choice \(y(\p)\) for
@@ -683,31 +686,28 @@ change between the observations.
 \end{enumerate}
 }
 
-\hypertarget{profit-maximization-problem}{%
-\section{Profit Maximization
-Problem}\label{profit-maximization-problem}}
+\section{Profit Maximization Problem}\label{profit-maximization-problem}
 
-Questions for analysis on firm's profit maximization
-problem are much of the same to those in consumer's
-utility maximization problem:
+We now turn from rationalizability to the firm's optimization problem
+itself. The questions parallel those for the consumer's UMP:
 
 \begin{enumerate}
 \item
-  Does the firm's profit maximization problem always have a solution?
+  When does the profit maximization problem have a solution?
 \item
-  Properties of the firm's profit function\(\pi(\cdot)\) and optimal
-  supply correspondence \(y^*(\cdot)\).
+  What properties does the profit function \(\pi(\cdot)\) inherit, and
+  what about the optimal supply correspondence \(y^*(\cdot)\)?
 \item
-  Derivation of the firm's profit maximization problem.
+  How do we solve the problem explicitly?
 \end{enumerate}
 
-\hypertarget{returns-to-scale}{%
-\subsection{Returns to Scale}\label{returns-to-scale}}
+\subsection{Returns to Scale}\label{returns-to-scale}
 
-Recall the earlier counter-example for the non-existence of optimal
-supply correspondence. Intuitively, in some cases the firm can simply
-replicate its existing production plan infinitely many times and earns
-infinitely increasing profits. This motivates the following definitions.
+Recall the earlier counter-example where the optimal supply
+correspondence is empty. The pathology was that the firm could keep
+replicating its production plan and earn ever-greater profit — the
+problem has no maximum. To pin down when this happens we classify
+production sets by how they behave under scaling.
 
 \defn{Returns to Scale}{
 The production set \(Y\) exhibits:
@@ -723,9 +723,10 @@ The production set \(Y\) exhibits:
 \end{itemize}
 }
 
-If a firm shows non-decreasing returns to scale, then intuitively there
-is no scarcity in its production ability. In the special case, there are exactly 
-two possibilities: earning nothing or earning everything.
+If the firm has non-decreasing returns to scale, there is no
+fundamental bound on its production capacity: scaling up the operation
+scales up profit. The result below makes this dichotomy precise — under
+non-decreasing returns, profits are either exactly zero or unbounded.
 
 \propp{}{
 If the production set \(Y\ne\varnothing\)
@@ -743,9 +744,7 @@ suppose instead that \(0<\pi(\p)<\infty\), then there must exist
 \(\pi(p) = 0\) or \(\infty\).
 }
 
-\hypertarget{properties-of-profit-function-and-supply-correspondence}{%
-\subsection{Properties of Profit Function and Supply
-Correspondence}\label{properties-of-profit-function-and-supply-correspondence}}
+\subsection{Properties of Profit Function and Supply Correspondence}\label{properties-of-profit-function-and-supply-correspondence}
 
 \prop{Properties of Profit Function and Supply Correspondence}{
 Suppose the production set \(Y\) is closed and satisfies the free
@@ -773,9 +772,7 @@ disposal property. Let \(\pi(\cdot)\) be the profit function and
 \end{itemize}
 }
 
-\hypertarget{derivation-of-profit-maximization-problem}{%
-\subsection{Derivation of Profit Maximization
-Problem}\label{derivation-of-profit-maximization-problem}}
+\subsection{Derivation of Profit Maximization Problem}\label{derivation-of-profit-maximization-problem}
 
 In preceding discussions, we seldom delve into the benchmark of judging if a production plan falls within the production set, i.e., being feasible. One convenient way to represent production possibility sets is using a transformation function $T:\RR^{n} \to \RR$, where $T(y)\le 0$ implies that $y$ is feasible, and $T(y) \ge 0$ implies that $y$ is infeasible. The set of boundary points $\{y\in\RR^{n}: T(y) = 0 \}$ is called the transformation frontier.
 
@@ -875,23 +872,21 @@ function \(\pi(w,r,p)\) and optimal supply correspondence
 \end{itemize}
 }
 
-\section{Cost Minimization Problem}
+\section{Cost Minimization Problem}\label{cost-minimization-problem}
 
-Given that we already have a direct approach to solve for the
-firm's profit maximization problem, it is still useful
-to take a detour and analyze the cost minimization problem for the
-following two reasons:
+Although the PMP solves the firm's problem directly, it is worthwhile
+to detour through the cost minimization problem (CMP) for two reasons:
 
 \begin{itemize}
 \item
-  The cost minimization problem is more well-behaved than the profit
-  maximization problem and has close connection with the expenditure
-  minimization problem in consumer theory (e.g., recall the existence of
-  solutions).
+  The CMP is better-behaved than the PMP — much like the EMP relative
+  to the UMP in consumer theory, existence and uniqueness conditions
+  are milder.
 \item
-  As we shall see later, this indirect approach is more insightful if the
-  firm has monopoly power in the output market (but is still a
-  price-taker in the input market).
+  When the firm has monopoly power in the output market but is still a
+  price-taker in inputs, the indirect approach (first minimize cost
+  for each output level, then optimize output) is the only tractable
+  way to solve the problem.
 \end{itemize}
 
 \subsection{Setups and Properties}
@@ -910,7 +905,8 @@ cost minimization problem can be viewed as profit maximization
 problem on the restricted production set
 \[Y_y = \{(-\z,y):\z\in\RR_+^n,y\le f(\z) \}.\]
 
-From this ``nearly"-equivalent relationship between cost minimization problem and profit maximization problem, we immediately arrive at the following proposition of rationalizability in differentiable cases.
+From this near-equivalence between the CMP and the PMP, the
+differentiable-case rationalizability result transfers immediately.
 
 \prop{}{
 Consider a conditional factor demand
@@ -920,15 +916,17 @@ is differentiable in \(\w\). Then \(\z\) is rationalizable by some
 production function if and only if,
 \begin{enumerate}
 \item
-  (\textbf{Shepard's lemma}) \(\nabla_{\w}c(\w,y) = \z(\w,y)\).
+  (\textbf{Shephard's lemma}) \(\nabla_{\w}c(\w,y) = \z(\w,y)\).
 \item
   \(c(\cdot,y)\) is concave in \(\w\).
 \end{enumerate}
 }
 
 \rmk{
-When learning expenditure minimization problem and Hicksian demand, we skipped the discussions on rationalizability. In fact, expenditure minimization problem essentially works in the same logic with cost minimization problem, so same result holds for the expenditure function
-\(e(\p,u)\).
+We skipped rationalizability for the EMP and Hicksian demand in
+Ch.~2. The EMP works on the same logic as the CMP, so the analogous
+characterization — Shephard's lemma plus concavity in prices — holds
+for the expenditure function \(e(\p,u)\) without modification.
 }
 
 \prop{Properties of Cost Function and Conditional Factor Demand Correspondence}{
@@ -962,17 +960,22 @@ production set \(Y\) satisfies the free disposal property. Then for
   \textbf{Convexity: If \(f(\cdot)\) is a concave function, then
   \(c(\w,\cdot)\) is a convex function of \(y\).}
 \item
-  \textbf{Shepard's lemma}: If \(\z(\w,y)\) is single-valued,
+  \textbf{Shephard's lemma}: If \(\z(\w,y)\) is single-valued,
   then \(c(\w,y)\) is differentiable with respect to \(w_i\) and
   \(\dfrac{\partial c(\w,y)}{\partial w_i} = z_i(\w,y)\).
 \end{itemize}
 }
 
 \rmk{
-Notice that there is no counterpart in EMP for properties in bold. The essential reason is that, in consumer theory 
-we only care about utility representation, whose ordinal meaning
-matters; in producer theory, however, the production function has
-cardinal meanings, and that makes the difference.
+The bolded properties have no counterpart in the EMP. The reason: in
+consumer theory utility is purely \emph{ordinal} — any monotone
+transformation of \(u\) represents the same preferences and gives the
+same EMP solution. In producer theory the production function \(f\) is
+\emph{cardinal}: it specifies physical output, which has its own units
+and admits no monotone-transformation freedom. That cardinality is what
+lets us say, e.g., that the cost function is homogeneous of degree~1
+in \(y\) under constant returns, or that it is convex in \(y\) when
+\(f\) is concave.
 }
 
 \subsection{Derivation of Cost Minimization Problem}

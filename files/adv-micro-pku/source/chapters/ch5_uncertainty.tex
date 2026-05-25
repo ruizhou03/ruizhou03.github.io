@@ -31,13 +31,14 @@ which implies \(U\pr{\cdot}\) is also strictly concave. Consequently,
 necessary.
 }
 
-Convenient as the expected utility representation is, it is rather ad-hoc.
-Similar to the essence of previous works, we want to understand what
-restrictions on the agent's preference relation induce an expected
-utility representation.
+The expected utility representation is convenient, but as written it
+looks ad hoc — why \emph{expected} utility specifically, rather than
+some other functional of the probability distribution? The agenda of
+this chapter mirrors what we did under certainty: identify the axioms
+on the agent's preference relation that force an expected utility
+representation.
 
-\hypertarget{basic-setups}{%
-\section{Setups}\label{basic-setups}}
+\section{Setups}\label{basic-setups}
 
 \defn{Simple Lottery; Compound Lottery}{
 Let \(X = \brace{\x_1,\x_2,\cdots,\x_n}\) denote a
@@ -53,7 +54,8 @@ finite set of \textit{sure} outcomes (i.e., without uncertainty).
 \end{itemize}
 }
 
-To facilitate our analysis, we introduce two assumptions with regard to the way in which utility maximizer regard the lotteries.
+We make two simplifying assumptions about how the decision-maker
+perceives lotteries:
 
 \asm{}{
 \begin{enumerate}
@@ -122,11 +124,11 @@ and \(t\in\pr{0,1}\),
 \[\p^1\pref \p^2\iff t\p^1+\pr{1-t}\p^3\pref t\p^2+\pr{1-t}\p^3\]
 }
 
-Intuitively, this assumption requires that the relative ranking of two
-lotteries will not be affected by the mixture with a third lottery.
-Notice that both \(t\p^1+\pr{1-t}\p^3\) and \(t\p^2+\pr{1-t}\p^3\) are
-\emph{compound} lotteries, which should be understood as the
-simple lotteries they induce.
+Independence says that mixing both lotteries with a common third
+lottery \(\p^3\) does not flip the ranking. Note that
+\(t\p^1+(1-t)\p^3\) and \(t\p^2+(1-t)\p^3\) are formally
+\emph{compound} lotteries; under the consequentialist assumption, we
+identify each with the simple lottery it induces.
 
 Moreover, if the preference relation \(\pref\) on \(\P\) satisfies
 independence, then for any \(\p^1,\p^2,\p^3\in \P\) and
@@ -142,7 +144,9 @@ independence, then for any \(\p^1,\p^2,\p^3\in \P\) and
   \(t\p^1+\pr{1-t}\p^3\pref t\p^2+\pr{1-t}\p^4\).
 \end{itemize}
 
-In summary, in this chapter of uncertainty, we need the following four assumptions to guarantee expected utility representation.
+In summary, the four assumptions we maintain throughout this chapter
+— completeness, transitivity, continuity, and independence — are
+exactly what is needed for an expected utility representation.
 
 \asm{}{
 \begin{itemize}
@@ -155,18 +159,17 @@ In summary, in this chapter of uncertainty, we need the following four assumptio
 \item
   \textbf{Continuity}: For any two sequences
   \(\pr{\p^i}_{i = 1}^n,\pr{\q^i}_{i = 1}^n\in \P\), if
-  \(\p^i\pref\q^i\pr{\forall i = 1,2,\cdots,n}\) and
-  \(\lim_{n\to\infty}\p^i = \p^*\), \(\lim_{n\to\infty}\q^i = \q^*\),
+  \(\p^i\pref\q^i\) for all \(i\) and
+  \(\lim_{n\to\infty}\p^i = \p^*,\,\lim_{n\to\infty}\q^i = \q^*\),
   then \(\p^*\pref\q^*\).
-  \item \textbf{Independence}: For any \(\p^1,\p^2,\p^3\in \P\) such that
-\(\p^1\pref\p^2\pref\p^3\), there exists \(t\in \br{0,1}\) such that
-\(\p^2\sim t\p^1+\pr{1-t}\p^3\).
+\item
+  \textbf{Independence}: For any \(\p^1,\p^2,\p^3\in\P\) and any
+  \(t\in(0,1)\),
+  \[\p^1\pref\p^2\iff t\p^1+(1-t)\p^3\pref t\p^2+(1-t)\p^3.\]
 \end{itemize}
 }
 
-\hypertarget{expected-utility-representation}{%
-\section{Expected Utility
-Representation}\label{expected-utility-representation}}
+\section{Expected Utility Representation}\label{expected-utility-representation}
 
 Before starting the representation theorem, we first formalize what we
 mean by an expected utility function.
@@ -281,11 +284,9 @@ Suppose the complete and transitive preference relation $\pref$ satisfies contin
     \end{itemize}
 }
 
-\hypertarget{measures-of-risk}{%
-\section{Measures of Risk}\label{measures-of-risk}}
+\section{Measures of Risk}\label{measures-of-risk}
 
-\hypertarget{risk-attitudes}{%
-\subsection{Risk Attitudes}\label{risk-attitudes}}
+\subsection{Risk Attitudes}\label{risk-attitudes}
 
 Let the set of sure outcomes \(X = \RR\). For any sure outcome $x\in X$, its utility is determined by utility function $u:X\to \RR$. A lottery is fully characterized by a corresponding distribution function \(F\), whose expected utility is then 
 \(U\pr{F} = \int_Xu\pr{x}\text d F\pr{x}\). For simplicity, suppose
@@ -309,13 +310,15 @@ A decision-maker is (strictly) risk-averse if and only
 if \(u\pr{\cdot}\) is (strictly) concave.
 }
 
-Intuitively, the marginal utility of an 
-additional unit of money is decreasing for a risk-averse individual.
+Intuitively, a risk-averse individual has \emph{decreasing} marginal
+utility — each additional dollar is worth less than the previous one.
+\emph{Risk-loving} (\(u\) convex, \(F\succ\delta_{\E F}\)) and
+\emph{risk-neutral} (\(u\) linear, \(F\sim\delta_{\E F}\)) attitudes are
+defined symmetrically.
 
-\textit{Risk-loving} and \textit{risk-neutral} attitudes can
-be similarly defined.
-
-We have defined risk attitudes based on how agents evaluate the utility of averaged payoff against the averaged utility. Apart from determining risk attitudes, we develop a cursory measure, certainty equivalent, to capture such ``deviation".
+Risk attitudes contrast the utility of an average payoff with the
+average utility of the payoffs. The \emph{certainty equivalent}
+quantifies how large the gap between the two is — in monetary units.
 
 \defn{Certainty Equivalent}{
 The \emph{certainty
@@ -323,7 +326,8 @@ equivalent} \(c\pr{F,u}\) of a money lottery is defined as
 \[u\pr{c\pr{F,u}} = U\pr{F}.\]
 }
 
-Intuitively, \(c\pr{F,u}\) is the sure outcome perceived as equivalent to the risk lottery.
+Intuitively, \(c(F,u)\) is the sure amount of money the agent considers
+equivalent to facing the risky lottery \(F\).
 
 \rmk{
 Certainty equivalent depends on initial wealth. For
@@ -332,14 +336,14 @@ wealth; then \(c\pr{F,u}\le \E{F}\) if and only if the agent is
 risk-averse.
 }
 
-\hypertarget{measure-of-risk}{%
-\subsection{Measures of Risk Aversion}\label{measure-of-risk}}
+\subsection{Measures of Risk Aversion}\label{measure-of-risk}
 
-We know that an agent is (strictly) risk-averse if and only if
-\(u\pr{\cdot}\) is (strictly) concave. Recall the cardinal
-interpretation of vNM expected utility. Can we use \(u\pr{\cdot}\) to
-quantify and then compare different levels of risk aversion? Therefore, we introduce the
-measures of risk aversion.\\
+So far ``risk-averse'' is a yes/no property, controlled by concavity of
+\(u\). The vNM expected utility is cardinally meaningful (only up to
+positive affine transformations), which raises the natural follow-up
+question: can we use \(u\) to \emph{quantify} how risk-averse an agent
+is, and rank two agents accordingly? The two standard measures below
+do exactly that.\\
 
 \noindent Consider a risk-averse agent who has an initial wealth \(w\) and faces a
 (small) fair gamble.
@@ -516,33 +520,32 @@ money to put in the risky asset. Suppose \(\sum_{i  =1}^n p_ir_i>0\).
 }
 
 
-\hypertarget{comparison-of-risky-prospects}{%
-\section{Comparison of Risky
-Prospects}\label{comparison-of-risky-prospects}}
+\section{Comparison of Risky Prospects}\label{comparison-of-risky-prospects}
 
-The earlier proposition shows we can use the coefficient of absolute
-risk aversion \(A\pr{x,u}\) to compare the risk attitudes of two
-individuals, as well as the risk attitudes of the same individual at two
-wealth levels. But how about the comparisons of two lotteries? In
-particular, when can we unambiguously say that \(F\pref G\) for any
-(risk-averse) decision-maker?
+The coefficient of absolute risk aversion \(A(x,u)\) lets us compare
+agents (or the same agent at different wealth levels). The natural
+next question is about comparing \emph{lotteries}: when can we say
+\(F\pref G\) for \emph{every} (risk-averse) decision-maker, regardless
+of the specific shape of \(u\)?
 
-When comparing monetary lotteries, an agent would naturally consider expected payoffs and variations in payoffs. Intuitively, \(F\pref G\) unambiguously in one of the following two
-cases:
+A monetary lottery is summarized by two features that any agent will
+care about: its expected payoff and its dispersion around that
+expectation. This suggests two unambiguous cases in which \(F\) should
+be ranked above \(G\):
 
 \begin{enumerate}
 \item
-  \(F\) yields a higher return than \(G\) with a higher probability.
+  \(F\) gives a (weakly) higher payoff than \(G\) at every probability
+  level — \(F\) ``shifts the distribution to the right.''
 \item
-  \(F\) and \(G\) have the same expected return, but there is less
-  variation in \(F\).
+  \(F\) and \(G\) have the same expected payoff, but \(F\) is less
+  dispersed.
 \end{enumerate}
 
-Roughly speaking, we introduce first-order stochastic dominance for the first possibility, and second-order stochastic dominance for the second.
+These two cases correspond to \emph{first-order} and
+\emph{second-order} stochastic dominance respectively.
 
-\hypertarget{first-order-stochastic-dominance}{%
-\subsection{First-Order Stochastic
-Dominance}\label{first-order-stochastic-dominance}}
+\subsection{First-Order Stochastic Dominance}\label{first-order-stochastic-dominance}
 
 \propp{First-Order Stochastic Dominance}{
 The
@@ -571,13 +574,11 @@ It follows that
 if and only if \(G\pr{x}\ge F\pr{x}\) almost everywhere.
 }
 
-Notice that the first condition says that any decision-maker who prefers
-more money would prefer lottery \(F\) over \(G\), regardless of the
-agent's risk attitude, let alone the specific mathematical expression of utility function.
+The first condition is the universal characterization: every
+decision-maker who prefers more money to less ranks \(F\) above \(G\),
+regardless of their risk attitude or the specific shape of \(u\).
 
-\hypertarget{second-order-stochastic-dominance}{%
-\subsection{Second-Order Stochastic
-Dominance}\label{second-order-stochastic-dominance}}
+\subsection{Second-Order Stochastic Dominance}\label{second-order-stochastic-dominance}
 
 \defn{Mean-Preserving Spread}{
 Let \(X,Y\) be two random
@@ -586,8 +587,9 @@ Then \(G\) is a \emph{mean-preserving spread} of \(F\) if
 \(Y = X+\tilde \ve\), where \(\E{\tilde\ve|X} = 0\).
 }
 
-Intuitively, the two lotteries \(F\) and \(G\) yield the same expected
-return, but \(G\) involves more risk.
+A mean-preserving spread keeps the expected payoff fixed but adds
+noise to the realization — \(G\) is obtained from \(F\) by spreading
+out the probability mass without shifting its mean.
 
 \propp{Second-Order Stochastic Dominance}{
 Suppose
@@ -652,9 +654,7 @@ The first condition says that any risk-averse decision-maker would prefer
   and concave.
 }
 
-\hypertarget{likelihood-ratio-dominance}{%
-\subsection{Likelihood Ratio
-Dominance}\label{likelihood-ratio-dominance}}
+\subsection{Likelihood Ratio Dominance}\label{likelihood-ratio-dominance}
 
 \defn{Likelihood Ratio Dominance}{
 Let \(F\) and \(G\) be two
@@ -697,9 +697,7 @@ Therefore, we have
 \ea\]
 }
 
-\hypertarget{comparative-statics-under-risk}{%
-\section{Comparative Statics Under
-Risk}\label{comparative-statics-under-risk}}
+\section{Comparative Statics Under Risk}\label{comparative-statics-under-risk}
 
 Our earlier discussions on comparative statics did not 
 specifically take uncertainty into consideration. Whether and how would the comparative
