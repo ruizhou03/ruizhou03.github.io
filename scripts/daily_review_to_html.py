@@ -92,7 +92,52 @@ def classify(raw: str):
     return (TYPE_PARA, line)
 
 
-def render(section: str) -> str:
+_PROMPT_TAIL = ("请遵循 docs/MAINTENANCE.md 与 CLAUDE.md 的项目约定，"
+                "先告诉我处理方案再动手；改完按既定 git 工作流 add + commit + push。")
+
+
+def _build_card_prompt(date: str, level: str, subj_md: str, gist_md: list[str]) -> str:
+    bullets = "\n".join(f"- {x}" for x in gist_md) if gist_md else "（无更多明细）"
+    return (
+        f"请帮我处理 ruizhou03.github.io 项目的每日巡检待办（{date}）：\n\n"
+        f"【优先级】{level}\n"
+        f"【标题】{subj_md}\n"
+        f"【详情】\n{bullets}\n\n"
+        f"{_PROMPT_TAIL}"
+    )
+
+
+def _build_all_prompt(date: str, cards: list[dict]) -> str:
+    if not cards:
+        return ""
+    body_parts = []
+    for i, c in enumerate(cards, 1):
+        bullets = "\n".join(f"- {x}" for x in c["gist"]) if c["gist"] else "（无更多明细）"
+        body_parts.append(f"## {i}. [{c['level']}] {c['subj']}\n{bullets}")
+    body = "\n\n".join(body_parts)
+    return (
+        f"请帮我处理 ruizhou03.github.io 项目的每日巡检待办（{date}，共 {len(cards)} 条）：\n\n"
+        f"{body}\n\n"
+        f"请按优先级（P0 → P1 → P2）逐条告诉我处理方案，确认后再动手；按既定 git 工作流提交。"
+    )
+
+
+def _details_block(label: str, text: str) -> str:
+    """折叠 prompt 块。Gmail/Mail.app 都支持原生 <details>/<summary>，
+    展开后是 monospace 的 <pre>，Cmd+A 全选 + Cmd+C 复制即可。"""
+    pre_style = ("background:#f6f8fa;border:1px solid #e1e4e8;border-radius:5px;"
+                 "padding:11px 12px;margin:8px 0 0;font-size:12.5px;"
+                 "font-family:ui-monospace,SFMono-Regular,Menlo,monospace;"
+                 "white-space:pre-wrap;word-wrap:break-word;color:#24292e;line-height:1.45")
+    return (
+        f'<details style="margin-top:10px;border-top:1px dashed #ddd;padding-top:7px">'
+        f'<summary style="cursor:pointer;color:#3b6fb0;font-size:12.5px;user-select:none">{label}</summary>'
+        f'<pre style="{pre_style}">{H.escape(text, quote=False)}</pre>'
+        f'</details>'
+    )
+
+
+def render(section: str, date: str = "") -> str:
     """把顶部小节渲染成 HTML 片段串。"""
     out = []
     classified = [classify(l) for l in section.splitlines()]
@@ -101,7 +146,11 @@ def render(section: str) -> str:
     current_card_color = ""   # ""/"red"/"yellow"
     in_card = False
     card_gist_buf = []        # 当前卡片的 gist 子项列表（已是 HTML <li> 字符串）
-    in_card_sub_ul = False    # 当前是否在 .gist <ul> 内（用于处理嵌套）
+    card_raw_subj = ""        # 当前卡片的原始 markdown 标题（用于生成 prompt）
+    card_raw_gist = []        # 当前卡片的原始 markdown 子项列表
+    card_raw_level = ""       # 当前卡片的优先级 P0/P1/P2
+    card_raw_carry = False    # 是否承接昨日
+    cards_collected = []      # 所有已完成的卡片（用于底部总 prompt）
     ul_buf = []               # 顶层 <ul> 未结束的累积
     para_buf = []             # 段落未结束的累积
 
@@ -118,32 +167,45 @@ def render(section: str) -> str:
             ul_buf.clear()
 
     def flush_card():
-        nonlocal in_card, current_card_color
+        nonlocal in_card, current_card_color, card_raw_subj, card_raw_carry
         if not in_card:
             return
         gist = "".join(card_gist_buf)
         gist_html = f'<div class="gist"><ul style="margin:4px 0;padding-left:19px">{gist}</ul></div>' if gist else ""
-        out.append(f'</div>{gist_html}</div>') if False else None  # placeholder
-        # 上面那行不用，直接 append 完整 card：
-        # 但我们已经把 open + subj 输出了，所以这里只补 gist + close
-        out.append(gist_html + "</div>")
+        # 折叠的 prompt 块（给本机 Claude Code 用：Cmd+A 全选复制后去对话粘贴）
+        prompt_text = _build_card_prompt(date or "今日", card_raw_level, card_raw_subj, list(card_raw_gist))
+        prompt_block = _details_block("📋 复制为给 Claude Code 的 prompt（点开 → Cmd+A 全选 → Cmd+C 复制）", prompt_text)
+        out.append(gist_html + prompt_block + "</div>")
+        # 收集这张卡到全局列表
+        cards_collected.append({
+            "level": card_raw_level,
+            "subj": card_raw_subj,
+            "gist": list(card_raw_gist),
+            "carry": card_raw_carry,
+        })
         in_card = False
         card_gist_buf.clear()
+        card_raw_gist.clear()
+        card_raw_subj = ""
+        card_raw_carry = False
 
     def open_card(subj_md: str, carry: bool = False):
-        nonlocal in_card
+        nonlocal in_card, card_raw_subj, card_raw_level, card_raw_carry
         flush_para(); flush_ul()
         flush_card()
         color_class = f" {current_card_color}" if current_card_color else ""
         carry_tag = '<span class="carry">承接昨日</span>' if carry else ""
-        # 用更明显的卡片边距 + 字号
         subj = inline(subj_md)
+        level_label = "P0" if current_card_color == "red" else ("P1" if current_card_color == "yellow" else "P2")
         out.append(
             f'<div class="card{color_class}">'
-            f'<div class="top"><span class="tag">{("P0" if current_card_color=="red" else "P1" if current_card_color=="yellow" else "P2")}</span>{carry_tag}</div>'
+            f'<div class="top"><span class="tag">{level_label}</span>{carry_tag}</div>'
             f'<div class="subj">{subj}</div>'
         )
         in_card = True
+        card_raw_subj = subj_md
+        card_raw_level = level_label
+        card_raw_carry = carry
 
     def push_card_sub(text: str, level: int = 1):
         """把缩进子项加进当前卡片的 gist。level=1 一级、2 嵌套。"""
@@ -151,6 +213,10 @@ def render(section: str) -> str:
             # 不在卡片里却来了缩进子项，当成顶层 ul（异常但兜底）
             ul_buf.append(text)
             return
+        # 收集 raw markdown
+        prefix = "  " if level == 2 else ""
+        card_raw_gist.append(prefix + text)
+        # 生成 HTML
         if level == 1:
             card_gist_buf.append(f'<li style="margin:3px 0">{inline(text)}</li>')
         else:
@@ -216,6 +282,16 @@ def render(section: str) -> str:
         # 其他类型忽略
 
     flush_para(); flush_ul(); flush_card()
+
+    # 邮件底部：若收集到 ≥2 张卡片，加一个总 prompt 折叠区（一次喂给 Claude 让它批处理）
+    if len(cards_collected) >= 2:
+        all_prompt = _build_all_prompt(date or "今日", cards_collected)
+        summary_label = f"📋 全部待办（{len(cards_collected)} 条）合并 prompt · 一次喂给 Claude Code"
+        block = _details_block(summary_label, all_prompt)
+        out.append('<hr style="margin:24px 0 12px;border:none;border-top:1px solid #ececec">')
+        out.append(f'<div style="font-size:13px;color:#888;margin-bottom:4px">合并所有待办为一段 prompt：</div>')
+        out.append(block)
+
     return "\n".join(out)
 
 
@@ -227,7 +303,10 @@ def main():
     if not section:
         Path(sys.argv[2]).write_text('<p class="empty">DAILY_REVIEW.md 没找到顶部小节。</p>', encoding="utf-8")
         return
-    html = render(section)
+    # 抽出顶部小节的日期（## YYYY-MM-DD 那行）
+    date_match = re.match(r"^##\s+(\S+)", section)
+    date = date_match.group(1) if date_match else ""
+    html = render(section, date=date)
     Path(sys.argv[2]).write_text(html, encoding="utf-8")
     print(f"[daily-review-html] wrote {sys.argv[2]} ({len(html)} bytes)", file=sys.stderr)
 
