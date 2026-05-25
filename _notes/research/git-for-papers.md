@@ -38,7 +38,7 @@ data/raw/*              # 大数据 / 保密数据不进库
 output/                 # 表和图由代码生成，不入库
 ```
 
-是否提交编译出的 `main.pdf` 看习惯：合作者里有人不装 LaTeX、想直接看 PDF，就提交它,否则忽略掉，谁要看自己编译。把清理副产物这件事做彻底，可以配合[「告别 LaTeX 文件海洋」](/research/latex/latex-clean-workflow)那套 `outDir` 设置,从源头就不让垃圾文件出现在仓库目录里。
+是否提交编译出的 `main.pdf` 看习惯：合作者里有人不装 LaTeX、想直接看 PDF，就提交它，否则忽略掉，谁要看自己编译。把清理副产物这件事做彻底，可以配合[「告别 LaTeX 文件海洋」](/research/latex/latex-clean-workflow)那套 `outDir` 设置，从源头就不让垃圾文件出现在仓库目录里。
 
 ## 二、写论文的日常循环
 
@@ -84,7 +84,7 @@ git merge revision-r1         # 这轮改定了，合回主线
 
 多人改同一个 `.tex`，最怕 merge 冲突。一个极其有效、却很少人做的习惯能把冲突降到接近零：**一句一行（one sentence per line）**。
 
-在 `.tex` 里每写完一句就换行（LaTeX 不在意源码里的单换行，渲染出来照样是连续段落）。这样两个人改同一段的不同句子时，Git 看到的是不同行，能自动合并;传统的“一段挤成一长行”写法，改同一段任何一处都撞在同一行上,必冲突:
+在 `.tex` 里每写完一句就换行（LaTeX 不在意源码里的单换行，渲染出来照样是连续段落）。这样两个人改同一段的不同句子时，Git 看到的是不同行，能自动合并；传统的”一段挤成一长行”写法，改同一段任何一处都撞在同一行上，必冲突：
 
 ```latex
 我们利用 2020 年的政策实施构造准自然实验。
@@ -126,7 +126,7 @@ latexdiff <旧tag的main.tex> main.tex > diff.tex   # 给编辑的 tracked-chang
 
 ## 七、后悔药
 
-误删一段、改崩了想退回，常用三招（深层原理见[ Git 协同那篇](/research/how-it-works/git-workflow)）：
+误删一段、改崩了想退回，常用三招（深层原理见 [Git 协同那篇](/research/how-it-works/git-workflow)）：
 
 ```bash
 git restore paper/main.tex          # 丢弃尚未提交的改动，回到上次 commit
@@ -136,5 +136,5 @@ git reflog                          # 连分支都误删了？这里有所有 HE
 
 只要东西 commit 过，在 Git 里就几乎不可能真正丢失——这正是它替代“`final_v7` 文件夹”的底气。
 
-把 Git 串进整条线：[可复现项目结构](/research/workflow/reproducible-project)管目录、Git 管版本与协作、[ SLURM ](/research/workflow/remote-server)管算力、[出表工具](/research/econometrics/regression-tables)和[ TikZ ](/research/latex/tikz-econ-figures)管图表、[ Zotero ](/research/literature/zotero-setup)管文献——这六篇合起来，就是一套从开题到投稿都不返工的实证科研工作流。
+把 Git 串进整条线：[可复现项目结构](/research/workflow/reproducible-project)管目录、Git 管版本与协作、[SLURM](/research/workflow/remote-server)管算力、[出表工具](/research/econometrics/regression-tables)和 [TikZ](/research/latex/tikz-econ-figures) 管图表、[Zotero](/research/literature/zotero-setup) 管文献——这六篇合起来，就是一套从开题到投稿都不返工的实证科研工作流。
 

@@ -78,7 +78,7 @@ keywords: ["手洗 vs 机洗", "手洗", "机洗", "hand wash", "machine wash", 
   <text x="400" y="200" text-anchor="middle" font-size="11" fill="#c0392b" font-weight="600">化学</text>
   <text x="400" y="218" text-anchor="middle" font-size="9" fill="#666">充分</text>
 </svg>
-<p class="img-caption">手洗的优势：**机械力可以精准控制**（你能针对污渍重点搓）+ 温度低对衣物友好；缺点：化学接触、温度、时间都偏弱。机洗的优势：**四个变量都更强**（特别是机械翻滚 + 时间），所以**总体清洁力更高**——但物理力大也意味着对娇贵衣物更不友好。这就是 trade-off。</p>
+<p class="img-caption">手洗的优势：<strong>机械力可以精准控制</strong>（你能针对污渍重点搓）+ 温度低对衣物友好；缺点：化学接触、温度、时间都偏弱。机洗的优势：<strong>四个变量都更强</strong>（特别是机械翻滚 + 时间），所以<strong>总体清洁力更高</strong>——但物理力大也意味着对娇贵衣物更不友好。这就是 trade-off。</p>
 
 ## 3.2 手洗的真实强弱
 

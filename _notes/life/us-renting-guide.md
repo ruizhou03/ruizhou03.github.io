@@ -12,14 +12,14 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 
 写给三类人：
 
-- **第一年要租房的留学生**——刚来美国，宿舍住不久 / 校外要租公寓，被 Zillow 上一堆“$1,500 / $2,500 / $3,000"看花眼
+- **第一年要租房的留学生**——刚来美国，宿舍住不久 / 校外要租公寓，被 Zillow 上一堆“$1,500 / $2,500 / $3,000”看花眼
 - **OPT 工作族搬到新城市**——找工作要换城市，但**信用记录还没建好**，租房 application 一交就被拒
 - **跨州搬家**——从大学城搬到大城市 metro 区域，发现**纽约 / 旧金山 / 波士顿**的租房逻辑和大学城完全不一样
 
 中国看房：**链家网搜 → 中介带看 → 谈价 → 押一付三**。
 美国租房：**Zillow / Apartments 搜 → 自己 schedule tour → 提交 application（含信用查 + 收入证明 + co-signer）→ 等 1-7 天审批 → 付 deposit + first month + last month → 拿钥匙 → 一年合约 → 30/60 天通知退租**。
 
-**信息分散 + 各州差异巨大**——这是中国留学生信息盲区最深的话题之一。这篇文章把”找房 → 申请 → 签约 → 入住 → 退租“全流程一次性讲清楚。文章涉及具体数字时**以宾夕法尼亚州（PA）+ Penn State 大学城为例**——其它地区类似但具体数字 / 法律有差异。
+**信息分散 + 各州差异巨大**——这是中国留学生信息盲区最深的话题之一。这篇文章把“找房 → 申请 → 签约 → 入住 → 退租”全流程一次性讲清楚。文章涉及具体数字时**以宾夕法尼亚州（PA）+ Penn State 大学城为例**——其它地区类似但具体数字 / 法律有差异。
 
 > ⚠️ 各州房东 / 租客法律差异很大（特别是 NYC / 加州 / 德州 vs PA / 中部），文中具体规则以**你所在州的 Tenant's Rights Handbook + 你的 lease 合同**为准。
 
@@ -73,7 +73,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 - ❌ **价格较高**：amenities 成本算在月租里
 - ❌ **强制 lease 期**：通常 12 个月，break clause 可能 2 个月房租
 
-**适合**：第一年想要”省心 + 标准化“的留学生 / 双职工家庭。
+**适合**：第一年想要“省心 + 标准化”的留学生 / 双职工家庭。
 
 ## 3.2 私人房东 / 独栋 house（Individual Landlord）
 
@@ -103,7 +103,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 
 **找室友的渠道**：
 
-- 学校 housing portal / FB Group ”Penn State Housing“ 等
+- 学校 housing portal / FB Group “Penn State Housing” 等
 - 一亩三分地 / 微信群（华人留学生圈最常用）
 - Roomi / Roomster app
 - Facebook Marketplace
@@ -146,16 +146,16 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 
 预约 tour 后**到现场必问的 10 个问题**：
 
-1. **月租是多少**？ ”Is the rent listed accurate? Any specials right now?“
-2. **Utilities 包括什么**？ ”What's included in rent? Water? Heat? Trash? Internet?“——这条**月差 $50-$200**
-3. **押金多少 / 怎么返还**？ ”Security deposit + return process?“——多数州法律规定 30 天内返还
-4. **Pet 政策 / pet deposit**？ ”Pet allowed? Monthly pet rent? Refundable deposit?“——养猫狗的人必问
-5. **Parking 是另算还是含**？ ”Is parking included? Cost per spot?“——城市 vs 大学城差异大
-6. **Lease 期 + break clause**？ ”Lease term? Penalty for breaking lease?“——通常 12 个月 / 2 个月房租
-7. **Renewal 政策**？ ”Renewal terms? How much can rent increase?“——多数 5-8%/年
-8. **Maintenance / repairs 怎么 handle**？ ”On-site maintenance? Response time?“
-9. **Move-in 流程 + walk-through**？ ”When can I do walk-through? Will you sign off on damages list?“——这是后来要押金的关键
-10. **邻居 / 安全 / 噪音**？ ”What's the neighborhood like? Any noise issues?“——晚上再去看一眼
+1. **月租是多少**？ “Is the rent listed accurate? Any specials right now?”
+2. **Utilities 包括什么**？ “What's included in rent? Water? Heat? Trash? Internet?”——这条**月差 $50-$200**
+3. **押金多少 / 怎么返还**？ “Security deposit + return process?”——多数州法律规定 30 天内返还
+4. **Pet 政策 / pet deposit**？ “Pet allowed? Monthly pet rent? Refundable deposit?”——养猫狗的人必问
+5. **Parking 是另算还是含**？ “Is parking included? Cost per spot?”——城市 vs 大学城差异大
+6. **Lease 期 + break clause**？ “Lease term? Penalty for breaking lease?”——通常 12 个月 / 2 个月房租
+7. **Renewal 政策**？ “Renewal terms? How much can rent increase?”——多数 5-8%/年
+8. **Maintenance / repairs 怎么 handle**？ “On-site maintenance? Response time?”
+9. **Move-in 流程 + walk-through**？ “When can I do walk-through? Will you sign off on damages list?”——这是后来要押金的关键
+10. **邻居 / 安全 / 噪音**？ “What's the neighborhood like? Any noise issues?”——晚上再去看一眼
 
 **附加观察**（不用问，自己看）：
 
@@ -168,7 +168,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 
 # 6. Application 流程
 
-**美国租房 application 是个”信用 + 收入“双门槛过滤**：
+**美国租房 application 是个“信用 + 收入”双门槛过滤**：
 
 ## 6.1 标准 Application 要求
 
@@ -189,7 +189,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 
 **实战话术（直接对房东说）**：
 
-> ”I'm a new international student at Penn State without US credit history. I have an I-20 from the university, an admission offer, and proof of funding from my parents. I can pay 3 months' rent upfront if needed. Are you flexible with international applicants?“
+> “I'm a new international student at Penn State without US credit history. I have an I-20 from the university, an admission offer, and proof of funding from my parents. I can pay 3 months' rent upfront if needed. Are you flexible with international applicants?”
 
 **多数大学城周边的房东会答应**——这是他们的常规客户群。
 
@@ -217,7 +217,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 
 - 通常 **1-2 个月房租**
 - 多数州法律：**30-60 天内退还**
-- **要看清”扣什么“的条款**：clean fee / damage / 未付 utilities
+- **要看清“扣什么”的条款**：clean fee / damage / 未付 utilities
 
 **PA 法律**：押金 $\leq$ 第一年 2 个月房租 + 第二年起 $\leq$ 1 个月房租 + 房东必须 30 天内返还。
 
@@ -265,7 +265,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 
 **特殊情况**：
 - **军人 / 政府转岗** —— 联邦法律允许零罚金
-- **房东严重违约**（漏水不修 / 安全问题）—— 你可以”constructive eviction“零罚解约
+- **房东严重违约**（漏水不修 / 安全问题）—— 你可以“constructive eviction”零罚解约
 
 ## 7.7 Liability + Renter's Insurance
 
@@ -345,7 +345,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 
 ## 9.2 Cleanup Standards
 
-**Lease 通常规定 ”leave the unit in 'broom-clean' condition“** —— 你要做：
+**Lease 通常规定 “leave the unit in 'broom-clean' condition”** —— 你要做：
 
 - 所有房间扫地 / 拖地 / 吸尘
 - 厨房：洗冰箱 / 烤箱 / 灶台 / 微波炉 / 油渍清理
@@ -377,7 +377,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 **最稳路径**：
 
 1. **学校 graduate housing**——直接 enrolled 申请，无信用要求
-2. **大学城周边的留学生 friendly 公寓**——Penn State 周边 The Park / Beaver Hill 等”惯常接受 international“
+2. **大学城周边的留学生 friendly 公寓**——Penn State 周边 The Park / Beaver Hill 等“惯常接受 international”
 3. **找私人房东 + 多付押金**——3 个月押金可以买信任
 4. **找室友合租 + 借朋友信用**——主签约人是朋友，你 sub-tenant
 
@@ -412,15 +412,15 @@ OPT / 工作族跨州搬到新城市：
 NYC 多数 listing 通过 **broker** 中介：
 
 - 你看一个房子 → broker 帮你处理 → **broker fee = 1 个月房租或 $8.5\%$ 年租**
-- 部分 listing 是 ”no fee“（房东付 broker）—— **优先找这些**
-- 网站：[StreetEasy](https://streeteasy.com/) 上明确标 ”No Fee“
+- 部分 listing 是 “no fee”（房东付 broker）—— **优先找这些**
+- 网站：[StreetEasy](https://streeteasy.com/) 上明确标 “No Fee”
 
 **这是 NYC 独特的成本**——其它城市基本没有 broker fee。
 
 ## 11.2 月租可以谈
 
 - **Apartment 集团**：很难谈月租，但**可以谈 specials**（一个月免房租 / amenities credit）
-- **私人房东**：**月租可以谈** —— 提”我下年再续 / 我推荐朋友 / 我不养宠物“等
+- **私人房东**：**月租可以谈** —— 提“我下年再续 / 我推荐朋友 / 我不养宠物”等
 - **大学城**：暑假空房多 → **谈下来 $5$-$10\%$ 不难**
 
 ## 11.3 amenities 性价比
@@ -437,7 +437,7 @@ NYC 多数 listing 通过 **broker** 中介：
 
 ## 11.4 cosigner 联保责任
 
-**不要把 co-signing 当”举手之劳“**：
+**不要把 co-signing 当“举手之劳”**：
 
 - 你 / 室友违约 → co-signer 要赔
 - co-signer 信用受损
@@ -445,7 +445,7 @@ NYC 多数 listing 通过 **broker** 中介：
 
 **给朋友 co-sign 前想清楚**——这不是签字承诺，是**真实的财务承诺**。
 
-## 11.5 ”First / Last + Security“ 的钱要准备
+## 11.5 “First / Last + Security” 的钱要准备
 
 签 lease 时多数房东要：
 
@@ -462,12 +462,12 @@ NYC 多数 listing 通过 **broker** 中介：
 1. **[Zillow](https://www.zillow.com/) / [Apartments.com](https://www.apartments.com/) / [Trulia](https://www.trulia.com/)** —— 最大的 3 个找房网站
 2. **[Penn State Off-Campus Living](https://offcampus.psu.edu/)** —— Penn State 学生租房专门服务
 3. **[r/USRenting / r/personalfinance](https://www.reddit.com/r/personalfinance/)** —— 英文社区实战
-4. **[一亩三分地”租房“ 版块](https://www.1point3acres.com/bbs/forum.php)** —— 中文圈最大的留学生租房讨论
+4. **[一亩三分地“租房” 版块](https://www.1point3acres.com/bbs/forum.php)** —— 中文圈最大的留学生租房讨论
 5. **[Pennsylvania Tenant's Rights](https://www.attorneygeneral.gov/protect-yourself/landlord-tenant-resources/)** —— PA 租房法律权利
 6. **[TheGuarantors](https://www.theguarantors.com/)** —— Guarantor 服务（NYC / SF / Boston）
 
-**租房是留学生在美国生活的”第一次主权独立“**——你第一次自己签合同、第一次和美国房东 / property manager 打交道、第一次承担成年人的财务责任。
+**租房是留学生在美国生活的“第一次主权独立”**——你第一次自己签合同、第一次和美国房东 / property manager 打交道、第一次承担成年人的财务责任。
 
-第一次租房的踩坑率几乎是 100%——但**这一次踩坑是值得的**：你学会的”读 lease / 谈月租 / 拍照存证 / walk-through“是接下来几十年都用得着的技能。
+第一次租房的踩坑率几乎是 100%——但**这一次踩坑是值得的**：你学会的“读 lease / 谈月租 / 拍照存证 / walk-through”是接下来几十年都用得着的技能。
 
-最重要的一条建议：**永远不要因为”看起来不错“就签合同**——任何 lease 都先**逐字读完 8 条核心条款**。这 30 分钟可能省你未来一年的房租。
+最重要的一条建议：**永远不要因为“看起来不错”就签合同**——任何 lease 都先**逐字读完 8 条核心条款**。这 30 分钟可能省你未来一年的房租。

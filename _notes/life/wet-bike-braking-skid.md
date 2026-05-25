@@ -107,16 +107,16 @@ $$F_{\max} = \mu_s \times N$$
   <g transform="translate(450, 60)">
     <text x="0" y="0" font-size="12" fill="#333" font-weight="600">实例（湿路面）：</text>
     <text x="0" y="25" font-size="10" fill="#444">① 匀速直行 → 用量 ≈ 10-20%</text>
-    <text x="0" y="42" font-size="9" fill="#666" font-style="italic">余量充足，永远不滑</text>
+    <text x="0" y="42" font-size="9" fill="#666">余量充足，永远不滑</text>
 
     <text x="0" y="68" font-size="10" fill="#e57f00">② 弯道（不刹车）→ 用量 ≈ 50%</text>
-    <text x="0" y="85" font-size="9" fill="#666" font-style="italic">湿圆里勉强够，速度高就危险</text>
+    <text x="0" y="85" font-size="9" fill="#666">湿圆里勉强够，速度高就危险</text>
 
     <text x="0" y="111" font-size="10" fill="#c0504d">③ 直线急刹 → 用量 ≈ 70-90%</text>
-    <text x="0" y="128" font-size="9" fill="#666" font-style="italic">湿地很容易突破，有 ABS 才安全</text>
+    <text x="0" y="128" font-size="9" fill="#666">湿地很容易突破，有 ABS 才安全</text>
 
     <text x="0" y="154" font-size="10" fill="#b83280" font-weight="700">④ 弯中刹车 → 用量 100%+</text>
-    <text x="0" y="171" font-size="9" fill="#666" font-style="italic">几乎必然超过湿圆，立即打滑</text>
+    <text x="0" y="171" font-size="9" fill="#666">几乎必然超过湿圆，立即打滑</text>
 
     <text x="0" y="210" font-size="10" fill="#444">一旦打滑：</text>
     <text x="0" y="227" font-size="9" fill="#666">静摩擦 → 动摩擦，μ 再降 30%</text>
@@ -139,7 +139,7 @@ $$F_{\max} = \mu_s \times N$$
     </marker>
   </defs>
 </svg>
-<p class="img-caption">大绿圈是干路的摩擦预算（$\mu \approx 0.8$）、小蓝圈是湿路（$\mu \approx 0.4$）。直行、纯拐弯、纯刹车的力都在轴上、容易理解；但**弯中刹车的需求是两个力的矢量和**，方向斜向 → 长度等于"侧向 + 纵向"的勾股和。湿圆变小后，斜向的需求轻易就突破了边界——这就是为什么"拐弯时刹车"在雨天近乎致命。</p>
+<p class="img-caption">大绿圈是干路的摩擦预算（$\mu \approx 0.8$）、小蓝圈是湿路（$\mu \approx 0.4$）。直行、纯拐弯、纯刹车的力都在轴上、容易理解；但<strong>弯中刹车的需求是两个力的矢量和</strong>，方向斜向 → 长度等于"侧向 + 纵向"的勾股和。湿圆变小后，斜向的需求轻易就突破了边界——这就是为什么"拐弯时刹车"在雨天近乎致命。</p>
 
 落在圆内：摩擦力够用，**车按你想要的方向运动**。
 落在圆外：摩擦力不够，**轮胎开始滑动**——这就是打滑。

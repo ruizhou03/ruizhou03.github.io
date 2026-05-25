@@ -40,7 +40,7 @@ keywords: ["打碎玻璃怎么清理", "玻璃碎了怎么办", "碎玻璃清理
     <polygon points="40,170 65,168 55,180" fill="#cce8f8" stroke="#5a8898" stroke-width="1.5" opacity="0.85"/>
     <text x="100" y="220" text-anchor="middle" font-size="11" fill="#444" font-weight="500">报纸/厚纸夹起来</text>
     <text x="100" y="238" text-anchor="middle" font-size="9" fill="#888">→ 硬质垃圾袋</text>
-    <text x="100" y="256" text-anchor="middle" font-size="9" fill="#a04030" font-style="italic">不要赤手抓</text>
+    <text x="100" y="256" text-anchor="middle" font-size="9" fill="#a04030">不要赤手抓</text>
   </g>
   <text x="225" y="138" text-anchor="middle" font-size="20" fill="#bbb">→</text>
   <g transform="translate(260, 50)">
@@ -61,7 +61,7 @@ keywords: ["打碎玻璃怎么清理", "玻璃碎了怎么办", "碎玻璃清理
     <circle cx="125" cy="180" r="1.8" fill="#5a8898"/>
     <text x="100" y="220" text-anchor="middle" font-size="11" fill="#444" font-weight="500">扫帚 + 簸箕</text>
     <text x="100" y="238" text-anchor="middle" font-size="9" fill="#888">慢慢扫，戴口罩</text>
-    <text x="100" y="256" text-anchor="middle" font-size="9" fill="#a04030" font-style="italic">不要泼水</text>
+    <text x="100" y="256" text-anchor="middle" font-size="9" fill="#a04030">不要泼水</text>
   </g>
   <text x="465" y="138" text-anchor="middle" font-size="20" fill="#bbb">→</text>
   <g transform="translate(500, 50)">
@@ -84,7 +84,7 @@ keywords: ["打碎玻璃怎么清理", "玻璃碎了怎么办", "碎玻璃清理
     <text x="100" y="78" text-anchor="middle" font-size="9" fill="#5ca830">压</text>
     <text x="100" y="220" text-anchor="middle" font-size="11" fill="#444" font-weight="500">湿纸/胶带/面包按压</text>
     <text x="100" y="238" text-anchor="middle" font-size="9" fill="#888">范围比看到的大 2-3 倍</text>
-    <text x="100" y="256" text-anchor="middle" font-size="9" fill="#a04030" font-style="italic">不要擦，要按压</text>
+    <text x="100" y="256" text-anchor="middle" font-size="9" fill="#a04030">不要擦，要按压</text>
   </g>
 </svg>
 <p class="img-caption">玻璃清理的标准流程：大块用纸夹起来扔进硬质垃圾袋（不要赤手）；中等碎片用扫帚 + 簸箕（不要泼水冲）；微小碎片必须用湿纸 / 胶带 / 面包"压"上去把它们粘走。三步缺一不可——只做前两步的话，看不见的小颗粒会留在地上。</p>

@@ -153,7 +153,7 @@ keywords: ["TikZ 教程", "TikZ 经济学图", "LaTeX 画图", "供需图 TikZ",
 
 - **每张图独立 `standalone` 文件**，正文 `\includegraphics{figs/sd.pdf}`；图的字号用相对单位，正文缩放后仍清晰。
 - **图多、编译慢**时，开 TikZ externalization（`\usetikzlibrary{external}` + `\tikzexternalize`），没改过的图直接复用已编译的 PDF，正文编译从几十秒回到几秒——这条和[「告别 LaTeX 文件海洋」](/research/latex/latex-clean-workflow)那套整洁工作流是一对。
-- 同一份 TikZ 代码，论文和[ beamer slides ](/research/latex/beamer-slides)可以直接复用，配色和字体天然统一。
+- 同一份 TikZ 代码，论文和 [beamer slides](/research/latex/beamer-slides) 可以直接复用，配色和字体天然统一。
 
 不用背命令。把这三段当模板存进 `commands.tex` 旁边的 `figures/` 目录，下次要画改数据点就行——TikZ 的价值不是炫技，是让你的图和论文是同一套排版语言。
 

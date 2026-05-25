@@ -114,7 +114,7 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
     <text x="10" y="262" font-size="9" fill="#c0392b">→ 多数 ≠ 健康收益</text>
   </g>
 </svg>
-<p class="img-caption">这四列分类**互相不冲突**——一瓶水可以同时属于多个标签。比如 Perrier = Sparkling + Mineral Water + 来自法国天然泉源；Smartwater = Distilled（工艺）+ Electrolyte Enhanced（添加）。看标签时不要找"它属于哪一类"，要找"它符合哪些限定词"。</p>
+<p class="img-caption">这四列分类<strong>互相不冲突</strong>——一瓶水可以同时属于多个标签。比如 Perrier = Sparkling + Mineral Water + 来自法国天然泉源；Smartwater = Distilled（工艺）+ Electrolyte Enhanced（添加）。看标签时不要找"它属于哪一类"，要找"它符合哪些限定词"。</p>
 
 ## 3.2 关键术语：TDS、pH、硬度、电解质
 

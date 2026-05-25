@@ -152,5 +152,5 @@ Rscript code/one_spec.R $SLURM_ARRAY_TASK_ID
 - **大中间文件写 `scratch/`**，不要堆在有配额的 `home/`（家目录配额满了一切作业都崩）；
 - **每个集群都有自己的文档**：partition 名、模块名、scratch 路径各家不同——第一件事是读你们集群的 quickstart，本文给的是放之四海皆准的骨架。
 
-把这套和[可复现项目结构](/research/workflow/reproducible-project)、[ Git ](/research/workflow/git-for-papers)接起来：本地 `git push`、服务器 `git pull` 同步代码，重活扔给 SLURM，结果 `rsync` 拉回本地[出表出图](/research/econometrics/regression-tables)写论文——笔记本从此只负责写字，算力交给服务器。
+把这套和[可复现项目结构](/research/workflow/reproducible-project)、[Git](/research/workflow/git-for-papers)接起来：本地 `git push`、服务器 `git pull` 同步代码，重活扔给 SLURM，结果 `rsync` 拉回本地[出表出图](/research/econometrics/regression-tables)写论文——笔记本从此只负责写字，算力交给服务器。
 

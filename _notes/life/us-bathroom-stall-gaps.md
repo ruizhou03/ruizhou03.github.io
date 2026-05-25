@@ -66,7 +66,7 @@ keywords: ["美国公共厕所门缝", "美国厕所门缝大", "美国厕所隔
     <text x="208" y="262" font-size="10" fill="#a04030" font-weight="700">12" gap</text>
     <ellipse cx="100" cy="262" rx="11" ry="3" fill="#444"/>
     <ellipse cx="118" cy="262" rx="11" ry="3" fill="#444"/>
-    <text x="110" y="306" text-anchor="middle" font-size="10" fill="#888" font-style="italic">脚清晰可见</text>
+    <text x="110" y="306" text-anchor="middle" font-size="10" fill="#888">脚清晰可见</text>
   </g>
   <g transform="translate(260, 50)">
     <text x="110" y="14" text-anchor="middle" font-size="13" fill="#205088" font-weight="700">🇨🇳 中式</text>
@@ -85,7 +85,7 @@ keywords: ["美国公共厕所门缝", "美国厕所门缝大", "美国厕所隔
     <line x1="195" y1="264" x2="205" y2="264" stroke="#205088" stroke-width="1.5"/>
     <line x1="195" y1="270" x2="205" y2="270" stroke="#205088" stroke-width="1.5"/>
     <text x="208" y="270" font-size="10" fill="#205088" font-weight="700">≈ 5 cm</text>
-    <text x="110" y="306" text-anchor="middle" font-size="10" fill="#888" font-style="italic">底缝几乎看不见</text>
+    <text x="110" y="306" text-anchor="middle" font-size="10" fill="#888">底缝几乎看不见</text>
   </g>
   <g transform="translate(500, 50)">
     <text x="110" y="14" text-anchor="middle" font-size="13" fill="#4a8830" font-weight="700">🇯🇵 日式</text>
@@ -96,7 +96,7 @@ keywords: ["美国公共厕所门缝", "美国厕所门缝大", "美国厕所隔
     <rect x="60" y="28" width="100" height="242" fill="#cfe0cf" stroke="#888" stroke-width="1.2"/>
     <text x="110" y="148" text-anchor="middle" font-size="11" fill="#444">隔板门</text>
     <text x="110" y="164" text-anchor="middle" font-size="9" fill="#666">（从地到顶完全封闭）</text>
-    <text x="110" y="306" text-anchor="middle" font-size="10" fill="#888" font-style="italic">外面什么都看不见</text>
+    <text x="110" y="306" text-anchor="middle" font-size="10" fill="#888">外面什么都看不见</text>
   </g>
 </svg>
 <p class="img-caption">同样的隔间，三种设计哲学。美式标准（左）的"58 英寸 + 12 英寸离地"是 1950 年代以来工业惯性的产物；中式（中）小底缝 + 几乎全高；日式（右）则做到从地到顶完全封闭，是私密性的极限。</p>

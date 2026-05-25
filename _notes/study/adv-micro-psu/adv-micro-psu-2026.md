@@ -3,7 +3,8 @@ layout: post
 main_category: "学习资料"
 sub_category: "高级微观经济学（PSU）"
 title: "Advanced Microeconomics Lecture Notes"
-keywords: ["高级微观经济学 讲义", "高微 PSU 笔记", "advanced microeconomics lecture notes", "ECON 521 笔记", "Penn State 高微 讲义", "Krishna 博弈论 笔记", "game theory 讲义", "博弈论 PhD 笔记", "mechanism design 讲义", "auction theory 笔记", "matching 匹配理论", "bargaining 讨价还价", "repeated games 重复博弈", "perfect Bayesian equilibrium", "PBE 完美贝叶斯均衡", "Nash equilibrium SPE", "micro prelim 复习", "一年级博士 高微", "PhD 微观 复习", "高级微观经济学 教材", "Krishna 微观 教程", "高微讲意"]
+keywords: ["高级微观经济学 讲义", "高微 PSU 笔记", "advanced microeconomics lecture notes", "ECON 521 笔记", "Penn State 高微 讲义", "Krishna 博弈论 笔记", "game theory 讲义", "博弈论 PhD 笔记", "mechanism design 讲义", "auction theory 笔记", "matching 匹配理论", "bargaining 讨价还价", "repeated games 重复博弈", "perfect Bayesian equilibrium", "PBE 完美贝叶斯均衡", "Nash equilibrium SPE", "micro prelim 复习", "一年级博士 高微", "PhD 微观 复习", "高级微观经济学 教材", "Krishna 微观 教程", "高微讲义 PDF", "Rubinstein bargaining 笔记", "Nash bargaining solution", "VCG 机制 笔记", "Myerson 最优拍卖", "Gale-Shapley 算法", "stable matching 稳定匹配", "common knowledge 共同知识", "folk theorem 民间定理", "信号博弈 signaling game", "Krishna auction theory 教材", "Penn State econ 521", "博弈论 自学"]
+summary: "跟着 Krishna 教授 ECON 521 一整学期写出来的高微讲义，299 页 PDF，覆盖博弈论、Bargaining、Auctions、Mechanism Design、Matching、Repeated Games、PBE 共 9 章，外加 13 套 PS 与 6 套考试的完整解答。每个定理先讲直觉、再上数学。适合 PSU 一年级博士、准备 micro prelim 的同学，或想 self-study 博弈论 / mechanism design / matching 的高年级本科生与硕士生。"
 discipline: "经济学"
 course: "高级微观经济学（PSU）"
 material_type: "Notes"

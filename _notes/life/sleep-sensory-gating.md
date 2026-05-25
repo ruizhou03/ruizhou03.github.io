@@ -207,7 +207,7 @@ ipRGC + 眼皮的组合给了大脑一种“省力的光强监测”：
     <text x="10" y="163" font-size="10" fill="#c0504d">✗ 空调风扇背景音</text>
     <text x="10" y="181" font-size="10" fill="#c0504d">✗ 室友翻身声</text>
     <text x="10" y="199" font-size="10" fill="#c0504d">✗ 时钟滴答</text>
-    <text x="120" y="215" text-anchor="middle" font-size="9" fill="#888" font-style="italic">门槛随疲劳、年龄、酒精变化</text>
+    <text x="120" y="215" text-anchor="middle" font-size="9" fill="#888">门槛随疲劳、年龄、酒精变化</text>
   </g>
 
   <defs>

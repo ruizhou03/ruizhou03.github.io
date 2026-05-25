@@ -119,7 +119,7 @@ keywords: ["厨房各种粉的区别", "生粉", "澄粉", "糯米粉", "玉米�
   <g transform="translate(195, 180)">
     <rect x="0" y="0" width="160" height="110" fill="#fff" stroke="#bdc3c7" stroke-width="1.5" rx="6"/>
     <text x="80" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#333">粘米粉</text>
-    <text x="80" y="38" text-anchor="middle" font-size="10" fill="#888" font-style="italic">rice flour（不是糯米）</text>
+    <text x="80" y="38" text-anchor="middle" font-size="10" fill="#888">rice flour（不是糯米）</text>
     <line x1="20" y1="48" x2="140" y2="48" stroke="#ddd"/>
     <text x="80" y="65" text-anchor="middle" font-size="11" fill="#666">来源：普通大米</text>
     <text x="80" y="82" text-anchor="middle" font-size="11" fill="#34495e" font-weight="600">年糕 / 萝卜糕</text>
@@ -128,7 +128,7 @@ keywords: ["厨房各种粉的区别", "生粉", "澄粉", "糯米粉", "玉米�
   <g transform="translate(370, 180)">
     <rect x="0" y="0" width="160" height="110" fill="#e8f4fd" stroke="#3498db" stroke-width="1.5" rx="6"/>
     <text x="80" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#333">澄粉</text>
-    <text x="80" y="38" text-anchor="middle" font-size="10" fill="#888" font-style="italic">wheat starch / 澄面</text>
+    <text x="80" y="38" text-anchor="middle" font-size="10" fill="#888">wheat starch / 澄面</text>
     <line x1="20" y1="48" x2="140" y2="48" stroke="#ddd"/>
     <text x="80" y="65" text-anchor="middle" font-size="11" fill="#666">来源：小麦（去面筋）</text>
     <text x="80" y="82" text-anchor="middle" font-size="11" fill="#2980b9" font-weight="600">透明虾饺皮</text>
