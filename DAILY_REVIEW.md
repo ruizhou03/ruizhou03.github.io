@@ -189,6 +189,91 @@
 
 ---
 
+### 📐 第二轮 20 项深度抽检（4-agent 并行复核）
+
+> **背景**：站主在另一对话窗口同时触发的另一波 20 项专项抽检，强调“每项认真对待、当作上级派下来的质检任务”。与上方 100 项的浅层批量分批不同，本轮走 **4-agent 并行 + 主对话亲自复核**的深度路径——每个 agent 5 项 × 类型化批判 checklist × `file:line` 强制证据 × 主对话 nontrivial 复核后再下手修。
+>
+> **清单**（去重 5/25 那次的 20 项 + 5/26 上方 100 项中已深度审过的项）：5 game（2048 / sudoku / werewolf / doudizhu / picker）+ 3 course_review（marketing / causal-id-review / python-ds）+ 3 research（r-pca / latex-commands / vpn）+ 3 life（dishwasher / snoring / electric-toothbrush）+ 1 lecture_note_full（corp-fin/mid-sample-1）+ 1 pdf-only（real-anal-ch0-2024）+ 2 pdf_archive（or-2023 / robustness-check）+ 1 GRE（vocabulary）+ 1 essay（college-admission-essay）= 20 项。
+>
+> **修复结果**：本轮直接修复 **24 处**，覆盖 14 个文件（与 100 项 session 的 67 处修复有重叠——同一棵工作树两个 session 并行修，最终都并入 `80e2043` commit）。进待办 **41 项**（P0×5 / P1×17 / P2×19）。
+>
+> **本轮独有 4 处 agent 误判已纠正**：
+> 1. `_notes/study/real-anal/real-anal-ch0-2024.md` keywords 实际 29 项已达标（agent 报 7 项；可能读到旧缓存）
+> 2. `_notes/study/causal-id/robustness-check.md` keywords 实际 35 项已达标（agent 报 12 项）
+> 3. `toolbox/doudizhu/index.html:3716` `nextMyScore` **不是 ReferenceError**——3691 行 `renderDoublePanelLayout` 函数体内有 `const nextMyScore = computeMyScoreForMap(hypoMap);` 定义
+> 4. `_notes/life/snoring-mechanism.md` + `_notes/life/dishwasher.md` 的 img-caption Markdown `**` 在上次 5/25 `4b25dab` commit 已修过，**当前无残留**
+
+**本轮独立新发现的高价值 P0 / P1**（不在 5/26 上方 100 项报告里）：
+
+- **`toolbox/2048/index.html:309`** unused `settings-panel.js` script 引用（多一次 HTTP）→ **已修**
+- **`toolbox/2048/index.html:471/479`** `tileFontSize(v, size)` 第二参 + `renderTiles(prevBoard, ...)` 第一参从未被读 → **已修**形参 + 572 行调用同步
+- **`toolbox/sudoku/index.html:510`** `padNoteBtn` 与 `noteBtn` 指向同一 DOM 元素后 0 次使用 → **已修**
+- **`toolbox/sudoku/index.html:547`** 计时器 `setInterval(250)` 但显示精度只到秒 → **已修** 1000ms
+- **`toolbox/werewolf/index.html:1583`** `renderAliveBadges` 里 `const dead = ... ? false : false` 显式死代码 → **已修**
+- **`toolbox/werewolf/index.html:725-733`** `viewLanding` 与 `init` 双重处理 `?room=` 参数，init 先跑，viewLanding 那段是 dead code（待办 P0：删冗余分支）
+- **`toolbox/doudizhu/index.html:2918/2960`** `flyCardsTo` no-op 空壳 + `spawnMicroRing` 0 调用 + 配套 CSS `.ddz-micro-ring` + `@keyframes ddz-micro-pulse` 共 ~17 行死代码 → **已修**
+- **`toolbox/doudizhu/index.html:2234`** `statusMsg` 死 DOM + `setStatus` 25 处 no-op 调用（待办 P1：保守保留，主人决定不再加视觉反馈再清）
+- **`toolbox/picker/index.html:937`** unused `$spinHint`（真用的是 `$spinHintText`）→ **已修**
+- **`_notes/study/corp-fin/mid-sample-1.md:14`** 删 `# reactions:` YAML 注释行 + keywords 6→24 项补 CAPM/WACC/NPV/IRR/MM 定理等具体考点 → **已修**
+- **`_notes/study/or/or-2023.md`** keywords 8→30 项补 PKU 运筹学/光华/单纯形/Hillier Lieberman 教材名 等 → **已修**
+- **`_notes/study/real-anal/real-anal-ch4-2024.md`** keywords 8→29 项（**补救 5/25 抽检号称已补但未真正落盘的执行漏洞**）→ **已修**
+- **`_notes/course-reviews/causal-id-review-2023.md:15/25/55/71`** 4 处 H1 `# 第 N 节课` → `## 第 N`（违反“正文别再 # ”，会让 post.html 出现两个 H1 + TOC 错位）→ **已修**
+- **`_notes/course-reviews/causal-id-review-2023.md:47-50`** 占位空洞 “如果你的储备是 / 那么这门课的要求就是” 之间空白（待办 P0：当年想插对比图后来忘了，需主人记忆补图或改写）
+- **`_notes/course-reviews/python-ds-review-2023.md:15`** `研究生院****副院长` 4 星号（Kramdown 会渲染成空 strong + 嵌套混乱）→ **已修**
+- **`_notes/course-reviews/marketing-review-2023.md`** keywords 14→31 项补 Kotler/STP/4P/涂平班/符国群班 → **已修**
+- **`_notes/research/r-pca.md`** 5 处 `PCA的` → `PCA 的`（中英文空格）→ **已修**；正文需按“科研之问”五段重写（待办，主人拍板）
+- **`_notes/research/latex-commands.md:265`** 中文 `*(注：...)*` 斜体（违反 `feedback_chinese_no_italic` 硬规）→ **已修**改 `<span style="color:#888;font-size:0.9em;">（注：...）</span>`；keywords 21→34 项补 Overleaf/xcolor/命令冲突 → **已修**
+- **`_notes/research/vpn.md`** keywords 28→38 项补学校 VPN/library proxy/EZproxy → **已修**；缺合规免责声明（待办 P0：建议加 3-5 句中性提示）；偏离“科研之问”题设（待办 P1：加 1-2 条学术场景实操）
+- **`_notes/life/dishwasher.md`** keywords 18→30 项补 dishwasher tablet/rinse aid/hard water/Bosch AutoAir 等 → **已修**
+- **`_notes/gre/gre-vocabulary.md`** keywords 17→33 项补 Verbal/TC/SE/RC/Magoosh/Anki/杨鹏 17 天 → **已修**
+- **`_notes/essays/college-admission-essay.md`** 隐私 SEO 反作用（待办 P0：keywords 把“周睿+三明二中”打成 17 个变体强化关联，作为已是 PSU PhD 的站主是否仍希望被长期索引？强烈建议至少从 keywords 删 5-8 个最强项）+ 4 张图缺 caption（待办 P0）+ 缺写作时间锚 + 缺“今天回看”段（待办 P1）
+
+**本轮各项综合评分**（1-5 ⭐）：
+
+| 项 | 路径 | ⭐ | 已修 | 待办 |
+|---|---|---|---|---|
+| 1 | toolbox/2048 | 4 | 3 | 1P1 + 1P2 |
+| 2 | toolbox/sudoku | 4 | 2 | 1P1 + 2P2 |
+| 3 | toolbox/werewolf | 3 | 2 | 1P0 + 3P1 + 1P2 |
+| 4 | toolbox/doudizhu | 4 | 4 | 2P1 + 2P2 |
+| 5 | toolbox/picker | 4 | 1 | 1P1 + 4P2 |
+| 6 | course-reviews/marketing-review | 3 | 2 | 1P0 + 2P1 + 1P2 |
+| 7 | course-reviews/causal-id-review | 3 | 4 | 1P0 + 2P1 + 1P2 |
+| 8 | course-reviews/python-ds-review | 3.5 | 5 | 1P0 + 1P1 + 1P2 |
+| 9 | research/r-pca | 1.5 | 2 | 3P0 + 1P1 |
+| 10 | research/latex-commands | 4.5 | 3 | 1P1 + 3P2 |
+| 11 | research/vpn | 4 | 2 | 1P0 + 2P1 + 1P2 |
+| 12 | life/dishwasher | 4 | 1 | 4P1 + 1P2 |
+| 13 | life/snoring-mechanism | 4.5 | 0 | 1P1 + 3P2 |
+| 14 | life/electric-vs-manual-toothbrush | 4 | 0 | 1P0 + 2P1 + 1P2 |
+| 15 | study/corp-fin/mid-sample-1 | 1.5 | 2 | 1P0 + 2P1 + 1P2 |
+| 16 | study/real-anal/real-anal-ch0-2024 | 4 | 0 | 2P1 |
+| 17 | files/or/or-2023.pdf + 笔记页 | 2 | 1 | 1P0 + 1P1 + 1P2 |
+| 18 | files/causal-id/robustness-check.pdf + 笔记页 | 3 | 0 | 1P0 + 1P1 + 1P2 |
+| 19 | gre/gre-vocabulary | 4 | 1 | 2P1 + 2P2 |
+| 20 | essays/college-admission-essay | 3 | 0 | 2P0 + 3P1 |
+| **合计** | | | **24** | **5P0 + 17P1 + 19P2** |
+
+**本周必看 3 件**（按风险排序）：
+
+1. **`_notes/essays/college-admission-essay.md` keywords 强 SEO 化“周睿+三明二中”**——本轮抽检里唯一一条触及“未来雇主/同行搜得到可控性”的发现；不动文章正文（公开稿件），但 keywords 强项可考虑删
+2. **`_notes/research/vpn.md` 缺合规免责声明**——文末直接给 WireGuard 白皮书 + IP 泄漏检测工具链接，对国内读者语境略风险
+3. **`_notes/study/corp-fin/mid-sample-1.md` 16 行骨架页**——正文 0 行；要看 PDF 才能写“题面摘要 + 解答要点”
+
+**LaTeX 化决策**（2 PDF + 1 pdf-only）：
+- ① 立刻 LaTeX 化：无
+- ② 低优队列：robustness-check.pdf（13 页 + pandoc 出身）/ real-anal-ch0-ch6 整套
+- ③ 维持 PDF 存档：or-2023.pdf（55 页迁工作量大；建议跑 pdfslim 压缩 + 登记 hygiene 基线）
+
+**给 audit 框架的本轮新增建议**（与上方 100 项 8 条独立）：
+- `scripts/audit/pii_scan.py`：跨全仓 grep 中文姓名 + 学校名 + 学号模式（college-admission-essay 应触发）
+- `scripts/audit/filename_convention.py`：扫 `files/<topic>/*.pdf` 缺 `-YYYY` 后缀（robustness-check.pdf 应触发）
+- `scripts/audit/material_type_enum.py`：检 `material_type` 取值是否在 enum 内（GRE `"词汇"` 应触发）
+- `scripts/audit/hover_no_media.py`：grep `:hover\s*\{` 不在 `@media (hover: hover)` 块内的行（5/5 游戏都该触发）
+- `scripts/audit/sibling_crosslink.py`：同 sub_category 多笔记互链检查（real-anal ch0-ch6 / causal-id↔robustness 应触发）
+
+---
+
 
 
 由站主在对话中触发的 20 项专项抽检（一次性高密度补检，不影响日常 10 项调度）。共应用 **31 处低风险安全修复**，覆盖 11 个文件，`bundle exec jekyll build` 通过零警告。详见下方 🔬 抽检专项。
