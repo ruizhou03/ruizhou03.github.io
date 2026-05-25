@@ -183,81 +183,13 @@ fi
 # 不再依赖 daily-review-notify.yml → GitHub Issue → owner 邮件订阅这条脆链路
 #（远程 routine 因 GitHub App push 权限问题一直 403，commit 没进 origin，workflow 触发不了；
 #  即使触发，issue assignee 通知依赖 GitHub 通知设置和注册邮箱，不够可靠）。
-# 这里直接抽出当天小节 → 转 HTML → 复用 email_summary_imap.py 的 SMTP send 模式发到主邮箱。
+# 这里调用 daily_review_to_html.py 抽顶部小节并转成卡片式 HTML（复用 email_summary 的 CSS class），
+# 然后调 email_summary_imap.py send 经 SMTP 直投到主邮箱。
 log "抽取 DAILY_REVIEW.md 顶部当天小节、转 HTML、SMTP 直投..."
 SECTION_HTML="/tmp/daily_review_section_${TODAY}.html"
 IMAP_PY="$REPO/scripts/email_summary_imap.py"
 
-python3 - "$REPO/DAILY_REVIEW.md" "$SECTION_HTML" <<'PY' 2>>"$LOG"
-"""把 DAILY_REVIEW.md 顶部第一节抽出来转成简化 HTML 片段。
-只识别巡检文档里实际出现的语法：## 日期标题、空行段落、- 列表项、
-**bold**、`code`、[text](url)、裸 URL。其余原样 <pre> 兜底以保证可读。"""
-import html as H
-import re
-import sys
-from pathlib import Path
-
-src = Path(sys.argv[1]).read_text(encoding="utf-8")
-out_path = Path(sys.argv[2])
-
-# 抽顶部第一个 ## 起、到下一个 ## 前
-m = re.search(r"^## .*?(?=^## |\Z)", src, re.M | re.S)
-if not m:
-    out_path.write_text("<p>DAILY_REVIEW.md 没找到当天小节。</p>", encoding="utf-8")
-    sys.exit(0)
-section = m.group(0).rstrip()
-lines = section.splitlines()
-
-def inline(s: str) -> str:
-    s = H.escape(s)
-    s = re.sub(r"`([^`]+)`",
-               r'<code style="background:#f3f3f3;padding:1px 5px;border-radius:3px;font-size:13px">\1</code>', s)
-    s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
-    s = re.sub(r"\[([^\]]+)\]\((https?://[^)]+)\)", r'<a href="\2">\1</a>', s)
-    s = re.sub(r"(?<!href=\")(?<!\">)(https?://[^\s<)]+)", r'<a href="\1">\1</a>', s)
-    return s
-
-html_parts = []
-para = []
-list_items = []
-
-def flush_para():
-    if para:
-        html_parts.append("<p>" + "<br>".join(inline(x) for x in para) + "</p>")
-        para.clear()
-
-def flush_list():
-    if list_items:
-        html_parts.append("<ul style='padding-left:22px;margin:8px 0'>"
-                          + "".join(f"<li style='margin:4px 0'>{inline(x)}</li>"
-                                    for x in list_items)
-                          + "</ul>")
-        list_items.clear()
-
-for raw in lines:
-    line = raw.rstrip()
-    if line.startswith("## "):
-        flush_para(); flush_list()
-        html_parts.append(f'<h2 style="font-size:18px;border-bottom:1px solid #e0e0e0;padding-bottom:6px;margin:0 0 16px">{inline(line[3:])}</h2>')
-    elif line.startswith("### "):
-        flush_para(); flush_list()
-        html_parts.append(f'<h3 style="font-size:15px;color:#444;margin:18px 0 8px">{inline(line[4:])}</h3>')
-    elif line.startswith("- ") or line.startswith("* "):
-        flush_para()
-        list_items.append(line[2:])
-    elif not line.strip():
-        flush_para(); flush_list()
-    elif line.strip() == "---":
-        flush_para(); flush_list()
-        html_parts.append("<hr>")
-    else:
-        flush_list()
-        para.append(line)
-flush_para(); flush_list()
-
-out_path.write_text("\n".join(html_parts), encoding="utf-8")
-print(f"[notify] wrote {out_path} ({len(html_parts)} blocks)", file=sys.stderr)
-PY
+python3 "$REPO/scripts/daily_review_to_html.py" "$REPO/DAILY_REVIEW.md" "$SECTION_HTML" >> "$LOG" 2>&1
 
 if [ -s "$SECTION_HTML" ]; then
     SUBJECT="🔍 每日巡检 ${TODAY}"
