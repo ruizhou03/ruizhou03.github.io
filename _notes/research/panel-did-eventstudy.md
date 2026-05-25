@@ -56,9 +56,9 @@ boottest x1, reps(9999)        // 装 boottest；少聚类数下的可信推断
 
 R 里对应 `fwildclusterboot::boottest()`。审稿人现在对“只有十几个州却用常规聚类 SE”非常敏感，提前做掉这一步。
 
-## 三、经典 2×2 DID
+## 三、经典 $2 \times 2$ DID
 
-只有“处理前/处理后 × 处理组/对照组”两期两组时，双向固定效应就是 DID，`treat × post` 的系数即处理效应：
+只有“处理前/处理后 $\times$ 处理组/对照组”两期两组时，双向固定效应就是 DID，`treat × post` 的系数即处理效应：
 
 ```r
 feols(y ~ i(treated, post, ref = 0) | id + year, data = df, cluster = ~id)
@@ -72,7 +72,7 @@ reghdfe y c.treated#c.post, absorb(id year) cluster(id)
 
 ## 四、交错 DID：别再无脑 TWFE
 
-2018 年以来一系列论文（Goodman-Bacon；de Chaisemartin & D'Haultfœuille；Sun & Abraham；Callaway & Sant'Anna；Borusyak et al.）说清了同一件事：**当处理时点交错、且处理效应随时间变化时，传统 TWFE 的 `treat×post` 系数是各组各期 2×2 比较的加权平均，而那些权重可以是负的**——早处理组会被当成晚处理组的对照，估计量可能连符号都错。
+2018 年以来一系列论文（Goodman-Bacon；de Chaisemartin & D'Haultfœuille；Sun & Abraham；Callaway & Sant'Anna；Borusyak et al.）说清了同一件事：**当处理时点交错、且处理效应随时间变化时，传统 TWFE 的 `treat×post` 系数是各组各期 $2 \times 2$ 比较的加权平均，而那些权重可以是负的**——早处理组会被当成晚处理组的对照，估计量可能连符号都错。
 
 诊断用 Goodman-Bacon 分解看权重构成（R: `bacondecomp`，Stata: `bacondecomp`）。但实务上更直接：交错处理就直接换成稳健估计量，别在 TWFE 上挣扎。
 
@@ -135,7 +135,7 @@ iplot(m)                                 # 直接出事件研究图
 
 实操上必须注意的三点：
 
-1. **端点要 binning。** 相对时间太靠两端的格子样本极少、噪声极大。把 `t ≤ −5` 和 `t ≥ +5` 各自合并成一个端点桶，图才稳。`fixest::sunab()` 的 `bin` 参数、`did` 包都内建处理。
+1. **端点要 binning。** 相对时间太靠两端的格子样本极少、噪声极大。把 $t \leq -5$ 和 $t \geq +5$ 各自合并成一个端点桶，图才稳。`fixest::sunab()` 的 `bin` 参数、`did` 包都内建处理。
 2. **永远漏掉一个处理前期当基期**（默认 t=−1）。不漏会完全共线、估不出来；漏哪一期会改变所有系数的解释，写进图注。
 3. **交错处理下，事件研究也不能用裸 TWFE**（`i(time_to_treat)` 那种写法有同样的负权重问题）。用 `sunab()`、`did` 的 `aggte(type="dynamic")`、或 `did_imputation` 生成的动态系数。
 

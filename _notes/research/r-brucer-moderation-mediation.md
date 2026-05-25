@@ -56,7 +56,7 @@ PROCESS(stu, y="score", x="late", mods="gender")
 
 ![PROCESS() 输出的回归模型摘要，含交互项系数](/files/images/r-brucer-moderation-mediation/10.jpg)
 
-![PROCESS() 控制台输出的 R² 及调节效应 Part 2 简单斜率结果](/files/images/r-brucer-moderation-mediation/11.jpg)
+![PROCESS() 控制台输出的 $R^2$ 及调节效应 Part 2 简单斜率结果](/files/images/r-brucer-moderation-mediation/11.jpg)
 
 ![连续调节变量示例，PROCESS() 调节分析输出代码与模型摘要](/files/images/r-brucer-moderation-mediation/12.jpg)
 
@@ -72,7 +72,7 @@ PROCESS(stu, y="score", x="late", mods="gender")
 
 ![多分调节变量简单斜率分析与 MANOVA 均值描述统计](/files/images/r-brucer-moderation-mediation/18.jpg)
 
-![MANOVA 两因素方差分析输出，含 late×gender 交互效应](/files/images/r-brucer-moderation-mediation/19.jpg)
+![MANOVA 两因素方差分析输出，含 $\text{late} \times \text{gender}$ 交互效应](/files/images/r-brucer-moderation-mediation/19.jpg)
 
 ![EMMEANS() 各水平估计边际均值及配对比较输出](/files/images/r-brucer-moderation-mediation/20.jpg)
 

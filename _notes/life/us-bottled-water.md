@@ -12,7 +12,7 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 
 # 1. 问题
 
-美国超市的瓶装水货架是个迷宫——同样是 24 瓶装的水，标签上写着 Drinking Water、Purified Water、Spring Water、Mineral Water、Distilled Water、Sparkling、Alkaline、Artesian、Electrolyte……价格能差 5-10 倍。看上去都是无色透明的水，到底差在哪？是营销噱头还是真的不同？该选哪个？
+美国超市的瓶装水货架是个迷宫——同样是 24 瓶装的水，标签上写着 Drinking Water、Purified Water、Spring Water、Mineral Water、Distilled Water、Sparkling、Alkaline、Artesian、Electrolyte……价格能差 $5$-$10$ 倍。看上去都是无色透明的水，到底差在哪？是营销噱头还是真的不同？该选哪个？
 
 # 2. 结论先行
 
@@ -23,12 +23,12 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 | 标签 | 是什么 | 一句话 |
 |---|---|---|
 | **Drinking Water / Purified Water** | 大多是市政自来水深度处理（RO + 除氯 + 杀菌） | 最便宜的瓶装水；和“凉白开装瓶”差不多 |
-| **Distilled Water** | 蒸馏水，TDS ≈ 0 | 喝起来“空”；主要用于加湿器 / 熨斗 / 婴儿奶粉 |
+| **Distilled Water** | 蒸馏水，$\text{TDS} \approx 0$ | 喝起来“空”；主要用于加湿器 / 熨斗 / 婴儿奶粉 |
 | **Spring Water** | 必须来自天然涌出的泉源 | 保留部分天然矿物，是最常见的“喝着有味儿”的瓶装水 |
-| **Mineral Water** | 地下水源 + TDS ≥ 250 ppm | 矿物显著、口感重；FDA 强制 250+ ppm |
-| **Artesian Water** | 来自承压含水层的井（自压涌出） | “Fiji 水”那种；噱头 > 实质 |
-| **Sparkling Water** | 含 CO₂ 气，三种：天然带气 / 充气矿泉水 / 充气市政水 | La Croix、Perrier、Topo Chico 实际差很多 |
-| **Alkaline Water** | pH 8-10，电解或加碱性矿物 | “抗氧化抗衰老”宣称缺乏循证支持，**当普通水喝就好** |
+| **Mineral Water** | 地下水源 + $\text{TDS} \geq 250$ ppm | 矿物显著、口感重；FDA 强制 $250+$ ppm |
+| **Artesian Water** | 来自承压含水层的井（自压涌出） | “Fiji 水”那种；噱头 $>$ 实质 |
+| **Sparkling Water** | 含 $\text{CO}_2$ 气，三种：天然带气 / 充气矿泉水 / 充气市政水 | La Croix、Perrier、Topo Chico 实际差很多 |
+| **Alkaline Water** | pH $8$-$10$，电解或加碱性矿物 | “抗氧化抗衰老”宣称缺乏循证支持，**当普通水喝就好** |
 | **Electrolyte / “Enhanced” Water** | 添加钠 / 钾 / 镁 / 钙 | Smartwater 这类；适合大量出汗补给 |
 
 > 美国市场最大的一个 **认知错位**：Aquafina、Dasani 这两个销量最大的品牌都是 **市政自来水 → RO 处理后的 Purified Water**，本质上和你家自来水煮沸滤过差不多——只是装在塑料瓶里、Logo 漂亮。Spring Water（Poland Spring、Arrowhead）才是真正“从地下抽出来”的。
@@ -126,30 +126,30 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 - 测量水里所有溶解的矿物质、盐、有机物的总量
 - **不直接等于硬度**——硬度只算钙镁；TDS 还包括钠、钾、氯化物、硫酸根、碳酸氢根等
 - 范围：
-  - Purified Water：< 10 ppm（FDA 强制）
-  - 普通自来水：50-500 ppm
-  - Spring Water：50-300 ppm
-  - **Mineral Water（FDA 定义）：≥ 250 ppm**
-  - 海水：~35,000 ppm
+  - Purified Water：$< 10$ ppm（FDA 强制）
+  - 普通自来水：$50$-$500$ ppm
+  - Spring Water：$50$-$300$ ppm
+  - **Mineral Water（FDA 定义）：$\geq 250$ ppm**
+  - 海水：$\sim 35{,}000$ ppm
 
 **pH**
 
-- 0-14 的对数刻度
-- 中性 = 7；< 7 酸；> 7 碱
-- 多数自来水：6.5-8.5
-- “Alkaline Water”：通常 8-10
+- $0$-$14$ 的对数刻度
+- 中性 $= 7$；$< 7$ 酸；$> 7$ 碱
+- 多数自来水：$6.5$-$8.5$
+- “Alkaline Water”：通常 $8$-$10$
 
-> 注意：人胃里的 pH 是 **1-2（强酸）**——所以喝下去的“碱性水”几秒钟内就被胃酸中和。“碱性水改变体液 pH”在生理学上不可能。
+> 注意：人胃里的 pH 是 **$1$-$2$（强酸）**——所以喝下去的“碱性水”几秒钟内就被胃酸中和。“碱性水改变体液 pH”在生理学上不可能。
 
 **硬度（Hardness）**
 
-- 钙 + 镁的总量，以 mg/L CaCO₃ 计
+- 钙 + 镁的总量，以 mg/L $\text{CaCO}_3$ 计
 - 见 [电热水壶水垢能喝吗？](/life/kettle-scale) 详细讨论
 
 **电解质（Electrolytes）**
 
 - 在水里能解离成离子的物质
-- 最常见：Na⁺（钠）、K⁺（钾）、Mg²⁺（镁）、Ca²⁺（钙）、Cl⁻（氯）、HCO₃⁻（碳酸氢根）
+- 最常见：$\text{Na}^+$（钠）、$\text{K}^+$（钾）、$\text{Mg}^{2+}$（镁）、$\text{Ca}^{2+}$（钙）、$\text{Cl}^-$（氯）、$\text{HCO}_3^-$（碳酸氢根）
 - 体液平衡需要电解质——但日常饮食中几乎所有食物都含丰富电解质
 - “Electrolyte Water” 营销点是大量出汗后补充；普通日常喝不需要刻意选这种
 
@@ -172,7 +172,7 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 - **蒸馏（Distillation）**：加热蒸发，再凝结——和 RO 类似，矿物全去除
 - **去离子（Deionization）**：离子交换树脂去除带电粒子
 - **超滤（Ultrafiltration）**：膜过滤，孔径稍大于 RO
-- **臭氧消毒（Ozonation）**：用 O₃ 灭菌（替代氯）
+- **臭氧消毒（Ozonation）**：用 $\text{O}_3$ 灭菌（替代氯）
 - **紫外线消毒（UV）**：辐射杀菌
 - **微滤 + 加矿物（Mineralization）**：去除杂质后人工加回钙 / 镁等矿物
 
@@ -184,35 +184,35 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 
 | 品牌 | 类型 | 来源 | TDS 范围 | pH | 价格档（24×16.9oz） |
 |---|---|---|---|---|---|
-| **Generic / Store Brand**（Kirkland、Great Value） | Purified | 市政水 → RO | < 10 | ~7 | $3-5 |
-| **Aquafina**（百事） | Purified | 多个市政来源 → RO | < 10 | ~6 | $5-7 |
-| **Dasani**（可口可乐） | Purified + 加 minerals | 市政 → RO + 重新加 K/Mg/盐 | ~30 | ~5.6 | $5-7 |
-| **Nestle Pure Life** | Purified | 市政 + spring 混合 | ~80-200 | ~7 | $5-7 |
-| **Smartwater**（可口可乐） | Vapor distilled + 电解质 | 市政 → 蒸馏 + 加 K/Mg/Ca | ~30 | ~7 | $7-10 |
-| **Poland Spring**（Nestle） | Spring | 缅因州天然泉 | ~40-100 | ~7 | $6-8 |
-| **Arrowhead**（Nestle） | Spring | 加州山泉 | ~50-150 | ~7 | $6-8 |
-| **Crystal Geyser** | Spring | 多个州（加州、田纳西等） | ~80-200 | ~7 | $5-7 |
-| **Mountain Valley** | Spring | 阿肯色州 Hot Springs | ~220 | ~7.8 | $15-25 |
-| **Evian**（达能） | Mineral / Spring（FDA 标 Mineral） | 法国 Évian 阿尔卑斯 | ~309 | ~7.2 | $20-30 |
-| **Fiji** | Artesian | 斐济 Yaqara 山谷承压含水层 | ~222 | ~7.7 | $25-35 |
-| **Voss** | Artesian | 挪威或得克萨斯 | ~44（Voss Norway） | ~6 | $25-40 |
-| **Perrier**（雀巢） | Sparkling Mineral | 法国 Vergèze 天然带气泉 | ~475 | ~5.5 | $20-30 |
-| **San Pellegrino**（雀巢） | Sparkling Mineral | 意大利 Bergamo | ~937 | ~7.7 | $20-30 |
-| **Topo Chico**（可口可乐） | Sparkling Mineral | 墨西哥 Cerro del Topo Chico | ~625 | ~6 | $25-35 |
-| **La Croix** | Seltzer（充气市政水）+ 香精 | 美国市政 + CO₂ | < 10 | ~5 | $5-7 |
-| **Bubly**（百事） | Seltzer + 香精 | 同 La Croix | < 10 | ~5 | $5-7 |
-| **Spindrift** | Seltzer + 真水果汁 | 市政 + CO₂ + 浓缩果汁 | < 50 | ~3.8 | $7-10 |
-| **Liquid Death**（铝罐） | Mountain water 或 Sparkling | 阿尔卑斯山 | ~150 | ~7 | $15-20 |
-| **Essentia** | Alkaline (ionized) | 市政 → 电解 → pH 9.5 | ~50 | ~9.5 | $10-15 |
-| **Core** | Purified + 微量电解质 | 市政 → RO + 加少量电解质 | ~10 | ~7.4 | $7-10 |
-| **Aquahydrate** | Alkaline + 电解质 | 市政 → RO → 加碱 + 电解质 | ~30 | ~9 | $10-15 |
-| **Distilled Water**（无品牌通货） | Distilled | 蒸馏 | ~0 | ~7 | $1-2 / 1 gallon |
+| **Generic / Store Brand**（Kirkland、Great Value） | Purified | 市政水 → RO | $< 10$ | $\sim 7$ | $3-5 |
+| **Aquafina**（百事） | Purified | 多个市政来源 → RO | $< 10$ | $\sim 6$ | $5-7 |
+| **Dasani**（可口可乐） | Purified + 加 minerals | 市政 → RO + 重新加 K/Mg/盐 | $\sim 30$ | $\sim 5.6$ | $5-7 |
+| **Nestle Pure Life** | Purified | 市政 + spring 混合 | $\sim 80$-$200$ | $\sim 7$ | $5-7 |
+| **Smartwater**（可口可乐） | Vapor distilled + 电解质 | 市政 → 蒸馏 + 加 K/Mg/Ca | $\sim 30$ | $\sim 7$ | $7-10 |
+| **Poland Spring**（Nestle） | Spring | 缅因州天然泉 | $\sim 40$-$100$ | $\sim 7$ | $6-8 |
+| **Arrowhead**（Nestle） | Spring | 加州山泉 | $\sim 50$-$150$ | $\sim 7$ | $6-8 |
+| **Crystal Geyser** | Spring | 多个州（加州、田纳西等） | $\sim 80$-$200$ | $\sim 7$ | $5-7 |
+| **Mountain Valley** | Spring | 阿肯色州 Hot Springs | $\sim 220$ | $\sim 7.8$ | $15-25 |
+| **Evian**（达能） | Mineral / Spring（FDA 标 Mineral） | 法国 Évian 阿尔卑斯 | $\sim 309$ | $\sim 7.2$ | $20-30 |
+| **Fiji** | Artesian | 斐济 Yaqara 山谷承压含水层 | $\sim 222$ | $\sim 7.7$ | $25-35 |
+| **Voss** | Artesian | 挪威或得克萨斯 | $\sim 44$（Voss Norway） | $\sim 6$ | $25-40 |
+| **Perrier**（雀巢） | Sparkling Mineral | 法国 Vergèze 天然带气泉 | $\sim 475$ | $\sim 5.5$ | $20-30 |
+| **San Pellegrino**（雀巢） | Sparkling Mineral | 意大利 Bergamo | $\sim 937$ | $\sim 7.7$ | $20-30 |
+| **Topo Chico**（可口可乐） | Sparkling Mineral | 墨西哥 Cerro del Topo Chico | $\sim 625$ | $\sim 6$ | $25-35 |
+| **La Croix** | Seltzer（充气市政水）+ 香精 | 美国市政 + $\text{CO}_2$ | $< 10$ | $\sim 5$ | $5-7 |
+| **Bubly**（百事） | Seltzer + 香精 | 同 La Croix | $< 10$ | $\sim 5$ | $5-7 |
+| **Spindrift** | Seltzer + 真水果汁 | 市政 + $\text{CO}_2$ + 浓缩果汁 | $< 50$ | $\sim 3.8$ | $7-10 |
+| **Liquid Death**（铝罐） | Mountain water 或 Sparkling | 阿尔卑斯山 | $\sim 150$ | $\sim 7$ | $15-20 |
+| **Essentia** | Alkaline (ionized) | 市政 → 电解 → pH $9.5$ | $\sim 50$ | $\sim 9.5$ | $10-15 |
+| **Core** | Purified + 微量电解质 | 市政 → RO + 加少量电解质 | $\sim 10$ | $\sim 7.4$ | $7-10 |
+| **Aquahydrate** | Alkaline + 电解质 | 市政 → RO → 加碱 + 电解质 | $\sim 30$ | $\sim 9$ | $10-15 |
+| **Distilled Water**（无品牌通货） | Distilled | 蒸馏 | $\sim 0$ | $\sim 7$ | $1-2 / 1 gallon |
 
 **看完这张表的几个 takeaway**：
 
-1. **Aquafina 和 Dasani 本质就是处理过的自来水**——百事和可口可乐这两个品牌占美国瓶装水市场半壁江山，价格却比超市自有品牌的 Purified Water 贵 50%
+1. **Aquafina 和 Dasani 本质就是处理过的自来水**——百事和可口可乐这两个品牌占美国瓶装水市场半壁江山，价格却比超市自有品牌的 Purified Water 贵 $50\%$
 2. **Voss 和 Fiji 价格悬殊但水本身平平**——Voss 主打那个圆柱玻璃瓶设计，Fiji 主打“原始热带”叙事；TDS 不算高
-3. **真正“特别”的水主要在 Mineral Water 那一档**——Pellegrino、Perrier 的 TDS 是 Aquafina 的 50-100 倍，喝起来明显有矿物感
+3. **真正“特别”的水主要在 Mineral Water 那一档**——Pellegrino、Perrier 的 TDS 是 Aquafina 的 $50$-$100$ 倍，喝起来明显有矿物感
 4. **Sparkling Water 三大类要分清**——La Croix（市政 + 充气 + 香精，不算“矿泉”）、Topo Chico / Pellegrino（天然带气矿泉水）、Perrier（天然矿泉水 + 增气）
 5. **Alkaline Water（Essentia / Aquahydrate）**：FDA 不允许它们宣称“治病”，但允许你为高 pH 多付钱
 
@@ -235,12 +235,12 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 - Distilled Water 或 标注 “Nursery Water” / “Infant Water” 的产品
 - **不要用 Mineral Water**（钠 / 钙过高，婴儿肾负担不起）
 - **不要用 Spring Water**（矿物含量不稳定）
-- 美国 CDC + FDA 推荐：Distilled 或 Purified Water 煮沸冷却到 70 ℃ 以上冲泡
+- 美国 CDC + FDA 推荐：Distilled 或 Purified Water 煮沸冷却到 $70\,$℃ 以上冲泡
 
 **🏃 大量出汗 / 运动后**
 
-- 中低强度（普通锻炼 < 1 小时）：普通水 + 正常吃饭就够了
-- 高强度 / 长时间（跑步 > 1.5 小时、徒步、热瑜伽）：Electrolyte Water（Smartwater 不算够，需要更高电解质浓度）或正经的运动饮料（Gatorade、Nuun 泡腾片、LMNT 包）
+- 中低强度（普通锻炼 $< 1$ 小时）：普通水 + 正常吃饭就够了
+- 高强度 / 长时间（跑步 $> 1.5$ 小时、徒步、热瑜伽）：Electrolyte Water（Smartwater 不算够，需要更高电解质浓度）或正经的运动饮料（Gatorade、Nuun 泡腾片、LMNT 包）
 - “Alkaline Water 提高运动表现”——证据非常薄弱，正常水 + 电解质就足够
 
 **🍷 配葡萄酒 / 品鉴 / 高端餐桌**
@@ -274,7 +274,7 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
    - “Ozonated” / “UV Disinfection”
 3. **Nutrition Facts**——电解质含量
    - 每 240 ml（8 fl oz）的钠、钙、镁、钾
-   - **看钠**：高血压人群避开 > 25 mg / 8 fl oz 的水
+   - **看钠**：高血压人群避开 $> 25$ mg / $8$ fl oz 的水
    - **看钙镁**：硬水补矿，软水适合敏感场景
 
 > **小心一种营销陷阱**：瓶子上印 “From the Pristine Mountain Springs of XXX” 字样，但 Source 那行写的是 “Municipal Source from XXX City”——前者是营销文案，后者是法定声明，**法定声明才作数**。
@@ -291,11 +291,11 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 
 **误区 3：「Mineral Water 比 Spring Water 更营养、更健康」**
 
-也错。Mineral Water 的 TDS 高（FDA 强制 ≥ 250 ppm），含矿多——但**膳食里水的矿物贡献占比不到 1%**，正常吃饭根本不会因为换了 Mineral Water 在矿物摄入上有可观差别。Mineral Water 的真正价值是 **风味（餐桌享受）** 而不是 “更健康”。
+也错。Mineral Water 的 TDS 高（FDA 强制 $\geq 250$ ppm），含矿多——但**膳食里水的矿物贡献占比不到 $1\%$**，正常吃饭根本不会因为换了 Mineral Water 在矿物摄入上有可观差别。Mineral Water 的真正价值是 **风味（餐桌享受）** 而不是 “更健康”。
 
 **误区 4：「氢水（Hydrogen Water）能抗氧化」**
 
-证据极薄弱，且氢气在水里溶解度极低（饱和也只有 1.6 mg/L）+ 开瓶后几分钟就跑光。商业氢水基本是营销。
+证据极薄弱，且氢气在水里溶解度极低（饱和也只有 $1.6$ mg/L）+ 开瓶后几分钟就跑光。商业氢水基本是营销。
 
 **误区 5：「冰川水 / 火山水 / 雨林深处的水有特殊能量」**
 

@@ -46,7 +46,7 @@ keywords: ["美国超市", "超市推荐", "美国买菜", "grocery store", "sup
 
 # 3. 美国超市的“分级地图”
 
-把美国主流的 8 类超市放在一张“价格 × 品质”二维图里——看一眼就知道每家的相对位置：
+把美国主流的 8 类超市放在一张“价格 $\times$ 品质”二维图里——看一眼就知道每家的相对位置：
 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 460" style="max-width:100%;height:auto;display:block;margin:1.2em auto;">
   <text x="380" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#333">美国主流超市的「价格 × 品质」定位</text>
@@ -123,7 +123,7 @@ keywords: ["美国超市", "超市推荐", "美国买菜", "grocery store", "sup
 
 ## 4.1 Costco / Sam's Club（仓储会员制）
 
-**核心模式**：会员制大包装零售。**单价比普通超市低 20-40%**，但需要付年费 + 有车 + 有空间存货。
+**核心模式**：会员制大包装零售。**单价比普通超市低 $20$-$40\%$**，但需要付年费 + 有车 + 有空间存货。
 
 ### Costco
 
@@ -356,7 +356,7 @@ keywords: ["美国超市", "超市推荐", "美国买菜", "grocery store", "sup
 
 | 会员 | 年费 | 留学生值不值得 | 回本条件 |
 |---|---|---|---|
-| **Costco Gold** | $65 | ✅ 有车 + 大宗买就值 | 月消费 ≥ $80 |
+| **Costco Gold** | $65 | ✅ 有车 + 大宗买就值 | 月消费 $\geq$ $80 |
 | **Costco Executive** | $130 | ✅ 月消费 > $270 时升级 | 2% 返现需 > $3,250/年 |
 | **Sam's Club Club** | $50 | ⚠️ 仅在没 Costco 的地区 | 同上 |
 | **Sam's Club Plus** | $110 | ⚠️ 同上 | 同上 |

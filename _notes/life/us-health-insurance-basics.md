@@ -121,7 +121,7 @@ keywords: ["美国医保", "美国健康保险", "留学生保险", "health insu
   <!-- 注解 -->
   <text x="640" y="396" text-anchor="middle" font-size="9" fill="#888" font-style="italic">圆圈大小 ≈ 美国市场份额</text>
 </svg>
-<p class="img-caption">4 种保险类型在"自由度 × 价格"二维上的位置。**HMO 在左下**——便宜但受限；**PPO 在右上**——贵但自由；**EPO 和 POS 在中间**——各自有特色。留学生的 sweet spot 通常在 HMO（学校学生医保几乎都是 HMO 或 EPO）。</p>
+<p class="img-caption">4 种保险类型在"自由度 $\times$ 价格"二维上的位置。**HMO 在左下**——便宜但受限；**PPO 在右上**——贵但自由；**EPO 和 POS 在中间**——各自有特色。留学生的 sweet spot 通常在 HMO（学校学生医保几乎都是 HMO 或 EPO）。</p>
 
 ## 4.1 HMO（Health Maintenance Organization）
 
@@ -195,7 +195,7 @@ keywords: ["美国医保", "美国健康保险", "留学生保险", "health insu
 
 **年度自己先付多少钱保险才开始报**。比如 deductible = $1,500：
 
-- 全年医疗自费累积 ≤ $1,500：保险一分不报（除某些 preventive care）
+- 全年医疗自费累积 $\leq$ $1,500：保险一分不报（除某些 preventive care）
 - 累积超 $1,500：保险开始按比例报
 
 **学校学生医保 deductible 通常很低**（$250-$500）；**工作高 deductible 计划**（HDHP）可能 $2,000-$5,000，但配 HSA 划算。
@@ -395,7 +395,7 @@ keywords: ["美国医保", "美国健康保险", "留学生保险", "health insu
 - Gold：低 deductible / 高 premium → **看病少的人亏**
 - Silver：高 deductible / 低 premium + HSA 配套 → **看病少的人赚**
 
-**算账方法**：估算明年医疗支出 → 比较两个 plan 的”月费 × 12 + 预期 deductible 自付“——选 OOP 总和最低的。
+**算账方法**：估算明年医疗支出 → 比较两个 plan 的”月费 $\times$ 12 + 预期 deductible 自付“——选 OOP 总和最低的。
 
 ## 8.7 美国没有”医保卡医院直接结算“——都要先收账单
 
