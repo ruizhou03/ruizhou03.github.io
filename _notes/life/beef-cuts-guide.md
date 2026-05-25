@@ -184,23 +184,23 @@ keywords: ["牛肉部位区别", "牛肉部位怎么选", "牛肉部位地图", 
 
 | 中文名 | 英文名（美超 / 亚超标签） | 适合的菜 | 价格区间（USD/lb） |
 |---|---|---|---|
-| 菲力 | Tenderloin / Filet Mignon | 牛排（高端）、carpaccio | $25-45 |
-| 肋眼 | Ribeye / Rib Steak | 牛排（家用首选） | $15-25 |
-| 西冷 | New York Strip / Striploin / Top Loin | 牛排 | $12-22 |
-| 板腱 | Flat Iron / Top Blade | 牛排（性价比高） | $8-12 |
-| 牛肩 | Chuck Roast / Chuck Steak / Chuck Eye | 红烧、炖、绞肉 | $5-9 |
-| 牛胸 | Brisket（Flat / Point） | 烟熏、红烧 | $5-8 |
-| 牛腩（前段） | Plate / Beef Plate | 红烧、咖喱 | $5-8 |
-| 牛腩（连骨） | Short Rib | 红烧、韩式 galbi | $8-14 |
-| 侧腹 | Flank Steak | 爆炒、carne asada、墨西哥 fajita | $10-15 |
-| 侧腹横肌 | Skirt Steak / Hanger Steak | 爆炒、法式 onglet | $10-16 |
-| 后腿 / 米龙 | Top Round / Eye Round / Bottom Round | 烤（roast beef）、绞肉、薄切 | $5-9 |
-| 牛腱 | Beef Shank / Beef Shin | 卤牛腱、清炖 | $5-8 |
-| 牛尾 | Oxtail | 炖汤、罗宋汤 | $7-12 |
-| 牛舌 | Beef Tongue / Lengua | 卤、烟熏（墨式 lengua taco） | $6-10 |
-| 牛肚 | Beef Tripe / Honeycomb / Book Tripe | 火锅、卤、墨式 menudo | $3-6 |
-| 牛筋 | Beef Tendon | 红烧、粤式煲 | $4-8 |
-| 牛骨髓 | Beef Marrow Bone | 高汤、骨髓烤 | $3-5 |
+| 菲力 | Tenderloin / Filet Mignon | 牛排（高端）、carpaccio | \$25-45 |
+| 肋眼 | Ribeye / Rib Steak | 牛排（家用首选） | \$15-25 |
+| 西冷 | New York Strip / Striploin / Top Loin | 牛排 | \$12-22 |
+| 板腱 | Flat Iron / Top Blade | 牛排（性价比高） | \$8-12 |
+| 牛肩 | Chuck Roast / Chuck Steak / Chuck Eye | 红烧、炖、绞肉 | \$5-9 |
+| 牛胸 | Brisket（Flat / Point） | 烟熏、红烧 | \$5-8 |
+| 牛腩（前段） | Plate / Beef Plate | 红烧、咖喱 | \$5-8 |
+| 牛腩（连骨） | Short Rib | 红烧、韩式 galbi | \$8-14 |
+| 侧腹 | Flank Steak | 爆炒、carne asada、墨西哥 fajita | \$10-15 |
+| 侧腹横肌 | Skirt Steak / Hanger Steak | 爆炒、法式 onglet | \$10-16 |
+| 后腿 / 米龙 | Top Round / Eye Round / Bottom Round | 烤（roast beef）、绞肉、薄切 | \$5-9 |
+| 牛腱 | Beef Shank / Beef Shin | 卤牛腱、清炖 | \$5-8 |
+| 牛尾 | Oxtail | 炖汤、罗宋汤 | \$7-12 |
+| 牛舌 | Beef Tongue / Lengua | 卤、烟熏（墨式 lengua taco） | \$6-10 |
+| 牛肚 | Beef Tripe / Honeycomb / Book Tripe | 火锅、卤、墨式 menudo | \$3-6 |
+| 牛筋 | Beef Tendon | 红烧、粤式煲 | \$4-8 |
+| 牛骨髓 | Beef Marrow Bone | 高汤、骨髓烤 | \$3-5 |
 
 **注意**：美超普通货架（Walmart、Costco、Whole Foods）不一定有 oxtail、tongue、tripe、tendon——这些**要去亚超（H Mart / 99 Ranch / 大华）或墨西哥超市（La Michoacana）**。
 

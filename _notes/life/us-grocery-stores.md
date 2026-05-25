@@ -5,7 +5,7 @@ date: 2026-04-06
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-grocery-stores"
-keywords: ["美国超市", "超市推荐", "美国买菜", "grocery store", "supermarket", "Costco", "Sam's Club", "Walmart", "Target", "Kroger", "Trader Joe's", "Whole Foods", "Aldi", "Lidl", "亚洲超市", "H Mart", "99 Ranch", "大华超市", "超市对比", "囤货", "伙食预算", "买菜省钱", "美国超市攻略"]
+keywords: ["美国超市", "超市推荐", "美国买菜", "grocery store", "supermarket", "Costco", "Sam's Club", "Walmart", "Target", "Kroger", "Trader Joe's", "Whole Foods", "Aldi", "Lidl", "亚洲超市", "H Mart", "99 Ranch", "大华超市", "超市对比", "囤货", "伙食预算", "买菜省钱", "美国超市攻略", "留学生买菜", "Costco 会员", "Kirkland", "美国超市自有品牌", "Wegmans", "Publix", "Whole Paycheck"]
 ---
 
 # 1. 这篇文章给谁看
@@ -113,9 +113,9 @@ keywords: ["美国超市", "超市推荐", "美国买菜", "grocery store", "sup
   <text x="320" y="158" text-anchor="middle" font-size="9" fill="#666">专精领域</text>
 
   <!-- 注解 -->
-  <text x="600" y="380" text-anchor="middle" font-size="10" fill="#666" font-style="italic">圆圈大小 ≈ 全美门店数 / 影响力</text>
+  <text x="600" y="380" text-anchor="middle" font-size="10" fill="#666">圆圈大小 ≈ 全美门店数 / 影响力</text>
 </svg>
-<p class="img-caption">8 大类美国超市的相对定位。**性价比甜区**在左上半部分（Costco / Trader Joe's）和左下（Aldi / Walmart）；**Whole Foods 在右上**是有机精品贵但好；**亚洲超市在中间偏上**——价格中等但中餐食材**专精领域**远便宜于美式超市。</p>
+<p class="img-caption">8 大类美国超市的相对定位。<strong>性价比甜区</strong>在左上半部分（Costco / Trader Joe's）和左下（Aldi / Walmart）；<strong>Whole Foods 在右上</strong>是有机精品贵但好；<strong>亚洲超市在中间偏上</strong>——价格中等但中餐食材<strong>专精领域</strong>远便宜于美式超市。</p>
 
 下面对每家详细介绍。
 
@@ -484,8 +484,6 @@ USDA 牛肉分级 3 档：
 3. **[Reddit r/Costco / r/TraderJoes / r/wholefoods](https://www.reddit.com/r/Costco/)** —— 各家忠实用户讨论 + 招牌单品推荐
 4. **[Doctor of Credit - Grocery deals](https://www.doctorofcredit.com/)** —— 信用卡 / 超市 cashback 最新羊毛
 5. **[一亩三分地“购物省钱”版块](https://www.1point3acres.com/bbs/forum.php)** —— 中文圈采购实战经验
-
----
 
 **这是美国超市三部曲的第一篇**。下一篇会单独讲**亚洲超市的完整地图 + 中餐食材在亚超 vs 美超的价格对照表**——这是中国留学生最关心、也是最能省钱的部分。第三篇会进入实战——按“单身 / 家庭 / 中餐 / 健身”等场景给出具体的“每月去哪家超市买什么”配置，外加 5 招省钱实战和配送服务对比。
 

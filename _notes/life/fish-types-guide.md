@@ -207,7 +207,7 @@ keywords: ["不同的鱼怎么选", "怎么选鱼", "鱼的种类", "fish types"
   </g>
   <text x="360" y="450" text-anchor="middle" font-size="11" fill="#888">数据来源：USDA FoodData Central（生食、edible portion）。具体数值随品种、季节、养殖 vs 野生有 ±20% 浮动。</text>
 </svg>
-<p class="img-caption">AHA 推荐成年人每周至少**两份**油鱼（每份 100-150g），可显著降低心血管病和卒中风险。一罐沙丁鱼（约 100g 沥油后）就能提供 1500 mg omega-3，性价比最高的 omega-3 来源——比保健品胶囊便宜 10 倍。</p>
+<p class="img-caption">AHA 推荐成年人每周至少<strong>两份</strong>油鱼（每份 100-150g），可显著降低心血管病和卒中风险。一罐沙丁鱼（约 100g 沥油后）就能提供 1500 mg omega-3，性价比最高的 omega-3 来源——比保健品胶囊便宜 10 倍。</p>
 
 # 4. 实践建议
 

@@ -1,7 +1,7 @@
 ---
 layout: recipe
 title: "空气炸锅薯条"
-keywords: ["空气炸锅薯条", "炸薯条", "薯条", "french fries", "air fryer fries", "土豆", "马铃薯", "potato", "空气炸锅", "air fryer", "小食", "零食", "快手菜", "炸署条", "薯条做法"]
+keywords: ["空气炸锅薯条", "炸薯条", "薯条", "french fries", "air fryer fries", "air fryer french fries", "土豆", "马铃薯", "potato", "potato fries", "空气炸锅", "air fryer", "小食", "零食", "快手菜", "炸署条", "薯条做法", "Russet potato", "外酥内软", "西餐", "无油炸", "少油版", "健康薯条", "粗薯条", "家常薯条"]
 slug: "zhashutiao"
 date: 2026-02-04
 author: "Zircon"

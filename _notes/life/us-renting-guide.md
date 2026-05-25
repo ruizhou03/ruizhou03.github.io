@@ -466,8 +466,6 @@ NYC 多数 listing 通过 **broker** 中介：
 5. **[Pennsylvania Tenant's Rights](https://www.attorneygeneral.gov/protect-yourself/landlord-tenant-resources/)** —— PA 租房法律权利
 6. **[TheGuarantors](https://www.theguarantors.com/)** —— Guarantor 服务（NYC / SF / Boston）
 
----
-
 **租房是留学生在美国生活的”第一次主权独立“**——你第一次自己签合同、第一次和美国房东 / property manager 打交道、第一次承担成年人的财务责任。
 
 第一次租房的踩坑率几乎是 100%——但**这一次踩坑是值得的**：你学会的”读 lease / 谈月租 / 拍照存证 / walk-through“是接下来几十年都用得着的技能。

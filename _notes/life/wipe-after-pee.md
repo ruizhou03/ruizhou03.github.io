@@ -41,7 +41,7 @@ keywords: ["小便后要不要擦", "女生小便后要擦", "男生小便不用
 简单说：男性的尿道口长在身体之外的“伸出物”末端；女性的尿道口长在身体凹陷里的一堆皮肤皱褶之间。
 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 260" style="max-width:100%;height:auto;display:block;margin:1.4em auto;">
-  <text x="350" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">两种"出口几何"：尿离开身体时还会不会沾身？</text>
+  <text x="350" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">两种“出口几何”：尿离开身体时还会不会沾身？</text>
 
   <!-- LEFT: Male -->
   <text x="160" y="50" text-anchor="middle" font-size="13" fill="#2b6cb0" font-weight="600">男性</text>
@@ -126,7 +126,7 @@ keywords: ["小便后要不要擦", "女生小便后要擦", "男生小便不用
 男性的解剖学帮了大忙：尿道口在阴茎尖端，离肛门 15+ cm 远，且不在一条直线上、中间隔着阴囊。**男性把肠道细菌“擦”到尿道口的几何可能性几乎为零**——所以男性 UTI 发生率远低于女性，也不需要“必须从前往后”这种方向性卫生规则。
 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 200" style="max-width:100%;height:auto;display:block;margin:1.4em auto;">
-  <text x="340" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">细菌迁移路径：女性的"短跑" vs 男性的"马拉松"</text>
+  <text x="340" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">细菌迁移路径：女性的“短跑” vs 男性的“马拉松”</text>
 
   <!-- Female: short distance -->
   <text x="80" y="60" font-size="12" fill="#b83280" font-weight="600">女性</text>
@@ -150,7 +150,7 @@ keywords: ["小便后要不要擦", "女生小便后要擦", "男生小便不用
     </marker>
   </defs>
 </svg>
-<p class="img-caption">同一条线上看：女性肛门—尿道口约 4 cm，从后往前擦一次就能把细菌送到目的地；男性两者隔着 15+ cm 和阴囊，几何上几乎无法"擦到一起"。这就是"从前往后擦"是女性专属规则、男性无需在意的根本原因。</p>
+<p class="img-caption">同一条线上看：女性肛门—尿道口约 4 cm，从后往前擦一次就能把细菌送到目的地；男性两者隔着 15+ cm 和阴囊，几何上几乎无法“擦到一起”。这就是“从前往后擦”是女性专属规则、男性无需在意的根本原因。</p>
 
 ## 3.5 那男性真的“完全不用擦”吗
 

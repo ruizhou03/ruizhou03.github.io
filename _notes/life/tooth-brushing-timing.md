@@ -53,7 +53,7 @@ keywords: ["刷牙饭前还是饭后", "早晚刷牙时间", "饭后多久刷牙
 
 ## 3.2 Stephan 曲线：吃东西后口腔 pH 怎么变
 
-口腔生物学家 Robert Stephan 1944 年首次画出了“吃完糖 / 酸后口腔 pH 怎么变”的经典曲线，至今是牙科教学的标准图：
+口腔生物学家 Robert Stephan 1940 年首次画出了“吃完糖 / 酸后口腔 pH 怎么变”的经典曲线，至今是牙科教学的标准图：
 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" style="max-width:100%;height:auto;display:block;margin:1.2em auto;">
   <text x="360" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">Stephan 曲线：吃酸性 / 含糖食物后口腔 pH 变化</text>
@@ -93,7 +93,7 @@ keywords: ["刷牙饭前还是饭后", "早晚刷牙时间", "饭后多久刷牙
   <rect x="150" y="220" width="200" height="20" fill="none" stroke="#c0392b" stroke-width="2" stroke-dasharray="3,3"/>
   <text x="250" y="234" text-anchor="middle" font-size="10" fill="#c0392b" font-weight="600">⚠️ 软化窗口（绝对不要刷牙）</text>
 </svg>
-<p class="img-caption">蓝色曲线是吃完酸性 / 含糖食物后口腔 pH 的变化。**前 15-30 分钟是危险窗口**——pH 跌破 5.5 临界线，牙釉质处于脱矿软化状态。这时候用刷毛刮，相当于在湿黏土上拖刷子。30 分钟后唾液把 pH 拉回 5.5 以上，再矿化开始；60 分钟左右基本恢复。**所以「饭后等 30 分钟」是有刚性物理基础的，不是矫情**。</p>
+<p class="img-caption">蓝色曲线是吃完酸性 / 含糖食物后口腔 pH 的变化。<strong>前 15-30 分钟是危险窗口</strong>——pH 跌破 5.5 临界线，牙釉质处于脱矿软化状态。这时候用刷毛刮，相当于在湿黏土上拖刷子。30 分钟后唾液把 pH 拉回 5.5 以上，再矿化开始；60 分钟左右基本恢复。<strong>所以"饭后等 30 分钟"是有刚性物理基础的，不是矫情</strong>。</p>
 
 ## 3.3 哪些食物会让 pH 跌破 5.5
 

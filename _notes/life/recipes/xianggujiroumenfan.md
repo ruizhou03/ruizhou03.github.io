@@ -45,7 +45,7 @@ prep: |
 
   - **300 g 大米**（约 2 量杯）用清水淘洗 **2–3 次**至水变清
   - **沥干水分** —— 不要泡！（电饭煲焖饭的米**不能先泡**，泡过的米吸水过多下层会糊）
-  - ⚠️ **用**什么米：Jasmine Rice（泰国茉莉香米）香气最好；中粒米（Calrose）饱满粘糯；短粒米（日本米）太粘不适合
+  - ⚠️ **用什么米**：Jasmine Rice（泰国茉莉香米）香气最好；中粒米（Calrose）饱满粘糯；短粒米（日本米）太粘不适合
 
   **3. 腌鸡肉（10 分钟静置）**
 
@@ -80,8 +80,8 @@ published: true
 | 食材 | Walmart 货架 | 亚超 | 备注 |
 |------|-------------|------|------|
 | 鸡腿肉 | **Boneless Skinless Chicken Thighs** | 也有 | **必须用腿肉**——鸡胸肉焖完会柴如柴火 |
-| 大米 | **Jasmine Rice**（Kirkland / Mahatma / Three Ladies）20 lb 包 $18 | 也有 | Jasmine 最适合焖饭；Calrose 次之 |
-| 鲜香菇 | **Shiitake Mushrooms**（5 oz 盒装 ~$4） | 更便宜 | **干香菇替代**：20 g 干香菇 + 150 ml 温水泡 30 min，**泡水代替 150 ml 清水**（鲜味爆表） |
+| 大米 | **Jasmine Rice**（Kirkland / Mahatma / Three Ladies）20 lb 包 \$18 | 也有 | Jasmine 最适合焖饭；Calrose 次之 |
+| 鲜香菇 | **Shiitake Mushrooms**（5 oz 盒装 ~\$4） | 更便宜 | **干香菇替代**：20 g 干香菇 + 150 ml 温水泡 30 min，**泡水代替 150 ml 清水**（鲜味爆表） |
 | 生抽 | **Kikkoman Soy Sauce** | 也有 | 也可用 **Pearl River Bridge** |
 | 老抽 | ⚠️ Walmart 可能没有 | **Pearl River Bridge Dark Soy Sauce** | 仅用于上色 5 ml，不吃咸；没有则多加 5 ml 生抽 |
 | 蚝油 | **Kikkoman Oyster Sauce** / **Lee Kum Kee**（少数 Walmart 有） | **Lee Kum Kee Premium Oyster Sauce** 红盖 | LKK 红盖是业内金标准 |

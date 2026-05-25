@@ -1,7 +1,7 @@
 ---
 layout: recipe
 title: "香煎鸡胸肉"
-keywords: ["香煎鸡胸肉", "煎鸡胸", "煎鸡胸肉", "pan fried chicken breast", "鸡胸", "鸡胸肉", "鸡肉", "chicken breast", "chicken", "减脂餐", "高蛋白", "健身餐", "嫩鸡胸", "快手菜", "香煎鸡肉"]
+keywords: ["香煎鸡胸肉", "煎鸡胸", "煎鸡胸肉", "pan fried chicken breast", "鸡胸", "鸡胸肉", "鸡肉", "chicken breast", "chicken", "减脂餐", "高蛋白", "健身餐", "嫩鸡胸", "快手菜", "香煎鸡肉", "鸡胸怎么煎不柴", "鸡胸肉嫩做法", "鸡胸怎么腌", "鸡胸肉腌制", "鸡胸不柴", "鸡胸去腥", "增肌餐", "meal prep", "高蛋白低脂", "鸡胸料理", "蚝油鸡胸", "酱香鸡胸"]
 slug: "xiangjianjixiong"
 date: 2026-02-03
 author: "Zircon"
@@ -17,13 +17,13 @@ total_time: 30
 difficulty: 1
 
 ingredients:
-  - { name: "鸡胸肉",         amount: "400 g（2 块中等大小）" }
+  - { name: "鸡胸肉（Boneless Skinless Chicken Breast）", amount: "400 g（2 块中等大小）" }
   - { name: "盐",             amount: "3 g" }
   - { name: "黑胡椒粉",        amount: "1 g" }
-  - { name: "料酒",           amount: "15 ml" }
-  - { name: "老抽",           amount: "15 ml" }
-  - { name: "蚝油",           amount: "15 ml" }
-  - { name: "玉米淀粉",        amount: "10 g" }
+  - { name: "料酒（Shaoxing Cooking Wine）", amount: "15 ml" }
+  - { name: "老抽（Dark Soy Sauce）", amount: "15 ml" }
+  - { name: "蚝油（Oyster Sauce）", amount: "15 ml" }
+  - { name: "玉米淀粉（Corn Starch）", amount: "10 g" }
   - { name: "姜粉 或 鲜姜丝",  amount: "2 g（姜粉） / 10 g（鲜姜 3 片切丝）" }
   - { name: "食用油",         amount: "20 ml" }
   - { name: "清水（焖熟用）",  amount: "100 ml（约半杯）" }

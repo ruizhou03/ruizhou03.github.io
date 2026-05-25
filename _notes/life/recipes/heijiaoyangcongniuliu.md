@@ -1,7 +1,7 @@
 ---
 layout: recipe
 title: "黑椒洋葱牛柳"
-keywords: ["黑椒洋葱牛柳", "黑胡椒洋葱牛柳", "black pepper beef", "牛柳", "牛肉", "牛后腿肉", "beef", "洋葱", "onion", "黑胡椒", "黑椒", "中餐", "下饭菜", "家常菜", "减脂餐", "黑椒洋葱牛肉"]
+keywords: ["黑椒洋葱牛柳", "黑胡椒洋葱牛柳", "black pepper beef", "牛柳", "牛肉", "牛后腿肉", "bottom round", "beef", "洋葱", "yellow onion", "onion", "黑胡椒", "黑椒", "中餐", "下饭菜", "家常菜", "减脂餐", "黑椒洋葱牛肉", "健身餐", "高蛋白", "增肌餐", "粤菜", "蚝油", "oyster sauce", "黑椒牛肉", "牛肉炒洋葱"]
 slug: "heijiaoyangcongniuliu"
 date: 2026-02-27
 author: "Zircon"

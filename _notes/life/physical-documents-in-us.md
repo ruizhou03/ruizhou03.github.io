@@ -85,9 +85,9 @@ keywords: ["美国电子版不算数", "美国非要打印文件", "physical cop
     <text x="660" y="250" text-anchor="middle" font-size="10" fill="#888">(订单全 paperless)</text>
   </g>
 
-  <text x="380" y="295" text-anchor="middle" font-size="11" fill="#666" font-style="italic">越往左，"打印出来"越是默认要求；越往右，电子版越普遍被接受</text>
+  <text x="380" y="295" text-anchor="middle" font-size="11" fill="#666">越往左，"打印出来"越是默认要求；越往右，电子版越普遍被接受</text>
 </svg>
-<p class="img-caption">大致的接受度光谱。可以看出**政府机构和重要法律场景几乎都在左半边**——这也是留学生头一两年最频繁打交道的场景。</p>
+<p class="img-caption">大致的接受度光谱。可以看出<strong>政府机构和重要法律场景几乎都在左半边</strong>——这也是留学生头一两年最频繁打交道的场景。</p>
 
 ## 3.1 政府机构：几乎全要纸
 
@@ -282,7 +282,5 @@ keywords: ["美国电子版不算数", "美国非要打印文件", "physical cop
 2. **[ESIGN Act, 2000](https://www.fdic.gov/regulations/compliance/manual/10/x-3.1.pdf)** —— 美国电子签名联邦法律的奠基性文档
 3. **学校 ISSO 网站** —— 你所在学校的 International Student Services 页面，“Documents to Bring” 通常列得最详细
 4. 之前几篇姊妹文章：[美国签证完全指南](/life/us-visa-types) / [宾州驾照](/life/pa-drivers-license) / [美国身份证件](/life/us-id-and-identity)
-
----
 
 最后说一件事——**搬来美国第一周买一台打印机**。这一个 $80 的小决定，会让你在接下来一年里少跑学校 / 图书馆 / 邻居家**至少 30 趟**。它不只是省时间——更重要的是**省去“我以为电子版可以”的反复试错**。在美国生活的第一年，有太多事情你需要把精力放在**学习 / 研究 / 适应**上，而不是反复跟机构周旋“为什么不收 PDF”。**这一台打印机，是留学生最划算的'生活资本'之一。**

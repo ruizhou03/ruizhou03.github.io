@@ -1,7 +1,7 @@
 ---
 layout: recipe
 title: "西湖牛肉羹"
-keywords: ["西湖牛肉羹", "牛肉羹", "牛肉汤羹", "West Lake beef soup", "牛肉", "牛绞肉", "beef", "鸡蛋", "蛋花", "羹", "浓汤", "soup", "杭帮菜", "家常菜", "西湖牛肉汤"]
+keywords: ["西湖牛肉羹", "牛肉羹", "牛肉汤羹", "West Lake beef soup", "牛肉", "牛绞肉", "beef", "ground beef", "鸡蛋", "蛋清", "蛋花", "羹", "浓汤", "soup", "杭帮菜", "杭州菜", "家常菜", "西湖牛肉汤", "勾芡", "水淀粉", "玉米淀粉", "corn starch", "香菇", "shiitake", "西湖羹怎么做", "羹怎么勾芡", "蛋花怎么打成丝", "牛肉羹蛋花成团", "西湖牛肉羹做法", "西湖牛肉羹比例"]
 slug: "xihuniurougeng"
 date: 2026-02-21
 author: "Zircon"

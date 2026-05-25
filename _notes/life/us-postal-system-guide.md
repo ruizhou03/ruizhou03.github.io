@@ -29,17 +29,17 @@ keywords: ["美国邮政", "美国快递", "寄快递", "寄信", "shipping", "U
 
 | 场景 | 选哪家 | 原因 |
 |---|---|---|
-| **国内寄信 / 小包裹** | **USPS** | 最便宜（First Class $0.73 / Priority $10+）|
+| **国内寄信 / 小包裹** | **USPS** | 最便宜（First Class \$0.73 / Priority \$10+）|
 | **国内寄商业大件 / 跨州** | **UPS / FedEx** | 速度可控 + 商业网络强 |
 | **隔日 / 急件** | **FedEx Express / UPS Next Day** | 1-2 day 保证 |
-| **国际寄到中国** | **USPS Priority Mail International** 或 **DHL Express** | USPS 便宜（$45-$80）/ DHL 快（3-5 day） |
+| **国际寄到中国** | **USPS Priority Mail International** 或 **DHL Express** | USPS 便宜（\$45-\$80）/ DHL 快（3-5 day） |
 | **从中国寄到美国** | **顺丰国际 / EMS / 转运公司** | 看物品类型 |
 
 **3 个最大坑**：
 
 1. **包裹被偷 / 丢了不知道怎么追**——多数情况能 refund，但要走流程
 2. **跨境寄件没正确报关**——海关扣留 / 退回 / 罚款
-3. **USPS 钓鱼短信**——假“重新付邮费 $0.30 否则退回” → 偷信用卡
+3. **USPS 钓鱼短信**——假“重新付邮费 \$0.30 否则退回” → 偷信用卡
 
 # 3. 美国 4 大快递对比
 
@@ -87,11 +87,11 @@ keywords: ["美国邮政", "美国快递", "寄快递", "寄信", "shipping", "U
 
 | 你要寄 | 推荐 |
 |---|---|
-| **信件 / 明信片** | **USPS First Class** ($0.73) |
-| **轻 < 13 oz 小包裹** | **USPS First Class Package** ($5-$10) |
-| **2-5 lb 包裹** | **USPS Priority Mail** ($10-$25) |
+| **信件 / 明信片** | **USPS First Class** (\$0.73) |
+| **轻 < 13 oz 小包裹** | **USPS First Class Package** (\$5-\$10) |
+| **2-5 lb 包裹** | **USPS Priority Mail** (\$10-\$25) |
 | **5+ lb 跨州** | **USPS Priority** 或 **UPS Ground** |
-| **隔日 / 时间敏感** | **FedEx Express / UPS Next Day** ($30+) |
+| **隔日 / 时间敏感** | **FedEx Express / UPS Next Day** (\$30+) |
 | **书 / DVD（大量便宜）** | **USPS Media Mail**（极便宜）|
 | **国际寄到中国** | **USPS Priority Mail International** 或 **DHL Express** |
 
@@ -100,7 +100,7 @@ keywords: ["美国邮政", "美国快递", "寄快递", "寄信", "shipping", "U
 ## 4.1 First Class Mail
 
 - **轻量**（< 13 oz / 0.37 kg）
-- **价格**：信件 $0.73（一张 Forever Stamp）/ 小包裹 $5-$10
+- **价格**：信件 \$0.73（一张 Forever Stamp）/ 小包裹 \$5-\$10
 - **速度**：1-5 个工作日
 - **跟踪**：信件无 / 包裹有
 
@@ -109,21 +109,21 @@ keywords: ["美国邮政", "美国快递", "寄快递", "寄信", "shipping", "U
 ## 4.2 Priority Mail
 
 - **2-3 day 全美**
-- **价格**：起 $10（Flat Rate Box / Envelope）
-- **跟踪 + 包险 $100**（含）
+- **价格**：起 \$10（Flat Rate Box / Envelope）
+- **跟踪 + 包险 \$100**（含）
 - **Flat Rate Boxes**：**只看体积不看重量**——大件重物用这个最划算
 
 **Flat Rate Box 价格**（2026）：
-- Small Flat Rate Box（$10.40）
-- Medium Flat Rate Box（$18.40）
-- Large Flat Rate Box（$24.50）
+- Small Flat Rate Box（\$10.40）
+- Medium Flat Rate Box（\$18.40）
+- Large Flat Rate Box（\$24.50）
 
-**实战**：寄 5 lb 书去外州 → Medium Flat Rate Box $18.40 vs Priority Mail by weight $30+ —— **Flat Rate 省一半**。
+**实战**：寄 5 lb 书去外州 → Medium Flat Rate Box \$18.40 vs Priority Mail by weight \$30+ —— **Flat Rate 省一半**。
 
 ## 4.3 Priority Mail Express
 
 - **隔日 / 2 day 保证**
-- **价格**：$30-$50+
+- **价格**：\$30-\$50+
 - **退款保证**——超时退邮费
 
 **适合**：紧急文件 / 高价值物品 / 时间敏感。
@@ -131,7 +131,7 @@ keywords: ["美国邮政", "美国快递", "寄快递", "寄信", "shipping", "U
 ## 4.4 Media Mail
 
 - **专为书 / DVD / CD / 出版物**
-- **极便宜**：1 lb $4-$5 / 5 lb $5-$8
+- **极便宜**：1 lb \$4-\$5 / 5 lb \$5-\$8
 - **慢**：2-8 个工作日
 
 **适合**：寄学位证 / 教科书 / 长 PDF 打印件 ——只要有“出版”内容。
@@ -150,8 +150,8 @@ keywords: ["美国邮政", "美国快递", "寄快递", "寄信", "shipping", "U
 
 ## 5.1 准备
 
-- **信封**：标准 #10 envelope（$4\text{-}1/8 \times 9\text{-}1/2$ inch）
-- **邮票**：Forever Stamp（$0.73 一张）—— **永远涨价但 stamp 永久有效**
+- **信封**：标准 #10 envelope（4-1/8 × 9-1/2 inch）
+- **邮票**：Forever Stamp（\$0.73 一张）—— **永远涨价但 stamp 永久有效**
 
 ## 5.2 写地址（关键格式）
 
@@ -259,7 +259,7 @@ City, State ZIP
 - **送到 Amazon Locker / Hub**——免费 + 安全
 - **送到 UPS Store / FedEx Office**——hold for pickup
 - **设置安全摄像头**（Ring / Nest）
-- **要求 signature required**（额外费用 $5-$10）
+- **要求 signature required**（额外费用 \$5-\$10）
 
 # 8. 公寓 mailroom / Amazon Locker
 
@@ -327,7 +327,7 @@ University Park, PA 16802
 
 ## 9.4 报警（高价值）
 
-- 物品 > $500 → 可以报警
+- 物品 > \$500 → 可以报警
 - 警察会出 police report
 - **作为 chargeback / insurance claim 的证据**
 - **回收概率 < 5%**——但官方记录有用
@@ -338,7 +338,7 @@ University Park, PA 16802
 
 **[USPS Change of Address](https://moversguide.usps.com/)** —— 把所有 mail 转到新地址：
 
-- **价格**：$1.10 信用卡验证
+- **价格**：\$1.10 信用卡验证
 - **覆盖**：6 个月（有些地方 12 个月）
 - **不转**：包裹（除非 pre-shipment status）/ 部分政府信件
 
@@ -367,11 +367,11 @@ University Park, PA 16802
 
 | 服务 | 速度 | 价格（2 lb 包裹）| 跟踪 |
 |---|---|---|---|
-| **USPS Priority Mail International** | 6-10 day | **$45-$60** | 良好 |
-| **USPS Priority Mail Express International** | 3-5 day | $80-$120 | 优秀 |
-| **DHL Express International** | 3-5 day | $80-$150 | 最优 |
-| **FedEx International Priority** | 3-5 day | $100-$180 | 优秀 |
-| **UPS Worldwide Express** | 3-5 day | $100-$180 | 优秀 |
+| **USPS Priority Mail International** | 6-10 day | **\$45-\$60** | 良好 |
+| **USPS Priority Mail Express International** | 3-5 day | \$80-\$120 | 优秀 |
+| **DHL Express International** | 3-5 day | \$80-\$150 | 最优 |
+| **FedEx International Priority** | 3-5 day | \$100-\$180 | 优秀 |
+| **UPS Worldwide Express** | 3-5 day | \$100-\$180 | 优秀 |
 
 **实战**：
 
@@ -382,8 +382,8 @@ University Park, PA 16802
 
 寄到中国 / 任何国家**必须填海关申报表**：
 
-- **CN22**（小包，价值 $<$ $400）：贴在包裹上
-- **CN23**（大包，价值 $\geq$ $400）：附 + 多份
+- **CN22**（小包，价值 < \$400）：贴在包裹上
+- **CN23**（大包，价值 ≥ \$400）：附 + 多份
 
 填写：
 
@@ -398,8 +398,8 @@ University Park, PA 16802
 
 **寄到中国**：收件人付关税：
 
-- **个人物品价值 $\leq$ ¥1,000（$\sim$ $140）**：免税
-- **超过 ¥1,000**：按品类 $13$-$50\%$ 关税
+- **个人物品价值 ≤ ¥1,000（约 \$140）**：免税
+- **超过 ¥1,000**：按品类 13-50% 关税
 - **食品 / 化妆品 / 奢侈品**：高关税
 
 **热门物品关税参考**（中国海关）：
@@ -454,10 +454,10 @@ University Park, PA 16802
 
 **详见**：[FDA 食品入境规则](https://www.fda.gov/) + [USDA 食品入境](https://www.aphis.usda.gov/)
 
-## 12.3 美国海关 + $800 免税
+## 12.3 美国海关 + \$800 免税
 
-- **个人物品 < $800**：免关税
-- **> $800**：按品类 0-30% 关税
+- **个人物品 < \$800**：免关税
+- **> \$800**：按品类 0-30% 关税
 - **商业用途货物**：另算
 
 ## 12.4 转运公司 vs 直接寄
@@ -488,7 +488,7 @@ University Park, PA 16802
 **识别**：
 
 - USPS 真正的网址：**usps.com**——不是 usps-xxx[.]xyz
-- USPS **不会通过短信要你”重新付邮费 $0.30"**
+- USPS **不会通过短信要你”重新付邮费 \$0.30"**
 - 真正的 missing package → 走 USPS Missing Mail Search
 
 ## 13.2 假 Amazon 退款骗局
@@ -525,9 +525,9 @@ University Park, PA 16802
 
 ## 14.3 邮票永远涨价（Forever Stamp）
 
-- USPS 邮票 1995 = $0.32
-- 2026 = $0.73
-- **每 1-2 年涨 $0.05-$0.10**
+- USPS 邮票 1995 = \$0.32
+- 2026 = \$0.73
+- **每 1-2 年涨 \$0.05-\$0.10**
 
 **Forever Stamp 的妙用**：
 
@@ -538,7 +538,7 @@ University Park, PA 16802
 
 **P.O. Box**（邮局信箱）：
 
-- $40-$200 / 年（看尺寸 + 城市）
+- \$40-\$200 / 年（看尺寸 + 城市）
 - **防 porch pirate**
 - **不在家也能收**
 - **永久地址**——搬家不影响
@@ -557,8 +557,8 @@ USPS 经常发**主题邮票**（Star Wars / Disney / 历史人物）：
 
 - USPS 发的“无条件支付凭证”
 - 类似支票但**预付 + 安全**
-- $0.01-$1,000 / 张
-- $1.65-$2.40 fee
+- \$0.01-\$1,000 / 张
+- \$1.65-\$2.40 fee
 - 适合：付房租给个人房东（不接 personal check）/ 给陌生人付款
 
 # 15. 参考来源

@@ -85,13 +85,13 @@ $$K = \frac{[HxR] + [Hx]}{[ATP] + [ADP] + [AMP] + [IMP] + [HxR] + [Hx]} \times 1
     <text x="-50" y="120" text-anchor="middle" font-size="11" fill="#333" font-weight="500" transform="rotate(-90, -50, 120)">K 值（越低越鲜）</text>
     <text x="280" y="278" text-anchor="middle" font-size="11" fill="#333" font-weight="500">捕捞后时间 →</text>
     <rect x="0" y="144" width="560" height="48" fill="#27ae60" opacity="0.1"/>
-    <text x="555" y="166" text-anchor="end" font-size="10" fill="#27ae60" font-style="italic">极鲜（刺身级）</text>
+    <text x="555" y="166" text-anchor="end" font-size="10" fill="#27ae60">极鲜（刺身级）</text>
     <rect x="0" y="96" width="560" height="48" fill="#f39c12" opacity="0.1"/>
-    <text x="555" y="118" text-anchor="end" font-size="10" fill="#e67e22" font-style="italic">仍可清蒸 / 香煎</text>
+    <text x="555" y="118" text-anchor="end" font-size="10" fill="#e67e22">仍可清蒸 / 香煎</text>
     <rect x="0" y="48" width="560" height="48" fill="#e67e22" opacity="0.1"/>
-    <text x="555" y="70" text-anchor="end" font-size="10" fill="#c0392b" font-style="italic">仅可炖煮 / 红烧</text>
+    <text x="555" y="70" text-anchor="end" font-size="10" fill="#c0392b">仅可炖煮 / 红烧</text>
     <rect x="0" y="0" width="560" height="48" fill="#c0392b" opacity="0.15"/>
-    <text x="555" y="22" text-anchor="end" font-size="10" fill="#c0392b" font-style="italic">不宜食用</text>
+    <text x="555" y="22" text-anchor="end" font-size="10" fill="#c0392b">不宜食用</text>
     <path d="M 0 240 Q 30 215, 60 200 L 560 200" fill="none" stroke="#27ae60" stroke-width="3"/>
     <path d="M 0 240 L 80 204 L 240 156 Q 320 132, 400 108 L 560 60" fill="none" stroke="#c0392b" stroke-width="3" stroke-dasharray="6,3"/>
     <path d="M 0 240 L 80 192 Q 200 168, 320 156 L 560 144" fill="none" stroke="#e67e22" stroke-width="2.5"/>
@@ -186,7 +186,7 @@ $$K = \frac{[HxR] + [Hx]}{[ATP] + [ADP] + [AMP] + [IMP] + [HxR] + [Hx]} \times 1
 - **活鱼现宰**（粤式酒楼、亚超活鱼缸）—— 极致鲜，但要会处理
 - **渔市直接买**（沿海地区，如 Seattle Pike Place、Boston Quincy Market、湾区 Half Moon Bay）
 
-**反过来说**：在内陆城市（Phoenix、Denver、Pittsburgh、Pennsylvania State College），所谓“鲜鱼”几乎都是空运冷藏来的——这种情况下 IQF 几乎一定是更好的选择。
+**反过来说**：在内陆城市（Phoenix、Denver、Pittsburgh、State College PA），所谓“鲜鱼”几乎都是空运冷藏来的——这种情况下 IQF 几乎一定是更好的选择。
 
 ## 4.4 解冻方法对比
 
@@ -299,7 +299,7 @@ FDA 标准（21 CFR § 123.3）：
 
 **例外**：
 
-- **金枪鱼**（特别是黑鲔、长鳍）：FDA 豁免——金枪鱼在远洋大型温血鱼，体内基本没有人类寄生虫风险，可以生食不冷冻
+- **金枪鱼**（特别是黑鲔、长鳍）：FDA 豁免——金枪鱼是远洋大型鱼类（bluefin 等还能部分恒温），体内基本没有人类寄生虫风险，可以生食不冷冻
 - **本地野生淡水鱼绝对不要生吃**：含华支睾吸虫、棘口吸虫等多种寄生虫，加上汞和重金属富集
 - **养殖三文鱼**：严格饲料管控的（如挪威、智利、加拿大主要养殖场）寄生虫风险极低，但仍建议遵守冷冻规则
 - **野生太平洋三文鱼**：异尖线虫常见——强烈建议冷冻 $\geq 7$ 天再生食
