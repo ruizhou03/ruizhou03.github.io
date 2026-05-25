@@ -1,5 +1,5 @@
 {%- comment -%}
-  锆石小助手 —— 站内问答小助手，由 default.html 全站挂载。
+  锆铌小助手 —— 站内问答小助手，由 default.html 全站挂载。
   问题发给后端 DeepSeek 端点，后端把整站目录喂给 AI，由它判断回答与推荐卡片。
   后端不可用 / 超预算 / 离线时，自动降级回 /assistant-index.json 上的纯前端检索。
   整段用 raw 包裹：里面的 JS 模板字符串/对象字面量不会被 Liquid 误解析。
@@ -102,11 +102,15 @@
   .za-foot {
     flex: none; display: flex; gap: .5rem; padding: .7rem .8rem;
     border-top: 1px solid var(--color-border); background: var(--color-bg);
+    align-items: flex-end;
   }
   .za-input {
-    flex: 1; border: 1px solid var(--color-border); border-radius: 999px;
+    flex: 1; border: 1px solid var(--color-border); border-radius: 18px;
     padding: .5rem .9rem; font-size: .88rem; background: var(--color-bg-warm);
     color: var(--color-text); outline: none; font-family: inherit;
+    line-height: 1.5; resize: none; overflow-y: auto;
+    min-height: 38px; max-height: 8.5em; height: 38px;
+    box-sizing: border-box;
   }
   .za-input:focus { border-color: var(--color-highlight); }
   .za-send {
@@ -115,6 +119,24 @@
   }
   .za-send:hover { filter: brightness(1.1); }
   .za-send svg { width: 18px; height: 18px; }
+
+  .za-fb {
+    display: flex; gap: .35rem; margin-top: .4rem;
+    opacity: .65; transition: opacity .15s;
+  }
+  .za-msg.bot:hover .za-fb { opacity: 1; }
+  .za-fb-btn {
+    background: transparent; border: 1px solid var(--color-border); cursor: pointer;
+    color: var(--color-muted); font-size: .78rem; line-height: 1; font-family: inherit;
+    padding: .22rem .5rem; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: .25rem;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .za-fb-btn:hover { border-color: var(--color-highlight); color: var(--color-ink); }
+  .za-fb-btn.za-fb-on-up { border-color: var(--color-highlight); color: var(--color-highlight); background: rgba(201,169,110,.08); }
+  .za-fb-btn.za-fb-on-down { border-color: #c97070; color: #c97070; background: rgba(201,112,112,.08); }
+  .za-fb-btn[disabled] { cursor: default; opacity: .85; }
+  .za-fb-thanks { font-size: .72rem; color: var(--color-muted); align-self: center; margin-left: .2rem; }
 
   @media (max-width: 600px) {
     #za-fab { right: 1rem; bottom: 1.5rem; }
@@ -125,7 +147,7 @@
   }
 </style>
 
-<button id="za-fab" aria-label="打开站内小助手" title="问问锆石小助手">
+<button id="za-fab" aria-label="打开站内小助手" title="问问锆铌小助手">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.4 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5.6a8.38 8.38 0 0 1-.9-3.9 8.5 8.5 0 0 1 8.5-8.4 8.38 8.38 0 0 1 8.5 8.4z"/>
   </svg>
@@ -133,12 +155,12 @@
 
 <div id="za-panel" role="dialog" aria-label="站内小助手">
   <div class="za-head">
-    <h3>锆石小助手<span class="za-spark"> ✦ </span><span class="za-sub">站内检索</span></h3>
+    <h3>锆铌小助手<span class="za-spark"> ✦ </span><span class="za-sub">站内检索</span></h3>
     <button class="za-close" aria-label="关闭">×</button>
   </div>
   <div class="za-body" id="za-body"></div>
   <div class="za-foot">
-    <input type="text" class="za-input" id="za-input" placeholder="有什么想找的，尽管问我～" autocomplete="off">
+    <textarea class="za-input" id="za-input" placeholder="有什么想找的，尽管问我～（Enter 发送，Shift+Enter 换行）" rows="1" autocomplete="off"></textarea>
     <button class="za-send" id="za-send" aria-label="发送">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
@@ -152,6 +174,7 @@
   'use strict';
   var INDEX_URL = '/assistant-index.json';
   var AI_URL = 'https://zircon-urge.fly.dev/api/assistant';
+  var FB_URL  = 'https://zircon-urge.fly.dev/api/assistant-feedback';
   var idx = null, idxLoading = null, greeted = false;
 
   var fab   = document.getElementById('za-fab');
@@ -325,6 +348,55 @@
     scrollDown();
   }
 
+  // ---------- 👍 / 👎 反馈 ----------
+  // 把 {query, reply, cards, kind} 发给后端，后端按归一化问句存到 Redis；
+  // 下次同问句到来时，后端可走 shortcut 直接回好评答案，或把好评/差评样例塞进 prompt。
+  function sendFeedback(query, reply, cards, kind) {
+    try {
+      fetch(FB_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query, reply: reply, cards: cards || [], kind: kind })
+      }).catch(function () { /* 失败静默 */ });
+    } catch (e) { /* ignore */ }
+  }
+
+  function attachFeedback(bubbleEl, query, reply, cards) {
+    if (!bubbleEl || !query || !reply) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'za-fb';
+
+    var up = document.createElement('button');
+    up.className = 'za-fb-btn';
+    up.type = 'button';
+    up.setAttribute('aria-label', '这条回答有帮助');
+    up.title = '这条回答有帮助';
+    up.innerHTML = '<span aria-hidden="true">👍</span>';
+
+    var down = document.createElement('button');
+    down.className = 'za-fb-btn';
+    down.type = 'button';
+    down.setAttribute('aria-label', '这条回答不好');
+    down.title = '这条回答不好';
+    down.innerHTML = '<span aria-hidden="true">👎</span>';
+
+    function clicked(kind) {
+      up.disabled = true; down.disabled = true;
+      (kind === 'up' ? up : down).classList.add(kind === 'up' ? 'za-fb-on-up' : 'za-fb-on-down');
+      var thanks = document.createElement('span');
+      thanks.className = 'za-fb-thanks';
+      thanks.textContent = kind === 'up' ? '记下了，下次同样的问题我直接给这个答案 ✨' : '记下了，下次换个回答方式 🙏';
+      wrap.appendChild(thanks);
+      sendFeedback(query, reply, cards, kind);
+    }
+    up.addEventListener('click', function () { clicked('up'); });
+    down.addEventListener('click', function () { clicked('down'); });
+
+    wrap.appendChild(up);
+    wrap.appendChild(down);
+    bubbleEl.appendChild(wrap);
+  }
+
   var CHIPS = ['高微的资料', '怎么报税', '有什么好玩的小游戏', 'VPN 是怎么回事', '推荐一道家常菜'];
 
   function pushChips() {
@@ -381,7 +453,7 @@
   }
 
   // ---------- 对话主流程 ----------
-  var INTRO = '你好，我是锆石小助手 ✦\n' +
+  var INTRO = '你好，我是锆铌小助手 ✦\n' +
     '告诉我你想找什么，我帮你从站里翻出来：\n' +
     '📄 想读的文章（比如「VPN 原理」「报税怎么弄」）\n' +
     '📎 想下载的课程资料（比如「实分析讲义」「中级宏观往年题」）\n' +
@@ -406,8 +478,10 @@
       if (ai) {
         // AI 路径：DeepSeek 看着整站目录给出的回答 + 推荐卡片
         if (typing.parentNode) body.removeChild(typing);
-        pushBot(ai.reply);
+        var replyBubble = pushBot(ai.reply);
         if (ai.cards.length) pushCards('', ai.cards);
+        // 让用户给这条 AI 回答打分 —— 反馈会回流给后端作为下次回答的依据
+        attachFeedback(replyBubble, q, ai.reply, ai.cards);
         return;
       }
       // 降级路径：AI 不可用时回退到纯前端检索
@@ -433,11 +507,38 @@
     fab.classList.remove('za-hidden');
   }
 
+  // ---------- 输入框自适应高度 ----------
+  // textarea 默认单行(38px)，输入跨行时拉到内容高度，最多 8.5em 后内部滚动。
+  var INPUT_MIN_PX = 38;
+  function autoGrow() {
+    input.style.height = 'auto';
+    var max = parseFloat(getComputedStyle(input).maxHeight) || 9999;
+    var next = Math.max(INPUT_MIN_PX, Math.min(input.scrollHeight, max));
+    input.style.height = next + 'px';
+  }
+  function resetInput() {
+    input.value = '';
+    input.style.height = INPUT_MIN_PX + 'px';
+  }
+
   fab.addEventListener('click', openPanel);
   panel.querySelector('.za-close').addEventListener('click', closePanel);
-  send.addEventListener('click', function () { handle(input.value); });
+  send.addEventListener('click', function () {
+    var v = input.value;
+    if (!v.trim()) return;
+    resetInput();
+    handle(v);
+  });
+  input.addEventListener('input', autoGrow);
   input.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') { e.preventDefault(); handle(input.value); }
+    // Enter 发送，Shift+Enter 换行（IME 输入法候选阶段不拦截）
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
+      e.preventDefault();
+      var v = input.value;
+      if (!v.trim()) return;
+      resetInput();
+      handle(v);
+    }
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && panel.classList.contains('za-open')) closePanel();

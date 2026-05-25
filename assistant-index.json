@@ -2,7 +2,7 @@
 layout: null
 ---
 {%- comment -%}
-  锆石小助手的检索索引。构建期自动生成，每次更新网站随之刷新。
+  锆铌小助手的检索索引。构建期自动生成，每次更新网站随之刷新。
   字段：
     type     — article（文章）/ material（可下载资料）/ tool（小工具）
     download — 仅 material：可直接下载的文件地址（pdf_url 或 download_url）
@@ -83,6 +83,40 @@ layout: null
       "summary" : {{ tool.tagline | jsonify }},
       "keywords": {{ tkw | jsonify }},
       "date"    : ""
-    }{% unless forloop.last %},{% endunless %}
+    },
   {% endfor %}
+
+  {%- comment -%} English academic homepage —— 站点根 /，写给同行/招聘方看的 CV 式页面。
+  内容相对稳定，硬编码进索引比让 Liquid 去解析 index.html 的 <style>/<script> 块更稳。
+  改动 index.html 的研究/教学/教育/笔记段落时，记得回来同步这里。{%- endcomment -%}
+  {
+    "title"   : "Rui Zhou — PhD Student in Economics, Penn State (English homepage)",
+    "url"     : "{{ site.baseurl }}/",
+    "category": "About · English",
+    "type"    : "article",
+    "download": "",
+    "summary" : "Rui Zhou (周睿) — first-year Economics PhD at Penn State. Research: Behavioral Economics & Microeconomic Theory.",
+    "keywords": "Rui Zhou 周睿 Zhou Rui Penn State PSU economics PhD behavioral microeconomic theory Peking University 北大 CV resume English homepage about me research papers working paper teaching TA lecture notes academic 学术 个人主页 简介",
+    "date"    : ""
+  },
+  {
+    "title"   : "Working Paper — Majority vs. Minority Framing of Peer Information",
+    "url"     : "{{ site.baseurl }}/#research",
+    "category": "Research · Working Papers",
+    "type"    : "article",
+    "download": "",
+    "summary" : "Field experiment on property fee collection in China (2,669 households): negative framing speeds payment 4.4 days vs. control.",
+    "keywords": "majority minority framing peer information property fee field experiment behavioral economics public goods compliance Peng Chang Tianyi Che Juanjuan Meng AOM Academy of Management 同伴信息 框架效应 物业费 田野实验",
+    "date"    : ""
+  },
+  {
+    "title"   : "CV — Rui Zhou",
+    "url"     : "{{ site.baseurl }}/files/en/CV (Rui Zhou).pdf",
+    "category": "About · English · CV",
+    "type"    : "material",
+    "download": "{{ site.baseurl }}/files/en/CV (Rui Zhou).pdf",
+    "summary" : "Rui Zhou's academic CV (PDF).",
+    "keywords": "Rui Zhou CV resume curriculum vitae PDF download academic profile Penn State PhD economics 简历",
+    "date"    : ""
+  }
 ]

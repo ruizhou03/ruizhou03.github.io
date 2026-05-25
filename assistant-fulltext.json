@@ -2,7 +2,7 @@
 layout: null
 ---
 {%- comment -%}
-  锆石小助手的全文检索库。构建期自动生成——每次更新网站随之刷新。
+  锆铌小助手的全文检索库。构建期自动生成——每次更新网站随之刷新。
   收录每篇 note 的正文纯文本（去标签、去换行，单篇截到 4000 字）。
   仅后端 api/assistant.js 拉取使用：用 TF-IDF 在正文里挑出与问题相关的
   文章，再把正文喂给 DeepSeek，让它能回答正文级的细节问题。
@@ -14,4 +14,12 @@ layout: null
 {"url":{{ item.url | prepend: site.baseurl | jsonify }},"text":{{ _txt | jsonify }}}
 {%- unless forloop.last %},{% endunless -%}
 {%- endfor -%}
+,
+{%- comment -%}
+  English academic homepage —— 站点根 /，与 assistant-index.json 末尾的 English homepage 条目对应。
+  index.html 是手写的复杂 HTML（含大量 inline <style>/<script>），strip_html 不去内嵌脚本/样式
+  文本，会污染检索；故这里手维护一份干净的纯文本快照。改 index.html 的研究/教学/教育/笔记
+  段落时，记得回来同步这里和 assistant-index.json。
+{%- endcomment -%}
+{"url":{{ "/" | prepend: site.baseurl | jsonify }},"text":"Rui Zhou (周睿, Zhōu Ruì, pronounced 'Rway Joe'). PhD Student, Department of Economics, Penn State University. First-year PhD in Economics at Penn State. B.A. in Finance (Financial Economics Track) from Peking University, Guanghua School of Management. Research interests: Behavioral Economics and Microeconomic Theory. Contact: ruizhou@psu.edu. Working Papers: 'Majority vs. Minority Framing of Peer Information: Evidence from a Field Experiment on Property Fee Payments' (with Peng Chang, Tianyi Che, and Juanjuan Meng). Field experiment on property fee collection with 2,669 households in a Chinese residential community with limited legal enforcement, providing identical peer information framed as majority compliance (positive) or minority non-compliance (negative). Negative framing accelerates payment by 4.4 days on average, a 35.5% improvement relative to the control, while positive framing has no significant effect. Effects are heterogeneous: payment speed increases by 82.3% among early payers and 17.5% among late payers, but decreases by 12.1% among on-time payers. Keywords: public goods provision; peer information; framing effects; payment compliance. Accepted for presentation at the 86th Academy of Management (AOM) Annual Meeting, 2026. Education: 2025– Ph.D. in Economics, Penn State University; 2024 Exchange Student, University of Michigan, Ann Arbor; 2021–2025 B.A. in Finance (Financial Economics Track), Peking University, Guanghua School of Management. Teaching (TA): ECON 104 Introductory Macroeconomics at Penn State, Spring 2026 (Instructor: Dave Brown); ECON 104 Introductory Macroeconomics at Penn State, Fall 2025 (Instructor: Paul Kagundu); Advanced Microeconomics Theory (Graduate) at Peking University, Fall 2024 (Instructor: Fanqi Shi); Behavioral Economics at Peking University, Fall 2023 (Instructor: Juanjuan Meng). Lecture Notes available as PDFs: Advanced Microeconomics Theory I (Peking University, Fall 2023, chapters: Choice Theory, Consumer Theory, Production Theory, Comparative Statics, Uncertainty, General Equilibrium); Advanced Microeconomics Theory II (Penn State, Spring 2026, chapters: Game Representation, Nash Equilibrium, Bargaining, Auctions, Mechanism Design, Matching, Common Knowledge, Repeated Games, Perfect Bayesian Equilibrium); Advanced Macroeconomics (Penn State, Spring 2026, chapters: Complete Markets, Exogenously Incomplete Markets, Endogenously Incomplete Markets, Growth and Development Accounting, Solow Growth Model, Neoclassical Growth Model, Real Business Cycles, Business Cycle Accounting, Consumption and Saving, Aiyagari Model, Final Exam Review); Real Analysis; Advanced Econometrics; Intermediate Econometrics; Public Economics; Monetary Economics. Miscellaneous: Born and raised in China. Outside economics: running, singing, exploring new places. Chinese given name 睿 (ruì) means 'wise' or 'sagacious' — English approximation 'Rway' rhymes with 'way'. Also maintains a Chinese blog at /zh/ sharing course notes, study tips, and personal reflections. Photos: Yuyuantan Park Beijing, Ulanhadah Volcano Inner Mongolia, Xilingol Grassland Inner Mongolia, Graduation day Peking University, Penn State CSSA Mid-Autumn Gala, Tianjin, Weihai, Xiamen. CV available at /files/en/CV (Rui Zhou).pdf. Name pronunciation audio at /files/en/Name Pronunciation.m4a."}
 ]
