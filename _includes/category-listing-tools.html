@@ -19,24 +19,28 @@
     display: flex; align-items: center;
     flex-shrink: 0; gap: 0.15rem;
   }
-  /* 顶部全局搜索框（与「学习资料」页同款，跨小节按标题筛选） */
-  .cat-search-wrap { margin: 1.2rem auto 2.5rem; text-align: center; }
+  /* 分类内筛选框（次要 UI——主搜走顶栏 ⌘K，这里只在本栏内按标题缩小范围） */
+  .cat-search-wrap { margin: 0.4rem auto 1.6rem; text-align: center; }
   .cat-search-input {
-    width: 100%; max-width: 360px;
-    padding: 0.55rem 1rem;
+    width: 100%; max-width: 260px;
+    padding: 0.32rem 0.85rem;
     border: 1px solid var(--color-border);
-    border-radius: 20px;
-    background: var(--color-bg);
-    color: var(--color-text);
+    border-radius: 16px;
+    background: transparent;
+    color: var(--color-muted);
     font-family: var(--font-body);
-    font-size: 0.92rem;
+    font-size: 0.82rem;
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
   }
-  .cat-search-input:focus { border-color: var(--color-accent); }
+  .cat-search-input::placeholder { color: var(--color-light); }
+  .cat-search-input:focus {
+    border-color: var(--color-accent); color: var(--color-text);
+    background: var(--color-bg);
+  }
   .cat-search-empty {
-    margin-top: 1rem; color: var(--color-light);
-    font-style: normal; font-size: 0.92rem;
+    margin-top: 0.8rem; color: var(--color-light);
+    font-style: normal; font-size: 0.88rem;
   }
   .post-list-section.cat-hidden,
   .yearly-story-section.cat-hidden { display: none; }

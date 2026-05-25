@@ -8,7 +8,7 @@ title: 生活攻略 | Rui Zhou
     <p style="color: var(--color-light); font-style: italic;">Life Hacks &amp; Guides</p>
   </header>
 
-  {% include category-search.html placeholder="搜索生活攻略文章或专栏…" %}
+  {% include category-search.html placeholder="在本栏筛选…" %}
 
   {% assign raw_posts_main  = site.notes | where: "main_category", "生活攻略" %}
   {% assign raw_posts_extra = site.notes | where_exp: "item", "item.extra_categories contains '生活攻略'" %}
