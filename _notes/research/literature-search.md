@@ -43,13 +43,13 @@ keywords: ["文献检索", "文献搜索技巧", "Google Scholar 高级搜索", 
 
 <svg viewBox="0 0 560 170" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:560px;display:block;margin:1.4rem auto;font-family:sans-serif;">
   <defs><marker id="s" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#888"/></marker></defs>
-  <circle cx="280" cy="85" r="34" fill="#eef3fb" stroke="#3b6ea5"/>
-  <text x="280" y="82" text-anchor="middle" font-size="11" fill="#1f3b5b">你手上的</text>
-  <text x="280" y="96" text-anchor="middle" font-size="11" fill="#1f3b5b">核心文献</text>
-  <g fill="#fdf3e7" stroke="#b07b2f"><circle cx="70" cy="45" r="20"/><circle cx="60" cy="120" r="20"/><circle cx="120" cy="85" r="20"/></g>
-  <text x="80" y="160" text-anchor="middle" font-size="11" fill="#a86">后向：它引了谁（更早的源头）</text>
-  <g fill="#eef9ef" stroke="#3a8a4a"><circle cx="490" cy="45" r="20"/><circle cx="500" cy="120" r="20"/><circle cx="440" cy="85" r="20"/></g>
-  <text x="480" y="160" text-anchor="middle" font-size="11" fill="#3a8a4a">前向：谁引了它（最新进展）</text>
+  <circle cx="280" cy="85" r="34" fill="#e8eef6" stroke="#5c80a8"/>
+  <text x="280" y="82" text-anchor="middle" font-size="11" fill="#1e3a5f">你手上的</text>
+  <text x="280" y="96" text-anchor="middle" font-size="11" fill="#1e3a5f">核心文献</text>
+  <g fill="#f5ebe0" stroke="#a07658"><circle cx="70" cy="45" r="20"/><circle cx="60" cy="120" r="20"/><circle cx="120" cy="85" r="20"/></g>
+  <text x="80" y="160" text-anchor="middle" font-size="11" fill="#a07658">后向：它引了谁（更早的源头）</text>
+  <g fill="#eaf2ec" stroke="#5e7a52"><circle cx="490" cy="45" r="20"/><circle cx="500" cy="120" r="20"/><circle cx="440" cy="85" r="20"/></g>
+  <text x="480" y="160" text-anchor="middle" font-size="11" fill="#5e7a52">前向：谁引了它（最新进展）</text>
   <line x1="246" y1="78" x2="142" y2="83" stroke="#888" stroke-width="1.3" marker-end="url(#s)"/>
   <line x1="250" y1="95" x2="82" y2="118" stroke="#888" stroke-width="1.3" marker-end="url(#s)"/>
   <line x1="314" y1="80" x2="418" y2="84" stroke="#888" stroke-width="1.3" marker-end="url(#s)"/>

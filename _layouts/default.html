@@ -223,10 +223,10 @@
       function applyStatus(state, cachedAt) {
         if (statusDot) {
           if (state === 'fresh') {
-            statusDot.style.background = '#10b981';
+            statusDot.style.background = '#6fa878';
             statusDot.title = '这一页已离线（最新版本）';
           } else if (state === 'stale') {
-            statusDot.style.background = '#f59e0b';
+            statusDot.style.background = '#b8943e';
             statusDot.title = '这一页已离线，但有更新——下次联网时会自动刷新';
           } else {
             statusDot.style.background = '#cbd5e1';

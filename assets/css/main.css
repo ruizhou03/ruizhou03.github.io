@@ -144,12 +144,12 @@
       margin: 0 0 1.8em;
     }
 
-    /* Doocs 标志性的行内代码 (Inline Code) - 浅洋红色底色 */
-    .markdown-content code { color: #c7254e; background-color: #f9f2f4; padding: 0.2em 0.4em; border-radius: 4px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 0.85em; }
-    
+    /* 行内代码 (Inline Code) —— 驼金系，跟站点 --color-highlight 同源 */
+    .markdown-content code { color: #7a5e35; background-color: #f5ebe0; padding: 0.2em 0.4em; border-radius: 4px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 0.85em; }
+
     /* 适配暗黑模式的行内代码 */
-    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .markdown-content code { background-color: rgba(255, 80, 120, 0.15); color: #ff7b93; } }
-    :root[data-theme="dark"] .markdown-content code { background-color: rgba(255, 80, 120, 0.15); color: #ff7b93; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .markdown-content code { background-color: rgba(201, 169, 110, 0.15); color: #c9a96e; } }
+    :root[data-theme="dark"] .markdown-content code { background-color: rgba(201, 169, 110, 0.15); color: #c9a96e; }
 
     /* 深色代码块 (Preformatted Text) */
     .markdown-content pre { background-color: #282c34; color: #abb2bf; padding: 1.2rem; border-radius: 6px; overflow-x: auto; margin-bottom: 1.5em; }
@@ -343,8 +343,8 @@
       width: 12px; 
       height: 12px;
       border-radius: 50%;
-      background: #ff5f56; /* Mac 的关闭红 */
-      box-shadow: 20px 0 0 #ffbd2e, 40px 0 0 #27c93f; /* 最小化黄 + 全屏绿 */
+      background: #c9776c; /* Mac 圆点红（莫兰迪化，跟站点同源） */
+      box-shadow: 20px 0 0 #c9a96e, 40px 0 0 #6fa878; /* 黄/绿同步莫兰迪化 */
       z-index: 2;
     }
 
@@ -464,7 +464,7 @@
     }
     .bulk-offline-btn:disabled { cursor: wait; }
     .bulk-offline-btn.is-disabled { opacity: 0.55; cursor: not-allowed; }
-    .bulk-offline-btn.bulk-done { border-color: #10b981; color: #10b981; }
+    .bulk-offline-btn.bulk-done { border-color: #6fa878; color: #6fa878; }
     .bulk-offline-btn.bulk-partial { border-color: var(--color-accent); color: var(--color-accent); }
     .bulk-offline .bulk-hint {
       margin-top: 0.6rem; color: var(--color-light);
