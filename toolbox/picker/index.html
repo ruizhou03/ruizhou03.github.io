@@ -119,10 +119,10 @@ permalink: /toolbox/picker/
     white-space: nowrap;
     transition: color 0.2s;
   }
-  .option-row.is-winner .opt-pct { color: #c8801c; font-weight: 700; }
+  .option-row.is-winner .opt-pct { color: #8a6a35; font-weight: 700; }
   .option-row.is-winner .opt-text {
-    background: rgba(232,200,40,0.12);
-    border-color: #e8c828;
+    background: rgba(201,169,110,0.14);
+    border-color: var(--color-highlight, #c9a96e);
   }
 
   .add-row {
@@ -266,8 +266,8 @@ permalink: /toolbox/picker/
   .wheel-svg .slice {
     transition: filter 0.3s, opacity 0.3s;
   }
-  .wheel-svg .slice.dim { opacity: 0.45; }
-  .wheel-svg .slice.win { filter: brightness(1.12) saturate(1.2); }
+  .wheel-svg .slice.dim { opacity: 0.4; }
+  .wheel-svg .slice.win { filter: brightness(1.08) saturate(1.05); }
   .wheel-svg text {
     font-family: var(--font-body);
     font-weight: 600;
@@ -291,7 +291,7 @@ permalink: /toolbox/picker/
   }
   .result-line .winner-name {
     font-weight: 700; color: var(--color-accent);
-    background: linear-gradient(180deg, transparent 60%, rgba(232,200,40,0.4) 60%);
+    background: linear-gradient(180deg, transparent 60%, rgba(201,169,110,0.45) 60%);
     padding: 0 0.2em;
   }
 
@@ -340,7 +340,7 @@ permalink: /toolbox/picker/
     transition: height 0.4s cubic-bezier(0.17, 0.67, 0.23, 1.01);
   }
   .tally-col.is-winner .tally-bar-fill {
-    background: linear-gradient(180deg, #e8c828, #d8a818);
+    background: linear-gradient(180deg, var(--color-highlight, #c9a96e), #a8884f);
   }
   .tally-count {
     position: absolute; top: 4px; left: 0; right: 0;
@@ -644,10 +644,18 @@ permalink: /toolbox/picker/
 <script>
 (function () {
   // ── 调色 ──────────────────────────────
+  // 莫兰迪/低饱和大地色：饱和度 20-35%、明度 42-55%，跟站点米白底 + 海军蓝 + 驼金同源
   const SLICE_COLORS = [
-    '#d04030', '#5cb830', '#4080d0', '#e8a020',
-    '#a04098', '#20a890', '#e87830', '#7090a8',
-    '#c84878', '#609020',
+    '#b6776a', // 陶土橘
+    '#8a9e60', // 橄榄绿
+    '#5c80a8', // 雾蓝
+    '#b89252', // 驼金（≈ 站点 --color-highlight）
+    '#8d6e94', // 藤紫
+    '#5a8584', // 青石
+    '#a07658', // 焦糖棕
+    '#6e7e94', // 石板灰蓝
+    '#9e6a78', // 霞粉
+    '#5e7a52', // 苔深绿
   ];
 
   // ── 状态 ──────────────────────────────
