@@ -15,7 +15,7 @@ keywords: ["beamer 教程", "LaTeX 做幻灯片", "beamer slides", "学术 slide
 
 ## 一、一套不丑的最小配置
 
-忘掉那些带蓝色导航条、每页顶部一排小圆点的默认主题（Warsaw / Berkeley 那类，一眼“上世纪”)。现在学术圈的事实标准是 **metropolis**：极简、留白大、字体好看、没有视觉噪音。
+忘掉那些带蓝色导航条、每页顶部一排小圆点的默认主题（Warsaw / Berkeley 那类，一眼“上世纪”）。现在学术圈的事实标准是 **metropolis**：极简、留白大、字体好看、没有视觉噪音。
 
 ```latex
 \documentclass[aspectratio=169, 11pt]{beamer}   % 169 = 16:9 宽屏
@@ -134,9 +134,9 @@ keywords: ["beamer 教程", "LaTeX 做幻灯片", "beamer slides", "学术 slide
 
 ## 七、几个高频翻车点
 
-- **内容溢出 frame**（底部被截掉）：少塞内容是正道；实在装不下用 `\begin{frame}[allowframebreaks]` 自动续页，或 `\resizebox` 缩图表，别硬塞;
-- **还在用默认主题**：换 metropolis，五分钟的事，观感差一个时代;
-- **代码 / verbatim 报错**：含 `\verb` 或 `lstlisting` 的 frame 必须加 `[fragile]` 选项，否则编译失败;
+- **内容溢出 frame**（底部被截掉）：少塞内容是正道；实在装不下用 `\begin{frame}[allowframebreaks]` 自动续页，或 `\resizebox` 缩图表，别硬塞；
+- **还在用默认主题**：换 metropolis，五分钟的事，观感差一个时代；
+- **代码 / verbatim 报错**：含 `\verb` 或 `lstlisting` 的 frame 必须加 `[fragile]` 选项，否则编译失败；
 - **图字比正文小**：会议室最后一排要看得清，宁可图少一点、大一点。
 
 工作流上把 slides 也纳入[可复现项目](/research/workflow/reproducible-project)：`slides/talk.tex` 和论文共用 `output/` 里的图表，[ Git ](/research/workflow/git-for-papers)管版本，job market 季每改一版结果，论文、slides、海报一次同步——这正是当初忍着学 beamer 的回报。
