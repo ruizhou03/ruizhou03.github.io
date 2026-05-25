@@ -213,6 +213,11 @@
     }
     #toc-ul a:hover { color: var(--color-accent); }
 
+    /* scrollspy：滚到哪一节，对应 TOC 项就高亮（由 post.html 的
+       IntersectionObserver 加 .toc-active 类）。一级用色 + 加粗，二级保持轻量。 */
+    #toc-ul a.toc-active { color: var(--color-accent); font-weight: 600; }
+    #toc-ul a.toc-active::before { color: var(--color-accent) !important; transform: scale(1.25); }
+
     /* 一级标题圆点 */
     #toc-ul li > a:not(.toc-h2)::before {
       content: "•";
@@ -310,60 +315,7 @@
       scroll-margin-top: 6.5rem; /* 预留顶部导航栏高度 + 呼吸空间 */
     }
 
-    /* ==========================================
-       最终方案 C：悬浮重力场电梯 (实心微圆角三角)
-       ========================================== */
-    .elevator-fab {
-      position: fixed;
-      right: 1.5rem;
-      bottom: 6.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 12px; /* 增加呼吸感缝隙 */
-      z-index: 101;
-    }
-
-    .elevator-fab button {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 0;
-      color: var(--color-accent);
-      opacity: 0.6; /* 平时保持低调，不干扰阅读 */
-      filter: drop-shadow(0 2px 4px rgba(30, 58, 95, 0.15));
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* 悬浮效果：模拟物理按键“浮起”并点亮 */
-    .elevator-fab button:hover {
-      opacity: 1;
-      transform: translateY(-4px) scale(1.1);
-      filter: drop-shadow(0 8px 16px rgba(30, 58, 95, 0.25));
-    }
-
-    /* 点击反馈：轻微下陷感 */
-    .elevator-fab button:active {
-      transform: translateY(1px) scale(0.95);
-      transition: all 0.1s;
-    }
-
-    /* 使用 SVG 绘制带圆角的等腰三角形 */
-    .elevator-fab svg {
-      width: 28px;
-      height: 20px;
-      fill: currentColor;
-      stroke: currentColor;
-      stroke-width: 4; /* 通过描边实现物理圆角 */
-      stroke-linejoin: round;
-    }
-
     @media (max-width: 768px) {
-      .elevator-fab { right: 1rem; bottom: 5.5rem; gap: 8px; }
-      .elevator-fab svg { width: 24px; height: 16px; }
-
       /* 手机端段落：两端对齐，避免右边距参差不齐 */
       .markdown-content p {
         text-align: justify;

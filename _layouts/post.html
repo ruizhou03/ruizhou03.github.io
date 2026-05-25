@@ -893,6 +893,7 @@ layout: default
       return;
     }
 
+    const linkByHeadingId = {};
     headings.forEach((heading, index) => {
       const id = 'section-' + index;
       heading.setAttribute('id', id);
@@ -908,11 +909,50 @@ layout: default
 
       li.appendChild(a);
       tocUl.appendChild(li);
+      linkByHeadingId[id] = a;
 
       a.addEventListener('click', () => {
         if (window.innerWidth <= 768) toggleTOC();
       });
     });
+
+    // —— scrollspy ——
+    // 用 IntersectionObserver 监听所有标题，挑"当前 viewport 命中且最靠上"的那个高亮。
+    // rootMargin 顶端按 nav 高 6.5rem 收掉、底部 -55% 把视口"上半段"作为命中区，
+    // 这样滚到一节中段就切到下一项，而不是要把上一节滚出屏幕才切。
+    if ('IntersectionObserver' in window && headings.length) {
+      const visibleIds = new Set();
+      function updateActive() {
+        let activeId = null;
+        // 选 visibleIds 里 DOM 顺序最靠前的那一个
+        for (const h of headings) {
+          if (visibleIds.has(h.id)) { activeId = h.id; break; }
+        }
+        // 都不在交叉区时，回退到最后一个滚过的标题（按当前位置找最近上方）
+        if (!activeId) {
+          const y = window.scrollY + 120;
+          let best = null;
+          for (const h of headings) {
+            if (h.offsetTop <= y) best = h.id;
+            else break;
+          }
+          activeId = best;
+        }
+        for (const id in linkByHeadingId) {
+          linkByHeadingId[id].classList.toggle('toc-active', id === activeId);
+        }
+      }
+      const io = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) visibleIds.add(e.target.id);
+          else visibleIds.delete(e.target.id);
+        }
+        updateActive();
+      }, { rootMargin: '-104px 0px -55% 0px', threshold: 0 });
+      headings.forEach((h) => io.observe(h));
+      // 首屏先跑一次，没滚动也能高亮第一节
+      updateActive();
+    }
 
     // 宽屏自动常驻：同步 open 类状态
     if (window.innerWidth >= 1400) {
