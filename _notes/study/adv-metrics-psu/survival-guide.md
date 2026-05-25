@@ -3,7 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "高级计量经济学（PSU）"
 title: "我和 Claude Code 合力，写了份计量 8 天自救指南"
-keywords: ["高级计量 期末 自救", "高计 PSU 求生指南", "ECON 510 final 复习", "metrics survival guide", "advanced econometrics PSU final", "Patrik Guggenberger", "8 天复习计划", "Claude Code 写讲义", "考点优先级 ROI", "GMM bootstrap 复习", "weak IV 复习", "Lasso 应试", "博一 计量 期末", "Penn State 经济学博士", "高计 8 天 速成", "计量 求生指南", "高级计量 速成讲义", "metrics 速成"]
+keywords: ["高级计量 期末 自救", "高计 PSU 求生指南", "ECON 510 final 复习", "metrics survival guide", "advanced econometrics PSU final", "Patrik Guggenberger", "8 天复习计划", "Claude Code 写讲义", "考点优先级 ROI", "GMM bootstrap 复习", "weak IV 复习", "Lasso 应试", "博一 计量 期末", "Penn State 经济学博士", "高计 8 天 速成", "计量 求生指南", "高级计量 速成讲义", "metrics 速成", "PhD prelim 备考", "consistency asymptotic normality", "GMM efficient weight matrix", "delta method 复习", "AsyCS 渐近置信集", "high-dimensional inference 复习"]
 list_title: "Advanced Econometrics: An 8-Day Survival Guide"
 discipline: "经济学"
 course: "高级计量经济学（PSU）"

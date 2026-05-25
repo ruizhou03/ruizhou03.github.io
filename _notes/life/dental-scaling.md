@@ -39,14 +39,14 @@ permalink: "/life/dental-scaling"
   <line x1="40" y1="120" x2="640" y2="120" stroke="#ccc" stroke-width="2"/>
   <g text-anchor="middle" font-size="11">
     <circle cx="90" cy="120" r="8" fill="#cfe3f5"/><text x="90" y="150" fill="#444">获得性薄膜</text><text x="90" y="166" fill="#888" font-size="10">几分钟</text>
-    <circle cx="250" cy="120" r="11" fill="#f3d98a"/><text x="250" y="152" fill="#444">牙菌斑（软）</text><text x="250" y="168" fill="#2e8b57" font-size="10">几小时～1 天</text>
+    <circle cx="250" cy="120" r="11" fill="#f3d98a"/><text x="250" y="152" fill="#444">牙菌斑（软）</text><text x="250" y="168" fill="#557559" font-size="10">几小时～1 天</text>
     <circle cx="430" cy="120" r="14" fill="#d8a24a"/><text x="430" y="155" fill="#444">开始矿化</text><text x="430" y="171" fill="#888" font-size="10">24–72 小时</text>
-    <circle cx="590" cy="120" r="17" fill="#9c7330"/><text x="590" y="158" fill="#444">牙结石（硬）</text><text x="590" y="174" fill="#c0504d" font-size="10">已固化</text>
+    <circle cx="590" cy="120" r="17" fill="#9c7330"/><text x="590" y="158" fill="#444">牙结石（硬）</text><text x="590" y="174" fill="#7d4e46" font-size="10">已固化</text>
   </g>
-  <path d="M40,92 H330" stroke="#2e8b57" stroke-width="2.5"/>
-  <text x="185" y="84" text-anchor="middle" font-size="11" fill="#2e8b57" font-weight="600">这段：刷牙 + 牙线能清掉 ✓</text>
-  <path d="M350,92 H640" stroke="#c0504d" stroke-width="2.5"/>
-  <text x="495" y="84" text-anchor="middle" font-size="11" fill="#c0504d" font-weight="600">这段：只能靠洗牙（器械/超声）✗ 刷不掉</text>
+  <path d="M40,92 H330" stroke="#557559" stroke-width="2.5"/>
+  <text x="185" y="84" text-anchor="middle" font-size="11" fill="#557559" font-weight="600">这段：刷牙 + 牙线能清掉 ✓</text>
+  <path d="M350,92 H640" stroke="#7d4e46" stroke-width="2.5"/>
+  <text x="495" y="84" text-anchor="middle" font-size="11" fill="#7d4e46" font-weight="600">这段：只能靠洗牙（器械/超声）✗ 刷不掉</text>
   <line x1="340" y1="70" x2="340" y2="135" stroke="#999" stroke-width="1.5" stroke-dasharray="5,4"/>
 </svg>
 <p class="img-caption">关键的那条竖虚线就是矿化。在它左边，认真刷牙和用牙线是有效的；越过它，菌斑变成结石，家用工具全部失效——这不是刷得不够努力，是物理性质变了。</p>

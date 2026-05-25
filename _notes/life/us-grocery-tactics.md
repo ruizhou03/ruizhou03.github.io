@@ -66,44 +66,44 @@ keywords: ["美国超市采购", "超市省钱", "买菜省钱", "grocery 省钱
     <!-- 周 1 -->
     <g transform="translate(60, 75)">
       <text x="0" y="14" font-size="11" fill="#444" font-weight="600">第 1 周</text>
-      <rect x="60" y="0" width="100" height="40" fill="#fdf0f0" stroke="#c0392b" stroke-width="1.5" rx="4"/>
-      <text x="110" y="17" text-anchor="middle" font-size="10" fill="#c0392b" font-weight="600">Costco</text>
+      <rect x="60" y="0" width="100" height="40" fill="#fdf0f0" stroke="#a86d63" stroke-width="1.5" rx="4"/>
+      <text x="110" y="17" text-anchor="middle" font-size="10" fill="#7d4e46" font-weight="600">Costco</text>
       <text x="110" y="32" text-anchor="middle" font-size="9" fill="#666">~$180 大宗</text>
-      <rect x="170" y="0" width="100" height="40" fill="#f0fff4" stroke="#27ae60" stroke-width="1" rx="4"/>
-      <text x="220" y="17" text-anchor="middle" font-size="10" fill="#27ae60" font-weight="600">Walmart</text>
+      <rect x="170" y="0" width="100" height="40" fill="#f0fff4" stroke="#7a9e7e" stroke-width="1" rx="4"/>
+      <text x="220" y="17" text-anchor="middle" font-size="10" fill="#557559" font-weight="600">Walmart</text>
       <text x="220" y="32" text-anchor="middle" font-size="9" fill="#666">~$50 周补</text>
     </g>
 
     <!-- 周 2 -->
     <g transform="translate(60, 125)">
       <text x="0" y="14" font-size="11" fill="#444" font-weight="600">第 2 周</text>
-      <rect x="60" y="0" width="100" height="40" fill="#fff8f0" stroke="#c0392b" stroke-width="1.5" rx="4"/>
-      <text x="110" y="17" text-anchor="middle" font-size="10" fill="#c0392b" font-weight="600">亚洲超市</text>
+      <rect x="60" y="0" width="100" height="40" fill="#fff8f0" stroke="#a86d63" stroke-width="1.5" rx="4"/>
+      <text x="110" y="17" text-anchor="middle" font-size="10" fill="#7d4e46" font-weight="600">亚洲超市</text>
       <text x="110" y="32" text-anchor="middle" font-size="9" fill="#666">~$80 调料+蔬菜</text>
-      <rect x="170" y="0" width="100" height="40" fill="#f0fff4" stroke="#27ae60" stroke-width="1" rx="4"/>
-      <text x="220" y="17" text-anchor="middle" font-size="10" fill="#27ae60" font-weight="600">Walmart</text>
+      <rect x="170" y="0" width="100" height="40" fill="#f0fff4" stroke="#7a9e7e" stroke-width="1" rx="4"/>
+      <text x="220" y="17" text-anchor="middle" font-size="10" fill="#557559" font-weight="600">Walmart</text>
       <text x="220" y="32" text-anchor="middle" font-size="9" fill="#666">~$40 周补</text>
     </g>
 
     <!-- 周 3 -->
     <g transform="translate(60, 175)">
       <text x="0" y="14" font-size="11" fill="#444" font-weight="600">第 3 周</text>
-      <rect x="60" y="0" width="100" height="40" fill="#fef5e7" stroke="#f39c12" stroke-width="1" rx="4"/>
-      <text x="110" y="17" text-anchor="middle" font-size="10" fill="#f39c12" font-weight="600">Trader Joe's</text>
+      <rect x="60" y="0" width="100" height="40" fill="#fef5e7" stroke="#b58a5d" stroke-width="1" rx="4"/>
+      <text x="110" y="17" text-anchor="middle" font-size="10" fill="#8a6841" font-weight="600">Trader Joe's</text>
       <text x="110" y="32" text-anchor="middle" font-size="9" fill="#666">~$50 零食</text>
-      <rect x="170" y="0" width="100" height="40" fill="#f0fff4" stroke="#27ae60" stroke-width="1" rx="4"/>
-      <text x="220" y="17" text-anchor="middle" font-size="10" fill="#27ae60" font-weight="600">Aldi</text>
+      <rect x="170" y="0" width="100" height="40" fill="#f0fff4" stroke="#7a9e7e" stroke-width="1" rx="4"/>
+      <text x="220" y="17" text-anchor="middle" font-size="10" fill="#557559" font-weight="600">Aldi</text>
       <text x="220" y="32" text-anchor="middle" font-size="9" fill="#666">~$40 省钱</text>
     </g>
 
     <!-- 周 4 -->
     <g transform="translate(60, 225)">
       <text x="0" y="14" font-size="11" fill="#444" font-weight="600">第 4 周</text>
-      <rect x="60" y="0" width="100" height="40" fill="#fff8f0" stroke="#c0392b" stroke-width="1.5" rx="4"/>
-      <text x="110" y="17" text-anchor="middle" font-size="10" fill="#c0392b" font-weight="600">亚洲超市</text>
+      <rect x="60" y="0" width="100" height="40" fill="#fff8f0" stroke="#a86d63" stroke-width="1.5" rx="4"/>
+      <text x="110" y="17" text-anchor="middle" font-size="10" fill="#7d4e46" font-weight="600">亚洲超市</text>
       <text x="110" y="32" text-anchor="middle" font-size="9" fill="#666">~$60 蔬菜+肉</text>
-      <rect x="170" y="0" width="100" height="40" fill="#f0fff4" stroke="#27ae60" stroke-width="1" rx="4"/>
-      <text x="220" y="17" text-anchor="middle" font-size="10" fill="#27ae60" font-weight="600">Walmart</text>
+      <rect x="170" y="0" width="100" height="40" fill="#f0fff4" stroke="#7a9e7e" stroke-width="1" rx="4"/>
+      <text x="220" y="17" text-anchor="middle" font-size="10" fill="#557559" font-weight="600">Walmart</text>
       <text x="220" y="32" text-anchor="middle" font-size="9" fill="#666">~$30 补缺</text>
     </g>
 
@@ -112,7 +112,7 @@ keywords: ["美国超市采购", "超市省钱", "买菜省钱", "grocery 省钱
       <line x1="0" y1="0" x2="630" y2="0" stroke="#444" stroke-width="1"/>
       <text x="0" y="22" font-size="12" fill="#444" font-weight="600">月度合计</text>
       <text x="170" y="22" font-size="11" fill="#666">Costco $180 + 亚超 $140 + Walmart $120 + TJ $50 + Aldi $40 = </text>
-      <text x="600" y="22" font-size="12" fill="#c0392b" font-weight="700">~$530</text>
+      <text x="600" y="22" font-size="12" fill="#7d4e46" font-weight="700">~$530</text>
     </g>
   </g>
 </svg>

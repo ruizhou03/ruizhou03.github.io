@@ -28,13 +28,13 @@ keywords: ["可复现研究", "复现 reproducibility", "replication package", "
       <path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
     </marker>
   </defs>
-  <rect x="20" y="40" width="150" height="60" rx="6" fill="#eef3fb" stroke="#3b6ea5"/>
+  <rect x="20" y="40" width="150" height="60" rx="6" fill="#eef3fb" stroke="#5e7c98"/>
   <text x="95" y="66" text-anchor="middle" font-size="14" fill="#1f3b5b">data/raw/</text>
   <text x="95" y="86" text-anchor="middle" font-size="11" fill="#5a7">只读 · 永不手改</text>
-  <rect x="245" y="40" width="150" height="60" rx="6" fill="#fdf3e7" stroke="#b07b2f"/>
+  <rect x="245" y="40" width="150" height="60" rx="6" fill="#fdf3e7" stroke="#8a6841"/>
   <text x="320" y="66" text-anchor="middle" font-size="14" fill="#7a531a">code/</text>
   <text x="320" y="86" text-anchor="middle" font-size="11" fill="#a86">唯一改动入口</text>
-  <rect x="470" y="40" width="150" height="60" rx="6" fill="#eef9ef" stroke="#3a8a4a"/>
+  <rect x="470" y="40" width="150" height="60" rx="6" fill="#eef9ef" stroke="#557559"/>
   <text x="545" y="66" text-anchor="middle" font-size="14" fill="#1f5b2e">output/</text>
   <text x="545" y="86" text-anchor="middle" font-size="11" fill="#5a7">可随时删了重生成</text>
   <line x1="170" y1="70" x2="240" y2="70" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>

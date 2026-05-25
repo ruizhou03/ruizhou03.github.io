@@ -51,31 +51,31 @@ keywords: ["手洗 vs 机洗", "手洗", "机洗", "hand wash", "machine wash", 
   <text x="360" y="42" text-anchor="middle" font-size="11" fill="#666">手洗 vs 机洗的本质区别就是这四个变量的不同组合</text>
   <circle cx="240" cy="200" r="120" fill="none" stroke="#333" stroke-width="2"/>
   <text x="240" y="200" text-anchor="middle" font-size="12" fill="#333" font-weight="700">手洗</text>
-  <path d="M 240 200 L 240 80" stroke="#3498db" stroke-width="3" opacity="0.8"/>
-  <text x="240" y="76" text-anchor="middle" font-size="11" fill="#3498db" font-weight="600">温度（弱）</text>
+  <path d="M 240 200 L 240 80" stroke="#7a99b8" stroke-width="3" opacity="0.85"/>
+  <text x="240" y="76" text-anchor="middle" font-size="11" fill="#5e7c98" font-weight="600">温度（弱）</text>
   <text x="240" y="96" text-anchor="middle" font-size="9" fill="#666">通常室温</text>
-  <path d="M 240 200 L 360 200" stroke="#e67e22" stroke-width="3" opacity="0.8"/>
-  <text x="380" y="200" text-anchor="middle" font-size="11" fill="#e67e22" font-weight="600">机械（弱）</text>
+  <path d="M 240 200 L 360 200" stroke="#b58a5d" stroke-width="3" opacity="0.85"/>
+  <text x="380" y="200" text-anchor="middle" font-size="11" fill="#8a6841" font-weight="600">机械（弱）</text>
   <text x="380" y="218" text-anchor="middle" font-size="9" fill="#666">手部搓揉</text>
-  <path d="M 240 200 L 240 320" stroke="#27ae60" stroke-width="3" opacity="0.8"/>
-  <text x="240" y="338" text-anchor="middle" font-size="11" fill="#27ae60" font-weight="600">时间（中）</text>
+  <path d="M 240 200 L 240 320" stroke="#7a9e7e" stroke-width="3" opacity="0.85"/>
+  <text x="240" y="338" text-anchor="middle" font-size="11" fill="#557559" font-weight="600">时间（中）</text>
   <text x="240" y="354" text-anchor="middle" font-size="9" fill="#666">5-15 分钟</text>
-  <path d="M 240 200 L 120 200" stroke="#c0392b" stroke-width="3" opacity="0.8"/>
-  <text x="100" y="200" text-anchor="middle" font-size="11" fill="#c0392b" font-weight="600">化学</text>
+  <path d="M 240 200 L 120 200" stroke="#a86d63" stroke-width="3" opacity="0.85"/>
+  <text x="100" y="200" text-anchor="middle" font-size="11" fill="#7d4e46" font-weight="600">化学</text>
   <text x="100" y="218" text-anchor="middle" font-size="9" fill="#666">少量洗涤剂</text>
   <circle cx="540" cy="200" r="120" fill="none" stroke="#333" stroke-width="2"/>
   <text x="540" y="200" text-anchor="middle" font-size="12" fill="#333" font-weight="700">机洗（标准）</text>
-  <path d="M 540 200 L 540 60" stroke="#3498db" stroke-width="6" opacity="0.8"/>
-  <text x="540" y="56" text-anchor="middle" font-size="11" fill="#3498db" font-weight="600">温度（中-高）</text>
+  <path d="M 540 200 L 540 60" stroke="#7a99b8" stroke-width="6" opacity="0.85"/>
+  <text x="540" y="56" text-anchor="middle" font-size="11" fill="#5e7c98" font-weight="600">温度（中-高）</text>
   <text x="540" y="76" text-anchor="middle" font-size="9" fill="#666">30-60 ℃</text>
-  <path d="M 540 200 L 680 200" stroke="#e67e22" stroke-width="6" opacity="0.8"/>
-  <text x="680" y="200" text-anchor="middle" font-size="11" fill="#e67e22" font-weight="600">机械（强）</text>
+  <path d="M 540 200 L 680 200" stroke="#b58a5d" stroke-width="6" opacity="0.85"/>
+  <text x="680" y="200" text-anchor="middle" font-size="11" fill="#8a6841" font-weight="600">机械（强）</text>
   <text x="680" y="218" text-anchor="middle" font-size="9" fill="#666">滚筒翻滚</text>
-  <path d="M 540 200 L 540 340" stroke="#27ae60" stroke-width="6" opacity="0.8"/>
-  <text x="540" y="356" text-anchor="middle" font-size="11" fill="#27ae60" font-weight="600">时间（长）</text>
+  <path d="M 540 200 L 540 340" stroke="#7a9e7e" stroke-width="6" opacity="0.85"/>
+  <text x="540" y="356" text-anchor="middle" font-size="11" fill="#557559" font-weight="600">时间（长）</text>
   <text x="540" y="354" text-anchor="middle" font-size="9" fill="#666">60-180 分钟</text>
-  <path d="M 540 200 L 400 200" stroke="#c0392b" stroke-width="5" opacity="0.8"/>
-  <text x="400" y="200" text-anchor="middle" font-size="11" fill="#c0392b" font-weight="600">化学</text>
+  <path d="M 540 200 L 400 200" stroke="#a86d63" stroke-width="5" opacity="0.85"/>
+  <text x="400" y="200" text-anchor="middle" font-size="11" fill="#7d4e46" font-weight="600">化学</text>
   <text x="400" y="218" text-anchor="middle" font-size="9" fill="#666">充分</text>
 </svg>
 <p class="img-caption">手洗的优势：<strong>机械力可以精准控制</strong>（你能针对污渍重点搓）+ 温度低对衣物友好；缺点：化学接触、温度、时间都偏弱。机洗的优势：<strong>四个变量都更强</strong>（特别是机械翻滚 + 时间），所以<strong>总体清洁力更高</strong>——但物理力大也意味着对娇贵衣物更不友好。这就是 trade-off。</p>

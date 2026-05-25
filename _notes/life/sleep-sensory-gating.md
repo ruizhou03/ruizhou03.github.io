@@ -73,7 +73,7 @@ keywords: ["闭眼 透光", "眼皮 透光率", "眼皮不能完全挡光", "眼
 这就是为什么**闭眼直视太阳或台灯时，你看到的是红色或橙红色**——可见光被血红蛋白过滤掉了短波部分，只剩长波红光透过。如果你用手指压住闭着的眼皮再慢慢松开，看到的“光球”也会是红色——这是更厚一层血液过滤的结果。
 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 280" style="max-width:100%;height:auto;display:block;margin:1.4em auto;">
-  <text x="350" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">眼皮的"光谱滤镜"：蓝光挡得多，红光透得多</text>
+  <text x="350" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">眼皮的“光谱滤镜”：蓝光挡得多，红光透得多</text>
 
   <!-- Axes -->
   <line x1="80" y1="220" x2="640" y2="220" stroke="#888" stroke-width="1.5"/>
@@ -107,7 +107,7 @@ keywords: ["闭眼 透光", "眼皮 透光率", "眼皮不能完全挡光", "眼
   <!-- Why annotation -->
   <text x="350" y="55" text-anchor="middle" font-size="11" fill="#444" font-weight="600">血红蛋白在 400-600 nm 强吸收，对 600+ nm 透过</text>
 </svg>
-<p class="img-caption">闭眼时眼皮充当一片"偏色的半透膜"——蓝光被血红蛋白几乎完全挡住，红光大部分透过，所以闭眼对强光会看到橙红色。这点透过的光对昼夜节律已经足够了：视网膜里专门感知"光强"（不参与成像）的 ipRGC 细胞会把"现在外面是亮的"这一信息直接送到生物钟。</p>
+<p class="img-caption">闭眼时眼皮充当一片“偏色的半透膜”——蓝光被血红蛋白几乎完全挡住，红光大部分透过，所以闭眼对强光会看到橙红色。这点透过的光对昼夜节律已经足够了：视网膜里专门感知“光强”（不参与成像）的 ipRGC 细胞会把“现在外面是亮的”这一信息直接送到生物钟。</p>
 
 这有几个重要含义：
 
@@ -161,7 +161,7 @@ ipRGC + 眼皮的组合给了大脑一种“省力的光强监测”：
 这就是“睡着了感觉不到”的核心机制——**不是耳朵关了、不是眼睛关了，是信号被卡在了丘脑这道闸门上**。
 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" style="max-width:100%;height:auto;display:block;margin:1.4em auto;">
-  <text x="360" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">感觉信号的两种命运：清醒"全开"，睡眠"过滤"</text>
+  <text x="360" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">感觉信号的两种命运：清醒“全开”，睡眠“过滤”</text>
 
   <!-- LEFT: awake -->
   <g transform="translate(40, 50)">
@@ -190,7 +190,7 @@ ipRGC + 眼皮的组合给了大脑一种“省力的光强监测”：
     <line x1="210" y1="45" x2="260" y2="45" stroke="#888" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arr-k)"/>
     <rect x="260" y="30" width="60" height="30" fill="#fef5e6" stroke="#e57f00"/>
     <text x="290" y="50" text-anchor="middle" font-size="10" fill="#e57f00">皮层</text>
-    <text x="170" y="115" text-anchor="middle" font-size="10" fill="#444">大多数被过滤；**显著性高**的可突破</text>
+    <text x="170" y="115" text-anchor="middle" font-size="10" fill="#444">大多数被过滤；显著性高的可突破</text>
   </g>
 
   <!-- Right side: salience filter detail -->
@@ -216,7 +216,7 @@ ipRGC + 眼皮的组合给了大脑一种“省力的光强监测”：
     <marker id="arr-k" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#888"/></marker>
   </defs>
 </svg>
-<p class="img-caption">睡眠中的感官系统不是关掉的，是被丘脑（特别是网状核 TRN）"半开"地过滤。耳朵、眼皮（透过的部分）、皮肤都仍在采集信号——但只有"显著性高"的信号能突破闸门、上达皮层、唤醒意识。这种设计兼顾了"安心睡"和"危险时能醒"两个相反需求。</p>
+<p class="img-caption">睡眠中的感官系统不是关掉的，是被丘脑（特别是网状核 TRN）“半开”地过滤。耳朵、眼皮（透过的部分）、皮肤都仍在采集信号——但只有“显著性高”的信号能突破闸门、上达皮层、唤醒意识。这种设计兼顾了“安心睡”和“危险时能醒”两个相反需求。</p>
 
 ## 3.4 显著性过滤：为什么自己的名字能把你叫醒
 

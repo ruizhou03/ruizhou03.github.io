@@ -3,7 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "GRE"
 title: "备考 GRE 少不了的总认知"
-keywords: ["GRE 备考认知", "GRE 备考方法", "GRE prep mindset", "GRE 经验帖批判", "GRE 倒扣机制", "GRE 计分规则", "GRE 320", "GRE 330", "GRE 逻辑考试", "GRE 容错率", "GRE 自学", "GRE 半脱产", "GRE 起步", "GRE 北大学姐", "GRE 留学机构", "GRE 备靠"]
+keywords: ["GRE 备考认知", "GRE 备考方法", "GRE prep mindset", "GRE 经验帖批判", "GRE 倒扣机制", "GRE 计分规则", "GRE 320", "GRE 330", "GRE 逻辑考试", "GRE 容错率", "GRE 自学", "GRE 半脱产", "GRE 起步", "GRE 北大学姐", "GRE 留学机构", "GRE 备考", "GRE 备靠"]
 date: 2024-06-24
 discipline: "语言考试"
 course: "GRE"
