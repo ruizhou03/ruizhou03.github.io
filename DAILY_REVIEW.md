@@ -1,3 +1,9 @@
+## 2026-05-25
+
+工作区有未提交改动（`scripts/daily_review.sh`），未做巡检。按规则不碰未提交内容，本次只更新 DAILY_REVIEW 并退出，等下次工作区干净时再跑完整巡检。
+
+---
+
 ## 2026-05-22
 
 ### ✅ 本次已自动修复
@@ -59,14 +65,14 @@
 #### P1（有空再做）
 
 1. **65 处文章图片下面的短段落疑似漏用 `<p class="img-caption">` 包裹**
-   - 来源：`scripts/audit/images.py` 启发式扫描——会把"图片紧邻的下一段短文字"标出来，已知会把"短首段（非配文）"误报。
+   - 来源：`scripts/audit/images.py` 启发式扫描——会把“图片紧邻的下一段短文字”标出来，已知会把“短首段（非配文）”误报。
    - 高频热点：
      - `_notes/course-reviews/marketing-review-2023.md` 至少 5 处
      - `_notes/research/r-brucer-moderation-mediation.md`、`r-data-processing-aggregation.md` 等 R 教程多处
      - `organizational-mgmt-review-2022.md`、`causal-id-review-2023.md` 等课程测评
    - 影响：视觉上配文不会按站内统一灰小字渲染，和已规范的图片差异较明显。
    - 建议：用 `/image-caption` skill 一篇一篇过；高频文章先收口（marketing-review-2023 / R 教程系列）。
-   - 我没自动改：65 处里掺着真实的"短首段"误报，自动批量包会污染正文。
+   - 我没自动改：65 处里掺着真实的“短首段”误报，自动批量包会污染正文。
 
 2. **414 处图缺 `alt` 文本（可访问性 / SEO 提醒）**
    - 影响：屏幕阅读器读不到图片含义；Google 图片搜索也少一个抓手。
@@ -90,7 +96,7 @@
   - `_data/email_summary_config.json` 包含 3 个邮箱地址，但因 `_data/` 不会落到 `_site/`，已确认不会被 Jekyll 暴露成公开页。
   - `email-summary-notify.yml` 全程走内置 `github.token`，无外部密钥。
 - **大文件**：与昨日一致；`files/or/or-2023.pdf` 5.30 MB 是既定基线，不动。
-- **结论**：今日修了 1 个"明天就会泄漏"的 exclude 漏网（EMAIL_SUMMARY）+ 1 个 skill 文档与新结构的对齐；除此之外仓库结构相对昨日无需再优化。
+- **结论**：今日修了 1 个“明天就会泄漏”的 exclude 漏网（EMAIL_SUMMARY）+ 1 个 skill 文档与新结构的对齐；除此之外仓库结构相对昨日无需再优化。
 
 ---
 
