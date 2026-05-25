@@ -1,3 +1,325 @@
+## 2026-05-26（Round 3 · 100 项专项抽检）
+
+### ✅ 本次已自动修复
+
+由站主在对话中第三次触发的 **100 项大规模专项抽检**（承接 2026-05-26 上午的 Round-1 20 项 + Round-2 100 项，三轮合计 **220 项 ≈ 全站资产 53%**）。本次按“5 批 × 20 项串行 + 单 agent 深度审查”模式执行，每批完成后单独 commit + push，**合计 7 次 commit、129 个文件被修改、761 + 697 行变更**。
+
+**总修复（按类型聚合）**：
+
+| 类别 | 修复处数 | 文件数 |
+|------|---------|--------|
+| 表格 / 正文裸 `$` → `\$`（KaTeX 误判修复） | ~30+ | 13（life） |
+| `$X$-$Y\,unit$` 单数字 LaTeX 独立包裹（pattern 已清零） | 46 | 13 |
+| img-caption 内 Markdown `**xxx**` → `<strong>xxx</strong>` | 27 | 17 |
+| SVG `<text>` 中文 `font-style="italic"` 删除 | 17 | 8 |
+| SVG 鲜艳色 → 莫兰迪（cd5a804 改造扩展） | ~25 组 | 5+ life, 多 toolbox |
+| 文末孤立 `---` 删除 | 6 | 6 |
+| 中英文紧贴空格补齐 | ~15 | 多 |
+| 错别字 / typo 修复 | ~8 | causal-id-review / r-correlation-distance / 其它 |
+| keywords 扩充（PDF-only 笔记 / 长尾错搜补齐） | ~80 项 | 7 |
+| toolbox `@media (hover: hover)` 包裹（消除触屏 sticky） | ~12 | tetris/vocab/leap 等 |
+| toolbox aria-label 补齐 | ~6 | tetris/time 等 |
+| **解决 Round-2 遗留 P0** | 1 | `marxism-principles.md` 空括号补 c/v/m + 公式 W=c+v+m + 剩余价值率 m'=m/v×100% |
+| toefl-first-attempt 裸 URL → markdown link | 1 | 1 |
+| us-phone-plans keywords 22→28 扩充 | 1 | 1 |
+
+`bundle exec jekyll build` 通过验证（见末尾 build 块）。
+
+### 📋 待你把关
+
+合计 **P0 × 2 / P1 × ~68 / P2 × 散落**（按批分布详见下文 🔬 抽检专项 Round-3 五批详细记录）。
+
+**P0（必须站主把关）**：
+
+1. **`_notes/course-reviews/taichi-review-2023.md` L29 “85 公里跑”** —— Batch 2 发现。85 km 是马拉松距离，PKU 暑校 PE 不可能；疑严重 typo / OCR 错。建议站主核对实际项目（800 m？3000 m？8 km？）后改回。
+2. **`_notes/life/coaster-drop-tower-braking.md` L69 物理论述自相矛盾** —— Batch 3 发现。“反向力大小与运动速度的平方有关——准确说，理想情况下与速度成正比” 同句“平方”与“成正比”互斥；电涡流制动低速段是 $F \propto v$，高速段才饱和。建议改为“与运动速度成正比”。L195 “约为每年 2.5 亿次乘坐 1 人” 安全统计来源不明，需核对 IAAPA / NSC 数据。
+
+**P1 高优集群**：
+
+1. **course-reviews schema 系统性缺失**（全 5 批都有命中，本轮 6 篇）：psy-stat-1 / psy-stat-2 / taichi / monetary-econ / interm-macro / table-tennis / game-theory 缺统一评分表（workload / grading / lectures / gains）+ TL;DR + summary。建议升级 `_layouts/course_review.html` 强制 `ratings:` front-matter（叠加 Round-2 已发现 7 篇，合计 ≥ 13 篇）。
+2. **PDF-only 笔记空骨架 + 三联缺失（summary / 自动导语 / keywords < 15）**：本轮命中 12+ 文件（adv-micro-psu/2025-midterm-2 / 2026-midterm-1 / 2026-midterm-2 / psy-stat-I/cheat-sheet-mid-2022 / psy-stat-I/cheat-sheet-final-2022 / corp-fin/mid-2020-en / mid-sample-1-sol / mid-sample-3-sol / final-2021 / final-2022 / quadratic-inequality / sphere / math / math-thinking / solid-geometry）。建议引入 `_includes/pdf_note_intro.html` 自动导语模板。
+3. **us-medical-bills-and-tips 53 处未转义裸 `$`** —— Batch 2 发现，KaTeX 会把成对 `$...$` 之间的金额识别为公式。可写 `scripts/fix_dollar.py` 类似 fix_quotes 的工具（跳过 fenced code block）批量修复。
+4. **toolbox 莫兰迪化未全覆盖**：Round-2 已点名 breakout / drawing / forest / minesweeper / gomoku / schulte / snake / suika 8+；本轮新发现 dare / countdown / tax-bracket / metronome / roll-call / vocab / vision / pitch（其中后 3 个本轮已就地修）。建议站主决策“统一改造”还是“显式保留游戏识别色（如 tetris 七色块、connect4 红黄）”。
+5. **toolbox 长文件拆 JS**：guandan 2565 行 / tiaoqi 2018 行 / time 1396 行接近阈值。叠加 Round-2 已发现 doudizhu 5481 / suika 4345 / fruit-ninja 3570 / picker 1710，建议批量拆出 `/assets/js/games/<name>.js`。
+6. **adv-micro-psu/chapters/ ch1-ch9 9 个 PDF 集体无 .md 入口** —— 主讲义 adv-micro-psu-2026.md 只链整本 Micro.pdf，章节切片读者通过站内无路径访问。
+7. **adv-macro-psu 整门课主笔记 .md 完全缺失** —— micro 有，macro 没有；ch1-ch12 PDF + .tex 源在仓库但无入口，需补 `_notes/study/adv-macro-psu/` 目录 + 主笔记。
+8. **research R 教程系列纯图集无正文**：r-brucer-moderation-mediation（28 jpg）/ r-multiple-linear-regression（19 jpg）/ r-moderation-mediation / r-correlation-distance；建议补 setup 说明 + 文末小结。
+9. **handwash-vs-machine 参考文献 1（Sinner 1959 Henkel）** 可靠性建议复核。
+10. **`$X$-$Y\%$` 单数字 LaTeX 独立包裹** Batch 3 已全 _notes/ grep 清零（46 处），Batch 4 又补 3 处。pattern 现已稳定。
+
+### 🗂 仓库卫生
+
+本轮（叠加 Round-2）累积出的系统性缺陷：
+
+1. **生活长文裸 `$` 触发 KaTeX 误判** —— Batch 1 已修 13 life；us-medical-bills 53 处单文件最严重；建议 audit 钩子 + fix_dollar.py 工具
+2. **course-reviews schema 重整** —— 13+ 篇命中（跨 3 轮抽检），是 layout 级缺陷
+3. **PDF-only 笔记骨架页 12+ 篇空骨架 / 缺 summary / keywords 偏薄** —— `_includes/pdf_note_intro.html` 模板是最高 ROI 改造
+4. **chapter PDFs 集体无 .md** —— adv-micro-pku / adv-micro-psu / adv-macro-psu 三门课统一问题
+5. **toolbox 莫兰迪化 16+ 文件未覆盖**（Round-2 8 + 本轮 8）—— 一次性决策“统改 vs 显式豁免”清理
+6. **toolbox 7+ 文件超 1500 行未拆 JS** —— 影响首屏 parse + 长期维护
+7. **early 文章中英文紧贴** 散布多处，可考虑全 _notes/ 跑一次空格修复脚本
+
+### 💓 后端脉搏
+
+本次未跑（手动触发的 Round-3 100 项抽检专场，跳过日常审计三件套）。
+
+### 📬 读者来信
+
+本次未跑（同上）。
+
+### 🔬 抽检专项 Round-3（100 项五批详细记录）
+
+> **总览**：今日由站主第三次在对话中触发 100 项专项抽检。100 项 = 22 life + 10 recipes + 12 study + 10 pdf + 14 toolbox + 8 research + 7 course-review + 5 pre-high + 5 gre + 5 toefl + 2 essay。固定种子 `20260526` 随机抽样，类型化 quota 分配，**单 agent × 5 批串行**执行（与 Round-2 5 × 20 并行 + 4 agent 并行的模式互补，本轮串行更注重深度而非速度）。每批完成后独立 commit + push。
+
+**分批小计**：
+
+| 批次 | 项数 | 已修（含 bonus 扩展扫修） | P0 | P1 | 主要发现 |
+|------|------|--------|-----|-----|---------|
+| Batch 1 | 20 | 8 样本内 + 24 bonus（13 文件裸 `$` KaTeX 误判修） | 0 | 17 | chapter PDFs 全孤立；toolbox 莫兰迪未全覆盖 |
+| Batch 2 | 20 | 21 样本内 + 17 bonus（10 文件 img-caption MD + 7 文件 SVG italic） | 1 | 22 | course-reviews 3 篇缺评分表；us-medical-bills 53 处 KaTeX 风险；taichi “85 公里跑”P0 |
+| Batch 3 | 20 | 3 样本 + 46 全 _notes 单数字 LaTeX 修 + 解决 Round-2 marxism P0 + 多 toolbox 莫兰迪 bonus | 1 | 12 | coaster-drop-tower L69 物理矛盾 P0；解决 marxism-principles 结构性 P0 |
+| Batch 4 | 20 | 3（1 样本 + 2 Batch 3 漏修补齐） | 0 | 9 | course-reviews 2 篇 schema；tiaoqi 2018 行 |
+| Batch 5 | 20 | 21 样本（5 文件 SVG 鲜艳色 → 莫兰迪 + 多文件 keywords 扩充） | 0 | 9 | 5 文件 SVG 一次性莫兰迪；chapters/ch1-ch9 集体无 .md |
+| **合计** | **100** | **143** | **2** | **69** | |
+
+#### Batch 1 详细记录（20 项）
+
+承接：6 life + 1 recipe + 1 research + 3 pdf + 4 toolbox + 2 toefl + 1 study + 2 gre
+
+**关键修复**（8 处覆盖 6 个文件，+ proactive bonus 12 个文件 ~24 处）：
+- `physical-documents-in-us.md`：SVG 中文 `font-style="italic"` 删 + img-caption `**xxx**` → `<strong>` + 文末孤立 `---` 删
+- `stain-removal.md`：img-caption 4 处 `**xxx**` → `<strong>`
+- `us-renting-guide.md` / `us-grocery-stores.md`：文末孤立 `---` 删
+- `toefl-first-attempt.md`：裸 URL → markdown link
+- **Bonus（跨样本同 pattern 修复）**：beef-cuts / bike-saddle-height-scale / can-i-default-and-leave-us / cut-fish / electric-vs-manual-toothbrush / fish-types-guide / fresh-vs-frozen-fish / phantom-traffic-jam / special-garments-care / tooth-brushing-timing / us-carrier-deals-decoded / us-phone-plans / us-postal-system-guide 表格 / 正文裸 `$` → `\$` 转义（KaTeX 误判数学模式）；us-phone-plans keywords 22 → 28 条扩充
+
+**关键待办**：
+
+- P1 · `tikz-econ-figures.md` line 30 `pgfplots compat=1.18` 版本可考虑升级
+- P1 · `physical-documents-in-us.md` line 282 ESIGN Act 链接（FDIC 旧手册 PDF）疑似失效，需复核
+- P1 · `us-renting-guide.md` line 84/227/279/424 `$20$-$30\%$` LaTeX 单数字单独包裹 → 渲染断裂；建议改 `$20\%$-$30\%$` 或 `20%-30%`；引号风格混乱建议跑 `fix_quotes`
+- P1 · chapter PDFs 全孤立（adv-micro-pku / adv-micro-psu / adv-macro-psu）—— 整本拆出 ch1-ch12 但没 .md 引用；**adv-macro-psu 整门课主笔记 .md 完全缺失**（micro 有，macro 没有）
+- P1 · `toolbox/guandan/index.html` 2565 行 > 1500 行警戒线，需拆 `/assets/js/games/guandan.js`
+- P1 · `toolbox/dare/index.html` 硬编码鲜艳色未莫兰迪化（`#c0392b` / `#10b981`）+ 缺 games-shell 三件套（identity / wins-leaderboard / nick-prompt）
+- P1 · `toolbox/countdown/index.html` 硬编码 `#dc2626` `#c0392b` 未莫兰迪化；line 71 与 78 `content` 同选择器双写（🔴 死代码）
+- P1 · `toolbox/tax-bracket/index.html` line 134 `#c0392b` 硬编码；2026 IRS brackets 是估算值需每年校对；KS 州税 0.057 已过时（实际 0.054/0.053）
+- P1 · `toefl-templates-2023.md`：summary 缺 + keywords 13 条（不达标）+ 裸 toeflresources.com 未链接 + 图片堆缺自动导语
+- P1 · `psy-stat-I/cheat-sheet-final-2022.md`：正文 0 行 PDF-only 缺自动导语 + keywords 8 条偏薄
+- P1 · `gre-first-attempt.md`：summary 缺 + alt 文本 “KFC 烤鸡腿堡 ... KTV 包间桌” 杜撰
+- P1 · `gre-issue-pool.md`：summary 缺 + keywords 12 条偏薄 + 缺分类维度导语
+- P1 · `toefl-first-attempt.md`：summary 缺；line 33 “讲座部分开倍速”建议加考试不可开的免责说明
+- P1 · `cooking-oils-guide.md` line 261 de Alzaa 2018 出自 predatory journal 候选，建议改 Q1 综述
+- P1 · `us-grocery-stores.md` line 132 Costco hot dog “40 年未涨价” 严格说约 39 年（1985 起）
+
+**横向 patterns**：
+1. chapter PDFs 全孤立无 .md 入口（3 门课）
+2. 文末孤立 `---` 在 life 长文反复出现（疑 new-post 模板默认输出）
+3. toolbox 莫兰迪整改未覆盖 dare / countdown / tax-bracket（cd5a804 漏改）
+4. toolbox 工具类漏 games-shell 集成（dare 只 comments / countdown 0 / tax-bracket 0）
+5. 图片堆型骨架页 summary / keywords / 自动导语 三联缺失（toefl-templates / psy-stat-cheat-sheet / gre-issue-pool）
+6. LaTeX 算式包裹粒度过细（`$5$-$8\%$` 全站可能多处）
+7. 表格 / 正文裸 `$` 触发 KaTeX 误判（已批量修 13 个文件）
+
+**本批最高分**：cut-meat-grain / tikz-econ-figures / zhashutiao / cooking-oils-guide / stain-removal（均 5 星）
+
+**本批最低分**：psy-stat-I/cheat-sheet-final-2022 / toolbox/dare / gre-issue-pool（均 3 星）
+
+
+---
+
+#### Batch 2 详细记录（20 项）
+
+承接：5 life + 1 recipe + 3 course-review + 3 toolbox + 1 essay + 1 toefl + 2 study + 1 pdf + 1 research + 1 gre
+
+**关键修复**（21 处样本内 + 17 处 bonus pattern 全 _notes/ 扫描 + toolbox/goals SVG italic）：
+- `psy-stat-2-review-2023.md`：`Cheating Sheet` → `Cheat Sheet`
+- `kettle-scale.md` / `washing-machine-basics.md`：img-caption `**` → `<strong>` + SVG 中文 italic 删
+- **Bonus（img-caption MD bold → strong 全 _notes/ 扫描）**：us-grocery-tactics / kitchen-food-storage / microwave-heating / wifi-through-walls / us-bottled-water / bike-balance-learning / wet-bike-braking-skid / handwash-vs-machine / pan-oil-temperature / cooking-water 10 文件 17 处
+- **Bonus（SVG `<text>` 中文 font-style=“italic” 全 _notes/ 扫描）**：broken-glass-cleanup / sleep-sensory-gating / wet-bike-braking-skid / pan-oil-temperature / wheat-flour-types / us-bathroom-stall-gaps / kitchen-starches 7 文件
+- math-only italic（tikz-econ-figures 数学变量）正确保留
+- `toolbox/goals/index.html` 动态 SVG `<text>` 中文 “目标” 删除 italic
+
+**关键待办**：
+
+- **P0 · `taichi-review-2023.md` L29 “85 公里跑”** —— 85 km 是马拉松距离，PE 课不可能；疑严重 typo
+- P1 · `course-reviews/table-tennis-review-2022.md`：分块标题用孤立 `- ` 不渲染列表，应改 `##` 二级标题或 `**`；缺评分表 + TL;DR + summary
+- P1 · `course-reviews/psy-stat-2-review-2023.md` / `taichi-review-2023.md`：缺评分表 + TL;DR + summary
+- P1 · `us-medical-bills-and-tips.md` 全文 53 处未转义裸 `$` 触发 KaTeX 误判
+- P1 · `kettle-scale.md` L108/109/111/151/201 共 5 处 `$X$-$Y$` 单数字独立包裹（Batch 3 已全 _notes/ 修完）
+- P1 · SVG 鲜艳色未莫兰迪化：us-asian-grocery (L122-194) / kettle-scale (L50-89) / washing-machine-basics (L62-76)
+- P1 · toolbox 语义红色：metronome L78 `#c83828` + roll-call L32 `#c0392b`
+- P1 · PDF-only 骨架页三联缺失：adv-micro-psu/2025-midterm-2 / psy-stat-I/cheat-sheet-mid-2022 / corp-fin/mid-sample-3-sol
+- P1 · `corp-fin/mid-sample-3-sol.md` title 写“试题”实为答案页 → 改“含解答”
+- P1 · `us-asian-grocery.md` 缺 summary（中文 31 keywords 但 summary 字段缺）
+- P1 · `toefl-second-attempt.md` 多处中英文紧贴 —— 散文风是否批量修归站主
+
+**横向 patterns（本批新发现）**：
+1. img-caption MD bold 跨 11 文件 17 处（叠加 Batch 1 已成最高频 pattern）
+2. SVG `<text>` 中文 italic 跨 7 文件 17 处（建议在 new-post skill 加红线）
+3. course-reviews schema 系统性缺失（本批 3 篇全中招）
+
+**本批最高分**：xiarenhuadan / timemachine / laundry-frequency / panel-did-eventstudy（均 5 星）
+
+**本批最低分**：us-medical-bills-and-tips（5 星内容但 53 处 KaTeX 风险）/ corp-fin/mid-sample-3-sol（title 误导 + 骨架）—— 3 星
+
+
+---
+
+#### Batch 3 详细记录（20 项）
+
+承接：5 life + 2 research + 4 study + 1 toefl + 2 toolbox + 1 pre-high + 1 essay + 1 course-review + 1 gre + 2 pdf
+
+**关键修复**（3 处样本内 + 46 处 `$X$-$Y$` 单数字独立包裹全 _notes 扫修 + 解决 Round-2 遗留 P0 marxism-principles 空公式 + toolbox 莫兰迪化 bonus）：
+- `roller-coaster-physics.md` L57/L116 img-caption MD bold → `<strong>`
+- `toefl-speaking-template.md` L21 “和AI说话” → “和 AI 说话”
+- `hiccups-mechanism.md` 2 处 img-caption MD bold（Batch 1-2 漏修）
+- **Bonus（全 _notes/ 共 46 处 `$X$-$Y\,unit$` LaTeX 单数字独立包裹）**：13 个文件改为 `$X\text{-}Y\,unit$`
+- **Bonus（解决 Round-2 Batch 4 遗留 P0）**：`marxism-principles.md` L344-346 空括号 `()` → `（$c$）`/`（$v$）`/`（$m$）`；L348 空公式 `.` → `$W = c + v + m$`；补“剩余价值率 $m' = \dfrac{m}{v} \times 100\%$” 公式 + L429 区分表格重排
+- **Bonus（toolbox 莫兰迪化扩展）**：vocab `#d97706/#4a7c59` → `#c8a96a/#8a9a8a`；vision `#10b981/#ef4444` → `#8a9a8a/#b78d8d`；其他多文件 `@media (hover: hover)` 包裹 hover（消除触屏 sticky）+ aria-label 补齐
+- **Bonus**：causal-id-review-2023 `Difference-in Differences` → `Difference-in-Differences`
+
+**关键待办**：
+
+- **P0 · `_notes/life/coaster-drop-tower-braking.md` L69 物理论述自相矛盾** —— “反向力大小与运动速度的平方有关——准确说，理想情况下与速度成正比”。同一句“平方”与“成正比”矛盾；电涡流制动低速段确为线性 $F \propto v$，高速段才饱和。建议改为“与运动速度成正比”
+- P1 · `coaster-drop-tower-braking.md` L195 “约为每年 2.5 亿次乘坐 1 人” 数字来源不明，应核 IAAPA 数据
+- P1 · PDF-only 笔记缺 `summary` + 自动导语：mid-2020-en / 2026-midterm-2 / cheat-sheet-mid-2022 / quadratic-inequality / final-2021（仅 real-anal-ch5-2024 完整）
+- P1 · research R 教程系列纯图集无正文：r-brucer-moderation-mediation（28 jpg）/ r-multiple-linear-regression（19 jpg）建议补 setup 说明
+- P1 · `course-reviews/game-theory-review-2023.md` 缺评分表 + TL;DR + summary（与前批 schema 系统性问题一致）
+- P1 · `vpn-setup-ios.md` 分类冲突：main_category “科研妙招” 但路径在 `_notes/life/` 且 permalink `/life/`；2023 老文未更新 ECH/Reality 等近年技术
+- P1 · `psy-stat-I/cheat-sheet-mid-2022.md` title “心理统计Ⅰ期中考试Cheat Sheet” 中英文紧贴 → “Cheat Sheet” 前补空格
+- P1 · `corp-fin/mid-2020-en.md` / `corp-fin/final-2021.md` keywords 仅 7 项偏薄（参考 final-2022 25 项）
+- P1 · `quadratic-inequality.md` PDF 路径 `quadratic-inequality/Main.pdf` 与其他 `files/<course>/<slug>.pdf` 不一致
+
+**横向 patterns（本批新发现）**：
+1. **PDF-only 笔记普遍缺 summary**：5 文件齐刷刷缺（已批量列入下一轮目标）
+2. **research R 教程纯图集**：早期作品系统性缺正文
+3. **`$X$-$Y\,unit$` 全 _notes/ 共 46 处 pattern 已清零**（13 个文件）
+4. **marxism-principles 结构性 P0 已解决**：c/v/m 公式 + 剩余价值率 + 区分表格全部补回
+5. **toolbox 莫兰迪化扩展**：vocab / vision / 多文件 hover sticky 触屏 / aria-label 补齐
+
+**本批最高分**：clothes-damage-physics / roller-coaster-physics / birthday-21（均 5 星）
+
+**本批最低分**：game-theory-review-2023（2 星，course-review schema 不完整）
+
+
+---
+
+#### Batch 4 详细记录（20 项）
+
+承接：4 life + 4 recipe + 2 course-review + 3 toolbox + 3 study + 2 pre-high + 1 research + 1 gre
+
+**关键修复**（1 处样本内 + 2 处 Batch 3 漏修补齐）：
+- `us-tipping-holidays-etiquette.md` L660 文末孤立 `---` 删
+- Bonus（Batch 3 `$X$-$Y$` LaTeX 单数字独立包裹漏修补齐）：
+  - `cooking-water.md` L178 农夫山泉硬度 `$30$-$50$` → `$30\text{-}50$`
+  - `fresh-vs-frozen-fish.md` L45-46 K 值区间 `$20$-$40\%$` / `$40$-$60\%$` → `$20\text{-}40\%$` / `$40\text{-}60\%$`
+
+**关键待办**：
+
+- P1 · `course-reviews/psy-stat-1-review-2022.md` — 缺评分表 + TL;DR + keywords 14 偏下限
+- P1 · `course-reviews/monetary-econ-review-2023.md` — 缺评分表 + TL;DR
+- P1 · `study/adv-micro-psu/2026-midterm-1.md` — 缺 summary + keywords 12 偏薄
+- P1 · `study/corp-fin/mid-sample-1-sol.md` — 缺 summary
+- P1 · `research/r-correlation-distance.md` — 无 summary + keywords 17 偏少 + 14 张截图无文字 fallback（SEO 弱）
+- P1 · `pre-high-school/math-thinking.md` — 缺 summary + keywords 10 偏薄
+- P1 · `pre-high-school/solid-geometry.md` — 缺 summary + keywords 10 偏薄
+- P1 · `toolbox/tiaoqi/index.html` 行数 2018 超 1500，建议拆 `/assets/js/games/tiaoqi.js`
+- P1 · `toolbox/tiaoqi/index.html` L1897 + `toolbox/feixingqi/index.html` + `assets/css/games-shell.css` 表决按钮 `#4caf50/#ef5350` 鲜艳红绿—跨 3 处统一在 games-shell.css 层莫兰迪化
+
+**横向 patterns**：
+1. 早期 course-review（2022-2023）系统性缺评分表 + TL;DR（本批 2 篇命中）
+2. PDF-only 骨架页系统性缺 summary 字段（本批 4 篇命中 vs psy-stat-II cheat-sheet 已加 summary 形成对照）
+3. games-shell 表决按钮鲜艳红绿（tiaoqi / feixingqi / games-shell.css 三处可统改）
+
+**本批最高分**：phantom-traffic-jam（IDM 实时模拟器 + 文献全引 = 专栏标杆）/ qifeng / bingpiyuebing / xiangjianjixiong / jiangyouzhengquandan / black-banana / git-for-papers / us-tipping / connect4 / goals / gre-mindset（均 5 星）
+
+**本批最低分**：psy-stat-1-review-2022 / monetary-econ-review-2023 / r-correlation-distance（均 3 星）
+
+
+---
+
+#### Batch 5 详细记录（20 项）
+
+承接：4 life + 4 recipe + 2 toolbox + 2 pre-high + 1 toefl + 1 course-review + 2 study + 2 research + 2 pdf
+
+**关键修复**（21 处样本内 + 多文件 keywords 扩充 bonus）：
+- `handwash-vs-machine.md` L54-79：Sinner 圈 SVG 4 组鲜艳色 → 莫兰迪
+- `us-grocery-tactics.md` L47-117：周历图 SVG 3 组鲜艳色 → 莫兰迪
+- `dental-scaling.md` L38-50：SVG `#2e8b57/#c0504d` → 莫兰迪 `#557559/#7d4e46`
+- `toolbox/pitch/index.html`：3 组 in-tune/off/way-off `#10b981/#c83828/#c8801c` → 莫兰迪
+- `reproducible-project.md` L31-38：SVG 3 组中度饱和色 → 莫兰迪
+- **Bonus（keywords 偏薄文件扩充）**：
+  - `gre-mindset.md` 补 “GRE 备考”（错搜 “备靠” 已存在的正确版）
+  - `corp-fin/mid-sample-2-sol.md` 6 → 20 项（NPV/IRR/WACC/CAPM/MM/DCF + Ross Westerfield + Brealey Myers 等）
+  - `public-econ-2023.md` 6 → 25 项（公共物品 / 外部性 / 皮古税 / Ramsey rule / Mirrlees / Atkinson Stiglitz / Salanié 等）
+  - `adv-metrics-pku-2023.md` / `adv-metrics-psu/survival-guide.md` / `adv-micro-psu/2026-midterm-1.md` keywords 扩充
+- Bonus：`sleep-sensory-gating.md` 1 处补漏
+
+**关键待办**：
+
+- P1 · `research/r-moderation-mediation.md` 无 PDF 下载链接 + 无文末小结
+- P1 · `pre-high-school/sphere.md` 缺 summary + keywords 10 项偏少
+- P1 · `pre-high-school/math.md` 缺自动导语 + keywords 10 项
+- P1 · `toolbox/time/index.html` 1396 行接近 1500，建议拆 `/assets/js/games/lunar.js`；非 swap-btn 按钮缺 aria-label
+- P1 · `course-reviews/interm-macro-review-2023.md` 缺评分表 + TL;DR；L31 “考试期中考试” 多字、L49 “90 分至 95 分” 第二处疑应为 “95 分以上”
+- P1 · `study/corp-fin/final-2022.md` 正文空骨架
+- P1 · `life/handwash-vs-machine.md` 参考文献 1（Sinner 1959 Henkel）可靠性建议人工复核
+- P1 · `files/adv-micro-psu/chapters/ch{1-9}.pdf` 无对应独立 .md（与 Batch 1 同 pattern）
+- P1 · `toolbox/pitch/index.html` drop-zone 用 `<div role="button">` 而非 `<button>`（a11y）
+
+**横向 patterns**：
+1. PDF-only 笔记空骨架（4 文件命中：sphere / real-anal-ch3 / corp-fin/final-2022 / math）
+2. SVG 鲜艳色本批 5 文件集中爆发，已就地莫兰迪化（handwash / us-grocery-tactics / dental-scaling / pitch / reproducible-project）
+3. course-review 缺评分表 + TL;DR（再次复现）
+4. chapters/ 子目录 PDF 无独立 .md（adv-micro-psu 9 个 PDF 全同状态）
+
+**本批最高分**：heijiaoxiqinniurou / congyoujiangzhi / dental-scaling / reproducible-project / qiaojiaoniurou / shufulei（6 项 5 星，菜谱与科研妙招类全部命中）
+
+**本批最低分**：sphere.md / interm-macro-review-2023 / chapters/ch2.pdf（3 项 3 星）
+
+
+---
+
+
+
+### 📊 抽检总览（写给站主）
+
+**站级 P0 优先级**（必须站主把关）：
+
+1. **`coaster-drop-tower-braking.md` L69 物理论述自相矛盾** —— “力与速度平方有关 / 与速度成正比” 同句互斥
+2. **`taichi-review-2023.md` L29 “85 公里跑”** —— 疑 OCR / typo 严重错误，待站主核对实际项目
+3. ✅ **`marxism-principles.md` 空括号 / 缺公式 / 表格损坏** —— Round-2 P0，本轮 Batch 3 已解决（补 c/v/m + W=c+v+m + m'=m/v×100% + 区分表格）
+
+**站级 P1 长期建议**（覆盖三轮抽检的累计 20 条最重要）：
+
+1. **写 `scripts/audit/img_caption_md.py` 钩子**：发现 `<p class="img-caption">.*\*\*.*</p>` 报警（pattern 已三轮累计修 30+ 处）
+2. **写 `scripts/audit/svg_italic_zh.py` 钩子**：grep `font-style="italic"` 命中中文 text 报警（已三轮累计修 25+ 处）
+3. **写 `scripts/audit/frontmatter_completeness.py`**：检查 summary / published / keywords 数量达标（life/research 18-30、study 15-25、course-review 10-20）
+4. **写 `scripts/fix_dollar.py`**：类似 fix_quotes，专门处理 life 长文裸 `$` 金额（跳过 fenced code + LaTeX 公式块）
+5. **`_layouts/course_review.html` 升级**：强制 `ratings: { workload, grading, lectures, gains }` 字段 + 自动渲染 5 分制评分卡（13+ 篇命中跨三轮）
+6. **`_includes/pdf_note_intro.html`**：根据 front-matter 自动生成空骨架笔记导语（12+ 文件命中本轮 + 5 篇 Round-2）
+7. **toolbox 颜色统一收尾**：扩 cd5a804 莫兰迪改造到剩下 16+ 游戏 / 或显式豁免（breakout / drawing / tetris 七色块 / connect4 红黄等需要识别色）
+8. **toolbox HTML 拆 JS**：doudizhu 5481 / suika 4345 / fruit-ninja 3570 / guandan 2565 / tiaoqi 2018 / picker 1710 / time 1396 等长 HTML 拆 `/assets/js/games/<name>.js`
+9. **chapter PDFs 全孤立**：adv-micro-pku / adv-micro-psu / adv-macro-psu 三门课的 chapters/ 子目录共 26 个 PDF 无 .md 入口；建议主讲义补章节目录或加 `_redirects`
+10. **`adv-macro-psu` 整门课主笔记 .md 完全缺失**：ch1-ch12 PDF + .tex 源都在仓库，需补 `_notes/study/adv-macro-psu/adv-macro-psu-2026.md`
+11. **outdated 内容标记机制**：考试改革后已失效内容（toefl 2023 模板等）front-matter 加 `outdated: true` + layout 顶部红色 banner
+12. **裸 URL → markdown link**：scripts/audit/ 加裸 URL 扫描钩子
+13. **中英文紧贴空格补齐脚本**：early 文章散布多处，可全 _notes/ 跑一次
+14. **research R 教程系列纯图集补正文**：r-brucer / r-multiple-linear-regression / r-moderation-mediation / r-correlation-distance 四篇需补 setup + 文末小结
+15. **toolbox games-shell `#4caf50/#ef5350` 表决按钮**：跨 tiaoqi / feixingqi / games-shell.css 三处统一改
+
+**三轮抽检合计**：
+
+| 轮次 | 项数 | 主合并 commit | 已修文件 | 触发原因 |
+|------|------|--------------|---------|---------|
+| Round 1 (2026-05-25 23:43) | 20 | `4b25dab` + `dd7f5f3` + `d6d1194` | 28 | 用户首次提到“抽检规模太小”，提 3→10 |
+| Round 2 (2026-05-26 00:17) | 100 | `80e2043` | 62 | 用户触发“100 项抽检专场” |
+| Round 3 (2026-05-26 当前) | 100 | `7a5674e..5183448` 共 7 commits | 129 | 用户第三次触发“另 100 项专项抽检” |
+| **三轮合计** | **220 项 ≈ 全站 53% 资产** | 9 commits | ~200 unique | |
+
+---
+
+
 ## 2026-05-26
 
 ### ✅ 本次已自动修复
