@@ -16,7 +16,7 @@ keywords: ["洗衣机怎么清洁", "洗衣机自己也要洗", "洗衣机清洗
 
 **洗衣机自己也需要定期清洁，而且比想象中重要得多**——
 
-研究测试发现，**普通家用洗衣机内部的菌落密度可能比马桶圈还高**——主要是因为：
+研究测试发现，**普通家用洗衣机内部潮湿表面的菌落数有时可超过马桶座圈**——主要是因为：
 
 1. **常年潮湿** + **30-40 ℃** 温度（适合微生物生长）
 2. **洗衣液 + 皮脂 + 死皮屑** 在橡胶圈、洗涤剂盒、内胆夹层堆积形成 **生物膜（biofilm）**
@@ -141,7 +141,7 @@ keywords: ["洗衣机怎么清洁", "洗衣机自己也要洗", "洗衣机清洗
 
 1. 空机（不放衣物）
 2. 倒入清洁剂（按包装指示，一般 1 包 / 1 小瓶）
-3. 选择**「筒清洁」/「自清洁」/「桶自洁」**程序（如果有）；没有的话用 **60-90 ℃ 长程序 + 大水量**
+3. 选择**「筒清洁」/「自清洁」/「桶自洁」**程序（如果有）；没有的话用最长的**「热水 / 高温」长程序 + 大水量**（欧标滚筒能到 60-90 ℃；美标顶置波轮 hot 档约 54 ℃ / 130 °F，能跑多热就跑多热）
 4. 程序结束后，再用清水**额外漂洗一次**（避免残留）
 5. 擦干内胆 + 门封 + 留门通风
 
@@ -266,5 +266,4 @@ OxiClean / Vanish 加 1 杯（200 g）+ 60 ℃ 长程序。
 2. **Bockmühl DP.** **Laundry hygiene—how to get more than clean.** *Journal of Applied Microbiology.* 2017;122(5):1124-1133. ——洗衣机微生物学综述，包括生物膜形成和清洁建议。
 3. **Hammer TR, Mucha H, Hoefer D.** **Infection risk by dermatophytes during storage and after domestic laundry.** *Mycopathologia.* 2011;171(1):43-49. ——洗衣机内皮肤癣菌的存活和交叉污染研究。
 4. **Whirlpool / LG / Samsung Service Manuals.** *Washing Machine Maintenance Guidelines.* ——主流洗衣机厂商的官方维护指南。
-5. **NSF International.** *NSF/ANSI 184: Residential Dishwashers — Hygiene Standard.* nsf.org ——NSF 关于家用洗涤设备的卫生标准（虽然主要是洗碗机，但原理通用）。
-6. **American Cleaning Institute.** *Washing Machine Care Guide.* cleaninginstitute.org ——美国清洁产品行业协会的洗衣机维护建议。
+5. **American Cleaning Institute.** *Washing Machine Care Guide.* cleaninginstitute.org ——美国清洁产品行业协会的洗衣机维护建议。

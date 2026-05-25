@@ -3,7 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "计量因果识别方法"
 title: "计量因果识别方法课程笔记"
-keywords: ["计量因果识别方法 笔记", "因果识别 课程笔记", "causal identification 笔记", "因果推断 计量 笔记", "DID 双重差分", "RDD 断点回归", "IV 工具变量", "PSM 倾向得分匹配", "synthetic control 合成控制", "ATE ATT 处理效应", "potential outcomes 潜在结果", "Rubin causal model", "因果推断 课程", "计量经济学 因果", "北大 因果识别", "因果识别 讲义", "因果识别 复习", "应用计量 笔记", "因果识别 复习笔记", "因果鉴别 方法"]
+keywords: ["计量因果识别方法 笔记", "因果识别 课程笔记", "causal identification 笔记", "因果推断 计量 笔记", "DID 双重差分", "RDD 断点回归", "IV 工具变量", "PSM 倾向得分匹配", "synthetic control 合成控制", "ATE ATT 处理效应", "potential outcomes 潜在结果", "Rubin causal model", "因果推断 课程", "计量经济学 因果", "北大 因果识别", "PKU 因果识别", "PKU 计量", "因果识别 讲义", "因果识别 复习", "应用计量 笔记", "因果识别 复习笔记", "因果鉴别 方法", "Angrist Pischke MHE", "Mostly Harmless Econometrics 笔记", "Cunningham Causal Mixtape", "因果之梯"]
 discipline: "经济学"
 course: "计量因果识别方法"
 material_type: "Notes"

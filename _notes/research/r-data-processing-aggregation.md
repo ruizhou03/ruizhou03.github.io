@@ -13,5 +13,6 @@ keywords: ["R 数据处理", "R 数据汇总", "数据汇总", "数据聚合", "
 接着参考李东风的《R 语言教程》，我整理了 R 语言在**数据汇总**中的强大功能。同时，我结合上期做的关于 [R 语言在数据整理方面的应用](/research/r-tutorials/r-data-processing)，现将两部分直接合并，二者结合相信可以解决甚至秒杀很多用基本函数难以达成的数据处理任务。文中章节包含：
 
 ![R 数据处理与汇总教程的章节目录，涵盖数据整理与汇总函数](/files/images/r-data-processing-aggregation/01.jpg)
+<p class="img-caption">章节目录：从数据整理到数据汇总，包括 reshape / merge / aggregate / tapply / apply 家族等核心函数。</p>
 
 HTML 文件直接双击即可，一般会用默认浏览器直接打开。我在里面特意设置了一些互动组件（部分数据框有互动功能），读者可以自行发挥。

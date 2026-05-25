@@ -98,7 +98,7 @@ keywords: ["美国签证", "签证类型", "visa", "F-1", "学生签证", "F-2",
     </marker>
   </defs>
 </svg>
-<p class="img-caption">三条主流路径。**路径 A** 是大多数 STEM 硕士 / 工程师走的；**路径 B** 是 PhD 圈最近几年的"自助通道"——避开 H-1B 抽签；**路径 C** 是高引论文 / 顶会奖项 / 媒体报道齐全的少数人走的。</p>
+<p class="img-caption">三条主流路径。<strong>路径 A</strong> 是大多数 STEM 硕士 / 工程师走的；<strong>路径 B</strong> 是 PhD 圈最近几年的"自助通道"——避开 H-1B 抽签；<strong>路径 C</strong> 是高引论文 / 顶会奖项 / 媒体报道齐全的少数人走的。</p>
 
 # 3. 学生与学者签证（F、J）
 
@@ -369,7 +369,5 @@ F-1 / J-1 学生身份本身不能在校外工作，但 USCIS 提供了几个豁
 6. **学校 ISSO 网站** —— 你所在学校的 International Student Services Office，**是这十个来源里第一应该看的**
 7. **[Doctor of Credit“Tax for Resident Aliens”系列](https://www.doctorofcredit.com/)** —— 涉税身份相关
 8. **NAFSA: Association of International Educators** —— 学校 ISSO 老师们的行业协会，他们的 advisory 是 ISSO 的内部参考
-
----
 
 最后说一件**最重要的事**：**身份合规 > 任何工作 / 实习机会**。一份再好的 offer，如果用违法工作的方式接受，将来都可能成为绿卡 / 入籍审查里的炸弹。**违法工作的“被发现概率”逐年上升**——USCIS 现在审 H-1B / EB-2 / 绿卡时会调阅 IRS 报税记录、SSA 工资记录、社交媒体、学校 SEVIS 记录、海关入境记录。**心安理得地工作，是你能给自己的最重要的“长期主义”。**
