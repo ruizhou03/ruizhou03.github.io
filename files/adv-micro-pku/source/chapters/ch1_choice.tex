@@ -1,0 +1,376 @@
+\chapter{Choice Theory}
+
+The utility-maximization approach to choice has several characteristics
+that help account for its long and continuing dominance in economic
+analysis:
+
+\begin{itemize}
+\item
+  Normative usefulness: policy-making; individuals\textquotesingle{}
+  choices v.s. government's welfare criterion; modern
+  democratic values.
+\item
+  Positive predictions: comparative statics predictions.
+\item
+  Wide scope.
+\item
+  Compactness: make empirical predictions from a relatively sparse model
+  of the choice problem, just a description of the
+  chooser's objectives and constraints.
+\end{itemize}
+
+\hypertarget{preference-based-approach}{%
+\section{Preference-Based Approach}\label{preference-based-approach}}
+
+Rational choice theory starts with the idea that individuals have
+preferences and optimize their utilities according to preferences. The primary task is to
+formalize what that means and precisely what it implies about the
+pattern of decision-making we should observe.
+
+\hypertarget{preference-relation}{%
+\subsection{Preference Relation}\label{preference-relation}}
+
+\defn{(Weak) Preference Relation}{
+Let \(X\) be a set of possible choices. Consider a \textit{weak preference relation} $\pref$ over the
+set \(X\), as a binary relationship:
+\[x \succeq y \iff \text{``}x \text{ is at least as good as }y \text{"}\]
+}
+
+\rmkb{
+The weak preference relation \(\succeq\) implies the associated strict
+preference relation \(\succ\) and indifference relation \(\sim\):
+
+\begin{itemize}
+\item
+  \(x\) is \textit{strictly preferred} to \(y\), or \(x \succ y\), if
+  \(x\succeq y\) but not \(y \succeq x\).
+\item
+  \(x\) is \textit{indifferent} to \(y\), or \(x \sim y\), if \(x\succeq y\) and
+  \(y \succeq x\).
+\end{itemize}
+}
+
+After the definition of weak preference relation, we need to make assumptions about
+rationality, or definition of rational preference.
+
+The first is \emph{completeness}, which means an agent would never be
+clueless when faced with two choices.
+
+\defn{Completeness}{
+A preference relation \(\succeq\) on
+\(X\) is \emph{complete}, if for all \(x, y \in X\), either
+\(x \succeq y\), or \(y \succeq x\), or both.
+}
+
+The second is \emph{transitivity}, which means that an
+agent's weak preference cannot cycle unless among
+choices that are indifferent.
+
+\defn{Transitivity}{
+A preference relation \(\succeq\) on
+\(X\) is \emph{{transitive}}, if whenever \(x \succeq y\) and
+\(y\succeq z\), \(x \succeq z\).
+}
+
+From completeness and transitivity, we have the following corollaries:
+
+\cor{}{
+\begin{enumerate}
+\item
+  While the definition of transitivity involves only 3-choice cycles, it also
+  extends to all \(n\)-object cycles, i.e., that it implies that for any \(n\)
+  choices \(x_1,x_2,\cdots,x_n\in X\) such that \(x_1 \succeq x_2\),
+  \(x_2\succeq x_3\), ..., \(x_{n-1} \succeq x_n\), we must have
+  \(x_1 \succeq x_n\). (Hint: use induction on \(n\).)
+\item
+  Transitivity of a weak preference relation \(\succeq\) implies
+  transitivity of the associated strict preference relation \(\succ\) and
+  the indifference relation \(\sim\).
+\end{enumerate}
+}
+
+\rmkb{
+\begin{enumerate}
+\item
+  Preference relation is defined upon \(\pref\) because it is natural to assume the weak preference relation $\pref$ is complete.
+\item
+  The assumption of transitivity is inconsistent with certain "framing
+  effects".
+\end{enumerate}
+}
+
+Completeness and transitivity allow us to formalize what we mean by rationality.
+
+\defn{Rationality}{
+A preference relation \(\pref\) on
+\(X\) is \emph{rational} if it is both {complete} and
+{transitive}.
+}
+
+\hypertarget{choice-rule}{%
+\subsection{Choice Rule}\label{choice-rule}}
+
+Given preferences, we should define the agent's
+\emph{choice rule} (given an ``opportunity set" \(B\se X\)) induced by
+preference relation \(\succeq\) as
+\[C_{\succeq}(B) = \{x\in B |x\succeq y,\forall y\in B\},\]
+
+\hspace{2em} which is the set of items in $B$ the agent likes at least as much as any of the other alternatives in $B$; or say, most preferred.
+
+\rmkb{
+\begin{enumerate}
+
+\item
+  \(C_\succeq(B)\) may contain more than one element.
+\item
+  \(C_\succeq(B)\) might be empty. If \(B\) is finite and non-empty,
+  then \(C_{\succeq}(B)\) is non-empty.
+
+  \begin{itemize}
+  \item
+    As an example for \(C_{\pref}(B)\) to be empty, define a preference
+    relation \(x\succeq y \iff x\ge y\). Take \(X = [0,+\infty)\) and
+    \(B = (0,1)\). Then clearly there is no ``most preferred" option.
+  \item
+    To guarantee the existence of choices from infinite choice sets, we
+    will later make some technical assumptions (such as compactness of
+    choice sets and continuity of preference relation).
+  \end{itemize}
+\end{enumerate}
+}
+
+\propp{}{
+Suppose \(\succeq\) is complete and
+transitive. Then, for every finite non-empty set \(B\),
+\[C_\succeq(B) \ne \varnothing.\]
+}{
+Proceed by mathematical induction
+on the number of elements of \(B\).
+
+\begin{itemize}
+\item
+  \(|B| = 1\), say \(B = \{x\}\).
+
+  \begin{itemize}
+  \item
+    By completeness, \(x\succeq x\), so \(x \in C_\succeq(B)\).
+    \(C_\succeq(B)\ne\varnothing,\forall |B| = 1\).
+  \end{itemize}
+\item
+  Fix \(n\ge 1\) and suppose that for all sets \(B\) with exactly \(n\)
+  elements, \(C_\succeq (B)\ne \varnothing\). Next we move on to examine the case of \(|B| = n+1\).
+
+  \begin{itemize}
+  \item
+    Consider any \(B_n\) such that \(|B_n| = n\). Since \(C_\succeq(B_n)\ne \varnothing\),
+    say \(C_\succeq(B_n) = x^*\). Let \(B = B_n\cup \{x_{n+1}\}\).
+  \item
+    By completeness, we have only two (not mutually-exclusive)
+    possibilities:
+
+    \begin{itemize}
+    \item
+      If \(x^*\succeq x_{n+1}\), then by definition
+      \(x^*\in C_\succeq(B)\), so \(C_{\succeq}(B)\ne\varnothing\).
+    \item
+      If \(x_{n+1}\succeq x^*\). Since \(x^*\in C_{\succeq}(B_n)\), by
+      definition, \(x^*\succeq y,\forall y \in B_n\). By transitivity,
+      this implies \(x_{n+1}\succeq y,\forall y\in B\). Therefore,
+      \(x_{n+1}\in C_\succeq (B)\), so \(C_\succeq (B)\ne \varnothing\).
+    \end{itemize}
+  \end{itemize}
+\item
+  Hence, for every set \(B\) with exact \(n+1\) elements,
+  \(C_\succeq(B)\ne\varnothing\). By the principle of mathematical induction,
+  it follows that for every finite set \(B\) that is non-empty, \(C_\succeq(B)\ne \varnothing\).
+\end{itemize}
+}
+
+\hypertarget{choice-based-approach}{%
+\section{Choice-Based Approach}\label{choice-based-approach}}
+
+Much empirical work reasons in the reverse way contrary to economic
+theories (in preference-based approach): it looks at
+individuals' choices and tries to ``rationalize" those
+choices. That is, to figure out whether the choices are compatible with
+preference maximization and, if so, what they imply about those
+preferences. Under choice-based approach, choice rule is the primitive
+object of the theory.
+
+\defn{Choice Rule}{
+Let \(\cal B\) be the set of all
+nonempty subsets of \(X\)
+(\(\B = 2^X\backslash \varnothing = \{B\ne \varnothing: B \subset X\}\)). A
+\emph{{choice rule}} is a function \(C: \cal B\to \cal B\) with
+the property that for all \(B\in \cal B\), \(C(B)\se B\).
+}
+
+\rmkb{
+\begin{itemize}
+\item
+  \(\cal B\) is the set of all nonempty \textbf{subsets} of \(X\), which
+  means all possible set of available choice(s) the agent is facing. And
+  the choice rule \(C\) is a mapping from \(\cal B\) to \(\cal B\),
+  which means that the agent is choosing from a set of available
+  choice(s) to pick his most preferred choice(s), also a subset of
+  \(X\).
+\item
+  Here we assume that we can see the agent choose from \emph{all}
+  possible subsets of \(X\), and that the agent reports \emph{all} of
+  his optimal choices from a given opportunity set.
+\end{itemize}
+}
+
+By definition of choice rule, we do not impose any assumptions or
+restrictions on the rule or underlying preference relation. We are then
+interested in two questions:
+
+\begin{itemize}
+\item
+  If this rule comes from maximizing some underlying preferences, what
+  can we infer about these preferences?
+\item
+  Is this choice rule consistent with the maximization of \emph{some}
+  complete and transitive preference relation (i.e.,
+  \emph{rationlizable})?
+\end{itemize}
+
+Consider the first question first. Suppose that choice rule \(C\) is
+consistent with the maximization of some preference relation \(\pref\),
+i.e., \(C(\cdot) = C_\pref(\cdot)\). Then, observing for some
+\(A\se X\) that \(y\in A\) and \(x\in C(A)\) (i.e., \(x\) is chosen
+when \(y\) is available) allows us to infer that \(x\pref y\). This
+implies that for any \(B \se X\) such that \(x\in B\) and
+\(y\in C(B)\), we must also have \(x\in C(B)\) (Indeed, we have
+\(x\pref y\) and \(y \pref z\) for all \(z \in B\), and so by
+transitivity \(x\pref z\) for all \(z \in B\)). By a symmetric argument,
+we should then have \(y\in C(A)\). Thus, any rationalizable choice rule
+must have the following property (as a \textit{necessary} condition):
+
+\defn{HARP}{
+A choice function \(C: \B \to \B\) satisfies
+\emph{{Houthaker's Axiom of Revealed Preference
+(HARP)}} if, whenever \(x,y\in A\cap B\), and \(x\in C(A)\) and
+\(y\in C(B)\), we have \(x\in C(B)\) and \(y\in C(A)\).
+}
+
+
+In words, HARP says that if choices \(x,y\) are both available in two
+choice experiments, and \(x\) is chosen in one experiment and \(y\) in
+the other, then both \(x\) and \(y\) must be chosen in both experiments.
+HARP guarantees that there is no (obvious) inconsistency in the
+agent's choices.
+
+It has been argued that HARP is a necessary condition for a choice rule
+to be rationalizable. Turns out that HARP is also sufficient for
+rationalizability:
+
+\propp{}{
+Suppose \(C: \B \to \B\) is nonempty-valued.
+Then there exists a rational (complete and transitive) preference
+relation \(\pref\) on \(X\) such that \(C(\cdot) = C_\pref(\cdot)\) if
+and only if \(C\) satisfies HARP.
+}{
+\begin{itemize}
+\item
+  ``Only if" part: As argued before, HARP is a necessary condition for
+  rational relation's existence.
+\item
+  ``If" part
+
+  \begin{itemize}
+  \item
+    Definition of revealed preference relation (by choice rule).
+
+    Suppose choice rule \(C\) satisfies HARP. Construct the "revealed
+      preference relation" \(\pref_C\) as follows: say that
+      \(x\pref_C y\) if and only if there exists some \(A\se X\) such
+      that \(y\in A\) and \(x\in C(A)\).
+  \item
+    Prove that \(\pref_C\) is complete.
+
+    Since \(C\) is nonempty-valued, pick any \(x,y\in X\), we have
+      either \(x\in C(\{x,y\})\), in which case \(x\pref_C y\), or
+      \(y \in C(\{x,y\})\), in which case \(y\pref_C x\) (or both, in
+      which case \(x \sim_C y\)).
+  \item
+    Prove that \(\pref_C\) is transitive.
+    
+    Suppose \(x\pref_C y\) and \(y\pref_C z\), and consider
+      \(C(\{x,y,z\})\), which by hypothesis is non-empty. There are
+      three possibilities (which are though not mutually exclusive):
+
+      \begin{itemize}
+      \item
+        \(x \in C(\{x,y,z\})\). Then by construction of \(\pref_C\),
+        \(x\pref_C z\).
+      \item
+        \(y \in C(\{x,y,z\})\). Then by HARP, since \(x\pref_C y\), we
+        must also have \(x \in C(\{x,y,z\})\), and so by case 1 we have
+        \(x\pref_C z\).
+      \item
+        \(z \in C(\{x,y,z\})\). Then by HARP, since \(y\pref_C z\), we
+        also have \(y \in C(\{x,y,z\})\), and so by case 2
+        \(x \pref_C z\).
+      \end{itemize}
+  \item
+    Prove that \(C(\cdot) = C_{\pref_C}(\cdot)\).
+
+    It is equivalent to show that, for all \(x\in X\) and \(A\in \B\),
+      \(x\in C(A)\) if and only if \(x\in A\) and \(x\pref_C y\) for all
+      \(y\in A\).
+
+      \begin{itemize}
+      \item
+        ``Only if" part holds by construction of \(\pref_C\).
+      \item
+        ``If" part: Take any \(x\in C_{\pref_C}(A)\). Then,
+        \(x\pref_C y\) for all \(y\in A\). Since \(C(\cdot)\) is
+        nonempty-valued, \(\exists y_0\in A\) such that \(y_0\in C(A)\).
+        By the definition of \(\pref_C\), \(\exists A_0\) such that
+        \(x,y_0\in A_0\) and \(x\in C(A_0)\). It follows that
+        \(x,y_0\in A_0\cap A\) and \(x\in C(A_0)\) and \(y_0\in C(A)\).
+        By HARP, \(x\in C(A)\).
+      \end{itemize}
+    \end{itemize}
+  \end{itemize}
+}
+
+
+
+\rmkb{
+\begin{enumerate}
+
+\item
+  It is \emph{HARP} that plays a fundamental role in the proof of ``if"
+  part, that is, to endow the revealed preference relation \(\pref_C\)
+  with characteristics of ``rationality".
+\item
+  The properties of rational choice are guaranteed only when the entire choice function \(C(A)\) is observed, i.e.,
+  (i) for any given choice set, all of the agent's
+  optimal choices are observed, not just some of them; (ii) the
+  agent's optimal choices over all choice sets are
+  observed. However,
+
+  \begin{itemize}
+  \item
+    Real data is commonly less comprehensive like that. For example, in
+    consumer choice problems, the relevant sets \(A\) may be only budget
+    sets that consist of affordable choices given income and prices,
+    which is a particular subcollection of \(\B\).
+  \item
+    The first aspect of incomplete observation is virtually insolvable.
+    For the second, to develop a theory based on more limited
+    observations, other ``axioms of revealed preference" have been
+    developed. For example, the \emph{weak axiom of revealed preference
+    (WARP)} is an equivalent of HARP for choice sets restricted to
+    budget sets described by linear prices and for choice rules
+    restricted to be single-valued (so the conclusion of HARP can be
+    strengthened to \(x = y\)). WARP is necessary for
+    rationalizability but proves insufficient. A stronger version,
+    \emph{Generalized Axiom of Revealed Preference}, has been shown both
+    necessary and sufficient for rationalizability.
+  \end{itemize}
+\end{enumerate}
+}
+

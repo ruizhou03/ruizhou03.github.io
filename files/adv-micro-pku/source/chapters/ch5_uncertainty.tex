@@ -1,0 +1,913 @@
+\chapter{Uncertainty}
+
+\ex{
+Consider an investor who
+must decide how much of their initial wealth \(w\) to put into a risky
+asset. The risky asset can have any of the positive or negative rates of
+return \(r_i\) with probabilities \(p_i\), \(i = 1, 2,\cdots, n\).
+Suppose the investor is an expected utility maximizer and their utility
+for \(x\) amount of money for sure can be represented by a twice
+continuously differentiable, strictly increasing and strictly concave
+utility function \(u\pr{x}\). Let \(a^*\) be the investor's optimal
+amount of money to put in the risky asset. Give a necessary and
+suﬀicient condition for the investor to have strict incentives to invest
+in the risky asset, that is, \(a^*>0\) and $a^*$ is strictly preferred to
+\(a = 0\).
+}
+
+\sol{
+Since the investor is an expected utility maximizer, optimization problem is given by:
+\[\max_{0\le a\le w} U\pr{a} = \sum_{i = 1}^n p_i\cdot u\pr{w+ar_i}\]
+
+A sufficient condition for $a^*>0$ is
+\(U'\pr{0} = u'\pr{w}\cdot \sum_{i = 1}^n p_ir_i>0\), that is, the
+expected rate of return \(\sum_{i = 1}^n p_ir_i>0\).
+
+Next suppose \(\sum_{i  =1}^np_ir_i\le 0\). Since \(u\pr{\cdot}\) is
+strictly concave,
+\(U''\pr{a} = \sum_{i = 1}^n p_i\cdot r_i^2 \cdot u''\pr{w+ar_i}\le 0\),
+which implies \(U\pr{\cdot}\) is also strictly concave. Consequently,
+\(U'\pr{a}\le U'\pr{0}\le 0\) for $a\ge 0$. It follows that the condition is also
+necessary.
+}
+
+Convenient as the expected utility representation is, it is rather ad-hoc.
+Similar to the essence of previous works, we want to understand what
+restrictions on the agent's preference relation induce an expected
+utility representation.
+
+\hypertarget{basic-setups}{%
+\section{Setups}\label{basic-setups}}
+
+\defn{Simple Lottery; Compound Lottery}{
+Let \(X = \brace{\x_1,\x_2,\cdots,\x_n}\) denote a
+finite set of \textit{sure} outcomes (i.e., without uncertainty).
+\begin{itemize}
+\item A \textit{simple lottery}
+  \(\p = p_1\circ \x_1 + p_2 \circ \x_2 + \cdots + p_n\circ\x_n\) ($p_1+p_2+\cdots+p_n = 1$) is a
+  probability distribution over a finite number of sure outcomes $\brace{\x_1,\x_2,\cdots,\x_n}$. When there is no
+  confusion, we will also use \(\p = \brace{\seq[p]}\) to denote such a
+  simple lottery.
+\item A \textit{compound lottery} \(\sum_{j = 1}^k\alpha_j\p^j\) ($\alpha_1+\alpha_2+\cdots+\alpha_k = 1$) is a probability distribution over a finite number
+  of simple lotteries $\brace{\p^1,\p^2,\cdots,\p^k}$.
+\end{itemize}
+}
+
+To facilitate our analysis, we introduce two assumptions with regard to the way in which utility maximizer regard the lotteries.
+
+\asm{}{
+\begin{enumerate}
+
+\item
+  The probabilities are \textbf{objective}: the probabilities are regarded as
+  objective or exogenously given facts by the decision-maker (in contrast to subjective
+  evaluation).
+\item
+  The decision-maker is a \textbf{consequentialist}: decision-makers only care
+  about the outcomes, instead of how lotteries are mixed.
+
+  Under this assumption, the compound lottery
+  \(\sum_{j = 1}^k \alpha_j\p^j\) is identical to the simple lottery it
+  induces, i.e.,
+  \[\sum_{j = 1}^k\alpha_j\p^j \iff \pr{\sum_{j = 1}^k\alpha_j\p_1^j,\sum_{j = 1}^k\alpha_j\p_2^j,\cdots,\sum_{j = 1}^k\alpha_j\p_n^j}\]
+\end{enumerate}
+}
+
+\rmk{
+ The first assumption can be relaxed.
+}
+
+Given the two assumptions, we can restrict our focus on the space of simple
+lotteries \(\mathcal P = \Delta\pr{X}\).
+
+\defn{Space of Simple Lotteries}{
+The space of simple lotteries, $\Delta\pr{x}$, is defined as
+\[\Delta\pr{X} = \brace{\pr{p_1,\cdots ,p_n}:p_i\ge 0\ \ \forall i,p_1+\cdots + p_n = 1}.\]
+}
+
+\noindent Consider the agent's preference relation \(\pref\) over
+\(\P\). To ensure a utility representation \(U:\P\to \RR\), we maintain
+the three basic assumptions as in the certainty benchmark.
+
+\begin{itemize}
+\item
+  Completeness: For any \(\p^1,\p^2\in \P\), either \(\p^1\pref\p^2\) or
+  \(\p^2\pref\p^1\) (or both).
+\item
+  Transitivity: For any \(\p^1,\p^2,\p^3\in\P\), if \(\p^1\pref\p^2\)
+  and \(\p^2\pref\p^3\), then \(\p^1\pref\p^3\).
+\item
+  Continuity: For any two sequences
+  \(\pr{\p^i}_{i = 1}^n,\pr{\q^i}_{i = 1}^n\in \P\), if
+  \(\p^i\pref\q^i\pr{\forall i = 1,2,\cdots,n}\) and
+  \(\lim_{n\to\infty}\p^i = \p^*\), \(\lim_{n\to\infty}\q^i = \q^*\),
+  then \(\p^*\pref\q^*\).
+\end{itemize}
+
+\rmkb{
+There is an alternative definition of continuity.
+Let \(\pref\) be a complete, transitive preference
+relation on \(\P\). $\pref$ is \textit{continuous} if for any \(\p^1,\p^2,\p^3\in \P\) such that
+\(\p^1\pref\p^2\pref\p^3\), there exists \(t\in \br{0,1}\) such that
+\(\p^2\sim t\p^1+\pr{1-t}\p^3\).
+}
+
+To ensure an expected utility representation, we need an additional
+restriction.
+
+\defn{Independence}{
+A preference relation \(\pref\) on
+\(\P\) satisfies \emph{independence} if for any \(\p^1,\p^2,\p^3\in \P\)
+and \(t\in\pr{0,1}\),
+\[\p^1\pref \p^2\iff t\p^1+\pr{1-t}\p^3\pref t\p^2+\pr{1-t}\p^3\]
+}
+
+Intuitively, this assumption requires that the relative ranking of two
+lotteries will not be affected by the mixture with a third lottery.
+Notice that both \(t\p^1+\pr{1-t}\p^3\) and \(t\p^2+\pr{1-t}\p^3\) are
+\emph{compound} lotteries, which should be understood as the
+simple lotteries they induce.
+
+Moreover, if the preference relation \(\pref\) on \(\P\) satisfies
+independence, then for any \(\p^1,\p^2,\p^3\in \P\) and
+\(t\in \pr{0,1}\), we have
+
+\begin{itemize}
+\item
+  \(\p^1\succ \p^2\iff t\p^1+\pr{1-t}\p^3\succ t\p^2+\pr{1-t}\p^3\)
+\item
+  \(\p^1\sim \p^2\iff t\p^1+\pr{1-t}\p^3\sim t\p^2+\pr{1-t}\p^3\)
+\item
+  If \(\p^1\pref\p^2\) and \(\p^3\pref \p^4\), then
+  \(t\p^1+\pr{1-t}\p^3\pref t\p^2+\pr{1-t}\p^4\).
+\end{itemize}
+
+In summary, in this chapter of uncertainty, we need the following four assumptions to guarantee expected utility representation.
+
+\asm{}{
+\begin{itemize}
+\item
+  \textbf{Completeness}: For any \(\p^1,\p^2\in \P\), either \(\p^1\pref\p^2\) or
+  \(\p^2\pref\p^1\) (or both).
+\item
+  \textbf{Transitivity}: For any \(\p^1,\p^2,\p^3\in\P\), if \(\p^1\pref\p^2\)
+  and \(\p^2\pref\p^3\), then \(\p^1\pref\p^3\).
+\item
+  \textbf{Continuity}: For any two sequences
+  \(\pr{\p^i}_{i = 1}^n,\pr{\q^i}_{i = 1}^n\in \P\), if
+  \(\p^i\pref\q^i\pr{\forall i = 1,2,\cdots,n}\) and
+  \(\lim_{n\to\infty}\p^i = \p^*\), \(\lim_{n\to\infty}\q^i = \q^*\),
+  then \(\p^*\pref\q^*\).
+  \item \textbf{Independence}: For any \(\p^1,\p^2,\p^3\in \P\) such that
+\(\p^1\pref\p^2\pref\p^3\), there exists \(t\in \br{0,1}\) such that
+\(\p^2\sim t\p^1+\pr{1-t}\p^3\).
+\end{itemize}
+}
+
+\hypertarget{expected-utility-representation}{%
+\section{Expected Utility
+Representation}\label{expected-utility-representation}}
+
+Before starting the representation theorem, we first formalize what we
+mean by an expected utility function.
+
+\defn{Expected Utility Form}{
+A utility function \(U:\P\to\RR\) has an
+\emph{expected utility form} (or a \textit{von Neumann-Morgenstern expected
+utility function}) if there is an assignment of numbers
+(\(u_1,u_2,\cdots,u_n\)) to each of the \(n\) sure outcomes
+\(\x_1,\x_2,\cdots,\x_n\) such that for any \(\p\in \P\),
+\[U\pr{\p} = \sum_{i = 1}^n p_iu_i.\]
+}
+
+A sure outcome \(\x_i\) can be represented by a simple lottery \(\textbf e_i = \pr{0,\cdots ,0,1,0,\cdots, 0}\) and we have
+\(U\pr{\textbf e_i} = u(\x_i) = u_i\). Notice that an expected utility function can be written as
+\[U\pr{\p} = \sum_{i = 1}^n p_iU\pr{\textbf e_i}.\]
+
+Thus, $U\pr{\p}$ is linear in the probabilities. The following proposition reveals that this observation rings true more generally.
+
+\propp{}{
+A linear function \(U:\P\to \RR\) has an
+expected utility form if and only if it is \emph{linear}, that is, for
+any \(k\) (simple) lotteries \(\p^j\in \P,\pr{j = 1,2,\cdots,k}\) and
+associated probabilities \(\alpha_j\ge 0\) with
+\(\sum_{j = 1}^k\alpha_j = 1\), we have
+\[U\pr{\sum_{j = 1}^k \alpha_j\p^j} = \sum_{j = 1}^k\alpha_jU\pr{\p^j}.\]
+}{
+\begin{itemize}
+\item
+  ``If" part
+
+  Let $\p^j = \e_j$ for all $j = 1,2,\cdots,k$. Thus, $\p = \sum_{j = 1}^k \alpha_j\p^j = \pr{\alpha_1,\alpha_2,\cdots,\alpha_k}$. The condition of $U$ being linear is then transformed to
+    \[U\pr{\p} = \sum_{j = 1}^k p_jU\pr{\textbf e_j} = \sum_{j = 1}^k\alpha_ju_j.\]
+    This directly implies that $U$ has an expected utility form.
+\item
+  ``Only if" part
+
+  \begin{itemize}
+  \item
+    Since the decision-maker is a consequentialist, the compound lottery
+    \(\sum_{j =1}^k \alpha_j\circ \p^j\) is identical to the simple
+    lottery it induces,
+    \[\alpha_1\circ \p^1+\alpha_2\circ \p^2+\cdots+\alpha_k\circ \p^k
+    \iff
+    \left(\sum_{j = 1}^k \alpha_jp_1^j,\sum_{j = 1}^k \alpha_jp_2^j, \cdots,\sum_{j = 1}^k \alpha_jp_n^j\right)\]
+  \item
+    Since the utility function has the expected utility form, we have
+    \[U\pr{\sum_{j = 1}^k \alpha_jp_1^j,\sum_{j = 1}^k \alpha_jp_2^j, \cdots,\sum_{j = 1}^k \alpha_jp_n^j} = \sum_{i = 1}^n\pr{\sum_{j = 1}^k\alpha_jp^j_i}u_i\]
+  \item
+    On the other hand, \(U\pr{\p^j} = \sum_{i = 1}^n p_iu_i\), so
+    \[\sum_{j = 1}^k \alpha_j U\pr{\p^j} = \sum_{j = 1}^k \alpha_j \pr{\sum_{i = 1}^n p_i^ju_i}\]
+  \item
+    Jointly, we have proved the result:
+    \[\ba
+    U\pr{\sum_{j = 1}^k\alpha_j\p^j} & = 
+    U\pr{\sum_{j = 1}^k \alpha_jp_1^j,\sum_{j = 1}^k \alpha_jp_2^j, \cdots,\sum_{j = 1}^k \alpha_jp_n^j}\\
+    & = \sum_{i = 1}^n\pr{\sum_{j = 1}^k\alpha_jp^j_i}u_i \\
+    & = \sum_{j = 1}^k \alpha_j U\pr{\p^j}
+    \ea\]
+  \end{itemize}
+\end{itemize}
+}
+
+\thmp{}{
+A complete and transitive preference relation
+\(\pref\) on \(\P\) satisfies continuity and independence if and only if
+it admits an expected utility representation \(U:\P\to \RR\).
+}{
+The ``if" part is easy to verify. We mainly focus on the "only if" part.
+
+Suppose the complete and transitive preference relation $\pref$ satisfies continuity and
+    independence. We construct an expected utility function
+    \(U\pr{\p} = \sum_{i = 1}^n p_iu_i\) that represents \(\pref\) as
+    follows:
+
+    \begin{itemize}
+    \item
+      First, with a slight abuse of notation, interpret the consequences
+      \(x_1,\cdots,x_n\) as degenerate lotteries, so that \(x_i\) puts
+      probability \(1\) on \(x_i\) and probability \(0\) on all other
+      consequences. Then any lottery \(p\) can be viewed as a mixture of
+      those degenerate lotteries: \(p = \sum_{i}p_ix_i\).
+    \item
+      Label the consequences so that (when viewed as degenerate
+      lotteries) \(x_1\) is the best and \(x_n\) is the worst, i.e.,
+      \(x_1\pref x_i\pref x_n\) for all \(i\).
+    \item
+      By continuity, for each consequence \(x_i\), there is some
+      \(\l_i\in \br{0,1}\) such that \(x_i\sim \l_ix_1+\pr{1-\l_i}x_n\).
+    \item
+      By independence (iterated \(n\) times for each consequence), for
+      any lottery \(p = \sum_{i}p_ix_i\),
+      \[p\sim \sum_i p_i\pr{\l_ix_1+\pr{1-\l_i}x_n} = \pr{\sum_ip_i\l_i}x_1+\pr{1-\sum_i p_i\l_i}x_n\]
+      \begin{itemize}
+      \item
+        If \(x_1\sim x_n\) then by independence, for all \(p\) we have
+        \[p\sim \pr{\sum_i p_i\l_i}x_1+\pr{1-\sum_ip_i\l_i}x_1 = x_1\]
+        Hence, letting \(u_i = 0\) for all \(i\) gives an expected utility representation of \(\pref\).
+      \item
+        If \(x_1\succ x_n\), then for \(1\ge \l\ge \l'\ge 0\), letting
+        \(\delta = \l-\l'\in\br{0,1}\) and
+        \(\hat p = \frac{\l'}{1-\delta} x_1+\frac{1-\l}{1-\delta}x_n\)
+        and using the Independence Axiom,
+        \[\ba
+        \l x_1+\pr{1-\l}x_n & = \delta x_1 + \pr{1-\delta}\hat p\\
+        & \succ \delta x_1 + \pr{1-\delta }\hat p\\
+        & = \l'x_n+\pr{1-\l'}x_n
+        \ea\]
+        Thus, letting \(u_i = \l_i\) yields an expected utility representation of
+        \(\pref\).
+      \end{itemize}
+    \end{itemize}
+}
+
+\hypertarget{measures-of-risk}{%
+\section{Measures of Risk}\label{measures-of-risk}}
+
+\hypertarget{risk-attitudes}{%
+\subsection{Risk Attitudes}\label{risk-attitudes}}
+
+Let the set of sure outcomes \(X = \RR\). For any sure outcome $x\in X$, its utility is determined by utility function $u:X\to \RR$. A lottery is fully characterized by a corresponding distribution function \(F\), whose expected utility is then 
+\(U\pr{F} = \int_Xu\pr{x}\text d F\pr{x}\). For simplicity, suppose
+\(u\pr{\cdot}\) is strictly increasing and continuous and
+\(U\pr{F} = \E[F]{u\pr{x}}<+\infty\).
+
+\rmk{
+Here we naturally extend the notion of lottery to $X = \RR$, the infinite set, and avoid any technical issues related to the definition of lotteries on finite-many sure outcomes.
+}
+
+\defn{Risk Averse}{
+For any non-degenerate lottery $F$, define its average payoff $\delta_{\text{E}_F}$ as
+\[\delta_{\text{E}_F} = \int_{X}x\text dF\pr x.\]
+A decision-maker is strictly \emph{risk-averse} if for any
+non-degenerate lottery \(F\), the sure outcome $\delta_{\text{E}_F}$ is strictly preferred to the lottery $F$, i.e., \(\delta_{\text{E}_F}\succ F\). Or in utility terms, 
+\[u\pr{\delta_{\text E_F}} = u\pr{\int_{X}x\text dF\pr x} > U\pr{F} = \int_{X}u\pr{x}\text dF\pr{x}\]
+}
+
+\cor{}{
+A decision-maker is (strictly) risk-averse if and only
+if \(u\pr{\cdot}\) is (strictly) concave.
+}
+
+Intuitively, the marginal utility of an 
+additional unit of money is decreasing for a risk-averse individual.
+
+\textit{Risk-loving} and \textit{risk-neutral} attitudes can
+be similarly defined.
+
+We have defined risk attitudes based on how agents evaluate the utility of averaged payoff against the averaged utility. Apart from determining risk attitudes, we develop a cursory measure, certainty equivalent, to capture such ``deviation".
+
+\defn{Certainty Equivalent}{
+The \emph{certainty
+equivalent} \(c\pr{F,u}\) of a money lottery is defined as
+\[u\pr{c\pr{F,u}} = U\pr{F}.\]
+}
+
+Intuitively, \(c\pr{F,u}\) is the sure outcome perceived as equivalent to the risk lottery.
+
+\rmk{
+Certainty equivalent depends on initial wealth. For
+simplicity, we assume \(w_0 = 0\), i.e., the agent does not have initial
+wealth; then \(c\pr{F,u}\le \E{F}\) if and only if the agent is
+risk-averse.
+}
+
+\hypertarget{measure-of-risk}{%
+\subsection{Measures of Risk Aversion}\label{measure-of-risk}}
+
+We know that an agent is (strictly) risk-averse if and only if
+\(u\pr{\cdot}\) is (strictly) concave. Recall the cardinal
+interpretation of vNM expected utility. Can we use \(u\pr{\cdot}\) to
+quantify and then compare different levels of risk aversion? Therefore, we introduce the
+measures of risk aversion.\\
+
+\noindent Consider a risk-averse agent who has an initial wealth \(w\) and faces a
+(small) fair gamble.
+
+\begin{itemize}
+\item
+  Scenario 1: The gamble \(\tilde\ve\) is measured in terms of monetary unit.
+  Then consider how large $a$ has to be to make
+  \[u\pr{w-a} = U\pr{w+\tilde \ve}.\]
+\item
+  Scenario 2: The gamble \(\tilde\delta\) is measured in terms of  percentage of
+  the initial wealth. Then consider how large $r$ has to be to ensure
+  \[u\pr{\pr{1-r}w} = U\pr{\pr{1+\tilde\delta}w}.\]
+\end{itemize}
+
+Since the agent is risk-averse, \(a,r>0\). Intuitively, \(a\) measures
+how much money the agent is willing to give up to avoid the gamble;
+\(r\) measures the percentage of initial wealth the agent is willing to
+give up to avoid the gamble. If the agent were risk-neutral,
+\(a = r= 0\). As a result, given initial wealth \(w\) and the small fair gamble, both \(a\) and \(r\)
+measure the agent's level of risk aversion.
+
+\paragraph{Coefficient of Absolute Risk Aversion}
+
+When \(\tilde\ve\) is small, \(a\) is small. By Taylor expansion and definition of expected utility:
+\[\ba
+u\pr{w-a}&\approx u\pr{w}-u'\pr{w}\cdot a\\
+U\pr{w+\tilde\ve} & = \E[\ve]{u\pr{w+\ve}} = \int_{\ve}u\pr{w+\ve}\text d\ve\\
+& \approx \int_{\ve} \br{u\pr{w}+u'\pr{w}\cdot\ve+\frac12 u''\pr{w}\cdot\ve^2} \text d\ve\\
+& = u\pr{w} \int_{\ve} 1 \text d\ve + u'\pr{w} \int_{\ve} \ve \text d\ve +\frac12  u''\pr{w}\int_{\ve} \ve^2 \text d\ve\\
+& = u\pr{w} + \frac12 u''\pr{w}\cdot \var{\tilde\ve}
+\ea\]
+
+It follows that
+\[\ba
+u\pr{w}-u'\pr{w}\cdot a & = u\pr{w} + \frac12 u''\pr{w}\cdot \var{\tilde\ve}\\
+\too a & \approx -\frac12\cdot \frac{u''\pr{w}}{u'\pr{w}}\cdot \var{\tilde\ve}
+\ea\]
+
+\defn{Coefficient of Absolute Risk Aversion}{
+Suppose the agent has initial wealth $x>0$, and the utility function $u:\RR\to \RR$ is twice continuously differentiable. Then the  \textit{coefficient of absolute risk aversion}, $A\pr{x,u}$, is defined as
+\[A\pr{x,u} = -\dfrac{u''\pr{x}}{u'\pr{x}}.\]
+}
+
+\paragraph{Coefficient of Relative Risk Aversion}
+
+Similarly, we use Taylor expansion and definition of expected utility to compute
+\(r\):
+\[\ba
+u\pr{w\pr{1-r}}& \approx u\pr{w} - u'\pr{w}\cdot \pr{wr}\\
+U\pr{w+w\tilde\delta} & = \E[G]{u\pr{w+w\delta}} = \int_{\delta}u\pr{w+w\delta}\text dG\pr{\delta}\\
+& \approx \int \br{u\pr{w}+u'\pr{w}\cdot\pr{w\delta}+\frac12 u''\pr{w}\cdot\pr{w\delta}^2} \text d G\pr{\delta}\\
+& = u\pr{w} \int 1 \text dG\pr{\delta} + u'\pr{w} \int_{\delta} w\delta \text dG\pr{\delta} +\frac12  u''\pr{w}\int_{\delta} \pr{w\delta}^2 \text dG\pr{\delta}\\
+& = u\pr{w} + \frac12 u''\pr{w}\cdot w^2\var{\tilde\delta}
+\ea\]
+
+It follows that
+\[\ba
+u\pr{\pr{1-r}w} = U\pr{\pr{1+\tilde\delta}w}\\
+\too r \approx -\frac{wu''\pr{w}}{2u'\pr{w}}\var{\tilde\delta}
+\ea\]
+
+\defn{Coefficient of Relative Risk Aversion}{
+Suppose the agent has initial wealth $x>0$, and the utility function $u:\RR\to \RR$ is twice continuously differentiable. Then the  \textit{coefficient of relative risk aversion}, $R\pr{x,u}$, is defined as
+\[A\pr{x,u} = -\dfrac{xu''\pr{x}}{u'\pr{x}}.\]
+}
+
+\propp{Equivalence of Different Measures of Risk Aversion}{
+Suppose utility functions $u$ and $v$ are strictly increasing and twice differentiable. The following definitions of an agent characterized by \(u\) being more risk averse than another agent characterized by \(v\) are equivalent:
+\begin{enumerate}
+\item
+  For any lottery \(F\) and sure outcome \(\delta_X\). if
+  \(F\pref_u\delta_X\), then \(F\pref_v \delta_X\).
+\item
+  For any lottery \(F\), \(c\pr{F,u}\le c\pr{F,v}\).
+\item
+  The function \(u\) is ``more concave" than \(v\), that is, there exists
+  some increasing and concave function \(g\) such that \(u = g\circ v\).
+\item
+  \(r\pr{x} = \dfrac{u'\pr{x}}{v'\pr{x}}\) is non-increasing in \(x\).
+\item
+  For any \(x\),
+  \(A\pr{x,u} = -\dfrac{u''\pr{x}}{u'\pr{x}}\ge -\dfrac{v''\pr{x}}{v'\pr{x}} = A\pr{x,v}\).
+\end{enumerate}
+}{
+\begin{itemize}
+\item
+  (1)\(\iff\)(2)
+  \begin{itemize}
+  \item
+    (1) \(\too\) (2): By definition of certainty equivalent,
+    \(\delta_{c\pr{F,u}}\sim_u F\). By condition (1), we have
+    \(\delta_{c\pr{F,v}}\sim_v F\pref_v \delta_{c\pr{F,u}}\). Recall
+    that \(v\pr{\cdot}\) is strictly increasing, so we have
+    \(c\pr{F,u}\le c\pr{F,v}\).
+  \item
+    (2) \(\too\) (1): If \(\delta_{c\pr{F,u}}\sim F\pref_u \delta_x\),
+    then by strictly-increasing property of \(u\), it follows that
+    \(c\pr{F,u}\ge x\). So
+    \(c\pr{F,v}\ge c\pr{F,u}\ge x\too c\pr{F,v}\ge x\). Again by $v$ being strictly increasing, we have
+    \(c\pr{F,v}\sim F\pref_v \delta_x\).
+  \end{itemize}
+\item
+  (2)\(\iff\)(3)
+  \begin{itemize}
+  \item
+    Since \(u\) and \(v\) are strictly increasing, \(v^{-1}\) is well
+    defined and \(g = u\circ v^{-1}\) is strictly increasing.
+  \item
+    Again by strict monotonicity of \(u\), we have
+    \(u\pr{c\pr{F,u}}\le u\pr{c\pr{F,v}}\) for any lottery \(F\).
+    \[\ba
+    u\pr{c\pr{F,u}} & = U(F) = \int _X u\pr{x}\text dF\pr{x} = \int_X g\pr{v\pr{x}}\text dF\pr{x}\\
+    u\pr{c\pr{F,v}} & = g\pr{v\pr{c\pr{F,v}}} = g\pr{\int_X v\pr{x}\text dF\pr{x}}
+    \ea\]
+  \item
+    By Jensen's inequality,
+    \(\int_X g\pr{v\pr{x}}\text dF\pr{x}\le g\pr{\int_X v\pr{x}\text dF\pr{x}}\)
+    if and only if \(g\) is concave.
+  \end{itemize}
+\item
+  (3)\(\iff\)(4)
+
+  \begin{itemize}
+  \item
+    Since \(u\) and \(v\) are strictly increasing, \(v^{-1}\) is well
+    defined and \(g = u\circ v^{-1}\) is strictly increasing.
+  \item
+    When \(u\) and \(v\) are both differentiable,
+    \(u'\pr{x} = g'\pr{v\pr{x}}\cdot v'\pr{x}\too \frac{u'\pr{x}}{v'\pr{x}} = g'\pr{v\pr{x}}\).
+  \item
+    Since \(v\) is strictly increasing, \(\frac{u'\pr{x}}{v'\pr{x}}\) is
+    non-increasing in \(x\) if and only if \(g'\) is non-increasing, that is, \(g\)
+    is concave.
+  \end{itemize}
+\item
+  (4)\(\iff\)(5)
+
+  \begin{itemize}
+  \item
+    When \(r\pr{x}>0\), \(r\pr{x}\) is non-increasing in \(x\) if and only if 
+    \(\ln r\pr{x} = \ln u'\pr{x} - \ln v'\pr{x}\) is non-increasing in
+    \(x\).
+  \item
+    When \(u\) and \(v\) are twice differentiable,
+
+    \[\pr{\ln r\pr{x}}' = \frac{u''\pr{x}}{u'\pr{x}} - \frac{v''\pr{x}}{v'\pr{x}}\]
+  \item
+    It follows that \(r\pr{x} = \frac{u'\pr{x}}{v'\pr{x}}\) is
+    non-increasing in \(x\) if and only if \(A\pr{x,u}\ge A\pr{x,v}\).
+  \end{itemize}
+\end{itemize}
+}
+
+\ex{
+Consider an investor who must decide how much of their
+initial wealth \(w\) to put into a risky asset. The risky asset can have
+any of the positive or negative rates of return \(r_i\) with
+probabilities \(p_i\), \(i = 1, 2,\cdots, n\). Suppose the investor is
+an expected utility maximizer and their utility for \(x\) amount of
+money for sure can be represented by a twice continuously
+differentiable, strictly increasing and strictly concave utility
+function \(u\pr{x}\). Let \(a^*\) be the investor's optimal amount of
+money to put in the risky asset. Suppose \(\sum_{i  =1}^n p_ir_i>0\).
+
+\begin{enumerate}
+
+\item
+  Give a sufficient condition for \(a^*<w\).
+\item
+  Suppose \(a^*<w\) and that \(A\pr{x,u}\) is strictly decreasing in
+  \(x\), how would \(a^*\pr{w}\) change with \(w\)?
+\end{enumerate}
+}
+
+
+\hypertarget{comparison-of-risky-prospects}{%
+\section{Comparison of Risky
+Prospects}\label{comparison-of-risky-prospects}}
+
+The earlier proposition shows we can use the coefficient of absolute
+risk aversion \(A\pr{x,u}\) to compare the risk attitudes of two
+individuals, as well as the risk attitudes of the same individual at two
+wealth levels. But how about the comparisons of two lotteries? In
+particular, when can we unambiguously say that \(F\pref G\) for any
+(risk-averse) decision-maker?
+
+When comparing monetary lotteries, an agent would naturally consider expected payoffs and variations in payoffs. Intuitively, \(F\pref G\) unambiguously in one of the following two
+cases:
+
+\begin{enumerate}
+\item
+  \(F\) yields a higher return than \(G\) with a higher probability.
+\item
+  \(F\) and \(G\) have the same expected return, but there is less
+  variation in \(F\).
+\end{enumerate}
+
+Roughly speaking, we introduce first-order stochastic dominance for the first possibility, and second-order stochastic dominance for the second.
+
+\hypertarget{first-order-stochastic-dominance}{%
+\subsection{First-Order Stochastic
+Dominance}\label{first-order-stochastic-dominance}}
+
+\propp{First-Order Stochastic Dominance}{
+The
+following two conditions are equivalent:
+\begin{enumerate}
+\item
+  For any non-decreasing \(u:\RR\to \RR\),
+  \[\int_Xu\pr{t}\text dF\pr{t}\ge \int_X u\pr{t}\text dG\pr{t}.\]
+\item
+  \(F\pr{x}\le G\pr{x}\) for almost every $x$.
+\end{enumerate}
+In this case, \(F\) \textit{first-order stochastically dominates}
+\(G\).
+}{
+Assume that \(u\) is continuously differentiable,
+and \(u'\pr{\cdot}>0\). Let \(X = \br{\underline x,\bar x}\).
+\[\ba
+& \int_{\underline x}^{\bar x}u\pr{t}\text d F\pr{t}-\int_{\underline x}^{\bar x}u\pr{t}\text d G\pr{t}\\
+=& \br{u\pr{t}F\pr{t}\bigg|_{\underline x}^{\bar x} - \int_{\underline x}^{\bar x} u'\pr{t}F\pr{t}\text d t}-\br{u\pr{t}G\pr{t}\bigg|_{\underline x}^{\bar x} - \int_{\underline x}^{\bar x} u'\pr{t}G\pr{t}\text d t}\\
+= & \br{\pr{u\pr{\underline x}-u\pr{\bar x}}-\int_{\underline x}^{\bar x} u'\pr{t}F\pr{t}\text d t}-\br{\pr{u\pr{\underline x}-u\pr{\bar x}}-\int_{\underline x}^{\bar x} u'\pr{t}G\pr{t}\text d t} \\
+= & \int_{\underline x}^{\bar x} u'\pr{t}\pr{G\pr{t}-F\pr{t}}\text dt
+\ea\]
+
+It follows that
+\(\int_{\underline x}^{\bar x}u\pr{t}\text d F\pr{t}\ge \int_{\underline x}^{\bar x}u\pr{t}\text d G\pr{t}\)
+if and only if \(G\pr{x}\ge F\pr{x}\) almost everywhere.
+}
+
+Notice that the first condition says that any decision-maker who prefers
+more money would prefer lottery \(F\) over \(G\), regardless of the
+agent's risk attitude, let alone the specific mathematical expression of utility function.
+
+\hypertarget{second-order-stochastic-dominance}{%
+\subsection{Second-Order Stochastic
+Dominance}\label{second-order-stochastic-dominance}}
+
+\defn{Mean-Preserving Spread}{
+Let \(X,Y\) be two random
+variables with distribution functions \(F\) and \(G\), respectively.
+Then \(G\) is a \emph{mean-preserving spread} of \(F\) if
+\(Y = X+\tilde \ve\), where \(\E{\tilde\ve|X} = 0\).
+}
+
+Intuitively, the two lotteries \(F\) and \(G\) yield the same expected
+return, but \(G\) involves more risk.
+
+\propp{Second-Order Stochastic Dominance}{
+Suppose
+\(\E{F} = \E{G}\). Then the following three conditions are equivalent:
+\begin{enumerate}
+\item
+  For any (non-decreasing) concave \(u:\RR\to \RR\),
+  \[\int_Xu\pr{t}\text dF\pr{t}\ge \int_Xu\pr{t}\text dG\pr{t}\]
+\item
+  For almost every \(x\in X\),
+  \[\int_{-\infty}^x F\pr{t}\text dt\le \int_{-\infty}^x G\pr{t}\text dt\]
+\item
+  \(G\) is a mean-preserving spread of \(F\).
+\end{enumerate}
+
+In this case, \(F\) \textit{second-order stochastically
+dominates} \(G\).
+}{
+For simplicity, suppose
+\(X = \br{\underline x,\bar x}\) and \(u\) is twice continuously
+differentiable.
+\begin{itemize}
+\item
+  (1) \(\iff\) (2)
+  \begin{itemize}
+  \item
+    By earlier calculation,
+    \(\int_{\underline x}^{\bar x}u\pr{t}\text d F\pr{t}-\int_{\underline x}^{\bar x}u\pr{t}\text d G\pr{t}=\int_{\underline x}^{\bar x} u'\pr{t}\pr{G\pr{t}-F\pr{t}}\text dt\).
+  \item
+    Again by integration by parts and noticing \(\E{F} = \E{G}\), we
+    have:
+    \[\int_{\underline x}^{\bar x}u\pr{t}\text d F\pr{t}-\int_{\underline x}^{\bar x}u\pr{t}\text d G\pr{t}
+    =\int_{\underline x}^{\bar x} u''\pr{x}\br{\int_{\underline x}^xG\pr{t}\text dt - \int_{\underline x}^x F\pr{t} \text dt} \text dx\]
+  \item
+    Because $u$ is concave, $u''\le 0$. It follows that
+    \(\int_{\underline x}^{\bar x}u\pr{t}\text d F\pr{t}\ge \int_{\underline x}^{\bar x}u\pr{t}\text d G\pr{t}\)
+    if and only if 
+    \(\int_{\underline x}^xF\pr{t}\text dt \ge \int_{\underline x}^x G\pr{t} \text dt\)
+    almost everywhere.
+  \end{itemize}
+\item
+  (1) \(\iff\) (3)
+  \begin{itemize}
+  \item
+    We will only show (3) \(\too\) (1).
+  \item
+    By the law of iterated expectation,
+     \[\E[G]{u\pr Y} =  \E[F]{\E[G]{u\pr{Y}|X}}\]
+  \item
+    Since \(u\pr\cdot\) is concave, by Jensen's
+    inequality,
+    \[\E[G]{u\pr{Y}} = \E[F]{\E[G]{u\pr{Y}|X}} \le \E[F]{u\pr{\E[G]{Y|X}}} = \E[F]{u\pr{X}}\]
+  \end{itemize}
+\end{itemize}
+}
+
+\rmk{
+The first condition says that any risk-averse decision-maker would prefer
+  lottery \(F\) over \(G\). Additionally, when \(\E{F} = \E{G}\), we actually do not
+  need \(u\pr{\cdot}\) to be non-decreasing. If \(\E{F}\ne \E{G}\), then the second and the third conditions are still
+  equivalent, but we actually need \(u\pr{\cdot}\) to be non-decreasing
+  and concave.
+}
+
+\hypertarget{likelihood-ratio-dominance}{%
+\subsection{Likelihood Ratio
+Dominance}\label{likelihood-ratio-dominance}}
+
+\defn{Likelihood Ratio Dominance}{
+Let \(F\) and \(G\) be two
+distribution functions with common support \(\br{\underline x,\bar x}\).
+Suppose the density functions exist and are given by \(f\) and \(g\),
+respectively. \(F\) \textit{dominates} \(G\) \textit{in the likelihood ratio order}
+if \(\frac{f\pr{x}}{g\pr{x}}\) is non-decreasing in \(x\).
+}
+
+Intuitively, when $F$ dominates $G$ in the likelihood ratio order, \(F\) puts higher probabilities on
+higher returns compared with \(G\).
+
+\propp{Likelihood Ratio Dominance Implies First-Order Stochastic Dominance}{
+If \(F\)
+dominates \(G\) in the likelihood ratio order, then \(F\) first-order
+stochastically dominates \(G\).
+}{
+Since \(F\pr{\cdot }\) and \(G\pr{\cdot}\) are
+both non-decreasing, in order to show that \(F\pr{x}\le G\pr{x}\), it
+suffices to show that
+\[\dfrac{F\pr{x}}{1-F\pr{x}}\le \dfrac{G\pr{x}}{1-G\pr{x}},\forall x\in \pr{\underline x,\bar x}.\]
+
+We have
+\[\ba
+\dfrac{F\pr{x}}{1-F\pr{x}} & = \frac{\int_{\underline x}^x f\pr{t} \text dt}{\int_x^{\bar x}f\pr{t}\text dt}\\
+& = \frac{\int_{\underline x}^x \frac{f\pr{t}}{g\pr{t}}\cdot g\pr{t} \text dt}{\int_x^{\bar x}\frac{f\pr{t}}{g\pr{t}}\cdot g\pr{t} \text dt}\\
+\ea\]
+
+Since \(\frac{f\pr{x}}{g\pr{x}}\) is non-decreasing,
+\[\ba
+\forall t\in \br{\underline x,x},\frac{f\pr{t}}{g\pr{t}}\le \frac{f\pr{x}}{g\pr{x}}\\
+\forall t\in \br{x,\bar x},\frac{f\pr{t}}{g\pr{t}}\ge \frac{f\pr{x}}{g\pr{x}}\\
+\ea\]
+Therefore, we have
+\[\ba
+\dfrac{F\pr{x}}{1-F\pr{x}} 
+& = \frac{\int_{\underline x}^x \frac{f\pr{t}}{g\pr{t}}\cdot g\pr{t} \text dt}{\int_x^{\bar x}\frac{f\pr{t}}{g\pr{t}}\cdot g\pr{t} \text dt}\le 
+\frac{\frac{f\pr{x}}{g\pr{x}}\cdot\int_{\underline x}^x  g\pr{t} \text dt}{\frac{f\pr{x}}{g\pr{x}}\cdot \int_x^{\bar x}g\pr{t} \text dt} = 
+\frac{\int_{\underline x}^x  g\pr{t} \text dt}{\int_x^{\bar x}g\pr{t} \text dt} = \frac{G\pr{x}}{1-G\pr{x}}
+\ea\]
+}
+
+\hypertarget{comparative-statics-under-risk}{%
+\section{Comparative Statics Under
+Risk}\label{comparative-statics-under-risk}}
+
+Our earlier discussions on comparative statics did not 
+specifically take uncertainty into consideration. Whether and how would the comparative
+statics results carry over to choices under uncertainty?
+
+The first result is that, if a random variable is ``introduced" into a supermodular function, the expected utility function still preserves supermodularity.
+
+\lemp{Expected Utility Function Preserves Supermodularity}{
+Let
+\(X\subset \RR^n\) be a sublattice and \(T\subset \RR\). Suppose
+\(u:X\times T\to \RR\) is supermodular in \(\x\). Then for any
+distribution function \(F\) on \(T\), the function \(U:X\to \RR\) defined
+by
+\[U\pr{\x} = \int_t u\pr{\x,t}\text dF\pr{t}\]
+\hspace{2em} is supermodular in \(\x\).
+}{
+Take any \(\x,\x'\in X\). we have
+\[\ba
+U\pr{\x\meet \x'}+U\pr{\x\join \x'} & = \int_t\br{u\pr{\x\meet \x',t}+u\pr{\x\join \x',t}}\text d F\pr{t}\\
+& \ge \int_t\br{{u\pr{\x,t}+u\pr{\x',t}}}\text d F\pr{t}\\
+& = U\pr{\x}+U\pr{\x'}
+\ea\]
+
+where the inequality in the second line follows from the supermodularity of \(u\pr{\x,t}\)
+in \(\x\). Consequently by definition of supermodularity, \(U\pr{\cdot}\) is supermodular in \(\x\).
+}
+
+The second result states that, first-order stochastic dominance preserves increasing differences.
+
+\lemp{First-Order Stochastic Dominance Preserves Increasing Differences}{
+Let \(X\subset \RR^n\)
+be a sublattice and \(T,\Theta\subset \RR\). Suppose
+\(u:X\times T\to \RR\) has increasing differences in \(\pr{\x,t}\), and
+\(\brace{F_{\theta}}_{\theta\in \Theta}\) is a family of distribution
+function on \(T\) such that \(F_{\theta}\ge_{FOSD} F_{\theta'}\) if
+\(\theta>\theta'\). Then the function \(U:X\times\Theta\to \RR\) defined
+by
+\[U\pr{\x,\theta} = \int_t u\pr{\x,t}\text dF_{\theta}\pr{t}\]
+\hspace{2em} has increasing differences in \(\pr{\x,\theta}\).
+}{
+Take any \(\x>\x'\) and \(\theta>\theta'\), we have
+\[\ba
+U\pr{\x,\theta}-U\pr{\x',\theta} & = \int_t \br{u\pr{\x,t}-u\pr{\x',t}}\text dF_{\theta}\pr{t}\\
+& \ge \int_t \br{u\pr{\x,t}-u\pr{\x',t}}\text dF_{\theta'}\pr{t}\\
+& = U\pr{\x,\theta'}-U\pr{\x',\theta'}
+\ea\]
+
+where the inequality holds because, \(\delta\pr{t}:= u\pr{\x,t}-u\pr{\x',t}\) is non-decreasing in \(t\)
+by increasing differences of \(u\pr{\cdot,\cdot}\) in \(\pr{\x,t}\) and 
+\(F_{\theta}\ge_{FOSD} F_{\theta'}\).
+Consequently, \(U\pr{x,\theta}\) has increasing differences in
+\(\pr{\x,\theta}\).
+}
+
+\rmk{
+Intuitively, \(\theta\) can be interpreted as a signal of \(t\), indicating the distribution of $t$.
+}
+
+\propp{Comparative Statics Under Risk}{
+Let
+\(X\subset \RR^n\) be a sublattice and \(T,\Theta\subset \RR\). Suppose
+\(u:X\times T\to \RR\) is supermodular in \(\x\) and has increasing
+differences in \(\pr{\x,t}\). Further suppose
+\(\brace{F_{\theta}}_{\theta\in \Theta}\) is a family of distribution
+function on \(T\) such that \(F_{\theta}\ge_{FOSD} F_{\theta'}\) if
+\(\theta>\theta'\). Then for the function \(U:X\times\Theta\to \RR\)
+defined by
+\[U\pr{\x,\theta} = \int_t u\pr{\x,t}\text dF_{\theta}\pr{t},\]
+\hspace{2em} the set of maximizers, \(\arg\max_{\x\in X} U\pr{\x,\theta}\), is
+non-decreasing in \(\theta\) in the strong set order.
+}{
+\begin{itemize}
+\item
+  Fixing any \(\theta\), by the lemma of expected utility function preserving supermodularity, \(U\pr{\x,\theta}\) is
+  supermodular in \(\x\).
+\item
+  By the lemma of first-order stochastic dominance preserving increasing differences, \(U\pr{\x,\theta}\) has increasing differences in
+  \(\pr{\x,\theta}\).
+\item
+  Since \(X\times \Theta\) forms a product set, \(U\pr{\x,\theta}\) is
+  supermodular in \(\pr{\x,\theta}\).
+\item
+  By the multivariate Topkis' theorem, the set of
+  maximizers, \(\arg\max_{\x\in X} U\pr{\x,\theta}\), is non-decreasing in
+  \(\theta\) in the strong set order.
+\end{itemize}
+}
+
+\ex{
+Suppose a monopolist faces an uncertain demand and must
+make a production decision prior to learning the realized demand for its
+product. The monopolist does learn some information about demand prior
+to choosing its output. Formally, suppose the inverse demand function is 
+\(p\pr{q,t} = \hat p\pr{q}+t\), where \(\hat p\pr{q}\) is the estimated
+inverse demand, and \(t\) is a random noise. The ex-post profit of the
+firm is therefore
+\[\pi\pr{q,t} = p\pr{q,t}\cdot q-c\pr{q}\]
+\hspace{2em} with \(c\pr q\) being the monopolist's cost function. The
+monopolist observes a signal \(\theta\) that is informative about the
+parameter \(t\). Specifically, suppose the distribution of \(t\)
+conditional on \(\theta\) is \(F_{\theta}\pr{\cdot}\), and
+\(F_{\theta}\ge_{FOSD} F_{\theta'}\) for \(\theta>\theta'\). Determine
+how would the monopolist's optimal output
+\(q^*\pr{\theta}\) change with the observed signal \(\theta\).
+}
+
+\sol{
+The monopolist solves the following maximization
+problem:
+\[\max_{q\ge 0} \Pi \pr{q,\theta} = \int_t \pi\pr{q,t}\text d F_{\theta}\pr t\]
+
+Notice that \(\frac{\partial \pi\pr{q,t}}{\partial t} = q\), increasing in \(q\). It follows that \(\pi\pr{q,t}\) has increasing differences in
+\(\pr{q,t}\). Since \(F_{\theta}\ge_{FOSD} F_{\theta'}\) for
+\(\theta>\theta'\), \(\Pi\pr{q,\theta}\) has increasing differences in
+\(\pr{q,\theta}\) and \(q^*\pr{\theta}\) is non-decreasing in \(\theta\)
+in the strong set order.
+}
+
+\ex{
+Consider an agent with an initial wealth \(w\), who
+faces a random loss \(\tilde l\in \br{0,w}\). To counter the potential
+loss, the agent may purchase any fraction of insurance
+\(y\in \br{0,1}\). Specifically, if the agent purchases \(y\) unit of
+insurance, then they pay a total price of \(yp\) upfront, and get paid
+\(yl\) if they incur a loss of \(l\). Suppose the agent is an expected
+utility maximizer and has a utility function \(u\pr{x}\) for $x$ 
+amount of money for sure. Further suppose \(u\pr{\cdot}\) is twice
+continuously differentiable with \(u'\pr{\cdot}>0\) and
+\(u''\pr{\cdot}<0\).
+
+\begin{enumerate}
+\item
+  First suppose \(p\le \E{\tilde l}\). Show the optimal amount of
+  insurance \(y^*=  1\).
+\item
+  Next suppose \(p>\E{\tilde l}\). Show the optimal amount of insurance
+  \(y^*<1\).
+\item
+  Let \(A\pr{x,u}\) be the coefficient of absolute risk aversion. Write
+  down its expression and show that if \(A\pr{x,u} = c_0\) (a constant),
+  then the optimal amount of insurance \(y^*\) is independent of \(w\).
+\item
+  Now suppose \(A\pr{x,u}\) strictly decreases with \(x\). Show the
+  optimal amount of insurance \(y^*\) is non-increasing in the
+  agent's initial wealth \(w\).
+\end{enumerate}
+}
+\sol{
+\begin{enumerate}
+    \item Since the agent is an expected utility maximizer, their choice problem
+is given by
+\[\max_{y\in \br{0,1}} U\pr y = \E{u\pr{w-yp-\pr{1-y}l}}\]
+
+Simple calculation shows
+\[\ba
+U'\pr y & = \E{\pr{l-p}\cdot u'\pr{w-l+\pr{l-p}y}}\\
+U''\pr y & = \E{\pr{l-p}^2\cdot u''\pr{w-l+\pr{l-p}y}}\le 0
+\ea\]
+
+It follows that
+\(U'\pr{y}\ge U'\pr1 = u'\pr{w-p}\pr{\E{\tilde l}-p}\ge 0\), with strict
+inequality as long as 
+\(p<\E{\tilde l}\). Consequently, \(y^* = 1\).
+
+\item  When \(p>\E{\tilde l}\), \(U'\pr1 = u'\pr{w-p}\pr{\E{\tilde l}-p}<0\), and \(U''\pr y\le 0\), we have \(y^*<1\).
+
+\item By definition, \(A\pr{x,u} = -\dfrac{u''\pr x}{u'\pr x}\).
+
+Take any \(w_1<w_2\), and let
+\[\ba
+v_1\pr x & = u\pr{w_1+x}\\
+v_2\pr x & = u\pr{w_2+x}
+\ea\]
+Then at initial wealth \(w_i\pr{i = 1,2}\), the agent's
+maximization problem is given by
+\[\max_{y\in \br{0,1}}V_i\pr y = \E{v_i\pr{-l+\pr{l-p}y}}\]
+From the previous two questions, it suffices to focus on the case of
+\(p>\E{\tilde l}\).
+
+By earlier characterization, \(A\pr{x,u} = c_0\) implies
+\(\dfrac{v_1'\pr x}{v_2'\pr x} = c_1\), which is also a constant.
+
+Simple calculation shows
+\[\ba
+V_i'\pr y & = \E{\pr{l-p}v_i'\pr{-l+\pr{l-p}y}}\\
+V_i''\pr y & = \E{\pr{l-p}^2v_i''\pr{-l+\pr{l-p}y}}\le 0
+\ea\]
+If \(V_1'\pr 0\le 0\), then \(V_2'\pr{0}\le 0\), so
+\(y_1^* = y_2^* = 0\). Otherwise, if \(V_1'\pr{y^*} = 0\), then
+\(V'_2\pr{y^*} = 0\); by $V_i''(\cdot)< 0$ for $i = 1,2$, $V_i'(y)$ strictly decreases with $y$ and achieves maximum at $y$, so \(y_1^* = y_2^* = y^*\).
+
+\item Suppose by contradiction that \(y_2^*>y_1^*\ge 0\). By optimality of $y_2^*$, 
+\[\int_0^w v_2'\pr{-l+\pr{l-p}y_2^*}\pr{l-p}\text dF\pr{l} = 0.\]
+By our earlier
+characterization, \(A\pr{x,u}\) strictly decreases with \(x\) implies
+\(\dfrac{v'_1\pr x}{v_2'\pr x}\) is non-increasing in \(x\).
+
+Consequently, we have
+\[\ba
+V_1'\pr{y_2^*} & = \int_0^p v_1'\pr{-l+\pr{l-p}y_2^*}\pr{l-p}\text dF\pr{l}\\
+& \ \ \ \ +\int_p^w v_1'\pr{-l+\pr{l-p}y_2^*}\pr{l-p}\text dF\pr{l}\\
+& = \int_0^p \frac{v_1'\pr{-l+\pr{l-p}y_2^*}}{v_2'\pr{-l+\pr{l-p}y_2^*}}v_2'\pr{-l+\pr{l-p}y_2^*}\pr{l-p}\text dF\pr{l}\\
+& \ \ \ \ +\int_p^w \frac{v_1'\pr{-l+\pr{l-p}y_2^*}}{v_2'\pr{-l+\pr{l-p}y_2^*}}v_2'\pr{-l+\pr{l-p}y_2^*}\pr{l-p}\text dF\pr{l}\\
+& \ge \frac{v_1'\pr{-p}}{v_2'\pr{-p}}\int_0^w v_2'\pr{-l+\pr{l-p}y_2^*}\pr{l-p}\text dF\pr{l}\\
+& = 0
+\ea\]
+Given $V_i''(\cdot)<0$ and our assumption of $y_2^*>y_1^*\ge 0$, we have
+\(V_1'\pr{y_1^*}> V_1'\pr{y_2^*}\ge 0\), which is a contradiction.
+\end{enumerate}
+}
+

@@ -1,0 +1,524 @@
+\chapter{Comparative Statics Analysis}
+
+A central question in economics is how an endogenous variable changes
+with an exogenous variable. For instance, in the indirect approach of
+single-product profit maximization:
+\[\max _{y\ge0} py-c(\w,y)\]
+
+Holding the input prices \(\w\) as given, we are interested in how the
+firm's optimal supply (correspondence) \(y^*\) changes
+with the output price \(p\).
+
+\noindent More generally, let \(F: X\times \Theta \to \RR\), where
+\(X,\Theta\subset \RR\), we are interested in how the maximizer
+\[x^*(\theta) = \arg\max_{x\in X}F(x,\theta)\]
+
+would change with the parameter \(\theta\).
+
+\hypertarget{univariate-comparative-statics}{%
+\section{Univariate Comparative
+Statics}\label{univariate-comparative-statics}}
+
+The classical approach is to apply the implicit function theorem. We
+need at least two sets of assumptions:
+
+\begin{itemize}
+\item
+  \(F(\cdot,\cdot )\) is twice continuously differentiable.
+\item
+  The maximizer \(x^*(\theta)\) is unique and is characterized by the
+  first-order condition.
+\end{itemize}
+
+\rmkb{
+A set of sufficient conditions for the second assumption is needed:
+
+\begin{itemize}
+\item
+  The choice set \(X\) is convex.
+\item
+  \(F(\cdot,\theta)\) is strictly concave in \(x\).
+\item
+  The solution is interior.
+\end{itemize}
+}
+
+Under the two sets of assumptions, the first-order condition is:
+\[F_x(x(\theta),\theta) = 0.\]
+
+Differentiating on both sides with respect to \(\theta\), we have: 
+\[\ba
+& F_{xx}(x(\theta),\theta)\cdot x'(\theta)+F_{x\theta}(x(\theta),\theta)=0\\
+\too & x'(\theta) = -\frac{F_{x\theta}(x(\theta),\theta)}{F_{xx}(x(\theta),\theta)}
+\ea\]
+
+If \(F\pr{\cdot,\theta}\) is strictly concave in \(x\), then
+\(F_{xx}\pr{\cdot,\cdot}<0\) (assuming no reflection point), so
+\(x\pr{\cdot}\) is strictly increasing in \(\theta\) if
+\(F_{x\theta}\pr{\cdot,\cdot}>0\).
+
+The advantage for the classical method is straightforward that, it provides explicit expression for \(x'(\theta)\)  and makes it possible for quantitative analysis. The disadvantages, however, grow out from its proposed advantage:
+\begin{itemize}
+  \item
+    Technical issue: Strong assumptions and tedious calculation in some
+    examples.
+  \item
+    Substantive issue: The requirement of strict concavity in \(x\) counters
+    our intuition. (Recall from consumer theory that the set of
+    maximizers is unaffected by any positive monotonic transformation.)
+  \end{itemize}
+
+\ex{
+Taking \(\w\) as given, the profit maximization problem is given by
+\[\max_{y\ge 0} py-c(y)\] 
+
+We use the classical approach to determine
+whether (and when) the firm's supply curve is (weakly)
+upward sloping.
+
+Notice that the choice set \(Y = [0,+\infty)\) is convex, and when
+\(c(\cdot)\) is strictly convex, the objective function is strictly
+concave. Assuming interiority, the first-order condition is given by:
+\[p = c'\pr{y\pr{p}}\]
+Differentiating on both sides with respect to \(p\), we get
+\[y'\pr{p} =\dfrac{1}{c''\pr{y\pr{p}}}\]
+
+Thus, \(c\pr{\cdot}\) being
+strictly convex is a sufficient condition for the supply curve being upward sloping. However, the requirement of
+\(c\pr{\cdot}\) being strictly convex is not always a reasonable
+assumption. Moreover, this assumption is not necessary. Recall that we
+have \emph{Law of Supply}, which states that the firm's
+supply curve is weakly upward sloping without any other assumption.
+}
+
+
+In conclusion, we argue that the differentiability and concavity of
+\(F\pr{\cdot,\theta}\) are not indispensable for comparative statics
+analysis. By comparison, \(F_{x\theta}\pr{\cdot,\cdot}>0\) captures the
+\emph{complementarity} between \(x\) and \(\theta\). Naturally, we would
+like to ask whether \(F_{x\theta}\pr{\cdot,\cdot}>0\) alone is
+sufficient for \(x^*\pr{\theta}\) to be increasing in \(\theta\). Our
+goal in this part is to formulate a discrete analogue of this condition
+and show that \(F_{x\theta}\pr{\cdot,\cdot}>0\) is sufficient for \(x^*\pr{\theta}\) to be increasing
+in \(\theta\).
+
+That \(F\pr{\cdot,\cdot}\) is twice \textit{continuously} differentiable is too strong an assumption. For the general case, we
+introduce the following definition of (strict) increasing differences.
+
+\defn{Increasing Differences}{
+Let
+\(F:X\times \Theta\to \RR\), where \(X,\Theta\subset \RR\). We say that
+\(F(\cdot,\cdot)\) has \emph{increasing differences} in \((x,\theta)\)
+if for any \(x,x'\in X\) and \(\theta,\theta'\in \Theta\) such that
+\(x'>x\) and \(\theta'>\theta\), we have
+\[F\pr{x',\theta'}-F\pr{x,\theta'}\ge F\pr{x',\theta}-F\pr{x,\theta}\]
+If the inequalities are strict for all such \(x,x'\in X\) and
+\(\theta,\theta'\in \Theta\), \(F\pr{\cdot,\cdot}\) has \emph{strictly
+increasing differences} in \(\pr{x,\theta}\).
+}
+
+Intuitively, \textit{increasing differences} captures the case where the
+\emph{marginal value} of \(x\) is higher at a higher value of
+\(\theta\). In other words, there is \emph{complementarity} between
+\(x\) and \(\theta\).
+
+\prop{Increasing Differences for Smooth Functions}{
+Suppose
+\(X = \br{\underline x,\bar x}\) and
+\(\Theta = \br{\underline \theta,\bar \theta}\), where
+\(X,\Theta\subset \RR\).
+
+\begin{enumerate}
+\item
+  If \(F\pr{\cdot,\cdot}\) is continuously differentiable in both \(x\)
+  and \(\theta\), \(F\pr{\cdot,\cdot}\) has increasing
+  differences in \(\pr{x,\theta}\) if and only if either of the two conditions holds:
+
+  \begin{itemize}
+  \item
+    \(F_x(x,\cdot)\) is non-decreasing in \(\theta\) for all \(x\).
+  \item
+    \(F_{\theta}\pr{\cdot,\theta}\) is non-decreasing in \(x\) for all
+    \(\theta\).
+  \end{itemize}
+\item
+  If \(F\pr{\cdot,\cdot}\) is twice continuously differentiable in both
+  \(x\) and \(\theta\), \(F\pr{\cdot,\cdot}\) has increasing
+  differences in \(\pr{x,\theta}\) if and only if
+  \(F_{x\theta}\pr{\cdot,\cdot}\ge 0\) for all \(\pr{x,\theta}\).
+\end{enumerate}
+}
+
+There is one technical question we need to address. When
+\(F\pr{\cdot,\theta}\) is not strictly concave in \(x\), the maximizer
+\(x^*\pr{\theta}\) need not be unique. We shall introduce two natural
+ways for comparison of sets.
+
+\defn{Comparison of Sets}{
+For any two sets \(A\) and
+\(B\), we say that:
+
+\begin{itemize}
+\item
+  \(A\le B\) \emph{in the strong set order} if for any \(a\in A\) and
+  \(b\in B\), we have \(\min \brace{a,b}\in A\) and
+  \(\max\brace{a,b}\in B\).
+\item
+  \(A\le B\) \emph{pointwise} if for any \(a\in A\) and \(b\in B\), we
+  have \(a\le b\).
+\end{itemize}
+}
+
+Intuitively, $A\le B$ in the strong set order allows for a common range of $A$ and $B$, while for the disjoint parts, any element in $A$ is strictly less than that in $B$. $A\le B$ pointwise requires every element in $B$ be no less than any element in $A$.
+
+\thmp{Univariate Topkis' Theorem}{
+Let
+\(F:X\times \Theta\to \RR\), where \(X,\Theta\subset \RR\), and
+\(x^*\pr{\theta} = \arg\max_{x\in X}F\pr{x,\theta}\). Then for any
+\(\theta'>\theta\),
+
+\begin{enumerate}
+\item
+  If \(F\pr{\cdot,\cdot}\) has increasing differences in
+  \(\pr{x,\theta}\), then \(x^*\pr{\theta}\le x^*\pr{\theta'}\) in the
+  strong set order.
+\item
+  If \(F\pr{\cdot,\cdot}\) has strictly increasing differences in
+  \(\pr{x,\theta}\), then \(x^*\pr{\theta}\le x^*\pr{\theta'}\)
+  pointwise.
+\end{enumerate}
+}{
+Take any \(x\in x^*\pr{\theta}\) and
+\(x'\in x^*\pr{\theta'}\). Suppose \(x>x'\), then by revealed
+preference,
+\[\ba
+F\pr{x,\theta}\ge F\pr{x',\theta}\\
+F\pr{x',\theta'}\ge F\pr{x,\theta'}
+\ea\]
+By increasing differences,
+\[F\pr{x,\theta}-F\pr{x',\theta}\le F\pr{x,\theta'}-F\pr{x',\theta'}\]
+Jointly we have:
+\[\ba
+& 0\le F\pr{x,\theta}-F\pr{x',\theta}\le F\pr{x,\theta'}-F\pr{x',\theta'}\le 0\\
+\too & \bc
+F\pr{x,\theta} = F\pr{x',\theta}\\
+F\pr{x,\theta'} = F\pr{x',\theta'}
+\ec\too 
+\bc
+x\in x^*\pr{\theta'}\\
+x'\in x^*\pr{\theta}
+\ec
+\ea\]
+
+If \(F\pr{\cdot,\cdot}\) has strictly increasing differences in
+\(\pr{x,\theta}\), then the combined inequality cannot hold, so it must
+be that \(x^*\pr{\theta}\le x^*\pr{\theta'}\) pointwise. In particular, if \(F\pr{\cdot,\cdot}\) is twice continuously
+differentiable in both \(x\) and \(\theta\) and \(x^*\pr{\theta}\) is
+single-valued, then \(F_{x\theta}\pr{\cdot,\cdot}>0\) is sufficient for
+\(x^*\pr{\theta}\) to be (weakly) increasing in \(\theta\).
+}
+
+\ex{
+Again consider the
+firm's profit maximization problem. How would the
+firm's supply (correspondence) change with the output
+price \(p\)?
+
+The objective function is \(F\pr{y,p} = py-c\pr{\w,y}\).
+\(Y = [0,+\infty)\) and \(P = [0,+\infty)\) are both intervals in
+\(\RR\). Moreover, \(F_p\pr{y,p} = y\), which is strictly increasing in
+\(y\), so \(F\pr{\cdot,\cdot}\) has strictly increasing differences. Therefore, the firm's supply increases with the output price $p$ pointwise.
+}
+
+\ex{
+Consider a monopolist that faces a
+downward sloping demand curve \(Q^D\pr{p}\). Now suppose the government
+levies a unit tax \(t\) on the firm. How would the before-tax price
+\(p\) received by the firm change with the unit tax \(t\)?
+
+The objective function is
+\(F\pr{p,t} = \pr{p-t}Q^D\pr{p}-c\pr{Q^D\pr{p}}\). \(P = [0,+\infty)\)
+and \(T = [0,+\infty)\) are both intervals in \(\RR\). Moreover,
+\(F_t\pr{p,t} = -Q^D\pr{p}\), which is strictly increasing in \(p\)
+(since the demand curve is downward sloping), so \(F\pr{\cdot,\cdot}\)
+has strictly increasing differences in \(\pr{p,t}\). Consequently, the
+firm's before-tax price \(p\) increases with \(t\)
+pointwise.
+}
+
+Notice that whether \(x^*\pr{\theta}\)
+increases/decreases with the parameter \(\theta\) is an \emph{ordinal}
+property, while (strictly) increasing differences is still a
+\emph{cardinal} property. Indeed, we know from the discussion on
+consumer theory that \(\max_xF\pr{x,\theta}\) and
+\(\max_{x}G\pr{x,\theta}\) have the same set of maximizers if
+\(G = \varphi\circ F\) for \(\varphi\pr{\cdot}\) strictly increasing.
+Nevertheless, \(G\) having increasing differences in
+\(\pr{x,\theta}\) does not necessarily mean \(F\) having (strictly)
+increasing differences in \(\pr{x,\theta}\). In other words, the
+requirement of (strictly) increasing differences is still too strong for
+monotone comparative statics. For our purpose, if we can find a positive and monotonic transformation $\varphi$ such that \(G =\varphi \circ F\) has increasing differences or strictly increasing differences in \(\pr{x,\theta}\), then we know
+\(x^*\pr{\theta}\) increases with \(\theta\) in the strong set order or pointwise.
+
+
+\ex{
+Consider the effects of an increase in
+the market size on monopoly quantity (and monopoly price). Each consumer
+in the market has an identical inverse function given by \(p^D\pr{q}\).
+Suppose the number of consumers \(N\) is exogenously given, and that the
+firm's cost function is \(c\pr{Q}\), where \(Q = Nq\) is
+the total quantity sold (i.e., the number of consumers times per unit
+purchase). Discuss how the firm's cost function
+\(c\pr{\cdot}\) would affect the optimal \emph{per-consumer} quantity
+\(q^*\pr{N}\) as the number of consumers \(N\) increases.
+}
+
+\sol{
+The objective function is
+\[F\pr{q,N} = N\cdot p^D\pr{q}\cdot q - c\pr{Nq}.\]
+
+Notice that it is hard to check increasing differences of \(F\pr{\cdot,\cdot}\). (You may try
+it yourself and find the process blocked by some terms that need additional information to push forward the computation.) Consider
+\(G\pr{q,N} = \dfrac{F\pr{q,N}}{N}\). Then if \(G\pr{\cdot,\cdot}\) is
+twice continuously differentiable (which indeed can be relaxed), we have
+\[\ba
+G\pr{q,N} & = \frac{F\pr{q,N}}{N} = p^D\pr{q}\cdot q - \frac{c\pr{Nq}}{N}\\
+G_N\pr{q,N} & = -\frac{q\cdot c'\pr{Nq}\cdot N - c\pr{Nq}}{N^2}\\
+G_{Nq}\pr{q,N} & = -qc''\pr{Nq}
+\ea\]
+
+If \(c\pr{\cdot}\) is concave, then \(G_{Nq}\pr{q,N}\ge 0\) and
+\(G\pr{q,N}\) has increasing differences in \(\pr{q,N}\), so
+\(q^*\pr{\cdot}\) weakly increases with \(N\). If \(c\pr{\cdot}\) is
+convex, then \(G_{Nq}\pr{q,N}\le 0\) and \(G\pr{q,N}\) has increasing
+differences in \(\pr{q,-N}\), so \(q^*\pr{\cdot}\) weakly decreases with
+\(N\).
+}
+
+
+\hypertarget{multivariate-comparative-statics}{%
+\section{Multivariate Comparative
+Statics}\label{multivariate-comparative-statics}}
+
+Consider a two-variable maximization problem:
+\[\pr{x_1^*\pr{\theta}.x_2^*\pr{\theta}} = \arg\max_{\pr{x_1,x_2}\in X\subset \RR^2}F\pr{x_1,x_2,\theta}.\]
+
+If we know \(F\) has (strictly) differences in
+\(\pr{x_1,\theta}\), we cannot conclude that \(x_1^*\pr{\theta}\) is
+weakly increasing in \(\theta\) unless \(x_2^*\) is independent of
+\(\theta\). Intuitively, as \(\theta\) varies, change in $\theta$ has direct
+effect on \(x_1\), but there is also the effect of
+\(\theta\) on \(x_2\) and consequently on $x_1$, which constitutes the indirect effect of \(\theta\) on \(x_1\).
+
+Recall from univariate Topkis's theorem that \(A\le B\)
+in the strong set order if for any \(a\in A\) and \(b\in B\), we have
+\(\min\brace{a,b}\in A\) and \(\max\brace{a,b} \in B\). In the
+multivariate case, technically the definition must be properly extended to answer
+
+\begin{itemize}
+\item
+  For two vectors \(\x\) and \(\y\), how should we define
+  \(\min\brace{\x,\y}\) and \(\max\brace{\x,\y}\)?
+\item
+  Under the proposed definition, is there any guarantee that \(\min\brace{\x,\y}\)
+  and \(\max\brace{\x,\y}\) fall within the choice set \(X\)?
+\end{itemize}
+
+For the first question, we introduce the definition of meet and
+\emph{join}, the first of which sets the greatest lower bound of the two
+vectors, and the second of which sets the smallest upper bound of the
+two vectors.
+
+\defn{Meet; Join}{
+For \(\x,\y\in\RR^n\), 
+\begin{itemize}
+    \item \textit{meet} of $\x$ and $\y$ is defined as
+    \[ \x\meet \y = \pr{\min\brace{x_1,y_1},\min\brace{x_2,y_2},\cdots,\min\brace{x_n,y_n}}.\]
+    \item \textit{join} of $\x$ and $\y$ is defined as
+    \[\x \join \y = \pr{\max\brace{x_1,y_1},\max\brace{x_2,y_2},\cdots,\max\brace{x_n,y_n}}.\]
+\end{itemize}
+
+\hspace{2em} where \(\x\meet \y\) is called the greatest lower bound of \(\x\) and
+\(\y\), and \(\x\join\y\) is called the smallest upper bound of \(\x\)
+and \(\y\).
+}
+
+For the second concern, we delineate the boundary of our discussion by defining a structure called \emph{sublattice}.
+
+\defn{Sublattice}{
+A set \(X\subset \RR^n\) is a
+\emph{sublattice} if for any \(\x,\y\in X\), both \(\x\meet \y \in X\)
+and \(\x\join \y\in X\).
+}
+
+\rmk{
+\(\RR^n\) itself is a \emph{lattice}, so any set in
+\(\RR^n\) is called a \emph{sublattice}.
+}
+
+\ex{
+\begin{itemize}
+\item
+  \(X = X_1\times X_2\times \cdots\times X_n\), where \(X_i\subset \RR\),
+  for \(i = 1,2,\cdots,n\).
+\item
+  \(X = \brace{\x\in \RR_+^n:\p\cdot\x\le m}\), where \(\p\gg\0\) is the
+  price vector and \(m>0\) is the income. (NOT a sublattice)
+\item
+  \(X = \brace{\pr{x_1,x_2}\in \RR^2:x_2\le g\pr{x_1}, \text{ for }g\pr{\cdot} \text{ strictly increasing}}\).
+\end{itemize}
+}
+
+Similar to properties of complimentarity of two variables, in the
+multivariate case we introduce the definition of \emph{supermodularity}.
+
+\defn{Supermodularity}{
+Let \(F:X\to \RR\), where
+\(X\subset \RR^n\) is a sublattice. $F$ is \emph{supermodular} if
+for any \(\x,\y\in X\),
+\[F\pr{\x\meet\y}+F\pr{\x\join\y}\ge F\pr{\x}+F\pr{\y}.\]
+}
+
+\rmkb{
+\begin{itemize}
+\item
+  Note when \(X = X_1\times X_2\subset \RR^2\), supermodularity is
+  equivalent to increasing differences in \(\pr{x_1,x_2}\).
+\item
+  More generally, when
+  \(X = X_1\times X_2\times \cdots\times X_n\subset \RR^n\),
+  \textbf{supermodularity is equivalent to increasing differences in
+  \(\pr{x_i,x_j}\) for all pairs of \(i\ne j\).}
+\end{itemize}
+}
+
+Putting all together, we have the following multivariate
+Topkis's Theorem.
+
+\propp{Multivariate Topkis's Theorem}{
+Let
+\(F:X\times \Theta\to \RR\), where \(X\subset \RR^n\) is a sublattice and
+\(\Theta\subset \RR\). Consider
+\(\x^*\pr{\theta} = \arg\max_{\x\in X}F\pr{\x,\theta}\). If \(F\) is
+supermodular, then for any \(\theta'>\theta\) and
+\(\x\in \x^*\pr{\theta}\) and \(\x'\in \x^*\pr{\theta'}\), we have
+\[\ba
+\x\meet \x'&\in \x^*\pr{\theta},\\
+\x\join \x'&\in \x^*\pr{\theta'}.
+\ea\]
+}{
+Since \(X\) is a sublattice, \(\x\meet \x'\in X\)
+and \(\x\join \x'\in X\). By revealed preference,
+\[\bc
+F\pr{\x,\theta}  \ge F\pr{\x\meet\x',\theta}\\
+F\pr{\x',\theta'}  \ge F\pr{\x\join \x',\theta'}
+\ec\too 
+F\pr{\x,\theta}+F\pr{\x,\theta'}\ge F\pr{\x\meet \x',\theta}+ F\pr{\x\join\x',\theta'}\]
+Since \(F\) is supermodular,
+\[\ba
+F\pr{\x,\theta}+F\pr{\x',\theta}& \le F\pr{\pr{\x,\theta}\meet \pr{\x',\theta'}}+F\pr{\pr{\x,\theta}\join \pr{\x',\theta'}}\\
+& = F\pr{\x\meet \x',\theta}+F\pr{\x\join\x',\theta'}
+\ea\]
+Jointly, it must be that
+\[F\pr{\x,\theta}+F\pr{\x,\theta'} = F\pr{\x\meet \x',\theta}+ F\pr{\x\join\x',\theta'}\]
+Consequently, we have
+\[\ba
+F\pr{\x\meet\x',\theta} &= F\pr{\x,\theta}\\
+F\pr{\x\join\x',\theta'} &= F\pr{\x,\theta'}
+\ea\]
+
+which indicates that \(\x\meet\x'\in \x^*\pr{\theta}\) and
+\(\x\join\x'\in \x^*\pr{\theta'}\).
+}
+
+\ex{
+Suppose a firm uses two inputs (\(L\) and \(K\)) to
+produce a single output \(y\), and the production function is given by
+\[y = f\pr{L,K}\]
+\hspace{2em} where \(f\pr{\cdot,\cdot}\) is twice continuously differentiable.
+
+\begin{enumerate}
+\item
+  Discuss how the optimal demand for capital \(K^*\pr{w,r,p}\) would be
+  affected by an increase in the rental rate of the capital \(r\).
+\item
+  Discuss how the optimal demand for labor \(L^*\pr{w,r,p}\) would be
+  affected by an increase in the rental rate of the capital \(r\).
+\end{enumerate}
+}
+
+\sol{
+\[\pi\pr{L,K,r} = pf\pr{L,K} - wL - rK.\]
+Immediately, \(\pi_{Lr} = 0\) and \(\pi_{Kr} = -1\), \(\pi\) is supermodular in \(\pr{-K,r}\), so \(K^*\pr{w,r,p}\)
+weakly decreases with \(r\). Next consider the indirect path of \(r\) to \(L\) 
+through \(K\).
+
+\begin{itemize}
+\item
+  If \(f_{LK}>0\), \(\pi\) is supermodular in \(\pr{-L,-K,r}\), so
+  \(L^*\pr{w,r,p}\) weakly decreases with \(r\).
+\item
+  If \(f_{LK}<0\), \(\pi\) is supermodular in \(\pr{L,-K,r}\), so
+  \(L^*\pr{w,r,p}\) weakly increases with \(r\).
+\end{itemize}
+}
+
+\ex{
+  Consider the other form of market power, a market with a single buyer and competitive supply. Suppose the inverse supply curse $p^S(q)\ge0$ is strictly increasing. Let $v(q)$ be the buyer's value for quantity $q$. Consequently, if there are $q$ units of transaction in the market, 
+  \begin{itemize}
+    \item The producer surplus is
+    \[S(q) = \int_0^q\br{p^S(q)-p^S(t)}\d t.\]
+    \item The buyer's gain is 
+    \[B(q) = v(q)-p^S(q)q.\]
+  \end{itemize}
+  \begin{enumerate}
+     \item Formulate both the buyer's and the social planner's optimization problems (no need to solve either of them).
+    \item How does the single buyer's optimal quantity $q^B$ compare with that of the social planner $q^*$? Show your argument and explain intuitively.
+  \end{enumerate}
+}
+\sol{
+  \begin{enumerate}
+    \item The buyer's optimization problem is
+    \[\max_{q\ge 0}v(q)-p^S(q)q.\]
+    The social planner's optimization problem is
+    \[\max_{q\ge 0}v(q)-\int_0^qp^S(t)\d t.\]
+    \item Consider the following optimization problem:
+    \[
+    \max_{q\ge 0} w(q,\lambda) = B(q)+\lambda S(q)
+    \]
+    This becomes the buyer's optimization problem when $\lambda = 0$, and the social planner's when $\lambda = 1$. If we could show how $q$ monotonically change with $\lambda$, then we are done with this question. This is the univariate comparative statics problem, so we check the increasing differences of $w(q,\lambda)$:
+    \begin{equation*}
+      \frac{\partial w(q,\lambda)}{\partial \lambda} = S(q)
+    \end{equation*}
+    Take any $q'\ge q\ge 0$. We have
+    \begin{equation*}
+      \begin{aligned}
+        S(q')-S(q) & = \int_0^{q'}\br{p^S(q')-p^S(t)}\d t - \int_0^{q}\br{p^S(q)-p^S(t)}\d t \\
+        & = \int_{q}^{q'}\br{p^S(q')-p^S(q)}\d t +\int_0^q\br{p^S(q')-p^S(q)}\d t \\
+        & = \int_{q}^{q'}\br{p^S(q')-p^S(q)}\d t + \br{p^S(q')-p^S(q)}q\\
+        & \ge 0
+      \end{aligned}
+    \end{equation*}
+    where the last inequality holds because $p^S(\cdot)$ is upward sloping.
+
+    Thus, $w(q,\lambda)$ has increasing differences in $(q,\lambda)$. From Topkis's Theorem, $q^*(\lambda)<q^*(\lambda')$.
+  \end{enumerate}
+}
+
+Similar to increasing differences, supermodularity is
+a \emph{cardinal} property, which is again too strong. Indeed, the
+weaker requirement, \emph{quasi-supermodularity} serves our purpose.
+
+\defn{Quasi-Supermodularity}{
+Let \(F:X\to \RR\), where
+\(X\subset \RR^n\) is a sublattice. \(F\) is
+\emph{quasi-supermodular} if for any \(\x,\y\in X\),
+\[\ba
+F\pr{\x}\ge F\pr{\x\meet \y}&\too F\pr{\x\join \y}\ge F\pr{\y},\\
+F\pr{\x}> F\pr{\x\meet \y}&\too F\pr{\x\join \y}> F\pr{\y}.
+\ea\]
+}
+
+Under such extension, the analysis can be further extended beyond the
+case of \(X\subset \RR^n\) and \(X\) forming a lattice structure.
+

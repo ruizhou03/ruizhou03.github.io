@@ -1,0 +1,625 @@
+\chapter{General Equilibrium}
+
+Regardless what perspective we take to analyze the market, the central idea is invariant: the market should clear. Typically, we differentiate between partial equilibrium and general equilibrium. From the perspective of partial equilibrium, we suppose the prices of all other goods are held fixed, and then analyze the equilibrium in a single market. From the general equilibrium's perspective, in contrast, we extend our focus to all markets and require all markets clear simultaneously.\\
+
+\noindent Superficial as the partial equilibrium may seem when juxtaposed with general equilibrium, the approach of partial equilibrium analysis is still powerful typically in cases where
+\begin{itemize}
+  \item
+    The prices of the goods in all other markets are held fixed; or more precisely, the effect on the prices of all other goods can be neglected.
+  \item
+    No wealth effect of the market of interest.
+  \end{itemize}
+
+\ex{
+There are \(n\) towns in total, with $n$ being a large number. Each town has an identical price-taking firm that produces a single consumption good with the
+production function \(y = f\pr{l}\), where \(f'\pr{l}>0\) and
+\(f''\pr{l}<0\). The single consumption good is traded in the national
+market. Suppose there are \(L\) units of inelastic labor supply in total. Workers
+can move freely across towns to seek the highest possible wage, which are regarded as complete
+information. Normalize \(p_c = 1\) and let \(w_i\) denote the
+equilibrium wage in town \(i\). Now suppose that town 1 levies a \textbf{small}
+tax \(t > 0\) on firm 1 for each unit of labor hired. Which group of
+individual(s) will bear the tax burden?
+}
+
+\sol{
+\begin{itemize}
+\item
+  Equilibrium without tax
+
+  \begin{itemize}
+  \item
+    Whether we adopt the partial or general equilibrium approach, the
+    competitive equilibrium without the labor tax is identical.
+  \item
+    Since workers can move freely and \(f'\pr{l}>0\) and
+    \(f''\pr{l}<0\), we must have
+
+    \[\bc
+    l^*  = \frac1n \cdot L\\
+    w_1  = w_2 =  \cdots  = w_n = f'\pr{l^*} = f'\pr{\frac{l}{n}}
+    \ec\]
+  \end{itemize}
+\item
+  Partial equilibrium in town 1 with tax
+
+  \begin{itemize}
+  \item
+    Assuming the wage rate in other markets are unaffected, we must have
+    \(w_1\pr{t} = w_0+t\).
+  \item
+    At the new equilibrium, \(f'\pr{l_1\pr t} = w_1\pr t = w_0+t\).
+  \item
+    Hence we can see that firm 1 bears all the tax burden.
+  \end{itemize}
+\item
+  General equilibrium with town 1 levied with tax
+
+  \begin{itemize}
+  \item
+    Let \(l_1\pr t\) denote the equilibrium amount of labor in town 1
+    with a \(t\) unit tax, and \(l_{-1}\pr t\) denote the equilibrium
+    amount of labor in any other town when town 1 imposes a \(t\) unit
+    tax and \(w\pr t\) the equilibrium wage rate received by the worker.
+    When all labor markets clear, we should have:
+    \[\ba
+    & \bc
+    l_1\pr t+\pr{n-1}l_{-1}\pr t=  L\\
+    f'\pr{l_1\pr t} = w_1\pr t = w\pr t+t\\
+    f'\pr{l_{-1}\pr t} = w\pr t
+    \ec\\
+    \too & \bc
+    f'\pr{L-\pr{n-1}l_{-1}\pr t} = w\pr t+t\\
+    f'\pr{l_{-1}\pr t} = w\pr t
+    \ec\\
+    \too & \bc
+    -\pr{n-1}l'_{-1}\pr t\cdot f''\pr{L-\pr{n-1}l_{-1}\pr t} = w'\pr t+1\\
+    l'_{-1}\pr tf''\pr{l_{-1}\pr t} = w'\pr t
+    \ec
+    \ea\]
+  \item
+    Set \(t\to 0\), so we have \(l_{-1}\pr 0 = \frac1n\cdot L\). From
+    the two equations above we obtain \(w'\pr{0} = -\frac1n\).
+  \item
+    Let \(\Pi\pr{w\pr t}\) denote the total profit of the firms when the
+    wage rate is \(w\pr t\) and \(\pi\pr w\) the profit of a firm paying wage $w$. Naturally,
+    \(\Pi\pr{w\pr t} = \pi\pr{w\pr t+t}+\pr{n-1}\pi\pr{w\pr t}\), and
+    \[\ba
+    & \frac{\partial \Pi\pr{w\pr t}}{\partial t} = \pr{w'\pr t+1}\cdot\pi'\pr{w\pr t+t}+\pr{n-1}w'\pr t\cdot \pi'\pr{w\pr t}\\
+    \too & \frac{\partial \Pi\pr{w\pr t}}{\partial t}\bigg|_{t\to 0} = \pr{w'\pr 0+1}\cdot \pi'\pr{w\pr 0}+\pr{n-1}w'\pr 0\cdot \pi'\pr{w\pr 0} = 0
+    \ea\]
+  \item
+    From quantitative analysis we can see that, the firms as a whole do
+    not bear the tax burden and the workers bear all the tax burden.
+  \item
+    Intuitively, it must be the workers that bear all the tax burden.
+    Even though the labor supply for any firm is perfectly elastic, the
+    \textbf{total} labor supply is \textbf{perfectly inelastic}. Small as the impact on the wages in other towns, it is not
+    negligible. Indeed, the labor supply for any given firm is perfectly
+    elastic, so we cannot ignore the general equilibrium effect.
+  \end{itemize}
+\end{itemize}
+}
+
+\hypertarget{pure-exchange-economy}{%
+\section{Pure Exchange Economy}\label{pure-exchange-economy}}
+
+Traditionally in analysis of a market, there are three central activities of interest: consumption, production and trade. While in pure exchange economy, each agent has an endowment that they can trade with, and there is no production; we only care about the exchange of goods.
+
+\ex{
+Consider a perfectly competitive economy with two agents \((i = A, B)\)
+and two goods \((j = 1, 2)\). Suppose the agents' preference relations
+and initial endowments are given by
+\[\ba
+& u^A\pr{x_1,x_2} = x_1^2x_2\text{ with }e^A = \pr{1,2}\\
+& u^B\pr{x_1,x_2} = x_1x_2^2\text{ with }e^B = \pr{2,1}
+\ea\]
+
+Can we come up with a price vector \(\pr{p_1,p_2}\) that clear both
+markets?
+}
+
+\sol{
+The key idea is that, each agent has their own income, which is endogenously given by the equilibrium price vector.
+
+Suppose there is an equilibrium price vector \(\pr{p_1,p_2}\), then
+agent \(A\)'s ``income" is \(m^A = p_1+2p_2\) and agent
+\(B\)'s ``income" is \(m^B = 2p_1+p_2\). From this we can
+pin down the optimal individual demands
+\[\ba
+\x^A &= \pr{\frac{2\pr{p_1+2p_2}}{3p_1},\frac{1\pr{p_1+2p_2}}{3p_2}}\\
+\x^B &= \pr{\frac{1\pr{2p_1+p_2}}{3p_1},\frac{2\pr{2p_1+p_2}}{3p_2}}
+\ea\]
+
+In equilibrium, market demand equals market endowment for either good, respectively:
+\[\ba
+\frac{2\pr{p_1+2p_2}}{3p_1} + \frac{1\pr{2p_1+p_2}}{3p_1} & = 3\\
+\frac{1\pr{p_1+2p_2}}{3p_2} + \frac{2\pr{2p_1+p_2}}{3p_2}& = 3
+\ea\]
+
+From either equation, we have \(\dfrac{p_1^*}{p_2^*} = 1\). (Otherwise
+if there comes with a contradiction, the equilibrium cannot exist.)
+}
+
+
+From this example, we obtain four observations in this two-agent, two-good pure exchange economy:
+
+\begin{enumerate}
+\item
+  There is an equilibrium price vector that clears both markets.
+\item
+  Only the relative price matters in equilibrium.
+\item
+  When one market clears, the other market clears simultaneously (and miraculously).
+\item
+  The equilibrium allocation is Pareto eﬀicient.
+\end{enumerate}
+
+\hypertarget{basic-setups-2}{%
+\subsection{Setups}\label{basic-setups-2}}
+
+\textbf{Model Preliminaries}
+
+\begin{itemize}
+\item
+  \(I = \brace{1,2,\cdots,n}\) agents and \(J = \brace{1,2,\cdots,m}\)
+  goods.
+\item
+  \(\pref^{i}\): preference relation of agent \(i\).
+\item
+  \(\textbf e^i = \brace{e_1^i,e_2^i,\cdots,e_m^i}\) initial endowment
+  of agent \(i\) (property rights are well-defined and no co-ownership).
+\item
+  Denote the economy
+  \(\mathcal E= \brace{\pref^i,\textbf e^i}_{I\in \mathcal I}\).
+\end{itemize}
+
+\asm{Market Structure}{
+\begin{enumerate}
+\item
+  Perfect and complete information.
+\item
+  Perfectly competitive markets.
+
+  \begin{itemize}
+  \item
+    Agents are price-takers.
+  \item
+    Prices are linear.
+  \end{itemize}
+\item
+  Goods are perfectly divisible.
+\end{enumerate}
+}
+
+\asm{Agents' Preferences and Endowments}{
+For any agent \(i\in \mathcal I\):
+\begin{enumerate}
+\item
+  The preference relation \(\pref^i\) is rational (complete and
+  transitive) and continuous.
+\item
+The preference relation \(\pref^i\) is monotonic.
+\item
+   The preference relation \(\pref^i\) is (weakly) convex.
+\item
+   \(e_j^i>0\), for all \(j\in \mathcal J\).
+\end{enumerate}
+}
+
+Notice that by the first assumption, the utility representation of $\pref^i$, say \(u^i\pr{\cdot}\), 
+is guaranteed for any \(i \in I\), so we can alternatively denote the
+economy as \(\mathcal E = \pr{u^i \pr\cdot,\e^i}_{i\in\mathcal I}\).
+
+\hypertarget{walrasian-equilibrium}{%
+\subsection{Walrasian Equilibrium}\label{walrasian-equilibrium}}
+
+\defn{Walrasian Equilibrium}{
+A \textit{Walrasian
+Equilibrium} for a perfectly competitive pure exchange economy
+\(\mathcal E = \pr{u^i\pr{\cdot},\textbf e^i}_{i\in \mathcal I}\) is a
+price vector \(\p\ge \0\) and an allocation
+\(\pr{\x^i}_{i\in \mathcal I}\) such that:
+\begin{enumerate}
+\item
+  Utility maximization: Agent \(i\in \mathcal I\) solves:
+  \[\max_{\x^i\ge\0}u^i\pr{\x^i} \text{ s.t. }\p\cdot \x^i\le \p\cdot \textbf e^i\]
+\item
+  Market clearing for all goods:
+  \[\sum_{i\in \mathcal I} \x^i\pr{\p} = \sum_{i\in \mathcal I}\textbf e^i\]
+\end{enumerate}
+}
+
+Under Walrasian equilibrium, all markets clear at the same time. A
+Walrasian equilibrium specifies both \textit{equilibrium price vector} and \textit{equilibrium allocation}.
+
+For simplicity, suppose for any \(i\in \mathcal I\), \(\x^i\pr{\p}\) is
+always unique. This is guaranteed if we assume each
+\(\pref_i\) is strictly convex and \(\p\gg \0\).
+
+\defn{Excess Demand}{
+The (aggregate) \textit{excess demand} for good \(j\) is given by
+\[z_j\pr{\p} = \sum_{i\in \mathcal I} x_j^i\pr{\p}-\sum_{i\in\mathcal I}e_j^i\]
+}
+
+With this formulation, a Walrasian equilibrium is achieved when each agent maximize their utility subject to budget constraint prescribed by their endowment, and
+\[z_j\pr{\p} = 0,\forall j\in \mathcal J\]
+
+\propp{Properties of Excess Demand}{
+Let
+\(\mathcal E\) be a perfectly competitive pure exchange economy with each agent's preference relation being rational, continuous and monotonic, then the aggregate excess demand function
+\(\z\pr{\p}\) satisfies:
+\begin{enumerate}
+\item
+  \textbf{Homogeneity of degree \(0\)}: \(z_j\pr{\p}\) is homogeneous of degree
+  \(0\) in \(\p\), for any \(j\in \mathcal J\).
+\item
+  \textbf{Walras' law}: \(\p\cdot\z\pr{\p} = 0\).
+\end{enumerate}
+}{
+\begin{itemize}
+\item
+  Homogeneous of degree \(0\)
+  \begin{itemize}
+  \item
+    \(\x^i\pr\p\) solves
+    \(\max_{\x^i\ge\0}u^i\pr{\x^i}\text{ s.t. }\p\cdot \x^i\le \p\cdot \e^i\).
+  \item
+    For any \(t>0\), the solution must be the same as:
+    \(\max_{\x^i\ge\0}u^i\pr{\x^i}\text{ s.t. }\pr{t\p}\cdot \x^i\le \pr{t\p}\cdot \e^i\).
+    Hence, \(\x^i\pr{\p} = \x^i\pr{t\p}\).
+  \item
+    For any \(t>0\),
+    \(z_j\pr{t\p} = \sum_{i = 1}^n x_j^i\pr{t\p}-\sum_{i = 1}^n e_j^i =  \sum_{i = 1}^n x_j^i\pr{\p}-\sum_{i = 1}^n e_j^i = z_j\pr\p\).
+  \end{itemize}
+\item
+  Walras' law
+  \begin{itemize}
+  \item
+    Budget constraint must be binding for any agent \(i\in \mathcal I\),
+    \(\p\cdot \x^i\pr\p = \p\cdot \e^i\). (This must hold because of assumption of 
+    monotonicity of preference relation, which is stronger than locally
+    non-satiation).
+  \item
+    It follows that
+    \[\ba
+    \p\cdot \z\pr\p & = \p\cdot \pr{\sum_{i = 1}^n \x^i\pr\p - \sum_{i = 1}^n \e^i}\\
+    & = \sum_{i = 1}^n \pr{\p\cdot \x^i\pr\p-\p\cdot \e^i}\\
+    & = 0
+    \ea\]
+  \end{itemize}
+\end{itemize}
+}
+
+The following proposition, the existence of Walrasian equilibrium, is characterized as the cornerstone of modern economics.
+
+\propp{Existence of Walrasian Equilibrium}{
+Let
+\(\mathcal E = \pr{u^i\pr\cdot,\e^i}_{i\in\mathcal I}\) be a perfectly
+competitive pure exchange economy that satisfies all the four assumptions on agents' preferences and endowments. Then
+a Walrasian equilibrium exists.
+}{
+We give proof for the case of \(m = 2\) and \(\pref^i\)
+being strictly convex for any \(i\in\mathcal I\). Given rationality, continuity and 
+strict convexity of \(\pref^i\), \(\x^i\pr{p_1,p_2}\) is always unique
+for any \(\p\gg\0\). When \(m = 2\), Walras' law states 
+that
+\[p_1z_1\pr{p_1,p_2}+p_2z_2\pr{p_1,p_2} = 0.\]
+Then a Walrasian equilibrium is given by \(z_1\pr{p_1,p_2} = 0\) or
+\(z_2\pr{p_1,p_2} = 0\). By monotonicity and strictly convexity of preference relation, the only possibility is
+\(p_1,p_2>0\) in equilibrium, so we can normalize \(p_1 = 1\) or
+\(p_2 = 1\).
+
+By theorem of the maximum, given rationality, continuity, monotonicity and strict convexity of preference relation, \(x_i^1\pr{p_1,1}\) is
+continuous for any \(i\in \mathcal I\). Hence, \(z_1\pr{p_1,1}\) is
+continuous on \(\pr{0,+\infty}\). Given monotonicity and strict
+convexity, \(u^i\pr\cdot\) is strongly monotone. Therefore,
+\(\lim\limits_{p_1\to 0+}x_1^i\pr{p_1,1} = +\infty\) and
+\(\lim\limits_{p_1\to0+}z_1\pr{p_1,1} = +\infty\). Symmetrically, we
+have \(\lim\limits_{p_2\to 0+}x_2^i\pr{1,p_2} = +\infty\) and
+\(\lim\limits_{p_2\to0+}z_2\pr{1,p_2} = +\infty\). By continuity,
+\(\exists 0<\underline p<\bar p\) such that
+\(z_1\pr{\underline p,1}>0>z_1\pr{\bar p,1}\). By the intermediate value
+theorem, \(\exists p_1^*\in \pr{\underline p,\bar p}\) such that
+\(z_1\pr{p_1^*,1} = 0\).
+}
+
+\hypertarget{allocation}{%
+\section{Allocation}\label{allocation}}
+
+Recap on what we have learned in intermediate microeconomics:
+\begin{itemize}
+\item
+  First theorem of welfare economics: Any Walrasian equilibrium is
+  Pareto efficient.
+\item
+  Second theorem of welfare economics: By adjusting the initial
+  endowments. any Pareto efficient allocation can be supported by a
+  Walrasian equilibrium.
+\end{itemize}
+
+Before we delve deep into discussions on allocation, a rigorous definition of feasible allocation is helpful.
+
+\defn{Feasible Allocation}{
+For a pure exchange economy
+\(\mathcal E\), an allocation \(\pr{\x^i}_{i = 1}^n\) with $\x^i\ge\0$ for all $i$ is
+\textit{feasible} if for any good \(j\),
+\[\sum_{i = 1}^n x_j^i\le \sum_{i=1}^n e_j^i.\]
+}
+
+Feasible allocation requires that, the total allocation for any good cannot be more than the total
+initial endowment.
+
+\defn{Pareto Efficient Allocation}{
+Given an economy
+\(\mathcal E\), a feasible allocation \(\pr{\x^i}_{i = 1}^n\) is
+(strongly) \textit{Pareto efficient} if there is no other feasible
+allocation \(\pr{\w^i}_{i = 1}^n\) such that \(\w^i\pref^i \x^i\) for
+all \(i\in \mathcal I\), with \(\w^k\succ^k \x^k\) for some
+\(k\in \mathcal I\).
+}
+
+Under Pareto efficient allocation, there is no way to make any agent
+strictly better off without harming some other agent(s).
+
+\defn{Core Allocation}{
+A feasible allocation
+\(\pr{\x^i}_{i = 1}^n\) is \textit{in the core} of \(\mathcal E\) if
+there is no group \(\mathcal I_0\se \mathcal I\) and an alternative allocation
+\(\pr{\w^i}_{i = 1}^n\) such that:
+\begin{enumerate}
+\item
+  For any \(j\in \mathcal J\),
+  \(\sum_{i\in \mathcal I_0}w_j^i\le \sum_{i\in \mathcal I_0}e_j^i\).
+\item
+  \(\w^i\pref^i\x^i\) for all \(i\in \mathcal I_0\), with
+  \(\w^k\succ^k\x^k\) for some \(k\in \mathcal I_0\).
+\end{enumerate}
+}
+
+Core allocation requires that, no group of agents would simultaneously form a blocking coalition in which none is made worse off and some strictly better off. Notice that an allocation being in the core implies it being Pareto efficient, but the converse is not necessarily true. Indeed, when examining Pareto efficiency, we are checking the possibility of grand blocking coalition.
+
+\thmp{Strengthened First Theorem of Welfare Economics}{
+Let \(\mathcal E\) be a perfectly competitive pure exchange
+economy in which each agent's preference relation is rational, continuous and concave. Denote \(S_P\) as the set of Pareto efficient allocations,  \(S_C\) the set of core allocations, and \(S_W\) the set of Walrasian equilibrium allocations. Then
+\[S_W\subseteq S_C\subseteq S_P\]
+}{
+By definition, \(S_C\subseteq S_P\), so it
+suffices to show \(S_W\subseteq S_C\). Suppose not, then there exists a
+Walrasian equilibrium \(\pr{\p;\pr{\x^i}_{i\in \mathcal I}}\), a group
+\(\mathcal I_0\se \mathcal I\) and an alternative allocation
+\(\pr{\w^i}_{i\in\mathcal I}\) such that:
+\[\bc
+\w^i\pref^i \x^i,\text{ for all }i\in \mathcal I_0\\
+\w^k\succ^k \x^k, \text{ for some }k\in \mathcal K_0\subseteq \mathcal I_0
+\ec\]
+By direct revealed preference,
+\[\bc
+\p\cdot \w^k> \p\cdot \x^k,\text{ for all }k\in \mathcal K_0\\
+\p\cdot \w^i\ge \p\cdot \x^i,\text{ for all }i \in \mathcal I_0\backslash \mathcal K_0
+\ec\]
+
+Summing over \(i\in \mathcal I_0\), we have
+\[\ba
+& \p\cdot \sum_{i\in \mathcal I_0}\w^i> \p\cdot \sum_{i\in \mathcal I_0}\x^i = \p\cdot \sum_{i\in\mathcal I_0}\e^i\\
+\too & \sum_{i\in\mathcal I_0}\w^i\nleq \sum_{i\in\mathcal I_0}\e^i
+\ea\]
+}
+
+\rmkb{
+\begin{itemize}
+\item
+  \(S_W\subseteq S_P\) is indicated in \textit{First Theorem of Welfare Economics}.
+\item
+  \(S_W\subseteq S_C\) implies that any Walrasian equilibrium is not only Pareto efficient, but also fair, which is a justification for the price mechanism.
+\item
+  The strengthened First Theorem of Welfare Economics need very minimal requirements on the agents' preference
+  relations, but assumptions on perfect competition, complete information, no
+  externality and complete markets are indispensable.
+\end{itemize}
+}
+
+\thm{Second Theorem of Welfare Economics}{
+Let
+\(\mathcal E\) be a perfectly competitive pure exchange economy in which each agent's preference relation is rational, continuous and concave. If \(\x^i\gg\0\) is Pareto
+efficient, for all \(i\), then there exists an initial endowment
+\(\pr{\e^i}_{i \in\mathcal I}\) and a price vector \(\p\ge\0\) such that
+\(\pr{\p;\pr{\x^i}_{i\in \mathcal I}}\) is a Walrasian equilibrium given
+these endowments.
+}
+
+However, the second theorem of welfare economics is less exciting,
+because the government can neither arbitrarily redistribute initial endowments, nor know each agent's preferences in the economy.
+
+\hypertarget{ge-with-production}{%
+\section{General Equilibrium with Production}\label{ge-with-production}}
+
+\subsection{Setups}
+
+Recall that in producer theory, we used production sets and ownership
+shares to describe the firms and their production technologies.
+
+Suppose there are \(K\) firms (\(\mathcal K = \brace{1,2,\cdots,K}\)) in the economy, each firm $k\in \mathcal K$ with its production set \(Y^k\). Let \(\alpha^{ki}\ge0\) be agent
+\(i\)'s ownership share of firm \(k\). The production
+economy can then be described as
+\[\mathcal E = \pr{\pr{u^i,\e^i,\pr{\alpha^{ki}}_{k\in \mathcal K}}_{i\in\mathcal I},\pr{Y^k}_{k\in \mathcal K}}.\]
+
+\defn{Walrasian Equilibrium with Production}{
+A
+\textbf{Walrasian Equilibrium} for a perfectly competitive production
+economy
+\(\mathcal E = \pr{\pr{u^i,\e^i,\pr{\alpha^{ki}}_{k\in \mathcal K}}_{i\in\mathcal I},\pr{Y^k}_{k\in \mathcal K}}\)
+is a vector
+\(\pr{\p,\pr{\x^i}_{i\in \mathcal I},\pr{\y^k}_{k\in\mathcal K}}\) such
+that:
+
+\begin{enumerate}
+\item
+  \textbf{Profit maximization}: Firm \(k\) solves
+  \[\max_{y^k\in Y^k}\p\cdot \y^k\]
+\item
+  \textbf{Utility maximization}: Agent \(i\) solves
+  \[\max_{\x^i\ge \0}u^i\pr{\x^i} \text{ s.t. }\p\cdot \x^i\le \p\cdot \e^i+\sum_{k\in \mathcal K}\alpha^{ik}\p\cdot \y^k\]
+\item
+  \textbf{Market clearing for all goods}:
+  \[\sum_{i\in \mathcal I}\x^i\pr \p = \sum_{i\in \mathcal I}\e^i+\sum_{k\in \mathcal K}\y^k\pr\p\]
+\end{enumerate}
+}
+
+That is, in Walrasian equilibrium all markets clear at the same time, with all consumers (also shareholders of firms) and firms optimize their goals simultaneously.
+
+The essence of Walrasian equilibrium with production is the same as that without production. But for concerns of technical issues, we introduce three additional assumptions on production technology to pave way for the theorem of existence of Walrasian equilibrium with production.
+
+\asm{Production Technology}{
+For each firm \(k\in \mathcal K\),
+\begin{enumerate}
+\item
+  \(Y^k\ne\varnothing\) is \textbf{closed
+  and convex}.
+\item
+   \textbf{Shutdown and free disposal}: that is, \(\0\in Y^k\), and \(\y\in Y^k\) implies
+  \(\y'\in Y^k\), for all \(\y'\le \y\).
+\item
+  \textbf{Irreversibility}: Let \(Y = \bigcup_{k\in \mathcal K} Y^k\), then
+  \(Y\cap \pr{-Y} = \brace{\0}\).
+\end{enumerate}
+}
+
+\rmkb{
+\begin{itemize}
+\item
+  \(Y^k\ne\varnothing\) is innocuous, otherwise since firm \(k\) is allowed to produce
+  nothing, we can just discard \(Y^k\) if $Y^k = \varnothing$.
+\item
+  Irreversibility says that the production cannot be completely
+  reversed.
+\end{itemize}
+}
+
+\hypertarget{existence-of-walrasian-equilibrium-with-production}{%
+\subsection{Existence of Walrasian Equilibrium with
+Production}\label{existence-of-walrasian-equilibrium-with-production}}
+
+\thm{Existence of Walrasian Equilibrium with Production}{
+Let
+\(\mathcal E = \pr{\pr{u^i,\e^i,\pr{\alpha^{ki}}_{k\in \mathcal K}}_{i\in\mathcal I},\pr{Y^k}_{k\in \mathcal K}}\)
+be a perfectly competitive production economy satisfying all the assumptions on preference relation and endowments, and those on  production technology. Then a Walrasian equilibrium
+\(\pr{\p,\pr{\x^i}_{i\in\mathcal I},\pr{\y^k}_{k\in\mathcal K}}\)
+exists.
+}
+
+\rmkb{
+\begin{itemize}
+\item
+  This proposition of existence is the extension of the existence result on pure exchange economies.
+\item
+  The first and second theorem of welfare economics also generalize to
+  economics with production.
+\end{itemize}
+}
+
+Recall that when a production technology exhibits constant returns to scale,
+the firm's profit must be either \(0\) or \(+\infty\). For
+market clearing to make sense, it must be that each firm is making \(0\) profit.
+
+For simplicity, consider an economy with two goods. The production technology can  linearly transform \(b\) units of good 1 into
+(at most) \(c\) units of good 2. The
+production set can then be depicted as
+\[Y = \brace{\pr{y_1,y_2}|y_1\le 0,y_2\ge 0,y_2\le -\frac{c}{b}y_1}.\]
+Alternatively, we can present the production technology with the
+vector \(a = \pr{-1,\dfrac{c}{b}}\).
+
+If a linear activity production $a = (a_1,a_2)$ is ever used in a Walrasian equilibrium
+(i.e., \(\l^*>0\)), then it must be that (because the firm is making zero profit)
+\[\pr{p_1^*,p_2^*}\cdot \pr{a_1,a_2} = 0.\]
+
+\ex{
+Consider a perfectly competitive economy \(\mathcal E\)
+with two goods (1 and 2) and two agents (\(A\) and \(B\)). The
+agents' utility functions and initial endowments are as
+follows:
+$$
+\begin{aligned}
+ u^A\pr{x_1,x_2} = x_1x_2,&\  \e^A = \pr{1,0}\\
+ u^B\pr{x_1,x_2} = x_1x_2^2, &\  \e^B=\pr{0,1}
+\end{aligned}
+$$
+
+First suppose the economy is pure exchange with no production.
+
+\begin{enumerate}
+\item
+  Derive the set of Pareto efficient allocations.
+\item
+  Derive the set of core allocations.
+\item
+  Derive a Walrasian equilibrium
+  \(\pr{\pr{p_1,p_2};\pr{x_1^A,x_2^A,x_1^B,x_2^B}}\).
+\end{enumerate}
+
+Next we introduce production: Suppose there is a perfectly competitive
+firm which can transform one unit of good 1 into (at most) one unit of
+good 2, i.e., \(\textbf a =\pr{-1,1}\).
+
+\begin{enumerate}
+\item[4.]
+  Derive a Walrasian equilibrium with production
+  \(\pr{\pr{p_1,p_2,};\pr{x_1^A,x_2^A,x_2^B,x_2^B},\lambda}\).
+\end{enumerate}
+}
+
+\sol{
+\begin{enumerate}
+\item Since both agents' preference
+relations are monotonic, any Pareto efficient allocation must satisfy
+\[\x^A+\x^B = \e^A+\e^B\]
+Clearly, \(\pr{\pr{1,1},\pr{0,0}}\) and \(\pr{\pr{0,0},\pr{1,1}}\) are
+Pareto efficient.
+
+\rmk{
+\(\pr{\pr{1,0},\pr{0,1}}\) or
+\(\pr{\pr{0,1},\pr{1,0}}\) are not necessarily Pareto efficient, though we cannot
+make any agent better off material-wise without making the other worse off material-wise. However, agents' well-being is measured in terms of magnitude of utilities.
+}
+
+Apart from corner solutions, by the idea of no gain from trade in equilibrium, we must have
+\[|\mathit{MRS}^A| = |\mathit{MRS}^B|\]
+Therefore, the set of efficient allocations is given by
+\[S_P = \brace{\pr{x_1^A,x_2^A,x_1^B,x_2^B}\ge \0: x_1^Ax_2^B = 2x_2^Ax_1^B,x_1^A+x_1^B = x_2^A+x_2^B = 1}.\]
+It has been checked that \(\pr{\pr{1,1},\pr{0,0}}\) and \(\pr{\pr{0,0},\pr{1,1}}\) are included in the set $S_P$.
+\item When there are only two agents, the only subgroups other than the grand
+coalition are \(\brace 1\) and \(\brace 2\). In other words, on the basis of Pareto efficiency, the additional requirement for an allocation to be in the core is that {no agent is made worse in any allocation compared to their own endowment}, which is also termed \textit{individual
+rationality}. Since the initial endowment is the worst possible
+allocation for each agent, the set of core allocations \(S_C = S_P\).
+\item Suppose there is an
+equilibrium price vector \(\pr{p_1,p_2}\). Then agent
+A's ``income" \(m^A = p_1\) and agent B's
+``income" \(m^B = p_2\). The optimal individual demands are
+\[\ba
+\pr{x_1^A,x_2^A} & = \pr{\frac12,\frac{p_1}{2p_2}}\\
+\pr{x_1^B,x_2^B} & = \pr{\frac{p_2}{3p_1},\frac23}
+\ea\]
+In equilibrium, market demand equals total endowments for each good.
+\[\bc
+\frac12+\frac{p_2}{3p_1} = 1\\
+\frac{p_1}{2p_2}+\frac{2}{3} = 1
+\ec\too \frac{p_1^*}{p_2^*} = \frac23\]
+Hence, a Walrasian equilibrium is
+\(\pr{\p = \pr{2,3},\x^A = \pr{\frac{1}{2},\frac13},\x^B = \pr{\frac12,\frac23}}\).
+
+\rmk{
+Here ``\textbf{a} Walrasian equilibrium" is emphasized because only relative prices matter in Walrasian equilibrium; theoretically there could be infinitely-many equilibria in terms of absolute prices.
+}
+\item Suppose the production technology is used in equilibrium, then we must
+have \(\pr{p_1,p_2}\cdot \textbf a = \0\), that is, \(p_1 = p_2\iff \frac{p_1}{p_2} = 1\).
+
+In equilibrium, market demand equals market supply for each good.
+\[\bc
+\frac12+\frac13 = 1-\l\\
+\frac12+\frac23 = 1+\l
+\ec\too \l^* = \frac16\]
+A Walrasian equilibrium is given by
+\(\pr{\p^* = \pr{1,1},\x^A = \pr{\frac12,\frac12},\x^B = \pr{\frac13,\frac23},\l^* = \frac16}\).
+\end{enumerate}
+}
+

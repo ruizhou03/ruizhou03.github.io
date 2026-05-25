@@ -1,0 +1,75 @@
+\documentclass[oneside]{book}
+
+\usepackage{amsmath, amsthm, amssymb, amsfonts}
+\usepackage{thmtools}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{framed}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{environ}
+\usepackage{tcolorbox}
+\tcbuselibrary{theorems,skins,breakable}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{multicol}
+\usepackage{bm}
+
+\setstretch{1.2}
+\geometry{
+    textheight=9in,
+    textwidth=5.5in,
+    top=1in,
+    headheight=12pt,
+    headsep=25pt,
+    footskip=30pt
+}
+
+% Variables
+\def\notetitle{Advanced Microeconomics Theory}
+\def\noteauthor{Eric Shi
+    \textbf{Professor} \\
+    {\LaTeX} by Rui Zhou\\
+    Peking University}
+\def\notedate{Fall 2023}
+
+% The theorem system and user-defined commands
+\input{theorems.tex}
+\input{command.tex}
+
+% ------------------------------------------------------------------------------
+
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=*,labelindent=0pt}
+
+% Uncomment the next line to only compile specific chapters (speeds up compilation):
+% \includeonly{chapters/ch1_choice}
+
+\begin{document}
+\title{\textbf{
+    \LARGE{\notetitle} \vspace*{10\baselineskip}}
+    }
+\author{\noteauthor}
+\date{\notedate}
+
+% --- BOF TITLE ---
+\maketitle
+\newpage
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+% --- EOF TITLE ---
+
+\include{chapters/ch1_choice}
+\include{chapters/ch2_consumer}
+\include{chapters/ch3_production}
+\include{chapters/ch4_comparative}
+\include{chapters/ch5_uncertainty}
+\include{chapters/ch6_general_eq}
+
+\end{document}

@@ -285,7 +285,15 @@
     .note-card h3 a { color: var(--color-ink); }
     .note-card h3 a:hover { color: var(--color-accent); }
     .note-card .note-meta { font-size: 0.82rem; color: var(--color-light); margin-bottom: 0.6rem; }
-    .note-chapters { list-style: none; }
+    .note-chapters {
+      list-style: none;
+      max-height: 16rem;
+      overflow-y: auto;
+      padding-right: 0.4rem;
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+      margin: 0.4rem 0;
+    }
     .note-chapters li { font-size: 0.85rem; color: var(--color-text); padding: 0.2rem 0; }
     .note-chapters li a { color: var(--color-text); border-bottom: 1px solid transparent; }
     .note-chapters li a:hover { color: var(--color-accent); border-bottom-color: var(--color-accent); }
@@ -433,11 +441,11 @@
     </ul>
 
     <div class="nav-right-box" style="display:flex;align-items:center;gap:0.6rem;">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Switch mode">&#9683;</button>
       <a href="/zh/" title="中文博客"
          style="font-family:'Noto Serif SC','Songti SC','STSong',serif;font-size:0.9rem;font-weight:500;
                 color:var(--color-muted);border:1px solid var(--color-border);padding:0.3rem 0.6rem;
                 border-radius:4px;text-decoration:none;white-space:nowrap;line-height:1;">中文</a>
-      <button class="theme-toggle" onclick="toggleTheme()" title="Switch mode">&#9683;</button>
     </div>
   </div>
 </nav>
@@ -577,12 +585,12 @@
         <div class="note-meta">Peking University · Fall 2023</div>
         <div style="margin-bottom:0.5rem;"><a href="/files/adv-micro-pku/adv-micro-pku-2023.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
         <ul class="note-chapters" id="chapters-micro-pku" style="display:none;">
-          <li>Ch 1: Choice Theory</li>
-          <li>Ch 2: Consumer Theory</li>
-          <li>Ch 3: Production Theory</li>
-          <li>Ch 4: Comparative Statics</li>
-          <li>Ch 5: Uncertainty</li>
-          <li>Ch 6: General Equilibrium</li>
+          <li><a href="/files/adv-micro-pku/chapters/ch1.pdf">Ch 1: Choice Theory</a></li>
+          <li><a href="/files/adv-micro-pku/chapters/ch2.pdf">Ch 2: Consumer Theory</a></li>
+          <li><a href="/files/adv-micro-pku/chapters/ch3.pdf">Ch 3: Production Theory</a></li>
+          <li><a href="/files/adv-micro-pku/chapters/ch4.pdf">Ch 4: Comparative Statics</a></li>
+          <li><a href="/files/adv-micro-pku/chapters/ch5.pdf">Ch 5: Uncertainty</a></li>
+          <li><a href="/files/adv-micro-pku/chapters/ch6.pdf">Ch 6: General Equilibrium</a></li>
         </ul>
         <button class="note-toggle" onclick="toggleChapters('micro-pku',this)">Show chapters ▸</button>
       </div>
@@ -592,15 +600,15 @@
         <div class="note-meta">Penn State University · Spring 2026</div>
         <div style="margin-bottom:0.5rem;"><a href="/files/adv-micro-psu/Micro.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
         <ul class="note-chapters" id="chapters-micro-psu" style="display:none;">
-          <li>Ch 1: Game Representation</li>
-          <li>Ch 2: Nash Equilibrium</li>
-          <li>Ch 3: Bargaining</li>
-          <li>Ch 4: Auctions</li>
-          <li>Ch 5: Mechanism Design</li>
-          <li>Ch 6: Matching</li>
-          <li>Ch 7: Common Knowledge</li>
-          <li>Ch 8: Repeated Games</li>
-          <li>Ch 9: Perfect Bayesian Equilibrium</li>
+          <li><a href="/files/adv-micro-psu/chapters/ch1.pdf">Ch 1: Game Representation</a></li>
+          <li><a href="/files/adv-micro-psu/chapters/ch2.pdf">Ch 2: Nash Equilibrium</a></li>
+          <li><a href="/files/adv-micro-psu/chapters/ch3.pdf">Ch 3: Bargaining</a></li>
+          <li><a href="/files/adv-micro-psu/chapters/ch4.pdf">Ch 4: Auctions</a></li>
+          <li><a href="/files/adv-micro-psu/chapters/ch5.pdf">Ch 5: Mechanism Design</a></li>
+          <li><a href="/files/adv-micro-psu/chapters/ch6.pdf">Ch 6: Matching</a></li>
+          <li><a href="/files/adv-micro-psu/chapters/ch7.pdf">Ch 7: Common Knowledge</a></li>
+          <li><a href="/files/adv-micro-psu/chapters/ch8.pdf">Ch 8: Repeated Games</a></li>
+          <li><a href="/files/adv-micro-psu/chapters/ch9.pdf">Ch 9: Perfect Bayesian Equilibrium</a></li>
         </ul>
         <button class="note-toggle" onclick="toggleChapters('micro-psu',this)">Show chapters ▸</button>
       </div>
@@ -610,18 +618,18 @@
         <div class="note-meta">Penn State University · Spring 2026</div>
         <div style="margin-bottom:0.5rem;"><a href="/files/adv-macro-psu/Macro.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
         <ul class="note-chapters" id="chapters-macro-psu" style="display:none;">
-          <li>Ch 1: Complete Markets under Uncertainty</li>
-          <li>Ch 2: Exogenously Incomplete Markets</li>
-          <li>Ch 3: Endogenously Incomplete Markets</li>
-          <li>Ch 4: Growth and Development Accounting</li>
-          <li>Ch 5: The Solow Growth Model</li>
-          <li>Ch 6: The Neoclassical Growth Model</li>
-          <li>Ch 7: Neoclassical Growth vs. Data</li>
-          <li>Ch 8: Real Business Cycles</li>
-          <li>Ch 9: Business Cycle Accounting</li>
-          <li>Ch 10: Consumption and Saving</li>
-          <li>Ch 11: Computation of the Aiyagari Model</li>
-          <li>Ch 12: Final Exam Review Guide</li>
+          <li><a href="/files/adv-macro-psu/chapters/ch1.pdf">Ch 1: Complete Markets under Uncertainty</a></li>
+          <li><a href="/files/adv-macro-psu/chapters/ch2.pdf">Ch 2: Exogenously Incomplete Markets</a></li>
+          <li><a href="/files/adv-macro-psu/chapters/ch3.pdf">Ch 3: Endogenously Incomplete Markets</a></li>
+          <li><a href="/files/adv-macro-psu/chapters/ch4.pdf">Ch 4: Growth and Development Accounting</a></li>
+          <li><a href="/files/adv-macro-psu/chapters/ch5.pdf">Ch 5: The Solow Growth Model</a></li>
+          <li><a href="/files/adv-macro-psu/chapters/ch6.pdf">Ch 6: The Neoclassical Growth Model</a></li>
+          <li><a href="/files/adv-macro-psu/chapters/ch7.pdf">Ch 7: Neoclassical Growth vs. Data</a></li>
+          <li><a href="/files/adv-macro-psu/chapters/ch8.pdf">Ch 8: Real Business Cycles</a></li>
+          <li><a href="/files/adv-macro-psu/chapters/ch9.pdf">Ch 9: Business Cycle Accounting</a></li>
+          <li><a href="/files/adv-macro-psu/chapters/ch10.pdf">Ch 10: Consumption and Saving</a></li>
+          <li><a href="/files/adv-macro-psu/chapters/ch11.pdf">Ch 11: Computation of the Aiyagari Model</a></li>
+          <li><a href="/files/adv-macro-psu/chapters/ch12.pdf">Ch 12: Final Exam Review Guide</a></li>
         </ul>
         <button class="note-toggle" onclick="toggleChapters('macro-psu',this)">Show chapters ▸</button>
       </div>
