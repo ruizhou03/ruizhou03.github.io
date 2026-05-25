@@ -47,15 +47,17 @@ collections:
     output: true            # 让每一篇笔记生成独立的网页
     permalink: /notes/:path/ # URL 路径保持与文件夹结构一致
 
-# 学习资料页：学科分组与显示顺序（思政按惯例排最后）
+# 学习资料页：学科分组与显示顺序
+# 通识/体育/思政 合并为"其他"；TOEFL & GRE / 课程测评 / 初升高衔接 由侧栏专区提升为顶级大类
 discipline_order:
   - 经济学
   - 数学
   - 心理学
   - 管理学
-  - 通识
-  - 体育
-  - 思政
+  - 其他
+  - TOEFL & GRE
+  - 课程测评
+  - 初升高衔接
 
 study_order:
   - adv-micro-psu

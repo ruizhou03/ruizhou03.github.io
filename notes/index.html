@@ -67,77 +67,225 @@ title: "学习资料"
     </div>
   </header>
 
-  {% assign _z_lang = site.notes | where: "discipline", "语言考试" | where_exp: "n", "n.published != false" %}
-  {% assign _z_rev  = site.notes | where: "material_type", "课程测评" | where_exp: "n", "n.published != false" %}
-  {% assign _z_phs  = site.notes | where: "discipline", "初升高" | where_exp: "n", "n.published != false" %}
-  <aside class="zone-side">
-    <div class="zone-side-title">专区</div>
-    <a class="zone-link" href="{{ '/notes/toefl-gre/' | relative_url }}">
-      <span class="zl-icon">🎯</span>
-      <span class="zl-body"><span class="zl-name">TOEFL &amp; GRE</span><span class="zl-desc">出国语言备考 · {{ _z_lang | size }} 份</span></span>
-      <span class="zl-arrow">→</span>
-    </a>
-    <a class="zone-link" href="{{ '/notes/course-reviews/' | relative_url }}">
-      <span class="zl-icon">📝</span>
-      <span class="zl-body"><span class="zl-name">课程测评</span><span class="zl-desc">选课前的过来人参考 · {{ _z_rev | size }} 篇</span></span>
-      <span class="zl-arrow">→</span>
-    </a>
-    <a class="zone-link" href="{{ '/notes/pre-high-school/' | relative_url }}">
-      <span class="zl-icon">🏫</span>
-      <span class="zl-body"><span class="zl-name">初升高衔接</span><span class="zl-desc">给准高一的过渡讲义 · {{ _z_phs | size }} 份</span></span>
-      <span class="zl-arrow">→</span>
-    </a>
-  </aside>
-
   <div class="knowledge-base">
     {%- comment -%}
-      按学科（discipline）分组：顺序由 _config.yml 的 discipline_order 控制，
-      思政按惯例排最后。每个学科下再按 study_order 列出课程文件夹。
+      按学科（discipline）分组：顺序由 _config.yml 的 discipline_order 控制。
+      前四个学科（经济学/数学/心理学/管理学）走默认渲染——按 study_order 列出课程；
+      后四个（其他、TOEFL & GRE、课程测评、初升高衔接）各有专门的渲染分支。
     {%- endcomment -%}
     {% for disc in site.discipline_order %}
-      {% capture disc_blocks %}
-        {% for folder in site.study_order %}
-          {% assign match_path = "/" | append: folder | append: "/" %}
-          {% assign raw_folder_notes = site.notes | where_exp: "n", "n.path contains match_path" %}
-          {% assign folder_notes = raw_folder_notes | where_exp: "n", "n.material_type != '课程测评'" %}
-          {% if folder_notes.size > 0 %}
-            {% assign first_note = folder_notes[0] %}
-            {% if first_note.discipline == disc %}
-              {% assign _alias = site.data.course_aliases[first_note.course] %}
-              <details class="course-block" data-search="{{ first_note.course | default: folder }} {{ disc }} {{ _alias }}">
-                <summary class="course-title">{{ first_note.course | default: folder }}</summary>
-                <div class="course-content">
-                  {% assign grouped_types = folder_notes | group_by: "material_type" %}
-                  {% for type in grouped_types %}
-                    <div class="type-section">
-                      <h4 class="type-title">{{ type.name | default: "其他" }}</h4>
-                      <ul class="file-list">
-                        {% for item in type.items %}
-                          {% if item.published != false %}
-                          <li>
-                            <a href="{{ item.url | relative_url }}">{% assign _t = item.list_title | default: item.title %}{% include latex-logo.html title=_t %}</a>
-                          </li>
-                          {% endif %}
-                        {% endfor %}
-                      </ul>
-                    </div>
-                  {% endfor %}
-                </div>
-              </details>
-            {% endif %}
-          {% endif %}
-        {% endfor %}
-      {% endcapture %}
 
-      {% assign disc_blocks_trim = disc_blocks | strip %}
-      {% if disc_blocks_trim != "" %}
-        <details class="discipline-block">
-          <summary class="discipline-title">{{ disc }}</summary>
-          <div class="discipline-content">
-            {{ disc_blocks }}
-          </div>
-        </details>
+      {%- comment -%} ===== 其他：合并 通识/体育/思政/其他/计算机 ===== {%- endcomment -%}
+      {% if disc == "其他" %}
+        {% capture disc_blocks %}
+          {% for folder in site.study_order %}
+            {% assign match_path = "/" | append: folder | append: "/" %}
+            {% assign raw_folder_notes = site.notes | where_exp: "n", "n.path contains match_path" %}
+            {% assign folder_notes = raw_folder_notes | where_exp: "n", "n.material_type != '课程测评'" %}
+            {% if folder_notes.size > 0 %}
+              {% assign first_note = folder_notes[0] %}
+              {% assign _d = first_note.discipline %}
+              {% if _d == "通识" or _d == "体育" or _d == "思政" or _d == "其他" or _d == "计算机" %}
+                {% assign _alias = site.data.course_aliases[first_note.course] %}
+                <details class="course-block" data-search="{{ first_note.course | default: folder }} {{ _d }} {{ _alias }}">
+                  <summary class="course-title">{{ first_note.course | default: folder }}</summary>
+                  <div class="course-content">
+                    {% assign grouped_types = folder_notes | group_by: "material_type" %}
+                    {% for type in grouped_types %}
+                      <div class="type-section">
+                        <h4 class="type-title">{{ type.name | default: "其他" }}</h4>
+                        <ul class="file-list">
+                          {% for item in type.items %}
+                            {% if item.published != false %}
+                            <li>
+                              <a href="{{ item.url | relative_url }}">{% assign _t = item.list_title | default: item.title %}{% include latex-logo.html title=_t %}</a>
+                            </li>
+                            {% endif %}
+                          {% endfor %}
+                        </ul>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </details>
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        {% endcapture %}
+
+        {% assign disc_blocks_trim = disc_blocks | strip %}
+        {% if disc_blocks_trim != "" %}
+          <details class="discipline-block">
+            <summary class="discipline-title">其他</summary>
+            <div class="discipline-content">
+              {{ disc_blocks }}
+            </div>
+          </details>
+        {% endif %}
+
+      {%- comment -%} ===== TOEFL & GRE：按 TOEFL/GRE 两门课分组，内部按 material_type ===== {%- endcomment -%}
+      {% elsif disc == "TOEFL & GRE" %}
+        {% assign lang_notes = site.notes | where: "discipline", "语言考试" | where_exp: "n", "n.published != false" %}
+        {% if lang_notes.size > 0 %}
+          {% assign tg_order = "TOEFL|GRE" | split: "|" %}
+          <details class="discipline-block">
+            <summary class="discipline-title">TOEFL &amp; GRE</summary>
+            <div class="discipline-content">
+              {% for cname in tg_order %}
+                {% assign course_notes = lang_notes | where: "course", cname %}
+                {% if course_notes.size > 0 %}
+                  <details class="course-block" data-search="{{ cname }} TOEFL GRE 语言考试 出国 留学">
+                    <summary class="course-title">{{ cname }}</summary>
+                    <div class="course-content">
+                      {% assign grouped_types = course_notes | group_by: "material_type" %}
+                      {% for type in grouped_types %}
+                        <div class="type-section">
+                          <h4 class="type-title">{{ type.name | default: "其他" }}</h4>
+                          <ul class="file-list">
+                            {% assign sorted_items = type.items | sort: "date" %}
+                            {% for item in sorted_items %}
+                              {% if item.published != false %}
+                              <li>
+                                <a href="{{ item.url | relative_url }}">{% assign _t = item.list_title | default: item.title %}{% include latex-logo.html title=_t %}</a>
+                              </li>
+                              {% endif %}
+                            {% endfor %}
+                          </ul>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </details>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </details>
+        {% endif %}
+
+      {%- comment -%} ===== 课程测评：按 review_category 分课，内部按 semester ===== {%- endcomment -%}
+      {% elsif disc == "课程测评" %}
+        {% assign all_reviews = site.notes | where: "material_type", "课程测评" | where_exp: "n", "n.published != false" %}
+        {% if all_reviews.size > 0 %}
+          {% assign cat_order = "经济学|思政|英语|体育|其他" | split: "|" %}
+          {% assign sem_order = "2022 秋|2023 春|2023 夏" | split: "|" %}
+          <details class="discipline-block">
+            <summary class="discipline-title">课程测评</summary>
+            <div class="discipline-content">
+              {% for cat in cat_order %}
+                {% assign cat_reviews = all_reviews | where: "review_category", cat %}
+                {% if cat_reviews.size > 0 %}
+                  <details class="course-block" data-search="{{ cat }} 课程测评 选课 review">
+                    <summary class="course-title">{{ cat }}</summary>
+                    <div class="course-content">
+                      {% for sem in sem_order %}
+                        {% assign sem_reviews = cat_reviews | where: "semester", sem %}
+                        {% if sem_reviews.size > 0 %}
+                          <div class="type-section">
+                            <h4 class="type-title">{{ sem }}</h4>
+                            <ul class="file-list">
+                              {% assign sorted_sem = sem_reviews | sort: "date" %}
+                              {% for item in sorted_sem %}
+                                {% if item.published != false %}
+                                <li>
+                                  <a href="{{ item.url | relative_url }}">{% assign _t = item.course | default: item.title %}{% include latex-logo.html title=_t %}</a>
+                                </li>
+                                {% endif %}
+                              {% endfor %}
+                            </ul>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </details>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </details>
+        {% endif %}
+
+      {%- comment -%} ===== 初升高衔接：按 数学/物理/经验 分课，内部按 material_type ===== {%- endcomment -%}
+      {% elsif disc == "初升高衔接" %}
+        {% assign phs_notes = site.notes | where: "discipline", "初升高" | where_exp: "n", "n.published != false" %}
+        {% if phs_notes.size > 0 %}
+          {% assign phs_order = "数学|物理|经验" | split: "|" %}
+          <details class="discipline-block">
+            <summary class="discipline-title">初升高衔接</summary>
+            <div class="discipline-content">
+              {% for cname in phs_order %}
+                {% assign course_notes = phs_notes | where: "course", cname %}
+                {% if course_notes.size > 0 %}
+                  <details class="course-block" data-search="{{ cname }} 初升高 高中 衔接">
+                    <summary class="course-title">{{ cname }}</summary>
+                    <div class="course-content">
+                      {% assign grouped_types = course_notes | group_by: "material_type" %}
+                      {% for type in grouped_types %}
+                        <div class="type-section">
+                          <h4 class="type-title">{{ type.name | default: "其他" }}</h4>
+                          <ul class="file-list">
+                            {% assign sorted_items = type.items | sort: "date" %}
+                            {% for item in sorted_items %}
+                              {% if item.published != false %}
+                              <li>
+                                <a href="{{ item.url | relative_url }}">{% assign _t = item.list_title | default: item.title %}{% include latex-logo.html title=_t %}</a>
+                              </li>
+                              {% endif %}
+                            {% endfor %}
+                          </ul>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </details>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </details>
+        {% endif %}
+
+      {%- comment -%} ===== 默认：经济学/数学/心理学/管理学，按 study_order 列课程 ===== {%- endcomment -%}
+      {% else %}
+        {% capture disc_blocks %}
+          {% for folder in site.study_order %}
+            {% assign match_path = "/" | append: folder | append: "/" %}
+            {% assign raw_folder_notes = site.notes | where_exp: "n", "n.path contains match_path" %}
+            {% assign folder_notes = raw_folder_notes | where_exp: "n", "n.material_type != '课程测评'" %}
+            {% if folder_notes.size > 0 %}
+              {% assign first_note = folder_notes[0] %}
+              {% if first_note.discipline == disc %}
+                {% assign _alias = site.data.course_aliases[first_note.course] %}
+                <details class="course-block" data-search="{{ first_note.course | default: folder }} {{ disc }} {{ _alias }}">
+                  <summary class="course-title">{{ first_note.course | default: folder }}</summary>
+                  <div class="course-content">
+                    {% assign grouped_types = folder_notes | group_by: "material_type" %}
+                    {% for type in grouped_types %}
+                      <div class="type-section">
+                        <h4 class="type-title">{{ type.name | default: "其他" }}</h4>
+                        <ul class="file-list">
+                          {% for item in type.items %}
+                            {% if item.published != false %}
+                            <li>
+                              <a href="{{ item.url | relative_url }}">{% assign _t = item.list_title | default: item.title %}{% include latex-logo.html title=_t %}</a>
+                            </li>
+                            {% endif %}
+                          {% endfor %}
+                        </ul>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </details>
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        {% endcapture %}
+
+        {% assign disc_blocks_trim = disc_blocks | strip %}
+        {% if disc_blocks_trim != "" %}
+          <details class="discipline-block">
+            <summary class="discipline-title">{{ disc }}</summary>
+            <div class="discipline-content">
+              {{ disc_blocks }}
+            </div>
+          </details>
+        {% endif %}
       {% endif %}
+
     {% endfor %}
   </div>
 

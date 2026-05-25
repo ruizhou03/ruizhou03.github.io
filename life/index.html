@@ -10,16 +10,6 @@ title: 生活攻略 | Rui Zhou
 
   {% include category-search.html placeholder="搜索生活攻略文章或专栏…" %}
 
-  {% assign _z_recipe = site.notes | where: "sub_category", "菜谱" | where_exp: "n", "n.published != false" %}
-  <aside class="zone-side">
-    <div class="zone-side-title">专区</div>
-    <a class="zone-link" href="{{ '/life/recipes/' | relative_url }}">
-      <span class="zl-icon">🍳</span>
-      <span class="zl-body"><span class="zl-name">菜谱专区</span><span class="zl-desc">可量化步骤的学院派菜谱 · {{ _z_recipe | size }} 道</span></span>
-      <span class="zl-arrow">→</span>
-    </a>
-  </aside>
-
   {% assign raw_posts_main  = site.notes | where: "main_category", "生活攻略" %}
   {% assign raw_posts_extra = site.notes | where_exp: "item", "item.extra_categories contains '生活攻略'" %}
   {% assign raw_posts = raw_posts_main | concat: raw_posts_extra %}

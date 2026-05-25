@@ -337,6 +337,14 @@
 
 # ===== 三、生活 =====
 
+- id: recipes
+  name: 菜谱专区
+  icon: 🍳
+  tagline: 可量化步骤的学院派菜谱
+  url: /life/recipes/
+  category: 生活
+  status: live
+
 - id: vision
   name: 视力自测
   icon: 👁️
