@@ -95,9 +95,14 @@ def classify(raw: str):
 _PROMPT_TAIL = ("请遵循 docs/MAINTENANCE.md 与 CLAUDE.md 的项目约定，"
                 "先告诉我处理方案再动手；改完按既定 git 工作流 add + commit + push。")
 
-# 占位符：「📋 待你把关」标题渲染时插入，最后整段渲染完再用真正的"全部任务" prompt 块替换它。
-# 用占位符是因为生成时还不知道总共有几张卡。
+# 占位符：在标题渲染时插入到「同一行右侧的 td」，最后整段渲染完按 P 级别累积的卡片填回。
+# 这样按钮才能跟「📋 待你把关」/「P0/P1/P2」小标题处在同一行，而不是另起一行。
 PLACEHOLDER_ALL = "<!--__ALL_TASKS_PROMPT_PLACEHOLDER__-->"
+PLACEHOLDER_GROUP = {
+    "P0": "<!--__GROUP_P0_PLACEHOLDER__-->",
+    "P1": "<!--__GROUP_P1_PLACEHOLDER__-->",
+    "P2": "<!--__GROUP_P2_PLACEHOLDER__-->",
+}
 
 
 def _build_group_prompt(date: str, level: str, cards: list[dict]) -> str:
@@ -131,24 +136,28 @@ def _build_all_prompt(date: str, cards: list[dict]) -> str:
     )
 
 
-def _details_block(label: str, text: str, accent: str = "") -> str:
-    """折叠 prompt 块。Gmail/Mail.app 都支持原生 <details>/<summary>，
-    展开后是 monospace 的 <pre>，选中复制即可。accent 可选：red/yellow/blue 影响按钮配色。"""
-    pre_style = ("background:#f6f8fa;border:1px solid #e1e4e8;border-radius:5px;"
-                 "padding:11px 12px;margin:6px 0 0;font-size:12.5px;"
-                 "font-family:ui-monospace,SFMono-Regular,Menlo,monospace;"
-                 "white-space:pre-wrap;word-wrap:break-word;color:#24292e;line-height:1.45")
+def _inline_button(label: str, text: str, accent: str = "blue") -> str:
+    """放在 table td 里的右侧按钮（details + summary 仿按钮造型）。
+    收起时 summary 像个小药丸贴右；展开时 pre 块从右栏向下流出，
+    自动换行（white-space:pre-wrap），整段邮件高度增加但可读。
+    Gmail/Mail.app 都原生支持 <details>。"""
     btn_bg, btn_border, btn_color = {
         "red":    ("#fdecea", "#f5b5ad", "#a4332a"),
         "yellow": ("#fdf6e3", "#e6ce8a", "#7a5b16"),
         "blue":   ("#eaf2fb", "#b8d0ec", "#1e4d8c"),
     }.get(accent, ("#f0f1f3", "#d6d9de", "#3b6fb0"))
-    btn_style = (f"display:inline-block;background:{btn_bg};border:1px solid {btn_border};"
-                 f"color:{btn_color};border-radius:5px;padding:5px 10px;font-size:13px;"
-                 f"font-weight:600;cursor:pointer;user-select:none;list-style:none")
+    btn_style = (f"background:{btn_bg};border:1px solid {btn_border};"
+                 f"color:{btn_color};border-radius:5px;padding:4px 10px;font-size:12.5px;"
+                 f"font-weight:600;cursor:pointer;user-select:none;list-style:none;"
+                 f"display:inline-block;white-space:nowrap")
+    pre_style = ("background:#f6f8fa;border:1px solid #e1e4e8;border-radius:5px;"
+                 "padding:11px 12px;margin:8px 0 0;font-size:12.5px;"
+                 "font-family:ui-monospace,SFMono-Regular,Menlo,monospace;"
+                 "white-space:pre-wrap;word-wrap:break-word;color:#24292e;line-height:1.45;"
+                 "text-align:left")
     return (
-        f'<details style="margin:10px 0 4px">'
-        f'<summary style="{btn_style}">{label}</summary>'
+        f'<details style="display:inline-block;text-align:left">'
+        f'<summary style="{btn_style}">{H.escape(label, quote=False)}</summary>'
         f'<pre style="{pre_style}">{H.escape(text, quote=False)}</pre>'
         f'</details>'
     )
@@ -168,8 +177,8 @@ def render(section: str, date: str = "") -> str:
     card_raw_level = ""       # 当前卡片的优先级 P0/P1/P2
     card_raw_carry = False    # 是否承接昨日
     cards_collected = []      # 所有已完成的卡片（用于「待你把关」下的总 prompt 占位替换）
-    pending_group_cards = []  # 当前 P 组未输出的卡片，下次切组 / 切节时输出组级 prompt
-    pending_group_level = ""  # 当前 P 组的级别
+    group_buffers = {"P0": [], "P1": [], "P2": []}  # 按 P 级别累积；最后批量填占位符
+    current_priority_level = ""  # 跟踪上一次 #### 的 P 级别，用于识别"同级别再开 ####"
     ul_buf = []               # 顶层 <ul> 未结束的累积
     para_buf = []             # 段落未结束的累积
 
@@ -192,7 +201,7 @@ def render(section: str, date: str = "") -> str:
         gist = "".join(card_gist_buf)
         gist_html = f'<div class="gist"><ul style="margin:4px 0;padding-left:19px">{gist}</ul></div>' if gist else ""
         out.append(gist_html + "</div>")
-        # 这张卡入两个收集列表：全局 + 当前 P 组
+        # 这张卡入收集列表 + 按 P 级别累积（最后批量填充按钮占位符）
         card_record = {
             "level": card_raw_level,
             "subj": card_raw_subj,
@@ -200,23 +209,13 @@ def render(section: str, date: str = "") -> str:
             "carry": card_raw_carry,
         }
         cards_collected.append(card_record)
-        pending_group_cards.append(card_record)
+        if card_raw_level in group_buffers:
+            group_buffers[card_raw_level].append(card_record)
         in_card = False
         card_gist_buf.clear()
         card_raw_gist.clear()
         card_raw_subj = ""
         card_raw_carry = False
-
-    def flush_group_prompt():
-        """把当前 P 组的卡片合成一个组级 prompt 折叠按钮，输出在该组所有卡片之后。"""
-        nonlocal pending_group_cards, pending_group_level
-        if pending_group_cards and pending_group_level:
-            prompt = _build_group_prompt(date or "今日", pending_group_level, pending_group_cards)
-            accent = {"P0": "red", "P1": "yellow", "P2": "blue"}.get(pending_group_level, "blue")
-            label = f"📋 复制 {pending_group_level} 全部 {len(pending_group_cards)} 条任务给 Claude"
-            out.append(_details_block(label, prompt, accent=accent))
-        pending_group_cards = []
-        pending_group_level = ""
 
     def open_card(subj_md: str, carry: bool = False):
         nonlocal in_card, card_raw_subj, card_raw_level, card_raw_carry
@@ -271,15 +270,26 @@ def render(section: str, date: str = "") -> str:
             out.append('<div class="meta">由本机 LaunchAgent 跑完后直接 SMTP 投递</div>')
         elif typ == TYPE_SEC:
             flush_para(); flush_ul(); flush_card()
-            flush_group_prompt()              # 切节前先 flush 当前 P 组
             current_card_color = ""           # 出新小节就清空 P 级别
-            out.append(f'<div class="sec">{inline(payload)}</div>')
-            # 「📋 待你把关」标题下立刻插占位符；最后渲染完用真正的「全部任务」prompt 替换
+            current_priority_level = ""       # 同时也清 P 跟踪
             if "待你把关" in payload:
-                out.append(PLACEHOLDER_ALL)
+                # 「📋 待你把关」改用 table 把按钮放右侧同一行；占位符最后用全部任务按钮替换
+                out.append(
+                    '<table cellpadding="0" cellspacing="0" border="0" width="100%" '
+                    'style="border-collapse:collapse;margin:22px 0 10px">'
+                    '<tr>'
+                    f'<td style="font-size:15px;font-weight:700;color:#1a1a1a;'
+                    'padding-bottom:5px;border-bottom:1px solid #ececec">'
+                    f'{inline(payload)}</td>'
+                    f'<td align="right" valign="middle" '
+                    'style="border-bottom:1px solid #ececec;padding-bottom:3px">'
+                    f'{PLACEHOLDER_ALL}</td>'
+                    '</tr></table>'
+                )
+            else:
+                out.append(f'<div class="sec">{inline(payload)}</div>')
         elif typ == TYPE_PRIORITY:
             flush_para(); flush_ul(); flush_card()
-            flush_group_prompt()              # 切组前先 flush 上一组
             level, rest = payload
             if level == "P0":
                 current_card_color = "red"
@@ -287,10 +297,29 @@ def render(section: str, date: str = "") -> str:
                 current_card_color = "yellow"
             else:
                 current_card_color = ""
-            pending_group_level = level
-            # rest 形如「（看心情）」「（看心情，承接昨日）」—— 只作上下文，不必单独输出
-            label = level + (f' <span style="color:#999;font-weight:400;font-size:12.5px">{inline(rest)}</span>' if rest else "")
-            out.append(f'<div style="font-size:13.5px;color:#666;margin:14px 0 6px;font-weight:600">{label}</div>')
+            # 同 P 级别再开 ####（如 P2 原 + P2 承接昨日）只输出小灰副标题，不重复 P 标签和按钮
+            if level == current_priority_level:
+                if rest:
+                    rest_clean = inline(rest).lstrip("（(").rstrip("）)")
+                    out.append(
+                        f'<div style="font-size:12.5px;color:#888;margin:10px 0 4px;'
+                        f'padding-left:4px">— {rest_clean}</div>'
+                    )
+            else:
+                # 切到新 P 级别：用 table 一行两栏，左 P 标签 + rest，右 placeholder（最后填按钮）
+                current_priority_level = level
+                label_html = level + (
+                    f' <span style="color:#999;font-weight:400;font-size:12.5px">{inline(rest)}</span>'
+                    if rest else ""
+                )
+                out.append(
+                    '<table cellpadding="0" cellspacing="0" border="0" width="100%" '
+                    'style="border-collapse:collapse;margin:14px 0 6px">'
+                    '<tr>'
+                    f'<td style="font-size:13.5px;color:#666;font-weight:600">{label_html}</td>'
+                    f'<td align="right" valign="middle">{PLACEHOLDER_GROUP[level]}</td>'
+                    '</tr></table>'
+                )
         elif typ == TYPE_OL_ITEM:
             # 解析"承接昨日"等标记（在 #### 行也可能出现）
             # 这里只是开新卡片，承接信息读自 #### 行——粗略：看 subject 里是否带「承接」
@@ -316,19 +345,33 @@ def render(section: str, date: str = "") -> str:
         # 其他类型忽略
 
     flush_para(); flush_ul(); flush_card()
-    flush_group_prompt()  # 文件结尾把最后一组 P 也输出
 
     result = "\n".join(out)
 
-    # 替换占位符：「📋 待你把关」标题下的"全部任务" prompt 按钮
+    # 替换占位符：「📋 待你把关」标题右侧 → 全部任务按钮
     if PLACEHOLDER_ALL in result:
         if cards_collected:
             all_prompt = _build_all_prompt(date or "今日", cards_collected)
-            label = f"📋 复制所有 {len(cards_collected)} 条任务给 Claude"
-            all_block = _details_block(label, all_prompt, accent="blue")
+            label = f"📋 复制所有 {len(cards_collected)} 条任务"
+            all_block = _inline_button(label, all_prompt, accent="blue")
         else:
             all_block = ""
         result = result.replace(PLACEHOLDER_ALL, all_block)
+
+    # 替换占位符：各 P 级别小标题右侧 → 组级按钮（同 P 级别只一个按钮）
+    accent_for = {"P0": "red", "P1": "yellow", "P2": "blue"}
+    for level in ("P0", "P1", "P2"):
+        ph = PLACEHOLDER_GROUP[level]
+        if ph not in result:
+            continue
+        cards = group_buffers[level]
+        if cards:
+            prompt = _build_group_prompt(date or "今日", level, cards)
+            label = f"📋 复制 {level} 全部 {len(cards)} 条"
+            block = _inline_button(label, prompt, accent=accent_for[level])
+        else:
+            block = ""
+        result = result.replace(ph, block)
 
     return result
 
