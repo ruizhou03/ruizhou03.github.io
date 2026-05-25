@@ -685,7 +685,7 @@ permalink: /toolbox/goals/
     // start / end markers
     html += `<circle cx="${xScale(startMs)}" cy="${yScale(g.startValue)}" r="4" fill="none" stroke="${g.color}" stroke-width="2"/>`;
     html += `<circle cx="${xScale(endMs)}" cy="${yScale(g.targetValue)}" r="4" fill="none" stroke="var(--color-light)" stroke-width="2"/>`;
-    html += `<text x="${xScale(endMs)}" y="${yScale(g.targetValue) - 8}" text-anchor="end" fill="var(--color-light)" font-size="9.5" font-style="italic">目标</text>`;
+    html += `<text x="${xScale(endMs)}" y="${yScale(g.targetValue) - 8}" text-anchor="end" fill="var(--color-light)" font-size="9.5">目标</text>`;
 
     // today line
     const today = Date.now();
