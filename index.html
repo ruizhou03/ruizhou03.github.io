@@ -76,7 +76,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='82' font-family='Georgia, serif' font-size='95' font-weight='bold' fill='%23c9a96e' text-anchor='middle'>Zr</text></svg>">
   <style>
      /* 精准补丁：导航栏三段式与汉堡图标 */
@@ -121,8 +121,8 @@
       --color-nav-bg-solid: rgba(250,250,249,0.98);
       --color-shadow: rgba(0,0,0,0.06);
       --color-card-shadow: rgba(0,0,0,0.04);
-      --font-display: 'Cormorant Garamond', Georgia, serif;
-      --font-body: 'Source Sans 3', -apple-system, sans-serif;
+      --font-display: 'Cormorant Garamond', 'Noto Serif SC', 'Songti SC', 'STSong', Georgia, serif;
+      --font-body: 'Source Sans 3', 'Noto Serif SC', 'Songti SC', 'STSong', -apple-system, sans-serif;
       --max-width: 960px;
       --section-gap: 2.25rem;
     }
@@ -209,7 +209,7 @@
     .theme-toggle:hover { border-color: var(--color-accent); }
 
     /* Hero */
-    .hero { max-width: var(--max-width); margin: 0 auto; padding: 8rem 2rem 0; display: grid; grid-template-columns: 280px 1fr; gap: 3.5rem; align-items: start; }
+    .hero { max-width: var(--max-width); margin: 0 auto; padding: 8rem 2rem 2.5rem; display: grid; grid-template-columns: 280px 1fr; gap: 3.5rem; align-items: start; }
     .hero-photo-wrapper { position: relative; }
     .hero-photo { width: 100%; aspect-ratio: 3/4; object-fit: cover; object-position: center 15%; border-radius: 6px; }
     .hero-photo-wrapper::after { content: ''; position: absolute; top: 10px; left: 10px; right: -10px; bottom: -10px; border: 1.5px solid var(--color-highlight); border-radius: 6px; z-index: -1; opacity: 0.5; }
@@ -394,7 +394,7 @@
     /* Responsive */
     @media (max-width: 768px) {
       html { font-size: 16px; }
-      .hero { grid-template-columns: 1fr; gap: 2rem; padding-top: 6rem; text-align: center; }
+      .hero { grid-template-columns: 1fr; gap: 2rem; padding: 6rem 1.5rem 2rem; text-align: center; }
       .hero-photo-wrapper { max-width: 220px; margin: 0 auto; }
       .hero-name { font-size: 2.4rem; }
       .pronunciation { justify-content: center; }
@@ -409,7 +409,7 @@
     }
     @media (max-width: 480px) {
       .nav-inner { padding: 0.75rem 1.2rem; }
-      .hero { padding: 5.5rem 1.2rem 0; }
+      .hero { padding: 5.5rem 1.2rem 1.5rem; }
       .hero-name { font-size: 2rem; }
     }
   </style>
@@ -434,9 +434,9 @@
 
     <div class="nav-right-box" style="display:flex;align-items:center;gap:0.6rem;">
       <a href="/zh/" title="中文博客"
-         style="font-family:var(--font-body);font-size:0.8rem;font-weight:600;letter-spacing:0.04em;
-                color:var(--color-muted);border:1px solid var(--color-border);padding:0.35rem 0.55rem;
-                border-radius:4px;text-decoration:none;white-space:nowrap;">中文</a>
+         style="font-family:'Noto Serif SC','Songti SC','STSong',serif;font-size:0.9rem;font-weight:500;
+                color:var(--color-muted);border:1px solid var(--color-border);padding:0.3rem 0.6rem;
+                border-radius:4px;text-decoration:none;white-space:nowrap;line-height:1;">中文</a>
       <button class="theme-toggle" onclick="toggleTheme()" title="Switch mode">&#9683;</button>
     </div>
   </div>
@@ -573,44 +573,10 @@
 
     <div class="notes-grid">
       <div class="note-card">
-        <h3>Advanced Microeconomics Theory</h3>
-        <div class="note-meta">Penn State University · Spring 2026</div>
-        <div style="margin-bottom:0.5rem;"><a href="/files/adv-micro-psu/Micro.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
-        <ul class="note-chapters" id="chapters-micro-psu" style="display:none;">
-          <li>Ch 1: Introduction</li>
-          <li>Ch 2: Game Representation</li>
-          <li>Ch 3: Nash Equilibrium</li>
-          <li>Ch 4: Subgame Perfect Nash Equilibrium</li>
-          <li>Ch 5: Bargaining</li>
-          <li>Ch 6: Private Value Auctions</li>
-          <li>Ch 7: Mechanism Design</li>
-          <li>Ch 8: VCG Mechanisms</li>
-          <li>Ch 9: Matching Theory</li>
-          <li>Ch 10: Common Knowledge</li>
-        </ul>
-        <button class="note-toggle" onclick="toggleChapters('micro-psu',this)">Show chapters ▸</button>
-      </div>
-      
-      <div class="note-card">
-        <h3>Real Analysis</h3>
-        <div class="note-meta">University of Michigan · Spring 2024</div>
-        <ul class="note-chapters" id="chapters-ra" style="display:none;">
-          <li><a href="/files/real-anal/real-anal-ch0-2024.pdf">Ch 0: Riemann Integration</a></li>
-          <li><a href="/files/real-anal/real-anal-ch1-2024.pdf">Ch 1: Measure</a></li>
-          <li><a href="/files/real-anal/real-anal-ch2-2024.pdf">Ch 2: Integration</a></li>
-          <li><a href="/files/real-anal/real-anal-ch3-2024.pdf">Ch 3: Differentiation</a></li>
-          <li><a href="/files/real-anal/real-anal-ch4-2024.pdf">Ch 4: Product of Measures</a></li>
-          <li><a href="/files/real-anal/real-anal-ch5-2024.pdf">Ch 5: Lp Spaces</a></li>
-          <li><a href="/files/real-anal/real-anal-ch6-2024.pdf">Ch 6: Banach Spaces</a></li>
-        </ul>
-        <button class="note-toggle" onclick="toggleChapters('ra',this)">Show chapters ▸</button>
-      </div>
-
-      <div class="note-card">
-        <h3>Advanced Microeconomics</h3>
+        <h3>Advanced Microeconomics Theory&nbsp;Ⅰ</h3>
         <div class="note-meta">Peking University · Fall 2023</div>
         <div style="margin-bottom:0.5rem;"><a href="/files/adv-micro-pku/adv-micro-pku-2023.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
-        <ul class="note-chapters" id="chapters-am" style="display:none;">
+        <ul class="note-chapters" id="chapters-micro-pku" style="display:none;">
           <li>Ch 1: Choice Theory</li>
           <li>Ch 2: Consumer Theory</li>
           <li>Ch 3: Production Theory</li>
@@ -618,61 +584,46 @@
           <li>Ch 5: Uncertainty</li>
           <li>Ch 6: General Equilibrium</li>
         </ul>
-        <button class="note-toggle" onclick="toggleChapters('am',this)">Show chapters ▸</button>
+        <button class="note-toggle" onclick="toggleChapters('micro-pku',this)">Show chapters ▸</button>
       </div>
 
       <div class="note-card">
-        <h3>Advanced Econometrics</h3>
-        <div class="note-meta">Peking University · Fall 2023</div>
-        <div style="margin-bottom:0.5rem;"><a href="/files/adv-metrics-pku/adv-metrics-pku-2023.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
-        <ul class="note-chapters" id="chapters-ae" style="display:none;">
-          <li>Ch 1: Linear Regression Model</li>
-          <li>Ch 2: Properties of OLS</li>
-          <li>Ch 3: Hypothesis Testing</li>
-          <li>Ch 4: IV Estimation</li>
-          <li>Ch 5: GRM &amp; Heteroskedasticity</li>
-          <li>Ch 6: Panel Data</li>
-          <li>Ch 7: MLE</li>
-          <li>Ch 8: Time Series</li>
+        <h3>Advanced Microeconomics Theory&nbsp;Ⅱ</h3>
+        <div class="note-meta">Penn State University · Spring 2026</div>
+        <div style="margin-bottom:0.5rem;"><a href="/files/adv-micro-psu/Micro.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
+        <ul class="note-chapters" id="chapters-micro-psu" style="display:none;">
+          <li>Ch 1: Game Representation</li>
+          <li>Ch 2: Nash Equilibrium</li>
+          <li>Ch 3: Bargaining</li>
+          <li>Ch 4: Auctions</li>
+          <li>Ch 5: Mechanism Design</li>
+          <li>Ch 6: Matching</li>
+          <li>Ch 7: Common Knowledge</li>
+          <li>Ch 8: Repeated Games</li>
+          <li>Ch 9: Perfect Bayesian Equilibrium</li>
         </ul>
-        <button class="note-toggle" onclick="toggleChapters('ae',this)">Show chapters ▸</button>
+        <button class="note-toggle" onclick="toggleChapters('micro-psu',this)">Show chapters ▸</button>
       </div>
 
       <div class="note-card">
-        <h3>Intermediate Econometrics</h3>
-        <div class="note-meta">Peking University · Spring 2023</div>
-        <div style="margin-bottom:0.5rem;"><a href="/files/interm-metrics/interm-metrics-2023.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
-        <ul class="note-chapters" id="chapters-ie" style="display:none;">
-          <li>Ch 1–4: Linear Regression Basics</li>
-          <li>Ch 5: MLR Further Issues</li>
-          <li>Ch 6: MLR with Dummies</li>
-          <li>Ch 7: Heteroskedasticity</li>
-          <li>Ch 8: Specification Issues</li>
-          <li>Ch 9: Panel Data</li>
-          <li>Ch 10: IV &amp; 2SLS</li>
+        <h3>Advanced Macroeconomics</h3>
+        <div class="note-meta">Penn State University · Spring 2026</div>
+        <div style="margin-bottom:0.5rem;"><a href="/files/adv-macro-psu/Macro.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
+        <ul class="note-chapters" id="chapters-macro-psu" style="display:none;">
+          <li>Ch 1: Complete Markets under Uncertainty</li>
+          <li>Ch 2: Exogenously Incomplete Markets</li>
+          <li>Ch 3: Endogenously Incomplete Markets</li>
+          <li>Ch 4: Growth and Development Accounting</li>
+          <li>Ch 5: The Solow Growth Model</li>
+          <li>Ch 6: The Neoclassical Growth Model</li>
+          <li>Ch 7: Neoclassical Growth vs. Data</li>
+          <li>Ch 8: Real Business Cycles</li>
+          <li>Ch 9: Business Cycle Accounting</li>
+          <li>Ch 10: Consumption and Saving</li>
+          <li>Ch 11: Computation of the Aiyagari Model</li>
+          <li>Ch 12: Final Exam Review Guide</li>
         </ul>
-        <button class="note-toggle" onclick="toggleChapters('ie',this)">Show chapters ▸</button>
-      </div>
-
-      <div class="note-card">
-        <h3>Public Economics</h3>
-        <div class="note-meta">Peking University · Spring 2023</div>
-        <div style="margin-bottom:0.5rem;"><a href="/files/public-econ/public-econ-2023.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
-        <ul class="note-chapters" id="chapters-pe" style="display:none;">
-          <li>Ch 1: Common Goods</li>
-          <li>Ch 2: Externality</li>
-          <li>Ch 3: Taxation</li>
-          <li>Ch 4: Social Insurance</li>
-          <li>Ch 5: Public Choice</li>
-          <li>Ch 6: Central &amp; Local Gov't</li>
-        </ul>
-        <button class="note-toggle" onclick="toggleChapters('pe',this)">Show chapters ▸</button>
-      </div>
-
-      <div class="note-card">
-        <h3>Monetary Economics</h3>
-        <div class="note-meta">Peking University · Spring 2023</div>
-        <div><a href="/files/monetary-econ/monetary-econ-2023.pdf" style="font-size:0.85rem;font-weight:500;">&#8681; Download full notes (PDF)</a></div>
+        <button class="note-toggle" onclick="toggleChapters('macro-psu',this)">Show chapters ▸</button>
       </div>
     </div>
   </section>
