@@ -106,10 +106,11 @@
   }
   .za-input {
     flex: 1; border: 1px solid var(--color-border); border-radius: 18px;
-    padding: .5rem .9rem; font-size: .88rem; background: var(--color-bg-warm);
+    padding: .55rem .9rem; font-size: .88rem; background: var(--color-bg-warm);
     color: var(--color-text); outline: none; font-family: inherit;
     line-height: 1.5; resize: none; overflow-y: auto;
-    min-height: 38px; max-height: 8.5em; height: 38px;
+    /* 默认两行高，最多长到 6 行后内部滚动 */
+    min-height: 3.75rem; height: 3.75rem; max-height: 9.5rem;
     box-sizing: border-box;
   }
   .za-input:focus { border-color: var(--color-highlight); }
@@ -160,7 +161,7 @@
   </div>
   <div class="za-body" id="za-body"></div>
   <div class="za-foot">
-    <textarea class="za-input" id="za-input" placeholder="有什么想找的，尽管问我～（Enter 发送，Shift+Enter 换行）" rows="1" autocomplete="off"></textarea>
+    <textarea class="za-input" id="za-input" placeholder="有什么想找的，尽管问我～" rows="2" autocomplete="off"></textarea>
     <button class="za-send" id="za-send" aria-label="发送">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
@@ -508,17 +509,19 @@
   }
 
   // ---------- 输入框自适应高度 ----------
-  // textarea 默认单行(38px)，输入跨行时拉到内容高度，最多 8.5em 后内部滚动。
-  var INPUT_MIN_PX = 38;
+  // textarea 默认显示两行（CSS .za-input 的 min-height/height），输入跨行时拉到内容
+  // 高度，最多 max-height（约 6 行）后内部滚动。autoGrow 从计算样式取边界，不写死 px。
   function autoGrow() {
     input.style.height = 'auto';
-    var max = parseFloat(getComputedStyle(input).maxHeight) || 9999;
-    var next = Math.max(INPUT_MIN_PX, Math.min(input.scrollHeight, max));
+    var cs = getComputedStyle(input);
+    var minH = parseFloat(cs.minHeight) || 0;
+    var maxH = parseFloat(cs.maxHeight) || 9999;
+    var next = Math.max(minH, Math.min(input.scrollHeight, maxH));
     input.style.height = next + 'px';
   }
   function resetInput() {
     input.value = '';
-    input.style.height = INPUT_MIN_PX + 'px';
+    input.style.height = '';  // 回到 CSS 默认（min-height / height）
   }
 
   fab.addEventListener('click', openPanel);
