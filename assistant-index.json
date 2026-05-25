@@ -43,7 +43,12 @@ layout: null
       {%- endif -%}
     {%- endif -%}
 
+    {%- comment -%} list_title 是文章在资料列表页正式显示的名字（例如英文规范名），
+        优先用它当搜索结果的 title；原 title（中文叙事标题）依然进 keywords 供检索。 {%- endcomment -%}
+    {%- assign _disp_title = item.list_title | default: item.title -%}
+
     {%- assign kw = item.title -%}
+    {%- if item.list_title -%}{%- assign kw = kw | append: ' ' | append: item.list_title -%}{%- endif -%}
     {%- if item.keywords -%}{%- assign _k = item.keywords | join: ' ' -%}{%- assign kw = kw | append: ' ' | append: _k -%}{%- endif -%}
     {%- if item.tags -%}{%- assign _t = item.tags | join: ' ' -%}{%- assign kw = kw | append: ' ' | append: _t -%}{%- endif -%}
     {%- assign _al = site.data.course_aliases[item.course] -%}
@@ -59,7 +64,7 @@ layout: null
     {%- assign _sum = _sum | strip | truncate: 96 -%}
 
     {
-      "title"   : {{ item.title | jsonify }},
+      "title"   : {{ _disp_title | jsonify }},
       "url"     : "{{ site.baseurl }}{{ item.url }}",
       "category": {{ cat_str | jsonify }},
       "type"    : "{{ _type }}",

@@ -238,6 +238,18 @@
   }
   .zs-row.zs-sel .zs-row-enter { opacity: 1; }
 
+  .zs-row-dl {
+    flex: none; display: inline-flex; align-items: center; gap: .25rem;
+    background: var(--color-highlight); color: #fff;
+    border: none; cursor: pointer; font-family: inherit;
+    font-size: .75rem; font-weight: 600;
+    padding: .28rem .6rem; border-radius: 999px;
+    text-decoration: none;
+    transition: filter .15s, transform .15s;
+  }
+  .zs-row-dl:hover { color: #fff; filter: brightness(1.07); transform: translateY(-1px); }
+  .zs-row:has(.zs-row-dl) .zs-row-enter { display: none; }
+
   .zs-foot {
     flex: none; padding: .7rem 1rem;
     border-top: 1px solid var(--color-border); background: var(--color-bg-warm);
@@ -578,7 +590,14 @@
       return r.ok ? r.json() : null;
     }).then(function (d) {
       if (!d || d.fallback || !d.reply) return null;
-      return { reply: String(d.reply), cards: Array.isArray(d.cards) ? d.cards : [] };
+      // 防御性：AI 偶尔在回复里塞 [3]、（[0]、[1]）这类条目序号，擦掉再渲染
+      var cleaned = String(d.reply)
+        .replace(/[（(]\s*(?:\[\s*\d+\s*\][\s、,，]*)+[）)]/g, '')
+        .replace(/\[\s*\d+\s*\]/g, '')
+        .replace(/[，,]\s*([。；;])/g, '$1')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+      return { reply: cleaned, cards: Array.isArray(d.cards) ? d.cards : [] };
     }).catch(function () {
       if (timer) clearTimeout(timer);
       return null;
@@ -794,10 +813,25 @@
       cat.textContent = it.category || '';
       text.appendChild(title);
       if (it.category) text.appendChild(cat);
-      var enter = document.createElement('span');
-      enter.className = 'zs-row-enter';
-      enter.textContent = '↵';
-      row.appendChild(icon); row.appendChild(text); row.appendChild(enter);
+      row.appendChild(icon); row.appendChild(text);
+
+      if (it.type === 'material' && it.download) {
+        var dl = document.createElement('a');
+        dl.className = 'zs-row-dl';
+        dl.href = it.download;
+        dl.setAttribute('download', '');
+        dl.innerHTML = '<span aria-hidden="true">⬇</span> 下载';
+        dl.title = '直接下载文件';
+        // 阻止冒泡，避免点下载触发到 goToHit
+        dl.addEventListener('click', function (e) { e.stopPropagation(); });
+        row.appendChild(dl);
+      } else {
+        var enter = document.createElement('span');
+        enter.className = 'zs-row-enter';
+        enter.textContent = '↵';
+        row.appendChild(enter);
+      }
+
       row.addEventListener('mouseenter', function () {
         selIdx = idx; updateSelection();
       });
