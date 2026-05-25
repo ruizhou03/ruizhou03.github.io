@@ -19,8 +19,9 @@
     display: flex; align-items: center;
     flex-shrink: 0; gap: 0.15rem;
   }
-  /* 分类内筛选框（次要 UI——主搜走顶栏 ⌘K，这里只在本栏内按标题缩小范围） */
-  .cat-search-wrap { margin: 0.4rem auto 1.6rem; text-align: center; }
+  /* 分类内筛选框（次要 UI——主搜走顶栏 ⌘K，这里只在本栏内按标题缩小范围）
+     设计上嵌入 <header> 内部，由 header 的 margin-bottom 控制到下方内容的间距 */
+  .cat-search-wrap { margin: 1.2rem auto 0; text-align: center; }
   .cat-search-input {
     width: 100%; max-width: 260px;
     padding: 0.32rem 0.85rem;

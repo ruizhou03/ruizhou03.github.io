@@ -3,7 +3,7 @@
 # 由 daily-review 流程调用。
 #
 # 频率：
-#   每天          → keywords_coverage.py、images.py
+#   每天          → keywords_coverage.py、images.py、backend_pulse.py、spotcheck.py
 #   每周一(dow=1) → 加跑 dead_links.py
 #   每月 1 号     → 加跑 monthly_stats.py
 #
@@ -20,7 +20,7 @@ DOM=$(date +%d)
 
 echo "# 站点巡检（$(date '+%Y-%m-%d %H:%M'))"
 echo
-echo "本次将运行：keywords + images + backend_pulse$([ "$DOW" = 1 ] && echo " + dead_links")$([ "$DOM" = 01 ] && echo " + monthly_stats")"
+echo "本次将运行：keywords + images + backend_pulse + spotcheck$([ "$DOW" = 1 ] && echo " + dead_links")$([ "$DOM" = 01 ] && echo " + monthly_stats")"
 echo
 
 echo "---"
@@ -33,6 +33,10 @@ echo "---"
 echo
 echo "---"
 "$PY" "$SCRIPT_DIR/backend_pulse.py"
+
+echo
+echo "---"
+"$PY" "$SCRIPT_DIR/spotcheck.py"
 
 if [ "$DOW" = "1" ]; then
     echo

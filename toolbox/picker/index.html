@@ -374,6 +374,7 @@ permalink: /toolbox/picker/
     margin-top: 2.2rem; font-size: 0.88rem;
     color: var(--color-muted); line-height: 1.7;
   }
+  details.about + details.about { margin-top: 1rem; }
   details.about summary {
     cursor: pointer; padding: 0.4rem 0;
     color: var(--color-muted); font-weight: 500;
@@ -382,6 +383,153 @@ permalink: /toolbox/picker/
   details.about summary::before { content: '▸ '; transition: 0.2s; }
   details[open].about summary::before { content: '▾ '; }
   details.about p { margin: 0.6rem 0; }
+  details.about kbd {
+    display: inline-block;
+    padding: 0.05em 0.4em;
+    font-family: var(--font-body);
+    font-size: 0.82em;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-bg-warm, var(--color-bg));
+    color: var(--color-ink);
+    line-height: 1.4;
+  }
+
+  /* —— profile dirty 标识 —— */
+  .profile-action.dirty {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: rgba(232,200,40,0.12);
+  }
+  .profile-action.dirty::after {
+    content: ' ●';
+    font-size: 0.7em;
+    vertical-align: 0.2em;
+  }
+
+  /* —— toast 撤销按钮 —— */
+  .profile-toast .toast-action {
+    margin-left: 0.45rem;
+    padding: 0.05rem 0.55rem;
+    font: inherit; font-size: 0.78rem;
+    border: 1px solid var(--color-accent);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-accent);
+    cursor: pointer;
+    line-height: 1.4;
+  }
+  .profile-toast .toast-action:hover {
+    background: var(--color-accent); color: #fff;
+  }
+
+  /* —— 结果复制按钮 —— */
+  .result-copy {
+    margin-top: 0.55rem;
+    padding: 0.28rem 0.85rem;
+    font: inherit; font-size: 0.82rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .result-copy:hover {
+    border-color: var(--color-accent); color: var(--color-accent);
+  }
+  .result-copy.copied {
+    border-color: #5cb830; color: #5cb830;
+  }
+
+  /* —— 历史面板 —— */
+  .history-count {
+    font-size: 0.78rem;
+    color: var(--color-light);
+    font-weight: 400;
+    margin-left: 0.4rem;
+  }
+  .history-list {
+    margin: 0.6rem 0 0.4rem;
+    display: flex; flex-direction: column;
+    gap: 0.45rem;
+  }
+  .history-empty {
+    color: var(--color-light);
+    font-style: normal;
+    margin: 0.4rem 0 !important;
+  }
+  .history-item {
+    display: flex; align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
+  .history-item .history-winner {
+    color: var(--color-ink);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .history-item .history-meta {
+    color: var(--color-light);
+    font-size: 0.78rem;
+    flex-shrink: 0;
+  }
+  .history-item .history-from {
+    color: var(--color-muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1; min-width: 0;
+  }
+  .history-actions {
+    text-align: right;
+    margin-top: 0.4rem;
+  }
+  .history-clear {
+    padding: 0.25rem 0.8rem;
+    font: inherit; font-size: 0.78rem;
+    border: 1px dashed var(--color-border);
+    border-radius: 999px;
+    background: transparent; color: var(--color-muted);
+    cursor: pointer;
+  }
+  .history-clear:hover {
+    border-color: #c83828; color: #c83828; border-style: solid;
+  }
+
+  /* —— 导入/导出面板 —— */
+  .io-textarea {
+    width: 100%; box-sizing: border-box;
+    margin: 0.5rem 0 0.4rem;
+    padding: 0.5rem 0.7rem;
+    font-family: var(--font-mono, ui-monospace, Menlo, Monaco, monospace);
+    font-size: 0.78rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    resize: vertical;
+    outline: none;
+  }
+  .io-textarea:focus { border-color: var(--color-accent); }
+  .io-actions {
+    display: flex; gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .io-btn {
+    padding: 0.3rem 0.75rem;
+    font: inherit; font-size: 0.82rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: transparent; color: var(--color-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .io-btn:hover {
+    border-color: var(--color-accent); color: var(--color-accent);
+  }
 
   @media (max-width: 600px) {
     .picker-card { padding: 1.1rem 0.9rem; }
@@ -411,6 +559,7 @@ permalink: /toolbox/picker/
       <button type="button" class="profile-action" id="profile-rename-btn" style="display:none;" title="重命名">✏️</button>
       <button type="button" class="profile-action" id="profile-delete-btn" style="display:none;" title="删除">🗑️</button>
       <button type="button" class="profile-action profile-new" id="profile-new-btn" title="把当前选项保存为新方案">+ 新建</button>
+      <button type="button" class="profile-action" id="profile-share-btn" title="复制当前选项的分享链接到剪贴板">🔗 分享</button>
       <span class="profile-toast" id="profile-toast" style="display:none;"></span>
     </div>
     <div class="options-list" id="options-list"></div>
@@ -438,7 +587,7 @@ permalink: /toolbox/picker/
     </div>
   </div>
 
-  <div class="wheel-zone">
+  <div class="wheel-zone" id="wheel-zone">
     <div class="wheel-pointer"></div>
     <svg class="wheel-svg" id="wheel-svg" viewBox="0 0 200 200" aria-label="抽签转盘"></svg>
   </div>
@@ -448,7 +597,8 @@ permalink: /toolbox/picker/
   </div>
 
   <div class="result-zone">
-    <div class="result-line" id="result-line">&nbsp;</div>
+    <div class="result-line" id="result-line" aria-live="polite" aria-atomic="true">&nbsp;</div>
+    <button type="button" class="result-copy" id="result-copy-btn" style="display:none;" title="复制结果到剪贴板">📋 复制结果</button>
   </div>
 
   <div class="tally-panel" id="tally-panel">
@@ -460,11 +610,34 @@ permalink: /toolbox/picker/
     <button type="button" class="reset-btn" id="reset-btn">🔁 再抽一次</button>
   </div>
 
+  <details class="about" id="history-details">
+    <summary>📜 最近抽签 <span class="history-count" id="history-count"></span></summary>
+    <div class="history-list" id="history-list">
+      <p class="history-empty">还没有抽签记录。</p>
+    </div>
+    <div class="history-actions">
+      <button type="button" class="history-clear" id="history-clear-btn">清空历史</button>
+    </div>
+  </details>
+
+  <details class="about" id="io-details">
+    <summary>📥 导入 / 导出方案</summary>
+    <p>把全部已保存方案打包成一段 JSON，可以贴到别的浏览器或者备份起来。</p>
+    <textarea class="io-textarea" id="io-textarea" rows="5" placeholder="把方案 JSON 贴这里再点「导入」；或点「导出」把现有方案填进来"></textarea>
+    <div class="io-actions">
+      <button type="button" class="io-btn" id="io-export-btn">📤 导出到这里</button>
+      <button type="button" class="io-btn" id="io-copy-btn">📋 复制</button>
+      <button type="button" class="io-btn" id="io-import-btn">📥 导入</button>
+    </div>
+  </details>
+
   <details class="about">
     <summary>关于这个工具</summary>
-    <p>每次抽签都会重新生成随机数（用浏览器的 <code>Math.random()</code>），不存历史、不联网、不收集任何数据。刷新页面就重置。</p>
+    <p>每次抽签都会重新生成随机数（用浏览器的 <code>Math.random()</code>），不存历史（除了你主动展开的"最近抽签"，存在本机 localStorage）、不联网、不收集任何数据。</p>
     <p>"加权"采用累积分布抽样：所有权重加和归一化后，落在哪个区间就选哪个——跟轮盘赌一样直观。</p>
-    <p>多次模式不是"比谁更幸运"，而是"独立同分布抽样的简单多数"——理论上权重越高的越可能胜出，但小样本（3 次、5 次）下波动比较大，这正是好玩的地方。</p>
+    <p>多次模式不是"比谁更幸运"，而是"独立同分布抽样的简单多数"——理论上权重越高的越可能胜出，但小样本（3 次、5 次）下波动比较大，这正是好玩的地方。平票时按"第一时间到达最高票数"算赢。</p>
+    <p>把当前清单分享给朋友：点上方"🔗 分享"——选项和权重都会编码到 URL hash 里，对方打开就同步了。</p>
+    <p>键盘：按 <kbd>空格</kbd> / <kbd>回车</kbd> 直接抽签（焦点不在输入框时）。</p>
   </details>
 </article>
 
