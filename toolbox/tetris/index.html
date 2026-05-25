@@ -84,7 +84,9 @@ permalink: /toolbox/tetris/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .tt-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .tt-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   /* 主体：左侧 hold，中间棋盘，右侧 next */
   .tt-stage {
@@ -237,8 +239,8 @@ permalink: /toolbox/tetris/
   </div>
 
   <div class="tt-controls">
-    <button class="tt-btn" id="ttPauseBtn">⏸ 暂停</button>
-    <button class="tt-btn" id="ttNewBtn">🔄 新游戏</button>
+    <button class="tt-btn" id="ttPauseBtn" aria-label="暂停 / 继续">⏸ 暂停</button>
+    <button class="tt-btn" id="ttNewBtn" aria-label="开始新一局">🔄 新游戏</button>
   </div>
 
   <div class="tt-stage">
@@ -287,15 +289,15 @@ permalink: /toolbox/tetris/
   </div>
 
   <div class="tt-dpad">
-    <button data-act="left">←</button>
-    <button data-act="rotate">⟳</button>
-    <button data-act="right">→</button>
-    <button data-act="hold">Hold</button>
+    <button data-act="left" aria-label="左移">←</button>
+    <button data-act="rotate" aria-label="旋转">⟳</button>
+    <button data-act="right" aria-label="右移">→</button>
+    <button data-act="hold" aria-label="暂存方块">Hold</button>
   </div>
   <div class="tt-dpad-row2">
-    <button data-act="softdrop">↓ 软降</button>
-    <button data-act="harddrop">⤓ 硬降</button>
-    <button data-act="pause">⏸ 暂停</button>
+    <button data-act="softdrop" aria-label="软降">↓ 软降</button>
+    <button data-act="harddrop" aria-label="硬降">⤓ 硬降</button>
+    <button data-act="pause" aria-label="暂停">⏸ 暂停</button>
   </div>
 
   <div class="tt-help">

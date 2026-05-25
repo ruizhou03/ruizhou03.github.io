@@ -142,8 +142,8 @@ permalink: /toolbox/vision/
     margin: 0.8rem 0;
   }
   .zoom-status .icon { font-size: 1.4rem; }
-  .zoom-status.ok .icon { color: #10b981; }
-  .zoom-status.warn .icon { color: #ef4444; }
+  .zoom-status.ok .icon { color: #8a9a8a; }
+  .zoom-status.warn .icon { color: #b78d8d; }
 
   /* Calibration */
   .cal-mode-tabs {
@@ -192,7 +192,7 @@ permalink: /toolbox/vision/
     overflow: hidden;
   }
   .card-rect {
-    background: linear-gradient(135deg, #4080d0, #5cb830);
+    background: linear-gradient(135deg, #9bb0c1, #8a9a8a);
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
     position: relative;
@@ -371,10 +371,10 @@ permalink: /toolbox/vision/
   }
   .test-bar .eye-indicator {
     font-weight: 600;
-    color: #1e3a5f;
+    color: #8a7a6a;
   }
-  .test-bar .eye-indicator.left { color: #c0392b; }
-  .test-bar .eye-indicator.right { color: #16a085; }
+  .test-bar .eye-indicator.left { color: #b78d8d; }
+  .test-bar .eye-indicator.right { color: #8a9a8a; }
   .test-bar .progress { color: #888; }
   .test-bar .exit-btn {
     background: transparent;
@@ -386,7 +386,9 @@ permalink: /toolbox/vision/
     font-size: 1rem;
     line-height: 1;
   }
-  .test-bar .exit-btn:hover { color: #c0392b; border-color: #c0392b; }
+  @media (hover: hover) {
+    .test-bar .exit-btn:hover { color: #b78d8d; border-color: #b78d8d; }
+  }
 
   .test-stage {
     flex: 1;
@@ -429,10 +431,12 @@ permalink: /toolbox/vision/
     color: #333;
     transition: all 0.12s;
   }
-  .dir-pad button:hover {
-    background: #1e3a5f;
-    color: white;
-    border-color: #1e3a5f;
+  @media (hover: hover) {
+    .dir-pad button:hover {
+      background: #8a7a6a;
+      color: white;
+      border-color: #8a7a6a;
+    }
   }
   .dir-pad button:active { transform: scale(0.94); }
   .dir-pad button.up    { grid-column: 2; grid-row: 1; }
@@ -457,7 +461,9 @@ permalink: /toolbox/vision/
     font: inherit;
     font-size: 0.85rem;
   }
-  .skip-row button:hover { color: #c0392b; }
+  @media (hover: hover) {
+    .skip-row button:hover { color: #b78d8d; }
+  }
 
   .keyboard-hint {
     text-align: center;
@@ -498,19 +504,21 @@ permalink: /toolbox/vision/
     font-size: 0.9rem;
     transition: all 0.15s;
   }
-  .astig-options button:hover {
-    border-color: #1e3a5f;
-    color: #1e3a5f;
+  @media (hover: hover) {
+    .astig-options button:hover {
+      border-color: #8a7a6a;
+      color: #8a7a6a;
+    }
   }
   .astig-options button.darkest {
-    background: #fff8e1;
-    color: #b8860b;
-    border-color: #d4a823;
+    background: #f4ecd8;
+    color: #8a7a6a;
+    border-color: #c8a96a;
   }
 
   .practice-hint {
-    background: rgba(96, 144, 32, 0.12);
-    color: #406020;
+    background: rgba(138, 154, 138, 0.18);
+    color: #5a6a5a;
     padding: 0.8rem 1rem;
     border-radius: 8px;
     font-size: 0.88rem;
@@ -528,14 +536,14 @@ permalink: /toolbox/vision/
     font-family: var(--font-display);
     font-size: 1.6rem;
     margin-bottom: 0.8rem;
-    color: #1e3a5f;
+    color: #8a7a6a;
   }
   .test-transition p { line-height: 1.7; margin-bottom: 0.6rem; }
   .test-transition button {
     margin-top: 1rem;
     padding: 0.7rem 2rem;
-    border: 1px solid #1e3a5f;
-    background: #1e3a5f;
+    border: 1px solid #8a7a6a;
+    background: #8a7a6a;
     color: white;
     border-radius: 999px;
     cursor: pointer;
@@ -616,8 +624,8 @@ permalink: /toolbox/vision/
     border-left: 3px solid var(--color-highlight);
   }
   .disclaimer-box {
-    background: rgba(208, 64, 48, 0.06);
-    border-left: 3px solid #d04030;
+    background: rgba(183, 141, 141, 0.1);
+    border-left: 3px solid #b78d8d;
     padding: 1rem 1.2rem;
     border-radius: 0 8px 8px 0;
     margin: 1.5rem 0;

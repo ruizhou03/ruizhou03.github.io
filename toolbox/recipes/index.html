@@ -93,6 +93,9 @@ permalink: /toolbox/recipes/
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     border-color: var(--color-accent);
   }
+  @media (hover: none) {
+    .recipe-card:hover { transform: none; box-shadow: none; border-color: var(--color-border); }
+  }
   .recipe-card.hidden { display: none; }
   .recipe-card-cover {
     width: 100%; aspect-ratio: 4 / 3;

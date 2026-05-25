@@ -27,8 +27,8 @@ permalink: /toolbox/vocab/
     font-size: 1.5rem; color: var(--color-accent);
     line-height: 1; font-variant-numeric: tabular-nums;
   }
-  .stat-card.due .stat-num { color: #d97706; }
-  .stat-card.mastered .stat-num { color: #4a7c59; }
+  .stat-card.due .stat-num { color: #c8a96a; }
+  .stat-card.mastered .stat-num { color: #8a9a8a; }
   .stat-card .stat-label {
     font-size: 0.74rem; color: var(--color-muted);
     margin-top: 0.3rem;
@@ -49,7 +49,9 @@ permalink: /toolbox/vocab/
   .tab-bar button.active {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
   }
-  .tab-bar button:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .tab-bar button:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   /* ============ Flashcard (study) ============ */
   .study-zone {
@@ -152,15 +154,19 @@ permalink: /toolbox/vocab/
     transition: all 0.2s;
   }
   .study-actions .know-btn {
-    background: #4a7c59; color: #fff;
-    box-shadow: 0 2px 8px rgba(74, 124, 89, 0.3);
+    background: #8a9a8a; color: #fff;
+    box-shadow: 0 2px 8px rgba(138, 154, 138, 0.3);
   }
-  .study-actions .know-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(74, 124, 89, 0.4); }
+  @media (hover: hover) {
+    .study-actions .know-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(138, 154, 138, 0.4); }
+  }
   .study-actions .dunno-btn {
-    background: #c0392b; color: #fff;
-    box-shadow: 0 2px 8px rgba(192, 57, 43, 0.3);
+    background: #b78d8d; color: #fff;
+    box-shadow: 0 2px 8px rgba(183, 141, 141, 0.3);
   }
-  .study-actions .dunno-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(192, 57, 43, 0.4); }
+  @media (hover: hover) {
+    .study-actions .dunno-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(183, 141, 141, 0.4); }
+  }
   .study-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .session-end {
@@ -206,7 +212,9 @@ permalink: /toolbox/vocab/
     background: var(--color-bg);
     transition: all 0.18s;
   }
-  .card-row:hover { border-color: var(--color-accent); }
+  @media (hover: hover) {
+    .card-row:hover { border-color: var(--color-accent); }
+  }
   .card-row .cr-front {
     font-weight: 600; font-size: 1rem; color: var(--color-ink);
     margin-bottom: 0.15rem;
@@ -224,8 +232,10 @@ permalink: /toolbox/vocab/
     font-size: 0.85rem;
     transition: all 0.18s;
   }
-  .card-row .cr-actions .edit-btn:hover { color: var(--color-accent); background: var(--color-bg-warm); }
-  .card-row .cr-actions .delete-btn:hover { color: #c0392b; background: var(--color-bg-warm); }
+  @media (hover: hover) {
+    .card-row .cr-actions .edit-btn:hover { color: var(--color-accent); background: var(--color-bg-warm); }
+    .card-row .cr-actions .delete-btn:hover { color: #b78d8d; background: var(--color-bg-warm); }
+  }
   .card-row .box-pill {
     display: inline-block;
     font-size: 0.7rem;
@@ -234,9 +244,9 @@ permalink: /toolbox/vocab/
     background: var(--color-bg-warm);
     color: var(--color-muted);
   }
-  .card-row .box-pill.box-5 { background: rgba(74, 124, 89, 0.18); color: #2d5a3d; }
+  .card-row .box-pill.box-5 { background: rgba(138, 154, 138, 0.22); color: #5a6a5a; }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .card-row .box-pill.box-5 { background: rgba(74, 124, 89, 0.3); color: #6ee090; }
+    :root:not([data-theme="light"]) .card-row .box-pill.box-5 { background: rgba(138, 154, 138, 0.32); color: #b8c8b8; }
   }
 
   /* ============ Add form ============ */
@@ -263,7 +273,9 @@ permalink: /toolbox/vocab/
     background: var(--color-accent); color: #fff; cursor: pointer;
     transition: all 0.2s;
   }
-  .add-form .submit-btn:hover { background: var(--color-accent-light); }
+  @media (hover: hover) {
+    .add-form .submit-btn:hover { background: var(--color-accent-light); }
+  }
 
   .empty-zone {
     text-align: center; padding: 3rem 2rem; color: var(--color-light);
@@ -319,7 +331,7 @@ permalink: /toolbox/vocab/
   }
   .modal-actions .delete-btn {
     background: transparent; border: 1px solid var(--color-border);
-    color: #c0392b; margin-right: auto;
+    color: #b78d8d; margin-right: auto;
   }
 
   .ie-toolbar {
@@ -333,7 +345,9 @@ permalink: /toolbox/vocab/
     background: var(--color-bg); color: var(--color-muted); cursor: pointer;
     transition: all 0.18s;
   }
-  .ie-toolbar button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .ie-toolbar button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 </style>
 
 <div class="vc-wrap">
@@ -362,9 +376,9 @@ permalink: /toolbox/vocab/
   </div>
 
   <div class="tab-bar">
-    <button type="button" data-tab="study" class="active">📖 学习</button>
-    <button type="button" data-tab="all">📋 全部</button>
-    <button type="button" data-tab="add">+ 添加</button>
+    <button type="button" data-tab="study" class="active" aria-label="学习模式">📖 学习</button>
+    <button type="button" data-tab="all" aria-label="查看全部卡片">📋 全部</button>
+    <button type="button" data-tab="add" aria-label="添加新卡片">+ 添加</button>
   </div>
 
   <!-- ============ Study tab ============ -->
@@ -422,7 +436,7 @@ permalink: /toolbox/vocab/
   <div class="ie-toolbar">
     <button type="button" id="export-btn">📤 导出 JSON</button>
     <button type="button" id="import-btn">📥 导入 JSON</button>
-    <button type="button" id="reset-btn" style="color: #c0392b;">🗑 清空所有卡片</button>
+    <button type="button" id="reset-btn" style="color: #b78d8d;">🗑 清空所有卡片</button>
   </div>
 
   <!-- Edit Modal -->
@@ -744,7 +758,7 @@ permalink: /toolbox/vocab/
       const tags = (c.tags || []).map(t => `<span style="font-size: 0.7rem; color: var(--color-light); margin-right: 0.4rem;">#${escapeHtml(t)}</span>`).join('');
       const today = todayIso();
       const dueText = c.nextReview <= today
-        ? '<span style="color: #d97706;">🔔 到期</span>'
+        ? '<span style="color: #c8a96a;">🔔 到期</span>'
         : `下次：${c.nextReview}`;
       return `
         <div class="card-row">

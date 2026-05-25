@@ -127,17 +127,17 @@ permalink: /toolbox/dare/
   .player-card.current .pid,
   .player-card.current .rem { color: #fff; }
   .player-card.out {
-    color: #c0392b;
+    color: #a04030;
     text-decoration: line-through;
     opacity: 0.7;
   }
-  .player-card.out .pid { color: #c0392b; }
+  .player-card.out .pid { color: #a04030; }
   .player-card.won {
-    color: #10b981;
-    border-color: #10b981;
-    background: rgba(16, 185, 129, 0.08);
+    color: #4a7c59;
+    border-color: #4a7c59;
+    background: rgba(74, 124, 89, 0.08);
   }
-  .player-card.won .pid { color: #10b981; }
+  .player-card.won .pid { color: #4a7c59; }
 
   .turn-banner {
     text-align: center;
@@ -289,10 +289,10 @@ permalink: /toolbox/dare/
   }
   .dare-btn.primary:hover { transform: translateY(-1px); }
   .dare-btn.success {
-    background: #10b981; color: #fff;
+    background: #4a7c59; color: #fff;
   }
   .dare-btn.danger {
-    background: #c0392b; color: #fff;
+    background: #a04030; color: #fff;
   }
   .dare-btn.ghost {
     background: transparent; color: var(--color-muted);
@@ -359,8 +359,8 @@ permalink: /toolbox/dare/
     color: var(--color-ink);
   }
   .modal-ranking .rk { display: flex; justify-content: space-between; }
-  .modal-ranking .rk.win  { color: #10b981; font-weight: 600; }
-  .modal-ranking .rk.lose { color: #c0392b; }
+  .modal-ranking .rk.win  { color: #4a7c59; font-weight: 600; }
+  .modal-ranking .rk.lose { color: #a04030; }
 
   details.about {
     margin-top: 1.4rem; font-size: 0.88rem;
@@ -568,7 +568,7 @@ permalink: /toolbox/dare/
     .catch(err => {
       console.error('[dare] cards.json 加载失败:', err);
       $idleHint.innerHTML = '⚠️ 加载卡池失败<br>请刷新页面重试。';
-      $idleHint.style.color = '#c0392b';
+      $idleHint.style.color = '#a04030';
       $btnDraw.textContent = '加载失败';
       $btnDraw.disabled = true;
       $btnStart.disabled = true;

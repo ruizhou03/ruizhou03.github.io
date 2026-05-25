@@ -67,15 +67,14 @@ permalink: /toolbox/countdown/
   }
   .event-card.urgent { background: var(--color-bg-warm); }
   .event-card.urgent::after {
-    content: '🔴';
+    content: '紧迫';
     position: absolute; top: 0.6rem; right: 0.6rem;
     font-size: 0.7rem;
-    background: #dc2626;
+    background: #a04030;
     color: #fff;
     padding: 0.15rem 0.5rem;
     border-radius: 999px;
     font-weight: 600;
-    content: '紧迫';
   }
   .event-card .ev-emoji {
     font-size: 1.6rem;
@@ -117,6 +116,10 @@ permalink: /toolbox/countdown/
     transition: opacity 0.2s;
   }
   .event-card:hover .ev-actions { opacity: 1; }
+  /* Touch / coarse-pointer: edit button never appears on hover, so always show */
+  @media (hover: none) {
+    .event-card .ev-actions { opacity: 1; }
+  }
   .event-card .ev-actions button {
     border: none; background: transparent;
     font-size: 0.85rem; color: var(--color-muted);
@@ -125,7 +128,7 @@ permalink: /toolbox/countdown/
     transition: all 0.18s;
   }
   .event-card .ev-actions button:hover { background: var(--color-bg-warm); color: var(--color-accent); }
-  .event-card .ev-actions button.danger:hover { color: #c0392b; }
+  .event-card .ev-actions button.danger:hover { color: #a04030; }
 
   .empty-zone {
     text-align: center;
@@ -212,10 +215,10 @@ permalink: /toolbox/countdown/
   .modal-actions .save:hover { background: var(--color-accent-light); }
   .modal-actions .delete-btn {
     background: transparent; border: 1px solid var(--color-border);
-    color: #c0392b;
+    color: #a04030;
     margin-right: auto;
   }
-  .modal-actions .delete-btn:hover { background: rgba(192, 57, 43, 0.08); border-color: #c0392b; }
+  .modal-actions .delete-btn:hover { background: rgba(160, 64, 48, 0.08); border-color: #a04030; }
 
   @media (max-width: 600px) {
     .events-grid { grid-template-columns: 1fr; }
@@ -361,14 +364,11 @@ permalink: /toolbox/countdown/
   @media (max-width: 600px) {
     .preset-list { grid-template-columns: 1fr; }
   }
-  .secondary-btn {
-    font: inherit; font-size: 0.78rem;
-    padding: 0.3rem 0.7rem; border-radius: 999px;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg); color: var(--color-muted);
-    cursor: pointer; transition: all 0.18s;
+  /* 节日预设小节里的「全选/全不选」按钮，比工具栏 secondary-btn 更紧凑 */
+  .secondary-btn[data-toggle-section] {
+    font-size: 0.78rem;
+    padding: 0.3rem 0.7rem;
   }
-  .secondary-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
 </style>
 
 <script>

@@ -241,6 +241,12 @@ permalink: /toolbox/solitaire/
     .so-controls { gap: 0.35rem; }
     .so-btn { padding: 0.38rem 0.6rem; font-size: 0.8rem; }
   }
+  /* 触屏：点完控制按钮不要残留 hover 高亮 */
+  @media (hover: none) and (pointer: coarse) {
+    .so-btn:hover:not(:disabled):not(.primary) {
+      border-color: var(--color-border); color: var(--color-ink);
+    }
+  }
 </style>
 
 <div class="so-wrap">

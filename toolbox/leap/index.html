@@ -569,7 +569,7 @@ permalink: /toolbox/leap/
             x: state.player.x, y: post.top_y - 20,
             text: '+' + points + (isPerfect ? '!' : ''),
             age: 0, ttl: 50,
-            color: isPerfect ? '#c8801c' : palette.muted,
+            color: isPerfect ? '#c9a96e' : palette.muted,
           });
           if (isPerfect) {
             state.pulse = 18;
@@ -694,10 +694,10 @@ permalink: /toolbox/leap/
     const sx = post.x - state.cameraX;
     if (sx + post.w < -10 || sx > GAME_W + 10) return;
 
-    // 脉冲（完美命中那根）—— 短暂偏黄发光
+    // 脉冲（完美命中那根）—— 短暂偏暖发光（驼金）
     const pulsing = (idx === state.pulseIdx && state.pulse > 0);
     if (pulsing) {
-      ctx.fillStyle = '#e8c828';
+      ctx.fillStyle = '#d4b87a';
       const grow = 4 + (state.pulse / 18) * 4;
       roundRectFill(sx - grow, post.top_y - grow,
                     post.w + grow * 2, post.h + grow * 2, 8);
@@ -784,7 +784,7 @@ permalink: /toolbox/leap/
     ctx.fillStyle = palette.border;
     roundRectFill(x - barW / 2, baseY - barH, barW, barH, 2);
     // 填充
-    ctx.fillStyle = state.charge >= 0.99 ? '#c8801c' : palette.accent;
+    ctx.fillStyle = state.charge >= 0.99 ? '#c9a96e' : palette.accent;
     const fillH = barH * state.charge;
     roundRectFill(x - barW / 2, baseY - fillH, barW, fillH, 2);
     // 最低蓄力刻度：低于这里必掉空隙到下一桩之前

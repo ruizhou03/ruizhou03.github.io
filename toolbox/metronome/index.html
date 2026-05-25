@@ -75,8 +75,8 @@ permalink: /toolbox/metronome/
     box-shadow: 0 5px 14px rgba(30,58,95,0.32);
   }
   .start-btn.running {
-    background: #c83828;
-    box-shadow: 0 3px 10px rgba(200,56,40,0.25);
+    background: #a6594d;
+    box-shadow: 0 3px 10px rgba(166,89,77,0.25);
   }
   .start-hint {
     font-size: 0.78rem; color: var(--color-light);
@@ -266,6 +266,12 @@ permalink: /toolbox/metronome/
     .ctrl-label { font-size: 0.85rem; }
     .start-btn { width: 100%; min-width: 0; }
     .beat-dot { width: 16px; height: 16px; }
+  }
+  /* 触屏设备移除 :hover 残留，避免点完按钮一直保持"悬浮态" */
+  @media (hover: none) and (pointer: coarse) {
+    .start-btn:hover { transform: none; box-shadow: 0 3px 10px rgba(30,58,95,0.25); }
+    .pill-group button:hover:not(.active) { border-color: var(--color-border); color: var(--color-text); }
+    .tap-btn:hover { border-color: var(--color-border); color: var(--color-text); }
   }
 </style>
 

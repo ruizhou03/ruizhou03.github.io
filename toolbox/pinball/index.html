@@ -108,16 +108,14 @@ permalink: /toolbox/pinball/
     { ax: 442, ay: 612, bx: 474, by: 612 },
   );
 
-  // Reactor 中央堆芯外的环形辉光"挡圈"用 4 段弧形墙近似，半径 50，包围 reactor bumper —— 不要，反应堆 bumper 直接立在中心更直观
-  // 改：在反应堆 bumper 上下各加一对辅助斜墙，制造碰撞密度
+  // 反应堆 bumper 上下各加一对辅助斜墙，制造碰撞密度
   walls.push(
     { ax: 200, ay: 175, bx: 175, by: 200, restitution: 0.7 },
     { ax: 280, ay: 175, bx: 305, by: 200, restitution: 0.7 },
   );
 
-  // Drop targets：3 根挡 ramp 入口的小柱（在右下区域，挡住通往 ramp 顶端 jackpot 的路径）
-  // 用 segment 墙 + 击碎逻辑（在 hooks 中处理）
-  // 3 根挡 ramp 入口的小柱（在 R sling 上方）。整组上移 ~15 px 让最下一根脱开 R sling 顶角
+  // Drop targets：3 根挡 ramp 入口的小柱（在 R sling 上方），用 segment 墙 + 击碎逻辑（在 hooks 中处理）。
+  // 整组上移 ~15 px 让最下一根脱开 R sling 顶角。
   const dropTargets = [
     { id: 'dt0', ax: 388, ay: 335, bx: 388, by: 365, dropped: false, score: 250 },
     { id: 'dt1', ax: 388, ay: 380, bx: 388, by: 410, dropped: false, score: 250 },

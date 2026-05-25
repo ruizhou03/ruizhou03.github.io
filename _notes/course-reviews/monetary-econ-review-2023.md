@@ -3,7 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "货币经济学"
 title: "（个人向）货币经济学课程测评"
-keywords: ["货币经济学课程测评", "货币经济学", "monetary economics", "肖筱林", "光华货币", "金融经济方向", "OLG 模型", "中央银行", "货币政策", "数字货币 CBDC", "Modern Monetary Economics", "Mishkin 米什金", "货币银行学", "货币经济学怎么样"]
+keywords: ["货币经济学课程测评", "货币经济学", "monetary economics", "肖筱林", "光华货币", "金融经济方向", "OLG 模型", "overlapping generations", "中央银行", "货币政策", "数字货币 CBDC", "央行数字货币", "Modern Monetary Economics", "Mishkin 米什金", "货币银行学", "光华 2 学分", "课堂辩论", "比特币 稳定币 辩论", "人民币国际化", "货币经济学怎么样", "光华金融 必修"]
 date: 2023-07-07
 discipline: "经济学"
 course: "货币经济学"

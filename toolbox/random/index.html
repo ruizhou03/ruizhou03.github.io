@@ -206,7 +206,10 @@ permalink: /toolbox/random/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .sample-btn.primary:hover { color: #fff; }
+  .sample-btn.primary:hover {
+    color: #fff;
+    filter: brightness(1.08);
+  }
   .sample-btn.danger {
     color: var(--color-muted);
   }
@@ -365,11 +368,11 @@ permalink: /toolbox/random/
     line-height: 1.5;
   }
   .custom-form .cf-msg.error {
-    background: #fdf0ed; color: #a93226;
+    background: rgba(192, 57, 43, 0.07); color: #8a3b30;
     display: block;
   }
   .custom-form .cf-msg.success {
-    background: #ecf6ed; color: #1e8449;
+    background: rgba(107, 142, 107, 0.10); color: #4f6f4f;
     display: block;
   }
   .custom-form .cf-help {
@@ -1069,7 +1072,6 @@ permalink: /toolbox/random/
 
   function drawSVG() {
     const dist = DIST[state.distKey];
-    const ns = 'http://www.w3.org/2000/svg';
     // 计算 PDF 最大值
     if (dist.discrete) {
       let maxY = 0;

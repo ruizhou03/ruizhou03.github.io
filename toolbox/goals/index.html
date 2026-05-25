@@ -61,7 +61,7 @@ permalink: /toolbox/goals/
     font-variant-numeric: tabular-nums;
   }
   .goal-card .gh-pct.on-track { color: #4a7c59; }
-  .goal-card .gh-pct.behind { color: #d97706; }
+  .goal-card .gh-pct.behind { color: #a87a2a; }
   .goal-card .gh-pct.ahead { color: var(--color-accent); }
   .goal-card .gh-pct.done { color: #4a7c59; }
   .gpb {
@@ -574,7 +574,7 @@ permalink: /toolbox/goals/
             <span class="gh-pct ${statusCls}">${pct}%</span>
           </div>
           <div class="gpb">
-            <div class="gpb-actual" style="width: ${Math.min(100, pct)}%; background: ${statusCls === 'behind' ? '#d97706' : (statusCls === 'done' ? '#4a7c59' : g.color)};"></div>
+            <div class="gpb-actual" style="width: ${Math.min(100, pct)}%; background: ${statusCls === 'behind' ? '#a87a2a' : (statusCls === 'done' ? '#4a7c59' : g.color)};"></div>
             <div class="gpb-ideal" style="left: ${idealLeft}%;"></div>
           </div>
           <div class="stats-row">

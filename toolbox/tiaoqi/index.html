@@ -1845,6 +1845,8 @@ permalink: /toolbox/tiaoqi/
 
   function gsEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function tqUpdateLobby(room) {
+    const list = document.getElementById('tqPgoRoomPlayers');
+    tqRoomHost = !!room.youAreHost;
     list.innerHTML = (room.players || []).map((p, i) => {
       const isMe = p.id === tqRoomPlayerId, isHost = p.isHost;
       let h = '<li>';

@@ -12,7 +12,7 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 
 # 1. 问题
 
-美国超市的瓶装水货架是个迷宫——同样是 24 瓶装的水，标签上写着 Drinking Water、Purified Water、Spring Water、Mineral Water、Distilled Water、Sparkling、Alkaline、Artesian、Electrolyte……价格能差 $5$-$10$ 倍。看上去都是无色透明的水，到底差在哪？是营销噱头还是真的不同？该选哪个？
+美国超市的瓶装水货架是个迷宫——同样是 24 瓶装的水，标签上写着 Drinking Water、Purified Water、Spring Water、Mineral Water、Distilled Water、Sparkling、Alkaline、Artesian、Electrolyte……价格能差 $5\text{-}10$ 倍。看上去都是无色透明的水，到底差在哪？是营销噱头还是真的不同？该选哪个？
 
 # 2. 结论先行
 
@@ -28,7 +28,7 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 | **Mineral Water** | 地下水源 + $\text{TDS} \geq 250$ ppm | 矿物显著、口感重；FDA 强制 $250+$ ppm |
 | **Artesian Water** | 来自承压含水层的井（自压涌出） | “Fiji 水”那种；噱头 $>$ 实质 |
 | **Sparkling Water** | 含 $\text{CO}_2$ 气，三种：天然带气 / 充气矿泉水 / 充气市政水 | La Croix、Perrier、Topo Chico 实际差很多 |
-| **Alkaline Water** | pH $8$-$10$，电解或加碱性矿物 | “抗氧化抗衰老”宣称缺乏循证支持，**当普通水喝就好** |
+| **Alkaline Water** | pH $8\text{-}10$，电解或加碱性矿物 | “抗氧化抗衰老”宣称缺乏循证支持，**当普通水喝就好** |
 | **Electrolyte / “Enhanced” Water** | 添加钠 / 钾 / 镁 / 钙 | Smartwater 这类；适合大量出汗补给 |
 
 > 美国市场最大的一个 **认知错位**：Aquafina、Dasani 这两个销量最大的品牌都是 **市政自来水 → RO 处理后的 Purified Water**，本质上和你家自来水煮沸滤过差不多——只是装在塑料瓶里、Logo 漂亮。Spring Water（Poland Spring、Arrowhead）才是真正“从地下抽出来”的。
@@ -127,19 +127,19 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 - **不直接等于硬度**——硬度只算钙镁；TDS 还包括钠、钾、氯化物、硫酸根、碳酸氢根等
 - 范围：
   - Purified Water：$< 10$ ppm（FDA 强制）
-  - 普通自来水：$50$-$500$ ppm
-  - Spring Water：$50$-$300$ ppm
+  - 普通自来水：$50\text{-}500$ ppm
+  - Spring Water：$50\text{-}300$ ppm
   - **Mineral Water（FDA 定义）：$\geq 250$ ppm**
   - 海水：$\sim 35{,}000$ ppm
 
 **pH**
 
-- $0$-$14$ 的对数刻度
+- $0\text{-}14$ 的对数刻度
 - 中性 $= 7$；$< 7$ 酸；$> 7$ 碱
-- 多数自来水：$6.5$-$8.5$
-- “Alkaline Water”：通常 $8$-$10$
+- 多数自来水：$6.5\text{-}8.5$
+- “Alkaline Water”：通常 $8\text{-}10$
 
-> 注意：人胃里的 pH 是 **$1$-$2$（强酸）**——所以喝下去的“碱性水”几秒钟内就被胃酸中和。“碱性水改变体液 pH”在生理学上不可能。
+> 注意：人胃里的 pH 是 **$1\text{-}2$（强酸）**——所以喝下去的“碱性水”几秒钟内就被胃酸中和。“碱性水改变体液 pH”在生理学上不可能。
 
 **硬度（Hardness）**
 
@@ -212,7 +212,7 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 
 1. **Aquafina 和 Dasani 本质就是处理过的自来水**——百事和可口可乐这两个品牌占美国瓶装水市场半壁江山，价格却比超市自有品牌的 Purified Water 贵 $50\%$
 2. **Voss 和 Fiji 价格悬殊但水本身平平**——Voss 主打那个圆柱玻璃瓶设计，Fiji 主打“原始热带”叙事；TDS 不算高
-3. **真正“特别”的水主要在 Mineral Water 那一档**——Pellegrino、Perrier 的 TDS 是 Aquafina 的 $50$-$100$ 倍，喝起来明显有矿物感
+3. **真正“特别”的水主要在 Mineral Water 那一档**——Pellegrino、Perrier 的 TDS 是 Aquafina 的 $50\text{-}100$ 倍，喝起来明显有矿物感
 4. **Sparkling Water 三大类要分清**——La Croix（市政 + 充气 + 香精，不算“矿泉”）、Topo Chico / Pellegrino（天然带气矿泉水）、Perrier（天然矿泉水 + 增气）
 5. **Alkaline Water（Essentia / Aquahydrate）**：FDA 不允许它们宣称“治病”，但允许你为高 pH 多付钱
 

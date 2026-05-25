@@ -56,7 +56,7 @@ semester: "2023 夏"
 
 之后第一周的三天课，就是按照课程大纲的三种主要的因果识别方法
 
-- DID (Difference-in Differences)
+- DID (Difference-in-Differences)
 - RDD (Regression Discontinuity Design)
 - IV (Instrumental Variable)
 

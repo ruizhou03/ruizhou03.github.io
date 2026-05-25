@@ -22,7 +22,9 @@ permalink: /toolbox/compound/
   .tab-bar button.active {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
   }
-  .tab-bar button:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .tab-bar button:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   .panel {
     background: var(--color-bg); border: 1px solid var(--color-border);
@@ -77,7 +79,7 @@ permalink: /toolbox/compound/
     border-color: var(--color-accent);
   }
   .result-card.highlight .value { color: var(--color-accent); }
-  .result-card.principal .value { color: #4a7c59; }
+  .result-card.principal .value { color: #8a9a8a; }
   .result-card.interest .value { color: var(--color-highlight); }
 
   /* Chart */
@@ -96,7 +98,7 @@ permalink: /toolbox/compound/
     border-radius: 3px; vertical-align: middle; margin-right: 0.4rem;
   }
 
-  .chart-area-principal { fill: rgba(74, 124, 89, 0.55); }
+  .chart-area-principal { fill: rgba(138, 154, 138, 0.55); }
   .chart-area-interest  { fill: rgba(201, 169, 110, 0.55); }
   .chart-line-total     { fill: none; stroke: var(--color-accent); stroke-width: 2; }
   .chart-axis           { stroke: var(--color-border); stroke-width: 1; }
@@ -145,8 +147,8 @@ permalink: /toolbox/compound/
   </header>
 
   <div class="tab-bar">
-    <button type="button" data-tab="fv" class="active">📈 复利累计</button>
-    <button type="button" data-tab="pv">⏪ 现值贴现</button>
+    <button type="button" data-tab="fv" class="active" aria-label="切换到复利累计">📈 复利累计</button>
+    <button type="button" data-tab="pv" aria-label="切换到现值贴现">⏪ 现值贴现</button>
   </div>
 
   <!-- ============ FV ============ -->
@@ -195,7 +197,7 @@ permalink: /toolbox/compound/
     <div class="chart-wrap">
       <svg viewBox="0 0 600 280" id="fv-chart" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="chart-legend">
-        <span><span class="dot" style="background: rgba(74,124,89,0.55);"></span>累计投入</span>
+        <span><span class="dot" style="background: rgba(138,154,138,0.55);"></span>累计投入</span>
         <span><span class="dot" style="background: rgba(201,169,110,0.55);"></span>累计利息</span>
         <span><span class="dot" style="background: var(--color-accent);"></span>账户总额</span>
       </div>
