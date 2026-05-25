@@ -54,10 +54,10 @@ discipline_order:
   - 数学
   - 心理学
   - 管理学
-  - 其他
   - TOEFL & GRE
-  - 课程测评
   - 初升高衔接
+  - 其他
+  - 课程测评
 
 study_order:
   - adv-micro-psu

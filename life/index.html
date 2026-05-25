@@ -33,7 +33,7 @@ title: 生活攻略 | Rui Zhou
   {%- comment -%} 菜谱专区并进搜索：平时不列出（菜谱有独立页），搜索命中才显示 {%- endcomment -%}
   {% assign recipe_posts = site.notes | where: "sub_category", "菜谱" | where_exp: "p", "p.published != false" | sort: "date" | reverse %}
   {% if recipe_posts.size > 0 %}
-    {% include sub-category-section.html sub="菜谱" posts=recipe_posts search_only=true zone_url="/life/recipes/" page_size=999 %}
+    {% include sub-category-section.html sub="菜谱" posts=recipe_posts search_only=true zone_url="/toolbox/recipes/" page_size=999 %}
   {% endif %}
 
   {%- assign life_dl = category_posts | where_exp: "p", "p.url" | where_exp: "p", "p.published != false" -%}
