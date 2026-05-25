@@ -26,7 +26,7 @@ keywords: ["Zotero 教程", "Zotero 从零", "文献管理软件", "参考文献
 四种姿势，按顺手程度排：
 
 - **网页一键**：在期刊页 / Google Scholar / arXiv / NBER 页面点浏览器里的 Connector 图标，元数据和 PDF 一起进库。这是 90% 的入库方式。
-- **认领码导入**：Zotero 里点“魔棒”图标，粘 DOI / arXiv ID / ISBN，自动补全。手头只有一个 DOI 时最快。
+- **标识符导入**：Zotero 顶部点“魔棒”图标，粘 DOI / arXiv ID / ISBN，自动补全元数据。手头只有一个 DOI 时最快。
 - **拖 PDF 进去**：直接把 PDF 拖进 Zotero，它会尝试反查元数据（成功率看 PDF 质量，工作论文经常失败，得手补）。
 - **从别处导入**：EndNote / Mendeley 跑路过来的，导出 `.ris` 或 `.bib` 再 File → Import。
 
@@ -63,7 +63,8 @@ my-paper/
 
 ## 五、和写作工具联动
 
-<svg viewBox="0 0 620 240" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:620px;display:block;margin:1.5rem auto;font-family:sans-serif;">
+<svg viewBox="0 0 620 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Zotero 文献库作为唯一真相来源，向下分发到 LaTeX（BBT 导出 refs.bib）、Word（Zotero 插件 CSL）、R Markdown / Quarto（@citekey + CSL）三个写作工具" style="width:100%;max-width:620px;display:block;margin:1.5rem auto;font-family:sans-serif;">
+  <title>Zotero 与 LaTeX / Word / R Markdown 的联动示意图</title>
   <defs><marker id="z" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#666"/></marker></defs>
   <rect x="220" y="20" width="180" height="56" rx="8" fill="#eef3fb" stroke="#3b6ea5"/>
   <text x="310" y="44" text-anchor="middle" font-size="14" fill="#1f3b5b">Zotero 文献库</text>

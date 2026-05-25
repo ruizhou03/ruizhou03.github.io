@@ -3,7 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "毛泽东思想和中国特色社会主义理论体系概论"
 title: "毛概期末重点（2023 年春）"
-keywords: ["毛概期末重点（2023 春）", "毛概 期末 重点", "毛泽东思想 期末划重点", "毛概 老师划重点", "毛中特 期末", "思政 期末 重点", "Mao Thought final highlights", "毛慨 重点"]
+keywords: ["毛概期末重点（2023 春）", "毛概 期末 重点", "毛概 划重点 2023", "毛概 期末 复习", "毛泽东思想 期末划重点", "毛概 老师划重点", "毛中特 期末", "毛特 期末 重点", "思政 期末 重点", "马克思主义 思政课 期末", "Mao Thought final highlights", "Mao Zedong Thought review", "毛概 10 班", "PKU 毛概 期末", "北大 毛概 重点", "党的二十大 三个务必", "中国式现代化 高质量发展", "社会主义市场经济 共同富裕", "家庭联产承包责任制 乡村振兴", "统一战线 一国两制", "三个代表 科学技术第一生产力", "五年规划 港澳台", "毛慨 重点", "毛盖 重点"]
 discipline: "思政"
 course: "毛泽东思想和中国特色社会主义理论体系概论"
 material_type: "Notes"
@@ -13,7 +13,7 @@ permalink: "/notes/mao-thought/mao-final-highlights-2023"
 published: true
 ---
 
-本文根据 10 班老师最后一节课讲述内容整理而成。
+本文根据 10 班老师最后一节课讲述内容整理而成。考完之后可以对照同学回忆版的[毛概期末试题（2023 春）](/notes/mao-thought/mao-final-2023-spring)看哪些重点最后真的考了。
 
 ![毛概期末划重点 PDF 封面及目录，含党的二十大、高质量发展等10个考点章节](/files/images/mao-final-highlights-2023/01.jpg)
 
