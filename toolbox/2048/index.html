@@ -306,7 +306,6 @@ permalink: /toolbox/2048/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
-<script src="/assets/js/games-shell/settings-panel.js"></script>
 
 <script>
 (() => {
@@ -468,7 +467,7 @@ permalink: /toolbox/2048/
     if (v <= 2048) return 'v' + v;
     return 'vbig';
   }
-  function tileFontSize(v, size) {
+  function tileFontSize(v) {
     const s = tileSize();
     let factor = 0.45;
     if (v >= 1024) factor = 0.34;
@@ -476,7 +475,7 @@ permalink: /toolbox/2048/
     return Math.max(14, s * factor) + 'px';
   }
 
-  function renderTiles(prevBoard, mergedMap, freshlyAddedAt) {
+  function renderTiles(mergedMap, freshlyAddedAt) {
     const n = state.size;
     const ts = tileSize();
     const gap = 10;
@@ -489,7 +488,7 @@ permalink: /toolbox/2048/
         t.className = 'tile ' + tileClass(v);
         t.style.width = ts + 'px';
         t.style.height = ts + 'px';
-        t.style.fontSize = tileFontSize(v, n);
+        t.style.fontSize = tileFontSize(v);
         t.style.setProperty('--tx', `${c * (ts + gap)}px`);
         t.style.setProperty('--ty', `${r * (ts + gap)}px`);
         t.textContent = v;
@@ -569,7 +568,7 @@ permalink: /toolbox/2048/
         if (beforeAdd[r][c] === 0 && state.board[r][c] !== 0) added = [r, c];
 
     save();
-    renderTiles(null, res.mergedMap, added);
+    renderTiles(res.mergedMap, added);
     renderScores();
 
     if (!state.won && hasValue(state.board, 2048)) {

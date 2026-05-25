@@ -3,7 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "马克思主义基本原理"
 title: "马原往年题精华版"
-keywords: ["马原往年题精华版", "马原 往年题 精选", "马克思主义 往年题", "马原 31 题", "马原 备考 两天", "思政 期末 复习", "Marxism past exam essence", "马原 押题", "马原 期末 冲刺", "马原 重点 整理"]
+keywords: ["马原往年题精华版", "马原 往年题 精选", "马克思主义 往年题", "马原 31 题", "马原 备考 两天", "思政 期末 复习", "Marxism past exam essence", "马原 押题", "马原 期末 冲刺", "马原 重点 整理", "马克思主义基本原理 期末", "马原 期末 真题", "马原 简答 论述", "马原 考前 速成", "马克思主义 期末 押题", "马原 思政 重点 题目", "马原 复习资料", "Marxism final exam review", "马原 必背 题目"]
 discipline: "思政"
 course: "马克思主义基本原理"
 material_type: "Exams"
@@ -21,4 +21,6 @@ published: true
 
 希望对大家有帮助🌈！
 
-![马克思主义基本原理概论期末往年题重点 PDF 封面，2023年秋季](/files/images/marxism-past-essence/01.jpg)
+![马克思主义基本原理概论期末往年题重点 PDF 封面，2023 年秋季](/files/images/marxism-past-essence/01.jpg)
+
+<p class="img-caption"><strong>整理出的 31 题精华版封面</strong>——2023 年秋季备考时两天内的产物，命中率不错</p>

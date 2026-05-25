@@ -3,7 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "GRE"
 title: "全世界都在说 GRE 的词汇很可怕？"
-keywords: ["GRE 词汇", "GRE 背单词", "GRE vocabulary", "GRE 3000 词", "GRE 1000 词", "GRE 6000 词", "再要你命 3000", "佛脚单词", "考满分背单词", "GRE 红宝书", "艾宾浩斯遗忘曲线", "GRE 填空选项", "GRE 词书选择", "GRE 词汇 150 分", "GRE 词汇可怕", "GRE 背词坚持", "GRE 背诵"]
+keywords: ["GRE 词汇", "GRE 背单词", "GRE vocabulary", "GRE 3000 词", "GRE 1000 词", "GRE 6000 词", "再要你命 3000", "佛脚单词", "考满分背单词", "GRE 红宝书", "艾宾浩斯遗忘曲线", "GRE 填空选项", "GRE 词书选择", "GRE 词汇 150 分", "GRE 词汇可怕", "GRE 背词坚持", "GRE 背诵", "GRE Verbal", "GRE Text Completion TC", "GRE Sentence Equivalence SE", "GRE Reading Comprehension RC", "GRE 填空", "GRE 真题", "GRE 机经", "Magoosh GRE", "Manhattan Prep GRE", "Quizlet GRE", "Anki GRE", "杨鹏 17 天", "韦氏词典", "出国留学 词汇", "考研英语 GRE", "GRE 改版 2023"]
 date: 2024-07-10
 discipline: "语言考试"
 course: "GRE"

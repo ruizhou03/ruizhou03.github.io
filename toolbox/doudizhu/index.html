@@ -780,25 +780,7 @@ permalink: /toolbox/doudizhu/
     margin-left: 8px;
   }
 
-  /* ======== B2 微反馈：每次出牌一个浅金 ring 涟漪 ======== */
-  .ddz-played .ddz-micro-ring {
-    position: absolute;
-    width: 70px; height: 70px;
-    left: 50%; top: 50%;
-    transform: translate(-50%, -50%) scale(0.35);
-    border: 2px solid var(--ddz-accent);
-    border-radius: 50%;
-    pointer-events: none;
-    opacity: 0.85;
-    animation: ddz-micro-pulse 0.5s ease-out forwards;
-  }
-  .ddz-played { position: relative; }      /* 给 ring absolute 定位 */
-  @keyframes ddz-micro-pulse {
-    0%   { transform: translate(-50%, -50%) scale(0.35); opacity: 0.9; border-width: 3px; }
-    100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; border-width: 1px; }
-  }
-
-  /* 已移除：A4 出牌飞行（炫影） */
+  /* 已移除：A4 出牌飞行（炫影）+ B2 微反馈涟漪（spawnMicroRing） */
 
   /* Bug 7: 公布底牌飞行 — 3 张底牌从中央桌面飞向地主手牌区 */
   .ddz-bottom-fly {
@@ -2913,10 +2895,6 @@ permalink: /toolbox/doudizhu/
     }
   }
 
-  // 已禁用：原 A4 飞牌克隆（在屏幕上拖出一道"炫影"）已按 UX 反馈移除。
-  // 保留空壳避免改其它调用点；牌通过 renderPlayedAt 直接出现在桌面区。
-  function flyCardsTo(_seat, _cards) { /* no-op */ }
-
   // Bug 7: 公布地主牌动画 — 3 张底牌从中央桌面"飞入"地主手牌区
   // 地主 = seat 0 (我): 飞到下方 .ddz-hand 中央
   // 地主 = seat 1/2 (AI): 飞到对应 .ddz-avatar 中央
@@ -2954,16 +2932,6 @@ permalink: /toolbox/doudizhu/
       setTimeout(() => { clone.style.opacity = '0'; }, delay + 500);
       setTimeout(() => clone.remove(), delay + 700);
     });
-  }
-
-  // 桌面中心一圈金光涟漪（小反馈）
-  function spawnMicroRing(seat) {
-    const el = document.getElementById('ddzPlayed' + seat);
-    if (!el) return;
-    const ring = document.createElement('span');
-    ring.className = 'ddz-micro-ring';
-    el.appendChild(ring);
-    setTimeout(() => ring.remove(), 600);
   }
 
   function clearAllPlayed() {
@@ -3879,7 +3847,6 @@ permalink: /toolbox/doudizhu/
     else pruneSelectedToHand();               // 但要确保选中的还在我手里
     resetHintCycle();
     renderPlayedAt(seat, pattern);
-    flyCardsTo(seat, pattern.cards);             // A4 飞牌（去掉了涟漪）
     playSfx(pattern.type === T.BOMB ? 'bomb' :
             pattern.type === T.ROCKET ? 'rocket' : 'play');
     if (seat === 0) renderHand();
@@ -4846,7 +4813,6 @@ permalink: /toolbox/doudizhu/
               : '')
         );
         if (isNewPlay) {
-          flyCardsTo(state.lastTrick.seat, state.lastTrick.pattern.cards);
           const ptype = state.lastTrick.pattern.type;
           playSfx(ptype === T.BOMB ? 'bomb' :
                   ptype === T.ROCKET ? 'rocket' : 'play');

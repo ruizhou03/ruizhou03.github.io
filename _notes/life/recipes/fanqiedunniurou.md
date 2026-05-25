@@ -101,7 +101,7 @@ published: true
   | 品牌 | 对应按键 | 默认时间 |
   |---|---|---|
   | Zojirushi 虎牌 | **煮物 / 煮込み** | 2 小时 |
-  | Cuckoo 韩国酷酷 | **Slow Cook / 炖煮** | 2 小时 |
+  | Cuckoo（韩国） | **Slow Cook / 炖煮** | 2 小时 |
   | Aroma / Black+Decker 美式 | **Slow Cook** → High | 可设 1–8 小时 |
   | Instant Pot（压力锅模式） | **Meat/Stew** + High Pressure | **35 分钟 + 15 分钟自然泄压** |
 - **⭐ Instant Pot（高压锅）方案**（推荐，时间缩短 2/3）：

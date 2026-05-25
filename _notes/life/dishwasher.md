@@ -7,7 +7,7 @@ sub_category: "生活之问"
 extra_categories:
   - 菜谱
 permalink: "/life/dishwasher"
-keywords: ["洗碗机原理", "洗碗机和手洗区别", "洗碗机要先冲一遍吗", "洗碗机洗得干净吗", "dishwasher", "洗碗机水电费", "洗碗块成分", "洗碗机洗涤剂", "洗碗机怎么装载", "洗碗机程序选择", "哪些餐具不能进洗碗机", "铸铁锅木砧板洗碗机", "洗碗机高温杀菌", "洗碗机更省水", "洗碗机怎么清洁", "西门子博世 Miele", "洗碗机误区", "洗碗机值得买吗"]
+keywords: ["洗碗机原理", "洗碗机和手洗区别", "洗碗机要先冲一遍吗", "洗碗机洗得干净吗", "dishwasher", "洗碗机水电费", "洗碗块成分", "洗碗机洗涤剂", "洗碗机怎么装载", "洗碗机程序选择", "哪些餐具不能进洗碗机", "铸铁锅木砧板洗碗机", "洗碗机高温杀菌", "洗碗机更省水", "洗碗机怎么清洁", "西门子博世 Miele", "洗碗机误区", "洗碗机值得买吗", "dishwasher tablet", "rinse aid 漂洗剂", "dishwasher salt 洗碗盐", "hard water 硬水", "pre-rinse myth", "高温消毒 sanitize", "洗碗剂 vs 洗碗液", "洗碗粉", "洗碗机 ENERGY STAR", "Bosch AutoAir", "Miele AutoOpen", "喷淋臂原理"]
 ---
 
 # 1. 问题
@@ -111,9 +111,9 @@ keywords: ["洗碗机原理", "洗碗机和手洗区别", "洗碗机要先冲一
     <text x="50" y="26" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">⑨ 烘干</text>
     <text x="50" y="44" text-anchor="middle" fill="#fff" font-size="9">15-60 分钟</text>
   </g>
-  <text x="360" y="290" text-anchor="middle" font-size="11" fill="#666" font-style="italic">总水量 8-15 升（不到手洗一半）；总时间 60-180 分钟</text>
+  <text x="360" y="290" text-anchor="middle" font-size="11" fill="#666">总水量 8-15 升（不到手洗一半）；总时间 60-180 分钟</text>
 </svg>
-<p class="img-caption">**关键事实**：洗碗机不是浸泡，是**高压水流冲击**。喷淋臂（旋转的水龙头）每秒喷出几十升水流，水压 5-10 bar——这个冲击力**远超手洗的搓擦**。同时水会**反复循环利用**——所以总用水量比看上去少。</p>
+<p class="img-caption"><strong>关键事实</strong>：洗碗机不是浸泡，是<strong>高压水流冲击</strong>。喷淋臂（旋转的水龙头）每秒喷出几十升水流，水压 5-10 bar——这个冲击力<strong>远超手洗的搓擦</strong>。同时水会<strong>反复循环利用</strong>——所以总用水量比看上去少。</p>
 
 ## 3.3 洗碗块的化学成分
 

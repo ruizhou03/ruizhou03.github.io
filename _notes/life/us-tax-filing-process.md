@@ -20,7 +20,7 @@ keywords: ["美国报税流程", "怎么报税", "报税实战", "tax filing", "
 - **跨州报税**（PA 上学 + NY 实习）怎么办？
 - 我去年用错了 1040（应该 1040NR）—— **现在怎么补救**？
 
-这是**报税三部曲的第二篇**——纯实战。读完你能**自己从零开始报完一年的税**。
+这是**报税系列的第二篇**——纯实战。读完你能**自己从零开始报完一年的税**。
 
 文章以**Penn State 留学生**为典型例子（PA 州税 + 大学 RA / TA / Stipend 等收入），其它学校 / 州大同小异。
 
@@ -473,11 +473,9 @@ Sprintax 生成草稿 1040NR + 8843：
 6. **[myPATH (PA)](https://mypath.pa.gov/)** —— PA 州税官方系统
 7. **[Centre Tax Agency](https://centretax.net/)** —— State College 当地税
 8. **[Penn State Global - Tax Information](https://global.psu.edu/tax-information)** —— PSU 国际生税务页
-9. **[一亩三分地“报税” 版块](https://www.1point3acres.com/bbs/forum-208-1.html)** —— 中文圈实战经验
+9. **[一亩三分地“报税”版块](https://www.1point3acres.com/bbs/forum-208-1.html)** —— 中文圈实战经验
 
----
-
-**报税三部曲到这里完结**——把两篇连起来：
+**报税系列到这里完结**——把两篇连起来：
 
 - **第 1 篇**[基础术语](/life/us-tax-basics-for-students)——理解机制
 - **第 2 篇**（本篇）——实战流程

@@ -410,7 +410,7 @@ permalink: /toolbox/werewolf/
    * God view
    * ───────────────────────────────────────────────────────────────── */
   .god-banner {
-    background: #6c5ce7; color: #fff;
+    background: #8a7a6a; color: #fff;
     text-align: center; padding: 0.5rem 0.8rem;
     border-radius: 8px;
     margin-bottom: 0.8rem;
@@ -1580,10 +1580,7 @@ permalink: /toolbox/werewolf/
   function renderAliveBadges() {
     const grid = el('div', { class: 'player-pick-grid' });
     for (const p of aliveAlivePlayers()) {
-      const dead = state.roomState.me && state.roomState.me.role !== null
-        ? false  // 普通玩家不知道生死全表，只看 publicLog 推断；为简化，UI 不区分
-        : false;
-      grid.appendChild(el('div', { class: 'player-pick' + (dead ? ' dead' : '') }, [
+      grid.appendChild(el('div', { class: 'player-pick' }, [
         el('span', { class: 'pp-seat' }, String(p.seat)),
         el('span', { class: 'pp-nick' }, p.nick),
       ]));

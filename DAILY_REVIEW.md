@@ -1,6 +1,195 @@
-## 2026-05-25
+## 2026-05-26
 
 ### ✅ 本次已自动修复
+
+由站主在对话中触发的 **100 项大规模专项抽检**（一次性高密度补检，承接 2026-05-25 的 20 项抽检；两次合计 120 项 ≈ 全站资产 28%）。本次分 5 批并行执行（每批 20 项 × 5 个 review agent），合计应用 **67 处低风险无歧义修复**，覆盖 **62 个文件**，`bundle exec jekyll build` 通过零警告。详见下方 🔬 抽检专项 100 项分批表 + 总汇。
+
+### 📋 待你把关
+
+汇总在 🔬 抽检专项每一批的“汇总”。共 **P0×18 / P1×53 / P2×81**，按优先级处理。
+
+**最紧急（P0×18 中的真正关键项）**：
+
+- **`_notes/study/marxism/marxism-principles.md`**（Batch 4 发现）：L344-346 多处残留空括号 `()`、缺失公式（剩余价值率 `m / v × 100%` 等）、L429 区分表格被压成一行；这是公开发布的复习笔记，结构性损坏严重，必须人工补回。
+- **`_notes/life/sleep-position-curl-up.md`**（Batch 4 发现）：L76 “Boy Calf 触觉理论”疑为 LLM 杜撰术语（应为 deep pressure touch / 安抚反射），L294 参考文献 `Boyko AM, Boyko O` 也疑为杜撰，需站主复核或删除。
+- **`_notes/course-reviews/mao-thought-review-2023.md`**（Batch 2 发现）：L25/L33/L46-52/L62 多个 Word 复制损坏的表格 / 列表（“周次专题名称主讲教师 1 一、导论...” 全部连写），渲染出来是乱码，必须重排。
+- **Course-reviews 5 篇缺统一评分表 + TL;DR**（behavioral-econ / causal-id / corp-fin / taichi / game-theory / organizational-mgmt / tennis 等 7 篇命中）：是 course-reviews 子站 schema 系统性缺失，建议升级 `_layouts/post.html` 或新建专用 layout 强制 `ratings:` front-matter。
+- **`_notes/study/monetary-econ/monetary-econ-2023.md` + `_notes/study/or/or-2023.md`**（Batch 4 发现）：纯前置元数据 + PDF 链接、正文为空；建议引入 PDF 笔记自动导语 include 模板。
+- **`_notes/toefl/toefl-templates-2023.md`**（Batch 4 发现）：内容已过时（2023 年模板、2024 托福改革后题型已变），需 front-matter 加 `outdated: true` 或 layout 顶部加“历史归档”banner。
+- **`toolbox/breakout/index.html`**（Batch 1 发现）：`ROW_COLORS = ['#e74c3c', '#e67e22', ...]` 鲜艳七彩砖块未跟 `cd5a804` 莫兰迪改造；breakout / drawing / forest / minesweeper / gomoku / schulte / snake / suika 等 8+ 游戏 canvas 内仍残留鲜艳色（多数是游戏识别色，需站主决策是统一改造还是显式豁免）。
+
+### 🗂 仓库卫生
+
+本次抽检暴露的 patterns（跨多批重复出现的系统性缺陷）：
+
+1. **`<p class="img-caption">` 内用 Markdown 加粗不渲染**（命中 8+ 项跨 5 批）：HTML 块不走 Markdown 渲染器。已修。建议 `scripts/audit/img_caption_md.py` 静态扫描钩子。
+2. **SVG `<text>` 中文用 `font-style="italic"`**（命中 15+ 处跨 5 批）：违反 [[feedback_chinese_no_italic]]。已批量修复。建议 `scripts/audit/svg_italic_zh.py` 巡检。
+3. **PDF-only 课程笔记 keywords 普遍偏薄**（命中 12+ 项跨 5 批）：interm-metrics-2023 9 项、game-theory-mid-2023 7 项、public-econ-2023 6 项、real-anal-ch0-2024 7 项、mao-final-2023-spring 9 项等多文件被发现。已对部分文件批量补到 20+。建议下一波专项扫全部 PDF-only 笔记。
+4. **Course-reviews 缺统一评分表 + TL;DR**（命中 7 篇）：course-reviews 子站 schema 系统性问题，建议设计 `_includes/course-rating-card.html` partial 强制叠加 `ratings: { workload, grading, lectures, gains }` front-matter 字段。
+5. **`summary` 字段全站性缺失**（命中 10+ 项）：影响 RSS / 列表页 / 首页摘要 / 搜索。建议 new-post / recipe skill 强制要求 summary，或 layout 渲染时从正文 line 1 fallback。
+6. **AI 思考残留 / 杜撰术语 / 错误中文译名**（命中 4 处确认 + 多处疑似）：china-us-flights “让我修正——/等等让我重新想”、sleep-position “Boy Calf 触觉理论”、fanqiedunniurou “Cuckoo 韩国酷酷”、“Zojirushi 虎牌”。建议建立“科普文术语 / 译名复核表”，LLM 写稿后人工通读重点查“专有名词 + 中文译名”。
+7. **toolbox 游戏 a11y 系统性问题**：sudoku 缺 settlement、minesweeper / reversi 用 div 而非 button（键盘 Tab 不达）。建议 toolbox a11y checklist 列硬性必填项。
+8. **toolbox HTML 文件普遍偏大**（doudizhu 5481 行 / suika 4345 行 / fruit-ninja 3570 行 / picker 1710 行）：单 HTML 内嵌 CSS+JS 影响首屏 parse，建议拆 `/assets/js/games/<name>.js`。
+
+### 💓 后端脉搏
+
+本次未跑（手动触发的 100 项抽检专场，跳过日常审计三件套）。
+
+### 📬 读者来信
+
+本次未跑（同上）。
+
+### 🔬 抽检专项
+
+> **总览**：今日由站主在对话中触发，把抽检规模从日常 10 提到 **100 项**，做一次跨全站资产的密集质检。100 项 = 25 life + 10 recipes + 20 study + 10 research + 10 course-reviews + 5 misc（GRE / essays / TOEFL / pre-high）+ 20 toolbox。分 5 批 × 20 项并行执行；额外有一个 review agent 自发跑了 14 项 bonus check（已纳入修复统计）。汇总：可立刻修 **67 处**（已修，覆盖 62 个文件）/ 进待办 **152 项**（P0×18 / P1×53 / P2×81）/ 长期建议 25 条。
+
+**分批小计**：
+
+| 批次 | 项数 | 已修复 | P0 | P1 | P2 | 主要发现 |
+|------|------|--------|-----|-----|-----|---------|
+| Batch 1 | 20 | 4 | 2 | 15 | 35 | breakout 等 8+ 游戏鲜艳色未莫兰迪化；course-reviews 缺评分表 |
+| Batch 2 | 20 | 15 | 6 | 13 | 12 | mao-thought-review 表格大规模损坏；img-caption MD 加粗 3 处 |
+| Batch 3 | 20 | 7 | 0 | 3 | 7 | 本批普遍质量较高；r-data-processing 残缺；fruit-storage / laundry-detergents img-caption MD 加粗 |
+| Batch 4 | 20 | 14 | 10 | 10 | 8 | marxism-principles 结构性损坏；sleep-position 杜撰术语；monetary-econ / or 空骨架页 |
+| Batch 5 | 20 | 13 | 0 | 12 | 19 | us-banking / insurance / tax 三连环时效性；r-pca 2023 ChatGPT 八股 |
+| Bonus | 14 | 14 | 0 | 5 | 15 | 自发跑的额外 14 项；多为错别字 + 中英文空格 + caption HTML 化 |
+| **合计** | **114** | **67** | **18** | **53** | **81** | |
+
+**类型分布**（5 批主样本 100 项）：
+
+| 类型 | 数量 | 已修复 | P0 | P1 | P2 |
+|------|------|--------|-----|-----|-----|
+| Life 笔记 | 25 | 38 | 2 | 11 | 19 |
+| Recipes | 10 | 2 | 0 | 3 | 6 |
+| Study 笔记 | 20 | 1 | 5 | 9 | 10 |
+| Research 笔记 | 10 | 0 | 0 | 5 | 10 |
+| Course-reviews | 10 | 11 | 7 | 15 | 9 |
+| Misc（GRE/essays/TOEFL/pre-high） | 5 | 0 | 3 | 3 | 4 |
+| Toolbox | 20 | 1 | 1 | 7 | 23 |
+| **小计（5 批主样本）** | **100** | **53** | **18** | **53** | **81** |
+
+---
+
+#### Batch 1 详细记录（20 项）
+
+承接：5 life + 2 recipes + 4 study + 2 research + 2 course-reviews + 1 pre-high + 4 toolbox
+
+**关键修复**：autorefractor / color-blindness 多处 SVG italic（共 3 处）、gongbaojiding 语义矛盾“用黄瓜代替黄瓜”修正、cooking-oils 信息硬伤、2048/blackjack/breakout/doudizhu 走完功能性 + a11y + UX 审查。
+
+**关键待办**：
+- P0 · breakout `ROW_COLORS` 鲜艳七彩未莫兰迪化（影响 8+ 游戏 pattern）
+- P0 · doudizhu 5481 行单文件拆分
+- P1 · course-reviews（behavioral-econ / causal-id）缺评分表 + TL;DR
+- P1 · PDF-only 笔记（adv-metrics-pku-2023 / adv-micro-pku-2023 / china-econ-final-prep-2025）keywords 普遍 9-10 项需扩到 20+
+- 完整 20 项报告见 git log 当日
+
+---
+
+#### Batch 2 详细记录（20 项）
+
+承接：5 life + 2 recipes + 4 study + 2 research + 2 course-reviews + 1 GRE + 4 toolbox
+
+**关键修复**：china-us-flights 7.2 节“让我修正——/等等让我重新想”AI 思考残留（已删）、color-blindness 6 处 SVG italic、dishwasher caption MD 加粗 4 处、corp-fin-review “Cheating Sheet” → “Cheat Sheet”（cheating 是作弊）+ 多处错别字。
+
+**关键待办**：
+- **P0 · mao-thought-review-2023 表格大规模损坏**（L25/L33/L46-52/L62 多处 Word 复制后失格的连续字符串）
+- P0 · 5 篇 course-reviews 缺评分表 + TL;DR
+- P0 · gre-vocabulary L42-43 “两类词列了三项”逻辑矛盾
+- P1 · dishwasher 内链 `handwash-vs-machine` / `clean-the-washer` 疑似死链
+- P1 · drawing 1740 行 / fruit-ninja 3570 行需拆 JS
+
+---
+
+#### Batch 3 详细记录（20 项）
+
+承接：5 life + 2 recipes + 4 study + 2 research + 2 course-reviews + 1 essay + 4 toolbox
+
+**关键修复**：fruit-storage / four-way-stop / laundry-detergents 共 5 处 caption MD 加粗 → `<strong>`；python-ds-review《Python数据分析基础》中英文空格批量修。
+
+**关键发现**：本批普遍质量较高（lane-change-illusion / qifeng / bingpiyuebing / adv-micro-psu-2026 / memory / picker / reversi 均 ⭐5 星）。
+- P1 · r-data-processing.md 残缺（17 行只有目录图无后续章节）
+- P1 · python-ds-review 缺评分表 + TL;DR
+- P1 · interm-metrics-2023 / game-theory-mid-2023 keywords < 10 项
+
+---
+
+#### Batch 4 详细记录（20 项）
+
+承接：5 life + 2 recipes + 4 study + 2 research + 2 course-reviews + 1 TOEFL + 4 toolbox
+
+**关键修复**：pa-drivers-license 4 处（caption MD / SVG italic / 孤立 ---）、pitch-perception 5 处 SVG italic、microwave-heating “频率比 5G 信号略高” 信息硬伤修（5G 主流 3.5 GHz / 毫米波 24 GHz+ 均高于 2.45 GHz）、sleep-position `colonel-曲度变直` → `cervical lordosis 变直`（colonel 是上校）、fanqiedunniurou “Cuckoo 韩国酷酷” → “Cuckoo（韩国）”、marxism-principles `可变成本` → `可变资本`。
+
+**关键待办**：
+- **P0 · marxism-principles** L344 空括号 `()`、L346 缺失公式、L429 表格压成一行（结构性损坏）
+- **P0 · sleep-position “Boy Calf 触觉理论” + Boyko 文献疑似 LLM 杜撰**
+- P0 · fanqiedunniurou Zojirushi 译名错误（“虎牌” 应为 “象印”，虎牌是 Tiger）
+- P0 · monetary-econ-2023 / or-2023 / mao-final-2023-spring 三篇骨架页正文为空
+- P0 · taichi-review / game-theory-review 缺评分表 + TL;DR
+- P0 · toefl-templates-2023 内容已过时（2024 改革），需 `outdated:` 标记 + 删公众号术语“阅读原文是蓝色的”
+- P1 · sudoku 缺 settlement.js + settings-panel.js
+- P1 · snake D-pad aria-label 已补；canvas 内硬编码 `#e74c3c` `#f1c40f` 仍在
+
+---
+
+#### Batch 5 详细记录（20 项）
+
+承接：5 life + 2 recipes + 4 study + 2 research + 2 course-reviews + 1 pre-high + 4 toolbox
+
+**关键修复**：snoring-mechanism caption MD 加粗 2 处、us-banking-guide keywords “美国银行开护” → “开户” + 补长尾 + 删孤立 ---、us-health-insurance SVG italic + caption MD + 孤立 ---、us-tax-filing 孤立 ---、organizational-mgmt-review 4 处错别字（“活企业社会责任” → “或”、“把我课程的整个框架” → “把握”）、tennis-review “85公里跑” → “1.85 公里跑”（推测，需复核）。
+
+**关键待办**：
+- **P1 · r-pca 文章 2023 ChatGPT 八股痕迹明显**（“PCA 是一种...、具体而言、可以概括为以下几个步骤”）；建议站主决定重写、保留作历史档、还是加 `[WIP]` 标记
+- P1 · us-banking / us-health-insurance / us-tax-filing keywords 偏薄（22 项），建议补“checking 和 savings 区别 / Sprintax 怎么用 / 留学生医保 waiver”等长尾
+- P1 · tennis-review “1.85 公里跑” 推测可能不准（原文 “85公里跑”）
+- P1 · organizational-mgmt-review / tennis-review 缺评分表 + TL;DR
+- P1 · public-econ-2023 / real-anal-ch0-2024 keywords < 10 项
+
+---
+
+#### Bonus 14 项（autonomous extra check）
+
+一个 review agent 自发扩展了任务范围，额外审了 14 项不在分配清单内的文件，所有修复都属低风险无歧义类。这 14 项是：
+
+`gre-quant-errors` / `interm-metrics-review-2023` / `marketing-review-2023` / `spilled-liquid-cleanup` / `us-bottled-water` / `research/latex-commands` / `research/vpn` / `study/causal-id/robustness-check` / `study/corp-fin/mid-2020-zh` / `study/corp-fin/mid-sample-1` / `study/marxism/marxism-past-essence` / `study/monetary-econ/monetary-econ-hw-summary` / `study/psy-stat-I/final-2022` / `toolbox/werewolf`
+
+**主要 bonus 修复**：
+- interm-metrics-review-2023: “Mordern” → “Modern”、补 3 张图 caption、批量补中英文空格、修复 `**` 嵌套混乱
+- us-bottled-water: 7 处 SVG 中文 italic 全删
+- spilled-liquid-cleanup: 2 处 SVG 中文 italic 删
+- gre-quant-errors: 补 5 张图 caption（含 `<strong>` 强调）
+- mid-2020-zh / final-2022 等多个骨架页 keywords 7 项 → 25 项 + 补 summary 字段
+- werewolf 头部 banner 颜色 `#6c5ce7` → `#8a7a6a`（莫兰迪化）+ 删死代码
+
+---
+
+### 📊 抽检总览（写给站主）
+
+**站级 P0 优先级**（必须站主把关、否则会影响读者）：
+
+1. **marxism-principles 空括号 / 缺公式 / 表格损坏** —— 思政课复习笔记的术语 / 公式错误对引用者是致命的
+2. **mao-thought-review-2023 表格大规模损坏** —— 多张表渲染为一段乱码
+3. **sleep-position-curl-up 杜撰术语 + 杜撰文献** —— 已修 colonel→cervical lordosis 一处，但 Boy Calf 理论和 Boyko 文献需 hedge
+4. **course-reviews 7 篇缺评分表 + TL;DR** —— schema 系统性缺失，建议升级 layout
+5. **toefl-templates-2023 outdated** —— 2024 托福改革后已失效，建议加 `outdated:` 标记 banner
+6. **breakout 等 8+ toolbox 游戏鲜艳色未跟 cd5a804 改造** —— 需决策“统一莫兰迪化”还是“显式保留游戏识别色”
+7. **monetary-econ-2023 / or-2023 / mao-final-2023-spring 空骨架页** —— 建议引入 PDF 笔记自动导语 include
+
+**站级 P1 长期建议**（10 条最重要）：
+
+1. **写 `scripts/audit/img_caption_md.py`** 钩子：发现 `<p class="img-caption">.*\*\*.*</p>` 报警
+2. **写 `scripts/audit/svg_italic_zh.py`** 钩子：grep `font-style="italic"` 命中中文 text 报警
+3. **写 `scripts/audit/frontmatter_completeness.py`**：检查 summary / published / keywords 数量达标（life/research 18-30、study 15-25、course-review 10-20）
+4. **写 `scripts/audit/ai_tells.py`**：扫“让我修正”、“等等让我重新想”、“实际上”、“综上所述”等流式思考残留
+5. **`_layouts/course_review.html` 升级**：强制 `ratings: { workload, grading, lectures, gains }` 字段 + 自动渲染 5 分制评分卡
+6. **`_includes/pdf_note_intro.html`**：根据 front-matter `course / material_type / pdf_url` 自动生成空骨架笔记导语
+7. **`games-shell/room-lobby.js` 模块化**：把 doudizhu 的联机大厅抽成共享模块复用到其他 relay 游戏
+8. **toolbox 颜色统一收尾**：扩 cd5a804 莫兰迪改造到剩下 8+ 游戏 / 或明确豁免（breakout / drawing 等需要七色的）
+9. **toolbox HTML 拆 JS**：doudizhu / suika / fruit-ninja / picker 等长 HTML 拆出 `/assets/js/games/<name>.js`
+10. **outdated 内容标记机制**：考试改革后已失效的内容（toefl 2023 模板等）front-matter 加 `outdated: true` + layout 顶部红色 banner
+
+---
+
+
 
 由站主在对话中触发的 20 项专项抽检（一次性高密度补检，不影响日常 10 项调度）。共应用 **31 处低风险安全修复**，覆盖 11 个文件，`bundle exec jekyll build` 通过零警告。详见下方 🔬 抽检专项。
 

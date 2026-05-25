@@ -3,7 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "高级计量经济学（PSU）"
 title: "Midterm (Spring 2025) with Solutions"
-keywords: ["高级计量经济学期中（2025）", "高计 PSU 期中", "advanced econometrics midterm PSU", "metrics PSU 期中 2025", "Penn State 高计", "高级计量 PSU 真题", "ECON 510 midterm", "midterm with solutions", "高级计量 期中 答案"]
+keywords: ["高级计量经济学期中（2025）", "高计 PSU 期中", "advanced econometrics midterm PSU", "metrics PSU 期中 2025", "Penn State 高计", "高级计量 PSU 真题", "ECON 510 midterm", "midterm with solutions", "高级计量 期中 答案", "ECON 510 PSU", "Penn State econometrics 510", "高级计量 中期 答案", "高计期中 解答", "高计 真题 解析", "metrics midterm 解答", "OLS GLS 期中", "asymptotic theory exam", "limit theorems midterm", "delta method 期中", "MLE midterm", "instrumental variables midterm", "GMM 期中", "metrics prelim 准备", "first-year PhD metrics exam", "Penn State 一年级博士 计量", "高级计量 历年题", "计量 PhD 复习", "metrics qualifying exam", "高级计量经济学 期中 试卷 2025 春"]
 discipline: "经济学"
 course: "高级计量经济学（PSU）"
 material_type: "Exams"

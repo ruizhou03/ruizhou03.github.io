@@ -457,19 +457,25 @@ permalink: /toolbox/runner/
     state.player.ducking = false;
   }
   function togglePause() {
+    // 兼容新旧两种遮罩结构：start overlay 用 .gs-pgo-title/.gs-pgo-subtitle，旧版用 .overlay-title/.overlay-sub
+    const $title = $overStart.querySelector('.gs-pgo-title') || $overStart.querySelector('.overlay-title');
+    const $sub   = $overStart.querySelector('.gs-pgo-subtitle') || $overStart.querySelector('.overlay-sub');
+    const ORIG_TITLE = 'Deadline 大逃亡';
+    const ORIG_SUB   = '跳过文献综述，钻过 Reviewer 2 的飞邮件，能跑多远？';
+    const ORIG_BTN   = '▶ 开始游戏';
     if (state.phase === 'playing') {
       state.phase = 'paused';
-      $overStart.querySelector('.overlay-title').textContent = '⏸ 暂停';
-      $overStart.querySelector('.overlay-sub').textContent = '按 P 或空格继续';
-      $btnStart.textContent = '继续';
+      if ($title) $title.textContent = '⏸ 暂停';
+      if ($sub)   $sub.textContent   = '按 P 或空格继续';
+      if ($btnStart) $btnStart.textContent = '继续';
       $overStart.classList.remove('hidden');
     } else if (state.phase === 'paused') {
       state.phase = 'playing';
       $overStart.classList.add('hidden');
       // 恢复初始遮罩文案，下次新开仍然是开始页
-      $overStart.querySelector('.overlay-title').textContent = '🎓 Deadline 大逃亡';
-      $overStart.querySelector('.overlay-sub').textContent = '跳过文献综述，钻过 Reviewer 2 的飞邮件，能跑多远？';
-      $btnStart.textContent = '开始 (空格)';
+      if ($title) $title.textContent = ORIG_TITLE;
+      if ($sub)   $sub.textContent   = ORIG_SUB;
+      if ($btnStart) $btnStart.textContent = ORIG_BTN;
     }
   }
 

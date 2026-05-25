@@ -7,7 +7,7 @@ sub_category: "生活之问"
 extra_categories:
   - 菜谱
 permalink: "/life/us-bottled-water"
-keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Purified Water 纯净水", "Spring Water 泉水", "Mineral Water 矿泉水", "Distilled Water 蒸馏水", "Sparkling Water 气泡水", "Alkaline Water 碱性水", "Artesian Water", "Electrolyte Water", "Aquafina", "Dasani", "Fiji 水", "Poland Spring", "FDA 瓶装水分类", "TDS 总溶解固体", "水的硬度", "瓶装水怎么选", "美国喝什么水", "美国瓶状水"]
+keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Purified Water 纯净水", "Spring Water 泉水", "Mineral Water 矿泉水", "Distilled Water 蒸馏水", "Sparkling Water 气泡水", "Alkaline Water 碱性水", "Artesian Water", "Electrolyte Water", "Aquafina", "Dasani", "Fiji 水", "Poland Spring", "FDA 瓶装水分类", "TDS 总溶解固体", "水的硬度", "瓶装水怎么选", "美国喝什么水", "瓶装水品牌对比", "瓶装水标签怎么看", "瓶装水价格"]
 ---
 
 # 1. 问题
@@ -64,7 +64,7 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
     <text x="10" y="196" font-size="9" fill="#666">地下水 + TDS ≥ 250</text>
     <text x="10" y="220" font-size="11" fill="#333" font-weight="600">Glacier / Iceberg</text>
     <text x="10" y="236" font-size="9" fill="#666">冰川 / 冰山融水</text>
-    <text x="10" y="262" font-size="9" fill="#888" font-style="italic">→ 保留天然矿物</text>
+    <text x="10" y="262" font-size="9" fill="#888">→ 保留天然矿物</text>
   </g>
   <g transform="translate(200,150)">
     <rect x="0" y="0" width="160" height="280" fill="#e8f5fe" stroke="#3498db" stroke-width="1.5" rx="6"/>
@@ -80,7 +80,7 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
     <text x="10" y="192" font-size="9" fill="#666">通常市政水深度处理</text>
     <text x="10" y="218" font-size="11" fill="#333" font-weight="600">Deionized Water</text>
     <text x="10" y="234" font-size="9" fill="#666">离子交换，TDS 极低</text>
-    <text x="10" y="262" font-size="9" fill="#888" font-style="italic">→ 矿物质几乎被去除</text>
+    <text x="10" y="262" font-size="9" fill="#888">→ 矿物质几乎被去除</text>
   </g>
   <g transform="translate(360,150)">
     <rect x="0" y="0" width="160" height="280" fill="#e8f8e8" stroke="#27ae60" stroke-width="1.5" rx="6"/>
@@ -90,13 +90,13 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
     <text x="10" y="76" font-size="9" fill="#666">不含气泡（默认）</text>
     <text x="10" y="100" font-size="11" fill="#333" font-weight="600">Sparkling Water</text>
     <text x="10" y="116" font-size="9" fill="#666">含 CO₂ 气</text>
-    <text x="10" y="140" font-size="10" fill="#666" font-style="italic">  ├ Sparkling Mineral</text>
+    <text x="10" y="140" font-size="10" fill="#666">  ├ Sparkling Mineral</text>
     <text x="10" y="156" font-size="9" fill="#666">  天然矿泉 + 气</text>
-    <text x="10" y="174" font-size="10" fill="#666" font-style="italic">  ├ Seltzer / Club Soda</text>
+    <text x="10" y="174" font-size="10" fill="#666">  ├ Seltzer / Club Soda</text>
     <text x="10" y="190" font-size="9" fill="#666">  市政水充气</text>
-    <text x="10" y="208" font-size="10" fill="#666" font-style="italic">  └ Tonic Water</text>
+    <text x="10" y="208" font-size="10" fill="#666">  └ Tonic Water</text>
     <text x="10" y="224" font-size="9" fill="#666">  含奎宁，苦味</text>
-    <text x="10" y="262" font-size="9" fill="#888" font-style="italic">→ 标签字眼差很多</text>
+    <text x="10" y="262" font-size="9" fill="#888">→ 标签字眼差很多</text>
   </g>
   <g transform="translate(520,150)">
     <rect x="0" y="0" width="160" height="280" fill="#fde8e8" stroke="#c0392b" stroke-width="1.5" rx="6"/>
@@ -111,7 +111,7 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
     <text x="10" y="176" font-size="9" fill="#666">+ 维生素 + 糖</text>
     <text x="10" y="202" font-size="11" fill="#333" font-weight="600">Hydrogen Water</text>
     <text x="10" y="218" font-size="9" fill="#666">+ H₂ 气</text>
-    <text x="10" y="262" font-size="9" fill="#c0392b" font-style="italic">→ 多数 ≠ 健康收益</text>
+    <text x="10" y="262" font-size="9" fill="#c0392b">→ 多数 ≠ 健康收益</text>
   </g>
 </svg>
 <p class="img-caption">这四列分类**互相不冲突**——一瓶水可以同时属于多个标签。比如 Perrier = Sparkling + Mineral Water + 来自法国天然泉源；Smartwater = Distilled（工艺）+ Electrolyte Enhanced（添加）。看标签时不要找"它属于哪一类"，要找"它符合哪些限定词"。</p>

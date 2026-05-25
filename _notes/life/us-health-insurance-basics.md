@@ -119,9 +119,9 @@ keywords: ["美国医保", "美国健康保险", "留学生保险", "health insu
   <text x="600" y="156" text-anchor="middle" font-size="10" fill="#666">工作族多用</text>
 
   <!-- 注解 -->
-  <text x="640" y="396" text-anchor="middle" font-size="9" fill="#888" font-style="italic">圆圈大小 ≈ 美国市场份额</text>
+  <text x="640" y="396" text-anchor="middle" font-size="9" fill="#888">圆圈大小 ≈ 美国市场份额</text>
 </svg>
-<p class="img-caption">4 种保险类型在"自由度 $\times$ 价格"二维上的位置。**HMO 在左下**——便宜但受限；**PPO 在右上**——贵但自由；**EPO 和 POS 在中间**——各自有特色。留学生的 sweet spot 通常在 HMO（学校学生医保几乎都是 HMO 或 EPO）。</p>
+<p class="img-caption">4 种保险类型在"自由度 $\times$ 价格"二维上的位置。<strong>HMO 在左下</strong>——便宜但受限；<strong>PPO 在右上</strong>——贵但自由；<strong>EPO 和 POS 在中间</strong>——各自有特色。留学生的 sweet spot 通常在 HMO（学校学生医保几乎都是 HMO 或 EPO）。</p>
 
 ## 4.1 HMO（Health Maintenance Organization）
 
@@ -421,9 +421,7 @@ keywords: ["美国医保", "美国健康保险", "留学生保险", "health insu
 2. **[NerdWallet - Health Insurance](https://www.nerdwallet.com/health/insurance/)** —— 各种保险类型对比
 3. **[Kaiser Family Foundation](https://www.kff.org/)** —— 医保政策研究权威机构
 4. **学校 ISSO + Health Service** —— 学校学生医保的最权威解释
-5. **[一亩三分地”医疗保险“版块](https://www.1point3acres.com/bbs/forum.php)** —— 中文圈实战经验
-
----
+5. **[一亩三分地“医疗保险”版块](https://www.1point3acres.com/bbs/forum.php)** —— 中文圈实战经验
 
 **这是医保 / 看病三部曲的第一篇**。下一篇我们走进**实际看病**——**怎么选 PCP / 怎么 schedule 第一次 appointment / 普通病去哪 / 急诊去哪 / 处方药怎么取 / 牙齿眼睛心理咨询的特殊安排**。
 

@@ -507,7 +507,6 @@ permalink: /toolbox/sudoku/
   const newBtn = document.getElementById('sudokuNewBtn');
   const noteBtn = document.getElementById('sudokuNoteBtn');
   const hintBtn = document.getElementById('sudokuHintBtn');
-  const padNoteBtn = document.getElementById('sudokuNoteBtn');
   const pauseOverlay = document.getElementById('sudokuPauseOverlay');
   const winOverlay = document.getElementById('sudokuWinOverlay');
   const winTimeEl = document.getElementById('sudokuWinTime');
@@ -548,7 +547,7 @@ permalink: /toolbox/sudoku/
       if (state.running && !state.paused && !state.solved) {
         timeEl.textContent = fmt(elapsed());
       }
-    }, 250);
+    }, 1000);
   }
   function stopTimer() {
     if (state.timerId) clearInterval(state.timerId);

@@ -131,7 +131,7 @@ keywords: ["电脑验光仪里那栋小房子", "电脑验光仪原理", "电脑
       <rect x="3" y="15" width="18" height="15" fill="#c0392b"/>
     </g>
     <text x="232" y="105" text-anchor="middle" font-size="10">视标</text>
-    <text x="140" y="125" text-anchor="middle" font-size="11" fill="#888" font-style="italic">仪器内总长仅 ~10 cm</text>
+    <text x="140" y="125" text-anchor="middle" font-size="11" fill="#888">仪器内总长仅 ~10 cm</text>
   </g>
   <g transform="translate(320,75)">
     <line x1="0" y1="20" x2="40" y2="20" stroke="#666" stroke-width="2" marker-end="url(#a-arrow)"/>
@@ -151,10 +151,10 @@ keywords: ["电脑验光仪里那栋小房子", "电脑验光仪原理", "电脑
       <rect x="3" y="15" width="18" height="15" fill="#c0392b"/>
     </g>
     <text x="335" y="80" text-anchor="middle" font-size="10" fill="#666">视标看上去很远</text>
-    <text x="180" y="125" text-anchor="middle" font-size="11" fill="#27ae60" font-style="italic">大脑以为视标在 5 m 外 → 睫状肌松弛</text>
+    <text x="180" y="125" text-anchor="middle" font-size="11" fill="#27ae60">大脑以为视标在 5 m 外 → 睫状肌松弛</text>
   </g>
   <text x="380" y="230" text-anchor="middle" font-size="12" fill="#444" font-weight="500">透镜组让「几厘米外的小图」光学上等效于「无穷远的物体」</text>
-  <text x="380" y="252" text-anchor="middle" font-size="11" fill="#666" font-style="italic">同时图像被故意调成略微模糊——你的大脑收到「再调节也看不清」的信号，放弃努力，进入测量状态</text>
+  <text x="380" y="252" text-anchor="middle" font-size="11" fill="#666">同时图像被故意调成略微模糊——你的大脑收到「再调节也看不清」的信号，放弃努力，进入测量状态</text>
   <defs>
     <marker id="a-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <polygon points="0 0, 10 5, 0 10" fill="#666"/>

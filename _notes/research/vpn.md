@@ -7,7 +7,7 @@ date: "2026-05-20"
 author: "Zircon"
 permalink: "/research/how-it-works/vpn"
 published: true
-keywords: ["VPN 原理", "VPN 是什么", "VPN 怎么工作的", "VPN 网速变慢", "挂 VPN 变慢", "VPN IP 变了吗", "VPN 换 IP", "VPN 会被追踪吗", "VPN 安全吗", "VPN 匿名", "VPN 节点是什么", "VPN 服务器在做什么", "VPN 翻墙原理", "VPN 等于人在国外吗", "代理 proxy", "加密隧道 tunnel", "出口 IP", "DNS 泄漏", "浏览器指纹", "WebRTC 泄漏", "无日志 VPN", "VPN 跟踪", "vpn 原理", "vnp 原理", "VPN 地理位置", "IP 定位", "流媒体解锁", "梯子原理"]
+keywords: ["VPN 原理", "VPN 是什么", "VPN 怎么工作的", "VPN 网速变慢", "挂 VPN 变慢", "VPN IP 变了吗", "VPN 换 IP", "VPN 会被追踪吗", "VPN 安全吗", "VPN 匿名", "VPN 节点是什么", "VPN 服务器在做什么", "VPN 翻墙原理", "VPN 等于人在国外吗", "代理 proxy", "加密隧道 tunnel", "出口 IP", "DNS 泄漏", "浏览器指纹", "WebRTC 泄漏", "无日志 VPN", "VPN 跟踪", "vpn 原理", "vnp 原理", "VPN 地理位置", "IP 定位", "流媒体解锁", "梯子原理", "学校 VPN", "校园 VPN", "institutional VPN", "campus VPN", "library proxy", "EZproxy", "academic VPN", "学术资源访问", "图书馆代理", "学术 VPN 合规"]
 ---
 
 # 1. 问题
@@ -166,7 +166,7 @@ VPN 节点（服务器）干三件事：
 
 # 5. 想深入
 
-- **WireGuard 白皮书**（wireguard.com/papers/wireguard.pdf）——现代 VPN 隧道与加密怎么做的，简洁好读。
+- **[WireGuard 白皮书](https://www.wireguard.com/papers/wireguard.pdf)**——现代 VPN 隧道与加密怎么做的，简洁好读。
 - **RFC 4301《Security Architecture for the Internet Protocol》**——IPsec 这一类隧道的经典架构文档。
 - **EFF / Mozilla 的隐私科普**——浏览器指纹、DNS 泄漏为什么能绕过 VPN 认出你，写给非技术读者。
 - **任意一个“IP/DNS leak test”工具的说明页**——亲手开关 VPN 看泄漏，比读十篇文章都直观。

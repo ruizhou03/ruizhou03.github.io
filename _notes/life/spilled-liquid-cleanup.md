@@ -79,7 +79,7 @@ keywords: ["打翻液体怎么清理", "先用纸吸还是用布擦", "液体洒
     <path d="M 80 100 L 60 100 L 65 96 M 60 100 L 65 104" stroke="#a04030" stroke-width="1.5" fill="none"/>
     <path d="M 240 100 L 260 100 L 255 96 M 260 100 L 255 104" stroke="#a04030" stroke-width="1.5" fill="none"/>
     <text x="160" y="105" text-anchor="middle" font-size="10" fill="#a04030">横向擦拭</text>
-    <text x="160" y="280" text-anchor="middle" font-size="11" fill="#a04030" font-style="italic">液体被推开，面积反而变大</text>
+    <text x="160" y="280" text-anchor="middle" font-size="11" fill="#a04030">液体被推开，面积反而变大</text>
   </g>
   <g transform="translate(380, 50)">
     <text x="160" y="14" text-anchor="middle" font-size="13" fill="#5ca830" font-weight="700">✅ 用厨房纸往下压</text>
@@ -101,7 +101,7 @@ keywords: ["打翻液体怎么清理", "先用纸吸还是用布擦", "液体洒
     <path d="M 160 90 L 160 125 M 156 121 L 160 127 L 164 121" stroke="#5ca830" stroke-width="1.5" fill="none"/>
     <path d="M 190 90 L 190 125 M 186 121 L 190 127 L 194 121" stroke="#5ca830" stroke-width="1.5" fill="none"/>
     <text x="160" y="86" text-anchor="middle" font-size="10" fill="#5ca830">向下压（不擦）</text>
-    <text x="160" y="280" text-anchor="middle" font-size="11" fill="#5ca830" font-style="italic">液体被吸入，连纸带液体一起拎走</text>
+    <text x="160" y="280" text-anchor="middle" font-size="11" fill="#5ca830">液体被吸入，连纸带液体一起拎走</text>
   </g>
 </svg>
 <p class="img-caption">同一摊液体，两种工具去向完全不同。抹布的双向毛细作用 + 横向擦拭的力学，让液体被"重新分配"到更大面积；厨房纸的单向吸收 + 一次性使用，让液体真正被"回收"出去。第一步选错，后面几乎没救。</p>

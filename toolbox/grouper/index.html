@@ -173,7 +173,7 @@ permalink: /toolbox/grouper/
     <div class="mode-input-row">
       <label id="mode-label">N =</label>
       <input type="number" id="mode-value" inputmode="numeric" min="1" max="100" step="1" value="3" />
-      <label class="balance-toggle">
+      <label class="balance-toggle" id="balance-wrap">
         <input type="checkbox" id="balance-toggle" checked />
         <span>余数随机分到前几组</span>
       </label>
@@ -238,6 +238,11 @@ permalink: /toolbox/grouper/
   }
   $names.addEventListener('input', updateMeta);
 
+  const $balanceWrap = document.getElementById('balance-wrap');
+  function syncBalanceVisibility() {
+    $balanceWrap.style.display = state.mode === 'groups' ? '' : 'none';
+  }
+
   // ——— Mode tabs ———
   $tabs.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -245,6 +250,7 @@ permalink: /toolbox/grouper/
       btn.classList.add('active');
       state.mode = btn.dataset.mode;
       $modeLbl.textContent = state.mode === 'groups' ? 'N =' : 'M =';
+      syncBalanceVisibility();
     });
   });
   $modeVal.addEventListener('input', () => {
@@ -389,6 +395,7 @@ permalink: /toolbox/grouper/
       state.value = profiles[name].value;
       $modeVal.value = state.value;
     }
+    syncBalanceVisibility();
     updateMeta();
   });
   $pSave.addEventListener('click', () => {
@@ -431,5 +438,6 @@ permalink: /toolbox/grouper/
   // ——— Init ———
   refreshProfileSelect();
   updateMeta();
+  syncBalanceVisibility();
 })();
 </script>
