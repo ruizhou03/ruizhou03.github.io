@@ -137,7 +137,7 @@ WHO 给出的两条建议很简单：
 很多人有一个误解：以为只有“厨房水龙头”才必须合规、卫生间龙头标准低。事实并非如此。
 
 - **美国（NSF/ANSI 61 + 372，2014 修订后的 Safe Drinking Water Act）**：所有“用于饮用、烹饪或个人卫生（洗脸、刷牙、洗手）”用途的接触水龙头都必须**铅含量加权平均 < 0.25%**。这覆盖**厨房龙头、酒吧水槽、洗脸盆龙头**。不在覆盖范围内的是**淋浴阀、浴缸阀、马桶给水阀、户外水嘴**——这些被认为不会用来饮用。
-- **中国（GB 18145《陶瓷片密封水嘴》+ GB/T 23447《卫生洁具用水龙头》）**：现行国标对**厨房龙头和卫生间洗脸盆龙头的金属析出要求是一致的**，都要满足铅 ≤ 5 μg/L、铬 ≤ 50 μg/L 等浸出限值。**没有“卫生间水龙头可以含更多铅”的规定**。
+- **中国（GB 18145《陶瓷片密封水嘴》+ GB/T 23447《卫生洁具用水龙头》）**：现行国标对**厨房龙头和卫生间洗脸盆龙头的金属析出要求是一致的**，都要满足铅 $\leq 5\,\mu\text{g/L}$、铬 $\leq 50\,\mu\text{g/L}$ 等浸出限值。**没有“卫生间水龙头可以含更多铅”的规定**。
 
 但市面上确实存在低端非合规的水龙头——尤其是 30 块钱包邮、出处不明的产品。**这种风险不分厨房卫生间，便宜的没认证的厨房龙头同样不安全**。判断方法：
 
@@ -176,9 +176,9 @@ WHO 给出的两条建议很简单：
 
 1. **中华人民共和国国家标准 GB 5749—2022** *生活饮用水卫生标准.* ——管末饮用水水质指标，所有住宅龙头出水都应满足。
 2. **中华人民共和国国家标准 GB 18145—2014** *陶瓷片密封水嘴.* / **GB/T 23447—2009** *卫生洁具用水龙头.* ——对厨房和卫生间洗脸盆龙头金属析出（铅、镍、铬等）的统一限值。
-3. **U.S. Environmental Protection Agency.** *Lead and Copper Rule / Safe Drinking Water Act (Section 1417, 2014 amendment).* ——美国关于“饮用接触水龙头铅含量 ≤ 0.25%”的法定要求。
+3. **U.S. Environmental Protection Agency.** *Lead and Copper Rule / Safe Drinking Water Act (Section 1417, 2014 amendment).* ——美国关于“饮用接触水龙头铅含量 $\leq 0.25\%$”的法定要求。
 4. **NSF International.** *NSF/ANSI 61 — Drinking Water System Components* & *NSF/ANSI 372 — Drinking Water System Components – Lead Content.* ——水龙头、阀门等饮水接触产品的铅含量和浸出标准。
-5. **World Health Organization.** *Legionella and the Prevention of Legionellosis.* WHO Press. ——军团菌生长温度区间（25–50°C）、家庭热水器水温建议（≥ 60°C）的来源。
+5. **World Health Organization.** *Legionella and the Prevention of Legionellosis.* WHO Press. ——军团菌生长温度区间（25–50°C）、家庭热水器水温建议（$\geq 60$°C）的来源。
 6. **U.S. EPA.** *Drinking Water From Household Wells / Lead in Drinking Water — Flush Your Pipes.* ——“长时间未用龙头先放水 30 秒到 2 分钟”的官方建议出处。
 7. **国家卫生健康委员会.** *《二次供水设施卫生规范》GB 17051.* ——城市高层二次供水水箱清洗、消毒、检测的法定要求。
 8. **Edwards M, et al.** *Role of stagnation and aeration in lead leaching at the tap.* Environmental Science & Technology. ——龙头出口起泡器、停滞水段对铅析出影响的研究。
