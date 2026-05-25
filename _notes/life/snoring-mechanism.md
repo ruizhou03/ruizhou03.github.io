@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "为什么有的人睡觉打呼噜？呼噜声到底是哪个部位发出的？"
-date: 2026-05-26
+date: 2026-05-25
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/snoring-mechanism"

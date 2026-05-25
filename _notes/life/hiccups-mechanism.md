@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "打嗝是怎么回事？为什么一打嗝就完全控制不住？有哪些办法真的有用？"
-date: 2026-05-26
+date: 2026-05-25
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/hiccups-mechanism"

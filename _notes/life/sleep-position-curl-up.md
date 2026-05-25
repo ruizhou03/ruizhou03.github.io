@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "为什么人睡觉喜欢蜷缩起来？平躺、侧躺、趴着、垫枕、低枕到底差在哪？"
-date: 2026-05-26
+date: 2026-05-25
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/sleep-position-curl-up"

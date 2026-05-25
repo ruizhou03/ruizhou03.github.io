@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "闭上眼能感觉到光的强弱，睡着了又什么都看不见也听不到——眼皮和大脑到底是怎么「关掉」感官的？"
-date: 2026-05-26
+date: 2026-05-25
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/sleep-sensory-gating"
