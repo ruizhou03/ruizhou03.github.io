@@ -136,8 +136,6 @@
   .za-fb-btn:hover { border-color: var(--color-highlight); color: var(--color-ink); }
   .za-fb-btn.za-fb-on-up { border-color: var(--color-highlight); color: var(--color-highlight); background: rgba(201,169,110,.08); }
   .za-fb-btn.za-fb-on-down { border-color: #c97070; color: #c97070; background: rgba(201,112,112,.08); }
-  .za-fb-btn[disabled] { cursor: default; opacity: .85; }
-  .za-fb-thanks { font-size: .72rem; color: var(--color-muted); align-self: center; margin-left: .2rem; }
 
   @media (max-width: 600px) {
     #za-fab { right: 1rem; bottom: 1.5rem; }
@@ -370,28 +368,31 @@
     var up = document.createElement('button');
     up.className = 'za-fb-btn';
     up.type = 'button';
-    up.setAttribute('aria-label', '这条回答有帮助');
-    up.title = '这条回答有帮助';
+    up.setAttribute('aria-label', '有帮助');
+    up.title = '有帮助';
     up.innerHTML = '<span aria-hidden="true">👍</span>';
 
     var down = document.createElement('button');
     down.className = 'za-fb-btn';
     down.type = 'button';
-    down.setAttribute('aria-label', '这条回答不好');
-    down.title = '这条回答不好';
+    down.setAttribute('aria-label', '不好');
+    down.title = '不好';
     down.innerHTML = '<span aria-hidden="true">👎</span>';
 
-    function clicked(kind) {
-      up.disabled = true; down.disabled = true;
-      (kind === 'up' ? up : down).classList.add(kind === 'up' ? 'za-fb-on-up' : 'za-fb-on-down');
-      var thanks = document.createElement('span');
-      thanks.className = 'za-fb-thanks';
-      thanks.textContent = kind === 'up' ? '记下了，下次同样的问题我直接给这个答案 ✨' : '记下了，下次换个回答方式 🙏';
-      wrap.appendChild(thanks);
-      sendFeedback(query, reply, cards, kind);
+    // 当前用户态：null = 没投 / 'up' / 'down'。允许反复切换；点同一个再点 = 取消。
+    var current = null;
+    function applyVisual() {
+      up.classList.toggle('za-fb-on-up', current === 'up');
+      down.classList.toggle('za-fb-on-down', current === 'down');
     }
-    up.addEventListener('click', function () { clicked('up'); });
-    down.addEventListener('click', function () { clicked('down'); });
+    function vote(kind) {
+      var next = current === kind ? null : kind;
+      current = next;
+      applyVisual();
+      sendFeedback(query, reply, cards, next || 'none');
+    }
+    up.addEventListener('click', function () { vote('up'); });
+    down.addEventListener('click', function () { vote('down'); });
 
     wrap.appendChild(up);
     wrap.appendChild(down);
@@ -477,12 +478,12 @@
     var typing = showTyping();
     askAI(q).then(function (ai) {
       if (ai) {
-        // AI 路径：DeepSeek 看着整站目录给出的回答 + 推荐卡片
+        // AI 路径：把文字 + 推荐卡片整合到同一个气泡里，反馈按钮挂在末尾
         if (typing.parentNode) body.removeChild(typing);
         var replyBubble = pushBot(ai.reply);
-        if (ai.cards.length) pushCards('', ai.cards);
-        // 让用户给这条 AI 回答打分 —— 反馈会回流给后端作为下次回答的依据
+        if (ai.cards.length) ai.cards.forEach(function (c) { replyBubble.appendChild(makeCard(c)); });
         attachFeedback(replyBubble, q, ai.reply, ai.cards);
+        scrollDown();
         return;
       }
       // 降级路径：AI 不可用时回退到纯前端检索
