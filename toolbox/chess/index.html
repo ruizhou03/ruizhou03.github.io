@@ -1238,6 +1238,17 @@ permalink: /toolbox/chess/
     if (r.ok) { chPgoOverlay.classList.remove('open'); state.mode = 'pvp'; persist(); newGame(); if (chSave) chSave.start(); }
   });
 
+  (function chAutoJoin() {
+    const code = new URLSearchParams(location.search).get('room');
+    if (code && /^\d{4}$/.test(code)) {
+      document.getElementById('chPgoRoomCodeInput').value = code;
+      setTimeout(() => {
+        document.querySelector('#chPgoRoomTabs .gs-pgo-room-tab[data-tab="online"]')?.click();
+        setTimeout(chRoomAction, 800);
+      }, 500);
+    }
+  })();
+
   document.getElementById('chPgoStartBtn').addEventListener('click', () => {
     if (chIsOnline) return;
     state.mode = chPgoSelectedMode; state.difficulty = chPgoSelectedDiff; persist();

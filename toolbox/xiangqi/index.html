@@ -1454,6 +1454,17 @@ permalink: /toolbox/xiangqi/
     if (r.ok) { xqPgoOverlay.classList.remove('open'); state.mode = 'pvp'; persist(); newGame(); if (typeof xqSave !== 'undefined' && xqSave) xqSave.start(); }
   });
 
+  (function xqAutoJoin() {
+    const code = new URLSearchParams(location.search).get('room');
+    if (code && /^\d{4}$/.test(code)) {
+      document.getElementById('xqPgoRoomCodeInput').value = code;
+      setTimeout(() => {
+        document.querySelector('#xqPgoRoomTabs .gs-pgo-room-tab[data-tab="online"]')?.click();
+        setTimeout(xqRoomAction, 800);
+      }, 500);
+    }
+  })();
+
   document.getElementById('xqPgoStartBtn').addEventListener('click', () => {
     if (xqIsOnline) return;
     state.mode = xqPgoSelectedMode; state.difficulty = xqPgoSelectedDiff; persist();

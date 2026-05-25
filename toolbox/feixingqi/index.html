@@ -2808,6 +2808,17 @@ permalink: /toolbox/feixingqi/
     if (r.ok) { fxqPgoOverlay.classList.remove('open'); state.difficulty = fxqPgoSelectedDiff; startGame(); if (typeof fxqSave !== 'undefined' && fxqSave) fxqSave.start(); }
   });
 
+  (function fxqAutoJoin() {
+    const code = new URLSearchParams(location.search).get('room');
+    if (code && /^\d{4}$/.test(code)) {
+      document.getElementById('fxqPgoRoomCodeInput').value = code;
+      setTimeout(() => {
+        document.querySelector('#fxqPgoRoomTabs .gs-pgo-room-tab[data-tab="online"]')?.click();
+        setTimeout(fxqRoomAction, 800);
+      }, 500);
+    }
+  })();
+
   document.getElementById('fxqPgoStartBtn').addEventListener('click', () => {
     if (fxqIsOnline) return;
     state.difficulty = fxqPgoSelectedDiff;

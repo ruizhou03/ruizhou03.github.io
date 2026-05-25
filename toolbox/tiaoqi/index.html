@@ -1969,6 +1969,17 @@ permalink: /toolbox/tiaoqi/
     if (r.ok) { tqPgoOverlay.classList.remove('open'); state.difficulty = tqPgoSelectedDiff; startGame(); if (typeof tqSave !== 'undefined' && tqSave) tqSave.start(); }
   });
 
+  (function tqAutoJoin() {
+    const code = new URLSearchParams(location.search).get('room');
+    if (code && /^\d{4}$/.test(code)) {
+      document.getElementById('tqPgoRoomCodeInput').value = code;
+      setTimeout(() => {
+        document.querySelector('#tqPgoRoomTabs .gs-pgo-room-tab[data-tab="online"]')?.click();
+        setTimeout(tqRoomAction, 800);
+      }, 500);
+    }
+  })();
+
   document.getElementById('tqPgoStartBtn').addEventListener('click', () => {
     if (tqIsOnline) return;
     state.difficulty = tqPgoSelectedDiff;
