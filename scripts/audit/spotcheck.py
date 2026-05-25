@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""抽检专项：每天从全站随机抽 3 个"项目"做深度审查。
+"""抽检专项：每天从全站随机抽 10 个"项目"做深度审查（建设期高频抽检）。
 
 "项目"的定义：
 - note          —— 散文/笔记类 markdown（_notes/life, /research, /essays, /course-reviews, /gre, /toefl, /pre-high-school）
@@ -9,9 +9,11 @@
 - game          —— toolbox/<slug>/index.html（小游戏 / 互动工具）
 - pdf_archive   —— files/**/*.pdf 中没有对应 .tex 源的 PDF（潜在 LaTeX 化候选）
 
-每天用日期做随机种子（同一天多次跑选中的 3 项保持一致），从全集等概率抽 3 个。
-输出每项的：路径、类型、关键 metadata、规模、以及"按类型量身定制的批判性审查清单"。
+每天用日期做随机种子（同一天多次跑选中的 10 项保持一致）。
+**类型配额**：建设期重点品类强制保底——每天至少 1 game + 1 pdf_archive + 1 lecture_note_pdf_only，
+剩余 7 项从全集纯随机（不去重类型，可以再抽到上面三类）。
 
+输出每项的：路径、类型、关键 metadata、规模、以及"按类型量身定制的批判性审查清单"。
 不修改任何文件；只输出 markdown 报告给 daily-review Claude 阅读。
 """
 import hashlib
@@ -37,7 +39,9 @@ LECTURE_DIR = "_notes/study"
 TOOLBOX_DIR = "toolbox"
 FILES_DIR = "files"
 
-PICK_COUNT = 3
+PICK_COUNT = 10
+# 建设期类型配额：每天至少抽到这些类型各 1 项；剩余从全集纯随机。
+QUOTA_TYPES = ["game", "pdf_archive", "lecture_note_pdf_only"]
 
 
 def split_fm(text):
@@ -303,7 +307,7 @@ def render_item(idx, item):
 
 def main():
     print(f"# 抽检专项（{time.strftime('%Y-%m-%d %H:%M')}）\n")
-    print("从全站三大资产池（笔记/文章 + 小游戏 + PDF 存档）按日期种子等概率随机抽 3 项，逐项做深度批判性审查。")
+    print(f"建设期高频抽检：按日期种子抽 {PICK_COUNT} 项（强制配额 {len(QUOTA_TYPES)} 类各 1：{', '.join(QUOTA_TYPES)}，其余纯随机），逐项做深度批判性审查。")
     print()
 
     inventory = []
@@ -324,10 +328,29 @@ def main():
     print()
 
     rng = random.Random(daily_seed())
-    picks = rng.sample(inventory, k=min(PICK_COUNT, len(inventory)))
+
+    # 1) 配额抽：从每个 QUOTA_TYPES 里强制各抽 1 项
+    by_type = {}
+    for it in inventory:
+        by_type.setdefault(it["type"], []).append(it)
+    picks = []
+    quota_filled = []
+    for qt in QUOTA_TYPES:
+        bucket = by_type.get(qt, [])
+        if bucket:
+            chosen = rng.choice(bucket)
+            picks.append(chosen)
+            quota_filled.append(qt)
+    # 2) 剩余从"全集减去已选"里纯随机抽
+    chosen_ids = {id(x) for x in picks}
+    remaining = [x for x in inventory if id(x) not in chosen_ids]
+    extra_n = max(0, min(PICK_COUNT, len(inventory)) - len(picks))
+    if extra_n and remaining:
+        picks.extend(rng.sample(remaining, k=min(extra_n, len(remaining))))
 
     # 元信息
     print(f"**今日种子**：基于日期 + 仓库路径 SHA256；同日重跑选项稳定。")
+    print(f"**类型配额**：建设期重点品类强制保底各抽 1（已配额：{', '.join(quota_filled) if quota_filled else '池空'}），剩余 {extra_n} 项纯随机。")
     print()
     print("---")
 
@@ -343,12 +366,12 @@ def main():
     print("- 把本次抽检结果写进 `DAILY_REVIEW.md` 一个**独立小节** `### 🔬 抽检专项`，结构：")
     print("  ```")
     print("  ### 🔬 抽检专项")
-    print("  **抽检 1/3 · <类型> · `<path>`**")
+    print(f"  **抽检 1/{PICK_COUNT} · <类型> · `<path>`**")
     print("  - 已修复：...")
     print("  - 待办（P0/P1/P2）：...")
     print("  - 长期建议：...（LaTeX 化、架构重构等）")
     print("  ```")
-    print("- 三项一视同仁地深审；不要因为时间紧就草率给一项写一两行。宁可慢、宁可保守，也要把判断做对。")
+    print(f"- {PICK_COUNT} 项一视同仁地深审；不要因为时间紧就草率给某一项写一两行。宁可慢、宁可保守，也要把判断做对。建设期就是要在质量门槛上多花时间。")
 
 
 if __name__ == "__main__":
