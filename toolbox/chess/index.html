@@ -179,6 +179,51 @@ permalink: /toolbox/chess/
   details.about summary::before { content: '▸ '; transition: 0.2s; }
   details[open].about summary::before { content: '▾ '; }
   details.about p { margin: 0.6rem 0; }
+
+  .ch-cell:focus-visible { outline: 3px solid #3b82f6; outline-offset: -3px; z-index: 3; }
+  .ch-promotion-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 12;
+  }
+  .ch-promotion-overlay.show { display: flex; }
+  .ch-promotion-modal {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 0.55rem;
+  }
+  .ch-promotion-modal h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-weight: 600;
+  }
+  .ch-promotion-choices { display: flex; gap: 0.4rem; }
+  .ch-promotion-choice {
+    width: 52px; height: 52px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-warm);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 34px;
+    line-height: 1;
+    transition: transform 0.12s ease, border-color 0.12s ease;
+  }
+  .ch-promotion-choice:hover,
+  .ch-promotion-choice:focus-visible {
+    border-color: var(--color-accent);
+    transform: translateY(-2px);
+    outline: none;
+  }
+  .ch-promotion-choice.white { color: #fff; text-shadow: 0 0 1px #1a1a1a, 0 0 2px #1a1a1a; }
+  .ch-promotion-choice.black { color: #1a1a1a; }
 </style>
 
 <div class="ch-wrap">
@@ -207,10 +252,11 @@ permalink: /toolbox/chess/
     <button class="ch-btn" id="chUndoBtn">↶ 悔棋</button>
     <button class="ch-btn" id="chPauseBtn" hidden>⏸ 暂停</button>
     <button class="ch-btn" id="chNewBtn">🔄 重新开始</button>
+    <button class="ch-btn" id="chPgnBtn" title="导出本局棋谱为 PGN 文件">📋 PGN</button>
   </div>
 
   <div class="ch-statusbar">
-    <div class="ch-turn" id="chTurn">⚪ 白方走子</div>
+    <div class="ch-turn" id="chTurn" aria-live="polite" aria-atomic="true">⚪ 白方走子</div>
     <div class="ch-tally">
       <span>白胜 <b id="chTallyW">0</b></span>
       <span>黑胜 <b id="chTallyB">0</b></span>
@@ -228,6 +274,12 @@ permalink: /toolbox/chess/
       <h2>⏸ 已暂停</h2>
       <button class="ch-btn" id="chResumeBtn">▶ 继续</button>
     </div>
+    <div class="ch-promotion-overlay" id="chPromotionOverlay" role="dialog" aria-modal="true" aria-label="选择升变棋子">
+      <div class="ch-promotion-modal">
+        <h3>升变为</h3>
+        <div class="ch-promotion-choices" id="chPromotionChoices"></div>
+      </div>
+    </div>
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="chPreGameOverlay">
       <div class="gs-pgo-view active" id="chPgoViewMain">
@@ -243,9 +295,8 @@ permalink: /toolbox/chess/
           <button class="gs-pgo-mode-tab selected" data-value="normal">普通</button>
           <button class="gs-pgo-mode-tab" data-value="hard">高手</button>
         </div>
-        <div class="gs-pgo-room-tabs" id="chPgoRoomTabs">
+        <div class="gs-pgo-room-tabs" id="chPgoRoomTabs" style="display:none;">
           <button class="gs-pgo-room-tab selected" data-tab="local">🏠 本地</button>
-          <button class="gs-pgo-room-tab" data-tab="online">🌐 联机</button>
         </div>
         <div class="gs-pgo-room-panel active" id="chPgoLocalPanel"></div>
         <div class="gs-pgo-room-panel" id="chPgoOnlinePanel">
@@ -600,6 +651,19 @@ permalink: /toolbox/chess/
           cellEl.appendChild(dot);
         }
 
+        cellEl.setAttribute('role', 'gridcell');
+        let ariaLabel = sq + '，' + (cellPiece ? ((cellPiece.color === 'w' ? '白' : '黑') + PIECE_NAME_CN[cellPiece.type]) : '空');
+        if (target) {
+          const isCap = target.flags.indexOf('c') !== -1 || target.flags.indexOf('e') !== -1;
+          ariaLabel += isCap ? '，可吃子' : '，可走';
+        }
+        if (state.selected === sq) {
+          ariaLabel += '，已选中';
+          cellEl.setAttribute('aria-selected', 'true');
+        }
+        cellEl.setAttribute('aria-label', ariaLabel);
+        cellEl.tabIndex = (sq === chFocusedSq) ? 0 : -1;
+
         board.appendChild(cellEl);
       }
     }
@@ -791,6 +855,144 @@ permalink: /toolbox/chess/
     }, 30);
   }
 
+  // ============ Promotion modal ============
+  const PIECE_NAME_CN = { p: '兵', n: '马', b: '象', r: '车', q: '后', k: '王' };
+  let chPendingPromotion = null;
+  const chPromotionOverlay = document.getElementById('chPromotionOverlay');
+  const chPromotionChoices = document.getElementById('chPromotionChoices');
+
+  function chShowPromotion(from, to, color) {
+    chPendingPromotion = { from, to, color };
+    const pieces = ['q', 'r', 'b', 'n'];
+    chPromotionChoices.innerHTML = pieces.map(p =>
+      `<button class="ch-promotion-choice ${color === 'w' ? 'white' : 'black'}" data-piece="${p}" aria-label="升变为${PIECE_NAME_CN[p]}">${PIECE_GLYPH[color][p]}</button>`
+    ).join('');
+    chPromotionOverlay.classList.add('show');
+    const first = chPromotionChoices.querySelector('.ch-promotion-choice');
+    if (first) first.focus();
+  }
+
+  function chHidePromotion() {
+    chPendingPromotion = null;
+    chPromotionOverlay.classList.remove('show');
+  }
+
+  function chCompletePromotion(piece) {
+    if (!chPendingPromotion) return;
+    const { from, to } = chPendingPromotion;
+    chHidePromotion();
+    applyMove({ from, to, promotion: piece });
+  }
+
+  chPromotionChoices.addEventListener('click', e => {
+    const btn = e.target.closest('.ch-promotion-choice');
+    if (!btn) return;
+    chCompletePromotion(btn.dataset.piece);
+  });
+  chPromotionOverlay.addEventListener('click', e => {
+    if (e.target === chPromotionOverlay) chHidePromotion();
+  });
+  document.addEventListener('keydown', e => {
+    if (!chPendingPromotion) return;
+    const k = e.key.toLowerCase();
+    if (k === 'q' || k === 'r' || k === 'b' || k === 'n') {
+      e.preventDefault();
+      chCompletePromotion(k);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      chHidePromotion();
+    }
+  });
+
+  // ============ Accessibility: ARIA + keyboard nav ============
+  let chFocusedSq = 'e4';
+  board.setAttribute('role', 'grid');
+  board.setAttribute('aria-label', '国际象棋棋盘');
+
+  function chShiftSq(sq, dFile, dRank) {
+    const f = sq.charCodeAt(0) - 97;
+    const r = parseInt(sq[1], 10) - 1;
+    const nf = f + dFile, nr = r + dRank;
+    if (nf < 0 || nf > 7 || nr < 0 || nr > 7) return null;
+    return String.fromCharCode(97 + nf) + (nr + 1);
+  }
+
+  function chMoveFocus(key) {
+    const flipped = isFlipped();
+    let dF = 0, dR = 0;
+    if (key === 'ArrowUp') dR = flipped ? -1 : 1;
+    else if (key === 'ArrowDown') dR = flipped ? 1 : -1;
+    else if (key === 'ArrowLeft') dF = flipped ? 1 : -1;
+    else if (key === 'ArrowRight') dF = flipped ? -1 : 1;
+    else return;
+    const next = chShiftSq(chFocusedSq, dF, dR);
+    if (!next) return;
+    const oldCell = board.querySelector(`.ch-cell[data-sq="${chFocusedSq}"]`);
+    const newCell = board.querySelector(`.ch-cell[data-sq="${next}"]`);
+    if (oldCell) oldCell.tabIndex = -1;
+    chFocusedSq = next;
+    if (newCell) { newCell.tabIndex = 0; newCell.focus(); }
+  }
+
+  board.addEventListener('focusin', e => {
+    const cell = e.target.closest('.ch-cell');
+    if (!cell || !cell.dataset.sq) return;
+    if (cell.dataset.sq === chFocusedSq) return;
+    const old = board.querySelector(`.ch-cell[data-sq="${chFocusedSq}"]`);
+    if (old) old.tabIndex = -1;
+    chFocusedSq = cell.dataset.sq;
+    cell.tabIndex = 0;
+  });
+
+  board.addEventListener('keydown', e => {
+    if (chPendingPromotion) return;
+    if (state.over || state.aiThinking || state.paused) return;
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      chMoveFocus(e.key);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      const cell = board.querySelector(`.ch-cell[data-sq="${chFocusedSq}"]`);
+      if (cell) cell.click();
+    } else if (e.key === 'Escape') {
+      if (state.selected) {
+        e.preventDefault();
+        state.selected = null;
+        state.legalTargets = [];
+        renderBoard();
+        const cell = board.querySelector(`.ch-cell[data-sq="${chFocusedSq}"]`);
+        if (cell) cell.focus();
+      }
+    }
+  });
+
+  // ============ PGN export ============
+  document.getElementById('chPgnBtn').addEventListener('click', () => {
+    const pgn = state.game.pgn();
+    if (!pgn) { alert('还没有落子，无法导出'); return; }
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
+    const result = state.game.in_checkmate()
+      ? (state.game.turn() === 'w' ? '0-1' : '1-0')
+      : (state.game.in_draw() || state.game.in_stalemate() || state.game.in_threefold_repetition() || state.game.insufficient_material() ? '1/2-1/2' : '*');
+    const header = [
+      '[Event "ruizhou03.github.io"]',
+      '[Site "ruizhou03.github.io/toolbox/chess"]',
+      `[Date "${date}"]`,
+      '[White "?"]',
+      '[Black "?"]',
+      `[Result "${result}"]`,
+      ''
+    ].join('\n');
+    const blob = new Blob([header + pgn + '\n'], { type: 'application/x-chess-pgn' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chess-${Date.now()}.pgn`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
+  });
+
   // Click handling
   board.addEventListener('click', (e) => {
     if (state.over || state.aiThinking || state.paused) return;
@@ -809,7 +1011,11 @@ permalink: /toolbox/chess/
     if (state.selected) {
       const target = state.legalTargets.find(m => m.to === sq);
       if (target) {
-        applyMove({ from: state.selected, to: sq, promotion: target.promotion || 'q' });
+        if (target.flags.indexOf('p') !== -1) {
+          chShowPromotion(state.selected, sq, turn);
+          return;
+        }
+        applyMove({ from: state.selected, to: sq });
         return;
       }
       // Re-select if clicking another own piece
@@ -1307,16 +1513,8 @@ permalink: /toolbox/chess/
     await chRoomApi('POST', 'start', { code: chRoomCode, token: chRoomToken });
   });
 
-  (function chAutoJoin() {
-    const code = new URLSearchParams(location.search).get('room');
-    if (code && /^\d{4}$/.test(code)) {
-      document.getElementById('chPgoRoomCodeInput').value = code;
-      setTimeout(() => {
-        document.querySelector('#chPgoRoomTabs .gs-pgo-room-tab[data-tab="online"]')?.click();
-        setTimeout(chRoomAction, 800);
-      }, 500);
-    }
-  })();
+  // 联机入口暂时下线：chess 还没接 board relay（无 turn ordering、无走子广播），
+  // 旧的 ?room=XXXX 链接走 chAutoJoin 反而会进入误导玩家的半瘫痪流程，故 no-op。
 
   document.getElementById('chPgoStartBtn').addEventListener('click', () => {
     if (chIsOnline) return;
