@@ -1452,7 +1452,9 @@ permalink: /toolbox/feixingqi/
             effStatus = a.status;
             effPos = a.pos;
             animKind = a.kind;
-            if (a.status === 'track') xy = trackXY(a.pos);
+            if (a.kind === 'fly' && a.flyX != null) {
+              xy = { x: px(a.flyX), y: px(a.flyY) };
+            } else if (a.status === 'track') xy = trackXY(a.pos);
             else if (a.status === 'stretch') xy = stretchXY(c, a.pos);
             else if (a.status === 'goal') xy = goalXYFor(c);
             else xy = hangarXY(c, piece.pos);
@@ -1735,12 +1737,16 @@ permalink: /toolbox/feixingqi/
       const landed = layout.TRACK[cur];
       const startIdx = layout.BIG_JUMP_START[player];
       if (cur === startIdx && landed.type === 'tri-concave' && landed.plane === player) {
-        // Big jump: fly along dashed line to END endpoint.
+        // Big jump: fly along dashed line to END endpoint with intermediate steps.
         const endIdx = layout.BIG_JUMP_END[player];
-        if (endIdx !== undefined && endIdx !== cur) {
-          path.push({ kind: 'pause' });
-          path.push({ kind: 'fly', status: 'track', pos: endIdx });
+        const endCell = layout.TRACK[endIdx];
+        path.push({ kind: 'pause' });
+        const flySteps = 6;
+        for (let s = 1; s <= flySteps; s++) {
+          const t = s / (flySteps + 1);
+          path.push({ kind: 'fly-step', x: landed.cx + (endCell.cx - landed.cx) * t, y: landed.cy + (endCell.cy - landed.cy) * t });
         }
+        path.push({ kind: 'fly', status: 'track', pos: endIdx });
       } else if (landed.color === player) {
         // Small jump: +4 cells CW (applies to dashed-line END endpoint too).
         path.push({ kind: 'pause' });
@@ -1764,15 +1770,15 @@ permalink: /toolbox/feixingqi/
   const STEP_MS_BASE = 150;
   const STEP_MS_MIN = 70;
   const PAUSE_MS = 380;          // delay between dice-walk and bonus motion
-  const FLY_MS = 720;             // single-frame snap from START → END for big jump
+  const FLY_MS = 720;             // total flight duration for big jump animation
+  const FLY_STEP_MS = 80;         // ms per intermediate fly-step
 
   // Animate a piece along the computed path, then call onDone().
   function animatePieceMove(player, pieceIdx, dice, onDone) {
     const path = computeAnimationPath(player, pieceIdx, dice);
     if (path.length === 0) { onDone(); return; }
-    // Count only the 'walk'/'fly' frames for the speed calc — pauses don't
-    // contribute to the visual step count.
-    const moveFrames = path.filter(p => p.kind === 'walk' || p.kind === 'fly').length;
+    // Count walk/fly/fly-step frames for the speed calc — pauses don't contribute.
+    const moveFrames = path.filter(p => p.kind === 'walk' || p.kind === 'fly' || p.kind === 'fly-step').length;
     const stepMs = Math.max(STEP_MS_MIN, STEP_MS_BASE - moveFrames * 4);
     let i = 0;
     function step() {
@@ -1787,11 +1793,18 @@ permalink: /toolbox/feixingqi/
         animationTimer = setTimeout(step, PAUSE_MS);
         return;
       }
+      if (p.kind === 'fly-step') {
+        state.animating = { color: player, pieceIdx, status: 'track', pos: -1, kind: 'fly', flyX: p.x, flyY: p.y };
+        renderBoard();
+        i++;
+        animationTimer = setTimeout(step, FLY_STEP_MS);
+        return;
+      }
       if (p.kind === 'fly') {
         state.animating = { color: player, pieceIdx, status: p.status, pos: p.pos || 0, kind: 'fly' };
         renderBoard();
         i++;
-        animationTimer = setTimeout(step, FLY_MS);
+        animationTimer = setTimeout(step, FLY_STEP_MS);
         return;
       }
       // kind === 'walk' (default)
