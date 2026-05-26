@@ -108,7 +108,7 @@ permalink: /toolbox/chess/
   .ch-cell.last-from { box-shadow: inset 0 0 0 100px rgba(245, 209, 66, 0.32); }
   .ch-cell.last-to { box-shadow: inset 0 0 0 100px rgba(245, 209, 66, 0.45); }
   .ch-cell.selected { box-shadow: inset 0 0 0 4px #e6b400; }
-  .ch-cell.in-check { box-shadow: inset 0 0 0 4px #e74c3c; background: rgba(231, 76, 60, 0.25) !important; }
+  .ch-cell.in-check { box-shadow: inset 0 0 0 4px #b07c75; background: rgba(176, 124, 117, 0.25) !important; }
   @media (hover: hover) {
     .ch-cell:hover { filter: brightness(1.05); }
   }
@@ -488,7 +488,7 @@ permalink: /toolbox/chess/
   function isFlipped() {
     if (state.mode === 'ai-black') return true;
     if (chIsOnline && chMyColor === 'b') return true;
-    if (state.mode === 'pvp' && state.pvpFlip && state.game.turn() === 'b') return true;
+    if (!chIsOnline && state.mode === 'pvp' && state.pvpFlip && state.game.turn() === 'b') return true;
     return false;
   }
 
