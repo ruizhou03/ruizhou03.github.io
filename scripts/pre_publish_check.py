@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
-"""发表前检查：对给定 .md 文件跑 4 项 inspection 并报告不合规项。
+"""发表前检查 + 自动修复：对给定 .md 文件跑 5 项 inspection，--fix 自动修。
 
 用法：
-  python3 scripts/pre_publish_check.py <file.md>...     # 逐文件报告
-  python3 scripts/pre_publish_check.py --staged           # 只看 git 暂存区 _notes/*.md
+  python3 scripts/pre_publish_check.py <file.md>...     # 只报告
+  python3 scripts/pre_publish_check.py <file.md> --fix   # 报告 + 自动修
+  python3 scripts/pre_publish_check.py --staged           # 扫 git 暂存区 _notes/*.md
+  python3 scripts/pre_publish_check.py --staged --fix     # 扫暂存区并自动修
 
-退出码：0 = 全部通过；1 = 有不合规项（含修复提示）。
+退出码：0 = 全部通过（或已自动修复）；1 = 有无法自动修复的项。
 
-覆盖的检查项（对齐 new-post skill 通用正文规则）：
-  1. img-caption 内 markdown 残留（**粗体** / `代码` / [链接](url)）
-  2. SVG <text> 含中文却 font-style="italic"
-  3. 裸 http(s):// URL（未包 markdown link 或 autolink）
-  4. 裸 $ 金额未转义（会被 KaTeX 当公式吃掉）
-  5. CJK ↔ 拉丁/数字紧贴缺空格（盘古之白）
-
-新文章发表前跑一遍，配合 new-post skill 的"写完后"步骤。
-只报告、不修改（修复用 scripts/fix_*.py 对应工具）。
+检查项：
+  1. img-caption 内 markdown 残留       → --fix: 自动转 HTML（**→<strong>、`→<code>、[..](..)→<a>）
+  2. SVG <text> 中文 italic             → --fix: 自动去掉 font-style="italic"
+  3. 裸 http(s):// URL                  → 不自动修（需人工判断链接文字）
+  4. 裸 $ 金额                           → --fix: 自动转 \\$
+  5. CJK ↔ 拉丁/数字紧贴缺空格            → --fix: 自动补空格
 """
 from __future__ import annotations
 
@@ -28,7 +27,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 
 
-# ── 工具函数 ────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# 工具
+# ═══════════════════════════════════════════════════════════
 def split_frontmatter(text):
     if not text.startswith("---\n") and not text.startswith("---\r\n"):
         return "", text
@@ -39,20 +40,20 @@ def split_frontmatter(text):
     return "", text
 
 
-def line_no(text, pos):
-    return text.count("\n", 0, pos) + 1
-
-
-# ── 检查 1: caption markdown 残留 ──────────────────────
+# ═══════════════════════════════════════════════════════════
+# 1. caption markdown 残留
+# ═══════════════════════════════════════════════════════════
 CAPTION_RE = re.compile(
     r'<p\s+class=(["\'])img-caption\1[^>]*>(.*?)</p>',
     re.IGNORECASE | re.DOTALL,
 )
-MD_PATTERNS = [
-    ("**粗体**", re.compile(r"\*\*[^*\n]+?\*\*")),
-    ("__粗体__", re.compile(r"__[^_\n]+?__")),
-    ("`代码`", re.compile(r"`[^`\n]+?`")),
-    ("[链接](…)", re.compile(r"\[[^\]\n]+?\]\([^)\n]+?\)")),
+
+# key = (pattern_to_find, find_label, fix_fn: str -> str)
+_CAPTION_FIXES = [
+    (re.compile(r"\*\*([^*\n]+?)\*\*"),      "**粗体**", lambda m: f"<strong>{m.group(1)}</strong>"),
+    (re.compile(r"__([^_\n]+?)__"),           "__粗体__", lambda m: f"<strong>{m.group(1)}</strong>"),
+    (re.compile(r"`([^`\n]+?)`"),             "`代码`",   lambda m: f"<code>{m.group(1)}</code>"),
+    (re.compile(r"\[([^\]\n]+?)\]\(([^)\n]+?)\)"), "[链接](url)", lambda m: f'<a href="{m.group(2)}">{m.group(1)}</a>'),
 ]
 
 
@@ -60,23 +61,36 @@ def check_caption_md(body):
     hits = []
     for m in CAPTION_RE.finditer(body):
         inner = m.group(2)
-        for label, pat in MD_PATTERNS:
+        for pat, label, _ in _CAPTION_FIXES:
             if pat.search(inner):
-                ln = line_no(body, m.start())
+                ln = body.count("\n", 0, m.start()) + 1
                 snip = m.group(0).replace("\n", " ⏎ ").strip()
-                if len(snip) > 150:
-                    snip = snip[:147] + "…"
-                hits.append((ln, label, snip))
+                hits.append((ln, label, snip[:150]))
                 break
     return hits
 
 
-# ── 检查 2: SVG 中文斜体 ───────────────────────────────
+def fix_caption_md(body):
+    def _fix_one(m):
+        inner = m.group(2)
+        for pat, _, fn in _CAPTION_FIXES:
+            inner = pat.sub(fn, inner)
+        return m.group(0).replace(m.group(2), inner)
+    return CAPTION_RE.sub(_fix_one, body)
+
+
+# ═══════════════════════════════════════════════════════════
+# 2. SVG 中文斜体
+# ═══════════════════════════════════════════════════════════
 SVG_RE = re.compile(r"<svg\b[^>]*>(.*?)</svg>", re.IGNORECASE | re.DOTALL)
 TEXT_RE = re.compile(r"<text\b([^>]*)>(.*?)</text>", re.IGNORECASE | re.DOTALL)
 ITALIC_ATTR = re.compile(r'font-style\s*=\s*(["\'])\s*italic\s*\1', re.IGNORECASE)
-ITALIC_STYLE = re.compile(r"font-style\s*:\s*italic", re.IGNORECASE)
+ITALIC_STYLE = re.compile(r"font-style\s*:\s*italic\s*;?", re.IGNORECASE)
 CJK_RE = re.compile(r"[㐀-鿿　-〿＀-￯]")
+
+
+def _has_italic(s):
+    return bool(ITALIC_ATTR.search(s) or ITALIC_STYLE.search(s))
 
 
 def check_svg_italic(body):
@@ -84,21 +98,45 @@ def check_svg_italic(body):
     for svg_m in SVG_RE.finditer(body):
         svg_start = svg_m.start()
         svg_open = body[svg_start : svg_start + body[svg_start:].find(">") + 1]
-        svg_italic = bool(ITALIC_ATTR.search(svg_open) or ITALIC_STYLE.search(svg_open))
+        svg_italic = _has_italic(svg_open)
         for tm in TEXT_RE.finditer(svg_m.group(0)):
             attrs, inner = tm.group(1), tm.group(2)
-            has_italic = svg_italic or bool(ITALIC_ATTR.search(attrs) or ITALIC_STYLE.search(attrs))
-            if not has_italic or not CJK_RE.search(inner):
+            if not (svg_italic or _has_italic(attrs)):
                 continue
-            ln = line_no(body, svg_start + tm.start())
+            if not CJK_RE.search(inner):
+                continue
+            ln = body.count("\n", 0, svg_start + tm.start()) + 1
             snip = inner.strip().replace("\n", " ")
-            if len(snip) > 80:
-                snip = snip[:77] + "…"
-            hits.append((ln, snip))
+            hits.append((ln, snip[:80]))
     return hits
 
 
-# ── 检查 3: 裸 URL ─────────────────────────────────────
+def fix_svg_italic(body):
+    def _fix_svg(m):
+        svg_inner = m.group(1)
+        def _fix_text(tm):
+            attrs = tm.group(1)
+            if not CJK_RE.search(tm.group(2)):
+                return tm.group(0)
+            if _has_italic(attrs):
+                attrs = ITALIC_ATTR.sub("", attrs)
+                attrs = ITALIC_STYLE.sub("", attrs)
+                return f"<text{attrs}>{tm.group(2)}</text>"
+            return tm.group(0)
+        svg_inner = TEXT_RE.sub(_fix_text, svg_inner)
+        svg_open = m.group(0)[:m.group(0).find(">") + 1]
+        if _has_italic(svg_open):
+            svg_open = ITALIC_ATTR.sub("", svg_open)
+            svg_open = ITALIC_STYLE.sub("", svg_open)
+            svg_inner = re.sub(r"</svg>$", "", svg_inner, flags=re.IGNORECASE)
+            return svg_open + svg_inner
+        return m.group(0).replace(m.group(1), svg_inner)
+    return SVG_RE.sub(_fix_svg, body)
+
+
+# ═══════════════════════════════════════════════════════════
+# 3. 裸 URL —— 不自动修
+# ═══════════════════════════════════════════════════════════
 URL_RE = re.compile(r"(?<![\(<\"'])https?://[^\s<>\)\]\"']+(?<![\.,;:!?])")
 REF_LINK_RE = re.compile(r"^\s*\[[^\]]+\]:\s*https?://", re.MULTILINE)
 
@@ -109,8 +147,8 @@ def check_bare_url(body):
     fence_marker = None
     for idx, raw in enumerate(body.splitlines(), start=1):
         stripped = raw.lstrip()
-        leading = raw[:len(raw) - len(stripped)]
-        if len(leading) < 4:
+        lead = raw[: len(raw) - len(stripped)]
+        if len(lead) < 4:
             if stripped.startswith("```"):
                 if not in_fence:
                     in_fence = True; fence_marker = "```"
@@ -129,21 +167,19 @@ def check_bare_url(body):
             continue
         if REF_LINK_RE.match(raw):
             continue
-        # 抹 inline code + markdown link + autolink
         scrub = raw
         scrub = re.sub(r"`[^`\n]*`", lambda m: " " * len(m.group(0)), scrub)
         scrub = re.sub(r"\]\(https?://[^\s\)]+\)", lambda m: " " * len(m.group(0)), scrub)
         scrub = re.sub(r"<https?://[^>\s]+>", lambda m: " " * len(m.group(0)), scrub)
         for m in URL_RE.finditer(scrub):
-            url = m.group(0)
-            snip = raw.strip()
-            if len(snip) > 140:
-                snip = snip[:137] + "…"
-            hits.append((idx, url, snip))
+            snip = raw.strip()[:140]
+            hits.append((idx, m.group(0), snip))
     return hits
 
 
-# ── 检查 4: 裸 $ 金额 ──────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# 4. 裸 $ 金额
+# ═══════════════════════════════════════════════════════════
 def _find_closing(body, start, end):
     k = start
     while k < end:
@@ -154,11 +190,11 @@ def _find_closing(body, start, end):
 
 
 def check_bare_dollar(body):
+    hits = []
     n = len(body)
     i = 0
     in_fence = False
     fence_marker = None
-    hits = []
 
     def at_line_start(pos):
         return pos == 0 or body[pos - 1] == "\n"
@@ -191,11 +227,9 @@ def check_bare_dollar(body):
                 if body.startswith(fence_marker, j):
                     le = body.find("\n", j)
                     i = (le + 1) if le != -1 else n
-                    in_fence = False
-                    fence_marker = None
+                    in_fence = False; fence_marker = None
                     continue
-            i += 1
-            continue
+            i += 1; continue
         if ch == "`":
             ticks = ch
             while i + 1 < n and body[i + 1] == "`":
@@ -229,7 +263,7 @@ def check_bare_dollar(body):
                     cl = _find_closing(body, i + 1, le)
                     if cl != -1:
                         i = cl + 1; continue
-                ln = line_no(body, i)
+                ln = body.count("\n", 0, i) + 1
                 ls = body.rfind("\n", 0, i) + 1
                 le2 = body.find("\n", i)
                 snippet = body[ls:(le2 if le2 != -1 else n)].strip()
@@ -240,22 +274,127 @@ def check_bare_dollar(body):
     return hits
 
 
-# ── 检查 5: CJK ↔ 拉丁/数字紧贴 ─────────────────────────
+def fix_bare_dollar(body):
+    """按字符遍历，把裸 $<数字> 改成 \\$<数字>"""
+    out = []
+    i = 0
+    n = len(body)
+    in_fence = False; fence_marker = None
+
+    def at_line_start(pos):
+        return pos == 0 or body[pos - 1] == "\n"
+
+    while i < n:
+        ch = body[i]
+
+        # skip HTML-only lines
+        if at_line_start(i) and not in_fence:
+            j = i
+            while j < n and body[j] in " \t":
+                j += 1
+            if j < n and body[j] == "<" and j + 1 < n and (body[j + 1].isalpha() or body[j + 1] == "/"):
+                le = body.find("\n", j)
+                if le != -1:
+                    out.append(body[i:le + 1]); i = le + 1
+                else:
+                    out.append(body[i:]); i = n
+                continue
+
+        # fence enter/exit
+        if at_line_start(i) and not in_fence:
+            j = i
+            while j < n and body[j] == " ":
+                j += 1
+            if body.startswith("```", j) or body.startswith("~~~", j):
+                in_fence = True
+                fence_marker = "```" if body.startswith("```", j) else "~~~"
+                le = body.find("\n", j)
+                if le != -1:
+                    out.append(body[i:le + 1]); i = le + 1
+                else:
+                    out.append(body[i:]); i = n
+                continue
+        if in_fence:
+            if at_line_start(i):
+                j = i
+                while j < n and body[j] == " ":
+                    j += 1
+                if body.startswith(fence_marker, j):
+                    le = body.find("\n", j)
+                    if le != -1:
+                        out.append(body[i:le + 1]); i = le + 1
+                    else:
+                        out.append(body[i:]); i = n
+                    in_fence = False; fence_marker = None
+                    continue
+            out.append(ch); i += 1; continue
+
+        # inline code: pass through
+        if ch == "`":
+            j = i
+            while j < n and body[j] == "`":
+                j += 1
+            ticks = body[i:j]
+            ci = body.find(ticks, j)
+            if ci != -1:
+                out.append(body[i:ci + len(ticks)]); i = ci + len(ticks)
+            else:
+                out.append(ticks); i = j
+            continue
+
+        if ch == "$":
+            if i > 0 and body[i - 1] == "\\":
+                out.append(ch); i += 1; continue
+            le = body.find("\n", i)
+            if le == -1:
+                le = n
+            if i + 1 < n and body[i + 1] == "\\":
+                cl = _find_closing(body, i + 1, le)
+                if cl != -1:
+                    out.append(body[i:cl + 1]); i = cl + 1
+                else:
+                    out.append(ch); i += 1
+                continue
+            j = i + 1
+            while j < n and body[j] in " \t":
+                j += 1
+            if j < n and body[j].isdigit():
+                k = j
+                while k < n and (body[k].isdigit() or body[k] in ",."):
+                    k += 1
+                if k < n and body[k] in "KMBkmb":
+                    k += 1
+                m = k
+                while m < n and body[m] in " \t":
+                    m += 1
+                if m < n and body[m] in "$\\^_{}":
+                    cl = _find_closing(body, i + 1, le)
+                    if cl != -1:
+                        out.append(body[i:cl + 1]); i = cl + 1; continue
+                out.append("\\$"); i += 1; continue
+            out.append(ch); i += 1; continue
+        out.append(ch); i += 1
+    return "".join(out)
+
+
+# ═══════════════════════════════════════════════════════════
+# 5. CJK ↔ 拉丁/数字紧贴
+# ═══════════════════════════════════════════════════════════
 _CJK = r"一-鿿㐀-䶿぀-ゟ゠-ヿ"
 _LATIN = r"A-Za-z0-9"
 CJK_LATIN_LEFT = re.compile(rf"([{_CJK}])([{_LATIN}])")
 LATIN_CJK_RIGHT = re.compile(rf"([{_LATIN}])([{_CJK}])")
 
 
-def _protect_masked(body):
-    """掩掉不可改片段后做 CJK 空格检测（只报告，不改写）。"""
+def _mask_unfixable(body):
+    """掩掉不可改的片段（fenced code, math, links, HTML, inline code），
+    避免在公式/代码里乱加空格。返回 (masked_body, 原始片段列表)。"""
     chunks = []
 
     def push(m):
         chunks.append(m.group(0))
         return "\x00M{}\x00".format(len(chunks) - 1)
 
-    # fenced code
     body = re.sub(
         r"(^|\n)((?:```|~~~)[^\n]*\n(?:.*?\n)??(?:```|~~~)[^\n]*)",
         lambda m: m.group(1) + push(m), body, flags=re.DOTALL,
@@ -272,47 +411,52 @@ def _protect_masked(body):
     return body, chunks
 
 
+def _restore(body, chunks):
+    return re.compile(re.escape("\x00M") + r"(\d+)" + re.escape("\x00")).sub(
+        lambda m: chunks[int(m.group(1))], body,
+    )
+
+
 def check_cjk_spacing(body):
-    protected, _ = _protect_masked(body)
+    protected, _ = _mask_unfixable(body)
     hits = []
     for idx, raw in enumerate(body.splitlines(), start=1):
-        p_idx = protected.splitlines()[min(idx - 1, len(protected.splitlines()) - 1)] if protected.splitlines() else raw
+        plines = protected.splitlines()
+        p_idx = plines[min(idx - 1, len(plines) - 1)] if plines else raw
         for m in CJK_LATIN_LEFT.finditer(p_idx):
-            hits.append((idx, m.start(), "缺空格 → 在汉字和数字/英文之间加空格"))
+            hits.append((idx, m.start(), "汉字紧贴英文/数字"))
         for m in LATIN_CJK_RIGHT.finditer(p_idx):
-            hits.append((idx, m.start(), "缺空格 → 在数字/英文和汉字之间加空格"))
+            hits.append((idx, m.start(), "英文/数字紧贴汉字"))
     return hits
 
 
-# ── 主入口 ──────────────────────────────────────────────
+def fix_cjk_spacing(body):
+    protected, chunks = _mask_unfixable(body)
+    new = CJK_LATIN_LEFT.sub(r"\1 \2", protected)
+    new = LATIN_CJK_RIGHT.sub(r"\1 \2", new)
+    return _restore(new, chunks)
+
+
+# ═══════════════════════════════════════════════════════════
+# 主逻辑
+# ═══════════════════════════════════════════════════════════
 CHECKERS = [
-    ("caption markdown 残留", check_caption_md, "把 ** 改成 <strong>、` 改成 <code>、[..](..) 改成 <a>"),
-    ("SVG 中文斜体", check_svg_italic, "去掉 font-style=\"italic\"，中文用字号/颜色/加粗替代强调"),
-    ("裸 URL", check_bare_url, "改成 [文字](url) 或 <url>"),
-    ("裸 $ 金额", check_bare_dollar, "改成 \\$（如 \\$100），否则 KaTeX 会误匹配"),
-    ("CJK 紧贴缺空格", check_cjk_spacing, "在汉字与英文/数字之间加半角空格"),
+    # (name, check_fn, fix_fn, auto_fixable)
+    ("caption markdown 残留", check_caption_md, fix_caption_md, True),
+    ("SVG 中文斜体",          check_svg_italic, fix_svg_italic, True),
+    ("裸 URL",               check_bare_url,   None,            False),
+    ("裸 $ 金额",             check_bare_dollar, fix_bare_dollar, True),
+    ("CJK 紧贴缺空格",        check_cjk_spacing, fix_cjk_spacing, True),
 ]
-
-
-def check_file(path):
-    try:
-        text = path.read_text(encoding="utf-8", errors="ignore")
-    except Exception as e:
-        return [(f"读取失败: {e}", [])]
-    _, body = split_frontmatter(text)
-    results = []
-    for name, fn, hint in CHECKERS:
-        hits = fn(body)
-        results.append((name, hits, hint))
-    return results
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--staged", action="store_true", help="只检查 git 暂存区的 _notes/*.md")
-    ap.add_argument("--ci", action="store_true", help="CI 模式：更简洁的单行输出")
+    ap.add_argument("--staged", action="store_true", help="只检查 git 暂存区 _notes/*.md")
+    ap.add_argument("--fix", action="store_true", help="自动修复可修复的问题")
     ap.add_argument("paths", nargs="*")
     args = ap.parse_args()
+    FIX = args.fix
 
     if args.staged:
         out = subprocess.run(
@@ -327,7 +471,6 @@ def main():
                 if p.is_file():
                     files.append(p)
         if not files:
-            print("✅ 暂存区没有 _notes/ 下的 .md 文件，跳过。")
             return 0
     elif args.paths:
         files = [(REPO / p).resolve() for p in args.paths]
@@ -338,44 +481,39 @@ def main():
     any_issues = False
     for fp in files:
         fp = fp.resolve()
-        rel = str(fp.relative_to(REPO))
-        results = check_file(fp)
-        file_issues = [(name, h, hint) for name, h, hint in results if h]
-        if not file_issues:
-            if not args.ci:
-                print(f"✅ {rel}  4 项检查全部通过")
+        try:
+            rel = str(fp.relative_to(REPO))
+        except ValueError:
+            rel = str(fp)
+        try:
+            text = fp.read_text(encoding="utf-8", errors="ignore")
+        except Exception as e:
+            print(f"❌ {rel}  读取失败: {e}")
+            any_issues = True
             continue
-        any_issues = True
-        if args.ci:
-            for name, hits, _ in file_issues:
-                print(f"❌ {rel}  [{name}: {len(hits)} 处]")
-        else:
-            print(f"\n{'=' * 60}")
-            print(f"📄 {rel}")
-            print(f"{'=' * 60}")
-            for name, hits, hint in file_issues:
-                print(f"\n  ❌ {name}（{len(hits)} 处）→ {hint}")
-                for h in hits[:5]:
-                    # Format varies by checker; unpack best effort
-                    parts = [str(x) for x in h]
-                    if len(parts) >= 2:
-                        print(f"    L{parts[0]}: {parts[-1][:120]}")
-                    else:
-                        print(f"    {parts[0][:120]}")
-                if len(hits) > 5:
-                    print(f"    …另 {len(hits) - 5} 处")
 
-    if not any_issues:
-        print("✅ 全部通过！", end="\n" if not args.ci else "")
-        return 0
+        fm, body = split_frontmatter(text)
 
-    print(f"\n{'─' * 40}")
-    print("💡 修复工具:")
-    print("  裸 $ 金额   →  python3 scripts/fix_dollar.py <file>")
-    print("  CJK 空格    →  python3 scripts/fix_cjk_spacing.py <file> --write")
-    print("  caption 等  →  手工改（参考上方提示）")
-    print(f"{'─' * 40}")
-    return 1
+        for name, check_fn, fix_fn, auto in CHECKERS:
+            hits = check_fn(body)
+            if not hits:
+                continue
+            if FIX and auto and fix_fn:
+                body = fix_fn(body)
+                print(f"🔧 {rel}  [{name}: {len(hits)} 处 → 已自动修复]")
+                continue
+            any_issues = True
+            print(f"❌ {rel}  [{name}: {len(hits)} 处{'（需手动改）' if not auto else ''}]")
+            for h in hits[:3]:
+                parts = [str(x) for x in h]
+                print(f"    L{parts[0]}: {parts[-1][:120]}")
+            if len(hits) > 3:
+                print(f"    …另 {len(hits) - 3} 处")
+
+        if FIX and body != split_frontmatter(text)[1]:
+            fp.write_text(fm + body, encoding="utf-8")
+
+    return 1 if any_issues else 0
 
 
 if __name__ == "__main__":
