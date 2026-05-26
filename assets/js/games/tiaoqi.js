@@ -1439,7 +1439,7 @@
       h += gsEsc(p.nick);
       if (isMe) h += ' (你)';
       if (isHost) h += ' <span class="gs-pgo-room-host-badge">房主</span>';
-      if (tqRoomHost && room.state === 'lobby' && !isMe) h += `<button class="tq-room-kick" data-act="kick" data-id="${p.id}">✕</button>`;
+      if (tqRoomHost && room.state === 'lobby' && !isMe) h += `<button class="tq-room-kick" data-act="kick" data-id="${p.id}" aria-label="踢出 ${p.nick}">✕</button>`;
       h += '</li>';
       return h;
     }).join('');
@@ -1476,7 +1476,7 @@
     if (tqRoomPlayerId !== p.proposedBy) {
       const myVote = p.votes[tqRoomPlayerId];
       if (myVote === null || myVote === undefined) {
-        html += `<div style="display:flex;gap:0.4rem;"><button class="gs-pgo-room-btn primary fn-vote-btn gs-vote-yes" data-vote="yes">✅ 同意</button><button class="gs-pgo-room-btn fn-vote-btn gs-vote-no" data-vote="no">❌ 拒绝</button></div>`;
+        html += `<div style="display:flex;gap:0.4rem;"><button class="gs-pgo-room-btn primary fn-vote-btn gs-vote-yes" data-vote="yes" aria-label="同意房主提议">✅ 同意</button><button class="gs-pgo-room-btn fn-vote-btn gs-vote-no" data-vote="no" aria-label="拒绝房主提议">❌ 拒绝</button></div>`;
       } else {
         html += `<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);">你已投票：${myVote === 'yes' ? '✅ 同意' : '❌ 拒绝'}</div>`;
       }

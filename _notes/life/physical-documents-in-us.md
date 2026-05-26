@@ -28,9 +28,9 @@ keywords: ["美国电子版不算数", "美国非要打印文件", "physical cop
 
 **作为读者，最简单的应对是——**
 
-- **家里常备一台打印机**（$80 一台 brother 黑白激光，比每次跑学校 / 图书馆便宜）
+- **家里常备一台打印机**（\$80 一台 brother 黑白激光，比每次跑学校 / 图书馆便宜）
 - **重要 PDF 永远先打印一份**：I-20 / DS-2019 / I-94 / I-797 / EAD（备份）/ 签证页
-- **出门前默认打印 vs 疑问时打印**：打印的成本是 $0.10，被卡半天的成本是几十美刀和一下午
+- **出门前默认打印 vs 疑问时打印**：打印的成本是 \$0.10，被卡半天的成本是几十美刀和一下午
 
 # 3. 哪些场景必须 / 通常要实体？
 
@@ -42,45 +42,45 @@ keywords: ["美国电子版不算数", "美国非要打印文件", "physical cop
   <!-- Spectrum bar -->
   <defs>
     <linearGradient id="paperGrad" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#c0392b"/>
-      <stop offset="50%" stop-color="#f39c12"/>
-      <stop offset="100%" stop-color="#27ae60"/>
+      <stop offset="0%" stop-color="#b56565"/>
+      <stop offset="50%" stop-color="#c4a070"/>
+      <stop offset="100%" stop-color="#8aa085"/>
     </linearGradient>
   </defs>
   <rect x="60" y="50" width="640" height="14" rx="7" fill="url(#paperGrad)"/>
-  <text x="60" y="42" font-size="11" fill="#c0392b" font-weight="600">几乎全要纸</text>
-  <text x="380" y="42" text-anchor="middle" font-size="11" fill="#f39c12" font-weight="600">实体优先 / 电子辅助</text>
-  <text x="700" y="42" text-anchor="end" font-size="11" fill="#27ae60" font-weight="600">接受电子</text>
+  <text x="60" y="42" font-size="11" fill="#b56565" font-weight="600">几乎全要纸</text>
+  <text x="380" y="42" text-anchor="middle" font-size="11" fill="#c4a070" font-weight="600">实体优先 / 电子辅助</text>
+  <text x="700" y="42" text-anchor="end" font-size="11" fill="#8aa085" font-weight="600">接受电子</text>
 
   <!-- 场景标签 -->
   <g font-family="sans-serif" font-size="11" fill="#444">
-    <line x1="100" y1="64" x2="100" y2="80" stroke="#c0392b" stroke-width="1.5"/>
+    <line x1="100" y1="64" x2="100" y2="80" stroke="#b56565" stroke-width="1.5"/>
     <text x="100" y="100" text-anchor="middle">DMV / 驾照</text>
     <text x="100" y="115" text-anchor="middle" font-size="10" fill="#888">(I-20 必须打印)</text>
 
-    <line x1="180" y1="64" x2="180" y2="120" stroke="#c0392b" stroke-width="1.5"/>
+    <line x1="180" y1="64" x2="180" y2="120" stroke="#b56565" stroke-width="1.5"/>
     <text x="180" y="135" text-anchor="middle">SSA</text>
     <text x="180" y="150" text-anchor="middle" font-size="10" fill="#888">(申请 SSN 全纸质)</text>
 
-    <line x1="260" y1="64" x2="260" y2="170" stroke="#c0392b" stroke-width="1.5"/>
+    <line x1="260" y1="64" x2="260" y2="170" stroke="#b56565" stroke-width="1.5"/>
     <text x="260" y="185" text-anchor="middle">USCIS / 海关</text>
     <text x="260" y="200" text-anchor="middle" font-size="10" fill="#888">(I-797 / 签证页)</text>
 
-    <line x1="340" y1="64" x2="340" y2="220" stroke="#e67e22" stroke-width="1.5"/>
+    <line x1="340" y1="64" x2="340" y2="220" stroke="#b58266" stroke-width="1.5"/>
     <text x="340" y="235" text-anchor="middle">学校 ISSO / 考试</text>
     <text x="340" y="250" text-anchor="middle" font-size="10" fill="#888">(成绩单密封 / GRE 护照)</text>
 
-    <line x1="420" y1="64" x2="420" y2="100" stroke="#f39c12" stroke-width="1.5"/>
+    <line x1="420" y1="64" x2="420" y2="100" stroke="#c4a070" stroke-width="1.5"/>
     <text x="420" y="115" text-anchor="middle">银行 / 雇主 I-9</text>
 
-    <line x1="500" y1="64" x2="500" y2="135" stroke="#f39c12" stroke-width="1.5"/>
+    <line x1="500" y1="64" x2="500" y2="135" stroke="#c4a070" stroke-width="1.5"/>
     <text x="500" y="150" text-anchor="middle">医院 / 药房 / 保险</text>
 
-    <line x1="580" y1="64" x2="580" y2="170" stroke="#27ae60" stroke-width="1.5"/>
+    <line x1="580" y1="64" x2="580" y2="170" stroke="#8aa085" stroke-width="1.5"/>
     <text x="580" y="185" text-anchor="middle">租房 / 房东</text>
     <text x="580" y="200" text-anchor="middle" font-size="10" fill="#888">(DocuSign 渐多)</text>
 
-    <line x1="660" y1="64" x2="660" y2="220" stroke="#27ae60" stroke-width="1.5"/>
+    <line x1="660" y1="64" x2="660" y2="220" stroke="#8aa085" stroke-width="1.5"/>
     <text x="660" y="235" text-anchor="middle">日常电商 / 科技公司</text>
     <text x="660" y="250" text-anchor="middle" font-size="10" fill="#888">(订单全 paperless)</text>
   </g>
@@ -111,7 +111,7 @@ keywords: ["美国电子版不算数", "美国非要打印文件", "physical cop
 | **学校 ISSO 旅行签证（Travel Signature）** | DSO 必须**亲笔在 I-20 第二页签蓝色墨水**（数字签名不算）|
 | **官方成绩单（Official Transcript）** | 学校只发**密封信封 + 学校章**的纸质版本（电子也行但收件方多数要密封纸质）|
 | **推荐信 / 入学材料** | 部分申请要密封纸质推荐信（教授直接寄给学校）|
-| **学位证 / Diploma** | 实体颁发，丢了补办 $50-$200 |
+| **学位证 / Diploma** | 实体颁发，丢了补办 \$50-\$200 |
 | **入学体检 / 疫苗记录** | 多数学校要纸质 + 医生签字 + 诊所章（即便诊所有 patient portal）|
 
 **特别要警惕的**：**Travel Signature**（每年 / 每学期一次的 ISSO 签字）——很多学生以为 DSO 在 PDF 上签名就行，但**美国海关在你回美国时只看 I-20 第二页上有没有“原始蓝色墨水手签 + 当年日期”**，PDF 签名一律不认。每次回国前 2 周去 ISSO 办，是必走流程。
@@ -144,7 +144,7 @@ keywords: ["美国电子版不算数", "美国非要打印文件", "physical cop
 - 个人房东（特别是郊区 / 大学城那种家庭房）：**坚持纸质租约 + paper check 房租**——部分房东根本不会用 Zelle / Venmo
 - 中间地带：纸质租约 + 接受 Venmo / Zelle 房租
 
-**典型坑**：找到便宜的个人房东房子，签约才发现房东要每月**亲手交支票**——支票本去哪买？Chase / BofA 网银上申请，$15-$30 一沓。**支票本是租房党必备**。
+**典型坑**：找到便宜的个人房东房子，签约才发现房东要每月**亲手交支票**——支票本去哪买？Chase / BofA 网银上申请，\$15-\$30 一沓。**支票本是租房党必备**。
 
 ## 3.6 车辆 / 保险（车上必带实体）
 
@@ -160,7 +160,7 @@ keywords: ["美国电子版不算数", "美国非要打印文件", "physical cop
 
 - **Notary（公证）**：必须**亲自到 notary 面前**（in-person notarization）。最近少数州（PA 是其中之一）允许 [Remote Online Notarization (RON)](https://www.dos.pa.gov/) 但仍需视频 + 实体记录
 - **房产 closing**：买房交易仍是 wet signature 大场面——20+ 张文件每张都要手签
-- **婚姻 / 出生 / 死亡证书副本**：必须申请 **certified copy**（带州章的实体版本），$15-$25 一份
+- **婚姻 / 出生 / 死亡证书副本**：必须申请 **certified copy**（带州章的实体版本），\$15-\$25 一份
 
 # 4. 为什么美国这么“传统”？
 
@@ -210,11 +210,11 @@ keywords: ["美国电子版不算数", "美国非要打印文件", "physical cop
 
 家里**强烈推荐有一台黑白激光打印机**——
 
-- **Brother HL-L2350DW** 或 **HL-L2390DW**：约 $80-$100，墨粉一年用不完
+- **Brother HL-L2350DW** 或 **HL-L2390DW**：约 \$80-\$100，墨粉一年用不完
 - 黑白激光不要喷墨（喷墨墨水贵 + 半年不用就干掉）
 - 无线 + 双面打印是基本要求
 
-> 一年下来你打印的东西：I-20 复印件、租约、报税表、医保理赔单、签证 renewal 材料、签证面试表 DS-160 confirmation、USCIS 表格、Notary 文件、车辆维修发票……平均每月 3-5 次。一台 $100 打印机 ROI 极高。
+> 一年下来你打印的东西：I-20 复印件、租约、报税表、医保理赔单、签证 renewal 材料、签证面试表 DS-160 confirmation、USCIS 表格、Notary 文件、车辆维修发票……平均每月 3-5 次。一台 \$100 打印机 ROI 极高。
 
 ## 5.2 重要文件的“两份策略”
 
@@ -240,7 +240,7 @@ keywords: ["美国电子版不算数", "美国非要打印文件", "physical cop
 - ✅ 信用卡 / 借记卡 1-2 张
 - ✅ 健康保险卡
 - ✅ 学校 ID
-- ✅ 几张 $20 现金
+- ✅ 几张 \$20 现金
 
 **不放钱包的**：SSN 卡、护照、I-20 原件——丢了恢复成本太高。
 
@@ -283,4 +283,4 @@ keywords: ["美国电子版不算数", "美国非要打印文件", "physical cop
 3. **学校 ISSO 网站** —— 你所在学校的 International Student Services 页面，“Documents to Bring” 通常列得最详细
 4. 之前几篇姊妹文章：[美国签证完全指南](/life/us-visa-types) / [宾州驾照](/life/pa-drivers-license) / [美国身份证件](/life/us-id-and-identity)
 
-最后说一件事——**搬来美国第一周买一台打印机**。这一个 $80 的小决定，会让你在接下来一年里少跑学校 / 图书馆 / 邻居家**至少 30 趟**。它不只是省时间——更重要的是**省去“我以为电子版可以”的反复试错**。在美国生活的第一年，有太多事情你需要把精力放在**学习 / 研究 / 适应**上，而不是反复跟机构周旋“为什么不收 PDF”。**这一台打印机，是留学生最划算的'生活资本'之一。**
+最后说一件事——**搬来美国第一周买一台打印机**。这一个 \$80 的小决定，会让你在接下来一年里少跑学校 / 图书馆 / 邻居家**至少 30 趟**。它不只是省时间——更重要的是**省去“我以为电子版可以”的反复试错**。在美国生活的第一年，有太多事情你需要把精力放在**学习 / 研究 / 适应**上，而不是反复跟机构周旋“为什么不收 PDF”。**这一台打印机，是留学生最划算的'生活资本'之一。**

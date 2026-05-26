@@ -12,7 +12,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 
 写给三类人：
 
-- **第一年要租房的留学生**——刚来美国，宿舍住不久 / 校外要租公寓，被 Zillow 上一堆“$1,500 / $2,500 / $3,000”看花眼
+- **第一年要租房的留学生**——刚来美国，宿舍住不久 / 校外要租公寓，被 Zillow 上一堆“\$1,500 / \$2,500 / \$3,000”看花眼
 - **OPT 工作族搬到新城市**——找工作要换城市，但**信用记录还没建好**，租房 application 一交就被拒
 - **跨州搬家**——从大学城搬到大城市 metro 区域，发现**纽约 / 旧金山 / 波士顿**的租房逻辑和大学城完全不一样
 
@@ -29,22 +29,22 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 
 | 路径 | 适合 | 月租 | 难度 |
 |---|---|---|---|
-| **学校宿舍 / on-campus** | 第一年最稳 | $600-$1,200 | 低（直接申请）|
-| **学校 graduate housing** | 研究生 / 已婚学生 | $700-$1,500 | 低（学校 ID + 在读证明） |
-| **大型公寓集团**（Greystar / Equity / Avalon）| 想 paperless / 流程标准 | $1,200-$2,500 | 中（要信用 / co-signer） |
-| **私人房东 house / 独栋**| 价格便宜 + 灵活 | $800-$1,800 | 中（个人沟通 + 现金支票房租）|
-| **室友合租 shared room** | 单人省钱 + 社交 | $400-$900 / 人 | 低（找室友 + 谈定）|
+| **学校宿舍 / on-campus** | 第一年最稳 | \$600-\$1,200 | 低（直接申请）|
+| **学校 graduate housing** | 研究生 / 已婚学生 | \$700-\$1,500 | 低（学校 ID + 在读证明） |
+| **大型公寓集团**（Greystar / Equity / Avalon）| 想 paperless / 流程标准 | \$1,200-\$2,500 | 中（要信用 / co-signer） |
+| **私人房东 house / 独栋**| 价格便宜 + 灵活 | \$800-\$1,800 | 中（个人沟通 + 现金支票房租）|
+| **室友合租 shared room** | 单人省钱 + 社交 | \$400-\$900 / 人 | 低（找室友 + 谈定）|
 | **Sublease / 转租**（学期间）| 短期 / 暑期 | 协议价 | 低 |
 
 **月租 + utilities 预算速查（2026 年宾州为例）**：
 
 | 城市 | 1B1B 月租 | utilities 月费 | 总月住房成本 |
 |---|---|---|---|
-| **State College（Penn State）** | $900-$1,400 | $80-$150 | $1,000-$1,550 |
-| **Pittsburgh** | $1,000-$1,800 | $100-$180 | $1,100-$2,000 |
-| **Philadelphia** | $1,300-$2,500 | $100-$180 | $1,400-$2,700 |
-| **NYC（Manhattan）** | $3,500-$5,500 | $150-$250 | $3,700-$5,800 |
-| **SF / 湾区** | $2,800-$4,500 | $100-$200 | $3,000-$4,700 |
+| **State College（Penn State）** | \$900-\$1,400 | \$80-\$150 | \$1,000-\$1,550 |
+| **Pittsburgh** | \$1,000-\$1,800 | \$100-\$180 | \$1,100-\$2,000 |
+| **Philadelphia** | \$1,300-\$2,500 | \$100-\$180 | \$1,400-\$2,700 |
+| **NYC（Manhattan）** | \$3,500-\$5,500 | \$150-\$250 | \$3,700-\$5,800 |
+| **SF / 湾区** | \$2,800-\$4,500 | \$100-\$200 | \$3,000-\$4,700 |
 
 **3 个最大坑**：
 
@@ -96,7 +96,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 
 **特点**：
 
-- ✅ **单人月租 $400-$900**（State College 行情）
+- ✅ **单人月租 \$400-\$900**（State College 行情）
 - ✅ **找室友靠谱可以省一辈子的钱** + 社交
 - ❌ **室友冲突是最大风险**：作息 / 卫生 / 电费分担 / 厨房使用
 - ❌ **信用 / lease 责任**：通常**所有室友联名签 lease**，一人违约其他人连带
@@ -147,7 +147,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 预约 tour 后**到现场必问的 10 个问题**：
 
 1. **月租是多少**？ “Is the rent listed accurate? Any specials right now?”
-2. **Utilities 包括什么**？ “What's included in rent? Water? Heat? Trash? Internet?”——这条**月差 $50-$200**
+2. **Utilities 包括什么**？ “What's included in rent? Water? Heat? Trash? Internet?”——这条**月差 \$50-\$200**
 3. **押金多少 / 怎么返还**？ “Security deposit + return process?”——多数州法律规定 30 天内返还
 4. **Pet 政策 / pet deposit**？ “Pet allowed? Monthly pet rent? Refundable deposit?”——养猫狗的人必问
 5. **Parking 是另算还是含**？ “Is parking included? Cost per spot?”——城市 vs 大学城差异大
@@ -173,17 +173,17 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 ## 6.1 标准 Application 要求
 
 - **信用分（FICO Score）**：通常 $\geq 650$（高端 luxury 要 $\geq 720$）
-- **月收入**：通常 $\geq$ **3x 月租**（$1,500 月租 = $4,500 月收入证明）
+- **月收入**：通常 $\geq$ **3x 月租**（\$1,500 月租 = \$4,500 月收入证明）
 - **就业证明**：offer letter / pay stub / W-2 / I-20（学生）
 - **背景调查**：犯罪记录 + eviction history
-- **Application Fee**：$30-$75（多数 non-refundable，**每个 application 都要付**）
+- **Application Fee**：\$30-\$75（多数 non-refundable，**每个 application 都要付**）
 
 ## 6.2 留学生最大坑：没信用记录
 
 刚来美国的留学生 **FICO score 通常是 0**（没记录 ≠ 0 分，但系统看不到）。这时候大型公寓集团**一律拒绝你**——除非：
 
 - ✅ **找美国 co-signer**（父母 / 朋友 + 信用分 700+）
-- ✅ **多付押金**（通常 2-3 个月房租 = $3,000-$5,000）
+- ✅ **多付押金**（通常 2-3 个月房租 = \$3,000-\$5,000）
 - ✅ **找留学生 friendly 公寓**——大学城周边的公寓**习惯接受国际学生**，**用 I-20 + offer letter 替代信用**
 - ✅ **找私人房东 / Penn State 学生公寓**——这些通常对 international student 灵活
 
@@ -240,19 +240,19 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 - ✅ Internet / Cable
 
 **典型组合**：
-- **大型公寓集团**：water / trash / sewer 含；electricity / gas / internet 你付（约 $80-$150/月）
+- **大型公寓集团**：water / trash / sewer 含；electricity / gas / internet 你付（约 \$80-\$150/月）
 - **私人房东**：常常**全部你付**或都含，问清楚
 
 ## 7.4 Pet Policy + Pet Deposit
 
 - **是否允许 pet**？（许多 luxury 不让，许多 house 让）
-- **Pet deposit**：通常 $200-$500 一次性 + $20-$50/月 pet rent
+- **Pet deposit**：通常 \$200-\$500 一次性 + \$20-\$50/月 pet rent
 - **品种限制**：某些 breed（pit bull / rottweiler）禁止
 
 ## 7.5 Parking
 
 - **几个 parking spot**？（city 通常仅 1 个或 0 个）
-- **额外 spot 多少钱**？$30-$200/月
+- **额外 spot 多少钱**？\$30-\$200/月
 - **Street parking** 政策（permit / metered）
 
 ## 7.6 Break Clause（提前解约）
@@ -270,7 +270,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 ## 7.7 Liability + Renter's Insurance
 
 - 多数 lease 要求**租客买 Renter's Insurance**
-- $10-$25/月 / $100K liability + $30K personal property
+- \$10-\$25/月 / \$100K liability + \$30K personal property
 - 推荐：**Lemonade / GEICO / State Farm**
 
 ## 7.8 Renewal Terms
@@ -305,7 +305,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 1. **Electricity**（电）：
     - PA：[PPL Electric](https://www.pplelectric.com/)
     - 网上申请 1 周
-    - 押金 $0-$100（看信用）
+    - 押金 \$0-\$100（看信用）
 
 2. **Gas**（燃气，如果有）：
     - PA：[Columbia Gas](https://www.columbiagaspa.com/) / UGI / Peoples
@@ -316,22 +316,22 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
     - State College：[State College Borough Water Authority](https://www.scbwa.org/)
 
 4. **Internet**：
-    - **Xfinity / Comcast**（最普及）—— $50-$80/月（学生 promo $35）
+    - **Xfinity / Comcast**（最普及）—— \$50-\$80/月（学生 promo \$35）
     - **Verizon Fios**（光纤）—— 部分地区
     - **Earthlink / Frontier**——传统
     - **Google Fiber / T-Mobile Home Internet** —— 部分地区
-    - **设备**：自备 modem + router 省 $10-$15/月（vs 租 $15）
+    - **设备**：自备 modem + router 省 \$10-\$15/月（vs 租 \$15）
 
 5. **Cable / Streaming**：跳过 cable，用 Netflix / Disney+ / Hulu 即可
 
 ## 8.3 USPS Mail Forwarding（搬入 / 搬出时）
 
-- **[USPS Change of Address](https://moversguide.usps.com/)**：$1.10 fee + 6 个月 forward
+- **[USPS Change of Address](https://moversguide.usps.com/)**：\$1.10 fee + 6 个月 forward
 - **从旧地址转到新地址**——任何还在用旧地址的信件自动 forward
 
 ## 8.4 一些 nice-to-have
 
-- **Renter's Insurance**：$10-$25/月，**强制 + 必要**
+- **Renter's Insurance**：\$10-\$25/月，**强制 + 必要**
 - **告诉所有银行 / 信用卡 / IRS / DMV / 学校** 你的新地址
 - **认识邻居**：礼貌打个招呼——美国 apartment building 邻里关系比国内淡，但**关键时候靠得住**
 
@@ -354,7 +354,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 - 垃圾全部拉走（不能留 bin 里满满的）
 - 所有 appliance 清空（冰箱 freezer 解冻）
 
-**预算 1-2 天 + 1 个 service Day 找 cleaner（$100-$300）**——多数租客找清洁服务最划算。
+**预算 1-2 天 + 1 个 service Day 找 cleaner（\$100-\$300）**——多数租客找清洁服务最划算。
 
 ## 9.3 Walk-Through + Security Deposit 返还
 
@@ -368,7 +368,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 
 - 给所有 utilities 公司**通知最后日期**
 - 留 forwarding address 收最终账单
-- **Internet** 通常自动 cut off 但 box 要还（不还赔 $50-$200）
+- **Internet** 通常自动 cut off 但 box 要还（不还赔 \$50-\$200）
 
 # 10. 留学生特殊场景
 
@@ -403,7 +403,7 @@ OPT / 工作族跨州搬到新城市：
 1. **远程申请**：网上 application + 视频 tour（多数大公司支持）
 2. **租 1-2 周 Airbnb 缓冲**：到新城市后实地看几个再决定长期
 3. **Sublease 短期 → 长期 lease**：先 sublease 2-3 个月找好长期房子
-4. **公司 relocation package**：部分大公司提供 $3K-$10K 搬家补贴 + 30 天 corporate housing
+4. **公司 relocation package**：部分大公司提供 \$3K-\$10K 搬家补贴 + 30 天 corporate housing
 
 # 11. 几个反直觉常识
 
@@ -427,13 +427,13 @@ NYC 多数 listing 通过 **broker** 中介：
 
 很多 luxury 公寓宣传的 amenities：
 
-- ✅ **Gym**——常去用得着，省了健身房会费 $30-$50/月
+- ✅ **Gym**——常去用得着，省了健身房会费 \$30-\$50/月
 - ✅ **Trash / Mail room**——日常省事
 - ⚠️ **Pool**——夏天用 1-2 月，其余 10 月白付
 - ⚠️ **Concierge**——多数留学生用不上
 - ❌ **Yoga studio / 鸡尾酒 lounge / 顶层 patio**——pure 营销
 
-**算账**：amenities 成本通常算在月租 $100-$300 / 月里——**用得着的算，用不着的扣分**。
+**算账**：amenities 成本通常算在月租 \$100-\$300 / 月里——**用得着的算，用不着的扣分**。
 
 ## 11.4 cosigner 联保责任
 
@@ -453,7 +453,7 @@ NYC 多数 listing 通过 **broker** 中介：
 - **Last month rent**（最后一个月，存着）
 - **Security deposit**（押金，1-2 个月）
 
-**总计**：搬入第一天**要付 3-4 个月房租**——$1,500/月 = $4,500-$6,000 现金。
+**总计**：搬入第一天**要付 3-4 个月房租**——\$1,500/月 = \$4,500-\$6,000 现金。
 
 **留学生第一年要准备好这笔钱**——不是只准备第一个月。
 

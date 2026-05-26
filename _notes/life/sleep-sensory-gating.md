@@ -72,7 +72,8 @@ keywords: ["闭眼 透光", "眼皮 透光率", "眼皮不能完全挡光", "眼
 
 这就是为什么**闭眼直视太阳或台灯时，你看到的是红色或橙红色**——可见光被血红蛋白过滤掉了短波部分，只剩长波红光透过。如果你用手指压住闭着的眼皮再慢慢松开，看到的“光球”也会是红色——这是更厚一层血液过滤的结果。
 
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 280" style="max-width:100%;height:auto;display:block;margin:1.4em auto;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 280" style="max-width:100%;height:auto;display:block;margin:1.4em auto;" role="img" aria-label="眼皮对不同波长光的透过率：蓝光挡得多，红光透得多">
+  <title>眼皮像光谱滤镜：短波长（蓝光）被血管和组织高度吸收，长波长（红光）穿透率反而最高，所以闭眼仍能透红光。</title>
   <text x="350" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">眼皮的“光谱滤镜”：蓝光挡得多，红光透得多</text>
 
   <!-- Axes -->
@@ -160,7 +161,8 @@ ipRGC + 眼皮的组合给了大脑一种“省力的光强监测”：
 
 这就是“睡着了感觉不到”的核心机制——**不是耳朵关了、不是眼睛关了，是信号被卡在了丘脑这道闸门上**。
 
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" style="max-width:100%;height:auto;display:block;margin:1.4em auto;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" style="max-width:100%;height:auto;display:block;margin:1.4em auto;" role="img" aria-label="清醒与睡眠状态下感觉信号经过丘脑网状核 TRN 的过滤示意图">
+  <title>清醒时感觉信号直达皮层（全开）；睡眠时丘脑网状核 TRN 对低显著性信号关闸，只放过潜在重要信号（过滤）。</title>
   <text x="360" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">感觉信号的两种命运：清醒“全开”，睡眠“过滤”</text>
 
   <!-- LEFT: awake -->

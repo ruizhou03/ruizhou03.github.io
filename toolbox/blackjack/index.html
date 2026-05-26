@@ -676,7 +676,7 @@ permalink: /toolbox/blackjack/
     }
     doubleBtn.disabled = !canDouble;
     splitBtn.disabled = !canSplit;
-    submitBtn.disabled = state.peak <= 0;
+    submitBtn.disabled = state.peak <= 0 || state.rounds === 0 || state.peak <= START_CHIPS;
   }
 
   function setBanner(text, kind) {
@@ -1027,6 +1027,7 @@ permalink: /toolbox/blackjack/
   async function bjSubmitWithNick(nick) {
     if (!window.GamesShell) return;
     if (!nick || bjPendingSubmit || state.peak <= 0) return;
+    if (state.rounds === 0 || state.peak <= START_CHIPS) return;
     // 本轮已提交过相同（或更高）峰值则不重复打扰
     if (bjSubmittedPeak >= state.peak && bjSubmittedPeak > 0) return;
     bjPendingSubmit = true;

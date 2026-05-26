@@ -37,7 +37,8 @@ keywords: ["香蕉变黑了还能吃吗", "香蕉发黑能吃吗", "香蕉黑斑
 
 整个过程经历几个肉眼可分的阶段：
 
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" style="max-width:100%;height:auto;display:block;margin:1.2em auto;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" style="max-width:100%;height:auto;display:block;margin:1.2em auto;" role="img" aria-label="香蕉从青到黑的 5 阶段成熟过程示意图">
+  <title>香蕉成熟的 5 个阶段：青绿、初黄、金黄、黄带斑、黑斑——对应淀粉转糖、香气提升与酶促褐变。</title>
   <text x="360" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">香蕉成熟的 5 个阶段</text>
   <g transform="translate(0,40)">
     <g transform="translate(20,0)">

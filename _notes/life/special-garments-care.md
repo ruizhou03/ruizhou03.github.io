@@ -37,8 +37,8 @@ keywords: ["特殊衣物怎么洗", "衬衫怎么洗", "羽绒服能机洗吗", 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" style="max-width:100%;height:auto;display:block;margin:1.2em auto;">
   <text x="360" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">国际通用洗护符号速查</text>
   <g transform="translate(40,50)">
-    <rect x="0" y="0" width="200" height="290" fill="#e8f5fe" stroke="#3498db" stroke-width="1.5" rx="6"/>
-    <text x="100" y="22" text-anchor="middle" font-size="12" fill="#2980b9" font-weight="700">水洗符号</text>
+    <rect x="0" y="0" width="200" height="290" fill="#eef3f7" stroke="#7fa3c1" stroke-width="1.5" rx="6"/>
+    <text x="100" y="22" text-anchor="middle" font-size="12" fill="#6c8aa5" font-weight="700">水洗符号</text>
     <g transform="translate(20,50)">
       <path d="M 0 10 L 5 0 L 25 0 L 30 10 L 30 25 L 0 25 Z" fill="none" stroke="#333" stroke-width="1.5"/>
       <text x="40" y="20" font-size="11" fill="#333">机洗</text>
@@ -65,14 +65,14 @@ keywords: ["特殊衣物怎么洗", "衬衫怎么洗", "羽绒服能机洗吗", 
       <text x="40" y="20" font-size="11" fill="#333">手洗</text>
     </g>
     <g transform="translate(20,216)">
-      <path d="M 0 10 L 5 0 L 25 0 L 30 10 L 30 25 L 0 25 Z" fill="none" stroke="#c0392b" stroke-width="1.5"/>
-      <line x1="-2" y1="-2" x2="32" y2="27" stroke="#c0392b" stroke-width="2"/>
-      <text x="40" y="20" font-size="11" fill="#c0392b" font-weight="600">不可水洗</text>
+      <path d="M 0 10 L 5 0 L 25 0 L 30 10 L 30 25 L 0 25 Z" fill="none" stroke="#b56565" stroke-width="1.5"/>
+      <line x1="-2" y1="-2" x2="32" y2="27" stroke="#b56565" stroke-width="2"/>
+      <text x="40" y="20" font-size="11" fill="#b56565" font-weight="600">不可水洗</text>
     </g>
   </g>
   <g transform="translate(260,50)">
-    <rect x="0" y="0" width="200" height="290" fill="#fff5e6" stroke="#e67e22" stroke-width="1.5" rx="6"/>
-    <text x="100" y="22" text-anchor="middle" font-size="12" fill="#d35400" font-weight="700">漂白 / 烘干符号</text>
+    <rect x="0" y="0" width="200" height="290" fill="#f7f2ea" stroke="#b58266" stroke-width="1.5" rx="6"/>
+    <text x="100" y="22" text-anchor="middle" font-size="12" fill="#a87055" font-weight="700">漂白 / 烘干符号</text>
     <g transform="translate(20,50)">
       <path d="M 0 25 L 15 0 L 30 25 Z" fill="none" stroke="#333" stroke-width="1.5"/>
       <text x="40" y="20" font-size="11" fill="#333">可漂白</text>
@@ -80,8 +80,8 @@ keywords: ["特殊衣物怎么洗", "衬衫怎么洗", "羽绒服能机洗吗", 
     <g transform="translate(20,80)">
       <path d="M 0 25 L 15 0 L 30 25 Z" fill="none" stroke="#333" stroke-width="1.5"/>
       <text x="14" y="22" font-size="8" fill="#333" text-anchor="middle">CL</text>
-      <line x1="-2" y1="-2" x2="32" y2="27" stroke="#c0392b" stroke-width="2"/>
-      <text x="40" y="20" font-size="11" fill="#c0392b">不可氯漂</text>
+      <line x1="-2" y1="-2" x2="32" y2="27" stroke="#b56565" stroke-width="2"/>
+      <text x="40" y="20" font-size="11" fill="#b56565">不可氯漂</text>
     </g>
     <g transform="translate(20,110)">
       <rect x="0" y="0" width="30" height="25" fill="none" stroke="#333" stroke-width="1.5"/>
@@ -95,10 +95,10 @@ keywords: ["特殊衣物怎么洗", "衬衫怎么洗", "羽绒服能机洗吗", 
       <text x="40" y="18" font-size="11" fill="#333">低温烘干</text>
     </g>
     <g transform="translate(20,170)">
-      <rect x="0" y="0" width="30" height="25" fill="none" stroke="#c0392b" stroke-width="1.5"/>
-      <circle cx="15" cy="12" r="6" fill="none" stroke="#c0392b" stroke-width="1.5"/>
-      <line x1="-2" y1="-2" x2="32" y2="27" stroke="#c0392b" stroke-width="2"/>
-      <text x="40" y="18" font-size="11" fill="#c0392b">不可烘干</text>
+      <rect x="0" y="0" width="30" height="25" fill="none" stroke="#b56565" stroke-width="1.5"/>
+      <circle cx="15" cy="12" r="6" fill="none" stroke="#b56565" stroke-width="1.5"/>
+      <line x1="-2" y1="-2" x2="32" y2="27" stroke="#b56565" stroke-width="2"/>
+      <text x="40" y="18" font-size="11" fill="#b56565">不可烘干</text>
     </g>
     <g transform="translate(20,205)">
       <rect x="0" y="0" width="30" height="25" fill="none" stroke="#333" stroke-width="1.5"/>
@@ -113,8 +113,8 @@ keywords: ["特殊衣物怎么洗", "衬衫怎么洗", "羽绒服能机洗吗", 
     </g>
   </g>
   <g transform="translate(480,50)">
-    <rect x="0" y="0" width="200" height="290" fill="#e8f8e8" stroke="#27ae60" stroke-width="1.5" rx="6"/>
-    <text x="100" y="22" text-anchor="middle" font-size="12" fill="#27ae60" font-weight="700">熨烫 / 干洗符号</text>
+    <rect x="0" y="0" width="200" height="290" fill="#eef2ec" stroke="#8aa085" stroke-width="1.5" rx="6"/>
+    <text x="100" y="22" text-anchor="middle" font-size="12" fill="#8aa085" font-weight="700">熨烫 / 干洗符号</text>
     <g transform="translate(20,50)">
       <path d="M 0 20 L 30 20 L 25 5 L 5 5 Z" fill="none" stroke="#333" stroke-width="1.5"/>
       <text x="40" y="18" font-size="11" fill="#333">可熨烫</text>
@@ -131,9 +131,9 @@ keywords: ["特殊衣物怎么洗", "衬衫怎么洗", "羽绒服能机洗吗", 
       <text x="40" y="18" font-size="11" fill="#333">中温熨（150 ℃）</text>
     </g>
     <g transform="translate(20,140)">
-      <path d="M 0 20 L 30 20 L 25 5 L 5 5 Z" fill="none" stroke="#c0392b" stroke-width="1.5"/>
-      <line x1="-2" y1="-2" x2="32" y2="22" stroke="#c0392b" stroke-width="2"/>
-      <text x="40" y="18" font-size="11" fill="#c0392b">不可熨</text>
+      <path d="M 0 20 L 30 20 L 25 5 L 5 5 Z" fill="none" stroke="#b56565" stroke-width="1.5"/>
+      <line x1="-2" y1="-2" x2="32" y2="22" stroke="#b56565" stroke-width="2"/>
+      <text x="40" y="18" font-size="11" fill="#b56565">不可熨</text>
     </g>
     <g transform="translate(20,180)">
       <circle cx="15" cy="12" r="13" fill="none" stroke="#333" stroke-width="1.5"/>
@@ -145,9 +145,9 @@ keywords: ["特殊衣物怎么洗", "衬衫怎么洗", "羽绒服能机洗吗", 
       <text x="40" y="18" font-size="11" fill="#333">石油干洗</text>
     </g>
     <g transform="translate(20,245)">
-      <circle cx="15" cy="12" r="13" fill="none" stroke="#c0392b" stroke-width="1.5"/>
-      <line x1="0" y1="-3" x2="32" y2="29" stroke="#c0392b" stroke-width="2"/>
-      <text x="40" y="18" font-size="11" fill="#c0392b">不可干洗</text>
+      <circle cx="15" cy="12" r="13" fill="none" stroke="#b56565" stroke-width="1.5"/>
+      <line x1="0" y1="-3" x2="32" y2="29" stroke="#b56565" stroke-width="2"/>
+      <text x="40" y="18" font-size="11" fill="#b56565">不可干洗</text>
     </g>
   </g>
 </svg>
