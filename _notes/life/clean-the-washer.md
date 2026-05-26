@@ -99,8 +99,7 @@ keywords: ["洗衣机怎么清洁", "洗衣机自己也要洗", "洗衣机清洗
   <path d="M605 165 L475 195" stroke="#8e44ad" stroke-width="1.5" marker-end="url(#arr-w)"/>
 
   <!-- 橡胶门封 door seal (高亮重点) -->
-  <path d="M260 200 Q260 130 360 130 Q460 130 460 200 Q460 270 360 270 Q260 270 260 200 Z"
-        fill=“none” stroke=“#e74c3c” stroke-width=“4" opacity=”0.7"/>
+  <path d="M260 200 Q260 130 360 130 Q460 130 460 200 Q460 270 360 270 Q260 270 260 200 Z" fill="none" stroke="#e74c3c" stroke-width="4" opacity="0.7"/>
   <text x="80" y="200" text-anchor="middle" font-size="11" fill="#e74c3c" font-weight="600">② 橡胶门封</text>
   <text x="80" y="215" text-anchor="middle" font-size="9" fill="#666">褶皱积水霉斑</text>
   <text x="80" y="227" text-anchor="middle" font-size="9" fill="#e74c3c">★ 滚筒头号雷</text>
