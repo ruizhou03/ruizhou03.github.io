@@ -94,6 +94,13 @@
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \setcounter{secnumdepth}{5}
 \renewcommand{\and}{\\}
+\usepackage[most]{tcolorbox}
+\definecolor{boxidea}{HTML}{6c8aa5}
+\definecolor{boxwarn}{HTML}{b58266}
+\definecolor{boxtip}{HTML}{8aa085}
+\newtcolorbox{concept}[1][]{enhanced, breakable, colback=boxidea!7, colframe=boxidea, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}
+\newtcolorbox{pitfall}[1][]{enhanced, breakable, colback=boxwarn!7, colframe=boxwarn, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}
+\newtcolorbox{keypoint}[1][]{enhanced, breakable, colback=boxtip!7, colframe=boxtip, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}
 \usepackage{amsmath}
 \ifLuaTeX
   \usepackage{selnolig}  % disable illegal ligatures
@@ -118,10 +125,39 @@
 \setcounter{tocdepth}{2}
 \tableofcontents
 }
+\hypertarget{ux8fd9ux7ae0ux5728ux8bb2ux4ec0ux4e48}{%
+\section{这章在讲什么}\label{ux8fd9ux7ae0ux5728ux8bb2ux4ec0ux4e48}}
+
+主成分分析（PCA）和探索性因子分析（EFA）都是\textbf{降维}：把几十个高度相关的变量压缩成少数几个「主成分」/「因子」，让数据更可解释、更容易建模。两者数学很像（都用特征分解
+/ SVD），但\textbf{问题假设和目标不同}：
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{PCA}：纯几何变换------找一组互不相关的新坐标轴，让数据在第一根轴上方差最大、第二根次之\ldots\ldots 目标是\textbf{解释方差}。主成分本身没有「实质含义」，是数据自身的方向。
+\item
+  \textbf{EFA}：假设有几个\textbf{潜在心理结构}（latent
+  constructs）驱动了观测变量，目标是\textbf{推断这些结构是什么}。比如大五人格的
+  25 道题背后有 5 个潜在因子（开放性、尽责性、外向性、宜人性、神经质）。
+\end{itemize}
+
+\begin{concept}[PCA 的数学]
+对中心化（标准化）后的数据 $\mathbf{X}_{n \times p}$，计算协方差矩阵 $\mathbf{S} = \frac{1}{n-1}\mathbf{X}'\mathbf{X}$，做特征分解 $\mathbf{S} = \mathbf{V}\mathbf{\Lambda}\mathbf{V}'$。
+
+特征向量 $\mathbf{V}$ 是新坐标轴的方向，特征值 $\lambda_i$ 告诉你每根轴上有多少方差。按 $\lambda$ 从大到小排序，保留前 $k$ 个就完成了降维。
+
+「保留多少 $k$」三种判据：(1) \textbf{Kaiser 准则} $\lambda_i > 1$（保留高于平均方差的成分）；(2) \textbf{碎石图肘部}（scree plot，看曲线突然变缓的位置）；(3) \textbf{平行分析}（parallel analysis，跟随机数据比较，更稳健，bruceR::EFA 默认就给）。
+\end{concept}
+
+\textbf{EFA 跟 PCA 的关键区别}：EFA 引入「特有方差」（unique
+variance）------
+每个观测变量除了被共同因子解释，还有自己独有的方差（包括测量误差）。EFA
+只解释「公因子之间的协方差」，PCA 解释「所有方差」。实务上对人格 /
+智力量表做心理测量分析时用 EFA；对图像 / 基因表达做降维时用 PCA。
+
 \begin{Shaded}
 \begin{Highlighting}[]
 \FunctionTok{rm}\NormalTok{(}\AttributeTok{list=}\FunctionTok{ls}\NormalTok{())}
-\CommentTok{\# install.packages("GPArotation")}
 \FunctionTok{library}\NormalTok{(}\StringTok{"readxl"}\NormalTok{)}
 \FunctionTok{library}\NormalTok{(}\StringTok{"psych"}\NormalTok{)}
 \FunctionTok{library}\NormalTok{(dplyr)}
@@ -1468,5 +1504,17 @@ be high if the model is good.
 
 \hypertarget{psychdescribe}{%
 \subsection{\texorpdfstring{\texttt{psych::describe()}}{psych::describe()}}\label{psychdescribe}}
+
+\hypertarget{ux5bb9ux6613ux8e29ux7684ux5751}{%
+\section{容易踩的坑}\label{ux5bb9ux6613ux8e29ux7684ux5751}}
+
+\begin{pitfall}[PCA / EFA 最常见的几个误区]
+\begin{enumerate}
+\item \textbf{不标准化就跑 PCA}：与聚类同理——方差大的变量会主导第一主成分。除非所有变量天然同量纲（如百分比、Z 分数），都应该先 \texttt{scale()} 或者用相关矩阵代替协方差矩阵跑 PCA（\texttt{prcomp(x, scale. = TRUE)}）。
+\item \textbf{把 PCA 当 EFA 用}：用 \texttt{princomp} 或 \texttt{prcomp} 算出的「载荷」叫主成分载荷，本质是特征向量；EFA 的载荷是因子载荷，会随旋转方法变化。两者经过同一份数据可能数值很接近，但解释起来\textbf{完全不同}：主成分是「数据 → 成分」的投影，因子是「因子 → 数据」的反向解释。
+\item \textbf{Kaiser 准则保留所有 $\lambda > 1$ 成分}：Kaiser ($\lambda > 1$) 经常会保留过多成分，特别是变量数 $p > 30$ 时。优先信赖\textbf{平行分析}（parallel analysis）和\textbf{碎石图}的肘部，Kaiser 当作下限参考。
+\item \textbf{斜交旋转后看模式矩阵 / 结构矩阵搞混}：斜交旋转（如 promax / oblimin）后会产生两个载荷矩阵：\textbf{模式矩阵}（pattern matrix，回归系数）报告每个变量在每个因子上的「独特贡献」；\textbf{结构矩阵}（structure matrix，相关系数）报告每个变量和因子的「总相关」。解释因子用模式矩阵（剔除因子间相关之后的纯净贡献），别看错。正交旋转（varimax）两个矩阵相同。
+\end{enumerate}
+\end{pitfall}
 
 \end{document}

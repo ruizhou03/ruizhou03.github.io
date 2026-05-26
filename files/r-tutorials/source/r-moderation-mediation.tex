@@ -93,6 +93,13 @@
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \setcounter{secnumdepth}{5}
+\usepackage[most]{tcolorbox}
+\definecolor{boxidea}{HTML}{6c8aa5}
+\definecolor{boxwarn}{HTML}{b58266}
+\definecolor{boxtip}{HTML}{8aa085}
+\newtcolorbox{concept}[1][]{enhanced, breakable, colback=boxidea!7, colframe=boxidea, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}
+\newtcolorbox{pitfall}[1][]{enhanced, breakable, colback=boxwarn!7, colframe=boxwarn, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}
+\newtcolorbox{keypoint}[1][]{enhanced, breakable, colback=boxtip!7, colframe=boxtip, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}
 \renewcommand{\and}{\\}
 \ifLuaTeX
   \usepackage{selnolig}  % disable illegal ligatures
@@ -117,6 +124,36 @@
 \setcounter{tocdepth}{2}
 \tableofcontents
 }
+\hypertarget{ux8fd9ux7ae0ux5728ux8bb2ux4ec0ux4e48}{%
+\section{这章在讲什么}\label{ux8fd9ux7ae0ux5728ux8bb2ux4ec0ux4e48}}
+
+调节（moderation）和中介（mediation）解决的是两个\textbf{不同}问题，初学者经常混。一句话区分：
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{调节} \(X \xrightarrow{Z} Y\)：\(X\) 对 \(Y\)
+  的影响\textbf{取决于第三个变量}
+  \(Z\)（年纪小的时候社会支持作用大，年纪大就没那么明显）。回归形式：\(Y = a + b_1 X + b_2 Z + b_3 (X \cdot Z) + \varepsilon\)，关键看
+  \(b_3\)（交互项系数）的显著性。
+\item
+  \textbf{中介} \(X \to M \to Y\)：\(X\) 通过\textbf{一个中间变量} \(M\)
+  影响 \(Y\)（学习时间 → 自我效能感 →
+  学业成绩）。三步走：\(Y \sim X\)（总效应）、\(M \sim X\)（\(a\)
+  路径）、\(Y \sim X + M\)（\(b\) 路径 + 直接效应）。
+\end{itemize}
+
+\begin{concept}[两个核心数学量]
+\textbf{调节的 simple slope}：当 $Z$ 取某个具体值 $z_0$ 时，$X$ 对 $Y$ 的斜率为 $b_1 + b_3 z_0$。常规做法是在 $Z$ 的均值、$\bar Z \pm 1\,\mathrm{sd}$ 三个点上画斜率，看哪些斜率显著、哪些不显著。
+
+\textbf{中介的间接效应} $a \cdot b$：$X$ 经过 $M$ 影响 $Y$ 的部分。检验显著性首选\textbf{自助法置信区间}（bootstrap）而不是 Sobel 检验——因为 $a \cdot b$ 的抽样分布并不正态，Sobel 功效较低、保守。Hayes 的 PROCESS 宏 / R 的 \texttt{mediation} 包默认就是 bootstrap。
+\end{concept}
+
+\textbf{中心化变量}（centering）在调节分析里几乎是必做的：把 \(X\) 和
+\(Z\) 各自减去均值再相乘构造交互项，可以缓解 \(X \cdot Z\) 与
+\(X\)、\(Z\) 本身的多重共线性，让主效应 \(b_1\)、\(b_2\)
+解读为「在另一个变量取均值时的效应」。
+
 \hypertarget{moderation}{%
 \section{Moderation}\label{moderation}}
 
@@ -644,7 +681,6 @@ The code is exhibited below but I don't wanna run it.
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{install.packages}\NormalTok{(}\StringTok{"bda"}\NormalTok{)}
 \FunctionTok{library}\NormalTok{(bda)}
 \FunctionTok{mediation.test}\NormalTok{(Discount, Relationship, Satisfaction)}
 \end{Highlighting}
@@ -658,5 +694,16 @@ Lastly, don't forget to
 \end{Highlighting}
 \end{Shaded}
 
+\hypertarget{ux5bb9ux6613ux8e29ux7684ux5751}{%
+\section{容易踩的坑}\label{ux5bb9ux6613ux8e29ux7684ux5751}}
+
+\begin{pitfall}[调节与中介都容易栽的几件事]
+\begin{enumerate}
+\item \textbf{把交互显著当作"调节存在"，忘了画 simple slope}：$b_3$ 显著只说明斜率随 $Z$ 变化，但**怎么变**要看 simple slope。可能 $Z$ 高时正向显著、$Z$ 低时不显著（增强效应），也可能两端方向相反（buffering / crossover）。结论完全不一样。
+\item \textbf{中介不做 bootstrap CI}：很多老教材停留在 Baron \& Kenny 的「四步法 + Sobel test」，但近 15 年的方法论文献一致推荐 bootstrap CI 检验间接效应。$10000$ 次重抽 + 95\% percentile CI 是标配。
+\item \textbf{把中介和调节简单堆叠成"调节中介"模型不查可识别性}：moderated mediation（$X \to M \to Y$ 但 $a$ 或 $b$ 路径被 $Z$ 调节）需要明确指定哪一条路径被调节、$Z$ 在哪个方程里出现。盲目把所有变量塞 PROCESS 模板里跑不一定能识别。建议先画路径图，确认每条箭头都有理论支持再上模型。
+\item \textbf{中介的因果方向只来自理论}：$X \to M \to Y$ 跟 $X \to Y$（$M$ 是结果的一部分）在横截面数据下完全等价——区分只能靠时间顺序（纵向设计）或随机干预（实验）。横截面中介系数显著 \textbf{不能}直接得出因果结论。
+\end{enumerate}
+\end{pitfall}
 
 \end{document}

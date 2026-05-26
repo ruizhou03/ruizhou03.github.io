@@ -93,6 +93,13 @@
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \setcounter{secnumdepth}{5}
+\usepackage[most]{tcolorbox}
+\definecolor{boxidea}{HTML}{6c8aa5}
+\definecolor{boxwarn}{HTML}{b58266}
+\definecolor{boxtip}{HTML}{8aa085}
+\newtcolorbox{concept}[1][]{enhanced, breakable, colback=boxidea!7, colframe=boxidea, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}
+\newtcolorbox{pitfall}[1][]{enhanced, breakable, colback=boxwarn!7, colframe=boxwarn, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}
+\newtcolorbox{keypoint}[1][]{enhanced, breakable, colback=boxtip!7, colframe=boxtip, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}
 \ifLuaTeX
   \usepackage{selnolig}  % disable illegal ligatures
 \fi
@@ -139,10 +146,25 @@
 ##     intersect, setdiff, setequal, union
 \end{verbatim}
 
-The \texttt{df} contains information about salary, beginning salary,
-education year, job category, previous working experience and so on. The
-relationship between salary and beginning salary, education, to name a
-few, is of interest.
+\hypertarget{ux8fd9ux7ae0ux5728ux8bb2ux4ec0ux4e48}{%
+\subsection{这章在讲什么}\label{ux8fd9ux7ae0ux5728ux8bb2ux4ec0ux4e48}}
+
+多元线性回归（multiple linear regression, MLR）用多个解释变量
+\(X_1, \ldots, X_k\) 一起预测一个连续因变量
+\(Y\)。心理学最常见的两种用法：(1) 控制混杂变量，比如想看「干预 →
+学习成绩」的净效应，就把 IQ、动机、家庭背景一起塞进回归当协变量；(2)
+比较解释力，看哪个变量对结果的「贡献」最大（这需要看标准化系数而非原始系数，下文会讲）。
+
+\begin{concept}[核心模型与 OLS]
+模型形式：$Y_i = \beta_0 + \beta_1 X_{1i} + \cdots + \beta_k X_{ki} + \varepsilon_i$。OLS 估计的本质是最小化残差平方和 $\sum_i \hat\varepsilon_i^2$，闭式解 $\hat\beta = (X'X)^{-1} X'Y$。可识别需要 $X'X$ 可逆——这就是为什么\textbf{多重共线性}（某列能被其他列线性表出）会让 OLS 崩。
+
+斜率 $\beta_j$ 的解读：「在保持其他变量不变的情况下，$X_j$ 增加 1 单位，$Y$ 平均改变 $\beta_j$」。注意「保持其他变量不变」这件事经常做不到——这正是\textbf{偏相关}和后面要讲的 ANCOVA、Mediation 的出发点。
+\end{concept}
+
+下面这份 \texttt{df} 是 SPSS 自带的雇员信息数据，含工资
+\texttt{salary}、起薪 \texttt{salbegin}、受教育年数 \texttt{educ}、工龄
+\texttt{jobtime}、过往工作经验 \texttt{prevexp} 等。我们想用其他变量预测
+\texttt{salary}。
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -708,6 +730,17 @@ Do not forget to \texttt{detach()} the attached data.
 \FunctionTok{detach}\NormalTok{(df)}
 \end{Highlighting}
 \end{Shaded}
+
+\hypertarget{ux5bb9ux6613ux8e29ux7684ux5751}{%
+\section{容易踩的坑}\label{ux5bb9ux6613ux8e29ux7684ux5751}}
+
+\begin{pitfall}[新手容易栽的三件事]
+\begin{enumerate}
+\item \textbf{多重共线性}（multicollinearity）：解释变量之间相关性太高时 $X'X$ 接近奇异，$\hat\beta$ 方差爆炸，单个系数的 $t$ 检验不显著但模型整体 $F$ 检验显著。诊断：\texttt{car::vif()}，VIF $> 10$（甚至 $> 5$）就要警惕。常见来源——把同一个东西测了两遍（如「年龄」和「工龄」）、把多分类哑变量没设参照水平、塞进去一堆「派生变量」（如 $X$、$X^2$、$X \times Z$ 没中心化）。
+\item \textbf{$R^2$ 高不等于因果}：$R^2 = 0.9$ 只说明模型解释了 90\% 的方差，不代表 $X \to Y$ 是因果关系。教科书最爱举的例子：用「鞋码」预测「数学成绩」，$R^2$ 不低，但因果链是「年龄 → 鞋码 \& 数学」，鞋码本身没用。
+\item \textbf{残差不正态 / 异方差}：OLS 的 $t/F$ 检验和置信区间假设 $\varepsilon \sim \mathrm{Normal}(0, \sigma^2)$。Q-Q 图严重偏离对角线 → 正态性破；Scale-Location 图残差扇形分布 → 异方差。补救：稳健标准误（\texttt{sandwich::vcovHC}）、对 $Y$ 做对数变换、或换 GLM。
+\end{enumerate}
+\end{pitfall}
 
 \hypertarget{appendix}{%
 \section{Appendix}\label{appendix}}

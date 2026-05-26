@@ -93,6 +93,13 @@
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \setcounter{secnumdepth}{5}
+\usepackage[most]{tcolorbox}
+\definecolor{boxidea}{HTML}{6c8aa5}
+\definecolor{boxwarn}{HTML}{b58266}
+\definecolor{boxtip}{HTML}{8aa085}
+\newtcolorbox{concept}[1][]{enhanced, breakable, colback=boxidea!7, colframe=boxidea, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}
+\newtcolorbox{pitfall}[1][]{enhanced, breakable, colback=boxwarn!7, colframe=boxwarn, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}
+\newtcolorbox{keypoint}[1][]{enhanced, breakable, colback=boxtip!7, colframe=boxtip, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}
 \ifLuaTeX
   \usepackage{selnolig}  % disable illegal ligatures
 \fi
@@ -116,6 +123,21 @@
 \setcounter{tocdepth}{2}
 \tableofcontents
 }
+\hypertarget{ux8fd9ux7ae0ux5728ux8bb2ux4ec0ux4e48}{%
+\section{这章在讲什么}\label{ux8fd9ux7ae0ux5728ux8bb2ux4ec0ux4e48}}
+
+普通单因素 ANOVA
+假设组与组之间独立、组内观测也独立。但心理学实验里数据经常\textbf{有层级结构}：每个学校抽几个班，每个班抽几个学生------「学生」嵌套在「班」里，「班」嵌套在「学校」里。如果不显式建模这种嵌套，就会低估误差、把
+\(p\) 值算小、得出虚高的显著性。这一章讲两件事：\textbf{嵌套
+ANOVA}（一个因变量，但变量有嵌套层级）和
+\textbf{MANOVA}（多个因变量同时考察组间差异）。
+
+\begin{concept}[两个核心区别]
+\textbf{Nested ANOVA}：误差项要拆——「组间」的检验要用「子组间」的方差作分母，而不是「子组内」。R 里 \texttt{aov(DV \~{} group + Error(group/subgroup))} 这种 \texttt{Error()} 项就是干这件事。
+
+\textbf{MANOVA}：把多个 DV 看成一个向量 $\mathbf{Y}_i$，检验「组别」是否对 $\mathbf{Y}$ 的多维分布有影响。统计量从 $F$ 换成 Pillai's trace、Wilks' $\Lambda$、Hotelling-Lawley、Roy's largest root——这四个统计量各有侧重，Pillai 最稳健（对协方差齐性违反不敏感），是默认选择。MANOVA 显著之后再做 univariate ANOVA 看是哪个 DV 在驱动差异。
+\end{concept}
+
 \hypertarget{nested-anova}{%
 \section{Nested ANOVA}\label{nested-anova}}
 
@@ -720,5 +742,17 @@ Note that for many DVs to take the post-hoc tests simultaneously, first
 5 salbegin value 1      3        16162.   13539.    18784. 2.74e-10 ****        
 6 salbegin value 2      3        15180.   12514.    17846. 4.77e-10 ****        
 \end{verbatim}
+
+\hypertarget{ux5bb9ux6613ux8e29ux7684ux5751}{%
+\section{容易踩的坑}\label{ux5bb9ux6613ux8e29ux7684ux5751}}
+
+\begin{pitfall}[嵌套与 MANOVA 都容易栽的几件事]
+\begin{enumerate}
+\item \textbf{嵌套与交叉（crossed）混淆}：当「班」嵌套在「学校」里时，A 校的「3 班」和 B 校的「3 班」不是同一回事，必须写成 \texttt{Error(school/class)}。反之如果是真正的两个交叉因子（如「教学法」× 「教师」），应该用 \texttt{Y \~{} method * teacher}。判断标准：每个 level 的子因子是否在所有上级因子里出现？
+\item \textbf{MANOVA 跳过协方差齐性检查就上结果}：MANOVA 的 $p$ 值对 $\Sigma_1 = \Sigma_2 = \cdots = \Sigma_g$ 的同方差假设敏感。Box's $M$ 检验给出齐性 $p$；若 $p < 0.001$ 且各组样本量差异大，Pillai 之外的统计量（特别是 Wilks）都不可信。
+\item \textbf{MANOVA 显著就停手}：MANOVA 只告诉你「至少有一个 DV 上组间有差异」。要知道**是哪个 DV** 必须再跑 univariate ANOVA，最好做 Bonferroni 校正控制族错误率。
+\item \textbf{事后检验用错}：组间方差齐时用 Tukey HSD；不齐时用 Games-Howell（\texttt{rstatix::games\_howell\_test}）。本笔记上面演示的就是 Games-Howell，因为各职位类别样本量差异很大。
+\end{enumerate}
+\end{pitfall}
 
 \end{document}
