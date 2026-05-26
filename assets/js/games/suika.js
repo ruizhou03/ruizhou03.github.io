@@ -17,6 +17,70 @@
   const DEVICE_KEY = 'tool.suika.did.v1';
   const GAMEMODE_KEY = 'tool.suika.gameMode.v1';
 
+  // ============ 物理常量（集中管理，调参入口） ============
+  // 把散落在文件各处的物理魔法数集中到这里：以后想调手感（更弹、更滑、更慢落）
+  // 只在这一个对象里改，不用 grep 全文。新增物理参数也优先放这里。
+  const PC = {
+    // Matter.js solver iterations
+    positionIterations: 16,
+    velocityIterations: 10,
+    constraintIterations: 4,
+
+    // 墙体
+    wallThickness: 16,
+    wallFriction: 0.4,
+
+    // 生成 & 危险线
+    spawnY: 50,
+    dangerY: 100,
+    spawnQueueLen: 5,
+
+    // 水果刚体默认物理属性
+    fruitFriction: 0.35,
+    fruitFrictionStatic: 0.5,
+    fruitFrictionAir: 0.008,
+    fruitDensity: 0.0015,
+    fruitSlop: 0.05,
+
+    // 悬浮水果键盘操控
+    hoverAccel: 0.0018,
+    hoverMaxVx: 0.45,
+    hoverFriction: 0.0040,
+    hoverMargin: 4,
+
+    // 速度钳制 & 静止检测（tick 内 sub-stepping 用）
+    maxVel: 22,
+    restVel: 0.15,
+    restOmega: 0.02,
+    supportMargin: 1.5,
+    subStepTargetMs: 18,
+    maxSubSteps: 4,
+
+    // 合并物理
+    mergePopVelBase: -3.5,
+    mergePopVelPerLevel: 0.4,
+    mergePushRangeMultiplier: 2.2,
+    mergePushStrengthBase: 0.008,
+    mergePushStrengthPerLevel: 0.0017,
+
+    // 物理映射默认值（PHYSICS slider 的基底 + 量程）
+    defaultRestitutionBase: 0.05,
+    defaultRestitutionRange: 0.55,
+    defaultExplosionBase: 0.5,
+    defaultExplosionRange: 1.3,
+    defaultGravityBase: 0.0008,
+    defaultGravityRange: 0.0014,
+    defaultMergeTolBase: 1.02,
+    defaultMergeTolRange: 0.13,
+    defaultTremorAmp: 0.014,
+    defaultTremorShakeBase: 5,
+    defaultTremorShakeRange: 13,
+
+    // 喷泉 / 试玩
+    fountainMaxMs: 5000,
+    trialDrops: 10,
+  };
+
   // ============ 游戏模式（三个并行排行榜） ============
   // basic     - 严格模式：禁喷泉（按住空格 autorepeat 不生效）。计入主榜。
   // fountain  - 喷泉模式：5s 长按 + 1s 冷却。计入喷泉榜。
@@ -44,18 +108,18 @@
       // 回弹：0-1 → 0.05-0.60（之前上限 0.40 太低，"跳跳球"档其实只是中等
       // 橡胶。提到 0.60 才有真正"弹来弹去"的手感。MAX_VEL=22 clamp +
       // positionIterations=16 兜得住，不会引发出界 / 嵌入）
-      restitution: 0.05 + PHYSICS.bounce * 0.55,
+      restitution: PC.defaultRestitutionBase + PHYSICS.bounce * PC.defaultRestitutionRange,
       // 合并爆炸：0-1 → 0.5x-1.8x（基础推力的乘数）
-      explosionMult: 0.5 + PHYSICS.explosion * 1.3,
+      explosionMult: PC.defaultExplosionBase + PHYSICS.explosion * PC.defaultExplosionRange,
       // 重力：0-1 → 0.0008-0.0022
-      gravityScale: 0.0008 + PHYSICS.gravity * 0.0014,
+      gravityScale: PC.defaultGravityBase + PHYSICS.gravity * PC.defaultGravityRange,
       // 合并粘性：0-1 → 1.02-1.15（合并触发距离倍率）
-      mergeTolerance: 1.02 + PHYSICS.stickiness * 0.13,
+      mergeTolerance: PC.defaultMergeTolBase + PHYSICS.stickiness * PC.defaultMergeTolRange,
       // 地震：tremor=0 关，tremor=1 平均每 500ms 触发一次大扰动；
       //       0-1 之间间隔反比例延长 + 幅度等比缩小，时间和幅度都带 ±30% 噪声
       tremorIntervalMs: PHYSICS.tremor > 0 ? 500 / PHYSICS.tremor : Infinity,
-      tremorAmplitude: 0.014 * PHYSICS.tremor,
-      tremorShakePx: 5 + PHYSICS.tremor * 13,    // camera shake 像素幅度 5-18 px
+      tremorAmplitude: PC.defaultTremorAmp * PHYSICS.tremor,
+      tremorShakePx: PC.defaultTremorShakeBase + PHYSICS.tremor * PC.defaultTremorShakeRange,    // camera shake 像素幅度 5-18 px
     };
   }
   function loadPhysics() {
@@ -436,7 +500,7 @@
   // 长按空格"喷泉"限制（仅 fountain 模式生效；basic 完全禁、unlimited 不限）
   let spaceHeldSince = null;      // ms：当前按下空格的起始时间（null = 未按）
   let fountainCooldownUntil = 0;  // ms：当前喷泉冷却截止
-  const FOUNTAIN_MAX_MS = 5000;   // fountain 模式：单次长按最长 5s
+  const FOUNTAIN_MAX_MS = PC.fountainMaxMs;   // fountain 模式：单次长按最长 5s
   const FOUNTAIN_COOLDOWN_MS = 1000; // 满 5s 后冷却 1s
 
   // limit 可选；不传走全局默认 CHEAT_PER_RUN_LIMIT。给 full 这种特别危险的暗号
@@ -650,9 +714,9 @@
   const $startBest = document.getElementById('start-best');
 
   let W = 380, H = 540;     // 画布尺寸
-  const WALL = 16;          // 墙厚（保持薄墙的手感；穿墙的极端情况由 sanity cleanup 兜底）
-  const SPAWN_Y = 50;       // 悬浮水果 y
-  const DANGER_Y = 100;     // 危险线 y
+  const WALL = PC.wallThickness;          // 墙厚（保持薄墙的手感；穿墙的极端情况由 sanity cleanup 兜底）
+  const SPAWN_Y = PC.spawnY;       // 悬浮水果 y
+  const DANGER_Y = PC.dangerY;     // 危险线 y
 
   // 画幅 preset：(maxW, aspect) 决定画布尺寸。实际 W 还会被父容器宽度兜住。
   // 只留两档：太小不容易合到大水果。
@@ -697,7 +761,7 @@
   let walls = [];
   // 预生成的 spawn 队列（5 长）。peek 暗号要看未来 5 个 → 必须预生成才能"承诺"。
   // nextLevel 沿用变量名作为接口（指向 queue[0]），避免改 UI / 历史代码。
-  const SPAWN_QUEUE_LEN = 5;
+  const SPAWN_QUEUE_LEN = PC.spawnQueueLen;
   let nextLevelQueue = [];
   function ensureQueueFilled() {
     while (nextLevelQueue.length < SPAWN_QUEUE_LEN) nextLevelQueue.push(pickSpawnLevel());
@@ -722,7 +786,7 @@
   let gameFocused = false;          // 当前是否捕获键盘（点击 game-zone = true，点别处 = false）
   let trialMode = false;            // 是否在「试一试」试玩模式
   let trialDropsLeft = 0;
-  const TRIAL_DROPS = 10;
+  const TRIAL_DROPS = PC.trialDrops;
 
   // —— 排行榜状态 ——
   let runMaxLevel = 0;          // 本局合到的最高水果级别（用于结算高亮）
@@ -952,18 +1016,18 @@
       // 自激弹起改用 tick 里的"主动归零有支撑的低速水果"治本（见 tick 里 dampen）。
       enableSleeping: false,
     });
-    engine.constraintIterations = 4;
+    engine.constraintIterations = PC.constraintIterations;
     // 提高 position/velocity 迭代次数：密堆叠（特别是 lv 7+ 大水果合并产生
     // 更大新水果挤进周围）下，原本 10/8 不收敛 → 视觉嵌入。16/10 解决堆叠
     // 嵌入，CPU 几乎无感。
-    engine.positionIterations = 16;
-    engine.velocityIterations = 10;
+    engine.positionIterations = PC.positionIterations;
+    engine.velocityIterations = PC.velocityIterations;
     world = engine.world;
 
     walls = [
-      Bodies.rectangle(W / 2, H + WALL / 2, W, WALL, { isStatic: true, friction: 0.4 }),  // floor
-      Bodies.rectangle(-WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: 0.4 }),  // left
-      Bodies.rectangle(W + WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: 0.4 }), // right
+      Bodies.rectangle(W / 2, H + WALL / 2, W, WALL, { isStatic: true, friction: PC.wallFriction }),  // floor
+      Bodies.rectangle(-WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: PC.wallFriction }),  // left
+      Bodies.rectangle(W + WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: PC.wallFriction }), // right
     ];
     World.add(world, walls);
   }
@@ -990,16 +1054,16 @@
     const m = mapPhysics();
     const expMult = m.explosionMult;
 
-    const popVel = (-3.5 - newLevel * 0.4) * expMult;
+    const popVel = (PC.mergePopVelBase - newLevel * PC.mergePopVelPerLevel) * expMult;
     Body.setVelocity(merged, { x: (Math.random() - 0.5) * 1.2 * expMult, y: popVel });
 
-    const pushRange = newRadius * 2.2;
+    const pushRange = newRadius * PC.mergePushRangeMultiplier;
     // pushStrength 系数缩到 1/3：Matter.js 的 applyForce 实际注入速度是
     // (force/mass) × dt²（dt=16ms 时 dt²=256），这里 force=factor×mass 所以
     // Δv = factor × 256。原系数下 lv 4 橘子合并能给邻居注入 13 px/step、
     // lv 11 能注入 24 px/step，邻居直接被踹飞——表现就是"莫名弹起"
     // （加 cap 前甚至直接飞出画布消失）。缩到 1/3 后最高也只 12 px/step。
-    const pushStrength = (0.008 + newLevel * 0.0017) * expMult;
+    const pushStrength = (PC.mergePushStrengthBase + newLevel * PC.mergePushStrengthPerLevel) * expMult;
     Composite.allBodies(world).forEach(other => {
       if (other === merged || !other.fruitLevel) return;
       const dx = other.position.x - x;
@@ -1034,11 +1098,11 @@
     const m = mapPhysics();
     const body = Bodies.circle(x, y, fruit.radius, {
       restitution: m.restitution,    // 用户可调
-      friction: 0.35,
-      frictionStatic: 0.5,
-      frictionAir: 0.008,
-      density: 0.0015,
-      slop: 0.05,
+      friction: PC.fruitFriction,
+      frictionStatic: PC.fruitFrictionStatic,
+      frictionAir: PC.fruitFrictionAir,
+      density: PC.fruitDensity,
+      slop: PC.fruitSlop,
       ...opts,
     });
     body.fruitLevel = level;
@@ -1055,12 +1119,12 @@
   // 键盘左右控制 = 给水果一个力，速度随时间累积（按住越久越快）
   // ACCEL 加速度、MAX_VX 限速、FRICTION 松手摩擦减速；都按 px / ms（与 Matter dt 一致）
   let hoverVx = 0;
-  const HOVER_ACCEL    = 0.0018;
-  const HOVER_MAX_VX   = 0.45;
-  const HOVER_FRICTION = 0.0040;
+  const HOVER_ACCEL    = PC.hoverAccel;
+  const HOVER_MAX_VX   = PC.hoverMaxVx;
+  const HOVER_FRICTION = PC.hoverFriction;
 
   function clampHoverX(x, radius) {
-    return Math.max(radius + 4, Math.min(W - radius - 4, x));
+    return Math.max(radius + PC.hoverMargin, Math.min(W - radius - PC.hoverMargin, x));
   }
 
   function spawnHoveringFruit() {
@@ -1276,18 +1340,18 @@
         // restitution 反弹放大——表现就是手机端 touchstart 后下一帧"瞬间炸开"。
         // 修复：把 realDt 拆成 N 个 ~16ms 子步，每步独立 Engine.update + 速度
         // 校准，物理永远是稳定的小步长。realDt 60ms 时跑 4 步，每步 15ms。
-        const subSteps = Math.max(1, Math.min(4, Math.ceil(realDt / 18)));
+        const subSteps = Math.max(1, Math.min(PC.maxSubSteps, Math.ceil(realDt / PC.subStepTargetMs)));
         const stepDt = realDt / subSteps;
         // MAX_VEL 22：墙半厚 8 + 樱桃半径 13 + 1 安全边距。配合 sub-stepping
         // 后单步真实位移 ≤ 22 × stepDt/16 ≈ 22，仍小于穿墙阈值。提到 22 是
         // 因为 14 太低——frictionAir 终端速度 48 永远达不到，14 直接锁死下落
         // 后半段，看起来像"明显减速"。22 仍能保证安全又给下落留自然加速感。
-        const MAX_VEL = 22;
+        const MAX_VEL = PC.maxVel;
         // REST_VEL 0.15：原本 0.4 太高，正常摇晃也被冻住，缺自然 jitter。
         // 0.15 只冻"几乎完全静止"的水果，保留自然抖动。
-        const REST_VEL = 0.15;
-        const REST_OMEGA = 0.02;
-        const SUPPORT_MARGIN = 1.5;
+        const REST_VEL = PC.restVel;
+        const REST_OMEGA = PC.restOmega;
+        const SUPPORT_MARGIN = PC.supportMargin;
 
         for (let step = 0; step < subSteps; step++) {
           const fruits = Composite.allBodies(world).filter(b => b.fruitLevel);
@@ -3026,9 +3090,9 @@
     if (hoverFruit) hoverFruit.x = hoverX;
     walls.forEach(w => World.remove(world, w));
     walls = [
-      Bodies.rectangle(W / 2, H + WALL / 2, W, WALL, { isStatic: true, friction: 0.4 }),
-      Bodies.rectangle(-WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: 0.4 }),
-      Bodies.rectangle(W + WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: 0.4 }),
+      Bodies.rectangle(W / 2, H + WALL / 2, W, WALL, { isStatic: true, friction: PC.wallFriction }),
+      Bodies.rectangle(-WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: PC.wallFriction }),
+      Bodies.rectangle(W + WALL / 2, H / 2, WALL, H * 2, { isStatic: true, friction: PC.wallFriction }),
     ];
     World.add(world, walls);
   }
