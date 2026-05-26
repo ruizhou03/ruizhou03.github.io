@@ -1537,13 +1537,13 @@ permalink: /toolbox/feixingqi/
   // ============================================================
 
   // Special-cell landing triggers (per Chinese aeroplane chess rules):
-  //   • Land on dashed-line START (concave corner with own-color plane, START
-  //     endpoint only — see BIG_JUMP_START) → big jump along the dashed line
-  //     to the END endpoint. The flight is the entire action: no chained
-  //     small jump on arrival, even though the END cell is also own-color.
-  //   • Land on a cell whose COLOR matches your color (and it's not the
-  //     dashed-line START) → small jump: advance 4 cells CW. This includes
-  //     the dashed-line END endpoint (own-color tri-concave, no flight back).
+  //   • Land on EITHER concave corner with own-color plane → big jump along
+  //     the dashed line to the OTHER endpoint. No chained small jump on arrival.
+  //   • Land on a cell whose COLOR matches your color (and is NOT a big-jump
+  //     endpoint, and NOT your own stretch-entry cell) → small jump: advance 4
+  //     cells CW. The stretch-entry cell is exempt because landing there is
+  //     the doorway into the home stretch — firing a small jump would send
+  //     the plane past its own home and start another lap.
   // Stretch cells don't trigger jumps.
   function resolveJumps(player, idx) {
     const layout = L();
@@ -1556,7 +1556,7 @@ permalink: /toolbox/feixingqi/
         idx = endIdx;
         triggered.bigJumped = true;
       }
-    } else if (cell.color === player) {
+    } else if (cell.color === player && idx !== layout.STRETCH_TRANSITION[player]) {
       for (let k = 0; k < SMALL_JUMP_DISTANCE; k++) {
         idx = advanceOneOnLoop(player, idx);
       }
