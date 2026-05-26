@@ -1,13 +1,13 @@
 ---
 layout: post
-main_category: “学习资料”
-sub_category: “TOEFL”
-title: “（个人向）新托福写作：样例和总结”
-keywords: [“新托福 写作”, “托福写作 模板”, “托福 学术讨论”, “TOEFL academic discussion”, “托福综合写作”, “TOEFL integrated writing”, “新托福 改版 写作”, “托福写作 样例”, “托福写作 范文”, “托福写作 总结”, “TOEFL writing template”, “托福写作 备考”, “Kimi 写托福”, “托福 独立写作 取消”, “托福写作 章法”, “托福写作 non-native”, “托福 学术讨论 范文”, “托福 综合写作 范文”, “TOEFL writing 2023 改版”, “独立写作 取消”, “新托福写作 模板”, “托福 写作 范文 PDF”]
+main_category: "学习资料"
+sub_category: "TOEFL"
+title: "（个人向）新托福写作：样例和总结"
+keywords: ["新托福 写作", "托福写作 模板", "托福 学术讨论", "TOEFL academic discussion", "托福综合写作", "TOEFL integrated writing", "新托福 改版 写作", "托福写作 样例", "托福写作 范文", "托福写作 总结", "TOEFL writing template", "托福写作 备考", "Kimi 写托福", "托福 独立写作 取消", "托福写作 章法", "托福写作 non-native", "托福 学术讨论 范文", "托福 综合写作 范文", "TOEFL writing 2023 改版", "独立写作 取消", "新托福写作 模板", "托福 写作 范文 PDF"]
 date: 2024-07-07
-discipline: “语言考试”
-course: “TOEFL”
-material_type: “写作”
+discipline: "语言考试"
+course: "TOEFL"
+material_type: "Notes"
 ---
 
 ## 改版背景
@@ -17,7 +17,7 @@ material_type: “写作”
 整体上看，写作部分的难度减少了（个人看法）。综合写作和学术讨论只要逻辑紧扣题目即可，写作更有”章法”可循，不像独立写作那样容易在字里行间暴露”non-native”的味道，也不需要有太多个人的观点（省去了很多构思文章的时间）。
 
 ![新托福写作改版对比：2023 年 7 月 26 日前后题型与时间变化对照](/files/images/toefl-writing/01.jpg)
-<p class=”img-caption”>新托福写作改版前后对照：2023 年 7 月 26 日生效，独立写作被学术讨论取代、整体时长压缩。</p>
+<p class="img-caption">新托福写作改版前后对照：2023 年 7 月 26 日生效，独立写作被学术讨论取代、整体时长压缩。</p>
 
 ## 我的备考方法
 
@@ -51,8 +51,8 @@ PDF 在文章顶部的下载链接里。里面包含：
 把文档中综合写作和学术讨论的模板总结的两张图单独放上来了，方便参考。
 
 ![托福综合写作模板总结，含段落结构与听力反驳句型](/files/images/toefl-writing/02.jpg)
-<p class=”img-caption”>综合写作模板：三段结构 + 听力反驳读力 + 关键转折句型。</p>
+<p class="img-caption">综合写作模板：三段结构 + 听力反驳读力 + 关键转折句型。</p>
 
 ![托福学术讨论写作模板总结，含三段结构与让步论证句型](/files/images/toefl-writing/03.jpg)
-<p class=”img-caption”>学术讨论模板：立场表态 + 主体论证（让步 + 推进） + 收尾呼应。</p>
+<p class="img-caption">学术讨论模板：立场表态 + 主体论证（让步 + 推进） + 收尾呼应。</p>
 

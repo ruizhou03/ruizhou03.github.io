@@ -189,7 +189,7 @@ keywords: ["空气炸锅是怎么工作的", "空气炸锅原理", "空气炸锅
 - 用喷油壶（spray bottle）比刷子均匀，用量 0.5-1 茶匙
 - 食物自带油的（鸡翅、五花肉、香肠）不用加
 - 蔬菜需要少量油保湿
-- **别用 nonstick spray**（含丙烷会损伤不粘涂层）
+- **别用 nonstick spray**（含的卵磷脂 / 大豆油在高温下会聚合在不粘涂层上形成棕色顽固残渣，反而毁涂层；丙烷只是推进剂，不是元凶）
 
 **4. 温度选择**：
 
@@ -197,6 +197,38 @@ keywords: ["空气炸锅是怎么工作的", "空气炸锅原理", "空气炸锅
 - 160-180 ℃：厚切肉、需要内部熟透
 - 120-140 ℃：脆果、肉干
 - 80-100 ℃：解冻或低温慢烤
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 230" style="max-width:100%;height:auto;display:block;margin:1.2em auto;">
+  <text x="340" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#333">空气炸锅温度速查（℃）</text>
+  <g font-family="sans-serif">
+    <line x1="80" y1="180" x2="640" y2="180" stroke="#666" stroke-width="1.5"/>
+    <g font-size="10" fill="#666">
+      <text x="80" y="200" text-anchor="middle">60</text>
+      <text x="160" y="200" text-anchor="middle">100</text>
+      <text x="240" y="200" text-anchor="middle">140</text>
+      <text x="320" y="200" text-anchor="middle">160</text>
+      <text x="400" y="200" text-anchor="middle">180</text>
+      <text x="480" y="200" text-anchor="middle">200</text>
+      <text x="560" y="200" text-anchor="middle">220</text>
+      <text x="620" y="200" text-anchor="middle">240</text>
+      <text x="635" y="215" text-anchor="end">℃</text>
+    </g>
+    <g>
+      <rect x="120" y="60" width="80" height="18" fill="#3498db" opacity="0.85"/>
+      <text x="160" y="74" text-anchor="middle" font-size="11" fill="#fff" font-weight="600">80–100 解冻 / 慢烤</text>
+      <rect x="200" y="85" width="80" height="18" fill="#16a085" opacity="0.85"/>
+      <text x="240" y="99" text-anchor="middle" font-size="11" fill="#fff" font-weight="600">120–140 脆果 / 肉干</text>
+      <rect x="320" y="110" width="80" height="18" fill="#27ae60" opacity="0.85"/>
+      <text x="360" y="124" text-anchor="middle" font-size="11" fill="#fff" font-weight="600">160–180 厚切肉</text>
+      <rect x="400" y="135" width="120" height="18" fill="#e67e22"/>
+      <text x="460" y="149" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">180–200 万能档（默认）</text>
+      <rect x="560" y="160" width="40" height="18" fill="#c0392b" opacity="0.85"/>
+      <text x="580" y="174" text-anchor="middle" font-size="10" fill="#fff" font-weight="600">220+</text>
+      <text x="612" y="173" font-size="10" fill="#c0392b">易冒烟</text>
+    </g>
+  </g>
+</svg>
+<p class="img-caption">不知道开多少度时，**180–200 ℃ 是默认档**——能搞定 80% 的食物。要内部熟透/防外皮焦再降，要脱水/烤干再压低。</p>
 
 **5. 不适合空气炸锅的食物**：
 

@@ -10,6 +10,6 @@ material_type: "Notes"
 date: 2026-01-27
 author: "Zircon"
 permalink: "/notes/tennis/tennis-exam-prep"
-pdf_url: "/files/study/tennis/Main.pdf"
+pdf_url: "/files/tennis/tennis-exam-prep.pdf"
 ---
 
