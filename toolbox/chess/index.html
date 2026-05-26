@@ -113,15 +113,22 @@ permalink: /toolbox/chess/
     .ch-cell:hover { filter: brightness(1.05); }
   }
 
+  /* SVG-based pieces (Cburnett sprite). 88% of cell, drop-shadow for depth. */
   .ch-piece {
-    font-size: clamp(28px, 7.5vw, 56px);
-    line-height: 1;
+    width: 88%;
+    height: 88%;
     pointer-events: none;
     z-index: 1;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.28));
   }
-  .ch-piece.ch-p { font-size: clamp(24px, 6.4vw, 48px); }
-  .ch-piece.white { color: #fff; text-shadow: 0 0 1px #1a1a1a, 0 0 2px #1a1a1a, 1px 1px 1px rgba(0,0,0,0.5); }
-  .ch-piece.black { color: #1a1a1a; text-shadow: 0 1px 1px rgba(255,255,255,0.4); }
+  .ch-cell.dragging-from .ch-piece { opacity: 0.25; }
+  .ch-drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 100;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+  }
 
   .ch-dot {
     position: absolute;
@@ -206,27 +213,28 @@ permalink: /toolbox/chess/
   }
   .ch-promotion-choices { display: flex; gap: 0.4rem; }
   .ch-promotion-choice {
-    width: 52px; height: 52px;
+    width: 56px; height: 56px;
     display: flex; align-items: center; justify-content: center;
     border: 1px solid var(--color-border);
     background: var(--color-bg-warm);
     border-radius: 8px;
     cursor: pointer;
-    font-size: 34px;
-    line-height: 1;
+    padding: 4px;
     transition: transform 0.12s ease, border-color 0.12s ease;
   }
+  .ch-promotion-choice svg { width: 100%; height: 100%; }
   .ch-promotion-choice:hover,
   .ch-promotion-choice:focus-visible {
     border-color: var(--color-accent);
     transform: translateY(-2px);
     outline: none;
   }
-  .ch-promotion-choice.white { color: #fff; text-shadow: 0 0 1px #1a1a1a, 0 0 2px #1a1a1a; }
-  .ch-promotion-choice.black { color: #1a1a1a; }
 </style>
 
 <div class="ch-wrap">
+  <!-- Cburnett SVG sprite (CC-BY-SA, ~12KB inline). 12 pieces referenced via <use href="#wK"> etc. -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none;position:absolute;width:0;height:0" aria-hidden="true"><symbol id="wK" viewBox="0 0 45 45"><g fill="none" fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path stroke-linejoin="miter" d="M22.5 11.63V6M20 8h5"/><path fill="#fff" stroke-linecap="butt" stroke-linejoin="miter" d="M22.5 25s4.5-7.5 3-10.5c0 0-1-2.5-3-2.5s-3 2.5-3 2.5c-1.5 3 3 10.5 3 10.5"/><path fill="#fff" d="M12.5 37c5.5 3.5 14.5 3.5 20 0v-7s9-4.5 6-10.5c-4-6.5-13.5-3.5-16 4V27v-3.5c-2.5-7.5-12-10.5-16-4-3 6 6 10.5 6 10.5v7"/><path d="M12.5 30c5.5-3 14.5-3 20 0m-20 3.5c5.5-3 14.5-3 20 0m-20 3.5c5.5-3 14.5-3 20 0"/></g></symbol><symbol id="wQ" viewBox="0 0 45 45"><g style="fill:#ffffff;stroke:#000000;stroke-width:1.5;stroke-linejoin:round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38.5,13.5 L 31,25 L 30.7,10.9 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14.3,10.9 L 14,25 L 6.5,13.5 L 9,26 z"/><path d="M 9,26 C 9,28 10.5,28 11.5,30 C 12.5,31.5 12.5,31 12,33.5 C 10.5,34.5 11,36 11,36 C 9.5,37.5 11,38.5 11,38.5 C 17.5,39.5 27.5,39.5 34,38.5 C 34,38.5 35.5,37.5 34,36 C 34,36 34.5,34.5 33,33.5 C 32.5,31 32.5,31.5 33.5,30 C 34.5,28 36,28 36,26 C 27.5,24.5 17.5,24.5 9,26 z"/><path d="M 11.5,30 C 15,29 30,29 33.5,30" style="fill:none"/><path d="M 12,33.5 C 18,32.5 27,32.5 33,33.5" style="fill:none"/><circle cx="6" cy="12" r="2"/><circle cx="14" cy="9" r="2"/><circle cx="22.5" cy="8" r="2"/><circle cx="31" cy="9" r="2"/><circle cx="39" cy="12" r="2"/></g></symbol><symbol id="wR" viewBox="0 0 45 45"><g style="opacity:1; fill:#ffffff; fill-opacity:1; fill-rule:evenodd; stroke:#000000; stroke-width:1.5; stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4; stroke-dasharray:none; stroke-opacity:1;" transform="translate(0,0.3)"><path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z " style="stroke-linecap:butt;"/><path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z " style="stroke-linecap:butt;"/><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14" style="stroke-linecap:butt;"/><path d="M 34,14 L 31,17 L 14,17 L 11,14"/><path d="M 31,17 L 31,29.5 L 14,29.5 L 14,17" style="stroke-linecap:butt; stroke-linejoin:miter;"/><path d="M 31,29.5 L 32.5,32 L 12.5,32 L 14,29.5"/><path d="M 11,14 L 34,14" style="fill:none; stroke:#000000; stroke-linejoin:miter;"/></g></symbol><symbol id="wB" viewBox="0 0 45 45"><g style="opacity:1; fill:none; fill-rule:evenodd; fill-opacity:1; stroke:#000000; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; stroke-miterlimit:4; stroke-dasharray:none; stroke-opacity:1;" transform="translate(0,0.6)"><g style="fill:#ffffff; stroke:#000000; stroke-linecap:butt;"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.65,38.99 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"/><path d="M 25 8 A 2.5 2.5 0 1 1 20,8 A 2.5 2.5 0 1 1 25 8 z"/></g><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" style="fill:none; stroke:#000000; stroke-linejoin:miter;"/></g></symbol><symbol id="wN" viewBox="0 0 45 45"><g style="opacity:1; fill:none; fill-opacity:1; fill-rule:evenodd; stroke:#000000; stroke-width:1.5; stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4; stroke-dasharray:none; stroke-opacity:1;" transform="translate(0,0.3)"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18" style="fill:#ffffff; stroke:#000000;"/><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.28,8.008 21,7 C 22,7 22,10 22,10" style="fill:#ffffff; stroke:#000000;"/><path d="M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z" style="fill:#000000; stroke:#000000;"/><path d="M 15 15.5 A 0.5 1.5 0 1 1 14,15.5 A 0.5 1.5 0 1 1 15 15.5 z" transform="matrix(0.866,0.5,-0.5,0.866,9.693,-5.173)" style="fill:#000000; stroke:#000000;"/></g></symbol><symbol id="wP" viewBox="0 0 45 45"><path d="m 22.5,9 c -2.21,0 -4,1.79 -4,4 0,0.89 0.29,1.71 0.78,2.38 C 17.33,16.5 16,18.59 16,21 c 0,2.03 0.94,3.84 2.41,5.03 C 15.41,27.09 11,31.58 11,39.5 H 34 C 34,31.58 29.59,27.09 26.59,26.03 28.06,24.84 29,23.03 29,21 29,18.59 27.67,16.5 25.72,15.38 26.21,14.71 26.5,13.89 26.5,13 c 0,-2.21 -1.79,-4 -4,-4 z" style="opacity:1; fill:#ffffff; fill-opacity:1; fill-rule:nonzero; stroke:#000000; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:miter; stroke-miterlimit:4; stroke-dasharray:none; stroke-opacity:1;"/></symbol><symbol id="bK" viewBox="0 0 45 45"><g style="fill:none; fill-opacity:1; fill-rule:evenodd; stroke:#000000; stroke-width:1.5; stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4; stroke-dasharray:none; stroke-opacity:1;"><path d="M 22.5,11.63 L 22.5,6" style="fill:none; stroke:#000000; stroke-linejoin:miter;"/><path d="M 22.5,25 C 22.5,25 27,17.5 25.5,14.5 C 25.5,14.5 24.5,12 22.5,12 C 20.5,12 19.5,14.5 19.5,14.5 C 18,17.5 22.5,25 22.5,25" style="fill:#000000;fill-opacity:1; stroke-linecap:butt; stroke-linejoin:miter;"/><path d="M 12.5,37 C 18,40.5 27,40.5 32.5,37 L 32.5,30 C 32.5,30 41.5,25.5 38.5,19.5 C 34.5,13 25,16 22.5,23.5 L 22.5,27 L 22.5,23.5 C 20,16 10.5,13 6.5,19.5 C 3.5,25.5 12.5,30 12.5,30 L 12.5,37" style="fill:#000000; stroke:#000000;"/><path d="M 20,8 L 25,8" style="fill:none; stroke:#000000; stroke-linejoin:miter;"/><path d="M 32,29.5 C 32,29.5 40.5,25.5 38.03,19.85 C 34.15,14 25,18 22.5,24.5 L 22.5,26.6 L 22.5,24.5 C 20,18 10.85,14 6.97,19.85 C 4.5,25.5 13,29.5 13,29.5" style="fill:none; stroke:#ffffff;"/><path d="M 12.5,30 C 18,27 27,27 32.5,30 M 12.5,33.5 C 18,30.5 27,30.5 32.5,33.5 M 12.5,37 C 18,34 27,34 32.5,37" style="fill:none; stroke:#ffffff;"/></g></symbol><symbol id="bQ" viewBox="0 0 45 45"><g style="fill:#000000;stroke:#000000;stroke-width:1.5; stroke-linecap:round;stroke-linejoin:round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38.5,13.5 L 31,25 L 30.7,10.9 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14.3,10.9 L 14,25 L 6.5,13.5 L 9,26 z" style="stroke-linecap:butt;fill:#000000"/><path d="m 9,26 c 0,2 1.5,2 2.5,4 1,1.5 1,1 0.5,3.5 -1.5,1 -1,2.5 -1,2.5 -1.5,1.5 0,2.5 0,2.5 6.5,1 16.5,1 23,0 0,0 1.5,-1 0,-2.5 0,0 0.5,-1.5 -1,-2.5 -0.5,-2.5 -0.5,-2 0.5,-3.5 1,-2 2.5,-2 2.5,-4 -8.5,-1.5 -18.5,-1.5 -27,0 z"/><path d="M 11.5,30 C 15,29 30,29 33.5,30"/><path d="m 12,33.5 c 6,-1 15,-1 21,0"/><circle cx="6" cy="12" r="2"/><circle cx="14" cy="9" r="2"/><circle cx="22.5" cy="8" r="2"/><circle cx="31" cy="9" r="2"/><circle cx="39" cy="12" r="2"/><path d="M 11,38.5 A 35,35 1 0 0 34,38.5" style="fill:none; stroke:#000000;stroke-linecap:butt;"/><g style="fill:none; stroke:#ffffff;"><path d="M 11,29 A 35,35 1 0 1 34,29"/><path d="M 12.5,31.5 L 32.5,31.5"/><path d="M 11.5,34.5 A 35,35 1 0 0 33.5,34.5"/><path d="M 10.5,37.5 A 35,35 1 0 0 34.5,37.5"/></g></g></symbol><symbol id="bR" viewBox="0 0 45 45"><g style="opacity:1; fill:#000000; fill-opacity:1; fill-rule:evenodd; stroke:#000000; stroke-width:1.5; stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4; stroke-dasharray:none; stroke-opacity:1;" transform="translate(0,0.3)"><path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z " style="stroke-linecap:butt;"/><path d="M 12.5,32 L 14,29.5 L 31,29.5 L 32.5,32 L 12.5,32 z " style="stroke-linecap:butt;"/><path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z " style="stroke-linecap:butt;"/><path d="M 14,29.5 L 14,16.5 L 31,16.5 L 31,29.5 L 14,29.5 z " style="stroke-linecap:butt;stroke-linejoin:miter;"/><path d="M 14,16.5 L 11,14 L 34,14 L 31,16.5 L 14,16.5 z " style="stroke-linecap:butt;"/><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14 L 11,14 z " style="stroke-linecap:butt;"/><path d="M 12,35.5 L 33,35.5 L 33,35.5" style="fill:none; stroke:#ffffff; stroke-width:1; stroke-linejoin:miter;"/><path d="M 13,31.5 L 32,31.5" style="fill:none; stroke:#ffffff; stroke-width:1; stroke-linejoin:miter;"/><path d="M 14,29.5 L 31,29.5" style="fill:none; stroke:#ffffff; stroke-width:1; stroke-linejoin:miter;"/><path d="M 14,16.5 L 31,16.5" style="fill:none; stroke:#ffffff; stroke-width:1; stroke-linejoin:miter;"/><path d="M 11,14 L 34,14" style="fill:none; stroke:#ffffff; stroke-width:1; stroke-linejoin:miter;"/></g></symbol><symbol id="bB" viewBox="0 0 45 45"><g style="opacity:1; fill:none; fill-rule:evenodd; fill-opacity:1; stroke:#000000; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; stroke-miterlimit:4; stroke-dasharray:none; stroke-opacity:1;" transform="translate(0,0.6)"><g style="fill:#000000; stroke:#000000; stroke-linecap:butt;"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.65,38.99 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"/><path d="M 25 8 A 2.5 2.5 0 1 1 20,8 A 2.5 2.5 0 1 1 25 8 z"/></g><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" style="fill:none; stroke:#ffffff; stroke-linejoin:miter;"/></g></symbol><symbol id="bN" viewBox="0 0 45 45"><g style="opacity:1; fill:none; fill-opacity:1; fill-rule:evenodd; stroke:#000000; stroke-width:1.5; stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4; stroke-dasharray:none; stroke-opacity:1;" transform="translate(0,0.3)"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18" style="fill:#000000; stroke:#000000;"/><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.28,8.008 21,7 C 22,7 22,10 22,10" style="fill:#000000; stroke:#000000;"/><path d="M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z" style="fill:#ffffff; stroke:#ffffff;"/><path d="M 15 15.5 A 0.5 1.5 0 1 1 14,15.5 A 0.5 1.5 0 1 1 15 15.5 z" transform="matrix(0.866,0.5,-0.5,0.866,9.693,-5.173)" style="fill:#ffffff; stroke:#ffffff;"/><path d="M 24.55,10.4 L 24.1,11.85 L 24.6,12 C 27.75,13 30.25,14.49 32.5,18.75 C 34.75,23.01 35.75,29.06 35.25,39 L 35.2,39.5 L 37.45,39.5 L 37.5,39 C 38,28.94 36.62,22.15 34.25,17.66 C 31.88,13.17 28.46,11.02 25.06,10.5 L 24.55,10.4 z " style="fill:#ffffff; stroke:none;"/></g></symbol><symbol id="bP" viewBox="0 0 45 45"><path d="m 22.5,9 c -2.21,0 -4,1.79 -4,4 0,0.89 0.29,1.71 0.78,2.38 C 17.33,16.5 16,18.59 16,21 c 0,2.03 0.94,3.84 2.41,5.03 C 15.41,27.09 11,31.58 11,39.5 H 34 C 34,31.58 29.59,27.09 26.59,26.03 28.06,24.84 29,23.03 29,21 29,18.59 27.67,16.5 25.72,15.38 26.21,14.71 26.5,13.89 26.5,13 c 0,-2.21 -1.79,-4 -4,-4 z" style="opacity:1; fill:#000000; fill-opacity:1; fill-rule:nonzero; stroke:#000000; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:miter; stroke-miterlimit:4; stroke-dasharray:none; stroke-opacity:1;"/></symbol></svg>
+
   <header>
     <h1>♟️ 国际象棋</h1>
   </header>
@@ -253,6 +261,8 @@ permalink: /toolbox/chess/
     <button class="ch-btn" id="chPauseBtn" hidden>⏸ 暂停</button>
     <button class="ch-btn" id="chNewBtn">🔄 重新开始</button>
     <button class="ch-btn" id="chPgnBtn" title="导出本局棋谱为 PGN 文件">📋 PGN</button>
+    <button class="ch-btn" id="chFlipBtn" hidden title="PvP 走子后自动翻转棋盘，让当前走方在底部">⟳ 翻转</button>
+    <button class="ch-btn" id="chSfxBtn" title="走子/吃子/将军音效">🔊</button>
   </div>
 
   <div class="ch-statusbar">
@@ -295,8 +305,9 @@ permalink: /toolbox/chess/
           <button class="gs-pgo-mode-tab selected" data-value="normal">普通</button>
           <button class="gs-pgo-mode-tab" data-value="hard">高手</button>
         </div>
-        <div class="gs-pgo-room-tabs" id="chPgoRoomTabs" style="display:none;">
+        <div class="gs-pgo-room-tabs" id="chPgoRoomTabs">
           <button class="gs-pgo-room-tab selected" data-tab="local">🏠 本地</button>
+          <button class="gs-pgo-room-tab" data-tab="online">🌐 联机</button>
         </div>
         <div class="gs-pgo-room-panel active" id="chPgoLocalPanel"></div>
         <div class="gs-pgo-room-panel" id="chPgoOnlinePanel">
@@ -338,16 +349,14 @@ permalink: /toolbox/chess/
 <script src="/assets/js/games-shell/save-state.js"></script>
 <script src="/assets/js/games-shell/settlement.js"></script>
 <script src="/assets/js/games-shell/settings-panel.js"></script>
+<script src="/assets/js/games-shell/sfx.js"></script>
 <script src="{{ '/assets/lib/chess.min.js' | relative_url }}"></script>
+<script src="/assets/js/games-shell/chess-ai.js"></script>
 <script>
 (() => {
   const STORE_KEY = 'tool.chess.v1';
   const FILES = ['a','b','c','d','e','f','g','h'];
   const RANKS = ['8','7','6','5','4','3','2','1'];
-  const PIECE_GLYPH = {
-    w: { p: '♙', n: '♘', b: '♗', r: '♖', q: '♕', k: '♔' },
-    b: { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛', k: '♚' }
-  };
 
   // Difficulty knobs:
   //   depth      — minimax search depth (plies)
@@ -360,182 +369,56 @@ permalink: /toolbox/chess/
     hard:   { depth: 3, randomTopK: 1, noise: 0,    delayMs: 600 }
   };
 
-  // Centipawn material values
-  const PIECE_VALUE = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
+  // ============ AI Worker ============
+  // negamax + quiescence + 迭代加深 + 置换表 + mini 开局库 都搬到了
+  // /toolbox/chess/ai-worker.js（依赖 /assets/js/games-shell/chess-ai.js）。
+  // 主线程只负责 postMessage 拿走子，hard 难度也不再卡 UI。
+  let chAiWorker = null;
+  let chAiReqId = 0;
+  const chAiPending = new Map(); // id → resolve
 
-  // Piece-square tables (from white's POV; flip for black). Encourages dev/center.
-  // Source: classic Tomasz Michniewski simplified evaluation.
-  const PST = {
-    p: [
-       0,  0,  0,  0,  0,  0,  0,  0,
-      50, 50, 50, 50, 50, 50, 50, 50,
-      10, 10, 20, 30, 30, 20, 10, 10,
-       5,  5, 10, 25, 25, 10,  5,  5,
-       0,  0,  0, 20, 20,  0,  0,  0,
-       5, -5,-10,  0,  0,-10, -5,  5,
-       5, 10, 10,-20,-20, 10, 10,  5,
-       0,  0,  0,  0,  0,  0,  0,  0
-    ],
-    n: [
-     -50,-40,-30,-30,-30,-30,-40,-50,
-     -40,-20,  0,  0,  0,  0,-20,-40,
-     -30,  0, 10, 15, 15, 10,  0,-30,
-     -30,  5, 15, 20, 20, 15,  5,-30,
-     -30,  0, 15, 20, 20, 15,  0,-30,
-     -30,  5, 10, 15, 15, 10,  5,-30,
-     -40,-20,  0,  5,  5,  0,-20,-40,
-     -50,-40,-30,-30,-30,-30,-40,-50
-    ],
-    b: [
-     -20,-10,-10,-10,-10,-10,-10,-20,
-     -10,  0,  0,  0,  0,  0,  0,-10,
-     -10,  0,  5, 10, 10,  5,  0,-10,
-     -10,  5,  5, 10, 10,  5,  5,-10,
-     -10,  0, 10, 10, 10, 10,  0,-10,
-     -10, 10, 10, 10, 10, 10, 10,-10,
-     -10,  5,  0,  0,  0,  0,  5,-10,
-     -20,-10,-10,-10,-10,-10,-10,-20
-    ],
-    r: [
-       0,  0,  0,  0,  0,  0,  0,  0,
-       5, 10, 10, 10, 10, 10, 10,  5,
-      -5,  0,  0,  0,  0,  0,  0, -5,
-      -5,  0,  0,  0,  0,  0,  0, -5,
-      -5,  0,  0,  0,  0,  0,  0, -5,
-      -5,  0,  0,  0,  0,  0,  0, -5,
-      -5,  0,  0,  0,  0,  0,  0, -5,
-       0,  0,  0,  5,  5,  0,  0,  0
-    ],
-    q: [
-     -20,-10,-10, -5, -5,-10,-10,-20,
-     -10,  0,  0,  0,  0,  0,  0,-10,
-     -10,  0,  5,  5,  5,  5,  0,-10,
-      -5,  0,  5,  5,  5,  5,  0, -5,
-       0,  0,  5,  5,  5,  5,  0, -5,
-     -10,  5,  5,  5,  5,  5,  0,-10,
-     -10,  0,  5,  0,  0,  0,  0,-10,
-     -20,-10,-10, -5, -5,-10,-10,-20
-    ],
-    k: [
-     -30,-40,-40,-50,-50,-40,-40,-30,
-     -30,-40,-40,-50,-50,-40,-40,-30,
-     -30,-40,-40,-50,-50,-40,-40,-30,
-     -30,-40,-40,-50,-50,-40,-40,-30,
-     -20,-30,-30,-40,-40,-30,-30,-20,
-     -10,-20,-20,-20,-20,-20,-20,-10,
-      20, 20,  0,  0,  0,  0, 20, 20,
-      20, 30, 10,  0,  0, 10, 30, 20
-    ]
-  };
-
-  function squareIndex(sq) {
-    // a8=0..h8=7, a7=8..h7=15, ..., a1=56..h1=63
-    const file = sq.charCodeAt(0) - 97;       // a..h → 0..7
-    const rank = 8 - parseInt(sq[1], 10);     // 8..1 → 0..7
-    return rank * 8 + file;
+  function chInitWorker() {
+    try {
+      chAiWorker = new Worker('/toolbox/chess/ai-worker.js');
+      chAiWorker.onmessage = (e) => {
+        const { id, move, error } = e.data || {};
+        const resolver = chAiPending.get(id);
+        if (!resolver) return;
+        chAiPending.delete(id);
+        if (error) { console.warn('[chess] AI worker error:', error); resolver(null); }
+        else resolver(move);
+      };
+      chAiWorker.onerror = (e) => {
+        console.warn('[chess] AI worker fatal:', e.message);
+        chAiWorker = null;
+      };
+    } catch (e) {
+      console.warn('[chess] Worker unavailable, falling back to main-thread AI:', e);
+      chAiWorker = null;
+    }
   }
+  chInitWorker();
 
-  function pstScore(piece, color, sq) {
-    const idx = squareIndex(sq);
-    const tableIdx = color === 'w' ? idx : (idx ^ 56); // mirror vertically for black
-    return PST[piece][tableIdx];
-  }
-
-  // Static evaluation from White's perspective (positive = good for white)
-  function evaluateBoard(game) {
-    if (game.in_checkmate()) {
-      // The side to move is checkmated
-      return game.turn() === 'w' ? -1e6 : 1e6;
+  // 主线程入口：优先 Worker，失败则同步算（保兜底；window.ChessAI 在 main thread 也注册了）。
+  function chComputeMove(game, cfg) {
+    if (chAiWorker) {
+      return new Promise(resolve => {
+        const id = ++chAiReqId;
+        chAiPending.set(id, resolve);
+        try {
+          chAiWorker.postMessage({
+            id,
+            fen: game.fen(),
+            history: game.history(),
+            cfg,
+          });
+        } catch (err) {
+          chAiPending.delete(id);
+          resolve(window.ChessAI ? window.ChessAI.pickAiMove(game, cfg) : null);
+        }
+      });
     }
-    if (game.in_draw() || game.in_stalemate() || game.in_threefold_repetition() || game.insufficient_material()) {
-      return 0;
-    }
-    let score = 0;
-    const board = game.board(); // 8x8 from rank 8 to rank 1
-    for (let r = 0; r < 8; r++) {
-      for (let f = 0; f < 8; f++) {
-        const cell = board[r][f];
-        if (!cell) continue;
-        const sq = FILES[f] + RANKS[r];
-        const matVal = PIECE_VALUE[cell.type];
-        const posVal = pstScore(cell.type, cell.color, sq);
-        const sign = cell.color === 'w' ? 1 : -1;
-        score += sign * (matVal + posVal);
-      }
-    }
-    return score;
-  }
-
-  // Move ordering hint: captures + checks first, helps α-β pruning
-  function moveOrderKey(m) {
-    let k = 0;
-    if (m.flags.indexOf('c') !== -1 || m.flags.indexOf('e') !== -1) {
-      // MVV-LVA approximation: capturing higher-value with lower-value first
-      const victim = PIECE_VALUE[m.captured || 'p'];
-      const attacker = PIECE_VALUE[m.piece];
-      k += 10000 + victim * 10 - attacker;
-    }
-    if (m.flags.indexOf('p') !== -1) k += 9000;
-    if (m.flags.indexOf('k') !== -1 || m.flags.indexOf('q') !== -1) k += 100;
-    return k;
-  }
-
-  // Minimax with α-β pruning. Returns {score, move} where score is from white's POV.
-  function negamax(game, depth, alpha, beta, color) {
-    // color = +1 for white-to-move, -1 for black-to-move
-    if (depth === 0 || game.game_over()) {
-      return { score: color * evaluateBoard(game), move: null };
-    }
-    const moves = game.moves({ verbose: true });
-    moves.sort((a, b) => moveOrderKey(b) - moveOrderKey(a));
-    let bestMove = moves[0];
-    let bestScore = -Infinity;
-    for (const m of moves) {
-      game.move(m);
-      const child = negamax(game, depth - 1, -beta, -alpha, -color);
-      const score = -child.score;
-      game.undo();
-      if (score > bestScore) {
-        bestScore = score;
-        bestMove = m;
-      }
-      if (score > alpha) alpha = score;
-      if (alpha >= beta) break;
-    }
-    return { score: bestScore, move: bestMove };
-  }
-
-  // Top-level AI move picker. Honors difficulty's depth, noise, randomTopK.
-  function pickAiMove(game, cfg) {
-    const moves = game.moves({ verbose: true });
-    if (moves.length === 0) return null;
-    moves.sort((a, b) => moveOrderKey(b) - moveOrderKey(a));
-
-    const colorSign = game.turn() === 'w' ? 1 : -1;
-    const scored = moves.map(m => {
-      game.move(m);
-      const child = negamax(game, cfg.depth - 1, -Infinity, Infinity, -colorSign);
-      let score = -child.score;
-      game.undo();
-      if (cfg.noise > 0) score += (Math.random() - 0.5) * 2 * cfg.noise * Math.abs(score || 50);
-      return { move: m, score };
-    });
-    scored.sort((a, b) => b.score - a.score);
-
-    if (cfg.randomTopK > 1 && scored.length > 1) {
-      const k = Math.min(cfg.randomTopK, scored.length);
-      const top = scored.slice(0, k);
-      const minS = Math.min(...top.map(x => x.score));
-      const weights = top.map(x => Math.max(1, x.score - minS + 30));
-      const sum = weights.reduce((a, b) => a + b, 0);
-      let r = Math.random() * sum;
-      for (let i = 0; i < top.length; i++) {
-        r -= weights[i];
-        if (r <= 0) return top[i].move;
-      }
-      return top[0].move;
-    }
-    return scored[0].move;
+    return Promise.resolve(window.ChessAI ? window.ChessAI.pickAiMove(game, cfg) : null);
   }
 
   // ============ State + DOM ============
@@ -549,6 +432,7 @@ permalink: /toolbox/chess/
     mode: stored.lastMode || 'pvp',
     difficulty: DIFFICULTY[stored.difficulty] ? stored.difficulty : 'normal',
     tally: Object.assign({ w: 0, b: 0, d: 0 }, stored.tally || {}),
+    pvpFlip: stored.pvpFlip === true,   // PvP 走子后是否自动翻转（让当前走子方在底部）
     game: new Chess(),
     selected: null,
     legalTargets: [],     // verbose moves from `selected`
@@ -578,7 +462,8 @@ permalink: /toolbox/chess/
     localStorage.setItem(STORE_KEY, JSON.stringify({
       tally: state.tally,
       lastMode: state.mode,
-      difficulty: state.difficulty
+      difficulty: state.difficulty,
+      pvpFlip: state.pvpFlip,
     }));
   }
 
@@ -595,9 +480,16 @@ permalink: /toolbox/chess/
     return null;
   }
 
-  // Show the human's side at the bottom: PvP and ai-white → white at bottom; ai-black flips.
+  // Show the human's side at the bottom:
+  //   - ai-black: human is black → flip
+  //   - ai-white / pvp: white at bottom by default
+  //   - pvp + state.pvpFlip: flip when it's black's turn (so current player always at bottom)
+  //   - online: chMyColor decides; black always sees flipped board
   function isFlipped() {
-    return state.mode === 'ai-black';
+    if (state.mode === 'ai-black') return true;
+    if (chIsOnline && chMyColor === 'b') return true;
+    if (state.mode === 'pvp' && state.pvpFlip && state.game.turn() === 'b') return true;
+    return false;
   }
 
   function renderBoard() {
@@ -621,10 +513,17 @@ permalink: /toolbox/chess/
         if (checkSq === sq) cellEl.classList.add('in-check');
 
         if (cellPiece) {
-          const pieceEl = document.createElement('span');
-          pieceEl.className = 'ch-piece ch-' + cellPiece.type + ' ' + (cellPiece.color === 'w' ? 'white' : 'black');
-          pieceEl.textContent = PIECE_GLYPH[cellPiece.color][cellPiece.type];
-          cellEl.appendChild(pieceEl);
+          const pieceId = (cellPiece.color === 'w' ? 'w' : 'b') + cellPiece.type.toUpperCase();
+          const svgNS = 'http://www.w3.org/2000/svg';
+          const svgEl = document.createElementNS(svgNS, 'svg');
+          svgEl.setAttribute('class', 'ch-piece');
+          svgEl.setAttribute('viewBox', '0 0 45 45');
+          svgEl.dataset.piece = pieceId;
+          const useEl = document.createElementNS(svgNS, 'use');
+          useEl.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#' + pieceId);
+          useEl.setAttribute('href', '#' + pieceId);
+          svgEl.appendChild(useEl);
+          cellEl.appendChild(svgEl);
         }
 
         // Coordinate labels on edge cells
@@ -730,6 +629,17 @@ permalink: /toolbox/chess/
     pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
     pauseBtn.disabled = state.over;
     pausedOverlay.classList.toggle('show', state.paused && !state.over);
+
+    // Flip toggle: only meaningful in PvP (AI modes have fixed orientation, online uses chMyColor)
+    const flipBtn = document.getElementById('chFlipBtn');
+    if (flipBtn) {
+      flipBtn.hidden = !(state.mode === 'pvp' && !chIsOnline);
+      flipBtn.textContent = state.pvpFlip ? '⟳ 翻转：开' : '⟳ 翻转：关';
+    }
+    const sfxBtn = document.getElementById('chSfxBtn');
+    if (sfxBtn && window.GamesShell && GamesShell.Sfx) {
+      sfxBtn.textContent = GamesShell.Sfx.isEnabled() ? '🔊' : '🔇';
+    }
   }
 
   function newGame() {
@@ -805,6 +715,14 @@ permalink: /toolbox/chess/
     state.legalTargets = [];
     renderBoard();
 
+    // SFX：将死 > 将军 > 吃子 > 普通走子，按优先级选一种。
+    if (window.GamesShell && GamesShell.Sfx) {
+      if (state.game.in_checkmate()) GamesShell.Sfx.checkmate();
+      else if (state.game.in_check()) GamesShell.Sfx.check();
+      else if (result.flags.indexOf('c') !== -1 || result.flags.indexOf('e') !== -1) GamesShell.Sfx.capture();
+      else GamesShell.Sfx.move();
+    }
+
     // Online relay: broadcast local moves to the server. Remote-applied moves never re-broadcast.
     if (chIsOnline && chRoomToken && !opts.fromRemote && !chRoomGameOver) {
       const payload = { from: result.from, to: result.to };
@@ -835,24 +753,28 @@ permalink: /toolbox/chess/
     return result;
   }
 
-  function triggerAiMove() {
+  async function triggerAiMove() {
     if (state.over || state.paused) return;
     if (aiSide() !== state.game.turn()) return;
     state.aiThinking = true;
     updateStatus();
     const cfg = DIFFICULTY[state.difficulty];
-    setTimeout(() => {
-      const startedAt = Date.now();
-      const move = pickAiMove(state.game, cfg);
-      const elapsed = Date.now() - startedAt;
-      const wait = Math.max(0, cfg.delayMs - elapsed);
-      setTimeout(() => {
-        state.aiThinking = false;
-        if (state.paused || state.over) { updateStatus(); return; }
-        if (move) applyMove({ from: move.from, to: move.to, promotion: move.promotion || 'q' });
-        else { updateStatus(); }
-      }, wait);
-    }, 30);
+    const startedAt = Date.now();
+    let move = null;
+    try {
+      move = await chComputeMove(state.game, cfg);
+    } catch (e) {
+      console.warn('[chess] AI compute failed:', e);
+    }
+    const elapsed = Date.now() - startedAt;
+    const wait = Math.max(0, cfg.delayMs - elapsed);
+    await new Promise(r => setTimeout(r, wait));
+    state.aiThinking = false;
+    // Guard against game state changes during await (pause/over/new game)
+    if (state.paused || state.over) { updateStatus(); return; }
+    if (aiSide() !== state.game.turn()) { updateStatus(); return; }
+    if (move) applyMove({ from: move.from, to: move.to, promotion: move.promotion || 'q' });
+    else updateStatus();
   }
 
   // ============ Promotion modal ============
@@ -864,9 +786,10 @@ permalink: /toolbox/chess/
   function chShowPromotion(from, to, color) {
     chPendingPromotion = { from, to, color };
     const pieces = ['q', 'r', 'b', 'n'];
-    chPromotionChoices.innerHTML = pieces.map(p =>
-      `<button class="ch-promotion-choice ${color === 'w' ? 'white' : 'black'}" data-piece="${p}" aria-label="升变为${PIECE_NAME_CN[p]}">${PIECE_GLYPH[color][p]}</button>`
-    ).join('');
+    chPromotionChoices.innerHTML = pieces.map(p => {
+      const pieceId = (color === 'w' ? 'w' : 'b') + p.toUpperCase();
+      return `<button class="ch-promotion-choice" data-piece="${p}" aria-label="升变为${PIECE_NAME_CN[p]}"><svg viewBox="0 0 45 45"><use href="#${pieceId}"/></svg></button>`;
+    }).join('');
     chPromotionOverlay.classList.add('show');
     const first = chPromotionChoices.querySelector('.ch-promotion-choice');
     if (first) first.focus();
@@ -1040,6 +963,119 @@ permalink: /toolbox/chess/
     }
   });
 
+  // ============ Drag-and-drop (pointer events) ============
+  let chDragState = null;
+
+  function chCanMoveFromSquare(sq) {
+    if (state.over || state.aiThinking || state.paused) return false;
+    if (chPendingPromotion) return false;
+    const piece = state.game.get(sq);
+    if (!piece) return false;
+    const turn = state.game.turn();
+    if (piece.color !== turn) return false;
+    if (aiSide() !== null && turn !== humanSide()) return false;
+    if (chIsOnline && chMyColor && turn !== chMyColor) return false;
+    return true;
+  }
+
+  board.addEventListener('pointerdown', (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    const cell = e.target.closest('.ch-cell');
+    if (!cell || !cell.dataset.sq) return;
+    if (!chCanMoveFromSquare(cell.dataset.sq)) return;
+    chDragState = {
+      sq: cell.dataset.sq,
+      startX: e.clientX,
+      startY: e.clientY,
+      pointerId: e.pointerId,
+      started: false,
+      ghost: null,
+      sourceCell: cell,
+    };
+  });
+
+  board.addEventListener('pointermove', (e) => {
+    if (!chDragState || e.pointerId !== chDragState.pointerId) return;
+    if (!chDragState.started) {
+      const dx = e.clientX - chDragState.startX;
+      const dy = e.clientY - chDragState.startY;
+      if (dx * dx + dy * dy < 36) return;  // 6px threshold — finger tap-tolerance
+      chDragStart(e);
+    }
+    if (chDragState.ghost) {
+      chDragState.ghost.style.left = e.clientX + 'px';
+      chDragState.ghost.style.top = e.clientY + 'px';
+    }
+  });
+
+  board.addEventListener('pointerup', (e) => {
+    if (!chDragState || e.pointerId !== chDragState.pointerId) return;
+    if (chDragState.started) chDragEnd(e);
+    chDragCleanup();
+  });
+
+  board.addEventListener('pointercancel', (e) => {
+    if (!chDragState || e.pointerId !== chDragState.pointerId) return;
+    chDragCleanup();
+  });
+
+  function chDragStart(e) {
+    chDragState.started = true;
+    state.selected = chDragState.sq;
+    state.legalTargets = state.game.moves({ square: chDragState.sq, verbose: true });
+    renderBoard();
+    // renderBoard replaced the cell — re-find for class toggling.
+    chDragState.sourceCell = board.querySelector(`.ch-cell[data-sq="${chDragState.sq}"]`);
+    if (chDragState.sourceCell) chDragState.sourceCell.classList.add('dragging-from');
+    const piece = state.game.get(chDragState.sq);
+    if (piece) {
+      const pieceId = (piece.color === 'w' ? 'w' : 'b') + piece.type.toUpperCase();
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('class', 'ch-drag-ghost');
+      svg.setAttribute('viewBox', '0 0 45 45');
+      const rect = chDragState.sourceCell ? chDragState.sourceCell.getBoundingClientRect() : { width: 56, height: 56 };
+      svg.style.width = rect.width + 'px';
+      svg.style.height = rect.height + 'px';
+      svg.style.left = e.clientX + 'px';
+      svg.style.top = e.clientY + 'px';
+      const use = document.createElementNS(svgNS, 'use');
+      use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#' + pieceId);
+      use.setAttribute('href', '#' + pieceId);
+      svg.appendChild(use);
+      document.body.appendChild(svg);
+      chDragState.ghost = svg;
+    }
+    try { board.setPointerCapture(chDragState.pointerId); } catch {}
+  }
+
+  function chDragEnd(e) {
+    // Hide ghost so elementFromPoint sees the underlying cell, not our ghost.
+    if (chDragState.ghost) chDragState.ghost.style.display = 'none';
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const targetCell = el && el.closest && el.closest('.ch-cell');
+    if (chDragState.ghost) chDragState.ghost.style.display = '';
+    if (!targetCell || !targetCell.dataset.sq) return;
+    const toSq = targetCell.dataset.sq;
+    if (toSq === chDragState.sq) return;  // dropped on origin → just keep selection
+    const target = state.legalTargets.find(m => m.to === toSq);
+    if (!target) return;
+    if (target.flags.indexOf('p') !== -1) {
+      chShowPromotion(chDragState.sq, toSq, state.game.turn());
+    } else {
+      applyMove({ from: chDragState.sq, to: toSq });
+    }
+  }
+
+  function chDragCleanup() {
+    if (chDragState) {
+      if (chDragState.ghost) chDragState.ghost.remove();
+      if (chDragState.sourceCell) chDragState.sourceCell.classList.remove('dragging-from');
+      try { board.releasePointerCapture(chDragState.pointerId); } catch {}
+    }
+    chDragState = null;
+  }
+
   // Mode tabs
   document.getElementById('chModeTabs').addEventListener('click', (e) => {
     const t = e.target.closest('.ch-mode-tab');
@@ -1094,6 +1130,21 @@ permalink: /toolbox/chess/
 
   newBtn.onclick = newGame;
   ovBtn.onclick = newGame;
+
+  // Flip + sfx button handlers
+  document.getElementById('chFlipBtn').addEventListener('click', () => {
+    state.pvpFlip = !state.pvpFlip;
+    persist();
+    renderBoard();
+    updateStatus();
+  });
+  document.getElementById('chSfxBtn').addEventListener('click', () => {
+    if (!window.GamesShell || !GamesShell.Sfx) return;
+    const next = !GamesShell.Sfx.isEnabled();
+    GamesShell.Sfx.setEnabled(next);
+    if (next) { GamesShell.Sfx.ensureUnlocked(); GamesShell.Sfx.move(); }
+    updateStatus();
+  });
 
   // ── games-shell：战绩榜 + 评论 ──────────────
   let chWlbWidget = null;
@@ -1513,8 +1564,16 @@ permalink: /toolbox/chess/
     await chRoomApi('POST', 'start', { code: chRoomCode, token: chRoomToken });
   });
 
-  // 联机入口暂时下线：chess 还没接 board relay（无 turn ordering、无走子广播），
-  // 旧的 ?room=XXXX 链接走 chAutoJoin 反而会进入误导玩家的半瘫痪流程，故 no-op。
+  (function chAutoJoin() {
+    const code = new URLSearchParams(location.search).get('room');
+    if (code && /^\d{4}$/.test(code)) {
+      document.getElementById('chPgoRoomCodeInput').value = code;
+      setTimeout(() => {
+        document.querySelector('#chPgoRoomTabs .gs-pgo-room-tab[data-tab="online"]')?.click();
+        setTimeout(chRoomAction, 800);
+      }, 500);
+    }
+  })();
 
   document.getElementById('chPgoStartBtn').addEventListener('click', () => {
     if (chIsOnline) return;
