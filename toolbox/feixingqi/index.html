@@ -1181,6 +1181,13 @@ permalink: /toolbox/feixingqi/
       'stroke-width': 0.9,
       'stroke-opacity': 0.55,
     }));
+    // Color-blind pattern overlay on disc
+    const patId = 'cb-pattern-' + color;
+    parent.appendChild(svgEl('circle', {
+      cx, cy, r: r * 0.82,
+      fill: `url(#${patId})`,
+      'fill-opacity': 0.48,
+    }));
     // White airplane silhouette inlaid in the disc, sized to the disc
     const s = r * 4.5;  // scale so plane fits in disc
     const g = svgEl('g', { transform: `translate(${cx},${cy}) rotate(${rotDeg})` });
@@ -1241,6 +1248,25 @@ permalink: /toolbox/feixingqi/
       x: 0, y: 0, width: SVG_W, height: SVG_H,
       fill: '#ffffff',
     }));
+
+    // === Color-blind patterns (one per player color) ===
+    const defs = svgEl('defs', {});
+    const patterns = {
+      red:    { id: 'cb-pattern-red',    path: 'M 0,0 h 8 M 0,4 h 8',              sw: 8, sh: 4 },
+      yellow: { id: 'cb-pattern-yellow', path: 'M 2,2 a 1.5,1.5 0 1,1 0,0.01',     sw: 6, sh: 4 },
+      blue:   { id: 'cb-pattern-blue',   path: 'M 0,0 l 6,6 M -2,0 l 6,6 M 0,-2 l 6,6', sw: 6, sh: 6 },
+      green:  { id: 'cb-pattern-green',  path: 'M 0,2 h 6 M 3,0 v 6',               sw: 6, sh: 6 },
+    };
+    for (const [color, p] of Object.entries(patterns)) {
+      const pat = svgEl('pattern', {
+        id: p.id, patternUnits: 'userSpaceOnUse', width: p.sw, height: p.sh,
+        patternTransform: 'rotate(0)',
+      });
+      pat.appendChild(svgEl('rect', { x: 0, y: 0, width: p.sw, height: p.sh, fill: COLOR_INFO[color].hex }));
+      pat.appendChild(svgEl('path', { d: p.path, stroke: '#ffffff', 'stroke-width': 1.2, 'stroke-opacity': 0.55, fill: 'none' }));
+      defs.appendChild(pat);
+    }
+    svg.appendChild(defs);
 
     // === Layer: 4 home base squares (filled with color) ===
     const homeGroup = svgEl('g', { class: 'homes' });
