@@ -1,0 +1,745 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{space}{xeCJK}
+%
+\documentclass[
+]{ctexart}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+  \ifXeTeX
+    \usepackage{xeCJK}
+    \setCJKmainfont[]{Songti SC}
+          \fi
+  \ifLuaTeX
+    \usepackage[]{luatexja-fontspec}
+    \setmainjfont[]{Songti SC}
+  \fi
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\def\ba{\begin{aligned}}
+\def\ea{\end{aligned}}
+\def\bm{\begin{bmatrix}}
+\def\em{\end{bmatrix}}
+\def\bc{\begin{cases}}
+\def\ec{\end{cases}}
+
+\def\ve{\varepsilon}
+\def\s{\sigma}
+\newcommand{\0}{\textbf 0}
+\newcommand{\1}{\textbf 1}
+\def\I{\textbf I}
+\def\X{\textbf X}
+\def\x{\textbf x}
+\def\y{\textbf y}
+\def\b{\textbf b}
+\def\w{\textbf w}
+
+\def\plim{\text{plim }}
+\providecommand{\var}{}\renewcommand{\var}[2][]{\text{Var}_{#1}\br{#2}}
+\providecommand{\e}{}\renewcommand{\e}[2][]{\text{E}_{#1}\br{#2}}
+\providecommand{\cov}{}\renewcommand{\cov}[3][]{\text{Cov}_{#1}\br{#2,#3}}
+\def\se#1{\text{se}\pr{#1}}
+\def\estvar#1{\text{Est.Var}\br{#1}}
+\def\estcov#1#2{\text{Est.Cov}\br{#1,#2}}
+\def\asyvar#1{\text{Asy.Var}\br{#1}}
+\def\asycov#1#2{\text{Asy.Cov}\br{#1,#2}}
+\def\estasyvar#1{\text{Est.Asy.Var}\br{#1}}
+\def\too{\Longrightarrow}
+\def\sq{\sqrt}
+\def\ss{\frac{e'e}{n-K}}
+\providecommand{\dev}{}\renewcommand{\dev}[2][i]{({#2}_{#1}-\bar{#2})}
+\def\inv#1{{#1}^{-1}}
+\providecommand{\add}{}\renewcommand{\add}[1][i]{\sum_{#1 = 1}^n}
+\providecommand{\ply}{}\renewcommand{\ply}[1][i]{\prod_{#1 = 1}^n}
+\providecommand{\l}{}\renewcommand{\l}[1][(]{\left#1}
+\providecommand{\r}{}\renewcommand{\r}[1][)]{\right#1}
+\def\br#1{\left[#1\right]}
+\def\pr#1{\left(#1\right)}
+\def\brace#1{\left\{#1\right\}}
+\providecommand{\seq}{}\renewcommand{\seq}[1][x]{{#1}_1,{#1}_2,\cdots,{#1}_{n}}
+\providecommand{\seqadd}{}\renewcommand{\seqadd}[1][x]{{#1}_1+{#1}_2+\cdots+{#1}_{n}}
+\def\dto{\overset{\text d}{\to}}
+\def\asim{\overset{\text a}{\sim}}
+
+\providecommand{\P}{}\renewcommand{\P}[1][X]{{#1}({#1}'{#1})^{-1}{#1}'}
+\providecommand{\M}{}\renewcommand{\M}[1][X]{\I-{#1}({#1}'{#1})^{-1}{#1}'}
+\providecommand{\bls}{}\renewcommand{\bls}[1][X]{(#1'#1)^{-1}#1'y}
+\providecommand{\bx}{}\renewcommand{\bx}[1][X]{(#1'#1)^{-1}#1'}
+\providecommand{\biv}{}\renewcommand{\biv}[1][Z]{(#1'X)^{-1}#1'y}
+\providecommand{\XX}{}\renewcommand{\XX}[1][X]{(#1'#1)^{-1}}
+\def\Q{\frac{X'X}{n}}
+\providecommand{\Xe}{}\renewcommand{\Xe}[1][X]{\frac{{#1}'\ve}{n}}
+\providecommand{\RX}{}\renewcommand{\RX}[1][X]{R({#1}'{#1})^{-1}R'}
+\providecommand{\m}{}\renewcommand{\m}[1][b]{R{#1}-q}
+\def\O{X'\Omega X}
+
+\providecommand{\colvec}{}\renewcommand{\colvec}[2][n]{
+\begin{bmatrix}
+{#2}_1\\
+{#2}_2\\
+\vdots \\
+{#2}_{#1}
+\end{bmatrix}
+}
+
+\providecommand{\mx}{}\renewcommand{\mx}[3][a]{
+\begin{bmatrix}
+a_{11} & a_{12} & \cdots & a_{1#3}\\
+a_{21} & a_{22} & \cdots & a_{2#3}\\
+\vdots & \vdots & \ddots & \vdots \\
+a_{{#2}1} & a_{{#2}2} & \cdots & a_{{#2}{#3}}
+\end{bmatrix}
+}
+\providecommand{\diag}{}\renewcommand{\diag}[2][n]{
+\begin{bmatrix}
+{#2}_{1} & 0 & \cdots & 0\\
+0 & {#2}_{2} & \cdots & 0\\
+\vdots & \vdots & \ddots & \vdots \\
+0 & 0 & \cdots & {#2}_{{#1}}
+\end{bmatrix}
+}
+
+
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\renewcommand*\contentsname{目录}
+{
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+\hypertarget{causal-relationship}{%
+\section{Causal Relationship}\label{causal-relationship}}
+
+\hypertarget{dag}{%
+\subsection{DAG}\label{dag}}
+
+\begin{quote}
+\begin{itemize}
+\tightlist
+\item
+  A graph that is both \textbf{directed} and \textbf{acylic} is called a
+  \textbf{directed acyclic graph} (DAG).
+\item
+  A back-door path from node \(A\) to node \(B\) is a path from \(A\) to
+  \(B\) that starts with an incoming arrow into \(A\) and ends with an
+  incoming arrow into \(B\).
+\end{itemize}
+\end{quote}
+
+Basic patterns of causal relationships:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Chains (causal pathway)
+\item
+  Forks (confounding pathway)
+\item
+  Inverted forks (colliding pathway)
+\end{enumerate}
+
+\hypertarget{strategies-to-estimate-causal-effects}{%
+\subsection{Strategies to estimate causal
+effects}\label{strategies-to-estimate-causal-effects}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  condition on variables (that block all back-door paths from the causal
+  variable to the outcome variable).
+
+  \begin{itemize}
+  \tightlist
+  \item
+    However, conditioning on a collider variable does not simplify the
+    original graph but rather adds complications by creating new
+    association.
+  \end{itemize}
+\item
+  use exogenous variation in an appropriate instrumental variable (to
+  isolate covariation in the causal and outcome variables).
+\item
+  establish an isolated and exhaustive mechanism (that relates the
+  causal variable to the outcome variable).
+\end{enumerate}
+
+\hypertarget{back-door-criterion}{%
+\subsection{Back-door criterion}\label{back-door-criterion}}
+
+\begin{quote}
+The causal effect is identified by conditioning on a set of variables in
+\(Z\) if and only if all back-door paths between the causal variable and
+the outcome variable are blocked after conditioning on \(Z\).
+
+All back-door paths are blocked by \(Z\) (i.e., \(d\)-separated by
+\(Z\)) if and only if each back-door path:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  contains a chain of mediation \(A\to C\to B\), where the middle
+  variable \(C\) is in \(Z\);
+\item
+  contains a fork of mutual dependence \(A\leftarrow C\to B\), where the
+  middle variable \(C\) is in \(Z\);
+\item
+  contains an inverted fork of mutual causation \(A\to C\leftarrow B\),
+  where the middle variable \(C\) and all of \(C\)'s descendants are not
+  in \(Z\).
+\end{enumerate}
+\end{quote}
+
+Back-door path: A path between any causally ordered sequence of two
+variables that includes a directed edge \(\to\) that points to the first
+variable.
+
+\hypertarget{front-door-criterion}{%
+\subsection{Front-door criterion}\label{front-door-criterion}}
+
+\begin{quote}
+One can consistently estimate the effect of a causal variable on an
+outcome variable by estimating the effect as it propagates through an
+isolated and exhaustive mechanism.
+
+\begin{itemize}
+\tightlist
+\item
+  Isolated: none of the components of unblockable back-door paths have
+  direct effects on the mechanism.
+\item
+  Exhaustive: All front-door paths are identifiable.
+\end{itemize}
+\end{quote}
+
+Prove front-door criterion from back-door criterion:
+
+\begin{itemize}
+\tightlist
+\item
+  \(D\to M\): There are no back-door paths between \(D\) and \(M\).
+\item
+  \(M\to Y\): There are some back-door paths via \(D\), however all of
+  them can be blocked by \(D\).
+\end{itemize}
+
+\hypertarget{causal-inference}{%
+\section{Causal Inference}\label{causal-inference}}
+
+Average treatment effect (ATE) \[
+\tau_{ATE} = \e{Y_{i}\pr 1-Y_{i}\pr 0}
+\] Average treatment effect on the treated (ATET) \[
+\tau_{ATET} = \e{Y_{i}\pr 1-Y_{i}\pr 0|D_i = 1}
+\] Average treatment effect on the untreated (ATENT) \[
+\tau_{ATENT} = \e{Y_{i}\pr 1-Y_{i}\pr 0|D_i = 0}
+\]
+
+\begin{quote}
+ATE is a \textbf{weighted average} of the ATET and the ATENT \[
+\tau_{ATE} = p\pr{D_i = 1}\cdot \tau_{ATET}+p\pr{D_i = 0}\cdot \tau_{ATENT}
+\]
+\end{quote}
+
+\begin{quote}
+Conditional Independence Assumption: \(Y_{\pr{d}}\perp D_i |X_i\).
+
+Conditional Mean Independence:
+\(\e{Y_i|x,D} = \e{Y_i|x},\e{Y_0|x,D} = \e{Y_0|x}\).
+\end{quote}
+
+\hypertarget{did}{%
+\section{DID}\label{did}}
+
+Idea of DID: Compare the outcomes of the units that are affected by the
+policy change and those who are not affected before and after the policy
+was enacted.
+
+\hypertarget{did-with-various-forms}{%
+\subsection{DID with various forms}\label{did-with-various-forms}}
+
+\begin{quote}
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Different treatment time \[
+  y_{it} = \alpha_0+\beta D_{it}+\mu_i+f_t+\ve_{it}
+  \]
+\item
+  Different treatment magnitude \[
+  y_{it} = \alpha_0+\beta \pr{x_i\cdot d}+\mu_i+f_t+\ve_{it}
+  \]
+\item
+  A general form \[
+  y_{it} = \alpha_0 + \beta_t \pr{x_i\cdot d_{it}}+\mu_i+f_t+\ve_{it}
+  \]
+\end{enumerate}
+\end{quote}
+
+\hypertarget{did-with-matching}{%
+\subsection{DID with matching}\label{did-with-matching}}
+
+\begin{itemize}
+\tightlist
+\item
+  It can be seen as a non-parametric DID, reweighting observations
+  according to a weighting function dependent on the specific matching
+  approach adopted.
+\item
+  Advantage: it does not require the imposition of the
+  linear-in-parameters form of the outcome equation.
+\end{itemize}
+
+For panel data \[
+\widehat{ATET}_{\mathit{M-DID}} = \frac1{N_1}\sum_{i\in T}\br{\pr{Y_{i1}^T-Y_{i0^T}-\sum_{j\in C\pr i}h\pr{i,j}\pr{Y_{j1}^C-y_{j0}^C}}}
+\]
+
+\hypertarget{parallel-trend-assumption}{%
+\subsection{Parallel trend assumption}\label{parallel-trend-assumption}}
+
+\begin{itemize}
+\tightlist
+\item
+  Test the assumption for periods before the treatment.
+\item
+  Allows for heterogeneity in time trend.
+\end{itemize}
+
+\hypertarget{iv}{%
+\section{IV}\label{iv}}
+
+\hypertarget{problems-of-iv-estimation}{%
+\subsection{Problems of IV estimation}\label{problems-of-iv-estimation}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Inconsistency of IV: What if the instrument is not fully exogenous for
+  the outcome. The bias increases as the covariance of \(Z\) and \(X\)
+  decreases.
+\item
+  Lower efficiency of IV: The variance of IV is always greater than that
+  of OLS.
+\item
+  Small-sample bias: The bias of 2SLS when one cannot invoke the usual
+  asymptotic results.
+\end{enumerate}
+
+\hypertarget{estimation-with-a-binary-iv}{%
+\subsection{Estimation with a binary
+IV}\label{estimation-with-a-binary-iv}}
+
+\[
+\hat \beta = \frac{\e{y|z = 1}-\e{y|z= 0}}{\e{d|z = 1}-\e{d|z = 0}}
+\]
+
+\begin{itemize}
+\tightlist
+\item
+  An IV estimator is a ratio that is a joint projection of \(y\) and
+  \(d\) onto a third dimension of \(z\).
+\item
+  An IV estimator isolates a specific portion of the covariation in
+  \(D\) and \(Y\).
+
+  \begin{itemize}
+  \tightlist
+  \item
+    By using the fitted values of the endogenous regressor from the
+    first-stage regression, our regression now uses only the exogenous
+    variation in the regressor due to the instrumental variable itself.
+  \item
+    Instrumental variable therefore reduces the variation in the data,
+    but that variation is exogenous.
+  \end{itemize}
+\item
+  A binary IV identifies only the average causal effect for compliers.
+  (the subset of all students who would attend a private school if given
+  a voucher but who would not attend a private school in the absence of
+  a voucher)
+\end{itemize}
+
+\hypertarget{late}{%
+\subsection{LATE}\label{late}}
+
+The LATE theorem:
+
+\begin{itemize}
+\tightlist
+\item
+  Independece
+\item
+  Exclusion
+\item
+  First stage
+\item
+  Monotonicity
+\end{itemize}
+
+LATE is not the same as ATT: \[
+\ba
+\underbrace{\e{Y_i^1-Y_i^0|D_i = 1}}_{ATT} = & \underbrace{\e{Y_i^1-Y_i^0|D_i = 1}\cdot p\pr{D_i^0 = 1|D_i = 1}}_{\text{Effect on Always-Takers}}\\
+& + \underbrace{\e{Y_i^1-Y_i^0|D_i = 1}\cdot p\pr{D_i^1>D_i^0,Z_i = 1|D_i = 1}}_{\text{Effect on Compliers}}
+\ea
+\] ATT is a weighted average of the effects on always-takers and
+compliers.
+
+\hypertarget{psm}{%
+\section{PSM}\label{psm}}
+
+\hypertarget{balancing-scores}{%
+\subsection{Balancing scores}\label{balancing-scores}}
+
+\begin{quote}
+A balancing score \(b\pr x\) is a function of the covariates such that
+\[
+W_i\perp X_i|b\pr{X_i}
+\]
+\end{quote}
+
+The idea is to find lower-dimensional functions of the covariates that
+suffice for the removing the bias associated with differences in the
+pre-treatment variables.
+
+Property: If assignment to treatment is unconfounded given the full set
+of covariates, then assignment is also unconfounded conditioning only on
+a balancing score.
+
+\begin{itemize}
+\tightlist
+\item
+  The propensity score provides the biggest benefit in terms of reducing
+  the number of variables we need to adjust for.
+\item
+  Units stratified according to the propensity score should be
+  indistinguishable in terms of their \(X\).
+\end{itemize}
+
+\hypertarget{identification-assumptions-of-matching}{%
+\subsection{Identification assumptions of
+matching}\label{identification-assumptions-of-matching}}
+
+\begin{itemize}
+\tightlist
+\item
+  Conditional independence (unconfoundedness): There exists a set of
+  observable covariates such that after controlling for these
+  covariates, treatment assignment is independent of potential outcomes.
+\item
+  Common support: For each value of \(X\), there is a positive
+  probability of being both treated and untreated.
+\end{itemize}
+
+\hypertarget{decisions-to-make-in-matching}{%
+\subsection{Decisions to make in
+matching}\label{decisions-to-make-in-matching}}
+
+\begin{itemize}
+\tightlist
+\item
+  Variables to be used for matching.
+\item
+  Distances for measuring closeness in covariates.
+\item
+  The number of controls.
+\item
+  Caliper.
+\item
+  Stratification: For covariates that should be matched exactly, forming
+  the same strata depending on such covariates in the treatment and
+  control groups.
+\item
+  Greedy/Nongreedy. (Greedy matching: A control is matched to only one
+  treated at most.)
+\end{itemize}
+
+\hypertarget{basic-matching-estimators}{%
+\subsection{Basic matching estimators}\label{basic-matching-estimators}}
+
+\[
+\hat\tau = \frac1{N_1}\sum_{t\in T}\pr{Y_t-\sum_{c\in\pr{C}}w_{ct}Y_c}
+\]
+
+However, it is hard to find the asymptotic distribution of a matching
+estimator, because selecting a comparison group \(C_t\) for treated
+\(i\) involves all observations. This implies dependence across the
+paired differences to make the iid presumption is false. Ignoring this
+dependence is likely to underestimate the asymptotic variance.
+
+\hypertarget{assessing-overlap-in-covariate-distribution}{%
+\subsection{Assessing overlap in covariate
+distribution}\label{assessing-overlap-in-covariate-distribution}}
+
+It is useful to assess the degree of overlap in the covariate
+distributions.
+
+\begin{itemize}
+\tightlist
+\item
+  The difference in locations: normalized difference
+\item
+  The difference in dispersions: the logarithm of the ratio of standard
+  deviations
+\item
+  Direct measures of overlap: investigate the fraction of the treated
+  units have covariates values that are in the tails of the distribution
+  of the covariate values for the controls.
+\end{itemize}
+
+\hypertarget{rct}{%
+\section{RCT}\label{rct}}
+
+\hypertarget{definition-of-treatment-effects}{%
+\subsection{Definition of treatment
+effects}\label{definition-of-treatment-effects}}
+
+Individual treatment effect is the difference between the potential
+outcomes of it being treated minus those when it not being treated.
+
+There are two important aspects of the definition of a causal effect:
+
+\begin{itemize}
+\tightlist
+\item
+  The definition of the causal effect depends on the \textbf{potential
+  outcomes}, but it does not depend on which outcome is actually
+  observed.
+\item
+  The causal effect is the comparison of potential outcomes, for the
+  same unit, at the same moment after the treatment.
+\end{itemize}
+
+In experimental and quasi-experimental designs, the treatment effect is
+generally estimated by the \textbf{counterfactual approach}.
+Counterfactual causality takes the form of a comparison between the
+outcome of a unit when the unit is treated in a certain way, and the
+outcome of the same unit when it is not treated.
+
+\hypertarget{bias-in-estimation-of-treatment-effects}{%
+\subsection{Bias in estimation of treatment
+effects}\label{bias-in-estimation-of-treatment-effects}}
+
+We can use observed outcomes to estimate the treatment effect for unit
+\(i\): \[
+Y_i - Y_j = Y_i(1) - Y_j(0) = \underbrace{Y_i(1) - Y_i(0)}_{\gamma_i} + \underbrace{Y_i(0) - Y_j(0)}_{\text{Selection Bias}}
+\] Bias in estimation of average treatment effect using observed
+outcomes:
+
+\begin{itemize}
+\item
+  Bias in estimation of ATT using ``naive'' estimator: \[
+  T_1 - C_0 = \underbrace{T_1-T_0}_{ATT}+\underbrace{T_0-C_0}_\text{bias}
+  \]
+\item
+  Bias in estimation of ATU using ``naive'' estimator: \[
+  T_1 - C_0 = \underbrace{C_1-C_0}_{ATU}+\underbrace{T_1-C_1}_\text{bias}
+  \]
+\item
+  Bias in estimation of ATE using ``naive'' estimator: \[
+  T_1 - C_0 = \underbrace{\omega (T_1-T_0) + (1-\omega)(C_1-C_0)}_{ATE}+\underbrace{\omega (T_0 -C_0) + (1-\omega)(T_1-C_1)}_\text{bias}
+  \]
+\end{itemize}
+
+\hypertarget{properties-of-assignment-mechanism}{%
+\subsection{Properties of assignment
+mechanism}\label{properties-of-assignment-mechanism}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Individualistic} assignment: It limits the dependence of the
+  treatment assignment for unit \(i\) on the outcomes and assignments
+  for other units.
+\item
+  \textbf{Probabilistic} assignment: Every unit has positive probability
+  of being assigned to the treatment or the control group.
+\item
+  \textbf{Unconfounded} assignment: The assignment mechanism does not
+  depend on the potential outcomes.
+\end{enumerate}
+
+Under these assumptions, we can use the naive estimator to estimate
+treatment effects.
+
+\hypertarget{rdd}{%
+\section{RDD}\label{rdd}}
+
+\hypertarget{identification-at-cutoff}{%
+\subsection{Identification at cutoff}\label{identification-at-cutoff}}
+
+Formally, RD refers to a regression model \[
+\e{Y|S} = \beta_d\e{D|S}+m\pr{S}
+\] \hspace{0pt} where \(\e{D|S}\) is discontinuous at \(0\), and
+\(m\pr{S}\) is an unknown function continuous at \(0\).
+
+\[
+\beta_d = \frac{\e{Y|0^+}-\e{Y|0^-}}{\e{D|0^+}-\e{D|0^-}}
+\] The RD identification condition has two components:
+
+\begin{itemize}
+\tightlist
+\item
+  The discontinuity of \(\e{D|S}\): \(\e{D|S}\) has a break at \(0\),
+  that is, \(\e{D|0^+}-\e{D|0^-} \ne 0\).
+\item
+  The continuity of \(m\pr{S}\) at \(0\):
+  \(m\pr{S} = \e{Y|S}-\beta_d\e{D|S}\) is continuous at \(0\).
+\end{itemize}
+
+\hypertarget{main-features-of-rd}{%
+\subsection{Main features of RD}\label{main-features-of-rd}}
+
+In RD, the discontinuity of \(\e{D|S}\) at \(0\) comes typically from an
+institutional feature and thus it is visible, but the continuity of
+\(m\pr{S}\) is an assumption.
+
+This continuity leads to three main features of RD:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Local randomization}.
+
+  \begin{itemize}
+  \tightlist
+  \item
+    In SRD with \(D = 1\br{S\ge 0}\)
+  \end{itemize}
+\item
+  \textbf{Robustness of RD to the endogeneity of \(D\) through \(S\).}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Data generating process: \(Y_i = \beta_d D_i+m\pr{S_i}+U_i\), where
+    \(\e{U|S} = 0\).
+  \item
+    RD allows \(\e{U|S}\) to be a nontrivial function of \(S\), as long
+    as \(\e{U|S}\) is continuous at \(0\); such a \(\e{U|S}\) can be
+    merged into \(m\pr{S}\).
+  \item
+    The capacity to allow \(\e{U|S}\) to be a function of \(S\) makes RD
+    estimators robust to the endogeneity of \(D\) through \(S\).
+  \item
+    \(D\) in FRD affected by both \(S\) and \(\ve\) can be still related
+    to \(U\) through \(\ve\), and RD estimators are not robust to the
+    \(D\) endogeneity through \(\ve\).
+  \end{itemize}
+\item
+  \textbf{Ignorability of covariates other than \(S\).}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    As long as the covariates are continuous at the cutoff point, the
+    covariates do not affect the procedure of identification.
+  \end{itemize}
+\end{itemize}
+
+\hypertarget{data-requirement-of-rdd}{%
+\subsection{Data requirement of RDD}\label{data-requirement-of-rdd}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Three basic variables:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Assignment variable (or called forcing variable, running variable):
+    \(S\)
+  \item
+    Cutoff point: \(C\)
+  \item
+    Outcome variable: \(Y\)
+  \end{itemize}
+\item
+  Values of the assignment variable cannot be manipulated around the
+  cutoff point (to reach local randomization).
+\item
+  Cutoff point is not affected by the assignment variable (one cannot
+  choose a cutoff point to change the assignment).
+\item
+  Individual characteristics are unaffected around the cutoff point,
+  other than the assignment status.
+\end{enumerate}
+
+\hypertarget{specification-tests-of-rdd}{%
+\subsection{Specification tests of
+RDD}\label{specification-tests-of-rdd}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  The breaks of \(\e{Y|S}\) and \(\e{D|S}\).
+\item
+  The continuity of \(m\pr S\).
+\end{enumerate}
+
+\hypertarget{challenges-to-rdd}{%
+\subsection{Challenges to RDD}\label{challenges-to-rdd}}
+
+\begin{itemize}
+\tightlist
+\item
+  Treatment is not as good as randomly assigned around the cutoff when
+  agents are able to manipulate their running variable scores.
+\item
+  Some other unobservable characteristic changes at the threshold, and
+  this has a direct effect on the outcome.
+\end{itemize}
+
+\end{document}

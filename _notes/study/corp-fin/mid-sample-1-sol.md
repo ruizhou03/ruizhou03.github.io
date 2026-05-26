@@ -11,5 +11,6 @@ date: 2022-09-01
 author: "Zircon"
 permalink: "/notes/corp-fin/mid-sample-1-sol"
 pdf_url: "/files/corp-fin/mid-sample-1-sol.pdf"
+summary: "光华本科《公司财务管理》期中样卷 1 答案 PDF。覆盖现金流折现、NPV/IRR 决策、WACC 计算等核心题型的解答；与同目录题面 PDF mid-sample-1.md 配套。"
 ---
 

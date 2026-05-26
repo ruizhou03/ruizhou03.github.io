@@ -11,5 +11,6 @@ date: 2026-01-28
 author: "Zircon"
 permalink: "/notes/swimming/swimming-exam-prep"
 pdf_url: "/files/study/swimming/Main.pdf"
+summary: "北大体育部《游泳》课程笔试学习资料（自产 LaTeX 编译）：四种泳姿（蛙泳/自由泳/仰泳/蝶泳）的标准动作要领、游泳安全规则、CPR 与溺水自救、起跳与转身技术等。期末笔试备考用。"
 ---
 

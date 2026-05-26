@@ -11,5 +11,6 @@ date: 2023-09-01
 author: "Zircon"
 permalink: "/notes/psy-stat-II/cheat-sheet-mid-2023"
 pdf_url: "/files/psy-stat-II/cheat-sheet-mid-2023.pdf"
+summary: "北大心理学院《心理统计 II》（2023 春）期中考试速查表（cheat sheet）：把 FA / SEM 入门 / 多元回归 / 因子分析旋转方法 等高频公式与判断准则浓缩在 A4 一张纸，方便带进考场速查。"
 ---
 

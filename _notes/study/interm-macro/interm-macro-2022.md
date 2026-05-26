@@ -11,5 +11,6 @@ date: 2022-09-01
 author: "Zircon"
 permalink: "/notes/interm-macro/interm-macro-2022"
 pdf_url: "/files/interm-macro/interm-macro-2022.pdf"
+summary: "光华《中级宏观经济学》（2022 秋，颜色）课程笔记：覆盖 IS-LM、AD-AS、Solow 增长、RBC、新凯恩斯模型等中宏标准模块。教材参考曼昆 Macroeconomics 与 Blanchard，PDF 87 页含手写补充。"
 ---
 

@@ -11,5 +11,7 @@ date: 2023-09-01
 author: "Zircon"
 permalink: "/notes/causal-inference/final-prep-2023"
 pdf_url: "/files/causal-inference/final-prep-2023.pdf"
+summary: "《因果推断与商业应用》（2023 学年）期末复习提纲 PDF：按章节梳理考点 + 易混概念 + 解题套路，是考前一晚速复习级别的速查材料。"
 ---
 
+<p class="img-caption">LaTeX 源码：<a href="/files/causal-inference/source/final-prep-2023.tex">final-prep-2023.tex</a></p>

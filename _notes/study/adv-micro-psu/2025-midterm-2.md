@@ -11,4 +11,5 @@ date: 2025-04-01
 author: "Zircon"
 permalink: "/notes/adv-micro-psu/2025-midterm-2"
 pdf_url: "/files/adv-micro-psu/2025-midterm-2.pdf"
+summary: "PSU ECON 521 高级微观经济学 2025 春第二次期中真题（题面 PDF，无答案）。覆盖博弈论 / Nash 均衡 / 拍卖与机制设计 / matching 等 MWG 教材后半章节考点；可与同年期中 1 + 期末作系列对照。"
 ---

@@ -11,5 +11,6 @@ date: 2022-09-01
 author: "Zircon"
 permalink: "/notes/corp-fin/mid-sample-1"
 pdf_url: "/files/corp-fin/mid-sample-1.pdf"
+summary: "光华本科《公司财务管理》期中样卷 1 题面 PDF。配套答案见 mid-sample-1-sol.md；可掐时做完后对照。"
 ---
 

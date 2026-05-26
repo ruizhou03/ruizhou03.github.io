@@ -10,6 +10,7 @@ material_type: "Notes"
 date: 2023-06-16
 author: "Zircon"
 permalink: "/notes/mao-thought/mao-final-highlights-2023"
+pdf_url: "/files/mao-thought/mao-final-highlights-2023.pdf"
 published: true
 ---
 
@@ -28,3 +29,5 @@ published: true
 ![毛概重点第八章，一国两制港澳台政策及香港澳门具体内容要点整理](/files/images/mao-final-highlights-2023/06.jpg)
 
 ![毛概重点第九至十章，科学技术第一生产力和“三个代表”重要思想核心观点](/files/images/mao-final-highlights-2023/07.jpg)
+
+<p class="img-caption">LaTeX 源码：<a href="/files/mao-thought/source/mao-final-highlights-2023.tex">mao-final-highlights-2023.tex</a></p>

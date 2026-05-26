@@ -11,5 +11,6 @@ date: 2023-09-01
 author: "Zircon"
 permalink: "/notes/causal-id/robustness-check"
 pdf_url: "/files/causal-id/robustness-check.pdf"
+summary: "因果推断实证审稿中的稳健性检验专题笔记：覆盖 placebo test、parallel trends pre-trend、leave-one-out、bandwidth sensitivity、alternative IV、外推 vs 内推、subsample heterogeneity 等十余种 robustness check 写法；可对照实证论文 5-section 工作流。"
 ---
 

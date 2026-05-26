@@ -11,5 +11,6 @@ date: 2023-09-01
 author: "Zircon"
 permalink: "/notes/monetary-econ/monetary-econ-2023"
 pdf_url: "/files/monetary-econ/monetary-econ-2023.pdf"
+summary: "光华金融经济方向《货币经济学》（2023 春，肖筱林）课程笔记：从货币理论 OLG 模型出发讲铸币税、通货膨胀、央行货币供给、Bagehot 最后贷款人法则、泰勒规则、汇率与利率平价等模块。教材为 Modern Monetary Economics 4th ed.；本笔记与同学期 hw-summary、course-review 构成三件套。"
 ---
 

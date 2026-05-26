@@ -11,6 +11,7 @@ date: 2026-04-01
 author: "Zircon"
 permalink: "/notes/adv-micro-psu/2026-midterm-2"
 pdf_url: "/files/adv-micro-psu/2026-midterm-2.pdf"
+summary: "PSU ECON 521 高级微观经济学 2026 春第二次期中真题（题面 PDF，无答案）。覆盖博弈论 / 拍卖 / 机制设计 / matching 等高级题型；与 2026 期中 1 + 期末构成系列。"
 ---
 
 <p class="img-caption">LaTeX 源码：<a href="/files/adv-micro-psu/source/2026-midterm-2.tex">2026-midterm-2.tex</a></p>

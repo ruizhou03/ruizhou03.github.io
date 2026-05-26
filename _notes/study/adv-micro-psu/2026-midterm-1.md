@@ -11,6 +11,7 @@ date: 2026-02-18
 author: "Zircon"
 permalink: "/notes/adv-micro-psu/2026-midterm-1"
 pdf_url: "/files/adv-micro-psu/2026-midterm-1.pdf"
+summary: "PSU ECON 521 高级微观经济学 2026 春第一次期中真题（题面 PDF，无答案）。考点覆盖消费者理论 / 生产者理论 / 期望效用 / Slutsky / WARP-SARP / Walrasian 均衡等 MWG 教材前 6 章核心模块。"
 ---
 
 <p class="img-caption">LaTeX 源码：<a href="/files/adv-micro-psu/source/2026-midterm-1.tex">2026-midterm-1.tex</a></p>

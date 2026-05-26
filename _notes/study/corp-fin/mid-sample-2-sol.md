@@ -11,5 +11,6 @@ date: 2022-09-01
 author: "Zircon"
 permalink: "/notes/corp-fin/mid-sample-2-sol"
 pdf_url: "/files/corp-fin/mid-sample-2-sol.pdf"
+summary: "光华本科《公司财务管理》期中样卷 2 答案 PDF。覆盖资本结构、MM 定理、WACC 等核心题型的解答思路；与题面 mid-sample-2.md 配套。"
 ---
 

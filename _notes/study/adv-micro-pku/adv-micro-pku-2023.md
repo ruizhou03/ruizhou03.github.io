@@ -11,5 +11,6 @@ date: 2023-09-01
 author: "Zircon"
 permalink: "/notes/adv-micro-pku/adv-micro-pku-2023"
 pdf_url: "/files/adv-micro-pku/adv-micro-pku-2023.pdf"
+summary: "北大《高级微观经济学》（2023）课程笔记 PDF 完整版（含 6 章 chapters/ 分章）：消费者理论 + 生产者理论 + 一般均衡 + 博弈论 + 信息经济学。对照 MWG（Mas-Colell/Whinston/Green）教材编写，是博一前置准备的常用读物。"
 ---
 
