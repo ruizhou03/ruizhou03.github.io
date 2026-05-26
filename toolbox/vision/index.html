@@ -46,9 +46,11 @@ permalink: /toolbox/vision/
     color: white;
     border-color: var(--color-ink);
   }
-  .btn-primary:hover:not(:disabled) {
-    background: var(--color-accent);
-    border-color: var(--color-accent);
+  @media (hover: hover) {
+    .btn-primary:hover:not(:disabled) {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+    }
   }
   .btn-primary:disabled {
     opacity: 0.45;
@@ -58,9 +60,11 @@ permalink: /toolbox/vision/
     background: transparent;
     color: var(--color-ink);
   }
-  .btn-secondary:hover {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
+  @media (hover: hover) {
+    .btn-secondary:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
   }
   .btn-row {
     display: flex;
@@ -252,9 +256,11 @@ permalink: /toolbox/vision/
     transition: all 0.18s;
     background: var(--color-bg);
   }
-  .dist-card:hover {
-    border-color: var(--color-accent);
-    transform: translateY(-2px);
+  @media (hover: hover) {
+    .dist-card:hover {
+      border-color: var(--color-accent);
+      transform: translateY(-2px);
+    }
   }
   .dist-card.selected {
     border-color: var(--color-accent);
@@ -293,7 +299,9 @@ permalink: /toolbox/vision/
     border-radius: 8px;
     transition: border-color 0.18s;
   }
-  .glasses-choice label:hover { border-color: var(--color-accent); }
+  @media (hover: hover) {
+    .glasses-choice label:hover { border-color: var(--color-accent); }
+  }
   .glasses-choice input[type="radio"] { accent-color: var(--color-accent); }
 
   /* Prep checklist */
@@ -323,10 +331,12 @@ permalink: /toolbox/vision/
     background: var(--color-bg);
     transition: all 0.2s;
   }
-  .test-menu-card:hover {
-    border-color: var(--color-accent);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  @media (hover: hover) {
+    .test-menu-card:hover {
+      border-color: var(--color-accent);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
   }
   .test-menu-card h3 {
     font-family: var(--font-display);

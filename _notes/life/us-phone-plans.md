@@ -125,7 +125,7 @@ keywords: ["美国手机卡", "手机套餐", "话费套餐", "phone plan", "运
     <text x="340" y="20" text-anchor="middle" font-size="12" fill="#f39c12" font-weight="700">US Mobile（可在三家网络间切换：Warp = Verizon / GSM = T-Mobile / Dark Star = AT&amp;T）</text>
   </g>
 </svg>
-<p class="img-caption">三大网络是基础设施所有者，下面挂着各自的"主品牌"和一群 MVNO。MVNO 信号 = 主网络信号，因为它们租的就是同一个网络。<strong>Verizon = Visible，T-Mobile = Mint，AT&T = Cricket</strong> 是最常见的"同信号，半价"配对。</p>
+<p class="img-caption">三大网络是基础设施所有者，下面挂着各自的“主品牌”和一群 MVNO。MVNO 信号 = 主网络信号，因为它们租的就是同一个网络。<strong>Verizon = Visible，T-Mobile = Mint，AT&T = Cricket</strong> 是最常见的“同信号，半价”配对。</p>
 
 **两个关键结论从这张图里读出来：**
 
@@ -147,7 +147,7 @@ keywords: ["美国手机卡", "手机套餐", "话费套餐", "phone plan", "运
 | **Visible+ Pro** | MVNO（Verizon 子品牌） | Verizon | **\$45** | 无限 + 优先 | 含 Premium 数据 + 国际通话 |
 | **T-Mobile Go5G** | 主网 | T-Mobile | **\$70** | 无限 | Netflix / Apple TV+ 含 |
 | **Verizon Unlimited Plus** | 主网 | Verizon | **\$80** | 无限 + 优先 | Disney+ / Hulu / ESPN+ 含 |
-| **AT&T Unlimited Premium** | 主网 | AT&T | **\$85** | 无限 + 优先 | Max / Cricket 大型机会 |
+| **AT&T Unlimited Premium** | 主网 | AT&T | **\$85** | 无限 + 优先 | 含 HBO Max / 国际数据 |
 
 > **价格统一注释**：以上都是**单线**（1 个号码）价格，多人 / 多线办通常每条线降 \$5-\$15。**MVNO 标价通常含税；主网标价 + 10-25% taxes & fees 才是实际账单。**
 
@@ -275,16 +275,16 @@ iPhone 设置：
 
 **总计 10-25% 隐形费**。所以广告 \$80 → 账单 \$95-\$100。
 
-**MVNO（Mint / Visible / US Mobile）通常标含税价**——所以“\$25 = \$25"，没有隐形费。这是它们便宜的另一层原因。
+**MVNO（Mint / Visible / US Mobile）通常标含税价**——所以“\$25 = \$25”，没有隐形费。这是它们便宜的另一层原因。
 
 ## 8.3 自动续费陷阱
 
 - **Mint 年付套餐**：到期自动续费——记得在到期前 1 周决定要不要继续
-- **Postpaid 自动 autopay**：很多套餐”autopay \$5 折扣“诱导你绑卡，但 autopay 中的卡过期后会**自动改用账户余额扣**——你以为没绑实际仍在扣
+- **Postpaid 自动 autopay**：很多套餐用“autopay \$5 折扣”诱导你绑卡，绑定后卡过期或失败会让账单恢复原价（甚至触发滞纳金）——记得定期检查 autopay 状态
 
 ## 8.4 信号覆盖差异
 
-不同运营商在不同地区差距大。**前做选择前先查**：
+不同运营商在不同地区差距大。**做选择前先查**：
 
 - [FCC Mobile Coverage Map](https://www.fcc.gov/BroadbandData/MobileMaps/mobile-map)
 - 问同小区 / 实验室的同事手机信号怎样（最直接）
@@ -296,8 +296,8 @@ iPhone 设置：
 实体店销售对 **postpaid 套餐有提成**（约 \$20-\$50/单），对 **prepaid / MVNO 几乎没提成**。所以——
 
 - 销售一定推 postpaid 套餐
-- 会反复”建议“你选 \$80+ 的”无限套餐“
-- 会说 MVNO ”信号差 / 不稳定“——**这是销售话术，不是事实**
+- 会反复“建议”你选 \$80+ 的“无限套餐”
+- 会说 MVNO “信号差 / 不稳定”——**这是销售话术，不是事实**
 
 **应对**：在网上自助办，不去实体店。Mint / Visible / US Mobile / Google Fi 都是**全线上自助**，eSIM 5 分钟激活。
 
@@ -323,7 +323,7 @@ iPhone 设置：
 
 ## 9.2 半年回顾
 
-每 6 个月做一次”账单审计“：
+每 6 个月做一次“账单审计”：
 
 - 实际流量用了多少？（多数人远低于无限套餐）
 - 通话和短信几乎没用？（iMessage / WhatsApp / 微信替代）
@@ -336,7 +336,7 @@ iPhone 设置：
 **保留号码换运营商**的标准流程：
 
 1. **不要先关旧账户**——号码会被释放
-2. 在新运营商网站开账户时选”**Bring your own number**“
+2. 在新运营商网站开账户时选“**Bring your own number**”
 3. 提供旧运营商的 **account number + transfer PIN**（旧运营商客服电话索要 / app 内申请）
 4. 新运营商 24-48 小时内完成 porting，旧账户自动关闭
 5. 期间手机可能短暂断信号 1-2 小时
@@ -349,7 +349,7 @@ iPhone 设置：
 
 - 大学：部分系会给 RA / TA 报销手机话费（实验室 PI 申请）
 - 公司：很多大企业（Google / Meta / 金融业）有月度话费报销
-- 校友 / 学术会议：偶尔有”会员价“折扣
+- 校友 / 学术会议：偶尔有“会员价”折扣
 
 # 10. 参考来源
 
@@ -357,7 +357,7 @@ iPhone 设置：
 2. **[BestMVNO.com](https://bestmvno.com/)** —— MVNO 大全 + 比较工具，每月更新
 3. **[Mint Mobile / Visible / US Mobile / Google Fi 官网]**：直接看价格 + 套餐
 4. **[FCC Mobile Coverage Map](https://www.fcc.gov/BroadbandData/MobileMaps/mobile-map)** —— 信号覆盖官方查询
-5. **[一亩三分地”美国生活“版块](https://www.1point3acres.com/bbs/forum-178-1.html)** —— 中文圈实战经验
-6. **[Doctor of Credit 手机话费 promo](https://www.doctorofcredit.com/)** —— 偶尔有”开卡送 \$500 / 转入送 \$400"等大力度活动追踪
+5. **[一亩三分地“美国生活”版块](https://www.1point3acres.com/bbs/forum-178-1.html)** —— 中文圈实战经验
+6. **[Doctor of Credit 手机话费 promo](https://www.doctorofcredit.com/)** —— 偶尔有“开卡送 \$500 / 转入送 \$400”等大力度活动追踪
 
 最后一个观察——**手机话费这件事，一年下来一个人能省的钱可能比想象的多得多**。从 \$80 主网套餐换到 \$20 MVNO，**每月省 \$60，一年 \$720，五年 \$3,600**。这笔钱够你回国 2-3 次往返机票，或者交一个学期的健康保险。**最值得花的 30 分钟是研究一下 MVNO，最不值得花的时间是每月默默被多扣 \$60**。

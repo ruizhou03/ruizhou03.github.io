@@ -125,7 +125,9 @@ permalink: /toolbox/compound/
     transition: transform 0.2s;
   }
   .footnote[open] summary::after { transform: rotate(90deg); }
-  .footnote summary:hover { color: var(--color-accent); }
+  @media (hover: hover) {
+    .footnote summary:hover { color: var(--color-accent); }
+  }
   .footnote-body {
     padding: 0 1rem 0.9rem;
     font-size: 0.85rem; color: var(--color-muted); line-height: 1.7;
