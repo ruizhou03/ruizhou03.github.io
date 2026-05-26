@@ -12,3 +12,5 @@ author: "Zircon"
 permalink: "/notes/adv-micro-psu/2026-midterm-2"
 pdf_url: "/files/adv-micro-psu/2026-midterm-2.pdf"
 ---
+
+<p class="img-caption">LaTeX 源码：<a href="/files/adv-micro-psu/source/2026-midterm-2.tex">2026-midterm-2.tex</a></p>

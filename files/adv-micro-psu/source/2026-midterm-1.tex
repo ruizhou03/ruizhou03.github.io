@@ -1,0 +1,83 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{fancyhdr}
+
+% Set paragraph formatting
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1em}
+
+% Custom column type for centering
+\newcolumntype{C}{>{\centering\arraybackslash}p{2em}}
+
+\begin{document}
+
+% Header
+\noindent Econ 521 \hfill Vijay Krishna
+
+\noindent First Mid-Term Exam \hfill February 17, 2026
+
+\vspace{0.5em}
+
+\textbf{Instructions} \textit{Please answer all three questions. Make sure that you provide reasoning for your answers.}
+
+
+\begin{enumerate}[leftmargin=*, label=\arabic*.]
+    \item Consider the following two-player game where the payoffs are given in monetary amounts (dollars).
+
+    \begin{center}
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{c|c|c|c|}
+         \multicolumn{1}{c}{} & \multicolumn{1}{c}{L} & \multicolumn{1}{c}{M} & \multicolumn{1}{c}{R} \\ \cline{2-4}
+         U & $1, -1$ & $36, -36$ & $0, 0$ \\ \cline{2-4}
+         D & $9, -9$ & $4, -4$ & $16, -16$ \\ \cline{2-4}
+    \end{tabular}
+    \end{center}
+
+    \begin{enumerate}[label=(\alph*)]
+        \item First, suppose both players have utility functions $u_1(x) = u_2(x) = x$, so that the numbers above are also utilities. Find an equilibrium of the game. What are the expected dollar payoffs in this equilibrium?
+        
+        \item Next, suppose player 1 becomes risk-averse with Bernoulli utility function $v_1(x) = \sqrt{x}$, while player 2 remains risk-neutral with Bernoulli utility function $u_2(x) = x$ (the same as in part (a)). How is the equilibrium from part (a) affected by this change? In particular, how does this affect the expected dollar payoff of player 1? What is player 1's equilibrium expected utility and what is his dollar certainty equivalent?
+    \end{enumerate}
+
+    \item The following table gives the per-firm profit $\pi$ as a function of the total number of firms $n$ operating in an oligopolistic market:
+    
+    \begin{center}
+    \begin{tabular}{|c|c|c|c|c|}
+    \hline
+    $n$ & 1 & 2 & 3 & 4+ \\ \hline
+    $\pi(n)$ & 450 & 350 & 100 & $(-)$ \\ \hline
+    \end{tabular}
+    \end{center}
+    
+    Thus, if there is only firm then the its profits are 450; if there are two firms, then the profit of each is 350, etc. If there are more than three firms, then because of competition each firm would make a loss. There are three potential entrants who decide whether or not to enter \textit{sequentially}. First, 1 decides whether to enter or not, then firm 2 decides, then firm 3 decides. Clearly, absent any other considerations, all three firms will enter and make a profit of 100 each.
+    
+    \begin{enumerate}[label=(\alph*)]
+        \item Now suppose firms that are already operating in the industry can use advertising as an entry barrier to deter further entry. Advertising can do this because to enter, a new firm has to match the advertising expenditures of existing firms. For example, if at present firm 1 is the only firm in the market, then by spending $A$ on advertising it would force firm 2 to spend $A$ to enter also, thereby decreasing 2's post-entry profits. Assume that if firms 1 and 2 are in the market, they must spend the same amount to deter firm 3; that is, each must spend 100 to keep firm 3 out. How many firms will enter the market?
+        
+        \item Now suppose that the government enacts regulation limiting the amount of advertising expenditure as follows. No firm may spend more than 25\% of its gross profit on advertising. Thus, if firms 1 and 2 are in the market, the most they could spend on advertising is 87.5 ($= 0.25 \times 350$). What effect would this regulation have on the number of firms on the market?
+    \end{enumerate}
+\end{enumerate}
+
+\centerline{\textbf{Question \#3 is overleaf.}}
+
+\newpage
+\begin{enumerate}[leftmargin=*, start=3]
+    \item Consider a market with two firms that produce differentiated products. The demand for firm $i$'s product as a function of its own price $p_i$ and the price $p_j$ of its rival $j \neq i$ is
+    \[
+    D_i(p_i, p_j) = a - p_i + b p_j
+    \]
+    where $a > 1$ and $0 < b < 1$. Suppose that the constant unit cost of production for both firms is $c \in [0, 1]$. Suppose also that both firms choose prices $p_i \in [c, 1]$.
+    
+    \begin{enumerate}[label=(\alph*)]
+        \item Show that the resulting game is supermodular. What is the set of rationalizable strategies in this game?
+        
+        \item Is the resulting game also a potential game? If so, what is the potential function?
+    \end{enumerate}
+\end{enumerate}
+
+\end{document}

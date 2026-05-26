@@ -1,0 +1,53 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{enumitem}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+
+\pagestyle{plain}
+
+\begin{document}
+
+% --- Header ---
+Econ 521 \hfill Vijay Krishna
+
+Second Mid-Term Exam \hfill March 31, 2026
+
+\vspace{1.2em}
+
+\textbf{Instructions} \emph{Please answer all three questions. Be sure to provide reasoning for your answers.}
+
+\vspace{0.6em}
+
+\begin{enumerate}[itemsep=1em]
+
+  \item Carefully define the following terms.
+    \begin{enumerate}[label=(\alph*), itemsep=0.2em, topsep=0.4em]
+      \item A \emph{bargaining solution} (in the axiomatic bargaining framework)
+      \item The \emph{virtual value function} associated with a distribution $F$.
+      \item The \emph{Vickrey-Clarke-Groves (VCG) mechanism}.
+    \end{enumerate}
+
+  \item Two players bargain via the Rubinstein alternating offer procedure to divide a ``pie'' of size 1.
+    \begin{enumerate}[label=(\alph*), itemsep=0.6em, topsep=0.4em]
+      \item Suppose that the players have different utility utility functions: $u_1(z) = z$ and $u_2(z) = \sqrt{z}$ and use a common discount factor $\delta \in (0, 1)$ to discount future utilities. How will the pie be split in the unique subgame perfect equilibrium?
+      \item Now suppose that both players have identical linear utility functions $u(z) = z$ but use different discount factors $\delta_1 < \delta_2$ (both in $(0, 1)$) to discount future utilities.
+        \begin{enumerate}[label=\arabic*., itemsep=0.2em, topsep=0.3em]
+          \item How will the pie be split?
+          \item For what value of $\delta_2$ is the split in part (b) the same as in part (a) when the common discount factor $\delta = \delta_1$?
+        \end{enumerate}
+    \end{enumerate}
+
+  \item There is a single object for sale and two (2) potential buyers are bidding for the object. Bidder $i$ assigns a value of $X_i$ to the object. Each $X_i$ is independently and \emph{uniformly} distributed on the interval $[0, 1]$. Bidder $i$ knows the realization $x_i$ of $X_i$ and only that other bidder's values are independently and uniformly distributed on $[0, 1]$. The object being sold has a use value of $0$ to the seller.
+    \begin{enumerate}[label=(\alph*), itemsep=0.6em, topsep=0.4em]
+      \item Suppose that the seller sells the object using a \emph{second-price} auction (SPA) and sets a reserve price of $r > 0$. What is the optimal reserve price $r^{SPA}$ that a seller should set in a second-price auction?
+      \item Now suppose that the seller sells the object using a \emph{first-price} auction (FPA) and sets a reserve price of $r > 0$. What is the equilibrium bidding strategy $\beta_r : [0, 1] \to \mathbb{R}$ when $r > 0$? What is the optimal reserve price $r^{FPA}$ in a first-price auction? How does $r^{FPA}$ compare to $r^{SPA}$?
+      \item Finally, suppose that the seller sells the object via a second-price auction but instead of setting a reserve price $r > 0$, the seller charges each bidder an entry fee $c > 0$. Thus, in order to participate in the auction each bidder must pay a non-refundable amount $c$ to the seller prior to bidding. What is the optimal entry fee $c^{SPA}$?
+    \end{enumerate}
+
+\end{enumerate}
+
+\end{document}

@@ -13,3 +13,5 @@ author: "Zircon"
 permalink: "/notes/adv-micro-psu/2026-final"
 pdf_url: "/files/adv-micro-psu/2026-final.pdf"
 ---
+
+<p class="img-caption">LaTeX 源码：<a href="/files/adv-micro-psu/source/2026-final.tex">2026-final.tex</a></p>

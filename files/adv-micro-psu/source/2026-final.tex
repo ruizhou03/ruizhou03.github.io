@@ -1,0 +1,99 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{enumitem}
+\usepackage{tikz}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+
+\pagestyle{plain}
+
+\begin{document}
+
+% --- Header ---
+Econ 521 \hfill Vijay Krishna
+
+Final Exam \hfill Spring 2026
+
+\vspace{1.2em}
+
+\textbf{Instructions} \emph{Please answer all 3 questions. Make sure that you provide reasoning for your answers. Use the paper supplied as answer sheets, put your name on each page and number them.}
+
+\vspace{0.6em}
+
+\begin{enumerate}[itemsep=1em]
+
+  \item Consider a two-sided matching problem between students in the set $S = \{s_1, s_2, s_3\}$ and colleges in the set $C = \{c_1, c_2, c_3\}$. Each college has \emph{only one slot}. The (strict) preferences of the agents (top is best etc.) are:
+    \begin{center}
+    \begin{tabular}{c|c|c||c|c|c}
+      $P(s_1)$ & $P(s_2)$ & $P(s_3)$ & $P(c_1)$ & $P(c_2)$ & $P(c_3)$ \\
+      \hline
+      $c_1$ & $c_2$ & $c_1$ & $s_2$ & $s_1$ & $s_1$ \\
+      $c_2$ & $c_1$ & $c_2$ & $s_1$ & $s_2$ & $s_2$ \\
+      $c_3$ & $c_3$ & $c_3$ & $s_3$ & $s_3$ & $s_3$
+    \end{tabular}
+    \end{center}
+    \begin{enumerate}[label=(\alph*), itemsep=0.4em, topsep=0.4em]
+      \item Suppose that matching is determined by the Gale-Shapley algorithm when students make offers (apply). What is the resulting stable matching $\mu_S$?
+      \item Is the matching $\mu = \{(c_1, s_3), (c_2, s_1), (c_3, s_2)\}$ stable?
+      \item Show that college $c_1$ can manipulate the outcome in its favor by submitting the false preference $P'(c_1) = s_2 \succ s_3 \succ s_1$ instead of $P(c_1)$. In other words, if $\mu'_S$ denotes the outcome of the Gale-Shapley algorithm with students proposing when $c_1$ submits the false preference $P'(c_1)$ (and all others submit their true preferences), then $c_1$ is better-off in the matching $\mu'_S$ rather than $\mu_S$.
+    \end{enumerate}
+
+  \item Consider the prisoners' dilemma game $G$:
+    \[
+    \begin{array}{c|cc}
+       & C & D \\ \hline
+       C & 2,\,2 & -1,\,3 \\
+       D & 3,\,-1 & 0,\,0
+    \end{array}
+    \]
+    and denote by $G(2)$ its two-fold repetition in which before playing in the second period, both players observe all choices in period~1.
+    \begin{enumerate}[label=(\alph*), itemsep=0.4em, topsep=0.4em]
+      \item Show that the unique \emph{Nash equilibrium outcome} of $G(2)$ is $(D, D), (D, D)$. (Note that the question is not about subgame perfect equilibria but rather Nash equilibria.)
+      \item Next consider the modified prisoner's dilemma game $G'$:
+      \[
+      \begin{array}{c|ccc}
+         & C & D & E \\ \hline
+         C & 2,\,2 & -1,\,3 & -2,\,-2 \\
+         D & 3,\,-1 & 0,\,0 & -1,\,-2 \\
+         E & -2,\,-2 & -2,\,-1 & -2,\,-2
+      \end{array}
+      \]
+      Show that $(C, C), (D, D)$ is a Nash equilibrium outcome of $G'(2)$. Is it a subgame perfect equilibrium outcome of $G'(2)$ as well?
+    \end{enumerate}
+
+  \item \begin{center}
+    \begin{tikzpicture}[scale=1.0, font=\small,
+        solid node/.style={circle, draw, inner sep=1.2pt, fill=black}]
+      \node[solid node, label=above:{$E$}] (E) at (0, 2.6) {};
+      \node[solid node, label=above left:{$C$}] (C) at (-1.6, 1.3) {};
+      \draw (E) -- (C) node[midway, above left, font=\scriptsize] {$\textit{In}$};
+      \draw (E) -- (1.6, 0) node[midway, above right, font=\scriptsize] {$\textit{Out}$};
+      \draw (C) -- (-2.6, 0) node[midway, above left, font=\scriptsize] {$F$};
+      \draw (C) -- (-0.6, 0) node[midway, above right, font=\scriptsize] {$A$};
+      \node[font=\small] at (-2.6, -0.3) {$-1, -1$};
+      \node[font=\small] at (-0.6, -0.3) {$1, 0$};
+      \node[font=\small] at (1.6, -0.3) {$0, 2$};
+    \end{tikzpicture}
+    \end{center}
+    Consider the entry game above in which a chain-store (player $C$) faces a threat of entry from an entrant (player $E$). $E$ can either enter (play \textit{In}) or not (play \textit{Out}) and $C$ can either fight entry (play $F$) or accommodate it (play $A$). The payoffs are given in the tree where the first number is the entrant's payoff and the second is the chain-store's payoff.
+
+    Suppose that there are two (2) periods and in each period, the game above is played against a \emph{different} entrant. In period 1, the chain-store faces the first entrant, $E_1$, and in period 2, it faces $E_2$. Outcomes in period 1 are observed by both $C$ and $E_2$.
+
+    But there is a probability $\varepsilon < \tfrac{1}{4}$ that the chain-store's payoffs are not as specified above but rather such that the chain-store prefers to fight (play $F$) rather than to accommodate (play $A$). Call such a chain-store ``irrational''.
+
+    Consider the following strategies in the two-period game when the probability that the chain-store is irrational is $\varepsilon < \tfrac{1}{4}$.
+    \begin{enumerate}[label=(\roman*), itemsep=0.2em, topsep=0.3em]
+      \item In period 1, the entrant $E_1$ enters for sure. The chain-store fights with probability $\varepsilon/(1 - \varepsilon)$.
+      \item In period 2, the entrant $E_2$ enters for sure if the outcome in period 1 was $(\textit{In}, A)$ and enters with probability $\tfrac{1}{2}$ if the outcome in period 1 was $(\textit{In}, F)$.
+    \end{enumerate}
+    \begin{enumerate}[label=(\alph*), itemsep=0.4em, topsep=0.4em]
+      \item Show that the strategies in (i) and (ii) constitute a perfect Bayesian equilibrium (PBE). Make sure you specify players' beliefs.
+      \item (\textbf{Optional for extra credit}) Show that the outcome in (a) is the unique PBE outcome of this game.
+    \end{enumerate}
+
+\end{enumerate}
+
+\end{document}
