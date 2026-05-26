@@ -1017,7 +1017,7 @@ permalink: /toolbox/feixingqi/
     renderCornerChips();
     renderBoard();
     updateStatus();
-    if (currentKindIsAi()) setTimeout(triggerAiTurn, 320);
+    if (currentKindIsAi()) { clearTimeout(aiTimer); aiTimer = setTimeout(triggerAiTurn, 320); }
   }
 
   function backToSetup() {
@@ -1994,9 +1994,13 @@ permalink: /toolbox/feixingqi/
     });
   }
 
+  let aiTimer = 0; // 防并发：每次设新 timer 前清除旧的
   function maybeTriggerAi(sameTurn) {
     if (state.over || state.paused) return;
-    if (currentKindIsAi()) setTimeout(triggerAiTurn, sameTurn ? 250 : 400);
+    if (currentKindIsAi()) {
+      clearTimeout(aiTimer);
+      aiTimer = setTimeout(triggerAiTurn, sameTurn ? 250 : 400);
+    }
   }
 
   function triggerAiTurn() {
@@ -2004,7 +2008,8 @@ permalink: /toolbox/feixingqi/
     if (!currentKindIsAi()) return;
     state.aiThinking = true;
     updateStatus();
-    setTimeout(() => {
+    clearTimeout(aiTimer);
+    aiTimer = setTimeout(() => {
       // AI rolls dice
       rollDice(() => {
         if (state.over || state.paused) { state.aiThinking = false; updateStatus(); return; }
@@ -2016,7 +2021,8 @@ permalink: /toolbox/feixingqi/
         }
         // AI picks a piece
         const cfg = DIFFICULTY[state.difficulty];
-        setTimeout(() => {
+        clearTimeout(aiTimer);
+        aiTimer = setTimeout(() => {
           if (state.over || state.paused) { state.aiThinking = false; updateStatus(); return; }
           const idx = pickAiPiece(currentPlayer(), state.dice, state.legalPieces);
           state.aiThinking = false;
@@ -2170,7 +2176,7 @@ permalink: /toolbox/feixingqi/
     if (state.over || !Object.values(state.playerKinds).includes('ai')) return;
     state.paused = !state.paused;
     updateStatus();
-    if (!state.paused && currentKindIsAi() && !state.aiThinking) setTimeout(triggerAiTurn, 200);
+    if (!state.paused && currentKindIsAi() && !state.aiThinking) { clearTimeout(aiTimer); aiTimer = setTimeout(triggerAiTurn, 200); }
   }
   pauseBtn.onclick = togglePause;
   resumeBtn.onclick = togglePause;
@@ -2472,7 +2478,7 @@ permalink: /toolbox/feixingqi/
     renderCornerChips();
     renderBoard();
     updateStatus();
-    if (!state.paused && currentKindIsAi() && !state.awaitingPick) setTimeout(triggerAiTurn, 320);
+    if (!state.paused && currentKindIsAi() && !state.awaitingPick) { clearTimeout(aiTimer); aiTimer = setTimeout(triggerAiTurn, 320); }
   }
 
   function autosave() {
