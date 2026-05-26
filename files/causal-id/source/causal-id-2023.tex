@@ -2,6 +2,7 @@
 \usepackage[left=2.2cm,right=2.2cm,top=2.5cm,bottom=2.5cm]{geometry}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{graphicx}
+\graphicspath{{../figures/}{figures/}}
 \usepackage{xcolor}
 \usepackage{enumitem}
 \usepackage{booktabs}
@@ -148,7 +149,7 @@
 Graph），由节点和\textbf{单向}箭头组成，其中每个节点表示一个变量，用实心圆点表示观测得到的变量，用空心圆点表示观测不到的变量。当一个变量会通过因果影响另一变量时，画一条箭头线表示。因果关系是有方向且非循环的。路径图是一个有向无环图，因此不能用其去描述互为因果（simultaneous
 causation）和反馈循环（feedback loops）。
 
-\includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230706150556481.png}
+\includegraphics[width = 0.6\textwidth]{image-20230706150556481.png}
 
 \subsubsection{基本路径}
 
@@ -158,17 +159,17 @@ causation）和反馈循环（feedback loops）。
 
 因果路径也称为链状路径\(A\to B\to C\)。因果路径是一条连接两变量\(X\)和\(Y\)的所有箭头指向同一方向的路径，\(X\)可以直接或间接地因果影响\(Y\)。因果路径的特点是箭头指向同一方向。两个变量之间如果存在因果关系，它们就必然存在相关关系，所以因果路径为开放路径。
 
-\includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230706150537573.png}
+\includegraphics[width = 0.6\textwidth]{image-20230706150537573.png}
 
 遗漏变量是不好的，过度控制也是不好的；遗漏变量必须控制，中介变量必须不控制。至于变量的归类于遗漏变量或中介变量，需要通过理论或者常识来判断。过度控制会让估计出的系数有衰减偏误，即便方向一般不变。
 
-\includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230706150628387.png}
+\includegraphics[width = 0.6\textwidth]{image-20230706150628387.png}
 
 \paragraph{混淆路径}
 
 混淆路径也称为叉状路径\(A\gets B \to C\)，是指在解释变量\(X\)和被解释变量\(Y\)之间存在混淆变量的路径，混淆变量是同时影响\(X\)和\(Y\)的变量，混淆变量不一定直接影响\(X\)和\(Y\)，也可以间接影响\(X\)和\(Y\)。混淆变量的存在也会导致相关关系，所以混淆路径也是开放路径。
 
-\includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230706150824932.png}
+\includegraphics[width = 0.6\textwidth]{image-20230706150824932.png}
 
 \paragraph{对撞路径}
 
@@ -176,7 +177,7 @@ causation）和反馈循环（feedback loops）。
 
 样本自选择模型的本质就是对撞路径。
 
-\includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230706150756210.png}
+\includegraphics[width = 0.6\textwidth]{image-20230706150756210.png}
 
 \subsection{因果关系估计误差来源}
 
@@ -196,13 +197,13 @@ variable），从而排除混淆变量的干扰；给定混淆变量可以简单
 
 过度控制误差是指控制了因果路径上的变量（中介变量）而造成的误差。在研究中要避免控制受解释变量影响并且会影响被解释变量的中介变量，否则会导致过度控制偏差。
 
-\includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230706150858388.png}
+\includegraphics[width = 0.6\textwidth]{image-20230706150858388.png}
 
 \subsubsection{内生选择误差}
 
 内生选择误差可以理解为，当给定两个变量共同的被解释变量（对撞变量）时（或者对撞变量的被解释变量），也即对撞变量被家定位条件时，两个变量之间会产生一个衍生路径。衍生路径会造成两个原本不相关的变量变为相关，或造成两个原本相关的变量的相关性发生改变。
 
-\includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230706150919927.png}
+\includegraphics[width = 0.6\textwidth]{image-20230706150919927.png}
 
 \subsubsection{相关推测因果}
 
@@ -232,7 +233,7 @@ variable），从而排除混淆变量的干扰；给定混淆变量可以简单
   \end{itemize}
 \end{itemize}
 
-\includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230706150943432.png}
+\includegraphics[width = 0.6\textwidth]{image-20230706150943432.png}
 
 \subsection{常用因果估计方法}
 
@@ -282,59 +283,42 @@ variable），从而排除混淆变量的干扰；给定混淆变量可以简单
 \item
   面板数据回归可以加入固定效应模型，控制不随时间变化的可观测或不可观测因素。但仍然无法去除无法观测但随时间变化的因素。
 
-  \begin{itemize}
-  \item
-    \begin{longtable}[]{@{}ll@{}}
-    \toprule\noalign{}
-    控制变量，个体\(\alpha_i\)，\(u\)为无关变量 &
-    控制变量，个体\(\alpha_i\)，\(u\)为混淆变量 \\
-    \midrule\noalign{}
-    \endhead
-    \bottomrule\noalign{}
-    \endlastfoot
-    \includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230705235013700.png}
-    &
-    \includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230705235028023.png} \\
-    \end{longtable}
-  \end{itemize}
-\item
-  工具变量的本质是通过其外生性（不受\(u_{it}\)干扰）将内生解释变量分解为内生部分和外生部分。
+  \begin{figure}[h]
+  \centering
+  \begin{tabular}{cc}
+  \footnotesize 控制变量，个体 $\alpha_i$，$u$ 为无关变量 & \footnotesize 控制变量，个体 $\alpha_i$，$u$ 为混淆变量 \\
+  \includegraphics[width=0.42\textwidth]{image-20230705235013700.png} &
+  \includegraphics[width=0.42\textwidth]{image-20230705235028023.png} \\
+  \end{tabular}
+  \end{figure}
 
-  \begin{itemize}
-  \item
-    \includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230705235336254.png}
-  \end{itemize}
+\item
+  工具变量的本质是通过其外生性（不受 $u_{it}$ 干扰）将内生解释变量分解为内生部分和外生部分。
+
+  \begin{figure}[h]
+  \centering
+  \includegraphics[width=0.55\textwidth]{image-20230705235336254.png}
+  \end{figure}
+
 \item
   Heckman 样本自选择模型。
 
   \begin{itemize}
   \item
-    假设智商（IQ，可观测变量）和个人动力（motivation，不可观测变量）都会影响大学成绩（score，可观测），但IQ和motivation并没有相关性。
+    假设智商（IQ，可观测变量）和个人动力（motivation，不可观测变量）都会影响大学成绩（score，可观测），但 IQ 和 motivation 并没有相关性。
   \item
-    如果有总体数据或随机抽样数据，将score对IQ回归可以得到IQ对score的因果影响
-
-    \begin{itemize}
-    \item
-      \begin{longtable}[]{@{}l@{}}
-      \toprule\noalign{}
-      \(score_i=\alpha+\beta IQ_i+e_i\) \\
-      \midrule\noalign{}
-      \endhead
-      \bottomrule\noalign{}
-      \endlastfoot
-      \includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230705235739425.png} \\
-      干扰项\(e\)包含了motivation。由于\(e\)和IQ不相关，因此\(\beta\)的估计是正确的。 \\
-      \end{longtable}
-    \end{itemize}
+    如果有总体数据或随机抽样数据，将 score 对 IQ 回归可以得到 IQ 对 score 的因果影响：
+    \[ score_i = \alpha + \beta\, IQ_i + e_i \]
+    \begin{center}
+    \includegraphics[width=0.5\textwidth]{image-20230705235739425.png}
+    \end{center}
+    干扰项 $e$ 包含了 motivation。由于 $e$ 和 IQ 不相关，因此 $\beta$ 的估计是正确的。
   \item
-    如果数据是自己选择上大学的大学生，假如上大学是由个人效用决定的，效用取决于IQ与motivation。由于样本只包含了自己选择上大学的个体，假设只有当上大学的效应utility\textgreater0，个人才会选择上大学。使用自选择样本，相当于给定了对撞变量utility\textgreater0，产生了衍生路径。
-
-    \begin{itemize}
-    \item
-      \includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230706000203734.png}
-    \item
-      在样本中motivation和IQ存在相关性，干扰项和IQ相关，回归\(score_i=\alpha+\beta IQ_i+e_i\)得到的IQ系数将是不正确的。
-    \end{itemize}
+    如果数据是自己选择上大学的大学生，假如上大学是由个人效用决定的，效用取决于 IQ 与 motivation。由于样本只包含了自己选择上大学的个体，假设只有当上大学的效用 $utility > 0$，个人才会选择上大学。使用自选择样本，相当于给定了对撞变量 $utility > 0$，产生了衍生路径。
+    \begin{center}
+    \includegraphics[width=0.5\textwidth]{image-20230706000203734.png}
+    \end{center}
+    在样本中 motivation 和 IQ 存在相关性，干扰项和 IQ 相关，回归 $score_i = \alpha + \beta\, IQ_i + e_i$ 得到的 IQ 系数将是不正确的。
   \end{itemize}
 \item
   最理想的方法是RCT，其次是直接控制该变量，当变量无法被观察时，可以通过DiD,
@@ -433,7 +417,7 @@ outcome）。如何估计反事实结果是估计处置效应的关键。
 
 因为干扰项是不可观测的，因此即使观测到了三个变量之间的变化关系（即三者相互的相关关系），也不能明确多少\(INC\)的变化是由于\(EDU\)变化造成的（即系数\(\beta_1\)），因为它们之间变化的相关性可能是由于干扰项\(e\)造成的。
 
-\includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230706105424525.png}
+\includegraphics[width = 0.6\textwidth]{image-20230706105424525.png}
 
 在可观测的混淆变量控制之后，为了保证干扰项和解释变量不存在混淆路径，需要要求干扰项条件均值独立于解释变量，
 
@@ -504,7 +488,7 @@ function, CEF）
 \[\frac{\d E[INC | EDU]}{\d EDU}=\beta_1+\beta_2 \frac{\d E[IQ|EDU]}{\d EDU}\\
 \iff \gamma_1=\beta_1+\beta_2 \phi_1\]
 
-\includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230706114351707.png}
+\includegraphics[width = 0.6\textwidth]{image-20230706114351707.png}
 
 由于系数\(\gamma_1\)反映的是教育和收入的相关性，并非纯粹的教育对收入的因果影响，因此说\(E[INC | EDU]=\gamma _0+\gamma_1 EDU\)是个相关关系CEF或相关关系回归方程。
 
@@ -572,13 +556,13 @@ E(Y| \X )=\X'\boldsymbol{\beta}\]
 
 \[y=Xb+\ve\]
 
-\includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230706142501988.png}
+\includegraphics[width = 0.6\textwidth]{image-20230706142501988.png}
 
 两个圆分别表示两个变量的全部变异。两圆的重叠部分表示两个变量共有的变异，在这个区域内，两个变量共同变动。OLS方法利用相关部分的共同变动来估计\(b_x\)，即\(X\)的斜率系数。更大的紫色区域意味着在估计中使用了更多的信息，这意味着\(b_x\)估计值的方差较小。黑色区域代表不能由\(X\)解释的\(y\)的变异，因此该区域的大小代表OLS对误差项方差的估计值的大小。
 
 考虑多元线性回归\(y=b_xx+b_ww+e\)，
 
-\includegraphics[width = 0.6\textwidth]{/Users/zhourui/Library/Application Support/typora-user-images/image-20230706142745836.png}
+\includegraphics[width = 0.6\textwidth]{image-20230706142745836.png}
 
 \(X\)和\(w\)作为对\(y\)的解释变量，与\(y\)交叠部分记为解释变量能参与解释的\(y\)的变异性，它与\(y\)圆比值即为回归的\(R^2\)。蓝色区域被用于估计\(x\)对\(y\)的影响，绿色区域被用于\(w\)对\(y\)的影响；三重交叠区域不参与估计\(x\)和\(w\)的影响，否则因果识别不干净。
 

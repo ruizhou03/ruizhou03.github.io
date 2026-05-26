@@ -13,4 +13,4 @@ pdf_url: "/files/r-tutorials/r-anova-manova.pdf"
 
 嵌套方差分析 + 多元方差分析的 R 实操：从 aov() 嵌套模型、误差项调整、Box M 与 Levene 检验、Pillai 统计量、eta squared 效应量，到 games_howell_test 事后两两比较。下方挂的是配套示例数据完整跑通的编译版 PDF。
 
-<p class="img-caption">R Markdown 源码：<a href="/files/r-tutorials/source/r-anova-manova.Rmd">r-anova-manova.Rmd</a></p>
+<p class="img-caption">LaTeX 源码：<a href="/files/r-tutorials/source/r-anova-manova.tex">r-anova-manova.tex</a></p>

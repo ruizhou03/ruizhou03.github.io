@@ -13,4 +13,4 @@ pdf_url: "/files/r-tutorials/r-correlation-distance.pdf"
 
 相关与距离的 R 实操：Pearson / Spearman 相关、偏相关 partial correlation、part 半偏相关、欧氏 / 马氏距离计算，以及 PCA 前置降维步骤。下方挂的是配套示例数据完整跑通的编译版 PDF。
 
-<p class="img-caption">R Markdown 源码：<a href="/files/r-tutorials/source/r-correlation-distance.Rmd">r-correlation-distance.Rmd</a></p>
+<p class="img-caption">LaTeX 源码：<a href="/files/r-tutorials/source/r-correlation-distance.tex">r-correlation-distance.tex</a></p>

@@ -13,4 +13,4 @@ pdf_url: "/files/r-tutorials/r-survival-analysis.pdf"
 
 生存分析的 R 实操：Kaplan-Meier 估计与生存曲线、log-rank 检验组间比较、Cox 比例风险模型（HR 解读 + 协变量调整）、PH 假设检验。基于 survival 包的 lung 数据集贯穿。下方挂的是配套示例数据完整跑通的编译版 PDF。
 
-<p class="img-caption">R Markdown 源码：<a href="/files/r-tutorials/source/r-survival-analysis.Rmd">r-survival-analysis.Rmd</a></p>
+<p class="img-caption">LaTeX 源码：<a href="/files/r-tutorials/source/r-survival-analysis.tex">r-survival-analysis.tex</a></p>

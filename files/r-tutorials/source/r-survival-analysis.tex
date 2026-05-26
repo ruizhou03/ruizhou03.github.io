@@ -1,0 +1,267 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{space}{xeCJK}
+%
+\documentclass[
+]{ctexart}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+  \ifXeTeX
+    \usepackage{xeCJK}
+    \setCJKmainfont[]{Songti SC}
+          \fi
+  \ifLuaTeX
+    \usepackage[]{luatexja-fontspec}
+    \setmainjfont[]{Songti SC}
+  \fi
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=2.2cm]{geometry}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{5}
+\renewcommand{\and}{\\}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Survival Analysis},
+  pdfauthor={Rui},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Survival Analysis}
+\author{Rui}
+\date{\texttt{r\ Sys.Date()}}
+
+\begin{document}
+\maketitle
+
+\renewcommand*\contentsname{目录}
+{
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+\hypertarget{packages}{%
+\section{Packages}\label{packages}}
+
+\begin{itemize}
+\tightlist
+\item
+  Survival Analysis
+
+  \begin{itemize}
+  \tightlist
+  \item
+    survival
+  \item
+    survminer
+  \end{itemize}
+\item
+  Plots of Survival Analysis
+
+  \begin{itemize}
+  \tightlist
+  \item
+    ggfortify
+  \item
+    ggplot
+  \end{itemize}
+\end{itemize}
+
+\texttt{\{r\ message=FALSE,results=\textquotesingle{}hide\textquotesingle{},warning=FALSE\}\ library(survival)\ library(survminer)\ library(ggplot2)\ library(ggfortify)}
+
+Dataset ``lung'' in package ``survival'' is of interest, which contains
+the information about survival in patients with advanced lung cancer
+from the North Central Cancer Treatment Group. Performance scores rate
+how well the patient can perform usual daily activities. Variables
+include:
+
+\begin{itemize}
+\tightlist
+\item
+  inst: Institution code
+\item
+  time: Survival time in days
+\item
+  status: censoring status \texttt{1=censored}, \texttt{2=dead}
+\item
+  age: Age in years
+\item
+  sex: \texttt{Male=1} \texttt{Female=2}
+\item
+  ph.ecog: ECOG performance score as rated by the physician.
+  \texttt{0=asymptomatic}, \texttt{1=\ symptomatic} but completely
+  ambulatory, \texttt{2=\ in\ bed\ \textless{}50\%\ of\ the\ day},
+  \texttt{3=\ in\ bed\ \textgreater{}\ 50\%\ of\ the\ day\ but\ not\ bedbound},
+  \texttt{4\ =\ bedbound}
+\item
+  ph.karno: Karnofsky performance score
+  (\texttt{bad=0}-\texttt{good=100}) rated by physician
+\item
+  pat.karno: Karnofsky performance score as rated by patient
+\item
+  meal.cal: Calories consumed at meals
+\item
+  wt.loss: Weight loss in last six months (pounds)
+\end{itemize}
+
+\texttt{\{r\ warning=FALSE,message=FALSE\}\ attach(lung)} \# Survival
+Object
+
+\texttt{survival::Surv()} creates a survival object, with censored data
+marked with ``\texttt{+}'' following up censoring time and death cases
+simply showing the death time. The result is usually used as a response
+variable in a model formula.
+
+Two most important parameters:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{time} :For right censored data, this is the follow up time.
+  For interval data, the first argument is the starting time for the
+  interval.
+\item
+  \texttt{event}: The status indicator, normally \texttt{0=alive},
+  \texttt{1=dead}. Other choices are \texttt{TRUE/FALSE}
+  (\texttt{TRUE\ =\ death}) or \texttt{1/2} (\texttt{2=death}). For
+  interval censored data, the status indicator is 0=right censored,
+  1=event at time, 2=left censored, 3=interval censored. For multiple
+  endpoint data the event variable will be a factor, whose first level
+  is treated as censoring. Although unusual, the event indicator can be
+  omitted, in which case all subjects are assumed to have an event.
+\end{itemize}
+
+\texttt{\{r\}\ survobj\ =\ Surv(time,\ status==2)}
+
+\hypertarget{surv-model}{%
+\section{Surv Model}\label{surv-model}}
+
+For the overall survival analysis, just specify the null hypothesis with
+\texttt{Surv\textasciitilde{}1}, i.e., NO groups.
+
+\texttt{\{r\}\ sfit\ \textless{}-\ survfit(Surv(time,\ status==2)\textasciitilde{}1,\ data=lung)}
+
+The fitted survival model itself will tell you the results, with
+observations, events, median and 95\% CI.
+
+\texttt{\{r\}\ sfit}
+
+If more details are needed, i.e., the instantaneous events, and
+estimates of survival, std.err, 95\% CI, just \texttt{summary(sfit)}.
+
+Moreover, if \texttt{time} is designated, then the \texttt{summary()}
+function will return the estimated results.
+
+\texttt{\{r\}\ summary(sfit,time\ =\ 200)}
+
+However, if group is of interest, specify it in the formula with
+\texttt{Surv\textasciitilde{}group}.
+
+\texttt{\{r\}\ sfit\_sex\ =\ survfit(Surv(time,status==2)\textasciitilde{}strata(sex))\ sfit\_sex}
+
+From the model itself, we can get an overall picture of the differences
+between groups.
+
+\texttt{\{r\}\ summary(sfit\_sex,time\ =\ 365)}
+
+It's ideal that the 95\% CI of groups doesn't intersect, and a
+significant result can be obtained instantly. However, that's not the
+case, take a step further and use Cox regression to see exactly.
+
+\hypertarget{cox-regression}{%
+\section{Cox Regression}\label{cox-regression}}
+
+\texttt{\{r\}\ coxph(Surv(time,\ status==2)\textasciitilde{}sex)} where
+``\texttt{exp(coef)}'' is the HR (hazard ratio)， which measures the
+relative risk between two groups.
+
+Theoretically, it's better only open to binary variables in Cox
+regression. However, for categorical variables with more than 2 levels,
+use ``\texttt{as.factor(cat\_var)}'' with ``\texttt{model\ =\ TRUE}'' to
+generate corresponding dummy variables. For continuous variables,
+they'll be included into the regression model as usual, but the model
+will be plotted with expected value of continuou variables.
+
+However, similar to \texttt{coxph()} which returns the differences
+through the view of regression, the simpler version of such comparison
+can be accomplished by ``\texttt{survdiff()}'', also in package
+``survival''. Both of the functions have the same formula.
+
+From ``\texttt{survdiff()}'', we can get the intermediate products when
+computing the log rank, or the chi-square test. However, this wouldn't
+return the coefficient.
+
+Jointly speaking, the combined results of two functions emphasize the
+fact that the log rank test (named Mantel-Haenszel test), is a
+chi-square test in essence.
+
+\texttt{\{r\}\ surv\_diff\ =\ survdiff(Surv(time,\ status==2)\textasciitilde{}sex)\ surv\_diff\ surv\_diff\$chisq}
+
+\hypertarget{surv-plots}{%
+\section{Surv Plots}\label{surv-plots}}
+
+Finally, we can visualize the survival analysis.
+
+Note that even if analysed data has been attached, if the
+``\texttt{data}'' isn't passed into \texttt{survfit()}, then an error
+will be raised.
+
+The parameter ``\texttt{risk.table}'' provides you with the freedom to
+decide whether or not to add a risk table below the Kaplan-Meier
+curve(s). Meanwhile, various options are available!
+
+\texttt{\{r\ warning=FALSE\}\ ggsurvplot(sfit\_sex,data\ =\ lung,\ \ \ \ \ \ \ \ \ \ \ \ conf.int=TRUE,\ pval=TRUE,\ \ \ \ \ \ \ \ \ \ \ \ \ risk.table=\textquotesingle{}abs\_pct\textquotesingle{},\ \ \ \ \ \ \ \ \ \ \ \ legend.labs=c("Male",\ "Female"),\ legend.title="Sex",\ \ \ \ \ \ \ \ \ \ \ \ title="Kaplan-Meier\ Curve\ for\ Lung\ Cancer\ Survival")}
+
+Moreover, the parameter ``\texttt{fun}'' is quite useful, which will
+define a transformation of the survival curve.
+
+\begin{itemize}
+\tightlist
+\item
+  ``pct'': for survival probability in percentage, \textbf{by default}.
+\item
+  ``event'': plots cumulative events, \(f(y)=1-y\).
+\item
+  ``cumhaz'': plots the cumulative hazard function, \(f(y)=-\log(y)\).
+\end{itemize}
+
+\texttt{\{r\}\ ggsurvplot(sfit\_sex,data\ =\ lung,\ \ \ \ \ \ \ \ \ \ \ \ conf.int=TRUE,\ pval=TRUE,\ \ \ \ \ \ \ \ \ \ \ \ \ \#\ risk.table=\textquotesingle{}abs\_pct\textquotesingle{},\ \ \ \ \ \ \ \ \ \ \ \ legend.labs=c("Male",\ "Female"),\ legend.title="Sex",\ \ \ \ \ \ \ \ \ \ \ \ \#\ title="Kaplan-Meier\ Curve\ for\ Lung\ Cancer\ Survival",\ \ \ \ \ \ \ \ \ \ \ \ fun\ =\ \textquotesingle{}event\textquotesingle{})}
+
+\texttt{\{r\}\ ggsurvplot(sfit\_sex,data\ =\ lung,\ \ \ \ \ \ \ \ \ \ \ \ conf.int=TRUE,\ pval=TRUE,\ \ \ \ \ \ \ \ \ \ \ \ \ \#\ risk.table=\textquotesingle{}abs\_pct\textquotesingle{},\ \ \ \ \ \ \ \ \ \ \ \ legend.labs=c("Male",\ "Female"),\ legend.title="Sex",\ \ \ \ \ \ \ \ \ \ \ \ title="Kaplan-Meier\ Curve\ for\ Lung\ Cancer\ Survival",\ \ \ \ \ \ \ \ \ \ \ \ fun\ =\ \textquotesingle{}cumhaz\textquotesingle{})}
+
+\end{document}

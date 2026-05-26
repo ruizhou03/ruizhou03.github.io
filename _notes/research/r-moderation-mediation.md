@@ -13,4 +13,4 @@ pdf_url: "/files/r-tutorials/r-moderation-mediation.pdf"
 
 调节效应 moderation 与中介效应 mediation 的 R 实操：中心化处理、simple slope 分析、Estimated Marginal Means、Sobel test，以及 Y ~ X / M ~ X / Y ~ X+M 三步法的中介模型 + 自助法置信区间。下方挂的是配套示例数据完整跑通的编译版 PDF。
 
-<p class="img-caption">R Markdown 源码：<a href="/files/r-tutorials/source/r-moderation-mediation.Rmd">r-moderation-mediation.Rmd</a></p>
+<p class="img-caption">LaTeX 源码：<a href="/files/r-tutorials/source/r-moderation-mediation.tex">r-moderation-mediation.tex</a></p>

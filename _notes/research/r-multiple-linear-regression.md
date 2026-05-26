@@ -13,4 +13,4 @@ pdf_url: "/files/r-tutorials/r-multiple-linear-regression.pdf"
 
 多元线性回归（OLS）的 R 完整工作流：相关矩阵 / Corr 热力图、lm() 拟合 + summary 解读、coefficients + confint、标准化回归系数、偏相关 / 半偏相关、Q-Q 图与残差诊断、Cook distance 与影响点识别。下方挂的是配套示例数据完整跑通的编译版 PDF。
 
-<p class="img-caption">R Markdown 源码：<a href="/files/r-tutorials/source/r-multiple-linear-regression.Rmd">r-multiple-linear-regression.Rmd</a></p>
+<p class="img-caption">LaTeX 源码：<a href="/files/r-tutorials/source/r-multiple-linear-regression.tex">r-multiple-linear-regression.tex</a></p>

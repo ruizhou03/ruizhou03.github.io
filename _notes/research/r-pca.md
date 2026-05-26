@@ -21,4 +21,4 @@ pdf_url: "/files/r-tutorials/r-pca.pdf"
 
 碎石图（scree plot）是常用的“选几维”判据——把特征值从大到小画出来，**找肘部**（突然变缓的那个拐点）就是 $k$。bruceR::EFA() 把这套流程裹得很顺手，参数和输出都比 prcomp / princomp 友好不少。下方挂的是用大五人格 25 题数据完整跑通的编译版 PDF（含碎石图、方差解释、因子载荷矩阵、成分分析路径图等）。
 
-<p class="img-caption">R Markdown 源码：<a href="/files/r-tutorials/source/r-pca.Rmd">r-pca.Rmd</a></p>
+<p class="img-caption">LaTeX 源码：<a href="/files/r-tutorials/source/r-pca.tex">r-pca.tex</a></p>
