@@ -6,7 +6,7 @@ main_category: "生活攻略"
 sub_category: "效率工具"
 permalink: "/life/vpn-setup-ios"
 outdated: true
-outdated_note: "本文写于 2023 年，主要讲外区 Apple ID 注册和礼品卡支付流程，这部分到现在仍然适用。但当时正版 VPN 软件（Shadowrocket 等）主推的协议是 V2Ray / Trojan / Shadowsocks；从 2023 年底开始，主流抗封锁协议已切换到 **XTLS-Reality + Vision Flow**（伪装为真实 TLS 流量），客户端也需要相应升级配置。如果只是借这篇走通"外区 App Store + 礼品卡"流程，仍然有效；如果要选当下最稳的协议，请查更新一些的资料。"
+outdated_note: "本文写于 2023 年，主要讲外区 Apple ID 注册和礼品卡支付流程，这部分到现在仍然适用。但当时正版 VPN 软件（Shadowrocket 等）主推的协议是 V2Ray / Trojan / Shadowsocks；从 2023 年底开始，主流抗封锁协议已切换到 **XTLS-Reality + Vision Flow**（伪装为真实 TLS 流量），客户端也需要相应升级配置。如果只是借这篇走通“外区 App Store + 礼品卡”流程，仍然有效；如果要选当下最稳的协议，请查更新一些的资料。"
 keywords: ["iOS 配置 VPN", "iPhone VPN", "iPad VPN", "苹果 VPN 设置", "注册外区 Apple ID", "登录外区 Apple ID", "美区 Apple ID", "海外 Apple ID 账号", "外区账号付费", "苹果礼品卡", "Apple gift card", "App Store 外区下载", "免税州地址", "美区账号注册", "Apple ID 支付方式", "Aplpe ID", "外区 ID 注册教程", "翻墙软件下载", "VPN 软件 iOS", "Reality 协议", "XTLS Vision", "Shadowrocket"]
 ---
 
