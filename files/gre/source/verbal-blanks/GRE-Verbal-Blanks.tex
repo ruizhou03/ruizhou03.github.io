@@ -1,0 +1,396 @@
+\documentclass[11pt,space]{ctexart} 
+\usepackage{GEEexam_Verbal_Blank}
+\usepackage{tabularx}
+
+\newcommand{\note}[1]{{\heiti\textbf{注\hspace{1em}}}#1.}
+
+\newcommand{\choices}[5]{%
+    \ifx\relax#4\relax % 检查第四个参数是否未定义（即\relax）
+        % 如果第四个参数未定义，创建一个三参数的表格
+        \begin{tabular}{|>{\centering\arraybackslash}m{0.7\linewidth}|}
+        \hline
+        #1 \\ 
+        \hline
+        #2 \\ 
+        \hline
+        #3 \\
+        \hline 
+        \end{tabular}
+    \else % 如果第四个参数已定义，创建一个五参数的表格
+        \begin{tabular}{|>{\centering\arraybackslash}m{0.4\linewidth}|}
+        \hline
+        #1 \\ 
+        \hline
+        #2 \\ 
+        \hline
+        #3 \\
+        \hline 
+        #4 \\ 
+        \hline
+        #5 \\
+        \hline 
+        \end{tabular}
+    \fi
+}
+
+\newcommand{\multiblank}[4]{%
+    \ifnum#1=1
+        \begin{center}
+            \begin{tabularx}{0.4\textwidth}{*{1}{>{\centering\arraybackslash}X}}
+            {#2}
+            \end{tabularx}
+        \end{center}
+    \else
+        \ifnum#1=2 % 如果第一个参数是2
+            \begin{center}
+                \begin{tabularx}{0.4\textwidth}{*{2}{>{\centering\arraybackslash}X}}
+                Blank (i) & Blank (ii) \\
+                {#2} & {#3}
+                \end{tabularx}
+            \end{center}
+        \else % 如果第一个参数不是2
+            \ifnum#1=3
+                \begin{center}
+                    \begin{tabularx}{0.4\textwidth}{*{3}{>{\centering\arraybackslash}X}}
+                    Blank (i) & Blank (ii) & Blank (iii) \\
+                    {#2} & {#3} & {#4}
+                    \end{tabularx}
+                \end{center}
+            \fi
+        \fi
+    \fi
+}
+
+\newcommand{\senequiv}[6]{
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedleft\arraybackslash}p{0.4\linewidth} p{0.45\linewidth}}
+    $\square$ & {#1} \\
+    $\square$ & {#2} \\
+    $\square$ & {#3} \\
+    $\square$ & {#4} \\
+    $\square$ & {#5} \\
+    $\square$ & {#6} \\
+\end{tabularx}
+\end{center}
+}
+
+\usepackage{multicol}
+
+\begin{document}
+
+
+\section*{五选一}
+
+
+\begin{enumerate}
+
+\item Unable to escape their own literary tradition, literary critics either become the \blank{} of that tradition or, on the contrary, use their knowledge of it to reinterpret writers and trends from new perspectives.
+\multiblank{1}{\choices{liberator}{guardian}{successor}{antithesis}{gadfly}}{}{}
+\note{guardian表示的是“守旧者”，强调只一味固执地继承而没有批判地创新；successor也有继承的意思，不过它并没有排出推陈出新的可能性，也就是后半句话阐述的"reinterpret"。为了强调更鲜明的对比，同时也让表意更准确，guardian是更好的选项}
+
+\item History teaches us that science is not \blank{} enterprise; indeed, it is quite the opposite, a motley assortment of tools designed to safeguard researchers against their own biases.
+\multiblank{1}{\choices{opportunistic}{anomalous}{haphazard}{collective}{monolithic}}{}{}
+\note{一些看着不经意的修饰词可能也是做题的线索。这边的重点不在"safeguard researchers against biases"，而是在"a motley assortment of tools"。因此各个选项也都需要照顾到。这边不选opportunistic也是因为没有额外的信息（不能因为有bias就认为科学是冒险的事业）}
+
+\item The episodes encountered in dreams tend to be quite (i)\blank{}. Yet in this respect dreams' content differs from their causes, for dreams are as likely to have been molded by (ii)\blank{} events as by extreme and life-changing ones.
+\multiblank{2}{\choices{trivial}{revealing}{bizarre}{}{}}{\choices{memorable}{traumatic}{mundane}{}{}}{}
+\note{注意第二句是"as likely ... as ..."的结构，不要看得太快以致于理解成后一个"as by"单纯是举例的功能。因此，第二空要和"extreme and life-changing ones"形成对比，故填"mundane"。第一空似乎要和第二句的"yet in this respect dreams' content differs from their causes"对比，没有differ直接的反义词，从矮子里选高个，还是bizzare能让整句话说得通（也是因为第二句话的内容，梦的内容和原因没什么明确对应关系，revealing被排除）}
+
+\end{enumerate}
+
+\section*{多空题}
+
+\begin{enumerate}
+
+\item Vaccine denial has all the hallmarks of a belief system that is not (i)\blank{}. The notion that childhood vaccines are driving autism rates has been (ii)\blank{} by multiple epidemiological studies. Yet the true believers are (iii)\blank{}, critiquing each new study that challenges their views, and rallying to the defense of disgraced researchers whose work was retracted.
+\multiblank{3}{\choices{amenable to refutation}{susceptible to fashion}{open to criticism}{}{}}{\choices{resuscitated}{documented}{upended}{}{}}{\choices{indignant}{persistent}{phlegmatic}{}{}}
+\note{第一空要在amenable to refutation和open to criticism之间做选择，前者会和后文有更紧密的联系。第三空的indignant和persistent都说得通，相比之下persistent更合适，因为这一文段在说某一信念的顽固性，说这些信仰者对反面的结果固执己见比感到愤慨更贴合语境}
+
+\item Proponents of international regulation of environmental issues have always struggled against scientific uncertainty and economic hostility, two obstacles which, from a political standpoint, often have been closely related, as economic hostility toward environmental regulation for economic reasons have (i)\blank{} the considerable uncertainty underlying most environmental challenges to (ii)\blank{} of environmental regulation.
+\multiblank{2}{\choices{resolved}{gainsaid}{exploited}{}{}}{\choices{exaggerate the efficacy}{downplay the legitimacy}{question the fallibility}{}{}}{}{}
+\note{Economic hostility和scientific uncertainty在文中是同一阵营的两个因素，会被对面的阵营用于攻击环境保护的正当性。因此在第一空处阐释二者的关系时，一旦明白了这俩因素是相互联系的，就明白他们应该相互利用和勾结}
+
+\item The author clearly supports the causes he writes about, but he is more a narrator than (i)\blank{}. Some say he should have included more (ii)\blank{}, but he is wise to let the fact speak for themselves. They are complex enough to prompt many kinds of interpretation, and he would bog down the complicated tale if he tried to adjudicate all of their competing claims.
+\multiblank{2}{\choices{a reporter}{an advocate}{an adversary}{}{}}{\choices{statistical data}{analysis of events}{detailed description}{}{}}{}{}
+\note{第二空要在analysis和description之间做选择。空后一句说的是文中内容可以有很多不同的解读，但作者并没有插手读者的判断，因此前一空还是需要的是“分析”而不是单纯的“描述”。第一空由前半句的"clearly supports the causes"确定作者在文中是表达了对他支持的理由的肯定，同时注意到从narrator到advocate的递进或对比，二者有立场上的差异。注意不要被第二空选下的analysis带偏}
+
+\item The politician's record while in office, though (i)\blank{}, hardly accounts for her high standard three decades later: a standing all the more (ii)\blank{} because of continuing assaults on her reputation during those years.
+\multiblank{2}{\choices{bewildering}{admirable}{unappreciated}{}{}}{\choices{unusual}{regrettable}{persistent}{}{}}{}{}
+\note{第一空，注意让步状语从句虽表从句和主句含义的对立，但这种对立可以表现为作用力的相反，也可以是程度上的差异（衬托出超预期的表现）。此处的让步状语从句暗含了递进的意思，因此选admirable。第二空不要看到前面说的三十余年好名声就直接选了persistent，因为这样和后续的"because of continuing assaults"说不通。因此，应该是这样长期的攻击（而名声屹立不倒）凸显了其非同寻常，这也能和上一句的"hardly accounts for ..."呼应，故选unusual}
+
+\item The author of this biography gives an accurate and (i)\blank{} account of the subject's life story, but all the carefully assembled detail fails to compensate for the general lack of (ii)\blank{} in her writing.
+\multiblank{2}{\choices{exhaustive}{glib}{selective}{}{}}{\choices{specificity}{veracity}{vivacity}{}{}}{}{}
+\note{第一空需要和下一句的"carefully assembled details"相呼应，所以是selective。注意不要看到"details"就直接选了exhaustive，重心往往在定语状语上。第二空用排除法，specificity和veracity由上一句推断应该还是有的，vivacity最合适（尽管这一空没有给更多的信息）}
+
+\item Persian prose writers from the second half of the twelfth century onward were characteristically (i)\blank{} the literary form of their works, a fact that some scholars have perceived as a derogation of those works' content. It may be better interpreted as (ii)\blank{} the development of an awareness of authorship, for the awareness of authorship (iii)\blank{} the awareness of form.
+\multiblank{3}{\choices{ambivalent about}{indifferent to}{preoccupied with}{}{}}{\choices{a retreat from}{an indication of}{a justification for}{}{}}{\choices{evolves through}{extends beyond}{holds back}{}{}}
+\note{这道题首先要看出form和content是对立的。第一遍读题目没有看出来很正常，但看完感觉第一句话没有捕捉到很明显的信息量的时候就应该去抠句子的细节，看是否有一些巧妙的关键词设置了对立或者取同。第一句的后半句说这被认为是对作品内容的轻视，那么前半句自然应该说对作品形式的过分关心。第二句打头的"It may be better interpreted as ..."暗示应该接一个正面的词，所以选出an indication of。第二空和第三空是联系的，第一遍看不懂"awareness of authorship"也很正常，但看完这句话可以确定它和authorship of form是互补的关系，也能猜出来它对应前面说的content。整个第二句话的大致意思为，往好了说这样的情况是awareness of form的觉醒，（尽管我们希望的是awareness of authorship，）而awareness of form也是发展awareness of authorship的必经之路}
+
+\item Boreal forest is at the southern boundary of the moss-dominated tundra, which remains characteristically treeless because its spongy surface retains water that cannot drain away through the underlying permafrost. But as temperatures rise the permafrost recedes, (i)\blank{} the (ii)\blank{} of forest.
+\multiblank{2}{\choices{impairing}{facilitating}{decelerating}{}{}}{\choices{renewal}{incursion}{decline}{}{}}{}{}
+\note{根据题意应该说这样的条件会让森林始终无法生长，注意表述是"remains characteristically treeless"。因此后面说的温度上升冻土层融化是假设，会带来前所未有的树木生长，因此要选incursion而不是renewal。如果是单纯描述季节性温度变化对树木生长的影响，选renewal才合适}
+
+\item Although strikes remain rarer in Britain than in many other European countries, and their economic impact is (i)\blank{} compared to the great upheavals of the 1970s and 1980s, their number has (ii)\blank{} after a few years of somewhat greater calm.
+\multiblank{2}{\choices{inconclusive}{demoralizing}{negligible}{}{}}{\choices{exploded}{declined}{revived}{}{}}{}{}
+\note{没有更多的信息就不要加入自己的主观臆测。第二空应该选择的是表示增加的词汇。在给出的选项中，exploded和revived都表示数量的增加。由于没有提供罢工数量增长的速度或幅度，我们需要一个比较中性的词，所以revived是一个更加合适的选择。如果要是exploded，给定之前罢工的情况都比较温和，这就需要更多额外的信息，然而文中并没有}
+
+\item Most tree-dwelling lizards drop to the ground when threatened. But Sphenomorpus sabanus uses (i)\blank{}, avoiding predation by hanging upside down and clinging to a branch with its hind claws so as to resemble a twig. Researchers suggest that the advantages of S. sabanus's strategy is its (ii)\blank{}. When predatory birds expect their prey to fall to the ground, the argument runs, (iii)\blank{} a lizard still hanging from a branch.
+\multiblank{3}{\choices{mimicry}{vigilance}{agility}{}{}}{\choices{economy}{camouflage}{novelty}{}{}}{\choices{they would be unlikely to notice}{it is a nutritional bonus to find}{their scrutiny is likely to reveal}{}{}}
+\note{空之外的第一句话也很重要，可能提供背景信息作为参照。第二空很容易受到camouflage的干扰，正确选出第二空要充分理解整段。第三空用排除法选出来不困难，但所在句要结合第一句话理解：说的是Sphenomorpus sabanus的特殊之处在于它受到威胁时是挂在树枝上并模仿树枝，而不是掉落到地面；后者是大多数蜥蜴会的，也是捕食者所期待的。因此，Sphenomorpus sabanus保全自己的关键在于出其不意、非同寻常，并不是单纯的伪装。也可以这样理解，前两句已经交代了Sphenomorpus sabanus会模仿树枝以伪装自己，第二空处研究者没必要再单独说Sphenomorpus sabanus的自保秘诀在于camouflage}
+
+\item Direct imaging cannot yet be done for a terrestrial exoplanet because of the daunting optics challenges. For one thing, the glow of a terrestrial exoplanet could be much more (i)\blank{} than that of its host star. If this is the case, scientists would have to (ii)\blank{} much of the host star's light to (iii)\blank{} the exoplanet.
+\multiblank{3}{\choices{intense}{uniform}{faint}{}{}}{\choices{detect}{occult}{measure}{}{}}{\choices{shroud}{analyze}{reveal}{}{}}
+\note{第一空可能是intense或faint，扫一下后文可以排除intense。推测第二句话大概要表达的意思是，host star的光线太强了以致于遮盖了exoplanet的光线，这回对研究造成困难，所以要分析exoplanet就要过滤走一部分host star的光，或者说排除这强光的干扰。理论上"have to"后面可以跟的是事实（造成的客观困难），也可以是应对困难的办法；结合语境后一种会更合适一些，因此第二空选occult。第三空，occult和reveal搭配最合意，最能体现分析exoplanet的困难；analyze也说得通，但就显得很平淡了。occult可作形容词表“晦涩难懂的”，也可以作为动词指“阻碍，遮蔽”；shroud的意思是“遮盖”；exoplanet意为“系外行星”}
+
+\item The traditional set of nine planets could have been retained by defining a planet as any object that has the unique combination of characteristics of any one of the nine objects that were considered planets in the late twentieth century. That definition would not be (i)\blank{}; that is, it does not contradict the evidence. Its (ii)\blank{}, however, renders it less (iii)\blank{} than definitions based on astronomical criteria, such as orbit, size, and gravitation.
+\multiblank{3}{\choices{paradoxical}{subjective}{false}{}[]}{\choices{arbitrariness}{inconsistency}{generality}{}{}}{\choices{expedient}{stable}{defensible}{}{}}
+\note{
+第一空，由其后冒号句的补充说明，需要指出这样定义的“正确性”。注意paradoxical指的是内部自相矛盾，并不能用来说某一事物和另一事物有冲突，和contradictory不能简单取同。根据前文的叙述和第二句话要突出的对比，第二空要表达的意思是这样的定义仍然有不少主观随意性甚至武断性（为了方便而不是从一些客观特性出发），因此要选arbitrariness。这样的定义确实有些模糊，但也只是针对这几个行星的，并不能说就是generality的“笼统”。第三空，要传达的意思是这样的定义不够严谨不够站得住脚，选defensible最合适；很难用stable来形容一个定义
+}
+
+\item In Cixin Liu's novel Death's End, compassion becomes a (i)\blank{}: motivated by her unwillingness to risk the lives of others, the protagonist--brilliant astrophysicist Cheng Xin--makes several decisions that ultimately (ii)\blank{} humankind. Yet the survivors that Xin meets never respond with (iii)\blank{} as expected, instead reminding her that the choices she faced were complicated and their outcome impossible to predict.
+\multiblank{3}{\choices{distraction}{chimera}{liability}{}{}}{\choices{prove immensely destructive to}{place useful constraints upon}{provoke a reawakening among}{}{}}{\choices{confusion}{forbearance}{recrimination}{}{}}
+\note{
+做题不能总是假设从前往后，遇到困难时适度给更后面的题更多优先可能性。这题就要从第三空开始做，"instead"后面讲的是幸存者的好心行为，因此第三空说这些幸存者并没有待Xin以恶意或批评，选recrimination。由此再推知第二空Xin应该做了一些值得批评的事情，故选prove immensely destructive to。第二句表达的是Xin好心做坏事，因此第一句作为总括句，是在说良心反而作为一种负担，故选liability
+}
+
+\item Schechter is atypically (i)\blank{} the film version of Stephen King's horror novel The Shining because the qualities for which the majority of other critics have approved it (its artful camera work and so on) get in the way of narrative and render the story less, rather than more, (ii)\blank{} than other films of the same genre. This is not (iii)\blank{} view, and we must be grateful to Schechter for putting it forward.
+\multiblank{3}{\choices{unimpressed with}{confused by}{enamored of}{}{}}{\choices{heartbreaking}{comical}{terrifying}{}{}}{\choices{a commonplace}{a superior}{an unfamiliar}{}{}}
+\note{一上来的"atypically"说明了对比，后面的"because ..."说明了原因，因为多数的其他评论家很认可这部电影的质量，所以Schechter就是非同寻常地unimpressed with。注意critics意为“评论家”而非仅做批评，尽管这类群体通常是发表一些批判性的观点，但也会做正面的评论。第二空当句给的叙述其实没有更多信息，那就只能往前一句话找到这部电影是改编自"horror novel",三个里选一个最合适的terrifying。第三句话提到感激Schechter提出这种观点，说明这种观点比较新奇，故选a commonplace}
+
+\item By sucking people into towns and draining the countryside of communities and workers, the passenger train (i)\blank{} its reason for being: moving people between country districts and urban centers. The major (ii)\blank{} urbanization in the United States, the railway fell victim to it. Once the overwhelming majority of nonelective journeys were either very long or very short, it became (iii)\blank{} for people to undertake them in planes or cars.
+\multiblank{3}{\choices{vindicated}{discovered}{destroyed}{}{}}{\choices{facilitator of}{counterpoint to}{consequence of}{}{}}{\choices{unusual}{sensible}{inconsistent}{}{}}
+\note{第一空乍一看选vindicated和destroyed都说得通，甚至vindicated还更合适。然而从"the railway fell victim to it"开始，文段的叙事就变得清晰了。第三空的sensible结合常识是明确的；第二空所在句暗含对比，逗号前作为"the railway"的同位语，是一个积极的词，所以选择facilitator of。这时候要结合完整的意思重新把握整段的意思，尤其是第三句，其实是在说人们都集中到城市之后，他们需要的旅程不是太长（比如跨城市）就是太短（比如城市内），因此搭乘火车变得不明智，火车也就不再那么需要了。这样也能和文段第二句话相互印证。这样来看，第一句话说的是，火车实现功能的同时也在结束自己的生命，因为它把人们从郊区送到了城市，人们在城市集中之后就不再那么需要火车了。因此，第一空应该选destroyed}
+
+\end{enumerate}
+\section*{六选二}
+
+\begin{enumerate}
+
+\item The researcher noted that microbes, although \blank{}, make up far more of the living protoplasm on Earth than all humans, animals and plants combined.
+\senequiv{invisible}{omnipresent}{diminutive}{ubiquitous}{minuscule}{ethereal}
+\note{although提示让步转折，句子主干部分说微生物占比很大，说明他们非常庞大可观，将其取反后选择invisible和ethereal最合适：体现并非庞大可观，也就是看不到的、非实体的。注意此处不能选择diminutive和minuscule，因为微小的也有可能占比很大，所以这个特征不必然和主干部分构成取反}
+
+\item Although its gray text blocks and black-and-white illustrations give it a sober mien, this one-stop resource can take the place of a dozen less \blank{} texts.
+\senequiv{exhaustive}{interesting}{appealing}{original}{educational}{comprehensive}
+\note{one-stop直译为“一站式的”，其实就暗示了资源是非常全面详尽的，因此后一空比较取同应该选exhaustive和comprehensive。注意前半句的让步已经说了这样的文本本身并不是很有意思，后面不可能再倒回去选interesting和appealing}
+
+\item As a historical genre, biography is best when \blank{}, a careful reconstruction of the past in all its unfamiliar particularity.
+\senequiv{introspective}{reflective}{concrete}{concise}{meticulous}{thorough}
+\note{meticulous有“详尽的”的意思，可理解为“一丝不苟的”的引申义。这边要注意句子的重点在于"in all its unfamiliar particularity"而不是"reconstruction"，也不要凭借自己主观甚至本能的理解把句子的重点看歪了。另外，introspective和reflective很自然就是biography的需要，而不是"biography is best when ..."的条件}
+
+\item Ascorbate readily oxidizes in aerated aqueous solutions, and the PH of such solutions, in part, \blank{} the rate of oxidation, since the higher the PH, the greater the rate of oxidation.
+\senequiv{determines}{accelerates}{consolidates}{governs}{compounds}{stabilizes}
+\note{"the higher the PH, the greater the rate of oxidation"不能说明PH本身就是加速氧化，而应该说更高的PH能加速氧化。因此，只能说PH决定了氧化的速率；但由于没给出PH的变化或高低，也就不能得出加快还是减缓氧化速率的结论}
+
+\item It can be \blank{} to see well-known historical figures played in films by actors who have become firmly associated in our minds with contemporary celebrity culture.
+\senequiv{enlightening}{unsettling}{offensive}{illuminating}{gratifying}{disconcerting}
+\note{GRE更注重对比和感情色彩的突出，因此必须注意到"well-known historical figures"和"actors firmly associated with contemporary celebrity culture"的对比，一个是history和contemporary，一个是figure和celebrity，因此整体上应该还是强调这样的对比给人带来的不适感和违和感。enlightening和illuminating本身也能说得通，但它们的成立需要额外的信息，而unsettling和disconcerting两个表示对比的词就不需要，相比之下后者更好}
+
+\item Developments in neuroscience and animal behavior have led researchers to question the view that unmitigated competition is \blank{} animal life: in primatology, the countermovement started with research into how friendships and conflict resolution favor survival.
+\senequiv{beneficial to}{manifest in}{rare in}{essential in}{evident in}{foundational to}
+\note{
+第一选择是beneficial to，但没有很好的同义词，发现essential in和foundational to同义（立场一致但程度更深），故选这一对。如果要辩驳的是某个现象是否明显，那么应该拿证据；这边说的是关于态度或立场的选择，无论如何站队都不能用于争辩某个事实，因此不可能选manifest in和evident in，甚至rare in
+}
+
+\item The New York City response to the Astaires was enthusiastic, but in London it was \blank{}: British audiences had never seen dancers like them, and they associated the pair's seemingly effortless skill with an idea of the United States at its best.
+\senequiv{quizzical}{subdued}{ecstatic}{raucous}{muted}{rapturous}
+\note{"effortless"并不是贬义词。它通常用来描述某种行为或技能表现得非常轻松自如，给人一种毫不费力的感觉。在这句话中，"effortless skill"指的是阿斯泰尔兄弟的舞蹈技巧看起来非常轻松自如，这是一种高度的赞赏，表示他们技艺精湛。这里"but"起到的是一个对比作用，但对比可不止局限于相反，事实上but可以表示方向相反的对比、程度不同的对比、意外的对比和条件对比。在这道题目中，"but"表示的是程度上的变化：虽然纽约市的反应是热情的，但伦敦的反应更为狂喜和兴高采烈。如果选了BE，那么将无法与后半句的正向评价相一致}
+
+\end{enumerate}
+
+\newpage
+\section*{字面理解问题}
+
+\subsection*{五选一}
+\begin{enumerate}
+
+\item Although Emily Bronte is impassioned about gender equality, she is anything but \blank{} to endorse more privileges endowed to women.
+\multiblank{1}{\choices{zealous}{apathetic}{abhorrent}{stubborn}{lethargic}}{}{}
+\note{
+impassioned意为“热情的”，和passionate同义，注意和impassive“无动于衷的”区别开来。zealou是另一个层面的热情，和fervent一样上升到“狂热的”的地步（可能略带负面含义）。anything but意为“绝不”，在这边表示程度上的否定
+}
+
+\item The artist is known for making photographs that deal with politically charged subject matter, yet because her art is so evocative and open-ended, it would be wrong to characterize it as \blank{}.
+\multiblank{1}{\choices{polemical}{edifying}{unobservant}{innovative}{ambiguous}}{}{}
+\note{polemical有“强烈支持和反对”的意思，也就是“立场鲜明”，和"evocative and open-ended"直接取反。注意这边讲的更多的是争辩，因此不要选到ambiguous}
+
+\item During the Renaissance, history was thought to be \blank{}: it supplied instances of good and bad behavior in the past, thus informing the ethical precepts of the present.
+\multiblank{1}{\choices{amoral}{subjective}{superfluous}{exemplary}{progressive}}{}{}
+\note{exemplary除了表示“模范的”，还可以表示某个东西有示范作用，相当于作为其他事物或者价值观的衡量标尺。这边说到历史提供了过去的信息作为当下的参考，所以应该是“标尺的”的意思，同义词有paradigmatic}
+
+\item Contrary to its reputation for intellectual \blank{}, the 1950s was a decade exceptionally rich in works of trenchant and far-reaching social criticism.
+\multiblank{1}{\choices{keenness}{inclusiveness}{complacency}{integrity}{productivity}}{}{}
+\note{integrity更偏向于“正直、诚实”的意思，而不是“完整”。和仍存在的社会批评相比，现在并不是学术自满，学术自满的时期往往就没有内部的反省和批评}
+
+\item Melodramas, which present the stark oppositions between innocence and criminality, virtue and corruption, good and evil, were popular precisely because they offered the audience a world \blank{}.
+\multiblank{1}{\choices{bereft of theatricality}{composed of adversity}{full of circumstantiality}{deprived of polarity}{devoid of neutrality}}{}{}
+\note{adversity只有“困境、逆境”的意思，而没有“对立”的意思。因此这题只能选devoid of neutrality，即使不那么直接。如果第二选项改为"composed of contrasts"那么会是更好的选项}
+
+\item Naomi Hossain argues that Jeffrey Sachs' narrative about economic development in Bangladesh is best described as a \blank{}, since it presents many accurate observations but selectively exaggerates and minimizes for effect.
+\multiblank{1}{\choices{synopsis}{digression}{fiction}{caricature}{calumny}}{}{}
+\note{caricature除了常规的“漫画”的意思外，还可以指夸张叙事（可能服务于讽刺的意图）
+\begin{itemize}
+    \item digression: 离题
+    \item fiction: 小说；虚构作品；虚构的事物
+    \item caricature: 漫画；\textbf{夸张的描述或表现}
+    \item calumny: 诽谤
+\end{itemize}
+类似的有understatement，除了表“轻描淡写”外还可以指低调叙事}
+
+\end{enumerate}
+
+\subsection*{六选二}
+
+\begin{enumerate}
+
+\item Although its director \blank{} that the movie uses a documentary approach in portraying the famous sit-down strike, in practice its characters are heavily fictionalized and fall into familiar Hollywood types.
+\senequiv{asserts}{concedes}{guarantees}{disputes}{grants}{maintains}
+\note{assert和maintain都有“断言、声称”的意思。但结合语境往往会表达声称的内容是不完全正确的。guarantee和grant是“保证”的意思，接的内容就代表其正确性有保证。concede意为“承认”，不符合此处语境；dispute意味“争辩”，在没有前后语境的情况下不是最优选择，尽管dispute的内容也可以只是一家之言}
+
+\item When published Native American autobiographies derive from a Native subject's oral narration transcribed and edited by a non-Native collaborator, some consider the term "autobiography" \blank{} since the final work may largely reflect the editor's choices.
+\senequiv{misappropriated}{inauspicious}{unwarranted}{inexpedient}{inapplicable}{unpropitious}
+\note{misappropriated意思是“非法挪用的”，注意appropriate和misappropriate都有“挪用”的意思，但misappropriate一定没有“不合适”的意思！inauspicious和unpropitious都是“不吉利的”的意思；注意propitious有一部分“合适的”的意思，不过这个是由它的本意“吉利的”在特定语境下延伸的意思。inexpedient也有“不合适的”的意思，不过更侧重于某些临时的决定不合适。unwarranted和inapplicable不是严格意义上的同义词，不过在当前语境下都是表明这样的说法是不合适的}
+
+\item Although eclectic in her own responses to the plays she reviewed, the theatre critic was, paradoxically, \blank{} by those who consider that a reviewer must have a single method of interpretation.
+\senequiv{displaced}{doubted}{intrigued}{distrustful}{indebted}{convinced}
+\note{eclectic的本意是“兼收并蓄的，博采众长的”，进而可能会衍生出“多元的”的含义，也会有“折中的”的意思。这边表达的意思就是作者用了折中的写法，但她本身还是对某一派观点有偏向。具体感情倾向不知，六个选项挨个试一遍：其中单独能让句意完整的有不少，但能配对上的只有doubted和distrustful}
+
+\item Although many skeptics of the scientific theory \blank{} critiques that have long since been disproved, some of the doubters arguably bring up valid points.
+\senequiv{overlook}{revise}{recycle}{utilize}{neglect}{rehash}
+\note{如果many skeptics和some of the doubters是两波不同群体，那么就应该选overlook和neglect，表示一波人忽视这些critiques，但另一波人用critiques确有了正面结果（这里的"although"就是突出做了别人没做的事情）。如果认为many skeptics包含了some of the doubters，所以两者对critiques施加的动作一致，blank要填入doubters对critiques一样的动作，即选recycle和rehash（这里的"although"就是突出做了别人否定的事情）。官方给的答案是recycle和rehash}
+
+\item For every \blank{} reader of Vestiges there were many more who became vocal critics, and the book aroused heated opposition from a broad range of British society.
+\senequiv{outspoken}{meticulous}{sympathetic}{well-disposed}{unenthusiastic}{candid}
+\note{重点是看懂第一句话，里面"for every ... there are many more ..."讲的是对比，突出后者的数量比前者多。第二句说的是这本书招致了很多的反对，vocal critics意思是“直言不讳的批评者”，所以前面应该是说“每有一个赞同\textit{Vestiges}的读者，就总能找到更多的直言不讳的批评者”}
+
+\item Although the essayist's arguments did not \blank{} her most perceptive readers, the extreme subtlety of the points she made explains why she was misinterpreted by most critics of her day.
+\senequiv{convince}{confound}{entertain}{persuade}{perplex}{enlighten}
+\note{最关键的在于对于第二句话的理解。这边的意思不是字面意思，不是说“她阐述的微妙的观点解释了为什么她被同时代的多数评论家误解”，如果是这样原句应该稍作改动为"the points of extreme subtlety she made explains why ..."。这边要表达的是，作者表达观点的方式太过于委婉甚至模糊，所以总是被评论家误解。因此，这样就明白前半句是要说，作为对比，她的最懂她的受众还是能理解她有些隐晦的文字}
+
+\end{enumerate}
+
+\subsection*{多空题}
+
+\begin{enumerate}
+
+\item The new art museum's (i)\blank{} building augurs well for that ambitious institution because it speaks of (ii)\blank{} contemporary architecture on the part of the board of directors that may (iii)\blank{} equal astuteness about contemporary art.
+\multiblank{3}{\choices{nondescript}{outstanding}{outdated}{}{}}{\choices{a discernment about}{a hostility toward}{an intoxication by}{}{}}{\choices{conceal}{supplant}{promise}{}{}}{}
+\note{discernment有“洞察力、高品味”的意思；promise字面上有“承诺”的意思，这边语境下相当于说董事会必定也会有对于现代艺术同样的审美}
+
+\item Folmer's book on Edith Wharton seems far removed from recent trends in literary criticism; this need not be a fault, except that, in its title and introduction, the book (i)\blank{} to be conversant with contemporary discourse in the field, but in its actual analysis of Wharton's work, it is marked by a very (ii)\blank{} approach.
+\multiblank{2}{\choices{designs}{fails}{purports}{}{}}{\choices{old-fashioned}{timely}{arcane}{}{}}{}{}
+\note{purport意为“声称”，特有本想做成某事但实际没做到的意思；同样是表目的，它在此处比design的含义更丰富。design通常就是表达想要达成且实际上也达成了的目的}
+
+\item The \blank{}(i) of her career was her achievement of her greatest intellectual authority at the very moment when she was \blank{}(ii) of a compelling subject.
+\multiblank{2}{\choices{enigma}{dilemma}{epitome}{}{}}{\choices{bereft}{assured}{cognizant}{}{}}{}
+\note{compelling的意思是“令人信服的、引人入胜的”，而不是compel本身的意思，也不要和overwhelming混淆。subject在此处的意思是“（研究）主题”。第二空只有bereft是可能的选项，其它都说不通。因此，第一空应该点出学术成就和灵感枯竭的对比，选dilemma最合适。虽然enigma也说得通，但不是最直接的，或者说要更多的信息才能选}
+
+\item Owing to his distinctive (i)\blank{} on the Declaration of Independence, John Hancock's name has become a (ii)\blank{} for one's signature.
+\multiblank{2}{\choices{composition}{flair}{hand}{}{}}{\choices{homonym}{metonym}{synonym}{}{}}{}{}
+\note{hand在此处意为“笔迹”，也就是“签名”。实际上这题就算不知道hand的这个意思也能做。先从第二空突破。即使不选出来也能知道这句话的含义，John Hancock的名字成为了每个人签名的代名词。在句意的基础上要在synonym和metonym之间做选择，metonym更合适因为它点出了其中的比喻和代指的含义。因为第二句说的是签名的事儿，所以前一句应当也是在说John Hancock的与之相关的独特，用排除法也只能选hand}
+
+\item (i)\blank{} it has fallen from popularity, legends of the kingdom of the priest-king Prester John stirred the imagination of Europe for the second half of the Middle Ages (and beyond), when countless explorers and cartographers traveled to the East, hoping to (ii)\blank{} the true kingdom's location and learn more about its leader.
+\multiblank{2}{\choices{Before}{Given that}{Although}{}{}}{\choices{contravene}{descry}{debunk}{}{}}{}{}
+\note{难点在于第一空。前后是对比关系，所以可选的是before和although，但一方面考虑到GRE很注重对比，although本身的可能性也就更大一些；另一方面从语法上看，从句"\blank{} it has fallen from popularity"用到了现在完成时，强调这样的变化对后续的影响，因此用although比before更好}
+
+\item Many historians of the ancient world are wary of sounding (i)\blank{}. Write so much as a sentence and the temptation is immediately to (ii)\blank{}. Even in cases when the sources for a given event are (iii)\blank{}, uncertainties and discrepancies crop up everywhere.
+\multiblank{3}{\choices{fusty}{anachronistic}{dogmatic}{}{}}{\choices{recapitulate}{forswear}{qualify}{}{}}{\choices{consistent}{plentiful}{biased}{}{}}{}{}{}
+\note{注意第三空不要过多带入自己对句子的想象，动词如果是"seem"的话consistent才合理（然而这里是"are"，相当于对客观事实的描述）。dogmatic意为“教条主义的”，即把一些经验知识不加批判地直接照搬，有“武断的”的含义。qualify有“限制”的含义，通常指前一个表达并不是完全的或者绝对的，GRE中几乎必选}
+
+\item The power of laughter to affect the perceived funniness of television programming is (i)\blank{}: most researchers have found that the inclusion of laughter on a program's soundtrack (ii)\blank{} the overall perception of humor, although it appears that it can (iii)\blank{} humor at specific points and thus boost the total comic appeal of the program.
+\multiblank{3}{\choices{cumulative}{measurable}{unclear}{}{}}{\choices{allows variations in}{tends to accentuate}{has little effect on}{}{}}{\choices{dampen}{enhance}{mask}{}{}}
+\note{
+unclear除了“不清晰的”外还有“难以理解的”的意思，这边取后者，是因为文段在讲一个看似矛盾的事实（也正因为这是被研究者发现的结果，是一个确定的结论，因此unclear只能理解成“难以理解的”而不是“不清晰的”）。明白了第一空，第二空自然就应该理解成和第三空的enhance对应（而不是和第一空的unclear对应进而误选alllows variations in）。have little effect on意思是几乎没有效果
+}
+
+\item The (i)\blank{} genius of the late Glenn Gould is (ii)\blank{} in his imaginative (iii)\blank{} for piano of Wagner's Siegfried Idyll, which the composer originally scored for full orchestra and presented to his wife Cosima on her birthday.
+\multiblank{3}{\choices{unexceptional}{overrated}{unmistakable}{}{}}{\choices{apparent}{ineluctable}{incommensurate}{}{}}{\choices{diminution}{homage}{adaptation}{}{}}{}{}
+\note{unmistakable意为“明显的”；unexceptional意为“平凡的”，用exceptional意为“非凡的”辅助记忆，区别于unexceptionable“无懈可击的”。此处第三空需要基于句意理解，最后定语从句说明这个钢琴曲最先有其他的用途，尤其是originally，因此主人公必然是对其进行改编了（由"imaginative"推知）}
+
+\item One example of a (i)\blank{} occurs in a vacuum state in quantum field theory. There, "something" and "nothing" are (ii)\blank{}: it is entirely consistent for there to be nothing, and nonetheless for stuff to show up when we try to detect it.
+\multiblank{2}{\choices{paradox}{tautology}{misnomer}{}{}}{\choices{not mutually exclusive}{inextricably paired}{impervious to interpretation}{}{}}{}
+\note{
+第二空会在not mutually exclusive和inextricably paired做出选择。前者更能直接呼应第一空的paradox，突出paradox本可能有的内部矛盾、相互排除的特点；同时大前提是"something"和"nothing"本应该是一对互斥的矛盾，not mutually exclusive表达的程度也不像inextricably paired那么过于强烈。注意这里的"entirely consistent"更多是说明事理上是可行的、自洽的，而不是说这一对矛盾结合程度的深浅
+}
+
+\item Each new generation of students grow up (i)\blank{} the world of classical physics, with its mostly intuitive, billiard-ball causality; that is the everyday vantage from which we approach the alien world of quantum physics, which has for this reason never lost its air of (ii)\blank{}.
+\multiblank{2}{\choices{immersed in}{disdainful of}{unmoved by}{}{}}{\choices{verisimilitude}{objectivity}{radicalism}{}{}}{}
+\note{注意GRE词汇题经常会在名词上的差异埋伏对比，这里就是classical physics和quantum physics的对比，会遇到的还有“内容和形式”“绝对和相对”的对比。此外，这题还可以借助"alien world of quantum physics"理解到精确意思，所以第二空应该突出新奇甚至激进}
+
+\item The latest encyclopedia (i)\blank{} the (ii)\blank{} made by many other books on how things work - giving (iii)\blank{} for every device, no matter how complicated - by taking just as long as is needed to explain things.
+\multiblank{3}{\choices{repeats}{exposes}{avoids}{}{}}{\choices{assumption}{mistake}{compromise}{}{}}{\choices{a brief historical background}{an equal number of words}{at least one illustration}{}{}}
+\note{关键是要理解这边破折号的含义。破折号夹着的内容是对第二空的说明（也就是其他书共同的(ii)\blank{}），第二个破折号之后的是对"the latest encyclopedia"如何"(i)\blank{} the (ii)\blank{}"的描述}
+
+\item Unlike some of her colleagues, the well-known investor (i)\blank{} large, established companies, instead preferring companies in (ii)\blank{} stage of development.
+\multiblank{2}{\choices{favored}{disdained}{studied}{}{}}{\choices{a mature}{an incipient}{an incremental}{}{}}{}
+\note{不要看错instead和instead of！会表达完全不同的意思！instead只是语气助词，用来表达对不同事物态度的不同（甚至可以说内容取同）；在这边就是指"the well-known investor"的不同于常人的做法。instead of则会表达对立，内容取反}
+
+\item When a new scientific discovery is discussed in a scientific paper or book, the process of discovery is often represented as something (i)\blank{} and almost (ii)\blank{}. Unfortunately, science publishers simply do not have space for detailed descriptions of experiments that fail along with discussions of every false start and blind alley, elements that are associated with even quite (iii)\blank{} endeavors.
+\multiblank{3}{\choices{straightforward}{exciting}{circuitous}{}{}}{\choices{redundant}{inevitable}{random}{}{}}{\choices{successful}{compromised}{ambitious}{}{}}
+\note{
+unfortunately不一定就是表示事实上的转折，有时候只是单纯辅助意思的表达。这边的第二句话相当于是对第一句话的转折兼补充说明，说明事实并不是如呈现的那般容易和直接。这边也要留心两句话讨论的是否同一个背景（即科学成果的发表），有时候背景不同可能暗示不同的立场
+}
+
+\end{enumerate}
+
+\newpage
+\section*{Vocab Pickup}
+\begin{multicols}{2}
+    \begin{itemize}
+    \item incidental: 次要的，伴随的
+    \item peripheral: 边缘的，次要的
+    \item salient: 重要的
+    \item consequence: 重要性
+    \item subtle, understated: 含蓄的，隐晦的
+    \item opportune: 合乎时机的（区别于opportunistic）
+    \item dissemble：掩饰（欺骗含义）
+    \item parsimony, miserliness：吝啬
+    \item abet: 支持，怂恿
+    \item intelligibility: 可理解性，可辨别性
+    \item thwart: 阻碍
+    \item obscure: 不出名的，晦涩难懂的
+    \item paradoxical: 自相矛盾的（区别于contradictory)
+    \item arbitrary: 主观的（甚至随意的、武断的）
+    \item factitious: 人为的，不自然的
+    \item redress: 纠正，赔偿
+    \item antipathetic: 反感的，厌恶的
+    \item for good (and all): 永久
+    \item etch: 凿刻，流露出
+    \item lockstep: 因循守旧
+    \item affective: 情感的
+    \item serviceable: 有用的
+    \item leverage: 充分利用（资源﹑观点等）
+    \item repel: 驱逐，反感
+    \item fraught: 令人担心的，充满（困难/焦虑等）的
+    \item obstreperous: 任性的，不服从约束的
+    \item raucous: 喧闹的
+    \item temper: 态度，使缓和
+    \item patent (nonsense/impossibility): 明显的
+    \item orthographical: （文字的）正字法
+    \item conviction: （坚定的）信仰
+    \item analogy: 相似处 (by analogy with)
+    \item circumstantial: 详尽的
+    \item descry: 发现，察看
+    \item fluid: 不稳定的，易变的
+    \item simmer: 充满（愤怒），酝酿（情绪）
+    \item heavy-handed: （不顾他人感受的）严厉的，高压的
+    \item equal (to job/task): 能胜任
+    \item impatient: 不耐烦的，迫不及待的
+    \item prodigious: （惊人地）巨大的（区别于prodigal）
+    \item proscribe: 禁止（区别于prescribe）
+    \item unscrupulous: 不道德的、不择手段的
+    \item lyrical: 充满感情的（文学作品）
+    \item ornate: 华丽的
+    \item usage: （作为惩罚的）下场，对待
+    \item drag on: 拖延
+    \item hinge on: 取决于
+    \item outgrow: 摆脱，因长大成熟而不再
+    \item horrendous, horrific: 可怕的
+    \item a veneer of: （掩饰真实性格或感情的）彬彬有礼/世故等的伪装
+    \item more often than not: 通常
+    \item incubation: 孵化，酝酿
+\end{itemize}
+
+\end{multicols}
+\end{document}

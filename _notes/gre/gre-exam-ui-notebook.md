@@ -3,7 +3,7 @@ layout: post
 main_category: "学习资料"
 sub_category: "GRE"
 title: "我把 GRE 的考试界面搬到了错题本上"
-keywords: ["GRE 错题本", "GRE 考试界面", "LaTeX 错题本", "GRE Verbal 填空", "GRE Quant", "六选二", "sentence equivalence", "比大小题", "Quantitative Comparison", "GRE 五选一", "GRE 多空题", "tabularx 表格", "tikz 椭圆", "考满分错题", "GRE LaTeX 模板", "错题本模板", "GRE 错提本"]
+keywords: ["GRE 错题本", "GRE 考试界面", "LaTeX 错题本", "GRE Verbal 填空", "GRE Quant", "六选二", "sentence equivalence", "比大小题", "Quantitative Comparison", "GRE 五选一", "GRE 多空题", "tabularx 表格", "tikz 椭圆", "考满分错题", "GRE LaTeX 模板", "错题本模板", "GRE 错提本", "GRE 错题本 模板 下载", "GRE 错题本 源码", "GEEexam sty 模板", "ctex 错题本", "GRE Quant 数学 LaTeX 题面", "GRE Verbal 填空 LaTeX", "GRE Verbal Passages LaTeX", "ctexart 错题本", "GRE 错题本 答案版", "ans 选项 LaTeX", "DeclareOption ans", "A3 双栏 错题本", "tasks 宏包 选择题", "xelatex 中文 错题本", "GRE 复习 LaTeX 模板", "考试错题本 模板教程", "错题本 PDF 模板 复用"]
 date: 2024-08-09
 discipline: "语言考试"
 course: "GRE"
@@ -308,3 +308,98 @@ GRE 单选题选项的 bullet point 是一个椭圆，可惜的是 \LaTeX 里并
 希望对大家有帮助 🌈
 
 ![收集的多支 ETS TOEFL 与 GRE 品牌圆珠笔和铅笔](/files/images/gre-exam-ui-notebook/16.jpg)
+
+## 完整模板源码 + 编译指南
+
+上面讲的每个宏命令我都打包成了三套独立的 `.sty` 文件，跟主 `.tex` 文件配对发布。你下载下来就能直接编译出一份“考试感”完全到位的错题本 PDF。
+
+### 三套模板 + 题面 / 答案双版本下载
+
+每套都有“题面版”（空白填空 / 圆圈选项，可打印当试卷用）和“答案版”（填空里直接显示正确答案，复习用），由 `.sty` 包的 `[ans]` 选项切换——同一份题目源代码，两个 PDF。
+
+- **Quant 数学错题本**：题面 / 答案的 `.tex` 源码 + 数学 `\options{}{}{}{}{}` / `\quantities{A}{B}` / `\field` 等宏 → [PDF 题面版](/files/gre/GRE-Quant.pdf) · [PDF 答案版](/files/gre/GRE-Quant-Ans.pdf) · [.tex 源](/files/gre/source/quant/GRE-Quant.tex) · [.sty 模板](/files/gre/source/quant/GEEexam_Quant.sty)
+- **Verbal 填空错题本**：覆盖五选一 / 多空题 / 六选二三种题型，`\choices{}{}{}{}{}` / `\multiblank{N}{}{}{}` / `\senequiv{}{}{}{}{}{}` 三宏 → [PDF 题面版](/files/gre/GRE-Verbal-Blanks.pdf) · [PDF 答案版](/files/gre/GRE-Verbal-Blanks-Ans.pdf) · [.tex 源](/files/gre/source/verbal-blanks/GRE-Verbal-Blanks.tex) · [.sty 模板](/files/gre/source/verbal-blanks/GEEexam_Verbal_Blank.sty)
+- **Verbal 阅读错题本**：长文章 + 题组结构，配套适用于阅读理解题型的版式 → [PDF 题面版](/files/gre/GRE-Verbal-Passages.pdf) · [PDF 答案版](/files/gre/GRE-Verbal-Passages-Ans.pdf) · [.tex 源](/files/gre/source/verbal-passages/GRE-Verbal-Passages.tex) · [.sty 模板](/files/gre/source/verbal-passages/GEEexam_Verbal_Passage.sty)
+
+### `[ans]` 答案版切换：一行改动出两份 PDF
+
+`.sty` 包里有这一段：
+
+```latex
+\def\tiankongdaan#1{\makebox[3em][c]{#1}}
+\newcommand{\blank}[1]{\underline{\tiankongdaan{\qquad~}}}
+\DeclareOption{ans}{\renewcommand{\blank}[1]{\,\underline{#1}\,}}
+\ProcessOptions
+```
+
+- 默认（不带选项）：`\blank{420}` 渲染成一段下划线占位 `_______`，看上去就是空着等你填
+- 带 `[ans]` 选项：`\usepackage[ans]{GEEexam_Quant}`，同一句 `\blank{420}` 渲染成带答案的下划线 `_420_`
+
+也就是说，**题目源代码只写一遍**——`\blank{420}`、`\blank{420.0}` 这种把答案写在大括号里——然后用两份 `.tex` 切换：
+
+```latex
+% 题面版 GRE-Quant.tex
+\usepackage{GEEexam_Quant}
+
+% 答案版 GRE-Quant-Ans.tex（仅改第一行）
+\usepackage[ans]{GEEexam_Quant}
+```
+
+考前打印题面版掐时间做，考后翻答案版对照解析——是错题本最理想的双轨工作流。
+
+### 为什么是 A3 双栏横排
+
+`.sty` 文件第二段定义了纸张：
+
+```latex
+\geometry{a3paper,twocolumn,landscape,hmargin={3.5cm,1.3cm},
+          vmargin={1.5cm,1.5cm},footskip=0.75cm,headsep=0.25cm}
+```
+
+A3 + 横向 + 双栏——这就是 GRE 真实考试机考界面的“宽屏感”。打印出来折一下就跟两张 A4 横排并列一样。配上：
+
+```latex
+\fancyfoot[CE,CO]{\kaishu{}GRE Quant 精选题\quad 第\refstepcounter{fox}\thefoo\refstepcounter{foo}页 \quad (共~\ref{LastFox}~页)\hspace*{13cm} ...}
+```
+
+页脚每页“第 N 页 / 共 X 页”双栏对称——你打开 PDF 翻页时跟考试界面的“Question N of M”几乎一样的视觉锚点。
+
+如果你不需要“考场仿真”只想要正常 A4 单栏，把 `\geometry{...}` 那行改成：
+
+```latex
+\geometry{a4paper,margin=2cm}
+\setlength{\columnsep}{0pt}
+```
+
+并去掉 `twocolumn` 选项即可。
+
+### 编译命令
+
+模板用了中文字体（`ctex` 包）和中文页脚，必须用 **xelatex** 而不是 pdflatex：
+
+```bash
+cd files/gre/source/quant/
+xelatex GRE-Quant.tex          # 出题面版
+xelatex GRE-Quant-Ans.tex      # 出答案版
+```
+
+页脚里的 `第 N 页 (共 X 页)` 用了 `\ref{LastFox}` 跨编译引用，**第一次跑会报 `LastFox` 未定义** —— 再跑一次 `xelatex` 就好（pandoc / latexmk 也是同样的两遍 pattern）。
+
+或者直接用 `latexmk`：
+
+```bash
+latexmk -xelatex GRE-Quant.tex     # 自动判断要不要再编译
+latexmk -xelatex -c GRE-Quant.tex  # 清理中间产物
+```
+
+### 怎么自己改造模板
+
+如果你想做的是别的考试错题本（雅思 / SAT / 国内考研），把三件事改了就基本能复用：
+
+1. **页脚标题**：搜 `.sty` 里的 `\fancyfoot[CE,CO]{...GRE Quant 精选题...}`，把字符串换成你的考试名；
+2. **选项格式**：`\options` 是 5 选 1（数学）、`\choices` 是 3 / 5 选 1（语文填空）、`\senequiv` 是 6 选 2。你的题型如果不在这里，参照同一套 `tabularx` 写法新加一个宏；
+3. **答案占位**：核心是 `\blank{...}` + `\DeclareOption{ans}` 那段。任何“出题时是空、有答案时显示”的位置都可以套用这个模式。
+
+错题本只是个用例，模板真正的价值是**把“打印题面”和“翻看答案”用同一份源代码做出来**——这件事在做任何长期复习本（考研政治、CPA、医师执照等）都用得上。
+
+希望对大家有帮助 🌈🌈
