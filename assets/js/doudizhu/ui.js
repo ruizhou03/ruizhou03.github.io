@@ -955,8 +955,12 @@
     for (let i = 0; i < 3; i++) {
       const el = $('ddzPlayed' + i);
       el.innerHTML = '';
-      el.className = 'ddz-played';
+      el.className = 'ddz-played';   // 顺带把 settle-reveal 清掉
     }
+    // 结算 reveal 残留：大字 banner / 飘字 / 樱花层 / 倍数 toast
+    document.querySelectorAll(
+      '.ddz-settle-banner, .ddz-coin-delta, .ddz-sakura-overlay, .ddz-mult-toast'
+    ).forEach(el => el.remove());
   }
 
   function renderBottomPile() {
@@ -1866,6 +1870,11 @@
     renderPlayedAt(seat, pattern);
     playSfx(pattern.type === T.BOMB ? 'bomb' :
             pattern.type === T.ROCKET ? 'rocket' : 'play');
+    // 炸弹 / 王炸：倍数翻倍 → 飘 toast + chip 闪光（参考欢乐斗地主 image 11 ×2 badge）
+    if (pattern.type === T.BOMB || pattern.type === T.ROCKET) {
+      const label = pattern.type === T.ROCKET ? '王炸 ×2' : '炸弹 ×2';
+      setTimeout(() => spawnMultiplierToast(seat, label), 220);
+    }
     if (seat === 0) renderHand();
     renderHandCounts();
     renderMultiplier();
@@ -2108,6 +2117,113 @@
     return NAMES[p.type] || p.type;
   }
 
+  // ====== 结算 reveal 辅助（参考欢乐斗地主 image 13）======
+  // 揭示对家剩余手牌（输的那一方），翻面铺到他们的 played 槽
+  function revealOpponentHandsForSettlement() {
+    for (let i = 1; i <= 2; i++) {
+      const el = $('ddzPlayed' + i);
+      if (!el) continue;
+      const cards = state.hands[i];
+      // 没牌 = 这家把牌打完了（赢家或地主胜后的另一农民有可能）→ 留空，不渲染
+      if (!cards || cards.length === 0) continue;
+      el.innerHTML = '';
+      el.className = 'ddz-played settle-reveal';
+      const sorted = sortHandDesc(cards);
+      for (const c of sorted) el.appendChild(buildCardEl(c, 'size-mini'));
+    }
+  }
+  // 大字"地主胜利 / 失败"banner（自动 ~2s 后消失）
+  function showSettleBanner(playerWon) {
+    const tableEl = $('ddzTable');
+    if (!tableEl) return;
+    const prev = tableEl.querySelector('.ddz-settle-banner');
+    if (prev) prev.remove();
+    const banner = document.createElement('div');
+    banner.className = 'ddz-settle-banner ' + (playerWon ? 'win' : 'lose');
+    // 文案以我为视角：我是地主 → 地主胜利/失败；我是农民 → 农民胜利/失败
+    const role = state.landlordIdx === 0 ? '地主' : '农民';
+    banner.textContent = role + (playerWon ? '胜利' : '失败');
+    tableEl.appendChild(banner);
+    setTimeout(() => banner.remove(), 2200);
+  }
+  // 每个座位头像上方飘金币 +N / -N
+  function showCoinDeltas(pairAmts, peasantSeats, winnerRole) {
+    const lordSign = winnerRole === 'landlord' ? +1 : -1;
+    const peasantSign = -lordSign;
+    const lordTotal = pairAmts.reduce((a, b) => a + b, 0);
+    spawnCoinDelta(state.landlordIdx, lordSign * lordTotal);
+    for (let i = 0; i < peasantSeats.length; i++) {
+      spawnCoinDelta(peasantSeats[i], peasantSign * pairAmts[i]);
+    }
+  }
+  function spawnCoinDelta(seat, delta) {
+    const container = (seat === 0)
+      ? document.querySelector('.ddz-self')
+      : document.querySelector(`.ddz-seat-ai[data-seat="${seat}"]`);
+    if (!container) return;
+    if (getComputedStyle(container).position === 'static') {
+      container.style.position = 'relative';
+    }
+    const el = document.createElement('div');
+    el.className = 'ddz-coin-delta ' + (delta >= 0 ? 'gain' : 'lose');
+    el.textContent = (delta >= 0 ? '+' : '') + delta;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 1900);
+  }
+  // 春天 全屏樱花飘落
+  function spawnSakuraPetals(count) {
+    const n = count || 32;
+    const overlay = document.createElement('div');
+    overlay.className = 'ddz-sakura-overlay';
+    document.body.appendChild(overlay);
+    const glyphs = ['🌸', '🌺', '🌷', '🌼'];
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('span');
+      p.className = 'petal';
+      p.textContent = glyphs[i % glyphs.length];
+      p.style.left = (Math.random() * 100) + '%';
+      p.style.setProperty('--dur', (3.6 + Math.random() * 2.6) + 's');
+      p.style.setProperty('--drift', (Math.random() * 240 - 120) + 'px');
+      p.style.animationDelay = (Math.random() * 1.4) + 's';
+      p.style.fontSize = (16 + Math.random() * 14) + 'px';
+      overlay.appendChild(p);
+    }
+    setTimeout(() => overlay.remove(), 7200);
+  }
+  // 联机模式飘金币：用 state.result.multiplier 估算每家本盘净增减
+  function showOnlineCoinDeltas(result, online) {
+    if (!result) return;
+    const lordSign = result.winnerRole === 'landlord' ? +1 : -1;
+    const peasantSign = -lordSign;
+    const m = result.multiplier || 1;
+    // 简化估算：地主 ±2m，两农民各 ±m。加倍 / 春天通过 multiplier 已并入。
+    const peasantSeats = [0,1,2].filter(s => s !== state.landlordIdx);
+    spawnCoinDelta(state.landlordIdx, lordSign * 2 * m);
+    for (const ps of peasantSeats) spawnCoinDelta(ps, peasantSign * m);
+  }
+  // 倍数翻倍 toast（炸弹 / 王炸 / 春天即将命中 时调用）
+  function spawnMultiplierToast(seat, label) {
+    const tableEl = $('ddzTable');
+    const targetEl = (seat === 0) ? $('ddzPlayed0') : $('ddzPlayed' + seat);
+    if (!tableEl || !targetEl) return;
+    const t = targetEl.getBoundingClientRect();
+    const r = tableEl.getBoundingClientRect();
+    const toast = document.createElement('div');
+    toast.className = 'ddz-mult-toast';
+    toast.textContent = label || '倍数 ×2';
+    toast.style.left = (t.left + t.width / 2 - r.left) + 'px';
+    toast.style.top = (t.top - r.top - 4) + 'px';
+    tableEl.appendChild(toast);
+    setTimeout(() => toast.remove(), 1500);
+    // 同步 pulse 倍数 chip
+    if (multiEl) {
+      multiEl.classList.remove('boom');
+      void multiEl.offsetWidth;
+      multiEl.classList.add('boom');
+      setTimeout(() => multiEl.classList.remove('boom'), 800);
+    }
+  }
+
   function finishGame(winnerSeat) {
     state.phase = PHASE.SETTLEMENT;
     updateDeclareBtn();   // 游戏结束 → 隐藏明牌按钮
@@ -2157,12 +2273,25 @@
       `<div>本局积分 <strong>${score}</strong></div>` +
       `<div>难度：${difficultyLabel(state.difficulty)} · 用时 ${formatDuration(Date.now() - state.runStartedAt)}</div>`;
     gameOverOverlay.classList.toggle('has-spring', state.spring > 0);
-    gameOverOverlay.classList.add('show');
     // 平时不显示结算图按钮；只有春天 / 反春天才弹
     if (ddzSettleBtn && ddzSettleBtn.element) ddzSettleBtn.element.hidden = true;
-    if (state.spring > 0) {
-      setTimeout(() => triggerSpringSettlement(), 700);
-    }
+
+    // —— Reveal 阶段（先于浮层，参考欢乐斗地主 image 13） ——
+    // ① 翻开对家手牌；② 大字胜利/失败 banner；③ 头像上方飘 +N / -N 金币
+    revealOpponentHandsForSettlement();
+    showSettleBanner(playerWon);
+    showCoinDeltas(pairAmts, peasantSeats, winnerRole);
+    // 春天 → 全屏樱花
+    if (state.spring > 0) spawnSakuraPetals(40);
+
+    // ~1.8s 后再弹「再来一局」浮层，期间 reveal 跟金币飘字可以充分被看到
+    setTimeout(() => {
+      gameOverOverlay.classList.add('show');
+      if (state.spring > 0) {
+        setTimeout(() => triggerSpringSettlement(), 350);
+      }
+    }, 1800);
+
     renderRoles();
 
     if (playerWon) tryAutoSubmit();
@@ -3215,7 +3344,17 @@
 
     gameOverDetail.innerHTML = html;
     gameOverOverlay.classList.toggle('has-spring', state.spring > 0);
-    gameOverOverlay.classList.add('show');
+
+    // —— Reveal 阶段（同单机 finishGame）：先翻开手牌 + 大字 + 飘金币，再弹浮层
+    revealOpponentHandsForSettlement();
+    showSettleBanner(playerWon);
+    // 联机也按 pair 计算，但服务器已直接给了 score（我视角的净分）；
+    // 视觉上每家飘自己的净增减：地主家 = ±|score|×（若是地主则用 score；若我是农民则反推不准）
+    // 折中：用 cumulativeScores 的「本盘增量」如果有；否则用我视角 score 推地主 / 两农民
+    showOnlineCoinDeltas(state.result, state.online);
+    if (state.spring > 0) spawnSakuraPetals(40);
+
+    setTimeout(() => { gameOverOverlay.classList.add('show'); }, 1800);
     if (ddzSettleBtn) ddzSettleBtn.setEnabled(true);
 
     // 按钮
