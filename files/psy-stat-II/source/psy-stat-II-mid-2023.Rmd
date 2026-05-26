@@ -1,0 +1,2076 @@
+---
+title: "Midterm Review: Psychological Statistics"
+author: 
+  - Rui Zhou
+  - Peking University
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+header-includes:
+  - \renewcommand{\and}{\\}
+---
+
+```{r include=FALSE}
+library(dplyr)
+library(rstatix)
+library(ggplot2)
+library(car)
+library(bruceR)
+```
+
+# Non-Parametric Tests
+
+Parametric statistics assumes data coming from a type of probability distribution (i.e., the parametric form of the distribution) and makes inferences about the parameters of the distribution. Estimation is about estimating the parameters; Hypothesis testing is about deriving the sampling distribution of a test statistic (e.g., t, F).
+
+Non-parametric statistics uses **distribution-free** methods which do not rely on assumptions that the data are drawn from a given probability distribution (don’t rely on the estimation of parameters).
+
+The disadvantage of non-parametric tests is that they're less powerful! The probability of rejecting the null hypothesis is lower, and also a higher probability to make type II error when a true effect or difference exists.
+
+Non-parametric tests are used when:
+
+* Non-normality or skewness
+* Outliers
+* Small sample sizes
+  Thus don't trust normality assumptions
+* **Ordinal** or **Nominal** data
+
+## One Sample
+
+### Chi-Square Test
+The chi-square test is a statistical hypothesis test that is used to determine **if there is a significant association between two categorical variables**. It is a non-parametric test, which means that it does not assume any particular distribution of the data.
+
+The test involves comparing the *observed frequencies* of different categories with the *expected frequencies*, assuming that there is no association between the two variables. The expected frequencies are calculated based on the assumption of **independence** between the two variables.
+
+The test statistic is calculated as
+
+$$
+\begin{aligned}
+\chi^2&=\sum^C\frac{(f_o-f_e)^2}{f_e}\\
+C=\#\text{Categories},\ &f_o=\text{observed freq}.,\ f_e=\text{expected freq.}
+\end{aligned}
+$$
+
+Note that the degree of freedom for chi-square statistic does not depend on the sample size, but only on number of categories.
+
+The resulting value is then compared to the chi-square distribution. If the calculated chi-square value is greater than the critical value from the chi-square distribution, then the null hypothesis of independence is rejected, and it can be concluded that there is a significant association between the two variables.
+
+Note that for chi-square test, under each category (bin), the sample size should be no less than 5, otherwise you have to merge some adjacent categories or use less bins.
+
+#### Goodness of Fit
+
+The function takes one or more contingency tables as input and produces a chi-square test result object that contains the test statistic, degrees of freedom, p-value, and expected frequencies.
+
+Here is the general syntax for using the chisq.test() function:
+
+```{r eval=FALSE}
+chisq.test(x, y = NULL, 
+           correct = TRUE, 
+           p = NULL, rescale.p = FALSE)
+```
+
+The `x` argument is the contingency table or data that is used to perform the chi-square test. If `y` is specified, a test for independence is performed, and if `y` is not specified, a goodness of fit test is performed. 
+
+The `correct` argument is a logical value that indicates whether to apply a continuity correction to the test statistic. The `p` argument specifies the expected probabilities for the goodness of fit test. The `rescale.p` argument is a logical value that indicates whether to rescale the expected probabilities to sum to 1 (if necessary).
+
+The most useful example for the test of goodness of fit is in linear models. Suppose with the well-known dataset `mtcars`, we're to check the fitting effect between predicted value and the real value, regressing `mpg` on `wt`.
+
+```{r warning=FALSE,}
+chisq.test(fitted(lm(mpg~wt,data = mtcars)),
+           mtcars$mpg)
+```
+
+#### Independece test
+
+It's beautiful for the logic under the independence test, and its relationship with test of goodness of fit.
+
+Here, we've successfully **transformed a problem of correlation into a problem of the similarity of distributions**. And such transformation is interesting and not twisted at all.
+
+Suppose we have data on 500 individuals regarding their smoking habits and whether they have lung cancer. The data is summarized in the following contingency table:
+
+```{r }
+smoking <- c("Never", "Former", "Current")
+cancer <- c("Yes", "No")
+observed <- matrix(c(50, 200, 100, 100, 50, 0),
+                   nrow = 3, byrow = TRUE,
+                   dimnames = list(smoking, cancer))
+observed
+```
+
+In this table, the rows represent the smoking status of the individuals (`Never`, `Former`, `Current`), and the columns represent whether they have lung cancer (`Yes`, `No`).
+
+Pass a contingency table into the `chisq.test()` directly and see the result, testing whether smoking is associated with lung cancer.
+
+```{r}
+smoke = chisq.test(observed)
+smoke
+```
+
+Moreover, we can also inspect the *expected* frequencies of the contingency table using the `result$expected` command. This will give us a matrix of the expected frequencies under the assumption of independence between smoking and lung cancer.
+
+This will undoubtedly save great efficiency, in case that it's tested by the teacher, otherwise there's gonna be a huge efficiency loss.
+
+```{r }
+smoke$expected
+```
+
+#### Effect Size
+
+`rstatix::cramer_v()` is a function in R that is used to compute the Cramer's V statistic, which is a measure of the association between two categorical variables. Cramer's V is a normalized version of the chi-square statistic and is often used as a measure of effect size in chi-square tests.
+
+The parameters of this function is much the same as `chisq.test()`.
+
+```{r }
+rstatix::cramer_v(observed)
+```
+
+```{r echo=FALSE,out.width='100%'}
+knitr::include_graphics('cramer v.png')
+```
+
+### Binomial Test
+
+The binomial test is a statistical hypothesis test that is used to determine **if the proportion of successes in a binary experiment is significantly different from a hypothesized value**. The test assumes that the outcome of each trial is either a success or a failure and that the trials are independent.
+
+In the binomial test, the null hypothesis is that the proportion of successes is equal to a hypothesized value, and the alternative hypothesis is that the proportion of successes is different from the hypothesized value.
+
+In R, the `binom.test()` function can be used to perform the binomial test. Here is an example of how to use the function:
+
+```{r }
+# Generate a vector of binary data
+toss <- c(1, 0, 1, 1, 1, 0, 0, 1, 1, 0)
+
+# Perform the binomial test
+binom.test(sum(toss),length(toss),p = 0.5)
+```
+
+In this example, we first generate a vector of binary data representing the outcomes of a binary experiment. We then use the `binom.test()` function to perform the binomial test on this data, specifying the number of successes (`sum(data)`), the number of trials (`length(data)`), and the hypothesized proportion of successes (`p = 0.5`).
+
+The output of the test will include the test statistic, the p-value, and the confidence interval for the proportion of successes.
+
+### Runs Test
+
+The runs test is a non-parametric test that can be used to **assess the randomness of a set of data**. The test is based on the number of runs in the data, where a run is defined as a sequence of consecutive observations with the same sign.
+
+In statistics, a "run" is a sequence of consecutive data points that have the same value or the same sign. A run can be defined for any type of data, whether it's categorical or continuous.
+
+For example, consider the following sequence of binary data:
+
+1 1 0 1 0 0 0 1 1 1
+
+In this sequence, there are 4 runs: two runs of 1's, one run of 0's, and one run of 1's.
+
+Another example is a sequence of temperature readings over a period of time:
+
+20.1 20.3 20.4 20.4 20.5 20.4 20.2 20.0
+
+In this sequence, there is one run of increasing temperatures (from 20.1 to 20.5) followed by one run of decreasing temperatures (from 20.5 to 20.0).
+
+The null hypothesis of the runs test is that the data is random, and the alternative hypothesis is that the data is not random. The test statistic is based on the number of runs in the data and is compared to the expected number of runs under the assumption of randomness.
+
+The expected number of runs can be calculated using the following formula:
+
+$$
+E(R)=\frac{2n_1n_2}{n_1+n_2}+1
+$$
+
+where $n_1$ is the number of positive signs in the data, $n_2$ is the number of negative signs in the data.
+
+The test statistic is given by:
+
+$$
+z=\frac{R-E(R)}{Var(R)}
+$$
+
+where $R$ is the observed number of runs, $E(R)$ is the expected number of runs, and $Var(R)$ is the variance of the number of runs. Under the null hypothesis of randomness, the test statistic follows a standard normal distribution.
+
+Use `DescTools::RunsTest(data)` in R to determine whether a coin is randomly tossed or not:
+
+```{r }
+# Generate a vector of coin toss outcomes (0 = tails, 1 = heads)
+coin_tosses <- c(1, 0, 1, 1, 0, 1, 1, 0, 
+                 0, 1, 0, 0, 1, 0, 1, 1)
+
+# Perform the runs test
+DescTools::RunsTest(coin_tosses)
+```
+
+### KS Test
+
+The Kolmogorov-Smirnov (KS) test is a nonparametric statistical test that is used to compare the distributions of two samples or to test whether a sample follows a specific distribution. The KS test is based on the maximum difference between the empirical cumulative distribution functions (ECDFs) of the two samples.
+
+The KS test can be used to test the null hypothesis that the two samples are drawn from the same distribution or that a single sample is drawn from a specific distribution. The test is based on the KS statistic, which is defined as the maximum vertical difference between the ECDFs of the two samples.
+
+To perform the KS test in R, you can use the `ks.test()` function, which is part of the base R package. Here's the syntax for the `ks.test()` function:
+
+```{r eval=FALSE}
+ks.test(x, y, alternative, 
+        exact = NULL, 
+        conf.level = 0.95, ...)
+```
+
+where `x` and `y` are the two samples to be compared, `alternative` is a character string specifying the alternative hypothesis (either "two.sided", "less", or "greater"), `exact` is a logical value indicating whether to use the exact distribution of the KS statistic (for small sample sizes), and `conf.level` is the confidence level for the test.
+
+Here's an example of how to perform the KS test in R using the `ks.test()` function:
+
+```{r }
+# Generate two samples of data from normal distributions
+set.seed(123)
+x <- rnorm(100, mean = 0, sd = 1)
+y <- rnorm(100, mean = 0.8, sd = 1)
+
+# Perform the KS test
+ks.test(x, y)
+```
+
+In this example, we first generate two samples of data from normal distributions with different means. We then use the `ks.test()` function to perform the KS test on the two samples. The function returns a list containing the test statistic, the p-value, and the alternative hypothesis.
+
+Moreover, when comparing your data to a specific distribution, you need to specify the distribution you want to compare your data to using the `y` argument, and also provide the parameters of the distribution using additional arguments `...`. For example, if you want to compare your data to a normal distribution, you can provide the mean and standard deviation of the normal distribution using the mean and sd arguments, respectively. If you want to compare your data to a uniform distribution, you can provide the minimum and maximum values of the uniform distribution using the min and max arguments, respectively.
+
+```{r }
+# Generate a sample of data
+set.seed(123)
+x <- rnorm(100, mean = 0, sd = 1)
+
+# Perform the KS test against a normal distribution
+ks.test(x, "pnorm", mean = mean(x), sd = sd(x))
+```
+
+### Kendall's Tau
+
+Kendall's tau is a non-parametric measure of association for **ordinal** data that quantifies the strength and **direction** of the relationship between two variables. Kendall's tau is particularly useful when the variables being studied are ordinal or ranked.
+
+Kendall's tau is based on the difference between the number of concordant and discordant pairs of observations. A concordant pair is a pair in which the ranks of both variables are in the same direction (i.e., both are either increasing or decreasing). A discordant pair is a pair in which the ranks of the variables are in the opposite direction (i.e., one is increasing while the other is decreasing).
+
+Kendall's tau coefficient ranges from -1 to +1, with values of -1 indicating a perfect negative association, 0 indicating no association, and +1 indicating a perfect positive association. The formula for Kendall's tau is:
+
+```{r echo=FALSE,out.width='100%'}
+knitr::include_graphics("kendall's tau.png")
+```
+
+In R, you can calculate Kendall's tau using the `cor.test()` functionwith the argument `method = "kendall"`. The output of the test provides the estimated Kendall's tau coefficient, along with the p-value and confidence interval for the test.
+
+In this example, we have ten companies in the tech industry and their ranks of revenue for two different years.
+
+| Company    | Year 1 Rank | Year 2 Rank |
+|------------|-------------|-------------|
+| Apple      | 1           | 2           |
+| Microsoft  | 2           | 1           |
+| Amazon     | 3           | 3           |
+| Alphabet   | 4           | 4           |
+| Facebook   | 5           | 5           |
+| Intel      | 6           | 6           |
+| IBM        | 7           | 7           |
+| Samsung    | 8           | 9           |
+| Cisco      | 9           | 8           |
+| Qualcomm   | 10          | 10          |
+
+
+```{r }
+rank_data <- data.frame(
+  Company = c("Apple", "Microsoft", "Amazon", 
+              "Alphabet", "Facebook", "Intel", 
+              "IBM", "Samsung", "Cisco", "Qualcomm"),
+  Year_1_Rank = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+  Year_2_Rank = c(2, 1, 3, 4, 5, 6, 7, 9, 8, 10)
+)
+cor.test(rank_data$Year_1_Rank, 
+         rank_data$Year_2_Rank, 
+         method = "kendall")
+```
+
+The high tau and highly significant result indicate that there's a innegligible great relationship.
+
+### Kendall's W
+
+Kendall's W is a measure of agreement among multiple raters or judges who are assessing the same set of items or objects. Kendall's W is based on the number of concordant and discordant triples of ratings among the raters.
+
+Kendall's W ranges from 0 to 1, with values of 0 indicating no agreement among the raters and 1 indicating perfect agreement. The formula for Kendall's W is:
+
+$$
+W = (n_c - n_d) / (n_c + n_d + n_t)
+$$
+where $n_c$ is the number of concordant triples, $n_d$ is the number of discordant triples, and $n_t$ is the number of tied triples.
+
+In another form,
+
+$$
+W=\frac{\sum_iR_i^2-\frac{(\sum_iR_i)^2}{N}}{\frac1{12}M^2(N^3-N)}
+$$
+
+  where $R_i$ is the total ranking of *i*th subject.
+  
+Kendall's W can be converted into Spearman correlation.
+
+$$
+r_{spearman}=\frac{MW-1}{M-1}
+$$
+
+In R, you can calculate Kendall's W using the `irr::kendall(ratings)` function, where rating is a $n*m$ matrix, $n$ subjects and $m$ raters.
+
+Here's an example of how to use the `irr::kendall()` function to calculate Kendall's W coefficient:
+
+```{r }
+# Create a data frame with ratings from three judges for four items
+ratings <- data.frame(
+  Item = c("A", "B", "C", "D"),
+  Judge_1 = c(3, 4, 2, 1),
+  Judge_2 = c(2, 4, 1, 3),
+  Judge_3 = c(3, 2, 1, 4))
+
+irr::kendall(ratings = ratings)
+```
+
+Meanwhile, a chi-square test is carried for each subject according to their sum of rankings. If significant, there exists a difference between their performance.
+
+Note that there's no signal about the significance about W, only that about $\chi^2$.
+
+## Two Samples
+### Related Samples
+
+#### Wilcoxon Signed Ranks Test
+
+The Wilcoxon Signed Ranks test is a nonparametric statistical test used to determine whether the **median** of a paired difference between two related samples is statistically different from zero. It is used when the data does not meet the assumptions of normality required for a parametric test like the paired t-test.
+
+The test is performed by first calculating the differences between the paired observations, then ranking the absolute values of these differences. The sum of the ranks of the positive differences is then compared to the sum of the ranks of the negative differences, and take the smaller one as the  statistic called $T$. The null hypothesis is that the median difference is zero, while the alternative hypothesis is that it is not zero.
+
+In R, you can perform the Wilcoxon Signed Ranks test using the `wilcox.test()` function. `wilcox.test()` is a function in R that performs the **Wilcoxon rank test**, or the **Mann-Whitney U test**. When conducting the former, `paired = T`; the latter, `paired = F`. Just specify the two vectors as the first two parameters.
+
+Here's an example of how to use the `wilcox.test()` function to perform the test on two related samples. Suppose we are interested in comparing the effectiveness of two different weight loss programs. We have a sample of 10 individuals who have completed both programs. We measure each individual's weight before and after each program, and we want to determine whether there is a significant difference in weight loss between the two programs.
+
+```{r warning=FALSE}
+# Create two related samples
+weightloss <- data.frame(
+  individual = 1:10,
+  program_A = c(185, 190, 200, 175, 195, 180, 170, 185, 195, 200),
+  program_B = c(180, 185, 195, 170, 190, 175, 165, 180, 190, 195)
+)
+
+# Perform the Wilcoxon Signed Ranks test
+wilcox.test(weightloss$program_A,weightloss$program_B, paired = TRUE)
+```
+
+Note:
+
+* Faced with tied values, typically use the averge rank.
+* Faced with zero difference, typically keep the observation.
+  Deleting data is always a concern! Zero difference observation can participate in computing $T$ and influence the degree of freedom.
+  
+#### McNemar Test
+
+In the context of the McNemar Test, the off-diagonal terms refer to the counts of the two categories that are inconsistent between the two paired measurements. Specifically, they refer to the counts of the following two categories:
+
+- False positives (FP): The number of cases where the first measurement is negative, but the second measurement is positive.
+
+- False negatives (FN): The number of cases where the first measurement is positive, but the second measurement is negative.
+
+For example, consider a medical study that measures the presence or absence of a certain disease in a group of patients before and after treatment. The 2x2 contingency table for this study might look like this:
+
+```
+           After Treatment
+           Positive Negative
+Before Treatment
+Positive      a       b
+Negative      c       d
+```
+
+In this table, `a` represents the number of patients who tested positive for the disease both before and after treatment (true positives), `d` represents the number of patients who tested negative for the disease both before and after treatment (true negatives), `b` represents the number of patients who tested negative for the disease before treatment but positive after treatment (false positives), and `c` represents the number of patients who tested positive for the disease before treatment but negative after treatment (false negatives).
+
+The off-diagonal terms in the McNemar Test are used because they represent the counts of the inconsistent categories between two paired measurements. These inconsistent categories are the false positives (FP) and false negatives (FN), which represent the cases where the two measurements disagree.
+
+In the context of the McNemar Test, the goal is to determine whether there is a significant difference between the proportions of the inconsistent categories, namely FP and FN. This is done by comparing the observed counts of FP and FN to the expected counts under the null hypothesis of no difference. The expected counts are calculated assuming that the marginal totals of the contingency table are fixed, which is a characteristic of paired data.
+
+So the key difference between the Chi-Square Test on a Contingency Table and the McNemar Test is the question that each test addresses. The former tests for independence between two categorical variables, while the latter tests for a significant difference between two correlated proportions. The two tests have different assumptions and are used in different contexts, but both use the chi-squared statistic to calculate the test statistic.
+
+Here's an example of the McNemar Test being used to analyze a medical experiment in R. In this example, we will examine the effectiveness of a new treatment for a certain disease compared to a standard treatment.
+
+Suppose we have a sample of 50 patients who have been diagnosed with the disease. We randomly assign each patient to receive either the new treatment (Treatment A) or the standard treatment (Treatment B). After the treatment, we measure whether the patient's symptoms have improved or not. The results are summarized in the following 2x2 contingency table:
+
+```
+           After Treatment
+           Improved Not Improved
+Before Treatment
+Improved        15        10
+Not Improved    5        20
+```
+
+In this table, the rows represent the before-treatment condition and the columns represent the after-treatment condition. The cells represent the number of patients in each category. For example, 15 patients improved after receiving Treatment A, while 10 did not improve.
+
+To analyze these data using the McNemar Test in R, we can use the `mcnemar.test()` function. Here's the R code:
+
+```{r}
+# Create a 2x2 contingency table of the data
+medicine <- matrix(c(15, 5, 10, 20), 
+               nrow = 2, 
+               dimnames = list(c("Improved", "Not Improved"), 
+                               c("Improved", "Not Improved")))
+
+# Perform the McNemar Test
+mcnemar.test(medicine)
+```
+
+In this code, we first create a 2x2 contingency table of the data using the `matrix()` function. We then use the `mcnemar.test()` function with the contingency table as the input. The function returns a list of information about the test, including the chi-squared statistic, the degrees of freedom, and the p-value. 
+
+In the example above, we cannot reject the null hypothesis that there is no significant difference between the proportions of patients who improved after receiving Treatment A compared to Treatment B. McNemar test is used to compare the proportions of patients who improved after receiving a new treatment compared to a standard treatment. The output of the test provides information about the significance of the difference between the proportions, which can inform decisions about the effectiveness of the treatments.
+
+#### Sign Test
+
+The Sign Test is a non-parametric statistical test that is used to compare two related samples or matched pairs in which the data are measured on an ordinal or continuous scale. The test is based on the distribution of the signs of the differences between the paired observations.
+
+The Sign Test is used when the data do not meet the assumptions of a parametric test, such as the paired t-test, which assumes that the data are normally distributed. The Sign Test is more robust to outliers and non-normality, and it does not require knowledge of the distribution of the data.
+
+The Sign Test is a one-sample test, meaning that it compares the differences between the paired observations to a specified value, such as zero. The null hypothesis is that the median difference between the paired observations is equal to zero, while the alternative hypothesis is that the median difference is not equal to zero.
+
+To perform the Sign Test, we first calculate the differences between the paired observations. We then assign a sign (+ or -) to each difference, depending on whether the observation in the first sample is greater or less than the observation in the second sample. We then count the number of positive and negative signs, and calculate the test statistic as the minimum of the two counts. The test statistic follows a binomial distribution with the number of pairs as the sample size and a probability of 0.5 under the null hypothesis.
+
+The p-value of the test can be calculated using the **binomial** distribution, or it can be *approximated* using a *normal* approximation. If the p-value is less than the chosen significance level, the null hypothesis is rejected, and the conclusion is that there is a significant difference between the two related samples.
+
+The Sign Test can be useful in a variety of applications, including clinical trials, psychology experiments, and ecological studies. It is a simple and robust method for comparing two related samples when the data do not meet the assumptions of a parametric test.
+
+There's no `sign.test()` in R, but that can be accomplished "manually" through `binomial.test()`, since the statistic follows such distribution. We only have to assign the signs of positive or negative according to the differences.
+
+Same with the "weightloss" example in the Wilcoxon test, we'll continue that in the sign test.
+
+```{r}
+binom.test(x = sum(weightloss$program_A > weightloss$program_B),
+               n = nrow(weightloss))
+```
+
+Note that the tests for signed ranks of related samples may vary a lot in terms of their significance level, which largely indicates that the effectiveness of nonparametric tests may be limited. However, the **Wilcoxon test** is generally more recognized.
+
+### Independent Samples
+#### Mann-Whitney U Test
+
+The Mann-Whitney U Test, is a non-parametric statistical test that is used to compare the **medians** of two **independent** samples. 
+
+The Mann-Whitney U Test is based on the rank sums of the two samples. To perform the Mann-Whitney U Test, we first combine the two samples and rank the observations from lowest to highest, assigning the same rank to ties. We then calculate the sum of the ranks for each sample. The test statistic is then calculated as the smaller of the two rank sums, $U$. The test statistic follows a normal distribution with a mean and variance that can be calculated from the sample sizes and the $U$ statistic. Below is an example.
+
+```{r echo=FALSE,out.width='100%'}
+knitr::include_graphics('Mann-Whitney U Rank.png')
+```
+
+
+The p-value of the test can be calculated using the normal distribution, or it can be approximated using tables or software. If the p-value is **less** than the chosen significance level, the null hypothesis is rejected, and the conclusion is that there is a significant difference between the two independent samples.
+
+It is worth noting that the Mann-Whitney U Test is different from the Wilcoxon Signed-Rank Test. **The Mann-Whitney U Test is used for independent samples, while the Wilcoxon Signed-Rank Test is used for paired samples.**
+
+Here, we assume that in the example provided in the "weightloss" part, the two data in two programs correspond to two groups of people, and thus independent.
+
+```{r warning=FALSE}
+wilcox.test(weightloss$program_A,
+            weightloss$program_B,
+            paired = F)
+```
+
+#### KS Z Test
+
+Compared to KS test before, this is a more "general" version. KS Z test compares two distributions against each other, while KS test, strictly speaking, compares a distribution against a theoretical distribution.
+
+Use the same function `ks.test()` as before, all others the same, so *no* need to cover it again here.
+
+Moreover, it's interesting to compare KS test and Mann-Whitney U test.
+
+* The Mann-Whitney test first ranks all the values from low to high, and then computes a P value that depends on the discrepancy between the mean ranks of the two groups.
+* The Kolmogorov-Smirnov test compares the cumulative distribution of the two data sets, and computes a $p$ value that depends on the largest.
+
+Guidelines for choosing between the two tests.
+
+1.	The KS test is sensitive to any differences in the two distributions. Substantial differences in shape, spread or median will result in a small P value. In contrast, the **MW test is mostly sensitive to changes in the median**.
+2.	The MW test is used more often and is recognized by more people, so choose it if you have no idea which to choose.
+3.	The MW test has been extended to handle tied values. The KS test does not handle ties so well. If your data are categorical, so has many ties, don't choose the KS test.
+4.	Some fields of science tend to prefer the KS test over the MW test. It makes sense to follow the traditions of your field.
+
+#### Moses Extreme Reaction
+
+* Check the span of the rank of one group when two groups are mixed and ranked (up and low 5% deleted).
+
+* **Good for distributions with mass on both ends**.
+
+  But less powerful and robust as KS test.
+
+In the case of MER, the null hypothesis is that there is no difference in gene expression levels between individuals with extreme reactions and those with normal reactions. The alternative hypothesis is that there is a significant difference in gene expression levels between the two groups.
+
+The **range** is tested, so the MER has different *sensitivity* for different distributions.
+
+Use `DescTools::MosesTest(x,y,extreme)` to carry the MER. If with a grouping variable, parameters can be passed through a formula-pattern. `extreme` allows you to rule out some extreme values.
+
+In the example provided below, the data record the effect of two kinds of pills. `ycss` is the effect, and `zb` is the grouping label.
+
+```{r}
+hypnotic <- haven::read_sav("Data12-06.sav")
+```
+
+The MER is especially useful for medical experiments.
+
+```{r}
+DescTools::MosesTest(ycss~zb,data = hypnotic)
+```
+
+#### Wald-Wolfowitz Runs
+
+- Put two groups together and rank them; the group label should mix if they are similar.
+- **Good for distributions that differ more on variance than on location**.
+
+Wald-Wolfowitz Runs is kind of Runs test, but the two-independent-sample version.
+
+Use the same function as before, `DescTools::RunsTest(x,y)` to carry the test!
+
+```{r warning=FALSE}
+DescTools::RunsTest(ycss~zb,data = hypnotic)
+```
+
+## K Samples
+### Dependent Samples
+The "dependent" here means, a person or an item is tested for $K$ times.
+
+#### Friedman Test
+
+The Friedman test is a non-parametric statistical test used to determine whether there are **differences** among two or more groups based on **repeated** measures data. It is often used as an alternative to *repeated measures ANOVA* when the data do not meet the assumptions of normality or homogeneity of variance.
+
+The Friedman test involves *ranking* the data for each group and then computing the *sum of the ranks* for each condition or treatment. The test statistic is calculated as the ratio of the sum of squares of the ranks to the total sum of squares, and is compared to the *chi-squared* distribution with degrees of freedom equal to the number of groups minus one. The Friedman test is appropriate when the data are measured on an ordinal or continuous scale, but not when the data are nominal.
+
+If the test statistic is significant, it indicates that there are differences among the groups. However, the Friedman test does not identify which groups are different from each other. *Post-hoc tests*, such as the Wilcoxon signed-rank test or the Dunn's test, can be used to identify the pairwise differences between the groups.
+
+One of the advantages of the Friedman test is that it is robust, meaning that it is not affected by outliers or non-normality in the data. It is also useful for analyzing repeated measures data, where each participant or object is tested multiple times under different conditions or treatments.
+
+The statistic is what we calculated as $\chi^2$ in Kendall's W. No need to cover here!
+
+Note that no need to pass the pre-ranked data into `kendall()`, the raw data is fine!
+
+#### Cochran's Q
+
+Cochran's Q test is a non-parametric statistical test used to analyze the differences between *three or more* **related** categorical variables. It is similar to the McNemar test, which is used to compare two related categorical variables.
+
+The Cochran's Q test is used when we have a set of subjects measured on a **binary** (dichotomous) variable at three or more time points or under three or more conditions. The test determines if there is a statistically significant difference in the proportion of positive responses across the different time points or conditions.
+
+The null hypothesis of the Cochran's Q test is that the proportion of positive responses is the same across all time points or conditions, while the alternative hypothesis is that at least one time point or condition has a different proportion of positive responses.
+
+If the Cochran's Q test indicates that there are significant differences between the time points or conditions, post-hoc tests such as McNemar's test or Bonferroni correction can be used to determine which time points or conditions are significantly different from each other.
+
+Suppose we have a courses and a group of 30 students enrolled. We measure the pass/fail status of each student at three different time points (midterm, final exam, and overall course grade) to determine if there is a significant difference in the proportion of passing students across the different time points.
+
+```{r message=FALSE}
+midterm <- c(rep("Pass", 5), rep("Fail", 5), rep("Pass", 6), rep("Fail", 4), rep("Pass", 8), rep("Fail", 2))
+final <- c(rep("Pass", 8), rep("Fail", 2), rep("Pass", 4), rep("Fail", 6), rep("Pass", 7), rep("Fail", 3))
+overall <- c(rep("Pass", 9), rep("Fail", 1), rep("Pass", 6), rep("Fail", 4), rep("Pass", 8), rep("Fail", 2))
+
+df <- data.frame(midterm, final, overall) |> 
+  gather(key = 'exam',value = 'result') |>
+  mutate(stu = rep(rep(1:30),3))
+```
+
+In this dataset, we have three categorical variables (midterm, final, and overall) measured at three time points for each student. To perform Cochran's Q test on this dataset, we can use the `cochran_qtest()` function from the `rstatix` package in R:
+
+```{r}
+rstatix::cochran_qtest(data = df,formula = result~exam|stu)
+```
+
+The non-significant result here means that the three exams does not have differences in difficulty.
+
+
+#### Kendall's W
+
+In essence, it's a Friedman Test, no need to cover here.
+
+### Independent Samples
+
+#### Kruskal–Wallis Test
+
+The Kruskal-Wallis test is a non-parametric statistical test used to compare *three or more* **independent** samples to determine if they come from the same population or not. It is often used as an alternative to *one-way ANOVA* when the data do not meet the assumptions of normality or homogeneity of variance.
+
+The Kruskal-Wallis test ranks the data within each group and calculates the sum of ranks for each group. It then uses these sums to calculate a test statistic that measures the differences between groups. The null hypothesis of the Kruskal-Wallis test is that the samples come from the same population, while the alternative hypothesis is that at least one sample comes from a different population.
+
+The test is appropriate when the data are measured on an ordinal or continuous scale, but not when the data are nominal. If the Kruskal-Wallis test indicates that there are significant differences between the groups, post-hoc tests such as the Mann-Whitney U test or Dunn's test can be used to determine which groups are significantly different from each other.
+
+To perform the Kruskal-Wallis test in R, we can use the `kruskal.test()` function. Here's an example:
+
+```{r}
+group1 <- c(4, 8, 7, 6, 5)
+group2 <- c(3, 7, 6, 5, 4)
+group3 <- c(2, 6, 5, 4, 3)
+
+kruskal.test(list(group1, group2, group3))
+```
+
+In this example, we have three independent groups with five observations each. We use the `list()` function to group the data together, and then pass the list to the `kruskal.test()` function. The output of this code will provide the Kruskal-Wallis test statistic, degrees of freedom, and p-value.
+
+If the data is consisted of one value column and one group column, then using the formula-pattern would be more convenient!
+
+```{r}
+df = data.frame(
+  value = c(group1,group2,group3),
+  group = rep(1:3,each = 5)
+)
+
+kruskal.test(value~group,data = df)
+```
+
+#### Jonckheere-Terpstra (Trend) test
+
+The Jonckheere-Terpstra test, also known as the trend test, is a non-parametric statistical test used to determine **if there is a trend in the ordered levels of a variable across multiple groups**. It is often used to analyze data where there is an **ordered** categorical variable and the groups are ordered in a natural way.
+
+The Jonckheere-Terpstra test ranks the data within each group and calculates the sum of ranks for each group. It then uses these sums to calculate a test statistic that measures the trend in the ordered levels of the variable. The null hypothesis of the Jonckheere-Terpstra test is that there is no trend in the ordered levels of the variable across the groups, while the alternative hypothesis is that there is a trend.
+
+The test is appropriate when the data are measured on an ordinal or continuous scale, but not when the data are nominal. It is commonly used in fields such as medicine, psychology, and social sciences to analyze trends in disease severity, performance, or attitudes across different groups.
+
+If the Jonckheere-Terpstra test indicates that there is a trend in the ordered levels of the variable, post-hoc tests such as the Wilcoxon rank-sum test or Dunn's test can be used to determine which groups are significantly different from each other.
+
+- Only used when the groups are ordered.
+- It actually tests about the median between groups.
+- it has **more power** than Kruskal-Wallis.
+
+Suppose we want to analyze the trend in intelligence scores across different age groups. We have four age groups (20-30, 31-40, 41-50, and 51-60) and 10 participants in each group. We measure the intelligence scores of each participant and want to determine if there is a significant trend in intelligence scores across the age groups.
+
+Use `DescTools::JonckheereTerpstraTest()` to carry the test. `nperm` is the number of permutations for the reference distribution. The default is NULL in which case the permutation p-value is not computed. It's recommended to set `nperm` to 1000 or higher if permutation p-value is desired.
+
+```{r}
+age <- c(rep("20-30", 10), rep("31-40", 10), 
+         rep("41-50", 10), rep("51-60", 10))
+age = as.ordered(age)
+intelligence <- c(80, 75, 85, 90, 70, 75, 80, 85, 65, 70,
+                   75, 80, 85, 90, 70, 75, 80, 85, 65, 70,
+                   70, 75, 80, 85, 65, 70, 75, 80, 85, 90,
+                   60, 65, 70, 75, 80, 85, 90, 70, 75, 80)
+
+df <- data.frame(age, intelligence)
+
+DescTools::JonckheereTerpstraTest(intelligence~age,
+                                  data = df)
+```
+
+The result is slightly calibrated.
+
+```{r}
+
+DescTools::JonckheereTerpstraTest(intelligence~age,
+                                  data = df,
+                                  nperm = 5000)
+```
+
+#### Median Test
+
+Very simple.
+
+- Count the # of data > or < median;
+- A Chi-square test on binomial distribution.
+- Need a large sample; not preferred.
+
+Now that you've ranked your data, why not try other more powerful non-parametric tests?
+
+```{r eval=FALSE}
+library(agricolae)
+library(irr)
+Median.test(intelligence,age)
+```
+
+## Non-Parametric Correlation Analysis
+
+There are several types of correlation coefficients that are commonly used in statistics to measure the strength and direction of the relationship between two variables. The most commonly used correlation coefficients are Pearson correlation, Spearman correlation, point-biserial correlation, and phi correlation.
+
+Spearman correlation, point-biserial correlation, and phi correlation are non-parametric ones.
+
+1. Pearson correlation: Pearson correlation coefficient measures the linear relationship between two continuous variables. It ranges from -1 to 1, where -1 indicates a perfect negative relationship, 0 indicates no relationship, and 1 indicates a perfect positive relationship. Pearson correlation assumes that the data are normally distributed and that there is a linear relationship between the variables.
+
+2. Spearman correlation: Spearman correlation coefficient measures the strength and direction of the monotonic relationship between two variables. It ranges from -1 to 1, where -1 indicates a perfect negative monotonic relationship, 0 indicates no monotonic relationship, and 1 indicates a perfect positive monotonic relationship. Spearman correlation does not assume that the data are normally distributed and can be used for ordinal or continuous variables.
+
+3. Point-biserial correlation: Point-biserial correlation coefficient measures the relationship between a dichotomous variable and a continuous variable. It ranges from -1 to 1, where -1 indicates a perfect negative relationship between the dichotomous variable and the continuous variable, 0 indicates no relationship, and 1 indicates a perfect positive relationship. Point-biserial correlation is used when one of the variables is dichotomous and the other is continuous.
+
+4. Phi correlation: Phi correlation coefficient measures the relationship between two dichotomous variables. It ranges from -1 to 1, where -1 indicates a perfect negative relationship between the two variables, 0 indicates no relationship, and 1 indicates a perfect positive relationship. Phi correlation is used when both variables are dichotomous.
+
+In general, Pearson and Spearman correlations are used for continuous or ordinal variables, while point-biserial and phi correlations are used for dichotomous variables. Pearson correlation is most appropriate when the data are normally distributed and there is a linear relationship between the variables, while Spearman correlation is more appropriate when the data are non-normally distributed or the relationship is not linear. Point-biserial and phi correlations are appropriate when one or both of the variables are dichotomous.
+
+Moreover, the chi-square independence test is used to determine if there is a significant association between two categorical variables, while the phi correlation coefficient is used to measure the strength and direction of the relationship between two dichotomous variables. The two tests are different perspectives to view the same problem, either say correlation or say independence.
+
+All can be dealt with by `cor.test()`.
+
+What I want to address here is the Phi coefficient. Phi coefficient can be obtained by `cor.test()` using the traditional Pearson-way, and also fine with `psych::phi(matrix)`, but the latter won't give you the significance information.
+
+In the example, we want to test the correlation between parents' political stance and their parenting way. We have the following contingency table.
+
+```{r echo=FALSE,out.width='100%'}
+knitr::include_graphics('contingency table.png')
+```
+
+I'd like to illustrate first with the "traditional" way.
+
+```{r}
+phidt = data.frame(
+  parenting = c(rep(1,25),rep(0,15)),
+  politics = c(rep(1,15),rep(0,10),rep(1,5),rep(0,10))
+)
+cor.test(phidt$parenting,phidt$politics)
+```
+
+The `psych::phi(matrix)` is indeed not recommend! But it's last advantage is that the data is expressed in the easiest way! If just to get the correlation value, probably go with it.
+
+```{r}
+phi_dataset = matrix(c(15,10,5,10),nrow=2,ncol=2)
+psych::phi(phi_dataset)
+```
+
+However, if we carry a chi-square test, that differs a little in its significance.
+```{r}
+chisq.test(phi_dataset)
+```
+
+# ANCOVA
+
+The data `df` contains information about miners' vital capacity as `vitalcp`, an indicator for their health of lungs; their age as `age`, probability related to `vitalcp`; a dummy `time` telling whether or not they have worked as a miner for 10 years, 1 if so, 0 otherwise.
+
+```{r}
+miner = readxl::read_excel("data09-06.xlsx", sheet = 1) |> 
+  rstatix::convert_as_factor(time)
+```
+
+## Pre-Inspection
+
+### Equal Variance
+
+```{r }
+miner |> 
+  rstatix::levene_test(vitalcp~time)
+```
+
+### Independence of Covariate and Treatment
+
+```{r }
+anova(aov(age~time,data = miner))
+```
+
+### Homogeniety of Regression Slopes
+
+```{r }
+anova(aov(vitalcp~time*age,data = miner))
+```
+
+## ANCOVA
+### Fit the Model
+
+It's noteworthy that in R, the more essential the effect variable is, the earlier it should be put.
+
+The common "rank" is as follows.
+
+* covariate
+* main effect
+* interaction
+
+The order that IVs are plugged matters! Since we have the algorithm of SS related to that.
+
+In the formula, connect the main effect and covariate with sign `+`.
+
+```{r }
+cfit = aov(vitalcp~age+time,data = miner)
+```
+
+### Summary the Model
+
+#### ANCOVA View
+
+As for the fitted ANCOVA model, say `model`, plug in `model` into `summary()` or `anova()` will return the same and necessary results.
+
+Since `summary()` is more generally used, I'd like to recommend `summary()`!
+
+```{r }
+# anova(cfit)
+summary(cfit)
+```
+
+#### Linear-Model View
+
+View the ANOVA model as a special case of linear model, with covariate and main effect as its independent variables as is used above, and intercept is included.
+
+`car::Anova(model,type = 'III')` can return the SS, miner, $F$ and $p$ for each term, including the intercept. The coefficients, together with the same significance, can be reported through `summary(model)`.
+
+```{r }
+car::Anova(cfit,type = '3')
+summary(lm(vitalcp~age+time,data = miner))
+```
+
+### Effect Size
+
+```{r }
+rstatix::partial_eta_squared(cfit)
+```
+
+### Post-Hoc Test
+
+Library the package `multcomp` and use the `glht(model, linfct = mcp(time = 'Tukey'))` within to get the post-hoc model. Then, use `summary()` to get its result.
+
+```{r message=FALSE,warning=FALSE,results='hide'}
+library(multcomp)
+postHoc = glht(cfit,linfct = mcp(time = 'Tukey'))
+summary(postHoc)
+```
+
+Well, the significant intercept term means that the grand mean does account for some of the variation.
+
+### Visualize the Model
+
+Library package `HH`, and then use the function `ancova()` to fit the model. Note that all parameters passed into `ancova()` is the same as those into `aov()`.
+
+Mind the order of independent variables, since that does matter!
+
+`ancova(...)` will not only return the completely same result as we've seen in `summary(aov(...))`, but also a graph illustrating the comprehensive correlation between the dependent variable and covariate & main effect.
+
+Note that within `ancova()`, more underlying functions from that package `HH` are loaded, which means you can not get away with just specifying the package like `HH::ancova`, but have to library the package specifically.
+
+```{r warning=FALSE,message=FALSE,}
+library(HH)
+ancova(vitalcp~age+time , data = miner)
+```
+
+### Visual Check
+
+```{r ,out.width='100%',message=FALSE,warning=FALSE}
+library(ggpubr)
+library(patchwork)
+p1 = ggscatter(miner[miner$time==1,],
+          x="age",y="vitalcp",
+          color="red",add="reg.line")
+p2 = ggscatter(miner[miner$time==2,],
+          x="age",y="vitalcp",
+          color="blue",add="reg.line")
+p3 = ggscatter(data = data.frame(
+  pred = fitted(cfit),
+  resid = residuals(cfit)
+),x="pred",y="resid",color="green",add="reg.line")
+
+(p1+p2)/p3
+```
+
+## Report the Data
+ANCOVA was conducted on `vitalcp` with `time` as the main effect and `age` as the covariate.
+
+The covariate, age of the workers, was significantly related to the vital capacity, $F(1,25)=19.775, p<0.001, r = 0.665,\eta^2p=0.43389844$. There was no significant effect of time on the vital capacity, after controlling the effect of age, $F(1,25) = 0.965, p=0.33, \eta^2p= 0.03791233$.
+
+# Latin Square
+
+The following data `yie` has the information about the yields of vegetables, say `yield`, and the corresponding conditions of growing, such as the variety of vegetables, say `variety` here; and the location information for `rep` and `col`. In the three treatments, varieties of vegetables are the primary one that we're interested in, and the other two are secondary variables to be controlled.
+
+```{r out.width='100%',eval=FALSE}
+knitr::include_graphics('Latin Square.png')
+```
+
+```{r }
+yie = readxl::read_xlsx("veget.xlsx") |> 
+  rstatix::convert_as_factor(rep,col,variety)
+```
+
+## Fit the Model
+
+The model is fitted the same as before for ANOVA. Note that Latin Square is a special design, where each letter (level) appears only once in each row and each column.
+
+Here, though the factors differ in importance, the order that they're plugged in does not matter!
+
+```{r }
+latinfit = aov(yield~rep+col+variety,
+           data = yie)
+```
+
+## Summary the Model
+### ANOVA View
+
+Basically, `summary(model)` and `anova(model)` will return the same result.
+
+```{r }
+# summary(latinfit)
+anova(latinfit)
+```
+
+### Linear-Model View
+
+ANOVA (even Latin Square design) is a special case of linear model. Similarly, use `car::Anova(model,type = 'III')` to see the intercept term, with other terms same with the results from the functions mentioned above.
+
+However, if one grouping variable has multiple levels, the linear model may seems not so simple, because each level will sit at a term. In this case, traditional view of ANOVA seems "better".
+
+```{r }
+car::Anova(latinfit, type = 'III')
+summary(lm(yield~rep+col+variety,
+           data = yie))
+```
+
+## Post-Hoc Test
+
+```{r }
+TukeyHSD(latinfit)
+```
+
+# Nested ANOVA
+
+```{r message=FALSE}
+nestedData = readxl::read_excel("nested anova.xlsx")
+```
+
+## visualization
+```{r}
+# we should eyeball the data first to make sense of the test.
+# create boxplots to visualize the data
+ggplot(nestedData, aes(x=factor(location), y=DV)) + 
+  geom_boxplot()
+```
+
+## nested ANOVA
+Theoretically, the order of computing the variance sum of squares matters, thus appointing the `summation = 'I'`.
+
+However, here the summation type does not matter.
+
+Note that the result of the main effect of the group is wrong. We can manually make it straight from the SS of the group and the subgroup.
+```{r}
+# note that nested anova can use error type I and III.
+# aov() has a default type I to process factors in an sequential order
+# here type I and III don't differ, since effectively we have no orders
+aov_model = aov(DV ~ factor(method)/factor(location), 
+                data = nestedData,summation="I")
+summary(aov_model)
+```
+
+### error adjustment
+An alternative refinement is to adjust the error term.
+```{r}
+aov.result2 = aov(DV ~ factor(method) + 
+                    Error(factor(method):factor(location)),
+                  data = nestedData)
+summary(aov.result2)
+```
+
+### comparison with one-way
+If we wrongly ignore the nested factor and use one-way ANOVA, the results would be different
+
+Note that there's only one group factor, therefore, the type of summation does not matter.
+```{r}
+aov_model = aov(DV ~ factor(method), 
+                data = nestedData,summation="III")
+summary(aov_model)
+```
+
+```{r}
+aov_model = aov(DV ~ factor(method), 
+                data = nestedData)
+summary(aov_model)
+```
+
+# MANOVA
+
+```{r}
+# salary data example
+salaryData = readxl::read_xlsx("example.xlsx")
+DV = cbind(salaryData$salary, salaryData$salbegin)
+```
+
+## Visualization
+Note that in order to generate the boxplot according to the "categorical" data, "factor" type should be designated in the mapping parameter.
+
+If not "factored", the scatter plot works fine with grouped effect, but the boxplot fails.
+```{r}
+# eyeball the data
+library(gridExtra)
+p1 = ggplot(salaryData, aes(x = factor(jobcat), y = salary)) + 
+  geom_boxplot(outlier.shape = NA) + geom_jitter(width = 0.2) + 
+  theme(legend.position="top")
+p2 = ggplot(salaryData, aes(x = factor(jobcat), y = salbegin)) + 
+  geom_boxplot(outlier.shape = NA) + geom_jitter(width = 0.2) + 
+  theme(legend.position="top")
+grid.arrange(p1, p2, ncol=2)
+```
+
+We can also eyeball the DVs.
+```{r}
+car::scatterplot(salary ~ salbegin, data=salaryData, ellipse=TRUE, 
+  smooth=list(style="lines"))
+```
+
+## Asumptions
+
+### Normality
+#### pipe-friendly (Preferred)
+
+Note that `mshapiro_test()` is from the package `rstatix`, one step further from `tidyverse`.
+
+```{r}
+salaryData |> dplyr::select(salary,salbegin) |> 
+  rstatix::mshapiro_test()
+```
+
+```{r}
+salaryData |> group_by(jobcat) |> 
+  shapiro_test(salary,salbegin)
+```
+
+#### classical (Not Preferred)
+
+Not preferred. It's not efficient to do this way.
+
+The specific function `mshapiro.test()` requires to library the package `mvnormtest`, which surprisingly has a single function! Moreover, it requires the data to be transposed before being processed.
+
+The most annoying part is that the data has to be packed purposefully.
+```{r}
+mvnormtest::mshapiro.test(t(DV))
+```
+
+### Homogeniety of Variance & Covariance
+Using the Box's M-test and Levene's Test.
+
+#### pipe-friendly (Preferred)
+
+Using `box_m()` from the package `rstatix` to test the homogeniety of covariance matrices, in which the first parameter is the DVs needed to be analyzed (No group variable! This can be achieved through `select()`), and the second is the `group` parameter specifying the group variable.
+
+Moreover, the function `heplots::boxM()` is helpful. Instead of taking the formula to specify the parameters, using the "traditional" way to write `group = ...` works pretty well combined with pipe-friendly environment!
+
+The drawback of the functions is that they **cannot search column variables automatically**, and that should be specified **manually**. And more annoying one is that, when encountering with NAs, an error will be raised by `rstatix::box_m()`, while that's fine with `heplots::boxM()`.
+
+```{r}
+salaryData |> dplyr::select(salary,salbegin) |>
+  rstatix::box_m(group = salaryData$jobcat)
+salaryData |> dplyr::select(salary,salbegin) |> 
+  heplots::boxM(group = salaryData$jobcat)
+```
+
+Do not forget that the assumption of homogeniety of variance for each DV is needed either! However, the traditional `levene_test()` (or its variants) can deal with one DV at a time, which is tedious when we have many DVs to check.
+
+Hopefully, we have `heplots::leveneTests(data,group)` to deal with that issue. Combined with pipe-friendly procedures, that's fabulous!
+
+One noteworthy flaw is that the `heplots::leveneTests(data,group)` cannot search column variables like that in the "tidyverse" environment.
+
+```{r}
+salaryData |>  dplyr::select(salbegin,salary) |> 
+  heplots::leveneTests(group = salaryData$jobcat)
+```
+
+#### classical
+The most annoying part is that the data has to be packed purposefully.
+
+An alternative way to use `heplots::boxM()` has been mentioned above. We can renovate the efficiency to carry this test by replacing the "formula" specifying-pattern with the "group" one.
+```{r}
+heplots::boxM(cbind(salary, salbegin) ~ factor(jobcat), 
+              data = salaryData)
+```
+
+## MANOVA
+Use the function `manova()`, which is from the baseR, no special need to library packages.
+
+Similarly, the most annoying part is that the **DVs and IVs has to be packed** previously.
+
+```{r}
+jobcat = salaryData$jobcat
+fit = manova(DV ~ jobcat)
+```
+
+As before, simply use `summary()` of the fitted model to see the results.
+
+```{r}
+summary(fit)  #for MANOVA
+```
+
+### Effect Size
+Checking the effect size is also indispensable.
+
+Use `eta_squared()` from the package `effectsize`, which contains plenty of useful functions computing effect size under various scenarios.
+
+Note that there's also an `eta_squared()` from the package `rstatix()`, but that can only deal with univariate ANOVA, it would fail when encountering MANOVA models.
+
+Also note that the package `effectsize` is incorporated in `bruceR`!
+```{r}
+effectsize::eta_squared(fit)
+```
+
+### Univariate ANOVA
+Needed if MANOVA reports significant results.
+
+`summary.aov()` will report the univariate ANOVA respectively.
+```{r}
+summary.aov(fit)  #for indDVidual anovas
+```
+
+### Post-Hoc Tests
+
+Note that the post-hoc tests here are essentially for the univariate ANOVA.
+
+Note that the `games_howell_test()` is different from `tukey_hsd()`.
+
+Note that for many DVs to take the post-hoc tests simultaneously, first `gather()` the targeted columns, and then take the **grouped** data for the test.
+```{r}
+salaryData %>% gather(key = "var", 
+                      value = "value", 
+                      salary, salbegin) |> 
+  group_by(var) |>
+  games_howell_test(value~jobcat) 
+```
+
+# Logistic Regression
+Logistic Regression is for fitting a regression **curve** to data where the DV is **dichotomous**. Meanwhile, the IV(s) can take on any form, such as binary, categorical and continuous.
+
+The goal of logistic regression is to model the probability of a certain event (or say, a specific input). However, probability $p$ is not used directly here. Use **Odds** instead.
+
+$$
+Odds=\frac{p}{1-p}
+$$
+
+The logistic function used as such a predictor is as follows.
+
+$$
+p(z)=\frac1{1+e^{-z}}=\frac{e^{z}}{1+e^{z}}
+$$
+
+```{r echo=FALSE}
+ggplot(data = data.frame(x = seq(-10,10,by = 0.05),y = 1/(1+exp(-seq(-10,10,by = 0.05)))),aes(x=x,y=y))+
+  geom_line(color = 'red')+
+  geom_vline(xintercept = 0)+
+  theme_bw()+
+  theme(axis.ticks.x  = element_blank())+
+  labs(x='z',y = latex2exp::TeX('$p$'))
+```
+
+The logistic function performs well that it's the C.D.F of a normal distribution! Or take derivative of the logistic function, beautiful and unique traits of the normal distribution can be well applied.
+
+In the logistic function, $z=\alpha+\beta x$, which can also be extended to multiple IVs, i.e. $z = \beta_0+\beta_1+...+\beta_n x$.
+
+Obviously, if the coefficient of IV is positive, then the probability will increase with IV. If not significantly different from zero, then probability won't significantly be affected by it.
+
+Take a step further, the coefficient $\beta$ is interpreted through the term "**Odds Ratio**", where
+
+$$
+Odds\ Ratio = \frac{adds(x_i+1)}{odds(x_i)}=e^{\beta_i}
+$$
+
+The odds ratio is the effect size of corresponding IV $x_i$, which means one unit increase in x would induce the odds to change to $e^{\beta_i}$ times of itself. The direction given by it coincides with previous discussion of the sign of coefficients and direction of odds' change. Then, if $\beta_i$ is statistically differently from 0 (through $z$ test or Wald test, equivalent), then the odds ratio is significantly different from 1, and 1 doesn't fall in its CI.
+
+Furthermore, given an observation, the CI of probability can be obtained.
+
+All above seems strange at first glance. However, the focus on odds isn't odd. From the logistic function, doing some transformation, we can get the logit function.
+
+$$
+Logit(p)=\ln(\frac{p}{1-p})=\alpha+\beta x
+$$
+
+The logit function is linear and the response variable has much to do with odds!
+
+However, the linear regression line here isn't obtained "traditionally" as we did. Maximum Likelihood Estimation (MLE) is used, instead of Ordinary Least Squares (OLS).
+
+The following picture can help understand why MLE.
+
+```{r echo=FALSE,out.width='100%'}
+knitr::include_graphics('Logit transformation.png')
+```
+
+For real data, the observed outcome can be either 0 or 1. However, that won't make any sense considering linear transforming that into $Logit(p)=\ln(\frac{p}{1-p})$, either $-\infty$ or $+\infty$. Thus, OLS doesn't work here.
+
+Alternatively, MLE is used here to estimate a "good" fit. Given an arbitrary regression line, each point is projected onto the line according to its **$x$** value(s). Then the goodness of such fit is rated by its "likelihood" with the reality, which means better model should explain and predict the data better， thus depicting the world better.
+
+The likelihood used here is as follows.
+
+$$
+\begin{aligned}
+\text{L}(data) & =\Pi_{i=1}^n [p(x_i)^{y_i}(1-p(x_i))^{1-y_i}]\\
+\text{LL}(data)& =\sum_{i=1}^n [{y_i}\times p(x_i)+{1-y_i}\times(1-p(x_i))]
+\end{aligned}
+$$
+
+Starting from a seemingly "arbitrary" line (the initial parameter should be specified or guessed by human, and that matters when it comes to efficiency.), the algorithm is smart enough that it'll change the parameters repeatedly until for a direction with higher likelihood, and ultimately find the maximized one and the corresponding parameters as the solution.
+
+Finally, the fitted result can be evaluated through four aspects.
+
+```{r echo=FALSE,out.width='100%'}
+knitr::include_graphics('evaluation of logitstic model.png')
+```
+
+$$
+\begin{aligned}
+Accuracy&=\frac{TP+TN}{TP+TN+FP+FN}\\
+Precision&=\frac{TP}{TP+FP}\\
+Sensitivity&=\frac{TP}{TP+FN}\\
+Specificity&=\frac{TN}{TN+FP}
+\end{aligned}
+$$
+
+* Accuracy is the rate that the model can predict true results, **either positive or negative**.
+* Precision is the rate that the model can predict true positive results, **within reported positive ones**.
+* Sensitivity is the rate that the model can predict true positive results, **within actual positive ones**.
+* Specificity is the rate that the model can predict the true **negative** results, **within actual negative ones**.
+
+How many parameters the mdoel should have in order to have an effective and efficient prediction? More parameters added into a certain model will increase accuracy for the present data (sometimes even won't), however, such complicated model may lose generalizability and lose its ability to predict. Well, on the other hand, simple model may not have high ability to explain or predict the data. We should find a compromise.
+
+```{r echo=FALSE,out.width='100%'}
+knitr::include_graphics('fitting model.png')
+```
+
+Generally speaking, for models evaluated by MLE, the comparison of MLEs under different hypothesis can be applied to model comparison.
+
+$$
+\begin{aligned}
+H_0&:\theta=\theta_0\\
+H_1&:\theta=\theta_1\\
+\Lambda(y)&=\frac{L(\theta_1|y)}{L(\theta_2|y)}
+\end{aligned}\\
+If\ \Lambda(y)>c,\ reject\ H_0
+$$
+
+Based on above, here to introduce the nested hypothesis test. Apparently, the nested model is simpler, we're to check necessity of the addition of other IV(s).
+
+Suppose Model 0 ($M_0$) is nested in Model 1 ($M_1$). $M_0$ has $m$ parameters, and $M_1$ has $n$. Define
+
+$$
+\Delta(y) = 2\ln(L(\hat{\theta_1}|y)-2\ln(L(\hat{\theta_0}|y))
+$$
+
+Here factor "2" is to scale the statistic to make it that
+
+$$
+\Delta(y)\sim \chi_{n-m}^2
+$$
+
+Hence, if $\Delta(y)$ exceeds the critical value, reject $M_0$ and recognize that $M_1$ is simpler but not worse (i.e. general and powerful).
+
+Often, a model with intercept and predictors (B) is compared to an intercept-only model to test whether the predictors contribute something over and above the intercept-only.
+
+Note that considering sample size when evaluating goodness of fit, $\chi^2$ statistics are heavily influenced by sample size so that with a very large sample, even a tiny difference will be significant. If the sample size is large and the $\chi^2$ is significant, this may not be important.
+
+Coming back, there're three ways for model fitting.
+
+* Enter: all theoretically-based variables are added at once.
+* Forward Selection: one parameter at a time, significant ones kept. Used for exploratory purposes.
+* Backward Elimination: full model first, eliminate one by one. Used for finding a concise model.
+
+All three way should be based on the significance of $\chi^2$ test.
+
+Meanwhile, there're more concepts or evaluations for model fitting, indicating goodness of fit.
+
+* Nagelkerke $r^2$: between 0 and 1, similar to $r^2$, preferred.
+* Hosmer and Lemeshow (HL) test: compare the observed frequency and the predicted frequency, an alternative to model $\chi^2$ test. If NOT significant, good!
+
+## Fit the Model
+
+Using the data `logisticData`, we're to predict whether or not to have cancer through logistic regression model, with `age`, `pathsize` and `pathscat` (3 types) as predictors. 
+
+```{r}
+logisticData <- readxl::read_xlsx("Data11-02.xlsx")
+```
+
+Observations with `pathscat == 99` are invalid and should be eliminated.
+
+```{r}
+logisticData = logisticData |> filter(pathscat != 99)
+```
+
+Then, set dummy variables.
+
+```{r}
+logisticData = data.frame(model.matrix(
+    ~factor(pathscat),logisticData)) |> 
+  dplyr::select(2:3) |> 
+  rename(
+    pathscat2 = factor.pathscat.2,
+    pathscat3 = factor.pathscat.3
+  ) |>
+  cbind(logisticData)
+```
+
+Setting dummies is quite important when having categorical data, and for more details, see appendix.
+
+Use `glm(formula, data, family = binomial('logit'))` to get the logistic model. Here `glm()` stands for "Generalized Linear Model".
+
+As for the model, others are the same with what we've learned.
+
+```{r}
+fit = glm(ln_yesno ~ age + pathsize + pathscat2 + pathscat3,
+          data = logisticData,
+          family = binomial('logit'))
+```
+
+Note that `'logit'` is the default for `binomial('logit'))`.
+
+Not that in `lm()`, categorical variables can be thrown in directly, without setting dummies tediously. But the categorical variable should be "factor" or "character", not "numeric".
+
+```{r }
+summary(fit)
+```
+
+The logistic regression model is different from the traditional OLS model; there's no F value and multiple R squared. Instead, deviance of the designated model and the null model are reported at bottom, no test represented here. In fact, the **deviance** is 2 times the **Log-Likelihood** taking the absolute value. and the larger the AIC, the prettier the model comparison.
+
+The effect size for each $x_i$ is $e^{\beta_i}$, which can be obtained through a matrix. Interestingly, the `exp()` can be exerted to a data frame and all values within.
+```{r ,warning=FALSE}
+exp(cbind(OR = coef(fit), confint(fit)))
+```
+
+## Goodness of Fit
+### Each Predictor
+#### Separately
+
+Use `aod::wald.test(Sigma, b, Terms)` to carry the Wald test for each coefficient.
+
+* `Sigma`: a var-cov matrix of the model, extracted from `vcov(model)`.
+
+* `b`: a vector of coefficients with var-cov matrix `Sigma`, extracted from `coef(model)`.
+
+* `Terms`: an optional integer vector specifying which coefficients should be jointly tested, like choosing the variable from the var-cov matrix.
+
+The result of significance of the Wald test is the same as is reported in `summary(model)`.
+
+```{r }
+aod::wald.test(
+  Sigma = vcov(fit),
+  b = coef(fit), 
+  Terms = 2:2)
+```
+
+#### Forward Selection
+Each predictor is tested sequentially, corresponding to "forward selection".
+
+Note that if you didn't set dummies encountering with categorical variables, fine with the linear model, but here goes wrong!
+
+Note that `test = 'Chisq'` with capital 'C', otherwise an error will be raised.
+```{r }
+anova(fit,test = 'Chisq')
+```
+
+### Overall Model
+
+The deviance is the absolute value of 2 times the log-likelihood, the difference of the deviance of the null model and the designated model is the statistic used for the model comparison, which follows a $\chi^2$ distribution with its degree of freedom as the difference of the number of parameter in two models.
+
+$$
+\Delta(y)=deviance_{null}-deviance\sim \chi^2_n,n=\#IV
+$$
+
+Therefore, we can even carry the model test manually.
+```{r eval=FALSE}
+with(fit, null.deviance - deviance)
+with(fit, df.null - df.residual)
+with(fit, pchisq(null.deviance - deviance, 
+                 df.null - df.residual, 
+                 lower.tail = FALSE))
+```
+
+The result of model comparison is highly significant, meaning that the designated model can explain far more variation of the data than the null one.
+
+But better to use `anova(model1,null-model,test = 'Chisq')`. Same result.
+
+```{r}
+nullfit = glm(ln_yesno ~ 1,
+          data = logisticData,
+          family = binomial('logit'))
+anova(fit,nullfit,test = 'Chisq')
+```
+
+### Model Fitting
+The designated model wins, but that unnecessarily means it can explains the data well. Then we're to take the test of goodness of fit, checking the observed and predicted frequencies. No significance is wanted here.
+
+Methods for such model fitting varies. Here we use HL-test. Use `ResourceSelection::hoslem.test(x = observed_values,y = expected_values,g = 10)`, where `g` is the number of bins to calculate quantiles and `x` & `y` cannot be reversed.
+```{r }
+ResourceSelection::hoslem.test(x = logisticData$ln_yesno, 
+                               y = fitted(fit), 
+                               g = 10)
+```
+
+*Note that the bins set should not be so dense that the sample size within each bin will fall short.*
+
+### Fitting Quality
+
+#### Log-Likelihood
+
+Log-likelihood can be obtained using `logLik(model)` directly, with `df` telling parameters in the model (including the intercept).
+
+```{r }
+logLik(fit)
+```
+
+Log-likelihood can be obtained through *deviance*, which is 2 times the log-likelihood, and you can get that using `model$deviance`.
+```{r }
+fit$deviance
+```
+
+#### R Squares
+Obtain all 5 R Squares by `pscl::pR2(model)`.
+
+Hint:
+
+* `r2CU` is the Nagelkerke R2;
+* `r2ML` is the Cox&Snell R2;
+* `llh` is the log-likelihood of the designated model;
+* `llhNull` is the log-likelihood of the null model.
+
+```{r ,warning=FALSE}
+pscl::pR2(fit)
+```
+
+### Model Comparison
+You can compare one model against another using `anova(model1,model2,test = 'Chisq')`.
+
+For example, it's natural to think of an alternative model from what we've fitted originally. Just keep all significant IV(s), and we get a new model to be compared against.
+
+```{r}
+fit2 = glm(ln_yesno ~ age + pathsize,
+           data = logisticData,
+           family = binomial("logit"))
+```
+
+
+```{r }
+anova(fit,fit2,test = 'Chisq')
+```
+
+The significance is shown under `Pr(>Chi)`. And `Df` shows the degree of freedom of the certain $\chi^2$ distribution. `Deviance` shows the $\chi^2$ statistic value.
+
+In this case, a simpler model does not perform statistically worse and is considered better.
+
+### Classification Table
+It's the last step of logistic regression. Just see how well the model works when putting that into practice!
+
+```{r }
+pred_y = round(predict(fit,type='response'),0)
+
+classification_df = data.frame(
+  observed_y = logisticData$ln_yesno,
+  predicted_y = round(pred_y,0))
+
+xtabs(~predicted_y+observed_y,data=classification_df)
+```
+
+You can also use the `caret::confusionMatrix()` to make a classification table, and get all the performance metrics conveniently.
+
+```{r }
+library(caret)
+classtab = confusionMatrix(factor(pred_y),factor(logisticData$ln_yesno))
+classtab
+```
+
+## Report Results
+A logistic regression analysis was conducted to predict the occurrence of cancer using cancer category, age and tumor size as predictors. A test of the full model against a constant-only model was statistically significant, indicating that the predictors as a set reliably distinguished between cancer and non-cancer ($χ^2(4)= 64.897, p < .001$).
+
+Nagelkerke’s R2 of $.085$ indicated a weak relationship between prediction and grouping. Prediction success overall was 76.8% (98.4% for detecting a non-cancer and 5.7% for cancer). The Wald criterion demonstrated that only age and tumor size made a significant contribution to prediction (p < .001 and p =.001, respectively). Cancer category was not a significant predictor. EXP(B) value indicates that when tumor size is raised by one unit the odds ratio is 1.5 times as large and therefore the tumor are 1.5 more times likely to be cancer.
+
+# Multi-Linear Regression
+
+The data `df` presented in MLR contains information about salary, beginning salary, education year, job category, previous working experience and so on. The relationship between salary and beginning salary, education, to name a few, is of interest. 
+
+```{r}
+df = readxl::read_excel("data02-01.xlsx", sheet = 1)
+```
+
+## Pre-Inspection
+### linear relationship
+
+Use `cor()` to carry the correlation test, the default method of which is `method = 'pearson'`. The result will be presented as a correlation matrix.
+
+However, obviously the correlation matrix won't give you information about p-value (or say, significance).
+
+Good thing is that the check of linear relationship is the first and rough step for further regression, maybe other more information (about p-value or CIs) is unnecessary. Another good thing is that the `cor()` is from base R, no extra requirement to library packages.
+
+```{r }
+df |> dplyr::select(salary,educ,salbegin,jobtime,prevexp) |> cor()
+```
+
+Well, it's clumsy to compress the target data (variables) into a matrix to take the test and get the correlation matrix. Just fine to know a bit about that.
+```{r }
+attach(df)
+# first create an empty matrix, primarily filled with NA
+m = matrix(nrow=nrow(salaryData),ncol=5)
+m[,1]=salary
+m[,2]=educ
+m[,3] = salbegin
+m[,4]=jobtime  
+m[,5]=prevexp
+#check the correlation matrix
+cor(m)
+```
+
+Additionally, I'd like to use `bruceR::Corr()` for the correlation matrix, which is visible for both in amount and in significance. Moreover, it's fancy! 
+
+For simplicity, the two decimals by default is well enough. If more accuracy is needed, you can set the parameter `digits = `.
+
+```{r }
+df |> dplyr::select(salary,educ,salbegin,jobtime,prevexp) |> 
+  bruceR::Corr(digits = 2)
+```
+
+### multicollinearity
+Use `car::vif(model)` and get the result directly.
+
+For the convenience of narration, check of multicollinearity is presented here. Most of the time, the check is a "post-hoc" one, after obtaining the fitted model.
+
+VIF less than 2 is ideal, and less than 5 is the bottom line.
+
+```{r }
+fit = lm(salary ~ educ + salbegin + jobtime + prevexp,data = df)
+car::vif(fit)
+```
+
+## Fit the Model
+### basic summary
+Firstly, use `lm()` to get the linear model.
+
+Subsequently, use `summary()` to get the detailed result.
+
+Period.
+```{r }
+fit = lm(salary ~ educ + salbegin + jobtime + prevexp,data = df)
+summary(fit)
+```
+
+It's noteworthy that `bruceR::print_table(model)` can spring up the regression result as a decent table, and can be exported to a `.doc` file.
+
+However, fine with `summary()`, decency doesn't matter much here, and the `summary()` can give more information about the model itself that is essential, such F value and multiple R squared.
+
+### coefficients
+Use `coefficients(model)` from base R to see the coefficients for each IV.
+
+Furthermore, use `confint(model,level = 0.95)` from base R to see the CIs (95% by default) for each coefficients.
+
+```{r}
+coefficients(fit)
+confint(fit, level=0.95)
+```
+
+Multiple R squared is reported through `summary()`.
+
+By definition, Multiple R squared is defined as the square of the correlation between estimated (fitted) value and real values.
+```{r }
+cor(salary,fit$fitted.values)
+```
+
+### model comparison
+Compare the model with the "zero" model, formally called the null model. The null model has no IV but with intercept, which is the mean. The null model uses the mean to predict the data or explain the variation of values.
+
+Get the null model by formula `DV~1`.
+
+```{r }
+fit2 = lm(salary ~ 1 )
+```
+
+Then use `anova(model1,model2)` to compare the two models.
+
+```{r }
+anova(fit,fit2)
+```
+
+If we think further, the F test for the MLR model is to test with null hypothesis that all the coefficients of all the IVs are zero. Therefore, the model comparison by essence coincides with the F test! Obviously, the F value "copies" that in the `summary()` result.
+
+## Standard MLR
+Transform the formula with each variable embedded into the function `scale()`, no other adjustments!
+
+Under standard MLR, the coefficients are standardized ones.
+```{r }
+fit_std = lm(scale(salary) ~ scale(educ) + scale(salbegin) + 
+               scale(jobtime) + scale(prevexp),
+             data = df)
+```
+
+```{r }
+summary(fit_std)
+```
+
+### (semi-) partial for x
+(Semi-) partial correlation indicates the variance accounted for by the certain IV specifically, which is especially intriguing and important in standard MlR.
+
+Use `pcor()` from the package `ppcor` to compute the partial correlation for IVs. 
+
+Use `spcor()` from the package `ppcor` to compute the semi-partial correlation for IVs.
+
+Throw the regressed variables (both IVs & DV) into the functions above, and period.
+
+The results will include estimated value of correlation and its p-value. However, the drawback is that the returned matrix does not include rownames and colnames, making it reading-unfriendly. However, we only care about the (semi-) partial correlation between DV and all IVs, which means only the very one row or column is enough.
+
+Therefore, DV goes first! Only check the first row or column!
+```{r }
+# partial correlation
+df |> dplyr::select(salary,educ,salbegin,jobtime,prevexp) |> 
+  ppcor::pcor()
+
+# part or semi-partial correlation
+df |> dplyr::select(salary,educ,salbegin,jobtime,prevexp) |> 
+  ppcor::spcor()
+```
+
+## Goodness of Fit
+### fitted values & real values
+```{r }
+fitted_y = fitted(fit) # predicted values
+plot(df$salary,fitted_y,'p')
+```
+
+### residual
+If the model fits well, then the residual should follow a normal distribution.
+
+Fitted model's residuals can be obtained through `residuals(model)` or `model$residuals`. This works the same for other attributes of a linear model, such as coefficients.
+```{r }
+# hist(fit$residuals)
+hist(residuals(fit))
+```
+
+### plot more
+Use `plot(model)` to get multiple plots reflecting the goodness of fit from many perspectives.
+
+Specify parameter `which = vector_of_range` to designate the plots to show, 6 the most. `which = 1:4` by default.
+
+Following the order, the six plots are:
+
+* Residuals & Fitted Values
+  * test the homoscedascitiy assumption
+* QQ Plot for Residuals
+  * test the Gaussian assumption
+* Square Root of Standardized Residuals & Fitted Value
+  * similar to the first one
+* Cook's Distance
+  * check outliers
+* Standardized Residuals & Leverage
+  * See if influential points have huge residual, if so, possibly outlier!
+* Cook's Distance & Leverage
+  * Large in both, possibly outlier!
+```{r }
+plot(fit, which=1:6)
+```
+
+There's another way to do the model checking. Use `performance::check_model(model)`.
+
+The default option is to check all the "vif", "qq", "normality", "linearity", "ncv", "homogeneity", "outliers", "reqq", "pp_check", "binned_residuals" and "overdispersion", which can be specified through `check = specifying_vector`. Here I'll take the check of outliers as an example.
+```{r }
+performance::check_model(fit,check = 'outliers')
+```
+
+Do not forget to `detach()` the attached data.
+```{r }
+detach(df)
+```
+
+# Appendix
+## `bruceR::MANOVA()`
+
+`bruceR::MANOVA()` is an old friend. What's new here is that, for covariate(s), just specify the parameter `covariate`. If single, a character is good; if multiple, compress charactors into a factor.
+
+Mind the differences between `covariate` and `between`. The latter should put interaction(s) into consideration.
+
+For the ANCOVA example above, 
+```{r }
+ancfit = bruceR::MANOVA(data = miner, 
+                        dv = 'vitalcp', 
+                        between = 'time',
+                        covariate = 'age' )
+```
+
+For the Latin Square design's example above, 
+
+```{r }
+latfit = bruceR::MANOVA(data = yie, 
+                        dv = 'yield', 
+                        covariate = c('rep','col'),
+                        between = 'variety')
+```
+
+## Set Dummies
+### `model.matrix()`
+
+To set dummies in R, you can use the "factor" function to convert categorical variables into a series of binary variables (i.e., dummies) that can be used in a regression model.
+
+Here's an example of how to set dummies in R:
+
+```{r }
+# load the mtcars dataset
+data(mtcars)
+
+# convert the gear variable to a factor variable
+mtcars$gear <- factor(mtcars$gear)
+
+# create dummies for the gear variable
+dummies <- model.matrix(~gear - 1, data = mtcars)
+
+# view the dummies
+head(dummies)
+```
+
+In this example, we first load the mtcars dataset and convert the `gear` variable to a factor variable using the `factor()` function. This converts the `gear` variable **from a numeric variable to a categorical variable, which can then be converted to dummies**.
+
+Next, we use the `model.matrix()` function to create dummies for the `gear` variable. The "~`gear` - 1" formula tells R to create dummies for the `gear` variable, but to **exclude the intercept term** (i.e., the constant term).
+
+Finally, we view the dummies using the `head()` function. The output shows a matrix with three columns, corresponding to the three possible values of the `gear` variable (3, 4, and 5), and a row for each observation in the mtcars dataset. Each element in the matrix is either 0 or 1, representing whether or not the corresponding observation has a particular value of the ``gear`` variable.
+
+Note that dummies can also be created for multiple categorical variables simultaneously using the "cbind" function. For example, if you have two categorical variables "`gear`" and "cyl", you can create dummies for both variables using the following code:
+
+```{r }
+dummies <- cbind(model.matrix(~gear - 1, data = mtcars), 
+                 model.matrix(~cyl - 1, data = mtcars))
+
+head(dummies)
+```
+
+This will create a matrix with columns for each possible value of the `gear` variable and each possible value of the `cyl` variable, and a row for each observation in the mtcars dataset.
+
+Note that for a categorical variable with $n$ levels, you can only plug in $n-1$ of the dummies into the regression data, in case of multicollinearity.
+
+### `fastDummies::dummy_cols()`
+
+Pipe-friendly functions used to create dummies for categorical variables include
+
+* `fastDummies::dummy_cols()`
+* `caret::dummyVars()`
+
+Here's an example of how to use the `dummy_cols()` function to create dummies for the `gear` and `cyl` variable in the `mtcars` dataset:
+
+```{r }
+mtcars %>%
+  mutate(gear = factor(gear),
+         cyl = factor(cyl)) %>%
+  fastDummies::dummy_cols(
+    select_columns = c("gear",'cyl'), 
+    remove_first_dummy = TRUE) |>
+  head() |>
+  dplyr::select(contains('gear'),contains('cyl'))
+```
+
+In this example, we use the `mutate` function to convert the `gear` and `cyl` variable to a factor variable (it works fine with `dummy_cols()` even skip this step, but wrong with `dummyVars()`). We then use the `dummy_cols()` function to create dummies for the `gear` and `cyl` variable. The "select_columns" parameter specifies the column(s) to create dummies for (packed in a vector), and the `remove_first_dummy` parameter specifies whether or not to remove the first dummy (i.e., the constant term).
+
+The output of the `dummy_cols()` function is a new data frame with the dummies added as new columns. This can be piped into other functions for further analysis or modeling.
+
+### `caret::dummyVars()`
+
+Usage of this function will be clear after a vivid example.
+
+```{r }
+library(caret)
+dummyVars( ~ gear + factor(cyl), data = mtcars) %>% 
+  predict(mtcars) |> head()
+```
+
+In summary, the `predict()` function is used to apply the dummies that were created by the `dummyVars()` function to a new dataset. It is a way to use the same set of dummies that were created for one dataset to create dummies for a different dataset that contains the same categorical variable as the original dataset.
+
+Note that the "dummyVars()" function can also be used to create dummies for multiple categorical variables simultaneously using the "+" operator in the formula.
+
+Note that categorical variable should be converted to factor type before.
+
+## Prediction
+### Basic Usage
+
+In R, the `predict()` function is used to generate predicted values. It can be used with various types of models (such as linear regression, logistic regression, decision trees, etc.) and can generate corresponding predicted values based on input of new data.
+
+Here are the basic steps to use the `predict()` function:
+
+* First, pass the model object to the `predict()` function. 
+
+  If no more parameters are specified, then the `predict(model)` will return the fitted values of such model. You can image that as passing all IV(s) into the parameter `newdata` to make predictions. However, you can get the fitted values through `model$fitted.values` and `fitted(fit)`. The folllowing three lines of command will give you the completely same result.
+  
+```{r eval=FALSE}
+predict(fit)
+fit$fitted.values
+fitted(fit)
+```
+
+* Next, pass the new data wanted to predict to the `predict()` function. 
+  
+  This new data should be a data frame or matrix, with the number of **columns** matching the number of predictor variables used in the model. 
+  
+  In our example presented in "Logistic Regression" above, the model has four predictor variables. All the four predictors should be incorporated into the data frame. In case of problems of variables' order, the colnames should correspond with names used in the model.
+
+```{r}
+fit = glm(ln_yesno ~ age + pathsize + pathscat2 + pathscat3,
+          data = logisticData,
+          family = binomial('logit'))
+```
+
+  For instance, we're to predict a case with `pathscat == 2`, `pathsize == 2.0`, `age == 66` and another case with `pathscat == 1`, `pathsize == 0.5`, `age == 20`. Accordingly, create the data frame containing the conditions of the two cases.
+  
+```{r }
+conditions = data.frame(
+  pathscat2 = c(1,0),
+  pathscat3 = c(0,0),
+  pathsize = c(2,.5),
+  age = c(66,20)
+)
+
+predict(fit,newdata = conditions,type = 'response')
+```
+
+  `predict(model,newdata)` will return a vector containing the estimated predicted values. If you have multiple predictor variables, the predicted values will be a matrix, with each row representing a new predicted value.
+
+### `type`
+
+The `type` parameter in the `predict()` function in R is used to specify the type of prediction that you want to generate. The possible values for the `type` parameter depend on the type of model that you are using. The default value of `type` is `response`, which is typically the most appropriate option for most models.
+
+For example, if you are using a linear regression model, the `type` parameter can be set to `response` or `terms`. If you set `type` to `response`, the prediction() function will return the predicted values of the dependent variable. If you set `type` to "terms", the function will return the predicted values of the individual terms in the model (i.e., the predicted values for each predictor variable).
+
+Similarly, if you are using a logistic regression model, the `type` parameter can be set to `response`, `terms`, or `link`. If you set `type` to `response`, the `predict()` function will return the predicted **probabilities** of the binary outcome variable. If you set `type` to `terms`, the function will return the predicted values of the individual terms in the model. If you set `type` to `link`, the function will return the predicted values on the **log-odds** scale.
+
+In generalized linear models (GLMs), such as logistic regression or Poisson regression, the `link` scale refers to the scale used in modeling the relationship between the predictor variables and the response variable. The link function maps the predicted values to the scale of the response variable. For example, in logistic regression, the link function is typically the logit function, which maps the probability of a binary outcome to the log odds of that outcome.
+
+When you set `type` to `link` in the prediction() function, it returns the predicted values on the link scale, which may be different from the scale of the response variable.
+
+On the other hand, when you set `type` to `response` in the prediction() function, it returns the predicted values on the scale of the response variable. For example, in logistic regression, the predicted values would be the probabilities of the binary outcome.
+
+The choice between `link` and `response` depends on the purpose of the analysis. If you want to compare the predicted values for different values of the predictor variables on the scale of the response variable, then `response` is the appropriate option. If you want to perform further analysis or transformation on the predicted values, such as calculating odds ratios or performing hypothesis tests, then `link` is the appropriate option.
+
+Back to our example, we can see it more clearly.
+
+```{r }
+predict(fit,newdata = conditions,type = 'response')
+predict(fit,newdata = conditions,type = 'link')
+```
+
+## Classification Table
+
+`confusionMatrix()` is a function from the `caret` package in R that creates a confusion matrix and computes various performance metrics for classification models. The function takes at least two arguments: `data` and `reference`.The `data` argument is a vector of predicted class labels, while the `reference` argument is a vector of actual class labels. The two vectors must have the same length.
+
+If necessary, also specify `positive` and `dnn`. `positive` will tell the factor level that corresponds to a "positive" result. If there are only two factor levels, the first level will be used as the "positive" result. `dnn` reads a character vector of dimnames for the table.
+
+When you call `confusionMatrix()` with these arguments, it produces a confusion matrix that shows the number of true positives, true negatives, false positives, and false negatives for the **classification model**. 
+
+Based on this confusion matrix, the function then calculates several performance metrics, including accuracy, precision, sensitivity (also known as recall), specificity, F1 score, and Kappa statistic. In addition to these metrics, the confusionMatrix() function can also compute various other statistics, such as positive predictive value (PPV), negative predictive value (NPV), and the area under the ROC curve (AUC).
+
+More specifically,
+
+* Accuracy: The proportion of correct predictions out of the total number of predictions.
+
+* Precision: The proportion of true positives (i.e., correct positive predictions) out of the total number of positive predictions.
+
+* Sensitivity/Recall: The proportion of true positives out of the total number of actual positives (i.e., the proportion of positive cases that were correctly identified).
+
+* Specificity: The proportion of true negatives (i.e., correct negative predictions) out of the total number of actual negatives (i.e., the proportion of negative cases that were correctly identified).
+
+* F1 score: The harmonic mean of precision and recall, which provides a balanced measure of both metrics. It ranges from 0 to 1, with higher values indicating better performance.
+
+* Kappa statistic: A measure of agreement between the predicted and actual class labels that accounts for the proportion of agreement that is expected by chance alone. It ranges from -1 to 1, with higher values indicating better agreement.
+
+* Positive predictive value (PPV): The proportion of true positives out of the total number of positive predictions.
+
+* Negative predictive value (NPV): The proportion of true negatives out of the total number of negative predictions.
+
+* Area under the ROC curve (AUC): A measure of the model's ability to distinguish between positive and negative cases across all possible thresholds. It ranges from 0.5 (indicating no discrimination) to 1 (indicating perfect discrimination).
+
+Use the example provided above in "*Logistic Regression*" to show the function!
+
+```{r}
+fit = glm(ln_yesno ~ age + pathsize + pathscat2 + pathscat3,
+          data = logisticData,
+          family = binomial('logit'))
+```
+
+```{r }
+caret::confusionMatrix(
+  data = factor(round(fitted(fit),0)),
+  reference  = factor(logisticData$ln_yesno),
+  positive = '1',
+  dnn = c('predicted','actual')
+)
+```
+
+## Attach and Detach
+
+We can use the function `attach()` to use variables in the database conveniently. After `attach()`, column variables can be used directly without `$`. (R will do the searching work behind for you!)
+
+However, sometimes names of the variables will conflict with each other and cause problems. Not recommended from my perspective, because you'll not know what database the variable is from, especially when you're trying to check the codes. Combined with tube-friendly and formula-pattern genre, this won't be any more trouble.
+
+```{r}
+attach(df)
+```
+
+After attaching a database, remember to `detach()` that finally, in case of conflicts with other variables.
+
+## Other Examples
+### Logistic Regression
+A teacher wants to investigate the factors that affect the performance of a certain course. Among them, he wants to test whether the time spent by students on course learning per week (time, in hours), whether they have taken a prerequisite course (pre, 0-not taken, 1-taken), and whether they attend the course regularly (attendance, 0-not attend, 1-attend) have an impact on whether the final grade is excellent (grade, 0-not excellent, 1-excellent). The data is recorded in "grade.sav".
+
+```{r}
+pupils = haven::read_sav('grade.sav')
+```
+
+#### Regression Model
+Take `grade` as the response variable, with `pre`, `attendance` and `time` as independent variables to carry logistic regression.
+
+```{r }
+lfit = glm(grade~pre+attendance+time,data = pupils,
+           family = binomial('logit'))
+
+summary(lfit)
+```
+
+The logistic model, together with coefficient and significance for each IV is included from the R code output above. Nevertheless, I'd like to report that formally below.
+
+The logistic model is as follows.
+
+$$
+\text{Logit}(p)=-4.9147+2.2420\times pre+3.1925\times attendance+0.2606\times time
+$$
+
+The coefficients of `pre` and `attendance` are significant, while that of `time` is not significant. Related information is presented on the table below.
+
+```{r }
+bruceR::print_table(lfit)
+```
+
+The significant variables have influence on the odds statistically, with positive ones indicating positively-correlated relationship. On the other hand, the one that isn't significant doesn't prove to be statistically influential on the odds.
+
+In the case given, it's estimated that one unit increment in `pre` will induce 0.299 unit increment in $\text{Logit}(p)$ and the influence is significant ($z=2.611,p<.01$), and one unit increment in `pre` will induce 0.299 unit increment in $\text{Logit}(p)$ and its influence is highly significant ($z=3.505,p<.001)$. `time` is estimated to entail 0.033 unit increment in $\text{Logit}(p)$ for every unit increment, but that's not significant ($z = 3.505,p=0.140$). 
+
+#### Odds Ratio
+Odds Ratio is the effect size of each independent variable, which is $e^{\beta_i}$, where $\beta_i$ is the coefficient of IV $x_i$.
+
+```{r warning=FALSE,message=FALSE,}
+exp(cbind(OddsRatio = coef(lfit),confint(lfit)))
+```
+
+Odds ratio indicates one unit increase in an IV will cause the odds to change to how much times of itself. Odds ratio that is greater than 1 means the increase in the IV will cause the odds (or the probability) to increase.
+
+In this example, the odds ratios for `pre`, `attendance` and `time` are 9.412000659, 24.350432282 and 1.297725148 respectively. All of them tend to have positive correlation with DV.
+
+Moreover, if we're to check the 95% CI to make a statistical inference, $1$ is not included with `pre` and `attendence`, and the fact corresponds with their significance as is mentioned above. However, $1$ falls within 95% CI of `time`, and that reminds me of the non-significant result.
+
+#### Against NULL Model
+```{r }
+with(lfit, null.deviance - deviance)
+with(lfit, df.null - df.residual)
+with(lfit, pchisq(null.deviance - deviance, 
+                 df.null - df.residual, 
+                 lower.tail = FALSE))
+```
+
+Model comparison between the regressed model and the null one showed a significant result, $\chi_3^2=28.09241,p<.001$, indicating that the model performs much better in prediction.
+
+#### R Squared
+```{r ,warning=FALSE}
+pscl::pR2(lfit)
+```
+
+The Nagelkerke $r^2$ is 0.4956710, indicating that the fitted model can account for 48.70% of variation of the data, which is great!
+
+#### Goodness of Fit
+```{r }
+ResourceSelection::hoslem.test(x = pupils$grade, 
+                               y = fitted(lfit), 
+                               g = 5)
+```
+
+The Hosmer and Lemeshow goodness of fit (GOF) test reports that a non-significant result, enumerating all possible numbers of bins to carry such test (from 3 to 9). The number of bins presented here is the one that returns the lowest $p$ value, but to my happiness it's far away from significant, which is 0.6469 and with $\chi_3^2=1.6552$.
+
+*Note that the bins set should not be so dense that the sample size within each bin will fall short.*
+
+The non-significant result here indicates that there's no statistically-significant differences between the fitted values and the observed values, and the model fits well with the real world!
+
+#### Prediction
+
+Use the logistic model to predict the outcomes of the two cases.
+
+```{r }
+stu = data.frame(
+  pre = (c(0,1)),
+  attendance = c(0,1),
+  time = c(8,16)
+)
+
+predictions = predict(lfit,
+                      newdata = stu,
+                      interval = 'confidence', 
+                      type = 'response')
+predictions
+```
+
+*Note that the `predict()` for logistic regression will return probability $p$, instead of $\text{Logit}(p)$ (DV of the model)!*
+
+Therefore, as for getting excellence on this course, student a has the probability of 0.05573454, while student b has the probability of 0.99089361.
+
+#### Summarize the Result
+```{r }
+pred_y = round(predict(lfit,type='response'),0)
+
+classification_df = data.frame(
+  observed_y = pupils$grade,
+  predicted_y = round(pred_y,0))
+
+xtabs(~predicted_y+observed_y,data=classification_df)
+```
+
+From the classification, we can clearly see that
+
+$$
+\begin{aligned}
+Accuracy&=\frac{TP+TN}{TP+TN+FP+FN}=\frac{37+12}{37+12+4+10}=\frac{7}{9}\approx77.8\%\\
+Precision&=\frac{TP}{TP+FP}=\frac{37}{37+10}=\frac{37}{47}\approx 78.7\%\\
+Sensitivity&=\frac{TP}{TP+FN}=\frac{37}{37+12}=\frac{37}{49}\approx 75.5\%\\
+Specificity&=\frac{TN}{TN+FP}=\frac{12}{12+4}=\frac{3}{4}=75.0\%
+\end{aligned}
+$$
+
+#### Report the Model
+A logistic regression analysis was carried to predict the excellence using prerequisite's requirement, time spent each week and attendance as predictors. The logistic model is as follows.
+
+$$
+\text{Logit}(p)=-4.9147+2.2420\times pre+3.1925\times attendance+0.2606\times time
+$$
+
+where predictor `pre` and `attendance` are significantly influential ($z_{pre}=2.611,p<.01;z_{attendance}=3.505,p<.001$), while predictor `time` wasn't ($z_{time} = 3.505,p=0.140$). Odds ratio, which is effect size, can predict that when `pre` is from 0 to 1, the odds is 9.412 as large, and when `attendance` is from 0 to 1, the odds becomes 24.350 as large, both significant. The finding firmly tell that to cover the prerequisites and to attend the class are extraordinarily important when it comes to the excellence of the score! However, the odds ratio for `time` is 1.298 and not significant, meaning its influence is not statistically proved. Jointly, prerequisites and attendance is far more important than time invested, if the first two cannot be satisfied, expanding your time budget on this course may result in vain.
+
+As for the model, Nagelkerke’s $R^2$ of $0.4956710$ indicated a great relationship between predictors and the outcome. Hosmer and Lemeshow goodness of fit (GOF) test was conducted, showing a great goodness of fit, with $p$ no less than 0.6469 and $\chi_3^2=1.6552$. Moreover, the regressed model was compared against the intercept-only null model, returning a highly significant result, implying that the model's better performance in prediction. Overall, the model has an accuracy of 77.8%, a precision of 78.7%, a sensitivity of 75.5%, and a specificity of 75.0%.
+
+### MLR
+
+```{r}
+heart = read.csv('heart.csv')
+```
+
+#### Fit the Model
+```{r}
+mfit = lm(scale(heart.disease)~scale(biking)+scale(smoking),
+          data = heart)
+```
+
+#### Summary the Model
+
+```{r}
+summary(mfit)
+```
+
+It's predicted that if `biking` changes for one standard deviation, then `heart.disease` is to change for -0.940 standard deviation, and that if `smoking` changes for one standard deviation, then `heart.disease` is to change for 0.323 standard deviation. Meanwhile, coefficients of both `biking` and `smoking` are highly significant with $p<.001$.
+
+#### Goodness of Fit
+
+After qualitative analysis, now move on to quantitative works.
+
+```{r }
+result = summary(mfit)
+result$adj.r.squared
+```
+
+$Adjusted\ R^2$ of 0.9795 indicates a highly awesome goodness of fit and its ability to explain the variation of the data!
+
+```{r }
+cor(x = fitted(mfit), y = heart$heart.disease)
+```
+
+The correlation between the fitted values and the observed (real) values is as high as 0.9897563, which is exactly the square root of $R^2$. Jointly speaking, the model has great credibility in prediction.
+
+#### VIF
+
+```{r }
+car::vif(mfit)
+```
+
+VIFs of `biking` and `smoking` are 1.000229 and 1.000229 respectively, far less than 5, showing that there should be no worries about multicollinearity.
+
+#### Plots of Residuals
+
+```{r}
+par(mfrow = c(1,2))
+plot(mfit,which = c(1,3))
+```
+
+From the first plot, it's shown that there's no obvious tendency between the fitted values and the residuals.
+
+```{r}
+par(mfrow = c(1,2))
+plot(mfit,which = 2)
+hist(mfit$residuals)
+```
+
+In QQ plot, the scatter points of residuals closely center around the line offered by normal distribution. In the histogram of residuals, a clear prototype of normal distribution is depicted. What's more, move on from qualitative analysis to the quantitative.
+
+```{r }
+shapiro.test(mfit$residuals)
+mfit$residuals |> mean()
+```
+
+From the Shapiro test, $W = 0.9969963,p=0.4935143$, indicating that the residuals from the fitted model follow a normal distribution. Moreover, the mean is computed to be (extremely close to) zero.
+
+Therefore, we can safely say that the residuals of the fitted model do follow a normal distribution.
+
+Based on what we've discussed, we can conclude confidently that the model fits the data well!
+
+## `select()`
+`select()` is one of the most useful functions in "tidyverse" environment. However, `select()` is incorporated in two packages, "dplyr" (or "tidyverse") and "MASS". When the two are both loaded, then there is going be a clash!
+
+To solve this annoying problem, decorate every `select()` as `dplyr::select`, or change the settings of "library" essentially.

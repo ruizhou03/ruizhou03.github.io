@@ -1,0 +1,1026 @@
+---
+title: "Final Review"
+author:
+  - Rui
+date: "`r Sys.Date()`"
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    
+header-includes:
+  - \renewcommand{\and}{\\}
+---
+```{r results='hide',message=FALSE,warning=FALSE}
+library(bruceR)
+library(tidyverse)
+library(ggplot2)
+```
+
+# MLR
+
+The `job` contains information about salary, beginning salary, education year, job category, previous working experience and so on. The relationship between salary and beginning salary, education, to name a few, is of interest. 
+
+```{r}
+job = import("data02-01.xlsx", sheet = 1)
+```
+
+## Pre-Inspection
+
+### Correlation
+
+* `bruceR::Corr()`: correlation matrix, the default method of which is `method = 'pearson'`.
+* `ppcor::spcor()`: semi-partial correlation for IVs.
+* `ppcor::pcor()`: partial correlation. 
+
+```{r}
+job |> select(salary,educ,salbegin,jobtime,prevexp) |> Corr()
+```
+
+More will be introduced in *Correlation* chapter.
+```{r eval=FALSE}
+# partial correlation
+job |> dplyr::select(salary,educ,salbegin,jobtime,prevexp) |> 
+  ppcor::pcor()
+
+# part or semi-partial correlation
+job |> dplyr::select(salary,educ,salbegin,jobtime,prevexp) |> 
+  ppcor::spcor()
+```
+
+### Multicollinearity
+
+Use `car::vif(model)` and get the result directly.
+
+VIF less than 2 is ideal, and less than 5 is the bottom line.
+
+```{r comment=''}
+fit = lm(salary ~ educ + salbegin + jobtime + prevexp,data = job)
+car::vif(fit)
+```
+
+## Fit the Model
+
+Firstly, use `lm()` to get the linear model. Subsequently, use `summary()` to get the detailed result. Period.
+
+```{r comment=''}
+jobfit = lm(salary ~ educ + salbegin + jobtime + prevexp,data = job)
+summary(jobfit)
+```
+
+### Coefficients & CI
+
+Use `coefficients(model)` or `model$coefficients` to see the coefficients for each IV.
+
+Furthermore, use `confint(model,level = 0.95)` to see the CIs (95% by default) for each coefficient.
+
+```{r eval=FALSE}
+jobfit$coefficients
+```
+
+
+```{r}
+coefficients(jobfit)
+confint(jobfit, level=0.95)
+```
+
+### R Squared
+
+Multiple R squared is reported through `summary()`.
+
+By definition, Multiple R squared is defined as the square of the correlation between fitted value and real values.
+
+```{r comment=''}
+cor(job$salary,jobfit$fitted.values)
+```
+
+### Model Comparison
+
+Compare the model with the "zero" model, so-called the null model. The null model has no IV but intercept, which is the mean. The null model uses the mean to predict the data or explain the variation of values. Get the null model by formula `DV~1`.
+
+```{r comment=''}
+jobfit2 = lm(salary ~ 1,data = job)
+```
+
+Then use `anova(model1,model2)` to compare the two models.
+
+F test for the MLR model is to test against the  null hypothesis that all coefficients of IVs are zero. Therefore, the model comparison by essence coincides with the F test!
+
+```{r comment=''}
+anova(jobfit,jobfit2)
+```
+
+## Standard MLR
+
+Transform the formula with each variable embedded into the function `scale()`, no other adjustments!
+
+Under standard MLR, the coefficients are standardized ones.
+```{r comment=''}
+fit_std = lm(scale(salary) ~ scale(educ) + scale(salbegin) + scale(jobtime) + scale(prevexp)
+             ,data = job)
+```
+
+```{r comment=''}
+summary(fit_std)
+```
+
+## Plots for Goodness of Fit
+
+### Fitted & Real Values
+
+```{r comment=''}
+fitted_salary = fitted(jobfit) # predicted values
+plot(job$salary,fitted_salary,'p')
+```
+
+### Residuals
+
+If the model fits well, the residuals should follow a normal distribution.
+
+Fitted model's residuals can be obtained through `residuals(model)` or `model$residuals`.
+```{r comment=''}
+hist(residuals(fit))
+# hist(fit$residuals)
+```
+
+### More Plots
+
+Use `plot(model)` to get multiple plots reflecting the goodness of fit from many perspectives.
+
+Specify parameter `which = vector_of_range` to designate the plots to show, 6 the most. `which = 1:4` by default.
+
+Following the order, the six plots are:
+
+* Residuals & Fitted Values
+  * test the homoscedascitiy assumption
+* QQ Plot for Residuals
+  * test the Gaussian assumption
+* Square Root of Standardized Residuals & Fitted Value
+  * similar to the first one
+* Cook's Distance
+  * check outliers
+* Standardized Residuals & Leverage
+  * See if influential points have huge residual, if so, possibly outlier!
+* Cook's Distance & Leverage
+  * Large in both, possibly outlier!
+  
+```{r comment=''}
+par(mfrow = c(2,3))
+plot(fit, which=1:6)
+```
+
+# Moderation & Mediation
+
+## Moderation
+
+The data in "`moderation_data.sav`" contains information about loyalty to marriage, relationship between partners, and their age. We're interested in the relationship between age and loyalty, and how the relationship in marriage moderates it.
+
+```{r message=FALSE}
+marriage <- bruceR::import("moderation_data.sav")
+attach(marriage)
+```
+
+Note that when an interaction term is introduced into the model, better to centralize the variable for convenience of interpretation!  Even without centered independent variables, the significance output won't change. However, **VIF** suffers with uncentered data.
+
+```{r}
+C_Relationship = Relationship - mean(Relationship)
+C_age_con = age_con  - mean(age_con)
+```
+
+The NULL model here is without the interaction term, but to inspect `age` and `Relationship` through MLR.
+
+```{r}
+model_0 <- lm(Loyalty ~ C_Relationship + C_age_con)
+summary(model_0)
+```
+
+### Moderation Model
+
+Then, add the interaction of moderator and predictor into the MLR model. (Moderation in essence is a MLR with interaction terms.)
+
+```{r}
+model_moderation <- lm(Loyalty ~ C_Relationship*C_age_con)
+summary(model_moderation)
+```
+
+After introducing the interaction term into our model, four things are of great interest.
+
+* Significance output of interaction term.
+* Significance output of original terms in null model.
+* Adjusted $R^2$ compared to null model.
+* VIF, in case of multicollinearity.
+
+  The improvement of $R^2$ indicates that, even after considering the added complexity of model, the explanatory power is greater than the null.
+
+### Model Comparison
+
+The most natural impulse is to compare the moderation model against the null one. The difference lies in the interaction term. In fact, the output comes down right to the interaction term.
+
+```{r}
+anova(model_0,model_moderation)
+```
+
+## After Significant
+
+After seeing the moderation (interaction) is significant, we need to check how it exerts its effect by **simple main effect**, because a significant moderation term will affect your interpretation of main effect. We're to compute marginal means, where the data is divided into $3\times 3$ categories using $Mean \pm SD$, i.e., with 3 $X$ levels and 3 $M$ levels.
+
+```{r}
+library(emmeans)
+m_Relationship<- mean(Relationship, na.rm = TRUE)
+sd_Relationship<- sd(Relationship, na.rm = TRUE)
+m_Age<- mean(age_con, na.rm = TRUE)
+sd_Age<- sd(age_con, na.rm = TRUE)
+
+# use un-centered data to see how the raw looks like in slope analysis.
+model_moderation <- lm(Loyalty ~ Relationship*age_con)
+
+# compute Estimated Marginal Means
+emm <- emmeans(model_moderation,  ~ Relationship*age_con, 
+               cov.keep = 3, 
+               at = list( 
+                 age_con = c(m_Age-sd_Age, m_Age, m_Age+sd_Age), 
+                 Relationship = c(m_Relationship-sd_Relationship, 
+                                  m_Relationship, 
+                                  m_Relationship+sd_Relationship)), 
+               level = 0.95)
+summary(emm)
+```
+
+We then do the slope analysis, similar to simple main effect.
+
+```{r}
+simpleSlope <- emtrends(model_moderation, 
+                        pairwise ~ age_con, 
+                        var = "Relationship",
+                        cov.keep = 3, 
+                        at = list(
+                          age_con = c(m_Age-sd_Age, m_Age, m_Age+sd_Age)), 
+                        level = 0.95)
+simpleSlope
+```
+
+Slopes can be visualized.
+
+```{r}
+emmip(model_moderation, 
+      age_con ~ Relationship, 
+      cov.keep = 3,
+      at = list(
+        Relationship = c(m_Relationship-sd_Relationship,
+                         m_Relationship,
+                         m_Relationship+sd_Relationship),
+        age_con = c(m_Age-sd_Age, m_Age, m_Age+sd_Age)), 
+      CIs = TRUE, level = 0.95, position = "jitter")
+emmip(emm)
+```
+
+## Residual Plots
+
+```{r}
+res.std <- rstandard(model_moderation)
+plot(res.std, ylab="Standardized Residuals")
+
+car::residualPlots(model_moderation)
+
+library(ggplot2)
+ggplot(as.data.frame(res.std), aes(sample = res.std)) +
+  geom_qq() +
+  geom_qq_line()
+```
+
+## Mediation
+
+Three steps are:
+
+1. IV could predict DV.
+2. IV could predict Mediator.
+3. Mediator could predict DV on the presence of IV.
+  
+  Besides, the predictive power of IV is then reduced,
+  
+  * If IV is no longer a significant predictor $\to$ full mediation.
+  * If IV is still significant but reduced in magnitude $\to$ partial mediation.
+  
+Note that the effect of mediator on DV should primarily be based on IV!
+
+The data in "`mediation_data.sav`" has information about customers' satisfaction, relationship with customers and discounts offered. We are interested in whether discount can mediate the influence of customer relationship on their satisfaction about some consumer goods.
+
+```{r message=FALSE}
+consumer <- bruceR::import("mediation_data.sav")
+```
+
+## Mediation Model
+
+### Direct Effect
+
+Check without any consideration of mediation as a baseline model, which is the relationship between Y and X.
+
+```{r}
+# Regress Y only on X
+model_0 <- lm(Satisfaction ~ Relationship,data = consumer)
+summary(model_0)
+```
+
+### Internal Correlation
+
+```{r}
+# M as a function of X
+model_M <- lm(Discount ~ Relationship,data = consumer)
+summary(model_M)
+```
+
+Significant result here is the necessity for further mediation analysis. If not, no need to move forward.
+
+### Full Model
+
+```{r}
+# Y as a function of both X and M
+model_Y <- lm(Satisfaction ~ Relationship + Discount,data = consumer)
+summary(model_Y)
+```
+
+Here, it's a case of partial mediation. And the adjusted $R^2$ is greatly improved, indicating that the mediation model is far more effective than the baseline model.
+
+## Mediation Effect
+
+Mediation analysis is based on both the full model and the internal-correlation model. Important indicators measuring the mediation effect:
+
+* ACME, average causal mediation effect, the indirect effect of X on Y.
+* ADE: average direct effect.
+* Total Effect: the total effect of X on Y, the sum of direct and indirect effect.
+* Proportion Mediated: how much percentage of indirect effect within the total effect.
+
+```{r message=FALSE}
+library(mediation)
+mediation_results <- mediate(model_M, model_Y, 
+                             treat='Relationship', 
+                             mediator='Discount',
+                             boot=TRUE, sims=500)
+summary(mediation_results)
+```
+
+# Correlation & Distance
+
+## Partial & Part Correlation
+
+Zero-order correlation refers to the correlation between $X$ and $Y$ without controlling other covariates, such as Pearson and Spearman correlation.
+
+We've discussed partial and part (or, semi-partial) correlation in multilinear regression. Take a step further, we can consider those under the most general cases, i.e., without the setting of MLR but some variables.
+
+Suppose we have three variables, called $X,Y$ and $Z$, where $X$ is the predictor, $Y$ is the dependent variable, and $Z$ is the covariate. Noteworthy that the assumption of the roles of $X,Y,Z$ don't matter much, only for accommodating the setting.
+
+```{r echo=FALSE,out.width='60%',fig.align='center'}
+knitr::include_graphics('/Users/zhourui/Desktop/Psychological Statistics/demo/9 Correlation & Distance/partial & part correlation.png')
+```
+
+Note that, in the general case, $Y$ is not represented as the whole area in the picture, but just an equal role as a circle.
+
+If the correlation of $X$ and $Y$ is of our great interest,
+$$
+\begin{aligned}
+r_x&=\frac {a+c}{a+b+c+d}\\
+pr_x&=\frac{a}{a+d}\\
+spr_x&=\frac{a}{a+b+c+d}
+\end{aligned}
+$$
+
+* Partial: Holding $Z$ from BOTH $X$ and $Y$, i.e., removing the effect of $Z$.
+
+  Good for knowing the **variance uncounted by other control variable(s)**.
+* Semi-Partial: Holding $Z$ from $X$ only.
+
+  Good for knowing the **unique contribution of $X$**.
+* Zero-Order: No extra constraint.
+
+One more enlightening way to think about partial correlation is through multilinear regression.
+
+```{r echo=FALSE,out.width='40%',fig.align='center'}
+knitr::include_graphics('/Users/zhourui/Desktop/Psychological Statistics/demo/9 Correlation & Distance/MLR partial corr.jpeg')
+```
+
+If we're interested in the partial correlation between $A$ and $B$, with $C$ as the covariate. Then, what we need to do is partial out the effect of $C$ on BOTH $A$ and $B$, and this goal can be accomplished through step-by-step linear regression.
+
+Specifically, first we conduct a simple linear regression of $A$ on $C$, and the residual part is that of $A$ which doesn't intersect with $C$. Similarly, then followed by a SLR of $B$ on $C$, same with the meaning of residual part. For the two residual parts, they share it in common that they're clean of $C$. Lastly, compute the correlation between $A$ and $B$ directly, and that's what we want!
+
+### `pcor()` & `spcor()`
+
+```{r message=FALSE}
+library(ppcor)
+```
+
+
+A popular radio talk show host has just received the latest government study on public health care funding and has uncovered a startling fact: As health care funding increases, disease rates also increase! Cities that spend more actually seem to be worse off than cities that spend less. Then, shall we just cut the funding and save people’s health?
+
+```{r}
+health <- import("health_funding.sav") %>% dplyr::select(-4)
+```
+
+First of all, check overall zero-order correlation.
+
+```{r}
+cor(health)
+```
+
+It seems astonishing that "`funding`" is greatly correlated with "`disease`"! May it offer the plausible reason to cut the funding? Remember, we still have the covariate "`visits`". One **alternative explanation** might be that, offered with more funding, people may be more likely to pay visits to health care, and thus more diseases are detected, which should have been detected but not due to wealth state.
+
+```{r}
+pcor(health)$estimate
+```
+
+It's astonishing that, considering the partial correlation, "`funding`" almost has no correlation with "`disease`" in essence!
+
+Additionally, we can consider the part correlation.
+
+```{r}
+spcor(health)$estimate
+```
+
+Note that part correlations from rows differ from those from columns.
+
+## Distance
+
+We need to distinguish between two kinds of distance. One is distance between **cases** (or observations), the other is distance between **variables**. There are traditionally three ways to measure distance, either from the perspective of dissimilarity or similarity.
+
+* Dissimilarity
+  * Euclidean distance
+  
+  $$d(\vec p,\vec q)=\sqrt{\sum_{i=1}^n(p_i-q_i)^2}$$
+  * Chebychev distance
+  
+  A vector space where the distance between two vectors is the greatest of their differences along any coordinate dimension. 
+  $$D(\vec x,\vec y)=\max_i|x_i-y_i|$$
+* Similarity
+  * Cosine similarity
+    * A measure of similarity between two non-zero vectors of an inner product space, a judgment of orientation but not magnitude.
+
+```{r message=FALSE}
+climate = import("data10-04.sav", sheet = 1) %>% 
+  dplyr::select(hgrow,temp,rain,hsun,humi)
+```
+
+### Correlation
+
+Note that *correlation itself is a measure of distance*. However, correlation only applies for **distance between variables**, not for distance between cases. (If you insist to test the correlation between cases, easy, just transpose your data!)
+
+```{r}
+cor(climate)
+```
+
+### Euclidean Distance
+
+Then, we're interested in Euclidean distance **between cases** by default. Use "`dist(x, method = "euclidean")`". Mind that the distance makes sense only if the data is **scaled**! 
+
+```{r eval=FALSE}
+# climate %>% dist()
+climate  %>% 
+  scale() %>% dist() 
+```
+
+If the Euclidean distance between **variables** is of interest, then *transpose* your data.
+
+```{r eval=FALSE}
+climate  %>% 
+  scale() %>% t() %>% dist()
+```
+
+It's noteworthy that, the Euclidean distance result returned by "`dist()`" is a unique type of "`dist`", which is incompatible with some other types. Luckily, use "`as.matrix()`" to transform that into a matrix (with the diagonal and upper right triangle filled automatically).
+
+### Cosine Similarity
+
+Cosine similarity is for **between cases**. Also, if similarity between variables is of interest, be flexible with the data.
+
+"`lsa::cosine()`" deals with cosine similarity **between variables** (column vectors) by default.
+
+```{r eval=FALSE}
+climate %>% 
+  as.matrix.data.frame() %>% t() %>% 
+  lsa::cosine()
+```
+
+# PCA
+
+```{r message=FALSE,results='hide'}
+library(psych)
+```
+
+The Big-Five scale "bfi" data is used here.
+```{r}
+bfi = bfi %>% dplyr::select(1:25) %>% drop_na()
+```
+
+## Prerequisites
+
+### Bartlett Test of Sphericity for Correlation Matrix
+
+Firstly, generate a correlation matrix. Then, compare it against the identity matrix.
+Significant result is desired.
+```{r}
+bfi_cor = cor(bfi)
+cortest.bartlett(bfi_cor,n = nrow(bfi_cor))
+```
+
+Note that **reversely-coded** items are critical for explanatory factor analysis. If any, make sure they are detected and correctly-coded. To check this, you can view through correlation matrix plot, or through reliability analysis ("`reliability()`" will inform you of reversely-coded items.)
+
+```{r results='hold'}
+corrplot::corrplot(bfi_cor)
+jmv::reliability(data = bfi,vars = colnames(bfi))
+```
+
+### KMO for Sampling Adequacy
+
+0.8 and higher are great, 0.7 is acceptable, 0.6 is mediocre, less than 0.5 is unacceptable.
+
+```{r}
+KMO(bfi_cor)
+```
+
+## No. of Factors
+
+* To determine the number of factors, scree and parallel are two methods.
+* Scree is obsolete; parallel suggests 3 factors here.
+
+```{r}
+scree(bfi)
+fa.parallel(bfi)
+```
+
+## Factor Analysis
+
+Use "`psych::fa(r, nfactors, rotate, fm)`".
+
+### NULL Model
+
+Take a look: without selecting the number of factors, without rotation.
+
+The Proportion Var and Cumulative Var are the variance that can be explained by factors.
+
+"SS loadings" is the sum of squared loadings for each factor; **>1** means the factor is worth keeping.
+
+The model can be printed with the following results:
+
+* Standardized loadings (pattern matrix) based upon correlation matrix
+  * SS loadings
+    * The eigenvalues, the sum of the squared loadings for each factor. 
+    * **Better to be >1**.
+  * Proportion Var 
+    * The overall variance (for all variables/items) that can be explained by each factor.
+  * Cumulative Var
+  * Proportion Explained
+    * The relative importance of each factor.
+  * Cumulative Proportion
+* Data frame with loading matrix, communality, uniqueness, and item complexity.
+
+**Standardized loadings (pattern matrix) based upon correlation matrix** is the most important part!
+
+```{r}
+fa_none = fa(bfi,nfactors = ncol(bfi),
+             fm='minres',rotate='none')  
+fa_none
+```
+
+For illustration purpose:
+
+* If using 25 factors (here only 25 items), we can see how loading and proportion of variance decrease with factors;
+* The cumulative variance explained will approach 1.
+
+Scores, or the coefficient for the model: $Factors = scores*X+\varepsilon$ where $X$ are the original data, $Factors$ are the obtained latent variables, $scores$ are their coefficients.
+
+```{r}
+head(fa_none$scores)
+```
+
+Communality, the variance that can be explained by factors, which should be high if the model is good.
+
+```{r}
+# communality
+apply(fa_none$loadings^2,1,sum)
+# uniqueness
+1 - apply(fa_none$loadings^2,1,sum)
+```
+
+### Reduced Model
+
+According to scree plot and SS loadings for factors, 5 is suggested. Note that restrictions on factor number will have practical effect on the model, instead of just trimming the model to the reduced one.
+
+```{r}
+fa5_none = fa(bfi,5,rotate='none')  
+fa5_none
+```
+
+### Factor Rotation
+
+Factor loadings are listed for each variable. The square of it is the variance accounted for. Unrotated factors are typically not very interpretable (most factors are correlated with many variables), though it has largest variance explained. The hope is that all these correlation coefficients are close to (+/-)1 or 0, so we can easily interpret the meanings of these components (factors). We will accomplish this goal through rotation.
+
+Factors are rotated to make them more meaningful and easier to interpret (each variable is associated with a minimal number of factors).  The most popular rotational method is Varimax rotations, which uses orthogonal rotations yielding uncorrelated factors/components. Varimax attempts to maximize the variance that a single factor can account for (across all variables). This enhances the interpretability of the factors. (i.e., kind of simplification of interpretation) However, the loadings and complexity for each variable will change, while  communality and uniqueness won't change; SS loadings for each factors must change, while cumulative variance accounted for will not change.
+
+```{r}
+fa5_rot = fa(bfi,nfactors = 5,rotate = 'varimax')
+```
+
+## Factor Diagram
+
+Use "`fa.diagram()`" to show how variables relate to the factors. Note `fa.diagram()` use r = 0.3 as a cut off, you can change it.
+```{r}
+fa.diagram(fa5_rot)
+```
+
+# Reliability Analysis
+
+Use `reliability()` function in package "`jmv`" to conduct reliability analysis. Note that "`psych`" package has a `reliability()` function too. don't load the wrong package.
+
+```{r warning=FALSE,message=FALSE}
+library("jmv")
+```
+
+The following data is from a scale designed for athletes. However, in reliability analysis, the practical meanings of items don't matter that much compared to factor analysis.
+
+```{r}
+athletes = import("data15-01.xlsx") %>% 
+  dplyr::select(c('x1','x2','x4','x10','x13','x39','x41','x45'))
+```
+
+## Reliability
+
+In `reliability()`, the most important parameters are:
+
+* `data`: the data as a data frame
+* `vars`: a vector of strings *naming* the variables of interest in data
+* `alphaScale`: TRUE (default) or FALSE, provide Cronbach's alpha
+* `corPlot`: TRUE or FALSE (default), provide a correlation plot
+* `revItems`: a vector containing strings naming the varibales that are reverse scaled
+* `alphaItems`: TRUE or FALSE (default), provide what the Cronbach's alpha would be if the item was dropped
+* `itemRestCor`: TRUE or FALSE (default), provide item-rest correlations
+
+Other parameters:
+
+* `meanItems`: TRUE or FALSE (default), provide item means
+* `sdItems`: TRUE or FALSE (default), provide item standard deviations
+* `omegaScale`: TRUE or FALSE (default), provide McDonald's omega
+* `omegaItems`: TRUE or FALSE (default), provide what the McDonald's omega would be if the item was dropped
+* `meanScale`: TRUE or FALSE (default), provide the mean
+* `sdScale`: TRUE or FALSE (default), provide the standard deviation
+
+
+```{r}
+RA_results = reliability(athletes,
+                         vars = c('x1','x2','x4','x10','x13','x39','x41','x45'),
+                         meanScale=TRUE,
+                         sdScale=TRUE,
+                         corPlot=TRUE,
+                         alphaItems=TRUE,
+                         meanItems=TRUE,
+                         sdItems=TRUE,
+                         itemRestCor=TRUE)
+```
+
+For reversely-coded items, the `reliability()` will return with a "Note" to inform you of those, if any. Those reversely-coded items can also be detected through `Corplot`, which will correlate negatively with right-ordered ones.
+
+The `reliability()` function returns an object with 
+
+* `items`: Item Reliability Statistics, with mean, sd, item-rest correlation, (if-removed) Cronbach's $\alpha$, etc. Results on item-level.
+* `scale`: Scale Reliability Statistics, with mean, sd, Cronbach's $\alpha$, etc. Results on scale-level.
+
+```{r}
+RA_results$items
+```
+
+
+```{r}
+RA_results$scale
+```
+
+
+```{r}
+RA_results_rv = reliability(athletes,
+                            vars = c('x1','x2','x4','x10','x13','x39','x41','x45'),
+                            meanScale=TRUE,sdScale=TRUE,corPlot=TRUE,alphaItems=TRUE,
+                            meanItems=TRUE,sdItems=TRUE,itemRestCor=TRUE,
+                            revItems=c('x39','x41','x45'))
+```
+
+## Nonadditivity Test
+
+Nonadditivity test paves the way for reliability test, which checks whether the item factor interact with the subject factor. Nonadditivity test is conducted by `agricolae::nonadditivity()`.
+
+```{r results='hide',message=FALSE}
+library(agricolae)
+```
+
+The data for nonadditivity test should be in **long-format**.
+
+```{r}
+athletes_long = athletes %>% mutate(x39 = 6-x39,
+                       x41 = 6-x41,
+                       x45= 6-x45) %>% 
+  pivot_longer(cols = everything(),
+                    names_prefix = 'x',
+                    names_to = 'item',
+                    values_to = 'score') %>% 
+  mutate(subj = rep(1:nrow(athletes),each = ncol(athletes)))
+```
+
+For nonadditivity test, first construct a model without interaction term. Then, the `nonadditivity()` receives four parameters.
+
+* `y`: Answer of the experimental unit, which is the score for each item.
+* `factor1`: **subject** factor (first treatment applied to each experimental unit).
+* `factor2`: **item** factor (second treatment applied to each experimental unit).
+* `df`: Degrees of freedom of the experimental error
+* `MSerror`: Means square error of the experimental
+
+```{r}
+model_nonadd = lm(score ~ subj+as.factor(item),athletes_long)
+MSerror = deviance(model_nonadd)/df.residual(model_nonadd)
+res =  with(athletes_long, nonadditivity(score,subj,item, df.residual(model_nonadd), MSerror))
+```
+
+## ICC
+
+Note that package "`psych`" is used here. ICC is also available in other packages ("`psy`", "`irr`"), but the functions would be used quite differently.
+
+```{r message=FALSE,results='hide'}
+library(psych)
+```
+
+Note that whenever you use the data to carry reliability analysis, the reversely-coded items should be corrected.
+
+In `ICC()`, specify parameter `check.keys = TRUE` to reverse those items that do not correlate with total score (with alerting message and reversed items). Note that this is not done by default.
+
+```{r}
+ICC_results = ICC(athletes,check.keys = T)
+```
+
+`ICC()` can be designated to an object, and the most important returned values are:
+
+* `results`: A matrix of 6 rows and 8 columns, including the ICCs, $F$ test, $p$ values, and confidence limits
+* `stats`: The anova statistics (converted from lmer if using lmer)
+
+Types of ICC are:
+
+* ICC1: single random factor
+* ICC2: two-way random factor
+* ICC3: two-way mixed factor
+
+```{r}
+ICC_results$results  
+```
+
+
+```{r}
+ICC_results$stats  #the ANOVA results
+```
+# Survival Analysis
+
+```{r message=FALSE,results='hide',warning=FALSE}
+library(survival)
+library(survminer)
+library(ggfortify)
+```
+
+Dataset "lung" in package "survival" is of interest, which contains the information about survival in patients with advanced lung cancer from the North Central Cancer Treatment Group. Variables include:
+
+* time: Survival time in days
+* status: censoring status `1=censored`, `2=dead`
+* sex: `Male=1` `Female=2`
+
+```{r warning=FALSE,message=FALSE}
+attach(lung)
+```
+
+## Survival Model
+
+### Survival Object
+
+`survival::Surv()` creates a survival object, with censored cases marked with "`+`" following up censoring time and death cases simply showing the death time. The result is usually used as a response variable in a model formula. Two most important parameters:
+
+* `time` :For right censored data, this is the follow up time. For interval data, the first argument is the starting time for the interval.
+* `event`: The status indicator, normally `0=alive`, `1=dead`. Other choices are `TRUE/FALSE` (`TRUE = death`) or `1/2` (`2=death`). 
+
+```{r}
+survobj = Surv(time, status==2)
+```
+
+### Overall Model
+
+Use `survival::survfit(formula,data)` to fit the model. For the *overall* survival analysis, just specify the null hypothesis with `Surv~1`, i.e., NO groups.
+
+```{r}
+sfit <- survfit(Surv(time, status==2)~1, data=lung)
+```
+
+The fitted survival model itself will tell you the results, with observations, events, median and 95% CI.
+
+```{r}
+sfit
+```
+
+If more details are needed, i.e., the instantaneous events and estimates of survival, std.err, 95% CI, just `summary(sfit)`. Moreover, if `time` is designated, then the `summary()` function will return the *estimated* results.
+
+```{r}
+summary(sfit,time = 200)
+```
+
+### Grouped Model
+
+If grouping is of interest, specify it in the formula with `Surv~group`.
+
+```{r}
+sfit_sex = survfit(Surv(time,status==2)~sex)
+sfit_sex
+```
+
+It's ideal that the 95% CI of groups doesn't intersect, and a significant result can be obtained instantly. However, that's often not the case; take a step further and use Cox regression to see exactly.
+
+## Cox Regression
+
+```{r}
+coxph(Surv(time, status==2)~sex)
+```
+
+where "`exp(coef)`" is the HR (hazard ratio)， which measures the relative risk between two groups.
+
+Theoretically, it's better only with binary variables in Cox regression. However, for categorical variables with more than 2 levels, use "`as.factor(cat_var)`" with "`model = TRUE`" to generate corresponding dummy variables. For continuous variables, they'll be included into the regression model as usual, but the model will be plotted with expected value of continuous variables.
+
+The simpler version of such comparison can be accomplished by "`survival::survdiff()`". Both of the functions have the same formula. From "`survdiff()`", we can get the intermediate results when computing the log rank, or the chi-square test. However, this wouldn't return the coefficient. Jointly speaking, the combined results of two functions emphasize the fact that the log rank test (named Mantel-Haenszel test), is a chi-square test in essence.
+
+```{r}
+surv_diff = survdiff(Surv(time, status==2)~sex)
+surv_diff
+```
+
+## Surv Plots
+
+Use "`ggsurvplot(model,data)`" to visualize the survival analysis. Note that if the "`data`" wasn't passed into `survfit()`, an error will be raised.
+
+```{r warning=FALSE}
+ggsurvplot(sfit_sex,data = lung,
+           conf.int=TRUE, pval=TRUE, 
+           risk.table='abs_pct', # risk table below the Kaplan-Meier curve(s)
+           legend.labs=c("Male", "Female"), legend.title="Sex",
+           title="Kaplan-Meier Curve for Lung Cancer Survival")
+```
+
+Moreover, the parameter "`fun`" is quite useful, which will define a transformation of the survival curve.
+
+* "pct": for survival probability in percentage, **by default**.
+* "event": plots cumulative events, $f(y)=1-y$.
+* "cumhaz": plots the cumulative hazard function, $f(y)=-\log(y)$.
+
+```{r}
+ggsurvplot(sfit_sex,data = lung,
+           conf.int=TRUE, pval=TRUE, 
+           # risk.table='abs_pct',
+           legend.labs=c("Male", "Female"), legend.title="Sex",
+           fun = 'event')
+```
+
+```{r}
+ggsurvplot(sfit_sex,data = lung,
+           conf.int=TRUE, pval=TRUE, 
+           # risk.table='abs_pct',
+           legend.labs=c("Male", "Female"), legend.title="Sex",
+           fun = 'cumhaz')
+```
+
+
+# Clustering
+
+```{r results='hide',message=FALSE}
+library(parameters)
+library("factoextra") 
+```
+
+## Hierarchical Clustering
+
+```{r}
+automobile = import("data13-01.xlsx") %>% 
+  dplyr::select(c('type','price','engine_s','horsepow',
+           'wheelbas','width','length','curb_wgt',
+           'fuel_cap','mpg')) %>% drop_na() %>% scale()
+```
+
+Use "`hclust()`" from base R and transmit a **dissimilarity** structure produced by "`dist()`".
+
+```{r}
+distMat = dist(automobile, method = "euclidean") # Euclidean distance matrix
+hc = hclust(distMat)  # hierarchical clustering, using the default method
+```
+
+Use "`plot(hclust_obj)`" to visualize the hierarchical clustering. Note that you should specify "`hang = -1`" to ensure all nodes touch the same horizontal line and looks decent. If the sample isn't that large, set "`labels = TRUE`" (by default) to see the corresponding observations.
+
+```{r}
+plot(hc,labels=FALSE,hang = -1)
+plot(hc,labels=FALSE)
+```
+
+Moreover, you can draw colored dendrogram with grouping.
+
+```{r warning=FALSE}
+fviz_dend(hc,k=3, rect = T)
+```
+
+Also, you can also check how many members for each cluster and make a frequency table.Note that the grouping might change if we change cluster number. 
+
+```{r}
+memberLabels = cutree(hc,3)
+table(memberLabels)
+```
+
+Then, we can get the centers of cluters by "`mean`" summary statistics. Use "`aggregate()`" to achieve that.
+
+* `x`: usually a data frame.
+* `by`:	a list of grouping elements, each **as long** as the variables in the data frame x. The elements are coerced to factors before use.
+* `FUN`: a function to compute the summary statistics which can be applied to all data subsets.
+
+```{r}
+aggregate(automobile,list(memberLabels),mean)
+```
+
+Moreover, we can use Silhouette plot to check whether some cases are outliers.
+
+```{r}
+library(cluster)
+plot(silhouette(cutree(hc,3), distMat))
+```
+
+## Non-Hierarchical Clustering (K-Means)
+
+### Computation
+
+```{r}
+athlete = import("data13-02.xlsx") %>% dplyr::select(-1)
+```
+
+* `x`: numeric matrix-like data
+* `centers`: either the number of clusters, say kk, or a set of initial (distinct) cluster centres. If a number, a random set of (distinct) rows in x is chosen as the initial centres.
+* `iter.max`: the maximum number of iterations allowed.
+* `nstart`: if centers is a number, how many random sets should be chosen. Trying several random starts is often recommended.
+
+```{r}
+kmean_results = kmeans(athlete, centers = 4, 
+                       iter.max = 10, nstart = 1)
+```
+
+`kmeans()` returns an object of class "`kmeans`", a list with at least the following components:
+
+* `cluster`	: A vector of integers (from 1:k) indicating the cluster to which each point is allocated.
+* `centers`: A matrix of cluster centres.
+* `totss`: The total sum of squares.
+* `withinss`: Vector of within-cluster sum of squares, one component per cluster.
+* `tot.withinss` :Total within-cluster sum of squares, i.e. sum(withinss).
+* `betweenss`: The between-cluster sum of squares, i.e. `totss`-`tot.withinss`.
+* `size`: The number of points in each cluster.
+
+```{r}
+kmean_results
+```
+
+## Visualization
+
+Use `factoextra::fviz_cluster(object, data)`. For more details about useful parameters, see the help document. Remember that `object` and `data` are two most indispensable parameters.
+
+```{r}
+fviz_cluster(kmean_results, data = athlete)
+```
+
+## No. of Clusters
+
+### Within-Cluster SS
+
+Looking for the "elbow" where the SS starts to slow down its drop. Here suggests 2 or 3.
+
+```{r}
+fviz_nbclust(automobile, kmeans, method = "wss", print.summary=TRUE)
+```
+
+### Silhouette Method
+
+Looking for the value that sets the highest average silhouette width, which indicates the optimal number of clusters.
+
+```{r}
+fviz_nbclust(automobile, kmeans, method = "silhouette",print.summary=TRUE)
+```
+
+### Majority Rule
+
+`n_clusters()` is the main function to find out the optimal numbers of clusters present in the data based on the maximum consensus of a large number of methods.Note that the `n_clusters()` function will do the normalization automatically (by default).
+
+```{r}
+n_clusters(data.frame(automobile))
+plot(n_clusters(data.frame(automobile)))
+```
+
+### Two Step Clustering
+
+Two-Step Clustering refers to using hierarchical methods first to obtain the number of clusters and their centroids. Then use these as inputs to run non-hierarchical analysis.
+
+```{r eval=FALSE}
+# two step clustering in R, not required
+library(prcr)
+d <- pisaUSA15
+m3 <- create_profiles_cluster(d,
+                              broad_interest, enjoyment, instrumental_mot, self_efficacy,
+                              n_profiles = 3)
+summary(m3)
+```
