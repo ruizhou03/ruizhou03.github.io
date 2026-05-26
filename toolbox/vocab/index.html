@@ -584,7 +584,12 @@ permalink: /toolbox/vocab/
       const t = btn.dataset.tab;
       state.activeTab = t;
       $panes.forEach(p => p.style.display = p.dataset.pane === t ? '' : 'none');
-      if (t === 'study') startStudySession();
+      if (t === 'study') {
+        // 只在没有正在进行的 session 时初始化；切走再切回来不应清空进度
+        const inProgress = state.studyQueue && state.studyIdx < state.studyQueue.length;
+        if (!inProgress) startStudySession();
+        else renderStudy();
+      }
       else if (t === 'all') renderAllCards();
     });
   });
@@ -631,7 +636,7 @@ permalink: /toolbox/vocab/
           <div class="end-text">本轮完成！</div>
           <div class="end-stats">${state.studyStats.correct} 对 · ${state.studyStats.wrong} 错 · 正确率 ${acc}%</div>
           <div style="margin-top: 1.2rem;">
-            <button type="button" class="submit-btn" onclick="location.reload()" style="font: inherit; font-weight: 600; font-size: 0.95rem; padding: 0.6rem 1.5rem; border: none; border-radius: 999px; background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-muted); cursor: pointer;">查看全部卡片 →</button>
+            <button type="button" class="submit-btn" onclick="document.querySelector('[data-tab=all]').click()" style="font: inherit; font-weight: 600; font-size: 0.95rem; padding: 0.6rem 1.5rem; border: none; border-radius: 999px; background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-muted); cursor: pointer;">查看全部卡片 →</button>
           </div>
         </div>
       `;

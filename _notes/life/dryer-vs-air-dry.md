@@ -58,6 +58,59 @@ keywords: ["烘干机 vs 自然晾干", "烘干机", "干衣机", "tumble dryer"
 - 优点：不需要外排气管、对衣物更温和
 - 缺点：贵（¥3000-8000）、烘干时间稍长
 
+三类的气流闭环差异——
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" style="max-width:100%;height:auto;display:block;margin:1.4em auto;" role="img" aria-label="排气式、冷凝式、热泵式三类烘干机的气流原理对比示意图">
+  <title>排气式直排室外、冷凝式蒸气冷凝成水、热泵式闭循环回收热量——热泵节能但贵。</title>
+  <text x="360" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">三种烘干机的气流原理对比</text>
+  <defs>
+    <marker id="dryer-arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#666"/></marker>
+  </defs>
+  <!-- 1. 排气式 -->
+  <g transform="translate(20,50)">
+    <rect x="0" y="20" width="200" height="140" rx="8" fill="#f4ece0" stroke="#b58266" stroke-width="1.5"/>
+    <text x="100" y="12" text-anchor="middle" font-size="12" font-weight="600" fill="#a05050">① 排气式 vented</text>
+    <circle cx="100" cy="90" r="34" fill="#fff" stroke="#aa6347" stroke-width="1.5"/>
+    <text x="100" y="93" text-anchor="middle" font-size="10" fill="#666">滚筒</text>
+    <text x="100" y="105" text-anchor="middle" font-size="9" fill="#888">湿衣物</text>
+    <text x="30" y="60" font-size="10" fill="#666">加热进风</text>
+    <line x1="60" y1="64" x2="74" y2="78" stroke="#666" stroke-width="1.4" marker-end="url(#dryer-arr)"/>
+    <text x="130" y="140" font-size="10" fill="#666">湿热气直排</text>
+    <line x1="135" y1="100" x2="175" y2="142" stroke="#b58266" stroke-width="1.4" marker-end="url(#dryer-arr)"/>
+    <text x="100" y="180" text-anchor="middle" font-size="10" fill="#666">→ 室外</text>
+    <text x="100" y="200" text-anchor="middle" font-size="10" fill="#888">便宜 · 快 · 需排气管</text>
+  </g>
+  <!-- 2. 冷凝式 -->
+  <g transform="translate(260,50)">
+    <rect x="0" y="20" width="200" height="140" rx="8" fill="#eef0e6" stroke="#8aa085" stroke-width="1.5"/>
+    <text x="100" y="12" text-anchor="middle" font-size="12" font-weight="600" fill="#557755">② 冷凝式 condenser</text>
+    <circle cx="100" cy="80" r="30" fill="#fff" stroke="#8aa085" stroke-width="1.5"/>
+    <text x="100" y="84" text-anchor="middle" font-size="10" fill="#666">滚筒</text>
+    <rect x="35" y="125" width="130" height="25" rx="4" fill="#cfd9c9" stroke="#8aa085" stroke-width="1"/>
+    <text x="100" y="141" text-anchor="middle" font-size="10" fill="#557755">冷凝器（蒸气 → 水）</text>
+    <line x1="100" y1="111" x2="100" y2="123" stroke="#666" stroke-width="1.4" marker-end="url(#dryer-arr)"/>
+    <text x="100" y="170" text-anchor="middle" font-size="10" fill="#888">水箱 / 排水管</text>
+    <text x="100" y="200" text-anchor="middle" font-size="10" fill="#888">免外排 · 温度中等</text>
+  </g>
+  <!-- 3. 热泵式 -->
+  <g transform="translate(500,50)">
+    <rect x="0" y="20" width="200" height="140" rx="8" fill="#e6ecf0" stroke="#6c8aa5" stroke-width="1.5"/>
+    <text x="100" y="12" text-anchor="middle" font-size="12" font-weight="600" fill="#3f5a75">③ 热泵式 heat pump</text>
+    <circle cx="100" cy="80" r="30" fill="#fff" stroke="#6c8aa5" stroke-width="1.5"/>
+    <text x="100" y="84" text-anchor="middle" font-size="10" fill="#666">滚筒</text>
+    <rect x="35" y="125" width="130" height="25" rx="4" fill="#c9d6e0" stroke="#6c8aa5" stroke-width="1"/>
+    <text x="100" y="141" text-anchor="middle" font-size="10" fill="#3f5a75">热泵（回收热量）</text>
+    <line x1="100" y1="111" x2="100" y2="123" stroke="#666" stroke-width="1.4" marker-end="url(#dryer-arr)"/>
+    <line x1="35" y1="138" x2="20" y2="138" stroke="#6c8aa5" stroke-width="1.4"/>
+    <line x1="20" y1="138" x2="20" y2="80" stroke="#6c8aa5" stroke-width="1.4" marker-end="url(#dryer-arr)"/>
+    <line x1="20" y1="80" x2="68" y2="80" stroke="#6c8aa5" stroke-width="1.4" marker-end="url(#dryer-arr)"/>
+    <text x="100" y="170" text-anchor="middle" font-size="10" fill="#888">闭循环</text>
+    <text x="100" y="200" text-anchor="middle" font-size="10" fill="#888">40-50 ℃ · 省电 50% · 贵</text>
+  </g>
+</svg>
+
+<p class="img-caption">三类烘干机的核心差异在于"湿热气怎么处理"——排气式直排（最便宜）、冷凝式凝成水（中庸）、热泵式闭循环回收热量（最省电也最贵）。</p>
+
 ## 3.2 烘干机会不会让衣物缩水
 
 会，但**不是衣物本身缩水了**——而是几种现象：

@@ -96,6 +96,17 @@ alias texclean="sh ~/你的脚本路径/clean-tex.sh"
 
 有了这份名单，Git 就会自动无视这些文件，你的云端备份将永远只有最核心的源码。
 
+## 加餐：常见 LaTeX 工具链注解
+
+清理只是入口，下面这几个工具是真正长期用得到的：
+
+- **latexmk**：自动判断“还要不要再编译一次”的胶水脚本。命令行直接 `latexmk -pdf main.tex`，它会替你跑 pdflatex → biber → pdflatex → pdflatex 直到引用稳定。配合 `-pvc` 还能像热重载一样保存即编译。VS Code LaTeX Workshop 默认 recipe 就是 latexmk。
+- **biber**：现代 `biblatex` 宏包的后端，替代老式 `bibtex`，原生支持 Unicode、多语言、复杂 sorting。源文件用 `\usepackage{biblatex}` 而不是 `\bibliography{...}` 时就在用它。报 “biber not found” 通常是 TeX Live 装得不全，重装一下即可。
+- **`-shell-escape`**：给 pdflatex 加这个 flag 才能调用外部程序，最常见的需要场景是 `minted`（带语法高亮的代码块）和 `tikz-externalize`（缓存 TikZ 图为单独 PDF 加速编译）。安全性弱一点，所以默认关。
+- **TikZ externalization**：跑 `\usetikzlibrary{external}` + `\tikzexternalize`，所有 `tikzpicture` 会被单独编译成 `<jobname>-figure0.pdf` 缓存起来，下次再编译主文档跳过 TikZ——长论文从 30 秒缩到 3 秒的关键。
+
+把这套和[TikZ 经济学绘图](/research/latex/tikz-econ-figures)、[Git 协同工作流](/research/workflow/git-for-papers)接起来：编辑器自动 outDir、命令行 latexmk 一键编译、Git 远端纯净——再也不被中间文件折磨。
+
 ## 结语
 
 作为科研人，我们的精力应该放在模型推导、逻辑构建和实验数据上，不应该浪费在“手动删除垃圾文件”这种琐事中。一套自动化的工作流，不仅是为了视觉上的美观，更是为了让大脑保持在“高信噪比”的状态。

@@ -149,6 +149,48 @@ keywords: ["TikZ 教程", "TikZ 经济学图", "LaTeX 画图", "供需图 TikZ",
 
 `\foreach` 批量打刻度是这里的关键——加一年改一处，不用一个个挪坐标。
 
+## 四、带数据的散点 + 回归线（pgfplots）
+
+前三张是纯示意图，但你也会想直接在 LaTeX 里画**带数据的散点和拟合线**，省去 Stata / R 出图再插回来的来回。这时候用 `pgfplots`——TikZ 上的一层，专门管坐标系和数据。
+
+```latex
+\documentclass[tikz,border=4pt]{standalone}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\begin{document}
+\begin{tikzpicture}
+\begin{axis}[
+    width=8cm, height=6cm,
+    xlabel={$\log(\text{人均 GDP})$},
+    ylabel={平均受教育年限},
+    xmin=6, xmax=12, ymin=0, ymax=15,
+    grid=both, grid style={gray!20},
+    legend pos=south east,
+]
+% 散点
+\addplot[only marks, mark=*, mark size=1.4pt, color=blue!70]
+  table[x=lgdp, y=edu] {data.dat};
+% OLS 拟合线
+\addplot[red, thick, domain=6:12] {1.2*x - 4.5};
+\legend{各国数据, OLS 拟合}
+\end{axis}
+\end{tikzpicture}
+\end{document}
+```
+
+`data.dat` 是空格/tab 分隔的纯文本，第一行是列名（`lgdp edu`），Stata 的 `outsheet` 或 R 的 `write.table` 一行命令就能出。这样写出来的图——
+
+1. **字体和论文一致**（不像 Stata 默认导出的 PNG/PDF 字体常错位）；
+2. **样式可由 `\pgfplotsset{...}` 全局控制**——投到 AER 改一遍配色，所有图同步换；
+3. **可编程**：`\foreach \i in {1,...,5}` 批量画 5 个子图 / `\addplot expression` 直接画回归线表达式，省得自己算坐标。
+
+进阶用法（在论文里很值钱的几个）：
+
+- `axis cs:` 锚点 + `\node` 可以在数据坐标系里加注释（“政策实施 →” 指向某个点）；
+- 双 y 轴（一边失业率一边 GDP 增速）用 `\begin{axis}` 套 `\begin{axis}[axis y line*=right]`；
+- 95% 置信带：`\addplot[name path=...]` 上下界，`\addplot[fill=red, opacity=0.2] fill between[of=upper and lower]`；
+- 在 Stata/R 出图后还想统一字体的话——`tikzDevice`（R）和 `tikzpicture` Stata 包能直接导出 `.tikz` 源码而不是 PDF/PNG，省一道翻译。
+
 ## 工作流提醒
 
 - **每张图独立 `standalone` 文件**，正文 `\includegraphics{figs/sd.pdf}`；图的字号用相对单位，正文缩放后仍清晰。

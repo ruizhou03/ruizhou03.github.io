@@ -145,7 +145,15 @@ Rscript code/one_spec.R $SLURM_ARRAY_TASK_ID
 
 `one_spec.R` 里读 `commandArgs()` 拿到任务号（1…200），各跑一个设定 / 一次重抽样，结果各写一个文件，最后再汇总。本来一天的活，可能十几分钟出齐。单脚本内部并行则用 R 的 `future`/`furrr`/`foreach`，核数和 `--cpus-per-task` 对齐就行。
 
-## 六、几条让你不挨骂的纪律
+## 六、调试 OOM 和挑可用软件
+
+新人常踩的两个坑——
+
+**作业被 SIGKILL 闪退、`logs/reg_*.out` 里啥都没写**：99% 是 OOM（内存超额）。SLURM 看你超了 `--mem` 就直接杀进程，不留遗言。先 `sacct -j 1234567 --format=JobID,State,MaxRSS,Elapsed` 看 `MaxRSS`（实际峰值内存），再回头把 `--mem` 调到峰值的 1.3 倍左右。如果代码本身能跑 `parallel::mclapply` 之类的并行，**记得每个 worker 都要算一份内存**，不是 `--mem` 除以核数。
+
+**`module load r/4.4.1` 报找不到模块**：每个集群预装的软件版本号都不同，先 `module avail` 列全部可用模块（`module avail r` 只看 R 系列），再 `module load <名字带版本号>`。`module list` 看当前会话已经加载了什么。集群间迁移代码时，`module load` 这行几乎一定要改。
+
+## 七、几条让你不挨骂的纪律
 
 - **永远不在登录节点跑计算**——小测试也用 `srun` 进计算节点；
 - **资源按需申请**：报 `--mem=256G --time=7-00:00` 然后只用 4G 跑十分钟，会一直排不上队还占着配额。先小样本试跑，`sacct` 看实际用量再校准；
