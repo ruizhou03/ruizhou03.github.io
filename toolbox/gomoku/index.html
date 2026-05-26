@@ -421,7 +421,7 @@ permalink: /toolbox/gomoku/
     if (state.history.length > 0) {
       const last = state.history[state.history.length - 1];
       const x = off + last.c * cs, y = off + last.r * cs;
-      ctx.strokeStyle = '#e74c3c';
+      ctx.strokeStyle = '#b07c75';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(x, y, stoneR * 0.35, 0, Math.PI * 2);
@@ -430,7 +430,7 @@ permalink: /toolbox/gomoku/
 
     // Win line highlight
     if (state.winLine) {
-      ctx.strokeStyle = '#e74c3c';
+      ctx.strokeStyle = '#b07c75';
       ctx.lineWidth = 3;
       const a = state.winLine.cells[0];
       const b = state.winLine.cells[4];
@@ -813,7 +813,7 @@ permalink: /toolbox/gomoku/
     // 最后一手标记（红圈）
     if (state.history.length) {
       const last = state.history[state.history.length - 1];
-      ctx.strokeStyle = '#e74c3c';
+      ctx.strokeStyle = '#b07c75';
       ctx.lineWidth = Math.max(2, cs * 0.08);
       ctx.beginPath();
       ctx.arc(ox + last.c * cs, oy + last.r * cs, radius * 0.5, 0, Math.PI * 2);

@@ -113,7 +113,7 @@ permalink: /toolbox/xiangqi/
   .xq-svg .piece-circle.red { stroke: #b22222; stroke-width: 2; }
   .xq-svg .piece-circle.black { stroke: #1a1a1a; stroke-width: 2; }
   .xq-svg .piece-circle.selected { stroke: #e6b400; stroke-width: 3.5; filter: drop-shadow(0 0 4px rgba(230, 180, 0, 0.7)); }
-  .xq-svg .piece-circle.in-check { stroke: #e74c3c; stroke-width: 3.5; filter: drop-shadow(0 0 6px rgba(231, 76, 60, 0.7)); }
+  .xq-svg .piece-circle.in-check { stroke: #b07c75; stroke-width: 3.5; filter: drop-shadow(0 0 6px rgba(176, 124, 117, 0.7)); }
 
   .xq-svg .piece-text {
     text-anchor: middle;
@@ -1173,12 +1173,12 @@ permalink: /toolbox/xiangqi/
         ctx.beginPath();
         ctx.arc(cx, cy, r0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = (p.color === RED) ? '#c0392b' : '#1a1a1a';
+        ctx.strokeStyle = (p.color === RED) ? '#b07c75' : '#1a1a1a';
         ctx.lineWidth = Math.max(1, spacing * 0.04);
         ctx.beginPath();
         ctx.arc(cx, cy, r0 - 1, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.fillStyle = (p.color === RED) ? '#c0392b' : '#1a1a1a';
+        ctx.fillStyle = (p.color === RED) ? '#b07c75' : '#1a1a1a';
         ctx.font = `bold ${spacing * 0.55}px "STKaiti", "KaiTi", "Songti SC", "Microsoft YaHei", serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';

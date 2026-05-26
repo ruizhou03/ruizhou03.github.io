@@ -258,7 +258,7 @@ EVOO 的 “extra virgin” 是法定标签，必须**冷压、酸度 $\leq 0.8\
 
 ## 4.3 EVOO 的常见误区
 
-**“EVOO 不能加热”——这是错的**。EVOO 烟点 190-210 ℃，足以应付煎、炒、烤。多项研究（Casal et al. 2010、de Alzaa 2018）显示 EVOO 在 180 ℃ 长时间加热的稳定性反而**优于**很多精炼油，因为它的天然多酚抗氧化能力强。
+**”EVOO 不能加热”——这是错的**。EVOO 烟点 190-210 ℃，足以应付煎、炒、烤。多项研究（Casal et al. 2010、Lozano-Castellón et al. 2022）显示 EVOO 在 180 ℃ 长时间加热的稳定性反而**优于**很多精炼油，因为它的天然多酚抗氧化能力强。
 
 但有几个真实的注意点：
 
@@ -302,5 +302,5 @@ EVOO 的 “extra virgin” 是法定标签，必须**冷压、酸度 $\leq 0.8\
 1. **Sacks FM, Lichtenstein AH, Wu JHY, et al.** **Dietary fats and cardiovascular disease: A presidential advisory from the American Heart Association.** *Circulation.* 2017;136(3):e1-e23. ——AHA 关于膳食脂肪与心血管病的官方共识。
 2. **Estruch R, Ros E, Salas-Salvadó J, et al.** **Primary prevention of cardiovascular disease with a Mediterranean diet supplemented with extra-virgin olive oil or nuts (PREDIMED).** *New England Journal of Medicine.* 2018;378(25):e34. ——大型 RCT，地中海饮食 + EVOO 显著降低心血管事件。
 3. **Katragadda HR, Fullana A, Sidhu S, Carbonell-Barrachina ÁA.** **Emissions of volatile aldehydes from heated cooking oils.** *Food Chemistry.* 2010;120(1):59-65. ——烟点与有害醛类化合物释放的实测。
-4. **de Alzaa F, Guillaume C, Ravetti L.** **Evaluation of chemical and physical changes in different commercial oils during heating.** *Acta Scientific Nutritional Health.* 2018;2(6):2-11. ——EVOO 在高温下的抗氧化稳定性研究。
+4. **Lozano-Castellón J, Rinaldi de Alvarenga JF, Vallverdú-Queralt A, Lamuela-Raventós RM.** **Cooking with extra-virgin olive oil: A mixture of food components to prevent oxidation and degradation.** *Trends in Food Science & Technology.* 2022;123:28-36. ——Q1 综述，系统梳理 EVOO 在烹饪温度下的稳定性与多酚保护机制。
 5. **Schwingshackl L, Hoffmann G.** **Monounsaturated fatty acids, olive oil and health status: a systematic review and meta-analysis of cohort studies.** *Lipids in Health and Disease.* 2014;13:154. ——单不饱和脂肪与橄榄油的健康综述。

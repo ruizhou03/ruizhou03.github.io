@@ -275,7 +275,7 @@ keywords: ["手洗 vs 机洗", "手洗", "机洗", "hand wash", "machine wash", 
 
 # 5. 参考来源
 
-1. **Sinner H.** *Über das Waschen mit Haushaltwaschmaschinen.* Henkel; 1959. ——德国化学家 Herbert Sinner 提出的“Sinner 圈”洗涤模型，本文 3.1 节的依据。
+1. **Sinner H.** *Über das Waschen mit Haushaltwaschmaschinen.* Haus & Heim Verlag; 1960. ——时任 Henkel 化学工程师 Herbert Sinner 1959 年在内部首次提出，1960 年公开出版，业内常以 “Sinner 1959" 引用。本文 3.1 节”Sinner 圈“洗涤模型的依据。
 2. **American Cleaning Institute.** *Hand Wash vs Machine Wash.* cleaninginstitute.org ——美国清洁产品行业协会的手洗 / 机洗对比指南。
 3. **Hatch KL.** *Textile Science.* West Publishing; 1993. ——纤维科学经典教科书，羊毛毡化、真丝洗护的依据。
 4. **The Woolmark Company.** *Wool Care: Hand Wash vs Machine Wash.* woolmark.com ——羊毛工业协会关于手洗 vs 机洗的官方推荐。

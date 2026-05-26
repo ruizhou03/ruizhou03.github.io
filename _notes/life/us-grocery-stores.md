@@ -131,7 +131,7 @@ keywords: ["美国超市", "超市推荐", "美国买菜", "grocery store", "sup
 - **门店**：全美 ~600 家 + 加拿大 / 国际
 - **自有品牌**：**Kirkland Signature**——业内公认品质极高，常常是 name brand 的 OEM 代工产品
 - **招牌单品**：
-    - **$1.50 Hot Dog Combo**（含一个大热狗 + 22oz 饮料，**40 年没涨过价**）
+    - **$1.50 Hot Dog Combo**（含一个大热狗 + 22oz 饮料，**1985 年起没涨过价**）
     - **$4.99 Rotisserie Chicken**（3 lb 整鸡）
     - **Kirkland 香草冰淇淋 / Kirkland 红酒 / Kirkland 杂粮**
 - **品类强项**：肉蛋奶（保鲜期长 + 大包装）、轮胎、汽油（比外面便宜 $0.20-$0.30/gal）、眼镜部、药房、旅行预订、家电

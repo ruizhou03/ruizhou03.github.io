@@ -95,7 +95,7 @@ permalink: /toolbox/citation/
   .output-item:hover .copy-btn { opacity: 1; }
   .output-item .copy-btn:hover { color: var(--color-accent); border-color: var(--color-accent); }
   .output-item .citation { padding-right: 4rem; }
-  .output-item.error { color: #c0392b; font-style: normal; font-size: 0.85rem; }
+  .output-item.error { color: #b07c75; font-style: normal; font-size: 0.85rem; }
 
   .empty-output {
     text-align: center;
@@ -710,11 +710,11 @@ permalink: /toolbox/citation/
       $parseMeta.textContent = currentEntries.length === 0 && text.trim()
         ? '⚠️ 没解析出 entries——检查 BibTeX 语法'
         : `✓ 解析出 ${currentEntries.length} 条引用`;
-      $parseMeta.style.color = currentEntries.length === 0 && text.trim() ? '#c0392b' : 'var(--color-light)';
+      $parseMeta.style.color = currentEntries.length === 0 && text.trim() ? '#b07c75' : 'var(--color-light)';
     } catch (e) {
       currentEntries = [];
       $parseMeta.textContent = '解析错误：' + e.message;
-      $parseMeta.style.color = '#c0392b';
+      $parseMeta.style.color = '#b07c75';
     }
     try { localStorage.setItem(STORE_KEY, text); } catch (e) {}
     render();

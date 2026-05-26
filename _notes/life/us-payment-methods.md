@@ -337,8 +337,6 @@ Sweetgreen / Cava / Shake Shack 部分门店 / 一些 NYC 商业中心：
 5. **[r/personalfinance](https://www.reddit.com/r/personalfinance/) / [r/CreditCards](https://www.reddit.com/r/CreditCards/)** —— 社区讨论”商家拒收 X 卡“实战经验
 6. **[Doctor of Credit](https://www.doctorofcredit.com/)** —— 偶尔有”特定商家 + 特定卡 = 多少返现“的羊毛追踪
 
----
-
 最后说一件事——**美国的支付系统看似复杂，本质是一场”商家、卡组织、消费者“之间的三方博弈**。商家想少付手续费，卡组织想抽更多，消费者夹在中间。**理解这套博弈后**，**你就能预测每个特殊店的”反常规则“**——Costco 只收 Visa、Walmart 不收 Apple Pay、加油站给现金折扣——**全是同一套手续费经济学的不同表现**。
 
 刚来美国的留学生最容易在这套规则里”栽小跟头“——但跟多数美国生活的”陌生规则“一样，**栽过一次就再也不会**。希望这篇文章能让你少栽至少一次。

@@ -37,9 +37,8 @@ grep -E 'cat-card.*href' index.html
 | `生活攻略` | `_notes/life/` | `life/index.html`（菜谱被 sub_category 排除） | ✓ |
 | `科研妙招` | `_notes/research/` | `research/index.html` | ✓ |
 
-外加 2 种**特殊 schema**（不是 main_category 体系）：
-- 课程测评：`_notes/course-reviews/`，由 `notes/index.html` 一类汇总页接管
-- 学习笔记：`_notes/<exam>/`（gre, toefl, pre-high-school）、`_notes/study/<course>/`
+外加 1 种**特殊 schema**（不是 main_category 体系）：
+- 学习笔记：`_notes/<exam>/`（gre, toefl, pre-high-school）、`_notes/study/<course>/`；课程测评 `_notes/course-reviews/` 也走这套（`material_type: "课程测评"`），不另立 schema
 
 ---
 
@@ -48,9 +47,8 @@ grep -E 'cat-card.*href' index.html
 按以下决策树走，**不要硬套**：
 
 1. **是菜谱？** → 退出本 skill，让用户用 `/recipe`
-2. **是课程测评？** → 走 [Schema: course-review](#schema-course-review)
-3. **是某门课/某次考试的学习笔记/错题本/讲义？** → 走 [Schema: study-note](#schema-study-note)
-4. **是某个一级 main_category 下的内容？**
+2. **是课程测评 / 某门课/某次考试的学习笔记/错题本/讲义？** → 走 [Schema: study-note](#schema-study-note)（课程测评只是其中一种 `material_type`，不再单独立 schema）
+3. **是某个一级 main_category 下的内容？**
    - 匹配第一步扫描出的现有 main_category（如 `随笔漫谈` / `生活攻略` / `科研妙招`） → 走 [Schema: main-category 通用模板](#schema-main-category-通用模板)
    - **不匹配任何现有分类**（用户要开一个全新一级分类，比如“影视摘记”“旅行笔记”） → 走 [流程：添加新一级分类](#流程添加新一级分类)
 
@@ -99,27 +97,6 @@ published: true
 
 ---
 
-## Schema: course-review
-
-```yaml
----
-layout: post
-title: "（个人向）<课程中文名>课程测评"
-date: <YYYY-MM-DD>
-discipline: "<如 经济学 / 数学 / 计算机>"
-course: "<课程中文名>"
-material_type: "课程测评"
-review_category: "<同 discipline，用于聚合页归类>"
-semester: "<如 2022 秋 / 2024 春>"
----
-```
-
-- 目录：`_notes/course-reviews/<course-slug>-review-<year>.md`
-- 不用 main_category；由 `notes/index.html` 等汇总页接管
-- 样板：`_notes/course-reviews/behavioral-econ-review-2023.md`
-
----
-
 ## Schema: study-note
 
 ```yaml
@@ -129,7 +106,7 @@ title: "<标题>"
 date: <YYYY-MM-DD>
 discipline: "<如 语言考试 / 经济学 / 心理学>"
 course: "<如 GRE / 博弈论 / 行为经济学>"
-material_type: "<如 错题本 / 课程笔记 / 备考心得 / 讲义>"
+material_type: "<如 错题本 / 课程笔记 / 备考心得 / 讲义 / 课程测评>"
 ---
 ```
 
@@ -137,8 +114,9 @@ material_type: "<如 错题本 / 课程笔记 / 备考心得 / 讲义>"
 - 大型考试 → `_notes/<exam>/<slug>.md`（gre, toefl, pre-high-school）
 - 大学课程笔记 → `_notes/study/<course-slug>/<slug>.md`
 - 科研工具/方法 → `_notes/research/<slug>.md`（注意：文件目录已扁平，但 URL 仍走 `/research/<sub-topic>/<slug>`，需手写 permalink）
+- 课程测评 → `_notes/course-reviews/<course-slug>-review-<year>.md`，`material_type: "课程测评"`；以前曾有专门的 course-review schema（带 review_category / semester 等额外字段），现已并入本 schema——存量文件保留旧字段、新增文章按 study-note 写即可
 
-样板：`_notes/gre/gre-verbal-errors.md`
+样板：`_notes/gre/gre-verbal-errors.md` / `_notes/course-reviews/behavioral-econ-review-2023.md`
 
 ---
 
@@ -215,6 +193,7 @@ mkdir -p files/images/<dirname>   # 文章图片用
   - ✅ `<p class="img-caption">这是 <strong>加粗</strong></p>` → HTML 标签
 - **inline SVG 内的中文文字禁用 `font-style="italic"`**（[[feedback_chinese_no_italic]]）——SVG 是 HTML 一部分、`<text font-style="italic">中文</text>` 会让中文变斜体。多数浏览器会做义意大利字体回退，效果丑、不专业。SVG 里给中文加强调用 `font-weight="600"` 或换颜色，不要 italic。
 - **标题前不要 `---`**：YAML front-matter 那两道 `---` 之外，正文里第一个标题前别加分割线
+- **文末不要孤立 `---`**：最后一段「金句收尾」前不要插 `---` 分割线，直接段落 + 空行即可。`---` 只在确实分隔正文与脚注/credits 时用
 - **中文标点**：用中文标点（“，。：；！？「」”），西文术语/数字内部保持半角
 
 ---

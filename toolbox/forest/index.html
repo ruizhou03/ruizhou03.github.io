@@ -94,7 +94,7 @@ permalink: /toolbox/forest/
     margin: 1rem 0 0.4rem;
     font-variant-numeric: tabular-nums;
   }
-  .timer-display.warn { color: #c0392b; animation: pulse 1.4s ease-in-out infinite; }
+  .timer-display.warn { color: #b07c75; animation: pulse 1.4s ease-in-out infinite; }
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
@@ -225,8 +225,8 @@ permalink: /toolbox/forest/
     box-shadow: 0 5px 18px rgba(30, 58, 95, 0.35);
   }
   .action-btn.give-up {
-    background: transparent; color: #c0392b;
-    border: 1px dashed #c0392b;
+    background: transparent; color: #b07c75;
+    border: 1px dashed #b07c75;
     box-shadow: none;
     font-size: 0.92rem;
     padding: 0.6rem 1.6rem;
@@ -474,7 +474,7 @@ permalink: /toolbox/forest/
     position: absolute;
     top: -4px; right: -4px;
     width: 22px; height: 22px;
-    background: #c0392b; color: #fff;
+    background: #b07c75; color: #fff;
     border-radius: 50%;
     display: none;
     align-items: center; justify-content: center;
@@ -484,7 +484,7 @@ permalink: /toolbox/forest/
     z-index: 7;
   }
   .field.edit-mode .tree-instance .delete-x { display: flex; }
-  .tree-instance .delete-x:hover { background: #e74c3c; transform: scale(1.1); }
+  .tree-instance .delete-x:hover { background: #b07c75; transform: scale(1.1); }
 
   .tree-tooltip {
     display: none;
@@ -552,7 +552,7 @@ permalink: /toolbox/forest/
     cursor: pointer; transition: all 0.18s;
   }
   .tree-detail .td-actions button:hover { border-color: var(--color-accent); color: var(--color-accent); }
-  .tree-detail .td-actions button.danger:hover { border-color: #c0392b; color: #c0392b; }
+  .tree-detail .td-actions button.danger:hover { border-color: #b07c75; color: #b07c75; }
   .tree-detail .tier-badge {
     display: inline-block;
     font-size: 0.7rem;
@@ -646,7 +646,7 @@ permalink: /toolbox/forest/
     background: var(--color-bg); color: var(--color-light); cursor: pointer;
     transition: all 0.18s;
   }
-  .reset-row button:hover { color: #c0392b; border-color: #c0392b; }
+  .reset-row button:hover { color: #b07c75; border-color: #b07c75; }
 
   @media (max-width: 600px) {
     .stage { padding: 1.4rem 1rem 1.2rem; }
@@ -682,7 +682,7 @@ permalink: /toolbox/forest/
     color: rgba(40, 40, 40, 0.7);
     border-color: rgba(40, 40, 40, 0.3);
   }
-  .focus-overlay.theme-default .give-up-btn:hover { color: #c0392b; border-color: #c0392b; }
+  .focus-overlay.theme-default .give-up-btn:hover { color: #b07c75; border-color: #b07c75; }
   .focus-overlay.theme-default .pomodoro-counter {
     color: rgba(40, 40, 40, 0.78);
     background: rgba(40, 40, 40, 0.06);
@@ -987,7 +987,7 @@ permalink: /toolbox/forest/
     <div class="field-toolbar">
       <button type="button" id="edit-mode-btn">✎ 整理</button>
       <button type="button" id="rename-field-btn">✏ 重命名</button>
-      <button type="button" id="delete-field-btn" style="color: #c0392b;">🗑 删除此田</button>
+      <button type="button" id="delete-field-btn" style="color: #b07c75;">🗑 删除此田</button>
       <span class="spacer"></span>
       <span class="field-hint" id="field-hint">点击树查看详情 · 拖动可挪位置</span>
     </div>
@@ -1590,9 +1590,9 @@ permalink: /toolbox/forest/
       if (tier === 4) {
         // 巨橡树：果实（红色小点）
         decoration = `
-          <circle fill="#c0392b" cx="${cx - r * 0.3}" cy="${trunkTop - r * 0.55}" r="1.8"/>
-          <circle fill="#c0392b" cx="${cx + r * 0.4}" cy="${trunkTop - r * 0.4}" r="1.6"/>
-          <circle fill="#e74c3c" cx="${cx - r * 0.05}" cy="${trunkTop - r * 0.95}" r="1.5"/>
+          <circle fill="#b07c75" cx="${cx - r * 0.3}" cy="${trunkTop - r * 0.55}" r="1.8"/>
+          <circle fill="#b07c75" cx="${cx + r * 0.4}" cy="${trunkTop - r * 0.4}" r="1.6"/>
+          <circle fill="#b07c75" cx="${cx - r * 0.05}" cy="${trunkTop - r * 0.95}" r="1.5"/>
         `;
       }
     }
@@ -2332,7 +2332,7 @@ permalink: /toolbox/forest/
     const isRevived = t.success && t.revivalDiscount && t.revivalDiscount < 1;
     const statusRow = t.success
       ? `<div class="td-row"><span class="label">树形</span><span class="value">${TREE_NAME[t.type]} <span class="tier-badge tier-${tier}">${TIER_NAME[tier]}</span>${isRevived ? ' <span class="tier-badge" style="background: rgba(201, 169, 110, 0.25); color: #b08838;">灌溉复活</span>' : ''}</span></div>`
-      : `<div class="td-row"><span class="label">状态</span><span class="value" style="color:#c0392b;">🥀 枯萎了</span></div>`;
+      : `<div class="td-row"><span class="label">状态</span><span class="value" style="color:#b07c75;">🥀 枯萎了</span></div>`;
     const durationRow = t.success
       ? `<div class="td-row"><span class="label">专注</span><span class="value"><strong>${t.durationMinutes} 分钟</strong>${isRevived ? '（曾坚持时长）' : ''}</span></div>`
       : `<div class="td-row"><span class="label">专注</span><span class="value">坚持了 ${t.attemptedMinutes || 0} 分（目标 ${t.durationMinutes} 分）</span></div>`;

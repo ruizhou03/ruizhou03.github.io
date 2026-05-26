@@ -131,8 +131,8 @@ permalink: /toolbox/tax-bracket/
   }
   .sum-card.highlight { background: var(--color-bg-warm); border-color: var(--color-accent); }
   .sum-card.highlight .value { color: var(--color-accent); }
-  .sum-card.tax .value { color: #c0392b; }
-  .sum-card.takehome .value { color: #4a7c59; }
+  .sum-card.tax .value { color: #b07c75; }
+  .sum-card.takehome .value { color: #7d9c80; }
 
   /* Bracket bars */
   .bracket-list { margin-top: 0.6rem; }
@@ -438,7 +438,7 @@ permalink: /toolbox/tax-bracket/
   <details class="footnote" data-country="us">
     <summary>⚠️ 仅供估算 · 点开看免责声明</summary>
     <div class="footnote-body">
-      本工具按 2026 IRS brackets + 各州 top marginal rate 简化计算，不考虑：FICA / Medicare、EITC / 子女抵免、retirement contribution、AMT、qualified dividends 不同税率、phase-out 规则、签证身份（F-1 vs H-1B）、treaty benefits 等。州税按 top marginal rate 估算，CA/NY 等累进州实际可能略低。复杂情况请用 TurboTax / FreeTaxUSA / 找会计。
+      本工具按 2026 IRS brackets + 各州 top marginal rate 简化计算，不考虑：FICA / Medicare、EITC / 子女抵免、retirement contribution、AMT、qualified dividends 不同税率、phase-out 规则、签证身份（F-1 vs H-1B）、treaty benefits 等。州税按 top marginal rate 估算，CA/NY 等累进州实际可能略低。<strong>2026 IRS bracket 数字会随通胀每年调整、各州 rate 也会受新立法影响（如 KS 2024 SB 1 从 5.7% 降到 5.58%），每年初务必比对最新版</strong>。复杂情况请用 TurboTax / FreeTaxUSA / 找会计。
     </div>
   </details>
 
@@ -448,7 +448,12 @@ permalink: /toolbox/tax-bracket/
       本工具按 2024–2026 现行《个人所得税法》及实施条例的<strong>居民个人综合所得</strong>（工资薪金、劳务报酬、稿酬、特许权使用费合并年度汇算）计算。<strong>不包含</strong>：经营所得（5%–35% 单独税率表）、利息股息红利（20% flat）、财产转让所得、年终奖单独计税选项、外籍员工 / 港澳台居民身份差异、税收协定优惠、年度一次性奖金的"全年一次性奖金计税方法"等。各地五险一金缴费基数和比例差异较大，本工具按 22% 估算。如需精确数字，请登录 <a href="https://etax.chinatax.gov.cn/" target="_blank" rel="noopener">个人所得税 APP</a> 查实际汇算结果。
     </div>
   </details>
+
+  <link rel="stylesheet" href="/assets/css/games-shell.css">
+  <div id="tax-cm-mount" style="max-width: 720px; margin: 2rem auto 0;"></div>
 </div>
+
+<script src="/assets/js/games-shell/comments.js"></script>
 
 <script>
 (function () {
@@ -457,40 +462,40 @@ permalink: /toolbox/tax-bracket/
   const COUNTRY_KEY = 'tool.tax.country.v1';
 
   // ====== 2026 IRS Federal Brackets ======
-  // 基于 2025 brackets + ~2.5% inflation adjustment 估算（IRS 正式公布后手动校对）
+  // 来源：IRS Rev. Proc. 2025-32（2026 inflation adjustments，2025 年 10 月公布）
   const FEDERAL_2026 = {
     single: [
-      { rate: 0.10, upTo: 12250 },
-      { rate: 0.12, upTo: 49800 },
-      { rate: 0.22, upTo: 106150 },
-      { rate: 0.24, upTo: 202650 },
-      { rate: 0.32, upTo: 257300 },
-      { rate: 0.35, upTo: 643300 },
+      { rate: 0.10, upTo: 12400 },
+      { rate: 0.12, upTo: 50400 },
+      { rate: 0.22, upTo: 105700 },
+      { rate: 0.24, upTo: 201775 },
+      { rate: 0.32, upTo: 256225 },
+      { rate: 0.35, upTo: 640600 },
       { rate: 0.37, upTo: Infinity },
     ],
     mfj: [
-      { rate: 0.10, upTo: 24500 },
-      { rate: 0.12, upTo: 99600 },
-      { rate: 0.22, upTo: 212300 },
-      { rate: 0.24, upTo: 405300 },
-      { rate: 0.32, upTo: 514600 },
-      { rate: 0.35, upTo: 772600 },
+      { rate: 0.10, upTo: 24800 },
+      { rate: 0.12, upTo: 100800 },
+      { rate: 0.22, upTo: 211400 },
+      { rate: 0.24, upTo: 403550 },
+      { rate: 0.32, upTo: 512450 },
+      { rate: 0.35, upTo: 768700 },
       { rate: 0.37, upTo: Infinity },
     ],
     hoh: [
-      { rate: 0.10, upTo: 17500 },
-      { rate: 0.12, upTo: 66700 },
-      { rate: 0.22, upTo: 106150 },
-      { rate: 0.24, upTo: 202650 },
-      { rate: 0.32, upTo: 257300 },
-      { rate: 0.35, upTo: 643300 },
+      { rate: 0.10, upTo: 17700 },
+      { rate: 0.12, upTo: 67450 },
+      { rate: 0.22, upTo: 105700 },
+      { rate: 0.24, upTo: 201775 },
+      { rate: 0.32, upTo: 256200 },
+      { rate: 0.35, upTo: 640600 },
       { rate: 0.37, upTo: Infinity },
     ],
   };
   const STD_DEDUCTION_2026 = {
-    single: 15750,
-    mfj: 31500,
-    hoh: 23625,
+    single: 16100,
+    mfj: 32200,
+    hoh: 24150,
   };
 
   // ====== 中国综合所得税率表（2018 改革后稳定，2024–2026 现行）======
@@ -523,7 +528,7 @@ permalink: /toolbox/tax-bracket/
     { code: 'IL', name: 'Illinois',    rate: 0.0495 },
     { code: 'IN', name: 'Indiana',     rate: 0.0305 },
     { code: 'IA', name: 'Iowa',        rate: 0.0382 },
-    { code: 'KS', name: 'Kansas',      rate: 0.057 },
+    { code: 'KS', name: 'Kansas',      rate: 0.0558 },
     { code: 'KY', name: 'Kentucky',    rate: 0.04 },
     { code: 'LA', name: 'Louisiana',   rate: 0.03 },
     { code: 'ME', name: 'Maine',       rate: 0.0715 },
@@ -815,4 +820,16 @@ permalink: /toolbox/tax-bracket/
   } catch (e) {}
   setCountry(initial);
 })();
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (window.GamesShell && GamesShell.Comments) {
+    GamesShell.Comments.mount({
+      container: document.getElementById('tax-cm-mount'),
+      path: '/toolbox/tax-bracket/',
+      title: '💬 税表交流',
+      intro: '聊聊你算出来的数字 / 各州反差 / IRS / 国税最新政策、bug 反馈～',
+      placeholder: '指出 bracket 错算、州税过时数据、想加的功能…',
+    });
+  }
+});
 </script>

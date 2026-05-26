@@ -70,7 +70,7 @@ permalink: /toolbox/countdown/
     content: '紧迫';
     position: absolute; top: 0.6rem; right: 0.6rem;
     font-size: 0.7rem;
-    background: #a04030;
+    background: #b07c75;
     color: #fff;
     padding: 0.15rem 0.5rem;
     border-radius: 999px;
@@ -329,7 +329,12 @@ permalink: /toolbox/countdown/
       </div>
     </div>
   </div>
+
+  <link rel="stylesheet" href="/assets/css/games-shell.css">
+  <div id="countdown-cm-mount" style="max-width: 720px; margin: 2rem auto 0;"></div>
 </div>
+
+<script src="/assets/js/games-shell/comments.js"></script>
 
 <style>
   .preset-list {
@@ -894,4 +899,16 @@ permalink: /toolbox/countdown/
     }
   });
 })();
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (window.GamesShell && GamesShell.Comments) {
+    GamesShell.Comments.mount({
+      container: document.getElementById('countdown-cm-mount'),
+      path: '/toolbox/countdown/',
+      title: '💬 倒计时交流',
+      intro: '分享你在追的截止日、好用的倒计时玩法、bug 反馈～',
+      placeholder: '聊聊你的倒计时清单 / 想加的事件类型 / 想到的功能…',
+    });
+  }
+});
 </script>
