@@ -2213,19 +2213,16 @@
   }
 
   function onMissed(f) {
-    // Combo Rush：漏切只重置 combo，不掉命也不结束
-    if (state.mode === 'comborush') {
-      if (state.combo > 0) {
-        state.combo = 0;
-        flashScreen();
-        updateHud();
-      }
-      return;
+    // 漏切：所有模式下都重置连击计数
+    if (state.combo > 0) {
+      state.combo = 0;
+      flashScreen();
+      updateHud();
     }
+    // Combo Rush：漏切只重置 combo，不掉命也不结束
+    if (state.mode === 'comborush') return;
     if (state.mode !== 'arcade' && state.mode !== 'endless') return;
     state.lives -= 1;
-    state.combo = 0;
-    flashScreen();
     updateHud();
     if (state.lives <= 0) endRun('lives');
   }

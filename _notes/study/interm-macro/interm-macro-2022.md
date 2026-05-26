@@ -11,6 +11,5 @@ date: 2022-09-01
 author: "Zircon"
 permalink: "/notes/interm-macro/interm-macro-2022"
 pdf_url: "/files/interm-macro/interm-macro-2022.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 
