@@ -87,7 +87,7 @@ published: true
 
 | 食材 | Walmart 货架 | 备注 |
 |------|-------------|------|
-| 鸡腿 | **Chicken Drumsticks**（家庭装 8–10 只 ~$8） | 按磅卖；带皮带骨，奥尔良烤肉首选 |
+| 鸡腿 | **Chicken Drumsticks**（家庭装 8–10 只 ~\$8） | 按磅卖；带皮带骨，奥尔良烤肉首选 |
 | 鸡翅 | **Chicken Wings**（整翅 Whole Wings / **Party Wings**=已分切） | **Party Wings** 省事，一包就是分好的翅中+翅根 |
 | 鸡翅根 | **Chicken Drumettes**（翅根） | 鸡翅最粗段，肉最多 |
 | 翅中 | **Chicken Wingettes / Flats** | 两段中间的「双骨段」 |
@@ -125,10 +125,10 @@ published: true
 
 | 器具 | 推荐型号 | 价格 | 必要性 |
 |------|---------|------|-------|
-| **半幅烤盘 Half-Sheet Pan** | Nordic Ware Natural Aluminum（33 × 46 cm） | ~$20 | 必备，尺寸标准 |
-| **不锈钢烤架 Wire Rack** | 和烤盘同尺寸的搭配架，Walmart Mainstays | ~$10 | **决定性器具** |
-| **铝箔 Aluminum Foil** | Reynolds Heavy Duty | ~$5 | 铺烤盘底接油，清洁省 15 分钟 |
-| **独立温度计 Oven Thermometer** | CDN / Taylor 挂式 | ~$5 | 验证烤箱**显示温度 ≠ 实际温度**（很多家用烤箱误差 20 °F） |
+| **半幅烤盘 Half-Sheet Pan** | Nordic Ware Natural Aluminum（33 × 46 cm） | ~\$20 | 必备，尺寸标准 |
+| **不锈钢烤架 Wire Rack** | 和烤盘同尺寸的搭配架，Walmart Mainstays | ~\$10 | **决定性器具** |
+| **铝箔 Aluminum Foil** | Reynolds Heavy Duty | ~\$5 | 铺烤盘底接油，清洁省 15 分钟 |
+| **独立温度计 Oven Thermometer** | CDN / Taylor 挂式 | ~\$5 | 验证烤箱**显示温度 ≠ 实际温度**（很多家用烤箱误差 20 °F） |
 
 ⚠️ **「烤架」是烤箱做鸡最关键的工具**：直接把鸡肉放在烤盘上烤，**底面接触金属不接触热风** → 无法脱水变脆 → **成品一面焦黄一面软湿**。烤架把鸡肉抬高 2 cm，让热风 360° 环绕，**接近空气炸锅的效果**。
 
@@ -166,7 +166,7 @@ published: true
 **一次烤 2 kg 鸡腿 → 4 天便当**：
 
 - **食材**：1.5–2 kg 生鸡腿（约 15–20 只）→ 烤完熟肉约 **1.2–1.5 kg**
-- **分装**：**4 个玻璃保鲜盒**（**Pyrex 4-cup** 8 件套 Walmart ~$25 / Snapware），每盒 3–5 只鸡腿
+- **分装**：**4 个玻璃保鲜盒**（**Pyrex 4-cup** 8 件套 Walmart ~\$25 / Snapware），每盒 3–5 只鸡腿
 - **组合搭配**（每盒 ~650 kcal）：
   - 白米饭 1 杯（160 g 熟重）
   - 蒸西兰花 100 g（或烤西兰花，可以和鸡肉**同烤箱最后 10 分钟**一起烤）

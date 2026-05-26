@@ -78,7 +78,7 @@ published: true
 | 鸡蛋 | **Large eggs**，Grade A | 也有 | 室温是关键；冷蛋蛋白打不起 |
 | 细砂糖 | **Granulated sugar** | 也有 | 涂模那份可用 **superfine / caster sugar**（更细，挂得更均匀），普通细砂糖也行 |
 | 柠檬汁 | **ReaLemon** / 鲜柠檬 | 鲜柠檬更便宜 | 或 white vinegar 替代 |
-| **8 oz ramekin** | 厨具区（Pyrex / Crate&Barrel） | 也有，约 $3–5/只 | 关键词：**8 oz porcelain ramekin**。**必须是陶瓷或玻璃**，不要金属；2 个起买（家用量刚好） |
+| **8 oz ramekin** | 厨具区（Pyrex / Crate&Barrel） | 也有，约 \$3–5/只 | 关键词：**8 oz porcelain ramekin**。**必须是陶瓷或玻璃**，不要金属；2 个起买（家用量刚好） |
 | **深烤盘** | 厨具区 | 也有 | 关键词：**deep roasting pan / baking pan with at least 1 inch depth**，能装下 ramekin 且加得下热水 |
 
 ## 小贴士

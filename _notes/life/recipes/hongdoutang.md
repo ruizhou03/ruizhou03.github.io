@@ -65,7 +65,7 @@ published: true
 
 | 食材 | Walmart 货架 | 亚超 | 备注 |
 |------|-------------|------|------|
-| 红小豆 | **Eden Foods Organic Adzuki Beans**（15 oz ~$4） / **Bob's Red Mill Adzuki Beans** | **红小豆 / 红豆**散装更便宜（$2/lb） | **不是 Red Kidney Beans（腰豆）！**——腰豆 × 2 大、颜色更深、煮出的汤发黑 |
+| 红小豆 | **Eden Foods Organic Adzuki Beans**（15 oz ~\$4） / **Bob's Red Mill Adzuki Beans** | **红小豆 / 红豆**散装更便宜（\$2/lb） | **不是 Red Kidney Beans（腰豆）！**——腰豆 × 2 大、颜色更深、煮出的汤发黑 |
 | 冰糖 | ⚠️ Walmart 没有「中式冰糖」 | **黄冰糖 / 单晶冰糖** | 风味最正；替代 **Turbinado Sugar**（粗糖） |
 | 红糖 | **Dark Brown Sugar** | **古法红糖 / 土红糖** | 古法红糖风味浓郁；Dark Brown Sugar 够用 |
 | 赤藓糖醇 | **Swerve / Lakanto Monk Fruit** | 有 | 减脂版 |

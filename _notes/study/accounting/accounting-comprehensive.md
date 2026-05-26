@@ -705,7 +705,7 @@ Bonds are often denominated with a par value, or face value. The principal is pa
 
 **Notes:**
 
-1. Bond prices are usually quoted as a percentage of the face amount. (e.g. a $1000 bond priced at 102 would sell for $1020.)
+1. Bond prices are usually quoted as a percentage of the face amount. (e.g. a \$1000 bond priced at 102 would sell for \$1020.)
 2. At the year-end bond interest adjusting entry is to be made, transforming bond interest payable to bond interest expense.
 
 $$\text{Selling price of the bond} = \text{Present value of the bond} + \text{Accrued interest since the last interest payment}$$
@@ -931,7 +931,7 @@ The correction of an error identified as affecting net income in a prior period.
 ### 8.13 Stock-Based Compensation
 
 - **Stock Option** is an option (but not the obligation) to purchase a share of the company's stock at a specified price (“strike price”) in the future. If and when the option is exercised, employee pays strike price to company and receives a share.
-- **Restricted Stock Units** are a promise to deliver shares to the employee at a future date (accounted for as options with $0 strike price).
+- **Restricted Stock Units** are a promise to deliver shares to the employee at a future date (accounted for as options with \$0 strike price).
 
 ### 8.14 Comprehensive Income
 

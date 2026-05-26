@@ -83,7 +83,7 @@ published: true
 | 玉米淀粉 | **Corn Starch**（Argo 黄色罐） | 也有 | 不要 cornmeal（玉米粉） |
 | 鲜香菇 | **Shiitake Mushrooms**（Whole Foods / Trader Joe's） | 亚超最常见、最便宜 | **干香菇替代**：10 g 干香菇 + 300 ml 温水泡 30 min，泡香菇的水替换一部分底汤，鲜味 double |
 | 生姜 | **Fresh Ginger Root** | 也有 | 嫩姜味更正 |
-| 香菜 | **Cilantro**（Coriander） | 也有 | 一小把 ~$0.5 |
+| 香菜 | **Cilantro**（Coriander） | 也有 | 一小把 ~\$0.5 |
 | 白胡椒粉 | **Ground White Pepper**（McCormick） | 也有 | **必须白胡椒** —— 黑胡椒会让汤发黑 |
 | 生抽 | **Kikkoman Soy Sauce** | 也有 | 不要老抽，老抽会染汤色 |
 | 芝麻油 | **Toasted Sesame Oil**（Kadoya 金色瓶 / Kikkoman） | 也有 | Kadoya 是日产，香气最正 |

@@ -103,7 +103,7 @@ pdf_url: "/files/adv-micro-psu/adv-micro-psu-lecture-notes.pdf"
 
 这是我最坚持的一条。每个 theorem 上面我都会先用一段大白话讲：**这是在解什么问题？和前面的工具有什么关系？为什么是这个形式？**
 
-举个例子，Mechanism Design 那章里 information rent $\frac{1-F(x)}{f(x)}$ 这个 hazard rate 项。我没有上来就给公式，而是先讲：seller 想让 type $x$ 中标，但所有比 $x$ 更高的 type 都可以装作 $x$ 来骗中标，所以 seller 必须给他们留下 surplus 才能阻止；高于 $x$ 的人有多少？正是 $1-F(x)$ 这个概率质量；除以本地密度 $f(x)$ 把总成本 normalize 成 marginal cost——于是 $(1-F)/f$ 自然出现。
+举个例子，Mechanism Design 那章里 information rent $\frac{1-F(x)}{f(x)}$ 这个 hazard rate 项。我没有上来就给公式，而是先讲：seller 想让 type $x$ 中标，但所有比 $x$ 更高的 type 都可以装作 $x$ 来骗中标，所以 seller 必须给他们留下 surplus 才能阻止；高于 $x$ 的人有多少？正是 \$1-F(x)$ 这个概率质量；除以本地密度 $f(x)$ 把总成本 normalize 成 marginal cost——于是 $(1-F)/f$ 自然出现。
 
 这样上手再看公式就不会觉得是从天而降的。
 

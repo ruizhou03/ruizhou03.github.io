@@ -68,7 +68,7 @@ published: true
 | 巴沙鱼片 | 冷冻鱼区 **Swai fillets**（也叫 basa / pangasius）| **也有，通常更便宜** | **Swai = 巴沙鱼**，认这个词就对了；规格选 4–8 oz/片；**不要用 tilapia**——水分大、口感散 |
 | 番茄 | **Roma tomatoes**（专用来做酱） / **Cherry tomatoes**（小番茄） | 也有 | Roma 番茄肉多、汁少、熬汤浓郁；「牛排番茄 beefsteak」太水汪，不推荐 |
 | Angel hair 意面 | **Barilla Angel Hair** / **De Cecco Capellini** | Trader Joe's 也有 | 最细的意面；**不要用 spaghetti**（太粗、煮 2 分钟不软） |
-| 香菜 | **Cilantro**（蔬菜区，一把约 $1）| 也有 | 不吃香菜可省略，用葱花加倍替代 |
+| 香菜 | **Cilantro**（蔬菜区，一把约 \$1）| 也有 | 不吃香菜可省略，用葱花加倍替代 |
 | 葱 | **Scallions / green onions** | 也有 | |
 | 料酒 | 亚洲货架 | **Shaoxing cooking wine** | |
 | 白胡椒 | **Ground white pepper** | 也有 | |

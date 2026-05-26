@@ -53,7 +53,7 @@ $$K = \frac{[HxR] + [Hx]}{[ATP] + [ADP] + [AMP] + [IMP] + [HxR] + [Hx]} \times 1
 - 0 ℃ 冰水：每天 K 值上升约 $5\text{-}10\%$
 - 4 ℃ 冰箱：每天 K 值上升约 $10\text{-}15\%$
 - 室温 20 ℃：几小时就能从极鲜衰减到不能吃
-- **$-18$ ℃ 冷冻**：生化反应几乎暂停（速率降至 $1/100$），K 值一周内仅小幅上升
+- **$-18$ ℃ 冷冻**：生化反应几乎暂停（速率降至 \$1/100$），K 值一周内仅小幅上升
 - **$-30$ ℃ 急冻**：完全暂停
 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" style="max-width:100%;height:auto;display:block;margin:1.2em auto;">

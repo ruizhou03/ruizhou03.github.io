@@ -83,17 +83,17 @@ published: true
 
 | 食材 | Walmart 货架 | 亚超 | 备注 |
 |------|-------------|------|------|
-| 小葱 | **Green Onions / Scallions**（1 把 ~$1） | 也有 | 150 g ≈ 2 把；务必新鲜（叶尖发黄的不要） |
+| 小葱 | **Green Onions / Scallions**（1 把 ~\$1） | 也有 | 150 g ≈ 2 把；务必新鲜（叶尖发黄的不要） |
 | 洋葱 | **Yellow Onion** | 也有 | 用 Yellow 不用 Sweet / Red |
-| 植物油 | **Canola Oil / Vegetable Oil / Corn Oil**（$4–6 / 48 oz） | 也有 | **必须用中性无味油**；**不能用橄榄油**（烟点低 190 ℃，熬到焦） |
+| 植物油 | **Canola Oil / Vegetable Oil / Corn Oil**（\$4–6 / 48 oz） | 也有 | **必须用中性无味油**；**不能用橄榄油**（烟点低 190 ℃，熬到焦） |
 | 生抽 | **Kikkoman Soy Sauce**（绿盖） | 也有 | 咸味提供者 |
 | 老抽 | ⚠️ Walmart 部分店没有 | **Pearl River Bridge Superior Dark Soy Sauce** | 上色关键，没有可以加 10 ml 生抽 + 5 g 红糖代替（颜色略浅） |
 | 冰糖 / 白糖 | **Granulated Sugar** 或 **Rock Sugar**（亚超） | 有 | 冰糖溶解后汁更亮；白糖够用 |
 | 赤藓糖醇 | **Swerve / Lakanto**（生酮区） | 有 | 低卡版本 |
 | 花椒 | **Sichuan Peppercorns**（Spice Islands / 大亚超） | **花椒**（红袍） | 可选，有了风味升一档 |
 | 八角 | **Star Anise**（McCormick 瓶装） | 有 | 可选 |
-| **玻璃密封罐** | **Mason Jar**（Ball 品牌）16 oz = 500 ml，$2/个 | — | 配橡胶密封盖，防氧化 |
-| **细目滤网** | **Fine Mesh Strainer** Walmart 家居区 $5 | — | 过滤油渣必备 |
+| **玻璃密封罐** | **Mason Jar**（Ball 品牌）16 oz = 500 ml，\$2/个 | — | 配橡胶密封盖，防氧化 |
+| **细目滤网** | **Fine Mesh Strainer** Walmart 家居区 \$5 | — | 过滤油渣必备 |
 
 ## 小贴士
 

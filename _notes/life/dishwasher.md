@@ -263,7 +263,7 @@ keywords: ["洗碗机原理", "洗碗机和手洗区别", "洗碗机要先冲一
 - **Finish Powerball / Cascade Platinum**：高端版本
 - **Finish Quantum** / Cascade Action Pacs：胶囊型，单次单颗
 
-价格：¥0.8-2.5 / 颗（中国）/ $0.20-0.40 / 颗（美国）
+价格：¥0.8-2.5 / 颗（中国）/ \$0.20-0.40 / 颗（美国）
 
 **洗碗粉 / 洗碗液**：
 

@@ -87,14 +87,14 @@ published: true
 
 | 食材 | Walmart 货架 | 亚超 | 备注 |
 |------|-------------|------|------|
-| 牛后腿肉 | **Bottom Round Steak / Roast**（肉档，~$6/lb） | 也有 | 瘦肉之王、健身性价比最高；**必须 0.3 cm 薄切 + 逆纹**才不柴。买预切的更省事 |
+| 牛后腿肉 | **Bottom Round Steak / Roast**（肉档，~\$6/lb） | 也有 | 瘦肉之王、健身性价比最高；**必须 0.3 cm 薄切 + 逆纹**才不柴。买预切的更省事 |
 | **替代**：眼肉 / 肥牛片 | **Ribeye** | 亚超冷冻区 **Hot Pot Beef Slices** | 预算充足或想更嫩 → Ribeye；最省事 → 肥牛片直接下锅（跳过改刀） |
-| 洋葱 | **Yellow Onion**（黄洋葱，~$1 / 个） | 也有 | 黄洋葱甜味足、焦糖化好；**红洋葱太冲**不推荐 |
-| 彩椒 | **Bell Pepper**（红 / 黄 / 青各 1 个，~$1 / 个） | 也有 | 3 色混合颜值最佳；纯功能党可省略（省 $3、不影响味道） |
+| 洋葱 | **Yellow Onion**（黄洋葱，~\$1 / 个） | 也有 | 黄洋葱甜味足、焦糖化好；**红洋葱太冲**不推荐 |
+| 彩椒 | **Bell Pepper**（红 / 黄 / 青各 1 个，~\$1 / 个） | 也有 | 3 色混合颜值最佳；纯功能党可省略（省 \$3、不影响味道） |
 | 蚝油 | **Lee Kum Kee Premium Oyster Sauce**（李锦记红盖） / **Kikkoman** | 也有 | **LKK 红盖**比蓝盖风味深 30%，值得上 |
 | 生抽 | **Kikkoman Soy Sauce** / **Pearl River Bridge Light Soy** | 亚超更全 | 不要用老抽（颜色太深、太咸） |
 | 料酒 | **Shaoxing Cooking Wine**（绍兴料酒，亚超 / Walmart 亚洲区） | 亚超 | 买**黄标签的**，不要带盐的「Cooking Wine with Salt」——会破坏本方咸度 |
-| 玉米淀粉 | **Corn Starch**（Argo，$2） | 也有 | |
+| 玉米淀粉 | **Corn Starch**（Argo，\$2） | 也有 | |
 | 黑胡椒 | **McCormick Ground Black Pepper** / 现磨 Whole Peppercorn | 也有 | 腌肉用细粉省事；**黑椒汁的 1 g 建议现磨粗颗粒**——风味强 2 倍 |
 | 糖 | **Granulated Sugar**（白砂糖） | 也有 | 2 g 是微甜平衡不是甜菜——不敢放糖的请按剂量来，放了才好吃 |
 

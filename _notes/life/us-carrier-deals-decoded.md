@@ -14,7 +14,7 @@ keywords: ["美国合约机", "免费 iPhone", "bill credit", "话费分期", "E
 
 - **想搞清楚原理的人**——刚从国内来，看到 T-Mobile 海报上“FREE iPhone 16!”懵了——这玩意儿真的免费吗？运营商图什么？
 - **想做做看的人**——听同学 / 室友说“我去年通过 T-Mobile 套了一台 iPhone，几乎没花钱”，想知道这是不是真的、自己能不能复刻
-- **怕被坑的人**——签过一次 Verizon “免费手机”合约现在每月被扣 $100 莫名其妙，想搞清楚自己签的是什么
+- **怕被坑的人**——签过一次 Verizon “免费手机”合约现在每月被扣 \$100 莫名其妙，想搞清楚自己签的是什么
 
 文章基调：**机制解读 + 风险警示**——不是“如何套利的步骤教程”，但讲清楚机制后我会**具体到数字**告诉你哪些路径是正期望值、哪些是亏本陷阱、哪些走灰色边界。**留学生绝大多数情况不应该玩**——但**理解机制本身有长期价值**。
 
@@ -26,9 +26,9 @@ keywords: ["美国合约机", "免费 iPhone", "bill credit", "话费分期", "E
 
 **真正能套利的场景**（极少数）：
 
-1. **Add-a-line（家庭计划加一条线）+ 转卖 iPhone**：每月加线费 ~$10-$15，拿一部 promo 价 iPhone 立刻 Swappa 卖 $800-$900，36 个月持线净赚 $200-$500
-2. **Switcher promo**：每 18-24 个月在 T-Mobile / Verizon / AT&T 间互相跳，每跳一次拿 $200-$500 bill credit
-3. **Trade-in 套利**：低价收旧 iPhone（$50-$150）抵 $800-$1000 的 trade-in credit，差价就是利润
+1. **Add-a-line（家庭计划加一条线）+ 转卖 iPhone**：每月加线费 ~\$10-\$15，拿一部 promo 价 iPhone 立刻 Swappa 卖 \$800-\$900，36 个月持线净赚 \$200-\$500
+2. **Switcher promo**：每 18-24 个月在 T-Mobile / Verizon / AT&T 间互相跳，每跳一次拿 \$200-\$500 bill credit
+3. **Trade-in 套利**：低价收旧 iPhone（\$50-\$150）抵 \$800-\$1000 的 trade-in credit，差价就是利润
 
 **陷阱**（多数人想薅但实际亏）：
 
@@ -49,12 +49,12 @@ keywords: ["美国合约机", "免费 iPhone", "bill credit", "话费分期", "E
 
 **实际发生的事情**：
 
-1. iPhone 16 售价 $799 → **拆成 36 个月分期** = $22.20/月
+1. iPhone 16 售价 \$799 → **拆成 36 个月分期** = \$22.20/月
    - 这叫 **EIP**（Equipment Installment Plan，T-Mobile）/ **DPP**（Device Payment Plan，Verizon）/ **Next**（AT&T）
-2. T-Mobile 给你 **$799 bill credit** → 但**不是一次性发**，而是 **36 个月每月 $22.20** 加在账单 credit
-3. 每月账单大致 = 月费（$70）+ 手机分期（$22.20）- bill credit（$22.20）= **$70**
+2. T-Mobile 给你 **\$799 bill credit** → 但**不是一次性发**，而是 **36 个月每月 \$22.20** 加在账单 credit
+3. 每月账单大致 = 月费（\$70）+ 手机分期（\$22.20）- bill credit（\$22.20）= **\$70**
 
-**结论**：你“免费”得到 iPhone，但**前提是你乖乖用 36 个月**——这本质是 T-Mobile 用“免费手机”绑你 36 个月套餐。**手机不是真的免费——你付的是 36 × $70 = $2,520 套餐费**。
+**结论**：你“免费”得到 iPhone，但**前提是你乖乖用 36 个月**——这本质是 T-Mobile 用“免费手机”绑你 36 个月套餐。**手机不是真的免费——你付的是 36 × \$70 = \$2,520 套餐费**。
 
 **关键合同条款**（每家都类似）：
 
@@ -62,12 +62,12 @@ keywords: ["美国合约机", "免费 iPhone", "bill credit", "话费分期", "E
 
 翻译：**提前注销 / 提前结清 → 剩余 bill credit 立即停止 → 剩余手机分期一次性付清**。
 
-**举个具体例子**：办了 promo 用了 12 个月，已收到 12 × $22.20 = $266 bill credit。第 13 个月想提前结清——
+**举个具体例子**：办了 promo 用了 12 个月，已收到 12 × \$22.20 = \$266 bill credit。第 13 个月想提前结清——
 
-- 剩余 24 个月 × $22.20 = **$533 一次性付清**
+- 剩余 24 个月 × \$22.20 = **\$533 一次性付清**
 - 同时**剩余 24 个月的 bill credit 全部消失**（forfeited）
-- 净结果：你为 iPhone 付了 $533，比原价 $799 便宜 $266——但**你已经付了 12 个月的月费 $840**，加起来 $1,373 总开销
-- 即便你立刻把 iPhone 转卖 $800（Swappa 二手价），净亏 $573
+- 净结果：你为 iPhone 付了 \$533，比原价 \$799 便宜 \$266——但**你已经付了 12 个月的月费 \$840**，加起来 \$1,373 总开销
+- 即便你立刻把 iPhone 转卖 \$800（Swappa 二手价），净亏 \$573
 
 **所以“养几个月再提前还款”≠ 套利**——这是给运营商打工。
 
@@ -78,15 +78,15 @@ keywords: ["美国合约机", "免费 iPhone", "bill credit", "话费分期", "E
 ## 4.1 New Line Promo（“开新线送 iPhone”）
 
 - **要求**：开**新一条 line**（不是续约 / 升级现有线）
-- **典型回报**：iPhone 16 免费 / iPhone 16 Pro $400 折扣
+- **典型回报**：iPhone 16 免费 / iPhone 16 Pro \$400 折扣
 - **绑定**：36 个月 + 该 line 必须保持 active + 月费 unlimited 起
-- **Add-a-line 是子类**：家庭计划上加一条线（不开主套餐），加线费 $10-$15/月，享受同样 promo
+- **Add-a-line 是子类**：家庭计划上加一条线（不开主套餐），加线费 \$10-\$15/月，享受同样 promo
 - **常见 carrier**：T-Mobile / Verizon / AT&T 都常推
 
 ## 4.2 Trade-in Promo（“用旧机抵新机”）
 
 - **要求**：交一部“符合条件的旧 iPhone / Android”
-- **典型回报**：旧 iPhone 抵 $800-$1000（甚至是状态很差的也给满额）
+- **典型回报**：旧 iPhone 抵 \$800-\$1000（甚至是状态很差的也给满额）
 - **绑定**：交了旧机 + 36 个月分期新机 + 套餐
 - **关键点**：**trade-in 价远高于公允市场价**——这是 carrier 给你的“假抵扣”
 - **暗坑**：旧机 trade-in 后**立刻验机**——状态不达标 carrier 会**降低抵扣**或**寄回**，但你的合同已签
@@ -94,7 +94,7 @@ keywords: ["美国合约机", "免费 iPhone", "bill credit", "话费分期", "E
 ## 4.3 Switcher Promo（“携号转网送钱”）
 
 - **要求**：从另一家 carrier 转过来 + porting your number
-- **典型回报**：$200-$500 prepaid Mastercard / virtual Visa / bill credit
+- **典型回报**：\$200-\$500 prepaid Mastercard / virtual Visa / bill credit
 - **绑定**：通常 24 个月内不能再走（再走奖金被追回）
 - **频次**：T-Mobile / Verizon / AT&T 每 1-2 年互相挖墙脚一轮——**长期跟踪有羊毛**
 
@@ -105,12 +105,12 @@ keywords: ["美国合约机", "免费 iPhone", "bill credit", "话费分期", "E
 | 玩法 | 期望值 | 难度 | 风险 | 留学生友好度 |
 |---|---|---|---|---|
 | **乖乖待 36 个月用 promo 手机**（promo 设计本意）| ✅ 正（手机几乎免费）| 0 | 0 | ✅ 长期居留 OK |
-| **Add-a-line + 立刻转卖 iPhone + 持线 36 月** | ✅ **正 $200-$500** | 中 | 中 | ⚠️ 信用 + 长期居留 |
-| **Switcher promo（每 18-24 月跳运营商）** | ✅ **正 $300-$1000/年** | 低 | 低 | ⚠️ 看长期居留 |
-| **Trade-in 套利（低价收旧机抵高额 trade-in）**| ✅ **正 $300-$700** | 高 | 中 | ⚠️ 信用 + 关注 trade-in 细则 |
-| **Referral 链（介绍朋友拿奖金）**| ✅ 正 $50-$100/单 | 0 | 0 | ✅ 完全合法 |
+| **Add-a-line + 立刻转卖 iPhone + 持线 36 月** | ✅ **正 \$200-\$500** | 中 | 中 | ⚠️ 信用 + 长期居留 |
+| **Switcher promo（每 18-24 月跳运营商）** | ✅ **正 \$300-\$1000/年** | 低 | 低 | ⚠️ 看长期居留 |
+| **Trade-in 套利（低价收旧机抵高额 trade-in）**| ✅ **正 \$300-\$700** | 高 | 中 | ⚠️ 信用 + 关注 trade-in 细则 |
+| **Referral 链（介绍朋友拿奖金）**| ✅ 正 \$50-\$100/单 | 0 | 0 | ✅ 完全合法 |
 | **DoC promo bug（系统错误给超额 credit）**| ✅ 极正（罕见）| 高（要快）| 低 | ✅ 但靠运气 |
-| **办 promo + 提前结清 + 注销** | ❌ **负（亏 $300-$700）**| 0 | 中 | ❌ 千万别 |
+| **办 promo + 提前结清 + 注销** | ❌ **负（亏 \$300-\$700）**| 0 | 中 | ❌ 千万别 |
 | **办 promo + 不付月费 default** | ❌ **极负（信用爆炸）**| 0 | **极高**| ❌ 别想 |
 | **同时多账户开多线套利** | ⚠️ 可能正但被识别黑名单 | 高 | 高 | ❌ 灰色边界 |
 
@@ -122,10 +122,10 @@ keywords: ["美国合约机", "免费 iPhone", "bill credit", "话费分期", "E
 
 **操作流程**：
 
-1. 在主账户上 **add a new line**（T-Mobile 加线费一般 $10-$15/月）
+1. 在主账户上 **add a new line**（T-Mobile 加线费一般 \$10-\$15/月）
 2. 在加线流程里**选 promo**（“加线送免费 iPhone 16"）
 3. 拿到 iPhone 16（new in box）
-4. **立刻在 Swappa / eBay / Facebook Marketplace 卖**（new sealed iPhone 二手价 = ~$800-$880，原价 $799）
+4. **立刻在 Swappa / eBay / Facebook Marketplace 卖**（new sealed iPhone 二手价 = ~\$800-\$880，原价 \$799）
 5. 这条新线**保留 36 个月**——SIM 不放任何手机里也行（或者放进一个备用机做”号码池“）
 6. 36 个月后约满，可以注销
 
@@ -144,8 +144,8 @@ keywords: ["美国合约机", "免费 iPhone", "bill credit", "话费分期", "E
 **注意点**：
 
 - iPhone 必须是 **unlocked** 才能卖好价（要 carrier ”unlock“ 设备——多数 carrier 60-90 天 active 后可以申请 unlock）
-- **lock 状态的 iPhone 二手价低 $100-$150**——所以最理想是等 unlock 后再卖
-- 加线月费可能比 $13 高（看具体 plan）—— 算清楚再操作
+- **lock 状态的 iPhone 二手价低 \$100-\$150**——所以最理想是等 unlock 后再卖
+- 加线月费可能比 \$13 高（看具体 plan）—— 算清楚再操作
 - 36 个月不能换主账户、不能注销
 
 **这个玩法最大的”灰色“**：carrier 假设你拿了手机会**实际使用这条线**——你不放 SIM 但保留付费符合合同字面，但碰上特别严的 carrier 反欺诈系统**理论上**会被怀疑（实际上几乎从不发生，因为你按时付月费）。
@@ -156,13 +156,13 @@ keywords: ["美国合约机", "免费 iPhone", "bill credit", "话费分期", "E
 
 **操作循环**（每 18-24 个月一次）：
 
-1. 现有运营商：**T-Mobile**，月费 $70
-2. **看到 Verizon switcher promo**：”Switch from T-Mobile to us, get $500 prepaid card + iPhone discount“
+1. 现有运营商：**T-Mobile**，月费 \$70
+2. **看到 Verizon switcher promo**：”Switch from T-Mobile to us, get \$500 prepaid card + iPhone discount“
 3. **执行 number porting**（保留号码换运营商）
-4. 拿到 $500 prepaid Visa（通常 6-8 周后寄到）
+4. 拿到 \$500 prepaid Visa（通常 6-8 周后寄到）
 5. 用 18-24 个月（满足 promo 期）
 6. 下一轮**再换回 T-Mobile**（T-Mobile 此时通常也有 switcher promo）
-7. 拿 $300-$500 again
+7. 拿 \$300-\$500 again
 
 **净算账**（2 年周期）：
 
@@ -175,7 +175,7 @@ $500 (Verizon switcher 第一次)
 
 **注意点**：
 
-- 月费可能略涨（运营商之间有差异），但通常差异 $5-$10/月
+- 月费可能略涨（运营商之间有差异），但通常差异 \$5-\$10/月
 - 这个玩法**对信用分要求最低**——只要能开账户即可
 - **每次换运营商要重新办 trade-in / 重新设置自动支付 / 重新装家人副线**——时间成本高
 - 留学生玩这个的最大障碍：**Switcher prepaid card 通常寄到家庭地址**，毕业搬家 / 跨州时麻烦
@@ -186,11 +186,11 @@ $500 (Verizon switcher 第一次)
 
 **操作流程**：
 
-1. 在 Facebook Marketplace / Craigslist / eBay 买**屏幕坏 / 不开机的旧 iPhone**——状态再差也能 trade-in，价格通常 $50-$150
+1. 在 Facebook Marketplace / Craigslist / eBay 买**屏幕坏 / 不开机的旧 iPhone**——状态再差也能 trade-in，价格通常 \$50-\$150
 2. 关键：**iPhone 必须是 iCloud 已解锁 + 不在挂失列表**（买的时候验证）
-3. 在运营商 promo 中选 trade-in 那部 iPhone（可能 trade-in 价 $800）
+3. 在运营商 promo 中选 trade-in 那部 iPhone（可能 trade-in 价 \$800）
 4. 拿新 iPhone 16
-5. 转卖新 iPhone 16 ~$800（如果新机锁定就不卖、自己用）
+5. 转卖新 iPhone 16 ~\$800（如果新机锁定就不卖、自己用）
 
 **净算账**：
 
@@ -239,8 +239,8 @@ $500 (Verizon switcher 第一次)
   <text x="615" y="285" text-anchor="middle" font-size="10" fill="#666">30</text>
   <text x="700" y="285" text-anchor="middle" font-size="10" fill="#666">36</text>
 
-  <!-- 曲线：开局 +$800（卖手机），每月 -$13（加线费） -->
-  <!-- 月 0: y = 50（+$800）；月 36: y = 50 + (468/800)*108 ≈ 50+63 = 113（约 +$332） -->
+  <!-- 曲线：开局 +\$800（卖手机），每月 -\$13（加线费） -->
+  <!-- 月 0: y = 50（+\$800）；月 36: y = 50 + (468/800)*108 ≈ 50+63 = 113（约 +\$332） -->
   <polyline points="80,160 80,50 700,113" fill="none" stroke="#2980b9" stroke-width="2.5"/>
 
   <!-- 关键点 -->
@@ -276,11 +276,11 @@ $500 (Verizon switcher 第一次)
 | **”unredeemed credits will stop“** | 剩余未领的 credits 立即停止 | 提前注销 / 还款时触发 |
 | **”forfeited“** | 已发放的 credits 被追回（claw back）| 极少见但有可能 |
 | **”activation locked“ / ”carrier locked“** | 设备绑死在该 carrier 上 | 60-90 天内不能在其他 carrier 用 |
-| **”early termination fee (ETF)“** | 提前解约费 | 通常 $200-$350（虽然多数 carrier 已废除）|
+| **”early termination fee (ETF)“** | 提前解约费 | 通常 \$200-\$350（虽然多数 carrier 已废除）|
 | **”line must remain active“** | 该线必须保持 active | 注销线 = bill credit 全停 |
 | **”must port-in / new line“** | 必须满足开新线 / 携号转入条件 | 升级现有线不算 |
 | **”trade-in must meet condition guidelines“** | 旧机必须达标 | 评估不达标会降低抵扣 |
-| **”must enroll in autopay“** | 必须开自动支付 | 关 autopay = 月费 +$5-$10 |
+| **”must enroll in autopay“** | 必须开自动支付 | 关 autopay = 月费 +\$5-\$10 |
 | **”24/36-month term“** | 绑定期 | 期内换 carrier 触发提前结清 |
 | **”IMEI block“** | 设备序列号被锁 | 拖欠分期 / 涉嫌欺诈，IMEI 被全运营商系统拉黑——**新机变砖**|
 
@@ -312,7 +312,7 @@ $500 (Verizon switcher 第一次)
 
 ## 8.3 IRS 1099 报税
 
-**Switcher prepaid Visa / referral bonus / promo cash 累积到一定金额**（一般 > $600/年），**carrier 会发 1099-MISC**——这部分**算 taxable income**。
+**Switcher prepaid Visa / referral bonus / promo cash 累积到一定金额**（一般 > \$600/年），**carrier 会发 1099-MISC**——这部分**算 taxable income**。
 
 留学生 F-1 报税多数走 1040NR，**这些 promo 收入要申报**——年底如果 carrier 给你寄了 1099 而你没报，IRS 几年后会查到（连带利息和罚款）。
 
@@ -341,7 +341,7 @@ $500 (Verizon switcher 第一次)
 
 **90% 的留学生应该走 [Mint / Visible / US Mobile 的 MVNO 路线](/life/us-phone-plans)**——
 
-- 月费 $15-$30
+- 月费 \$15-\$30
 - 0 合约 / 0 绑定
 - iPhone 自己 Apple Store 买（信用卡 24 期 0 利率）
 - 总开销算下来比”免费 iPhone + 36 月套餐“还便宜，更灵活
@@ -358,14 +358,14 @@ $500 (Verizon switcher 第一次)
 
 - 当下用任意 carrier
 - 等下一个 Verizon / T-Mobile / AT&T 的 switcher promo（DoC 上能查到当下力度最大的）
-- 携号转网 → 拿 $500 prepaid card → 用 18-24 个月
+- 携号转网 → 拿 \$500 prepaid card → 用 18-24 个月
 
-风险低、操作简单、利润 $400-$500/年。
+风险低、操作简单、利润 \$400-\$500/年。
 
 **第二步**：观察家庭计划机会
 
 - 找几个室友 / 同学组家庭计划
-- 主账户开 T-Mobile / Verizon family plan（4-6 条线，人均 $30）
+- 主账户开 T-Mobile / Verizon family plan（4-6 条线，人均 \$30）
 - 任何人换手机时，**add a new line 拿 promo iPhone**
 - 36 月后约满
 
@@ -397,4 +397,4 @@ $500 (Verizon switcher 第一次)
 5. **各 carrier 合同详细页**：T-Mobile / Verizon / AT&T 的 promo 详情底部都有 ”Important Information“ 链接，**必读**
 6. **[一亩三分地”美国生活“版块](https://www.1point3acres.com/bbs/forum-178-1.html)** —— 中文圈实战经验
 
-最后说一件事——**这套机制最让人不舒服的不是”有羊毛“，而是它把 36 个月的承诺包装成”免费“**。合约机 promo 的真正受众是**新移民 + 信用低 + 不会算账的消费者**——用一句”FREE iPhone!“让他们签 36 个月套餐。中国大陆背景留学生**逻辑思维强 / 数学好 / 喜欢算账**——是这套游戏里**少数能看穿规则的人**。但**看穿规则不等于必须参与游戏**——绝大多数人理性选择是 **MVNO + Apple Store 自己分期买手机**，省心、灵活、净开销其实差不多。**最值得花的 30 分钟是把这套机制弄懂，最不值得花的时间是为省 $300 签下 36 个月的不可逆合约。**
+最后说一件事——**这套机制最让人不舒服的不是”有羊毛“，而是它把 36 个月的承诺包装成”免费“**。合约机 promo 的真正受众是**新移民 + 信用低 + 不会算账的消费者**——用一句”FREE iPhone!“让他们签 36 个月套餐。中国大陆背景留学生**逻辑思维强 / 数学好 / 喜欢算账**——是这套游戏里**少数能看穿规则的人**。但**看穿规则不等于必须参与游戏**——绝大多数人理性选择是 **MVNO + Apple Store 自己分期买手机**，省心、灵活、净开销其实差不多。**最值得花的 30 分钟是把这套机制弄懂，最不值得花的时间是为省 \$300 签下 36 个月的不可逆合约。**

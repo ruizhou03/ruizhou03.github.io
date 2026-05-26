@@ -106,7 +106,7 @@ published: true
 | Better Than Bouillon Beef Base | 汤料区**红色玻璃罐 BTB Beef Base** | 较少见 | 1/2 tsp 即可，可换 1 块 Knorr 牛肉浓汤宝（减盐 0.5 g）；也可换鸡精 3 g |
 | 生姜 | **Fresh Ginger Root** | 也有 | 必须新鲜姜——粉末姜出不了去腥效果 |
 | 小葱 | **Scallions / Green Onions** | 也有 | |
-| 香菜 | **Cilantro / Coriander** | 也有 | 一把 ~$0.5；不吃香菜可省，但鲜味会差一截 |
+| 香菜 | **Cilantro / Coriander** | 也有 | 一把 ~\$0.5；不吃香菜可省，但鲜味会差一截 |
 | 玉米淀粉 | **Corn Starch**（Argo 黄罐） | 也有 | 不要 cornmeal（玉米粉） |
 | 生抽 | **Kikkoman Soy Sauce** | **Pearl River Bridge / Lee Kum Kee 生抽** | 不要老抽，老抽会染汤色 |
 | 料酒 | ⚠️ Walmart 没有 | **Pagoda 料酒** / **Shaoxing 黄酒** | 替代：**Dry Sherry**（Walmart 有）等量替换效果 90% |
@@ -138,4 +138,4 @@ published: true
   - **鲜虾版**：加 80 g 虾仁（与鱼片同时下锅），鲜味 +30%
   - **海鲜羹**：再加 50 g 蟹肉棒（或真蟹肉）+ 10 g 干贝（提前泡发），变身闽南小海鲜羹
   - **简清淡版**：去鸡蛋只用蛋清（半个 ≈ 30 g），汤色清亮如西湖羹
-- **为什么用 Beef Base 而不是鸡精**：BTB 牛骨浓汤底味更醇厚、不像鸡精那样**单一鲜味尖**，配淡水鱼能压住土腥并补充矿物感；Walmart 红罐 ~$5，能用 30 顿
+- **为什么用 Beef Base 而不是鸡精**：BTB 牛骨浓汤底味更醇厚、不像鸡精那样**单一鲜味尖**，配淡水鱼能压住土腥并补充矿物感；Walmart 红罐 ~\$5，能用 30 顿

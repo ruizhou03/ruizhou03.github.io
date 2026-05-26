@@ -93,7 +93,7 @@ published: true
 | 无盐黄油 | **Unsalted butter**（Land O'Lakes / Kerrygold） | **Kerrygold** 爱尔兰草饲黄油 —— 风味最浓，值得这一次投资 |
 | 海盐 | **Kosher salt**（Diamond Crystal / Morton） | 颗粒大、挂肉稳定；**不要用 table salt**（太细会过咸） |
 | 黑胡椒 | **Whole peppercorns + pepper mill** | **必须现磨**——预磨的粉没香气；McCormick 的黑胡椒磨瓶是入门好选择 |
-| 迷迭香 | **Fresh Rosemary**（蔬菜区小盒装 ~$3） | 新鲜 > 干的；一次买一小盒用 3 次 |
+| 迷迭香 | **Fresh Rosemary**（蔬菜区小盒装 ~\$3） | 新鲜 > 干的；一次买一小盒用 3 次 |
 | 百里香 | **Fresh Thyme** | 可选，和迷迭香组合风味更复杂 |
 | 植物油 | **Avocado oil / Canola oil** | **高烟点油**——Avocado oil 烟点 271 ℃、Canola 204 ℃；**禁止橄榄油**（烟点 160 ℃ 会冒黑烟） |
 | 海盐片（装饰） | **Maldon Sea Salt Flakes** | 可选；英国产方片海盐，切牛排前撒一点提升 400% 质感 |

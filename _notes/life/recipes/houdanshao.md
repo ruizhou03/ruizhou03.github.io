@@ -86,15 +86,15 @@ published: true
 | 白糖 / 赤藓糖醇 | **Granulated Sugar** / **Swerve** | 也有 | |
 | 白萝卜 | **Daikon Radish**（部分 Walmart 有 / 亚超更便宜） | 有 | 擦泥当装盘，**酶帮助消化油脂** |
 | 小葱 | **Scallions** | 也有 | |
-| **玉子烧锅** | ⚠️ 线下罕见 | Amazon / 日本 Daiso | **Techef 玉子烧锅 $30**（中高端，Made in Korea）/ **Nordic Ware Tamagoyaki Pan $20**（实用） |
-| **细滤网** | **Fine Mesh Strainer**（Walmart 家居区 $5）| 也有 | 过滤蛋液必备工具 |
-| 卷帘 Makisu | ⚠️ 线下罕见 | Amazon / Daiso | **$5** 一卷，寿司卷帘通用 |
+| **玉子烧锅** | ⚠️ 线下罕见 | Amazon / 日本 Daiso | **Techef 玉子烧锅 \$30**（中高端，Made in Korea）/ **Nordic Ware Tamagoyaki Pan \$20**（实用） |
+| **细滤网** | **Fine Mesh Strainer**（Walmart 家居区 \$5）| 也有 | 过滤蛋液必备工具 |
+| 卷帘 Makisu | ⚠️ 线下罕见 | Amazon / Daiso | **\$5** 一卷，寿司卷帘通用 |
 
 ## 小贴士
 
 - **日式高汤 Dashi 版的做法（强烈推荐，这是「居酒屋级」关键）**：
-  - 30 ml 热水 + **1 茶匙 Ajinomoto Hondashi 颗粒**（美超 Amazon 红白盒，$4）
-  - 或 **1 块 Kayanoya Dashi**（京都匠人款，$10 20 包，风味最正）
+  - 30 ml 热水 + **1 茶匙 Ajinomoto Hondashi 颗粒**（美超 Amazon 红白盒，\$4）
+  - 或 **1 块 Kayanoya Dashi**（京都匠人款，\$10 20 包，风味最正）
   - **Dashi 版 vs 牛奶版**：
     - **Dashi 版**：居酒屋 /「日式玉子烧 Dashimaki」风味，咸鲜为主，平衡甜味
     - **牛奶版**：中式厚蛋烧，奶香浓郁，偏家庭口味
@@ -139,6 +139,6 @@ published: true
   - **冷冻不推荐**：解冻后会析出水、口感变老
   - **便当 bento**：早上做好 → 冷切 → 和米饭、腌菜一起装盒 → 常温到中午仍好吃
 - **成本账**：
-  - 4 个鸡蛋 ~$1 + 调料 ~$0.5 = **每份 $1.5**
-  - 居酒屋点一份 Tamagoyaki $8–12
+  - 4 个鸡蛋 ~\$1 + 调料 ~\$0.5 = **每份 \$1.5**
+  - 居酒屋点一份 Tamagoyaki \$8–12
   - **家庭做成本不到 1/5**，熟练之后 15 分钟出锅

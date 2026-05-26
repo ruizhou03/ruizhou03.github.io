@@ -84,9 +84,9 @@ published: true
 
 | 食材 | Walmart 货架 | 备注 |
 |------|-------------|------|
-| 中筋面粉 | **All-Purpose Flour**（King Arthur / Pillsbury / Gold Medal 5 lb 包 ~$4） | **不要用 Bread Flour**（筋度太高，馒头变硬）；**不要用 Cake Flour**（筋度太低，塌陷） |
-| 红糖 | **Dark Brown Sugar**（Domino / C&H，1 lb ~$3） | **必须 Dark**不是 Light（Dark 含糖蜜 molasses 更多，颜色风味都更浓） |
-| 酵母粉 | **Fleischmann's Instant Yeast** / **Red Star Quick-Rise Yeast**（小条装 3-pack ~$2）| **Instant 版本**（即发活性）最方便；不用 Active Dry（需要先激活） |
+| 中筋面粉 | **All-Purpose Flour**（King Arthur / Pillsbury / Gold Medal 5 lb 包 ~\$4） | **不要用 Bread Flour**（筋度太高，馒头变硬）；**不要用 Cake Flour**（筋度太低，塌陷） |
+| 红糖 | **Dark Brown Sugar**（Domino / C&H，1 lb ~\$3） | **必须 Dark**不是 Light（Dark 含糖蜜 molasses 更多，颜色风味都更浓） |
+| 酵母粉 | **Fleischmann's Instant Yeast** / **Red Star Quick-Rise Yeast**（小条装 3-pack ~\$2）| **Instant 版本**（即发活性）最方便；不用 Active Dry（需要先激活） |
 | 泡打粉 | **Baking Powder**（McCormick / Clabber Girl） | 可选保险措施；**不是 Baking Soda（小苏打）** |
 | 植物油 | **Canola / Vegetable Oil** | 中性无味 |
 | 防粘油纸 | **Parchment Paper**（Reynolds） | 蒸屉防粘；替代品：**笼布（Cheesecloth）** / **刷一层薄油** |

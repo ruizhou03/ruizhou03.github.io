@@ -68,7 +68,7 @@ published: true
 
 | 食材 | Walmart 货架 | 亚超（H-Mart / 99 Ranch / 大华）| 备注 |
 |------|-------------|-----------------------------|------|
-| 五花肉 | Pork 冷鲜区找 **pork belly, skin on**（约 $4–6 / lb） | 更稳定，且可让肉铺直接切块省事 | **带皮是灵魂**；Walmart 有时只有 skinless，必要时去亚超 |
+| 五花肉 | Pork 冷鲜区找 **pork belly, skin on**（约 \$4–6 / lb） | 更稳定，且可让肉铺直接切块省事 | **带皮是灵魂**；Walmart 有时只有 skinless，必要时去亚超 |
 | 冰糖 | ❌ 基本没有 | **rock sugar**（黄冰糖或白冰糖均可） | 临时替代：30 g 白糖 + 5 ml 蜂蜜 |
 | 生抽 | **Kikkoman soy sauce**（普通款即可） | **Lee Kum Kee Premium Light Soy Sauce** | Walmart 的 Kikkoman 偏咸，可适当减量 |
 | 老抽 | ⚠️ 通常没有 | **Pearl River Bridge Superior Dark Soy Sauce** / **Lee Kum Kee Dark Soy Sauce** | 主要给颜色；缺了可用 2 倍老抽量的生抽 + 1 g 糖近似 |

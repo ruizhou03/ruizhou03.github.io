@@ -25,7 +25,7 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 | **Drinking Water / Purified Water** | 大多是市政自来水深度处理（RO + 除氯 + 杀菌） | 最便宜的瓶装水；和“凉白开装瓶”差不多 |
 | **Distilled Water** | 蒸馏水，$\text{TDS} \approx 0$ | 喝起来“空”；主要用于加湿器 / 熨斗 / 婴儿奶粉 |
 | **Spring Water** | 必须来自天然涌出的泉源 | 保留部分天然矿物，是最常见的“喝着有味儿”的瓶装水 |
-| **Mineral Water** | 地下水源 + $\text{TDS} \geq 250$ ppm | 矿物显著、口感重；FDA 强制 $250+$ ppm |
+| **Mineral Water** | 地下水源 + $\text{TDS} \geq 250$ ppm | 矿物显著、口感重；FDA 强制 \$250+$ ppm |
 | **Artesian Water** | 来自承压含水层的井（自压涌出） | “Fiji 水”那种；噱头 $>$ 实质 |
 | **Sparkling Water** | 含 $\text{CO}_2$ 气，三种：天然带气 / 充气矿泉水 / 充气市政水 | La Croix、Perrier、Topo Chico 实际差很多 |
 | **Alkaline Water** | pH $8\text{-}10$，电解或加碱性矿物 | “抗氧化抗衰老”宣称缺乏循证支持，**当普通水喝就好** |
@@ -184,29 +184,29 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 
 | 品牌 | 类型 | 来源 | TDS 范围 | pH | 价格档（24×16.9oz） |
 |---|---|---|---|---|---|
-| **Generic / Store Brand**（Kirkland、Great Value） | Purified | 市政水 → RO | $< 10$ | $\sim 7$ | $3-5 |
-| **Aquafina**（百事） | Purified | 多个市政来源 → RO | $< 10$ | $\sim 6$ | $5-7 |
-| **Dasani**（可口可乐） | Purified + 加 minerals | 市政 → RO + 重新加 K/Mg/盐 | $\sim 30$ | $\sim 5.6$ | $5-7 |
-| **Nestle Pure Life** | Purified | 市政 + spring 混合 | $\sim 80$-$200$ | $\sim 7$ | $5-7 |
-| **Smartwater**（可口可乐） | Vapor distilled + 电解质 | 市政 → 蒸馏 + 加 K/Mg/Ca | $\sim 30$ | $\sim 7$ | $7-10 |
-| **Poland Spring**（Nestle） | Spring | 缅因州天然泉 | $\sim 40$-$100$ | $\sim 7$ | $6-8 |
-| **Arrowhead**（Nestle） | Spring | 加州山泉 | $\sim 50$-$150$ | $\sim 7$ | $6-8 |
-| **Crystal Geyser** | Spring | 多个州（加州、田纳西等） | $\sim 80$-$200$ | $\sim 7$ | $5-7 |
-| **Mountain Valley** | Spring | 阿肯色州 Hot Springs | $\sim 220$ | $\sim 7.8$ | $15-25 |
-| **Evian**（达能） | Mineral / Spring（FDA 标 Mineral） | 法国 Évian 阿尔卑斯 | $\sim 309$ | $\sim 7.2$ | $20-30 |
-| **Fiji** | Artesian | 斐济 Yaqara 山谷承压含水层 | $\sim 222$ | $\sim 7.7$ | $25-35 |
-| **Voss** | Artesian | 挪威或得克萨斯 | $\sim 44$（Voss Norway） | $\sim 6$ | $25-40 |
-| **Perrier**（雀巢） | Sparkling Mineral | 法国 Vergèze 天然带气泉 | $\sim 475$ | $\sim 5.5$ | $20-30 |
-| **San Pellegrino**（雀巢） | Sparkling Mineral | 意大利 Bergamo | $\sim 937$ | $\sim 7.7$ | $20-30 |
-| **Topo Chico**（可口可乐） | Sparkling Mineral | 墨西哥 Cerro del Topo Chico | $\sim 625$ | $\sim 6$ | $25-35 |
-| **La Croix** | Seltzer（充气市政水）+ 香精 | 美国市政 + $\text{CO}_2$ | $< 10$ | $\sim 5$ | $5-7 |
-| **Bubly**（百事） | Seltzer + 香精 | 同 La Croix | $< 10$ | $\sim 5$ | $5-7 |
-| **Spindrift** | Seltzer + 真水果汁 | 市政 + $\text{CO}_2$ + 浓缩果汁 | $< 50$ | $\sim 3.8$ | $7-10 |
-| **Liquid Death**（铝罐） | Mountain water 或 Sparkling | 阿尔卑斯山 | $\sim 150$ | $\sim 7$ | $15-20 |
-| **Essentia** | Alkaline (ionized) | 市政 → 电解 → pH $9.5$ | $\sim 50$ | $\sim 9.5$ | $10-15 |
-| **Core** | Purified + 微量电解质 | 市政 → RO + 加少量电解质 | $\sim 10$ | $\sim 7.4$ | $7-10 |
-| **Aquahydrate** | Alkaline + 电解质 | 市政 → RO → 加碱 + 电解质 | $\sim 30$ | $\sim 9$ | $10-15 |
-| **Distilled Water**（无品牌通货） | Distilled | 蒸馏 | $\sim 0$ | $\sim 7$ | $1-2 / 1 gallon |
+| **Generic / Store Brand**（Kirkland、Great Value） | Purified | 市政水 → RO | $< 10$ | $\sim 7$ | \$3-5 |
+| **Aquafina**（百事） | Purified | 多个市政来源 → RO | $< 10$ | $\sim 6$ | \$5-7 |
+| **Dasani**（可口可乐） | Purified + 加 minerals | 市政 → RO + 重新加 K/Mg/盐 | $\sim 30$ | $\sim 5.6$ | \$5-7 |
+| **Nestle Pure Life** | Purified | 市政 + spring 混合 | $\sim 80$-$200$ | $\sim 7$ | \$5-7 |
+| **Smartwater**（可口可乐） | Vapor distilled + 电解质 | 市政 → 蒸馏 + 加 K/Mg/Ca | $\sim 30$ | $\sim 7$ | \$7-10 |
+| **Poland Spring**（Nestle） | Spring | 缅因州天然泉 | $\sim 40$-$100$ | $\sim 7$ | \$6-8 |
+| **Arrowhead**（Nestle） | Spring | 加州山泉 | $\sim 50$-$150$ | $\sim 7$ | \$6-8 |
+| **Crystal Geyser** | Spring | 多个州（加州、田纳西等） | $\sim 80$-$200$ | $\sim 7$ | \$5-7 |
+| **Mountain Valley** | Spring | 阿肯色州 Hot Springs | $\sim 220$ | $\sim 7.8$ | \$15-25 |
+| **Evian**（达能） | Mineral / Spring（FDA 标 Mineral） | 法国 Évian 阿尔卑斯 | $\sim 309$ | $\sim 7.2$ | \$20-30 |
+| **Fiji** | Artesian | 斐济 Yaqara 山谷承压含水层 | $\sim 222$ | $\sim 7.7$ | \$25-35 |
+| **Voss** | Artesian | 挪威或得克萨斯 | $\sim 44$（Voss Norway） | $\sim 6$ | \$25-40 |
+| **Perrier**（雀巢） | Sparkling Mineral | 法国 Vergèze 天然带气泉 | $\sim 475$ | $\sim 5.5$ | \$20-30 |
+| **San Pellegrino**（雀巢） | Sparkling Mineral | 意大利 Bergamo | $\sim 937$ | $\sim 7.7$ | \$20-30 |
+| **Topo Chico**（可口可乐） | Sparkling Mineral | 墨西哥 Cerro del Topo Chico | $\sim 625$ | $\sim 6$ | \$25-35 |
+| **La Croix** | Seltzer（充气市政水）+ 香精 | 美国市政 + $\text{CO}_2$ | $< 10$ | $\sim 5$ | \$5-7 |
+| **Bubly**（百事） | Seltzer + 香精 | 同 La Croix | $< 10$ | $\sim 5$ | \$5-7 |
+| **Spindrift** | Seltzer + 真水果汁 | 市政 + $\text{CO}_2$ + 浓缩果汁 | $< 50$ | $\sim 3.8$ | \$7-10 |
+| **Liquid Death**（铝罐） | Mountain water 或 Sparkling | 阿尔卑斯山 | $\sim 150$ | $\sim 7$ | \$15-20 |
+| **Essentia** | Alkaline (ionized) | 市政 → 电解 → pH $9.5$ | $\sim 50$ | $\sim 9.5$ | \$10-15 |
+| **Core** | Purified + 微量电解质 | 市政 → RO + 加少量电解质 | $\sim 10$ | $\sim 7.4$ | \$7-10 |
+| **Aquahydrate** | Alkaline + 电解质 | 市政 → RO → 加碱 + 电解质 | $\sim 30$ | $\sim 9$ | \$10-15 |
+| **Distilled Water**（无品牌通货） | Distilled | 蒸馏 | $\sim 0$ | $\sim 7$ | \$1-2 / 1 gallon |
 
 **看完这张表的几个 takeaway**：
 
@@ -305,8 +305,8 @@ keywords: ["美国瓶装水区别", "美国超市买水", "Drinking Water", "Pur
 
 按“性价比 vs 健康收益”排序我会这么花：
 
-1. **第一步：装家用过滤器**（PUR / Brita 滤水壶 $30，或 Aquasana / APEC 台下 RO $200-400）—— 一年成本 $50-150，喝水量最大的家庭场景全覆盖
-2. **第二步：买一箱 Generic Spring Water 或 Purified Water**——出门 / 不方便煮水时用，$5-7 / 24 瓶就够
+1. **第一步：装家用过滤器**（PUR / Brita 滤水壶 \$30，或 Aquasana / APEC 台下 RO \$200-400）—— 一年成本 \$50-150，喝水量最大的家庭场景全覆盖
+2. **第二步：买一箱 Generic Spring Water 或 Purified Water**——出门 / 不方便煮水时用，\$5-7 / 24 瓶就够
 3. **第三步：偶尔买一瓶好的 Mineral Water**（Pellegrino、Mountain Valley）——餐桌享受、配饭，**当饮料对待**
 4. **不要常买的**：Aquafina / Dasani（贵 + 是处理过的市政水）、Alkaline Water（无健康收益）、Vitamin Water（含糖 = 软饮料）
 5. **特殊场景才买**：Distilled（加湿器 / 熨斗 / 婴儿）、Electrolyte（运动）

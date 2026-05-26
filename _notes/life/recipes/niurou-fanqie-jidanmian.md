@@ -76,9 +76,9 @@ published: true
 
 | 食材 | Walmart 货架 | 亚超（H-Mart / 99 Ranch / 大华）| 备注 |
 |------|-------------|-----------------------------|------|
-| 牛肉末 | Meat 冷鲜区 **93% lean ground beef**（约 $5–7 / lb，1 lb ≈ 450 g） | 同 | **不要买 80% lean**——脂肪太多会让汤浮一层油 |
-| 番茄罐头 | Pasta sauce 货架 **Hunt's whole peeled tomatoes** 或 **Cento San Marzano**（约 $1.5 / 14.5 oz 罐 ≈ 410 g） | 同 | **避免标 “diced”** 的——颗粒太碎汤汁稀；whole peeled 自己手压最好 |
-| 番茄膏 tomato paste | Pasta sauce 货架 **Hunt's tomato paste** 6 oz 罐（约 $1） | 同 | 一罐用不完，剩的勺出装小密封袋 **冷冻保存**，下次切下来直接用 |
+| 牛肉末 | Meat 冷鲜区 **93% lean ground beef**（约 \$5–7 / lb，1 lb ≈ 450 g） | 同 | **不要买 80% lean**——脂肪太多会让汤浮一层油 |
+| 番茄罐头 | Pasta sauce 货架 **Hunt's whole peeled tomatoes** 或 **Cento San Marzano**（约 \$1.5 / 14.5 oz 罐 ≈ 410 g） | 同 | **避免标 “diced”** 的——颗粒太碎汤汁稀；whole peeled 自己手压最好 |
+| 番茄膏 tomato paste | Pasta sauce 货架 **Hunt's tomato paste** 6 oz 罐（约 \$1） | 同 | 一罐用不完，剩的勺出装小密封袋 **冷冻保存**，下次切下来直接用 |
 | 鸡蛋面 | ⚠️ 普通 Walmart 一般没有；Whole Foods / Wegmans 找 **Country Pasta** 或 **De Cecco egg pappardelle** | **干鸡蛋面 / 龙须面 / 甚至挂面**都可以；H-Mart 也有 Asian-style egg noodles | 应急替代：**fettuccine** 或 **linguine**，煮到 al dente 即可 |
 | 生抽 | **Kikkoman soy sauce**（普通款） | **Lee Kum Kee Premium Light Soy Sauce** | Walmart 的 Kikkoman 偏咸，可减到 12 ml |
 | 蒜 / 姜 / 葱 / 香菜 | Produce 蔬菜区都有（cilantro / scallion / fresh ginger / garlic） | 同，通常更便宜 | — |

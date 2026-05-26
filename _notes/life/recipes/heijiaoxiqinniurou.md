@@ -96,13 +96,13 @@ published: true
 
 | 食材 | Walmart 货架 | 亚超 | 备注 |
 |------|-------------|------|------|
-| 牛肉片 | **Sliced Bottom Round Beef Steak**（冷藏肉柜，~$8/lb 已切片） | 冷冻区**火锅肥牛片 Hot Pot Beef Slices**更嫩 | Walmart 预切片**已经逆纹切 3 mm 厚**，省事；想更嫩用肥牛片 |
-| 西芹 | **Celery**（单根 ~$1 / 一把 ~$3） | 也有 | 选**青翠饱满、掰一下能听到脆响**的 |
+| 牛肉片 | **Sliced Bottom Round Beef Steak**（冷藏肉柜，~\$8/lb 已切片） | 冷冻区**火锅肥牛片 Hot Pot Beef Slices**更嫩 | Walmart 预切片**已经逆纹切 3 mm 厚**，省事；想更嫩用肥牛片 |
+| 西芹 | **Celery**（单根 ~\$1 / 一把 ~\$3） | 也有 | 选**青翠饱满、掰一下能听到脆响**的 |
 | 大蒜 | **Fresh Garlic Bulbs** | 也有 | 必须用**新鲜蒜**不是 garlic powder |
 | 生姜 | **Fresh Ginger Root** | 也有 | |
 | 玉米淀粉 | **Corn Starch**（Argo） | 也有 | |
-| **BTB Beef Base** | **Better Than Bouillon Beef Base**（红盖玻璃罐，$5–7） | 也有 | 本菜的**双重角色**：腌肉 + 酱汁 |
-| 黑胡椒 | **McCormick Whole Black Peppercorns + Grinder**（$4）/ **Costco Kirkland Black Pepper Grinder**（$7） | 也有 | **关键！** 必须**自己现磨的粗颗粒**（Cracked）；预磨的 Ground Pepper **风味挥发 90%** |
+| **BTB Beef Base** | **Better Than Bouillon Beef Base**（红盖玻璃罐，\$5–7） | 也有 | 本菜的**双重角色**：腌肉 + 酱汁 |
+| 黑胡椒 | **McCormick Whole Black Peppercorns + Grinder**（\$4）/ **Costco Kirkland Black Pepper Grinder**（\$7） | 也有 | **关键！** 必须**自己现磨的粗颗粒**（Cracked）；预磨的 Ground Pepper **风味挥发 90%** |
 | 蚝油（可选） | **Kikkoman Oyster Sauce** / **Lee Kum Kee** | 也有 | LKK Premium 红盖最好 |
 | 植物油 | **Canola / Vegetable Oil** | 也有 | |
 
@@ -112,9 +112,9 @@ published: true
   - **Black Peppercorn 黑胡椒的挥发性香气物质（胡椒碱 + 挥发油）**在**研磨后 15 分钟内流失 50%、1 小时流失 90%**
   - 预磨的 **Ground Black Pepper**（McCormick 小瓶那种）开瓶时已经无香
   - **必须用现磨的**：
-    - **Kirkland 黑胡椒调节研磨器**（Costco，$7） — 可调粗细，**粗挡一转 = 1 次所需量**
-    - **McCormick OXO Grinder**（Walmart $4）— 一次性研磨瓶，实惠
-    - **手摇研磨器 + 整粒 Whole Peppercorn**（Trader Joe's $3）— 最佳风味
+    - **Kirkland 黑胡椒调节研磨器**（Costco，\$7） — 可调粗细，**粗挡一转 = 1 次所需量**
+    - **McCormick OXO Grinder**（Walmart \$4）— 一次性研磨瓶，实惠
+    - **手摇研磨器 + 整粒 Whole Peppercorn**（Trader Joe's \$3）— 最佳风味
   - **粗颗粒 vs 细粉**：本菜要粗颗粒**咬到爆香的感觉**，细粉会均匀溶解失去层次
 - **BTB 在本菜的双重作用**：
   1. **腌肉里的 6 g BTB（1 茶匙）** → 提供**盐分 + 鲜味**，代替传统的盐 + 鸡精 + 生抽
@@ -140,7 +140,7 @@ published: true
 - **升级变体**：
   - **黑椒洋葱牛柳**：西芹换成 **1 个洋葱切丝 + 200 g 彩椒切丝**（红/黄/绿）—— 港式茶餐厅做法
   - **黑椒乌冬面**：最后下 **200 g 煮好的乌冬面 Udon**（Walmart 冷藏面区），**再炒 1 分钟** → 「铁板黑椒乌冬」
-  - **铁板牛肉**：出锅前准备**铸铁板**（Lodge 12"，Walmart $30）烧到 300 ℃，菜倒上去**滋啦爆响** → 餐厅级视觉
+  - **铁板牛肉**：出锅前准备**铸铁板**（Lodge 12"，Walmart \$30）烧到 300 ℃，菜倒上去**滋啦爆响** → 餐厅级视觉
   - **黑椒牛肉粒**：牛肉片改成 **2 cm 牛肉粒 Beef Tips**（Walmart 有），炒法相同，适合配米饭
   - **微辣版**：酱汁里加 **1 个小米椒切圈** 或 **3 g Cayenne pepper**，川黔风味
 - **搭配和米饭**：
@@ -149,7 +149,7 @@ published: true
   - **懒人搭配**：Costco 冷冻米饭微波 2 分钟 + 本菜
   - **餐厅搭配**：配一杯**乌龙茶**（冷泡的 16 oz 大杯）解腻
 - **成本和时间账**：
-  - 450 g 牛肉 ~$8 + 西芹 $1 + BTB 2 茶匙 $0.5 + 调料 $1 = **~$10 一大盘（2–3 人份）**
-  - **Panda Express 黑椒牛柳 ~$13 一份（只有 200 g 肉）**
-  - **时间成本**：25 分钟 vs 外卖 40 分钟 + $15
+  - 450 g 牛肉 ~\$8 + 西芹 \$1 + BTB 2 茶匙 \$0.5 + 调料 \$1 = **~\$10 一大盘（2–3 人份）**
+  - **Panda Express 黑椒牛柳 ~\$13 一份（只有 200 g 肉）**
+  - **时间成本**：25 分钟 vs 外卖 40 分钟 + \$15
   - **性价比完胜外卖**

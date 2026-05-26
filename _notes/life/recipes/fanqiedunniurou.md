@@ -83,9 +83,9 @@ published: true
 
 | 食材 | Walmart 货架 | 备注 |
 |------|-------------|------|
-| 牛肉 | **Stew Meat**（已切块，~$7/lb）/ **Beef Chuck Roast**（整块自切，更便宜）/ **Beef Short Rib**（贵但最嫩） | **Stew Meat 是专为炖菜分割好的 Chuck / Round 组合**，懒人首选 |
-| 洋葱 | **Yellow Onion**（3 lb 袋 ~$3） | 别用 Red / Sweet Onion |
-| 切丁番茄 | **Hunt's / Del Monte / Muir Glen Canned Diced Tomatoes**（14.5 oz ~$1.5） | **Fire Roasted 版本**风味更浓 |
+| 牛肉 | **Stew Meat**（已切块，~\$7/lb）/ **Beef Chuck Roast**（整块自切，更便宜）/ **Beef Short Rib**（贵但最嫩） | **Stew Meat 是专为炖菜分割好的 Chuck / Round 组合**，懒人首选 |
+| 洋葱 | **Yellow Onion**（3 lb 袋 ~\$3） | 别用 Red / Sweet Onion |
+| 切丁番茄 | **Hunt's / Del Monte / Muir Glen Canned Diced Tomatoes**（14.5 oz ~\$1.5） | **Fire Roasted 版本**风味更浓 |
 | 番茄膏 | **Hunt's Tomato Paste**（6 oz 小罐 / Cento 挤管装） | **挤管装**用多少挤多少，不浪费；不要用 Ketchup（甜太多） |
 | 生抽 | **Kikkoman Soy Sauce** | |
 | 五香粉 | ⚠️ Walmart 通常没有 | **Chinese 5-Spice Powder**（亚超）/ 用 1 颗 **Star Anise**（八角，香料区）代替 |
@@ -116,16 +116,16 @@ published: true
   2. 烧开后转**最小火盖盖**炖 **1.5 小时**（每 30 分钟搅一次防底糊）
   3. 或**烤箱法**：325 °F / 165 ℃ 烤 **2 小时**（法式 Daube de Bœuf 路子，懒人最爱——扔进烤箱忘掉它）
 - **牛肉部位对比**：
-  - **Chuck**（肩肉，含结缔组织）：$6–8/lb，**炖菜最佳**，2 小时后融化成果冻质感
-  - **Stew Meat**（混合切块）：$7–9/lb，图省事，但品质参差
-  - **Short Rib**（牛小排）：$12–15/lb，**最嫩最贵**，1.5 小时就烂
-  - **Brisket**（牛腩）：$5–7/lb，纤维长需要 3 小时+
+  - **Chuck**（肩肉，含结缔组织）：\$6–8/lb，**炖菜最佳**，2 小时后融化成果冻质感
+  - **Stew Meat**（混合切块）：\$7–9/lb，图省事，但品质参差
+  - **Short Rib**（牛小排）：\$12–15/lb，**最嫩最贵**，1.5 小时就烂
+  - **Brisket**（牛腩）：\$5–7/lb，纤维长需要 3 小时+
   - ⚠️ **不要用 Sirloin / Tenderloin**（菲力）—— 纯瘦肉炖完像柴火，浪费好肉
 - **为什么番茄罐头 > 新鲜番茄**：
   - 罐头番茄是**完全成熟期采摘** → 茄红素和风味浓缩
   - 美国超市的新鲜番茄大多是**绿摘后催熟**，风味淡、水分多
   - 罐头番茄酸度稳定、无需烫皮去籽、价格 1/3
-  - **升级**：用 **Muir Glen Fire Roasted Diced Tomatoes**（烟熏风味）—— 多付 $1，风味提升一档
+  - **升级**：用 **Muir Glen Fire Roasted Diced Tomatoes**（烟熏风味）—— 多付 \$1，风味提升一档
 - **焯水 vs 煎香的选择**：
   | 方案 | 汤色 | 风味强度 | 清洁度 | 推荐场景 |
   |---|---|---|---|---|
