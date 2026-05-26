@@ -5,6 +5,7 @@ date: 2026-04-23
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-tax-basics-for-students"
+last_reviewed: 2026-05-26
 keywords: ["美国报税", "留学生报税", "税务身份", "tax return", "1040NR", "1040", "Form 8843", "W-2", "1042-S", "1098-T", "NRA", "resident alien", "5 年规则", "中美税务协议", "tax treaty", "FICA", "Social Security 税", "退税", "Sprintax", "州税", "F-1 报税", "没收入报税", "美国交税"]
 ---
 
@@ -15,7 +16,7 @@ keywords: ["美国报税", "留学生报税", "税务身份", "tax return", "104
 - 我刚来美国第一年，没收入，**还要报税吗**？
 - 学校发了 W-2 给我，**应该用 1040 还是 1040NR**？
 - 听说“前 5 年是 NRA”——这是什么意思？
-- “中美税务协议 $5K 豁免” 怎么 claim？
+- “中美税务协议 \$5K 豁免” 怎么 claim？
 - 雇主在我工资里扣了 7.65% Social Security 税——**F-1 不应该扣**，怎么追回？
 - 我去年报错了用了 1040（应该用 1040NR）—— **现在怎么办**？
 
@@ -23,11 +24,13 @@ keywords: ["美国报税", "留学生报税", "税务身份", "tax return", "104
 
 - **报错可能影响未来绿卡 / 入籍**（USCIS 会查报税历史）
 - **报错可能要补缴 + 罚款**
-- **报错可能错失退税 $2,000+**
+- **报错可能错失退税 \$2,000+**
 
 但好消息是：**搞清楚机制后并不难**——多数留学生是**NRA（Non-Resident Alien）**身份 + **1040NR + 8843 表 + Sprintax 软件**——一套流程一年用一次。
 
-这是**美国报税三部曲的第一篇**——专讲**身份判定 + 基础术语 + 关键规则**。第二篇讲**实战流程**（[报税实战](/life/us-tax-filing-process)）——填表 + 软件 + 退税。
+这是**美国报税三部曲的第一篇**——专讲**身份判定 + 基础术语 + 关键规则**。第二篇讲**实战流程**（[报税实战](/life/us-tax-filing-process)）——填表 + 软件 + 退税。第三篇讲**跨阶段长期规划**（[长期规划](/life/us-tax-longterm-planning)）—— Dual-Status / 401k / Roth IRA / FBAR / RSU / 找 CPA 时机。
+
+**“F-1 头 5 年” ≈ “NRA”** —— 本文交替使用这两个表述：法律上是 IRC §7701(b)(5) 的“豁免天数”规则把 F-1 学生头 5 个日历年自动判定为 NRA，所以多数情况下两者可互换。本文出现“NRA”主要强调税务身份，“F-1 头 5 年”主要强调时间窗口，意思一致；第 5 年的少数特殊场景（中途换身份、回国等）按 §4 的 SPT 规则细查即可。
 
 文章涉及具体规则时**以宾州 + Penn State 留学生为例**——其它州 / 学校大同小异，但州税细节有差异。
 
@@ -40,7 +43,7 @@ keywords: ["美国报税", "留学生报税", "税务身份", "tax return", "104
 | 你的身份 | 报哪个表 | 用什么软件 |
 |---|---|---|
 | **F-1 / J-1 头 5 年（NRA）+ 没收入** | **8843**（必填）| Sprintax / 学校 GTP / 自己手填 |
-| **F-1 / J-1 头 5 年（NRA）+ 有 W-2 收入** | **1040NR + 8843** | Sprintax（推荐，~$50）|
+| **F-1 / J-1 头 5 年（NRA）+ 有 W-2 收入** | **1040NR + 8843** | Sprintax（推荐，~\$50）|
 | **F-1 第 6 年起（RA）** | **1040** + 普通报税 | FreeTaxUSA（免费）/ TurboTax |
 | **OPT 全职 + 第 6 年起（RA）** | 同上 | 同上 |
 | **绿卡 / 公民** | 1040 | TurboTax / H&R Block |
@@ -53,7 +56,7 @@ keywords: ["美国报税", "留学生报税", "税务身份", "tax return", "104
 
 **3 个最大坑**：
 
-1. **NRA 用错 1040** = 用了 standard deduction = IRS audit + 罚款（中国学生有 $5K tax treaty 保护，但用错表仍是错）
+1. **NRA 用错 1040** = 用了 standard deduction = IRS audit + 罚款（中国学生有 \$5K tax treaty 保护，但用错表仍是错）
 2. **没填 Form 8843** = 即便没收入也违规
 3. **不知道 5-year rule** = 第 6 年自动 RA 但仍按 NRA 报 = 错失正常退税
 
@@ -72,7 +75,7 @@ keywords: ["美国报税", "留学生报税", "税务身份", "tax return", "104
 
 - 用 **Form 1040**（和公民一样）
 - **全球收入都要报美国税**
-- **可享受 standard deduction**（2026 年单身 $15,000）
+- **可享受 standard deduction**（2026 年单身 $\$15,000$，每年 IRS 1 月公布次年新数——**引用前核对当年最新**）
 - 适合：**绿卡持有者** + **通过 Substantial Presence Test 的人**（详见 §4）
 - **F-1 第 6 年起 / J-1 第 3 年起 / H-1B 多数情况** = 自动 RA
 
@@ -163,7 +166,7 @@ $$\text{今年在美国} + \tfrac{1}{3} \times \text{去年} + \tfrac{1}{6} \tim
 ## 5.5 1099-INT / 1099-DIV / 1099-MISC
 
 - **Bank interest / dividend / 1099 收入**
-- 银行利息 $>$ $10：1099-INT
+- 银行利息 $>$ \$10：1099-INT
 - 投资股票分红：1099-DIV
 - 实习 / 自由职业：1099-MISC / 1099-NEC
 
@@ -179,14 +182,14 @@ $$\text{今年在美国} + \tfrac{1}{3} \times \text{去年} + \tfrac{1}{6} \tim
 
 ## 6.1 Article 20（学生 + 学徒）
 
-**中美税务协议 Article 20** 给中国留学生 / 学徒**$5,000 美元收入豁免**——
+**中美税务协议 Article 20** 给中国留学生 / 学徒**\$5,000 美元收入豁免**——
 
 - 适用对象：**F-1 / J-1 学生 + 实习生 / 学徒**
-- 豁免范围：**工资 / TA / RA stipend** 部分前 $5,000
+- 豁免范围：**工资 / TA / RA stipend** 部分前 \$5,000
 - **5,000 之内的工资完全免联邦税**
 - **没有时间限制**——只要还是 F-1 学生，每年都能 claim
 
-**实战**：你 PennState RA 工资 $25,000——**前 $5,000 免税** + 剩下 $20,000 按 NRA 税率算。
+**实战**：你 PennState RA 工资 \$25,000——**前 \$5,000 免税** + 剩下 \$20,000 按 NRA 税率算。
 
 ## 6.2 怎么 Claim
 
@@ -195,20 +198,20 @@ $$\text{今年在美国} + \tfrac{1}{3} \times \text{去年} + \tfrac{1}{6} \tim
 ### A. 入职时（推荐 + 节省现金流）
 
 - 给雇主 / 学校填 **Form 8233**
-- 写清楚 “I claim Article 20 of US-China tax treaty for first $5,000"
-- 雇主**当年工资就不扣这 $5K 的税**——你拿到税前现金多
+- 写清楚 “I claim Article 20 of US-China tax treaty for first \$5,000"
+- 雇主**当年工资就不扣这 \$5K 的税**——你拿到税前现金多
 
 ### B. 报税时（晚一年但仍能拿）
 
 - 报税表上 **Schedule OI Line L** 写明 tax treaty
-- IRS 退给你这 $5K 部分的税
+- IRS 退给你这 \$5K 部分的税
 - Sprintax 软件**自动处理**
 
 ## 6.3 几个反直觉点
 
 - **Article 20 是 student / trainee** —— H-1B 工作族**不适用**
 - **Article 19** 是给 visiting professor / researcher 的（J-1 学者用）—— 3 年期免税
-- **State tax 不一定承认 federal tax treaty** ——多数州不认 = 仍要交州税那 $5K
+- **State tax 不一定承认 federal tax treaty** ——多数州不认 = 仍要交州税那 \$5K
 - **W-9 vs W-8BEN**：NRA 给雇主签 **W-8BEN** 而不是 W-9——填错了会被错扣税
 
 # 7. FICA Tax 豁免（F-1 / J-1 头 5 年）
@@ -222,7 +225,7 @@ $$\text{今年在美国} + \tfrac{1}{3} \times \text{去年} + \tfrac{1}{6} \tim
 - 美国公民 / RA / 工作族：**所有工资都扣 FICA**
 - F-1 / J-1 学生 + 头 5 年：**完全豁免**
 
-**举例**：你 PennState 工资 $25,000——**省 $1,912 / 年**。
+**举例**：你 PennState 工资 \$25,000——**省 \$1,912 / 年**。
 
 ## 7.2 雇主常常错扣
 
@@ -232,7 +235,7 @@ $$\text{今年在美国} + \tfrac{1}{3} \times \text{去年} + \tfrac{1}{6} \tim
 
 - 看你的 paystub / W-2
 - 找 ”Social Security Tax Withheld“ + ”Medicare Tax Withheld“ 两栏
-- 应该是 **$0**——如果不是 $0$ $=$ 错扣了
+- 应该是 **\$0**——如果不是 $0$ $=$ 错扣了
 
 ## 7.3 怎么追回
 
@@ -306,9 +309,9 @@ $$\text{今年在美国} + \tfrac{1}{3} \times \text{去年} + \tfrac{1}{6} \tim
 
 ## 10.1 NRA 不能用 standard deduction（中国学生例外）
 
-**NRA 默认不能用 standard deduction**（2026 = $15,000）—— 只能 itemize（明细列出）。
+**NRA 默认不能用 standard deduction**（2026 = \$15,000）—— 只能 itemize（明细列出）。
 
-**中国学生例外**（仅限 China）：根据 US-China tax treaty 的特殊条款 + IRS 公认实践——**NRA 中国学生可以用 standard deduction**。
+**中国学生例外**（仅限 China）：根据 US-China tax treaty 的特殊条款 + IRS 公认实践——**NRA 中国学生可以用 standard deduction**（2026 = $\$15,000$，**每年 1 月 IRS 公布次年新数，引用前核对**）。
 
 **这是中国留学生的另一个“特别福利”**——其他国家 NRA（印度除外）都不能用。
 
@@ -324,12 +327,12 @@ $$\text{今年在美国} + \tfrac{1}{3} \times \text{去年} + \tfrac{1}{6} \tim
 
 **FBAR**（Foreign Bank Account Report，FinCEN Form 114）—— 不是 IRS 报，是 FinCEN：
 
-- **任何时候你海外（含中国）银行 + 投资账户总余额 $>$ $10,000**
+- **任何时候你海外（含中国）银行 + 投资账户总余额 $>$ \$10,000**
 - **必须申报**（电子申报）
 - 截止 4 月 15 日（自动延到 10 月 15 日）
-- **不报罚款 $10,000+ / 故意不报罚款 $100,000**
+- **不报罚款 \$10,000+ / 故意不报罚款 \$100,000**
 
-**实战**：你国内有几个银行账户加起来 $>$ $10K？必须报 FBAR——多数留学生不报但理论上**应该报**。
+**实战**：你国内有几个银行账户加起来 $>$ \$10K？必须报 FBAR——多数留学生不报但理论上**应该报**。
 
 ## 10.4 错报 1040（应该 1040NR）很常见
 
@@ -367,10 +370,13 @@ $$\text{今年在美国} + \tfrac{1}{3} \times \text{去年} + \tfrac{1}{6} \tim
 - 自己是 **NRA 还是 RA**
 - 应该用 **1040NR 还是 1040**
 - **5-year rule** 怎么算
-- **中美 tax treaty $5,000 豁免** 怎么 claim
+- **中美 tax treaty \$5,000 豁免** 怎么 claim
 - **FICA 豁免** 怎么追回
 - **Form 8843** 必须填
 
-下一篇我们进入**实战**——手把手过一遍 Sprintax / FreeTaxUSA 报税流程 + 怎么收 W-2 / 1042-S + 怎么处理 stipend / 实习 1099 + 怎么追回退税 + 跨州报税 + 报错怎么补救。
+**接下来两篇**：
+
+- **第 2 篇**[报税实战](/life/us-tax-filing-process) —— 手把手过一遍 Sprintax / FreeTaxUSA 报税流程 + 怎么收 W-2 / 1042-S + 怎么处理 stipend / 实习 1099 + 怎么追回退税 + 跨州报税 + 报错怎么补救
+- **第 3 篇**[长期规划](/life/us-tax-longterm-planning) —— F-1 → OPT → H-1B → 绿卡的跨阶段身份变化 / Dual-Status Year / 401k / Roth IRA / FBAR / RSU / 什么时候找 CPA
 
 报税是留学生在美国**最被低估的“知识投资”**——**搞清楚一次，受用一辈子**。

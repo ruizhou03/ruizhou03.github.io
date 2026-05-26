@@ -5,6 +5,7 @@ date: 2026-05-25
 main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/china-internet-access"
+last_reviewed: 2026-05-26
 keywords: ["外国网站打不开", "外网中国大陆访问", "为什么 Google 上不了", "为什么 Twitter 上不了", "为什么 ChatGPT 不能用", "ChatGPT 中国不能用", "Claude 中国大陆", "Gemini 中国", "AI 网站 中国 屏蔽", "GFW 防火长城", "Great Firewall", "DNS 污染", "DNS 投毒", "IP 黑洞", "TCP RST 注入", "SNI 阻断", "TLS 握手 拦截", "深度包检测 DPI", "geo-blocking 地理屏蔽", "国别屏蔽 IP", "OpenAI 屏蔽中国", "OpenAI 不支持中国", "出口管制 AI", "BIS 出口管制", "生成式人工智能服务管理办法", "AI 监管 中国", "PIPL 个人信息保护法", "数据出境", "Bing 中国能用", "GitHub 中国能上", "维基百科 中国 屏蔽", "为什么 Wikipedia 上不了", "Country region not supported"]
 ---
 
@@ -124,7 +125,7 @@ HTTPS 时代 DNS 污染的效果在下降（因为可以走 DoH），但 GFW 找
 
 GFW 实时扫描所有 TLS ClientHello 包里的 SNI 字段，发现命中黑名单，立刻发 TCP RST 把连接打断。**这一招杀伤范围极广**——几乎所有现代被封锁的网站，最后一道防线都是 SNI 阻断。
 
-绕过 SNI 检测的技术叫 **ECH（Encrypted Client Hello）**，把 SNI 也加密。但 GFW 已经开始识别和阻断 ECH 流量。
+绕过 SNI 检测的技术叫 **ECH（Encrypted Client Hello）**，把 SNI 也加密。技术细节：ECH 协议本身仍在 IETF 草案阶段（`draft-ietf-tls-esni`），但它依赖的非对称加密底座 **HPKE（Hybrid Public Key Encryption）已正式发布为 RFC 9180（2022）**——所以“ECH 不可用”指的是上层协议在浏览器/服务器/CDN 上的落地，而不是底层算法不成熟。Cloudflare、Firefox 等已默认开启 ECH；但 GFW 已经开始识别和阻断 ECH 流量（识别 ClientHello 中的 `encrypted_client_hello` 扩展并 RST）。
 
 ### ⑤ 深度包检测（DPI）
 
@@ -137,6 +138,74 @@ GFW 实时扫描所有 TLS ClientHello 包里的 SNI 字段，发现命中黑名
 - **OpenVPN、IPsec、PPTP**：被识别得最早、最彻底，几乎不再可用
 - **WireGuard**：被识别，多数地区基本被封
 - **Shadowsocks、V2Ray、Trojan、Xray**：还在和 GFW 持续猫鼠游戏；新协议（Reality、Hysteria2）的核心思路就是“假装成普通 HTTPS 流量”以躲避 DPI 指纹识别
+
+### 五种机制 ↔ 四步映射
+
+把上面五种机制压在 §3.1 那张“四步图”上，能看清“谁打哪一步”：
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 320" style="max-width:100%;height:auto;display:block;margin:1.4em auto;">
+  <text x="380" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">五种 GFW 机制各自攻击访问链路的哪一步</text>
+  <defs>
+    <marker id="map-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#888"/>
+    </marker>
+  </defs>
+  <g font-size="11" text-anchor="middle">
+    <rect x="40" y="50" width="140" height="60" rx="8" fill="#cfe3f5" stroke="#2b6cb0"/>
+    <text x="110" y="72" font-weight="600" fill="#2b6cb0">① DNS</text>
+    <text x="110" y="90" font-size="10" fill="#555">域名 → IP</text>
+    <text x="110" y="104" font-size="10" fill="#555">UDP/53</text>
+    <rect x="220" y="50" width="140" height="60" rx="8" fill="#fef5e6" stroke="#e57f00"/>
+    <text x="290" y="72" font-weight="600" fill="#e57f00">② TCP</text>
+    <text x="290" y="90" font-size="10" fill="#555">三次握手</text>
+    <text x="290" y="104" font-size="10" fill="#555">SYN → SYN-ACK</text>
+    <rect x="400" y="50" width="140" height="60" rx="8" fill="#e6f5e6" stroke="#2e8b57"/>
+    <text x="470" y="72" font-weight="600" fill="#2e8b57">③ TLS 握手</text>
+    <text x="470" y="90" font-size="10" fill="#555">ClientHello (SNI)</text>
+    <text x="470" y="104" font-size="10" fill="#555">证书 / 加密协商</text>
+    <rect x="580" y="50" width="140" height="60" rx="8" fill="#f5e1f0" stroke="#b83280"/>
+    <text x="650" y="72" font-weight="600" fill="#b83280">④ HTTP / 数据</text>
+    <text x="650" y="90" font-size="10" fill="#555">GET / POST</text>
+    <text x="650" y="104" font-size="10" fill="#555">加密 payload</text>
+  </g>
+  <line x1="180" y1="80" x2="220" y2="80" stroke="#888" stroke-width="1.5" marker-end="url(#map-arrow)"/>
+  <line x1="360" y1="80" x2="400" y2="80" stroke="#888" stroke-width="1.5" marker-end="url(#map-arrow)"/>
+  <line x1="540" y1="80" x2="580" y2="80" stroke="#888" stroke-width="1.5" marker-end="url(#map-arrow)"/>
+  <g font-size="10">
+    <rect x="40" y="160" width="140" height="36" rx="6" fill="#fff" stroke="#a04030" stroke-width="1.5"/>
+    <text x="110" y="183" text-anchor="middle" fill="#a04030" font-weight="600">① DNS 污染</text>
+    <line x1="110" y1="160" x2="110" y2="115" stroke="#a04030" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <text x="110" y="218" text-anchor="middle" font-size="9" fill="#888">伪造应答塞回</text>
+  </g>
+  <g font-size="10">
+    <rect x="220" y="160" width="140" height="36" rx="6" fill="#fff" stroke="#a04030" stroke-width="1.5"/>
+    <text x="290" y="183" text-anchor="middle" fill="#a04030" font-weight="600">② IP 黑洞</text>
+    <line x1="290" y1="160" x2="290" y2="115" stroke="#a04030" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <text x="290" y="218" text-anchor="middle" font-size="9" fill="#888">骨干路由器丢包</text>
+  </g>
+  <g font-size="10">
+    <rect x="220" y="230" width="320" height="36" rx="6" fill="#fff" stroke="#a04030" stroke-width="1.5"/>
+    <text x="380" y="253" text-anchor="middle" fill="#a04030" font-weight="600">③ TCP RST 注入（覆盖 ②③④ 任意位置）</text>
+    <line x1="290" y1="230" x2="290" y2="200" stroke="#a04030" stroke-width="1.2" stroke-dasharray="3,2"/>
+    <line x1="380" y1="230" x2="380" y2="115" stroke="#a04030" stroke-width="1.2" stroke-dasharray="3,2"/>
+    <line x1="470" y1="230" x2="470" y2="115" stroke="#a04030" stroke-width="1.2" stroke-dasharray="3,2"/>
+    <text x="380" y="282" text-anchor="middle" font-size="9" fill="#888">检测到敏感关键词/SNI 立刻 RST 双向打断</text>
+  </g>
+  <g font-size="10">
+    <rect x="400" y="160" width="140" height="36" rx="6" fill="#fff" stroke="#a04030" stroke-width="1.5"/>
+    <text x="470" y="183" text-anchor="middle" fill="#a04030" font-weight="600">④ SNI 阻断</text>
+    <line x1="470" y1="160" x2="470" y2="115" stroke="#a04030" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <text x="470" y="218" text-anchor="middle" font-size="9" fill="#888">读明文 SNI → RST</text>
+  </g>
+  <g font-size="10">
+    <rect x="580" y="160" width="140" height="36" rx="6" fill="#fff" stroke="#a04030" stroke-width="1.5"/>
+    <text x="650" y="183" text-anchor="middle" fill="#a04030" font-weight="600">⑤ DPI 行为识别</text>
+    <line x1="650" y1="160" x2="650" y2="115" stroke="#a04030" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <text x="650" y="218" text-anchor="middle" font-size="9" fill="#888">指纹 / 流量行为识别</text>
+  </g>
+  <text x="380" y="310" text-anchor="middle" font-size="11" fill="#555">"墙"不是一台机器——是 5 套机制并行，分别守在四步访问链路的不同位置</text>
+</svg>
+<p class="img-caption">五种封锁机制不是替代关系，而是叠加部署的"多层防御"——任意一步被命中，访问就失败。所以判断"为什么打不开"几乎要从报错样式倒推："超时（IP 黑洞 / 路由丢包）"、"连接重置（RST 注入 / SNI 阻断）"、"DNS 错误（DNS 污染）"——每种报错对应不同的机制。</p>
 
 ## 3.3 国外侧的屏蔽：geo-blocking
 
@@ -237,6 +306,6 @@ GFW 实时扫描所有 TLS ClientHello 包里的 SNI 字段，发现命中黑名
 3. **GFW Report (https://gfw.report/).** *Technical reports on Great Firewall mechanisms.* ——长期跟踪 GFW 技术演进的开源研究项目，包括 SNI、QUIC、ECH 阻断等最新动向。
 4. **U.S. Department of Commerce, Bureau of Industry and Security (BIS).** *Export Administration Regulations (EAR) — Advanced Computing and Semiconductor Manufacturing Items.* 2022-2024 各版更新. ——美国对中国高性能 AI 训练硬件与软件的出口管制法规来源。
 5. **国家互联网信息办公室.** *《生成式人工智能服务管理暂行办法》.* 2023 年 7 月公布，2023 年 8 月 15 日施行. ——中国对生成式 AI 服务的本土监管要求，海外公司未备案即无法合规向大陆提供服务的依据。
-6. **OpenAI Help Center.** *Supported countries and territories.* https://platform.openai.com/docs/supported-countries. ——OpenAI 官方公布的支持地区列表与“中国大陆不在内”的官方依据。
+6. **OpenAI Help Center.** *Supported countries and territories.* [platform.openai.com/docs/supported-countries](https://platform.openai.com/docs/supported-countries). ——OpenAI 官方公布的支持地区列表与“中国大陆不在内”的官方依据。
 7. **全国人民代表大会常务委员会.** *《中华人民共和国个人信息保护法》（PIPL）.* 2021 年 11 月 1 日施行. ——数据出境与本地化存储要求的法律基础。
 8. **The Register.** *China upgrades Great Firewall to defeat TLS tools.* 2022. ——对 GFW 升级针对 TLS 类协议（Trojan、Shadowsocks）阻断能力的报道。

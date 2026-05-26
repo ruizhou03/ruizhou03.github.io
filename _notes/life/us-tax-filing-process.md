@@ -5,6 +5,7 @@ date: 2026-04-24
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-tax-filing-process"
+last_reviewed: 2026-05-26
 keywords: ["美国报税流程", "怎么报税", "报税实战", "tax filing", "报税软件", "Sprintax", "Sprintax 怎么用", "Sprintax vs TurboTax", "Sprintax 学校 access code", "FreeTaxUSA", "TurboTax", "1040NR", "W-2", "1042-S", "1099", "tax treaty", "中美 tax treaty 5000", "退税", "e-file", "ITIN", "跨州报税", "州税", "报错 1040", "amended return", "NRA 报税", "报税截止日", "美国交税", "F1 留学生报税", "J1 报税", "留学生第一次报税", "Form 8843 怎么填", "Form 8843 only", "1040NR 怎么填", "FICA 退还", "OPT 报税", "STEM OPT 报税", "RA TA 奖学金报税", "fellowship 报税", "联邦税州税区别", "Pennsylvania 州税报税", "PA 报税", "tax refund 多久到账", "ITIN 申请 W-7", "Sprintax 报州税", "怎么免费报税", "VITA 免费报税服务"]
 ---
 
@@ -20,7 +21,7 @@ keywords: ["美国报税流程", "怎么报税", "报税实战", "tax filing", "
 - **跨州报税**（PA 上学 + NY 实习）怎么办？
 - 我去年用错了 1040（应该 1040NR）—— **现在怎么补救**？
 
-这是**报税系列的第二篇**——纯实战。读完你能**自己从零开始报完一年的税**。
+这是**美国报税三部曲的第二篇**——纯实战。读完你能**自己从零开始报完一年的税**。**第三篇**讲跨阶段长期规划（[长期规划](/life/us-tax-longterm-planning)）—— Dual-Status Year / 401k / Roth IRA / FBAR / RSU / 找 CPA 时机。
 
 文章以**Penn State 留学生**为典型例子（PA 州税 + 大学 RA / TA / Stipend 等收入），其它学校 / 州大同小异。
 
@@ -32,21 +33,72 @@ keywords: ["美国报税流程", "怎么报税", "报税实战", "tax filing", "
 
 | 你的情况 | 推荐软件 | 价格 |
 |---|---|---|
-| **NRA**（F-1 头 5 年）| **Sprintax** | $50-$80（学校经常买 access code 给学生免费）|
-| **RA**（F-1 第 6 年起）| **FreeTaxUSA** | **$0 联邦** + $15 州税 |
-| **RA + 复杂收入** | TurboTax / H&R Block | $40-$120 |
+| **NRA**（F-1 头 5 年）| **Sprintax** | \$50-\$80（学校经常买 access code 给学生免费）|
+| **RA**（F-1 第 6 年起）| **FreeTaxUSA** | **\$0 联邦** + \$15 州税 |
+| **RA + 复杂收入** | TurboTax / H&R Block | \$40-\$120 |
 | **想自己手填** | IRS 1040NR / 1040 PDF | 免费但慢 |
 
 **典型留学生报税时间线**（2026 年报 2025 税）：
 
-```
-1 月  → 收 W-2 / 1042-S / 1099 等税表
-2 月  → 注册 Sprintax / 填资料
-3 月  → 完成报税表 / 检查 / 提交
-4/15 → 联邦截止（必须）
-6/15 → 没收入的 NRA 仅 8843 截止
-4-12 周 → 退税到账（如果 e-file 通常 3-4 周）
-```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" style="max-width:100%;height:auto;display:block;margin:1.4em auto;">
+  <text x="380" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">留学生报税年度时间线（以 2026 年报 2025 税年为例）</text>
+  <defs>
+    <marker id="tlarrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#888"/>
+    </marker>
+  </defs>
+  <line x1="40" y1="150" x2="720" y2="150" stroke="#888" stroke-width="2" marker-end="url(#tlarrow)"/>
+  <g font-size="11" text-anchor="middle">
+    <g>
+      <circle cx="90" cy="150" r="6" fill="#2b6cb0"/>
+      <text x="90" y="138" fill="#2b6cb0" font-weight="600">1 月</text>
+      <text x="90" y="178" fill="#333">收税表</text>
+      <text x="90" y="194" fill="#888" font-size="10">W-2 / 1042-S</text>
+      <text x="90" y="208" fill="#888" font-size="10">1099 / 1098-T</text>
+    </g>
+    <g>
+      <circle cx="200" cy="150" r="6" fill="#e57f00"/>
+      <text x="200" y="138" fill="#e57f00" font-weight="600">2 月初</text>
+      <text x="200" y="178" fill="#333">等 1042-S</text>
+      <text x="200" y="194" fill="#888" font-size="10">通常比 W-2</text>
+      <text x="200" y="208" fill="#888" font-size="10">晚 1-2 周</text>
+    </g>
+    <g>
+      <circle cx="310" cy="150" r="6" fill="#2e8b57"/>
+      <text x="310" y="138" fill="#2e8b57" font-weight="600">2-3 月</text>
+      <text x="310" y="178" fill="#333">注册软件</text>
+      <text x="310" y="194" fill="#888" font-size="10">Sprintax /</text>
+      <text x="310" y="208" fill="#888" font-size="10">FreeTaxUSA</text>
+    </g>
+    <g>
+      <circle cx="420" cy="150" r="6" fill="#666"/>
+      <text x="420" y="138" fill="#666" font-weight="600">3 月</text>
+      <text x="420" y="178" fill="#333">填表 + 检查</text>
+      <text x="420" y="194" fill="#888" font-size="10">查 treaty /</text>
+      <text x="420" y="208" fill="#888" font-size="10">FICA 项</text>
+    </g>
+    <g>
+      <circle cx="530" cy="150" r="8" fill="#a04030"/>
+      <text x="530" y="135" fill="#a04030" font-weight="700">4/15 ⚠</text>
+      <text x="530" y="178" fill="#a04030" font-weight="600">联邦截止</text>
+      <text x="530" y="194" fill="#888" font-size="10">州税同日</text>
+      <text x="530" y="208" fill="#888" font-size="10">（多数州）</text>
+    </g>
+    <g>
+      <circle cx="630" cy="150" r="6" fill="#2b6cb0"/>
+      <text x="630" y="138" fill="#2b6cb0" font-weight="600">6/15</text>
+      <text x="630" y="178" fill="#333">8843 only</text>
+      <text x="630" y="194" fill="#888" font-size="10">没收入 NRA</text>
+      <text x="630" y="208" fill="#888" font-size="10">截止</text>
+    </g>
+  </g>
+  <g font-size="10" fill="#555">
+    <rect x="200" y="240" width="330" height="44" rx="6" fill="#f5f5f0" stroke="#aaa"/>
+    <text x="365" y="258" text-anchor="middle" font-weight="600" fill="#444">退税到账时间</text>
+    <text x="365" y="276" text-anchor="middle">e-file + direct deposit：3-4 周　|　纸质 + 支票：8-16 周</text>
+  </g>
+</svg>
+<p class="img-caption">报税其实是一条单向流水线：1 月收税表 → 2 月等 1042-S → 3 月填表 → 4/15 提交 → 3-4 周后退税到账。最容易栽的两步是"1042-S 没等到就先报"和"退税地址没更新"。</p>
 
 **3 件你必须做对的事**：
 
@@ -60,7 +112,7 @@ keywords: ["美国报税流程", "怎么报税", "报税实战", "tax filing", "
 
 **[Sprintax.com](https://www.sprintax.com/)** —— 专门为 NRA 设计的报税软件。
 
-- **价格**：联邦 $51 / 州 $36 / FBAR $36（约 $50-$120 总）
+- **价格**：联邦 \$51 / 州 \$36 / FBAR \$36（约 \$50-\$120 总）
 - **学校经常提供免费 access code** —— Penn State、UCLA、MIT 等多数大学**给国际生免费**
 - **支持**：1040NR / 8843 / 1042-S / W-2 / 1099 / Tax Treaty
 - **流程**：5-7 步问答式，自动判断身份 + 选表 + 算税
@@ -79,7 +131,7 @@ keywords: ["美国报税流程", "怎么报税", "报税实战", "tax filing", "
 
 **[FreeTaxUSA.com](https://www.freetaxusa.com/)** —— RA / 公民免费报税软件。
 
-- **价格**：**联邦 $0 + 州 $14.99**
+- **价格**：**联邦 \$0 + 州 \$14.99**
 - 支持 1040 + 大多数收入类型
 - **不支持 1040NR**——NRA 千万别用！
 - **e-filing 支持**：是
@@ -88,7 +140,7 @@ keywords: ["美国报税流程", "怎么报税", "报税实战", "tax filing", "
 
 ## 3.4 TurboTax / H&R Block（RA + 复杂情况）
 
-- **价格**：联邦 $40-$120 + 州 $40-$60
+- **价格**：联邦 \$40-\$120 + 州 \$40-\$60
 - 支持非常复杂的情况：股票 / 房产 / 自雇 / 跨州
 - 多平台 + UI 流畅
 - **不支持 1040NR** —— **NRA 别用**
@@ -99,7 +151,7 @@ keywords: ["美国报税流程", "怎么报税", "报税实战", "tax filing", "
 | 情况 | 选哪个 |
 |---|---|
 | F-1 头 5 年（NRA）+ 学校提供免费 Sprintax | **Sprintax**（免费）|
-| F-1 头 5 年（NRA）+ 学校没提供 | **Sprintax**（自费 ~$50）|
+| F-1 头 5 年（NRA）+ 学校没提供 | **Sprintax**（自费 ~\$50）|
 | F-1 第 6 年（RA）+ 简单 W-2 | **FreeTaxUSA**（免费） |
 | F-1 第 6 年（RA）+ 投资 / 跨州 | **TurboTax** |
 | OPT 工作族 + W-2 only | **FreeTaxUSA** |
@@ -148,14 +200,14 @@ Sprintax 会问：
 ## 步骤 5：申报 Tax Treaty
 
 - 系统问“你是中国学生想 claim Article 20 吗？”
-- 选 **Yes** + $5,000 豁免自动 apply
-- 检查：W-2 上 box 1（wages）是否减去 $5K
+- 选 **Yes** + \$5,000 豁免自动 apply
+- 检查：W-2 上 box 1（wages）是否减去 \$5K
 
 ## 步骤 6：检查 + 调整
 
 Sprintax 生成草稿 1040NR + 8843：
 
-- **看 Refund / Owe 数字**——多数 PSU 留学生有 $500-$2,000 退税
+- **看 Refund / Owe 数字**——多数 PSU 留学生有 \$500-\$2,000 退税
 - 检查所有 W-2 / 1042-S 数字
 - 检查 tax treaty 应用正确
 - 检查 FICA 是否扣了（不应该扣）—— 扣了的话 Sprintax 会**额外生成 Form 843** 帮你追回
@@ -194,21 +246,21 @@ Sprintax 生成草稿 1040NR + 8843：
 
 ## 步骤 4：Standard Deduction
 
-- 系统**自动给** standard deduction（2026 = $15,000）
+- 系统**自动给** standard deduction（2026 = $\$15,000$，每年 IRS 1 月公布次年新数字——引用前**核对当年最新**）
 - RA 可以选 itemize（多数留学生 standard 更划算）
 
 ## 步骤 5：检查 + 提交
 
 - 检查 refund / owe
 - E-file（联邦免费）
-- 州税另收 $14.99（也可以 e-file）
+- 州税另收 \$14.99（也可以 e-file）
 
 ## 步骤 6：保留
 
 - 联邦 + 州税表 PDF
 - 所有 W-2 / 1099 副本
 
-**典型 RA 留学生**：W-2 = $50K → 联邦税 ~$5K + 州税（PA）~$1.5K → 退税 / 补税通常 $0-$500。
+**典型 RA 留学生**：W-2 = \$50K → 联邦税 ~\$5K + 州税（PA）~\$1.5K → 退税 / 补税通常 \$0-\$500。
 
 # 6. 不同收入类型的处理
 
@@ -310,7 +362,7 @@ Sprintax 生成草稿 1040NR + 8843：
 
 - Sprintax 帮你生成 W-7
 - 你打印 + 寄
-- 付费 ~$20 额外
+- 付费 ~\$20 额外
 
 ## 8.4 实战
 
@@ -336,7 +388,7 @@ Sprintax 生成草稿 1040NR + 8843：
 
 ### A. Sprintax 加购 PA 州（推荐 NRA）
 
-- Sprintax 报联邦时**额外 $36 加购州**
+- Sprintax 报联邦时**额外 \$36 加购州**
 - 自动生成 PA-40 表
 - 一键完成
 
@@ -371,7 +423,7 @@ Sprintax 生成草稿 1040NR + 8843：
 3. **NY 州税**（non-resident state）—— 报 NY 那 6 周收入
 4. **NYC 局部税**（如果实习地在 5 个 borough 内）—— 报 6 周
 
-**Sprintax 处理跨州**：每加一个州 +$36。
+**Sprintax 处理跨州**：每加一个州 +\$36。
 
 # 10. 报错怎么补救
 
@@ -400,7 +452,7 @@ Sprintax 生成草稿 1040NR + 8843：
 
 - **每月罚息 0.5%**（最高 25%）+ 利息（约 8% 年化）
 - **越早报越少罚**
-- IRS Online Payment Plan（如果欠 > $1,000）：12-72 月分期付
+- IRS Online Payment Plan（如果欠 > \$1,000）：12-72 月分期付
 
 ## 10.4 错过截止但应退税
 
@@ -426,7 +478,7 @@ Sprintax 生成草稿 1040NR + 8843：
 虽然多数 NRA 不能用 standard deduction —— **中国学生例外**：
 
 - **US-China Tax Treaty Article 22**（“non-discrimination clause”）+ **IRS 公认实践**
-- 中国 NRA 学生**可以用 standard deduction**（2026 = $15,000）
+- 中国 NRA 学生**可以用 standard deduction**（2026 = \$15,000）
 - 这是中国留学生的“独家福利”——印度学生也有，其他国家多数没有
 
 **Sprintax 自动处理**——你只要确认国籍 = China 就行。
@@ -475,13 +527,14 @@ Sprintax 生成草稿 1040NR + 8843：
 8. **[Penn State Global - Tax Information](https://global.psu.edu/tax-information)** —— PSU 国际生税务页
 9. **[一亩三分地“报税”版块](https://www.1point3acres.com/bbs/forum-208-1.html)** —— 中文圈实战经验
 
-**报税系列到这里完结**——把两篇连起来：
+**报税三部曲到这里走完了 \$2/3$**——把三篇连起来：
 
 - **第 1 篇**[基础术语](/life/us-tax-basics-for-students)——理解机制
 - **第 2 篇**（本篇）——实战流程
+- **第 3 篇**[长期规划](/life/us-tax-longterm-planning)——跨阶段身份变化、退休账户、海外申报、找 CPA
 
 留学生报税是**信息不对称严重**的领域——多数中国学生不知道 tax treaty / FICA 豁免 / standard deduction 例外——**每年错失或多交几千美刀**。
 
-读完两篇你应该已经能**自己从零开始报完一年的税** + **知道每个数字哪里来 + 知道每个步骤为什么**。
+读完两篇你应该已经能**自己从零开始报完一年的税** + **知道每个数字哪里来 + 知道每个步骤为什么**。如果你已经报过 $1\text{-}2$ 年想做长期规划（特别是马上要 OPT/H-1B/绿卡的人），继续读第三篇。
 
 最后建议——**第一年报税前去学校的 Tax Workshop**——免费 + 现场问 + 比自己看文档高效 10 倍。**报税这件事每年要做，搞清楚机制就是终身的回报**。

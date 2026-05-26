@@ -51,7 +51,7 @@ keywords: ["打翻液体怎么清理", "先用纸吸还是用布擦", "液体洒
 
 你把厨房纸压在液体上，过几秒拿走时，**液体跟着纸走**——这是真正的“回收”。残留的少量液体再用湿布擦掉就基本不扩散了。
 
-[//]: # (流体力学小知识：液体进入多孔介质的速度遵循 Lucas-Washburn 方程，简言之就是“孔隙越大、液体黏度越低、表面张力越高，吸收越快”。但用一句话总结对生活的指导：让液体进入一次性的纸，比让它进入一块“会被你来回擦”的布要好得多。)
+流体力学里把“液体被多孔介质吸入的过程”总结成 **Lucas-Washburn 方程**：吸入深度 $h$ 与时间 $t$ 之间近似满足 $h \propto \sqrt{(r \gamma \cos\theta / \mu) \cdot t}$ ——其中 $r$ 是孔隙半径、$\gamma$ 是表面张力、$\theta$ 是接触角、$\mu$ 是黏度。三个生活化推论：**孔隙越大吸得越快**（厨房纸 $>$ 抹布）、**液体越稀吸得越快**（清水 $>$ 糖浆）、**接触面亲水吸得越快**（纸纤维亲水、塑料疏水）。所以正确的清洁直觉是：让液体进入一个“会被你扔掉的多孔介质”（厨房纸），而不是进入一个“会被你来回擦的低孔隙率介质”（抹布）。
 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" style="max-width:100%;height:auto;display:block;margin:1.4em auto;">
   <text x="360" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">用抹布擦 vs 用厨房纸压：液体的去向</text>
@@ -119,6 +119,86 @@ keywords: ["打翻液体怎么清理", "先用纸吸还是用布擦", "液体洒
 | **油（食用油、机油）** | 不溶于水，跟纸张/布的亲和力反而高，但跟硬表面的接触面会留油膜 | 先撒大量**面粉 / 苏打粉 / 滑石粉**吸附 5-10 分钟 → 用硬卡片扫掉粉末和油的混合物 → 再用纸抹一遍 → 最后用洗洁精水擦 |
 
 **唯一例外：被打翻的是开水或刚煮好的汤** —— 安全第一，先离远点，等温度降下来再开始处理（防烫伤、防纸张接触高温熔成纤维）。
+
+下面这张决策树把上面这张表压缩成“出事 30 秒内能拿出来用的”流程：
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 480" style="max-width:100%;height:auto;display:block;margin:1.4em auto;">
+  <text x="380" y="22" text-anchor="middle" font-size="14" fill="#333" font-weight="600">打翻液体 30 秒决策树：先判类型，再下手</text>
+  <defs>
+    <marker id="dt-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#666"/>
+    </marker>
+  </defs>
+  <g font-size="11" text-anchor="middle">
+    <rect x="290" y="40" width="180" height="44" rx="22" fill="#f5e9d8" stroke="#a08868" stroke-width="1.5"/>
+    <text x="380" y="58" font-weight="600" fill="#604838">液体打翻了！</text>
+    <text x="380" y="74" fill="#604838" font-size="10">第一反应：别擦，先判类型</text>
+  </g>
+  <line x1="380" y1="84" x2="380" y2="110" stroke="#666" stroke-width="1.5" marker-end="url(#dt-arrow)"/>
+  <g font-size="11" text-anchor="middle">
+    <rect x="290" y="115" width="180" height="36" rx="6" fill="#ffe9e9" stroke="#a04030" stroke-width="1.5"/>
+    <text x="380" y="138" fill="#a04030" font-weight="600">⚠ 高温（开水/热汤）?</text>
+  </g>
+  <line x1="290" y1="133" x2="180" y2="160" stroke="#a04030" stroke-width="1.2" marker-end="url(#dt-arrow)"/>
+  <text x="220" y="153" font-size="10" fill="#a04030" text-anchor="middle">是</text>
+  <line x1="470" y1="133" x2="580" y2="160" stroke="#666" stroke-width="1.2" marker-end="url(#dt-arrow)"/>
+  <text x="540" y="153" font-size="10" fill="#555" text-anchor="middle">否</text>
+  <g font-size="10" text-anchor="middle">
+    <rect x="60" y="165" width="220" height="60" rx="6" fill="#fff0f0" stroke="#a04030"/>
+    <text x="170" y="183" fill="#a04030" font-weight="600">先离远 → 等降温 → 再处理</text>
+    <text x="170" y="200" fill="#555">人安全 &gt; 清洁。烫伤比污渍麻烦 100×</text>
+    <text x="170" y="216" fill="#555">高温纸接触会熔，反而难收拾</text>
+  </g>
+  <g font-size="11" text-anchor="middle">
+    <rect x="490" y="160" width="200" height="36" rx="6" fill="#fef4e6" stroke="#e57f00" stroke-width="1.5"/>
+    <text x="590" y="183" fill="#e57f00" font-weight="600">类型 = ?</text>
+  </g>
+  <line x1="540" y1="196" x2="380" y2="240" stroke="#666" stroke-width="1.2" marker-end="url(#dt-arrow)"/>
+  <line x1="590" y1="196" x2="590" y2="240" stroke="#666" stroke-width="1.2" marker-end="url(#dt-arrow)"/>
+  <line x1="640" y1="196" x2="700" y2="240" stroke="#666" stroke-width="1.2" marker-end="url(#dt-arrow)"/>
+  <g font-size="10">
+    <rect x="20" y="245" width="180" height="100" rx="6" fill="#e6f5e6" stroke="#2e8b57"/>
+    <text x="110" y="263" text-anchor="middle" font-weight="600" fill="#2e8b57">① 稀薄无色（水/牛奶）</text>
+    <text x="30" y="282" fill="#333">→ 厨房纸压上吸光</text>
+    <text x="30" y="298" fill="#333">→ 半湿抹布抹一下</text>
+    <text x="30" y="314" fill="#a04030">⚠ 牛奶必须立刻处理</text>
+    <text x="30" y="330" fill="#888">蛋白质变质发酸</text>
+  </g>
+  <g font-size="10">
+    <rect x="210" y="245" width="180" height="100" rx="6" fill="#fde6e6" stroke="#a04030"/>
+    <text x="300" y="263" text-anchor="middle" font-weight="600" fill="#a04030">② 有色（咖啡/酱油/红酒）</text>
+    <text x="220" y="282" fill="#333">→ 厨房纸厚厚一叠</text>
+    <text x="220" y="298" fill="#333">→ 反复压到不出色</text>
+    <text x="220" y="314" fill="#333">→ 湿布 + 中性清洁剂</text>
+    <text x="220" y="330" fill="#888">红酒加盐进一步吸色</text>
+  </g>
+  <g font-size="10">
+    <rect x="400" y="245" width="180" height="100" rx="6" fill="#fdf2e1" stroke="#e57f00"/>
+    <text x="490" y="263" text-anchor="middle" font-weight="600" fill="#e57f00">③ 粘稠（蜂蜜/糖浆/果酱）</text>
+    <text x="410" y="282" fill="#333">→ 硬卡片铲掉块状</text>
+    <text x="410" y="298" fill="#333">→ 纸抹掉残薄层</text>
+    <text x="410" y="314" fill="#333">→ 最后温水稀释残留</text>
+    <text x="410" y="330" fill="#a04030">⚠ 不要先加水！</text>
+  </g>
+  <g font-size="10">
+    <rect x="590" y="245" width="160" height="100" rx="6" fill="#f5e1f0" stroke="#b83280"/>
+    <text x="670" y="263" text-anchor="middle" font-weight="600" fill="#b83280">④ 油（食用油/机油）</text>
+    <text x="600" y="282" fill="#333">→ 撒面粉/苏打吸 5-10 min</text>
+    <text x="600" y="298" fill="#333">→ 卡片扫掉粉块</text>
+    <text x="600" y="314" fill="#333">→ 纸抹 → 洗洁精擦</text>
+    <text x="600" y="330" fill="#a04030">⚠ 不能光水擦</text>
+  </g>
+  <g font-size="11" text-anchor="middle">
+    <rect x="290" y="385" width="180" height="36" rx="6" fill="#e8e0d0" stroke="#604838"/>
+    <text x="380" y="408" font-weight="600" fill="#604838">⑤ 表面活性剂（洗衣液等）</text>
+  </g>
+  <line x1="590" y1="225" x2="450" y2="385" stroke="#666" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#dt-arrow)"/>
+  <g font-size="10" text-anchor="middle">
+    <text x="380" y="438" fill="#333">→ 当作 ③ 粘稠液体处理：铲 → 纸抹 → 少量湿布控制范围</text>
+    <text x="380" y="456" fill="#a04030" font-weight="600">⚠⚠⚠ 永远不要倒水冲 → 一倒就是大片泡沫海啸</text>
+  </g>
+</svg>
+<p class="img-caption">同一张表压缩成 30 秒可执行的决策树。出事的瞬间不是查表的时机——这张图希望让你看一眼就能定位"我这摊属于哪一类、第一步该做什么"。</p>
 
 # 5. 几个延伸 + 收尾
 
