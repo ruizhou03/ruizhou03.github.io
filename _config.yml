@@ -28,6 +28,7 @@ exclude:
   - docs/
   - DAILY_REVIEW.md
   - EMAIL_SUMMARY.md
+  - SPOTCHECK_100_REPORT.md
   - "*.log"
   - .claude/
   - .githooks/

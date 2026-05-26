@@ -1,3 +1,29 @@
+## 2026-05-26（日常巡检 · 收尾）
+
+> 今日早些时候已由站主连续触发 Round-1/2/3 三轮专项抽检（合计 220 项 ≈ 全站 53%），低风险问题已被大规模收割。本次为当日例行无人值守巡检，定位为「收尾性」：只看 Round-3 没碰到的边角、再做一次构建健康度复核。
+
+### ✅ 本次已自动修复
+
+1. **`SPOTCHECK_100_REPORT.md` 不再发布到公开站点** —— 这份 100 KB 的内部巡检报告（含「失控事件复盘」「项目级深度审查」等内部语境）此前未在 `_config.yml` 的 `exclude` 列表里，`bundle exec jekyll build` 会把它原样拷到 `_site/SPOTCHECK_100_REPORT.md` 对外可见。已比照 `DAILY_REVIEW.md` 的同类处理把它加进 exclude；重建确认 `_site` 根目录已无 `*.md` 残留。文件本身仍保留在仓库里作为内部记录，不动 git 历史。
+
+### 📋 待你把关
+
+无新增 P0/P1。Round-3 留下的 2 个 P0（`coaster-drop-tower-braking.md` 物理论述自相矛盾、`taichi-review-2023.md` 「85 公里跑」疑严重 typo）与 ~68 个 P1 仍在本文件下方的 Round-3 小节里候着，请按优先级处理。本次例行巡检没有引入新的判断题。
+
+### 🗂 仓库卫生
+
+- **仓库结构较昨日变化幅度小**：今日早些时候 Round-3 主要是内容/样式修复（129 文件 / 761 行变更），未引入新目录或文件搬迁。仅 `SPOTCHECK_100_REPORT.md` 是当日新增的根级 markdown，正好被本次例行巡检捕获。
+- **再次扫描根级是否有遗漏的不该公开文件**：除 `SPOTCHECK_100_REPORT.md` 外无其它疑似内部产物。`assistant-fulltext.json` / `assistant-index.json` 是站内助手的运行数据，属应公开资产，保留。
+- **未跟踪垃圾文件**：扫描 `.DS_Store` / `Thumbs.db` / `"xxx 2.yyy"` 副本——全部 0 命中。
+- **构建状态**：`bundle exec jekyll build` 通过，零警告（feed/sitemap 正常生成，6.2 s）。
+- **历史与远端**：未改写 git 历史，未 force-push，未动 `.git/`。本次仅本地新增一次提交，按惯例 rebase + push 到 `origin/main`。
+
+### 💓 后端脉搏 / 📬 读者来信
+
+本次未跑（routine 例行收尾，跳过日常审计三件套；这与 Round-3 同源跳过的原因一致）。
+
+---
+
 ## 2026-05-26（Round 3 · 100 项专项抽检）
 
 ### ✅ 本次已自动修复
