@@ -1,0 +1,26 @@
+% ===== 心理统计 II 系列共享视觉框（莫兰迪三件套，与 robustness/causal-id 同款） =====
+% 这份 preamble 通过 header-includes 注入到每份 .Rmd 顶部
+\usepackage[most]{tcolorbox}
+
+\definecolor{boxidea}{HTML}{6c8aa5}
+\definecolor{boxwarn}{HTML}{b58266}
+\definecolor{boxtip}{HTML}{8aa085}
+
+\newtcolorbox{concept}[1][]{%
+  enhanced, breakable,
+  colback=boxidea!7, colframe=boxidea, coltitle=white,
+  fonttitle=\bfseries, title=#1,
+  arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt
+}
+\newtcolorbox{pitfall}[1][]{%
+  enhanced, breakable,
+  colback=boxwarn!7, colframe=boxwarn, coltitle=white,
+  fonttitle=\bfseries, title=#1,
+  arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt
+}
+\newtcolorbox{keypoint}[1][]{%
+  enhanced, breakable,
+  colback=boxtip!7, colframe=boxtip, coltitle=white,
+  fonttitle=\bfseries, title=#1,
+  arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt
+}

@@ -1,0 +1,318 @@
+---
+title: "Multi-Linear Regression"
+author: Rui Zhou
+documentclass: ctexart
+
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+header-includes:
+  - '\usepackage[most]{tcolorbox}'
+  - '\definecolor{boxidea}{HTML}{6c8aa5}'
+  - '\definecolor{boxwarn}{HTML}{b58266}'
+  - '\definecolor{boxtip}{HTML}{8aa085}'
+  - '\newtcolorbox{concept}[1][]{enhanced, breakable, colback=boxidea!7, colframe=boxidea, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}'
+  - '\newtcolorbox{pitfall}[1][]{enhanced, breakable, colback=boxwarn!7, colframe=boxwarn, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}'
+  - '\newtcolorbox{keypoint}[1][]{enhanced, breakable, colback=boxtip!7, colframe=boxtip, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}'
+
+---
+
+```{r warning=FALSE}
+library(dplyr)
+```
+
+## 这章在讲什么
+
+多元线性回归（multiple linear regression, MLR）用多个解释变量 $X_1, \ldots, X_k$ 一起预测一个连续因变量 $Y$。心理学最常见的两种用法：(1) 控制混杂变量，比如想看「干预 → 学习成绩」的净效应，就把 IQ、动机、家庭背景一起塞进回归当协变量；(2) 比较解释力，看哪个变量对结果的「贡献」最大（这需要看标准化系数而非原始系数，下文会讲）。
+
+\begin{concept}[核心模型与 OLS]
+模型形式：$Y_i = \beta_0 + \beta_1 X_{1i} + \cdots + \beta_k X_{ki} + \varepsilon_i$。OLS 估计的本质是最小化残差平方和 $\sum_i \hat\varepsilon_i^2$，闭式解 $\hat\beta = (X'X)^{-1} X'Y$。可识别需要 $X'X$ 可逆——这就是为什么\textbf{多重共线性}（某列能被其他列线性表出）会让 OLS 崩。
+
+斜率 $\beta_j$ 的解读：「在保持其他变量不变的情况下，$X_j$ 增加 1 单位，$Y$ 平均改变 $\beta_j$」。注意「保持其他变量不变」这件事经常做不到——这正是\textbf{偏相关}和后面要讲的 ANCOVA、Mediation 的出发点。
+\end{concept}
+
+下面这份 `df` 是 SPSS 自带的雇员信息数据，含工资 `salary`、起薪 `salbegin`、受教育年数 `educ`、工龄 `jobtime`、过往工作经验 `prevexp` 等。我们想用其他变量预测 `salary`。
+
+```{r}
+df = readxl::read_excel("data02-01.xlsx", sheet = 1)
+attach(df)
+```
+
+# Pre-Inspection
+## linear relationship
+Use `cor()` to carry the correlation test, the default method of which is `method = 'pearson'`. The result will be presented as a correlation matrix.
+
+However, obviously the correlation matrix won't give you information about p-value (or say, significance).
+
+Good thing is that the check of linear relationship is the first and rough step for further regression, maybe other more information (about p-value or CIs) is unnecessary. Another good thing is that the `cor()` is from base R, no extra requirement to library packages.
+
+```{r comment=''}
+df |> select(salary,educ,salbegin,jobtime,prevexp) |> cor()
+```
+
+Well, it's clumsy to compress the target data (variables) into a matrix to take the test and get the correlation matrix. Just fine to know a bit about that.
+```{r comment=''}
+# first create an empty matrix, primarily filled with NA
+m = matrix(nrow=length(salary),ncol=5)
+m[,1]=salary
+m[,2]=educ
+m[,3] = salbegin
+m[,4]=jobtime  
+m[,5]=prevexp
+#check the correlation matrix
+cor(m)
+```
+
+Additionally, I'd like to use `bruceR::Corr()` for the correlation matrix, which is visible for both in amount and in significance. Moreover, it's fancy! 
+
+For simplicity, the two decimals by default is well enough. If more accuracy is needed, you can set the parameter `digits = `.
+
+```{r comment=''}
+df |> select(salary,educ,salbegin,jobtime,prevexp) |> bruceR::Corr(digits = 2)
+```
+
+## multicollinearity
+Use `car::vif(model)` and get the result directly.
+
+For the convenience of narration, check of multicollinearity is presented here. Most of the time, the check is a "post-hoc" one, after obtaining the fitted model.
+
+VIF less than 2 is ideal, and less than 5 is the bottom line.
+
+```{r comment=''}
+fit = lm(salary ~ educ + salbegin + jobtime + prevexp,data = df)
+car::vif(fit)
+```
+
+# MLR
+## basic summary
+Firstly, use `lm()` to get the linear model.
+
+Subsequently, use `summary()` to get the detailed result.
+
+Period.
+```{r comment=''}
+fit = lm(salary ~ educ + salbegin + jobtime + prevexp,data = df)
+summary(fit)
+```
+
+It's noteworthy that `bruceR::print_table(model)` can spring up the regression result as a decent table, and can be exported to a `.doc` file.
+
+However, fine with `summary()`, decency doesn't matter much here, and the `summary()` can give more information about the model itself that is essential, such F value and multiple R squared.
+
+## coefficients
+Use `coefficients(model)` from base R to see the coefficients for each IV.
+
+Furthermore, use `confint(model,level = 0.95)` from base R to see the CIs (95% by default) for each coefficients.
+
+```{r}
+coefficients(fit)
+confint(fit, level=0.95)
+```
+
+Multiple R squared is reported through `summary()`.
+
+By definition, Multiple R squared is defined as the square of the correlation between estimated (fitted) value and real values.
+```{r comment=''}
+cor(salary,fit$fitted.values)
+```
+
+## model comparison
+Compare the model with the "zero" model, formally called the null model. The null model has no IV but with intercept, which is the mean. The null model uses the mean to predict the data or explain the variation of values.
+
+Get the null model by formula `DV~1`.
+
+```{r comment=''}
+fit2 = lm(salary ~ 1 )
+```
+
+Then use `anova(model1,model2)` to compare the two models.
+
+```{r comment=''}
+anova(fit,fit2)
+```
+
+If we think further, the F test for the MLR model is to test with null hypothesis that all the coefficients of all the IVs are zero. Therefore, the model comparison by essence coincides with the F test! Obviously, the F value "copies" that in the `summary()` result.
+
+# Standard MLR
+Transform the formula with each variable embedded into the function `scale()`, no other adjustments!
+
+Under standard MLR, the coefficients are standardized ones.
+```{r comment=''}
+fit_std = lm(scale(salary) ~ scale(educ) + scale(salbegin) + scale(jobtime) + scale(prevexp),data = df)
+```
+
+```{r comment=''}
+summary(fit_std)
+```
+
+## (semi-) partial for x
+(Semi-) partial correlation indicates the variance accounted for by the certain IV specifically, which is especially intriguing and important in standard MlR.
+
+Use `pcor()` from the package `ppcor` to compute the partial correlation for IVs. 
+
+Use `spcor()` from the package `ppcor` to compute the semi-partial correlation for IVs.
+
+Throw the regressed variables (both IVs & DV) into the functions above, and period.
+
+The results will include estimated value of correlation and its p-value. However, the drawback is that the returned matrix does not include rownames and colnames, making it reading-unfriendly. However, we only care about the (semi-) partial correlation between DV and all IVs, which means only the very one row or column is enough.
+
+Therefore, DV goes first! Only check the first row or column!
+```{r comment=''}
+# partial correlation
+df |> select(salary,educ,salbegin,jobtime,prevexp) |> 
+  ppcor::pcor()
+
+# part or semi-partial correlation
+df |> select(salary,educ,salbegin,jobtime,prevexp) |> 
+  ppcor::spcor()
+```
+
+# Goodness of Fit
+## fitted values & real values
+```{r comment=''}
+fitted_y = fitted(fit) # predicted values
+plot(df$salary,fitted_y,'p')
+```
+
+## residual
+If the model fits well, then the residual should follow a normal distribution.
+
+Fitted model's residuals can be obtained through `residuals(model)` or `model$residuals`. This works the same for other attributes of a linear model, such as coefficients.
+```{r comment=''}
+hist(residuals(fit))
+# hist(fit$residuals)
+```
+
+## plot more
+Use `plot(model)` to get multiple plots reflecting the goodness of fit from many perspectives.
+
+Specify parameter `which = vector_of_range` to designate the plots to show, 6 the most. `which = 1:4` by default.
+
+Following the order, the six plots are:
+
+* Residuals & Fitted Values
+  * test the homoscedascitiy assumption
+* QQ Plot for Residuals
+  * test the Gaussian assumption
+* Square Root of Standardized Residuals & Fitted Value
+  * similar to the first one
+* Cook's Distance
+  * check outliers
+* Standardized Residuals & Leverage
+  * See if influential points have huge residual, if so, possibly outlier!
+* Cook's Distance & Leverage
+  * Large in both, possibly outlier!
+```{r comment=''}
+plot(fit, which=1:6)
+```
+
+There's another way to do the model checking. Use `performance::check_model(model)`.
+
+The default option is to check all the "vif", "qq", "normality", "linearity", "ncv", "homogeneity", "outliers", "reqq", "pp_check", "binned_residuals" and "overdispersion", which can be specified through `check = specifying_vector`. Here I'll take the check of outliers as an example.
+```{r comment=''}
+performance::check_model(fit,check = 'outliers')
+```
+
+Do not forget to `detach()` the attached data.
+```{r comment=''}
+detach(df)
+```
+
+# 容易踩的坑
+
+\begin{pitfall}[新手容易栽的三件事]
+\begin{enumerate}
+\item \textbf{多重共线性}（multicollinearity）：解释变量之间相关性太高时 $X'X$ 接近奇异，$\hat\beta$ 方差爆炸，单个系数的 $t$ 检验不显著但模型整体 $F$ 检验显著。诊断：\texttt{car::vif()}，VIF $> 10$（甚至 $> 5$）就要警惕。常见来源——把同一个东西测了两遍（如「年龄」和「工龄」）、把多分类哑变量没设参照水平、塞进去一堆「派生变量」（如 $X$、$X^2$、$X \times Z$ 没中心化）。
+\item \textbf{$R^2$ 高不等于因果}：$R^2 = 0.9$ 只说明模型解释了 90\% 的方差，不代表 $X \to Y$ 是因果关系。教科书最爱举的例子：用「鞋码」预测「数学成绩」，$R^2$ 不低，但因果链是「年龄 → 鞋码 \& 数学」，鞋码本身没用。
+\item \textbf{残差不正态 / 异方差}：OLS 的 $t/F$ 检验和置信区间假设 $\varepsilon \sim \mathrm{Normal}(0, \sigma^2)$。Q-Q 图严重偏离对角线 → 正态性破；Scale-Location 图残差扇形分布 → 异方差。补救：稳健标准误（\texttt{sandwich::vcovHC}）、对 $Y$ 做对数变换、或换 GLM。
+\end{enumerate}
+\end{pitfall}
+
+# Appendix
+
+## Attach and Detach
+
+We can use the function `attach()` to use variables in the database conveniently. After `attach()`, column variables can be used directly without `$`. (R will do the searching work behind for you!)
+
+However, sometimes names of the variables will conflict with each other and cause problems. Not recommended from my perspective, because you'll not know what database the variable is from, especially when you're trying to check the codes. Combined with tube-friendly and formula-pattern genre, this won't be any more trouble.
+
+```{r}
+attach(df)
+```
+
+After attaching a database, remember to `detach()` that finally, in case of conflicts with other variables.
+
+## MLR
+
+```{r}
+heart = read.csv('heart.csv')
+```
+
+### Fit the Model
+```{r}
+mfit = lm(scale(heart.disease)~scale(biking)+scale(smoking),
+          data = heart)
+```
+
+### Summary the Model
+
+```{r}
+summary(mfit)
+```
+
+It's predicted that if `biking` changes for one standard deviation, then `heart.disease` is to change for -0.940 standard deviation, and that if `smoking` changes for one standard deviation, then `heart.disease` is to change for 0.323 standard deviation. Meanwhile, coefficients of both `biking` and `smoking` are highly significant with $p<.001$.
+
+### Goodness of Fit
+
+After qualitative analysis, now move on to quantitative works.
+
+```{r comment=''}
+result = summary(mfit)
+result$adj.r.squared
+```
+
+$Adjusted\ R^2$ of 0.9795 indicates a highly awesome goodness of fit and its ability to explain the variation of the data!
+
+```{r comment=''}
+cor(x = fitted(mfit), y = heart$heart.disease)
+```
+
+The correlation between the fitted values and the observed (real) values is as high as 0.9897563, which is exactly the square root of $R^2$. Jointly speaking, the model has great credibility in prediction.
+
+### VIF
+
+```{r comment=''}
+car::vif(mfit)
+```
+
+VIFs of `biking` and `smoking` are 1.000229 and 1.000229 respectively, far less than 5, showing that there should be no worries about multicollinearity.
+
+### Plots of Residuals
+
+```{r}
+par(mfrow = c(1,2))
+plot(mfit,which = c(1,3))
+```
+
+From the first plot, it's shown that there's no obvious tendency between the fitted values and the residuals.
+
+```{r}
+par(mfrow = c(1,2))
+plot(mfit,which = 2)
+hist(mfit$residuals)
+```
+
+In QQ plot, the scatter points of residuals closely center around the line offered by normal distribution. In the histogram of residuals, a clear prototype of normal distribution is depicted. What's more, move on from qualitative analysis to the quantitative.
+
+```{r comment=''}
+shapiro.test(mfit$residuals)
+mfit$residuals |> mean()
+```
+
+From the Shapiro test, $W = 0.9969963,p=0.4935143$, indicating that the residuals from the fitted model follow a normal distribution. Moreover, the mean is computed to be (extremely close to) zero.
+
+Therefore, we can safely say that the residuals of the fitted model do follow a normal distribution.
+
+Based on what we've discussed, we can conclude confidently that the model fits the data well!

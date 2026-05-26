@@ -1,0 +1,243 @@
+---
+title: "Nested ANOVA and MANOVA"
+author: Rui Zhou
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+header-includes:
+  - '\usepackage[most]{tcolorbox}'
+  - '\definecolor{boxidea}{HTML}{6c8aa5}'
+  - '\definecolor{boxwarn}{HTML}{b58266}'
+  - '\definecolor{boxtip}{HTML}{8aa085}'
+  - '\newtcolorbox{concept}[1][]{enhanced, breakable, colback=boxidea!7, colframe=boxidea, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}'
+  - '\newtcolorbox{pitfall}[1][]{enhanced, breakable, colback=boxwarn!7, colframe=boxwarn, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}'
+  - '\newtcolorbox{keypoint}[1][]{enhanced, breakable, colback=boxtip!7, colframe=boxtip, coltitle=white, fonttitle=\bfseries, title=#1, arc=2pt, left=8pt, right=8pt, top=4pt, bottom=4pt}'
+
+---
+
+# 这章在讲什么
+
+普通单因素 ANOVA 假设组与组之间独立、组内观测也独立。但心理学实验里数据经常**有层级结构**：每个学校抽几个班，每个班抽几个学生——「学生」嵌套在「班」里，「班」嵌套在「学校」里。如果不显式建模这种嵌套，就会低估误差、把 $p$ 值算小、得出虚高的显著性。这一章讲两件事：**嵌套 ANOVA**（一个因变量，但变量有嵌套层级）和 **MANOVA**（多个因变量同时考察组间差异）。
+
+\begin{concept}[两个核心区别]
+\textbf{Nested ANOVA}：误差项要拆——「组间」的检验要用「子组间」的方差作分母，而不是「子组内」。R 里 \texttt{aov(DV \~{} group + Error(group/subgroup))} 这种 \texttt{Error()} 项就是干这件事。
+
+\textbf{MANOVA}：把多个 DV 看成一个向量 $\mathbf{Y}_i$，检验「组别」是否对 $\mathbf{Y}$ 的多维分布有影响。统计量从 $F$ 换成 Pillai's trace、Wilks' $\Lambda$、Hotelling-Lawley、Roy's largest root——这四个统计量各有侧重，Pillai 最稳健（对协方差齐性违反不敏感），是默认选择。MANOVA 显著之后再做 univariate ANOVA 看是哪个 DV 在驱动差异。
+\end{concept}
+
+# Nested ANOVA
+## 0
+
+```{r message=FALSE}
+library(tidyverse)
+library(car)
+
+nestedData = readxl::read_excel("nested anova.xlsx")
+```
+
+## visualization
+```{r}
+# we should eyeball the data first to make sense of the test.
+library(ggplot2)
+# create boxplots to visualize the data
+ggplot(nestedData, aes(x=factor(location), y=DV)) + 
+  geom_boxplot()
+```
+
+## nested ANOVA
+Theoretically, the order of computing the variance sum of squares matters, thus appointing the `summation = 'I'`.
+
+However, here the summation type does not matter.
+
+Note that the result of the main effect of the group is wrong. We can manually make it straight from the SS of the group and the subgroup.
+```{r}
+# note that nested anova can use error type I and III.
+# aov() has a default type I to process factors in an sequential order
+# here type I and III don't differ, since effectively we have no orders
+aov_model = aov(DV ~ factor(method)/factor(location), 
+                data = nestedData,summation="I")
+summary(aov_model)
+aov_model = aov(DV ~ factor(method)/factor(location), 
+                data = nestedData,summation="III")
+summary(aov_model)
+```
+
+### error adjustment
+An alternatDVe refinement is to adjust the error term.
+```{r}
+aov.result2 = aov(DV ~ factor(method) + 
+                    Error(factor(method):factor(location)),
+                  data = nestedData)
+summary(aov.result2)
+```
+
+### comparison with one-way
+If we wrongly ignore the nested factor and use one-way ANOVA, the results would be different
+
+Note that there's only one group factor, therefore, the type of summation does not matter.
+```{r}
+aov_model = aov(DV ~ factor(method), 
+                data = nestedData,summation="III")
+summary(aov_model)
+
+aov_model = aov(DV ~ factor(method), 
+                data = nestedData)
+summary(aov_model)
+```
+
+# MANOVA
+## 0
+
+```{r}
+library("readxl")
+library("rstatix")
+library("MVTests")
+library("heplots")
+
+# salary data example
+salaryData = readxl::read_xlsx("example.xlsx")
+DV = cbind(salaryData$salary, salaryData$salbegin)
+jobcat = as.factor(salaryData$jobcat)
+gender = as.factor(salaryData$gender)
+```
+
+## visualization
+Note that in order to generate the boxplot according to the "categorical" data, "factor" type should be designated in the mapping parameter.
+
+If not "factored", the scatter plot works fine with grouped effect, but the boxplot fails.
+```{r}
+# eyeball the data
+library(gridExtra)
+p1 = ggplot(salaryData, aes(x = factor(jobcat), y = salary)) + 
+  geom_boxplot(outlier.shape = NA) + geom_jitter(width = 0.2) + 
+  theme(legend.position="top")
+p2 = ggplot(salaryData, aes(x = factor(jobcat), y = salbegin)) + 
+  geom_boxplot(outlier.shape = NA) + geom_jitter(width = 0.2) + 
+  theme(legend.position="top")
+grid.arrange(p1, p2, ncol=2)
+```
+
+We can also eyeball the DVs.
+```{r}
+library(car)
+scatterplot(salary ~ salbegin, data=salaryData, ellipse=TRUE, 
+  smooth=list(style="lines"))
+```
+
+## assumptions
+
+### normality
+#### pipe-friendly (Preferred)
+Preferred!
+
+Note that `mshapiro_test()` is from the package `rstatix`, one step further from `tidyverse`.
+```{r}
+salaryData |> select(salary,salbegin) |> mshapiro_test()
+
+salaryData |> group_by(jobcat) |> 
+  shapiro_test(salary,salbegin)
+```
+
+#### classical (Not Preferred)
+Not preferred. It's not efficient to do this way.
+
+The specific function `mshapiro.test()` requires to library the package `mvnormtest`, which surprisingly has a single function! Moreover, it requires the data to be transposed before being processed.
+
+The most annoying part is that the data has to be packed purposefully.
+```{r}
+mvnormtest::mshapiro.test(t(DV))
+```
+
+### homogeniety of variance & covariance
+Using the Box's M-test and Levene's Test.
+
+#### pipe-friendly (Preferred)
+Using `box_m()` from the package `rstatix` to test the homogeniety of covariance matrices, in which the first parameter is the DVs needed to be analyzed (No group variable! This can be achieved through `select()`), and the second is the `group` parameter specifying the group variable.
+
+Moreover, the function `heplots::boxM()` is helpful. Instead of taking the formula to specify the parameters, using the "traditional" way to write `group = ...` works pretty well combined with pipe-friendly environment!
+
+The drawback of the functions is that they could not search column variables automatically, and that should be specified manually. And more annoying one is that, when encountering with NAs, an error will be raised by `rstatix::box_m()`, while that's fine with `heplots::boxM()`.
+```{r}
+salaryData |> select(salary,salbegin) |> 
+  box_m(group = jobcat)
+
+salaryData |> select(salary,salbegin) |> 
+  heplots::boxM(group = jobcat)
+```
+
+Do not forget that the assumption of homogeniety of variance for each DV is needed either! However, the traditional `levene_test()` (or its variants) can deal with one DV at a time, which is tedious when we have many DVs to check.
+
+Hopefully, we have `heplots::leveneTests(data,group)` to deal with that issue. Combined with pipe-friendly procedures, that's fabulous!
+```{r}
+salaryData |>  select(salbegin,salary) |> 
+  heplots::leveneTests(group = jobcat)
+```
+
+#### classical
+The most annoying part is that the data has to be packed purposefully.
+
+An alternative way to use `heplots::boxM()` has been mentioned above. We can renovate the efficiency to carry this test by replacing the "formula" specifying-pattern with the "group" one.
+```{r}
+heplots::boxM(cbind(salary, salbegin) ~ factor(jobcat), 
+              data = salaryData)
+```
+
+## MANOVA
+Use the funtion `manova()`, which is from the baseR, no special need to library packages.
+
+Similarly, the most annoying part is that the DVs and IVs has to be packed previously.
+```{r}
+fit = manova(DV ~ jobcat)
+```
+
+As before, simply use `summary()` of the fitted model to see the results.
+```{r}
+summary(fit)  #for manova
+```
+
+## effect size
+Checking the effect size is also indispensable.
+
+Use `eta_squared()` from the package `effectsize`, which contains plenty of useful functions computing effect size under various scenarios.
+
+Note that there's also an `eta_squared()` from the package `rstatix()`, but that can only deal with univariate ANOVA, it would fail when encountering MANOVA models.
+
+Also note that the package `effectsize` is incorporated in `bruceR`!
+```{r}
+effectsize::eta_squared(fit)
+```
+
+## univariate ANOVA
+Needed if MANOVA reports significant results.
+
+`summary.aov()` will report the univariate ANOVA respectively.
+```{r}
+summary.aov(fit)  #for indDVidual anovas
+```
+
+## post-hoc tests
+Note that the post-hoc tests here are essentially for the univariate ANOVA.
+
+Note that the `games_howell_test()` is different from `tukey_hsd()`.
+
+Note that for many DVs to take the post-hoc tests simultaneously, first `gather()` the targeted columns, and then take the **grouped** data for the test.
+```{r comment=''}
+salaryData %>% gather(key = "var", 
+                      value = "value", 
+                      salary, salbegin) |> 
+  group_by(var) |>
+  games_howell_test(value~jobcat) 
+```
+# 容易踩的坑
+
+\begin{pitfall}[嵌套与 MANOVA 都容易栽的几件事]
+\begin{enumerate}
+\item \textbf{嵌套与交叉（crossed）混淆}：当「班」嵌套在「学校」里时，A 校的「3 班」和 B 校的「3 班」不是同一回事，必须写成 \texttt{Error(school/class)}。反之如果是真正的两个交叉因子（如「教学法」× 「教师」），应该用 \texttt{Y \~{} method * teacher}。判断标准：每个 level 的子因子是否在所有上级因子里出现？
+\item \textbf{MANOVA 跳过协方差齐性检查就上结果}：MANOVA 的 $p$ 值对 $\Sigma_1 = \Sigma_2 = \cdots = \Sigma_g$ 的同方差假设敏感。Box's $M$ 检验给出齐性 $p$；若 $p < 0.001$ 且各组样本量差异大，Pillai 之外的统计量（特别是 Wilks）都不可信。
+\item \textbf{MANOVA 显著就停手}：MANOVA 只告诉你「至少有一个 DV 上组间有差异」。要知道**是哪个 DV** 必须再跑 univariate ANOVA，最好做 Bonferroni 校正控制族错误率。
+\item \textbf{事后检验用错}：组间方差齐时用 Tukey HSD；不齐时用 Games-Howell（\texttt{rstatix::games\_howell\_test}）。本笔记上面演示的就是 Games-Howell，因为各职位类别样本量差异很大。
+\end{enumerate}
+\end{pitfall}
