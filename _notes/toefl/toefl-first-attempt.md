@@ -38,6 +38,4 @@ material_type: "经验之谈"
 
 希望能对大家有帮助吧！我现在只希望上帝保佑我 www
 
-🙏
-
 > 后记：祈祷未果，半年后又有了一篇《[不配这个专栏的托福二战分享](/notes/toefl/toefl-second-attempt)》。
