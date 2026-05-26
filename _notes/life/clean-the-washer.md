@@ -71,13 +71,134 @@ keywords: ["洗衣机怎么清洁", "洗衣机自己也要洗", "洗衣机清洗
 - **排水过滤器**（滚筒底部小盖板）—— 拦截毛发、纸巾、硬币
 - **内胆顶端** —— 翻动时不接触水，长年发霉
 
+<svg xmlns=”http://www.w3.org/2000/svg” viewBox=”0 0 720 360” style=”max-width:100%;height:auto;display:block;margin:1.4em auto;”>
+  <text x=”360” y=”22” text-anchor=”middle” font-size=”14” fill=”#333” font-weight=”600”>滚筒洗衣机的 4 个污垢热点（剖面视角）</text>
+
+  <!-- 外壳 cabinet -->
+  <rect x=”120” y=”50” width=”480” height=”260” rx=”6” fill=”#f8f8f8” stroke=”#888” stroke-width=”2”/>
+
+  <!-- 洗涤剂盒抽屉 detergent drawer -->
+  <rect x=”140” y=”62” width=”170” height=”28” fill=”#fff5d6” stroke=”#c89800” stroke-width=”1.5”/>
+  <text x=”225” y=”80” text-anchor=”middle” font-size=”10” fill=”#8a6800”>洗涤剂盒抽屉</text>
+  <line x1=”225” y1=”92” x2=”225” y2=”118” stroke=”#c89800” stroke-dasharray=”3,3”/>
+  <circle cx=”225” cy=”120” r=”4” fill=”#c89800”/>
+  <text x=”80” y=”80” text-anchor=”middle” font-size=”11” fill=”#c89800” font-weight=”600”>① 洗涤剂盒</text>
+  <text x=”80” y=”95” text-anchor=”middle” font-size=”9” fill=”#666”>残留+反流积水</text>
+  <path d=”M115 80 L138 80” stroke=”#c89800” stroke-width=”1.5” marker-end=”url(#arr-w)”/>
+
+  <!-- 内桶 drum (圆形) -->
+  <circle cx=”360” cy=”200” r=”100” fill=”#fff” stroke=”#666” stroke-width=”2”/>
+  <circle cx=”360” cy=”200” r=”100” fill=”none” stroke=”#aaa” stroke-dasharray=”2,4”/>
+  <!-- 内桶外壁夹层 -->
+  <circle cx=”360” cy=”200” r=”110” fill=”none” stroke=”#999” stroke-width=”1” stroke-dasharray=”4,3”/>
+  <text x=”360” y=”205” text-anchor=”middle” font-size=”10” fill=”#888”>内桶</text>
+
+  <!-- ③ 内胆夹层标 -->
+  <text x=”640” y=”160” text-anchor=”middle” font-size=”11” fill=”#8e44ad” font-weight=”600”>③ 内胆夹层</text>
+  <text x=”640” y=”175” text-anchor=”middle” font-size=”9” fill=”#666”>看不到的污垢层</text>
+  <path d=”M605 165 L475 195” stroke=”#8e44ad” stroke-width=”1.5” marker-end=”url(#arr-w)”/>
+
+  <!-- 橡胶门封 door seal (高亮重点) -->
+  <path d=”M260 200 Q260 130 360 130 Q460 130 460 200 Q460 270 360 270 Q260 270 260 200 Z”
+        fill=”none” stroke=”#e74c3c” stroke-width=”4” opacity=”0.7”/>
+  <text x=”80” y=”200” text-anchor=”middle” font-size=”11” fill=”#e74c3c” font-weight=”600”>② 橡胶门封</text>
+  <text x=”80” y=”215” text-anchor=”middle” font-size=”9” fill=”#666”>褶皱积水霉斑</text>
+  <text x=”80” y=”227” text-anchor=”middle” font-size=”9” fill=”#e74c3c”>★ 滚筒头号雷</text>
+  <path d=”M115 210 L255 210” stroke=”#e74c3c” stroke-width=”1.5” marker-end=”url(#arr-w)”/>
+
+  <!-- 排水过滤器 drain filter -->
+  <rect x=”290” y=”295” width=”60” height=”12” fill=”#cfe3f5” stroke=”#2b6cb0”/>
+  <text x=”320” y=”304” text-anchor=”middle” font-size=”9” fill=”#2b6cb0”>过滤器盖</text>
+  <text x=”640” y=”295” text-anchor=”middle” font-size=”11” fill=”#2b6cb0” font-weight=”600”>④ 排水过滤器</text>
+  <text x=”640” y=”310” text-anchor=”middle” font-size=”9” fill=”#666”>毛发/硬币/纸巾</text>
+  <path d=”M605 297 L355 301” stroke=”#2b6cb0” stroke-width=”1.5” marker-end=”url(#arr-w)”/>
+
+  <!-- 底部标注 -->
+  <text x=”360” y=”340” text-anchor=”middle” font-size=”10” fill=”#666”>每月深度清洁要把这 4 处都覆盖到：清洁剂 + 高温长程序冲 ①③、纸巾擦 ②、拧开盖板掏 ④</text>
+
+  <defs>
+    <marker id=”arr-w” markerWidth=”8” markerHeight=”8” refX=”6” refY=”4” orient=”auto”>
+      <path d=”M0,0 L8,4 L0,8 Z” fill=”#666”/>
+    </marker>
+  </defs>
+</svg>
+<p class=”img-caption”>滚筒洗衣机的 4 个污垢热点：洗涤剂盒、橡胶门封（最重）、内胆夹层、排水过滤器。月度深度清洁要把这 4 处都覆盖——光跑清洁程序只能解决 ①③，门封要靠擦、过滤器要拧开掏。</p>
+
 **4. 生物膜（biofilm）的形成**
 
-时间一长，污垢和微生物形成 **生物膜**——一层粘稠的“细菌泥”，黏附力极强：
+时间一长，污垢和微生物形成 **生物膜**——一层粘稠的”细菌泥”，黏附力极强：
 
 - 普通水冲不掉
 - 洗衣液也很难穿透
 - 越长越厚 → 隐藏更多微生物 → 异味越重 → 衣服越洗越臭
+
+<svg xmlns=”http://www.w3.org/2000/svg” viewBox=”0 0 720 280” style=”max-width:100%;height:auto;display:block;margin:1.4em auto;”>
+  <text x=”360” y=”22” text-anchor=”middle” font-size=”14” fill=”#333” font-weight=”600”>橡胶门封褶皱里的生物膜怎么长起来（4 阶段）</text>
+
+  <!-- Stage 1: clean rubber -->
+  <g>
+    <text x=”100” y=”58” text-anchor=”middle” font-size=”11” fill=”#333” font-weight=”600”>①刚买</text>
+    <path d=”M40 100 Q100 80 160 100 Q100 120 40 100 Z” fill=”#ddd” stroke=”#888” stroke-width=”1.5”/>
+    <text x=”100” y=”155” text-anchor=”middle” font-size=”9” fill=”#666”>干净橡胶</text>
+    <text x=”100” y=”170” text-anchor=”middle” font-size=”9” fill=”#666”>褶皱里也干燥</text>
+  </g>
+
+  <!-- Stage 2: water + organic residue -->
+  <g>
+    <text x=”250” y=”58” text-anchor=”middle” font-size=”11” fill=”#333” font-weight=”600”>② 几周后</text>
+    <path d=”M190 100 Q250 80 310 100 Q250 120 190 100 Z” fill=”#ddd” stroke=”#888” stroke-width=”1.5”/>
+    <ellipse cx=”250” cy=”100” rx=”30” ry=”4” fill=”#7aa8d8” opacity=”0.6”/>
+    <circle cx=”240” cy=”100” r=”2” fill=”#8e6e2a”/>
+    <circle cx=”258” cy=”101” r=”2” fill=”#8e6e2a”/>
+    <text x=”250” y=”155” text-anchor=”middle” font-size=”9” fill=”#666”>残水 + 皮脂</text>
+    <text x=”250” y=”170” text-anchor=”middle” font-size=”9” fill=”#666”>+ 洗涤剂残留</text>
+  </g>
+
+  <!-- Stage 3: bacteria attach -->
+  <g>
+    <text x=”400” y=”58” text-anchor=”middle” font-size=”11” fill=”#333” font-weight=”600”>③ 1-3 月</text>
+    <path d=”M340 100 Q400 80 460 100 Q400 120 340 100 Z” fill=”#ddd” stroke=”#888” stroke-width=”1.5”/>
+    <ellipse cx=”400” cy=”100” rx=”32” ry=”5” fill=”#c6a86b” opacity=”0.7”/>
+    <g fill=”#2e8b57”>
+      <circle cx=”385” cy=”99” r=”1.6”/>
+      <circle cx=”392” cy=”101” r=”1.6”/>
+      <circle cx=”400” cy=”98” r=”1.6”/>
+      <circle cx=”408” cy=”100” r=”1.6”/>
+      <circle cx=”415” cy=”102” r=”1.6”/>
+    </g>
+    <text x=”400” y=”155” text-anchor=”middle” font-size=”9” fill=”#666”>细菌附着</text>
+    <text x=”400” y=”170” text-anchor=”middle” font-size=”9” fill=”#666”>分泌胞外多糖</text>
+  </g>
+
+  <!-- Stage 4: mature biofilm -->
+  <g>
+    <text x=”560” y=”58” text-anchor=”middle” font-size=”11” fill=”#333” font-weight=”600”>④ 半年+</text>
+    <path d=”M500 100 Q560 80 620 100 Q560 120 500 100 Z” fill=”#ddd” stroke=”#888” stroke-width=”1.5”/>
+    <path d=”M510 100 Q560 90 610 100 Q560 115 510 100 Z” fill=”#4a7c3d” stroke=”#2e5e1f” stroke-width=”1” opacity=”0.85”/>
+    <g fill=”#1a3a0a”>
+      <circle cx=”540” cy=”98” r=”1.6”/>
+      <circle cx=”548” cy=”100” r=”1.6”/>
+      <circle cx=”555” cy=”97” r=”1.6”/>
+      <circle cx=”562” cy=”99” r=”1.6”/>
+      <circle cx=”570” cy=”101” r=”1.6”/>
+      <circle cx=”578” cy=”98” r=”1.6”/>
+    </g>
+    <text x=”560” y=”155” text-anchor=”middle” font-size=”9” fill=”#666”>成熟生物膜</text>
+    <text x=”560” y=”170” text-anchor=”middle” font-size=”9” fill=”#e74c3c”>水冲不掉、洗涤剂穿不透</text>
+  </g>
+
+  <!-- 横向时间轴 -->
+  <line x1=”40” y1=”200” x2=”620” y2=”200” stroke=”#888” stroke-width=”1.5” marker-end=”url(#arr-b)”/>
+  <text x=”330” y=”220” text-anchor=”middle” font-size=”10” fill=”#666”>时间 →（一旦进入 ③ 阶段，普通清洗已经无法逆转）</text>
+  <text x=”360” y=”255” text-anchor=”middle” font-size=”10” fill=”#333”>这就是为什么 <tspan font-weight=”600”>每月一次专用清洁剂 + 高温长程序</tspan> 是关键——在 ② 阶段就把它断掉</text>
+
+  <defs>
+    <marker id=”arr-b” markerWidth=”8” markerHeight=”8” refX=”6” refY=”4” orient=”auto”>
+      <path d=”M0,0 L8,4 L0,8 Z” fill=”#888”/>
+    </marker>
+  </defs>
+</svg>
+<p class=”img-caption”>生物膜在橡胶门封褶皱里的 4 阶段形成。一旦走到第 ③ 阶段（细菌分泌胞外多糖把残渣”焊”在橡胶上），普通清洗已经无法把它揭下来；月度专用清洁剂 + 高温长程序是把它在 ② 阶段就断掉的关键。</p>
 
 ## 3.2 常见的“洗衣机征兆”
 

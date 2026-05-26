@@ -1,0 +1,676 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\newcommand{\ba}{\begin{aligned}}
+\newcommand{\ea}{\end{aligned}}
+\newcommand{\bm}{\begin{bmatrix}}
+\newcommand{\em}{\end{bmatrix}}
+\newcommand{\bc}{\begin{cases}}
+\newcommand{\ec}{\end{cases}}
+
+\newcommand{\empty}{\varnothing}
+\newcommand{\se}{\subseteq}
+\newcommand{\ve}{\varepsilon}
+\newcommand{\ep}{\epsilon}
+\newcommand{\s}{\sigma}
+
+\newcommand{\0}{\textbf 0}
+\newcommand{\1}{\textbf 1}
+\newcommand{\I}{\textbf I}
+
+\newcommand{\X}{\textbf X}
+\newcommand{\x}{\textbf x}
+\newcommand{\y}{\textbf y}
+\newcommand{\b}{\textbf b}
+
+
+\newcommand{\P}{\mathcal P}
+\newcommand{\S}{\mathcal S}
+\newcommand{\T}{\mathcal T}
+\newcommand{\A}{\mathcal A}
+\newcommand{\B}{\mathcal B}
+\newcommand{\L}{\mathcal L}
+
+\newcommand{\NN}{\mathbb N}
+\newcommand{\ZZ}{\mathbb Z}
+\newcommand{\RR}{\mathbb R}
+\newcommand{\QQ}{\mathbb Q}
+\newcommand{\CC}{\mathbb C}
+\newcommand{\FF}{\mathbb F}
+
+\newcommand{\c}{\backslash}
+\newcommand{\sq}{\sqrt}
+
+\newcommand{\too}{\Longrightarrow}
+\newcommand{\dto}{\overset{\text{d}}{\to}}
+\newcommand{\ae}{\overset{\text{a.e.}}{\to}}
+\newcommand{\asim}{\overset{\text a}{\sim}}
+\newcommand{\st}{\text{ s.t. }}
+\newcommand{\plim}{\text{plim }}
+\newcommand{\if}{\text{ if }}
+
+\newcommand{\uinf}[1][k]{\bigcup_{{#1} = 1}^{\infty}}
+\newcommand{\sinf}[1][k]{\sum_{{#1} = 1}^{\infty}}
+\newcommand{\iinf}[1][k]{\bigcap_{{#1} = 1}^{\infty}}
+\newcommand{\seq}[1][x]{{#1}_1,{#1}_2,\cdots,{#1}_{n}}
+\newcommand{\seqadd}[1][x]{{#1}_1+{#1}_2+\cdots+{#1}_{n}}
+
+\newcommand{\var}[2][]{\text{Var}_{#1}\br{#2}}
+\newcommand{\e}[2][]{\text{E}_{#1}\br{#2}}
+\newcommand{\cov}[3][]{\text{Cov}_{#1}\br{#2,#3}}
+\newcommand{\estvar}[1]{\text{Est.Var}\br{#1}}
+\newcommand{\estcov}[2]{\text{Est.Cov}\br{#1,#2}}
+\newcommand{\asyvar}[1]{\text{Asy.Var}\br{#1}}
+\newcommand{\asycov}[2]{\text{Asy.Cov}\br{#1,#2}}
+\newcommand{\estasyvar}[1]{\text{Est.Asy.Var}\br{#1}}
+
+\newcommand{\br}[1]{\left[#1\right]}
+\newcommand{\pr}[1]{\left(#1\right)}
+\newcommand{\brace}[1]{\left\{#1\right\}}
+\newcommand{\dev}[2][i]{({#2}_{#1}-\bar{#2})}
+\newcommand{\inv}[1]{{#1}^{-1}}
+\newcommand{\add}[1][i]{\sum_{#1 = 1}^n}
+\newcommand{\ply}[1][i]{\prod_{#1 = 1}^n}
+\newcommand{\om}[1]{\mu^*\pr{#1}}
+\newcommand{\lm}[1]{\mu\pr{#1}}
+\newcommand{\d}{\text{ d}}
+\newcommand{\dm}{\text{ d}\mu}
+\newcommand{\dl}{\text{ d}\lambda}
+\newcommand{\norm}[2][1]{\|{#2}\|_{#1}}
+\newcommand{\limit}[1][k]{\lim_{{#1}\to\infty}}
+
+\hypertarget{integration}{%
+\section{Integration}\label{integration}}
+
+\hypertarget{integration-with-respect-to-a-measure}{%
+\subsection{Integration with Respect to a
+Measure}\label{integration-with-respect-to-a-measure}}
+
+\hypertarget{integration-of-nonnegative-functions}{%
+\subsubsection{Integration of Nonnegative
+Functions}\label{integration-of-nonnegative-functions}}
+
+Through out this chapter we base our analysis on \(\pr{X,\S,\mu}\),
+which is a measure space.
+
+\textbf{Definition (\(\S\)-Partition)} An \(\S\)-partition of \(X\) is a
+finite collection \(A_1,\cdots,A_m\) of disjoint sets in \(\S\) such
+that
+
+\[A_1\cup\cdots \cup A_m = X\]
+
+\textbf{Definition (Lower Lebesgue Sum)} Suppose
+\(f:X\to \br{0,\infty}\) is an \(\S\)-measurable function, and \(P\) is
+an \(\S\)-partition \(\brace{A_1,\cdots, A_m}\) of \(X\). The lower
+Lebesgue sum \(L\pr{f,P}\) is defined by
+
+\[L\pr{f,P}:=\sum_{j = 1}^m\lm{A_j}\inf_{A_j}f\]
+
+\textbf{Remarks:}
+
+\begin{itemize}
+\item
+  Notice that here we assume \(f\) to be nonnegative, so
+  \(\inf_{A_j} f\) always exists.
+\item
+  One convention is that, if any of the two terms is \(0\), the result
+  is \(0\) and then neglected.
+\end{itemize}
+
+\textbf{Definition (Integral of a Nonnegative Function)} The integral of
+\(f\) with respect to \(\mu\) denoted by \(\int f \d u\), is defined by
+
+\[\int f\d u = \sup_{P}\brace{L\pr{f,P}:P \text{ is an }\S\text{-partition of }X}\]
+
+We should be able to prove the following:
+
+\begin{itemize}
+\item
+  \(\int \chi_E\d \mu = \lm{E}\).
+\item
+  Additivity: \(\int \pr{f+g}\d \mu = \int f\d \mu+\int g\d \mu\).
+\item
+  Multiplication with a constant:
+  \(\int cf\d \mu = c\cdot \int f\d \mu\).
+\end{itemize}
+
+\emph{\textbf{Proposition}} If \(E\in \S\), then
+
+\[\int\chi_E\d \mu = \lm{E}\]
+
+\emph{\textbf{Proof}} We separate the task to prove both
+\(\int\chi_E\d \mu \le \lm{E}\) and \(\int\chi_E\d \mu \ge \lm{E}\).
+
+Consider the partition \(E,E^c\). Obviously \(E\cup E^c = X\). From
+definition,
+
+\[\ba
+\int\chi_E\dm & \ge L\pr{\chi_E,\brace{E,E^c}} \\
+& = \lm{E}\cdot \inf_{E}\chi_E+\lm{E^c}\cdot \inf_{E^c}\chi_{E} \\
+& = \lm{E}+0 \\
+& = \lm{E}
+\ea\]
+
+Pick any partition, then prove \(L\pr{\chi_E,P}\le \lm{E}\).
+
+Consider any \(\S\)-partition \(P\) such that
+\(A_1\cup\cdots \cup A_m = X\).
+
+\[\ba
+\L\pr{\chi_E,P} & = \sum_{j = 1}^m\lm{A_j}\inf_{A_j}\chi_E\\
+& = \sum_{j:A_j\se E}\lm{A_j}\cdot 1\\
+& = \lm{\bigcup_{j:A_j\se E}A_j}\\
+& \le \lm{E}
+\ea\]
+
+Taking supremium to both sides, we end with
+\(\int \chi_E\dm \le \lm{E}\), which when combined with the previous
+result completes the proof.
+
+\emph{\textbf{Proposition}} Suppose \(E_1,E_2,\cdots ,E_n\) are disjoint
+sets in \(\S\). \(c_1,c_2,\cdots,c_n\in \br{0,\infty}\). Then
+
+\[\int \pr{\sum_{k = 1}^nc_k\chi_{E_k}}\dm = \sum_{k = 1}^nc_k\lm{E_k}\]
+
+\emph{\textbf{Proof}} When one of the \(c_1,\cdots,c_n\) is \(\infty\),
+the equality is trivially true.
+
+Let \(E_{n+1} = X\c \pr{E_1\cup\cdots \cup E_n}\) and \(c_{n+1} = 0\).
+Then \(P = \brace{E_1,E_2,\cdots ,E_n,E_{n+1}}\) is an \(\S\)-partition
+of \(X\). We have
+
+\[\ba
+\int \pr{\sum_{k = 1}^nc_k\chi_{E_k}}\dm & = \int \pr{\sum_{k = 1}^{n+1}c_k\chi_{E_k}}\dm \\
+& \ge L\pr{\sum_{k = 1}^{n+1}c_k\chi_{E_k},\brace{E_1,\cdots,E_{n+1}}}\\
+& = \sum_{k = 1}^{n+1}c_k\lm{E_k}\\
+& = \sum_{k = 1}^{n}c_k\lm{E_k}
+\ea\]
+
+Suppose \(P\) is an \(\S\)-partition \(\brace{A_1,\cdots ,A_m}\) of
+\(X\). Then
+
+\[\ba
+L\pr{\sum_{k = 1}^nc_k\chi_{E_k},P} & = \sum_{j = 1}^m\lm{A_j}\inf_{A_j}\sum_{k = 1}^nc_k\chi_{E_k} \\
+& = \sum_{j = 1}^m\lm{A_j}\min_{\brace{i:A_j\cap E_i\ne \empty}}c_i\\
+& = \sum_{j = 1}^m\pr{\sum_{k = 1}^n \lm{A_j\cap E_k}\min_{\brace{i:A_j\cap E_i\ne \empty}}c_i}\\
+& \le \sum_{j = 1}^m\pr{\sum_{k = 1}^n \lm{A_j\cap E_k}c_k}\\
+& = \sum_{k = 1}^nc_k\sum_{j = 1}^m\lm{A_i\cap E_k}\\
+& = \sum_{k = 1}^nc_k \lm{E_k}
+\ea\]
+
+Note that the equality in the last line stands because of
+
+\[\ba
+A_1\cup\cdots \cup A_m & = X\\
+\sum_{j = 1}^m\lm{A_j\cap E_k} & = \lm{\pr{A_1\cup\cdots \cup A_m}\cap E_k}\\
+& = \lm{X\cap E_k}\\
+& = \lm{E_k}
+\ea\]
+
+\emph{\textbf{Proposition}} If \(f\pr x\le g\pr x\) for all \(x\in X\),
+then
+
+\[\int f\dm \le \int g\dm\]
+
+\hypertarget{monotone-convergence-theorem}{%
+\subsubsection{Monotone Convergence
+Theorem}\label{monotone-convergence-theorem}}
+
+\textbf{Definition (Integrals via Finite Simple Functions)}
+
+\[\ba
+\int f\dm := \sup_{\brace{A_j,c_j}} \bigg\{\sum_{j = 1}^m c_j\lm{A_j}: & A_1,\cdots ,A_m\text{ are disjoint sets of }X,\\ 
+& c_1,\cdots ,c_m \in \br{0,\infty},\\
+& f\pr{x}\ge \sum_{j = 1}^m c_j\chi_{A_j}\pr{x},\forall x\in X\bigg\}
+\ea\]
+
+\emph{\textbf{Monotone Convergence Theorem}} Let
+\(0\le f_1\le f_2\le \cdots\) is an increasing sequence of
+\(\S\)-measurable functions. Define \(f: X\to \br{0,\infty}\) as
+\(f\pr{x}:=\lim_{k\to \infty}f_k\pr{x}\). Then
+
+\[\lim_{k\to\infty} \int f_k\dm = \int f\dm\]
+
+\emph{\textbf{Proof}} Since \(f_1\le f_2\le \cdots \le f\),
+
+\[\ba
+& \int f_1\dm \le \int f_2\dm \le \cdots \le \int f\dm\\
+\too & \lim_{k\to \infty}\int f_k\dm \le \int f\dm
+\ea\]
+
+Now we are to focus on the other direction. Using the equivalent
+definition of integration, suppose \(A_1,\cdots ,A_m\) are disjoint sets
+of \(X\), and \(c_1,\cdots ,c_m\in \br{0,\infty}\) such that
+
+\[f\pr{x}\ge \sum_{j = 1}^mc_j\chi_{A_j}\pr{x},\forall x\in X\]
+
+Let \(t\in \pr{0,1}\). For \(k\in \Z_+\), let
+
+\[E_k = \brace{x\in X: f_k\pr{x}\ge t \sum_{j = 1}^m c_j\chi_{A_j}\pr x}\]
+
+Then \(E_1\se E_2\se \cdots\) is an increasing sequence whose union
+\(\uinf E_k = X\). Thus
+
+\[\lim_{k\to\infty}\lm{A_j\cap E_k} = \lm{A_j\cap \pr{\uinf E_k}} = \lm{A_j},\forall j\in \brace{1,2,\cdots,m}\]
+
+Moreover, from the construction of \(E_k\),
+
+\[f_k\pr{x}\ge t\sum_{j = 1}^m c_j\chi_{A_j\cap E_k}\pr{x},\forall x\in X\]
+
+Hence,
+
+\[\int f_k\dm \ge t\sum_{j = 1}^mc_j\lm{A_j\cap E_k}\]
+
+Let \(k\to \infty\), we have
+
+\[\lim_{k \to \infty}\int f_k\dm \ge t\sum_{j = 1}^mc_j\lm{A_j}\]
+
+Take \(t\to 1\), we have
+
+\[\lim_{k \to \infty}\int f_k\dm \ge \sum_{j = 1}^mc_j\lm{A_j}\]
+
+\textbf{Remarks:} Why only take \(t\in \pr{0,1}\) instead of
+\(t\in (0,1]\). If \(t = 1\), we may not have \(\uinf E_k = X\).
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+Next we will deploy Monotone Convergence Theorem to prove that the
+integration has the property of additivity, as is desired.
+
+A simple function may have different representations, but the
+corresponding integrals are of the same value, which is formalized in
+the following proposition.
+
+\emph{\textbf{Proposition (Integral-Type Sums for Simple Functions)}}
+Suppose \(\pr{X,\S,\mu}\) is a measure space. Suppose
+\(a_1,a_2,\cdots,a_m,b_1,b_2,\cdots ,b_n\in [0,\infty)\), and
+\(A_1,A_2,\cdots,A_m,B_1,B_2,\cdots ,B_n\se\S\). Further suppose
+
+\[\sum_{i = 1}^ma_i\chi_{A_i}\pr{x} = \sum_{j = 1}^nb_j\chi_{B_j}\pr{x},\forall x\in X\]
+
+Then
+
+\[\sum_{i = 1}^ma_i\lm{A_i} = \sum_{j = 1}^nb_j\lm{B_j}\]
+
+\textbf{Remarks}:
+
+\begin{itemize}
+\item
+  Here it is not required that \(\brace{a_i},\brace{b_i}\) are distinct
+  or \(\brace{A_k},\brace{B_k}\) are disjoint. From here we do not need
+  to care about multiplicity about representations of simple functions.
+\item
+  The standard representation for a simple function:
+  \(\sum_{i = 1}^m a_i\chi_{A_i}\), where \(a_1,a_2,\cdots ,a_m\) are
+  distinct and \(A_1,A_2,\cdots ,A_m\) are disjoint.
+\end{itemize}
+
+\emph{\textbf{Proposition (Additivity of Integration)}} If \(f,g\ge 0\)
+are \(\S\)-measurable, then
+
+\[\int\pr{f+g}\dm = \int f\dm+\int g\dm\]
+
+\emph{\textbf{Proof}} Let \(\brace{f_k}\) converges pointwise to \(f\)
+in an increasing order, so does \(\brace{g_k}\) to \(g\). By MCT
+(applied to \(\brace{f_k+g_k}\)),
+
+\[\ba
+\int\pr{f+g}\dm & = \lim_{k\to\infty}\int \pr{f_k+g_k}\dm\\
+& = \lim_{k\to \infty}\pr{\int f_k\dm +\int g_k\dm}\\
+& = \int f\dm +\int g\dm
+\ea\]
+
+where the equality in the second line stands because both \(f_k\) and
+\(g_k\) are simple functions, and the last one holds when applying MCT
+to \(\brace{f_k}\) and \(\brace{g_k}\) respectively.
+
+\hypertarget{integration-of-real-valued-functions}{%
+\subsubsection{Integration of Real-Valued
+Functions}\label{integration-of-real-valued-functions}}
+
+\textbf{Definition (\(f^+\), \(f^-\))} Suppose
+\(f:X\to \br{-\infty,\infty}\) is \(\S\)-measurable. Define
+\(f^+:X\to \br{0,\infty}\) and \(f^-:X\to \br{0,\infty}\) by
+
+\[\ba
+f^+\pr{x}& = \bc
+f\pr{x} & \if f\pr{x}\ge 0\\
+0 & \if f\pr{x}<0
+\ec\\
+f^-\pr{x}& = \bc
+0& \if f\pr{x}\ge 0\\
+-f\pr{x} & \if f\pr{x}<0
+\ec
+\ea\]
+
+By definition, we see that
+
+\[\ba
+f\pr{x} & = f^+\pr{x}-f^-\pr{x}\\
+\abs{f}\pr{x} & = \abs{f^+}\pr{x}+\abs{f^-}\pr{x}
+\ea\]
+
+\textbf{Definition (Integral of a Real-Valued Function)} Suppose
+\(f:X\to \br{-\infty,\infty}\) is an \(\S\)-measurable function such
+that at least one \(\int f^+\dm\) and \(\int f^-\dm\) is finite. The
+integral of \(f\) is
+
+\[\int f\dm := \int f^+\dm -\int f^-\dm\]
+
+\emph{\textbf{Proposition (Properties of Integration)}} Suppose
+\(f:X\to \br{-\infty,\infty}\), and \(g:X\to \br{-\infty,\infty}\).
+
+\begin{itemize}
+\item
+  \(\int cf\dm = c\int f\dm\), if \(c\in \R\).
+\item
+  \(\int\pr{f+g}\dm = \int f\dm + \int g\dm\), if
+  \(\int \abs{f}\dm<\infty\) and \(\int \abs{g}\dm<\infty\).
+\item
+  \(\int f\dm \le \int g\dm\), if \(f\pr{x}\le g\pr x\) for all
+  \(x\in X\).
+\item
+  Triangle inequality: \(\abs{\int f\dm}\le \int \abs{f}\dm\).
+\end{itemize}
+
+\hypertarget{limits-of-integrals--integrals-of-limits}{%
+\subsection{Limits of Integrals \& Integrals of
+Limits}\label{limits-of-integrals--integrals-of-limits}}
+
+\hypertarget{bounded-convergence-theorem}{%
+\subsubsection{Bounded Convergence
+Theorem}\label{bounded-convergence-theorem}}
+
+\textbf{Definition (Integration on a Subset)} Suppose \(\pr{X,\S,\mu}\)
+is a measure space and \(E\in \S\). Let \(f:X\to \br{-\infty,\infty}\)
+be a \(\S\)-measurable function. The integral of \(f\) over \(E\) is
+defined by
+
+\[\int_Ef\dm:=\int f\cdot\chi_E\dm\]
+
+The special case is that
+\(\int_Xf\dm = \int f\cdot \chi_X\dm = \int f\dm\). So when we refer to
+integration over the whole set \(X\), we can simply write as
+\(\int f\dm\) and omit the denotation of \(X\).
+
+\emph{\textbf{Proposition (Bounding an Integral)}} Suppose
+\(\pr{X,\S,\mu}\) is a measure space, \(E\in \S\), and
+\(f:X\to\br{-\infty,\infty}\) is a function such that \(\int_Ef\dm\) is
+defined. Then
+
+\[\abs{\int_Ef\dm}\le \lm{E}\cdot\sup_E\abs{f}\]
+
+\emph{\textbf{Proof}}
+
+\[\ba
+\abs{\int_Ef\dm} & = \abs{\int f\cdot\chi_E\dm}\\
+& \le \int \abs{f}\cdot\chi_E\dm \\
+& \le \int \sup_E\abs{f}\cdot\chi_E\dm\\
+& = \lm{E}\cdot\sup_E\abs{f}
+\ea\]
+
+\emph{\textbf{Bounded Convergence Theorem}} Suppose \(\pr{X,\S,\mu}\) is
+a measure space with \(\lm{X}<\infty\). Suppose a sequence of
+\(\S\)-measurable functions \(f_1,f_2,\cdots\) converges pointwise to
+\(f\). Suppose there exists \(c\in\pr{0,\infty}\) such that
+\(\abs{f_k\pr{x}}\le c\), for all \(x\in X,k\ge 1\). Then
+
+\[\lim_{k\to\infty}\int f_k\dm = \int f\dm\]
+
+\emph{\textbf{Proof}} Fix \(\ve>0\). By Egorov\textquotesingle s
+theorem, there exists \(E\in \S\) such that
+
+\[\lm{X\c E}\le \frac{\ve}{4c}\]
+
+and \(f_1,f_2,\cdots\) converges to \(f\) uniformly on \(E\). Then
+
+\[\ba
+\abs{\int f_k\dm-\int f\dm} & = \abs{\int_{X\c E}f_k\dm-\int_{X\c E}f\dm+\int_Ef_k\dm-\int_Ef\dm}\\
+& \le \abs{\int_{X\c E}\pr{f_k-f}\dm}+\abs{\int_E\pr{f_k-f}\dm}\\
+& \le \lm{X\c E}\sup_{X\c E}\abs{f_k-f}+\lm{E}\sup_{E}\abs{f_k-f}\\
+& \le \frac{\ve}{4c}\cdot 2c+\lm{X}\cdot \frac{\ve}{2\pr{\lm{X}+1}}\\
+& \le \frac{\ve}{2}+\frac{\ve}2\\
+& = \ve
+\ea\]
+
+Hence, \(\abs{\int f_k\dm-\int f\dm}\le \ve\) when \(k\) is big enough.
+This implies that
+
+\[\lim_{k\to \infty}\int f_k\dm = \int f\dm\]
+
+\textbf{Remarks}: Here it is in the last approximation of
+\(\sup_{E}\abs{f_k-f}\) that we used the definition (or, property) of
+uniform convergence. Egorov\textquotesingle s theorem is a powerful
+tools in proofs that involves interchanging limits and integrals.
+
+\hypertarget{dominated-convergence-theorem}{%
+\subsubsection{Dominated Convergence
+Theorem}\label{dominated-convergence-theorem}}
+
+Suppose \(\pr{X,\S,\mu}\) is a measure space. If
+\(f,g:X\to\br{-\infty,\infty}\) are \(\S\)-measurable functions and
+\(\lm{\brace{x\in X:f\pr{x}\ne g\pr{x}}} = 0\), then the definition of
+an integral implies that \(\int f\dm = \int g\dm\) (or both are
+undefined). This is true because what happens on a set of measure \(0\)
+does not matter generally.
+
+\textbf{Definition (\(\mu\)-Almost Every)} Suppose \(\pr{X,\S,\mu}\) is
+a measure space. A set \(E\in \S\) is said to contain \(\mu\)-almost
+every element of \(X\) if
+
+\[\lm{X\c E} = 0\]
+
+\textbf{Example} Almost every real number is irrational (with respect to
+the usual Lebesgue measure on \(\R\)) because \(\om{\Q} = 0\).
+
+\textbf{Remarks}
+
+\begin{itemize}
+\item
+  For two functions \(f\) and \(g\), if
+  \(\lm{\brace{x\in X:f\pr{x}\ne g\pr{x}}} = 0\), we usually say
+  \(f = g\) (\(\mu\)-)almost everywhere (a.e.).
+\item
+  Theorems about integrals can almost always be relaxed so that the
+  hypothesis apply only almost everywhere instead of everywhere. One
+  example is \(\lim_{k\to\infty}f_k\pr{x} = f\pr{x}\) for all \(x\in X\)
+  in Bounded Convergence Theorem.
+\end{itemize}
+
+\emph{\textbf{Proposition (Integrals on Small Sets are Small)}} Suppose
+\(\pr{X,\S,\mu}\) is a measure space. Suppose \(g:X\to\br{0,\infty}\) is
+\(\S\)-measurable and \(\int g\dm <\infty\). Then for every \(\ve>0\),
+there exists \(\delta>0\) such that if \(\lm{B}<\delta\), then
+\(\int_{B}g\dm<\ve\).
+
+\emph{\textbf{Proof}} Fix \(\ve>0\). Construct \(h:X\to [0,\infty)\) to
+be a simple \(\S\)-measurable function such that \(0\le h\le g\) and
+\(\int g\dm-\int f\dm \le \frac{\ve}2\). (The existence can be show via
+the equivalent definition of Lebesgue integral.)
+
+Let \(H = \max\brace{h\pr{x}:x\in X}\) and let \(\delta>0\) be such that
+\(H\cdot \delta \le \frac{\ve}2\).
+
+\[\ba
+\int_Bg\dm & = \pr{\int_B g\dm -\int_Bh\dm}+\int_Bh\dm\\
+& \le \frac{\ve}2+\lm{B}\cdot\sup_B h\\
+& \le \frac{\ve}2+\delta\cdot H \\
+& \le \frac{\ve}2+\frac{\ve}2\\
+& = \ve
+\ea\]
+
+\emph{\textbf{Proposition (Integrable Functions Live Mostly on Sets of
+Finite Measure)}} Let \(g:X\to \br{0,\infty}\) and \(\int g\dm<\infty\).
+Then for every \(\ve>0\), there exists \(E\in \S\) such that
+\(\lm{E}<\infty\) and \(\int_{X\c E}g\dm\le \ve\).
+
+\emph{\textbf{Proof}} Let \(\ve>0\). Let \(P\) be an \(\S\)-partition
+\(A_1,\cdots ,A_m\) of \(X\) such that
+
+\[\int g\dm \le\ve +L\pr{g,P}\]
+
+Let \(E\) be the union of those \(A_i\pr{i = 1,\cdots,m}\) such that
+\(\inf_{A_i}g>0\). We can safely claim that \(\lm{E}<\infty\); otherwise
+we would have \(L\pr{g,P} = \infty\), which contradicts the hypothesis
+that \(\int g\dm<\infty\). Now
+
+\[\ba
+\int_{X\c E}g\dm & = \int g\dm -\int\chi_{E}\cdot g\dm\\
+& \le \ve+L\pr{g,P}-L\pr{\chi_{E}\cdot g,P} \\
+& = \ve
+\ea\]
+
+Note that the second line follows from our construction and the
+definition of the integral, and the last line holds because
+\(\inf_{A_j}g = 0\) for each \(A_j\) not contained in \(E\).
+
+\emph{\textbf{Dominated Convergence Theorem}} Suppose \(\pr{X,\S,\mu}\)
+is a measure space. Let \(f:X\to \br{-\infty,\infty}\) and
+\(f_1,f_2,\cdots:X\to \br{-\infty,\infty}\) be \(\S\)-measurable
+functions such that \(\lim_{k\to\infty}f_k\pr{x} = f\pr{x}\) for almost
+every \(x\in X\). If there exists an \(\S\)-measurable function
+\(g:X\to\br{0,\infty}\) such that \(\int g\dm<\infty\) and
+\(\abs{f_k\pr{x}}\le g\pr{x}\) for all \(k>0\) and almost every
+\(x\in X\), then
+
+\[\lim_{k\to\infty} \int f_k\dm = \int f\dm\]
+
+\emph{\textbf{Proof}} Suppose \(g:X\to\br{0,\infty}\) satisfies the
+hypotheses of this theorem. For any set \(E\in\S\), we have the
+following estimates
+
+\[\ba
+\abs{\int f_k\dm-\int f\dm} & = \abs{\int_{X\c E}f_k\dm-\int_{X\c E}f\dm+\int_Ef_k\dm-\int_Ef\dm}\\
+& \le \int_{X\c E}\abs{f_k}\dm +\int_{X\c E}\abs{f}\dm+\abs{\int_E\pr{f_k-f}\dm}\\
+& \le 2\int_{X\c E}g\dm+\abs{\int_E\pr{f_k-k}\dm}
+\ea\]
+
+Assume first for now that \(\lm{X}<\infty\). Let \(\ve>0\). From the
+proposition that integrals on small sets are small, there exists
+\(\delta>0\) such that \(\int_Bg\dm\le \frac{\ve}4\) for every set
+\(B\in \S\) such that \(\lm{B}<\ve\). By Egorov\textquotesingle s
+theorem (since \(\lm{X}<\infty\)), there exists \(E\in \S\) such that
+
+\[\lm{X\c E}\le \delta\]
+
+and \(f_1,f_2,\cdots\) converges uniformly on \(E\). We then have
+
+\[\ba
+\abs{\int f_k\dm-\int f\dm } & \le 2\int_{X\c E}g\dm+\abs{\int_E\pr{f_k-f}\dm}\\
+& \le 2\cdot \frac{\ve}4+\lm{E}\cdot \sup_E\abs{f_k-f}\\
+& \le \frac{\ve}2+\lm{E}\cdot \frac{2\ve}{\lm{E}}\\
+& \le \frac{\ve}2+\frac{\ve}2\\
+& = \ve
+\ea\]
+
+Then consider the case where \(\lm{X} = \infty\). Let \(\ve>0\). By
+proposition 3, there exists \(E\in \S\) such that \(\lm{E}<\infty\) and
+\(\int_{X\c E}\dm \le \frac{\ve}4\). Then we have
+
+\[\ba
+\abs{\int f_k\dm-\int f\dm} & \le 2\int_{X\c E}g\dm+\abs{\int_E\pr{f_k-f}\dm}\\
+& \le 2\cdot \frac{\ve}4+\abs{\int_E\pr{f_k-k}\dm}
+\ea\]
+
+By the first case as applied to the sequence \(f_1|_E,f_2|_E,\cdots\).
+the last term on the right is less than \(\frac{\ve}2\) for all
+sufficiently large \(k\). Thus
+\(\lim_{k\to\infty}\int f_k\dm = \int f\dm\), completing the proof of
+the second case.
+
+\textbf{Remarks:}
+
+\begin{itemize}
+\item
+  Advantages of DCT
+
+  \begin{itemize}
+  \item
+    We do not require the functions to be nonnegative.
+  \item
+    We do not require the sequence to be increasing.
+  \item
+    We do not require the measure space to be finite.
+  \item
+    We do not require the sequence of functions to be uniformly bounded.
+  \end{itemize}
+
+  All these hypotheses are replaced only by a requirement that the
+  sequence of functions is pointwise bounded by a function with a finite
+  integral.
+\item
+  Bounded Convergence Theorem follows immediately from the result of
+  Dominated Convergence Theorem. Simply take \(g\) to be an appropriate
+  constant function and use the hypothesis in the Bounded Convergence
+  Theorem that \(\lm{X}<\infty\).
+\end{itemize}
+
+\hypertarget{relationship-between-lebesgue-integral-and-riemann-integral}{%
+\subsubsection{Relationship Between Lebesgue Integral and Riemann
+Integral}\label{relationship-between-lebesgue-integral-and-riemann-integral}}
+
+\emph{\textbf{Theorem (Riemann Integrable is Equivalent to Continuous
+Almost Everywhere)}} Suppose \(a<b\) and \(f:\br{a,b}\to \R\) is a
+bounded function. Then \(f\) is Riemann integrable if and only if
+\(\om{\brace{x\in\br{a,b}:f\text{ is not continuous at }x}} = 0\).
+Moreover, if \(f\) is Riemann integrable,
+
+\[\int_a^bf\d x = \int_{\br{a,b}}f\d \lambda\]
+
+where \(\lambda\) is the Lebesgue measure.
+
+\end{document}

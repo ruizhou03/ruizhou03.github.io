@@ -1,0 +1,246 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\newcommand{\ba}{\begin{aligned}}
+\newcommand{\ea}{\end{aligned}}
+\newcommand{\bm}{\begin{bmatrix}}
+\newcommand{\em}{\end{bmatrix}}
+\newcommand{\bc}{\begin{cases}}
+\newcommand{\ec}{\end{cases}}
+\newcommand{\empty}{\varnothing}
+\newcommand{\se}{\subseteq}
+\newcommand{\ve}{\varepsilon}
+\newcommand{\s}{\sigma}
+\newcommand{\0}{\textbf 0}
+\newcommand{\1}{\textbf 1}
+\newcommand{\I}{\textbf I}
+\newcommand{\X}{\textbf X}
+\newcommand{\x}{\textbf x}
+\newcommand{\y}{\textbf y}
+\newcommand{\b}{\textbf b}
+\newcommand{\w}{\textbf w}
+\newcommand{\P}{\mathcal P}
+\newcommand{\S}{\mathcal S}
+\newcommand{\T}{\mathcal T}
+\newcommand{\A}{\mathcal A}
+\newcommand{\B}{\mathcal B}
+\newcommand{\C}{\mathcal C}
+\newcommand{\L}{\mathcal L}
+\newcommand{\c}{\backslash}
+\newcommand{\if}{\text{ if }}
+\newcommand{\uinf}[1][k]{\bigcup_{{#1} = 1}^{\infty}}
+\newcommand{\sinf}[1][k]{\sum_{{#1} = 1}^{\infty}}
+\newcommand{\iinf}[1][k]{\bigcap_{{#1} = 1}^{\infty}}
+\newcommand{\plim}{\text{plim }}
+\newcommand{\var}[2][]{\text{Var}_{#1}\br{#2}}
+\newcommand{\e}[2][]{\text{E}_{#1}\br{#2}}
+\newcommand{\cov}[3][]{\text{Cov}_{#1}\br{#2,#3}}
+\newcommand{\estvar}[1]{\text{Est.Var}\br{#1}}
+\newcommand{\estcov}[2]{\text{Est.Cov}\br{#1,#2}}
+\newcommand{\asyvar}[1]{\text{Asy.Var}\br{#1}}
+\newcommand{\asycov}[2]{\text{Asy.Cov}\br{#1,#2}}
+\newcommand{\estasyvar}[1]{\text{Est.Asy.Var}\br{#1}}
+\newcommand{\too}{\Longrightarrow}
+\newcommand{\sq}{\sqrt}
+\newcommand{\dev}[2][i]{({#2}_{#1}-\bar{#2})}
+\newcommand{\inv}[1]{{#1}^{-1}}
+\newcommand{\add}[1][i]{\sum_{#1 = 1}^n}
+\newcommand{\ply}[1][i]{\prod_{#1 = 1}^n}
+\newcommand{\br}[1]{\left[#1\right]}
+\newcommand{\pr}[1]{\left(#1\right)}
+\newcommand{\brace}[1]{\left\{#1\right\}}
+\newcommand{\seq}[1][x]{{#1}_1,{#1}_2,\cdots,{#1}_{n}}
+\newcommand{\seqadd}[1][x]{{#1}_1+{#1}_2+\cdots+{#1}_{n}}
+\newcommand{\dto}{\overset{\text d}{\to}}
+\newcommand{\asim}{\overset{\text a}{\sim}}
+\newcommand{\st}{\text{ s.t. }}
+\newcommand{\om}[1]{\mu^*\pr{#1}}
+\newcommand{\lm}[1]{\mu\pr{#1}}
+\newcommand{\d}{\text{ d}}
+\newcommand{\dm}{\text{ d}\mu}
+\newcommand{\dl}{\text{ d}\lambda}
+\newcommand{\F}{\mathbb F}
+\newcommand{\norm}[1]{\|{#1}\|}
+\newcommand{\null}{\text{null }}
+\newcommand{\span}{\text{span }}
+
+\textbf{Definition (\(\norm{f}_p\))} Suppose \(\pr{X,\S,\mu}\) is a
+measure space, \(0<p<\infty\), and \(f:X\to\F\) is \(\S\)-measurable.
+Then the \(p\)-norm of \(f\), denoted \(\norm{f}_p\), is defined by
+
+\[\norm{f}_p = \pr{\int \abs{f}^p\dm}^{1/p}\]
+
+Also when \(p = \infty\), \(\norm{f}_{\infty}\) is called the
+\emph{essential supremum} of \(f\), and is defined by
+
+\[\norm{f}_{\infty}:=\inf\brace{t>0:\lm{\brace{x\in X:\abs{f\pr{x}}>t}} = 0}\]
+
+\textbf{Definition (\(L^p\pr{\mu}\))} Suppose \(\pr{X,\S,\mu}\) is a
+measure space and \(0<p\le \infty\). The Lebesgue space \(L^p\pr{\mu}\)
+is denoted to be the set of all \(\S\)-measurable functions
+\(f:X\to \F\) such that
+
+\[\norm{f}_p<\infty\]
+
+\textbf{Remarks} \(L^p\pr{\mu}\) is a vector space. However, it is NOT a
+normed vector space. There exists some \(f,g\in L^p\pr{\mu}\) such that
+\(f\ne g\) but \(\norm{f-g}_p = 0\).
+
+We construct \emph{equivalence classese}:
+
+\[f\sim g\iff f = g \text{ a.e.}\]
+
+and identify each function with its own equivalence class.
+
+\textbf{Properties of \(L^p\) Spaces}
+
+\textbf{Definition (Dual Exponent)} Suppose \(1\le p\le \infty\). The
+\emph{dual exponent} of \(p\) is denoted by \(p'\in \br{1,\infty}\) that
+satisfies
+
+\[\frac1p+\frac1{p'}=1\]
+
+\textbf{Examples} \(2' = 2\), \(1'=\infty\), \(\infty' = 1\).
+
+\emph{\textbf{Proposition}}
+
+\begin{itemize}
+\item
+  (Holder\textquotesingle s Inequality) \(1\le p\le \infty\),
+  \(f,h:X\to \F\), then
+
+  \[\norm{fh}_1\le \norm{f}_p\norm{h}_{p'}\]
+\item
+  \(0<p<q<\infty\), \(\mu\pr{X}<\infty\), then
+
+  \[\norm{f}_p\le \mu\pr{X}^{\pr{q-p}/\pr{pq}}\norm{f}_q\]
+
+  for all \(f\in L^q\pr{\mu}\). Furthermore,
+  \(L^q\pr{\mu}\le L^p\pr{\mu}\).
+\item
+  \(1\le p<\infty\), \(f\in :^p\pr{\mu}\). Then
+
+  \[\norm{f}_p = \sup\brace{\abs{\int fh\dm}:h\in L^{p'}\pr{\mu}\text{ and }\norm{h}_p\le 1}\]
+\item
+  (Minowsky\textquotesingle s Inequality: \(\norm{\cdot}_p\) is a norm)
+  \(1\le p\le \infty\),
+
+  \[\norm{f+g}_p\le \norm{f}_p+\norm{g}_p\]
+\end{itemize}
+
+Now that we know \(L^p\) is a normed vector space. We want to show
+further that \(L^p\) is a Banach space.
+
+\emph{\textbf{Proposition}} \(1\le p\le \infty\),
+\(\brace{f_j}\in L^p\pr{\mu}\) such that for all \(\ve>0\), there exists
+\(n\in \N\) such that
+
+\[\norm{f_j-f_k}<\ve,\forall j,k\ge n\]
+
+There exists \(f\in L^p\) such that
+
+\[\lim_{k\to\infty}\norm{f_k-f}_p = 0\]
+
+\emph{\textbf{Proof}} To prove a Cauchy sequence is convergent, it
+suffice to show the convergence of any subsequence.
+
+To extract a subsequence with the following properties: Suppose
+\(f_0 = 0\),
+
+\[\sinf \norm{f_k-f_{k-1}}<\infty\]
+
+This step is valid because the sequence of Cauchy.
+
+Define \(g_1,g_2,\cdots,g_m\) such that
+
+\[g_m\pr{x} = \sum_{k = 1}^m\abs{f_k\pr{x}-f_{k-1}\pr{x}}\]
+
+and
+
+\[g\pr{x} = \sinf \abs{f_k\pr{x}-f_{k-1}\pr{x}}\]
+
+We have by Triangle Inequality,
+
+\[\norm{g_m}_p\le \sum_{k = 1}^m\norm{f_k\pr{x}-f_{k-1}\pr{x}}_p<\infty\]
+
+Moreover, we have pointwise convergence:
+
+\[g_m\pr{x}\to g\pr{x},\forall x\in X\]
+
+By DCT, we have
+
+\[\ba
+&\norm{g}_p = \lim_{m\to\infty}\norm{g_m}_p<\infty\\
+\too & g<\infty \text{ a.s}
+\ea\]
+
+Therefore,
+
+\[\ba
+\sum_{k  =1}^m\pr{f_k\pr{x}-f_{k-1}\pr{x}} & = \lim_{m\to\infty}f_m\pr{x} = f\pr{x}
+\ea\]
+
+Moreover, \(\abs{f}\le g\) and \(g\in L^p\), this implies that
+\(f\in L^p\).
+
+Finally,
+\(\norm{f_k-f}_p\le \liminf_{j\to\infty}\norm{f_k-f_j}_p\le \ve\), for
+\(k\) large enough. This implies that
+
+\[\lim_{k\to\infty}\norm{f_k-f}_p=0\]
+
+\end{document}

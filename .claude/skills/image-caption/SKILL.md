@@ -24,6 +24,17 @@ description: 在 ruizhou03.github.io 的 markdown 文件里给某张图片下面
 - ❌ HTML 但用别的 class：`<p class="caption">` / `<figcaption>`
 - ❌ 把配文写在图片同一行后面
 
+## 加粗 / 强调的硬约束
+
+**`<p class="img-caption">` 内是 HTML，markdown 语法在此**不会**渲染**。这意味着：
+
+- ❌ `<p class="img-caption">这是 **加粗** 文字</p>` —— `**加粗**` 不会变粗体，会原样显示
+- ❌ `<p class="img-caption">这是 _强调_ 文字</p>` —— `_强调_` 同理
+- ✅ `<p class="img-caption">这是 <strong>加粗</strong> 文字</p>` —— 用 HTML 标签
+- ✅ `<p class="img-caption">这是 <em>强调</em> 文字</p>` —— 用 HTML 标签
+
+**写入或检查 caption 时务必先在脑里走一遍：括号里有没有 `**...**` 或 `_..._`？有就改成 `<strong>...</strong>` / `<em>...</em>`。**
+
 ## 何时使用此 skill
 
 用户在文章里加了一张图，想配上说明文字。典型触发：

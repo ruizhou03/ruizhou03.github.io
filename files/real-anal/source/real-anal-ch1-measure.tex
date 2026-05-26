@@ -1,0 +1,2381 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\newenvironment{Shaded}{}{}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\BuiltInTok}[1]{\textcolor[rgb]{0.00,0.50,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{#1}}
+\newcommand{\ImportTok}[1]{\textcolor[rgb]{0.00,0.50,0.00}{\textbf{#1}}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\newcommand{\ba}{\begin{aligned}}
+\newcommand{\ea}{\end{aligned}}
+\newcommand{\bm}{\begin{bmatrix}}
+\newcommand{\em}{\end{bmatrix}}
+\newcommand{\bc}{\begin{cases}}
+\newcommand{\ec}{\end{cases}}
+\newcommand{\empty}{\varnothing}
+\newcommand{\se}{\subseteq}
+\newcommand{\ve}{\varepsilon}
+\newcommand{\s}{\sigma}
+\newcommand{\0}{\textbf 0}
+\newcommand{\1}{\textbf 1}
+\newcommand{\I}{\textbf I}
+\newcommand{\X}{\textbf X}
+\newcommand{\x}{\textbf x}
+\newcommand{\y}{\textbf y}
+\newcommand{\b}{\textbf b}
+\newcommand{\w}{\textbf w}
+\newcommand{\P}{\mathcal P}
+\newcommand{\S}{\mathcal S}
+\newcommand{\T}{\mathcal T}
+\newcommand{\A}{\mathcal A}
+\newcommand{\B}{\mathcal B}
+\newcommand{\C}{\mathcal C}
+\newcommand{\L}{\mathcal L}
+\newcommand{\c}{\backslash}
+\newcommand{\if}{\text{ if }}
+\newcommand{\uinf}[1][k]{\bigcup_{{#1} = 1}^{\infty}}
+\newcommand{\sinf}[1][k]{\sum_{{#1} = 1}^{\infty}}
+\newcommand{\iinf}[1][k]{\bigcap_{{#1} = 1}^{\infty}}
+\newcommand{\plim}{\text{plim }}
+\newcommand{\too}{\Longrightarrow}
+\newcommand{\sq}{\sqrt}
+\newcommand{\dev}[2][i]{({#2}_{#1}-\bar{#2})}
+\newcommand{\inv}[1]{{#1}^{-1}}
+\newcommand{\add}[1][i]{\sum_{#1 = 1}^n}
+\newcommand{\ply}[1][i]{\prod_{#1 = 1}^n}
+\newcommand{\br}[1]{\left[#1\right]}
+\newcommand{\pr}[1]{\left(#1\right)}
+\newcommand{\brace}[1]{\left\{#1\right\}}
+\newcommand{\norm}[2][1]{\|{#2}\|_{#1}}
+\newcommand{\seq}[1][x]{{#1}_1,{#1}_2,\cdots,{#1}_{n}}
+\newcommand{\seqadd}[1][x]{{#1}_1+{#1}_2+\cdots+{#1}_{n}}
+\newcommand{\dto}{\overset{\text d}{\to}}
+\newcommand{\asim}{\overset{\text a}{\sim}}
+\newcommand{\st}{\text{ s.t. }}
+\newcommand{\om}[1]{\mu^*\pr{#1}}
+\newcommand{\lm}[1]{\mu\pr{#1}}
+\newcommand{\d}{\text{ d}}
+\newcommand{\dm}{\text{ d}\mu}
+\newcommand{\dl}{\text{ d}\lambda}
+\newcommand{\abs}[1]{\left|{#1}\right|}
+
+\hypertarget{riemann-integration}{%
+\section{Riemann Integration}\label{riemann-integration}}
+
+\hypertarget{introduction-fourier-series}{%
+\subsection{Introduction: Fourier
+Series}\label{introduction-fourier-series}}
+
+\[F\pr{x} = \frac{a_0}2+\sum_{n = 1}^\infty\br{a_n\cos nx+b_n\sin nx}\]
+
+\[\bc
+a_n = \frac{1}{\pi}\int_{-\pi}^{\pi}F\pr{x}\cos nx\text{d}x\\
+b_n = \frac{1}{\pi}\int_{-\pi}^{\pi}F\pr{x}\sin nx\text{d}x
+\ec\]
+
+In order to validate such results, the operations of \(\int\) and
+\(\sum\) for infinite terms should be interchangeable in computation
+order.
+
+Justifying Fourier Analysis/Series under Riemann Integral is crazy.
+Alternatively, we would define as Lebesgue\textquotesingle s
+Integration:
+
+\[\int\sum^{\infty} = \sum^{\infty} \int\]
+
+\hypertarget{riemann-integral}{%
+\subsection{Riemann Integral}\label{riemann-integral}}
+
+\textbf{Definition (Partition)} Suppose \(a,b\in \R\) with \(a<b\). A
+partition of \([a,b]\) is a finite list of the form
+\(x_0,x_1,\cdots,x_n\), where \(a = x_0 < x_1 < \cdots < x_n = b\).
+
+\textbf{Remark:} A partition do not necessarily need to be an even
+partition.
+
+\textbf{Definition (Infimum and Supremum of a Function)} If \(f\) is a
+real-valued function, \(A\) is a subset of the domain of \(f\), then
+
+\[\inf_Af:=\inf\brace{f\pr x:x\in A}\\
+\sup_Af :=\sup \brace{f\pr x:x\in A}\]
+
+\textbf{Definition (Lower and Upper Riemann Sums)} Suppose
+\(f:\br{a,b}\to \R\) is a bounded function and \(P\) is a partition
+\(x_0,x_1,\cdots,x_n\) of \(\br{a,b}\).
+
+\begin{itemize}
+\item
+  The lower Riemann sum \(L\pr{f,P,\br{a,b}}\) is defined as
+
+  \[L\pr{f,P,\br{a,b}} := \sum_{j = 1}^n\pr{x_j-x_{j-1}}\cdot \inf_{\br{x_{j-1},x_j}}f\]
+\item
+  The upper Riemann sum \(U\pr{f,P,\br{a,b}}\) is defined as
+
+  \[U\pr{f,P,\br{a,b}} : = \sum_{j = 1}^n \pr{x_j-x_{j-1}}\cdot \sup_{\br{x_{j-1},x_j}}f\]
+\end{itemize}
+
+The next result states that adjoining more points to a partition
+increases the lower Riemann sum and decreases the upper Riemann sum.
+
+\emph{\textbf{Proposition (Inequalities with Riemann Sums)}} Suppose
+\(f:\br{a,b}\to \R\) is a bounded function and \(P,P'\) are partitions
+of \(\br{a,b}\) such that the listing defining \(P\) is a sublist of the
+list defining \(P'\). Then
+
+\[L\pr{f,P,\br{a,b}}\le L\pr{f,P',\br{a,b}}\le U\pr{f,P',\br{a,b}}\le U\pr{f,P,\br{a,b}}\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+The following result states that if the function is fixed, then each
+lower Riemann sum is less than or equal to each upper Riemann sum.
+
+\emph{\textbf{Proposition (Lower Riemann Sums No More Than Upper Riemann
+Sums)}} Suppose \(f:\br{a,b}\to \R\) is a bounded function and \(P,P'\)
+are partitions of \(\br{a,b}\). Then
+
+\[L\pr{f,P,\br{a,b}}\le U\pr{f,P',\br{a,b}}\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+Now that we have been working with lower and upper Riemann sums, here we
+define the lower and upper Riemann integrals.
+
+\textbf{Definition (Lower and Upper Riemann Integrals)} Suppose
+\(f:\br{a,b}\to \R\) is a bounded function. The \emph{lower Riemann
+integral} \(L\pr{f,\br{a,b}}\) and the \emph{upper Riemann integral}
+\(U\pr{f,\br{a,b}}\) of \(f\) are defined by
+
+\[\ba
+L\pr{f,\br{a,b}} = \sup_P L\pr{f,P,\br{a,b}}\\
+U\pr{f,\br{a,b}} = \inf_P U\pr{f,P,\br{a,b}}
+\ea\]
+
+In the definition above, we take the supremum (over all partitions) of
+the lower Riemann sums because adjoining more points to a partition
+increases the lower Riemann sum and should provide a more accurate
+estimate of the area under the graph. Similarly, in the definition
+above, we take the infimum (over all partitions) of the upper Riemann
+sums because adjoining more points to a partition decreases the upper
+Riemann sum and should provide a more accurate estimate of the area
+under the graph.
+
+Our intuition suggests that for a partition with only a small gap
+between consecutive points, the lower Riemann sum should be a bit less
+than the area under the graph, and the upper Riemann sum should be a bit
+more than the area under the graph. Intuitively, the lower and upper
+Riemann Integrals will converge to each other, or converge to a definite
+number, as long as the partition goes more and more finely. Both of them
+are approximations of the area under \(f\) on \(\br{a,b}\).
+
+\textbf{Remark:} By definition we immediately have
+\(L\pr{f,\br{a,b}}\le U\pr{f,\br{a,b}}\). Instead of choosing between
+the lower Riemann integral and the upper Riemann integral, the standard
+procedure in Riemann integration is to consider only functions for which
+those two quantities are equal. When we take equality to this
+relationship, that is, \(L\pr{f,\br{a,b}} = U\pr{f,\br{a,b}}\), we call
+\(f\) (a bounded function on a closed bounded interval) Riemann
+integrable.
+
+\textbf{Definition (Riemann Integrable, Riemann Integral)} A bounded
+function on a closed bounded interval is called \emph{Riemann
+integrable} if its lower Riemann integral equals its upper Riemann
+integral. If \(f:\br{a,b}\to \R\) is Riemann integrable, then the
+\emph{Riemann integral} \(\int_a^b f\) is defined by
+
+\[\int_a^b f = L\pr{f,\br{a,b}} = U\pr{f,\br{a,b}}\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\emph{\textbf{Proposition (Continuity and Riemann Integrability)}} Every
+continuous real-valued function on each closed bounded interval is
+Riemann integrable.
+
+\emph{\textbf{Proposition (Bounds on Riemann Integral)}} Suppose
+\(f:\br{a,b}\to \R\) is Riemann integrable. Then
+
+\[\pr{b-a}\inf_{\br{a,b}}f\le \int_a^b f\le \pr{b-a}\sup_{\br{a,b}}f\]
+
+\hypertarget{why-is-riemann-integral-not-so-good}{%
+\subsection{Why is Riemann Integral NOT so
+good?}\label{why-is-riemann-integral-not-so-good}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \textbf{Riemann integration does NOT handle functions with (too many)
+  discontinuities.}
+
+  Consider Dirichlet\textquotesingle s function \(f:\br{0,1}\to \R\):
+
+  \[f\pr x = \bc
+  1,\text{ if }x \text{ is rational}\\
+  0,\text{ if }x \text{ is irrational}
+  \ec\]
+
+  By definition, for \(\br{a,b}\subseteq \br{0,1}\) with \(a<b\), we
+  have
+
+  \[\bc
+  \inf_{\br{a,b}}f = 0\\
+  \sup_{\br{a,b}}f = 1
+  \ec\too \bc
+  L\pr{f,\br{0,1}} = 0\\
+  U\pr{f,\br{0,1}} = 1
+  \ec\too L\pr{f,\br{0,1}}\ne U\pr{f,\br{0,1}}\]
+
+  So we conclude that \(f\) is not Riemann integrable.
+
+  Intuitively, since the set of rational numbers is countable and the
+  set of irrational numbers is uncountable, \(f\pr{x}\) should be "not
+  too" different from the function \(0\). In this way of reasoning,
+  \(f\) should, in some sense, have integral \(0\). However, the Riemann
+  integral of \(f\) is not defined.
+\item
+  \textbf{Riemann integration does not work well with unbounded
+  functions.}
+
+  Consider the following integration:
+
+  \[\int_{0}^{1}\frac1{\sq x}\text d x\]
+
+  Using the idea of improper integral, this gives an outcome of \(2\).
+  However, say \(x_0,x_1,\cdots,x_n\) is a partition of \(\br{0,1}\),
+  then \(\sup_{\br{x_0,x_1}}f = \infty\). Thus if we tried to apply the
+  definition of the upper Riemann sum to \(f\), we would have
+  \(U\pr{f,P,\pr{0,1}} = \infty\) for every partition \(P\) of
+  \(\br{0,1}\).
+\item
+  \textbf{Riemann integration does NOT work well with pointwise limits.}
+
+  Consider the Dirichlet\textquotesingle s function. \(\mathcal Q\) is
+  countable. Let \(r_1,r_2,\cdots\) be the sequence that indexes the
+  rational numbers. For each positive integer \(k\), we define
+  \(f_k:\br{0,1}\to \R\) such that
+
+  \[f_k\pr x = \bc
+   1, \text{ if } x\in \brace{r_1,\cdots,r_k}\\
+   0,\text{ otherwise}
+  \ec\]
+
+  From Real analysis, we see that \(f_k\) is Riemann integrable, and
+  \(\int f_k = 0\) (which is a Riemann integral). However, when \(k\)
+  goes to \(\infty\), \(f_k\) converges to the
+  Dirichlet\textquotesingle s function, which is in contrast not Riemann
+  integral.
+\end{enumerate}
+
+Because analysis relies heavily upon limits, a good theory of
+integration should allow for interchange of limits and integrals, at
+least when the functions are appropri- ately bounded. Based on the three
+reasons, we hope to develop a new kind of integration that works well
+with the issues unsolved by the Riemann integration. We have to develop
+a new way to measure subsets of \(\R\).
+
+\hypertarget{measures}{%
+\section{Measures}\label{measures}}
+
+\hypertarget{outer-measure}{%
+\subsection{Outer Measure}\label{outer-measure}}
+
+Throughout this semester we will work with "infinity" a lot.
+It\textquotesingle s more convenient to think of \(\infty\) as a number.
+Therefore, to begin with, we base our analysis on the extended real
+line:
+
+\[\br{-\infty.\infty} = \R\cup \brace{-\infty,\infty}\]
+
+The underlying intuition is that, \(\infty\) is recognized as a number
+instead of a never-reaching limit here.
+
+The computations of \(\infty\) follows that
+
+\[\ba
+\infty+\infty & = \infty\\
+\infty\cdot \infty & = \infty\\
+\ea\]
+
+However, notice that \(\infty-\infty\), \(\infty/\infty\) and
+\(0\cdot \infty\) is generally undefined.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+Our goal is to have a "measure function" of subsets of \(\R\). The
+primary question is that, what are the desirable properties?
+
+Suppose \(\mu:\mathcal P\pr \R = 2^{\R}\to \br{-\infty,\infty}\), with
+\(\mu\pr{\R} = \infty\) (where \(\P\pr{\R}\) is the set of all subsets
+of \(\R\), notated as \(2^{\R}\), or the power set of \(\R\)). We would
+wish \(\mu\) to have the following properties:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \(\mu\pr{\empty} = 0\), \(\mu\pr{\brace{x}} = 0\).
+\item
+  \(\mu\pr{\br{a,b}} = b-a\).
+\item
+  "Linearity"
+
+  \begin{itemize}
+  \item
+    \(\mu\pr{A} = \mu\pr{A+x}\), where \(x\in \R\). \\
+    \textbf{Definition (Translation)} If \(t\in \R\) and
+    \(A\subseteq \R\), then the translation \(t+A\) is defined by
+
+    \[t+A:= \brace{t+a:a\in A}\]
+
+    Such property says that measure is translation invariant.
+  \item
+    \(\mu\pr{\alpha A} = |\alpha|\cdot \mu\pr{A}\).
+  \end{itemize}
+\item
+  \(\mu\pr A\le \mu\pr B\) if \(A\subseteq B\). That is, measure
+  preserves order.
+\item
+  Countable additivity:
+
+  \[\mu\pr{\bigcup_{i = 1}^{\infty}A_i} = \sum_{i = 1}^{\infty}\mu\pr{A_i} \text{ if }A_i \text{'s are pairwise disjoint.}\]
+
+  \textbf{Remarks}: If we alternatively define additivity only in finite
+  meanings, such limit operation may not be applicable.
+\end{enumerate}
+
+We would depart with "outer measure", which is at first glance intuitive
+and then proves to be a useful tool. We would develop the theoretical
+works by checking its properties.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\textbf{Definition (Length of Open Interval)} The length \(l\pr{I}\) of
+an interval \(I\) is defined by
+
+\[l\pr{I} = \bc
+b-a, \text{ if }I = \pr{a,b} \text{ for some }a,b\in \R\text{ with }a<b\\
+0, \text{ if } I = \empty \\
+\infty, \text{ if } I = \pr{-\infty,a} \text{ or }I = \pr{a,\infty} \text{ for some }a \in \R \\
+\infty, \text{ if } I = \pr{-\infty,\infty}
+\ec\]
+
+Suppose \(A\subseteq \R\). The size of \(A\) should be at most the sum
+of the lengths of a sequence of open intervals whose union contains
+\(A\). Taking the infimum of all such sums gives a reasonable definition
+of the size of \(A\), denoted \(\om{A}\) and called the outer measure of
+\(A\).
+
+\textbf{Definition (Outer Measure)} The \emph{outer measure} \(\om{A}\)
+of a set \(A\subseteq \R\) is defined by
+
+\[\om{A} = \inf\brace{\sum_{k = 1}^{\infty}l\pr{I_k}:I_1,I_2,\cdots \text{ are open intervals such that }A\subseteq \bigcup_{k = 1}^{\infty}I_k}\]
+
+Intuitively, \(\mu^*\pr A\) corresponds to the length of the smallest
+open covering of \(A\).
+
+The definition of outer measure is well-defined, that is, for all
+\(A\subset \R\) the outer measure returns a number. One simple argument
+is \(A\subset \bigcup_{n = 1}^{\infty}\pr{-n,n}, \forall A\subset \R\),
+so there are at least one element in the operation of \(\inf\), which
+makes sense.
+
+\textbf{Property (Countable Sets Have Zero Outer Measure)}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Finite sets have outer measure \(0\).
+
+  Suppose \(A = \brace{a_1,\cdots,a_n}\) is a finite set of real
+  numbers. Suppose \(\ve>0\). Define a sequence \(I_1,I_2,\cdots\) of
+  open intervals by
+
+  \[I_k = \bc
+  \pr{a_k-\ve,a+\ve} & \text{if }k\le n\\
+  \empty  & \text{if } k>n
+  \ec\]
+
+  Then \(I_1,I_2,\cdots\) is a sequence of open intervals whose union
+  contains \(A\). Clearly \(\sum_{k = 1}^{\infty}l\pr{I_k} = 2\ve n\).
+  Hence \(|A|\le 2\ve n\). Because \(\ve\) is an arbitrary positive
+  number, this implies that \(|A| = 0\).
+\item
+  Every countable subset of \(\R\) has outer measure \(0\).
+
+  By definition,
+  \(\mu^*\pr A = \inf\brace{\sum l\pr{I_n},\text{ where } A\subset \cup I_n}\).
+  Construct
+  \(I_n = \pr{a_n - \dfrac{\ve}{2^n},a_n + \dfrac{\ve}{2^n}}\). Clearly,
+  \(A\subseteq \bigcup_{n = 1}^{\infty}I_n\). According to the
+  definition,
+
+  \[\ba
+  \mu^*\pr{A} & \le \sum_{n = 1}^{\infty}l\pr{I_n}\\
+  & = \sum_{n = 1}^{\infty}2\cdot \frac{\ve}{2^n} = \ve\sum_{n  =1}^{\infty}\frac{1}{2^{n-1}} = 2\ve\to 0
+  \ea\]
+
+  Therefore, for any \(\ve>0\) small, we have \(0\le \mu^*\pr{A}\le 0\);
+  immediately we have \(\mu^*\pr{A} = 0\).
+
+  Meanwhile, since finite sets are countable, so it follows that finite
+  sets have outer measure \(0\). The first line of the properties is the
+  immediate corollary of the second and more general one.
+\end{enumerate}
+
+\textbf{Property (Outer Measure Preserves Order)} Suppose \(A\) and
+\(B\) are the subsets of \(\R\) with \(A \subseteq B\). Then
+\(|A|\le |B|\).
+
+\emph{Proof} Suppose \(I_1,I_2,\cdots\) is a sequence of open intervals
+whose union contains \(B\). Then the union of this sequence of open
+intervals also contains \(A\). Hence,
+
+\[\om{A}\le \sum_{k = 1}^{\infty}l\pr{I_k}\]
+
+Taking the infimum over all sequences of open intervals whose union
+contains \(B\), we have \(\om{A}\le \om{B}\).
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+We expect that the size of a subset of \(\R\) should not change if the
+set is shifted to the right or to the left. The next definition allows
+us to be more precise.
+
+\textbf{Definition (Translation)} If \(t\in \R\) and \(A\se \R\), then
+the \emph{translation} \(t+A\) is defined by
+
+\[t+A = \brace{t+a:a\in A}\]
+
+Obviously, translation does not change the length of an open interval.
+The next result states that translation invariance carries over to outer
+measure.
+
+\textbf{Property (Outer Measure is Translation Invariant)} Suppose
+\(t\in \R\) and \(A\se \R\). Then
+
+\[\om{t+A} = \om{A}\]
+
+\emph{Proof} Suppose \(I_1,I_2,\cdots\) is a sequence of open intervals
+whose union contains \(A\). Then \(t+I_1,t+I_2,\cdots\) is a sequence of
+open intervals whose union contains \(t+A\). Thus
+
+\[\om{t+A} \le \sum_{k = 1}^{\infty}l\pr{t+I_k} = \sum_{k = 1}^{\infty}l\pr{I_k}\]
+
+Taking the infimum of the last term over all sequences
+\(I_1,I_2,\cdots\) of open intervals whose union contains \(A\), we have
+\(\om{t+A}\le \om{A}\).
+
+To get the inequality in the other direction, note that
+\(A = -t+\pr{t+A}\), so we have
+\(\om{A} = \om{-t+\pr{t+A}} \le \om{t+A}\). Hence \(\om{t+A} = \om{A}\).
+
+\textbf{Property (Countable Subadditivity of Outer Measure)} Suppose
+\(A_1,A_2,\cdots\) is a sequence of subsets of \(\R\), then
+
+\[\om{\bigcup_{k = 1}^{\infty}A_k}\le \sum_{k = 1}^{\infty}\om{A_k}\]
+
+\textbf{Remarks:} Countable subadditivity implies finite subadditivity,
+meaning that
+
+\[\om{A_1\cup\cdots\cup A_n}\le \om{A_1}+\cdots +\om{A_n}\]
+
+for all \(A_1,\cdots ,A_n\in \R\), because we can take \(A_k = \empty\)
+for \(k>n\) in the inequality of countable subadditivity.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\textbf{Property (Outer Measure of Closed Bounded Interval)} Suppose
+\(a,b\in \R\) with \(a<b\), then
+
+\[\om{\br{a,b}} = b-a\]
+
+\emph{Proof} If \(\ve>0\), then
+\(\pr{a-\ve,b+\ve},\empty,\empty,\cdots\) is a sequence of open
+intervals whose union contains \(\br{a,b}\). Thus
+\(|\br{a,b}|\le b-a+2\ve\). Because this inequality holds for all
+\(\ve>0\), we conclude that \(|\br{a,b}|\le b-a\).
+
+A proof of the inequality in the opposite direction requires that the
+completeness of \(\R\) is used in some form. For example, suppose \(\R\)
+was a countable set. Then we would have \(|\br{a,b}| = 0\) since the
+outer measure of any countable set is \(0\). Thus something deeper is
+going on with the ingredients needed to prove that
+\(|\br{a,b}|\ge b-a\). The following definition and Heine-Borel theorem
+would be useful:
+
+\textbf{Definition (Open Cover; Finite Subcover)} Suppose \(A\se \R\).
+
+\begin{itemize}
+\item
+  A collection of \(\C\) of open subsets of \(\R\) is called an
+  \emph{open cover} of \(A\) if \(A\) is contained in the union of all
+  the sets in \(\C\).
+\item
+  An open cover of \(\C\) of \(A\) is said to have a \emph{finite
+  subcover} if \(A\) is contained in the union of some \emph{finite}
+  list of sets in \(\C\).
+\end{itemize}
+
+\textbf{Example} The collection \(\brace{\pr{k,k+2}:k\in \Z^+}\) is an
+open cover of \([2,+\infty)\) because
+\([2,+\infty)\subseteq \bigcup_{k = 1}^{\infty}\pr{k,k+2}\). This open
+cover does not have a finite subcover because there do not exist
+finitely many sets of the form \(\pr{k,k+2}\) whose union contains
+\([2,+\infty)\).
+
+\emph{\textbf{Heine-Borel Theorem}} Every open cover of a \textbf{closed
+bounded} subset of \(\R\) has a finite subcover.
+
+\emph{Proof (Continued)} To prove the inequality in the other direction,
+suppose \(I_1,I_2,\cdots\) is a sequence of open intervals such that
+\(\br{a,b}\se \uinf I_k\). By the Heine-Borel theorem, there exists
+\(n\in \Z^+\) such that
+
+\[\br{a,b}\se I_1\cup\cdots \cup I_n\]
+
+We will now prove by induction that the inclusion above implies that
+
+\[\sum_{k = 1}^nl\pr{I_k}\ge b-a\]
+
+This will then imply that
+\(\sinf l\pr{I_k}\ge \sum_{k = 1}^nl\pr{I_k}\ge b-a\), completing the
+proof that \(|\br{a,b}|\ge b-a\).
+
+To get started with our induction, note that in the case of \(n = 1\)
+such relationship stands. Now for the induction step: Suppose \(n>1\)
+and \(\br{a,b}\se I_1\cup\cdots \cup I_n\) implies
+\(\sum_{k = 1}^nl\pr{I_k}\ge b-a\) for all choices of \(a,b\in\R\) with
+\(a<b\). Suppose \(I_1,\cdots,I_n,I_{n+1}\) are open intervals such that
+
+\[\br{a,b}\se I_1\cup\cdots \cup I_n\cup I_{n+1}\]
+
+Thus \(b\) is in at least one of the intervals
+\(I_1,\cdots,I_n,I_{n+1}\). By rebelling, we can assume that
+\(b\in I_{n+1}\). Suppose \(I_{n+1} = \pr{c,d}\). If \(c<a\), then
+\(l\pr{I_{n+1}}\ge b-a\) and there is nothing further to prove; thus we
+can assume that \(a<c<b<d\). Hence,
+\(\br{a,c}\se I_1\cup\cdots \cup I_n\). By our induction hypothesis, we
+have \(\sum_{k = 1}^n l\pr{I_k}\ge c-a\). Thus,
+
+\[\ba
+\sum_{k = 1}^{n+1}l\pr{I_k} & = \sum_{k = 1}^nl\pr{I_k}+l\pr{I_{n+1}}\\
+& \ge \pr{c-a}+\pr{d-c}\\
+& = d-a \\
+& \ge b-a
+\ea\]
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{which immediately completes the proof. So we conclude that $\textbackslash{}abs\{\textbackslash{}br\{a,b\}\}\textbackslash{}ge b{-}a$.}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{Corollary (Nontrivial Intervals are Uncountable)} Every interval
+in \(\R\) that contains at least two distinct elements is uncountable.
+
+\emph{Proof} Suppose \(I\) is an interval that contains \(a,b\in \R\)
+with \(a<b\). Then
+
+\[\om{I}\ge \om{\br{a,b}} = b-a> 0\]
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{where the first inequality above holds because outer measure preserves order, and the equality above comes from the property that the outer measure of each open interval equals its length. Because every countable subset of $\textbackslash{}R$ has outer measure $0$, we can conclude that $I$ is uncountable.}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{measurable-spaces-and-functions}{%
+\subsection{Measurable Spaces and
+Functions}\label{measurable-spaces-and-functions}}
+
+\emph{\textbf{Proposition (Nonexistence of Extension of Length to All
+Subsets of \(\R\))}} There does not exist a function \(\mu\) with all
+the following properties:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \(\mu\) is a function from the set of subsets of \(\R\) to
+  \(\br{0,\infty}\) (\(\mu:\P\pr{\R} = 2^{\R}\to \br{0,\infty}\)).
+\item
+  \(\mu\pr{I} = l\pr{I}\) for every open interval \(I\) of \(\R\).
+\item
+  \(\mu\pr{\bigcup_{k = 1}^{\infty}A_k} = \sum_{k = 1}^{\infty}\mu\pr{A_k}\)
+  for every disjoint sequence \(A_1,A_2,\cdots\) of subsets of \(\R\).
+\item
+  \(\mu\pr{t+A} = \mu\pr A\) for every \(A\subseteq \R\) and every
+  \(t\in \R\).
+\end{enumerate}
+
+The last result shows that we need to give up one of the desirable
+properties in our goal of extending the notion of size from intervals to
+more general subsets of \(\R\). We cannot give up (2) because the size
+of an interval needs to be its length. We cannot give up (3) because
+countable additivity is needed to prove theorems about limits. We cannot
+give up (4) because a size that is not translation invariant does not
+satisfy our intuitive notion of size as a generalization of length.\\
+Thus we are forced to relax the requirement in (1) that the size is
+defined for all subsets of \(\R\). Experience shows that to have a
+viable theory that allows for taking limits, the collection of subsets
+for which the size is defined should be \emph{closed under
+complementation and closed under countable unions}. Thus we make the
+following definition of \(\s\)-algebra.
+
+\hypertarget{ux3c3--algebra}{%
+\subsubsection{\texorpdfstring{\(\s\)-Algebra}{\textbackslash s-Algebra}}\label{ux3c3--algebra}}
+
+\textbf{Definition (\(\s\)-Algebra)} Suppose \(X\) is a set and \(\S\)
+is a set of subsets of \(X\). Then \(\S\) is called a
+\emph{\(\s\)-algebra} on \(X\) if the following three statements are
+satisfied:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \(\empty\in \S\). (Notice the notation of \(\in\), an element
+  inclusion instead of a set inclusion.)
+\item
+  If \(E\in \S\), then the complement \(X\backslash E\in \S\).
+\item
+  If \(E_1,E_2,\cdots\) is a sequence of elements in \(\S\), then
+  \(\bigcup_{k = 1}^{\infty}E_k\in \S\).
+\end{enumerate}
+
+To verify \(\S\) is indeed a \(\s\)-algebra, it is obvious for the first
+two bullet points. For the third one, you need to use the result that
+the countable union of countable sets is countable.
+
+\textbf{Examples}:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Trivial \(\s\)-algebra: \(X\) is any set, \(S = \brace{\empty,X}\).
+\item
+  Discrete/Full \(\s\)-algebra: \(X\) is any set, \(S = \P\pr{X} = 2^X\)
+  (the power set of \(X\), set of all subsets of \(X\)).
+\item
+  Suppose \(X\) is a set. Then the set of all subsets \(E\) of \(X\)
+  such that \(E\) is countable or \(X\backslash E\) is a \(\s\)-algebra
+  on \(X\).
+\item
+  \(X = \brace{a,b,c,d}\),
+  \(S = \brace{\empty,\brace{a,b,c,d},\brace{a,b},\brace{c,d}}\).
+\end{enumerate}
+
+\textbf{Property (\(\s\)-Algebras are Closed Under Countable
+Intersection)} Suppose \(\S\) is a \(\s\)-algebra on a set \(X\). Then
+
+\begin{itemize}
+\item
+  \(X\in \S\);
+\item
+  If \(D,E\in \S\), then \(D\cup E\in \S\) and \(D\cap E\in \S\) and
+  \(D\backslash E \in \S\);
+\item
+  If \(E_1,E_2,\cdots\) is a sequence of elements of \(\S\), then
+  \(\bigcap_{k = 1}^{\infty}E_k\in \S\).
+\end{itemize}
+
+\textbf{Remarks}: Informally, we think of \(\s\)-algebra as a collection
+of sets that are \textbf{closed under intersection, union and
+complement.}
+
+\hypertarget{measurable-spaces}{%
+\subsubsection{Measurable Spaces}\label{measurable-spaces}}
+
+The word \emph{measurable} is used in the terminology below because in
+the next section we introduce a size function, called a \emph{measure},
+defined on \emph{measurable sets}.
+
+\textbf{Definition (Measurable Space; Measurable Set)} A
+\emph{measurable space} is an ordered pair \(\pr{X,S}\) where \(X\) is a
+set and \(\S\) is a \(\s\)-algebra on \(X\). An element of \(\S\) is
+called an \emph{\(\S\)-measurable} set, or just a \emph{measurable set}
+if \(\S\) is clear from the context.
+
+\textbf{Remarks}: In every discussion you should point out which
+\(\s\)-algebra you are currently working on.
+
+\textbf{Example}: If \(X = \R\) and \(\S\) is the set of all subsets of
+\(\R\) that are countable or have a countable complement, then the set
+of rational numbers is \(\S\)-measurable but the set of positive real
+numbers is not \(\S\)-measurable.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+Now that the full \(\s\)-algebra is not a "good" collection of \(\R\),
+what is a "good" \(\s\)-algebra? The next result guarantees that there
+is a smallest \(\s\)-algebra on a set \(X\) containing a given set
+\(\A\) of subsets of \(X\), which will then pave way for the
+introduction of Borel set.
+
+\emph{\textbf{Proposition (Smallest \(\s\)-Algebra Containing a
+Collection of Subsets)}} Suppose \(X\) is a set and \(\A\) is a set of
+subsets of \(X\). Then the intersection of all \(\s\)-algebras on \(X\)
+that contain \(\A\) is a \(\s\)-algebra on \(X\)
+
+\textbf{Examples}
+
+\begin{itemize}
+\item
+  Suppose \(X\) is a set and \(\A\) is the set of subsets of \(X\) that
+  consist of exactly one element:
+
+  \[\A = \brace{\brace{x}:x\in X}\]
+
+  Then the smallest \(\s\)-algebra on \(X\) containing \(\A\) is the set
+  of all subsets \(E\) of \(X\) such that \(E\) is countable or
+  \(X\backslash E\) is countable.
+\item
+  Suppose \(\A = \brace{\pr{0,1},\pr{0,\infty}}\). Then the smallest
+  \(\s\)-algebra on \(\R\) containing \(\A\) is
+
+  \[\brace{\empty,\pr{0,1},\pr{0,\infty},(-\infty,0]\cup [1,\infty),[1,\infty),\pr{-\infty,1},\R}\]
+\end{itemize}
+
+\textbf{Definition (Borel Set)} The smallest \(\s\)-algebra on \(\R\)
+containing all \emph{open subsets} of \(\R\) is called the collection of
+\emph{Borel subsets} of \(\R\). An element of this \(\s\)-algebra is
+called a \emph{Borel set}.
+
+\textbf{Remarks}: We have defined the collection of Borel subsets of
+\(\R\) to be the smallest \(\s\)-algebra on \(\R\) containing all the
+\emph{open subsets} of \(\R\). We could have defined the collection of
+Borel subsets of \(\R\) to be the smallest \(\s\)-algebra on \(\R\)
+containing all the \emph{open intervals}, because every open subset of
+\(\R\) is the union of a sequence of open intervals.
+
+\textbf{Examples}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Every closed subset of \(\R\) is a Borel set because every closed
+  subset of \(\R\) is the complement of an open subset of \(\R\).
+\item
+  Every countable subset of \(\R\) is a Borel set because if
+  \(B = \brace{x_1,x_2,\cdots}\). then
+  \(B = \bigcup_{k = 1}^{\infty}\brace{x_k}\), which is a Borel set
+  because each \(\brace{x_k}\) is a closed set.
+\item
+  Every half-open interval \([a,b)\) (where \(a,b\in \R\)) is a Borel
+  set because \([a,b) = \bigcap_{k = 1}^{\infty}\pr{a-\frac1k,b}\).
+\item
+  If \(f:\R\to \R\) is a function, then the set of points at which \(f\)
+  is continuous is the intersection of a sequence of open sets, and thus
+  is a Borel set.
+\end{enumerate}
+
+\textbf{Remarks:} We may informally say that any subset of \(\R\) that
+you can think of is (highly-probably) a Borel set.
+
+\hypertarget{inverse-images}{%
+\subsubsection{Inverse Images}\label{inverse-images}}
+
+\textbf{Definition (Inverse Image)} If \(f:X\to Y\) is a function and
+\(A\se Y\), then the inverse image of \(A\) (which is a set), denoted as
+\(\inv f\pr{A}\), is defined by
+
+\[\inv f\pr{A} = \brace{x\in X:f\pr{x}\in A}\]
+
+\textbf{Example}: Suppose \(f:\R\to \R\), \(f\pr x = x^2\).
+
+\begin{itemize}
+\item
+  \(\inv f\pr{\pr{1,4}} = \pr{-2,-1}\cup \pr{1,2}\).
+\item
+  \(\inv f\pr{\pr{-1,-1}} = \pr{-1,1}\), since
+  \(\inv f\pr{\pr{-1,-1}} = \inv f\pr{[0,1)}\).
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+Inverse images work very well with set operations.
+
+\emph{\textbf{Proposition (Algebra of Inverse Images)}} Suppose
+\(f:X\to Y\) is a function. Then
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \(\inv f\pr{Y\backslash A} = X\backslash \inv f\pr A\), for
+  \(A\subseteq Y\). That is, \(\inv f\pr{A^C} = \pr{\inv f\pr A}^C\).
+\item
+  \(\inv f\pr{\bigcup_{A\in \A} A} = \bigcup_{A\in \A} \inv f\pr{A}\),
+  for every set \(\A\) of subsets of \(Y\).
+\item
+  \(\inv f\pr{\bigcap_{A\in \A} A} = \bigcap_{A\in \A} \inv f\pr{A}\),
+  for every set \(\A\) of subsets of \(Y\).
+\end{enumerate}
+
+\textbf{Trick} To prove \(A = B\), it is equivalent to
+
+\[\ba
+& A = B\\
+\iff & A\subseteq B \text{ and }B\subseteq A\\
+\iff & \bc
+x\in A\too x\in B\\
+x\in B\too x\in A
+\ec
+\ea\]
+
+\emph{\textbf{Proposition (Inverse Image of a Composition)}} Suppose
+\(f:X\to Y\) and \(g:Y\to W\). Then
+
+\[\inv{\pr{g\circ f}}\pr A = \inv f\pr{\inv g\pr A}\]
+
+for every \(A\se W\).
+
+\hypertarget{measurable-functions}{%
+\subsubsection{Measurable Functions}\label{measurable-functions}}
+
+The next definition tells us which real-valued functions behave
+reasonably with respect to a \(\s\)-algebra on their domain.
+
+\textbf{Definition (Measurable Function)} Suppose \(\pr{X,\S}\) is a
+measurable space. A function \(f:X\to \R\) is called \(\S\)-measurable
+if \(\inv f\pr B\in \S\) for all Borel set \(B\se \R\).
+
+\textbf{Remarks}
+
+\begin{itemize}
+\item
+  This definition is a special case of a general class of measurable
+  function. In general, suppose \(\pr{X,\S}\) is a measurable space, and
+  a function \(f:X\to Y\) is called \(\T\)-measurable if
+  \(\inv f\pr B\in \S\) for all \(B\in \T\), where \(\T\) is a
+  \(\s\)-algebra of \(Y\).
+\item
+  (In fact, most of the time we will work with real-valued functions,
+  but the works can be extended to more general settings. Real-valued
+  functions are the simplest to study with.)
+\end{itemize}
+
+\textbf{Example} Consider a set \(X\).
+
+\begin{itemize}
+\item
+  If \(\S = \brace{\empty, X}\), then the only \(\S\)-measurable
+  functions \(f:X\to \R\) are constant functions.
+\item
+  If \(S = \P\pr X\), then every function is \(\S\)-measurable.
+\item
+  \(X = \R\). If
+  \(\S = \brace{\empty, \pr{-\infty,0},[{0,\infty}),\R}\), then
+  \(f:\R\to \R\) is \(\S\)-measurable if and only if \(f\) is constant
+  on \(\pr{-\infty,0}\) and \(f\) is constant on \([0,+\infty)\).
+\item
+  Suppose \(E\) is a subset of a set \(X\). The \emph{characteristic
+  function} of \(E\) is the function \(\chi_E:X\to \R\) defined by
+  \(\chi_E\pr{x} = \bc
+  1 & \if x\in E\\
+  0 & \if x\notin E
+  \ec\). Suppose \(\pr{X,\S}\) is a measurable space, \(E\se X\) and
+  \(B\se \R\). Then
+
+  \[{\chi_E}^{-1}\pr B = \bc
+  E & \if 0\notin B \text{ and }1\in B\\
+  X\backslash E & \if 0\in B \text{ and }1\notin B\\
+  X & \if 0\in B \text{ and }1\in B\\
+  \empty & \if 0\notin B \text{ and }1\notin B\\
+  \ec\]
+
+  Thus we see that \(\chi_E\) is an \(\S\)-measurable function if and
+  only if \(E\in \S\).
+\end{itemize}
+
+\hypertarget{weaker-condition-for-measurability}{%
+\paragraph{Weaker Condition for
+Measurability}\label{weaker-condition-for-measurability}}
+
+The definition of an \(\S\)-measurable function requires the inverse
+image of every Borel subset of \(\R\) to be in \(\S\). The following
+useful result shows that to verify that a function is \(\S\)-measurable,
+we can check the inverse images of a \emph{much smaller} collection of
+subsets of \(\R\).
+
+\emph{\textbf{Proposition (Condition for Measurable Function)}} Suppose
+\(\pr{X,\S}\) is a measurable space, and \(f:X\to \R\) is a function
+that satisfies:
+
+\[\inv f\pr{\pr{a,\infty}} = \brace{x\in X:f\pr{x}>a} \in \S\]
+
+for all \(a\in \R\). Then \(f\) is an \(\S\)-measurable function.
+
+\emph{\textbf{Proof}} Recall the properties of \(\inv f\):
+
+\begin{itemize}
+\item
+  \(\inv f \pr{\empty} = \empty\).
+\item
+  If \(A\se \R\), then
+  \(\inv f\pr{\R\backslash A} = X\backslash \inv f\pr{A}\).
+\item
+  If \(A_1,A_2,\cdots\se \R\), then
+  \(\inv f \pr{\uinf[i]A_i} = \uinf[i]\inv f\pr{A_i}\).
+\end{itemize}
+
+In some sense, the three properties correspond to those of
+\(\s\)-algebra. Define
+
+\[\mathcal T = \brace{A\se \R:\inv f\pr A\in \S}\]
+
+We hope to show that every Borel subset of \(\R\) is in \(\mathcal T\).
+To achieve this, we will first show that \(\mathcal T\) is a
+\(\s\)-algebra on \(\R\).
+
+First because \(\inv f\pr \empty = \empty \in \S\), we have
+\(\empty\in \mathcal T\).
+
+If \(A\in \T\), then \(\inv f\pr A\in \S\); hence
+
+\[\inv f\pr{\R\backslash A} = X\backslash \inv f\pr A\in \S\]
+
+The last element inclusion relationship stands since \(\S\) is a
+\(\s\)-algebra. Therefore, \(\R\backslash A\in \T\). In other words,
+\(\T\) is closed under complementation.
+
+If \(A_1,A_2,\cdots \in \T\), then
+\(\inv f\pr{A_1},\inv f\pr{A_2},\cdots \in \S\); hence
+
+\[\inv f\pr{\uinf A_k} = \uinf \inv f\pr{A_k}\in \S\]
+
+The last element inclusion relationship stands since \(\S\) is a
+\(\s\)-algebra. Therefore, \(\uinf A_k\in \T\). In other words, \(\T\)
+is closed under countable unions.
+
+Based on the above three properties, \(\T\) is a \(\s\)-algebra on
+\(\R\).
+
+We note that
+
+\begin{itemize}
+\item
+  \((a,b] = \pr{a,\infty}\backslash \pr{b,\infty}\), for all \(a<b\).
+\item
+  \(\pr{a,b} = \uinf (a,b-\frac1k]\).
+\end{itemize}
+
+By hypothesis, \(\T\) contains \(\brace{\pr{a,\infty}:a\in \R}\).
+Because \(\T\) is closed under complementation, \(\T\) also contains
+\(\brace{(-\infty,b]:b\in \R}\). Because the \(\s\)-algebra \(\T\) is
+closed under finite intersections, we see that \(\T\) contains
+\(\brace{(a,b]:a,b\in \R}\). Because \(\pr{a,b} = \uinf (a,b-\frac1k]\)
+and \(\pr{-\infty,b} = \uinf(-k,b-\frac1k]\) and \(\T\) is closed under
+countable unions, we can conclude that \(\T\) contains every open subset
+of \(\R\). Thus, the \(\s\)-algebra \(\T\) contains the smallest
+\(\s\)-algebra on \(\R\) that contains all open subsets of \(\R\). In
+other words, \(\T\) contains every Borel subset of \(\R\). Thus \(f\) is
+an \(\S\)-measurable function.
+
+By construction we see that, in the result above, we could replace the
+collection of sets \(\brace{\pr{a,\infty}:a\in \R}\) by any collection
+of subsets of \(\R\) such that the smallest \(\s\)-algebra containing
+that collection contains the Borel subsets of \(\R\).
+
+\hypertarget{borel-measurable-functions}{%
+\paragraph{Borel Measurable
+Functions}\label{borel-measurable-functions}}
+
+We have been dealing with \(\S\)-measurable functions from \(X\) to
+\(\R\) in the context of an arbitrary set \(X\) and a \(\s\)-algebra
+\(\S\) on \(X\). An important special case of this setup is when \(X\)
+is a Borel subset of \(\R\) and \(\S\) is the set of Borel subsets of
+\(\R\) that are contained in \(X\). In this special case, the
+\(\S\)-measurable functions are called \emph{Borel measurable}.
+
+\textbf{Definition (Borel Measurable Function)} Suppose \(X\se \R\) is a
+Borel set. A function \(f:X\to \R\) is called \emph{Borel measurable} if
+\(\inv f\pr B\) is a Borel set for every Borel set \(B\se \R\).
+
+\textbf{Remarks}
+
+\begin{itemize}
+\item
+  If \(X\se \R\) and there exists a Borel measurable function
+  \(f:X\to \R\), then \(X\) must be a Borel set since
+  \(X = \inv f\pr{\R}\).
+\item
+  If \(X\se \R\) and \(f:X\to \R\) is a function, then \(f\) is a Borel
+  measurable function if and only if \(\inv f\pr{\pr{a,\infty}}\) is a
+  Borel set for every \(a\in \R\).
+\end{itemize}
+
+\hypertarget{continuity-and-borel-measurability}{%
+\paragraph{Continuity and Borel
+Measurability}\label{continuity-and-borel-measurability}}
+
+The next result states that continuity interacts well with the notion of
+Borel measurability.
+
+\emph{\textbf{Proposition (Every Continuous Function is Borel
+Measurable)}} Every continuous real-valued function defined on a Borel
+subset of \(\R\) is a Borel measurable function.
+
+\emph{\textbf{Proof}} Suppose \(X\se \R\) is a Borel set and
+\(f:X\to \R\) is continuous. To prove that \(f\) is Borel measurable,
+fix \(a\in \R\). If \(x\in X\) and \(f\pr x>a\), then by the continuity
+of \(f\), there exists some \(\delta_x>0\) such that \(f\pr y>a\) for
+all \(y\in \pr{x-\delta_x,x+\delta_x}\cap X\). Thus
+
+\[\inv f \pr{\pr{a,\infty}} = \pr{\bigcup_{x\in \inv f\pr{\pr{a,\infty}}}\pr{x-\delta_x,x+\delta_x}}\cap X\]
+
+The union inside the large parentheses above is an open subset of
+\(\R\); hence its intersection with \(X\) is a Borel set. Thus we can
+conclude that \(\inv f\pr{\pr{a,\infty}}\) is a Borel set. From the
+previous result we conclude that \(f\) is a Borel measurable function.
+
+\textbf{Remarks}: Another way to see this result is using the theorem
+that, a function \(f\) is continuous if and only if the inverse image of
+an open set is an open set. An immediate corollary is that (combined
+with the properties of inverse image), the inverse image of a Borel set
+is a Borel set, which completes our proof.
+
+\hypertarget{increasing-function-and-borel-measurability}{%
+\paragraph{Increasing Function and Borel
+Measurability}\label{increasing-function-and-borel-measurability}}
+
+Next we come to another class of Borel measurable functions. A similar
+definition could be made for decreasing functions, with a corresponding
+similar result.
+
+\textbf{Definition (Increasing)} Suppose \(X\se \R\) and \(f:X\to \R\)
+is a function.
+
+\begin{itemize}
+\item
+  \(f\) is called \emph{increasing} if \(f\pr x\le f\pr y\) for all
+  \(x,y\in X\) with \(x<y\).
+\item
+  \(f\) is called \emph{strictly increasing} if \(f\pr x<f\pr y\) for
+  all \(x,y\in X\) with \(x<y\).
+\end{itemize}
+
+\emph{\textbf{Proposition (Every Increasing Function is Borel
+Measurable)}} Every increasing function defined on a Borel subset of
+\(\R\) is a Borel measurable function.
+
+\emph{\textbf{Proof}} Suppose \(X\se \R\) is a Borel set and
+\(f:X\to \R\) is increasing. To prove that \(f\) is Borel measurable,
+fix \(a\in \R\). Let \(b = \inf\inv f\pr{\pr{a,\infty}}\), then
+\(\inv f\pr{\pr{a,\infty}} = \pr{b,\infty}\cap X\), or
+\(\inv f\pr{\pr{a,\infty}} = [b,\infty)\cap X\). Either way, we can
+conclude that \(\inv f\pr{\pr{a,\infty}}\) is a Borel set, which implies
+that \(f\) is a Borel measurable function.
+
+\textbf{Remarks:} We use the result that, since \(f\) is an increasing
+function, \(b = \inf\inv f\pr{\pr{a,\infty}}\) is well-defined; that is,
+the infimum always exists.
+
+\hypertarget{composition-and-measurability}{%
+\paragraph{Composition and
+Measurability}\label{composition-and-measurability}}
+
+The next result shows that measurability interacts well with
+composition. (Notice that here we are back discussing the general case
+of measurability.)
+
+\emph{\textbf{Proposition (Composition of Measurable Functions is
+Measurable)}} Suppose \(\pr{X,\S}\) is a measurable space, and
+\(f:X\to \R\) is an \(\S\)-measurable function. Suppose \(g\) is a
+real-valued Borel measurable function defined on a subset of \(\R\) that
+includes the range of \(f\). Then \(g\circ f:X\to \R\) is
+\(\S\)-measurable.
+
+\emph{\textbf{Proof}} Suppose \(B\in \R\) is a Borel set. Then using the
+property of inverse image of composition:
+
+\[\pr{g\circ f}^{-1}\pr B = \inv f\pr{\inv g\pr B}\]
+
+Because \(g\) is a Borel measurable function, \(\inv g\pr B\) is a Borel
+subset of \(\R\). Because \(f\) is an \(\S\)-measurable function,
+\(\inv f\pr{\inv g\pr B}\in \S\). Thus the equation above implies that
+\(\pr{g\circ f}^{-1}\pr B\in \S\). Thus \(g\circ f\) is an
+\(\S\)-measurable function.
+
+\textbf{Corollary} If \(f\) and \(g\) are continuous, then \(g\circ f\)
+is measurable.
+
+\textbf{Example} If \(f\) is measurable, then so are
+\(-f,\frac12 f,|f|,f^2,\exp\pr f\), etc. (Because each of these
+functions can be written as the composition of \(f\) with a continuous
+(and thus Borel measurable) function \(g\).)
+
+\hypertarget{algebraic-operations-and-measurability}{%
+\paragraph{Algebraic Operations and
+Measurability}\label{algebraic-operations-and-measurability}}
+
+Measurability also interacts well with algebraic operations.
+
+\emph{\textbf{Proposition (Algebraic Operations with Measurable
+Functions)}} Suppose \(\pr{X,\S}\) is a measurable space and
+\(f,g:X\to \R\) are \(\S\)-measurable. Then
+
+\begin{itemize}
+\item
+  \(f+g\), \(f-g\), and \(fg\) are \(\S\)-measurable functions;
+\item
+  If \(g\pr x\ne 0\) for all \(x\in X\), then \(\dfrac{f}{g}\) is an
+  \(\S\)-measurable function.
+\end{itemize}
+
+\emph{\textbf{Proof}} In order to prove \(f+g\) is an \(\S\)-measurable
+function, by definition we are to show for any \(a\in \R\):
+
+\[\pr{f+g}^{-1}\pr{\pr{a,\infty}}\in \S\]
+
+The intuition begins with the observation that, since both \(f\) and
+\(g\) are \(\S\)-measurable, if we can find a way (of countable unions)
+to represent the inverse image of \(f+g\), then we are done.
+
+\[\pr{f+g}^{-1}\pr{\pr{a,\infty}} = \bigcup_{r\in \Q}\pr{\inv f\pr{\pr{r,\infty}}\cup\inv g\pr{\pr{a-r,\infty}}}\]
+
+In order to prove the equivalence of sets, we use the trick:
+\(A= B\iff A\se B \text{ and }B\se A\).
+
+If
+\(x\in \bigcup_{r\in \Q}\pr{\inv f\pr{\pr{r,\infty}}\cup\inv g\pr{\pr{a-r,\infty}}}\),
+this implies that there exists an \(r\in \Q\) such that
+\(x\in\inv f\pr{\pr{r,\infty}}\cup\inv g\pr{\pr{a-r,\infty}}\), since
+\(x\) must belong to at least one of the intervals. The immediate result
+is that \(x\in \inv f\pr{\pr{r,\infty}}\) and
+\(x\in \inv g\pr{\pr{a-r,\infty}}\). By definition of inverse images, we
+have \(f\pr{x}\in \pr{r,\infty}\) and \(g\pr x\in \pr{a,r,\infty}\).
+Thus, it follows that \(f\pr x+g\pr x\in \pr{a,\infty}\).
+
+Suppose \(x\in \pr{f+g}^{-1}\pr{\pr{a,\infty}}\); that is,
+\(f\pr x+g\pr x>a\iff f\pr x > a-g\pr x\). By the completeness of
+\(\R\), there must exist some \(r\in \Q\) such that
+\(f\pr{x}>r>a-g\pr x\). Therefore, \(x\) belongs to the set in the
+right-hand side.
+
+Based on the two directions of intersection relationships we have
+proved, the equivalence of the two sets is then proved. From the
+intuition we have introduced, the remainder of the proof is trivial.
+
+\begin{itemize}
+\item
+  By property of composition and measurability, \(-g\) is an
+  \(\S\)-measurable function. Thus \(f-g = f+\pr{-g}\) is an
+  \(\S\)-measurable function.
+\item
+  Since \(fg = \dfrac{\pr{f+g}^2-f^2-g^2}{2}\), combined with all the
+  properties that we have proved above, the proof is trivial.
+\item
+  Suppose \(g\pr{x}\ne 0,\forall x\in X\). The function defined on
+  \(\R\c \brace{0}\) (which is a Borel subset of \(\R\)) that takes
+  \(x\) to \(\frac1x\) is continuous and thus is a Borel measurable
+  function. It follows that \(\frac1g\) is an \(\S\)-measurable
+  function. Combining this result with what we have already proved about
+  the product of \(\S\)-measurable functions, we conclude that
+  \(\frac{f}{g}\) is an \(\S\)-measurable function.
+\end{itemize}
+
+\hypertarget{limit-and-measurability}{%
+\paragraph{Limit and Measurability}\label{limit-and-measurability}}
+
+The next result shows that the pointwise limit of a sequence of
+\(\S\)-measurable functions is \(\S\)-measurable. This is a highly
+desirable property (recall that the set of Riemann integrable functions
+on some interval is not closed under taking pointwise limits).
+
+\emph{\textbf{Proposition (Limit of \(\S\)-Measurable Functions)}}
+Suppose \(\pr{X,\S}\) is a measurable space and \(f_1,f_2,\cdots\) is a
+sequence of \(\S\)-measurable functions from \(X\) to \(\R\). Suppose
+\(\lim_{k\to \infty}f_k\pr x\) exists for each \(x\in X\). Define
+\(f:X\to \R\) by
+
+\[f\pr{x}: = \lim_{k\to\infty}f_k\pr{x}\]
+
+Then \(f\) is an \(\S\)-measurable function.
+
+\emph{\textbf{Proof}} In order to prove
+\(\inv f\pr{\pr{a,\infty}}\in \S\), we follow the same strategy as
+before; that is, to represent \(\inv f\pr{\pr{a,\infty}}\) as a result
+of countable unions or intersections.
+
+\[\inv f\pr{\pr{a,\infty}} = \uinf[j]\uinf[m]\bigcap_{k = m}^{\infty}f_k^{-1}\pr{\pr{a+\frac1j,\infty}}\]
+
+Obviously, \(f_k^{-1}\pr{\pr{a+\frac1j,\infty}}\) is an element of
+\(\S\). If such equivalence stands, then \(\inv f\pr{\pr{a,\infty}}\) is
+also an element of \(\S\), which completes our proof.
+
+\textbf{Put in a Nutshell:}
+
+\begin{itemize}
+\item
+  Every "well-behaved" function is measurable.
+\item
+  Algebraic operations preserve measurability.
+\item
+  \(\lim_{k\to \infty}f_k = f\) is measurable.
+\end{itemize}
+
+\hypertarget{working-on-extended-real-line}{%
+\subsubsection{Working on Extended Real
+Line}\label{working-on-extended-real-line}}
+
+Sometimes it is more convenient for us to work with the \emph{extended
+real line}. Hence, we need extension of Borel set for the case of
+extended real line.
+
+\textbf{Definition (Borel Subsets of \(\br{-\infty,\infty}\))} A subset
+of \(\br{-\infty,\infty}\) is called a \emph{Borel set} if its
+intersection with \(\R\) is a Borel set.
+
+\textbf{Remarks:}
+
+\begin{itemize}
+\item
+  In other words, a set \(C\se \br{-\infty,\infty}\) is a Borel set if
+  and only if there exists a Borel set \(B\se \R\) such that \(C = B\)
+  or \(C = B\cup\brace{\infty}\) or \(C = B\cup\brace{-\infty}\) or
+  \(C = B\cup\brace{-\infty,\infty}\).
+\item
+  It can be verified that the set of Borel subsets of
+  \(\br{-\infty,\infty}\) is a \(\s\)-algebra on
+  \(\br{-\infty,\infty}\).
+\end{itemize}
+
+\emph{\textbf{Proposition (Weaker Condition for Measurability)}} Suppose
+\(\pr{X,\S}\) is a measurable space. A function
+\(f:X\to \br{-\infty,\infty}\) is such that
+\(\inv f\pr{(a,\infty]}\in \S\) for all \(a \in \R\). Then \(f\) is an
+\(\S\)-measurable function.
+
+Such proposition tells us that everything is still good even when we
+extend the definition to the extended real line.
+
+\emph{\textbf{Proposition (Infimum and Supremum of a Sequence of
+\(\S\)-Measurable Functions are Measurable)}} Suppose \(\pr{X,\S}\) is a
+measurable space. \(f_1,f_2,\cdots\) is a sequence of \(\S\)-measurable
+functions defined on \(X\to \br{-\infty,\infty}\). Define
+\(g,h:X\to\br{-\infty,\infty}\) by
+
+\[\ba
+g\pr x &:= \inf\brace{f_k\pr x:k\in \N}\\
+h\pr x &:= \sup\brace{f_k\pr x:k\in \N}
+\ea\]
+
+Then \(g\) and \(h\) are \(\S\)-measurable functions.
+
+\emph{\textbf{Proof}} Let \(a\in \R\). The definition of supremum
+implies that
+
+\[\inv h\pr{(a,\infty]} = \uinf f_k^{-1}\pr{(a,\infty]}\]
+
+The equation above, along with the condition for measurability, implies
+that \(h\) is an \(\S\)-measurable function. Then, note that
+
+\[g\pr{x} = -\sup\brace{-f_k\pr{x}:k\in \Z^+},\forall x\in X\]
+
+Thus the result about the supremum implies that \(g\) is an
+\(\S\)-measurable function.
+
+\textbf{Remarks:} One of the reason that we hope to work with the
+extended real line is that, the \(\inf\) or the \(\sup\) might be
+\(\pm \infty\).
+
+\hypertarget{measures-and-their-properties}{%
+\subsection{Measures and Their
+Properties}\label{measures-and-their-properties}}
+
+\hypertarget{definition}{%
+\subsubsection{Definition}\label{definition}}
+
+The original motivation for the next definition came from trying to
+extend the notion of the length of an interval. However, the definition
+below allows us to discuss size in many more contexts.
+
+\textbf{Definition (Measure)} Let \(\pr{X,\S}\) be a measurable space. A
+measure on \(\pr{X,\S}\) is a function \(\mu:\S\to \br{0,\infty}\) such
+that
+
+\begin{itemize}
+\item
+  \(\mu\pr{\empty} = 0\).
+\item
+  \(\mu\pr{\uinf E_k} = \sinf \mu\pr{E_k}\), for every pairwise disjoint
+  sequence \(E_1,E_2,\cdots \in \S\).
+\end{itemize}
+
+\textbf{Examples}
+
+\begin{itemize}
+\item
+  Counting measure: \(X\) is a set, and \(\S = \P\pr X\).
+
+  \[\mu\pr E = \bc
+  n \if E \text{ is finite and }E\text{ has }n \text{ elements.}\\
+  \infty \if E \text{ is infinite.}
+  \ec\]
+\item
+  \emph{Dirac} measure: \(\pr{X,\S}\) is a measure space. Fix an element
+  \(c\in X\).
+
+  \[\delta_c\pr{E} = \bc
+  1 \if c\in E\\
+  0 \if c\notin E
+  \ec\]
+\item
+  Lebesque measure: \(X = \R, \S = \B\pr \R\). The outer measure is a
+  measure.
+
+  Though we have shown that the outer measure is not a measure on the
+  power set of \(\R\), since it does not satisfy countable additivity.
+  However, it is a measure on \(\pr{\R,\B\pr{\R}}\), as we would show
+  later.
+\item
+  Simple probability measure on a coin toss:
+  \(X = \brace{H,T},S = \P\pr{X} = \brace{\empty, \brace{H},\brace{T},\brace{H,T}}\).
+  Define \(\mu\) as:
+
+  \[\bc
+  \mu\pr{\empty} = 0\\
+  \mu\pr{\brace{H}} = \frac12\\
+  \mu\pr{\brace{T}} = \frac12\\
+  \mu\pr{\brace{H,T}} = 1
+  \ec\]
+
+  It can be verified that \(\mu\) is indeed a measure.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+The following terminology is frequently useful.
+
+\textbf{Definition (Measure Space)} \(\pr{X,\S,\mu}\) is called a
+measure space. \(X\) is a set, \(\S\) is a \(\s\)-algebra on \(X\), and
+\(\mu\) is a measure on the measurable space \(\pr{X,\S}\).
+
+\hypertarget{properties-of-measures}{%
+\subsubsection{Properties of Measures}\label{properties-of-measures}}
+
+\emph{\textbf{Proposition (Measure Preserves Order; Measure of a Set
+Difference)}} Suppose \(\pr{X,\S,\mu}\) is a measure space. Suppose
+\(D,E\in \S\) and \(D\se E\). Then
+
+\begin{itemize}
+\item
+  \(\mu\pr D\le \mu \pr E\).
+\item
+  \(\mu\pr{E\c D} = \mu\pr E-\mu\pr D\), given that
+  \(\mu\pr{D}<\infty\).
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\emph{\textbf{Proposition (Countable Additivity)}} For any
+\(E_1,E_2,\cdots\in \S\), we have
+
+\[\mu\pr{\uinf E_k}\le \sinf \mu\pr{E_k}\]
+
+\textbf{Remarks:} Such countable subadditivity does not require
+\(E_1,E_2,\cdots\in \S\) to be pairwise disjoint, which is a general and
+useful result.
+
+\emph{\textbf{Proof}} Following the definition of measure, we construct
+a sequence of disjoint sets whose union is \(\uinf E_k\). Let
+\(D_1 = \empty\) and \(D_k = E_1\cup \cdots \cup E_{k-1}\) for
+\(k\ge 2\). Then \(E_1\c D_1,E_2\c D_2,\cdots\) is a disjoint sequence
+of subsets of \(X\) whose union equals \(\uinf E_k\). Thus
+
+\[\ba
+\lm{\uinf E_k} & = \lm{\uinf\pr{E_k\c D_k}}\\
+& = \sinf \lm{E_k\c D_k}\\
+& \le \sinf\lm{E_k}
+\ea\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+Below is the two important properties of the "\emph{continuity of
+measure}".
+
+\emph{\textbf{Proposition (Measure of an Increasing Union)}} Suppose
+\(\pr{X,\S,\mu}\) is a measure space. Let
+\(E_1\se E_2\se E_3\se \cdots\) be an increasing sequence of \(\S\)
+measurable sets. Then
+
+\[\mu\pr{\uinf E_k} = \lim_{k\to \infty}\mu\pr{E_k}\]
+
+\emph{\textbf{Proof}} Denote \(E_0 = \empty\) to make notations
+consistent. By the construction of an increasing sequence of
+\(E_1\se E_2\se E_3\se \cdots\), we can partition \(\uinf E_k\) as:
+
+\[\uinf E_k =\uinf\pr{E_k\c E_{k-1}}\]
+
+Hence,
+
+\[\ba
+\mu\pr{\uinf E_k} & = \mu\pr{\uinf \pr{E_k\c E_{k-1}}}\\
+& = \sinf \mu\pr{E_k\c E_{k-1}}\\
+& = \sinf \pr{\mu\pr{E_k}-\mu\pr{E_{k-1}}}\\
+& = \lim_{k \to \infty}\mu\pr{E_k}-\mu\pr{E_0}\\
+& = \lim_{k \to \infty}\mu\pr{E_k}
+\ea\]
+
+The second equality stands because of countable additivity, and the
+third one stands because of the proposition we derived above.
+
+\emph{\textbf{Proposition (Measure of an Decreasing Intersection)}}
+Suppose \(\pr{X,\S,\mu}\) is a measure space. Let \(E_1\) be a
+decreasing sequence of \(\S\) measurable sets with
+\(\mu\pr{E_1}<\infty\). Then
+
+\[\mu\pr{\bigcap_{k = 1}^{\infty}E_k} = \lim_{k\to \infty}\mu\pr{E_k}\]
+
+\emph{\textbf{Proof}} De Morgan\textquotesingle s Law:
+
+\[E_1\c \pr{\bigcap_{k = 1}^{\infty}E_k} = \uinf \pr{E_1\c E_k}\]
+
+Hence,
+
+\[\ba
+\mu\pr{E_1\c \pr{\bigcap_{k = 1}^{\infty}E_k}} & = \mu\pr{\uinf \pr{E_1\c E_k}}\\
+& = \lim_{k\to\infty}\mu\pr{E_1\c E_k}
+\ea\]
+
+Meanwhile, for the left-hand side:
+
+\[\mu\pr{E_1\c \pr{\bigcap_{k = 1}^{\infty}E_k}} = \mu\pr{E_1}-\mu\pr{\bigcap_{k = 1}^{\infty}E_k}\]
+
+For the right-hand side:
+
+\[\lim_{k \to\infty} \mu\pr{E_1\c E_k} = \lim_{k\to \infty}\pr{\mu\pr{E_1}-\mu\pr{E_k}} = \mu\pr{E_1}-\lim_{k\to \infty}\mu\pr{E_k}\]
+
+It is noteworthy that we can subtract \(\mu\pr{E_1}\) from the both
+sides of equality only if \(E_1\) is finite. Jointly we have
+\(\mu\pr{\bigcap_{k = 1}^{\infty}E_k} = \lim_{k\to \infty}\mu\pr{E_k}\),
+which completes the proof.
+
+\textbf{Remarks}: The condition of \(\mu\pr{E_1}<\infty\) can be relaxed
+to \(\exist N\in \N: \mu\pr{E_N}<\infty\).
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\emph{\textbf{Proposition (Measure of a Union)}} Suppose
+\(\pr{X,\S,\mu}\) is a measure space. Let \(D,E\in \S\) and
+\(\mu\pr{D\cap E}<\infty\). Then
+
+\[\mu\pr{D\cup E} = \mu \pr{D}+\mu\pr{E}-\mu\pr{D\cap E}\]
+
+\emph{\textbf{Proof}} From graphical intuition we separate \(D\cup E\)
+into three disjoint parts:
+
+\[D\cup E = \pr{D\c \pr{D\cap E}}\cup \pr{E\c \pr{D\cap E}}\cup \pr{D\cap E}\]
+
+By property of measure, we have
+
+\[\ba
+\mu\pr{D\cup E} & = \mu{\pr{D\c \pr{D\cap E}}}+\mu{\pr{E\c \pr{D\cap E}}}+\mu{\pr{D\cap E}}\\
+& = \mu\pr{D}-\mu\pr{D\cap E}+\mu\pr{E}-\mu\pr{D\cap E}+\mu\pr{D\cap E}\\
+& = \mu \pr{D}+\mu\pr{E}-\mu\pr{D\cap E}
+\ea\]
+
+More generally, the \emph{Exclusion - Inclusion Principle} is:
+
+\[\mu\pr{\bigcup_{k = 1}^nE_k} = \sum_{k = 1}^{\infty}\pr{-1}^{k+1}\pr{\sum_{1\le i_1<\cdots < i_k\le n}\mu\pr{E_{i_1}\cap \cdots \cap E_{i_k}}}\]
+
+\hypertarget{lebesgue-measure}{%
+\subsection{Lebesgue Measure}\label{lebesgue-measure}}
+
+\hypertarget{additivity-of-outer-measure-on-borel-sets}{%
+\subsubsection{Additivity of Outer Measure on Borel
+Sets}\label{additivity-of-outer-measure-on-borel-sets}}
+
+The main goal is to show that the "outer measure" \(\mu^*\) is a measure
+on \(\pr{\R,\B\pr{\R}}\). (Note that "outer measure" is not itself a
+measure; the name is given artificially.) The core task is to answer
+whether the "outer measure" satisfies countable additivity. The
+procedure unfolds in the following steps:
+
+\begin{itemize}
+\item
+  \(\mu^*\) is countably additive with open sets.
+\item
+  \(\mu^*\) is countably additive with closed sets.
+\item
+  \(\mu^*\) is countably additive with Borel sets.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\emph{\textbf{Proposition (Additivity of Outer Measure if One of the
+Sets is Open)}} Suppose \(A\) and \(G\) are disjoint subsets of \(\R\),
+and \(G\) is open. Then
+
+\[\mu^*\pr{A\cup G} = \mu^*\pr A+\mu^* \pr{G}\]
+
+\emph{\textbf{Proof}} The trick we will deploy is the same as before;
+that is, to prove \(x = y\) is equivalent to prove both \(x\le y\) and
+\(x\ge y\).
+
+Previously, we have proved that the outer measure has countable
+subadditivity, so the direction of \(\le\) holds. We will only need to
+focus on the opposite direction of \(\ge\). Because of the fact that any
+open set can be expressed as a countable union of open intervals, we
+first start from the simplest case of \(G\) being an open interval and
+then progress to the case where \(G\) is a general open set.
+
+\begin{itemize}
+\item
+  \(G = \pr{a,b}\) is an open interval with \(a,b\in \R\). We also
+  assume that \(a,b\notin A\). Let \(I_1,I_2,\cdots\) be any open
+  intervals whose union covers \(A\cup G\). For \(n>0\), let
+
+  \[\ba
+  J_n & = I_n\cap \pr{-\infty,a}\\
+  K_n & = I_n\cap \pr{a,b}\\
+  L_n & = I_n\cap \pr{b,\infty}
+  \ea\]
+
+  Note that \(J_n,K_n,L_n\) are themselves open finite intervals. Hence,
+
+  \[l\pr{I_n} = l\pr{J_n} + l\pr{K_n}+l\pr{L_n}\]
+
+  Moreover, we have
+
+  \[\ba
+  A& \se \pr{\uinf[n]J_n}\cup \pr{\uinf[n]L_n}\\
+  G& \se \uinf[n]K_n
+  \ea\]
+
+  By definition of outer measure,
+
+  \[\ba
+  & \bc
+  \mu^*\pr{A}\le \sinf[n]\pr{l\pr{J_n}+l\pr{L_n}}\\
+  \mu^*\pr{G}\le \sinf l\pr{K_n}\\
+  \ec\\
+  \too & \mu^*\pr{A}+\mu^*\pr{G} \le \sinf[n]\pr{l\pr{J_n}+l\pr{K_n}+ l\pr{L_n}}= \sinf[n]l\pr{I_n}
+  \ea\]
+
+  Taking infimum to both sides (over all open coverings of \(A\cup G\)),
+  we have
+
+  \[\mu^*\pr{A}+\mu^*\pr{G}\le \mu^*\pr{A\cup G}\]
+
+  \textbf{Remarks:} Here \(G\) is assumed to be open to ensure that
+  \(K_n\)\textquotesingle s are open intervals, otherwise some of the
+  properties of outer measure are not applicable.
+\item
+  \(G\) is any open set. (In fact, any open set can always be decomposed
+  into the union of disjoint intervals. Equivalently,
+  \(G = \uinf[n] I_n\).) Since \(\pr{\bigcup_{n = 1}^N I_n}\se G\), we
+  have
+
+  \[\ba
+  \mu^*\pr{A\cup G}& \ge \mu^*\pr{A\cup \pr{\bigcup_{n = 1}^N I_n}}\\
+  & = \mu^*\pr{A} + \sum_{n = 1}^N\mu^*\pr{I_n}\\
+  & = \mu^*\pr{A} + \sum_{n = 1}^Nl\pr{I_n}
+  \ea\]
+
+  Note that the second equality is true because of result in the first
+  case we have just discussed.
+
+  Taking limit of \(N\to \infty\) of both sides, we have
+
+  \[\ba
+  \mu^*\pr{A\cup G}&\ge \mu^*\pr{A}+\sinf[n]l\pr{I_n}\\
+  & \ge \mu^*\pr{A}+\mu^*\pr{G}
+  \ea\]
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\emph{\textbf{Proposition (Additivity of Outer Measure if One of the
+Sets is Closed)}} Suppose \(A\) and \(F\) are disjoint subsets of
+\(\R\), and \(F\) is closed. Then
+
+\[\mu^*\pr{A\cup F} = \mu^*\pr{A}+\mu^*\pr{F}\]
+
+\textbf{Remarks:} For \(F\) to be closed, the complement of \(F\) is
+open.
+
+\emph{\textbf{Proof}} Suppose \(I_1,I_2,\cdots\) are open intervals
+whose union covers \(A\cup F\). Let \(G = \uinf I_k\). Since
+\(A\cap F = \empty\), we have \(A\se \pr{G\c F}\), which implies
+\(\mu^*\pr{A}\le \mu^*\pr{G\c F}\). Note that \(G\c F = G\cap F^c\), and
+both \(G\) and \(F^c\) are open, so \(G\c F\) is open.
+
+\[\ba
+ \mu^*\pr{A}& \le \mu^*\pr{G\c F}\\
+\too \mu^*\pr{A}+\mu^*\pr{F}&\le \mu^*\pr{G\c F}+\mu^*\pr{F}\\
+& = \mu^*\pr{\pr{G\c F}\cup F}\\
+& = \mu^*\pr{G}\\
+& \le \sinf l\pr{I_k}
+\ea\]
+
+Note that the second equality holds because of the proposition we have
+just proved above.
+
+Taking infimum of both sides, we get the final result that
+
+\[\mu^*\pr{A}+\mu^*\pr{F}\le \mu^*\pr{A\cup F}\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\emph{\textbf{Proposition (Approximation of Borel Sets by Some Closed
+Set)}} Suppose \(B\se \R\) is a Borel set. Then for every \(\ve>0\),
+there exists a closed set \(F\se B\) such that
+
+\[\mu^*\pr{B\c F}\le \ve\]
+
+\emph{\textbf{Proof}} To prove something is true for Borel set, you need
+to construct a collection of sets that satisfies such property, and show
+such collection is
+
+\begin{itemize}
+\item
+  Closed under intersection/union.
+\item
+  Closed under complement.
+\item
+  Contains open sets.
+\end{itemize}
+
+Let
+
+\[\mathcal L = \brace{D\se \R |\text{ For }\ve >0, \text{ there exists a closed set }F\se D \text{ such that }\mu^*\pr{D\c F}\le \ve}\]
+
+We hope to show:
+
+\begin{itemize}
+\item
+  \(\mathcal L\) is itself a \(\s\)-algebra.
+\item
+  \(\mathcal L\) contains open sets/open intervals.
+\end{itemize}
+
+Then based on the two points, \(\mathcal L\) is a \(\s\)-algebra that
+contains the Borel \(\s\)-algebra.
+
+It is in fact trivial to see the second point. Let \(D = \pr{a,b}\) with
+\(a<b\) and \(a,b\in \R\). Take
+\(F = \br{a+\frac{\ve}2,b-\frac{\ve}2}\), and then we are done. The main
+contents leave for proving \(\mathcal L\) being a \(\s\)-algebra.
+
+\begin{itemize}
+\item
+  \(\mathcal L\) contains \(\empty\): If \(D = \empty\), then take
+  \(F = \empty\), which is open and then valid.
+\item
+  \(\mathcal L\) is closed under countable intersection and union.
+  However, note that it is equivalent for being closed under countable
+  intersection and being closed under countable union.
+
+  Suppose \(D_1,D_2,\cdots \in \L\). Fix \(\ve>0\). For each \(k>0\),
+  there exists a closed set \(F_k\se D_k\) such that
+
+  \[\mu^*\pr{D_k\c F_k}\le \frac{\ve}{2^k}\]
+
+  A fact from set theory, that the intersection of closed sets is
+  closed, regardless of whether or not such operation is finite or
+  infinite. Then \(\iinf F_k\) is a closed set. By definition, since
+  each \(F_k\) is a subset of \(D_k\), we have
+
+  \[\ba
+  \iinf F_k\se \iinf D_k\\
+  \ea\]
+
+  Moreover, you can check it for yourself that
+
+  \[\pr{\iinf D_k}\c \pr{\iinf F_k}\se \uinf \pr{D_k\c F_k}\]
+
+  Then we have
+
+  \[\mu^*\pr{\pr{\iinf D_k}\c \pr{\iinf F_k}}\le \sinf \mu^*\pr{D_k\c F_k}\le \sinf \frac{\ve}{2^k} = \ve\]
+
+  The result shows that \(\iinf D_k\in \L\).
+\item
+  \(\L\) is closed under complements.
+
+  Suppose \(D\in \L\). We had to show \(D^c\in \L\).
+
+  \begin{itemize}
+  \item
+    Suppose \(\mu^*\pr{D}<\infty\). Fix \(\ve>0\). Let \(F\se D\) such
+    that \(F\) is closed and \(\mu^*\pr{D\c F}\le\frac{\ve}2\). From
+    definition of \(\mu^*\pr{D}\), there is an open set \(G\) (which can
+    be imagined as the union of an open covering) with \(G\se D\) such
+    that
+
+    \[\mu^*\pr{G}\le \mu^*\pr{D}+\frac{\ve}2\]
+
+    First because \(G\) is open, \(G^c\) is closed. Because \(G\se D\),
+    \(G^c\se D^c\). And
+
+    \[D^c\c G^c = G\c D\se G\c F\]
+
+    Then
+
+    \[\ba
+    \mu^*\pr{D^c\c G^c} & = \mu^*\pr{G\c D} \\
+    & \le \mu^*\pr{G\c F} \\
+    & = \mu^*\pr{G}-\mu^*\pr{F} \\
+    & =\pr{\mu^*\pr{G}-\mu^*\pr{D}}+\pr{\mu^*\pr{D}-\mu^*\pr{F}}\\
+    & \le \frac{\ve}2+\mu^*\pr{D\c F}\\
+    & \le \frac{\ve}2+\frac{\ve}2 = \ve
+    \ea\]
+
+    Note that the equality in the second line comes from additivity of
+    outer measure when one of the sets is closed, and the fourth line
+    above uses subadditivity applied to the union
+    \(D = \pr{D\c F}\cup F\).
+  \item
+    When \(\om{D} = \infty\), for any \(D\in \L\), consider
+
+    \[D_k = D\cap \br{-k,k},\forall k\in \N\]
+
+    Because \(\L\) is closed under intersection, and both \(D\) and
+    \(\br{-k,k}\) are in \(\L\), we have \(D_k\in \L\). From
+    construction, we see that \(D_k\) has a finite measure, so
+    \(D_k^c\in \L\). It follows that
+
+    \[\ba
+    D & = \uinf D_k\\
+    \too D^c & = \iinf D_k^c
+    \ea\]
+
+    Again, since each \(D_k^c\in \L\), and \(\L\) is closed under
+    intersection, so \(D^c\in \L\), which completes our proof.
+  \end{itemize}
+\end{itemize}
+
+\emph{\textbf{Proposition (Additivity of Outer Measure if One of the
+Sets is a Borel Set)}} Suppose \(A\) and \(B\) are two disjoint sets,
+and \(B\) is a Borel set. Then
+
+\[\mu^*\pr{A\cup B} = \mu^*\pr{A}+\mu^*\pr{B}\]
+
+\emph{\textbf{Proof}} From the previous proposition, since \(B\) is a
+Borel set, there exists a closed set \(F\se B\) such that
+\(\mu^*\pr{B\c F}\le\ve\). Since \(F\) is a closed set, again from the
+previous results,
+
+\[\ba
+\mu^*\pr{A\cup B}& \ge \mu^*\pr{A\cup F} \\
+& = \mu^*\pr{A}+\mu^*\pr{F}\\
+& \ge \mu^*\pr{A}+\mu^*\pr{B}-\mu^*\pr{B\c F}\\
+& \ge \mu^*\pr{A}+\mu^*\pr{B}-\ve
+\ea\]
+
+The first inequality holds because of the fact that
+\(F\se B\too \pr{A\cup F}\se\pr{A\cup B}\). The inequality in the third
+line is true by countable subadditivity of the outer measure. The result
+above holds for any \(\ve>0\). Take limit \(\ve\to 0\), we end up with
+
+\[\mu^*\pr{A\cup B}\ge \mu^*\pr{A}+\mu^*\pr{B}\]
+
+\textbf{Remarks:} We should never write
+\(\mu^*\pr{B\c F} = \mu^*\pr{B}-\mu^*\pr{F}\) for \(F\se B\), because we
+are not sure whether \(B\) and \(F\) are infinite or not. What we always
+have is countable subadditivity of the outer measure,
+
+\[\ba
+&\ba
+B = F\cup\pr{B\c F}& \too \mu^*\pr{B}\le \mu^*\pr{F}+\mu^*\pr{B\c F}
+\\F = B\cup \pr{F\c B}&\too \mu^*\pr{F}\le \mu^*\pr{B}+\mu^*\pr{F\c B}
+\ea\\
+\too &\bc
+\mu^*\pr{B\c F}\ge \mu^*\pr{B}-\mu^*\pr{F}\\
+\mu^*\pr{F\c B}\ge \mu^*\pr{F}-\mu^*\pr{B}
+\ec
+\ea\]
+
+\textbf{Corollary (Existence of a Subset of \(\R\) that is Not a Borel
+Set)} There exists a set \(B\se \R\) such that \(\mu^*\pr{B}<\infty\)
+and \(B\) is not a Borel set.
+
+\emph{Proof} In the section of countable subadditivity of the outer
+measure we showed that there exist disjoint sets \(A,B\se \R\) such that
+\(\mu^*\pr{A\cup B}\ne \mu^*\pr{A}+\mu^*\pr{B}\). For any such sets, we
+must have \(\mu^*\pr{B}<\infty\) because otherwise both
+\(\mu^*\pr{A\cup B}\) and \(\mu^*\pr{A}+\mu^*\pr B\) equal \(\infty\)
+(as follows from the inequality \(\mu^*\pr{B}\le \mu^*\pr{A\cup B}\)).
+Now the additivity of outer measure if one of the sets is a Borel sets
+implies that \(B\) is not a Borel set.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+The tools we have constructed now allow us to prove that outer measure,
+when restricted to the Borel sets, is a measure.
+
+\emph{\textbf{Proposition (Outer Measure is a Measure on Borel Sets)}}
+The outer measure \(\mu^*\) is a measure on \(\pr{\R,\B\pr{\R}}\).
+
+\emph{\textbf{Proof}} Consider \(A_1,A_2,\cdots\in \B\pr{R}\) are
+disjoint. To prove the countable additivity, because we have had
+countable subadditivity of the outer measure, we only need to prove
+
+\[\mu^*\pr{\uinf[n]A_n}\ge \sinf[n]\mu^*\pr{A_n}\]
+
+To see this, we first focus on finite cases to employ the preceding
+result:
+
+\[\ba
+\mu^*\pr{\uinf[n]A_n} & \ge \mu^*\pr{\bigcup_{n = 1}^N A_n}\\
+& = \sum_{n = 1}^N \mu^*\pr{A_n}\overset{N\to\infty}{\longrightarrow}\sinf \mu^*\pr{A_n}
+\ea\]
+
+The second equality holds because each of \(A_n\) is a Borel set and we
+can then apply the previous proposition. Note that the limit here is
+valid itself just from our definition of infinite series.
+
+\textbf{Definition (Lebesgue Measure)} "The" Lebesgue measure on
+\(\pr{\R,\B\pr{\R}}\) is \(\mu:\B\pr{\R}\to \br{0,\infty}\) such that
+
+\[\mu\pr{B}:=\mu^*\pr{B},\forall B\in \B\pr{\R}\]
+
+\textbf{Remarks:} The actual Lebesgue measure is defined on a "slightly"
+bigger \(\s\)-algebra. There are some Lebesgue measurable sets that are
+not Borel sets; but that definition is enough to serve our purpose.
+
+\hypertarget{lebesgue-measurable-sets}{%
+\subsection{Lebesgue Measurable Sets}\label{lebesgue-measurable-sets}}
+
+As we will see in this subsection, outer measure is actually a measure
+on a somewhat larger class of sets called the Lebesgue measurable sets.
+The approach chosen here has the advantage of emphasizing that a
+Lebesgue measurable set differs from a Borel set by a set with outer
+measure \(0\). The attitude here is that sets with outer measure \(0\)
+should be considered small sets that do not matter much.
+
+\textbf{Definition (Lebesgue Measurable Set)} A set \(A\se \R\) is
+called \emph{Lebesgue measurable} if there exists a Borel set \(B\se A\)
+such that the outer measure
+
+\[\mu^*\pr{A\c B} = 0\]
+
+Intuitively, Lebesgue just added some sets that differ from Borel sets
+by a set with outer measure of \(0\) into the Borel sets and call them
+together the \emph{Lebesgue measurable} sets. Each Borel set is Lebesgue
+measurable because if \(A\se \R\) is a Borel set, then we can take
+\(B = A\) in the definition above.
+
+\emph{\textbf{Proposition (Different Definitions for Lebesgue
+Measurability)}} Suppose \(A\se \R\). Then all of the following
+statements are equivalent:
+
+\begin{itemize}
+\item
+  \(A\) is Lebesgue measurable.
+\item
+  \textbf{There exists a Borel set \(B\se A\) such that
+  \(\mu^*\pr{A\c B} = 0\).}
+\item
+  For each \(\ve>0\), there exists a \textbf{closed} set \(F\se A\) such
+  that
+
+  \[\mu^*\pr{A\c F}<\ve\]
+\item
+  There exists a (countable) sequence of closed sets \(F_1,F_2,\cdots\)
+  such that
+
+  \[\mu^*\pr{A\c \pr{\uinf F_k}} = 0\]
+\item
+  For each \(\ve>0\) there exists an \textbf{open} set \(G \supseteq A\)
+  such that
+
+  \[\mu^*\pr{G\c A}<\ve\]
+\item
+  There exists a (countable) sequence of closed sets \(G_1,G_2,\cdots\)
+  such that
+
+  \[\mu^*\pr{\pr{\iinf G_k}\c A} = 0\]
+\end{itemize}
+
+\textbf{Remarks:}
+
+\begin{itemize}
+\item
+  The fourth condition implies that every Borel set is almost a
+  countable union of closed sets. The last condition implies that every
+  Borel set is almost a countable intersection of open sets.
+\item
+  The reason why we have developed such list of definitions is that,
+  they would allow us to work on some more general settings (such as
+  beyond the \(\R\); e.g., the set of functions, vectors, etc.)
+\item
+  The infinite union of closed sets is not necessarily a closed set.
+  That is why we developed the second and the third definitions (instead
+  of regard them as being equivalent). For example,
+  \(\uinf[n]\br{\frac1n,1-\frac1n} = \pr{0,1}\).
+\item
+  Carethedory\textquotesingle s criterion: \(A\) is Lebesgue measurable
+  if and only if, for all \(E\se \R\), we have
+
+  \[\mu^*\pr{E} = \mu^*\pr{E\cap A}+\mu^*\pr{E^c\cap A}\]
+
+  The intuition is that, if \(A\) is Lebesgue measurable, it should
+  separate each set \(E\in \R\) well. Compared with the previous
+  definitions, this definition is even more general; that is, it imposes
+  on restriction on \(A\)\textquotesingle s being closed or open.
+\end{itemize}
+
+\emph{\textbf{Proposition (Outer Measure is a Measure on Lebesgue
+Measurable Sets)}} The collection \(\L\) of Lebesgue measurable sets is
+a \(\s\)-algebra on \(\R\). The outer measure is a measure on
+\(\pr{\R,\L\pr{\R}}\), which is called the Lebesgue measure.
+
+\emph{\textbf{Proof}} \(\L\) indeed contains both the Borel sets and
+every set with outer measure \(0\), which is a \(\s\)-algebra on \(\R\).
+To prove the countable additivity, suppose \(A_1,A_2,\cdots\) is a
+disjoint sequence of Lebesgue measurable sets. By the definition of
+Lebesgue measurable set, for each \(k\in \Z^+\) there exists a Borel set
+\(B_k\se A_k\) such that \(\mu^*\pr{A_k\c B_k} = 0\). Now
+
+\[\ba
+\mu^*\pr{\uinf A_k}\ge \mu^*\pr{\uinf B_k} = \sinf \mu^*\pr{B_k} = \sinf\mu^*\pr{A_k}
+\ea\]
+
+Note that the second line above holds because \(B_1,B_2,\cdots\) is a
+disjoint sequence of Borel sets and outer measure is a measure on Borel
+sets; the last line above holds because
+
+\[\ba
+B_k\se A_k& \too \mu^*\pr{B_k}\le \mu^*\pr{A_k}\\
+A_k = B_k\cup \pr{A_k\c B_k}& \too \mu^*\pr{A_k}\le \mu^*\pr{B_k}+\mu^*\pr{A_k\c B_k} = \mu^*\pr{B_k}
+\ea\too \mu^*\pr{A_k} = \mu^*\pr{B_k}\]
+
+The inequality above, combined with countable subadditivity of outer
+measure, implies that \(\mu^*\pr{\uinf A_k} = \sinf\mu^*\pr{A_k}\),
+completing the proof of the outer measure being a measure on
+\(\pr{\R,\B\pr{\R}}\).
+
+From now on, when we say "measure" we mean \(\mu^*:\B\pr{\R}\to \R\),
+and elements in \(\B\pr{\R}\) are called "measurable sets".
+
+\hypertarget{convergence-of-measurable-functions}{%
+\subsection{Convergence of Measurable
+Functions}\label{convergence-of-measurable-functions}}
+
+Littlewood\textquotesingle s 3 principles of measure theory:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Every measurable set is "nearly" a finite union of intervals.
+\item
+  (Luzin\textquotesingle s Theorem) Every measurable function is
+  "nearly" continuous.
+\item
+  (Egorov\textquotesingle s Theorem) Every convergent sequence of
+  functions is "nearly" uniformly convergent.
+\end{enumerate}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\textbf{Definition (Pointwise Convergence and Uniform Convergence)}
+Suppose \(X\) is a set, \(f_1,f_2,\cdots: X\to \R\) is a sequence of
+functions and \(f:X\to \R\) is a function.
+
+\begin{itemize}
+\item
+  Pointwise convergence: \(f_1,f_2,\cdots\) converges pointwise to \(f\)
+  on \(X\) if for both \(x\in X\) and \(\ve>0\), there exists
+  \(n\in \N\) such that \(\abs{f_k\pr{x}-f\pr{x}}<\ve\) for all
+  \(k\ge n\). (\(\lim_{k\to\infty} f_k\pr{x} - f\pr{x},\forall x\in X\))
+\item
+  Uniform convergence: \(f_1,f_2,\cdots\) converges uniformly to \(f\)
+  on \(X\) if for every \(\ve>0\), there exists \(n\in \N\) such that
+  \(\abs{f_k\pr{x}-f\pr{x}}<\ve\) for all \(k\ge n\) and for all
+  \(x\in X\).
+\end{itemize}
+
+\emph{\textbf{Theorem (Uniform Limit of Continuous Functions is
+Continuous)}} Suppose \(B\se \R\) and \(f_1,f_2,\cdots\) is a sequence
+of functions from \(B\) to \(\R\) that converges uniformly on \(B\) to a
+function \(f:B\to \R\). Suppose \(b\in B\) and \(f_k\) is continuous at
+\(b\) for each \(k\in \Z^+\). Then \(f\) is continuous at \(b\).
+
+\hypertarget{egorovs-theorem}{%
+\subsubsection{Egorov\textquotesingle s Theorem}\label{egorovs-theorem}}
+
+A sequence of functions that converges pointwise need not converge
+uniformly. However, the next result says that a pointwise convergent
+sequence of functions on a measure space with finite total measure
+almost converges uniformly, in the sense that it converges uniformly
+except on a set that can have arbitrarily small measure.
+
+\emph{\textbf{Egorov\textquotesingle s Theorem}} Suppose
+\(\pr{X,\S,\mu}\) is a measure space with \(\mu\pr{X}<\infty\). Suppose
+\(f_1,f_2,\cdots\) is a sequence of \(\S\)-measurable function from
+\(X\) to \(\R\) that converges pointwise to a function \(f:X\to \R\).
+Then for every \(\ve>0\), there exists an \(\S\)-measurable set \(E\)
+such that \(\mu\pr{X\c E}<\ve\) and \(f_1,f_2,\cdots\) converges
+uniformly to \(f\) on \(E\).
+
+\emph{\textbf{Proof}} Let \(\ve>0\). Fix \(n\in\N\). The fact that
+\(f_n\to f\) pointwise on \(X\) implies that
+
+\[X = \uinf[m]\bigcap_{k = m}^{\infty}\brace{x\in X: \abs{f_K\pr{x}-f\pr x}<\frac1n}\]
+
+For \(m\in\N\), let
+
+\[A_{m,n} = \bigcap_{k = m}^{\infty}\brace{x\in X: \abs{f_K\pr{x}-f\pr x}<\frac1n}\]
+
+Note that each \(A_{m,n}\in \S\) because each \(f_k-f\) is an
+\(\S\)-measurable function. Then
+\(A_{1.n}\se A_{2,n}\se A_{3,n}\se \cdots\) is an increasing sequence of
+sets. Hence, by continuity of measure, we have
+
+\[\lim_{m\to\infty}\mu\pr{A_{m,n}} = \lm{\uinf[m]A_{m,n}} = \lm{X}\]
+
+The equality means there exists \(m_n\in \N\) (an integer dependent of
+\(n\)) such that
+
+\[\lm{X}-\lm{A_{m_n,n}}<\frac{\ve}{2^n}\]
+
+Let
+
+\[E = \iinf[n]A_{m_n,n}\]
+
+Then
+
+\[\ba
+\lm{X\c E} & = \lm{X\c \pr{\iinf[n]A_{m_n,n}}}\\
+& = \lm{\uinf[n]\pr{X\c A_{m_n,n}}}\\
+& \le \sinf[n]\lm{X\c A_{m_n,n}} \\
+& \le \sinf[n]\frac{\ve}{2^n} = \ve
+\ea\]
+
+where the equality in the second line is by De Morgan\textquotesingle s
+law, and the inequality in the third line is by subadditivity of
+\(\mu\). (Note that countable additivity is only applicable to the case
+of disjoint sets, while subadditivity is true for all interested sets.)
+
+To complete the proof, we must verify that \(f_1,f_2,\cdots\) converges
+uniformly to \(f\) on \(E\). To do this, suppose \(\ve'>0\). Let
+\(n\in \Z^+\) be such that \(\frac1n<\ve'\). Then \(E\se A_{m_n,n}\),
+which implies that
+
+\[\abs{f_k\pr x-f\pr x}<\frac1n<\ve'\]
+
+for all \(k\ge m_n\) and all \(x\in E\). Hence \(f_1,f_2,\cdots\) does
+indeed converge uniformly to \(f\) on \(E\).
+
+\textbf{Remarks:}
+
+\begin{itemize}
+\item
+  Since \(f_1,f_2,\cdots\) are measurable functions, it follows that
+  \(A_{m_n,n}\)\textquotesingle s and \(E\) are measurable.
+\item
+  To prove a set is measurable, try to describe it as a union or
+  intersection of sets.
+\end{itemize}
+
+\hypertarget{luzins-theorem}{%
+\subsubsection{Luzin\textquotesingle s Theorem}\label{luzins-theorem}}
+
+Here we are going to introduce the concept of simple functions, and show
+that any function can be approximated by a sequence of simple functions
+that is pointwise and uniformly convergent. The results of simple
+function would be quite helpful for further works.
+
+\textbf{Definition (Characteristic/Indicator Function)} Let \(E\se X\)
+be any subset of \(X\). The characteristic function (or, indicator
+function) on \(E\), \(\chi_{E}:X\to \R\) is defined as
+
+\[\chi_E\pr{x} =\bc
+1 \if x\in E\\
+0\if x \in E
+\ec\]
+
+\textbf{Definition (Simple Function)} A function is called \emph{simple}
+if it takes on only finitely many values. Let \(\pr{X,\S}\) be a
+measurable space. An \(\S\)-measurable simple function \(f:X\to \R\) has
+the form
+
+\[f\pr{x} = c_1\chi_{E_1}+c_2\chi_{E_2}+\cdots+c_n\chi_{E_n}\]
+
+for \emph{distinct} nonzero \(c_1,c_2,\cdots,c_n\) and
+\(E_1,E_2,\cdots ,E_n\in \S\).
+
+\textbf{Remarks:} Step functions are in analog to simple functions.
+However, different from step functions that are defined on intervals,
+simple functions are defined on \emph{measurable sets}.
+
+\emph{\textbf{Theorem (Approximation by Simple Functions)}} Suppose
+\(\pr{X,\S}\) is a measurable space and \(f:\br{-\infty,\infty}\) is
+\(\S\)-measurable. Then there exists a sequence \(f_1,f_2,\cdots\) of
+functions from \(X\) to \(\R\) such that
+
+\begin{itemize}
+\item
+  each \(f_k\) is a simple \(\S\)-measurable function;
+\item
+  \(\abs{f_k\pr x}\le \abs{f_{k+1}\pr x}\le \abs{f\pr x}\) for all
+  \(k\in \N\) and all \(x\in X\);
+\item
+  \(\lim_{k\to\infty} f_k\pr x = f\pr x\) for every \(x\in X\);
+\item
+  \(f_1,f_2,\cdots\) converges \emph{uniformly} on \(X\) to \(f\) if
+  \(f\) is bounded.
+\end{itemize}
+
+\emph{\textbf{Proof}} Instead of directly defining \(f\) on its
+intervals (like the Riemann integrals do), we define \(f\) on the
+inverse image of evenly-cut intervals of the codomain of \(f\):
+
+For \(k>0\) and \(n\in \Z\), we divide \([n,n+1)\) into \(2^k\) equally
+sized half-open intervals, and define \(f\) as:
+
+\[f_k\pr{x} = \bc
+\frac{m}{2^k}&\if 0\le f\pr{x}\le k\text{ and }  f\pr{x}\in \left[\frac{m}{2^k},\frac{m+1}{2^k} \right)\\
+\frac{m+1}{2^k}&\if -k\le f\pr{x}\le 0\text{ and }  f\pr{x}\in \left[\frac{m}{2^k},\frac{m+1}{2^k} \right)\\
+k&\if f\pr{x}>k\\
+-k&\if f\pr{x}<-k
+\ec\]
+
+The first two conditions can easily be checked by construction of
+\(f_k\)\textquotesingle s. For any \(f\pr{x}\in\br{-k,k}\), we have
+\(\abs{f_k\pr x -f\pr x}\le \frac1{2^k}\), for every \(x\in X\) such
+that \(f\pr x\in\br{-k,k}\) and for every \(k\). This implies pointwise
+convergence that \(\lim_{k\to\infty}f_k\pr x = f\pr x\). Furthermore, if
+\(f\) is bounded, then we can remove the condition in the previous
+statement that \(f\pr x\in \br{-k,k}\), which means that
+\(\abs{f_k\pr x-f\pr x}\le \frac1{2^k}\) for all \(x\in X\) and all
+\(k\). Therefore, \(f_1,f_2,\cdots\) converges \emph{uniformly} on \(X\)
+to \(f\) if \(f\) is bounded.
+
+\textbf{Remarks:} Be careful about the interpretation of the conclusion
+of Luzin\textquotesingle s theorem that \(f|_B\) is a continuous
+function on \(B\). This is not the same as saying that \(f\) (on its
+original domain) is continuous at each point of \(B\). For example,
+\(\chi_{\Q}\) is discontinuous at every point of \(\R\). However,
+\(\chi_{\Q}|_{\R\c \Q}\) is a continuous function on \(\R\c \Q\)
+(because this function is identically \(0\) on its domain).
+
+\emph{\textbf{Luzin\textquotesingle s Theorem}} Suppose \(g:\R\to \R\)
+is a Borel measurable function. Then for every \(\ve>0\), there exists a
+closed set \(F\se \R\) such that \(\lm{\R\c F}<\ve\) and \(g|_{F}\) is a
+continuous function on \(F\) (\(g|_F:F\to \R\)).
+
+\emph{\textbf{Proof}} The proof goes with the following sketch:
+
+\begin{itemize}
+\item
+  Prove Luzin\textquotesingle s theorem for simple function \(g_k\), and
+  \(g_k\to g\). (pointwise convergence)
+\item
+  Use Egorov\textquotesingle s theorem to make the previous pointwise
+  convergence to uniform convergence.
+\item
+  Uniform limit of continuous functions is continuous.
+\end{itemize}
+
+First prove Luzin\textquotesingle s theorem for simple functions. Assume
+\(g\) to be a simple function that
+
+\[g = d_1\chi_{D_1}+\cdots d_n\chi_{D_n}\]
+
+for some \(d_1,d_2,\cdots,d_n\ne 0\) and some disjoint
+\(D_1,D_2,\cdots,D_n\se \R\).
+
+Let \(\ve>0\). For each \(k\), there exists a closed set \(F_k\se D_k\),
+and an open set \(G_k\supseteq D_k\) such that
+
+\[\lm{D_k\c F_k}\le\frac{\ve}{2n}\\
+\lm{G_k\c D_k}\le\frac{\ve}{2n}\]
+
+Because \(G_k\c F_k = \pr{G_k\c D_k}\cup \pr{D_k\c F_k}\), by
+subadditivity we have
+
+\[\lm{G_k\c F_k}\le \frac{\ve}{2n}+ \frac{\ve}{2n}= \frac{\ve}{n},\forall k\in \brace{1,2,\cdots,n}\]
+
+Note that simple function must be continuous. Let
+
+\[F = \pr{\bigcup_{k = 1}^nF_k}\cup \pr{\bigcap_{k = 1}^n\pr{\R\c G_k}}\]
+
+Because \(F_k\se D_k\), \(g\) is identically \(d_k\) on \(F_k\). Then
+\(g|_{F_k}\) is constant and then continuous for each
+\(k\in \brace{1,2,\cdots,n}\), and \(g|_{\R\c G_k}\) is \(0\) and then
+continuous for each \(k\). In conclusion, \(g|_F\) is continuous.
+
+By theorem of approximation by simple functions, there exists a sequence
+of simple functions \(g_1,g_2,\cdots:\R\to \R\) such that the sequence
+converges pointwise to \(g\). Let \(\ve>0\). By the first case above,
+for each \(k>0\), there exists a closed set \(C_k\se \R\) such that
+
+\begin{itemize}
+\item
+  \(\lm{\R\c C_k}\le \frac{\ve}{2^{k+1}}\).
+\item
+  \(g_k|_{C_k}\) is continuous.
+\end{itemize}
+
+Let \(C = \iinf C_k\). Then \(C\) is a closed set and \(C\se C_k\). From
+this we can see that \(g_k|_C\) is continuous for every \(k\). By De
+Morgan\textquotesingle s law:
+
+\[\lm{\R\c C}\le \sinf\lm{\R\c C_k}\le \sinf \frac{\ve}{2^{k+1}} = \ve\]
+
+For each \(m\in \Z\), consider \(\pr{m,m+1}\). The sequence
+\(g_1|_{\pr{m,m+1}},g_2|_{\pr{m,m+1}},\cdots\) converges pointwise to
+\(g|_{\pr{m,m+1}}\). This is obviously true because
+\(g_k\)\textquotesingle s converge pointwise to \(g\) on \(\R\), so is
+the case when restricted to \(\pr{m,m+1}\). By Egorov\textquotesingle s
+theorem, there exists a Borel set \(E_m\) such that
+
+\[\lm{\pr{m,m+1}\c E_n}\le \frac{\ve}{2^{\abs{m}+3}}\]
+
+and such that the sequence \(g_1,g_2,\cdots\) converges uniformly to
+\(g\) on \(E_m\). Then we have \(g_1,g_2,\cdots\) converges uniformly to
+\(g\) on \(C\cap E_m\). Because each \(g_k\) is continuous,
+\(g|_{C\cap E_m}\) is continuous. Define
+
+\[D = \bigcup_{m\in \Z}\pr{C\cap E_m}\]
+
+Then \(g|_D\) is continuous. The last step is to show that
+
+\[\lm{\R\c D}\le \cdots \le \ve\]
+
+There exists a closed set \(F\se D\) such that
+
+\[\lm{D\c F}\le \ve-\lm{\R\c D}\]
+
+Then
+
+\[\lm{\R\c F}\le \lm{D\c F}+\lm{\R\c D}\le \ve\]
+
+\(g|_F\) is continuous because \(g|_D\) is continuous.
+
+\textbf{Remarks}
+
+\begin{itemize}
+\item
+  Every time you come across the case of \(A\se B\), you may not write
+  \(\lm{B\c A} = \lm{A}-\lm{B}\).
+\item
+  Any intersection of closed set, regardless of finitely or infinitely
+  many, must be closed. However this is not true for union operation.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+Luzin\textquotesingle s theorem also has a second version.
+
+\emph{\textbf{Theorem (Continuous Extensions of Continuous Functions)}}
+Every continuous function on a closed subset of \(\R\) can be extended
+to a continuous function on all of \(\R\). More precisely, if
+\(F\se \R\) is closed and \(g:F\to \R\) is continuous, then there exists
+a continuous function \(h:\R\to \R\) such that \(h|_F = g\).
+
+\emph{\textbf{Luzin\textquotesingle s Theorem (Second Version)}} Suppose
+\(E\se \R\) and \(g:E\to \R\) is a Borel measurable function. Then for
+every \(\ve>0\), there exists a closed set \(F\se E\) and a continuous
+function \(h:\R\to \R\) such that \(\om{E\c F}<\ve\) and
+\(h|_F = g|_F\).
+
+\emph{\textbf{Proof}} Suppose \(\ve>0\). Extend \(g\) to a function
+\(\tilde g:\R\to \R\) by defining
+
+\[\tilde g\pr{x} = \bc
+g\pr{x},\if x\in E\\
+0,\if x\in \R\c E
+\ec\]
+
+By the first version of Luzin\textquotesingle s theorem, there is a
+closed set \(C\se \R\) such that \(\om{\R\c C}<\ve\) and \(\tilde g|_C\)
+is a continuous function on \(C\). There exists a closed set
+\(F\se \pr{C\cap E}\) such that
+
+\[\om{\pr{\C\cap E}\c F}<\ve-\om{\R\c C}\]
+
+Thus,
+
+\[\om{E\c F}\le \om{\pr{\pr{C\cap E}\c F}\cup \pr{\R\c C}}\le \om{\pr{C\c E}\c F}+\om{\R\c C}<\ve\]
+
+Now \(\tilde g|_F\) is a continuous function on \(F\). Also,
+\(\tilde g|_F = g|_F\) (because \(F\se E\)). Use the theorem of
+continuous extensions of continuous functions to extend \(\tilde g|_F\)
+to a continuous function \(h:\R\to \R\).
+
+\end{document}

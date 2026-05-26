@@ -1,0 +1,399 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\newcommand{\ba}{\begin{aligned}}
+\newcommand{\ea}{\end{aligned}}
+\newcommand{\bm}{\begin{bmatrix}}
+\newcommand{\em}{\end{bmatrix}}
+\newcommand{\bc}{\begin{cases}}
+\newcommand{\ec}{\end{cases}}
+\newcommand{\empty}{\varnothing}
+\newcommand{\se}{\subseteq}
+\newcommand{\ve}{\varepsilon}
+\newcommand{\s}{\sigma}
+\newcommand{\0}{\textbf 0}
+\newcommand{\1}{\textbf 1}
+\newcommand{\I}{\textbf I}
+\newcommand{\X}{\textbf X}
+\newcommand{\x}{\textbf x}
+\newcommand{\y}{\textbf y}
+\newcommand{\b}{\textbf b}
+\newcommand{\w}{\textbf w}
+\newcommand{\P}{\mathcal P}
+\newcommand{\S}{\mathcal S}
+\newcommand{\T}{\mathcal T}
+\newcommand{\A}{\mathcal A}
+\newcommand{\B}{\mathcal B}
+\newcommand{\C}{\mathcal C}
+\newcommand{\L}{\mathcal L}
+\newcommand{\c}{\backslash}
+\newcommand{\if}{\text{ if }}
+\newcommand{\uinf}[1][k]{\bigcup_{{#1} = 1}^{\infty}}
+\newcommand{\sinf}[1][k]{\sum_{{#1} = 1}^{\infty}}
+\newcommand{\iinf}[1][k]{\bigcap_{{#1} = 1}^{\infty}}
+\newcommand{\plim}{\text{plim }}
+\newcommand{\var}[2][]{\text{Var}_{#1}\br{#2}}
+\newcommand{\e}[2][]{\text{E}_{#1}\br{#2}}
+\newcommand{\cov}[3][]{\text{Cov}_{#1}\br{#2,#3}}
+\newcommand{\estvar}[1]{\text{Est.Var}\br{#1}}
+\newcommand{\estcov}[2]{\text{Est.Cov}\br{#1,#2}}
+\newcommand{\asyvar}[1]{\text{Asy.Var}\br{#1}}
+\newcommand{\asycov}[2]{\text{Asy.Cov}\br{#1,#2}}
+\newcommand{\estasyvar}[1]{\text{Est.Asy.Var}\br{#1}}
+\newcommand{\too}{\Longrightarrow}
+\newcommand{\sq}{\sqrt}
+\newcommand{\dev}[2][i]{({#2}_{#1}-\bar{#2})}
+\newcommand{\inv}[1]{{#1}^{-1}}
+\newcommand{\add}[1][i]{\sum_{#1 = 1}^n}
+\newcommand{\ply}[1][i]{\prod_{#1 = 1}^n}
+\newcommand{\br}[1]{\left[#1\right]}
+\newcommand{\pr}[1]{\left(#1\right)}
+\newcommand{\brace}[1]{\left\{#1\right\}}
+\newcommand{\norm}[2][1]{\|{#2}\|_{#1}}
+\newcommand{\seq}[1][x]{{#1}_1,{#1}_2,\cdots,{#1}_{n}}
+\newcommand{\seqadd}[1][x]{{#1}_1+{#1}_2+\cdots+{#1}_{n}}
+\newcommand{\dto}{\overset{\text d}{\to}}
+\newcommand{\asim}{\overset{\text a}{\sim}}
+\newcommand{\st}{\text{ s.t. }}
+\newcommand{\om}[1]{\mu^*\pr{#1}}
+\newcommand{\lm}[1]{\mu\pr{#1}}
+\newcommand{\d}{\text{ d}}
+\newcommand{\dm}{\text{ d}\mu}
+\newcommand{\dl}{\text{ d}\lambda}
+\newcommand{\dn}{\text{ d}\nu}
+\newcommand{\mn}{\pr{\mu\times \nu}}
+
+\hypertarget{products-of--ux3c3--algebras}{%
+\section{\texorpdfstring{Products of
+\(\s\)-Algebras}{Products of \textbackslash s-Algebras}}\label{products-of--ux3c3--algebras}}
+
+\textbf{Definition (Rectangle)} Suppose \(X\) and \(Y\) are sets. A
+\emph{rectangle} in \(X\times Y = \brace{\pr{x,y}:x\in X,y\in Y}\) is a
+set of the form \(A\times B\), where \(A\se X\) and \(B\se Y\).
+
+\textbf{Definition} Suppose \(\pr{X,\S}\) and \(\pr{Y,\T}\) are
+measurable spaces. Then
+
+\begin{itemize}
+\item
+  The product (\(\s\)-algebra) \(S\otimes T\) is defined to be the
+  smallest \(\s\)-algebra on \(X\times Y\) that contains
+  \(\brace{A\times B: A\in \S, B\in \T}\).
+\item
+  A measurable rectangle in \(\S\otimes \T\) is a set of \(A\times B\)
+  where \(A\in \S\) and \(B\in \T\).
+\end{itemize}
+
+\[\ba
+\S\times \T & = \brace{\pr{A,B}:A\in \S, B\in \T}\\
+\S\otimes \T & \supseteq \brace{A\times B:A\in \S,B\in \T}
+\ea\]
+
+\textbf{Definition (Cross Section)} Suppose \(X\) and \(Y\) are sets and
+\(E\se X\times Y\). Then for \(a\in X\) and \(b\in Y\), the cross
+sections \(\br{E}_a\) and \(\br{E}^b\) are defined by
+
+\[\ba
+\br{E}_a & := \brace{y\in Y:\pr{a,y}\in E}\se Y\\
+\br{E}^b & := \brace{x\in X:\pr{x,b}\in E}\se X
+\ea\]
+
+\emph{\textbf{Proposition (Cross Sections Preserve Measurability)}}
+Suppose \(\pr{X,\S}\) and \(\pr{Y,\T}\) are measurable spaces. If
+\(E\in \S\otimes \T\), then \(\br{E}_a \in \T\) for all \(a\in X\) and
+\(\br{E}_b\in \S\) for all \(b\in Y\).
+
+\emph{\textbf{Proof}} Let \(\mathcal E\) be the collection of subsets of
+\(X\times Y\) for which the conclusion of the result holds. Note that
+\(\mathcal E\) contains all measurable rectangles:
+\(A\times B: A\in \S,B\in \T\).
+
+Prove that \(\mathcal E\) is indeed a \(\s\)-algebra:
+
+\begin{itemize}
+\item
+  \(\empty\times \empty\in \mathcal E\)
+\item
+  (Closed under complementation) If \(E\in \mathcal E\), then
+  \(\pr{x,y}\c E\in \mathcal E\).
+\item
+  (Closed under countable union) If \(E_1,E_2,\cdots\in \S\), then
+
+  \[\br{E_1\cup E_2\cup \cdots }_a = \br{E_1}_a\cup \br{E_2}_a\cup\cdots\]
+\end{itemize}
+
+\textbf{Definition ()} Suppose \(X\) and \(Y\) are sets and
+\(f:X\times Y\to \R\). For \(a\in X\) and \(b\in Y\), the cross section
+functions \(\br{f}_a:Y\to \R, \br{f}^b:X\to \R\) are defined by
+\(\br{f}_a\pr{y} : = f\pr{a,y}\) for \(y\in Y\), and
+\(\br{f}^b\pr{x}:=f\pr{x,b}\) for \(x\in X\).
+
+\emph{\textbf{Proposition}} \(f\) is a \(\S\otimes \T\)-measurable
+function, then \(\br{f}_a\) is a \(\T\)-measurable function and
+\(\br{f}^b\) is an \(\S\)-measurable function.
+
+\hypertarget{products-of-measures}{%
+\section{Products of Measures}\label{products-of-measures}}
+
+\textbf{Definition} A measure \(\mu\) on a measurable space
+\(\pr{X,\S}\) is finite if \(\lm{X}<\infty\). A measure \(\mu\) is
+called \(\s\)-finite if the whole space can be written as a countable
+union of sets with finite measure.
+
+\textbf{Examples}
+
+\begin{itemize}
+\item
+  Lebesgue measure on \(\br{0,1}\) is finite.
+\item
+  Lebesgue measure on \(\R\) is \(\s\)-finite, because
+  \(\R = \bigcup_{n = -\infty}^{\infty}\br{n,n+1}\).
+\item
+  Counting measure on \(\R\) is not \(\s\)-finite.
+\end{itemize}
+
+\emph{\textbf{Proposition}} Suppose \(\pr{X,\S,\mu}\) and
+\(\pr{Y,\T,\nu}\) are \(\s\)-finite measure spaces. If
+\(E\in \S\otimes \T\), then
+
+\begin{itemize}
+\item
+  \(x\mapsto \nu\pr{\br{E}_x}\) is an \(\S\)-measurable function on
+  \(X\).
+\item
+  \(y\mapsto \lm{\br{E}^y}\) is a \(\T\)-measurable function on \(Y\).
+\end{itemize}
+
+\textbf{Definition} Suppose \(\pr{X,\S,\mu}\) is a measurable space.
+\(g:X\to\br{-\infty,\infty}\). \(\int g\pr{x}\dm\pr{x}\) means
+\(\int g\dm\), where \(\dm \pr{x}\) indicates that variables other than
+\(x\) should be treated as constants.
+
+\textbf{Definition (Iterated Integrals)} Suppose \(\pr{X,\S,\mu}\) and
+\(\pr{Y,\T,\nu}\) are \(\s\)-finite measure spaces.
+\(f:X\times Y\to \R\).
+
+\[\int_X\int_Yf\pr{x,y}\d \nu\pr{y}\dm\pr{x} = \int_X\pr{\int_Yf\pr{x,y}\d\nu\pr{y}}\dm\pr{x}\]
+
+\textbf{Example} If \(\lambda\) is the Lebesgue measure on \(\R\), then
+
+\[\int_{\br{0,4}}\int_{\br{0,4}}\pr{x^2+y}\dl\pr{y}\dl\pr{x}  = \int_{\br{0,4}}\pr{4x^2+8}\dl\pr{x} = \frac{352}3\]
+
+\textbf{Definition} Suppose \(\pr{X,\S,\mu}\) and \(\pr{Y,\T,\nu}\) are
+measure spaces. For \(E\in \S\otimes \T\), define
+\(\pr{\mu\times \nu}\pr{E}\) by
+
+\[\pr{\mu\times \nu}\pr{E}:= \int_X\int_Y\chi_E\pr{x,y}\d \nu\pr{y}\dl\pr{x}\]
+
+\emph{\textbf{Proposition}} \(\mu\times \nu\) is a measure on
+\(\pr{X\times Y,\S\otimes \T}\).
+
+\emph{\textbf{Proof}} It is trivial to see that
+\(\pr{\mu\times \nu}\pr{\empty} = 0\).
+
+\(\pr{\mu\times \nu}\) is countably additive: Suppose
+\(E_k\)\textquotesingle s are disjoint sets in \(\S\otimes \T\),
+
+\[\ba
+\pr{\mu\times \nu}\pr{\uinf E_k} & = \int_X\int_Y\chi_{\uinf E_k}\pr{x,y}\d \nu\pr{y}\dl\pr{x}\\
+& = \int_X \nu\pr{\br{\uinf E_k}_x}\dm\pr{x}\\
+& = \int_X \nu\pr{\uinf \br{E_k}_x}\dm\pr{x}\\
+& = \int_X\sinf v\pr{\br{E_k}_x}\dm\pr{x}\\
+& = \sinf \int_X v\pr{\br{E_k}_x}\dm\pr{x}\\
+& = \sinf \pr{\mu\times \nu}\pr{E_k}
+\ea\]
+
+Note that you may change the order of infinite series and integral by
+monotone convergence theorem.
+
+\hypertarget{order-of-integration}{%
+\section{Order of Integration}\label{order-of-integration}}
+
+\emph{\textbf{Tonellis\textquotesingle s Theorem}} Suppose
+\(\pr{X,\S,\mu}\) and \(\pr{Y,\T,\nu}\) are \(\s\)-finite measure
+spaces. Suppose \(f:X\times Y\to \br{0,\infty}\) is
+\(\S\otimes \T\)-measurable. Then
+
+\begin{itemize}
+\item
+  \(x\mapsto \int_Yf\pr{x,y}\d\nu\pr{y}\) is an \(\S\)-measurable
+  function on \(X\).
+\item
+  \(y\mapsto \int_Xf\pr{x,y}\dm\pr{x}\) is a \(\T\)-measurable function
+  on \(Y\).
+\item
+  \(\int_{X\times Y}f\pr{x,y}\d\pr{\mu\times \nu} = \int_X\pr{\int_Yf\pr{x,y}\dn\pr{y}}\dm\pr{x} = \int_Y\pr{\int_X f\pr{x,y}\dm\pr{x}}\dn\pr{y}\).
+\end{itemize}
+
+\emph{\textbf{Proof}} Essentially, we only need to check if the theorem
+is true for \(f = \chi_{A\times B}\pr{x,y}\).
+
+\[\ba
+\int_{X\times Y}\chi_{A\times B}\d \mn & = \int_X\pr{\int_Y\chi_{A\times B} \dn\pr{y}}\dm\pr{x} \\
+& = \int_X\nu\pr{B}\dm\pr{x} \\
+& = \nu\pr{B}\lm{A}\\
+& = \mn\pr{A\times B}
+\ea\]
+
+note that the equality in the last line is simply by definition of
+\(\mn\).
+
+\textbf{Counter Examples}
+
+\begin{itemize}
+\item
+  Without \(\s\)-finite:
+
+  \begin{itemize}
+  \item
+    \(\pr{\br{0,1},\B.\lambda}\): Lebesgue measure space on
+    \(\br{0,1}\).
+  \item
+    \(\pr{\br{0,1},\B,\mu}\): Counting measure space on \(\br{0,1}\).
+  \item
+    Let \(D\) be the diagonal of \(\br{0,1}\times \br{0,1}\),
+    \(D = \brace{\pr{x,x}:x\in\br{0,1}}\).
+
+    \[\ba
+    \int_{\br{0,1}}\int_{\br{0,1}}\chi_D\dl\dm & = \int_{\br{0,1}}0\dm = 0\\
+    \int_{\br{0,1}}\int_{\br{0,1}}\chi_D\dm\dl & = \int_{\br{0,1}}1\dl = 1
+    \ea\]
+  \end{itemize}
+\item
+  Without non-negativity:
+
+  \[\int_{\br{0,1}}\int_{\br{0,1}}\frac{x^2-y^2}{\pr{x^2+y^2}^2}\d x\d y\ne \int_{\br{0,1}}\int_{\br{0,1}}\frac{x^2-y^2}{\pr{x^2+y^2}^2}\d y\d x\]
+\end{itemize}
+
+\emph{\textbf{Fubini\textquotesingle s Theorem}} Suppose
+\(\pr{X,\S,\mu}\) and \(\pr{Y,\T,\nu}\) are \(\s\)-finite measure
+spaces. Suppose \(f:X\times Y\to \br{-\infty,\infty}\) is
+\(\S\otimes \T\)-measurable, and
+\(\int_{X\times Y}\abs{f}\d \mn<\infty\). Then
+
+\begin{itemize}
+\item
+  \(\int_Y\abs{f\pr{x,y}}\dn\pr{y}<\infty\) for almost every \(x\in X\),
+  and \(\int_X\abs{f\pr{x,y}}\dm\pr{y}<\infty\) for almost every
+  \(y\in Y\).
+\item
+  \(x\mapsto \int_Yf\pr{x,y}\d\nu\pr{y}\) is an \(\S\)-measurable
+  function on \(X\). \(y\mapsto \int_Xf\pr{x,y}\dm\pr{x}\) is a
+  \(\T\)-measurable function on \(Y\).
+\item
+  \(\int_{X\times Y}f\pr{x,y}\d\pr{\mu\times \nu} = \int_X\pr{\int_Yf\pr{x,y}\dn\pr{y}}\dm\pr{x} = \int_Y\pr{\int_X f\pr{x,y}\dm\pr{x}}\dn\pr{y}\).
+\end{itemize}
+
+\emph{\textbf{Proof}} Apply Tonellis\textquotesingle s theorem to
+\(f^+\), \(f^-\) and \(\abs{f}<\infty\) makes sure that both
+\(\int f^+\) and \(\int f^-\) are finite.
+
+\textbf{Definition ()} Suppose \(X\) is a set and
+\(f:X\to\br{0,\infty}\) is a function. The region under the graph \(f\),
+denoted as \(U_f\), is defined by
+
+\[U_f = \brace{\pr{x,t}\in \pr{X,\pr{0,\infty}}:0<t<f\pr{x}}\]
+
+\emph{\textbf{Proposition}} Suppose \(\pr{X,\S,\mu}\) is a \(\s\)-finite
+measure space, and \(f:X\to\br{0,\infty}\) is an \(\S\)-measurable
+function. Consider \(\pr{\pr{0,\infty},\B,\lambda}\) (where \(\lambda\)
+is the Lebesgue measure). Then
+
+\[U_f\in \S\times \B\]
+
+and
+
+\[\ba
+\mn\pr{U_f} & = \int_X f\dm\\
+& = \int_{\pr{0,\infty}} \lm{\brace{x\in X:0<t<f\pr{x}}}\dl\pr{t}
+\ea\]
+
+\emph{\textbf{Proof}} Apply Tonellis\textquotesingle{} theorem to
+\(\chi_{U_f}\pr{x,t}\) to finish the proof.
+
+\hypertarget{lebesgue-integration-on--r-n}{%
+\section{\texorpdfstring{Lebesgue Integration on
+\(\R^n\)}{Lebesgue Integration on \textbackslash R\^{}n}}\label{lebesgue-integration-on--r-n}}
+
+Consider the \(n\)-dimensional space
+
+\[\R^n = \brace{\pr{x_1,x_2,\cdots,x_n}:x_1,x_2,\cdots,x_n\in \R}\]
+
+Pick \emph{any} norm \(\norm[2]{\cdot}\) on \(\R^n\). We can define open
+balls:
+
+\[B\pr{x,\delta}:=\brace{y\in \R^n:\norm[2]{x-y}<\delta}\]
+
+\textbf{Definition} The Borel \(\s\)-algebra \(\B_n\) of \(\R^n\) is the
+smallest \(\s\)-algebra that contains all open balls.
+
+\emph{\textbf{Proposition}} We have
+
+\[\B_m\otimes \B_n = \B_{m+n}\]
+
+Relate this result to \(\R^m\times \R^n =\R^{m+n}\).
+
+\textbf{Definition} The Lebesgue measure on \(\R^n\), \(\lambda_n\) is
+defined inductively:
+
+\[\lambda_n:=\lambda_{n-1}\times \lambda_1\]
+
+where \(\lambda_1\) is the Lebesgue measure on \(\pr{\R,\B_1}\).
+
+\[\lambda_{m+n} = \lambda_m\times \lambda_n\]
+
+\end{document}

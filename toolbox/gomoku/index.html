@@ -342,7 +342,11 @@ permalink: /toolbox/gomoku/
     } else if (state.aiThinking) {
       turnEl.textContent = '🤖 AI 思考中…';
     } else {
-      turnEl.textContent = state.turn === BLACK ? '⚫ 黑方下子' : '⚪ 白方下子';
+      let label = state.turn === BLACK ? '⚫ 黑方下子' : '⚪ 白方下子';
+      if (gmIsOnline && gmMyColor !== null) {
+        label += (state.turn === gmMyColor ? '（你的回合）' : '（等对手）');
+      }
+      turnEl.textContent = label;
     }
     tallyB.textContent = state.tally.black;
     tallyW.textContent = state.tally.white;
@@ -437,9 +441,30 @@ permalink: /toolbox/gomoku/
     }
   }
 
-  function place(r, c, who) {
+  function place(r, c, who, opts) {
+    opts = opts || {};
     state.board[r][c] = who;
     state.history.push({ r, c, who });
+
+    // Online relay: broadcast local move BEFORE end-of-game flag flips (incl. winning move).
+    if (gmIsOnline && gmRoomToken && !opts.fromRemote && !gmRoomGameOver) {
+      gmRoomApi('POST', 'move', { code: gmRoomCode, token: gmRoomToken, move: { r, c, who } }).then(resp => {
+        if (resp && resp.ok) {
+          gmMovesApplied++;
+        } else if (resp && resp.reason === 'not_your_turn') {
+          // Out of sync — rollback the local placement
+          state.board[r][c] = EMPTY;
+          state.history.pop();
+          state.turn = who;
+          state.over = false;
+          state.winLine = null;
+          overlay.classList.remove('show');
+          draw();
+          updateStatus();
+        }
+      });
+    }
+
     const win = checkWin(r, c, who);
     if (win) {
       state.over = true;
@@ -457,6 +482,7 @@ permalink: /toolbox/gomoku/
         gmLastResult = (who === human) ? 'win' : 'lose';
         if (gmSettleBtn) gmSettleBtn.setEnabled(true);
       }
+      gmRoomGameOver = true;
     } else if (state.history.length === N * N) {
       state.over = true;
       ovTitle.textContent = '— 平局 —';
@@ -466,6 +492,7 @@ permalink: /toolbox/gomoku/
         gmLastResult = 'draw';
         if (gmSettleBtn) gmSettleBtn.setEnabled(true);
       }
+      gmRoomGameOver = true;
     } else {
       state.turn = who === BLACK ? WHITE : BLACK;
     }
@@ -641,6 +668,8 @@ permalink: /toolbox/gomoku/
     if (state.over || state.aiThinking || state.paused) return;
     const ai = aiSide();
     if (ai !== null && state.turn === ai) return;
+    // In online PvP, only let the player place on their own color's turn
+    if (gmIsOnline && gmMyColor !== null && state.turn !== gmMyColor) return;
     const rect = canvas.getBoundingClientRect();
     const cs = canvas.width / N;
     const off = cs / 2;
@@ -651,7 +680,8 @@ permalink: /toolbox/gomoku/
     if (r < 0 || r >= N || c < 0 || c >= N) return;
     if (state.board[r][c] !== EMPTY) return;
     place(r, c, state.turn);
-    if (!state.over && aiSide() === state.turn) {
+    // Don't auto-trigger AI in online PvP
+    if (!gmIsOnline && !state.over && aiSide() === state.turn) {
       setTimeout(aiMove, 100);
     }
   });
@@ -969,6 +999,9 @@ permalink: /toolbox/gomoku/
   const BOARD_API = 'https://zircon-urge.fly.dev/api/board';
   let gmRoomToken = null, gmRoomPlayerId = null, gmRoomCode = null, gmRoomHost = false;
   let gmRoomStatePoller = null, gmIsOnline = false;
+  let gmMyColor = null;       // BLACK | WHITE — assigned by seat at game start
+  let gmMovesApplied = 0;     // # of room.moves entries already replayed locally
+  let gmRoomGameOver = false;
   const GM_MIN_PLAYERS = 2;
 
   function gmRoomApi(method, action, body) {
@@ -1096,6 +1129,8 @@ permalink: /toolbox/gomoku/
       await gmRoomApi('POST', 'leave', { code: gmRoomCode, token: gmRoomToken });
     }
     gmRoomToken = null; gmRoomPlayerId = null; gmRoomCode = null; gmRoomHost = false;
+    gmMyColor = null; gmMovesApplied = 0; gmRoomGameOver = false;
+    if (undoBtn) undoBtn.style.display = '';
     document.getElementById('gmPgoRoomCodeInput').parentElement.style.display = '';
     document.getElementById('gmPgoRoomLobby').style.display = 'none';
     document.getElementById('gmPgoRoomPlayers').innerHTML = '';
@@ -1105,6 +1140,7 @@ permalink: /toolbox/gomoku/
   function gmStartPolling() {
     if (gmRoomStatePoller) clearTimeout(gmRoomStatePoller);
     let since = 0;
+    let gameStarted = false;
     async function poll() {
       if (!gmRoomToken) return;
       const r = await gmRoomApi('GET', `state&code=${gmRoomCode}&token=${gmRoomToken}&since=${since}`);
@@ -1112,9 +1148,35 @@ permalink: /toolbox/gomoku/
       if (r.room) {
         since = r.version;
         if (r.room.state === 'playing') {
-          gmPgoOverlay.classList.remove('open');
-          state.mode = 'pvp'; persist();
-          newGame(); if (gmSave) gmSave.start();
+          if (!gameStarted) {
+            // First seat assignment: 'first' = BLACK (五子棋黑方先手), 'second' = WHITE
+            const me = (r.room.players || []).find(p => p.id === gmRoomPlayerId);
+            gmMyColor = (me && me.seat === 'first') ? BLACK : WHITE;
+            gmPgoOverlay.classList.remove('open');
+            state.mode = 'pvp'; persist();
+            newGame();
+            gmMovesApplied = 0;
+            gmRoomGameOver = false;
+            // Hide undo button — online PvP can't undo
+            if (undoBtn) undoBtn.style.display = 'none';
+            if (gmSave) gmSave.start();
+            updateStatus();
+            gameStarted = true;
+          }
+          // Replay any new opponent moves
+          const moves = r.room.moves || [];
+          for (let i = gmMovesApplied; i < moves.length; i++) {
+            const entry = moves[i];
+            if (entry.playerId === gmRoomPlayerId && i < gmMovesApplied) continue;
+            try {
+              const m = entry.move;
+              if (m && typeof m.r === 'number' && typeof m.c === 'number' && state.board[m.r][m.c] === EMPTY) {
+                place(m.r, m.c, m.who, { fromRemote: true });
+              }
+            } catch (e) { /* don't crash poll loop */ }
+          }
+          gmMovesApplied = moves.length;
+          gmRoomStatePoller = setTimeout(poll, 400);
           return;
         }
         // Check if current player was removed
@@ -1143,8 +1205,8 @@ permalink: /toolbox/gomoku/
     }).catch(() => {});
   });
   document.getElementById('gmPgoRoomStartBtn').addEventListener('click', async () => {
-    const r = await gmRoomApi('POST', 'start', { code: gmRoomCode, token: gmRoomToken });
-    if (r.ok) { gmPgoOverlay.classList.remove('open'); state.mode = 'pvp'; persist(); newGame(); if (gmSave) gmSave.start(); }
+    // Don't init game here — let gmStartPolling pick up 'playing' state so host/guest take the same code path
+    await gmRoomApi('POST', 'start', { code: gmRoomCode, token: gmRoomToken });
   });
 
   // URL room param → auto-join

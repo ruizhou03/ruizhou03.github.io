@@ -1,0 +1,401 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\newcommand{\ba}{\begin{aligned}}
+\newcommand{\ea}{\end{aligned}}
+\newcommand{\bm}{\begin{bmatrix}}
+\newcommand{\em}{\end{bmatrix}}
+\newcommand{\bc}{\begin{cases}}
+\newcommand{\ec}{\end{cases}}
+\newcommand{\empty}{\varnothing}
+\newcommand{\se}{\subseteq}
+\newcommand{\ve}{\varepsilon}
+\newcommand{\s}{\sigma}
+\newcommand{\0}{\textbf 0}
+\newcommand{\1}{\textbf 1}
+\newcommand{\I}{\textbf I}
+\newcommand{\X}{\textbf X}
+\newcommand{\x}{\textbf x}
+\newcommand{\y}{\textbf y}
+\newcommand{\b}{\textbf b}
+\newcommand{\w}{\textbf w}
+\newcommand{\P}{\mathcal P}
+\newcommand{\S}{\mathcal S}
+\newcommand{\T}{\mathcal T}
+\newcommand{\A}{\mathcal A}
+\newcommand{\B}{\mathcal B}
+\newcommand{\C}{\mathcal C}
+\newcommand{\L}{\mathcal L}
+\newcommand{\c}{\backslash}
+\newcommand{\if}{\text{ if }}
+\newcommand{\uinf}[1][k]{\bigcup_{{#1} = 1}^{\infty}}
+\newcommand{\sinf}[1][k]{\sum_{{#1} = 1}^{\infty}}
+\newcommand{\iinf}[1][k]{\bigcap_{{#1} = 1}^{\infty}}
+\newcommand{\plim}{\text{plim }}
+\newcommand{\var}[2][]{\text{Var}_{#1}\br{#2}}
+\newcommand{\e}[2][]{\text{E}_{#1}\br{#2}}
+\newcommand{\cov}[3][]{\text{Cov}_{#1}\br{#2,#3}}
+\newcommand{\estvar}[1]{\text{Est.Var}\br{#1}}
+\newcommand{\estcov}[2]{\text{Est.Cov}\br{#1,#2}}
+\newcommand{\asyvar}[1]{\text{Asy.Var}\br{#1}}
+\newcommand{\asycov}[2]{\text{Asy.Cov}\br{#1,#2}}
+\newcommand{\estasyvar}[1]{\text{Est.Asy.Var}\br{#1}}
+\newcommand{\too}{\Longrightarrow}
+\newcommand{\sq}{\sqrt}
+\newcommand{\dev}[2][i]{({#2}_{#1}-\bar{#2})}
+\newcommand{\inv}[1]{{#1}^{-1}}
+\newcommand{\add}[1][i]{\sum_{#1 = 1}^n}
+\newcommand{\ply}[1][i]{\prod_{#1 = 1}^n}
+\newcommand{\br}[1]{\left[#1\right]}
+\newcommand{\pr}[1]{\left(#1\right)}
+\newcommand{\brace}[1]{\left\{#1\right\}}
+\newcommand{\norm}[2][1]{\|{#2}\|_{#1}}
+\newcommand{\seq}[1][x]{{#1}_1,{#1}_2,\cdots,{#1}_{n}}
+\newcommand{\seqadd}[1][x]{{#1}_1+{#1}_2+\cdots+{#1}_{n}}
+\newcommand{\dto}{\overset{\text d}{\to}}
+\newcommand{\asim}{\overset{\text a}{\sim}}
+\newcommand{\st}{\text{ s.t. }}
+\newcommand{\om}[1]{\mu^*\pr{#1}}
+\newcommand{\lm}[1]{\mu\pr{#1}}
+\newcommand{\d}{\text{ d}}
+\newcommand{\dm}{\text{ d}\mu}
+\newcommand{\dl}{\text{ d}\lambda}
+
+\hypertarget{differentiation}{%
+\section{Differentiation}\label{differentiation}}
+
+\hypertarget{hardy-littlewood-maximal-function}{%
+\subsection{Hardy-Littlewood Maximal
+Function}\label{hardy-littlewood-maximal-function}}
+
+\textbf{Definition (\(L^1\)-Norm, Lebesgue Space)} Suppose
+\(\pr{X,\S\,\mu}\) is a measure space. If \(f:X\to\br{-\infty,\infty}\)
+is \(\S\)-measurable, then the \emph{\(L^1\)-norm} of \(f\) is denoted
+by \(||f||_1\) and is defined by
+
+\[\| f\|_1 := \int \abs{f}\dm\]
+
+The Lebesgue space (\(L^1\)-space) is defined by
+
+\[L^1\pr{\mu}:=\brace{f:\norm{f}<\infty}\]
+
+\textbf{Remarks}:
+
+\begin{itemize}
+\item
+  The Lebesgue space is a Banach space, i.e., a complete normed vector
+  space.
+\item
+  If \(f = g\) almost everywhere, we would consider \(f\) and \(g\) to
+  be the same functions. In fact, they would at most differ in a set of
+  measure \(0\).
+\item
+  (Definition of Norm) \(\norm{\cdot}\) is a norm such that
+
+  \begin{itemize}
+  \item
+    \(\norm{f}\ge 0\), and \(\norm{f} = 0\) if and only if \(f = 0\)
+    almost everywhere.
+  \item
+    \(\norm{cf} = \abs{c}\cdot \norm{f}\) for \(c\in \R\).
+  \item
+    (Triangle Inequality) \(\norm{f+g}\le \norm{f}+\norm{g}\).
+  \end{itemize}
+\end{itemize}
+
+\emph{\textbf{Theorem (Approximation by Simple Functions)}} Suppose
+\(\mu\) is a measure and \(f\in L^1\pr{\mu}\). Then for every \(\ve>0\),
+there exists a simple function \(g\in L^1\pr{\mu}\) such that
+
+\[\norm{f-g}<\ve\]
+
+\emph{\textbf{Proposition (Markov\textquotesingle s Inequality)}}
+Suppose \(\pr{X,\S,\mu}\) is a measure space. If \(h\in L^1\pr{\mu}\),
+then
+
+\[\lm{\brace{x\in X:\abs{h\pr{x}}>c}}\le \frac{1}{c}\cdot \norm{h}\]
+
+for any \(c>0\).
+
+\emph{\textbf{Proof}}
+
+\[\ba
+\lm{\brace{x\in X:\abs{h\pr{x}}>c}} & = \int_{\brace{x\in X:\abs{h\pr{x}}>c}}1\dm \\
+& = \frac1c\int_{\brace{x\in X:\abs{h\pr{x}}>c}}c\dm \\
+& \le \frac1c\int_{\brace{x\in X:\abs{h\pr{x}}>c}}\abs{h} \dm \\
+& \le \frac1c\int_{X}\abs{h} \dm\\
+& = \frac1c\cdot \norm{h}
+\ea\]
+
+\textbf{Definition (\(3I\))} Suppose \(I\) is an bounded nonempty open
+interval of \(\R\). \(3I\) is defined as an interval with the same
+center as \(I\) and three times the length of \(I\).
+
+\emph{\textbf{Vitali Covering Lemma}} Suppose \(I_1,\cdots,I_n\) is a
+list of bounded nonempty intervals in \(\R\). Then there exists a
+disjoint sublist \(I_{k_1}, \cdots, I_{k_m}\) such that
+
+\[I_1\cup \cdots \cup I_n\se 3I_{k_1}\cup \cdots \cup 3I_{k_{m}}\]
+
+\textbf{Remarks:} \(3\) is the best constant here.
+
+\emph{\textbf{Proof}} We use the idea of greedy algorithm to take the
+largest remaining interval that is disjoint from the previously selected
+intervals.
+
+Let \(k_1\) be such that
+
+\[\abs{I_{k_1}} = \max\brace{\abs{I_1},\cdots,\abs{I_n}}\]
+
+Suppose \(k_1,\cdots,k_j\) have been chosen. Let \(k_{j+1}\) be such
+that \(\abs{I_{k_{j+1}}}\) is as large as possible subject to the
+collection that \(I_{k_1},\cdots,I_{k_j},I_{k_{j+1}}\) are disjoint. If
+there is no choice of \(k_{j+1}\) such that
+\(I_{k_1},\cdots,I_{{k_{j+1}}}\) are disjoint, then the procedure
+terminates. Because we start with a finite list, the procedure must
+eventually terminates after some number \(m\) of choices.
+
+We want to show that for any \(j\in \brace{1,\cdots,n}\):
+
+\[I_j\se 3I_{k_1}\cup\cdots\cup 3I_{k_m}\]
+
+If \(j\in\brace{k_1,\cdots,k_m}\), then we are done.
+
+If \(j\notin \brace{k_1,\cdots,k_m}\), let \(I_{k_l}\) be the first that
+is not disjoint from \(I_j\). Thus \(I_j\) is disjoint from
+\(I_{k_1},\cdots,I_{k_{l-1}}\). Because \(I_j\) is not chosen at the
+\(l\)th-step, which implies
+
+\[\abs{I_j}\le\abs{I_{k_l}}\]
+
+Also, \(I_j\) and \(I_{k_l}\) are not disjoint.
+
+\[I_j\se 3I_{k_l}\se 3I_{k_1}\cup \cdots\cup 3I_{k_l}\]
+
+\textbf{Definition (Hardy-Littlewood Maximal Function)} Suppose
+\(h:\R\to \R\) is a Lebesgue measurable function. Then the
+\emph{(Hardy-Littlewood) maximal function} of \(h\) is the function
+\(h^*:\R\to \br{0,\infty}\) defined by
+
+\[h^*\pr b:= \sup_{t>0}\frac1{2t}\int_{b-t}^{b+t}\abs{h}\d\lambda\]
+
+\textbf{Remarks}: \(\frac1{2t}\int_{b-t}^{b+t}\abs{h}\d\lambda\)
+represents the average over \(\br{b-t,b+t}\). Hence \(h^*\) aims to pick
+the largest average around \(b\).
+
+\emph{\textbf{Hardy-Littlewood Maximal Inequality}} Suppose
+\(h\in L^1\pr{\R}\). Then
+
+\[\lambda\pr{\brace{b\in \R:h^*\pr{b}>c}}\le \frac3c \cdot\norm{h}\]
+
+for any \(c>0\).
+
+\textbf{Remarks}: There is a "best" constant instead of \(3\).
+
+\emph{\textbf{Proof}} We will use the following fact for a measurable
+set \(A\):
+
+\[\lambda\pr{A} = \sup\brace{\lambda\pr{F}:F\se A\text{ and }F \text{ is closed and bounded}}\]
+
+Let \(F\) be a closed and bounded subset of
+\(A = \brace{b\in \R:h^*\pr b>c}\). We hope to show
+\(\lambda\pr{F}\le\frac3c\cdot\norm{h}\).
+
+For each \(b\in F\), there exists \(t_b>0\) such that
+
+\[\frac1{2t_b}\int_{b-t_b}^{b+t_b}\abs{h}\d \lambda >c\]
+
+Therefore
+
+\[F\se \bigcup_{b\in F}\pr{b-t_b,b+t_b}\]
+
+By Heine-Borel theorem, there exists a finite subcover of \(F\). Hence,
+there exist \(b_1,\cdots,b_n\in F\) such that
+
+\[F\se \bigcup_{k = 1}^n\pr{b_k-t_{b_k},b_{k}+t_{b_k}}\]
+
+Denote \(I_k = \pr{b_k-t_{b_k},b_{k}+t_{b_k}}\). By Vitali covering
+lemma, we can extract a disjoint sublist of \(\brace{I_k}\) such that
+
+\[\bigcup_{k = 1}^nI_k\se 3I_{k_1}\cup\cdots\cup 3I_{k_m}\]
+
+Therefore,
+
+\[\ba
+\lambda\pr{F} & \le 3\pr{\lambda\pr{I_{k_1}}+\cdots+\lambda\pr{I_{k_m}}}\\
+& < \frac3c \pr{\int_{I_{k_1}}\abs{h}\d\lambda+\cdots+\int_{I_{k_m}}\abs{h}\d\lambda}\\
+& \le\frac3c \int_{-\infty}^{\infty}\abs{h}\d\lambda \\
+& = \frac3c \norm{h}
+\ea\]
+
+\hypertarget{derivatives-of-integrals}{%
+\subsection{Derivatives of Integrals}\label{derivatives-of-integrals}}
+
+\emph{\textbf{Lebesgue Differentiation Theorem (First Version)}} Suppose
+\(F\in L^1\pr{\R}\). Then
+
+\[\lim_{t\to 0}\frac1{2t}\int_{b-t}^{b+t}\abs{f\pr{x}-f\pr{b}}\dl = 0\]
+
+for almost every \(b\in \R\).
+
+The intuition is that, when taking the average over a small interval
+around a point \(b\), the average will converge the functional value
+\(f\pr{b}\) at \(b\).
+
+\emph{\textbf{Proof}}
+
+If \(f\) is a continuous every where, then
+
+\[\frac1{2t}\int_{b-t}^{b+t}\abs{f\pr{x}-f\pr{b}}\dl\le \sup_{x\in\pr{b-t,b+t}}\abs{f\pr{x}-f\pr{b}}\]
+
+If \(f\) is continuous, then \(f\pr{x}\to f\pr{b}\) when \(t\to 0\).
+
+Unfortunately, \(f\in L^1\pr{\R}\), we have no concrete information on
+the continuity of \(f\).
+
+There exists a simple function \(h\) such that
+
+\[\norm{f-h}<\ve\]
+
+There exists a continuous function \(g:\R\to \R\) such that
+
+\[\norm{f-g}<\ve\]
+
+Let \(\delta>0\). For each \(k>0\), there exists a continuous function
+\(h_k:\R\to \R\) such that
+
+\[\norm{f-h_k}<\frac{\delta}{k2^k}\]
+
+Let
+
+\[B_k = \brace{b\in\R:\abs{f\pr{b}-f_k\pr{b}}\le\frac1k\text{ and }\pr{f-f_k}^*\pr{b}\le\frac1k}\]
+
+Then
+
+\[\ba
+\R\c B_k & = \brace{b\in\R: \abs{f\pr{b}-f_k\pr{b}}>\frac1k\text{ or }\pr{f-f_k}^*\pr{b}>\frac1k}\\
+& = \brace{b\in\R: \abs{f\pr{b}-f_k\pr{b}}>\frac1k}\cup \brace{b\in\R:\pr{f-f_k}^*\pr{b}>\frac1k}\\
+& := A\cup B
+\ea\]
+
+Apply Markov\textquotesingle s and maximal inequality:
+
+\[\ba
+\lambda\pr{A}\le k\cdot \norm{f-h_k}<k\cdot\frac{\delta}{k2^k} = \frac{\delta}{2^k}\\
+\lambda\pr{A}\le 3k\cdot \norm{f-h_k}< \frac{3\delta}{2^k}\\
+\ea\]
+
+Therefore,
+
+\[\lambda{\R\c B_k}\le \frac{4\delta}{2^k} = \frac{\delta}{2^{k-2}}\]
+
+Let
+
+\[B = \iinf B_k\]
+
+Then
+
+\[\lambda\pr{\R\c B}\le \sinf \frac{\delta}{2^{k-2}} = 4\delta\]
+
+Let \(b\in B\) and \(t>0\). For each \(k>0\), we have
+
+\[\ba
+\frac1{2t}\int_{b-t}^{b+t}\abs{f-f\pr{b}}\dl & \le \frac1{2t}\int_{b-t}^{b+t}\pr{\abs{f\pr{x}-f_k\pr{x}}+\abs{f_k\pr{x}-f_k\pr{b}}+\abs{f_k\pr{b}-f\pr{b}}}\dl\\
+& \le \pr{f-h_k}^*\pr{b}+\frac{1}{2t}\int_{b-t}^{b+t}\abs{h_k\pr{x}-h_k\pr{b}}\dl + \abs{f_k\pr{b}-f\pr{b}}\\
+& \le \frac1k+\frac{1}{2t}\int_{b-t}^{b+t}\abs{h_k\pr{x}-h_k\pr{b}}\dl+\frac1k
+\ea\]
+
+\hypertarget{derivatives}{%
+\subsubsection{Derivatives}\label{derivatives}}
+
+\textbf{Definition (Derivative)} Suppose \(g:I\to \R\) is a function
+defined on an open interval \(I\), and \(b\in I\).
+
+\[g'\pr{b} = \lim_{t\to 0}\frac{g\pr{b+t}-g\pr{b}}{t}\]
+
+\emph{\textbf{Theorem}} Suppose \(f\in L^1\). Define \(g:\R\to \R\) by
+
+\[g\pr{x}:= \int_{-\infty}^xf\dl\]
+
+Then
+
+\[g'\pr{b} = f\pr{b}\]
+
+if \(f\) is continuous at \(b\).
+
+\emph{\textbf{Proof}} We have
+
+\[\ba
+\abs{\frac{g\pr{b+t}-g\pr{b}}{t}-f\pr{b}} & = \abs{\frac{\int_b^{b+t}f\dl}{t}-f\pr{b}} \\
+& = \frac1t\abs{\int_b^{b+t}\pr{f\pr{x}-f\pr{b}}\dl}\\
+& \le \sup_{x\in\pr{b,b+t}}\abs{f\pr{x}-f\pr{b}}\overset{t\to 0}{\longrightarrow}0
+\ea\]
+
+\emph{\textbf{Lebesgue Differentiation Theorem}} \(g'\pr{b} = f\pr{b}\)
+for almost every \(b\in \R\).
+
+\emph{\textbf{Proof}}
+
+\[\ba
+\abs{\frac{g\pr{b+t}-g\pr{b}}{t}-f\pr{b}} & = \abs{\frac{\int_b^{b+t}f\dl}{t}-f\pr{b}} \\
+& = \frac1t\abs{\int_b^{b+t}\pr{f\pr{x}-f\pr{b}}\dl}\overset{t\to 0}{\longrightarrow}0
+\ea\]
+
+for almost every \(b\in \R\), by the first version of Lebesgue
+Differentiation Theorem.
+
+\end{document}

@@ -1,0 +1,913 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\newcommand{\ba}{\begin{aligned}}
+\newcommand{\ea}{\end{aligned}}
+\newcommand{\bm}{\begin{bmatrix}}
+\newcommand{\em}{\end{bmatrix}}
+\newcommand{\bc}{\begin{cases}}
+\newcommand{\ec}{\end{cases}}
+\newcommand{\empty}{\varnothing}
+\newcommand{\se}{\subseteq}
+\newcommand{\ve}{\varepsilon}
+\newcommand{\s}{\sigma}
+\newcommand{\0}{\textbf 0}
+\newcommand{\1}{\textbf 1}
+\newcommand{\I}{\textbf I}
+\newcommand{\X}{\textbf X}
+\newcommand{\x}{\textbf x}
+\newcommand{\y}{\textbf y}
+\newcommand{\b}{\textbf b}
+\newcommand{\w}{\textbf w}
+\newcommand{\P}{\mathcal P}
+\newcommand{\S}{\mathcal S}
+\newcommand{\T}{\mathcal T}
+\newcommand{\A}{\mathcal A}
+\newcommand{\B}{\mathcal B}
+\newcommand{\C}{\mathcal C}
+\newcommand{\L}{\mathcal L}
+\newcommand{\c}{\backslash}
+\newcommand{\if}{\text{ if }}
+\newcommand{\uinf}[1][k]{\bigcup_{{#1} = 1}^{\infty}}
+\newcommand{\sinf}[1][k]{\sum_{{#1} = 1}^{\infty}}
+\newcommand{\iinf}[1][k]{\bigcap_{{#1} = 1}^{\infty}}
+\newcommand{\plim}{\text{plim }}
+\newcommand{\var}[2][]{\text{Var}_{#1}\br{#2}}
+\newcommand{\e}[2][]{\text{E}_{#1}\br{#2}}
+\newcommand{\cov}[3][]{\text{Cov}_{#1}\br{#2,#3}}
+\newcommand{\estvar}[1]{\text{Est.Var}\br{#1}}
+\newcommand{\estcov}[2]{\text{Est.Cov}\br{#1,#2}}
+\newcommand{\asyvar}[1]{\text{Asy.Var}\br{#1}}
+\newcommand{\asycov}[2]{\text{Asy.Cov}\br{#1,#2}}
+\newcommand{\estasyvar}[1]{\text{Est.Asy.Var}\br{#1}}
+\newcommand{\too}{\Longrightarrow}
+\newcommand{\sq}{\sqrt}
+\newcommand{\dev}[2][i]{({#2}_{#1}-\bar{#2})}
+\newcommand{\inv}[1]{{#1}^{-1}}
+\newcommand{\add}[1][i]{\sum_{#1 = 1}^n}
+\newcommand{\ply}[1][i]{\prod_{#1 = 1}^n}
+\newcommand{\br}[1]{\left[#1\right]}
+\newcommand{\pr}[1]{\left(#1\right)}
+\newcommand{\brace}[1]{\left\{#1\right\}}
+\newcommand{\seq}[1][x]{{#1}_1,{#1}_2,\cdots,{#1}_{n}}
+\newcommand{\seqadd}[1][x]{{#1}_1+{#1}_2+\cdots+{#1}_{n}}
+\newcommand{\dto}{\overset{\text d}{\to}}
+\newcommand{\asim}{\overset{\text a}{\sim}}
+\newcommand{\st}{\text{ s.t. }}
+\newcommand{\om}[1]{\mu^*\pr{#1}}
+\newcommand{\lm}[1]{\mu\pr{#1}}
+\newcommand{\d}{\text{ d}}
+\newcommand{\dm}{\text{ d}\mu}
+\newcommand{\dl}{\text{ d}\lambda}
+\newcommand{\F}{\mathbb F}
+\newcommand{\norm}[1]{\|{#1}\|}
+\newcommand{\null}{\text{null }}
+\newcommand{\span}{\text{span }}
+
+\hypertarget{metric-spaces}{%
+\section{Metric Spaces}\label{metric-spaces}}
+
+\textbf{Definition (Metric)} A metric on a nonempty set \(V\) is a
+function \(d:V\times V\to [0,\infty)\) such that
+
+\begin{itemize}
+\item
+  \(d\pr{f,f} = 0\) for all \(f\in V\).
+\item
+  If \(f,g\in V\) and \(d\pr{f,g} = 0\), then \(f = g\).
+\item
+  \(d\pr{f,g} = f\pr{g,f}\).
+\item
+  (Triangle Inequality) \(d\pr{f,h}\le d\pr{f,g}+d\pr{g,h}\), for all
+  \(f,g,h\in V\).
+\end{itemize}
+
+\(\pr{V,d}\) is called a metric space.
+
+\textbf{Examples}
+
+\begin{itemize}
+\item
+  \(V\) is any nonempty set,
+  \(d\pr{f,g} = \bc 1\if f\ne g\\0\if f=g\ec\).
+\item
+  \(V = \R\), \(d\pr{f,g} = \abs{f-g}\).
+\item
+  (\(l^{\infty}\)-metric) \(V = \R^n\),
+  \(d\pr{\pr{x_1,x_2,\cdots,x_n},\pr{y_1,y_2,\cdots,y_n}} = \max\brace{\abs{x_1-y_1},\abs{x_2-y_2}, \cdots,\abs{x_n-y_n}}\).
+\item
+  \(V = C\pr{\br{0,1}}\), which stands for the collection of all
+  continuous functions defined on \(\br{0,1}\).
+
+  \[d\pr{f,g} = \max\brace{\abs{f\pr{t}-g\pr{t}}:t\in\br{0,1}}\]
+\item
+  \(l^1 = \brace{\pr{a_1,a_2,\cdots}:\sinf\abs{a_k}<\infty}\).
+
+  \[d\pr{\pr{a_1,a_2,\cdots},\pr{b_1,b_2,\cdots}} = \sinf\abs{a_k-b_k}<\infty\]
+\end{itemize}
+
+\textbf{Definition (Open Ball)} Let \(\pr{V,d}\) be a metric space,
+\(f\in V\), \(r>0\).
+
+\begin{itemize}
+\item
+  The open ball center center \(f\) radius \(r\) is denoted
+  \(B\pr{f,r}\) and defined by
+
+  \[B\pr{f,r} = \brace{g\in V:d\pr{f,g}<r}\]
+\item
+  The closed ball center center \(f\) radius \(r\) is denoted
+  \(\bar B\pr{f,r}\) and defined by
+
+  \[\bar B\pr{f,r} = \brace{g\in V:d\pr{f,g}\le r}\]
+\end{itemize}
+
+\textbf{Definition (Open Set)} A subset \(G\se V\) is called open if for
+every \(f\in G\), there exits \(r>0\) such that \(B\pr{f,r}\se G\).
+
+\textbf{Definition (Closed Set)} A subset \(F\se V\) is closed if and
+only if the complement of \(F\) in \(V\) is open.
+
+\textbf{Definition (Closure)} Let \(E\se V\). The closure of \(E\),
+denoted as \(\bar E\), is defined by
+
+\[\bar E:=\brace{g\in V:B\pr{g,\ve}\cap E\ne 0,\forall \ve>0}\]
+
+\textbf{Definition ()} \(\brace{f_k}\se V\), \(f\in V\). We write
+\(\lim_{k\to \infty}f_k = k\) to mean
+\(\lim_{k\to\infty}d\pr{f,f_k} = 0\).
+
+\emph{\textbf{Proposition}} Let \(\bar E\) be the closure of a set
+\(E\). Then
+
+\begin{itemize}
+\item
+  \(\bar E = \brace{g\in V:\exist \brace{f_k}\se E \st \lim_{k\to\infty} = g}\).
+\item
+  \(\bar E\) is the intersection of all closed sets containing \(E\).
+\item
+  \(\bar E\) is closed.
+\item
+  \(E\) is closed if and only if \(E = \bar E\).
+\item
+  \(E\) is closed if and only if \(E\) contains the limit of every
+  convergent sequence of elements of \(E\).
+\end{itemize}
+
+\textbf{Definition (Continuity)} Suppose \(\pr{V,d_v}\) and
+\(\pr{W,d_w}\) are metric spaces, and \(T:V\to W\) is a function. For
+\(f\in V\), \(T\) is continuous at \(f\) if for every \(\ve>0\), there
+exists \(\delta>0\) such that
+
+\[d_w\pr{T\pr{f},T\pr{g}}<\ve\]
+
+given \(d_v\pr{f,g}<\delta\) and \(g\in V\).
+
+\emph{\textbf{Proposition}} All of the followings are equivalent:
+
+\begin{itemize}
+\item
+  \(T\) is continuous on \(V\).
+\item
+  If \(\lim_{k\to\infty} f_k = f\), then
+  \(\lim_{k\to\infty}T\pr{f_k} = T\pr{f}\).
+\item
+  \(\inv T\pr{G}\) is open in \(V\) if \(G\) is open in \(W\).
+\item
+  \(\inv T\pr{F}\) is closed in \(V\) if \(F\) is closed in \(W\).
+\end{itemize}
+
+\textbf{Definition (Cauchy Sequence)} A sequence \(f_1,f_2,\cdots\) is
+called a Cauchy sequence if for every \(\ve>0\), there exists \(N>0\)
+such that
+
+\[d\pr{f_j,f_k}\le \ve\]
+
+for all \(k,j\ge N\).
+
+\emph{\textbf{Proposition}} Every convergence sequence in a metric space
+is a Cauchy sequence.
+
+\textbf{Definition} A metric space \(V\) is called complete if every
+Cauchy sequence in \(V\) converges to some element in \(V\).
+
+\textbf{Examples}
+
+\begin{itemize}
+\item
+  \(V = \Q\), \(d\pr{x,y} = \abs{x-y}\). Consider
+
+  \[x_k = \frac{1}{10^{1!}}+\cdots +\frac{1}{10^{k!}}\]
+
+  \(\brace{x_k}\) is Cauchy, but does not converge to a rational number.
+\end{itemize}
+
+\emph{\textbf{Proposition}}
+
+\begin{itemize}
+\item
+  A complete subset of a metric space is closed.
+\item
+  A closed subset of a metric space is complete.
+\end{itemize}
+
+\hypertarget{vector-spaces}{%
+\section{Vector Spaces}\label{vector-spaces}}
+
+\textbf{Definition} Suppose \(\pr{X,\S}\) is a measurable space. A
+function \(f:X\to \C\) is called \(\S\)-measurable if and only if
+\(\Re f:X\to \R\) and \(\Im f:X\to \R\) are \(\S\)-measurable functions.
+All measurability results are true for complex-valued functions.
+
+\textbf{Definition} \(f:X\to \C\) such that \(\int \abs{f}<\infty\).
+Then \(\int f\dm\) is defined by
+
+\[\int f\dm:=\int \Re f\dm+i\int \Im f\dm\]
+
+\textbf{Definition} Let \(\bar z\) be the complex conjugate of a complex
+number \(z\). If \(z =a+bi\), then \(\bar z = a-bi\). Note that
+
+\[\bar{\int f\dm} = \int \bar f\dm \if \int \abs{f}\dm <\infty\]
+
+From now on, \(\mathbb F\) stands for either \(\R\) or \(\C\).
+
+\textbf{Definition (Vector Space)} A vector space (over \(\mathbb F\))
+is a set \(V\) with an addition (\(+\)) on \(V\) and a scalar
+multiplication (\(\alpha f\), \(\alpha \in \mathbb F\)) on \(V\) that
+satisfies
+
+\begin{itemize}
+\item
+  Commutativity
+\item
+  Associativity
+\item
+  Additive identity
+\item
+  Additive inverse
+\item
+  Multiplicative identity
+\item
+  Distributive property
+\end{itemize}
+
+\textbf{Definition (\(\F^X\))}
+
+\[\mathbb F^X = \brace{\text{All functions from }X \text{ to }\mathbb F}\]
+
+Functional analysis could be thought of as linear algebra on infinite
+dimensional spaces.
+
+\hypertarget{normed-vector-spaces}{%
+\subsection{Normed Vector Spaces}\label{normed-vector-spaces}}
+
+\textbf{Definition (Norm)} A norm on a vector space \(V\) (over
+\(\mathbb F\)) is a function
+
+\[\|\cdot \|:V\to [0,\infty)\]
+
+such that
+
+\begin{itemize}
+\item
+  (Positive Definiteness) \(\norm{f} = 0\iff f = 0\),
+\item
+  (Homogeneity) \(\norm{\alpha f} = \abs{a}\norm{f}\) for all
+  \(\alpha \in \F\) and \(f\in V\),
+\item
+  (Triangle Inequality) \(\norm{f+g}\le \norm{f}+\norm{g}\) for all
+  \(f,g\in V\).
+\end{itemize}
+
+\textbf{Remarks} Most of the time the first two properties are easy to
+check but the hard things come with the proof of Triangle Inequality.
+
+\textbf{Examples}
+
+\begin{itemize}
+\item
+  \(\pr{\R,\abs{\cdot}}\); \(\pr{\mathbb C,\abs{\cdot}}\).
+\item
+  \(\F^n = \brace{\pr{a_1,a_2,\cdots,a_n}:a_1,a_2,\cdots,a_n\in \F}\),
+  with
+
+  \[\ba
+  \norm{\pr{a_1,a_2,\cdots,a_n}}_1 & = \sum_{k = 1}^n\abs{a_k}\\
+  \norm{\pr{a_1,a_2,\cdots,a_n}}_2 & = \sq{\sum_{k = 1}^n\abs{a_k}^2}\\
+  \norm{\pr{a_1,a_2,\cdots,a_n}}_p & = \pr{\sum_{k = 1}^n\abs{a_k}^p}^{1/p}\\
+  \norm{\pr{a_1,a_2,\cdots,a_n}}_{\infty} & = \max\brace{\abs{a_1},\abs{a_2},\cdots,\abs{a_n}} \\
+  \ea\]
+\item
+  \(\ell^1 = \brace{\pr{a_1,a_2,\cdots}:\sinf[n]\abs{a_n}<\infty}\),
+  with
+
+  \[\norm{\pr{a_1,a_2,\cdots}} = \sinf[n]a_n\]
+\item
+  \(X\) is any set. Let \(b\pr{X}\) be the set of all bounded functions.
+  \(b\pr{X} = \brace{\text{Bounded functions}: X\to \F}\).
+
+  \[\norm{f} = \sup\brace{\abs{f\pr{x}}:x\in X}\]
+\item
+  \(C\pr{\br{0,1}} = \brace{\text{Continuou functions}:[0,1)\to\F}\),
+  with
+
+  \[\norm{f} = \int_0^1\abs{f}\]
+\end{itemize}
+
+A norm will induce a metric on the same vector space. One
+straightforward example would be
+
+\[d\pr{f,g} = \norm{f-g}\]
+
+Therefore, any normed vector space is a metric space. However the
+converse is false. With this in mind we may apply all stuffs in metric
+space to any normed vector space.
+
+We have the meaning of limit:
+
+\[\lim_{k\to\infty}f_k = f\iff \lim_{k\to\infty}\norm{f_k-f} = 0\]
+
+We also have the notion of Cauchy sequence.
+
+\textbf{Definition (Banach Space)} A Banach space is a normed complete
+vector space.
+
+\textbf{Examples}
+
+\begin{itemize}
+\item
+  \(\R,\R^2,\R^n\) are Banach spaces.
+\item
+  \(C\pr{\br{0,1}} = \brace{\text{Continuou functions}:[0,1)\to\F}\)
+  with \(\norm{f} = \max_{\br{0,1}}\abs{f}\) is a Banach space.
+\item
+  \(\pr{\ell^1,\norm{\cdot}_1}\) is a Banach space.
+\item
+  \(C\pr{\br{0,1}} = \brace{\text{Continuou functions}:[0,1)\to\F}\)
+  with \(\norm{f} = \int_0^1\abs{f}\) is \emph{not} a Banach space.
+\item
+  \(\pr{\ell^1,\norm{\cdot}_{\infty} = \sup_{k\in \N}\abs{a_k}}\) is
+  \emph{not} a Banach space.
+\end{itemize}
+
+\textbf{Definition (Series)} Suppose \(g_1,g_2,\cdots\) is a sequence in
+a normed vector space \(V\). Then
+
+\[\sinf g_k\text{ exists}\iff \lim_{n\to\infty}\sum_{k = 1}^n\text{ exists}\]
+
+When \(\lim_{n\to\infty}\sum_{k = 1}^n\) exists, the series
+\(\sinf g_k\) is said to converge.
+
+\emph{\textbf{Proposition}} \(V\) is a Banach space if and only
+\(\sinf g_k\) converges to some element in \(V\) for any sequence
+satisfying \(\sinf \norm{g_k}<\infty\).
+
+\emph{\textbf{Proof}}
+
+\begin{itemize}
+\item
+  \(\too\): Assume \(g_1,g_2,\cdots\) satisfies
+  \(\sinf \norm{g_k}<\infty\). Let \(f_j = \sum_{n = 1}^jg_n\). Fix
+  \(\ve>0\).
+
+  \[\norm{f_j-f_k} = \norm{\sum_{n = k+1}^jg_n}\le \sum_{n = k+1}^j\norm{g_n}< \ve\]
+
+  which is true for \(k,j\) sufficiently large.
+\item
+  \(\impliedby\): Suppose \(f_1,f_2,\cdots\) is Cauchy in \(V\). We can
+  extract a subsequence of \(\brace{f_j}\) (without relabeling) such
+  that
+
+  \[\sinf\norm{f_{k+1}-f_k}<\infty\]
+
+  This implies that \(\sinf \pr{f_{k+1}f_k}\) converges to an element in
+  \(V\). Moreover,
+
+  \[\lim_{N\to\infty}\sum_{k = 1}^N\pr{f_{k+1}-f_k} = \lim_{N\to\infty}\pr{f_{N+1}-f_1}\]
+
+  which implies that \(\lim_{N\to\infty}f_{N+1}\) exists and
+  \(\lim_{N\to\infty}f_{N+1}\) is also an element in \(V\). The last
+  step is that, since the original sequence is Cauchy, and we have
+  proved that one of its subsequence is convergent, so is the original
+  Cauchy sequence.
+\end{itemize}
+
+\hypertarget{bounded-linear-maps}{%
+\subsection{Bounded Linear Maps}\label{bounded-linear-maps}}
+
+\textbf{Definition (Linear Map)} Suppose \(V\) and \(W\) are vector
+spaces. A function \(T:V\to W\) is called a linear map or linear if
+
+\begin{itemize}
+\item
+  \(T\pr{f+g} = T\pr{f}+T\pr{g}\) for \(f,g\in V\).
+\item
+  \(T\pr{\alpha f} = \alpha T\pr{f}\) for \(\alpha\in \F\) and
+  \(f\in V\).
+\end{itemize}
+
+Basically, a linear map is a mapping that preserves the structure of a
+linear space.
+
+\textbf{Remarks} For simplicity we may write \(Tf\) and \(T\pr{f}\)
+interchangeably with \(Tf = T\pr{f}\). \(\norm{\cdot}\) is used for both
+norms of \(V\) and \(W\), whose meaning depends on the context.
+
+\textbf{Definition (Norm of a Linear Map)} Let \(V\) and \(W\) be normed
+vector spaces and \(T:V\to W\) be a linear map. The norm of \(T\),
+denoted \(\norm{T}\), is defined by
+
+\[\ba
+\norm{T} & = \sup\brace{\norm{T\pr{f}}:f\in V \text{ and }\norm{f}\le 1}\\
+& = \sup\brace{\norm{T\pr{f}}:f\in V \text{ and }\norm{f}= 1}\\
+& = \sup_{f\ne 0}\brace{\frac{\norm{T\pr{f}}}{\norm{f}}}
+\ea\]
+
+\(T\) is called bounded if \(\norm{T}<\infty\). The set of bounded
+linear maps from \(V\) to \(W\) is defined by \(\B\pr{V,W}\).
+
+\textbf{Examples}
+
+\begin{itemize}
+\item
+  \(T:\R^n\to\R^m\) is a linear map. There exists a matrix
+  \(A\in \R^{m\times n}\) such that
+
+  \[T\pr{v} = Av\]
+
+  and \(\B\pr{\R^n,\R^m}\simeq \R^{m\times n}\). Let \(\norm{A}\) be the
+  largest singular value of \(A\), which is equal to the square root of
+  the largest eigenvalue of \(A'A\).
+\item
+  \(C\pr{[0,3)}\) with \(\norm{f} = \max_{\br{0,3}}\abs{f}\). Consider
+  the linear map \(T:C\pr{\br{0,3}}\to C\pr{\br{0,3}}\) so that
+  \(Tf:\br{0,3}\to \R\) such that
+
+  \[\pr{Tf}\pr{x} = x^2f\pr{x},\forall x\in [0,3)\]
+
+  Prove that \(\norm{T} = 9\).
+\item
+  \(V = \brace{\pr{a_1,a_2,\cdots}:a_k = 0 \text{ for all but finitely many }k\in \N}\),
+  with \(\norm{\pr{a_1,a_2,\cdots}}_{\infty} = \max\abs{a_k}\). Consider
+  the linear map \(T:V\to V\) such that
+
+  \[T\pr{a_1,a_2,a_3,\cdots} = \pr{a_1,2a_2,3a_3,\cdots}\]
+
+  Show that \(\norm{T} = \infty\).
+\end{itemize}
+
+\emph{\textbf{Proposition}} Assuming \(V\) is a normed vector space and
+\(W\) is a Banach space. \(\B\pr{V,W}\) is a Banach space with
+\(\norm{T}\).
+
+\emph{\textbf{Proof}} Consider \(T_1,T_2,\cdots\in \B\pr{{V,W}}\) to be
+Cauchy sequence. We want to show that, there is \(T\in \B\pr{V,W}\) such
+that \(\lim_{k\to\infty}\norm{T_k-T} = 0\).
+
+Pick any \(f\in V\). Consider the sequence \(T_1f,T_2,\cdots\). We have
+
+\[\norm{T_jf-T_kf}\le \norm{T_j-T_k}\norm{f}\]
+
+which implies that \(T_1f,T_2f,\cdots\) is a Cauchy sequence in \(W\).
+Then, there exists \(Tf\in W\) such that
+
+\[\lim_{k\to\infty}T_kf = Tf\in W\]
+
+Define \(T:V\to W\) to be
+
+\[T\pr{f} = \lim_{k\to\infty}T_kf\]
+
+\(T\) is first of all a linear map. Moreover, \(T\) is bounded because
+
+\[\ba
+\norm{Tf} & \le \sup_k\brace{\norm{T_kf}}\\
+& \le \pr{\sup_{k}\norm{T_k}}\norm{f}<\infty
+\ea\]
+
+The last thing to show is that \(\lim_{k\to\infty}\norm{T_k-T} = 0\).
+Fix \(k>0\). For any \(\ve>0\), the following is true for \(k\) large
+enough:
+
+\[\ba
+\norm{\pr{T_k-T}f} & = \lim_{j\to\infty}\norm{\pr{T_k-T_j}f}\\
+& \le \lim_{j\to\infty}\norm{\pr{T_k-T_j}}\norm{f}\\
+& \le \ve\norm{f}
+\ea\]
+
+which implies that
+
+\[\norm{T_k-T}\le \ve \too \lim_{k\to\infty}T_k = T\]
+
+\emph{\textbf{Proposition}} Suppose \(T:V\to W\) is a linear map. \(T\)
+is bounded if and only if \(T\) is continuous.
+
+\emph{\textbf{Proof}}
+
+\begin{itemize}
+\item
+  \(\impliedby\): Assume \(T\) is continuous and not bounded. There
+  exists a sequence \(f_1,f_2,\cdots\in V\) such that
+  \(\norm{f_k}\le 1\) for all \(k\in \N\) but \(\norm{T_kf}\to\infty\)
+  as \(k\to\infty\). Therefore,
+
+  \[\lim_{k\to\infty} \frac{f_k}{\norm{Tf_k}}=0\]
+
+  but
+
+  \[T\pr{\frac{f_k}{\norm{Tf_k}}} = \frac{T\pr{f_k}}{\norm{Tf_k}}\]
+\item
+  \(\too\): Suppose \(\lim_{k\to\infty}f_k = f\). We have that
+
+  \[\ba
+  \norm{Tf_k-Tf} & \le \norm{T}\norm{f_k-f}
+  \ea\]
+
+  For the right-hand side,
+  \(\lim_{k\to\infty}\norm{T}\norm{f_k-f} = 0\).
+\end{itemize}
+
+\hypertarget{bounded-linear-functionals}{%
+\subsection{Bounded Linear
+Functionals}\label{bounded-linear-functionals}}
+
+\textbf{Definition (Linear Functional)} A \emph{linear functional} is a
+linear map from a normed vector space \(V\) to a scalar vector space
+(\(\R\) or \(\F\)).
+
+\textbf{Examples}
+
+\begin{itemize}
+\item
+  \(V = \brace{\pr{a_1,a_2,\cdots}: a_k = 0 \text{ but for finitely many }k\ge 0}\).
+  Consider
+
+  \[\phi\pr{a_1,a_2,\cdots} = \sinf a_k\]
+\item
+  If \(V\) has the norm
+  \(\norm{\pr{a_1,a_2,\cdots}} = \sinf \abs{a_k}\), \(\phi\) is bounded.
+\item
+  If \(V\) has the norm
+  \(\norm{\pr{a_1,a_2,\cdots}} = \max_{k\ge 0}\abs{a_k}\), \(\phi\) is
+  not bounded.
+\end{itemize}
+
+\textbf{Definition} Suppose \(T:V\to W\) is a linear map. The null
+space, or kernel, of \(T\), denoted \(\null T\), is defined by
+
+\[\null T = \brace{f\in V:Tf = 0}\]
+
+\textbf{Remarks}: \(\null T\) is a subspace of \(V\). If \(T\) is
+continuous, then \(\null T\) is a closed subspace.
+
+\[\null T = \inv T\pr{\brace{0}}\]
+
+\emph{\textbf{Proposition}} Suppose \(\phi:V\to \F\) is a linear
+functional that is not identically \(0\). Then the followings are
+equivalent:
+
+\begin{itemize}
+\item
+  \(\phi\) is bounded.
+\item
+  \(\phi\) is continuous.
+\item
+  \(\null \phi\) is a closed subspace of \(V\).
+\item
+  \(\overline{\null \phi}\ne V\).
+\end{itemize}
+
+\emph{\textbf{Proof}}
+
+\begin{itemize}
+\item
+  \(3\too 1\): Suppose \(\null \phi\) is a closed and \(\phi\) is
+  unbounded. We hope to reach a contradiction.
+
+  There exits a sequence \(f_1,f_2,\cdots \in V\) such that
+  \(\norm{f_k} = 1\) and \(\abs{\phi\pr{f_k}}\ge k\) for each
+  \(k\ge 1\). We have
+
+  \[\frac{f_1}{\phi\pr{f_1}}-\frac{f_k}{\phi\pr{f_k}}\in \null \phi\]
+
+  which is only possible if \(\phi\pr{\cdot}\) is a number.
+
+  \[\lim_{k\to\infty}\pr{\frac{f_1}{\phi\pr{f_1}}-\frac{f_k}{\phi\pr{f_k}}} = \frac{f_1}{\phi\pr{f_1}}\]
+
+  But, \(\phi\pr{\frac{f_1}{\phi\pr{f_1}}} = 1\), which is obviously a
+  contradiction.
+\end{itemize}
+
+Infinite dimensional normed vector space always has a discontinuous or
+unbounded linear functional.
+
+\textbf{Definition} Suppose \(\brace{e_k}_{k\in \Gamma}\) is a family of
+elements in \(V\).
+
+\begin{itemize}
+\item
+  \(\brace{e_k}\) is called \emph{linear independent} if there does NOT
+  exist a finite nonempty subset \(\Omega\) of \(\Gamma\) and a family
+  \(\brace{\alpha_j}_{j\in \Omega}\in \F\c \brace{0}\) such that
+  \(\sum_{j\in \Omega}\alpha_je_j = 0\).
+\item
+  \(\span \brace{e_k} = \brace{\sum_{j\in \Omega}\alpha_je_j:\Omega\se \Gamma, \Omega \text{ is finite}, \alpha_j\in \F}\).
+\item
+  \(V\) is finite dimensional if and only if there exists a finite set
+  \(\Gamma\) and a family \(\brace{e_k}_{k\in \Gamma}\) such that
+  \(V = \span \brace{e_k}\). \(V\) is \emph{infinite dimensional} if
+  \(V\) is NOT finite dimensional.
+\item
+  A family \(\brace{e_k}\) in \(V\) is called a \emph{basis} if it is
+  linearly independent and \(\span \brace{e_k} = V\).
+\end{itemize}
+
+\textbf{Remarks}: By Axiom of choice (or Zoin\textquotesingle s Lemma),
+there exists a basis for any vector space, including infinite
+dimensional spaces.
+
+\emph{\textbf{Proposition}} If \(V\) is infinite dimensional, then there
+exits \(\phi:V\to \F\) such that \(\phi\) is unbounded.
+
+\emph{\textbf{Proof}} Suppose \(\brace{e_k}_{k\in \Gamma}\) is a basis
+for \(V\) and \(\Gamma\) is infinite. We can assume by relabeling that
+\(\N\se \Gamma\), because each infinite set has at least an countably
+infinite one.
+
+Define \(\phi:V\to \F\) by
+
+\[\phi\pr{e_j} = \bc
+j\norm{e_j}\ & \if j\in \N\\
+0 &\if j\in \Gamma\c \N
+\ec\]
+
+By definition,
+
+\[\phi\pr{\sum_{j\in \Omega}a_je_j} = \sum_{j\in \Omega} a_j\phi\pr{e_j}\]
+
+It is trivial to show that \(\norm{\phi} = \infty\).
+(\(\norm{\phi}\ge \frac{\abs{\phi\pr{e_j}}}{\norm{e_j}} = j\))
+
+\hypertarget{hahn-banach-theorem}{%
+\subsection{Hahn-Banach Theorem}\label{hahn-banach-theorem}}
+
+\textbf{Extension Lemma} Suppose \(V\) is a \emph{real} normed vector
+space; \(U\) is a subspace of \(V\); and \(\phi:U\to\R\) is a bounded
+linear functional. Suppose \(h\in V\c U\). There exists a bounded linear
+functional \(\varphi:U+\R h\to \R\) such that
+
+\[\bc
+\varphi_U = \phi\\
+\norm{\varphi} = \norm{\phi}
+\ec\]
+
+\emph{\textbf{Hahn-Banach Theorem}} Suppose \(V\) is a \emph{real}
+normed vector space; \(U\) is a subspace of \(V\); and \(\phi:U\to\R\)
+is a bounded linear functional. Suppose \(h\in V\c U\). There exists a
+bounded linear functional \(\varphi:V\to \R\) such that
+
+\[\bc
+\varphi_U = \phi\\
+\norm{\varphi} = \norm{\phi}
+\ec\]
+
+Baire\textquotesingle s Category Theorem
+
+\textbf{Definition} Suppose \(U\) is a subset of a metric space \(V\).
+The interior of \(U\), denoted \(\text{int }U\), is the set of
+\(f\in U\) such that some open ball of \(V\) centered at \(f\) with
+positive radius is contained in \(U\).
+
+\textbf{Remark} \(\text{int }U\) is the \emph{largest open set}
+contained in \(U\). Note that the closure of \(U\) is the smallest
+closed set that contains \(U\).
+
+\textbf{Definition} A subset \(U\) is \emph{dense} in \(V\) if and only
+if \(\bar U = V\).
+
+\textbf{Examples} \(\Q\) and \(\R\c \Q\) are both dense in \(\R\).
+
+\textbf{Properties}
+
+\begin{itemize}
+\item
+  \(U\) is dense in \(V\) if and only if every open subset of \(V\)
+  contains at least one element of \(U\).
+\item
+  \(U\) has empty interior (i.e., \(\text{int }U = \empty\)) if and only
+  if \(V\c U\) is dense in \(V\).
+\end{itemize}
+
+\emph{\textbf{Baire\textquotesingle s Category Theorem}}
+
+\begin{itemize}
+\item
+  A complete metric space is \emph{NOT} the \emph{countable} union of
+  closed subsets with empty interior.
+\item
+  The countable intersection of dense open subsets of a complete metric
+  space is \emph{NON-empty}.
+\end{itemize}
+
+\textbf{Remarks} The intuition of the theorem is stating that, the
+countable union of small sets remains small, and the countable
+intersection of big sets remains big.
+
+\hypertarget{theorems}{%
+\subsection{Theorems}\label{theorems}}
+
+\emph{\textbf{Open Mapping Theorem}} Suppose \(V\) and \(W\) are Banach
+spaces. Consider \(T:V\to W\), which is a bounded (or equivalently,
+continuous) linear map and subjective (or say, onto). Then \(T\pr{G}\)
+is open in \(W\) if \(G\) is open in \(V\).
+
+\textbf{Remarks} If any of the two vector spaces are not Banach, the
+theorem goes wrong.
+
+\emph{\textbf{Proof}}
+
+Start with the simplest case. Let \(B\) be the unit ball in \(V\). That
+is,
+
+\[B = \B\pr{0,1} = \brace{f\in V:\norm{f}< 1}\]
+
+It suffices to show that \(T\pr{B}\) contains an open ball centered at
+\(0\), which is equivalent to prove that \(0\in \text{int }T\pr{B}\).
+
+Indeed, by linearity of \(T\),
+
+\[T\pr{\B\pr{f,a}} = Tf+aT\pr{B}\]
+
+for any \(f\in V\) and \(a>0\).
+
+Let \(G\se V\) be open, and \(f\in G\). By definition of a set being
+open, there exists an open ball \(\B\pr{f,a}\se G\). If
+\(0\in \text{int }T\pr{B}\),
+
+\[Tf = Tf+0 \in \text{int }T\pr{\B\pr{f,a}}\se \text{int }T\pr{G}\]
+
+By property of interior, \(G\) must be open.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+The surjectivity and linearity of \(T\) implies that
+
+\[\ba
+W = \uinf T\pr{kB} = \uinf kT\pr{B}
+\ea\]
+
+Because \(W\) is Banach, \(\bar W = W\). Hence,
+
+\[W = \bar W = \uinf \overline{kT\pr{B}}\]
+
+By Baire\textquotesingle s Theorem, there exists \(k\) such that
+
+\[\text{int }\overline{kT\pr{B}}\ne \empty\]
+
+Because of linearity of \(T\), it follows that
+\(\text{int }\overline{T\pr{B}}\ne\empty\).
+
+Then there exists \(f\in B\) such that
+\(Tf\in \text{int }\overline{T\pr{B}}\). Hence,
+
+\[0_W\in \overline{T\pr{B-f}}\se \text{int }\overline{T\pr{2B}} = \text{int }\overline{2T\pr{B}}\]
+
+It is implied that there exists \(r>0\) such that
+
+\[\bar{\B}\pr{0_W,2r}\se \text{int }\overline{2T\pr{B}}\]
+
+which immediately implies that
+
+\[\bar{\B}\pr{0_W,r}\se \text{int }\overline{T\pr{B}}\]
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+By definition of closure, take \(h\in W\) and \(\norm{h}\le r\). There
+exists \(f\in B\) such that
+
+\[\norm{h-Tf}<\ve\]
+
+Equivalently speaking, for any \(h\in W\), there exists
+\(f\in \frac{\norm{h}}{r}B\) such that
+
+\[\norm{h-Tf}<\ve\]
+
+Finally, pick any \(g\in W\) and \(\norm{g}<1\).
+
+\begin{itemize}
+\item
+  Use \((*)\) with \(h = g\) and \(\ve = \frac12\). There exists
+  \(f_1\in \frac1rB\) such that \(\norm{g-Tf_1}<\frac12\).
+\item
+  Use \((*)\) with \(h = g-Tf_1\) and \(\ve = \frac14\). There exists
+  \(f_2\in \frac1{2r}B\) such that \(\norm{g-Tf_1-Tf_2}<\frac14\).
+\item
+  We continue this process inductively and obtain a sequence
+  \(f_1,f_2,\cdots\) such that
+
+  \[\sinf \norm{f_k}\le \sinf \frac{1}{2^{k-1}r} = \frac2r<\infty\]
+\end{itemize}
+
+Eventually,
+
+\[\norm{g-Tf_1-Tf_2-\cdots-Tf_n}\le \frac1{2^n}\]
+
+Letting \(n\to \infty\) we have
+
+\[g = \lim_{n\to\infty}T\pr{\sum_{k = 1}^b f_k} = Tf\]
+
+\emph{\textbf{Closed Graph Theorem}} \(T\) is a bounded linear map if
+and only if the graph of \(T\) is closed.
+
+\emph{\textbf{Bounded Inverse Theorem}} Let \(T:V\to W\) be a bounded
+linear map and bijective. Then \(\inv T\) is bounded and linear.
+
+\emph{\textbf{Principle of Uniform Boundedness}} Suppose \(V\) is
+Banach, \(W\) is a normed vector space, and \(\A\) is a family of
+bounded linear maps from \(V\) to \(W\) such that
+
+\[\sup\brace{\norm{Tf}:T\in \A}<\infty,\forall f\in V\]
+
+(which is somewhat "pointwise boundedness".)
+
+Then
+
+\[\sup\brace{\norm{T}:T\in \A}<\infty\]
+
+\emph{\textbf{Proof}}
+
+\[V = \uinf[n] \brace{f\in V:\norm{Tf}\le n,\forall T\in \A}:= \uinf[n]V_n\]
+
+Since \(T\) is continuous, \(V_n\) is closed in \(V\), By
+Baire\textquotesingle s Theorem, there exists \(V_n\) that has nonempty
+interior:
+
+\[\B\pr{h,r}\se V_n,\forall h\in V,r>0\]
+
+Now suppose \(g\in V\) and \(\norm{g}<1\). Thus,
+
+\[rg+h\in \B\pr{h,r}\se V_n\]
+
+which implies that
+
+\[\ba
+\norm{Tg} & = \norm{\frac{T\pr{rg+h}}{r}-\frac{Th}{r}}\\
+& \le \frac nr+\frac{\norm{h}}{r}\\
+\too \norm{T} & \le \frac nr+\frac{\norm{Th}}{r}\\
+\too \sup_{T\in \A}\brace{\norm{T}} & \le \frac{n+\sup\brace{\norm{Th}:T\in \A}}{r}<\infty
+\ea\]
+
+\end{document}

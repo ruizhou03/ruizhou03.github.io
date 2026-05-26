@@ -209,6 +209,11 @@ mkdir -p files/images/<dirname>   # 文章图片用
   ```
 
   配文**必须**用 `<p class="img-caption">`，由 `_layouts/post.html` CSS 渲染。**别用斜体或引用块替代。**
+
+  caption 内**用 HTML 加粗/强调，不要 markdown 语法**——`<p class="img-caption">` 内的 markdown 不会渲染：
+  - ❌ `<p class="img-caption">这是 **加粗**</p>` → `**加粗**` 原样显示
+  - ✅ `<p class="img-caption">这是 <strong>加粗</strong></p>` → HTML 标签
+- **inline SVG 内的中文文字禁用 `font-style="italic"`**（[[feedback_chinese_no_italic]]）——SVG 是 HTML 一部分、`<text font-style="italic">中文</text>` 会让中文变斜体。多数浏览器会做义意大利字体回退，效果丑、不专业。SVG 里给中文加强调用 `font-weight="600"` 或换颜色，不要 italic。
 - **标题前不要 `---`**：YAML front-matter 那两道 `---` 之外，正文里第一个标题前别加分割线
 - **中文标点**：用中文标点（“，。：；！？「」”），西文术语/数字内部保持半角
 

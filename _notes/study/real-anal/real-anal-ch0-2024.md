@@ -11,6 +11,7 @@ date: 2024-09-01
 author: "Zircon"
 permalink: "/notes/real-anal/real-anal-ch0-2024"
 pdf_url: "/files/real-anal/real-anal-ch0-2024.pdf"
+summary: "2024 年密歇根大学交换实分析课的预备章节：黎曼积分回顾。把 Darboux 上下和、黎曼可积充要条件、阶梯函数逼近、Riemann 与 Lebesgue 对比梳理一遍，为后面 Lebesgue 测度做铺垫。看到 Riemann–Lebesgue 比较时方便随手翻。"
 # reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

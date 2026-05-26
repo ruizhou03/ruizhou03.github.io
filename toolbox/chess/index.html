@@ -640,6 +640,10 @@ permalink: /toolbox/chess/
     } else {
       const inCheck = state.game.in_check();
       label = (turn === 'w' ? '⚪ 白方走子' : '⚫ 黑方走子') + (inCheck ? ' — 将军！' : '');
+      // Online PvP: hint whose turn it is from your perspective
+      if (chIsOnline && chMyColor) {
+        label += (turn === chMyColor ? '（你的回合）' : '（等对手）');
+      }
     }
     turnEl.textContent = label;
 
@@ -727,21 +731,41 @@ permalink: /toolbox/chess/
     return true;
   }
 
-  function applyMove(moveObj) {
+  function applyMove(moveObj, opts) {
     // moveObj must include from/to (and optionally promotion)
+    opts = opts || {};
     const result = state.game.move(moveObj);
     if (!result) return null;
     state.lastMove = { from: result.from, to: result.to };
     state.selected = null;
     state.legalTargets = [];
     renderBoard();
+
+    // Online relay: broadcast local moves to the server. Remote-applied moves never re-broadcast.
+    if (chIsOnline && chRoomToken && !opts.fromRemote && !chRoomGameOver) {
+      const payload = { from: result.from, to: result.to };
+      if (result.promotion) payload.promotion = result.promotion;
+      chRoomApi('POST', 'move', { code: chRoomCode, token: chRoomToken, move: payload }).then(resp => {
+        if (resp && resp.ok) {
+          // Server accepted; count this entry so the next poll won't replay it.
+          chMovesApplied++;
+        } else if (resp && resp.reason === 'not_your_turn') {
+          // Out-of-sync (e.g. opponent moved between our local UI and server). Roll back.
+          state.game.undo();
+          renderBoard();
+          updateStatus();
+        }
+      });
+    }
+
     if (!endGameIfOver()) {
       updateStatus();
-      // If AI's turn now, queue AI move
-      if (!state.paused && aiSide() === state.game.turn()) {
+      // Only trigger AI in solo modes. In online PvP, never spawn AI even by accident.
+      if (!chIsOnline && !state.paused && aiSide() === state.game.turn()) {
         setTimeout(triggerAiMove, 100);
       }
     } else {
+      chRoomGameOver = true;
       updateStatus();
     }
     return result;
@@ -778,6 +802,8 @@ permalink: /toolbox/chess/
 
     // In AI mode, prevent the human from moving the AI's pieces
     if (aiSide() !== null && turn !== humanSide()) return;
+    // In online PvP, only let the player move their own color
+    if (chIsOnline && chMyColor && turn !== chMyColor) return;
 
     // If a target was clicked, attempt move
     if (state.selected) {
@@ -1100,6 +1126,9 @@ permalink: /toolbox/chess/
   const BOARD_API = 'https://zircon-urge.fly.dev/api/board';
   let chRoomToken = null, chRoomPlayerId = null, chRoomCode = null, chRoomHost = false;
   let chRoomStatePoller = null, chIsOnline = false;
+  let chMyColor = null;       // 'w' | 'b' — assigned by seat at game start
+  let chMovesApplied = 0;     // # of room.moves entries already replayed locally
+  let chRoomGameOver = false;
   const CH_MIN_PLAYERS = 2;
 
   function chRoomApi(method, action, body) {
@@ -1200,6 +1229,10 @@ permalink: /toolbox/chess/
     if (chRoomStatePoller) { clearTimeout(chRoomStatePoller); chRoomStatePoller = null; }
     if (chRoomToken) await chRoomApi('POST', 'leave', { code: chRoomCode, token: chRoomToken });
     chRoomToken = null; chRoomPlayerId = null; chRoomCode = null; chRoomHost = false;
+    chMyColor = null; chMovesApplied = 0; chRoomGameOver = false;
+    // Restore undo button in case it was hidden during online PvP
+    const undoEl = document.getElementById('chUndoBtn');
+    if (undoEl) undoEl.style.display = '';
     document.getElementById('chPgoRoomCodeInput').parentElement.style.display = '';
     document.getElementById('chPgoRoomLobby').style.display = 'none';
     document.getElementById('chPgoRoomCodeInput').value = '';
@@ -1208,13 +1241,45 @@ permalink: /toolbox/chess/
   function chStartPolling() {
     if (chRoomStatePoller) clearTimeout(chRoomStatePoller);
     let since = 0;
+    let gameStarted = false;
     async function poll() {
       if (!chRoomToken) return;
       const r = await chRoomApi('GET', `state&code=${chRoomCode}&token=${chRoomToken}&since=${since}`);
       if (!r.ok) { chRoomStatePoller = setTimeout(poll, 2000); return; }
       if (r.room) {
         since = r.version;
-        if (r.room.state === 'playing') { chPgoOverlay.classList.remove('open'); state.mode = 'pvp'; persist(); newGame(); if (chSave) chSave.start(); return; }
+        if (r.room.state === 'playing') {
+          // First entry into playing state: assign seat → color, start a fresh game, reset counters.
+          if (!gameStarted) {
+            const me = (r.room.players || []).find(p => p.id === chRoomPlayerId);
+            chMyColor = (me && me.seat === 'first') ? 'w' : 'b';
+            chPgoOverlay.classList.remove('open');
+            state.mode = 'pvp';
+            persist();
+            newGame();
+            chMovesApplied = 0;
+            chRoomGameOver = false;
+            // Hide undo button — online PvP can't undo (server moves are append-only)
+            const undoEl = document.getElementById('chUndoBtn');
+            if (undoEl) undoEl.style.display = 'none';
+            if (chSave) chSave.start();
+            updateStatus();
+            gameStarted = true;
+          }
+          // Replay any new moves from server (opponent's moves, or our own if we reconnect)
+          const moves = r.room.moves || [];
+          for (let i = chMovesApplied; i < moves.length; i++) {
+            const entry = moves[i];
+            // Skip our own moves (already applied locally) — except on reconnect when chMovesApplied=0
+            if (entry.playerId === chRoomPlayerId && i < chMovesApplied) continue;
+            try {
+              applyMove(entry.move, { fromRemote: true });
+            } catch (e) { /* defensive — bad move payload shouldn't crash poll loop */ }
+          }
+          chMovesApplied = moves.length;
+          chRoomStatePoller = setTimeout(poll, 400); // faster poll during play
+          return;
+        }
         if (!r.room.players.some(p => p.id === chRoomPlayerId)) { chLeaveRoom(); chShowError('你已被房主移出房间'); return; }
         chUpdateLobby(r.room);
       }
@@ -1236,8 +1301,10 @@ permalink: /toolbox/chess/
     }).catch(() => {});
   });
   document.getElementById('chPgoRoomStartBtn').addEventListener('click', async () => {
-    const r = await chRoomApi('POST', 'start', { code: chRoomCode, token: chRoomToken });
-    if (r.ok) { chPgoOverlay.classList.remove('open'); state.mode = 'pvp'; persist(); newGame(); if (chSave) chSave.start(); }
+    // Don't start the game here — let chStartPolling pick up the 'playing' state and assign seats,
+    // so host and guest both go through the same code path (avoids race where host inits a game
+    // before knowing its seat→color assignment).
+    await chRoomApi('POST', 'start', { code: chRoomCode, token: chRoomToken });
   });
 
   (function chAutoJoin() {

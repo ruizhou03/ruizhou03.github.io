@@ -16,3 +16,4 @@ pdf_url: "/files/real-anal/real-anal-ch1-2024.pdf"
 published: true
 ---
 
+<p class="img-caption">LaTeX 源码：<a href="/files/real-anal/source/real-anal-ch1-measure.tex">real-anal-ch1-measure.tex</a> · 完整 7 章合并版：<a href="/files/real-anal/real-anal-2024.pdf">real-anal-2024.pdf</a></p>

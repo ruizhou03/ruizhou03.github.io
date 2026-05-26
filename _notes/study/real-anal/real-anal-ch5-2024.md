@@ -15,3 +15,4 @@ pdf_url: "/files/real-anal/real-anal-ch5-2024.pdf"
 # reactions: ['👍', '🎓', '📝', '🔥']
 ---
 
+<p class="img-caption">LaTeX 源码：<a href="/files/real-anal/source/real-anal-ch5-lp-spaces.tex">real-anal-ch5-lp-spaces.tex</a></p>
