@@ -14,3 +14,4 @@ pdf_url: "/files/causal-id/causal-id-2023.pdf"
 summary: "北大《计量因果识别方法》（2023 暑校，黄开兴）课程讲义：32 学时浓缩 Rubin 潜在结果框架 + DID/RDD/IV 三大方法 + PSM/synthetic control 等扩展，是商科与社科因果推断入门最常见的一份讲义。"
 ---
 
+<p class="img-caption">LaTeX 源码：<a href="/files/causal-id/source/causal-id-2023.tex">causal-id-2023.tex</a></p>
