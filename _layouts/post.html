@@ -258,6 +258,99 @@ layout: default
     {{ content }}
   </div>
 
+  {%- comment -%}
+    "同课程其他资料" 自动区块：基于 page.course 聚合 site.notes 里所有
+    course 一致的笔记，按 material_type 分组（讲义 / 真题 / 课程测评 / 其他），
+    当前页保留位置并高亮显示——读者能看到自己在系列里的"相对位置"。
+
+    仅当：
+    - page.course 字段非空
+    - 同 course 下笔记数 > 1
+    时渲染。
+
+    布局：
+    - 桌面 ≥1400px：fixed 右栏（top: 100px），不挡主文章 800px 居中区
+    - <1400px：fallback 到文末嵌入流
+    - 跟右下角小助手 fab（bottom: 2rem）天然不重叠
+  {%- endcomment -%}
+  {%- assign cr_course = page.course -%}
+  {%- if cr_course -%}
+    {%- assign cr_related = site.notes | where: "course", cr_course | sort: "date" -%}
+    {%- if cr_related.size > 1 -%}
+      {%- assign cr_notes_arr = cr_related | where: "material_type", "Notes" -%}
+      {%- assign cr_exams_arr = cr_related | where: "material_type", "Exams" -%}
+      {%- assign cr_reviews_arr = cr_related | where: "material_type", "课程测评" -%}
+      <aside class="course-related" aria-label="同课程其他资料">
+        <h4 class="cr-head">📚 同课程其他资料</h4>
+        <p class="cr-course">{{ cr_course }}</p>
+
+        {%- if cr_notes_arr.size > 0 -%}
+        <div class="cr-group">
+          <h5>讲义</h5>
+          <ul>
+          {%- for item in cr_notes_arr -%}
+            {%- if item.url == page.url -%}
+              <li class="cr-current"><span>{{ item.title }}</span><span class="cr-here">← 当前</span></li>
+            {%- else -%}
+              <li><a href="{{ item.url | relative_url }}">{{ item.title }}</a></li>
+            {%- endif -%}
+          {%- endfor -%}
+          </ul>
+        </div>
+        {%- endif -%}
+
+        {%- if cr_exams_arr.size > 0 -%}
+        <div class="cr-group">
+          <h5>真题 / 试卷</h5>
+          <ul>
+          {%- for item in cr_exams_arr -%}
+            {%- if item.url == page.url -%}
+              <li class="cr-current"><span>{{ item.title }}</span><span class="cr-here">← 当前</span></li>
+            {%- else -%}
+              <li><a href="{{ item.url | relative_url }}">{{ item.title }}</a></li>
+            {%- endif -%}
+          {%- endfor -%}
+          </ul>
+        </div>
+        {%- endif -%}
+
+        {%- comment -%}
+          其他 material_type（笔试学习资料 等不规范取值）兜底显示
+        {%- endcomment -%}
+        {%- assign cr_other_arr = cr_related | where_exp: "item", "item.material_type != 'Notes' and item.material_type != 'Exams' and item.material_type != '课程测评'" -%}
+        {%- if cr_other_arr.size > 0 -%}
+        <div class="cr-group">
+          <h5>其他资料</h5>
+          <ul>
+          {%- for item in cr_other_arr -%}
+            {%- if item.url == page.url -%}
+              <li class="cr-current"><span>{{ item.title }}</span><span class="cr-here">← 当前</span></li>
+            {%- else -%}
+              <li><a href="{{ item.url | relative_url }}">{{ item.title }}</a></li>
+            {%- endif -%}
+          {%- endfor -%}
+          </ul>
+        </div>
+        {%- endif -%}
+
+        {%- if cr_reviews_arr.size > 0 -%}
+        <div class="cr-group cr-reviews">
+          <h5>课程测评</h5>
+          <ul>
+          {%- for item in cr_reviews_arr -%}
+            {%- if item.url == page.url -%}
+              <li class="cr-current"><span>{{ item.title }}</span><span class="cr-here">← 当前</span></li>
+            {%- else -%}
+              <li><a href="{{ item.url | relative_url }}">{{ item.title }}</a></li>
+            {%- endif -%}
+          {%- endfor -%}
+          </ul>
+        </div>
+        {%- endif -%}
+      </aside>
+    {%- endif -%}
+  {%- endif -%}
+
 <style>
   /* 隐藏 Waline 默认的 Markdown 语法指引图标 */
   .wl-actions a { display: none !important; }
@@ -433,6 +526,108 @@ layout: default
       max-width: 80%;
       font-size: 0.78rem;
     }
+  }
+
+  /* ── 同课程其他资料 自动区块 ──────────────────────────── */
+  .course-related {
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 0.9rem 1rem 1rem;
+    font-family: var(--font-body);
+    font-size: 0.86rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+    /* 默认（中小屏）：回到主文章流，文末嵌入 */
+    max-width: 720px;
+    margin: 3rem auto 1rem;
+  }
+  .course-related .cr-head {
+    margin: 0 0 0.2rem;
+    font-family: var(--font-display);
+    font-size: 0.98rem;
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .course-related .cr-course {
+    margin: 0 0 0.85rem;
+    font-size: 0.8rem;
+    color: var(--color-light);
+    font-family: 'Cormorant Garamond', serif;
+    letter-spacing: 0.02em;
+  }
+  .course-related .cr-group { margin-bottom: 0.85rem; }
+  .course-related .cr-group:last-child { margin-bottom: 0; }
+  .course-related .cr-group h5 {
+    margin: 0 0 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-light);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .course-related .cr-group ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .course-related .cr-group li {
+    margin: 0.18rem 0;
+    padding-left: 0;
+    line-height: 1.5;
+  }
+  .course-related .cr-group a {
+    color: var(--color-ink);
+    text-decoration: none;
+    border-bottom: 1px dashed transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .course-related .cr-group a:hover {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+  }
+  .course-related .cr-current {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    border-radius: 4px;
+    padding: 0.1rem 0.35rem;
+    margin: 0.18rem -0.35rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .course-related .cr-current span:first-child {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .course-related .cr-here {
+    font-size: 0.72rem;
+    color: var(--color-accent);
+    flex-shrink: 0;
+    font-family: 'Cormorant Garamond', serif;
+  }
+  .course-related .cr-reviews h5 { color: #a89060; }
+
+  /* 桌面宽屏 (≥1400px)：fixed 右栏，跟左侧 TOC 对称、跟右下小助手 fab 错开 */
+  @media (min-width: 1400px) {
+    .course-related {
+      position: fixed;
+      top: 100px;
+      right: 1.5rem;
+      width: 240px;
+      max-width: 240px;
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+      margin: 0;
+      z-index: 50;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    }
+  }
+
+  /* 移动端字号微调 */
+  @media (max-width: 480px) {
+    .course-related { font-size: 0.82rem; padding: 0.8rem 0.9rem; }
+    .course-related .cr-head { font-size: 0.92rem; }
   }
 
   /* ── 播客播放器 ───────────────────────────────────────── */
