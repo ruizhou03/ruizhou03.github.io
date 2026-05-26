@@ -1,7 +1,6 @@
 % Options for packages loaded elsewhere
 \PassOptionsToPackage{unicode}{hyperref}
 \PassOptionsToPackage{hyphens}{url}
-\PassOptionsToPackage{space}{xeCJK}
 %
 \documentclass[
 ]{ctexart}
@@ -19,14 +18,6 @@
 \usepackage{lmodern}
 \ifPDFTeX\else
   % xetex/luatex font selection
-  \ifXeTeX
-    \usepackage{xeCJK}
-    \setCJKmainfont[]{Songti SC}
-          \fi
-  \ifLuaTeX
-    \usepackage[]{luatexja-fontspec}
-    \setmainjfont[]{Songti SC}
-  \fi
 \fi
 % Use upquote if available, for straight quotes in verbatim environments
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
@@ -45,7 +36,59 @@
   \KOMAoptions{parskip=half}}
 \makeatother
 \usepackage{xcolor}
-\usepackage[margin=2.2cm]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
 \setlength{\emergencystretch}{3em} % prevent overfull lines
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
@@ -65,17 +108,23 @@
 
 \title{Correlation \& Distance}
 \author{Rui Zhou}
-\date{\texttt{r\ Sys.Date()}}
+\date{2026-05-26}
 
 \begin{document}
 \maketitle
 
-\renewcommand*\contentsname{目录}
 {
-\setcounter{tocdepth}{3}
+\setcounter{tocdepth}{2}
 \tableofcontents
 }
-\texttt{\{r\ results=\textquotesingle{}hide\textquotesingle{},message=FALSE,warning=FALSE\}\ library(bruceR)\ library(rstatix)\ library(tidyverse)\ library(stargazer)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(bruceR)}
+\FunctionTok{library}\NormalTok{(rstatix)}
+\FunctionTok{library}\NormalTok{(tidyverse)}
+\FunctionTok{library}\NormalTok{(stargazer)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{correlation}{%
 \section{Correlation}\label{correlation}}
@@ -93,16 +142,52 @@ Take dataset ``car\_sales.sav'' as an example, which you have been quite
 similar to ``mtcars''. We're interested in whether or not people value
 fuel-efficient cars more.
 
-\texttt{\{r\ warning=FALSE,message=FALSE\}\ carsales\ =\ import("car\_sales.sav")\ attach(carsales)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{carsales }\OtherTok{=} \FunctionTok{import}\NormalTok{(}\StringTok{"car\_sales.sav"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
 
-\texttt{\{r\ fig.cap=\textquotesingle{}Scatter\ Plot\ of\ mpg\ and\ sales\ with\ ALL\ Observations\textquotesingle{},\ out.width=\textquotesingle{}70\%\textquotesingle{},fig.align=\textquotesingle{}center\textquotesingle{},message=FALSE,\ warning=FALSE\}\ ggplot(data\ =\ carsales,\ mapping\ =\ aes(x\ =\ mpg,y\ =\ sales))+\ \ \ geom\_point()}
+\begin{verbatim}
+## ✔ Successfully imported: 157 obs. of 26 variables
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{attach}\NormalTok{(carsales)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(}\AttributeTok{data =}\NormalTok{ carsales, }\AttributeTok{mapping =} \FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ mpg,}\AttributeTok{y =}\NormalTok{ sales))}\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{figure}
+
+{\centering \includegraphics[width=0.7\linewidth]{r-correlation-distance_files/figure-latex/unnamed-chunk-3-1} 
+
+}
+
+\caption{Scatter Plot of mpg and sales with ALL Observations}\label{fig:unnamed-chunk-3}
+\end{figure}
 
 At first glance, there are apparently some outliers. Moreover, the
 scatter points seem to cluster in the bottom-left, possibly a skewed
 distribution instead of normal! Nevertheless, those don't bother us to
 check the overall correlation first.
 
-\texttt{\{r\}\ cor(sales,mpg,use\ =\ \textquotesingle{}c\textquotesingle{})}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cor}\NormalTok{(sales,mpg,}\AttributeTok{use =} \StringTok{\textquotesingle{}c\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] -0.01668058
+\end{verbatim}
 
 The correlation is not high in magnitude. Here, use ``\texttt{cor()}''
 for simplicity. Note that for data with missing values, specify
@@ -117,7 +202,11 @@ latter makes it to be complex unnecessarily! (Good thing is that,
 ``\texttt{cor.test()}'' will automatically wipe out cases with missing
 values.)
 
-\texttt{\{r\ eval=FALSE\}\ cor.test(mpg,sales)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cor.test}\NormalTok{(mpg,sales)}
+\end{Highlighting}
+\end{Shaded}
 
 Then, we're to deal with outliers and skewness, then to recompute
 correlation.
@@ -126,7 +215,15 @@ Good news is that, \(\log\) transformation helps when it comes to skewed
 distribution, and outliers will get contained under \(\log\)
 transformation at the same time.
 
-\texttt{\{r\}\ cor(log(mpg),log(sales),use\ =\ \textquotesingle{}c\textquotesingle{})}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cor}\NormalTok{(}\FunctionTok{log}\NormalTok{(mpg),}\FunctionTok{log}\NormalTok{(sales),}\AttributeTok{use =} \StringTok{\textquotesingle{}c\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.1141838
+\end{verbatim}
 
 The correlation coefficient is improved in magnitude, but not
 significant after all.
@@ -140,26 +237,75 @@ After observation, it's likely that cars whose model are ``Metro'' or
 ``F-Series'' are special compared to others. Accordingly, we're to group
 the data and then recompute correlation.
 
-```\{r message=FALSE,warning=FALSE\} sales\_some =
-sales{[}model!=``Metro''\&model!=``F-Series''{]} mpg\_some =
-mpg{[}model!=``Metro''\&model!=``F-Series''{]} type\_some =
-as.factor(type{[}model!=``Metro''\&model!=``F-Series''{]})
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sales\_some }\OtherTok{=}\NormalTok{ sales[model}\SpecialCharTok{!=}\StringTok{"Metro"}\SpecialCharTok{\&}\NormalTok{model}\SpecialCharTok{!=}\StringTok{"F{-}Series"}\NormalTok{]}
+\NormalTok{mpg\_some }\OtherTok{=}\NormalTok{ mpg[model}\SpecialCharTok{!=}\StringTok{"Metro"}\SpecialCharTok{\&}\NormalTok{model}\SpecialCharTok{!=}\StringTok{"F{-}Series"}\NormalTok{]}
+\NormalTok{type\_some }\OtherTok{=} \FunctionTok{as.factor}\NormalTok{(type[model}\SpecialCharTok{!=}\StringTok{"Metro"}\SpecialCharTok{\&}\NormalTok{model}\SpecialCharTok{!=}\StringTok{"F{-}Series"}\NormalTok{])}
 
-df = data.frame(sales\_some,mpg\_some,type\_some) df \%\textgreater\%
-ggplot(aes(mpg\_some, sales\_some,color = type\_some)) +
-geom\_point(alpha=0.8, size=0.8) + geom\_smooth(method=``lm'',se=FALSE)
-+ ylab(`Sales(k)') + xlab(`MPG')
+\NormalTok{df }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(sales\_some,mpg\_some,type\_some)}
+\NormalTok{df }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(mpg\_some, sales\_some,}\AttributeTok{color =}\NormalTok{ type\_some)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{alpha=}\FloatTok{0.8}\NormalTok{, }\AttributeTok{size=}\FloatTok{0.8}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}\AttributeTok{method=}\StringTok{"lm"}\NormalTok{,}\AttributeTok{se=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{\textquotesingle{}Sales(k)\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{xlab}\NormalTok{(}\StringTok{\textquotesingle{}MPG\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-correlation-distance_files/figure-latex/unnamed-chunk-7-1.pdf}
+
+Use graphs to think! The categorized data plays an important role here,
+and unfolds the underlying correlation. Based on the prior observation,
+then check correlation quantitatively.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cor.test}\NormalTok{(sales\_some[type\_some}\SpecialCharTok{==}\StringTok{"1"}\NormalTok{],mpg\_some[type\_some}\SpecialCharTok{==}\StringTok{"1"}\NormalTok{])}
+\end{Highlighting}
+\end{Shaded}
 
 \begin{verbatim}
-
-Use graphs to think! The categorized data plays an important role here, and unfolds the underlying correlation. Based on the prior observation, then check correlation quantitatively.
-
-```{r}
-cor.test(sales_some[type_some=="1"],mpg_some[type_some=="1"])
-cor.test(sales_some[type_some=="0"],mpg_some[type_some=="0"])
+## 
+##  Pearson's product-moment correlation
+## 
+## data:  sales_some[type_some == "1"] and mpg_some[type_some == "1"]
+## t = 0.070377, df = 38, p-value = 0.9443
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  -0.3011645  0.3217809
+## sample estimates:
+##        cor 
+## 0.01141584
 \end{verbatim}
 
-Finally, don't forget to \texttt{\{r\}\ detach(carsales)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cor.test}\NormalTok{(sales\_some[type\_some}\SpecialCharTok{==}\StringTok{"0"}\NormalTok{],mpg\_some[type\_some}\SpecialCharTok{==}\StringTok{"0"}\NormalTok{])}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Pearson's product-moment correlation
+## 
+## data:  sales_some[type_some == "0"] and mpg_some[type_some == "0"]
+## t = 2.8695, df = 112, p-value = 0.004915
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  0.0817139 0.4251484
+## sample estimates:
+##       cor 
+## 0.2616958
+\end{verbatim}
+
+Finally, don't forget to
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{detach}\NormalTok{(carsales)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{partial-part-correlation}{%
 \subsection{Partial \& Part
@@ -184,7 +330,7 @@ is the predictor, \(Y\) is the dependent variable, and \(Z\) is the
 covariate. Noteworthy that the assumption of the roles of \(X,Y,Z\)
 don't matter much, only for accommodating the setting.
 
-\texttt{\{r\ echo=FALSE,out.width=\textquotesingle{}60\%\textquotesingle{},fig.align=\textquotesingle{}center\textquotesingle{}\}\ knitr::include\_graphics("partial\ \&\ part\ correlation.png")}
+\begin{center}\includegraphics[width=0.6\linewidth]{partial & part correlation} \end{center}
 
 Note that, in the general case, \(Y\) is not represented as the whole
 area in the picture, but just an equal role as a circle.
@@ -215,7 +361,7 @@ spr_x&=\frac{a}{a+b+c+d}
 One more enlightening way to think about partial correlation is through
 multilinear regression.
 
-\texttt{\{r\ echo=FALSE,out.width=\textquotesingle{}40\%\textquotesingle{},fig.align=\textquotesingle{}center\textquotesingle{}\}\ knitr::include\_graphics("MLR\ partial\ corr.jpeg")}
+\begin{center}\includegraphics[width=0.4\linewidth]{MLR partial corr} \end{center}
 
 If we're interested in the partial correlation between \(A\) and \(B\),
 with \(C\) as the covariate. Then, what we need to do is partial out the
@@ -238,24 +384,50 @@ and then conpute the correlation with their residual parts. Done!
 We first man-make a data that vividly shows the differences between
 partial and zero-order correlation.
 
-```\{r out.width=`70\%',fig.align=`center',fig.cap=`Scatter Plot of X
-and Y'\} DV = c(1:8, 8:11) IV = c(4:1,8:5,12:9) covariate = c(rep(0,4),
-rep(4,4), rep(7,4)) studiedData = data.frame(DV,IV,covariate)
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{DV }\OtherTok{=} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\DecValTok{8}\NormalTok{, }\DecValTok{8}\SpecialCharTok{:}\DecValTok{11}\NormalTok{)}
+\NormalTok{IV }\OtherTok{=} \FunctionTok{c}\NormalTok{(}\DecValTok{4}\SpecialCharTok{:}\DecValTok{1}\NormalTok{,}\DecValTok{8}\SpecialCharTok{:}\DecValTok{5}\NormalTok{,}\DecValTok{12}\SpecialCharTok{:}\DecValTok{9}\NormalTok{)}
+\NormalTok{covariate }\OtherTok{=} \FunctionTok{c}\NormalTok{(}\FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{4}\NormalTok{), }\FunctionTok{rep}\NormalTok{(}\DecValTok{4}\NormalTok{,}\DecValTok{4}\NormalTok{), }\FunctionTok{rep}\NormalTok{(}\DecValTok{7}\NormalTok{,}\DecValTok{4}\NormalTok{))}
+\NormalTok{studiedData }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(DV,IV,covariate)}
 
-studiedData \textbar\textgreater{} ggplot(aes(x = IV,y = DV))+
-geom\_point()
+\NormalTok{studiedData }\SpecialCharTok{|\textgreater{}} \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ IV,}\AttributeTok{y =}\NormalTok{ DV))}\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{figure}
+
+{\centering \includegraphics[width=0.7\linewidth]{r-correlation-distance_files/figure-latex/unnamed-chunk-12-1} 
+
+}
+
+\caption{Scatter Plot of X and Y}\label{fig:unnamed-chunk-12}
+\end{figure}
+
+Clearly, considering zero-order correlation, \(X\) is strictly
+negatively-correlated with \(Y\), the covariate is strictly
+positively-correlated with \(Y\). However, \(X\) shows partially
+positive correlation with \(Y\) overall.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cor}\NormalTok{(IV,DV)}
+\end{Highlighting}
+\end{Shaded}
 
 \begin{verbatim}
-
-Clearly, considering zero-order correlation, $X$ is strictly negatively-correlated with $Y$, the covariate is strictly positively-correlated with $Y$. However, $X$ shows partially positive correlation with $Y$ overall.
-
-```{r}
-cor(IV,DV)
+## [1] 0.7608292
 \end{verbatim}
 
 If you're to study the partial correlation, things will be different.
 
-\texttt{\{r\ message=FALSE,eval=FALSE\}\ library(ppcor)\ pcor(studiedData)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(ppcor)}
+\FunctionTok{pcor}\NormalTok{(studiedData)}
+\end{Highlighting}
+\end{Shaded}
 
 \begin{table}[!htbp] \centering 
   \caption{Partial Correlation between Variables} 
@@ -279,11 +451,31 @@ increase! Cities that spend more actually seem to be worse off than
 cities that spend less. Then, shall we just cut the funding and save
 people's health?
 
-\texttt{\{r\}\ \#\ example:\ a\ covariate\ can\ "make"\ a\ correlation\ that\ should\ not\ exist\ currentData\ \textless{}-\ import("health\_funding.sav")\ attach(currentData)\ studiedData\ =\ data.frame(disease,funding,visits)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# example: a covariate can "make" a correlation that should not exist}
+\NormalTok{currentData }\OtherTok{\textless{}{-}} \FunctionTok{import}\NormalTok{(}\StringTok{"health\_funding.sav"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## ✔ Successfully imported: 50 obs. of 4 variables
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{attach}\NormalTok{(currentData)}
+\NormalTok{studiedData }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(disease,funding,visits)}
+\end{Highlighting}
+\end{Shaded}
 
 First of all, check overall zero-order correlation.
 
-\texttt{\{r\ eval=FALSE\}\ cor(studiedData)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cor}\NormalTok{(studiedData)}
+\end{Highlighting}
+\end{Shaded}
 
 \begin{table}[!htbp] \centering 
   \caption{Zero-Order Correlation} 
@@ -308,7 +500,11 @@ may be more likely to pay visits to health care, and thus more diseases
 are detected, which should have been detected but not due to wealth
 state.
 
-\texttt{\{r\ eval=FALSE\}\ pcor(studiedData)\$estimate}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{pcor}\NormalTok{(studiedData)}\SpecialCharTok{$}\NormalTok{estimate}
+\end{Highlighting}
+\end{Shaded}
 
 \begin{table}[!htbp] \centering 
   \caption{Partial Correlation} 
@@ -331,7 +527,11 @@ in essence!
 
 Additionally, we can consider the part correlation.
 
-\texttt{\{r\ eval=FALSE\}\ spcor(studiedData)\$estimate}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{spcor}\NormalTok{(studiedData)}\SpecialCharTok{$}\NormalTok{estimate}
+\end{Highlighting}
+\end{Shaded}
 
 \begin{table}[!htbp] \centering 
   \caption{Part Correlation} 
@@ -350,7 +550,11 @@ visits & $0.076$ & $0.596$ & $1$ \\
 
 And finally,
 
-\texttt{\{r\}\ detach(currentData)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{detach}\NormalTok{(currentData)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{distance}{%
 \section{Distance}\label{distance}}
@@ -403,7 +607,23 @@ perspective of dissimilarity or similarity.
   \end{itemize}
 \end{itemize}
 
-\texttt{\{r\ message=FALSE\}\ currentData\ =\ import("data10-04.sav",\ sheet\ =\ 1)\ attach(currentData)\ \#\ only\ use\ the\ data\ that\ should\ be\ considered\ or\ analyzed\ studiedData\ =\ data.frame(hgrow,temp,rain,hsun,humi)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{currentData }\OtherTok{=} \FunctionTok{import}\NormalTok{(}\StringTok{"data10{-}04.sav"}\NormalTok{, }\AttributeTok{sheet =} \DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## ✔ Successfully imported: 12 obs. of 6 variables
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{attach}\NormalTok{(currentData)}
+\CommentTok{\# only use the data that should be considered or analyzed}
+\NormalTok{studiedData }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(hgrow,temp,rain,hsun,humi)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{correlation-1}{%
 \subsection{Correlation}\label{correlation-1}}
@@ -413,7 +633,11 @@ correlation only applies for \textbf{distance between variables}, not
 for distance between cases. (If you insist to test the correlation
 between cases, easy, just transpose your data!)
 
-\texttt{\{r\ eval=FALSE\}\ cor(studiedData)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cor}\NormalTok{(studiedData)}
+\end{Highlighting}
+\end{Shaded}
 
 \begin{table}[!htbp] \centering 
   \caption{Correlation between Variables} 
@@ -439,7 +663,13 @@ Then, we're interested in Euclidean distance \textbf{between cases} by
 default. Use ``\texttt{dist(x,\ method\ =\ "euclidean")}''. Mind that
 the distance makes sense only if the data is scaled!
 
-\texttt{\{r\ eval=FALSE\}\ \#\ studiedData\ \%\textgreater{}\%\ dist()\ studiedData\ \ \%\textgreater{}\%\ \ \ \ scale()\ \%\textgreater{}\%\ dist()}
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# studiedData \%\textgreater{}\% dist()}
+\NormalTok{studiedData  }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{scale}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{dist}\NormalTok{() }
+\end{Highlighting}
+\end{Shaded}
 
 \begin{table}[!htbp] \centering 
   \caption{Euclidean Distance between Cases} 
@@ -468,7 +698,12 @@ the distance makes sense only if the data is scaled!
 If the Euclidean distance between \textbf{variables} is of interest,
 then \emph{transpose} your data.
 
-\texttt{\{r\ eval=FALSE\}\ dist\ =\ studiedData\ \ \%\textgreater{}\%\ \ \ \ scale()\ \%\textgreater{}\%\ t()\ \%\textgreater{}\%\ dist()}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dist }\OtherTok{=}\NormalTok{ studiedData  }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{scale}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{t}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{dist}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
 
 \begin{table}[!htbp] \centering 
   \caption{Euclidean Distance between Variables} 
@@ -502,7 +737,14 @@ Remember, if you're to study the distance between cases, transpose your
 matrix of data; if you're to study the distance between variables, throw
 the matrix of data into ``\texttt{lsa::cosine()}'' directly.
 
-\texttt{\{r\ eval=FALSE\}\ studiedData\ \%\textgreater{}\%\ \ \ \ as.matrix.data.frame()\ \%\textgreater{}\%\ t()\ \%\textgreater{}\%\ \ \ \ lsa::cosine()\ \%\textgreater{}\%\ \ \ \ stargazer(title\ =\ \textquotesingle{}Cosine\ Similarity\ between\ Cases\textquotesingle{})}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{studiedData }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{as.matrix.data.frame}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{t}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%} 
+\NormalTok{  lsa}\SpecialCharTok{::}\FunctionTok{cosine}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{stargazer}\NormalTok{(}\AttributeTok{title =} \StringTok{\textquotesingle{}Cosine Similarity between Cases\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
 
 \begin{table}[!htbp] \centering 
   \caption{Cosine Similarity between Cases} 
@@ -528,6 +770,11 @@ $0.994$ & $0.997$ & $0.986$ & $0.925$ & $0.609$ & $0.894$ & $0.847$ & $0.616$ & 
 
 And finally,
 
-\texttt{\{r\ \}\ detach(currentData)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{detach}\NormalTok{(currentData)}
+\end{Highlighting}
+\end{Shaded}
+
 
 \end{document}

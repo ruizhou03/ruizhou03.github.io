@@ -1,7 +1,6 @@
 % Options for packages loaded elsewhere
 \PassOptionsToPackage{unicode}{hyperref}
 \PassOptionsToPackage{hyphens}{url}
-\PassOptionsToPackage{space}{xeCJK}
 %
 \documentclass[
 ]{ctexart}
@@ -19,14 +18,6 @@
 \usepackage{lmodern}
 \ifPDFTeX\else
   % xetex/luatex font selection
-  \ifXeTeX
-    \usepackage{xeCJK}
-    \setCJKmainfont[]{Songti SC}
-          \fi
-  \ifLuaTeX
-    \usepackage[]{luatexja-fontspec}
-    \setmainjfont[]{Songti SC}
-  \fi
 \fi
 % Use upquote if available, for straight quotes in verbatim environments
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
@@ -45,7 +36,59 @@
   \KOMAoptions{parskip=half}}
 \makeatother
 \usepackage{xcolor}
-\usepackage[margin=2.2cm]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
 \setlength{\emergencystretch}{3em} % prevent overfull lines
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
@@ -65,14 +108,13 @@
 
 \title{Survival Analysis}
 \author{Rui}
-\date{\texttt{r\ Sys.Date()}}
+\date{2026-05-26}
 
 \begin{document}
 \maketitle
 
-\renewcommand*\contentsname{目录}
 {
-\setcounter{tocdepth}{3}
+\setcounter{tocdepth}{2}
 \tableofcontents
 }
 \hypertarget{packages}{%
@@ -102,7 +144,14 @@
   \end{itemize}
 \end{itemize}
 
-\texttt{\{r\ message=FALSE,results=\textquotesingle{}hide\textquotesingle{},warning=FALSE\}\ library(survival)\ library(survminer)\ library(ggplot2)\ library(ggfortify)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(survival)}
+\FunctionTok{library}\NormalTok{(survminer)}
+\FunctionTok{library}\NormalTok{(ggplot2)}
+\FunctionTok{library}\NormalTok{(ggfortify)}
+\end{Highlighting}
+\end{Shaded}
 
 Dataset ``lung'' in package ``survival'' is of interest, which contains
 the information about survival in patients with advanced lung cancer
@@ -139,8 +188,14 @@ include:
   wt.loss: Weight loss in last six months (pounds)
 \end{itemize}
 
-\texttt{\{r\ warning=FALSE,message=FALSE\}\ attach(lung)} \# Survival
-Object
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{attach}\NormalTok{(lung)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{survival-object}{%
+\section{Survival Object}\label{survival-object}}
 
 \texttt{survival::Surv()} creates a survival object, with censored data
 marked with ``\texttt{+}'' following up censoring time and death cases
@@ -166,7 +221,11 @@ Two most important parameters:
   omitted, in which case all subjects are assumed to have an event.
 \end{itemize}
 
-\texttt{\{r\}\ survobj\ =\ Surv(time,\ status==2)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{survobj }\OtherTok{=} \FunctionTok{Surv}\NormalTok{(time, status}\SpecialCharTok{==}\DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{surv-model}{%
 \section{Surv Model}\label{surv-model}}
@@ -174,12 +233,27 @@ Two most important parameters:
 For the overall survival analysis, just specify the null hypothesis with
 \texttt{Surv\textasciitilde{}1}, i.e., NO groups.
 
-\texttt{\{r\}\ sfit\ \textless{}-\ survfit(Surv(time,\ status==2)\textasciitilde{}1,\ data=lung)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sfit }\OtherTok{\textless{}{-}} \FunctionTok{survfit}\NormalTok{(}\FunctionTok{Surv}\NormalTok{(time, status}\SpecialCharTok{==}\DecValTok{2}\NormalTok{)}\SpecialCharTok{\textasciitilde{}}\DecValTok{1}\NormalTok{, }\AttributeTok{data=}\NormalTok{lung)}
+\end{Highlighting}
+\end{Shaded}
 
 The fitted survival model itself will tell you the results, with
 observations, events, median and 95\% CI.
 
-\texttt{\{r\}\ sfit}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sfit}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Call: survfit(formula = Surv(time, status == 2) ~ 1, data = lung)
+## 
+##        n events median 0.95LCL 0.95UCL
+## [1,] 228    165    310     285     363
+\end{verbatim}
 
 If more details are needed, i.e., the instantaneous events, and
 estimates of survival, std.err, 95\% CI, just \texttt{summary(sfit)}.
@@ -187,17 +261,61 @@ estimates of survival, std.err, 95\% CI, just \texttt{summary(sfit)}.
 Moreover, if \texttt{time} is designated, then the \texttt{summary()}
 function will return the estimated results.
 
-\texttt{\{r\}\ summary(sfit,time\ =\ 200)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(sfit,}\AttributeTok{time =} \DecValTok{200}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Call: survfit(formula = Surv(time, status == 2) ~ 1, data = lung)
+## 
+##  time n.risk n.event survival std.err lower 95% CI upper 95% CI
+##   200    144      72     0.68  0.0311        0.622        0.744
+\end{verbatim}
 
 However, if group is of interest, specify it in the formula with
 \texttt{Surv\textasciitilde{}group}.
 
-\texttt{\{r\}\ sfit\_sex\ =\ survfit(Surv(time,status==2)\textasciitilde{}strata(sex))\ sfit\_sex}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sfit\_sex }\OtherTok{=} \FunctionTok{survfit}\NormalTok{(}\FunctionTok{Surv}\NormalTok{(time, status}\SpecialCharTok{==}\DecValTok{2}\NormalTok{) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ sex, }\AttributeTok{data =}\NormalTok{ lung)}
+\NormalTok{sfit\_sex}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Call: survfit(formula = Surv(time, status == 2) ~ sex, data = lung)
+## 
+##         n events median 0.95LCL 0.95UCL
+## sex=1 138    112    270     212     310
+## sex=2  90     53    426     348     550
+\end{verbatim}
 
 From the model itself, we can get an overall picture of the differences
 between groups.
 
-\texttt{\{r\}\ summary(sfit\_sex,time\ =\ 365)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(sfit\_sex,}\AttributeTok{time =} \DecValTok{365}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Call: survfit(formula = Surv(time, status == 2) ~ sex, data = lung)
+## 
+##                 sex=1 
+##         time       n.risk      n.event     survival      std.err lower 95% CI 
+##     365.0000      35.0000      85.0000       0.3361       0.0434       0.2609 
+## upper 95% CI 
+##       0.4329 
+## 
+##                 sex=2 
+##         time       n.risk      n.event     survival      std.err lower 95% CI 
+##     365.0000      30.0000      36.0000       0.5265       0.0597       0.4215 
+## upper 95% CI 
+##       0.6576
+\end{verbatim}
 
 It's ideal that the 95\% CI of groups doesn't intersect, and a
 significant result can be obtained instantly. However, that's not the
@@ -206,9 +324,25 @@ case, take a step further and use Cox regression to see exactly.
 \hypertarget{cox-regression}{%
 \section{Cox Regression}\label{cox-regression}}
 
-\texttt{\{r\}\ coxph(Surv(time,\ status==2)\textasciitilde{}sex)} where
-``\texttt{exp(coef)}'' is the HR (hazard ratio)， which measures the
-relative risk between two groups.
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{coxph}\NormalTok{(}\FunctionTok{Surv}\NormalTok{(time, status}\SpecialCharTok{==}\DecValTok{2}\NormalTok{)}\SpecialCharTok{\textasciitilde{}}\NormalTok{sex)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Call:
+## coxph(formula = Surv(time, status == 2) ~ sex)
+## 
+##        coef exp(coef) se(coef)      z       p
+## sex -0.5310    0.5880   0.1672 -3.176 0.00149
+## 
+## Likelihood ratio test=10.63  on 1 df, p=0.001111
+## n= 228, number of events= 165
+\end{verbatim}
+
+where ``\texttt{exp(coef)}'' is the HR (hazard ratio)， which measures
+the relative risk between two groups.
 
 Theoretically, it's better only open to binary variables in Cox
 regression. However, for categorical variables with more than 2 levels,
@@ -230,7 +364,33 @@ Jointly speaking, the combined results of two functions emphasize the
 fact that the log rank test (named Mantel-Haenszel test), is a
 chi-square test in essence.
 
-\texttt{\{r\}\ surv\_diff\ =\ survdiff(Surv(time,\ status==2)\textasciitilde{}sex)\ surv\_diff\ surv\_diff\$chisq}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{surv\_diff }\OtherTok{=} \FunctionTok{survdiff}\NormalTok{(}\FunctionTok{Surv}\NormalTok{(time, status}\SpecialCharTok{==}\DecValTok{2}\NormalTok{)}\SpecialCharTok{\textasciitilde{}}\NormalTok{sex)}
+\NormalTok{surv\_diff}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Call:
+## survdiff(formula = Surv(time, status == 2) ~ sex)
+## 
+##         N Observed Expected (O-E)^2/E (O-E)^2/V
+## sex=1 138      112     91.6      4.55      10.3
+## sex=2  90       53     73.4      5.68      10.3
+## 
+##  Chisq= 10.3  on 1 degrees of freedom, p= 0.001
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{surv\_diff}\SpecialCharTok{$}\NormalTok{chisq}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 10.32674
+\end{verbatim}
 
 \hypertarget{surv-plots}{%
 \section{Surv Plots}\label{surv-plots}}
@@ -245,7 +405,17 @@ The parameter ``\texttt{risk.table}'' provides you with the freedom to
 decide whether or not to add a risk table below the Kaplan-Meier
 curve(s). Meanwhile, various options are available!
 
-\texttt{\{r\ warning=FALSE\}\ ggsurvplot(sfit\_sex,data\ =\ lung,\ \ \ \ \ \ \ \ \ \ \ \ conf.int=TRUE,\ pval=TRUE,\ \ \ \ \ \ \ \ \ \ \ \ \ risk.table=\textquotesingle{}abs\_pct\textquotesingle{},\ \ \ \ \ \ \ \ \ \ \ \ legend.labs=c("Male",\ "Female"),\ legend.title="Sex",\ \ \ \ \ \ \ \ \ \ \ \ title="Kaplan-Meier\ Curve\ for\ Lung\ Cancer\ Survival")}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggsurvplot}\NormalTok{(sfit\_sex,}\AttributeTok{data =}\NormalTok{ lung,}
+           \AttributeTok{conf.int=}\ConstantTok{TRUE}\NormalTok{, }\AttributeTok{pval=}\ConstantTok{TRUE}\NormalTok{, }
+           \AttributeTok{risk.table=}\StringTok{\textquotesingle{}abs\_pct\textquotesingle{}}\NormalTok{,}
+           \AttributeTok{legend.labs=}\FunctionTok{c}\NormalTok{(}\StringTok{"Male"}\NormalTok{, }\StringTok{"Female"}\NormalTok{), }\AttributeTok{legend.title=}\StringTok{"Sex"}\NormalTok{,}
+           \AttributeTok{title=}\StringTok{"Kaplan{-}Meier Curve for Lung Cancer Survival"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-survival-analysis_files/figure-latex/unnamed-chunk-11-1.pdf}
 
 Moreover, the parameter ``\texttt{fun}'' is quite useful, which will
 define a transformation of the survival curve.
@@ -260,8 +430,30 @@ define a transformation of the survival curve.
   ``cumhaz'': plots the cumulative hazard function, \(f(y)=-\log(y)\).
 \end{itemize}
 
-\texttt{\{r\}\ ggsurvplot(sfit\_sex,data\ =\ lung,\ \ \ \ \ \ \ \ \ \ \ \ conf.int=TRUE,\ pval=TRUE,\ \ \ \ \ \ \ \ \ \ \ \ \ \#\ risk.table=\textquotesingle{}abs\_pct\textquotesingle{},\ \ \ \ \ \ \ \ \ \ \ \ legend.labs=c("Male",\ "Female"),\ legend.title="Sex",\ \ \ \ \ \ \ \ \ \ \ \ \#\ title="Kaplan-Meier\ Curve\ for\ Lung\ Cancer\ Survival",\ \ \ \ \ \ \ \ \ \ \ \ fun\ =\ \textquotesingle{}event\textquotesingle{})}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggsurvplot}\NormalTok{(sfit\_sex,}\AttributeTok{data =}\NormalTok{ lung,}
+           \AttributeTok{conf.int=}\ConstantTok{TRUE}\NormalTok{, }\AttributeTok{pval=}\ConstantTok{TRUE}\NormalTok{, }
+           \CommentTok{\# risk.table=\textquotesingle{}abs\_pct\textquotesingle{},}
+           \AttributeTok{legend.labs=}\FunctionTok{c}\NormalTok{(}\StringTok{"Male"}\NormalTok{, }\StringTok{"Female"}\NormalTok{), }\AttributeTok{legend.title=}\StringTok{"Sex"}\NormalTok{,}
+           \CommentTok{\# title="Kaplan{-}Meier Curve for Lung Cancer Survival",}
+           \AttributeTok{fun =} \StringTok{\textquotesingle{}event\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
 
-\texttt{\{r\}\ ggsurvplot(sfit\_sex,data\ =\ lung,\ \ \ \ \ \ \ \ \ \ \ \ conf.int=TRUE,\ pval=TRUE,\ \ \ \ \ \ \ \ \ \ \ \ \ \#\ risk.table=\textquotesingle{}abs\_pct\textquotesingle{},\ \ \ \ \ \ \ \ \ \ \ \ legend.labs=c("Male",\ "Female"),\ legend.title="Sex",\ \ \ \ \ \ \ \ \ \ \ \ title="Kaplan-Meier\ Curve\ for\ Lung\ Cancer\ Survival",\ \ \ \ \ \ \ \ \ \ \ \ fun\ =\ \textquotesingle{}cumhaz\textquotesingle{})}
+\includegraphics{r-survival-analysis_files/figure-latex/unnamed-chunk-12-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggsurvplot}\NormalTok{(sfit\_sex,}\AttributeTok{data =}\NormalTok{ lung,}
+           \AttributeTok{conf.int=}\ConstantTok{TRUE}\NormalTok{, }\AttributeTok{pval=}\ConstantTok{TRUE}\NormalTok{, }
+           \CommentTok{\# risk.table=\textquotesingle{}abs\_pct\textquotesingle{},}
+           \AttributeTok{legend.labs=}\FunctionTok{c}\NormalTok{(}\StringTok{"Male"}\NormalTok{, }\StringTok{"Female"}\NormalTok{), }\AttributeTok{legend.title=}\StringTok{"Sex"}\NormalTok{,}
+           \AttributeTok{title=}\StringTok{"Kaplan{-}Meier Curve for Lung Cancer Survival"}\NormalTok{,}
+           \AttributeTok{fun =} \StringTok{\textquotesingle{}cumhaz\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-survival-analysis_files/figure-latex/unnamed-chunk-13-1.pdf}
 
 \end{document}

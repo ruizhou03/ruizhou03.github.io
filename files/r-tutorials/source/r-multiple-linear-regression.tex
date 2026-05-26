@@ -1,7 +1,6 @@
 % Options for packages loaded elsewhere
 \PassOptionsToPackage{unicode}{hyperref}
 \PassOptionsToPackage{hyphens}{url}
-\PassOptionsToPackage{space}{xeCJK}
 %
 \documentclass[
 ]{ctexart}
@@ -19,14 +18,6 @@
 \usepackage{lmodern}
 \ifPDFTeX\else
   % xetex/luatex font selection
-  \ifXeTeX
-    \usepackage{xeCJK}
-    \setCJKmainfont[]{Songti SC}
-          \fi
-  \ifLuaTeX
-    \usepackage[]{luatexja-fontspec}
-    \setmainjfont[]{Songti SC}
-  \fi
 \fi
 % Use upquote if available, for straight quotes in verbatim environments
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
@@ -45,7 +36,59 @@
   \KOMAoptions{parskip=half}}
 \makeatother
 \usepackage{xcolor}
-\usepackage[margin=2.2cm]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
 \setlength{\emergencystretch}{3em} % prevent overfull lines
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
@@ -69,19 +112,44 @@
 \begin{document}
 \maketitle
 
-\renewcommand*\contentsname{目录}
 {
-\setcounter{tocdepth}{3}
+\setcounter{tocdepth}{2}
 \tableofcontents
 }
-\texttt{\{r\ warning=FALSE\}\ library(dplyr)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(dplyr)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Attaching package: 'dplyr'
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+\end{verbatim}
 
 The \texttt{df} contains information about salary, beginning salary,
 education year, job category, previous working experience and so on. The
 relationship between salary and beginning salary, education, to name a
 few, is of interest.
 
-\texttt{\{r\}\ df\ =\ readxl::read\_excel("data02-01.xlsx",\ sheet\ =\ 1)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\OtherTok{=}\NormalTok{ readxl}\SpecialCharTok{::}\FunctionTok{read\_excel}\NormalTok{(}\StringTok{"data02{-}01.xlsx"}\NormalTok{, }\AttributeTok{sheet =} \DecValTok{1}\NormalTok{)}
+\FunctionTok{attach}\NormalTok{(df)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{pre-inspection}{%
 \section{Pre-Inspection}\label{pre-inspection}}
@@ -102,12 +170,47 @@ rough step for further regression, maybe other more information (about
 p-value or CIs) is unnecessary. Another good thing is that the
 \texttt{cor()} is from base R, no extra requirement to library packages.
 
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ df\ \textbar{}\textgreater{}\ select(salary,educ,salbegin,jobtime,prevexp)\ \textbar{}\textgreater{}\ cor()}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\SpecialCharTok{|\textgreater{}} \FunctionTok{select}\NormalTok{(salary,educ,salbegin,jobtime,prevexp) }\SpecialCharTok{|\textgreater{}} \FunctionTok{cor}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+              salary        educ    salbegin      jobtime      prevexp
+salary    1.00000000  0.66055891  0.88011747  0.084092267 -0.097466926
+educ      0.66055891  1.00000000  0.63319565  0.047378777 -0.252352521
+salbegin  0.88011747  0.63319565  1.00000000 -0.019753475  0.045135627
+jobtime   0.08409227  0.04737878 -0.01975347  1.000000000  0.002978134
+prevexp  -0.09746693 -0.25235252  0.04513563  0.002978134  1.000000000
+\end{verbatim}
 
 Well, it's clumsy to compress the target data (variables) into a matrix
 to take the test and get the correlation matrix. Just fine to know a bit
 about that.
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ \#\ first\ create\ an\ empty\ matrix,\ primarily\ filled\ with\ NA\ m\ =\ matrix(nrow=length(salary),ncol=5)\ m{[},1{]}=salary\ m{[},2{]}=educ\ m{[},3{]}\ =\ salbegin\ m{[},4{]}=jobtime\ \ \ m{[},5{]}=prevexp\ \#check\ the\ correlation\ matrix\ cor(m)}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# first create an empty matrix, primarily filled with NA}
+\NormalTok{m }\OtherTok{=} \FunctionTok{matrix}\NormalTok{(}\AttributeTok{nrow=}\FunctionTok{length}\NormalTok{(salary),}\AttributeTok{ncol=}\DecValTok{5}\NormalTok{)}
+\NormalTok{m[,}\DecValTok{1}\NormalTok{]}\OtherTok{=}\NormalTok{salary}
+\NormalTok{m[,}\DecValTok{2}\NormalTok{]}\OtherTok{=}\NormalTok{educ}
+\NormalTok{m[,}\DecValTok{3}\NormalTok{] }\OtherTok{=}\NormalTok{ salbegin}
+\NormalTok{m[,}\DecValTok{4}\NormalTok{]}\OtherTok{=}\NormalTok{jobtime  }
+\NormalTok{m[,}\DecValTok{5}\NormalTok{]}\OtherTok{=}\NormalTok{prevexp}
+\CommentTok{\#check the correlation matrix}
+\FunctionTok{cor}\NormalTok{(m)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+            [,1]        [,2]        [,3]         [,4]         [,5]
+[1,]  1.00000000  0.66055891  0.88011747  0.084092267 -0.097466926
+[2,]  0.66055891  1.00000000  0.63319565  0.047378777 -0.252352521
+[3,]  0.88011747  0.63319565  1.00000000 -0.019753475  0.045135627
+[4,]  0.08409227  0.04737878 -0.01975347  1.000000000  0.002978134
+[5,] -0.09746693 -0.25235252  0.04513563  0.002978134  1.000000000
+\end{verbatim}
 
 Additionally, I'd like to use \texttt{bruceR::Corr()} for the
 correlation matrix, which is visible for both in amount and in
@@ -116,7 +219,33 @@ significance. Moreover, it's fancy!
 For simplicity, the two decimals by default is well enough. If more
 accuracy is needed, you can set the parameter \texttt{digits\ =}.
 
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ df\ \textbar{}\textgreater{}\ select(salary,educ,salbegin,jobtime,prevexp)\ \textbar{}\textgreater{}\ bruceR::Corr(digits\ =\ 2)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\SpecialCharTok{|\textgreater{}} \FunctionTok{select}\NormalTok{(salary,educ,salbegin,jobtime,prevexp) }\SpecialCharTok{|\textgreater{}}\NormalTok{ bruceR}\SpecialCharTok{::}\FunctionTok{Corr}\NormalTok{(}\AttributeTok{digits =} \DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-multiple-linear-regression_files/figure-latex/unnamed-chunk-5-1.pdf}
+
+\begin{verbatim}
+Correlation matrix is displayed in the RStudio `Plots` Pane.
+
+Pearson's r and 95% confidence intervals:
+────────────────────────────────────────────────────
+                      r       [95% CI]     p       N
+────────────────────────────────────────────────────
+salary-educ        0.66 [ 0.61,  0.71] <.001 *** 474
+salary-salbegin    0.88 [ 0.86,  0.90] <.001 *** 474
+salary-jobtime     0.08 [-0.01,  0.17]  .067 .   474
+salary-prevexp    -0.10 [-0.19, -0.01]  .034 *   474
+educ-salbegin      0.63 [ 0.58,  0.68] <.001 *** 474
+educ-jobtime       0.05 [-0.04,  0.14]  .303     474
+educ-prevexp      -0.25 [-0.33, -0.17] <.001 *** 474
+salbegin-jobtime  -0.02 [-0.11,  0.07]  .668     474
+salbegin-prevexp   0.05 [-0.05,  0.13]  .327     474
+jobtime-prevexp    0.00 [-0.09,  0.09]  .948     474
+────────────────────────────────────────────────────
+\end{verbatim}
 
 \hypertarget{multicollinearity}{%
 \subsection{multicollinearity}\label{multicollinearity}}
@@ -129,7 +258,17 @@ obtaining the fitted model.
 
 VIF less than 2 is ideal, and less than 5 is the bottom line.
 
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ fit\ =\ lm(salary\ \textasciitilde{}\ educ\ +\ salbegin\ +\ jobtime\ +\ prevexp,data\ =\ df)\ car::vif(fit)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fit }\OtherTok{=} \FunctionTok{lm}\NormalTok{(salary }\SpecialCharTok{\textasciitilde{}}\NormalTok{ educ }\SpecialCharTok{+}\NormalTok{ salbegin }\SpecialCharTok{+}\NormalTok{ jobtime }\SpecialCharTok{+}\NormalTok{ prevexp,}\AttributeTok{data =}\NormalTok{ df)}
+\NormalTok{car}\SpecialCharTok{::}\FunctionTok{vif}\NormalTok{(fit)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+    educ salbegin  jobtime  prevexp 
+1.937010 1.813582 1.007613 1.155814 
+\end{verbatim}
 
 \hypertarget{mlr}{%
 \section{MLR}\label{mlr}}
@@ -142,7 +281,37 @@ Firstly, use \texttt{lm()} to get the linear model.
 Subsequently, use \texttt{summary()} to get the detailed result.
 
 Period.
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ fit\ =\ lm(salary\ \textasciitilde{}\ educ\ +\ salbegin\ +\ jobtime\ +\ prevexp,data\ =\ df)\ summary(fit)}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fit }\OtherTok{=} \FunctionTok{lm}\NormalTok{(salary }\SpecialCharTok{\textasciitilde{}}\NormalTok{ educ }\SpecialCharTok{+}\NormalTok{ salbegin }\SpecialCharTok{+}\NormalTok{ jobtime }\SpecialCharTok{+}\NormalTok{ prevexp,}\AttributeTok{data =}\NormalTok{ df)}
+\FunctionTok{summary}\NormalTok{(fit)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+
+Call:
+lm(formula = salary ~ educ + salbegin + jobtime + prevexp, data = df)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-29600  -4119  -1246   2642  46079 
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)    
+(Intercept) -1.615e+04  3.255e+03  -4.961 9.84e-07 ***
+educ         6.699e+02  1.656e+02   4.045 6.11e-05 ***
+salbegin     1.768e+00  5.873e-02  30.111  < 2e-16 ***
+jobtime      1.615e+02  3.425e+01   4.715 3.19e-06 ***
+prevexp     -1.730e+01  3.528e+00  -4.904 1.30e-06 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 7465 on 469 degrees of freedom
+Multiple R-squared:  0.8105,    Adjusted R-squared:  0.8089 
+F-statistic: 501.5 on 4 and 469 DF,  p-value: < 2.2e-16
+\end{verbatim}
 
 It's noteworthy that \texttt{bruceR::print\_table(model)} can spring up
 the regression result as a decent table, and can be exported to a
@@ -161,13 +330,46 @@ each IV.
 Furthermore, use \texttt{confint(model,level\ =\ 0.95)} from base R to
 see the CIs (95\% by default) for each coefficients.
 
-\texttt{\{r\}\ coefficients(fit)\ confint(fit,\ level=0.95)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{coefficients}\NormalTok{(fit)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   (Intercept)          educ      salbegin       jobtime       prevexp 
+## -16149.671204    669.913570      1.768427    161.485642    -17.303251
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{confint}\NormalTok{(fit, }\AttributeTok{level=}\FloatTok{0.95}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                     2.5 %       97.5 %
+## (Intercept) -22546.784635 -9752.557773
+## educ           344.511104   995.316035
+## salbegin         1.653019     1.883835
+## jobtime         94.190179   228.781104
+## prevexp        -24.236663   -10.369839
+\end{verbatim}
 
 Multiple R squared is reported through \texttt{summary()}.
 
 By definition, Multiple R squared is defined as the square of the
 correlation between estimated (fitted) value and real values.
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ cor(salary,fit\$fitted.values)}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cor}\NormalTok{(salary,fit}\SpecialCharTok{$}\NormalTok{fitted.values)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+[1] 0.9002721
+\end{verbatim}
 
 \hypertarget{model-comparison}{%
 \subsection{model comparison}\label{model-comparison}}
@@ -179,11 +381,31 @@ variation of values.
 
 Get the null model by formula \texttt{DV\textasciitilde{}1}.
 
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ fit2\ =\ lm(salary\ \textasciitilde{}\ 1\ )}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fit2 }\OtherTok{=} \FunctionTok{lm}\NormalTok{(salary }\SpecialCharTok{\textasciitilde{}} \DecValTok{1}\NormalTok{ )}
+\end{Highlighting}
+\end{Shaded}
 
 Then use \texttt{anova(model1,model2)} to compare the two models.
 
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ anova(fit,fit2)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{anova}\NormalTok{(fit,fit2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+Analysis of Variance Table
+
+Model 1: salary ~ educ + salbegin + jobtime + prevexp
+Model 2: salary ~ 1
+  Res.Df        RSS Df   Sum of Sq      F    Pr(>F)    
+1    469 2.6137e+10                                    
+2    473 1.3792e+11 -4 -1.1178e+11 501.45 < 2.2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
 
 If we think further, the F test for the MLR model is to test with null
 hypothesis that all the coefficients of all the IVs are zero. Therefore,
@@ -197,9 +419,43 @@ Transform the formula with each variable embedded into the function
 \texttt{scale()}, no other adjustments!
 
 Under standard MLR, the coefficients are standardized ones.
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ fit\_std\ =\ lm(scale(salary)\ \textasciitilde{}\ scale(educ)\ +\ scale(salbegin)\ +\ scale(jobtime)\ +\ scale(prevexp),data\ =\ df)}
 
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ summary(fit\_std)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fit\_std }\OtherTok{=} \FunctionTok{lm}\NormalTok{(}\FunctionTok{scale}\NormalTok{(salary) }\SpecialCharTok{\textasciitilde{}} \FunctionTok{scale}\NormalTok{(educ) }\SpecialCharTok{+} \FunctionTok{scale}\NormalTok{(salbegin) }\SpecialCharTok{+} \FunctionTok{scale}\NormalTok{(jobtime) }\SpecialCharTok{+} \FunctionTok{scale}\NormalTok{(prevexp),}\AttributeTok{data =}\NormalTok{ df)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(fit\_std)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+
+Call:
+lm(formula = scale(salary) ~ scale(educ) + scale(salbegin) + 
+    scale(jobtime) + scale(prevexp), data = df)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-1.73349 -0.24121 -0.07298  0.15475  2.69850 
+
+Coefficients:
+                  Estimate Std. Error t value Pr(>|t|)    
+(Intercept)     -1.129e-16  2.008e-02   0.000        1    
+scale(educ)      1.132e-01  2.798e-02   4.045 6.11e-05 ***
+scale(salbegin)  8.151e-01  2.707e-02  30.111  < 2e-16 ***
+scale(jobtime)   9.515e-02  2.018e-02   4.715 3.19e-06 ***
+scale(prevexp)  -1.060e-01  2.161e-02  -4.904 1.30e-06 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.4372 on 469 degrees of freedom
+Multiple R-squared:  0.8105,    Adjusted R-squared:  0.8089 
+F-statistic: 501.5 on 4 and 469 DF,  p-value: < 2.2e-16
+\end{verbatim}
 
 \hypertarget{semi--partial-for-x}{%
 \subsection{(semi-) partial for x}\label{semi--partial-for-x}}
@@ -223,26 +479,109 @@ rownames and colnames, making it reading-unfriendly. However, we only
 care about the (semi-) partial correlation between DV and all IVs, which
 means only the very one row or column is enough.
 
-Therefore, DV goes first! Only check the first row or column! ```\{r
-comment='\,'\} \# partial correlation df \textbar\textgreater{}
-select(salary,educ,salbegin,jobtime,prevexp) \textbar\textgreater{}
-ppcor::pcor()
+Therefore, DV goes first! Only check the first row or column!
 
-\hypertarget{part-or-semi-partial-correlation}{%
-\section{part or semi-partial
-correlation}\label{part-or-semi-partial-correlation}}
-
-df \textbar\textgreater{} select(salary,educ,salbegin,jobtime,prevexp)
-\textbar\textgreater{} ppcor::spcor()
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# partial correlation}
+\NormalTok{df }\SpecialCharTok{|\textgreater{}} \FunctionTok{select}\NormalTok{(salary,educ,salbegin,jobtime,prevexp) }\SpecialCharTok{|\textgreater{}} 
+\NormalTok{  ppcor}\SpecialCharTok{::}\FunctionTok{pcor}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
 
 \begin{verbatim}
+$estimate
+             salary        educ   salbegin     jobtime     prevexp
+salary    1.0000000  0.18362578  0.8118323  0.21275206 -0.22085427
+educ      0.1836258  1.00000000  0.2347785  0.04216897 -0.30912243
+salbegin  0.8118323  0.23477855  1.0000000 -0.21340370  0.33602452
+jobtime   0.2127521  0.04216897 -0.2134037  1.00000000  0.07981028
+prevexp  -0.2208543 -0.30912243  0.3360245  0.07981028  1.00000000
 
-# Goodness of Fit
-## fitted values & real values
-```{r comment=''}
-fitted_y = fitted(fit) # predicted values
-plot(df$salary,fitted_y,'p')
+$p.value
+                salary         educ      salbegin      jobtime      prevexp
+salary    0.000000e+00 6.105604e-05 1.163309e-111 3.186348e-06 1.296712e-06
+educ      6.105604e-05 0.000000e+00  2.550384e-07 3.611647e-01 6.903840e-12
+salbegin 1.163309e-111 2.550384e-07  0.000000e+00 2.967847e-06 6.775217e-14
+jobtime   3.186348e-06 3.611647e-01  2.967847e-06 0.000000e+00 8.358673e-02
+prevexp   1.296712e-06 6.903840e-12  6.775217e-14 8.358673e-02 0.000000e+00
+
+$statistic
+            salary       educ  salbegin    jobtime   prevexp
+salary    0.000000  4.0454629 30.110719  4.7153987 -4.904006
+educ      4.045463  0.0000000  5.230663  0.9140415 -7.039248
+salbegin 30.110719  5.2306629  0.000000 -4.7305296  7.726346
+jobtime   4.715399  0.9140415 -4.730530  0.0000000  1.733935
+prevexp  -4.904006 -7.0392480  7.726346  1.7339351  0.000000
+
+$n
+[1] 474
+
+$gp
+[1] 3
+
+$method
+[1] "pearson"
 \end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# part or semi{-}partial correlation}
+\NormalTok{df }\SpecialCharTok{|\textgreater{}} \FunctionTok{select}\NormalTok{(salary,educ,salbegin,jobtime,prevexp) }\SpecialCharTok{|\textgreater{}} 
+\NormalTok{  ppcor}\SpecialCharTok{::}\FunctionTok{spcor}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+$estimate
+             salary        educ   salbegin     jobtime     prevexp
+salary    1.0000000  0.08132013  0.6052725  0.09478688 -0.09857818
+educ      0.1319374  1.00000000  0.1705911  0.02981024 -0.22957564
+salbegin  0.6028339  0.10472088  1.0000000 -0.09470792  0.15468589
+jobtime   0.2119468  0.04108416 -0.2126269  1.00000000  0.07793657
+prevexp  -0.2054291 -0.29487448  0.3236570  0.07263463  1.00000000
+
+$p.value
+               salary         educ     salbegin    jobtime      prevexp
+salary   0.000000e+00 7.788628e-02 2.067811e-48 0.03975543 3.244186e-02
+educ     4.126643e-03 0.000000e+00 1.994428e-04 0.51867959 4.739749e-07
+salbegin 6.161045e-48 2.303088e-02 0.000000e+00 0.03992148 7.559174e-04
+jobtime  3.477648e-06 3.736610e-01 3.230041e-06 0.00000000 9.112418e-02
+prevexp  6.973073e-06 6.655125e-11 6.011570e-13 0.11543038 0.000000e+00
+
+$statistic
+            salary       educ  salbegin    jobtime   prevexp
+salary    0.000000  1.7669539 16.466993  2.0620275 -2.145298
+educ      2.882488  0.0000000  3.749348  0.6458697 -5.108220
+salbegin 16.362654  2.2804165  0.000000 -2.0602942  3.390753
+jobtime   4.696710  0.8904871 -4.712493  0.0000000  1.692976
+prevexp  -4.545809 -6.6830784  7.407988  1.5771712  0.000000
+
+$n
+[1] 474
+
+$gp
+[1] 3
+
+$method
+[1] "pearson"
+\end{verbatim}
+
+\hypertarget{goodness-of-fit}{%
+\section{Goodness of Fit}\label{goodness-of-fit}}
+
+\hypertarget{fitted-values-real-values}{%
+\subsection{fitted values \& real
+values}\label{fitted-values-real-values}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fitted\_y }\OtherTok{=} \FunctionTok{fitted}\NormalTok{(fit) }\CommentTok{\# predicted values}
+\FunctionTok{plot}\NormalTok{(df}\SpecialCharTok{$}\NormalTok{salary,fitted\_y,}\StringTok{\textquotesingle{}p\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-multiple-linear-regression_files/figure-latex/unnamed-chunk-15-1.pdf}
 
 \hypertarget{residual}{%
 \subsection{residual}\label{residual}}
@@ -253,7 +592,20 @@ distribution.
 Fitted model's residuals can be obtained through
 \texttt{residuals(model)} or \texttt{model\$residuals}. This works the
 same for other attributes of a linear model, such as coefficients.
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ hist(residuals(fit))\ \#\ hist(fit\$residuals)}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{hist}\NormalTok{(}\FunctionTok{residuals}\NormalTok{(fit))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-multiple-linear-regression_files/figure-latex/unnamed-chunk-16-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# hist(fit$residuals)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{plot-more}{%
 \subsection{plot more}\label{plot-more}}
@@ -316,9 +668,21 @@ Following the order, the six plots are:
   \tightlist
   \item
     Large in both, possibly outlier!
-    \texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ plot(fit,\ which=1:6)}
   \end{itemize}
 \end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot}\NormalTok{(fit, }\AttributeTok{which=}\DecValTok{1}\SpecialCharTok{:}\DecValTok{6}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-multiple-linear-regression_files/figure-latex/unnamed-chunk-17-1.pdf}
+\includegraphics{r-multiple-linear-regression_files/figure-latex/unnamed-chunk-17-2.pdf}
+\includegraphics{r-multiple-linear-regression_files/figure-latex/unnamed-chunk-17-3.pdf}
+\includegraphics{r-multiple-linear-regression_files/figure-latex/unnamed-chunk-17-4.pdf}
+\includegraphics{r-multiple-linear-regression_files/figure-latex/unnamed-chunk-17-5.pdf}
+\includegraphics{r-multiple-linear-regression_files/figure-latex/unnamed-chunk-17-6.pdf}
 
 There's another way to do the model checking. Use
 \texttt{performance::check\_model(model)}.
@@ -328,10 +692,22 @@ The default option is to check all the ``vif'', ``qq'', ``normality'',
 ``pp\_check'', ``binned\_residuals'' and ``overdispersion'', which can
 be specified through \texttt{check\ =\ specifying\_vector}. Here I'll
 take the check of outliers as an example.
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ performance::check\_model(fit,check\ =\ \textquotesingle{}outliers\textquotesingle{})}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{performance}\SpecialCharTok{::}\FunctionTok{check\_model}\NormalTok{(fit,}\AttributeTok{check =} \StringTok{\textquotesingle{}outliers\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-multiple-linear-regression_files/figure-latex/unnamed-chunk-18-1.pdf}
 
 Do not forget to \texttt{detach()} the attached data.
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ detach(df)}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{detach}\NormalTok{(df)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{appendix}{%
 \section{Appendix}\label{appendix}}
@@ -350,7 +726,11 @@ not know what database the variable is from, especially when you're
 trying to check the codes. Combined with tube-friendly and
 formula-pattern genre, this won't be any more trouble.
 
-\texttt{\{r\}\ attach(df)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{attach}\NormalTok{(df)}
+\end{Highlighting}
+\end{Shaded}
 
 After attaching a database, remember to \texttt{detach()} that finally,
 in case of conflicts with other variables.
@@ -358,17 +738,53 @@ in case of conflicts with other variables.
 \hypertarget{mlr-1}{%
 \subsection{MLR}\label{mlr-1}}
 
-\texttt{\{r\}\ heart\ =\ read.csv(\textquotesingle{}heart.csv\textquotesingle{})}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{heart }\OtherTok{=} \FunctionTok{read.csv}\NormalTok{(}\StringTok{\textquotesingle{}heart.csv\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{fit-the-model}{%
 \subsubsection{Fit the Model}\label{fit-the-model}}
 
-\texttt{\{r\}\ mfit\ =\ lm(scale(heart.disease)\textasciitilde{}scale(biking)+scale(smoking),\ \ \ \ \ \ \ \ \ \ \ data\ =\ heart)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{mfit }\OtherTok{=} \FunctionTok{lm}\NormalTok{(}\FunctionTok{scale}\NormalTok{(heart.disease)}\SpecialCharTok{\textasciitilde{}}\FunctionTok{scale}\NormalTok{(biking)}\SpecialCharTok{+}\FunctionTok{scale}\NormalTok{(smoking),}
+          \AttributeTok{data =}\NormalTok{ heart)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{summary-the-model}{%
 \subsubsection{Summary the Model}\label{summary-the-model}}
 
-\texttt{\{r\}\ summary(mfit)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(mfit)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = scale(heart.disease) ~ scale(biking) + scale(smoking), 
+##     data = heart)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.47658 -0.09762  0.00792  0.09671  0.42283 
+## 
+## Coefficients:
+##                  Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    -6.119e-17  6.410e-03    0.00        1    
+## scale(biking)  -9.403e-01  6.418e-03 -146.53   <2e-16 ***
+## scale(smoking)  3.234e-01  6.418e-03   50.39   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.1431 on 495 degrees of freedom
+## Multiple R-squared:  0.9796, Adjusted R-squared:  0.9795 
+## F-statistic: 1.19e+04 on 2 and 495 DF,  p-value: < 2.2e-16
+\end{verbatim}
 
 It's predicted that if \texttt{biking} changes for one standard
 deviation, then \texttt{heart.disease} is to change for -0.940 standard
@@ -377,17 +793,34 @@ deviation, then \texttt{heart.disease} is to change for 0.323 standard
 deviation. Meanwhile, coefficients of both \texttt{biking} and
 \texttt{smoking} are highly significant with \(p<.001\).
 
-\hypertarget{goodness-of-fit}{%
-\subsubsection{Goodness of Fit}\label{goodness-of-fit}}
+\hypertarget{goodness-of-fit-1}{%
+\subsubsection{Goodness of Fit}\label{goodness-of-fit-1}}
 
 After qualitative analysis, now move on to quantitative works.
 
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ result\ =\ summary(mfit)\ result\$adj.r.squared}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{result }\OtherTok{=} \FunctionTok{summary}\NormalTok{(mfit)}
+\NormalTok{result}\SpecialCharTok{$}\NormalTok{adj.r.squared}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+[1] 0.9795351
+\end{verbatim}
 
 \(Adjusted\ R^2\) of 0.9795 indicates a highly awesome goodness of fit
 and its ability to explain the variation of the data!
 
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ cor(x\ =\ fitted(mfit),\ y\ =\ heart\$heart.disease)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cor}\NormalTok{(}\AttributeTok{x =} \FunctionTok{fitted}\NormalTok{(mfit), }\AttributeTok{y =}\NormalTok{ heart}\SpecialCharTok{$}\NormalTok{heart.disease)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+[1] 0.9897563
+\end{verbatim}
 
 The correlation between the fitted values and the observed (real) values
 is as high as 0.9897563, which is exactly the square root of \(R^2\).
@@ -396,7 +829,16 @@ Jointly speaking, the model has great credibility in prediction.
 \hypertarget{vif}{%
 \subsubsection{VIF}\label{vif}}
 
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ car::vif(mfit)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{car}\SpecialCharTok{::}\FunctionTok{vif}\NormalTok{(mfit)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+ scale(biking) scale(smoking) 
+      1.000229       1.000229 
+\end{verbatim}
 
 VIFs of \texttt{biking} and \texttt{smoking} are 1.000229 and 1.000229
 respectively, far less than 5, showing that there should be no worries
@@ -405,19 +847,56 @@ about multicollinearity.
 \hypertarget{plots-of-residuals}{%
 \subsubsection{Plots of Residuals}\label{plots-of-residuals}}
 
-\texttt{\{r\}\ par(mfrow\ =\ c(1,2))\ plot(mfit,which\ =\ c(1,3))}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{))}
+\FunctionTok{plot}\NormalTok{(mfit,}\AttributeTok{which =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{3}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-multiple-linear-regression_files/figure-latex/unnamed-chunk-27-1.pdf}
 
 From the first plot, it's shown that there's no obvious tendency between
 the fitted values and the residuals.
 
-\texttt{\{r\}\ par(mfrow\ =\ c(1,2))\ plot(mfit,which\ =\ 2)\ hist(mfit\$residuals)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{))}
+\FunctionTok{plot}\NormalTok{(mfit,}\AttributeTok{which =} \DecValTok{2}\NormalTok{)}
+\FunctionTok{hist}\NormalTok{(mfit}\SpecialCharTok{$}\NormalTok{residuals)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-multiple-linear-regression_files/figure-latex/unnamed-chunk-28-1.pdf}
 
 In QQ plot, the scatter points of residuals closely center around the
 line offered by normal distribution. In the histogram of residuals, a
 clear prototype of normal distribution is depicted. What's more, move on
 from qualitative analysis to the quantitative.
 
-\texttt{\{r\ comment=\textquotesingle{}\textquotesingle{}\}\ shapiro.test(mfit\$residuals)\ mfit\$residuals\ \textbar{}\textgreater{}\ mean()}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{shapiro.test}\NormalTok{(mfit}\SpecialCharTok{$}\NormalTok{residuals)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+
+    Shapiro-Wilk normality test
+
+data:  mfit$residuals
+W = 0.997, p-value = 0.4935
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{mfit}\SpecialCharTok{$}\NormalTok{residuals }\SpecialCharTok{|\textgreater{}} \FunctionTok{mean}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+[1] 2.305236e-18
+\end{verbatim}
 
 From the Shapiro test, \(W = 0.9969963,p=0.4935143\), indicating that
 the residuals from the fitted model follow a normal distribution.

@@ -1,7 +1,6 @@
 % Options for packages loaded elsewhere
 \PassOptionsToPackage{unicode}{hyperref}
 \PassOptionsToPackage{hyphens}{url}
-\PassOptionsToPackage{space}{xeCJK}
 %
 \documentclass[
 ]{ctexart}
@@ -19,14 +18,6 @@
 \usepackage{lmodern}
 \ifPDFTeX\else
   % xetex/luatex font selection
-  \ifXeTeX
-    \usepackage{xeCJK}
-    \setCJKmainfont[]{Songti SC}
-          \fi
-  \ifLuaTeX
-    \usepackage[]{luatexja-fontspec}
-    \setmainjfont[]{Songti SC}
-  \fi
 \fi
 % Use upquote if available, for straight quotes in verbatim environments
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
@@ -45,7 +36,59 @@
   \KOMAoptions{parskip=half}}
 \makeatother
 \usepackage{xcolor}
-\usepackage[margin=2.2cm]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
 \setlength{\emergencystretch}{3em} % prevent overfull lines
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
@@ -65,19 +108,34 @@
 
 \title{Clustering}
 \author{Rui}
-\date{\texttt{r\ format(Sys.Date(),\ \textquotesingle{}\%B\ \%d,\ \%Y\textquotesingle{})}}
+\date{May 26, 2026}
 
 \begin{document}
 \maketitle
 
-\renewcommand*\contentsname{目录}
 {
-\setcounter{tocdepth}{3}
+\setcounter{tocdepth}{2}
 \tableofcontents
 }
-\texttt{\{r\ results=\textquotesingle{}hide\textquotesingle{},message=FALSE\}\ library("parameters")\ \ \#for\ clustering\ summary\ library("see")\ library("factoextra")\ \ \#for\ clustering\ plotting\ library(bruceR)\ library(tidyverse)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(}\StringTok{"parameters"}\NormalTok{)  }\CommentTok{\#for clustering summary}
+\FunctionTok{library}\NormalTok{(}\StringTok{"see"}\NormalTok{)}
+\FunctionTok{library}\NormalTok{(}\StringTok{"factoextra"}\NormalTok{)  }\CommentTok{\#for clustering plotting}
+\FunctionTok{library}\NormalTok{(bruceR)}
+\FunctionTok{library}\NormalTok{(tidyverse)}
+\end{Highlighting}
+\end{Shaded}
 
-\texttt{\{r\}\ athlete\ =\ import("data13-02.xlsx")\ \%\textgreater{}\%\ select(-1)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{athlete }\OtherTok{=} \FunctionTok{import}\NormalTok{(}\StringTok{"data13{-}02.xlsx"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## ✔ Successfully imported: 10 obs. of 4 variables
+\end{verbatim}
 
 \hypertarget{k-means}{%
 \section{K-Means}\label{k-means}}
@@ -100,7 +158,12 @@
   be chosen. Trying several random starts is often recommended.
 \end{itemize}
 
-\texttt{\{r\}\ kmean\_results\ =\ kmeans(athlete,\ centers\ =\ 4,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ iter.max\ =\ 10,\ nstart\ =\ 1)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{kmean\_results }\OtherTok{=} \FunctionTok{kmeans}\NormalTok{(athlete, }\AttributeTok{centers =} \DecValTok{4}\NormalTok{, }
+                       \AttributeTok{iter.max =} \DecValTok{10}\NormalTok{, }\AttributeTok{nstart =} \DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
 
 kmeans returns an object of class ``kmeans'' which has a print and a
 fitted method. It is a list with at least the following components:
@@ -127,13 +190,55 @@ fitted method. It is a list with at least the following components:
   \texttt{size}: The number of points in each cluster.
 \end{itemize}
 
-\texttt{\{r\}\ kmean\_results\$cluster\ \ \#group\ labels\ for\ each\ observation}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{kmean\_results}\SpecialCharTok{$}\NormalTok{cluster  }\CommentTok{\#group labels for each observation}
+\end{Highlighting}
+\end{Shaded}
 
-\texttt{\{r\}\ kmean\_results\$centers\ \ \#centers}
+\begin{verbatim}
+##  [1] 4 3 1 4 3 2 1 3 1 2
+\end{verbatim}
 
-\texttt{\{r\ results=\textquotesingle{}hold\textquotesingle{}\}\ kmean\_results\$totss\ \ \#\ total\ variance\ kmean\_results\$withinss\ \ \#\ within-group\ variance\ kmean\_results\$tot.withinss\ \#\ sum\ of\ within\ SS\ kmean\_results\$betweenss\ \ \#between-group\ variance}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{kmean\_results}\SpecialCharTok{$}\NormalTok{centers  }\CommentTok{\#centers}
+\end{Highlighting}
+\end{Shaded}
 
-\texttt{\{r\}\ kmean\_results\$size\ \ \#\ how\ many\ cases\ in\ each\ cluster}
+\begin{verbatim}
+##         x1       x2       x3
+## 1 121.0000 17.00000 41.66667
+## 2 120.5000 19.00000 44.50000
+## 3 121.6667 18.33333 43.00000
+## 4 124.5000 20.00000 44.50000
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{kmean\_results}\SpecialCharTok{$}\NormalTok{totss  }\CommentTok{\# total variance}
+\NormalTok{kmean\_results}\SpecialCharTok{$}\NormalTok{withinss  }\CommentTok{\# within{-}group variance}
+\NormalTok{kmean\_results}\SpecialCharTok{$}\NormalTok{tot.withinss }\CommentTok{\# sum of within SS}
+\NormalTok{kmean\_results}\SpecialCharTok{$}\NormalTok{betweenss  }\CommentTok{\#between{-}group variance}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 51.6
+## [1] 2.666667 1.000000 1.333333 1.000000
+## [1] 6
+## [1] 45.6
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{kmean\_results}\SpecialCharTok{$}\NormalTok{size  }\CommentTok{\# how many cases in each cluster}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 3 2 3 2
+\end{verbatim}
 
 \hypertarget{visualization}{%
 \subsection{Visualization}\label{visualization}}
@@ -142,7 +247,20 @@ Use \texttt{factoextra::fviz\_cluster(object,\ data)}. For more details
 about useful parameters, see the help document. Remember that
 \texttt{object} and \texttt{data} are two most indispensable parameters.
 
-\texttt{\{r\}\ fviz\_cluster(kmean\_results,\ data\ =\ athlete)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{fviz\_cluster}\NormalTok{(kmean\_results, }\AttributeTok{data =}\NormalTok{ athlete)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Registered S3 methods overwritten by 'broom':
+##   method            from  
+##   tidy.glht         jtools
+##   tidy.summary.glht jtools
+\end{verbatim}
+
+\includegraphics{r-cluster-analysis_files/figure-latex/unnamed-chunk-8-1.pdf}
 
 One way to start is from random centers; another way is to specify a few
 sets of centers and start from them.
@@ -152,17 +270,51 @@ the results may vary, though not significant. If the iteration will
 converge eventually, then given sufficiently-large iteration time, the
 center will be determined and fixed.
 
-\texttt{\{r\}\ initial\_centers\ =\ import("data13-02a.xlsx")\ \%\textgreater{}\%\ select(-1)\ kmean\_results\_initialized\ =\ kmeans(athlete,\ initial\_centers\ ,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ iter.max\ =\ 10,\ nstart\ =\ 1)\ \ fviz\_cluster(kmean\_results\_initialized,\ data\ =\ athlete)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{initial\_centers }\OtherTok{=} \FunctionTok{import}\NormalTok{(}\StringTok{"data13{-}02a.xlsx"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## ✔ Successfully imported: 4 obs. of 4 variables
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{kmean\_results\_initialized }\OtherTok{=} \FunctionTok{kmeans}\NormalTok{(athlete, initial\_centers , }
+                                   \AttributeTok{iter.max =} \DecValTok{10}\NormalTok{, }\AttributeTok{nstart =} \DecValTok{1}\NormalTok{) }
+\FunctionTok{fviz\_cluster}\NormalTok{(kmean\_results\_initialized, }\AttributeTok{data =}\NormalTok{ athlete)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-cluster-analysis_files/figure-latex/unnamed-chunk-9-1.pdf}
 
 \hypertarget{hierachical-clustering}{%
 \section{Hierachical Clustering}\label{hierachical-clustering}}
 
-\texttt{\{r\}\ automobile\ =\ import("data13-01.xlsx")\ \%\textgreater{}\%\ \ \ \ select(c(\textquotesingle{}type\textquotesingle{},\textquotesingle{}price\textquotesingle{},\textquotesingle{}engine\_s\textquotesingle{},\textquotesingle{}horsepow\textquotesingle{},\ \ \ \ \ \ \ \ \ \ \ \ \textquotesingle{}wheelbas\textquotesingle{},\textquotesingle{}width\textquotesingle{},\textquotesingle{}length\textquotesingle{},\textquotesingle{}curb\_wgt\textquotesingle{},\ \ \ \ \ \ \ \ \ \ \ \ \textquotesingle{}fuel\_cap\textquotesingle{},\textquotesingle{}mpg\textquotesingle{}))\ \%\textgreater{}\%\ drop\_na()\ \%\textgreater{}\%\ scale()}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{automobile }\OtherTok{=} \FunctionTok{import}\NormalTok{(}\StringTok{"data13{-}01.xlsx"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{select}\NormalTok{(}\FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}type\textquotesingle{}}\NormalTok{,}\StringTok{\textquotesingle{}price\textquotesingle{}}\NormalTok{,}\StringTok{\textquotesingle{}engine\_s\textquotesingle{}}\NormalTok{,}\StringTok{\textquotesingle{}horsepow\textquotesingle{}}\NormalTok{,}
+           \StringTok{\textquotesingle{}wheelbas\textquotesingle{}}\NormalTok{,}\StringTok{\textquotesingle{}width\textquotesingle{}}\NormalTok{,}\StringTok{\textquotesingle{}length\textquotesingle{}}\NormalTok{,}\StringTok{\textquotesingle{}curb\_wgt\textquotesingle{}}\NormalTok{,}
+           \StringTok{\textquotesingle{}fuel\_cap\textquotesingle{}}\NormalTok{,}\StringTok{\textquotesingle{}mpg\textquotesingle{}}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{drop\_na}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{scale}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## ✔ Successfully imported: 157 obs. of 27 variables
+\end{verbatim}
 
 Use ``\texttt{hclust()}'' from base R and transmit a
 \textbf{dissimilarity} structure produced by ``\texttt{dist()}''.
 
-\texttt{\{r\}\ distMat\ =\ dist(automobile,\ method\ =\ "euclidean")\ \#\ Euclidean\ distance\ matrix\ hc\ =\ hclust(distMat)\ \ \#\ hierarchical\ clustering,\ using\ the\ default\ method}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{distMat }\OtherTok{=} \FunctionTok{dist}\NormalTok{(automobile, }\AttributeTok{method =} \StringTok{"euclidean"}\NormalTok{) }\CommentTok{\# Euclidean distance matrix}
+\NormalTok{hc }\OtherTok{=} \FunctionTok{hclust}\NormalTok{(distMat)  }\CommentTok{\# hierarchical clustering, using the default method}
+\end{Highlighting}
+\end{Shaded}
 
 Use ``\texttt{plot(hclust\_obj)}'' to visualize the hierarchical
 clustering. Note that you should specify ``\texttt{hang\ =\ -1}'' to
@@ -170,11 +322,31 @@ ensure all nodes touch the same horizontal line and looks decent. If the
 sample isn't that large, set ``\texttt{labels\ =\ TRUE}'' (by default)
 to see the corresponding observations.
 
-\texttt{\{r\}\ plot(hc,labels=FALSE,hang\ =\ -1)\ plot(hc,labels=FALSE)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot}\NormalTok{(hc,}\AttributeTok{labels=}\ConstantTok{FALSE}\NormalTok{,}\AttributeTok{hang =} \SpecialCharTok{{-}}\DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-cluster-analysis_files/figure-latex/unnamed-chunk-12-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot}\NormalTok{(hc,}\AttributeTok{labels=}\ConstantTok{FALSE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-cluster-analysis_files/figure-latex/unnamed-chunk-12-2.pdf}
 
 Moreover, you can draw dendrogram with grouping.
 
-\texttt{\{r\ warning=FALSE\}\ fviz\_dend(hc,k=3,\ rect\ =\ T)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{fviz\_dend}\NormalTok{(hc,}\AttributeTok{k=}\DecValTok{3}\NormalTok{, }\AttributeTok{rect =}\NormalTok{ T)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-cluster-analysis_files/figure-latex/unnamed-chunk-13-1.pdf}
 
 Also, you can also check how many members for each cluster and make a
 frequency table.
@@ -182,7 +354,18 @@ frequency table.
 Note that the grouping might change if we change cluster number. And
 this in essence is the pros of hierarchical clustering.
 
-\texttt{\{r\}\ memberLabels\ =\ cutree(hc,3)\ table(memberLabels)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{memberLabels }\OtherTok{=} \FunctionTok{cutree}\NormalTok{(hc,}\DecValTok{3}\NormalTok{)}
+\FunctionTok{table}\NormalTok{(memberLabels)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## memberLabels
+##  1  2  3 
+## 71 71 10
+\end{verbatim}
 
 Then, we can get the centers of cluters by ``\texttt{mean}'' summary
 statistics. Use ``\texttt{aggregate()}'' to achieve that.
@@ -200,12 +383,34 @@ statistics. Use ``\texttt{aggregate()}'' to achieve that.
   be applied to all data subsets.
 \end{itemize}
 
-\texttt{\{r\}\ aggregate(automobile,list(memberLabels),mean)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{aggregate}\NormalTok{(automobile,}\FunctionTok{list}\NormalTok{(memberLabels),mean)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   Group.1       type      price   engine_s   horsepow   wheelbas      width
+## 1       1 -0.4362472 -0.4985325 -0.7231739 -0.6579479 -0.6259158 -0.6459818
+## 2       2  0.5201409  0.1193177  0.5017194  0.3293009  0.6601116  0.5979645
+## 3       3 -0.5956452  2.6924245  1.5723270  2.3333938 -0.2427902  0.3409229
+##        length   curb_wgt   fuel_cap        mpg
+## 1 -0.65105171 -0.7853229 -0.7200528  0.6620751
+## 2  0.65553921  0.7236353  0.6270241 -0.5592928
+## 3 -0.03186123  0.4379815  0.6605042 -0.7297543
+\end{verbatim}
 
 Moreover, we can use Silhouette plot to check whether some cases are
 outliers.
 
-\texttt{\{r\}\ library(cluster)\ plot(silhouette(cutree(hc,3),\ distMat))}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(cluster)}
+\FunctionTok{plot}\NormalTok{(}\FunctionTok{silhouette}\NormalTok{(}\FunctionTok{cutree}\NormalTok{(hc,}\DecValTok{3}\NormalTok{), distMat))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-cluster-analysis_files/figure-latex/unnamed-chunk-16-1.pdf}
 
 \hypertarget{no.-of-clusters}{%
 \section{No.~of Clusters}\label{no.-of-clusters}}
@@ -215,7 +420,13 @@ outliers.
 
 Looking for the ``elbow'' where the SS starts to slow down its drop.
 
-\texttt{\{r\}\ fviz\_nbclust(automobile,\ kmeans,\ method\ =\ "wss",\ print.summary=TRUE)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{fviz\_nbclust}\NormalTok{(automobile, kmeans, }\AttributeTok{method =} \StringTok{"wss"}\NormalTok{, }\AttributeTok{print.summary=}\ConstantTok{TRUE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-cluster-analysis_files/figure-latex/unnamed-chunk-17-1.pdf}
 
 here suggests 2 or 3.
 
@@ -225,7 +436,13 @@ here suggests 2 or 3.
 Looking for the value that sets the highest average silhouette width,
 which indicates the optimal number of clusters.
 
-\texttt{\{r\}\ fviz\_nbclust(automobile,\ kmeans,\ method\ =\ "silhouette",print.summary=TRUE)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{fviz\_nbclust}\NormalTok{(automobile, kmeans, }\AttributeTok{method =} \StringTok{"silhouette"}\NormalTok{,}\AttributeTok{print.summary=}\ConstantTok{TRUE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-cluster-analysis_files/figure-latex/unnamed-chunk-18-1.pdf}
 
 \hypertarget{majority-rule}{%
 \subsection{Majority Rule}\label{majority-rule}}
@@ -248,7 +465,26 @@ functionalities.
 Also note that the \texttt{n\_clusters()} function will do the
 normalization automatically (by default).
 
-\texttt{\{r\ results=\textquotesingle{}asis\textquotesingle{}\}\ n\_clusters(data.frame(automobile))\ plot(n\_clusters(data.frame(automobile)))}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{n\_clusters}\NormalTok{(}\FunctionTok{data.frame}\NormalTok{(automobile))}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{method-agreement-procedure}{%
+\section{Method Agreement Procedure:}\label{method-agreement-procedure}}
+
+The choice of 2 clusters is supported by 8 (27.59\%) methods out of 29
+(Elbow, Silhouette, Ch, Ratkowsky, Mcclain, SDindex, Mixture (VEV),
+Mixture (EEV)).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot}\NormalTok{(}\FunctionTok{n\_clusters}\NormalTok{(}\FunctionTok{data.frame}\NormalTok{(automobile)))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-cluster-analysis_files/figure-latex/unnamed-chunk-19-1.pdf}
 
 \hypertarget{two-step-clustering}{%
 \section{Two Step Clustering}\label{two-step-clustering}}
@@ -257,7 +493,17 @@ Some people prefer using hierarchical methods first to obtain the number
 of clusters and their centroids. Then use these as inputs to run
 non-hierarchical analysis. This approach is called Two-Step Clustering.
 
-\texttt{\{r\ eval=FALSE\}\ \#\ two\ step\ clustering\ in\ R,\ not\ required\ library(prcr)\ d\ \textless{}-\ pisaUSA15\ m3\ \textless{}-\ create\_profiles\_cluster(d,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ broad\_interest,\ enjoyment,\ instrumental\_mot,\ self\_efficacy,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n\_profiles\ =\ 3)\ summary(m3)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# two step clustering in R, not required}
+\FunctionTok{library}\NormalTok{(prcr)}
+\NormalTok{d }\OtherTok{\textless{}{-}}\NormalTok{ pisaUSA15}
+\NormalTok{m3 }\OtherTok{\textless{}{-}} \FunctionTok{create\_profiles\_cluster}\NormalTok{(d,}
+\NormalTok{                              broad\_interest, enjoyment, instrumental\_mot, self\_efficacy,}
+                              \AttributeTok{n\_profiles =} \DecValTok{3}\NormalTok{)}
+\FunctionTok{summary}\NormalTok{(m3)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{clustering-for-cases-and-variables}{%
 \section{Clustering for Cases and
@@ -288,13 +534,46 @@ following questions:
 \hypertarget{q1}{%
 \subsection{Q1}\label{q1}}
 
-\texttt{\{r\ results=\textquotesingle{}hide\textquotesingle{},message=FALSE\}\ library(factoextra)\ library(showtext)\ showtext\_auto()}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(factoextra)}
+\FunctionTok{library}\NormalTok{(showtext)}
+\FunctionTok{showtext\_auto}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
 
-\texttt{\{r\ message=FALSE,warning=FALSE\}\ cons\ =\ import("construction.xlsx")\ rownames(cons)\ =\ cons{[},1{]}\ cons\ =\ cons\ \%\textgreater{}\%\ select(-1)\ attach(cons)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cons }\OtherTok{=} \FunctionTok{import}\NormalTok{(}\StringTok{\textquotesingle{}construction.xlsx\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
 
-\texttt{\{r\}\ distance\ =\ dist(cons)\ hc\ =\ hclust(distance)}
+\begin{verbatim}
+## ✔ Successfully imported: 16 obs. of 8 variables
+\end{verbatim}
 
-\texttt{\{r\ warning=FALSE,message=FALSE\}\ plot(hc,hang\ =\ -1)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{rownames}\NormalTok{(cons) }\OtherTok{=}\NormalTok{ cons[,}\DecValTok{1}\NormalTok{]}
+\NormalTok{cons }\OtherTok{=}\NormalTok{ cons }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{)}
+\FunctionTok{attach}\NormalTok{(cons)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{distance }\OtherTok{=} \FunctionTok{dist}\NormalTok{(cons)}
+\NormalTok{hc }\OtherTok{=} \FunctionTok{hclust}\NormalTok{(distance)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot}\NormalTok{(hc,}\AttributeTok{hang =} \SpecialCharTok{{-}}\DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{r-cluster-analysis_files/figure-latex/unnamed-chunk-24-1.pdf}
 
 From the cluster dendrogram above, it's suggested to classify all 16
 indexes into 3 grand categories. From indexes contained in each
@@ -313,9 +592,26 @@ category, we can infer that the three dimensions are:
 \hypertarget{q2}{%
 \subsection{Q2}\label{q2}}
 
-\texttt{\{r\}\ grouplabel\ =\ cutree(hc,k\ =\ 3)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{grouplabel }\OtherTok{=} \FunctionTok{cutree}\NormalTok{(hc,}\AttributeTok{k =} \DecValTok{3}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
 
-\texttt{\{r\}\ km\_country\ =\ aggregate(cons,list(grouplabel),mean)\ \%\textgreater{}\%\ \ \ \ select(-1)\ \%\textgreater{}\%\ t()\ \%\textgreater{}\%\ \ \ \ kmeans(centers\ =\ 2)\ country\_label\ =\ km\_country\$cluster\ country\_label}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{km\_country }\OtherTok{=} \FunctionTok{aggregate}\NormalTok{(cons,}\FunctionTok{list}\NormalTok{(grouplabel),mean) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{t}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{kmeans}\NormalTok{(}\AttributeTok{centers =} \DecValTok{2}\NormalTok{)}
+\NormalTok{country\_label }\OtherTok{=}\NormalTok{ km\_country}\SpecialCharTok{$}\NormalTok{cluster}
+\NormalTok{country\_label}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## A B C D E F G 
+## 1 1 1 2 2 2 1
+\end{verbatim}
 
 From the \(k\)-means method, we can see that the seven countries are
 classified into two grand categories, developed and developing
@@ -326,7 +622,45 @@ by checking the data.
 
 Note that here D, E \& F are labeled as group ``2''.
 
-\texttt{\{r\ results=\textquotesingle{}asis\textquotesingle{}\}\ cons\ \%\textgreater{}\%\ t()\ \%\textgreater{}\%\ as.data.frame()\ \%\textgreater{}\%\ mutate(\ \ \ develop\ =\ country\_label\ )\ \%\textgreater{}\%\ group\_by(develop)\ \%\textgreater{}\%\ summarise\_all(mean)\ \%\textgreater{}\%\ \ \ \ stargazer::stargazer(header\ =\ FALSE,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ title\ =\ \textquotesingle{}Index\ Comparison\ Between\ Groups\textquotesingle{},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ flip\ =\ T,summary\ =\ FALSE)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cons }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{t}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{as.data.frame}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}
+  \AttributeTok{develop =}\NormalTok{ country\_label}
+\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{group\_by}\NormalTok{(develop) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{summarise\_all}\NormalTok{(mean) }\SpecialCharTok{\%\textgreater{}\%} 
+\NormalTok{  stargazer}\SpecialCharTok{::}\FunctionTok{stargazer}\NormalTok{(}\AttributeTok{header =} \ConstantTok{FALSE}\NormalTok{,}
+                       \AttributeTok{title =} \StringTok{\textquotesingle{}Index Comparison Between Groups\textquotesingle{}}\NormalTok{,}
+                       \AttributeTok{flip =}\NormalTok{ T,}\AttributeTok{summary =} \ConstantTok{FALSE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{table}[!htbp] \centering 
+  \caption{Index Comparison Between Groups} 
+  \label{} 
+\begin{tabular}{@{\extracolsep{5pt}} ccc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+ & 1 & 2 \\ 
+\hline \\[-1.8ex] 
+develop & $1$ & $2$ \\ 
+每十万人医疗机构数 & $361.035$ & $214.980$ \\ 
+每十万人医疗技术人员数 & $617.005$ & $244.910$ \\ 
+高速公路总里程 & $351.375$ & $112.713$ \\ 
+铁路总里程 & $374.023$ & $119.360$ \\ 
+每十万人教师数 & $158.267$ & $78.060$ \\ 
+每十万人学校数 & $63.805$ & $26.087$ \\ 
+每千人文盲数 & $115.995$ & $63.923$ \\ 
+高等教育入学率 & $26.145$ & $6.663$ \\ 
+在学儿童数量 & $129.545$ & $62.687$ \\ 
+航空里程数 & $244.132$ & $103.263$ \\ 
+航运总里程 & $290.225$ & $135.253$ \\ 
+铁路客运量 & $260.318$ & $95.403$ \\ 
+公路客运量 & $296.095$ & $113.263$ \\ 
+教育投入总费用 & $220.273$ & $75.360$ \\ 
+卫生投入总费用 & $489.022$ & $229.947$ \\ 
+每十万人医疗床位数 & $495.518$ & $182.137$ \\ 
+\hline \\[-1.8ex] 
+\end{tabular} 
+\end{table}
 
 From the summarization table, apparently that among all the 16 indexes,
 group 1 outbeats group 2 (i.e., D, E \& F). Therefore, we can say
@@ -339,8 +673,23 @@ group 1 outbeats group 2 (i.e., D, E \& F). Therefore, we can say
   Developed countries: A, B, C, G.
 \end{itemize}
 
-\texttt{\{r\}\ fviz\_cluster(km\_country,\ \ \ \ \ \ \ \ \ \ \ \ \ \ data\ =\ aggregate(cons,list(grouplabel),mean)\ \%\textgreater{}\%\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ select(-1)\ \%\textgreater{}\%\ t())}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{fviz\_cluster}\NormalTok{(km\_country,}
+             \AttributeTok{data =} \FunctionTok{aggregate}\NormalTok{(cons,}\FunctionTok{list}\NormalTok{(grouplabel),mean) }\SpecialCharTok{\%\textgreater{}\%} 
+               \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{t}\NormalTok{())}
+\end{Highlighting}
+\end{Shaded}
 
-All done. Finally, \texttt{\{r\}\ detach(cons)}
+\includegraphics{r-cluster-analysis_files/figure-latex/unnamed-chunk-28-1.pdf}
+
+All done. Finally,
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{detach}\NormalTok{(cons)}
+\end{Highlighting}
+\end{Shaded}
+
 
 \end{document}

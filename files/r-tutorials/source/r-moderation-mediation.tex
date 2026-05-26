@@ -1,7 +1,6 @@
 % Options for packages loaded elsewhere
 \PassOptionsToPackage{unicode}{hyperref}
 \PassOptionsToPackage{hyphens}{url}
-\PassOptionsToPackage{space}{xeCJK}
 %
 \documentclass[
 ]{ctexart}
@@ -19,14 +18,6 @@
 \usepackage{lmodern}
 \ifPDFTeX\else
   % xetex/luatex font selection
-  \ifXeTeX
-    \usepackage{xeCJK}
-    \setCJKmainfont[]{Songti SC}
-          \fi
-  \ifLuaTeX
-    \usepackage[]{luatexja-fontspec}
-    \setmainjfont[]{Songti SC}
-  \fi
 \fi
 % Use upquote if available, for straight quotes in verbatim environments
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
@@ -45,7 +36,59 @@
   \KOMAoptions{parskip=half}}
 \makeatother
 \usepackage{xcolor}
-\usepackage[margin=2.2cm]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
 \setlength{\emergencystretch}{3em} % prevent overfull lines
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
@@ -70,13 +113,10 @@
 \begin{document}
 \maketitle
 
-\renewcommand*\contentsname{目录}
 {
-\setcounter{tocdepth}{3}
+\setcounter{tocdepth}{2}
 \tableofcontents
 }
-\texttt{\{r\ setup,include=FALSE\}\ knitr::opts\_chunk\$set(tidy\ =\ TRUE,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tidy.opts\ =\ list(width.cutoff=80,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ attr.output=\textquotesingle{}style="background:\ pink;"\textquotesingle{},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ render=pander::pander),\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ eval\ =\ F)}
-
 \hypertarget{moderation}{%
 \section{Moderation}\label{moderation}}
 
@@ -87,7 +127,15 @@ relationship between two variables (the predictor and the outcome
 variable) changes depending on the level of a third variable (the
 moderator). Moderator variable is a variable whose different values
 determine the nature of the relationship between two other variables.
-\texttt{\{r\ out.width=\textquotesingle{}100\%\textquotesingle{},fig.align=\textquotesingle{}center\textquotesingle{},fig.cap=\textquotesingle{}Moderation\textquotesingle{},echo=FALSE,eval=TRUE\}\ knitr::include\_graphics("moderation.jpeg")}
+
+\begin{figure}
+
+{\centering \includegraphics[width=1\linewidth]{moderation} 
+
+}
+
+\caption{Moderation}\label{fig:unnamed-chunk-1}
+\end{figure}
 
 To test for moderation in a statistical model, researchers typically
 include an \textbf{interaction term} between the \emph{predictor} and
@@ -114,19 +162,35 @@ to marriage, relationship between partners, and their age. We're
 interested in the relationship between age and loyalty, and how the
 relationship in marriage moderates it.
 
-\texttt{\{r\ message=FALSE\}\ \#\ moderation\ data\ currentData\ \textless{}-\ bruceR::import("moderation\_data.sav")\ attach(currentData)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# moderation data}
+\NormalTok{currentData }\OtherTok{\textless{}{-}}\NormalTok{ bruceR}\SpecialCharTok{::}\FunctionTok{import}\NormalTok{(}\StringTok{"moderation\_data.sav"}\NormalTok{)}
+\FunctionTok{attach}\NormalTok{(currentData)}
+\end{Highlighting}
+\end{Shaded}
 
 Note that when an interaction term is introduced into the model, better
 to centralize the variable for convenience of interpretation! (Even
 without centered independent variables, the significance output won't
 change.)
 
-\texttt{\{r\}\ C\_Relationship\ =\ Relationship\ -\ mean(Relationship)\ C\_age\_con\ =\ age\_con\ \ -\ mean(age\_con)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{C\_Relationship }\OtherTok{=}\NormalTok{ Relationship }\SpecialCharTok{{-}} \FunctionTok{mean}\NormalTok{(Relationship)}
+\NormalTok{C\_age\_con }\OtherTok{=}\NormalTok{ age\_con }\SpecialCharTok{{-}} \FunctionTok{mean}\NormalTok{(age\_con)}
+\end{Highlighting}
+\end{Shaded}
 
 The NULL model here is without the interaction term, but to inspect
 \texttt{age} and \texttt{Relationship} through MLR.
 
-\texttt{\{r\ results=\textquotesingle{}asis\textquotesingle{},\}\ model\_0\ \textless{}-\ lm(Loyalty\ \textasciitilde{}\ C\_Relationship\ +\ C\_age\_con)\ bruceR::GLM\_summary(model\_0)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{model\_0 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Loyalty }\SpecialCharTok{\textasciitilde{}}\NormalTok{ C\_Relationship }\SpecialCharTok{+}\NormalTok{ C\_age\_con)}
+\NormalTok{bruceR}\SpecialCharTok{::}\FunctionTok{GLM\_summary}\NormalTok{(model\_0)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{moderation-model}{%
 \subsubsection{Moderation Model}\label{moderation-model}}
@@ -134,7 +198,12 @@ The NULL model here is without the interaction term, but to inspect
 Then, add the interaction of moderator and predictor into the MLR model.
 (Moderation in essence is a MLR with interaction terms.)
 
-\texttt{\{r\}\ model\_moderation\ \textless{}-\ lm(Loyalty\ \textasciitilde{}\ C\_Relationship*C\_age\_con)\ bruceR::GLM\_summary(model\_moderation)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{model\_moderation }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Loyalty }\SpecialCharTok{\textasciitilde{}}\NormalTok{ C\_Relationship }\SpecialCharTok{*}\NormalTok{ C\_age\_con)}
+\NormalTok{bruceR}\SpecialCharTok{::}\FunctionTok{GLM\_summary}\NormalTok{(model\_moderation)}
+\end{Highlighting}
+\end{Shaded}
 
 After introducing the interaction term into our model, four things are
 of great interest.
@@ -161,7 +230,11 @@ The most natural impulse is to compare the moderation model against the
 null one. The difference lies in the interaction term. In fact, the
 output comes down right to the interaction term.
 
-\texttt{\{r\}\ anova(model\_0,model\_moderation)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{anova}\NormalTok{(model\_0, model\_moderation)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{after-significant}{%
 \subsection{After Significant}\label{after-significant}}
@@ -175,46 +248,45 @@ We're to compute marginal means, where the data is divided into
 \(3\times 3\) categories using \(Mean \pm SD\), i.e., with 3 \(X\)
 levels and 3 \(M\) levels.
 
-```\{r\} library(emmeans) m\_Relationship\textless- mean(Relationship,
-na.rm = TRUE) sd\_Relationship\textless- sd(Relationship, na.rm = TRUE)
-m\_Age\textless- mean(age\_con, na.rm = TRUE) sd\_Age\textless-
-sd(age\_con, na.rm = TRUE)
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(emmeans)}
+\NormalTok{m\_Relationship }\OtherTok{\textless{}{-}} \FunctionTok{mean}\NormalTok{(Relationship, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{sd\_Relationship }\OtherTok{\textless{}{-}} \FunctionTok{sd}\NormalTok{(Relationship, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{m\_Age }\OtherTok{\textless{}{-}} \FunctionTok{mean}\NormalTok{(age\_con, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{sd\_Age }\OtherTok{\textless{}{-}} \FunctionTok{sd}\NormalTok{(age\_con, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{)}
 
-\hypertarget{use-un-centered-data-to-see-how-the-raw-looks-like-in-slope-analysis.}{%
-\section{use un-centered data to see how the raw looks like in slope
-analysis.}\label{use-un-centered-data-to-see-how-the-raw-looks-like-in-slope-analysis.}}
+\CommentTok{\# use un{-}centered data to see how the raw looks like in slope analysis.}
+\NormalTok{model\_moderation }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Loyalty }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Relationship }\SpecialCharTok{*}\NormalTok{ age\_con)}
 
-model\_moderation \textless- lm(Loyalty \textasciitilde{}
-Relationship*age\_con)
-
-\hypertarget{compute-estimated-marginal-means}{%
-\section{compute Estimated Marginal
-Means}\label{compute-estimated-marginal-means}}
-
-emm \textless- emmeans(model\_moderation, \textasciitilde{}
-Relationship*age\_con, cov.keep = 3, at = list( age\_con =
-c(m\_Age-sd\_Age, m\_Age, m\_Age+sd\_Age), Relationship =
-c(m\_Relationship-sd\_Relationship, m\_Relationship,
-m\_Relationship+sd\_Relationship)), level = 0.95) summary(emm)
-
-\begin{verbatim}
+\CommentTok{\# compute Estimated Marginal Means}
+\NormalTok{emm }\OtherTok{\textless{}{-}} \FunctionTok{emmeans}\NormalTok{(model\_moderation, }\SpecialCharTok{\textasciitilde{}}\NormalTok{Relationship }\SpecialCharTok{*}\NormalTok{ age\_con, }\AttributeTok{cov.keep =} \DecValTok{3}\NormalTok{, }\AttributeTok{at =} \FunctionTok{list}\NormalTok{(}\AttributeTok{age\_con =} \FunctionTok{c}\NormalTok{(m\_Age }\SpecialCharTok{{-}}
+\NormalTok{    sd\_Age, m\_Age, m\_Age }\SpecialCharTok{+}\NormalTok{ sd\_Age), }\AttributeTok{Relationship =} \FunctionTok{c}\NormalTok{(m\_Relationship }\SpecialCharTok{{-}}\NormalTok{ sd\_Relationship,}
+\NormalTok{    m\_Relationship, m\_Relationship }\SpecialCharTok{+}\NormalTok{ sd\_Relationship)), }\AttributeTok{level =} \FloatTok{0.95}\NormalTok{)}
+\FunctionTok{summary}\NormalTok{(emm)}
+\end{Highlighting}
+\end{Shaded}
 
 We then do the slope analysis, similar to simple main effect.
 
-```{r}
-simpleSlope <- emtrends(model_moderation, 
-                        pairwise ~ age_con, 
-                        var = "Relationship",
-                        cov.keep = 3, 
-                        at = list(
-                          age_con = c(m_Age-sd_Age, m_Age, m_Age+sd_Age)), 
-                        level = 0.95)
-summary(simpleSlope)
-\end{verbatim}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{simpleSlope }\OtherTok{\textless{}{-}} \FunctionTok{emtrends}\NormalTok{(model\_moderation, pairwise }\SpecialCharTok{\textasciitilde{}}\NormalTok{ age\_con, }\AttributeTok{var =} \StringTok{"Relationship"}\NormalTok{,}
+    \AttributeTok{cov.keep =} \DecValTok{3}\NormalTok{, }\AttributeTok{at =} \FunctionTok{list}\NormalTok{(}\AttributeTok{age\_con =} \FunctionTok{c}\NormalTok{(m\_Age }\SpecialCharTok{{-}}\NormalTok{ sd\_Age, m\_Age, m\_Age }\SpecialCharTok{+}\NormalTok{ sd\_Age)),}
+    \AttributeTok{level =} \FloatTok{0.95}\NormalTok{)}
+\FunctionTok{summary}\NormalTok{(simpleSlope)}
+\end{Highlighting}
+\end{Shaded}
 
 Slopes can be visualized.
 
-\texttt{\{r\}\ emmip(model\_moderation,\ \ \ \ \ \ \ \ age\_con\ \textasciitilde{}\ Relationship,\ \ \ \ \ \ \ \ cov.keep\ =\ 3,\ \ \ \ \ \ \ at\ =\ list(\ \ \ \ \ \ \ \ \ Relationship\ =\ c(m\_Relationship-sd\_Relationship,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_Relationship,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_Relationship+sd\_Relationship),\ \ \ \ \ \ \ \ \ age\_con\ =\ c(m\_Age-sd\_Age,\ m\_Age,\ m\_Age+sd\_Age)),\ \ \ \ \ \ \ \ CIs\ =\ TRUE,\ level\ =\ 0.95,\ position\ =\ "jitter")}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{emmip}\NormalTok{(model\_moderation, age\_con }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Relationship, }\AttributeTok{cov.keep =} \DecValTok{3}\NormalTok{, }\AttributeTok{at =} \FunctionTok{list}\NormalTok{(}\AttributeTok{Relationship =} \FunctionTok{c}\NormalTok{(m\_Relationship }\SpecialCharTok{{-}}
+\NormalTok{    sd\_Relationship, m\_Relationship, m\_Relationship }\SpecialCharTok{+}\NormalTok{ sd\_Relationship), }\AttributeTok{age\_con =} \FunctionTok{c}\NormalTok{(m\_Age }\SpecialCharTok{{-}}
+\NormalTok{    sd\_Age, m\_Age, m\_Age }\SpecialCharTok{+}\NormalTok{ sd\_Age)), }\AttributeTok{CIs =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{level =} \FloatTok{0.95}\NormalTok{, }\AttributeTok{position =} \StringTok{"jitter"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{appendix-for-moderation}{%
 \subsection{Appendix for Moderation}\label{appendix-for-moderation}}
@@ -225,7 +297,12 @@ Slopes can be visualized.
 One plausible reason for centralization is interpretation, and the other
 is possible collinearity.
 
-\texttt{\{r\}\ model\_nonc\ =\ lm(Loyalty\textasciitilde{}Relationship+age\_con+Relationship*age\_con)\ bruceR::GLM\_summary(model\_nonc)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{model\_nonc }\OtherTok{=} \FunctionTok{lm}\NormalTok{(Loyalty }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Relationship }\SpecialCharTok{+}\NormalTok{ age\_con }\SpecialCharTok{+}\NormalTok{ Relationship }\SpecialCharTok{*}\NormalTok{ age\_con)}
+\NormalTok{bruceR}\SpecialCharTok{::}\FunctionTok{GLM\_summary}\NormalTok{(model\_nonc)}
+\end{Highlighting}
+\end{Shaded}
 
 Even though the uncentered model reports the same results with respect
 to significance, the VIF bombed!
@@ -240,23 +317,33 @@ output for variables, necessary report of the model. Otherwise, if I'm
 to get the 95\% CI of each slope coefficients, I have to construct a new
 command like:
 
-\texttt{\{r\ eval=FALSE\}\ cbind(coef(model\_moderation),\ \ \ \ \ \ \ \ confint(model\_moderation,\ level\ =\ 0.95))}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cbind}\NormalTok{(}\FunctionTok{coef}\NormalTok{(model\_moderation), }\FunctionTok{confint}\NormalTok{(model\_moderation, }\AttributeTok{level =} \FloatTok{0.95}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{residual-plots}{%
 \subsubsection{Residual Plots}\label{residual-plots}}
 
-```\{r\} res.std \textless- rstandard(model\_moderation) plot(res.std,
-ylab=``Standardized Residuals'') car::residualPlots(model\_moderation)
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{res.std }\OtherTok{\textless{}{-}} \FunctionTok{rstandard}\NormalTok{(model\_moderation)}
+\FunctionTok{plot}\NormalTok{(res.std, }\AttributeTok{ylab =} \StringTok{"Standardized Residuals"}\NormalTok{)}
+\NormalTok{car}\SpecialCharTok{::}\FunctionTok{residualPlots}\NormalTok{(model\_moderation)}
 
-library(ggplot2) ggplot(as.data.frame(res.std), aes(sample = res.std)) +
-geom\_qq() + geom\_qq\_line()
-
-\begin{verbatim}
+\FunctionTok{library}\NormalTok{(ggplot2)}
+\FunctionTok{ggplot}\NormalTok{(}\FunctionTok{as.data.frame}\NormalTok{(res.std), }\FunctionTok{aes}\NormalTok{(}\AttributeTok{sample =}\NormalTok{ res.std)) }\SpecialCharTok{+} \FunctionTok{geom\_qq}\NormalTok{() }\SpecialCharTok{+} \FunctionTok{geom\_qq\_line}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
 
 Lastly,
-```{r}
-detach(currentData)
-\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{detach}\NormalTok{(currentData)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{more-on-moderation}{%
 \subsubsection{More on Moderation}\label{more-on-moderation}}
@@ -307,7 +394,15 @@ Mediation refers to a causal process in which the relationship between
 two variables is explained by a \textbf{third} variable, called a
 mediator. Mediation analysis is used to test for the presence and
 strength of this causal process.
-\texttt{\{r\ out.width=\textquotesingle{}100\%\textquotesingle{},fig.align=\textquotesingle{}center\textquotesingle{},fig.cap=\textquotesingle{}Moderation\textquotesingle{},echo=FALSE,eval=TRUE\}\ knitr::include\_graphics("Mediation.png")}
+
+\begin{figure}
+
+{\centering \includegraphics[width=1\linewidth]{Mediation} 
+
+}
+
+\caption{Moderation}\label{fig:unnamed-chunk-14}
+\end{figure}
 
 To test for mediation in a statistical model, researchers typically use
 a mediation model, which includes three variables: the independent
@@ -331,7 +426,12 @@ satisfaction, relationship with customers and discounts offered. We are
 interested in whether discount can mediate the influence of customer
 relationship on their satisfaction about some consumer goods.
 
-\texttt{\{r\ message=FALSE\}\ currentData\ \textless{}-\ bruceR::import("mediation\_data.sav")\ attach(currentData)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{currentData }\OtherTok{\textless{}{-}}\NormalTok{ bruceR}\SpecialCharTok{::}\FunctionTok{import}\NormalTok{(}\StringTok{"mediation\_data.sav"}\NormalTok{)}
+\FunctionTok{attach}\NormalTok{(currentData)}
+\end{Highlighting}
+\end{Shaded}
 
 Use Baron and Kenny method to conduct mediation analysis. Three steps
 are:
@@ -366,12 +466,23 @@ Note that the effect of mediator on DV should primarily be based on IV!
 Check without any consideration of mediation as a baseline model, which
 is the relationship between Y and X.
 
-\texttt{\{r\}\ model\_0\ \textless{}-\ lm(Satisfaction\ \textasciitilde{}\ Relationship)\ bruceR::GLM\_summary(model\_0)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{model\_0 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Satisfaction }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Relationship)}
+\NormalTok{bruceR}\SpecialCharTok{::}\FunctionTok{GLM\_summary}\NormalTok{(model\_0)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{internal-correlation}{%
 \subsubsection{Internal Correlation}\label{internal-correlation}}
 
-\texttt{\{r\}\ \#\ M\ as\ a\ function\ of\ X\ model\_M\ \textless{}-\ lm(Discount\ \textasciitilde{}\ Relationship)\ bruceR::GLM\_summary(model\_M)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# M as a function of X}
+\NormalTok{model\_M }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Discount }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Relationship)}
+\NormalTok{bruceR}\SpecialCharTok{::}\FunctionTok{GLM\_summary}\NormalTok{(model\_M)}
+\end{Highlighting}
+\end{Shaded}
 
 Significant result here is the necessity for further mediation analysis.
 If not significant, no need to move forward.
@@ -379,7 +490,13 @@ If not significant, no need to move forward.
 \hypertarget{full-model}{%
 \subsubsection{Full Model}\label{full-model}}
 
-\texttt{\{r\}\ \#\ Y\ as\ a\ function\ of\ both\ X\ and\ M\ model\_Y\ \textless{}-\ lm(Satisfaction\ \textasciitilde{}\ Relationship\ +\ Discount)\ bruceR::GLM\_summary(model\_Y)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Y as a function of both X and M}
+\NormalTok{model\_Y }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(Satisfaction }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Relationship }\SpecialCharTok{+}\NormalTok{ Discount)}
+\NormalTok{bruceR}\SpecialCharTok{::}\FunctionTok{GLM\_summary}\NormalTok{(model\_Y)}
+\end{Highlighting}
+\end{Shaded}
 
 Here, it's a case of partial mediation. And the adjusted \(R^2\) is
 greatly improved, indicating that the mediation model is far more
@@ -406,7 +523,14 @@ the mediation effect:
   total effect.
 \end{itemize}
 
-\texttt{\{r\ message=FALSE\}\ library(mediation)\ mediation\_results\ \textless{}-\ mediate(model\_M,\ model\_Y,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ treat=\textquotesingle{}Relationship\textquotesingle{},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mediator=\textquotesingle{}Discount\textquotesingle{},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ boot=TRUE,\ sims=500)\ summary(mediation\_results)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(mediation)}
+\NormalTok{mediation\_results }\OtherTok{\textless{}{-}} \FunctionTok{mediate}\NormalTok{(model\_M, model\_Y, }\AttributeTok{treat =} \StringTok{"Relationship"}\NormalTok{, }\AttributeTok{mediator =} \StringTok{"Discount"}\NormalTok{,}
+    \AttributeTok{boot =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{sims =} \DecValTok{500}\NormalTok{)}
+\FunctionTok{summary}\NormalTok{(mediation\_results)}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{appendix-for-mediation}{%
 \subsection{Appendix for Mediation}\label{appendix-for-mediation}}
@@ -502,15 +626,37 @@ It's outdated admittedly. In early periods, the statistic constructed in
 Sobel Test was considered to follow a normal distribution, but that was
 proved wrong later. Hence, in Sobel Test, the probability of committing
 type I error increases before you even know it.
-\texttt{\{r\ fig.align=\textquotesingle{}center\textquotesingle{},fig.cap=\textquotesingle{}Sobel\ Test\textquotesingle{},out.width=\textquotesingle{}80\%\textquotesingle{},echo=FALSE,eval=TRUE\}\ knitr::include\_graphics("sobel\ test.png")}
+
+\begin{figure}
+
+{\centering \includegraphics[width=0.8\linewidth]{sobel test} 
+
+}
+
+\caption{Sobel Test}\label{fig:unnamed-chunk-20}
+\end{figure}
 
 Sobel Test uses \(z\)-statistic: \[
 z=\frac{\hat a\hat b}{\sqrt{\hat a^2s_b^2+\hat b^2s_a^2}}
 \]
 
 The code is exhibited below but I don't wanna run it.
-\texttt{\{r\ eval=FALSE\}\ install.packages("bda")\ library(bda)\ mediation.test(Discount,Relationship,Satisfaction)}
 
-Lastly, don't forget to \texttt{\{r\}\ detach(currentData)}
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{install.packages}\NormalTok{(}\StringTok{"bda"}\NormalTok{)}
+\FunctionTok{library}\NormalTok{(bda)}
+\FunctionTok{mediation.test}\NormalTok{(Discount, Relationship, Satisfaction)}
+\end{Highlighting}
+\end{Shaded}
+
+Lastly, don't forget to
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{detach}\NormalTok{(currentData)}
+\end{Highlighting}
+\end{Shaded}
+
 
 \end{document}
