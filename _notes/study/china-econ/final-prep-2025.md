@@ -11,6 +11,6 @@ date: 2025-09-01
 author: "Zircon"
 permalink: "/notes/china-econ/final-prep-2025"
 pdf_url: "/files/china-econ/final-prep-2025.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
+summary: "本科《中国经济》期末速记式复习提纲：按计划经济—改革开放—WTO 入世—国企改革—土地财政—人民币汇率—户籍制度—三农—供给侧改革等主题串考点和易混概念，作 cheatsheet 级一张纸式复习材料用。"
 ---
 

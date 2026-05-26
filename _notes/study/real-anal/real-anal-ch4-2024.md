@@ -12,7 +12,6 @@ date: 2024-09-01
 author: "Zircon"
 permalink: "/notes/real-anal/real-anal-ch4-2024"
 pdf_url: "/files/real-anal/real-anal-ch4-2024.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 
 高维 / 重积分的合法依据。从可测矩形与 Carathéodory 扩张造出乘积测度，再证 Fubini 与 Tonelli 两版迭代积分定理——σ-有限是核心前提，没它就有反例。

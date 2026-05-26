@@ -11,4 +11,7 @@ date: 2025-03-15
 author: "Zircon"
 permalink: "/notes/adv-metrics-psu/midterm-spring-2025-with-solutions"
 pdf_url: "/files/adv-metrics-psu/midterm-spring-2025-with-solutions.pdf"
+summary: "PSU ECON 510 高级计量经济学 2025 春期中考题与解答合卷。含 GMM 一致性、渐近正态、delta method、IV、MLE 等核心考点的逐题解答；与本课程 8 天期末自救指南、2026 春期中真题构成完整三件套。"
 ---
+
+> 配套阅读：[期末自救指南]({{ '/notes/adv-metrics-psu/survival-guide' | relative_url }})（11 章 + HW5–HW10 题解）｜[2026 春期中]({{ '/notes/adv-metrics-psu/midterm-spring-2026' | relative_url }})（题面 PDF）

@@ -12,6 +12,5 @@ date: 2022-09-01
 author: "Zircon"
 permalink: "/notes/corp-fin/mid-sample-2"
 pdf_url: "/files/corp-fin/mid-sample-2.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

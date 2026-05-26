@@ -12,7 +12,6 @@ date: 2024-09-01
 author: "Zircon"
 permalink: "/notes/real-anal/real-anal-ch6-2024"
 pdf_url: "/files/real-anal/real-anal-ch6-2024.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 
 把视角从 Lp 抬高到一般 Banach 空间。完备赋范空间的基本结构 + Hahn-Banach、开映射、闭图像、Banach-Steinhaus 四大基本定理 + 对偶——是 qual 高频章节，也是后续学泛函的入口。

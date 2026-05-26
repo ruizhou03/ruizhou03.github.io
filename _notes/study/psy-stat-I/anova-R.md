@@ -12,6 +12,5 @@ author: "Zircon"
 permalink: "/notes/psy-stat-I/anova-R"
 pdf_url: "/files/psy-stat-I/anova-R.pdf"
 summary: "本科心理统计 Ⅰ 实操笔记：把单因素 / 两因素 / 重复测量 / 嵌套 / MANOVA 等各种 ANOVA 的 R 代码模板按一张表整合，附事后检验（Tukey、Bonferroni）和 bruceR 简化写法，复习或写实验报告可直接对着抄。"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

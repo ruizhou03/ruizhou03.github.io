@@ -11,6 +11,8 @@ date: 2023-09-01
 author: "Zircon"
 permalink: "/notes/monetary-econ/monetary-econ-hw-summary"
 pdf_url: "/files/monetary-econ/monetary-econ-hw-summary.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
+summary: "光华金融经济方向《货币经济学》（肖筱林，2023 春）整学期作业的题解整理：覆盖货币需求、IS-LM 与货币传导、央行政策工具、泰勒规则、汇率与利率平价、Bagehot 最后贷款人法则等核心模块。与同学期的课程测评、完整讲义构成三件套。"
 ---
+
+> 配套阅读：[课程测评]({{ '/notes/course-reviews/monetary-econ-review-2023' | relative_url }})｜[完整讲义]({{ '/notes/monetary-econ/monetary-econ-2023' | relative_url }})
 

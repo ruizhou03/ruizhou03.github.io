@@ -12,6 +12,5 @@ date: 2024-09-01
 author: "Zircon"
 permalink: "/notes/china-hist/china-hist-2024"
 pdf_url: "/files/china-hist/china-hist-2024.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

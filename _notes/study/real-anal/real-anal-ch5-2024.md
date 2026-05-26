@@ -12,7 +12,6 @@ date: 2024-09-01
 author: "Zircon"
 permalink: "/notes/real-anal/real-anal-ch5-2024"
 pdf_url: "/files/real-anal/real-anal-ch5-2024.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 
 分析里最常用的一族 Banach 空间。从 Hölder、Minkowski、Jensen 三大不等式起手，证完备性（Riesz-Fischer），再讨论 Lp 的对偶 Lq 与可分性——是后面学概率论、PDE、泛函的常用工具间。

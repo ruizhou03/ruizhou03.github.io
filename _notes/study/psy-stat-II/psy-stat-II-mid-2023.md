@@ -11,6 +11,5 @@ date: 2023-09-01
 author: "Zircon"
 permalink: "/notes/psy-stat-II/psy-stat-II-mid-2023"
 pdf_url: "/files/psy-stat-II/psy-stat-II-mid-2023.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

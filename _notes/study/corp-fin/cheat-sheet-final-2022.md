@@ -12,6 +12,5 @@ date: 2022-09-01
 author: "Zircon"
 permalink: "/notes/corp-fin/cheat-sheet-final-2022"
 pdf_url: "/files/corp-fin/cheat-sheet-final-2022.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

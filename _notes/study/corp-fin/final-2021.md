@@ -11,6 +11,5 @@ date: 2021-09-01
 author: "Zircon"
 permalink: "/notes/corp-fin/final-2021"
 pdf_url: "/files/corp-fin/final-2021.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

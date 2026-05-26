@@ -12,6 +12,5 @@ author: "Zircon"
 permalink: "/notes/corp-fin/mid-2020-zh"
 pdf_url: "/files/corp-fin/mid-2020-zh.pdf"
 summary: "公司财务管理期中真题（2020 年中文卷）。题目覆盖时间价值、现金流折现、WACC、资本结构等期中常考主题；建议先掐时间做一遍，再对照站里同课程的样题卷与 cheat sheet 复盘。同一份卷子另有英文版可对照。"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

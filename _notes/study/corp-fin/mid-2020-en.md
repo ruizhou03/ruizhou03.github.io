@@ -11,6 +11,5 @@ date: 2020-09-01
 author: "Zircon"
 permalink: "/notes/corp-fin/mid-2020-en"
 pdf_url: "/files/corp-fin/mid-2020-en.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

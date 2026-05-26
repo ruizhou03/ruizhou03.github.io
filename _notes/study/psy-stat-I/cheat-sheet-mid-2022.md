@@ -11,6 +11,5 @@ date: 2022-09-01
 author: "Zircon"
 permalink: "/notes/psy-stat-I/cheat-sheet-mid-2022"
 pdf_url: "/files/psy-stat-I/cheat-sheet-mid-2022.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

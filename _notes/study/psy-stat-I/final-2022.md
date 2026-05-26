@@ -12,6 +12,5 @@ author: "Zircon"
 permalink: "/notes/psy-stat-I/final-2022"
 pdf_url: "/files/psy-stat-I/final-2022.pdf"
 summary: "心理统计Ⅰ期末真题（2022 年）。考点覆盖 z/t 检验、方差分析（ANOVA）、卡方、相关与回归等期末重头戏；做完建议配合本课 cheat sheet 和 anova-R 笔记一起复盘。"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

@@ -10,6 +10,7 @@ material_type: "Exams"
 date: 2024-02-06
 author: "Zircon"
 permalink: "/notes/marxism/marxism-past-essence"
+pdf_url: "/files/marxism/marxism-past-essence-2023.pdf"
 published: true
 ---
 
@@ -24,3 +25,5 @@ published: true
 ![马克思主义基本原理概论期末往年题重点 PDF 封面，2023 年秋季](/files/images/marxism-past-essence/01.jpg)
 
 <p class="img-caption"><strong>整理出的 31 题精华版封面</strong>——2023 年秋季备考时两天内的产物，命中率不错</p>
+
+<p class="img-caption">LaTeX 源码：<a href="/files/marxism/source/marxism-past-essence-2023.tex">marxism-past-essence-2023.tex</a></p>

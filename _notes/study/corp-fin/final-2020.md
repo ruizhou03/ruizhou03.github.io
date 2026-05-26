@@ -12,6 +12,5 @@ date: 2020-09-01
 author: "Zircon"
 permalink: "/notes/corp-fin/final-2020"
 pdf_url: "/files/corp-fin/final-2020.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

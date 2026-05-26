@@ -12,7 +12,6 @@ date: 2026-05-04
 author: "Zircon"
 permalink: "/notes/adv-micro-psu/lecture-notes"
 pdf_url: "/files/adv-micro-psu/adv-micro-psu-lecture-notes.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 
 > *“These notes accompany the Spring 2026 offering of Econ 521 (Advanced Microeconomics Theory) at Penn State, taught by Professor Vijay Krishna. The course is the standard first-year PhD sequence on game theory, mechanism design, and matching—the strategic side of microeconomics.”*

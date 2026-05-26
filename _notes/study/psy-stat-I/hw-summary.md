@@ -11,6 +11,5 @@ date: 2022-09-01
 author: "Zircon"
 permalink: "/notes/psy-stat-I/hw-summary"
 pdf_url: "/files/psy-stat-I/hw-summary.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

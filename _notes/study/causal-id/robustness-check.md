@@ -11,6 +11,5 @@ date: 2023-09-01
 author: "Zircon"
 permalink: "/notes/causal-id/robustness-check"
 pdf_url: "/files/causal-id/robustness-check.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

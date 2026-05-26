@@ -12,6 +12,5 @@ date: 2023-09-01
 author: "Zircon"
 permalink: "/notes/causal-inference/final-2023"
 pdf_url: "/files/causal-inference/final-2023.pdf"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

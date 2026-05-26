@@ -12,7 +12,6 @@ author: "Zircon"
 permalink: "/notes/real-anal/real-anal-ch3-2024"
 pdf_url: "/files/real-anal/real-anal-ch3-2024.pdf"
 summary: "密歇根大学研究生实分析第三章《Differentiation》课堂笔记。覆盖 Lebesgue 微分定理、Vitali 覆盖、极大函数、有界变差与绝对连续函数、Radon–Nikodym 与 Lebesgue 分解定理，是后续测度论与泛函的关键桥梁。"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 
 把“微分与积分互为逆运算”的故事搬到 Lebesgue 测度上重讲。Vitali 覆盖、Hardy-Littlewood 极大函数、BV 与 AC 函数、Radon-Nikodym 与 Lebesgue 分解——同时也是后续学概率论 / 泛函的桥梁。

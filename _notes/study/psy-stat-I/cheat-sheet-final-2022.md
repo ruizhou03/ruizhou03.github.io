@@ -12,6 +12,5 @@ author: "Zircon"
 permalink: "/notes/psy-stat-I/cheat-sheet-final-2022"
 pdf_url: "/files/psy-stat-I/cheat-sheet-final-2022.pdf"
 summary: "本科心理统计 Ⅰ 期末复习用的一页纸 cheat sheet，把假设检验、t/F/卡方/ANOVA、回归、效应量等核心公式压缩到 A4 双面。考前临时背公式或自学心理统计 1 都可以拿去对照。"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 

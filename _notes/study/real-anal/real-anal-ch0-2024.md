@@ -12,7 +12,6 @@ author: "Zircon"
 permalink: "/notes/real-anal/real-anal-ch0-2024"
 pdf_url: "/files/real-anal/real-anal-ch0-2024.pdf"
 summary: "2024 年密歇根大学交换实分析课的预备章节：黎曼积分回顾。把 Darboux 上下和、黎曼可积充要条件、阶梯函数逼近、Riemann 与 Lebesgue 对比梳理一遍，为后面 Lebesgue 测度做铺垫。看到 Riemann–Lebesgue 比较时方便随手翻。"
-# reactions: ['👍', '🎓', '📝', '🔥']
 ---
 
 这是整个实分析系列（Ch1-Ch6）的预备章节，编号特意从 0 开始——课程本身是第一章直接从测度论切入的，我之所以补一份“第零章”，是想先回到本科熟悉的黎曼积分把工具复习一遍：Darboux 上和下和、可积充要条件、阶梯函数逼近，这些恰恰是后面用 Lebesgue 测度时反复要类比、要超越的起点。这一章读完，再翻 Ch1 看 σ-代数和外测度时，会更容易意识到“为什么要换一套语言”。
