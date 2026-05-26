@@ -59,7 +59,7 @@ keywords: ["洗衣机怎么用", "洗衣机程序选择", "洗衣温度档位", 
     <line x1="76" y1="200" x2="84" y2="200" stroke="#333"/><text x="60" y="204" text-anchor="end">30</text>
     <line x1="76" y1="240" x2="84" y2="240" stroke="#333"/><text x="60" y="244" text-anchor="end">15</text>
   </g>
-  <rect x="100" y="70" width="200" height="20" fill="#c0392b" opacity="0.8" rx="3"/>
+  <rect x="100" y="70" width="200" height="20" fill="#b07c75" opacity="0.8" rx="3"/>
   <text x="200" y="84" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">90-95 ℃ 煮洗（深度消毒）</text>
   <text x="320" y="84" font-size="10" fill="#666">床品月度、霉斑、严重污染</text>
   <rect x="100" y="100" width="180" height="20" fill="#e67e22" opacity="0.8" rx="3"/>
@@ -82,7 +82,7 @@ keywords: ["洗衣机怎么用", "洗衣机程序选择", "洗衣温度档位", 
     <text x="0" y="68">• 流感病毒：60 ℃ / 30 min</text>
     <text x="0" y="84">• 念珠菌（霉菌）：60 ℃ / 10 min</text>
     <text x="0" y="100">• 足部真菌：60 ℃ / 15 min</text>
-    <text x="0" y="120" fill="#c0392b" font-weight="600">→ 60 ℃ 是消毒的关键阈值</text>
+    <text x="0" y="120" fill="#b07c75" font-weight="600">→ 60 ℃ 是消毒的关键阈值</text>
   </g>
   <text x="360" y="305" text-anchor="middle" font-size="11" fill="#666">温度每升 10 ℃，化学反应速率约翻倍——所以热水洗去污力 = 冷水的 4-8 倍</text>
 </svg>

@@ -12,7 +12,7 @@ material_type: "写作"
 
 文末“**阅读原文**”是蓝色的~
 
-模板参考toeflresources.com，强烈推荐这个网站！网站的 Up 是一个超级nice的小哥，网站上是他精心准备的资源，全部免费，不用体会国内一些平台挤牙膏式的钓鱼 hhh
+模板参考 toeflresources.com，强烈推荐这个网站！网站的 Up 是一个超级 nice 的小哥，网站上是他精心准备的资源，全部免费，不用体会国内一些平台挤牙膏式的钓鱼 hhh
 
 ![托福写作与口语模板 LaTeX 文档封面及目录，含写作和口语四类题型模板](/files/images/toefl-templates-2023/01.jpg)
 

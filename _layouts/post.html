@@ -166,6 +166,21 @@ layout: default
     </button>
   </div>
 
+  {%- comment -%}
+    过时提醒：front-matter 写 `outdated: true` 时，正文开头加一条提醒；
+    可选 `outdated_note:` 写一段对当前状态的具体说明（哪部分还能用、
+    哪部分已经变了）。
+  {%- endcomment -%}
+  {% if page.outdated %}
+  <aside class="outdated-banner" role="note">
+    <span class="ob-icon" aria-hidden="true">⚠️</span>
+    <div class="ob-body">
+      <p class="ob-title">这篇文章发表于 {{ page.date | date: "%Y 年 %-m 月" }}，里面提到的具体做法可能已经过时。</p>
+      {% if page.outdated_note %}<p class="ob-note">{{ page.outdated_note }}</p>{% endif %}
+    </div>
+  </aside>
+  {% endif %}
+
   <div class="markdown-content" id="post-content">
     {% if page.pdf_url or page.download_url %}
       {% assign _dl_url = page.download_url | default: page.pdf_url %}
@@ -367,6 +382,39 @@ layout: default
   .post-toolbar .tool-icon { font-size: 1rem; }
   @media (max-width: 480px) {
     .post-toolbar .post-tool-btn { font-size: 0.82rem; padding: 0.35rem 0.8rem; }
+  }
+
+  /* 过时提醒横幅：莫兰迪暖灰 + 弱琥珀左条 */
+  .outdated-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    max-width: 720px;
+    margin: 0 auto 2rem;
+    padding: 0.85rem 1.1rem;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-left: 3px solid #b58a5d;
+    border-radius: 8px;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  .outdated-banner .ob-icon { font-size: 1.1rem; line-height: 1.5; flex: 0 0 auto; }
+  .outdated-banner .ob-body { flex: 1 1 auto; }
+  .outdated-banner .ob-title {
+    margin: 0;
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .outdated-banner .ob-note {
+    margin: 0.4rem 0 0;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+  }
+  @media (max-width: 480px) {
+    .outdated-banner { font-size: 0.85rem; padding: 0.75rem 0.9rem; }
+    .outdated-banner .ob-note { font-size: 0.8rem; }
   }
 
   /* 图片配文：正体、灰色、小字、居中、窄栏 */

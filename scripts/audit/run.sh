@@ -5,7 +5,8 @@
 # 频率：
 #   每天          → keywords_coverage.py、images.py、backend_pulse.py、spotcheck.py、
 #                  material_type_enum.py、filename_convention.py、hover_no_media.py、
-#                  sibling_crosslink.py
+#                  sibling_crosslink.py、bare_dollar.py、img_caption_md.py、
+#                  svg_italic_zh.py、bare_url.py
 #   每周一(dow=1) → 加跑 dead_links.py、orphan_files.py、pii_scan.py
 #   每月 1 号     → 加跑 monthly_stats.py
 #
@@ -22,7 +23,7 @@ DOM=$(date +%d)
 
 echo "# 站点巡检（$(date '+%Y-%m-%d %H:%M'))"
 echo
-echo "本次将运行：keywords + images + backend_pulse + spotcheck + material_type_enum + filename_convention + hover_no_media + sibling_crosslink$([ "$DOW" = 1 ] && echo " + dead_links + orphan_files + pii_scan")$([ "$DOM" = 01 ] && echo " + monthly_stats")"
+echo "本次将运行：keywords + images + backend_pulse + spotcheck + material_type_enum + filename_convention + hover_no_media + sibling_crosslink + bare_dollar + img_caption_md + svg_italic_zh + bare_url$([ "$DOW" = 1 ] && echo " + dead_links + orphan_files + pii_scan")$([ "$DOM" = 01 ] && echo " + monthly_stats")"
 echo
 
 echo "---"
@@ -55,6 +56,22 @@ echo "---"
 echo
 echo "---"
 "$PY" "$SCRIPT_DIR/sibling_crosslink.py"
+
+echo
+echo "---"
+"$PY" "$SCRIPT_DIR/bare_dollar.py"
+
+echo
+echo "---"
+"$PY" "$SCRIPT_DIR/img_caption_md.py"
+
+echo
+echo "---"
+"$PY" "$SCRIPT_DIR/svg_italic_zh.py"
+
+echo
+echo "---"
+"$PY" "$SCRIPT_DIR/bare_url.py"
 
 if [ "$DOW" = "1" ]; then
     echo

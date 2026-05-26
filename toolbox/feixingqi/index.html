@@ -2709,7 +2709,7 @@ permalink: /toolbox/feixingqi/
     if (fxqRoomPlayerId !== p.proposedBy) {
       const myVote = p.votes[fxqRoomPlayerId];
       if (myVote === null || myVote === undefined) {
-        html += `<div style="display:flex;gap:0.4rem;"><button class="gs-pgo-room-btn primary fn-vote-btn" data-vote="yes" style="background:#4caf50;border-color:#4caf50;">✅ 同意</button><button class="gs-pgo-room-btn fn-vote-btn" data-vote="no" style="background:#ef5350;border-color:#ef5350;">❌ 拒绝</button></div>`;
+        html += `<div style="display:flex;gap:0.4rem;"><button class="gs-pgo-room-btn primary fn-vote-btn gs-vote-yes" data-vote="yes">✅ 同意</button><button class="gs-pgo-room-btn fn-vote-btn gs-vote-no" data-vote="no">❌ 拒绝</button></div>`;
       } else {
         html += `<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);">你已投票：${myVote === 'yes' ? '✅ 同意' : '❌ 拒绝'}</div>`;
       }

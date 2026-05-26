@@ -1270,4 +1270,16 @@ body { font-synthesis: weight; }
   border-radius: 8px;
   margin-bottom: 0.3rem;
 }
+
+/* 表决按钮：莫兰迪绿 / 莫兰迪赤陶，跨游戏（tiaoqi / feixingqi / ...）统一从这里取色。
+   过去各游戏 inline 写死 #4caf50 / #ef5350 鲜艳红绿，跟全站莫兰迪基调冲突。 */
+.gs-vote-yes,
+.gs-vote-no {
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.15s;
 }
+.gs-vote-yes { background: #7d9c80; border-color: #7d9c80; }
+.gs-vote-no  { background: #b07c75; border-color: #b07c75; }
+.gs-vote-yes:hover { filter: brightness(1.08); }
+.gs-vote-no:hover  { filter: brightness(1.08); }

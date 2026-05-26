@@ -2,7 +2,7 @@
 layout: post
 title: "优雅地整合你的邮箱"
 date: 2023-10-07
-main_category: "科研妙招"
+main_category: "生活攻略"
 sub_category: "效率工具"
 permalink: "/life/email-integration"
 keywords: ["整合邮箱", "邮箱整合", "多邮箱管理", "邮件管理 App", "邮件客户端", "添加邮箱账户", "配置邮箱", "学生邮箱添加", "学校邮箱", "edu 邮箱", "苹果邮件", "Apple Mail", "网易邮箱大师", "QQ 邮箱", "163 邮箱", "Outlook 邮箱", "收件服务器", "发件服务器", "IMAP", "SMTP", "邮箱密码", "iPhone 配置邮箱", "Mac 配置邮箱", "安卓邮箱"]

@@ -70,13 +70,13 @@ $$\text{Ca(HCO}_3)_2 \to \text{CaCO}_3 \downarrow + \text{H}_2\text{O} + \text{C
   <rect x="420" y="80" width="120" height="50" fill="#e67e22" opacity="0.85"/>
   <text x="480" y="110" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">很硬</text>
   <text x="480" y="74" text-anchor="middle" font-size="11" fill="#666">大量结垢</text>
-  <rect x="540" y="80" width="160" height="50" fill="#c0392b" opacity="0.85"/>
+  <rect x="540" y="80" width="160" height="50" fill="#b07c75" opacity="0.85"/>
   <text x="620" y="110" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">极硬</text>
   <text x="620" y="74" text-anchor="middle" font-size="11" fill="#666">疯狂结垢</text>
   <g font-size="11" fill="#333">
     <text x="60" y="200" font-weight="600">中国主要城市自来水硬度参考（mg/L）：</text>
     <text x="60" y="222">• 北京、天津、济南、石家庄：</text>
-    <text x="350" y="222" fill="#c0392b" font-weight="600">250-400（很硬到极硬）</text>
+    <text x="350" y="222" fill="#b07c75" font-weight="600">250-400（很硬到极硬）</text>
     <text x="60" y="240">• 西安、太原、郑州、兰州：</text>
     <text x="350" y="240" fill="#e67e22" font-weight="600">180-300（很硬）</text>
     <text x="60" y="258">• 上海、南京、武汉、合肥：</text>
