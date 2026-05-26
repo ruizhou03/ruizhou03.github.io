@@ -315,9 +315,13 @@ layout: default
         {%- endif -%}
 
         {%- comment -%}
-          其他 material_type（笔试学习资料 等不规范取值）兜底显示
+          其他 material_type（笔试学习资料 等不规范取值）兜底显示。
+          Jekyll 3 的 where_exp 不支持 `and` 复合表达式 / `!=` 操作符，
+          所以用三步顺序过滤替代。
         {%- endcomment -%}
-        {%- assign cr_other_arr = cr_related | where_exp: "item", "item.material_type != 'Notes' and item.material_type != 'Exams' and item.material_type != '课程测评'" -%}
+        {%- assign cr_other_step1 = cr_related      | where_exp: "item", "item.material_type != 'Notes'" -%}
+        {%- assign cr_other_step2 = cr_other_step1  | where_exp: "item", "item.material_type != 'Exams'" -%}
+        {%- assign cr_other_arr   = cr_other_step2  | where_exp: "item", "item.material_type != '课程测评'" -%}
         {%- if cr_other_arr.size > 0 -%}
         <div class="cr-group">
           <h5>其他资料</h5>
