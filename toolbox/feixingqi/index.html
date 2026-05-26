@@ -2824,14 +2824,14 @@ permalink: /toolbox/feixingqi/
     async function poll() {
       if (!fxqRoomToken) return;
       const r = await fxqRoomApi('GET', `state&code=${fxqRoomCode}&token=${fxqRoomToken}&since=${since}`);
-      if (!r.ok) { fxqRoomStatePoller = setTimeout(poll, 2000); return; }
+      if (!r.ok) { fxqRoomStatePoller = setTimeout(poll, 1000); return; }
       if (r.room) {
         since = r.version;
-        if (r.room.state === 'playing') { fxqPgoOverlay.classList.remove('open'); state.difficulty = fxqPgoSelectedDiff; startGame(); if (typeof fxqSave !== 'undefined' && fxqSave) fxqSave.start(); return; }
+        if (r.room.state === 'playing') { fxqPgoOverlay.classList.remove('open'); state.difficulty = fxqPgoSelectedDiff; startGame(); if (typeof fxqSave !== 'undefined' && fxqSave) fxqSave.start(); fxqRoomStatePoller = setTimeout(poll, 500); return; }
         if (!r.room.players.some(p => p.id === fxqRoomPlayerId)) { fxqLeaveRoom(); fxqShowError('你已被房主移出房间'); return; }
         fxqUpdateLobby(r.room);
       }
-      fxqRoomStatePoller = setTimeout(poll, 1500);
+      fxqRoomStatePoller = setTimeout(poll, 500);
     }
     poll();
   }
