@@ -5,7 +5,7 @@ date: 2026-04-19
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-health-insurance-basics"
-keywords: ["美国医保", "美国健康保险", "留学生保险", "health insurance", "保险术语", "premium", "保费", "deductible", "自付额", "copay", "共付额", "coinsurance", "OOP max", "HMO", "PPO", "EPO", "POS", "学生医保", "雇主医保", "ACA marketplace", "HSA FSA", "保险卡", "美国医疗保险"]
+keywords: ["美国医保", "美国健康保险", "留学生保险", "health insurance", "保险术语", "premium", "保费", "deductible", "自付额", "copay", "共付额", "coinsurance", "OOP max", "HMO", "PPO", "EPO", "POS", "学生医保", "雇主医保", "ACA marketplace", "HSA FSA", "保险卡", "美国医疗保险", "留学生医保 waiver", "学校医保 waive 流程", "学生医保贵吗", "PSU 医保 waive", "F1 医保要求", "ACA 怎么买", "Medicaid Medicare 区别", "美国看病多少钱", "EOB 怎么看", "in-network out-of-network 区别", "美国留学第一次买医保", "美国医保 deductible 用完", "牙医保险 dental insurance", "vision insurance 眼科保险", "美国体检报销", "open enrollment 是什么", "美国 employer health insurance", "美国医保家庭计划", "美国医保 copay 怎么算", "preventive care 免费体检", "美国留学要不要 waive 学校医保"]
 ---
 
 # 1. 这篇文章给谁看

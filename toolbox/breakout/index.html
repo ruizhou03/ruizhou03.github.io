@@ -284,7 +284,8 @@ permalink: /toolbox/breakout/
   const SPEEDS = { slow: 200, mid: 270, fast: 350 };
   const SPEED_LABEL = { slow: '慢速', mid: '中速', fast: '快速' };
   // 每行颜色（由上到下），上面行更高分
-  const ROW_COLORS = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1ab0c4', '#3a6ea5', '#8e6ec4', '#c0598b'];
+  // 莫兰迪化的 8 行渐变（红橙黄绿青蓝紫粉），跟全站基调一致
+  const ROW_COLORS = ['#c9776c', '#c98e6c', '#c9a96e', '#9bae8c', '#8db3b1', '#7d92a8', '#9c8aa6', '#b89aa5'];
 
   const stored = (() => {
     try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
@@ -562,7 +563,7 @@ permalink: /toolbox/breakout/
     ctx.fill();
 
     // 球
-    ctx.fillStyle = '#c0392b';
+    ctx.fillStyle = '#b07c75';
     ctx.beginPath();
     ctx.arc(state.ball.x * sx, state.ball.y * sy, BALL_R * (sx + sy) / 2, 0, Math.PI * 2);
     ctx.fill();
@@ -732,7 +733,7 @@ permalink: /toolbox/breakout/
     }
     c.fillStyle = '#1e3a5f';
     c.fillRect(x + state.paddleX * sx, y + PADDLE_Y * sy, PADDLE_W * sx, PADDLE_H * sy);
-    c.fillStyle = '#c0392b';
+    c.fillStyle = '#b07c75';
     c.beginPath();
     c.arc(x + state.ball.x * sx, y + state.ball.y * sy, BALL_R * (sx + sy) / 2, 0, Math.PI * 2);
     c.fill();

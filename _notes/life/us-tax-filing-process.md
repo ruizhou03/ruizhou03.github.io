@@ -5,7 +5,7 @@ date: 2026-04-24
 main_category: "生活攻略"
 sub_category: "留学攻略"
 permalink: "/life/us-tax-filing-process"
-keywords: ["美国报税流程", "怎么报税", "报税实战", "tax filing", "报税软件", "Sprintax", "FreeTaxUSA", "TurboTax", "1040NR", "W-2", "1042-S", "1099", "tax treaty", "退税", "e-file", "ITIN", "跨州报税", "州税", "报错 1040", "amended return", "NRA 报税", "报税截止日", "美国交税"]
+keywords: ["美国报税流程", "怎么报税", "报税实战", "tax filing", "报税软件", "Sprintax", "Sprintax 怎么用", "Sprintax vs TurboTax", "Sprintax 学校 access code", "FreeTaxUSA", "TurboTax", "1040NR", "W-2", "1042-S", "1099", "tax treaty", "中美 tax treaty 5000", "退税", "e-file", "ITIN", "跨州报税", "州税", "报错 1040", "amended return", "NRA 报税", "报税截止日", "美国交税", "F1 留学生报税", "J1 报税", "留学生第一次报税", "Form 8843 怎么填", "Form 8843 only", "1040NR 怎么填", "FICA 退还", "OPT 报税", "STEM OPT 报税", "RA TA 奖学金报税", "fellowship 报税", "联邦税州税区别", "Pennsylvania 州税报税", "PA 报税", "tax refund 多久到账", "ITIN 申请 W-7", "Sprintax 报州税", "怎么免费报税", "VITA 免费报税服务"]
 ---
 
 # 1. 这篇文章给谁看

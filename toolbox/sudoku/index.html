@@ -360,6 +360,7 @@ permalink: /toolbox/sudoku/
 
   <div class="sudoku-rank-row" id="sudoku-rank-row"></div>
   <div id="sudoku-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
+  <div id="sudoku-settle-btn-mount" style="text-align: center; margin: 0.6rem auto 0;"></div>
 
   <details class="about" style="max-width:480px;margin-left:auto;margin-right:auto;">
     <summary>游戏规则</summary>
@@ -378,6 +379,7 @@ permalink: /toolbox/sudoku/
 <script src="/assets/js/games-shell/comments.js"></script>
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/save-state.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
 
 <script>
 (() => {
@@ -736,6 +738,7 @@ permalink: /toolbox/sudoku/
     winOverlay.classList.add('show');
 
     if (sudokuSave) sudokuSave.discard();
+    if (sudokuSettleBtn) sudokuSettleBtn.setEnabled(true);
     sudokuTryAutoSubmit();
   }
 
@@ -805,6 +808,8 @@ permalink: /toolbox/sudoku/
   let sudokuLbWidget = null;
   let sudokuNickPrompt = null;
   let sudokuSave = null;
+  let sudokuSettleBtn = null;
+  let sudokuLastRankInfo = null;
   let sudokuRunStartedAt = Date.now();
   let sudokuRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
   let sudokuPendingSubmit = false;
@@ -814,19 +819,24 @@ permalink: /toolbox/sudoku/
     if (name === 'hidden') {
       $sudokuRankRow.classList.remove('show', 'loading', 'failed');
       $sudokuRankRow.innerHTML = '';
+      sudokuLastRankInfo = null;
       return;
     }
+    const mode = DIFF_LABEL[state.diff] || state.diff;
     $sudokuRankRow.classList.add('show');
     $sudokuRankRow.classList.remove('loading', 'failed');
     if (name === 'loading') {
       $sudokuRankRow.classList.add('loading');
       $sudokuRankRow.textContent = '排名上传中…';
+      sudokuLastRankInfo = { mode };
     } else if (name === 'failed') {
       $sudokuRankRow.classList.add('failed');
       $sudokuRankRow.textContent = '排行榜暂时不可用（不影响游戏）';
+      sudokuLastRankInfo = { failed: true, mode };
     } else if (name === 'pending') {
       $sudokuRankRow.classList.add('failed');
       $sudokuRankRow.textContent = '想上排行榜？看下面的昵称表单 ↓';
+      sudokuLastRankInfo = { pending: true, mode };
     } else if (name === 'success' && data && data.rank && data.total) {
       $sudokuRankRow.innerHTML = '';
       $sudokuRankRow.append(
@@ -836,7 +846,82 @@ permalink: /toolbox/sudoku/
         Object.assign(document.createElement('strong'), { textContent: String(data.total) }),
         document.createTextNode(' 位玩家'),
       );
+      sudokuLastRankInfo = { rank: data.rank, total: data.total, mode };
     }
+  }
+
+  function sudokuPaintBoard(ctx, x, y, w, h) {
+    const size = Math.min(w, h);
+    const ox = x + (w - size) / 2;
+    const oy = y + (h - size) / 2;
+    const cell = size / 9;
+    // 底色
+    ctx.fillStyle = '#f6efe2';
+    ctx.fillRect(ox, oy, size, size);
+    // 细线
+    ctx.strokeStyle = 'rgba(120,100,80,0.35)';
+    ctx.lineWidth = Math.max(1, size * 0.0025);
+    for (let i = 1; i < 9; i++) {
+      if (i % 3 === 0) continue;
+      ctx.beginPath();
+      ctx.moveTo(ox + i * cell, oy);
+      ctx.lineTo(ox + i * cell, oy + size);
+      ctx.moveTo(ox, oy + i * cell);
+      ctx.lineTo(ox + size, oy + i * cell);
+      ctx.stroke();
+    }
+    // 粗线（含外框）
+    ctx.strokeStyle = '#7a5e44';
+    ctx.lineWidth = Math.max(2, size * 0.006);
+    for (let i = 0; i <= 9; i += 3) {
+      ctx.beginPath();
+      ctx.moveTo(ox + i * cell, oy);
+      ctx.lineTo(ox + i * cell, oy + size);
+      ctx.moveTo(ox, oy + i * cell);
+      ctx.lineTo(ox + size, oy + i * cell);
+      ctx.stroke();
+    }
+    // 数字
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `600 ${Math.round(cell * 0.52)}px Georgia, "Times New Roman", "STSong", serif`;
+    for (let i = 0; i < 81; i++) {
+      const v = state.solved
+        ? (state.entries[i] || state.solution[i] || 0)
+        : (state.entries[i] || state.puzzle[i] || 0);
+      if (!v) continue;
+      const r = Math.floor(i / 9);
+      const c = i % 9;
+      const cx = ox + c * cell + cell / 2;
+      const cy = oy + r * cell + cell / 2;
+      // 题目给定数字偏暗，玩家填的数字偏蓝
+      ctx.fillStyle = state.puzzle[i] !== 0 ? '#3c3530' : '#3a6ea5';
+      ctx.fillText(String(v), cx, cy);
+    }
+  }
+
+  function sudokuGetSettlementOpts() {
+    const ri = sudokuLastRankInfo || {};
+    const best = state.best && state.best[state.diff];
+    return {
+      kind: 'single',
+      gameId: 'sudoku',
+      title: '数独',
+      emoji: '🔢',
+      nick: GamesShell.Identity.getNick(),
+      score: state.elapsedMs,
+      scoreLabel: '本 局 用 时',
+      scoreFormatter: v => fmt(Number(v)),
+      rankInfo: ri,
+      stats: [
+        { label: '难度', value: DIFF_LABEL[state.diff] || state.diff },
+        { label: '提示用次', value: state.hintsUsed || 0 },
+        { label: '该难度最快', value: best ? fmt(best) : '—' },
+      ],
+      paintBoard: sudokuPaintBoard,
+      boardAspect: 1,
+      watermark: 'ruizhou03.github.io/toolbox/sudoku',
+    };
   }
 
   async function sudokuSubmitWithNick(nick) {
@@ -910,6 +995,7 @@ permalink: /toolbox/sudoku/
     sudokuPendingSubmit = false;
     sudokuSetRank('hidden');
     if (sudokuNickPrompt) sudokuNickPrompt.hide();
+    if (sudokuSettleBtn) sudokuSettleBtn.setEnabled(false);
     sudokuPgoOverlay.classList.remove('open');
     newGame(diff);
     if (sudokuSave) sudokuSave.start();
@@ -1051,6 +1137,14 @@ permalink: /toolbox/sudoku/
       onSubmit: nick => sudokuSubmitWithNick(nick),
       onSkip: () => sudokuSetRank('hidden'),
     });
+    if (GamesShell.Settlement) {
+      sudokuSettleBtn = GamesShell.Settlement.mountButton({
+        container: document.getElementById('sudoku-settle-btn-mount'),
+        gameId: 'sudoku',
+        getOpts: sudokuGetSettlementOpts,
+        startDisabled: !state.solved,
+      });
+    }
     sudokuSave = GamesShell.SaveState.create({
       key: 'tool.sudoku.savestate.v1',
       ttlMs: 48 * 3600 * 1000,

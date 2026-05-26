@@ -538,7 +538,7 @@ permalink: /toolbox/snake/
 
     // Normal food
     if (state.food) {
-      ctx.fillStyle = '#e74c3c';
+      ctx.fillStyle = '#b07c75';
       ctx.beginPath();
       ctx.arc(state.food.x * cs + cs / 2, state.food.y * cs + cs / 2, cs * 0.38, 0, Math.PI * 2);
       ctx.fill();
@@ -555,8 +555,8 @@ permalink: /toolbox/snake/
       const pulse = 1 + 0.06 * Math.sin(state.gameTime / pulseFreq);
       const r = cs * 0.9 * pulse;
 
-      ctx.fillStyle = warning ? '#e74c3c' : '#f1c40f';
-      ctx.strokeStyle = warning ? '#922b21' : '#b9870c';
+      ctx.fillStyle = warning ? '#b07c75' : '#c9a96e';
+      ctx.strokeStyle = warning ? '#7d4e46' : '#8c7649';
       ctx.lineWidth = Math.max(1, cs * 0.08);
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -719,7 +719,7 @@ permalink: /toolbox/snake/
     }
     // 食物
     if (state.food) {
-      ctx.fillStyle = '#e74c3c';
+      ctx.fillStyle = '#b07c75';
       ctx.beginPath();
       ctx.arc(x + state.food.x * cs + cs / 2, y + state.food.y * cs + cs / 2, cs * 0.38, 0, Math.PI * 2);
       ctx.fill();
@@ -729,17 +729,17 @@ permalink: /toolbox/snake/
       const b = state.bigFood;
       const cx = x + (b.x + 1) * cs;
       const cy = y + (b.y + 1) * cs;
-      ctx.fillStyle = '#f1c40f';
+      ctx.fillStyle = '#c9a96e';
       ctx.beginPath();
       ctx.arc(cx, cy, cs * 0.9, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#b9870c';
+      ctx.strokeStyle = '#8c7649';
       ctx.lineWidth = Math.max(1, cs * 0.08);
       ctx.stroke();
     }
     // 蛇
     state.snake.forEach((s, i) => {
-      ctx.fillStyle = i === 0 ? '#c0392b' : (i % 2 === 0 ? '#1e3a5f' : '#3a6ea5');
+      ctx.fillStyle = i === 0 ? '#b07c75' : (i % 2 === 0 ? '#1e3a5f' : '#3a6ea5');
       ctx.fillRect(x + s.x * cs + 1, y + s.y * cs + 1, cs - 2, cs - 2);
     });
   }
