@@ -177,8 +177,17 @@ permalink: /toolbox/solitaire/
     box-shadow: 0 0 0 3px #ffe066, 0 2px 6px rgba(0,0,0,0.4);
     transform: translateY(-2px);
   }
-  .so-card.hint {
-    box-shadow: 0 0 0 3px #58c4dc;
+  .so-card.hint-from {
+    box-shadow: 0 0 0 3px #58c4dc, 0 2px 6px rgba(0,0,0,0.4);
+    animation: so-hint-pulse 0.9s ease-in-out 0s 3;
+  }
+  .so-pile.hint-to {
+    box-shadow: 0 0 0 3px #f6c177 inset;
+    animation: so-hint-pulse 0.9s ease-in-out 0s 3;
+  }
+  @keyframes so-hint-pulse {
+    0%, 100% { filter: brightness(1); }
+    50%      { filter: brightness(1.3); }
   }
   .so-card .corner {
     position: absolute;
@@ -251,7 +260,7 @@ permalink: /toolbox/solitaire/
 
 <div class="so-wrap">
   <header>
-    <h1>🃏 接龙纸牌</h1>
+    <h1><span aria-hidden="true">🃏</span> 接龙纸牌</h1>
     <div class="sub">经典 Klondike — 把四花色从 A 摞到 K，越快越好</div>
   </header>
 
@@ -271,9 +280,10 @@ permalink: /toolbox/solitaire/
   </div>
 
   <div class="so-controls">
-    <button class="so-btn" id="soUndoBtn">↶ 撤销</button>
-    <button class="so-btn primary" id="soAutoBtn">⤴ 自动收牌</button>
-    <button class="so-btn" id="soNewBtn">🔄 重新发牌</button>
+    <button class="so-btn" id="soUndoBtn"><span aria-hidden="true">↶</span> 撤销</button>
+    <button class="so-btn" id="soHintBtn"><span aria-hidden="true">💡</span> 提示</button>
+    <button class="so-btn primary" id="soAutoBtn"><span aria-hidden="true">⤴</span> 自动收牌</button>
+    <button class="so-btn" id="soNewBtn"><span aria-hidden="true">🔄</span> 重新发牌</button>
   </div>
 
   <div class="so-table-wrap" id="soTableWrap">
@@ -297,7 +307,7 @@ permalink: /toolbox/solitaire/
     </div>
 
     <div class="so-win-overlay" id="soWinOverlay">
-      <div style="font-size:2.6rem;">🎉</div>
+      <div style="font-size:2.6rem;" aria-hidden="true">🎉</div>
       <h2>通关啦！</h2>
       <div class="so-win-stats" id="soWinStats"></div>
       <button class="so-btn primary" id="soWinNewBtn">再来一局</button>
@@ -306,7 +316,7 @@ permalink: /toolbox/solitaire/
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="soPgo">
       <div class="gs-pgo-view active" id="soPgoMain">
-        <div class="gs-pgo-icon">🃏</div>
+        <div class="gs-pgo-icon" aria-hidden="true">🃏</div>
         <h2 class="gs-pgo-title">接龙纸牌</h2>
         <div class="gs-pgo-subtitle">点牌选中，再点目标牌堆移动 · 越快越好</div>
         <div class="gs-pgo-highscore">
@@ -318,14 +328,14 @@ permalink: /toolbox/solitaire/
           <button class="gs-pgo-mode-tab" data-value="draw3">翻 3 张</button>
         </div>
         <div class="gs-pgo-mode-desc" id="soPgoModeDesc">翻 1 张：每次从牌库翻一张到弃牌堆，较易。</div>
-        <button class="gs-pgo-start-btn" id="soPgoStartBtn">▶ 开始游戏</button>
+        <button class="gs-pgo-start-btn" id="soPgoStartBtn"><span aria-hidden="true">▶</span> 开始游戏</button>
       </div>
       <div class="gs-pgo-view" id="soPgoResume">
-        <div class="gs-pgo-icon">👋</div>
+        <div class="gs-pgo-icon" aria-hidden="true">👋</div>
         <h2 class="gs-pgo-title">上次还没玩完</h2>
         <div class="gs-pgo-resume-summary" id="soPgoResumeSummary"></div>
-        <button class="gs-pgo-start-btn" id="soPgoResumeContinueBtn">▶ 继续上次</button>
-        <button class="gs-pgo-start-btn" id="soPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;">🔄 重新发牌</button>
+        <button class="gs-pgo-start-btn" id="soPgoResumeContinueBtn"><span aria-hidden="true">▶</span> 继续上次</button>
+        <button class="gs-pgo-start-btn" id="soPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;"><span aria-hidden="true">🔄</span> 重新发牌</button>
       </div>
     </div>
   </div>
@@ -405,6 +415,7 @@ permalink: /toolbox/solitaire/
   const movesEl = document.getElementById('soMoves');
   const bestEl = document.getElementById('soBest');
   const undoBtn = document.getElementById('soUndoBtn');
+  const hintBtn = document.getElementById('soHintBtn');
   const autoBtn = document.getElementById('soAutoBtn');
   const newBtn = document.getElementById('soNewBtn');
   const winOverlay = document.getElementById('soWinOverlay');
@@ -806,6 +817,8 @@ permalink: /toolbox/solitaire/
     movesEl.textContent = String(state.moves);
     updateBestLabel();
     undoBtn.disabled = state.history.length === 0;
+    // render 重建了卡牌 DOM，残留的 hint-to 也应清掉（pile 节点本身不重建）
+    document.querySelectorAll('.so-pile.hint-to').forEach(el => el.classList.remove('hint-to'));
   }
 
   function canSelDropFoundation(i) {
@@ -988,7 +1001,117 @@ permalink: /toolbox/solitaire/
     render();
   }
 
+  // —— 提示：扫描一个合法的有用走法 ——
+  // 优先级：1) 可送收牌区 2) 可翻开盖牌的 tableau→tableau 3) waste→tableau
+  // 4) 任意 tableau→tableau（含 K 进空列）5) draw stock 提示
+  function findHint() {
+    // 1) 任意能送收牌区的牌（waste 顶 / 各列顶）
+    if (state.waste.length) {
+      const c = state.waste[state.waste.length - 1];
+      const ft = foundationTargetFor(c);
+      if (ft >= 0) {
+        return { from: { zone: 'waste', idx: 0, pos: state.waste.length - 1 },
+                 to:   { zone: 'foundation', idx: ft } };
+      }
+    }
+    for (let col = 0; col < 7; col++) {
+      const pile = state.tableau[col];
+      if (!pile.length) continue;
+      const c = pile[pile.length - 1];
+      if (!c.up) continue;
+      const ft = foundationTargetFor(c);
+      if (ft >= 0) {
+        return { from: { zone: 'tableau', idx: col, pos: pile.length - 1 },
+                 to:   { zone: 'foundation', idx: ft } };
+      }
+    }
+    // 2) 能翻开新盖牌的 tableau→tableau（搬走整段后，底下还有盖着的牌）
+    for (let col = 0; col < 7; col++) {
+      const pile = state.tableau[col];
+      if (!pile.length) continue;
+      // 找该列最上面那张翻开的牌
+      let topUp = -1;
+      for (let i = 0; i < pile.length; i++) if (pile[i].up) { topUp = i; break; }
+      if (topUp < 0 || topUp === 0) continue;   // 没有翻开的、或底下没盖牌
+      const seg = pickup('tableau', col, topUp);
+      if (!seg) continue;
+      for (let dc = 0; dc < 7; dc++) {
+        if (dc === col) continue;
+        if (canToTableau(seg.cards[0], dc)) {
+          return { from: { zone: 'tableau', idx: col, pos: topUp },
+                   to:   { zone: 'tableau', idx: dc } };
+        }
+      }
+    }
+    // 3) waste → tableau
+    if (state.waste.length) {
+      const c = state.waste[state.waste.length - 1];
+      for (let dc = 0; dc < 7; dc++) {
+        if (canToTableau(c, dc)) {
+          return { from: { zone: 'waste', idx: 0, pos: state.waste.length - 1 },
+                   to:   { zone: 'tableau', idx: dc } };
+        }
+      }
+    }
+    // 4) 任意可移动的 tableau 段
+    for (let col = 0; col < 7; col++) {
+      const pile = state.tableau[col];
+      for (let pos = 0; pos < pile.length; pos++) {
+        if (!pile[pos].up) continue;
+        const seg = pickup('tableau', col, pos);
+        if (!seg) continue;
+        for (let dc = 0; dc < 7; dc++) {
+          if (dc === col) continue;
+          if (canToTableau(seg.cards[0], dc)) {
+            return { from: { zone: 'tableau', idx: col, pos },
+                     to:   { zone: 'tableau', idx: dc } };
+          }
+        }
+      }
+    }
+    // 5) 没法移动 → 翻牌库
+    if (state.stock.length || state.waste.length) {
+      return { from: { zone: 'stock', idx: 0, pos: 0 }, to: { zone: 'stock', idx: 0 } };
+    }
+    return null;
+  }
+
+  function clearHintMarks() {
+    document.querySelectorAll('.so-card.hint-from').forEach(el => el.classList.remove('hint-from'));
+    document.querySelectorAll('.so-pile.hint-to').forEach(el => el.classList.remove('hint-to'));
+  }
+
+  let hintTimer = null;
+  function showHint() {
+    if (state.won) return;
+    clearHintMarks();
+    const h = findHint();
+    if (!h) {
+      hintBtn.textContent = '无法走牌';
+      setTimeout(() => { hintBtn.innerHTML = '<span aria-hidden="true">💡</span> 提示'; }, 1400);
+      return;
+    }
+    const { from, to } = h;
+    // 高亮起点卡牌
+    if (from.zone === 'stock') {
+      stockEl.classList.add('hint-to');
+    } else if (from.zone === 'waste') {
+      const fromCard = wasteEl.querySelector(`.so-card[data-zone="waste"][data-pos="${from.pos}"]`);
+      if (fromCard) fromCard.classList.add('hint-from');
+    } else if (from.zone === 'tableau') {
+      const fromPile = tableauEls[from.idx];
+      const fromCard = fromPile.querySelector(`.so-card[data-pos="${from.pos}"]`);
+      if (fromCard) fromCard.classList.add('hint-from');
+    }
+    // 高亮目标牌堆
+    if (to.zone === 'foundation') foundationEls[to.idx].classList.add('hint-to');
+    else if (to.zone === 'tableau') tableauEls[to.idx].classList.add('hint-to');
+    if (hintTimer) clearTimeout(hintTimer);
+    hintTimer = setTimeout(clearHintMarks, 2700);
+  }
+
   undoBtn.addEventListener('click', undo);
+  hintBtn.addEventListener('click', showHint);
   autoBtn.addEventListener('click', () => {
     if (state.won) return;
     autoBatchOpen = false;

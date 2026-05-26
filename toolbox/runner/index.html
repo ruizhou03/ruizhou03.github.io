@@ -7,7 +7,12 @@ permalink: /toolbox/runner/
 <link rel="stylesheet" href="/assets/css/games-shell.css">
 
 <style>
-  .runner-wrap { --gs-wrap-half: 380px; }
+  .runner-wrap {
+    --gs-wrap-half: 380px;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+  }
   .runner-rank-row {
     margin: 0.9rem auto 0;
     padding: 0.55rem 0.8rem;
@@ -24,14 +29,7 @@ permalink: /toolbox/runner/
   .runner-rank-row strong { color: var(--color-highlight); font-weight: 700; }
   .runner-rank-row.loading { color: var(--color-muted); }
   .runner-rank-row.failed { color: var(--color-muted); font-size: 0.84rem; }
-</style>
 
-<style>
-  .runner-wrap {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 2rem 1rem 4rem;
-  }
   .runner-header { text-align: center; margin-bottom: 1.4rem; }
   .runner-header h1 {
     font-size: 2.2rem; color: var(--color-ink); margin-bottom: 0.6rem;
@@ -73,51 +71,6 @@ permalink: /toolbox/runner/
     image-rendering: pixelated;   /* 像素清脆 */
     image-rendering: crisp-edges;
   }
-
-  /* —— 开始 / GG 遮罩 —— */
-  .game-overlay {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    background: rgba(245, 240, 232, 0.88);    /* 半透明米色 */
-    backdrop-filter: blur(2px);
-    color: var(--color-ink);
-    text-align: center;
-    padding: 0.8rem 1rem;
-    transition: opacity 0.2s;
-  }
-  .game-overlay.hidden { display: none; }
-  .overlay-title {
-    font-family: var(--font-display);
-    font-size: clamp(1.1rem, 4.5vw, 1.6rem);
-    font-weight: 700;
-    margin-bottom: 0.4rem;
-    line-height: 1.2;
-  }
-  .overlay-sub {
-    font-size: clamp(0.78rem, 2.8vw, 0.92rem);
-    color: var(--color-muted);
-    margin-bottom: 0.7rem;
-    line-height: 1.4;
-  }
-  .overlay-stats {
-    display: flex; gap: 1.2rem;
-    margin-bottom: 0.9rem;
-    font-family: var(--font-body);
-    font-size: clamp(0.85rem, 3vw, 1rem);
-  }
-  .overlay-stats .label { color: var(--color-light); }
-  .overlay-stats .value { color: var(--color-ink); font-weight: 700; margin-left: 0.3em; }
-  .overlay-btn {
-    padding: 0.55rem 1.4rem;
-    background: var(--color-accent); color: #fff;
-    border: none; border-radius: 999px;
-    font: inherit; font-size: 0.92rem; font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 3px 10px rgba(30,58,95,0.25);
-    transition: transform 0.15s;
-  }
-  .overlay-btn:hover { transform: translateY(-1px); }
 
   .controls-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -181,6 +134,8 @@ permalink: /toolbox/runner/
   details.about summary::before { content: '▸ '; transition: 0.2s; }
   details[open].about summary::before { content: '▾ '; }
   details.about p { margin: 0.6rem 0; }
+  details.about ul { margin: 0.4rem 0 0.8rem; padding-left: 1.2rem; }
+  details.about li { margin: 0.25rem 0; }
 </style>
 
 <article class="runner-wrap">
@@ -197,8 +152,8 @@ permalink: /toolbox/runner/
     <div class="canvas-wrap">
       <canvas class="game-canvas" id="game-canvas"></canvas>
 
-      <!-- 开始 / 重玩 遮罩 -->
-      <div class="game-overlay gs-pgo-overlay open" id="overlay-start">
+      <!-- 开始 / 暂停 / GG 遮罩：三态共享一层 gs-pgo-overlay，切换 view -->
+      <div class="gs-pgo-overlay open" id="runner-pgo">
         <div class="gs-pgo-view active" id="runnerPgoMain">
           <div class="gs-pgo-icon">🏃</div>
           <h2 class="gs-pgo-title">Deadline 大逃亡</h2>
@@ -214,15 +169,21 @@ permalink: /toolbox/runner/
           </div>
           <button type="button" class="gs-pgo-start-btn" id="runnerPgoStartBtn">▶ 开始游戏</button>
         </div>
-      </div>
-
-      <div class="game-overlay hidden" id="overlay-over">
-        <div class="overlay-title">💥 GG，被 deadline 撞了</div>
-        <div class="overlay-stats">
-          <span><span class="label">本次：</span><span class="value" id="over-score">0 米</span></span>
-          <span><span class="label">最高：</span><span class="value" id="over-best">0 米</span></span>
+        <div class="gs-pgo-view" id="runnerPgoPause">
+          <div class="gs-pgo-icon" aria-hidden="true">⏸</div>
+          <h2 class="gs-pgo-title">暂停中</h2>
+          <div class="gs-pgo-subtitle">按 P 或空格继续</div>
+          <button type="button" class="gs-pgo-start-btn" id="runnerPgoResumeBtn">▶ 继续</button>
         </div>
-        <button type="button" class="overlay-btn" id="btn-restart">再来 (空格)</button>
+        <div class="gs-pgo-view" id="runnerPgoOver">
+          <div class="gs-pgo-icon" aria-hidden="true">💥</div>
+          <h2 class="gs-pgo-title">GG，被 deadline 撞了</h2>
+          <div class="gs-pgo-subtitle">
+            本次 <strong id="over-score" style="color:#fff;">0 米</strong>
+            · 最高 <strong id="over-best" style="color:var(--color-highlight);">0 米</strong>
+          </div>
+          <button type="button" class="gs-pgo-start-btn" id="btn-restart">▶ 再来 (空格)</button>
+        </div>
       </div>
     </div>
 
@@ -245,6 +206,14 @@ permalink: /toolbox/runner/
     <summary>游戏规则</summary>
     <p><kbd>空格</kbd> / <kbd>↑</kbd> 跳跃（按住跳更高，下落时滑翔），<kbd>↓</kbd> 蹲下钻过低空障碍，空中按 <kbd>↓</kbd> 加速落地。<kbd>P</kbd> 暂停。</p>
     <p>地面纸堆和半空飞邮件都是障碍，撞到即结束。速度越跑越快。每一米 +1 分。</p>
+    <p><strong>跳跃 / 滑翔细节</strong>——按压时长直接决定飞行轨迹，三个阶段叠加：</p>
+    <ul>
+      <li><strong>瞬点</strong>（按 1 帧就松）：上升 ~28 px，落地最快。用来过紧贴的小纸堆。</li>
+      <li><strong>半按</strong>（上升期按住 3-8 帧）：达到 43-91 px 高度，能跨过中 / 高纸堆。松开瞬间会立刻把上升速度收回来，所以"短按"和"长按"差距明显，不会糊在一起。</li>
+      <li><strong>滑翔</strong>（顶点之后继续按住，至多 30 帧 ≈ 0.5 秒）：下落重力降到正常的 18%，博士生张开学位袍当机翼。屏幕上能看到双臂横展、流苏被风吹起——这就是滑翔生效的视觉信号。用来从远处跨过两连发邮件 / 滞空等飞邮件穿过去。</li>
+      <li><strong>空中急降</strong>：跳到顶点后按 <kbd>↓</kbd> 会把垂直速度反弹 + 加重力，相当于砸地，用于跳过头马上要落到低空飞邮件正下方时的救场。</li>
+    </ul>
+    <p>简单记法：小跳=点；中跳=按住直到到顶；远跳=按住不放（连滑翔一起用）。</p>
   </details>
 
   <div id="runner-lb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
@@ -293,9 +262,12 @@ permalink: /toolbox/runner/
   const $canvas    = document.getElementById('game-canvas');
   const $hudBest   = document.getElementById('hud-best');
   const $hudScore  = document.getElementById('hud-score');
-  const $overStart = document.getElementById('overlay-start');
-  const $overOver  = document.getElementById('overlay-over');
-  const $btnStart  = document.getElementById('runnerPgoStartBtn') || document.getElementById('btn-start');
+  const $pgo       = document.getElementById('runner-pgo');
+  const $pgoMain   = document.getElementById('runnerPgoMain');
+  const $pgoPause  = document.getElementById('runnerPgoPause');
+  const $pgoOver   = document.getElementById('runnerPgoOver');
+  const $btnStart  = document.getElementById('runnerPgoStartBtn');
+  const $btnResume = document.getElementById('runnerPgoResumeBtn');
   const $btnRestart = document.getElementById('btn-restart');
   const $runnerPgoBest = document.getElementById('runnerPgoBest');
   const $runnerPgoSpeedPicker = document.getElementById('runnerPgoSpeedPicker');
@@ -306,6 +278,18 @@ permalink: /toolbox/runner/
   const $overBest  = document.getElementById('over-best');
   const $btnJump   = document.getElementById('btn-jump');
   const $btnDuck   = document.getElementById('btn-duck');
+
+  // 三态 overlay 切换：'main' | 'pause' | 'over' | 'hidden'
+  function setPgoView(name) {
+    if (name === 'hidden') {
+      $pgo.classList.remove('open');
+      return;
+    }
+    $pgo.classList.add('open');
+    $pgoMain.classList.toggle('active', name === 'main');
+    $pgoPause.classList.toggle('active', name === 'pause');
+    $pgoOver.classList.toggle('active', name === 'over');
+  }
 
   const ctx = $canvas.getContext('2d');
 
@@ -393,9 +377,7 @@ permalink: /toolbox/runner/
     state.speedRamp = preset.ramp;
     resetGame();
     state.phase = 'playing';
-    $overStart.classList.add('hidden');
-    $overStart.classList.remove('open');
-    $overOver.classList.add('hidden');
+    setPgoView('hidden');
     runnerRunStartedAt = Date.now();
     runnerRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     runnerPendingSubmit = false;
@@ -416,7 +398,7 @@ permalink: /toolbox/runner/
     $hudBest.textContent = `最高 ${state.best} 米`;
     $overScore.textContent = `${finalScore} 米`;
     $overBest.textContent = `${state.best} 米`;
-    $overOver.classList.remove('hidden');
+    setPgoView('over');
     if (runnerSettleBtn && finalScore > 0) runnerSettleBtn.setEnabled(true);
   }
 
@@ -457,25 +439,12 @@ permalink: /toolbox/runner/
     state.player.ducking = false;
   }
   function togglePause() {
-    // 兼容新旧两种遮罩结构：start overlay 用 .gs-pgo-title/.gs-pgo-subtitle，旧版用 .overlay-title/.overlay-sub
-    const $title = $overStart.querySelector('.gs-pgo-title') || $overStart.querySelector('.overlay-title');
-    const $sub   = $overStart.querySelector('.gs-pgo-subtitle') || $overStart.querySelector('.overlay-sub');
-    const ORIG_TITLE = 'Deadline 大逃亡';
-    const ORIG_SUB   = '跳过文献综述，钻过 Reviewer 2 的飞邮件，能跑多远？';
-    const ORIG_BTN   = '▶ 开始游戏';
     if (state.phase === 'playing') {
       state.phase = 'paused';
-      if ($title) $title.textContent = '⏸ 暂停';
-      if ($sub)   $sub.textContent   = '按 P 或空格继续';
-      if ($btnStart) $btnStart.textContent = '继续';
-      $overStart.classList.remove('hidden');
+      setPgoView('pause');
     } else if (state.phase === 'paused') {
       state.phase = 'playing';
-      $overStart.classList.add('hidden');
-      // 恢复初始遮罩文案，下次新开仍然是开始页
-      if ($title) $title.textContent = ORIG_TITLE;
-      if ($sub)   $sub.textContent   = ORIG_SUB;
-      if ($btnStart) $btnStart.textContent = ORIG_BTN;
+      setPgoView('hidden');
     }
   }
 
@@ -522,9 +491,8 @@ permalink: /toolbox/runner/
   bindHold($btnDuck, pressDuck, releaseDuck);
 
   // overlay 按钮
-  $btnStart.addEventListener('click', () => {
-    if (state.phase === 'paused') togglePause(); else startGame();
-  });
+  $btnStart.addEventListener('click', startGame);
+  $btnResume.addEventListener('click', togglePause);
   $btnRestart.addEventListener('click', startGame);
 
   // 触屏点 canvas 直接跳

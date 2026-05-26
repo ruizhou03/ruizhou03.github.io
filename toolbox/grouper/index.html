@@ -159,24 +159,31 @@ permalink: /toolbox/grouper/
       <span class="spacer"></span>
     </div>
 
-    <div class="panel-title">名单（每行一个）</div>
-    <textarea class="names-input" id="names-input" placeholder="例如：&#10;张三&#10;李四&#10;王五"></textarea>
+    <div class="panel-title"><label for="names-input">名单（每行一个）</label></div>
+    <textarea class="names-input" id="names-input" placeholder="例如：&#10;张三&#10;李四&#10;王五&#10;&#10;按属性均衡时在名字后写数字（实力 / 经验 / 年龄等）：&#10;张三 5&#10;李四 3&#10;王五 4"></textarea>
     <div class="names-meta" id="names-meta">0 个名字</div>
   </div>
 
   <div class="panel">
     <div class="panel-title">分组方式</div>
-    <div class="mode-tabs">
-      <button type="button" data-mode="groups" class="active">分 N 组</button>
-      <button type="button" data-mode="size">每组 M 人</button>
+    <div class="mode-tabs" role="tablist" aria-label="分组方式">
+      <button type="button" role="tab" data-mode="groups" class="active" aria-pressed="true">分 N 组</button>
+      <button type="button" role="tab" data-mode="size" aria-pressed="false">每组 M 人</button>
     </div>
     <div class="mode-input-row">
-      <label id="mode-label">N =</label>
+      <label id="mode-label" for="mode-value">N =</label>
       <input type="number" id="mode-value" inputmode="numeric" min="1" max="100" step="1" value="3" />
-      <label class="balance-toggle" id="balance-wrap">
+      <label class="balance-toggle" id="balance-wrap" for="balance-toggle">
         <input type="checkbox" id="balance-toggle" checked />
         <span>余数随机分到前几组</span>
       </label>
+      <label class="balance-toggle" id="attr-balance-wrap" for="attr-balance-toggle" style="display:none;">
+        <input type="checkbox" id="attr-balance-toggle" />
+        <span>按属性均衡（snake-draft）</span>
+      </label>
+    </div>
+    <div class="names-meta" id="attr-meta" style="display:none;margin-top:0.4rem;">
+      检测到 <strong id="attr-count">0</strong> 个名字带数字属性，可勾选「按属性均衡」让各组属性总和接近
     </div>
   </div>
 
@@ -206,6 +213,7 @@ permalink: /toolbox/grouper/
     mode: 'groups',
     value: 3,
     balance: true,
+    attrBalance: false,
     lastResult: null,
   };
 
@@ -215,6 +223,10 @@ permalink: /toolbox/grouper/
   const $modeLbl  = document.getElementById('mode-label');
   const $modeVal  = document.getElementById('mode-value');
   const $balance  = document.getElementById('balance-toggle');
+  const $attrBal  = document.getElementById('attr-balance-toggle');
+  const $attrWrap = document.getElementById('attr-balance-wrap');
+  const $attrMeta = document.getElementById('attr-meta');
+  const $attrCount= document.getElementById('attr-count');
   const $shuffle  = document.getElementById('shuffle-btn');
   const $reshuffle= document.getElementById('reshuffle-btn');
   const $copy     = document.getElementById('copy-btn');
@@ -228,13 +240,27 @@ permalink: /toolbox/grouper/
   const $pDelete  = document.getElementById('profile-delete');
 
   // ——— Names ———
+  // 支持「name N」语法：行末数字 → 属性值（实力 / 经验等，越大越强）
   function parseNames(raw) {
-    return raw.split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
+    return raw.split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0).map(line => {
+      const m = line.match(/^(.+?)\s+(-?\d+(?:\.\d+)?)\s*$/);
+      if (m) return { name: m[1].trim(), attr: parseFloat(m[2]) };
+      return { name: line, attr: null };
+    });
   }
   function updateMeta() {
-    const names = parseNames($names.value);
-    $namesMeta.textContent = `${names.length} 个名字`;
-    $shuffle.disabled = names.length < 2;
+    const entries = parseNames($names.value);
+    const withAttr = entries.filter(e => e.attr !== null).length;
+    $namesMeta.textContent = `${entries.length} 个名字`;
+    $shuffle.disabled = entries.length < 2;
+    if (withAttr > 0) {
+      $attrCount.textContent = String(withAttr);
+      $attrMeta.style.display = '';
+      // 仅当 ≥80% 的人都有属性时，按属性均衡才有意义；否则提示但不强制启用
+    } else {
+      $attrMeta.style.display = 'none';
+    }
+    syncAttrBalanceVisibility(entries);
   }
   $names.addEventListener('input', updateMeta);
 
@@ -242,21 +268,35 @@ permalink: /toolbox/grouper/
   function syncBalanceVisibility() {
     $balanceWrap.style.display = state.mode === 'groups' ? '' : 'none';
   }
+  function syncAttrBalanceVisibility(entries) {
+    entries = entries || parseNames($names.value);
+    const withAttr = entries.filter(e => e.attr !== null).length;
+    // 至少 2 个人带属性 + 分 N 组模式 → 展示按属性均衡选项
+    const show = withAttr >= 2 && state.mode === 'groups';
+    $attrWrap.style.display = show ? '' : 'none';
+    if (!show && $attrBal.checked) {
+      $attrBal.checked = false;
+      state.attrBalance = false;
+    }
+  }
 
   // ——— Mode tabs ———
   $tabs.forEach(btn => {
     btn.addEventListener('click', () => {
-      $tabs.forEach(b => b.classList.remove('active'));
+      $tabs.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
       btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
       state.mode = btn.dataset.mode;
       $modeLbl.textContent = state.mode === 'groups' ? 'N =' : 'M =';
       syncBalanceVisibility();
+      syncAttrBalanceVisibility();
     });
   });
   $modeVal.addEventListener('input', () => {
     state.value = Math.max(1, parseInt($modeVal.value, 10) || 1);
   });
   $balance.addEventListener('change', () => { state.balance = $balance.checked; });
+  $attrBal.addEventListener('change', () => { state.attrBalance = $attrBal.checked; });
 
   // ——— Shuffle (Fisher-Yates) ———
   function shuffleArr(arr) {
@@ -268,17 +308,43 @@ permalink: /toolbox/grouper/
     return a;
   }
 
-  function divideIntoGroups(names, mode, value, balance) {
-    if (names.length < 2) return [];
-    const shuffled = shuffleArr(names);
+  // entries: [{name, attr}], attr 可能为 null
+  function divideIntoGroups(entries, mode, value, balance, attrBalance) {
+    if (entries.length < 2) return [];
     let groupCount;
     if (mode === 'groups') {
-      groupCount = Math.min(Math.max(1, value), shuffled.length);
+      groupCount = Math.min(Math.max(1, value), entries.length);
     } else {
-      groupCount = Math.max(1, Math.ceil(shuffled.length / Math.max(1, value)));
+      groupCount = Math.max(1, Math.ceil(entries.length / Math.max(1, value)));
     }
 
     const groups = Array.from({ length: groupCount }, () => []);
+
+    // 按属性均衡：snake-draft —— 把所有人按属性降序排，
+    // 然后蛇形分配到各组（1→N→1→N...），让各组属性总和接近
+    if (mode === 'groups' && attrBalance) {
+      const haveAttr = entries.filter(e => e.attr !== null);
+      const noAttr   = entries.filter(e => e.attr === null);
+      // 同属性内随机化，保证可重复 shuffle 时也有变化
+      const byAttr = shuffleArr(haveAttr).sort((a, b) => b.attr - a.attr);
+      // 组顺序也随机一下，避免每次第一组都是最强组员
+      const order = shuffleArr(Array.from({ length: groupCount }, (_, i) => i));
+      for (let i = 0; i < byAttr.length; i++) {
+        const round = Math.floor(i / groupCount);
+        const pos = i % groupCount;
+        const slot = round % 2 === 0 ? pos : groupCount - 1 - pos;
+        groups[order[slot]].push(byAttr[i]);
+      }
+      // 没属性的随机填到当前最小组
+      shuffleArr(noAttr).forEach(e => {
+        let minG = 0;
+        for (let g = 1; g < groupCount; g++) if (groups[g].length < groups[minG].length) minG = g;
+        groups[minG].push(e);
+      });
+      return groups;
+    }
+
+    const shuffled = shuffleArr(entries);
 
     if (mode === 'groups') {
       // 平衡模式：余数 r 随机洒给前 r 组
@@ -289,7 +355,6 @@ permalink: /toolbox/grouper/
         const idxs = shuffleArr(Array.from({ length: groupCount }, (_, i) => i));
         for (let i = 0; i < remainder; i++) sizes[idxs[i]] += 1;
       } else {
-        // 不平衡：余数全堆到第一组
         sizes[0] += remainder;
       }
       let cur = 0;
@@ -299,7 +364,6 @@ permalink: /toolbox/grouper/
         }
       }
     } else {
-      // 每组 M 人：直接顺序填充
       const M = Math.max(1, value);
       for (let i = 0; i < shuffled.length; i++) {
         groups[Math.floor(i / M)].push(shuffled[i]);
@@ -309,19 +373,23 @@ permalink: /toolbox/grouper/
     return groups;
   }
 
-  function renderResults(groups) {
+  function renderResults(groups, showAttrSum) {
     $grid.innerHTML = '';
     groups.forEach((members, idx) => {
       const card = document.createElement('div');
       card.className = 'group-card';
       card.style.setProperty('--g-color', COLORS[idx % COLORS.length]);
       card.style.animationDelay = (idx * 60) + 'ms';
+      const attrSum = members.reduce((s, m) => s + (m.attr !== null ? m.attr : 0), 0);
+      const sumLabel = showAttrSum ? ` · ∑${Number.isInteger(attrSum) ? attrSum : attrSum.toFixed(1)}` : '';
       card.innerHTML = `
         <div class="g-title">
           <span>第 ${idx + 1} 组</span>
-          <span class="g-count">${members.length} 人</span>
+          <span class="g-count">${members.length} 人${sumLabel}</span>
         </div>
-        <ul>${members.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul>
+        <ul>${members.map(m =>
+          `<li>${escapeHtml(m.name)}${m.attr !== null && showAttrSum ? ` <span style="color:var(--color-light);font-size:0.85em;">(${m.attr})</span>` : ''}</li>`
+        ).join('')}</ul>
       `;
       $grid.appendChild(card);
     });
@@ -336,11 +404,13 @@ permalink: /toolbox/grouper/
   }
 
   function doShuffle() {
-    const names = parseNames($names.value);
-    if (names.length < 2) return;
-    const groups = divideIntoGroups(names, state.mode, state.value, state.balance);
-    state.lastResult = groups;
-    renderResults(groups);
+    const entries = parseNames($names.value);
+    if (entries.length < 2) return;
+    const useAttr = state.attrBalance && state.mode === 'groups' &&
+                    entries.filter(e => e.attr !== null).length >= 2;
+    const groups = divideIntoGroups(entries, state.mode, state.value, state.balance, useAttr);
+    state.lastResult = { groups, useAttr };
+    renderResults(groups, useAttr);
   }
 
   $shuffle.addEventListener('click', doShuffle);
@@ -348,9 +418,14 @@ permalink: /toolbox/grouper/
 
   $copy.addEventListener('click', async () => {
     if (!state.lastResult) return;
-    const txt = state.lastResult.map((g, i) =>
-      `第 ${i + 1} 组（${g.length} 人）：\n${g.map(n => '  ' + n).join('\n')}`
-    ).join('\n\n');
+    const { groups, useAttr } = state.lastResult;
+    const txt = groups.map((g, i) => {
+      const sum = g.reduce((s, m) => s + (m.attr !== null ? m.attr : 0), 0);
+      const head = useAttr ? `第 ${i + 1} 组（${g.length} 人，∑${Number.isInteger(sum) ? sum : sum.toFixed(1)}）：` : `第 ${i + 1} 组（${g.length} 人）：`;
+      return head + '\n' + g.map(m =>
+        '  ' + m.name + (m.attr !== null && useAttr ? ` (${m.attr})` : '')
+      ).join('\n');
+    }).join('\n\n');
     try {
       await navigator.clipboard.writeText(txt);
       $copy.textContent = '✓ 已复制';
@@ -388,7 +463,11 @@ permalink: /toolbox/grouper/
     $names.value = profiles[name].names || '';
     if (profiles[name].mode) {
       state.mode = profiles[name].mode;
-      $tabs.forEach(b => b.classList.toggle('active', b.dataset.mode === state.mode));
+      $tabs.forEach(b => {
+        const on = b.dataset.mode === state.mode;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
       $modeLbl.textContent = state.mode === 'groups' ? 'N =' : 'M =';
     }
     if (profiles[name].value) {

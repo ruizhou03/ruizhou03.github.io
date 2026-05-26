@@ -15,4 +15,6 @@ pdf_url: "/files/real-anal/real-anal-ch2-2024.pdf"
 # reactions: ['👍', '🎓', '📝', '🔥']
 ---
 
+在 Ch1 测度的基础上把积分定义出来。从可测函数和简单函数切入，再串起单调收敛（MCT）、Fatou 引理、控制收敛（DCT）三大收敛定理——是后续章节反复调用的核心工具。
+
 <p class="img-caption">LaTeX 源码：<a href="/files/real-anal/source/real-anal-ch2-integration.tex">real-anal-ch2-integration.tex</a></p>

@@ -15,4 +15,6 @@ pdf_url: "/files/real-anal/real-anal-ch5-2024.pdf"
 # reactions: ['👍', '🎓', '📝', '🔥']
 ---
 
+分析里最常用的一族 Banach 空间。从 Hölder、Minkowski、Jensen 三大不等式起手，证完备性（Riesz-Fischer），再讨论 Lp 的对偶 Lq 与可分性——是后面学概率论、PDE、泛函的常用工具间。
+
 <p class="img-caption">LaTeX 源码：<a href="/files/real-anal/source/real-anal-ch5-lp-spaces.tex">real-anal-ch5-lp-spaces.tex</a></p>

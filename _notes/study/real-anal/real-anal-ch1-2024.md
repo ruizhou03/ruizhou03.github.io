@@ -16,4 +16,6 @@ pdf_url: "/files/real-anal/real-anal-ch1-2024.pdf"
 published: true
 ---
 
+测度论的入口章节。把 σ-代数、外测度、Carathéodory 准则一步步搭起来，落到 Lebesgue 测度——这是后面所有积分定理和微分定理共用的底层结构。
+
 <p class="img-caption">LaTeX 源码：<a href="/files/real-anal/source/real-anal-ch1-measure.tex">real-anal-ch1-measure.tex</a> · 完整 7 章合并版：<a href="/files/real-anal/real-anal-2024.pdf">real-anal-2024.pdf</a></p>
