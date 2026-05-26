@@ -1,0 +1,251 @@
+---
+title: "Exploratory Factor Analysis"
+author:
+  - Rui
+date: "`r Sys.Date()`"
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    
+header-includes:
+  - \renewcommand{\and}{\\}
+  - \usepackage{amsmath}
+---
+
+```{r}
+rm(list=ls())
+# install.packages("GPArotation")  # already installed
+library("readxl")
+library("psych")
+library(dplyr)
+library(bruceR)
+library(tidyr)
+library(corrplot)
+library(ggplot2)
+library(GPArotation)
+```
+
+
+```{r}
+currentData = psych::bfi
+currentData = currentData %>% drop_na()
+currentData = currentData[complete.cases(currentData),]
+currentData = currentData[1:25]
+```
+
+
+```{r}
+describe(currentData)
+```
+
+## Correlation Matrix
+
+```{r}
+cor_matrix = cor(currentData)
+corrplot(cor_matrix, method="number")
+```
+
+## Data Adequacy
+
+get the overall MSA from KMO; look at the bartlett test
+
+```{r}
+KMO(cor(currentData))
+cortest.bartlett(cor(currentData),nrow(currentData))
+det(cor_matrix)
+```
+
+## Determine num. of Factors
+
+* To determine the number of factors, scree and parallel are two methods.
+* Scree is obsolete; parallel suggests 3 factors here.
+
+```{r}
+scree(currentData)
+fa.parallel(currentData,fm='pa',fa='both')
+```
+
+# Factor Analysis
+
+## NULL Model
+
+Take a look: without selecting the number of factors, without rotation.
+
+Factoring Method "`fm`":
+* `minres`: do a minimum residual
+* `pa`: do the principal factor solution
+* `ml`: do a maximum likelihood factor analysis
+
+The Proportion Var and Cumulative Var are the variance that can be explained by factors.
+
+"SS loadings" is the sum of squared loadings for each factor; **>1** means the factor is worth keeping.
+
+The model can be printed with the following results:
+
+* Standardized loadings (pattern matrix) based upon correlation matrix
+  * SS loadings
+    * The eigenvalues, the sum of the squared loadings for each factor. 
+    * **Better to be >1**.
+  * Proportion Var 
+    * The overall variance (for all variables/items) that can be explained by each factor.
+  * Cumulative Var
+  * Proportion Explained
+    * The relative importance of each factor.
+  * Cumulative Proportion
+* Test of the hypothesis that selected numbers of factors are sufficient
+* Measures of factor score adequacy
+  * Correlation of (regression) scores with factors 
+  * Multiple R square of scores with factors
+  * Minimum correlation of possible factor scores
+* Data frame with loading matrix, communality, uniqueness, and item complexity.
+
+**Standardized loadings (pattern matrix) based upon correlation matrix** is the most important part!
+
+```{r}
+fa_none = fa(currentData,nfactors = ncol(currentData),
+             fm='minres',rotate='none')  
+print(fa_none)
+```
+
+For illustration purpose:
+
+* If using 25 factors (here only 25 items), we can see how loading and
+proportion of variance decrease with factors;
+* The cumulative variance explained will approach 1.
+
+## Screened Model
+
+According to spree plot, take 6 factors.
+
+Note that restrictions on factor number will have practical effect on the model, instead of just trimming the model to the reduced one.
+
+```{r}
+fa6_none = fa(currentData, 6,fm='minres',rotate='none')  
+print(fa6_none)
+```
+
+However, the old big five model only has 5 factors, and we're to designate this number.
+
+```{r}
+fa5_none = fa(currentData, 5,fm='minres',rotate='none')  
+print(fa5_none)
+```
+
+Obviously, with more factors taken into account, more cumulative variance will be explained.
+
+# Factor Rotation
+
+Factor loadings listed for each variable. The square of it is the variation accounted for.
+
+The hope is that all these correlation coefficients are close to (+/-)1 or 0, so we can easily interpret the meanings of these components (factors). We will accomplish this goal through rotation.
+
+The relationship (correlation coefficient r) between the variable and the factor is shown. We can view it on a **Factor Plot**.
+
+Use 2 factors for illustration purpose, to show how rotation works.
+
+```{r}
+fa_unrotated = fa(currentData,nfactors = 2,fm='minres',rotate='none')
+# print(fa_unrotated)
+fa_unrotated$loadings  #laodings, unrotated
+```
+
+Now, rotate it (orthogonal and oblique).
+
+Un-rotated factors are typically not very interpretable (most factors are correlated with many variables), though it has largest variance explained.
+
+Factors are rotated to make them more meaningful and easier to interpret (each variable is associated with a minimal number of factors). Looking for “simple structure”.
+
+The most popular rotational method is Varimax rotations (方差最大旋转）. Varimax use orthogonal rotations yielding uncorrelated
+factors/components.
+
+Varimax attempts to maximize the variance that a single factor can account for (across all variables). This enhances the interpretability of the factors. (kind of simplification of interpretation)
+
+```{r}
+fa_otho = fa(currentData,2,fm='minres',rotate='varimax')
+print(fa_otho)
+```
+
+
+Notice that the loading matrix changes, with values moving aside either towards 0 or 1. However, the communality doesn't change much, and this result is quite natural.
+
+As for rotation, Oblimin is the default in R, which is an oblique rotation. Varimax is the most popular orthogonal rotation. Other rotational methods include Quartimax (Orthogonal, each variable accounted by minimal number of factors, 简化对变量的解释), Equamax (Orthogonal), Promax (oblique, this one is fast!). Oblique rotation yields correlated factors.
+
+```{r}
+fa_otho$loadings  # show the loadings after rotation
+fa_otho$rot.mat  # show the rotation matrix
+fa_oblique = fa(currentData,2,fm='minres',rotate='promax')
+print(fa_oblique)
+```
+
+Use diagram to show how variables relate to the factors. 
+```{r}
+fa.diagram(fa_otho)
+```
+
+What if we use 5 factors, either rotated or not. To see whether big five really works here.
+
+Note `fa.diagram` use r = 0.3 as a cut off, you can change it.
+
+```{r}
+fa5_none = fa(currentData,5,fm='minres',rotate='none')
+fa.diagram(fa5_none)
+fa5_otho = fa(currentData,5,fm='minres',rotate='varimax')
+fa.diagram(fa5_otho)
+```
+
+
+Interestingly, the 6-factor model does not work that well.
+
+```{r}
+fa6_none = fa(currentData,6,fm='minres',rotate='none')
+fa.diagram(fa6_none)
+fa6_otho = fa(currentData,6,fm='minres',rotate='varimax')
+fa.diagram(fa6_otho)
+```
+
+Scores, or the coefficient for the model: Factors = scores*X where X are the original data, Factors are the obtained latent variables, scores are their coefficients.
+
+The scores here are for normalized data, which is the case for SPSS.
+
+```{r}
+head(fa_otho$scores)
+```
+
+The below is for you to hand check the meaning of SS laoding, uniqueness and communality.
+
+Communality, the variance that can be explained by factors, which should be high if the model is good.
+
+```{r}
+# communality
+apply(fa_otho$loadings^2,1,sum)
+# uniqueness
+1 - apply(fa_otho$loadings^2,1,sum)
+```
+
+
+
+
+
+
+
+
+```{r}
+P = EFA(data = currentData,vars = names(currentData))
+P$eigenvalues
+P$loadings
+P$result
+P$result.kaiser
+P$scree.plot
+```
+```{r}
+
+```
+
+
+
+# Appendix
+
+## `psych::describe()`
