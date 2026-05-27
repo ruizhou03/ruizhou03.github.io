@@ -1931,7 +1931,10 @@ permalink: /toolbox/doudizhu/
   body.ddz-game-fullscreen .ddz-wrap header { margin-bottom: 0.4rem; }
   body.ddz-game-fullscreen .ddz-wrap header h1 { font-size: 1.2rem; }
   body.ddz-game-fullscreen .ddz-wrap header .sub { display: none; }
-  body.ddz-game-fullscreen .ddz-table { margin: 0 auto; max-width: 900px; }
+  /* width:100% 是关键——flex 列布局下 align-items:stretch 不会替我们撑宽
+     一个没显式 width 的子元素；不给的话 .ddz-table 就缩到内容（setup 浮层）
+     的天然宽度，看着像被压成手机条 */
+  body.ddz-game-fullscreen .ddz-table { width: 100%; max-width: 900px; margin: 0 auto; }
   body.ddz-game-fullscreen .ddz-help,
   body.ddz-game-fullscreen #ddz-settle-btn-mount,
   body.ddz-game-fullscreen #ddz-wlb-mount,
