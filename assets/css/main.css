@@ -24,9 +24,13 @@
       --color-nav-bg: rgba(250,250,249,0.92);
       
       /* 字体变量 */
-      --font-display: 'Cormorant Garamond', 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN', 'Songti SC', 'STSong', 'SimSun', serif;
-      --font-body: 'Cormorant Garamond', 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN', 'Songti SC', 'STSong', 'SimSun', serif;
-      --font-solemn: 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN', 'Songti SC', 'STZhongsong', 'STSong', 'SimSun', serif;
+      /* 'Hiragino Mincho ProN' 是 iOS 自带的 CJK 衬线字体；放在 macOS/Windows
+         自带的 Songti SC / STSong / SimSun 之后、泛型 serif 之前，仅在 iOS 上
+         作为 Noto Serif SC webfont 加载期间的衬线 fallback（不破坏 macOS/Win
+         的现有渲染），避免 iOS Safari 在 FOUT 阶段落到 PingFang 黑体。 */
+      --font-display: 'Cormorant Garamond', 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN', 'Songti SC', 'STSong', 'SimSun', 'Hiragino Mincho ProN', serif;
+      --font-body: 'Cormorant Garamond', 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN', 'Songti SC', 'STSong', 'SimSun', 'Hiragino Mincho ProN', serif;
+      --font-solemn: 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN', 'Songti SC', 'STZhongsong', 'STSong', 'SimSun', 'Hiragino Mincho ProN', serif;
       --max-width: 800px;
     }
 

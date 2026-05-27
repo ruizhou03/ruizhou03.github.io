@@ -41,6 +41,8 @@
     btn.disabled = true;
     btn.classList.add('is-disabled');
     labelEl.textContent = '当前浏览器不支持离线缓存';
+    var hintEl = root.querySelector('.bulk-hint');
+    if (hintEl) hintEl.innerHTML = '微信 / QQ / 第三方浏览器（夸克、UC 等）通常缺少 Service Worker 支持。请改用 Safari、Chrome、Edge 或 Firefox 打开本站，即可开启离线缓存。';
     return;
   }
 

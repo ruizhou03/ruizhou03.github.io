@@ -1059,5 +1059,28 @@
       btn.title = 'Switch to dark mode';
     })();
   </script>
+
+  <script>
+    // Service Worker — caches gallery images + page for flaky-network resilience.
+    // Same SW (scope '/') as the rest of the site; this page used to skip
+    // registration because it doesn't use _layouts/default.html.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
+      });
+    }
+
+    // Gallery images: retry once on error (5G drops mid-load → broken icon).
+    document.querySelectorAll('.gallery-track img').forEach(function (img) {
+      img.addEventListener('error', function onErr() {
+        if (img.dataset.retried) return;
+        img.dataset.retried = '1';
+        var src = img.src;
+        setTimeout(function () {
+          img.src = src + (src.indexOf('?') === -1 ? '?' : '&') + 'r=' + Date.now();
+        }, 1500);
+      });
+    });
+  </script>
 </body>
 </html>
