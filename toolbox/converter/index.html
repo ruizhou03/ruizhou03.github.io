@@ -209,6 +209,8 @@ permalink: /toolbox/converter/
     <button type="button" data-tab="weight">⚖️ 重量</button>
     <button type="button" data-tab="temperature">🌡️ 温度</button>
     <button type="button" data-tab="length">📏 长度</button>
+    <button type="button" data-tab="volume">🥛 体积</button>
+    <button type="button" data-tab="energy">⚡ 能量</button>
   </div>
 
   <!-- Currency -->
@@ -294,6 +296,49 @@ permalink: /toolbox/converter/
     <div class="ratio-line" id="l-ratio">—</div>
   </div>
 
+  <!-- Volume -->
+  <div class="panel" data-panel="volume" style="display: none;">
+    <div class="conv-row">
+      <input type="number" id="v-a-val" inputmode="decimal" step="any" value="1" />
+      <select id="v-a-unit"></select>
+    </div>
+    <div class="swap-row">
+      <button type="button" class="swap-btn" data-swap="v" aria-label="对调">⇅</button>
+    </div>
+    <div class="conv-row">
+      <input type="number" id="v-b-val" inputmode="decimal" step="any" />
+      <select id="v-b-unit"></select>
+    </div>
+    <div class="ratio-line" id="v-ratio">—</div>
+    <div class="quick-row">
+      <button type="button" class="quick" data-v-quick="cup,ml">1 cup → ml</button>
+      <button type="button" class="quick" data-v-quick="tbsp,ml">1 tbsp → ml</button>
+      <button type="button" class="quick" data-v-quick="tsp,ml">1 tsp → ml</button>
+      <button type="button" class="quick" data-v-quick="floz,ml">1 fl oz → ml</button>
+    </div>
+  </div>
+
+  <!-- Energy -->
+  <div class="panel" data-panel="energy" style="display: none;">
+    <div class="conv-row">
+      <input type="number" id="e-a-val" inputmode="decimal" step="any" value="1" />
+      <select id="e-a-unit"></select>
+    </div>
+    <div class="swap-row">
+      <button type="button" class="swap-btn" data-swap="e" aria-label="对调">⇅</button>
+    </div>
+    <div class="conv-row">
+      <input type="number" id="e-b-val" inputmode="decimal" step="any" />
+      <select id="e-b-unit"></select>
+    </div>
+    <div class="ratio-line" id="e-ratio">—</div>
+    <div class="quick-row">
+      <button type="button" class="quick" data-e-quick="kcal,kJ">1 kcal → kJ</button>
+      <button type="button" class="quick" data-e-quick="kWh,kJ">1 kWh → kJ</button>
+      <button type="button" class="quick" data-e-quick="BTU,kJ">1 BTU → kJ</button>
+    </div>
+  </div>
+
   <details class="footnote" data-panel="currency">
     <summary>没网时怎么办</summary>
     <div class="footnote-body">
@@ -323,6 +368,24 @@ permalink: /toolbox/converter/
         <li>1 ft = 12 in = 30.48 cm</li>
         <li>1 mi = 1,609.344 m = 5,280 ft</li>
       </ul>
+      <p><strong>体积（美制，cooking 友好）</strong></p>
+      <ul>
+        <li>1 L = 1,000 ml</li>
+        <li>1 tsp (茶匙) ≈ 4.929 ml</li>
+        <li>1 tbsp (汤匙) ≈ 14.787 ml = 3 tsp</li>
+        <li>1 cup (杯) ≈ 236.59 ml = 16 tbsp = 48 tsp</li>
+        <li>1 fl oz (液体盎司) ≈ 29.574 ml</li>
+        <li>1 pt (品脱) = 2 cup ≈ 473.18 ml；1 qt (夸脱) = 2 pt ≈ 946.35 ml；1 gal (加仑) = 4 qt ≈ 3785.41 ml</li>
+      </ul>
+      <p class="rules-fineprint">体积全用美制（US customary）。英制 imperial 不一样：1 imperial cup ≈ 284 ml ≠ 1 US cup ≈ 237 ml。</p>
+      <p><strong>能量</strong></p>
+      <ul>
+        <li>1 kJ = 1,000 J</li>
+        <li>1 cal = 4.184 J；1 kcal (营养学的「大卡」) = 4,184 J = 4.184 kJ</li>
+        <li>1 Wh = 3,600 J；1 kWh = 3.6 × 10⁶ J</li>
+        <li>1 BTU ≈ 1,055.06 J ≈ 0.252 kcal</li>
+      </ul>
+      <p class="rules-fineprint">食品标签上的「卡路里」其实是 kcal（千卡）。1 个苹果约 95 kcal ≈ 397 kJ。</p>
       <p class="rules-fineprint">汇率随市场变动，此表仅列常数关系；汇率请用上方实时模式。</p>
     </div>
   </details>
@@ -542,6 +605,60 @@ permalink: /toolbox/converter/
   const L_TO_CM = { cm: 1, m: 100, km: 100000, in: 2.54, ft: 30.48, mi: 160934.4 };
   const L_LABELS = { cm: 'cm 厘米', m: 'm 米', km: 'km 公里', in: 'in 英寸', ft: 'ft 英尺', mi: 'mi 英里' };
   setupLinearTab('l', L_TO_CM, L_LABELS, 'm', 'ft');
+
+  // ============= VOLUME =============
+  // 全部以 ml 为基准；美制（US customary，不是英制 Imperial）
+  // 1 US cup = 236.5882365 ml, 1 US tsp = 4.92892159 ml, 1 US tbsp = 14.7867648 ml,
+  // 1 US fl oz = 29.5735296 ml, 1 US pint = 473.176473 ml, 1 US quart = 946.352946 ml,
+  // 1 US gal = 3785.411784 ml
+  const V_TO_ML = {
+    ml: 1, l: 1000,
+    tsp: 4.92892159, tbsp: 14.7867648,
+    cup: 236.5882365, floz: 29.5735296,
+    pt: 473.176473, qt: 946.352946, gal: 3785.411784,
+  };
+  const V_LABELS = {
+    ml: 'ml 毫升', l: 'L 升',
+    tsp: 'tsp 茶匙(美)', tbsp: 'tbsp 汤匙(美)',
+    cup: 'cup 杯(美)', floz: 'fl oz 液体盎司(美)',
+    pt: 'pt 品脱(美)', qt: 'qt 夸脱(美)', gal: 'gal 加仑(美)',
+  };
+  setupLinearTab('v', V_TO_ML, V_LABELS, 'cup', 'ml');
+
+  // ============= ENERGY =============
+  // 全部以 J 为基准
+  // 1 cal (thermochemical) = 4.184 J, 1 kcal = 4184 J (营养学一直用大卡 = kcal)
+  // 1 Wh = 3600 J, 1 kWh = 3.6e6 J, 1 BTU (IT) = 1055.05585 J
+  const E_TO_J = {
+    J: 1, kJ: 1000,
+    cal: 4.184, kcal: 4184,
+    Wh: 3600, kWh: 3.6e6,
+    BTU: 1055.05585,
+  };
+  const E_LABELS = {
+    J: 'J 焦耳', kJ: 'kJ 千焦',
+    cal: 'cal 卡', kcal: 'kcal 千卡(大卡)',
+    Wh: 'Wh 瓦时', kWh: 'kWh 千瓦时',
+    BTU: 'BTU 英热单位',
+  };
+  setupLinearTab('e', E_TO_J, E_LABELS, 'kcal', 'kJ');
+
+  // 快捷按钮：volume / energy（data-v-quick / data-e-quick 的"FROM,TO"对应单位）
+  function wireLinearQuick(prefix, attrCamel, attrKebab) {
+    document.querySelectorAll(`[data-${attrKebab}-quick]`).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const [from, to] = btn.dataset[attrCamel + 'Quick'].split(',');
+        const $au = document.getElementById(`${prefix}-a-unit`);
+        const $bu = document.getElementById(`${prefix}-b-unit`);
+        const $av = document.getElementById(`${prefix}-a-val`);
+        $au.value = from; $bu.value = to;
+        $av.value = '1';
+        $av.dispatchEvent(new Event('input'));
+      });
+    });
+  }
+  wireLinearQuick('v', 'v', 'v');
+  wireLinearQuick('e', 'e', 'e');
 
   function setupLinearTab(prefix, factorMap, labelMap, defaultA, defaultB) {
     const $a  = document.getElementById(`${prefix}-a-val`);
