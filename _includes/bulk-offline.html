@@ -118,7 +118,7 @@
         progress.textContent = '✅ 飞机上 / 没网时直接打开网址即可';
       }
     };
-    reg.active.postMessage({ type: 'PREFETCH_URLS', urls: urlsToFetch }, [ch.port2]);
+    reg.active.postMessage({ type: 'PREFETCH_URLS', urls: urlsToFetch, force: isRefresh }, [ch.port2]);
   });
 })();
 </script>

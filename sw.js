@@ -10,8 +10,8 @@
  * 策略：
  *  - 同源 HTML：network-first，更新缓存；离线时回缓存
  *  - 同源静态资源：stale-while-revalidate
- *  - 自动后台预缓存：访问任意页面后由前端在 idle 时分批 postMessage('PREFETCH_URLS')
- *  - 手动批量：listing 页 / 文章页的下载按钮也走同一个 PREFETCH_URLS
+ *  - 手动批量：listing 页 / 文章页的下载按钮 postMessage('PREFETCH_URLS')；
+ *    传 force:true 才强制重 fetch（"点击刷新缓存"分支），默认遇到 existing 跳过。
  *  - 查询缓存状态：postMessage('IS_CACHED' / 'IS_CACHED_BATCH')
  */
 
@@ -159,8 +159,9 @@ self.addEventListener('message', async (event) => {
     const urls = Array.isArray(data.urls) ? data.urls : [];
     const extraAssets = Array.isArray(data.assets) ? data.assets : [];
     // silent=true 时不发 PREFETCH_PROGRESS，只发最终 PREFETCH_DONE。
-    // idle 后台批量预取走这条，避免无脑刷消息。
     const silent = !!data.silent;
+    // force=true 时跳过 existing 检查，强制重 fetch（"刷新缓存"按钮走这条）
+    const force = !!data.force;
     // 自动预取要跳过 /files/ 下的大照片（150+ MB）；手动"下载文章配图"按钮则不传，全要。
     let excludeAssets = null;
     if (typeof data.excludeAssets === 'string' && data.excludeAssets) {
@@ -177,8 +178,10 @@ self.addEventListener('message', async (event) => {
         try {
           const absUrl = new URL(rawUrl, self.location.origin).toString();
           if (new URL(absUrl).origin !== self.location.origin) return;
-          const existing = await assetCache.match(absUrl);
-          if (existing) return;
+          if (!force) {
+            const existing = await assetCache.match(absUrl);
+            if (existing) return;
+          }
           const r = await fetch(absUrl, { cache: 'no-cache' });
           if (r && r.ok) await assetCache.put(absUrl, r.clone()).catch(() => {});
         } catch {}
@@ -195,12 +198,14 @@ self.addEventListener('message', async (event) => {
       }
 
       try {
-        // 已经缓存过的就跳过，省流量。SWR 会保证它最终被刷新。
-        const existing = await pageCache.match(absUrl);
-        if (existing) {
-          done++;
-          if (!silent) reply({ type: 'PREFETCH_PROGRESS', done, total, url: absUrl, ok: true, skipped: true });
-          continue;
+        // 默认遇到 existing 跳过省流量；force=true 时强制重 fetch（"刷新缓存"按钮）。
+        if (!force) {
+          const existing = await pageCache.match(absUrl);
+          if (existing) {
+            done++;
+            if (!silent) reply({ type: 'PREFETCH_PROGRESS', done, total, url: absUrl, ok: true, skipped: true });
+            continue;
+          }
         }
         const res = await fetch(absUrl, { cache: 'no-cache' });
         if (res && res.ok) {
@@ -214,8 +219,10 @@ self.addEventListener('message', async (event) => {
                 const auUrl = new URL(au);
                 if (auUrl.origin !== self.location.origin) return;
                 if (excludeAssets && excludeAssets.test(auUrl.pathname)) return;
-                const existing = await assetCache.match(au);
-                if (existing) return;
+                if (!force) {
+                  const existing = await assetCache.match(au);
+                  if (existing) return;
+                }
                 const r = await fetch(au, { cache: 'no-cache' });
                 if (r && r.ok) await assetCache.put(au, r.clone()).catch(() => {});
               } catch {}
