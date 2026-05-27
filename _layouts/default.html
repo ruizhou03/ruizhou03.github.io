@@ -69,7 +69,13 @@
   </script>
 
   <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
-  <link rel="stylesheet" href="https://unpkg.com/@waline/client@v2/dist/waline.css" />
+  {%- comment -%}
+    Waline 评论的 CSS 异步加载——unpkg.com 在国内时不时被墙，同步 link 会阻塞首屏。
+    media="print" + onload 切回 "all" 是 web.dev 推荐的异步 CSS 模式；
+    Waline 评论组件本身只在 post.html 里且要 ping 后端通才 init，CSS 早晚到都不影响功能。
+  {%- endcomment -%}
+  <link rel="stylesheet" href="https://unpkg.com/@waline/client@v2/dist/waline.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://unpkg.com/@waline/client@v2/dist/waline.css"></noscript>
 </head>
 <body>
 

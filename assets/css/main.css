@@ -15,6 +15,18 @@
       src: url('/assets/fonts/cormorant-garamond-italic.woff2') format('woff2');
     }
 
+    /* 触屏 sticky hover 兜底：手机点完一个 a/summary 后，:hover 状态会黏住直到点别处，
+       视觉上像永久高亮。这里把对触屏体验影响最大的几条 hover 视觉清掉，让 :active 接管。 */
+    @media (hover: none) {
+      a:hover { background-color: transparent !important; color: inherit; }
+      .markdown-content a:hover { background-color: transparent !important; border-bottom-style: dotted; }
+      .nav-links a:hover { color: var(--color-muted); }
+      #toc-ul a:hover { color: inherit; }
+      .knowledge-base summary:hover { background: inherit; }
+      .zone-link:hover .zl-name { color: inherit; }
+      .zone-link:hover .zl-arrow { color: inherit; }
+    }
+
     :root {
       --color-ink: #1a1a2e;
       --color-text: #374151;
