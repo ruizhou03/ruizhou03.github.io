@@ -756,7 +756,7 @@
   const els = {
     table: $('gdTable'),
     levelYou: $('gdLevelYou'), levelOpp: $('gdLevelOpp'),
-    actYou: $('gdActYou'), actOpp: $('gdActOpp'),
+    chipYou: $('gdChipYou'), chipOpp: $('gdChipOpp'),
     hand: $('gdHand'),
     playBtn: $('gdPlayBtn'), passBtn: $('gdPassBtn'),
     hintBtn: $('gdHintBtn'), sortBtn: $('gdSortBtn'),
@@ -988,8 +988,9 @@
     const oppLv = LEVEL_SEQ[state.levels[1]];
     els.levelYou.textContent = youLv;
     els.levelOpp.textContent = oppLv;
-    els.actYou.textContent = state.actingTeam === 0 ? '◀ 当前主级' : '';
-    els.actOpp.textContent = state.actingTeam === 1 ? '当前主级 ▶' : '';
+    // 当前主级用角标右侧的亮点表示，不再写"◀ 当前主级"长尾文字
+    els.chipYou.classList.toggle('acting', state.actingTeam === 0);
+    els.chipOpp.classList.toggle('acting', state.actingTeam === 1);
 
     for (let s = 0; s < 4; s++) {
       const se = seatEls[s];

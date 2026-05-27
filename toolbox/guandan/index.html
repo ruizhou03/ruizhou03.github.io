@@ -56,34 +56,43 @@ permalink: /toolbox/guandan/
   .guandan-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
   .guandan-wrap header .sub { color: var(--color-light); font-style: normal; font-size: 0.92rem; }
 
-  /* ======== 顶部级牌条 ======== */
-  .gd-levelbar {
-    display: flex; gap: 0.6rem; justify-content: center; align-items: stretch;
-    flex-wrap: wrap; margin-bottom: 0.7rem;
+  /* ======== 级牌角标：原来横放在表格上方占 ~85px，现在挤到牌桌左上角小气泡里 ======== */
+  .gd-levelbar-corner {
+    position: absolute;
+    top: 0.55rem; left: 0.6rem;
+    display: flex; gap: 0.35rem;
+    z-index: 4;
+    pointer-events: none;
   }
   .gd-level-chip {
-    display: flex; flex-direction: column; align-items: center;
-    padding: 0.4rem 0.9rem;
+    display: flex; flex-direction: row; align-items: baseline; gap: 0.3rem;
+    padding: 0.18rem 0.55rem;
     border: 1px solid var(--color-border);
-    background: var(--color-bg-warm);
-    border-radius: 10px;
-    min-width: 110px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 999px;
+    font-family: var(--font-body);
   }
   .gd-level-chip .lab {
-    font-size: 0.72rem; color: var(--color-muted);
-    letter-spacing: 0.08em; font-family: var(--font-display);
+    font-size: 0.66rem; color: var(--color-muted);
+    letter-spacing: 0.02em;
   }
   .gd-level-chip .val {
-    font-size: 1.5rem; font-weight: 700; line-height: 1.1;
+    font-size: 0.95rem; font-weight: 700; line-height: 1;
     font-variant-numeric: tabular-nums;
   }
   .gd-level-chip.you { border-color: var(--gd-team-you); }
   .gd-level-chip.you .val { color: var(--gd-team-you); }
   .gd-level-chip.opp { border-color: var(--gd-team-opp); }
   .gd-level-chip.opp .val { color: var(--gd-team-opp); }
-  .gd-level-chip .acting {
-    font-size: 0.66rem; color: var(--gd-accent-strong);
-    margin-top: 0.1rem; min-height: 0.9em;
+  /* 当前主级用一颗右侧亮点提示，比写"◀ 当前主级"省地方又一目了然 */
+  .gd-level-chip.acting::after {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--gd-accent-strong);
+    box-shadow: 0 0 6px rgba(168,122,42,0.85);
+    margin-left: 0.15rem;
+    align-self: center;
   }
 
   /* ======== 牌桌 ======== */
@@ -94,17 +103,17 @@ permalink: /toolbox/guandan/
       linear-gradient(160deg, var(--gd-felt-1) 0%, var(--gd-felt-2) 65%, var(--gd-felt-3) 100%);
     border: 1px solid var(--gd-frame-2);
     border-radius: 14px;
-    padding: 0.8rem;
+    padding: 0.6rem 0.8rem 0.55rem;
     box-shadow: inset 0 0 40px rgba(141,110,55,0.10);
     min-height: 360px;
   }
 
   /* 三家：上(partner) / 左(opp 3) / 右(opp 1) */
-  .gd-seats-top { display: flex; justify-content: center; margin-bottom: 0.4rem; }
+  .gd-seats-top { display: flex; justify-content: center; margin-bottom: 0.25rem; }
   /* 中间一行高度写死：预留三家出牌区的纵向空间，避免开局 → 出牌后整张表延展 */
   .gd-seats-mid {
     display: flex; justify-content: space-between; align-items: stretch;
-    gap: 0.5rem; height: 170px;
+    gap: 0.5rem; height: 150px;
   }
   .gd-side { display: flex; flex-direction: column; align-items: center; width: 92px; flex: 0 0 auto; }
   .gd-center {
@@ -276,8 +285,8 @@ permalink: /toolbox/guandan/
     align-items: flex-start;
     gap: var(--gd-col-gap);
     overflow-x: auto; overflow-y: visible;
-    padding: 1rem 0.4rem 1.4rem;
-    min-height: calc(var(--gd-card-h) + 6 * var(--gd-stack-step) + 30px);
+    padding: 0.4rem 0.4rem 0.5rem;
+    min-height: calc(var(--gd-card-h) + 6 * var(--gd-stack-step) + 10px);
     justify-content: safe center;
     scrollbar-width: none;
     touch-action: pan-x;
@@ -468,7 +477,6 @@ permalink: /toolbox/guandan/
     }
     .gd-side { width: 64px; }
     .gd-table { padding: 0.55rem; }
-    .gd-level-chip { min-width: 92px; padding: 0.35rem 0.6rem; }
     /* 窄屏：手牌占满整宽，左下角放不下头像 —— 回到 in-flow 居中 */
     .gd-self-bar {
       position: static;
@@ -625,7 +633,6 @@ permalink: /toolbox/guandan/
   body.gd-game-fullscreen .guandan-wrap header h1 { font-size: 1.2rem; }
   body.gd-game-fullscreen .guandan-wrap header .sub { display: none; }
   body.gd-game-fullscreen .gd-table { margin: 0 auto; max-width: 1100px; }
-  body.gd-game-fullscreen .gd-levelbar { margin-bottom: 0.45rem; }
   body.gd-game-fullscreen .guandan-wrap details.about,
   body.gd-game-fullscreen #gd-wlb-mount,
   body.gd-game-fullscreen #gd-cm-mount,
@@ -639,21 +646,13 @@ permalink: /toolbox/guandan/
     <div class="sub">2 打 2 · 你与对家联手，打级牌到 A 取胜 · 三档 AI</div>
   </header>
 
-  <!-- 级牌条 -->
-  <div class="gd-levelbar">
-    <div class="gd-level-chip you">
-      <div class="lab">你方级牌</div>
-      <div class="val" id="gdLevelYou">2</div>
-      <div class="acting" id="gdActYou"></div>
-    </div>
-    <div class="gd-level-chip opp">
-      <div class="lab">对方级牌</div>
-      <div class="val" id="gdLevelOpp">2</div>
-      <div class="acting" id="gdActOpp"></div>
-    </div>
-  </div>
-
   <div class="gd-table" id="gdTable">
+
+    <!-- 级牌信息：占左上角小角标，节省纵向空间。当前主级用一颗亮点提示 -->
+    <div class="gd-levelbar-corner">
+      <div class="gd-level-chip you" id="gdChipYou"><span class="lab">我方</span><span class="val" id="gdLevelYou">2</span></div>
+      <div class="gd-level-chip opp" id="gdChipOpp"><span class="lab">对方</span><span class="val" id="gdLevelOpp">2</span></div>
+    </div>
 
     <!-- 上家：对家 -->
     <div class="gd-seats-top">
