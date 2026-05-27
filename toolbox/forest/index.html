@@ -906,6 +906,29 @@ permalink: /toolbox/forest/
     border-radius: 999px;
   }
   .focus-overlay .grace-banner.hidden { display: none; }
+
+  /* localStorage 已满时弹一次的顶部警告条 */
+  .storage-warn {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: #b07c75;
+    color: #fff;
+    padding: 0.55rem 1rem;
+    font-size: 0.88rem;
+    text-align: center;
+    z-index: 9999;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+  .storage-warn .storage-warn-close {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    margin-left: 0.7rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
 </style>
 
 <div class="ft-wrap">
@@ -1081,6 +1104,19 @@ permalink: /toolbox/forest/
 (function () {
   'use strict';
 
+
+  // localStorage 写入失败的可见反馈（仅 QuotaExceededError 时显示，一次性）
+  let _storageWarnShown = false;
+  function showStorageWarn() {
+    if (_storageWarnShown) return;
+    _storageWarnShown = true;
+    const b = document.createElement('div');
+    b.className = 'storage-warn';
+    b.innerHTML = '\u26A0\uFE0F 浏览器存储空间已满，新数据可能保存失败。建议先导出现有数据再清理浏览器存储。 <button type="button" class="storage-warn-close">关闭</button>';
+    b.querySelector('.storage-warn-close').addEventListener('click', () => b.remove());
+    document.body.appendChild(b);
+  }
+
   const TREES_KEY = 'tool.forest.trees.v1';
   const ACTIVE_KEY = 'tool.forest.active.v1';
   const FIELDS_KEY = 'tool.forest.fields.v1';
@@ -1182,7 +1218,7 @@ permalink: /toolbox/forest/
     } catch (e) { state.trees = []; }
   }
   function saveTrees() {
-    try { localStorage.setItem(TREES_KEY, JSON.stringify(state.trees)); } catch (e) {}
+    try { localStorage.setItem(TREES_KEY, JSON.stringify(state.trees)); } catch (e) {if (e && e.name === 'QuotaExceededError') showStorageWarn(); }
   }
   function loadActive() {
     try {
@@ -1194,7 +1230,7 @@ permalink: /toolbox/forest/
     try {
       if (s) localStorage.setItem(ACTIVE_KEY, JSON.stringify(s));
       else localStorage.removeItem(ACTIVE_KEY);
-    } catch (e) {}
+    } catch (e) {if (e && e.name === 'QuotaExceededError') showStorageWarn(); }
   }
 
   // ============ Fields (多块田) ============
@@ -1208,10 +1244,10 @@ permalink: /toolbox/forest/
     } catch (e) { state.activeFieldId = null; }
   }
   function saveFields() {
-    try { localStorage.setItem(FIELDS_KEY, JSON.stringify(state.fields)); } catch (e) {}
+    try { localStorage.setItem(FIELDS_KEY, JSON.stringify(state.fields)); } catch (e) {if (e && e.name === 'QuotaExceededError') showStorageWarn(); }
     try {
       if (state.activeFieldId) localStorage.setItem(ACTIVE_FIELD_KEY, state.activeFieldId);
-    } catch (e) {}
+    } catch (e) {if (e && e.name === 'QuotaExceededError') showStorageWarn(); }
   }
   function newFieldId() {
     return 'fld-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5);
@@ -1263,7 +1299,7 @@ permalink: /toolbox/forest/
     } catch (e) {}
   }
   function saveTheme() {
-    try { localStorage.setItem(THEME_KEY, JSON.stringify(state.theme)); } catch (e) {}
+    try { localStorage.setItem(THEME_KEY, JSON.stringify(state.theme)); } catch (e) {if (e && e.name === 'QuotaExceededError') showStorageWarn(); }
   }
 
   function rand(min, max) { return min + Math.random() * (max - min); }

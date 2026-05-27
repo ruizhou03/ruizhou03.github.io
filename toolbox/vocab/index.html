@@ -348,6 +348,29 @@ permalink: /toolbox/vocab/
   @media (hover: hover) {
     .ie-toolbar button:hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
+
+  /* localStorage 已满时弹一次的顶部警告条 */
+  .storage-warn {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: #b07c75;
+    color: #fff;
+    padding: 0.55rem 1rem;
+    font-size: 0.88rem;
+    text-align: center;
+    z-index: 9999;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+  .storage-warn .storage-warn-close {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    margin-left: 0.7rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
 </style>
 
 <div class="vc-wrap">
@@ -488,6 +511,19 @@ permalink: /toolbox/vocab/
 (function () {
   'use strict';
 
+
+  // localStorage 写入失败的可见反馈（仅 QuotaExceededError 时显示，一次性）
+  let _storageWarnShown = false;
+  function showStorageWarn() {
+    if (_storageWarnShown) return;
+    _storageWarnShown = true;
+    const b = document.createElement('div');
+    b.className = 'storage-warn';
+    b.innerHTML = '\u26A0\uFE0F 浏览器存储空间已满，新数据可能保存失败。建议先导出现有数据再清理浏览器存储。 <button type="button" class="storage-warn-close">关闭</button>';
+    b.querySelector('.storage-warn-close').addEventListener('click', () => b.remove());
+    document.body.appendChild(b);
+  }
+
   const STORE_KEY = 'tool.vocab.cards.v1';
 
   // Leitner box → 间隔（天）
@@ -546,7 +582,7 @@ permalink: /toolbox/vocab/
     catch (e) { state.cards = []; }
   }
   function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(state.cards)); } catch (e) {}
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state.cards)); } catch (e) {if (e && e.name === 'QuotaExceededError') showStorageWarn(); }
   }
   function uuid() { return 'c-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7); }
   function todayIso() {
