@@ -164,6 +164,7 @@
   // ============================================================
   const TURN_TIMEOUT_MS = 25000;
   const DOUBLE_TIMEOUT_MS = 5000;
+  const BID_TIMEOUT_MS = 10000;   // 叫地主 / 抢地主单回合超时 — 到点默认不叫/不抢
   // 现在 countdownEl 接受一个 seat 参数（0/1/2 显示座位），返回对应的 .ddz-clock
   function clockEl(seat) { return document.getElementById('ddzClock' + seat); }
   function hideAllClocks() {
@@ -176,9 +177,10 @@
   let turnCountdownEndAt = 0;
   let turnCountdownSeat = 0;
   // seat = 显示座位 (0/1/2)；onTimeout 仅在 seat===0 时触发玩家自动出
-  function startTurnCountdown(onTimeout, seat) {
+  // durationMs 不传则用默认 TURN_TIMEOUT_MS（出牌阶段）；叫/抢地主传 BID_TIMEOUT_MS
+  function startTurnCountdown(onTimeout, seat, durationMs) {
     stopTurnCountdown();
-    turnCountdownEndAt = Date.now() + TURN_TIMEOUT_MS;
+    turnCountdownEndAt = Date.now() + (durationMs || TURN_TIMEOUT_MS);
     turnCountdownSeat = (typeof seat === 'number') ? seat : 0;
     const el = clockEl(turnCountdownSeat);
     if (!el) return;
@@ -313,6 +315,10 @@
     fsBtn.classList.toggle('on', on);
     fsBtn.textContent = on ? '⛶ 退出全屏' : '⛶ 全屏';
   }
+  // 一进来就直接铺满 viewport——比"先看一眼局促的画幅再点全屏"舒服。
+  // 想退出仍可点右上角"退出全屏"。
+  document.body.classList.add('ddz-game-fullscreen');
+  refreshFsBtn();
   if (fsBtn) {
     fsBtn.addEventListener('click', () => {
       document.body.classList.toggle('ddz-game-fullscreen');
@@ -1160,6 +1166,12 @@
     dealEndAt = Date.now() + DEAL_TOTAL_MS;
     // 把发牌阶段的"明牌 ×N"按钮露出来：actions 行可见、只这一个按钮 visible
     playActions.hidden = false;
+    // 强制把出牌阶段才用的按钮藏起来——上局如果停留在 PLAYING 阶段，
+    // 这些 button 的 hidden 状态会泄漏到本局发牌画面
+    if (passBtn) passBtn.hidden = true;
+    if (hintBtn) hintBtn.hidden = true;
+    if (playBtn) playBtn.hidden = true;
+    if (declareBtnEl) declareBtnEl.hidden = true;
     btn.hidden = false;
     btn.disabled = false;
     btn.textContent = '明牌 ×5';
@@ -1331,9 +1343,17 @@
         { label: isCall ? '叫地主' : '抢地主', value: 'rob', primary: true },
         { label: isCall ? '不叫' : '不抢', value: 'pass' },
       ], handleBid);
+      // 倒计时：BID_TIMEOUT_MS 内不点 → 默认不叫/不抢
+      startTurnCountdown(() => {
+        if (state.phase === PHASE.BIDDING && state.bidTurnIdx === 0 && !bidPanel.hidden) {
+          handleBid(0, 'pass');
+        }
+      }, 0, BID_TIMEOUT_MS);
     } else {
       bidPanel.hidden = true;
       renderBidThinkingAt(seat);
+      // AI 头像上也亮 BID 时长的闹钟，跟玩家观感一致
+      startTurnCountdown(null, seat, BID_TIMEOUT_MS);
       setTimeout(() => {
         const score = AI.evaluateHand(state.hands[seat]);
         // AI 阈值：叫阶段 3、抢阶段 8（避免无脑抢）
@@ -1353,6 +1373,8 @@
       seat = 0;
       act = seatOrAction;
     }
+    // 决策已收 → 收掉这一回合的倒计时（避免到点回调和真实点击重复触发）
+    stopTurnCountdown();
     bidPanel.hidden = true;
     const isCallPhase = state.landlordCandidate < 0;
     state.bidActions.push({ seat, action: act, phase: isCallPhase ? 'call' : 'rob' });
@@ -1673,11 +1695,6 @@
     const cdEl = document.getElementById('ddzDoubleCountdown');
     if (cdEl) cdEl.hidden = false;
 
-    // 加倍按对计算（规则六）：按钮 label 显示"假设我点了加倍，其他人维持现状"
-    // 时我（座位 0）的最终得分。地主和农民因为对账方式不同，得到的 ×N 也不同。
-    const hypoMap = doubleSeatMap();
-    hypoMap[0] = true;
-    const nextMyScore = computeMyScoreForMap(hypoMap);
     const grid = document.createElement('div');
     grid.className = 'ddz-double-grid';
 
@@ -1702,7 +1719,7 @@
         btns.className = 'me-btns';
         const yes = document.createElement('button');
         yes.type = 'button'; yes.className = 'primary';
-        yes.textContent = `加倍 ×${nextMyScore}`;
+        yes.textContent = '加倍';
         yes.addEventListener('click', () => onChoose('double'));
         const no = document.createElement('button');
         no.type = 'button';
@@ -2261,17 +2278,10 @@
     const springBadge = state.spring > 0
       ? `<div class="ddz-spring-badge">${winnerRole === 'landlord' ? '🌸 春天' : '🍁 反春天'} ×2</div>`
       : '';
-    const dmap = doubleSeatMap();
-    const tagDouble = (seat) => dmap[seat] ? ' ✦加倍' : '';
     gameOverDetail.innerHTML =
       springBadge +
-      `<div>${winText}获胜 · 底倍 ×${base} · 你是${myRole}</div>` +
-      `<div style="font-size:0.85em; color:var(--ddz-text-on-felt-mute);">` +
-        `地主${tagDouble(state.landlordIdx)} vs 农民1${tagDouble(peasantSeats[0])}：${pairAmts[0]} 分 · ` +
-        `地主${tagDouble(state.landlordIdx)} vs 农民2${tagDouble(peasantSeats[1])}：${pairAmts[1]} 分` +
-      `</div>` +
-      `<div>本局积分 <strong>${score}</strong></div>` +
-      `<div>难度：${difficultyLabel(state.difficulty)} · 用时 ${formatDuration(Date.now() - state.runStartedAt)}</div>`;
+      `<div>${winText}获胜 · 你是${myRole}</div>` +
+      `<div>本局积分 <strong>${score}</strong></div>`;
     gameOverOverlay.classList.toggle('has-spring', state.spring > 0);
     // 平时不显示结算图按钮；只有春天 / 反春天才弹
     if (ddzSettleBtn && ddzSettleBtn.element) ddzSettleBtn.element.hidden = true;
@@ -3504,6 +3514,9 @@
       bidTurnIdx: state.bidTurnIdx,
       bidActions: state.bidActions.slice(),
       robCount: state.robCount,
+      callDecided: (state.callDecided || [false,false,false]).slice(),
+      callPassed:  (state.callPassed  || [false,false,false]).slice(),
+      robDecided:  (state.robDecided  || [false,false,false]).slice(),
       doubleTurnIdx: state.doubleTurnIdx,
       doubleActions: state.doubleActions.slice(),
       multiplier: state.multiplier,
@@ -3534,6 +3547,9 @@
       bidTurnIdx: saved.bidTurnIdx || 0,
       bidActions: saved.bidActions || [],
       robCount: saved.robCount || 0,
+      callDecided: saved.callDecided || [false,false,false],
+      callPassed:  saved.callPassed  || [false,false,false],
+      robDecided:  saved.robDecided  || [false,false,false],
       doubleTurnIdx: saved.doubleTurnIdx || 0,
       doubleActions: saved.doubleActions || [],
       multiplier: saved.multiplier || 1,
@@ -3566,6 +3582,10 @@
     renderMultiplier();
     if (state.lastTrick) renderPlayedAt(state.lastTrick.seat, state.lastTrick.pattern);
     if (state.phase === PHASE.BIDDING) {
+      // 把已表态的 AI 玩家头像下贴回 叫/抢/不叫/不抢 tag，避免 clearAllPlayed 把它们吃掉
+      for (const a of (state.bidActions || [])) {
+        renderBidTagAt(a.seat, a.action, a.phase === 'call');
+      }
       nextBidTurn();
     } else if (state.phase === PHASE.DOUBLING) {
       // 加倍是同时阶段，恢复就重新开 5s 决策（已决定的 doubleActions 也清掉）

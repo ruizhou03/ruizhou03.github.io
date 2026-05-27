@@ -948,7 +948,7 @@ permalink: /toolbox/doudizhu/
     font-size: 0.78rem;
     letter-spacing: 0.04em;
   }
-  /* "不出" 印章式：比卡牌反馈更醒目，一眼看出这家本轮要不起 / 主动不出 */
+  /* "不出"：醒目的红章式反馈，一眼看出这家本轮要不起 / 主动不出 */
   .ddz-played .pass-tag {
     padding: 0.3rem 0.95rem;
     font-size: 0.92rem;
@@ -956,19 +956,17 @@ permalink: /toolbox/doudizhu/
     color: #8b2e2e;
     background: rgba(139,46,46,0.10);
     border: 1.5px solid rgba(139,46,46,0.45);
-    transform: rotate(-7deg);
     box-shadow: 0 1px 4px rgba(139,46,46,0.18);
     animation: ddz-stamp-in 0.22s cubic-bezier(0.2,0.9,0.3,1.3);
   }
   @keyframes ddz-stamp-in {
-    from { opacity: 0; transform: rotate(-7deg) scale(1.5); }
-    to   { opacity: 1; transform: rotate(-7deg) scale(1); }
+    from { opacity: 0; transform: scale(1.5); }
+    to   { opacity: 1; transform: scale(1); }
   }
   .ddz-played .think-tag {
     background: rgba(201,169,110,0.18);
     border: 1px solid var(--ddz-frame-2);
     color: var(--ddz-text-on-felt);
-    font-family: monospace;
   }
   /* 叫/抢/不叫/不抢 决策 tag — "叫/抢" 暖金、"不叫/不抢" 灰 */
   .ddz-played .bid-tag.rob {
@@ -1116,11 +1114,14 @@ permalink: /toolbox/doudizhu/
   .ddz-btn[hidden] { display: none !important; }
 
   /* ======== 我的座位 + 手牌 ======== */
+  /* 我的头像靠左排——和 AI 上家/下家 形成"三角"而不是直接占据牌桌视觉中心；
+     中央留给底牌 / 出牌 / 抢地主面板 */
   .ddz-self {
-    display: flex; align-items: center; justify-content: center;
+    display: flex; align-items: center; justify-content: flex-start;
     gap: 0.7rem;
     flex-wrap: wrap;
     margin-top: 0.7rem;
+    padding-left: 0.8rem;
     position: relative;
     z-index: 1;
   }
