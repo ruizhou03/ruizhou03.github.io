@@ -145,6 +145,8 @@
     try { localStorage.setItem(SFX_KEY, sfxEnabled ? '1' : '0'); } catch {}
     refreshSfxToggle();
     if (sfxEnabled) playSfx('click');
+    // BGM / 高级音效系统同步静音
+    if (window.DDZAudio) window.DDZAudio.setMuted(!sfxEnabled);
   }
   function refreshSfxToggle() {
     const btn = document.getElementById('ddzSfxToggle');
@@ -159,6 +161,69 @@
     const btn = document.getElementById('ddzSfxToggle');
     if (btn) btn.addEventListener('click', () => setSfxEnabled(!sfxEnabled));
   }, 0);
+
+  // ============================================================
+  // BGM / 进阶音效集成（DDZAudio 由 audio.js 暴露在 window 上）
+  // ------------------------------------------------------------
+  // 设计：
+  //   - DDZAudio 的"静音 getter"复用现有 sfxEnabled 开关（一个 toggle 管全部）
+  //   - 用户第一次手势（点"开始游戏"或牌）后 unlockOnGesture（iOS/Chrome 自动播放限制）
+  //   - 文件不存在 → DDZAudio 静默不响，不报错；不阻塞 UI
+  // ============================================================
+  if (window.DDZAudio) {
+    window.DDZAudio.init({ mutedGetter: () => !sfxEnabled });
+  }
+  // 出过炸弹/王炸 → tense BGM 维持几轮再退；用 "已记录的轮次截止时间" 衡量。
+  // 每次轮转（commitPlay / commitPass）+1，过了 tenseUntilTurn 就切回 default。
+  let _turnCounter = 0;
+  let _tenseUntilTurn = 0;
+  let _alarmTriggered = false;       // 警报：本局只响一次
+  function audioOnNewGame() {
+    _turnCounter = 0;
+    _tenseUntilTurn = 0;
+    _alarmTriggered = false;
+    if (window.DDZAudio) window.DDZAudio.playBgm('default');
+  }
+  function audioOnPattern(pattern) {
+    if (!window.DDZAudio) return;
+    const t = pattern && pattern.type;
+    if (t === T.BOMB) {
+      window.DDZAudio.playSfx('bomb');
+      _tenseUntilTurn = _turnCounter + 6;        // 2 轮 × 3 家 = 6 次轮转
+      window.DDZAudio.playBgm('tense');
+    } else if (t === T.ROCKET) {
+      window.DDZAudio.playSfx('rocket');
+      _tenseUntilTurn = _turnCounter + 6;
+      window.DDZAudio.playBgm('tense');
+    } else if (t === T.STRAIGHT) {
+      window.DDZAudio.playSfx('straight');
+    } else if (t === T.PAIR_STRAIGHT) {
+      window.DDZAudio.playSfx('pair-straight');
+    } else if (t === T.PLANE || t === T.PLANE_ONE || t === T.PLANE_PAIR) {
+      window.DDZAudio.playSfx('plane');
+    }
+  }
+  function audioAfterTurn() {
+    if (!window.DDZAudio) return;
+    _turnCounter++;
+    // ≤ 2 张警报（一局一次）+ 切 tense
+    const lowSeat = [0,1,2].find(s => state.hands[s].length > 0 && state.hands[s].length <= 2);
+    if (lowSeat !== undefined && !_alarmTriggered) {
+      _alarmTriggered = true;
+      window.DDZAudio.playSfx('alarm');
+      _tenseUntilTurn = Math.max(_tenseUntilTurn, _turnCounter + 9999);   // 一直 tense 到结算
+      window.DDZAudio.playBgm('tense');
+    }
+    // 炸弹冷却到点 → 切回 default（除非低牌警报还在持续）
+    if (_turnCounter >= _tenseUntilTurn && !_alarmTriggered) {
+      window.DDZAudio.playBgm('default');
+    }
+  }
+  function audioOnGameOver(playerWon) {
+    if (!window.DDZAudio) return;
+    window.DDZAudio.stopBgm();
+    window.DDZAudio.playSfx(playerWon ? 'win' : 'lose');
+  }
 
   // ============================================================
   // 倒计时（贴到当前玩家头像上的闹钟 badge）
@@ -1177,6 +1242,9 @@
     const handDealEl = document.getElementById('ddzHand');
     if (handDealEl) handDealEl.classList.add('dealing');
     startDealDeclareWatcher(opts.declareStart);
+    // BGM：用户点了"开始游戏" → 解锁 AudioContext + 切到 default 循环
+    if (window.DDZAudio) window.DDZAudio.unlockOnGesture();
+    audioOnNewGame();
   }
 
   // 发牌阶段「明牌 ×N」逻辑：
@@ -1971,6 +2039,8 @@
     renderPlayedAt(seat, pattern);
     playSfx(pattern.type === T.BOMB ? 'bomb' :
             pattern.type === T.ROCKET ? 'rocket' : 'play');
+    // BGM/SFX 层（DDZAudio）：按牌型触发 sfx；炸弹/王炸切 tense BGM
+    audioOnPattern(pattern);
     // 炸弹 / 王炸：倍数翻倍 → 飘 toast + chip 闪光（参考欢乐斗地主 image 11 ×2 badge）
     if (pattern.type === T.BOMB || pattern.type === T.ROCKET) {
       const label = pattern.type === T.ROCKET ? '王炸 ×2' : '炸弹 ×2';
@@ -1992,6 +2062,8 @@
       if (touched) renderBottomPile();
     }
     if (ddzSave) ddzSave.tick();
+    // 检查"有人剩 ≤ 2 张"警报 + 炸弹冷却到点切回 default BGM
+    audioAfterTurn();
     if (state.hands[seat].length === 0) {
       setTimeout(() => finishGame(seat), 600);
       return;
@@ -2022,6 +2094,7 @@
     }
     resetHintCycle();
     if (ddzSave) ddzSave.tick();
+    audioAfterTurn();
     setTimeout(() => {
       state.turnIdx = (seat + 1) % 3;
       proceedTurn();
@@ -2368,6 +2441,8 @@
                       (winnerRole === 'peasant' && state.landlordIdx !== 0);
     gameOverTitle.textContent = playerWon ? '🎉 你赢了！' : '😢 你输了';
     setTimeout(() => playSfx(playerWon ? 'win' : 'lose'), 300);
+    // BGM 淡出 + 胜负 sfx
+    audioOnGameOver(playerWon);
     const myRole = state.landlordIdx === 0 ? '地主' : '农民';
     const winText = winnerRole === 'landlord' ? '地主' : '农民';
     // 春天 / 反春天用专门的庆祝 badge

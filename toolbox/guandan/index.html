@@ -161,26 +161,26 @@ permalink: /toolbox/guandan/
   .gd-rank-badge.r3 { background: #b0784a; }
   .gd-rank-badge.r4 { background: #8b2e2e; }
 
-  /* 出牌区 */
+  /* 出牌区：上一行 combo 标签，下一行牌 mini 行 */
   .gd-played {
-    min-height: 56px; display: flex; flex-wrap: nowrap;
-    justify-content: safe center; align-items: center;
-    overflow: hidden;
+    min-height: 56px; display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    gap: 2px;
+    overflow: visible;   /* 让 combo 标签和大字"不要"不被裁剪 */
   }
-  .gd-played .gd-card.size-mini { margin-left: calc(-1 * var(--gd-card-mini-overlap)); }
-  .gd-played .gd-card.size-mini:first-child { margin-left: 0; }
-  .gd-pass-tag {
-    font-size: 0.85rem; color: var(--gd-text-on-felt-mute);
-    border: 1px dashed var(--gd-frame-2); border-radius: 8px;
-    padding: 0.3rem 0.9rem; background: rgba(255,255,255,0.35);
+  .gd-played-row {
+    display: flex; flex-wrap: nowrap;
+    justify-content: center; align-items: center;
   }
+  .gd-played-row .gd-card.size-mini { margin-left: calc(-1 * var(--gd-card-mini-overlap)); }
+  .gd-played-row .gd-card.size-mini:first-child { margin-left: 0; }
   .gd-trick-info {
     font-size: 0.74rem; color: var(--gd-text-on-felt-mute);
     min-height: 1.1em; text-align: center;
   }
   .gd-side .gd-played { min-height: 40px; }
-  .gd-side .gd-played .gd-card.size-mini { margin-left: -22px; }
-  .gd-side .gd-played .gd-card.size-mini:first-child { margin-left: 0; }
+  .gd-side .gd-played-row .gd-card.size-mini { margin-left: -22px; }
+  .gd-side .gd-played-row .gd-card.size-mini:first-child { margin-left: 0; }
 
   /* ======== 卡片自绘 ======== */
   .gd-card {
@@ -344,6 +344,40 @@ permalink: /toolbox/guandan/
     .gd-btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
   }
   .gd-btn.mini { padding: 0.32rem 0.7rem; font-size: 0.8rem; }
+  /* 理牌按钮亮起态：颜色继承斗地主 toggle chip 的视觉语言 */
+  .gd-btn.on {
+    background: var(--gd-accent);
+    border-color: var(--gd-accent);
+    color: #fff;
+  }
+  .gd-btn.on:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }
+
+  /* 理牌模式下：列整体可拖；hand 上方加一行金色提示；列 hover 时微微抬升提示可抓 */
+  .gd-hand.is-arranging .gd-rank-col { cursor: grab; }
+  .gd-hand.is-arranging .gd-rank-col.col-dragging { cursor: grabbing; }
+  @media (hover: hover) {
+    .gd-hand.is-arranging .gd-rank-col:hover { transform: translateY(-3px); }
+  }
+  .gd-hand.is-arranging::before {
+    content: '⇆ 拖动列调整顺序，再点"理牌"退出';
+    position: absolute;
+    top: -2px; left: 50%; transform: translateX(-50%);
+    font-size: 0.74rem; color: var(--gd-accent-strong);
+    background: rgba(255,255,255,0.7);
+    padding: 0.1rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--gd-frame-2);
+    pointer-events: none;
+    font-family: var(--font-body);
+    white-space: nowrap;
+    z-index: 5;
+  }
+  /* 理牌模式下：把上一次出牌的"选中（灰）"视觉抑制掉——理牌不是在选要出的牌 */
+  .gd-hand.is-arranging .gd-card.size-full.selected {
+    filter: none;
+    opacity: 1;
+    box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55);
+  }
 
   /* 提示气泡：当前选牌是否成型 */
   .gd-sel-hint {
@@ -453,6 +487,122 @@ permalink: /toolbox/guandan/
     opacity: 0; transition: opacity 0.25s;
   }
   .gd-toast.show { opacity: 1; }
+
+  /* ======== 出牌区上方的 combo 类型小标签（"三带二 / 顺子 / 钢板"等）========
+     仿欢乐斗地主"该不该炸点我"上方的牌型提示，但我们只展示"是什么牌型"，
+     让对局更易读，不卖卡。 */
+  .gd-combo-label {
+    font-size: 0.74rem;
+    color: var(--gd-text-on-felt);
+    background: rgba(255,255,255,0.62);
+    border: 1px solid var(--gd-frame-2);
+    padding: 0.04rem 0.45rem;
+    border-radius: 999px;
+    font-family: var(--font-body);
+    margin-bottom: 2px;
+    align-self: center;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .gd-combo-label.bomb { background: rgba(200,40,40,0.10); border-color: rgba(200,40,40,0.5); color: #8b2e2e; }
+  .gd-combo-label.joker-bomb { background: rgba(245,178,80,0.18); border-color: rgba(201,162,39,0.6); color: #a87a2a; }
+
+  /* ======== 大字"不要"浮窗（替代以前的虚线 tag）========
+     仿欢乐斗地主：玩家弃出时不画小角标，而是在出牌位置浮一行大字，
+     0.9 秒后稳态停留为更小的标签。 */
+  .gd-pass-big {
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--gd-suit-red);
+    letter-spacing: 0.1em;
+    text-shadow: 0 1px 0 #fff5d4, 0 2px 8px rgba(139,46,46,0.32);
+    padding: 0.15rem 0.85rem;
+    animation: gd-pass-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+  }
+  @keyframes gd-pass-pop {
+    0%   { opacity: 0; transform: scale(0.4) rotate(-8deg); }
+    60%  { opacity: 1; transform: scale(1.15) rotate(2deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+
+  /* ======== 炸弹/同花顺/天王炸：起牌区红闪 + 整桌震屏 + 顶上大字 ======== */
+  .gd-played.fx-bomb {
+    background: radial-gradient(ellipse at center, rgba(200,40,40,0.28) 0%, transparent 70%);
+    animation: gd-shake 0.5s, gd-bomb-flash 0.7s ease-out;
+    border-radius: 8px;
+  }
+  .gd-played.fx-strflush {
+    background: radial-gradient(ellipse at center, rgba(245,178,80,0.32) 0%, transparent 70%);
+    animation: gd-shake 0.45s, gd-bomb-flash 0.7s ease-out;
+    border-radius: 8px;
+  }
+  .gd-played.fx-jokerbomb {
+    background: radial-gradient(ellipse at center, rgba(255,225,140,0.55) 0%, rgba(245,178,80,0.30) 40%, transparent 80%);
+    animation: gd-shake-strong 0.8s, gd-bomb-flash 1.1s ease-out;
+    border-radius: 8px;
+  }
+  @keyframes gd-shake {
+    0%, 100% { transform: translateX(0); }
+    18% { transform: translateX(-5px); }
+    32% { transform: translateX(5px); }
+    50% { transform: translateX(-3px); }
+    66% { transform: translateX(3px); }
+    82% { transform: translateX(-2px); }
+  }
+  @keyframes gd-shake-strong {
+    0%, 100% { transform: translate(0, 0); }
+    10%  { transform: translate(-9px, 4px) rotate(-0.4deg); }
+    22%  { transform: translate(9px, -5px) rotate(0.5deg); }
+    34%  { transform: translate(-7px, 5px) rotate(-0.3deg); }
+    48%  { transform: translate(6px, -4px); }
+    62%  { transform: translate(-4px, 3px); }
+    78%  { transform: translate(3px, -2px); }
+    92%  { transform: translate(-1px, 1px); }
+  }
+  @keyframes gd-bomb-flash {
+    0%   { box-shadow: inset 0 0 0 rgba(200,40,40,0); }
+    50%  { box-shadow: inset 0 0 30px rgba(200,40,40,0.55); }
+    100% { box-shadow: inset 0 0 0 rgba(200,40,40,0); }
+  }
+  /* 桌面整体震屏（天王炸时短促） */
+  .gd-table.mega-quake { animation: gd-mega-quake 0.9s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+  @keyframes gd-mega-quake {
+    0%   { transform: translate(0, 0); }
+    8%   { transform: translate(-10px, 5px) rotate(-0.3deg); }
+    18%  { transform: translate(10px, -7px) rotate(0.4deg); }
+    32%  { transform: translate(-8px, 6px); }
+    48%  { transform: translate(6px, -4px); }
+    66%  { transform: translate(-4px, 3px); }
+    82%  { transform: translate(2px, -2px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  /* 全桌中央"炸弹/同花顺/天王炸"大字浮屏：1.0 s 出现 + 渐隐 */
+  .gd-fx-banner {
+    position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%);
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 2.6rem;
+    color: #fff;
+    text-shadow:
+      0 0 8px rgba(255, 220, 100, 0.9),
+      0 0 24px rgba(245, 130, 40, 0.85),
+      0 4px 10px rgba(0, 0, 0, 0.6);
+    letter-spacing: 0.18em;
+    pointer-events: none;
+    z-index: 40;
+    animation: gd-fx-banner 1.1s ease-out forwards;
+    white-space: nowrap;
+  }
+  @keyframes gd-fx-banner {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(-6deg); }
+    25%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(0deg); }
+    55%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.05); }
+  }
 
   /* ======== 全屏切换 chip（左上方），与斗地主一致 ========
      不用浏览器 Fullscreen API（桌面易把整窗进入全屏；iOS Safari 等基本不支持），
@@ -589,7 +739,8 @@ permalink: /toolbox/guandan/
     <div class="gd-hand" id="gdHand"></div>
 
     <div class="gd-actions" id="gdActions">
-      <button class="gd-btn" id="gdSortBtn" type="button" title="按点数恢复默认顺序（手动长按列拖动可自定义）">🧩 一键理牌</button>
+      <button class="gd-btn" id="gdArrangeBtn" type="button" title="进入理牌模式：直接拖动列即可调换位置（不用长按）">🔀 理牌</button>
+      <button class="gd-btn" id="gdSortBtn" type="button" title="按点数恢复默认顺序">🧩 一键理牌</button>
       <button class="gd-btn" id="gdPassBtn" type="button" hidden>不要</button>
       <button class="gd-btn" id="gdHintBtn" type="button" hidden>提示</button>
       <button class="gd-btn primary" id="gdPlayBtn" type="button" hidden>出牌</button>

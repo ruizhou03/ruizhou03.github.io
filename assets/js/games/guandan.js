@@ -743,6 +743,7 @@
     runStartedAt: 0,
     runNonce: '',
     pendingTribute: null,
+    arrangeMode: false,                   // 🔀 理牌：开启后拖动列直接重排，不需长按
   };
 
   // 当前“打的级牌”label：行动方（actingTeam）的级牌
@@ -759,6 +760,7 @@
     hand: $('gdHand'), selHint: $('gdSelHint'),
     playBtn: $('gdPlayBtn'), passBtn: $('gdPassBtn'),
     hintBtn: $('gdHintBtn'), sortBtn: $('gdSortBtn'),
+    arrangeBtn: $('gdArrangeBtn'),
     trickInfo: $('gdTrickInfo'),
     pgo: $('gdPgo'), pgoStart: $('gdPgoStart'),
     pgoDiff: $('gdPgoDiff'), pgoStats: $('gdPgoStats'), hs: $('gdHs'),
@@ -961,13 +963,24 @@
     slot.innerHTML = '';
     const lp = state.lastPlay[seat];
     if (lp === 'pass') {
-      const tag = document.createElement('span');
-      tag.className = 'gd-pass-tag'; tag.textContent = '不要';
-      slot.appendChild(tag);
+      // 大字"不要"浮窗：仿欢乐斗地主——每家弃出都让人一眼看见，不再藏在虚线小角标里
+      const big = document.createElement('span');
+      big.className = 'gd-pass-big'; big.textContent = '不要';
+      slot.appendChild(big);
     } else if (lp && lp.cards) {
       const level = currentLevelLabel();
+      // 顶部 combo 类型标签（"三带二 / 顺子 / 同花顺 / 4 张炸弹"）让新手好读牌
+      const label = document.createElement('span');
+      const isJB = lp.type === T.JOKER_BOMB;
+      const isBomb = lp.type === T.BOMB || lp.type === T.STR_FLUSH || isJB;
+      label.className = 'gd-combo-label' + (isJB ? ' joker-bomb' : (isBomb ? ' bomb' : ''));
+      label.textContent = comboName(lp);
+      slot.appendChild(label);
+      const row = document.createElement('div');
+      row.className = 'gd-played-row';
       const sorted = lp.cards.slice().sort((a, b) => singleWeight(b, level) - singleWeight(a, level));
-      for (const c of sorted) slot.appendChild(buildCardEl(c, 'size-mini', level));
+      for (const c of sorted) row.appendChild(buildCardEl(c, 'size-mini', level));
+      slot.appendChild(row);
     }
   }
 
@@ -1053,7 +1066,9 @@
   }
 
   function onHandPointerDown(e) {
-    if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
+    // 理牌模式下：允许在 IDLE / 别人回合也能调整顺序——它只动列序，不影响出牌
+    const playable = state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy;
+    if (!playable && !state.arrangeMode) return;
     const col = e.target.closest('.gd-rank-col');
     if (!col || !els.hand.contains(col)) return;
     const card = e.target.closest('.gd-card');
@@ -1068,15 +1083,25 @@
       gapIdx: null,
       gapMarker: null,
     };
-    pState.lpTimer = setTimeout(() => {
-      if (!pState || pState.mode !== 'PENDING') return;
+    if (state.arrangeMode) {
+      // 直接进入 COL_DRAG（不等 380ms），整个手势都用来调列序
       pState.mode = 'COL_DRAG';
       col.classList.add('col-dragging');
       const rects = colsRectsX();
       const draggingIdx = rects.findIndex(r => r.el === col);
       placeGapMarker(rects, draggingIdx);
       pState.gapIdx = draggingIdx;
-    }, LONG_PRESS_MS);
+    } else {
+      pState.lpTimer = setTimeout(() => {
+        if (!pState || pState.mode !== 'PENDING') return;
+        pState.mode = 'COL_DRAG';
+        col.classList.add('col-dragging');
+        const rects = colsRectsX();
+        const draggingIdx = rects.findIndex(r => r.el === col);
+        placeGapMarker(rects, draggingIdx);
+        pState.gapIdx = draggingIdx;
+      }, LONG_PRESS_MS);
+    }
     e.preventDefault();
   }
 
@@ -1459,7 +1484,40 @@
       state.out.push(seat);
     }
     renderAll();
+    // 炸弹类视觉反馈：起牌区红闪 + 表桌抖一下 + 全桌大字浮屏
+    if (isBombType(combo.type)) playBombFx(seat, combo);
     afterMove(seat);
+  }
+
+  function playBombFx(seat, combo) {
+    const slot = seatEls[seat].play;
+    if (!slot) return;
+    let cls = 'fx-bomb';
+    let banner = combo.len + ' 张炸弹';
+    if (combo.type === T.STR_FLUSH) { cls = 'fx-strflush'; banner = '同花顺'; }
+    else if (combo.type === T.JOKER_BOMB) { cls = 'fx-jokerbomb'; banner = '天王炸'; }
+    else if (combo.len >= 6) banner = combo.len + ' 张炸';
+    slot.classList.remove('fx-bomb', 'fx-strflush', 'fx-jokerbomb');
+    // 强制 reflow 让动画能重新触发
+    void slot.offsetWidth;
+    slot.classList.add(cls);
+    setTimeout(() => slot.classList.remove(cls), 1100);
+    // 整桌震屏：仅天王炸 / 6+ 张炸 / 同花顺
+    const big = combo.type === T.JOKER_BOMB || combo.type === T.STR_FLUSH || combo.len >= 6;
+    if (big && els.table) {
+      els.table.classList.remove('mega-quake');
+      void els.table.offsetWidth;
+      els.table.classList.add('mega-quake');
+      setTimeout(() => els.table && els.table.classList.remove('mega-quake'), 900);
+    }
+    // 全桌中央大字浮屏
+    if (els.table) {
+      const ban = document.createElement('div');
+      ban.className = 'gd-fx-banner';
+      ban.textContent = banner;
+      els.table.appendChild(ban);
+      setTimeout(() => ban.remove(), 1200);
+    }
   }
 
   function commitPass(seat) {
@@ -1869,6 +1927,25 @@
     renderHand();
     toast('已按点数恢复默认顺序');
   });
+  if (els.arrangeBtn) {
+    els.arrangeBtn.addEventListener('click', () => {
+      state.arrangeMode = !state.arrangeMode;
+      els.arrangeBtn.classList.toggle('on', state.arrangeMode);
+      els.hand.classList.toggle('is-arranging', state.arrangeMode);
+      // 进入理牌模式时清掉旧的"出牌选择"，避免视觉误导
+      if (state.arrangeMode && state.selected.size) {
+        state.selected.clear();
+        renderHand();
+        updateSelHint();
+        updateActions();
+        toast('理牌模式：拖动列调整顺序；再点"理牌"退出');
+      } else if (state.arrangeMode) {
+        toast('理牌模式：拖动列调整顺序；再点"理牌"退出');
+      } else {
+        toast('已退出理牌模式');
+      }
+    });
+  }
   document.addEventListener('keydown', e => {
     if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
