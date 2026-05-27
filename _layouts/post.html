@@ -234,15 +234,18 @@ layout: default
       {% endif %}
 
       <h2>{{ _noun }}在线预览与下载</h2>
-      <blockquote><p>手机端和平板端可能不能获得最佳的预览效果，请点击下方按钮下载</p></blockquote>
 
-      <div class="pdf-container" style="margin: 2rem 0;">
+      <div class="pdf-container"
+           {% unless page.download_url %}data-pdf-url="{{ _dl_url }}"{% endunless %}
+           style="margin: 2rem 0;">
         {% unless page.download_url %}
-        <div class="pdf-preview">
-          <iframe src="{{ _dl_url }}" width="100%" height="600px"
-                  style="border: 1px solid var(--color-border); border-radius: 8px;">
-            您的浏览器不支持内嵌 PDF，请通过下方链接下载。
-          </iframe>
+        <div class="pdf-preview" data-pdf-mount>
+          <noscript>
+            <iframe src="{{ _dl_url }}" width="100%" height="600px"
+                    style="border: 1px solid var(--color-border); border-radius: 8px;">
+              您的浏览器不支持内嵌 PDF，请通过下方链接下载。
+            </iframe>
+          </noscript>
         </div>
         {% endunless %}
         <div style="margin-top: 1rem; text-align: center;">
@@ -382,11 +385,10 @@ layout: default
     margin-left: 0 !important;
   }
 
-  /* 🚀 新增：移动端彻底隐藏 PDF 预览框，只保留下载按钮 */
-  @media (max-width: 768px) {
-    .pdf-container iframe {
-      display: none !important;
-    }
+  /* PDF 预览框：移动端拉高一些，给 PDF.js 工具栏留位 */
+  .pdf-container iframe { display: block; }
+  @media (max-width: 1024px) {
+    .pdf-container iframe { height: 80vh !important; min-height: 480px; }
   }
 
   /* 评论区：手机端只保留昵称输入框 */
@@ -1303,6 +1305,38 @@ layout: default
     if (backdrop) backdrop.classList.toggle('active', isOpen && window.innerWidth <= 768);
     btn.innerHTML = isOpen ? '&times;' : '&#9776;';
   }
+</script>
+
+<script>
+  /* PDF 预览：桌面走浏览器原生 viewer；手机/平板 + 不支持原生 PDF 的浏览器
+     回落到 vendored PDF.js viewer（/pdfjs/web/viewer.html）。
+     渲染时机：DOMContentLoaded 后插入 iframe，避免双重加载。 */
+  (function () {
+    var box = document.querySelector('.pdf-container[data-pdf-url]');
+    if (!box) return;
+    var mount = box.querySelector('[data-pdf-mount]');
+    if (!mount) return;
+    var url = box.dataset.pdfUrl;
+    if (!url) return;
+
+    var canNative = window.navigator.pdfViewerEnabled === true;
+    var isSmall = window.matchMedia('(max-width: 1024px)').matches;
+    var useFallback = isSmall || !canNative;
+
+    var src = useFallback
+      ? '/pdfjs/web/viewer.html?file=' + encodeURIComponent(url)
+      : url;
+
+    var ifr = document.createElement('iframe');
+    ifr.src = src;
+    ifr.title = 'PDF 预览';
+    ifr.setAttribute('allow', 'fullscreen');
+    ifr.style.cssText = 'width:100%; height:' + (useFallback ? '80vh' : '600px') +
+                        '; min-height:480px; border:1px solid var(--color-border); border-radius:8px;';
+    // 清掉 <noscript> 兜底节点；它在 JS 启用时不会渲染，但保留以防万一
+    mount.innerHTML = '';
+    mount.appendChild(ifr);
+  })();
 </script>
 
 <script>
