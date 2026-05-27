@@ -281,7 +281,9 @@ layout: default
       {%- assign cr_exams_arr = cr_related | where: "material_type", "Exams" -%}
       {%- assign cr_reviews_arr = cr_related | where: "material_type", "课程测评" -%}
       <aside class="course-related" aria-label="同课程其他资料">
-        <h4 class="cr-head">📚 同课程其他资料</h4>
+        <button type="button" class="cr-tab" aria-label="展开同课程其他资料" title="展开">📚 同课程资料</button>
+        <div class="cr-body">
+        <h4 class="cr-head">📚 同课程其他资料<button type="button" class="cr-toggle" aria-label="收起同课程其他资料" title="收起">×</button></h4>
         <p class="cr-course">{{ cr_course }}</p>
 
         {%- if cr_notes_arr.size > 0 -%}
@@ -351,6 +353,7 @@ layout: default
           </ul>
         </div>
         {%- endif -%}
+        </div>
       </aside>
     {%- endif -%}
   {%- endif -%}
@@ -632,6 +635,74 @@ layout: default
   @media (max-width: 480px) {
     .course-related { font-size: 0.82rem; padding: 0.8rem 0.9rem; }
     .course-related .cr-head { font-size: 0.92rem; }
+  }
+
+  /* ── 同课程其他资料：可折叠（仅桌面固定栏模式） ──────────── */
+  /* 默认隐藏折叠相关 UI，移动端在文末嵌入流里始终展开 */
+  .course-related .cr-toggle,
+  .course-related .cr-tab { display: none; }
+
+  @media (min-width: 1400px) {
+    .course-related {
+      transition: width 0.25s ease, max-width 0.25s ease,
+                  padding 0.25s ease, right 0.25s ease;
+    }
+
+    /* 展开态：标题右侧的 × 收起按钮 */
+    .course-related .cr-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      float: right;
+      width: 22px;
+      height: 22px;
+      margin: -2px -4px 0 0;
+      background: transparent;
+      border: none;
+      color: var(--color-light);
+      cursor: pointer;
+      font-size: 1.2rem;
+      line-height: 1;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .course-related .cr-toggle:hover {
+      color: var(--color-ink);
+      background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+    }
+
+    /* 竖立 tab：仅折叠态显示 */
+    .course-related .cr-tab {
+      background: transparent;
+      border: none;
+      color: var(--color-ink);
+      cursor: pointer;
+      font-family: var(--font-display);
+      font-size: 0.86rem;
+      padding: 1.2rem 0.4rem;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+      width: 100%;
+      transition: color 0.15s;
+    }
+    .course-related .cr-tab:hover { color: var(--color-accent); }
+
+    /* 折叠态：用户主动收起 OR 小助手开着 */
+    .course-related.cr-user-collapsed,
+    body.za-panel-open .course-related {
+      width: 32px;
+      max-width: 32px;
+      padding: 0;
+      right: 0;
+      border-radius: 10px 0 0 10px;
+      overflow: hidden;
+    }
+    .course-related.cr-user-collapsed .cr-body,
+    body.za-panel-open .course-related .cr-body { display: none; }
+    .course-related.cr-user-collapsed .cr-tab,
+    body.za-panel-open .course-related .cr-tab { display: block; }
   }
 
   /* ── 播客播放器 ───────────────────────────────────────── */
@@ -1232,4 +1303,33 @@ layout: default
     if (backdrop) backdrop.classList.toggle('active', isOpen && window.innerWidth <= 768);
     btn.innerHTML = isOpen ? '&times;' : '&#9776;';
   }
+</script>
+
+<script>
+  /* 同课程其他资料：折叠/展开。记 localStorage；与小助手 panel 错峰 */
+  (function () {
+    var aside = document.querySelector('.course-related');
+    if (!aside) return;
+    var KEY = 'cr-user-collapsed';
+
+    if (localStorage.getItem(KEY) === '1') aside.classList.add('cr-user-collapsed');
+
+    var toggle = aside.querySelector('.cr-toggle');
+    var tab = aside.querySelector('.cr-tab');
+
+    if (toggle) toggle.addEventListener('click', function () {
+      aside.classList.add('cr-user-collapsed');
+      try { localStorage.setItem(KEY, '1'); } catch (e) {}
+    });
+    if (tab) tab.addEventListener('click', function () {
+      aside.classList.remove('cr-user-collapsed');
+      try { localStorage.setItem(KEY, '0'); } catch (e) {}
+      // 若小助手开着，让用户的"展开"意图生效 → 同时关掉小助手
+      var panel = document.getElementById('za-panel');
+      if (panel && panel.classList.contains('za-open')) {
+        var closeBtn = panel.querySelector('.za-close');
+        if (closeBtn) closeBtn.click();
+      }
+    });
+  })();
 </script>

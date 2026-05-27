@@ -665,12 +665,14 @@
   function openPanel() {
     panel.classList.add('za-open');
     fab.classList.add('za-hidden');
+    document.body.classList.add('za-panel-open');
     if (!greeted) { greeted = true; pushBot(INTRO); pushChips(); loadIndex().catch(function () {}); }
     setTimeout(function () { input.focus(); }, 250);
   }
   function closePanel() {
     panel.classList.remove('za-open');
     fab.classList.remove('za-hidden');
+    document.body.classList.remove('za-panel-open');
   }
 
   // ---------- 输入框自适应高度 ----------
@@ -908,6 +910,7 @@
       greeted = true;
       panel.classList.add('za-open');
       fab.classList.add('za-hidden');
+      document.body.classList.add('za-panel-open');
       loadIndex().catch(function () {});
       if (q) {
         // 直接走聊天主流程：会 push 用户气泡 + 调 AI
