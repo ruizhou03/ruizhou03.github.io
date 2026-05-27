@@ -7,17 +7,21 @@
 {% raw %}
 <style>
   #za-fab {
-    position: fixed; right: 2rem; bottom: 2rem; z-index: 1080;
+    position: fixed; right: 2rem;
+    bottom: calc(2rem + env(safe-area-inset-bottom));
+    z-index: 1080;
     width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
     background: var(--color-highlight); color: #fff;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 6px 20px rgba(30,58,95,0.28);
-    transition: transform .25s cubic-bezier(.4,0,.2,1), box-shadow .25s;
+    transition: transform .25s cubic-bezier(.4,0,.2,1), box-shadow .25s, opacity .25s ease;
   }
   #za-fab:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 10px 26px rgba(30,58,95,0.34); }
   #za-fab:active { transform: scale(.94); }
   #za-fab svg { width: 26px; height: 26px; }
   #za-fab.za-hidden { transform: scale(0); opacity: 0; pointer-events: none; }
+  /* 阅读时滚动会自动调暗 fab，停下后再亮回——避免长文阅读时金色按钮总在余光里干扰 */
+  #za-fab.za-scroll-dim { opacity: .25; }
 
   #za-panel {
     position: fixed; right: 2rem; bottom: 2rem; z-index: 1085;
@@ -138,10 +142,14 @@
   .za-fb-btn.za-fb-on-down { border-color: #c97070; color: #c97070; background: rgba(201,112,112,.08); }
 
   @media (max-width: 600px) {
-    #za-fab { right: 1rem; bottom: 1.5rem; }
+    #za-fab {
+      right: 1rem;
+      bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    }
     #za-panel {
       left: 0; right: 0; bottom: 0; width: 100%; max-width: 100%;
       height: 82vh; max-height: 82vh; border-radius: 16px 16px 0 0;
+      padding-bottom: env(safe-area-inset-bottom);
     }
   }
 
@@ -713,6 +721,31 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && panel.classList.contains('za-open')) closePanel();
   });
+
+  // 点 panel 外（含手机端抽屉露出的上半段）自动收 panel——比每次都点右上 × 顺手
+  // setTimeout 0 是为了让 openPanel 的同一 click 事件先冒泡完再绑监听器，否则刚开就被关掉
+  function outsideClose(e) {
+    if (panel.contains(e.target) || fab.contains(e.target)) return;
+    closePanel();
+  }
+  var _origOpen = openPanel;
+  openPanel = function () { _origOpen(); setTimeout(function () { document.addEventListener('click', outsideClose); }, 0); };
+  var _origClose = closePanel;
+  closePanel = function () { _origClose(); document.removeEventListener('click', outsideClose); };
+  fab.removeEventListener('click', _origOpen);
+  fab.addEventListener('click', openPanel);
+  panel.querySelector('.za-close').removeEventListener('click', _origClose);
+  panel.querySelector('.za-close').addEventListener('click', closePanel);
+
+  // 滚动时 fab 自动调暗，500ms 静止后恢复——长文阅读时金色按钮在余光里干扰小一点
+  // panel 已 open 时 fab 本来就 hidden，不参与
+  var scrollDimTimer = null;
+  window.addEventListener('scroll', function () {
+    if (panel.classList.contains('za-open')) return;
+    fab.classList.add('za-scroll-dim');
+    if (scrollDimTimer) clearTimeout(scrollDimTimer);
+    scrollDimTimer = setTimeout(function () { fab.classList.remove('za-scroll-dim'); }, 500);
+  }, { passive: true });
 
   // ============================================================
   // 顶部搜索 modal —— cmd-k 风格，与小助手共用 search() / loadIndex()
