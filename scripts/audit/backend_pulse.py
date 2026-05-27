@@ -20,22 +20,51 @@ COMMENTS = "https://zircon-comments.fly.dev"
 TIMEOUT = 10  # waline 偶尔冷启动慢，给宽点
 
 
+_HTTP_CODE_MARKER = "\n__HTTP_CODE__"
+
+
 def get_json(url):
-    """走 curl，避免 macOS python 的 SSL CA 坑。"""
+    """走 curl，避免 macOS python 的 SSL CA 坑。
+
+    错误细分：
+      - network 出口失败 → "network: ..."
+      - 5xx → "backend HTTP 5xx (fly 502 / 后端挂了)"
+      - 4xx → "backend HTTP 4xx"
+      - 200 空 body → "empty response"
+      - 200 非 JSON → "non-json (HTTP 200): <preview>"
+    """
     try:
         out = subprocess.run(
             ["curl", "-sSL", "--max-time", str(TIMEOUT),
              "-H", "User-Agent: zirconeey-backend-pulse",
-             "-H", "Accept: application/json", url],
+             "-H", "Accept: application/json",
+             "-w", _HTTP_CODE_MARKER + "%{http_code}",
+             url],
             capture_output=True, text=True, timeout=TIMEOUT + 2,
         )
         if out.returncode != 0:
-            return {"_error": f"curl exit {out.returncode}: {out.stderr[:80]}"}
-        return json.loads(out.stdout)
+            return {"_error": f"network: curl exit {out.returncode} ({out.stderr.strip()[:80]})"}
+        body = out.stdout
+        if _HTTP_CODE_MARKER in body:
+            body, _, code = body.rpartition(_HTTP_CODE_MARKER)
+            code = code.strip()
+        else:
+            code = "???"
+        if code == "000":
+            return {"_error": "network: connect failed (DNS/沙箱出口?)"}
+        if code.startswith("5"):
+            return {"_error": f"backend HTTP {code} (fly 502 / 后端挂了)"}
+        if code.startswith("4"):
+            return {"_error": f"backend HTTP {code}"}
+        if not body.strip():
+            return {"_error": f"empty response (HTTP {code})"}
+        try:
+            return json.loads(body)
+        except json.JSONDecodeError as e:
+            preview = body.strip().replace("\n", " ")[:80]
+            return {"_error": f"non-json (HTTP {code}): {preview!r} ({e.msg})"}
     except subprocess.TimeoutExpired:
         return {"_error": "timeout"}
-    except json.JSONDecodeError as e:
-        return {"_error": f"json: {str(e)[:80]}"}
     except Exception as e:
         return {"_error": f"{type(e).__name__}: {str(e)[:80]}"}
 

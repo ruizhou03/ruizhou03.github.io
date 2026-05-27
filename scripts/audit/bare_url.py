@@ -27,6 +27,8 @@ ROOT = REPO / "_notes"
 
 URL_RE = re.compile(r"(?<![\(<\"'])https?://[^\s<>\)\]\"']+(?<![\.,;:!?])")
 REF_LINK_RE = re.compile(r"^\s*\[[^\]]+\]:\s*https?://", re.MULTILINE)
+# defang 标记（安全示例里把 . 写成 [.]、把 http 写成 hxxp 等故意打断 autolink 的写法）
+DEFANG_RE = re.compile(r"\[\.\]|\(\.\)|hxxps?://|\[http", re.IGNORECASE)
 
 
 def split_frontmatter(text):
@@ -97,6 +99,9 @@ def scan_body(body):
             continue
         # 引用式 link 定义 `[label]: url`
         if REF_LINK_RE.match(raw):
+            continue
+        # 整行含 defang 标记（[.] / (.) / hxxp 等）→ 是安全/钓鱼示例，整行所有 URL 都不算
+        if DEFANG_RE.search(raw):
             continue
         # 抹掉 inline code 再判
         scrub = strip_inline_code(raw)

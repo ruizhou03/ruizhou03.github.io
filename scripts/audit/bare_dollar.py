@@ -131,6 +131,14 @@ def count_bare_dollars(body):
                     k += 1
                 if k < n and body[k] in "KMBkmb":
                     k += 1
+                # 启发式：$\d+/\d+$ 数学分数（e.g. $0/0$、$2/3$），跳过
+                if k < n and body[k] == "/":
+                    p = k + 1
+                    while p < n and body[p].isdigit():
+                        p += 1
+                    if p > k + 1 and p < n and body[p] == "$":
+                        i = p + 1
+                        continue
                 m = k
                 while m < n and body[m] in " \t":
                     m += 1
