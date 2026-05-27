@@ -8,6 +8,10 @@ author:
   name: 周睿 (Rui Zhou)
   email: ruizhou@psu.edu
 
+# 分享卡片（微信/朋友圈/Twitter/通用 OG）的默认封面
+# 文章 front-matter 没写 image/cover 时回退到这张
+default_share_image: /assets/share/share-default.png
+
 # Build settings
 markdown: kramdown
 

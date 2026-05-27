@@ -2,13 +2,47 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>{{ page.title | default: site.title }}</title>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
-  
+
+  {%- comment -%}
+    ─── 分享卡片 meta（微信/朋友圈/Twitter/通用 OG）───
+    封面 fallback 链：page.image → page.cover → site.default_share_image
+    描述 fallback 链：page.description → page.summary → site.description
+    Cormorant Garamond 字体改自托管（assets/fonts/），不再从 fonts.googleapis.com 拉
+    ──────────────────────────────────────────────
+  {%- endcomment -%}
+  {%- assign og_title = page.title | default: site.title -%}
+  {%- assign og_desc_raw = page.description | default: page.summary | default: site.description -%}
+  {%- assign og_description = og_desc_raw | strip_html | strip_newlines | truncate: 160 -%}
+  {%- assign og_image_path = page.image | default: page.cover | default: site.default_share_image -%}
+  {%- assign og_image = og_image_path | absolute_url -%}
+  {%- assign og_url = page.url | absolute_url -%}
+
+  <meta name="description" content="{{ og_description }}">
+  <link rel="canonical" href="{{ og_url }}">
+
+  <meta property="og:title" content="{{ og_title }}">
+  <meta property="og:description" content="{{ og_description }}">
+  <meta property="og:image" content="{{ og_image }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:url" content="{{ og_url }}">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="{{ site.title }}">
+  <meta property="og:locale" content="zh_CN">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ og_title }}">
+  <meta name="twitter:description" content="{{ og_description }}">
+  <meta name="twitter:image" content="{{ og_image }}">
+
+  {%- comment -%} 微信内置浏览器抓图用的非标字段——能提高分享卡片识别成功率 {%- endcomment -%}
+  <meta itemprop="name" content="{{ og_title }}">
+  <meta itemprop="description" content="{{ og_description }}">
+  <meta itemprop="image" content="{{ og_image }}">
+  <link rel="image_src" href="{{ og_image }}">
+
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='82' font-family='Georgia, serif' font-size='95' font-weight='bold' fill='%23c9a96e' text-anchor='middle'>Zr</text></svg>">
   <link rel="manifest" href="{{ '/manifest.json' | relative_url }}">
   <meta name="theme-color" content="#1e3a5f">
