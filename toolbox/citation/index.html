@@ -139,6 +139,43 @@ permalink: /toolbox/citation/
     font-family: 'SFMono-Regular', monospace; font-size: 0.85em;
     background: var(--color-bg-warm); padding: 0.1em 0.3em; border-radius: 3px;
   }
+
+  /* 撤销 toast：清空时不弹 confirm，落地后给 6s 撤销窗口 */
+  .ct-undo-toast {
+    position: fixed;
+    bottom: 1.4rem; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30, 30, 36, 0.94);
+    color: #fff;
+    padding: 0.55rem 0.55rem 0.55rem 1rem;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    display: flex; align-items: center; gap: 0.7rem;
+    z-index: 1000;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+  .ct-undo-toast.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(-2px);
+  }
+  .ct-undo-toast .ct-undo-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.22rem 0.75rem;
+    font-size: 0.82rem;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+  }
+  @media (hover: hover) {
+    .ct-undo-toast .ct-undo-btn:hover { background: rgba(255, 255, 255, 0.12); }
+  }
 </style>
 
 <div class="ct-wrap">
@@ -743,11 +780,40 @@ permalink: /toolbox/citation/
     $bib.value = SAMPLE;
     reparse();
   });
+  // 撤销 toast：替代阻塞 confirm。清空后弹 6s 撤销条；超时自动消失则真正落地。
+  let undoToastEl = null;
+  let undoTimer = null;
+  function showUndoToast(text, onUndo) {
+    if (undoToastEl) { clearTimeout(undoTimer); undoToastEl.remove(); }
+    undoToastEl = document.createElement('div');
+    undoToastEl.className = 'ct-undo-toast';
+    undoToastEl.innerHTML = '<span></span><button type="button" class="ct-undo-btn">撤销</button>';
+    undoToastEl.querySelector('span').textContent = text;
+    document.body.appendChild(undoToastEl);
+    requestAnimationFrame(() => undoToastEl.classList.add('show'));
+    const dismiss = () => {
+      if (!undoToastEl) return;
+      undoToastEl.classList.remove('show');
+      const el = undoToastEl;
+      undoToastEl = null;
+      clearTimeout(undoTimer); undoTimer = null;
+      setTimeout(() => el.remove(), 250);
+    };
+    undoToastEl.querySelector('.ct-undo-btn').addEventListener('click', () => {
+      onUndo();
+      dismiss();
+    });
+    undoTimer = setTimeout(dismiss, 6000);
+  }
   $clear.addEventListener('click', () => {
     if (!$bib.value) return;
-    if (!confirm('清空 BibTeX 输入？')) return;
+    const prev = $bib.value;
     $bib.value = '';
     reparse();
+    showUndoToast('已清空 BibTeX', () => {
+      $bib.value = prev;
+      reparse();
+    });
   });
   $copyAll.addEventListener('click', async () => {
     if (currentEntries.length === 0) return;
