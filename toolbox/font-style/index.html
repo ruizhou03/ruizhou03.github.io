@@ -1,0 +1,547 @@
+---
+layout: default
+title: "花式字体 | Rui Zhou"
+permalink: /toolbox/font-style/
+---
+
+<style>
+  .fs-wrap { max-width: 880px; margin: 0 auto; padding: 1rem; }
+  .fs-wrap header { text-align: center; margin-bottom: 1.4rem; }
+  .fs-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem; }
+  .fs-wrap header .sub { color: var(--color-light); font-style: normal; }
+
+  .fs-input-panel {
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: 14px; padding: 1.1rem 1.2rem 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .fs-input {
+    width: 100%; min-height: 70px; resize: vertical;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--color-border); border-radius: 10px;
+    background: var(--color-bg); color: var(--color-ink);
+    font: inherit; font-size: 1rem; line-height: 1.55;
+    transition: border-color 0.18s;
+    box-sizing: border-box;
+  }
+  .fs-input:focus { outline: none; border-color: var(--color-accent); }
+
+  .fs-controls {
+    display: flex; gap: 0.5rem; margin-top: 0.7rem;
+    flex-wrap: wrap; align-items: center;
+  }
+  .fs-controls .meta {
+    color: var(--color-light); font-size: 0.82rem; margin-left: auto;
+  }
+  .fs-controls button {
+    font: inherit; font-size: 0.82rem;
+    padding: 0.35rem 0.85rem; border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg); color: var(--color-muted);
+    cursor: pointer; transition: all 0.18s;
+  }
+  @media (hover: hover) {
+    .fs-controls button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+
+  .fs-section-title {
+    font-family: var(--font-display);
+    font-size: 0.95rem; font-weight: 500;
+    color: var(--color-light);
+    margin: 1.4rem 0 0.5rem;
+    letter-spacing: 0.02em;
+    text-align: center;
+  }
+
+  .fs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 0.6rem;
+  }
+
+  .fs-card {
+    display: flex; align-items: center; gap: 0.7rem;
+    padding: 0.7rem 0.85rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    transition: border-color 0.18s;
+  }
+  @media (hover: hover) {
+    .fs-card:hover { border-color: var(--color-accent); }
+  }
+  .fs-card .label {
+    flex: 0 0 auto;
+    font-size: 0.74rem; color: var(--color-light);
+    letter-spacing: 0.02em;
+    min-width: 4.4rem;
+  }
+  .fs-card .preview {
+    flex: 1 1 auto;
+    color: var(--color-ink);
+    font-size: 1rem;
+    line-height: 1.5;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+  .fs-card .copy-btn {
+    flex: 0 0 auto;
+    font: inherit; font-size: 0.78rem;
+    padding: 0.3rem 0.7rem; border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg); color: var(--color-muted);
+    cursor: pointer; transition: all 0.18s;
+  }
+  @media (hover: hover) {
+    .fs-card .copy-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  .fs-card .copy-btn.done { color: var(--color-accent); border-color: var(--color-accent); }
+
+  .fs-footnote {
+    margin-top: 1.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px; background: var(--color-bg);
+  }
+  .fs-footnote summary {
+    cursor: pointer; padding: 0.65rem 1rem;
+    font-size: 0.85rem; color: var(--color-muted);
+    list-style: none;
+  }
+  .fs-footnote summary::-webkit-details-marker { display: none; }
+  .fs-footnote summary::before {
+    content: '▸'; display: inline-block; margin-right: 0.45rem;
+    color: var(--color-light); transition: transform 0.2s;
+  }
+  .fs-footnote[open] summary::before { transform: rotate(90deg); }
+  @media (hover: hover) {
+    .fs-footnote summary:hover { color: var(--color-accent); }
+  }
+  .fs-footnote .body {
+    padding: 0 1rem 0.9rem;
+    font-size: 0.85rem; color: var(--color-muted); line-height: 1.75;
+  }
+  .fs-footnote .body code {
+    background: var(--color-bg-warm); padding: 0.1em 0.3em; border-radius: 3px;
+    font-size: 0.92em;
+  }
+  .fs-footnote .body p { margin: 0.4rem 0; }
+</style>
+
+<article class="fs-wrap">
+  <header>
+    <h1>✒️ 花式字体</h1>
+    <p class="sub">输入文字，一键复制可以发到微信的花体</p>
+  </header>
+
+  <div class="fs-input-panel">
+    <textarea class="fs-input" id="fs-input" placeholder="输入想转换的文字（中英数字皆可）&#10;例：Hello 世界 2026"></textarea>
+    <div class="fs-controls">
+      <button id="fs-clear" type="button">清空</button>
+      <button id="fs-sample" type="button">填入示例</button>
+      <span class="meta" id="fs-meta">— 字</span>
+    </div>
+  </div>
+
+  <h3 class="fs-section-title">— 字母 / 数字 花体 —</h3>
+  <div class="fs-grid" id="fs-grid-latin"></div>
+
+  <h3 class="fs-section-title">— 装饰 / 排版 —</h3>
+  <div class="fs-grid" id="fs-grid-deco"></div>
+
+  <h3 class="fs-section-title">— 特效 —</h3>
+  <div class="fs-grid" id="fs-grid-fx"></div>
+
+  <details class="fs-footnote">
+    <summary>为什么微信能显示这些字体？</summary>
+    <div class="body">
+      <p>微信、QQ、各种聊天工具其实只允许你发"纯文本"——它们不传输字体，只传输 <strong>Unicode 字符</strong>。</p>
+      <p>但 Unicode 里恰好预留了一整片<strong>数学字母数字符号</strong>区段（<code>U+1D400 – U+1D7FF</code>），里面是 <code>𝐀 𝐵 𝐶 𝒜 𝓐 𝔄 𝔸 𝖠 𝙰</code> 等等长得"像不同字体"但实际是不同字符的码点。</p>
+      <p>所以这里做的不是"换字体"，而是把你输入的 <code>A</code> 替换成 Unicode 里另一个长得不同的字符。任何能正确渲染 Unicode 的地方都能显示，包括微信、朋友圈、抖音、小红书等等。</p>
+      <p>注意：中文汉字本身没有这类映射，所以汉字部分会保持原样；本工具的"装饰"和"特效"区针对的就是中英混排的场景。</p>
+    </div>
+  </details>
+</article>
+
+<script>
+(function() {
+  const $input = document.getElementById('fs-input');
+  const $meta = document.getElementById('fs-meta');
+  const $clear = document.getElementById('fs-clear');
+  const $sample = document.getElementById('fs-sample');
+  const $latin = document.getElementById('fs-grid-latin');
+  const $deco = document.getElementById('fs-grid-deco');
+  const $fx = document.getElementById('fs-grid-fx');
+
+  const STORE_KEY = 'fs-input-v1';
+  const SAMPLE = 'Hello 世界 2026';
+
+  // ===== Unicode 映射核心 =====
+  // 把 ASCII 字母/数字按起始码点平移到目标区段，并处理"洞"（个别字符在 BMP 内借用旧码点）
+
+  function mapByBase(str, upBase, lowBase, digitBase, exc) {
+    exc = exc || {};
+    let out = '';
+    for (const ch of str) {
+      if (exc[ch] !== undefined) { out += exc[ch]; continue; }
+      const cp = ch.codePointAt(0);
+      if (upBase != null && cp >= 0x41 && cp <= 0x5A)      out += String.fromCodePoint(upBase + cp - 0x41);
+      else if (lowBase != null && cp >= 0x61 && cp <= 0x7A) out += String.fromCodePoint(lowBase + cp - 0x61);
+      else if (digitBase != null && cp >= 0x30 && cp <= 0x39) out += String.fromCodePoint(digitBase + cp - 0x30);
+      else out += ch;
+    }
+    return out;
+  }
+
+  // 字符表映射（A-Z / a-z / 0-9 → 26/26/10 长的字符串）
+  // ⚠ 部分含 surrogate pair，必须用 [...str] 拆码点
+  function mapByTable(str, upTable, lowTable, digitTable) {
+    const upArr = upTable ? [...upTable] : null;
+    const lowArr = lowTable ? [...lowTable] : null;
+    const dArr = digitTable ? [...digitTable] : null;
+    let out = '';
+    for (const ch of str) {
+      const cp = ch.codePointAt(0);
+      if (upArr && cp >= 0x41 && cp <= 0x5A)      out += upArr[cp - 0x41] || ch;
+      else if (lowArr && cp >= 0x61 && cp <= 0x7A) out += lowArr[cp - 0x61] || ch;
+      else if (dArr && cp >= 0x30 && cp <= 0x39)   out += dArr[cp - 0x30] || ch;
+      else out += ch;
+    }
+    return out;
+  }
+
+  // 字母花体：标准数学字母数字符号区段
+  const STYLES_LATIN = [
+    {
+      label: '粗体',
+      fn: s => mapByBase(s, 0x1D400, 0x1D41A, 0x1D7CE)
+    },
+    {
+      label: '斜体',
+      // h 斜体借用 U+210E (Planck constant)
+      fn: s => mapByBase(s, 0x1D434, 0x1D44E, null, { h: 'ℎ' })
+    },
+    {
+      label: '粗斜体',
+      fn: s => mapByBase(s, 0x1D468, 0x1D482, null)
+    },
+    {
+      label: '手写体',
+      // Script 区有大量"洞"
+      fn: s => mapByBase(s, 0x1D49C, 0x1D4B6, null, {
+        B: 'ℬ', E: 'ℰ', F: 'ℱ', H: 'ℋ',
+        I: 'ℐ', L: 'ℒ', M: 'ℳ', R: 'ℛ',
+        e: 'ℯ', g: 'ℊ', o: 'ℴ'
+      })
+    },
+    {
+      label: '粗手写',
+      fn: s => mapByBase(s, 0x1D4D0, 0x1D4EA, null)
+    },
+    {
+      label: '哥特体',
+      // Fraktur 也有洞
+      fn: s => mapByBase(s, 0x1D504, 0x1D51E, null, {
+        C: 'ℭ', H: 'ℌ', I: 'ℑ',
+        R: 'ℜ', Z: 'ℨ'
+      })
+    },
+    {
+      label: '粗哥特',
+      fn: s => mapByBase(s, 0x1D56C, 0x1D586, null)
+    },
+    {
+      label: '空心体',
+      // Double-struck 洞
+      fn: s => mapByBase(s, 0x1D538, 0x1D552, 0x1D7D8, {
+        C: 'ℂ', H: 'ℍ', N: 'ℕ', P: 'ℙ',
+        Q: 'ℚ', R: 'ℝ', Z: 'ℤ'
+      })
+    },
+    {
+      label: '无衬线',
+      fn: s => mapByBase(s, 0x1D5A0, 0x1D5BA, 0x1D7E2)
+    },
+    {
+      label: '无衬线粗',
+      fn: s => mapByBase(s, 0x1D5D4, 0x1D5EE, 0x1D7EC)
+    },
+    {
+      label: '无衬线斜',
+      fn: s => mapByBase(s, 0x1D608, 0x1D622, null)
+    },
+    {
+      label: '无衬线粗斜',
+      fn: s => mapByBase(s, 0x1D63C, 0x1D656, null)
+    },
+    {
+      label: '等宽体',
+      fn: s => mapByBase(s, 0x1D670, 0x1D68A, 0x1D7F6)
+    }
+  ];
+
+  // 装饰类：圆圈、方框、全角、小型大写
+  const SMALL_CAPS_UP = 'ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ';
+  const SMALL_CAPS_LOW = SMALL_CAPS_UP; // 复用，小写也映射到同样的小型大写
+
+  const STYLES_DECO = [
+    {
+      label: '小型大写',
+      // 小型大写：每个字母拆 1 个码点
+      fn: s => mapByTable(s, SMALL_CAPS_UP, SMALL_CAPS_LOW, null)
+    },
+    {
+      label: '全角',
+      // A→Ａ, a→ａ, 0→０, 空格→3000
+      fn: s => {
+        let out = '';
+        for (const ch of s) {
+          const cp = ch.codePointAt(0);
+          if (cp === 0x20) out += '　';
+          else if (cp >= 0x21 && cp <= 0x7E) out += String.fromCodePoint(cp + 0xFEE0);
+          else out += ch;
+        }
+        return out;
+      }
+    },
+    {
+      label: '圆圈字',
+      // A-Z: 24B6+, a-z: 24D0+, 1-9: 2460+, 0: 24EA
+      fn: s => {
+        let out = '';
+        for (const ch of s) {
+          const cp = ch.codePointAt(0);
+          if (cp >= 0x41 && cp <= 0x5A) out += String.fromCodePoint(0x24B6 + cp - 0x41);
+          else if (cp >= 0x61 && cp <= 0x7A) out += String.fromCodePoint(0x24D0 + cp - 0x61);
+          else if (cp >= 0x31 && cp <= 0x39) out += String.fromCodePoint(0x2460 + cp - 0x31);
+          else if (cp === 0x30) out += '⓪';
+          else out += ch;
+        }
+        return out;
+      }
+    },
+    {
+      label: '方块字',
+      // 仅大写有：1F130-1F149 (squared latin)，数字 0-9: 1F101-1F10A 没有方块版
+      // 把大小写一起映到方块大写
+      fn: s => {
+        let out = '';
+        for (const ch of s) {
+          const cp = ch.codePointAt(0);
+          if (cp >= 0x41 && cp <= 0x5A) out += String.fromCodePoint(0x1F130 + cp - 0x41);
+          else if (cp >= 0x61 && cp <= 0x7A) out += String.fromCodePoint(0x1F130 + cp - 0x61);
+          else out += ch;
+        }
+        return out;
+      }
+    },
+    {
+      label: '黑底方块',
+      // negative squared: 1F170-1F189
+      fn: s => {
+        let out = '';
+        for (const ch of s) {
+          const cp = ch.codePointAt(0);
+          if (cp >= 0x41 && cp <= 0x5A) out += String.fromCodePoint(0x1F170 + cp - 0x41);
+          else if (cp >= 0x61 && cp <= 0x7A) out += String.fromCodePoint(0x1F170 + cp - 0x61);
+          else out += ch;
+        }
+        return out;
+      }
+    },
+    {
+      label: '黑底圆',
+      // negative circled: 1F150-1F169 (A-Z)
+      fn: s => {
+        let out = '';
+        for (const ch of s) {
+          const cp = ch.codePointAt(0);
+          if (cp >= 0x41 && cp <= 0x5A) out += String.fromCodePoint(0x1F150 + cp - 0x41);
+          else if (cp >= 0x61 && cp <= 0x7A) out += String.fromCodePoint(0x1F150 + cp - 0x61);
+          else out += ch;
+        }
+        return out;
+      }
+    },
+    {
+      label: '中括号',
+      // 中文/英文一并包进【】
+      fn: s => s ? '【' + s + '】' : ''
+    },
+    {
+      label: '书名号',
+      fn: s => s ? '《' + s + '》' : ''
+    },
+    {
+      label: '六角括号',
+      fn: s => s ? '〖' + s + '〗' : ''
+    },
+    {
+      label: '直角引号',
+      fn: s => s ? '「' + s + '」' : ''
+    }
+  ];
+
+  // 特效
+  const UPSIDE_DOWN_MAP = {
+    'a':'ɐ','b':'q','c':'ɔ','d':'p','e':'ǝ','f':'ɟ','g':'ƃ','h':'ɥ',
+    'i':'ᴉ','j':'ɾ','k':'ʞ','l':'l','m':'ɯ','n':'u','o':'o','p':'d',
+    'q':'b','r':'ɹ','s':'s','t':'ʇ','u':'n','v':'ʌ','w':'ʍ','x':'x',
+    'y':'ʎ','z':'z',
+    'A':'∀','B':'ʞ','C':'Ɔ','D':'ᗡ','E':'Ǝ','F':'Ⅎ','G':'⅁','H':'H',
+    'I':'I','J':'ſ','K':'ʞ','L':'˥','M':'W','N':'N','O':'O','P':'Ԁ',
+    'Q':'Q','R':'ᴚ','S':'S','T':'⊥','U':'∩','V':'Λ','W':'M','X':'X',
+    'Y':'⅄','Z':'Z',
+    '0':'0','1':'Ɩ','2':'ᄅ','3':'Ɛ','4':'ㄣ','5':'ϛ','6':'9',
+    '7':'ㄥ','8':'8','9':'6',
+    '.':'˙',',':"'",'?':'¿','!':'¡',"'":',','"':',,',
+    '(':')',')':'(','[':']',']':'[','{':'}','}':'{','<':'>','>':'<',
+    '&':'⅋','_':'‾'
+  };
+
+  const STYLES_FX = [
+    {
+      label: '倒置',
+      // 翻转并反转字符串
+      fn: s => {
+        const arr = [...s].map(ch => UPSIDE_DOWN_MAP[ch] || ch);
+        return arr.reverse().join('');
+      }
+    },
+    {
+      label: '上标',
+      // 不全：缺 q
+      fn: s => mapByTable(s,
+        'ᴬᴮꟲᴰᴱꟳᴳᴴᴵᴶᴷᴸᴹᴺᴼᴾꟴᴿˢᵀᵁⱽᵂˣʸᶻ',
+        'ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖ𐞥ʳˢᵗᵘᵛʷˣʸᶻ',
+        '⁰¹²³⁴⁵⁶⁷⁸⁹'
+      )
+    },
+    {
+      label: '下标',
+      // Unicode 下标分布稀疏：大写没有；小写仅 a/e/h/i/j/k/l/m/n/o/p/r/s/t/u/v/x；数字 0-9 齐全
+      fn: s => {
+        const SUB_LOW = {
+          a:'ₐ', e:'ₑ', h:'ₕ', i:'ᵢ', j:'ⱼ', k:'ₖ', l:'ₗ', m:'ₘ',
+          n:'ₙ', o:'ₒ', p:'ₚ', r:'ᵣ', s:'ₛ', t:'ₜ', u:'ᵤ', v:'ᵥ', x:'ₓ'
+        };
+        const SUB_DIGIT = '₀₁₂₃₄₅₆₇₈₉';
+        let out = '';
+        for (const ch of s) {
+          if (SUB_LOW[ch]) out += SUB_LOW[ch];
+          else if (ch >= '0' && ch <= '9') out += SUB_DIGIT[ch.charCodeAt(0) - 0x30];
+          else out += ch;
+        }
+        return out;
+      }
+    },
+    {
+      label: '字间空格',
+      // 中英文之间插入空格，让排版更稀疏
+      fn: s => [...s].join(' ')
+    },
+    {
+      label: '下划线',
+      // 给每个字符加 combining low line (U+0332)
+      fn: s => [...s].map(ch => ch + '̲').join('')
+    },
+    {
+      label: '上划线',
+      // combining overline (U+0305)
+      fn: s => [...s].map(ch => ch + '̅').join('')
+    },
+    {
+      label: '删除线',
+      // combining long stroke overlay (U+0336)
+      fn: s => [...s].map(ch => ch + '̶').join('')
+    },
+    {
+      label: '波浪线',
+      // combining tilde (U+0303)
+      fn: s => [...s].map(ch => ch + '̃').join('')
+    },
+    {
+      label: '反转顺序',
+      // 字符顺序反转
+      fn: s => [...s].reverse().join('')
+    }
+  ];
+
+  // ===== 渲染 =====
+  function makeCard(label, text) {
+    const card = document.createElement('div');
+    card.className = 'fs-card';
+    card.innerHTML = `
+      <div class="label"></div>
+      <div class="preview"></div>
+      <button class="copy-btn" type="button">📋 复制</button>
+    `;
+    card.querySelector('.label').textContent = label;
+    card.querySelector('.preview').textContent = text || ' ';
+    const btn = card.querySelector('.copy-btn');
+    btn.addEventListener('click', async () => {
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.textContent = '✓ 已复制';
+        btn.classList.add('done');
+        setTimeout(() => {
+          btn.textContent = '📋 复制';
+          btn.classList.remove('done');
+        }, 1500);
+      } catch (e) {
+        btn.textContent = '失败';
+        setTimeout(() => { btn.textContent = '📋 复制'; }, 1500);
+      }
+    });
+    return card;
+  }
+
+  function render() {
+    const src = $input.value;
+    const placeholder = src ? '' : SAMPLE;
+    const text = src || placeholder;
+
+    [
+      [$latin, STYLES_LATIN],
+      [$deco, STYLES_DECO],
+      [$fx, STYLES_FX]
+    ].forEach(([host, styles]) => {
+      host.innerHTML = '';
+      styles.forEach(style => {
+        let out = '';
+        try { out = style.fn(text); } catch (e) { out = text; }
+        host.appendChild(makeCard(style.label, out));
+      });
+    });
+
+    const n = [...src].length;
+    $meta.textContent = n + ' 字';
+  }
+
+  $input.addEventListener('input', () => {
+    try { localStorage.setItem(STORE_KEY, $input.value); } catch (e) {}
+    render();
+  });
+
+  $clear.addEventListener('click', () => {
+    $input.value = '';
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    render();
+    $input.focus();
+  });
+
+  $sample.addEventListener('click', () => {
+    $input.value = SAMPLE;
+    try { localStorage.setItem(STORE_KEY, $input.value); } catch (e) {}
+    render();
+  });
+
+  // 初始化：恢复上次输入
+  try {
+    const saved = localStorage.getItem(STORE_KEY);
+    if (saved) $input.value = saved;
+  } catch (e) {}
+  render();
+})();
+</script>

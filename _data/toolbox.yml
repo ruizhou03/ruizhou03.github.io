@@ -416,3 +416,11 @@
   url: /toolbox/timemachine/
   category: 生活
   status: live
+
+- id: font-style
+  name: 花式字体
+  icon: ✒️
+  tagline: Unicode 花体 · 微信可见
+  url: /toolbox/font-style/
+  category: 生活
+  status: live
