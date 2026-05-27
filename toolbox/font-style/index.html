@@ -44,15 +44,6 @@ permalink: /toolbox/font-style/
     .fs-controls button:hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
 
-  .fs-section-title {
-    font-family: var(--font-display);
-    font-size: 0.95rem; font-weight: 500;
-    color: var(--color-light);
-    margin: 1.4rem 0 0.5rem;
-    letter-spacing: 0.02em;
-    text-align: center;
-  }
-
   .fs-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -143,14 +134,7 @@ permalink: /toolbox/font-style/
     </div>
   </div>
 
-  <h3 class="fs-section-title">— 字母 / 数字 花体 —</h3>
   <div class="fs-grid" id="fs-grid-latin"></div>
-
-  <h3 class="fs-section-title">— 装饰 / 排版 —</h3>
-  <div class="fs-grid" id="fs-grid-deco"></div>
-
-  <h3 class="fs-section-title">— 特效 —</h3>
-  <div class="fs-grid" id="fs-grid-fx"></div>
 
   <details class="fs-footnote">
     <summary>为什么微信能显示这些字体？</summary>
@@ -158,7 +142,7 @@ permalink: /toolbox/font-style/
       <p>微信、QQ、各种聊天工具其实只允许你发"纯文本"——它们不传输字体，只传输 <strong>Unicode 字符</strong>。</p>
       <p>但 Unicode 里恰好预留了一整片<strong>数学字母数字符号</strong>区段（<code>U+1D400 – U+1D7FF</code>），里面是 <code>𝐀 𝐵 𝐶 𝒜 𝓐 𝔄 𝔸 𝖠 𝙰</code> 等等长得"像不同字体"但实际是不同字符的码点。</p>
       <p>所以这里做的不是"换字体"，而是把你输入的 <code>A</code> 替换成 Unicode 里另一个长得不同的字符。任何能正确渲染 Unicode 的地方都能显示，包括微信、朋友圈、抖音、小红书等等。</p>
-      <p>注意：中文汉字本身没有这类映射，所以汉字部分会保持原样；本工具的"装饰"和"特效"区针对的就是中英混排的场景。</p>
+      <p>注意：中文汉字本身没有这类映射，所以汉字部分会保持原样。</p>
     </div>
   </details>
 </article>
@@ -170,8 +154,6 @@ permalink: /toolbox/font-style/
   const $clear = document.getElementById('fs-clear');
   const $sample = document.getElementById('fs-sample');
   const $latin = document.getElementById('fs-grid-latin');
-  const $deco = document.getElementById('fs-grid-deco');
-  const $fx = document.getElementById('fs-grid-fx');
 
   const STORE_KEY = 'fs-input-v1';
   const SAMPLE = 'Hello 世界 2026';
@@ -188,23 +170,6 @@ permalink: /toolbox/font-style/
       if (upBase != null && cp >= 0x41 && cp <= 0x5A)      out += String.fromCodePoint(upBase + cp - 0x41);
       else if (lowBase != null && cp >= 0x61 && cp <= 0x7A) out += String.fromCodePoint(lowBase + cp - 0x61);
       else if (digitBase != null && cp >= 0x30 && cp <= 0x39) out += String.fromCodePoint(digitBase + cp - 0x30);
-      else out += ch;
-    }
-    return out;
-  }
-
-  // 字符表映射（A-Z / a-z / 0-9 → 26/26/10 长的字符串）
-  // ⚠ 部分含 surrogate pair，必须用 [...str] 拆码点
-  function mapByTable(str, upTable, lowTable, digitTable) {
-    const upArr = upTable ? [...upTable] : null;
-    const lowArr = lowTable ? [...lowTable] : null;
-    const dArr = digitTable ? [...digitTable] : null;
-    let out = '';
-    for (const ch of str) {
-      const cp = ch.codePointAt(0);
-      if (upArr && cp >= 0x41 && cp <= 0x5A)      out += upArr[cp - 0x41] || ch;
-      else if (lowArr && cp >= 0x61 && cp <= 0x7A) out += lowArr[cp - 0x61] || ch;
-      else if (dArr && cp >= 0x30 && cp <= 0x39)   out += dArr[cp - 0x30] || ch;
       else out += ch;
     }
     return out;
@@ -280,193 +245,6 @@ permalink: /toolbox/font-style/
     }
   ];
 
-  // 装饰类：圆圈、方框、全角、小型大写
-  const SMALL_CAPS_UP = 'ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ';
-  const SMALL_CAPS_LOW = SMALL_CAPS_UP; // 复用，小写也映射到同样的小型大写
-
-  const STYLES_DECO = [
-    {
-      label: '小型大写',
-      // 小型大写：每个字母拆 1 个码点
-      fn: s => mapByTable(s, SMALL_CAPS_UP, SMALL_CAPS_LOW, null)
-    },
-    {
-      label: '全角',
-      // A→Ａ, a→ａ, 0→０, 空格→3000
-      fn: s => {
-        let out = '';
-        for (const ch of s) {
-          const cp = ch.codePointAt(0);
-          if (cp === 0x20) out += '　';
-          else if (cp >= 0x21 && cp <= 0x7E) out += String.fromCodePoint(cp + 0xFEE0);
-          else out += ch;
-        }
-        return out;
-      }
-    },
-    {
-      label: '圆圈字',
-      // A-Z: 24B6+, a-z: 24D0+, 1-9: 2460+, 0: 24EA
-      fn: s => {
-        let out = '';
-        for (const ch of s) {
-          const cp = ch.codePointAt(0);
-          if (cp >= 0x41 && cp <= 0x5A) out += String.fromCodePoint(0x24B6 + cp - 0x41);
-          else if (cp >= 0x61 && cp <= 0x7A) out += String.fromCodePoint(0x24D0 + cp - 0x61);
-          else if (cp >= 0x31 && cp <= 0x39) out += String.fromCodePoint(0x2460 + cp - 0x31);
-          else if (cp === 0x30) out += '⓪';
-          else out += ch;
-        }
-        return out;
-      }
-    },
-    {
-      label: '方块字',
-      // 仅大写有：1F130-1F149 (squared latin)，数字 0-9: 1F101-1F10A 没有方块版
-      // 把大小写一起映到方块大写
-      fn: s => {
-        let out = '';
-        for (const ch of s) {
-          const cp = ch.codePointAt(0);
-          if (cp >= 0x41 && cp <= 0x5A) out += String.fromCodePoint(0x1F130 + cp - 0x41);
-          else if (cp >= 0x61 && cp <= 0x7A) out += String.fromCodePoint(0x1F130 + cp - 0x61);
-          else out += ch;
-        }
-        return out;
-      }
-    },
-    {
-      label: '黑底方块',
-      // negative squared: 1F170-1F189
-      fn: s => {
-        let out = '';
-        for (const ch of s) {
-          const cp = ch.codePointAt(0);
-          if (cp >= 0x41 && cp <= 0x5A) out += String.fromCodePoint(0x1F170 + cp - 0x41);
-          else if (cp >= 0x61 && cp <= 0x7A) out += String.fromCodePoint(0x1F170 + cp - 0x61);
-          else out += ch;
-        }
-        return out;
-      }
-    },
-    {
-      label: '黑底圆',
-      // negative circled: 1F150-1F169 (A-Z)
-      fn: s => {
-        let out = '';
-        for (const ch of s) {
-          const cp = ch.codePointAt(0);
-          if (cp >= 0x41 && cp <= 0x5A) out += String.fromCodePoint(0x1F150 + cp - 0x41);
-          else if (cp >= 0x61 && cp <= 0x7A) out += String.fromCodePoint(0x1F150 + cp - 0x61);
-          else out += ch;
-        }
-        return out;
-      }
-    },
-    {
-      label: '中括号',
-      // 中文/英文一并包进【】
-      fn: s => s ? '【' + s + '】' : ''
-    },
-    {
-      label: '书名号',
-      fn: s => s ? '《' + s + '》' : ''
-    },
-    {
-      label: '六角括号',
-      fn: s => s ? '〖' + s + '〗' : ''
-    },
-    {
-      label: '直角引号',
-      fn: s => s ? '「' + s + '」' : ''
-    }
-  ];
-
-  // 特效
-  const UPSIDE_DOWN_MAP = {
-    'a':'ɐ','b':'q','c':'ɔ','d':'p','e':'ǝ','f':'ɟ','g':'ƃ','h':'ɥ',
-    'i':'ᴉ','j':'ɾ','k':'ʞ','l':'l','m':'ɯ','n':'u','o':'o','p':'d',
-    'q':'b','r':'ɹ','s':'s','t':'ʇ','u':'n','v':'ʌ','w':'ʍ','x':'x',
-    'y':'ʎ','z':'z',
-    'A':'∀','B':'ʞ','C':'Ɔ','D':'ᗡ','E':'Ǝ','F':'Ⅎ','G':'⅁','H':'H',
-    'I':'I','J':'ſ','K':'ʞ','L':'˥','M':'W','N':'N','O':'O','P':'Ԁ',
-    'Q':'Q','R':'ᴚ','S':'S','T':'⊥','U':'∩','V':'Λ','W':'M','X':'X',
-    'Y':'⅄','Z':'Z',
-    '0':'0','1':'Ɩ','2':'ᄅ','3':'Ɛ','4':'ㄣ','5':'ϛ','6':'9',
-    '7':'ㄥ','8':'8','9':'6',
-    '.':'˙',',':"'",'?':'¿','!':'¡',"'":',','"':',,',
-    '(':')',')':'(','[':']',']':'[','{':'}','}':'{','<':'>','>':'<',
-    '&':'⅋','_':'‾'
-  };
-
-  const STYLES_FX = [
-    {
-      label: '倒置',
-      // 翻转并反转字符串
-      fn: s => {
-        const arr = [...s].map(ch => UPSIDE_DOWN_MAP[ch] || ch);
-        return arr.reverse().join('');
-      }
-    },
-    {
-      label: '上标',
-      // 不全：缺 q
-      fn: s => mapByTable(s,
-        'ᴬᴮꟲᴰᴱꟳᴳᴴᴵᴶᴷᴸᴹᴺᴼᴾꟴᴿˢᵀᵁⱽᵂˣʸᶻ',
-        'ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖ𐞥ʳˢᵗᵘᵛʷˣʸᶻ',
-        '⁰¹²³⁴⁵⁶⁷⁸⁹'
-      )
-    },
-    {
-      label: '下标',
-      // Unicode 下标分布稀疏：大写没有；小写仅 a/e/h/i/j/k/l/m/n/o/p/r/s/t/u/v/x；数字 0-9 齐全
-      fn: s => {
-        const SUB_LOW = {
-          a:'ₐ', e:'ₑ', h:'ₕ', i:'ᵢ', j:'ⱼ', k:'ₖ', l:'ₗ', m:'ₘ',
-          n:'ₙ', o:'ₒ', p:'ₚ', r:'ᵣ', s:'ₛ', t:'ₜ', u:'ᵤ', v:'ᵥ', x:'ₓ'
-        };
-        const SUB_DIGIT = '₀₁₂₃₄₅₆₇₈₉';
-        let out = '';
-        for (const ch of s) {
-          if (SUB_LOW[ch]) out += SUB_LOW[ch];
-          else if (ch >= '0' && ch <= '9') out += SUB_DIGIT[ch.charCodeAt(0) - 0x30];
-          else out += ch;
-        }
-        return out;
-      }
-    },
-    {
-      label: '字间空格',
-      // 中英文之间插入空格，让排版更稀疏
-      fn: s => [...s].join(' ')
-    },
-    {
-      label: '下划线',
-      // 给每个字符加 combining low line (U+0332)
-      fn: s => [...s].map(ch => ch + '̲').join('')
-    },
-    {
-      label: '上划线',
-      // combining overline (U+0305)
-      fn: s => [...s].map(ch => ch + '̅').join('')
-    },
-    {
-      label: '删除线',
-      // combining long stroke overlay (U+0336)
-      fn: s => [...s].map(ch => ch + '̶').join('')
-    },
-    {
-      label: '波浪线',
-      // combining tilde (U+0303)
-      fn: s => [...s].map(ch => ch + '̃').join('')
-    },
-    {
-      label: '反转顺序',
-      // 字符顺序反转
-      fn: s => [...s].reverse().join('')
-    }
-  ];
-
   // ===== 渲染 =====
   function makeCard(label, text) {
     const card = document.createElement('div');
@@ -502,17 +280,11 @@ permalink: /toolbox/font-style/
     const placeholder = src ? '' : SAMPLE;
     const text = src || placeholder;
 
-    [
-      [$latin, STYLES_LATIN],
-      [$deco, STYLES_DECO],
-      [$fx, STYLES_FX]
-    ].forEach(([host, styles]) => {
-      host.innerHTML = '';
-      styles.forEach(style => {
-        let out = '';
-        try { out = style.fn(text); } catch (e) { out = text; }
-        host.appendChild(makeCard(style.label, out));
-      });
+    $latin.innerHTML = '';
+    STYLES_LATIN.forEach(style => {
+      let out = '';
+      try { out = style.fn(text); } catch (e) { out = text; }
+      $latin.appendChild(makeCard(style.label, out));
     });
 
     const n = [...src].length;
