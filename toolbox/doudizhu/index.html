@@ -602,6 +602,12 @@ permalink: /toolbox/doudizhu/
   .ddz-card.size-bottom .corner .rk { font-size: 11px; }
   .ddz-card.size-bottom .corner .su { font-size: 9px; }
   .ddz-card.size-bottom .pip { font-size: 19px; }
+  /* 底牌已被地主打出 — 灰化 + 透明，提示"这张已经走了" */
+  .ddz-card.size-bottom.is-played {
+    opacity: 0.32;
+    filter: grayscale(0.9);
+    transition: opacity 0.4s ease, filter 0.4s ease;
+  }
 
   /* ======== 经典 Joker：JOKER 文字 + 帽子图标，红 / 灰双色 ======== */
   .ddz-card.is-joker .pip {

@@ -23,6 +23,7 @@
     hands: [[], [], []],         // 索引 0=玩家, 1=右上 AI(下家), 2=左上 AI(上家)
     bottom: [],                   // 3 张底牌（揭示后并入地主手牌）
     bottomRevealed: false,
+    bottomPlayed: new Set(),      // 已被地主打出去的底牌 cid 集合（顶部那 3 张要灰掉）
     // 抢地主
     landlordIdx: -1,             // 最终地主
     landlordCandidate: -1,       // 当前抢到的候选地主
@@ -344,6 +345,7 @@
     state.hands = [[], [], []];
     state.bottom = [];
     state.bottomRevealed = false;
+    state.bottomPlayed = new Set();
     state.landlordIdx = -1;
     state.lastTrick = null;
     state.declared = false;
@@ -980,7 +982,9 @@
       return;
     }
     for (const c of sortHandDesc(state.bottom)) {
-      bottomPileEl.appendChild(buildCardEl(c, 'size-bottom'));
+      const el = buildCardEl(c, 'size-bottom');
+      if (state.bottomPlayed && state.bottomPlayed.has(c)) el.classList.add('is-played');
+      bottomPileEl.appendChild(el);
     }
   }
 
@@ -1088,6 +1092,7 @@
     state.hands = [[], [], []];
     state.bottom = [];
     state.bottomRevealed = false;
+    state.bottomPlayed = new Set();
     state.landlordIdx = -1;
     state.landlordCandidate = -1;
     state.bidActions = [];
@@ -1494,15 +1499,25 @@
     }, 900);   // 给玩家看清底牌 + 特殊加成提示
   }
 
-  // 我是地主时的"底牌插空"动画：
-  //   ① 算出合并后排序的手牌（20 张）；② 把每张原底牌的目标位置算出来；
-  //   ③ 渲染完整 20 张手牌（DOM 直接是终态），但 3 张新牌带一个"从底牌位飞过来"的 CSS 动画。
+  // 我是地主时的"底牌插空"动画（FLIP 方式，分两步更柔和）：
+  //   ① 先记录现有 17 张手牌的位置；
+  //   ② 把 3 张底牌合入手牌、重排成 20 张并渲染（DOM 即终态）；
+  //   ③ 让那 17 张老牌"从旧位置滑到新位置"——给底牌让位的微动画；
+  //   ④ 老牌挪到位后，3 张底牌依次从中央底牌位飞入预留的空位；
+  //   ⑤ 收尾后再把手牌计数从 17 改成 20。
   function animateBottomInsertIntoMyHand(bottomCards, onDone) {
     const handEl = document.getElementById('ddzHand');
     const pileEl = document.getElementById('ddzBottomPile');
     if (!handEl) { onDone && onDone(); return; }
 
-    // 1. 合并状态 + 更新已见 / 感知 / 快照（先于渲染，否则 renderHand 不会渲染 20 张）
+    // ① 快照旧 17 张的位置（cid → DOMRect）
+    const oldRects = new Map();
+    handEl.querySelectorAll('.ddz-card').forEach(el => {
+      const cid = Number(el.dataset.cid);
+      if (!Number.isNaN(cid)) oldRects.set(cid, el.getBoundingClientRect());
+    });
+
+    // ② 合并状态 + 更新已见 / 感知 / 快照（先于渲染，否则 renderHand 不会渲染 20 张）
     state.hands[0] = state.hands[0].concat(bottomCards);
     for (const c of bottomCards) state.seen[E.cardWeight(c)]++;
     aiPerceiveBottom();
@@ -1511,18 +1526,40 @@
       state.hands[1].slice(),
       state.hands[2].slice(),
     ];
-    renderHandCounts();
     renderRoles();
+    // 注意：renderHandCounts 留到收尾再调，让 17 → 20 跟动画收齐
 
-    // 2. 渲染完整 20 张（已排序）
+    // 渲染完整 20 张（已排序）
     renderHand();
 
-    // 3. 找出 3 张新牌对应的 DOM
+    // 区分新底牌 vs 老 17 张的 DOM
     const bottomSet = new Set(bottomCards);
     const cardEls = Array.from(handEl.querySelectorAll('.ddz-card'));
+    const existingEls = cardEls.filter(el => !bottomSet.has(Number(el.dataset.cid)));
     const incomingEls = cardEls.filter(el => bottomSet.has(Number(el.dataset.cid)));
 
-    // 4. 计算每张新牌的飞行起点（底牌位中心）→ 终点 delta
+    // ③ FLIP：让 17 张老牌"先回到旧位置再滑到新位置"
+    const SHIFT_MS = 320;
+    existingEls.forEach(el => {
+      const cid = Number(el.dataset.cid);
+      const oldR = oldRects.get(cid);
+      if (!oldR) return;
+      const newR = el.getBoundingClientRect();
+      const dx = oldR.left - newR.left;
+      const dy = oldR.top - newR.top;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;   // 没动到 → 不浪费 transition
+      el.style.transition = 'none';
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+    });
+    // 强制回流一次，确保起点 transform 生效
+    void handEl.offsetWidth;
+    existingEls.forEach(el => {
+      if (!el.style.transform) return;
+      el.style.transition = `transform ${SHIFT_MS}ms cubic-bezier(0.22,0.8,0.3,1)`;
+      el.style.transform = '';
+    });
+
+    // ④ 3 张底牌从中央底牌位飞入预留空位；等老牌挪好后再开始
     const pileRect = pileEl ? pileEl.getBoundingClientRect() : null;
     const pileCx = pileRect ? (pileRect.left + pileRect.width / 2) : (window.innerWidth / 2);
     const pileCy = pileRect ? (pileRect.top + pileRect.height / 2) : (window.innerHeight / 2);
@@ -1535,19 +1572,25 @@
       const dy = pileCy - cy;
       el.style.setProperty('--dx', dx + 'px');
       el.style.setProperty('--dy', dy + 'px');
-      el.style.animationDelay = (i * 110) + 'ms';
+      // 等老牌挪完再插入，依次错开
+      el.style.animationDelay = (SHIFT_MS + i * 110) + 'ms';
       el.classList.add('ddz-card-incoming');
     });
 
-    // 5. 动画 0.55s + 110ms × 2 stagger = ~0.77s
-    const TOTAL = 770;
+    // ⑤ 收尾：清掉 transition / transform / 动画类，再 17 → 20
+    const TOTAL = SHIFT_MS + 770;
     setTimeout(() => {
+      existingEls.forEach(el => {
+        el.style.transition = '';
+        el.style.transform = '';
+      });
       incomingEls.forEach(el => {
         el.classList.remove('ddz-card-incoming');
         el.style.removeProperty('--dx');
         el.style.removeProperty('--dy');
         el.style.animationDelay = '';
       });
+      renderHandCounts();
       onDone && onDone();
     }, TOTAL);
   }
@@ -1895,6 +1938,18 @@
     if (seat === 0) renderHand();
     renderHandCounts();
     renderMultiplier();
+    // 地主出的若包含底牌 → 顶部对应那张灰掉
+    if (seat === state.landlordIdx && state.bottom && state.bottom.length) {
+      const bottomSet = new Set(state.bottom);
+      let touched = false;
+      for (const c of pattern.cards) {
+        if (bottomSet.has(c) && !state.bottomPlayed.has(c)) {
+          state.bottomPlayed.add(c);
+          touched = true;
+        }
+      }
+      if (touched) renderBottomPile();
+    }
     if (ddzSave) ddzSave.tick();
     if (state.hands[seat].length === 0) {
       setTimeout(() => finishGame(seat), 600);
@@ -3508,6 +3563,7 @@
       hands: state.hands.map(h => h.slice()),
       bottom: state.bottom.slice(),
       bottomRevealed: state.bottomRevealed,
+      bottomPlayed: Array.from(state.bottomPlayed || []),
       landlordIdx: state.landlordIdx,
       landlordCandidate: state.landlordCandidate,
       bidStartSeat: state.bidStartSeat,
@@ -3541,6 +3597,7 @@
       hands: saved.hands || [[],[],[]],
       bottom: saved.bottom || [],
       bottomRevealed: !!saved.bottomRevealed,
+      bottomPlayed: new Set(saved.bottomPlayed || []),
       landlordIdx: typeof saved.landlordIdx === 'number' ? saved.landlordIdx : -1,
       landlordCandidate: typeof saved.landlordCandidate === 'number' ? saved.landlordCandidate : -1,
       bidStartSeat: saved.bidStartSeat || 0,
