@@ -101,9 +101,10 @@ permalink: /toolbox/guandan/
 
   /* 三家：上(partner) / 左(opp 3) / 右(opp 1) */
   .gd-seats-top { display: flex; justify-content: center; margin-bottom: 0.4rem; }
+  /* 中间一行高度写死：预留三家出牌区的纵向空间，避免开局 → 出牌后整张表延展 */
   .gd-seats-mid {
     display: flex; justify-content: space-between; align-items: stretch;
-    gap: 0.5rem; min-height: 150px;
+    gap: 0.5rem; height: 170px;
   }
   .gd-side { display: flex; flex-direction: column; align-items: center; width: 92px; flex: 0 0 auto; }
   .gd-center {
@@ -161,12 +162,12 @@ permalink: /toolbox/guandan/
   .gd-rank-badge.r3 { background: #b0784a; }
   .gd-rank-badge.r4 { background: #8b2e2e; }
 
-  /* 出牌区：上一行 combo 标签，下一行牌 mini 行 */
+  /* 出牌区：height 写死，避免开局空 → 有牌时整张表向下延展。
+     宽方向若多于 5 张的炸弹会超出，但概率低，宽侧 overflow:hidden 兜底。 */
   .gd-played {
-    min-height: 56px; display: flex; flex-direction: column;
+    height: 60px; display: flex; flex-direction: column;
     justify-content: center; align-items: center;
-    gap: 2px;
-    overflow: visible;   /* 让 combo 标签和大字"不要"不被裁剪 */
+    overflow: hidden;
   }
   .gd-played-row {
     display: flex; flex-wrap: nowrap;
@@ -174,11 +175,7 @@ permalink: /toolbox/guandan/
   }
   .gd-played-row .gd-card.size-mini { margin-left: calc(-1 * var(--gd-card-mini-overlap)); }
   .gd-played-row .gd-card.size-mini:first-child { margin-left: 0; }
-  .gd-trick-info {
-    font-size: 0.74rem; color: var(--gd-text-on-felt-mute);
-    min-height: 1.1em; text-align: center;
-  }
-  .gd-side .gd-played { min-height: 40px; }
+  .gd-side .gd-played { height: 60px; }
   .gd-side .gd-played-row .gd-card.size-mini { margin-left: -22px; }
   .gd-side .gd-played-row .gd-card.size-mini:first-child { margin-left: 0; }
 
@@ -385,14 +382,6 @@ permalink: /toolbox/guandan/
     box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55);
   }
 
-  /* 提示气泡：当前选牌是否成型 */
-  .gd-sel-hint {
-    text-align: center; font-size: 0.8rem; min-height: 1.2em;
-    color: var(--color-muted); margin-top: 0.2rem;
-  }
-  .gd-sel-hint.ok { color: var(--gd-team-you); }
-  .gd-sel-hint.bad { color: var(--gd-suit-red); }
-
   /* ======== 浮层（贡牌 / 回合结算 / 整局结束） ======== */
   .gd-overlay {
     position: absolute; inset: 0; z-index: 12;
@@ -499,26 +488,6 @@ permalink: /toolbox/guandan/
     opacity: 0; transition: opacity 0.25s;
   }
   .gd-toast.show { opacity: 1; }
-
-  /* ======== 出牌区上方的 combo 类型小标签（"三带二 / 顺子 / 钢板"等）========
-     仿欢乐斗地主"该不该炸点我"上方的牌型提示，但我们只展示"是什么牌型"，
-     让对局更易读，不卖卡。 */
-  .gd-combo-label {
-    font-size: 0.74rem;
-    color: var(--gd-text-on-felt);
-    background: rgba(255,255,255,0.62);
-    border: 1px solid var(--gd-frame-2);
-    padding: 0.04rem 0.45rem;
-    border-radius: 999px;
-    font-family: var(--font-body);
-    margin-bottom: 2px;
-    align-self: center;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-  }
-  .gd-combo-label.bomb { background: rgba(200,40,40,0.10); border-color: rgba(200,40,40,0.5); color: #8b2e2e; }
-  .gd-combo-label.joker-bomb { background: rgba(245,178,80,0.18); border-color: rgba(201,162,39,0.6); color: #a87a2a; }
 
   /* ======== 大字"不要"浮窗（替代以前的虚线 tag）========
      仿欢乐斗地主：玩家弃出时不画小角标，而是在出牌位置浮一行大字，
@@ -712,10 +681,9 @@ permalink: /toolbox/guandan/
         <div class="gd-played" id="gdPlay3"></div>
       </div>
 
-      <!-- 中央出牌区 -->
+      <!-- 中央出牌区：上=对家最近一手，下=我最近一手；中间不再放文字提示 -->
       <div class="gd-center">
         <div class="gd-played" id="gdPlay2"></div>
-        <div class="gd-trick-info" id="gdTrickInfo">等待开局</div>
         <div class="gd-played" id="gdPlay0Center"></div>
       </div>
 
@@ -747,7 +715,6 @@ permalink: /toolbox/guandan/
       </div>
     </div>
 
-    <div class="gd-sel-hint" id="gdSelHint"></div>
     <div class="gd-hand" id="gdHand"></div>
 
     <div class="gd-actions" id="gdActions">

@@ -757,11 +757,10 @@
     table: $('gdTable'),
     levelYou: $('gdLevelYou'), levelOpp: $('gdLevelOpp'),
     actYou: $('gdActYou'), actOpp: $('gdActOpp'),
-    hand: $('gdHand'), selHint: $('gdSelHint'),
+    hand: $('gdHand'),
     playBtn: $('gdPlayBtn'), passBtn: $('gdPassBtn'),
     hintBtn: $('gdHintBtn'), sortBtn: $('gdSortBtn'),
     arrangeBtn: $('gdArrangeBtn'),
-    trickInfo: $('gdTrickInfo'),
     pgo: $('gdPgo'), pgoStart: $('gdPgoStart'),
     pgoDiff: $('gdPgoDiff'), pgoStats: $('gdPgoStats'), hs: $('gdHs'),
     tribOverlay: $('gdTributeOverlay'), tribTitle: $('gdTribTitle'),
@@ -976,13 +975,6 @@
       big.className = 'gd-pass-big'; big.textContent = '不要';
       slot.appendChild(big);
     } else if (lp && lp.cards) {
-      // 顶部 combo 类型标签（"三带二 / 顺子 / 同花顺 / 4 张炸弹"）让新手好读牌
-      const label = document.createElement('span');
-      const isJB = lp.type === T.JOKER_BOMB;
-      const isBomb = lp.type === T.BOMB || lp.type === T.STR_FLUSH || isJB;
-      label.className = 'gd-combo-label' + (isJB ? ' joker-bomb' : (isBomb ? ' bomb' : ''));
-      label.textContent = comboName(lp);
-      slot.appendChild(label);
       const row = document.createElement('div');
       row.className = 'gd-played-row';
       const sorted = lp.cards.slice().sort((a, b) => singleWeight(b, level) - singleWeight(a, level));
@@ -1199,26 +1191,9 @@
     return [...state.selected].filter(c => state.hands[0].includes(c));
   }
 
-  function updateSelHint() {
-    const sel = selectedCards();
-    if (!sel.length) { els.selHint.textContent = ''; els.selHint.className = 'gd-sel-hint'; return; }
-    const level = currentLevelLabel();
-    const cb = classify(sel, level);
-    if (!cb) {
-      els.selHint.textContent = '当前选择不成牌型';
-      els.selHint.className = 'gd-sel-hint bad';
-      return;
-    }
-    const name = comboName(cb);
-    const prev = state.trick && state.trick.best;
-    if (prev && state.trick.bestSeat !== 0 && !beats(cb, prev)) {
-      els.selHint.textContent = name + ' · 压不过上家';
-      els.selHint.className = 'gd-sel-hint bad';
-    } else {
-      els.selHint.textContent = name + ' ✓';
-      els.selHint.className = 'gd-sel-hint ok';
-    }
-  }
+  // 牌型提示已按用户反馈移除——出牌按钮 disabled 状态足以告诉用户能不能出。
+  // 保留这个空函数以兼容仍在调用它的各个分支，避免在五六处都得删一遍。
+  function updateSelHint() { /* no-op */ }
 
   function comboName(cb) {
     const map = {
@@ -1351,7 +1326,6 @@
     state.turn = leader;
     state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
     renderAll();
-    els.trickInfo.textContent = (leader === 0 ? '你' : seatName(leader)) + ' 先出';
     if (leader !== 0) scheduleAI();
     else { updateActions(); }
   }
@@ -1378,7 +1352,6 @@
       for (const c of state.hands[s]) if (isJoker(c) && jokerKind(c) === 'big') bigJokers++;
     if (bigJokers >= 2) {
       toast('对方握双大王，抗贡成功，免进贡');
-      els.trickInfo.textContent = '抗贡 — 直接开打';
       beginPlay(leader);
       return;
     }
@@ -1400,8 +1373,7 @@
       moveCard(receiver, giver, back);
       const desc = `${seatName(giver)} 进贡 ${cardText(tributeCard)} 给 ${seatName(receiver)}，` +
         `${seatName(receiver)} 还贡 ${cardText(back)}`;
-      toast('进贡完成');
-      els.trickInfo.textContent = desc;
+      toast(desc);
       // 进贡后由“接贡方”里末游先出（规则简化为：进贡牌的接收者那一队中、原末游先出）
       finishTribute(leader);
     }
@@ -1577,18 +1549,10 @@
     state.trick.lead = nx;
     renderAll();
     if (nx === 0 && !state.out.includes(0)) {
-      els.trickInfo.textContent = '轮到你' + describeToBeat();
       updateActions();
     } else {
       scheduleAI();
     }
-  }
-
-  function describeToBeat() {
-    const t = state.trick;
-    if (!t.best) return '（自由出牌）';
-    if (t.bestSeat === 0) return '（你领出新一圈）';
-    return `（需压过 ${seatName(t.bestSeat)} 的 ${comboName(t.best)}）`;
   }
 
   function nextAlive(seat) {
@@ -1606,7 +1570,6 @@
     state.turn = leader;
     state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
     renderAll();
-    els.trickInfo.textContent = (leader === 0 ? '你' : seatName(leader)) + ' 领出新一圈';
     if (leader === 0 && !state.out.includes(0)) updateActions();
     else scheduleAI();
   }
