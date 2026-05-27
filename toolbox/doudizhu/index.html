@@ -458,9 +458,9 @@ permalink: /toolbox/doudizhu/
   .ddz-tops-avatars {
     display: flex; justify-content: space-between; align-items: flex-start;
     gap: 1rem;
-    /* 左右各往内缩一截——两个 AI 头像不再贴桌沿，跟"我"在左下的位置一起
-       把视觉重心收拢到中央底牌区 */
-    padding-inline: 3.5rem;
+    /* 左右各往内缩一大截——两个 AI 头像不再贴桌沿，跟"我"在左下的位置一起
+       把视觉重心收拢到中央底牌区；同时给结算时飘金币 / 扣分 chip 留位 */
+    padding-inline: 7rem;
   }
   /* 第二行：上家出牌靠左半（贴左头像下方）、下家出牌靠右半（贴右头像下方），
      各占约一半宽 → 比原来塞在 ~78px 窄座位宽得多，长牌型也能一行铺完不被剪。
@@ -994,16 +994,24 @@ permalink: /toolbox/doudizhu/
     border: 1px solid var(--ddz-frame-2);
     color: var(--ddz-text-on-felt);
   }
-  /* 叫/抢/不叫/不抢 决策 tag — "叫/抢" 暖金、"不叫/不抢" 灰 */
+  /* 叫/抢/不叫/不抢 决策 tag — "叫/抢" 暖金、"不叫/不抢" 灰；
+     比通用 bid-tag 字号大，让"谁叫了/谁抢了"一眼可见 */
+  .ddz-played .bid-tag.rob,
+  .ddz-played .bid-tag.pass {
+    padding: 0.42rem 1.1rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
   .ddz-played .bid-tag.rob {
     background: rgba(245,209,66,0.28);
-    border: 1px solid rgba(201,169,110,0.75);
+    border: 1.5px solid rgba(201,169,110,0.75);
     color: #a87a2a;
-    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(201,169,110,0.32);
   }
   .ddz-played .bid-tag.pass {
     background: rgba(141,110,55,0.06);
-    border: 1px solid var(--ddz-frame-2);
+    border: 1.5px solid var(--ddz-frame-2);
     color: var(--ddz-text-on-felt-mute);
   }
   .ddz-played .think-tag::after {
@@ -1147,7 +1155,7 @@ permalink: /toolbox/doudizhu/
     display: flex; flex-direction: column; align-items: center;
     gap: 0.25rem;
     position: absolute;
-    left: 3.5rem;
+    left: 7rem;
     bottom: 1.2rem;
     z-index: 2;
   }
@@ -1196,8 +1204,15 @@ permalink: /toolbox/doudizhu/
   .ddz-actions {
     display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: center;
     align-items: center;
-    margin-top: 0.6rem;
+    margin-top: 0.4rem;
     min-height: 2.5rem;     /* 占位高度：hidden 时也占这么多，避免手牌随之上下跳 */
+    position: relative; z-index: 1;
+  }
+  /* 自己回合的时钟独占一行、居中固定；hidden 时也占位，按钮可见性变化不挤动布局 */
+  .ddz-self-clock-row {
+    display: flex; justify-content: center; align-items: center;
+    min-height: 2.2rem;
+    margin-top: 0.35rem;
     position: relative; z-index: 1;
   }
   .ddz-actions .ddz-btn {
@@ -2218,13 +2233,9 @@ permalink: /toolbox/doudizhu/
          - 明牌按钮：地主未明牌且第一轮做庄时才显示（占"不出"的位置，毕竟第一轮没法不出）
          - 不出按钮：上家不是自己时才显示（自己做庄时不可能"不出"）
          - 提示/出牌：轮到自己时正常显示 -->
-    <div class="ddz-actions" id="ddzPlayActions">
-      <button class="ddz-btn declare" id="ddzDealDeclareBtn" type="button" hidden>明牌 ×5</button>
-      <button class="ddz-btn declare" id="ddzDeclareBtn" type="button" hidden>明牌 ×2</button>
-      <button class="ddz-btn" id="ddzPassBtn" type="button" hidden>不出</button>
-      <button class="ddz-btn" id="ddzHintBtn" type="button" hidden>提示</button>
-      <button class="ddz-btn primary" id="ddzPlayBtn" type="button" hidden>出牌</button>
-      <!-- 自己的回合倒计时挂在动作行上（出牌阶段），跟"出牌/提示/不出"同一行 -->
+    <!-- 自己的回合倒计时独占一行、居中固定 — 跟具体哪些按钮在显示无关，
+         不出/提示/出牌的任意组合都不会改变时钟的位置 -->
+    <div class="ddz-self-clock-row">
       <span class="ddz-self-clock" id="ddzSelfClock" hidden>
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
           <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
@@ -2233,6 +2244,14 @@ permalink: /toolbox/doudizhu/
         </svg>
         <span class="ddz-self-clock-num">25</span>s
       </span>
+    </div>
+
+    <div class="ddz-actions" id="ddzPlayActions">
+      <button class="ddz-btn declare" id="ddzDealDeclareBtn" type="button" hidden>明牌 ×5</button>
+      <button class="ddz-btn declare" id="ddzDeclareBtn" type="button" hidden>明牌 ×2</button>
+      <button class="ddz-btn" id="ddzPassBtn" type="button" hidden>不出</button>
+      <button class="ddz-btn" id="ddzHintBtn" type="button" hidden>提示</button>
+      <button class="ddz-btn primary" id="ddzPlayBtn" type="button" hidden>出牌</button>
     </div>
 
     <div class="ddz-hand" id="ddzHand"></div>

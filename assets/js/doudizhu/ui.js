@@ -1978,6 +1978,9 @@
     refreshNoPlayState();
     const seat = state.turnIdx;
     if (seat === 0 && !state.autopilot) {
+      // 又轮到我了——清掉上一轮我留下的"不出"/出过的牌；决策位让位给新一轮
+      const myPlayed = $('ddzPlayed0');
+      if (myPlayed) myPlayed.innerHTML = '';
       playActions.hidden = false;
       // 出牌/提示 在 PLAYING + 我轮才露；不出/明牌 ×2 / 明牌 ×N 由各自逻辑控制
       $('ddzPlayBtn').hidden = false;
