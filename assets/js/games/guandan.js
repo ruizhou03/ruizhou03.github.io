@@ -1214,17 +1214,22 @@
     if (pState.lpTimer) clearTimeout(pState.lpTimer);
 
     if (pState.mode === 'PENDING') {
-      // 没动过 → 当作点击：切换该卡选中
+      // 没动过 → 当作点击：切换该卡选中。点完跑一次轻量 smartSnap（仅"加"，
+      // 不去重也不删，避免用户刚点的牌被擅自抹掉）。
       if (pState.startCid != null) {
         if (state.selected.has(pState.startCid)) state.selected.delete(pState.startCid);
         else state.selected.add(pState.startCid);
+        smartSnap(false);
         renderHand();
         updateSelHint();
         updateActions();
       }
     } else if (pState.mode === 'MULTI_SELECT') {
-      // 矩形框选完成：抹掉浮层；selected 集本身已经在 applyRectSelection 里更新好
+      // 矩形框选完成：抹掉浮层；selected 集本身已经在 applyRectSelection 里更新好。
+      // 矩形是"模糊"选 → 允许去重 / 删多余，把用户的意图 snap 到最近的复合牌型。
       removeMarquee();
+      smartSnap(true);
+      renderHand();
       updateSelHint();
       updateActions();
     } else if (pState.mode === 'COL_DRAG') {
@@ -1303,10 +1308,93 @@
     maybeAutoSelectForTurn();
   }
 
-  // 智能选牌已按用户反馈完全关闭——任何时候都不替用户选牌。
-  // 留这个空函数避免改动它五处调用点。原"跟牌时挑最经济响应"的逻辑挪到
-  // "提示" 按钮 (playerHint)，要看建议玩家自己点。
+  // "轮到我"的开局自动选牌已按用户反馈完全关闭——开局不替用户选。
+  // 真正的智能选牌挪到 smartSnap()，仅在用户主动做选择动作的瞬间触发。
   function maybeAutoSelectForTurn() { /* no-op */ }
+
+  // 智能补齐 / 抹掉多余：仅在用户刚做完一次"选择动作"的瞬间运行。
+  // 用户例子：
+  //   ① 选了 44556（5 张）→ 自动加 1 张 6 → 445566（三连对）
+  //   ② 拖框选到 233456（多了一张 3）→ 去重得 23456（顺子）
+  // 只补齐"复合牌型"——单/对/三这种一眼能看清的不去打扰；只动 ±1~2 张。
+  // allowTrim=false: 仅尝试加 1/加 2（点单张时不擅自移除用户刚点中的牌）；
+  // allowTrim=true : 同时允许去重 / 减 1（矩形框选完用户期望 marquee 自动清理）。
+  function smartSnap(allowTrim) {
+    const sel = selectedCards();
+    if (sel.length < 2) return false;
+    const level = currentLevelLabel();
+    const already = classify(sel, level);
+    // 已经是合法牌型 → 不动；但若是 PAIR_STR 等复合可压可让；以"已合法"为优先
+    if (already) return false;
+
+    // 排除"单/对/三/炸"这种用户自能识别的——仅在复合牌型上做补齐
+    const isCompound = (cb) => cb && cb.type !== T.SINGLE && cb.type !== T.PAIR
+      && cb.type !== T.TRIPLE && cb.type !== T.BOMB && cb.type !== T.JOKER_BOMB;
+
+    const hand = state.hands[0];
+    const selSet = new Set(sel);
+    const remaining = hand.filter(c => !selSet.has(c));
+
+    // ① 加 1 张：覆盖 "44556 → 445566 / 23455 → 22345_顺子" 等场景
+    for (const c of remaining) {
+      const test = sel.concat([c]);
+      const cb = classify(test, level);
+      if (isCompound(cb)) {
+        state.selected.add(c);
+        return true;
+      }
+    }
+
+    if (allowTrim) {
+      // ② 去重为顺子：distinct ranks 形成 5 连即可
+      const byRank = new Map();
+      for (const c of sel) {
+        if (isJoker(c) || isWild(c, level)) continue;
+        const r = cardRankIdx(c);
+        if (!byRank.has(r)) byRank.set(r, []);
+        byRank.get(r).push(c);
+      }
+      const distinctRanks = [...byRank.keys()].sort((a, b) => a - b);
+      for (let i = 0; i + 4 < distinctRanks.length; i++) {
+        let ok = true;
+        for (let j = 0; j < 4; j++) {
+          if (distinctRanks[i + j + 1] !== distinctRanks[i + j] + 1) { ok = false; break; }
+        }
+        if (!ok) continue;
+        const candidate = [];
+        for (let k = 0; k < 5; k++) candidate.push(byRank.get(distinctRanks[i + k])[0]);
+        const cb = classify(candidate, level);
+        if (cb && cb.type === T.STRAIGHT) {
+          state.selected.clear();
+          for (const c of candidate) state.selected.add(c);
+          return true;
+        }
+      }
+      // ③ 减 1 张：兜底
+      for (let i = 0; i < sel.length; i++) {
+        const trimmed = sel.slice(0, i).concat(sel.slice(i + 1));
+        const cb = classify(trimmed, level);
+        if (isCompound(cb)) {
+          state.selected.delete(sel[i]);
+          return true;
+        }
+      }
+    }
+
+    // ④ 加 2 张：覆盖 4456 → 444566（三带二）等更欠的场景，需要更多遍历
+    for (let i = 0; i < remaining.length; i++) {
+      for (let j = i + 1; j < remaining.length; j++) {
+        const test = sel.concat([remaining[i], remaining[j]]);
+        const cb = classify(test, level);
+        if (isCompound(cb)) {
+          state.selected.add(remaining[i]);
+          state.selected.add(remaining[j]);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 
   // ===========================================================
   //  回合流程
