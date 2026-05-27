@@ -1921,6 +1921,11 @@ permalink: /toolbox/doudizhu/
     background: var(--color-bg);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    /* 让 header + 牌桌在竖向上居中铺开，剩余空白均分到上下；
+       safe center 兜底——视口不够高时回退到 flex-start，避免内容被切掉头部 */
+    display: flex;
+    flex-direction: column;
+    justify-content: safe center;
     max-width: none;
   }
   body.ddz-game-fullscreen .ddz-wrap header { margin-bottom: 0.4rem; }
