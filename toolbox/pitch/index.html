@@ -711,12 +711,30 @@ permalink: /toolbox/pitch/
       console.warn('mic error', err);
       let msg = '麦克风启动失败';
       if (err && err.name === 'NotAllowedError') {
-        msg = '麦克风权限被拒绝。点地址栏的麦克风图标可以重新允许。';
+        msg = '麦克风权限被拒绝。' + getPermissionRecoveryHint();
       } else if (err && err.name === 'NotFoundError') {
         msg = '没找到麦克风设备。';
+      } else if (err && err.name === 'NotReadableError') {
+        msg = '麦克风被其他应用占用了，关掉其他用麦的程序再试。';
+      } else if (err && err.name === 'SecurityError') {
+        msg = '需要 HTTPS 才能用麦克风。试试 https:// 链接。';
       }
       setLiveStatus(msg);
     }
+  }
+
+  // 平台相关的「重新允许麦克风权限」操作指引（iOS Safari 地址栏没麦图标，必须去系统设置）
+  function getPermissionRecoveryHint() {
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    const isAndroid = /Android/.test(ua);
+    if (isIOS) {
+      return 'iOS 怎么重开：① 设置 → Safari → 相机和麦克风 → 允许；如果还不行 ② 设置 → 隐私与安全性 → 麦克风 → 把 Safari 打开。改完回这页面刷新一下。';
+    }
+    if (isAndroid) {
+      return 'Android Chrome 怎么重开：点地址栏左侧 🔒 → 站点设置 → 麦克风 → 允许；或系统设置 → 应用 → Chrome → 权限 → 麦克风 → 允许。改完刷新此页。';
+    }
+    return '点地址栏左侧 🔒 / ⓘ 图标 → 网站设置 → 麦克风 → 允许。改完刷新此页。';
   }
 
   function stopLive() {
