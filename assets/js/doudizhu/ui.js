@@ -1558,9 +1558,31 @@
     return { bonus, reasons };
   }
 
+  // 把当前 bottom-pile 的 3 张背面，依次（错开 220ms）"缩成边"再换成
+  // 正面"扩回来"，形成翻牌效果。必须在 state.bottom 已经定下来之后调用。
+  function animateBottomFlip() {
+    const backs = Array.from(bottomPileEl.querySelectorAll('.ddz-card-back'));
+    if (backs.length === 0) return;     // 没背面（已经翻过或被 renderBottomPile 覆盖了）
+    const cards = sortHandDesc(state.bottom);
+    backs.forEach((back, i) => {
+      setTimeout(() => {
+        back.classList.add('flipping-out');
+        setTimeout(() => {
+          if (!cards[i]) return;
+          const face = buildCardEl(cards[i], 'size-bottom');
+          face.classList.add('flipping-in');
+          if (state.bottomPlayed && state.bottomPlayed.has(cards[i])) face.classList.add('is-played');
+          back.replaceWith(face);
+        }, 220);
+      }, i * 220);
+    });
+  }
+
   function revealBottom() {
     state.bottomRevealed = true;
-    renderBottomPile();
+    // 注意：不要直接 renderBottomPile —— 那会瞬间把 3 张背面换成正面，
+    // 翻牌动画就没了。让 animateBottomFlip 依次处理 3 张背面。
+    animateBottomFlip();
 
     // Bug 8: 底牌特殊情形加倍 — 含王 / 双王 / 三同 / 三连
     const bonusInfo = detectBottomBonus(state.bottom);
@@ -1570,6 +1592,8 @@
       renderMultiplier();
     }
 
+    // 原来 900ms。翻牌总耗时：3 张 × 220ms stagger + 220ms 单张时长 ≈ 880ms
+    // → 改成 1500ms 给玩家完整看到翻牌 + 加成提示
     setTimeout(() => {
       const newBottom = state.bottom.slice();
       const landlordSeat = state.landlordIdx;
@@ -1604,7 +1628,7 @@
           enterDoubling();
         }, 700);
       }
-    }, 900);   // 给玩家看清底牌 + 特殊加成提示
+    }, 1500);   // 翻牌动画 ~880ms + 玩家看清底牌 / 特殊加成提示的余量
   }
 
   // 我是地主时的"底牌插空"动画（FLIP 方式，分两步更柔和）：
@@ -1774,6 +1798,10 @@
     function tick() {
       const left = Math.max(0, doubleEndAt - Date.now());
       const s = Math.ceil(left / 1000);
+      // 主显示位：挂在"我"这格右上角的 .ddz-double-cell-cd
+      const inCell = document.querySelector('.ddz-double-cell-cd .num');
+      if (inCell) inCell.textContent = String(s);
+      // 兼容：旧的角标也同步（CSS 已隐，万一布局没刷新到位也别留陈旧数字）
       const cb = document.getElementById('ddzDoubleCountdown');
       if (cb) cb.textContent = s + 's';
       if (left <= 0) {
@@ -1843,8 +1871,9 @@
   function renderDoublePanelLayout({ decided, choice, onChoose }) {
     bidTitle.innerHTML = '';
     bidButtonsEl.innerHTML = '';
+    // 加倍阶段不再用旧的右上角倒计时——已挪进"我"这格的 .ddz-double-cell-cd
     const cdEl = document.getElementById('ddzDoubleCountdown');
-    if (cdEl) cdEl.hidden = false;
+    if (cdEl) cdEl.hidden = true;
 
     const grid = document.createElement('div');
     grid.className = 'ddz-double-grid';
@@ -1862,6 +1891,21 @@
       who.className = 'who';
       who.textContent = isMe ? '我' : 'AI';
       cell.appendChild(who);
+
+      // "我"这格：右上角挂倒计时——整个加倍阶段始终可见（哪怕我已经决定，
+      // 还有 AI 在思考时也得看着时钟）
+      if (isMe) {
+        const cd = document.createElement('span');
+        cd.className = 'ddz-double-cell-cd';
+        cd.innerHTML =
+          '<svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true">' +
+            '<circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/>' +
+            '<path d="M12 13 V8 M12 13 L15.4 14.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>' +
+            '<path d="M9.5 3.5 H14.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' +
+          '</svg>' +
+          '<span class="num">5</span>s';
+        cell.appendChild(cd);
+      }
 
       if (isMe && !isDecided) {
         // 中间未决：两个堆叠按钮

@@ -611,6 +611,22 @@ permalink: /toolbox/doudizhu/
     filter: grayscale(0.9);
     transition: opacity 0.4s ease, filter 0.4s ease;
   }
+  /* 底牌揭晓翻牌动画：背面横向缩到 0（像名片翻边）→ 替换成正面再扩回 1 */
+  @keyframes ddz-flip-shrink {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0.02); }
+  }
+  @keyframes ddz-flip-expand {
+    from { transform: scaleX(0.02); }
+    to   { transform: scaleX(1); }
+  }
+  .ddz-card-back.flipping-out {
+    animation: ddz-flip-shrink 0.22s ease-in forwards;
+  }
+  .ddz-card.size-bottom.flipping-in {
+    animation: ddz-flip-expand 0.22s ease-out forwards;
+    transform-origin: center;
+  }
 
   /* ======== 经典 Joker：JOKER 文字 + 帽子图标，红 / 灰双色 ======== */
   .ddz-card.is-joker .pip {
@@ -1504,6 +1520,29 @@ permalink: /toolbox/doudizhu/
     animation: ddz-dots 1.2s steps(4, end) infinite;
     width: 1em; text-align: left; margin-left: 2px;
   }
+  /* 加倍阶段的倒计时——挂在"我"这格的右上角，跟回合时钟同款配色 */
+  .ddz-double-cell .ddz-double-cell-cd {
+    position: absolute;
+    top: 0.3rem; right: 0.4rem;
+    display: inline-flex; align-items: center; gap: 0.28rem;
+    padding: 0.18rem 0.45rem;
+    border-radius: 999px;
+    background: var(--ddz-card-bg);
+    border: 1.5px solid var(--ddz-accent);
+    color: var(--ddz-suit-black);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.74rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    box-shadow: 0 1px 3px rgba(20,37,63,0.18);
+    pointer-events: none;
+  }
+  .ddz-double-cell .ddz-double-cell-cd svg { color: var(--ddz-accent); flex-shrink: 0; }
+  .ddz-double-cell .ddz-double-cell-cd .num {
+    display: inline-block; min-width: 1ch; text-align: right;
+  }
+  .ddz-double-cell { position: relative; }   /* 给上面的 absolute 倒计时一个定位上下文 */
   /* 我（中间）这一列在未决时是两个堆叠按钮 */
   .ddz-double-cell.me-pending {
     background: linear-gradient(180deg, rgba(255,253,245,0.98) 0%, rgba(245,239,224,0.95) 100%);
