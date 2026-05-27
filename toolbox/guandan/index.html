@@ -110,11 +110,20 @@ permalink: /toolbox/guandan/
 
   /* 三家：上(partner) / 左(opp 3) / 右(opp 1) */
   .gd-seats-top { display: flex; justify-content: center; margin-bottom: 0.25rem; }
-  /* 中间一行高度写死：预留三家出牌区的纵向空间，避免开局 → 出牌后整张表延展 */
+  /* 中间一行高度写死：预留三家出牌区的纵向空间，避免开局 → 出牌后整张表延展。
+     bump 到 200px：mid 行三家有更多呼吸；同时把"我的出牌区"挪去 mid 行下方独立行，
+     视觉上确保 mid 三家的出牌行都在"我"的"不要"上面。 */
   .gd-seats-mid {
-    display: flex; justify-content: space-between; align-items: stretch;
-    gap: 0.5rem; height: 150px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 0.5rem; height: 200px;
   }
+  /* 我的出牌行：在 mid 行下方、手牌上方，固定占位避免开局-出牌跳动 */
+  .gd-myplay-row {
+    display: flex; justify-content: center; align-items: center;
+    height: 60px;
+    margin-top: 0.2rem;
+  }
+  .gd-myplay-row .gd-played { width: auto; min-width: 0; }
   .gd-side { display: flex; flex-direction: column; align-items: center; width: 92px; flex: 0 0 auto; }
   .gd-center {
     flex: 1 1 auto; display: flex; flex-direction: column;
@@ -518,6 +527,17 @@ permalink: /toolbox/guandan/
   }
   .gd-toast.show { opacity: 1; }
 
+  /* 矩形框选浮层：仿桌面文件管理器拖蓝框 —— 从一角拖到对角，相交的牌入选 */
+  .gd-marquee {
+    position: fixed;
+    pointer-events: none;
+    z-index: 70;
+    background: rgba(201,162,39,0.12);
+    border: 1px dashed var(--gd-accent);
+    border-radius: 3px;
+    display: none;
+  }
+
   /* ======== 大字"不要"浮窗（替代以前的虚线 tag）========
      仿欢乐斗地主：玩家弃出时不画小角标，而是在出牌位置浮一行大字，
      0.9 秒后稳态停留为更小的标签。 */
@@ -709,10 +729,10 @@ permalink: /toolbox/guandan/
         <div class="gd-played" id="gdPlay3"></div>
       </div>
 
-      <!-- 中央出牌区：上=对家最近一手，下=我最近一手；中间不再放文字提示 -->
+      <!-- 中央上半：仅对家的出牌；我的出牌挪到 mid 行下方独成一行，
+           视觉上更贴近"我"的座位（左下角），也确保 mid 行的对手出牌区比我的更高 -->
       <div class="gd-center">
         <div class="gd-played" id="gdPlay2"></div>
-        <div class="gd-played" id="gdPlay0Center"></div>
       </div>
 
       <!-- 右：上家（座位 1，对手） -->
@@ -727,6 +747,12 @@ permalink: /toolbox/guandan/
         </div>
         <div class="gd-played" id="gdPlay1"></div>
       </div>
+    </div>
+
+    <!-- 我的出牌（最近一手 / 不要）：单独一行放在 mid 行下方、手牌上方，
+         在视觉上紧贴左下角的"我"，并保证我的"不要"比 mid 行三家的更低 -->
+    <div class="gd-myplay-row">
+      <div class="gd-played" id="gdPlay0Center"></div>
     </div>
 
     <!-- 我（座位 0） -->

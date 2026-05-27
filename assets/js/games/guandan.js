@@ -172,14 +172,11 @@
 
     // ---- 2 张：对子 ----
     if (n === 2) {
-      if (distinct.length === 0 && wild === 2) return null; // 两张 wild：当对（同红桃级牌，其实是真的对）→ 实际它们是真牌对，归到下面
       if (distinct.length <= 1) {
         // 0 或 1 个 distinct + wild 补齐
-        let r;
-        if (distinct.length === 1) r = distinct[0];
-        else r = null;
+        const r = distinct.length === 1 ? distinct[0] : null;
         if (r == null) {
-          // 两张都 wild：它们本就是一对红桃级牌
+          // 两张都是 wild（红桃级牌）→ 本就是一对真级牌，可以直接打出
           return { type: T.PAIR, len: 2, key: 15, bombStrength: 0, cards };
         }
         if ((counts.get(r) + wild) === 2) {
@@ -923,9 +920,10 @@
     adaptHandSize();
   }
 
-  // 按"当前可用宽度 vs 列数 × 默认卡宽"动态收窄卡片，让 27 张牌在任何画幅下
-  // 都不必横向滑动也能一眼看全（参考用户反馈：以前要滑动才能看到 3 ♦）。
-  // 只在"装不下"时才缩；装得下就回到 CSS 默认值。
+  // 按"最大可能列数 15"算目标卡宽并锁定整局不变——避免出过几张牌、列消失后
+  // 卡变大、整张手牌横向画幅缩小的"画幅抖动"。最大列数 = 2~A + 大小王 = 15。
+  // 实际列数 ≤ 15，按 15 列预算的尺寸装下当前任意列数都绰绰有余。
+  const MAX_HAND_COLS = 15;
   function adaptHandSize() {
     const hand = els.hand;
     const cols = hand.querySelectorAll('.gd-rank-col');
@@ -939,10 +937,9 @@
     const padR = parseFloat(cs.paddingRight) || 0;
     const availW = hand.clientWidth - padL - padR;
     if (availW <= 0) return;
-    const n = cols.length;
-    const neededW = n * defCardW + (n - 1) * gap;
-    if (neededW <= availW) return;
-    const newCardW = Math.max(26, Math.floor((availW - (n - 1) * gap) / n));
+    const neededW = MAX_HAND_COLS * defCardW + (MAX_HAND_COLS - 1) * gap;
+    if (neededW <= availW) return;   // 装得下 → 用 CSS 默认尺寸
+    const newCardW = Math.max(26, Math.floor((availW - (MAX_HAND_COLS - 1) * gap) / MAX_HAND_COLS));
     if (newCardW >= defCardW) return;
     const ratio = newCardW / defCardW;
     const newCardH = Math.round(defCardH * ratio);
@@ -1045,11 +1042,53 @@
   const MOVE_THRESHOLD = 10;
   let pState = null;     // { startX, startY, startCid, startCol, dragMode, mode, lpTimer, gapIdx, gapMarker }
 
-  function applySelectionDrag(cid) {
-    if (pState.dragMode === 'add') state.selected.add(cid);
-    else state.selected.delete(cid);
-    renderHand();
-    updateSelHint();
+  // 矩形框选（仿桌面文件管理器）：按下后从起点到当前点画一个虚线矩形，
+  // 凡是与矩形相交的牌都进入选中（或反向：起点已选 → 进入"删"模式，移出已选）。
+  // 每次 move 都拿原始 selected 集 + 当前矩形重新算，所以拖出又拖回去会回到原状。
+  function ensureMarquee() {
+    let m = document.getElementById('gdMarquee');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'gdMarquee';
+      m.className = 'gd-marquee';
+      document.body.appendChild(m);
+    }
+    return m;
+  }
+  function updateMarquee(x, y, w, h) {
+    const m = ensureMarquee();
+    m.style.left = x + 'px';
+    m.style.top = y + 'px';
+    m.style.width = w + 'px';
+    m.style.height = h + 'px';
+    m.style.display = 'block';
+  }
+  function removeMarquee() {
+    const m = document.getElementById('gdMarquee');
+    if (m) m.style.display = 'none';
+  }
+
+  function applyRectSelection(curX, curY) {
+    const x0 = Math.min(pState.startX, curX);
+    const x1 = Math.max(pState.startX, curX);
+    const y0 = Math.min(pState.startY, curY);
+    const y1 = Math.max(pState.startY, curY);
+    updateMarquee(x0, y0, x1 - x0, y1 - y0);
+
+    const cardEls = els.hand.querySelectorAll('.gd-card[data-cid]');
+    cardEls.forEach(card => {
+      const cid = parseInt(card.dataset.cid, 10);
+      if (!Number.isFinite(cid)) return;
+      const r = card.getBoundingClientRect();
+      const inside = r.right > x0 && r.left < x1 && r.bottom > y0 && r.top < y1;
+      const wasSelected = pState.originalSelected.has(cid);
+      let shouldBeSelected;
+      if (pState.dragMode === 'add') shouldBeSelected = wasSelected || inside;
+      else shouldBeSelected = wasSelected && !inside;
+      card.classList.toggle('selected', shouldBeSelected);
+      if (shouldBeSelected) state.selected.add(cid);
+      else state.selected.delete(cid);
+    });
     updateActions();
   }
 
@@ -1093,8 +1132,10 @@
     // 理牌模式下：允许在 IDLE / 别人回合也能调整顺序——它只动列序，不影响出牌
     const playable = state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy;
     if (!playable && !state.arrangeMode) return;
+    if (!els.hand.contains(e.target)) return;
     const col = e.target.closest('.gd-rank-col');
-    if (!col || !els.hand.contains(col)) return;
+    // 理牌模式必须从某一列开始；选牌模式允许从空白处开始矩形框选
+    if (state.arrangeMode && !col) return;
     const card = e.target.closest('.gd-card');
     const pt = e.touches ? e.touches[0] : e;
     pState = {
@@ -1115,7 +1156,8 @@
       const draggingIdx = rects.findIndex(r => r.el === col);
       placeGapMarker(rects, draggingIdx);
       pState.gapIdx = draggingIdx;
-    } else {
+    } else if (col) {
+      // 长按 380ms 还在原地 → 进入 COL_DRAG。空白处起手不进 COL_DRAG。
       pState.lpTimer = setTimeout(() => {
         if (!pState || pState.mode !== 'PENDING') return;
         pState.mode = 'COL_DRAG';
@@ -1137,21 +1179,21 @@
 
     if (pState.mode === 'PENDING') {
       if (Math.abs(dx) < MOVE_THRESHOLD && Math.abs(dy) < MOVE_THRESHOLD) return;
-      // 动了 → 取消长按，进入多选拖刷模式（沿用旧体验）
+      // 动了 → 取消长按，进入矩形框选模式
       clearTimeout(pState.lpTimer);
-      if (pState.startCid == null) { pState = null; return; }
       pState.mode = 'MULTI_SELECT';
-      pState.dragMode = state.selected.has(pState.startCid) ? 'remove' : 'add';
-      applySelectionDrag(pState.startCid);
+      // 起点是一张已选牌 → 进入"减"模式（拖一圈把它们移出选中）
+      // 否则 → "加"模式（拖一圈圈中的都进选中）
+      pState.dragMode = (pState.startCid != null && state.selected.has(pState.startCid)) ? 'remove' : 'add';
+      pState.originalSelected = new Set(state.selected);
+      applyRectSelection(pt.clientX, pt.clientY);
+      e.preventDefault && e.preventDefault();
       return;
     }
 
     if (pState.mode === 'MULTI_SELECT') {
-      const t = document.elementFromPoint(pt.clientX, pt.clientY);
-      if (!t) return;
-      const card = t.closest && t.closest('.gd-card');
-      if (!card || !els.hand.contains(card)) return;
-      applySelectionDrag(parseInt(card.dataset.cid, 10));
+      applyRectSelection(pt.clientX, pt.clientY);
+      e.preventDefault && e.preventDefault();
       return;
     }
 
@@ -1180,6 +1222,11 @@
         updateSelHint();
         updateActions();
       }
+    } else if (pState.mode === 'MULTI_SELECT') {
+      // 矩形框选完成：抹掉浮层；selected 集本身已经在 applyRectSelection 里更新好
+      removeMarquee();
+      updateSelHint();
+      updateActions();
     } else if (pState.mode === 'COL_DRAG') {
       const rects = colsRectsX();
       const draggingIdx = rects.findIndex(r => r.el === pState.startCol);
@@ -1256,55 +1303,10 @@
     maybeAutoSelectForTurn();
   }
 
-  function maybeAutoSelectForTurn() {
-    const myTurn = state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy && !state.out.includes(0);
-    if (!myTurn) { state._autoTurnKey = null; return; }
-    const t = state.trick || {};
-    const key = `${t.lead}|${t.bestSeat}|${t.passes}|${state.hands[0].length}`;
-    if (state._autoTurnKey === key) return;
-    state._autoTurnKey = key;
-
-    // 新的"我的回合"开始：先把上一刻残留的灰显选中清掉（自由领出时若不再自动选，
-    // 上一手智能选的牌就该消失；跟牌时即便选择被覆盖也不会丢——下面会重新挑）
-    if (state.selected.size > 0) state.selected.clear();
-
-    const prev = (t.best != null && t.bestSeat !== 0) ? t.best : null;
-    // 自由领出（prev=null）时不替用户做主——避免每次回到我都自动选一张 3 的烦人感
-    if (!prev) {
-      renderHand();
-      updateSelHint();
-      els.playBtn.disabled = true;
-      return;
-    }
-
-    const level = currentLevelLabel();
-    let moves = genMoves(state.hands[0], prev, level);
-    if (!moves.length) {
-      // 跟不上 → 不动选择，让玩家直接"不要"
-      renderHand();
-      updateSelHint();
-      els.playBtn.disabled = true;
-      return;
-    }
-    moves.sort((a, b) =>
-      (isBombType(a.combo.type) ? 1 : 0) - (isBombType(b.combo.type) ? 1 : 0) ||
-      a.cards.length - b.cards.length || a.combo.key - b.combo.key);
-    const pick = moves[0];
-    for (const c of pick.cards) state.selected.add(c);
-    state._hintIdx = 0;
-
-    // 重绘手牌让灰显生效；不递归 updateActions —— 直接补齐"出牌"按钮 disabled
-    renderHand();
-    updateSelHint();
-    const sel = selectedCards();
-    const cb = sel.length ? classify(sel, level) : null;
-    let ok = false;
-    if (cb) {
-      if (!t || t.best == null || t.bestSeat === 0) ok = true;
-      else ok = beats(cb, t.best);
-    }
-    els.playBtn.disabled = !ok;
-  }
+  // 智能选牌已按用户反馈完全关闭——任何时候都不替用户选牌。
+  // 留这个空函数避免改动它五处调用点。原"跟牌时挑最经济响应"的逻辑挪到
+  // "提示" 按钮 (playerHint)，要看建议玩家自己点。
+  function maybeAutoSelectForTurn() { /* no-op */ }
 
   // ===========================================================
   //  回合流程
