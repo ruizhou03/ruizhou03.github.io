@@ -286,10 +286,9 @@
     el.hidden = false;
     el.classList.remove('urgent');
     let lastTickedSec = 99;       // 用于「仅在跨秒时」播放心跳音
-    // self-clock / played-clock 是 "图标 + 数字 + s" 的复合结构，
-    // 只更新里面的 .num 子节点，避免 textContent 把 SVG 一起冲掉；
-    // 旧 #ddzDoubleCountdown 是纯文本，直接 textContent。
-    const numEl = el.querySelector('.ddz-self-clock-num, .ddz-played-clock-num');
+    // self-clock / played-clock / bid-countdown 都是 "图标 + 数字 + s" 的复合结构，
+    // 只更新里面的 .num 子节点，避免 textContent 把 SVG 一起冲掉
+    const numEl = el.querySelector('.ddz-self-clock-num, .ddz-played-clock-num, .num');
     function tick() {
       const left = Math.max(0, turnCountdownEndAt - Date.now());
       const s = Math.ceil(left / 1000);
@@ -1558,24 +1557,22 @@
     return { bonus, reasons };
   }
 
-  // 把当前 bottom-pile 的 3 张背面，依次（错开 220ms）"缩成边"再换成
-  // 正面"扩回来"，形成翻牌效果。必须在 state.bottom 已经定下来之后调用。
+  // 把当前 bottom-pile 的 3 张背面同时"缩成边"再同时换成正面"扩回来"，
+  // 三张牌齐整翻面（更接近真人发牌的"啪"地一翻）。
   function animateBottomFlip() {
     const backs = Array.from(bottomPileEl.querySelectorAll('.ddz-card-back'));
     if (backs.length === 0) return;     // 没背面（已经翻过或被 renderBottomPile 覆盖了）
     const cards = sortHandDesc(state.bottom);
-    backs.forEach((back, i) => {
-      setTimeout(() => {
-        back.classList.add('flipping-out');
-        setTimeout(() => {
-          if (!cards[i]) return;
-          const face = buildCardEl(cards[i], 'size-bottom');
-          face.classList.add('flipping-in');
-          if (state.bottomPlayed && state.bottomPlayed.has(cards[i])) face.classList.add('is-played');
-          back.replaceWith(face);
-        }, 220);
-      }, i * 220);
-    });
+    backs.forEach(back => back.classList.add('flipping-out'));
+    setTimeout(() => {
+      backs.forEach((back, i) => {
+        if (!cards[i]) return;
+        const face = buildCardEl(cards[i], 'size-bottom');
+        face.classList.add('flipping-in');
+        if (state.bottomPlayed && state.bottomPlayed.has(cards[i])) face.classList.add('is-played');
+        back.replaceWith(face);
+      });
+    }, 220);
   }
 
   function revealBottom() {
@@ -1801,9 +1798,9 @@
       // 主显示位：挂在"我"这格右上角的 .ddz-double-cell-cd
       const inCell = document.querySelector('.ddz-double-cell-cd .num');
       if (inCell) inCell.textContent = String(s);
-      // 兼容：旧的角标也同步（CSS 已隐，万一布局没刷新到位也别留陈旧数字）
-      const cb = document.getElementById('ddzDoubleCountdown');
-      if (cb) cb.textContent = s + 's';
+      // 兼容：旧的角标也同步（CSS 已隐，但 SVG 在里面，不能 textContent 一冲）
+      const cbNum = document.querySelector('#ddzDoubleCountdown .num');
+      if (cbNum) cbNum.textContent = String(s);
       if (left <= 0) {
         clearInterval(doubleTimer); doubleTimer = null;
         finalizeDoubling();
