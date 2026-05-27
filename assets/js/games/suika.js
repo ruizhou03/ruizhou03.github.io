@@ -2636,7 +2636,7 @@
       // 站点水印（最底）
       ctx.fillStyle = colors.muted;
       ctx.font = `10px ${FONT_STACK}`;
-      ctx.fillText('ruizhou03.github.io/toolbox/suika', W / 2, H - 14);
+      ctx.fillText('ruizhou03.com/toolbox/suika', W / 2, H - 14);
 
       return off.toDataURL('image/png');
     } catch (e) {

@@ -3095,7 +3095,7 @@
           ]),
       paintBoard: paintSettlementBoard,
       boardAspect: 4 / 3,
-      watermark: 'ruizhou03.github.io/toolbox/fruit-ninja',
+      watermark: 'ruizhou03.com/toolbox/fruit-ninja',
     };
   }
 

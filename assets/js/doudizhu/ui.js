@@ -2362,7 +2362,7 @@
       paintBoard: (ctx, x, y, w, h) => paintSpringBoard(ctx, x, y, w, h, rows, subtitle),
       boardW: 520,
       boardAspect: rows.length === 1 ? 1.05 : 1.45,
-      watermark: 'ruizhou03.github.io/toolbox/doudizhu',
+      watermark: 'ruizhou03.com/toolbox/doudizhu',
     };
   }
 

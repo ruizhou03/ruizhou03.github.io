@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://ruizhou03.github.io/sitemap.xml
+Sitemap: https://ruizhou03.com/sitemap.xml

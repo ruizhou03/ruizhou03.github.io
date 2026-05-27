@@ -1128,7 +1128,7 @@
       paintBoard: tqPaintBoard,
       boardW: 480,
       boardAspect: SVG_W / SVG_H,
-      watermark: 'ruizhou03.github.io/toolbox/tiaoqi',
+      watermark: 'ruizhou03.com/toolbox/tiaoqi',
     };
   }
 
