@@ -960,15 +960,22 @@
 
   function renderPlayArea(seat) {
     const slot = seatEls[seat].play;
-    slot.innerHTML = '';
     const lp = state.lastPlay[seat];
+    // 状态哈希：renderAll 被频繁调用，同一手"不要"/同一组牌不应每次重建 DOM —
+    // 那会让 gd-pass-pop 动画反复重放（用户看到别人弃出时，自己的"不要"也跟着闪）
+    const level = currentLevelLabel();
+    const key = lp === 'pass' ? 'pass:' + level :
+                (lp && lp.cards) ? ('combo:' + level + ':' + lp.cards.slice().sort((a, b) => a - b).join(',')) :
+                'empty';
+    if (slot.dataset.lpKey === key) return;
+    slot.dataset.lpKey = key;
+    slot.innerHTML = '';
     if (lp === 'pass') {
       // 大字"不要"浮窗：仿欢乐斗地主——每家弃出都让人一眼看见，不再藏在虚线小角标里
       const big = document.createElement('span');
       big.className = 'gd-pass-big'; big.textContent = '不要';
       slot.appendChild(big);
     } else if (lp && lp.cards) {
-      const level = currentLevelLabel();
       // 顶部 combo 类型标签（"三带二 / 顺子 / 同花顺 / 4 张炸弹"）让新手好读牌
       const label = document.createElement('span');
       const isJB = lp.type === T.JOKER_BOMB;
@@ -1256,13 +1263,29 @@
     const key = `${t.lead}|${t.bestSeat}|${t.passes}|${state.hands[0].length}`;
     if (state._autoTurnKey === key) return;
     state._autoTurnKey = key;
-    // 即便用户已自选，也仅"标记此回合已自动过"以后不再覆盖
-    if (state.selected.size > 0) return;
+
+    // 新的"我的回合"开始：先把上一刻残留的灰显选中清掉（自由领出时若不再自动选，
+    // 上一手智能选的牌就该消失；跟牌时即便选择被覆盖也不会丢——下面会重新挑）
+    if (state.selected.size > 0) state.selected.clear();
+
+    const prev = (t.best != null && t.bestSeat !== 0) ? t.best : null;
+    // 自由领出（prev=null）时不替用户做主——避免每次回到我都自动选一张 3 的烦人感
+    if (!prev) {
+      renderHand();
+      updateSelHint();
+      els.playBtn.disabled = true;
+      return;
+    }
 
     const level = currentLevelLabel();
-    const prev = (t.best != null && t.bestSeat !== 0) ? t.best : null;
     let moves = genMoves(state.hands[0], prev, level);
-    if (!moves.length) return;
+    if (!moves.length) {
+      // 跟不上 → 不动选择，让玩家直接"不要"
+      renderHand();
+      updateSelHint();
+      els.playBtn.disabled = true;
+      return;
+    }
     moves.sort((a, b) =>
       (isBombType(a.combo.type) ? 1 : 0) - (isBombType(b.combo.type) ? 1 : 0) ||
       a.cards.length - b.cards.length || a.combo.key - b.combo.key);

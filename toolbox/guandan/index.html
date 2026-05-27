@@ -257,12 +257,18 @@ permalink: /toolbox/guandan/
     color: rgba(201,169,110,0.88); font-size: 16px;
   }
 
-  /* ======== 我的手牌 ======== */
+  /* ======== 我的座位（左下角，参照斗地主）+ 手牌（中下）========
+     把"我"挪到左下角，把视觉中心让给牌桌中央的出牌/trick 信息；
+     手牌仍然居中，27 张时左右都有富余空间不会盖住头像。 */
   .gd-self-bar {
-    display: flex; align-items: center; gap: 0.6rem;
-    justify-content: center; margin: 0.7rem 0 0.3rem;
-    flex-wrap: wrap;
+    display: flex; align-items: center; gap: 0.55rem;
+    position: absolute;
+    left: 0.9rem;
+    bottom: 4.4rem;   /* 与手牌纵向中线齐高，再往下让出位置给 actions */
+    z-index: 3;
   }
+  .gd-self-bar .gd-name { font-size: 0.8rem; line-height: 1.25; }
+  .gd-self-bar .gd-name .tag { font-size: 0.66rem; }
   /* 按"点数"竖向堆叠成列；列内每张牌往下错开一个角的高度，露出 rank+suit 角标。
      列横向并排（手牌多于屏宽时可滚）。长按某列可以拖到新位置，自定义理牌顺序；
      单击/拖选则照常多选。 */
@@ -474,6 +480,12 @@ permalink: /toolbox/guandan/
     .gd-side { width: 64px; }
     .gd-table { padding: 0.55rem; }
     .gd-level-chip { min-width: 92px; padding: 0.35rem 0.6rem; }
+    /* 窄屏：手牌占满整宽，左下角放不下头像 —— 回到 in-flow 居中 */
+    .gd-self-bar {
+      position: static;
+      margin: 0.5rem 0 0.3rem;
+      justify-content: center;
+    }
   }
   @media (max-width: 380px) {
     .guandan-wrap { --gd-card-w: 34px; --gd-card-h: 50px; --gd-card-overlap: 20px; }
