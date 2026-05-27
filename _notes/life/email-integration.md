@@ -83,7 +83,7 @@ Mac 和 iOS 的后续配置有些许差异，分开介绍。
 
 ![网易企业邮箱服务器查询页面，列出 stu.pku.edu.cn 域名对应的 POP/SMTP/IMAP 地址和端口](/files/images/test-article/08.jpg)
 
-> 网易邮箱的服务器配置参考：https://qiye.163.com/help/client-profile.html
+> 网易邮箱的服务器配置参考：<https://qiye.163.com/help/client-profile.html>
 
 注：如果你也是 `stu.pku.edu.cn` 域名，按图中数值填写即可；其他域名只需查找对应的服务器地址替换即可。
 

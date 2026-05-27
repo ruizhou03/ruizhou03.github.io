@@ -1,3 +1,41 @@
+## 2026-05-27
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + 由 `scripts/audit/run.sh` 跑出的内嵌审计清单。本次发现一处与昨日同源的公开泄露遗漏 + 一处由合并 commit 留下的内部死链 + 两处长尾裸 URL，全部低风险已就地修复；其余系统性条目（material_type 枚举、文件名 YYYY 后缀、sibling 互链覆盖）属早被 Round-3 标记的待站主把关项，本次不重复列。
+
+### ✅ 本次已自动修复
+
+1. **`SPOTCHECK_100_AGENT_REPORTS.md` 不再发布到公开站点** —— 昨日例行巡检已处理 `SPOTCHECK_100_REPORT.md`，但同源的另一份内部抽检合集（113 KB，含"主对话 25 agent 原生报告"「失控事件复盘」等内部语境）当时漏了；今日 `bundle exec jekyll build` 后扫 `_site/` 根，看到这份 .md 被原样拷出。已在 `_config.yml` exclude 列表中 `SPOTCHECK_100_REPORT.md` 下方一行追加 `SPOTCHECK_100_AGENT_REPORTS.md`，重建后 `ls _site/*.md` 已无残留。文件本身在仓库里保留作为内部记录，未动 git 历史。
+2. **`_notes/research/r-psy-stats-ii.md` L15 内部死链修复** —— 本文正文里链接到《心理统计 II 期中复习》指向 `/notes/psy-stat-II/psy-stat-II-mid-2023`，但 commit `3a3fed4`（2026-05-25）已将期中 + 期末两份 .md 合并为一份 `psy-stat-II-2023.md`，旧 permalink 不存在。已改写为「心理统计 II 完整复习笔记」，指向新合并版 `/notes/psy-stat-II/psy-stat-II-2023`。这是合并 commit 的边角遗漏，仅本文一处引用。
+3. **`_notes/life/email-integration.md` L86 裸 URL 改 autolink** —— `> 网易邮箱的服务器配置参考：https://qiye.163.com/help/client-profile.html` 在 blockquote 里以纯文本形式出现不会变链接。已套 `<...>` autolink。
+4. **`_notes/life/subway-construction-methods.md` L227 裸 URL 改 autolink** —— 文末参考文献列表里中国铁建重工集团那条的 `https://www.crchi.com/` 是纯文本，已套 `<...>` autolink。
+
+`bundle exec jekyll build` 通过验证，零警告（4.656 s）。
+
+### 📋 待你把关
+
+无新增 P0/P1。Round-3 留下的两个 P0（`coaster-drop-tower-braking.md` 物理论述 / `taichi-review-2023.md` 「85 公里跑」）已在 2026-05-26 的 commit `e927dc1`（电涡流制动）中部分处理，taichi 仍候着。下方 Round-3 小节列出的 ~68 个 P1 仍按优先级排队。本次未引入新判断题。
+
+**附：本次 audit 跑出但属误报，不处理**：
+- `scripts/audit/bare_dollar.py` 把 `_notes/pre-high-school/physics.md` L55 `$0/0$` 与 `_notes/life/us-tax-filing-process.md` L530 `$2/3$` 报为「裸 $ 金额」，但二者均为合法 paired LaTeX 行内公式（`$x/y$` 形式），KaTeX 渲染正确。可在低优排期考虑给 `bare_dollar.py` 加一条 paired-`$` 启发式跳过这种 `\d+/\d+` 数学分数形式（写进低优）。
+- `scripts/audit/bare_url.py` 把 `_notes/life/us-postal-system-guide.md` L484 USPS 钓鱼示例里的 `https://usps-confirm[.]xyz/` 报为裸 URL，但该 URL 是钓鱼例句、`[.]` 是有意 defang，**绝不能 autolink**。当前脚本无法区分上下文，保留误报由人工筛掉即可。
+
+### 🗂 仓库卫生
+
+- **仓库结构较昨日确有结构性变化**：
+  - `assets/js/doudizhu/` 已落地拆分：`engine.js` 857 + `ai.js` 524 + `ui.js` 3602（合计 4983 行）。叠加新增的 `engine.test.html` 测试入口，意味着 Round-2 标记的"doudizhu 5481 行 P1"已部分落地（ui.js 仍 3602 行，超 1500 行但已可控）。
+  - R 教程系列 7 篇 PDF 全部由 `.Rmd` 重新编译（commit `e753a44`），随之 `_notes/research/r-*.md` 引言被搬到 `summary:` 字段，由 `<p class="pdf-lead">` 在 PDF iframe 之前渲染（commit `4bc3004`）。架构调整已收尾。
+  - 心统 II 期中/期末两份 .md 合并为一份（commit `3a3fed4`），删除了 `psy-stat-II-mid-2023.md` / `psy-stat-II-final-2023.md`。除本次发现的 `r-psy-stats-ii.md` 一处死链外，全站无其它残留引用（已 grep 确认）。
+- **再次扫描根级是否有"不该公开"文件**：除本次捕获的 `SPOTCHECK_100_AGENT_REPORTS.md` 外，无其它内部产物外泄。`assistant-fulltext.json` / `assistant-index.json` 是站内助手公开资产，保留。
+- **未跟踪垃圾文件**：扫描 `.DS_Store` / `Thumbs.db` / `"xxx 2.yyy"` 副本 / `*.aux` / `*.synctex.gz` / `.env*`——全部 0 命中。
+- **构建状态**：`bundle exec jekyll build` 通过，零警告（feed/sitemap 正常生成，4.656 s）。
+- **历史与远端**：未改写 git 历史，未 force-push，未动 `.git/`；本次仅本地新增一次提交，按惯例 rebase + push 到 `origin/main`。
+
+### 💓 后端脉搏 / 📬 读者来信
+
+- 后端三件套（urge / leaderboards / waline）本次拉取失败，`scripts/audit/backend_pulse.py` 报 `json: Expecting value: line 1 column 1 (char 0)`——疑似沙箱出口未配置访问 fly.io，或 fly app 短暂 502。不阻塞例行巡检，记录在案，待站主或后续 routine 复查时确认是否需要重启 fly app。
+
+---
+
 ## 2026-05-26（日常巡检 · 收尾）
 
 > 今日早些时候已由站主连续触发 Round-1/2/3 三轮专项抽检（合计 220 项 ≈ 全站 53%），低风险问题已被大规模收割。本次为当日例行无人值守巡检，定位为「收尾性」：只看 Round-3 没碰到的边角、再做一次构建健康度复核。
