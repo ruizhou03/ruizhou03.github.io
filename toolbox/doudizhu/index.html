@@ -1766,8 +1766,9 @@ permalink: /toolbox/doudizhu/
   /* 金币 +N / -N 飘字（挂在每家座位/头像容器上） */
   .ddz-coin-delta {
     position: absolute;
-    top: -14px; left: 50%;
-    transform: translateX(-50%);
+    /* 贴 avatar 右上角像通知 badge 一样，不再往上飘出桌沿；
+       既不溢出画面，也不挤压顶部 avatar+底牌 那一排 */
+    top: -4px; right: -14px;
     z-index: 7;
     padding: 0.2rem 0.7rem;
     border-radius: 999px;
@@ -1797,10 +1798,10 @@ permalink: /toolbox/doudizhu/
     filter: drop-shadow(0 1px 1px rgba(0,0,0,0.35));
   }
   @keyframes ddz-coin-fly {
-    0%   { opacity: 0; transform: translate(-50%, 12px) scale(0.6); }
-    18%  { opacity: 1; transform: translate(-50%, -8px) scale(1.15); }
-    72%  { opacity: 1; transform: translate(-50%, -22px) scale(1); }
-    100% { opacity: 0.85; transform: translate(-50%, -28px) scale(1); }
+    0%   { opacity: 0; transform: scale(0.5); }
+    18%  { opacity: 1; transform: scale(1.18); }
+    72%  { opacity: 1; transform: scale(1); }
+    100% { opacity: 0.92; transform: scale(1); }
   }
 
   /* 倍数闪光（炸弹 / 王炸 / 春天 — 任何 multiplier 翻倍触发） */

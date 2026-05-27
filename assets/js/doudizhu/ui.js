@@ -946,6 +946,7 @@
       el.appendChild(buildCardEl(c, 'size-mini'));
     }
     // 牌型文字提示：浮在这家出牌区顶部（炸弹 / 王炸 更醒目）
+    // 只闪 1.6 s——之后自动淡出 + 移除，免得"王炸!"等大字一直挂着挡牌
     const pname = patternName(pattern);
     if (pname) {
       const lbl = document.createElement('span');
@@ -954,6 +955,12 @@
       else if (pattern.type === T.ROCKET) { lbl.classList.add('is-rocket'); lbl.textContent = '王炸!'; }
       else lbl.textContent = pname;
       el.appendChild(lbl);
+      setTimeout(() => {
+        if (!lbl.isConnected) return;
+        lbl.style.transition = 'opacity 0.35s ease';
+        lbl.style.opacity = '0';
+        setTimeout(() => lbl.remove(), 380);
+      }, 1600);
     }
     requestAnimationFrame(fitDoudizhuRows);
     // 王炸特别处理：触发全屏地震 + 金光闪屏 + 粒子四射
