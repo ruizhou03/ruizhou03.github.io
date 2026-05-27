@@ -1287,6 +1287,13 @@ permalink: /toolbox/doudizhu/
     color: var(--ddz-accent);
     flex-shrink: 0;
   }
+  /* 数字位预留 2 位字宽——25s → 9s 切换时图标/"s"不再左右抖 */
+  .ddz-self-clock-num,
+  .ddz-played .ddz-played-clock-num {
+    display: inline-block;
+    min-width: 1.6ch;
+    text-align: right;
+  }
   .ddz-self-clock[hidden] { display: none; }
   .ddz-self-clock.urgent,
   .ddz-played .ddz-played-clock.urgent {
