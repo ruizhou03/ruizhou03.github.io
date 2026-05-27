@@ -90,7 +90,9 @@ permalink: /toolbox/snake/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .sn-speed-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  @media (hover: hover) {
+    .sn-speed-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  }
   .sn-btn {
     padding: 0.4rem 0.85rem;
     font-size: 0.86rem;
@@ -101,7 +103,9 @@ permalink: /toolbox/snake/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .sn-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .sn-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   .sn-canvas-wrap {
     position: relative;

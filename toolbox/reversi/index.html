@@ -27,7 +27,9 @@ permalink: /toolbox/reversi/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .rv-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .rv-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .rv-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .rv-statusbar {

@@ -53,8 +53,10 @@ permalink: /toolbox/picker/
     cursor: pointer; font: inherit; line-height: 1.2;
     transition: all 0.15s; white-space: nowrap;
   }
-  .profile-action:hover:not(:disabled) {
+  @media (hover: hover) {
+    .profile-action:hover:not(:disabled) {
     border-color: var(--color-accent); color: var(--color-accent);
+  }
   }
   .profile-action:disabled { opacity: 0.4; cursor: not-allowed; }
   .profile-action.profile-new { border-style: dashed; }
@@ -78,8 +80,10 @@ permalink: /toolbox/picker/
     display: inline-flex; align-items: center; justify-content: center;
     transition: all 0.15s;
   }
-  .option-row .opt-del:hover {
+  @media (hover: hover) {
+    .option-row .opt-del:hover {
     color: #c83828; border-color: #c83828; background: rgba(200,56,40,0.08);
+  }
   }
   .option-row .opt-del:disabled {
     opacity: 0.35; cursor: not-allowed;
@@ -135,9 +139,11 @@ permalink: /toolbox/picker/
     background: transparent; color: var(--color-muted);
     cursor: pointer; transition: all 0.2s;
   }
-  .add-row button:hover {
+  @media (hover: hover) {
+    .add-row button:hover {
     border-color: var(--color-accent); color: var(--color-accent);
     border-style: solid;
+  }
   }
   .add-row button:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -157,8 +163,10 @@ permalink: /toolbox/picker/
     background: var(--color-bg); color: var(--color-text);
     cursor: pointer; transition: all 0.15s; font: inherit;
   }
-  .pill-group button:hover:not(.active) {
+  @media (hover: hover) {
+    .pill-group button:hover:not(.active) {
     border-color: var(--color-accent); color: var(--color-accent);
+  }
   }
   .pill-group button.active {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
@@ -199,9 +207,11 @@ permalink: /toolbox/picker/
     cursor: pointer; transition: all 0.2s;
     box-shadow: 0 3px 10px rgba(30,58,95,0.25);
   }
-  .spin-btn:hover:not(:disabled) {
+  @media (hover: hover) {
+    .spin-btn:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 5px 14px rgba(30,58,95,0.32);
+  }
   }
   .spin-btn:disabled {
     opacity: 0.45; cursor: not-allowed;
@@ -227,8 +237,10 @@ permalink: /toolbox/picker/
     cursor: pointer;
     transition: all 0.18s;
   }
-  .skip-row .skip-btn:hover {
+  @media (hover: hover) {
+    .skip-row .skip-btn:hover {
     color: var(--color-accent); border-color: var(--color-accent);
+  }
   }
 
   /* —— 转盘 ——
@@ -366,8 +378,10 @@ permalink: /toolbox/picker/
     background: var(--color-bg); color: var(--color-muted);
     cursor: pointer; transition: all 0.15s; font: inherit;
   }
-  .reset-btn:hover {
+  @media (hover: hover) {
+    .reset-btn:hover {
     border-color: var(--color-accent); color: var(--color-accent);
+  }
   }
 
   details.about {
@@ -419,8 +433,10 @@ permalink: /toolbox/picker/
     cursor: pointer;
     line-height: 1.4;
   }
-  .profile-toast .toast-action:hover {
+  @media (hover: hover) {
+    .profile-toast .toast-action:hover {
     background: var(--color-accent); color: #fff;
+  }
   }
 
   /* —— 结果复制按钮 —— */
@@ -435,8 +451,10 @@ permalink: /toolbox/picker/
     cursor: pointer;
     transition: all 0.15s;
   }
-  .result-copy:hover {
+  @media (hover: hover) {
+    .result-copy:hover {
     border-color: var(--color-accent); color: var(--color-accent);
+  }
   }
   .result-copy.copied {
     border-color: #5cb830; color: #5cb830;
@@ -495,8 +513,10 @@ permalink: /toolbox/picker/
     background: transparent; color: var(--color-muted);
     cursor: pointer;
   }
-  .history-clear:hover {
+  @media (hover: hover) {
+    .history-clear:hover {
     border-color: #c83828; color: #c83828; border-style: solid;
+  }
   }
 
   /* —— 导入/导出面板 —— */
@@ -527,8 +547,10 @@ permalink: /toolbox/picker/
     cursor: pointer;
     transition: all 0.15s;
   }
-  .io-btn:hover {
+  @media (hover: hover) {
+    .io-btn:hover {
     border-color: var(--color-accent); color: var(--color-accent);
+  }
   }
 
   @media (max-width: 600px) {

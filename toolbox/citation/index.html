@@ -37,7 +37,9 @@ permalink: /toolbox/citation/
     background: var(--color-bg); color: var(--color-muted);
     cursor: pointer; transition: all 0.18s;
   }
-  .panel-title .actions button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .panel-title .actions button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   .bib-input {
     width: 100%; min-height: 320px; resize: vertical;
@@ -60,7 +62,9 @@ permalink: /toolbox/citation/
   .format-tabs button.active {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
   }
-  .format-tabs button:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .format-tabs button:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   .output-list {
     min-height: 260px;
@@ -92,8 +96,12 @@ permalink: /toolbox/citation/
     transition: all 0.18s;
     opacity: 0; transition-property: opacity, color, border-color;
   }
-  .output-item:hover .copy-btn { opacity: 1; }
-  .output-item .copy-btn:hover { color: var(--color-accent); border-color: var(--color-accent); }
+  @media (hover: hover) {
+    .output-item:hover .copy-btn { opacity: 1; }
+  }
+  @media (hover: hover) {
+    .output-item .copy-btn:hover { color: var(--color-accent); border-color: var(--color-accent); }
+  }
   .output-item .citation { padding-right: 4rem; }
   .output-item.error { color: #b07c75; font-style: normal; font-size: 0.85rem; }
 
@@ -120,7 +128,9 @@ permalink: /toolbox/citation/
     color: var(--color-light); transition: transform 0.2s;
   }
   .footnote[open] summary::after { transform: rotate(90deg); }
-  .footnote summary:hover { color: var(--color-accent); }
+  @media (hover: hover) {
+    .footnote summary:hover { color: var(--color-accent); }
+  }
   .footnote-body {
     padding: 0 1rem 0.9rem;
     font-size: 0.85rem; color: var(--color-muted); line-height: 1.7;

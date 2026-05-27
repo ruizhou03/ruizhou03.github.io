@@ -47,9 +47,11 @@ permalink: /toolbox/pitch/
     font: inherit; font-size: 0.95rem;
     cursor: pointer; transition: all 0.15s;
   }
-  .mode-tabs button:hover:not(.active) {
+  @media (hover: hover) {
+    .mode-tabs button:hover:not(.active) {
     border-color: var(--color-accent);
     color: var(--color-accent);
+  }
   }
   .mode-tabs button.active {
     background: var(--color-accent);
@@ -147,7 +149,9 @@ permalink: /toolbox/pitch/
     cursor: pointer; transition: all 0.2s;
     box-shadow: 0 3px 10px rgba(30,58,95,0.25);
   }
-  .live-btn:hover { transform: translateY(-1px); }
+  @media (hover: hover) {
+    .live-btn:hover { transform: translateY(-1px); }
+  }
   .live-btn.recording {
     background: #7d4e46;
     animation: pulse 1.5s infinite;
@@ -229,10 +233,17 @@ permalink: /toolbox/pitch/
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
-  .drop-zone:hover, .drop-zone.drag {
+  .drop-zone.drag {
     border-color: var(--color-accent);
     background: var(--color-bg-warm);
     color: var(--color-accent);
+  }
+  @media (hover: hover) {
+    .drop-zone:hover {
+    border-color: var(--color-accent);
+    background: var(--color-bg-warm);
+    color: var(--color-accent);
+  }
   }
   .drop-zone.loading {
     cursor: progress;

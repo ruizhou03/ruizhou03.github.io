@@ -27,13 +27,17 @@ permalink: /toolbox/
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .tool-card.live { cursor: pointer; }
-    .tool-card.live:hover {
+    @media (hover: hover) {
+      .tool-card.live:hover {
       border-color: var(--color-accent);
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(30, 58, 95, 0.07);
     }
+    }
     .tool-card.coming-soon { opacity: 0.6; cursor: default; }
-    .tool-card.coming-soon:hover { opacity: 0.78; }
+    @media (hover: hover) {
+      .tool-card.coming-soon:hover { opacity: 0.78; }
+    }
     .tool-icon {
       font-size: 1.55rem;
       line-height: 1;

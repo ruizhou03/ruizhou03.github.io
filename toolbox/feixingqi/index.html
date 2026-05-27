@@ -27,14 +27,18 @@ permalink: /toolbox/feixingqi/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .fxq-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .fxq-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .fxq-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .fxq-btn.primary {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
     font-weight: 600;
     padding: 0.55rem 1.4rem;
   }
-  .fxq-btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+  @media (hover: hover) {
+    .fxq-btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+  }
 
   .fxq-mode-tabs { display: inline-flex; gap: 0.25rem; }
   .fxq-mode-tab {
@@ -52,7 +56,9 @@ permalink: /toolbox/feixingqi/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .fxq-mode-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  @media (hover: hover) {
+    .fxq-mode-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  }
 
   .fxq-statusbar {
     display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; align-items: center;
@@ -142,9 +148,11 @@ permalink: /toolbox/feixingqi/
     -webkit-user-select: none; user-select: none;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   }
-  .fxq-corner-chip:hover:not(:disabled) {
+  @media (hover: hover) {
+    .fxq-corner-chip:hover:not(:disabled) {
     filter: brightness(1.05);
     --fxq-scale: 1.06;
+  }
   }
   .fxq-corner-chip[data-kind="empty"] {
     color: var(--color-muted);
@@ -164,7 +172,9 @@ permalink: /toolbox/feixingqi/
     color: #8a4a00;
   }
   .fxq-corner-chip.locked { cursor: default; border-style: solid; }
-  .fxq-corner-chip.locked:hover { --fxq-scale: 1; filter: none; }
+  @media (hover: hover) {
+    .fxq-corner-chip.locked:hover { --fxq-scale: 1; filter: none; }
+  }
   .fxq-corner-chip .swatch {
     width: 0.7rem; height: 0.7rem;
     border-radius: 50%;

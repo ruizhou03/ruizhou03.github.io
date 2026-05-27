@@ -23,7 +23,9 @@ permalink: /toolbox/converter/
   .tab-bar button.active {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
   }
-  .tab-bar button:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .tab-bar button:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   .panel {
     background: var(--color-bg); border: 1px solid var(--color-border);
@@ -71,9 +73,11 @@ permalink: /toolbox/converter/
     display: flex; align-items: center; justify-content: center;
     transition: all 0.2s;
   }
-  .swap-btn:hover {
+  @media (hover: hover) {
+    .swap-btn:hover {
     border-color: var(--color-accent); color: var(--color-accent);
     transform: rotate(180deg);
+  }
   }
 
   .source-bar {
@@ -110,7 +114,9 @@ permalink: /toolbox/converter/
     color: var(--color-muted); cursor: pointer;
     transition: all 0.18s;
   }
-  .source-bar button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .source-bar button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .source-bar button:disabled { opacity: 0.55; cursor: wait; }
 
   .quick-row {
@@ -124,7 +130,9 @@ permalink: /toolbox/converter/
     color: var(--color-muted); cursor: pointer;
     transition: all 0.18s;
   }
-  .quick-row .quick:hover { border-color: var(--color-accent); border-style: solid; color: var(--color-accent); }
+  @media (hover: hover) {
+    .quick-row .quick:hover { border-color: var(--color-accent); border-style: solid; color: var(--color-accent); }
+  }
 
   .footnote {
     margin-top: 1.4rem;
@@ -151,7 +159,9 @@ permalink: /toolbox/converter/
     transition: background 0.18s;
   }
   .footnote[open] summary::before { background: var(--color-accent); }
-  .footnote summary:hover::before { background: var(--color-accent); }
+  @media (hover: hover) {
+    .footnote summary:hover::before { background: var(--color-accent); }
+  }
   .footnote-body {
     padding: 0 1rem 0.9rem;
     font-size: 0.85rem; color: var(--color-muted); line-height: 1.65;

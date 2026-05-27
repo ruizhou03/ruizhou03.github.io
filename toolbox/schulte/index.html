@@ -90,7 +90,9 @@ permalink: /toolbox/schulte/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .sch-size-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  @media (hover: hover) {
+    .sch-size-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  }
   .sch-btn {
     padding: 0.4rem 0.85rem;
     font-size: 0.86rem;
@@ -101,7 +103,9 @@ permalink: /toolbox/schulte/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .sch-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .sch-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   .sch-board-wrap {
     position: relative;

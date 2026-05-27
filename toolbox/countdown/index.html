@@ -22,9 +22,11 @@ permalink: /toolbox/countdown/
     box-shadow: 0 2px 8px rgba(30, 58, 95, 0.2);
     transition: all 0.2s;
   }
-  .toolbar .add-btn:hover {
+  @media (hover: hover) {
+    .toolbar .add-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(30, 58, 95, 0.28);
+  }
   }
   .toolbar .secondary-btn {
     font: inherit; font-size: 0.85rem;
@@ -33,7 +35,9 @@ permalink: /toolbox/countdown/
     background: var(--color-bg); color: var(--color-muted); cursor: pointer;
     transition: all 0.18s;
   }
-  .toolbar .secondary-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .toolbar .secondary-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .toolbar .spacer { flex-grow: 1; }
   .toolbar .filter-tabs { display: flex; gap: 0.3rem; }
   .toolbar .filter-tabs button {
@@ -61,9 +65,11 @@ permalink: /toolbox/countdown/
     background: var(--color-bg);
     transition: all 0.2s;
   }
-  .event-card:hover {
+  @media (hover: hover) {
+    .event-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  }
   }
   .event-card.urgent { background: var(--color-bg-warm); }
   .event-card.urgent::after {
@@ -115,7 +121,9 @@ permalink: /toolbox/countdown/
     opacity: 0;
     transition: opacity 0.2s;
   }
-  .event-card:hover .ev-actions { opacity: 1; }
+  @media (hover: hover) {
+    .event-card:hover .ev-actions { opacity: 1; }
+  }
   /* Touch / coarse-pointer: edit button never appears on hover, so always show */
   @media (hover: none) {
     .event-card .ev-actions { opacity: 1; }
@@ -127,8 +135,12 @@ permalink: /toolbox/countdown/
     border-radius: 4px;
     transition: all 0.18s;
   }
-  .event-card .ev-actions button:hover { background: var(--color-bg-warm); color: var(--color-accent); }
-  .event-card .ev-actions button.danger:hover { color: #a04030; }
+  @media (hover: hover) {
+    .event-card .ev-actions button:hover { background: var(--color-bg-warm); color: var(--color-accent); }
+  }
+  @media (hover: hover) {
+    .event-card .ev-actions button.danger:hover { color: #a04030; }
+  }
 
   .empty-zone {
     text-align: center;
@@ -184,7 +196,9 @@ permalink: /toolbox/countdown/
     font-size: 1.1rem; cursor: pointer;
     transition: all 0.15s;
   }
-  .emoji-picker button:hover { border-color: var(--color-accent); }
+  @media (hover: hover) {
+    .emoji-picker button:hover { border-color: var(--color-accent); }
+  }
   .emoji-picker button.selected { border-color: var(--color-accent); background: var(--color-bg-warm); }
   .color-picker button {
     width: 32px; height: 32px;
@@ -207,18 +221,24 @@ permalink: /toolbox/countdown/
     background: var(--color-bg); border: 1px solid var(--color-border);
     color: var(--color-muted);
   }
-  .modal-actions .cancel:hover { color: var(--color-accent); border-color: var(--color-accent); }
+  @media (hover: hover) {
+    .modal-actions .cancel:hover { color: var(--color-accent); border-color: var(--color-accent); }
+  }
   .modal-actions .save {
     background: var(--color-accent); border: 1px solid var(--color-accent);
     color: #fff; font-weight: 600;
   }
-  .modal-actions .save:hover { background: var(--color-accent-light); }
+  @media (hover: hover) {
+    .modal-actions .save:hover { background: var(--color-accent-light); }
+  }
   .modal-actions .delete-btn {
     background: transparent; border: 1px solid var(--color-border);
     color: #a04030;
     margin-right: auto;
   }
-  .modal-actions .delete-btn:hover { background: rgba(160, 64, 48, 0.08); border-color: #a04030; }
+  @media (hover: hover) {
+    .modal-actions .delete-btn:hover { background: rgba(160, 64, 48, 0.08); border-color: #a04030; }
+  }
 
   @media (max-width: 600px) {
     .events-grid { grid-template-columns: 1fr; }
@@ -355,7 +375,9 @@ permalink: /toolbox/countdown/
     font-size: 0.86rem;
     transition: background 0.15s;
   }
-  .preset-list label:hover { background: var(--color-bg); }
+  @media (hover: hover) {
+    .preset-list label:hover { background: var(--color-bg); }
+  }
   .preset-list label .pl-emoji { font-size: 1rem; }
   .preset-list label .pl-name { color: var(--color-ink); flex-grow: 1; }
   .preset-list label .pl-date { font-size: 0.75rem; color: var(--color-light); font-variant-numeric: tabular-nums; }

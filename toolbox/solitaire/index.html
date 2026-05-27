@@ -93,7 +93,9 @@ permalink: /toolbox/solitaire/
     transition: all 0.18s ease;
     touch-action: manipulation;
   }
-  .so-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .so-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .so-btn:disabled { opacity: 0.4; cursor: default; }
   .so-btn.primary {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
@@ -252,8 +254,10 @@ permalink: /toolbox/solitaire/
   }
   /* 触屏：点完控制按钮不要残留 hover 高亮 */
   @media (hover: none) and (pointer: coarse) {
-    .so-btn:hover:not(:disabled):not(.primary) {
+    @media (hover: hover) {
+      .so-btn:hover:not(:disabled):not(.primary) {
       border-color: var(--color-border); color: var(--color-ink);
+    }
     }
   }
 </style>

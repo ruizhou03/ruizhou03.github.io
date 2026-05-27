@@ -90,7 +90,9 @@ permalink: /toolbox/memory/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .mem-size-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  @media (hover: hover) {
+    .mem-size-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  }
   .mem-btn {
     padding: 0.4rem 0.85rem;
     font-size: 0.86rem;
@@ -101,7 +103,9 @@ permalink: /toolbox/memory/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .mem-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .mem-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   .mem-board-wrap {
     position: relative;

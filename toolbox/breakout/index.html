@@ -90,7 +90,9 @@ permalink: /toolbox/breakout/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .bk-speed-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  @media (hover: hover) {
+    .bk-speed-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  }
   .bk-btn {
     padding: 0.4rem 0.85rem;
     font-size: 0.86rem;
@@ -101,7 +103,9 @@ permalink: /toolbox/breakout/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .bk-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .bk-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   .bk-canvas-wrap {
     position: relative;

@@ -24,7 +24,9 @@ permalink: /toolbox/tax-bracket/
     -webkit-appearance: none; appearance: none; cursor: pointer;
     transition: all 0.18s;
   }
-  .country-bar select:hover { border-color: var(--color-accent); }
+  @media (hover: hover) {
+    .country-bar select:hover { border-color: var(--color-accent); }
+  }
   .country-bar select:focus { outline: none; border-color: var(--color-accent); }
 
   .panel {
@@ -228,7 +230,9 @@ permalink: /toolbox/tax-bracket/
     display: inline-block;
   }
   .footnote[open] summary::after { transform: rotate(90deg); }
-  .footnote summary:hover { color: var(--color-accent); }
+  @media (hover: hover) {
+    .footnote summary:hover { color: var(--color-accent); }
+  }
   .footnote-body {
     padding: 0 1rem 0.9rem;
     font-size: 0.85rem; color: var(--color-muted); line-height: 1.7;

@@ -70,9 +70,11 @@ permalink: /toolbox/metronome/
     box-shadow: 0 3px 10px rgba(30,58,95,0.25);
     min-width: 180px;
   }
-  .start-btn:hover {
+  @media (hover: hover) {
+    .start-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 5px 14px rgba(30,58,95,0.32);
+  }
   }
   .start-btn.running {
     background: #b07c75;
@@ -149,8 +151,10 @@ permalink: /toolbox/metronome/
     cursor: pointer; transition: all 0.15s; font: inherit;
     line-height: 1.2;
   }
-  .pill-group button:hover:not(.active) {
+  @media (hover: hover) {
+    .pill-group button:hover:not(.active) {
     border-color: var(--color-accent); color: var(--color-accent);
+  }
   }
   .pill-group button.active {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
@@ -227,8 +231,10 @@ permalink: /toolbox/metronome/
     cursor: pointer; transition: all 0.1s;
     min-width: 130px;
   }
-  .tap-btn:hover {
+  @media (hover: hover) {
+    .tap-btn:hover {
     border-color: var(--color-accent); color: var(--color-accent);
+  }
   }
   .tap-btn.tapped {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
@@ -267,11 +273,19 @@ permalink: /toolbox/metronome/
     .start-btn { width: 100%; min-width: 0; }
     .beat-dot { width: 16px; height: 16px; }
   }
-  /* 触屏设备移除 :hover 残留，避免点完按钮一直保持"悬浮态" */
+  @media (hover: hover) {
+    /* 触屏设备移除 :hover 残留，避免点完按钮一直保持"悬浮态" */
   @media (hover: none) and (pointer: coarse) {
-    .start-btn:hover { transform: none; box-shadow: 0 3px 10px rgba(30,58,95,0.25); }
-    .pill-group button:hover:not(.active) { border-color: var(--color-border); color: var(--color-text); }
-    .tap-btn:hover { border-color: var(--color-border); color: var(--color-text); }
+    @media (hover: hover) {
+      .start-btn:hover { transform: none; box-shadow: 0 3px 10px rgba(30,58,95,0.25); }
+    }
+    @media (hover: hover) {
+      .pill-group button:hover:not(.active) { border-color: var(--color-border); color: var(--color-text); }
+    }
+    @media (hov
+  }er: hover) {
+      .tap-btn:hover { border-color: var(--color-border); color: var(--color-text); }
+    }
   }
 </style>
 

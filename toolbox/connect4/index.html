@@ -33,7 +33,9 @@ permalink: /toolbox/connect4/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .c4-mode-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  @media (hover: hover) {
+    .c4-mode-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  }
   .c4-btn {
     padding: 0.4rem 0.85rem;
     font-size: 0.86rem;
@@ -44,7 +46,9 @@ permalink: /toolbox/connect4/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .c4-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .c4-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .c4-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .c4-statusbar {

@@ -127,7 +127,9 @@ permalink: /toolbox/doudizhu/
     border-radius: 999px;
     transition: all 0.18s;
   }
-  .ddz-playmode-btn:hover { color: var(--color-ink); }
+  @media (hover: hover) {
+    .ddz-playmode-btn:hover { color: var(--color-ink); }
+  }
   .ddz-playmode-btn.active {
     background: var(--color-accent);
     color: #fff;
@@ -153,7 +155,9 @@ permalink: /toolbox/doudizhu/
     cursor: pointer; border-radius: 6px;
     transition: all 0.18s;
   }
-  .ddz-online-tab:hover { color: var(--color-ink); }
+  @media (hover: hover) {
+    .ddz-online-tab:hover { color: var(--color-ink); }
+  }
   .ddz-online-tab.active {
     background: var(--color-accent);
     color: #fff;
@@ -252,7 +256,9 @@ permalink: /toolbox/doudizhu/
     cursor: pointer;
     font-family: inherit;
   }
-  .ddz-btn-mini:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .ddz-btn-mini:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .ddz-btn-mini.ghost { background: transparent; color: var(--color-muted); }
 
   /* 大厅 */
@@ -291,9 +297,11 @@ permalink: /toolbox/doudizhu/
     border-color: var(--ddz-frame-2);
     color: var(--ddz-text-on-felt);
   }
-  .ddz-room-banner .actions .ddz-btn-mini:hover {
+  @media (hover: hover) {
+    .ddz-room-banner .actions .ddz-btn-mini:hover {
     background: rgba(255,255,255,0.2);
     color: var(--ddz-accent-strong);
+  }
   }
   .ddz-lobby-players-wrap {
     margin: 1rem 0;
@@ -369,7 +377,9 @@ permalink: /toolbox/doudizhu/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .ddz-mode-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  @media (hover: hover) {
+    .ddz-mode-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  }
   .ddz-btn {
     padding: 0.45rem 0.9rem;
     font-size: 0.9rem;
@@ -381,14 +391,18 @@ permalink: /toolbox/doudizhu/
     transition: all 0.18s;
     font-family: inherit;
   }
-  .ddz-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .ddz-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .ddz-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .ddz-btn.primary {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
     font-weight: 600;
     padding: 0.55rem 1.4rem;
   }
-  .ddz-btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+  @media (hover: hover) {
+    .ddz-btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+  }
 
   /* ======== 牌桌：浅奶油羊皮纸 + 暖金细边 ======== */
   .ddz-table {
@@ -805,7 +819,9 @@ permalink: /toolbox/doudizhu/
     font-family: inherit;
     transition: all 0.18s;
   }
-  .ddz-sfx-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .ddz-sfx-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .ddz-sfx-toggle.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
   .ddz-wrap header { position: relative; }   /* 让音效 chip absolute 定位锚点 */
 
@@ -1074,7 +1090,9 @@ permalink: /toolbox/doudizhu/
     cursor: pointer;
     transition: all 0.18s;
   }
-  .ddz-autopilot-toggle:hover { border-color: var(--ddz-accent); }
+  @media (hover: hover) {
+    .ddz-autopilot-toggle:hover { border-color: var(--ddz-accent); }
+  }
   .ddz-autopilot-toggle.active {
     background: linear-gradient(135deg, #5a8a5a 0%, #3e6a3e 100%);
     color: #fff;
@@ -1088,10 +1106,12 @@ permalink: /toolbox/doudizhu/
     color: #a87a2a;
     border-color: var(--ddz-frame);
   }
-  .ddz-btn.declare:hover:not(:disabled) {
+  @media (hover: hover) {
+    .ddz-btn.declare:hover:not(:disabled) {
     background: rgba(245,209,66,0.45);
     color: #a87a2a;
     border-color: var(--ddz-frame);
+  }
   }
   .ddz-btn[hidden] { display: none !important; }
 
@@ -1137,7 +1157,9 @@ permalink: /toolbox/doudizhu/
     transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
   }
   .ddz-hand .ddz-card.size-full:first-child { margin-left: 0; }
-  .ddz-hand .ddz-card.size-full:hover { filter: brightness(1.05); }
+  @media (hover: hover) {
+    .ddz-hand .ddz-card.size-full:hover { filter: brightness(1.05); }
+  }
   .ddz-hand .ddz-card.size-full.selected {
     transform: translateY(-20px);
     box-shadow: 0 8px 14px rgba(20,37,63,0.35), inset 0 0 0 2px var(--ddz-accent);
@@ -1163,10 +1185,12 @@ permalink: /toolbox/doudizhu/
     letter-spacing: 0.03em;
     transition: transform 0.12s, box-shadow 0.12s, background 0.12s, color 0.12s;
   }
-  .ddz-actions .ddz-btn:hover:not(:disabled) {
+  @media (hover: hover) {
+    .ddz-actions .ddz-btn:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 3px 8px rgba(20,37,63,0.25);
     color: var(--color-accent);
+  }
   }
   .ddz-actions .ddz-btn:active:not(:disabled) {
     transform: translateY(0);
@@ -1177,10 +1201,12 @@ permalink: /toolbox/doudizhu/
     border-color: var(--color-accent);
     box-shadow: 0 2px 5px rgba(20,37,63,0.32);
   }
-  .ddz-actions .ddz-btn.primary:hover:not(:disabled) {
+  @media (hover: hover) {
+    .ddz-actions .ddz-btn.primary:hover:not(:disabled) {
     background: var(--color-accent-light);
     color: #fff;
     border-color: var(--color-accent-light);
+  }
   }
   .ddz-actions .ddz-btn:disabled {
     opacity: 0.35;
@@ -1390,8 +1416,12 @@ permalink: /toolbox/doudizhu/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .ddz-bid-buttons button:hover:not(:disabled) { transform: translateY(-1px); }
-  .ddz-bid-buttons button.primary:hover:not(:disabled) { background: var(--color-accent-light); border-color: var(--color-accent-light); }
+  @media (hover: hover) {
+    .ddz-bid-buttons button:hover:not(:disabled) { transform: translateY(-1px); }
+  }
+  @media (hover: hover) {
+    .ddz-bid-buttons button.primary:hover:not(:disabled) { background: var(--color-accent-light); border-color: var(--color-accent-light); }
+  }
   .ddz-bid-buttons button:active:not(:disabled) { transform: translateY(0); }
   .ddz-bid-buttons button:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -1487,7 +1517,9 @@ permalink: /toolbox/doudizhu/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .ddz-double-cell .me-btns button:hover:not(:disabled) { transform: translateY(-1px); }
+  @media (hover: hover) {
+    .ddz-double-cell .me-btns button:hover:not(:disabled) { transform: translateY(-1px); }
+  }
 
   /* ======== 浮层 ======== */
   .ddz-overlay {
@@ -1856,7 +1888,9 @@ permalink: /toolbox/doudizhu/
     font-family: inherit;
     transition: all 0.18s;
   }
-  .ddz-fullscreen-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .ddz-fullscreen-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .ddz-fullscreen-toggle.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
 
   /* ======== 游戏画幅全屏模式 (跨平台) ========

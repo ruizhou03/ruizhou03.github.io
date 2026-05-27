@@ -59,7 +59,9 @@ permalink: /toolbox/dare/
     color: var(--color-ink);
     transition: all 0.15s;
   }
-  .player-count-chips button:hover { border-color: var(--color-accent); }
+  @media (hover: hover) {
+    .player-count-chips button:hover { border-color: var(--color-accent); }
+  }
   .player-count-chips button.active {
     background: var(--color-accent);
     color: #fff;
@@ -287,7 +289,9 @@ permalink: /toolbox/dare/
     background: var(--color-accent); color: #fff;
     box-shadow: 0 3px 10px rgba(30, 58, 95, 0.25);
   }
-  .dare-btn.primary:hover { transform: translateY(-1px); }
+  @media (hover: hover) {
+    .dare-btn.primary:hover { transform: translateY(-1px); }
+  }
   .dare-btn.success {
     background: #4a7c59; color: #fff;
   }
@@ -298,8 +302,10 @@ permalink: /toolbox/dare/
     background: transparent; color: var(--color-muted);
     border: 1px solid var(--color-border);
   }
-  .dare-btn.ghost:hover {
+  @media (hover: hover) {
+    .dare-btn.ghost:hover {
     color: var(--color-accent); border-color: var(--color-accent);
+  }
   }
   .dare-btn:disabled {
     opacity: 0.4; cursor: not-allowed; transform: none;

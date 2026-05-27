@@ -97,7 +97,9 @@ permalink: /toolbox/typing/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .typing-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .typing-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   .typing-stage {
     position: relative;
@@ -205,7 +207,9 @@ permalink: /toolbox/typing/
     background: var(--color-accent);
     border-color: var(--color-accent);
   }
-  .typing-result .res-btns button:hover { filter: brightness(1.08); }
+  @media (hover: hover) {
+    .typing-result .res-btns button:hover { filter: brightness(1.08); }
+  }
 </style>
 
 <div class="typing-wrap">

@@ -84,7 +84,9 @@ permalink: /toolbox/sudoku/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .sudoku-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .sudoku-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .sudoku-btn.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
   .sudoku-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 

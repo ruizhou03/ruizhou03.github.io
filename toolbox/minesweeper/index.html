@@ -112,7 +112,9 @@ permalink: /toolbox/minesweeper/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .ms-diff-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  @media (hover: hover) {
+    .ms-diff-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  }
   .ms-btn {
     padding: 0.4rem 0.85rem;
     font-size: 0.86rem;
@@ -123,7 +125,9 @@ permalink: /toolbox/minesweeper/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .ms-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .ms-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   .ms-statusbar {
     display: flex; gap: 0.6rem; justify-content: center; align-items: center;

@@ -33,7 +33,9 @@ permalink: /toolbox/gomoku/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .gm-mode-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  @media (hover: hover) {
+    .gm-mode-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  }
   .gm-btn {
     padding: 0.4rem 0.85rem;
     font-size: 0.86rem;
@@ -44,7 +46,9 @@ permalink: /toolbox/gomoku/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .gm-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .gm-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .gm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .gm-statusbar {

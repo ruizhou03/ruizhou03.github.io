@@ -61,7 +61,9 @@ permalink: /toolbox/2048/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .size-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  @media (hover: hover) {
+    .size-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  }
   .gbtn {
     padding: 0.4rem 0.85rem;
     font-size: 0.86rem;
@@ -72,7 +74,9 @@ permalink: /toolbox/2048/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .gbtn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .gbtn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .gbtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .board {

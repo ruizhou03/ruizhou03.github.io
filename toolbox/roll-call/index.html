@@ -28,8 +28,12 @@ permalink: /toolbox/roll-call/
     transition: all 0.18s;
   }
   .profile-bar select { padding: 0.4rem 0.7rem; }
-  .profile-bar button:hover { border-color: var(--color-accent); color: var(--color-accent); }
-  .profile-bar button.danger:hover { border-color: #b07c75; color: #b07c75; }
+  @media (hover: hover) {
+    .profile-bar button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  @media (hover: hover) {
+    .profile-bar button.danger:hover { border-color: #b07c75; color: #b07c75; }
+  }
 
   .names-input {
     width: 100%; min-height: 120px; resize: vertical;
@@ -91,9 +95,11 @@ permalink: /toolbox/roll-call/
     box-shadow: 0 3px 10px rgba(30, 58, 95, 0.25);
     transition: all 0.2s;
   }
-  .action-btn:hover:not(:disabled) {
+  @media (hover: hover) {
+    .action-btn:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 5px 14px rgba(30, 58, 95, 0.32);
+  }
   }
   .action-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; transform: none; }
 
@@ -113,7 +119,9 @@ permalink: /toolbox/roll-call/
     background: var(--color-bg); color: var(--color-muted); cursor: pointer;
     transition: all 0.18s;
   }
-  .history-toolbar button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .history-toolbar button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   .name-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
   .name-chip {

@@ -197,25 +197,31 @@ permalink: /toolbox/random/
     cursor: pointer;
     transition: all 0.15s;
   }
-  .sample-btn:hover {
+  @media (hover: hover) {
+    .sample-btn:hover {
     border-color: var(--color-accent);
     color: var(--color-accent);
+  }
   }
   .sample-btn.primary {
     background: var(--color-accent);
     color: #fff;
     border-color: var(--color-accent);
   }
-  .sample-btn.primary:hover {
+  @media (hover: hover) {
+    .sample-btn.primary:hover {
     color: #fff;
     filter: brightness(1.08);
+  }
   }
   .sample-btn.danger {
     color: var(--color-muted);
   }
-  .sample-btn.danger:hover {
+  @media (hover: hover) {
+    .sample-btn.danger:hover {
     border-color: #b07c75;
     color: #b07c75;
+  }
   }
   .sample-custom {
     display: inline-flex; align-items: center; gap: 0.4rem;
@@ -288,9 +294,11 @@ permalink: /toolbox/random/
     white-space: nowrap;
     transition: all 0.15s;
   }
-  .custom-trigger:hover {
+  @media (hover: hover) {
+    .custom-trigger:hover {
     border-color: var(--color-accent);
     color: var(--color-accent);
+  }
   }
   .custom-delete {
     padding: 0.3rem 0.75rem;
@@ -301,9 +309,11 @@ permalink: /toolbox/random/
     color: var(--color-muted);
     cursor: pointer;
   }
-  .custom-delete:hover {
+  @media (hover: hover) {
+    .custom-delete:hover {
     border-color: #b07c75;
     color: #b07c75;
+  }
   }
   .custom-form {
     margin-top: 0.9rem;

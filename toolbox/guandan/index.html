@@ -329,13 +329,17 @@ permalink: /toolbox/guandan/
     border-radius: 8px; cursor: pointer; color: var(--color-ink);
     transition: all 0.16s; font-family: inherit;
   }
-  .gd-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .gd-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .gd-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .gd-btn.primary {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
     font-weight: 600;
   }
-  .gd-btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+  @media (hover: hover) {
+    .gd-btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+  }
   .gd-btn.mini { padding: 0.32rem 0.7rem; font-size: 0.8rem; }
 
   /* 提示气泡：当前选牌是否成型 */

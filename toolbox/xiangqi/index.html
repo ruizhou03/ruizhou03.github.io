@@ -33,7 +33,9 @@ permalink: /toolbox/xiangqi/
     color: #fff;
     border-color: var(--color-accent);
   }
-  .xq-mode-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  @media (hover: hover) {
+    .xq-mode-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
+  }
   .xq-btn {
     padding: 0.4rem 0.85rem;
     font-size: 0.86rem;
@@ -44,7 +46,9 @@ permalink: /toolbox/xiangqi/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
-  .xq-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .xq-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .xq-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .xq-row-label { font-size: 0.82rem; color: var(--color-muted); margin-right: 0.15rem; }

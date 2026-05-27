@@ -33,7 +33,9 @@ permalink: /toolbox/timemachine/
     background: var(--color-bg); color: var(--color-muted); cursor: pointer;
     transition: all 0.18s;
   }
-  .date-bar .reset-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .date-bar .reset-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
 
   .featured-date {
     text-align: center;
@@ -82,9 +84,11 @@ permalink: /toolbox/timemachine/
     transition: all 0.18s;
   }
   .article-row:last-child { border-bottom: none; }
-  .article-row:hover {
+  @media (hover: hover) {
+    .article-row:hover {
     color: var(--color-accent);
     transform: translateX(3px);
+  }
   }
   .article-row .ar-title {
     font-weight: 600;
@@ -93,7 +97,9 @@ permalink: /toolbox/timemachine/
     margin-bottom: 0.2rem;
     transition: color 0.18s;
   }
-  .article-row:hover .ar-title { color: var(--color-accent); }
+  @media (hover: hover) {
+    .article-row:hover .ar-title { color: var(--color-accent); }
+  }
   .article-row .ar-meta {
     font-size: 0.78rem;
     color: var(--color-light);
@@ -159,7 +165,9 @@ permalink: /toolbox/timemachine/
   .heatmap .cell.has-posts.lvl-4 { background: var(--color-accent); }
   .heatmap .cell.today { box-shadow: 0 0 0 2px var(--color-highlight); }
   .heatmap .cell.selected { box-shadow: 0 0 0 2px var(--color-accent); }
-  .heatmap .cell:hover { transform: scale(1.15); z-index: 2; }
+  @media (hover: hover) {
+    .heatmap .cell:hover { transform: scale(1.15); z-index: 2; }
+  }
   .heatmap-month-row {
     display: grid;
     grid-template-columns: 32px 1fr;

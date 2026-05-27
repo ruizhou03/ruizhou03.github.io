@@ -21,14 +21,18 @@ permalink: /toolbox/goals/
     box-shadow: 0 2px 8px rgba(30, 58, 95, 0.2);
     transition: all 0.2s;
   }
-  .toolbar .add-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30, 58, 95, 0.28); }
+  @media (hover: hover) {
+    .toolbar .add-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30, 58, 95, 0.28); }
+  }
   .toolbar .secondary-btn {
     font: inherit; font-size: 0.85rem;
     padding: 0.5rem 1rem; border: 1px solid var(--color-border); border-radius: 999px;
     background: var(--color-bg); color: var(--color-muted); cursor: pointer;
     transition: all 0.18s;
   }
-  .toolbar .secondary-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .toolbar .secondary-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .toolbar .spacer { flex-grow: 1; }
 
   .goals-grid {
@@ -46,9 +50,11 @@ permalink: /toolbox/goals/
     cursor: pointer;
     transition: all 0.2s;
   }
-  .goal-card:hover {
+  @media (hover: hover) {
+    .goal-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  }
   }
   .goal-card .gh-row {
     display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem;
@@ -115,7 +121,9 @@ permalink: /toolbox/goals/
     cursor: pointer;
     transition: all 0.18s;
   }
-  .detail-header .back-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .detail-header .back-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .detail-header .d-emoji { font-size: 1.8rem; }
   .detail-header .d-title { font-family: var(--font-display); font-weight: 600; font-size: 1.4rem; color: var(--color-ink); flex-grow: 1; }
   .detail-header .edit-btn, .detail-header .delete-btn {
@@ -125,8 +133,12 @@ permalink: /toolbox/goals/
     background: var(--color-bg); color: var(--color-muted);
     cursor: pointer; transition: all 0.18s;
   }
-  .detail-header .edit-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-  .detail-header .delete-btn:hover { border-color: #b07c75; color: #b07c75; }
+  @media (hover: hover) {
+    .detail-header .edit-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  @media (hover: hover) {
+    .detail-header .delete-btn:hover { border-color: #b07c75; color: #b07c75; }
+  }
 
   .detail-summary {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;
@@ -188,7 +200,9 @@ permalink: /toolbox/goals/
     background: var(--color-accent); color: #fff; cursor: pointer;
     transition: all 0.2s;
   }
-  .entry-form button:hover { background: var(--color-accent-light); }
+  @media (hover: hover) {
+    .entry-form button:hover { background: var(--color-accent-light); }
+  }
 
   .entry-list { max-height: 320px; overflow-y: auto; }
   .entry-row {
@@ -207,7 +221,9 @@ permalink: /toolbox/goals/
     cursor: pointer; padding: 0.2rem 0.4rem; font-size: 0.85rem;
     border-radius: 4px; transition: all 0.18s;
   }
-  .entry-row .er-delete:hover { color: #b07c75; background: var(--color-bg-warm); }
+  @media (hover: hover) {
+    .entry-row .er-delete:hover { color: #b07c75; background: var(--color-bg-warm); }
+  }
 
   /* ============ Modal ============ */
   .modal-backdrop {
@@ -279,7 +295,9 @@ permalink: /toolbox/goals/
     background: transparent; border: 1px solid var(--color-border);
     color: #b07c75; margin-right: auto;
   }
-  .modal-actions .delete-btn:hover { background: rgba(192, 57, 43, 0.08); border-color: #b07c75; }
+  @media (hover: hover) {
+    .modal-actions .delete-btn:hover { background: rgba(192, 57, 43, 0.08); border-color: #b07c75; }
+  }
 </style>
 
 <div class="gl-wrap">

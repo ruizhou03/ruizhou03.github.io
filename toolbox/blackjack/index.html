@@ -291,12 +291,16 @@ permalink: /toolbox/blackjack/
     transition: all 0.16s ease;
     -webkit-tap-highlight-color: transparent;
   }
-  .bj-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  @media (hover: hover) {
+    .bj-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  }
   .bj-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .bj-btn.primary {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
   }
-  .bj-btn.primary:hover:not(:disabled) { filter: brightness(1.06); color: #fff; }
+  @media (hover: hover) {
+    .bj-btn.primary:hover:not(:disabled) { filter: brightness(1.06); color: #fff; }
+  }
   .bj-btn.ghost { font-size: 0.84rem; padding: 0.4rem 0.8rem; }
 
   .bj-help {
