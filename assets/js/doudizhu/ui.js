@@ -166,12 +166,45 @@
   const TURN_TIMEOUT_MS = 25000;
   const DOUBLE_TIMEOUT_MS = 5000;
   const BID_TIMEOUT_MS = 10000;   // 叫地主 / 抢地主单回合超时 — 到点默认不叫/不抢
-  // 现在 countdownEl 接受一个 seat 参数（0/1/2 显示座位），返回对应的 .ddz-clock
-  function clockEl(seat) { return document.getElementById('ddzClock' + seat); }
+  // 时钟不再挂在头像上：
+  //   - seat 0（我）出牌阶段：动作行里的 #ddzSelfClock（"出牌/提示/不出"同一行）
+  //   - seat 0（我）抢地主/加倍阶段：bid-panel 角上的 #ddzDoubleCountdown
+  //   - seat 1/2（AI）：注入到该家 .ddz-played 区域；一旦 AI 出牌，
+  //     renderPlayedAt 覆盖 innerHTML，时钟自动消失
+  function clockEl(seat) {
+    if (seat === 0) {
+      if (state.phase === PHASE.PLAYING) {
+        return document.getElementById('ddzSelfClock');
+      }
+      return document.getElementById('ddzDoubleCountdown');
+    }
+    const playedEl = document.getElementById('ddzPlayed' + seat);
+    if (!playedEl) return null;
+    let clock = playedEl.querySelector('.ddz-played-clock');
+    if (!clock) {
+      playedEl.innerHTML = '';
+      clock = document.createElement('span');
+      clock.className = 'ddz-played-clock';
+      clock.innerHTML =
+        '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">' +
+          '<circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
+          '<path d="M12 13 V8 M12 13 L15.4 14.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>' +
+          '<path d="M9.5 3.5 H14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+        '</svg>' +
+        '<span class="ddz-played-clock-num">25</span><span class="ddz-played-clock-s">s</span>';
+      playedEl.appendChild(clock);
+    }
+    return clock;
+  }
   function hideAllClocks() {
-    for (let i = 0; i < 3; i++) {
-      const el = clockEl(i);
-      if (el) { el.hidden = true; el.classList.remove('urgent'); }
+    const self = document.getElementById('ddzSelfClock');
+    if (self) { self.hidden = true; self.classList.remove('urgent'); }
+    const dc = document.getElementById('ddzDoubleCountdown');
+    if (dc) { dc.hidden = true; dc.classList.remove('urgent'); }
+    for (const s of [1, 2]) {
+      const p = document.getElementById('ddzPlayed' + s);
+      if (!p) continue;
+      p.querySelectorAll('.ddz-played-clock').forEach(el => el.remove());
     }
   }
   let turnCountdownTimer = null;
@@ -188,10 +221,15 @@
     el.hidden = false;
     el.classList.remove('urgent');
     let lastTickedSec = 99;       // 用于「仅在跨秒时」播放心跳音
+    // self-clock / played-clock 是 "图标 + 数字 + s" 的复合结构，
+    // 只更新里面的 .num 子节点，避免 textContent 把 SVG 一起冲掉；
+    // 旧 #ddzDoubleCountdown 是纯文本，直接 textContent。
+    const numEl = el.querySelector('.ddz-self-clock-num, .ddz-played-clock-num');
     function tick() {
       const left = Math.max(0, turnCountdownEndAt - Date.now());
       const s = Math.ceil(left / 1000);
-      el.textContent = s + 's';
+      if (numEl) numEl.textContent = String(s);
+      else el.textContent = s + 's';
       el.classList.toggle('urgent', s <= 5);
       // 只在玩家自己（seat===0）轮次的最后 3 秒播心跳音
       if (turnCountdownSeat === 0 && s !== lastTickedSec && s > 0 && s <= 3) {
@@ -1288,10 +1326,11 @@
     el.appendChild(tag);
   }
   function renderBidThinkingAt(seat) {
+    // 不再贴"思考"——startTurnCountdown 紧接着会在这片区域挂上时钟，更直观
     const el = $('ddzPlayed' + seat);
     if (!el) return;
     el.className = 'ddz-played';
-    el.innerHTML = '<span class="think-tag">思考</span>';
+    el.innerHTML = '';
   }
 
   function nextBidTurn() {
@@ -1334,14 +1373,14 @@
   }
 
   function presentBidChoice(seat, isCall) {
-    // 进入"叫/抢"决策 — 隐掉加倍阶段才用的 corner 倒计时
-    const cdEl = document.getElementById('ddzDoubleCountdown');
-    if (cdEl) cdEl.hidden = true;
     // 不再写"轮到 X 叫地主"之类的文字 — 按钮 / 思考 tag 已经说清楚状态了
     setStatus('');
     // 托管：自己这局也走 AI 路径
     const useAi = seat !== 0 || state.autopilot;
     if (!useAi) {
+      // 清掉自己上一轮的"叫地主/不叫"tag——不然抢地主按钮会和它重合
+      const myPlayed = document.getElementById('ddzPlayed0');
+      if (myPlayed) myPlayed.innerHTML = '';
       bidPanel.hidden = false;
       bidTitle.textContent = '';   // 只露按钮，规则三的"不要多余文字"
       renderBidButtons([
@@ -1349,6 +1388,7 @@
         { label: isCall ? '不叫' : '不抢', value: 'pass' },
       ], handleBid);
       // 倒计时：BID_TIMEOUT_MS 内不点 → 默认不叫/不抢
+      // 抢地主阶段的"自己"时钟现在挂在 bid-panel 角上（#ddzDoubleCountdown）
       startTurnCountdown(() => {
         if (state.phase === PHASE.BIDDING && state.bidTurnIdx === 0 && !bidPanel.hidden) {
           handleBid(0, 'pass');
@@ -1357,7 +1397,7 @@
     } else {
       bidPanel.hidden = true;
       renderBidThinkingAt(seat);
-      // AI 头像上也亮 BID 时长的闹钟，跟玩家观感一致
+      // AI 的回合时钟现在注入到该家 .ddz-played 区里（clockEl 会建好）
       startTurnCountdown(null, seat, BID_TIMEOUT_MS);
       setTimeout(() => {
         const score = AI.evaluateHand(state.hands[seat]);
@@ -1752,7 +1792,7 @@
       // 顶部"我 / 上家 / 下家"标签
       const who = document.createElement('div');
       who.className = 'who';
-      who.textContent = isMe ? '我' : (seat === 1 ? '下家' : '上家');
+      who.textContent = isMe ? '我' : 'AI';
       cell.appendChild(who);
 
       if (isMe && !isDecided) {
@@ -1841,11 +1881,12 @@
       startTurnCountdown(() => autoPlayOnTimeout(), 0);
     } else {
       playActions.hidden = true;
-      setStatus(state.autopilot && seat === 0 ? '托管中…' : `${seatLabel(seat)} 思考中…`);
+      setStatus(state.autopilot && seat === 0 ? '托管中…' : '');
+      // 不再贴"思考"文本——startTurnCountdown 接着会在这片区域挂上时钟
       const playedEl = $('ddzPlayed' + seat);
       playedEl.className = 'ddz-played';
-      playedEl.innerHTML = '<span class="think-tag">思考</span>';
-      // AI 也亮闹钟，跟玩家观感一致
+      playedEl.innerHTML = '';
+      // AI 的回合时钟现在注入到 ddzPlayed{seat} 里
       startTurnCountdown(null, seat);
       setTimeout(() => aiTakeTurn(seat), 700 + Math.random() * 400);
     }
@@ -2335,7 +2376,7 @@
       : '';
     gameOverDetail.innerHTML =
       springBadge +
-      `<div>${winText}获胜 · 你是${myRole}</div>` +
+      `<div>${winText}获胜</div>` +
       `<div>本局积分 <strong>${score}</strong></div>`;
     gameOverOverlay.classList.toggle('has-spring', state.spring > 0);
     // 平时不显示结算图按钮；只有春天 / 反春天才弹
@@ -2376,7 +2417,7 @@
   }
 
   function difficultyLabel(d) { return { easy: '🌱 新手', normal: '🙂 普通', hard: '🔥 高手', master: '👑 大神' }[d] || d; }
-  function seatLabel(s) { return s === 0 ? '你' : (s === 1 ? '下家' : '上家'); }
+  function seatLabel(s) { return s === 0 ? '你' : 'AI'; }
   function formatDuration(ms) {
     const s = Math.floor(ms / 1000);
     const m = Math.floor(s / 60);
@@ -2433,8 +2474,7 @@
 
   function seatLongLabel(seat) {
     if (seat === 0) return '我';
-    if (seat === 1) return 'AI · 下家';
-    return 'AI · 上家';
+    return 'AI';
   }
 
   function paintSpringBoard(ctx, x, y, w, h, rows, subtitle) {

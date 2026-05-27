@@ -1121,17 +1121,18 @@ permalink: /toolbox/doudizhu/
   .ddz-btn[hidden] { display: none !important; }
 
   /* ======== 我的座位 + 手牌 ======== */
-  /* 我的头像绝对定位在牌桌左下角——和 AI 上家/下家（左上 / 右上）
-     形成"三角"，中央让给底牌 / 出牌 / 抢地主面板。
-     bottom = 手牌 + 出牌动作行 的高度，正好贴在动作行的上沿、左下角。 */
+  /* 我的头像绝对定位在牌桌真正的左下角——AI 在左上 / 右上，我在左下，
+     形成稳定三角；中央彻底让给底牌 / 出牌 / 抢地主面板。
+     头像 + 名字 + 手牌数 改成竖排，宽度紧凑——避免被手牌覆盖。 */
   .ddz-self {
-    display: flex; align-items: center;
-    gap: 0.6rem;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0.25rem;
     position: absolute;
-    left: 1rem;
-    bottom: calc(var(--ddz-card-h, 74px) + 5rem);
+    left: 0.8rem;
+    bottom: 1.2rem;
     z-index: 2;
   }
+  .ddz-self .ddz-name { font-size: 0.78rem; }
   .ddz-self-info {
     display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem;
   }
@@ -1258,42 +1259,45 @@ permalink: /toolbox/doudizhu/
     pointer-events: none;
   }
 
-  /* 头像上的轮次倒计时（闹钟）*/
-  .ddz-clock {
-    position: absolute;
-    top: -10px; right: -14px;
-    background: var(--ddz-card-bg);
-    border: 2px solid var(--ddz-accent);
+  /* ======== 轮次倒计时（统一时钟样式）========
+     自己的回合：挂在动作行 #ddzSelfClock（出牌阶段）或抢地主面板角标（抢地主/加倍阶段）
+     AI 的回合：注入到 AI 的出牌区 .ddz-played > .ddz-played-clock 里，
+                AI 一旦出牌，出牌区被牌覆盖、时钟自动消失。
+     不再挂在头像上——避免视觉拥挤。 */
+  .ddz-self-clock,
+  .ddz-played .ddz-played-clock {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+    padding: 0.28rem 0.7rem;
     border-radius: 999px;
-    padding: 0.12rem 0.5rem;
-    font-size: 0.78rem;
-    font-weight: 700;
+    background: var(--ddz-card-bg);
+    border: 1.5px solid var(--ddz-accent);
     color: var(--ddz-suit-black);
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em;
-    box-shadow: 0 2px 6px rgba(20,37,63,0.35), 0 0 0 2px rgba(255,255,255,0.5);
-    z-index: 6;
     font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.86rem;
+    font-variant-numeric: tabular-nums;
     line-height: 1.1;
+    box-shadow: 0 1px 4px rgba(20,37,63,0.18);
     pointer-events: none;
-    animation: ddz-clock-pulse 1.6s ease-in-out infinite;
   }
-  .ddz-clock::before {
-    content: '⏱';
-    margin-right: 2px;
-    font-weight: normal;
+  .ddz-self-clock svg,
+  .ddz-played .ddz-played-clock svg {
+    color: var(--ddz-accent);
+    flex-shrink: 0;
   }
-  .ddz-clock.urgent {
+  .ddz-self-clock[hidden] { display: none; }
+  .ddz-self-clock.urgent,
+  .ddz-played .ddz-played-clock.urgent {
     background: var(--ddz-suit-red);
     color: #fff;
     border-color: #fff5d4;
-    box-shadow: 0 0 14px rgba(200,40,40,0.7), 0 0 0 2px rgba(255,255,255,0.6);
+    box-shadow: 0 0 12px rgba(200,40,40,0.6), 0 0 0 2px rgba(255,255,255,0.55);
     animation: ddz-clock-urgent 0.5s ease-in-out infinite alternate;
   }
-  @keyframes ddz-clock-pulse {
-    0%, 100% { transform: scale(1); }
-    50%      { transform: scale(1.08); }
-  }
+  .ddz-self-clock.urgent svg,
+  .ddz-played .ddz-played-clock.urgent svg { color: #fff; }
   @keyframes ddz-clock-urgent {
     from { transform: scale(1); }
     to   { transform: scale(1.18); }
@@ -2087,8 +2091,8 @@ permalink: /toolbox/doudizhu/
     <div class="ddz-tops">
       <div class="ddz-tops-avatars">
         <div class="ddz-seat-ai" data-seat="2">
-          <div class="ddz-avatar" id="ddzAvatar2">🤖<span class="ddz-clock" id="ddzClock2" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled2" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared2" hidden>明牌</span></div>
-          <div class="ddz-name" id="ddzName2">AI · 上家</div>
+          <div class="ddz-avatar" id="ddzAvatar2">🤖<span class="ddz-doubled-badge" id="ddzDoubled2" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared2" hidden>明牌</span></div>
+          <div class="ddz-name" id="ddzName2">AI</div>
           <div class="ddz-handcount" id="ddzCount2">17</div>
         </div>
         <div class="ddz-center">
@@ -2099,8 +2103,8 @@ permalink: /toolbox/doudizhu/
           </div>
         </div>
         <div class="ddz-seat-ai" data-seat="1">
-          <div class="ddz-avatar" id="ddzAvatar1">🤖<span class="ddz-clock" id="ddzClock1" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled1" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared1" hidden>明牌</span></div>
-          <div class="ddz-name" id="ddzName1">AI · 下家</div>
+          <div class="ddz-avatar" id="ddzAvatar1">🤖<span class="ddz-doubled-badge" id="ddzDoubled1" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared1" hidden>明牌</span></div>
+          <div class="ddz-name" id="ddzName1">AI</div>
           <div class="ddz-handcount" id="ddzCount1">17</div>
         </div>
       </div>
@@ -2112,7 +2116,7 @@ permalink: /toolbox/doudizhu/
 
     <!-- 我的座位 -->
     <div class="ddz-self">
-      <div class="ddz-avatar" id="ddzAvatar0">😎<span class="ddz-clock" id="ddzClock0" hidden>25s</span><span class="ddz-doubled-badge" id="ddzDoubled0" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared0" hidden>明牌</span></div>
+      <div class="ddz-avatar" id="ddzAvatar0">😎<span class="ddz-doubled-badge" id="ddzDoubled0" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared0" hidden>明牌</span></div>
       <div class="ddz-self-info">
         <div class="ddz-name" id="ddzName0">我</div>
         <div class="ddz-handcount" id="ddzCount0">17</div>
@@ -2141,6 +2145,15 @@ permalink: /toolbox/doudizhu/
       <button class="ddz-btn" id="ddzPassBtn" type="button" hidden>不出</button>
       <button class="ddz-btn" id="ddzHintBtn" type="button" hidden>提示</button>
       <button class="ddz-btn primary" id="ddzPlayBtn" type="button" hidden>出牌</button>
+      <!-- 自己的回合倒计时挂在动作行上（出牌阶段），跟"出牌/提示/不出"同一行 -->
+      <span class="ddz-self-clock" id="ddzSelfClock" hidden>
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+          <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M12 13 V8 M12 13 L15.4 14.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+          <path d="M9.5 3.5 H14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <span class="ddz-self-clock-num">25</span>s
+      </span>
     </div>
 
     <div class="ddz-hand" id="ddzHand"></div>
