@@ -1010,6 +1010,30 @@
     }
     renderHand();
     updateActions();
+    applyAttentionFocus();
+  }
+
+  // 注意力锁定（仿斗地主 applyAttentionFocus）：
+  // PLAYING 阶段，只亮当前轮次的座位 + 对应手牌；其他三家 + 我的手牌 dim 一档。
+  // 4 人桌画面拥挤，dim 是大幅可读性提升。其他阶段（贡牌弹窗等）全亮。
+  function applyAttentionFocus() {
+    const selfBar = document.querySelector('.gd-self-bar');
+    const handEl = els.hand;
+    const seatEls0 = [0,1,2,3].map(s => seatEls[s].seat);
+    seatEls0.forEach(e => e && e.classList.remove('is-dim'));
+    if (selfBar) selfBar.classList.remove('is-dim');
+    if (handEl) handEl.classList.remove('is-dim');
+    if (state.phase !== PHASE.PLAYING) return;
+    const curr = state.turn;
+    // 座位 0（我）的 .gd-seat 已经是 .gd-self-bar 的子节点，dim 父级即可，
+    // 不要双重 dim 否则 opacity 复合后过暗。AI 三家直接 dim 各自 .gd-seat。
+    for (let s = 1; s < 4; s++) {
+      if (s !== curr) seatEls0[s] && seatEls0[s].classList.add('is-dim');
+    }
+    if (curr !== 0) {
+      if (selfBar) selfBar.classList.add('is-dim');
+      if (handEl) handEl.classList.add('is-dim');
+    }
   }
 
   // ---- 选牌 + 拖列交互 ----

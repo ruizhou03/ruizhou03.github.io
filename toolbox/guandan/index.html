@@ -188,6 +188,18 @@ permalink: /toolbox/guandan/
   .gd-side .gd-played-row .gd-card.size-mini { margin-left: -22px; }
   .gd-side .gd-played-row .gd-card.size-mini:first-child { margin-left: 0; }
 
+  /* ======== 注意力锁定（仿斗地主 applyAttentionFocus）========
+     轮到我时四家全亮；轮到 AI 时只亮当前 AI，其余三家 + 我的手牌都 dim 一档。
+     4 人桌 + 27 张手牌，视觉拥挤，dim 是大幅可读性提升。 */
+  .gd-seat, .gd-self-bar, .gd-hand {
+    transition: opacity 0.28s ease, filter 0.28s ease;
+  }
+  .gd-seat.is-dim, .gd-self-bar.is-dim {
+    opacity: 0.5;
+    filter: grayscale(0.4) saturate(0.75);
+  }
+  .gd-hand.is-dim { opacity: 0.72; }
+
   /* ======== 卡片自绘 ======== */
   .gd-card {
     display: inline-block;
@@ -321,6 +333,15 @@ permalink: /toolbox/guandan/
     filter: grayscale(0.95) brightness(0.62);
     opacity: 0.58;
     box-shadow: inset 0 0 0 2px var(--gd-accent), 0 1px 3px rgba(20,37,63,0.18);
+  }
+  /* 桌面 hover 预览：鼠标停在某张未选中的牌上时小幅抬升，让用户清楚
+     当前要点哪张（堆叠列里光看角标容易点错）。仿斗地主 .ddz-card.hover-preview */
+  @media (hover: hover) {
+    .gd-rank-col .gd-card.size-full:not(.selected):hover {
+      transform: translateY(-9px);
+      z-index: 50;
+      box-shadow: 0 5px 11px rgba(20,37,63,0.26);
+    }
   }
   /* 拖列时的插入位置指示条 */
   .gd-col-gap-marker {
@@ -627,6 +648,11 @@ permalink: /toolbox/guandan/
     background: var(--color-bg);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    /* 让 header + 牌桌作为一组被剩余空白上下均分（仿斗地主 3370509）；
+       safe 关键字兜底——内容比视口还高时回退到 flex-start，不会把头部挤出屏 */
+    display: flex;
+    flex-direction: column;
+    justify-content: safe center;
     max-width: none;
   }
   body.gd-game-fullscreen .guandan-wrap header { margin-bottom: 0.3rem; }
