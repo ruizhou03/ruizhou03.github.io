@@ -887,6 +887,10 @@
 
   function renderHand() {
     els.hand.innerHTML = '';
+    // 清掉上一轮渲染留下的尺寸覆写，让 stylesheet 默认值先生效，再按可用宽度二次适配
+    els.hand.style.removeProperty('--gd-card-w');
+    els.hand.style.removeProperty('--gd-card-h');
+    els.hand.style.removeProperty('--gd-stack-step');
     if (state.phase === PHASE.IDLE) return;
     const level = currentLevelLabel();
     const cols = buildHandColumns();
@@ -915,6 +919,41 @@
       });
       els.hand.appendChild(col);
     }
+    adaptHandSize();
+  }
+
+  // 按"当前可用宽度 vs 列数 × 默认卡宽"动态收窄卡片，让 27 张牌在任何画幅下
+  // 都不必横向滑动也能一眼看全（参考用户反馈：以前要滑动才能看到 3 ♦）。
+  // 只在"装不下"时才缩；装得下就回到 CSS 默认值。
+  function adaptHandSize() {
+    const hand = els.hand;
+    const cols = hand.querySelectorAll('.gd-rank-col');
+    if (!cols.length) return;
+    const cs = getComputedStyle(hand);
+    const defCardW = parseFloat(cs.getPropertyValue('--gd-card-w')) || 50;
+    const defCardH = parseFloat(cs.getPropertyValue('--gd-card-h')) || 72;
+    const defStep  = parseFloat(cs.getPropertyValue('--gd-stack-step')) || 22;
+    const gap = parseFloat(cs.getPropertyValue('--gd-col-gap')) || 4;
+    const padL = parseFloat(cs.paddingLeft)  || 0;
+    const padR = parseFloat(cs.paddingRight) || 0;
+    const availW = hand.clientWidth - padL - padR;
+    if (availW <= 0) return;
+    const n = cols.length;
+    const neededW = n * defCardW + (n - 1) * gap;
+    if (neededW <= availW) return;
+    const newCardW = Math.max(26, Math.floor((availW - (n - 1) * gap) / n));
+    if (newCardW >= defCardW) return;
+    const ratio = newCardW / defCardW;
+    const newCardH = Math.round(defCardH * ratio);
+    const newStep = Math.max(13, Math.round(defStep * ratio));
+    hand.style.setProperty('--gd-card-w', newCardW + 'px');
+    hand.style.setProperty('--gd-card-h', newCardH + 'px');
+    hand.style.setProperty('--gd-stack-step', newStep + 'px');
+    cols.forEach(col => {
+      const cards = col.querySelectorAll('.gd-card');
+      col.style.height = ((cards.length - 1) * newStep + newCardH) + 'px';
+      cards.forEach((c, i) => { c.style.top = (i * newStep) + 'px'; });
+    });
   }
 
   function renderPlayArea(seat) {
@@ -1179,6 +1218,44 @@
       }
       els.playBtn.disabled = !ok;
     }
+    // 智能选牌：每次轮到我（开局先出 / 收圈领出 / AI 们都过完）首次进入时，
+    // 自动勾选一手"最经济的能压牌"。键由 trick 状态 + 手牌张数构成，状态变 → 重新自动选；
+    // 状态不变即"同一回合内"，无论用户再怎么改动都听用户的（不复选）。
+    maybeAutoSelectForTurn();
+  }
+
+  function maybeAutoSelectForTurn() {
+    const myTurn = state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy && !state.out.includes(0);
+    if (!myTurn) { state._autoTurnKey = null; return; }
+    const t = state.trick || {};
+    const key = `${t.lead}|${t.bestSeat}|${t.passes}|${state.hands[0].length}`;
+    if (state._autoTurnKey === key) return;
+    state._autoTurnKey = key;
+    // 即便用户已自选，也仅"标记此回合已自动过"以后不再覆盖
+    if (state.selected.size > 0) return;
+
+    const level = currentLevelLabel();
+    const prev = (t.best != null && t.bestSeat !== 0) ? t.best : null;
+    let moves = genMoves(state.hands[0], prev, level);
+    if (!moves.length) return;
+    moves.sort((a, b) =>
+      (isBombType(a.combo.type) ? 1 : 0) - (isBombType(b.combo.type) ? 1 : 0) ||
+      a.cards.length - b.cards.length || a.combo.key - b.combo.key);
+    const pick = moves[0];
+    for (const c of pick.cards) state.selected.add(c);
+    state._hintIdx = 0;
+
+    // 重绘手牌让灰显生效；不递归 updateActions —— 直接补齐"出牌"按钮 disabled
+    renderHand();
+    updateSelHint();
+    const sel = selectedCards();
+    const cb = sel.length ? classify(sel, level) : null;
+    let ok = false;
+    if (cb) {
+      if (!t || t.best == null || t.bestSeat === 0) ok = true;
+      else ok = beats(cb, t.best);
+    }
+    els.playBtn.disabled = !ok;
   }
 
   // ===========================================================
@@ -1202,6 +1279,8 @@
     state.handOrder = null;          // 重新发牌 → 重置自定义列顺序
     state.lastPlay = [null, null, null, null];
     state.busy = false;
+    // 新一局重置智能选牌门闩，避免新局首手与上局某一刻 trick 状态 + 手牌张数偶然碰撞
+    state._autoTurnKey = null;
     const deck = shuffle(buildDeck());
     state.hands = [[], [], [], []];
     for (let i = 0; i < 108; i++) state.hands[i % 4].push(deck[i]);
@@ -1937,6 +2016,27 @@
     '只要在该局再次<strong>拿到头游</strong>即「打过 A」，立刻赢下整局（不要求 A 上双下）。' +
     '你方打过 A → 战绩 +1 胜并上传战绩榜；对方打过 A → 记一负。</p>' +
     '<p>键盘：Enter 出牌 · Space 不要 · H 提示。手牌按点数竖向成列；点牌选中、横拖多选；「长按一列再拖到新位置」可自定义理牌顺序，「🧩 一键理牌」恢复默认（点数高→低）。</p>';
+
+  // ---- 全屏切换：参考斗地主，用 body 类而非浏览器 Fullscreen API；
+  //      进页面默认就铺满 viewport，不用先看局促画幅再点全屏。 ----
+  const fsBtn = $('gdFullscreenToggle');
+  function refreshFsBtn() {
+    if (!fsBtn) return;
+    const on = document.body.classList.contains('gd-game-fullscreen');
+    fsBtn.classList.toggle('on', on);
+    fsBtn.textContent = on ? '⛶ 退出全屏' : '⛶ 全屏';
+  }
+  document.body.classList.add('gd-game-fullscreen');
+  refreshFsBtn();
+  if (fsBtn) {
+    fsBtn.addEventListener('click', () => {
+      document.body.classList.toggle('gd-game-fullscreen');
+      refreshFsBtn();
+      // 画幅变化 → 重新按可用宽度适配手牌
+      adaptHandSize();
+    });
+  }
+  window.addEventListener('resize', () => adaptHandSize());
 
   // ---- 启动 ----
   refreshHs();

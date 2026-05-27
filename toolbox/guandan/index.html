@@ -302,10 +302,13 @@ permalink: /toolbox/guandan/
     transition: transform 0.12s, box-shadow 0.12s;
     /* 列叠放时不再需要 group-start 间距 */
   }
+  /* 选中态：参考斗地主的"出过的牌"视觉——灰化 + 半透明，不上抬不挪位。
+     好处：堆叠的列布局里牌的位置稳定（上抬会"穿过"上一张），
+     滑动框选时也不会出现"高度跳变"打断手感。 */
   .gd-rank-col .gd-card.size-full.selected {
-    transform: translateY(-18px);
-    box-shadow: 0 4px 10px rgba(20,37,63,0.3), 0 0 0 2px var(--gd-accent);
-    z-index: 999;
+    filter: grayscale(0.95) brightness(0.62);
+    opacity: 0.58;
+    box-shadow: inset 0 0 0 2px var(--gd-accent), 0 1px 3px rgba(20,37,63,0.18);
   }
   /* 拖列时的插入位置指示条 */
   .gd-col-gap-marker {
@@ -450,10 +453,57 @@ permalink: /toolbox/guandan/
     opacity: 0; transition: opacity 0.25s;
   }
   .gd-toast.show { opacity: 1; }
+
+  /* ======== 全屏切换 chip（左上方），与斗地主一致 ========
+     不用浏览器 Fullscreen API（桌面易把整窗进入全屏；iOS Safari 等基本不支持），
+     而是给 body 加 .gd-game-fullscreen 类，让 .guandan-wrap fixed 铺满 viewport。 */
+  .guandan-wrap header { position: relative; }
+  .gd-fullscreen-toggle {
+    position: absolute; top: 0.6rem; left: 0.6rem;
+    padding: 0.28rem 0.65rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-muted);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.18s;
+    z-index: 5;
+  }
+  @media (hover: hover) {
+    .gd-fullscreen-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  .gd-fullscreen-toggle.on {
+    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+  }
+
+  body.gd-game-fullscreen { overflow: hidden; }
+  body.gd-game-fullscreen .guandan-wrap {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    margin: 0;
+    padding: 0.6rem 0.6rem 0.4rem;
+    background: var(--color-bg);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: none;
+  }
+  body.gd-game-fullscreen .guandan-wrap header { margin-bottom: 0.3rem; }
+  body.gd-game-fullscreen .guandan-wrap header h1 { font-size: 1.2rem; }
+  body.gd-game-fullscreen .guandan-wrap header .sub { display: none; }
+  body.gd-game-fullscreen .gd-table { margin: 0 auto; max-width: 1100px; }
+  body.gd-game-fullscreen .gd-levelbar { margin-bottom: 0.45rem; }
+  body.gd-game-fullscreen .guandan-wrap details.about,
+  body.gd-game-fullscreen #gd-wlb-mount,
+  body.gd-game-fullscreen #gd-cm-mount,
+  body.gd-game-fullscreen #gd-nick-mount { display: none !important; }
 </style>
 
 <div class="guandan-wrap">
   <header>
+    <button type="button" class="gd-fullscreen-toggle" id="gdFullscreenToggle" title="切换全屏">⛶ 全屏</button>
     <h1>🀄 掼蛋</h1>
     <div class="sub">2 打 2 · 你与对家联手，打级牌到 A 取胜 · 三档 AI</div>
   </header>
