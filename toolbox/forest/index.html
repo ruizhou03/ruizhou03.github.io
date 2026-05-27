@@ -1929,10 +1929,15 @@ permalink: /toolbox/forest/
   });
 
   // ============ Page visibility ============
+  // 后台标签 setInterval 可能被节流甚至完全停止，回到前台时 timer 会显示过期数据。
+  // visible 时强制立 tick 一次刷新；同时 hidden 时也 tick 一次把状态对齐到当下的 Date.now()。
   document.addEventListener('visibilitychange', () => {
     if (!state.session) return;
-    // break 模式不监控 — 用户本来就该离开屏幕休息
-    if (state.session.isBreak) return;
+    if (state.session.isBreak) {
+      // break 模式不监控离开 — 但回前台也补一帧避免显示卡老
+      if (!document.hidden) tick();
+      return;
+    }
     if (document.hidden) {
       state.leftAt = Date.now();
     } else {
@@ -1940,9 +1945,12 @@ permalink: /toolbox/forest/
         const awayMs = Date.now() - state.leftAt;
         if (awayMs > 15000) {
           failSession('left_page');
+          return;
         }
         state.leftAt = null;
       }
+      // 立即 tick 一次：iOS/安卓后台 setInterval 节流会让显示滞后几百 ms 甚至几秒
+      tick();
     }
   });
 
