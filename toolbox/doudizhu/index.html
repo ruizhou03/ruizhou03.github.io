@@ -721,10 +721,11 @@ permalink: /toolbox/doudizhu/
   .ddz-hand.dealing .ddz-card.size-full:nth-child(17) { animation-delay: 3520ms; }
 
   /* 底牌"插空"动画：3 张底牌沿着 --dx/--dy 从底牌堆位置飞回到自己排序后的目标位
-     用 backwards 让 stagger delay 期间也保持起始变换；缓动跟发牌动画一致 */
+     用 backwards 让 stagger delay 期间也保持起始变换；缓动跟发牌动画一致。
+     不抬 z-index——保留手牌左→右的自然叠放：底牌 DOM 位于左右邻居之间，
+     右邻居天然盖住底牌的右上角，效果是"插进两张牌中间"而不是"飘在上面"。 */
   .ddz-card.ddz-card-incoming {
     animation: ddz-card-insert 0.55s cubic-bezier(0.25, 0.5, 0.3, 1.0) backwards;
-    z-index: 5;
   }
   @keyframes ddz-card-insert {
     from {
@@ -1120,16 +1121,16 @@ permalink: /toolbox/doudizhu/
   .ddz-btn[hidden] { display: none !important; }
 
   /* ======== 我的座位 + 手牌 ======== */
-  /* 我的头像靠左排——和 AI 上家/下家 形成"三角"而不是直接占据牌桌视觉中心；
-     中央留给底牌 / 出牌 / 抢地主面板 */
+  /* 我的头像绝对定位在牌桌左下角——和 AI 上家/下家（左上 / 右上）
+     形成"三角"，中央让给底牌 / 出牌 / 抢地主面板。
+     bottom = 手牌 + 出牌动作行 的高度，正好贴在动作行的上沿、左下角。 */
   .ddz-self {
-    display: flex; align-items: center; justify-content: flex-start;
-    gap: 0.7rem;
-    flex-wrap: wrap;
-    margin-top: 0.7rem;
-    padding-left: 0.8rem;
-    position: relative;
-    z-index: 1;
+    display: flex; align-items: center;
+    gap: 0.6rem;
+    position: absolute;
+    left: 1rem;
+    bottom: calc(var(--ddz-card-h, 74px) + 5rem);
+    z-index: 2;
   }
   .ddz-self-info {
     display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem;
