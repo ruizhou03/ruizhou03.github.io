@@ -458,6 +458,9 @@ permalink: /toolbox/doudizhu/
   .ddz-tops-avatars {
     display: flex; justify-content: space-between; align-items: flex-start;
     gap: 1rem;
+    /* 左右各往内缩一截——两个 AI 头像不再贴桌沿，跟"我"在左下的位置一起
+       把视觉重心收拢到中央底牌区 */
+    padding-inline: 3.5rem;
   }
   /* 第二行：上家出牌靠左半（贴左头像下方）、下家出牌靠右半（贴右头像下方），
      各占约一半宽 → 比原来塞在 ~78px 窄座位宽得多，长牌型也能一行铺完不被剪。
