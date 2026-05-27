@@ -26,8 +26,18 @@ const ASSET_CACHE = 'ruizhou03-assets';
 const LEGACY_PREFIXES = ['zirconeey-'];
 
 self.addEventListener('install', (event) => {
-  // 不预取任何东西。SW 安装要快，全站预缓存交给前端 idle 调度。
-  event.waitUntil(self.skipWaiting());
+  // 全站预缓存交给前端 idle 调度；这里只兜底缓一份首页，
+  // 之后任何陌生 URL 在网络挂掉时还能给用户一个"回首页"的出口
+  event.waitUntil((async () => {
+    try {
+      const res = await fetch('/', { cache: 'no-cache' });
+      if (res && res.ok) {
+        const cache = await caches.open(PAGE_CACHE);
+        await cache.put('/', res.clone());
+      }
+    } catch (_) { /* 装 SW 时离线就跳过，不阻塞 install */ }
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (event) => {
@@ -85,7 +95,8 @@ self.addEventListener('fetch', (event) => {
         return new Response(
           '<!doctype html><meta charset="utf-8"><title>离线</title>' +
           '<p style="font-family:serif;text-align:center;margin-top:30vh;color:#666;">' +
-          '🥲 这一页还没缓存过，等有网了再来吧。</p>',
+          '🥲 这一页还没缓存过，等有网了再来吧。<br>' +
+          '或者 <a href="/" style="color:#1e3a5f;">回到首页看看</a>。</p>',
           { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
         );
       }
