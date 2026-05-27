@@ -820,9 +820,8 @@ permalink: /toolbox/snake/
     snPendingSubmit = false;
     if (r && r.reason === 'nick_taken') {
       GamesShell.Identity.clearNick();
-      alert('“' + nick + '” 已被别的玩家占用，请换一个昵称');
       snSetRank('pending');
-      if (snNickPrompt) { snNickPrompt.refresh(); snNickPrompt.show(); }
+      if (snNickPrompt) { snNickPrompt.refresh(); snNickPrompt.show(); snNickPrompt.showError('“' + nick + '” 已被别的玩家占用，请换一个昵称'); }
       return;
     }
     snSetRank('failed');

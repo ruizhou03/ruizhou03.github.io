@@ -989,9 +989,8 @@ permalink: /toolbox/runner/
     runnerPendingSubmit = false;
     if (r && r.reason === 'nick_taken') {
       GamesShell.Identity.clearNick();
-      alert('“' + nick + '” 已被别的玩家占用，请换一个昵称');
       runnerSetRank('pending');
-      if (runnerNickPrompt) { runnerNickPrompt.refresh(); runnerNickPrompt.show(); }
+      if (runnerNickPrompt) { runnerNickPrompt.refresh(); runnerNickPrompt.show(); runnerNickPrompt.showError('“' + nick + '” 已被别的玩家占用，请换一个昵称'); }
       return;
     }
     runnerSetRank('failed');

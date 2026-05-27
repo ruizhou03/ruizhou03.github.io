@@ -2380,8 +2380,7 @@ permalink: /toolbox/feixingqi/
       }
       if (r && r.reason === 'nick_taken') {
         GamesShell.Identity.clearNick();
-        alert('"' + submittedNick + '" 已被别的玩家占用，请换一个昵称');
-        if (fxqNickPrompt) { fxqNickPrompt.refresh(); fxqNickPrompt.show(); }
+        if (fxqNickPrompt) { fxqNickPrompt.refresh(); fxqNickPrompt.show(); fxqNickPrompt.showError('"' + submittedNick + '" 已被别的玩家占用，请换一个昵称'); }
         return;
       }
       if (r && r.reason) console.warn('[feixingqi] wins submit rejected:', r.reason);

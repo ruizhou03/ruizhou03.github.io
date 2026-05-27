@@ -576,9 +576,8 @@ permalink: /toolbox/memory/
     memPendingSubmit = false;
     if (r && r.reason === 'nick_taken') {
       GamesShell.Identity.clearNick();
-      alert('“' + nick + '” 已被别的玩家占用，请换一个昵称');
       memSetRank('pending');
-      if (memNickPrompt) { memNickPrompt.refresh(); memNickPrompt.show(); }
+      if (memNickPrompt) { memNickPrompt.refresh(); memNickPrompt.show(); memNickPrompt.showError('“' + nick + '” 已被别的玩家占用，请换一个昵称'); }
       return;
     }
     memSetRank('failed');

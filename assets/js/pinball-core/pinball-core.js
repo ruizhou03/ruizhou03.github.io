@@ -1006,8 +1006,9 @@
       pbPendingSubmit = false;
       if (r && r.reason === 'nick_taken') {
         GamesShell.Identity.clearNick();
-        alert('「' + nick + '」已被别的玩家占用，请换一个昵称');
-        pbSetRank('pending'); if (pbNickPrompt) { pbNickPrompt.refresh(); pbNickPrompt.show(); } return;
+        pbSetRank('pending');
+        if (pbNickPrompt) { pbNickPrompt.refresh(); pbNickPrompt.show(); pbNickPrompt.showError('「' + nick + '」已被别的玩家占用，请换一个昵称'); }
+        return;
       }
       pbSetRank('failed');
       if (r && r.reason) console.warn('[pinball] submit rejected:', r.reason);

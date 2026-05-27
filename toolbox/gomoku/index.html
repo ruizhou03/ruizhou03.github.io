@@ -876,8 +876,7 @@ permalink: /toolbox/gomoku/
       }
       if (r && r.reason === 'nick_taken') {
         GamesShell.Identity.clearNick();
-        alert('"' + submittedNick + '" 已被别的玩家占用，请换一个昵称');
-        if (gmNickPrompt) { gmNickPrompt.refresh(); gmNickPrompt.show(); }
+        if (gmNickPrompt) { gmNickPrompt.refresh(); gmNickPrompt.show(); gmNickPrompt.showError('"' + submittedNick + '" 已被别的玩家占用，请换一个昵称'); }
         return;
       }
       if (r && r.reason) console.warn('[gomoku] wins submit rejected:', r.reason);

@@ -2910,9 +2910,8 @@
     pendingSubmit = false;
     if (r && r.reason === 'nick_taken') {
       GamesShell.Identity.clearNick();
-      alert('"' + nick + '" 已被别的玩家占用，请换一个昵称');
       setRank('pending');
-      if (nickPrompt) { nickPrompt.refresh(); nickPrompt.show(); }
+      if (nickPrompt) { nickPrompt.refresh(); nickPrompt.show(); nickPrompt.showError('"' + nick + '" 已被别的玩家占用，请换一个昵称'); }
       return;
     }
     setRank('failed');

@@ -1051,9 +1051,8 @@ permalink: /toolbox/blackjack/
     bjPendingSubmit = false;
     if (r && r.reason === 'nick_taken') {
       GamesShell.Identity.clearNick();
-      alert('“' + nick + '” 已被别的玩家占用，请换一个昵称');
       bjSetRank('pending');
-      if (bjNickPrompt) { bjNickPrompt.refresh(); bjNickPrompt.show(); }
+      if (bjNickPrompt) { bjNickPrompt.refresh(); bjNickPrompt.show(); bjNickPrompt.showError('“' + nick + '” 已被别的玩家占用，请换一个昵称'); }
       return;
     }
     bjSetRank('failed');

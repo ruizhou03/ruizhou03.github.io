@@ -945,9 +945,8 @@ permalink: /toolbox/sudoku/
     sudokuPendingSubmit = false;
     if (r && r.reason === 'nick_taken') {
       GamesShell.Identity.clearNick();
-      alert('“' + nick + '” 已被别的玩家占用，请换一个昵称');
       sudokuSetRank('pending');
-      if (sudokuNickPrompt) { sudokuNickPrompt.refresh(); sudokuNickPrompt.show(); }
+      if (sudokuNickPrompt) { sudokuNickPrompt.refresh(); sudokuNickPrompt.show(); sudokuNickPrompt.showError('“' + nick + '” 已被别的玩家占用，请换一个昵称'); }
       return;
     }
     sudokuSetRank('failed');

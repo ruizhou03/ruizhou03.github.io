@@ -983,9 +983,8 @@ permalink: /toolbox/minesweeper/
     msPendingSubmit = false;
     if (r && r.reason === 'nick_taken') {
       GamesShell.Identity.clearNick();
-      alert('“' + nick + '” 已被别的玩家占用，请换一个昵称');
       msSetRank('pending');
-      if (msNickPrompt) { msNickPrompt.refresh(); msNickPrompt.show(); }
+      if (msNickPrompt) { msNickPrompt.refresh(); msNickPrompt.show(); msNickPrompt.showError('“' + nick + '” 已被别的玩家占用，请换一个昵称'); }
       return;
     }
     msSetRank('failed');

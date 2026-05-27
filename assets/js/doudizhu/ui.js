@@ -2517,8 +2517,7 @@
       }
       if (r && r.reason === 'nick_taken') {
         GamesShell.Identity.clearNick();
-        alert('"' + submittedNick + '" 已被别的玩家占用，请换一个昵称');
-        if (ddzNickPrompt) { ddzNickPrompt.refresh(); ddzNickPrompt.show(); }
+        if (ddzNickPrompt) { ddzNickPrompt.refresh(); ddzNickPrompt.show(); ddzNickPrompt.showError('"' + submittedNick + '" 已被别的玩家占用，请换一个昵称'); }
         return;
       }
       if (r && r.reason) console.warn('[doudizhu] wins submit rejected:', r.reason);

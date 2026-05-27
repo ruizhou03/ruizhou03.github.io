@@ -75,6 +75,12 @@
     function hide() {
       form.classList.remove('gs-open');
     }
+    function showError(msg) {
+      // 服务端拒绝（如 nick_taken）时把红字消息打到表单下方，替代以前的阻塞 alert
+      form.classList.add('gs-open');
+      errorEl.textContent = msg || '';
+      try { inputEl.focus(); inputEl.select(); } catch (_) {}
+    }
 
     submitBtn.addEventListener('click', () => {
       const v = GS.Identity.validateNick(inputEl.value);
@@ -100,7 +106,7 @@
     refresh();
 
     return {
-      show, hide, refresh,
+      show, hide, refresh, showError,
       element: c,
     };
   }

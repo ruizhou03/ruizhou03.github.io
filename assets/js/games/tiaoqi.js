@@ -1150,8 +1150,7 @@
       }
       if (r && r.reason === 'nick_taken') {
         GamesShell.Identity.clearNick();
-        alert('"' + submittedNick + '" 已被别的玩家占用，请换一个昵称');
-        if (tqNickPrompt) { tqNickPrompt.refresh(); tqNickPrompt.show(); }
+        if (tqNickPrompt) { tqNickPrompt.refresh(); tqNickPrompt.show(); tqNickPrompt.showError('"' + submittedNick + '" 已被别的玩家占用，请换一个昵称'); }
         return;
       }
       if (r && r.reason) console.warn('[tiaoqi] wins submit rejected:', r.reason);
