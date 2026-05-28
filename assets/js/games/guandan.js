@@ -1739,10 +1739,13 @@
     return ctx;
   }
 
+  // 新流程：进贡和还贡分两阶段
+  //   1) 决定 pair.returnCard（AI 立即选好；玩家由 UI 选完）—— 此时不飞
+  //   2) swapTributePair：两张牌同时起飞、相互交换，再各塞入对方牌堆
   function processTributePair(idx) {
     const pt = state.pendingTribute;
     if (!pt || idx >= pt.pairs.length) {
-      // 全部还贡完成 → 由"给头游进贡的人"领出下一圈
+      // 全部完成 → 由"给头游进贡的人"领出下一圈
       const newLeader = pt && pt.headGiver != null ? pt.headGiver : 0;
       finishTribute(newLeader);
       return;
@@ -1750,36 +1753,54 @@
     const pair = pt.pairs[idx];
     const level = currentLevelLabel();
     if (idx > 0) showTributeBanner('继续进贡', seatName(pair.giver) + ' → ' + seatName(pair.receiver));
-    animateCardFly(pair.giver, pair.receiver, pair.tributeCard, () => {
-      moveCard(pair.giver, pair.receiver, pair.tributeCard);
+    if (pair.receiver === 0) {
+      // 玩家是接贡方 → 弹 UI 挑还贡牌；提交后跑 swap
+      state._activeTributePair = idx;
+      state.selected.clear();
+      showTributeBanner('还贡', seatName(pair.giver) + ' 进贡 ' + cardText(pair.tributeCard) + ' · 选 ≤10 牌还');
+      toast(seatName(pair.giver) + ' 进贡 ' + cardText(pair.tributeCard) + '，请选 ≤10 还');
       renderAll();
-      if (pair.receiver === 0) {
-        // 玩家是接贡方 → 在主牌区挑还贡牌
-        state._activeTributePair = idx;
-        state.selected.clear();
-        showTributeBanner('还贡', '选 ≤10 牌点"还贡" → ' + seatName(pair.giver));
-        toast(seatName(pair.giver) + ' 进贡 ' + cardText(pair.tributeCard) + ' → 你，请还一张 ≤10 牌');
-        renderAll();
-        startTurnClock(0, autoReturnTribute, TRIBUTE_TIMEOUT_MS);
-      } else {
-        // AI 还贡
-        const back = pickReturnCard(state.hands[pair.receiver], level);
-        animateCardFly(pair.receiver, pair.giver, back, () => {
-          moveCard(pair.receiver, pair.giver, back);
-          pair.returnCard = back;
-          renderAll();
-          toast(seatName(pair.receiver) + ' 还贡 ' + cardText(back) + ' → ' + seatName(pair.giver));
-          processTributePair(idx + 1);
-        });
-      }
-    });
+      startTurnClock(0, autoReturnTribute, TRIBUTE_TIMEOUT_MS);
+    } else {
+      // AI 收方 → 立即决定还贡牌、然后 swap 动画
+      pair.returnCard = pickReturnCard(state.hands[pair.receiver], level);
+      swapTributePair(idx);
+    }
   }
 
-  // 抛物线式卡片飞行：from 座位中心 → to 座位中心，~700ms
+  // 同步飞行：进贡牌 + 还贡牌 同时起飞，到对方手里后再 moveCard
+  function swapTributePair(idx) {
+    const pair = state.pendingTribute.pairs[idx];
+    let done = 0;
+    const finish = () => {
+      done++;
+      if (done < 2) return;
+      // 两条都落地 → 真正交换
+      moveCard(pair.giver, pair.receiver, pair.tributeCard);
+      moveCard(pair.receiver, pair.giver, pair.returnCard);
+      renderAll();
+      toast(seatName(pair.giver) + ' → ' + cardText(pair.tributeCard) +
+            ' · ' + seatName(pair.receiver) + ' → ' + cardText(pair.returnCard));
+      processTributePair(idx + 1);
+    };
+    animateCardFly(pair.giver, pair.receiver, pair.tributeCard, finish);
+    animateCardFly(pair.receiver, pair.giver, pair.returnCard, finish);
+  }
+
+  // 抛物线式卡片飞行：from 座位中心 → to 座位中心，~700ms。
+  // 如果源是玩家(0)且这张牌还在主牌区里渲着 → 把那张原始 DOM 暂时藏掉
+  // （moveCard 还没跑，state.hands[0] 仍含该牌），避免视觉上同时出现两张
   function animateCardFly(fromSeat, toSeat, card, onDone) {
     const fromEl = seatEls[fromSeat] && seatEls[fromSeat].seat;
     const toEl = seatEls[toSeat] && seatEls[toSeat].seat;
     if (!fromEl || !toEl) { onDone && onDone(); return; }
+    // 玩家手里那张原始牌 → 暂时藏掉。等动画落地 onDone 里 moveCard + renderAll
+    // 自然让它消失，期间不会出现"手里 + 空中"两张
+    let sourceDom = null;
+    if (fromSeat === 0 && els.hand) {
+      sourceDom = els.hand.querySelector('.gd-card[data-cid="' + card + '"]');
+      if (sourceDom) sourceDom.style.visibility = 'hidden';
+    }
     const fromR = fromEl.getBoundingClientRect();
     const toR = toEl.getBoundingClientRect();
     const level = currentLevelLabel();
@@ -1945,17 +1966,12 @@
     const sel = selectedCards();
     if (sel.length !== 1) { toast('请选一张牌'); return; }
     if (!isValidReturnCard(sel[0])) { toast('请选 ≤10 的一张牌'); return; }
-    const chosen = sel[0];
+    pair.returnCard = sel[0];
     state.selected.clear();
     stopTurnClock();
     state._activeTributePair = null;
-    animateCardFly(0, pair.giver, chosen, () => {
-      moveCard(0, pair.giver, chosen);
-      pair.returnCard = chosen;
-      renderAll();
-      toast('还贡 ' + cardText(chosen) + ' → ' + seatName(pair.giver));
-      processTributePair(idx + 1);
-    });
+    // 进贡牌 + 还贡牌 同时起飞，相互交换 → 各塞入对方牌堆（swapTributePair）
+    swapTributePair(idx);
   }
 
   // ---- 出牌 ----
@@ -2345,6 +2361,26 @@
     }
   }
   // 玩家被动 / 托管的"自动出"共享同一份决策；isTimeout 控制是否计入超时计数
+  // 把 genMoves 出来的候选按"语义最优"排序：
+  //   领出（prev=null）→ 优先大组合（一次出更多牌），同长比小点数（用小留大）
+  //   跟牌（prev!=null）→ 优先短组合 + 小 key（最便宜的反压，留大牌做尾盘）
+  // 炸弹永远放最后，保留到关键时刻才用。
+  function rankMoves(moves, prev) {
+    return moves.slice().sort((a, b) => {
+      const ab = isBombType(a.combo.type) ? 1 : 0;
+      const bb = isBombType(b.combo.type) ? 1 : 0;
+      if (ab !== bb) return ab - bb;
+      if (prev) {
+        // 跟牌：短的 + 小 key
+        if (a.cards.length !== b.cards.length) return a.cards.length - b.cards.length;
+        return a.combo.key - b.combo.key;
+      }
+      // 领出：大组合 + 小点数
+      if (a.cards.length !== b.cards.length) return b.cards.length - a.cards.length;
+      return a.combo.key - b.combo.key;
+    });
+  }
+
   function doAutoPlayPick() {
     if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
     const level = currentLevelLabel();
@@ -2357,10 +2393,7 @@
       if (prev) commitPass(0);
       return;
     }
-    moves.sort((a, b) =>
-      (isBombType(a.combo.type) ? 1 : 0) - (isBombType(b.combo.type) ? 1 : 0) ||
-      a.cards.length - b.cards.length || a.combo.key - b.combo.key);
-    const pick = moves[0];
+    const pick = rankMoves(moves, prev)[0];
     const cb = classify(pick.cards, level);
     if (cb) commitPlay(0, cb);
   }
@@ -2591,10 +2624,8 @@
       if (prev) { toast('没有能压的牌，可以「不要」'); return; }
       toast('无可出'); return;
     }
-    // 提示循环：每次给下一个候选
-    moves.sort((a, b) =>
-      (isBombType(a.combo.type) ? 1 : 0) - (isBombType(b.combo.type) ? 1 : 0) ||
-      a.cards.length - b.cards.length || a.combo.key - b.combo.key);
+    // 提示循环：每次给下一个候选。语义最优排序（领出大组合优先，跟牌最便宜反压）
+    moves = rankMoves(moves, prev);
     state._hintIdx = (state._hintIdx == null) ? 0 : (state._hintIdx + 1) % moves.length;
     const pick = moves[state._hintIdx];
     state.selected.clear();
