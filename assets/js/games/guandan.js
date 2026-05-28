@@ -3130,14 +3130,14 @@
     return { seat, trickReset: false };
   }
   // 终值 = 我方进度 - 对方进度。关键：不能只用 eff 差（AI 会拼命留牌）
-  function teamValueAtLA(s, level, myTeam) {
+  function teamValueAtLA(s, level, myTeam, w) {
     let myCnt = 0, oppCnt = 0, myEff = 0, oppEff = 0;
     for (let x = 0; x < 4; x++) {
       const isMy = x % 2 === myTeam;
       if (s.out.includes(x)) {
         if (isMy) myEff += 50; else oppEff += 50;
       } else {
-        const eff = evaluateHand(s.hands[x], level);
+        const eff = evaluateHand(s.hands[x], level, w);
         if (isMy) { myCnt += s.hands[x].length; myEff += eff; }
         else { oppCnt += s.hands[x].length; oppEff += eff; }
       }
@@ -3145,11 +3145,10 @@
     return 1.5 * (oppCnt - myCnt) + 0.2 * (myEff - oppEff);
   }
   // 模拟某座对决策 decision（null=pass）应用后再走 depth 步 ply，返回终值
-  function rolloutValue(seat, decision, level, depth, myTeam) {
-    // 蒙特卡洛味的轻量 rollout：clone state → apply → 让接下来 depth 个座位用 greedy 走
+  function rolloutValue(seat, decision, level, depth, myTeam, w) {
     const s = cloneStateMinLA();
     applyDecisionLA(s, seat, decision);
-    if (didRoundEndLA(s)) return teamValueAtLA(s, level, myTeam);
+    if (didRoundEndLA(s)) return teamValueAtLA(s, level, myTeam, w);
     let curSeat = seat;
     for (let p = 0; p < depth; p++) {
       const { seat: nextSeat, trickReset } = nextSeatLA(s, curSeat);
@@ -3160,15 +3159,14 @@
       curSeat = nextSeat;
       const prev2 = (s.trick.best && s.trick.bestSeat !== curSeat) ? s.trick.best : null;
       const leading2 = !prev2;
-      // greedy 决策 —— 用 evaluateHand / moveUtility 同一套权重
-      const dec = lookaheadGreedyDecide(curSeat, s.hands[curSeat], prev2, leading2, level, s);
+      const dec = lookaheadGreedyDecide(curSeat, s.hands[curSeat], prev2, leading2, level, s, w);
       applyDecisionLA(s, curSeat, dec);
       if (didRoundEndLA(s)) break;
     }
-    return teamValueAtLA(s, level, myTeam);
+    return teamValueAtLA(s, level, myTeam, w);
   }
-  // 给 rollout 内部用的 greedy 决策；用临时 state 上下文计算（不修改 state.hands）
-  function lookaheadGreedyDecide(seat, hand, prev, leading, level, simState) {
+  // rollout 内部 greedy 决策——用 same w（即同一档难度的权重）
+  function lookaheadGreedyDecide(seat, hand, prev, leading, level, simState, w) {
     const partner = (seat + 2) % 4;
     const myTeam = seat % 2;
     const oppSeats = [0,1,2,3].filter(s => (s % 2) !== myTeam && !simState.out.includes(s));
@@ -3188,16 +3186,16 @@
     }
     let bestU = -Infinity, bestMove = null;
     for (const m of moves) {
-      const u = moveUtility(m, seat, hand, prev, leading, level, 'normal', ctx);
+      const u = moveUtility(m, seat, hand, prev, leading, level, ctx, w);
       if (u > bestU) { bestU = u; bestMove = m; }
     }
     if (!leading) {
-      const passU = moveUtility({ pass: true }, seat, hand, prev, leading, level, 'normal', ctx);
+      const passU = moveUtility({ pass: true }, seat, hand, prev, leading, level, ctx, w);
       if (passU > bestU) { bestU = passU; bestMove = null; }
     }
     return bestMove ? bestMove.combo : null;
   }
-  function chooseAIMoveLookahead(seat, hand, prev, leading, level, lvl, depth) {
+  function chooseAIMoveLookahead(seat, hand, prev, leading, level, w, depth) {
     const myTeam = seat % 2;
     const ctx = moveContext(seat);
     const moves = genMoves(hand, prev, level);
@@ -3205,17 +3203,16 @@
       const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
       return classify([c], level);
     }
-    // 综合 lookahead 终值 + 即时 greedy U（35% 权重），防纯 rollout 错失"走完"奖励
     let bestBlend = -Infinity, bestMove = null;
     for (const m of moves) {
-      const lookV = rolloutValue(seat, m, level, depth, myTeam);
-      const greedyU = moveUtility(m, seat, hand, prev, leading, level, lvl, ctx);
+      const lookV = rolloutValue(seat, m, level, depth, myTeam, w);
+      const greedyU = moveUtility(m, seat, hand, prev, leading, level, ctx, w);
       const blend = lookV + 0.35 * greedyU;
       if (blend > bestBlend) { bestBlend = blend; bestMove = m; }
     }
     if (!leading) {
-      const lookV = rolloutValue(seat, null, level, depth, myTeam);
-      const passU = moveUtility({ pass: true }, seat, hand, prev, leading, level, lvl, ctx);
+      const lookV = rolloutValue(seat, null, level, depth, myTeam, w);
+      const passU = moveUtility({ pass: true }, seat, hand, prev, leading, level, ctx, w);
       const blend = lookV + 0.35 * passU;
       if (blend > bestBlend) { bestBlend = blend; bestMove = null; }
     }

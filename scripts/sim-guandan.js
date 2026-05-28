@@ -1108,51 +1108,56 @@ function gaussianRandom() {
   while (v === 0) v = Math.random();
   return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 }
-function esTune({ generations = 6, popSize = 24, matchesPerEval = 80, sigmaInit = 0.25, startWeights = null }) {
+// 内核：跑一个 ES，返回每代结束后的 centroid 数组（含 gen 0..generations-1）
+function runES({ startCenter, sigmaInit = 0.25, generations = 5, popSize = 20, matchesPerEval = 60, label = '' }) {
   const keys = TUNE_KEYS;
-  let center = startWeights ? { ...DEFAULT_W, ...startWeights } : { ...DEFAULT_W };
+  let center = { ...startCenter };
   let sigma = sigmaInit;
-  console.log('== ES tune start ==');
-  console.log('center: ' + JSON.stringify(Object.fromEntries(keys.map(k => [k, center[k]]))));
-  console.log('popSize=' + popSize + ' generations=' + generations + ' matchesPerEval=' + matchesPerEval);
+  const centroids = [];   // [{ gen, center, topRate }]
   for (let gen = 0; gen < generations; gen++) {
-    // 采样种群
     const pop = [];
     for (let i = 0; i < popSize; i++) {
       const cand = { ...center };
       for (const k of keys) cand[k] = center[k] * (1 + gaussianRandom() * sigma);
       pop.push(cand);
     }
-    // 评估（vs 当前 center）
     const results = [];
     const tStart = Date.now();
     for (let i = 0; i < pop.length; i++) {
       const { testWins } = runMatches(pop[i], center, matchesPerEval);
       const rate = testWins / matchesPerEval;
       results.push({ cand: pop[i], rate });
-      process.stdout.write('\rgen ' + gen + ' eval ' + (i + 1) + '/' + popSize + ' rate=' + rate.toFixed(2) + '   ');
+      process.stdout.write('\r' + label + ' gen ' + gen + ' eval ' + (i + 1) + '/' + popSize + ' rate=' + rate.toFixed(2) + '   ');
     }
     process.stdout.write('\n');
     const elapsed = ((Date.now() - tStart) / 1000).toFixed(0);
     results.sort((a, b) => b.rate - a.rate);
     const muSize = Math.max(2, Math.floor(popSize / 4));
     const top = results.slice(0, muSize);
-    // 新中心 = 前 μ 个的均值（geometric / arithmetic? arithmetic of values）
     const newCenter = { ...center };
     for (const k of keys) {
       let sum = 0;
       for (const r of top) sum += r.cand[k];
       newCenter[k] = sum / top.length;
     }
-    // sigma 几何衰减
     sigma *= 0.78;
-    console.log('gen ' + gen + ' done (' + elapsed + 's): top rates [' +
+    console.log(label + ' gen ' + gen + ' done (' + elapsed + 's): top rates [' +
       top.slice(0, 5).map(r => r.rate.toFixed(2)).join(', ') + ']; sigma → ' + sigma.toFixed(3));
     center = newCenter;
+    centroids.push({ gen, center: { ...center }, topRate: top[0].rate });
   }
+  return centroids;
+}
+
+function esTune({ generations = 6, popSize = 24, matchesPerEval = 80, sigmaInit = 0.25, startWeights = null }) {
+  const startCenter = startWeights ? { ...DEFAULT_W, ...startWeights } : { ...DEFAULT_W };
+  console.log('== ES tune start ==');
+  console.log('center: ' + JSON.stringify(Object.fromEntries(TUNE_KEYS.map(k => [k, startCenter[k]]))));
+  console.log('popSize=' + popSize + ' generations=' + generations + ' matchesPerEval=' + matchesPerEval);
+  const centroids = runES({ startCenter, sigmaInit, generations, popSize, matchesPerEval });
+  const center = centroids[centroids.length - 1].center;
   console.log('\n== ES best weights ==');
   console.log(JSON.stringify(center, null, 2));
-  // Final eval vs DEFAULT_W
   console.log('\n== final showdown vs DEFAULT_W ==');
   const final = runMatches(center, DEFAULT_W, matchesPerEval * 4);
   const rate = final.testWins / final.n;
@@ -1162,6 +1167,157 @@ function esTune({ generations = 6, popSize = 24, matchesPerEval = 80, sigmaInit 
     '  · avg rounds/match ' + final.avgRounds.toFixed(1));
   require('fs').writeFileSync('scripts/sim-guandan-es-best.json', JSON.stringify(center, null, 2));
   console.log('written to scripts/sim-guandan-es-best.json');
+}
+
+// ===========================================================
+// pop-gen：K 个独立 ES run，每个用不同起点 + 不同种子，每个 run 保存 3 个快照
+// 输出 scripts/sim-guandan-population.json（增量写入：每个 run 完成立即落盘）
+// ===========================================================
+function popGen({ K = 10, generations = 4, popSize = 16, matchesPerEval = 50, startSigma = 0.4 }) {
+  const fs = require('fs');
+  const popPath = 'scripts/sim-guandan-population.json';
+  // 续跑支持：如果文件存在且是 array，从已有进度继续
+  let population = [];
+  let startK = 0;
+  if (fs.existsSync(popPath)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(popPath, 'utf8'));
+      if (Array.isArray(existing) && existing.length > 0) {
+        population = existing;
+        startK = Math.max(...existing.map(e => e.runIdx || 0)) + 1;
+        console.log('resuming from existing population.json (' + existing.length + ' entries, next runIdx=' + startK + ')');
+      }
+    } catch (e) { /* fresh start */ }
+  }
+  console.log('== pop-gen ==');
+  console.log('K=' + K + ' generations=' + generations + ' popSize=' + popSize + ' matchesPerEval=' + matchesPerEval + ' startSigma=' + startSigma);
+  console.log('est ' + (K * generations * popSize * matchesPerEval * 0.4 / 3600).toFixed(1) + 'h total');
+
+  const overallStart = Date.now();
+  for (let k = startK; k < K; k++) {
+    // run k 的起点：k=0 用 DEFAULT_W，其余在 DEFAULT_W 上加扰动
+    const startCenter = { ...DEFAULT_W };
+    if (k > 0) {
+      for (const key of TUNE_KEYS) {
+        startCenter[key] = DEFAULT_W[key] * (1 + gaussianRandom() * startSigma);
+      }
+    }
+    console.log('\n--- run ' + k + ' / ' + K + ' (start sigma=' + startSigma + ') ---');
+    const centroids = runES({ startCenter, sigmaInit: 0.25, generations, popSize, matchesPerEval, label: 'run' + k });
+    // 保存 3 个快照：早期（弱）/ 中期 / 末期（强）。startSigma=0.4 起点本身就分散，
+    // 早期 snapshot 接近于"未充分训练的偏弱模型"，是 easy 难度的天然候选源。
+    const snapGens = [...new Set([
+      0,                                  // 早期：刚跑完第 1 代，仍受起点扰动影响
+      Math.floor((generations - 1) / 2),  // 中期：半训练
+      generations - 1,                    // 末期：收敛
+    ])];
+    for (const g of snapGens) {
+      population.push({
+        id: 'run' + k + '_gen' + g,
+        runIdx: k,
+        genSnapshot: g,
+        startCenter: { ...startCenter },
+        weights: { ...centroids[g].center },
+      });
+    }
+    // 增量落盘
+    fs.writeFileSync(popPath, JSON.stringify(population, null, 2));
+    const elapsed = ((Date.now() - overallStart) / 1000 / 60).toFixed(1);
+    console.log('run ' + k + ' saved; population size = ' + population.length + '; total elapsed ' + elapsed + ' min');
+  }
+  console.log('\n== pop-gen DONE; ' + population.length + ' candidates written to ' + popPath + ' ==');
+}
+
+// ===========================================================
+// tournament：群体内 round-robin，统计 Elo 排名
+// ===========================================================
+function tournament({ matchesPerPair = 60 }) {
+  const fs = require('fs');
+  const popPath = 'scripts/sim-guandan-population.json';
+  if (!fs.existsSync(popPath)) {
+    console.error('missing ' + popPath + ', run pop-gen first');
+    process.exit(1);
+  }
+  const population = JSON.parse(fs.readFileSync(popPath, 'utf8'));
+  // 加入两个锚点：DEFAULT_W 和 coord-best
+  const anchors = [
+    { id: 'DEFAULT_W', weights: { ...DEFAULT_W } },
+  ];
+  const coordPath = 'scripts/sim-guandan-best.json';
+  if (fs.existsSync(coordPath)) {
+    anchors.push({ id: 'coord-best', weights: JSON.parse(fs.readFileSync(coordPath, 'utf8')) });
+  }
+  const all = anchors.concat(population.map(p => ({ id: p.id, weights: p.weights })));
+  const N = all.length;
+  const numPairs = N * (N - 1) / 2;
+  console.log('== tournament ==');
+  console.log('N=' + N + ' pairs=' + numPairs + ' matchesPerPair=' + matchesPerPair);
+  console.log('est ' + (numPairs * matchesPerPair * 0.4 / 3600).toFixed(1) + 'h total');
+
+  // Elo 初始 1500
+  const elo = new Map();
+  for (const c of all) elo.set(c.id, 1500);
+  const winsMatrix = {};  // winsMatrix[a][b] = wins of a vs b
+
+  let pairIdx = 0;
+  const tStart = Date.now();
+  for (let i = 0; i < N; i++) {
+    for (let j = i + 1; j < N; j++) {
+      const a = all[i], b = all[j];
+      const r = runMatches(a.weights, b.weights, matchesPerPair);
+      const aWins = r.testWins;
+      const bWins = r.baselineWins;
+      winsMatrix[a.id] = winsMatrix[a.id] || {};
+      winsMatrix[a.id][b.id] = aWins;
+      winsMatrix[b.id] = winsMatrix[b.id] || {};
+      winsMatrix[b.id][a.id] = bWins;
+      // Elo 更新（一次性按总胜率）
+      const sa = aWins / (aWins + bWins);
+      const ea = 1 / (1 + Math.pow(10, (elo.get(b.id) - elo.get(a.id)) / 400));
+      const K_ELO = 24;
+      elo.set(a.id, elo.get(a.id) + K_ELO * (sa - ea));
+      elo.set(b.id, elo.get(b.id) + K_ELO * ((1 - sa) - (1 - ea)));
+      pairIdx++;
+      const elapsed = (Date.now() - tStart) / 1000;
+      const eta = elapsed / pairIdx * (numPairs - pairIdx) / 60;
+      process.stdout.write('\rpair ' + pairIdx + '/' + numPairs + ' ' + a.id + ' vs ' + b.id +
+        ' = ' + aWins + ':' + bWins + ' (ETA ' + eta.toFixed(0) + ' min)        ');
+      // 增量保存
+      if (pairIdx % 20 === 0) {
+        saveTournamentResults(all, elo, winsMatrix, false);
+      }
+    }
+  }
+  process.stdout.write('\n');
+  saveTournamentResults(all, elo, winsMatrix, true);
+}
+function saveTournamentResults(all, elo, winsMatrix, final) {
+  const fs = require('fs');
+  const ranking = all.map(c => {
+    const wins = winsMatrix[c.id] || {};
+    let totalWins = 0, totalGames = 0;
+    for (const opp of Object.keys(wins)) {
+      totalWins += wins[opp];
+      totalGames += wins[opp] + ((winsMatrix[opp] || {})[c.id] || 0);
+    }
+    return {
+      id: c.id,
+      elo: elo.get(c.id),
+      totalWins,
+      totalGames,
+      winRate: totalGames > 0 ? totalWins / totalGames : 0,
+      weights: c.weights,
+    };
+  });
+  ranking.sort((a, b) => b.elo - a.elo);
+  fs.writeFileSync('scripts/sim-guandan-ranking.json', JSON.stringify(ranking, null, 2));
+  fs.writeFileSync('scripts/sim-guandan-wins-matrix.json', JSON.stringify(winsMatrix, null, 2));
+  if (final) {
+    console.log('\n== tournament DONE ==');
+    console.log('Top 5: ' + ranking.slice(0, 5).map(r => r.id + '(' + r.elo.toFixed(0) + ')').join(', '));
+    console.log('Bot 5: ' + ranking.slice(-5).map(r => r.id + '(' + r.elo.toFixed(0) + ')').join(', '));
+    console.log('Elo spread: ' + ranking[0].elo.toFixed(0) + ' to ' + ranking[ranking.length-1].elo.toFixed(0));
+  }
 }
 
 function sanity() {
@@ -1186,6 +1342,20 @@ else if (cmd === 'es-tune') {
   const startPath = process.argv[6];
   const startWeights = startPath ? JSON.parse(require('fs').readFileSync(startPath, 'utf8')) : null;
   esTune({ generations, popSize, matchesPerEval, startWeights });
+}
+else if (cmd === 'pop-gen') {
+  // pop-gen [K] [generations] [popSize] [matchesPerEval] [startSigma]
+  const K = parseInt(process.argv[3], 10) || 10;
+  const generations = parseInt(process.argv[4], 10) || 4;
+  const popSize = parseInt(process.argv[5], 10) || 16;
+  const matchesPerEval = parseInt(process.argv[6], 10) || 50;
+  const startSigma = parseFloat(process.argv[7]) || 0.4;
+  popGen({ K, generations, popSize, matchesPerEval, startSigma });
+}
+else if (cmd === 'tournament') {
+  // tournament [matchesPerPair]
+  const matchesPerPair = parseInt(process.argv[3], 10) || 60;
+  tournament({ matchesPerPair });
 }
 else if (cmd === 'compare') {
   // compare <test-weights.json> [N] [baseline-weights.json]
