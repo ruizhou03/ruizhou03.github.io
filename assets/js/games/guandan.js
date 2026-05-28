@@ -2033,19 +2033,17 @@
     for (const s of giverSeats)
       for (const c of state.hands[s]) if (isJoker(c) && jokerKind(c) === 'big') bigJokers++;
     if (bigJokers >= 2) {
-      // 抗贡：用中央 banner（跟进贡相同视觉路径）让用户能明显看到这一步，再延迟开局
+      // 抗贡：中央 banner 停留 2s 让用户看清，再开打
       state.phase = PHASE.TRIBUTE;
       renderAll();
-      showTributeBanner('🛡️ 抗贡成功', seatName(third) + ' & ' + seatName(fourth) + ' 握双大王，免进贡');
-      toast('损方握双大王，抗贡成功，免进贡');
-      setTimeout(() => { beginPlay(leader); }, 1400);
+      showTributeBanner('🛡️ 抗贡成功', seatName(third) + ' & ' + seatName(fourth) + ' 握双大王，免进贡', 2000);
+      setTimeout(() => { beginPlay(leader); }, 2000);
       return;
     }
 
     // 两位 giver 都要给"最大非红桃级牌单张"。如果玩家是其中之一，给他 5s
     // 选同等级的其他花色（默认已选最大牌，超时自动确认）；AI 直接 pickTributeCard。
     state.phase = PHASE.TRIBUTE;
-    showTributeBanner('双下进贡', seatName(third) + ' & ' + seatName(fourth) + ' 出牌');
     renderAll();
     resolveGiverCard(fourth, fourthCard => {
       resolveGiverCard(third, thirdCard => {
@@ -2069,7 +2067,6 @@
           ],
           headGiver: bigGiver,   // 进贡后由这人领出下一圈
         };
-        showTributeBanner('双下进贡', seatName(bigGiver) + '→' + seatName(first) + ' · ' + seatName(smallGiver) + '→' + seatName(second));
         processTributePair(0);
       });
     });
@@ -2089,8 +2086,6 @@
     state._activeTributeGive = { seat: 0, defaultCard, validCards };
     state.selected.clear();
     state.selected.add(defaultCard);
-    const altText = validCards.length > 1 ? `（${validCards.length} 张同等级可换花色）` : '（无可换花色）';
-    showTributeBanner('进贡', '系统已为你选 ' + cardText(defaultCard) + ' ' + altText);
     renderAll();
     startTurnClock(0, () => {
       // 5s 超时：用当前选中（用户改过的）或 default 兜底确认
@@ -2138,13 +2133,11 @@
     }
     const pair = pt.pairs[idx];
     const level = currentLevelLabel();
-    if (idx > 0) showTributeBanner('继续进贡', seatName(pair.giver) + ' → ' + seatName(pair.receiver));
     if (pair.receiver === 0) {
-      // 玩家是接贡方 → 弹 UI 挑还贡牌；提交后跑 swap
+      // 玩家是接贡方 → 等待玩家挑还贡牌；提交后跑 swap。
+      // 动作行按钮已经会显示"还贡"，所以不需要 banner/toast 重复说明
       state._activeTributePair = idx;
       state.selected.clear();
-      showTributeBanner('还贡', seatName(pair.giver) + ' 进贡 ' + cardText(pair.tributeCard) + ' · 选 ≤10 牌还');
-      toast(seatName(pair.giver) + ' 进贡 ' + cardText(pair.tributeCard) + '，请选 ≤10 还');
       renderAll();
       startTurnClock(0, autoReturnTribute, TRIBUTE_TIMEOUT_MS);
     } else {
@@ -2154,63 +2147,69 @@
     }
   }
 
-  // 参考欢乐斗地主的进贡演出，3 段式：
-  //   PHASE A —— "打出"进/还贡牌到双方各自的 play area（像普通出牌一样）+ "进""还"角标
-  //   PHASE B —— 两张牌起飞，交换位置（彼此飞到对方的 play area）
-  //   PHASE C —— 落入对方牌堆。自己参与时给新到手的牌加 just-inserted 弹动；
-  //              纯 AI 间的交换则 500ms 停顿后进入下一对
+  // 进贡 4 段式（按用户反馈对齐欢乐斗地主体感）：
+  //   P1 打出  —— 两张牌真正"从牌堆里出去"：state.hands[seat] 移除该牌、count -1、play area 显示牌 + 进/还角标
+  //   P2 交换  —— 两张浮卡分别飞到对方的 play area
+  //   P3 停留  —— 0.5s，让用户看清新位置
+  //   P4 收牌  —— 把对方的牌塞进对方牌堆（count +1），玩家方走 just-inserted 弹动
   function swapTributePair(idx) {
     const pair = state.pendingTribute.pairs[idx];
     const level = currentLevelLabel();
+    const mkCombo = (card, label) => ({
+      type: T.SINGLE, cards: [card],
+      key: singleWeight(card, level), bombStrength: 0,
+      tributeLabel: label,
+    });
+    const removeFromHand = (seat, card) => {
+      const i = state.hands[seat].indexOf(card);
+      if (i >= 0) state.hands[seat].splice(i, 1);
+    };
+    const hideSlot = (slot) => {
+      const cardEl = slot.querySelector('.gd-card');
+      const tagEl = slot.querySelector('.gd-tribute-tag');
+      if (cardEl) cardEl.style.visibility = 'hidden';
+      if (tagEl) tagEl.style.visibility = 'hidden';
+    };
 
-    // PHASE A: 把两张牌渲到各自 play area + 进/还 角标
-    state.lastPlay[pair.giver] = {
-      type: T.SINGLE, cards: [pair.tributeCard],
-      key: singleWeight(pair.tributeCard, level), bombStrength: 0,
-      tributeLabel: '进',
-    };
-    state.lastPlay[pair.receiver] = {
-      type: T.SINGLE, cards: [pair.returnCard],
-      key: singleWeight(pair.returnCard, level), bombStrength: 0,
-      tributeLabel: '还',
-    };
+    // P1: 同时把两张牌从手牌里拿出来，挂到各自 play area
+    removeFromHand(pair.giver, pair.tributeCard);
+    removeFromHand(pair.receiver, pair.returnCard);
+    state.lastPlay[pair.giver] = mkCombo(pair.tributeCard, '进');
+    state.lastPlay[pair.receiver] = mkCombo(pair.returnCard, '还');
     renderAll();
-    // 玩家手里仍然显示着的那张原始牌（giver=0 或 receiver=0 时）→ 藏掉避免重影
-    // 必须在 renderAll 之后，因为 renderHand 会替换 DOM
-    hideHandCardDom(pair.tributeCard);
-    hideHandCardDom(pair.returnCard);
 
-    setTimeout(() => phaseBSwap(), 700);
+    setTimeout(phaseSwap, 600);
 
-    function phaseBSwap() {
+    function phaseSwap() {
       const giverSlot = seatEls[pair.giver].play;
       const receiverSlot = seatEls[pair.receiver].play;
-      // play area 里那两张静态卡 + 进/还 角标 都藏掉，让飞行的浮卡接管
-      const giverCardEl = giverSlot.querySelector('.gd-card');
-      const receiverCardEl = receiverSlot.querySelector('.gd-card');
-      const giverTagEl = giverSlot.querySelector('.gd-tribute-tag');
-      const receiverTagEl = receiverSlot.querySelector('.gd-tribute-tag');
-      if (giverCardEl) giverCardEl.style.visibility = 'hidden';
-      if (receiverCardEl) receiverCardEl.style.visibility = 'hidden';
-      if (giverTagEl) giverTagEl.style.visibility = 'hidden';
-      if (receiverTagEl) receiverTagEl.style.visibility = 'hidden';
-
+      hideSlot(giverSlot);
+      hideSlot(receiverSlot);
       let done = 0;
-      const onArrive = () => { if (++done === 2) phaseCAbsorb(); };
+      const onArrive = () => { if (++done === 2) phasePause(); };
       flyCardBetweenSlots(pair.tributeCard, giverSlot, receiverSlot, level, onArrive);
       flyCardBetweenSlots(pair.returnCard, receiverSlot, giverSlot, level, onArrive);
     }
 
-    function phaseCAbsorb() {
+    function phasePause() {
+      // 把 lastPlay 写成交换后的位置（giver slot 现在显示 return card，反之亦然），
+      // 让用户在 0.5s 停留里看清"新位置"
+      state.lastPlay[pair.giver] = mkCombo(pair.returnCard, '还');
+      state.lastPlay[pair.receiver] = mkCombo(pair.tributeCard, '进');
+      renderAll();
+      setTimeout(phaseInsert, 500);
+    }
+
+    function phaseInsert() {
+      // 真正把牌塞进对方牌堆（count +1），清掉 play area
+      state.hands[pair.giver].push(pair.returnCard);
+      state.hands[pair.receiver].push(pair.tributeCard);
       state.lastPlay[pair.giver] = null;
       state.lastPlay[pair.receiver] = null;
-      moveCard(pair.giver, pair.receiver, pair.tributeCard);
-      moveCard(pair.receiver, pair.giver, pair.returnCard);
       renderAll();
 
       const selfInvolved = (pair.giver === 0 || pair.receiver === 0);
       if (selfInvolved) {
-        // 我新拿到的那张牌：我是 giver 时收到 returnCard；我是 receiver 时收到 tributeCard
         const newCard = pair.giver === 0 ? pair.returnCard : pair.tributeCard;
         requestAnimationFrame(() => {
           const inserted = els.hand && els.hand.querySelector('.gd-card[data-cid="' + newCard + '"]');
@@ -2220,17 +2219,9 @@
           }
         });
       }
-      toast(seatName(pair.giver) + ' → ' + cardText(pair.tributeCard) +
-            ' · ' + seatName(pair.receiver) + ' → ' + cardText(pair.returnCard));
-      // 自己参与：等 just-inserted 跑完再开下一对；只有 AI 互相交换：500ms 停顿
-      setTimeout(() => processTributePair(idx + 1), selfInvolved ? 720 : 500);
+      // 进入下一对（自己参与等 just-inserted 跑完；纯 AI 短停）
+      setTimeout(() => processTributePair(idx + 1), selfInvolved ? 720 : 400);
     }
-  }
-
-  function hideHandCardDom(card) {
-    if (!els.hand) return;
-    const el = els.hand.querySelector('.gd-card[data-cid="' + card + '"]');
-    if (el) el.style.visibility = 'hidden';
   }
 
   // 一张牌从一个 play slot 飞到另一个 play slot，~700ms
@@ -2264,7 +2255,8 @@
   }
 
   // 进贡阶段中心 banner：每次显示前先清掉上一条（避免叠字成重影）
-  function showTributeBanner(line1, line2) {
+  // 当前唯一调用点：抗贡。durationMs 默认 1300，可覆盖
+  function showTributeBanner(line1, line2, durationMs) {
     if (!els.table) return;
     els.table.querySelectorAll('.gd-fx-banner.gd-tribute-banner').forEach(el => el.remove());
     const ban = document.createElement('div');
@@ -2272,7 +2264,7 @@
     ban.style.fontSize = '1.7rem';
     ban.innerHTML = line1 + (line2 ? '<br><span style="font-size:0.8rem;letter-spacing:0.05em;opacity:0.88;">' + line2 + '</span>' : '');
     els.table.appendChild(ban);
-    setTimeout(() => { if (ban.parentNode) ban.remove(); }, 1300);
+    setTimeout(() => { if (ban.parentNode) ban.remove(); }, durationMs || 1300);
   }
 
   // 接风视觉：中央大字"🪁 接风" + finisher 头像金光发出 → 队友头像金光接收
@@ -2557,6 +2549,8 @@
   }
 
   // 本局是否结束：当一支队伍两名成员都已出完 → 立即结束（不必打到最后一人）
+  // 触发结算前停 1s，让用户看清最后一手 + 结果，不要直接弹结算面板
+  const END_ROUND_DELAY_MS = 1000;
   function checkRoundOver() {
     if (state.out.length >= 3) {
       // 第 3 名确定后第 4 名自动确定
@@ -2564,7 +2558,8 @@
         const last = [0,1,2,3].find(s => !state.out.includes(s));
         state.out.push(last);
       }
-      endRound();
+      state.busy = true;
+      setTimeout(endRound, END_ROUND_DELAY_MS);
       return true;
     }
     // 一队双成员都出完（双上）→ 直接结束
@@ -2575,7 +2570,8 @@
       const rest = [0,1,2,3].filter(s => !state.out.includes(s));
       rest.sort((a, b) => state.hands[a].length - state.hands[b].length);
       for (const s of rest) state.out.push(s);
-      endRound();
+      state.busy = true;
+      setTimeout(endRound, END_ROUND_DELAY_MS);
       return true;
     }
     return false;

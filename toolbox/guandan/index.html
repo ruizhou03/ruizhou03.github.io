@@ -1447,6 +1447,18 @@ permalink: /toolbox/guandan/
     55%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
     100% { opacity: 0; transform: translate(-50%, -50%) scale(1.05); }
   }
+  /* 抗贡 banner：当前唯一调用 showTributeBanner 的场景，需要停留更久（~2s），
+     所以独立一条更慢的动画，把"可见保持"阶段拉长 */
+  .gd-fx-banner.gd-tribute-banner {
+    animation: gd-tribute-banner 2s ease-out forwards;
+  }
+  @keyframes gd-tribute-banner {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(-6deg); }
+    15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(0deg); }
+    30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+    85%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.05); }
+  }
 
   /* ======== 全屏切换 chip（左上方），与斗地主一致 ========
      不用浏览器 Fullscreen API（桌面易把整窗进入全屏；iOS Safari 等基本不支持），
