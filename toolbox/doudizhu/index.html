@@ -1131,6 +1131,16 @@ permalink: /toolbox/doudizhu/
     border-color: #3e6a3e;
     box-shadow: 0 0 12px rgba(90,138,90,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
   }
+  /* 发牌阶段（state.phase === DEALING / IDLE）禁用托管 + 理牌按钮 */
+  .ddz-autopilot-toggle[disabled] {
+    opacity: 0.42;
+    cursor: not-allowed;
+    background: var(--ddz-card-bg);
+    color: var(--ddz-text-on-felt-mute);
+    border-color: rgba(141,110,55,0.30);
+    box-shadow: none;
+    pointer-events: none;
+  }
   .ddz-autopilot-toggle[hidden] { display: none; }
   /* 明牌按钮在 actions 行内（替"不出"位置 — 地主第一轮不可能不出） */
   .ddz-btn.declare {

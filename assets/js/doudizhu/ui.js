@@ -368,6 +368,25 @@
   // 托管按钮 —— 点击切换 state.autopilot；开启后机器人会接管我的所有决策
   // （叫地主 / 抢地主 / 加倍 / 出牌 / 不出 / 明牌）
   const autopilotBtn = $('ddzAutopilotBtn');
+  // 发牌阶段 + 空闲（setup 浮层）禁用托管/理牌，避免牌还没发完就乱点
+  function cornerChipsShouldDisable() {
+    return state.phase === PHASE.IDLE || state.phase === PHASE.DEALING;
+  }
+  function refreshCornerChipsDisabled() {
+    const disable = cornerChipsShouldDisable();
+    // 走 getElementById 而不是依赖 IIFE 顶部的 const，避免初始化阶段被
+    // refreshGroupSortToggle 先调到时 autopilotBtn 还在 TDZ
+    const auto = document.getElementById('ddzAutopilotBtn');
+    if (auto) {
+      if (disable) auto.setAttribute('disabled', '');
+      else auto.removeAttribute('disabled');
+    }
+    const sortBtn = document.getElementById('ddzGroupSortToggle');
+    if (sortBtn) {
+      if (disable) sortBtn.setAttribute('disabled', '');
+      else sortBtn.removeAttribute('disabled');
+    }
+  }
   function refreshAutopilotBtn() {
     if (!autopilotBtn) return;
     if (state.autopilot) {
@@ -377,8 +396,10 @@
       autopilotBtn.classList.remove('active');
       autopilotBtn.textContent = '🤖 托管';
     }
+    refreshCornerChipsDisabled();
   }
   function setAutopilot(on) {
+    if (cornerChipsShouldDisable()) return;   // 发牌阶段忽略点击
     state.autopilot = !!on;
     refreshAutopilotBtn();
     if (state.autopilot) triggerAutopilotIfMyTurn();
@@ -437,6 +458,7 @@
   $('ddzBackToSetupBtn').addEventListener('click', () => {
     gameOverOverlay.classList.remove('show', 'has-spring');
     state.phase = PHASE.IDLE;
+    refreshCornerChipsDisabled();   // 回到 setup → 重新禁用托管/理牌
     // 牌桌一直可见；只是清掉上一局残留 + 重新弹出 setup 浮层
     setupView.hidden = false;
     resetTableToIdle();
@@ -713,6 +735,7 @@
   // 智能分组开关（默认关；玩家可在 setup 屏 toggle）
   // 注：const GROUP_SORT_KEY / let groupSortEnabled 已经在更上面 refreshGroupSortToggle() 调用前初始化
   function setGroupSortEnabled(b) {
+    if (cornerChipsShouldDisable()) return;   // 发牌阶段不允许切
     groupSortEnabled = !!b;
     try { localStorage.setItem(GROUP_SORT_KEY, groupSortEnabled ? '1' : '0'); } catch {}
     if (state.hands[0] && state.hands[0].length) renderHand();
@@ -724,6 +747,7 @@
     btn.classList.toggle('on', groupSortEnabled);
     btn.textContent = groupSortEnabled ? '🧩 理牌：开' : '🧩 理牌：关';
     btn.classList.toggle('active', groupSortEnabled);
+    refreshCornerChipsDisabled();
   }
 
   // ============================================================
@@ -1380,6 +1404,7 @@
   function enterBidding(opts) {
     opts = opts || {};
     state.phase = PHASE.BIDDING;
+    refreshCornerChipsDisabled();   // 发牌结束 → 解禁托管 + 理牌
     state.bidStartSeat = (typeof opts.startSeat === 'number') ? opts.startSeat : Math.floor(Math.random() * 3);
     state.bidTurnIdx = state.bidStartSeat;
     state.bidActions = [];
