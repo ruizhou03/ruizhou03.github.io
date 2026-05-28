@@ -812,10 +812,15 @@
     tribOverlay: $('gdTributeOverlay'), tribTitle: $('gdTribTitle'),
     tribDesc: $('gdTribDesc'), tribPick: $('gdTribPick'), tribConfirm: $('gdTribConfirm'),
     roundOverlay: $('gdRoundOverlay'), roundTitle: $('gdRoundTitle'),
-    roundRanks: $('gdRoundRanks'), roundChange: $('gdRoundChange'), roundNext: $('gdRoundNext'),
+    roundNext: $('gdRoundNext'),
+    roundLevelYou: $('gdResultLevelYou'), roundLevelOpp: $('gdResultLevelOpp'),
+    roundPlayersYou: $('gdResultPlayersYou'), roundPlayersOpp: $('gdResultPlayersOpp'),
+    roundTeamYou: $('gdResultTeamYou'), roundTeamOpp: $('gdResultTeamOpp'),
     matchOverlay: $('gdMatchOverlay'), matchTitle: $('gdMatchTitle'),
-    matchDesc: $('gdMatchDesc'), matchSummary: $('gdMatchSummary'),
     matchAgain: $('gdMatchAgain'), matchSetup: $('gdMatchSetup'),
+    matchLevelYou: $('gdMatchLevelYou'), matchLevelOpp: $('gdMatchLevelOpp'),
+    matchPlayersYou: $('gdMatchPlayersYou'), matchPlayersOpp: $('gdMatchPlayersOpp'),
+    matchTeamYou: $('gdMatchTeamYou'), matchTeamOpp: $('gdMatchTeamOpp'),
     toast: $('gdToast'),
   };
   const seatEls = [0,1,2,3].map(i => ({
@@ -2042,35 +2047,62 @@
     showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon);
   }
 
-  function showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon) {
-    els.roundRanks.innerHTML = '';
-    const posName = ['头游','二游','三游','末游'];
-    ranking.forEach((s, i) => {
-      const li = document.createElement('li');
-      if (TEAM(s) === winTeam) li.classList.add('win-team');
-      const pos = document.createElement('span');
-      pos.className = 'pos'; pos.textContent = posName[i];
-      const who = document.createElement('span');
-      who.className = 'who';
-      const teamLab = TEAM(s) === 0 ? '你方' : '对方';
-      who.innerHTML = '';
-      who.textContent = seatName(s) + ' ';
-      const sm = document.createElement('small');
-      sm.textContent = '(' + teamLab + ')';
-      who.appendChild(sm);
-      li.appendChild(pos); li.appendChild(who);
-      els.roundRanks.appendChild(li);
-    });
-    const teamLabel = winTeam === 0 ? '你方' : '对方';
-    const advText = ['', '+1 级（队友末游）', '+2 级（队友三游）', '+3 级（队友二游）'][advance];
-    if (matchWon) {
-      els.roundTitle.textContent = teamLabel + ' 在 A 上拿到头游！';
-      els.roundChange.textContent = teamLabel + ' 打过 A — 本局获胜 🎉';
-    } else {
-      els.roundTitle.textContent = (winTeam === 0 ? '你方' : '对方') + ' 头游';
-      els.roundChange.textContent =
-        `${teamLabel} 升级：${LEVEL_SEQ[beforeIdx]} → ${LEVEL_SEQ[newIdx]} · ${advText}`;
+  // 座位 avatar 表（跟桌面 .gd-avatar 里的 emoji 一致）
+  const SEAT_AVATARS = ['😎', '🦊', '🤝', '🐱'];
+  const POS_NAMES = ['头游', '二游', '三游', '末游'];
+
+  // 给一个 .gd-result-players 容器渲染 [seat0, seat2] 或 [seat1, seat3] 的玩家卡
+  function renderResultTeamPlayers(container, seats, seatToRank) {
+    if (!container) return;
+    container.innerHTML = '';
+    for (const s of seats) {
+      const rank = seatToRank[s];
+      const row = document.createElement('div');
+      row.className = 'gd-result-player';
+      row.innerHTML =
+        '<span class="gd-result-rank" data-rank="' + rank + '">' + POS_NAMES[rank - 1] + '</span>' +
+        '<span class="gd-result-avatar">' + SEAT_AVATARS[s] + '</span>' +
+        '<span class="gd-result-name">' + seatName(s) + '</span>';
+      container.appendChild(row);
     }
+  }
+
+  function showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon) {
+    const seatToRank = {};
+    for (let i = 0; i < 4; i++) seatToRank[ranking[i]] = i + 1;
+
+    // 大标题
+    const youWon = winTeam === 0;
+    if (matchWon) {
+      els.roundTitle.textContent = youWon ? '胜利' : '失败';
+    } else {
+      els.roundTitle.textContent = youWon ? '我方头游' : '对方头游';
+    }
+    els.roundTitle.classList.toggle('win', youWon);
+    els.roundTitle.classList.toggle('lose', !youWon);
+
+    // 队伍面板高亮
+    els.roundTeamYou.classList.toggle('winning', winTeam === 0);
+    els.roundTeamOpp.classList.toggle('winning', winTeam === 1);
+
+    // 级牌：胜方 before → after，败方维持当前
+    const youLvCurr = LEVEL_SEQ[state.levels[0]];
+    const oppLvCurr = LEVEL_SEQ[state.levels[1]];
+    const winnerBefore = LEVEL_SEQ[beforeIdx];
+    const winnerAfter = LEVEL_SEQ[newIdx];
+    const advText = ['', '+1（队友末游）', '+2（队友三游）', '+3（队友二游）'][advance] || '';
+    if (winTeam === 0) {
+      els.roundLevelYou.innerHTML = '级 <strong>' + winnerBefore + '</strong> <span class="arrow">→</span> <strong>' + winnerAfter + '</strong> · ' + advText;
+      els.roundLevelOpp.innerHTML = '级 <strong>' + oppLvCurr + '</strong>';
+    } else {
+      els.roundLevelYou.innerHTML = '级 <strong>' + youLvCurr + '</strong>';
+      els.roundLevelOpp.innerHTML = '级 <strong>' + winnerBefore + '</strong> <span class="arrow">→</span> <strong>' + winnerAfter + '</strong> · ' + advText;
+    }
+
+    // 玩家卡：0+2 = 你方；1+3 = 对方
+    renderResultTeamPlayers(els.roundPlayersYou, [0, 2], seatToRank);
+    renderResultTeamPlayers(els.roundPlayersOpp, [1, 3], seatToRank);
+
     els.roundNext.textContent = matchWon ? '查看战报 ▶' : '继续 ▶';
     stopTurnClock();
     els.roundOverlay.classList.add('open');
@@ -2085,22 +2117,22 @@
   function endMatch(winTeam) {
     state.phase = PHASE.MATCH_END;
     const youWon = winTeam === 0;
-    els.matchTitle.textContent = youWon ? '🎉 你方打过 A，赢下整局！' : '😤 对方打过 A';
-    els.matchDesc.textContent = youWon
-      ? '你和对家一路从 2 打到 A，并在 A 上拿下头游。'
-      : '对方先打过了 A。再来一局，争口气！';
-    els.matchSummary.innerHTML = '';
+    // 大标题：胜利 / 失败
+    els.matchTitle.textContent = youWon ? '胜利' : '失败';
+    els.matchTitle.classList.toggle('win', youWon);
+    els.matchTitle.classList.toggle('lose', !youWon);
+    // 队伍面板高亮
+    els.matchTeamYou.classList.toggle('winning', youWon);
+    els.matchTeamOpp.classList.toggle('winning', !youWon);
+    // 级牌：胜方在 A、败方维持当前
+    els.matchLevelYou.innerHTML = '级 <strong>' + LEVEL_SEQ[state.levels[0]] + '</strong>' + (youWon ? '（打过）' : '');
+    els.matchLevelOpp.innerHTML = '级 <strong>' + LEVEL_SEQ[state.levels[1]] + '</strong>' + (youWon ? '' : '（打过）');
+    // 最后一局名次
     const r = state.lastRanking || [];
-    const posName = ['头游','二游','三游','末游'];
-    r.forEach((s, i) => {
-      const li = document.createElement('li');
-      const pos = document.createElement('span');
-      pos.className = 'pos'; pos.textContent = posName[i];
-      const who = document.createElement('span');
-      who.className = 'who'; who.textContent = seatName(s) + (TEAM(s) === 0 ? '（你方）' : '（对方）');
-      li.appendChild(pos); li.appendChild(who);
-      els.matchSummary.appendChild(li);
-    });
+    const seatToRank = {};
+    for (let i = 0; i < 4; i++) seatToRank[r[i]] = i + 1;
+    renderResultTeamPlayers(els.matchPlayersYou, [0, 2], seatToRank);
+    renderResultTeamPlayers(els.matchPlayersOpp, [1, 3], seatToRank);
     // 战绩
     const st = state.stats[state.aiLevel];
     if (youWon) st.w++; else st.l++;

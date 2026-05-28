@@ -549,6 +549,141 @@ permalink: /toolbox/guandan/
     max-height: 86vh; overflow-y: auto;
     box-shadow: 0 8px 28px rgba(13,24,43,0.4);
   }
+  /* 结算面板（仿欢乐斗地主 VS 双队）：大字标题 + 两个队伍面板 + 操作按钮 */
+  .gd-overlay .gd-result-panel {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    padding: 1.4rem 1.4rem 1.2rem;
+    max-width: 640px; width: 100%;
+    max-height: 92vh; overflow-y: auto;
+    box-shadow: 0 12px 38px rgba(13,24,43,0.45);
+  }
+  .gd-result-title {
+    font-family: var(--font-display);
+    font-size: 2.6rem; font-weight: 900;
+    margin: 0 0 1.1rem; text-align: center;
+    letter-spacing: 0.1em;
+    line-height: 1.05;
+  }
+  .gd-result-title.win {
+    background: linear-gradient(135deg, #f5d142 10%, #c9a227 50%, #a87a2a 95%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 4px rgba(168,122,42,0.35));
+  }
+  .gd-result-title.lose {
+    background: linear-gradient(135deg, #5a7a99, #2c3e55);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 4px rgba(13,24,43,0.4));
+  }
+  .gd-result-vs {
+    display: flex; align-items: stretch; gap: 0.6rem;
+    margin-bottom: 1.1rem;
+  }
+  .gd-result-team {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 0.5rem;
+    padding: 0.85rem 0.85rem 0.9rem;
+    border-radius: 14px;
+    border: 1.5px solid var(--color-border);
+    background: rgba(255,255,255,0.55);
+    transition: transform 0.25s, box-shadow 0.25s;
+  }
+  .gd-result-team.you {
+    background: linear-gradient(135deg, rgba(30,111,79,0.08), rgba(30,111,79,0.02));
+    border-color: rgba(30,111,79,0.45);
+  }
+  .gd-result-team.opp {
+    background: linear-gradient(135deg, rgba(139,46,46,0.08), rgba(139,46,46,0.02));
+    border-color: rgba(139,46,46,0.45);
+  }
+  /* 胜方面板：金色高亮 + 微抬升 + 光晕 */
+  .gd-result-team.winning {
+    background: linear-gradient(135deg, rgba(245,209,66,0.28), rgba(201,162,39,0.08));
+    border-color: var(--gd-accent-strong);
+    box-shadow: 0 0 22px rgba(201,162,39,0.45), inset 0 1px 2px rgba(255,255,255,0.5);
+    transform: translateY(-2px);
+  }
+  .gd-result-team-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px dashed rgba(0,0,0,0.10);
+  }
+  .gd-result-team-label {
+    font-family: var(--font-display);
+    font-size: 1.05rem; font-weight: 700;
+    color: var(--color-ink);
+    letter-spacing: 0.04em;
+  }
+  .gd-result-level {
+    font-family: var(--font-body);
+    font-size: 0.82rem; color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .gd-result-level strong {
+    color: var(--gd-accent-strong);
+    font-weight: 700; font-size: 1.02rem;
+  }
+  .gd-result-level .arrow { margin: 0 0.18rem; color: var(--gd-accent-strong); }
+  .gd-result-players {
+    display: flex; flex-direction: column; gap: 0.4rem;
+  }
+  .gd-result-player {
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.35rem 0.55rem;
+    background: rgba(255,255,255,0.6);
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .gd-result-rank {
+    font-family: var(--font-display);
+    font-weight: 700; font-size: 0.82rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 4px;
+    color: #fff;
+    min-width: 2.5em; text-align: center;
+    letter-spacing: 0.02em;
+  }
+  .gd-result-rank[data-rank="1"] { background: linear-gradient(135deg, #f5d142, #a87a2a); }
+  .gd-result-rank[data-rank="2"] { background: linear-gradient(135deg, #b8c5d0, #6b8f9c); }
+  .gd-result-rank[data-rank="3"] { background: linear-gradient(135deg, #d8a878, #b0784a); }
+  .gd-result-rank[data-rank="4"] { background: linear-gradient(135deg, #b34848, #8b2e2e); }
+  .gd-result-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem;
+    background: #fff;
+    border: 1.5px solid var(--color-border);
+    flex-shrink: 0;
+  }
+  .gd-result-name {
+    font-size: 0.9rem; font-weight: 600;
+    color: var(--color-ink);
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .gd-result-vs-divider {
+    align-self: center;
+    font-family: var(--font-display);
+    font-size: 1.4rem; font-weight: 900;
+    color: var(--gd-accent-strong);
+    letter-spacing: 0.06em;
+    padding: 0 0.1rem;
+  }
+  .gd-result-actions {
+    display: flex; gap: 0.6rem; justify-content: center;
+    flex-wrap: wrap; margin-top: 0.4rem;
+  }
+  @media (max-width: 560px) {
+    .gd-result-title { font-size: 2rem; }
+    .gd-result-vs { gap: 0.3rem; }
+    .gd-result-team { padding: 0.6rem 0.55rem; }
+    .gd-result-vs-divider { font-size: 1.1rem; }
+    .gd-result-avatar { width: 30px; height: 30px; font-size: 1rem; }
+  }
   /* 大标题用金色 accent + display 字体，跟斗地主一致 */
   .gd-overlay h2 {
     color: var(--gd-accent-strong);
@@ -992,23 +1127,53 @@ permalink: /toolbox/guandan/
       </div>
     </div>
 
-    <!-- 回合结算 -->
+    <!-- 回合结算（参考欢乐斗地主 VS 双队结算） -->
     <div class="gd-overlay" id="gdRoundOverlay">
-      <div class="panel">
-        <h2 id="gdRoundTitle">本回合结束</h2>
-        <ul class="gd-rank-list" id="gdRoundRanks"></ul>
-        <div class="sub" id="gdRoundChange"></div>
+      <div class="gd-result-panel">
+        <h2 class="gd-result-title" id="gdRoundTitle">胜利</h2>
+        <div class="gd-result-vs">
+          <div class="gd-result-team you" id="gdResultTeamYou">
+            <div class="gd-result-team-head">
+              <span class="gd-result-team-label">你方</span>
+              <span class="gd-result-level" id="gdResultLevelYou">级 2</span>
+            </div>
+            <div class="gd-result-players" id="gdResultPlayersYou"></div>
+          </div>
+          <div class="gd-result-vs-divider">VS</div>
+          <div class="gd-result-team opp" id="gdResultTeamOpp">
+            <div class="gd-result-team-head">
+              <span class="gd-result-team-label">对方</span>
+              <span class="gd-result-level" id="gdResultLevelOpp">级 2</span>
+            </div>
+            <div class="gd-result-players" id="gdResultPlayersOpp"></div>
+          </div>
+        </div>
         <button class="gd-btn primary" id="gdRoundNext" type="button">继续 ▶</button>
       </div>
     </div>
 
     <!-- 整局结束 -->
     <div class="gd-overlay" id="gdMatchOverlay">
-      <div class="panel">
-        <h2 id="gdMatchTitle">🎉 整局结束</h2>
-        <div class="sub" id="gdMatchDesc"></div>
-        <ul class="gd-rank-list" id="gdMatchSummary"></ul>
-        <div style="display:flex;gap:0.6rem;justify-content:center;flex-wrap:wrap;">
+      <div class="gd-result-panel">
+        <h2 class="gd-result-title" id="gdMatchTitle">胜利</h2>
+        <div class="gd-result-vs">
+          <div class="gd-result-team you" id="gdMatchTeamYou">
+            <div class="gd-result-team-head">
+              <span class="gd-result-team-label">你方</span>
+              <span class="gd-result-level" id="gdMatchLevelYou">级 A</span>
+            </div>
+            <div class="gd-result-players" id="gdMatchPlayersYou"></div>
+          </div>
+          <div class="gd-result-vs-divider">VS</div>
+          <div class="gd-result-team opp" id="gdMatchTeamOpp">
+            <div class="gd-result-team-head">
+              <span class="gd-result-team-label">对方</span>
+              <span class="gd-result-level" id="gdMatchLevelOpp">级 K</span>
+            </div>
+            <div class="gd-result-players" id="gdMatchPlayersOpp"></div>
+          </div>
+        </div>
+        <div class="gd-result-actions">
           <button class="gd-btn primary" id="gdMatchAgain" type="button">再来一局</button>
           <button class="gd-btn" id="gdMatchSetup" type="button">换难度</button>
         </div>
