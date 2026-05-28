@@ -329,46 +329,60 @@ permalink: /toolbox/pet-food/
     border-top: 1px dashed var(--color-border);
   }
 
-  /* Avatar editor */
-  .avatar-edit {
-    display: flex; gap: 0.9rem; align-items: center;
-  }
-  .avatar-preview {
-    width: 64px; height: 64px;
-    border-radius: 50%;
-    background: var(--color-bg-warm);
-    border: 1px solid var(--color-border);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem; overflow: hidden;
-    flex-shrink: 0;
-  }
-  .avatar-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .avatar-actions { display: flex; flex-direction: column; gap: 0.4rem; }
-  .avatar-btn {
-    font: inherit; font-size: 0.82rem;
-    padding: 0.4rem 0.85rem;
-    border: 1px solid var(--color-border); border-radius: 999px;
-    background: var(--color-bg); color: var(--color-muted);
-    cursor: pointer; transition: all 0.18s;
-    display: inline-block;
-    text-align: center;
-  }
-  @media (hover: hover) {
-    .avatar-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-  }
-  .avatar-btn.clear { color: #b07c75; }
-  @media (hover: hover) {
-    .avatar-btn.clear:hover { border-color: #b07c75; color: #b07c75; }
-  }
-
-  .emoji-picker { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-  .emoji-picker button {
-    width: 36px; height: 36px;
+  /* Avatar picker row (photo button + emoji cells) */
+  .avatar-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .avatar-cell {
+    width: 38px; height: 38px;
     border: 1px solid var(--color-border); border-radius: 8px;
-    background: var(--color-bg); font-size: 1.1rem;
-    cursor: pointer;
+    background: var(--color-bg); color: var(--color-ink);
+    font: inherit; font-size: 1.15rem;
+    cursor: pointer; padding: 0;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.18s, background 0.18s;
   }
-  .emoji-picker button.selected { border-color: var(--color-accent); background: var(--color-bg-warm); }
+  .avatar-cell.selected { border-color: var(--color-accent); background: var(--color-bg-warm); }
+  .avatar-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .avatar-cell.photo-cell { color: var(--color-muted); }
+  .avatar-cell.photo-cell .ph-icon { font-size: 1.1rem; }
+
+  /* Crop modal */
+  .crop-modal-bk .modal { max-width: 460px; }
+  .crop-modal-bk .modal h2 { font-size: 1.15rem; }
+  .crop-stage {
+    position: relative;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    margin: 0 auto 0.6rem;
+  }
+  .crop-stage img {
+    display: block; pointer-events: none;
+    -webkit-user-drag: none;
+  }
+  .crop-frame {
+    position: absolute;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+    cursor: move;
+    box-sizing: border-box;
+  }
+  .crop-handle {
+    position: absolute;
+    width: 16px; height: 16px;
+    background: #fff;
+    border: 1px solid #888;
+    border-radius: 50%;
+    box-sizing: border-box;
+  }
+  .crop-handle.h-nw { top: -8px; left: -8px; cursor: nwse-resize; }
+  .crop-handle.h-ne { top: -8px; right: -8px; cursor: nesw-resize; }
+  .crop-handle.h-sw { bottom: -8px; left: -8px; cursor: nesw-resize; }
+  .crop-handle.h-se { bottom: -8px; right: -8px; cursor: nwse-resize; }
+  .crop-hint { font-size: 0.78rem; color: var(--color-muted); text-align: center; margin-bottom: 0.7rem; }
 
   .modal-actions {
     display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1.2rem;
@@ -498,7 +512,6 @@ permalink: /toolbox/pet-food/
         <button type="button" class="save-btn" id="save-entry">📝 记一笔</button>
       </div>
       <div class="form-warn" id="form-warn" style="display: none;"></div>
-      <div class="form-hint">💡 加粮前 + 加粮后各称一次更准；倒掉旧粮也记一次 0 g（选「不含碗」）就行。</div>
     </div>
 
     <div class="section-title">今日记录</div>
@@ -542,22 +555,14 @@ permalink: /toolbox/pet-food/
       </div>
       <div class="field">
         <label>头像</label>
-        <div class="avatar-edit">
-          <div class="avatar-preview" id="pm-avatar-preview">
-            <span id="pm-avatar-fallback">🐱</span>
-            <img id="pm-avatar-img" style="display:none;" alt="" />
-          </div>
-          <div class="avatar-actions">
-            <label class="avatar-btn" for="pm-avatar-file">📷 上传照片</label>
-            <input type="file" id="pm-avatar-file" accept="image/*" style="display:none;" />
-            <button type="button" class="avatar-btn clear" id="pm-avatar-clear" style="display:none;">清除照片</button>
-          </div>
+        <div class="avatar-row" id="pm-avatar-row">
+          <button type="button" class="avatar-cell photo-cell" id="pm-photo-btn" title="拍照 / 从相册选">
+            <span class="ph-icon" id="pm-photo-icon">📷</span>
+            <img id="pm-photo-thumb" style="display:none;" alt="" />
+          </button>
+          <!-- emoji cells appended at runtime -->
         </div>
-        <p class="hint">没传照片时显示 Emoji 头像。照片会自动缩到 160×160 保存。</p>
-      </div>
-      <div class="field" id="pm-emoji-field">
-        <label>Emoji（无照片时显示）</label>
-        <div class="emoji-picker" id="pm-emoji"></div>
+        <input type="file" id="pm-avatar-file" accept="image/*" style="display:none;" />
       </div>
       <div class="field">
         <label>碗的空重 (g)</label>
@@ -608,6 +613,27 @@ permalink: /toolbox/pet-food/
       <div class="modal-actions">
         <button type="button" class="cancel" id="mm-keep">仍按当前模式</button>
         <button type="button" class="save" id="mm-swap">换成另一个模式</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Crop modal -->
+  <div class="modal-backdrop crop-modal-bk" id="crop-modal">
+    <div class="modal">
+      <h2>裁剪头像</h2>
+      <div class="crop-stage" id="crop-stage">
+        <img id="crop-img" alt="" />
+        <div class="crop-frame" id="crop-frame">
+          <div class="crop-handle h-nw" data-handle="nw"></div>
+          <div class="crop-handle h-ne" data-handle="ne"></div>
+          <div class="crop-handle h-sw" data-handle="sw"></div>
+          <div class="crop-handle h-se" data-handle="se"></div>
+        </div>
+      </div>
+      <div class="crop-hint">拖动方框选择头像，四角可缩放</div>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="crop-cancel">取消</button>
+        <button type="button" class="save" id="crop-apply">应用</button>
       </div>
     </div>
   </div>
@@ -888,34 +914,68 @@ permalink: /toolbox/pet-food/
   const $pmSpecies = document.getElementById('pm-species');
   const $pmBodyWeight = document.getElementById('pm-body-weight');
   const $pmStage = document.getElementById('pm-stage');
-  const $pmEmoji = document.getElementById('pm-emoji');
   const $pmSave = document.getElementById('pm-save');
   const $pmCancel = document.getElementById('pm-cancel');
   const $pmDelete = document.getElementById('pm-delete');
-  const $pmAvatarPreview = document.getElementById('pm-avatar-preview');
-  const $pmAvatarFallback = document.getElementById('pm-avatar-fallback');
-  const $pmAvatarImg = document.getElementById('pm-avatar-img');
+  const $pmAvatarRow = document.getElementById('pm-avatar-row');
   const $pmAvatarFile = document.getElementById('pm-avatar-file');
-  const $pmAvatarClear = document.getElementById('pm-avatar-clear');
+  const $pmPhotoBtn = document.getElementById('pm-photo-btn');
+  const $pmPhotoIcon = document.getElementById('pm-photo-icon');
+  const $pmPhotoThumb = document.getElementById('pm-photo-thumb');
+
+  const $cropModal = document.getElementById('crop-modal');
+  const $cropStage = document.getElementById('crop-stage');
+  const $cropImg = document.getElementById('crop-img');
+  const $cropFrame = document.getElementById('crop-frame');
+  const $cropCancel = document.getElementById('crop-cancel');
+  const $cropApply = document.getElementById('crop-apply');
 
   const $mmModal = document.getElementById('mismatch-modal');
   const $mmBody = document.getElementById('mm-body');
   const $mmKeep = document.getElementById('mm-keep');
   const $mmSwap = document.getElementById('mm-swap');
 
-  // Init emoji picker
-  $pmEmoji.innerHTML = EMOJIS.map(e => `<button type="button" data-emoji="${e}">${e}</button>`).join('');
-  $pmEmoji.querySelectorAll('button').forEach(b => {
+  // Build avatar picker: photo button (already in HTML) + emoji cells
+  EMOJIS.forEach(em => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'avatar-cell emoji-cell';
+    b.dataset.emoji = em;
+    b.textContent = em;
     b.addEventListener('click', () => {
-      $pmEmoji.querySelectorAll('button').forEach(x => x.classList.remove('selected'));
-      b.classList.add('selected');
-      state.selectedEmoji = b.dataset.emoji;
-      // If no avatar uploaded, update preview to reflect emoji change
-      if (!state.pendingAvatar) {
-        $pmAvatarFallback.textContent = state.selectedEmoji;
-      }
+      state.pendingAvatar = null;
+      state.selectedEmoji = em;
+      updateAvatarSelection();
     });
+    $pmAvatarRow.appendChild(b);
   });
+  $pmPhotoBtn.addEventListener('click', () => $pmAvatarFile.click());
+
+  function updateAvatarSelection() {
+    if (state.pendingAvatar) {
+      $pmPhotoThumb.src = state.pendingAvatar;
+      $pmPhotoThumb.style.display = '';
+      $pmPhotoIcon.style.display = 'none';
+      $pmPhotoBtn.classList.add('selected');
+    } else {
+      $pmPhotoThumb.removeAttribute('src');
+      $pmPhotoThumb.style.display = 'none';
+      $pmPhotoIcon.style.display = '';
+      $pmPhotoBtn.classList.remove('selected');
+    }
+    $pmAvatarRow.querySelectorAll('.emoji-cell').forEach(b => {
+      b.classList.toggle('selected', !state.pendingAvatar && b.dataset.emoji === state.selectedEmoji);
+    });
+  }
+
+  function readAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(new Error('读取失败'));
+      r.readAsDataURL(file);
+    });
+  }
 
   // Mode toggle
   $modeToggle.querySelectorAll('label').forEach(lbl => {
@@ -1441,62 +1501,137 @@ permalink: /toolbox/pet-food/
     return out;
   }
 
-  // ===== Avatar handling =====
-  function resizeImage(file, maxSize) {
-    return new Promise((resolve, reject) => {
-      if (!file || !file.type || file.type.indexOf('image/') !== 0) { reject(new Error('不是图片文件')); return; }
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1);
-        const w = Math.max(1, Math.round(img.width * ratio));
-        const h = Math.max(1, Math.round(img.height * ratio));
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        URL.revokeObjectURL(url);
-        try {
-          resolve(canvas.toDataURL('image/jpeg', 0.78));
-        } catch (e) { reject(e); }
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('图片加载失败')); };
-      img.src = url;
-    });
-  }
-
-  function setAvatarPreview(dataUrl, emojiFallback) {
-    if (dataUrl) {
-      $pmAvatarImg.src = dataUrl;
-      $pmAvatarImg.style.display = '';
-      $pmAvatarFallback.style.display = 'none';
-      $pmAvatarClear.style.display = '';
-    } else {
-      $pmAvatarImg.removeAttribute('src');
-      $pmAvatarImg.style.display = 'none';
-      $pmAvatarFallback.textContent = emojiFallback || '🐱';
-      $pmAvatarFallback.style.display = '';
-      $pmAvatarClear.style.display = 'none';
-    }
-  }
-
+  // ===== File picker → crop modal =====
   $pmAvatarFile.addEventListener('change', async (e) => {
     const f = e.target.files && e.target.files[0];
+    $pmAvatarFile.value = '';
     if (!f) return;
+    if (!f.type || f.type.indexOf('image/') !== 0) { alert('请选图片文件'); return; }
     try {
-      const dataUrl = await resizeImage(f, 160);
-      state.pendingAvatar = dataUrl;
-      setAvatarPreview(dataUrl, state.selectedEmoji);
+      const dataUrl = await readAsDataURL(f);
+      openCropModal(dataUrl);
     } catch (err) {
       alert('读取图片失败：' + err.message);
-    } finally {
-      $pmAvatarFile.value = '';
     }
   });
-  $pmAvatarClear.addEventListener('click', () => {
-    state.pendingAvatar = null;
-    setAvatarPreview(null, state.selectedEmoji);
+
+  // ===== Crop modal =====
+  const cropState = { scale: 1, w: 0, h: 0, frame: { x: 0, y: 0, size: 0 } };
+  let cropDrag = null;
+
+  function openCropModal(srcDataUrl) {
+    $cropImg.onload = () => {
+      const modalEl = $cropModal.querySelector('.modal');
+      const containerW = (modalEl.clientWidth || 360) - 64;
+      const maxW = Math.max(200, containerW);
+      const maxH = Math.max(220, window.innerHeight * 0.55);
+      const nW = $cropImg.naturalWidth, nH = $cropImg.naturalHeight;
+      const scale = Math.min(maxW / nW, maxH / nH, 1);
+      const dw = Math.round(nW * scale);
+      const dh = Math.round(nH * scale);
+      $cropStage.style.width = dw + 'px';
+      $cropStage.style.height = dh + 'px';
+      $cropImg.style.width = dw + 'px';
+      $cropImg.style.height = dh + 'px';
+      const sq = Math.floor(Math.min(dw, dh) * 0.85);
+      cropState.scale = scale;
+      cropState.w = dw;
+      cropState.h = dh;
+      cropState.frame = {
+        x: Math.floor((dw - sq) / 2),
+        y: Math.floor((dh - sq) / 2),
+        size: sq,
+      };
+      updateCropFrame();
+    };
+    $cropImg.src = srcDataUrl;
+    $cropModal.classList.add('open');
+  }
+  function updateCropFrame() {
+    $cropFrame.style.left = cropState.frame.x + 'px';
+    $cropFrame.style.top = cropState.frame.y + 'px';
+    $cropFrame.style.width = cropState.frame.size + 'px';
+    $cropFrame.style.height = cropState.frame.size + 'px';
+  }
+  function closeCropModal() { $cropModal.classList.remove('open'); }
+
+  function getStagePos(ev) {
+    const rect = $cropStage.getBoundingClientRect();
+    return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+  }
+
+  $cropStage.addEventListener('pointerdown', (e) => {
+    const t = e.target;
+    if (t.classList && t.classList.contains('crop-handle')) {
+      cropDrag = { mode: 'resize-' + t.dataset.handle, frame: { ...cropState.frame } };
+    } else if (t === $cropFrame || t === $cropStage || t === $cropImg) {
+      cropDrag = { mode: 'move', startMouse: getStagePos(e), frame: { ...cropState.frame } };
+    } else {
+      return;
+    }
+    try { $cropStage.setPointerCapture(e.pointerId); } catch (_) {}
+    e.preventDefault();
   });
+  $cropStage.addEventListener('pointermove', (e) => {
+    if (!cropDrag) return;
+    const pos = getStagePos(e);
+    const dw = cropState.w, dh = cropState.h;
+    if (cropDrag.mode === 'move') {
+      const dx = pos.x - cropDrag.startMouse.x;
+      const dy = pos.y - cropDrag.startMouse.y;
+      cropState.frame = {
+        x: Math.max(0, Math.min(dw - cropDrag.frame.size, cropDrag.frame.x + dx)),
+        y: Math.max(0, Math.min(dh - cropDrag.frame.size, cropDrag.frame.y + dy)),
+        size: cropDrag.frame.size,
+      };
+    } else {
+      const corner = cropDrag.mode.slice(7);
+      const sf = cropDrag.frame;
+      const anchor = {
+        x: corner.endsWith('e') ? sf.x : sf.x + sf.size,
+        y: corner.startsWith('s') ? sf.y : sf.y + sf.size,
+      };
+      const mx = Math.max(0, Math.min(dw, pos.x));
+      const my = Math.max(0, Math.min(dh, pos.y));
+      const sgnX = corner.endsWith('e') ? 1 : -1;
+      const sgnY = corner.startsWith('s') ? 1 : -1;
+      let size = Math.min((mx - anchor.x) * sgnX, (my - anchor.y) * sgnY);
+      if (sgnX === 1) size = Math.min(size, dw - anchor.x); else size = Math.min(size, anchor.x);
+      if (sgnY === 1) size = Math.min(size, dh - anchor.y); else size = Math.min(size, anchor.y);
+      size = Math.max(24, size);
+      cropState.frame = {
+        x: corner.endsWith('e') ? anchor.x : anchor.x - size,
+        y: corner.startsWith('s') ? anchor.y : anchor.y - size,
+        size,
+      };
+    }
+    updateCropFrame();
+  });
+  function endCropDrag(e) {
+    if (cropDrag) {
+      cropDrag = null;
+      try { $cropStage.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+  }
+  $cropStage.addEventListener('pointerup', endCropDrag);
+  $cropStage.addEventListener('pointercancel', endCropDrag);
+
+  $cropApply.addEventListener('click', () => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 160; canvas.height = 160;
+      const ctx = canvas.getContext('2d');
+      const sx = cropState.frame.x / cropState.scale;
+      const sy = cropState.frame.y / cropState.scale;
+      const ss = cropState.frame.size / cropState.scale;
+      ctx.drawImage($cropImg, sx, sy, ss, ss, 0, 0, 160, 160);
+      state.pendingAvatar = canvas.toDataURL('image/jpeg', 0.82);
+      updateAvatarSelection();
+      closeCropModal();
+    } catch (err) { alert('裁剪失败：' + err.message); }
+  });
+  $cropCancel.addEventListener('click', closeCropModal);
+  $cropModal.addEventListener('click', e => { if (e.target === $cropModal) closeCropModal(); });
 
   // ===== Modal =====
   function openModal(id) {
@@ -1510,9 +1645,8 @@ permalink: /toolbox/pet-food/
       $pmSpecies.value = p.species || '';
       $pmBodyWeight.value = p.bodyWeight || '';
       $pmStage.value = p.lifeStage || '';
-      selectModalEmoji(p.emoji || EMOJIS[0]);
+      state.selectedEmoji = p.emoji || EMOJIS[0];
       state.pendingAvatar = p.avatar || null;
-      setAvatarPreview(state.pendingAvatar, p.emoji || EMOJIS[0]);
       $pmDelete.style.display = '';
     } else {
       $pmTitle.textContent = '添加宠物';
@@ -1521,11 +1655,11 @@ permalink: /toolbox/pet-food/
       $pmSpecies.value = '';
       $pmBodyWeight.value = '';
       $pmStage.value = '';
-      selectModalEmoji(EMOJIS[0]);
+      state.selectedEmoji = EMOJIS[0];
       state.pendingAvatar = null;
-      setAvatarPreview(null, EMOJIS[0]);
       $pmDelete.style.display = 'none';
     }
+    updateAvatarSelection();
     $modal.classList.add('open');
     setTimeout(() => $pmName.focus(), 50);
   }
@@ -1534,11 +1668,6 @@ permalink: /toolbox/pet-food/
     state.editingId = null;
     state.pendingAvatar = null;
   }
-  function selectModalEmoji(em) {
-    state.selectedEmoji = em;
-    $pmEmoji.querySelectorAll('button').forEach(b => b.classList.toggle('selected', b.dataset.emoji === em));
-    if (!state.pendingAvatar) $pmAvatarFallback.textContent = em;
-  }
 
   $petAdd.addEventListener('click', () => openModal(null));
   $emptyAdd.addEventListener('click', () => openModal(null));
@@ -1546,10 +1675,10 @@ permalink: /toolbox/pet-food/
   $pmCancel.addEventListener('click', closeModal);
   $modal.addEventListener('click', e => { if (e.target === $modal) closeModal(); });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      closeModal();
-      $mmModal.classList.remove('open');
-    }
+    if (e.key !== 'Escape') return;
+    if ($cropModal.classList.contains('open')) closeCropModal();
+    else if ($mmModal.classList.contains('open')) $mmModal.classList.remove('open');
+    else if ($modal.classList.contains('open')) closeModal();
   });
 
   $pmSave.addEventListener('click', () => {
