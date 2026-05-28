@@ -426,6 +426,18 @@ permalink: /toolbox/pet-food/
     background: var(--color-bg); color: var(--color-muted);
     border-color: var(--color-border);
   }
+  .modal .rec-preview-inline {
+    display: flex; align-items: stretch; gap: 0.5rem;
+    margin-top: 0.55rem;
+  }
+  .modal .rec-preview-inline .rec-preview {
+    flex: 1; margin: 0;
+  }
+  .modal .rec-preview-inline .estimator-apply {
+    width: auto;
+    padding: 0.4rem 1rem;
+    white-space: nowrap;
+  }
   .modal .checkbox-row {
     display: flex; align-items: center; gap: 0.45rem;
     cursor: pointer; font-size: 0.92rem; color: var(--color-ink);
@@ -718,6 +730,40 @@ permalink: /toolbox/pet-food/
     pointer-events: none;
   }
 
+  /* My-pets list (profile modal) */
+  .modal .my-pets-list {
+    list-style: none; margin: 0; padding: 0;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    background: var(--color-bg);
+    max-height: 260px; overflow-y: auto;
+  }
+  .modal .my-pets-list li {
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.55rem 0.75rem;
+    border-top: 1px dashed var(--color-border);
+    font-size: 0.92rem;
+  }
+  .modal .my-pets-list li:first-child { border-top: none; }
+  .modal .my-pets-list .mp-icon {
+    width: 1.8em; height: 1.8em; border-radius: 50%;
+    background: var(--color-bg-warm);
+    display: inline-flex; align-items: center; justify-content: center;
+    overflow: hidden; flex-shrink: 0;
+  }
+  .modal .my-pets-list .mp-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .modal .my-pets-list .mp-name { flex: 1; color: var(--color-ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .modal .my-pets-list .mp-role-badge {
+    font-size: 0.74rem;
+    padding: 0.08rem 0.5rem;
+    border-radius: 999px;
+    color: var(--color-muted);
+    background: var(--color-bg-warm);
+  }
+  .modal .my-pets-list .mp-role-badge.owner { background: rgba(74, 124, 89, 0.18); color: #4a7c59; font-weight: 600; }
+  .modal .my-pets-list .mp-role-badge.admin { background: rgba(201, 169, 110, 0.2); color: #a87a2a; }
+  .modal .my-pets-list .mp-empty { padding: 1rem; text-align: center; color: var(--color-light); font-size: 0.85rem; }
+  .modal .my-pets-list .mp-shared { font-size: 0.78rem; color: var(--color-light); margin-left: 0.3rem; }
+
   /* Join modal */
   .join-modal .modal { max-width: 380px; }
   .join-modal .code-input {
@@ -766,6 +812,7 @@ permalink: /toolbox/pet-food/
     <div class="pet-tabs" id="pet-tabs"></div>
     <button type="button" class="icon-btn" id="pet-add">+ 宠物</button>
     <button type="button" class="icon-btn" id="pet-join">🔑 用宠物码</button>
+    <button type="button" class="icon-btn" id="profile-btn">👤</button>
     <button type="button" class="icon-btn" id="pet-edit" style="display: none;">⚙ 设置</button>
   </div>
 
@@ -891,6 +938,78 @@ permalink: /toolbox/pet-food/
         </div>
         <input type="file" id="pm-avatar-file" accept="image/*" style="display:none;" />
       </div>
+      <div class="sub-section">宠物档案（选填）</div>
+      <div class="field-grid">
+        <div class="field">
+          <label>物种</label>
+          <select id="pm-species">
+            <option value="">不指定</option>
+            <option value="cat">猫</option>
+            <option value="dog">狗</option>
+            <option value="rabbit">兔</option>
+            <option value="hamster">仓鼠</option>
+            <option value="bird">鸟（鹦鹉等）</option>
+            <option value="ferret">雪貂</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>品种（可选）</label>
+          <div class="custom-select" id="pm-breed-select">
+            <button type="button" class="cs-trigger" id="pm-breed-trigger">
+              <span class="cs-label placeholder" id="pm-breed-label">不指定</span>
+              <span class="cs-chevron">▾</span>
+            </button>
+            <ul class="cs-menu" id="pm-breed-menu" role="listbox"></ul>
+          </div>
+          <input type="hidden" id="pm-breed" value="" />
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label>年龄</label>
+          <div class="age-inputs">
+            <div class="age-cell">
+              <input type="number" id="pm-age-years" min="0" step="1" placeholder="0" inputmode="numeric" />
+              <span class="unit-tag">岁</span>
+            </div>
+            <div class="age-cell">
+              <input type="number" id="pm-age-months" min="0" max="11" step="1" placeholder="0" inputmode="numeric" />
+              <span class="unit-tag">个月</span>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>体重</label>
+          <div class="input-unit-group">
+            <input type="number" id="pm-body-weight" step="0.1" min="0" placeholder="例如 4.2" inputmode="decimal" />
+            <select id="pm-body-weight-unit">
+              <option value="kg">kg</option>
+              <option value="斤">斤</option>
+              <option value="lb">lb</option>
+              <option value="g">g</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label>活动量</label>
+          <select id="pm-activity">
+            <option value="">普通</option>
+            <option value="low">较低（不爱动）</option>
+            <option value="normal">普通</option>
+            <option value="high">较高（爱蹦跶）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <label class="checkbox-row" style="padding: 0.65rem 0.85rem; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-bg);">
+            <input type="checkbox" id="pm-neutered" />
+            <span>已绝育</span>
+          </label>
+        </div>
+      </div>
+
       <div class="sub-section">每日目标食量（选填）</div>
       <div class="field-grid">
         <div class="field">
@@ -902,84 +1021,10 @@ permalink: /toolbox/pet-food/
           <input type="number" id="pm-target-max" step="0.1" min="0" placeholder="可不填" inputmode="decimal" />
         </div>
       </div>
-      <details class="estimator" id="pm-estimator">
-        <summary>🪄 帮我估算</summary>
-        <div class="estimator-body">
-          <div class="field-grid">
-            <div class="field">
-              <label>物种</label>
-              <select id="pm-species">
-                <option value="">不指定</option>
-                <option value="cat">猫</option>
-                <option value="dog">狗</option>
-                <option value="rabbit">兔</option>
-                <option value="hamster">仓鼠</option>
-                <option value="bird">鸟（鹦鹉等）</option>
-                <option value="ferret">雪貂</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>品种（可选）</label>
-              <div class="custom-select" id="pm-breed-select">
-                <button type="button" class="cs-trigger" id="pm-breed-trigger">
-                  <span class="cs-label placeholder" id="pm-breed-label">不指定</span>
-                  <span class="cs-chevron">▾</span>
-                </button>
-                <ul class="cs-menu" id="pm-breed-menu" role="listbox"></ul>
-              </div>
-              <input type="hidden" id="pm-breed" value="" />
-            </div>
-          </div>
-          <div class="field-grid">
-            <div class="field">
-              <label>年龄</label>
-              <div class="age-inputs">
-                <div class="age-cell">
-                  <input type="number" id="pm-age-years" min="0" step="1" placeholder="0" inputmode="numeric" />
-                  <span class="unit-tag">岁</span>
-                </div>
-                <div class="age-cell">
-                  <input type="number" id="pm-age-months" min="0" max="11" step="1" placeholder="0" inputmode="numeric" />
-                  <span class="unit-tag">个月</span>
-                </div>
-              </div>
-            </div>
-            <div class="field">
-              <label>体重</label>
-              <div class="input-unit-group">
-                <input type="number" id="pm-body-weight" step="0.1" min="0" placeholder="例如 4.2" inputmode="decimal" />
-                <select id="pm-body-weight-unit">
-                  <option value="kg">kg</option>
-                  <option value="斤">斤</option>
-                  <option value="lb">lb</option>
-                  <option value="g">g</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="field-grid">
-            <div class="field">
-              <label>活动量</label>
-              <select id="pm-activity">
-                <option value="">普通</option>
-                <option value="low">较低（不爱动）</option>
-                <option value="normal">普通</option>
-                <option value="high">较高（爱蹦跶）</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>&nbsp;</label>
-              <label class="checkbox-row" style="padding: 0.65rem 0.85rem; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-bg);">
-                <input type="checkbox" id="pm-neutered" />
-                <span>已绝育</span>
-              </label>
-            </div>
-          </div>
-          <div class="rec-preview" id="pm-rec-preview">填上字段就会出估算值</div>
-          <button type="button" class="estimator-apply" id="pm-rec-apply" disabled>↑ 应用到上面的目标范围</button>
-          <p class="hint" style="margin-top: 0.5rem;">数值仅供参考。</p>
-        </div>
-      </details>
+      <div class="rec-preview-inline">
+        <span class="rec-preview" id="pm-rec-preview">填上档案就能估算</span>
+        <button type="button" class="estimator-apply" id="pm-rec-apply" disabled>↑ 套用</button>
+      </div>
 
       <div class="sub-section" id="pm-share-section">分享给其他人</div>
       <div class="share-block" id="pm-share-block">
@@ -1006,6 +1051,23 @@ permalink: /toolbox/pet-food/
         <button type="button" class="del" id="pm-delete" style="display: none;">🗑 删除</button>
         <button type="button" class="cancel" id="pm-cancel">取消</button>
         <button type="button" class="save" id="pm-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile modal -->
+  <div class="modal-backdrop" id="profile-modal">
+    <div class="modal">
+      <h2>👤 我的档案</h2>
+      <div class="field">
+        <label>昵称</label>
+        <input type="text" id="profile-nickname" placeholder="比如 周睿" maxlength="40" />
+        <p class="hint">共享的人会看到这个名字。</p>
+      </div>
+      <div class="sub-section" style="border-top: none; padding-top: 0; margin-top: 0.8rem;">我的宠物</div>
+      <ul class="my-pets-list" id="my-pets-list"></ul>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="profile-close">关闭</button>
       </div>
     </div>
   </div>
@@ -1401,8 +1463,12 @@ permalink: /toolbox/pet-food/
   // foodWeight for an entry; null if it depends on bowlWeight that's unset
   function foodWeight(entry, pet) {
     if (!entry.withBowl) return entry.reading;
-    if (pet.bowlWeight == null) return null;  // null/undefined = 未设
-    return entry.reading - pet.bowlWeight;     // 0 is a valid bowl weight
+    // Use the bowl weight snapshotted on the entry (so editing pet.bowlWeight
+    // later won't rewrite historical food weights). Fall back to pet.bowlWeight
+    // for entries from before this field existed.
+    const bw = (entry.bowlWeight !== undefined) ? entry.bowlWeight : pet.bowlWeight;
+    if (bw == null) return null;
+    return entry.reading - bw;
   }
 
   function bucketDateIso(ts) { return isoDate(ts); }
@@ -1592,7 +1658,6 @@ permalink: /toolbox/pet-food/
   const $pmTargetMin = document.getElementById('pm-target-min');
   const $pmTargetMax = document.getElementById('pm-target-max');
   const $chartTargetToggle = document.getElementById('chart-target-toggle');
-  const $pmEstimator = document.getElementById('pm-estimator');
   const $pmSpecies = document.getElementById('pm-species');
   const $pmBreed = document.getElementById('pm-breed'); // hidden input
   const $pmBreedSelect = document.getElementById('pm-breed-select');
@@ -1626,6 +1691,12 @@ permalink: /toolbox/pet-food/
   const $pmRegenCode = document.getElementById('pm-regen-code');
   const $pmMembersList = document.getElementById('pm-members-list');
   const $pmYourRole = document.getElementById('pm-your-role');
+
+  const $profileBtn = document.getElementById('profile-btn');
+  const $profileModal = document.getElementById('profile-modal');
+  const $profileNickname = document.getElementById('profile-nickname');
+  const $profileClose = document.getElementById('profile-close');
+  const $myPetsList = document.getElementById('my-pets-list');
 
   const $joinModal = document.getElementById('join-modal');
   const $joinCode = document.getElementById('join-code');
@@ -1912,9 +1983,14 @@ permalink: /toolbox/pet-food/
     ).join('');
     $petTabs.querySelectorAll('.pet-tab').forEach(b => {
       b.addEventListener('click', () => {
-        state.currentId = b.dataset.id;
-        persist();
-        render();
+        if (b.dataset.id === state.currentId) {
+          // Second click on the active tab → open档案 modal
+          openModal(state.currentId);
+        } else {
+          state.currentId = b.dataset.id;
+          persist();
+          render();
+        }
       });
     });
 
@@ -2630,14 +2706,25 @@ permalink: /toolbox/pet-food/
     if (p.shared && p.serverPetId) {
       $pmShareCreate.style.display = 'none';
       $pmShareExisting.style.display = '';
-      $pmShareCode.textContent = p.serverCode || '——';
+      const hasCode = !!p.serverCode;
+      $pmShareCode.textContent = hasCode ? p.serverCode : '已用 · 点 🔄 生成新码';
+      $pmShareCode.style.opacity = hasCode ? '' : '0.55';
+      $pmCopyCode.style.display = hasCode ? '' : 'none';
       $pmRegenCode.style.display = owner ? '' : 'none';
+      $pmRegenCode.textContent = hasCode ? '🔄 重生' : '🔄 生成';
       // Members list
       const meId = DEVICE_ID;
       const members = p.members || [];
       $pmMembersList.innerHTML = members.map(m => {
         const self = m.deviceId === meId;
         const shortId = m.deviceId.slice(2, 10);
+        // Prefer nickname; for self, also overlay cached profile nickname (fresh local edit)
+        let displayName;
+        if (self) {
+          displayName = (cachedProfile && cachedProfile.nickname) || m.nickname || shortId;
+        } else {
+          displayName = m.nickname || shortId;
+        }
         const roleLbl = m.role === 'owner' ? '主人' : (m.role === 'admin' ? '管理员' : '成员');
         const actions = [];
         if (owner && !self) {
@@ -2647,7 +2734,7 @@ permalink: /toolbox/pet-food/
           actions.push(`<button class="danger" data-act="remove" data-target="${m.deviceId}">移除</button>`);
         }
         return `<li>
-          <span class="m-id ${self ? 'm-self' : ''}">${self ? '你 · ' : ''}${escapeHtml(shortId)}</span>
+          <span class="m-id ${self ? 'm-self' : ''}">${self ? '你 · ' : ''}${escapeHtml(displayName)}</span>
           <span class="m-role ${m.role}">${roleLbl}</span>
           <span class="m-actions">${actions.join('')}</span>
         </li>`;
@@ -2694,7 +2781,9 @@ permalink: /toolbox/pet-food/
         if (!confirm('把这个成员移出？他们将立即失去访问权。')) return;
         await api('remove-member', { petId: p.serverPetId, body: { targetDeviceId: target } });
       } else if (ds.act === 'transfer') {
-        if (!confirm('把主人身份转让给 ' + target.slice(2, 10) + '？你将变成管理员。')) return;
+        const tm = (p.members || []).find(m => m.deviceId === target);
+        const tName = (tm && tm.nickname) || target.slice(2, 10);
+        if (!confirm('把主人身份转让给 ' + tName + '？你将变成管理员。')) return;
         await api('transfer', { petId: p.serverPetId, body: { newOwnerDeviceId: target } });
       }
       const r = await api('get', { petId: p.serverPetId });
@@ -2736,7 +2825,6 @@ permalink: /toolbox/pet-food/
         : '';
       $pmActivity.value = p.activity || '';
       $pmNeutered.checked = !!p.neutered;
-      $pmEstimator.open = false;
       state.selectedEmoji = p.emoji || EMOJIS[0];
       state.pendingAvatar = p.avatar || null;
       $pmDelete.style.display = '';
@@ -2753,7 +2841,6 @@ permalink: /toolbox/pet-food/
       $pmBodyWeight.value = '';
       $pmActivity.value = '';
       $pmNeutered.checked = false;
-      $pmEstimator.open = false;
       state.selectedEmoji = EMOJIS[0];
       state.pendingAvatar = null;
       $pmDelete.style.display = 'none';
@@ -2770,6 +2857,59 @@ permalink: /toolbox/pet-food/
     state.editingId = null;
     state.pendingAvatar = null;
   }
+
+  // ===== Profile modal =====
+  let cachedProfile = null;
+  async function loadProfile() {
+    try {
+      const r = await api('get-profile', { method: 'GET' });
+      cachedProfile = r.profile || {};
+    } catch (_) { cachedProfile = cachedProfile || {}; }
+    return cachedProfile;
+  }
+  function openProfileModal() {
+    $profileNickname.value = (cachedProfile && cachedProfile.nickname) || '';
+    renderMyPetsList();
+    $profileModal.classList.add('open');
+    // Reload nickname from server in background
+    loadProfile().then(() => { $profileNickname.value = (cachedProfile && cachedProfile.nickname) || ''; }).catch(() => {});
+  }
+  function closeProfileModal() { $profileModal.classList.remove('open'); }
+  function renderMyPetsList() {
+    const pets = state.pets;
+    if (pets.length === 0) {
+      $myPetsList.innerHTML = '<li class="mp-empty">还没有宠物</li>';
+      return;
+    }
+    $myPetsList.innerHTML = pets.map(p => {
+      const role = myRoleFor(p);
+      const roleZh = role === 'owner' ? '主人' : role === 'admin' ? '管理员' : '成员';
+      const sharedTag = p.shared ? '<span class="mp-shared">🔗 共享</span>' : '';
+      const iconImg = p.avatar ? `<img src="${p.avatar}" alt="">` : (p.emoji || '🐾');
+      return `<li>
+        <span class="mp-icon">${iconImg}</span>
+        <span class="mp-name">${escapeHtml(p.name || '未命名')}${sharedTag}</span>
+        <span class="mp-role-badge ${role}">${roleZh}</span>
+      </li>`;
+    }).join('');
+  }
+  $profileBtn.addEventListener('click', openProfileModal);
+  $profileClose.addEventListener('click', closeProfileModal);
+  $profileModal.addEventListener('click', e => { if (e.target === $profileModal) closeProfileModal(); });
+  $profileNickname.addEventListener('blur', async () => {
+    const nickname = $profileNickname.value.trim().slice(0, 40);
+    const cur = (cachedProfile && cachedProfile.nickname) || '';
+    if (nickname === cur) return;
+    try {
+      await api('set-nickname', { body: { nickname } });
+      cachedProfile = { ...(cachedProfile || {}), nickname: nickname || null };
+      // Refresh members lists of shared pets (their cached members now stale on others' devices,
+      // but for us it's fine — we know our own nickname)
+    } catch (e) { /* silent */ }
+  });
+  $profileNickname.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); $profileNickname.blur(); }
+  });
 
   // ===== Join via code =====
   function openJoinModal() {
@@ -2888,6 +3028,7 @@ permalink: /toolbox/pet-food/
     if (e.key !== 'Escape') return;
     if ($cropModal.classList.contains('open')) closeCropModal();
     else if ($joinModal.classList.contains('open')) closeJoinModal();
+    else if ($profileModal.classList.contains('open')) closeProfileModal();
     else if ($mmModal.classList.contains('open')) $mmModal.classList.remove('open');
     else if ($modal.classList.contains('open')) closeModal();
   });
@@ -2988,6 +3129,7 @@ permalink: /toolbox/pet-food/
       ts: Date.now(),
       reading,
       withBowl,
+      bowlWeight: withBowl ? pet.bowlWeight : null,  // snapshot at record time
       note: '',
       author: DEVICE_ID,
     };
@@ -3015,6 +3157,15 @@ permalink: /toolbox/pet-food/
       setTimeout(() => $bowlRow.classList.remove('shake'), 400);
       $bowlWeight.focus();
       return;
+    }
+    // 30-minute throttle: warn (don't block) if a record exists within 30 min
+    const sorted = [...pet.entries].sort((a, b) => b.ts - a.ts);
+    if (sorted.length > 0) {
+      const gap = Date.now() - sorted[0].ts;
+      if (gap < 30 * 60 * 1000) {
+        const mins = Math.max(1, Math.round(gap / 60000));
+        if (!confirm(`距上一条记录 ${mins} 分钟，确定再记一次？`)) return;
+      }
     }
     const mismatch = detectModeMismatch(pet, gramsReading, withBowl);
     if (mismatch) {
@@ -3142,7 +3293,8 @@ permalink: /toolbox/pet-food/
   // ===== Init =====
   load();
   render();
-  // Pull fresh data for any shared pets (best-effort)
+  // Pull profile + shared pet data (best-effort, parallel)
+  loadProfile().catch(() => {});
   pullSharedPets().then(() => render()).catch(() => {});
 })();
 </script>
