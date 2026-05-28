@@ -130,15 +130,19 @@ permalink: /toolbox/guandan/
     display: flex; flex-direction: row; align-items: center;
     gap: 0.55rem;
     position: absolute;
-    top: 50%; transform: translateY(-50%);
+    /* 下移：让 partner 出牌（在 .gd-center 顶部）明显高于侧位出牌；
+       65% 让侧位刚好坐在 seats-mid 下沿、不超出，跟 partner 拉开 ~40px 高度差 */
+    top: 65%; transform: translateY(-50%);
     z-index: 2;
   }
   .gd-side-left  { left: 0.4rem; flex-direction: row; }
   .gd-side-right { right: 0.4rem; flex-direction: row-reverse; }
   .gd-side .gd-seat { flex: 0 0 auto; width: 90px; align-items: center; }
   .gd-center {
-    flex: 1 1 auto; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
+    /* partner 出牌靠顶（flex-start），让它明显高于侧位出牌（top:70% 下移） */
+    height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
     gap: 0.3rem; padding: 0 0.3rem;
   }
 
@@ -346,7 +350,9 @@ permalink: /toolbox/guandan/
     overflow-x: auto; overflow-y: visible;
     /* 拖矩形框选时不要把卡上的"K / A"误选成文字 */
     user-select: none; -webkit-user-select: none;
-    padding: 0.4rem 0.4rem 0.5rem;
+    /* padding-right 给右下角"理牌/还原/一键理牌"留位置；列太多就靠
+       overflow-x: auto 滑动看 */
+    padding: 0.4rem 230px 0.5rem 0.4rem;
     min-height: calc(var(--gd-card-h) + 6 * var(--gd-stack-step) + 10px);
     justify-content: safe center;
     scrollbar-width: none;
@@ -404,15 +410,18 @@ permalink: /toolbox/guandan/
     box-shadow: 0 0 8px var(--gd-accent);
   }
 
-  /* 操作行（不出/提示/出牌）在手牌上方；理牌行（理牌/还原/一键理牌）在手牌下方。
-     仿斗地主的 .ddz-actions / .ddz-corner-chips 分层布局。 */
+  /* 操作行（不出/提示/出牌）在手牌上方；理牌行（理牌/还原/一键理牌）挪到
+     表桌"右下角"绝对定位，省 ~50px 纵向。手牌 padding-right 给按钮让位。 */
   .gd-play-actions {
     display: flex; gap: 0.55rem; justify-content: center; align-items: center;
     flex-wrap: wrap; min-height: 2.4rem; margin-top: 0.2rem;
   }
   .gd-sort-actions {
-    display: flex; gap: 0.55rem; justify-content: center; align-items: center;
-    flex-wrap: wrap; margin-top: 0.3rem; min-height: 2rem;
+    position: absolute;
+    right: 0.9rem;
+    bottom: 0.6rem;
+    display: flex; gap: 0.45rem; align-items: center;
+    z-index: 5;
   }
   /* legacy 类名兼容（如果别处还引用了） */
   .gd-actions {
@@ -653,6 +662,16 @@ permalink: /toolbox/guandan/
       position: static;
       margin: 0.5rem 0 0.3rem;
       justify-content: center;
+    }
+    /* 窄屏：理牌行也回 in-flow，手牌右 padding 复位（节省横向） */
+    .gd-sort-actions {
+      position: static;
+      margin-top: 0.3rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .gd-hand {
+      padding-right: 0.4rem;
     }
   }
   @media (max-width: 380px) {
