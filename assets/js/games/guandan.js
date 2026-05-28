@@ -1691,17 +1691,23 @@
   // ---- 出牌 ----
   function commitPlay(seat, combo) {
     const level = currentLevelLabel();
+    const beforeLen = state.hands[seat].length;
     // 从手牌移除
     for (const c of combo.cards) {
       const i = state.hands[seat].indexOf(c);
       if (i >= 0) state.hands[seat].splice(i, 1);
     }
+    const afterLen = state.hands[seat].length;
     state.lastPlay[seat] = combo;
     state.trick.best = combo;
     state.trick.bestSeat = seat;
     state.trick.passes = 0;
-    if (state.hands[seat].length === 0 && !state.out.includes(seat)) {
+    if (afterLen === 0 && !state.out.includes(seat)) {
       state.out.push(seat);
+    }
+    // 报牌：≤10 张时第一次声明（正式规则只允许一次，所以只在跨过 10 时 toast）
+    if (beforeLen > 10 && afterLen <= 10 && afterLen > 0) {
+      toast(seatName(seat) + ' 报牌：剩 ' + afterLen + ' 张');
     }
     renderAll();
     // 炸弹类视觉反馈：起牌区红闪 + 表桌抖一下 + 全桌大字浮屏
@@ -1763,7 +1769,18 @@
     if (bestSeat >= 0 && state.trick.passes >= remaining - 1 && remaining >= 1) {
       // 本圈结束 → 清场，最大者（若已出完则其下一个在场者）领出
       let nextLeader = bestSeat;
-      if (state.out.includes(bestSeat)) nextLeader = nextAlive(bestSeat);
+      if (state.out.includes(bestSeat)) {
+        // 接风：终结者最后一手未被压过 → 由其对家(队友)领出。
+        // 上下家(对手方)均未接牌时这条天然成立——bestSeat 还是 finisher。
+        // 队友也已出完时回退到 nextAlive。
+        const partner = (bestSeat + 2) % 4;
+        if (!state.out.includes(partner)) {
+          nextLeader = partner;
+          toast('接风：由 ' + seatName(partner) + ' 领出');
+        } else {
+          nextLeader = nextAlive(bestSeat);
+        }
+      }
       clearTrick(nextLeader);
       return;
     }

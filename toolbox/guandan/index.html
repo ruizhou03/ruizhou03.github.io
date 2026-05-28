@@ -110,10 +110,11 @@ permalink: /toolbox/guandan/
 
   /* 三家：上(partner) / 左(opp 3) / 右(opp 1) */
   .gd-seats-top { display: flex; justify-content: center; margin-bottom: 0.25rem; }
-  /* 中间一行高度写死。bump 到 230px：让所有出牌区按 size-full 卡(72px 高)展示。 */
+  /* 中间一行：左右两家头像贴边，绝对定位，play 槽往中央延展；partner 出牌
+     占据 .gd-center 中间。这样侧位出 6+ 张钢板/同花顺也不会被裁。 */
   .gd-seats-mid {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    gap: 0.5rem; height: 230px;
+    position: relative;
+    height: 230px;
   }
   /* 我的出牌行：在 mid 行下方、手牌上方 */
   .gd-myplay-row {
@@ -122,7 +123,18 @@ permalink: /toolbox/guandan/
     margin-top: 0.2rem;
   }
   .gd-myplay-row .gd-played { width: auto; min-width: 0; }
-  .gd-side { display: flex; flex-direction: column; align-items: center; width: 110px; flex: 0 0 auto; }
+  /* 侧位：横向布局 [头像 | 出牌区]（右侧反过来），整体绝对定位贴边、纵向略
+     高于中线（让出"我的出牌区"的下半部分）。 */
+  .gd-side {
+    display: flex; flex-direction: row; align-items: center;
+    gap: 0.55rem;
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    z-index: 2;
+  }
+  .gd-side-left  { left: 0.4rem; flex-direction: row; }
+  .gd-side-right { right: 0.4rem; flex-direction: row-reverse; }
+  .gd-side .gd-seat { flex: 0 0 auto; width: 90px; align-items: center; }
   .gd-center {
     flex: 1 1 auto; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
@@ -191,10 +203,15 @@ permalink: /toolbox/guandan/
   }
   .gd-played-row .gd-card.size-full { margin-left: calc(-1 * var(--gd-card-overlap)); }
   .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
-  /* 侧位 110px 宽，让 4 张 size-full(50px) 牌叠到约 100px 内 */
-  .gd-side .gd-played { height: 80px; }
-  .gd-side .gd-played-row .gd-card.size-full { margin-left: -34px; }
+  /* 侧位出牌槽：宽 320px（容 ~8 张 size-full 叠卡），从头像那侧往中央延展 */
+  .gd-side .gd-played {
+    height: 80px;
+    width: 320px;
+  }
+  .gd-side .gd-played-row .gd-card.size-full { margin-left: calc(-1 * var(--gd-card-overlap)); }
   .gd-side .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
+  .gd-side-left  .gd-played-row { justify-content: flex-start; }
+  .gd-side-right .gd-played-row { justify-content: flex-end; }
 
   /* ======== 注意力锁定（仿斗地主 applyAttentionFocus）========
      轮到我时四家全亮；轮到 AI 时只亮当前 AI，其余三家 + 我的手牌都 dim 一档。
@@ -834,8 +851,8 @@ permalink: /toolbox/guandan/
     </div>
 
     <div class="gd-seats-mid">
-      <!-- 左：下家上手（座位 3，对手） -->
-      <div class="gd-side">
+      <!-- 左对手（座位 3）：头像 + 出牌区横排，出牌向右延展 -->
+      <div class="gd-side gd-side-left">
         <div class="gd-seat" id="gdSeat3" data-seat="3">
           <div class="gd-avatar team-opp" id="gdAv3">🐱<span class="gd-clock" id="gdClk3" hidden></span></div>
           <div class="gd-name">对手·左 <span class="tag">AI</span></div>
@@ -847,14 +864,13 @@ permalink: /toolbox/guandan/
         <div class="gd-played" id="gdPlay3"></div>
       </div>
 
-      <!-- 中央上半：仅对家的出牌；我的出牌挪到 mid 行下方独成一行，
-           视觉上更贴近"我"的座位（左下角），也确保 mid 行的对手出牌区比我的更高 -->
+      <!-- 中央：对家的出牌（partner 头像在 seats-top） -->
       <div class="gd-center">
         <div class="gd-played" id="gdPlay2"></div>
       </div>
 
-      <!-- 右：上家（座位 1，对手） -->
-      <div class="gd-side">
+      <!-- 右对手（座位 1）：出牌区 + 头像 横排（row-reverse），出牌向左延展 -->
+      <div class="gd-side gd-side-right">
         <div class="gd-seat" id="gdSeat1" data-seat="1">
           <div class="gd-avatar team-opp" id="gdAv1">🦊<span class="gd-clock" id="gdClk1" hidden></span></div>
           <div class="gd-name">对手·右 <span class="tag">AI</span></div>
