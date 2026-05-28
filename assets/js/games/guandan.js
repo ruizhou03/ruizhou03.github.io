@@ -3647,4 +3647,580 @@
     }
   }
 
+  // ===========================================================
+  //  联机模式 (Phase 1: 房间 lobby 同步)
+  //  后端：https://zircon-urge.fly.dev/api/guandan
+  //  长轮询拉 state；本地用 onlineState 单独存房间快照，不污染单机 state
+  // ===========================================================
+  const GUANDAN_API = 'https://zircon-urge.fly.dev/api/guandan';
+  const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
+
+  // 当前联机会话（null = 不在线）
+  let onlineState = null;
+
+  const onlineEls = {
+    pgoPlayMode: $('gdPgoPlayMode'),
+    singleSetup: $('gdSingleSetup'),
+    onlineSetup: $('gdOnlineSetup'),
+    tabs: $('gdOnlineTabs'),
+    nick: $('gdOnlineNick'),
+    code: $('gdOnlineCode'),
+    submit: $('gdOnlineSubmit'),
+    hint: $('gdOnlineHint'),
+    resume: $('gdOnlineResume'),
+    resumeCode: $('gdResumeCode'),
+    resumeBtn: $('gdResumeBtn'),
+    resumeForget: $('gdResumeForget'),
+    lobby: $('gdLobby'),
+    roomCode: $('gdRoomCode'),
+    roomQr: $('gdRoomQr'),
+    seats: $('gdLobbySeats'),
+    standing: $('gdLobbyStanding'),
+    seated: $('gdLobbySeated'),
+    startBtn: $('gdLobbyStartBtn'),
+    leaveBtn: $('gdLobbyLeaveBtn'),
+    copyCodeBtn: $('gdCopyCodeBtn'),
+    copyLinkBtn: $('gdCopyLinkBtn'),
+  };
+  let onlineTab = 'create';
+
+  // ---- API ----
+  async function gdApi(action, opts) {
+    opts = opts || {};
+    const isGet = !opts.body;
+    const url = GUANDAN_API + '?action=' + encodeURIComponent(action) +
+      (opts.qs ? '&' + new URLSearchParams(opts.qs).toString() : '');
+    const init = {
+      method: isGet ? 'GET' : 'POST',
+      headers: isGet ? {} : { 'Content-Type': 'application/json' },
+      body: isGet ? undefined : JSON.stringify(opts.body),
+      signal: opts.signal,
+    };
+    try {
+      const res = await fetch(url, init);
+      let data = null;
+      try { data = await res.json(); } catch {}
+      if (!res.ok) return { ok: false, status: res.status, error: (data && data.error) || 'http_error', data };
+      return { ok: true, data };
+    } catch (e) {
+      return { ok: false, status: 0, error: 'network', err: String(e) };
+    }
+  }
+
+  // ---- session ----
+  function onlineSessionLoad() {
+    try { return JSON.parse(localStorage.getItem(ONLINE_SESSION_KEY) || 'null'); }
+    catch { return null; }
+  }
+  function onlineSessionSave(s) {
+    try { localStorage.setItem(ONLINE_SESSION_KEY, JSON.stringify(s)); } catch {}
+  }
+  function onlineSessionClear() {
+    try { localStorage.removeItem(ONLINE_SESSION_KEY); } catch {}
+  }
+
+  // ---- identity ----
+  function gdGetDeviceId() {
+    if (window.GamesShell && GamesShell.Identity && GamesShell.Identity.getDeviceId) {
+      return GamesShell.Identity.getDeviceId();
+    }
+    let did = localStorage.getItem('gs.did.v1');
+    if (!did) {
+      did = 'd-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now().toString(36);
+      try { localStorage.setItem('gs.did.v1', did); } catch {}
+    }
+    return did;
+  }
+  function gdGetNick() {
+    return (window.GamesShell && GamesShell.Identity && GamesShell.Identity.getNick && GamesShell.Identity.getNick()) || '';
+  }
+  function gdSetNick(n) {
+    if (window.GamesShell && GamesShell.Identity && GamesShell.Identity.setNick) GamesShell.Identity.setNick(n);
+  }
+
+  // ---- hint ----
+  function setOnlineHint(text, isError) {
+    if (!onlineEls.hint) return;
+    onlineEls.hint.textContent = text || '';
+    onlineEls.hint.className = 'gd-online-hint' + (isError ? ' error' : '');
+  }
+  const ERR_MSG = {
+    room_not_found: '房间不存在或已过期',
+    room_in_progress: '游戏已开始，无法加入',
+    room_full: '房间已满，换一个房号试试',
+    room_dissolved: '房间已解散',
+    nick_taken_in_room: '昵称已被占用，换一个试试',
+    invalid_nick: '昵称不合法（1-12 字，禁特殊符号）',
+    invalid_code: '房号格式不对（4 位数字）',
+    invalid_device: '设备标识异常，请刷新页面',
+    not_host: '只有房主才能这样做',
+    not_in_lobby: '当前阶段不允许',
+    seat_taken: '这个座位已经有人',
+    seats_not_full: '4 座没坐满，还不能开始',
+    host_must_transfer_or_dissolve: '房主退出需选择转交或解散',
+    network: '网络异常，请重试',
+  };
+  const errText = e => ERR_MSG[e] || ('错误：' + e);
+
+  // ---- tabs ----
+  if (onlineEls.tabs) {
+    [...onlineEls.tabs.querySelectorAll('.gd-online-tab')].forEach(b => {
+      b.addEventListener('click', () => {
+        [...onlineEls.tabs.querySelectorAll('.gd-online-tab')].forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        onlineTab = b.dataset.tab;
+        onlineEls.code.hidden = (onlineTab === 'create');
+        onlineEls.submit.textContent = (onlineTab === 'create') ? '创建房间' : '加入房间';
+        setOnlineHint('');
+      });
+    });
+  }
+  // playmode toggle
+  if (onlineEls.pgoPlayMode) {
+    [...onlineEls.pgoPlayMode.querySelectorAll('.gs-pgo-mode-tab')].forEach(b => {
+      b.addEventListener('click', () => {
+        [...onlineEls.pgoPlayMode.querySelectorAll('.gs-pgo-mode-tab')].forEach(x => x.classList.remove('selected'));
+        b.classList.add('selected');
+        const m = b.dataset.playmode;
+        if (m === 'online') {
+          onlineEls.singleSetup.hidden = true;
+          onlineEls.onlineSetup.hidden = false;
+          renderResumeOption();
+          // 预填昵称
+          if (onlineEls.nick && !onlineEls.nick.value) onlineEls.nick.value = gdGetNick();
+        } else {
+          onlineEls.singleSetup.hidden = false;
+          onlineEls.onlineSetup.hidden = true;
+        }
+      });
+    });
+  }
+
+  // ---- resume ----
+  function renderResumeOption() {
+    if (!onlineEls.resume) return;
+    const s = onlineSessionLoad();
+    if (!s || !s.code) { onlineEls.resume.hidden = true; return; }
+    onlineEls.resume.hidden = false;
+    if (onlineEls.resumeCode) onlineEls.resumeCode.textContent = s.code;
+  }
+  if (onlineEls.resumeBtn) {
+    onlineEls.resumeBtn.addEventListener('click', async () => {
+      const s = onlineSessionLoad();
+      if (!s) { renderResumeOption(); return; }
+      const nick = (onlineEls.nick.value.trim() || s.nick || '').slice(0, 12);
+      if (!nick) { setOnlineHint('请输入昵称', true); return; }
+      setOnlineHint('重新加入中…');
+      const r = await gdApi('join', { body: { code: s.code, nick, deviceId: gdGetDeviceId() } });
+      if (!r.ok) {
+        setOnlineHint(errText(r.error), true);
+        if (r.error === 'room_not_found' || r.error === 'room_dissolved') onlineSessionClear();
+        renderResumeOption();
+        return;
+      }
+      enterRoom(r.data, nick);
+    });
+  }
+  if (onlineEls.resumeForget) {
+    onlineEls.resumeForget.addEventListener('click', () => { onlineSessionClear(); renderResumeOption(); });
+  }
+
+  // ---- submit (create/join) ----
+  if (onlineEls.submit) {
+    onlineEls.submit.addEventListener('click', async () => {
+      const nick = onlineEls.nick.value.trim();
+      if (!nick || nick.length > 12) { setOnlineHint('昵称 1-12 字', true); return; }
+      gdSetNick(nick);
+      if (onlineTab === 'create') {
+        setOnlineHint('创建中…');
+        const r = await gdApi('create', { body: { nick, deviceId: gdGetDeviceId(), config: { aiLevel: state.aiLevel } } });
+        if (!r.ok) { setOnlineHint(errText(r.error), true); return; }
+        enterRoom(r.data, nick);
+      } else {
+        const code = onlineEls.code.value.trim();
+        if (!/^\d{4}$/.test(code)) { setOnlineHint('请输入 4 位房号', true); return; }
+        setOnlineHint('加入中…');
+        const r = await gdApi('join', { body: { code, nick, deviceId: gdGetDeviceId() } });
+        if (!r.ok) { setOnlineHint(errText(r.error), true); return; }
+        enterRoom(r.data, nick);
+      }
+    });
+  }
+  // Enter 触发 submit
+  ['gdOnlineNick', 'gdOnlineCode'].forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter' && onlineEls.submit) onlineEls.submit.click(); });
+  });
+
+  // ---- enter / leave ----
+  function enterRoom(joinData, nick) {
+    onlineSessionSave({
+      code: joinData.code,
+      token: joinData.playerToken,
+      playerId: joinData.playerId,
+      nick: nick,
+      ts: Date.now(),
+    });
+    onlineState = {
+      code: joinData.code,
+      token: joinData.playerToken,
+      playerId: joinData.playerId,
+      isHost: false,
+      mySeat: null,
+      lastVersion: 0,
+      polling: false,
+      pollAbort: null,
+      players: [],
+      srvState: 'lobby',
+    };
+    setOnlineHint('');
+    if (els.pgo) els.pgo.classList.remove('open');
+    if (onlineEls.lobby) onlineEls.lobby.hidden = false;
+    if (els.table) els.table.classList.add('gd-in-lobby');
+    if (onlineEls.roomCode) onlineEls.roomCode.textContent = joinData.code;
+    if (window.GamesShell && GamesShell.QR && onlineEls.roomQr) {
+      try { GamesShell.QR.render(onlineEls.roomQr, location.origin + location.pathname + '?room=' + joinData.code); }
+      catch {}
+    }
+    startOnlinePolling();
+  }
+
+  async function leaveRoom(silent, opts) {
+    opts = opts || {};
+    if (!onlineState) {
+      onlineSessionClear();
+      onlineEls.lobby.hidden = true;
+      if (els.table) els.table.classList.remove('gd-in-lobby');
+      els.pgo && els.pgo.classList.add('open');
+      renderResumeOption();
+      return;
+    }
+    const body = { code: onlineState.code, token: onlineState.token };
+    if (opts.transferTo) body.transferTo = opts.transferTo;
+    if (opts.dissolveOnLeave) body.dissolveOnLeave = true;
+    try { await gdApi('leave', { body }); } catch {}
+    stopOnlinePolling();
+    onlineSessionClear();
+    onlineState = null;
+    if (onlineEls.lobby) onlineEls.lobby.hidden = true;
+    if (els.table) els.table.classList.remove('gd-in-lobby');
+    if (els.pgo) els.pgo.classList.add('open');
+    if (!silent) setOnlineHint('已离开房间');
+    renderResumeOption();
+  }
+
+  if (onlineEls.leaveBtn) {
+    onlineEls.leaveBtn.addEventListener('click', async () => {
+      if (!onlineState) return;
+      // 房主 + 房里还有别的真人 → 提示先转交或解散
+      if (onlineState.isHost) {
+        const otherHumans = (onlineState.players || []).filter(p => !p.isAi && p.id !== onlineState.playerId);
+        if (otherHumans.length > 0) {
+          const choice = await pickHostExit(otherHumans);
+          if (choice == null) return;     // 取消
+          if (choice === '__dissolve__') {
+            await leaveRoom(false, { dissolveOnLeave: true });
+          } else {
+            await leaveRoom(false, { transferTo: choice });
+          }
+          return;
+        }
+      }
+      await leaveRoom(false);
+    });
+  }
+  // 房主退出选择：转交给哪位真人 / 直接解散
+  function pickHostExit(otherHumans) {
+    return new Promise(resolve => {
+      const html =
+        '<div style="text-align:center;font-size:0.95rem;color:var(--color-ink);margin-bottom:0.6rem;">' +
+        '你是房主，离开前请选择：</div>' +
+        '<div style="display:flex;flex-direction:column;gap:0.4rem;">' +
+        otherHumans.map(p => '<button class="gd-btn" data-pid="' + p.id + '">转交给 ' +
+          escGdHtml(p.nick) + '</button>').join('') +
+        '<button class="gd-btn" data-pid="__dissolve__" style="margin-top:0.4rem;">直接解散房间</button>' +
+        '<button class="gd-btn" data-pid="__cancel__">取消</button>' +
+        '</div>';
+      const wrap = document.createElement('div');
+      wrap.className = 'gd-overlay open';
+      wrap.style.zIndex = '50';
+      wrap.innerHTML = '<div class="panel" style="max-width:340px;">' + html + '</div>';
+      els.table.appendChild(wrap);
+      wrap.addEventListener('click', e => {
+        const b = e.target.closest('button[data-pid]');
+        if (!b) return;
+        const pid = b.dataset.pid;
+        wrap.remove();
+        if (pid === '__cancel__') resolve(null);
+        else resolve(pid);
+      });
+    });
+  }
+
+  // ---- polling ----
+  async function startOnlinePolling() {
+    if (!onlineState || onlineState.polling) return;
+    onlineState.polling = true;
+    while (onlineState && onlineState.polling && onlineState.token) {
+      const ctrl = new AbortController();
+      onlineState.pollAbort = ctrl;
+      const r = await gdApi('state', {
+        qs: { code: onlineState.code, token: onlineState.token, since: onlineState.lastVersion },
+        signal: ctrl.signal,
+      }).catch(() => ({ ok: false, error: 'aborted' }));
+      if (!onlineState || !onlineState.polling) break;
+      if (r.ok && r.data) {
+        applyServerOnlineState(r.data);
+      } else if (r.status === 403 || r.status === 404) {
+        toast(r.error === 'room_not_found' ? '房间已过期' : '会话失效');
+        await leaveRoom(true);
+        break;
+      } else {
+        await new Promise(rs => setTimeout(rs, 1500));
+      }
+    }
+    if (onlineState) { onlineState.polling = false; onlineState.pollAbort = null; }
+  }
+  function stopOnlinePolling() {
+    if (onlineState) {
+      onlineState.polling = false;
+      if (onlineState.pollAbort) try { onlineState.pollAbort.abort(); } catch {}
+    }
+  }
+
+  function applyServerOnlineState(srv) {
+    if (!srv || !onlineState) return;
+    onlineState.lastVersion = srv.version || 0;
+    onlineState.players = srv.players || [];
+    onlineState.hostPlayerId = srv.hostPlayerId;
+    onlineState.srvState = srv.state;
+    onlineState.firstLeader = (typeof srv.firstLeader === 'number') ? srv.firstLeader : null;
+    const me = (srv.players || []).find(p => p.id === onlineState.playerId);
+    if (me) {
+      onlineState.isHost = !!me.isHost;
+      onlineState.mySeat = (typeof me.seat === 'number') ? me.seat : null;
+    }
+    if (srv.state === 'dissolved') {
+      toast('房间已解散');
+      leaveRoom(true);
+      return;
+    }
+    renderLobby(srv);
+  }
+
+  // ---- lobby render ----
+  function escGdHtml(s) {
+    return String(s).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c]);
+  }
+  // 4 个座位 0/1/2/3：上=2 / 左=3 / 右=1 / 下=0；这里就用 grid 2x2 简化
+  // 0 (我方-下) | 1 (对方-右)
+  // 3 (对方-左) | 2 (我方-上)
+  const SEAT_ICON = ['😎', '🦊', '🤝', '🐱'];
+  const SEAT_TEAM_CLASS = ['team-you', 'team-opp', 'team-you', 'team-opp'];
+  const SEAT_LABEL = ['座 0 · 下家（我方）', '座 1 · 右家（对方）', '座 2 · 上家（我方）', '座 3 · 左家（对方）'];
+
+  function renderLobby(srv) {
+    if (!onlineEls.seats) return;
+    // 座位 by seat number → player
+    const seatedMap = {};
+    const standing = [];
+    for (const p of srv.players || []) {
+      if (typeof p.seat === 'number' && p.seat >= 0 && p.seat < 4) seatedMap[p.seat] = p;
+      else standing.push(p);
+    }
+    onlineEls.seats.innerHTML = '';
+    let seatedCount = 0;
+    for (let s = 0; s < 4; s++) {
+      const cell = document.createElement('div');
+      cell.className = 'gd-lobby-seat ' + SEAT_TEAM_CLASS[s];
+      const p = seatedMap[s];
+      if (!p) {
+        cell.classList.add('empty');
+        cell.innerHTML = '<span class="seat-num">' + (s + 1) + '</span>' +
+          '<span>📍 点击坐下</span>';
+        cell.title = SEAT_LABEL[s];
+        cell.addEventListener('click', () => sendSit(s));
+      } else {
+        seatedCount++;
+        const isMe = p.id === onlineState.playerId;
+        const badges = [];
+        if (p.isHost) badges.push('<span class="badge host">房主</span>');
+        if (isMe) badges.push('<span class="badge me">我</span>');
+        if (p.isAi) badges.push('<span class="badge ai">AI</span>');
+        if (!p.online) badges.push('<span class="badge offline">离线</span>');
+        cell.innerHTML =
+          '<span class="seat-num">' + (s + 1) + '</span>' +
+          '<div class="avatar">' + (p.isAi ? '🤖' : SEAT_ICON[s]) + '</div>' +
+          '<div class="info"><div class="nick">' + escGdHtml(p.nick) + '</div>' +
+          '<div class="badges">' + badges.join('') + '</div></div>';
+        // 房主控件：踢 / 转交（不能对自己用）
+        if (onlineState.isHost && !isMe) {
+          const acts = document.createElement('div');
+          acts.className = 'seat-actions';
+          if (p.isAi) {
+            const rmBtn = document.createElement('button');
+            rmBtn.className = 'gd-btn mini';
+            rmBtn.textContent = '移除';
+            rmBtn.addEventListener('click', (e) => { e.stopPropagation(); sendRemoveAi(s); });
+            acts.appendChild(rmBtn);
+          } else {
+            const kickBtn = document.createElement('button');
+            kickBtn.className = 'gd-btn mini';
+            kickBtn.textContent = '踢';
+            kickBtn.addEventListener('click', (e) => { e.stopPropagation(); sendKick(p.id); });
+            acts.appendChild(kickBtn);
+            const xferBtn = document.createElement('button');
+            xferBtn.className = 'gd-btn mini';
+            xferBtn.textContent = '让位';
+            xferBtn.title = '转交房主给 ' + p.nick;
+            xferBtn.addEventListener('click', (e) => { e.stopPropagation(); sendTransferHost(p.id); });
+            acts.appendChild(xferBtn);
+          }
+          cell.appendChild(acts);
+        }
+        // 我自己坐下了 → 提供"起立"
+        if (isMe) {
+          const standBtn = document.createElement('button');
+          standBtn.className = 'gd-btn mini';
+          standBtn.textContent = '起立';
+          standBtn.title = '离开座位（仍留在房间）';
+          standBtn.addEventListener('click', (e) => { e.stopPropagation(); sendStand(); });
+          cell.appendChild(standBtn);
+        }
+      }
+      onlineEls.seats.appendChild(cell);
+    }
+    // 在空座下方再加一行：房主可点击「+ AI」加机器人
+    if (onlineState.isHost) {
+      for (let s = 0; s < 4; s++) {
+        if (seatedMap[s]) continue;
+        const cell = onlineEls.seats.children[s];
+        const aiBtn = document.createElement('button');
+        aiBtn.className = 'gd-btn mini';
+        aiBtn.textContent = '+ AI';
+        aiBtn.style.position = 'absolute';
+        aiBtn.style.right = '0.5rem';
+        aiBtn.style.bottom = '0.45rem';
+        aiBtn.addEventListener('click', (e) => { e.stopPropagation(); sendAddAi(s); });
+        cell.appendChild(aiBtn);
+      }
+    }
+    // standing
+    if (standing.length) {
+      onlineEls.standing.hidden = false;
+      onlineEls.standing.innerHTML =
+        '<div class="head">旁观 ' + standing.length + ' 人（未坐下）</div>' +
+        '<div class="list">' + standing.map(p => {
+          const isMe = p.id === onlineState.playerId;
+          return '<span class="chip' + (isMe ? ' me' : '') + '">' +
+            escGdHtml(p.nick) + (p.isHost ? ' 👑' : '') + (isMe ? '（我）' : '') + '</span>';
+        }).join('') + '</div>';
+    } else {
+      onlineEls.standing.hidden = true;
+    }
+    // 坐满计数 + start 按钮
+    onlineEls.seated.textContent = seatedCount + '/4';
+    if (onlineEls.startBtn) {
+      const canStart = onlineState.isHost && seatedCount === 4;
+      onlineEls.startBtn.disabled = !canStart;
+      if (!onlineState.isHost) onlineEls.startBtn.textContent = '等待房主开始…';
+      else if (seatedCount < 4) onlineEls.startBtn.textContent = '需要 4 人坐满（已 ' + seatedCount + '/4）';
+      else onlineEls.startBtn.textContent = '🎮 开始游戏（抽签首出）';
+    }
+    // 显示 firstLeader 抽签结果（Phase 1：仅文字提示；Phase 2 接动画）
+    if (srv.state === 'playing' && typeof srv.firstLeader === 'number') {
+      onlineEls.startBtn.disabled = true;
+      onlineEls.startBtn.textContent = '🎲 抽签结果：座 ' + (srv.firstLeader + 1) + ' 首出（Phase 2 真正对局即将到来）';
+    }
+  }
+
+  // ---- actions ----
+  async function sendSit(seat) {
+    if (!onlineState) return;
+    const r = await gdApi('sit', { body: { code: onlineState.code, token: onlineState.token, seat } });
+    if (!r.ok) toast(errText(r.error));
+  }
+  async function sendStand() {
+    if (!onlineState) return;
+    const r = await gdApi('stand', { body: { code: onlineState.code, token: onlineState.token } });
+    if (!r.ok) toast(errText(r.error));
+  }
+  async function sendAddAi(seat) {
+    if (!onlineState) return;
+    const r = await gdApi('add_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
+    if (!r.ok) toast(errText(r.error));
+  }
+  async function sendRemoveAi(seat) {
+    if (!onlineState) return;
+    const r = await gdApi('remove_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
+    if (!r.ok) toast(errText(r.error));
+  }
+  async function sendKick(targetPid) {
+    if (!onlineState) return;
+    if (!confirm('确认踢出这位玩家？')) return;
+    const r = await gdApi('kick', { body: { code: onlineState.code, token: onlineState.token, targetPid } });
+    if (!r.ok) toast(errText(r.error));
+  }
+  async function sendTransferHost(targetPid) {
+    if (!onlineState) return;
+    if (!confirm('确认把房主让给这位玩家？')) return;
+    const r = await gdApi('transfer_host', { body: { code: onlineState.code, token: onlineState.token, targetPid } });
+    if (!r.ok) toast(errText(r.error));
+  }
+  if (onlineEls.startBtn) {
+    onlineEls.startBtn.addEventListener('click', async () => {
+      if (!onlineState || !onlineState.isHost) return;
+      const r = await gdApi('start', { body: { code: onlineState.code, token: onlineState.token } });
+      if (!r.ok) toast(errText(r.error));
+    });
+  }
+  if (onlineEls.copyCodeBtn) {
+    onlineEls.copyCodeBtn.addEventListener('click', () => copyText(onlineState && onlineState.code));
+  }
+  if (onlineEls.copyLinkBtn) {
+    onlineEls.copyLinkBtn.addEventListener('click', () => {
+      if (!onlineState) return;
+      copyText(location.origin + location.pathname + '?room=' + onlineState.code);
+    });
+  }
+  function copyText(t) {
+    if (!t) return;
+    if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => toast('已复制')).catch(() => toast('复制失败，请手动'));
+    else toast('请手动复制：' + t);
+  }
+
+  // ---- beforeunload: best-effort 用 sendBeacon 通知 leave ----
+  window.addEventListener('beforeunload', () => {
+    if (onlineState && onlineState.token) {
+      try {
+        const body = JSON.stringify({ code: onlineState.code, token: onlineState.token });
+        const blob = new Blob([body], { type: 'application/json' });
+        navigator.sendBeacon(GUANDAN_API + '?action=leave', blob);
+      } catch {}
+    }
+  });
+
+  // ---- URL ?room=xxxx 自动进入"加入"流程 ----
+  (function autoJoinFromUrl() {
+    const m = location.search.match(/[?&]room=(\d{4})/);
+    if (!m) return;
+    const code = m[1];
+    // 切到联机 + 加入 tab
+    const onlineBtn = onlineEls.pgoPlayMode && onlineEls.pgoPlayMode.querySelector('[data-playmode="online"]');
+    if (onlineBtn) onlineBtn.click();
+    const joinTab = onlineEls.tabs && onlineEls.tabs.querySelector('[data-tab="join"]');
+    if (joinTab) joinTab.click();
+    if (onlineEls.code) onlineEls.code.value = code;
+    const savedNick = gdGetNick();
+    if (savedNick) {
+      onlineEls.nick.value = savedNick;
+      setTimeout(() => { onlineEls.submit && onlineEls.submit.click(); }, 200);
+    } else {
+      onlineEls.nick && onlineEls.nick.focus();
+      setOnlineHint('输入昵称后按回车自动加入房间');
+    }
+  })();
+
+  renderResumeOption();
+
 })();
