@@ -2879,17 +2879,27 @@
   }
 
   // 选牌核心：argmax over candidates ∪ {pass}
+  // 难度 → lookahead 深度：easy=0 (greedy)；normal=1；hard=2
+  // depth=2 在 self-play 模拟里相对 greedy 是 100% 胜率，相对 depth=1 还 +9%
+  function lookaheadDepthForDifficulty(lvl) {
+    if (lvl === 'easy') return 0;
+    if (lvl === 'normal') return 1;
+    return 2; // hard
+  }
   function chooseAIMove(seat, hand, prev, leading, level) {
     const lvl = state.aiLevel || 'normal';
+    const depth = lookaheadDepthForDifficulty(lvl);
+    if (depth > 0) return chooseAIMoveLookahead(seat, hand, prev, leading, level, lvl, depth);
+    return chooseAIMoveGreedy(seat, hand, prev, leading, level, lvl);
+  }
+  function chooseAIMoveGreedy(seat, hand, prev, leading, level, lvl) {
     const ctx = moveContext(seat);
     const moves = genMoves(hand, prev, level);
-    // 兜底：领出无候选（不应发生）
     if (leading && !moves.length) {
       const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
       return classify([c], level);
     }
-    let bestU = -Infinity;
-    let bestMove = null;
+    let bestU = -Infinity, bestMove = null;
     for (const m of moves) {
       const u = moveUtility(m, seat, hand, prev, leading, level, lvl, ctx);
       if (u > bestU) { bestU = u; bestMove = m; }
@@ -2897,6 +2907,155 @@
     if (!leading) {
       const passU = moveUtility({ pass: true }, seat, hand, prev, leading, level, lvl, ctx);
       if (passU > bestU) { bestU = passU; bestMove = null; }
+    }
+    return bestMove ? bestMove.combo : null;
+  }
+
+  // ---- 1-step lookahead ----
+  // 每个候选 move 模拟 depth 个 ply（含对手回应），用 teamValueAt 评估最终状态，argmax
+  function cloneStateMinLA() {
+    return {
+      hands: state.hands.map(h => h.slice()),
+      out: state.out.slice(),
+      trick: state.trick ? { lead: state.trick.lead, best: state.trick.best, bestSeat: state.trick.bestSeat, passes: state.trick.passes } : null,
+      lastPlay: state.lastPlay.slice(),
+    };
+  }
+  function applyDecisionLA(s, seat, decision) {
+    if (!decision) {
+      s.lastPlay[seat] = 'pass';
+      s.trick.passes++;
+      return;
+    }
+    for (const c of decision.cards) {
+      const i = s.hands[seat].indexOf(c);
+      if (i >= 0) s.hands[seat].splice(i, 1);
+    }
+    s.lastPlay[seat] = decision;
+    s.trick.best = decision;
+    s.trick.bestSeat = seat;
+    s.trick.passes = 0;
+    if (s.hands[seat].length === 0 && !s.out.includes(seat)) s.out.push(seat);
+  }
+  function didRoundEndLA(s) {
+    if (s.out.length >= 3) return true;
+    const t0 = s.out.filter(x => x % 2 === 0).length;
+    const t1 = s.out.filter(x => x % 2 === 1).length;
+    return t0 === 2 || t1 === 2;
+  }
+  function nextSeatLA(s, seat) {
+    const alive = [0,1,2,3].filter(x => !s.out.includes(x));
+    if (s.trick.bestSeat >= 0 && s.trick.passes >= alive.length - 1 && alive.length >= 1) {
+      let next = s.trick.bestSeat;
+      if (s.out.includes(next)) {
+        const partner = (next + 2) % 4;
+        if (!s.out.includes(partner)) next = partner;
+        else {
+          let x = next;
+          for (let i = 0; i < 4; i++) {
+            x = (x + 1) % 4;
+            if (!s.out.includes(x)) { next = x; break; }
+          }
+        }
+      }
+      return { seat: next, trickReset: true };
+    }
+    let x = seat;
+    for (let i = 0; i < 4; i++) {
+      x = (x + 1) % 4;
+      if (!s.out.includes(x)) return { seat: x, trickReset: false };
+    }
+    return { seat, trickReset: false };
+  }
+  // 终值 = 我方进度 - 对方进度。关键：不能只用 eff 差（AI 会拼命留牌）
+  function teamValueAtLA(s, level, myTeam) {
+    let myCnt = 0, oppCnt = 0, myEff = 0, oppEff = 0;
+    for (let x = 0; x < 4; x++) {
+      const isMy = x % 2 === myTeam;
+      if (s.out.includes(x)) {
+        if (isMy) myEff += 50; else oppEff += 50;
+      } else {
+        const eff = evaluateHand(s.hands[x], level);
+        if (isMy) { myCnt += s.hands[x].length; myEff += eff; }
+        else { oppCnt += s.hands[x].length; oppEff += eff; }
+      }
+    }
+    return 1.5 * (oppCnt - myCnt) + 0.2 * (myEff - oppEff);
+  }
+  // 模拟某座对决策 decision（null=pass）应用后再走 depth 步 ply，返回终值
+  function rolloutValue(seat, decision, level, depth, myTeam) {
+    // 蒙特卡洛味的轻量 rollout：clone state → apply → 让接下来 depth 个座位用 greedy 走
+    const s = cloneStateMinLA();
+    applyDecisionLA(s, seat, decision);
+    if (didRoundEndLA(s)) return teamValueAtLA(s, level, myTeam);
+    let curSeat = seat;
+    for (let p = 0; p < depth; p++) {
+      const { seat: nextSeat, trickReset } = nextSeatLA(s, curSeat);
+      if (trickReset) {
+        s.lastPlay = [null, null, null, null];
+        s.trick = { lead: nextSeat, best: null, bestSeat: -1, passes: 0 };
+      }
+      curSeat = nextSeat;
+      const prev2 = (s.trick.best && s.trick.bestSeat !== curSeat) ? s.trick.best : null;
+      const leading2 = !prev2;
+      // greedy 决策 —— 用 evaluateHand / moveUtility 同一套权重
+      const dec = lookaheadGreedyDecide(curSeat, s.hands[curSeat], prev2, leading2, level, s);
+      applyDecisionLA(s, curSeat, dec);
+      if (didRoundEndLA(s)) break;
+    }
+    return teamValueAtLA(s, level, myTeam);
+  }
+  // 给 rollout 内部用的 greedy 决策；用临时 state 上下文计算（不修改 state.hands）
+  function lookaheadGreedyDecide(seat, hand, prev, leading, level, simState) {
+    const partner = (seat + 2) % 4;
+    const myTeam = seat % 2;
+    const oppSeats = [0,1,2,3].filter(s => (s % 2) !== myTeam && !simState.out.includes(s));
+    const opponentMin = oppSeats.length ? Math.min(...oppSeats.map(s => simState.hands[s].length)) : 99;
+    const ctx = {
+      partner,
+      partnerWinning: simState.trick && simState.trick.bestSeat === partner && !simState.out.includes(partner),
+      partnerCount: simState.out.includes(partner) ? 0 : simState.hands[partner].length,
+      partnerOut: simState.out.includes(partner),
+      opponentMin,
+      myCount: simState.hands[seat].length,
+    };
+    const moves = genMoves(hand, prev, level);
+    if (leading && !moves.length) {
+      const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
+      return classify([c], level);
+    }
+    let bestU = -Infinity, bestMove = null;
+    for (const m of moves) {
+      const u = moveUtility(m, seat, hand, prev, leading, level, 'normal', ctx);
+      if (u > bestU) { bestU = u; bestMove = m; }
+    }
+    if (!leading) {
+      const passU = moveUtility({ pass: true }, seat, hand, prev, leading, level, 'normal', ctx);
+      if (passU > bestU) { bestU = passU; bestMove = null; }
+    }
+    return bestMove ? bestMove.combo : null;
+  }
+  function chooseAIMoveLookahead(seat, hand, prev, leading, level, lvl, depth) {
+    const myTeam = seat % 2;
+    const ctx = moveContext(seat);
+    const moves = genMoves(hand, prev, level);
+    if (leading && !moves.length) {
+      const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
+      return classify([c], level);
+    }
+    // 综合 lookahead 终值 + 即时 greedy U（35% 权重），防纯 rollout 错失"走完"奖励
+    let bestBlend = -Infinity, bestMove = null;
+    for (const m of moves) {
+      const lookV = rolloutValue(seat, m, level, depth, myTeam);
+      const greedyU = moveUtility(m, seat, hand, prev, leading, level, lvl, ctx);
+      const blend = lookV + 0.35 * greedyU;
+      if (blend > bestBlend) { bestBlend = blend; bestMove = m; }
+    }
+    if (!leading) {
+      const lookV = rolloutValue(seat, null, level, depth, myTeam);
+      const passU = moveUtility({ pass: true }, seat, hand, prev, leading, level, lvl, ctx);
+      const blend = lookV + 0.35 * passU;
+      if (blend > bestBlend) { bestBlend = blend; bestMove = null; }
     }
     return bestMove ? bestMove.combo : null;
   }
