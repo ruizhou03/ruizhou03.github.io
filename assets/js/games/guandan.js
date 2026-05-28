@@ -42,6 +42,14 @@
     return cardSuit(c) === 1 && RANK_LABELS[cardRankIdx(c)] === level;
   }
 
+  // 仅用于"列分组"和"列排序"。红桃级牌（逢人配）独占一列、排在小王(16)与
+  // 普通级牌(15)之间(15.5)。其余牌沿用 singleWeight（牌力比较仍是单一标量，
+  // 所有级牌都是 15 — 牌力不变）。
+  function columnKey(c, level) {
+    if (!isJoker(c) && isWild(c, level)) return 15.5;
+    return singleWeight(c, level);
+  }
+
   // 牌型常量
   const T = {
     SINGLE: 'single', PAIR: 'pair', TRIPLE: 'triple',
@@ -848,14 +856,14 @@
     return el;
   }
 
-  // 把手牌按"点数权重"分组（每个 singleWeight 一列）。
-  // 列内按花色固定顺序排（黑桃→红心→方块→梅花），王和级牌单独成列。
+  // 把手牌按 columnKey 分组（每个 key 一列）。红桃级牌（逢人配）独占一列，
+  // 排在小王和普通级牌之间。列内按花色固定顺序排，王和级牌单独成列。
   function buildHandColumns() {
     const level = currentLevelLabel();
     const hand = state.hands[0];
     const byW = new Map();
     for (const c of hand) {
-      const w = singleWeight(c, level);
+      const w = columnKey(c, level);
       if (!byW.has(w)) byW.set(w, []);
       byW.get(w).push(c);
     }
@@ -1980,21 +1988,23 @@
   }
   function autoPlayOnTimeout() {
     if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
+    const level = currentLevelLabel();
     const trick = state.trick;
-    const mustLead = !trick || trick.best == null || trick.bestSeat === 0;
+    const prev = (trick && trick.best != null && trick.bestSeat !== 0) ? trick.best : null;
     state.selected.clear();
-    if (mustLead) {
-      // 必须出 → 打最小的一张单
-      const hand = state.hands[0];
-      if (!hand.length) return;
-      const level = currentLevelLabel();
-      const sorted = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level));
-      const cb = classify([sorted[0]], level);
-      if (cb) { toast('超时自动出最小单张'); commitPlay(0, cb); }
-    } else {
-      toast('超时自动不出');
-      commitPass(0);
+    // 跟"提示"按钮第一次点击拿到的候选一致：genMoves + 同一个排序
+    let moves = genMoves(state.hands[0], prev, level);
+    if (!moves.length) {
+      // 跟不上 → 不出（只有跟牌场景下 genMoves 才可能空）
+      if (prev) commitPass(0);
+      return;
     }
+    moves.sort((a, b) =>
+      (isBombType(a.combo.type) ? 1 : 0) - (isBombType(b.combo.type) ? 1 : 0) ||
+      a.cards.length - b.cards.length || a.combo.key - b.combo.key);
+    const pick = moves[0];
+    const cb = classify(pick.cards, level);
+    if (cb) commitPlay(0, cb);
   }
 
   function scheduleAI() {
@@ -2242,17 +2252,17 @@
     const sel = [...state.selected].filter(c => state.hands[0].includes(c));
     if (!sel.length) return [];
     const level = currentLevelLabel();
-    // 按 weight 分组选中
+    // 按 columnKey 分组选中（红桃级牌独占 15.5 一列）
     const byW = new Map();
     for (const c of sel) {
-      const w = singleWeight(c, level);
+      const w = columnKey(c, level);
       if (!byW.has(w)) byW.set(w, 0);
       byW.set(w, byW.get(w) + 1);
     }
-    // 手牌每个 weight 的总数
+    // 手牌每个 columnKey 的总数
     const handByW = new Map();
     for (const c of state.hands[0]) {
-      const w = singleWeight(c, level);
+      const w = columnKey(c, level);
       handByW.set(w, (handByW.get(w) || 0) + 1);
     }
     // 选中的每个 weight 必须等于该 weight 在手牌中的总数（"完整一列"）

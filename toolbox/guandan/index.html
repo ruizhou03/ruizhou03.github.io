@@ -233,7 +233,8 @@ permalink: /toolbox/guandan/
     font-family: 'Cormorant Garamond', Georgia, "Songti SC", serif;
   }
   .gd-card .corner.tl { top: 4px; left: 5px; }
-  .gd-card .corner.br { bottom: 4px; right: 5px; transform: rotate(180deg); }
+  /* 反转角标取消：堆叠列里底部一角看不到，保留只是徒增视觉噪音 */
+  .gd-card .corner.br { display: none; }
   .gd-card .corner .rk { font-weight: 700; }
   .gd-card .corner .su { font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", monospace; }
   .gd-card .pip {
@@ -264,9 +265,9 @@ permalink: /toolbox/guandan/
   .gd-card.size-full.is-joker .pip .joker-icon { font-size: 20px; }
   .gd-card.size-mini.is-joker .pip .joker-text { font-size: 6px; }
   .gd-card.size-mini.is-joker .pip .joker-icon { font-size: 14px; }
-  .gd-card.is-wild {
-    box-shadow: 0 0 0 2px rgba(201,162,39,0.85), 0 1px 3px rgba(20,37,63,0.18);
-  }
+  /* 红桃级牌（逢人配）：只保留右上角"配"小角标，不要金边——金边容易被
+     误认为"选中"。同花顺辨识由角标花色解决，单独的列分隔（columnKey 15.5）
+     也帮助识别。 */
   .gd-card.is-wild::after {
     content: '配'; position: absolute; top: 2px; right: 3px;
     font-size: 8px; color: var(--gd-accent-strong); font-weight: 700;
