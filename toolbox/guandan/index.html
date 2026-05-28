@@ -350,9 +350,7 @@ permalink: /toolbox/guandan/
     overflow-x: auto; overflow-y: visible;
     /* 拖矩形框选时不要把卡上的"K / A"误选成文字 */
     user-select: none; -webkit-user-select: none;
-    /* padding-right 给右下角"理牌/还原/一键理牌"留位置；列太多就靠
-       overflow-x: auto 滑动看 */
-    padding: 0.4rem 230px 0.5rem 0.4rem;
+    padding: 0.4rem 0.4rem 0.5rem;
     min-height: calc(var(--gd-card-h) + 6 * var(--gd-stack-step) + 10px);
     justify-content: safe center;
     scrollbar-width: none;
@@ -420,8 +418,46 @@ permalink: /toolbox/guandan/
     position: absolute;
     right: 0.9rem;
     bottom: 0.6rem;
-    display: flex; gap: 0.45rem; align-items: center;
+    display: flex; flex-direction: column; gap: 0.4rem; align-items: stretch;
     z-index: 5;
+  }
+  .gd-sort-actions .gd-btn {
+    min-width: 96px;
+    /* 半透明底，万一手牌延伸到这一块也能看见底下的牌 */
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  /* 托管 chip：左下角，跟我头像同行旁边；on 状态金色高亮 */
+  .gd-autopilot-chip {
+    position: absolute;
+    left: 0.9rem;
+    bottom: 0.6rem;
+    padding: 0.28rem 0.7rem;
+    border: 1px solid var(--color-border);
+    background: rgba(255,255,255,0.85);
+    color: var(--color-muted);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-family: inherit;
+    z-index: 5;
+    transition: all 0.18s;
+  }
+  @media (hover: hover) {
+    .gd-autopilot-chip:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  .gd-autopilot-chip.on {
+    background: var(--gd-accent-strong);
+    color: #fff;
+    border-color: var(--gd-accent-strong);
+    box-shadow: 0 0 12px rgba(168,122,42,0.5);
+  }
+  /* 压不过上家：手牌整体灰显 + 禁交互 */
+  .gd-hand.no-play {
+    filter: grayscale(0.85) brightness(0.78);
+    opacity: 0.72;
+    pointer-events: none;
   }
   /* legacy 类名兼容（如果别处还引用了） */
   .gd-actions {
@@ -798,16 +834,15 @@ permalink: /toolbox/guandan/
       margin: 0.5rem 0 0.3rem;
       justify-content: center;
     }
-    /* 窄屏：理牌行也回 in-flow，手牌右 padding 复位（节省横向） */
+    /* 窄屏：理牌行回 in-flow，横排居中 */
     .gd-sort-actions {
       position: static;
+      flex-direction: row;
       margin-top: 0.3rem;
       justify-content: center;
       flex-wrap: wrap;
     }
-    .gd-hand {
-      padding-right: 0.4rem;
-    }
+    .gd-sort-actions .gd-btn { min-width: 0; background: var(--color-bg); }
   }
   @media (max-width: 380px) {
     .guandan-wrap { --gd-card-w: 34px; --gd-card-h: 50px; --gd-card-overlap: 20px; }
@@ -1087,6 +1122,9 @@ permalink: /toolbox/guandan/
       <button class="gd-btn" id="gdHintBtn" type="button" hidden>提示</button>
       <button class="gd-btn primary" id="gdPlayBtn" type="button" hidden>出牌</button>
     </div>
+
+    <!-- 托管开关 chip：左下角 / 我头像旁。autopilot 模式下高亮 -->
+    <button class="gd-autopilot-chip" id="gdAutopilotBtn" type="button" title="托管：让 AI 替你打牌">🤖 托管</button>
 
     <div class="gd-hand" id="gdHand"></div>
 

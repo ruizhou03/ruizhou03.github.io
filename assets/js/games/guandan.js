@@ -789,6 +789,8 @@
     runNonce: '',
     pendingTribute: null,
     arrangeMode: false,                   // 🔀 理牌：开启后拖动列直接重排，不需长按
+    autopilot: false,                     // 🤖 托管：AI 替我打；连续 2 次超时被动自动开启
+    _consecutiveTimeouts: 0,              // 玩家连续被动出牌（超时）计数
   };
 
   // 当前“打的级牌”label：行动方（actingTeam）的级牌
@@ -807,6 +809,7 @@
     hintBtn: $('gdHintBtn'), sortBtn: $('gdSortBtn'),
     arrangeBtn: $('gdArrangeBtn'), restoreBtn: $('gdRestoreBtn'),
     selfClock: $('gdSelfClock'),
+    autopilotBtn: $('gdAutopilotBtn'),
     pgo: $('gdPgo'), pgoStart: $('gdPgoStart'),
     pgoDiff: $('gdPgoDiff'), pgoStats: $('gdPgoStats'), hs: $('gdHs'),
     tribOverlay: $('gdTributeOverlay'), tribTitle: $('gdTribTitle'),
@@ -1386,10 +1389,21 @@
     // 正常打牌：把按钮文字复位为"出牌"
     els.playBtn.textContent = '出牌';
     const myTurn = state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy && !state.out.includes(0);
-    els.playBtn.hidden = !myTurn;
-    els.hintBtn.hidden = !myTurn;
     const trick = state.trick;
     const mustLead = trick && (trick.best == null || trick.bestSeat === 0);
+
+    // "压不过上家"检测：跟牌场景下，手里若无任何能压的组合 → 灰显手牌、
+    // 隐藏 提示/出牌，只剩 不出（仿斗地主 refreshNoPlayState）。无文字提示。
+    let noPlay = false;
+    if (myTurn && !mustLead) {
+      const level = currentLevelLabel();
+      const moves = genMoves(state.hands[0], trick.best, level);
+      noPlay = moves.length === 0;
+    }
+    if (els.hand) els.hand.classList.toggle('no-play', noPlay);
+
+    els.playBtn.hidden = !myTurn || noPlay;
+    els.hintBtn.hidden = !myTurn || noPlay;
     els.passBtn.hidden = !myTurn || mustLead;
     if (myTurn) {
       const sel = selectedCards();
@@ -2116,6 +2130,10 @@
 
   function endMatch(winTeam) {
     state.phase = PHASE.MATCH_END;
+    // 整局结束 → 关托管，重置超时计数（下一局从头来）
+    state.autopilot = false;
+    state._consecutiveTimeouts = 0;
+    refreshAutopilotBtn();
     const youWon = winTeam === 0;
     // 大标题：胜利 / 失败
     els.matchTitle.textContent = youWon ? '胜利' : '失败';
@@ -2221,21 +2239,31 @@
     if (state.out.includes(state.turn)) { stopTurnClock(); return; }
     const seat = state.turn;
     if (seat === 0) {
+      if (state.autopilot) {
+        // 托管模式：不挂时钟，~450ms 后直接自动出牌
+        stopTurnClock();
+        setTimeout(() => {
+          if (state.autopilot && state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy) {
+            doAutoPlayPick();
+          }
+        }, 450);
+        return;
+      }
       startTurnClock(0, autoPlayOnTimeout, TURN_TIMEOUT_MS);
     } else {
       startTurnClock(seat, null, AI_CLOCK_MS);
     }
   }
-  function autoPlayOnTimeout() {
+  // 玩家被动 / 托管的"自动出"共享同一份决策；isTimeout 控制是否计入超时计数
+  function doAutoPlayPick() {
     if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
     const level = currentLevelLabel();
     const trick = state.trick;
     const prev = (trick && trick.best != null && trick.bestSeat !== 0) ? trick.best : null;
     state.selected.clear();
-    // 跟"提示"按钮第一次点击拿到的候选一致：genMoves + 同一个排序
     let moves = genMoves(state.hands[0], prev, level);
     if (!moves.length) {
-      // 跟不上 → 不出（只有跟牌场景下 genMoves 才可能空）
+      // 跟不上 → 不出（领出时不可能为空，此分支只在跟牌时触发）
       if (prev) commitPass(0);
       return;
     }
@@ -2245,6 +2273,22 @@
     const pick = moves[0];
     const cb = classify(pick.cards, level);
     if (cb) commitPlay(0, cb);
+  }
+  function autoPlayOnTimeout() {
+    if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
+    // 累计 2 次超时 → 自动进入托管，直到用户关或整局结束
+    state._consecutiveTimeouts = (state._consecutiveTimeouts || 0) + 1;
+    if (!state.autopilot && state._consecutiveTimeouts >= 2) {
+      state.autopilot = true;
+      refreshAutopilotBtn();
+      toast('连续 2 次超时 — 已进入托管，再点"托管"退出');
+    }
+    doAutoPlayPick();
+  }
+  function refreshAutopilotBtn() {
+    if (!els.autopilotBtn) return;
+    els.autopilotBtn.classList.toggle('on', !!state.autopilot);
+    els.autopilotBtn.textContent = state.autopilot ? '🛑 退出托管' : '🤖 托管';
   }
 
   function scheduleAI() {
@@ -2420,6 +2464,7 @@
     const needBeat = trick.best != null && trick.bestSeat !== 0;
     if (needBeat && !beats(cb, trick.best)) { toast('压不过上家'); return; }
     state.selected.clear();
+    state._consecutiveTimeouts = 0;   // 主动出牌 → 清掉超时计数
     stopTurnClock();
     commitPlay(0, cb);
   }
@@ -2429,6 +2474,7 @@
     const trick = state.trick;
     if (!trick.best || trick.bestSeat === 0) { toast('你领出，必须出牌'); return; }
     state.selected.clear();
+    state._consecutiveTimeouts = 0;   // 主动不出 → 同理清计数
     stopTurnClock();
     commitPass(0);
   }
@@ -2466,6 +2512,25 @@
   });
   els.passBtn.addEventListener('click', playerPass);
   els.hintBtn.addEventListener('click', playerHint);
+  if (els.autopilotBtn) {
+    els.autopilotBtn.addEventListener('click', () => {
+      state.autopilot = !state.autopilot;
+      state._consecutiveTimeouts = 0;
+      refreshAutopilotBtn();
+      if (state.autopilot && state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy) {
+        // 立即接管：停时钟后短延迟自动出
+        stopTurnClock();
+        setTimeout(() => {
+          if (state.autopilot && state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy) {
+            doAutoPlayPick();
+          }
+        }, 300);
+      } else if (!state.autopilot && state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy) {
+        // 退出托管：重新挂时钟
+        armTurnClock();
+      }
+    });
+  }
   els.sortBtn.addEventListener('click', () => {
     state.handOrder = null;   // 清掉自定义顺序 → 回到默认（点数高→低，从左到右）
     renderHand();
