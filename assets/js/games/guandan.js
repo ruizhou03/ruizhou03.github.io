@@ -9,9 +9,28 @@
   //   - 小王: deck*54 + 52 ; 大王: deck*54 + 53
   // ===========================================================
   const STORE_KEY = 'tool.guandan.v1';
+  const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   const LEVEL_SEQ = ['2','3','4','5','6','7','8','9','10','J','Q','K','A']; // 级牌进阶序
+
+  // 炸弹 → 倍数（仿斗地主：每出一次累乘到 state.bombMult）
+  //   4 炸 ×2  5 炸 ×3  6 炸 ×4  7 炸 ×5  8+ 炸 ×6
+  //   同花顺 ×4   天王炸 ×8
+  function bombMultiplierFor(combo) {
+    if (!combo) return 1;
+    if (combo.type === T.JOKER_BOMB) return 8;
+    if (combo.type === T.STR_FLUSH) return 4;
+    if (combo.type === T.BOMB) {
+      const n = combo.len | 0;
+      if (n === 4) return 2;
+      if (n === 5) return 3;
+      if (n === 6) return 4;
+      if (n === 7) return 5;
+      return 6; // 8+
+    }
+    return 1;
+  }
 
   // ---- 基础解码 ----
   function isJoker(c) { const m = c % 54; return m === 52 || m === 53; }
@@ -767,12 +786,22 @@
     catch { return {}; }
   })();
 
+  // stats per-difficulty 给每个难度补 totalScore 兼容字段
+  function normalizeStats(raw) {
+    const base = { easy: { w: 0, l: 0, totalScore: 0 }, normal: { w: 0, l: 0, totalScore: 0 }, hard: { w: 0, l: 0, totalScore: 0 }, bestLevel: 0 };
+    const out = Object.assign(base, raw || {});
+    for (const k of ['easy', 'normal', 'hard']) {
+      const cur = out[k] || {};
+      out[k] = { w: cur.w | 0, l: cur.l | 0, totalScore: cur.totalScore | 0 };
+    }
+    out.bestLevel = out.bestLevel | 0;
+    return out;
+  }
+
   const state = {
     aiLevel: ['easy','normal','hard'].includes(stored.lastDiff) ? stored.lastDiff : 'normal',
-    stats: Object.assign(
-      { easy: { w: 0, l: 0 }, normal: { w: 0, l: 0 }, hard: { w: 0, l: 0 }, bestLevel: 0 },
-      stored.stats || {}
-    ),
+    openMult: [1, 2, 3].includes(stored.lastMult) ? stored.lastMult : 1,
+    stats: normalizeStats(stored.stats),
     phase: PHASE.IDLE,
     levels: [2 - 2, 2 - 2],          // team level index into LEVEL_SEQ (0='2')
     actingTeam: 0,                   // 谁“坐庄”决定主级牌（首局随机/座 0 起手）
@@ -791,6 +820,9 @@
     arrangeMode: false,                   // 🔀 理牌：开启后拖动列直接重排，不需长按
     autopilot: false,                     // 🤖 托管：AI 替我打；连续 2 次超时被动自动开启
     _consecutiveTimeouts: 0,              // 玩家连续被动出牌（超时）计数
+    bombMult: 1,                          // 本副对局内炸弹累乘倍数（startMatch 重置）
+    lastRoundScore: null,                 // 上一小局结算分（含正负，供下一局展示后清）
+    lastRoundDetail: null,                // { openMult, bombMult, advance, winTeam }
   };
 
   // 当前“打的级牌”label：行动方（actingTeam）的级牌
@@ -819,11 +851,16 @@
     roundLevelYou: $('gdResultLevelYou'), roundLevelOpp: $('gdResultLevelOpp'),
     roundPlayersYou: $('gdResultPlayersYou'), roundPlayersOpp: $('gdResultPlayersOpp'),
     roundTeamYou: $('gdResultTeamYou'), roundTeamOpp: $('gdResultTeamOpp'),
+    roundScore: $('gdRoundScore'),
     matchOverlay: $('gdMatchOverlay'), matchTitle: $('gdMatchTitle'),
     matchAgain: $('gdMatchAgain'), matchSetup: $('gdMatchSetup'),
     matchLevelYou: $('gdMatchLevelYou'), matchLevelOpp: $('gdMatchLevelOpp'),
     matchPlayersYou: $('gdMatchPlayersYou'), matchPlayersOpp: $('gdMatchPlayersOpp'),
     matchTeamYou: $('gdMatchTeamYou'), matchTeamOpp: $('gdMatchTeamOpp'),
+    matchScore: $('gdMatchScore'),
+    pgoMult: $('gdPgoMult'), pgoScore: $('gdPgoScore'),
+    resumeOverlay: $('gdResumeOverlay'), resumeSummary: $('gdResumeSummary'),
+    resumeContinue: $('gdResumeContinue'), resumeDiscard: $('gdResumeDiscard'),
     toast: $('gdToast'),
   };
   const seatEls = [0,1,2,3].map(i => ({
@@ -838,9 +875,82 @@
   function persist() {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify({
-        lastDiff: state.aiLevel, sortMode: state.sortMode, stats: state.stats,
+        lastDiff: state.aiLevel, lastMult: state.openMult,
+        sortMode: state.sortMode, stats: state.stats,
       }));
     } catch (e) { /* ignore */ }
+  }
+
+  // ---- session（中断保留）：只在 PLAYING/ROUND_END 阶段保存 ----
+  // TRIBUTE 阶段过短（5s 超时自动确定），刷新场景极小，忽略以保持简单
+  function isResumableSnapshot(snap) {
+    if (!snap || typeof snap !== 'object') return false;
+    if (snap.phase !== PHASE.PLAYING && snap.phase !== PHASE.ROUND_END) return false;
+    if (!Array.isArray(snap.hands) || snap.hands.length !== 4) return false;
+    return true;
+  }
+  function buildSessionSnapshot() {
+    return {
+      v: 1,
+      savedAt: Date.now(),
+      aiLevel: state.aiLevel,
+      openMult: state.openMult,
+      phase: state.phase,
+      levels: state.levels.slice(),
+      actingTeam: state.actingTeam,
+      firstLeader: state.firstLeader,
+      hands: state.hands.map(h => h.slice()),
+      out: state.out.slice(),
+      turn: state.turn,
+      trick: state.trick ? {
+        lead: state.trick.lead,
+        best: state.trick.best || null,
+        bestSeat: state.trick.bestSeat,
+        passes: state.trick.passes,
+      } : null,
+      handOrder: state.handOrder ? state.handOrder.slice() : null,
+      lastPlay: state.lastPlay.map(p => (p === 'pass' || p == null) ? p : { type: p.type, len: p.len, key: p.key, bombStrength: p.bombStrength, cards: (p.cards || []).slice() }),
+      runStartedAt: state.runStartedAt,
+      runNonce: state.runNonce,
+      autopilot: !!state.autopilot,
+      _consecutiveTimeouts: state._consecutiveTimeouts | 0,
+      bombMult: state.bombMult || 1,
+      lastRoundScore: (state.lastRoundScore == null) ? null : state.lastRoundScore,
+      lastRoundDetail: state.lastRoundDetail || null,
+      lastRanking: Array.isArray(state.lastRanking) ? state.lastRanking.slice() : null,
+      _pendingMatchWin: (state._pendingMatchWin == null) ? null : state._pendingMatchWin,
+    };
+  }
+  let _saveSessionPending = false;
+  function saveSession() {
+    if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.ROUND_END) return;
+    if (_saveSessionPending) return;
+    _saveSessionPending = true;
+    setTimeout(() => {
+      _saveSessionPending = false;
+      try {
+        const snap = buildSessionSnapshot();
+        localStorage.setItem(SESSION_KEY, JSON.stringify(snap));
+      } catch (e) { /* ignore quota / serialization */ }
+    }, 0);
+  }
+  function saveSessionSync() {
+    if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.ROUND_END) return;
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(buildSessionSnapshot()));
+    } catch (e) { /* ignore */ }
+  }
+  function clearSession() {
+    try { localStorage.removeItem(SESSION_KEY); } catch (e) { /* ignore */ }
+  }
+  function loadSession() {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      const snap = JSON.parse(raw);
+      if (!isResumableSnapshot(snap)) { clearSession(); return null; }
+      return snap;
+    } catch (e) { clearSession(); return null; }
   }
 
   let toastTimer = null;
@@ -1589,6 +1699,13 @@
     state.runStartedAt = Date.now();
     state.runNonce = (window.GamesShell && GamesShell.Identity)
       ? GamesShell.Identity.newRunNonce() : String(Date.now());
+    // 新一副：清炸弹倍数 / 上局分 / 任何残存 session
+    state.bombMult = 1;
+    state.lastRoundScore = null;
+    state.lastRoundDetail = null;
+    state._pendingMatchWin = null;
+    state.lastRanking = null;
+    clearSession();
     startRound(null);
   }
 
@@ -1600,6 +1717,9 @@
     state.handOrder = null;          // 重新发牌 → 重置自定义列顺序
     state.lastPlay = [null, null, null, null];
     state.busy = false;
+    state.bombMult = 1;              // 每小局炸弹倍数清零
+    state.lastRoundScore = null;
+    state.lastRoundDetail = null;
     // 新一局重置智能选牌门闩，避免新局首手与上局某一刻 trick 状态 + 手牌张数偶然碰撞
     state._autoTurnKey = null;
     const deck = shuffle(buildDeck());
@@ -1624,6 +1744,7 @@
     state.turn = leader;
     state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
     renderAll();
+    saveSession();
     if (leader !== 0) scheduleAI();
     else { updateActions(); armTurnClock(); }
   }
@@ -2002,7 +2123,12 @@
       }
     }
     // 炸弹类视觉反馈：起牌区红闪 + 表桌抖一下 + 全桌大字浮屏
-    if (isBombType(combo.type)) playBombFx(seat, combo);
+    if (isBombType(combo.type)) {
+      const mult = bombMultiplierFor(combo);
+      if (mult > 1) state.bombMult = (state.bombMult || 1) * mult;
+      playBombFx(seat, combo);
+    }
+    saveSession();
     afterMove(seat);
   }
 
@@ -2041,6 +2167,7 @@
     state.lastPlay[seat] = 'pass';
     state.trick.passes++;
     renderAll();
+    saveSession();
     afterMove(seat);
   }
 
@@ -2089,6 +2216,7 @@
     // （本圈内有人翻新最大 → trick.passes 回到 0 → 之前不出过的人重新可决策）
     if (state.lastPlay[nx] === 'pass') state.lastPlay[nx] = null;
     renderAll();
+    saveSession();
     if (nx === 0 && !state.out.includes(0)) {
       updateActions();
       armTurnClock();
@@ -2112,6 +2240,7 @@
     state.turn = leader;
     state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
     renderAll();
+    saveSession();
     if (leader === 0 && !state.out.includes(0)) { updateActions(); armTurnClock(); }
     else scheduleAI();
   }
@@ -2165,7 +2294,20 @@
     // 赢方成为下一局“主级方”
     state.actingTeam = winTeam;
     state.lastRanking = ranking;
+
+    // 单局结算分：开局倍数 × 炸弹累乘 × 升级数。赢方得正，输方得负
+    const openMult = state.openMult || 1;
+    const bombMult = state.bombMult || 1;
+    const roundScore = openMult * bombMult * advance;
+    state.lastRoundScore = (winTeam === 0) ? roundScore : -roundScore;
+    state.lastRoundDetail = { openMult, bombMult, advance, winTeam, beforeIdx, newIdx, matchWon };
+    // 累计到当前难度总分
+    const stForScore = state.stats[state.aiLevel];
+    if (stForScore) stForScore.totalScore = (stForScore.totalScore | 0) + state.lastRoundScore;
+    persist();
+
     showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon);
+    saveSession();
   }
 
   // 座位 avatar 表（跟桌面 .gd-avatar 里的 emoji 一致）
@@ -2223,6 +2365,24 @@
     renderResultTeamPlayers(els.roundPlayersYou, [0, 2], seatToRank);
     renderResultTeamPlayers(els.roundPlayersOpp, [1, 3], seatToRank);
 
+    // 分数展示
+    if (els.roundScore) {
+      const score = state.lastRoundScore;
+      const detail = state.lastRoundDetail;
+      if (score == null || !detail) {
+        els.roundScore.innerHTML = '';
+      } else {
+        const cls = score >= 0 ? 'win' : 'lose';
+        const sign = score > 0 ? '+' : '';
+        const total = (state.stats[state.aiLevel] || { totalScore: 0 }).totalScore | 0;
+        els.roundScore.innerHTML =
+          '<span class="delta ' + cls + '">' + sign + score + ' 分</span>' +
+          '<span class="breakdown">开局 ×' + detail.openMult +
+          ' · 炸弹 ×' + detail.bombMult +
+          ' · 升 ' + detail.advance + ' 级 · 累计 ' + (total >= 0 ? '+' : '') + total + ' 分</span>';
+      }
+    }
+
     els.roundNext.textContent = matchWon ? '查看战报 ▶' : '继续 ▶';
     stopTurnClock();
     els.roundOverlay.classList.add('open');
@@ -2264,6 +2424,24 @@
     persist();
     refreshHs();
     stopTurnClock();
+    // 战报分数展示
+    if (els.matchScore) {
+      const total = (st.totalScore | 0);
+      const sign = total >= 0 ? '+' : '';
+      const lastDelta = state.lastRoundScore;
+      const lastDetail = state.lastRoundDetail;
+      let lastLine = '';
+      if (lastDelta != null && lastDetail) {
+        const ls = lastDelta > 0 ? '+' : '';
+        lastLine = '<span class="breakdown">本局 ' + ls + lastDelta + ' 分（开局 ×' + lastDetail.openMult +
+          ' · 炸弹 ×' + lastDetail.bombMult + ' · 升 ' + lastDetail.advance + ' 级）</span>';
+      }
+      els.matchScore.innerHTML =
+        '<span class="delta ' + (total >= 0 ? 'win' : 'lose') + '">累计 ' + sign + total + ' 分</span>' +
+        lastLine;
+    }
+    // 整副结束 → 清掉 session
+    clearSession();
     els.matchOverlay.classList.add('open');
     if (youWon) submitWin();
   }
@@ -2796,6 +2974,23 @@
   function syncPgoDiff() {
     [...els.pgoDiff.querySelectorAll('.gs-pgo-mode-tab')].forEach(t =>
       t.classList.toggle('selected', t.dataset.value === state.aiLevel));
+    syncPgoScoreSummary();
+  }
+  function syncPgoMult() {
+    if (!els.pgoMult) return;
+    [...els.pgoMult.querySelectorAll('.gs-pgo-mode-tab')].forEach(t =>
+      t.classList.toggle('selected', parseInt(t.dataset.value, 10) === state.openMult));
+  }
+  function syncPgoScoreSummary() {
+    if (!els.pgoScore) return;
+    const st = state.stats[state.aiLevel] || { totalScore: 0, w: 0, l: 0 };
+    const total = st.totalScore | 0;
+    if (total === 0 && (st.w | 0) === 0 && (st.l | 0) === 0) {
+      els.pgoScore.innerHTML = '';
+      return;
+    }
+    const sign = total >= 0 ? '+' : '';
+    els.pgoScore.innerHTML = '本难度累计 <strong>' + sign + total + '</strong> 分（' + (st.w | 0) + '胜 ' + (st.l | 0) + '负）';
   }
   els.pgoDiff.addEventListener('click', e => {
     const t = e.target.closest('.gs-pgo-mode-tab');
@@ -2804,6 +2999,17 @@
     persist();
     syncPgoDiff();
   });
+  if (els.pgoMult) {
+    els.pgoMult.addEventListener('click', e => {
+      const t = e.target.closest('.gs-pgo-mode-tab');
+      if (!t) return;
+      const v = parseInt(t.dataset.value, 10);
+      if (![1, 2, 3].includes(v)) return;
+      state.openMult = v;
+      persist();
+      syncPgoMult();
+    });
+  }
   els.pgoStart.addEventListener('click', () => {
     els.pgo.classList.remove('open');
     startMatch();
@@ -2937,7 +3143,112 @@
   refreshHs();
   refreshPgoStats();
   syncPgoDiff();
+  syncPgoMult();
   renderAll();
   initShell();
+
+  // 中断保留：visibility / beforeunload 时同步保存一次
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') saveSessionSync();
+  });
+  window.addEventListener('beforeunload', () => { saveSessionSync(); });
+
+  // 检测未完成对局 → 显示恢复 modal（盖在初始 pgo 之上）
+  (function maybeResumeOnLoad() {
+    const snap = loadSession();
+    if (!snap) return;
+    showResumeOverlay(snap);
+  })();
+
+  function showResumeOverlay(snap) {
+    if (!els.resumeOverlay) return;
+    const level = snap.levels ? LEVEL_SEQ[snap.levels[snap.actingTeam | 0] | 0] : '?';
+    const youLv = snap.levels ? LEVEL_SEQ[snap.levels[0] | 0] : '?';
+    const oppLv = snap.levels ? LEVEL_SEQ[snap.levels[1] | 0] : '?';
+    const handsLeft = Array.isArray(snap.hands) ? snap.hands[0].length : 0;
+    const mins = Math.max(1, Math.round((Date.now() - (snap.savedAt || Date.now())) / 60000));
+    const phaseLabel = snap.phase === PHASE.ROUND_END ? '小局结算未确认' : '对局进行中';
+    if (els.resumeSummary) {
+      els.resumeSummary.innerHTML =
+        phaseLabel + '<br>' +
+        '<span class="key">我方</span> 级 ' + youLv + ' · ' +
+        '<span class="key">对方</span> 级 ' + oppLv + ' · ' +
+        '当前主级 <span class="key">' + level + '</span><br>' +
+        '我方手牌剩 <span class="key">' + handsLeft + '</span> 张 · ' +
+        '保存于 ' + mins + ' 分钟前';
+    }
+    els.resumeOverlay.classList.add('open');
+  }
+  if (els.resumeContinue) {
+    els.resumeContinue.addEventListener('click', () => {
+      const snap = loadSession();
+      if (!snap) {
+        els.resumeOverlay.classList.remove('open');
+        return;
+      }
+      els.resumeOverlay.classList.remove('open');
+      els.pgo.classList.remove('open');
+      restoreFromSession(snap);
+    });
+  }
+  if (els.resumeDiscard) {
+    els.resumeDiscard.addEventListener('click', () => {
+      clearSession();
+      els.resumeOverlay.classList.remove('open');
+    });
+  }
+
+  function restoreFromSession(snap) {
+    // 写回 state 数据字段
+    if (['easy','normal','hard'].includes(snap.aiLevel)) state.aiLevel = snap.aiLevel;
+    if ([1,2,3].includes(snap.openMult)) state.openMult = snap.openMult;
+    state.phase = snap.phase;
+    state.levels = Array.isArray(snap.levels) ? snap.levels.slice() : [0, 0];
+    state.actingTeam = snap.actingTeam | 0;
+    state.firstLeader = snap.firstLeader | 0;
+    state.hands = Array.isArray(snap.hands) ? snap.hands.map(h => h.slice()) : [[],[],[],[]];
+    state.out = Array.isArray(snap.out) ? snap.out.slice() : [];
+    state.turn = snap.turn | 0;
+    state.trick = snap.trick ? { lead: snap.trick.lead | 0, best: snap.trick.best || null, bestSeat: snap.trick.bestSeat | 0, passes: snap.trick.passes | 0 } : null;
+    state.handOrder = Array.isArray(snap.handOrder) ? snap.handOrder.slice() : null;
+    state.lastPlay = Array.isArray(snap.lastPlay) ? snap.lastPlay.slice() : [null, null, null, null];
+    state.runStartedAt = snap.runStartedAt || Date.now();
+    state.runNonce = snap.runNonce || ((window.GamesShell && GamesShell.Identity) ? GamesShell.Identity.newRunNonce() : String(Date.now()));
+    state.autopilot = !!snap.autopilot;
+    state._consecutiveTimeouts = snap._consecutiveTimeouts | 0;
+    state.bombMult = snap.bombMult || 1;
+    state.lastRoundScore = (snap.lastRoundScore == null) ? null : snap.lastRoundScore;
+    state.lastRoundDetail = snap.lastRoundDetail || null;
+    state.lastRanking = Array.isArray(snap.lastRanking) ? snap.lastRanking.slice() : null;
+    state.selected = new Set();
+    state.busy = false;
+    state.arrangeMode = false;
+    state.pendingTribute = null;
+    state._activeTributeGive = null;
+    state._activeTributePair = null;
+    state._pendingMatchWin = (snap._pendingMatchWin == null) ? null : snap._pendingMatchWin;
+
+    syncPgoDiff();
+    syncPgoMult();
+    refreshAutopilotBtn();
+    renderAll();
+
+    if (state.phase === PHASE.PLAYING) {
+      // 重新启动当前回合的时钟 / AI 调度
+      if (state.turn === 0 && !state.out.includes(0)) {
+        updateActions();
+        armTurnClock();
+      } else {
+        scheduleAI();
+      }
+      toast('已恢复对局');
+    } else if (state.phase === PHASE.ROUND_END) {
+      // 小局结算页：用快照里 ranking + lastRoundDetail 还原 overlay
+      const ranking = state.lastRanking || [];
+      const detail = state.lastRoundDetail || { advance: 1, beforeIdx: 0, newIdx: 0, winTeam: 0, matchWon: false };
+      showRoundOverlay(ranking, detail.winTeam | 0, detail.advance | 0, detail.beforeIdx | 0, detail.newIdx | 0, !!detail.matchWon);
+      toast('已恢复对局');
+    }
+  }
 
 })();

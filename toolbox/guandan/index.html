@@ -856,6 +856,36 @@ permalink: /toolbox/guandan/
   }
   .gd-pgo-stat strong { color: #fff; }
 
+  .gd-pgo-label {
+    font-size: 0.78rem; color: rgba(255,255,255,0.6);
+    margin: 0.7rem 0 0.3rem; letter-spacing: 0.04em;
+  }
+  .gd-pgo-score {
+    font-size: 0.82rem; color: rgba(255,255,255,0.75);
+    margin: 0.7rem 0 0.4rem; min-height: 1.1em;
+  }
+  .gd-pgo-score strong { color: #ffe18d; }
+
+  .gd-result-score {
+    margin: 0.7rem 0 0.2rem;
+    font-size: 0.95rem; color: rgba(255,255,255,0.88);
+    text-align: center; line-height: 1.45;
+  }
+  .gd-result-score .delta { font-weight: 700; font-size: 1.4rem; }
+  .gd-result-score .delta.win { color: #ffd66a; }
+  .gd-result-score .delta.lose { color: #d8d8d8; }
+  .gd-result-score .breakdown {
+    display: block; margin-top: 0.2rem;
+    font-size: 0.78rem; color: rgba(255,255,255,0.55);
+  }
+
+  .gd-resume-summary {
+    margin: 0.6rem auto 0.8rem; max-width: 26rem;
+    font-size: 0.88rem; color: rgba(255,255,255,0.82);
+    line-height: 1.6; text-align: center;
+  }
+  .gd-resume-summary .key { color: #ffe18d; font-weight: 600; }
+
   /* ======== about 规则块（内联，照 snake） ======== */
   .guandan-wrap details.about {
     max-width: 600px; margin: 1.4rem auto 0;
@@ -1206,12 +1236,32 @@ permalink: /toolbox/guandan/
       <div class="gs-pgo-view active" id="gdPgoMain">
         <div class="gs-pgo-icon">🀄</div>
         <h2 class="gs-pgo-title">掼蛋</h2>
+        <div class="gd-pgo-label">难度</div>
         <div class="gs-pgo-mode-picker" id="gdPgoDiff">
           <button class="gs-pgo-mode-tab" data-value="easy">🌱 新手</button>
           <button class="gs-pgo-mode-tab selected" data-value="normal">🙂 普通</button>
           <button class="gs-pgo-mode-tab" data-value="hard">🔥 高手</button>
         </div>
+        <div class="gd-pgo-label">开局加倍</div>
+        <div class="gs-pgo-mode-picker" id="gdPgoMult">
+          <button class="gs-pgo-mode-tab selected" data-value="1">×1</button>
+          <button class="gs-pgo-mode-tab" data-value="2">×2 加倍</button>
+          <button class="gs-pgo-mode-tab" data-value="3">×3 超倍</button>
+        </div>
+        <div class="gd-pgo-score" id="gdPgoScore"></div>
         <button class="gs-pgo-start-btn" id="gdPgoStart">▶ 开始游戏</button>
+      </div>
+    </div>
+
+    <!-- 恢复对局 -->
+    <div class="gd-overlay" id="gdResumeOverlay">
+      <div class="gd-result-panel">
+        <h2 class="gd-result-title">检测到未完成的对局</h2>
+        <div class="gd-resume-summary" id="gdResumeSummary"></div>
+        <div class="gd-result-actions">
+          <button class="gd-btn primary" id="gdResumeContinue" type="button">继续游戏</button>
+          <button class="gd-btn" id="gdResumeDiscard" type="button">丢弃重开</button>
+        </div>
       </div>
     </div>
 
@@ -1246,6 +1296,7 @@ permalink: /toolbox/guandan/
             <div class="gd-result-players" id="gdResultPlayersOpp"></div>
           </div>
         </div>
+        <div class="gd-result-score" id="gdRoundScore"></div>
         <button class="gd-btn primary" id="gdRoundNext" type="button">继续 ▶</button>
       </div>
     </div>
@@ -1271,6 +1322,7 @@ permalink: /toolbox/guandan/
             <div class="gd-result-players" id="gdMatchPlayersOpp"></div>
           </div>
         </div>
+        <div class="gd-result-score" id="gdMatchScore"></div>
         <div class="gd-result-actions">
           <button class="gd-btn primary" id="gdMatchAgain" type="button">再来一局</button>
           <button class="gd-btn" id="gdMatchSetup" type="button">换难度</button>
