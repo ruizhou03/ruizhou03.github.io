@@ -38,7 +38,7 @@
 3. **读者来信巡检**（如能用 Gmail MCP 工具就做；调不到就跳过、写一行“环境无 Gmail MCP”）：
    - 调 `mcp__claude_ai_Gmail__search_threads`，query `newer_than:1d`，最多 20 条。
    - 对每个 thread 调 `mcp__claude_ai_Gmail__get_thread` 提取主题 + 第一条正文的前 200 字。
-   - 分类：① **读者来信**——zirconeey.github.io / 个人邮件正常来信、问题、催更、反馈；② **系统通知**——GitHub Actions / Vercel / Fly / Anthropic 等服务自动邮件；③ **杂项**——订阅、营销、社交回执。
+   - 分类：① **读者来信**——ruizhou03.github.io / 个人邮件正常来信、问题、催更、反馈；② **系统通知**——GitHub Actions / Vercel / Fly / Anthropic 等服务自动邮件；③ **杂项**——订阅、营销、社交回执。
    - 在 DAILY_REVIEW 新增小节“📬 读者来信”：只列①；逐条写“发件人 · 主题 · 你需要回什么”。②③只汇总数量。
    - **红线**：绝不调 `create_draft`、`label_*`、`unlabel_*` 等写操作；只读。即使读者催更，也只是把催更内容摘录进 DAILY_REVIEW；回信由站主自己来。
 4. 跑 `bundle install` 后 `bundle exec jekyll build`，记录任何告警/报错。通读仓库找问题（audit 之外的）：信息架构与分类一致性、front-matter 缺失或矛盾、移动端/响应式、构建告警、游戏 UX、文案错别字、设计一致性、可访问性等。
