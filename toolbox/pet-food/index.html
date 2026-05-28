@@ -1817,7 +1817,7 @@ permalink: /toolbox/pet-food/
       li.addEventListener('click', () => selectBreedItem(value, short));
       $pmBreedMenu.appendChild(li);
     };
-    addItem('', '（空）', '');
+    addItem('', '', '');
     if (sp && sp.breeds) {
       Object.keys(sp.breeds).forEach(b => {
         const info = sp.breeds[b];
