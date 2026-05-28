@@ -1269,13 +1269,13 @@
     }
     // 找三张组的 rank：
     //   有 rank 数=3 → 即此 rank
-    //   有 rank 数=2 + wild → wild 顶高 rank；若两 rank 都 =2 取高
+    //   有 rank 数=2 + wild → wild 顶最强 rank；用 rankIdxWeight 比较（级牌=15 > 任何普通牌），
+    //     这样 99 + 22 + wild（级=2）会判 222 是三、99 是对，跟 classify 的最强解读一致
     let tripleRank = null;
     for (const [r, n] of cnt) if (n === 3) { tripleRank = r; break; }
     if (tripleRank == null) {
-      // 把 count=2 的 rank 收集，wild 顶最高的
       const twos = [...cnt.entries()].filter(([, n]) => n === 2).map(([r]) => r);
-      twos.sort((a, b) => b - a);
+      twos.sort((a, b) => rankIdxWeight(b, level) - rankIdxWeight(a, level));
       tripleRank = twos[0] != null ? twos[0] : [...cnt.keys()][0];
     }
     const arr = cards.slice();
@@ -3859,8 +3859,10 @@
     lobby: $('gdLobby'),
     roomCode: $('gdRoomCode'),
     roomQr: $('gdRoomQr'),
-    seats: $('gdLobbySeats'),
-    standing: $('gdLobbyStanding'),
+    seatTop: $('gdLobbySeatTop'),
+    seatLeft: $('gdLobbySeatLeft'),
+    seatRight: $('gdLobbySeatRight'),
+    seatBottom: $('gdLobbySeatBottom'),
     seated: $('gdLobbySeated'),
     startBtn: $('gdLobbyStartBtn'),
     leaveBtn: $('gdLobbyLeaveBtn'),
@@ -4197,48 +4199,90 @@
   function escGdHtml(s) {
     return String(s).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c]);
   }
-  // 4 个座位 0/1/2/3：上=2 / 左=3 / 右=1 / 下=0；这里就用 grid 2x2 简化
-  // 0 (我方-下) | 1 (对方-右)
-  // 3 (对方-左) | 2 (我方-上)
-  const SEAT_ICON = ['😎', '🦊', '🤝', '🐱'];
-  const SEAT_TEAM_CLASS = ['team-you', 'team-opp', 'team-you', 'team-opp'];
-  const SEAT_LABEL = ['座 0 · 下家（我方）', '座 1 · 右家（对方）', '座 2 · 上家（我方）', '座 3 · 左家（对方）'];
+  // 4 个座位绕"我"旋转：我永远在 bottom；其余顺时针排到 right/top/left
+  //   server seat S → display pos = (S - mySeat + 4) % 4
+  //   0=bottom, 1=right, 2=top, 3=left
+  // 我未坐下时，mySeat 视为 0（默认 server 0 在 bottom）
+  // AI 头像 emoji 按 server seat 区分；真人头像统一 😊（图四里其他真人是默认蓝头像）
+  const LOBBY_POSITIONS = ['bottom', 'right', 'top', 'left'];
+  const LOBBY_AI_ICONS = ['🤖', '🦊', '🤝', '🐱'];
+  const LOBBY_TEAM_CLASS = ['team-you', 'team-opp', 'team-you', 'team-opp'];
 
   function renderLobby(srv) {
-    if (!onlineEls.seats) return;
-    // 座位 by seat number → player
+    if (!onlineEls.seatBottom) return;
     const seatedMap = {};
     const standing = [];
     for (const p of srv.players || []) {
       if (typeof p.seat === 'number' && p.seat >= 0 && p.seat < 4) seatedMap[p.seat] = p;
       else standing.push(p);
     }
-    onlineEls.seats.innerHTML = '';
+    const posEls = {
+      bottom: onlineEls.seatBottom,
+      right:  onlineEls.seatRight,
+      top:    onlineEls.seatTop,
+      left:   onlineEls.seatLeft,
+    };
+    // 清空 + 复位 class
+    for (const k of Object.keys(posEls)) {
+      posEls[k].innerHTML = '';
+      posEls[k].className = 'gd-lobby-seat at-' + k;
+    }
+    const mySeat = (typeof onlineState.mySeat === 'number') ? onlineState.mySeat : 0;
     let seatedCount = 0;
     for (let s = 0; s < 4; s++) {
-      const cell = document.createElement('div');
-      cell.className = 'gd-lobby-seat ' + SEAT_TEAM_CLASS[s];
+      const pos = LOBBY_POSITIONS[(s - mySeat + 4) % 4];
+      const cell = posEls[pos];
+      cell.classList.add(LOBBY_TEAM_CLASS[s]);
       const p = seatedMap[s];
       if (!p) {
+        // 空座：大灰头像 + "坐下"，点击落座
         cell.classList.add('empty');
-        cell.innerHTML = '<span class="seat-num">' + (s + 1) + '</span>' +
-          '<span>📍 点击坐下</span>';
-        cell.title = SEAT_LABEL[s];
-        cell.addEventListener('click', () => sendSit(s));
+        const av = document.createElement('div');
+        av.className = 'avatar';
+        av.textContent = '👤';
+        av.addEventListener('click', () => sendSit(s));
+        const nick = document.createElement('div');
+        nick.className = 'nick';
+        nick.textContent = '坐下';
+        nick.addEventListener('click', () => sendSit(s));
+        const badges = document.createElement('div');
+        badges.className = 'badges';
+        cell.appendChild(av);
+        cell.appendChild(nick);
+        cell.appendChild(badges);
+        // 房主：「🤖 加机器人」浮泡（仿欢乐斗地主）
+        if (onlineState.isHost) {
+          const aiBtn = document.createElement('button');
+          aiBtn.className = 'add-ai-btn';
+          aiBtn.textContent = '🤖 加机器人';
+          aiBtn.addEventListener('click', (e) => { e.stopPropagation(); sendAddAi(s); });
+          cell.appendChild(aiBtn);
+        }
       } else {
         seatedCount++;
         const isMe = p.id === onlineState.playerId;
-        const badges = [];
-        if (p.isHost) badges.push('<span class="badge host">房主</span>');
-        if (isMe) badges.push('<span class="badge me">我</span>');
-        if (p.isAi) badges.push('<span class="badge ai">AI</span>');
-        if (!p.online) badges.push('<span class="badge offline">离线</span>');
-        cell.innerHTML =
-          '<span class="seat-num">' + (s + 1) + '</span>' +
-          '<div class="avatar">' + (p.isAi ? '🤖' : SEAT_ICON[s]) + '</div>' +
-          '<div class="info"><div class="nick">' + escGdHtml(p.nick) + '</div>' +
-          '<div class="badges">' + badges.join('') + '</div></div>';
-        // 房主控件：踢 / 转交（不能对自己用）
+        const av = document.createElement('div');
+        av.className = 'avatar';
+        av.textContent = p.isAi ? '🤖' : (isMe ? '😎' : LOBBY_AI_ICONS[s] || '👤');
+        const nick = document.createElement('div');
+        nick.className = 'nick';
+        nick.textContent = p.nick;
+        const badges = document.createElement('div');
+        badges.className = 'badges';
+        const addBadge = (cls, text) => {
+          const b = document.createElement('span');
+          b.className = 'badge ' + cls;
+          b.textContent = text;
+          badges.appendChild(b);
+        };
+        if (p.isHost) addBadge('host', '房主');
+        if (isMe) addBadge('me', '我');
+        if (p.isAi) addBadge('ai', 'AI');
+        if (!p.online) addBadge('offline', '离线');
+        cell.appendChild(av);
+        cell.appendChild(nick);
+        cell.appendChild(badges);
+        // 房主对真人/AI 的操作（踢 / 让位 / 移除）
         if (onlineState.isHost && !isMe) {
           const acts = document.createElement('div');
           acts.className = 'seat-actions';
@@ -4263,59 +4307,33 @@
           }
           cell.appendChild(acts);
         }
-        // 我自己坐下了 → 提供"起立"
+        // 我坐下了 → 提供「起立」（不影响游戏开始，仅释放座位）
         if (isMe) {
           const standBtn = document.createElement('button');
           standBtn.className = 'gd-btn mini';
           standBtn.textContent = '起立';
           standBtn.title = '离开座位（仍留在房间）';
           standBtn.addEventListener('click', (e) => { e.stopPropagation(); sendStand(); });
-          cell.appendChild(standBtn);
+          const acts = document.createElement('div');
+          acts.className = 'seat-actions';
+          acts.appendChild(standBtn);
+          cell.appendChild(acts);
         }
       }
-      onlineEls.seats.appendChild(cell);
     }
-    // 在空座下方再加一行：房主可点击「+ AI」加机器人
-    if (onlineState.isHost) {
-      for (let s = 0; s < 4; s++) {
-        if (seatedMap[s]) continue;
-        const cell = onlineEls.seats.children[s];
-        const aiBtn = document.createElement('button');
-        aiBtn.className = 'gd-btn mini';
-        aiBtn.textContent = '+ AI';
-        aiBtn.style.position = 'absolute';
-        aiBtn.style.right = '0.5rem';
-        aiBtn.style.bottom = '0.45rem';
-        aiBtn.addEventListener('click', (e) => { e.stopPropagation(); sendAddAi(s); });
-        cell.appendChild(aiBtn);
-      }
-    }
-    // standing
-    if (standing.length) {
-      onlineEls.standing.hidden = false;
-      onlineEls.standing.innerHTML =
-        '<div class="head">旁观 ' + standing.length + ' 人（未坐下）</div>' +
-        '<div class="list">' + standing.map(p => {
-          const isMe = p.id === onlineState.playerId;
-          return '<span class="chip' + (isMe ? ' me' : '') + '">' +
-            escGdHtml(p.nick) + (p.isHost ? ' 👑' : '') + (isMe ? '（我）' : '') + '</span>';
-        }).join('') + '</div>';
-    } else {
-      onlineEls.standing.hidden = true;
-    }
-    // 坐满计数 + start 按钮
-    onlineEls.seated.textContent = seatedCount + '/4';
+    // 旁观者（standing） — Phase 1 暂时不渲染；他们可以点空座位坐下。
+    // 入座计数 + start 按钮
+    if (onlineEls.seated) onlineEls.seated.textContent = seatedCount + '/4';
     if (onlineEls.startBtn) {
       const canStart = onlineState.isHost && seatedCount === 4;
       onlineEls.startBtn.disabled = !canStart;
       if (!onlineState.isHost) onlineEls.startBtn.textContent = '等待房主开始…';
-      else if (seatedCount < 4) onlineEls.startBtn.textContent = '需要 4 人坐满（已 ' + seatedCount + '/4）';
-      else onlineEls.startBtn.textContent = '🎮 开始游戏（抽签首出）';
+      else if (seatedCount < 4) onlineEls.startBtn.textContent = '需要 4 人坐满（' + seatedCount + '/4）';
+      else onlineEls.startBtn.textContent = '🎮 开始游戏';
     }
-    // 显示 firstLeader 抽签结果（Phase 1：仅文字提示；Phase 2 接动画）
     if (srv.state === 'playing' && typeof srv.firstLeader === 'number') {
       onlineEls.startBtn.disabled = true;
-      onlineEls.startBtn.textContent = '🎲 抽签结果：座 ' + (srv.firstLeader + 1) + ' 首出（Phase 2 真正对局即将到来）';
+      onlineEls.startBtn.textContent = '🎲 抽签：座 ' + (srv.firstLeader + 1) + ' 首出';
     }
   }
 
