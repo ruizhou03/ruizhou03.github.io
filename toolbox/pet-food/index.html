@@ -634,12 +634,6 @@ permalink: /toolbox/pet-food/
   }
 
   /* Sharing */
-  .pet-tab.shared-tab::after {
-    content: '🔗';
-    font-size: 0.75em;
-    margin-left: 0.25em;
-    opacity: 0.7;
-  }
   .modal .share-block {
     background: var(--color-bg-warm);
     border-radius: 8px;
@@ -762,7 +756,10 @@ permalink: /toolbox/pet-food/
   .modal .my-pets-list .mp-role-badge.owner { background: rgba(74, 124, 89, 0.18); color: #4a7c59; font-weight: 600; }
   .modal .my-pets-list .mp-role-badge.admin { background: rgba(201, 169, 110, 0.2); color: #a87a2a; }
   .modal .my-pets-list .mp-empty { padding: 1rem; text-align: center; color: var(--color-light); font-size: 0.85rem; }
-  .modal .my-pets-list .mp-shared { font-size: 0.78rem; color: var(--color-light); margin-left: 0.3rem; }
+  .modal .my-pets-list li { cursor: pointer; transition: background 0.15s; }
+  @media (hover: hover) {
+    .modal .my-pets-list li:hover { background: var(--color-bg-warm); }
+  }
 
   /* Join modal */
   .join-modal .modal { max-width: 380px; }
@@ -1062,7 +1059,6 @@ permalink: /toolbox/pet-food/
       <div class="field">
         <label>昵称</label>
         <input type="text" id="profile-nickname" placeholder="比如 周睿" maxlength="40" />
-        <p class="hint">共享的人会看到这个名字。</p>
       </div>
       <div class="sub-section" style="border-top: none; padding-top: 0; margin-top: 0.8rem;">我的宠物</div>
       <ul class="my-pets-list" id="my-pets-list"></ul>
@@ -1370,6 +1366,7 @@ permalink: /toolbox/pet-food/
     customStart: null,
     customEnd: null,
     lastRenderedPetId: null, // for one-shot mode reset on pet switch
+    contactNicknames: {},    // local-only nicknames you set for other members
   };
 
   function load() {
@@ -1381,9 +1378,23 @@ permalink: /toolbox/pet-food/
         if (parsed.period) state.period = parsed.period;
         if (parsed.customStart) state.customStart = parsed.customStart;
         if (parsed.customEnd) state.customEnd = parsed.customEnd;
+        if (parsed.contactNicknames && typeof parsed.contactNicknames === 'object') {
+          state.contactNicknames = parsed.contactNicknames;
+        }
       }
     } catch (e) { /* */ }
     migratePets();
+  }
+  function crystallizeBowlSnapshots(pet) {
+    // For any 含碗 entry missing the snapshotted bowlWeight, fill it from the
+    // pet's current pet.bowlWeight (best-effort; only safe when pet.bowlWeight
+    // is still a valid number for the entry's time period).
+    if (pet.bowlWeight == null) return;
+    (pet.entries || []).forEach(e => {
+      if (e && e.withBowl && e.bowlWeight === undefined) {
+        e.bowlWeight = pet.bowlWeight;
+      }
+    });
   }
   function migratePets() {
     state.pets.forEach(p => {
@@ -1394,6 +1405,9 @@ permalink: /toolbox/pet-food/
       // (Any pre-existing 含碗 entries with bowlWeight=0 already returned null food weight,
       // so this changes nothing visible.)
       if (p.bowlWeight === 0) p.bowlWeight = null;
+      // Capture pet.bowlWeight onto historical entries that lack the snapshot, so
+      // future bowl changes don't retroactively rewrite their food weights.
+      crystallizeBowlSnapshots(p);
       // Migrate deprecated lifeStage → ageYears + neutered
       if (p.ageYears === undefined && p.lifeStage) {
         if (p.lifeStage === 'young')              { p.ageYears = 0.5; p.neutered = false; }
@@ -1424,6 +1438,7 @@ permalink: /toolbox/pet-food/
         period: state.period,
         customStart: state.customStart,
         customEnd: state.customEnd,
+        contactNicknames: state.contactNicknames,
       }));
     } catch (e) {
       if (e && e.name === 'QuotaExceededError') showStorageWarn();
@@ -1979,7 +1994,7 @@ permalink: /toolbox/pet-food/
     $petEdit.style.display = '';
 
     $petTabs.innerHTML = state.pets.map(p =>
-      `<button type="button" class="pet-tab ${p.id === state.currentId ? 'active' : ''} ${p.shared ? 'shared-tab' : ''}" data-id="${p.id}">${petIconHtml(p)}<span>${escapeHtml(p.name)}</span></button>`
+      `<button type="button" class="pet-tab ${p.id === state.currentId ? 'active' : ''}" data-id="${p.id}">${petIconHtml(p)}<span>${escapeHtml(p.name)}</span></button>`
     ).join('');
     $petTabs.querySelectorAll('.pet-tab').forEach(b => {
       b.addEventListener('click', () => {
@@ -2718,23 +2733,34 @@ permalink: /toolbox/pet-food/
       $pmMembersList.innerHTML = members.map(m => {
         const self = m.deviceId === meId;
         const shortId = m.deviceId.slice(2, 10);
-        // Prefer nickname; for self, also overlay cached profile nickname (fresh local edit)
+        const localAlias = state.contactNicknames[m.deviceId];
+        // Display priority:
+        //   self  →  cachedProfile.nickname (fresh) → server m.nickname → shortId
+        //   other →  localAlias (your note)         → server m.nickname → shortId
         let displayName;
         if (self) {
           displayName = (cachedProfile && cachedProfile.nickname) || m.nickname || shortId;
         } else {
-          displayName = m.nickname || shortId;
+          displayName = localAlias || m.nickname || shortId;
         }
         const roleLbl = m.role === 'owner' ? '主人' : (m.role === 'admin' ? '管理员' : '成员');
         const actions = [];
+        // Anyone (except for themselves) can set a local alias for any other member
+        if (!self) {
+          actions.push(`<button data-act="alias" data-target="${m.deviceId}" title="本地备注">✎ 备注</button>`);
+        }
         if (owner && !self) {
           if (m.role === 'admin') actions.push(`<button data-act="role" data-target="${m.deviceId}" data-role="regular">设为成员</button>`);
           else if (m.role === 'regular') actions.push(`<button data-act="role" data-target="${m.deviceId}" data-role="admin">设为管理员</button>`);
           actions.push(`<button data-act="transfer" data-target="${m.deviceId}">转让主人</button>`);
           actions.push(`<button class="danger" data-act="remove" data-target="${m.deviceId}">移除</button>`);
         }
+        // If localAlias is set, show the original server name in a faded second-line for context
+        const aliasHint = (!self && localAlias && m.nickname && localAlias !== m.nickname)
+          ? ` <span style="color:var(--color-light);font-size:0.74rem;">(${escapeHtml(m.nickname)})</span>`
+          : '';
         return `<li>
-          <span class="m-id ${self ? 'm-self' : ''}">${self ? '你 · ' : ''}${escapeHtml(displayName)}</span>
+          <span class="m-id ${self ? 'm-self' : ''}">${self ? '你 · ' : ''}${escapeHtml(displayName)}${aliasHint}</span>
           <span class="m-role ${m.role}">${roleLbl}</span>
           <span class="m-actions">${actions.join('')}</span>
         </li>`;
@@ -2774,6 +2800,18 @@ permalink: /toolbox/pet-food/
   async function handleMemberAction(p, ds) {
     if (!p.serverPetId) return;
     const target = ds.target;
+    // Local alias (no backend call)
+    if (ds.act === 'alias') {
+      const cur = state.contactNicknames[target] || '';
+      const next = prompt('给这位成员设个本地备注名（仅你自己看得到，留空则清除）：', cur);
+      if (next === null) return;
+      const trimmed = next.trim().slice(0, 40);
+      if (trimmed) state.contactNicknames[target] = trimmed;
+      else delete state.contactNicknames[target];
+      persist();
+      renderShareSection(p);
+      return;
+    }
     try {
       if (ds.act === 'role') {
         await api('set-role', { petId: p.serverPetId, body: { targetDeviceId: target, role: ds.role } });
@@ -2884,14 +2922,24 @@ permalink: /toolbox/pet-food/
     $myPetsList.innerHTML = pets.map(p => {
       const role = myRoleFor(p);
       const roleZh = role === 'owner' ? '主人' : role === 'admin' ? '管理员' : '成员';
-      const sharedTag = p.shared ? '<span class="mp-shared">🔗 共享</span>' : '';
       const iconImg = p.avatar ? `<img src="${p.avatar}" alt="">` : (p.emoji || '🐾');
-      return `<li>
+      return `<li data-pet-id="${p.id}">
         <span class="mp-icon">${iconImg}</span>
-        <span class="mp-name">${escapeHtml(p.name || '未命名')}${sharedTag}</span>
+        <span class="mp-name">${escapeHtml(p.name || '未命名')}</span>
         <span class="mp-role-badge ${role}">${roleZh}</span>
       </li>`;
     }).join('');
+    $myPetsList.querySelectorAll('li[data-pet-id]').forEach(li => {
+      li.addEventListener('click', () => {
+        const id = li.dataset.petId;
+        if (!id) return;
+        state.currentId = id;
+        persist();
+        closeProfileModal();
+        render();
+        openModal(id);
+      });
+    });
   }
   $profileBtn.addEventListener('click', openProfileModal);
   $profileClose.addEventListener('click', closeProfileModal);
@@ -3210,6 +3258,9 @@ permalink: /toolbox/pet-food/
       newVal = toGrams(num, unit);
     }
     const changed = newVal !== pet.bowlWeight;
+    // Before mutating pet.bowlWeight, freeze the current value onto any
+    // un-snapshotted entries so their food weights stay correct.
+    if (changed) crystallizeBowlSnapshots(pet);
     pet.bowlWeight = newVal;
     pet.bowlUnit = unit;
     if (changed) {
