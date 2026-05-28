@@ -571,6 +571,7 @@ const DEFAULT_W = {
   groupBombBase: 14,
   groupBombPerExtra: 8,
   handLenPenalty: 0.45,
+  lookaheadDepth: 2,   // depth=1 完爆 greedy；depth=2 又比 depth=1 +9%；depth=3 不显著
 };
 
 function groupValue(g, level, w) {
@@ -655,6 +656,13 @@ function moveUtility(move, hand, prev, leading, level, ctx, w, lvl, rng) {
 }
 
 function chooseAIMove(seat, hand, prev, leading, level, state, w, lvl, rng) {
+  if ((w.lookaheadDepth | 0) > 0) {
+    return chooseAIMoveLookahead(seat, hand, prev, leading, level, state, w, lvl, rng);
+  }
+  return chooseAIMoveGreedy(seat, hand, prev, leading, level, state, w, lvl, rng);
+}
+
+function chooseAIMoveGreedy(seat, hand, prev, leading, level, state, w, lvl, rng) {
   const partner = (seat + 2) % 4;
   const myTeam = seat % 2;
   const oppSeats = [0,1,2,3].filter(s => (s % 2) !== myTeam && !state.out.includes(s));
@@ -684,13 +692,216 @@ function chooseAIMove(seat, hand, prev, leading, level, state, w, lvl, rng) {
   return bestMove ? bestMove.combo : null;
 }
 
+// ---- 1-step lookahead ----
+// 对每个候选 m：暂时应用 m，再让下一个 alive 座（greedy）选择回应，最后用
+// teamValueAt 评估"我方剩余手牌效率 - 对方剩余手牌效率"，argmax 决定。
+// depth>=2 时，模拟更多 ply（按 turn 顺序往下走 depth 步）。
+function cloneStateMin(state) {
+  return {
+    hands: state.hands.map(h => h.slice()),
+    out: state.out.slice(),
+    turn: state.turn,
+    trick: state.trick ? { ...state.trick } : null,
+    lastPlay: state.lastPlay.slice(),
+  };
+}
+function applyDecision(state, seat, decision) {
+  if (!decision) {
+    state.lastPlay[seat] = 'pass';
+    state.trick.passes++;
+    return;
+  }
+  for (const c of decision.cards) {
+    const i = state.hands[seat].indexOf(c);
+    if (i >= 0) state.hands[seat].splice(i, 1);
+  }
+  state.lastPlay[seat] = decision;
+  state.trick.best = decision;
+  state.trick.bestSeat = seat;
+  state.trick.passes = 0;
+  if (state.hands[seat].length === 0 && !state.out.includes(seat)) state.out.push(seat);
+}
+function nextSeatLookahead(state, seat) {
+  const alive = [0,1,2,3].filter(s => !state.out.includes(s));
+  if (state.trick.bestSeat >= 0 && state.trick.passes >= alive.length - 1 && alive.length >= 1) {
+    // trick 结束 → bestSeat 领出（如果 out 则队友/下一活）
+    let next = state.trick.bestSeat;
+    if (state.out.includes(next)) {
+      const partner = (next + 2) % 4;
+      if (!state.out.includes(partner)) next = partner;
+      else {
+        let s = next;
+        for (let i = 0; i < 4; i++) {
+          s = (s + 1) % 4;
+          if (!state.out.includes(s)) { next = s; break; }
+        }
+      }
+    }
+    return { seat: next, trickReset: true };
+  }
+  let s = seat;
+  for (let i = 0; i < 4; i++) {
+    s = (s + 1) % 4;
+    if (!state.out.includes(s)) return { seat: s, trickReset: false };
+  }
+  return { seat, trickReset: false };
+}
+// 终值 = 我方"进度"减对方进度。进度 = 已出牌张数 + eff（小幅，让组织好的手有奖励）
+// 关键：不能只看 evaluateHand 差，否则 AI 会拼命留牌（手里多 = eff 大但永远不出）
+function teamValueAt(state, level, w, myTeam) {
+  let myCnt = 0, oppCnt = 0, myEff = 0, oppEff = 0;
+  for (let s = 0; s < 4; s++) {
+    const len = state.hands[s].length;
+    const isMy = s % 2 === myTeam;
+    if (state.out.includes(s)) {
+      // 出完了 → 巨大 bonus
+      if (isMy) myEff += 50; else oppEff += 50;
+    } else {
+      const eff = evaluateHand(state.hands[s], level, w);
+      if (isMy) { myCnt += len; myEff += eff; }
+      else { oppCnt += len; oppEff += eff; }
+    }
+  }
+  // 进度差是主导（每少出 1 张 = -1.5），eff 是辅助（每点组织性 = +0.2）
+  return 1.5 * (oppCnt - myCnt) + 0.2 * (myEff - oppEff);
+}
+function chooseAIMoveLookahead(seat, hand, prev, leading, level, state, w, lvl, rng) {
+  const depth = w.lookaheadDepth | 0;
+  const myTeam = seat % 2;
+  const moves = genMoves(hand, prev, level);
+  if (leading && !moves.length) {
+    const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
+    return classify([c], level);
+  }
+  // 也算 greedy utility 作为 tiebreaker / 即时性奖励（防纯 lookahead 忽视一手出完）
+  const greedyU = new Map();
+  const partner = (seat + 2) % 4;
+  const oppSeats = [0,1,2,3].filter(s => (s % 2) !== myTeam && !state.out.includes(s));
+  const opponentMin = oppSeats.length ? Math.min(...oppSeats.map(s => state.hands[s].length)) : 99;
+  const ctx = {
+    partner,
+    partnerWinning: state.trick && state.trick.bestSeat === partner && !state.out.includes(partner),
+    partnerCount: state.out.includes(partner) ? 0 : state.hands[partner].length,
+    partnerOut: state.out.includes(partner),
+    opponentMin,
+    myCount: state.hands[seat].length,
+  };
+  for (const m of moves) greedyU.set(m, moveUtility(m, hand, prev, leading, level, ctx, w, lvl, () => 0.5));
+  const passUGreedy = leading ? -Infinity : moveUtility({ pass: true }, hand, prev, leading, level, ctx, w, lvl, () => 0.5);
+
+  function rolloutValue(initialState, initialSeat, initialDecision, plies) {
+    const s = cloneStateMin(initialState);
+    applyDecision(s, initialSeat, initialDecision);
+    // 若我已出完且 round 结束 → 直接评估
+    if (didRoundEnd(s)) return teamValueAt(s, level, w, myTeam);
+    let curSeat = initialSeat;
+    for (let p = 0; p < plies; p++) {
+      const { seat: nextSeat, trickReset } = nextSeatLookahead(s, curSeat);
+      if (trickReset) {
+        s.lastPlay = [null, null, null, null];
+        s.trick = { lead: nextSeat, best: null, bestSeat: -1, passes: 0 };
+      }
+      curSeat = nextSeat;
+      const prev2 = (s.trick.best && s.trick.bestSeat !== curSeat) ? s.trick.best : null;
+      const leading2 = !prev2;
+      // 用 greedy 模拟其他人决策（避免无限递归）
+      const tmpW = { ...w, lookaheadDepth: 0 };
+      const dec = chooseAIMoveGreedy(curSeat, s.hands[curSeat], prev2, leading2, level, s, tmpW, lvl, () => 0.5);
+      applyDecision(s, curSeat, dec);
+      if (didRoundEnd(s)) break;
+    }
+    return teamValueAt(s, level, w, myTeam);
+  }
+
+  let bestU = -Infinity, bestMove = null;
+  for (const m of moves) {
+    const lookV = rolloutValue(state, seat, m, depth);
+    // 综合：lookahead 价值 + λ·greedy 即时分（λ 调权）
+    const blendU = lookV + 0.35 * (greedyU.get(m) || 0);
+    if (blendU > bestU) { bestU = blendU; bestMove = m; }
+  }
+  if (!leading) {
+    const lookVPass = rolloutValue(state, seat, null, depth);
+    const blendPass = lookVPass + 0.35 * passUGreedy;
+    if (blendPass > bestU) { bestU = blendPass; bestMove = null; }
+  }
+  return bestMove ? bestMove.combo : null;
+}
+
+// ===========================================================
+// 进贡 / 还贡
+// ===========================================================
+function pickTributeCard(hand, level) {
+  let best = null, bw = -1;
+  for (const c of hand) {
+    if (isWild(c, level)) continue;
+    const w = singleWeight(c, level);
+    if (w > bw) { bw = w; best = c; }
+  }
+  if (best == null) best = hand[0];
+  return best;
+}
+function pickReturnCard(hand, level) {
+  const LOW = new Set(['2','3','4','5','6','7','8','9','10']);
+  let best = null, bw = 1e9;
+  for (const c of hand) {
+    if (isJoker(c)) continue;
+    if (!LOW.has(RANK_LABELS[cardRankIdx(c)])) continue;
+    const w = singleWeight(c, level);
+    if (w < bw) { bw = w; best = c; }
+  }
+  if (best == null) {
+    for (const c of hand) {
+      if (isJoker(c)) continue;
+      const w = singleWeight(c, level);
+      if (w < bw) { bw = w; best = c; }
+    }
+  }
+  if (best == null) best = hand[0];
+  return best;
+}
+// 双下进贡：3+4 同队 → 各上贡最大非红心级牌，1+2 还 ≤10。损方双大王 → 抗贡免贡。
+// 返回 newLeader（头游进贡的人领出下一圈；非双下 / 抗贡 → ranking[0] 领出）
+function handleTribute(hands, ranking, level) {
+  const [first, second, third, fourth] = ranking;
+  const winTeam = first % 2;
+  const doubleDown = (third % 2) === (fourth % 2) && (third % 2) !== winTeam;
+  if (!doubleDown) return { newLeader: first };
+  let bigJokers = 0;
+  for (const s of [third, fourth]) for (const c of hands[s]) if (isJoker(c) && jokerKind(c) === 'big') bigJokers++;
+  if (bigJokers >= 2) return { newLeader: first };
+  const fourthCard = pickTributeCard(hands[fourth], level);
+  const thirdCard = pickTributeCard(hands[third], level);
+  const fw = singleWeight(fourthCard, level);
+  const tw = singleWeight(thirdCard, level);
+  let bigGiver, bigCard, smallGiver, smallCard;
+  if (fw >= tw) { bigGiver = fourth; bigCard = fourthCard; smallGiver = third; smallCard = thirdCard; }
+  else { bigGiver = third; bigCard = thirdCard; smallGiver = fourth; smallCard = fourthCard; }
+  const pairs = [
+    { giver: bigGiver, receiver: first, tributeCard: bigCard },
+    { giver: smallGiver, receiver: second, tributeCard: smallCard },
+  ];
+  for (const pair of pairs) {
+    const idx = hands[pair.giver].indexOf(pair.tributeCard);
+    if (idx >= 0) hands[pair.giver].splice(idx, 1);
+    hands[pair.receiver].push(pair.tributeCard);
+    const returnCard = pickReturnCard(hands[pair.receiver], level);
+    const idx2 = hands[pair.receiver].indexOf(returnCard);
+    if (idx2 >= 0) hands[pair.receiver].splice(idx2, 1);
+    hands[pair.giver].push(returnCard);
+  }
+  return { newLeader: bigGiver };
+}
+
 // ===========================================================
 // 单局（一小局）模拟
 // ===========================================================
-function simulateRound({ weightsByTeam, level = '2', firstLeader = 0, rng = Math.random }) {
-  const deck = shuffle(buildDeck(), rng);
-  const hands = [[], [], [], []];
-  for (let i = 0; i < 108; i++) hands[i % 4].push(deck[i]);
+function simulateRound({ weightsByTeam, level = '2', firstLeader = 0, hands = null, rng = Math.random }) {
+  if (!hands) {
+    const deck = shuffle(buildDeck(), rng);
+    hands = [[], [], [], []];
+    for (let i = 0; i < 108; i++) hands[i % 4].push(deck[i]);
+  }
   const state = {
     hands,
     out: [],
@@ -772,27 +983,65 @@ function didRoundEnd(state) {
   return t0 === 2 || t1 === 2;
 }
 
-// 一场 match：N 个 round 对决，team0 win-rate 是 [头游 ∈ team0 的比例]
-function runMatches(weightsTest, weightsBaseline, n, rng = Math.random) {
-  let testWins = 0;
-  let baselineWins = 0;
+// ===========================================================
+// 整副 match：含 tribute + 升级动态，打到一方过 A 为止
+// ===========================================================
+function simulateMatch({ weightsByTeam, rng = Math.random, maxRounds = 25 }) {
+  const levels = [0, 0];
+  let actingTeam = 0;
+  let lastRanking = null;
+  let firstLeader = Math.floor(rng() * 4);
   let totalIter = 0;
+  for (let round = 0; round < maxRounds; round++) {
+    const level = LEVEL_SEQ[levels[actingTeam]];
+    // Deal
+    const deck = shuffle(buildDeck(), rng);
+    const hands = [[], [], [], []];
+    for (let i = 0; i < 108; i++) hands[i % 4].push(deck[i]);
+    // Tribute（非首局）
+    if (lastRanking) {
+      const { newLeader } = handleTribute(hands, lastRanking, level);
+      firstLeader = newLeader;
+    }
+    // Play
+    const { ranking, iter } = simulateRound({ weightsByTeam, level, firstLeader, hands, rng });
+    totalIter += iter;
+    lastRanking = ranking;
+    const first = ranking[0];
+    const winTeam = first % 2;
+    const partner = (first + 2) % 4;
+    const partnerPos = ranking.indexOf(partner);
+    const advance = (partnerPos === 1) ? 3 : (partnerPos === 2) ? 2 : 1;
+    const beforeIdx = levels[winTeam];
+    const wasAtA = LEVEL_SEQ[beforeIdx] === 'A';
+    if (wasAtA) {
+      // 打过 A → 整副结束
+      return { winner: winTeam, rounds: round + 1, totalIter };
+    }
+    levels[winTeam] = Math.min(LEVEL_SEQ.length - 1, beforeIdx + advance);
+    actingTeam = winTeam;
+    firstLeader = first;
+  }
+  // 超时（应该极少）→ level 高者赢
+  return { winner: levels[0] >= levels[1] ? 0 : 1, rounds: maxRounds, timeout: true, totalIter };
+}
+
+// 比较 test vs baseline weights：跑 n 场整副 match，统计 test 队胜场
+function runMatches(weightsTest, weightsBaseline, n, rng = Math.random) {
+  let testWins = 0, baselineWins = 0, totalRounds = 0, totalIter = 0;
   for (let i = 0; i < n; i++) {
-    // 一半 test 当 team0，一半当 team1（消除位置偏差）
     const swap = i % 2 === 1;
     const weightsByTeam = swap
       ? { 0: weightsBaseline, 1: weightsTest }
       : { 0: weightsTest, 1: weightsBaseline };
-    const firstLeader = i % 4;
-    const { ranking, iter } = simulateRound({ weightsByTeam, firstLeader, rng });
-    totalIter += iter;
-    const headSeat = ranking[0];
-    const headTeam = headSeat % 2;
+    const { winner, rounds, totalIter: iters } = simulateMatch({ weightsByTeam, rng });
+    totalRounds += rounds;
+    totalIter += iters;
     const testTeam = swap ? 1 : 0;
-    if (headTeam === testTeam) testWins++;
+    if (winner === testTeam) testWins++;
     else baselineWins++;
   }
-  return { testWins, baselineWins, n, avgIter: totalIter / n };
+  return { testWins, baselineWins, n, avgRounds: totalRounds / n, avgIter: totalIter / Math.max(1, totalRounds) };
 }
 
 // ===========================================================
@@ -840,6 +1089,7 @@ function tune({ matchesPerTrial = 60, iterations = 2 }) {
   const se = Math.sqrt(rate * (1 - rate) / final.n);
   console.log('test wins ' + final.testWins + ' / ' + final.n + '  =  ' + rate.toFixed(3) +
     ' ± ' + (1.96 * se).toFixed(3) + ' (95% CI)' +
+    '  · avg rounds/match ' + final.avgRounds.toFixed(1) +
     '  · avg iter/round ' + final.avgIter.toFixed(0));
   // 写到 scripts/sim-guandan-best.json
   const fs = require('fs');
@@ -847,10 +1097,78 @@ function tune({ matchesPerTrial = 60, iterations = 2 }) {
   console.log('\nwritten to scripts/sim-guandan-best.json');
 }
 
+// ===========================================================
+// (μ/μ, λ)-ES：每代采样 popSize 个候选，取前 25% 求平均作为新中心，sigma 几何衰减
+// 优点：捕捉权重间交互（coord descent 漏掉的）；
+// 缺点：每代 popSize 个 eval × matches，时间 ∝ popSize·gen·matches
+// ===========================================================
+function gaussianRandom() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+function esTune({ generations = 6, popSize = 24, matchesPerEval = 80, sigmaInit = 0.25, startWeights = null }) {
+  const keys = TUNE_KEYS;
+  let center = startWeights ? { ...DEFAULT_W, ...startWeights } : { ...DEFAULT_W };
+  let sigma = sigmaInit;
+  console.log('== ES tune start ==');
+  console.log('center: ' + JSON.stringify(Object.fromEntries(keys.map(k => [k, center[k]]))));
+  console.log('popSize=' + popSize + ' generations=' + generations + ' matchesPerEval=' + matchesPerEval);
+  for (let gen = 0; gen < generations; gen++) {
+    // 采样种群
+    const pop = [];
+    for (let i = 0; i < popSize; i++) {
+      const cand = { ...center };
+      for (const k of keys) cand[k] = center[k] * (1 + gaussianRandom() * sigma);
+      pop.push(cand);
+    }
+    // 评估（vs 当前 center）
+    const results = [];
+    const tStart = Date.now();
+    for (let i = 0; i < pop.length; i++) {
+      const { testWins } = runMatches(pop[i], center, matchesPerEval);
+      const rate = testWins / matchesPerEval;
+      results.push({ cand: pop[i], rate });
+      process.stdout.write('\rgen ' + gen + ' eval ' + (i + 1) + '/' + popSize + ' rate=' + rate.toFixed(2) + '   ');
+    }
+    process.stdout.write('\n');
+    const elapsed = ((Date.now() - tStart) / 1000).toFixed(0);
+    results.sort((a, b) => b.rate - a.rate);
+    const muSize = Math.max(2, Math.floor(popSize / 4));
+    const top = results.slice(0, muSize);
+    // 新中心 = 前 μ 个的均值（geometric / arithmetic? arithmetic of values）
+    const newCenter = { ...center };
+    for (const k of keys) {
+      let sum = 0;
+      for (const r of top) sum += r.cand[k];
+      newCenter[k] = sum / top.length;
+    }
+    // sigma 几何衰减
+    sigma *= 0.78;
+    console.log('gen ' + gen + ' done (' + elapsed + 's): top rates [' +
+      top.slice(0, 5).map(r => r.rate.toFixed(2)).join(', ') + ']; sigma → ' + sigma.toFixed(3));
+    center = newCenter;
+  }
+  console.log('\n== ES best weights ==');
+  console.log(JSON.stringify(center, null, 2));
+  // Final eval vs DEFAULT_W
+  console.log('\n== final showdown vs DEFAULT_W ==');
+  const final = runMatches(center, DEFAULT_W, matchesPerEval * 4);
+  const rate = final.testWins / final.n;
+  const se = Math.sqrt(rate * (1 - rate) / final.n);
+  console.log('test wins ' + final.testWins + ' / ' + final.n + '  =  ' + rate.toFixed(3) +
+    ' ± ' + (1.96 * se).toFixed(3) + ' (95% CI)' +
+    '  · avg rounds/match ' + final.avgRounds.toFixed(1));
+  require('fs').writeFileSync('scripts/sim-guandan-es-best.json', JSON.stringify(center, null, 2));
+  console.log('written to scripts/sim-guandan-es-best.json');
+}
+
 function sanity() {
   console.log('== sanity check: baseline vs baseline (should be ~50%) ==');
-  const r = runMatches(DEFAULT_W, DEFAULT_W, 60);
+  const r = runMatches(DEFAULT_W, DEFAULT_W, 40);
   console.log('test wins ' + r.testWins + ' / ' + r.n + '  =  ' + (r.testWins / r.n).toFixed(3) +
+    '  · avg rounds/match ' + r.avgRounds.toFixed(1) +
     '  · avg iter/round ' + r.avgIter.toFixed(0));
 }
 
@@ -861,17 +1179,22 @@ const cmd = process.argv[2] || 'sanity';
 if (cmd === 'sanity') sanity();
 else if (cmd === 'tune') tune({ matchesPerTrial: parseInt(process.argv[3], 10) || 60, iterations: 2 });
 else if (cmd === 'compare') {
-  // compare <weights-json-path> [N]
+  // compare <test-weights.json> [N] [baseline-weights.json]
   const fs = require('fs');
   const path = process.argv[3];
   const n = parseInt(process.argv[4], 10) || 600;
+  const baselinePath = process.argv[5];
   const testW = Object.assign({}, DEFAULT_W, JSON.parse(fs.readFileSync(path, 'utf8')));
-  console.log('compare test (' + path + ') vs DEFAULT_W, n=' + n);
-  const r = runMatches(testW, DEFAULT_W, n);
+  const baselineW = baselinePath
+    ? Object.assign({}, DEFAULT_W, JSON.parse(fs.readFileSync(baselinePath, 'utf8')))
+    : DEFAULT_W;
+  console.log('compare test (' + path + ') vs ' + (baselinePath || 'DEFAULT_W') + ', n=' + n);
+  const r = runMatches(testW, baselineW, n);
   const rate = r.testWins / r.n;
   const se = Math.sqrt(rate * (1 - rate) / r.n);
   console.log('test wins ' + r.testWins + ' / ' + r.n + '  =  ' + rate.toFixed(3) +
     ' ± ' + (1.96 * se).toFixed(3) + ' (95% CI)' +
+    '  · avg rounds/match ' + r.avgRounds.toFixed(1) +
     '  · avg iter/round ' + r.avgIter.toFixed(0));
 }
 else { console.error('unknown cmd: ' + cmd); process.exit(1); }
