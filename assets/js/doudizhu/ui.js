@@ -232,15 +232,17 @@
   const DOUBLE_TIMEOUT_MS = 5000;
   const BID_TIMEOUT_MS = 10000;   // 叫地主 / 抢地主单回合超时 — 到点默认不叫/不抢
   // 时钟不再挂在头像上：
-  //   - seat 0（我）出牌阶段：动作行里的 #ddzSelfClock（"出牌/提示/不出"同一行）
-  //   - seat 0（我）抢地主/加倍阶段：bid-panel 角上的 #ddzDoubleCountdown
+  //   - seat 0（我）出牌 / 叫地主 / 抢地主 阶段：统一用 #ddzSelfClock
+  //     （动作行上方那条独立 clock-row），位置固定
+  //   - seat 0（我）加倍阶段：在"我"那格内部的 .ddz-double-cell-cd（renderDoublePanelLayout 渲染）
   //   - seat 1/2（AI）：注入到该家 .ddz-played 区域；一旦 AI 出牌，
   //     renderPlayedAt 覆盖 innerHTML，时钟自动消失
   function clockEl(seat) {
     if (seat === 0) {
-      if (state.phase === PHASE.PLAYING) {
+      if (state.phase === PHASE.PLAYING || state.phase === PHASE.BIDDING) {
         return document.getElementById('ddzSelfClock');
       }
+      // 加倍阶段：复用旧角标做兜底（renderDoublePanelLayout 会把它隐掉，真正显示在格内）
       return document.getElementById('ddzDoubleCountdown');
     }
     const playedEl = document.getElementById('ddzPlayed' + seat);
@@ -938,9 +940,12 @@
       el.appendChild(tag);
       return;
     }
-    // 按牌型加 fx-* class
+    // 按牌型加 fx-* class —— 短暂闪一下高亮然后撤掉，glow 不再驻留
     const fxClass = patternFxClass(pattern.type);
-    if (fxClass) el.classList.add(fxClass);
+    if (fxClass) {
+      el.classList.add(fxClass);
+      setTimeout(() => el.classList.remove(fxClass), 1100);
+    }
     const sortedCards = sortHandDesc(pattern.cards);
     for (const c of sortedCards) {
       el.appendChild(buildCardEl(c, 'size-mini'));
@@ -1452,9 +1457,6 @@
     // 托管：自己这局也走 AI 路径
     const useAi = seat !== 0 || state.autopilot;
     if (!useAi) {
-      // 清掉自己上一轮的"叫地主/不叫"tag——不然抢地主按钮会和它重合
-      const myPlayed = document.getElementById('ddzPlayed0');
-      if (myPlayed) myPlayed.innerHTML = '';
       bidPanel.hidden = false;
       bidTitle.textContent = '';   // 只露按钮，规则三的"不要多余文字"
       renderBidButtons([
@@ -1985,9 +1987,13 @@
     refreshNoPlayState();
     const seat = state.turnIdx;
     if (seat === 0 && !state.autopilot) {
-      // 又轮到我了——清掉上一轮我留下的"不出"/出过的牌；决策位让位给新一轮
+      // 又轮到我了——清掉上一轮我留下的"不出"/出过的牌；同时复位 className
+      // 把残留的 fx-pair-straight / fx-straight 之类高亮 glow 也一起撤走
       const myPlayed = $('ddzPlayed0');
-      if (myPlayed) myPlayed.innerHTML = '';
+      if (myPlayed) {
+        myPlayed.innerHTML = '';
+        myPlayed.className = 'ddz-played';
+      }
       playActions.hidden = false;
       // 出牌/提示 在 PLAYING + 我轮才露；不出/明牌 ×2 / 明牌 ×N 由各自逻辑控制
       $('ddzPlayBtn').hidden = false;

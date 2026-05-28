@@ -1177,13 +1177,8 @@ permalink: /toolbox/doudizhu/
     z-index: 1;
     transition: filter 0.18s ease, opacity 0.18s ease;
   }
-  /* 没有牌可以压过上家时 — 手牌灰授 + 禁交互；同时 .ddz-actions.no-play
-     会隐掉"提示"和"出牌"按钮，只剩"不出"。无需横幅文字。 */
-  .ddz-hand.no-play {
-    filter: grayscale(0.85) brightness(0.78);
-    opacity: 0.72;
-    pointer-events: none;
-  }
+  /* 没有牌可以压过上家时 — 只隐"提示"和"出牌"按钮，只剩"不出"；
+     不再灰显手牌（之前 grayscale + opacity 太重，容易让人以为牌坏了） */
   .ddz-actions.no-play #ddzHintBtn,
   .ddz-actions.no-play #ddzPlayBtn { display: none; }
   .ddz-hand::-webkit-scrollbar { display: none; }
@@ -1384,13 +1379,18 @@ permalink: /toolbox/doudizhu/
     max-height: 100px;
     /* ddzPlayed0 仍保持 100px 固定高度 —— 平时不抖动 */
   }
-  /* bid 面板：absolute 定位填满 decision-slot；
+  /* bid 面板：现在直接挂在 .ddz-table 上，绝对定位到动作行级别
+     （= 不出/提示/出牌 同一高度），消除"叫地主按钮忽上忽下"的画幅跳。
      默认无背景无边框 —— 叫地主/抢地主 阶段就是几颗按钮浮在桌面上（跟"出牌"按钮一样的观感）。
      加倍阶段的 3 列 cell 内部各自带边框/背景，所以面板本身也不需要框。 */
   .ddz-bid-panel {
     position: absolute;
-    inset: 0;
-    z-index: 2;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(var(--ddz-card-h, 74px) + 3.4rem);
+    width: max-content;
+    max-width: calc(100% - 4rem);
+    z-index: 5;
     padding: 0.55rem 0.9rem 0.6rem;
     text-align: center;
     transition: opacity 0.18s ease;
@@ -1766,9 +1766,10 @@ permalink: /toolbox/doudizhu/
   /* 金币 +N / -N 飘字（挂在每家座位/头像容器上） */
   .ddz-coin-delta {
     position: absolute;
-    /* 贴 avatar 右上角像通知 badge 一样，不再往上飘出桌沿；
-       既不溢出画面，也不挤压顶部 avatar+底牌 那一排 */
-    top: -4px; right: -14px;
+    /* 挂在 avatar 右侧（不在头像上方），垂直与 avatar 中线齐；动画往上飘 + 同时淡出
+       —— 不再挡住头像，也不会因为顶部 padding 不够就被切掉 */
+    top: calc(50% - 0.65em);
+    left: calc(100% + 8px);
     z-index: 7;
     padding: 0.2rem 0.7rem;
     border-radius: 999px;
@@ -1798,10 +1799,10 @@ permalink: /toolbox/doudizhu/
     filter: drop-shadow(0 1px 1px rgba(0,0,0,0.35));
   }
   @keyframes ddz-coin-fly {
-    0%   { opacity: 0; transform: scale(0.5); }
-    18%  { opacity: 1; transform: scale(1.18); }
-    72%  { opacity: 1; transform: scale(1); }
-    100% { opacity: 0.92; transform: scale(1); }
+    0%   { opacity: 0; transform: translateY(2px) scale(0.6); }
+    18%  { opacity: 1; transform: translateY(-2px) scale(1.18); }
+    55%  { opacity: 1; transform: translateY(-18px) scale(1); }
+    100% { opacity: 0; transform: translateY(-32px) scale(0.95); }
   }
 
   /* 倍数闪光（炸弹 / 王炸 / 春天 — 任何 multiplier 翻倍触发） */
@@ -2211,22 +2212,11 @@ permalink: /toolbox/doudizhu/
       </div>
     </div>
 
-    <!-- 决策位 ── 平时显示我自己出的牌 / 抢地主时显示决策按钮 / 加倍时同位。
-         三者共用同一个固定高度槽位，互相切换不影响画幅。 -->
+    <!-- 决策位 ── 平时显示我自己出的牌 / 加倍时同位（加倍面板在这里展开）。
+         注：叫地主 / 抢地主 阶段的按钮已经挪到下面的动作行级别，跟"不出/出牌"
+         一致；这个 slot 在那两个阶段只放历史 tag（叫过/不叫过的标识）。 -->
     <div class="ddz-decision-slot">
       <div class="ddz-played" id="ddzPlayed0"></div>
-      <div class="ddz-bid-panel" id="ddzBidPanel" hidden>
-        <span class="ddz-bid-countdown" id="ddzDoubleCountdown" hidden>
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-            <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
-            <path d="M12 13 V8 M12 13 L15.4 14.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
-            <path d="M9.5 3.5 H14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-          <span class="num">5</span>s
-        </span>
-        <div class="ddz-bid-title" id="ddzBidTitle">轮到你</div>
-        <div class="ddz-bid-buttons" id="ddzBidButtons"></div>
-      </div>
     </div>
 
     <!-- 出牌动作区 — 在手牌正上方；hidden 时仍占布局位避免画幅跳变。
@@ -2256,6 +2246,22 @@ permalink: /toolbox/doudizhu/
     </div>
 
     <div class="ddz-hand" id="ddzHand"></div>
+
+    <!-- 叫地主/抢地主/加倍 面板 ── 绝对定位在动作行级别（贴 .ddz-table 底沿往上一段），
+         跟"不出/提示/出牌"按钮一个高度，避免每个阶段按钮"忽上忽下"。
+         加倍面板自带 3 列网格，宽度自适应，max-width 不超出桌沿。 -->
+    <div class="ddz-bid-panel" id="ddzBidPanel" hidden>
+      <span class="ddz-bid-countdown" id="ddzDoubleCountdown" hidden>
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+          <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M12 13 V8 M12 13 L15.4 14.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+          <path d="M9.5 3.5 H14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <span class="num">5</span>s
+      </span>
+      <div class="ddz-bid-title" id="ddzBidTitle">轮到你</div>
+      <div class="ddz-bid-buttons" id="ddzBidButtons"></div>
+    </div>
 
     <!-- 右下角积分提示 + 托管 / 理牌 开关 -->
     <div class="ddz-corner-chips">
