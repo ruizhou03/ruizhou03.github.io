@@ -2756,89 +2756,158 @@
     }
   }
 
-  // 选牌核心：依难度调强度
-  function chooseAIMove(seat, hand, prev, leading, level) {
-    const lvl = state.aiLevel;
-    const partner = (seat + 2) % 4;
-    const partnerIsBest = state.trick.bestSeat === partner;
-    const partnerOut = state.out.includes(partner);
-    const myTeam = TEAM(seat);
-
-    // ---- 跟牌 ----
-    if (!leading) {
-      // 队友正压着这一圈 → 一般不抢（除非能直接走完 / hard 战术）
-      if (partnerIsBest && !partnerOut) {
-        if (lvl === 'easy') return null;
-        // normal/hard：除非这手能让我直接打空，否则让队友
-        const finishers = genMoves(hand, prev, level).filter(m => m.cards.length === hand.length);
-        if (finishers.length && lvl === 'hard') return finishers[0].combo;
-        return null;
-      }
-      const moves = genMoves(hand, prev, level);
-      if (!moves.length) return null;
-      // 拆出非炸的最小压制
-      const nonBomb = moves.filter(m => !isBombType(m.combo.type));
-      const bombs = moves.filter(m => isBombType(m.combo.type));
-
-      if (lvl === 'easy') {
-        if (nonBomb.length) return smallestMove(nonBomb).combo;
-        // easy 很少炸
-        return Math.random() < 0.15 && bombs.length ? bombs[0].combo : null;
-      }
-
-      // normal / hard：优先用最便宜的非炸压
-      if (nonBomb.length) {
-        // 不轻易拆大牌：选“出掉后剩余手牌仍最整齐”的最小一手
-        const pick = bestResponse(hand, nonBomb, level);
-        // hard：若对手只剩很少牌且这手压不死，考虑炸
-        if (lvl === 'hard') {
-          const oppMin = Math.min(
-            ...[0,1,2,3].filter(s => TEAM(s) !== myTeam && !state.out.includes(s))
-              .map(s => state.hands[s].length)
-          );
-          if (oppMin <= 2 && bombs.length && Math.random() < 0.5) {
-            return smallestBomb(bombs).combo;
-          }
-        }
-        return pick.combo;
-      }
-      // 只能炸
-      if (bombs.length) {
-        const oppLow = [0,1,2,3].some(s => TEAM(s) !== myTeam && !state.out.includes(s) && state.hands[s].length <= 3);
-        if (lvl === 'hard') {
-          if (oppLow) return smallestBomb(bombs).combo;
-          return Math.random() < 0.35 ? smallestBomb(bombs).combo : null;
-        }
-        return Math.random() < 0.45 ? smallestBomb(bombs).combo : null;
-      }
-      return null;
+  // ============================================================
+  //  效用函数式决策
+  //  V(state) ≈ HandEfficiency = Σ groupValue - 0.5 · 手牌张数
+  //  每个候选 move 算 U(m) = ΔV - Cost + Bonus，argmax U(m) 决定出牌
+  //  pass 也作为候选参与 argmax（仅跟牌时合法）
+  // ============================================================
+  // 不同 group 类型的"内在价值"——出得越长、强度越高、组合越罕见 → 越值钱
+  function groupValue(g, level) {
+    if (!g || !g.cards || !g.cards.length) return 0;
+    const len = g.cards.length;
+    const maxRankW = Math.max(...g.cards.map(c => singleWeight(c, level)));
+    switch (g.type) {
+      case T.JOKER_BOMB: return 60;
+      case T.STR_FLUSH:  return 35;
+      case T.BOMB:       return 14 + (len - 4) * 8 + maxRankW * 0.05;
+      case T.TRIPLE_STR: return 12;     // 钢板
+      case T.PAIR_STR:   return 10;     // 三连对
+      case T.STRAIGHT:   return 8;
+      case T.TRIPLE_PAIR:return 7;
+      case T.TRIPLE:     return 4;
+      case T.PAIR:       return 3;
+      case T.SINGLE:
+        // 散单是稀缺/累赘——但大张单（王/级牌）有压制力
+        if (maxRankW >= 16) return 4;  // 大王
+        if (maxRankW >= 15) return 2.5; // 小王 / 级牌
+        if (maxRankW >= 14) return 1;   // A
+        return -0.5;                    // 普通散单：负价值（出不掉时是累赘）
     }
-
-    // ---- 领出 ----
+    return 0;
+  }
+  function evaluateHand(hand, level) {
+    if (!hand || !hand.length) return 100; // 空手最优：出完了
     const groups = decompose(hand, level);
-    // 队友若快走完了（hard：帮队友，先出小牌让其领）
-    // 选择策略：出“最小且不破坏炸弹”的一组；hard 会优先清理散单/小对
-    const ordered = orderLeadGroups(groups, level, lvl);
-    if (!ordered.length) {
-      // 兜底：出最小单张
-      const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
-      const cb = classify([c], level);
-      return cb;
+    let v = 0;
+    for (const g of groups) v += groupValue(g, level);
+    v -= 0.45 * hand.length;   // 持牌越多 → 越糟（早晚要打出去）
+    return v;
+  }
+
+  // 构造决策上下文：partnerWinning / 对手最小手牌 / 队友手牌等
+  function moveContext(seat) {
+    const partner = (seat + 2) % 4;
+    const myTeam = TEAM(seat);
+    const oppSeats = [0,1,2,3].filter(s => TEAM(s) !== myTeam && !state.out.includes(s));
+    const opponentMin = oppSeats.length
+      ? Math.min(...oppSeats.map(s => state.hands[s].length))
+      : 99;
+    return {
+      partner,
+      partnerWinning: state.trick && state.trick.bestSeat === partner && !state.out.includes(partner),
+      partnerCount: state.out.includes(partner) ? 0 : state.hands[partner].length,
+      partnerOut: state.out.includes(partner),
+      opponentMin,
+      myCount: state.hands[seat].length,
+    };
+  }
+
+  // 一手 move 的效用。move 可以是 {combo, cards}（出牌）或 {pass: true}
+  function moveUtility(move, seat, hand, prev, leading, level, lvl, ctx) {
+    // pass 候选：只在跟牌可用
+    if (move.pass) {
+      if (leading) return -Infinity;        // 领出不能 pass
+      let u = 0;
+      // 队友领先 → pass 是好选择
+      if (ctx.partnerWinning) u += 12;
+      // 我手里整齐 → pass 不亏（保留组合）
+      const eff = evaluateHand(hand, level);
+      u += eff * 0.02;
+      return u;
     }
-    // hard：若我只剩 1 组能一把走完，直接走
-    if (lvl !== 'easy') {
-      const onlyGroup = groups.length === 1;
-      if (onlyGroup) {
-        const cb = classify(groups[0].cards, level);
-        if (cb) return cb;
+    const combo = move.combo;
+    const isBomb = isBombType(combo.type);
+    // ΔV: 出完后手牌效率提升（出完=空手=巨额 bonus）
+    const cardSet = new Set(move.cards);
+    const handAfter = hand.filter(c => !cardSet.has(c));
+    const before = evaluateHand(hand, level);
+    const after = evaluateHand(handAfter, level);
+    let u = after - before;
+    // 走完整副大额奖励
+    if (handAfter.length === 0) u += 50;
+
+    // 出长度 bonus（一次走更多）
+    if (leading) u += move.cards.length * 0.35;
+    else u -= move.cards.length * 0.15;   // 跟牌反而短的更经济
+
+    // 拆多张组的代价
+    u -= moveBreakCost(move, hand, level) * 1.5;
+
+    // 用 wild 的代价（每张 wild 值 ~10）
+    const wildUsed = move.cards.filter(c => isWild(c, level)).length;
+    u -= wildUsed * 7;
+    // 用王的代价
+    const jokerUsed = move.cards.filter(isJoker).length;
+    u -= jokerUsed * 5;
+
+    // 炸弹机会成本
+    if (isBomb) {
+      const bombBase = (combo.type === T.JOKER_BOMB) ? 30
+                     : (combo.type === T.STR_FLUSH) ? 16
+                     : (8 + (combo.len - 4) * 4);
+      if (leading) {
+        // 领出炸弹 = 极少这样做；除非快走完
+        u -= bombBase;
+        if (hand.length <= 5) u += bombBase * 0.6;
+      } else {
+        // 跟牌炸：对手快走完 → 拦截价值高
+        u -= bombBase * 0.6;
+        if (ctx.opponentMin <= 3) u += bombBase * 1.3;
+        if (ctx.opponentMin <= 5) u += bombBase * 0.3;
       }
     }
-    const g = ordered[0];
-    const cb = classify(g.cards, level);
-    if (cb) return cb;
-    // 组合非法兜底
-    const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
-    return classify([c], level);
+
+    // 跟牌时：队友 winning → 大幅 penalty（除非能直接走完）
+    if (!leading && ctx.partnerWinning) {
+      if (handAfter.length === 0) u += 30;   // 直接走完
+      else u -= 18;
+    }
+
+    // 接风/喂牌：我快走完 → 一手出完 bonus（已经覆盖在 handAfter==0）
+    // 队友快走完时 → 我出小牌让队友领（不抢圈）
+    if (!leading && ctx.partnerCount <= 3 && !ctx.partnerOut && ctx.partnerWinning) {
+      u -= 6;  // 加强不抢
+    }
+
+    // easy 噪声：决策时加 σ 扰动 → 看上去"算不清"
+    if (lvl === 'easy') u += (Math.random() - 0.5) * 12;
+    else if (lvl === 'normal') u += (Math.random() - 0.5) * 3;
+
+    return u;
+  }
+
+  // 选牌核心：argmax over candidates ∪ {pass}
+  function chooseAIMove(seat, hand, prev, leading, level) {
+    const lvl = state.aiLevel || 'normal';
+    const ctx = moveContext(seat);
+    const moves = genMoves(hand, prev, level);
+    // 兜底：领出无候选（不应发生）
+    if (leading && !moves.length) {
+      const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
+      return classify([c], level);
+    }
+    let bestU = -Infinity;
+    let bestMove = null;
+    for (const m of moves) {
+      const u = moveUtility(m, seat, hand, prev, leading, level, lvl, ctx);
+      if (u > bestU) { bestU = u; bestMove = m; }
+    }
+    if (!leading) {
+      const passU = moveUtility({ pass: true }, seat, hand, prev, leading, level, lvl, ctx);
+      if (passU > bestU) { bestU = passU; bestMove = null; }
+    }
+    return bestMove ? bestMove.combo : null;
   }
 
   // 领出时给”组”排序。新策略（按用户反馈）：normal/hard 优先打大组合（一次出
