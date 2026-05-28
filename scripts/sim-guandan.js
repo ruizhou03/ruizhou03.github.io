@@ -1178,6 +1178,15 @@ function sanity() {
 const cmd = process.argv[2] || 'sanity';
 if (cmd === 'sanity') sanity();
 else if (cmd === 'tune') tune({ matchesPerTrial: parseInt(process.argv[3], 10) || 60, iterations: 2 });
+else if (cmd === 'es-tune') {
+  // es-tune [generations] [popSize] [matchesPerEval] [start.json]
+  const generations = parseInt(process.argv[3], 10) || 6;
+  const popSize = parseInt(process.argv[4], 10) || 24;
+  const matchesPerEval = parseInt(process.argv[5], 10) || 80;
+  const startPath = process.argv[6];
+  const startWeights = startPath ? JSON.parse(require('fs').readFileSync(startPath, 'utf8')) : null;
+  esTune({ generations, popSize, matchesPerEval, startWeights });
+}
 else if (cmd === 'compare') {
   // compare <test-weights.json> [N] [baseline-weights.json]
   const fs = require('fs');

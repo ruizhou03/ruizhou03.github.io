@@ -2873,7 +2873,9 @@
     const groups = decompose(hand, level);
     let v = 0;
     for (const g of groups) v += groupValue(g, level);
-    v -= 0.55 * hand.length;   // 持牌越多 → 越糟（早晚要打出去）self-play 调参 +0.10
+    // self-play 调参（含 lookahead）：0.55 → 0.33。lookahead 自己能"看见"未来手牌进度，
+    // 不再需要靠 hand-len 惩罚硬性催 AI 出牌
+    v -= 0.33 * hand.length;
     return v;
   }
 
@@ -2901,11 +2903,9 @@
   function moveUtility(move, seat, hand, prev, leading, level, lvl, ctx) {
     if (move.pass) {
       if (leading) return -Infinity;
-      // 默认 pass 劣势：你能跟就跟（除非确实没必要）
-      let u = -3;
-      // 队友领先 trick → pass 让队友拿
-      if (ctx.partnerWinning) u += 14;
-      // 队友快走完且领先 → 更强不抢
+      // 默认 pass 劣势：能跟就跟（除非确实没必要）
+      let u = -4.66;                          // self-play (depth=2) 调参 -3 → -4.66
+      if (ctx.partnerWinning) u += 13.69;     // self-play 调参 14 → 13.69
       if (ctx.partnerWinning && ctx.partnerCount <= 3 && !ctx.partnerOut) u += 4;
       return u;
     }
@@ -2916,17 +2916,19 @@
     const before = evaluateHand(hand, level);
     const after = evaluateHand(handAfter, level);
     let u = after - before;
-    if (handAfter.length === 0) u += 60;
+    if (handAfter.length === 0) u += 51;      // self-play 调参 60 → 51
 
     if (leading) {
       u += move.cards.length * 0.35;
     } else {
-      // 跟牌主动出的奖励——既然能压上家，就该压
-      u += 2.5;
-      u -= move.cards.length * 0.12;   // 跟牌微偏短组合
+      u += 2.13;                              // self-play 调参 2.5 → 2.13
+      u -= move.cards.length * 0.12;
     }
 
-    u -= moveBreakCost(move, hand, level) * 1.7;   // self-play 调参 1.5→1.7：更不愿拆多张组
+    // self-play 调参（含 lookahead）：
+    //   - breakMult 1.7 → 1.32：lookahead 自己能"看见"拆组后的损失，硬规则可以放松
+    //   - bombBase4 12 → 6.8：同理，lookahead 评估"出炸后的局面"，机会成本不用拉那么大
+    u -= moveBreakCost(move, hand, level) * 1.32;
     const wildUsed = move.cards.filter(c => isWild(c, level)).length;
     u -= wildUsed * 7;
     const jokerUsed = move.cards.filter(isJoker).length;
@@ -2935,7 +2937,7 @@
     if (isBomb) {
       const bombBase = (combo.type === T.JOKER_BOMB) ? 30
                      : (combo.type === T.STR_FLUSH) ? 16
-                     : (12 + (combo.len - 4) * 4);  // self-play 调参 8→12：领出炸弹更谨慎
+                     : (6.8 + (combo.len - 4) * 4);
       if (leading) {
         u -= bombBase;
         if (hand.length <= 5) u += bombBase * 0.6;
@@ -2948,8 +2950,9 @@
 
     // 跟牌时队友 winning → 不要抢（除非直接走完）
     if (!leading && ctx.partnerWinning) {
-      if (handAfter.length === 0) u += 35;   // 直接走完压倒一切
-      else u -= 30;                          // self-play 调参 22→30：队友赢圈时更坚决不抢
+      if (handAfter.length === 0) u += 35;
+      else u -= 19.31;                        // self-play 调参 30 → 19.31（lookahead 已经
+                                              // 在内部评估"抢队友圈后的局面"，硬罚不用那么重）
     }
 
     // 噪声：缩小到不至于翻转决策
