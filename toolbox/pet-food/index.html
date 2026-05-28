@@ -386,6 +386,28 @@ permalink: /toolbox/pet-food/
   .modal .checkbox-row input[type="checkbox"] {
     width: auto; margin: 0;
   }
+  .modal .input-unit-group {
+    display: flex; align-items: stretch;
+    border: 1px solid var(--color-border); border-radius: 8px;
+    background: var(--color-bg); overflow: hidden;
+  }
+  .modal .input-unit-group:focus-within { border-color: var(--color-accent); }
+  .modal .input-unit-group input {
+    flex: 1; min-width: 0;
+    border: none; border-radius: 0;
+    padding: 0.6rem 0.85rem;
+    font: inherit; font-size: 1rem; color: var(--color-ink);
+    background: transparent; outline: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .modal .input-unit-group select {
+    width: auto;
+    border: none; border-left: 1px solid var(--color-border);
+    background: var(--color-bg-warm); color: var(--color-muted);
+    padding: 0 0.5rem;
+    font: inherit; font-size: 0.85rem;
+    cursor: pointer; outline: none;
+  }
 
   /* Avatar picker row (photo button + emoji cells) */
   .avatar-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
@@ -638,10 +660,8 @@ permalink: /toolbox/pet-food/
           <input type="number" id="pm-target-max" step="0.1" min="0" placeholder="可不填" inputmode="decimal" />
         </div>
       </div>
-      <p class="hint">填了之后趋势图会画参考线。可以只填一个（画单线），也可两个都填（画范围）。不填就不画。</p>
-
       <details class="estimator" id="pm-estimator">
-        <summary>🪄 用「物种 + 体重 + 阶段」帮我估</summary>
+        <summary>🪄 帮我估算</summary>
         <div class="estimator-body">
           <div class="field-grid">
             <div class="field">
@@ -665,32 +685,43 @@ permalink: /toolbox/pet-food/
           </div>
           <div class="field-grid">
             <div class="field">
-              <label>生命阶段</label>
-              <select id="pm-stage">
-                <option value="">不指定</option>
-                <option value="young">幼年</option>
-                <option value="adult_intact">成年（未绝育）</option>
-                <option value="adult_neutered">成年（已绝育）</option>
-                <option value="senior">老年</option>
+              <label>年龄 (岁)</label>
+              <input type="number" id="pm-age" step="0.1" min="0" placeholder="如 3；半岁填 0.5" inputmode="decimal" />
+            </div>
+            <div class="field">
+              <label>体重</label>
+              <div class="input-unit-group">
+                <input type="number" id="pm-body-weight" step="0.1" min="0" placeholder="例如 4.2" inputmode="decimal" />
+                <select id="pm-body-weight-unit">
+                  <option value="kg">kg</option>
+                  <option value="斤">斤</option>
+                  <option value="lb">lb</option>
+                  <option value="g">g</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label>活动量</label>
+              <select id="pm-activity">
+                <option value="">普通</option>
+                <option value="low">较低（不爱动）</option>
+                <option value="normal">普通</option>
+                <option value="high">较高（爱蹦跶）</option>
               </select>
             </div>
             <div class="field">
-              <label>体重 (kg)</label>
-              <input type="number" id="pm-body-weight" step="0.1" min="0" placeholder="例如 4.2" inputmode="decimal" />
+              <label>&nbsp;</label>
+              <label class="checkbox-row" style="padding: 0.65rem 0.85rem; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-bg);">
+                <input type="checkbox" id="pm-neutered" />
+                <span>已绝育</span>
+              </label>
             </div>
-          </div>
-          <div class="field">
-            <label>活动量</label>
-            <select id="pm-activity">
-              <option value="">普通</option>
-              <option value="low">较低（不爱动）</option>
-              <option value="normal">普通</option>
-              <option value="high">较高（爱蹦跶）</option>
-            </select>
           </div>
           <div class="rec-preview" id="pm-rec-preview">填上字段就会出估算值</div>
           <button type="button" class="estimator-apply" id="pm-rec-apply" disabled>↑ 应用到上面的目标范围</button>
-          <p class="hint" style="margin-top: 0.5rem;">数值偏保守，仅供参考；某些品种没列进来时选「不指定」即可，最终以兽医 / 包装为准。</p>
+          <p class="hint" style="margin-top: 0.5rem;">年龄会自动归到「幼年 / 成年 / 老年」（猫狗约 1 岁前幼年、7 岁后老年）。数值偏保守，最终以兽医 / 包装为准。</p>
         </div>
       </details>
 
@@ -764,9 +795,18 @@ permalink: /toolbox/pet-food/
         senior:          { min: 10, max: 13 },
       },
       breeds: {
-        '美短': 1.00, '英短': 0.95, '布偶': 1.10, '缅因': 1.15,
-        '暹罗': 1.10, '阿比西尼亚': 1.10, '波斯': 0.85, '异国短毛': 0.85,
-        '斯芬克斯': 1.20, '田园猫': 1.00, '橘猫': 1.00, '狸花猫': 1.00,
+        '英短':       { f: 0.95, aka: ['蓝猫', '蓝白', '金渐层', '银渐层'] },
+        '美短':       { f: 1.00, aka: ['起司猫'] },
+        '布偶':       { f: 1.10 },
+        '缅因':       { f: 1.15, aka: ['缅因库恩'] },
+        '暹罗':       { f: 1.10 },
+        '阿比西尼亚': { f: 1.10, aka: ['兔猫'] },
+        '波斯':       { f: 0.85 },
+        '异国短毛':   { f: 0.85, aka: ['加菲猫'] },
+        '斯芬克斯':   { f: 1.20, aka: ['无毛猫'] },
+        '田园猫':     { f: 1.00, aka: ['中华田园猫', '土猫'] },
+        '橘猫':       { f: 1.00, aka: ['大橘'] },
+        '狸花猫':     { f: 1.00, aka: ['中国狸花'] },
       },
     },
     dog: {
@@ -779,11 +819,23 @@ permalink: /toolbox/pet-food/
         senior:          { min: 12, max: 17 },
       },
       breeds: {
-        '泰迪 / 贵宾': 1.00, '比熊': 1.00, '吉娃娃': 1.00, '博美': 1.00,
-        '柴犬': 1.00, '柯基': 0.95, '边境牧羊犬': 1.15, '哈士奇': 1.20,
-        '萨摩耶': 1.10, '阿拉斯加': 1.15, '金毛': 1.05, '拉布拉多': 1.05,
-        '德牧': 1.05, '杜宾': 1.05, '大丹': 0.90, '圣伯纳': 0.85,
-        '中华田园犬': 1.00,
+        '泰迪 / 贵宾':   { f: 1.00 },
+        '比熊':         { f: 1.00 },
+        '吉娃娃':       { f: 1.00 },
+        '博美':         { f: 1.00 },
+        '柴犬':         { f: 1.00 },
+        '柯基':         { f: 0.95, aka: ['威尔士柯基'] },
+        '边境牧羊犬':   { f: 1.15, aka: ['边牧'] },
+        '哈士奇':       { f: 1.20, aka: ['二哈'] },
+        '萨摩耶':       { f: 1.10 },
+        '阿拉斯加':     { f: 1.15 },
+        '金毛':         { f: 1.05, aka: ['金毛寻回'] },
+        '拉布拉多':     { f: 1.05, aka: ['拉拉'] },
+        '德牧':         { f: 1.05, aka: ['德国牧羊犬'] },
+        '杜宾':         { f: 1.05 },
+        '大丹':         { f: 0.90 },
+        '圣伯纳':       { f: 0.85 },
+        '中华田园犬':   { f: 1.00, aka: ['土狗'] },
       },
     },
     rabbit: {
@@ -796,8 +848,12 @@ permalink: /toolbox/pet-food/
         senior:          { min: 20, max: 35 },
       },
       breeds: {
-        '荷兰侏儒': 1.00, '英国安哥拉': 1.05, '垂耳兔': 1.00,
-        '法兰德斯巨兔': 1.10, '熊猫兔': 1.00, '狮子兔': 1.00,
+        '荷兰侏儒':     { f: 1.00 },
+        '英国安哥拉':   { f: 1.05 },
+        '垂耳兔':       { f: 1.00, aka: ['荷兰垂耳'] },
+        '法兰德斯巨兔': { f: 1.10 },
+        '熊猫兔':       { f: 1.00 },
+        '狮子兔':       { f: 1.00 },
       },
     },
     hamster: {
@@ -810,8 +866,11 @@ permalink: /toolbox/pet-food/
         senior:          { min: 6, max: 10 },
       },
       breeds: {
-        '叙利亚 (金丝熊)': 1.40, '罗伯罗夫斯基': 0.70,
-        '加卡利亚 (三线)': 0.85, '坎贝尔': 0.85, '冬白': 0.85,
+        '叙利亚':         { f: 1.40, aka: ['金丝熊'] },
+        '加卡利亚':       { f: 0.85, aka: ['三线'] },
+        '坎贝尔':         { f: 0.85 },
+        '冬白':           { f: 0.85 },
+        '罗伯罗夫斯基':   { f: 0.70, aka: ['老婆鼠'] },
       },
     },
     bird: {
@@ -824,8 +883,13 @@ permalink: /toolbox/pet-food/
         senior:          { min: 50, max: 90 },
       },
       breeds: {
-        '虎皮鹦鹉': 0.90, '玄凤鹦鹉': 1.00, '牡丹鹦鹉': 1.00,
-        '和尚鹦鹉': 1.05, '太阳锥尾': 1.10, '灰鹦鹉': 1.10, '金刚鹦鹉': 1.15,
+        '虎皮鹦鹉':   { f: 0.90 },
+        '玄凤鹦鹉':   { f: 1.00, aka: ['鸡尾鹦鹉'] },
+        '牡丹鹦鹉':   { f: 1.00, aka: ['爱情鸟'] },
+        '和尚鹦鹉':   { f: 1.05, aka: ['和尚'] },
+        '太阳锥尾':   { f: 1.10, aka: ['小太阳'] },
+        '灰鹦鹉':     { f: 1.10, aka: ['非洲灰'] },
+        '金刚鹦鹉':   { f: 1.15 },
       },
     },
     ferret: {
@@ -842,6 +906,22 @@ permalink: /toolbox/pet-food/
   };
 
   const ACTIVITY_FACTOR = { low: 0.85, normal: 1.0, high: 1.15 };
+
+  // Body weight unit (display), stored internally as kg
+  const WEIGHT_UNITS = { kg: 1, '斤': 0.5, lb: 0.453592, g: 0.001 };
+  function bwToKg(v, unit) { return v * (WEIGHT_UNITS[unit] || 1); }
+  function bwFromKg(kg, unit) { return kg / (WEIGHT_UNITS[unit] || 1); }
+
+  // Convert age (years) + species + neutered → stage key used by FOOD_REC.base
+  function stageFromAge(species, age, neutered) {
+    let bracket;
+    if (species === 'rabbit')      bracket = age < 0.5  ? 'young' : age < 5   ? 'adult' : 'senior';
+    else if (species === 'hamster') bracket = age < 0.08 ? 'young' : age < 1.5 ? 'adult' : 'senior';
+    else if (species === 'bird')    bracket = age < 1    ? 'young' : age < 10  ? 'adult' : 'senior';
+    else /* cat / dog / ferret */   bracket = age < 1    ? 'young' : age < 7   ? 'adult' : 'senior';
+    if (bracket === 'adult') return neutered ? 'adult_neutered' : 'adult_intact';
+    return bracket;
+  }
 
   // Unit conversion (to grams)
   const UNITS = {
@@ -892,15 +972,27 @@ permalink: /toolbox/pet-food/
   function migratePets() {
     state.pets.forEach(p => {
       if (p.showTargetOnChart === undefined) p.showTargetOnChart = true;
+      if (!p.bodyWeightUnit) p.bodyWeightUnit = 'kg';
+      // Migrate deprecated lifeStage → ageYears + neutered
+      if (p.ageYears === undefined && p.lifeStage) {
+        if (p.lifeStage === 'young')              { p.ageYears = 0.5; p.neutered = false; }
+        else if (p.lifeStage === 'adult_intact')  { p.ageYears = 3;   p.neutered = false; }
+        else if (p.lifeStage === 'adult_neutered'){ p.ageYears = 3;   p.neutered = true;  }
+        else if (p.lifeStage === 'senior')        { p.ageYears = 9;   p.neutered = true;  }
+      }
+      if (p.neutered === undefined) p.neutered = false;
+      // Back-fill target from helper for legacy pets
       const hasTarget = (Number.isFinite(p.dailyTargetMin) && p.dailyTargetMin > 0) ||
                         (Number.isFinite(p.dailyTargetMax) && p.dailyTargetMax > 0);
-      if (!hasTarget && p.species && p.lifeStage && p.bodyWeight > 0) {
+      if (!hasTarget && p.species && p.ageYears > 0 && p.bodyWeight > 0) {
         const r = estimatorCompute({
-          species: p.species, breed: p.breed || '', lifeStage: p.lifeStage,
-          bodyWeight: p.bodyWeight, activity: p.activity || 'normal',
+          species: p.species, breed: p.breed || '',
+          age: p.ageYears, bodyWeightKg: p.bodyWeight,
+          activity: p.activity || 'normal', neutered: !!p.neutered,
         });
         if (r) { p.dailyTargetMin = r.min; p.dailyTargetMax = r.max; }
       }
+      delete p.lifeStage;
     });
   }
   function persist() {
@@ -1028,22 +1120,27 @@ permalink: /toolbox/pet-food/
     };
   }
 
-  // Smart estimator: pure formula from species/breed/stage/bodyWeight/activity.
+  // Smart estimator: pure formula from species/breed/age/bodyWeight/activity/neutered.
   function estimatorCompute(opts) {
     const sp = FOOD_REC[opts.species];
     if (!sp) return null;
-    const base = sp.base[opts.lifeStage];
+    const age = parseFloat(opts.age);
+    if (!Number.isFinite(age) || age < 0) return null;
+    const stage = stageFromAge(opts.species, age, !!opts.neutered);
+    const base = sp.base[stage];
     if (!base) return null;
     let mult;
     if (sp.bodyWeightAware) {
-      const bw = parseFloat(opts.bodyWeight);
-      if (!Number.isFinite(bw) || bw <= 0) return null;
-      mult = bw;
+      const bwKg = parseFloat(opts.bodyWeightKg);
+      if (!Number.isFinite(bwKg) || bwKg <= 0) return null;
+      mult = bwKg;
     } else {
       mult = 1;
     }
     let breedAdj = 1.0;
-    if (opts.breed && sp.breeds && sp.breeds[opts.breed]) breedAdj = sp.breeds[opts.breed];
+    if (opts.breed && sp.breeds && sp.breeds[opts.breed]) {
+      breedAdj = sp.breeds[opts.breed].f || 1.0;
+    }
     const actAdj = ACTIVITY_FACTOR[opts.activity] || 1.0;
     return {
       min: base.min * mult * breedAdj * actAdj,
@@ -1136,9 +1233,11 @@ permalink: /toolbox/pet-food/
   const $pmEstimator = document.getElementById('pm-estimator');
   const $pmSpecies = document.getElementById('pm-species');
   const $pmBreed = document.getElementById('pm-breed');
+  const $pmAge = document.getElementById('pm-age');
   const $pmBodyWeight = document.getElementById('pm-body-weight');
-  const $pmStage = document.getElementById('pm-stage');
+  const $pmBodyWeightUnit = document.getElementById('pm-body-weight-unit');
   const $pmActivity = document.getElementById('pm-activity');
+  const $pmNeutered = document.getElementById('pm-neutered');
   const $pmRecPreview = document.getElementById('pm-rec-preview');
   const $pmRecApply = document.getElementById('pm-rec-apply');
   const $pmSave = document.getElementById('pm-save');
@@ -1210,19 +1309,25 @@ permalink: /toolbox/pet-food/
     $pmBreed.innerHTML = '<option value="">不指定</option>';
     if (!sp || !sp.breeds) return;
     Object.keys(sp.breeds).forEach(b => {
+      const info = sp.breeds[b];
       const o = document.createElement('option');
-      o.value = b; o.textContent = b;
+      o.value = b;
+      o.textContent = (info.aka && info.aka.length) ? `${b}（${info.aka.join(' / ')}）` : b;
       if (b === selected) o.selected = true;
       $pmBreed.appendChild(o);
     });
   }
   function readEstimatorInputs() {
+    const rawBw = parseFloat($pmBodyWeight.value);
+    const unit = $pmBodyWeightUnit.value || 'kg';
+    const bwKg = Number.isFinite(rawBw) ? bwToKg(rawBw, unit) : NaN;
     return {
-      species:    $pmSpecies.value || '',
-      breed:      $pmBreed.value || '',
-      lifeStage:  $pmStage.value || '',
-      bodyWeight: $pmBodyWeight.value,
-      activity:   $pmActivity.value || 'normal',
+      species:      $pmSpecies.value || '',
+      breed:        $pmBreed.value || '',
+      age:          $pmAge.value,
+      bodyWeightKg: bwKg,
+      activity:     $pmActivity.value || 'normal',
+      neutered:     !!$pmNeutered.checked,
     };
   }
   function refreshEstimatorPreview() {
@@ -1245,8 +1350,9 @@ permalink: /toolbox/pet-food/
     populateBreeds($pmSpecies.value, '');
     refreshEstimatorPreview();
   });
-  [$pmBreed, $pmStage, $pmActivity].forEach(el => el.addEventListener('change', refreshEstimatorPreview));
-  $pmBodyWeight.addEventListener('input', refreshEstimatorPreview);
+  [$pmBreed, $pmActivity, $pmBodyWeightUnit].forEach(el => el.addEventListener('change', refreshEstimatorPreview));
+  [$pmAge, $pmBodyWeight].forEach(el => el.addEventListener('input', refreshEstimatorPreview));
+  $pmNeutered.addEventListener('change', refreshEstimatorPreview);
   $pmRecApply.addEventListener('click', () => {
     const mn = parseFloat($pmRecApply.dataset.min);
     const mx = parseFloat($pmRecApply.dataset.max);
@@ -1985,10 +2091,15 @@ permalink: /toolbox/pet-food/
       $pmShowTargetChart.checked = p.showTargetOnChart !== false;
       $pmSpecies.value = p.species || '';
       populateBreeds(p.species || '', p.breed || '');
-      $pmStage.value = p.lifeStage || '';
-      $pmBodyWeight.value = p.bodyWeight || '';
+      $pmAge.value = Number.isFinite(p.ageYears) && p.ageYears > 0 ? p.ageYears : '';
+      const bwUnit = p.bodyWeightUnit || 'kg';
+      $pmBodyWeightUnit.value = bwUnit;
+      $pmBodyWeight.value = (Number.isFinite(p.bodyWeight) && p.bodyWeight > 0)
+        ? parseFloat(bwFromKg(p.bodyWeight, bwUnit).toFixed(2))
+        : '';
       $pmActivity.value = p.activity || '';
-      $pmEstimator.open = !!(p.species || p.breed || p.lifeStage || p.bodyWeight || p.activity);
+      $pmNeutered.checked = !!p.neutered;
+      $pmEstimator.open = false;
       state.selectedEmoji = p.emoji || EMOJIS[0];
       state.pendingAvatar = p.avatar || null;
       $pmDelete.style.display = '';
@@ -2001,9 +2112,11 @@ permalink: /toolbox/pet-food/
       $pmShowTargetChart.checked = true;
       $pmSpecies.value = '';
       populateBreeds('', '');
-      $pmStage.value = '';
+      $pmAge.value = '';
+      $pmBodyWeightUnit.value = 'kg';
       $pmBodyWeight.value = '';
       $pmActivity.value = '';
+      $pmNeutered.checked = false;
       $pmEstimator.open = false;
       state.selectedEmoji = EMOJIS[0];
       state.pendingAvatar = null;
@@ -2040,9 +2153,13 @@ permalink: /toolbox/pet-food/
     const tMax = parseFloat($pmTargetMax.value);
     const species = $pmSpecies.value || null;
     const breed = $pmBreed.value || null;
-    const lifeStage = $pmStage.value || null;
-    const bodyWeight = parseFloat($pmBodyWeight.value);
+    const ageRaw = parseFloat($pmAge.value);
+    const ageYears = Number.isFinite(ageRaw) && ageRaw > 0 ? ageRaw : null;
+    const bwUnit = $pmBodyWeightUnit.value || 'kg';
+    const bwRaw = parseFloat($pmBodyWeight.value);
+    const bodyWeight = Number.isFinite(bwRaw) && bwRaw > 0 ? bwToKg(bwRaw, bwUnit) : 0;
     const activity = $pmActivity.value || null;
+    const neutered = !!$pmNeutered.checked;
     const showTargetOnChart = !!$pmShowTargetChart.checked;
     if (state.editingId) {
       const p = state.pets.find(x => x.id === state.editingId);
@@ -2056,9 +2173,12 @@ permalink: /toolbox/pet-food/
       p.showTargetOnChart = showTargetOnChart;
       p.species = species;
       p.breed = breed;
-      p.lifeStage = lifeStage;
-      p.bodyWeight = Number.isFinite(bodyWeight) && bodyWeight > 0 ? bodyWeight : 0;
+      p.ageYears = ageYears;
+      p.bodyWeight = bodyWeight;
+      p.bodyWeightUnit = bwUnit;
       p.activity = activity;
+      p.neutered = neutered;
+      delete p.lifeStage;
     } else {
       const id = uuid('pet');
       state.pets.push({
@@ -2071,9 +2191,11 @@ permalink: /toolbox/pet-food/
         showTargetOnChart,
         species,
         breed,
-        lifeStage,
-        bodyWeight: Number.isFinite(bodyWeight) && bodyWeight > 0 ? bodyWeight : 0,
+        ageYears,
+        bodyWeight,
+        bodyWeightUnit: bwUnit,
         activity,
+        neutered,
         preferredUnit: 'g',
         entries: [],
         createdAt: new Date().toISOString(),
