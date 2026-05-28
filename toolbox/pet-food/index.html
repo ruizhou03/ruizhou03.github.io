@@ -242,6 +242,24 @@ permalink: /toolbox/pet-food/
   .entries-list .empty-row { padding: 1.5rem; text-align: center; color: var(--color-light); font-size: 0.88rem; }
 
   /* ===== Chart ===== */
+  .target-toggle {
+    font: inherit; font-size: 0.78rem;
+    padding: 0.28rem 0.8rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted);
+    cursor: pointer; transition: all 0.18s;
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    white-space: nowrap;
+  }
+  .target-toggle.active {
+    background: rgba(74, 124, 89, 0.12);
+    border-color: #4a7c59;
+    color: #4a7c59;
+  }
+  @media (hover: hover) {
+    .target-toggle:hover:not(.active) { border-color: var(--color-accent); color: var(--color-accent); }
+    .target-toggle.active:hover { opacity: 0.85; }
+  }
   .trend-tabs {
     display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.6rem;
   }
@@ -669,7 +687,11 @@ permalink: /toolbox/pet-food/
     <div class="entries-list" id="entries-today"></div>
 
     <div class="section-title">
-      趋势 <span class="right" id="chart-range-lbl"></span>
+      趋势
+      <span class="right" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end;">
+        <button type="button" class="target-toggle" id="chart-target-toggle" style="display: none;">目标参考线</button>
+        <span id="chart-range-lbl"></span>
+      </span>
     </div>
     <div class="trend-tabs" id="trend-tabs">
       <button type="button" data-p="today" class="active">今日时段</button>
@@ -810,13 +832,6 @@ permalink: /toolbox/pet-food/
           <p class="hint" style="margin-top: 0.5rem;">数值仅供参考。</p>
         </div>
       </details>
-
-      <div class="field" style="margin-top: 0.6rem;">
-        <label class="checkbox-row">
-          <input type="checkbox" id="pm-show-target-chart" />
-          <span>在趋势图上画目标参考线（带）</span>
-        </label>
-      </div>
 
       <div class="modal-actions">
         <button type="button" class="del" id="pm-delete" style="display: none;">🗑 删除</button>
@@ -1340,7 +1355,7 @@ permalink: /toolbox/pet-food/
   const $pmBowl = document.getElementById('pm-bowl');
   const $pmTargetMin = document.getElementById('pm-target-min');
   const $pmTargetMax = document.getElementById('pm-target-max');
-  const $pmShowTargetChart = document.getElementById('pm-show-target-chart');
+  const $chartTargetToggle = document.getElementById('chart-target-toggle');
   const $pmEstimator = document.getElementById('pm-estimator');
   const $pmSpecies = document.getElementById('pm-species');
   const $pmBreed = document.getElementById('pm-breed'); // hidden input
@@ -1621,10 +1636,28 @@ permalink: /toolbox/pet-food/
     }
 
     renderRecommendation(pet, todayEaten);
+    renderTargetToggle(pet);
     renderEntriesList($entriesToday, todayDeltas, pet, '今天还没记录');
     renderHistory(deltas, pet);
     renderTrend(deltas, pet);
   }
+
+  function renderTargetToggle(pet) {
+    const tr = targetRange(pet);
+    if (!tr) { $chartTargetToggle.style.display = 'none'; return; }
+    $chartTargetToggle.style.display = '';
+    const on = pet.showTargetOnChart !== false;
+    $chartTargetToggle.classList.toggle('active', on);
+    $chartTargetToggle.textContent = on ? '✓ 目标参考线' : '目标参考线';
+  }
+
+  $chartTargetToggle.addEventListener('click', () => {
+    const pet = currentPet();
+    if (!pet) return;
+    pet.showTargetOnChart = !(pet.showTargetOnChart !== false);
+    persist();
+    render();
+  });
 
   function renderRecommendation(pet, todayEaten) {
     const rec = targetRange(pet);
@@ -2236,7 +2269,6 @@ permalink: /toolbox/pet-food/
       $pmBowl.value = p.bowlWeight || '';
       $pmTargetMin.value = Number.isFinite(p.dailyTargetMin) && p.dailyTargetMin > 0 ? parseFloat(p.dailyTargetMin.toFixed(1)) : '';
       $pmTargetMax.value = Number.isFinite(p.dailyTargetMax) && p.dailyTargetMax > 0 ? parseFloat(p.dailyTargetMax.toFixed(1)) : '';
-      $pmShowTargetChart.checked = p.showTargetOnChart !== false;
       $pmSpecies.value = p.species || '';
       buildBreedDropdown(p.species || '', p.breed || '');
       const ageParts = splitAge(p.ageYears);
@@ -2259,7 +2291,6 @@ permalink: /toolbox/pet-food/
       $pmBowl.value = '';
       $pmTargetMin.value = '';
       $pmTargetMax.value = '';
-      $pmShowTargetChart.checked = true;
       $pmSpecies.value = '';
       buildBreedDropdown('', '');
       $pmAgeYears.value = '';
@@ -2310,7 +2341,6 @@ permalink: /toolbox/pet-food/
     const bodyWeight = Number.isFinite(bwRaw) && bwRaw > 0 ? bwToKg(bwRaw, bwUnit) : 0;
     const activity = $pmActivity.value || null;
     const neutered = !!$pmNeutered.checked;
-    const showTargetOnChart = !!$pmShowTargetChart.checked;
     if (state.editingId) {
       const p = state.pets.find(x => x.id === state.editingId);
       if (!p) return;
@@ -2320,7 +2350,6 @@ permalink: /toolbox/pet-food/
       p.bowlWeight = Number.isFinite(bowl) && bowl > 0 ? bowl : 0;
       p.dailyTargetMin = Number.isFinite(tMin) && tMin > 0 ? tMin : null;
       p.dailyTargetMax = Number.isFinite(tMax) && tMax > 0 ? tMax : null;
-      p.showTargetOnChart = showTargetOnChart;
       p.species = species;
       p.breed = breed;
       p.ageYears = ageYears;
@@ -2338,7 +2367,7 @@ permalink: /toolbox/pet-food/
         bowlWeight: Number.isFinite(bowl) && bowl > 0 ? bowl : 0,
         dailyTargetMin: Number.isFinite(tMin) && tMin > 0 ? tMin : null,
         dailyTargetMax: Number.isFinite(tMax) && tMax > 0 ? tMax : null,
-        showTargetOnChart,
+        showTargetOnChart: true,
         species,
         breed,
         ageYears,
