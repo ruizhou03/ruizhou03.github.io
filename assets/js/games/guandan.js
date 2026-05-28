@@ -1176,38 +1176,114 @@
   }
 
   // 牌展示排序：
-  //   三带二 → 三张组排前面（大小由三张决定）；
-  //   顺子 / 同花顺 / 三连对 / 二连三 → 按自然位置升序，级牌不跳到最前；
+  //   三带二 → 三张组排前面，wild 跟到三张组里（不甩到末尾）；
+  //   顺子 / 同花顺 / 三连对 / 二连三 → wild 按"它顶替的顺子位置"摆放，不按自然 rank；
   //   其他 → 单牌权重降序。
   function sortDisplayCards(cards, type, level) {
-    if (type === T.TRIPLE_PAIR) {
-      const cnt = new Map();
-      for (const c of cards) {
-        if (isJoker(c) || isWild(c, level)) continue;
-        const r = cardRankIdx(c);
-        cnt.set(r, (cnt.get(r) || 0) + 1);
-      }
-      return cards.slice().sort((a, b) => {
-        const aw = (isJoker(a) || isWild(a, level)) ? 1 : 0;
-        const bw = (isJoker(b) || isWild(b, level)) ? 1 : 0;
-        if (aw !== bw) return aw - bw;
-        if (aw) return 0;
-        const ra = cardRankIdx(a), rb = cardRankIdx(b);
-        const ca = cnt.get(ra) || 0, cb = cnt.get(rb) || 0;
-        if (ca !== cb) return cb - ca;
-        if (ra !== rb) return singleWeight(b, level) - singleWeight(a, level);
-        return cardSuit(a) - cardSuit(b);
-      });
-    }
+    if (type === T.TRIPLE_PAIR) return sortTriplePair(cards, level);
     if (type === T.STRAIGHT || type === T.STR_FLUSH || type === T.PAIR_STR || type === T.TRIPLE_STR) {
+      return sortRunLike(cards, type, level);
+    }
+    return cards.slice().sort((a, b) => singleWeight(b, level) - singleWeight(a, level));
+  }
+
+  // 三带二：找出"三张组的 rank"（含 wild 顶替），把 wild 排到三张组里、紧贴真牌
+  function sortTriplePair(cards, level) {
+    const cnt = new Map();          // rank → real card count
+    let wildCount = 0;
+    for (const c of cards) {
+      if (isJoker(c) || isWild(c, level)) { wildCount++; continue; }
+      const r = cardRankIdx(c);
+      cnt.set(r, (cnt.get(r) || 0) + 1);
+    }
+    // 找三张组的 rank：
+    //   有 rank 数=3 → 即此 rank
+    //   有 rank 数=2 + wild → wild 顶高 rank；若两 rank 都 =2 取高
+    let tripleRank = null;
+    for (const [r, n] of cnt) if (n === 3) { tripleRank = r; break; }
+    if (tripleRank == null) {
+      // 把 count=2 的 rank 收集，wild 顶最高的
+      const twos = [...cnt.entries()].filter(([, n]) => n === 2).map(([r]) => r);
+      twos.sort((a, b) => b - a);
+      tripleRank = twos[0] != null ? twos[0] : [...cnt.keys()][0];
+    }
+    const arr = cards.slice();
+    arr.sort((a, b) => {
+      const aw = isJoker(a) || isWild(a, level);
+      const bw = isJoker(b) || isWild(b, level);
+      const aRank = aw ? tripleRank : cardRankIdx(a);
+      const bRank = bw ? tripleRank : cardRankIdx(b);
+      // 三张组在前，对子在后
+      const aTrip = aRank === tripleRank ? 0 : 1;
+      const bTrip = bRank === tripleRank ? 0 : 1;
+      if (aTrip !== bTrip) return aTrip - bTrip;
+      // 同组里：真牌在前、wild 在后
+      if (aw !== bw) return aw ? 1 : -1;
+      // 都真牌：高 rank 在前
+      if (aRank !== bRank) return bRank - aRank;
+      // 同 rank 按花色
+      if (!aw && !bw) return cardSuit(a) - cardSuit(b);
+      return 0;
+    });
+    return arr;
+  }
+
+  // 顺子/同花顺/三连对/钢板：识别 wild 顶替的顺子位置，按 slot 排序
+  function sortRunLike(cards, type, level) {
+    const reals = cards.filter(c => !isJoker(c) && !isWild(c, level));
+    const wilds = cards.filter(c => isJoker(c) || isWild(c, level));
+    const per = (type === T.STRAIGHT || type === T.STR_FLUSH) ? 1
+              : (type === T.PAIR_STR) ? 2
+              : (type === T.TRIPLE_STR) ? 3 : 1;
+    const groups = cards.length / per;
+    // 每个 rank 真牌张数 → 这一 rank 占多少张顺子点
+    const realByPoint = new Map(); // 顺子点(2..14) → real cards[]
+    for (const c of reals) {
+      const p = cardRankIdx(c) + 2;
+      if (!realByPoint.has(p)) realByPoint.set(p, []);
+      realByPoint.get(p).push(c);
+    }
+    const hasAceLow = realByPoint.has(14);
+    // 搜索 start：每个 group 位置 s..s+groups-1 都满足 per-张需求（含 wild 顶替）
+    // 选最高的可行 start（与 classify/genMoves 的最大 key 偏好一致）
+    let bestStart = -1;
+    for (let s = 1; s + groups - 1 <= 14; s++) {
+      let need = 0;
+      let ok = true;
+      for (let k = 0; k < groups; k++) {
+        const p = s + k;
+        const realPt = (p === 1) ? 14 : p;
+        const have = (realByPoint.get(realPt) || []).length;
+        if (have > per) { ok = false; break; }
+        need += per - have;
+      }
+      if (ok && need === wilds.length) bestStart = s;
+    }
+    if (bestStart < 0) {
+      // 兜底：按自然位置排序
       return cards.slice().sort((a, b) => {
         const pa = straightPos(a, cards, level);
         const pb = straightPos(b, cards, level);
-        if (pa !== pb) return pa - pb;          // 自然位置升序
-        return cardSuit(a) - cardSuit(b);        // 同位置按花色
+        if (pa !== pb) return pa - pb;
+        return cardSuit(a) - cardSuit(b);
       });
     }
-    return cards.slice().sort((a, b) => singleWeight(b, level) - singleWeight(a, level));
+    // 按 slot 顺序拼装：slot p 取真牌（最多 per 张），不足用 wild 补
+    const wildsLeft = wilds.slice();
+    const result = [];
+    for (let k = 0; k < groups; k++) {
+      const p = bestStart + k;
+      const realPt = (p === 1) ? 14 : p;
+      const realsHere = (realByPoint.get(realPt) || []).slice().sort((a, b) => cardSuit(a) - cardSuit(b));
+      for (const c of realsHere) result.push(c);
+      const missing = per - realsHere.length;
+      for (let m = 0; m < missing; m++) {
+        if (wildsLeft.length) result.push(wildsLeft.shift());
+      }
+    }
+    // 若有残余 wild（理论上不应发生），追加在末尾
+    result.push(...wildsLeft);
+    return result;
   }
 
   function renderAll() {
@@ -1772,8 +1848,12 @@
     for (const s of giverSeats)
       for (const c of state.hands[s]) if (isJoker(c) && jokerKind(c) === 'big') bigJokers++;
     if (bigJokers >= 2) {
+      // 抗贡：用中央 banner（跟进贡相同视觉路径）让用户能明显看到这一步，再延迟开局
+      state.phase = PHASE.TRIBUTE;
+      renderAll();
+      showTributeBanner('🛡️ 抗贡成功', seatName(third) + ' & ' + seatName(fourth) + ' 握双大王，免进贡');
       toast('损方握双大王，抗贡成功，免进贡');
-      beginPlay(leader);
+      setTimeout(() => { beginPlay(leader); }, 1400);
       return;
     }
 
@@ -1934,7 +2014,10 @@
     cardEl.style.transition = 'left 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), top 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s';
     cardEl.style.pointerEvents = 'none';
     cardEl.style.boxShadow = '0 6px 14px rgba(20,37,63,0.45)';
-    document.body.appendChild(cardEl);
+    // 关键：CSS 变量 (--gd-card-w / --gd-card-bg 等) 是 .guandan-wrap 作用域；
+    // 直接挂 document.body 会让卡片宽高/底色全失效（看上去只剩一个字）。
+    const wrap = document.querySelector('.guandan-wrap') || document.body;
+    wrap.appendChild(cardEl);
     requestAnimationFrame(() => {
       cardEl.style.left = (toR.left + toR.width / 2) + 'px';
       cardEl.style.top = (toR.top + toR.height / 2) + 'px';
@@ -1957,15 +2040,16 @@
     }, 760);
   }
 
-  // 进贡阶段开始时在桌面正中央显一行大字 banner，1.1s 渐隐
+  // 进贡阶段中心 banner：每次显示前先清掉上一条（避免叠字成重影）
   function showTributeBanner(line1, line2) {
     if (!els.table) return;
+    els.table.querySelectorAll('.gd-fx-banner.gd-tribute-banner').forEach(el => el.remove());
     const ban = document.createElement('div');
-    ban.className = 'gd-fx-banner';
+    ban.className = 'gd-fx-banner gd-tribute-banner';
     ban.style.fontSize = '1.7rem';
     ban.innerHTML = line1 + (line2 ? '<br><span style="font-size:0.8rem;letter-spacing:0.05em;opacity:0.88;">' + line2 + '</span>' : '');
     els.table.appendChild(ban);
-    setTimeout(() => ban.remove(), 1300);
+    setTimeout(() => { if (ban.parentNode) ban.remove(); }, 1300);
   }
 
   // 接风视觉：中央大字"🪁 接风" + finisher 头像金光发出 → 队友头像金光接收
@@ -2128,6 +2212,9 @@
       if (mult > 1) state.bombMult = (state.bombMult || 1) * mult;
       playBombFx(seat, combo);
     }
+    // 玩家刚出牌后立即藏掉操作按钮，否则 renderAll 内的 updateActions 会因为
+    // state.turn 仍是 0 而把按钮再渲一遍（直到 afterMove 把 turn 推走）
+    if (seat === 0) hidePlayActionsImmediate();
     saveSession();
     afterMove(seat);
   }
@@ -2167,6 +2254,7 @@
     state.lastPlay[seat] = 'pass';
     state.trick.passes++;
     renderAll();
+    if (seat === 0) hidePlayActionsImmediate();
     saveSession();
     afterMove(seat);
   }
@@ -2523,6 +2611,8 @@
     if (state.out.includes(state.turn)) { stopTurnClock(); return; }
     const seat = state.turn;
     if (seat === 0) {
+      // 玩家新轮次开始 → 重置提示循环索引，第一次按"提示"永远是最优一手
+      state._hintIdx = null;
       if (state.autopilot) {
         // 托管模式：不挂时钟，~450ms 后直接自动出牌
         stopTurnClock();
@@ -2601,16 +2691,17 @@
     const level = currentLevelLabel();
     const trick = state.trick;
     const prev = (trick && trick.best != null && trick.bestSeat !== 0) ? trick.best : null;
+    const leading = !prev;
     state.selected.clear();
-    let moves = genMoves(state.hands[0], prev, level);
-    if (!moves.length) {
-      // 跟不上 → 不出（领出时不可能为空，此分支只在跟牌时触发）
+    // 借用 AI 决策——领出走 decompose + orderLeadGroups（不会把对子拆成单张），
+    // 跟牌按当前难度行为；与三家 AI 体验一致
+    const decision = chooseAIMove(0, state.hands[0], prev, leading, level);
+    if (!decision) {
+      // 不出（仅跟牌时合法）
       if (prev) commitPass(0);
       return;
     }
-    const pick = rankMoves(moves, prev, state.hands[0], level)[0];
-    const cb = classify(pick.cards, level);
-    if (cb) commitPlay(0, cb);
+    commitPlay(0, decision);
   }
   function autoPlayOnTimeout() {
     if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
