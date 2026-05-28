@@ -1031,11 +1031,37 @@
     } else if (lp && lp.cards) {
       const row = document.createElement('div');
       row.className = 'gd-played-row';
-      const sorted = lp.cards.slice().sort((a, b) => singleWeight(b, level) - singleWeight(a, level));
+      const sorted = sortDisplayCards(lp.cards, lp.type, level);
       // 别人出的牌跟我的手牌一样大（用 size-full）—— 用户反馈现在的太小
       for (const c of sorted) row.appendChild(buildCardEl(c, 'size-full', level));
       slot.appendChild(row);
     }
+  }
+
+  // 牌展示排序：三带二让"三张组"在前（大小由三张决定），其余沿用单牌权重降序
+  function sortDisplayCards(cards, type, level) {
+    if (type === T.TRIPLE_PAIR) {
+      // 数自然牌每个 rank 的张数（wild/joker 暂放最后）
+      const cnt = new Map();
+      for (const c of cards) {
+        if (isJoker(c) || isWild(c, level)) continue;
+        const r = cardRankIdx(c);
+        cnt.set(r, (cnt.get(r) || 0) + 1);
+      }
+      return cards.slice().sort((a, b) => {
+        const aw = (isJoker(a) || isWild(a, level)) ? 1 : 0;
+        const bw = (isJoker(b) || isWild(b, level)) ? 1 : 0;
+        if (aw !== bw) return aw - bw;
+        if (aw) return 0;
+        const ra = cardRankIdx(a), rb = cardRankIdx(b);
+        const ca = cnt.get(ra) || 0, cb = cnt.get(rb) || 0;
+        // 3 张组先（"三带二的大小看三张"，让三张组排在前面更直观）
+        if (ca !== cb) return cb - ca;
+        if (ra !== rb) return singleWeight(b, level) - singleWeight(a, level);
+        return cardSuit(a) - cardSuit(b);
+      });
+    }
+    return cards.slice().sort((a, b) => singleWeight(b, level) - singleWeight(a, level));
   }
 
   function renderAll() {
@@ -1762,6 +1788,28 @@
     setTimeout(() => ban.remove(), 1300);
   }
 
+  // 接风视觉：中央大字"🪁 接风" + finisher 头像金光发出 → 队友头像金光接收
+  function showJiefengFx(fromSeat, toSeat) {
+    if (!els.table) return;
+    const ban = document.createElement('div');
+    ban.className = 'gd-fx-banner gd-jiefeng-banner';
+    ban.innerHTML =
+      '<span class="gd-jiefeng-icon">🪁</span>' +
+      '<span class="gd-jiefeng-text">接风</span>' +
+      '<span class="gd-jiefeng-sub">' + seatName(toSeat) + ' 领出</span>';
+    els.table.appendChild(ban);
+    setTimeout(() => ban.remove(), 1500);
+    // 来源和接收方头像各闪一次金光
+    const flash = (seat) => {
+      const av = seatEls[seat] && seatEls[seat].seat && seatEls[seat].seat.querySelector('.gd-avatar');
+      if (!av) return;
+      av.classList.add('gd-jiefeng-flash');
+      setTimeout(() => av.classList.remove('gd-jiefeng-flash'), 1300);
+    };
+    flash(fromSeat);
+    setTimeout(() => flash(toSeat), 400);
+  }
+
   function finishTribute(leader) {
     state.pendingTribute = null;
     beginPlay(leader);
@@ -1958,6 +2006,7 @@
     if (bestSeat >= 0 && state.trick.passes >= remaining - 1 && remaining >= 1) {
       // 本圈结束 → 清场，最大者（若已出完则其下一个在场者）领出
       let nextLeader = bestSeat;
+      let jiefengTo = -1;
       if (state.out.includes(bestSeat)) {
         // 接风：终结者最后一手未被压过 → 由其对家(队友)领出。
         // 上下家(对手方)均未接牌时这条天然成立——bestSeat 还是 finisher。
@@ -1965,11 +2014,12 @@
         const partner = (bestSeat + 2) % 4;
         if (!state.out.includes(partner)) {
           nextLeader = partner;
-          toast('接风：由 ' + seatName(partner) + ' 领出');
+          jiefengTo = partner;
         } else {
           nextLeader = nextAlive(bestSeat);
         }
       }
+      if (jiefengTo >= 0) showJiefengFx(bestSeat, jiefengTo);
       // 延迟一会儿再 clearTrick，让"第三家不出"那条 lastPlay 在画面上有时间
       // 被用户看到——不然 commitPass 一渲完，afterMove 立刻清空所有 play 区。
       state.busy = true;
@@ -1981,6 +2031,9 @@
     let nx = nextAlive(seat);
     state.turn = nx;
     state.trick.lead = nx;
+    // 把这家在本圈里"不出"的残留清掉——既然又轮到他/她，旧的 pass 已过期。
+    // （本圈内有人翻新最大 → trick.passes 回到 0 → 之前不出过的人重新可决策）
+    if (state.lastPlay[nx] === 'pass') state.lastPlay[nx] = null;
     renderAll();
     if (nx === 0 && !state.out.includes(0)) {
       updateActions();
@@ -2099,18 +2152,17 @@
     els.roundTeamYou.classList.toggle('winning', winTeam === 0);
     els.roundTeamOpp.classList.toggle('winning', winTeam === 1);
 
-    // 级牌：胜方 before → after，败方维持当前
+    // 级牌：胜方 before → after，败方维持当前。直接显示级牌变化，不写 +N / 队友几游
     const youLvCurr = LEVEL_SEQ[state.levels[0]];
     const oppLvCurr = LEVEL_SEQ[state.levels[1]];
     const winnerBefore = LEVEL_SEQ[beforeIdx];
     const winnerAfter = LEVEL_SEQ[newIdx];
-    const advText = ['', '+1（队友末游）', '+2（队友三游）', '+3（队友二游）'][advance] || '';
     if (winTeam === 0) {
-      els.roundLevelYou.innerHTML = '级 <strong>' + winnerBefore + '</strong> <span class="arrow">→</span> <strong>' + winnerAfter + '</strong> · ' + advText;
+      els.roundLevelYou.innerHTML = '级 <strong>' + winnerBefore + '</strong> <span class="arrow">→</span> <strong>' + winnerAfter + '</strong>';
       els.roundLevelOpp.innerHTML = '级 <strong>' + oppLvCurr + '</strong>';
     } else {
       els.roundLevelYou.innerHTML = '级 <strong>' + youLvCurr + '</strong>';
-      els.roundLevelOpp.innerHTML = '级 <strong>' + winnerBefore + '</strong> <span class="arrow">→</span> <strong>' + winnerAfter + '</strong> · ' + advText;
+      els.roundLevelOpp.innerHTML = '级 <strong>' + winnerBefore + '</strong> <span class="arrow">→</span> <strong>' + winnerAfter + '</strong>';
     }
 
     // 玩家卡：0+2 = 你方；1+3 = 对方

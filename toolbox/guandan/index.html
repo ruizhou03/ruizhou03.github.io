@@ -459,6 +459,49 @@ permalink: /toolbox/guandan/
     opacity: 0.72;
     pointer-events: none;
   }
+  /* 接风：中央横排大字 + 风筝图标 + 副标题（替代以前的 toast） */
+  .gd-jiefeng-banner {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 2rem; font-weight: 800;
+    color: #fff;
+    text-shadow:
+      0 0 8px rgba(120, 180, 240, 0.85),
+      0 0 24px rgba(60, 130, 210, 0.85),
+      0 4px 10px rgba(0, 0, 0, 0.55);
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+  }
+  .gd-jiefeng-banner .gd-jiefeng-icon {
+    font-size: 2.2rem;
+    filter: drop-shadow(0 2px 4px rgba(60, 130, 210, 0.6));
+    animation: gd-jiefeng-icon-rise 1.5s ease-out;
+  }
+  .gd-jiefeng-banner .gd-jiefeng-text {
+    background: linear-gradient(135deg, #ffefb8, #f5d142, #c9a227);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 6px rgba(168, 122, 42, 0.55));
+  }
+  .gd-jiefeng-banner .gd-jiefeng-sub {
+    font-size: 0.85rem; letter-spacing: 0.06em;
+    color: #fff5d4; font-weight: 600;
+    opacity: 0.92;
+  }
+  @keyframes gd-jiefeng-icon-rise {
+    0%   { transform: translateY(8px) rotate(-15deg); opacity: 0; }
+    30%  { transform: translateY(-4px) rotate(8deg); opacity: 1; }
+    60%  { transform: translateY(0) rotate(-3deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+  }
+  /* 头像金光闪一下：接风的发起方/接收方各一次 */
+  .gd-avatar.gd-jiefeng-flash {
+    animation: gd-jiefeng-flash 1.3s ease-out;
+  }
+  @keyframes gd-jiefeng-flash {
+    0%   { box-shadow: 0 0 0 0 rgba(245, 209, 66, 0); }
+    25%  { box-shadow: 0 0 14px 6px rgba(245, 209, 66, 0.85); border-color: #f5d142; }
+    100% { box-shadow: 0 0 0 0 rgba(245, 209, 66, 0); }
+  }
   /* legacy 类名兼容（如果别处还引用了） */
   .gd-actions {
     display: flex; gap: 0.55rem; justify-content: center;
