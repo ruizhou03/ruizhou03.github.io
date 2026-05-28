@@ -1295,8 +1295,7 @@
 
   function updateActions() {
     // 还贡阶段（玩家是收贡方）：把"出牌"按钮借为"还贡"，隐藏 不出/提示
-    const tributeReturn = state.phase === PHASE.TRIBUTE
-      && state.pendingTribute && state.pendingTribute.receiver === 0;
+    const tributeReturn = state.phase === PHASE.TRIBUTE && activeTributePair();
     if (tributeReturn) {
       els.playBtn.hidden = false;
       els.playBtn.textContent = '还贡';
@@ -1479,55 +1478,92 @@
   }
 
   // ---- 进贡 / 还贡 ----
-  // 规则（实现）：上一局若一方“双下”（其两名成员是 3rd & 4th），末游(4th)向头游(1st)
-  // 进贡其“最大的非红桃级牌单张”（大小王也算最大）。头游回还一张 ≤10 的牌。
-  // 抗贡：接贡方（头游+二游同一队的话）手握两个大王 → 免贡。
-  // 简化：仅“双下”触发进贡（单贡情形略），保持逻辑清晰正确。
+  // 规则：上一局若一方"双下"（其两名成员是 3rd & 4th），3rd+4th 都各进贡
+  //      "最大非红桃级牌单张"；其中较大者→1st（头游），较小者→2nd（二游），
+  //      然后两边都还贡。
+  // 抗贡：贡方（即 3rd+4th 损方）手握两个大王 → 免贡（直接开打）。
+  // 红心级牌不能进贡（pickTributeCard 已排除）。
+  // 还贡完成后，由"给头游进贡的人"领出下一圈（受了头游还贡的人），实现下游领出。
   function handleTribute(ranking, leader) {
     const first = ranking[0], second = ranking[1], third = ranking[2], fourth = ranking[3];
     const winTeam = TEAM(first);
     const doubleDown = (TEAM(third) === TEAM(fourth)) && (TEAM(third) !== winTeam);
     if (!doubleDown) { beginPlay(leader); return; }
 
-    // 抗贡：头游一方两人合计是否握有 2 大王
-    const winnerSeats = [first, second];
+    // 抗贡：贡方（损方，即 3rd+4th）合计是否握有 2 大王 → 免贡
+    const giverSeats = [third, fourth];
     let bigJokers = 0;
-    for (const s of winnerSeats)
+    for (const s of giverSeats)
       for (const c of state.hands[s]) if (isJoker(c) && jokerKind(c) === 'big') bigJokers++;
     if (bigJokers >= 2) {
-      toast('对方握双大王，抗贡成功，免进贡');
+      toast('损方握双大王，抗贡成功，免进贡');
       beginPlay(leader);
       return;
     }
 
-    // 末游(fourth) 进贡最大牌给头游(first)
-    const giver = fourth, receiver = first;
+    // 两位 giver 各自挑"最大非红桃级牌"
     const level = currentLevelLabel();
-    const tributeCard = pickTributeCard(state.hands[giver], level);
-    state.pendingTribute = { giver, receiver, tributeCard, leader };
+    const fourthCard = pickTributeCard(state.hands[fourth], level);
+    const thirdCard = pickTributeCard(state.hands[third], level);
+    const fw = singleWeight(fourthCard, level);
+    const tw = singleWeight(thirdCard, level);
+
+    // 大牌→头游、小牌→二游；并列时按顺时针（约定：fourth→first, third→second）
+    let bigGiver, bigCard, smallGiver, smallCard;
+    if (fw >= tw) {
+      bigGiver = fourth; bigCard = fourthCard;
+      smallGiver = third; smallCard = thirdCard;
+    } else {
+      bigGiver = third; bigCard = thirdCard;
+      smallGiver = fourth; smallCard = fourthCard;
+    }
+
+    // pendingTribute.pairs: 顺序处理；每一 pair 完成后才开下一个
+    // pair[0] 总是头游那对（更重要 → 先来）
+    state.pendingTribute = {
+      pairs: [
+        { giver: bigGiver, receiver: first, tributeCard: bigCard, returnCard: null },
+        { giver: smallGiver, receiver: second, tributeCard: smallCard, returnCard: null },
+      ],
+      headGiver: bigGiver,   // 进贡后由这人领出下一圈
+    };
     state.phase = PHASE.TRIBUTE;
     renderAll();
-    showTributeBanner('进贡阶段', seatName(giver) + ' → ' + seatName(receiver));
+    showTributeBanner('双下进贡', seatName(bigGiver) + '→' + seatName(first) + ' / ' + seatName(smallGiver) + '→' + seatName(second));
+    processTributePair(0);
+  }
 
-    // 第一步：进贡牌从 giver 飞到 receiver
-    animateCardFly(giver, receiver, tributeCard, () => {
-      moveCard(giver, receiver, tributeCard);
+  function processTributePair(idx) {
+    const pt = state.pendingTribute;
+    if (!pt || idx >= pt.pairs.length) {
+      // 全部还贡完成 → 由"给头游进贡的人"领出下一圈
+      const newLeader = pt && pt.headGiver != null ? pt.headGiver : 0;
+      finishTribute(newLeader);
+      return;
+    }
+    const pair = pt.pairs[idx];
+    const level = currentLevelLabel();
+    if (idx > 0) showTributeBanner('继续进贡', seatName(pair.giver) + ' → ' + seatName(pair.receiver));
+    animateCardFly(pair.giver, pair.receiver, pair.tributeCard, () => {
+      moveCard(pair.giver, pair.receiver, pair.tributeCard);
       renderAll();
-
-      // 第二步：还贡
-      if (receiver === 0) {
-        // 我是头游 → 我来还贡（选 ≤10），开计时
-        showReturnTributeUI(giver, tributeCard);
+      if (pair.receiver === 0) {
+        // 玩家是接贡方 → 在主牌区挑还贡牌
+        state._activeTributePair = idx;
+        state.selected.clear();
+        showTributeBanner('还贡', '选 ≤10 牌点"还贡" → ' + seatName(pair.giver));
+        toast(seatName(pair.giver) + ' 进贡 ' + cardText(pair.tributeCard) + ' → 你，请还一张 ≤10 牌');
+        renderAll();
+        startTurnClock(0, autoReturnTribute, TRIBUTE_TIMEOUT_MS);
       } else {
         // AI 还贡
-        const back = pickReturnCard(state.hands[receiver], level);
-        animateCardFly(receiver, giver, back, () => {
-          moveCard(receiver, giver, back);
+        const back = pickReturnCard(state.hands[pair.receiver], level);
+        animateCardFly(pair.receiver, pair.giver, back, () => {
+          moveCard(pair.receiver, pair.giver, back);
+          pair.returnCard = back;
           renderAll();
-          const desc = `${seatName(giver)} 进贡 ${cardText(tributeCard)} → ${seatName(receiver)}；` +
-            `${seatName(receiver)} 还贡 ${cardText(back)} → ${seatName(giver)}`;
-          toast(desc);
-          finishTribute(leader);
+          toast(seatName(pair.receiver) + ' 还贡 ' + cardText(back) + ' → ' + seatName(pair.giver));
+          processTributePair(idx + 1);
         });
       }
     });
@@ -1649,18 +1685,21 @@
     return true;
   }
 
-  // 进入还贡阶段。不再弹 overlay；玩家在主牌区里挑一张，点"还贡"按钮确认。
-  function showReturnTributeUI(giver, tributeCard) {
-    state.phase = PHASE.TRIBUTE;
-    state.selected.clear();
-    showTributeBanner('还贡', '请选 ≤10 的一张牌点"还贡" → ' + seatName(giver));
-    toast(seatName(giver) + ' 向你进贡 ' + cardText(tributeCard) + '，请选一张 ≤10 牌还回');
-    renderAll();
-    // 倒计时：超时自动选最小的合法牌还贡
-    startTurnClock(0, autoReturnTribute, TRIBUTE_TIMEOUT_MS);
+  // 当前活跃的玩家还贡 pair（索引）。双下时玩家最多接一次（要么 1st 要么 2nd）
+  // 但同一局也只会被激活一次。null 表示当前没有等玩家还贡。
+  function activeTributePair() {
+    const pt = state.pendingTribute;
+    if (!pt || !Array.isArray(pt.pairs)) return null;
+    const idx = state._activeTributePair;
+    if (idx == null) return null;
+    const pair = pt.pairs[idx];
+    if (!pair || pair.receiver !== 0 || pair.returnCard != null) return null;
+    return { idx, pair };
   }
+
   function autoReturnTribute() {
-    if (!state.pendingTribute || state.pendingTribute.receiver !== 0) return;
+    const cur = activeTributePair();
+    if (!cur) return;
     const level = currentLevelLabel();
     const hand = state.hands[0];
     const low = hand.filter(c => !isJoker(c) && ['2','3','4','5','6','7','8','9','10'].includes(RANK_LABELS[cardRankIdx(c)]));
@@ -1672,19 +1711,22 @@
     confirmReturnTribute();
   }
   function confirmReturnTribute() {
-    if (!state.pendingTribute || state.pendingTribute.receiver !== 0) return;
+    const cur = activeTributePair();
+    if (!cur) return;
+    const { idx, pair } = cur;
     const sel = selectedCards();
     if (sel.length !== 1) { toast('请选一张牌'); return; }
     if (!isValidReturnCard(sel[0])) { toast('请选 ≤10 的一张牌'); return; }
     const chosen = sel[0];
-    const { giver, leader } = state.pendingTribute;
     state.selected.clear();
     stopTurnClock();
-    animateCardFly(0, giver, chosen, () => {
-      moveCard(0, giver, chosen);
+    state._activeTributePair = null;
+    animateCardFly(0, pair.giver, chosen, () => {
+      moveCard(0, pair.giver, chosen);
+      pair.returnCard = chosen;
       renderAll();
-      toast('还贡 ' + cardText(chosen) + ' → ' + seatName(giver));
-      finishTribute(leader);
+      toast('还贡 ' + cardText(chosen) + ' → ' + seatName(pair.giver));
+      processTributePair(idx + 1);
     });
   }
 
@@ -2256,7 +2298,7 @@
 
   els.playBtn.addEventListener('click', () => {
     // 还贡阶段：复用此按钮做"还贡"确认
-    if (state.phase === PHASE.TRIBUTE && state.pendingTribute && state.pendingTribute.receiver === 0) {
+    if (state.phase === PHASE.TRIBUTE && activeTributePair()) {
       confirmReturnTribute();
       return;
     }
