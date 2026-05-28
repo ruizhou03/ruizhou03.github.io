@@ -1190,8 +1190,10 @@
 
     if (pState.mode === 'PENDING') {
       if (Math.abs(dx) < MOVE_THRESHOLD && Math.abs(dy) < MOVE_THRESHOLD) return;
-      // 动了 → 取消长按，进入矩形框选模式
+      // 动了 → 取消长按
       clearTimeout(pState.lpTimer);
+      // 进贡阶段（玩家是 giver）：禁用矩形框选；只允许单击切换
+      if (activeTributeGive()) { pState = null; return; }
       pState.mode = 'MULTI_SELECT';
       // 起点是一张已选牌 → 进入"减"模式（拖一圈把它们移出选中）
       // 否则 → "加"模式（拖一圈圈中的都进选中）
@@ -1225,9 +1227,24 @@
     if (pState.lpTimer) clearTimeout(pState.lpTimer);
 
     if (pState.mode === 'PENDING') {
-      // 没动过 → 当作点击：切换该卡选中。点完跑一次轻量 smartSnap（仅"加"，
-      // 不去重也不删，避免用户刚点的牌被擅自抹掉）。
+      // 没动过 → 当作点击
       if (pState.startCid != null) {
+        // 进贡阶段（玩家是 giver）：只能点同等级合法牌；并且是单选（替换）
+        const giveCtx = activeTributeGive();
+        if (giveCtx) {
+          if (giveCtx.validCards.includes(pState.startCid)) {
+            state.selected.clear();
+            state.selected.add(pState.startCid);
+            renderHand();
+            updateActions();
+          } else {
+            toast('只能选同等级的最大可进贡牌');
+          }
+          pState = null;
+          return;
+        }
+        // 正常切换该卡选中。点完跑一次轻量 smartSnap（仅"加"，不去重也不删，
+        // 避免用户刚点的牌被擅自抹掉）。
         if (state.selected.has(pState.startCid)) state.selected.delete(pState.startCid);
         else state.selected.add(pState.startCid);
         smartSnap(false);
@@ -1294,7 +1311,19 @@
   }
 
   function updateActions() {
-    // 还贡阶段（玩家是收贡方）：把"出牌"按钮借为"还贡"，隐藏 不出/提示
+    // 进贡阶段（玩家是 giver）：按钮文字"进贡"
+    const tributeGive = activeTributeGive();
+    if (tributeGive) {
+      els.playBtn.hidden = false;
+      els.playBtn.textContent = '进贡';
+      els.passBtn.hidden = true;
+      els.hintBtn.hidden = true;
+      const sel = selectedCards();
+      els.playBtn.disabled = !(sel.length === 1 && tributeGive.validCards.includes(sel[0]));
+      updateRestoreBtn();
+      return;
+    }
+    // 还贡阶段（玩家是收贡方）：按钮文字"还贡"
     const tributeReturn = state.phase === PHASE.TRIBUTE && activeTributePair();
     if (tributeReturn) {
       els.playBtn.hidden = false;
@@ -1501,36 +1530,87 @@
       return;
     }
 
-    // 两位 giver 各自挑"最大非红桃级牌"
-    const level = currentLevelLabel();
-    const fourthCard = pickTributeCard(state.hands[fourth], level);
-    const thirdCard = pickTributeCard(state.hands[third], level);
-    const fw = singleWeight(fourthCard, level);
-    const tw = singleWeight(thirdCard, level);
-
-    // 大牌→头游、小牌→二游；并列时按顺时针（约定：fourth→first, third→second）
-    let bigGiver, bigCard, smallGiver, smallCard;
-    if (fw >= tw) {
-      bigGiver = fourth; bigCard = fourthCard;
-      smallGiver = third; smallCard = thirdCard;
-    } else {
-      bigGiver = third; bigCard = thirdCard;
-      smallGiver = fourth; smallCard = fourthCard;
-    }
-
-    // pendingTribute.pairs: 顺序处理；每一 pair 完成后才开下一个
-    // pair[0] 总是头游那对（更重要 → 先来）
-    state.pendingTribute = {
-      pairs: [
-        { giver: bigGiver, receiver: first, tributeCard: bigCard, returnCard: null },
-        { giver: smallGiver, receiver: second, tributeCard: smallCard, returnCard: null },
-      ],
-      headGiver: bigGiver,   // 进贡后由这人领出下一圈
-    };
+    // 两位 giver 都要给"最大非红桃级牌单张"。如果玩家是其中之一，给他 5s
+    // 选同等级的其他花色（默认已选最大牌，超时自动确认）；AI 直接 pickTributeCard。
     state.phase = PHASE.TRIBUTE;
+    showTributeBanner('双下进贡', seatName(third) + ' & ' + seatName(fourth) + ' 出牌');
     renderAll();
-    showTributeBanner('双下进贡', seatName(bigGiver) + '→' + seatName(first) + ' / ' + seatName(smallGiver) + '→' + seatName(second));
-    processTributePair(0);
+    resolveGiverCard(fourth, fourthCard => {
+      resolveGiverCard(third, thirdCard => {
+        const level = currentLevelLabel();
+        const fw = singleWeight(fourthCard, level);
+        const tw = singleWeight(thirdCard, level);
+        // 大牌→头游、小牌→二游；并列时按顺时针（约定：fourth→first, third→second）
+        let bigGiver, bigCard, smallGiver, smallCard;
+        if (fw >= tw) {
+          bigGiver = fourth; bigCard = fourthCard;
+          smallGiver = third; smallCard = thirdCard;
+        } else {
+          bigGiver = third; bigCard = thirdCard;
+          smallGiver = fourth; smallCard = fourthCard;
+        }
+        // pendingTribute.pairs: 顺序处理；每一 pair 完成后才开下一个
+        state.pendingTribute = {
+          pairs: [
+            { giver: bigGiver, receiver: first, tributeCard: bigCard, returnCard: null },
+            { giver: smallGiver, receiver: second, tributeCard: smallCard, returnCard: null },
+          ],
+          headGiver: bigGiver,   // 进贡后由这人领出下一圈
+        };
+        showTributeBanner('双下进贡', seatName(bigGiver) + '→' + seatName(first) + ' · ' + seatName(smallGiver) + '→' + seatName(second));
+        processTributePair(0);
+      });
+    });
+  }
+
+  const TRIBUTE_GIVE_TIMEOUT_MS = 5000;
+  // 取出某座 giver 准备进贡的牌。AI → 直接 pickTributeCard；玩家 → 弹 5s
+  // 倒计时，预选最大牌并允许换同等级的别张花色，否则用默认。
+  function resolveGiverCard(seat, cb) {
+    const level = currentLevelLabel();
+    const defaultCard = pickTributeCard(state.hands[seat], level);
+    if (seat !== 0) { cb(defaultCard); return; }
+    // 同等级（同 singleWeight 且不是红桃级牌）的所有候选牌
+    const defWeight = singleWeight(defaultCard, level);
+    const validCards = state.hands[0].filter(c =>
+      !isWild(c, level) && singleWeight(c, level) === defWeight);
+    state._activeTributeGive = { seat: 0, defaultCard, validCards };
+    state.selected.clear();
+    state.selected.add(defaultCard);
+    const altText = validCards.length > 1 ? `（${validCards.length} 张同等级可换花色）` : '（无可换花色）';
+    showTributeBanner('进贡', '系统已为你选 ' + cardText(defaultCard) + ' ' + altText);
+    renderAll();
+    startTurnClock(0, () => {
+      // 5s 超时：用当前选中（用户改过的）或 default 兜底确认
+      const sel = selectedCards();
+      const card = (sel.length === 1 && validCards.includes(sel[0])) ? sel[0] : defaultCard;
+      commitGivePlayer(card, cb);
+    }, TRIBUTE_GIVE_TIMEOUT_MS);
+    state._tributeGiveCb = cb;
+  }
+  function commitGivePlayer(card, cb) {
+    const ctx = state._activeTributeGive;
+    if (!ctx || ctx.seat !== 0) return;
+    state._activeTributeGive = null;
+    state._tributeGiveCb = null;
+    state.selected.clear();
+    stopTurnClock();
+    (cb || ctx._cb)(card);
+  }
+  // 玩家点击"进贡"按钮的确认入口
+  function confirmGiveTribute() {
+    const ctx = state._activeTributeGive;
+    if (!ctx) return;
+    const sel = selectedCards();
+    if (sel.length !== 1) { toast('请选一张'); return; }
+    if (!ctx.validCards.includes(sel[0])) { toast('只能选同等级的最大可进贡牌'); return; }
+    commitGivePlayer(sel[0], state._tributeGiveCb);
+  }
+  function activeTributeGive() {
+    if (state.phase !== PHASE.TRIBUTE) return null;
+    const ctx = state._activeTributeGive;
+    if (!ctx || ctx.seat !== 0) return null;
+    return ctx;
   }
 
   function processTributePair(idx) {
@@ -2297,10 +2377,10 @@
   }
 
   els.playBtn.addEventListener('click', () => {
-    // 还贡阶段：复用此按钮做"还贡"确认
-    if (state.phase === PHASE.TRIBUTE && activeTributePair()) {
-      confirmReturnTribute();
-      return;
+    // 进贡（玩家是 giver） / 还贡（玩家是 receiver） / 出牌 三态复用同一按钮
+    if (state.phase === PHASE.TRIBUTE) {
+      if (activeTributeGive()) { confirmGiveTribute(); return; }
+      if (activeTributePair()) { confirmReturnTribute(); return; }
     }
     playerPlay();
   });
