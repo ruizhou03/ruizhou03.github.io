@@ -984,7 +984,8 @@
       const row = document.createElement('div');
       row.className = 'gd-played-row';
       const sorted = lp.cards.slice().sort((a, b) => singleWeight(b, level) - singleWeight(a, level));
-      for (const c of sorted) row.appendChild(buildCardEl(c, 'size-mini', level));
+      // 别人出的牌跟我的手牌一样大（用 size-full）—— 用户反馈现在的太小
+      for (const c of sorted) row.appendChild(buildCardEl(c, 'size-full', level));
       slot.appendChild(row);
     }
   }
@@ -1138,9 +1139,10 @@
   }
 
   function onHandPointerDown(e) {
-    // 理牌模式下：允许在 IDLE / 别人回合也能调整顺序——它只动列序，不影响出牌
-    const playable = state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy;
-    if (!playable && !state.arrangeMode) return;
+    // 选牌不再限制"轮到我"——别人回合也可以提前选好；TRIBUTE 还贡阶段也可以选；
+    // 实际能不能出由出牌按钮的 disabled / hidden 控制
+    const canInteract = state.phase === PHASE.PLAYING || state.phase === PHASE.TRIBUTE;
+    if (!canInteract && !state.arrangeMode) return;
     if (!els.hand.contains(e.target)) return;
     const col = e.target.closest('.gd-rank-col');
     // 理牌模式必须从某一列开始；选牌模式允许从空白处开始矩形框选
@@ -1292,6 +1294,21 @@
   }
 
   function updateActions() {
+    // 还贡阶段（玩家是收贡方）：把"出牌"按钮借为"还贡"，隐藏 不出/提示
+    const tributeReturn = state.phase === PHASE.TRIBUTE
+      && state.pendingTribute && state.pendingTribute.receiver === 0;
+    if (tributeReturn) {
+      els.playBtn.hidden = false;
+      els.playBtn.textContent = '还贡';
+      els.passBtn.hidden = true;
+      els.hintBtn.hidden = true;
+      const sel = selectedCards();
+      els.playBtn.disabled = !(sel.length === 1 && isValidReturnCard(sel[0]));
+      updateRestoreBtn();
+      return;
+    }
+    // 正常打牌：把按钮文字复位为"出牌"
+    els.playBtn.textContent = '出牌';
     const myTurn = state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy && !state.out.includes(0);
     els.playBtn.hidden = !myTurn;
     els.hintBtn.hidden = !myTurn;
@@ -1330,6 +1347,8 @@
   // allowTrim=false: 仅尝试加 1/加 2（点单张时不擅自移除用户刚点中的牌）；
   // allowTrim=true : 同时允许去重 / 减 1（矩形框选完用户期望 marquee 自动清理）。
   function smartSnap(allowTrim) {
+    // 还贡阶段只需要单张，不要 snap 到牌型
+    if (state.phase === PHASE.TRIBUTE) return false;
     const sel = selectedCards();
     if (sel.length < 2) return false;
     const level = currentLevelLabel();
@@ -1522,7 +1541,7 @@
     const fromR = fromEl.getBoundingClientRect();
     const toR = toEl.getBoundingClientRect();
     const level = currentLevelLabel();
-    const cardEl = buildCardEl(card, 'size-mini', level);
+    const cardEl = buildCardEl(card, 'size-full', level);
     cardEl.style.position = 'fixed';
     cardEl.style.left = (fromR.left + fromR.width / 2) + 'px';
     cardEl.style.top = (fromR.top + fromR.height / 2) + 'px';
@@ -1538,7 +1557,20 @@
       cardEl.style.transform = 'translate(-50%, -50%) scale(0.85)';
     });
     setTimeout(() => { cardEl.style.opacity = '0'; }, 600);
-    setTimeout(() => { cardEl.remove(); onDone && onDone(); }, 760);
+    setTimeout(() => {
+      cardEl.remove();
+      onDone && onDone();
+      // 落到玩家手里 → 等 onDone 里 renderAll 渲完，给新插入的牌做个高亮 pop
+      if (toSeat === 0) {
+        requestAnimationFrame(() => {
+          const inserted = els.hand && els.hand.querySelector('.gd-card[data-cid="' + card + '"]');
+          if (inserted) {
+            inserted.classList.add('just-inserted');
+            setTimeout(() => inserted.classList.remove('just-inserted'), 720);
+          }
+        });
+      }
+    }, 760);
   }
 
   // 进贡阶段开始时在桌面正中央显一行大字 banner，1.1s 渐隐
@@ -1603,71 +1635,57 @@
   }
 
   const TRIBUTE_TIMEOUT_MS = 20000;
-  let tributeCountdownTimer = null;
-  function stopTributeCountdown() {
-    if (tributeCountdownTimer) clearInterval(tributeCountdownTimer);
-    tributeCountdownTimer = null;
+
+  // 判断一张牌是不是"合法还贡牌"。规则：手里有 ≤10 就必须从 ≤10 中选；否则
+  // 可还任意非王。用于 updateActions 决定"还贡"按钮的 disabled。
+  function isValidReturnCard(c) {
+    if (isJoker(c)) return false;
+    const r = RANK_LABELS[cardRankIdx(c)];
+    const handHasLow = state.hands[0].some(x => {
+      if (isJoker(x)) return false;
+      return ['2','3','4','5','6','7','8','9','10'].includes(RANK_LABELS[cardRankIdx(x)]);
+    });
+    if (handHasLow) return ['2','3','4','5','6','7','8','9','10'].includes(r);
+    return true;
   }
+
+  // 进入还贡阶段。不再弹 overlay；玩家在主牌区里挑一张，点"还贡"按钮确认。
   function showReturnTributeUI(giver, tributeCard) {
     state.phase = PHASE.TRIBUTE;
-    els.tribTitle.innerHTML = '还贡 <span class="gd-trib-clock" id="gdTribClock"><span class="gd-trib-clock-num">20</span>s</span>';
-    els.tribDesc.innerHTML = '';
-    els.tribDesc.textContent = `${seatName(giver)} 向你进贡了 ${cardText(tributeCard)}。` +
-      `请选一张 10 或更小的牌还给对手（没有则可还任意最小牌）。倒计时结束会自动还最小牌。`;
+    state.selected.clear();
+    showTributeBanner('还贡', '请选 ≤10 的一张牌点"还贡" → ' + seatName(giver));
+    toast(seatName(giver) + ' 向你进贡 ' + cardText(tributeCard) + '，请选一张 ≤10 牌还回');
+    renderAll();
+    // 倒计时：超时自动选最小的合法牌还贡
+    startTurnClock(0, autoReturnTribute, TRIBUTE_TIMEOUT_MS);
+  }
+  function autoReturnTribute() {
+    if (!state.pendingTribute || state.pendingTribute.receiver !== 0) return;
     const level = currentLevelLabel();
-    els.tribPick.innerHTML = '';
-    let chosen = null;
-    const lowCards = state.hands[0].filter(c => {
-      if (isJoker(c)) return false;
-      return ['2','3','4','5','6','7','8','9','10'].includes(RANK_LABELS[cardRankIdx(c)]);
-    });
-    const pool = lowCards.length ? lowCards : state.hands[0].filter(c => !isJoker(c));
+    const hand = state.hands[0];
+    const low = hand.filter(c => !isJoker(c) && ['2','3','4','5','6','7','8','9','10'].includes(RANK_LABELS[cardRankIdx(c)]));
+    const pool = low.length ? low : hand.filter(c => !isJoker(c));
     pool.sort((a, b) => singleWeight(a, level) - singleWeight(b, level));
-    pool.forEach(c => {
-      const el = buildCardEl(c, 'size-mini', level, { cid: c });
-      el.addEventListener('click', () => {
-        chosen = c;
-        [...els.tribPick.children].forEach(x => x.classList.remove('selected'));
-        el.classList.add('selected');
-      });
-      els.tribPick.appendChild(el);
+    if (!pool.length) return;
+    state.selected.clear();
+    state.selected.add(pool[0]);
+    confirmReturnTribute();
+  }
+  function confirmReturnTribute() {
+    if (!state.pendingTribute || state.pendingTribute.receiver !== 0) return;
+    const sel = selectedCards();
+    if (sel.length !== 1) { toast('请选一张牌'); return; }
+    if (!isValidReturnCard(sel[0])) { toast('请选 ≤10 的一张牌'); return; }
+    const chosen = sel[0];
+    const { giver, leader } = state.pendingTribute;
+    state.selected.clear();
+    stopTurnClock();
+    animateCardFly(0, giver, chosen, () => {
+      moveCard(0, giver, chosen);
+      renderAll();
+      toast('还贡 ' + cardText(chosen) + ' → ' + seatName(giver));
+      finishTribute(leader);
     });
-    els.tribOverlay.classList.add('open');
-
-    // 开倒计时——超时自动选最小的一张
-    const endAt = Date.now() + TRIBUTE_TIMEOUT_MS;
-    const numEl = document.getElementById('gdTribClock') && document.getElementById('gdTribClock').querySelector('.gd-trib-clock-num');
-    const tickEl = document.getElementById('gdTribClock');
-    function tick() {
-      const left = Math.max(0, endAt - Date.now());
-      const s = Math.ceil(left / 1000);
-      if (numEl) numEl.textContent = String(s);
-      if (tickEl) tickEl.classList.toggle('urgent', s <= 5);
-      if (left <= 0) {
-        stopTributeCountdown();
-        if (chosen == null) chosen = pool[0];
-        commitReturn();
-      }
-    }
-    tick();
-    tributeCountdownTimer = setInterval(tick, 250);
-
-    function commitReturn() {
-      stopTributeCountdown();
-      els.tribOverlay.classList.remove('open');
-      // 还贡飞行动画：从我（0）飞到 giver
-      animateCardFly(0, giver, chosen, () => {
-        moveCard(0, giver, chosen);
-        renderAll();
-        toast('还贡 ' + cardText(chosen) + ' 给 ' + seatName(giver));
-        finishTribute(state.pendingTribute.leader);
-      });
-    }
-
-    els.tribConfirm.onclick = () => {
-      if (chosen == null) { toast('请选一张牌'); return; }
-      commitReturn();
-    };
   }
 
   // ---- 出牌 ----
@@ -2219,7 +2237,14 @@
     updateActions();
   }
 
-  els.playBtn.addEventListener('click', playerPlay);
+  els.playBtn.addEventListener('click', () => {
+    // 还贡阶段：复用此按钮做"还贡"确认
+    if (state.phase === PHASE.TRIBUTE && state.pendingTribute && state.pendingTribute.receiver === 0) {
+      confirmReturnTribute();
+      return;
+    }
+    playerPlay();
+  });
   els.passBtn.addEventListener('click', playerPass);
   els.hintBtn.addEventListener('click', playerHint);
   els.sortBtn.addEventListener('click', () => {

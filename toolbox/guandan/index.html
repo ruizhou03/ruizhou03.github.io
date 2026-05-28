@@ -110,21 +110,19 @@ permalink: /toolbox/guandan/
 
   /* 三家：上(partner) / 左(opp 3) / 右(opp 1) */
   .gd-seats-top { display: flex; justify-content: center; margin-bottom: 0.25rem; }
-  /* 中间一行高度写死：预留三家出牌区的纵向空间，避免开局 → 出牌后整张表延展。
-     bump 到 200px：mid 行三家有更多呼吸；同时把"我的出牌区"挪去 mid 行下方独立行，
-     视觉上确保 mid 三家的出牌行都在"我"的"不要"上面。 */
+  /* 中间一行高度写死。bump 到 230px：让所有出牌区按 size-full 卡(72px 高)展示。 */
   .gd-seats-mid {
     display: flex; justify-content: space-between; align-items: flex-start;
-    gap: 0.5rem; height: 200px;
+    gap: 0.5rem; height: 230px;
   }
-  /* 我的出牌行：在 mid 行下方、手牌上方，固定占位避免开局-出牌跳动 */
+  /* 我的出牌行：在 mid 行下方、手牌上方 */
   .gd-myplay-row {
     display: flex; justify-content: center; align-items: center;
-    height: 60px;
+    height: 80px;
     margin-top: 0.2rem;
   }
   .gd-myplay-row .gd-played { width: auto; min-width: 0; }
-  .gd-side { display: flex; flex-direction: column; align-items: center; width: 92px; flex: 0 0 auto; }
+  .gd-side { display: flex; flex-direction: column; align-items: center; width: 110px; flex: 0 0 auto; }
   .gd-center {
     flex: 1 1 auto; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
@@ -180,10 +178,10 @@ permalink: /toolbox/guandan/
   .gd-rank-badge.r3 { background: #b0784a; }
   .gd-rank-badge.r4 { background: #8b2e2e; }
 
-  /* 出牌区：height 写死，避免开局空 → 有牌时整张表向下延展。
-     宽方向若多于 5 张的炸弹会超出，但概率低，宽侧 overflow:hidden 兜底。 */
+  /* 出牌区：size-full 卡片，height 写死，宽方向若多于 4 张的炸弹会超出 —
+     overflow:hidden 兜底；常见 1~4 张组合都能完整显示。 */
   .gd-played {
-    height: 60px; display: flex; flex-direction: column;
+    height: 80px; display: flex; flex-direction: column;
     justify-content: center; align-items: center;
     overflow: hidden;
   }
@@ -191,11 +189,12 @@ permalink: /toolbox/guandan/
     display: flex; flex-wrap: nowrap;
     justify-content: center; align-items: center;
   }
-  .gd-played-row .gd-card.size-mini { margin-left: calc(-1 * var(--gd-card-mini-overlap)); }
-  .gd-played-row .gd-card.size-mini:first-child { margin-left: 0; }
-  .gd-side .gd-played { height: 60px; }
-  .gd-side .gd-played-row .gd-card.size-mini { margin-left: -22px; }
-  .gd-side .gd-played-row .gd-card.size-mini:first-child { margin-left: 0; }
+  .gd-played-row .gd-card.size-full { margin-left: calc(-1 * var(--gd-card-overlap)); }
+  .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
+  /* 侧位 110px 宽，让 4 张 size-full(50px) 牌叠到约 100px 内 */
+  .gd-side .gd-played { height: 80px; }
+  .gd-side .gd-played-row .gd-card.size-full { margin-left: -34px; }
+  .gd-side .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
 
   /* ======== 注意力锁定（仿斗地主 applyAttentionFocus）========
      轮到我时四家全亮；轮到 AI 时只亮当前 AI，其余三家 + 我的手牌都 dim 一档。
@@ -311,6 +310,8 @@ permalink: /toolbox/guandan/
     align-items: flex-start;
     gap: var(--gd-col-gap);
     overflow-x: auto; overflow-y: visible;
+    /* 拖矩形框选时不要把卡上的"K / A"误选成文字 */
+    user-select: none; -webkit-user-select: none;
     padding: 0.4rem 0.4rem 0.5rem;
     min-height: calc(var(--gd-card-h) + 6 * var(--gd-stack-step) + 10px);
     justify-content: safe center;
@@ -632,6 +633,17 @@ permalink: /toolbox/guandan/
     opacity: 0; transition: opacity 0.25s;
   }
   .gd-toast.show { opacity: 1; }
+
+  /* 进贡/还贡：当一张牌落入"我"的手牌时做个 pop + 金色描边，模拟"塞入牌堆" */
+  .gd-card.just-inserted {
+    animation: gd-card-insert 0.65s cubic-bezier(0.18, 0.9, 0.32, 1.3);
+    box-shadow: 0 0 0 2px var(--gd-accent), 0 4px 10px rgba(20,37,63,0.3);
+  }
+  @keyframes gd-card-insert {
+    0%   { transform: scale(1.5) translateY(-18px); opacity: 0.3; }
+    50%  { transform: scale(1.1) translateY(0); opacity: 1; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
 
   /* 矩形框选浮层：仿桌面文件管理器拖蓝框 —— 从一角拖到对角，相交的牌入选 */
   .gd-marquee {
