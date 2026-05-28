@@ -844,23 +844,6 @@ permalink: /toolbox/guandan/
     animation: gd-clock-urgent 0.5s ease-in-out infinite alternate;
   }
 
-  /* ======== 自定义理牌列：用细金边给出"自己摞出来的一摞"提示 ======== */
-  .gd-rank-col.gd-custom-col {
-    position: relative;
-  }
-  .gd-rank-col.gd-custom-col::before {
-    content: '';
-    position: absolute;
-    inset: -3px -2px -3px -2px;
-    border-radius: 7px;
-    border: 1.5px solid rgba(201,169,110,0.55);
-    pointer-events: none;
-  }
-  .gd-rank-col.gd-custom-bomb::before {
-    border-color: rgba(180,40,40,0.65);
-    box-shadow: 0 0 6px rgba(180,40,40,0.25);
-  }
-
   /* ======== Pre-game overlay 难度小结 ======== */
   .gd-pgo-stats {
     display: flex; gap: 0.5rem; justify-content: center;

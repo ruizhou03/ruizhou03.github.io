@@ -1550,11 +1550,12 @@
           pState = null;
           return;
         }
-        // 正常切换该卡选中。点完跑一次轻量 smartSnap（仅"加"，不去重也不删，
-        // 避免用户刚点的牌被擅自抹掉）。
-        if (state.selected.has(pState.startCid)) state.selected.delete(pState.startCid);
+        // 正常切换该卡选中。smartSnap 只在用户"刚加进一张牌"时触发，自动补齐成
+        // 复合牌型；如果用户是"去掉一张已选牌"，听用户的，别再把那张牌补回来。
+        const wasSelected = state.selected.has(pState.startCid);
+        if (wasSelected) state.selected.delete(pState.startCid);
         else state.selected.add(pState.startCid);
-        smartSnap(false);
+        if (!wasSelected) smartSnap(false);
         renderHand();
         updateSelHint();
         updateActions();
@@ -2814,75 +2815,65 @@
   }
 
   // 一手 move 的效用。move 可以是 {combo, cards}（出牌）或 {pass: true}
+  // 关键平衡：默认"能出就出"——pass 的 base 设为负，play 跟牌时再加一档"既然能压就压"
+  // 的主动奖励。只有队友领着 trick / 拆大组合的成本太高时，pass 才会胜出。
   function moveUtility(move, seat, hand, prev, leading, level, lvl, ctx) {
-    // pass 候选：只在跟牌可用
     if (move.pass) {
-      if (leading) return -Infinity;        // 领出不能 pass
-      let u = 0;
-      // 队友领先 → pass 是好选择
-      if (ctx.partnerWinning) u += 12;
-      // 我手里整齐 → pass 不亏（保留组合）
-      const eff = evaluateHand(hand, level);
-      u += eff * 0.02;
+      if (leading) return -Infinity;
+      // 默认 pass 劣势：你能跟就跟（除非确实没必要）
+      let u = -3;
+      // 队友领先 trick → pass 让队友拿
+      if (ctx.partnerWinning) u += 14;
+      // 队友快走完且领先 → 更强不抢
+      if (ctx.partnerWinning && ctx.partnerCount <= 3 && !ctx.partnerOut) u += 4;
       return u;
     }
     const combo = move.combo;
     const isBomb = isBombType(combo.type);
-    // ΔV: 出完后手牌效率提升（出完=空手=巨额 bonus）
     const cardSet = new Set(move.cards);
     const handAfter = hand.filter(c => !cardSet.has(c));
     const before = evaluateHand(hand, level);
     const after = evaluateHand(handAfter, level);
     let u = after - before;
-    // 走完整副大额奖励
-    if (handAfter.length === 0) u += 50;
+    if (handAfter.length === 0) u += 60;
 
-    // 出长度 bonus（一次走更多）
-    if (leading) u += move.cards.length * 0.35;
-    else u -= move.cards.length * 0.15;   // 跟牌反而短的更经济
+    if (leading) {
+      u += move.cards.length * 0.35;
+    } else {
+      // 跟牌主动出的奖励——既然能压上家，就该压
+      u += 2.5;
+      u -= move.cards.length * 0.12;   // 跟牌微偏短组合
+    }
 
-    // 拆多张组的代价
     u -= moveBreakCost(move, hand, level) * 1.5;
-
-    // 用 wild 的代价（每张 wild 值 ~10）
     const wildUsed = move.cards.filter(c => isWild(c, level)).length;
     u -= wildUsed * 7;
-    // 用王的代价
     const jokerUsed = move.cards.filter(isJoker).length;
     u -= jokerUsed * 5;
 
-    // 炸弹机会成本
     if (isBomb) {
       const bombBase = (combo.type === T.JOKER_BOMB) ? 30
                      : (combo.type === T.STR_FLUSH) ? 16
                      : (8 + (combo.len - 4) * 4);
       if (leading) {
-        // 领出炸弹 = 极少这样做；除非快走完
         u -= bombBase;
         if (hand.length <= 5) u += bombBase * 0.6;
       } else {
-        // 跟牌炸：对手快走完 → 拦截价值高
         u -= bombBase * 0.6;
         if (ctx.opponentMin <= 3) u += bombBase * 1.3;
-        if (ctx.opponentMin <= 5) u += bombBase * 0.3;
+        else if (ctx.opponentMin <= 5) u += bombBase * 0.3;
       }
     }
 
-    // 跟牌时：队友 winning → 大幅 penalty（除非能直接走完）
+    // 跟牌时队友 winning → 不要抢（除非直接走完）
     if (!leading && ctx.partnerWinning) {
-      if (handAfter.length === 0) u += 30;   // 直接走完
-      else u -= 18;
+      if (handAfter.length === 0) u += 35;   // 直接走完压倒一切
+      else u -= 22;
     }
 
-    // 接风/喂牌：我快走完 → 一手出完 bonus（已经覆盖在 handAfter==0）
-    // 队友快走完时 → 我出小牌让队友领（不抢圈）
-    if (!leading && ctx.partnerCount <= 3 && !ctx.partnerOut && ctx.partnerWinning) {
-      u -= 6;  // 加强不抢
-    }
-
-    // easy 噪声：决策时加 σ 扰动 → 看上去"算不清"
-    if (lvl === 'easy') u += (Math.random() - 0.5) * 12;
-    else if (lvl === 'normal') u += (Math.random() - 0.5) * 3;
+    // 噪声：缩小到不至于翻转决策
+    if (lvl === 'easy') u += (Math.random() - 0.5) * 3;
+    else if (lvl === 'normal') u += (Math.random() - 0.5) * 0.8;
 
     return u;
   }
@@ -3111,7 +3102,6 @@
       state.selected.clear();
       renderHand();
       updateActions();
-      toast(isBomb ? '已摞成一组炸弹（左侧）' : '已摞成一摞（右侧）');
     });
   }
   document.addEventListener('keydown', e => {
