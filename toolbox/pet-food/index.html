@@ -19,14 +19,25 @@ permalink: /toolbox/pet-food/
   }
   .pet-bar .pet-tab {
     font: inherit; font-size: 0.9rem;
-    padding: 0.45rem 0.95rem;
+    padding: 0.4rem 0.9rem 0.4rem 0.45rem;
     border: 1px solid var(--color-border); border-radius: 999px;
     background: var(--color-bg); color: var(--color-muted);
     cursor: pointer; transition: all 0.18s;
+    display: inline-flex; align-items: center; gap: 0.45rem;
   }
+  .pet-bar .pet-tab .pet-icon {
+    width: 1.55em; height: 1.55em;
+    border-radius: 50%;
+    background: var(--color-bg-warm);
+    display: inline-flex; align-items: center; justify-content: center;
+    overflow: hidden; flex-shrink: 0;
+    font-size: 0.95em;
+  }
+  .pet-bar .pet-tab .pet-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .pet-bar .pet-tab.active {
     background: var(--color-accent); border-color: var(--color-accent); color: #fff;
   }
+  .pet-bar .pet-tab.active .pet-icon { background: rgba(255, 255, 255, 0.15); }
   @media (hover: hover) {
     .pet-bar .pet-tab:hover:not(.active) { border-color: var(--color-accent); color: var(--color-accent); }
   }
@@ -52,7 +63,7 @@ permalink: /toolbox/pet-food/
 
   .summary-row {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;
-    margin-bottom: 1.2rem;
+    margin-bottom: 0.7rem;
   }
   @media (max-width: 600px) {
     .summary-row { grid-template-columns: 1fr 1fr; }
@@ -70,6 +81,49 @@ permalink: /toolbox/pet-food/
   }
   .sum-card .sc-lbl { font-size: 0.76rem; color: var(--color-muted); margin-top: 0.3rem; }
 
+  /* Recommendation strip */
+  .rec-strip {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border); border-radius: 10px;
+    padding: 0.6rem 0.85rem;
+    margin-bottom: 1.1rem;
+    font-size: 0.85rem;
+  }
+  .rec-strip-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 0.45rem; gap: 0.5rem; flex-wrap: wrap;
+  }
+  .rec-strip-head .rec-title { color: var(--color-ink); font-weight: 500; }
+  .rec-strip-head .rec-now { color: var(--color-muted); font-variant-numeric: tabular-nums; }
+  .rec-strip-head .rec-now strong { color: var(--color-ink); }
+  .rec-bar {
+    position: relative;
+    height: 8px;
+    background: var(--color-bg-warm);
+    border-radius: 999px;
+    overflow: visible;
+  }
+  .rec-bar .rec-band {
+    position: absolute; top: 0; bottom: 0;
+    background: rgba(74, 124, 89, 0.18);
+    border-left: 1px dashed rgba(74, 124, 89, 0.5);
+    border-right: 1px dashed rgba(74, 124, 89, 0.5);
+    border-radius: 0;
+  }
+  .rec-bar .rec-fill {
+    position: absolute; top: 0; bottom: 0; left: 0;
+    background: var(--color-accent);
+    border-radius: 999px;
+  }
+  .rec-bar .rec-fill.over { background: #b07c75; }
+  .rec-bar .rec-fill.under { background: var(--color-accent); opacity: 0.55; }
+  .rec-bar .rec-marker {
+    position: absolute; top: -3px; bottom: -3px;
+    width: 2px;
+    background: var(--color-ink);
+    border-radius: 1px;
+  }
+
   .entry-form {
     background: var(--color-bg);
     border: 1px solid var(--color-border); border-radius: 12px;
@@ -83,14 +137,25 @@ permalink: /toolbox/pet-food/
     .entry-form .form-row > * { width: 100%; box-sizing: border-box; }
     .entry-form .mode-toggle { justify-content: center; }
   }
-  .entry-form input.reading {
-    padding: 0.7rem 0.9rem;
-    font: inherit; font-size: 1.1rem; color: var(--color-ink);
+  .entry-form .reading-group {
+    display: flex; align-items: stretch;
     border: 1px solid var(--color-border); border-radius: 10px;
-    background: var(--color-bg);
-    font-variant-numeric: tabular-nums;
+    background: var(--color-bg); overflow: hidden;
   }
-  .entry-form input.reading:focus { outline: none; border-color: var(--color-accent); }
+  .entry-form .reading-group:focus-within { border-color: var(--color-accent); }
+  .entry-form input.reading {
+    flex: 1; min-width: 0;
+    padding: 0.7rem 0.85rem;
+    font: inherit; font-size: 1.1rem; color: var(--color-ink);
+    border: none; background: transparent;
+    font-variant-numeric: tabular-nums; outline: none;
+  }
+  .entry-form select.unit-pick {
+    border: none; border-left: 1px solid var(--color-border);
+    background: var(--color-bg-warm); color: var(--color-muted);
+    padding: 0 0.55rem; font: inherit; font-size: 0.88rem;
+    cursor: pointer; outline: none;
+  }
   .entry-form .mode-toggle {
     display: inline-flex; gap: 0; border: 1px solid var(--color-border); border-radius: 999px; overflow: hidden;
   }
@@ -221,10 +286,6 @@ permalink: /toolbox/pet-food/
     display: inline-block; width: 10px; height: 10px; border-radius: 2px;
     vertical-align: middle; margin-right: 0.3rem;
   }
-  .chart-empty {
-    text-align: center; padding: 3rem 1rem;
-    color: var(--color-light); font-size: 0.88rem;
-  }
 
   /* Modal */
   .modal-backdrop {
@@ -238,7 +299,7 @@ permalink: /toolbox/pet-food/
   .modal {
     background: var(--color-bg); border: 1px solid var(--color-border);
     border-radius: 14px; padding: 1.6rem;
-    max-width: 460px; width: 100%;
+    max-width: 480px; width: 100%;
     max-height: 90vh; overflow-y: auto;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
   }
@@ -252,7 +313,7 @@ permalink: /toolbox/pet-food/
     display: block; font-size: 0.85rem; color: var(--color-muted);
     margin-bottom: 0.3rem;
   }
-  .modal input, .modal select {
+  .modal input[type="text"], .modal input[type="number"], .modal select {
     width: 100%; padding: 0.6rem 0.85rem;
     font: inherit; font-size: 1rem; color: var(--color-ink);
     border: 1px solid var(--color-border); border-radius: 8px;
@@ -261,6 +322,45 @@ permalink: /toolbox/pet-food/
   }
   .modal input:focus, .modal select:focus { outline: none; border-color: var(--color-accent); }
   .modal .hint { font-size: 0.78rem; color: var(--color-muted); margin-top: 0.3rem; line-height: 1.5; }
+  .modal .sub-section {
+    font-family: var(--font-display); font-size: 0.95rem; color: var(--color-ink);
+    margin: 1.2rem 0 0.6rem;
+    padding-top: 0.9rem;
+    border-top: 1px dashed var(--color-border);
+  }
+
+  /* Avatar editor */
+  .avatar-edit {
+    display: flex; gap: 0.9rem; align-items: center;
+  }
+  .avatar-preview {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; overflow: hidden;
+    flex-shrink: 0;
+  }
+  .avatar-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .avatar-actions { display: flex; flex-direction: column; gap: 0.4rem; }
+  .avatar-btn {
+    font: inherit; font-size: 0.82rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted);
+    cursor: pointer; transition: all 0.18s;
+    display: inline-block;
+    text-align: center;
+  }
+  @media (hover: hover) {
+    .avatar-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  .avatar-btn.clear { color: #b07c75; }
+  @media (hover: hover) {
+    .avatar-btn.clear:hover { border-color: #b07c75; color: #b07c75; }
+  }
+
   .emoji-picker { display: flex; flex-wrap: wrap; gap: 0.3rem; }
   .emoji-picker button {
     width: 36px; height: 36px;
@@ -269,6 +369,7 @@ permalink: /toolbox/pet-food/
     cursor: pointer;
   }
   .emoji-picker button.selected { border-color: var(--color-accent); background: var(--color-bg-warm); }
+
   .modal-actions {
     display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1.2rem;
   }
@@ -291,6 +392,19 @@ permalink: /toolbox/pet-food/
   }
   @media (hover: hover) {
     .modal-actions .del:hover { background: rgba(192, 57, 43, 0.08); border-color: #b07c75; }
+  }
+
+  /* Mode mismatch prompt */
+  .mismatch-prompt .modal { max-width: 440px; }
+  .mismatch-prompt h2 { font-size: 1.15rem; }
+  .mismatch-prompt .mm-body {
+    font-size: 0.92rem; color: var(--color-ink); line-height: 1.55;
+    margin-bottom: 1rem;
+  }
+  .mismatch-prompt .mm-body strong { color: var(--color-accent); }
+  .mismatch-prompt .mm-body code {
+    font-family: inherit; font-variant-numeric: tabular-nums;
+    padding: 0.05rem 0.3rem; background: var(--color-bg-warm); border-radius: 4px;
   }
 
   .storage-warn {
@@ -354,22 +468,40 @@ permalink: /toolbox/pet-food/
       </div>
     </div>
 
+    <div class="rec-strip" id="rec-strip" style="display:none;">
+      <div class="rec-strip-head">
+        <span class="rec-title" id="rec-title">推荐 — g/天</span>
+        <span class="rec-now" id="rec-now">今日 <strong>— g</strong></span>
+      </div>
+      <div class="rec-bar">
+        <div class="rec-band" id="rec-band"></div>
+        <div class="rec-fill" id="rec-fill"></div>
+        <div class="rec-marker" id="rec-marker" style="display:none;"></div>
+      </div>
+    </div>
+
     <div class="entry-form">
       <div class="form-row">
-        <input type="number" class="reading" id="reading" step="any" placeholder="现在碗里有 g" inputmode="decimal" />
+        <div class="reading-group">
+          <input type="number" class="reading" id="reading" step="any" placeholder="粮食称重" inputmode="decimal" />
+          <select class="unit-pick" id="unit-pick">
+            <option value="g">g</option>
+            <option value="kg">kg</option>
+            <option value="oz">oz</option>
+            <option value="lb">lb</option>
+          </select>
+        </div>
         <div class="mode-toggle" id="mode-toggle">
           <label data-val="1" class="active"><input type="radio" name="with-bowl" value="1" checked>含碗</label>
-          <label data-val="0"><input type="radio" name="with-bowl" value="0">已去皮</label>
+          <label data-val="0"><input type="radio" name="with-bowl" value="0">不含碗</label>
         </div>
         <button type="button" class="save-btn" id="save-entry">📝 记一笔</button>
       </div>
       <div class="form-warn" id="form-warn" style="display: none;"></div>
-      <div class="form-hint">💡 加粮前 + 加粮后各称一次更准；倒掉旧粮也记一次 0 g（已去皮）就行。</div>
+      <div class="form-hint">💡 加粮前 + 加粮后各称一次更准；倒掉旧粮也记一次 0 g（选「不含碗」）就行。</div>
     </div>
 
-    <div class="section-title">
-      今日记录 <span class="right" id="day-range-lbl"></span>
-    </div>
+    <div class="section-title">今日记录</div>
     <div class="entries-list" id="entries-today"></div>
 
     <div class="section-title">
@@ -409,24 +541,73 @@ permalink: /toolbox/pet-food/
         <input type="text" id="pm-name" placeholder="咪咪 / Whiskers" maxlength="30" />
       </div>
       <div class="field">
-        <label>Emoji</label>
+        <label>头像</label>
+        <div class="avatar-edit">
+          <div class="avatar-preview" id="pm-avatar-preview">
+            <span id="pm-avatar-fallback">🐱</span>
+            <img id="pm-avatar-img" style="display:none;" alt="" />
+          </div>
+          <div class="avatar-actions">
+            <label class="avatar-btn" for="pm-avatar-file">📷 上传照片</label>
+            <input type="file" id="pm-avatar-file" accept="image/*" style="display:none;" />
+            <button type="button" class="avatar-btn clear" id="pm-avatar-clear" style="display:none;">清除照片</button>
+          </div>
+        </div>
+        <p class="hint">没传照片时显示 Emoji 头像。照片会自动缩到 160×160 保存。</p>
+      </div>
+      <div class="field" id="pm-emoji-field">
+        <label>Emoji（无照片时显示）</label>
         <div class="emoji-picker" id="pm-emoji"></div>
       </div>
+      <div class="field">
+        <label>碗的空重 (g)</label>
+        <input type="number" id="pm-bowl" step="any" placeholder="可不填" inputmode="decimal" />
+        <p class="hint">填了之后"含碗"模式才能算克数；不填只能用「不含碗」。一天从 00:00 开始算。</p>
+      </div>
+
+      <div class="sub-section">推荐食量（选填）</div>
       <div class="field-grid">
         <div class="field">
-          <label>碗的空重 (g)</label>
-          <input type="number" id="pm-bowl" step="any" placeholder="可不填" inputmode="decimal" />
+          <label>物种</label>
+          <select id="pm-species">
+            <option value="">不计算</option>
+            <option value="cat">猫</option>
+            <option value="dog">狗</option>
+          </select>
         </div>
         <div class="field">
-          <label>每日结算时间</label>
-          <select id="pm-hour"></select>
+          <label>体重 (kg)</label>
+          <input type="number" id="pm-body-weight" step="0.1" min="0" placeholder="例如 4.2" inputmode="decimal" />
         </div>
       </div>
-      <p class="hint">填了碗重后"含碗"模式才能算克数；不填只能用"已去皮"。结算时间决定一天从几点开始算（默认 0:00）。</p>
+      <div class="field">
+        <label>生命阶段</label>
+        <select id="pm-stage">
+          <option value="">不计算</option>
+          <option value="young">幼年（猫 &lt; 1 岁 / 狗 &lt; 1 岁）</option>
+          <option value="adult_intact">成年（未绝育）</option>
+          <option value="adult_neutered">成年（已绝育）</option>
+          <option value="senior">老年（猫 ≥ 7 岁 / 狗 ≥ 7 岁）</option>
+        </select>
+        <p class="hint">填齐后会显示每天推荐摄入范围。数值偏保守，具体以兽医 / 包装为准。</p>
+      </div>
+
       <div class="modal-actions">
         <button type="button" class="del" id="pm-delete" style="display: none;">🗑 删除</button>
         <button type="button" class="cancel" id="pm-cancel">取消</button>
         <button type="button" class="save" id="pm-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mismatch prompt -->
+  <div class="modal-backdrop mismatch-prompt" id="mismatch-modal">
+    <div class="modal">
+      <h2>📐 数字有点超常</h2>
+      <div class="mm-body" id="mm-body"></div>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="mm-keep">仍按当前模式</button>
+        <button type="button" class="save" id="mm-swap">换成另一个模式</button>
       </div>
     </div>
   </div>
@@ -439,6 +620,32 @@ permalink: /toolbox/pet-food/
   const STORE_KEY = 'tool.pet-food.v1';
   const EMOJIS = ['🐱', '🐈', '🐈‍⬛', '🐕', '🐶', '🐰', '🐹', '🐭', '🐦', '🦜', '🐢', '🐠'];
   const DAY_MS = 86400000;
+
+  // Recommended dry food intake (g per kg body weight per day, very approximate)
+  const FOOD_REC = {
+    cat: {
+      young:           { min: 25, max: 50 },
+      adult_intact:    { min: 14, max: 18 },
+      adult_neutered:  { min: 11, max: 15 },
+      senior:          { min: 10, max: 13 },
+    },
+    dog: {
+      young:           { min: 30, max: 55 },
+      adult_intact:    { min: 18, max: 25 },
+      adult_neutered:  { min: 14, max: 20 },
+      senior:          { min: 12, max: 17 },
+    },
+  };
+
+  // Unit conversion (to grams)
+  const UNITS = {
+    g:  1,
+    kg: 1000,
+    oz: 28.3495,
+    lb: 453.592,
+  };
+  function toGrams(v, unit) { return v * (UNITS[unit] || 1); }
+  function fromGrams(g, unit) { return g / (UNITS[unit] || 1); }
 
   let _storageWarnShown = false;
   function showStorageWarn() {
@@ -456,6 +663,7 @@ permalink: /toolbox/pet-food/
     currentId: null,
     editingId: null,
     selectedEmoji: '🐱',
+    pendingAvatar: null,    // dataURL while editing in modal
     historyOpen: false,
     period: 'today',
     customStart: null,
@@ -525,20 +733,14 @@ permalink: /toolbox/pet-food/
     return entry.reading - pet.bowlWeight;
   }
 
-  // The logical "date" of a timestamp, given dayBoundaryHour
-  function bucketDateIso(ts, hour) {
-    return isoDate(ts - hour * 3600 * 1000);
-  }
-  function todayBucketIso(hour) { return bucketDateIso(Date.now(), hour); }
-
-  // For a logical-day isoDate, compute the actual [start, end) timestamp range
-  function dayRangeMs(isoStr, hour) {
+  function bucketDateIso(ts) { return isoDate(ts); }
+  function todayBucketIso() { return bucketDateIso(Date.now()); }
+  function dayRangeMs(isoStr) {
     const d = parseIsoDate(isoStr);
-    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour, 0, 0).getTime();
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
     return { start, end: start + DAY_MS };
   }
 
-  // Returns array of "delta events": { entry, ts, type, amount, foodWeight }
   function computeDeltas(pet) {
     const sorted = [...pet.entries].sort((a, b) => a.ts - b.ts);
     const result = [];
@@ -565,29 +767,26 @@ permalink: /toolbox/pet-food/
     return result;
   }
 
-  // Eaten amount per logical date, distributing each eat-delta uniformly over [prevTs, ts]
-  // and assigning each minute's eating to its bucket date.
-  function eatenByDate(deltas, hour) {
+  function eatenByDate(deltas) {
     const map = new Map();
     deltas.forEach(d => {
       if (d.type !== 'eat' || d.amount === 0) return;
       if (d.prevTs === null) {
-        const k = bucketDateIso(d.ts, hour);
+        const k = bucketDateIso(d.ts);
         map.set(k, (map.get(k) || 0) + d.amount);
         return;
       }
-      // Distribute across logical days from prevTs to ts
       const dur = d.ts - d.prevTs;
       if (dur <= 0) {
-        const k = bucketDateIso(d.ts, hour);
+        const k = bucketDateIso(d.ts);
         map.set(k, (map.get(k) || 0) + d.amount);
         return;
       }
       const rate = d.amount / dur;
       let cursor = d.prevTs;
       while (cursor < d.ts) {
-        const dayIso = bucketDateIso(cursor, hour);
-        const { end } = dayRangeMs(dayIso, hour);
+        const dayIso = bucketDateIso(cursor);
+        const { end } = dayRangeMs(dayIso);
         const segEnd = Math.min(end, d.ts);
         const portion = (segEnd - cursor) * rate;
         map.set(dayIso, (map.get(dayIso) || 0) + portion);
@@ -595,6 +794,53 @@ permalink: /toolbox/pet-food/
       }
     });
     return map;
+  }
+
+  // Recommendation
+  function recommendedDailyRange(pet) {
+    if (!pet.species || !pet.lifeStage || !pet.bodyWeight) return null;
+    const table = FOOD_REC[pet.species];
+    if (!table) return null;
+    const rec = table[pet.lifeStage];
+    if (!rec) return null;
+    return { min: rec.min * pet.bodyWeight, max: rec.max * pet.bodyWeight };
+  }
+
+  // Mismatch detection: returns { swapDelta, chosenDelta, chosenMag, swapMag, typical } or null
+  function detectModeMismatch(pet, newReading, withBowlChosen) {
+    if (!pet.bowlWeight || pet.entries.length === 0) return null;
+    const sorted = [...pet.entries].sort((a, b) => b.ts - a.ts);
+    const prevEntry = sorted[0];
+    const prevFood = foodWeight(prevEntry, pet);
+    if (prevFood === null) return null;
+
+    const chosenFood  = withBowlChosen ? (newReading - pet.bowlWeight) : newReading;
+    const swappedFood = withBowlChosen ? newReading : (newReading - pet.bowlWeight);
+    if (swappedFood < 0) return null; // swap would produce negative — not a sensible alternative
+
+    const chosenDelta  = chosenFood  - prevFood;
+    const swappedDelta = swappedFood - prevFood;
+    const chosenMag  = Math.abs(chosenDelta);
+    const swappedMag = Math.abs(swappedDelta);
+
+    // Typical eat magnitude from history
+    const deltas = computeDeltas(pet);
+    const eats = deltas.filter(d => d.type === 'eat' && d.amount > 0).map(d => d.amount).sort((a, b) => a - b);
+    let typical;
+    if (eats.length >= 5) {
+      typical = eats[Math.floor(eats.length * 0.75)] || 20;
+    } else {
+      typical = Math.max(20, pet.bowlWeight * 0.4);
+    }
+
+    // Flag only when chosen is much bigger AND swap is way better
+    const tooBig    = chosenMag > Math.max(typical * 3, pet.bowlWeight * 0.6);
+    const swapBetter = swappedMag < chosenMag * 0.45 && swappedMag < typical * 2.5;
+
+    if (tooBig && swapBetter) {
+      return { chosenDelta, swappedDelta, chosenMag, swapMag: swappedMag, typical };
+    }
+    return null;
   }
 
   // ===== DOM =====
@@ -611,11 +857,18 @@ permalink: /toolbox/pet-food/
   const $scAvgLbl = document.getElementById('sc-avg-lbl');
   const $scBowl = document.getElementById('sc-bowl');
 
+  const $recStrip = document.getElementById('rec-strip');
+  const $recTitle = document.getElementById('rec-title');
+  const $recNow = document.getElementById('rec-now');
+  const $recBand = document.getElementById('rec-band');
+  const $recFill = document.getElementById('rec-fill');
+  const $recMarker = document.getElementById('rec-marker');
+
   const $reading = document.getElementById('reading');
+  const $unitPick = document.getElementById('unit-pick');
   const $modeToggle = document.getElementById('mode-toggle');
   const $saveEntry = document.getElementById('save-entry');
   const $formWarn = document.getElementById('form-warn');
-  const $dayRangeLbl = document.getElementById('day-range-lbl');
   const $chartRangeLbl = document.getElementById('chart-range-lbl');
 
   const $entriesToday = document.getElementById('entries-today');
@@ -632,19 +885,24 @@ permalink: /toolbox/pet-food/
   const $pmTitle = document.getElementById('pm-title');
   const $pmName = document.getElementById('pm-name');
   const $pmBowl = document.getElementById('pm-bowl');
-  const $pmHour = document.getElementById('pm-hour');
+  const $pmSpecies = document.getElementById('pm-species');
+  const $pmBodyWeight = document.getElementById('pm-body-weight');
+  const $pmStage = document.getElementById('pm-stage');
   const $pmEmoji = document.getElementById('pm-emoji');
   const $pmSave = document.getElementById('pm-save');
   const $pmCancel = document.getElementById('pm-cancel');
   const $pmDelete = document.getElementById('pm-delete');
+  const $pmAvatarPreview = document.getElementById('pm-avatar-preview');
+  const $pmAvatarFallback = document.getElementById('pm-avatar-fallback');
+  const $pmAvatarImg = document.getElementById('pm-avatar-img');
+  const $pmAvatarFile = document.getElementById('pm-avatar-file');
+  const $pmAvatarClear = document.getElementById('pm-avatar-clear');
 
-  // Init hour <select>
-  for (let h = 0; h < 24; h++) {
-    const o = document.createElement('option');
-    o.value = h;
-    o.textContent = pad2(h) + ':00';
-    $pmHour.appendChild(o);
-  }
+  const $mmModal = document.getElementById('mismatch-modal');
+  const $mmBody = document.getElementById('mm-body');
+  const $mmKeep = document.getElementById('mm-keep');
+  const $mmSwap = document.getElementById('mm-swap');
+
   // Init emoji picker
   $pmEmoji.innerHTML = EMOJIS.map(e => `<button type="button" data-emoji="${e}">${e}</button>`).join('');
   $pmEmoji.querySelectorAll('button').forEach(b => {
@@ -652,6 +910,10 @@ permalink: /toolbox/pet-food/
       $pmEmoji.querySelectorAll('button').forEach(x => x.classList.remove('selected'));
       b.classList.add('selected');
       state.selectedEmoji = b.dataset.emoji;
+      // If no avatar uploaded, update preview to reflect emoji change
+      if (!state.pendingAvatar) {
+        $pmAvatarFallback.textContent = state.selectedEmoji;
+      }
     });
   });
 
@@ -682,7 +944,7 @@ permalink: /toolbox/pet-food/
     const pet = currentPet();
     if (!pet) { $formWarn.style.display = 'none'; return; }
     if (currentMode() && !pet.bowlWeight) {
-      $formWarn.innerHTML = '⚠️ 现在是"含碗"模式但还没设置碗重 —— 点 <strong>⚙ 设置</strong> 填碗的空重，或改用"已去皮"。';
+      $formWarn.innerHTML = '⚠️ 现在是「含碗」模式但还没设碗重 —— 点 <strong>⚙ 设置</strong> 填碗的空重，或改用「不含碗」。';
       $formWarn.style.display = '';
     } else {
       $formWarn.style.display = 'none';
@@ -691,6 +953,13 @@ permalink: /toolbox/pet-food/
 
   function currentPet() {
     return state.pets.find(p => p.id === state.currentId) || null;
+  }
+
+  function petIconHtml(p) {
+    if (p.avatar) {
+      return `<span class="pet-icon"><img src="${p.avatar}" alt=""></span>`;
+    }
+    return `<span class="pet-icon">${p.emoji || '🐾'}</span>`;
   }
 
   // ===== Render =====
@@ -707,7 +976,7 @@ permalink: /toolbox/pet-food/
     $petEdit.style.display = '';
 
     $petTabs.innerHTML = state.pets.map(p =>
-      `<button type="button" class="pet-tab ${p.id === state.currentId ? 'active' : ''}" data-id="${p.id}">${p.emoji} ${escapeHtml(p.name)}</button>`
+      `<button type="button" class="pet-tab ${p.id === state.currentId ? 'active' : ''}" data-id="${p.id}">${petIconHtml(p)}<span>${escapeHtml(p.name)}</span></button>`
     ).join('');
     $petTabs.querySelectorAll('.pet-tab').forEach(b => {
       b.addEventListener('click', () => {
@@ -720,27 +989,26 @@ permalink: /toolbox/pet-food/
     const pet = currentPet();
     if (!pet) return;
 
-    // Default mode = last used
+    // Default mode + unit = last used
     if (pet.entries.length > 0) {
       const last = [...pet.entries].sort((a, b) => b.ts - a.ts)[0];
       setMode(!!last.withBowl);
     } else {
       checkFormWarn();
     }
+    $unitPick.value = pet.preferredUnit || 'g';
+    $reading.placeholder = (pet.preferredUnit && pet.preferredUnit !== 'g') ? `粮食称重（${pet.preferredUnit}）` : '粮食称重';
 
-    const hour = pet.dayBoundaryHour || 0;
     const deltas = computeDeltas(pet);
-    const eatenMap = eatenByDate(deltas, hour);
-    const todayIso = todayBucketIso(hour);
+    const eatenMap = eatenByDate(deltas);
+    const todayIso = todayBucketIso();
     const todayEaten = eatenMap.get(todayIso) || 0;
 
-    // Today's deltas = those whose ts is in today's bucket
-    const { start: todayStart, end: todayEnd } = dayRangeMs(todayIso, hour);
+    const { start: todayStart, end: todayEnd } = dayRangeMs(todayIso);
     const todayDeltas = deltas.filter(d => d.ts >= todayStart && d.ts < todayEnd);
     const todayCount = todayDeltas.length;
 
-    // 7-day avg, excluding today
-    const recent = lastNDays(7, hour, todayIso);
+    const recent = lastNDays(7, todayIso);
     const recentExclToday = recent.filter(d => d !== todayIso);
     let sum = 0, days = 0;
     recentExclToday.forEach(d => {
@@ -761,16 +1029,38 @@ permalink: /toolbox/pet-food/
       $scBowl.textContent = '— g';
     }
 
-    $dayRangeLbl.textContent = `从 ${pad2(hour)}:00 起算`;
-
+    renderRecommendation(pet, todayEaten);
     renderEntriesList($entriesToday, todayDeltas, pet, '今天还没记录');
     renderHistory(deltas, pet);
     renderTrend(deltas, pet);
   }
 
-  function lastNDays(n, hour, fromIso) {
+  function renderRecommendation(pet, todayEaten) {
+    const rec = recommendedDailyRange(pet);
+    if (!rec) { $recStrip.style.display = 'none'; return; }
+    $recStrip.style.display = '';
+    $recTitle.textContent = `🎯 推荐 ${fmtG(rec.min)}–${fmtG(rec.max)} g/天`;
+    $recNow.innerHTML = `今日 <strong>${fmtG(todayEaten)} g</strong>`;
+    const scale = Math.max(rec.max * 1.3, todayEaten * 1.1, rec.max + 5);
+    const bandLeft = (rec.min / scale) * 100;
+    const bandWidth = ((rec.max - rec.min) / scale) * 100;
+    $recBand.style.left = bandLeft.toFixed(1) + '%';
+    $recBand.style.width = bandWidth.toFixed(1) + '%';
+    const fillW = Math.min(100, (todayEaten / scale) * 100);
+    $recFill.style.width = fillW.toFixed(1) + '%';
+    $recFill.classList.toggle('over', todayEaten > rec.max);
+    $recFill.classList.toggle('under', todayEaten > 0 && todayEaten < rec.min);
+    if (todayEaten > 0) {
+      $recMarker.style.left = fillW.toFixed(1) + '%';
+      $recMarker.style.display = '';
+    } else {
+      $recMarker.style.display = 'none';
+    }
+  }
+
+  function lastNDays(n, fromIso) {
     const out = [];
-    const baseIso = fromIso || todayBucketIso(hour);
+    const baseIso = fromIso || todayBucketIso();
     const base = parseIsoDate(baseIso);
     for (let i = 0; i < n; i++) {
       const d = new Date(base);
@@ -807,7 +1097,7 @@ permalink: /toolbox/pet-food/
     else if (d.type === 'eat') deltaHtml = `<span class="er-delta eat">吃了 ${fmtG(d.amount)} g</span>`;
     else deltaHtml = `<span class="er-delta refill">添了 ${fmtG(d.amount)} g</span>`;
     const fwStr = d.foodWeight === null ? '?' : fmtG(d.foodWeight) + ' g';
-    const modeStr = e.withBowl ? '含碗' : '去皮';
+    const modeStr = e.withBowl ? '含碗' : '不含碗';
     return `
       <div class="entry-row">
         <span class="er-time">${fmtTime(e.ts)}</span>
@@ -825,10 +1115,9 @@ permalink: /toolbox/pet-food/
       $entriesHistory.innerHTML = '<div class="empty-row">还没有记录</div>';
       return;
     }
-    const hour = pet.dayBoundaryHour || 0;
     const groups = new Map();
     deltas.forEach(d => {
-      const k = bucketDateIso(d.ts, hour);
+      const k = bucketDateIso(d.ts);
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k).push(d);
     });
@@ -855,21 +1144,15 @@ permalink: /toolbox/pet-food/
 
   // ===== Trend chart =====
   function renderTrend(deltas, pet) {
-    // Tab UI
     $trendTabs.querySelectorAll('button').forEach(b => {
       b.classList.toggle('active', b.dataset.p === state.period);
     });
     $trendCustom.style.display = state.period === 'custom' ? '' : 'none';
 
-    const hour = pet.dayBoundaryHour || 0;
-
-    if (state.period === 'today') {
-      drawIntraday(deltas, pet, hour);
-      return;
-    }
+    if (state.period === 'today') { drawIntraday(deltas, pet); return; }
 
     let startIso, endIso;
-    const todayIso = todayBucketIso(hour);
+    const todayIso = todayBucketIso();
 
     if (state.period === 'custom') {
       if (!state.customStart || !state.customEnd) {
@@ -886,7 +1169,7 @@ permalink: /toolbox/pet-food/
       $customEnd.value = endIso;
     } else {
       const n = parseInt(state.period, 10) || 7;
-      const days = lastNDays(n, hour, todayIso);
+      const days = lastNDays(n, todayIso);
       startIso = days[days.length - 1];
       endIso = days[0];
     }
@@ -900,7 +1183,7 @@ permalink: /toolbox/pet-food/
     else if (dayCount <= 200) agg = 'week';
     else agg = 'month';
 
-    drawAggregatedBars(deltas, pet, hour, startIso, endIso, agg);
+    drawAggregatedBars(deltas, pet, startIso, endIso, agg);
   }
 
   function renderEmptyChart(msg) {
@@ -908,13 +1191,10 @@ permalink: /toolbox/pet-food/
     $chartMeta.innerHTML = `<div style="text-align:center;width:100%;padding:1.5rem;color:var(--color-light);">${escapeHtml(msg)}</div>`;
   }
 
-  // ===== Intraday cumulative chart =====
-  function drawIntraday(deltas, pet, hour) {
-    const todayIso = todayBucketIso(hour);
-    const { start: dayStart, end: dayEnd } = dayRangeMs(todayIso, hour);
+  function drawIntraday(deltas, pet) {
+    const todayIso = todayBucketIso();
+    const { start: dayStart, end: dayEnd } = dayRangeMs(todayIso);
 
-    // Build cumulative-eaten-today function from deltas
-    // We rebuild cum from the SORTED entries (not just today's), because an eat delta may span across the boundary.
     const sortedEntries = [...pet.entries].sort((a, b) => a.ts - b.ts);
     const points = [{ t: dayStart, c: 0 }];
     let cum = 0;
@@ -931,64 +1211,49 @@ permalink: /toolbox/pet-food/
         continue;
       }
 
-      // delta within (prevTs, e.ts]
       const delta = fw - prevFood;
       if (delta < 0) {
-        // eating happened uniformly
         const eaten = -delta;
         const dur = e.ts - prevTs;
         if (dur > 0) {
-          // Intersect [prevTs, e.ts] with [dayStart, dayEnd]
           const segStart = Math.max(prevTs, dayStart);
           const segEnd = Math.min(e.ts, dayEnd);
           if (segEnd > segStart) {
             const rate = eaten / dur;
-            // Before segStart, the line was at cum (in today's frame). We may need to anchor.
-            if (segStart > points[points.length - 1].t) {
-              points.push({ t: segStart, c: cum });
-            }
-            // Linear rise to (segEnd, cum + (segEnd-segStart)*rate)
+            if (segStart > points[points.length - 1].t) points.push({ t: segStart, c: cum });
             const newCum = cum + (segEnd - segStart) * rate;
-            points.push({ t: segEnd, c: newCum, mark: (e.ts >= dayStart && e.ts < dayEnd) ? 'eat' : null });
+            points.push({ t: segEnd, c: newCum });
             cum = newCum;
           }
         }
       } else {
-        // refill or no change — flat segment within today
         if (e.ts >= dayStart && e.ts < dayEnd) {
-          if (e.ts > points[points.length - 1].t) points.push({ t: e.ts, c: cum, mark: 'refill' });
+          if (e.ts > points[points.length - 1].t) points.push({ t: e.ts, c: cum });
         }
       }
       prevTs = e.ts;
       prevFood = fw;
     }
 
-    // Trailing segment: from the last entry's ts (or 0) to now (or dayEnd)
     const now = Date.now();
     const endT = (now >= dayStart && now < dayEnd) ? now : dayEnd;
     if (endT > points[points.length - 1].t) points.push({ t: endT, c: cum });
 
-    // Today's measurement points (for circle markers)
-    const todayMeasurements = sortedEntries.filter(e => e.ts >= dayStart && e.ts < dayEnd).map(e => {
-      // find cum at e.ts by interpolating points
-      const pt = interpolateCum(points, e.ts);
-      return { ts: e.ts, c: pt };
-    });
+    const todayMeasurements = sortedEntries.filter(e => e.ts >= dayStart && e.ts < dayEnd).map(e => ({
+      ts: e.ts, c: interpolateCum(points, e.ts),
+    }));
 
-    // ---- Draw ----
     const W = 600, H = 240;
     const m = { l: 44, r: 16, t: 18, b: 32 };
     const innerW = W - m.l - m.r;
     const innerH = H - m.t - m.b;
-    const maxC = Math.max(1, ...points.map(p => p.c));
-    const niceMax = niceCeil(maxC);
+    const niceMax = niceCeil(Math.max(1, ...points.map(p => p.c)));
 
     const xScale = ts => m.l + ((ts - dayStart) / DAY_MS) * innerW;
     const yScale = c => m.t + innerH - (c / niceMax) * innerH;
 
     let html = '';
 
-    // Y grid + labels
     const yTicks = niceTicks(0, niceMax, 4);
     yTicks.forEach(v => {
       const y = yScale(v);
@@ -997,9 +1262,7 @@ permalink: /toolbox/pet-food/
     });
     html += `<text x="6" y="${m.t + 4}" fill="var(--color-light)" font-size="9.5">g</text>`;
 
-    // X axis & hour labels
     html += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + innerH}" y2="${m.t + innerH}" stroke="var(--color-border)"/>`;
-    // 4 ticks: 0, 6, 12, 18, 24h offset
     for (let off = 0; off <= 24; off += 6) {
       const ts = dayStart + off * 3600 * 1000;
       const x = xScale(ts);
@@ -1009,7 +1272,6 @@ permalink: /toolbox/pet-food/
       html += `<text x="${x}" y="${H - 14}" text-anchor="middle" fill="var(--color-light)" font-size="9.5">${hh}:00</text>`;
     }
 
-    // Area fill under cumulative line
     if (points.length >= 2) {
       const fillPath = (
         `M ${xScale(points[0].t)},${yScale(0)} ` +
@@ -1023,19 +1285,16 @@ permalink: /toolbox/pet-food/
       html += `<path d="${linePath}" stroke="var(--color-accent)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
 
-    // Measurement markers
     todayMeasurements.forEach(p => {
       html += `<circle cx="${xScale(p.ts)}" cy="${yScale(p.c)}" r="3.5" fill="var(--color-accent)" stroke="var(--color-bg)" stroke-width="1.5"/>`;
     });
 
-    // "Now" line
     if (now >= dayStart && now < dayEnd) {
       const nx = xScale(now);
       html += `<line x1="${nx}" x2="${nx}" y1="${m.t}" y2="${m.t + innerH}" stroke="var(--color-highlight)" stroke-width="1" stroke-dasharray="2 3"/>`;
       html += `<text x="${nx}" y="${m.t - 4}" text-anchor="middle" fill="var(--color-highlight)" font-size="9">现在</text>`;
     }
 
-    // Final cumulative label
     if (cum > 0) {
       const lx = xScale(endT);
       const ly = yScale(cum);
@@ -1045,8 +1304,7 @@ permalink: /toolbox/pet-food/
     $trendChart.innerHTML = html;
 
     const startD = new Date(dayStart);
-    const lbl = `${pad2(startD.getMonth() + 1)}/${pad2(startD.getDate())} ${pad2(hour)}:00 起 · 24h`;
-    $chartRangeLbl.textContent = lbl;
+    $chartRangeLbl.textContent = `${pad2(startD.getMonth() + 1)}/${pad2(startD.getDate())} 00:00 起 · 24h`;
     $chartMeta.innerHTML = `
       <span><span class="legend-dot" style="background:var(--color-accent);opacity:0.6;"></span>累计已吃（假设两次称重之间匀速进食）</span>
       <span>共 ${fmtG(cum)} g</span>
@@ -1068,12 +1326,10 @@ permalink: /toolbox/pet-food/
     return points[points.length - 1].c;
   }
 
-  // ===== Aggregated bar chart =====
-  function drawAggregatedBars(deltas, pet, hour, startIso, endIso, agg) {
-    const eatenMap = eatenByDate(deltas, hour);
-    const todayIso = todayBucketIso(hour);
+  function drawAggregatedBars(deltas, pet, startIso, endIso, agg) {
+    const eatenMap = eatenByDate(deltas);
+    const todayIso = todayBucketIso();
 
-    // Build day list from startIso to endIso inclusive
     const dayList = [];
     let cur = parseIsoDate(startIso);
     const endD = parseIsoDate(endIso);
@@ -1082,43 +1338,27 @@ permalink: /toolbox/pet-food/
       cur.setDate(cur.getDate() + 1);
     }
 
-    // Aggregate into bars
     const bars = [];
     if (agg === 'day') {
       dayList.forEach(d => {
-        bars.push({
-          key: d,
-          label: shortMD(d),
-          value: eatenMap.get(d) || 0,
-          isToday: d === todayIso,
-          sub: null,
-        });
+        bars.push({ key: d, label: shortMD(d), value: eatenMap.get(d) || 0, isToday: d === todayIso, sub: null });
       });
     } else if (agg === 'week') {
-      // Group by Monday-week (or just chunks of 7 starting from start)
       const groups = new Map();
       dayList.forEach(d => {
         const dt = parseIsoDate(d);
-        // ISO week: shift to Monday
-        const day = dt.getDay();
-        const dayFromMon = (day + 6) % 7;
+        const dayFromMon = (dt.getDay() + 6) % 7;
         const mon = new Date(dt);
         mon.setDate(mon.getDate() - dayFromMon);
         const monIso = mon.getFullYear() + '-' + pad2(mon.getMonth() + 1) + '-' + pad2(mon.getDate());
-        if (!groups.has(monIso)) groups.set(monIso, { sum: 0, count: 0, monIso });
+        if (!groups.has(monIso)) groups.set(monIso, { sum: 0, count: 0 });
         groups.get(monIso).sum += (eatenMap.get(d) || 0);
         groups.get(monIso).count++;
       });
       [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([k, g]) => {
-        bars.push({
-          key: k,
-          label: shortMD(k),
-          value: g.sum,
-          isToday: false,
-          sub: g.count < 7 ? `${g.count}d` : null,
-        });
+        bars.push({ key: k, label: shortMD(k), value: g.sum, isToday: false, sub: g.count < 7 ? `${g.count}d` : null });
       });
-    } else { // month
+    } else {
       const groups = new Map();
       dayList.forEach(d => {
         const ym = d.slice(0, 7);
@@ -1128,13 +1368,7 @@ permalink: /toolbox/pet-food/
       });
       [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([k, g]) => {
         const month = parseInt(k.split('-')[1], 10);
-        bars.push({
-          key: k,
-          label: month + '月',
-          value: g.sum,
-          isToday: false,
-          sub: null,
-        });
+        bars.push({ key: k, label: month + '月', value: g.sum, isToday: false, sub: null });
       });
     }
 
@@ -1146,17 +1380,14 @@ permalink: /toolbox/pet-food/
     const m = { l: 44, r: 16, t: 22, b: 34 };
     const innerW = W - m.l - m.r;
     const innerH = H - m.t - m.b;
-    const maxV = Math.max(1, ...bars.map(b => b.value));
-    const niceMax = niceCeil(maxV);
+    const niceMax = niceCeil(Math.max(1, ...bars.map(b => b.value)));
     const n = Math.max(1, bars.length);
     const barW = innerW / n;
 
-    // Decide label sparsity
     let labelEvery = 1;
     if (n > 12) labelEvery = Math.ceil(n / 8);
 
     let html = '';
-    // Y grid
     const yTicks = niceTicks(0, niceMax, 4);
     yTicks.forEach(v => {
       const y = m.t + innerH - (v / niceMax) * innerH;
@@ -1173,7 +1404,6 @@ permalink: /toolbox/pet-food/
       const y = m.t + innerH - bh;
       const fill = b.isToday ? 'var(--color-accent)' : '#c9a96e';
       html += `<rect x="${x}" y="${y}" width="${w}" height="${bh}" fill="${fill}" rx="2"><title>${b.label}${b.sub ? ' ('+b.sub+')' : ''}: ${fmtG(b.value)} g</title></rect>`;
-      // Value above bar (sparse)
       if (b.value > 0 && (n <= 14 || i % labelEvery === 0)) {
         html += `<text x="${x + w / 2}" y="${y - 3}" text-anchor="middle" fill="var(--color-muted)" font-size="9">${fmtG(b.value)}</text>`;
       }
@@ -1184,9 +1414,7 @@ permalink: /toolbox/pet-food/
 
     $trendChart.innerHTML = html;
 
-    // Meta line
     const totalEaten = bars.reduce((s, b) => s + b.value, 0);
-    const daysWithData = bars.filter(b => b.value > 0).length;
     const aggName = agg === 'day' ? '日' : (agg === 'week' ? '周' : '月');
     const avgPerDay = dayCount > 0 ? totalEaten / dayCount : 0;
     $chartMeta.innerHTML = `
@@ -1213,6 +1441,63 @@ permalink: /toolbox/pet-food/
     return out;
   }
 
+  // ===== Avatar handling =====
+  function resizeImage(file, maxSize) {
+    return new Promise((resolve, reject) => {
+      if (!file || !file.type || file.type.indexOf('image/') !== 0) { reject(new Error('不是图片文件')); return; }
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        const w = Math.max(1, Math.round(img.width * ratio));
+        const h = Math.max(1, Math.round(img.height * ratio));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        try {
+          resolve(canvas.toDataURL('image/jpeg', 0.78));
+        } catch (e) { reject(e); }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('图片加载失败')); };
+      img.src = url;
+    });
+  }
+
+  function setAvatarPreview(dataUrl, emojiFallback) {
+    if (dataUrl) {
+      $pmAvatarImg.src = dataUrl;
+      $pmAvatarImg.style.display = '';
+      $pmAvatarFallback.style.display = 'none';
+      $pmAvatarClear.style.display = '';
+    } else {
+      $pmAvatarImg.removeAttribute('src');
+      $pmAvatarImg.style.display = 'none';
+      $pmAvatarFallback.textContent = emojiFallback || '🐱';
+      $pmAvatarFallback.style.display = '';
+      $pmAvatarClear.style.display = 'none';
+    }
+  }
+
+  $pmAvatarFile.addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try {
+      const dataUrl = await resizeImage(f, 160);
+      state.pendingAvatar = dataUrl;
+      setAvatarPreview(dataUrl, state.selectedEmoji);
+    } catch (err) {
+      alert('读取图片失败：' + err.message);
+    } finally {
+      $pmAvatarFile.value = '';
+    }
+  });
+  $pmAvatarClear.addEventListener('click', () => {
+    state.pendingAvatar = null;
+    setAvatarPreview(null, state.selectedEmoji);
+  });
+
   // ===== Modal =====
   function openModal(id) {
     state.editingId = id || null;
@@ -1222,15 +1507,23 @@ permalink: /toolbox/pet-food/
       $pmTitle.textContent = '编辑宠物';
       $pmName.value = p.name;
       $pmBowl.value = p.bowlWeight || '';
-      $pmHour.value = p.dayBoundaryHour || 0;
+      $pmSpecies.value = p.species || '';
+      $pmBodyWeight.value = p.bodyWeight || '';
+      $pmStage.value = p.lifeStage || '';
       selectModalEmoji(p.emoji || EMOJIS[0]);
+      state.pendingAvatar = p.avatar || null;
+      setAvatarPreview(state.pendingAvatar, p.emoji || EMOJIS[0]);
       $pmDelete.style.display = '';
     } else {
       $pmTitle.textContent = '添加宠物';
       $pmName.value = '';
       $pmBowl.value = '';
-      $pmHour.value = 0;
+      $pmSpecies.value = '';
+      $pmBodyWeight.value = '';
+      $pmStage.value = '';
       selectModalEmoji(EMOJIS[0]);
+      state.pendingAvatar = null;
+      setAvatarPreview(null, EMOJIS[0]);
       $pmDelete.style.display = 'none';
     }
     $modal.classList.add('open');
@@ -1239,10 +1532,12 @@ permalink: /toolbox/pet-food/
   function closeModal() {
     $modal.classList.remove('open');
     state.editingId = null;
+    state.pendingAvatar = null;
   }
   function selectModalEmoji(em) {
     state.selectedEmoji = em;
     $pmEmoji.querySelectorAll('button').forEach(b => b.classList.toggle('selected', b.dataset.emoji === em));
+    if (!state.pendingAvatar) $pmAvatarFallback.textContent = em;
   }
 
   $petAdd.addEventListener('click', () => openModal(null));
@@ -1250,27 +1545,41 @@ permalink: /toolbox/pet-food/
   $petEdit.addEventListener('click', () => { if (state.currentId) openModal(state.currentId); });
   $pmCancel.addEventListener('click', closeModal);
   $modal.addEventListener('click', e => { if (e.target === $modal) closeModal(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeModal();
+      $mmModal.classList.remove('open');
+    }
+  });
 
   $pmSave.addEventListener('click', () => {
     const name = $pmName.value.trim();
     if (!name) { alert('请输入名字'); return; }
     const bowl = parseFloat($pmBowl.value);
-    const hour = parseInt($pmHour.value, 10) || 0;
+    const species = $pmSpecies.value || null;
+    const bodyWeight = parseFloat($pmBodyWeight.value);
+    const lifeStage = $pmStage.value || null;
     if (state.editingId) {
       const p = state.pets.find(x => x.id === state.editingId);
       if (!p) return;
       p.name = name;
       p.emoji = state.selectedEmoji;
+      p.avatar = state.pendingAvatar || null;
       p.bowlWeight = Number.isFinite(bowl) && bowl > 0 ? bowl : 0;
-      p.dayBoundaryHour = hour;
+      p.species = species;
+      p.bodyWeight = Number.isFinite(bodyWeight) && bodyWeight > 0 ? bodyWeight : 0;
+      p.lifeStage = lifeStage;
     } else {
       const id = uuid('pet');
       state.pets.push({
         id, name,
         emoji: state.selectedEmoji,
+        avatar: state.pendingAvatar || null,
         bowlWeight: Number.isFinite(bowl) && bowl > 0 ? bowl : 0,
-        dayBoundaryHour: hour,
+        species,
+        bodyWeight: Number.isFinite(bodyWeight) && bodyWeight > 0 ? bodyWeight : 0,
+        lifeStage,
+        preferredUnit: 'g',
         entries: [],
         createdAt: new Date().toISOString(),
       });
@@ -1293,42 +1602,92 @@ permalink: /toolbox/pet-food/
     render();
   });
 
-  // ===== Entry add =====
-  $saveEntry.addEventListener('click', () => {
+  // ===== Entry add (with mismatch detection) =====
+  function saveEntry(reading, withBowl) {
     const pet = currentPet();
-    if (!pet) { alert('先添加一只宠物'); return; }
-    const v = parseFloat($reading.value);
-    if (!Number.isFinite(v) || v < 0) { alert('请输入碗里现在的重量（克）'); return; }
-    const withBowl = currentMode();
-    if (withBowl && !pet.bowlWeight) {
-      if (!confirm('当前是"含碗"模式但还没设碗重，先按原值保存吗？\n（之后在设置里补碗重，历史也会自动重算）')) return;
-    }
+    if (!pet) return;
     pet.entries.push({
       id: uuid('e'),
       ts: Date.now(),
-      reading: v,
+      reading,
       withBowl,
       note: '',
     });
+    pet.preferredUnit = $unitPick.value || 'g';
     persist();
     $reading.value = '';
     render();
     $reading.focus();
+  }
+
+  function attemptSave() {
+    const pet = currentPet();
+    if (!pet) { alert('先添加一只宠物'); return; }
+    const raw = parseFloat($reading.value);
+    if (!Number.isFinite(raw) || raw < 0) { alert('请输入碗里现在的重量'); return; }
+    const unit = $unitPick.value || 'g';
+    const gramsReading = toGrams(raw, unit);
+    const withBowl = currentMode();
+    if (withBowl && !pet.bowlWeight) {
+      if (!confirm('当前是「含碗」模式但还没设碗重，先按原值保存吗？\n（之后在设置里补碗重，历史也会自动重算）')) return;
+      saveEntry(gramsReading, withBowl);
+      return;
+    }
+    const mismatch = detectModeMismatch(pet, gramsReading, withBowl);
+    if (mismatch) {
+      const chosenSign = mismatch.chosenDelta < 0 ? '吃了' : '添了';
+      const swapSign = mismatch.swappedDelta < 0 ? '吃了' : '添了';
+      $mmBody.innerHTML = `
+        按 <strong>「${withBowl ? '含碗' : '不含碗'}」</strong>算 —— 这次相当于<strong>${chosenSign} <code>${fmtG(mismatch.chosenMag)} g</code></strong>，<br>
+        但平时一次 <code>~${fmtG(mismatch.typical)} g</code> 左右。<br><br>
+        若换成 <strong>「${withBowl ? '不含碗' : '含碗'}」</strong>则是 <strong>${swapSign} <code>${fmtG(mismatch.swapMag)} g</code></strong>，更接近平常。<br><br>
+        是不是模式选错了？
+      `;
+      $mmModal.dataset.reading = String(gramsReading);
+      $mmModal.dataset.withBowl = withBowl ? '1' : '0';
+      $mmModal.classList.add('open');
+    } else {
+      saveEntry(gramsReading, withBowl);
+    }
+  }
+
+  $saveEntry.addEventListener('click', attemptSave);
+  $reading.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); attemptSave(); }
+  });
+  $unitPick.addEventListener('change', () => {
+    const pet = currentPet();
+    if (pet) {
+      pet.preferredUnit = $unitPick.value;
+      persist();
+    }
+    $reading.placeholder = $unitPick.value === 'g' ? '粮食称重' : `粮食称重（${$unitPick.value}）`;
   });
 
-  $reading.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); $saveEntry.click(); }
+  $mmKeep.addEventListener('click', () => {
+    const r = parseFloat($mmModal.dataset.reading);
+    const wb = $mmModal.dataset.withBowl === '1';
+    $mmModal.classList.remove('open');
+    if (Number.isFinite(r)) saveEntry(r, wb);
   });
+  $mmSwap.addEventListener('click', () => {
+    const r = parseFloat($mmModal.dataset.reading);
+    const wb = $mmModal.dataset.withBowl === '1';
+    $mmModal.classList.remove('open');
+    if (Number.isFinite(r)) {
+      setMode(!wb);
+      saveEntry(r, !wb);
+    }
+  });
+  $mmModal.addEventListener('click', e => { if (e.target === $mmModal) $mmModal.classList.remove('open'); });
 
   // ===== Trend tabs =====
   $trendTabs.querySelectorAll('button').forEach(b => {
     b.addEventListener('click', () => {
       state.period = b.dataset.p;
       if (state.period === 'custom' && (!state.customStart || !state.customEnd)) {
-        const pet = currentPet();
-        const hour = pet ? (pet.dayBoundaryHour || 0) : 0;
-        const todayIso = todayBucketIso(hour);
-        const back = lastNDays(30, hour, todayIso);
+        const todayIso = todayBucketIso();
+        const back = lastNDays(30, todayIso);
         state.customStart = state.customStart || back[back.length - 1];
         state.customEnd = state.customEnd || todayIso;
       }
@@ -1336,16 +1695,8 @@ permalink: /toolbox/pet-food/
       render();
     });
   });
-  $customStart.addEventListener('change', () => {
-    state.customStart = $customStart.value || null;
-    persist();
-    render();
-  });
-  $customEnd.addEventListener('change', () => {
-    state.customEnd = $customEnd.value || null;
-    persist();
-    render();
-  });
+  $customStart.addEventListener('change', () => { state.customStart = $customStart.value || null; persist(); render(); });
+  $customEnd.addEventListener('change', () => { state.customEnd = $customEnd.value || null; persist(); render(); });
 
   $toggleHistory.addEventListener('click', () => {
     state.historyOpen = !state.historyOpen;
