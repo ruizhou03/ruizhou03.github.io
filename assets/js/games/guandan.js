@@ -2792,7 +2792,7 @@
     const groups = decompose(hand, level);
     let v = 0;
     for (const g of groups) v += groupValue(g, level);
-    v -= 0.45 * hand.length;   // 持牌越多 → 越糟（早晚要打出去）
+    v -= 0.55 * hand.length;   // 持牌越多 → 越糟（早晚要打出去）self-play 调参 +0.10
     return v;
   }
 
@@ -2845,7 +2845,7 @@
       u -= move.cards.length * 0.12;   // 跟牌微偏短组合
     }
 
-    u -= moveBreakCost(move, hand, level) * 1.5;
+    u -= moveBreakCost(move, hand, level) * 1.7;   // self-play 调参 1.5→1.7：更不愿拆多张组
     const wildUsed = move.cards.filter(c => isWild(c, level)).length;
     u -= wildUsed * 7;
     const jokerUsed = move.cards.filter(isJoker).length;
@@ -2854,7 +2854,7 @@
     if (isBomb) {
       const bombBase = (combo.type === T.JOKER_BOMB) ? 30
                      : (combo.type === T.STR_FLUSH) ? 16
-                     : (8 + (combo.len - 4) * 4);
+                     : (12 + (combo.len - 4) * 4);  // self-play 调参 8→12：领出炸弹更谨慎
       if (leading) {
         u -= bombBase;
         if (hand.length <= 5) u += bombBase * 0.6;
@@ -2868,7 +2868,7 @@
     // 跟牌时队友 winning → 不要抢（除非直接走完）
     if (!leading && ctx.partnerWinning) {
       if (handAfter.length === 0) u += 35;   // 直接走完压倒一切
-      else u -= 22;
+      else u -= 30;                          // self-play 调参 22→30：队友赢圈时更坚决不抢
     }
 
     // 噪声：缩小到不至于翻转决策

@@ -860,4 +860,18 @@ function sanity() {
 const cmd = process.argv[2] || 'sanity';
 if (cmd === 'sanity') sanity();
 else if (cmd === 'tune') tune({ matchesPerTrial: parseInt(process.argv[3], 10) || 60, iterations: 2 });
+else if (cmd === 'compare') {
+  // compare <weights-json-path> [N]
+  const fs = require('fs');
+  const path = process.argv[3];
+  const n = parseInt(process.argv[4], 10) || 600;
+  const testW = Object.assign({}, DEFAULT_W, JSON.parse(fs.readFileSync(path, 'utf8')));
+  console.log('compare test (' + path + ') vs DEFAULT_W, n=' + n);
+  const r = runMatches(testW, DEFAULT_W, n);
+  const rate = r.testWins / r.n;
+  const se = Math.sqrt(rate * (1 - rate) / r.n);
+  console.log('test wins ' + r.testWins + ' / ' + r.n + '  =  ' + rate.toFixed(3) +
+    ' ± ' + (1.96 * se).toFixed(3) + ' (95% CI)' +
+    '  · avg iter/round ' + r.avgIter.toFixed(0));
+}
 else { console.error('unknown cmd: ' + cmd); process.exit(1); }
