@@ -239,10 +239,12 @@
   //     renderPlayedAt 覆盖 innerHTML，时钟自动消失
   function clockEl(seat) {
     if (seat === 0) {
-      if (state.phase === PHASE.PLAYING || state.phase === PHASE.BIDDING) {
+      // 出牌阶段：动作行上方的 clock-row（固定位置，不随按钮组合变）
+      if (state.phase === PHASE.PLAYING) {
         return document.getElementById('ddzSelfClock');
       }
-      // 加倍阶段：复用旧角标做兜底（renderDoublePanelLayout 会把它隐掉，真正显示在格内）
+      // 抢地主 / 加倍 阶段：跟 bid-panel 绑定在一起（panel 内顶部居中）
+      // —— 这样 clock-row 跟 bid-panel 不会上下叠在一起，没有重合
       return document.getElementById('ddzDoubleCountdown');
     }
     const playedEl = document.getElementById('ddzPlayed' + seat);
