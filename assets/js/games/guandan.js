@@ -2361,22 +2361,59 @@
     }
   }
   // 玩家被动 / 托管的"自动出"共享同一份决策；isTimeout 控制是否计入超时计数
+  // 一手"破坏多张组"的代价：每用 1 张 rank R 的牌而手里还残余 R 的同伴 →
+  // 代价 = 残余数（残余越多说明本来能组成更大组合，现在被拆得越厉害）。
+  // 王 / wild 视为无代价（它们独立）。
+  function moveBreakCost(move, hand, level) {
+    const used = new Map();
+    for (const c of move.cards) {
+      if (isJoker(c) || isWild(c, level)) continue;
+      const r = cardRankIdx(c);
+      used.set(r, (used.get(r) || 0) + 1);
+    }
+    const handCnt = new Map();
+    for (const c of hand) {
+      if (isJoker(c) || isWild(c, level)) continue;
+      const r = cardRankIdx(c);
+      handCnt.set(r, (handCnt.get(r) || 0) + 1);
+    }
+    let cost = 0;
+    for (const [r, u] of used) {
+      const total = handCnt.get(r) || 0;
+      const remain = total - u;
+      // 还残余 1+ 同 rank → 本来这一手可以一起出（更长/更整），现在拆出来
+      if (remain > 0) cost += remain;
+    }
+    return cost;
+  }
+
   // 把 genMoves 出来的候选按"语义最优"排序：
-  //   领出（prev=null）→ 优先大组合（一次出更多牌），同长比小点数（用小留大）
-  //   跟牌（prev!=null）→ 优先短组合 + 小 key（最便宜的反压，留大牌做尾盘）
+  //   领出（prev=null）→ 优先大组合（一次出更多牌）+ 不拆多张组，同长比小点数
+  //   跟牌（prev!=null）→ 优先短组合 + 不拆多张组（用散牌反压） + 小 key
   // 炸弹永远放最后，保留到关键时刻才用。
-  function rankMoves(moves, prev) {
+  function rankMoves(moves, prev, hand, level) {
     return moves.slice().sort((a, b) => {
       const ab = isBombType(a.combo.type) ? 1 : 0;
       const bb = isBombType(b.combo.type) ? 1 : 0;
       if (ab !== bb) return ab - bb;
       if (prev) {
-        // 跟牌：短的 + 小 key
+        // 跟牌：短的优先
         if (a.cards.length !== b.cards.length) return a.cards.length - b.cards.length;
+        // 同长里不拆多张组（用散牌反压，留下三张/对子等强组合）
+        if (hand) {
+          const ca = moveBreakCost(a, hand, level);
+          const cb = moveBreakCost(b, hand, level);
+          if (ca !== cb) return ca - cb;
+        }
         return a.combo.key - b.combo.key;
       }
-      // 领出：大组合 + 小点数
+      // 领出：大组合优先
       if (a.cards.length !== b.cards.length) return b.cards.length - a.cards.length;
+      if (hand) {
+        const ca = moveBreakCost(a, hand, level);
+        const cb = moveBreakCost(b, hand, level);
+        if (ca !== cb) return ca - cb;
+      }
       return a.combo.key - b.combo.key;
     });
   }
@@ -2393,7 +2430,7 @@
       if (prev) commitPass(0);
       return;
     }
-    const pick = rankMoves(moves, prev)[0];
+    const pick = rankMoves(moves, prev, state.hands[0], level)[0];
     const cb = classify(pick.cards, level);
     if (cb) commitPlay(0, cb);
   }
@@ -2624,8 +2661,9 @@
       if (prev) { toast('没有能压的牌，可以「不要」'); return; }
       toast('无可出'); return;
     }
-    // 提示循环：每次给下一个候选。语义最优排序（领出大组合优先，跟牌最便宜反压）
-    moves = rankMoves(moves, prev);
+    // 提示循环：每次给下一个候选。语义最优排序（领出大组合优先，跟牌最便宜反压，
+    // 同长里都优先选"不拆多张组"的散牌）
+    moves = rankMoves(moves, prev, state.hands[0], level);
     state._hintIdx = (state._hintIdx == null) ? 0 : (state._hintIdx + 1) % moves.length;
     const pick = moves[state._hintIdx];
     state.selected.clear();
@@ -2751,24 +2789,10 @@
   // ===========================================================
   //  Pre-game overlay / 难度
   // ===========================================================
-  function refreshHs() {
-    const bl = state.stats.bestLevel || 0;
-    els.hs.textContent = LEVEL_SEQ[bl] || '2';
-  }
-  function refreshPgoStats() {
-    els.pgoStats.innerHTML = '';
-    const labels = { easy: '新手', normal: '普通', hard: '高手' };
-    for (const k of ['easy', 'normal', 'hard']) {
-      const s = state.stats[k] || { w: 0, l: 0 };
-      const d = document.createElement('div');
-      d.className = 'gd-pgo-stat';
-      const strong = document.createElement('strong');
-      strong.textContent = labels[k];
-      d.appendChild(strong);
-      d.appendChild(document.createTextNode(` ${s.w} 胜 / ${s.l} 负`));
-      els.pgoStats.appendChild(d);
-    }
-  }
+  // 本机最高级牌 + 难度胜负数已按用户反馈从初始页隐藏；保留这两个函数
+  // 当 no-op 即可，state.stats 仍在后台累计、上传战绩榜。
+  function refreshHs() { /* no-op：已移除 UI */ }
+  function refreshPgoStats() { /* no-op：已移除 UI */ }
   function syncPgoDiff() {
     [...els.pgoDiff.querySelectorAll('.gs-pgo-mode-tab')].forEach(t =>
       t.classList.toggle('selected', t.dataset.value === state.aiLevel));
