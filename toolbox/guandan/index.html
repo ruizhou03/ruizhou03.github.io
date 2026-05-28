@@ -84,6 +84,27 @@ permalink: /toolbox/guandan/
   .gd-level-chip.you .val { color: var(--gd-team-you); }
   .gd-level-chip.opp { border-color: var(--gd-team-opp); }
   .gd-level-chip.opp .val { color: var(--gd-team-opp); }
+  .gd-level-chip.score { border-color: var(--gd-accent-strong); }
+  .gd-level-chip.score .val {
+    color: var(--gd-accent-strong);
+    transition: transform 0.2s, color 0.2s;
+  }
+  .gd-level-chip.score.delta-up .val {
+    animation: gd-score-pulse-up 0.85s cubic-bezier(0.18, 0.9, 0.32, 1.3);
+  }
+  .gd-level-chip.score.delta-down .val {
+    animation: gd-score-pulse-down 0.85s cubic-bezier(0.18, 0.9, 0.32, 1.3);
+  }
+  @keyframes gd-score-pulse-up {
+    0%   { transform: scale(1); color: var(--gd-accent-strong); }
+    40%  { transform: scale(1.45); color: #1e6f4f; }
+    100% { transform: scale(1); color: var(--gd-accent-strong); }
+  }
+  @keyframes gd-score-pulse-down {
+    0%   { transform: scale(1); color: var(--gd-accent-strong); }
+    40%  { transform: scale(1.35); color: var(--gd-suit-red); }
+    100% { transform: scale(1); color: var(--gd-accent-strong); }
+  }
   /* 当前主级用一颗右侧亮点提示，比写"◀ 当前主级"省地方又一目了然 */
   .gd-level-chip.acting::after {
     content: '';
@@ -630,6 +651,35 @@ permalink: /toolbox/guandan/
     box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55);
   }
 
+  /* ======== 开局加倍提示 ========
+     发牌后/进贡完成后、开始出牌前显示在牌桌中央。不挡牌、不阻断渲染，
+     只在 state._waitingDouble 时挂出，让用户对照手牌决定是否加倍 */
+  .gd-double-prompt {
+    position: absolute;
+    top: 38%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.7rem 1.1rem;
+    background: var(--color-bg);
+    border: 1.5px solid var(--gd-accent-strong);
+    border-radius: 14px;
+    box-shadow: 0 6px 22px rgba(13,24,43,0.32),
+                0 0 0 4px rgba(201,162,39,0.15);
+    animation: gd-double-pop 0.32s cubic-bezier(0.18, 0.9, 0.32, 1.3);
+  }
+  .gd-double-prompt .lbl {
+    font-family: var(--font-display);
+    font-size: 1.05rem; font-weight: 700;
+    color: var(--gd-accent-strong);
+    letter-spacing: 0.04em;
+  }
+  @keyframes gd-double-pop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+    60% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+
   /* ======== 浮层（贡牌 / 回合结算 / 整局结束） ======== */
   /* ======== 浮层（贡牌 / 回合结算 / 整局结束）—— 参照斗地主 .ddz-overlay 重做 ======== */
   .gd-overlay {
@@ -667,6 +717,7 @@ permalink: /toolbox/guandan/
     margin: 0 0 1.1rem; text-align: center;
     letter-spacing: 0.1em;
     line-height: 1.05;
+    color: var(--gd-accent-strong);
   }
   .gd-result-title.win {
     background: linear-gradient(135deg, #f5d142 10%, #c9a227 50%, #a87a2a 95%);
@@ -881,10 +932,21 @@ permalink: /toolbox/guandan/
 
   .gd-resume-summary {
     margin: 0.6rem auto 0.8rem; max-width: 26rem;
-    font-size: 0.88rem; color: rgba(255,255,255,0.82);
-    line-height: 1.6; text-align: center;
+    font-size: 0.92rem; color: var(--color-ink);
+    line-height: 1.8; text-align: center;
   }
-  .gd-resume-summary .key { color: #ffe18d; font-weight: 600; }
+  .gd-resume-summary .row {
+    display: block; margin-bottom: 0.25rem;
+  }
+  .gd-resume-summary .row.phase {
+    font-weight: 600; color: var(--gd-accent-strong);
+    margin-bottom: 0.5rem;
+  }
+  .gd-resume-summary .row .sep { color: var(--color-muted); margin: 0 0.5rem; }
+  .gd-resume-summary .key {
+    color: var(--gd-accent-strong); font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
 
   /* ======== about 规则块（内联，照 snake） ======== */
   .guandan-wrap details.about {
@@ -1138,6 +1200,7 @@ permalink: /toolbox/guandan/
     <div class="gd-levelbar-corner">
       <div class="gd-level-chip you" id="gdChipYou"><span class="lab">我方</span><span class="val" id="gdLevelYou">2</span></div>
       <div class="gd-level-chip opp" id="gdChipOpp"><span class="lab">对方</span><span class="val" id="gdLevelOpp">2</span></div>
+      <div class="gd-level-chip score" id="gdChipScore" title="本难度累计分数"><span class="lab">积分</span><span class="val" id="gdScoreVal">+0</span></div>
     </div>
 
     <!-- 上家：对家 -->
@@ -1205,6 +1268,13 @@ permalink: /toolbox/guandan/
       </div>
     </div>
 
+    <!-- 加倍提示条：发牌后/进贡完成后、开始出牌前显示。等用户选了才进入正式出牌 -->
+    <div class="gd-double-prompt" id="gdDoublePrompt" hidden>
+      <span class="lbl">开局加倍？</span>
+      <button class="gd-btn mini" id="gdDoubleNo" type="button">不加倍</button>
+      <button class="gd-btn primary mini" id="gdDoubleYes" type="button">加倍 ×2</button>
+    </div>
+
     <!-- 出牌动作行：在手牌上方（仿斗地主）。轮到我时显示倒计时 + 不出/提示/出牌 -->
     <div class="gd-play-actions" id="gdPlayActions">
       <span class="gd-self-clock" id="gdSelfClock" hidden aria-hidden="true">
@@ -1241,12 +1311,6 @@ permalink: /toolbox/guandan/
           <button class="gs-pgo-mode-tab" data-value="easy">🌱 新手</button>
           <button class="gs-pgo-mode-tab selected" data-value="normal">🙂 普通</button>
           <button class="gs-pgo-mode-tab" data-value="hard">🔥 高手</button>
-        </div>
-        <div class="gd-pgo-label">开局加倍</div>
-        <div class="gs-pgo-mode-picker" id="gdPgoMult">
-          <button class="gs-pgo-mode-tab selected" data-value="1">×1</button>
-          <button class="gs-pgo-mode-tab" data-value="2">×2 加倍</button>
-          <button class="gs-pgo-mode-tab" data-value="3">×3 超倍</button>
         </div>
         <div class="gd-pgo-score" id="gdPgoScore"></div>
         <button class="gs-pgo-start-btn" id="gdPgoStart">▶ 开始游戏</button>

@@ -839,6 +839,7 @@
     table: $('gdTable'),
     levelYou: $('gdLevelYou'), levelOpp: $('gdLevelOpp'),
     chipYou: $('gdChipYou'), chipOpp: $('gdChipOpp'),
+    chipScore: $('gdChipScore'), scoreVal: $('gdScoreVal'),
     hand: $('gdHand'),
     playBtn: $('gdPlayBtn'), passBtn: $('gdPassBtn'),
     hintBtn: $('gdHintBtn'), sortBtn: $('gdSortBtn'),
@@ -861,7 +862,9 @@
     matchPlayersYou: $('gdMatchPlayersYou'), matchPlayersOpp: $('gdMatchPlayersOpp'),
     matchTeamYou: $('gdMatchTeamYou'), matchTeamOpp: $('gdMatchTeamOpp'),
     matchScore: $('gdMatchScore'),
-    pgoMult: $('gdPgoMult'), pgoScore: $('gdPgoScore'),
+    pgoScore: $('gdPgoScore'),
+    doublePrompt: $('gdDoublePrompt'),
+    doubleNo: $('gdDoubleNo'), doubleYes: $('gdDoubleYes'),
     resumeOverlay: $('gdResumeOverlay'), resumeSummary: $('gdResumeSummary'),
     resumeContinue: $('gdResumeContinue'), resumeDiscard: $('gdResumeDiscard'),
     toast: $('gdToast'),
@@ -1344,6 +1347,7 @@
     // 当前主级用角标右侧的亮点表示，不再写"◀ 当前主级"长尾文字
     els.chipYou.classList.toggle('acting', state.actingTeam === 0);
     els.chipOpp.classList.toggle('acting', state.actingTeam === 1);
+    refreshScoreChip();
 
     for (let s = 0; s < 4; s++) {
       const se = seatEls[s];
@@ -1367,6 +1371,24 @@
     renderHand();
     updateActions();
     applyAttentionFocus();
+  }
+
+  // 在 chip 上显示本难度累计分；变化时按正/负闪一下
+  function refreshScoreChip() {
+    if (!els.scoreVal || !els.chipScore) return;
+    const st = state.stats[state.aiLevel] || { totalScore: 0 };
+    const total = st.totalScore | 0;
+    const sign = total >= 0 ? '+' : '';
+    const newText = sign + total;
+    const prev = els.scoreVal.dataset.lastTotal == null ? null : parseInt(els.scoreVal.dataset.lastTotal, 10);
+    els.scoreVal.textContent = newText;
+    els.scoreVal.dataset.lastTotal = String(total);
+    if (prev != null && total !== prev) {
+      els.chipScore.classList.remove('delta-up', 'delta-down');
+      void els.chipScore.offsetWidth;     // reflow → 让动画重启
+      els.chipScore.classList.add(total > prev ? 'delta-up' : 'delta-down');
+      setTimeout(() => els.chipScore && els.chipScore.classList.remove('delta-up', 'delta-down'), 900);
+    }
   }
 
   // 注意力锁定（仿斗地主 applyAttentionFocus）：
@@ -1495,6 +1517,10 @@
     const canInteract = state.phase === PHASE.PLAYING || state.phase === PHASE.TRIBUTE;
     if (!canInteract) return;
     if (!els.hand.contains(e.target)) return;
+    // 进贡 / 还贡阶段：只追踪 first touch。已经有指针在追了就忽略后续触点
+    // （多指滑动 / 第二根手指落下都不会改变本次选中）
+    const inTribute = !!activeTributeGive() || !!activeTributePair();
+    if (inTribute && pState) return;
     const card = e.target.closest('.gd-card');
     const pt = e.touches ? e.touches[0] : e;
     pState = {
@@ -1502,6 +1528,7 @@
       startCid: card ? parseInt(card.dataset.cid, 10) : null,
       dragMode: null,
       mode: 'PENDING',
+      inTribute,
     };
     e.preventDefault();
   }
@@ -1514,8 +1541,9 @@
 
     if (pState.mode === 'PENDING') {
       if (Math.abs(dx) < MOVE_THRESHOLD && Math.abs(dy) < MOVE_THRESHOLD) return;
-      // 进贡阶段（玩家是 giver）：禁用矩形框选；只允许单击切换
-      if (activeTributeGive()) { pState = null; return; }
+      // 进贡 / 还贡阶段：禁用矩形框选；只认 first touch 的那张牌。即使用户滑出
+      // 阈值距离也保持 PENDING — 让 pointerup 的"单击 = 选中起点牌"分支起作用
+      if (activeTributeGive() || activeTributePair()) return;
       pState.mode = 'MULTI_SELECT';
       pState.dragMode = (pState.startCid != null && state.selected.has(pState.startCid)) ? 'remove' : 'add';
       pState.originalSelected = new Set(state.selected);
@@ -1546,6 +1574,20 @@
             updateActions();
           } else {
             toast('只能选同等级的最大可进贡牌');
+          }
+          pState = null;
+          return;
+        }
+        // 还贡阶段（玩家是 receiver）：只能点合法还贡牌；同样单选（替换）
+        const returnCtx = activeTributePair();
+        if (returnCtx) {
+          if (isValidReturnCard(pState.startCid)) {
+            state.selected.clear();
+            state.selected.add(pState.startCid);
+            renderHand();
+            updateActions();
+          } else {
+            toast('请选 ≤10 的一张牌');
           }
           pState = null;
           return;
@@ -1789,6 +1831,10 @@
     state.customGroups = [];         // 每小局重发 → 清掉手动摞起来的组
     // 新一局重置智能选牌门闩，避免新局首手与上局某一刻 trick 状态 + 手牌张数偶然碰撞
     state._autoTurnKey = null;
+    // 每小局都让用户选一次加倍；resume 路径不走 startRound，所以不会重新弹
+    state._needDoubleChoice = true;
+    state.openMult = 1;
+    if (els.doublePrompt) els.doublePrompt.hidden = true;
     const deck = shuffle(buildDeck());
     state.hands = [[], [], [], []];
     for (let i = 0; i < 108; i++) state.hands[i % 4].push(deck[i]);
@@ -1807,13 +1853,47 @@
   }
 
   function beginPlay(leader) {
+    // 新一局先弹 加倍/不加倍 prompt；用户选完后再正式开打
+    if (state._needDoubleChoice) {
+      showDoublePrompt(leader);
+      return;
+    }
     state.phase = PHASE.PLAYING;
     state.turn = leader;
     state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
+    state.busy = false;
     renderAll();
     saveSession();
     if (leader !== 0) scheduleAI();
     else { updateActions(); armTurnClock(); }
+  }
+
+  // 显示开局加倍提示。期间 phase=PLAYING + busy=true，让用户能看到牌但不动；
+  // 用户点击后写 state.openMult、清 flag、回到 beginPlay 真正开打
+  function showDoublePrompt(leader) {
+    if (!els.doublePrompt) {
+      // DOM 缺失兜底：直接以 ×1 开打
+      state._needDoubleChoice = false;
+      state.openMult = 1;
+      beginPlay(leader);
+      return;
+    }
+    state.phase = PHASE.PLAYING;
+    state.turn = leader;
+    state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
+    state.busy = true;       // 阻断 AI 调度 / 玩家出牌按钮
+    state.openMult = 1;
+    renderAll();
+    els.doublePrompt.hidden = false;
+    const finish = mult => {
+      els.doublePrompt.hidden = true;
+      state.openMult = mult | 0 || 1;
+      persist();
+      state._needDoubleChoice = false;
+      beginPlay(leader);
+    };
+    els.doubleNo.onclick = () => finish(1);
+    els.doubleYes.onclick = () => finish(2);
   }
 
   function seatName(s) {
@@ -2384,6 +2464,7 @@
     const stForScore = state.stats[state.aiLevel];
     if (stForScore) stForScore.totalScore = (stForScore.totalScore | 0) + state.lastRoundScore;
     persist();
+    refreshScoreChip();   // 立即闪一下角标新分；不依赖下一次 renderAll
 
     showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon);
     saveSession();
@@ -3152,6 +3233,22 @@
     // 提示循环：每次给下一个候选。语义最优排序（领出大组合优先，跟牌最便宜反压，
     // 同长里都优先选"不拆多张组"的散牌）
     moves = rankMoves(moves, prev, state.hands[0], level);
+    // 玩家已经手动摞起来的牌（customGroups）表达了"我想一起出"的意愿。
+    // 把"会拆已摞组"的候选稳定 sink 到列表末尾——前几次点提示先看不动摞的方案，
+    // 实在没得选时再考虑拆。stable sort：同 break 数内沿用原 rankMoves 顺序。
+    const grouped = new Set();
+    if (Array.isArray(state.customGroups)) {
+      for (const g of state.customGroups) {
+        if (!g || !Array.isArray(g.cards)) continue;
+        for (const c of g.cards) grouped.add(c);
+      }
+    }
+    if (grouped.size) {
+      moves = moves
+        .map((m, i) => ({ m, i, brk: m.cards.reduce((n, c) => n + (grouped.has(c) ? 1 : 0), 0) }))
+        .sort((a, b) => (a.brk - b.brk) || (a.i - b.i))
+        .map(x => x.m);
+    }
     state._hintIdx = (state._hintIdx == null) ? 0 : (state._hintIdx + 1) % moves.length;
     const pick = moves[state._hintIdx];
     state.selected.clear();
@@ -3185,8 +3282,9 @@
           }
         }, 300);
       } else if (!state.autopilot && state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy) {
-        // 退出托管：重新挂时钟
+        // 退出托管：重新挂时钟 + 重新渲染按钮（托管态下 updateActions 把不出/提示/出牌全藏了）
         armTurnClock();
+        updateActions();
       }
     });
   }
@@ -3283,11 +3381,6 @@
       t.classList.toggle('selected', t.dataset.value === state.aiLevel));
     syncPgoScoreSummary();
   }
-  function syncPgoMult() {
-    if (!els.pgoMult) return;
-    [...els.pgoMult.querySelectorAll('.gs-pgo-mode-tab')].forEach(t =>
-      t.classList.toggle('selected', parseInt(t.dataset.value, 10) === state.openMult));
-  }
   function syncPgoScoreSummary() {
     if (!els.pgoScore) return;
     const st = state.stats[state.aiLevel] || { totalScore: 0, w: 0, l: 0 };
@@ -3305,18 +3398,8 @@
     state.aiLevel = t.dataset.value;
     persist();
     syncPgoDiff();
+    refreshScoreChip();
   });
-  if (els.pgoMult) {
-    els.pgoMult.addEventListener('click', e => {
-      const t = e.target.closest('.gs-pgo-mode-tab');
-      if (!t) return;
-      const v = parseInt(t.dataset.value, 10);
-      if (![1, 2, 3].includes(v)) return;
-      state.openMult = v;
-      persist();
-      syncPgoMult();
-    });
-  }
   els.pgoStart.addEventListener('click', () => {
     els.pgo.classList.remove('open');
     startMatch();
@@ -3452,7 +3535,6 @@
   refreshHs();
   refreshPgoStats();
   syncPgoDiff();
-  syncPgoMult();
   renderAll();
   initShell();
 
@@ -3479,12 +3561,12 @@
     const phaseLabel = snap.phase === PHASE.ROUND_END ? '小局结算未确认' : '对局进行中';
     if (els.resumeSummary) {
       els.resumeSummary.innerHTML =
-        phaseLabel + '<br>' +
-        '<span class="key">我方</span> 级 ' + youLv + ' · ' +
-        '<span class="key">对方</span> 级 ' + oppLv + ' · ' +
-        '当前主级 <span class="key">' + level + '</span><br>' +
-        '我方手牌剩 <span class="key">' + handsLeft + '</span> 张 · ' +
-        '保存于 ' + mins + ' 分钟前';
+        '<span class="row phase">' + phaseLabel + '</span>' +
+        '<span class="row">我方 级 <span class="key">' + youLv + '</span>' +
+        '<span class="sep">·</span>对方 级 <span class="key">' + oppLv + '</span>' +
+        '<span class="sep">·</span>当前主级 <span class="key">' + level + '</span></span>' +
+        '<span class="row">我方手牌剩 <span class="key">' + handsLeft + '</span> 张' +
+        '<span class="sep">·</span>保存于 <span class="key">' + mins + '</span> 分钟前</span>';
     }
     els.resumeOverlay.classList.add('open');
   }
@@ -3541,7 +3623,6 @@
     state._pendingMatchWin = (snap._pendingMatchWin == null) ? null : snap._pendingMatchWin;
 
     syncPgoDiff();
-    syncPgoMult();
     refreshAutopilotBtn();
     renderAll();
 
