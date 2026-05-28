@@ -459,6 +459,25 @@ permalink: /toolbox/guandan/
     opacity: 0.72;
     pointer-events: none;
   }
+  /* 旁观对家手牌：禁交互 + 顶上挂一条提示 */
+  .gd-hand.is-spectating {
+    pointer-events: none;
+  }
+  .gd-hand.is-spectating::before {
+    content: '正在查看对家手牌';
+    position: absolute;
+    top: -4px; left: 50%; transform: translateX(-50%);
+    font-size: 0.78rem;
+    color: var(--gd-accent-strong);
+    background: rgba(255,255,255,0.7);
+    border: 1px solid var(--gd-frame-2);
+    border-radius: 999px;
+    padding: 0.12rem 0.7rem;
+    white-space: nowrap;
+    z-index: 5;
+    pointer-events: none;
+    font-family: var(--font-body);
+  }
   /* 接风：中央横排大字 + 风筝图标 + 副标题（替代以前的 toast） */
   .gd-jiefeng-banner {
     display: flex; align-items: center; gap: 0.5rem;

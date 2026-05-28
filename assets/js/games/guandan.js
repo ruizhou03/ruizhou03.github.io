@@ -904,11 +904,18 @@
     return el;
   }
 
+  // 视角座位：通常 0（我）；我已出完且对家(座 2)还在场 → 切换看对家手牌
+  function viewSeat() {
+    if (state.out.includes(0) && !state.out.includes(2)) return 2;
+    return 0;
+  }
+  function isSpectating() { return viewSeat() !== 0; }
+
   // 把手牌按 columnKey 分组（每个 key 一列）。红桃级牌（逢人配）独占一列，
   // 排在小王和普通级牌之间。列内按花色固定顺序排，王和级牌单独成列。
   function buildHandColumns() {
     const level = currentLevelLabel();
-    const hand = state.hands[0];
+    const hand = state.hands[viewSeat()];
     const byW = new Map();
     for (const c of hand) {
       const w = columnKey(c, level);
@@ -927,13 +934,20 @@
     }
     // 列顺序：用户自定义优先；否则点数降序（高→低 从左到右）
     let weights = [...byW.keys()];
-    if (Array.isArray(state.handOrder) && state.handOrder.length) {
+    // 看对家手牌时不用我的自定义顺序；用默认排序
+    if (!isSpectating() && Array.isArray(state.handOrder) && state.handOrder.length) {
       const present = new Set(weights);
       const filtered = state.handOrder.filter(w => present.has(w));
-      // 不在自定义里的列（包括新生的、"还原"释放回去的），按点数高→低重新排序追加到末尾
+      // 不在自定义里的列（新生的、进贡得到的牌、"还原"释放回去的）按默认排序
+      // 插到自然位置（高→低）—— 而不是一股脑塞到末尾。
       const seen = new Set(filtered);
       const unseen = weights.filter(w => !seen.has(w)).sort((a, b) => b - a);
-      weights = filtered.concat(unseen);
+      for (const u of unseen) {
+        let idx = 0;
+        while (idx < filtered.length && filtered[idx] > u) idx++;
+        filtered.splice(idx, 0, u);
+      }
+      weights = filtered;
     } else {
       weights.sort((a, b) => b - a);                 // 默认高在左
     }
@@ -942,15 +956,15 @@
 
   function renderHand() {
     els.hand.innerHTML = '';
-    // 清掉上一轮渲染留下的尺寸覆写，让 stylesheet 默认值先生效，再按可用宽度二次适配
     els.hand.style.removeProperty('--gd-card-w');
     els.hand.style.removeProperty('--gd-card-h');
     els.hand.style.removeProperty('--gd-stack-step');
     if (state.phase === PHASE.IDLE) return;
     const level = currentLevelLabel();
     const cols = buildHandColumns();
-    // 把当前列顺序 sync 回 state.handOrder，下次出牌后保持
-    state.handOrder = cols.map(c => c.weight);
+    // 旁观时不动 state.handOrder（用户的自定义不被对家牌堆覆盖）
+    if (!isSpectating()) state.handOrder = cols.map(c => c.weight);
+    els.hand.classList.toggle('is-spectating', isSpectating());
 
     const stackStep = parseFloat(
       getComputedStyle(els.hand).getPropertyValue('--gd-stack-step')
@@ -1038,10 +1052,25 @@
     }
   }
 
-  // 牌展示排序：三带二让"三张组"在前（大小由三张决定），其余沿用单牌权重降序
+  // 顺子里某张牌的"自然位置"——用于展示排序，无视级牌权重抬升。
+  // A 在 A2345 顺子里当 1，在 10JQKA 当 14。
+  function straightPos(c, allCards, level) {
+    if (isJoker(c)) return 100;
+    if (isWild(c, level)) return cardRankIdx(c) + 2;
+    const ri = cardRankIdx(c);
+    if (RANK_LABELS[ri] === 'A') {
+      const has2 = allCards.some(cc => !isJoker(cc) && !isWild(cc, level) && cardRankIdx(cc) === 0);
+      return has2 ? 1 : 14;
+    }
+    return ri + 2;
+  }
+
+  // 牌展示排序：
+  //   三带二 → 三张组排前面（大小由三张决定）；
+  //   顺子 / 同花顺 / 三连对 / 二连三 → 按自然位置升序，级牌不跳到最前；
+  //   其他 → 单牌权重降序。
   function sortDisplayCards(cards, type, level) {
     if (type === T.TRIPLE_PAIR) {
-      // 数自然牌每个 rank 的张数（wild/joker 暂放最后）
       const cnt = new Map();
       for (const c of cards) {
         if (isJoker(c) || isWild(c, level)) continue;
@@ -1055,10 +1084,17 @@
         if (aw) return 0;
         const ra = cardRankIdx(a), rb = cardRankIdx(b);
         const ca = cnt.get(ra) || 0, cb = cnt.get(rb) || 0;
-        // 3 张组先（"三带二的大小看三张"，让三张组排在前面更直观）
         if (ca !== cb) return cb - ca;
         if (ra !== rb) return singleWeight(b, level) - singleWeight(a, level);
         return cardSuit(a) - cardSuit(b);
+      });
+    }
+    if (type === T.STRAIGHT || type === T.STR_FLUSH || type === T.PAIR_STR || type === T.TRIPLE_STR) {
+      return cards.slice().sort((a, b) => {
+        const pa = straightPos(a, cards, level);
+        const pb = straightPos(b, cards, level);
+        if (pa !== pb) return pa - pb;          // 自然位置升序
+        return cardSuit(a) - cardSuit(b);        // 同位置按花色
       });
     }
     return cards.slice().sort((a, b) => singleWeight(b, level) - singleWeight(a, level));
@@ -1216,6 +1252,8 @@
   }
 
   function onHandPointerDown(e) {
+    // 旁观对家手牌时不允许任何点 / 拖
+    if (isSpectating()) return;
     // 选牌不再限制"轮到我"——别人回合也可以提前选好；TRIBUTE 还贡阶段也可以选；
     // 实际能不能出由出牌按钮的 disabled / hidden 控制
     const canInteract = state.phase === PHASE.PLAYING || state.phase === PHASE.TRIBUTE;
@@ -2505,6 +2543,16 @@
   // ===========================================================
   //  玩家操作
   // ===========================================================
+  // 用户主动点 不出/出牌 后立即藏掉这一排按钮，给即时反馈；其后 renderAll
+  // 也会一致 hide=true。如果出牌失败（toast 提示）会在下一个 renderAll
+  // 恢复显示。
+  function hidePlayActionsImmediate() {
+    els.playBtn.hidden = true;
+    els.passBtn.hidden = true;
+    els.hintBtn.hidden = true;
+    if (els.selfClock) els.selfClock.hidden = true;
+  }
+
   function playerPlay() {
     if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
     const sel = selectedCards();
@@ -2518,6 +2566,7 @@
     state.selected.clear();
     state._consecutiveTimeouts = 0;   // 主动出牌 → 清掉超时计数
     stopTurnClock();
+    hidePlayActionsImmediate();
     commitPlay(0, cb);
   }
 
@@ -2528,6 +2577,7 @@
     state.selected.clear();
     state._consecutiveTimeouts = 0;   // 主动不出 → 同理清计数
     stopTurnClock();
+    hidePlayActionsImmediate();
     commitPass(0);
   }
 
