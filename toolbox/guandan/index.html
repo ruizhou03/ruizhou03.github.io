@@ -919,33 +919,30 @@ permalink: /toolbox/guandan/
   .gd-table.gd-in-lobby .gd-hand,
   .gd-table.gd-in-lobby .gd-sort-actions { display: none !important; }
 
-  /* ======== 开局加倍提示 ========
-     发牌后/进贡完成后、开始出牌前显示在牌桌中央。不挡牌、不阻断渲染，
-     只在 state._waitingDouble 时挂出，让用户对照手牌决定是否加倍 */
-  .gd-double-prompt {
-    position: absolute;
-    top: 38%; left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 20;
-    display: flex; align-items: center; gap: 0.6rem;
-    padding: 0.7rem 1.1rem;
-    background: var(--color-bg);
-    border: 1.5px solid var(--gd-accent-strong);
-    border-radius: 14px;
-    box-shadow: 0 6px 22px rgba(13,24,43,0.32),
-                0 0 0 4px rgba(201,162,39,0.15);
-    animation: gd-double-pop 0.32s cubic-bezier(0.18, 0.9, 0.32, 1.3);
-  }
-  .gd-double-prompt .lbl {
+  /* ======== 加倍阶段：play area 里显示"加倍 ×2"或"不加倍" ========
+     仿"不出"的大字浮窗。颜色：加倍=暖金（更醒目）/ 不加倍=灰墨 */
+  .gd-double-big {
     font-family: var(--font-display);
-    font-size: 1.05rem; font-weight: 700;
-    color: var(--gd-accent-strong);
-    letter-spacing: 0.04em;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    padding: 0.15rem 0.85rem;
+    animation: gd-pass-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
   }
-  @keyframes gd-double-pop {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
-    60% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
-    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .gd-double-big.choice-yes {
+    color: #fff;
+    background: linear-gradient(135deg, #c9a227, #a87a2a);
+    border-radius: 10px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+    box-shadow: 0 2px 8px rgba(168,122,42,0.5);
+  }
+  .gd-double-big.choice-no {
+    color: var(--gd-text-on-felt);
+    background: rgba(255,255,255,0.6);
+    border: 1px solid var(--gd-frame-2);
+    border-radius: 10px;
+    text-shadow: 0 1px 0 #fff;
   }
 
   /* ======== 浮层（贡牌 / 回合结算 / 整局结束） ======== */
@@ -1570,14 +1567,8 @@ permalink: /toolbox/guandan/
       </div>
     </div>
 
-    <!-- 加倍提示条：发牌后/进贡完成后、开始出牌前显示。等用户选了才进入正式出牌 -->
-    <div class="gd-double-prompt" id="gdDoublePrompt" hidden>
-      <span class="lbl">开局加倍？</span>
-      <button class="gd-btn mini" id="gdDoubleNo" type="button">不加倍</button>
-      <button class="gd-btn primary mini" id="gdDoubleYes" type="button">加倍 ×2</button>
-    </div>
-
-    <!-- 出牌动作行：在手牌上方（仿斗地主）。轮到我时显示倒计时 + 不出/提示/出牌 -->
+    <!-- 出牌动作行：在手牌上方（仿斗地主）。轮到我时显示倒计时 + 不出/提示/出牌
+         加倍阶段也复用此行：不加倍 / 加倍 ×2 按钮 + 5s 倒计时 -->
     <div class="gd-play-actions" id="gdPlayActions">
       <span class="gd-self-clock" id="gdSelfClock" hidden aria-hidden="true">
         <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
@@ -1589,6 +1580,8 @@ permalink: /toolbox/guandan/
       <button class="gd-btn" id="gdPassBtn" type="button" hidden>不出</button>
       <button class="gd-btn" id="gdHintBtn" type="button" hidden>提示</button>
       <button class="gd-btn primary" id="gdPlayBtn" type="button" hidden>出牌</button>
+      <button class="gd-btn" id="gdDblNoBtn" type="button" hidden>不加倍</button>
+      <button class="gd-btn primary" id="gdDblYesBtn" type="button" hidden>加倍 ×2</button>
     </div>
 
     <!-- 托管开关 chip：左下角 / 我头像旁。autopilot 模式下高亮 -->

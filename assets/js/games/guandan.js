@@ -863,8 +863,7 @@
     matchTeamYou: $('gdMatchTeamYou'), matchTeamOpp: $('gdMatchTeamOpp'),
     matchScore: $('gdMatchScore'),
     pgoScore: $('gdPgoScore'),
-    doublePrompt: $('gdDoublePrompt'),
-    doubleNo: $('gdDoubleNo'), doubleYes: $('gdDoubleYes'),
+    dblNoBtn: $('gdDblNoBtn'), dblYesBtn: $('gdDblYesBtn'),
     resumeOverlay: $('gdResumeOverlay'), resumeSummary: $('gdResumeSummary'),
     resumeContinue: $('gdResumeContinue'), resumeDiscard: $('gdResumeDiscard'),
     toast: $('gdToast'),
@@ -933,6 +932,7 @@
   let _saveSessionPending = false;
   function saveSession() {
     if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.ROUND_END) return;
+    if (state._doublingActive) return;   // 加倍阶段 5s 内不存档；状态短促且 lastPlay 是临时标签
     if (_saveSessionPending) return;
     _saveSessionPending = true;
     setTimeout(() => {
@@ -945,6 +945,7 @@
   }
   function saveSessionSync() {
     if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.ROUND_END) return;
+    if (state._doublingActive) return;
     try {
       localStorage.setItem(SESSION_KEY, JSON.stringify(buildSessionSnapshot()));
     } catch (e) { /* ignore */ }
@@ -1195,8 +1196,10 @@
     // 那会让 gd-pass-pop 动画反复重放（用户看到别人弃出时，自己的"不要"也跟着闪）
     const level = currentLevelLabel();
     const trib = (lp && lp.tributeLabel) || '';
+    const dbl = (lp && lp.type === 'doubling') ? lp.doubleChoice : '';
     const key = lp === 'pass' ? 'pass:' + level :
-                (lp && lp.cards) ? ('combo:' + level + ':' + lp.cards.slice().sort((a, b) => a - b).join(',') + (trib ? ':' + trib : '')) :
+                dbl ? 'doubling:' + dbl :
+                (lp && lp.cards && lp.cards.length) ? ('combo:' + level + ':' + lp.cards.slice().sort((a, b) => a - b).join(',') + (trib ? ':' + trib : '')) :
                 'empty';
     if (slot.dataset.lpKey === key) return;
     slot.dataset.lpKey = key;
@@ -1205,6 +1208,12 @@
       // 大字"不要"浮窗：仿欢乐斗地主——每家弃出都让人一眼看见，不再藏在虚线小角标里
       const big = document.createElement('span');
       big.className = 'gd-pass-big'; big.textContent = '不出';
+      slot.appendChild(big);
+    } else if (dbl) {
+      // 加倍阶段公示：用大字"加倍 ×2 / 不加倍"占住 play area
+      const big = document.createElement('span');
+      big.className = 'gd-double-big ' + (dbl === 'double' ? 'choice-yes' : 'choice-no');
+      big.textContent = lp.doubleLabel;
       slot.appendChild(big);
     } else if (lp && lp.cards) {
       const row = document.createElement('div');
@@ -1651,6 +1660,20 @@
   }
 
   function updateActions() {
+    // 加倍阶段（5s 同时决策）：动作行只显示 不加倍 / 加倍 ×2；玩家已决则全藏
+    if (state._doublingActive) {
+      els.playBtn.hidden = true;
+      els.passBtn.hidden = true;
+      els.hintBtn.hidden = true;
+      const myDone = state._doubleChoices && state._doubleChoices[0] != null;
+      if (els.dblNoBtn) els.dblNoBtn.hidden = myDone;
+      if (els.dblYesBtn) els.dblYesBtn.hidden = myDone;
+      updateRestoreBtn();
+      return;
+    }
+    // 非加倍阶段：藏掉加倍按钮
+    if (els.dblNoBtn) els.dblNoBtn.hidden = true;
+    if (els.dblYesBtn) els.dblYesBtn.hidden = true;
     // 进贡阶段（玩家是 giver）：按钮文字"进贡"
     const tributeGive = activeTributeGive();
     if (tributeGive) {
@@ -1843,7 +1866,9 @@
     // 每小局都让用户选一次加倍；resume 路径不走 startRound，所以不会重新弹
     state._needDoubleChoice = true;
     state.openMult = 1;
-    if (els.doublePrompt) els.doublePrompt.hidden = true;
+    state._doublingActive = false;
+    state._doubleChoices = null;
+    state._doublingLeader = null;
     const deck = shuffle(buildDeck());
     state.hands = [[], [], [], []];
     for (let i = 0; i < 108; i++) state.hands[i % 4].push(deck[i]);
@@ -1862,9 +1887,9 @@
   }
 
   function beginPlay(leader) {
-    // 新一局先弹 加倍/不加倍 prompt；用户选完后再正式开打
+    // 新一局先走 5s 加倍/不加倍 阶段，所有人同步决策
     if (state._needDoubleChoice) {
-      showDoublePrompt(leader);
+      enterDoublingPhase(leader);
       return;
     }
     state.phase = PHASE.PLAYING;
@@ -1877,32 +1902,112 @@
     else { updateActions(); armTurnClock(); }
   }
 
-  // 显示开局加倍提示。期间 phase=PLAYING + busy=true，让用户能看到牌但不动；
-  // 用户点击后写 state.openMult、清 flag、回到 beginPlay 真正开打
-  function showDoublePrompt(leader) {
-    if (!els.doublePrompt) {
-      // DOM 缺失兜底：直接以 ×1 开打
-      state._needDoubleChoice = false;
-      state.openMult = 1;
-      beginPlay(leader);
-      return;
-    }
+  // 加倍阶段：所有 4 家同时决策，5s 倒计时。
+  //   - 玩家：动作行出 [不加倍] [加倍 ×2] 按钮 + gd-self-clock 跑 5s
+  //   - AI：随机 0.5-3.5s 内决策（基于"大牌数"启发式）
+  //   - 别人决定 → 立刻在其 play area 显示"加倍"/"不加倍"标签（仿"不出"）
+  //   - 5s 到 / 全部决定 → 公示 1s（把未决的标 不加倍）→ 清牌位 → 进入正式出牌
+  //   - 倍数：openMult = 2 ^ (加倍人数)；只有 1 个人加倍就 ×2，2 个人 ×4，依此类推
+  const DOUBLING_WINDOW_MS = 5000;
+  const DOUBLING_REVEAL_MS = 1000;
+  function enterDoublingPhase(leader) {
     state.phase = PHASE.PLAYING;
     state.turn = leader;
     state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
-    state.busy = true;       // 阻断 AI 调度 / 玩家出牌按钮
+    state.busy = true;          // 阻断 AI 出牌调度（注意：AI 的"加倍决策"另起 setTimeout，不走 scheduleAI）
     state.openMult = 1;
+    state._doublingActive = true;
+    state._doublingLeader = leader;
+    state._doubleChoices = [null, null, null, null];
+    // 清掉上一局残留的 lastPlay，让 doubling label 干净登场
+    state.lastPlay = [null, null, null, null];
     renderAll();
-    els.doublePrompt.hidden = false;
-    const finish = mult => {
-      els.doublePrompt.hidden = true;
-      state.openMult = mult | 0 || 1;
-      persist();
-      state._needDoubleChoice = false;
-      beginPlay(leader);
+    updateActions();            // 显示 不加倍/加倍 按钮
+    // 玩家 5s 倒计时（gd-self-clock）；时钟跑完调 finalizeDoubling 兜底
+    startTurnClock(0, finalizeDoubling, DOUBLING_WINDOW_MS);
+    // 给 3 个 AI 各排一个随机延迟决策；只要 _doublingActive=false 就放弃
+    for (let s = 1; s < 4; s++) {
+      const delay = 500 + Math.random() * 3000;
+      setTimeout(() => {
+        if (!state._doublingActive) return;
+        const choice = aiDecideDouble(s);
+        registerDoubleChoice(s, choice);
+      }, delay);
+    }
+  }
+
+  // 启发：手里"大牌"够多就加倍。统计大王/小王/A/级牌的张数；≥4 张就加倍
+  function aiDecideDouble(seat) {
+    const hand = state.hands[seat];
+    const level = currentLevelLabel();
+    let big = 0;
+    for (const c of hand) {
+      if (isJoker(c)) { big++; continue; }
+      const lab = RANK_LABELS[cardRankIdx(c)];
+      if (lab === 'A' || lab === level) big++;
+    }
+    return big >= 4 ? 'double' : 'pass';
+  }
+
+  function registerDoubleChoice(seat, choice) {
+    if (!state._doublingActive) return;
+    if (state._doubleChoices[seat] != null) return;     // 已决定，忽略
+    state._doubleChoices[seat] = choice;
+    // 把决定挂到 lastPlay 让 renderPlayArea 显示标签（公示）
+    state.lastPlay[seat] = {
+      type: 'doubling',
+      cards: [],
+      doubleLabel: choice === 'double' ? '加倍 ×2' : '不加倍',
+      doubleChoice: choice,
     };
-    els.doubleNo.onclick = () => finish(1);
-    els.doubleYes.onclick = () => finish(2);
+    if (seat === 0) {
+      // 玩家已决 → 收掉时钟 + 隐藏加倍按钮
+      stopTurnClock();
+      updateActions();
+    }
+    renderAll();
+    // 全部决定完 → 立即进入公示
+    if (state._doubleChoices.every(c => c != null)) {
+      finalizeDoubling();
+    }
+  }
+
+  function finalizeDoubling() {
+    if (!state._doublingActive) return;
+    state._doublingActive = false;
+    stopTurnClock();
+    // 兜底：5s 内没决定的算 不加倍
+    for (let s = 0; s < 4; s++) {
+      if (state._doubleChoices[s] == null) {
+        state._doubleChoices[s] = 'pass';
+        state.lastPlay[s] = {
+          type: 'doubling', cards: [],
+          doubleLabel: '不加倍', doubleChoice: 'pass',
+        };
+      }
+    }
+    // 算总倍数：2 ^ 加倍人数
+    const doublers = state._doubleChoices.filter(c => c === 'double').length;
+    state.openMult = doublers > 0 ? Math.pow(2, doublers) : 1;
+    persist();
+    updateActions();         // 藏掉加倍按钮
+    renderAll();
+    // 公示 1s 后清牌位，开始正式出牌
+    setTimeout(() => {
+      for (let s = 0; s < 4; s++) state.lastPlay[s] = null;
+      state._doubleChoices = null;
+      state._needDoubleChoice = false;
+      state.busy = false;
+      const leader = state._doublingLeader;
+      state._doublingLeader = null;
+      beginPlay(leader);
+    }, DOUBLING_REVEAL_MS);
+  }
+
+  // 玩家按 不加倍 / 加倍 按钮
+  function playerDoubleChoice(choice) {
+    if (!state._doublingActive) return;
+    registerDoubleChoice(0, choice);
   }
 
   function seatName(s) {
@@ -2727,6 +2832,7 @@
   // 轮到某座位时挂上对应时钟。玩家超时 → 自动"不出"或打出最小单张领出
   function armTurnClock() {
     if (state.phase !== PHASE.PLAYING) { stopTurnClock(); return; }
+    if (state._doublingActive) return;     // 加倍阶段已挂 5s 时钟，别覆盖
     if (state.out.includes(state.turn)) { stopTurnClock(); return; }
     const seat = state.turn;
     if (seat === 0) {
@@ -3267,6 +3373,8 @@
     els.playBtn.hidden = true;
     els.passBtn.hidden = true;
     els.hintBtn.hidden = true;
+    if (els.dblNoBtn) els.dblNoBtn.hidden = true;
+    if (els.dblYesBtn) els.dblYesBtn.hidden = true;
     if (els.selfClock) els.selfClock.hidden = true;
   }
 
@@ -3346,6 +3454,8 @@
   });
   els.passBtn.addEventListener('click', playerPass);
   els.hintBtn.addEventListener('click', playerHint);
+  if (els.dblNoBtn)  els.dblNoBtn.addEventListener('click', () => playerDoubleChoice('pass'));
+  if (els.dblYesBtn) els.dblYesBtn.addEventListener('click', () => playerDoubleChoice('double'));
   if (els.autopilotBtn) {
     els.autopilotBtn.addEventListener('click', () => {
       state.autopilot = !state.autopilot;
