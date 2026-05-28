@@ -179,11 +179,34 @@ permalink: /toolbox/pet-food/
   .entry-form .form-hint {
     margin-top: 0.6rem; font-size: 0.78rem; color: var(--color-muted);
   }
-  .entry-form .form-warn {
-    margin-top: 0.5rem; font-size: 0.82rem; color: #a87a2a;
-    padding: 0.4rem 0.7rem; border-left: 3px solid #c9a96e;
-    background: rgba(201, 169, 110, 0.08);
+  .entry-form .bowl-row {
+    display: flex; align-items: center; gap: 0.5rem;
+    margin-top: 0.7rem;
+    font-size: 0.85rem; color: var(--color-muted);
+    transition: opacity 0.18s;
   }
+  .entry-form .bowl-row.muted { opacity: 0.45; }
+  .entry-form .bowl-row input {
+    width: 80px; padding: 0.32rem 0.55rem;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    background: var(--color-bg); color: var(--color-ink);
+    font: inherit; font-size: 0.92rem;
+    outline: none; font-variant-numeric: tabular-nums;
+    transition: all 0.18s;
+  }
+  .entry-form .bowl-row input:focus { border-color: var(--color-accent); }
+  .entry-form .bowl-row.needs-bowl input {
+    border-color: #c9a96e;
+    background: rgba(201, 169, 110, 0.12);
+  }
+  .entry-form .bowl-row .bowl-unit { color: var(--color-light); }
+  @keyframes bowl-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-2px); }
+  }
+  .entry-form .bowl-row.shake input { animation: bowl-shake 0.32s; }
 
   .section-title {
     font-family: var(--font-display); font-size: 1.05rem; font-weight: 500;
@@ -680,7 +703,11 @@ permalink: /toolbox/pet-food/
         </div>
         <button type="button" class="save-btn" id="save-entry">📝 记一笔</button>
       </div>
-      <div class="form-warn" id="form-warn" style="display: none;"></div>
+      <div class="bowl-row" id="bowl-row">
+        <span>碗的空重</span>
+        <input type="number" id="bowl-weight" step="any" min="0" placeholder="未设" inputmode="decimal" />
+        <span class="bowl-unit">g</span>
+      </div>
     </div>
 
     <div class="section-title">今日记录</div>
@@ -737,12 +764,6 @@ permalink: /toolbox/pet-food/
         </div>
         <input type="file" id="pm-avatar-file" accept="image/*" style="display:none;" />
       </div>
-      <div class="field">
-        <label>碗的空重 (g)</label>
-        <input type="number" id="pm-bowl" step="any" placeholder="可不填" inputmode="decimal" />
-        <p class="hint">填了之后"含碗"模式才能算克数；不填只能用「不含碗」。一天从 00:00 开始算。</p>
-      </div>
-
       <div class="sub-section">每日目标食量（选填）</div>
       <div class="field-grid">
         <div class="field">
@@ -1336,7 +1357,8 @@ permalink: /toolbox/pet-food/
   const $unitPick = document.getElementById('unit-pick');
   const $modeToggle = document.getElementById('mode-toggle');
   const $saveEntry = document.getElementById('save-entry');
-  const $formWarn = document.getElementById('form-warn');
+  const $bowlWeight = document.getElementById('bowl-weight');
+  const $bowlRow = document.getElementById('bowl-row');
   const $chartRangeLbl = document.getElementById('chart-range-lbl');
 
   const $entriesToday = document.getElementById('entries-today');
@@ -1352,7 +1374,6 @@ permalink: /toolbox/pet-food/
   const $modal = document.getElementById('pet-modal');
   const $pmTitle = document.getElementById('pm-title');
   const $pmName = document.getElementById('pm-name');
-  const $pmBowl = document.getElementById('pm-bowl');
   const $pmTargetMin = document.getElementById('pm-target-min');
   const $pmTargetMax = document.getElementById('pm-target-max');
   const $chartTargetToggle = document.getElementById('chart-target-toggle');
@@ -1531,6 +1552,11 @@ permalink: /toolbox/pet-food/
       lbl.classList.add('active');
       lbl.querySelector('input').checked = true;
       checkFormWarn();
+      // If switching to 含碗 with no bowl weight yet, focus the bowl input
+      const pet = currentPet();
+      if (lbl.dataset.val === '1' && pet && !pet.bowlWeight) {
+        setTimeout(() => $bowlWeight.focus(), 0);
+      }
     });
   });
   function currentMode() {
@@ -1548,13 +1574,13 @@ permalink: /toolbox/pet-food/
 
   function checkFormWarn() {
     const pet = currentPet();
-    if (!pet) { $formWarn.style.display = 'none'; return; }
-    if (currentMode() && !pet.bowlWeight) {
-      $formWarn.innerHTML = '⚠️ 现在是「含碗」模式但还没设碗重 —— 点 <strong>⚙ 设置</strong> 填碗的空重，或改用「不含碗」。';
-      $formWarn.style.display = '';
-    } else {
-      $formWarn.style.display = 'none';
+    if (!pet) {
+      $bowlRow.classList.remove('needs-bowl', 'muted');
+      return;
     }
+    const withBowl = currentMode();
+    $bowlRow.classList.toggle('muted', !withBowl);
+    $bowlRow.classList.toggle('needs-bowl', withBowl && !pet.bowlWeight);
   }
 
   function currentPet() {
@@ -1604,6 +1630,10 @@ permalink: /toolbox/pet-food/
     }
     $unitPick.value = pet.preferredUnit || 'g';
     $reading.placeholder = (pet.preferredUnit && pet.preferredUnit !== 'g') ? `粮食称重（${pet.preferredUnit}）` : '粮食称重';
+    if (document.activeElement !== $bowlWeight) {
+      $bowlWeight.value = (Number.isFinite(pet.bowlWeight) && pet.bowlWeight > 0) ? pet.bowlWeight : '';
+    }
+    checkFormWarn();
 
     const deltas = computeDeltas(pet);
     const eatenMap = eatenByDate(deltas);
@@ -2266,7 +2296,6 @@ permalink: /toolbox/pet-food/
       if (!p) return;
       $pmTitle.textContent = '编辑宠物';
       $pmName.value = p.name;
-      $pmBowl.value = p.bowlWeight || '';
       $pmTargetMin.value = Number.isFinite(p.dailyTargetMin) && p.dailyTargetMin > 0 ? parseFloat(p.dailyTargetMin.toFixed(1)) : '';
       $pmTargetMax.value = Number.isFinite(p.dailyTargetMax) && p.dailyTargetMax > 0 ? parseFloat(p.dailyTargetMax.toFixed(1)) : '';
       $pmSpecies.value = p.species || '';
@@ -2288,7 +2317,6 @@ permalink: /toolbox/pet-food/
     } else {
       $pmTitle.textContent = '添加宠物';
       $pmName.value = '';
-      $pmBowl.value = '';
       $pmTargetMin.value = '';
       $pmTargetMax.value = '';
       $pmSpecies.value = '';
@@ -2330,7 +2358,6 @@ permalink: /toolbox/pet-food/
   $pmSave.addEventListener('click', () => {
     const name = $pmName.value.trim();
     if (!name) { alert('请输入名字'); return; }
-    const bowl = parseFloat($pmBowl.value);
     const tMin = parseFloat($pmTargetMin.value);
     const tMax = parseFloat($pmTargetMax.value);
     const species = $pmSpecies.value || null;
@@ -2347,7 +2374,6 @@ permalink: /toolbox/pet-food/
       p.name = name;
       p.emoji = state.selectedEmoji;
       p.avatar = state.pendingAvatar || null;
-      p.bowlWeight = Number.isFinite(bowl) && bowl > 0 ? bowl : 0;
       p.dailyTargetMin = Number.isFinite(tMin) && tMin > 0 ? tMin : null;
       p.dailyTargetMax = Number.isFinite(tMax) && tMax > 0 ? tMax : null;
       p.species = species;
@@ -2364,7 +2390,7 @@ permalink: /toolbox/pet-food/
         id, name,
         emoji: state.selectedEmoji,
         avatar: state.pendingAvatar || null,
-        bowlWeight: Number.isFinite(bowl) && bowl > 0 ? bowl : 0,
+        bowlWeight: 0,
         dailyTargetMin: Number.isFinite(tMin) && tMin > 0 ? tMin : null,
         dailyTargetMax: Number.isFinite(tMax) && tMax > 0 ? tMax : null,
         showTargetOnChart: true,
@@ -2425,8 +2451,10 @@ permalink: /toolbox/pet-food/
     const gramsReading = toGrams(raw, unit);
     const withBowl = currentMode();
     if (withBowl && !pet.bowlWeight) {
-      if (!confirm('当前是「含碗」模式但还没设碗重，先按原值保存吗？\n（之后在设置里补碗重，历史也会自动重算）')) return;
-      saveEntry(gramsReading, withBowl);
+      // No alert wall; just nudge user to fill bowl weight inline.
+      $bowlRow.classList.add('shake', 'needs-bowl');
+      setTimeout(() => $bowlRow.classList.remove('shake'), 400);
+      $bowlWeight.focus();
       return;
     }
     const mismatch = detectModeMismatch(pet, gramsReading, withBowl);
@@ -2450,6 +2478,24 @@ permalink: /toolbox/pet-food/
   $saveEntry.addEventListener('click', attemptSave);
   $reading.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); attemptSave(); }
+  });
+
+  function commitBowlWeight() {
+    const pet = currentPet();
+    if (!pet) return;
+    const raw = parseFloat($bowlWeight.value);
+    const newVal = Number.isFinite(raw) && raw > 0 ? raw : 0;
+    if (newVal === (pet.bowlWeight || 0)) {
+      checkFormWarn();
+      return;
+    }
+    pet.bowlWeight = newVal;
+    persist();
+    render();
+  }
+  $bowlWeight.addEventListener('blur', commitBowlWeight);
+  $bowlWeight.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); $bowlWeight.blur(); }
   });
   $unitPick.addEventListener('change', () => {
     const pet = currentPet();
