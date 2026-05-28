@@ -621,6 +621,119 @@ permalink: /toolbox/pet-food/
     padding: 0.05rem 0.3rem; background: var(--color-bg-warm); border-radius: 4px;
   }
 
+  /* Sharing */
+  .pet-tab.shared-tab::after {
+    content: '🔗';
+    font-size: 0.75em;
+    margin-left: 0.25em;
+    opacity: 0.7;
+  }
+  .modal .share-block {
+    background: var(--color-bg-warm);
+    border-radius: 8px;
+    padding: 0.7rem 0.85rem;
+    margin-bottom: 0.7rem;
+  }
+  .modal .share-code-row {
+    display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+    margin-bottom: 0.55rem;
+  }
+  .modal .pet-code {
+    font-family: var(--font-display); font-size: 1.15rem; font-weight: 600;
+    letter-spacing: 0.18em;
+    color: var(--color-accent);
+    padding: 0.3rem 0.7rem;
+    background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px;
+    user-select: all;
+  }
+  .modal .share-mini-btn {
+    font: inherit; font-size: 0.78rem;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted);
+    cursor: pointer; transition: all 0.18s;
+  }
+  @media (hover: hover) {
+    .modal .share-mini-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  .modal .members-list {
+    list-style: none; margin: 0; padding: 0;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    background: var(--color-bg);
+    max-height: 200px; overflow-y: auto;
+  }
+  .modal .members-list li {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.45rem 0.7rem;
+    border-top: 1px dashed var(--color-border);
+    font-size: 0.86rem;
+  }
+  .modal .members-list li:first-child { border-top: none; }
+  .modal .members-list .m-id {
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    color: var(--color-ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+  }
+  .modal .members-list .m-self { color: var(--color-accent); font-weight: 600; }
+  .modal .members-list .m-role {
+    font-size: 0.74rem;
+    padding: 0.08rem 0.5rem;
+    border-radius: 999px;
+    color: var(--color-muted);
+    background: var(--color-bg-warm);
+  }
+  .modal .members-list .m-role.owner { background: rgba(74, 124, 89, 0.18); color: #4a7c59; font-weight: 600; }
+  .modal .members-list .m-role.admin { background: rgba(201, 169, 110, 0.2); color: #a87a2a; }
+  .modal .members-list .m-actions { display: flex; gap: 0.3rem; }
+  .modal .members-list .m-actions button {
+    font: inherit; font-size: 0.72rem;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted);
+    cursor: pointer;
+  }
+  .modal .members-list .m-actions button.danger { color: #b07c75; }
+  .modal .your-role {
+    font-size: 0.82rem; color: var(--color-muted);
+    margin-top: 0.4rem;
+  }
+  .modal .your-role strong { color: var(--color-accent); }
+  /* Permission-gated inputs */
+  .modal .pm-locked input[type="text"],
+  .modal .pm-locked input[type="number"],
+  .modal .pm-locked select {
+    background: var(--color-bg-warm);
+    color: var(--color-light);
+    pointer-events: none;
+  }
+  .modal .pm-locked label { color: var(--color-light); }
+  .modal .pm-locked .avatar-cell { opacity: 0.5; pointer-events: none; }
+  .modal .pm-locked .estimator { opacity: 0.55; pointer-events: none; }
+  .entry-form .bowl-row.locked input,
+  .entry-form .bowl-row.locked select {
+    background: var(--color-bg-warm);
+    color: var(--color-light);
+    pointer-events: none;
+  }
+
+  /* Join modal */
+  .join-modal .modal { max-width: 380px; }
+  .join-modal .code-input {
+    width: 100%; box-sizing: border-box;
+    padding: 0.7rem 0.85rem;
+    font: inherit;
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    border: 1px solid var(--color-border); border-radius: 8px;
+    background: var(--color-bg); color: var(--color-ink);
+  }
+  .join-modal .code-input:focus { outline: none; border-color: var(--color-accent); }
+
   .storage-warn {
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -652,6 +765,7 @@ permalink: /toolbox/pet-food/
   <div class="pet-bar" id="pet-bar">
     <div class="pet-tabs" id="pet-tabs"></div>
     <button type="button" class="icon-btn" id="pet-add">+ 宠物</button>
+    <button type="button" class="icon-btn" id="pet-join">🔑 用宠物码</button>
     <button type="button" class="icon-btn" id="pet-edit" style="display: none;">⚙ 设置</button>
   </div>
 
@@ -659,6 +773,7 @@ permalink: /toolbox/pet-food/
     <div class="empty-emoji">🐾</div>
     <div>还没有宠物——先建一只吧</div>
     <button type="button" class="add-btn" id="empty-add">+ 添加第一只</button>
+    <button type="button" class="icon-btn" id="empty-join" style="margin-top: 0.6rem;">🔑 用宠物码加入</button>
   </div>
 
   <div id="pet-view" style="display: none;">
@@ -866,10 +981,44 @@ permalink: /toolbox/pet-food/
         </div>
       </details>
 
+      <div class="sub-section" id="pm-share-section">分享给其他人</div>
+      <div class="share-block" id="pm-share-block">
+        <div id="pm-share-create" style="display:none;">
+          <p class="hint" style="margin: 0 0 0.5rem;">把宠物分享给家人，他们可以一起记录食量</p>
+          <button type="button" class="share-mini-btn" id="pm-make-shared" style="font-size: 0.85rem; padding: 0.45rem 1rem;">🔗 生成宠物码</button>
+        </div>
+        <div id="pm-share-existing" style="display:none;">
+          <div class="share-code-row">
+            <span class="hint" style="margin: 0;">宠物码</span>
+            <code class="pet-code" id="pm-share-code">XXXXXX</code>
+            <button type="button" class="share-mini-btn" id="pm-copy-code">📋 复制</button>
+            <button type="button" class="share-mini-btn" id="pm-regen-code">🔄 重生</button>
+          </div>
+          <div>
+            <span class="hint" style="margin: 0;">成员</span>
+            <ul class="members-list" id="pm-members-list"></ul>
+          </div>
+          <div class="your-role" id="pm-your-role"></div>
+        </div>
+      </div>
+
       <div class="modal-actions">
         <button type="button" class="del" id="pm-delete" style="display: none;">🗑 删除</button>
         <button type="button" class="cancel" id="pm-cancel">取消</button>
         <button type="button" class="save" id="pm-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Join via code modal -->
+  <div class="modal-backdrop join-modal" id="join-modal">
+    <div class="modal">
+      <h2>🔑 用宠物码加入</h2>
+      <p class="hint" style="text-align: center; margin-bottom: 0.9rem;">向主人要 6 位宠物码，加入后可一起记录</p>
+      <input type="text" id="join-code" class="code-input" maxlength="6" placeholder="ABCXYZ" autocomplete="off" />
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="join-cancel">取消</button>
+        <button type="button" class="save" id="join-confirm">加入</button>
       </div>
     </div>
   </div>
@@ -913,6 +1062,51 @@ permalink: /toolbox/pet-food/
   'use strict';
 
   const STORE_KEY = 'tool.pet-food.v1';
+  const DEVICE_KEY = 'tool.pet-food.deviceId';
+  const API_BASE  = 'https://zircon-urge.fly.dev/api/pet-food';
+
+  // ===== Identity =====
+  function getDeviceId() {
+    let id = '';
+    try { id = localStorage.getItem(DEVICE_KEY) || ''; } catch (_) {}
+    if (!id || id.length < 8) {
+      // Crypto-strong random; falls back to Math.random if needed
+      let bytes;
+      try {
+        bytes = new Uint8Array(16);
+        (window.crypto || window.msCrypto).getRandomValues(bytes);
+      } catch (_) {
+        bytes = new Uint8Array(16).map(() => Math.floor(Math.random() * 256));
+      }
+      id = 'd-' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+      try { localStorage.setItem(DEVICE_KEY, id); } catch (_) {}
+    }
+    return id;
+  }
+  const DEVICE_ID = getDeviceId();
+
+  // ===== Backend API wrapper =====
+  async function api(action, opts = {}) {
+    const qs = new URLSearchParams({ action });
+    if (opts.petId) qs.set('petId', opts.petId);
+    const method = opts.method || (opts.body ? 'POST' : 'GET');
+    const headers = { 'X-Device-Id': DEVICE_ID };
+    if (opts.body) headers['Content-Type'] = 'application/json';
+    const r = await fetch(`${API_BASE}?${qs}`, {
+      method,
+      headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    });
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = { error: 'parse_error', raw: text }; }
+    if (!r.ok || !data || data.ok === false) {
+      const err = new Error((data && data.error) || `http_${r.status}`);
+      err.status = r.status;
+      throw err;
+    }
+    return data;
+  }
   const EMOJIS = ['🐱', '🐈', '🐈‍⬛', '🐕', '🐶', '🐰', '🐹', '🐭', '🐦', '🦜', '🐢', '🐠'];
   const DAY_MS = 86400000;
 
@@ -1353,6 +1547,8 @@ permalink: /toolbox/pet-food/
   // ===== DOM =====
   const $petTabs = document.getElementById('pet-tabs');
   const $petAdd = document.getElementById('pet-add');
+  const $petJoin = document.getElementById('pet-join');
+  const $emptyJoin = document.getElementById('empty-join');
   const $petEdit = document.getElementById('pet-edit');
   const $petEmpty = document.getElementById('pet-empty');
   const $petView = document.getElementById('pet-view');
@@ -1419,6 +1615,22 @@ permalink: /toolbox/pet-food/
   const $pmPhotoBtn = document.getElementById('pm-photo-btn');
   const $pmPhotoIcon = document.getElementById('pm-photo-icon');
   const $pmPhotoThumb = document.getElementById('pm-photo-thumb');
+
+  const $pmShareSection = document.getElementById('pm-share-section');
+  const $pmShareBlock = document.getElementById('pm-share-block');
+  const $pmShareCreate = document.getElementById('pm-share-create');
+  const $pmShareExisting = document.getElementById('pm-share-existing');
+  const $pmShareCode = document.getElementById('pm-share-code');
+  const $pmMakeShared = document.getElementById('pm-make-shared');
+  const $pmCopyCode = document.getElementById('pm-copy-code');
+  const $pmRegenCode = document.getElementById('pm-regen-code');
+  const $pmMembersList = document.getElementById('pm-members-list');
+  const $pmYourRole = document.getElementById('pm-your-role');
+
+  const $joinModal = document.getElementById('join-modal');
+  const $joinCode = document.getElementById('join-code');
+  const $joinCancel = document.getElementById('join-cancel');
+  const $joinConfirm = document.getElementById('join-confirm');
 
   const $cropModal = document.getElementById('crop-modal');
   const $cropStage = document.getElementById('crop-stage');
@@ -1606,6 +1818,75 @@ permalink: /toolbox/pet-food/
     return state.pets.find(p => p.id === state.currentId) || null;
   }
 
+  // ===== Role helpers =====
+  function myRoleFor(pet) {
+    if (!pet || !pet.shared) return 'owner';   // local pets: you're the owner
+    const m = (pet.members || []).find(x => x.deviceId === DEVICE_ID);
+    return m ? m.role : null;
+  }
+  function isOwner(pet)   { return myRoleFor(pet) === 'owner'; }
+  function isAdminOrUp(pet) { const r = myRoleFor(pet); return r === 'owner' || r === 'admin'; }
+
+  // ===== Backend sync =====
+  // Pet schema fields that get synced to backend metadata
+  const META_FIELDS = [
+    'name','emoji','avatar',
+    'bowlWeight','bowlUnit',
+    'dailyTargetMin','dailyTargetMax','showTargetOnChart',
+    'species','breed','ageYears','bodyWeight','bodyWeightUnit','activity','neutered',
+    'preferredUnit',
+  ];
+  function petMetaPatch(pet) {
+    const out = {};
+    META_FIELDS.forEach(k => { out[k] = pet[k]; });
+    return out;
+  }
+  let metaPushTimer = null;
+  function schedulePushMeta(pet) {
+    if (!pet || !pet.shared || !pet.serverPetId) return;
+    clearTimeout(metaPushTimer);
+    metaPushTimer = setTimeout(async () => {
+      try {
+        await api('update', {
+          petId: pet.serverPetId,
+          body: { patch: petMetaPatch(pet) },
+        });
+      } catch (e) { /* swallow; cached locally */ }
+    }, 600);
+  }
+
+  async function pullSharedPets() {
+    const shared = state.pets.filter(p => p.shared && p.serverPetId);
+    if (shared.length === 0) return;
+    await Promise.all(shared.map(async p => {
+      try {
+        const r = await api('get', { petId: p.serverPetId });
+        if (r && r.pet) {
+          META_FIELDS.forEach(k => { if (r.pet[k] !== undefined) p[k] = r.pet[k]; });
+        }
+        if (r && Array.isArray(r.members)) p.members = r.members;
+        if (r && Array.isArray(r.entries)) p.entries = r.entries;
+        if (r && r.code) p.serverCode = r.code;
+      } catch (e) {
+        // 403 = kicked from members; 404 = pet deleted by owner — both: orphan locally
+        if (e && (e.status === 403 || e.status === 404)) {
+          state.pets = state.pets.filter(x => x.id !== p.id);
+          if (state.currentId === p.id) state.currentId = (state.pets[0] || {}).id || null;
+        }
+      }
+    }));
+    persist();
+  }
+
+  async function pushAddEntry(pet, entry) {
+    if (!pet.shared || !pet.serverPetId) return;
+    try { await api('add-entry', { petId: pet.serverPetId, body: { entry } }); } catch (_) {}
+  }
+  async function pushDeleteEntry(pet, entryId) {
+    if (!pet.shared || !pet.serverPetId) return;
+    try { await api('delete-entry', { petId: pet.serverPetId, body: { entryId } }); } catch (_) {}
+  }
+
   function petIconHtml(p) {
     if (p.avatar) {
       return `<span class="pet-icon"><img src="${p.avatar}" alt=""></span>`;
@@ -1627,7 +1908,7 @@ permalink: /toolbox/pet-food/
     $petEdit.style.display = '';
 
     $petTabs.innerHTML = state.pets.map(p =>
-      `<button type="button" class="pet-tab ${p.id === state.currentId ? 'active' : ''}" data-id="${p.id}">${petIconHtml(p)}<span>${escapeHtml(p.name)}</span></button>`
+      `<button type="button" class="pet-tab ${p.id === state.currentId ? 'active' : ''} ${p.shared ? 'shared-tab' : ''}" data-id="${p.id}">${petIconHtml(p)}<span>${escapeHtml(p.name)}</span></button>`
     ).join('');
     $petTabs.querySelectorAll('.pet-tab').forEach(b => {
       b.addEventListener('click', () => {
@@ -1702,6 +1983,7 @@ permalink: /toolbox/pet-food/
 
     renderRecommendation(pet, todayEaten);
     renderTargetToggle(pet);
+    applyEntryFormLock();
     renderEntriesList($entriesToday, todayDeltas, pet, '今天还没记录');
     renderHistory(deltas, pet);
     renderTrend(deltas, pet);
@@ -1773,9 +2055,11 @@ permalink: /toolbox/pet-food/
       btn.addEventListener('click', () => {
         if (!confirm('删除这条记录？')) return;
         const p = currentPet(); if (!p) return;
-        p.entries = p.entries.filter(x => x.id !== btn.dataset.eid);
+        const eid = btn.dataset.eid;
+        p.entries = p.entries.filter(x => x.id !== eid);
         persist();
         render();
+        pushDeleteEntry(p, eid);
       });
     });
   }
@@ -1827,9 +2111,11 @@ permalink: /toolbox/pet-food/
       btn.addEventListener('click', () => {
         if (!confirm('删除这条记录？')) return;
         const p = currentPet(); if (!p) return;
-        p.entries = p.entries.filter(x => x.id !== btn.dataset.eid);
+        const eid = btn.dataset.eid;
+        p.entries = p.entries.filter(x => x.id !== eid);
         persist();
         render();
+        pushDeleteEntry(p, eid);
       });
     });
   }
@@ -2323,6 +2609,111 @@ permalink: /toolbox/pet-food/
   $cropCancel.addEventListener('click', closeCropModal);
   $cropModal.addEventListener('click', e => { if (e.target === $cropModal) closeCropModal(); });
 
+  // ===== Modal share section + permission gating =====
+  function renderShareSection(p) {
+    const modalEl = $modal.querySelector('.modal');
+    if (!p) {
+      // Adding a new pet: hide share section entirely
+      $pmShareSection.style.display = 'none';
+      $pmShareBlock.style.display = 'none';
+      modalEl.classList.remove('pm-locked', 'pm-locked-name');
+      $pmDelete.style.display = 'none';
+      return;
+    }
+    $pmShareSection.style.display = '';
+    $pmShareBlock.style.display = '';
+
+    const role = myRoleFor(p);                 // 'owner' | 'admin' | 'regular' (shared) or 'owner' for local
+    const owner = isOwner(p);
+    const adminUp = isAdminOrUp(p);
+
+    if (p.shared && p.serverPetId) {
+      $pmShareCreate.style.display = 'none';
+      $pmShareExisting.style.display = '';
+      $pmShareCode.textContent = p.serverCode || '——';
+      $pmRegenCode.style.display = owner ? '' : 'none';
+      // Members list
+      const meId = DEVICE_ID;
+      const members = p.members || [];
+      $pmMembersList.innerHTML = members.map(m => {
+        const self = m.deviceId === meId;
+        const shortId = m.deviceId.slice(2, 10);
+        const roleLbl = m.role === 'owner' ? '主人' : (m.role === 'admin' ? '管理员' : '成员');
+        const actions = [];
+        if (owner && !self) {
+          if (m.role === 'admin') actions.push(`<button data-act="role" data-target="${m.deviceId}" data-role="regular">设为成员</button>`);
+          else if (m.role === 'regular') actions.push(`<button data-act="role" data-target="${m.deviceId}" data-role="admin">设为管理员</button>`);
+          actions.push(`<button data-act="transfer" data-target="${m.deviceId}">转让主人</button>`);
+          actions.push(`<button class="danger" data-act="remove" data-target="${m.deviceId}">移除</button>`);
+        }
+        return `<li>
+          <span class="m-id ${self ? 'm-self' : ''}">${self ? '你 · ' : ''}${escapeHtml(shortId)}</span>
+          <span class="m-role ${m.role}">${roleLbl}</span>
+          <span class="m-actions">${actions.join('')}</span>
+        </li>`;
+      }).join('');
+      // Wire up actions
+      $pmMembersList.querySelectorAll('button[data-act]').forEach(btn => {
+        btn.addEventListener('click', () => handleMemberAction(p, btn.dataset));
+      });
+      // Your role text
+      const roleZh = role === 'owner' ? '主人' : role === 'admin' ? '管理员' : '成员';
+      $pmYourRole.innerHTML = `你是 <strong>${roleZh}</strong>`;
+    } else {
+      $pmShareCreate.style.display = '';
+      $pmShareExisting.style.display = 'none';
+    }
+
+    // Permission gating
+    // Regular: lock everything except entry recording. Modal save still allowed (no-op on locked fields).
+    // Admin: lock name/emoji/avatar; unlock all metadata.
+    // Owner: full access.
+    modalEl.classList.toggle('pm-locked', role === 'regular');
+
+    // Owner-only fields: name input + avatar row
+    $pmName.disabled = !owner && p.shared;
+    $pmAvatarRow.style.pointerEvents = (!owner && p.shared) ? 'none' : '';
+    $pmAvatarRow.style.opacity = (!owner && p.shared) ? '0.55' : '';
+
+    // Make-shared button visible only on local pets (you're the owner)
+    $pmMakeShared.style.display = (!p.shared && owner) ? '' : 'none';
+
+    // Delete button: text adapts
+    $pmDelete.style.display = '';
+    if (p.shared && !owner) $pmDelete.textContent = '🚪 退出共享';
+    else $pmDelete.textContent = '🗑 删除';
+  }
+
+  async function handleMemberAction(p, ds) {
+    if (!p.serverPetId) return;
+    const target = ds.target;
+    try {
+      if (ds.act === 'role') {
+        await api('set-role', { petId: p.serverPetId, body: { targetDeviceId: target, role: ds.role } });
+      } else if (ds.act === 'remove') {
+        if (!confirm('把这个成员移出？他们将立即失去访问权。')) return;
+        await api('remove-member', { petId: p.serverPetId, body: { targetDeviceId: target } });
+      } else if (ds.act === 'transfer') {
+        if (!confirm('把主人身份转让给 ' + target.slice(2, 10) + '？你将变成管理员。')) return;
+        await api('transfer', { petId: p.serverPetId, body: { newOwnerDeviceId: target } });
+      }
+      const r = await api('get', { petId: p.serverPetId });
+      p.members = r.members || p.members;
+      persist();
+      renderShareSection(p);
+      render();
+    } catch (e) {
+      alert('操作失败：' + (e.message || 'unknown'));
+    }
+  }
+
+  function applyEntryFormLock() {
+    const pet = currentPet();
+    const role = pet ? myRoleFor(pet) : 'owner';
+    const lockBowl = pet && pet.shared && role === 'regular';
+    $bowlRow.classList.toggle('locked', !!lockBowl);
+  }
+
   // ===== Modal =====
   function openModal(id) {
     state.editingId = id || null;
@@ -2369,6 +2760,8 @@ permalink: /toolbox/pet-food/
     }
     refreshEstimatorPreview();
     updateAvatarSelection();
+    const editingPet = id ? state.pets.find(x => x.id === id) : null;
+    renderShareSection(editingPet);
     $modal.classList.add('open');
     setTimeout(() => $pmName.focus(), 50);
   }
@@ -2378,6 +2771,114 @@ permalink: /toolbox/pet-food/
     state.pendingAvatar = null;
   }
 
+  // ===== Join via code =====
+  function openJoinModal() {
+    $joinCode.value = '';
+    $joinModal.classList.add('open');
+    setTimeout(() => $joinCode.focus(), 50);
+  }
+  function closeJoinModal() { $joinModal.classList.remove('open'); }
+  $petJoin.addEventListener('click', openJoinModal);
+  $emptyJoin.addEventListener('click', openJoinModal);
+  $joinCancel.addEventListener('click', closeJoinModal);
+  $joinModal.addEventListener('click', e => { if (e.target === $joinModal) closeJoinModal(); });
+  $joinCode.addEventListener('input', () => { $joinCode.value = $joinCode.value.toUpperCase(); });
+  $joinCode.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); $joinConfirm.click(); }
+  });
+  $joinConfirm.addEventListener('click', async () => {
+    const code = $joinCode.value.trim().toUpperCase();
+    if (!code || code.length < 4) { $joinCode.focus(); return; }
+    $joinConfirm.disabled = true; $joinConfirm.textContent = '加入中…';
+    try {
+      const r = await api('join', { body: { code } });
+      // Avoid dup if user already had this pet locally
+      const existing = state.pets.find(p => p.serverPetId === r.petId);
+      if (existing) {
+        Object.assign(existing, r.pet || {}, {
+          shared: true, serverPetId: r.petId, serverCode: r.code,
+          members: r.members || [], entries: r.entries || [],
+        });
+        state.currentId = existing.id;
+      } else {
+        const newPet = {
+          id: uuid('pet'),
+          shared: true,
+          serverPetId: r.petId,
+          serverCode: r.code,
+          members: r.members || [],
+          entries: r.entries || [],
+          createdAt: new Date().toISOString(),
+          preferredUnit: 'g',
+          bowlUnit: 'g',
+          bodyWeightUnit: 'kg',
+          showTargetOnChart: true,
+        };
+        META_FIELDS.forEach(k => { if (r.pet && r.pet[k] !== undefined) newPet[k] = r.pet[k]; });
+        if (!newPet.name) newPet.name = '共享宠物';
+        if (!newPet.emoji) newPet.emoji = '🐾';
+        state.pets.push(newPet);
+        state.currentId = newPet.id;
+      }
+      persist();
+      render();
+      closeJoinModal();
+    } catch (e) {
+      const msg = e && e.message === 'code_not_found' ? '宠物码不存在' : ('加入失败：' + (e.message || 'unknown'));
+      alert(msg);
+    } finally {
+      $joinConfirm.disabled = false; $joinConfirm.textContent = '加入';
+    }
+  });
+
+  // ===== Make local pet shared =====
+  $pmMakeShared.addEventListener('click', async () => {
+    if (!state.editingId) return;
+    const p = state.pets.find(x => x.id === state.editingId);
+    if (!p) return;
+    $pmMakeShared.disabled = true; $pmMakeShared.textContent = '生成中…';
+    try {
+      const payload = petMetaPatch(p);
+      payload.entries = p.entries || [];
+      const r = await api('create', { body: { pet: payload } });
+      p.shared = true;
+      p.serverPetId = r.petId;
+      p.serverCode = r.code;
+      p.members = r.members || [];
+      persist();
+      // Refresh modal share UI
+      renderShareSection(p);
+    } catch (e) {
+      alert('生成失败：' + (e.message || 'unknown'));
+    } finally {
+      $pmMakeShared.disabled = false; $pmMakeShared.textContent = '🔗 生成宠物码';
+    }
+  });
+
+  // ===== Copy + regen code =====
+  $pmCopyCode.addEventListener('click', async () => {
+    const code = $pmShareCode.textContent;
+    try {
+      await navigator.clipboard.writeText(code);
+      $pmCopyCode.textContent = '✓ 已复制';
+      setTimeout(() => { $pmCopyCode.textContent = '📋 复制'; }, 1600);
+    } catch (_) { /* */ }
+  });
+  $pmRegenCode.addEventListener('click', async () => {
+    if (!state.editingId) return;
+    const p = state.pets.find(x => x.id === state.editingId);
+    if (!p || !p.serverPetId) return;
+    if (!confirm('生成新宠物码？旧的码会立刻失效。')) return;
+    try {
+      const r = await api('regenerate-code', { petId: p.serverPetId, body: {} });
+      p.serverCode = r.code;
+      $pmShareCode.textContent = r.code;
+      persist();
+    } catch (e) {
+      alert('失败：' + (e.message || 'unknown'));
+    }
+  });
+
   $petAdd.addEventListener('click', () => openModal(null));
   $emptyAdd.addEventListener('click', () => openModal(null));
   $petEdit.addEventListener('click', () => { if (state.currentId) openModal(state.currentId); });
@@ -2386,6 +2887,7 @@ permalink: /toolbox/pet-food/
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if ($cropModal.classList.contains('open')) closeCropModal();
+    else if ($joinModal.classList.contains('open')) closeJoinModal();
     else if ($mmModal.classList.contains('open')) $mmModal.classList.remove('open');
     else if ($modal.classList.contains('open')) closeModal();
   });
@@ -2443,14 +2945,31 @@ permalink: /toolbox/pet-food/
       });
       state.currentId = id;
     }
+    const savedId = state.editingId || state.currentId;
     persist();
     closeModal();
     render();
+    schedulePushMeta(state.pets.find(p => p.id === savedId) || null);
   });
 
-  $pmDelete.addEventListener('click', () => {
+  $pmDelete.addEventListener('click', async () => {
     if (!state.editingId) return;
-    if (!confirm('删除这只宠物以及所有记录？')) return;
+    const p = state.pets.find(x => x.id === state.editingId);
+    if (!p) return;
+
+    if (p.shared && p.serverPetId) {
+      if (isOwner(p)) {
+        if (!confirm('彻底删除这只宠物？所有共享的人都会失去这只宠物（包含所有记录）。')) return;
+        try { await api('delete', { petId: p.serverPetId, body: {} }); }
+        catch (e) { alert('删除失败：' + (e.message || 'unknown')); return; }
+      } else {
+        if (!confirm('仅从你这边移除？其他人仍能继续记录。')) return;
+        try { await api('leave', { petId: p.serverPetId, body: {} }); } catch (_) {}
+      }
+    } else {
+      if (!confirm('删除这只宠物以及所有记录？')) return;
+    }
+
     state.pets = state.pets.filter(x => x.id !== state.editingId);
     if (state.currentId === state.editingId) {
       state.currentId = state.pets[0] ? state.pets[0].id : null;
@@ -2464,18 +2983,22 @@ permalink: /toolbox/pet-food/
   function saveEntry(reading, withBowl) {
     const pet = currentPet();
     if (!pet) return;
-    pet.entries.push({
+    const newEntry = {
       id: uuid('e'),
       ts: Date.now(),
       reading,
       withBowl,
       note: '',
-    });
+      author: DEVICE_ID,
+    };
+    pet.entries.push(newEntry);
     pet.preferredUnit = $unitPick.value || 'g';
     persist();
     $reading.value = '';
     render();
     $reading.focus();
+    pushAddEntry(pet, newEntry);
+    schedulePushMeta(pet);
   }
 
   function attemptSave() {
@@ -2541,6 +3064,7 @@ permalink: /toolbox/pet-food/
     if (changed) {
       persist();
       render();
+      schedulePushMeta(pet);
     } else {
       checkFormWarn();
     }
@@ -2618,5 +3142,7 @@ permalink: /toolbox/pet-food/
   // ===== Init =====
   load();
   render();
+  // Pull fresh data for any shared pets (best-effort)
+  pullSharedPets().then(() => render()).catch(() => {});
 })();
 </script>
