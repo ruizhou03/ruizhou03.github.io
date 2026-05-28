@@ -41,6 +41,33 @@ permalink: /toolbox/pet-food/
   @media (hover: hover) {
     .pet-bar .pet-tab:hover:not(.active) { border-color: var(--color-accent); color: var(--color-accent); }
   }
+  .pet-add-wrap { position: relative; display: inline-block; }
+  .pet-add-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 50;
+    display: none;
+    flex-direction: column;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    min-width: 160px;
+    padding: 0.25rem;
+  }
+  .pet-add-menu.open { display: flex; }
+  .pet-add-menu button {
+    font: inherit; font-size: 0.88rem;
+    padding: 0.5rem 0.85rem;
+    border: none; border-radius: 6px;
+    background: transparent; color: var(--color-ink);
+    cursor: pointer; text-align: left;
+    white-space: nowrap;
+  }
+  @media (hover: hover) {
+    .pet-add-menu button:hover { background: var(--color-bg-warm); color: var(--color-accent); }
+  }
   .pet-bar .icon-btn {
     font: inherit; font-size: 0.85rem;
     padding: 0.45rem 0.9rem;
@@ -807,10 +834,14 @@ permalink: /toolbox/pet-food/
 
   <div class="pet-bar" id="pet-bar">
     <div class="pet-tabs" id="pet-tabs"></div>
-    <button type="button" class="icon-btn" id="pet-add">+ 宠物</button>
-    <button type="button" class="icon-btn" id="pet-join">🔑 用宠物码</button>
+    <div class="pet-add-wrap" id="pet-add-wrap">
+      <button type="button" class="icon-btn" id="pet-add">+ 宠物 ▾</button>
+      <div class="pet-add-menu" id="pet-add-menu">
+        <button type="button" data-act="new">🆕 新建宠物</button>
+        <button type="button" data-act="join">🔑 用宠物码加入</button>
+      </div>
+    </div>
     <button type="button" class="icon-btn" id="profile-btn">👤</button>
-    <button type="button" class="icon-btn" id="pet-edit" style="display: none;">⚙ 设置</button>
   </div>
 
   <div class="empty-zone" id="pet-empty">
@@ -1628,9 +1659,9 @@ permalink: /toolbox/pet-food/
   // ===== DOM =====
   const $petTabs = document.getElementById('pet-tabs');
   const $petAdd = document.getElementById('pet-add');
-  const $petJoin = document.getElementById('pet-join');
+  const $petAddMenu = document.getElementById('pet-add-menu');
+  const $petAddWrap = document.getElementById('pet-add-wrap');
   const $emptyJoin = document.getElementById('empty-join');
-  const $petEdit = document.getElementById('pet-edit');
   const $petEmpty = document.getElementById('pet-empty');
   const $petView = document.getElementById('pet-view');
   const $emptyAdd = document.getElementById('empty-add');
@@ -1986,12 +2017,10 @@ permalink: /toolbox/pet-food/
       $petEmpty.style.display = '';
       $petView.style.display = 'none';
       $petTabs.innerHTML = '';
-      $petEdit.style.display = 'none';
       return;
     }
     $petEmpty.style.display = 'none';
     $petView.style.display = '';
-    $petEdit.style.display = '';
 
     $petTabs.innerHTML = state.pets.map(p =>
       `<button type="button" class="pet-tab ${p.id === state.currentId ? 'active' : ''}" data-id="${p.id}">${petIconHtml(p)}<span>${escapeHtml(p.name)}</span></button>`
@@ -2966,7 +2995,6 @@ permalink: /toolbox/pet-food/
     setTimeout(() => $joinCode.focus(), 50);
   }
   function closeJoinModal() { $joinModal.classList.remove('open'); }
-  $petJoin.addEventListener('click', openJoinModal);
   $emptyJoin.addEventListener('click', openJoinModal);
   $joinCancel.addEventListener('click', closeJoinModal);
   $joinModal.addEventListener('click', e => { if (e.target === $joinModal) closeJoinModal(); });
@@ -3067,13 +3095,27 @@ permalink: /toolbox/pet-food/
     }
   });
 
-  $petAdd.addEventListener('click', () => openModal(null));
+  // + 宠物 → dropdown 菜单（新建 / 用宠物码加入）
+  $petAdd.addEventListener('click', (e) => {
+    e.stopPropagation();
+    $petAddMenu.classList.toggle('open');
+  });
+  $petAddMenu.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    $petAddMenu.classList.remove('open');
+    if (btn.dataset.act === 'new') openModal(null);
+    else if (btn.dataset.act === 'join') openJoinModal();
+  });
+  document.addEventListener('click', (e) => {
+    if (!$petAddWrap.contains(e.target)) $petAddMenu.classList.remove('open');
+  });
   $emptyAdd.addEventListener('click', () => openModal(null));
-  $petEdit.addEventListener('click', () => { if (state.currentId) openModal(state.currentId); });
   $pmCancel.addEventListener('click', closeModal);
   $modal.addEventListener('click', e => { if (e.target === $modal) closeModal(); });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
+    if ($petAddMenu.classList.contains('open')) { $petAddMenu.classList.remove('open'); return; }
     if ($cropModal.classList.contains('open')) closeCropModal();
     else if ($joinModal.classList.contains('open')) closeJoinModal();
     else if ($profileModal.classList.contains('open')) closeProfileModal();
