@@ -757,7 +757,8 @@
     hand: $('gdHand'),
     playBtn: $('gdPlayBtn'), passBtn: $('gdPassBtn'),
     hintBtn: $('gdHintBtn'), sortBtn: $('gdSortBtn'),
-    arrangeBtn: $('gdArrangeBtn'),
+    arrangeBtn: $('gdArrangeBtn'), restoreBtn: $('gdRestoreBtn'),
+    selfClock: $('gdSelfClock'),
     pgo: $('gdPgo'), pgoStart: $('gdPgoStart'),
     pgoDiff: $('gdPgoDiff'), pgoStats: $('gdPgoStats'), hs: $('gdHs'),
     tribOverlay: $('gdTributeOverlay'), tribTitle: $('gdTribTitle'),
@@ -969,7 +970,7 @@
     if (lp === 'pass') {
       // 大字"不要"浮窗：仿欢乐斗地主——每家弃出都让人一眼看见，不再藏在虚线小角标里
       const big = document.createElement('span');
-      big.className = 'gd-pass-big'; big.textContent = '不要';
+      big.className = 'gd-pass-big'; big.textContent = '不出';
       slot.appendChild(big);
     } else if (lp && lp.cards) {
       const row = document.createElement('div');
@@ -1306,6 +1307,7 @@
     // 自动勾选一手"最经济的能压牌"。键由 trick 状态 + 手牌张数构成，状态变 → 重新自动选；
     // 状态不变即"同一回合内"，无论用户再怎么改动都听用户的（不复选）。
     maybeAutoSelectForTurn();
+    updateRestoreBtn();
   }
 
   // "轮到我"的开局自动选牌已按用户反馈完全关闭——开局不替用户选。
@@ -1442,7 +1444,7 @@
     state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
     renderAll();
     if (leader !== 0) scheduleAI();
-    else { updateActions(); }
+    else { updateActions(); armTurnClock(); }
   }
 
   function seatName(s) {
@@ -1665,6 +1667,7 @@
     renderAll();
     if (nx === 0 && !state.out.includes(0)) {
       updateActions();
+      armTurnClock();
     } else {
       scheduleAI();
     }
@@ -1685,7 +1688,7 @@
     state.turn = leader;
     state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
     renderAll();
-    if (leader === 0 && !state.out.includes(0)) updateActions();
+    if (leader === 0 && !state.out.includes(0)) { updateActions(); armTurnClock(); }
     else scheduleAI();
   }
 
@@ -1771,6 +1774,7 @@
         `${teamLabel} 升级：${LEVEL_SEQ[beforeIdx]} → ${LEVEL_SEQ[newIdx]} · ${advText}`;
     }
     els.roundNext.textContent = matchWon ? '查看战报 ▶' : '继续 ▶';
+    stopTurnClock();
     els.roundOverlay.classList.add('open');
     els.roundNext.onclick = () => {
       els.roundOverlay.classList.remove('open');
@@ -1805,6 +1809,7 @@
     state.stats.bestLevel = Math.max(state.stats.bestLevel || 0, state.levels[0]);
     persist();
     refreshHs();
+    stopTurnClock();
     els.matchOverlay.classList.add('open');
     if (youWon) submitWin();
   }
@@ -1812,10 +1817,109 @@
   // ===========================================================
   //  AI 决策
   // ===========================================================
+  // ===========================================================
+  //  轮次倒计时（仿斗地主 clockEl / startTurnCountdown）
+  // ===========================================================
+  const TURN_TIMEOUT_MS = 25000;
+  const AI_CLOCK_MS = 25000;   // AI 通常 < 1s 出牌 → 这个值大多走不完
+  let turnClockTimer = null;
+  let turnClockEndAt = 0;
+  let turnClockSeat = -1;
+
+  function clockEl(seat) {
+    if (seat === 0) return els.selfClock || null;
+    const playedEl = seatEls[seat] && seatEls[seat].play;
+    if (!playedEl) return null;
+    let clock = playedEl.querySelector('.gd-played-clock');
+    if (!clock) {
+      // AI 出牌槽里灌时钟；commitPlay 之后 renderPlayArea 会用真出牌覆盖
+      playedEl.innerHTML = '';
+      playedEl.dataset.lpKey = '__clock__';
+      clock = document.createElement('span');
+      clock.className = 'gd-played-clock';
+      clock.innerHTML =
+        '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">' +
+          '<circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
+          '<path d="M12 13 V8 M12 13 L15.4 14.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>' +
+          '<path d="M9.5 3.5 H14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+        '</svg>' +
+        '<span class="gd-played-clock-num">25</span><span class="gd-played-clock-s">s</span>';
+      playedEl.appendChild(clock);
+    }
+    return clock;
+  }
+  function hideAllClocks() {
+    if (els.selfClock) { els.selfClock.hidden = true; els.selfClock.classList.remove('urgent'); }
+    for (let s = 1; s < 4; s++) {
+      const p = seatEls[s] && seatEls[s].play;
+      if (!p) continue;
+      p.querySelectorAll('.gd-played-clock').forEach(el => el.remove());
+    }
+  }
+  function startTurnClock(seat, onTimeout, durationMs) {
+    stopTurnClock();
+    turnClockEndAt = Date.now() + (durationMs || TURN_TIMEOUT_MS);
+    turnClockSeat = seat;
+    const el = clockEl(seat);
+    if (!el) return;
+    el.hidden = false;
+    el.classList.remove('urgent');
+    const numEl = el.querySelector('.gd-self-clock-num, .gd-played-clock-num');
+    function tick() {
+      const left = Math.max(0, turnClockEndAt - Date.now());
+      const s = Math.ceil(left / 1000);
+      if (numEl) numEl.textContent = String(s);
+      else el.textContent = s + 's';
+      el.classList.toggle('urgent', s <= 5);
+      if (left <= 0) {
+        stopTurnClock();
+        try { onTimeout && onTimeout(); } catch (e) { console.warn(e); }
+      }
+    }
+    tick();
+    turnClockTimer = setInterval(tick, 250);
+  }
+  function stopTurnClock() {
+    if (turnClockTimer) clearInterval(turnClockTimer);
+    turnClockTimer = null;
+    turnClockSeat = -1;
+    hideAllClocks();
+  }
+  // 轮到某座位时挂上对应时钟。玩家超时 → 自动"不出"或打出最小单张领出
+  function armTurnClock() {
+    if (state.phase !== PHASE.PLAYING) { stopTurnClock(); return; }
+    if (state.out.includes(state.turn)) { stopTurnClock(); return; }
+    const seat = state.turn;
+    if (seat === 0) {
+      startTurnClock(0, autoPlayOnTimeout, TURN_TIMEOUT_MS);
+    } else {
+      startTurnClock(seat, null, AI_CLOCK_MS);
+    }
+  }
+  function autoPlayOnTimeout() {
+    if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
+    const trick = state.trick;
+    const mustLead = !trick || trick.best == null || trick.bestSeat === 0;
+    state.selected.clear();
+    if (mustLead) {
+      // 必须出 → 打最小的一张单
+      const hand = state.hands[0];
+      if (!hand.length) return;
+      const level = currentLevelLabel();
+      const sorted = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level));
+      const cb = classify([sorted[0]], level);
+      if (cb) { toast('超时自动出最小单张'); commitPlay(0, cb); }
+    } else {
+      toast('超时自动不出');
+      commitPass(0);
+    }
+  }
+
   function scheduleAI() {
     if (state.busy) return;
     state.busy = true;
     renderAll();
+    armTurnClock();    // 给当前 AI 座挂时钟
     const seat = state.turn;
     const delay = 360 + Math.random() * 320;
     setTimeout(() => {
@@ -1823,6 +1927,7 @@
       // 会被自己的 busy 守卫拦截，导致出完一手就卡住（图五 bug）。
       // aiAct 是同步的，期间没有事件循环让玩家插队，所以释放是安全的。
       state.busy = false;
+      stopTurnClock();
       try { aiAct(seat); }
       catch (e) { console.error('[guandan] aiAct', e); }
       updateActions();
@@ -1986,6 +2091,7 @@
     const needBeat = trick.best != null && trick.bestSeat !== 0;
     if (needBeat && !beats(cb, trick.best)) { toast('压不过上家'); return; }
     state.selected.clear();
+    stopTurnClock();
     commitPlay(0, cb);
   }
 
@@ -1994,6 +2100,7 @@
     const trick = state.trick;
     if (!trick.best || trick.bestSeat === 0) { toast('你领出，必须出牌'); return; }
     state.selected.clear();
+    stopTurnClock();
     commitPass(0);
   }
 
@@ -2026,8 +2133,61 @@
   els.sortBtn.addEventListener('click', () => {
     state.handOrder = null;   // 清掉自定义顺序 → 回到默认（点数高→低，从左到右）
     renderHand();
+    updateRestoreBtn();
     toast('已按点数恢复默认顺序');
   });
+  if (els.restoreBtn) {
+    els.restoreBtn.addEventListener('click', () => {
+      // 选中整列（且这些列在自定义顺序里）→ 把它们从 state.handOrder 拿掉，
+      // 回到默认点数位置；其余列保持现有自定义顺序
+      const ranks = selectedFullColumnRanks();
+      if (!ranks.length) return;
+      if (Array.isArray(state.handOrder) && state.handOrder.length) {
+        state.handOrder = state.handOrder.filter(w => !ranks.includes(w));
+        if (!state.handOrder.length) state.handOrder = null;
+      }
+      state.selected.clear();
+      renderHand();
+      updateRestoreBtn();
+      updateActions();
+      toast('已还原 ' + ranks.length + ' 列到默认位置');
+    });
+  }
+
+  // 还原按钮可见性：仅当"选中的恰好是若干完整列、且这些列处于自定义顺序里"才可见。
+  // 多选一张不完整的、或没选任何整列、或这些列本就在默认位置 → 都隐藏。
+  function selectedFullColumnRanks() {
+    const sel = [...state.selected].filter(c => state.hands[0].includes(c));
+    if (!sel.length) return [];
+    const level = currentLevelLabel();
+    // 按 weight 分组选中
+    const byW = new Map();
+    for (const c of sel) {
+      const w = singleWeight(c, level);
+      if (!byW.has(w)) byW.set(w, 0);
+      byW.set(w, byW.get(w) + 1);
+    }
+    // 手牌每个 weight 的总数
+    const handByW = new Map();
+    for (const c of state.hands[0]) {
+      const w = singleWeight(c, level);
+      handByW.set(w, (handByW.get(w) || 0) + 1);
+    }
+    // 选中的每个 weight 必须等于该 weight 在手牌中的总数（"完整一列"）
+    const cols = [];
+    for (const [w, n] of byW) {
+      if (handByW.get(w) !== n) return []; // 有列没选全 → 整体作废
+      cols.push(w);
+    }
+    // 这些列必须出现在自定义顺序里——否则按"还原"也没什么可还原的
+    if (!Array.isArray(state.handOrder) || !state.handOrder.length) return [];
+    return cols.filter(w => state.handOrder.includes(w));
+  }
+  function updateRestoreBtn() {
+    if (!els.restoreBtn) return;
+    const ranks = selectedFullColumnRanks();
+    els.restoreBtn.hidden = ranks.length === 0;
+  }
   if (els.arrangeBtn) {
     els.arrangeBtn.addEventListener('click', () => {
       state.arrangeMode = !state.arrangeMode;

@@ -364,10 +364,68 @@ permalink: /toolbox/guandan/
     box-shadow: 0 0 8px var(--gd-accent);
   }
 
+  /* 操作行（不出/提示/出牌）在手牌上方；理牌行（理牌/还原/一键理牌）在手牌下方。
+     仿斗地主的 .ddz-actions / .ddz-corner-chips 分层布局。 */
+  .gd-play-actions {
+    display: flex; gap: 0.55rem; justify-content: center; align-items: center;
+    flex-wrap: wrap; min-height: 2.4rem; margin-top: 0.2rem;
+  }
+  .gd-sort-actions {
+    display: flex; gap: 0.55rem; justify-content: center; align-items: center;
+    flex-wrap: wrap; margin-top: 0.3rem; min-height: 2rem;
+  }
+  /* legacy 类名兼容（如果别处还引用了） */
   .gd-actions {
     display: flex; gap: 0.55rem; justify-content: center;
     flex-wrap: wrap; margin-top: 0.4rem; min-height: 2.4rem;
   }
+  /* 自己回合的倒计时徽 —— 挂在动作行最左侧（仿斗地主 .ddz-self-clock） */
+  .gd-self-clock {
+    display: inline-flex; align-items: center; gap: 0.32rem;
+    padding: 0.28rem 0.7rem; border-radius: 999px;
+    background: var(--gd-card-bg);
+    border: 1.5px solid var(--gd-accent);
+    color: var(--gd-suit-black);
+    font-family: var(--font-body); font-weight: 700;
+    font-size: 0.86rem; font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    box-shadow: 0 1px 4px rgba(20,37,63,0.18);
+    pointer-events: none;
+  }
+  .gd-self-clock svg { color: var(--gd-accent); flex-shrink: 0; }
+  .gd-self-clock-num { display: inline-block; min-width: 1.6ch; text-align: right; }
+  .gd-self-clock[hidden] { display: none; }
+  .gd-self-clock.urgent {
+    background: var(--gd-suit-red); color: #fff; border-color: #fff5d4;
+    box-shadow: 0 0 12px rgba(200,40,40,0.6), 0 0 0 2px rgba(255,255,255,0.55);
+    animation: gd-clock-urgent 0.5s ease-in-out infinite alternate;
+  }
+  .gd-self-clock.urgent svg { color: #fff; }
+  @keyframes gd-clock-urgent {
+    from { transform: scale(1); }
+    to   { transform: scale(1.18); }
+  }
+  /* AI 回合的倒计时徽 —— 注入到 AI 出牌槽里；AI 一出牌即被牌覆盖消失 */
+  .gd-played .gd-played-clock {
+    display: inline-flex; align-items: center; gap: 0.28rem;
+    padding: 0.22rem 0.58rem; border-radius: 999px;
+    background: var(--gd-card-bg);
+    border: 1.5px solid var(--gd-accent);
+    color: var(--gd-suit-black);
+    font-family: var(--font-body); font-weight: 700;
+    font-size: 0.78rem; font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    box-shadow: 0 1px 4px rgba(20,37,63,0.18);
+    pointer-events: none;
+  }
+  .gd-played .gd-played-clock svg { color: var(--gd-accent); flex-shrink: 0; }
+  .gd-played .gd-played-clock-num { display: inline-block; min-width: 1.6ch; text-align: right; }
+  .gd-played .gd-played-clock.urgent {
+    background: var(--gd-suit-red); color: #fff; border-color: #fff5d4;
+    box-shadow: 0 0 10px rgba(200,40,40,0.5), 0 0 0 2px rgba(255,255,255,0.55);
+    animation: gd-clock-urgent 0.5s ease-in-out infinite alternate;
+  }
+  .gd-played .gd-played-clock.urgent svg { color: #fff; }
   .gd-btn {
     padding: 0.5rem 1.1rem; font-size: 0.92rem;
     border: 1px solid var(--color-border); background: var(--color-bg);
@@ -769,14 +827,27 @@ permalink: /toolbox/guandan/
       </div>
     </div>
 
-    <div class="gd-hand" id="gdHand"></div>
-
-    <div class="gd-actions" id="gdActions">
-      <button class="gd-btn" id="gdArrangeBtn" type="button" title="进入理牌模式：直接拖动列即可调换位置（不用长按）">🔀 理牌</button>
-      <button class="gd-btn" id="gdSortBtn" type="button" title="按点数恢复默认顺序">🧩 一键理牌</button>
-      <button class="gd-btn" id="gdPassBtn" type="button" hidden>不要</button>
+    <!-- 出牌动作行：在手牌上方（仿斗地主）。轮到我时显示倒计时 + 不出/提示/出牌 -->
+    <div class="gd-play-actions" id="gdPlayActions">
+      <span class="gd-self-clock" id="gdSelfClock" hidden aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+          <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M12 13 V8 M12 13 L15.4 14.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+          <path d="M9.5 3.5 H14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg><span class="gd-self-clock-num">25</span><span class="gd-self-clock-s">s</span>
+      </span>
+      <button class="gd-btn" id="gdPassBtn" type="button" hidden>不出</button>
       <button class="gd-btn" id="gdHintBtn" type="button" hidden>提示</button>
       <button class="gd-btn primary" id="gdPlayBtn" type="button" hidden>出牌</button>
+    </div>
+
+    <div class="gd-hand" id="gdHand"></div>
+
+    <!-- 理牌行：在手牌下方居中。还原仅在选中整列时显示 -->
+    <div class="gd-sort-actions" id="gdSortActions">
+      <button class="gd-btn" id="gdArrangeBtn" type="button" title="进入理牌模式：直接拖动列即可调换位置（不用长按）">🔀 理牌</button>
+      <button class="gd-btn" id="gdRestoreBtn" type="button" hidden title="把选中的整列恢复到默认点数位置">↩ 还原</button>
+      <button class="gd-btn" id="gdSortBtn" type="button" title="所有列恢复默认顺序（点数高→低）">🧩 一键理牌</button>
     </div>
 
     <!-- Pre-game overlay -->
