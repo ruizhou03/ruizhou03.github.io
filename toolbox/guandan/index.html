@@ -223,15 +223,19 @@ permalink: /toolbox/guandan/
   }
   .gd-card.suit-red { color: var(--gd-suit-red); }
   .gd-card.suit-black { color: var(--gd-suit-black); }
+  /* 角标：rank + 花色 水平排列。仿欢乐斗地主——堆叠列里只能看到每张牌顶部
+     一道窄带时也能看清花色（打同花顺时花色尤其关键）。 */
   .gd-card .corner {
     position: absolute;
-    display: flex; flex-direction: column; align-items: center;
+    display: flex; flex-direction: row; align-items: center;
+    gap: 2px;
     line-height: 1;
     font-family: 'Cormorant Garamond', Georgia, "Songti SC", serif;
   }
   .gd-card .corner.tl { top: 4px; left: 5px; }
   .gd-card .corner.br { bottom: 4px; right: 5px; transform: rotate(180deg); }
   .gd-card .corner .rk { font-weight: 700; }
+  .gd-card .corner .su { font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", monospace; }
   .gd-card .pip {
     position: absolute; top: 50%; left: 50%;
     transform: translate(-50%, -50%);
@@ -240,11 +244,11 @@ permalink: /toolbox/guandan/
   }
   .gd-card.size-full { width: var(--gd-card-w); height: var(--gd-card-h); }
   .gd-card.size-full .corner .rk { font-size: 14px; }
-  .gd-card.size-full .corner .su { font-size: 10px; margin-top: 1px; }
+  .gd-card.size-full .corner .su { font-size: 13px; }
   .gd-card.size-full .pip { font-size: 26px; }
   .gd-card.size-mini { width: var(--gd-card-mini-w); height: var(--gd-card-mini-h); }
   .gd-card.size-mini .corner .rk { font-size: 10px; }
-  .gd-card.size-mini .corner .su { font-size: 8px; }
+  .gd-card.size-mini .corner .su { font-size: 9px; }
   .gd-card.size-mini .pip { font-size: 18px; }
   .gd-card.is-joker .pip {
     display: flex; flex-direction: column; align-items: center;
@@ -480,6 +484,7 @@ permalink: /toolbox/guandan/
   }
 
   /* ======== 浮层（贡牌 / 回合结算 / 整局结束） ======== */
+  /* ======== 浮层（贡牌 / 回合结算 / 整局结束）—— 参照斗地主 .ddz-overlay 重做 ======== */
   .gd-overlay {
     position: absolute; inset: 0; z-index: 12;
     display: none; flex-direction: column;
@@ -488,24 +493,46 @@ permalink: /toolbox/guandan/
     backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
     border-radius: 14px; padding: 1rem; text-align: center;
   }
-  .gd-overlay.open { display: flex; }
+  .gd-overlay.open { display: flex; animation: gd-overlay-fadein 0.3s ease-out; }
+  @keyframes gd-overlay-fadein {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+  }
   .gd-overlay .panel {
     background: var(--color-bg); border: 1px solid var(--color-border);
-    border-radius: 14px; padding: 1.2rem 1.4rem; max-width: 440px; width: 100%;
+    border-radius: 14px; padding: 1.3rem 1.5rem; max-width: 440px; width: 100%;
     max-height: 86vh; overflow-y: auto;
     box-shadow: 0 8px 28px rgba(13,24,43,0.4);
   }
-  .gd-overlay h2 { color: var(--color-ink); margin-bottom: 0.6rem; font-size: 1.3rem; }
-  .gd-overlay .sub { color: var(--color-muted); font-size: 0.9rem; margin-bottom: 0.9rem; }
+  /* 大标题用金色 accent + display 字体，跟斗地主一致 */
+  .gd-overlay h2 {
+    color: var(--gd-accent-strong);
+    font-family: var(--font-display);
+    margin: 0 0 0.5rem; font-size: 1.8rem;
+    letter-spacing: 0.04em;
+  }
+  .gd-overlay .sub { color: var(--color-muted); font-size: 0.92rem; margin-bottom: 1rem; line-height: 1.6; }
   .gd-rank-list { list-style: none; padding: 0; margin: 0 0 1rem; }
   .gd-rank-list li {
     display: flex; align-items: center; gap: 0.6rem;
-    padding: 0.45rem 0.7rem; border: 1px solid var(--color-border);
-    border-radius: 8px; margin-bottom: 0.4rem; text-align: left;
+    padding: 0.55rem 0.8rem; border: 1px solid var(--color-border);
+    border-radius: 10px; margin-bottom: 0.45rem; text-align: left;
+    transition: transform 0.2s;
   }
-  .gd-rank-list li .pos { font-weight: 700; min-width: 2.6em; color: var(--color-ink); }
-  .gd-rank-list li .who { flex: 1; color: var(--color-ink); }
-  .gd-rank-list li .who small { color: var(--color-muted); }
+  .gd-rank-list li .pos {
+    font-weight: 700; min-width: 2.8em; font-size: 0.95rem;
+    color: var(--color-ink); font-family: var(--font-display);
+  }
+  .gd-rank-list li .who { flex: 1; color: var(--color-ink); font-weight: 600; }
+  .gd-rank-list li .who small { color: var(--color-muted); font-weight: 400; }
+  /* 头游条目：金色高亮 + 微抬升 */
+  .gd-rank-list li:nth-child(1) {
+    background: linear-gradient(135deg, rgba(245,178,80,0.18), rgba(255,225,140,0.10));
+    border-color: rgba(201,162,39,0.65);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(201,162,39,0.25);
+  }
+  .gd-rank-list li:nth-child(1) .pos { color: var(--gd-accent-strong); }
   .gd-rank-list li.win-team { background: rgba(30,111,79,0.08); border-color: var(--gd-team-you); }
   .gd-tribute-card { display: inline-flex; vertical-align: middle; margin: 0 0.2rem; }
   .gd-tribute-pick { display: flex; flex-wrap: wrap; gap: 0.3rem; justify-content: center; margin: 0.6rem 0; }
@@ -513,6 +540,26 @@ permalink: /toolbox/guandan/
   .gd-tribute-pick .gd-card.selected {
     box-shadow: 0 0 0 2px var(--gd-accent), 0 2px 6px rgba(0,0,0,0.25);
     transform: translateY(-6px);
+  }
+  /* 还贡倒计时 chip：直接挂在标题"还贡"右侧 */
+  .gd-trib-clock {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.12rem 0.55rem;
+    border: 1.5px solid var(--gd-accent);
+    background: var(--gd-card-bg);
+    color: var(--gd-suit-black);
+    border-radius: 999px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    vertical-align: middle;
+  }
+  .gd-trib-clock-num { display: inline-block; min-width: 1.6ch; text-align: right; }
+  .gd-trib-clock.urgent {
+    background: var(--gd-suit-red); color: #fff; border-color: #fff5d4;
+    animation: gd-clock-urgent 0.5s ease-in-out infinite alternate;
   }
 
   /* ======== Pre-game overlay 难度小结 ======== */

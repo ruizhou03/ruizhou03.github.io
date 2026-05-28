@@ -874,10 +874,10 @@
     if (Array.isArray(state.handOrder) && state.handOrder.length) {
       const present = new Set(weights);
       const filtered = state.handOrder.filter(w => present.has(w));
-      // 出过牌之后新没了的列自动剔除；如果用户排过的列里漏了某些 weight（理论不会，但保险）补到末尾
+      // 不在自定义里的列（包括新生的、"还原"释放回去的），按点数高→低重新排序追加到末尾
       const seen = new Set(filtered);
-      for (const w of weights) if (!seen.has(w)) filtered.push(w);
-      weights = filtered;
+      const unseen = weights.filter(w => !seen.has(w)).sort((a, b) => b - a);
+      weights = filtered.concat(unseen);
     } else {
       weights.sort((a, b) => b - a);                 // 默认高在左
     }
@@ -1477,23 +1477,71 @@
     const giver = fourth, receiver = first;
     const level = currentLevelLabel();
     const tributeCard = pickTributeCard(state.hands[giver], level);
-    moveCard(giver, receiver, tributeCard);
-
-    // 还贡：头游回一张 ≤10 的牌给末游（玩家参与则给 UI）
     state.pendingTribute = { giver, receiver, tributeCard, leader };
-    if (receiver === 0) {
-      // 我是头游 → 我来还贡（选 ≤10）
-      showReturnTributeUI(giver, tributeCard);
-    } else {
-      // AI 还贡
-      const back = pickReturnCard(state.hands[receiver], level);
-      moveCard(receiver, giver, back);
-      const desc = `${seatName(giver)} 进贡 ${cardText(tributeCard)} 给 ${seatName(receiver)}，` +
-        `${seatName(receiver)} 还贡 ${cardText(back)}`;
-      toast(desc);
-      // 进贡后由“接贡方”里末游先出（规则简化为：进贡牌的接收者那一队中、原末游先出）
-      finishTribute(leader);
-    }
+    state.phase = PHASE.TRIBUTE;
+    renderAll();
+    showTributeBanner('进贡阶段', seatName(giver) + ' → ' + seatName(receiver));
+
+    // 第一步：进贡牌从 giver 飞到 receiver
+    animateCardFly(giver, receiver, tributeCard, () => {
+      moveCard(giver, receiver, tributeCard);
+      renderAll();
+
+      // 第二步：还贡
+      if (receiver === 0) {
+        // 我是头游 → 我来还贡（选 ≤10），开计时
+        showReturnTributeUI(giver, tributeCard);
+      } else {
+        // AI 还贡
+        const back = pickReturnCard(state.hands[receiver], level);
+        animateCardFly(receiver, giver, back, () => {
+          moveCard(receiver, giver, back);
+          renderAll();
+          const desc = `${seatName(giver)} 进贡 ${cardText(tributeCard)} → ${seatName(receiver)}；` +
+            `${seatName(receiver)} 还贡 ${cardText(back)} → ${seatName(giver)}`;
+          toast(desc);
+          finishTribute(leader);
+        });
+      }
+    });
+  }
+
+  // 抛物线式卡片飞行：from 座位中心 → to 座位中心，~700ms
+  function animateCardFly(fromSeat, toSeat, card, onDone) {
+    const fromEl = seatEls[fromSeat] && seatEls[fromSeat].seat;
+    const toEl = seatEls[toSeat] && seatEls[toSeat].seat;
+    if (!fromEl || !toEl) { onDone && onDone(); return; }
+    const fromR = fromEl.getBoundingClientRect();
+    const toR = toEl.getBoundingClientRect();
+    const level = currentLevelLabel();
+    const cardEl = buildCardEl(card, 'size-mini', level);
+    cardEl.style.position = 'fixed';
+    cardEl.style.left = (fromR.left + fromR.width / 2) + 'px';
+    cardEl.style.top = (fromR.top + fromR.height / 2) + 'px';
+    cardEl.style.transform = 'translate(-50%, -50%) scale(1.4)';
+    cardEl.style.zIndex = '9999';
+    cardEl.style.transition = 'left 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), top 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s';
+    cardEl.style.pointerEvents = 'none';
+    cardEl.style.boxShadow = '0 6px 14px rgba(20,37,63,0.45)';
+    document.body.appendChild(cardEl);
+    requestAnimationFrame(() => {
+      cardEl.style.left = (toR.left + toR.width / 2) + 'px';
+      cardEl.style.top = (toR.top + toR.height / 2) + 'px';
+      cardEl.style.transform = 'translate(-50%, -50%) scale(0.85)';
+    });
+    setTimeout(() => { cardEl.style.opacity = '0'; }, 600);
+    setTimeout(() => { cardEl.remove(); onDone && onDone(); }, 760);
+  }
+
+  // 进贡阶段开始时在桌面正中央显一行大字 banner，1.1s 渐隐
+  function showTributeBanner(line1, line2) {
+    if (!els.table) return;
+    const ban = document.createElement('div');
+    ban.className = 'gd-fx-banner';
+    ban.style.fontSize = '1.7rem';
+    ban.innerHTML = line1 + (line2 ? '<br><span style="font-size:0.8rem;letter-spacing:0.05em;opacity:0.88;">' + line2 + '</span>' : '');
+    els.table.appendChild(ban);
+    setTimeout(() => ban.remove(), 1300);
   }
 
   function finishTribute(leader) {
@@ -1546,12 +1594,18 @@
     return best;
   }
 
+  const TRIBUTE_TIMEOUT_MS = 20000;
+  let tributeCountdownTimer = null;
+  function stopTributeCountdown() {
+    if (tributeCountdownTimer) clearInterval(tributeCountdownTimer);
+    tributeCountdownTimer = null;
+  }
   function showReturnTributeUI(giver, tributeCard) {
     state.phase = PHASE.TRIBUTE;
-    els.tribTitle.textContent = '还贡';
+    els.tribTitle.innerHTML = '还贡 <span class="gd-trib-clock" id="gdTribClock"><span class="gd-trib-clock-num">20</span>s</span>';
     els.tribDesc.innerHTML = '';
     els.tribDesc.textContent = `${seatName(giver)} 向你进贡了 ${cardText(tributeCard)}。` +
-      `请选一张 10 或更小的牌还给对手（没有则可还任意最小牌）。`;
+      `请选一张 10 或更小的牌还给对手（没有则可还任意最小牌）。倒计时结束会自动还最小牌。`;
     const level = currentLevelLabel();
     els.tribPick.innerHTML = '';
     let chosen = null;
@@ -1571,12 +1625,40 @@
       els.tribPick.appendChild(el);
     });
     els.tribOverlay.classList.add('open');
+
+    // 开倒计时——超时自动选最小的一张
+    const endAt = Date.now() + TRIBUTE_TIMEOUT_MS;
+    const numEl = document.getElementById('gdTribClock') && document.getElementById('gdTribClock').querySelector('.gd-trib-clock-num');
+    const tickEl = document.getElementById('gdTribClock');
+    function tick() {
+      const left = Math.max(0, endAt - Date.now());
+      const s = Math.ceil(left / 1000);
+      if (numEl) numEl.textContent = String(s);
+      if (tickEl) tickEl.classList.toggle('urgent', s <= 5);
+      if (left <= 0) {
+        stopTributeCountdown();
+        if (chosen == null) chosen = pool[0];
+        commitReturn();
+      }
+    }
+    tick();
+    tributeCountdownTimer = setInterval(tick, 250);
+
+    function commitReturn() {
+      stopTributeCountdown();
+      els.tribOverlay.classList.remove('open');
+      // 还贡飞行动画：从我（0）飞到 giver
+      animateCardFly(0, giver, chosen, () => {
+        moveCard(0, giver, chosen);
+        renderAll();
+        toast('还贡 ' + cardText(chosen) + ' 给 ' + seatName(giver));
+        finishTribute(state.pendingTribute.leader);
+      });
+    }
+
     els.tribConfirm.onclick = () => {
       if (chosen == null) { toast('请选一张牌'); return; }
-      moveCard(0, giver, chosen);
-      els.tribOverlay.classList.remove('open');
-      toast('还贡完成');
-      finishTribute(state.pendingTribute.leader);
+      commitReturn();
     };
   }
 
