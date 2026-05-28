@@ -199,7 +199,14 @@ permalink: /toolbox/pet-food/
     border-color: #c9a96e;
     background: rgba(201, 169, 110, 0.12);
   }
-  .entry-form .bowl-row .bowl-unit { color: var(--color-light); }
+  .entry-form .bowl-row select {
+    font: inherit; font-size: 0.85rem;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    background: var(--color-bg-warm); color: var(--color-muted);
+    cursor: pointer; outline: none;
+  }
+  .entry-form .bowl-row select:focus { border-color: var(--color-accent); }
   @keyframes bowl-shake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-4px); }
@@ -706,7 +713,12 @@ permalink: /toolbox/pet-food/
       <div class="bowl-row" id="bowl-row">
         <span>碗的空重</span>
         <input type="number" id="bowl-weight" step="any" min="0" placeholder="未设" inputmode="decimal" />
-        <span class="bowl-unit">g</span>
+        <select id="bowl-weight-unit">
+          <option value="g">g</option>
+          <option value="kg">kg</option>
+          <option value="oz">oz</option>
+          <option value="lb">lb</option>
+        </select>
       </div>
     </div>
 
@@ -716,8 +728,8 @@ permalink: /toolbox/pet-food/
     <div class="section-title">
       趋势
       <span class="right" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end;">
-        <button type="button" class="target-toggle" id="chart-target-toggle" style="display: none;">目标参考线</button>
         <span id="chart-range-lbl"></span>
+        <button type="button" class="target-toggle" id="chart-target-toggle" style="display: none;">目标参考线</button>
       </span>
     </div>
     <div class="trend-tabs" id="trend-tabs">
@@ -1101,6 +1113,7 @@ permalink: /toolbox/pet-food/
     period: 'today',
     customStart: null,
     customEnd: null,
+    lastRenderedPetId: null, // for one-shot mode reset on pet switch
   };
 
   function load() {
@@ -1120,6 +1133,11 @@ permalink: /toolbox/pet-food/
     state.pets.forEach(p => {
       if (p.showTargetOnChart === undefined) p.showTargetOnChart = true;
       if (!p.bodyWeightUnit) p.bodyWeightUnit = 'kg';
+      if (!p.bowlUnit) p.bowlUnit = 'g';
+      // Old schema treated bowlWeight=0 as "unset"; migrate to null.
+      // (Any pre-existing 含碗 entries with bowlWeight=0 already returned null food weight,
+      // so this changes nothing visible.)
+      if (p.bowlWeight === 0) p.bowlWeight = null;
       // Migrate deprecated lifeStage → ageYears + neutered
       if (p.ageYears === undefined && p.lifeStage) {
         if (p.lifeStage === 'young')              { p.ageYears = 0.5; p.neutered = false; }
@@ -1189,8 +1207,8 @@ permalink: /toolbox/pet-food/
   // foodWeight for an entry; null if it depends on bowlWeight that's unset
   function foodWeight(entry, pet) {
     if (!entry.withBowl) return entry.reading;
-    if (!pet.bowlWeight) return null;
-    return entry.reading - pet.bowlWeight;
+    if (pet.bowlWeight == null) return null;  // null/undefined = 未设
+    return entry.reading - pet.bowlWeight;     // 0 is a valid bowl weight
   }
 
   function bucketDateIso(ts) { return isoDate(ts); }
@@ -1297,7 +1315,7 @@ permalink: /toolbox/pet-food/
 
   // Mismatch detection: returns { swapDelta, chosenDelta, chosenMag, swapMag, typical } or null
   function detectModeMismatch(pet, newReading, withBowlChosen) {
-    if (!pet.bowlWeight || pet.entries.length === 0) return null;
+    if (pet.bowlWeight == null || pet.bowlWeight === 0 || pet.entries.length === 0) return null;
     const sorted = [...pet.entries].sort((a, b) => b.ts - a.ts);
     const prevEntry = sorted[0];
     const prevFood = foodWeight(prevEntry, pet);
@@ -1358,6 +1376,7 @@ permalink: /toolbox/pet-food/
   const $modeToggle = document.getElementById('mode-toggle');
   const $saveEntry = document.getElementById('save-entry');
   const $bowlWeight = document.getElementById('bowl-weight');
+  const $bowlWeightUnit = document.getElementById('bowl-weight-unit');
   const $bowlRow = document.getElementById('bowl-row');
   const $chartRangeLbl = document.getElementById('chart-range-lbl');
 
@@ -1554,7 +1573,7 @@ permalink: /toolbox/pet-food/
       checkFormWarn();
       // If switching to 含碗 with no bowl weight yet, focus the bowl input
       const pet = currentPet();
-      if (lbl.dataset.val === '1' && pet && !pet.bowlWeight) {
+      if (lbl.dataset.val === '1' && pet && pet.bowlWeight == null) {
         setTimeout(() => $bowlWeight.focus(), 0);
       }
     });
@@ -1580,7 +1599,7 @@ permalink: /toolbox/pet-food/
     }
     const withBowl = currentMode();
     $bowlRow.classList.toggle('muted', !withBowl);
-    $bowlRow.classList.toggle('needs-bowl', withBowl && !pet.bowlWeight);
+    $bowlRow.classList.toggle('needs-bowl', withBowl && pet.bowlWeight == null);
   }
 
   function currentPet() {
@@ -1621,17 +1640,33 @@ permalink: /toolbox/pet-food/
     const pet = currentPet();
     if (!pet) return;
 
-    // Default mode + unit = last used
-    if (pet.entries.length > 0) {
-      const last = [...pet.entries].sort((a, b) => b.ts - a.ts)[0];
-      setMode(!!last.withBowl);
-    } else {
-      checkFormWarn();
+    // Mode determination
+    // - Bowl unset (null) → force 不含碗 (always, even mid-stream)
+    // - Otherwise, only re-pick mode when pet changes; preserve user's manual toggling
+    if (pet.bowlWeight == null && currentMode()) {
+      setMode(false);
+    } else if (state.lastRenderedPetId !== pet.id) {
+      if (pet.bowlWeight == null) {
+        setMode(false);
+      } else if (pet.entries.length > 0) {
+        const last = [...pet.entries].sort((a, b) => b.ts - a.ts)[0];
+        setMode(!!last.withBowl);
+      } else {
+        setMode(true);  // bowl set + no history → 含碗
+      }
     }
+    state.lastRenderedPetId = pet.id;
+
     $unitPick.value = pet.preferredUnit || 'g';
     $reading.placeholder = (pet.preferredUnit && pet.preferredUnit !== 'g') ? `粮食称重（${pet.preferredUnit}）` : '粮食称重';
+    const bUnit = pet.bowlUnit || 'g';
+    $bowlWeightUnit.value = bUnit;
     if (document.activeElement !== $bowlWeight) {
-      $bowlWeight.value = (Number.isFinite(pet.bowlWeight) && pet.bowlWeight > 0) ? pet.bowlWeight : '';
+      if (pet.bowlWeight == null) {
+        $bowlWeight.value = '';
+      } else {
+        $bowlWeight.value = parseFloat(fromGrams(pet.bowlWeight, bUnit).toFixed(3));
+      }
     }
     checkFormWarn();
 
@@ -2390,7 +2425,8 @@ permalink: /toolbox/pet-food/
         id, name,
         emoji: state.selectedEmoji,
         avatar: state.pendingAvatar || null,
-        bowlWeight: 0,
+        bowlWeight: null,
+        bowlUnit: 'g',
         dailyTargetMin: Number.isFinite(tMin) && tMin > 0 ? tMin : null,
         dailyTargetMax: Number.isFinite(tMax) && tMax > 0 ? tMax : null,
         showTargetOnChart: true,
@@ -2450,7 +2486,7 @@ permalink: /toolbox/pet-food/
     const unit = $unitPick.value || 'g';
     const gramsReading = toGrams(raw, unit);
     const withBowl = currentMode();
-    if (withBowl && !pet.bowlWeight) {
+    if (withBowl && pet.bowlWeight == null) {
       // No alert wall; just nudge user to fill bowl weight inline.
       $bowlRow.classList.add('shake', 'needs-bowl');
       setTimeout(() => $bowlRow.classList.remove('shake'), 400);
@@ -2483,19 +2519,52 @@ permalink: /toolbox/pet-food/
   function commitBowlWeight() {
     const pet = currentPet();
     if (!pet) return;
-    const raw = parseFloat($bowlWeight.value);
-    const newVal = Number.isFinite(raw) && raw > 0 ? raw : 0;
-    if (newVal === (pet.bowlWeight || 0)) {
-      checkFormWarn();
-      return;
+    const raw = $bowlWeight.value.trim();
+    const unit = $bowlWeightUnit.value || 'g';
+    let newVal;
+    if (raw === '') {
+      newVal = null;
+    } else {
+      const num = parseFloat(raw);
+      if (!Number.isFinite(num) || num < 0) {
+        // Invalid; revert display
+        if (pet.bowlWeight == null) $bowlWeight.value = '';
+        else $bowlWeight.value = parseFloat(fromGrams(pet.bowlWeight, unit).toFixed(3));
+        checkFormWarn();
+        return;
+      }
+      newVal = toGrams(num, unit);
     }
+    const changed = newVal !== pet.bowlWeight;
     pet.bowlWeight = newVal;
-    persist();
-    render();
+    pet.bowlUnit = unit;
+    if (changed) {
+      persist();
+      render();
+    } else {
+      checkFormWarn();
+    }
   }
   $bowlWeight.addEventListener('blur', commitBowlWeight);
   $bowlWeight.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); $bowlWeight.blur(); }
+  });
+  $bowlWeightUnit.addEventListener('change', () => {
+    const pet = currentPet();
+    if (!pet) return;
+    const oldUnit = pet.bowlUnit || 'g';
+    const newUnit = $bowlWeightUnit.value;
+    // Convert displayed value (if any) from old unit → new unit, keep underlying grams identical
+    const raw = $bowlWeight.value.trim();
+    if (raw !== '') {
+      const num = parseFloat(raw);
+      if (Number.isFinite(num) && num >= 0) {
+        const grams = toGrams(num, oldUnit);
+        $bowlWeight.value = parseFloat(fromGrams(grams, newUnit).toFixed(3));
+      }
+    }
+    pet.bowlUnit = newUnit;
+    persist();
   });
   $unitPick.addEventListener('change', () => {
     const pet = currentPet();
