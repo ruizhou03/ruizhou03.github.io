@@ -408,6 +408,78 @@ permalink: /toolbox/pet-food/
     font: inherit; font-size: 0.85rem;
     cursor: pointer; outline: none;
   }
+  .modal .age-inputs {
+    display: flex; gap: 0.5rem;
+  }
+  .modal .age-inputs > .age-cell {
+    display: flex; flex: 1; align-items: stretch;
+    border: 1px solid var(--color-border); border-radius: 8px;
+    background: var(--color-bg); overflow: hidden;
+  }
+  .modal .age-inputs > .age-cell:focus-within { border-color: var(--color-accent); }
+  .modal .age-inputs > .age-cell input {
+    flex: 1; min-width: 0; width: 100%;
+    border: none; background: transparent;
+    padding: 0.6rem 0.65rem;
+    font: inherit; font-size: 1rem; outline: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .modal .age-inputs > .age-cell .unit-tag {
+    background: var(--color-bg-warm); color: var(--color-muted);
+    font-size: 0.85rem; padding: 0 0.55rem;
+    display: flex; align-items: center;
+    border-left: 1px solid var(--color-border);
+  }
+  .modal .custom-select {
+    position: relative; width: 100%;
+  }
+  .modal .custom-select .cs-trigger {
+    width: 100%; box-sizing: border-box;
+    padding: 0.6rem 0.85rem;
+    font: inherit; font-size: 1rem; color: var(--color-ink);
+    border: 1px solid var(--color-border); border-radius: 8px;
+    background: var(--color-bg);
+    text-align: left;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .modal .custom-select .cs-trigger:focus { outline: none; border-color: var(--color-accent); }
+  .modal .custom-select .cs-label {
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .modal .custom-select .cs-label.placeholder { color: var(--color-muted); }
+  .modal .custom-select .cs-chevron {
+    color: var(--color-muted); font-size: 0.7rem;
+    display: inline-block;
+    transition: transform 0.18s;
+  }
+  .modal .custom-select.open .cs-chevron { transform: rotate(180deg); }
+  .modal .custom-select .cs-menu {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    z-index: 100;
+    list-style: none; margin: 0; padding: 0.3rem 0;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border); border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    max-height: 260px; overflow-y: auto;
+    display: none;
+  }
+  .modal .custom-select.open .cs-menu { display: block; }
+  .modal .custom-select .cs-menu li {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+    color: var(--color-ink);
+  }
+  @media (hover: hover) {
+    .modal .custom-select .cs-menu li:hover { background: var(--color-bg-warm); }
+  }
+  .modal .custom-select .cs-menu li.selected {
+    color: var(--color-accent); font-weight: 500;
+    background: var(--color-bg-warm);
+  }
 
   /* Avatar picker row (photo button + emoji cells) */
   .avatar-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
@@ -678,15 +750,29 @@ permalink: /toolbox/pet-food/
             </div>
             <div class="field">
               <label>品种（可选）</label>
-              <select id="pm-breed">
-                <option value="">不指定</option>
-              </select>
+              <div class="custom-select" id="pm-breed-select">
+                <button type="button" class="cs-trigger" id="pm-breed-trigger">
+                  <span class="cs-label placeholder" id="pm-breed-label">不指定</span>
+                  <span class="cs-chevron">▾</span>
+                </button>
+                <ul class="cs-menu" id="pm-breed-menu" role="listbox"></ul>
+              </div>
+              <input type="hidden" id="pm-breed" value="" />
             </div>
           </div>
           <div class="field-grid">
             <div class="field">
-              <label>年龄 (岁)</label>
-              <input type="number" id="pm-age" step="0.1" min="0" placeholder="如 3；半岁填 0.5" inputmode="decimal" />
+              <label>年龄</label>
+              <div class="age-inputs">
+                <div class="age-cell">
+                  <input type="number" id="pm-age-years" min="0" step="1" placeholder="0" inputmode="numeric" />
+                  <span class="unit-tag">岁</span>
+                </div>
+                <div class="age-cell">
+                  <input type="number" id="pm-age-months" min="0" max="11" step="1" placeholder="0" inputmode="numeric" />
+                  <span class="unit-tag">个月</span>
+                </div>
+              </div>
             </div>
             <div class="field">
               <label>体重</label>
@@ -721,7 +807,7 @@ permalink: /toolbox/pet-food/
           </div>
           <div class="rec-preview" id="pm-rec-preview">填上字段就会出估算值</div>
           <button type="button" class="estimator-apply" id="pm-rec-apply" disabled>↑ 应用到上面的目标范围</button>
-          <p class="hint" style="margin-top: 0.5rem;">年龄会自动归到「幼年 / 成年 / 老年」（猫狗约 1 岁前幼年、7 岁后老年）。数值偏保守，最终以兽医 / 包装为准。</p>
+          <p class="hint" style="margin-top: 0.5rem;">数值仅供参考。</p>
         </div>
       </details>
 
@@ -789,10 +875,12 @@ permalink: /toolbox/pet-food/
       label: '猫',
       bodyWeightAware: true,
       base: {
-        young:           { min: 25, max: 50 },
-        adult_intact:    { min: 14, max: 18 },
-        adult_neutered:  { min: 11, max: 15 },
-        senior:          { min: 10, max: 13 },
+        kitten_young:    { min: 40, max: 60 },   // 0–4 月：长身体猛
+        kitten:          { min: 25, max: 45 },   // 4–12 月：生长期
+        adult_intact:    { min: 14, max: 18 },   // 1–7 岁未绝育
+        adult_neutered:  { min: 11, max: 15 },   // 1–7 岁已绝育
+        senior:          { min: 10, max: 13 },   // 7–11 岁
+        geriatric:       { min:  9, max: 12 },   // 11 岁以上
       },
       breeds: {
         '英短':       { f: 0.95, aka: ['蓝猫', '蓝白', '金渐层', '银渐层'] },
@@ -914,13 +1002,36 @@ permalink: /toolbox/pet-food/
 
   // Convert age (years) + species + neutered → stage key used by FOOD_REC.base
   function stageFromAge(species, age, neutered) {
+    if (species === 'cat') {
+      // Finer brackets for cats
+      if (age < 0.33) return 'kitten_young';                            // < 4 months
+      if (age < 1)    return 'kitten';                                  // 4–12 months
+      if (age < 7)    return neutered ? 'adult_neutered' : 'adult_intact';
+      if (age < 11)   return 'senior';                                  // 7–11 years
+      return 'geriatric';                                               // ≥ 11 years
+    }
     let bracket;
-    if (species === 'rabbit')      bracket = age < 0.5  ? 'young' : age < 5   ? 'adult' : 'senior';
+    if (species === 'rabbit')       bracket = age < 0.5  ? 'young' : age < 5   ? 'adult' : 'senior';
     else if (species === 'hamster') bracket = age < 0.08 ? 'young' : age < 1.5 ? 'adult' : 'senior';
     else if (species === 'bird')    bracket = age < 1    ? 'young' : age < 10  ? 'adult' : 'senior';
-    else /* cat / dog / ferret */   bracket = age < 1    ? 'young' : age < 7   ? 'adult' : 'senior';
+    else /* dog, ferret */          bracket = age < 1    ? 'young' : age < 7   ? 'adult' : 'senior';
     if (bracket === 'adult') return neutered ? 'adult_neutered' : 'adult_intact';
     return bracket;
+  }
+  function combineAge(years, months) {
+    const y = parseFloat(years);
+    const m = parseFloat(months);
+    const yv = Number.isFinite(y) ? y : 0;
+    const mv = Number.isFinite(m) ? m : 0;
+    if (yv === 0 && mv === 0) return null;
+    return yv + mv / 12;
+  }
+  function splitAge(ageYears) {
+    if (!Number.isFinite(ageYears) || ageYears <= 0) return { years: '', months: '' };
+    const y = Math.floor(ageYears);
+    let m = Math.round((ageYears - y) * 12);
+    if (m === 12) return { years: y + 1, months: 0 };
+    return { years: y, months: m };
   }
 
   // Unit conversion (to grams)
@@ -1124,7 +1235,7 @@ permalink: /toolbox/pet-food/
   function estimatorCompute(opts) {
     const sp = FOOD_REC[opts.species];
     if (!sp) return null;
-    const age = parseFloat(opts.age);
+    const age = Number.isFinite(opts.age) ? opts.age : parseFloat(opts.age);
     if (!Number.isFinite(age) || age < 0) return null;
     const stage = stageFromAge(opts.species, age, !!opts.neutered);
     const base = sp.base[stage];
@@ -1232,8 +1343,13 @@ permalink: /toolbox/pet-food/
   const $pmShowTargetChart = document.getElementById('pm-show-target-chart');
   const $pmEstimator = document.getElementById('pm-estimator');
   const $pmSpecies = document.getElementById('pm-species');
-  const $pmBreed = document.getElementById('pm-breed');
-  const $pmAge = document.getElementById('pm-age');
+  const $pmBreed = document.getElementById('pm-breed'); // hidden input
+  const $pmBreedSelect = document.getElementById('pm-breed-select');
+  const $pmBreedTrigger = document.getElementById('pm-breed-trigger');
+  const $pmBreedLabel = document.getElementById('pm-breed-label');
+  const $pmBreedMenu = document.getElementById('pm-breed-menu');
+  const $pmAgeYears = document.getElementById('pm-age-years');
+  const $pmAgeMonths = document.getElementById('pm-age-months');
   const $pmBodyWeight = document.getElementById('pm-body-weight');
   const $pmBodyWeightUnit = document.getElementById('pm-body-weight-unit');
   const $pmActivity = document.getElementById('pm-activity');
@@ -1304,19 +1420,51 @@ permalink: /toolbox/pet-food/
   }
 
   // ===== Estimator (helper to fill target range) =====
-  function populateBreeds(species, selected) {
+  // Build the custom-select dropdown for breed; closed-state shows short name only,
+  // open menu shows aliases in parens.
+  function buildBreedDropdown(species, selected) {
     const sp = FOOD_REC[species];
-    $pmBreed.innerHTML = '<option value="">不指定</option>';
-    if (!sp || !sp.breeds) return;
-    Object.keys(sp.breeds).forEach(b => {
-      const info = sp.breeds[b];
-      const o = document.createElement('option');
-      o.value = b;
-      o.textContent = (info.aka && info.aka.length) ? `${b}（${info.aka.join(' / ')}）` : b;
-      if (b === selected) o.selected = true;
-      $pmBreed.appendChild(o);
-    });
+    $pmBreedMenu.innerHTML = '';
+    const addItem = (value, full, short) => {
+      const li = document.createElement('li');
+      li.dataset.value = value;
+      li.textContent = full;
+      if (value === (selected || '')) li.classList.add('selected');
+      li.addEventListener('click', () => selectBreedItem(value, short));
+      $pmBreedMenu.appendChild(li);
+    };
+    addItem('', '不指定', '不指定');
+    if (sp && sp.breeds) {
+      Object.keys(sp.breeds).forEach(b => {
+        const info = sp.breeds[b];
+        const full = (info.aka && info.aka.length) ? `${b}（${info.aka.join(' / ')}）` : b;
+        addItem(b, full, b);
+      });
+    }
+    // Set initial label / value
+    const validSelected = selected && sp && sp.breeds && sp.breeds[selected] ? selected : '';
+    $pmBreed.value = validSelected;
+    $pmBreedLabel.textContent = validSelected || '不指定';
+    $pmBreedLabel.classList.toggle('placeholder', !validSelected);
   }
+  function selectBreedItem(value, shortLabel) {
+    $pmBreed.value = value;
+    $pmBreedLabel.textContent = shortLabel;
+    $pmBreedLabel.classList.toggle('placeholder', value === '');
+    $pmBreedMenu.querySelectorAll('li').forEach(li => {
+      li.classList.toggle('selected', li.dataset.value === value);
+    });
+    $pmBreedSelect.classList.remove('open');
+    refreshEstimatorPreview();
+  }
+  $pmBreedTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    $pmBreedSelect.classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    if (!$pmBreedSelect.contains(e.target)) $pmBreedSelect.classList.remove('open');
+  });
+
   function readEstimatorInputs() {
     const rawBw = parseFloat($pmBodyWeight.value);
     const unit = $pmBodyWeightUnit.value || 'kg';
@@ -1324,7 +1472,7 @@ permalink: /toolbox/pet-food/
     return {
       species:      $pmSpecies.value || '',
       breed:        $pmBreed.value || '',
-      age:          $pmAge.value,
+      age:          combineAge($pmAgeYears.value, $pmAgeMonths.value),
       bodyWeightKg: bwKg,
       activity:     $pmActivity.value || 'normal',
       neutered:     !!$pmNeutered.checked,
@@ -1347,11 +1495,11 @@ permalink: /toolbox/pet-food/
     $pmRecApply.dataset.max = String(r.max);
   }
   $pmSpecies.addEventListener('change', () => {
-    populateBreeds($pmSpecies.value, '');
+    buildBreedDropdown($pmSpecies.value, '');
     refreshEstimatorPreview();
   });
-  [$pmBreed, $pmActivity, $pmBodyWeightUnit].forEach(el => el.addEventListener('change', refreshEstimatorPreview));
-  [$pmAge, $pmBodyWeight].forEach(el => el.addEventListener('input', refreshEstimatorPreview));
+  [$pmActivity, $pmBodyWeightUnit].forEach(el => el.addEventListener('change', refreshEstimatorPreview));
+  [$pmAgeYears, $pmAgeMonths, $pmBodyWeight].forEach(el => el.addEventListener('input', refreshEstimatorPreview));
   $pmNeutered.addEventListener('change', refreshEstimatorPreview);
   $pmRecApply.addEventListener('click', () => {
     const mn = parseFloat($pmRecApply.dataset.min);
@@ -2090,8 +2238,10 @@ permalink: /toolbox/pet-food/
       $pmTargetMax.value = Number.isFinite(p.dailyTargetMax) && p.dailyTargetMax > 0 ? parseFloat(p.dailyTargetMax.toFixed(1)) : '';
       $pmShowTargetChart.checked = p.showTargetOnChart !== false;
       $pmSpecies.value = p.species || '';
-      populateBreeds(p.species || '', p.breed || '');
-      $pmAge.value = Number.isFinite(p.ageYears) && p.ageYears > 0 ? p.ageYears : '';
+      buildBreedDropdown(p.species || '', p.breed || '');
+      const ageParts = splitAge(p.ageYears);
+      $pmAgeYears.value = ageParts.years === '' ? '' : ageParts.years;
+      $pmAgeMonths.value = ageParts.months === '' ? '' : ageParts.months;
       const bwUnit = p.bodyWeightUnit || 'kg';
       $pmBodyWeightUnit.value = bwUnit;
       $pmBodyWeight.value = (Number.isFinite(p.bodyWeight) && p.bodyWeight > 0)
@@ -2111,8 +2261,9 @@ permalink: /toolbox/pet-food/
       $pmTargetMax.value = '';
       $pmShowTargetChart.checked = true;
       $pmSpecies.value = '';
-      populateBreeds('', '');
-      $pmAge.value = '';
+      buildBreedDropdown('', '');
+      $pmAgeYears.value = '';
+      $pmAgeMonths.value = '';
       $pmBodyWeightUnit.value = 'kg';
       $pmBodyWeight.value = '';
       $pmActivity.value = '';
@@ -2153,8 +2304,7 @@ permalink: /toolbox/pet-food/
     const tMax = parseFloat($pmTargetMax.value);
     const species = $pmSpecies.value || null;
     const breed = $pmBreed.value || null;
-    const ageRaw = parseFloat($pmAge.value);
-    const ageYears = Number.isFinite(ageRaw) && ageRaw > 0 ? ageRaw : null;
+    const ageYears = combineAge($pmAgeYears.value, $pmAgeMonths.value);
     const bwUnit = $pmBodyWeightUnit.value || 'kg';
     const bwRaw = parseFloat($pmBodyWeight.value);
     const bodyWeight = Number.isFinite(bwRaw) && bwRaw > 0 ? bwToKg(bwRaw, bwUnit) : 0;
