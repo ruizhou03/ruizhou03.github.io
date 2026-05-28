@@ -1,0 +1,1360 @@
+---
+layout: default
+title: "宠物食量记录 | Rui Zhou"
+permalink: /toolbox/pet-food/
+---
+
+<style>
+  .pf-wrap { max-width: 880px; margin: 0 auto; padding: 1rem; }
+  .pf-wrap header { text-align: center; margin-bottom: 1.4rem; }
+  .pf-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem; }
+  .pf-wrap header .sub { color: var(--color-light); font-style: normal; }
+
+  .pet-bar {
+    display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;
+    margin-bottom: 1.2rem;
+  }
+  .pet-bar .pet-tabs {
+    display: flex; gap: 0.4rem; flex-wrap: wrap; flex-grow: 1;
+  }
+  .pet-bar .pet-tab {
+    font: inherit; font-size: 0.9rem;
+    padding: 0.45rem 0.95rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted);
+    cursor: pointer; transition: all 0.18s;
+  }
+  .pet-bar .pet-tab.active {
+    background: var(--color-accent); border-color: var(--color-accent); color: #fff;
+  }
+  @media (hover: hover) {
+    .pet-bar .pet-tab:hover:not(.active) { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  .pet-bar .icon-btn {
+    font: inherit; font-size: 0.85rem;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted);
+    cursor: pointer; transition: all 0.18s;
+  }
+  @media (hover: hover) {
+    .pet-bar .icon-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+
+  .empty-zone { text-align: center; padding: 3.5rem 2rem; color: var(--color-light); }
+  .empty-zone .empty-emoji { font-size: 3rem; margin-bottom: 1rem; opacity: 0.55; }
+  .empty-zone .add-btn {
+    font: inherit; font-size: 0.95rem; font-weight: 600;
+    padding: 0.6rem 1.4rem; border: none; border-radius: 999px;
+    background: var(--color-accent); color: #fff; cursor: pointer;
+    margin-top: 1rem;
+  }
+
+  .summary-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;
+    margin-bottom: 1.2rem;
+  }
+  @media (max-width: 600px) {
+    .summary-row { grid-template-columns: 1fr 1fr; }
+  }
+  .sum-card {
+    text-align: center;
+    padding: 0.9rem 0.5rem;
+    background: var(--color-bg-warm);
+    border-radius: 10px;
+  }
+  .sum-card .sc-num {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 1.4rem; color: var(--color-ink); line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .sum-card .sc-lbl { font-size: 0.76rem; color: var(--color-muted); margin-top: 0.3rem; }
+
+  .entry-form {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border); border-radius: 12px;
+    padding: 1rem; margin-bottom: 1rem;
+  }
+  .entry-form .form-row {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 0.6rem; align-items: center;
+  }
+  @media (max-width: 600px) {
+    .entry-form .form-row { grid-template-columns: 1fr; }
+    .entry-form .form-row > * { width: 100%; box-sizing: border-box; }
+    .entry-form .mode-toggle { justify-content: center; }
+  }
+  .entry-form input.reading {
+    padding: 0.7rem 0.9rem;
+    font: inherit; font-size: 1.1rem; color: var(--color-ink);
+    border: 1px solid var(--color-border); border-radius: 10px;
+    background: var(--color-bg);
+    font-variant-numeric: tabular-nums;
+  }
+  .entry-form input.reading:focus { outline: none; border-color: var(--color-accent); }
+  .entry-form .mode-toggle {
+    display: inline-flex; gap: 0; border: 1px solid var(--color-border); border-radius: 999px; overflow: hidden;
+  }
+  .entry-form .mode-toggle label {
+    display: inline-flex; align-items: center;
+    font-size: 0.85rem; padding: 0.45rem 0.9rem;
+    cursor: pointer; color: var(--color-muted);
+    transition: all 0.18s;
+  }
+  .entry-form .mode-toggle input { display: none; }
+  .entry-form .mode-toggle label.active { background: var(--color-accent); color: #fff; }
+  .entry-form .save-btn {
+    font: inherit; font-size: 0.95rem; font-weight: 600;
+    padding: 0.7rem 1.4rem; border: none; border-radius: 999px;
+    background: var(--color-accent); color: #fff; cursor: pointer;
+    white-space: nowrap;
+  }
+  @media (hover: hover) {
+    .entry-form .save-btn:hover { background: var(--color-accent-light); }
+  }
+  .entry-form .form-hint {
+    margin-top: 0.6rem; font-size: 0.78rem; color: var(--color-muted);
+  }
+  .entry-form .form-warn {
+    margin-top: 0.5rem; font-size: 0.82rem; color: #a87a2a;
+    padding: 0.4rem 0.7rem; border-left: 3px solid #c9a96e;
+    background: rgba(201, 169, 110, 0.08);
+  }
+
+  .section-title {
+    font-family: var(--font-display); font-size: 1.05rem; font-weight: 500;
+    color: var(--color-ink); margin: 1.4rem 0 0.6rem;
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 0.6rem; flex-wrap: wrap;
+  }
+  .section-title .right {
+    font-size: 0.78rem; color: var(--color-muted); font-family: inherit;
+  }
+
+  .entries-list {
+    border: 1px solid var(--color-border); border-radius: 10px;
+    background: var(--color-bg); overflow: hidden;
+  }
+  .entries-list.scroll { max-height: 360px; overflow-y: auto; }
+  .entries-list .day-divider {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.78rem; color: var(--color-muted);
+    background: var(--color-bg-warm);
+    border-top: 1px solid var(--color-border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .entries-list .day-divider:first-child { border-top: none; }
+  .entries-list .day-divider strong { color: var(--color-ink); font-variant-numeric: tabular-nums; }
+  .entry-row {
+    display: grid; grid-template-columns: auto 1fr auto;
+    gap: 0.6rem; align-items: center;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.92rem;
+    border-top: 1px dashed var(--color-border);
+  }
+  .entry-row:first-of-type { border-top: none; }
+  .entry-row .er-time { color: var(--color-muted); font-size: 0.82rem; min-width: 48px; font-variant-numeric: tabular-nums; }
+  .entry-row .er-main {
+    display: flex; flex-wrap: wrap; gap: 0.4rem 0.55rem; align-items: baseline;
+  }
+  .entry-row .er-reading { color: var(--color-ink); font-variant-numeric: tabular-nums; font-size: 0.86rem; }
+  .entry-row .er-reading .er-raw { color: var(--color-light); font-size: 0.76rem; }
+  .entry-row .er-delta {
+    font-size: 0.84rem; font-variant-numeric: tabular-nums;
+    padding: 0.1rem 0.55rem; border-radius: 4px;
+  }
+  .entry-row .er-delta.eat { color: #4a7c59; background: rgba(74, 124, 89, 0.1); }
+  .entry-row .er-delta.refill { color: #8b5a3c; background: rgba(139, 90, 60, 0.1); }
+  .entry-row .er-delta.first { color: var(--color-muted); background: var(--color-bg-warm); }
+  .entry-row .er-delta.unknown { color: #a87a2a; background: rgba(168, 122, 42, 0.1); }
+  .entry-row .er-del {
+    border: none; background: transparent; color: var(--color-light);
+    cursor: pointer; padding: 0.2rem 0.4rem; font-size: 0.95rem;
+    border-radius: 4px; line-height: 1;
+  }
+  @media (hover: hover) {
+    .entry-row .er-del:hover { color: #b07c75; background: var(--color-bg-warm); }
+  }
+  .entries-list .empty-row { padding: 1.5rem; text-align: center; color: var(--color-light); font-size: 0.88rem; }
+
+  /* ===== Chart ===== */
+  .trend-tabs {
+    display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.6rem;
+  }
+  .trend-tabs button {
+    font: inherit; font-size: 0.82rem;
+    padding: 0.35rem 0.85rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted);
+    cursor: pointer; transition: all 0.18s;
+  }
+  .trend-tabs button.active {
+    background: var(--color-accent); border-color: var(--color-accent); color: #fff;
+  }
+  @media (hover: hover) {
+    .trend-tabs button:hover:not(.active) { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  .trend-custom {
+    display: flex; gap: 0.5rem; align-items: center;
+    margin-bottom: 0.6rem;
+    padding: 0.55rem 0.7rem;
+    background: var(--color-bg-warm); border-radius: 8px;
+    font-size: 0.85rem; color: var(--color-muted);
+    flex-wrap: wrap;
+  }
+  .trend-custom input[type="date"] {
+    font: inherit; font-size: 0.85rem;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    background: var(--color-bg); color: var(--color-ink);
+  }
+  .chart-wrap {
+    border: 1px solid var(--color-border); border-radius: 10px;
+    background: var(--color-bg); padding: 1rem 1rem 0.6rem;
+    margin-bottom: 1.2rem;
+  }
+  .chart-wrap svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .chart-meta {
+    margin-top: 0.4rem; font-size: 0.78rem; color: var(--color-muted);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+  }
+  .chart-meta .legend-dot {
+    display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+    vertical-align: middle; margin-right: 0.3rem;
+  }
+  .chart-empty {
+    text-align: center; padding: 3rem 1rem;
+    color: var(--color-light); font-size: 0.88rem;
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(3px);
+    z-index: 1500;
+    display: none; align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: 14px; padding: 1.6rem;
+    max-width: 460px; width: 100%;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  }
+  .modal h2 {
+    font-family: var(--font-display);
+    font-size: 1.3rem; color: var(--color-ink); margin-bottom: 1rem;
+  }
+  .modal .field { margin-bottom: 0.9rem; }
+  .modal .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+  .modal label {
+    display: block; font-size: 0.85rem; color: var(--color-muted);
+    margin-bottom: 0.3rem;
+  }
+  .modal input, .modal select {
+    width: 100%; padding: 0.6rem 0.85rem;
+    font: inherit; font-size: 1rem; color: var(--color-ink);
+    border: 1px solid var(--color-border); border-radius: 8px;
+    background: var(--color-bg);
+    box-sizing: border-box;
+  }
+  .modal input:focus, .modal select:focus { outline: none; border-color: var(--color-accent); }
+  .modal .hint { font-size: 0.78rem; color: var(--color-muted); margin-top: 0.3rem; line-height: 1.5; }
+  .emoji-picker { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+  .emoji-picker button {
+    width: 36px; height: 36px;
+    border: 1px solid var(--color-border); border-radius: 8px;
+    background: var(--color-bg); font-size: 1.1rem;
+    cursor: pointer;
+  }
+  .emoji-picker button.selected { border-color: var(--color-accent); background: var(--color-bg-warm); }
+  .modal-actions {
+    display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1.2rem;
+  }
+  .modal-actions button {
+    font: inherit; font-size: 0.92rem;
+    padding: 0.5rem 1.2rem; border-radius: 8px;
+    cursor: pointer; transition: all 0.18s;
+  }
+  .modal-actions .cancel {
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    color: var(--color-muted);
+  }
+  .modal-actions .save {
+    background: var(--color-accent); border: 1px solid var(--color-accent);
+    color: #fff; font-weight: 600;
+  }
+  .modal-actions .del {
+    background: transparent; border: 1px solid var(--color-border);
+    color: #b07c75; margin-right: auto;
+  }
+  @media (hover: hover) {
+    .modal-actions .del:hover { background: rgba(192, 57, 43, 0.08); border-color: #b07c75; }
+  }
+
+  .storage-warn {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: #b07c75;
+    color: #fff;
+    padding: 0.55rem 1rem;
+    font-size: 0.88rem;
+    text-align: center;
+    z-index: 9999;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+  .storage-warn .close-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    margin-left: 0.7rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+</style>
+
+<div class="pf-wrap">
+  <header>
+    <h1>🥣 宠物食量记录</h1>
+    <p class="sub">Pet Feeder — 每次称一下碗，自动算今日 / 日均 / 全周期</p>
+  </header>
+
+  <div class="pet-bar" id="pet-bar">
+    <div class="pet-tabs" id="pet-tabs"></div>
+    <button type="button" class="icon-btn" id="pet-add">+ 宠物</button>
+    <button type="button" class="icon-btn" id="pet-edit" style="display: none;">⚙ 设置</button>
+  </div>
+
+  <div class="empty-zone" id="pet-empty">
+    <div class="empty-emoji">🐾</div>
+    <div>还没有宠物——先建一只吧</div>
+    <button type="button" class="add-btn" id="empty-add">+ 添加第一只</button>
+  </div>
+
+  <div id="pet-view" style="display: none;">
+    <div class="summary-row">
+      <div class="sum-card">
+        <div class="sc-num" id="sc-today">— g</div>
+        <div class="sc-lbl">今日已吃</div>
+      </div>
+      <div class="sum-card">
+        <div class="sc-num" id="sc-count">—</div>
+        <div class="sc-lbl">今日称重</div>
+      </div>
+      <div class="sum-card">
+        <div class="sc-num" id="sc-avg">— g</div>
+        <div class="sc-lbl" id="sc-avg-lbl">日均</div>
+      </div>
+      <div class="sum-card">
+        <div class="sc-num" id="sc-bowl">— g</div>
+        <div class="sc-lbl">当前碗中剩</div>
+      </div>
+    </div>
+
+    <div class="entry-form">
+      <div class="form-row">
+        <input type="number" class="reading" id="reading" step="any" placeholder="现在碗里有 g" inputmode="decimal" />
+        <div class="mode-toggle" id="mode-toggle">
+          <label data-val="1" class="active"><input type="radio" name="with-bowl" value="1" checked>含碗</label>
+          <label data-val="0"><input type="radio" name="with-bowl" value="0">已去皮</label>
+        </div>
+        <button type="button" class="save-btn" id="save-entry">📝 记一笔</button>
+      </div>
+      <div class="form-warn" id="form-warn" style="display: none;"></div>
+      <div class="form-hint">💡 加粮前 + 加粮后各称一次更准；倒掉旧粮也记一次 0 g（已去皮）就行。</div>
+    </div>
+
+    <div class="section-title">
+      今日记录 <span class="right" id="day-range-lbl"></span>
+    </div>
+    <div class="entries-list" id="entries-today"></div>
+
+    <div class="section-title">
+      趋势 <span class="right" id="chart-range-lbl"></span>
+    </div>
+    <div class="trend-tabs" id="trend-tabs">
+      <button type="button" data-p="today" class="active">今日时段</button>
+      <button type="button" data-p="7">近 7 日</button>
+      <button type="button" data-p="30">近 30 日</button>
+      <button type="button" data-p="180">近半年</button>
+      <button type="button" data-p="365">近 1 年</button>
+      <button type="button" data-p="custom">自定义</button>
+    </div>
+    <div class="trend-custom" id="trend-custom" style="display: none;">
+      <span>从</span>
+      <input type="date" id="custom-start" />
+      <span>到</span>
+      <input type="date" id="custom-end" />
+    </div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 600 240" id="trend-chart" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="chart-meta" id="chart-meta"></div>
+    </div>
+
+    <div class="section-title">
+      历史 <span class="right"><button type="button" class="icon-btn" id="toggle-history" style="border: none; background: none; padding: 0; color: var(--color-muted);">展开 ▾</button></span>
+    </div>
+    <div class="entries-list scroll" id="entries-history" style="display: none;"></div>
+  </div>
+
+  <!-- Pet modal -->
+  <div class="modal-backdrop" id="pet-modal">
+    <div class="modal">
+      <h2 id="pm-title">添加宠物</h2>
+      <div class="field">
+        <label>名字</label>
+        <input type="text" id="pm-name" placeholder="咪咪 / Whiskers" maxlength="30" />
+      </div>
+      <div class="field">
+        <label>Emoji</label>
+        <div class="emoji-picker" id="pm-emoji"></div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label>碗的空重 (g)</label>
+          <input type="number" id="pm-bowl" step="any" placeholder="可不填" inputmode="decimal" />
+        </div>
+        <div class="field">
+          <label>每日结算时间</label>
+          <select id="pm-hour"></select>
+        </div>
+      </div>
+      <p class="hint">填了碗重后"含碗"模式才能算克数；不填只能用"已去皮"。结算时间决定一天从几点开始算（默认 0:00）。</p>
+      <div class="modal-actions">
+        <button type="button" class="del" id="pm-delete" style="display: none;">🗑 删除</button>
+        <button type="button" class="cancel" id="pm-cancel">取消</button>
+        <button type="button" class="save" id="pm-save">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORE_KEY = 'tool.pet-food.v1';
+  const EMOJIS = ['🐱', '🐈', '🐈‍⬛', '🐕', '🐶', '🐰', '🐹', '🐭', '🐦', '🦜', '🐢', '🐠'];
+  const DAY_MS = 86400000;
+
+  let _storageWarnShown = false;
+  function showStorageWarn() {
+    if (_storageWarnShown) return;
+    _storageWarnShown = true;
+    const b = document.createElement('div');
+    b.className = 'storage-warn';
+    b.innerHTML = '⚠️ 浏览器存储空间已满，新数据可能保存失败。 <button type="button" class="close-btn">关闭</button>';
+    b.querySelector('.close-btn').addEventListener('click', () => b.remove());
+    document.body.appendChild(b);
+  }
+
+  const state = {
+    pets: [],
+    currentId: null,
+    editingId: null,
+    selectedEmoji: '🐱',
+    historyOpen: false,
+    period: 'today',
+    customStart: null,
+    customEnd: null,
+  };
+
+  function load() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+      if (parsed && Array.isArray(parsed.pets)) {
+        state.pets = parsed.pets;
+        state.currentId = parsed.currentId || (state.pets[0] && state.pets[0].id) || null;
+        if (parsed.period) state.period = parsed.period;
+        if (parsed.customStart) state.customStart = parsed.customStart;
+        if (parsed.customEnd) state.customEnd = parsed.customEnd;
+      }
+    } catch (e) { /* */ }
+  }
+  function persist() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        pets: state.pets,
+        currentId: state.currentId,
+        period: state.period,
+        customStart: state.customStart,
+        customEnd: state.customEnd,
+      }));
+    } catch (e) {
+      if (e && e.name === 'QuotaExceededError') showStorageWarn();
+    }
+  }
+  function uuid(prefix) { return (prefix || 'p') + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7); }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function fmtG(n) {
+    if (!Number.isFinite(n)) return '—';
+    const abs = Math.abs(n);
+    if (abs >= 100) return Math.round(n).toString();
+    return parseFloat(n.toFixed(1)).toString();
+  }
+  function fmtTime(ts) {
+    const d = new Date(ts);
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  function isoDate(ts) {
+    const d = new Date(ts);
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+  function parseIsoDate(s) {
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  function shortMD(s) {
+    const parts = s.split('-');
+    return parseInt(parts[1], 10) + '/' + parseInt(parts[2], 10);
+  }
+
+  // foodWeight for an entry; null if it depends on bowlWeight that's unset
+  function foodWeight(entry, pet) {
+    if (!entry.withBowl) return entry.reading;
+    if (!pet.bowlWeight) return null;
+    return entry.reading - pet.bowlWeight;
+  }
+
+  // The logical "date" of a timestamp, given dayBoundaryHour
+  function bucketDateIso(ts, hour) {
+    return isoDate(ts - hour * 3600 * 1000);
+  }
+  function todayBucketIso(hour) { return bucketDateIso(Date.now(), hour); }
+
+  // For a logical-day isoDate, compute the actual [start, end) timestamp range
+  function dayRangeMs(isoStr, hour) {
+    const d = parseIsoDate(isoStr);
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour, 0, 0).getTime();
+    return { start, end: start + DAY_MS };
+  }
+
+  // Returns array of "delta events": { entry, ts, type, amount, foodWeight }
+  function computeDeltas(pet) {
+    const sorted = [...pet.entries].sort((a, b) => a.ts - b.ts);
+    const result = [];
+    let prevFood = null;
+    sorted.forEach((e, i) => {
+      const fw = foodWeight(e, pet);
+      if (i === 0) {
+        result.push({ entry: e, ts: e.ts, type: 'first', amount: 0, foodWeight: fw, prevTs: null });
+        prevFood = fw;
+        return;
+      }
+      const prevTs = sorted[i - 1].ts;
+      if (fw === null || prevFood === null) {
+        result.push({ entry: e, ts: e.ts, type: 'unknown', amount: 0, foodWeight: fw, prevTs });
+        prevFood = fw;
+        return;
+      }
+      const delta = fw - prevFood;
+      if (delta < 0) result.push({ entry: e, ts: e.ts, type: 'eat', amount: -delta, foodWeight: fw, prevTs });
+      else if (delta > 0) result.push({ entry: e, ts: e.ts, type: 'refill', amount: delta, foodWeight: fw, prevTs });
+      else result.push({ entry: e, ts: e.ts, type: 'eat', amount: 0, foodWeight: fw, prevTs });
+      prevFood = fw;
+    });
+    return result;
+  }
+
+  // Eaten amount per logical date, distributing each eat-delta uniformly over [prevTs, ts]
+  // and assigning each minute's eating to its bucket date.
+  function eatenByDate(deltas, hour) {
+    const map = new Map();
+    deltas.forEach(d => {
+      if (d.type !== 'eat' || d.amount === 0) return;
+      if (d.prevTs === null) {
+        const k = bucketDateIso(d.ts, hour);
+        map.set(k, (map.get(k) || 0) + d.amount);
+        return;
+      }
+      // Distribute across logical days from prevTs to ts
+      const dur = d.ts - d.prevTs;
+      if (dur <= 0) {
+        const k = bucketDateIso(d.ts, hour);
+        map.set(k, (map.get(k) || 0) + d.amount);
+        return;
+      }
+      const rate = d.amount / dur;
+      let cursor = d.prevTs;
+      while (cursor < d.ts) {
+        const dayIso = bucketDateIso(cursor, hour);
+        const { end } = dayRangeMs(dayIso, hour);
+        const segEnd = Math.min(end, d.ts);
+        const portion = (segEnd - cursor) * rate;
+        map.set(dayIso, (map.get(dayIso) || 0) + portion);
+        cursor = segEnd;
+      }
+    });
+    return map;
+  }
+
+  // ===== DOM =====
+  const $petTabs = document.getElementById('pet-tabs');
+  const $petAdd = document.getElementById('pet-add');
+  const $petEdit = document.getElementById('pet-edit');
+  const $petEmpty = document.getElementById('pet-empty');
+  const $petView = document.getElementById('pet-view');
+  const $emptyAdd = document.getElementById('empty-add');
+
+  const $scToday = document.getElementById('sc-today');
+  const $scCount = document.getElementById('sc-count');
+  const $scAvg = document.getElementById('sc-avg');
+  const $scAvgLbl = document.getElementById('sc-avg-lbl');
+  const $scBowl = document.getElementById('sc-bowl');
+
+  const $reading = document.getElementById('reading');
+  const $modeToggle = document.getElementById('mode-toggle');
+  const $saveEntry = document.getElementById('save-entry');
+  const $formWarn = document.getElementById('form-warn');
+  const $dayRangeLbl = document.getElementById('day-range-lbl');
+  const $chartRangeLbl = document.getElementById('chart-range-lbl');
+
+  const $entriesToday = document.getElementById('entries-today');
+  const $entriesHistory = document.getElementById('entries-history');
+  const $toggleHistory = document.getElementById('toggle-history');
+  const $trendChart = document.getElementById('trend-chart');
+  const $trendTabs = document.getElementById('trend-tabs');
+  const $trendCustom = document.getElementById('trend-custom');
+  const $customStart = document.getElementById('custom-start');
+  const $customEnd = document.getElementById('custom-end');
+  const $chartMeta = document.getElementById('chart-meta');
+
+  const $modal = document.getElementById('pet-modal');
+  const $pmTitle = document.getElementById('pm-title');
+  const $pmName = document.getElementById('pm-name');
+  const $pmBowl = document.getElementById('pm-bowl');
+  const $pmHour = document.getElementById('pm-hour');
+  const $pmEmoji = document.getElementById('pm-emoji');
+  const $pmSave = document.getElementById('pm-save');
+  const $pmCancel = document.getElementById('pm-cancel');
+  const $pmDelete = document.getElementById('pm-delete');
+
+  // Init hour <select>
+  for (let h = 0; h < 24; h++) {
+    const o = document.createElement('option');
+    o.value = h;
+    o.textContent = pad2(h) + ':00';
+    $pmHour.appendChild(o);
+  }
+  // Init emoji picker
+  $pmEmoji.innerHTML = EMOJIS.map(e => `<button type="button" data-emoji="${e}">${e}</button>`).join('');
+  $pmEmoji.querySelectorAll('button').forEach(b => {
+    b.addEventListener('click', () => {
+      $pmEmoji.querySelectorAll('button').forEach(x => x.classList.remove('selected'));
+      b.classList.add('selected');
+      state.selectedEmoji = b.dataset.emoji;
+    });
+  });
+
+  // Mode toggle
+  $modeToggle.querySelectorAll('label').forEach(lbl => {
+    lbl.addEventListener('click', e => {
+      e.preventDefault();
+      $modeToggle.querySelectorAll('label').forEach(l => l.classList.remove('active'));
+      lbl.classList.add('active');
+      lbl.querySelector('input').checked = true;
+      checkFormWarn();
+    });
+  });
+  function currentMode() {
+    return $modeToggle.querySelector('label.active').dataset.val === '1';
+  }
+  function setMode(withBowl) {
+    const v = withBowl ? '1' : '0';
+    $modeToggle.querySelectorAll('label').forEach(l => {
+      const on = l.dataset.val === v;
+      l.classList.toggle('active', on);
+      l.querySelector('input').checked = on;
+    });
+    checkFormWarn();
+  }
+
+  function checkFormWarn() {
+    const pet = currentPet();
+    if (!pet) { $formWarn.style.display = 'none'; return; }
+    if (currentMode() && !pet.bowlWeight) {
+      $formWarn.innerHTML = '⚠️ 现在是"含碗"模式但还没设置碗重 —— 点 <strong>⚙ 设置</strong> 填碗的空重，或改用"已去皮"。';
+      $formWarn.style.display = '';
+    } else {
+      $formWarn.style.display = 'none';
+    }
+  }
+
+  function currentPet() {
+    return state.pets.find(p => p.id === state.currentId) || null;
+  }
+
+  // ===== Render =====
+  function render() {
+    if (state.pets.length === 0) {
+      $petEmpty.style.display = '';
+      $petView.style.display = 'none';
+      $petTabs.innerHTML = '';
+      $petEdit.style.display = 'none';
+      return;
+    }
+    $petEmpty.style.display = 'none';
+    $petView.style.display = '';
+    $petEdit.style.display = '';
+
+    $petTabs.innerHTML = state.pets.map(p =>
+      `<button type="button" class="pet-tab ${p.id === state.currentId ? 'active' : ''}" data-id="${p.id}">${p.emoji} ${escapeHtml(p.name)}</button>`
+    ).join('');
+    $petTabs.querySelectorAll('.pet-tab').forEach(b => {
+      b.addEventListener('click', () => {
+        state.currentId = b.dataset.id;
+        persist();
+        render();
+      });
+    });
+
+    const pet = currentPet();
+    if (!pet) return;
+
+    // Default mode = last used
+    if (pet.entries.length > 0) {
+      const last = [...pet.entries].sort((a, b) => b.ts - a.ts)[0];
+      setMode(!!last.withBowl);
+    } else {
+      checkFormWarn();
+    }
+
+    const hour = pet.dayBoundaryHour || 0;
+    const deltas = computeDeltas(pet);
+    const eatenMap = eatenByDate(deltas, hour);
+    const todayIso = todayBucketIso(hour);
+    const todayEaten = eatenMap.get(todayIso) || 0;
+
+    // Today's deltas = those whose ts is in today's bucket
+    const { start: todayStart, end: todayEnd } = dayRangeMs(todayIso, hour);
+    const todayDeltas = deltas.filter(d => d.ts >= todayStart && d.ts < todayEnd);
+    const todayCount = todayDeltas.length;
+
+    // 7-day avg, excluding today
+    const recent = lastNDays(7, hour, todayIso);
+    const recentExclToday = recent.filter(d => d !== todayIso);
+    let sum = 0, days = 0;
+    recentExclToday.forEach(d => {
+      if (eatenMap.has(d)) { sum += eatenMap.get(d); days++; }
+    });
+    const avg = days > 0 ? sum / days : NaN;
+
+    $scToday.textContent = fmtG(todayEaten) + ' g';
+    $scCount.textContent = todayCount;
+    $scAvg.textContent = fmtG(avg) + ' g';
+    $scAvgLbl.textContent = days >= 1 ? `近 ${days} 日均` : '日均（无数据）';
+
+    const lastEntry = pet.entries.length > 0 ? [...pet.entries].sort((a, b) => b.ts - a.ts)[0] : null;
+    if (lastEntry) {
+      const fw = foodWeight(lastEntry, pet);
+      $scBowl.textContent = (fw === null ? '?' : fmtG(fw)) + ' g';
+    } else {
+      $scBowl.textContent = '— g';
+    }
+
+    $dayRangeLbl.textContent = `从 ${pad2(hour)}:00 起算`;
+
+    renderEntriesList($entriesToday, todayDeltas, pet, '今天还没记录');
+    renderHistory(deltas, pet);
+    renderTrend(deltas, pet);
+  }
+
+  function lastNDays(n, hour, fromIso) {
+    const out = [];
+    const baseIso = fromIso || todayBucketIso(hour);
+    const base = parseIsoDate(baseIso);
+    for (let i = 0; i < n; i++) {
+      const d = new Date(base);
+      d.setDate(d.getDate() - i);
+      out.push(d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()));
+    }
+    return out;
+  }
+
+  function renderEntriesList(container, items, pet, emptyTxt) {
+    if (!items || items.length === 0) {
+      container.innerHTML = `<div class="empty-row">${emptyTxt}</div>`;
+      return;
+    }
+    const sorted = [...items].sort((a, b) => b.ts - a.ts);
+    container.innerHTML = sorted.map(d => renderEntryRow(d, pet)).join('');
+    container.querySelectorAll('.er-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!confirm('删除这条记录？')) return;
+        const p = currentPet(); if (!p) return;
+        p.entries = p.entries.filter(x => x.id !== btn.dataset.eid);
+        persist();
+        render();
+      });
+    });
+  }
+
+  function renderEntryRow(d, pet) {
+    const e = d.entry;
+    let deltaHtml;
+    if (d.type === 'first') deltaHtml = `<span class="er-delta first">起点</span>`;
+    else if (d.type === 'unknown') deltaHtml = `<span class="er-delta unknown">无法换算</span>`;
+    else if (d.amount === 0) deltaHtml = `<span class="er-delta eat">没变化</span>`;
+    else if (d.type === 'eat') deltaHtml = `<span class="er-delta eat">吃了 ${fmtG(d.amount)} g</span>`;
+    else deltaHtml = `<span class="er-delta refill">添了 ${fmtG(d.amount)} g</span>`;
+    const fwStr = d.foodWeight === null ? '?' : fmtG(d.foodWeight) + ' g';
+    const modeStr = e.withBowl ? '含碗' : '去皮';
+    return `
+      <div class="entry-row">
+        <span class="er-time">${fmtTime(e.ts)}</span>
+        <span class="er-main">
+          ${deltaHtml}
+          <span class="er-reading">碗里 ${fwStr} <span class="er-raw">(${e.reading} g · ${modeStr})</span></span>
+        </span>
+        <button type="button" class="er-del" data-eid="${e.id}" title="删除">×</button>
+      </div>
+    `;
+  }
+
+  function renderHistory(deltas, pet) {
+    if (deltas.length === 0) {
+      $entriesHistory.innerHTML = '<div class="empty-row">还没有记录</div>';
+      return;
+    }
+    const hour = pet.dayBoundaryHour || 0;
+    const groups = new Map();
+    deltas.forEach(d => {
+      const k = bucketDateIso(d.ts, hour);
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(d);
+    });
+    const sortedDates = [...groups.keys()].sort().reverse();
+    let html = '';
+    sortedDates.forEach(date => {
+      const items = groups.get(date);
+      const eaten = items.filter(x => x.type === 'eat').reduce((s, x) => s + x.amount, 0);
+      const sortedItems = [...items].sort((a, b) => b.ts - a.ts);
+      html += `<div class="day-divider"><span>${date}</span><span>当日 <strong>${fmtG(eaten)} g</strong> · ${items.length} 次称重</span></div>`;
+      sortedItems.forEach(d => { html += renderEntryRow(d, pet); });
+    });
+    $entriesHistory.innerHTML = html;
+    $entriesHistory.querySelectorAll('.er-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!confirm('删除这条记录？')) return;
+        const p = currentPet(); if (!p) return;
+        p.entries = p.entries.filter(x => x.id !== btn.dataset.eid);
+        persist();
+        render();
+      });
+    });
+  }
+
+  // ===== Trend chart =====
+  function renderTrend(deltas, pet) {
+    // Tab UI
+    $trendTabs.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b.dataset.p === state.period);
+    });
+    $trendCustom.style.display = state.period === 'custom' ? '' : 'none';
+
+    const hour = pet.dayBoundaryHour || 0;
+
+    if (state.period === 'today') {
+      drawIntraday(deltas, pet, hour);
+      return;
+    }
+
+    let startIso, endIso;
+    const todayIso = todayBucketIso(hour);
+
+    if (state.period === 'custom') {
+      if (!state.customStart || !state.customEnd) {
+        $customStart.value = state.customStart || '';
+        $customEnd.value = state.customEnd || todayIso;
+        renderEmptyChart('选起止日期看自定义区间');
+        $chartRangeLbl.textContent = '';
+        return;
+      }
+      startIso = state.customStart;
+      endIso = state.customEnd;
+      if (startIso > endIso) { [startIso, endIso] = [endIso, startIso]; }
+      $customStart.value = startIso;
+      $customEnd.value = endIso;
+    } else {
+      const n = parseInt(state.period, 10) || 7;
+      const days = lastNDays(n, hour, todayIso);
+      startIso = days[days.length - 1];
+      endIso = days[0];
+    }
+
+    const startDate = parseIsoDate(startIso);
+    const endDate = parseIsoDate(endIso);
+    const dayCount = Math.max(1, Math.round((endDate - startDate) / DAY_MS) + 1);
+
+    let agg;
+    if (dayCount <= 35) agg = 'day';
+    else if (dayCount <= 200) agg = 'week';
+    else agg = 'month';
+
+    drawAggregatedBars(deltas, pet, hour, startIso, endIso, agg);
+  }
+
+  function renderEmptyChart(msg) {
+    $trendChart.innerHTML = '';
+    $chartMeta.innerHTML = `<div style="text-align:center;width:100%;padding:1.5rem;color:var(--color-light);">${escapeHtml(msg)}</div>`;
+  }
+
+  // ===== Intraday cumulative chart =====
+  function drawIntraday(deltas, pet, hour) {
+    const todayIso = todayBucketIso(hour);
+    const { start: dayStart, end: dayEnd } = dayRangeMs(todayIso, hour);
+
+    // Build cumulative-eaten-today function from deltas
+    // We rebuild cum from the SORTED entries (not just today's), because an eat delta may span across the boundary.
+    const sortedEntries = [...pet.entries].sort((a, b) => a.ts - b.ts);
+    const points = [{ t: dayStart, c: 0 }];
+    let cum = 0;
+    let prevTs = null;
+    let prevFood = null;
+
+    for (let i = 0; i < sortedEntries.length; i++) {
+      const e = sortedEntries[i];
+      const fw = foodWeight(e, pet);
+
+      if (prevTs === null || prevFood === null || fw === null) {
+        prevTs = e.ts;
+        prevFood = fw;
+        continue;
+      }
+
+      // delta within (prevTs, e.ts]
+      const delta = fw - prevFood;
+      if (delta < 0) {
+        // eating happened uniformly
+        const eaten = -delta;
+        const dur = e.ts - prevTs;
+        if (dur > 0) {
+          // Intersect [prevTs, e.ts] with [dayStart, dayEnd]
+          const segStart = Math.max(prevTs, dayStart);
+          const segEnd = Math.min(e.ts, dayEnd);
+          if (segEnd > segStart) {
+            const rate = eaten / dur;
+            // Before segStart, the line was at cum (in today's frame). We may need to anchor.
+            if (segStart > points[points.length - 1].t) {
+              points.push({ t: segStart, c: cum });
+            }
+            // Linear rise to (segEnd, cum + (segEnd-segStart)*rate)
+            const newCum = cum + (segEnd - segStart) * rate;
+            points.push({ t: segEnd, c: newCum, mark: (e.ts >= dayStart && e.ts < dayEnd) ? 'eat' : null });
+            cum = newCum;
+          }
+        }
+      } else {
+        // refill or no change — flat segment within today
+        if (e.ts >= dayStart && e.ts < dayEnd) {
+          if (e.ts > points[points.length - 1].t) points.push({ t: e.ts, c: cum, mark: 'refill' });
+        }
+      }
+      prevTs = e.ts;
+      prevFood = fw;
+    }
+
+    // Trailing segment: from the last entry's ts (or 0) to now (or dayEnd)
+    const now = Date.now();
+    const endT = (now >= dayStart && now < dayEnd) ? now : dayEnd;
+    if (endT > points[points.length - 1].t) points.push({ t: endT, c: cum });
+
+    // Today's measurement points (for circle markers)
+    const todayMeasurements = sortedEntries.filter(e => e.ts >= dayStart && e.ts < dayEnd).map(e => {
+      // find cum at e.ts by interpolating points
+      const pt = interpolateCum(points, e.ts);
+      return { ts: e.ts, c: pt };
+    });
+
+    // ---- Draw ----
+    const W = 600, H = 240;
+    const m = { l: 44, r: 16, t: 18, b: 32 };
+    const innerW = W - m.l - m.r;
+    const innerH = H - m.t - m.b;
+    const maxC = Math.max(1, ...points.map(p => p.c));
+    const niceMax = niceCeil(maxC);
+
+    const xScale = ts => m.l + ((ts - dayStart) / DAY_MS) * innerW;
+    const yScale = c => m.t + innerH - (c / niceMax) * innerH;
+
+    let html = '';
+
+    // Y grid + labels
+    const yTicks = niceTicks(0, niceMax, 4);
+    yTicks.forEach(v => {
+      const y = yScale(v);
+      html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="var(--color-border)" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.6"/>`;
+      html += `<text x="${m.l - 6}" y="${y + 3.5}" text-anchor="end" fill="var(--color-light)" font-size="9.5">${fmtG(v)}</text>`;
+    });
+    html += `<text x="6" y="${m.t + 4}" fill="var(--color-light)" font-size="9.5">g</text>`;
+
+    // X axis & hour labels
+    html += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + innerH}" y2="${m.t + innerH}" stroke="var(--color-border)"/>`;
+    // 4 ticks: 0, 6, 12, 18, 24h offset
+    for (let off = 0; off <= 24; off += 6) {
+      const ts = dayStart + off * 3600 * 1000;
+      const x = xScale(ts);
+      const dt = new Date(ts);
+      const hh = pad2(dt.getHours());
+      html += `<line x1="${x}" x2="${x}" y1="${m.t + innerH}" y2="${m.t + innerH + 3}" stroke="var(--color-border)"/>`;
+      html += `<text x="${x}" y="${H - 14}" text-anchor="middle" fill="var(--color-light)" font-size="9.5">${hh}:00</text>`;
+    }
+
+    // Area fill under cumulative line
+    if (points.length >= 2) {
+      const fillPath = (
+        `M ${xScale(points[0].t)},${yScale(0)} ` +
+        points.map(p => `L ${xScale(p.t)},${yScale(p.c)}`).join(' ') +
+        ` L ${xScale(points[points.length - 1].t)},${yScale(0)} Z`
+      );
+      html += `<path d="${fillPath}" fill="var(--color-accent)" opacity="0.12"/>`;
+
+      const linePath = `M ${xScale(points[0].t)},${yScale(points[0].c)} ` +
+        points.slice(1).map(p => `L ${xScale(p.t)},${yScale(p.c)}`).join(' ');
+      html += `<path d="${linePath}" stroke="var(--color-accent)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }
+
+    // Measurement markers
+    todayMeasurements.forEach(p => {
+      html += `<circle cx="${xScale(p.ts)}" cy="${yScale(p.c)}" r="3.5" fill="var(--color-accent)" stroke="var(--color-bg)" stroke-width="1.5"/>`;
+    });
+
+    // "Now" line
+    if (now >= dayStart && now < dayEnd) {
+      const nx = xScale(now);
+      html += `<line x1="${nx}" x2="${nx}" y1="${m.t}" y2="${m.t + innerH}" stroke="var(--color-highlight)" stroke-width="1" stroke-dasharray="2 3"/>`;
+      html += `<text x="${nx}" y="${m.t - 4}" text-anchor="middle" fill="var(--color-highlight)" font-size="9">现在</text>`;
+    }
+
+    // Final cumulative label
+    if (cum > 0) {
+      const lx = xScale(endT);
+      const ly = yScale(cum);
+      html += `<text x="${Math.min(lx + 4, W - m.r - 4)}" y="${Math.max(ly - 6, m.t + 10)}" text-anchor="${lx > W - 60 ? 'end' : 'start'}" fill="var(--color-accent)" font-size="10.5" font-weight="600">${fmtG(cum)} g</text>`;
+    }
+
+    $trendChart.innerHTML = html;
+
+    const startD = new Date(dayStart);
+    const lbl = `${pad2(startD.getMonth() + 1)}/${pad2(startD.getDate())} ${pad2(hour)}:00 起 · 24h`;
+    $chartRangeLbl.textContent = lbl;
+    $chartMeta.innerHTML = `
+      <span><span class="legend-dot" style="background:var(--color-accent);opacity:0.6;"></span>累计已吃（假设两次称重之间匀速进食）</span>
+      <span>共 ${fmtG(cum)} g</span>
+    `;
+  }
+
+  function interpolateCum(points, t) {
+    if (points.length === 0) return 0;
+    if (t <= points[0].t) return points[0].c;
+    if (t >= points[points.length - 1].t) return points[points.length - 1].c;
+    for (let i = 1; i < points.length; i++) {
+      if (t <= points[i].t) {
+        const p0 = points[i - 1], p1 = points[i];
+        if (p1.t === p0.t) return p1.c;
+        const f = (t - p0.t) / (p1.t - p0.t);
+        return p0.c + f * (p1.c - p0.c);
+      }
+    }
+    return points[points.length - 1].c;
+  }
+
+  // ===== Aggregated bar chart =====
+  function drawAggregatedBars(deltas, pet, hour, startIso, endIso, agg) {
+    const eatenMap = eatenByDate(deltas, hour);
+    const todayIso = todayBucketIso(hour);
+
+    // Build day list from startIso to endIso inclusive
+    const dayList = [];
+    let cur = parseIsoDate(startIso);
+    const endD = parseIsoDate(endIso);
+    while (cur <= endD) {
+      dayList.push(cur.getFullYear() + '-' + pad2(cur.getMonth() + 1) + '-' + pad2(cur.getDate()));
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    // Aggregate into bars
+    const bars = [];
+    if (agg === 'day') {
+      dayList.forEach(d => {
+        bars.push({
+          key: d,
+          label: shortMD(d),
+          value: eatenMap.get(d) || 0,
+          isToday: d === todayIso,
+          sub: null,
+        });
+      });
+    } else if (agg === 'week') {
+      // Group by Monday-week (or just chunks of 7 starting from start)
+      const groups = new Map();
+      dayList.forEach(d => {
+        const dt = parseIsoDate(d);
+        // ISO week: shift to Monday
+        const day = dt.getDay();
+        const dayFromMon = (day + 6) % 7;
+        const mon = new Date(dt);
+        mon.setDate(mon.getDate() - dayFromMon);
+        const monIso = mon.getFullYear() + '-' + pad2(mon.getMonth() + 1) + '-' + pad2(mon.getDate());
+        if (!groups.has(monIso)) groups.set(monIso, { sum: 0, count: 0, monIso });
+        groups.get(monIso).sum += (eatenMap.get(d) || 0);
+        groups.get(monIso).count++;
+      });
+      [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([k, g]) => {
+        bars.push({
+          key: k,
+          label: shortMD(k),
+          value: g.sum,
+          isToday: false,
+          sub: g.count < 7 ? `${g.count}d` : null,
+        });
+      });
+    } else { // month
+      const groups = new Map();
+      dayList.forEach(d => {
+        const ym = d.slice(0, 7);
+        if (!groups.has(ym)) groups.set(ym, { sum: 0, count: 0 });
+        groups.get(ym).sum += (eatenMap.get(d) || 0);
+        groups.get(ym).count++;
+      });
+      [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([k, g]) => {
+        const month = parseInt(k.split('-')[1], 10);
+        bars.push({
+          key: k,
+          label: month + '月',
+          value: g.sum,
+          isToday: false,
+          sub: null,
+        });
+      });
+    }
+
+    drawBars(bars, agg, startIso, endIso, dayList.length);
+  }
+
+  function drawBars(bars, agg, startIso, endIso, dayCount) {
+    const W = 600, H = 240;
+    const m = { l: 44, r: 16, t: 22, b: 34 };
+    const innerW = W - m.l - m.r;
+    const innerH = H - m.t - m.b;
+    const maxV = Math.max(1, ...bars.map(b => b.value));
+    const niceMax = niceCeil(maxV);
+    const n = Math.max(1, bars.length);
+    const barW = innerW / n;
+
+    // Decide label sparsity
+    let labelEvery = 1;
+    if (n > 12) labelEvery = Math.ceil(n / 8);
+
+    let html = '';
+    // Y grid
+    const yTicks = niceTicks(0, niceMax, 4);
+    yTicks.forEach(v => {
+      const y = m.t + innerH - (v / niceMax) * innerH;
+      html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="var(--color-border)" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.6"/>`;
+      html += `<text x="${m.l - 6}" y="${y + 3.5}" text-anchor="end" fill="var(--color-light)" font-size="9.5">${fmtG(v)}</text>`;
+    });
+    html += `<text x="6" y="${m.t + 4}" fill="var(--color-light)" font-size="9.5">g</text>`;
+    html += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + innerH}" y2="${m.t + innerH}" stroke="var(--color-border)"/>`;
+
+    bars.forEach((b, i) => {
+      const x = m.l + barW * i + 1.5;
+      const w = Math.max(1, barW - 3);
+      const bh = (b.value / niceMax) * innerH;
+      const y = m.t + innerH - bh;
+      const fill = b.isToday ? 'var(--color-accent)' : '#c9a96e';
+      html += `<rect x="${x}" y="${y}" width="${w}" height="${bh}" fill="${fill}" rx="2"><title>${b.label}${b.sub ? ' ('+b.sub+')' : ''}: ${fmtG(b.value)} g</title></rect>`;
+      // Value above bar (sparse)
+      if (b.value > 0 && (n <= 14 || i % labelEvery === 0)) {
+        html += `<text x="${x + w / 2}" y="${y - 3}" text-anchor="middle" fill="var(--color-muted)" font-size="9">${fmtG(b.value)}</text>`;
+      }
+      if (i % labelEvery === 0 || i === n - 1) {
+        html += `<text x="${x + w / 2}" y="${H - 14}" text-anchor="middle" fill="var(--color-light)" font-size="9.5">${escapeHtml(b.label)}</text>`;
+      }
+    });
+
+    $trendChart.innerHTML = html;
+
+    // Meta line
+    const totalEaten = bars.reduce((s, b) => s + b.value, 0);
+    const daysWithData = bars.filter(b => b.value > 0).length;
+    const aggName = agg === 'day' ? '日' : (agg === 'week' ? '周' : '月');
+    const avgPerDay = dayCount > 0 ? totalEaten / dayCount : 0;
+    $chartMeta.innerHTML = `
+      <span><span class="legend-dot" style="background:#c9a96e;"></span>每${aggName}吃量 <span class="legend-dot" style="background:var(--color-accent);margin-left:0.5rem;"></span>今日</span>
+      <span>共 ${fmtG(totalEaten)} g · 平均 ${fmtG(avgPerDay)} g/日</span>
+    `;
+    $chartRangeLbl.textContent = `${startIso} → ${endIso} · 按${aggName}`;
+  }
+
+  function niceCeil(v) {
+    if (v <= 0) return 1;
+    const exp = Math.pow(10, Math.floor(Math.log10(v)));
+    const mant = v / exp;
+    let nice;
+    if (mant <= 1) nice = 1;
+    else if (mant <= 2) nice = 2;
+    else if (mant <= 5) nice = 5;
+    else nice = 10;
+    return nice * exp;
+  }
+  function niceTicks(lo, hi, count) {
+    const out = [];
+    for (let i = 0; i <= count; i++) out.push(lo + (hi - lo) * (i / count));
+    return out;
+  }
+
+  // ===== Modal =====
+  function openModal(id) {
+    state.editingId = id || null;
+    if (id) {
+      const p = state.pets.find(x => x.id === id);
+      if (!p) return;
+      $pmTitle.textContent = '编辑宠物';
+      $pmName.value = p.name;
+      $pmBowl.value = p.bowlWeight || '';
+      $pmHour.value = p.dayBoundaryHour || 0;
+      selectModalEmoji(p.emoji || EMOJIS[0]);
+      $pmDelete.style.display = '';
+    } else {
+      $pmTitle.textContent = '添加宠物';
+      $pmName.value = '';
+      $pmBowl.value = '';
+      $pmHour.value = 0;
+      selectModalEmoji(EMOJIS[0]);
+      $pmDelete.style.display = 'none';
+    }
+    $modal.classList.add('open');
+    setTimeout(() => $pmName.focus(), 50);
+  }
+  function closeModal() {
+    $modal.classList.remove('open');
+    state.editingId = null;
+  }
+  function selectModalEmoji(em) {
+    state.selectedEmoji = em;
+    $pmEmoji.querySelectorAll('button').forEach(b => b.classList.toggle('selected', b.dataset.emoji === em));
+  }
+
+  $petAdd.addEventListener('click', () => openModal(null));
+  $emptyAdd.addEventListener('click', () => openModal(null));
+  $petEdit.addEventListener('click', () => { if (state.currentId) openModal(state.currentId); });
+  $pmCancel.addEventListener('click', closeModal);
+  $modal.addEventListener('click', e => { if (e.target === $modal) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  $pmSave.addEventListener('click', () => {
+    const name = $pmName.value.trim();
+    if (!name) { alert('请输入名字'); return; }
+    const bowl = parseFloat($pmBowl.value);
+    const hour = parseInt($pmHour.value, 10) || 0;
+    if (state.editingId) {
+      const p = state.pets.find(x => x.id === state.editingId);
+      if (!p) return;
+      p.name = name;
+      p.emoji = state.selectedEmoji;
+      p.bowlWeight = Number.isFinite(bowl) && bowl > 0 ? bowl : 0;
+      p.dayBoundaryHour = hour;
+    } else {
+      const id = uuid('pet');
+      state.pets.push({
+        id, name,
+        emoji: state.selectedEmoji,
+        bowlWeight: Number.isFinite(bowl) && bowl > 0 ? bowl : 0,
+        dayBoundaryHour: hour,
+        entries: [],
+        createdAt: new Date().toISOString(),
+      });
+      state.currentId = id;
+    }
+    persist();
+    closeModal();
+    render();
+  });
+
+  $pmDelete.addEventListener('click', () => {
+    if (!state.editingId) return;
+    if (!confirm('删除这只宠物以及所有记录？')) return;
+    state.pets = state.pets.filter(x => x.id !== state.editingId);
+    if (state.currentId === state.editingId) {
+      state.currentId = state.pets[0] ? state.pets[0].id : null;
+    }
+    persist();
+    closeModal();
+    render();
+  });
+
+  // ===== Entry add =====
+  $saveEntry.addEventListener('click', () => {
+    const pet = currentPet();
+    if (!pet) { alert('先添加一只宠物'); return; }
+    const v = parseFloat($reading.value);
+    if (!Number.isFinite(v) || v < 0) { alert('请输入碗里现在的重量（克）'); return; }
+    const withBowl = currentMode();
+    if (withBowl && !pet.bowlWeight) {
+      if (!confirm('当前是"含碗"模式但还没设碗重，先按原值保存吗？\n（之后在设置里补碗重，历史也会自动重算）')) return;
+    }
+    pet.entries.push({
+      id: uuid('e'),
+      ts: Date.now(),
+      reading: v,
+      withBowl,
+      note: '',
+    });
+    persist();
+    $reading.value = '';
+    render();
+    $reading.focus();
+  });
+
+  $reading.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); $saveEntry.click(); }
+  });
+
+  // ===== Trend tabs =====
+  $trendTabs.querySelectorAll('button').forEach(b => {
+    b.addEventListener('click', () => {
+      state.period = b.dataset.p;
+      if (state.period === 'custom' && (!state.customStart || !state.customEnd)) {
+        const pet = currentPet();
+        const hour = pet ? (pet.dayBoundaryHour || 0) : 0;
+        const todayIso = todayBucketIso(hour);
+        const back = lastNDays(30, hour, todayIso);
+        state.customStart = state.customStart || back[back.length - 1];
+        state.customEnd = state.customEnd || todayIso;
+      }
+      persist();
+      render();
+    });
+  });
+  $customStart.addEventListener('change', () => {
+    state.customStart = $customStart.value || null;
+    persist();
+    render();
+  });
+  $customEnd.addEventListener('change', () => {
+    state.customEnd = $customEnd.value || null;
+    persist();
+    render();
+  });
+
+  $toggleHistory.addEventListener('click', () => {
+    state.historyOpen = !state.historyOpen;
+    $entriesHistory.style.display = state.historyOpen ? '' : 'none';
+    $toggleHistory.textContent = state.historyOpen ? '收起 ▴' : '展开 ▾';
+  });
+
+  // ===== Init =====
+  load();
+  render();
+})();
+</script>

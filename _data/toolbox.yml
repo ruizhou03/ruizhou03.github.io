@@ -409,6 +409,14 @@
   category: 生活
   status: live
 
+- id: pet-food
+  name: 宠物食量
+  icon: 🥣
+  tagline: 称碗算今日 + 日均
+  url: /toolbox/pet-food/
+  category: 生活
+  status: live
+
 - id: timemachine
   name: X 年前的今天
   icon: 🕰️
