@@ -1194,8 +1194,9 @@
     // 状态哈希：renderAll 被频繁调用，同一手"不要"/同一组牌不应每次重建 DOM —
     // 那会让 gd-pass-pop 动画反复重放（用户看到别人弃出时，自己的"不要"也跟着闪）
     const level = currentLevelLabel();
+    const trib = (lp && lp.tributeLabel) || '';
     const key = lp === 'pass' ? 'pass:' + level :
-                (lp && lp.cards) ? ('combo:' + level + ':' + lp.cards.slice().sort((a, b) => a - b).join(',')) :
+                (lp && lp.cards) ? ('combo:' + level + ':' + lp.cards.slice().sort((a, b) => a - b).join(',') + (trib ? ':' + trib : '')) :
                 'empty';
     if (slot.dataset.lpKey === key) return;
     slot.dataset.lpKey = key;
@@ -1208,9 +1209,17 @@
     } else if (lp && lp.cards) {
       const row = document.createElement('div');
       row.className = 'gd-played-row';
-      const sorted = sortDisplayCards(lp.cards, lp.type, level);
+      if (trib) row.classList.add('gd-tribute-row');
+      // 进/还贡只有一张，跳过 sortDisplayCards 直接走原顺序
+      const sorted = trib ? lp.cards.slice() : sortDisplayCards(lp.cards, lp.type, level);
       // 别人出的牌跟我的手牌一样大（用 size-full）—— 用户反馈现在的太小
       for (const c of sorted) row.appendChild(buildCardEl(c, 'size-full', level));
+      if (trib) {
+        const lab = document.createElement('span');
+        lab.className = 'gd-tribute-tag tribute-' + (trib === '进' ? 'give' : 'return');
+        lab.textContent = trib;
+        row.appendChild(lab);
+      }
       slot.appendChild(row);
     }
   }
@@ -2040,75 +2049,113 @@
     }
   }
 
-  // 同步飞行：进贡牌 + 还贡牌 同时起飞，到对方手里后再 moveCard
+  // 参考欢乐斗地主的进贡演出，3 段式：
+  //   PHASE A —— "打出"进/还贡牌到双方各自的 play area（像普通出牌一样）+ "进""还"角标
+  //   PHASE B —— 两张牌起飞，交换位置（彼此飞到对方的 play area）
+  //   PHASE C —— 落入对方牌堆。自己参与时给新到手的牌加 just-inserted 弹动；
+  //              纯 AI 间的交换则 500ms 停顿后进入下一对
   function swapTributePair(idx) {
     const pair = state.pendingTribute.pairs[idx];
-    let done = 0;
-    const finish = () => {
-      done++;
-      if (done < 2) return;
-      // 两条都落地 → 真正交换
+    const level = currentLevelLabel();
+
+    // PHASE A: 把两张牌渲到各自 play area + 进/还 角标
+    state.lastPlay[pair.giver] = {
+      type: T.SINGLE, cards: [pair.tributeCard],
+      key: singleWeight(pair.tributeCard, level), bombStrength: 0,
+      tributeLabel: '进',
+    };
+    state.lastPlay[pair.receiver] = {
+      type: T.SINGLE, cards: [pair.returnCard],
+      key: singleWeight(pair.returnCard, level), bombStrength: 0,
+      tributeLabel: '还',
+    };
+    renderAll();
+    // 玩家手里仍然显示着的那张原始牌（giver=0 或 receiver=0 时）→ 藏掉避免重影
+    // 必须在 renderAll 之后，因为 renderHand 会替换 DOM
+    hideHandCardDom(pair.tributeCard);
+    hideHandCardDom(pair.returnCard);
+
+    setTimeout(() => phaseBSwap(), 700);
+
+    function phaseBSwap() {
+      const giverSlot = seatEls[pair.giver].play;
+      const receiverSlot = seatEls[pair.receiver].play;
+      // play area 里那两张静态卡 + 进/还 角标 都藏掉，让飞行的浮卡接管
+      const giverCardEl = giverSlot.querySelector('.gd-card');
+      const receiverCardEl = receiverSlot.querySelector('.gd-card');
+      const giverTagEl = giverSlot.querySelector('.gd-tribute-tag');
+      const receiverTagEl = receiverSlot.querySelector('.gd-tribute-tag');
+      if (giverCardEl) giverCardEl.style.visibility = 'hidden';
+      if (receiverCardEl) receiverCardEl.style.visibility = 'hidden';
+      if (giverTagEl) giverTagEl.style.visibility = 'hidden';
+      if (receiverTagEl) receiverTagEl.style.visibility = 'hidden';
+
+      let done = 0;
+      const onArrive = () => { if (++done === 2) phaseCAbsorb(); };
+      flyCardBetweenSlots(pair.tributeCard, giverSlot, receiverSlot, level, onArrive);
+      flyCardBetweenSlots(pair.returnCard, receiverSlot, giverSlot, level, onArrive);
+    }
+
+    function phaseCAbsorb() {
+      state.lastPlay[pair.giver] = null;
+      state.lastPlay[pair.receiver] = null;
       moveCard(pair.giver, pair.receiver, pair.tributeCard);
       moveCard(pair.receiver, pair.giver, pair.returnCard);
       renderAll();
-      toast(seatName(pair.giver) + ' → ' + cardText(pair.tributeCard) +
-            ' · ' + seatName(pair.receiver) + ' → ' + cardText(pair.returnCard));
-      processTributePair(idx + 1);
-    };
-    animateCardFly(pair.giver, pair.receiver, pair.tributeCard, finish);
-    animateCardFly(pair.receiver, pair.giver, pair.returnCard, finish);
-  }
 
-  // 抛物线式卡片飞行：from 座位中心 → to 座位中心，~700ms。
-  // 如果源是玩家(0)且这张牌还在主牌区里渲着 → 把那张原始 DOM 暂时藏掉
-  // （moveCard 还没跑，state.hands[0] 仍含该牌），避免视觉上同时出现两张
-  function animateCardFly(fromSeat, toSeat, card, onDone) {
-    const fromEl = seatEls[fromSeat] && seatEls[fromSeat].seat;
-    const toEl = seatEls[toSeat] && seatEls[toSeat].seat;
-    if (!fromEl || !toEl) { onDone && onDone(); return; }
-    // 玩家手里那张原始牌 → 暂时藏掉。等动画落地 onDone 里 moveCard + renderAll
-    // 自然让它消失，期间不会出现"手里 + 空中"两张
-    let sourceDom = null;
-    if (fromSeat === 0 && els.hand) {
-      sourceDom = els.hand.querySelector('.gd-card[data-cid="' + card + '"]');
-      if (sourceDom) sourceDom.style.visibility = 'hidden';
-    }
-    const fromR = fromEl.getBoundingClientRect();
-    const toR = toEl.getBoundingClientRect();
-    const level = currentLevelLabel();
-    const cardEl = buildCardEl(card, 'size-full', level);
-    cardEl.style.position = 'fixed';
-    cardEl.style.left = (fromR.left + fromR.width / 2) + 'px';
-    cardEl.style.top = (fromR.top + fromR.height / 2) + 'px';
-    cardEl.style.transform = 'translate(-50%, -50%) scale(1.4)';
-    cardEl.style.zIndex = '9999';
-    cardEl.style.transition = 'left 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), top 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s';
-    cardEl.style.pointerEvents = 'none';
-    cardEl.style.boxShadow = '0 6px 14px rgba(20,37,63,0.45)';
-    // 关键：CSS 变量 (--gd-card-w / --gd-card-bg 等) 是 .guandan-wrap 作用域；
-    // 直接挂 document.body 会让卡片宽高/底色全失效（看上去只剩一个字）。
-    const wrap = document.querySelector('.guandan-wrap') || document.body;
-    wrap.appendChild(cardEl);
-    requestAnimationFrame(() => {
-      cardEl.style.left = (toR.left + toR.width / 2) + 'px';
-      cardEl.style.top = (toR.top + toR.height / 2) + 'px';
-      cardEl.style.transform = 'translate(-50%, -50%) scale(0.85)';
-    });
-    setTimeout(() => { cardEl.style.opacity = '0'; }, 600);
-    setTimeout(() => {
-      cardEl.remove();
-      onDone && onDone();
-      // 落到玩家手里 → 等 onDone 里 renderAll 渲完，给新插入的牌做个高亮 pop
-      if (toSeat === 0) {
+      const selfInvolved = (pair.giver === 0 || pair.receiver === 0);
+      if (selfInvolved) {
+        // 我新拿到的那张牌：我是 giver 时收到 returnCard；我是 receiver 时收到 tributeCard
+        const newCard = pair.giver === 0 ? pair.returnCard : pair.tributeCard;
         requestAnimationFrame(() => {
-          const inserted = els.hand && els.hand.querySelector('.gd-card[data-cid="' + card + '"]');
+          const inserted = els.hand && els.hand.querySelector('.gd-card[data-cid="' + newCard + '"]');
           if (inserted) {
             inserted.classList.add('just-inserted');
             setTimeout(() => inserted.classList.remove('just-inserted'), 720);
           }
         });
       }
-    }, 760);
+      toast(seatName(pair.giver) + ' → ' + cardText(pair.tributeCard) +
+            ' · ' + seatName(pair.receiver) + ' → ' + cardText(pair.returnCard));
+      // 自己参与：等 just-inserted 跑完再开下一对；只有 AI 互相交换：500ms 停顿
+      setTimeout(() => processTributePair(idx + 1), selfInvolved ? 720 : 500);
+    }
+  }
+
+  function hideHandCardDom(card) {
+    if (!els.hand) return;
+    const el = els.hand.querySelector('.gd-card[data-cid="' + card + '"]');
+    if (el) el.style.visibility = 'hidden';
+  }
+
+  // 一张牌从一个 play slot 飞到另一个 play slot，~700ms
+  function flyCardBetweenSlots(card, fromSlot, toSlot, level, onDone) {
+    const fromR = fromSlot.getBoundingClientRect();
+    const toR = toSlot.getBoundingClientRect();
+    // 空 slot 的 BoundingClientRect 可能宽高=0；用 seat 头像作为 fallback 让动画起点不至于卡在角落
+    const fromCx = (fromR.width > 0 ? fromR.left + fromR.width / 2 : fromR.left);
+    const fromCy = (fromR.height > 0 ? fromR.top + fromR.height / 2 : fromR.top);
+    const toCx = (toR.width > 0 ? toR.left + toR.width / 2 : toR.left);
+    const toCy = (toR.height > 0 ? toR.top + toR.height / 2 : toR.top);
+    const cardEl = buildCardEl(card, 'size-full', level);
+    cardEl.style.position = 'fixed';
+    cardEl.style.left = fromCx + 'px';
+    cardEl.style.top = fromCy + 'px';
+    cardEl.style.transform = 'translate(-50%, -50%)';
+    cardEl.style.zIndex = '9999';
+    cardEl.style.transition = 'left 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), top 0.7s cubic-bezier(0.4, 0.0, 0.2, 1)';
+    cardEl.style.pointerEvents = 'none';
+    cardEl.style.boxShadow = '0 6px 14px rgba(20,37,63,0.45)';
+    const wrap = document.querySelector('.guandan-wrap') || document.body;
+    wrap.appendChild(cardEl);
+    requestAnimationFrame(() => {
+      cardEl.style.left = toCx + 'px';
+      cardEl.style.top = toCy + 'px';
+    });
+    setTimeout(() => {
+      cardEl.remove();
+      onDone && onDone();
+    }, 720);
   }
 
   // 进贡阶段中心 banner：每次显示前先清掉上一条（避免叠字成重影）
@@ -2839,43 +2886,87 @@
   }
 
   // ============================================================
-  //  效用函数式决策
-  //  V(state) ≈ HandEfficiency = Σ groupValue - 0.5 · 手牌张数
+  //  效用函数式决策（per-difficulty weights）
+  //  V(state) ≈ HandEfficiency = Σ groupValue - handLenPenalty · 手牌张数
   //  每个候选 move 算 U(m) = ΔV - Cost + Bonus，argmax U(m) 决定出牌
   //  pass 也作为候选参与 argmax（仅跟牌时合法）
+  //
+  //  三档难度（easy/normal/hard）对应**不同的权重向量**——来自独立 ES self-play
+  //  训练终点+早中段快照，按 tournament Elo 排出强弱后选定。差异化来自策略偏好
+  //  （更/不愿意拆组、更/不愿意炸、更/不愿意 pass），不是噪声或硬编码降级，
+  //  所以 easy AI 始终按其"较弱但连贯"的策略打，不会有同一局面突然下莫名其妙
+  //  一手的"变笨"感。
   // ============================================================
-  // 不同 group 类型的"内在价值"——出得越长、强度越高、组合越罕见 → 越值钱
-  function groupValue(g, level) {
+
+  // tournament 之前的占位：三档都用同一套（当前调参好的）权重。tournament 完
+  // 之后 easy / normal 槽位会被排名分位上选出的不同权重替换。
+  const WEIGHTS_BY_DIFFICULTY = {
+    hard: {
+      groupBombBase: 14, groupBombPerExtra: 8,
+      handLenPenalty: 0.33,
+      passBase: -4.66, passPartnerWin: 13.69, passPartnerLow: 4,
+      playFinish: 51, playLeadLength: 0.35, playFollowActive: 2.13, playFollowLength: -0.12,
+      breakMult: 1.32, wildCost: 7, jokerCost: 5,
+      bombBase4: 6.8, bombPerExtra: 4,
+      bombLeadMult: 1, bombLeadLateBonus: 0.6,
+      bombFollowMult: 0.6, bombFollowOppLow: 1.3, bombFollowOppMed: 0.3,
+      playFinishPartnerWin: 35, playPartnerWinPenalty: -19.31,
+    },
+    normal: {
+      groupBombBase: 14, groupBombPerExtra: 8,
+      handLenPenalty: 0.33,
+      passBase: -4.66, passPartnerWin: 13.69, passPartnerLow: 4,
+      playFinish: 51, playLeadLength: 0.35, playFollowActive: 2.13, playFollowLength: -0.12,
+      breakMult: 1.32, wildCost: 7, jokerCost: 5,
+      bombBase4: 6.8, bombPerExtra: 4,
+      bombLeadMult: 1, bombLeadLateBonus: 0.6,
+      bombFollowMult: 0.6, bombFollowOppLow: 1.3, bombFollowOppMed: 0.3,
+      playFinishPartnerWin: 35, playPartnerWinPenalty: -19.31,
+    },
+    easy: {
+      groupBombBase: 14, groupBombPerExtra: 8,
+      handLenPenalty: 0.33,
+      passBase: -4.66, passPartnerWin: 13.69, passPartnerLow: 4,
+      playFinish: 51, playLeadLength: 0.35, playFollowActive: 2.13, playFollowLength: -0.12,
+      breakMult: 1.32, wildCost: 7, jokerCost: 5,
+      bombBase4: 6.8, bombPerExtra: 4,
+      bombLeadMult: 1, bombLeadLateBonus: 0.6,
+      bombFollowMult: 0.6, bombFollowOppLow: 1.3, bombFollowOppMed: 0.3,
+      playFinishPartnerWin: 35, playPartnerWinPenalty: -19.31,
+    },
+  };
+  function aiWeights() {
+    return WEIGHTS_BY_DIFFICULTY[state.aiLevel] || WEIGHTS_BY_DIFFICULTY.normal;
+  }
+
+  function groupValue(g, level, w) {
     if (!g || !g.cards || !g.cards.length) return 0;
     const len = g.cards.length;
     const maxRankW = Math.max(...g.cards.map(c => singleWeight(c, level)));
     switch (g.type) {
       case T.JOKER_BOMB: return 60;
       case T.STR_FLUSH:  return 35;
-      case T.BOMB:       return 14 + (len - 4) * 8 + maxRankW * 0.05;
-      case T.TRIPLE_STR: return 12;     // 钢板
-      case T.PAIR_STR:   return 10;     // 三连对
+      case T.BOMB:       return w.groupBombBase + (len - 4) * w.groupBombPerExtra + maxRankW * 0.05;
+      case T.TRIPLE_STR: return 12;
+      case T.PAIR_STR:   return 10;
       case T.STRAIGHT:   return 8;
       case T.TRIPLE_PAIR:return 7;
       case T.TRIPLE:     return 4;
       case T.PAIR:       return 3;
       case T.SINGLE:
-        // 散单是稀缺/累赘——但大张单（王/级牌）有压制力
-        if (maxRankW >= 16) return 4;  // 大王
-        if (maxRankW >= 15) return 2.5; // 小王 / 级牌
-        if (maxRankW >= 14) return 1;   // A
-        return -0.5;                    // 普通散单：负价值（出不掉时是累赘）
+        if (maxRankW >= 16) return 4;
+        if (maxRankW >= 15) return 2.5;
+        if (maxRankW >= 14) return 1;
+        return -0.5;
     }
     return 0;
   }
-  function evaluateHand(hand, level) {
-    if (!hand || !hand.length) return 100; // 空手最优：出完了
+  function evaluateHand(hand, level, w) {
+    if (!hand || !hand.length) return 100;
     const groups = decompose(hand, level);
     let v = 0;
-    for (const g of groups) v += groupValue(g, level);
-    // self-play 调参（含 lookahead）：0.55 → 0.33。lookahead 自己能"看见"未来手牌进度，
-    // 不再需要靠 hand-len 惩罚硬性催 AI 出牌
-    v -= 0.33 * hand.length;
+    for (const g of groups) v += groupValue(g, level, w);
+    v -= w.handLenPenalty * hand.length;
     return v;
   }
 
@@ -2898,85 +2989,72 @@
   }
 
   // 一手 move 的效用。move 可以是 {combo, cards}（出牌）或 {pass: true}
-  // 关键平衡：默认"能出就出"——pass 的 base 设为负，play 跟牌时再加一档"既然能压就压"
-  // 的主动奖励。只有队友领着 trick / 拆大组合的成本太高时，pass 才会胜出。
-  function moveUtility(move, seat, hand, prev, leading, level, lvl, ctx) {
+  // w = 当前难度的权重对象（来自 WEIGHTS_BY_DIFFICULTY[state.aiLevel]）
+  function moveUtility(move, seat, hand, prev, leading, level, ctx, w) {
     if (move.pass) {
       if (leading) return -Infinity;
-      // 默认 pass 劣势：能跟就跟（除非确实没必要）
-      let u = -4.66;                          // self-play (depth=2) 调参 -3 → -4.66
-      if (ctx.partnerWinning) u += 13.69;     // self-play 调参 14 → 13.69
-      if (ctx.partnerWinning && ctx.partnerCount <= 3 && !ctx.partnerOut) u += 4;
+      let u = w.passBase;
+      if (ctx.partnerWinning) u += w.passPartnerWin;
+      if (ctx.partnerWinning && ctx.partnerCount <= 3 && !ctx.partnerOut) u += w.passPartnerLow;
       return u;
     }
     const combo = move.combo;
     const isBomb = isBombType(combo.type);
     const cardSet = new Set(move.cards);
     const handAfter = hand.filter(c => !cardSet.has(c));
-    const before = evaluateHand(hand, level);
-    const after = evaluateHand(handAfter, level);
+    const before = evaluateHand(hand, level, w);
+    const after = evaluateHand(handAfter, level, w);
     let u = after - before;
-    if (handAfter.length === 0) u += 51;      // self-play 调参 60 → 51
+    if (handAfter.length === 0) u += w.playFinish;
 
     if (leading) {
-      u += move.cards.length * 0.35;
+      u += move.cards.length * w.playLeadLength;
     } else {
-      u += 2.13;                              // self-play 调参 2.5 → 2.13
-      u -= move.cards.length * 0.12;
+      u += w.playFollowActive;
+      u += move.cards.length * w.playFollowLength;
     }
 
-    // self-play 调参（含 lookahead）：
-    //   - breakMult 1.7 → 1.32：lookahead 自己能"看见"拆组后的损失，硬规则可以放松
-    //   - bombBase4 12 → 6.8：同理，lookahead 评估"出炸后的局面"，机会成本不用拉那么大
-    u -= moveBreakCost(move, hand, level) * 1.32;
+    u -= moveBreakCost(move, hand, level) * w.breakMult;
     const wildUsed = move.cards.filter(c => isWild(c, level)).length;
-    u -= wildUsed * 7;
+    u -= wildUsed * w.wildCost;
     const jokerUsed = move.cards.filter(isJoker).length;
-    u -= jokerUsed * 5;
+    u -= jokerUsed * w.jokerCost;
 
     if (isBomb) {
       const bombBase = (combo.type === T.JOKER_BOMB) ? 30
                      : (combo.type === T.STR_FLUSH) ? 16
-                     : (6.8 + (combo.len - 4) * 4);
+                     : (w.bombBase4 + (combo.len - 4) * w.bombPerExtra);
       if (leading) {
-        u -= bombBase;
-        if (hand.length <= 5) u += bombBase * 0.6;
+        u -= bombBase * w.bombLeadMult;
+        if (hand.length <= 5) u += bombBase * w.bombLeadLateBonus;
       } else {
-        u -= bombBase * 0.6;
-        if (ctx.opponentMin <= 3) u += bombBase * 1.3;
-        else if (ctx.opponentMin <= 5) u += bombBase * 0.3;
+        u -= bombBase * w.bombFollowMult;
+        if (ctx.opponentMin <= 3) u += bombBase * w.bombFollowOppLow;
+        else if (ctx.opponentMin <= 5) u += bombBase * w.bombFollowOppMed;
       }
     }
 
-    // 跟牌时队友 winning → 不要抢（除非直接走完）
     if (!leading && ctx.partnerWinning) {
-      if (handAfter.length === 0) u += 35;
-      else u -= 19.31;                        // self-play 调参 30 → 19.31（lookahead 已经
-                                              // 在内部评估"抢队友圈后的局面"，硬罚不用那么重）
+      if (handAfter.length === 0) u += w.playFinishPartnerWin;
+      else u += w.playPartnerWinPenalty;
     }
-
-    // 噪声：缩小到不至于翻转决策
-    if (lvl === 'easy') u += (Math.random() - 0.5) * 3;
-    else if (lvl === 'normal') u += (Math.random() - 0.5) * 0.8;
-
+    // 注意：之前 easy/normal 难度通过加噪声（Math.random）人为降级 → AI "变笨"。
+    // 现在三档难度差异完全来自 w 权重组本身的不同（来自 tournament 选档），
+    // 所以这里不再注入任何噪声，每档 AI 始终按其策略偏好"想清楚再出"。
     return u;
   }
 
   // 选牌核心：argmax over candidates ∪ {pass}
-  // 难度 → lookahead 深度：easy=0 (greedy)；normal=1；hard=2
-  // depth=2 在 self-play 模拟里相对 greedy 是 100% 胜率，相对 depth=1 还 +9%
-  function lookaheadDepthForDifficulty(lvl) {
-    if (lvl === 'easy') return 0;
-    if (lvl === 'normal') return 1;
-    return 2; // hard
-  }
+  //
+  // 所有三档难度都用 lookahead depth=2（差异完全来自 WEIGHTS_BY_DIFFICULTY 里的
+  // 权重组不同，不再用深度或噪声制造区别）。depth=2 在 self-play 模拟里相对
+  // greedy 100% 胜，相对 depth=1 +9%，depth=3 不显著 → 甜蜜点。
+  const LOOKAHEAD_DEPTH = 2;
   function chooseAIMove(seat, hand, prev, leading, level) {
-    const lvl = state.aiLevel || 'normal';
-    const depth = lookaheadDepthForDifficulty(lvl);
-    if (depth > 0) return chooseAIMoveLookahead(seat, hand, prev, leading, level, lvl, depth);
-    return chooseAIMoveGreedy(seat, hand, prev, leading, level, lvl);
+    const w = aiWeights();
+    return chooseAIMoveLookahead(seat, hand, prev, leading, level, w, LOOKAHEAD_DEPTH);
   }
-  function chooseAIMoveGreedy(seat, hand, prev, leading, level, lvl) {
+  function chooseAIMoveGreedy(seat, hand, prev, leading, level, w) {
     const ctx = moveContext(seat);
     const moves = genMoves(hand, prev, level);
     if (leading && !moves.length) {
@@ -2985,11 +3063,11 @@
     }
     let bestU = -Infinity, bestMove = null;
     for (const m of moves) {
-      const u = moveUtility(m, seat, hand, prev, leading, level, lvl, ctx);
+      const u = moveUtility(m, seat, hand, prev, leading, level, ctx, w);
       if (u > bestU) { bestU = u; bestMove = m; }
     }
     if (!leading) {
-      const passU = moveUtility({ pass: true }, seat, hand, prev, leading, level, lvl, ctx);
+      const passU = moveUtility({ pass: true }, seat, hand, prev, leading, level, ctx, w);
       if (passU > bestU) { bestU = passU; bestMove = null; }
     }
     return bestMove ? bestMove.combo : null;

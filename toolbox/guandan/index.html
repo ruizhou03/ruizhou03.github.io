@@ -1305,6 +1305,40 @@ permalink: /toolbox/guandan/
     display: none;
   }
 
+  /* ======== 进贡 / 还贡 角标 ========
+     仿欢乐斗地主的演出：把进/还贡的牌"打"到对应 play area + 一个小角标 "进""还"
+     贴在牌右上角内侧，让用户一眼分清谁给的、谁还的。
+     注意 .gd-played 有 overflow:hidden，角标必须在 row 内部不能溢出。 */
+  .gd-played-row.gd-tribute-row { position: relative; }
+  .gd-tribute-tag {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    padding: 0.1rem 0.35rem;
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+    border-radius: 999px;
+    color: #fff;
+    letter-spacing: 0.04em;
+    box-shadow: 0 1px 3px rgba(20,37,63,0.45);
+    pointer-events: none;
+    animation: gd-tribute-tag-pop 0.42s cubic-bezier(0.18, 0.9, 0.32, 1.3);
+    z-index: 2;
+  }
+  .gd-tribute-tag.tribute-give {
+    background: linear-gradient(135deg, #c9a227, #a87a2a);
+  }
+  .gd-tribute-tag.tribute-return {
+    background: linear-gradient(135deg, #6b8f9c, #455e6c);
+  }
+  @keyframes gd-tribute-tag-pop {
+    0%   { opacity: 0; transform: scale(0.4) rotate(-10deg); }
+    60%  { opacity: 1; transform: scale(1.15) rotate(3deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+
   /* ======== 大字"不要"浮窗（替代以前的虚线 tag）========
      仿欢乐斗地主：玩家弃出时不画小角标，而是在出牌位置浮一行大字，
      0.9 秒后稳态停留为更小的标签。 */
