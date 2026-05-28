@@ -844,6 +844,23 @@ permalink: /toolbox/guandan/
     animation: gd-clock-urgent 0.5s ease-in-out infinite alternate;
   }
 
+  /* ======== 自定义理牌列：用细金边给出"自己摞出来的一摞"提示 ======== */
+  .gd-rank-col.gd-custom-col {
+    position: relative;
+  }
+  .gd-rank-col.gd-custom-col::before {
+    content: '';
+    position: absolute;
+    inset: -3px -2px -3px -2px;
+    border-radius: 7px;
+    border: 1.5px solid rgba(201,169,110,0.55);
+    pointer-events: none;
+  }
+  .gd-rank-col.gd-custom-bomb::before {
+    border-color: rgba(180,40,40,0.65);
+    box-shadow: 0 0 6px rgba(180,40,40,0.25);
+  }
+
   /* ======== Pre-game overlay 难度小结 ======== */
   .gd-pgo-stats {
     display: flex; gap: 0.5rem; justify-content: center;
@@ -1226,9 +1243,9 @@ permalink: /toolbox/guandan/
 
     <!-- 理牌行：在表桌右下角纵向排列。还原一直可见，点击在无可还原选中时静默失败 -->
     <div class="gd-sort-actions" id="gdSortActions">
-      <button class="gd-btn" id="gdRestoreBtn" type="button" title="选中整列后点击，把这些列恢复到默认点数位置">↩ 还原</button>
-      <button class="gd-btn" id="gdArrangeBtn" type="button" title="进入理牌模式：直接拖动列即可调换位置（不用长按）">🔀 理牌</button>
-      <button class="gd-btn" id="gdSortBtn" type="button" title="所有列恢复默认顺序（点数高→低）">🧩 一键理牌</button>
+      <button class="gd-btn" id="gdRestoreBtn" type="button" title="选中某一摞的全部牌后点击，把它解散回默认位置">↩ 还原</button>
+      <button class="gd-btn" id="gdArrangeBtn" type="button" title="选中若干张点击，把它们摞成一摞：炸弹自动摞左、其他摞右">🔀 理牌</button>
+      <button class="gd-btn" id="gdSortBtn" type="button" title="清掉所有自定义摞，恢复默认排序">🧩 一键理牌</button>
     </div>
 
     <!-- Pre-game overlay -->

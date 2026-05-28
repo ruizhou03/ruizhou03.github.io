@@ -817,7 +817,10 @@
     runStartedAt: 0,
     runNonce: '',
     pendingTribute: null,
-    arrangeMode: false,                   // 🔀 理牌：开启后拖动列直接重排，不需长按
+    arrangeMode: false,                   // 已弃用：保留字段供旧 session 兼容；不再有任何效果
+    customGroups: [],                     // 🔀 理牌：用户手动摞起来的牌堆
+                                          // [{ id, cards:[card_id...], strength:number, type:'bomb'|'normal' }]
+                                          // 渲染顺序：炸弹组（strength 降序）| 默认列 | 普通组（创建序）
     autopilot: false,                     // 🤖 托管：AI 替我打；连续 2 次超时被动自动开启
     _consecutiveTimeouts: 0,              // 玩家连续被动出牌（超时）计数
     bombMult: 1,                          // 本副对局内炸弹累乘倍数（startMatch 重置）
@@ -909,6 +912,9 @@
         passes: state.trick.passes,
       } : null,
       handOrder: state.handOrder ? state.handOrder.slice() : null,
+      customGroups: Array.isArray(state.customGroups) ? state.customGroups.map(g => ({
+        id: g.id, cards: g.cards.slice(), strength: g.strength | 0, type: g.type,
+      })) : [],
       lastPlay: state.lastPlay.map(p => (p === 'pass' || p == null) ? p : { type: p.type, len: p.len, key: p.key, bombStrength: p.bombStrength, cards: (p.cards || []).slice() }),
       runStartedAt: state.runStartedAt,
       runNonce: state.runNonce,
@@ -1023,9 +1029,10 @@
 
   // 把手牌按 columnKey 分组（每个 key 一列）。红桃级牌（逢人配）独占一列，
   // 排在小王和普通级牌之间。列内按花色固定顺序排，王和级牌单独成列。
-  function buildHandColumns() {
+  // handArg 可选：传一个子集时按子集生成列（用于"剔除已 custom 摞起来的卡"）
+  function buildHandColumns(handArg) {
     const level = currentLevelLabel();
-    const hand = state.hands[viewSeat()];
+    const hand = handArg || state.hands[viewSeat()];
     const byW = new Map();
     for (const c of hand) {
       const w = columnKey(c, level);
@@ -1071,8 +1078,26 @@
     els.hand.style.removeProperty('--gd-stack-step');
     if (state.phase === PHASE.IDLE) return;
     const level = currentLevelLabel();
-    const cols = buildHandColumns();
-    // 旁观时不动 state.handOrder（用户的自定义不被对家牌堆覆盖）
+
+    // 自定义摞过的卡 ID → 把它们从默认列里挖出来
+    let customGroups = (!isSpectating() && Array.isArray(state.customGroups)) ? state.customGroups : [];
+    // 清掉已经不在手牌里的 group（出牌后那张卡走了）
+    if (customGroups.length) {
+      const handSet = new Set(state.hands[0]);
+      customGroups = customGroups.map(g => ({
+        ...g,
+        cards: g.cards.filter(c => handSet.has(c)),
+      })).filter(g => g.cards.length > 0);
+      if (!isSpectating()) state.customGroups = customGroups;
+    }
+    const customCardSet = new Set();
+    for (const g of customGroups) for (const c of g.cards) customCardSet.add(c);
+
+    // 默认列只用未被自定义摞起来的剩余牌
+    const remainingHand = isSpectating()
+      ? state.hands[viewSeat()]
+      : state.hands[0].filter(c => !customCardSet.has(c));
+    const cols = buildHandColumns(remainingHand);
     if (!isSpectating()) state.handOrder = cols.map(c => c.weight);
     els.hand.classList.toggle('is-spectating', isSpectating());
 
@@ -1083,10 +1108,12 @@
       getComputedStyle(els.hand).getPropertyValue('--gd-card-h')
     ) || 72;
 
-    for (const { weight, cards } of cols) {
+    function renderCol(cards, opts) {
+      opts = opts || {};
       const col = document.createElement('div');
-      col.className = 'gd-rank-col';
-      col.dataset.weight = String(weight);
+      col.className = 'gd-rank-col' + (opts.customClass ? (' ' + opts.customClass) : '');
+      if (opts.weight != null) col.dataset.weight = String(opts.weight);
+      if (opts.customId != null) col.dataset.customId = String(opts.customId);
       col.style.height = ((cards.length - 1) * stackStep + cardH) + 'px';
       cards.forEach((c, i) => {
         const cardEl = buildCardEl(c, 'size-full', level, {
@@ -1098,7 +1125,30 @@
       });
       els.hand.appendChild(col);
     }
+
+    // 旁观对家时不展示我的 custom groups
+    const bombGroups = customGroups.filter(g => g.type === 'bomb')
+      .slice().sort((a, b) => b.strength - a.strength);
+    const normalGroups = customGroups.filter(g => g.type !== 'bomb');
+
+    // 渲染顺序：炸弹组（强→弱）→ 默认列 → 普通自定义组（创建序）
+    for (const g of bombGroups) {
+      const sorted = sortDisplayCards(g.cards.slice(), classifyType(g.cards, level), level);
+      renderCol(sorted, { customClass: 'gd-custom-col gd-custom-bomb', customId: g.id });
+    }
+    for (const { weight, cards } of cols) {
+      renderCol(cards, { weight });
+    }
+    for (const g of normalGroups) {
+      const sorted = sortDisplayCards(g.cards.slice(), classifyType(g.cards, level), level);
+      renderCol(sorted, { customClass: 'gd-custom-col gd-custom-normal', customId: g.id });
+    }
     adaptHandSize();
+  }
+
+  function classifyType(cards, level) {
+    const cb = classify(cards, level);
+    return cb ? cb.type : T.SINGLE;
   }
 
   // 按"最大可能列数 15"算目标卡宽并锁定整局不变——避免出过几张牌、列消失后
@@ -1440,46 +1490,19 @@
   function onHandPointerDown(e) {
     // 旁观对家手牌时不允许任何点 / 拖
     if (isSpectating()) return;
-    // 选牌不再限制"轮到我"——别人回合也可以提前选好；TRIBUTE 还贡阶段也可以选；
+    // 选牌不限制"轮到我"——别人回合也可以提前选好；TRIBUTE 还贡阶段也可以选；
     // 实际能不能出由出牌按钮的 disabled / hidden 控制
     const canInteract = state.phase === PHASE.PLAYING || state.phase === PHASE.TRIBUTE;
-    if (!canInteract && !state.arrangeMode) return;
+    if (!canInteract) return;
     if (!els.hand.contains(e.target)) return;
-    const col = e.target.closest('.gd-rank-col');
-    // 理牌模式必须从某一列开始；选牌模式允许从空白处开始矩形框选
-    if (state.arrangeMode && !col) return;
     const card = e.target.closest('.gd-card');
     const pt = e.touches ? e.touches[0] : e;
     pState = {
       startX: pt.clientX, startY: pt.clientY,
       startCid: card ? parseInt(card.dataset.cid, 10) : null,
-      startCol: col,
       dragMode: null,
       mode: 'PENDING',
-      lpTimer: null,
-      gapIdx: null,
-      gapMarker: null,
     };
-    if (state.arrangeMode) {
-      // 直接进入 COL_DRAG（不等 380ms），整个手势都用来调列序
-      pState.mode = 'COL_DRAG';
-      col.classList.add('col-dragging');
-      const rects = colsRectsX();
-      const draggingIdx = rects.findIndex(r => r.el === col);
-      placeGapMarker(rects, draggingIdx);
-      pState.gapIdx = draggingIdx;
-    } else if (col) {
-      // 长按 380ms 还在原地 → 进入 COL_DRAG。空白处起手不进 COL_DRAG。
-      pState.lpTimer = setTimeout(() => {
-        if (!pState || pState.mode !== 'PENDING') return;
-        pState.mode = 'COL_DRAG';
-        col.classList.add('col-dragging');
-        const rects = colsRectsX();
-        const draggingIdx = rects.findIndex(r => r.el === col);
-        placeGapMarker(rects, draggingIdx);
-        pState.gapIdx = draggingIdx;
-      }, LONG_PRESS_MS);
-    }
     e.preventDefault();
   }
 
@@ -1491,13 +1514,9 @@
 
     if (pState.mode === 'PENDING') {
       if (Math.abs(dx) < MOVE_THRESHOLD && Math.abs(dy) < MOVE_THRESHOLD) return;
-      // 动了 → 取消长按
-      clearTimeout(pState.lpTimer);
       // 进贡阶段（玩家是 giver）：禁用矩形框选；只允许单击切换
       if (activeTributeGive()) { pState = null; return; }
       pState.mode = 'MULTI_SELECT';
-      // 起点是一张已选牌 → 进入"减"模式（拖一圈把它们移出选中）
-      // 否则 → "加"模式（拖一圈圈中的都进选中）
       pState.dragMode = (pState.startCid != null && state.selected.has(pState.startCid)) ? 'remove' : 'add';
       pState.originalSelected = new Set(state.selected);
       applyRectSelection(pt.clientX, pt.clientY);
@@ -1508,24 +1527,11 @@
     if (pState.mode === 'MULTI_SELECT') {
       applyRectSelection(pt.clientX, pt.clientY);
       e.preventDefault && e.preventDefault();
-      return;
-    }
-
-    if (pState.mode === 'COL_DRAG') {
-      const rects = colsRectsX();
-      const draggingIdx = rects.findIndex(r => r.el === pState.startCol);
-      const gap = computeGapIndex(rects, pt.clientX, draggingIdx);
-      if (gap !== pState.gapIdx) {
-        pState.gapIdx = gap;
-        placeGapMarker(rects, gap);
-      }
-      e.preventDefault && e.preventDefault();
     }
   }
 
   function onHandPointerUp(e) {
     if (!pState) return;
-    if (pState.lpTimer) clearTimeout(pState.lpTimer);
 
     if (pState.mode === 'PENDING') {
       // 没动过 → 当作点击
@@ -1561,25 +1567,6 @@
       renderHand();
       updateSelHint();
       updateActions();
-    } else if (pState.mode === 'COL_DRAG') {
-      const rects = colsRectsX();
-      const draggingIdx = rects.findIndex(r => r.el === pState.startCol);
-      const order = (state.handOrder && state.handOrder.length)
-        ? state.handOrder.slice()
-        : rects.map(r => r.weight);
-      const fromW = rects[draggingIdx].weight;
-      const fromIdx = order.indexOf(fromW);
-      let target = pState.gapIdx;
-      if (fromIdx >= 0 && target != null && target !== fromIdx && target !== fromIdx + 1) {
-        order.splice(fromIdx, 1);
-        if (target > fromIdx) target -= 1;
-        target = Math.max(0, Math.min(order.length, target));
-        order.splice(target, 0, fromW);
-        state.handOrder = order;
-      }
-      pState.startCol.classList.remove('col-dragging');
-      removeGapMarker();
-      renderHand();
     }
     pState = null;
   }
@@ -1652,9 +1639,11 @@
     }
     if (els.hand) els.hand.classList.toggle('no-play', noPlay);
 
-    els.playBtn.hidden = !myTurn || noPlay;
-    els.hintBtn.hidden = !myTurn || noPlay;
-    els.passBtn.hidden = !myTurn || mustLead;
+    // 托管中：操作按钮一律藏起来（450ms 后系统会替我出牌，不要让用户点）
+    const showActions = myTurn && !state.autopilot;
+    els.playBtn.hidden = !showActions || noPlay;
+    els.hintBtn.hidden = !showActions || noPlay;
+    els.passBtn.hidden = !showActions || mustLead;
     if (myTurn) {
       const sel = selectedCards();
       const level = currentLevelLabel();
@@ -1796,6 +1785,7 @@
     state.bombMult = 1;              // 每小局炸弹倍数清零
     state.lastRoundScore = null;
     state.lastRoundDetail = null;
+    state.customGroups = [];         // 每小局重发 → 清掉手动摞起来的组
     // 新一局重置智能选牌门闩，避免新局首手与上局某一刻 trick 状态 + 手牌张数偶然碰撞
     state._autoTurnKey = null;
     const deck = shuffle(buildDeck());
@@ -2659,6 +2649,14 @@
   //   领出（prev=null）→ 优先大组合（一次出更多牌）+ 不拆多张组，同长比小点数
   //   跟牌（prev!=null）→ 优先短组合 + 不拆多张组（用散牌反压） + 小 key
   // 炸弹永远放最后，保留到关键时刻才用。
+  //
+  // key 相同时（比如三带二里 triple 一样、pair 不同），按"使用的卡总权重"递增 →
+  // 用小牌的 pair 优先（如 Q + 4 对 优于 Q + 10 对）。
+  function moveTotalWeight(move, level) {
+    let w = 0;
+    for (const c of move.cards) w += singleWeight(c, level);
+    return w;
+  }
   function rankMoves(moves, prev, hand, level) {
     return moves.slice().sort((a, b) => {
       const ab = isBombType(a.combo.type) ? 1 : 0;
@@ -2667,13 +2665,13 @@
       if (prev) {
         // 跟牌：短的优先
         if (a.cards.length !== b.cards.length) return a.cards.length - b.cards.length;
-        // 同长里不拆多张组（用散牌反压，留下三张/对子等强组合）
         if (hand) {
           const ca = moveBreakCost(a, hand, level);
           const cb = moveBreakCost(b, hand, level);
           if (ca !== cb) return ca - cb;
         }
-        return a.combo.key - b.combo.key;
+        if (a.combo.key !== b.combo.key) return a.combo.key - b.combo.key;
+        return moveTotalWeight(a, level) - moveTotalWeight(b, level);
       }
       // 领出：大组合优先
       if (a.cards.length !== b.cards.length) return b.cards.length - a.cards.length;
@@ -2682,7 +2680,9 @@
         const cb = moveBreakCost(b, hand, level);
         if (ca !== cb) return ca - cb;
       }
-      return a.combo.key - b.combo.key;
+      if (a.combo.key !== b.combo.key) return a.combo.key - b.combo.key;
+      // key 相等时（三带二同 triple 不同 pair；钢板同 max-rank 等）→ 用小牌优先
+      return moveTotalWeight(a, level) - moveTotalWeight(b, level);
     });
   }
 
@@ -2971,80 +2971,78 @@
       }
     });
   }
+  // 一键理牌：清掉所有 custom groups + handOrder，回到完全默认排序
   els.sortBtn.addEventListener('click', () => {
-    state.handOrder = null;   // 清掉自定义顺序 → 回到默认（点数高→低，从左到右）
+    state.handOrder = null;
+    state.customGroups = [];
+    state.selected.clear();
     renderHand();
-    updateRestoreBtn();
-    toast('已按点数恢复默认顺序');
+    updateActions();
+    toast('已恢复默认排序');
   });
+
+  // 还原：选中的牌恰好等于某个 custom group 的全部卡 → 解散那个 group
   if (els.restoreBtn) {
     els.restoreBtn.addEventListener('click', () => {
-      // 选中整列（且这些列在自定义顺序里）→ 把它们从 state.handOrder 拿掉，
-      // 回到默认点数位置；其余列保持现有自定义顺序
-      const ranks = selectedFullColumnRanks();
-      if (!ranks.length) return;
-      if (Array.isArray(state.handOrder) && state.handOrder.length) {
-        state.handOrder = state.handOrder.filter(w => !ranks.includes(w));
-        if (!state.handOrder.length) state.handOrder = null;
-      }
-      state.selected.clear();
-      renderHand();
-      updateRestoreBtn();
-      updateActions();
-      toast('已还原 ' + ranks.length + ' 列到默认位置');
-    });
-  }
-
-  // 还原按钮可见性：仅当"选中的恰好是若干完整列、且这些列处于自定义顺序里"才可见。
-  // 多选一张不完整的、或没选任何整列、或这些列本就在默认位置 → 都隐藏。
-  function selectedFullColumnRanks() {
-    const sel = [...state.selected].filter(c => state.hands[0].includes(c));
-    if (!sel.length) return [];
-    const level = currentLevelLabel();
-    // 按 columnKey 分组选中（红桃级牌独占 15.5 一列）
-    const byW = new Map();
-    for (const c of sel) {
-      const w = columnKey(c, level);
-      if (!byW.has(w)) byW.set(w, 0);
-      byW.set(w, byW.get(w) + 1);
-    }
-    // 手牌每个 columnKey 的总数
-    const handByW = new Map();
-    for (const c of state.hands[0]) {
-      const w = columnKey(c, level);
-      handByW.set(w, (handByW.get(w) || 0) + 1);
-    }
-    // 选中的每个 weight 必须等于该 weight 在手牌中的总数（"完整一列"）
-    const cols = [];
-    for (const [w, n] of byW) {
-      if (handByW.get(w) !== n) return []; // 有列没选全 → 整体作废
-      cols.push(w);
-    }
-    // 这些列必须出现在自定义顺序里——否则按"还原"也没什么可还原的
-    if (!Array.isArray(state.handOrder) || !state.handOrder.length) return [];
-    return cols.filter(w => state.handOrder.includes(w));
-  }
-  // 还原按钮按用户反馈一直可见——点击在没有可还原选中列时静默失败，
-  // 用户依赖游戏反馈（手牌位置不变 = 没生效）即可，不弹提示。
-  // 留这个空函数避免修改所有调用点。
-  function updateRestoreBtn() { /* no-op */ }
-  if (els.arrangeBtn) {
-    els.arrangeBtn.addEventListener('click', () => {
-      state.arrangeMode = !state.arrangeMode;
-      els.arrangeBtn.classList.toggle('on', state.arrangeMode);
-      els.hand.classList.toggle('is-arranging', state.arrangeMode);
-      // 进入理牌模式时清掉旧的"出牌选择"，避免视觉误导
-      if (state.arrangeMode && state.selected.size) {
+      const sel = [...state.selected].filter(c => state.hands[0].includes(c));
+      if (!sel.length) { toast('请先选中要还原的一摞'); return; }
+      const selSet = new Set(sel);
+      // 查找 custom group：必须 sel 是该 group 的"超集"或"恰好"。这里要求"恰好等于"
+      const idx = state.customGroups.findIndex(g =>
+        g.cards.length === sel.length && g.cards.every(c => selSet.has(c)));
+      if (idx < 0) {
+        // 也可能用户选了多个 group → 一并解散
+        const toRemove = state.customGroups
+          .map((g, i) => ({ g, i }))
+          .filter(x => x.g.cards.every(c => selSet.has(c)));
+        if (!toRemove.length) { toast('请选中某一摞的全部牌'); return; }
+        const ids = new Set(toRemove.map(x => x.g.id));
+        state.customGroups = state.customGroups.filter(g => !ids.has(g.id));
         state.selected.clear();
         renderHand();
-        updateSelHint();
         updateActions();
-        toast('理牌模式：拖动列调整顺序；再点"理牌"退出');
-      } else if (state.arrangeMode) {
-        toast('理牌模式：拖动列调整顺序；再点"理牌"退出');
-      } else {
-        toast('已退出理牌模式');
+        toast('已还原 ' + toRemove.length + ' 摞到默认排序');
+        return;
       }
+      state.customGroups.splice(idx, 1);
+      state.selected.clear();
+      renderHand();
+      updateActions();
+      toast('已还原这一摞到默认排序');
+    });
+  }
+  // 兼容：旧地方仍在调 updateRestoreBtn，留空
+  function updateRestoreBtn() { /* no-op */ }
+
+  // 🔀 理牌：把当前选中的牌组成新的一摞 custom group
+  //   - classify 是炸弹 → strength = bombStrength，渲染时摞到最左（多个炸弹按 strength 降序）
+  //   - 普通牌型 / 不成型组合 → 渲染时摞到最右（创建顺序）
+  if (els.arrangeBtn) {
+    els.arrangeBtn.addEventListener('click', () => {
+      const sel = [...state.selected].filter(c => state.hands[0].includes(c));
+      if (sel.length < 2) { toast('选中两张或更多牌再点理牌'); return; }
+      // 选中的牌不能跨越已有 group（要先还原再重新理）
+      for (const g of state.customGroups) {
+        const cs = new Set(g.cards);
+        if (sel.some(c => cs.has(c))) {
+          toast('这张牌已在某一摞里，请先还原再重新理');
+          return;
+        }
+      }
+      const level = currentLevelLabel();
+      const cb = classify(sel, level);
+      const isBomb = cb && isBombType(cb.type);
+      const strength = isBomb ? (cb.bombStrength || 0) : 0;
+      state.customGroups.push({
+        id: Date.now() + Math.random(),
+        cards: sel.slice(),
+        strength: strength,
+        type: isBomb ? 'bomb' : 'normal',
+      });
+      state.selected.clear();
+      renderHand();
+      updateActions();
+      toast(isBomb ? '已摞成一组炸弹（左侧）' : '已摞成一摞（右侧）');
     });
   }
   document.addEventListener('keydown', e => {
@@ -3207,7 +3205,9 @@
     '<p><strong>本实现的取胜规则</strong>：当一队级牌已到 <code>A</code>，' +
     '只要在该局再次<strong>拿到头游</strong>即「打过 A」，立刻赢下整局（不要求 A 上双下）。' +
     '你方打过 A → 战绩 +1 胜并上传战绩榜；对方打过 A → 记一负。</p>' +
-    '<p>键盘：Enter 出牌 · Space 不要 · H 提示。手牌按点数竖向成列；点牌选中、横拖多选；「长按一列再拖到新位置」可自定义理牌顺序，「🧩 一键理牌」恢复默认（点数高→低）。</p>';
+    '<p>键盘：Enter 出牌 · Space 不要 · H 提示。手牌按点数竖向成列；点牌选中、横拖多选。' +
+    '<strong>🔀 理牌</strong>：选中若干张点一下，把它们摞成一摞 —— 炸弹自动摞到最左（多个炸弹按强度从大到小排）、其他牌摞到最右。' +
+    '<strong>↩ 还原</strong>：选中某一摞的所有牌后点击，把它解散回默认位置。<strong>🧩 一键理牌</strong>：把所有自定义摞清掉，全部回默认排序。</p>';
 
   // ---- 全屏切换：参考斗地主，用 body 类而非浏览器 Fullscreen API；
   //      进页面默认就铺满 viewport，不用先看局促画幅再点全屏。 ----
@@ -3302,6 +3302,9 @@
     state.turn = snap.turn | 0;
     state.trick = snap.trick ? { lead: snap.trick.lead | 0, best: snap.trick.best || null, bestSeat: snap.trick.bestSeat | 0, passes: snap.trick.passes | 0 } : null;
     state.handOrder = Array.isArray(snap.handOrder) ? snap.handOrder.slice() : null;
+    state.customGroups = Array.isArray(snap.customGroups) ? snap.customGroups.map(g => ({
+      id: g.id, cards: (g.cards || []).slice(), strength: g.strength | 0, type: g.type,
+    })) : [];
     state.lastPlay = Array.isArray(snap.lastPlay) ? snap.lastPlay.slice() : [null, null, null, null];
     state.runStartedAt = snap.runStartedAt || Date.now();
     state.runNonce = snap.runNonce || ((window.GamesShell && GamesShell.Identity) ? GamesShell.Identity.newRunNonce() : String(Date.now()));
@@ -3313,7 +3316,7 @@
     state.lastRanking = Array.isArray(snap.lastRanking) ? snap.lastRanking.slice() : null;
     state.selected = new Set();
     state.busy = false;
-    state.arrangeMode = false;
+    state.arrangeMode = false;  // 字段已弃用
     state.pendingTribute = null;
     state._activeTributeGive = null;
     state._activeTributePair = null;
