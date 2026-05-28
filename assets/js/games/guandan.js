@@ -515,18 +515,58 @@
     let st;
     while ((st = pullStraight())) groups.push({ type: T.STRAIGHT, cards: st });
 
-    // 4. 三连对 / 钢板 略（普通 AI 不强求，留作单/对/三）
-    // 5. 三张
+    // 4. 钢板（二连三）：两点连续各 ≥3 张 → 6 张一组
+    function pullTripleStraight() {
+      const ranks = [...cnt.keys()].sort((a, b) => a - b);
+      for (let i = 0; i + 1 < ranks.length; i++) {
+        const r1 = ranks[i], r2 = ranks[i + 1];
+        if (r2 - r1 !== 1) continue;
+        if ((cnt.get(r1) || []).length >= 3 && (cnt.get(r2) || []).length >= 3) {
+          return [...take(r1, 3), ...take(r2, 3)];
+        }
+      }
+      return null;
+    }
+    let ts; while ((ts = pullTripleStraight())) groups.push({ type: T.TRIPLE_STR, cards: ts });
+
+    // 5. 三连对（木板）：三点连续各 ≥2 张 → 6 张一组
+    function pullPairStraight() {
+      const ranks = [...cnt.keys()].sort((a, b) => a - b);
+      for (let i = 0; i + 2 < ranks.length; i++) {
+        const r1 = ranks[i], r2 = ranks[i + 1], r3 = ranks[i + 2];
+        if (r2 - r1 !== 1 || r3 - r2 !== 1) continue;
+        if ((cnt.get(r1) || []).length >= 2 && (cnt.get(r2) || []).length >= 2 && (cnt.get(r3) || []).length >= 2) {
+          return [...take(r1, 2), ...take(r2, 2), ...take(r3, 2)];
+        }
+      }
+      return null;
+    }
+    let ps; while ((ps = pullPairStraight())) groups.push({ type: T.PAIR_STR, cards: ps });
+
+    // 6. 三张（先全部抠出三张，下一步再尝试匹配对子凑三带二）
     for (const [r, arr] of [...cnt.entries()]) {
       while (cnt.has(r) && cnt.get(r).length >= 3) {
         groups.push({ type: T.TRIPLE, cards: take(r, 3) });
       }
     }
-    // 6. 对子
+    // 7. 对子
     for (const [r, arr] of [...cnt.entries()]) {
       while (cnt.has(r) && cnt.get(r).length >= 2) {
         groups.push({ type: T.PAIR, cards: take(r, 2) });
       }
+    }
+    // 8. 三带二：用前两步抠出的"独立三张 + 独立对子"凑 5 张组合，
+    //    比拆开打多个单/对更高效（领出 1 次而非 2 次）
+    while (true) {
+      const tIdx = groups.findIndex(g => g.type === T.TRIPLE);
+      const pIdx = groups.findIndex(g => g.type === T.PAIR);
+      if (tIdx < 0 || pIdx < 0) break;
+      const t = groups[tIdx], p = groups[pIdx];
+      const merged = { type: T.TRIPLE_PAIR, cards: [...t.cards, ...p.cards] };
+      // 移除原 triple + pair，添加 merged
+      const remove = [tIdx, pIdx].sort((a, b) => b - a);
+      for (const i of remove) groups.splice(i, 1);
+      groups.push(merged);
     }
     // 7. wild 尽量贴到单张升级成对（让残牌更好打）
     let singles = [];
@@ -1001,7 +1041,10 @@
 
     for (let s = 0; s < 4; s++) {
       const se = seatEls[s];
-      se.cnt.textContent = state.hands[s].length;
+      const handLen = state.hands[s].length;
+      se.cnt.textContent = handLen;
+      // 报牌：≤10 张持续红色警示
+      se.cnt.classList.toggle('warn', handLen > 0 && handLen <= 10);
       se.seat.classList.toggle('turn', state.phase === PHASE.PLAYING && state.turn === s && !state.busy);
       const isOut = state.out.includes(s);
       se.seat.classList.toggle('dim', isOut);
@@ -1827,11 +1870,16 @@
     if (afterLen === 0 && !state.out.includes(seat)) {
       state.out.push(seat);
     }
-    // 报牌：≤10 张时第一次声明（正式规则只允许一次，所以只在跨过 10 时 toast）
-    if (beforeLen > 10 && afterLen <= 10 && afterLen > 0) {
-      toast(seatName(seat) + ' 报牌：剩 ' + afterLen + ' 张');
-    }
     renderAll();
+    // 报牌：首次跨过 10 张时，给该家的余牌徽弹动一次。徽本身一直红色警示
+    // 直至清零；不再弹 toast，避免重复打扰
+    if (beforeLen > 10 && afterLen <= 10 && afterLen > 0) {
+      const cnt = seatEls[seat] && seatEls[seat].cnt;
+      if (cnt) {
+        cnt.classList.add('first');
+        setTimeout(() => cnt.classList.remove('first'), 1050);
+      }
+    }
     // 炸弹类视觉反馈：起牌区红闪 + 表桌抖一下 + 全桌大字浮屏
     if (isBombType(combo.type)) playBombFx(seat, combo);
     afterMove(seat);
@@ -1903,7 +1951,10 @@
           nextLeader = nextAlive(bestSeat);
         }
       }
-      clearTrick(nextLeader);
+      // 延迟一会儿再 clearTrick，让"第三家不出"那条 lastPlay 在画面上有时间
+      // 被用户看到——不然 commitPass 一渲完，afterMove 立刻清空所有 play 区。
+      state.busy = true;
+      setTimeout(() => { state.busy = false; clearTrick(nextLeader); }, 800);
       return;
     }
 
@@ -2285,21 +2336,18 @@
     return classify([c], level);
   }
 
-  // 领出时给“组”排序：先出小牌/散牌，保留炸弹与大牌；hard 更精细
+  // 领出时给”组”排序。新策略（按用户反馈）：normal/hard 优先打大组合（一次出
+  // 更多牌、领出更高效），同样大小再挑点数小的；easy 保留旧逻辑（最小先出）。
+  // 炸弹一律留到跟牌或必要时再出。
   function orderLeadGroups(groups, level, lvl) {
-    const typeRank = {
-      [T.SINGLE]: 0, [T.PAIR]: 1, [T.STRAIGHT]: 2, [T.PAIR_STR]: 2,
-      [T.TRIPLE]: 3, [T.TRIPLE_PAIR]: 3, [T.TRIPLE_STR]: 3,
-      [T.BOMB]: 9, [T.STR_FLUSH]: 9, [T.JOKER_BOMB]: 10,
-    };
     const arr = groups.filter(g => !isBombType(g.type));
     arr.sort((a, b) => {
-      const ta = typeRank[a.type] ?? 5, tb = typeRank[b.type] ?? 5;
-      // easy：纯按最小单组；normal/hard：先清单/对里点数小的
       const wa = Math.min(...a.cards.map(c => singleWeight(c, level)));
       const wb = Math.min(...b.cards.map(c => singleWeight(c, level)));
       if (lvl === 'easy') return wa - wb;
-      if (ta !== tb) return ta - tb;
+      // normal/hard：先看 len（牌数越多越优先 → 一次性下更多牌）
+      if (a.cards.length !== b.cards.length) return b.cards.length - a.cards.length;
+      // 同长 → 小点数先（用掉小牌、留大牌做尾盘）
       return wa - wb;
     });
     if (lvl !== 'easy') {

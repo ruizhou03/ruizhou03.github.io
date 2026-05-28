@@ -181,6 +181,22 @@ permalink: /toolbox/guandan/
     background: rgba(255,255,255,0.5); border: 1px solid var(--gd-frame-2);
     padding: 0.05rem 0.45rem; border-radius: 999px;
     font-variant-numeric: tabular-nums;
+    transition: color 0.2s, background 0.2s, border-color 0.2s;
+  }
+  /* 报牌：余牌 ≤10 张时一直红色警示，第一次跨过时有 1s 弹动 */
+  .gd-count.warn {
+    color: var(--gd-suit-red);
+    border-color: rgba(200,40,40,0.55);
+    background: rgba(200,40,40,0.08);
+    font-weight: 700;
+  }
+  .gd-count.warn.first {
+    animation: gd-count-warn-pop 1s cubic-bezier(0.18, 0.9, 0.32, 1.3);
+  }
+  @keyframes gd-count-warn-pop {
+    0%   { transform: scale(1.45); background: rgba(200,40,40,0.45); color: #fff; }
+    60%  { transform: scale(1.05); background: rgba(200,40,40,0.18); }
+    100% { transform: scale(1); }
   }
   .gd-rank-badge {
     font-size: 0.66rem; padding: 0.05rem 0.4rem; border-radius: 999px;
