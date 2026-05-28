@@ -111,10 +111,11 @@ permalink: /toolbox/guandan/
   /* 三家：上(partner) / 左(opp 3) / 右(opp 1) */
   .gd-seats-top { display: flex; justify-content: center; margin-bottom: 0.25rem; }
   /* 中间一行：左右两家头像贴边，绝对定位，play 槽往中央延展；partner 出牌
-     占据 .gd-center 中间。这样侧位出 6+ 张钢板/同花顺也不会被裁。 */
+     占据 .gd-center 中间。这样侧位出 6+ 张钢板/同花顺也不会被裁。
+     高度 130：side 内容 ~92px（avatar col）+ partner play 80px，容下且不浪费。 */
   .gd-seats-mid {
     position: relative;
-    height: 230px;
+    height: 130px;
   }
   /* 我的出牌行：在 mid 行下方、手牌上方 */
   .gd-myplay-row {
