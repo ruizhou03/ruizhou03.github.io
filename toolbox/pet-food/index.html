@@ -838,7 +838,7 @@ permalink: /toolbox/pet-food/
       <button type="button" class="icon-btn" id="pet-add">+ 宠物 ▾</button>
       <div class="pet-add-menu" id="pet-add-menu">
         <button type="button" data-act="new">🆕 新建宠物</button>
-        <button type="button" data-act="join">🔑 用宠物码加入</button>
+        <button type="button" data-act="join">🔑 用宠物码添加</button>
       </div>
     </div>
     <button type="button" class="icon-btn" id="profile-btn">👤</button>
@@ -848,7 +848,7 @@ permalink: /toolbox/pet-food/
     <div class="empty-emoji">🐾</div>
     <div>还没有宠物——先建一只吧</div>
     <button type="button" class="add-btn" id="empty-add">+ 添加第一只</button>
-    <button type="button" class="icon-btn" id="empty-join" style="margin-top: 0.6rem;">🔑 用宠物码加入</button>
+    <button type="button" class="icon-btn" id="empty-join" style="margin-top: 0.6rem;">🔑 用宠物码添加</button>
   </div>
 
   <div id="pet-view" style="display: none;">
@@ -971,7 +971,7 @@ permalink: /toolbox/pet-food/
         <div class="field">
           <label>物种</label>
           <select id="pm-species">
-            <option value="">不指定</option>
+            <option value=""></option>
             <option value="cat">猫</option>
             <option value="dog">狗</option>
             <option value="rabbit">兔</option>
@@ -984,7 +984,7 @@ permalink: /toolbox/pet-food/
           <label>品种（可选）</label>
           <div class="custom-select" id="pm-breed-select">
             <button type="button" class="cs-trigger" id="pm-breed-trigger">
-              <span class="cs-label placeholder" id="pm-breed-label">不指定</span>
+              <span class="cs-label placeholder" id="pm-breed-label"></span>
               <span class="cs-chevron">▾</span>
             </button>
             <ul class="cs-menu" id="pm-breed-menu" role="listbox"></ul>
@@ -1009,7 +1009,7 @@ permalink: /toolbox/pet-food/
         <div class="field">
           <label>体重</label>
           <div class="input-unit-group">
-            <input type="number" id="pm-body-weight" step="0.1" min="0" placeholder="例如 4.2" inputmode="decimal" />
+            <input type="number" id="pm-body-weight" step="0.1" min="0" placeholder="" inputmode="decimal" />
             <select id="pm-body-weight-unit">
               <option value="kg">kg</option>
               <option value="斤">斤</option>
@@ -1042,15 +1042,15 @@ permalink: /toolbox/pet-food/
       <div class="field-grid">
         <div class="field">
           <label>下限 (g/天)</label>
-          <input type="number" id="pm-target-min" step="0.1" min="0" placeholder="可不填" inputmode="decimal" />
+          <input type="number" id="pm-target-min" step="0.1" min="0" placeholder="" inputmode="decimal" />
         </div>
         <div class="field">
           <label>上限 (g/天)</label>
-          <input type="number" id="pm-target-max" step="0.1" min="0" placeholder="可不填" inputmode="decimal" />
+          <input type="number" id="pm-target-max" step="0.1" min="0" placeholder="" inputmode="decimal" />
         </div>
       </div>
       <div class="rec-preview-inline">
-        <span class="rec-preview" id="pm-rec-preview">填上档案就能估算</span>
+        <span class="rec-preview" id="pm-rec-preview">完善宠物档案以估算</span>
         <button type="button" class="estimator-apply" id="pm-rec-apply" disabled>↑ 套用</button>
       </div>
 
@@ -1102,8 +1102,8 @@ permalink: /toolbox/pet-food/
   <!-- Join via code modal -->
   <div class="modal-backdrop join-modal" id="join-modal">
     <div class="modal">
-      <h2>🔑 用宠物码加入</h2>
-      <p class="hint" style="text-align: center; margin-bottom: 0.9rem;">向主人要 6 位宠物码，加入后可一起记录</p>
+      <h2>🔑 用宠物码添加</h2>
+      <p class="hint" style="text-align: center; margin-bottom: 0.9rem;">向主人要 6 位宠物码，添加后可一起记录</p>
       <input type="text" id="join-code" class="code-input" maxlength="6" placeholder="ABCXYZ" autocomplete="off" />
       <div class="modal-actions">
         <button type="button" class="cancel" id="join-cancel">取消</button>
@@ -1817,7 +1817,7 @@ permalink: /toolbox/pet-food/
       li.addEventListener('click', () => selectBreedItem(value, short));
       $pmBreedMenu.appendChild(li);
     };
-    addItem('', '不指定', '不指定');
+    addItem('', '（空）', '');
     if (sp && sp.breeds) {
       Object.keys(sp.breeds).forEach(b => {
         const info = sp.breeds[b];
@@ -1828,7 +1828,7 @@ permalink: /toolbox/pet-food/
     // Set initial label / value
     const validSelected = selected && sp && sp.breeds && sp.breeds[selected] ? selected : '';
     $pmBreed.value = validSelected;
-    $pmBreedLabel.textContent = validSelected || '不指定';
+    $pmBreedLabel.textContent = validSelected || '';
     $pmBreedLabel.classList.toggle('placeholder', !validSelected);
   }
   function selectBreedItem(value, shortLabel) {
@@ -1865,7 +1865,7 @@ permalink: /toolbox/pet-food/
   function refreshEstimatorPreview() {
     const r = estimatorCompute(readEstimatorInputs());
     if (!r) {
-      $pmRecPreview.textContent = '填上字段就会出估算值';
+      $pmRecPreview.textContent = '完善宠物档案以估算';
       $pmRecPreview.classList.remove('has-value');
       $pmRecApply.disabled = true;
       $pmRecApply.dataset.min = '';
