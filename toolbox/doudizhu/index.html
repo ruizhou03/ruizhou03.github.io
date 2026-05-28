@@ -1105,6 +1105,9 @@ permalink: /toolbox/doudizhu/
     letter-spacing: 0.04em;
     font-family: var(--font-body);
     pointer-events: none;
+    /* 父级 corner-chips 是 align-items:stretch，chip 会被拉宽到跟"托管/理牌"
+       一样；text-align:center 让"N 分"在宽度内居中，不再贴左 */
+    text-align: center;
   }
   .ddz-score-hint:empty { display: none; }
 

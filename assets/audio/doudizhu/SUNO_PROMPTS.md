@@ -4,26 +4,35 @@ title: 斗地主音频 — Suno 生成提示词
 
 # 斗地主音频清单 + Suno 提示词
 
-每首音乐都在 [suno.com](https://suno.com/) 创建：右上角 **Create** → **Custom Mode** → 把下面“Style of Music”和“Title”复制进去 → 留空 lyrics 让它纯器乐 → Generate → 试听 → 把满意的那一版 **Download MP3**，按 **目标文件名** 重命名后放到 `assets/audio/doudizhu/` 即可。
+每首音乐都在 [suno.com](https://suno.com/) 创建：右上角 **Create** → **Custom Mode** → 把下面”Style of Music”和”Title”复制进去 → 留空 lyrics 让它纯器乐 → Generate → 试听 → 把满意的那一版 **Download MP3**，按 **目标文件名** 重命名后放到 `assets/audio/doudizhu/` 即可。
 
 代码里的 `manifest.json` 已经把文件名都对应好了，**只要文件出现在目录下，下次刷新页面就生效，不用改任何代码**。
 
-> 小贴士：Suno 单条 80 秒上限就够循环用了。BGM 类型推荐打开 **Instrumental** 开关；下载完用 [Audacity](https://www.audacityteam.org/) 截一段干净循环（5–15 秒），首尾淡入淡出 100ms，循环不会有“咯噔”声。
+## ⚠️ 关于时长（重要）
+
+Suno 默认每首 ~2–4 分钟。**Custom Mode 里没有直接的”限时长”开关**，提示词里写”15 seconds” 它也只是参考、不强制。两条建议：
+
+- **稳妥做法**：让它生成完整版，下载后用 [Audacity](https://www.audacityteam.org/)（免费）截一段 10–15 秒、首尾各 100 ms 淡入淡出，循环就不会有”咯噔”声。
+- **省事做法**：每条 prompt 我都写了 `(short instrumental loop, ~15 seconds, no intro, ends abruptly)` 之类指令，**生成时长会从 ~3 分钟降到 ~30-60 秒**，再截一下就行；但偶尔还是会生成长版本，重新 Generate 一次即可。
+
+BGM 类型都建议开 **Instrumental** 开关，避免人声。SFX 太短 Suno 经常做成”曲子”，可以去 [freesound.org](https://freesound.org/) 找现成 CC0 替代（每条 prompt 里都列了备选关键词）。
 
 ---
 
-## BGM 1 — 默认背景乐
+## BGM 1 — 默认背景乐（欢快版）
 
 **目标文件：** `bgm-default.mp3`
 **触发：** 进入游戏即开始循环，没有特殊事件时一直放
-**时长建议：** 8–15 秒可循环
+**时长建议：** 10–15 秒可循环
 
-**Title:** `Doudizhu Lounge Loop`
+**Title:** `Doudizhu Upbeat Loop`
 
 **Style of Music:**
 ```
-calm lounge jazz, soft brushed drums, walking upright bass, mellow Rhodes piano, 80 bpm, warm vintage card-room ambience, seamless loop, no vocals, no buildup, no drop
+upbeat playful Chinese folk fusion, bright pipa picking + plucked guzheng, lively bamboo flute melody high register, light hand drum + woodblock groove, 138 bpm, cheerful festive card-room atmosphere, energetic and happy, no vocals, instrumental only, very short loop, ~15 seconds, no intro, no outro, ends abruptly
 ```
+
+> 想要更国际化感觉的备选：`upbeat acoustic bossa-nova, brushed snare + claves, bright ukulele picking, glockenspiel melody high register, walking double bass, 132 bpm, cheerful sunny mood, no vocals, ~15 seconds`
 
 ---
 
@@ -37,7 +46,7 @@ calm lounge jazz, soft brushed drums, walking upright bass, mellow Rhodes piano,
 
 **Style of Music:**
 ```
-suspenseful electronic underscore, pulsing low synth bass, fast 16th-note hi-hat, sparse staccato strings, 130 bpm, building unresolved tension, no drop, no melody resolve, seamless loop, no vocals
+suspenseful electronic underscore, pulsing low synth bass, fast 16th-note hi-hat, sparse staccato strings, 130 bpm, building unresolved tension, no drop, no melody resolve, seamless loop, no vocals, instrumental only, very short loop, ~15 seconds, no intro, no outro, ends abruptly
 ```
 
 ---
@@ -52,10 +61,10 @@ suspenseful electronic underscore, pulsing low synth bass, fast 16th-note hi-hat
 
 **Style of Music:**
 ```
-short impact, deep boom + metallic ring + brief shimmer, no music, sound effect only, 1 second
+short impact, deep boom + metallic ring + brief shimmer, no music, sound effect only, 1 second, ends abruptly, no intro
 ```
 
-> Suno 偏音乐不太擅长 1 秒纯音效。如果生成的太“曲化”，可以去 [freesound.org](https://freesound.org/) 搜 “explosion impact short” / “anime card slap” 找现成的 CC0 替代。
+> Suno 偏音乐不太擅长 1 秒纯音效。如果生成的太”曲化”，可以去 [freesound.org](https://freesound.org/) 搜 “explosion impact short” / “anime card slap” 找现成的 CC0 替代。
 
 ---
 
@@ -69,8 +78,10 @@ short impact, deep boom + metallic ring + brief shimmer, no music, sound effect 
 
 **Style of Music:**
 ```
-short impact + brass fanfare hit + cymbal swell, triumphant brief burst, no melody, sound effect, 2 seconds
+short impact + brass fanfare hit + cymbal swell, triumphant brief burst, no melody, sound effect, 2 seconds, ends abruptly, no intro
 ```
+
+> 备选：去 freesound.org 搜 “victory fanfare short” / “boss reveal stinger”
 
 ---
 
@@ -84,8 +95,10 @@ short impact + brass fanfare hit + cymbal swell, triumphant brief burst, no melo
 
 **Style of Music:**
 ```
-ascending harp glissando + soft chime, smooth quick sweep, no melody, 0.8 seconds
+ascending harp glissando + soft chime, smooth quick sweep, no melody, 0.8 seconds, ends abruptly, no intro
 ```
+
+> 备选：freesound.org 搜 “harp glissando short” / “ui card swipe”
 
 ---
 
@@ -99,8 +112,10 @@ ascending harp glissando + soft chime, smooth quick sweep, no melody, 0.8 second
 
 **Style of Music:**
 ```
-two layered bells ascending in pairs, marimba doubled, light shimmer, 0.8 seconds
+two layered bells ascending in pairs, marimba doubled, light shimmer, 0.8 seconds, ends abruptly, no intro
 ```
+
+> 备选：freesound.org 搜 “marimba ascending short” / “ui chime double”
 
 ---
 
@@ -114,8 +129,10 @@ two layered bells ascending in pairs, marimba doubled, light shimmer, 0.8 second
 
 **Style of Music:**
 ```
-airy whoosh + propeller-style flutter + sparkle tail, energetic short FX, 1.2 seconds
+airy whoosh + propeller-style flutter + sparkle tail, energetic short FX, 1.2 seconds, ends abruptly, no intro
 ```
+
+> 备选：freesound.org 搜 “whoosh flutter short” / “card plane swoosh”
 
 ---
 
@@ -129,8 +146,10 @@ airy whoosh + propeller-style flutter + sparkle tail, energetic short FX, 1.2 se
 
 **Style of Music:**
 ```
-two-note urgent siren ping, mild reverb, attention-grabbing but not annoying, 1 second
+two-note urgent siren ping, mild reverb, attention-grabbing but not annoying, 1 second, ends abruptly, no intro
 ```
+
+> 备选：freesound.org 搜 “alarm ping short” / “ui notification urgent”
 
 ---
 
@@ -144,7 +163,7 @@ two-note urgent siren ping, mild reverb, attention-grabbing but not annoying, 1 
 
 **Style of Music:**
 ```
-short triumphant fanfare, brass swell + sparkle bells, 3 seconds, ends cleanly, no vocals
+short triumphant fanfare, brass swell + sparkle bells, 3 seconds, ends cleanly, no vocals, instrumental only, no intro, ends abruptly
 ```
 
 ---
@@ -159,7 +178,7 @@ short triumphant fanfare, brass swell + sparkle bells, 3 seconds, ends cleanly, 
 
 **Style of Music:**
 ```
-short melancholy piano descending in minor key, soft strings tail, 3 seconds, ends cleanly, no vocals
+short melancholy piano descending in minor key, soft strings tail, 3 seconds, ends cleanly, no vocals, instrumental only, no intro, ends abruptly
 ```
 
 ---
