@@ -4318,18 +4318,29 @@
       }
     }
     // 旁观者（standing） — Phase 1 暂时不渲染；他们可以点空座位坐下。
-    // 入座计数 + start 按钮
+    // 入座计数 + 中央按钮切换：
+    //   房主 + 4 坐满 → 把"邀请好友"换成"开始游戏"；其余时刻保持 邀请好友 + 离开房间
     if (onlineEls.seated) onlineEls.seated.textContent = seatedCount + '/4';
-    if (onlineEls.startBtn) {
-      const canStart = onlineState.isHost && seatedCount === 4;
-      onlineEls.startBtn.disabled = !canStart;
-      if (!onlineState.isHost) onlineEls.startBtn.textContent = '等待房主开始…';
-      else if (seatedCount < 4) onlineEls.startBtn.textContent = '需要 4 人坐满（' + seatedCount + '/4）';
-      else onlineEls.startBtn.textContent = '🎮 开始游戏';
+    const ready = onlineState.isHost && seatedCount === 4;
+    const inviteBtn = $('gdCopyLinkBtn');
+    if (onlineEls.startBtn && inviteBtn) {
+      if (ready) {
+        inviteBtn.hidden = true;
+        onlineEls.startBtn.hidden = false;
+        onlineEls.startBtn.disabled = false;
+        onlineEls.startBtn.textContent = '🎮 开始游戏';
+      } else {
+        inviteBtn.hidden = false;
+        onlineEls.startBtn.hidden = true;
+      }
     }
     if (srv.state === 'playing' && typeof srv.firstLeader === 'number') {
-      onlineEls.startBtn.disabled = true;
-      onlineEls.startBtn.textContent = '🎲 抽签：座 ' + (srv.firstLeader + 1) + ' 首出';
+      if (onlineEls.startBtn && inviteBtn) {
+        inviteBtn.hidden = true;
+        onlineEls.startBtn.hidden = false;
+        onlineEls.startBtn.disabled = true;
+        onlineEls.startBtn.textContent = '🎲 抽签：座 ' + (srv.firstLeader + 1) + ' 首出';
+      }
     }
   }
 
