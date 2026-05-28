@@ -1128,10 +1128,10 @@ permalink: /toolbox/guandan/
 
     <div class="gd-hand" id="gdHand"></div>
 
-    <!-- 理牌行：在手牌下方居中。还原仅在选中整列时显示 -->
+    <!-- 理牌行：在表桌右下角纵向排列。还原一直可见，点击在无可还原选中时静默失败 -->
     <div class="gd-sort-actions" id="gdSortActions">
+      <button class="gd-btn" id="gdRestoreBtn" type="button" title="选中整列后点击，把这些列恢复到默认点数位置">↩ 还原</button>
       <button class="gd-btn" id="gdArrangeBtn" type="button" title="进入理牌模式：直接拖动列即可调换位置（不用长按）">🔀 理牌</button>
-      <button class="gd-btn" id="gdRestoreBtn" type="button" hidden title="把选中的整列恢复到默认点数位置">↩ 还原</button>
       <button class="gd-btn" id="gdSortBtn" type="button" title="所有列恢复默认顺序（点数高→低）">🧩 一键理牌</button>
     </div>
 

@@ -2584,11 +2584,10 @@
     if (!Array.isArray(state.handOrder) || !state.handOrder.length) return [];
     return cols.filter(w => state.handOrder.includes(w));
   }
-  function updateRestoreBtn() {
-    if (!els.restoreBtn) return;
-    const ranks = selectedFullColumnRanks();
-    els.restoreBtn.hidden = ranks.length === 0;
-  }
+  // 还原按钮按用户反馈一直可见——点击在没有可还原选中列时静默失败，
+  // 用户依赖游戏反馈（手牌位置不变 = 没生效）即可，不弹提示。
+  // 留这个空函数避免修改所有调用点。
+  function updateRestoreBtn() { /* no-op */ }
   if (els.arrangeBtn) {
     els.arrangeBtn.addEventListener('click', () => {
       state.arrangeMode = !state.arrangeMode;
