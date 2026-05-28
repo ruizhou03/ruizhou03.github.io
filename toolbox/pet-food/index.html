@@ -328,6 +328,64 @@ permalink: /toolbox/pet-food/
     padding-top: 0.9rem;
     border-top: 1px dashed var(--color-border);
   }
+  .modal .estimator {
+    background: var(--color-bg-warm);
+    border-radius: 8px;
+    padding: 0.7rem 0.85rem;
+    margin-bottom: 0.7rem;
+  }
+  .modal .estimator > summary {
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--color-ink);
+    font-weight: 500;
+    user-select: none;
+    list-style: none;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .modal .estimator > summary::-webkit-details-marker { display: none; }
+  .modal .estimator > summary::after {
+    content: '▾';
+    margin-left: auto;
+    color: var(--color-muted);
+    transition: transform 0.18s;
+    font-size: 0.78rem;
+  }
+  .modal .estimator[open] > summary::after { transform: rotate(180deg); }
+  .modal .estimator-body { padding-top: 0.7rem; }
+  .modal .rec-preview {
+    font-size: 0.85rem; color: var(--color-muted);
+    padding: 0.45rem 0.7rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    margin: 0.4rem 0 0.55rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .modal .rec-preview.has-value { color: var(--color-accent); font-weight: 500; }
+  .modal .estimator-apply {
+    font: inherit; font-size: 0.85rem;
+    padding: 0.45rem 1rem;
+    border: 1px solid var(--color-accent); border-radius: 999px;
+    background: var(--color-accent); color: #fff;
+    cursor: pointer;
+    width: 100%;
+    transition: opacity 0.18s;
+  }
+  .modal .estimator-apply:disabled {
+    opacity: 0.5; cursor: not-allowed;
+    background: var(--color-bg); color: var(--color-muted);
+    border-color: var(--color-border);
+  }
+  .modal .checkbox-row {
+    display: flex; align-items: center; gap: 0.45rem;
+    cursor: pointer; font-size: 0.92rem; color: var(--color-ink);
+    margin-bottom: 0;
+  }
+  .modal .checkbox-row input[type="checkbox"] {
+    width: auto; margin: 0;
+  }
 
   /* Avatar picker row (photo button + emoji cells) */
   .avatar-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
@@ -570,31 +628,78 @@ permalink: /toolbox/pet-food/
         <p class="hint">填了之后"含碗"模式才能算克数；不填只能用「不含碗」。一天从 00:00 开始算。</p>
       </div>
 
-      <div class="sub-section">推荐食量（选填）</div>
+      <div class="sub-section">每日目标食量（选填）</div>
       <div class="field-grid">
         <div class="field">
-          <label>物种</label>
-          <select id="pm-species">
-            <option value="">不计算</option>
-            <option value="cat">猫</option>
-            <option value="dog">狗</option>
-          </select>
+          <label>下限 (g/天)</label>
+          <input type="number" id="pm-target-min" step="0.1" min="0" placeholder="可不填" inputmode="decimal" />
         </div>
         <div class="field">
-          <label>体重 (kg)</label>
-          <input type="number" id="pm-body-weight" step="0.1" min="0" placeholder="例如 4.2" inputmode="decimal" />
+          <label>上限 (g/天)</label>
+          <input type="number" id="pm-target-max" step="0.1" min="0" placeholder="可不填" inputmode="decimal" />
         </div>
       </div>
-      <div class="field">
-        <label>生命阶段</label>
-        <select id="pm-stage">
-          <option value="">不计算</option>
-          <option value="young">幼年（猫 &lt; 1 岁 / 狗 &lt; 1 岁）</option>
-          <option value="adult_intact">成年（未绝育）</option>
-          <option value="adult_neutered">成年（已绝育）</option>
-          <option value="senior">老年（猫 ≥ 7 岁 / 狗 ≥ 7 岁）</option>
-        </select>
-        <p class="hint">填齐后会显示每天推荐摄入范围。数值偏保守，具体以兽医 / 包装为准。</p>
+      <p class="hint">填了之后趋势图会画参考线。可以只填一个（画单线），也可两个都填（画范围）。不填就不画。</p>
+
+      <details class="estimator" id="pm-estimator">
+        <summary>🪄 用「物种 + 体重 + 阶段」帮我估</summary>
+        <div class="estimator-body">
+          <div class="field-grid">
+            <div class="field">
+              <label>物种</label>
+              <select id="pm-species">
+                <option value="">不指定</option>
+                <option value="cat">猫</option>
+                <option value="dog">狗</option>
+                <option value="rabbit">兔</option>
+                <option value="hamster">仓鼠</option>
+                <option value="bird">鸟（鹦鹉等）</option>
+                <option value="ferret">雪貂</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>品种（可选）</label>
+              <select id="pm-breed">
+                <option value="">不指定</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label>生命阶段</label>
+              <select id="pm-stage">
+                <option value="">不指定</option>
+                <option value="young">幼年</option>
+                <option value="adult_intact">成年（未绝育）</option>
+                <option value="adult_neutered">成年（已绝育）</option>
+                <option value="senior">老年</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>体重 (kg)</label>
+              <input type="number" id="pm-body-weight" step="0.1" min="0" placeholder="例如 4.2" inputmode="decimal" />
+            </div>
+          </div>
+          <div class="field">
+            <label>活动量</label>
+            <select id="pm-activity">
+              <option value="">普通</option>
+              <option value="low">较低（不爱动）</option>
+              <option value="normal">普通</option>
+              <option value="high">较高（爱蹦跶）</option>
+            </select>
+          </div>
+          <div class="rec-preview" id="pm-rec-preview">填上字段就会出估算值</div>
+          <button type="button" class="estimator-apply" id="pm-rec-apply" disabled>↑ 应用到上面的目标范围</button>
+          <p class="hint" style="margin-top: 0.5rem;">数值偏保守，仅供参考；某些品种没列进来时选「不指定」即可，最终以兽医 / 包装为准。</p>
+        </div>
+      </details>
+
+      <div class="field" style="margin-top: 0.6rem;">
+        <label class="checkbox-row">
+          <input type="checkbox" id="pm-show-target-chart" />
+          <span>在趋势图上画目标参考线（带）</span>
+        </label>
       </div>
 
       <div class="modal-actions">
@@ -647,21 +752,97 @@ permalink: /toolbox/pet-food/
   const EMOJIS = ['🐱', '🐈', '🐈‍⬛', '🐕', '🐶', '🐰', '🐹', '🐭', '🐦', '🦜', '🐢', '🐠'];
   const DAY_MS = 86400000;
 
-  // Recommended dry food intake (g per kg body weight per day, very approximate)
+  // Recommended dry food intake (g per kg body weight per day for body-weight-aware species;
+  // g/day for non body-weight-aware species like hamster). Very approximate baselines.
   const FOOD_REC = {
     cat: {
-      young:           { min: 25, max: 50 },
-      adult_intact:    { min: 14, max: 18 },
-      adult_neutered:  { min: 11, max: 15 },
-      senior:          { min: 10, max: 13 },
+      label: '猫',
+      bodyWeightAware: true,
+      base: {
+        young:           { min: 25, max: 50 },
+        adult_intact:    { min: 14, max: 18 },
+        adult_neutered:  { min: 11, max: 15 },
+        senior:          { min: 10, max: 13 },
+      },
+      breeds: {
+        '美短': 1.00, '英短': 0.95, '布偶': 1.10, '缅因': 1.15,
+        '暹罗': 1.10, '阿比西尼亚': 1.10, '波斯': 0.85, '异国短毛': 0.85,
+        '斯芬克斯': 1.20, '田园猫': 1.00, '橘猫': 1.00, '狸花猫': 1.00,
+      },
     },
     dog: {
-      young:           { min: 30, max: 55 },
-      adult_intact:    { min: 18, max: 25 },
-      adult_neutered:  { min: 14, max: 20 },
-      senior:          { min: 12, max: 17 },
+      label: '狗',
+      bodyWeightAware: true,
+      base: {
+        young:           { min: 30, max: 55 },
+        adult_intact:    { min: 18, max: 25 },
+        adult_neutered:  { min: 14, max: 20 },
+        senior:          { min: 12, max: 17 },
+      },
+      breeds: {
+        '泰迪 / 贵宾': 1.00, '比熊': 1.00, '吉娃娃': 1.00, '博美': 1.00,
+        '柴犬': 1.00, '柯基': 0.95, '边境牧羊犬': 1.15, '哈士奇': 1.20,
+        '萨摩耶': 1.10, '阿拉斯加': 1.15, '金毛': 1.05, '拉布拉多': 1.05,
+        '德牧': 1.05, '杜宾': 1.05, '大丹': 0.90, '圣伯纳': 0.85,
+        '中华田园犬': 1.00,
+      },
+    },
+    rabbit: {
+      label: '兔',
+      bodyWeightAware: true,
+      base: {
+        young:           { min: 30, max: 60 },
+        adult_intact:    { min: 20, max: 40 },
+        adult_neutered:  { min: 20, max: 35 },
+        senior:          { min: 20, max: 35 },
+      },
+      breeds: {
+        '荷兰侏儒': 1.00, '英国安哥拉': 1.05, '垂耳兔': 1.00,
+        '法兰德斯巨兔': 1.10, '熊猫兔': 1.00, '狮子兔': 1.00,
+      },
+    },
+    hamster: {
+      label: '仓鼠',
+      bodyWeightAware: false,
+      base: {
+        young:           { min: 8, max: 16 },
+        adult_intact:    { min: 6, max: 12 },
+        adult_neutered:  { min: 6, max: 12 },
+        senior:          { min: 6, max: 10 },
+      },
+      breeds: {
+        '叙利亚 (金丝熊)': 1.40, '罗伯罗夫斯基': 0.70,
+        '加卡利亚 (三线)': 0.85, '坎贝尔': 0.85, '冬白': 0.85,
+      },
+    },
+    bird: {
+      label: '鸟（鹦鹉等）',
+      bodyWeightAware: true,
+      base: {
+        young:           { min: 80, max: 150 },
+        adult_intact:    { min: 50, max: 100 },
+        adult_neutered:  { min: 50, max: 100 },
+        senior:          { min: 50, max: 90 },
+      },
+      breeds: {
+        '虎皮鹦鹉': 0.90, '玄凤鹦鹉': 1.00, '牡丹鹦鹉': 1.00,
+        '和尚鹦鹉': 1.05, '太阳锥尾': 1.10, '灰鹦鹉': 1.10, '金刚鹦鹉': 1.15,
+      },
+    },
+    ferret: {
+      label: '雪貂',
+      bodyWeightAware: true,
+      base: {
+        young:           { min: 30, max: 70 },
+        adult_intact:    { min: 30, max: 60 },
+        adult_neutered:  { min: 25, max: 50 },
+        senior:          { min: 25, max: 50 },
+      },
+      breeds: {},
     },
   };
+
+  const ACTIVITY_FACTOR = { low: 0.85, normal: 1.0, high: 1.15 };
 
   // Unit conversion (to grams)
   const UNITS = {
@@ -707,6 +888,21 @@ permalink: /toolbox/pet-food/
         if (parsed.customEnd) state.customEnd = parsed.customEnd;
       }
     } catch (e) { /* */ }
+    migratePets();
+  }
+  function migratePets() {
+    state.pets.forEach(p => {
+      if (p.showTargetOnChart === undefined) p.showTargetOnChart = true;
+      const hasTarget = (Number.isFinite(p.dailyTargetMin) && p.dailyTargetMin > 0) ||
+                        (Number.isFinite(p.dailyTargetMax) && p.dailyTargetMax > 0);
+      if (!hasTarget && p.species && p.lifeStage && p.bodyWeight > 0) {
+        const r = estimatorCompute({
+          species: p.species, breed: p.breed || '', lifeStage: p.lifeStage,
+          bodyWeight: p.bodyWeight, activity: p.activity || 'normal',
+        });
+        if (r) { p.dailyTargetMin = r.min; p.dailyTargetMax = r.max; }
+      }
+    });
   }
   function persist() {
     try {
@@ -822,14 +1018,38 @@ permalink: /toolbox/pet-food/
     return map;
   }
 
-  // Recommendation
-  function recommendedDailyRange(pet) {
-    if (!pet.species || !pet.lifeStage || !pet.bodyWeight) return null;
-    const table = FOOD_REC[pet.species];
-    if (!table) return null;
-    const rec = table[pet.lifeStage];
-    if (!rec) return null;
-    return { min: rec.min * pet.bodyWeight, max: rec.max * pet.bodyWeight };
+  // Returns the user's stored target range. If only one bound is set, both are equal (single line).
+  function targetRange(pet) {
+    const min = Number.isFinite(pet.dailyTargetMin) && pet.dailyTargetMin > 0 ? pet.dailyTargetMin : null;
+    const max = Number.isFinite(pet.dailyTargetMax) && pet.dailyTargetMax > 0 ? pet.dailyTargetMax : null;
+    if (min === null && max === null) return null;
+    return {
+      min: min !== null ? min : max,
+      max: max !== null ? max : min,
+    };
+  }
+
+  // Smart estimator: pure formula from species/breed/stage/bodyWeight/activity.
+  function estimatorCompute(opts) {
+    const sp = FOOD_REC[opts.species];
+    if (!sp) return null;
+    const base = sp.base[opts.lifeStage];
+    if (!base) return null;
+    let mult;
+    if (sp.bodyWeightAware) {
+      const bw = parseFloat(opts.bodyWeight);
+      if (!Number.isFinite(bw) || bw <= 0) return null;
+      mult = bw;
+    } else {
+      mult = 1;
+    }
+    let breedAdj = 1.0;
+    if (opts.breed && sp.breeds && sp.breeds[opts.breed]) breedAdj = sp.breeds[opts.breed];
+    const actAdj = ACTIVITY_FACTOR[opts.activity] || 1.0;
+    return {
+      min: base.min * mult * breedAdj * actAdj,
+      max: base.max * mult * breedAdj * actAdj,
+    };
   }
 
   // Mismatch detection: returns { swapDelta, chosenDelta, chosenMag, swapMag, typical } or null
@@ -911,9 +1131,17 @@ permalink: /toolbox/pet-food/
   const $pmTitle = document.getElementById('pm-title');
   const $pmName = document.getElementById('pm-name');
   const $pmBowl = document.getElementById('pm-bowl');
+  const $pmTargetMin = document.getElementById('pm-target-min');
+  const $pmTargetMax = document.getElementById('pm-target-max');
+  const $pmShowTargetChart = document.getElementById('pm-show-target-chart');
+  const $pmEstimator = document.getElementById('pm-estimator');
   const $pmSpecies = document.getElementById('pm-species');
+  const $pmBreed = document.getElementById('pm-breed');
   const $pmBodyWeight = document.getElementById('pm-body-weight');
   const $pmStage = document.getElementById('pm-stage');
+  const $pmActivity = document.getElementById('pm-activity');
+  const $pmRecPreview = document.getElementById('pm-rec-preview');
+  const $pmRecApply = document.getElementById('pm-rec-apply');
   const $pmSave = document.getElementById('pm-save');
   const $pmCancel = document.getElementById('pm-cancel');
   const $pmDelete = document.getElementById('pm-delete');
@@ -976,6 +1204,56 @@ permalink: /toolbox/pet-food/
       r.readAsDataURL(file);
     });
   }
+
+  // ===== Estimator (helper to fill target range) =====
+  function populateBreeds(species, selected) {
+    const sp = FOOD_REC[species];
+    $pmBreed.innerHTML = '<option value="">不指定</option>';
+    if (!sp || !sp.breeds) return;
+    Object.keys(sp.breeds).forEach(b => {
+      const o = document.createElement('option');
+      o.value = b; o.textContent = b;
+      if (b === selected) o.selected = true;
+      $pmBreed.appendChild(o);
+    });
+  }
+  function readEstimatorInputs() {
+    return {
+      species:    $pmSpecies.value || '',
+      breed:      $pmBreed.value || '',
+      lifeStage:  $pmStage.value || '',
+      bodyWeight: $pmBodyWeight.value,
+      activity:   $pmActivity.value || 'normal',
+    };
+  }
+  function refreshEstimatorPreview() {
+    const r = estimatorCompute(readEstimatorInputs());
+    if (!r) {
+      $pmRecPreview.textContent = '填上字段就会出估算值';
+      $pmRecPreview.classList.remove('has-value');
+      $pmRecApply.disabled = true;
+      $pmRecApply.dataset.min = '';
+      $pmRecApply.dataset.max = '';
+      return;
+    }
+    $pmRecPreview.textContent = `估算 ${fmtG(r.min)} – ${fmtG(r.max)} g/天`;
+    $pmRecPreview.classList.add('has-value');
+    $pmRecApply.disabled = false;
+    $pmRecApply.dataset.min = String(r.min);
+    $pmRecApply.dataset.max = String(r.max);
+  }
+  $pmSpecies.addEventListener('change', () => {
+    populateBreeds($pmSpecies.value, '');
+    refreshEstimatorPreview();
+  });
+  [$pmBreed, $pmStage, $pmActivity].forEach(el => el.addEventListener('change', refreshEstimatorPreview));
+  $pmBodyWeight.addEventListener('input', refreshEstimatorPreview);
+  $pmRecApply.addEventListener('click', () => {
+    const mn = parseFloat($pmRecApply.dataset.min);
+    const mx = parseFloat($pmRecApply.dataset.max);
+    if (Number.isFinite(mn)) $pmTargetMin.value = parseFloat(mn.toFixed(1));
+    if (Number.isFinite(mx)) $pmTargetMax.value = parseFloat(mx.toFixed(1));
+  });
 
   // Mode toggle
   $modeToggle.querySelectorAll('label').forEach(lbl => {
@@ -1096,14 +1374,17 @@ permalink: /toolbox/pet-food/
   }
 
   function renderRecommendation(pet, todayEaten) {
-    const rec = recommendedDailyRange(pet);
+    const rec = targetRange(pet);
     if (!rec) { $recStrip.style.display = 'none'; return; }
     $recStrip.style.display = '';
-    $recTitle.textContent = `🎯 推荐 ${fmtG(rec.min)}–${fmtG(rec.max)} g/天`;
+    const isPoint = rec.min === rec.max;
+    $recTitle.textContent = isPoint
+      ? `🎯 目标 ${fmtG(rec.min)} g/天`
+      : `🎯 目标 ${fmtG(rec.min)}–${fmtG(rec.max)} g/天`;
     $recNow.innerHTML = `今日 <strong>${fmtG(todayEaten)} g</strong>`;
     const scale = Math.max(rec.max * 1.3, todayEaten * 1.1, rec.max + 5);
     const bandLeft = (rec.min / scale) * 100;
-    const bandWidth = ((rec.max - rec.min) / scale) * 100;
+    const bandWidth = Math.max(0.5, ((rec.max - rec.min) / scale) * 100);
     $recBand.style.left = bandLeft.toFixed(1) + '%';
     $recBand.style.width = bandWidth.toFixed(1) + '%';
     const fillW = Math.min(100, (todayEaten / scale) * 100);
@@ -1246,6 +1527,17 @@ permalink: /toolbox/pet-food/
     drawAggregatedBars(deltas, pet, startIso, endIso, agg);
   }
 
+  function targetForAggregation(pet, agg) {
+    if (pet.showTargetOnChart === false) return null;
+    const tr = targetRange(pet);
+    if (!tr) return null;
+    let factor = 1;
+    if (agg === 'day') factor = 1;
+    else if (agg === 'week') factor = 7;
+    else if (agg === 'month') factor = 30; // approximate
+    return { min: tr.min * factor, max: tr.max * factor, unit: agg };
+  }
+
   function renderEmptyChart(msg) {
     $trendChart.innerHTML = '';
     $chartMeta.innerHTML = `<div style="text-align:center;width:100%;padding:1.5rem;color:var(--color-light);">${escapeHtml(msg)}</div>`;
@@ -1307,7 +1599,11 @@ permalink: /toolbox/pet-food/
     const m = { l: 44, r: 16, t: 18, b: 32 };
     const innerW = W - m.l - m.r;
     const innerH = H - m.t - m.b;
-    const niceMax = niceCeil(Math.max(1, ...points.map(p => p.c)));
+
+    const target = (pet.showTargetOnChart !== false) ? targetRange(pet) : null;
+    const dataMax = Math.max(1, ...points.map(p => p.c));
+    const targetCeil = target ? target.max : 0;
+    const niceMax = niceCeil(Math.max(dataMax, targetCeil));
 
     const xScale = ts => m.l + ((ts - dayStart) / DAY_MS) * innerW;
     const yScale = c => m.t + innerH - (c / niceMax) * innerH;
@@ -1330,6 +1626,28 @@ permalink: /toolbox/pet-food/
       const hh = pad2(dt.getHours());
       html += `<line x1="${x}" x2="${x}" y1="${m.t + innerH}" y2="${m.t + innerH + 3}" stroke="var(--color-border)"/>`;
       html += `<text x="${x}" y="${H - 14}" text-anchor="middle" fill="var(--color-light)" font-size="9.5">${hh}:00</text>`;
+    }
+
+    // Target wedge: from (00:00, 0) to (24h, target_min/max). Diagonal "ideal pace".
+    if (target) {
+      const xA = xScale(dayStart);
+      const yA = yScale(0);
+      const xB = xScale(dayEnd);
+      const yMin = yScale(target.min);
+      const yMax = yScale(target.max);
+      if (target.min === target.max) {
+        // Single line
+        html += `<line x1="${xA}" y1="${yA}" x2="${xB}" y2="${yMin}" stroke="#4a7c59" stroke-width="1.3" stroke-dasharray="5 3" opacity="0.75"/>`;
+      } else {
+        html += `<polygon points="${xA},${yA} ${xB},${yMax} ${xB},${yMin}" fill="#4a7c59" opacity="0.10"/>`;
+        html += `<line x1="${xA}" y1="${yA}" x2="${xB}" y2="${yMin}" stroke="#4a7c59" stroke-width="1.1" stroke-dasharray="4 3" opacity="0.7"/>`;
+        html += `<line x1="${xA}" y1="${yA}" x2="${xB}" y2="${yMax}" stroke="#4a7c59" stroke-width="1.1" stroke-dasharray="4 3" opacity="0.7"/>`;
+      }
+      const lblY = Math.max(yMax, m.t + 12);
+      const targetLbl = target.min === target.max
+        ? `目标 ${fmtG(target.min)}g`
+        : `目标 ${fmtG(target.min)}–${fmtG(target.max)}g`;
+      html += `<text x="${xB - 4}" y="${lblY - 4}" text-anchor="end" fill="#4a7c59" font-size="10">${targetLbl}</text>`;
     }
 
     if (points.length >= 2) {
@@ -1432,17 +1750,20 @@ permalink: /toolbox/pet-food/
       });
     }
 
-    drawBars(bars, agg, startIso, endIso, dayList.length);
+    const target = targetForAggregation(pet, agg);
+    drawBars(bars, agg, startIso, endIso, dayList.length, target);
   }
 
-  function drawBars(bars, agg, startIso, endIso, dayCount) {
+  function drawBars(bars, agg, startIso, endIso, dayCount, target) {
     const W = 600, H = 240;
     const m = { l: 44, r: 16, t: 22, b: 34 };
     const innerW = W - m.l - m.r;
     const innerH = H - m.t - m.b;
-    const niceMax = niceCeil(Math.max(1, ...bars.map(b => b.value)));
+    const dataMax = Math.max(1, ...bars.map(b => b.value));
+    const niceMax = niceCeil(Math.max(dataMax, target ? target.max : 0));
     const n = Math.max(1, bars.length);
     const barW = innerW / n;
+    const yScale = v => m.t + innerH - (v / niceMax) * innerH;
 
     let labelEvery = 1;
     if (n > 12) labelEvery = Math.ceil(n / 8);
@@ -1450,12 +1771,30 @@ permalink: /toolbox/pet-food/
     let html = '';
     const yTicks = niceTicks(0, niceMax, 4);
     yTicks.forEach(v => {
-      const y = m.t + innerH - (v / niceMax) * innerH;
+      const y = yScale(v);
       html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="var(--color-border)" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.6"/>`;
       html += `<text x="${m.l - 6}" y="${y + 3.5}" text-anchor="end" fill="var(--color-light)" font-size="9.5">${fmtG(v)}</text>`;
     });
     html += `<text x="6" y="${m.t + 4}" fill="var(--color-light)" font-size="9.5">g</text>`;
     html += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + innerH}" y2="${m.t + innerH}" stroke="var(--color-border)"/>`;
+
+    // Target band (drawn behind bars so bars overlay nicely)
+    if (target) {
+      const yMin = yScale(target.min);
+      const yMax = yScale(target.max);
+      if (target.min === target.max) {
+        html += `<line x1="${m.l}" x2="${W - m.r}" y1="${yMin}" y2="${yMin}" stroke="#4a7c59" stroke-width="1.3" stroke-dasharray="5 3" opacity="0.8"/>`;
+      } else {
+        html += `<rect x="${m.l}" y="${yMax}" width="${innerW}" height="${yMin - yMax}" fill="#4a7c59" opacity="0.10"/>`;
+        html += `<line x1="${m.l}" x2="${W - m.r}" y1="${yMin}" y2="${yMin}" stroke="#4a7c59" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
+        html += `<line x1="${m.l}" x2="${W - m.r}" y1="${yMax}" y2="${yMax}" stroke="#4a7c59" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
+      }
+      const unitName = agg === 'day' ? '日' : (agg === 'week' ? '周' : '月');
+      const tLbl = target.min === target.max
+        ? `目标 ${fmtG(target.min)}g/${unitName}`
+        : `目标 ${fmtG(target.min)}–${fmtG(target.max)} g/${unitName}`;
+      html += `<text x="${W - m.r - 4}" y="${Math.max(yMax, m.t + 10) - 4}" text-anchor="end" fill="#4a7c59" font-size="10">${tLbl}</text>`;
+    }
 
     bars.forEach((b, i) => {
       const x = m.l + barW * i + 1.5;
@@ -1642,9 +1981,15 @@ permalink: /toolbox/pet-food/
       $pmTitle.textContent = '编辑宠物';
       $pmName.value = p.name;
       $pmBowl.value = p.bowlWeight || '';
+      $pmTargetMin.value = Number.isFinite(p.dailyTargetMin) && p.dailyTargetMin > 0 ? parseFloat(p.dailyTargetMin.toFixed(1)) : '';
+      $pmTargetMax.value = Number.isFinite(p.dailyTargetMax) && p.dailyTargetMax > 0 ? parseFloat(p.dailyTargetMax.toFixed(1)) : '';
+      $pmShowTargetChart.checked = p.showTargetOnChart !== false;
       $pmSpecies.value = p.species || '';
-      $pmBodyWeight.value = p.bodyWeight || '';
+      populateBreeds(p.species || '', p.breed || '');
       $pmStage.value = p.lifeStage || '';
+      $pmBodyWeight.value = p.bodyWeight || '';
+      $pmActivity.value = p.activity || '';
+      $pmEstimator.open = !!(p.species || p.breed || p.lifeStage || p.bodyWeight || p.activity);
       state.selectedEmoji = p.emoji || EMOJIS[0];
       state.pendingAvatar = p.avatar || null;
       $pmDelete.style.display = '';
@@ -1652,13 +1997,20 @@ permalink: /toolbox/pet-food/
       $pmTitle.textContent = '添加宠物';
       $pmName.value = '';
       $pmBowl.value = '';
+      $pmTargetMin.value = '';
+      $pmTargetMax.value = '';
+      $pmShowTargetChart.checked = true;
       $pmSpecies.value = '';
-      $pmBodyWeight.value = '';
+      populateBreeds('', '');
       $pmStage.value = '';
+      $pmBodyWeight.value = '';
+      $pmActivity.value = '';
+      $pmEstimator.open = false;
       state.selectedEmoji = EMOJIS[0];
       state.pendingAvatar = null;
       $pmDelete.style.display = 'none';
     }
+    refreshEstimatorPreview();
     updateAvatarSelection();
     $modal.classList.add('open');
     setTimeout(() => $pmName.focus(), 50);
@@ -1685,9 +2037,14 @@ permalink: /toolbox/pet-food/
     const name = $pmName.value.trim();
     if (!name) { alert('请输入名字'); return; }
     const bowl = parseFloat($pmBowl.value);
+    const tMin = parseFloat($pmTargetMin.value);
+    const tMax = parseFloat($pmTargetMax.value);
     const species = $pmSpecies.value || null;
-    const bodyWeight = parseFloat($pmBodyWeight.value);
+    const breed = $pmBreed.value || null;
     const lifeStage = $pmStage.value || null;
+    const bodyWeight = parseFloat($pmBodyWeight.value);
+    const activity = $pmActivity.value || null;
+    const showTargetOnChart = !!$pmShowTargetChart.checked;
     if (state.editingId) {
       const p = state.pets.find(x => x.id === state.editingId);
       if (!p) return;
@@ -1695,9 +2052,14 @@ permalink: /toolbox/pet-food/
       p.emoji = state.selectedEmoji;
       p.avatar = state.pendingAvatar || null;
       p.bowlWeight = Number.isFinite(bowl) && bowl > 0 ? bowl : 0;
+      p.dailyTargetMin = Number.isFinite(tMin) && tMin > 0 ? tMin : null;
+      p.dailyTargetMax = Number.isFinite(tMax) && tMax > 0 ? tMax : null;
+      p.showTargetOnChart = showTargetOnChart;
       p.species = species;
-      p.bodyWeight = Number.isFinite(bodyWeight) && bodyWeight > 0 ? bodyWeight : 0;
+      p.breed = breed;
       p.lifeStage = lifeStage;
+      p.bodyWeight = Number.isFinite(bodyWeight) && bodyWeight > 0 ? bodyWeight : 0;
+      p.activity = activity;
     } else {
       const id = uuid('pet');
       state.pets.push({
@@ -1705,9 +2067,14 @@ permalink: /toolbox/pet-food/
         emoji: state.selectedEmoji,
         avatar: state.pendingAvatar || null,
         bowlWeight: Number.isFinite(bowl) && bowl > 0 ? bowl : 0,
+        dailyTargetMin: Number.isFinite(tMin) && tMin > 0 ? tMin : null,
+        dailyTargetMax: Number.isFinite(tMax) && tMax > 0 ? tMax : null,
+        showTargetOnChart,
         species,
-        bodyWeight: Number.isFinite(bodyWeight) && bodyWeight > 0 ? bodyWeight : 0,
+        breed,
         lifeStage,
+        bodyWeight: Number.isFinite(bodyWeight) && bodyWeight > 0 ? bodyWeight : 0,
+        activity,
         preferredUnit: 'g',
         entries: [],
         createdAt: new Date().toISOString(),
