@@ -54,3 +54,7 @@ audio/*
 EMAIL_SUMMARY.md
 EMAIL_SUMMARY.html
 _data/email_summary_state.json
+
+# 网站后端：urge / comments / mcp 三个 fly app 仓库的本机工作副本，
+# 各自有独立 git 远端，与主仓平级管理但物理位置归并到这里方便统一管理。
+backends/
