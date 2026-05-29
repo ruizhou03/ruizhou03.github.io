@@ -38,11 +38,17 @@
   //   mctsSamples       ：MCTS 跟牌采样次数（0 = 不跑 MCTS）
   //   noiseSigma        ：每条概率的高斯波动；大神 = 0（行为稳定）
   // ============================================================
+  // memory* 是结构性记牌能力，不进 ES 训练（ES 会无脑推到 1.0）：
+  //   memoryBigCards   — A/2/小王/大王 这种大牌的记牌准确率
+  //   memoryMidCards   — 10/J/Q/K
+  //   memorySmallCards — 3-9 小牌
+  // 每局开局每个 rank 抽一次 Bernoulli 决定"我这局是否盯着这个 rank"，整局稳定。
+  // 没盯的 rank → 这局都当作没见过这张 → 反压预测和 MCTS 采样都会基于错觉。
   const LEVEL_PROFILES = {
-    easy:   { counterPredictRate: 0.20, peasantCoopRate: 0.20, bombSmartRate: 0.35, firstPlayLookAhead: 0.35, randomActionRate: 0.32, mctsSamples: 0,  noiseSigma: 0.10 },
-    normal: { counterPredictRate: 0.55, peasantCoopRate: 0.50, bombSmartRate: 0.65, firstPlayLookAhead: 0.78, randomActionRate: 0.08, mctsSamples: 0,  noiseSigma: 0.08 },
-    hard:   { counterPredictRate: 0.82, peasantCoopRate: 0.80, bombSmartRate: 0.85, firstPlayLookAhead: 0.95, randomActionRate: 0.02, mctsSamples: 6,  noiseSigma: 0.06 },
-    master: { counterPredictRate: 1.0,  peasantCoopRate: 1.0,  bombSmartRate: 1.0,  firstPlayLookAhead: 1.0,  randomActionRate: 0,    mctsSamples: 30, noiseSigma: 0    },
+    easy:   { counterPredictRate: 0.20, peasantCoopRate: 0.20, bombSmartRate: 0.35, firstPlayLookAhead: 0.35, randomActionRate: 0.32, mctsSamples: 0,  noiseSigma: 0.10, memoryBigCards: 0.10, memoryMidCards: 0.00, memorySmallCards: 0.00 },
+    normal: { counterPredictRate: 0.55, peasantCoopRate: 0.50, bombSmartRate: 0.65, firstPlayLookAhead: 0.78, randomActionRate: 0.08, mctsSamples: 0,  noiseSigma: 0.08, memoryBigCards: 0.75, memoryMidCards: 0.30, memorySmallCards: 0.10 },
+    hard:   { counterPredictRate: 0.82, peasantCoopRate: 0.80, bombSmartRate: 0.85, firstPlayLookAhead: 0.95, randomActionRate: 0.02, mctsSamples: 6,  noiseSigma: 0.06, memoryBigCards: 0.95, memoryMidCards: 0.85, memorySmallCards: 0.70 },
+    master: { counterPredictRate: 1.0,  peasantCoopRate: 1.0,  bombSmartRate: 1.0,  firstPlayLookAhead: 1.0,  randomActionRate: 0,    mctsSamples: 30, noiseSigma: 0,    memoryBigCards: 1.00, memoryMidCards: 1.00, memorySmallCards: 1.00 },
   };
 
   // ============================================================
@@ -608,16 +614,23 @@
     const myHist = E.histByWeight(myHand);
     const remaining = [];
     for (let w = 0; w < 15; w++) {
-      const left = TOTAL_BY_WEIGHT[w] - (ctx.seen[w] || 0) - (myHist[w] || 0);
+      // 注意：ctx.seen 已经被 perceiveSeen 过滤过（v3）
+      // 对于 AI 没盯的 rank，seen[w]=0 → 计算出 left 偏大（"我以为这 rank 没出过"）
+      // 全局 remaining.length 可能比真实剩余牌总数大
+      let left = TOTAL_BY_WEIGHT[w] - (ctx.seen[w] || 0) - (myHist[w] || 0);
+      if (left < 0) left = 0;
       for (let i = 0; i < left; i++) remaining.push(w);
     }
     const otherSeats = [0, 1, 2].filter(i => i !== ctx.myIdx);
     const total = ctx.handSizes[otherSeats[0]] + ctx.handSizes[otherSeats[1]];
-    if (total !== remaining.length) return null;
+    // v3 容差：remaining 比实际多 → 取前 total 张（AI 想象的对手手牌池更广，符合"记不清"）
+    // remaining 比实际少 → 矛盾，放弃这次采样
+    if (remaining.length < total) return null;
     shuffleArray(remaining);
+    const taken = remaining.slice(0, total);
     return {
-      [otherSeats[0]]: remaining.slice(0, ctx.handSizes[otherSeats[0]]),
-      [otherSeats[1]]: remaining.slice(ctx.handSizes[otherSeats[0]]),
+      [otherSeats[0]]: taken.slice(0, ctx.handSizes[otherSeats[0]]),
+      [otherSeats[1]]: taken.slice(ctx.handSizes[otherSeats[0]]),
     };
   }
 
@@ -753,6 +766,34 @@
   }
 
   // ============================================================
+  // 记牌器：按 rank 桶位 + 每局稳定的 Bernoulli mask
+  //   生成时机：每局开局每个 rank 抽一次"我盯不盯"，整局不变
+  //   ranks 11-14 (A/2/小王/大王) → memoryBigCards
+  //   ranks  7-10 (10/J/Q/K)       → memoryMidCards
+  //   ranks  0-6  (3-9)            → memorySmallCards
+  // ============================================================
+  function generateMemoryMask(profile) {
+    const mask = new Array(15);
+    for (let r = 0; r < 15; r++) {
+      const recall = r >= 11 ? profile.memoryBigCards
+                   : r >= 7  ? profile.memoryMidCards
+                             : profile.memorySmallCards;
+      mask[r] = Math.random() < recall;
+    }
+    return mask;
+  }
+
+  // 用 mask 过滤 true seen → 感知 seen
+  // 没盯的 rank 直接当作 0（"这 rank 我没见过"），保守估计 → 反压判断会失误
+  function perceiveSeen(trueSeen, memoryMask) {
+    const perceived = new Array(15);
+    for (let r = 0; r < 15; r++) {
+      perceived[r] = memoryMask[r] ? (trueSeen[r] || 0) : 0;
+    }
+    return perceived;
+  }
+
+  // ============================================================
   // 总入口
   // ============================================================
   function chooseMove(hand, prev, ctx, level, wOverride) {
@@ -770,9 +811,24 @@
     // 权重；master 档保留 30 samples 不进训练。所有差异化策略画像通过 w 表达。
     const effectiveSamples = (level === 'master') ? profile.mctsSamples : 6;
 
-    const baseline = chooseUnified(hand, prev, ctx, profile, w);
+    // v3 记牌器：用 mask 过滤 ctx.seen
+    //   - 优先级 1: ctx.memoryMask（每局稳定，sim/UI 已生成传入）— 总是用
+    //   - 优先级 2: profile 有记牌限制 → per-call 随机生成（safety fallback）
+    //   - 否则: 完美记忆，不动 ctx.seen
+    let effectiveCtx = ctx;
+    if (ctx.memoryMask) {
+      effectiveCtx = Object.assign({}, ctx, { seen: perceiveSeen(ctx.seen, ctx.memoryMask) });
+    } else {
+      const hasMemLimit = profile.memoryBigCards < 1 || profile.memoryMidCards < 1 || profile.memorySmallCards < 1;
+      if (hasMemLimit) {
+        const mask = generateMemoryMask(profile);
+        effectiveCtx = Object.assign({}, ctx, { seen: perceiveSeen(ctx.seen, mask) });
+      }
+    }
+
+    const baseline = chooseUnified(hand, prev, effectiveCtx, profile, w);
     if (effectiveSamples > 0 && baseline) {
-      const refined = mctsLite(hand, prev, ctx, profile, w, effectiveSamples, baseline);
+      const refined = mctsLite(hand, prev, effectiveCtx, profile, w, effectiveSamples, baseline);
       return refined || baseline;
     }
     return baseline;
@@ -816,6 +872,7 @@
     remainingByWeight, minBeaterIn,
     PLAY_PRIORITY, LEVEL_PROFILES,
     WEIGHTS_BY_DIFFICULTY, aiWeights, _W_BASELINE,
+    generateMemoryMask, perceiveSeen,   // v3 记牌器
   };
 
   if (typeof window !== 'undefined') window.DDZAI = api;

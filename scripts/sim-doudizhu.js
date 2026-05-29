@@ -106,11 +106,22 @@ function dealRound(rng) {
 }
 
 // pairedBySeat[seat] = { landlord: w25, farmer: w25 }；座 0 用 landlord 半边、座 1/2 用 farmer 半边
-function simulateMatch({ pairedBySeat, rng = Math.random, maxIter = 400 }) {
+// tierBySeat[seat] = 'easy'|'normal'|'hard'：决定每座的记牌能力（v3）
+function simulateMatch({ pairedBySeat, tierBySeat, rng = Math.random, maxIter = 400 }) {
   const hands = dealRound(rng);
   const handSizes = [hands[0].length, hands[1].length, hands[2].length];
   const seen = new Array(15).fill(0);
   const trickHistory = [];
+
+  // v3: 每座按其 tier 一次性生成 memoryMask（整局稳定）
+  const memoryMaskBySeat = {};
+  if (tierBySeat) {
+    for (let s = 0; s < 3; s++) {
+      const tier = tierBySeat[s] || 'hard';
+      memoryMaskBySeat[s] = AI.generateMemoryMask(AI.LEVEL_PROFILES[tier]);
+    }
+  }
+
   let currentSeat = 0, prev = null, lastTrickSeat = -1, passCount = 0, iter = 0;
 
   while (iter++ < maxIter) {
@@ -124,6 +135,7 @@ function simulateMatch({ pairedBySeat, rng = Math.random, maxIter = 400 }) {
       seen: seen.slice(),
       trickHistory: trickHistory.slice(-10),
       lastTrickSeat,
+      memoryMask: memoryMaskBySeat[currentSeat],   // v3: 这座本局的记牌 mask
     };
     const move = AI.chooseMove(hands[currentSeat], prev, ctx, 'hard', w);
 
@@ -156,7 +168,9 @@ function simulateMatch({ pairedBySeat, rng = Math.random, maxIter = 400 }) {
 // ===========================================================
 // runMatches — paired in, paired out
 // ===========================================================
-function runMatches(testPaired, baselinePaired, n, rng = Math.random) {
+// testTier / baselineTier 默认 'hard' — 训练时各 candidate 用自己的 tier；
+// tournament 时跨 tier 对战，每方按自己的 tier 记牌
+function runMatches(testPaired, baselinePaired, n, rng = Math.random, testTier = 'hard', baselineTier = 'hard') {
   let testWins = 0, baselineWins = 0, timeoutCount = 0;
   let testLLWins = 0, testLLGames = 0;
   let testPSWins = 0, testPSGames = 0;
@@ -167,7 +181,10 @@ function runMatches(testPaired, baselinePaired, n, rng = Math.random) {
     const pairedBySeat = testIsLandlord
       ? { 0: testPaired,     1: baselinePaired, 2: baselinePaired }
       : { 0: baselinePaired, 1: testPaired,     2: testPaired };
-    const { winner, iter } = simulateMatch({ pairedBySeat, rng });
+    const tierBySeat = testIsLandlord
+      ? { 0: testTier,     1: baselineTier, 2: baselineTier }
+      : { 0: baselineTier, 1: testTier,     2: testTier };
+    const { winner, iter } = simulateMatch({ pairedBySeat, tierBySeat, rng });
     totalIter += iter;
     if (winner === 'timeout') { timeoutCount++; continue; }
     const testWon = testIsLandlord ? (winner === 'landlord') : (winner === 'peasant');
@@ -190,7 +207,7 @@ function runMatches(testPaired, baselinePaired, n, rng = Math.random) {
 // ES 内核（多目标 fitness）
 // ===========================================================
 function runES({ startCenter, sigmaInit = 0.25, generations = 4, popSize = 16,
-                  matchesPerEval = 50, label = '', priorCentroids = [] }) {
+                  matchesPerEval = 50, label = '', priorCentroids = [], tier = 'hard' }) {
   let center = clonePaired(startCenter);
   let sigma = sigmaInit;
   const centroids = [];
@@ -206,18 +223,18 @@ function runES({ startCenter, sigmaInit = 0.25, generations = 4, popSize = 16,
     const results = [];
     const tStart = Date.now();
     for (let i = 0; i < pop.length; i++) {
-      // 强度信号：vs 当前 center
-      const { testWins: vsCenterWins } = runMatches(pop[i], center, matchesPerEval);
+      // 强度信号：vs 当前 center（双方都用本 tier 记牌）
+      const { testWins: vsCenterWins } = runMatches(pop[i], center, matchesPerEval, Math.random, tier, tier);
       const vsCenter = vsCenterWins / matchesPerEval;
 
-      // 多样性信号：vs 上 3 个 run 的 final centroid（如果有）
-      let vsDiverse = vsCenter;   // 没历史时退化为 strength only
+      // 多样性信号：vs 同 tier 内上 3 个 run 的 final centroid（如果有）
+      let vsDiverse = vsCenter;
       if (priorCentroids.length > 0) {
         const recent = priorCentroids.slice(-3);
         const shortMatches = Math.max(20, Math.floor(matchesPerEval / 4));
         let sum = 0;
         for (const prev of recent) {
-          sum += runMatches(pop[i], prev, shortMatches).testWins / shortMatches;
+          sum += runMatches(pop[i], prev, shortMatches, Math.random, tier, tier).testWins / shortMatches;
         }
         vsDiverse = sum / recent.length;
       }
@@ -248,73 +265,85 @@ function runES({ startCenter, sigmaInit = 0.25, generations = 4, popSize = 16,
 // ===========================================================
 // pop-gen
 // ===========================================================
-function popGen({ K = 8, generations = 4, popSize = 16, matchesPerEval = 50, startSigma = 0.4 }) {
+// v3 pop-gen：3 tier × K runs/tier，每 tier 独立训练（自己的记牌限制）
+function popGen({ K = 5, generations = 4, popSize = 16, matchesPerEval = 50, startSigma = 0.4 }) {
   const popPath = path.join(__dirname, 'sim-doudizhu-population.json');
+  const TIERS = ['easy', 'normal', 'hard'];
 
   let population = [];
-  let startK = 0;
+  const doneByTier = { easy: 0, normal: 0, hard: 0 };
   if (fs.existsSync(popPath)) {
     try {
       const existing = JSON.parse(fs.readFileSync(popPath, 'utf8'));
-      if (Array.isArray(existing) && existing.length > 0 && existing[0].weights && existing[0].weights.landlord) {
+      if (Array.isArray(existing) && existing.length > 0 && existing[0].tier && existing[0].weights && existing[0].weights.landlord) {
         population = existing;
-        startK = Math.max(...existing.map(e => e.runIdx || 0)) + 1;
-        console.log('resuming from existing population.json (' +
-          existing.length + ' entries, next runIdx=' + startK + ')');
+        for (const e of existing) {
+          if (e.tier && e.runIdx != null) {
+            doneByTier[e.tier] = Math.max(doneByTier[e.tier] || 0, e.runIdx + 1);
+          }
+        }
+        console.log('resuming from existing population.json (' + existing.length +
+          ' entries, doneByTier=' + JSON.stringify(doneByTier) + ')');
       } else if (Array.isArray(existing) && existing.length > 0) {
-        console.log('existing population.json is v1 flat format — starting fresh (will overwrite)');
+        console.log('existing population.json is older format — starting fresh');
+        population = [];
       }
-    } catch (e) { /* fresh */ }
+    } catch (e) { population = []; }
   }
 
-  console.log('== pop-gen v2 (paired weights, multi-objective) ==');
-  console.log('K=' + K + ' generations=' + generations + ' popSize=' + popSize +
+  console.log('== pop-gen v3 (paired + multi-obj + per-tier memory) ==');
+  console.log('K per tier=' + K + ' generations=' + generations + ' popSize=' + popSize +
     ' matchesPerEval=' + matchesPerEval + ' startSigma=' + startSigma);
   console.log('TUNE_KEYS per role (' + TUNE_KEYS.length + '): ' + TUNE_KEYS.length * 2 + ' total dim');
 
-  // 历史 final centroids 用于多样性信号
-  const priorCentroids = [];
-  for (const p of population) {
-    if (p.weights && p.weights.landlord && p.genSnapshot === (generations - 1)) {
-      priorCentroids.push(p.weights);
-    }
-  }
-
   const overallStart = Date.now();
-  for (let k = startK; k < K; k++) {
-    const startCenter = clonePaired(DEFAULT_W);
-    if (k > 0) {
-      // k>0 起点：landlord 和 farmer 半边独立扰动
-      startCenter.landlord = perturbFlat(DEFAULT_W.landlord, startSigma);
-      startCenter.farmer   = perturbFlat(DEFAULT_W.farmer,   startSigma);
-    }
-    console.log('\n--- run ' + k + ' / ' + K + ' (start sigma=' + startSigma +
-      ', priorCentroids=' + priorCentroids.length + ') ---');
-    const centroids = runES({
-      startCenter, sigmaInit: 0.25, generations, popSize, matchesPerEval,
-      label: 'run' + k, priorCentroids,
-    });
-    const snapGens = Array.from(new Set([
-      0,
-      Math.floor((generations - 1) / 2),
-      generations - 1,
-    ]));
-    for (const g of snapGens) {
-      population.push({
-        id: 'run' + k + '_gen' + g,
-        runIdx: k,
-        genSnapshot: g,
-        startCenter: clonePaired(startCenter),
-        weights: clonePaired(centroids[g].center),
-      });
-    }
-    // 把这个 run 的 final centroid 加进历史，下一个 run 用它作多样性参考
-    priorCentroids.push(clonePaired(centroids[centroids.length - 1].center));
+  for (const tier of TIERS) {
+    const startK = doneByTier[tier] || 0;
+    console.log('\n=== tier=' + tier + ' (start run ' + startK + ' / ' + K + ') ===');
 
-    fs.writeFileSync(popPath, JSON.stringify(population, null, 2));
-    const elapsedMin = ((Date.now() - overallStart) / 1000 / 60).toFixed(1);
-    console.log('run ' + k + ' saved; pop size = ' + population.length +
-      '; elapsed ' + elapsedMin + ' min');
+    // 同 tier 内的历史 centroids 用于多样性信号
+    const priorCentroids = [];
+    for (const p of population) {
+      if (p.tier === tier && p.genSnapshot === (generations - 1) && p.weights && p.weights.landlord) {
+        priorCentroids.push(p.weights);
+      }
+    }
+
+    for (let k = startK; k < K; k++) {
+      const startCenter = clonePaired(DEFAULT_W);
+      if (k > 0) {
+        startCenter.landlord = perturbFlat(DEFAULT_W.landlord, startSigma);
+        startCenter.farmer   = perturbFlat(DEFAULT_W.farmer,   startSigma);
+      }
+      const label = tier + '_run' + k;
+      console.log('\n--- ' + label + ' (start sigma=' + startSigma +
+        ', priorCentroids=' + priorCentroids.length + ') ---');
+      const centroids = runES({
+        startCenter, sigmaInit: 0.25, generations, popSize, matchesPerEval,
+        label, priorCentroids, tier,
+      });
+      const snapGens = Array.from(new Set([
+        0,
+        Math.floor((generations - 1) / 2),
+        generations - 1,
+      ]));
+      for (const g of snapGens) {
+        population.push({
+          id: tier + '_run' + k + '_gen' + g,
+          tier,
+          runIdx: k,
+          genSnapshot: g,
+          startCenter: clonePaired(startCenter),
+          weights: clonePaired(centroids[g].center),
+        });
+      }
+      priorCentroids.push(clonePaired(centroids[centroids.length - 1].center));
+
+      fs.writeFileSync(popPath, JSON.stringify(population, null, 2));
+      const elapsedMin = ((Date.now() - overallStart) / 1000 / 60).toFixed(1);
+      console.log(label + ' saved; pop size = ' + population.length +
+        '; elapsed ' + elapsedMin + ' min');
+    }
   }
   console.log('\n== pop-gen DONE; ' + population.length + ' candidates → ' + popPath + ' ==');
 }
@@ -336,10 +365,13 @@ function tournament({ matchesPerPair = 60 }) {
     console.error('population.json is v1 flat format — rerun pop-gen first');
     process.exit(1);
   }
+  // v3 锚点：每 tier 一个 DEFAULT_W 副本（按各自 tier 记牌）
   const anchors = [
-    { id: 'DEFAULT_W', weights: clonePaired(DEFAULT_W) },
+    { id: 'DEFAULT_W_easy',   tier: 'easy',   weights: clonePaired(DEFAULT_W) },
+    { id: 'DEFAULT_W_normal', tier: 'normal', weights: clonePaired(DEFAULT_W) },
+    { id: 'DEFAULT_W_hard',   tier: 'hard',   weights: clonePaired(DEFAULT_W) },
   ];
-  const all = anchors.concat(population.map(p => ({ id: p.id, weights: p.weights })));
+  const all = anchors.concat(population.map(p => ({ id: p.id, tier: p.tier || 'hard', weights: p.weights })));
   const N = all.length;
   const numPairs = N * (N - 1) / 2;
 
@@ -384,7 +416,7 @@ function tournament({ matchesPerPair = 60 }) {
       const exB = (winsMatrix[b.id] || {})[a.id];
       if (typeof exA === 'number' && typeof exB === 'number' && (exA + exB) > 0) continue;
 
-      const r = runMatches(a.weights, b.weights, matchesPerPair);
+      const r = runMatches(a.weights, b.weights, matchesPerPair, Math.random, a.tier, b.tier);
       const aWins = r.testWins, bWins = r.baselineWins;
       winsMatrix[a.id] = winsMatrix[a.id] || {};
       winsMatrix[a.id][b.id] = aWins;
@@ -422,6 +454,7 @@ function saveTournamentResults(all, elo, winsMatrix, final, rankPath, winsPath) 
     }
     return {
       id: c.id,
+      tier: c.tier || 'hard',
       elo: elo.get(c.id),
       totalWins, totalGames,
       winRate: totalGames > 0 ? totalWins / totalGames : 0,
@@ -444,8 +477,8 @@ function saveTournamentResults(all, elo, winsMatrix, final, rankPath, winsPath) 
 // ===========================================================
 function sanity(n) {
   const N = n || 60;
-  console.log('== sanity: DEFAULT_W vs DEFAULT_W (应 ≈50%, N=' + N + ') ==');
-  const r = runMatches(DEFAULT_W, DEFAULT_W, N);
+  console.log('== sanity: DEFAULT_W vs DEFAULT_W under tier=hard (应 ≈50%, N=' + N + ') ==');
+  const r = runMatches(DEFAULT_W, DEFAULT_W, N, Math.random, 'hard', 'hard');
   const rate = r.testWins / r.n;
   const se = Math.sqrt(rate * (1 - rate) / r.n);
   console.log('test wins ' + r.testWins + ' / ' + r.n + '  =  ' + rate.toFixed(3) +
@@ -457,24 +490,24 @@ function sanity(n) {
   console.log('  timeouts: ' + r.timeoutCount + '   avg iter/match: ' + r.avgIter.toFixed(0));
 }
 
-function compare(testPath, baselinePath, n) {
+function compare(testPath, baselinePath, n, testTier, baselineTier) {
   function loadPaired(p) {
     const raw = JSON.parse(fs.readFileSync(p, 'utf8'));
     if (raw.landlord && raw.farmer) {
-      // 已 paired
       return {
         landlord: Object.assign({}, DEFAULT_W.landlord, raw.landlord),
         farmer:   Object.assign({}, DEFAULT_W.farmer,   raw.farmer),
       };
     }
-    // flat → 复制两边
     const flat = Object.assign({}, DEFAULT_W_FLAT, raw);
     return { landlord: Object.assign({}, flat), farmer: Object.assign({}, flat) };
   }
   const testW = loadPaired(testPath);
   const baselineW = baselinePath ? loadPaired(baselinePath) : DEFAULT_W;
-  console.log('compare test=' + testPath + ' vs ' + (baselinePath || 'DEFAULT_W') + ', n=' + n);
-  const r = runMatches(testW, baselineW, n);
+  const tt = testTier || 'hard';
+  const bt = baselineTier || 'hard';
+  console.log('compare test=' + testPath + '(' + tt + ') vs ' + (baselinePath || 'DEFAULT_W') + '(' + bt + '), n=' + n);
+  const r = runMatches(testW, baselineW, n, Math.random, tt, bt);
   const rate = r.testWins / r.n;
   const se = Math.sqrt(rate * (1 - rate) / r.n);
   console.log('test wins ' + r.testWins + ' / ' + r.n + '  =  ' + rate.toFixed(3) +
@@ -499,11 +532,14 @@ else if (cmd === 'tournament') {
   tournament({ matchesPerPair });
 }
 else if (cmd === 'compare') {
+  // compare <test.json> [N] [baseline.json] [testTier] [baselineTier]
   const tp = process.argv[3];
   const n = parseInt(process.argv[4], 10) || 600;
   const bp = process.argv[5];
-  if (!tp) { console.error('usage: compare <test.json> [N] [baseline.json]'); process.exit(1); }
-  compare(tp, bp, n);
+  const tt = process.argv[6];
+  const bt = process.argv[7];
+  if (!tp) { console.error('usage: compare <test.json> [N] [baseline.json] [testTier] [baselineTier]'); process.exit(1); }
+  compare(tp, bp, n, tt, bt);
 }
 else {
   console.error('unknown cmd: ' + cmd);

@@ -49,11 +49,8 @@
     declaredSeat: -1,                               // 谁明牌
     initialHands: null,                             // 开局快照 [arr0, arr1, arr2]（含地主底牌）— 春天结算图用
     seen: new Array(15).fill(0),                   // 真实已出统计（仅供调试 / 玩家视角）
-    aiPerceivedSeen: [                              // 每个 AI 自己的"记忆"，可能有噪声
-      null,
-      new Array(15).fill(0),                        // AI 1（下家）
-      new Array(15).fill(0),                        // AI 2（上家）
-    ],
+    aiPerceivedSeen: [null, new Array(15).fill(0), new Array(15).fill(0)],   // 旧字段保留兼容
+    memoryMaskBySeat: [null, null, null],          // v3: 每 AI 开局抽一次 mask，整局稳定
     runStartedAt: 0,
     runNonce: '',
     result: null,                // { winnerRole, multiplier, score }
@@ -1249,11 +1246,17 @@
     state.passCount = 0;
     state.selected.clear();
     state.seen = new Array(15).fill(0);
-    state.aiPerceivedSeen = [
-      null,
-      new Array(15).fill(0),
-      new Array(15).fill(0),
-    ];
+    state.aiPerceivedSeen = [null, new Array(15).fill(0), new Array(15).fill(0)];   // 旧字段，留作兼容
+    // v3 记牌器：开局给每个 AI 抽一次 mask（整局稳定）
+    {
+      const lvl = state.difficulty || 'normal';
+      const profile = (AI && AI.LEVEL_PROFILES && AI.LEVEL_PROFILES[lvl]) || null;
+      state.memoryMaskBySeat = [null, null, null];
+      if (profile && AI.generateMemoryMask) {
+        state.memoryMaskBySeat[1] = AI.generateMemoryMask(profile);
+        state.memoryMaskBySeat[2] = AI.generateMemoryMask(profile);
+      }
+    }
     state.runStartedAt = Date.now();
     state.runNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     state.result = null;
@@ -2083,15 +2086,17 @@
   function aiTakeTurn(seat) {
     if (state.phase !== PHASE.PLAYING || state.turnIdx !== seat) return;
     const prev = (state.lastTrick && state.lastTrick.seat !== seat) ? state.lastTrick.pattern : null;
-    const perceived = state.aiPerceivedSeen[seat] || new Array(15).fill(0);
+    // v3: ctx.seen 喂真实 seen + ctx.memoryMask 把 AI 自己的盲区告诉 ai.js
+    // chooseMove 内部 perceiveSeen 会用 mask 过滤
     const ctx = {
       myIdx: seat,
       myRole: seat === state.landlordIdx ? 'landlord' : 'peasant',
       landlordIdx: state.landlordIdx,
       handSizes: state.hands.map(h => h.length),
-      seen: perceived.slice(),                  // ← 用 AI 自己的"记忆"，不是上帝视角
+      seen: (state.seen || new Array(15).fill(0)).slice(),
       trickHistory: [],
       lastTrickSeat: state.lastTrick ? state.lastTrick.seat : -1,
+      memoryMask: state.memoryMaskBySeat ? state.memoryMaskBySeat[seat] : null,
     };
     const play = AI.chooseMove(state.hands[seat], prev, ctx, state.difficulty);
     if (!play) {
@@ -3784,6 +3789,7 @@
       passCount: state.passCount,
       seen: state.seen.slice(),
       aiPerceivedSeen: state.aiPerceivedSeen.map(x => x ? x.slice() : null),
+      memoryMaskBySeat: (state.memoryMaskBySeat || [null,null,null]).map(x => x ? x.slice() : null),
       runStartedAt: state.runStartedAt,
       runNonce: state.runNonce,
     };
@@ -3819,6 +3825,7 @@
       seen: saved.seen || new Array(15).fill(0),
       aiPerceivedSeen: saved.aiPerceivedSeen ||
         [null, new Array(15).fill(0), new Array(15).fill(0)],
+      memoryMaskBySeat: saved.memoryMaskBySeat || [null, null, null],
       runStartedAt: saved.runStartedAt || Date.now(),
       runNonce: saved.runNonce || (window.GamesShell ? GamesShell.Identity.newRunNonce() : 'r-' + Date.now()),
       selected: new Set(),
