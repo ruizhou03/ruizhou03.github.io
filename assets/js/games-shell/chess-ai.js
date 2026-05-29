@@ -132,16 +132,19 @@
 
   // Quiescence search: at horizon, extend only captures + promotions so the eval isn't
   // ambushed by tactical noise (e.g. seeing "won a queen" at depth 0 right before getting recaptured).
-  function quiesce(game, alpha, beta, color) {
+  // Hard cap at QMAX plies — tactical positions could otherwise chain ~10+ deep on every leaf.
+  const QMAX = 6;
+  function quiesce(game, alpha, beta, color, ply) {
     const standPat = color * evaluateBoard(game);
     if (standPat >= beta) return beta;
     if (standPat > alpha) alpha = standPat;
+    if (ply >= QMAX) return alpha;
     const moves = game.moves({ verbose: true })
       .filter(m => m.flags.indexOf('c') !== -1 || m.flags.indexOf('e') !== -1 || m.flags.indexOf('p') !== -1);
     moves.sort((a, b) => moveOrderKey(b) - moveOrderKey(a));
     for (const m of moves) {
       game.move(m);
-      const score = -quiesce(game, -beta, -alpha, -color);
+      const score = -quiesce(game, -beta, -alpha, -color, ply + 1);
       game.undo();
       if (score >= beta) return beta;
       if (score > alpha) alpha = score;
@@ -163,7 +166,7 @@
     }
 
     if (game.game_over()) return { score: color * evaluateBoard(game), move: null };
-    if (depth === 0) return { score: quiesce(game, alpha, beta, color), move: null };
+    if (depth === 0) return { score: quiesce(game, alpha, beta, color, 0), move: null };
 
     const moves = game.moves({ verbose: true });
     moves.sort((a, b) => moveOrderKey(b) - moveOrderKey(a));
@@ -246,15 +249,26 @@
 
     // 迭代加深：从 1 ply 起逐步加深，每一次都让 TT 帮加速下一次。
     // 当 depth=1 时只跑一次（与原 easy 行为一致）。
+    //
+    // 根节点 α-β：siblings 之间共享 α 上界 → 一旦找到分数 S 的走法，后续兄弟节点
+    // 用 (-Inf, -S) 搜索，烂走法会 fail-low 直接被剪掉。
+    // 但 easy 模式（randomTopK>1 或 noise>0）要看所有走法的真实分数做加权抽样，
+    // fail-low 给的是上界而不是精确分，所以这种模式回退到原来的全窗口搜索。
+    const useRootAB = (randomTopK <= 1 && noise === 0);
     let scored = [];
     for (let d = 1; d <= depth; d++) {
-      scored = moves.map(m => {
+      scored = [];
+      let alpha = -Infinity;
+      const beta = Infinity;
+      for (const m of moves) {
         game.move(m);
-        const child = negamax(game, d - 1, -Infinity, Infinity, -colorSign, tt);
-        let score = -child.score;
+        const searchAlpha = useRootAB ? alpha : -Infinity;
+        const child = negamax(game, d - 1, -beta, -searchAlpha, -colorSign, tt);
+        const score = -child.score;
         game.undo();
-        return { move: m, score };
-      });
+        scored.push({ move: m, score });
+        if (useRootAB && score > alpha) alpha = score;
+      }
       // 把上一轮的 best-first 反馈给下一轮的 move ordering（提高 α-β 剪枝命中率）
       scored.sort((a, b) => b.score - a.score);
       moves.length = 0;
