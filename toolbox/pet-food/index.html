@@ -242,6 +242,58 @@ permalink: /toolbox/pet-food/
   }
   .entry-form .bowl-row.shake input { animation: bowl-shake 0.32s; }
 
+  .entry-form .form-aux-row {
+    display: flex; gap: 1rem; margin-top: 0.7rem; flex-wrap: wrap;
+  }
+  .entry-form .link-btn {
+    border: none; background: none; padding: 0; cursor: pointer;
+    font: inherit; font-size: 0.83rem; color: var(--color-accent);
+  }
+  @media (hover: hover) { .entry-form .link-btn:hover { text-decoration: underline; } }
+  .entry-form .time-row {
+    display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+    margin-top: 0.6rem; font-size: 0.85rem; color: var(--color-muted);
+  }
+  .entry-form .time-row input[type="datetime-local"] {
+    font: inherit; font-size: 0.9rem; padding: 0.32rem 0.55rem;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    background: var(--color-bg); color: var(--color-ink); outline: none;
+  }
+  .entry-form .time-row input:focus { border-color: var(--color-accent); }
+  .entry-form .extra-panel {
+    margin-top: 0.8rem; padding: 0.8rem; border: 1px dashed var(--color-border);
+    border-radius: 10px; background: var(--color-bg-warm);
+  }
+  .extra-lib { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 0.7rem; }
+  .extra-lib:empty { display: none; }
+  .extra-chip {
+    font: inherit; font-size: 0.82rem; cursor: pointer;
+    padding: 0.32rem 0.7rem; border-radius: 999px;
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    color: var(--color-ink); white-space: nowrap;
+  }
+  .extra-chip.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .extra-chip .x { margin-left: 0.35rem; opacity: 0.6; }
+  .extra-input-row {
+    display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+  }
+  .extra-input-row input[type="text"] { flex: 1 1 120px; min-width: 90px; }
+  .extra-input-row input[type="number"] { width: 90px; }
+  .extra-input-row input {
+    font: inherit; font-size: 0.9rem; padding: 0.4rem 0.6rem;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    background: var(--color-bg); color: var(--color-ink); outline: none;
+    box-sizing: border-box;
+  }
+  .extra-input-row input:focus { border-color: var(--color-accent); }
+  .extra-unit-lbl { font-size: 0.85rem; color: var(--color-muted); }
+  .extra-foot {
+    display: flex; align-items: center; gap: 0.8rem; margin-top: 0.7rem; flex-wrap: wrap;
+  }
+  .extra-eq { font-size: 0.86rem; color: var(--color-accent); font-variant-numeric: tabular-nums; }
+  .extra-save-lib { font-size: 0.8rem; color: var(--color-muted); margin-left: auto; display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; }
+  .entry-form .save-btn-sm { padding: 0.5rem 1rem; font-size: 0.88rem; }
+
   .section-title {
     font-family: var(--font-display); font-size: 1.05rem; font-weight: 500;
     color: var(--color-ink); margin: 1.4rem 0 0.6rem;
@@ -288,13 +340,18 @@ permalink: /toolbox/pet-food/
   .entry-row .er-delta.refill { color: #8b5a3c; background: rgba(139, 90, 60, 0.1); }
   .entry-row .er-delta.first { color: var(--color-muted); background: var(--color-bg-warm); }
   .entry-row .er-delta.unknown { color: #a87a2a; background: rgba(168, 122, 42, 0.1); }
-  .entry-row .er-del {
+  .entry-row .er-delta.extra { color: #5a6a8b; background: rgba(90, 106, 139, 0.12); }
+  .entry-row-extra .er-reading { color: var(--color-muted); }
+  .entry-row .er-actions { display: inline-flex; gap: 0.15rem; }
+  .entry-row .er-del, .entry-row .er-edit {
     border: none; background: transparent; color: var(--color-light);
     cursor: pointer; padding: 0.2rem 0.4rem; font-size: 0.95rem;
     border-radius: 4px; line-height: 1;
   }
+  .entry-row .er-edit { font-size: 0.85rem; }
   @media (hover: hover) {
     .entry-row .er-del:hover { color: #b07c75; background: var(--color-bg-warm); }
+    .entry-row .er-edit:hover { color: var(--color-accent, #8b6f47); background: var(--color-bg-warm); }
   }
   .entries-list .empty-row { padding: 1.5rem; text-align: center; color: var(--color-light); font-size: 0.88rem; }
 
@@ -371,6 +428,39 @@ permalink: /toolbox/pet-food/
     padding: 1rem;
   }
   .modal-backdrop.open { display: flex; }
+  .inbox-btn { position: relative; }
+  .inbox-dot {
+    position: absolute; top: 2px; right: 2px;
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #c0564b; border: 1.5px solid var(--color-bg);
+  }
+  .inbox-list { max-height: 60vh; overflow-y: auto; margin: 0.4rem 0; }
+  .inbox-list .empty-row { padding: 1.4rem; text-align: center; color: var(--color-light); font-size: 0.88rem; }
+  .tc-item {
+    border: 1px solid var(--color-border); border-radius: 10px;
+    padding: 0.7rem 0.85rem; margin-bottom: 0.6rem;
+    font-size: 0.88rem; background: var(--color-bg);
+  }
+  .tc-item .tc-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.35rem; }
+  .tc-item .tc-who { font-weight: 600; color: var(--color-ink); }
+  .tc-item .tc-times { color: var(--color-muted); font-variant-numeric: tabular-nums; font-size: 0.85rem; }
+  .tc-item .tc-arrow { color: var(--color-light); }
+  .tc-badge {
+    font-size: 0.74rem; padding: 0.1rem 0.5rem; border-radius: 999px; margin-left: auto;
+  }
+  .tc-badge.pending  { color: #a87a2a; background: rgba(168,122,42,0.12); }
+  .tc-badge.active   { color: #8b5a3c; background: rgba(139,90,60,0.12); }
+  .tc-badge.approved { color: #4a7c59; background: rgba(74,124,89,0.12); }
+  .tc-badge.rejected { color: #b07c75; background: rgba(176,124,117,0.14); }
+  .tc-actions { display: flex; gap: 0.5rem; margin-top: 0.55rem; }
+  .tc-actions button {
+    font: inherit; font-size: 0.82rem; padding: 0.35rem 0.85rem;
+    border-radius: 999px; border: 1px solid var(--color-border);
+    cursor: pointer; background: var(--color-bg);
+  }
+  .tc-actions .tc-approve { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .tc-actions .tc-reject { color: #b07c75; }
+  .tc-note { color: var(--color-light); font-size: 0.78rem; margin-top: 0.3rem; }
   .modal {
     background: var(--color-bg); border: 1px solid var(--color-border);
     border-radius: 14px; padding: 1.6rem;
@@ -841,6 +931,7 @@ permalink: /toolbox/pet-food/
         <button type="button" data-act="join">🔑 用宠物码添加</button>
       </div>
     </div>
+    <button type="button" class="icon-btn inbox-btn" id="inbox-btn" style="display:none;" title="时间修改通知">🔔<span class="inbox-dot" id="inbox-dot" style="display:none;"></span></button>
     <button type="button" class="icon-btn" id="profile-btn">👤</button>
   </div>
 
@@ -909,6 +1000,29 @@ permalink: /toolbox/pet-food/
           <option value="oz">oz</option>
           <option value="lb">lb</option>
         </select>
+      </div>
+      <div class="form-aux-row">
+        <button type="button" class="link-btn" id="extra-toggle">🍖 加零食 / 罐头</button>
+        <button type="button" class="link-btn" id="time-toggle">🕑 现在</button>
+      </div>
+      <div class="time-row" id="time-row" style="display:none;">
+        <span>记录时间</span>
+        <input type="datetime-local" id="entry-time" />
+        <button type="button" class="link-btn" id="time-now">改回现在</button>
+      </div>
+      <div class="extra-panel" id="extra-panel" style="display:none;">
+        <div class="extra-lib" id="extra-lib"></div>
+        <div class="extra-input-row">
+          <input type="text" id="extra-name" placeholder="零食 / 罐头名" maxlength="20" />
+          <input type="number" id="extra-count" step="any" min="0" placeholder="数量" inputmode="decimal" value="1" />
+          <span class="extra-unit-lbl" id="extra-unit-lbl">份</span>
+          <input type="number" id="extra-kcal" step="any" min="0" placeholder="每份热量 kcal" inputmode="decimal" />
+        </div>
+        <div class="extra-foot">
+          <span class="extra-eq" id="extra-eq">≈ — g 等效干粮</span>
+          <label class="extra-save-lib"><input type="checkbox" id="extra-save-lib" /> 存进常用</label>
+          <button type="button" class="save-btn save-btn-sm" id="save-extra">记一笔零食</button>
+        </div>
       </div>
     </div>
 
@@ -1054,6 +1168,13 @@ permalink: /toolbox/pet-food/
         <button type="button" class="estimator-apply" id="pm-rec-apply" disabled>↑ 套用</button>
       </div>
 
+      <div class="sub-section">干粮热量密度</div>
+      <div class="field">
+        <label>每克干粮的热量 (kcal/g)</label>
+        <input type="number" id="pm-kibble-kcal" step="0.1" min="0" placeholder="3.8" inputmode="decimal" />
+        <p class="hint" style="margin: 0.3rem 0 0;">用来把猫条/罐头按热量折成「等效干粮克数」。看你家粮袋标签，一般 3.5–4.2，不确定就留 3.8。</p>
+      </div>
+
       <div class="sub-section" id="pm-share-section">分享给其他人</div>
       <div class="share-block" id="pm-share-block">
         <div id="pm-share-create" style="display:none;">
@@ -1120,6 +1241,17 @@ permalink: /toolbox/pet-food/
       <div class="modal-actions">
         <button type="button" class="cancel" id="mm-keep">仍按当前模式</button>
         <button type="button" class="save" id="mm-swap">换成另一个模式</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inbox modal: time-change requests / notices -->
+  <div class="modal-backdrop" id="inbox-modal">
+    <div class="modal">
+      <h2>🔔 时间修改</h2>
+      <div class="inbox-list" id="inbox-list"></div>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="inbox-close">关闭</button>
       </div>
     </div>
   </div>
@@ -1447,6 +1579,11 @@ permalink: /toolbox/pet-food/
         else if (p.lifeStage === 'senior')        { p.ageYears = 9;   p.neutered = true;  }
       }
       if (p.neutered === undefined) p.neutered = false;
+      // Extras (treats/cans) folded into intake via kibble-equivalent grams.
+      if (!Number.isFinite(p.kibbleKcalPerG) || p.kibbleKcalPerG <= 0) p.kibbleKcalPerG = 3.8;
+      if (!Array.isArray(p.foodLibrary)) p.foodLibrary = [];
+      if (!Array.isArray(p.timeChanges)) p.timeChanges = [];
+      if (!Array.isArray(p.tcSeen)) p.tcSeen = [];   // locally-dismissed timechange ids
       // Back-fill target from helper for legacy pets
       const hasTarget = (Number.isFinite(p.dailyTargetMin) && p.dailyTargetMin > 0) ||
                         (Number.isFinite(p.dailyTargetMax) && p.dailyTargetMax > 0);
@@ -1526,7 +1663,10 @@ permalink: /toolbox/pet-food/
   }
 
   function computeDeltas(pet) {
-    const sorted = [...pet.entries].sort((a, b) => a.ts - b.ts);
+    // Weigh entries form the delta chain; extras (treats/cans) are direct-fed
+    // and tracked as their own kibble-equivalent events, never in the chain.
+    const sorted = [...pet.entries].filter(e => (e.kind || 'weigh') !== 'extra').sort((a, b) => a.ts - b.ts);
+    const extras = pet.entries.filter(e => e.kind === 'extra');
     const result = [];
     let prevFood = null;
     sorted.forEach((e, i) => {
@@ -1548,12 +1688,22 @@ permalink: /toolbox/pet-food/
       else result.push({ entry: e, ts: e.ts, type: 'eat', amount: 0, foodWeight: fw, prevTs });
       prevFood = fw;
     });
+    extras.forEach(e => {
+      result.push({ entry: e, ts: e.ts, type: 'extra', amount: Number(e.kibbleEqG) || 0, foodWeight: null, prevTs: null });
+    });
     return result;
   }
 
   function eatenByDate(deltas) {
     const map = new Map();
     deltas.forEach(d => {
+      if (d.type === 'extra') {
+        if (d.amount > 0) {
+          const k = bucketDateIso(d.ts);
+          map.set(k, (map.get(k) || 0) + d.amount);
+        }
+        return;
+      }
       if (d.type !== 'eat' || d.amount === 0) return;
       if (d.prevTs === null) {
         const k = bucketDateIso(d.ts);
@@ -1688,6 +1838,26 @@ permalink: /toolbox/pet-food/
   const $bowlRow = document.getElementById('bowl-row');
   const $chartRangeLbl = document.getElementById('chart-range-lbl');
 
+  const $extraToggle = document.getElementById('extra-toggle');
+  const $timeToggle = document.getElementById('time-toggle');
+  const $timeRow = document.getElementById('time-row');
+  const $entryTime = document.getElementById('entry-time');
+  const $timeNow = document.getElementById('time-now');
+  const $extraPanel = document.getElementById('extra-panel');
+  const $extraLib = document.getElementById('extra-lib');
+  const $extraName = document.getElementById('extra-name');
+  const $extraCount = document.getElementById('extra-count');
+  const $extraKcal = document.getElementById('extra-kcal');
+  const $extraEq = document.getElementById('extra-eq');
+  const $extraSaveLib = document.getElementById('extra-save-lib');
+  const $saveExtra = document.getElementById('save-extra');
+
+  const $inboxBtn = document.getElementById('inbox-btn');
+  const $inboxDot = document.getElementById('inbox-dot');
+  const $inboxModal = document.getElementById('inbox-modal');
+  const $inboxList = document.getElementById('inbox-list');
+  const $inboxClose = document.getElementById('inbox-close');
+
   const $entriesToday = document.getElementById('entries-today');
   const $entriesHistory = document.getElementById('entries-history');
   const $toggleHistory = document.getElementById('toggle-history');
@@ -1703,6 +1873,7 @@ permalink: /toolbox/pet-food/
   const $pmName = document.getElementById('pm-name');
   const $pmTargetMin = document.getElementById('pm-target-min');
   const $pmTargetMax = document.getElementById('pm-target-max');
+  const $pmKibbleKcal = document.getElementById('pm-kibble-kcal');
   const $chartTargetToggle = document.getElementById('chart-target-toggle');
   const $pmSpecies = document.getElementById('pm-species');
   const $pmBreed = document.getElementById('pm-breed'); // hidden input
@@ -1944,6 +2115,43 @@ permalink: /toolbox/pet-food/
   function isOwner(pet)   { return myRoleFor(pet) === 'owner'; }
   function isAdminOrUp(pet) { const r = myRoleFor(pet); return r === 'owner' || r === 'admin'; }
 
+  // Display name for any member of a pet, matching the member-list priority:
+  // your local note (contactNicknames) → server nickname → short device id.
+  // For yourself, prefer your fresh profile nickname.
+  function memberDisplayName(pet, deviceId) {
+    if (!deviceId) return '某人';
+    const shortId = deviceId.slice(2, 10);
+    if (deviceId === DEVICE_ID) {
+      return (cachedProfile && cachedProfile.nickname) || shortId;
+    }
+    const m = (pet && pet.members || []).find(x => x.deviceId === deviceId);
+    const localAlias = state.contactNicknames[deviceId];
+    return localAlias || (m && m.nickname) || shortId;
+  }
+
+  // ===== Record-time editing helpers =====
+  function tsToLocalInput(ts) {
+    const d = new Date(ts);
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate())
+      + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  function localInputToTs(str) {
+    if (!str) return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(str);
+    if (!m) return null;
+    const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], 0, 0);
+    const t = d.getTime();
+    return Number.isFinite(t) ? t : null;
+  }
+  // Can the current user change THIS entry's time at all?
+  // owner/admin: any entry. regular: only entries they authored.
+  function canEditEntryTime(e, pet) {
+    const r = myRoleFor(pet);
+    if (r === 'owner' || r === 'admin') return true;
+    if (r === 'regular') return e.author === DEVICE_ID;
+    return false;
+  }
+
   // ===== Backend sync =====
   // Pet schema fields that get synced to backend metadata
   const META_FIELDS = [
@@ -1952,6 +2160,7 @@ permalink: /toolbox/pet-food/
     'dailyTargetMin','dailyTargetMax','showTargetOnChart',
     'species','breed','ageYears','bodyWeight','bodyWeightUnit','activity','neutered',
     'preferredUnit',
+    'kibbleKcalPerG','foodLibrary',
   ];
   function petMetaPatch(pet) {
     const out = {};
@@ -1983,6 +2192,7 @@ permalink: /toolbox/pet-food/
         }
         if (r && Array.isArray(r.members)) p.members = r.members;
         if (r && Array.isArray(r.entries)) p.entries = r.entries;
+        if (r && Array.isArray(r.timechanges)) p.timeChanges = r.timechanges;
         if (r && r.code) p.serverCode = r.code;
       } catch (e) {
         // 403 = kicked from members; 404 = pet deleted by owner — both: orphan locally
@@ -2001,7 +2211,17 @@ permalink: /toolbox/pet-food/
   }
   async function pushDeleteEntry(pet, entryId) {
     if (!pet.shared || !pet.serverPetId) return;
-    try { await api('delete-entry', { petId: pet.serverPetId, body: { entryId } }); } catch (_) {}
+    try {
+      const r = await api('delete-entry', { petId: pet.serverPetId, body: { entryId } });
+      if (r && Array.isArray(r.timechanges)) { pet.timeChanges = r.timechanges; persist(); }
+    } catch (_) {}
+  }
+  // Returns the server response (entries/timechanges) so callers can reconcile.
+  async function pushProposeTimeChange(pet, entryId, newTs) {
+    return api('propose-time-change', { petId: pet.serverPetId, body: { entryId, newTs } });
+  }
+  async function pushDecideTimeChange(pet, tcId, decision) {
+    return api('decide-time-change', { petId: pet.serverPetId, body: { tcId, decision } });
   }
 
   function petIconHtml(p) {
@@ -2078,7 +2298,7 @@ permalink: /toolbox/pet-food/
 
     const { start: todayStart, end: todayEnd } = dayRangeMs(todayIso);
     const todayDeltas = deltas.filter(d => d.ts >= todayStart && d.ts < todayEnd);
-    const todayCount = todayDeltas.length;
+    const todayCount = todayDeltas.filter(d => d.type !== 'extra').length;
 
     const recent = lastNDays(7, todayIso);
     const recentExclToday = recent.filter(d => d !== todayIso);
@@ -2107,6 +2327,7 @@ permalink: /toolbox/pet-food/
     renderEntriesList($entriesToday, todayDeltas, pet, '今天还没记录');
     renderHistory(deltas, pet);
     renderTrend(deltas, pet);
+    updateInboxBadge();
   }
 
   function renderTargetToggle(pet) {
@@ -2164,13 +2385,9 @@ permalink: /toolbox/pet-food/
     return out;
   }
 
-  function renderEntriesList(container, items, pet, emptyTxt) {
-    if (!items || items.length === 0) {
-      container.innerHTML = `<div class="empty-row">${emptyTxt}</div>`;
-      return;
-    }
-    const sorted = [...items].sort((a, b) => b.ts - a.ts);
-    container.innerHTML = sorted.map(d => renderEntryRow(d, pet)).join('');
+  // Wire up the per-row delete (.er-del) and edit-time (.er-edit) buttons.
+  // Shared by both the recent-list and the grouped history.
+  function wireEntryButtons(container, pet) {
     container.querySelectorAll('.er-del').forEach(btn => {
       btn.addEventListener('click', () => {
         if (!confirm('删除这条记录？')) return;
@@ -2182,10 +2399,49 @@ permalink: /toolbox/pet-food/
         pushDeleteEntry(p, eid);
       });
     });
+    container.querySelectorAll('.er-edit').forEach(btn => {
+      btn.addEventListener('click', () => promptEditTime(btn.dataset.eid));
+    });
+  }
+
+  function renderEntriesList(container, items, pet, emptyTxt) {
+    if (!items || items.length === 0) {
+      container.innerHTML = `<div class="empty-row">${emptyTxt}</div>`;
+      return;
+    }
+    const sorted = [...items].sort((a, b) => b.ts - a.ts);
+    container.innerHTML = sorted.map(d => renderEntryRow(d, pet)).join('');
+    wireEntryButtons(container, pet);
+  }
+
+  function entryRowActions(e, pet) {
+    const edit = canEditEntryTime(e, pet)
+      ? `<button type="button" class="er-edit" data-eid="${e.id}" title="改时间">✎</button>` : '';
+    return `<span class="er-actions">${edit}<button type="button" class="er-del" data-eid="${e.id}" title="删除">×</button></span>`;
+  }
+
+  function renderExtraRow(d, pet) {
+    const e = d.entry;
+    const eq = Number(e.kibbleEqG) || 0;
+    const cnt = (Number(e.count) || 1);
+    const cntStr = Number.isInteger(cnt) ? cnt : parseFloat(cnt.toFixed(2));
+    const name = escapeHtml(e.foodName || '零食');
+    const emoji = e.emoji || '🍖';
+    return `
+      <div class="entry-row entry-row-extra">
+        <span class="er-time">${fmtTime(e.ts)}</span>
+        <span class="er-main">
+          <span class="er-delta extra">${emoji} ${name} ×${cntStr}</span>
+          <span class="er-reading">≈ ${fmtG(eq)} g 等效干粮</span>
+        </span>
+        ${entryRowActions(e, pet)}
+      </div>
+    `;
   }
 
   function renderEntryRow(d, pet) {
     const e = d.entry;
+    if (e.kind === 'extra') return renderExtraRow(d, pet);
     let deltaHtml;
     if (d.type === 'first') deltaHtml = `<span class="er-delta first">起点</span>`;
     else if (d.type === 'unknown') deltaHtml = `<span class="er-delta unknown">无法换算</span>`;
@@ -2201,7 +2457,7 @@ permalink: /toolbox/pet-food/
           ${deltaHtml}
           <span class="er-reading">碗里 ${fwStr} <span class="er-raw">(${e.reading} g · ${modeStr})</span></span>
         </span>
-        <button type="button" class="er-del" data-eid="${e.id}" title="删除">×</button>
+        ${entryRowActions(e, pet)}
       </div>
     `;
   }
@@ -2221,23 +2477,13 @@ permalink: /toolbox/pet-food/
     let html = '';
     sortedDates.forEach(date => {
       const items = groups.get(date);
-      const eaten = items.filter(x => x.type === 'eat').reduce((s, x) => s + x.amount, 0);
+      const eaten = items.filter(x => x.type === 'eat' || x.type === 'extra').reduce((s, x) => s + x.amount, 0);
       const sortedItems = [...items].sort((a, b) => b.ts - a.ts);
-      html += `<div class="day-divider"><span>${date}</span><span>当日 <strong>${fmtG(eaten)} g</strong> · ${items.length} 次称重</span></div>`;
+      html += `<div class="day-divider"><span>${date}</span><span>当日 <strong>${fmtG(eaten)} g</strong> · ${items.length} 条记录</span></div>`;
       sortedItems.forEach(d => { html += renderEntryRow(d, pet); });
     });
     $entriesHistory.innerHTML = html;
-    $entriesHistory.querySelectorAll('.er-del').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (!confirm('删除这条记录？')) return;
-        const p = currentPet(); if (!p) return;
-        const eid = btn.dataset.eid;
-        p.entries = p.entries.filter(x => x.id !== eid);
-        persist();
-        render();
-        pushDeleteEntry(p, eid);
-      });
-    });
+    wireEntryButtons($entriesHistory, pet);
   }
 
   // ===== Trend chart =====
@@ -2312,6 +2558,19 @@ permalink: /toolbox/pet-food/
 
     for (let i = 0; i < sortedEntries.length; i++) {
       const e = sortedEntries[i];
+
+      // Extras: instantaneous jump in cumulative intake, not part of the
+      // weigh-based delta chain (don't touch prevTs/prevFood).
+      if (e.kind === 'extra') {
+        const eq = Number(e.kibbleEqG) || 0;
+        if (eq > 0 && e.ts >= dayStart && e.ts < dayEnd) {
+          if (e.ts > points[points.length - 1].t) points.push({ t: e.ts, c: cum });
+          cum += eq;
+          points.push({ t: e.ts, c: cum });
+        }
+        continue;
+      }
+
       const fw = foodWeight(e, pet);
 
       if (prevTs === null || prevFood === null || fw === null) {
@@ -2892,6 +3151,7 @@ permalink: /toolbox/pet-food/
         : '';
       $pmActivity.value = p.activity || '';
       $pmNeutered.checked = !!p.neutered;
+      $pmKibbleKcal.value = (Number.isFinite(p.kibbleKcalPerG) && p.kibbleKcalPerG > 0) ? parseFloat(p.kibbleKcalPerG.toFixed(2)) : '';
       state.selectedEmoji = p.emoji || EMOJIS[0];
       state.pendingAvatar = p.avatar || null;
       $pmDelete.style.display = '';
@@ -2908,6 +3168,7 @@ permalink: /toolbox/pet-food/
       $pmBodyWeight.value = '';
       $pmActivity.value = '';
       $pmNeutered.checked = false;
+      $pmKibbleKcal.value = '';
       state.selectedEmoji = EMOJIS[0];
       state.pendingAvatar = null;
       $pmDelete.style.display = 'none';
@@ -3136,6 +3397,8 @@ permalink: /toolbox/pet-food/
     const bodyWeight = Number.isFinite(bwRaw) && bwRaw > 0 ? bwToKg(bwRaw, bwUnit) : 0;
     const activity = $pmActivity.value || null;
     const neutered = !!$pmNeutered.checked;
+    const kkRaw = parseFloat($pmKibbleKcal.value);
+    const kibbleKcalPerG = (Number.isFinite(kkRaw) && kkRaw > 0) ? kkRaw : 3.8;
     if (state.editingId) {
       const p = state.pets.find(x => x.id === state.editingId);
       if (!p) return;
@@ -3151,6 +3414,7 @@ permalink: /toolbox/pet-food/
       p.bodyWeightUnit = bwUnit;
       p.activity = activity;
       p.neutered = neutered;
+      p.kibbleKcalPerG = kibbleKcalPerG;
       delete p.lifeStage;
     } else {
       const id = uuid('pet');
@@ -3170,6 +3434,8 @@ permalink: /toolbox/pet-food/
         bodyWeightUnit: bwUnit,
         activity,
         neutered,
+        kibbleKcalPerG,
+        foodLibrary: [],
         preferredUnit: 'g',
         entries: [],
         createdAt: new Date().toISOString(),
@@ -3211,12 +3477,28 @@ permalink: /toolbox/pet-food/
   });
 
   // ===== Entry add (with mismatch detection) =====
+  // Timestamp to stamp on a new record: the custom time if the user opened the
+  // time row and picked a valid value, otherwise now. Anyone may set this.
+  function pickedEntryTs() {
+    if ($timeRow.style.display !== 'none') {
+      const t = localInputToTs($entryTime.value);
+      if (t) return t;
+    }
+    return Date.now();
+  }
+  function resetEntryTime() {
+    $timeRow.style.display = 'none';
+    $timeToggle.textContent = '🕑 现在';
+    $entryTime.value = '';
+  }
+
   function saveEntry(reading, withBowl) {
     const pet = currentPet();
     if (!pet) return;
     const newEntry = {
       id: uuid('e'),
-      ts: Date.now(),
+      ts: pickedEntryTs(),
+      kind: 'weigh',
       reading,
       withBowl,
       bowlWeight: withBowl ? pet.bowlWeight : null,  // snapshot at record time
@@ -3227,8 +3509,98 @@ permalink: /toolbox/pet-food/
     pet.preferredUnit = $unitPick.value || 'g';
     persist();
     $reading.value = '';
+    resetEntryTime();
     render();
     $reading.focus();
+    pushAddEntry(pet, newEntry);
+    schedulePushMeta(pet);
+  }
+
+  // ===== Extras (treats / cans) =====
+  function kibbleEqOf(pet, count, kcalPerUnit) {
+    const dens = (Number.isFinite(pet.kibbleKcalPerG) && pet.kibbleKcalPerG > 0) ? pet.kibbleKcalPerG : 3.8;
+    return (Number(count) || 0) * (Number(kcalPerUnit) || 0) / dens;
+  }
+  let extraSelectedLibId = null;  // currently-picked library chip
+  function renderExtraLib() {
+    const pet = currentPet();
+    const lib = (pet && pet.foodLibrary) || [];
+    const canEditLib = pet && isAdminOrUp(pet);
+    $extraLib.innerHTML = lib.map(f => `
+      <button type="button" class="extra-chip${f.id === extraSelectedLibId ? ' active' : ''}" data-fid="${f.id}">
+        ${f.emoji || '🍖'} ${escapeHtml(f.name)} <span style="opacity:.6">${fmtG(f.kcalPerUnit)}kcal</span>
+        ${canEditLib ? `<span class="x" data-del-fid="${f.id}" title="删除">×</span>` : ''}
+      </button>`).join('');
+    $extraLib.querySelectorAll('.extra-chip').forEach(chip => {
+      chip.addEventListener('click', e => {
+        if (e.target.dataset.delFid) return; // handled below
+        const f = lib.find(x => x.id === chip.dataset.fid);
+        if (!f) return;
+        extraSelectedLibId = f.id;
+        $extraName.value = f.name;
+        $extraKcal.value = f.kcalPerUnit;
+        $extraSaveLib.checked = false;
+        renderExtraLib();
+        updateExtraEq();
+      });
+    });
+    $extraLib.querySelectorAll('[data-del-fid]').forEach(x => {
+      x.addEventListener('click', ev => {
+        ev.stopPropagation();
+        const p = currentPet(); if (!p || !isAdminOrUp(p)) { alert('只有主人/管理员能改常用零食库'); return; }
+        const fid = x.dataset.delFid;
+        if (!confirm('从常用里删除这个？')) return;
+        p.foodLibrary = (p.foodLibrary || []).filter(f => f.id !== fid);
+        if (extraSelectedLibId === fid) extraSelectedLibId = null;
+        persist(); renderExtraLib(); schedulePushMeta(p);
+      });
+    });
+  }
+  function updateExtraEq() {
+    const pet = currentPet();
+    if (!pet) { $extraEq.textContent = '≈ — g 等效干粮'; return; }
+    const eq = kibbleEqOf(pet, parseFloat($extraCount.value), parseFloat($extraKcal.value));
+    $extraEq.textContent = (eq > 0) ? `≈ ${fmtG(eq)} g 等效干粮` : '≈ — g 等效干粮';
+  }
+  function saveExtraEntry() {
+    const pet = currentPet();
+    if (!pet) { alert('先添加一只宠物'); return; }
+    const name = $extraName.value.trim();
+    const count = parseFloat($extraCount.value);
+    const kcal = parseFloat($extraKcal.value);
+    if (!name) { alert('给零食起个名'); return; }
+    if (!Number.isFinite(count) || count <= 0) { alert('数量填一下'); return; }
+    if (!Number.isFinite(kcal) || kcal <= 0) { alert('每份热量 (kcal) 填一下'); return; }
+    const eq = kibbleEqOf(pet, count, kcal);
+    const newEntry = {
+      id: uuid('e'),
+      ts: pickedEntryTs(),
+      kind: 'extra',
+      reading: null,           // keep null so legacy clients mark it 无法换算, not pollute deltas
+      foodName: name,
+      emoji: (extraSelectedLibId && (pet.foodLibrary || []).find(f => f.id === extraSelectedLibId) || {}).emoji || '🍖',
+      count,
+      kcalPerUnit: kcal,
+      kibbleEqG: eq,           // snapshot the conversion at record time
+      note: '',
+      author: DEVICE_ID,
+    };
+    // Optionally remember it in the shared food library (admin+ only).
+    if ($extraSaveLib.checked && isAdminOrUp(pet)) {
+      const exists = (pet.foodLibrary || []).some(f => f.name === name && f.kcalPerUnit === kcal);
+      if (!exists) {
+        pet.foodLibrary = pet.foodLibrary || [];
+        pet.foodLibrary.push({ id: uuid('f'), name, emoji: newEntry.emoji, unitGrams: null, kcalPerUnit: kcal });
+      }
+    }
+    pet.entries.push(newEntry);
+    persist();
+    $extraName.value = ''; $extraCount.value = '1'; $extraKcal.value = '';
+    $extraSaveLib.checked = false; extraSelectedLibId = null;
+    resetEntryTime();
+    renderExtraLib();
+    updateExtraEq();
+    render();
     pushAddEntry(pet, newEntry);
     schedulePushMeta(pet);
   }
@@ -3279,6 +3651,208 @@ permalink: /toolbox/pet-food/
   $reading.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); attemptSave(); }
   });
+
+  // --- Custom record time (add) ---
+  $timeToggle.addEventListener('click', () => {
+    const opening = $timeRow.style.display === 'none';
+    if (opening) {
+      $entryTime.value = tsToLocalInput(Date.now());
+      $timeRow.style.display = '';
+      $timeToggle.textContent = '🕑 自定义时间';
+    } else {
+      resetEntryTime();
+    }
+  });
+  $timeNow.addEventListener('click', () => { $entryTime.value = tsToLocalInput(Date.now()); });
+
+  // --- Extras panel ---
+  $extraToggle.addEventListener('click', () => {
+    const opening = $extraPanel.style.display === 'none';
+    $extraPanel.style.display = opening ? '' : 'none';
+    if (opening) { renderExtraLib(); updateExtraEq(); }
+  });
+  $extraCount.addEventListener('input', updateExtraEq);
+  $extraKcal.addEventListener('input', updateExtraEq);
+  $extraName.addEventListener('input', () => { extraSelectedLibId = null; $extraLib.querySelectorAll('.extra-chip.active').forEach(c => c.classList.remove('active')); });
+  $saveExtra.addEventListener('click', saveExtraEntry);
+
+  // --- Edit the timestamp of an existing record (gated by role) ---
+  function promptEditTime(eid) {
+    const pet = currentPet(); if (!pet) return;
+    const e = (pet.entries || []).find(x => x.id === eid);
+    if (!e) return;
+    if (!canEditEntryTime(e, pet)) { alert('你只能改自己提交的记录的时间'); return; }
+    const cur = tsToLocalInput(e.ts);
+    const input = prompt('把这条记录的时间改成（格式 ' + cur + '）：', cur);
+    if (input == null) return;
+    const newTs = localInputToTs(input.trim());
+    if (!newTs) { alert('时间格式不对，应形如 2026-05-29T14:30'); return; }
+    if (newTs === e.ts) return;
+    const role = myRoleFor(pet);
+
+    // Local-only (non-shared) pet: just change it.
+    if (!pet.shared || !pet.serverPetId) {
+      e.ts = newTs; persist(); render(); return;
+    }
+
+    if (role === 'owner' || role === 'admin') {
+      // Optimistic: owner/admin changes take effect immediately.
+      e.ts = newTs; persist(); render();
+      pushProposeTimeChange(pet, eid, newTs).then(r => {
+        if (r && Array.isArray(r.timechanges)) pet.timeChanges = r.timechanges;
+        if (r && Array.isArray(r.entries)) pet.entries = r.entries;
+        persist(); render();
+      }).catch(err => {
+        alert('改时间失败：' + (err && err.message || '网络问题')); pullSharedPets().then(render);
+      });
+    } else {
+      // regular: submit a request, do NOT change locally yet.
+      pushProposeTimeChange(pet, eid, newTs).then(r => {
+        if (r && Array.isArray(r.timechanges)) pet.timeChanges = r.timechanges;
+        if (r && Array.isArray(r.entries)) pet.entries = r.entries;
+        persist(); render();
+        alert('已提交，等待主人或管理员批准后生效。');
+      }).catch(err => {
+        const msg = (err && err.message === 'not_your_entry') ? '只能改你自己提交的记录' : ('提交失败：' + (err && err.message || '网络问题'));
+        alert(msg);
+      });
+    }
+  }
+
+  // ===== Inbox: time-change requests & notices =====
+  function fmtDateTime(ts) { return isoDate(ts) + ' ' + fmtTime(ts); }
+
+  // Which timechanges does this role get to see at all?
+  function tcVisibleFor(tc, role) {
+    if (role === 'owner') return tc.mode === 'veto' || tc.mode === 'approval';
+    if (role === 'admin') return (tc.mode === 'veto' && tc.byDevice === DEVICE_ID) || tc.mode === 'approval';
+    if (role === 'regular') return tc.byDevice === DEVICE_ID;
+    return false;
+  }
+  // Which ones are "notable" — light the red dot until the user opens the inbox.
+  function tcNotableFor(tc, role) {
+    if (role === 'owner') {
+      if (tc.mode === 'veto' && tc.status === 'active') return true;
+      if (tc.mode === 'approval' && tc.status === 'pending') return true;
+      if (tc.mode === 'approval' && tc.status === 'approved' && tc.decidedByRole === 'admin') return true;
+      return false;
+    }
+    if (role === 'admin') {
+      if (tc.mode === 'approval' && tc.status === 'pending') return true;
+      if (tc.mode === 'approval' && tc.status === 'approved' && tc.decidedByRole === 'owner') return true;
+      return false;
+    }
+    if (role === 'regular') {
+      return tc.byDevice === DEVICE_ID && (tc.status === 'approved' || tc.status === 'rejected');
+    }
+    return false;
+  }
+  function inboxUnseenCount(pet) {
+    if (!pet || !pet.shared) return 0;
+    const role = myRoleFor(pet);
+    const seen = new Set(pet.tcSeen || []);
+    return (pet.timeChanges || []).filter(tc => tcNotableFor(tc, role) && !seen.has(tc.id)).length;
+  }
+
+  function tcStatusLabel(tc) {
+    if (tc.status === 'pending')  return { cls: 'pending',  txt: '待审批' };
+    if (tc.status === 'active')   return { cls: 'active',   txt: '已生效·可驳回' };
+    if (tc.status === 'approved') return { cls: 'approved', txt: '已批准' };
+    return { cls: 'rejected', txt: '已驳回' };
+  }
+  function tcEntryBrief(pet, tc) {
+    const e = (pet.entries || []).find(x => x.id === tc.entryId);
+    if (!e) return '（记录已删除）';
+    if (e.kind === 'extra') return `${e.emoji || '🍖'} ${escapeHtml(e.foodName || '零食')}`;
+    return e.withBowl ? '一次称重（含碗）' : '一次称重';
+  }
+  // Buttons available to this role for this tc.
+  function tcActions(tc, role) {
+    const out = [];
+    if (role === 'owner') {
+      if (tc.mode === 'veto' && tc.status === 'active') out.push('reject');
+      else if (tc.mode === 'approval' && tc.status === 'pending') { out.push('approve'); out.push('reject'); }
+      else if (tc.mode === 'approval' && tc.status === 'approved' && tc.decidedByRole === 'admin') out.push('reject');
+    } else if (role === 'admin') {
+      if (tc.mode === 'approval' && tc.status === 'pending') { out.push('approve'); out.push('reject'); }
+    }
+    return out;
+  }
+
+  function renderInbox() {
+    const pet = currentPet();
+    if (!pet || !pet.shared) { $inboxList.innerHTML = '<div class="empty-row">没有通知</div>'; return; }
+    const role = myRoleFor(pet);
+    const items = (pet.timeChanges || []).filter(tc => tcVisibleFor(tc, role))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    if (items.length === 0) { $inboxList.innerHTML = '<div class="empty-row">没有通知</div>'; return; }
+    $inboxList.innerHTML = items.map(tc => {
+      const st = tcStatusLabel(tc);
+      const who = memberDisplayName(pet, tc.byDevice);
+      const acts = tcActions(tc, role);
+      const actHtml = acts.length ? `<div class="tc-actions">${acts.map(a =>
+        a === 'approve' ? `<button class="tc-approve" data-tc="${tc.id}" data-dec="approve">批准</button>`
+                        : `<button class="tc-reject" data-tc="${tc.id}" data-dec="reject">驳回</button>`).join('')}</div>` : '';
+      let decided = '';
+      if (tc.status === 'approved' && tc.decidedBy) decided = `<div class="tc-note">由 ${escapeHtml(memberDisplayName(pet, tc.decidedBy))} 批准</div>`;
+      else if (tc.status === 'rejected' && tc.decidedBy) decided = `<div class="tc-note">由 ${escapeHtml(memberDisplayName(pet, tc.decidedBy))} 驳回</div>`;
+      let noteHtml = '';
+      if (tc.note === 'entry_deleted') noteHtml = '<div class="tc-note">记录已被删除</div>';
+      else if (tc.note === 'overwritten') noteHtml = '<div class="tc-note">时间已被其他改动覆盖，未回滚</div>';
+      return `<div class="tc-item">
+        <div class="tc-head">
+          <span class="tc-who">${escapeHtml(who)}</span>
+          <span style="color:var(--color-light);font-size:0.8rem;">改了「${tcEntryBrief(pet, tc)}」</span>
+          <span class="tc-badge ${st.cls}">${st.txt}</span>
+        </div>
+        <div class="tc-times">${fmtDateTime(tc.oldTs)} <span class="tc-arrow">→</span> ${fmtDateTime(tc.newTs)}</div>
+        ${decided}${noteHtml}${actHtml}
+      </div>`;
+    }).join('');
+    $inboxList.querySelectorAll('.tc-actions button').forEach(btn => {
+      btn.addEventListener('click', () => decideTimeChange(btn.dataset.tc, btn.dataset.dec));
+    });
+  }
+
+  function decideTimeChange(tcId, decision) {
+    const pet = currentPet();
+    if (!pet || !pet.serverPetId) return;
+    if (decision === 'reject' && !confirm('确定驳回这条时间修改？')) return;
+    pushDecideTimeChange(pet, tcId, decision).then(r => {
+      if (r && Array.isArray(r.timechanges)) pet.timeChanges = r.timechanges;
+      if (r && Array.isArray(r.entries)) pet.entries = r.entries;
+      persist(); render(); renderInbox();
+    }).catch(err => {
+      // 409 already-decided: refresh to show current truth.
+      pullSharedPets().then(() => { render(); renderInbox(); });
+      if (err && err.message !== 'already_decided') alert('操作失败：' + (err && err.message || '网络问题'));
+    });
+  }
+
+  function openInbox() {
+    const pet = currentPet();
+    if (pet) {
+      // Mark everything currently notable as seen → clears the dot.
+      const role = myRoleFor(pet);
+      const seen = new Set(pet.tcSeen || []);
+      (pet.timeChanges || []).forEach(tc => { if (tcNotableFor(tc, role)) seen.add(tc.id); });
+      pet.tcSeen = [...seen];
+      persist();
+    }
+    renderInbox();
+    $inboxModal.classList.add('open');
+    updateInboxBadge();
+  }
+  function updateInboxBadge() {
+    const pet = currentPet();
+    const show = pet && pet.shared && (pet.timeChanges || []).some(tc => tcVisibleFor(tc, myRoleFor(pet)));
+    $inboxBtn.style.display = show ? '' : 'none';
+    const n = inboxUnseenCount(pet);
+    $inboxDot.style.display = n > 0 ? '' : 'none';
+  }
+  $inboxBtn.addEventListener('click', openInbox);
+  $inboxClose.addEventListener('click', () => $inboxModal.classList.remove('open'));
+  $inboxModal.addEventListener('click', e => { if (e.target === $inboxModal) $inboxModal.classList.remove('open'); });
 
   function commitBowlWeight() {
     const pet = currentPet();
@@ -3389,5 +3963,18 @@ permalink: /toolbox/pet-food/
   // Pull profile + shared pet data (best-effort, parallel)
   loadProfile().catch(() => {});
   pullSharedPets().then(() => render()).catch(() => {});
+
+  // No realtime backend: refresh shared data when the tab regains focus and on
+  // a slow 60s poll, so time-change requests/notices show up without a reload.
+  let lastPull = Date.now();
+  function refreshShared() {
+    if (!state.pets.some(p => p.shared && p.serverPetId)) return;
+    lastPull = Date.now();
+    pullSharedPets().then(() => render()).catch(() => {});
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && Date.now() - lastPull > 20000) refreshShared();
+  });
+  setInterval(() => { if (!document.hidden) refreshShared(); }, 60000);
 })();
 </script>
