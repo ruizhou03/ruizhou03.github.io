@@ -622,7 +622,9 @@ permalink: /toolbox/guandan/
     border-color: var(--gd-accent);
     color: #fff;
   }
-  .gd-btn.on:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }
+  @media (hover: hover) {
+    .gd-btn.on:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }
+  }
 
   /* 理牌模式下：列整体可拖；hand 上方加一行金色提示；列 hover 时微微抬升提示可抓 */
   .gd-hand.is-arranging .gd-rank-col { cursor: grab; }

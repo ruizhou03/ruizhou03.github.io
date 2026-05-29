@@ -1,3 +1,78 @@
+## 2026-05-29
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日 + 当天本是周四，未跑 dead_links/orphan_files/pii_scan 周一项，但本次发现孤儿误报，临时单跑 `orphan_files.py` 复核）。**今日是 5-23 以来 60+ commits 累积后的第一次巡检**——5-23 ~ 5-28 期间主线集中在 `guandan`/`pet-food`/`doudizhu` 三个百宝箱重做与 podcast/email-summary/flight-watch routine 推进，今日找出 3 处无争议小修 + 1 处新发现的 P1（NUL byte 占位符）。
+
+### ✅ 本次已自动修复
+
+1. **`TOOLBOX_AUDIT_REPORT.md` 不再发布到公开站点** —— 5-26 / 5-27 已经把 `SPOTCHECK_100_REPORT.md` 与 `SPOTCHECK_100_AGENT_REPORTS.md` 加进 `_config.yml` exclude；同源的另一份 13 KB 内部审查文档（commit `52f0ab0`，2026-05-27 落地，含"由主对话整合 7 组并行 Explore agent 的发现 + 主对话亲自复核"等内部语境）当时漏了。今天 `bundle exec jekyll build` 后扫 `_site/` 根，看到 `_site/TOOLBOX_AUDIT_REPORT.md` 被原样拷出。已在 exclude 列表中 `SPOTCHECK_100_AGENT_REPORTS.md` 下方一行追加 `TOOLBOX_AUDIT_REPORT.md`，重建后 `ls _site/*.md` 已无残留（leak count = 0）。文件本身保留在仓库根作为内部记录，未动 git 历史。这是 5-26→5-27→5-28 同类巡检的第三次发现的同模式遗漏，至此根级三份内部 audit 报告全部就位。
+
+2. **`toolbox/guandan/index.html` L625 `.gd-btn.on:hover` 加 `@media (hover: hover)` 守卫** —— `hover_no_media.py` 报的全站唯一一处裸 `:hover`，紧挨着的 L607-609 与 L615-617 同类规则都正确包在 `@media (hover: hover)` 内、L630-632 也包了，明显是这一条漏改。fix：把单行 `.gd-btn.on:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }` 包进 `@media (hover: hover) { ... }`。复跑 `hover_no_media.py` 已 ✅ clean，`bundle exec jekyll build` 通过。本规则只控制按钮高亮色，触摸设备不再卡在亮起态。
+
+3. **2 篇生活攻略新文里 6 处裸 `$` 金额转义** —— `bare_dollar.py` 报的 2 个文件 / 6 处，全部是 5-25 ~ 5-27 新发布文章里 USD 金额未转义、会被 KaTeX 配对吃成公式：
+   - `_notes/life/drinking-water-types.md`：L159 壶式 `$30-50` + 滤芯 `$5-10/月`；L163 整机 `$300-800` + 滤芯 `$50-100/年`；L241 Sawyer Mini `$25 左右`（5 处）
+   - `_notes/life/condoms-guide.md`：L344 水基润滑剂 `$10 一瓶`（1 处）
+   - 用 `python3 scripts/fix_dollar.py _notes/life/condoms-guide.md _notes/life/drinking-water-types.md` 一键改为 `\$`。复跑 `bare_dollar.py` 已 ✅ clean。
+
+`bundle exec jekyll build` 验证通过、零 warning、零 error（6.8 s）。
+
+### 📋 待你把关
+
+#### P1（建议尽快）
+
+1. **3 个 .md 文件含 NUL byte (`\x00`) 包裹的占位符，导致前台显示"M3 / M4 / CJK2 / CJK3 / CJK30"等乱码** —— 本次扫 `_notes/` 二进制字节时发现：
+   - `_notes/life/fridge-layout-guide.md` L157（5-26 新文章）：`<p class="img-caption">温度差 \x00M3\x00 ℃ 听起来不多……（Q10 系数 \x00M4\x00）</p>`，前台渲染成 `温度差  M3  ℃` / `Q10 系数  M4 `（已通过 `_site/life/fridge-layout-guide.html:317` 复核确认对读者可见）。
+   - `_notes/research/r-brucer-moderation-mediation.md` L59 / L75：两张图片 alt 文本里 `\x00CJK2\x00` 与 `\x00CJK3\x00`，前台 11.jpg / 19.jpg 的 `alt=` 都是这串占位符。alt-text 错读屏听众听到的就是 "CJK2"。
+   - `_notes/research/latex-commands.md` L265：`<span>` 里 `用来微调 \x00CJK30\x00 和括号之间的距离`，前台 `_site/.../latex-commands.html:418` 可见 `用来微调  CJK30  和括号之间的距离`。
+   - **占位符规律强烈暗示来源**：`M{n}` 是第 n 个被替换出去的数学片段（如 LaTeX `$3$`/`$\approx 2$`）；`CJK{n}` 是被替换出去的中文术语。看上去像某次自动化处理（imgslim 链路？alt 生成？）把这些片段先替换成 placeholder 再放回去时漏了一步，且不知怎么用 NUL 当了分隔符。
+   - **影响**：① 用户可见乱码（fridge-layout-guide 是 5-26 才上的新文章，影响最严重）；② NUL 字节让 git 把这 3 个 .md 当二进制文件，`git grep` 与 `orphan_files.py` 在这些文件里漏检（本次 `r-brucer-moderation-mediation/{27,28}.jpg` 的孤儿误报就是这么来的——文件实际引用了，但 git 当二进制不搜）；③ 后续 fix_quotes / 其他 routine 脚本可能继续把这两条遗漏放大。
+   - **我没自动改**：NUL 拆掉容易（4 + 2 + 2 = 8 个字节），但**真正的原文（数字/术语）需要你对照原图或导入源文件才能复原**，盲改会留更深 bug。建议站主先看一下 fridge-layout 的两张图（应该是温度梯度示意 / Q10 系数引述），再决定 M3/M4 是哪两个具体数；r-brucer 的 CJK2/CJK3 看一下 11.jpg / 19.jpg 标题；latex-commands 的 CJK30 是描述哪个字符。
+   - **检测方法**：`python3 -c "import os, pathlib; [print(p) for p in pathlib.Path('_notes').rglob('*.md') if b'\\x00' in p.read_bytes()]"`；以后可以挂进 daily routine。
+
+#### P2（看心情，继承自 5-28）
+
+2. **`sw.js` PWA cache 前缀仍是 `zirconeey-`（4 处）** —— 5-28 列过；本次扫描状态不变。设计取向类（cache key 重命名要带 LEGACY 回退），不擅自改。
+
+3. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里还称"zirconeey 站"** —— 5-28 列过；本次扫描状态不变（属本机/历史标识符范畴）。
+
+4. **`scripts/daily_review.sh:15` 与 `scripts/hooks/{stop_publish_reminder,post_write_imgslim}.sh:10` 仍带 `REPO="/Users/zhourui/Desktop/..."` 本机绝对路径** —— 5-28 列过；本次状态不变。**额外注意**：今天复扫还在 `scripts/{merge-psy-stat-II,compile-r-tutorials,build-psy-stat-II-rmd}.py` 里查到 9 处同样的本机绝对路径（构建工具脚本，仅本机跑），与 P2#3 同性质，叠加进同一条待办。
+
+5. **toolbox 长文件**：本次 5-23 → 5-29 新增的 `toolbox/pet-food/index.html` 一冲到 **3393 行**（含 inline CSS + JS + 8 个 SVG icon），超过 Round-3 标记的 1500 行阈值，跻身 toolbox 第 1 大。`assets/js/games/guandan.js` 60 多 commit 后到 **4436 行**（仅次于 doudizhu/ui.js 的 3602），也越线了。延续 Round-3 P1#5「批量拆 `/assets/js/games/<name>.js`」清单。**建议**：guandan 已有 `assets/js/games/guandan.js`，可考虑把 `toolbox/guandan/index.html` 里的 inline `<style>` / 剩余脚手架进一步抽出去；pet-food 走相同路线。
+
+#### 🗒️ 待办清账（承接 5-28）
+
+- **图片 alt / caption 覆盖**：`images.py` 当前仍是 `missing_alt = 0` / `missing_caption = 0`（白名单 62 条），保持收口状态。
+- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套全报 HTTP 403。不阻塞巡检；fly app 健康度未在本沙箱主动复查。
+- **Round-3 留下的 ~68 个 P1**：未在本次范围推进，按原优先级排队。
+- **`taichi-review-2023.md`「85 公里跑」**：仍候着，本次未触碰。
+- **大图基线**（or-2023.pdf 5.30 MB + psy-stat-II-2023.pdf 2.70 MB + 12 张 500KB–1.5MB 图）：`images.py` 输出与昨日基本一致；本次新增 `psy-stat-II-2023.pdf` 2.70 MB（5-25 合并期中/期末后的新主笔记，属合理基线）。
+- **material_type 枚举 30 处不合规**：course-reviews ×18、经验之谈 ×5、错题本 ×3、写作 ×2、口语 ×1、词汇 ×1。是 layout-level schema 决策，属 P1 长线项目。
+- **文件名 `-YYYY` 后缀 77 处缺**：长线设计项。
+
+### 🗂 仓库卫生
+
+- **架构变化（5-28 → 5-29）**：60+ commits 跨度大，但**结构层面无新增一级分类、无新增内容目录**。变化全在「已有目录里加内容/打磨」：
+  - **`toolbox/` 新增 3 个工具**（`font-style` / `pet-food` / `recipes`），与 `_data/toolbox.yml` 一一对应（DATA: 48, DIRS: 48, 无孤儿无悬空）；总数从 5-28 的 45 升到 48。
+  - **`_notes/life/` 新增 17 篇**（5-23 ~ 5-27 集中产出，含本次裸 `$` 修复的两篇 + NUL byte 待办的 fridge-layout-guide + 其它科普文）；新增内容全部 `keywords:` 充足（`keywords_coverage.py` ✅ clean）。
+  - **guandan 深度重做**：20+ commits 集中在 AI 调参（self-play sim → ES tuner → per-difficulty 权重 → 1-step lookahead）+ UI 大改（进贡动画、加倍阶段、结算画面、lobby 桌面化等），`assets/js/games/guandan.js` 涨到 4436 行。
+  - **pet-food 深度重做**：16+ commits（共享/碗重/估算器/年龄分档/品种 dropdown 等），`toolbox/pet-food/index.html` 涨到 3393 行。
+  - **`scripts/sim-guandan.js` 新建**（5-24 落地，self-play 模拟器，仅本机跑，已在 `scripts/` exclude 内不进 `_site`）。
+  - **3 个 prompt.md + 1 个 chore commit** 同步了 `daily_review.prompt.md` 的「前置验证红线」与 prompts 里的站名（`917f3f6`）。
+- **追踪卫生**：
+  - 工作树扫描无 `.DS_Store`、无 `* 2.*` macOS 副本、无 `*.bak`/`*~`/`.synctex.gz`/`*.aux` 编辑器垃圾；`_site/`、`.jekyll-cache/`、`.jekyll-metadata` 已被 `.gitignore` 正确忽略。
+  - 硬编码密钥扫描无新发现（`grep -rEn "(API_KEY|SECRET_KEY|AUTH_TOKEN|PASSWORD)\s*=\s*['\"][A-Za-z0-9_-]{8,}"` 全 repo 命中为零）。
+  - 本机绝对路径：见 P2#4（3 个 sh 脚本 + 3 个 .py 构建工具脚本，共 ≥12 处；性质均为本机 build/routine 脚本，不是密钥泄漏）。
+- **构建健康**：`bundle exec jekyll build` 通过、零 warning、零 error（6.8 s）；`_site/` 不含 `DAILY_REVIEW.md` / `EMAIL_SUMMARY.md` / `SPOTCHECK_100_REPORT.md` / `SPOTCHECK_100_AGENT_REPORTS.md` / `TOOLBOX_AUDIT_REPORT.md` / `docs/` / `.claude/` / `scripts/` / `tools/` / `audio/`。
+- **前置字段一致性**：263 篇 `_notes` 中 262 篇 published（1 篇 `condoms-guide.md` `published: false`，是有意的草稿状态）；`_notes/study/` 全部有 `discipline`；菜谱必填字段齐全；`keywords_coverage.py` 报散文 119 篇 `keywords:` 全部充足；`frontmatter_yaml.py` ✅ clean。
+- **百宝箱一致性**：`toolbox/` 下 **48 个工具子目录**（5-28 的 45 + 新增 `font-style`/`pet-food`/`recipes`）与 `_data/toolbox.yml` 48 条 `url` 登记一一对应，无孤儿、无悬空。
+- **audit 全套结果**：keywords ✅ / images（基线 2 处大文件 PDF） / backend_pulse（沙箱 HTTP 403）/ spotcheck（10 项配额式抽检列表生成正常，待 review）/ material_type（30 处⚠️）/ filename_convention（77 处⚠️）/ hover_no_media ✅（fix 后）/ sibling_crosslink（51 篇⚠️ 沿用 P1）/ bare_dollar ✅（fix 后）/ img_caption_md ✅ / svg_italic_zh ✅ / bare_url ✅ / frontmatter_yaml ✅；今日加跑的 orphan_files 报 2 处 false positive（root cause = P1#1 的 NUL byte 让 git 当二进制）。
+- **结论**：3 项自动修复（TOOLBOX_AUDIT_REPORT exclude + guandan hover guard + 2 文件 6 处裸 `$`），1 项新增 P1（3 文件 NUL byte 占位符，用户可见乱码，需要原文复核才能修，不擅改）。其余 P2 全是承接的设计取向类待办。
+
+### 💓 后端脉搏 / 📬 读者来信
+
+- 后端三件套（zircon-urge / leaderboards / zircon-comments waline）本次 `backend_pulse.py` 全报 HTTP 403。与 5-27 / 5-28 同因，**沙箱无 fly.io 出口**；不阻塞巡检，未主动重启 fly app。
+
+---
+
 ## 2026-05-28
 
 ### ✅ 本次已自动修复
