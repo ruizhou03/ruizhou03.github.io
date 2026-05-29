@@ -853,6 +853,14 @@ permalink: /toolbox/guandan/
     border-color: #e5b500;
     box-shadow: 0 0 0 3px rgba(229,181,0,0.35);
   }
+  /* 座位"内容"包装层：头像/昵称/徽章/操作按钮 都装在里面，方便用 transform 做 FLIP
+     交换动画（换座位）+ 开局旋转动画。cell 本身的 absolute 定位不动，避免父级 layout
+     抖动；只让 inner 在 cell 内 translate 即可。默认无 transition —— JS 临时加。 */
+  .gd-lobby-seat .seat-inner {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 0.3rem;
+    will-change: transform;
+  }
   /* 坐下点字 / 玩家昵称 */
   .gd-lobby-seat .nick {
     font-size: 0.82rem;

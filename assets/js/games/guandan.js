@@ -4057,7 +4057,10 @@
       pollAbort: null,
       players: [],
       srvState: 'lobby',
-      swapSelected: null,  // 房主"换座选择"中已选中的座位，null = 未选
+      swapSelected: null,    // 房主"换座选择"中已选中的座位，null = 未选
+      swapPending: null,     // 第二次点击的目标座位（同时金边）
+      preStartRotation: false, // 开局动画期间打开 → 渲染按 mySeat → bottom 旋转
+      _animating: false,     // 动画期间，跳过 applyServerOnlineState 的 renderLobby 重绘
     };
     setOnlineHint('');
     if (els.pgo) els.pgo.classList.remove('open');
@@ -4201,7 +4204,11 @@
       leaveRoom(true);
       return;
     }
-    renderLobby(srv);
+    // 本地正在跑 swap / 旋转动画：onlineState.players 已经同步成 srv 的真状态，
+    // 但 DOM 里那两个 seat-inner 正在 FLIP transition 中——如果这里 renderLobby
+    // 会清掉 innerHTML 重建，动画就被掐了。所以动画期间跳过重绘，等动画完成后由
+    // sendSwapSeats / rotateLobbyToSouth 的回调里收尾再绘一次。
+    if (!onlineState._animating) renderLobby(srv);
     // 状态从 lobby → playing 的第一次跃迁：触发"我滑到 bottom-left"动画
     if (wasState !== 'playing' && srv.state === 'playing' && !onlineState._startedTransition) {
       onlineState._startedTransition = true;
@@ -4209,41 +4216,130 @@
     }
   }
 
-  // 房主点了开始游戏 → 服务端进入 playing → 直接开本地单机对局
-  //   Phase 1 没有真正的多人对局同步，每个人各自开 3 AI 的本地局；
-  //   去掉了原本的"我滑到 bottom-left"动画——既然每个人允许坐到任何位置，
-  //   把所有人都推到左下角的过渡反而违反直觉。
+  // 房主点了开始游戏 → 服务端进入 playing → 先跑一段旋转动画把"我"从当前座位
+  // 滑到 south（lobby 期间座位是固定映射，我可能在 right/top/left），然后才开本地对局。
+  //   Phase 1 没有真正的多人对局同步，每个人各自开 3 AI 的本地局。
   function triggerLobbyToGameTransition(srv) {
     const lvl = (srv && srv.config && srv.config.aiLevel) || state.aiLevel;
     stopOnlinePolling();
-    onlineSessionClear();
-    onlineState = null;
-    if (onlineEls.lobby) {
-      onlineEls.lobby.hidden = true;
-      onlineEls.lobby.classList.remove('starting');
-    }
-    if (els.table) els.table.classList.remove('gd-in-lobby');
-    if (els.pgo) els.pgo.classList.remove('open');
     if (['easy','normal','hard'].includes(lvl)) {
       state.aiLevel = lvl;
       try { syncPgoDiff(); } catch {}
       try { persist(); } catch {}
     }
-    startMatch();
+    rotateLobbyToSouth(() => {
+      onlineSessionClear();
+      onlineState = null;
+      if (onlineEls.lobby) {
+        onlineEls.lobby.hidden = true;
+        onlineEls.lobby.classList.remove('starting');
+      }
+      if (els.table) els.table.classList.remove('gd-in-lobby');
+      if (els.pgo) els.pgo.classList.remove('open');
+      startMatch();
+    });
+  }
+  // 开局旋转动画：lobby 是固定映射，我可能视觉上不在 bottom；现在打开 preStartRotation
+  // 重绘成"我在 bottom"，并用 FLIP 把 4 个 seat-inner 从旧位置平移过去再 transition 回 0。
+  // mySeat == 0（本来就在 bottom）的话不需要动画，直接 callback。
+  function rotateLobbyToSouth(callback) {
+    if (!onlineState || !onlineEls.seatBottom) { callback(); return; }
+    const mySeat = (typeof onlineState.mySeat === 'number') ? onlineState.mySeat : 0;
+    if (mySeat === 0) { callback(); return; }
+    const cells = [onlineEls.seatBottom, onlineEls.seatRight, onlineEls.seatTop, onlineEls.seatLeft];
+    // 旋转前：server seat S 在 cells[S]。捕获每个 inner 的 rect。
+    const oldRects = {};
+    for (let s = 0; s < 4; s++) {
+      const inner = cells[s].querySelector('.seat-inner');
+      if (inner) oldRects[s] = inner.getBoundingClientRect();
+    }
+    // 打开旋转 + 重绘：现在 server seat S → cells[(S - mySeat + 4) % 4]
+    onlineState.preStartRotation = true;
+    onlineState._animating = true;
+    renderLobbyOptimistic();
+    // 对每个 display cell d，里面装的是 server seat (d + mySeat) % 4；它原本在 cells[s] = cells[(d + mySeat) % 4]，旧 rect 在 oldRects[s]
+    const inners = [];
+    for (let d = 0; d < 4; d++) {
+      const s = (d + mySeat) % 4;
+      const inner = cells[d].querySelector('.seat-inner');
+      if (!inner || !oldRects[s]) continue;
+      const newRect = inner.getBoundingClientRect();
+      const dx = oldRects[s].left - newRect.left;
+      const dy = oldRects[s].top - newRect.top;
+      inner.style.transition = 'none';
+      inner.style.transform = `translate(${dx}px, ${dy}px)`;
+      inners.push(inner);
+    }
+    // 强制 reflow，再加 transition 滑回 0
+    void document.body.offsetHeight;
+    const DUR_MS = 700;
+    for (const inner of inners) {
+      inner.style.transition = `transform ${DUR_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+      inner.style.transform = '';
+    }
+    setTimeout(() => {
+      for (const inner of inners) { inner.style.transition = ''; }
+      callback();
+    }, DUR_MS + 60);
+  }
+  // 交换两座的 FLIP 动画：cell 本身不动，只动两个 seat-inner —— 各自从对方的旧位置
+  // 平移到自己的当前位置（identity），用 transform transition 回 0 形成滑动效果。
+  function flipSwapAnimation(seatA, seatB, oldRectA, oldRectB) {
+    if (!oldRectA || !oldRectB) return;
+    const cellA = displayCellForSeat(seatA);
+    const cellB = displayCellForSeat(seatB);
+    const innerA = cellA && cellA.querySelector('.seat-inner');
+    const innerB = cellB && cellB.querySelector('.seat-inner');
+    const inners = [];
+    if (innerA) {
+      const nr = innerA.getBoundingClientRect();
+      const dx = oldRectB.left - nr.left, dy = oldRectB.top - nr.top;
+      innerA.style.transition = 'none';
+      innerA.style.transform = `translate(${dx}px, ${dy}px)`;
+      inners.push(innerA);
+    }
+    if (innerB) {
+      const nr = innerB.getBoundingClientRect();
+      const dx = oldRectA.left - nr.left, dy = oldRectA.top - nr.top;
+      innerB.style.transition = 'none';
+      innerB.style.transform = `translate(${dx}px, ${dy}px)`;
+      inners.push(innerB);
+    }
+    void document.body.offsetHeight;
+    const DUR_MS = 380;
+    for (const inner of inners) {
+      inner.style.transition = `transform ${DUR_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+      inner.style.transform = '';
+    }
+    return DUR_MS + 60;
   }
 
   // ---- lobby render ----
   function escGdHtml(s) {
     return String(s).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c]);
   }
-  // 4 个座位绕"我"旋转：每个玩家的视角下，自己永远在 bottom，
-  //   server seat S → 显示位置 = LOBBY_POSITIONS[(S - mySeat + 4) % 4]
-  //   pos 0 = bottom (我), 1 = right (顺时针下家), 2 = top (对家/搭档), 3 = left (上家)
-  // 这样玩家 A 和 B 看到的"东南西北"对手当然不同 —— 因为是相对自己的视角。
-  // 未坐下（mySeat == null）时按 identity 映射，让站客也能直观点空座。
-  // 队伍颜色：bottom + top = 我方 (team-you)；right + left = 对家 (team-opp)，永远成立。
+  // 4 个座位 lobby 期间走"固定映射"：server seat S → 永远落在 LOBBY_POSITIONS[S]
+  //   pos 0 = bottom, 1 = right, 2 = top, 3 = left
+  // 不再绕"我"轮转 —— 每个玩家看到的座位布局都是绝对的：我坐 seat 2 就视觉在 top。
+  // 队伍颜色按奇偶（同奇偶 = 同队，mySeat 已知时跟随；未坐下时按 0/2 默认同队）。
+  // 开局瞬间（onlineState.preStartRotation = true）才打开"旋转到我在 south"映射，
+  // 配合 FLIP 动画把 4 个座位的 inner 平移过去。
   const LOBBY_POSITIONS = ['bottom', 'right', 'top', 'left'];
   const LOBBY_AI_ICONS = ['🤖', '🦊', '🤝', '🐱'];
+
+  // 给定 server seat 号，返回它当前应该落在哪个 display cell（DOM 元素）。
+  // lobby 期间是 identity；开局动画期间按 preStartRotation 把 mySeat 推到 bottom。
+  function displayIdxForSeat(s) {
+    if (!onlineState) return s;
+    if (!onlineState.preStartRotation) return s;
+    const mySeat = (typeof onlineState.mySeat === 'number') ? onlineState.mySeat : 0;
+    return (s - mySeat + 4) % 4;
+  }
+  function displayCellForSeat(s) {
+    const idx = displayIdxForSeat(s);
+    const cells = [onlineEls.seatBottom, onlineEls.seatRight, onlineEls.seatTop, onlineEls.seatLeft];
+    return cells[idx];
+  }
 
   function renderLobby(srv) {
     if (!onlineEls.seatBottom) return;
@@ -4265,7 +4361,7 @@
       posEls[k].className = 'gd-lobby-seat at-' + k;
     }
     const mySeatRaw = (typeof onlineState.mySeat === 'number') ? onlineState.mySeat : null;
-    const mySeat = (mySeatRaw == null) ? 0 : mySeatRaw;  // 默认按 0=bottom 旋转
+    const myParity = (mySeatRaw == null) ? 0 : (mySeatRaw % 2);
     const isHost = !!onlineState.isHost;
     // 选中的座位若已空（例如被踢/移除），自动清掉金边
     if (typeof onlineState.swapSelected === 'number' && !seatedMap[onlineState.swapSelected]) {
@@ -4278,12 +4374,15 @@
     const swapPend = (typeof onlineState.swapPending === 'number') ? onlineState.swapPending : null;
     let seatedCount = 0;
     for (let s = 0; s < 4; s++) {
-      const displayIdx = (s - mySeat + 4) % 4;
+      const displayIdx = displayIdxForSeat(s);
       const pos = LOBBY_POSITIONS[displayIdx];
       const cell = posEls[pos];
-      // bottom 和 top 是我方；right 和 left 是对家
-      cell.classList.add((displayIdx === 0 || displayIdx === 2) ? 'team-you' : 'team-opp');
+      // 队伍颜色按奇偶
+      cell.classList.add((s % 2 === myParity) ? 'team-you' : 'team-opp');
       const p = seatedMap[s];
+      // 内容包装层：方便 swap / 开局旋转 用 transform 做 FLIP 动画
+      const inner = document.createElement('div');
+      inner.className = 'seat-inner';
       if (!p) {
         // 空座：大灰头像 + "坐下"
         cell.classList.add('empty');
@@ -4297,7 +4396,7 @@
         // 谁能点这个空座：
         //   - 房主：随时可坐（也是房主换座的唯一方式 = 直接点目标空座）
         //   - 非房主：只有 mySeat == null（还没初次入座）时能坐
-        const canSit = isHost || (mySeat == null);
+        const canSit = isHost || (mySeatRaw == null);
         if (canSit) {
           nick.textContent = '坐下';
           const sit = () => sendSit(s);
@@ -4308,10 +4407,11 @@
           av.style.cursor = 'default';
           nick.style.cursor = 'default';
         }
-        cell.appendChild(av);
-        cell.appendChild(nick);
-        cell.appendChild(badges);
-        // 「🤖 加机器人」浮泡：只房主有
+        inner.appendChild(av);
+        inner.appendChild(nick);
+        inner.appendChild(badges);
+        cell.appendChild(inner);
+        // 「🤖 加机器人」浮泡：只房主有；它 position: absolute，必须挂 cell 上不挂 inner
         if (isHost) {
           const aiBtn = document.createElement('button');
           aiBtn.className = 'add-ai-btn';
@@ -4347,10 +4447,10 @@
         if (isMe) addBadge('me', '我');
         if (p.isAi) addBadge('ai', 'AI');
         if (!p.online) addBadge('offline', '离线');
-        cell.appendChild(av);
-        cell.appendChild(nick);
-        cell.appendChild(badges);
-        // 房主对真人/AI 的操作（踢 / 让位 / 移除）
+        inner.appendChild(av);
+        inner.appendChild(nick);
+        inner.appendChild(badges);
+        // 房主对真人/AI 的操作（踢 / 让位 / 移除）—— 放在 inner 里随 FLIP 一起飞
         if (isHost && !isMe) {
           const acts = document.createElement('div');
           acts.className = 'seat-actions';
@@ -4373,8 +4473,9 @@
             xferBtn.addEventListener('click', (e) => { e.stopPropagation(); sendTransferHost(p.id); });
             acts.appendChild(xferBtn);
           }
-          cell.appendChild(acts);
+          inner.appendChild(acts);
         }
+        cell.appendChild(inner);
       }
     }
     // 旁观者（standing） — Phase 1 暂时不渲染；他们可以点空座位坐下。
@@ -4503,25 +4604,48 @@
   }
   async function sendSwapSeats(seatA, seatB) {
     if (!onlineState) return;
+    // ❶ 捕获 swap 前两个 inner 的可视 rect（FLIP 起点）
+    const cellA = displayCellForSeat(seatA);
+    const cellB = displayCellForSeat(seatB);
+    const innerA = cellA && cellA.querySelector('.seat-inner');
+    const innerB = cellB && cellB.querySelector('.seat-inner');
+    const oldRectA = innerA ? innerA.getBoundingClientRect() : null;
+    const oldRectB = innerB ? innerB.getBoundingClientRect() : null;
+
+    // ❷ 乐观改 onlineState.players + 重绘 lobby（cellA 里现在装的是 player B，cellB 装 A）
+    //    动画期间标记 _animating，server 推来的状态只更新数据不重绘
+    onlineState._animating = true;
     const snap = applyOptimistic(players => {
       const a = players.find(p => p.seat === seatA);
       const b = players.find(p => p.seat === seatB);
       if (a && b) { a.seat = seatB; b.seat = seatA; }
     });
-    // 乐观重绘后两端的玩家已就位；金边随 swapSelected/swapPending 由 renderLobby 自动加。
+
+    // ❸ FLIP：让 cellA 里的新内容从 oldRectB 起步滑到 cellA 当前位置，反之亦然
+    const animMs = flipSwapAnimation(seatA, seatB, oldRectA, oldRectB) || 0;
+
+    // ❹ POST 同步去服务端（不挡动画）
     const r = await gdApi('swap_seats', { body: { code: onlineState.code, token: onlineState.token, seatA, seatB } });
     if (!r.ok) {
+      // 服务端拒绝 —— 取消动画 + 回滚（罕见，房间已解散等）
+      onlineState && (onlineState._animating = false);
       revertOptimistic(snap);
       toast(errText(r.error));
-    } else {
-      applyActionResult(r);
+      return;
     }
-    // 不论成败，swap 选择状态都清掉，让金边落下
-    if (onlineState) {
+    // 成功：服务端 state 已被 applyActionResult 写进 onlineState.players（applyServerOnlineState
+    // 由于 _animating=true 不会清掉 DOM），等动画结束再统一重绘清金边
+    applyActionResult(r);
+
+    setTimeout(() => {
+      if (!onlineState) return;
+      onlineState._animating = false;
       onlineState.swapSelected = null;
       onlineState.swapPending = null;
-    }
-    renderLobbyOptimistic();
+      // 清掉 FLIP 残留的 inline transition
+      [innerA, innerB].forEach(inner => { if (inner) { inner.style.transition = ''; inner.style.transform = ''; }});
+      renderLobbyOptimistic();
+    }, animMs);
   }
   // 房主点已坐玩家头像：
   //   第一次点 → 该座金边
@@ -4529,6 +4653,7 @@
   //   点另一座 → 两座都金边（让"我要换的对象"也立刻反馈）+ 发 swap 请求
   function handleHostAvatarClick(seat) {
     if (!onlineState || !onlineState.isHost) return;
+    if (onlineState._animating) return;  // 动画中不允许新一轮 swap
     const sel = onlineState.swapSelected;
     if (sel == null) {
       onlineState.swapSelected = seat;
@@ -4543,7 +4668,7 @@
       return;
     }
     onlineState.swapPending = seat;
-    // 立刻先点亮第二个头像，再发 swap 请求（renderLobbyOptimistic 在 sendSwapSeats 内会改 seat）
+    // 立刻先点亮第二个头像（金边），再发 swap 请求；动画 + state 都在 sendSwapSeats 里收
     renderLobbyOptimistic();
     sendSwapSeats(sel, seat);
   }
