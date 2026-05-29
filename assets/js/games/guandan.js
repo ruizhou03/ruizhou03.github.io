@@ -3481,20 +3481,20 @@
     });
   }
   // 一键理牌：清掉所有 custom groups + handOrder，回到完全默认排序
+  // 用户要求理牌/还原/一键理牌不弹任何 toast —— 静默执行；点错了就什么都不发生。
   els.sortBtn.addEventListener('click', () => {
     state.handOrder = null;
     state.customGroups = [];
     state.selected.clear();
     renderHand();
     updateActions();
-    toast('已恢复默认排序');
   });
 
   // 还原：选中的牌恰好等于某个 custom group 的全部卡 → 解散那个 group
   if (els.restoreBtn) {
     els.restoreBtn.addEventListener('click', () => {
       const sel = [...state.selected].filter(c => state.hands[0].includes(c));
-      if (!sel.length) { toast('请先选中要还原的一摞'); return; }
+      if (!sel.length) return;
       const selSet = new Set(sel);
       // 查找 custom group：必须 sel 是该 group 的"超集"或"恰好"。这里要求"恰好等于"
       const idx = state.customGroups.findIndex(g =>
@@ -3504,20 +3504,18 @@
         const toRemove = state.customGroups
           .map((g, i) => ({ g, i }))
           .filter(x => x.g.cards.every(c => selSet.has(c)));
-        if (!toRemove.length) { toast('请选中某一摞的全部牌'); return; }
+        if (!toRemove.length) return;
         const ids = new Set(toRemove.map(x => x.g.id));
         state.customGroups = state.customGroups.filter(g => !ids.has(g.id));
         state.selected.clear();
         renderHand();
         updateActions();
-        toast('已还原 ' + toRemove.length + ' 摞到默认排序');
         return;
       }
       state.customGroups.splice(idx, 1);
       state.selected.clear();
       renderHand();
       updateActions();
-      toast('已还原这一摞到默认排序');
     });
   }
   // 兼容：旧地方仍在调 updateRestoreBtn，留空
@@ -3529,14 +3527,11 @@
   if (els.arrangeBtn) {
     els.arrangeBtn.addEventListener('click', () => {
       const sel = [...state.selected].filter(c => state.hands[0].includes(c));
-      if (sel.length < 2) { toast('选中两张或更多牌再点理牌'); return; }
+      if (sel.length < 2) return;
       // 选中的牌不能跨越已有 group（要先还原再重新理）
       for (const g of state.customGroups) {
         const cs = new Set(g.cards);
-        if (sel.some(c => cs.has(c))) {
-          toast('这张牌已在某一摞里，请先还原再重新理');
-          return;
-        }
+        if (sel.some(c => cs.has(c))) return;
       }
       const level = currentLevelLabel();
       const cb = classify(sel, level);
@@ -4241,11 +4236,12 @@
   function escGdHtml(s) {
     return String(s).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c]);
   }
-  // 4 个座位固定映射，让每个人都看到自己当前真实坐的位置——避免点了别处又被
-  // 视觉拉回 bottom 的错觉：
-  //   server seat 0 → bottom, 1 → right, 2 → top, 3 → left
-  // 队伍颜色按奇偶分队（同奇偶 = 同队）：mySeat 已知时跟随；未坐下时按"0/2 同队"默认。
-  // AI 头像 emoji 按 server seat 区分；真人头像统一 😊（图四里其他真人是默认蓝头像）
+  // 4 个座位绕"我"旋转：每个玩家的视角下，自己永远在 bottom，
+  //   server seat S → 显示位置 = LOBBY_POSITIONS[(S - mySeat + 4) % 4]
+  //   pos 0 = bottom (我), 1 = right (顺时针下家), 2 = top (对家/搭档), 3 = left (上家)
+  // 这样玩家 A 和 B 看到的"东南西北"对手当然不同 —— 因为是相对自己的视角。
+  // 未坐下（mySeat == null）时按 identity 映射，让站客也能直观点空座。
+  // 队伍颜色：bottom + top = 我方 (team-you)；right + left = 对家 (team-opp)，永远成立。
   const LOBBY_POSITIONS = ['bottom', 'right', 'top', 'left'];
   const LOBBY_AI_ICONS = ['🤖', '🦊', '🤝', '🐱'];
 
@@ -4268,22 +4264,25 @@
       posEls[k].innerHTML = '';
       posEls[k].className = 'gd-lobby-seat at-' + k;
     }
-    const mySeat = (typeof onlineState.mySeat === 'number') ? onlineState.mySeat : null;
-    const myParity = (mySeat == null) ? 0 : (mySeat % 2);
+    const mySeatRaw = (typeof onlineState.mySeat === 'number') ? onlineState.mySeat : null;
+    const mySeat = (mySeatRaw == null) ? 0 : mySeatRaw;  // 默认按 0=bottom 旋转
     const isHost = !!onlineState.isHost;
-    // 普通玩家不能换座：已坐下时不响应"空座点击"；空座的"加机器人"浮泡也只对房主显示。
-    // 房主想坐到空座：直接点空座头像即可（无需先起立）。
-    // 房主想换两座：点 A 头像（金边）→ 点 B 头像 → 直接 swap。
     // 选中的座位若已空（例如被踢/移除），自动清掉金边
     if (typeof onlineState.swapSelected === 'number' && !seatedMap[onlineState.swapSelected]) {
       onlineState.swapSelected = null;
     }
+    if (typeof onlineState.swapPending === 'number' && !seatedMap[onlineState.swapPending]) {
+      onlineState.swapPending = null;
+    }
     const swapSel = (typeof onlineState.swapSelected === 'number') ? onlineState.swapSelected : null;
+    const swapPend = (typeof onlineState.swapPending === 'number') ? onlineState.swapPending : null;
     let seatedCount = 0;
     for (let s = 0; s < 4; s++) {
-      const pos = LOBBY_POSITIONS[s];
+      const displayIdx = (s - mySeat + 4) % 4;
+      const pos = LOBBY_POSITIONS[displayIdx];
       const cell = posEls[pos];
-      cell.classList.add((s % 2 === myParity) ? 'team-you' : 'team-opp');
+      // bottom 和 top 是我方；right 和 left 是对家
+      cell.classList.add((displayIdx === 0 || displayIdx === 2) ? 'team-you' : 'team-opp');
       const p = seatedMap[s];
       if (!p) {
         // 空座：大灰头像 + "坐下"
@@ -4323,7 +4322,8 @@
       } else {
         seatedCount++;
         const isMe = p.id === onlineState.playerId;
-        if (swapSel === s) cell.classList.add('swap-selected');
+        // 头像金边：手动 swap 选中的两侧都点亮，让"我点了"和"准备换那位"同时可见
+        if (swapSel === s || swapPend === s) cell.classList.add('swap-selected');
         const av = document.createElement('div');
         av.className = 'avatar';
         av.textContent = p.isAi ? '🤖' : (isMe ? '😎' : LOBBY_AI_ICONS[s] || '👤');
@@ -4405,83 +4405,147 @@
   }
 
   // ---- actions ----
-  // 后端在每个动作的成功响应里都带回 state（新 server projection），
-  // 客户端直接 apply，省掉等下一轮 GET state 的 RTT —— 把"点一下要等 600ms 才更新"
-  // 的根因（POST + 二次轮询拉状态）干掉。pokePoll() 仍打一发是为了把
-  // 其他客户端可能并发的改动也尽快拉回来。
+  // 后端在每个动作的成功响应里都带回 state（新 server projection），客户端直接 apply，
+  // 省掉等下一轮 GET state 的 RTT —— 把"点一下要等 ~600ms 才更新"的根因（POST + 二次
+  // 轮询拉状态）干掉。第二步把 RTT 也藏起来：本地乐观更新 onlineState.players + 立刻
+  // 重绘 lobby，UI 0 延迟就改了；POST 在后台跑，回来用服务端真状态 reconcile（同一结果
+  // 直接覆盖，无视觉变化；万一被拒就 revert + toast 报错）。
   function applyActionResult(r) {
     if (r && r.ok && r.data && r.data.state) {
       applyServerOnlineState(r.data.state);
     }
     if (r && r.ok) pokePoll();
   }
+  // 用 onlineState 本地状态合成一个仿 srv 对象，喂给 renderLobby（乐观重绘用）。
+  function renderLobbyOptimistic() {
+    if (!onlineState) return;
+    renderLobby({
+      players: onlineState.players,
+      state: onlineState.srvState || 'lobby',
+      firstLeader: onlineState.firstLeader,
+      hostPlayerId: onlineState.hostPlayerId,
+      config: onlineState.config,
+    });
+  }
+  // 应用乐观补丁 + 重绘；返回 snapshot（用于失败回滚）。
+  function applyOptimistic(patchFn) {
+    if (!onlineState) return null;
+    const snap = JSON.stringify(onlineState.players);
+    try { patchFn(onlineState.players); } catch {}
+    renderLobbyOptimistic();
+    return snap;
+  }
+  function revertOptimistic(snap) {
+    if (!onlineState || snap == null) return;
+    try { onlineState.players = JSON.parse(snap); } catch { return; }
+    // 用 me 字段把 mySeat 也回滚
+    const me = onlineState.players.find(p => p.id === onlineState.playerId);
+    onlineState.mySeat = me && typeof me.seat === 'number' ? me.seat : null;
+    renderLobbyOptimistic();
+  }
+
   async function sendSit(seat) {
     if (!onlineState) return;
+    const snap = applyOptimistic(players => {
+      const me = players.find(p => p.id === onlineState.playerId);
+      if (me) me.seat = seat;
+    });
+    onlineState.mySeat = seat;
     const r = await gdApi('sit', { body: { code: onlineState.code, token: onlineState.token, seat } });
-    if (!r.ok) toast(errText(r.error));
+    if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
     else applyActionResult(r);
   }
   async function sendAddAi(seat) {
     if (!onlineState) return;
+    // 乐观插入临时 AI：服务端响应回来会覆盖成真的 id + 真的 nick
+    const snap = applyOptimistic(players => {
+      players.push({
+        id: '_optimistic_ai_' + seat + '_' + (onlineState.lastVersion | 0),
+        seat,
+        nick: 'AI · ' + (seat + 1),
+        isAi: true,
+        online: true,
+        isHost: false,
+      });
+    });
     const r = await gdApi('add_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
-    if (!r.ok) toast(errText(r.error));
+    if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
     else applyActionResult(r);
   }
   async function sendRemoveAi(seat) {
     if (!onlineState) return;
+    const snap = applyOptimistic(players => {
+      const i = players.findIndex(p => p.seat === seat && p.isAi);
+      if (i >= 0) players.splice(i, 1);
+    });
     const r = await gdApi('remove_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
-    if (!r.ok) toast(errText(r.error));
+    if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
     else applyActionResult(r);
   }
   async function sendKick(targetPid) {
     if (!onlineState) return;
     if (!confirm('确认踢出这位玩家？')) return;
+    const snap = applyOptimistic(players => {
+      const i = players.findIndex(p => p.id === targetPid);
+      if (i >= 0) players.splice(i, 1);
+    });
     const r = await gdApi('kick', { body: { code: onlineState.code, token: onlineState.token, targetPid } });
-    if (!r.ok) toast(errText(r.error));
+    if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
     else applyActionResult(r);
   }
   async function sendTransferHost(targetPid) {
     if (!onlineState) return;
     if (!confirm('确认把房主让给这位玩家？')) return;
+    // 转交房主是状态变化大、和客户端身份判定耦合的动作 —— 不做乐观，等服务端 reconcile。
     const r = await gdApi('transfer_host', { body: { code: onlineState.code, token: onlineState.token, targetPid } });
     if (!r.ok) toast(errText(r.error));
     else applyActionResult(r);
   }
   async function sendSwapSeats(seatA, seatB) {
     if (!onlineState) return;
+    const snap = applyOptimistic(players => {
+      const a = players.find(p => p.seat === seatA);
+      const b = players.find(p => p.seat === seatB);
+      if (a && b) { a.seat = seatB; b.seat = seatA; }
+    });
+    // 乐观重绘后两端的玩家已就位；金边随 swapSelected/swapPending 由 renderLobby 自动加。
     const r = await gdApi('swap_seats', { body: { code: onlineState.code, token: onlineState.token, seatA, seatB } });
-    if (!r.ok) toast(errText(r.error));
-    else applyActionResult(r);
+    if (!r.ok) {
+      revertOptimistic(snap);
+      toast(errText(r.error));
+    } else {
+      applyActionResult(r);
+    }
+    // 不论成败，swap 选择状态都清掉，让金边落下
+    if (onlineState) {
+      onlineState.swapSelected = null;
+      onlineState.swapPending = null;
+    }
+    renderLobbyOptimistic();
   }
-  // 房主点已坐玩家头像：第一次点 → 金边选中；同一座再点 → 取消；点另一座 → 交换两座
+  // 房主点已坐玩家头像：
+  //   第一次点 → 该座金边
+  //   同一座再点 → 取消
+  //   点另一座 → 两座都金边（让"我要换的对象"也立刻反馈）+ 发 swap 请求
   function handleHostAvatarClick(seat) {
     if (!onlineState || !onlineState.isHost) return;
     const sel = onlineState.swapSelected;
     if (sel == null) {
       onlineState.swapSelected = seat;
-      // 仅切换金边样式，无需走整轮 renderLobby
-      paintSwapSelection(seat);
+      onlineState.swapPending = null;
+      renderLobbyOptimistic();
       return;
     }
     if (sel === seat) {
       onlineState.swapSelected = null;
-      paintSwapSelection(null);
+      onlineState.swapPending = null;
+      renderLobbyOptimistic();
       return;
     }
-    onlineState.swapSelected = null;
-    paintSwapSelection(null);
+    onlineState.swapPending = seat;
+    // 立刻先点亮第二个头像，再发 swap 请求（renderLobbyOptimistic 在 sendSwapSeats 内会改 seat）
+    renderLobbyOptimistic();
     sendSwapSeats(sel, seat);
-  }
-  // 只刷金边 class，不重建 DOM——交互更快。renderLobby 后调用一次确保状态一致即可。
-  function paintSwapSelection(seat) {
-    const posEls = [
-      onlineEls.seatBottom, onlineEls.seatRight, onlineEls.seatTop, onlineEls.seatLeft,
-    ];
-    for (let s = 0; s < 4; s++) {
-      const cell = posEls[s];
-      if (!cell) continue;
-      cell.classList.toggle('swap-selected', seat === s);
-    }
   }
   if (onlineEls.startBtn) {
     onlineEls.startBtn.addEventListener('click', async () => {
