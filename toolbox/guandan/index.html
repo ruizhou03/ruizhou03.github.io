@@ -777,35 +777,36 @@ permalink: /toolbox/guandan/
     align-items: center; gap: 0.3rem;
     z-index: 3;
   }
-  /* partner 在牌桌正中上方（对齐 .gd-seats-top → gdSeat2） */
+  /* 4 个座位"绝对位置"对齐正式对局时的同方位 .gd-seat：开始游戏后头像不再瞬移。
+     - at-top  ↔ .gd-seats-top (gdSeat2)：在 .gd-table padding-top 0.6rem 那里
+     - at-left ↔ .gd-side-left (gdSeat3)：top 30% 近似对齐游戏中 seats-mid top:65%
+     - at-right↔ .gd-side-right(gdSeat1)
+     - at-bottom↔ .gd-self-bar (gdSeat0)：left 0.9rem; bottom 4.4rem
+     头像尺寸也同步缩到 46px 与 .gd-avatar 一致。 */
   .gd-lobby-seat.at-top {
-    top: 1rem;
+    top: 0.6rem;
     left: 50%;
     transform: translateX(-50%);
   }
-  /* 左对手在左侧中线（对齐 .gd-side-left，原 top: 65% 是因为正常游戏要给手牌区让位；
-     lobby 没有手牌，挪到 50% 才视觉居中） */
   .gd-lobby-seat.at-left {
-    top: 50%;
-    left: 1.2rem;
+    top: 30%;
+    left: 0.4rem;
     transform: translateY(-50%);
   }
-  /* 右对手在右侧中线（对齐 .gd-side-right） */
   .gd-lobby-seat.at-right {
-    top: 50%;
-    right: 1.2rem;
+    top: 30%;
+    right: 0.4rem;
     transform: translateY(-50%);
   }
-  /* 「我」在 lobby 期间居中 bottom（视觉舒展，对应仿欢乐斗地主的初始落位）；
-     点击"开始游戏"后会加 .gd-lobby.starting 触发 transition 滑到 bottom-left
-     （对齐 .gd-self-bar 的 left: 0.9rem; bottom: 4.4rem），再进入正式对局 */
+  /* at-bottom = .gd-self-bar 的位置；seat-inner 翻转 column-reverse，让 avatar 落到 cell
+     底部（cell.bottom 4.4rem 时 avatar.bottom 也 ≈ 4.4rem，与 .gd-self-bar.avatar 同高）*/
   .gd-lobby-seat.at-bottom {
-    bottom: 1.2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    transition: left 0.55s cubic-bezier(0.4, 0, 0.2, 1),
-                bottom 0.55s cubic-bezier(0.4, 0, 0.2, 1),
-                transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+    bottom: 4.4rem;
+    left: 0.9rem;
+  }
+  .gd-lobby-seat.at-bottom .seat-inner {
+    flex-direction: column-reverse;
+    align-items: flex-start;
   }
   .gd-lobby.starting .gd-lobby-seat.at-bottom {
     left: 0.9rem;
@@ -822,13 +823,13 @@ permalink: /toolbox/guandan/
     transition: opacity 0.3s ease-out;
     pointer-events: none;
   }
-  /* 大头像 */
+  /* 头像 46px 与 .gd-avatar 同尺寸，开始游戏不会有"头变小"的瞬变 */
   .gd-lobby-seat .avatar {
-    width: 60px; height: 60px; border-radius: 50%;
+    width: 46px; height: 46px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     background: rgba(255,255,255,0.55);
-    border: 2.5px solid var(--gd-frame-2);
-    font-size: 1.85rem;
+    border: 2px solid var(--gd-frame-2);
+    font-size: 1.5rem;
     color: rgba(31,42,61,0.5);
     transition: border-color 0.18s, background 0.18s, transform 0.12s;
   }
