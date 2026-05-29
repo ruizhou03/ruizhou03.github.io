@@ -1,10 +1,38 @@
 {
   "generated": "2026-05-29",
-  "version": "v3",
-  "description": "v3 = v2-deep trained weights + v3 memory mask architecture",
-  "finding": "v3 retrain (K=5 per tier × 6 gen) did not beat v2 weights; v2 weights are robust under v3 memory architecture.",
-  "method_v3_memory": "Per-game stable Bernoulli mask per rank-bucket (big/mid/small cards). Each tier has different recall probabilities — LEVEL_PROFILES.memoryBigCards/MidCards/SmallCards. Mask applied to ctx.seen via perceiveSeen before passing to chooseUnified/mctsLite.",
-  "memory_profiles": {
+  "version": "v3-deep experiment",
+  "description": "v3-deep retrain attempt with K=10 gen=8 popSize=24 matchesPerEval=400 sigma=0.6 per tier (3 tiers, total 90 candidates, 27min pop-gen + 19min tournament)",
+  "finding": "v3-deep retrain did NOT improve over v2 weights + v3 memory architecture. Tournament-wide tier-vs-tier average: hard vs normal = 48.8%, hard vs easy = 48.4%, normal vs easy = 49.7% — meaning trained \"hard tier\" candidates do NOT systematically beat \"easy tier\" candidates. ES finds robust cautious strategies under memory constraint, defeating the tier-grading intent.",
+  "best_v3_deep_tier_respecting": {
+    "hard": {
+      "id": "hard_run1_gen3",
+      "elo": 1514
+    },
+    "normal": {
+      "id": "normal_run7_gen3",
+      "elo": 1469
+    },
+    "easy": {
+      "id": "easy_run3_gen3",
+      "elo": 1474
+    },
+    "h2h_1000_verified": {
+      "hard vs normal": 0.56,
+      "hard vs easy": 0.533,
+      "normal vs easy": 0.512
+    }
+  },
+  "deployed_combo_v2_weights_v3_memory": {
+    "note": "v2-deep trained weights (commit 2b15105) running under v3 memory mask architecture",
+    "h2h_1000_verified": {
+      "hard vs normal": 0.556,
+      "hard vs easy": 0.638,
+      "normal vs easy": 0.563,
+      "master vs hard": 0.52
+    }
+  },
+  "conclusion": "v2 weights + v3 memory remains best. v3-deep training data (90 candidates) retained in population.json/ranking.json for future reference.",
+  "memory_profiles_unchanged": {
     "easy": {
       "big": 0.1,
       "mid": 0,
@@ -25,18 +53,5 @@
       "mid": 1,
       "small": 1
     }
-  },
-  "weights_source": "v2-deep (run5_gen0 hard, run14_gen3 normal, run4_gen3 easy) — see prior commit 2b15105",
-  "h2h_1000_verified_v2_plus_v3memory": {
-    "hard vs normal": 0.556,
-    "hard vs easy": 0.638,
-    "normal vs easy": 0.563,
-    "master vs hard": 0.52
-  },
-  "h2h_1000_v2_only_for_reference": {
-    "hard vs normal": 0.56,
-    "hard vs easy": 0.596,
-    "normal vs easy": 0.576,
-    "master vs hard": 0.489
   }
 }
