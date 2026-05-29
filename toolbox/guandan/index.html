@@ -848,6 +848,11 @@ permalink: /toolbox/guandan/
   }
   .gd-lobby-seat.team-you .avatar { border-color: rgba(30,111,79,0.55); }
   .gd-lobby-seat.team-opp .avatar { border-color: rgba(139,46,46,0.55); }
+  /* 房主"换座选择"状态：被选中的座位头像加金黄边 + 外发光，二次点击或交换完毕后清除 */
+  .gd-lobby-seat.swap-selected .avatar {
+    border-color: #e5b500;
+    box-shadow: 0 0 0 3px rgba(229,181,0,0.35);
+  }
   /* 坐下点字 / 玩家昵称 */
   .gd-lobby-seat .nick {
     font-size: 0.82rem;

@@ -4062,6 +4062,7 @@
       pollAbort: null,
       players: [],
       srvState: 'lobby',
+      swapSelected: null,  // 房主"换座选择"中已选中的座位，null = 未选
     };
     setOnlineHint('');
     if (els.pgo) els.pgo.classList.remove('open');
@@ -4269,6 +4270,15 @@
     }
     const mySeat = (typeof onlineState.mySeat === 'number') ? onlineState.mySeat : null;
     const myParity = (mySeat == null) ? 0 : (mySeat % 2);
+    const isHost = !!onlineState.isHost;
+    // 普通玩家不能换座：已坐下时不响应"空座点击"；空座的"加机器人"浮泡也只对房主显示。
+    // 房主想坐到空座：直接点空座头像即可（无需先起立）。
+    // 房主想换两座：点 A 头像（金边）→ 点 B 头像 → 直接 swap。
+    // 选中的座位若已空（例如被踢/移除），自动清掉金边
+    if (typeof onlineState.swapSelected === 'number' && !seatedMap[onlineState.swapSelected]) {
+      onlineState.swapSelected = null;
+    }
+    const swapSel = (typeof onlineState.swapSelected === 'number') ? onlineState.swapSelected : null;
     let seatedCount = 0;
     for (let s = 0; s < 4; s++) {
       const pos = LOBBY_POSITIONS[s];
@@ -4276,23 +4286,34 @@
       cell.classList.add((s % 2 === myParity) ? 'team-you' : 'team-opp');
       const p = seatedMap[s];
       if (!p) {
-        // 空座：大灰头像 + "坐下"，点击落座
+        // 空座：大灰头像 + "坐下"
         cell.classList.add('empty');
         const av = document.createElement('div');
         av.className = 'avatar';
         av.textContent = '👤';
-        av.addEventListener('click', () => sendSit(s));
         const nick = document.createElement('div');
         nick.className = 'nick';
-        nick.textContent = '坐下';
-        nick.addEventListener('click', () => sendSit(s));
         const badges = document.createElement('div');
         badges.className = 'badges';
+        // 谁能点这个空座：
+        //   - 房主：随时可坐（也是房主换座的唯一方式 = 直接点目标空座）
+        //   - 非房主：只有 mySeat == null（还没初次入座）时能坐
+        const canSit = isHost || (mySeat == null);
+        if (canSit) {
+          nick.textContent = '坐下';
+          const sit = () => sendSit(s);
+          av.addEventListener('click', sit);
+          nick.addEventListener('click', sit);
+        } else {
+          nick.textContent = '虚位';
+          av.style.cursor = 'default';
+          nick.style.cursor = 'default';
+        }
         cell.appendChild(av);
         cell.appendChild(nick);
         cell.appendChild(badges);
-        // 房主：「🤖 加机器人」浮泡（仿欢乐斗地主）
-        if (onlineState.isHost) {
+        // 「🤖 加机器人」浮泡：只房主有
+        if (isHost) {
           const aiBtn = document.createElement('button');
           aiBtn.className = 'add-ai-btn';
           aiBtn.textContent = '🤖 加机器人';
@@ -4302,9 +4323,15 @@
       } else {
         seatedCount++;
         const isMe = p.id === onlineState.playerId;
+        if (swapSel === s) cell.classList.add('swap-selected');
         const av = document.createElement('div');
         av.className = 'avatar';
         av.textContent = p.isAi ? '🤖' : (isMe ? '😎' : LOBBY_AI_ICONS[s] || '👤');
+        // 房主点已有玩家头像 → 进入/确认换座选择
+        if (isHost) {
+          av.style.cursor = 'pointer';
+          av.addEventListener('click', (e) => { e.stopPropagation(); handleHostAvatarClick(s); });
+        }
         const nick = document.createElement('div');
         nick.className = 'nick';
         nick.textContent = p.nick;
@@ -4324,7 +4351,7 @@
         cell.appendChild(nick);
         cell.appendChild(badges);
         // 房主对真人/AI 的操作（踢 / 让位 / 移除）
-        if (onlineState.isHost && !isMe) {
+        if (isHost && !isMe) {
           const acts = document.createElement('div');
           acts.className = 'seat-actions';
           if (p.isAi) {
@@ -4346,18 +4373,6 @@
             xferBtn.addEventListener('click', (e) => { e.stopPropagation(); sendTransferHost(p.id); });
             acts.appendChild(xferBtn);
           }
-          cell.appendChild(acts);
-        }
-        // 我坐下了 → 提供「起立」（不影响游戏开始，仅释放座位）
-        if (isMe) {
-          const standBtn = document.createElement('button');
-          standBtn.className = 'gd-btn mini';
-          standBtn.textContent = '起立';
-          standBtn.title = '离开座位（仍留在房间）';
-          standBtn.addEventListener('click', (e) => { e.stopPropagation(); sendStand(); });
-          const acts = document.createElement('div');
-          acts.className = 'seat-actions';
-          acts.appendChild(standBtn);
           cell.appendChild(acts);
         }
       }
@@ -4390,43 +4405,83 @@
   }
 
   // ---- actions ----
+  // 后端在每个动作的成功响应里都带回 state（新 server projection），
+  // 客户端直接 apply，省掉等下一轮 GET state 的 RTT —— 把"点一下要等 600ms 才更新"
+  // 的根因（POST + 二次轮询拉状态）干掉。pokePoll() 仍打一发是为了把
+  // 其他客户端可能并发的改动也尽快拉回来。
+  function applyActionResult(r) {
+    if (r && r.ok && r.data && r.data.state) {
+      applyServerOnlineState(r.data.state);
+    }
+    if (r && r.ok) pokePoll();
+  }
   async function sendSit(seat) {
     if (!onlineState) return;
     const r = await gdApi('sit', { body: { code: onlineState.code, token: onlineState.token, seat } });
     if (!r.ok) toast(errText(r.error));
-    else pokePoll();
-  }
-  async function sendStand() {
-    if (!onlineState) return;
-    const r = await gdApi('stand', { body: { code: onlineState.code, token: onlineState.token } });
-    if (!r.ok) toast(errText(r.error));
-    else pokePoll();
+    else applyActionResult(r);
   }
   async function sendAddAi(seat) {
     if (!onlineState) return;
     const r = await gdApi('add_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
     if (!r.ok) toast(errText(r.error));
-    else pokePoll();
+    else applyActionResult(r);
   }
   async function sendRemoveAi(seat) {
     if (!onlineState) return;
     const r = await gdApi('remove_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
     if (!r.ok) toast(errText(r.error));
-    else pokePoll();
+    else applyActionResult(r);
   }
   async function sendKick(targetPid) {
     if (!onlineState) return;
     if (!confirm('确认踢出这位玩家？')) return;
     const r = await gdApi('kick', { body: { code: onlineState.code, token: onlineState.token, targetPid } });
     if (!r.ok) toast(errText(r.error));
-    else pokePoll();
+    else applyActionResult(r);
   }
   async function sendTransferHost(targetPid) {
     if (!onlineState) return;
     if (!confirm('确认把房主让给这位玩家？')) return;
     const r = await gdApi('transfer_host', { body: { code: onlineState.code, token: onlineState.token, targetPid } });
     if (!r.ok) toast(errText(r.error));
-    else pokePoll();
+    else applyActionResult(r);
+  }
+  async function sendSwapSeats(seatA, seatB) {
+    if (!onlineState) return;
+    const r = await gdApi('swap_seats', { body: { code: onlineState.code, token: onlineState.token, seatA, seatB } });
+    if (!r.ok) toast(errText(r.error));
+    else applyActionResult(r);
+  }
+  // 房主点已坐玩家头像：第一次点 → 金边选中；同一座再点 → 取消；点另一座 → 交换两座
+  function handleHostAvatarClick(seat) {
+    if (!onlineState || !onlineState.isHost) return;
+    const sel = onlineState.swapSelected;
+    if (sel == null) {
+      onlineState.swapSelected = seat;
+      // 仅切换金边样式，无需走整轮 renderLobby
+      paintSwapSelection(seat);
+      return;
+    }
+    if (sel === seat) {
+      onlineState.swapSelected = null;
+      paintSwapSelection(null);
+      return;
+    }
+    onlineState.swapSelected = null;
+    paintSwapSelection(null);
+    sendSwapSeats(sel, seat);
+  }
+  // 只刷金边 class，不重建 DOM——交互更快。renderLobby 后调用一次确保状态一致即可。
+  function paintSwapSelection(seat) {
+    const posEls = [
+      onlineEls.seatBottom, onlineEls.seatRight, onlineEls.seatTop, onlineEls.seatLeft,
+    ];
+    for (let s = 0; s < 4; s++) {
+      const cell = posEls[s];
+      if (!cell) continue;
+      cell.classList.toggle('swap-selected', seat === s);
+    }
   }
   if (onlineEls.startBtn) {
     onlineEls.startBtn.addEventListener('click', async () => {
