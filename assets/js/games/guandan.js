@@ -3862,7 +3862,6 @@
     resumeForget: $('gdResumeForget'),
     lobby: $('gdLobby'),
     roomCode: $('gdRoomCode'),
-    roomQr: $('gdRoomQr'),
     seatTop: $('gdLobbySeatTop'),
     seatLeft: $('gdLobbySeatLeft'),
     seatRight: $('gdLobbySeatRight'),
@@ -4069,10 +4068,6 @@
     if (onlineEls.lobby) onlineEls.lobby.hidden = false;
     if (els.table) els.table.classList.add('gd-in-lobby');
     if (onlineEls.roomCode) onlineEls.roomCode.textContent = joinData.code;
-    if (window.GamesShell && GamesShell.QR && onlineEls.roomQr) {
-      try { GamesShell.QR.render(onlineEls.roomQr, location.origin + location.pathname + '?room=' + joinData.code); }
-      catch {}
-    }
     startOnlinePolling();
   }
 
@@ -4093,7 +4088,10 @@
     stopOnlinePolling();
     onlineSessionClear();
     onlineState = null;
-    if (onlineEls.lobby) onlineEls.lobby.hidden = true;
+    if (onlineEls.lobby) {
+      onlineEls.lobby.hidden = true;
+      onlineEls.lobby.classList.remove('starting');
+    }
     if (els.table) els.table.classList.remove('gd-in-lobby');
     if (els.pgo) els.pgo.classList.add('open');
     if (!silent) setOnlineHint('已离开房间');
@@ -4184,6 +4182,7 @@
     onlineState.lastVersion = srv.version || 0;
     onlineState.players = srv.players || [];
     onlineState.hostPlayerId = srv.hostPlayerId;
+    const wasState = onlineState.srvState;
     onlineState.srvState = srv.state;
     onlineState.firstLeader = (typeof srv.firstLeader === 'number') ? srv.firstLeader : null;
     const me = (srv.players || []).find(p => p.id === onlineState.playerId);
@@ -4197,6 +4196,21 @@
       return;
     }
     renderLobby(srv);
+    // 状态从 lobby → playing 的第一次跃迁：触发"我滑到 bottom-left"动画
+    if (wasState !== 'playing' && srv.state === 'playing' && !onlineState._startedTransition) {
+      onlineState._startedTransition = true;
+      triggerLobbyToGameTransition(srv);
+    }
+  }
+
+  // 房主点了开始游戏 → 服务端进入 playing → 触发"我"滑到 bottom-left 的过渡动画
+  // Phase 1：动画结束后 toast 告知抽签结果 + 留在 lobby（真正对局同步是 Phase 2）
+  function triggerLobbyToGameTransition(srv) {
+    if (!onlineEls.lobby) return;
+    onlineEls.lobby.classList.add('starting');
+    setTimeout(() => {
+      toast('🎲 抽签：座 ' + (srv.firstLeader + 1) + ' 首出（Phase 2 正式对局同步即将到来）');
+    }, 650);
   }
 
   // ---- lobby render ----

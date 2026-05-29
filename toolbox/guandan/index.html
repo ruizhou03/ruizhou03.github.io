@@ -727,12 +727,10 @@ permalink: /toolbox/guandan/
   /* lobby：进房后铺满 .gd-table 区域。画幅尺寸跟正常游戏保持一致：
        - 非全屏：继承 .guandan-wrap max-width: 880px
        - 全屏：继承 body.gd-game-fullscreen .gd-table { max-width: 1100px }
-     座位排布跟正常游戏完全对齐：partner top-center / opp left-mid / opp right-mid / me bottom-left（对应 .gd-self-bar）
+       - 高度：靠下面用 visibility:hidden 保留正常游戏的"手牌区"等占位，让 lobby 跟 PGO 同样高
+     座位排布跟正常游戏完全对齐：partner top-center / opp left-mid / opp right-mid / me 居中 bottom
+     游戏开始时 me 会滑到 bottom-left（对应 .gd-self-bar 位置）然后正式开打
      中央正中两个按钮：邀请好友 + 离开房间 */
-  .gd-table.gd-in-lobby {
-    /* 跟正常游戏差不多高，避免座位/按钮挤在一起 */
-    min-height: 500px;
-  }
   .gd-lobby {
     position: absolute;
     inset: 0;
@@ -798,12 +796,31 @@ permalink: /toolbox/guandan/
     right: 1.2rem;
     transform: translateY(-50%);
   }
-  /* 「我」在牌桌左下角（对齐 .gd-self-bar：left: 0.9rem; bottom: 4.4rem）。
-     正常游戏里"我"避开手牌区缩在左下；lobby 沿用同一位置保持视觉一致 */
+  /* 「我」在 lobby 期间居中 bottom（视觉舒展，对应仿欢乐斗地主的初始落位）；
+     点击"开始游戏"后会加 .gd-lobby.starting 触发 transition 滑到 bottom-left
+     （对齐 .gd-self-bar 的 left: 0.9rem; bottom: 4.4rem），再进入正式对局 */
   .gd-lobby-seat.at-bottom {
     bottom: 1.2rem;
-    left: 1.2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: left 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+                bottom 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .gd-lobby.starting .gd-lobby-seat.at-bottom {
+    left: 0.9rem;
+    bottom: 4.4rem;
     transform: none;
+  }
+  /* 开始游戏的过渡阶段：中央按钮 + 其他 3 个空座淡出，让"我"独占动画 */
+  .gd-lobby.starting .gd-lobby-center,
+  .gd-lobby.starting .gd-lobby-seat.at-top,
+  .gd-lobby.starting .gd-lobby-seat.at-left,
+  .gd-lobby.starting .gd-lobby-seat.at-right,
+  .gd-lobby.starting .gd-lobby-room-chip {
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+    pointer-events: none;
   }
   /* 大头像 */
   .gd-lobby-seat .avatar {
@@ -953,15 +970,21 @@ permalink: /toolbox/guandan/
     min-width: 8rem;
   }
 
-  /* lobby 显示期间，把 chip/手牌/操作行藏起来 */
-  .gd-table.gd-in-lobby .gd-levelbar-corner,
+  /* lobby 显示期间，把游戏 UI 藏起来 — 关键：
+       - 在文档流里的元素（gd-seats-top / gd-seats-mid / gd-myplay-row / gd-hand / gd-play-actions）
+         用 visibility:hidden 而不是 display:none，让 .gd-table 保留正常游戏的高度（不会塌成 360px）
+       - 绝对定位的（gd-levelbar-corner / gd-self-bar / gd-autopilot-chip / gd-sort-actions）
+         它们不占文档流空间，可以直接 display:none
+     这样 lobby 跟 PGO 模式的 .gd-table 高度一致，"画幅"不再变 */
   .gd-table.gd-in-lobby .gd-seats-top,
   .gd-table.gd-in-lobby .gd-seats-mid,
   .gd-table.gd-in-lobby .gd-myplay-row,
-  .gd-table.gd-in-lobby .gd-self-bar,
-  .gd-table.gd-in-lobby .gd-play-actions,
-  .gd-table.gd-in-lobby .gd-autopilot-chip,
   .gd-table.gd-in-lobby .gd-hand,
+  .gd-table.gd-in-lobby .gd-play-actions { visibility: hidden !important; }
+
+  .gd-table.gd-in-lobby .gd-levelbar-corner,
+  .gd-table.gd-in-lobby .gd-self-bar,
+  .gd-table.gd-in-lobby .gd-autopilot-chip,
   .gd-table.gd-in-lobby .gd-sort-actions { display: none !important; }
 
   /* 窄屏：座位往里收一点；头像缩小 */
@@ -1736,8 +1759,6 @@ permalink: /toolbox/guandan/
           <button class="gd-btn" id="gdLobbyLeaveBtn" type="button">🚪 离开房间</button>
         </div>
       </div>
-      <!-- QR 容器留着但默认 hidden，Phase 2 / 用户主动调出时再说 -->
-      <div class="gs-room-qr" id="gdRoomQr" hidden></div>
     </div>
 
     <!-- 恢复对局 -->
