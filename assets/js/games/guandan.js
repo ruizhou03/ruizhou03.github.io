@@ -4046,27 +4046,43 @@
       nick: nick,
       ts: Date.now(),
     });
+    // create 响应必带 config；join 不带。靠这个判断本人是不是房主，免去等第一轮轮询
+    const isCreate = !!(joinData && joinData.config);
     onlineState = {
       code: joinData.code,
       token: joinData.playerToken,
       playerId: joinData.playerId,
-      isHost: false,
-      mySeat: null,
+      isHost: isCreate,            // create 时本人就是房主
+      mySeat: isCreate ? 0 : null, // 创房默认占座 0；join 时未坐下
       lastVersion: 0,
       polling: false,
       pollAbort: null,
-      players: [],
+      // 创房时构造一个最小 srv 投影，使 renderLobby 能立刻画出"我已在 bottom + 三空座 + 加机器人"
+      players: isCreate ? [{
+        id: joinData.playerId,
+        seat: 0,
+        nick: nick,
+        isAi: false,
+        online: true,
+        isHost: true,
+      }] : [],
+      hostPlayerId: isCreate ? joinData.playerId : null,
+      config: (joinData && joinData.config) || null,
       srvState: 'lobby',
-      swapSelected: null,    // 房主"换座选择"中已选中的座位，null = 未选
-      swapPending: null,     // 第二次点击的目标座位（同时金边）
-      preStartRotation: false, // 开局动画期间打开 → 渲染按 mySeat → bottom 旋转
-      _animating: false,     // 动画期间，跳过 applyServerOnlineState 的 renderLobby 重绘
+      swapSelected: null,
+      swapPending: null,
+      preStartRotation: false,
+      _animating: false,
+      _swapPhase: null,        // null | 'animating' | 'holding'
+      _expectedVersion: 0,     // 乐观操作期望服端推到的最小 version
     };
     setOnlineHint('');
     if (els.pgo) els.pgo.classList.remove('open');
     if (onlineEls.lobby) onlineEls.lobby.hidden = false;
     if (els.table) els.table.classList.add('gd-in-lobby');
     if (onlineEls.roomCode) onlineEls.roomCode.textContent = joinData.code;
+    // 立刻渲染 lobby（避免"光画了房间号 + 两个按钮"的中间态闪一下）
+    renderLobbyOptimistic();
     startOnlinePolling();
   }
 
@@ -4084,6 +4100,7 @@
     if (opts.transferTo) body.transferTo = opts.transferTo;
     if (opts.dissolveOnLeave) body.dissolveOnLeave = true;
     try { await gdApi('leave', { body }); } catch {}
+    clearSwapTimers();
     stopOnlinePolling();
     onlineSessionClear();
     onlineState = null;
@@ -4188,9 +4205,22 @@
 
   function applyServerOnlineState(srv) {
     if (!srv || !onlineState) return;
+    // 防止"过期"的轮询响应回滚乐观状态：
+    // - 乐观操作后置 onlineState._expectedVersion = lastVersion + 1（"我期望服端 version 至少这么大"）
+    // - 在 POST 真的把 version 推到 _expectedVersion 之前，如果 in-flight 长轮询的 4s 超时先返回，
+    //   它会带回 OLD 状态（没有 AI），把刚 push 进 onlineState.players 的乐观 AI 抹掉
+    // - 现在 srv.version < expectedVersion 时直接忽略整条响应，等 POST 自己把状态推上来
+    const expV = onlineState._expectedVersion || 0;
+    const srvV = typeof srv.version === 'number' ? srv.version : 0;
+    if (srvV > 0 && expV > 0 && srvV < expV) return;
+    // 同一 version 重复推也不用做事
+    if (srvV > 0 && srvV < (onlineState.lastVersion || 0)) return;
+
     onlineState.lastVersion = srv.version || 0;
     onlineState.players = srv.players || [];
     onlineState.hostPlayerId = srv.hostPlayerId;
+    onlineState.config = srv.config;
+    if (srvV >= expV) onlineState._expectedVersion = 0;
     const wasState = onlineState.srvState;
     onlineState.srvState = srv.state;
     onlineState.firstLeader = (typeof srv.firstLeader === 'number') ? srv.firstLeader : null;
@@ -4198,6 +4228,11 @@
     if (me) {
       onlineState.isHost = !!me.isHost;
       onlineState.mySeat = (typeof me.seat === 'number') ? me.seat : null;
+    } else if (onlineState.playerId && srv.state !== 'dissolved') {
+      // 我在服端 projection 里没了 → 我被踢/移除了 → 强退房
+      toast('你已离开房间');
+      leaveRoom(true);
+      return;
     }
     if (srv.state === 'dissolved') {
       toast('房间已解散');
@@ -4208,7 +4243,8 @@
     // 但 DOM 里那两个 seat-inner 正在 FLIP transition 中——如果这里 renderLobby
     // 会清掉 innerHTML 重建，动画就被掐了。所以动画期间跳过重绘，等动画完成后由
     // sendSwapSeats / rotateLobbyToSouth 的回调里收尾再绘一次。
-    if (!onlineState._animating) renderLobby(srv);
+    // _swapPhase 在 swap 动画 → hold（金边保留）阶段也设置，同样跳过重绘。
+    if (!onlineState._animating && !onlineState._swapPhase) renderLobby(srv);
     // 状态从 lobby → playing 的第一次跃迁：触发"我滑到 bottom-left"动画
     if (wasState !== 'playing' && srv.state === 'playing' && !onlineState._startedTransition) {
       onlineState._startedTransition = true;
@@ -4529,11 +4565,16 @@
     });
   }
   // 应用乐观补丁 + 重绘；返回 snapshot（用于失败回滚）。
+  // 同时设置 _expectedVersion = lastVersion + 1：告诉 applyServerOnlineState"
+  // 在服端确认之前来的旧轮询响应都别覆盖我的乐观状态"。
   function applyOptimistic(patchFn) {
     if (!onlineState) return null;
     const snap = JSON.stringify(onlineState.players);
     try { patchFn(onlineState.players); } catch {}
+    onlineState._expectedVersion = (onlineState.lastVersion || 0) + 1;
     renderLobbyOptimistic();
+    // 同时立刻 pokePoll 中断 in-flight 长轮询，让它重发 → 4s timeout 触发不了"返回旧状态"
+    pokePoll();
     return snap;
   }
   function revertOptimistic(snap) {
@@ -4542,6 +4583,7 @@
     // 用 me 字段把 mySeat 也回滚
     const me = onlineState.players.find(p => p.id === onlineState.playerId);
     onlineState.mySeat = me && typeof me.seat === 'number' ? me.seat : null;
+    onlineState._expectedVersion = 0;  // 不再等乐观 version 推上来
     renderLobbyOptimistic();
   }
 
@@ -4602,9 +4644,22 @@
     if (!r.ok) toast(errText(r.error));
     else applyActionResult(r);
   }
+  // swap 的两阶段时间线：
+  //   T0 → T0+animMs       : '_swapPhase = animating'，FLIP transition 进行中，禁止新一轮 swap
+  //   T0+animMs → +HOLD_MS : '_swapPhase = holding'，金边保留 500ms 给用户反应
+  //                          这期间点别人头像 = 立刻清掉旧金边 + 开新一轮选中
+  //   T0+animMs+HOLD_MS    : 清 _swapPhase + swapSelected/Pending，重绘 lobby
+  // _animating 在整段 swap 期间都为 true，让 applyServerOnlineState 不要清 DOM
+  // （但 _swapPhase 也参与判断，两个变量加起来更直白）
+  const SWAP_HOLD_MS = 500;
+  function clearSwapTimers() {
+    if (!onlineState) return;
+    if (onlineState._swapAnimTimer) { clearTimeout(onlineState._swapAnimTimer); onlineState._swapAnimTimer = null; }
+    if (onlineState._swapHoldTimer) { clearTimeout(onlineState._swapHoldTimer); onlineState._swapHoldTimer = null; }
+  }
   async function sendSwapSeats(seatA, seatB) {
     if (!onlineState) return;
-    // ❶ 捕获 swap 前两个 inner 的可视 rect（FLIP 起点）
+    clearSwapTimers();
     const cellA = displayCellForSeat(seatA);
     const cellB = displayCellForSeat(seatB);
     const innerA = cellA && cellA.querySelector('.seat-inner');
@@ -4612,48 +4667,63 @@
     const oldRectA = innerA ? innerA.getBoundingClientRect() : null;
     const oldRectB = innerB ? innerB.getBoundingClientRect() : null;
 
-    // ❷ 乐观改 onlineState.players + 重绘 lobby（cellA 里现在装的是 player B，cellB 装 A）
-    //    动画期间标记 _animating，server 推来的状态只更新数据不重绘
     onlineState._animating = true;
+    onlineState._swapPhase = 'animating';
     const snap = applyOptimistic(players => {
       const a = players.find(p => p.seat === seatA);
       const b = players.find(p => p.seat === seatB);
       if (a && b) { a.seat = seatB; b.seat = seatA; }
     });
 
-    // ❸ FLIP：让 cellA 里的新内容从 oldRectB 起步滑到 cellA 当前位置，反之亦然
     const animMs = flipSwapAnimation(seatA, seatB, oldRectA, oldRectB) || 0;
 
-    // ❹ POST 同步去服务端（不挡动画）
+    // 动画结束 → 切到 hold 阶段；hold 结束 → 清金边 + 重绘
+    onlineState._swapAnimTimer = setTimeout(() => {
+      if (!onlineState) return;
+      onlineState._swapAnimTimer = null;
+      onlineState._swapPhase = 'holding';
+      onlineState._swapHoldTimer = setTimeout(() => {
+        if (!onlineState) return;
+        onlineState._swapHoldTimer = null;
+        onlineState._swapPhase = null;
+        onlineState._animating = false;
+        onlineState.swapSelected = null;
+        onlineState.swapPending = null;
+        renderLobbyOptimistic();
+      }, SWAP_HOLD_MS);
+    }, animMs);
+
     const r = await gdApi('swap_seats', { body: { code: onlineState.code, token: onlineState.token, seatA, seatB } });
     if (!r.ok) {
-      // 服务端拒绝 —— 取消动画 + 回滚（罕见，房间已解散等）
-      onlineState && (onlineState._animating = false);
+      // 罕见：服端拒绝（房间已解散等）→ 取消计时器 + 回滚 + 报错
+      if (onlineState) {
+        clearSwapTimers();
+        onlineState._swapPhase = null;
+        onlineState._animating = false;
+      }
       revertOptimistic(snap);
       toast(errText(r.error));
       return;
     }
-    // 成功：服务端 state 已被 applyActionResult 写进 onlineState.players（applyServerOnlineState
-    // 由于 _animating=true 不会清掉 DOM），等动画结束再统一重绘清金边
     applyActionResult(r);
-
-    setTimeout(() => {
-      if (!onlineState) return;
-      onlineState._animating = false;
-      onlineState.swapSelected = null;
-      onlineState.swapPending = null;
-      // 清掉 FLIP 残留的 inline transition
-      [innerA, innerB].forEach(inner => { if (inner) { inner.style.transition = ''; inner.style.transform = ''; }});
-      renderLobbyOptimistic();
-    }, animMs);
   }
   // 房主点已坐玩家头像：
   //   第一次点 → 该座金边
   //   同一座再点 → 取消
   //   点另一座 → 两座都金边（让"我要换的对象"也立刻反馈）+ 发 swap 请求
+  //   swap 动画完进入 hold 阶段（金边保留 500ms）期间再点 → 立刻清旧金边 + 新一轮选中
   function handleHostAvatarClick(seat) {
     if (!onlineState || !onlineState.isHost) return;
-    if (onlineState._animating) return;  // 动画中不允许新一轮 swap
+    // 动画阶段（avatar 飞行中）禁止打断
+    if (onlineState._swapPhase === 'animating') return;
+    // hold 阶段：用户点了别的 → 立刻取消金边自动消失，并作为新一轮选中起点
+    if (onlineState._swapPhase === 'holding') {
+      clearSwapTimers();
+      onlineState._swapPhase = null;
+      onlineState._animating = false;
+      onlineState.swapSelected = null;
+      onlineState.swapPending = null;
+    }
     const sel = onlineState.swapSelected;
     if (sel == null) {
       onlineState.swapSelected = seat;
@@ -4668,7 +4738,6 @@
       return;
     }
     onlineState.swapPending = seat;
-    // 立刻先点亮第二个头像（金边），再发 swap 请求；动画 + state 都在 sendSwapSeats 里收
     renderLobbyOptimistic();
     sendSwapSeats(sel, seat);
   }
