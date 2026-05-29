@@ -1,27 +1,21 @@
 #!/usr/bin/env node
-/* sim-doudizhu.js — 斗地主 AI 群体训练 + 锦标赛分级
+/* sim-doudizhu.js v2 — 斗地主 AI 群体训练 + 锦标赛分级（50 维 paired weights）
  *
- * 照搬 sim-guandan.js 的方法论：
- *   pop-gen  K 个独立 ES run × generations × popSize × matchesPerEval
- *            每个 run 保存 3 个快照（gen 0 / mid / final）→ 共 ~3K 候选
- *   tournament  群体内 round-robin × matchesPerPair；Elo + winsMatrix；
- *               读 population.json + DEFAULT_W 锚点
- *
- * 关键约定：
- *   - 直接 require live AI（assets/js/doudizhu/engine.js + ai.js），不重复实现牌型/AI
- *   - sim 内座 0 永远当地主、底分 1（handoff §4 Phase 2 简化）
- *   - 三档训练统一 chooseMove(level='hard')，差异 100% 来自 w（mctsSamples=6）
- *   - runMatches：对半 i%2==0 test 当地主 / i%2==1 test 当农民（两个座都用 test），
- *     吃掉地主-农民角色偏差
- *
- * 续跑：pop-gen 读 population.json 跳过已完成 runIdx；tournament 读 wins-matrix
- *      跳过已完成 pair。每 run / 每 20 pair 增量落盘。
+ * v2 vs v1 关键差别：
+ *   - 权重按 role 拆成 {landlord: w25, farmer: w25}（共 50 维）
+ *   - ES fitness 多目标：0.6×(vs center) + 0.4×(avg vs 上 3 个 run 的 final centroid)
+ *     → 鼓励 candidate 不只跟 center 比，还能赢 / 区分前面的 run
+ *     → 突破"所有强档落到同一个局部最优"的天花板
+ *   - ai.js 的 MCTS 已经升级到 2-ply（我打 → 对手压 → 我再应一手）
  *
  * 命令：
- *   node scripts/sim-doudizhu.js sanity
+ *   node scripts/sim-doudizhu.js sanity [N]
  *   node scripts/sim-doudizhu.js pop-gen [K] [generations] [popSize] [matchesPerEval] [startSigma]
  *   node scripts/sim-doudizhu.js tournament [matchesPerPair]
  *   node scripts/sim-doudizhu.js compare <test.json> [N] [baseline.json]
+ *
+ * JSON 格式（paired weights）：
+ *   { landlord: { counterPredictRate: 0.5, ... }, farmer: { ... } }
  */
 
 'use strict';
@@ -35,26 +29,22 @@ const AI = require(path.join(__dirname, '..', 'assets', 'js', 'doudizhu', 'ai.js
 // ===========================================================
 // 权重定义
 // ===========================================================
-const DEFAULT_W = Object.assign({}, AI._W_BASELINE);
+const DEFAULT_W_FLAT = Object.assign({}, AI._W_BASELINE);
+const DEFAULT_W = {
+  landlord: Object.assign({}, DEFAULT_W_FLAT),
+  farmer:   Object.assign({}, DEFAULT_W_FLAT),
+};
 
-const TUNE_KEYS = Object.keys(DEFAULT_W);   // 16 个
+const TUNE_KEYS = Object.keys(DEFAULT_W_FLAT);   // 25 个 per role × 2 = 50 实际维度
 
-// [0,1] 域字段（ES 扰动后要 clamp）
 const PROBABILITY_KEYS = new Set([
   'counterPredictRate', 'peasantCoopRate', 'bombSmartRate',
   'firstPlayLookAhead', 'randomActionRate',
   'randomBombFallbackRate',
 ]);
 
-// 整数阈值字段（用作展示；运行时 ai.js 自己 Math.round）
-const INTEGER_KEYS = new Set([
-  'peasantCoopPassMinHand', 'peasantTopPartnerThresh', 'peasantTopPartnerBombThresh',
-  'peasantMaxOnLandlordLowThresh', 'feedPartnerThresh', 'landlordFinishThresh',
-  'bombMyHandThresh', 'bombOppMinThresh',
-]);
-
 // ===========================================================
-// 工具
+// 高斯采样 / 扰动
 // ===========================================================
 function gaussianRandom() {
   let u = 0, v = 0;
@@ -63,50 +53,69 @@ function gaussianRandom() {
   return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 }
 
-function perturbWeights(center, sigma) {
+function perturbFlat(center, sigma) {
   const out = {};
   for (const k of TUNE_KEYS) {
     let v = center[k] * (1 + gaussianRandom() * sigma);
-    if (PROBABILITY_KEYS.has(k)) {
-      v = Math.max(0, Math.min(1, v));
-    } else {
-      // 防塌缩到 0（qhsBombBonus=0 会让炸弹完全失效之类）
-      if (v < 0.01) v = 0.01;
-    }
+    if (PROBABILITY_KEYS.has(k)) v = Math.max(0, Math.min(1, v));
+    else if (v < 0.01) v = 0.01;
     out[k] = v;
   }
   return out;
 }
 
+function perturbPaired(centerPaired, sigma) {
+  return {
+    landlord: perturbFlat(centerPaired.landlord, sigma),
+    farmer:   perturbFlat(centerPaired.farmer,   sigma),
+  };
+}
+
+function clonePaired(p) {
+  return {
+    landlord: Object.assign({}, p.landlord),
+    farmer:   Object.assign({}, p.farmer),
+  };
+}
+
+function meanPaired(arr) {
+  const result = { landlord: {}, farmer: {} };
+  for (const role of ['landlord', 'farmer']) {
+    for (const k of TUNE_KEYS) {
+      let sum = 0;
+      for (const p of arr) sum += p[role][k];
+      let v = sum / arr.length;
+      if (PROBABILITY_KEYS.has(k)) v = Math.max(0, Math.min(1, v));
+      result[role][k] = v;
+    }
+  }
+  return result;
+}
+
 // ===========================================================
-// 单局模拟
+// 单局模拟（paired weights）
 // ===========================================================
-// 发牌：54 张 → 17/17/17 + 3 底牌；座 0 永远当地主 = 拿前 17 + 3 = 20 张
 function dealRound(rng) {
   const deck = E.fullDeck();
   const shuffled = E.shuffle(deck.slice(), rng);
   return [
-    E.sortHand(shuffled.slice(0, 20)),     // 座 0 = 地主，20 张
-    E.sortHand(shuffled.slice(20, 37)),    // 座 1 = 农民甲，17 张
-    E.sortHand(shuffled.slice(37, 54)),    // 座 2 = 农民乙，17 张
+    E.sortHand(shuffled.slice(0, 20)),
+    E.sortHand(shuffled.slice(20, 37)),
+    E.sortHand(shuffled.slice(37, 54)),
   ];
 }
 
-// 跑一局；返回 { winner: 'landlord' | 'peasant' | 'timeout', iter }
-function simulateMatch({ weightsBySeat, rng = Math.random, maxIter = 400 }) {
+// pairedBySeat[seat] = { landlord: w25, farmer: w25 }；座 0 用 landlord 半边、座 1/2 用 farmer 半边
+function simulateMatch({ pairedBySeat, rng = Math.random, maxIter = 400 }) {
   const hands = dealRound(rng);
   const handSizes = [hands[0].length, hands[1].length, hands[2].length];
   const seen = new Array(15).fill(0);
   const trickHistory = [];
-
-  let currentSeat = 0;           // 地主先出
-  let prev = null;                // 当前要压的 pattern（null = 自己领出）
-  let lastTrickSeat = -1;         // 最后实际出牌的座
-  let passCount = 0;              // 连续过的次数
-  let iter = 0;
+  let currentSeat = 0, prev = null, lastTrickSeat = -1, passCount = 0, iter = 0;
 
   while (iter++ < maxIter) {
-    const w = weightsBySeat[currentSeat];
+    const paired = pairedBySeat[currentSeat];
+    const w = (currentSeat === 0) ? paired.landlord : paired.farmer;
     const ctx = {
       myIdx: currentSeat,
       myRole: currentSeat === 0 ? 'landlord' : 'peasant',
@@ -116,26 +125,17 @@ function simulateMatch({ weightsBySeat, rng = Math.random, maxIter = 400 }) {
       trickHistory: trickHistory.slice(-10),
       lastTrickSeat,
     };
-
-    // 让 AI 选 move。第 4 参数固定 'hard'（让 chooseMove 走 effectiveSamples=6 lookahead）
-    // 第 5 参数 w 是这一座位的训练候选权重
     const move = AI.chooseMove(hands[currentSeat], prev, ctx, 'hard', w);
 
     if (move == null) {
-      // 过
       passCount++;
       if (passCount >= 2 && lastTrickSeat >= 0) {
-        // 另外两家都过了 → lastTrickSeat 重新领出，prev=null
-        prev = null;
-        passCount = 0;
-        currentSeat = lastTrickSeat;
-        continue;
+        prev = null; passCount = 0; currentSeat = lastTrickSeat; continue;
       }
       currentSeat = (currentSeat + 1) % 3;
       continue;
     }
 
-    // 出牌：从手牌移除 move.cards，更新 seen
     for (const c of move.cards) {
       const idx = hands[currentSeat].indexOf(c);
       if (idx >= 0) hands[currentSeat].splice(idx, 1);
@@ -143,31 +143,20 @@ function simulateMatch({ weightsBySeat, rng = Math.random, maxIter = 400 }) {
     }
     handSizes[currentSeat] = hands[currentSeat].length;
     trickHistory.push({ seat: currentSeat, pattern: move });
-    prev = move;
-    lastTrickSeat = currentSeat;
-    passCount = 0;
+    prev = move; lastTrickSeat = currentSeat; passCount = 0;
 
-    // 出完了 → 胜负
     if (handSizes[currentSeat] === 0) {
-      const winner = (currentSeat === 0) ? 'landlord' : 'peasant';
-      return { winner, iter };
+      return { winner: currentSeat === 0 ? 'landlord' : 'peasant', iter };
     }
-
     currentSeat = (currentSeat + 1) % 3;
   }
-
-  // 死循环兜底
   return { winner: 'timeout', iter };
 }
 
 // ===========================================================
-// runMatches — 头对头评估
+// runMatches — paired in, paired out
 // ===========================================================
-// 每局 i % 2:
-//   == 0: test 当地主（座 0），baseline 当农民（座 1+2）
-//   == 1: baseline 当地主（座 0），test 当农民（座 1+2）
-// test 胜利 = 该局 test 所在阵营赢
-function runMatches(weightsTest, weightsBaseline, n, rng = Math.random) {
+function runMatches(testPaired, baselinePaired, n, rng = Math.random) {
   let testWins = 0, baselineWins = 0, timeoutCount = 0;
   let testLLWins = 0, testLLGames = 0;
   let testPSWins = 0, testPSGames = 0;
@@ -175,10 +164,10 @@ function runMatches(weightsTest, weightsBaseline, n, rng = Math.random) {
 
   for (let i = 0; i < n; i++) {
     const testIsLandlord = (i % 2 === 0);
-    const weightsBySeat = testIsLandlord
-      ? { 0: weightsTest,    1: weightsBaseline, 2: weightsBaseline }
-      : { 0: weightsBaseline, 1: weightsTest,    2: weightsTest };
-    const { winner, iter } = simulateMatch({ weightsBySeat, rng });
+    const pairedBySeat = testIsLandlord
+      ? { 0: testPaired,     1: baselinePaired, 2: baselinePaired }
+      : { 0: baselinePaired, 1: testPaired,     2: testPaired };
+    const { winner, iter } = simulateMatch({ pairedBySeat, rng });
     totalIter += iter;
     if (winner === 'timeout') { timeoutCount++; continue; }
     const testWon = testIsLandlord ? (winner === 'landlord') : (winner === 'peasant');
@@ -191,55 +180,67 @@ function runMatches(weightsTest, weightsBaseline, n, rng = Math.random) {
     if (testIsLandlord) testLLGames++; else testPSGames++;
   }
   return {
-    testWins, baselineWins, n,
-    timeoutCount,
+    testWins, baselineWins, n, timeoutCount,
     testLLWins, testLLGames, testPSWins, testPSGames,
     avgIter: totalIter / Math.max(1, n),
   };
 }
 
 // ===========================================================
-// ES 内核
+// ES 内核（多目标 fitness）
 // ===========================================================
 function runES({ startCenter, sigmaInit = 0.25, generations = 4, popSize = 16,
-                  matchesPerEval = 50, label = '' }) {
-  let center = Object.assign({}, startCenter);
+                  matchesPerEval = 50, label = '', priorCentroids = [] }) {
+  let center = clonePaired(startCenter);
   let sigma = sigmaInit;
   const centroids = [];
+
+  // 多目标权重
+  const STRENGTH_WEIGHT = 0.6;
+  const DIVERSITY_WEIGHT = 0.4;
+
   for (let gen = 0; gen < generations; gen++) {
     const pop = [];
-    for (let i = 0; i < popSize; i++) pop.push(perturbWeights(center, sigma));
+    for (let i = 0; i < popSize; i++) pop.push(perturbPaired(center, sigma));
 
     const results = [];
     const tStart = Date.now();
     for (let i = 0; i < pop.length; i++) {
-      const { testWins } = runMatches(pop[i], center, matchesPerEval);
-      const rate = testWins / matchesPerEval;
-      results.push({ cand: pop[i], rate });
+      // 强度信号：vs 当前 center
+      const { testWins: vsCenterWins } = runMatches(pop[i], center, matchesPerEval);
+      const vsCenter = vsCenterWins / matchesPerEval;
+
+      // 多样性信号：vs 上 3 个 run 的 final centroid（如果有）
+      let vsDiverse = vsCenter;   // 没历史时退化为 strength only
+      if (priorCentroids.length > 0) {
+        const recent = priorCentroids.slice(-3);
+        const shortMatches = Math.max(20, Math.floor(matchesPerEval / 4));
+        let sum = 0;
+        for (const prev of recent) {
+          sum += runMatches(pop[i], prev, shortMatches).testWins / shortMatches;
+        }
+        vsDiverse = sum / recent.length;
+      }
+
+      const fitness = STRENGTH_WEIGHT * vsCenter + DIVERSITY_WEIGHT * vsDiverse;
+      results.push({ cand: pop[i], fitness, vsCenter, vsDiverse });
       process.stdout.write('\r' + label + ' gen ' + gen + ' eval ' + (i + 1) +
-        '/' + popSize + ' rate=' + rate.toFixed(2) + '         ');
+        '/' + popSize + ' fit=' + fitness.toFixed(2) +
+        ' (str=' + vsCenter.toFixed(2) + ' div=' + vsDiverse.toFixed(2) + ')      ');
     }
     process.stdout.write('\n');
 
-    results.sort((a, b) => b.rate - a.rate);
+    results.sort((a, b) => b.fitness - a.fitness);
     const muSize = Math.max(2, Math.floor(popSize / 4));
     const top = results.slice(0, muSize);
-    const newCenter = Object.assign({}, center);
-    for (const k of TUNE_KEYS) {
-      let sum = 0;
-      for (const r of top) sum += r.cand[k];
-      newCenter[k] = sum / top.length;
-      if (PROBABILITY_KEYS.has(k)) {
-        newCenter[k] = Math.max(0, Math.min(1, newCenter[k]));
-      }
-    }
+    center = meanPaired(top.map(r => r.cand));
+
     sigma *= 0.78;
     const elapsed = ((Date.now() - tStart) / 1000).toFixed(0);
-    console.log(label + ' gen ' + gen + ' done (' + elapsed + 's): top rates [' +
-      top.slice(0, 5).map(r => r.rate.toFixed(2)).join(', ') +
+    console.log(label + ' gen ' + gen + ' done (' + elapsed + 's): top fitness [' +
+      top.slice(0, 5).map(r => r.fitness.toFixed(2)).join(', ') +
       ']; sigma → ' + sigma.toFixed(3));
-    center = newCenter;
-    centroids.push({ gen, center: Object.assign({}, center), topRate: top[0].rate });
+    centroids.push({ gen, center: clonePaired(center), topFitness: top[0].fitness });
   }
   return centroids;
 }
@@ -250,41 +251,49 @@ function runES({ startCenter, sigmaInit = 0.25, generations = 4, popSize = 16,
 function popGen({ K = 8, generations = 4, popSize = 16, matchesPerEval = 50, startSigma = 0.4 }) {
   const popPath = path.join(__dirname, 'sim-doudizhu-population.json');
 
-  // 续跑
   let population = [];
   let startK = 0;
   if (fs.existsSync(popPath)) {
     try {
       const existing = JSON.parse(fs.readFileSync(popPath, 'utf8'));
-      if (Array.isArray(existing) && existing.length > 0) {
+      if (Array.isArray(existing) && existing.length > 0 && existing[0].weights && existing[0].weights.landlord) {
         population = existing;
         startK = Math.max(...existing.map(e => e.runIdx || 0)) + 1;
         console.log('resuming from existing population.json (' +
           existing.length + ' entries, next runIdx=' + startK + ')');
+      } else if (Array.isArray(existing) && existing.length > 0) {
+        console.log('existing population.json is v1 flat format — starting fresh (will overwrite)');
       }
     } catch (e) { /* fresh */ }
   }
 
-  console.log('== pop-gen ==');
+  console.log('== pop-gen v2 (paired weights, multi-objective) ==');
   console.log('K=' + K + ' generations=' + generations + ' popSize=' + popSize +
     ' matchesPerEval=' + matchesPerEval + ' startSigma=' + startSigma);
-  console.log('TUNE_KEYS (' + TUNE_KEYS.length + '): ' + TUNE_KEYS.join(', '));
+  console.log('TUNE_KEYS per role (' + TUNE_KEYS.length + '): ' + TUNE_KEYS.length * 2 + ' total dim');
+
+  // 历史 final centroids 用于多样性信号
+  const priorCentroids = [];
+  for (const p of population) {
+    if (p.weights && p.weights.landlord && p.genSnapshot === (generations - 1)) {
+      priorCentroids.push(p.weights);
+    }
+  }
 
   const overallStart = Date.now();
   for (let k = startK; k < K; k++) {
-    // run k 起点：k=0 用 DEFAULT_W，其余在 DEFAULT_W 上加 startSigma 扰动
-    const startCenter = Object.assign({}, DEFAULT_W);
+    const startCenter = clonePaired(DEFAULT_W);
     if (k > 0) {
-      for (const key of TUNE_KEYS) {
-        let v = DEFAULT_W[key] * (1 + gaussianRandom() * startSigma);
-        if (PROBABILITY_KEYS.has(key)) v = Math.max(0, Math.min(1, v));
-        else if (v < 0.01) v = 0.01;
-        startCenter[key] = v;
-      }
+      // k>0 起点：landlord 和 farmer 半边独立扰动
+      startCenter.landlord = perturbFlat(DEFAULT_W.landlord, startSigma);
+      startCenter.farmer   = perturbFlat(DEFAULT_W.farmer,   startSigma);
     }
-    console.log('\n--- run ' + k + ' / ' + K + ' (start sigma=' + startSigma + ') ---');
-    const centroids = runES({ startCenter, sigmaInit: 0.25, generations, popSize,
-      matchesPerEval, label: 'run' + k });
+    console.log('\n--- run ' + k + ' / ' + K + ' (start sigma=' + startSigma +
+      ', priorCentroids=' + priorCentroids.length + ') ---');
+    const centroids = runES({
+      startCenter, sigmaInit: 0.25, generations, popSize, matchesPerEval,
+      label: 'run' + k, priorCentroids,
+    });
     const snapGens = Array.from(new Set([
       0,
       Math.floor((generations - 1) / 2),
@@ -295,14 +304,17 @@ function popGen({ K = 8, generations = 4, popSize = 16, matchesPerEval = 50, sta
         id: 'run' + k + '_gen' + g,
         runIdx: k,
         genSnapshot: g,
-        startCenter: Object.assign({}, startCenter),
-        weights: Object.assign({}, centroids[g].center),
+        startCenter: clonePaired(startCenter),
+        weights: clonePaired(centroids[g].center),
       });
     }
+    // 把这个 run 的 final centroid 加进历史，下一个 run 用它作多样性参考
+    priorCentroids.push(clonePaired(centroids[centroids.length - 1].center));
+
     fs.writeFileSync(popPath, JSON.stringify(population, null, 2));
     const elapsedMin = ((Date.now() - overallStart) / 1000 / 60).toFixed(1);
-    console.log('run ' + k + ' saved; population size = ' + population.length +
-      '; total elapsed ' + elapsedMin + ' min');
+    console.log('run ' + k + ' saved; pop size = ' + population.length +
+      '; elapsed ' + elapsedMin + ' min');
   }
   console.log('\n== pop-gen DONE; ' + population.length + ' candidates → ' + popPath + ' ==');
 }
@@ -320,14 +332,17 @@ function tournament({ matchesPerPair = 60 }) {
     process.exit(1);
   }
   const population = JSON.parse(fs.readFileSync(popPath, 'utf8'));
+  if (!population[0] || !population[0].weights || !population[0].weights.landlord) {
+    console.error('population.json is v1 flat format — rerun pop-gen first');
+    process.exit(1);
+  }
   const anchors = [
-    { id: 'DEFAULT_W', weights: Object.assign({}, DEFAULT_W) },
+    { id: 'DEFAULT_W', weights: clonePaired(DEFAULT_W) },
   ];
   const all = anchors.concat(population.map(p => ({ id: p.id, weights: p.weights })));
   const N = all.length;
   const numPairs = N * (N - 1) / 2;
 
-  // 续跑：读已有 wins-matrix，跳过已记录的 pair
   let winsMatrix = {};
   if (fs.existsSync(winsPath)) {
     try {
@@ -336,11 +351,9 @@ function tournament({ matchesPerPair = 60 }) {
     } catch (e) { winsMatrix = {}; }
   }
 
-  // Elo 重新从 1500 起算（用现存 winsMatrix 重放即可）
   const elo = new Map();
   for (const c of all) elo.set(c.id, 1500);
 
-  // 先重放历史
   let donePairs = 0;
   for (let i = 0; i < N; i++) {
     for (let j = i + 1; j < N; j++) {
@@ -350,15 +363,14 @@ function tournament({ matchesPerPair = 60 }) {
       if (typeof aWins === 'number' && typeof bWins === 'number' && (aWins + bWins) > 0) {
         const sa = aWins / (aWins + bWins);
         const ea = 1 / (1 + Math.pow(10, (elo.get(b.id) - elo.get(a.id)) / 400));
-        const K_ELO = 24;
-        elo.set(a.id, elo.get(a.id) + K_ELO * (sa - ea));
-        elo.set(b.id, elo.get(b.id) + K_ELO * ((1 - sa) - (1 - ea)));
+        elo.set(a.id, elo.get(a.id) + 24 * (sa - ea));
+        elo.set(b.id, elo.get(b.id) + 24 * ((1 - sa) - (1 - ea)));
         donePairs++;
       }
     }
   }
 
-  console.log('== tournament ==');
+  console.log('== tournament v2 ==');
   console.log('N=' + N + ' pairs=' + numPairs + ' matchesPerPair=' + matchesPerPair +
     ' (resumed ' + donePairs + ' pairs)');
 
@@ -370,9 +382,8 @@ function tournament({ matchesPerPair = 60 }) {
       const a = all[i], b = all[j];
       const exA = (winsMatrix[a.id] || {})[b.id];
       const exB = (winsMatrix[b.id] || {})[a.id];
-      if (typeof exA === 'number' && typeof exB === 'number' && (exA + exB) > 0) {
-        continue;
-      }
+      if (typeof exA === 'number' && typeof exB === 'number' && (exA + exB) > 0) continue;
+
       const r = runMatches(a.weights, b.weights, matchesPerPair);
       const aWins = r.testWins, bWins = r.baselineWins;
       winsMatrix[a.id] = winsMatrix[a.id] || {};
@@ -382,12 +393,10 @@ function tournament({ matchesPerPair = 60 }) {
 
       const sa = aWins / Math.max(1, aWins + bWins);
       const ea = 1 / (1 + Math.pow(10, (elo.get(b.id) - elo.get(a.id)) / 400));
-      const K_ELO = 24;
-      elo.set(a.id, elo.get(a.id) + K_ELO * (sa - ea));
-      elo.set(b.id, elo.get(b.id) + K_ELO * ((1 - sa) - (1 - ea)));
+      elo.set(a.id, elo.get(a.id) + 24 * (sa - ea));
+      elo.set(b.id, elo.get(b.id) + 24 * ((1 - sa) - (1 - ea)));
 
-      pairIdx++;
-      runSincePair++;
+      pairIdx++; runSincePair++;
       const elapsed = (Date.now() - tStart) / 1000;
       const eta = elapsed / Math.max(1, runSincePair) * (numPairs - pairIdx) / 60;
       process.stdout.write('\rpair ' + pairIdx + '/' + numPairs + ' ' +
@@ -414,8 +423,7 @@ function saveTournamentResults(all, elo, winsMatrix, final, rankPath, winsPath) 
     return {
       id: c.id,
       elo: elo.get(c.id),
-      totalWins,
-      totalGames,
+      totalWins, totalGames,
       winRate: totalGames > 0 ? totalWins / totalGames : 0,
       weights: c.weights,
     };
@@ -450,10 +458,21 @@ function sanity(n) {
 }
 
 function compare(testPath, baselinePath, n) {
-  const testW = Object.assign({}, DEFAULT_W, JSON.parse(fs.readFileSync(testPath, 'utf8')));
-  const baselineW = baselinePath
-    ? Object.assign({}, DEFAULT_W, JSON.parse(fs.readFileSync(baselinePath, 'utf8')))
-    : DEFAULT_W;
+  function loadPaired(p) {
+    const raw = JSON.parse(fs.readFileSync(p, 'utf8'));
+    if (raw.landlord && raw.farmer) {
+      // 已 paired
+      return {
+        landlord: Object.assign({}, DEFAULT_W.landlord, raw.landlord),
+        farmer:   Object.assign({}, DEFAULT_W.farmer,   raw.farmer),
+      };
+    }
+    // flat → 复制两边
+    const flat = Object.assign({}, DEFAULT_W_FLAT, raw);
+    return { landlord: Object.assign({}, flat), farmer: Object.assign({}, flat) };
+  }
+  const testW = loadPaired(testPath);
+  const baselineW = baselinePath ? loadPaired(baselinePath) : DEFAULT_W;
   console.log('compare test=' + testPath + ' vs ' + (baselinePath || 'DEFAULT_W') + ', n=' + n);
   const r = runMatches(testW, baselineW, n);
   const rate = r.testWins / r.n;
@@ -488,6 +507,5 @@ else if (cmd === 'compare') {
 }
 else {
   console.error('unknown cmd: ' + cmd);
-  console.error('usage: sanity | pop-gen [K] [gen] [pop] [matches] [sigma] | tournament [matchesPerPair] | compare <test.json> [N] [baseline.json]');
   process.exit(1);
 }
