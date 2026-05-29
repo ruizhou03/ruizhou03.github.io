@@ -4075,6 +4075,9 @@
       _animating: false,
       _swapPhase: null,        // null | 'animating' | 'holding'
       _expectedVersion: 0,     // 乐观操作期望服端推到的最小 version
+      _inFlightSeats: new Set(), // 这些 seat 上有 sit/add_ai/remove_ai 的 POST 还没回，
+                                 // 进来的 race 客户端先挡掉，避免两个 POST 在服端交错
+                                 // 触发 seat_taken / no_ai_at_seat 之类的怪态
     };
     setOnlineHint('');
     if (els.pgo) els.pgo.classList.remove('open');
@@ -4565,15 +4568,20 @@
     });
   }
   // 应用乐观补丁 + 重绘；返回 snapshot（用于失败回滚）。
-  // 同时设置 _expectedVersion = lastVersion + 1：告诉 applyServerOnlineState"
-  // 在服端确认之前来的旧轮询响应都别覆盖我的乐观状态"。
+  // _expectedVersion = "我期望服端 version 至少推到这里，比这早的轮询/POST 响应都别覆盖"
+  // 关键：连续多次乐观操作时必须**累积**地 +1，而不是每次都重置成 lastVersion+1：
+  //   反例：T=0 点 add 设 expV=V+1；T=50 点 remove 又设 expV=V+1（lastVersion 还是 V）；
+  //   POST add 先回（srvV=V+1=expV，不跳）→ 把"已乐观 remove 后的 players=[host]"覆盖回
+  //   [host, real_AI] → 用户看到刚删的 AI 又回来了。
+  //   正解：T=50 时 base 应该取 max(当前 expV, lastVersion)=V+1，再 +1 → expV=V+2，
+  //   POST add 响应 srvV=V+1 < V+2 → 跳过，等 POST remove 的 srvV=V+2 才真正应用。
   function applyOptimistic(patchFn) {
     if (!onlineState) return null;
     const snap = JSON.stringify(onlineState.players);
     try { patchFn(onlineState.players); } catch {}
-    onlineState._expectedVersion = (onlineState.lastVersion || 0) + 1;
+    const baseV = Math.max(onlineState._expectedVersion || 0, onlineState.lastVersion || 0);
+    onlineState._expectedVersion = baseV + 1;
     renderLobbyOptimistic();
-    // 同时立刻 pokePoll 中断 in-flight 长轮询，让它重发 → 4s timeout 触发不了"返回旧状态"
     pokePoll();
     return snap;
   }
@@ -4589,18 +4597,28 @@
 
   async function sendSit(seat) {
     if (!onlineState) return;
+    if (onlineState._inFlightSeats.has(seat)) return;
+    onlineState._inFlightSeats.add(seat);
     const snap = applyOptimistic(players => {
       const me = players.find(p => p.id === onlineState.playerId);
       if (me) me.seat = seat;
     });
     onlineState.mySeat = seat;
-    const r = await gdApi('sit', { body: { code: onlineState.code, token: onlineState.token, seat } });
-    if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
-    else applyActionResult(r);
+    try {
+      const r = await gdApi('sit', { body: { code: onlineState.code, token: onlineState.token, seat } });
+      if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
+      else applyActionResult(r);
+    } finally {
+      if (onlineState) onlineState._inFlightSeats.delete(seat);
+    }
   }
   async function sendAddAi(seat) {
     if (!onlineState) return;
-    // 乐观插入临时 AI：服务端响应回来会覆盖成真的 id + 真的 nick
+    // 同一座位有 POST 还在飞 → 第二次点击直接丢；
+    // 否则会出现 add+remove 交错触发的 race（POST add 后到 → 服端 srvV=V+1 把
+    // "已乐观 remove" 状态覆盖 → AI 看着像"删了又回来"）
+    if (onlineState._inFlightSeats.has(seat)) return;
+    onlineState._inFlightSeats.add(seat);
     const snap = applyOptimistic(players => {
       players.push({
         id: '_optimistic_ai_' + seat + '_' + (onlineState.lastVersion | 0),
@@ -4611,19 +4629,29 @@
         isHost: false,
       });
     });
-    const r = await gdApi('add_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
-    if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
-    else applyActionResult(r);
+    try {
+      const r = await gdApi('add_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
+      if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
+      else applyActionResult(r);
+    } finally {
+      if (onlineState) onlineState._inFlightSeats.delete(seat);
+    }
   }
   async function sendRemoveAi(seat) {
     if (!onlineState) return;
+    if (onlineState._inFlightSeats.has(seat)) return;
+    onlineState._inFlightSeats.add(seat);
     const snap = applyOptimistic(players => {
       const i = players.findIndex(p => p.seat === seat && p.isAi);
       if (i >= 0) players.splice(i, 1);
     });
-    const r = await gdApi('remove_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
-    if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
-    else applyActionResult(r);
+    try {
+      const r = await gdApi('remove_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
+      if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
+      else applyActionResult(r);
+    } finally {
+      if (onlineState) onlineState._inFlightSeats.delete(seat);
+    }
   }
   async function sendKick(targetPid) {
     if (!onlineState) return;
