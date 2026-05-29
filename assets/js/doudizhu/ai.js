@@ -64,12 +64,149 @@
     mctsLandlordLargeCounterBonus: 2.5,
     qhsBothKings: 8, qhsBigKing: 4, qhsSmallKing: 3,
     qhsTwoMult: 2, qhsBombBonus: 6, qhsAceMult: 1,
+    // 整数阈值（Phase 2.5 加，ES 用 float、运行时 Math.round）
+    peasantCoopPassMinHand: 2,             // L228: hand.length > N（默认 2）
+    peasantTopPartnerThresh: 4,            // L239: partnerHand <= N
+    peasantTopPartnerBombThresh: 4,        // L243: landlordHand <= N（炸地主条件）
+    peasantMaxOnLandlordLowThresh: 2,      // L255: landlordHand <= N
+    feedPartnerThresh: 4,                  // L298: partnerHand <= N
+    landlordFinishThresh: 3,               // L306: hand.length <= N
+    bombMyHandThresh: 6,                   // L277: myHand <= N
+    bombOppMinThresh: 3,                   // L278: oppMin <= N
+    randomBombFallbackRate: 0.10,          // L289: 未激活 smart 时甩炸概率
   };
+  // ============================================================
+  // 三档训练权重（2026-05-29）
+  //
+  // 来源：scripts/sim-doudizhu.js
+  //   pop-gen K=10 gen=5 popSize=20 matchesPerEval=200 startSigma=0.6（25 维空间）
+  //   30 候选 + DEFAULT_W 锚点 → 31-候选锦标赛（200 matches/pair）
+  //   1000-match h2h 验证：hard:normal 51%, hard:easy 64%, normal:easy 58%
+  //
+  // 三档风格速记（来自 25 个权重的差异化画像）：
+  //   hard   (run2_gen0, Elo 1521) — "炸地主威慑型"
+  //     bombMyHandThresh≈0 (永远不为减牌而炸)、qhsBigKing=6.2 / qhsTwoMult=4.3
+  //     高度看重大王/2/炸弹，关键时刻才出炸，常规出牌按 priority 表
+  //   normal (run4_gen4, Elo 1508) — "反协作 / 自私风格"
+  //     peasantCoopRate=0.00 (从不跟队友配合)、qhsBothKings=2.5 / qhsBombBonus=1.6
+  //     低估牌力，不为队友牺牲，但出牌井井有条
+  //   easy   (run9_gen2, Elo 1455) — "首出乱出 / 高协作"
+  //     firstPlayLookAhead=0.046 (lead 阶段几乎不用 priority 表 → 出牌偏随机)
+  //     peasantCoopRate=0.97 + bombMyHandThresh=8 (热心协作 + 早早就甩炸)
+  //
+  // master 档保留 _W_BASELINE，配 mctsSamples=30，是单独的"最强 AI"路径
+  // ============================================================
   const WEIGHTS_BY_DIFFICULTY = {
-    easy:   Object.assign({}, _W_BASELINE),
-    normal: Object.assign({}, _W_BASELINE),
-    hard:   Object.assign({}, _W_BASELINE),
-    master: Object.assign({}, _W_BASELINE),
+    easy: {
+      counterPredictRate: 0.4550,
+      peasantCoopRate: 0.9730,
+      bombSmartRate: 0.7890,
+      firstPlayLookAhead: 0.0465,
+      randomActionRate: 0.0234,
+      mctsHandShortPerCard: 1.5843,
+      mctsPartnerProgressMult: 0.0125,
+      mctsPartnerSmallCounterBonus: 2.1604,
+      mctsOppStrengthPenaltyMult: 0.7963,
+      mctsLandlordLargeCounterBonus: 1.8404,
+      qhsBothKings: 9.2497,
+      qhsBigKing: 2.2962,
+      qhsSmallKing: 4.6806,
+      qhsTwoMult: 1.0263,
+      qhsBombBonus: 1.0221,
+      qhsAceMult: 0.6466,
+      peasantCoopPassMinHand: 1.5111,
+      peasantTopPartnerThresh: 2.8309,
+      peasantTopPartnerBombThresh: 4.6824,
+      peasantMaxOnLandlordLowThresh: 2.7062,
+      feedPartnerThresh: 4.7135,
+      landlordFinishThresh: 3.0124,
+      bombMyHandThresh: 7.7957,
+      bombOppMinThresh: 1.2288,
+      randomBombFallbackRate: 0.0219,
+    },
+    normal: {
+      counterPredictRate: 0.2635,
+      peasantCoopRate: 0.0000,
+      bombSmartRate: 0.8860,
+      firstPlayLookAhead: 0.9397,
+      randomActionRate: 0.0337,
+      mctsHandShortPerCard: 0.8157,
+      mctsPartnerProgressMult: 0.9065,
+      mctsPartnerSmallCounterBonus: 0.9118,
+      mctsOppStrengthPenaltyMult: 0.3718,
+      mctsLandlordLargeCounterBonus: 1.3182,
+      qhsBothKings: 2.5175,
+      qhsBigKing: 1.0862,
+      qhsSmallKing: 4.5518,
+      qhsTwoMult: 2.9359,
+      qhsBombBonus: 1.6155,
+      qhsAceMult: 1.0768,
+      peasantCoopPassMinHand: 2.4842,
+      peasantTopPartnerThresh: 1.5525,
+      peasantTopPartnerBombThresh: 3.5458,
+      peasantMaxOnLandlordLowThresh: 0.6292,
+      feedPartnerThresh: 5.6727,
+      landlordFinishThresh: 4.2755,
+      bombMyHandThresh: 5.0855,
+      bombOppMinThresh: 0.9272,
+      randomBombFallbackRate: 0.1162,
+    },
+    hard: {
+      counterPredictRate: 0.5518,
+      peasantCoopRate: 0.7691,
+      bombSmartRate: 0.3097,
+      firstPlayLookAhead: 0.9885,
+      randomActionRate: 0.0058,
+      mctsHandShortPerCard: 0.8365,
+      mctsPartnerProgressMult: 1.1195,
+      mctsPartnerSmallCounterBonus: 0.1914,
+      mctsOppStrengthPenaltyMult: 0.2879,
+      mctsLandlordLargeCounterBonus: 2.7008,
+      qhsBothKings: 4.8921,
+      qhsBigKing: 6.2086,
+      qhsSmallKing: 2.5165,
+      qhsTwoMult: 4.2711,
+      qhsBombBonus: 6.5560,
+      qhsAceMult: 0.1064,
+      peasantCoopPassMinHand: 3.3986,
+      peasantTopPartnerThresh: 4.6587,
+      peasantTopPartnerBombThresh: 3.5449,
+      peasantMaxOnLandlordLowThresh: 3.5589,
+      feedPartnerThresh: 4.8851,
+      landlordFinishThresh: 3.4122,
+      bombMyHandThresh: 0.0100,
+      bombOppMinThresh: 3.8565,
+      randomBombFallbackRate: 0.0905,
+    },
+    // master 档：复用 hard 的训练权重 + LEVEL_PROFILES.master 的 30 samples（更深 lookahead）
+    // 这样 master 才真的是"hard + 多算几步"的严格升级版
+    master: {
+      counterPredictRate: 0.5518,
+      peasantCoopRate: 0.7691,
+      bombSmartRate: 0.3097,
+      firstPlayLookAhead: 0.9885,
+      randomActionRate: 0.0058,
+      mctsHandShortPerCard: 0.8365,
+      mctsPartnerProgressMult: 1.1195,
+      mctsPartnerSmallCounterBonus: 0.1914,
+      mctsOppStrengthPenaltyMult: 0.2879,
+      mctsLandlordLargeCounterBonus: 2.7008,
+      qhsBothKings: 4.8921,
+      qhsBigKing: 6.2086,
+      qhsSmallKing: 2.5165,
+      qhsTwoMult: 4.2711,
+      qhsBombBonus: 6.5560,
+      qhsAceMult: 0.1064,
+      peasantCoopPassMinHand: 3.3986,
+      peasantTopPartnerThresh: 4.6587,
+      peasantTopPartnerBombThresh: 3.5449,
+      peasantMaxOnLandlordLowThresh: 3.5589,
+      feedPartnerThresh: 4.8851,
+      landlordFinishThresh: 3.4122,
+      bombMyHandThresh: 0.0100,
+      bombOppMinThresh: 3.8565,
+      randomBombFallbackRate: 0.0905,
+    },
   };
 
   function aiWeights(level) {
@@ -225,7 +362,7 @@
     if (prev && usePeasantCoop && myRole === 'peasant'
         && ctx.lastTrickSeat === partnerIdx
         && ctx.lastTrickSeat !== landlordIdx) {
-      if (hand.length > 2 && landlordHand > 1) return null;
+      if (hand.length > Math.round(w.peasantCoopPassMinHand) && landlordHand > 1) return null;
     }
 
     if (!beats.length) return null;
@@ -234,13 +371,14 @@
     if (prev) {
       const nonBombs = beats.filter(p => p.type !== T.BOMB && p.type !== T.ROCKET);
 
-      // 农民协作规则 2：队友手牌 ≤ 4 且地主刚出 → 拼命顶住
+      // 农民协作规则 2：队友手牌 ≤ N 且地主刚出 → 拼命顶住
       if (usePeasantCoop && myRole === 'peasant'
-          && ctx.lastTrickSeat === landlordIdx && partnerHand <= 4) {
+          && ctx.lastTrickSeat === landlordIdx
+          && partnerHand <= Math.round(w.peasantTopPartnerThresh)) {
         if (nonBombs.length) {
           return nonBombs.reduce((b, p) => p.weight > b.weight ? p : b, nonBombs[0]);
         }
-        if (useBombSmart && landlordHand <= 4) {
+        if (useBombSmart && landlordHand <= Math.round(w.peasantTopPartnerBombThresh)) {
           const bombs = beats.filter(p => p.type === T.BOMB);
           if (bombs.length) return bombs[0];
           const rk = beats.find(p => p.type === T.ROCKET);
@@ -251,8 +389,8 @@
 
       // 普通跟牌：最便宜的非炸
       if (nonBombs.length) {
-        // 例外：地主已剩 ≤ 2 张 → 农民拼最大的
-        if (myRole === 'peasant' && landlordHand <= 2) {
+        // 例外：地主已剩 ≤ N 张 → 农民拼最大的
+        if (myRole === 'peasant' && landlordHand <= Math.round(w.peasantMaxOnLandlordLowThresh)) {
           return nonBombs.reduce((b, p) => p.weight > b.weight ? p : b, nonBombs[0]);
         }
         const candidate = nonBombs.reduce((b, p) => p.weight < b.weight ? p : b, nonBombs[0]);
@@ -274,10 +412,10 @@
       const myHand = hand.length;
       const oppMin = minOppHandSize(ctx);
       const shouldBomb = useBombSmart && (
-        myHand <= 6 ||
-        oppMin <= 3 ||
-        (myRole === 'peasant' && landlordHand <= 4) ||
-        (myRole === 'landlord' && oppMin <= 4)
+        myHand <= Math.round(w.bombMyHandThresh) ||
+        oppMin <= Math.round(w.bombOppMinThresh) ||
+        (myRole === 'peasant' && landlordHand <= Math.round(w.peasantTopPartnerBombThresh)) ||
+        (myRole === 'landlord' && oppMin <= Math.round(w.peasantTopPartnerBombThresh))
       );
       if (shouldBomb) {
         const bombs = beats.filter(p => p.type === T.BOMB);
@@ -285,8 +423,8 @@
         const rk = beats.find(p => p.type === T.ROCKET);
         if (rk) return rk;
       }
-      // bombSmart 未激活时偶尔仍然甩（10% — 模拟"乱炸"的新手）
-      if (!useBombSmart && Math.random() < 0.10) {
+      // bombSmart 未激活时偶尔仍然甩（默认 10% — 模拟"乱炸"的新手）
+      if (!useBombSmart && Math.random() < w.randomBombFallbackRate) {
         const bombs = beats.filter(p => p.type === T.BOMB);
         if (bombs.length) return bombs[0];
       }
@@ -294,16 +432,17 @@
     }
 
     // 首出阶段
-    // 农民协作规则 3：队友手牌 ≤ 4 → 主动喂小单
-    if (usePeasantCoop && myRole === 'peasant' && partnerHand <= 4) {
+    // 农民协作规则 3：队友手牌 ≤ N → 主动喂小单
+    if (usePeasantCoop && myRole === 'peasant'
+        && partnerHand <= Math.round(w.feedPartnerThresh)) {
       const singles = E.decomposeHand(hand).filter(p => p.type === T.SINGLE);
       if (singles.length) {
         return singles.reduce((b, p) => p.weight < b.weight ? p : b, singles[0]);
       }
     }
 
-    // 地主：手牌 ≤ 3 → 一手出完直接赢
-    if (myRole === 'landlord' && hand.length <= 3) {
+    // 地主：手牌 ≤ N → 一手出完直接赢
+    if (myRole === 'landlord' && hand.length <= Math.round(w.landlordFinishThresh)) {
       const plays = E.decomposeHand(hand);
       const winner = plays.find(p => p.cards.length === hand.length);
       if (winner) return winner;
