@@ -4164,6 +4164,9 @@
         toast(r.error === 'room_not_found' ? '房间已过期' : '会话失效');
         await leaveRoom(true);
         break;
+      } else if (r.error === 'aborted') {
+        // 主动 abort：刚发了一次操作，立刻发新长轮询拉最新状态，不睡 1.5s
+        continue;
       } else {
         await new Promise(rs => setTimeout(rs, 1500));
       }
@@ -4174,6 +4177,13 @@
     if (onlineState) {
       onlineState.polling = false;
       if (onlineState.pollAbort) try { onlineState.pollAbort.abort(); } catch {}
+    }
+  }
+  // 操作成功后调一下：中断当前 4s 长轮询，立刻发新一轮，把刚改的状态拉回来。
+  // 不动 polling 标志，循环会自然进下一圈（aborted 分支跳过 1.5s 退避）。
+  function pokePoll() {
+    if (onlineState && onlineState.pollAbort) {
+      try { onlineState.pollAbort.abort(); } catch {}
     }
   }
 
@@ -4203,28 +4213,40 @@
     }
   }
 
-  // 房主点了开始游戏 → 服务端进入 playing → 触发"我"滑到 bottom-left 的过渡动画
-  // Phase 1：动画结束后 toast 告知抽签结果 + 留在 lobby（真正对局同步是 Phase 2）
+  // 房主点了开始游戏 → 服务端进入 playing → 直接开本地单机对局
+  //   Phase 1 没有真正的多人对局同步，每个人各自开 3 AI 的本地局；
+  //   去掉了原本的"我滑到 bottom-left"动画——既然每个人允许坐到任何位置，
+  //   把所有人都推到左下角的过渡反而违反直觉。
   function triggerLobbyToGameTransition(srv) {
-    if (!onlineEls.lobby) return;
-    onlineEls.lobby.classList.add('starting');
-    setTimeout(() => {
-      toast('🎲 抽签：座 ' + (srv.firstLeader + 1) + ' 首出（Phase 2 正式对局同步即将到来）');
-    }, 650);
+    const lvl = (srv && srv.config && srv.config.aiLevel) || state.aiLevel;
+    stopOnlinePolling();
+    onlineSessionClear();
+    onlineState = null;
+    if (onlineEls.lobby) {
+      onlineEls.lobby.hidden = true;
+      onlineEls.lobby.classList.remove('starting');
+    }
+    if (els.table) els.table.classList.remove('gd-in-lobby');
+    if (els.pgo) els.pgo.classList.remove('open');
+    if (['easy','normal','hard'].includes(lvl)) {
+      state.aiLevel = lvl;
+      try { syncPgoDiff(); } catch {}
+      try { persist(); } catch {}
+    }
+    startMatch();
   }
 
   // ---- lobby render ----
   function escGdHtml(s) {
     return String(s).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c]);
   }
-  // 4 个座位绕"我"旋转：我永远在 bottom；其余顺时针排到 right/top/left
-  //   server seat S → display pos = (S - mySeat + 4) % 4
-  //   0=bottom, 1=right, 2=top, 3=left
-  // 我未坐下时，mySeat 视为 0（默认 server 0 在 bottom）
+  // 4 个座位固定映射，让每个人都看到自己当前真实坐的位置——避免点了别处又被
+  // 视觉拉回 bottom 的错觉：
+  //   server seat 0 → bottom, 1 → right, 2 → top, 3 → left
+  // 队伍颜色按奇偶分队（同奇偶 = 同队）：mySeat 已知时跟随；未坐下时按"0/2 同队"默认。
   // AI 头像 emoji 按 server seat 区分；真人头像统一 😊（图四里其他真人是默认蓝头像）
   const LOBBY_POSITIONS = ['bottom', 'right', 'top', 'left'];
   const LOBBY_AI_ICONS = ['🤖', '🦊', '🤝', '🐱'];
-  const LOBBY_TEAM_CLASS = ['team-you', 'team-opp', 'team-you', 'team-opp'];
 
   function renderLobby(srv) {
     if (!onlineEls.seatBottom) return;
@@ -4245,12 +4267,13 @@
       posEls[k].innerHTML = '';
       posEls[k].className = 'gd-lobby-seat at-' + k;
     }
-    const mySeat = (typeof onlineState.mySeat === 'number') ? onlineState.mySeat : 0;
+    const mySeat = (typeof onlineState.mySeat === 'number') ? onlineState.mySeat : null;
+    const myParity = (mySeat == null) ? 0 : (mySeat % 2);
     let seatedCount = 0;
     for (let s = 0; s < 4; s++) {
-      const pos = LOBBY_POSITIONS[(s - mySeat + 4) % 4];
+      const pos = LOBBY_POSITIONS[s];
       const cell = posEls[pos];
-      cell.classList.add(LOBBY_TEAM_CLASS[s]);
+      cell.classList.add((s % 2 === myParity) ? 'team-you' : 'team-opp');
       const p = seatedMap[s];
       if (!p) {
         // 空座：大灰头像 + "坐下"，点击落座
@@ -4371,39 +4394,46 @@
     if (!onlineState) return;
     const r = await gdApi('sit', { body: { code: onlineState.code, token: onlineState.token, seat } });
     if (!r.ok) toast(errText(r.error));
+    else pokePoll();
   }
   async function sendStand() {
     if (!onlineState) return;
     const r = await gdApi('stand', { body: { code: onlineState.code, token: onlineState.token } });
     if (!r.ok) toast(errText(r.error));
+    else pokePoll();
   }
   async function sendAddAi(seat) {
     if (!onlineState) return;
     const r = await gdApi('add_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
     if (!r.ok) toast(errText(r.error));
+    else pokePoll();
   }
   async function sendRemoveAi(seat) {
     if (!onlineState) return;
     const r = await gdApi('remove_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
     if (!r.ok) toast(errText(r.error));
+    else pokePoll();
   }
   async function sendKick(targetPid) {
     if (!onlineState) return;
     if (!confirm('确认踢出这位玩家？')) return;
     const r = await gdApi('kick', { body: { code: onlineState.code, token: onlineState.token, targetPid } });
     if (!r.ok) toast(errText(r.error));
+    else pokePoll();
   }
   async function sendTransferHost(targetPid) {
     if (!onlineState) return;
     if (!confirm('确认把房主让给这位玩家？')) return;
     const r = await gdApi('transfer_host', { body: { code: onlineState.code, token: onlineState.token, targetPid } });
     if (!r.ok) toast(errText(r.error));
+    else pokePoll();
   }
   if (onlineEls.startBtn) {
     onlineEls.startBtn.addEventListener('click', async () => {
       if (!onlineState || !onlineState.isHost) return;
       const r = await gdApi('start', { body: { code: onlineState.code, token: onlineState.token } });
       if (!r.ok) toast(errText(r.error));
+      else pokePoll();
     });
   }
   if (onlineEls.copyCodeBtn) {
