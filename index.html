@@ -423,6 +423,17 @@
       .hero-name { font-size: 2rem; }
     }
   </style>
+  <script>
+    // 主题持久化：在 <body> 渲染前同步读取 localStorage，避免闪烁（与中文站一致）
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t === 'dark' || t === 'light') {
+          document.documentElement.setAttribute('data-theme', t);
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
 
@@ -1014,26 +1025,21 @@
       link.addEventListener('click', () => { document.querySelector('.nav-links').classList.remove('open'); });
     });
 
-    // Theme toggle: cycles system → dark → light → system
+    // Theme toggle: cycles system → dark → light → system (matches Chinese site)
     function toggleTheme() {
       const root = document.documentElement;
       const current = root.getAttribute('data-theme');
-      const btn = document.querySelector('.theme-toggle');
-      if (!current) {
-        // system → forced dark
-        root.setAttribute('data-theme', 'dark');
-        btn.innerHTML = '&#9790;'; // moon
-        btn.title = 'Switch to light mode';
-      } else if (current === 'dark') {
-        // forced dark → forced light
-        root.setAttribute('data-theme', 'light');
-        btn.innerHTML = '&#9728;'; // sun
-        btn.title = 'Switch to auto (system)';
+      let next;
+      if (!current) { next = 'dark'; }
+      else if (current === 'dark') { next = 'light'; }
+      else { next = null; }
+
+      if (next) {
+        root.setAttribute('data-theme', next);
+        try { localStorage.setItem('theme', next); } catch (e) {}
       } else {
-        // forced light → system
         root.removeAttribute('data-theme');
-        btn.innerHTML = '&#9683;'; // half circle = auto
-        btn.title = 'Switch to dark mode';
+        try { localStorage.removeItem('theme'); } catch (e) {}
       }
     }
 
@@ -1052,12 +1058,6 @@
           document.querySelector('.nav-toggle').classList.remove('active');
         });
       });
-    // Set initial icon based on system preference
-    (function() {
-      const btn = document.querySelector('.theme-toggle');
-      btn.innerHTML = '&#9683;'; // half circle = auto (following system)
-      btn.title = 'Switch to dark mode';
-    })();
   </script>
 
   <script>
