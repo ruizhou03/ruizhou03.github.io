@@ -45,6 +45,37 @@
     master: { counterPredictRate: 1.0,  peasantCoopRate: 1.0,  bombSmartRate: 1.0,  firstPlayLookAhead: 1.0,  randomActionRate: 0,    mctsSamples: 30, noiseSigma: 0    },
   };
 
+  // ============================================================
+  // WEIGHTS_BY_DIFFICULTY — 三档可训练权重（共 16 个）
+  // Phase 1 阶段三档全填同一份 baseline（=当前 hard 的值），保证重构
+  // 没引入行为变化；Phase 5 训练完替换为 ES + 锦标赛选出的三套不同向量。
+  //
+  // 5 个规则触发概率（A 类，[0,1]）：从 LEVEL_PROFILES 拆出来，由本表替代
+  // 5 个 MCTS evalOnePly 系数（B 类，浮点）：原本硬编码在 evalOnePly
+  // 6 个 quickHandStrength 系数（C 类，浮点）：原本硬编码在 quickHandStrength
+  //
+  // 不在表里的：LEVEL_PROFILES.{mctsSamples, noiseSigma} 是结构性字段，不训练
+  // ============================================================
+  const _W_BASELINE = {
+    counterPredictRate: 0.82, peasantCoopRate: 0.80, bombSmartRate: 0.85,
+    firstPlayLookAhead: 0.95, randomActionRate: 0.02,
+    mctsHandShortPerCard: 2.0, mctsPartnerProgressMult: 0.8,
+    mctsPartnerSmallCounterBonus: 1.5, mctsOppStrengthPenaltyMult: 0.5,
+    mctsLandlordLargeCounterBonus: 2.5,
+    qhsBothKings: 8, qhsBigKing: 4, qhsSmallKing: 3,
+    qhsTwoMult: 2, qhsBombBonus: 6, qhsAceMult: 1,
+  };
+  const WEIGHTS_BY_DIFFICULTY = {
+    easy:   Object.assign({}, _W_BASELINE),
+    normal: Object.assign({}, _W_BASELINE),
+    hard:   Object.assign({}, _W_BASELINE),
+    master: Object.assign({}, _W_BASELINE),
+  };
+
+  function aiWeights(level) {
+    return WEIGHTS_BY_DIFFICULTY[level] || WEIGHTS_BY_DIFFICULTY.normal;
+  }
+
   // 高斯采样 + 钳位的功能激活骰子
   function rollFeature(rate, sigma) {
     if (rate >= 1.0 && (!sigma || sigma <= 0)) return true;
@@ -161,9 +192,9 @@
   // ============================================================
   // 主决策：所有难度走这个；profile 控制每条规则的激活概率
   // ============================================================
-  function chooseUnified(hand, prev, ctx, profile) {
+  function chooseUnified(hand, prev, ctx, profile, w) {
     // 0. "走神"：完全随机（主要给 easy 用，模拟新手的非理性行为）
-    if (Math.random() < profile.randomActionRate) {
+    if (Math.random() < w.randomActionRate) {
       if (!prev) {
         const plays = E.decomposeHand(hand);
         return plays[Math.floor(Math.random() * plays.length)];
@@ -176,10 +207,10 @@
     }
 
     // 1. 本轮每个功能各掷一次骰子 — 是否激活
-    const useCounter      = rollFeature(profile.counterPredictRate, profile.noiseSigma);
-    const usePeasantCoop  = rollFeature(profile.peasantCoopRate,    profile.noiseSigma);
-    const useBombSmart    = rollFeature(profile.bombSmartRate,      profile.noiseSigma);
-    const useFirstPriority = rollFeature(profile.firstPlayLookAhead, profile.noiseSigma);
+    const useCounter      = rollFeature(w.counterPredictRate, profile.noiseSigma);
+    const usePeasantCoop  = rollFeature(w.peasantCoopRate,    profile.noiseSigma);
+    const useBombSmart    = rollFeature(w.bombSmartRate,      profile.noiseSigma);
+    const useFirstPriority = rollFeature(w.firstPlayLookAhead, profile.noiseSigma);
 
     const myRole = ctx.myRole;
     const landlordIdx = ctx.landlordIdx;
@@ -320,16 +351,17 @@
   }
 
   // 简单牌力评估（与 evaluateHand 同口径，仅用于 MCTS 相对比较）
-  function quickHandStrength(weightArray) {
+  function quickHandStrength(weightArray, w) {
+    const ww = w || _W_BASELINE;
     let s = 0;
     const hist = new Array(15).fill(0);
-    for (const w of weightArray) hist[w]++;
-    if (hist[13] && hist[14]) s += 8;
-    else if (hist[14]) s += 4;
-    else if (hist[13]) s += 3;
-    s += (hist[12] || 0) * 2;
-    for (let w = 0; w < 13; w++) if (hist[w] >= 4) s += 6;
-    s += (hist[11] || 0) * 1;
+    for (const x of weightArray) hist[x]++;
+    if (hist[13] && hist[14]) s += ww.qhsBothKings;
+    else if (hist[14]) s += ww.qhsBigKing;
+    else if (hist[13]) s += ww.qhsSmallKing;
+    s += (hist[12] || 0) * ww.qhsTwoMult;
+    for (let k = 0; k < 13; k++) if (hist[k] >= 4) s += ww.qhsBombBonus;
+    s += (hist[11] || 0) * ww.qhsAceMult;
     return s;
   }
 
@@ -387,13 +419,14 @@
   //   对队友：手牌越少越好（接近赢牌）；用小牌接我的牌更好（大牌留着）
   //   对真对手：剩余手牌强度越低越好
   // 这样 MCTS 才不会"破坏队友协作"。
-  function evalOnePly(myMove, myHandIds, oppHandsWeights, ctx) {
+  function evalOnePly(myMove, myHandIds, oppHandsWeights, ctx, w) {
+    const ww = w || _W_BASELINE;
     const myHandWeights = myHandIds.map(c => E.cardWeight(c));
     const myAfter = consumeForPattern(myHandWeights, myMove);
-    let score = quickHandStrength(myAfter);
+    let score = quickHandStrength(myAfter, ww);
 
     // 我自己手牌越少越接近赢，加额外鼓励
-    if (myAfter.length <= 4) score += (5 - myAfter.length) * 2;
+    if (myAfter.length <= 4) score += (5 - myAfter.length) * ww.mctsHandShortPerCard;
 
     const iAmPeasant = (ctx.myRole === 'peasant');
 
@@ -416,23 +449,23 @@
 
       if (iAmPeasant && !seatIsLandlord) {
         // 这是我的农民队友 — 鼓励队友的进展
-        score += (17 - oppAfter.length) * 0.8;
+        score += (17 - oppAfter.length) * ww.mctsPartnerProgressMult;
         // 队友用小牌接我的牌（大牌还留着）— 好事
-        if (counter && counterWeight < 11) score += 1.5;
+        if (counter && counterWeight < 11) score += ww.mctsPartnerSmallCounterBonus;
       } else {
         // 真正的对手
-        score -= quickHandStrength(oppAfter) * 0.5;
+        score -= quickHandStrength(oppAfter, ww) * ww.mctsOppStrengthPenaltyMult;
         // 我是农民、地主被迫用大牌反压 — 大好事
         if (iAmPeasant && seatIsLandlord && counter && counterWeight >= 11) {
-          score += 2.5;
+          score += ww.mctsLandlordLargeCounterBonus;
         }
       }
     }
     return score;
   }
 
-  function mctsLite(hand, prev, ctx, profile, baselineMove) {
-    if (!prev || profile.mctsSamples <= 0) return baselineMove;
+  function mctsLite(hand, prev, ctx, profile, w, samples, baselineMove) {
+    if (!prev || samples <= 0) return baselineMove;
     const beats = E.enumerateBeats(hand, prev);
     if (beats.length < 2) return baselineMove;
 
@@ -450,12 +483,12 @@
 
     const scores = new Array(candArr.length).fill(0);
     let validSamples = 0;
-    for (let s = 0; s < profile.mctsSamples; s++) {
+    for (let s = 0; s < samples; s++) {
       const oppHands = sampleOpponentHandsWeights(ctx, hand);
       if (!oppHands) continue;
       validSamples++;
       for (let i = 0; i < candArr.length; i++) {
-        scores[i] += evalOnePly(candArr[i], hand, oppHands, ctx);
+        scores[i] += evalOnePly(candArr[i], hand, oppHands, ctx, w);
       }
     }
     if (validSamples === 0) return baselineMove;
@@ -470,11 +503,16 @@
   // ============================================================
   // 总入口
   // ============================================================
-  function chooseMove(hand, prev, ctx, level) {
+  function chooseMove(hand, prev, ctx, level, wOverride) {
     const profile = LEVEL_PROFILES[level] || LEVEL_PROFILES.normal;
-    const baseline = chooseUnified(hand, prev, ctx, profile);
-    if (profile.mctsSamples > 0 && baseline) {
-      const refined = mctsLite(hand, prev, ctx, profile, baseline);
+    const w = wOverride || aiWeights(level);
+    // Phase 1 设计：三档（easy/normal/hard）统一 mctsSamples=6，差异 100% 来自
+    // 权重；master 档保留 30 samples 不进训练。所有差异化策略画像通过 w 表达。
+    const effectiveSamples = (level === 'master') ? profile.mctsSamples : 6;
+
+    const baseline = chooseUnified(hand, prev, ctx, profile, w);
+    if (effectiveSamples > 0 && baseline) {
+      const refined = mctsLite(hand, prev, ctx, profile, w, effectiveSamples, baseline);
       return refined || baseline;
     }
     return baseline;
@@ -517,6 +555,7 @@
     evaluateHand, bid,
     remainingByWeight, minBeaterIn,
     PLAY_PRIORITY, LEVEL_PROFILES,
+    WEIGHTS_BY_DIFFICULTY, aiWeights, _W_BASELINE,
   };
 
   if (typeof window !== 'undefined') window.DDZAI = api;
