@@ -183,17 +183,18 @@ permalink: /toolbox/pet-food/
     padding: 0 0.55rem; font: inherit; font-size: 0.88rem;
     cursor: pointer; outline: none;
   }
-  .entry-form .mode-toggle {
+  /* Pill segmented control — used in the entry form AND inside modals. */
+  .mode-toggle {
     display: inline-flex; gap: 0; border: 1px solid var(--color-border); border-radius: 999px; overflow: hidden;
   }
-  .entry-form .mode-toggle label {
+  .mode-toggle label {
     display: inline-flex; align-items: center;
     font-size: 0.85rem; padding: 0.45rem 0.9rem;
     cursor: pointer; color: var(--color-muted);
-    transition: all 0.18s;
+    transition: all 0.18s; white-space: nowrap;
   }
-  .entry-form .mode-toggle input { display: none; }
-  .entry-form .mode-toggle label.active { background: var(--color-accent); color: #fff; }
+  .mode-toggle input { display: none; }
+  .mode-toggle label.active { background: var(--color-accent); color: #fff; }
   .entry-form .save-btn {
     font: inherit; font-size: 0.95rem; font-weight: 600;
     padding: 0.7rem 1.4rem; border: none; border-radius: 999px;
@@ -266,13 +267,26 @@ permalink: /toolbox/pet-food/
   .extra-eq { font-size: 0.9rem; color: var(--color-accent); font-variant-numeric: tabular-nums; }
 
   .entry-form .form-aux-row {
-    display: flex; gap: 1rem; margin-top: 0.7rem; flex-wrap: wrap; align-items: center;
+    display: flex; gap: 0.8rem; margin-top: 0.9rem; flex-wrap: wrap; align-items: center;
   }
   .entry-form .link-btn {
     border: none; background: none; padding: 0; cursor: pointer;
     font: inherit; font-size: 0.83rem; color: var(--color-accent);
   }
   @media (hover: hover) { .entry-form .link-btn:hover { text-decoration: underline; } }
+  /* "记录时间" pill — clearly a tappable control set to 现在 by default. */
+  .entry-form .time-pill {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    padding: 0.45rem 0.9rem; border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); cursor: pointer; font: inherit; font-size: 0.86rem;
+    color: var(--color-muted); transition: border-color 0.18s;
+  }
+  .entry-form .time-pill .tp-lbl { color: var(--color-muted); }
+  .entry-form .time-pill .tp-val { color: var(--color-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .entry-form .time-pill .tp-edit { color: var(--color-light); font-size: 0.82rem; }
+  .entry-form .time-pill.custom { border-color: var(--color-accent); background: var(--color-bg-warm); }
+  .entry-form .time-pill.custom .tp-val { color: var(--color-accent); }
+  @media (hover: hover) { .entry-form .time-pill:hover { border-color: var(--color-accent); } }
 
   /* Time-picker modal + food modal fields */
   .tp-fields { display: flex; gap: 0.8rem; }
@@ -283,7 +297,9 @@ permalink: /toolbox/pet-food/
     background: var(--color-bg); color: var(--color-ink); outline: none; box-sizing: border-box;
   }
   #time-picker-modal input:focus { border-color: var(--color-accent); }
-  .mode-toggle.fm-measure { display: inline-flex; }
+  /* Segmented controls inside the food modal stretch to full width, two halves. */
+  #food-modal .mode-toggle { display: flex; width: 100%; }
+  #food-modal .mode-toggle label { flex: 1; justify-content: center; }
   #food-modal .emoji-pick { display: flex; flex-wrap: wrap; gap: 0.35rem; }
   #food-modal .emoji-pick button {
     font-size: 1.15rem; line-height: 1; padding: 0.3rem 0.45rem; cursor: pointer;
@@ -1019,7 +1035,12 @@ permalink: /toolbox/pet-food/
         <span class="extra-eq" id="extra-eq">≈ — g 等效干粮</span>
       </div>
       <div class="form-aux-row">
-        <button type="button" class="link-btn" id="time-toggle">🕑 现在</button>
+        <button type="button" class="time-pill" id="time-toggle">
+          <span class="tp-ico">🕑</span>
+          <span class="tp-lbl">记录时间</span>
+          <span class="tp-val" id="time-val">现在</span>
+          <span class="tp-edit">✎</span>
+        </button>
         <button type="button" class="link-btn" id="time-now" style="display:none;">改回现在</button>
       </div>
     </div>
@@ -1936,6 +1957,7 @@ permalink: /toolbox/pet-food/
   const $extraEqRow = document.getElementById('extra-eq-row');
   const $extraEq = document.getElementById('extra-eq');
   const $timeToggle = document.getElementById('time-toggle');
+  const $timeVal = document.getElementById('time-val');
   const $timeNow = document.getElementById('time-now');
 
   // Time-picker modal
@@ -3613,10 +3635,12 @@ permalink: /toolbox/pet-food/
   function setPendingEntryTs(ts) {
     pendingEntryTs = ts || null;
     if (pendingEntryTs) {
-      $timeToggle.textContent = '🕑 ' + fmtDateTime(pendingEntryTs);
+      $timeVal.textContent = shortMD(isoDate(pendingEntryTs)) + ' ' + fmtTime(pendingEntryTs);
+      $timeToggle.classList.add('custom');
       $timeNow.style.display = '';
     } else {
-      $timeToggle.textContent = '🕑 现在';
+      $timeVal.textContent = '现在';
+      $timeToggle.classList.remove('custom');
       $timeNow.style.display = 'none';
     }
   }
