@@ -979,9 +979,16 @@
     if (isJoker(c)) {
       cls += ' is-joker ' + (jokerKind(c) === 'big' ? 'joker-big' : 'joker-small');
     } else {
-      const red = (cardSuit(c) === 1 || cardSuit(c) === 2);
+      // 出牌区可让逢人配画成它顶替的牌（opts.repRank/repSuit）；颜色按"显示出来的"花色走
+      const dSuit = (opts.repSuit != null) ? opts.repSuit : cardSuit(c);
+      const red = (dSuit === 1 || dSuit === 2);
       cls += red ? ' suit-red' : ' suit-black';
-      if (level && isWild(c, level)) cls += ' is-wild';
+      if (level && isWild(c, level)) {
+        cls += ' is-wild';
+        if (opts.repRank != null) cls += ' is-wild-sub';   // 顶替展示 → 淡金底，仍带"配"标
+      } else if (level && RANK_LABELS[cardRankIdx(c)] === level) {
+        cls += ' is-level';                                 // 普通级牌 → 金"级"角标
+      }
     }
     el.className = cls;
     if (opts.cid != null) el.dataset.cid = opts.cid;
@@ -1007,8 +1014,10 @@
       pip.appendChild(txt); pip.appendChild(icon);
       el.appendChild(pip);
     } else {
-      const rkLabel = RANK_LABELS[cardRankIdx(c)];
-      const suLabel = SUIT_LABELS[cardSuit(c)];
+      const rankIdx = (opts.repRank != null) ? opts.repRank : cardRankIdx(c);
+      const suitIdx = (opts.repSuit != null) ? opts.repSuit : cardSuit(c);
+      const rkLabel = RANK_LABELS[rankIdx];
+      const suLabel = SUIT_LABELS[suitIdx];
       for (const pos of ['tl', 'br']) {
         const corner = document.createElement('span');
         corner.className = 'corner ' + pos;
@@ -1219,10 +1228,14 @@
       const row = document.createElement('div');
       row.className = 'gd-played-row';
       if (trib) row.classList.add('gd-tribute-row');
-      // 进/还贡只有一张，跳过 sortDisplayCards 直接走原顺序
-      const sorted = trib ? lp.cards.slice() : sortDisplayCards(lp.cards, lp.type, level);
+      // 进/还贡只有一张，跳过排序直接走原顺序；其余按牌型展示，逢人配画成它顶替的牌
+      const descriptors = trib
+        ? lp.cards.slice().map(c => ({ c, repRank: null, repSuit: null }))
+        : comboDisplay(lp.cards, lp.type, level);
       // 别人出的牌跟我的手牌一样大（用 size-full）—— 用户反馈现在的太小
-      for (const c of sorted) row.appendChild(buildCardEl(c, 'size-full', level));
+      for (const d of descriptors) {
+        row.appendChild(buildCardEl(d.c, 'size-full', level, { repRank: d.repRank, repSuit: d.repSuit }));
+      }
       if (trib) {
         const lab = document.createElement('span');
         lab.className = 'gd-tribute-tag tribute-' + (trib === '进' ? 'give' : 'return');
@@ -1299,28 +1312,27 @@
     return arr;
   }
 
-  // 顺子/同花顺/三连对/钢板：识别 wild 顶替的顺子位置，按 slot 排序
-  function sortRunLike(cards, type, level) {
+  // 顺子点(1..14) → rank label。p=1 是 A 当头(A2345)，p=14 是 A 收尾。
+  function pointToRankLabel(p) { return p === 1 ? 'A' : RANK_LABELS[p - 2]; }
+
+  // 顺子族布局：返回 [{c, point}]，point = 该牌在顺子里占的点(1..14)。
+  // 真牌取自然点；wild 补到空位 → point = 空位点。出牌区据此把 wild 画成它顶替的牌。
+  function runLayout(cards, type, level) {
     const reals = cards.filter(c => !isJoker(c) && !isWild(c, level));
     const wilds = cards.filter(c => isJoker(c) || isWild(c, level));
     const per = (type === T.STRAIGHT || type === T.STR_FLUSH) ? 1
               : (type === T.PAIR_STR) ? 2
               : (type === T.TRIPLE_STR) ? 3 : 1;
     const groups = cards.length / per;
-    // 每个 rank 真牌张数 → 这一 rank 占多少张顺子点
-    const realByPoint = new Map(); // 顺子点(2..14) → real cards[]
+    const realByPoint = new Map();
     for (const c of reals) {
       const p = cardRankIdx(c) + 2;
       if (!realByPoint.has(p)) realByPoint.set(p, []);
       realByPoint.get(p).push(c);
     }
-    const hasAceLow = realByPoint.has(14);
-    // 搜索 start：每个 group 位置 s..s+groups-1 都满足 per-张需求（含 wild 顶替）
-    // 选最高的可行 start（与 classify/genMoves 的最大 key 偏好一致）
     let bestStart = -1;
     for (let s = 1; s + groups - 1 <= 14; s++) {
-      let need = 0;
-      let ok = true;
+      let need = 0, ok = true;
       for (let k = 0; k < groups; k++) {
         const p = s + k;
         const realPt = (p === 1) ? 14 : p;
@@ -1332,29 +1344,91 @@
     }
     if (bestStart < 0) {
       // 兜底：按自然位置排序
-      return cards.slice().sort((a, b) => {
-        const pa = straightPos(a, cards, level);
-        const pb = straightPos(b, cards, level);
+      const arr = cards.slice().sort((a, b) => {
+        const pa = straightPos(a, cards, level), pb = straightPos(b, cards, level);
         if (pa !== pb) return pa - pb;
         return cardSuit(a) - cardSuit(b);
       });
+      return arr.map(c => ({ c, point: straightPos(c, cards, level) }));
     }
-    // 按 slot 顺序拼装：slot p 取真牌（最多 per 张），不足用 wild 补
     const wildsLeft = wilds.slice();
-    const result = [];
+    const out = [];
     for (let k = 0; k < groups; k++) {
       const p = bestStart + k;
       const realPt = (p === 1) ? 14 : p;
       const realsHere = (realByPoint.get(realPt) || []).slice().sort((a, b) => cardSuit(a) - cardSuit(b));
-      for (const c of realsHere) result.push(c);
+      for (const c of realsHere) out.push({ c, point: p });
       const missing = per - realsHere.length;
       for (let m = 0; m < missing; m++) {
-        if (wildsLeft.length) result.push(wildsLeft.shift());
+        if (wildsLeft.length) out.push({ c: wildsLeft.shift(), point: p });
       }
     }
-    // 若有残余 wild（理论上不应发生），追加在末尾
-    result.push(...wildsLeft);
-    return result;
+    for (const c of wildsLeft) out.push({ c, point: null });   // 理论上不应发生
+    return out;
+  }
+
+  // 顺子/同花顺/三连对/钢板：识别 wild 顶替的顺子位置，按 slot 排序
+  function sortRunLike(cards, type, level) {
+    return runLayout(cards, type, level).map(x => x.c);
+  }
+  // 三带二展示布局：返回 [{c, rank}]，rank = 该牌所属的点（三张组 / 对子）。
+  // 复用 sortTriplePair 的顺序，并标出每张 wild 顶替的是三张组还是对子。
+  function triplePairDisplay(cards, level) {
+    const ordered = sortTriplePair(cards, level);
+    const cnt = new Map();
+    for (const c of cards) {
+      if (isJoker(c) || isWild(c, level)) continue;
+      const r = cardRankIdx(c); cnt.set(r, (cnt.get(r) || 0) + 1);
+    }
+    let tripleRank = null;
+    for (const [r, n] of cnt) if (n === 3) { tripleRank = r; break; }
+    if (tripleRank == null) {
+      const twos = [...cnt.entries()].filter(([, n]) => n === 2).map(([r]) => r);
+      twos.sort((a, b) => rankIdxWeight(b, level) - rankIdxWeight(a, level));
+      tripleRank = twos[0] != null ? twos[0] : [...cnt.keys()][0];
+    }
+    let pairRank = null;
+    for (const r of cnt.keys()) if (r !== tripleRank) { pairRank = r; break; }
+    const needTripleWild = Math.max(0, 3 - (cnt.get(tripleRank) || 0));
+    let wildSeen = 0;
+    return ordered.map(c => {
+      if (isWild(c, level)) {
+        const tgt = (wildSeen < needTripleWild) ? tripleRank : pairRank;
+        wildSeen++;
+        if (tgt != null && tgt !== cardRankIdx(c)) return { c, repRank: tgt, repSuit: 1 };
+      }
+      return { c, repRank: null, repSuit: null };
+    });
+  }
+
+  // 出牌区展示：返回有序 [{c, repRank, repSuit}]。逢人配(红桃级牌)在组合里会被画成
+  // 它实际顶替的那张牌（点数 + 花色：顺子保留♥、同花顺用该花色），仍带"配"标，
+  // 让人一眼读懂牌型、也明白这手为什么 valid。repRank=null 表示按本来面目画。
+  function comboDisplay(cards, type, level) {
+    if (type === T.STRAIGHT || type === T.STR_FLUSH || type === T.PAIR_STR || type === T.TRIPLE_STR) {
+      let flushSuit = 1;
+      if (type === T.STR_FLUSH) {
+        const anyReal = cards.find(c => !isJoker(c) && !isWild(c, level));
+        if (anyReal != null) flushSuit = cardSuit(anyReal);
+      }
+      return runLayout(cards, type, level).map(({ c, point }) => {
+        if (isWild(c, level) && point != null) {
+          return { c, repRank: RANK_LABELS.indexOf(pointToRankLabel(point)), repSuit: flushSuit };
+        }
+        return { c, repRank: null, repSuit: null };
+      });
+    }
+    if (type === T.TRIPLE_PAIR) return triplePairDisplay(cards, level);
+    // 单/对/三/炸：同点组合，wild 顶该点（全 wild 时是真级牌对，不顶替）
+    const ordered = sortDisplayCards(cards, type, level);
+    const anyReal = cards.find(c => !isJoker(c) && !isWild(c, level));
+    const rank = anyReal != null ? cardRankIdx(anyReal) : null;
+    return ordered.map(c => {
+      if (isWild(c, level) && rank != null && rank !== cardRankIdx(c)) {
+        return { c, repRank: rank, repSuit: 1 };
+      }
+      return { c, repRank: null, repSuit: null };
+    });
   }
 
   function renderAll() {

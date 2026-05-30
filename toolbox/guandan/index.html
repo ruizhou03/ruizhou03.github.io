@@ -331,6 +331,19 @@ permalink: /toolbox/guandan/
     font-size: 8px; color: var(--gd-accent-strong); font-weight: 700;
     background: rgba(255,255,255,0.7); border-radius: 3px; padding: 0 1px;
   }
+  /* 普通级牌（当前级别、非红桃逢人配）：右上角金色「级」小角标。
+     跟"配"同位、互斥（一张牌要么逢人配、要么普通级牌），一眼看出它抬到 A 之上。 */
+  .gd-card.is-level::after {
+    content: '级'; position: absolute; top: 2px; right: 3px;
+    font-size: 8px; color: var(--gd-accent-strong); font-weight: 700;
+    background: rgba(255,255,255,0.7); border-radius: 3px; padding: 0 1px;
+  }
+  /* 逢人配在出牌区被画成它顶替的牌时：淡金底提示"这是万能牌顶上来的"，仍保留"配"标 */
+  .gd-card.is-wild-sub {
+    background:
+      linear-gradient(160deg, rgba(201,169,110,0.30) 0%, rgba(201,169,110,0.14) 100%),
+      linear-gradient(160deg, var(--gd-card-bg) 0%, var(--gd-card-bg-2) 100%);
+  }
   .gd-card-back {
     display: inline-block;
     width: var(--gd-card-mini-w); height: var(--gd-card-mini-h);
