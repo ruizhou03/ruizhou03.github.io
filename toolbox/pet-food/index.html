@@ -162,22 +162,34 @@ permalink: /toolbox/pet-food/
     border: 1px solid var(--color-border); border-radius: 12px;
     padding: 1rem; margin-bottom: 1rem;
   }
-  /* Single input line (capped so it isn't a giant bar on wide screens),
-     then a tidy actions row (toggle | save). */
-  .entry-form .reading-group {
-    display: flex; align-items: stretch; max-width: 440px;
+  /* Compact entry form: input + toggle + save share one row; bowl & time
+     pills share the next row. Left-packed (no space-between gaps). */
+  .entry-form .entry-main-row {
+    display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+  }
+  .entry-form .entry-main-row .reading-group { flex: 1 1 180px; max-width: 320px; }
+  @media (max-width: 520px) {
+    /* input takes its own row; toggle + save pair on the next row */
+    .entry-form .entry-main-row .reading-group { flex-basis: 100%; max-width: none; }
+  }
+  .entry-form .entry-meta-row {
+    display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.7rem;
+  }
+  /* Shared by the food input AND the weight input. */
+  .reading-group {
+    display: flex; align-items: stretch;
     border: 1px solid var(--color-border); border-radius: 10px;
     background: var(--color-bg); overflow: hidden;
   }
-  .entry-form .reading-group:focus-within { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-soft, rgba(139,111,71,0.12)); }
-  .entry-form input.reading {
+  .reading-group:focus-within { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-soft, rgba(139,111,71,0.12)); }
+  .reading-group input.reading {
     flex: 1; min-width: 0;
-    padding: 0.85rem 0.95rem;
-    font: inherit; font-size: 1.15rem; color: var(--color-ink);
+    padding: 0.8rem 0.95rem;
+    font: inherit; font-size: 1.1rem; color: var(--color-ink);
     border: none; background: transparent;
     font-variant-numeric: tabular-nums; outline: none;
   }
-  .entry-form select.unit-pick {
+  .reading-group select.unit-pick {
     border: none; border-left: 1px solid var(--color-border);
     background: var(--color-bg-warm); color: var(--color-ink);
     padding: 0 1.9rem 0 0.75rem; font: inherit; font-size: 0.9rem; font-weight: 500;
@@ -186,20 +198,13 @@ permalink: /toolbox/pet-food/
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23999' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 0.7rem center;
   }
-  .entry-form .unit-suffix {
+  .reading-group .unit-suffix {
     display: inline-flex; align-items: center; padding: 0 0.95rem;
     border-left: 1px solid var(--color-border); background: var(--color-bg-warm);
     font-size: 0.92rem; color: var(--color-muted); white-space: nowrap; font-weight: 500;
   }
-  .entry-form .entry-actions {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 0.7rem; margin-top: 0.7rem; flex-wrap: wrap;
-  }
-  .entry-form .entry-actions .mode-toggle { flex: 0 1 auto; }
-  .entry-form .entry-actions .save-btn { flex: 0 0 auto; }
-  @media (max-width: 460px) {
-    .entry-form .entry-actions .save-btn { flex: 1 1 100%; }
-  }
+  .entry-form .entry-main-row .mode-toggle { flex: 0 0 auto; }
+  .entry-form .entry-main-row .save-btn { flex: 0 0 auto; }
   /* Pill segmented control — used in the entry form AND inside modals. */
   .mode-toggle {
     display: inline-flex; gap: 0; border: 1px solid var(--color-border); border-radius: 999px; overflow: hidden;
@@ -229,7 +234,7 @@ permalink: /toolbox/pet-food/
   .entry-form .bowl-row {
     display: inline-flex; align-items: center; gap: 0.55rem;
     width: fit-content; max-width: 100%;
-    margin-top: 0.8rem; padding: 0.5rem 0.7rem;
+    padding: 0.5rem 0.7rem;
     background: var(--color-bg-warm); border-radius: 999px;
     font-size: 0.86rem; color: var(--color-ink);
     transition: opacity 0.18s;
@@ -497,7 +502,7 @@ permalink: /toolbox/pet-food/
   .weight-box .weight-input-row {
     display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
   }
-  .weight-box .reading-group.weight-reading { max-width: 300px; flex: 1 1 200px; }
+  .weight-box .reading-group.weight-reading { flex: 0 1 220px; }
   .weight-box .save-btn {
     font: inherit; font-size: 0.98rem; font-weight: 600; min-height: 44px;
     padding: 0.7rem 1.4rem; border: none; border-radius: 999px;
@@ -513,7 +518,7 @@ permalink: /toolbox/pet-food/
   .weight-chart-wrap { position: relative; margin-top: 0.9rem; }
   .weight-chart-wrap svg { width: 100%; height: auto; display: block; overflow: visible; }
   .weight-empty {
-    text-align: center; color: var(--color-light); font-size: 0.86rem; padding: 1.6rem 1rem;
+    text-align: center; color: var(--color-light); font-size: 0.84rem; padding: 0.9rem 1rem 0.3rem;
   }
   .weight-list { margin-top: 0.6rem; }
   .weight-list:empty { display: none; }
@@ -1090,37 +1095,37 @@ permalink: /toolbox/pet-food/
 
     <div class="entry-form">
       <div class="food-selector" id="food-selector"></div>
-      <div class="reading-group">
-        <input type="number" class="reading" id="reading" step="any" placeholder="粮食称重" inputmode="decimal" />
-        <select class="unit-pick" id="unit-pick">
-          <option value="g">g</option>
-          <option value="kg">kg</option>
-          <option value="oz">oz</option>
-          <option value="lb">lb</option>
-        </select>
-        <span class="unit-suffix" id="unit-suffix" style="display:none;">份</span>
-      </div>
-      <div class="entry-actions">
+      <div class="entry-main-row">
+        <div class="reading-group">
+          <input type="number" class="reading" id="reading" step="any" placeholder="粮食称重" inputmode="decimal" />
+          <select class="unit-pick" id="unit-pick">
+            <option value="g">g</option>
+            <option value="kg">kg</option>
+            <option value="oz">oz</option>
+            <option value="lb">lb</option>
+          </select>
+          <span class="unit-suffix" id="unit-suffix" style="display:none;">份</span>
+        </div>
         <div class="mode-toggle" id="mode-toggle">
           <label data-val="1" class="active"><input type="radio" name="with-bowl" value="1" checked>含碗</label>
           <label data-val="0"><input type="radio" name="with-bowl" value="0">不含碗</label>
         </div>
         <button type="button" class="save-btn" id="save-entry">📝 记一笔</button>
       </div>
-      <div class="bowl-row" id="bowl-row">
-        <span>碗的空重</span>
-        <input type="number" id="bowl-weight" step="any" min="0" placeholder="未设" inputmode="decimal" />
-        <select id="bowl-weight-unit">
-          <option value="g">g</option>
-          <option value="kg">kg</option>
-          <option value="oz">oz</option>
-          <option value="lb">lb</option>
-        </select>
-      </div>
       <div class="extra-eq-row" id="extra-eq-row" style="display:none;">
         <span class="extra-eq" id="extra-eq">≈ — g 等效干粮</span>
       </div>
-      <div class="form-aux-row">
+      <div class="entry-meta-row">
+        <div class="bowl-row" id="bowl-row">
+          <span>碗的空重</span>
+          <input type="number" id="bowl-weight" step="any" min="0" placeholder="未设" inputmode="decimal" />
+          <select id="bowl-weight-unit">
+            <option value="g">g</option>
+            <option value="kg">kg</option>
+            <option value="oz">oz</option>
+            <option value="lb">lb</option>
+          </select>
+        </div>
         <button type="button" class="time-pill" id="time-toggle">
           <span class="tp-ico">🕑</span>
           <span class="tp-lbl">记录时间</span>
