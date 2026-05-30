@@ -186,7 +186,7 @@ permalink: /toolbox/pet-food/
     flex: 1; min-width: 0;
     padding: 0.8rem 0.95rem;
     font: inherit; font-size: 1.1rem; color: var(--color-ink);
-    border: none; background: transparent;
+    border: none; background: transparent; text-align: center;
     font-variant-numeric: tabular-nums; outline: none;
   }
   .reading-group select.unit-pick {
@@ -205,18 +205,25 @@ permalink: /toolbox/pet-food/
   }
   .entry-form .entry-main-row .mode-toggle { flex: 0 0 auto; }
   .entry-form .entry-main-row .save-btn { flex: 0 0 auto; }
-  /* Pill segmented control — used in the entry form AND inside modals. */
+  /* App-grade segmented control (iOS-style: track + inset thumb), centered text.
+     Used in the entry form AND inside modals. */
   .mode-toggle {
-    display: inline-flex; gap: 0; border: 1px solid var(--color-border); border-radius: 999px; overflow: hidden;
+    display: inline-flex; gap: 3px; padding: 3px;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg-warm);
   }
   .mode-toggle label {
-    display: inline-flex; align-items: center;
-    font-size: 0.85rem; padding: 0.45rem 0.9rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.86rem; padding: 0.42rem 1rem; border-radius: 999px;
     cursor: pointer; color: var(--color-muted);
     transition: all 0.18s; white-space: nowrap;
   }
   .mode-toggle input { display: none; }
-  .mode-toggle label.active { background: var(--color-accent); color: #fff; }
+  .mode-toggle label.active {
+    background: var(--color-accent); color: #fff; font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  }
+  @media (hover: hover) { .mode-toggle label:not(.active):hover { color: var(--color-ink); } }
   .entry-form .save-btn {
     font: inherit; font-size: 0.98rem; font-weight: 600;
     padding: 0.7rem 1.6rem; border: none; border-radius: 999px;
@@ -245,7 +252,7 @@ permalink: /toolbox/pet-food/
     width: 84px; padding: 0.45rem 0.6rem;
     border: 1px solid var(--color-border); border-radius: 8px;
     background: var(--color-bg); color: var(--color-ink);
-    font: inherit; font-size: 0.95rem;
+    font: inherit; font-size: 0.95rem; text-align: center;
     outline: none; font-variant-numeric: tabular-nums;
     transition: all 0.18s;
   }
@@ -571,6 +578,13 @@ permalink: /toolbox/pet-food/
   .tc-badge.active   { color: #8b5a3c; background: rgba(139,90,60,0.12); }
   .tc-badge.approved { color: #4a7c59; background: rgba(74,124,89,0.12); }
   .tc-badge.rejected { color: #b07c75; background: rgba(176,124,117,0.14); }
+  .tc-badge.act-badge { color: var(--color-muted); background: var(--color-bg-warm); }
+  .inbox-sec-title {
+    font-size: 0.8rem; font-weight: 600; color: var(--color-muted);
+    margin: 0.5rem 0 0.5rem; padding-top: 0.3rem;
+  }
+  .inbox-sec-title:first-child { margin-top: 0; padding-top: 0; }
+  .tc-item.act-item { background: var(--color-bg-warm); }
   .tc-actions { display: flex; gap: 0.5rem; margin-top: 0.55rem; }
   .tc-actions button {
     font: inherit; font-size: 0.82rem; padding: 0.35rem 0.85rem;
@@ -1302,11 +1316,11 @@ permalink: /toolbox/pet-food/
         <button type="button" class="estimator-apply" id="pm-rec-apply" disabled>↑ 套用</button>
       </div>
 
-      <div class="sub-section">干粮热量密度</div>
+      <div class="sub-section">干粮热量</div>
       <div class="field">
-        <label>每克干粮的热量 (kcal/g)</label>
+        <label>每克干粮多少大卡</label>
         <input type="number" id="pm-kibble-kcal" step="0.1" min="0" placeholder="3.8" inputmode="decimal" />
-        <p class="hint" style="margin: 0.3rem 0 0;">用来把猫条/罐头按热量折成「等效干粮克数」。看你家粮袋标签，一般 3.5–4.2，不确定就留 3.8。</p>
+        <p class="hint" style="margin: 0.3rem 0 0;">用来把猫条、罐头换算成「相当于多少克干粮」。看粮袋上的热量，一般 3.5–4.2；不确定就留 3.8。</p>
       </div>
 
       <div class="sub-section" id="pm-share-section">分享给其他人</div>
@@ -1425,40 +1439,40 @@ permalink: /toolbox/pet-food/
       </div>
 
       <div class="field">
-        <label>热量怎么来</label>
+        <label>热量怎么填</label>
         <div class="mode-toggle fm-source" id="fm-source">
-          <label data-val="direct" class="active"><input type="radio" name="fm-source" value="direct" checked>直接填热量</label>
-          <label data-val="analysis"><input type="radio" name="fm-source" value="analysis">按营养成分估算</label>
+          <label data-val="direct" class="active"><input type="radio" name="fm-source" value="direct" checked>直接填</label>
+          <label data-val="analysis"><input type="radio" name="fm-source" value="analysis">照包装算</label>
         </div>
       </div>
 
       <!-- direct: enter kcal straight -->
       <div id="fm-direct-block">
         <div class="field" id="fm-count-fields">
-          <label>每<span id="fm-unit-echo">份</span>热量 (kcal)</label>
-          <input type="number" id="fm-kcal-count" step="any" min="0" placeholder="比如 6" inputmode="decimal" />
+          <label>每<span id="fm-unit-echo">份</span>多少大卡</label>
+          <input type="number" id="fm-kcal-count" step="any" min="0" placeholder="包装上找「热量/能量」，比如 6" inputmode="decimal" />
         </div>
         <div class="field" id="fm-gram-fields" style="display:none;">
-          <label>每 100g 热量 (kcal)</label>
-          <input type="number" id="fm-kcal-100g" step="any" min="0" placeholder="看罐头标签，比如 80" inputmode="decimal" />
+          <label>每 100 克多少大卡</label>
+          <input type="number" id="fm-kcal-100g" step="any" min="0" placeholder="包装上找「热量/能量」，比如 80" inputmode="decimal" />
         </div>
       </div>
 
       <!-- analysis: estimate kcal from the guaranteed-analysis percentages on the label -->
       <div id="fm-analysis-block" style="display:none;">
-        <p class="hint" style="margin:0 0 0.5rem;">照着包装上的「保证分析值 / Analytical constituents」填，自动算热量。</p>
+        <p class="hint" style="margin:0 0 0.6rem;">包装上没写热量？把下面这几个百分比照着填（一般写在「成分」「保证分析值」那一栏），热量会自己算出来。</p>
         <div class="field" id="fm-grams-per-unit-field" style="display:none;">
-          <label>每<span id="fm-unit-echo2">份</span>大约多少克</label>
-          <input type="number" id="fm-grams-per-unit" step="any" min="0" placeholder="比如猫条一根 ≈ 14" inputmode="decimal" />
+          <label>一<span id="fm-unit-echo2">份</span>大约多少克</label>
+          <input type="number" id="fm-grams-per-unit" step="any" min="0" placeholder="比如猫条一根 ≈ 14 克" inputmode="decimal" />
         </div>
         <div class="fm-analysis-grid">
-          <div class="field"><label>粗蛋白 %</label><input type="number" id="fm-an-protein" step="any" min="0" placeholder="10" inputmode="decimal" /></div>
-          <div class="field"><label>粗脂肪 %</label><input type="number" id="fm-an-fat" step="any" min="0" placeholder="5" inputmode="decimal" /></div>
-          <div class="field"><label>水分 %</label><input type="number" id="fm-an-moisture" step="any" min="0" placeholder="80" inputmode="decimal" /></div>
-          <div class="field"><label>粗灰分 %<span class="opt">选填</span></label><input type="number" id="fm-an-ash" step="any" min="0" placeholder="2" inputmode="decimal" /></div>
-          <div class="field"><label>粗纤维 %<span class="opt">选填</span></label><input type="number" id="fm-an-fiber" step="any" min="0" placeholder="0.5" inputmode="decimal" /></div>
+          <div class="field"><label>蛋白质 %</label><input type="number" id="fm-an-protein" step="any" min="0" placeholder="比如 10" inputmode="decimal" /></div>
+          <div class="field"><label>脂肪 %</label><input type="number" id="fm-an-fat" step="any" min="0" placeholder="比如 5" inputmode="decimal" /></div>
+          <div class="field"><label>水分 %</label><input type="number" id="fm-an-moisture" step="any" min="0" placeholder="比如 80" inputmode="decimal" /></div>
+          <div class="field"><label>灰分 %<span class="opt">没有就不填</span></label><input type="number" id="fm-an-ash" step="any" min="0" placeholder="2" inputmode="decimal" /></div>
+          <div class="field"><label>纤维 %<span class="opt">没有就不填</span></label><input type="number" id="fm-an-fiber" step="any" min="0" placeholder="0.5" inputmode="decimal" /></div>
         </div>
-        <div class="fm-est-result" id="fm-est-result">≈ — kcal / 100g</div>
+        <div class="fm-est-result" id="fm-est-result">≈ — 大卡 / 100 克</div>
       </div>
 
       <div class="modal-actions">
@@ -1813,6 +1827,9 @@ permalink: /toolbox/pet-food/
       });
       if (!Array.isArray(p.timeChanges)) p.timeChanges = [];
       if (!Array.isArray(p.tcSeen)) p.tcSeen = [];   // locally-dismissed timechange ids
+      // Baseline for "new record" notifications: everything already here counts as
+      // seen, so we only notify about records added after this device first saw the pet.
+      if (typeof p.activitySeenAt !== 'number') p.activitySeenAt = Date.now();
       reconcileBodyWeight(p);   // latest weight-log entry drives pet.bodyWeight
       // Back-fill target from helper for legacy pets
       const hasTarget = (Number.isFinite(p.dailyTargetMin) && p.dailyTargetMin > 0) ||
@@ -2461,6 +2478,7 @@ permalink: /toolbox/pet-food/
           META_FIELDS.forEach(k => { if (r.pet[k] !== undefined) p[k] = r.pet[k]; });
         }
         if (r && Array.isArray(r.members)) p.members = r.members;
+        if (typeof p.activitySeenAt !== 'number') p.activitySeenAt = Date.now();   // baseline so a fresh pull doesn't flag all history
         if (r && Array.isArray(r.entries)) { p.entries = r.entries; reconcileBodyWeight(p); }
         if (r && Array.isArray(r.timechanges)) p.timeChanges = r.timechanges;
         if (r && r.code) p.serverCode = r.code;
@@ -3567,6 +3585,8 @@ permalink: /toolbox/pet-food/
           bowlUnit: 'g',
           bodyWeightUnit: 'kg',
           showTargetOnChart: true,
+          activitySeenAt: Date.now(),   // joining: existing history is the baseline, not "new"
+          tcSeen: [],
         };
         META_FIELDS.forEach(k => { if (r.pet && r.pet[k] !== undefined) newPet[k] = r.pet[k]; });
         if (!newPet.name) newPet.name = '共享宠物';
@@ -3850,6 +3870,7 @@ permalink: /toolbox/pet-food/
     const newEntry = {
       id: uuid('e'),
       ts: pickedEntryTs(),
+      addedAt: Date.now(),   // when this record was created (ts may be backdated)
       kind: 'weigh',
       reading,
       withBowl,
@@ -3886,6 +3907,7 @@ permalink: /toolbox/pet-food/
     const newEntry = {
       id: uuid('e'),
       ts: pickedEntryTs(),
+      addedAt: Date.now(),
       kind: 'extra',
       reading: null,           // keep null so legacy clients mark it 无法换算, not pollute deltas
       foodName: food.name,
@@ -3929,7 +3951,7 @@ permalink: /toolbox/pet-food/
     const unit = $weightUnit.value || 'kg';
     const kg = bwToKg(raw, unit);
     if (!Number.isFinite(kg) || kg <= 0 || kg > 200) { alert('体重看起来不太对'); return; }
-    const newEntry = { id: uuid('e'), ts: pickedEntryTs(), kind: 'bodyweight', reading: null, kg, author: DEVICE_ID, note: '' };
+    const newEntry = { id: uuid('e'), ts: pickedEntryTs(), addedAt: Date.now(), kind: 'bodyweight', reading: null, kg, author: DEVICE_ID, note: '' };
     pet.entries.push(newEntry);
     pet.bodyWeightUnit = unit;       // remember the unit the user weighs in
     reconcileBodyWeight(pet);
@@ -4171,16 +4193,16 @@ permalink: /toolbox/pet-food/
   function fmUpdateEstimate() {
     if (fmSourceVal() !== 'analysis') return;
     const k100 = kcalPer100gFromAnalysis(fmReadAnalysis());
-    if (k100 == null) { $fmEstResult.textContent = '≈ — kcal / 100g'; return; }
+    if (k100 == null) { $fmEstResult.textContent = '≈ — 大卡 / 100 克'; return; }
     if (fmMeasureVal() === 'gram') {
-      $fmEstResult.textContent = `≈ ${fmtG(k100)} kcal / 100g（约 ${parseFloat((k100/100).toFixed(2))} kcal/g）`;
+      $fmEstResult.textContent = `≈ ${fmtG(k100)} 大卡 / 100 克`;
     } else {
       const g = parseFloat($fmGramsPerUnit.value);
       const label = $fmUnitLabel.value.trim() || '份';
       if (Number.isFinite(g) && g > 0) {
-        $fmEstResult.textContent = `≈ ${fmtG(k100)} kcal/100g → 每${label} ${parseFloat((k100*g/100).toFixed(1))} kcal`;
+        $fmEstResult.textContent = `每${label} ≈ ${parseFloat((k100*g/100).toFixed(1))} 大卡`;
       } else {
-        $fmEstResult.textContent = `≈ ${fmtG(k100)} kcal / 100g（填上每${label}克数算每${label}热量）`;
+        $fmEstResult.textContent = `≈ ${fmtG(k100)} 大卡 / 100 克（填上一${label}多少克，就能算每${label}热量）`;
       }
     }
   }
@@ -4278,11 +4300,11 @@ permalink: /toolbox/pet-food/
     } else {
       if (measure === 'gram') {
         const k100 = parseFloat($fmKcal100g.value);
-        if (!Number.isFinite(k100) || k100 <= 0) { alert('填一下每 100g 的热量 (kcal)'); return; }
+        if (!Number.isFinite(k100) || k100 <= 0) { alert('填一下每 100 克多少大卡'); return; }
         kcalPerUnit = k100 / 100;
       } else {
         const k = parseFloat($fmKcalCount.value);
-        if (!Number.isFinite(k) || k <= 0) { alert('填一下每' + unitLabel + '的热量 (kcal)'); return; }
+        if (!Number.isFinite(k) || k <= 0) { alert('填一下每' + unitLabel + '多少大卡'); return; }
         kcalPerUnit = k;
       }
     }
@@ -4402,7 +4424,41 @@ permalink: /toolbox/pet-food/
     if (!pet || !pet.shared) return 0;
     const role = myRoleFor(pet);
     const seen = new Set(pet.tcSeen || []);
-    return (pet.timeChanges || []).filter(tc => tcNotableFor(tc, role) && !seen.has(tc.id)).length;
+    const tcN = (pet.timeChanges || []).filter(tc => tcNotableFor(tc, role) && !seen.has(tc.id)).length;
+    return tcN + newActivityFor(pet).length;
+  }
+
+  // New records added by OTHER members since this device last opened the inbox.
+  function newActivityFor(pet) {
+    if (!pet || !pet.shared) return [];
+    const seenAt = pet.activitySeenAt || 0;
+    return (pet.entries || [])
+      .filter(e => e.author && e.author !== DEVICE_ID && (e.addedAt || 0) > seenAt)
+      .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+  }
+  function timeAgo(ts) {
+    if (!ts) return '';
+    const diff = Date.now() - ts;
+    if (diff < 60000) return '刚刚';
+    if (diff < 3600000) return Math.floor(diff / 60000) + ' 分钟前';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前';
+    if (diff < 7 * 86400000) return Math.floor(diff / 86400000) + ' 天前';
+    return isoDate(ts).slice(5);
+  }
+  // Plain-language description of a record for the activity feed.
+  function describeEntry(e, pet) {
+    if (e.kind === 'extra') {
+      const cnt = Number(e.count) || 0;
+      const amt = e.measure === 'gram'
+        ? `${parseFloat(cnt.toFixed(1))} g`
+        : `${parseFloat(cnt.toFixed(2))} ${e.unitLabel || '份'}`;
+      return `喂了 ${e.emoji || '🍖'} ${escapeHtml(e.foodName || '零食')} ${amt}`;
+    }
+    if (e.kind === 'bodyweight') {
+      const unit = pet.bodyWeightUnit || 'kg';
+      return `记了体重 ${parseFloat(bwFromKg(Number(e.kg) || 0, unit).toFixed(2))} ${unit}`;
+    }
+    return `记了一次喂食${e.withBowl ? '（含碗称重）' : '（称重）'}`;
   }
 
   function tcStatusLabel(tc) {
@@ -4415,6 +4471,7 @@ permalink: /toolbox/pet-food/
     const e = (pet.entries || []).find(x => x.id === tc.entryId);
     if (!e) return '（记录已删除）';
     if (e.kind === 'extra') return `${e.emoji || '🍖'} ${escapeHtml(e.foodName || '零食')}`;
+    if (e.kind === 'bodyweight') return '一次体重记录';
     return e.withBowl ? '一次称重（含碗）' : '一次称重';
   }
   // Buttons available to this role for this tc.
@@ -4434,32 +4491,53 @@ permalink: /toolbox/pet-food/
     const pet = currentPet();
     if (!pet || !pet.shared) { $inboxList.innerHTML = '<div class="empty-row">没有通知</div>'; return; }
     const role = myRoleFor(pet);
-    const items = (pet.timeChanges || []).filter(tc => tcVisibleFor(tc, role))
+    const tcs = (pet.timeChanges || []).filter(tc => tcVisibleFor(tc, role))
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    if (items.length === 0) { $inboxList.innerHTML = '<div class="empty-row">没有通知</div>'; return; }
-    $inboxList.innerHTML = items.map(tc => {
-      const st = tcStatusLabel(tc);
-      const who = memberDisplayName(pet, tc.byDevice);
-      const acts = tcActions(tc, role);
-      const actHtml = acts.length ? `<div class="tc-actions">${acts.map(a =>
-        a === 'approve' ? `<button class="tc-approve" data-tc="${tc.id}" data-dec="approve">批准</button>`
-                        : `<button class="tc-reject" data-tc="${tc.id}" data-dec="reject">驳回</button>`).join('')}</div>` : '';
-      let decided = '';
-      if (tc.status === 'approved' && tc.decidedBy) decided = `<div class="tc-note">由 ${escapeHtml(memberDisplayName(pet, tc.decidedBy))} 批准</div>`;
-      else if (tc.status === 'rejected' && tc.decidedBy) decided = `<div class="tc-note">由 ${escapeHtml(memberDisplayName(pet, tc.decidedBy))} 驳回</div>`;
-      let noteHtml = '';
-      if (tc.note === 'entry_deleted') noteHtml = '<div class="tc-note">记录已被删除</div>';
-      else if (tc.note === 'overwritten') noteHtml = '<div class="tc-note">时间已被其他改动覆盖，未回滚</div>';
-      return `<div class="tc-item">
+    const acts = newActivityFor(pet);
+
+    if (tcs.length === 0 && acts.length === 0) { $inboxList.innerHTML = '<div class="empty-row">暂时没有新动态</div>'; return; }
+
+    let html = '';
+    // Section 1: time-change requests / notices (actionable)
+    if (tcs.length) {
+      html += '<div class="inbox-sec-title">⏱ 时间修改</div>';
+      html += tcs.map(tc => {
+        const st = tcStatusLabel(tc);
+        const who = memberDisplayName(pet, tc.byDevice);
+        const a = tcActions(tc, role);
+        const actHtml = a.length ? `<div class="tc-actions">${a.map(x =>
+          x === 'approve' ? `<button class="tc-approve" data-tc="${tc.id}" data-dec="approve">批准</button>`
+                          : `<button class="tc-reject" data-tc="${tc.id}" data-dec="reject">驳回</button>`).join('')}</div>` : '';
+        let decided = '';
+        if (tc.status === 'approved' && tc.decidedBy) decided = `<div class="tc-note">由 ${escapeHtml(memberDisplayName(pet, tc.decidedBy))} 批准</div>`;
+        else if (tc.status === 'rejected' && tc.decidedBy) decided = `<div class="tc-note">由 ${escapeHtml(memberDisplayName(pet, tc.decidedBy))} 驳回</div>`;
+        let noteHtml = '';
+        if (tc.note === 'entry_deleted') noteHtml = '<div class="tc-note">记录已被删除</div>';
+        else if (tc.note === 'overwritten') noteHtml = '<div class="tc-note">时间已被其他改动覆盖，未回滚</div>';
+        return `<div class="tc-item">
+          <div class="tc-head">
+            <span class="tc-who">${escapeHtml(who)}</span>
+            <span style="color:var(--color-light);font-size:0.8rem;">改了「${tcEntryBrief(pet, tc)}」</span>
+            <span class="tc-badge ${st.cls}">${st.txt}</span>
+          </div>
+          <div class="tc-times">${fmtDateTime(tc.oldTs)} <span class="tc-arrow">→</span> ${fmtDateTime(tc.newTs)}</div>
+          ${decided}${noteHtml}${actHtml}
+        </div>`;
+      }).join('');
+    }
+    // Section 2: new records by other members (informational)
+    if (acts.length) {
+      html += '<div class="inbox-sec-title">🐾 最近动态</div>';
+      html += acts.slice(0, 20).map(e => `<div class="tc-item act-item">
         <div class="tc-head">
-          <span class="tc-who">${escapeHtml(who)}</span>
-          <span style="color:var(--color-light);font-size:0.8rem;">改了「${tcEntryBrief(pet, tc)}」</span>
-          <span class="tc-badge ${st.cls}">${st.txt}</span>
+          <span class="tc-who">${escapeHtml(memberDisplayName(pet, e.author))}</span>
+          <span style="color:var(--color-ink);font-size:0.86rem;">${describeEntry(e, pet)}</span>
+          <span class="tc-badge act-badge">${timeAgo(e.addedAt)}</span>
         </div>
-        <div class="tc-times">${fmtDateTime(tc.oldTs)} <span class="tc-arrow">→</span> ${fmtDateTime(tc.newTs)}</div>
-        ${decided}${noteHtml}${actHtml}
-      </div>`;
-    }).join('');
+        <div class="tc-note">记录时间 ${fmtDateTime(e.ts)}</div>
+      </div>`).join('');
+    }
+    $inboxList.innerHTML = html;
     $inboxList.querySelectorAll('.tc-actions button').forEach(btn => {
       btn.addEventListener('click', () => decideTimeChange(btn.dataset.tc, btn.dataset.dec));
     });
@@ -4481,29 +4559,34 @@ permalink: /toolbox/pet-food/
   }
 
   function openInbox() {
+    // Show what's new; don't clear until the user closes (so the list stays visible).
+    renderInbox();
+    $inboxModal.classList.add('open');
+  }
+  function closeInbox() {
     const pet = currentPet();
     if (pet) {
-      // Mark everything currently notable as seen → clears the dot.
+      // Mark time-changes + activity as seen → clears the dot.
       const role = myRoleFor(pet);
       const seen = new Set(pet.tcSeen || []);
       (pet.timeChanges || []).forEach(tc => { if (tcNotableFor(tc, role)) seen.add(tc.id); });
       pet.tcSeen = [...seen];
+      pet.activitySeenAt = Date.now();
       persist();
     }
-    renderInbox();
-    $inboxModal.classList.add('open');
+    $inboxModal.classList.remove('open');
     updateInboxBadge();
   }
   function updateInboxBadge() {
     const pet = currentPet();
-    const show = pet && pet.shared && (pet.timeChanges || []).some(tc => tcVisibleFor(tc, myRoleFor(pet)));
-    $inboxBtn.style.display = show ? '' : 'none';
+    // Bell is available on any shared pet (so members can see the activity feed).
+    $inboxBtn.style.display = (pet && pet.shared) ? '' : 'none';
     const n = inboxUnseenCount(pet);
     $inboxDot.style.display = n > 0 ? '' : 'none';
   }
   $inboxBtn.addEventListener('click', openInbox);
-  $inboxClose.addEventListener('click', () => $inboxModal.classList.remove('open'));
-  $inboxModal.addEventListener('click', e => { if (e.target === $inboxModal) $inboxModal.classList.remove('open'); });
+  $inboxClose.addEventListener('click', closeInbox);
+  $inboxModal.addEventListener('click', e => { if (e.target === $inboxModal) closeInbox(); });
 
   function commitBowlWeight() {
     const pet = currentPet();
