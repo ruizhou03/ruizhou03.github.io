@@ -1,0 +1,266 @@
+{%- comment -%}
+猫语声音板 —— 可复用组件。
+用在：1) 独立工具页 /toolbox/cat-language/  2) 宠物中心 pet-food 的「猫语」tab。
+切走 tab / 想外部停止时，向 document 派发事件：document.dispatchEvent(new Event('cat-board-stop'))
+{%- endcomment -%}
+<style>
+  .cl-widget { width: 100%; }
+  .cl-widget .cl-tip {
+    text-align: center; color: var(--color-muted); font-size: 0.86rem;
+    line-height: 1.6; margin: 0 auto 1.4rem; max-width: 30rem;
+  }
+  .cl-widget .cl-group { margin: 0 0 1.5rem; }
+  .cl-widget .cl-group-head {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 0.96rem; font-weight: 700;
+    color: var(--cc); margin: 0 0 0.7rem;
+    padding-left: 0.55rem; border-left: 3px solid var(--cc);
+  }
+  .cl-widget .cl-group-head .cl-group-sub {
+    font-weight: 400; font-size: 0.78rem; color: var(--color-muted);
+    font-family: var(--font-body, inherit);
+  }
+  .cl-widget .cl-board {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
+    gap: 0.7rem;
+  }
+  .cl-widget .cl-sound {
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+    padding: 1rem 0.6rem 0.85rem;
+    border: 1.5px solid var(--cc);
+    border-radius: 14px;
+    background: var(--cb);
+    cursor: pointer; font-family: inherit; color: var(--color-ink);
+    transition: transform .12s ease, box-shadow .2s ease;
+    -webkit-tap-highlight-color: transparent;
+    text-align: center;
+  }
+  @media (hover: hover) { .cl-widget .cl-sound:hover { transform: translateY(-2px); box-shadow: 0 5px 14px rgba(0,0,0,.08); } }
+  .cl-widget .cl-sound:active { transform: translateY(0); }
+  .cl-widget .cl-emoji { font-size: 1.95rem; line-height: 1; }
+  .cl-widget .cl-label { font-size: 1.02rem; font-weight: 700; color: var(--cc); }
+  .cl-widget .cl-sub { font-size: 0.72rem; color: var(--color-muted); line-height: 1.3; }
+  .cl-widget .cl-sound.playing { box-shadow: 0 0 0 2px var(--cc), 0 6px 16px rgba(0,0,0,.1); }
+  .cl-widget .cl-sound.playing .cl-emoji { animation: cl-wiggle .9s ease-in-out infinite; }
+  @keyframes cl-wiggle { 0%,100% { transform: rotate(-7deg);} 50% { transform: rotate(7deg);} }
+  .cl-widget .cl-eq {
+    position: absolute; top: 0.5rem; right: 0.5rem;
+    display: none; align-items: flex-end; gap: 2px; height: 13px;
+  }
+  .cl-widget .cl-sound.playing .cl-eq { display: flex; }
+  .cl-widget .cl-eq span {
+    width: 3px; background: var(--cc); border-radius: 2px;
+    animation: cl-bar 0.9s ease-in-out infinite;
+  }
+  .cl-widget .cl-eq span:nth-child(1){ height: 40%; animation-delay: 0s; }
+  .cl-widget .cl-eq span:nth-child(2){ height: 90%; animation-delay: .15s; }
+  .cl-widget .cl-eq span:nth-child(3){ height: 60%; animation-delay: .3s; }
+  .cl-widget .cl-eq span:nth-child(4){ height: 100%; animation-delay: .45s; }
+  @keyframes cl-bar { 0%,100% { transform: scaleY(0.35);} 50% { transform: scaleY(1);} }
+  .cl-widget .cl-status {
+    position: sticky; bottom: 0.8rem; z-index: 5;
+    display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+    margin: 1.6rem auto 0; max-width: 24rem;
+    min-height: 2.6rem; padding: 0.5rem 0.9rem;
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: 999px; box-shadow: 0 4px 14px rgba(0,0,0,.07);
+    font-size: 0.86rem; color: var(--color-muted);
+    transition: border-color .2s, color .2s;
+  }
+  .cl-widget .cl-status.on { border-color: var(--st-c, var(--color-accent)); color: var(--color-ink); }
+  .cl-widget .cl-status .cl-stop {
+    display: none; flex: 0 0 auto;
+    font: inherit; font-size: 0.8rem; cursor: pointer;
+    padding: 0.2rem 0.7rem; border-radius: 999px;
+    border: 1px solid var(--color-border); background: transparent;
+    color: var(--color-muted);
+  }
+  .cl-widget .cl-status.on .cl-stop { display: inline-block; }
+  @media (hover: hover) { .cl-widget .cl-status .cl-stop:hover { color: var(--color-ink); border-color: var(--color-muted); } }
+  .cl-widget .cl-more { margin: 2.2rem auto 0; max-width: 40rem; }
+  .cl-widget .cl-more > summary {
+    cursor: pointer; list-style: none;
+    font-family: var(--font-display); font-size: 0.92rem; font-weight: 600;
+    color: var(--color-light);
+    padding: 0.7rem 1rem; border: 1px dashed var(--color-border); border-radius: 12px;
+    text-align: center; transition: color .15s, border-color .15s;
+  }
+  .cl-widget .cl-more > summary::-webkit-details-marker { display: none; }
+  .cl-widget .cl-more > summary::after { content: " ▾"; opacity: .6; }
+  .cl-widget .cl-more[open] > summary::after { content: " ▴"; }
+  @media (hover: hover) { .cl-widget .cl-more > summary:hover { color: var(--color-ink); border-color: var(--color-muted); } }
+  .cl-widget .cl-more-body { padding: 0.4rem 0.2rem 0; }
+  .cl-widget .cl-more-body p.cl-note { color: var(--color-muted); font-size: 0.82rem; line-height: 1.6; margin: 0.8rem 0 1rem; }
+  .cl-widget .cl-hint { display: flex; gap: 0.6rem; padding: 0.55rem 0; border-bottom: 1px solid var(--color-border); align-items: baseline; }
+  .cl-widget .cl-hint:last-child { border-bottom: none; }
+  .cl-widget .cl-hint .cl-h-name { flex: 0 0 4.6rem; font-weight: 700; color: var(--color-ink); font-size: 0.88rem; }
+  .cl-widget .cl-hint .cl-h-txt { font-size: 0.86rem; color: var(--color-light); line-height: 1.55; }
+  .cl-widget .cl-readmore { text-align: center; margin: 1.3rem 0 0; }
+  .cl-widget .cl-readmore a {
+    font-size: 0.86rem; color: var(--color-accent); text-decoration: none;
+    border-bottom: 1px solid currentColor; padding-bottom: 1px;
+  }
+  .cl-widget .cl-credit { text-align: center; font-size: 0.7rem; color: var(--color-muted); line-height: 1.6; margin: 2.4rem auto 0; max-width: 40rem; }
+  .cl-widget .cl-credit a { color: inherit; }
+</style>
+
+<div class="cl-widget">
+  <p class="cl-tip">点一下卡片，它会<strong>循环播放</strong>；再点一下停止。一次只放一种，方便挨个对照着听。建议戴耳机。</p>
+
+  <div id="cl-board">
+    <section class="cl-group" style="--cc:#4a9d6e;--cb:#eef7f1;">
+      <h3 class="cl-group-head">🟢 友好 · 想亲近你 <span class="cl-group-sub">放松、打招呼、邀请</span></h3>
+      <div class="cl-board">
+        <button class="cl-sound" data-src="/files/audio/cat-language/meow.mp3" data-name="喵">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🐱</span><span class="cl-label">喵</span><span class="cl-sub">打招呼</span>
+        </button>
+        <button class="cl-sound" data-src="/files/audio/cat-language/trill.mp3" data-name="颤音">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">😸</span><span class="cl-label">颤音</span><span class="cl-sub">跟我来</span>
+        </button>
+        <button class="cl-sound" data-src="/files/audio/cat-language/purr.mp3" data-name="呼噜">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">😻</span><span class="cl-label">呼噜</span><span class="cl-sub">放松 · 自我安抚</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="cl-group" style="--cc:#e08a3c;--cb:#fdf3e8;">
+      <h3 class="cl-group-head">🟠 讨要 · 想要东西 <span class="cl-group-sub">催饭、开门、求关注</span></h3>
+      <div class="cl-board">
+        <button class="cl-sound" data-src="/files/audio/cat-language/demand.mp3" data-name="连环喵">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🙀</span><span class="cl-label">连环喵</span><span class="cl-sub">急切地催你</span>
+        </button>
+        <button class="cl-sound" data-src="/files/audio/cat-language/pleading.mp3" data-name="委屈喵">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">😿</span><span class="cl-label">委屈喵</span><span class="cl-sub">可怜巴巴地恳求</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="cl-group" style="--cc:#c0504d;--cb:#f8ebea;">
+      <h3 class="cl-group-head">🔴 警告 · 别过来 <span class="cl-group-sub">请求你停下、退后</span></h3>
+      <div class="cl-board">
+        <button class="cl-sound" data-src="/files/audio/cat-language/hiss.mp3" data-name="哈气">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">😾</span><span class="cl-label">哈气</span><span class="cl-sub">警告 · 到此为止</span>
+        </button>
+        <button class="cl-sound" data-src="/files/audio/cat-language/growl.mp3" data-name="低吼">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">😼</span><span class="cl-label">低吼</span><span class="cl-sub">再进一步就动手</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="cl-group" style="--cc:#a23b3b;--cb:#f6e9e9;">
+      <h3 class="cl-group-head">🟥 激动 · 冲突或发情 <span class="cl-group-sub">拉长的低嚎</span></h3>
+      <div class="cl-board">
+        <button class="cl-sound" data-src="/files/audio/cat-language/yowl.mp3" data-name="嚎叫">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🐈‍⬛</span><span class="cl-label">嚎叫</span><span class="cl-sub">对峙 / 求偶</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="cl-group" style="--cc:#3d9aa8;--cb:#e9f5f7;">
+      <h3 class="cl-group-head">🔵 狩猎 · 盯上猎物 <span class="cl-group-sub">隔着窗户看鸟</span></h3>
+      <div class="cl-board">
+        <button class="cl-sound" data-src="/files/audio/cat-language/chatter.mp3" data-name="咯咯">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🐦</span><span class="cl-label">咯咯</span><span class="cl-sub">盯着窗外的鸟</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="cl-group" style="--cc:#8d6cab;--cb:#f1ecf7;">
+      <h3 class="cl-group-head">🟣 趣味 · 不同的嗓门 <span class="cl-group-sub">同一句喵，换只猫就两样</span></h3>
+      <div class="cl-board">
+        <button class="cl-sound" data-src="/files/audio/cat-language/siamese.mp3" data-name="暹罗喵">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🐈</span><span class="cl-label">暹罗喵</span><span class="cl-sub">暹罗猫嗓门最大</span>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <div class="cl-status" id="cl-status">
+    <span id="cl-status-text">点一下卡片开始播放</span>
+    <button class="cl-stop" id="cl-stop" type="button">停止</button>
+  </div>
+
+  <details class="cl-more">
+    <summary>想知道每种叫声什么意思？</summary>
+    <div class="cl-more-body">
+      <p class="cl-note">下面只是一句话级别的参考，不必当成标准答案——每只猫都有自己的口音。想看完整的来龙去脉（为什么成年猫只对人喵、呼噜其实不等于开心……），可以读那篇科普。</p>
+      <div class="cl-hint"><span class="cl-h-name">喵</span><span class="cl-h-txt">主要说给人类听的招呼。成年猫之间几乎不喵，这套是专为你保留的。</span></div>
+      <div class="cl-hint"><span class="cl-h-name">颤音</span><span class="cl-h-txt">闭着嘴、尾音上扬的「跟我来」。一边发一边走、还回头看你，多半带你去饭碗。</span></div>
+      <div class="cl-hint"><span class="cl-h-name">呼噜</span><span class="cl-h-txt">低频振动，更像自我安抚。满足时呼噜，紧张、看病、难受时同样会呼噜。</span></div>
+      <div class="cl-hint"><span class="cl-h-name">连环喵</span><span class="cl-h-txt">急促、重复、音调拔高，就是「催」。常掺进接近婴儿哭声的频率，专门让人坐不住。</span></div>
+      <div class="cl-hint"><span class="cl-h-name">委屈喵</span><span class="cl-h-txt">软乎乎、拖长的恳求音，讨要的升级版。听着可怜，效果拔群。</span></div>
+      <div class="cl-hint"><span class="cl-h-name">哈气</span><span class="cl-h-txt">这是请求不是攻击：到此为止。正确反应是停下、退后、给空间，别凑过去安抚。</span></div>
+      <div class="cl-hint"><span class="cl-h-name">低吼</span><span class="cl-h-txt">比哈气更进一步的威胁，意思是「再逼我就真动手」。同样该退后。</span></div>
+      <div class="cl-hint"><span class="cl-h-name">嚎叫</span><span class="cl-h-txt">拖长忽高忽低的低嚎，多见于发情、两猫对峙；老年猫夜里频繁嚎叫值得做次体检。</span></div>
+      <div class="cl-hint"><span class="cl-h-name">咯咯</span><span class="cl-h-txt">盯住窗外的鸟时下颌快速颤动发出的串音。一说是扑空的兴奋，一说在模仿猎物。</span></div>
+      <div class="cl-hint"><span class="cl-h-name">暹罗喵</span><span class="cl-h-txt">不同品种嗓门差很多，暹罗猫尤其爱说话、声音也大——同一种情绪，换只猫就两样。</span></div>
+      <div class="cl-readmore"><a href="/life/cat-language">读科普：猫为什么这样叫？ →</a></div>
+    </div>
+  </details>
+
+  <p class="cl-credit">音频均取自 Wikimedia Commons，经裁剪、降噪与响度归一化处理。喵：Dan Crosby（CC BY-SA 3.0）；连环喵：<a href="https://commons.wikimedia.org/wiki/File:Felis_silvestris_catus_meows.ogg">Felis silvestris catus meows</a>（CC BY-SA 3.0）；呼噜：Insanejeff（公有领域）；颤音：<a href="https://commons.wikimedia.org/wiki/File:Gurren_einer_Katze.ogg">Gurren einer Katze</a>（公有领域）；委屈喵：<a href="https://commons.wikimedia.org/wiki/File:Meow_of_a_pleading_cat.oga">Meow of a pleading cat</a>（公有领域）；哈气：Zabuhailo（CC0）；低吼：Luisalvaz（CC BY-SA 4.0）；嚎叫：JMK（CC BY-SA 4.0）；咯咯：Ali T（CC BY 2.0）；暹罗喵：freemaster2（CC0）。</p>
+</div>
+
+<script>
+(function(){
+  var board = document.getElementById('cl-board');
+  var statusBar = document.getElementById('cl-status');
+  var statusText = document.getElementById('cl-status-text');
+  var stopBtn = document.getElementById('cl-stop');
+  if(!board || board.dataset.clInit) return;
+  board.dataset.clInit = '1';
+
+  var player = new Audio();
+  player.loop = true;
+  var current = null;
+
+  function reset(){
+    player.pause();
+    var all = board.querySelectorAll('.cl-sound');
+    for(var i=0;i<all.length;i++){ all[i].classList.remove('playing'); }
+    current = null;
+    statusBar.classList.remove('on');
+    statusBar.style.removeProperty('--st-c');
+    statusText.textContent = '点一下卡片开始播放';
+  }
+
+  function play(btn){
+    reset();
+    player.src = btn.getAttribute('data-src');
+    player.currentTime = 0;
+    var p = player.play();
+    if(p && p.catch){ p.catch(function(){}); }
+    btn.classList.add('playing');
+    current = btn;
+    var cc = getComputedStyle(btn.closest('.cl-group')).getPropertyValue('--cc');
+    statusBar.classList.add('on');
+    statusBar.style.setProperty('--st-c', cc.trim());
+    statusText.textContent = '🔊 正在循环播放：' + btn.getAttribute('data-name');
+  }
+
+  var btns = board.querySelectorAll('.cl-sound');
+  for(var i=0;i<btns.length;i++){
+    (function(btn){
+      btn.addEventListener('click', function(){
+        if(current === btn){ reset(); } else { play(btn); }
+      });
+    })(btns[i]);
+  }
+  stopBtn.addEventListener('click', reset);
+  // 外部（如切走 tab）可派发此事件来停止播放
+  document.addEventListener('cat-board-stop', reset);
+})();
+</script>

@@ -410,9 +410,9 @@
   status: live
 
 - id: pet-food
-  name: 宠物食量
-  icon: 🥣
-  tagline: 称碗算今日 + 日均
+  name: 宠物中心
+  icon: 🐾
+  tagline: 食量 · 体重 · 猫语
   url: /toolbox/pet-food/
   category: 生活
   status: live
@@ -430,5 +430,13 @@
   icon: ✒️
   tagline: Unicode 花体 · 微信可见
   url: /toolbox/font-style/
+  category: 生活
+  status: live
+
+- id: cat-language
+  name: 猫语板
+  icon: 🐱
+  tagline: 点一下，循环听各种猫叫
+  url: /toolbox/cat-language/
   category: 生活
   status: live
