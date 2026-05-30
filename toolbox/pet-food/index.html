@@ -290,6 +290,21 @@ permalink: /toolbox/pet-food/
     border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-bg);
   }
   #food-modal .emoji-pick button.active { border-color: var(--color-accent); background: var(--color-bg-warm); }
+  #food-modal .fm-analysis-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem 0.7rem;
+  }
+  @media (max-width: 420px) { #food-modal .fm-analysis-grid { grid-template-columns: 1fr 1fr; } }
+  #food-modal .fm-analysis-grid input {
+    width: 100%; box-sizing: border-box; font: inherit; font-size: 0.95rem;
+    padding: 0.45rem 0.55rem; border: 1px solid var(--color-border); border-radius: 8px;
+    background: var(--color-bg); color: var(--color-ink); outline: none;
+  }
+  #food-modal .fm-analysis-grid input:focus { border-color: var(--color-accent); }
+  #food-modal .opt { font-size: 0.72rem; color: var(--color-light); margin-left: 0.3rem; }
+  #food-modal .fm-est-result {
+    margin-top: 0.7rem; font-size: 0.95rem; color: var(--color-accent);
+    font-variant-numeric: tabular-nums; font-weight: 600;
+  }
 
   .section-title {
     font-family: var(--font-display); font-size: 1.05rem; font-weight: 500;
@@ -1268,22 +1283,48 @@ permalink: /toolbox/pet-food/
           <label data-val="gram"><input type="radio" name="fm-measure" value="gram">按克数</label>
         </div>
       </div>
-      <div class="field" id="fm-count-fields">
-        <div class="field-grid">
-          <div class="field">
-            <label>每<span id="fm-unit-echo">份</span>热量 (kcal)</label>
-            <input type="number" id="fm-kcal-count" step="any" min="0" placeholder="比如 6" inputmode="decimal" />
-          </div>
-          <div class="field">
-            <label>单位叫法</label>
-            <input type="text" id="fm-unit-label" placeholder="份 / 根 / 个" maxlength="4" value="份" />
-          </div>
+      <div class="field" id="fm-unit-label-field">
+        <label>单位叫法</label>
+        <input type="text" id="fm-unit-label" placeholder="份 / 根 / 个" maxlength="4" value="份" />
+      </div>
+
+      <div class="field">
+        <label>热量怎么来</label>
+        <div class="mode-toggle fm-source" id="fm-source">
+          <label data-val="direct" class="active"><input type="radio" name="fm-source" value="direct" checked>直接填热量</label>
+          <label data-val="analysis"><input type="radio" name="fm-source" value="analysis">按营养成分估算</label>
         </div>
       </div>
-      <div class="field" id="fm-gram-fields" style="display:none;">
-        <label>每 100g 热量 (kcal)</label>
-        <input type="number" id="fm-kcal-100g" step="any" min="0" placeholder="看罐头标签，比如 80" inputmode="decimal" />
+
+      <!-- direct: enter kcal straight -->
+      <div id="fm-direct-block">
+        <div class="field" id="fm-count-fields">
+          <label>每<span id="fm-unit-echo">份</span>热量 (kcal)</label>
+          <input type="number" id="fm-kcal-count" step="any" min="0" placeholder="比如 6" inputmode="decimal" />
+        </div>
+        <div class="field" id="fm-gram-fields" style="display:none;">
+          <label>每 100g 热量 (kcal)</label>
+          <input type="number" id="fm-kcal-100g" step="any" min="0" placeholder="看罐头标签，比如 80" inputmode="decimal" />
+        </div>
       </div>
+
+      <!-- analysis: estimate kcal from the guaranteed-analysis percentages on the label -->
+      <div id="fm-analysis-block" style="display:none;">
+        <p class="hint" style="margin:0 0 0.5rem;">照着包装上的「保证分析值 / Analytical constituents」填，自动算热量。</p>
+        <div class="field" id="fm-grams-per-unit-field" style="display:none;">
+          <label>每<span id="fm-unit-echo2">份</span>大约多少克</label>
+          <input type="number" id="fm-grams-per-unit" step="any" min="0" placeholder="比如猫条一根 ≈ 14" inputmode="decimal" />
+        </div>
+        <div class="fm-analysis-grid">
+          <div class="field"><label>粗蛋白 %</label><input type="number" id="fm-an-protein" step="any" min="0" placeholder="10" inputmode="decimal" /></div>
+          <div class="field"><label>粗脂肪 %</label><input type="number" id="fm-an-fat" step="any" min="0" placeholder="5" inputmode="decimal" /></div>
+          <div class="field"><label>水分 %</label><input type="number" id="fm-an-moisture" step="any" min="0" placeholder="80" inputmode="decimal" /></div>
+          <div class="field"><label>粗灰分 %<span class="opt">选填</span></label><input type="number" id="fm-an-ash" step="any" min="0" placeholder="2" inputmode="decimal" /></div>
+          <div class="field"><label>粗纤维 %<span class="opt">选填</span></label><input type="number" id="fm-an-fiber" step="any" min="0" placeholder="0.5" inputmode="decimal" /></div>
+        </div>
+        <div class="fm-est-result" id="fm-est-result">≈ — kcal / 100g</div>
+      </div>
+
       <div class="modal-actions">
         <button type="button" class="danger" id="fm-delete" style="display:none; margin-right:auto;">删除</button>
         <button type="button" class="cancel" id="fm-cancel">取消</button>
@@ -1911,12 +1952,25 @@ permalink: /toolbox/pet-food/
   const $fmName = document.getElementById('fm-name');
   const $fmEmojiPick = document.getElementById('fm-emoji-pick');
   const $fmMeasure = document.getElementById('fm-measure');
+  const $fmUnitLabelField = document.getElementById('fm-unit-label-field');
+  const $fmUnitLabel = document.getElementById('fm-unit-label');
+  const $fmUnitEcho = document.getElementById('fm-unit-echo');
+  const $fmUnitEcho2 = document.getElementById('fm-unit-echo2');
+  const $fmSource = document.getElementById('fm-source');
+  const $fmDirectBlock = document.getElementById('fm-direct-block');
   const $fmCountFields = document.getElementById('fm-count-fields');
   const $fmGramFields = document.getElementById('fm-gram-fields');
   const $fmKcalCount = document.getElementById('fm-kcal-count');
-  const $fmUnitLabel = document.getElementById('fm-unit-label');
-  const $fmUnitEcho = document.getElementById('fm-unit-echo');
   const $fmKcal100g = document.getElementById('fm-kcal-100g');
+  const $fmAnalysisBlock = document.getElementById('fm-analysis-block');
+  const $fmGramsPerUnitField = document.getElementById('fm-grams-per-unit-field');
+  const $fmGramsPerUnit = document.getElementById('fm-grams-per-unit');
+  const $fmAnProtein = document.getElementById('fm-an-protein');
+  const $fmAnFat = document.getElementById('fm-an-fat');
+  const $fmAnMoisture = document.getElementById('fm-an-moisture');
+  const $fmAnAsh = document.getElementById('fm-an-ash');
+  const $fmAnFiber = document.getElementById('fm-an-fiber');
+  const $fmEstResult = document.getElementById('fm-est-result');
   const $fmDelete = document.getElementById('fm-delete');
   const $fmCancel = document.getElementById('fm-cancel');
   const $fmSave = document.getElementById('fm-save');
@@ -3786,15 +3840,67 @@ permalink: /toolbox/pet-food/
   const FOOD_EMOJIS = ['🍖','🥫','🍗','🐟','🍤','🧀','🥩','🍪','🥛','💊'];
   let fmEditingId = null;
   let fmEmoji = '🍖';
+
+  // Estimate metabolizable energy (kcal per 100g as-fed) from the guaranteed
+  // analysis using modified Atwater factors (protein 3.5, fat 8.5, NFE 3.5).
+  // NFE (carbs) = 100 − moisture − protein − fat − ash − fiber. Ash/fiber are
+  // small; default to typical values (2 / 0.5) when the label omits them.
+  function kcalPer100gFromAnalysis(a) {
+    const p = Number(a.protein), f = Number(a.fat), m = Number(a.moisture);
+    if (!Number.isFinite(p) || !Number.isFinite(f) || !Number.isFinite(m)) return null;
+    const ash = Number.isFinite(Number(a.ash)) && a.ash !== '' ? Number(a.ash) : 2;
+    const fiber = Number.isFinite(Number(a.fiber)) && a.fiber !== '' ? Number(a.fiber) : 0.5;
+    const nfe = Math.max(0, 100 - m - p - f - ash - fiber);
+    const kcal = p * 3.5 + f * 8.5 + nfe * 3.5;
+    return kcal > 0 ? kcal : null;
+  }
+  function fmReadAnalysis() {
+    return {
+      protein: $fmAnProtein.value, fat: $fmAnFat.value, moisture: $fmAnMoisture.value,
+      ash: $fmAnAsh.value, fiber: $fmAnFiber.value,
+    };
+  }
   function fmMeasureVal() {
     const r = $fmMeasure.querySelector('input[name="fm-measure"]:checked');
     return r ? r.value : 'count';
   }
+  function fmSourceVal() {
+    const r = $fmSource.querySelector('input[name="fm-source"]:checked');
+    return r ? r.value : 'direct';
+  }
   function fmApplyMeasureUI() {
     const m = fmMeasureVal();
-    $fmCountFields.style.display = m === 'count' ? '' : 'none';
-    $fmGramFields.style.display = m === 'gram' ? '' : 'none';
+    const isCount = m === 'count';
+    $fmCountFields.style.display = isCount ? '' : 'none';
+    $fmGramFields.style.display = isCount ? 'none' : '';
+    $fmUnitLabelField.style.display = isCount ? '' : 'none';
+    $fmGramsPerUnitField.style.display = (isCount && fmSourceVal() === 'analysis') ? '' : 'none';
     $fmMeasure.querySelectorAll('label').forEach(l => l.classList.toggle('active', l.dataset.val === m));
+  }
+  function fmApplySourceUI() {
+    const s = fmSourceVal();
+    $fmDirectBlock.style.display = s === 'direct' ? '' : 'none';
+    $fmAnalysisBlock.style.display = s === 'analysis' ? '' : 'none';
+    $fmGramsPerUnitField.style.display = (fmMeasureVal() === 'count' && s === 'analysis') ? '' : 'none';
+    $fmSource.querySelectorAll('label').forEach(l => l.classList.toggle('active', l.dataset.val === s));
+    fmUpdateEstimate();
+  }
+  // Live estimate readout under the analysis fields.
+  function fmUpdateEstimate() {
+    if (fmSourceVal() !== 'analysis') return;
+    const k100 = kcalPer100gFromAnalysis(fmReadAnalysis());
+    if (k100 == null) { $fmEstResult.textContent = '≈ — kcal / 100g'; return; }
+    if (fmMeasureVal() === 'gram') {
+      $fmEstResult.textContent = `≈ ${fmtG(k100)} kcal / 100g（约 ${parseFloat((k100/100).toFixed(2))} kcal/g）`;
+    } else {
+      const g = parseFloat($fmGramsPerUnit.value);
+      const label = $fmUnitLabel.value.trim() || '份';
+      if (Number.isFinite(g) && g > 0) {
+        $fmEstResult.textContent = `≈ ${fmtG(k100)} kcal/100g → 每${label} ${parseFloat((k100*g/100).toFixed(1))} kcal`;
+      } else {
+        $fmEstResult.textContent = `≈ ${fmtG(k100)} kcal / 100g（填上每${label}克数算每${label}热量）`;
+      }
+    }
   }
   function fmRenderEmoji() {
     $fmEmojiPick.innerHTML = FOOD_EMOJIS.map(e =>
@@ -3808,34 +3914,58 @@ permalink: /toolbox/pet-food/
     if (r) r.checked = true;
     fmApplyMeasureUI();
   }
+  function setFmSource(s) {
+    const r = $fmSource.querySelector(`input[value="${s}"]`);
+    if (r) r.checked = true;
+    fmApplySourceUI();
+  }
+  function fmClearAnalysis() {
+    $fmAnProtein.value = ''; $fmAnFat.value = ''; $fmAnMoisture.value = '';
+    $fmAnAsh.value = ''; $fmAnFiber.value = ''; $fmGramsPerUnit.value = '';
+  }
+  function fmSetAnalysis(a) {
+    $fmAnProtein.value = a && a.protein != null ? a.protein : '';
+    $fmAnFat.value = a && a.fat != null ? a.fat : '';
+    $fmAnMoisture.value = a && a.moisture != null ? a.moisture : '';
+    $fmAnAsh.value = a && a.ash != null ? a.ash : '';
+    $fmAnFiber.value = a && a.fiber != null ? a.fiber : '';
+  }
   function openFoodModal(id) {
     const pet = currentPet();
     if (!pet || !isAdminOrUp(pet)) { alert('只有主人/管理员能添加或修改食物'); return; }
     fmEditingId = id || null;
+    fmClearAnalysis();
     if (id) {
       const f = (pet.foodLibrary || []).find(x => x.id === id);
       if (!f) return;
       $fmTitle.textContent = '编辑食物';
       $fmName.value = f.name || '';
       fmEmoji = f.emoji || '🍖';
-      setFmMeasure(f.measure || 'count');
-      if ((f.measure || 'count') === 'gram') {
+      const measure = f.measure || 'count';
+      setFmMeasure(measure);
+      $fmUnitLabel.value = measure === 'gram' ? '份' : (f.unitLabel || '份');
+      if (measure === 'gram') {
         $fmKcal100g.value = (Number(f.kcalPerUnit) || 0) * 100 || '';
-        $fmKcalCount.value = ''; $fmUnitLabel.value = '份';
+        $fmKcalCount.value = '';
       } else {
         $fmKcalCount.value = f.kcalPerUnit != null ? f.kcalPerUnit : '';
-        $fmUnitLabel.value = f.unitLabel || '份';
         $fmKcal100g.value = '';
       }
+      // Restore the estimator if this food was created from an analysis.
+      if (f.analysis) { fmSetAnalysis(f.analysis); if (f.gramsPerUnit != null) $fmGramsPerUnit.value = f.gramsPerUnit; }
+      setFmSource(f.kcalSource === 'analysis' ? 'analysis' : 'direct');
       $fmDelete.style.display = '';
     } else {
       $fmTitle.textContent = '新建食物';
       $fmName.value = ''; fmEmoji = '🍖';
       setFmMeasure('count');
-      $fmKcalCount.value = ''; $fmUnitLabel.value = '份'; $fmKcal100g.value = '';
+      $fmUnitLabel.value = '份';
+      $fmKcalCount.value = ''; $fmKcal100g.value = '';
+      setFmSource('direct');
       $fmDelete.style.display = 'none';
     }
     $fmUnitEcho.textContent = $fmUnitLabel.value || '份';
+    $fmUnitEcho2.textContent = $fmUnitLabel.value || '份';
     fmRenderEmoji();
     $foodModal.classList.add('open');
     $fmName.focus();
@@ -3847,24 +3977,43 @@ permalink: /toolbox/pet-food/
     const name = $fmName.value.trim();
     if (!name) { alert('给食物起个名'); return; }
     const measure = fmMeasureVal();
-    let kcalPerUnit, unitLabel;
-    if (measure === 'gram') {
-      const k100 = parseFloat($fmKcal100g.value);
-      if (!Number.isFinite(k100) || k100 <= 0) { alert('填一下每 100g 的热量 (kcal)'); return; }
-      kcalPerUnit = k100 / 100; unitLabel = 'g';
+    const source = fmSourceVal();
+    const unitLabel = measure === 'gram' ? 'g' : ($fmUnitLabel.value.trim() || '份');
+    let kcalPerUnit, analysis = null, gramsPerUnit = null;
+
+    if (source === 'analysis') {
+      const k100 = kcalPer100gFromAnalysis(fmReadAnalysis());
+      if (k100 == null) { alert('至少把粗蛋白、粗脂肪、水分填上'); return; }
+      analysis = fmReadAnalysis();
+      if (measure === 'gram') {
+        kcalPerUnit = k100 / 100;        // kcal per gram
+      } else {
+        const g = parseFloat($fmGramsPerUnit.value);
+        if (!Number.isFinite(g) || g <= 0) { alert('按成分估算时，填一下每' + unitLabel + '大约多少克'); return; }
+        kcalPerUnit = k100 * g / 100;    // kcal per piece
+        gramsPerUnit = g;
+      }
     } else {
-      const k = parseFloat($fmKcalCount.value);
-      if (!Number.isFinite(k) || k <= 0) { alert('填一下每份的热量 (kcal)'); return; }
-      kcalPerUnit = k; unitLabel = ($fmUnitLabel.value.trim() || '份');
+      if (measure === 'gram') {
+        const k100 = parseFloat($fmKcal100g.value);
+        if (!Number.isFinite(k100) || k100 <= 0) { alert('填一下每 100g 的热量 (kcal)'); return; }
+        kcalPerUnit = k100 / 100;
+      } else {
+        const k = parseFloat($fmKcalCount.value);
+        if (!Number.isFinite(k) || k <= 0) { alert('填一下每' + unitLabel + '的热量 (kcal)'); return; }
+        kcalPerUnit = k;
+      }
     }
+
+    const data = { name, emoji: fmEmoji, measure, unitLabel, kcalPerUnit, kcalSource: source, analysis, gramsPerUnit };
     pet.foodLibrary = pet.foodLibrary || [];
     let savedId;
     if (fmEditingId) {
       const f = pet.foodLibrary.find(x => x.id === fmEditingId);
-      if (f) { Object.assign(f, { name, emoji: fmEmoji, measure, unitLabel, kcalPerUnit }); savedId = f.id; }
+      if (f) { Object.assign(f, data); savedId = f.id; }
     } else {
       savedId = uuid('f');
-      pet.foodLibrary.push({ id: savedId, name, emoji: fmEmoji, measure, unitLabel, kcalPerUnit });
+      pet.foodLibrary.push({ id: savedId, ...data });
     }
     persist();
     schedulePushMeta(pet);
@@ -3882,8 +4031,14 @@ permalink: /toolbox/pet-food/
     closeFoodModal();
     selectRecordFood('kibble');
   }
-  $fmMeasure.querySelectorAll('input[name="fm-measure"]').forEach(r => r.addEventListener('change', fmApplyMeasureUI));
-  $fmUnitLabel.addEventListener('input', () => { $fmUnitEcho.textContent = $fmUnitLabel.value.trim() || '份'; });
+  $fmMeasure.querySelectorAll('input[name="fm-measure"]').forEach(r => r.addEventListener('change', () => { fmApplyMeasureUI(); fmUpdateEstimate(); }));
+  $fmSource.querySelectorAll('input[name="fm-source"]').forEach(r => r.addEventListener('change', fmApplySourceUI));
+  $fmUnitLabel.addEventListener('input', () => {
+    const v = $fmUnitLabel.value.trim() || '份';
+    $fmUnitEcho.textContent = v; $fmUnitEcho2.textContent = v; fmUpdateEstimate();
+  });
+  [$fmAnProtein, $fmAnFat, $fmAnMoisture, $fmAnAsh, $fmAnFiber, $fmGramsPerUnit].forEach(el =>
+    el.addEventListener('input', fmUpdateEstimate));
   $fmSave.addEventListener('click', saveFood);
   $fmDelete.addEventListener('click', deleteFood);
   $fmCancel.addEventListener('click', closeFoodModal);
