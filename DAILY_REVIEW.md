@@ -1,6 +1,63 @@
-## 2026-05-29
+## 2026-05-30
 
-> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日 + 当天本是周四，未跑 dead_links/orphan_files/pii_scan 周一项，但本次发现孤儿误报，临时单跑 `orphan_files.py` 复核）。**今日是 5-23 以来 60+ commits 累积后的第一次巡检**——5-23 ~ 5-28 期间主线集中在 `guandan`/`pet-food`/`doudizhu` 三个百宝箱重做与 podcast/email-summary/flight-watch routine 推进，今日找出 3 处无争议小修 + 1 处新发现的 P1（NUL byte 占位符）。
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周六，未跑 dead_links / orphan_files / pii_scan 三项周一项）。距 5-29 巡检 20 个 commit，全部集中在 `guandan` / `doudizhu` / `pet-food` 三个百宝箱的深做与一处英文站 theme-toggle 字段级对齐，没有新增内容目录或一级分类。**今日审计全套绿、无可安全自动修复项**——5-29 的 3 项已修（`TOOLBOX_AUDIT_REPORT.md` exclude / guandan hover guard / 2 文件 6 处裸 `$`）依旧成立；P1 的 NUL byte 占位符 3 文件状态不变（仍需站主对照原图复核才能改）。
+
+### ✅ 本次已自动修复
+
+无。今日 audit 全套 ✅ clean（keywords / hover_no_media / bare_dollar / img_caption_md / svg_italic_zh / bare_url / frontmatter_yaml 七项；images 仅基线 2 大 PDF；backend_pulse 沙箱 HTTP 403 已知；spotcheck 10 项为抽检清单不算 issue）。`bundle exec ruby -e "require 'jekyll'; Jekyll::Commands::Build.process(...)"` 通过、零 warning、零 error（13.5 s，本沙箱 binstubs 未生成所以走 ruby 直调而非 `bundle exec jekyll build`，构建结果等价）。`_site/` 根目录扫描确认 `DAILY_REVIEW.md` / `EMAIL_SUMMARY.md` / `SPOTCHECK_100_REPORT.md` / `SPOTCHECK_100_AGENT_REPORTS.md` / `TOOLBOX_AUDIT_REPORT.md` / `scripts/` / `backends/` 全部正确 exclude。
+
+### 📋 待你把关
+
+#### P1（建议尽快，承接 5-29）
+
+1. **3 个 .md 文件含 NUL byte (`\x00`) 包裹的占位符（M3 / M4 / CJK2 / CJK3 / CJK30）** —— `_notes/life/fridge-layout-guide.md` L157、`_notes/research/r-brucer-moderation-mediation.md` L59/L75、`_notes/research/latex-commands.md` L265，状态与 5-29 完全一致（今天又跑了一遍 `python3 -c "import pathlib; ..."` 复核）。占位符规律强烈暗示是某次自动化处理（imgslim / alt 生成 / fix_quotes 之类）把数学片段（`M{n}`）或中文术语（`CJK{n}`）先替换成 placeholder 再放回时漏了一步，且不知怎么用 NUL 当了分隔符。**没自动改的原因**：NUL 拆掉简单（共 8 个字节），但真正的原文（数字 / 术语）需要站主对照原图或导入源文件才能复原。`fridge-layout-guide` 是 5-26 才上的新文章，对用户可见的温度梯度乱码影响最严重；建议先处理这条。检测命令：`python3 -c "import pathlib; [print(p) for p in pathlib.Path('_notes').rglob('*.md') if b'\\x00' in p.read_bytes()]"`。
+
+#### P2（看心情，全部承接 5-29 → 5-28；本次扫描状态不变）
+
+2. **`sw.js` PWA cache 前缀仍是 `zirconeey-`（4 处）** —— L20-22、L279。设计取向（cache key 重命名要带 LEGACY 回退），不擅改。
+
+3. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里仍称"zirconeey 站"** —— 内部 prompt / 文档，属本机 / 历史标识符范畴。
+
+4. **`scripts/daily_review.sh:15` 与 `scripts/hooks/{stop_publish_reminder,post_write_imgslim}.sh:10` 仍带 `REPO="/Users/zhourui/Desktop/..."` 本机绝对路径**（叠加 `scripts/{merge-psy-stat-II,compile-r-tutorials,build-psy-stat-II-rmd}.py` 中 9 处同类）。最小改动是 `REPO="$(cd "$(dirname "$0")/.." && pwd)"`，由站主拍板。
+
+5. **toolbox 长文件继续膨胀**：本次 5-29 → 5-30 之间，`assets/js/games/guandan.js` 从 **4436 → 4822 行**（+386，guandan online 系列 6 个 commit），`toolbox/pet-food/index.html` 从 **3393 → 3980 行**（+587，pet-food 1 个 commit 含猫条 / 罐头 / 时间编辑大功能）。`assets/js/doudizhu/ui.js` 维持 3884 行，`assets/js/doudizhu/ai.js` 从 524 → 880 行（v2-deep + v3 记牌器训练）。延续 Round-3 P1#5「批量拆 `/assets/js/games/<name>.js`」清单。**建议方向**：doudizhu 已完成 `engine.js + ai.js + ui.js` 三件套拆分（Round-2 P1 已收口），可作为 guandan / pet-food 的拆分参考；scripts 目录里也已经有 `scripts/HANDOFF-doudizhu-ai-population.md` 这种「给下个对话用」的指导文档先例，做拆分时可以同样产出 handoff 文档。
+
+#### 🗒️ 待办清账（承接 5-29）
+
+- **图片 alt / caption 覆盖**：`images.py` 仍 `missing_alt = 0` / `missing_caption = 0`（白名单 62 条），收口状态保持。
+- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套全报 HTTP 403。不阻塞巡检；fly app 健康度未在本沙箱主动复查。
+- **Round-3 留下的 ~68 个 P1**：未在本次范围推进，按原优先级排队。
+- **`taichi-review-2023.md`「85 公里跑」**：仍候着，本次未触碰。
+- **大图基线**（or-2023.pdf 5.30 MB + psy-stat-II-2023.pdf 2.70 MB + 12 张 500KB–1.5MB 图）：`images.py` 输出与昨日完全一致，无变化。
+- **material_type 枚举 30 处不合规** / **文件名 `-YYYY` 后缀 77 处缺** / **sibling 互链 51 篇孤立**：长线设计项，全部沿用昨日状态。
+
+### 🗂 仓库卫生
+
+- **架构变化（5-29 → 5-30）**：**结构层面无变化**——没有新一级分类、没有新内容目录、没有 toolbox 新增（仍 48 个工具子目录 ↔ `_data/toolbox.yml` 48 条 `url`，一一对应、无孤儿、无悬空）。20 个 commit 的去向（按 timeline 由早到晚）：
+  - `c40a8bf docs(guandan-handoff)` — 286 行 plan，给下个对话用（属 scripts/，已 exclude）。
+  - `c796c7d refactor(doudizhu)` + `93da07f feat(doudizhu) 三档群体训练` + `2b15105 feat(doudizhu) v2-deep` + `32f5f8a feat(doudizhu) v3 记牌器` + `d6d6398 chore(doudizhu) v3-deep 90 候选归档` — 共 5 commit，把斗地主 AI 从「同模型加噪降级」改造成「三档独立 ES 权重」，方法论复用自掼蛋；`scripts/sim-doudizhu-*.json` 是训练产物（已 exclude）。`assets/js/doudizhu/ai.js` 524 → 880 行。
+  - `66223b5 fix(guandan lobby)` + `f10a7a6 fix(guandan)` + `101311a fix(guandan online) 联机直接开局` + `535aab9 fix(guandan online) 即时刷新` + `734fcc3 feat(guandan online) swap 滑动动画` + `2f112a2 fix(guandan online) swap hold` + `76bca9a fix(guandan online) per-seat in-flight 锁` + `eede692 fix(guandan online) lobby 头像位对齐` — 共 8 commit，掼蛋联机大厅/换座/动画连续打磨；`assets/js/games/guandan.js` 4436 → 4822 行。
+  - `58ae91b feat(pet-food)` — 猫条 / 罐头计入总量 + 可改记录时间 + 改时间审批；`toolbox/pet-food/index.html` 3393 → 3980 行。
+  - `7e8e640 chore: 后端工作副本归并到 backends/` — `.gitignore` + `_config.yml` exclude 都加了 `backends/`（这是 5-29 当晚的清理，符合「不该被 git 跟踪 / 不该公开」原则；本沙箱无 `backends/` 目录，已确认）。
+  - `d351ee9` + `d0bbc09 fix(en) 深浅模式按钮 / theme-toggle CSS 字段级对齐中文站` — 共 2 commit，根 `index.html` L204-205 三处差异（`line-height:1` 多余 / `transition` 应为 all / hover 缺 color）已按中文站对齐；diff 看着干净，已与 `assets/css/main.css` 同步。
+  - `0f3c636 perf(chess-ai) 根节点 α-β + quiescence 加 ply 上限` — `assets/js/games-shell/chess-ai.js` 30 行变更，单纯性能优化。
+- **追踪卫生**：
+  - 工作树扫描无 `.DS_Store`、无 `* 2.*` macOS 副本、无 `*.bak`/`*~`/`.synctex.gz`/`*.aux` 编辑器垃圾；`_site/`、`.jekyll-cache/`、`.jekyll-metadata`、`Gemfile.lock` 均被 `.gitignore` 正确忽略。
+  - `console.log` / `debugger` / `TODO` / `FIXME` / `XXX` 残留扫描：今日新改的 4 个核心文件（`toolbox/pet-food/index.html`、`assets/js/games/guandan.js`、`assets/js/doudizhu/ai.js`、`assets/js/doudizhu/ui.js`）全部 0 命中 console/debugger；pet-food 一处 "XXX" 是 UI 占位文本 `<code class="pet-code">XXXXXX</code>`（房间分享码），非 TODO，正常。
+  - 硬编码密钥扫描无新发现。
+  - 本机绝对路径：见 P2#4，状态不变（5-29 已记账）。
+- **构建健康**：`_site/` 大小与昨日基本同量（`assistant-fulltext.json` 1.83 MB / `assistant-index.json` 281 KB / `search.json` 227 KB，索引随新内容线性增长属正常）；零 warning、零 error。
+- **前置字段一致性**：`frontmatter_yaml` ✅；`keywords_coverage` 散文 119 篇全部充足；`_notes/study/` 全部有 `discipline`；菜谱必填字段齐全。
+- **audit 全套结果**：keywords ✅ / images（基线 2 大 PDF）/ backend_pulse（沙箱 403）/ spotcheck（10 项抽检清单待 review）/ material_type（30 处⚠️长线）/ filename_convention（77 处⚠️长线）/ hover_no_media ✅ / sibling_crosslink（51 篇⚠️ 沿用 P1）/ bare_dollar ✅ / img_caption_md ✅ / svg_italic_zh ✅ / bare_url ✅ / frontmatter_yaml ✅。
+- **结论**：仓库结构较昨日无变化、且 5-29 已做过清理（`backends/` 收口），无需再优化。本日 0 项自动修复，1 项 P1 持续待办（NUL byte），4 项 P2 持续待办（全部设计取向）。今日内容产能完全在游戏 AI / 联机大厅这条线上，没有写入新的内容文章。
+
+### 💓 后端脉搏 / 📬 读者来信
+
+后端三件套（zircon-urge / leaderboards / zircon-comments waline）本次 `backend_pulse.py` 仍全报 HTTP 403。与 5-27 ~ 5-29 同因（沙箱无 fly.io 出口），不阻塞巡检，未主动重启 fly app。
+
+---
+
+## 2026-05-29
 
 ### ✅ 本次已自动修复
 
