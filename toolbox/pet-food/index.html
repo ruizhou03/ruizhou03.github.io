@@ -242,57 +242,54 @@ permalink: /toolbox/pet-food/
   }
   .entry-form .bowl-row.shake input { animation: bowl-shake 0.32s; }
 
+  /* Food selector chip row (kibble + saved treats/cans + new) */
+  .entry-form .food-selector {
+    display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 0.8rem;
+  }
+  .extra-chip {
+    font: inherit; font-size: 0.84rem; cursor: pointer;
+    padding: 0.4rem 0.85rem; border-radius: 999px;
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    color: var(--color-ink); white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 0.2rem;
+  }
+  .extra-chip.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .extra-chip.add-chip { border-style: dashed; color: var(--color-muted); }
+  .extra-chip .edit-food { margin-left: 0.3rem; opacity: 0.7; font-size: 0.8rem; }
+
+  /* Fixed unit suffix shown instead of the unit <select> for count/gram foods */
+  .entry-form .unit-suffix {
+    display: inline-flex; align-items: center; padding: 0 0.7rem;
+    font-size: 0.9rem; color: var(--color-muted); white-space: nowrap;
+  }
+  .entry-form .extra-eq-row { margin-top: 0.55rem; }
+  .extra-eq { font-size: 0.9rem; color: var(--color-accent); font-variant-numeric: tabular-nums; }
+
   .entry-form .form-aux-row {
-    display: flex; gap: 1rem; margin-top: 0.7rem; flex-wrap: wrap;
+    display: flex; gap: 1rem; margin-top: 0.7rem; flex-wrap: wrap; align-items: center;
   }
   .entry-form .link-btn {
     border: none; background: none; padding: 0; cursor: pointer;
     font: inherit; font-size: 0.83rem; color: var(--color-accent);
   }
   @media (hover: hover) { .entry-form .link-btn:hover { text-decoration: underline; } }
-  .entry-form .time-row {
-    display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
-    margin-top: 0.6rem; font-size: 0.85rem; color: var(--color-muted);
+
+  /* Time-picker modal + food modal fields */
+  .tp-fields { display: flex; gap: 0.8rem; }
+  .tp-fields .field { flex: 1; }
+  #time-picker-modal input[type="date"], #time-picker-modal input[type="time"] {
+    width: 100%; font: inherit; font-size: 1rem; padding: 0.55rem 0.6rem;
+    border: 1px solid var(--color-border); border-radius: 8px;
+    background: var(--color-bg); color: var(--color-ink); outline: none; box-sizing: border-box;
   }
-  .entry-form .time-row input[type="datetime-local"] {
-    font: inherit; font-size: 0.9rem; padding: 0.32rem 0.55rem;
-    border: 1px solid var(--color-border); border-radius: 6px;
-    background: var(--color-bg); color: var(--color-ink); outline: none;
+  #time-picker-modal input:focus { border-color: var(--color-accent); }
+  .mode-toggle.fm-measure { display: inline-flex; }
+  #food-modal .emoji-pick { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  #food-modal .emoji-pick button {
+    font-size: 1.15rem; line-height: 1; padding: 0.3rem 0.45rem; cursor: pointer;
+    border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-bg);
   }
-  .entry-form .time-row input:focus { border-color: var(--color-accent); }
-  .entry-form .extra-panel {
-    margin-top: 0.8rem; padding: 0.8rem; border: 1px dashed var(--color-border);
-    border-radius: 10px; background: var(--color-bg-warm);
-  }
-  .extra-lib { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 0.7rem; }
-  .extra-lib:empty { display: none; }
-  .extra-chip {
-    font: inherit; font-size: 0.82rem; cursor: pointer;
-    padding: 0.32rem 0.7rem; border-radius: 999px;
-    border: 1px solid var(--color-border); background: var(--color-bg);
-    color: var(--color-ink); white-space: nowrap;
-  }
-  .extra-chip.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
-  .extra-chip .x { margin-left: 0.35rem; opacity: 0.6; }
-  .extra-input-row {
-    display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
-  }
-  .extra-input-row input[type="text"] { flex: 1 1 120px; min-width: 90px; }
-  .extra-input-row input[type="number"] { width: 90px; }
-  .extra-input-row input {
-    font: inherit; font-size: 0.9rem; padding: 0.4rem 0.6rem;
-    border: 1px solid var(--color-border); border-radius: 6px;
-    background: var(--color-bg); color: var(--color-ink); outline: none;
-    box-sizing: border-box;
-  }
-  .extra-input-row input:focus { border-color: var(--color-accent); }
-  .extra-unit-lbl { font-size: 0.85rem; color: var(--color-muted); }
-  .extra-foot {
-    display: flex; align-items: center; gap: 0.8rem; margin-top: 0.7rem; flex-wrap: wrap;
-  }
-  .extra-eq { font-size: 0.86rem; color: var(--color-accent); font-variant-numeric: tabular-nums; }
-  .extra-save-lib { font-size: 0.8rem; color: var(--color-muted); margin-left: auto; display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; }
-  .entry-form .save-btn-sm { padding: 0.5rem 1rem; font-size: 0.88rem; }
+  #food-modal .emoji-pick button.active { border-color: var(--color-accent); background: var(--color-bg-warm); }
 
   .section-title {
     font-family: var(--font-display); font-size: 1.05rem; font-weight: 500;
@@ -975,6 +972,7 @@ permalink: /toolbox/pet-food/
     </div>
 
     <div class="entry-form">
+      <div class="food-selector" id="food-selector"></div>
       <div class="form-row">
         <div class="reading-group">
           <input type="number" class="reading" id="reading" step="any" placeholder="粮食称重" inputmode="decimal" />
@@ -984,6 +982,7 @@ permalink: /toolbox/pet-food/
             <option value="oz">oz</option>
             <option value="lb">lb</option>
           </select>
+          <span class="unit-suffix" id="unit-suffix" style="display:none;">份</span>
         </div>
         <div class="mode-toggle" id="mode-toggle">
           <label data-val="1" class="active"><input type="radio" name="with-bowl" value="1" checked>含碗</label>
@@ -1001,28 +1000,12 @@ permalink: /toolbox/pet-food/
           <option value="lb">lb</option>
         </select>
       </div>
+      <div class="extra-eq-row" id="extra-eq-row" style="display:none;">
+        <span class="extra-eq" id="extra-eq">≈ — g 等效干粮</span>
+      </div>
       <div class="form-aux-row">
-        <button type="button" class="link-btn" id="extra-toggle">🍖 加零食 / 罐头</button>
         <button type="button" class="link-btn" id="time-toggle">🕑 现在</button>
-      </div>
-      <div class="time-row" id="time-row" style="display:none;">
-        <span>记录时间</span>
-        <input type="datetime-local" id="entry-time" />
-        <button type="button" class="link-btn" id="time-now">改回现在</button>
-      </div>
-      <div class="extra-panel" id="extra-panel" style="display:none;">
-        <div class="extra-lib" id="extra-lib"></div>
-        <div class="extra-input-row">
-          <input type="text" id="extra-name" placeholder="零食 / 罐头名" maxlength="20" />
-          <input type="number" id="extra-count" step="any" min="0" placeholder="数量" inputmode="decimal" value="1" />
-          <span class="extra-unit-lbl" id="extra-unit-lbl">份</span>
-          <input type="number" id="extra-kcal" step="any" min="0" placeholder="每份热量 kcal" inputmode="decimal" />
-        </div>
-        <div class="extra-foot">
-          <span class="extra-eq" id="extra-eq">≈ — g 等效干粮</span>
-          <label class="extra-save-lib"><input type="checkbox" id="extra-save-lib" /> 存进常用</label>
-          <button type="button" class="save-btn save-btn-sm" id="save-extra">记一笔零食</button>
-        </div>
+        <button type="button" class="link-btn" id="time-now" style="display:none;">改回现在</button>
       </div>
     </div>
 
@@ -1241,6 +1224,70 @@ permalink: /toolbox/pet-food/
       <div class="modal-actions">
         <button type="button" class="cancel" id="mm-keep">仍按当前模式</button>
         <button type="button" class="save" id="mm-swap">换成另一个模式</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Time picker modal: date (calendar) + time (spinner) -->
+  <div class="modal-backdrop" id="time-picker-modal">
+    <div class="modal">
+      <h2 id="tp-title">选择时间</h2>
+      <div class="tp-fields">
+        <div class="field">
+          <label>日期</label>
+          <input type="date" id="tp-date" />
+        </div>
+        <div class="field">
+          <label>时间</label>
+          <input type="time" id="tp-time" step="60" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="tp-cancel">取消</button>
+        <button type="button" class="save" id="tp-confirm">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Food modal: register / edit a treat or can in the library -->
+  <div class="modal-backdrop" id="food-modal">
+    <div class="modal">
+      <h2 id="fm-title">新建食物</h2>
+      <div class="field">
+        <label>名字</label>
+        <input type="text" id="fm-name" placeholder="妙鲜猫条 / 希尔思罐头" maxlength="20" />
+      </div>
+      <div class="field">
+        <label>图标</label>
+        <div class="emoji-pick" id="fm-emoji-pick"></div>
+      </div>
+      <div class="field">
+        <label>怎么算量</label>
+        <div class="mode-toggle fm-measure" id="fm-measure">
+          <label data-val="count" class="active"><input type="radio" name="fm-measure" value="count" checked>按根/个/份</label>
+          <label data-val="gram"><input type="radio" name="fm-measure" value="gram">按克数</label>
+        </div>
+      </div>
+      <div class="field" id="fm-count-fields">
+        <div class="field-grid">
+          <div class="field">
+            <label>每<span id="fm-unit-echo">份</span>热量 (kcal)</label>
+            <input type="number" id="fm-kcal-count" step="any" min="0" placeholder="比如 6" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <label>单位叫法</label>
+            <input type="text" id="fm-unit-label" placeholder="份 / 根 / 个" maxlength="4" value="份" />
+          </div>
+        </div>
+      </div>
+      <div class="field" id="fm-gram-fields" style="display:none;">
+        <label>每 100g 热量 (kcal)</label>
+        <input type="number" id="fm-kcal-100g" step="any" min="0" placeholder="看罐头标签，比如 80" inputmode="decimal" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="danger" id="fm-delete" style="display:none; margin-right:auto;">删除</button>
+        <button type="button" class="cancel" id="fm-cancel">取消</button>
+        <button type="button" class="save" id="fm-save">保存</button>
       </div>
     </div>
   </div>
@@ -1582,6 +1629,11 @@ permalink: /toolbox/pet-food/
       // Extras (treats/cans) folded into intake via kibble-equivalent grams.
       if (!Number.isFinite(p.kibbleKcalPerG) || p.kibbleKcalPerG <= 0) p.kibbleKcalPerG = 3.8;
       if (!Array.isArray(p.foodLibrary)) p.foodLibrary = [];
+      // Back-fill measure/unitLabel on library items from the first extras version
+      // (which stored kcalPerUnit as per-piece) → count-based, unit "份".
+      p.foodLibrary.forEach(f => {
+        if (f && !f.measure) { f.measure = 'count'; if (!f.unitLabel) f.unitLabel = '份'; }
+      });
       if (!Array.isArray(p.timeChanges)) p.timeChanges = [];
       if (!Array.isArray(p.tcSeen)) p.tcSeen = [];   // locally-dismissed timechange ids
       // Back-fill target from helper for legacy pets
@@ -1838,19 +1890,36 @@ permalink: /toolbox/pet-food/
   const $bowlRow = document.getElementById('bowl-row');
   const $chartRangeLbl = document.getElementById('chart-range-lbl');
 
-  const $extraToggle = document.getElementById('extra-toggle');
-  const $timeToggle = document.getElementById('time-toggle');
-  const $timeRow = document.getElementById('time-row');
-  const $entryTime = document.getElementById('entry-time');
-  const $timeNow = document.getElementById('time-now');
-  const $extraPanel = document.getElementById('extra-panel');
-  const $extraLib = document.getElementById('extra-lib');
-  const $extraName = document.getElementById('extra-name');
-  const $extraCount = document.getElementById('extra-count');
-  const $extraKcal = document.getElementById('extra-kcal');
+  const $foodSelector = document.getElementById('food-selector');
+  const $unitSuffix = document.getElementById('unit-suffix');
+  const $extraEqRow = document.getElementById('extra-eq-row');
   const $extraEq = document.getElementById('extra-eq');
-  const $extraSaveLib = document.getElementById('extra-save-lib');
-  const $saveExtra = document.getElementById('save-extra');
+  const $timeToggle = document.getElementById('time-toggle');
+  const $timeNow = document.getElementById('time-now');
+
+  // Time-picker modal
+  const $tpModal = document.getElementById('time-picker-modal');
+  const $tpTitle = document.getElementById('tp-title');
+  const $tpDate = document.getElementById('tp-date');
+  const $tpTime = document.getElementById('tp-time');
+  const $tpCancel = document.getElementById('tp-cancel');
+  const $tpConfirm = document.getElementById('tp-confirm');
+
+  // Food (treat/can) modal
+  const $foodModal = document.getElementById('food-modal');
+  const $fmTitle = document.getElementById('fm-title');
+  const $fmName = document.getElementById('fm-name');
+  const $fmEmojiPick = document.getElementById('fm-emoji-pick');
+  const $fmMeasure = document.getElementById('fm-measure');
+  const $fmCountFields = document.getElementById('fm-count-fields');
+  const $fmGramFields = document.getElementById('fm-gram-fields');
+  const $fmKcalCount = document.getElementById('fm-kcal-count');
+  const $fmUnitLabel = document.getElementById('fm-unit-label');
+  const $fmUnitEcho = document.getElementById('fm-unit-echo');
+  const $fmKcal100g = document.getElementById('fm-kcal-100g');
+  const $fmDelete = document.getElementById('fm-delete');
+  const $fmCancel = document.getElementById('fm-cancel');
+  const $fmSave = document.getElementById('fm-save');
 
   const $inboxBtn = document.getElementById('inbox-btn');
   const $inboxDot = document.getElementById('inbox-dot');
@@ -2276,10 +2345,11 @@ permalink: /toolbox/pet-food/
         setMode(true);  // bowl set + no history → 含碗
       }
     }
+    if (state.lastRenderedPetId !== pet.id) recordFood = 'kibble'; // reset food picker on pet switch
     state.lastRenderedPetId = pet.id;
 
     $unitPick.value = pet.preferredUnit || 'g';
-    $reading.placeholder = (pet.preferredUnit && pet.preferredUnit !== 'g') ? `粮食称重（${pet.preferredUnit}）` : '粮食称重';
+    // placeholder is finalized by applyRecordFoodUI() below (depends on selected food)
     const bUnit = pet.bowlUnit || 'g';
     $bowlWeightUnit.value = bUnit;
     if (document.activeElement !== $bowlWeight) {
@@ -2328,6 +2398,9 @@ permalink: /toolbox/pet-food/
     renderHistory(deltas, pet);
     renderTrend(deltas, pet);
     updateInboxBadge();
+    renderFoodSelector();
+    applyRecordFoodUI();
+    updateExtraEq();
   }
 
   function renderTargetToggle(pet) {
@@ -2427,11 +2500,13 @@ permalink: /toolbox/pet-food/
     const cntStr = Number.isInteger(cnt) ? cnt : parseFloat(cnt.toFixed(2));
     const name = escapeHtml(e.foodName || '零食');
     const emoji = e.emoji || '🍖';
+    // gram-measured: "罐头 40g" ; count-measured: "猫条 ×2 根"
+    const amountStr = (e.measure === 'gram') ? `${cntStr}g` : `×${cntStr} ${e.unitLabel || '份'}`;
     return `
       <div class="entry-row entry-row-extra">
         <span class="er-time">${fmtTime(e.ts)}</span>
         <span class="er-main">
-          <span class="er-delta extra">${emoji} ${name} ×${cntStr}</span>
+          <span class="er-delta extra">${emoji} ${name} ${amountStr}</span>
           <span class="er-reading">≈ ${fmtG(eq)} g 等效干粮</span>
         </span>
         ${entryRowActions(e, pet)}
@@ -3477,19 +3552,92 @@ permalink: /toolbox/pet-food/
   });
 
   // ===== Entry add (with mismatch detection) =====
-  // Timestamp to stamp on a new record: the custom time if the user opened the
-  // time row and picked a valid value, otherwise now. Anyone may set this.
-  function pickedEntryTs() {
-    if ($timeRow.style.display !== 'none') {
-      const t = localInputToTs($entryTime.value);
-      if (t) return t;
+  // Timestamp to stamp on a new record: a custom time the user picked, else now.
+  // Anyone may set this. pendingEntryTs null = "now".
+  let pendingEntryTs = null;
+  function pickedEntryTs() { return pendingEntryTs || Date.now(); }
+  function setPendingEntryTs(ts) {
+    pendingEntryTs = ts || null;
+    if (pendingEntryTs) {
+      $timeToggle.textContent = '🕑 ' + fmtDateTime(pendingEntryTs);
+      $timeNow.style.display = '';
+    } else {
+      $timeToggle.textContent = '🕑 现在';
+      $timeNow.style.display = 'none';
     }
-    return Date.now();
   }
-  function resetEntryTime() {
-    $timeRow.style.display = 'none';
-    $timeToggle.textContent = '🕑 现在';
-    $entryTime.value = '';
+  function resetEntryTime() { setPendingEntryTs(null); }
+
+  // ===== Unified food selector (kibble + saved treats/cans) =====
+  let recordFood = 'kibble';  // 'kibble' | foodId
+  function currentFoodItem() {
+    if (recordFood === 'kibble') return null;
+    const pet = currentPet();
+    return ((pet && pet.foodLibrary) || []).find(f => f.id === recordFood) || null;
+  }
+  function renderFoodSelector() {
+    const pet = currentPet();
+    if (!pet) { $foodSelector.innerHTML = ''; return; }
+    const lib = pet.foodLibrary || [];
+    // Selected food may have been deleted/synced away → fall back to kibble.
+    if (recordFood !== 'kibble' && !lib.some(f => f.id === recordFood)) recordFood = 'kibble';
+    const canEdit = isAdminOrUp(pet);
+    let html = `<button type="button" class="extra-chip${recordFood==='kibble'?' active':''}" data-food="kibble">🥣 干粮</button>`;
+    html += lib.map(f => `
+      <button type="button" class="extra-chip${recordFood===f.id?' active':''}" data-food="${f.id}">
+        ${f.emoji || '🍖'} ${escapeHtml(f.name)}${canEdit ? `<span class="edit-food" data-edit="${f.id}" title="编辑">✎</span>` : ''}
+      </button>`).join('');
+    if (canEdit) html += `<button type="button" class="extra-chip add-chip" data-food="__new">➕ 新建</button>`;
+    $foodSelector.innerHTML = html;
+    $foodSelector.querySelectorAll('.extra-chip').forEach(chip => {
+      chip.addEventListener('click', e => {
+        if (e.target.dataset.edit) { openFoodModal(e.target.dataset.edit); return; }
+        const f = chip.dataset.food;
+        if (f === '__new') { openFoodModal(null); return; }
+        selectRecordFood(f);
+      });
+    });
+  }
+  function selectRecordFood(id) {
+    recordFood = id;
+    $reading.value = '';
+    renderFoodSelector();
+    applyRecordFoodUI();
+    updateExtraEq();
+  }
+  // Adapt the single input box to whatever food is selected.
+  function applyRecordFoodUI() {
+    const food = currentFoodItem();
+    if (!food) {
+      // kibble: weigh flow
+      $unitPick.style.display = '';
+      $unitSuffix.style.display = 'none';
+      $modeToggle.style.display = '';
+      $bowlRow.style.display = '';
+      $extraEqRow.style.display = 'none';
+      const pet = currentPet();
+      $reading.placeholder = (pet && pet.preferredUnit && pet.preferredUnit !== 'g') ? `粮食称重（${pet.preferredUnit}）` : '粮食称重';
+    } else {
+      $unitPick.style.display = 'none';
+      $modeToggle.style.display = 'none';
+      $bowlRow.style.display = 'none';
+      $extraEqRow.style.display = '';
+      if (food.measure === 'gram') {
+        $unitSuffix.style.display = '';
+        $unitSuffix.textContent = 'g';
+        $reading.placeholder = '吃了多少';
+      } else {
+        $unitSuffix.style.display = '';
+        $unitSuffix.textContent = food.unitLabel || '份';
+        $reading.placeholder = '吃了几' + (food.unitLabel || '份');
+      }
+    }
+  }
+  function updateExtraEq() {
+    const pet = currentPet(); const food = currentFoodItem();
+    if (!pet || !food) { $extraEq.textContent = '≈ — g 等效干粮'; return; }
+    const eq = kibbleEqOf(pet, parseFloat($reading.value), food.kcalPerUnit);
+    $extraEq.textContent = (eq > 0) ? `≈ ${fmtG(eq)} g 等效干粮` : '≈ — g 等效干粮';
   }
 
   function saveEntry(reading, withBowl) {
@@ -3521,93 +3669,45 @@ permalink: /toolbox/pet-food/
     const dens = (Number.isFinite(pet.kibbleKcalPerG) && pet.kibbleKcalPerG > 0) ? pet.kibbleKcalPerG : 3.8;
     return (Number(count) || 0) * (Number(kcalPerUnit) || 0) / dens;
   }
-  let extraSelectedLibId = null;  // currently-picked library chip
-  function renderExtraLib() {
-    const pet = currentPet();
-    const lib = (pet && pet.foodLibrary) || [];
-    const canEditLib = pet && isAdminOrUp(pet);
-    $extraLib.innerHTML = lib.map(f => `
-      <button type="button" class="extra-chip${f.id === extraSelectedLibId ? ' active' : ''}" data-fid="${f.id}">
-        ${f.emoji || '🍖'} ${escapeHtml(f.name)} <span style="opacity:.6">${fmtG(f.kcalPerUnit)}kcal</span>
-        ${canEditLib ? `<span class="x" data-del-fid="${f.id}" title="删除">×</span>` : ''}
-      </button>`).join('');
-    $extraLib.querySelectorAll('.extra-chip').forEach(chip => {
-      chip.addEventListener('click', e => {
-        if (e.target.dataset.delFid) return; // handled below
-        const f = lib.find(x => x.id === chip.dataset.fid);
-        if (!f) return;
-        extraSelectedLibId = f.id;
-        $extraName.value = f.name;
-        $extraKcal.value = f.kcalPerUnit;
-        $extraSaveLib.checked = false;
-        renderExtraLib();
-        updateExtraEq();
-      });
-    });
-    $extraLib.querySelectorAll('[data-del-fid]').forEach(x => {
-      x.addEventListener('click', ev => {
-        ev.stopPropagation();
-        const p = currentPet(); if (!p || !isAdminOrUp(p)) { alert('只有主人/管理员能改常用零食库'); return; }
-        const fid = x.dataset.delFid;
-        if (!confirm('从常用里删除这个？')) return;
-        p.foodLibrary = (p.foodLibrary || []).filter(f => f.id !== fid);
-        if (extraSelectedLibId === fid) extraSelectedLibId = null;
-        persist(); renderExtraLib(); schedulePushMeta(p);
-      });
-    });
-  }
-  function updateExtraEq() {
-    const pet = currentPet();
-    if (!pet) { $extraEq.textContent = '≈ — g 等效干粮'; return; }
-    const eq = kibbleEqOf(pet, parseFloat($extraCount.value), parseFloat($extraKcal.value));
-    $extraEq.textContent = (eq > 0) ? `≈ ${fmtG(eq)} g 等效干粮` : '≈ — g 等效干粮';
-  }
-  function saveExtraEntry() {
-    const pet = currentPet();
-    if (!pet) { alert('先添加一只宠物'); return; }
-    const name = $extraName.value.trim();
-    const count = parseFloat($extraCount.value);
-    const kcal = parseFloat($extraKcal.value);
-    if (!name) { alert('给零食起个名'); return; }
-    if (!Number.isFinite(count) || count <= 0) { alert('数量填一下'); return; }
-    if (!Number.isFinite(kcal) || kcal <= 0) { alert('每份热量 (kcal) 填一下'); return; }
-    const eq = kibbleEqOf(pet, count, kcal);
+  // Save an extra (treat/can) entry from the currently-selected food in the unified input.
+  function saveSelectedExtra() {
+    const pet = currentPet(); const food = currentFoodItem();
+    if (!pet || !food) return;
+    const count = parseFloat($reading.value);
+    if (!Number.isFinite(count) || count <= 0) {
+      alert(food.measure === 'gram' ? '吃了多少克填一下' : ('吃了几' + (food.unitLabel || '份') + '填一下'));
+      return;
+    }
+    const eq = kibbleEqOf(pet, count, food.kcalPerUnit);
     const newEntry = {
       id: uuid('e'),
       ts: pickedEntryTs(),
       kind: 'extra',
       reading: null,           // keep null so legacy clients mark it 无法换算, not pollute deltas
-      foodName: name,
-      emoji: (extraSelectedLibId && (pet.foodLibrary || []).find(f => f.id === extraSelectedLibId) || {}).emoji || '🍖',
+      foodName: food.name,
+      emoji: food.emoji || '🍖',
+      measure: food.measure || 'count',
+      unitLabel: food.measure === 'gram' ? 'g' : (food.unitLabel || '份'),
       count,
-      kcalPerUnit: kcal,
+      kcalPerUnit: food.kcalPerUnit,
       kibbleEqG: eq,           // snapshot the conversion at record time
       note: '',
       author: DEVICE_ID,
     };
-    // Optionally remember it in the shared food library (admin+ only).
-    if ($extraSaveLib.checked && isAdminOrUp(pet)) {
-      const exists = (pet.foodLibrary || []).some(f => f.name === name && f.kcalPerUnit === kcal);
-      if (!exists) {
-        pet.foodLibrary = pet.foodLibrary || [];
-        pet.foodLibrary.push({ id: uuid('f'), name, emoji: newEntry.emoji, unitGrams: null, kcalPerUnit: kcal });
-      }
-    }
     pet.entries.push(newEntry);
     persist();
-    $extraName.value = ''; $extraCount.value = '1'; $extraKcal.value = '';
-    $extraSaveLib.checked = false; extraSelectedLibId = null;
+    $reading.value = '';
     resetEntryTime();
-    renderExtraLib();
     updateExtraEq();
     render();
     pushAddEntry(pet, newEntry);
-    schedulePushMeta(pet);
   }
 
   function attemptSave() {
     const pet = currentPet();
     if (!pet) { alert('先添加一只宠物'); return; }
+    // Non-kibble food selected → unified extra-save path.
+    if (recordFood !== 'kibble') { saveSelectedExtra(); return; }
     const raw = parseFloat($reading.value);
     if (!Number.isFinite(raw) || raw < 0) { alert('请输入碗里现在的重量'); return; }
     const unit = $unitPick.value || 'g';
@@ -3651,30 +3751,143 @@ permalink: /toolbox/pet-food/
   $reading.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); attemptSave(); }
   });
+  // Live equivalent-grams hint when a treat/can is selected.
+  $reading.addEventListener('input', () => { if (recordFood !== 'kibble') updateExtraEq(); });
+
+  // ===== Reusable date+time picker modal =====
+  let tpOnConfirm = null;
+  function openTimePicker(initialTs, onConfirm, title) {
+    tpOnConfirm = onConfirm;
+    $tpTitle.textContent = title || '选择时间';
+    const local = tsToLocalInput(initialTs || Date.now()); // YYYY-MM-DDTHH:MM
+    $tpDate.value = local.slice(0, 10);
+    $tpTime.value = local.slice(11, 16);
+    $tpModal.classList.add('open');
+  }
+  function closeTimePicker() { $tpModal.classList.remove('open'); tpOnConfirm = null; }
+  $tpCancel.addEventListener('click', closeTimePicker);
+  $tpModal.addEventListener('click', e => { if (e.target === $tpModal) closeTimePicker(); });
+  $tpConfirm.addEventListener('click', () => {
+    if (!$tpDate.value || !$tpTime.value) { alert('日期和时间都要选'); return; }
+    const ts = localInputToTs($tpDate.value + 'T' + $tpTime.value);
+    if (!ts) { alert('时间无效'); return; }
+    const cb = tpOnConfirm;
+    closeTimePicker();
+    if (cb) cb(ts);
+  });
 
   // --- Custom record time (add) ---
   $timeToggle.addEventListener('click', () => {
-    const opening = $timeRow.style.display === 'none';
-    if (opening) {
-      $entryTime.value = tsToLocalInput(Date.now());
-      $timeRow.style.display = '';
-      $timeToggle.textContent = '🕑 自定义时间';
-    } else {
-      resetEntryTime();
-    }
+    openTimePicker(pendingEntryTs || Date.now(), ts => setPendingEntryTs(ts), '这次记录的时间');
   });
-  $timeNow.addEventListener('click', () => { $entryTime.value = tsToLocalInput(Date.now()); });
+  $timeNow.addEventListener('click', () => resetEntryTime());
 
-  // --- Extras panel ---
-  $extraToggle.addEventListener('click', () => {
-    const opening = $extraPanel.style.display === 'none';
-    $extraPanel.style.display = opening ? '' : 'none';
-    if (opening) { renderExtraLib(); updateExtraEq(); }
-  });
-  $extraCount.addEventListener('input', updateExtraEq);
-  $extraKcal.addEventListener('input', updateExtraEq);
-  $extraName.addEventListener('input', () => { extraSelectedLibId = null; $extraLib.querySelectorAll('.extra-chip.active').forEach(c => c.classList.remove('active')); });
-  $saveExtra.addEventListener('click', saveExtraEntry);
+  // ===== Food (treat/can) modal =====
+  const FOOD_EMOJIS = ['🍖','🥫','🍗','🐟','🍤','🧀','🥩','🍪','🥛','💊'];
+  let fmEditingId = null;
+  let fmEmoji = '🍖';
+  function fmMeasureVal() {
+    const r = $fmMeasure.querySelector('input[name="fm-measure"]:checked');
+    return r ? r.value : 'count';
+  }
+  function fmApplyMeasureUI() {
+    const m = fmMeasureVal();
+    $fmCountFields.style.display = m === 'count' ? '' : 'none';
+    $fmGramFields.style.display = m === 'gram' ? '' : 'none';
+    $fmMeasure.querySelectorAll('label').forEach(l => l.classList.toggle('active', l.dataset.val === m));
+  }
+  function fmRenderEmoji() {
+    $fmEmojiPick.innerHTML = FOOD_EMOJIS.map(e =>
+      `<button type="button" class="${e === fmEmoji ? 'active' : ''}" data-emoji="${e}">${e}</button>`).join('');
+    $fmEmojiPick.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      fmEmoji = b.dataset.emoji; fmRenderEmoji();
+    }));
+  }
+  function setFmMeasure(m) {
+    const r = $fmMeasure.querySelector(`input[value="${m}"]`);
+    if (r) r.checked = true;
+    fmApplyMeasureUI();
+  }
+  function openFoodModal(id) {
+    const pet = currentPet();
+    if (!pet || !isAdminOrUp(pet)) { alert('只有主人/管理员能添加或修改食物'); return; }
+    fmEditingId = id || null;
+    if (id) {
+      const f = (pet.foodLibrary || []).find(x => x.id === id);
+      if (!f) return;
+      $fmTitle.textContent = '编辑食物';
+      $fmName.value = f.name || '';
+      fmEmoji = f.emoji || '🍖';
+      setFmMeasure(f.measure || 'count');
+      if ((f.measure || 'count') === 'gram') {
+        $fmKcal100g.value = (Number(f.kcalPerUnit) || 0) * 100 || '';
+        $fmKcalCount.value = ''; $fmUnitLabel.value = '份';
+      } else {
+        $fmKcalCount.value = f.kcalPerUnit != null ? f.kcalPerUnit : '';
+        $fmUnitLabel.value = f.unitLabel || '份';
+        $fmKcal100g.value = '';
+      }
+      $fmDelete.style.display = '';
+    } else {
+      $fmTitle.textContent = '新建食物';
+      $fmName.value = ''; fmEmoji = '🍖';
+      setFmMeasure('count');
+      $fmKcalCount.value = ''; $fmUnitLabel.value = '份'; $fmKcal100g.value = '';
+      $fmDelete.style.display = 'none';
+    }
+    $fmUnitEcho.textContent = $fmUnitLabel.value || '份';
+    fmRenderEmoji();
+    $foodModal.classList.add('open');
+    $fmName.focus();
+  }
+  function closeFoodModal() { $foodModal.classList.remove('open'); fmEditingId = null; }
+  function saveFood() {
+    const pet = currentPet();
+    if (!pet || !isAdminOrUp(pet)) return;
+    const name = $fmName.value.trim();
+    if (!name) { alert('给食物起个名'); return; }
+    const measure = fmMeasureVal();
+    let kcalPerUnit, unitLabel;
+    if (measure === 'gram') {
+      const k100 = parseFloat($fmKcal100g.value);
+      if (!Number.isFinite(k100) || k100 <= 0) { alert('填一下每 100g 的热量 (kcal)'); return; }
+      kcalPerUnit = k100 / 100; unitLabel = 'g';
+    } else {
+      const k = parseFloat($fmKcalCount.value);
+      if (!Number.isFinite(k) || k <= 0) { alert('填一下每份的热量 (kcal)'); return; }
+      kcalPerUnit = k; unitLabel = ($fmUnitLabel.value.trim() || '份');
+    }
+    pet.foodLibrary = pet.foodLibrary || [];
+    let savedId;
+    if (fmEditingId) {
+      const f = pet.foodLibrary.find(x => x.id === fmEditingId);
+      if (f) { Object.assign(f, { name, emoji: fmEmoji, measure, unitLabel, kcalPerUnit }); savedId = f.id; }
+    } else {
+      savedId = uuid('f');
+      pet.foodLibrary.push({ id: savedId, name, emoji: fmEmoji, measure, unitLabel, kcalPerUnit });
+    }
+    persist();
+    schedulePushMeta(pet);
+    closeFoodModal();
+    if (savedId) selectRecordFood(savedId); else { renderFoodSelector(); }
+  }
+  function deleteFood() {
+    const pet = currentPet();
+    if (!pet || !fmEditingId) return;
+    if (!confirm('删除这个食物？已记录的历史不受影响。')) return;
+    pet.foodLibrary = (pet.foodLibrary || []).filter(f => f.id !== fmEditingId);
+    if (recordFood === fmEditingId) recordFood = 'kibble';
+    persist();
+    schedulePushMeta(pet);
+    closeFoodModal();
+    selectRecordFood('kibble');
+  }
+  $fmMeasure.querySelectorAll('input[name="fm-measure"]').forEach(r => r.addEventListener('change', fmApplyMeasureUI));
+  $fmUnitLabel.addEventListener('input', () => { $fmUnitEcho.textContent = $fmUnitLabel.value.trim() || '份'; });
+  $fmSave.addEventListener('click', saveFood);
+  $fmDelete.addEventListener('click', deleteFood);
+  $fmCancel.addEventListener('click', closeFoodModal);
+  $foodModal.addEventListener('click', e => { if (e.target === $foodModal) closeFoodModal(); });
 
   // --- Edit the timestamp of an existing record (gated by role) ---
   function promptEditTime(eid) {
@@ -3682,12 +3895,13 @@ permalink: /toolbox/pet-food/
     const e = (pet.entries || []).find(x => x.id === eid);
     if (!e) return;
     if (!canEditEntryTime(e, pet)) { alert('你只能改自己提交的记录的时间'); return; }
-    const cur = tsToLocalInput(e.ts);
-    const input = prompt('把这条记录的时间改成（格式 ' + cur + '）：', cur);
-    if (input == null) return;
-    const newTs = localInputToTs(input.trim());
-    if (!newTs) { alert('时间格式不对，应形如 2026-05-29T14:30'); return; }
-    if (newTs === e.ts) return;
+    openTimePicker(e.ts, newTs => {
+      if (newTs === e.ts) return;
+      applyTimeChange(pet, e, eid, newTs);
+    }, '改记录时间');
+  }
+
+  function applyTimeChange(pet, e, eid, newTs) {
     const role = myRoleFor(pet);
 
     // Local-only (non-shared) pet: just change it.
