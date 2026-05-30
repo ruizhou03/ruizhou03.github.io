@@ -99,6 +99,7 @@ permalink: /toolbox/pet-food/
     text-align: center;
     padding: 0.9rem 0.5rem;
     background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
     border-radius: 10px;
   }
   .sum-card .sc-num {
@@ -106,7 +107,12 @@ permalink: /toolbox/pet-food/
     font-size: 1.4rem; color: var(--color-ink); line-height: 1.1;
     font-variant-numeric: tabular-nums;
   }
-  .sum-card .sc-lbl { font-size: 0.76rem; color: var(--color-muted); margin-top: 0.3rem; }
+  .sum-card .sc-lbl { font-size: 0.76rem; color: var(--color-muted); margin-top: 0.35rem; }
+  @media (max-width: 480px) {
+    .sum-card { padding: 0.75rem 0.4rem; }
+    .sum-card .sc-num { font-size: 1.25rem; }
+    .sum-card .sc-lbl { font-size: 0.72rem; }
+  }
 
   /* Recommendation strip */
   .rec-strip {
@@ -156,32 +162,43 @@ permalink: /toolbox/pet-food/
     border: 1px solid var(--color-border); border-radius: 12px;
     padding: 1rem; margin-bottom: 1rem;
   }
-  .entry-form .form-row {
-    display: grid; grid-template-columns: 1fr auto auto; gap: 0.6rem; align-items: center;
-  }
-  @media (max-width: 600px) {
-    .entry-form .form-row { grid-template-columns: 1fr; }
-    .entry-form .form-row > * { width: 100%; box-sizing: border-box; }
-    .entry-form .mode-toggle { justify-content: center; }
-  }
+  /* Single input line (capped so it isn't a giant bar on wide screens),
+     then a tidy actions row (toggle | save). */
   .entry-form .reading-group {
-    display: flex; align-items: stretch;
+    display: flex; align-items: stretch; max-width: 440px;
     border: 1px solid var(--color-border); border-radius: 10px;
     background: var(--color-bg); overflow: hidden;
   }
-  .entry-form .reading-group:focus-within { border-color: var(--color-accent); }
+  .entry-form .reading-group:focus-within { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-soft, rgba(139,111,71,0.12)); }
   .entry-form input.reading {
     flex: 1; min-width: 0;
-    padding: 0.7rem 0.85rem;
-    font: inherit; font-size: 1.1rem; color: var(--color-ink);
+    padding: 0.85rem 0.95rem;
+    font: inherit; font-size: 1.15rem; color: var(--color-ink);
     border: none; background: transparent;
     font-variant-numeric: tabular-nums; outline: none;
   }
   .entry-form select.unit-pick {
     border: none; border-left: 1px solid var(--color-border);
-    background: var(--color-bg-warm); color: var(--color-muted);
-    padding: 0 0.55rem; font: inherit; font-size: 0.88rem;
+    background: var(--color-bg-warm); color: var(--color-ink);
+    padding: 0 1.9rem 0 0.75rem; font: inherit; font-size: 0.9rem; font-weight: 500;
     cursor: pointer; outline: none;
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23999' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.7rem center;
+  }
+  .entry-form .unit-suffix {
+    display: inline-flex; align-items: center; padding: 0 0.95rem;
+    border-left: 1px solid var(--color-border); background: var(--color-bg-warm);
+    font-size: 0.92rem; color: var(--color-muted); white-space: nowrap; font-weight: 500;
+  }
+  .entry-form .entry-actions {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.7rem; margin-top: 0.7rem; flex-wrap: wrap;
+  }
+  .entry-form .entry-actions .mode-toggle { flex: 0 1 auto; }
+  .entry-form .entry-actions .save-btn { flex: 0 0 auto; }
+  @media (max-width: 460px) {
+    .entry-form .entry-actions .save-btn { flex: 1 1 100%; }
   }
   /* Pill segmented control — used in the entry form AND inside modals. */
   .mode-toggle {
@@ -196,11 +213,13 @@ permalink: /toolbox/pet-food/
   .mode-toggle input { display: none; }
   .mode-toggle label.active { background: var(--color-accent); color: #fff; }
   .entry-form .save-btn {
-    font: inherit; font-size: 0.95rem; font-weight: 600;
-    padding: 0.7rem 1.4rem; border: none; border-radius: 999px;
+    font: inherit; font-size: 0.98rem; font-weight: 600;
+    padding: 0.7rem 1.6rem; border: none; border-radius: 999px;
     background: var(--color-accent); color: #fff; cursor: pointer;
-    white-space: nowrap;
+    white-space: nowrap; min-height: 44px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08); transition: background 0.18s, transform 0.08s;
   }
+  .entry-form .save-btn:active { transform: scale(0.97); }
   @media (hover: hover) {
     .entry-form .save-btn:hover { background: var(--color-accent-light); }
   }
@@ -208,17 +227,20 @@ permalink: /toolbox/pet-food/
     margin-top: 0.6rem; font-size: 0.78rem; color: var(--color-muted);
   }
   .entry-form .bowl-row {
-    display: flex; align-items: center; gap: 0.5rem;
-    margin-top: 0.7rem;
-    font-size: 0.85rem; color: var(--color-muted);
+    display: inline-flex; align-items: center; gap: 0.55rem;
+    width: fit-content; max-width: 100%;
+    margin-top: 0.8rem; padding: 0.5rem 0.7rem;
+    background: var(--color-bg-warm); border-radius: 999px;
+    font-size: 0.86rem; color: var(--color-ink);
     transition: opacity 0.18s;
   }
+  .entry-form .bowl-row > span:first-child { color: var(--color-muted); }
   .entry-form .bowl-row.muted { opacity: 0.45; }
   .entry-form .bowl-row input {
-    width: 80px; padding: 0.32rem 0.55rem;
-    border: 1px solid var(--color-border); border-radius: 6px;
+    width: 84px; padding: 0.45rem 0.6rem;
+    border: 1px solid var(--color-border); border-radius: 8px;
     background: var(--color-bg); color: var(--color-ink);
-    font: inherit; font-size: 0.92rem;
+    font: inherit; font-size: 0.95rem;
     outline: none; font-variant-numeric: tabular-nums;
     transition: all 0.18s;
   }
@@ -228,13 +250,17 @@ permalink: /toolbox/pet-food/
     background: rgba(201, 169, 110, 0.12);
   }
   .entry-form .bowl-row select {
-    font: inherit; font-size: 0.85rem;
-    padding: 0.3rem 0.4rem;
-    border: 1px solid var(--color-border); border-radius: 6px;
-    background: var(--color-bg-warm); color: var(--color-muted);
+    font: inherit; font-size: 0.88rem;
+    padding: 0.45rem 1.7rem 0.45rem 0.6rem;
+    border: 1px solid var(--color-border); border-radius: 8px;
+    background-color: var(--color-bg-warm); color: var(--color-ink);
     cursor: pointer; outline: none;
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23999' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.6rem center;
   }
   .entry-form .bowl-row select:focus { border-color: var(--color-accent); }
+  .entry-form .bowl-row > span:first-child { font-weight: 500; }
   @keyframes bowl-shake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-4px); }
@@ -245,26 +271,34 @@ permalink: /toolbox/pet-food/
 
   /* Food selector chip row (kibble + saved treats/cans + new) */
   .entry-form .food-selector {
-    display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 0.8rem;
+    display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem;
   }
   .extra-chip {
-    font: inherit; font-size: 0.84rem; cursor: pointer;
-    padding: 0.4rem 0.85rem; border-radius: 999px;
+    font: inherit; font-size: 0.88rem; cursor: pointer;
+    padding: 0.5rem 0.95rem; border-radius: 999px; min-height: 40px;
     border: 1px solid var(--color-border); background: var(--color-bg);
     color: var(--color-ink); white-space: nowrap;
-    display: inline-flex; align-items: center; gap: 0.2rem;
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    transition: all 0.15s;
   }
-  .extra-chip.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .extra-chip.active {
+    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+    font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
   .extra-chip.add-chip { border-style: dashed; color: var(--color-muted); }
-  .extra-chip .edit-food { margin-left: 0.3rem; opacity: 0.7; font-size: 0.8rem; }
-
-  /* Fixed unit suffix shown instead of the unit <select> for count/gram foods */
-  .entry-form .unit-suffix {
-    display: inline-flex; align-items: center; padding: 0 0.7rem;
-    font-size: 0.9rem; color: var(--color-muted); white-space: nowrap;
+  @media (hover: hover) { .extra-chip:not(.active):hover { border-color: var(--color-accent); } }
+  .extra-chip .edit-food {
+    margin-left: 0.15rem; opacity: 0.75; font-size: 0.82rem;
+    padding: 0 0.15rem; border-radius: 4px;
   }
-  .entry-form .extra-eq-row { margin-top: 0.55rem; }
-  .extra-eq { font-size: 0.9rem; color: var(--color-accent); font-variant-numeric: tabular-nums; }
+  .extra-chip.active .edit-food { opacity: 0.9; }
+
+  .entry-form .extra-eq-row {
+    margin-top: 0.8rem; padding: 0.6rem 0.85rem;
+    background: var(--color-bg-warm); border-radius: 8px;
+    border: 1px dashed var(--color-border);
+  }
+  .extra-eq { font-size: 0.95rem; color: var(--color-accent); font-variant-numeric: tabular-nums; font-weight: 500; }
 
   .entry-form .form-aux-row {
     display: flex; gap: 0.8rem; margin-top: 0.9rem; flex-wrap: wrap; align-items: center;
@@ -276,21 +310,35 @@ permalink: /toolbox/pet-food/
   @media (hover: hover) { .entry-form .link-btn:hover { text-decoration: underline; } }
   /* "记录时间" pill — clearly a tappable control set to 现在 by default. */
   .entry-form .time-pill {
-    display: inline-flex; align-items: center; gap: 0.45rem;
-    padding: 0.45rem 0.9rem; border: 1px solid var(--color-border); border-radius: 999px;
-    background: var(--color-bg); cursor: pointer; font: inherit; font-size: 0.86rem;
-    color: var(--color-muted); transition: border-color 0.18s;
+    display: inline-flex; align-items: center; gap: 0.5rem; min-height: 38px;
+    padding: 0.45rem 0.5rem 0.45rem 0.7rem; border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg-warm); cursor: pointer; font: inherit; font-size: 0.86rem;
+    color: var(--color-muted); transition: border-color 0.18s, background 0.18s;
+  }
+  .entry-form .time-pill .tp-ico {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 50%; background: var(--color-bg); font-size: 0.9rem;
   }
   .entry-form .time-pill .tp-lbl { color: var(--color-muted); }
-  .entry-form .time-pill .tp-val { color: var(--color-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .entry-form .time-pill .tp-edit { color: var(--color-light); font-size: 0.82rem; }
-  .entry-form .time-pill.custom { border-color: var(--color-accent); background: var(--color-bg-warm); }
+  .entry-form .time-pill .tp-val {
+    color: var(--color-ink); font-weight: 600; font-variant-numeric: tabular-nums;
+    padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--color-bg);
+  }
+  .entry-form .time-pill .tp-edit { color: var(--color-light); font-size: 0.82rem; padding-right: 0.25rem; }
+  .entry-form .time-pill.custom { border-color: var(--color-accent); }
   .entry-form .time-pill.custom .tp-val { color: var(--color-accent); }
   @media (hover: hover) { .entry-form .time-pill:hover { border-color: var(--color-accent); } }
 
+  /* Keyboard focus ring for the tool's custom controls (accessibility). */
+  .pf-wrap button:focus-visible, .pf-wrap select:focus-visible,
+  .extra-chip:focus-visible, .mode-toggle label:focus-within,
+  .time-pill:focus-visible, .modal button:focus-visible, .modal input:focus-visible {
+    outline: 2px solid var(--color-accent); outline-offset: 2px;
+  }
+
   /* Time-picker modal + food modal fields */
-  .tp-fields { display: flex; gap: 0.8rem; }
-  .tp-fields .field { flex: 1; }
+  .tp-fields { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+  .tp-fields .field { flex: 1 1 140px; }
   #time-picker-modal input[type="date"], #time-picker-modal input[type="time"] {
     width: 100%; font: inherit; font-size: 1rem; padding: 0.55rem 0.6rem;
     border: 1px solid var(--color-border); border-radius: 8px;
@@ -348,13 +396,17 @@ permalink: /toolbox/pet-food/
   .entries-list .day-divider strong { color: var(--color-ink); font-variant-numeric: tabular-nums; }
   .entry-row {
     display: grid; grid-template-columns: auto 1fr auto;
-    gap: 0.6rem; align-items: center;
-    padding: 0.55rem 0.9rem;
+    gap: 0.7rem; align-items: center;
+    padding: 0.6rem 0.9rem;
     font-size: 0.92rem;
-    border-top: 1px dashed var(--color-border);
+    border-top: 1px solid var(--color-border);
   }
   .entry-row:first-of-type { border-top: none; }
-  .entry-row .er-time { color: var(--color-muted); font-size: 0.82rem; min-width: 48px; font-variant-numeric: tabular-nums; }
+  @media (hover: hover) { .entry-row:hover { background: var(--color-bg-warm); } }
+  .entry-row .er-time {
+    color: var(--color-muted); font-size: 0.8rem; min-width: 42px;
+    font-variant-numeric: tabular-nums; align-self: start; padding-top: 0.15rem;
+  }
   .entry-row .er-main {
     display: flex; flex-wrap: wrap; gap: 0.4rem 0.55rem; align-items: baseline;
   }
@@ -369,14 +421,19 @@ permalink: /toolbox/pet-food/
   .entry-row .er-delta.first { color: var(--color-muted); background: var(--color-bg-warm); }
   .entry-row .er-delta.unknown { color: #a87a2a; background: rgba(168, 122, 42, 0.1); }
   .entry-row .er-delta.extra { color: #5a6a8b; background: rgba(90, 106, 139, 0.12); }
+  /* Brighten the badge text on dark theme (their light-mode hues are too dim). */
+  [data-theme="dark"] .entry-row .er-delta.eat { color: #7fb98f; background: rgba(127,185,143,0.14); }
+  [data-theme="dark"] .entry-row .er-delta.refill { color: #cba27e; background: rgba(203,162,126,0.14); }
+  [data-theme="dark"] .entry-row .er-delta.unknown { color: #d6b15a; background: rgba(214,177,90,0.14); }
+  [data-theme="dark"] .entry-row .er-delta.extra { color: #9fb0d6; background: rgba(159,176,214,0.14); }
   .entry-row-extra .er-reading { color: var(--color-muted); }
-  .entry-row .er-actions { display: inline-flex; gap: 0.15rem; }
+  .entry-row .er-actions { display: inline-flex; gap: 0.1rem; align-self: start; }
   .entry-row .er-del, .entry-row .er-edit {
-    border: none; background: transparent; color: var(--color-light);
-    cursor: pointer; padding: 0.2rem 0.4rem; font-size: 0.95rem;
-    border-radius: 4px; line-height: 1;
+    border: none; background: transparent; color: var(--color-muted);
+    cursor: pointer; font-size: 1rem; border-radius: 6px; line-height: 1;
+    min-width: 34px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center;
   }
-  .entry-row .er-edit { font-size: 0.85rem; }
+  .entry-row .er-edit { font-size: 0.92rem; }
   @media (hover: hover) {
     .entry-row .er-del:hover { color: #b07c75; background: var(--color-bg-warm); }
     .entry-row .er-edit:hover { color: var(--color-accent, #8b6f47); background: var(--color-bg-warm); }
@@ -959,8 +1016,8 @@ permalink: /toolbox/pet-food/
         <button type="button" data-act="join">🔑 用宠物码添加</button>
       </div>
     </div>
-    <button type="button" class="icon-btn inbox-btn" id="inbox-btn" style="display:none;" title="时间修改通知">🔔<span class="inbox-dot" id="inbox-dot" style="display:none;"></span></button>
-    <button type="button" class="icon-btn" id="profile-btn">👤</button>
+    <button type="button" class="icon-btn inbox-btn" id="inbox-btn" style="display:none;" title="时间修改通知" aria-label="时间修改通知">🔔<span class="inbox-dot" id="inbox-dot" style="display:none;"></span></button>
+    <button type="button" class="icon-btn" id="profile-btn" title="我的昵称" aria-label="我的昵称">👤</button>
   </div>
 
   <div class="empty-zone" id="pet-empty">
@@ -1004,17 +1061,17 @@ permalink: /toolbox/pet-food/
 
     <div class="entry-form">
       <div class="food-selector" id="food-selector"></div>
-      <div class="form-row">
-        <div class="reading-group">
-          <input type="number" class="reading" id="reading" step="any" placeholder="粮食称重" inputmode="decimal" />
-          <select class="unit-pick" id="unit-pick">
-            <option value="g">g</option>
-            <option value="kg">kg</option>
-            <option value="oz">oz</option>
-            <option value="lb">lb</option>
-          </select>
-          <span class="unit-suffix" id="unit-suffix" style="display:none;">份</span>
-        </div>
+      <div class="reading-group">
+        <input type="number" class="reading" id="reading" step="any" placeholder="粮食称重" inputmode="decimal" />
+        <select class="unit-pick" id="unit-pick">
+          <option value="g">g</option>
+          <option value="kg">kg</option>
+          <option value="oz">oz</option>
+          <option value="lb">lb</option>
+        </select>
+        <span class="unit-suffix" id="unit-suffix" style="display:none;">份</span>
+      </div>
+      <div class="entry-actions">
         <div class="mode-toggle" id="mode-toggle">
           <label data-val="1" class="active"><input type="radio" name="with-bowl" value="1" checked>含碗</label>
           <label data-val="0"><input type="radio" name="with-bowl" value="0">不含碗</label>
@@ -2565,8 +2622,8 @@ permalink: /toolbox/pet-food/
 
   function entryRowActions(e, pet) {
     const edit = canEditEntryTime(e, pet)
-      ? `<button type="button" class="er-edit" data-eid="${e.id}" title="改时间">✎</button>` : '';
-    return `<span class="er-actions">${edit}<button type="button" class="er-del" data-eid="${e.id}" title="删除">×</button></span>`;
+      ? `<button type="button" class="er-edit" data-eid="${e.id}" title="改时间" aria-label="修改这条记录的时间">✎</button>` : '';
+    return `<span class="er-actions">${edit}<button type="button" class="er-del" data-eid="${e.id}" title="删除" aria-label="删除这条记录">×</button></span>`;
   }
 
   function renderExtraRow(d, pet) {
@@ -3870,10 +3927,14 @@ permalink: /toolbox/pet-food/
   // NFE (carbs) = 100 − moisture − protein − fat − ash − fiber. Ash/fiber are
   // small; default to typical values (2 / 0.5) when the label omits them.
   function kcalPer100gFromAnalysis(a) {
-    const p = Number(a.protein), f = Number(a.fat), m = Number(a.moisture);
+    // Empty fields must be "missing", not 0 — Number('') is 0 (finite), which
+    // would silently treat blanks as 0% and inflate NFE. Parse blanks to NaN.
+    const num = v => (v === '' || v == null) ? NaN : Number(v);
+    const p = num(a.protein), f = num(a.fat), m = num(a.moisture);
     if (!Number.isFinite(p) || !Number.isFinite(f) || !Number.isFinite(m)) return null;
-    const ash = Number.isFinite(Number(a.ash)) && a.ash !== '' ? Number(a.ash) : 2;
-    const fiber = Number.isFinite(Number(a.fiber)) && a.fiber !== '' ? Number(a.fiber) : 0.5;
+    const ashN = num(a.ash), fiberN = num(a.fiber);
+    const ash = Number.isFinite(ashN) ? ashN : 2;
+    const fiber = Number.isFinite(fiberN) ? fiberN : 0.5;
     const nfe = Math.max(0, 100 - m - p - f - ash - fiber);
     const kcal = p * 3.5 + f * 8.5 + nfe * 3.5;
     return kcal > 0 ? kcal : null;
