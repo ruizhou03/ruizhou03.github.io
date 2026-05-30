@@ -1592,6 +1592,69 @@ permalink: /toolbox/guandan/
   body.gd-game-fullscreen #gd-wlb-mount,
   body.gd-game-fullscreen #gd-cm-mount,
   body.gd-game-fullscreen #gd-nick-mount { display: none !important; }
+
+  /* ======== 手机竖屏 → 整桌旋转 90°，强制横屏满屏 ========
+     iOS Safari 无法用 screen.orientation 锁定方向；改用 CSS transform 把整个
+     .guandan-wrap 旋转 90°，竖握手机也能得到横屏画幅、一打开就是横屏。
+     - position:fixed 子元素（toast / marquee 框选 / 浮层）以"有 transform 的祖先"
+       为包含块跟着一起转，clientX/Y 与 getBoundingClientRect 仍同处屏幕坐标系，
+       矩形框选命中判定自洽，无需改交互 JS。
+     - 牌尺寸：竖屏窄断点会把牌压到 40/34px，旋转后画幅其实是屏幕长边（≈840px），
+       15 列绰绰有余 → 这里恢复到桌面全尺寸，由 adaptHandSize 再按实际宽度收口，
+       既不重叠也够大。 */
+  @media (max-width: 900px) and (orientation: portrait) and (pointer: coarse) {
+    body.gd-game-fullscreen { overflow: hidden; }
+    body.gd-game-fullscreen .guandan-wrap {
+      inset: auto; top: 0; left: 0;
+      width: 100vh;  width: 100dvh;
+      height: 100vw; height: 100dvw;
+      transform-origin: 0 0;
+      transform: translateX(100vw) rotate(90deg);
+      transform: translateX(100dvw) rotate(90deg);
+      overflow: hidden;
+      /* 旋转后宽度足够 → 用桌面全尺寸牌，别再吃竖屏窄断点的 40/34px */
+      --gd-card-w: 50px; --gd-card-h: 72px; --gd-card-overlap: 28px;
+      --gd-card-mini-w: 34px; --gd-card-mini-h: 50px; --gd-card-mini-overlap: 20px;
+    }
+  }
+
+  /* ======== 横屏画幅（窄高）下的纵向压缩 + 复位 ========
+     两种情形都要：① 竖屏旋转后内容高 = 屏宽（≈390）；② 用户真把手机转横（视口高≈390）。
+     竖屏旋转时视口宽 ≤560，会触发上面的窄屏竖排规则（self-bar/sort-actions 改 static、
+     侧位收窄），这里用更高优先级把它们复位成桌面的"贴边绝对定位"宽屏布局；
+     再把各行高度收紧，让 4 家 + 手牌在 ~390px 高里全部可见、手牌不被切掉。 */
+  @media (max-width: 900px) and (orientation: portrait) and (pointer: coarse),
+         (orientation: landscape) and (max-height: 560px) {
+    /* 标题省掉，整桌上移腾纵向；退出全屏 chip 仍在（绝对定位） */
+    body.gd-game-fullscreen .guandan-wrap header { margin: 0; min-height: 0; }
+    body.gd-game-fullscreen .guandan-wrap header h1 { display: none; }
+    body.gd-game-fullscreen .gd-table {
+      min-height: 0; padding: 0.35rem 0.7rem 0.4rem;
+    }
+    body.gd-game-fullscreen .gd-hand { --gd-stack-step: 20px; }
+    /* 各行收紧 */
+    body.gd-game-fullscreen .gd-seats-mid { height: 96px; }
+    body.gd-game-fullscreen .gd-myplay-row { height: 42px; margin-top: 0.1rem; }
+    body.gd-game-fullscreen .gd-played,
+    body.gd-game-fullscreen .gd-side .gd-played { height: 64px; }
+    body.gd-game-fullscreen .gd-play-actions {
+      min-height: 0; margin: 0.15rem 0 0.3rem;
+    }
+    body.gd-game-fullscreen .gd-hand {
+      padding: 0.2rem 0.4rem 0.25rem;
+      min-height: calc(var(--gd-card-h) + 3 * var(--gd-stack-step) + 6px);
+    }
+    /* 复位：窄屏竖排规则会把这两块改 static，这里抢回桌面的贴边绝对定位 */
+    body.gd-game-fullscreen .gd-self-bar {
+      position: absolute; left: 0.8rem; bottom: 3.6rem;
+      margin: 0; justify-content: flex-start;
+    }
+    body.gd-game-fullscreen .gd-sort-actions {
+      position: absolute; right: 0.8rem; bottom: 0.5rem;
+      flex-direction: column; margin: 0;
+    }
+    body.gd-game-fullscreen .gd-sort-actions .gd-btn { min-width: 88px; }
+  }
 </style>
 
 <div class="guandan-wrap">

@@ -1958,8 +1958,11 @@ permalink: /toolbox/doudizhu/
 
   /* 手机横屏（用户自愿旋转时）—— 不强制、不弹提示，转过来就更宽敞：
      宽度富余、竖向局促 → 收紧竖向间距，上家/下家两排并成左右两列，
-     底牌 + 出牌 + 手牌都能在一屏内不滚动。max-height 限定只命中手机横屏。 */
-  @media (orientation: landscape) and (max-height: 560px) {
+     底牌 + 出牌 + 手牌都能在一屏内不滚动。max-height 限定只命中手机横屏。
+     第二个分支 = 竖握手机被 CSS 旋转成横屏画幅时（见文末旋转规则）：视口仍是竖的，
+     但内容高度 = 屏宽 ≈ 390，跟真横屏一样局促，所以复用同一套收紧。 */
+  @media (orientation: landscape) and (max-height: 560px),
+         (max-width: 900px) and (orientation: portrait) and (pointer: coarse) {
     .ddz-wrap {
       --ddz-card-w: 44px;
       --ddz-card-h: 62px;
@@ -1968,20 +1971,32 @@ permalink: /toolbox/doudizhu/
       --ddz-card-mini-h: 43px;
       --ddz-card-mini-overlap: 16px;
     }
-    .ddz-table { padding: 0.6rem 0.9rem 0.5rem; }
-    .ddz-tops { margin-bottom: 0.2rem; gap: 0.25rem; }
-    .ddz-avatar { width: 42px; height: 42px; font-size: 1.3rem; }
+    .ddz-table { padding: 0.45rem 0.9rem 0.45rem; }
+    .ddz-tops { margin-bottom: 0.1rem; gap: 0.15rem; }
+    .ddz-avatar { width: 38px; height: 38px; font-size: 1.15rem; }
+    .ddz-name { font-size: 0.66rem; }
+    .ddz-handcount { font-size: 0.66rem; }
     .ddz-center { min-height: 0; }
-    .ddz-bottom-pile { margin-bottom: 0.2rem; }
+    .ddz-bottom-pile { margin-bottom: 0.1rem; }
     /* 横屏宽度足够：对家出牌行收矮，左右半区更宽，长牌型更舒展 */
-    .ddz-tops-plays { min-height: 50px; gap: 1rem; }
-    .ddz-tops-plays .ddz-played { min-height: 48px; max-height: 48px; }
-    .ddz-decision-slot { min-height: 72px; margin-top: 0.2rem; }
-    .ddz-decision-slot .ddz-played { min-height: 72px; max-height: 72px; }
-    .ddz-hand { padding: 0.2rem 0; min-height: calc(var(--ddz-card-h) + 22px); }
-    .ddz-actions { margin-top: 0.3rem; min-height: 2rem; }
+    .ddz-tops-plays { min-height: 44px; gap: 1rem; }
+    .ddz-tops-plays .ddz-played { min-height: 42px; max-height: 42px; }
+    .ddz-decision-slot { min-height: 52px; margin-top: 0.1rem; }
+    .ddz-decision-slot .ddz-played { min-height: 52px; max-height: 52px; }
+    /* 时钟行：收紧到刚好容下时钟，省 ~14px（轮到我时也不顶飞手牌） */
+    .ddz-self-clock-row { min-height: 1.5rem; }
+    .ddz-hand { padding: 0.15rem 0; min-height: calc(var(--ddz-card-h) + 14px); }
+    .ddz-actions { margin-top: 0.2rem; min-height: 1.7rem; }
     .ddz-self { margin-top: 0.3rem; }
     .ddz-corner-chips { bottom: 6rem; }
+    /* 标题省掉腾纵向（退出全屏 / 静音 chip 是绝对定位，仍在角上） */
+    .ddz-wrap header h1 { display: none; }
+    .ddz-wrap header { margin-bottom: 0; min-height: 0; }
+    /* setup 浮层也收紧，别让"③ 开始"被切到屏外 */
+    .ddz-setup { padding: 0.5rem; }
+    .ddz-setup .ddz-setup-inner { padding: 0.7rem 1rem; max-height: 96%; }
+    .ddz-setup-step { margin-bottom: 0.7rem; }
+    .ddz-setup-step-label { margin-bottom: 0.4rem; }
   }
 
   /* 全屏按钮 chip（左上方，对称音效 chip） */
@@ -2037,6 +2052,28 @@ permalink: /toolbox/doudizhu/
   body.ddz-game-fullscreen #ddz-wlb-mount,
   body.ddz-game-fullscreen #ddz-wlb-online-mount,
   body.ddz-game-fullscreen #ddz-cm-mount { display: none !important; }
+
+  /* ======== 手机竖屏 → 整桌旋转 90°，强制横屏满屏 ========
+     iOS Safari 无法用 screen.orientation 锁定方向；改用 CSS transform 把整个
+     .ddz-wrap 旋转 90°，这样竖握手机也能得到横屏画幅、一打开就是横屏。
+     - position:fixed 的子元素（角标 chip / toast / 浮层）以"有 transform 的祖先"
+       为包含块，会一起跟着转，clientX/Y 与 getBoundingClientRect 仍在同一屏幕坐标
+       系里，命中判定自洽，不用改任何交互 JS。
+     - 牌宽走 fitHandRow 动态铺满：旋转后 .ddz-hand 的 clientWidth ≈ 屏幕长边，
+       17/20 张牌自然摊开到全尺寸，不再被压成窄条。
+     - dvh/dvw 兜底 vh/vw：避开 iOS 地址栏伸缩导致的高度跳动。 */
+  @media (max-width: 900px) and (orientation: portrait) and (pointer: coarse) {
+    body.ddz-game-fullscreen { overflow: hidden; }
+    body.ddz-game-fullscreen .ddz-wrap {
+      inset: auto; top: 0; left: 0;
+      width: 100vh;  width: 100dvh;
+      height: 100vw; height: 100dvw;
+      transform-origin: 0 0;
+      transform: translateX(100vw) rotate(90deg);
+      transform: translateX(100dvw) rotate(90deg);
+      overflow: hidden;
+    }
+  }
 </style>
 
 <div class="ddz-wrap">
