@@ -1961,8 +1961,7 @@ permalink: /toolbox/doudizhu/
      底牌 + 出牌 + 手牌都能在一屏内不滚动。max-height 限定只命中手机横屏。
      第二个分支 = 竖握手机被 CSS 旋转成横屏画幅时（见文末旋转规则）：视口仍是竖的，
      但内容高度 = 屏宽 ≈ 390，跟真横屏一样局促，所以复用同一套收紧。 */
-  @media (orientation: landscape) and (max-height: 560px),
-         (max-width: 900px) and (orientation: portrait) and (pointer: coarse) {
+  @media (orientation: landscape) and (max-height: 560px) {
     .ddz-wrap {
       --ddz-card-w: 44px;
       --ddz-card-h: 62px;
@@ -1987,7 +1986,13 @@ permalink: /toolbox/doudizhu/
     .ddz-self-clock-row { min-height: 1.5rem; }
     .ddz-hand { padding: 0.15rem 0; min-height: calc(var(--ddz-card-h) + 14px); }
     .ddz-actions { margin-top: 0.2rem; min-height: 1.7rem; }
-    .ddz-self { margin-top: 0.3rem; }
+    /* 横屏：手牌铺满，把"我"收成头像+张数钉到左下角，并给手牌左侧让位，别压住头几张牌 */
+    .ddz-self {
+      left: 0.4rem; bottom: 0.4rem; margin-top: 0;
+      flex-direction: row; align-items: flex-end; gap: 0.3rem;
+    }
+    .ddz-self .ddz-name { display: none; }
+    .ddz-hand { padding: 0.15rem 80px; }
     .ddz-corner-chips { bottom: 6rem; }
     /* 标题省掉腾纵向（退出全屏 / 静音 chip 是绝对定位，仍在角上） */
     .ddz-wrap header h1 { display: none; }
@@ -2053,30 +2058,42 @@ permalink: /toolbox/doudizhu/
   body.ddz-game-fullscreen #ddz-wlb-online-mount,
   body.ddz-game-fullscreen #ddz-cm-mount { display: none !important; }
 
-  /* ======== 手机竖屏 → 整桌旋转 90°，强制横屏满屏 ========
-     iOS Safari 无法用 screen.orientation 锁定方向；改用 CSS transform 把整个
-     .ddz-wrap 旋转 90°，这样竖握手机也能得到横屏画幅、一打开就是横屏。
-     - position:fixed 的子元素（角标 chip / toast / 浮层）以"有 transform 的祖先"
-       为包含块，会一起跟着转，clientX/Y 与 getBoundingClientRect 仍在同一屏幕坐标
-       系里，命中判定自洽，不用改任何交互 JS。
-     - 牌宽走 fitHandRow 动态铺满：旋转后 .ddz-hand 的 clientWidth ≈ 屏幕长边，
-       17/20 张牌自然摊开到全尺寸，不再被压成窄条。
-     - dvh/dvw 兜底 vh/vw：避开 iOS 地址栏伸缩导致的高度跳动。 */
-  @media (max-width: 900px) and (orientation: portrait) and (pointer: coarse) {
-    body.ddz-game-fullscreen { overflow: hidden; }
-    body.ddz-game-fullscreen .ddz-wrap {
-      inset: auto; top: 0; left: 0;
-      width: 100vh;  width: 100dvh;
-      height: 100vw; height: 100dvw;
-      transform-origin: 0 0;
-      transform: translateX(100vw) rotate(90deg);
-      transform: translateX(100dvw) rotate(90deg);
-      overflow: hidden;
+  /* ======== 手机竖屏：直接提示"请横屏"，不再硬塞竖屏牌桌 ========
+     仅触屏(pointer:coarse)竖屏生效，桌面/平板横排不受影响。 */
+  .ddz-rotate-hint { display: none; }
+  @media (orientation: portrait) and (pointer: coarse) {
+    .ddz-rotate-hint {
+      display: flex; position: fixed; inset: 0; z-index: 100000;
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 1.1rem; padding: 2rem; text-align: center;
+      background: linear-gradient(160deg, var(--ddz-felt-1) 0%, var(--ddz-felt-3) 100%);
+      color: var(--ddz-text-on-felt);
     }
+    .ddz-rotate-phone {
+      width: 48px; height: 80px; border: 3px solid var(--ddz-accent-strong);
+      border-radius: 11px; position: relative;
+      animation: ddz-rotate-tilt 1.9s ease-in-out infinite;
+    }
+    .ddz-rotate-phone::after {
+      content: ''; position: absolute; left: 50%; bottom: 6px; width: 16px; height: 3px;
+      background: var(--ddz-accent-strong); border-radius: 2px; transform: translateX(-50%);
+    }
+    @keyframes ddz-rotate-tilt {
+      0%, 28% { transform: rotate(0deg); }
+      68%, 100% { transform: rotate(-90deg); }
+    }
+    .ddz-rotate-title { font-size: 1.3rem; font-weight: 700; }
+    .ddz-rotate-sub { font-size: 0.9rem; color: var(--ddz-text-on-felt-mute, var(--color-muted)); max-width: 17rem; line-height: 1.65; }
   }
 </style>
 
 <div class="ddz-wrap">
+  <!-- 手机竖屏引导：仅触屏竖屏显示（CSS 控制），盖住整屏提示转横屏 -->
+  <div class="ddz-rotate-hint" aria-hidden="true">
+    <div class="ddz-rotate-phone"></div>
+    <div class="ddz-rotate-title">请把手机横过来</div>
+    <div class="ddz-rotate-sub">斗地主牌桌横屏才放得下 · 转一下就开打<br>（若没自动旋转，请关掉控制中心里的「竖排方向锁定」）</div>
+  </div>
   <header>
     <button type="button" class="ddz-fullscreen-toggle" id="ddzFullscreenToggle" title="切换全屏">⛶ 全屏</button>
     <button type="button" class="ddz-sfx-toggle" id="ddzSfxToggle" title="切换音效">🔇 静音</button>
