@@ -1,3 +1,58 @@
+## 2026-05-31
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周日 DOW=7，未跑 dead_links / orphan_files / pii_scan 三项周一项；orphan 手动跑了一次复核 NUL byte 误报状态）。距 5-30 巡检 10 个 commit，集中在三条线：`pet-food` 6 个（猫条/罐头计入 + 时间编辑 + 体重 + 新建食物估算 + 录入 UI 收紧 + 分段控件 app 化 + 成员动态铃铛）、`games` 横屏旋转、`guandan` 级牌金角标 + 逢人配出牌顶替、`cat-language` 新百宝箱（共享 `_includes/cat-soundboard.html` 与宠物中心猫语 tab）。**今日审计新发现 1 项无争议低风险已自动修复**：pet-food 暗色 toast hover 缺 `@media (hover: hover)` 守卫（同 5-29 guandan 同模式，紧挨着的明色版已正确守卫）；其余审计项与昨日同。P1 的 NUL byte 占位符 3 文件状态不变（仍需站主对照原图复核才能改）。
+
+### ✅ 本次已自动修复
+
+1. **`toolbox/pet-food/index.html` L440 `[data-theme="dark"] .link-toast .lt-undo:hover` 加 `@media (hover: hover)` 守卫** —— `hover_no_media.py` 报的全站唯一一处裸 `:hover`，紧挨着的 L433 明色版 `.link-toast .lt-undo:hover` 已包在 `@media (hover: hover)` 内；暗色变体（L440，从 5-30 `feat(pet-food) 共享 + 改时间`整体的 link-toast 模块挪过来时漏改）明显是配对漏改。fix：把单行 `[data-theme="dark"] .link-toast .lt-undo:hover { background: #7fb98f; color: #1a1a1a; }` 包进 `@media (hover: hover) { ... }`。复跑 `hover_no_media.py` 已 ✅ clean，`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（4.8 s）。本规则只控制 toast undo 按钮的暗色 hover 反色，触摸设备不再卡在亮起态。同 5-29 guandan 修法，性质一致——明色版已守、暗色版漏，是无争议小修。
+
+### 📋 待你把关
+
+#### P1（建议尽快，承接 5-29 → 5-30）
+
+1. **3 个 .md 文件含 NUL byte (`\x00`) 包裹的占位符（M3 / M4 / CJK2 / CJK3 / CJK30）** —— `_notes/life/fridge-layout-guide.md` L157、`_notes/research/r-brucer-moderation-mediation.md` L59/L75、`_notes/research/latex-commands.md` L265，状态与 5-29 / 5-30 完全一致（今天又跑了 `python3 -c "import pathlib; [print(p) for p in pathlib.Path('_notes').rglob('*.md') if b'\\x00' in p.read_bytes()]"` 复核，3 文件仍在列）。占位符规律强烈暗示是某次自动化处理（imgslim / alt 生成 / fix_quotes 之类）把数学片段（`M{n}`）或中文术语（`CJK{n}`）先替换成 placeholder 再放回时漏了一步，且不知怎么用 NUL 当了分隔符。**今日 orphan_files 手动复核**：仍报 `r-brucer-moderation-mediation/27.jpg` 与 `28.jpg` 两处 false positive，root cause = NUL 让 git 把 .md 当二进制、`git grep` 跳过——这是同一个 P1 的副作用，修了 NUL byte 这两处自动消失。**没自动改的原因**：NUL 拆掉简单（共 8 个字节），但真正的原文（数字 / 术语）需要站主对照原图或导入源文件才能复原。`fridge-layout-guide` 是 5-26 才上的新文章，对用户可见的温度梯度乱码影响最严重；建议先处理这条。
+
+#### P2（看心情，全部承接 5-29 → 5-30；本次扫描状态不变）
+
+2. **`sw.js` PWA cache 前缀仍是 `zirconeey-`（4 处）** —— L20-22、L279。设计取向（cache key 重命名要带 LEGACY 回退），不擅改。
+
+3. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里仍称"zirconeey 站"** —— 内部 prompt / 文档，属本机 / 历史标识符范畴。
+
+4. **`scripts/daily_review.sh:15` 与 `scripts/hooks/{stop_publish_reminder,post_write_imgslim}.sh:10` 仍带 `REPO="/Users/zhourui/Desktop/..."` 本机绝对路径**（叠加 `scripts/{merge-psy-stat-II,compile-r-tutorials,build-psy-stat-II-rmd}.py` 中 9 处同类）。最小改动是 `REPO="$(cd "$(dirname "$0")/.." && pwd)"`，由站主拍板。
+
+5. **toolbox 长文件继续膨胀**：本次 5-30 → 5-31 之间，`toolbox/pet-food/index.html` 从 **3980 → 5098 行**（+1118，pet-food 6 个 commit 含体重 / 营养估算 / 时间药丸 / 分段控件 app 化 / 成员动态铃铛），跻身全 toolbox 第 1；`assets/js/games/guandan.js` 从 **4822 → 4896 行**（+74，级牌金角标 + 逢人配出牌顶替）。`assets/js/doudizhu/ui.js` 维持 3884 行未变；`assets/js/doudizhu/ai.js` 维持 880 行未变。新增 `_includes/cat-soundboard.html` 266 行（共享组件，pet-food 猫语 tab 和 cat-language 独立页共用，这是好模式——把"页面级 inline"重抽成组件正是 P2#5 想要的方向）。延续 Round-3 P1#5「批量拆 `/assets/js/games/<name>.js`」清单：pet-food 5098 行单文件已是站点 inline 单文件之最，**建议优先级**由 P2 → 建议提到 P1：可参考 `_includes/cat-soundboard.html` 这次的成功抽取模式，把 pet-food 里相对独立的子模块（如 entry-form、history-list、bowl-weight modal、food-modal、bodyweight 区、活动 inbox、estimator 等）也抽成 `_includes/pet-food-*.html` 子组件，每个 200-500 行；inline `<style>` 同样可走 `_includes/pet-food-styles.html` 集中。**这是建议性方向，由站主拍板要不要做、什么时候做。** doudizhu 已完成 `engine.js + ai.js + ui.js` 三件套拆分（Round-2 P1 已收口）可作参考。
+
+#### 🗒️ 待办清账（承接 5-30）
+
+- **图片 alt / caption 覆盖**：`images.py` 仍 `missing_alt = 0` / `missing_caption = 0`（白名单 62 条），收口状态保持。
+- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套全报 HTTP 403。不阻塞巡检；fly app 健康度未在本沙箱主动复查。
+- **Round-3 留下的 ~68 个 P1**：未在本次范围推进，按原优先级排队。
+- **`taichi-review-2023.md`「85 公里跑」**：仍候着，本次未触碰。
+- **大图基线**（or-2023.pdf 5.30 MB + psy-stat-II-2023.pdf 2.70 MB + 12 张 500KB–1.5MB 图）：`images.py` 输出与昨日完全一致，无变化。
+- **material_type 枚举 30 处不合规** / **文件名 `-YYYY` 后缀 77 处缺** / **sibling 互链 51 篇孤立**：长线设计项，全部沿用昨日状态。
+
+### 🗂 仓库卫生
+
+- **架构变化（5-30 → 5-31）**：**有一处可记的小架构变化**——`toolbox/cat-language/` 新增（commit `6701048`，全站工具 48 → 49 个，与 `_data/toolbox.yml` 49 条 `url` 一一对应、无孤儿、无悬空）；同时新增 `_includes/cat-soundboard.html` 266 行作为共享组件，被独立工具页和 pet-food 的「猫语」tab 复用（**这是把"页面级 inline"抽成组件的正面案例**，与 P2#5 拆 pet-food 的方向同源）；`files/audio/cat-language/` 新增 4 个 mp3（chatter/growl/pleading/siamese）+ 重剪 6 个旧 mp3（meow/hiss/purr/yowl/trill/demand），总 10 种。除此之外 10 个 commit 的去向：
+  - `1773cbf → 6701048` 全部在 `pet-food`（6 个）+ `games 横屏旋转`（1 个）+ `guandan 级牌金角标`（1 个）+ `cat-language 新百宝箱`（1 个）。
+  - 没有新增一级分类，没有新增内容文章。pet-food 主页面单文件已 5098 行，是本次 P2#5 的重点提示。
+- **追踪卫生**：
+  - 工作树扫描无 `.DS_Store`、无 `* 2.*` macOS 副本、无 `*.bak`/`*~`/`.synctex.gz`/`*.aux` 编辑器垃圾；`_site/`、`.jekyll-cache/`、`.jekyll-metadata`、`Gemfile.lock` 均被 `.gitignore` 正确忽略。
+  - `console.log` / `debugger` / `TODO` / `FIXME` / `XXX` 残留扫描：今日新改的 5 个核心文件（`toolbox/pet-food/index.html`、`assets/js/games/guandan.js`、`assets/js/doudizhu/ui.js`、`_includes/cat-soundboard.html`、`toolbox/cat-language/index.html`）只有 5 处 `console.warn` / `console.error`，全部是**合理的错误日志**（异常 catch 内的诊断、submit rejected 提示等），非 stale debug；pet-food 的 `XXXXXX` 房间分享码占位符仍是 UI 文本不是 TODO。
+  - 硬编码密钥扫描无新发现。
+  - 本机绝对路径：见 P2#4，状态不变（沿用 5-30）。
+- **构建健康**：`bundle exec ruby -e "require 'jekyll'; Jekyll::Commands::Build.process(...)"` 通过、零 warning、零 error（4.8 s）；`_site/` 大小与昨日基本同量（新增 `_site/toolbox/cat-language/index.html` ≈ 1.7 KB + `_site/files/audio/cat-language/` 10 个 mp3 共 313 KB；索引随新内容线性增长属正常）。`_site/` 根目录扫描确认 `DAILY_REVIEW.md` / `EMAIL_SUMMARY.md` / `SPOTCHECK_100_REPORT.md` / `SPOTCHECK_100_AGENT_REPORTS.md` / `TOOLBOX_AUDIT_REPORT.md` / `scripts/` / `backends/` / `.claude/` / `docs/` / `audio/` 全部正确 exclude。
+- **前置字段一致性**：`frontmatter_yaml` ✅；`keywords_coverage` 散文 119 篇全部充足；`_notes/study/` 全部有 `discipline`；菜谱必填字段齐全。新文章 `_notes/life/cat-language.md` 仍存在（commit 6701048 改成科普文形式 + 引入声音板组件），keywords 状态由 keywords_coverage.py 复核通过。
+- **百宝箱一致性**：`toolbox/` 下 **49 个工具子目录** ↔ `_data/toolbox.yml` 49 条 `url` 一一对应、无孤儿、无悬空（cat-language 新增已正确登记，category 生活、status live、icon 🐱、tagline 「点一下，循环听各种猫叫」）。
+- **audit 全套结果**：keywords ✅ / images（基线 2 大 PDF）/ backend_pulse（沙箱 403）/ spotcheck（10 项抽检清单待 review）/ material_type（30 处⚠️长线）/ filename_convention（77 处⚠️长线）/ hover_no_media ✅（fix 后）/ sibling_crosslink（51 篇⚠️ 沿用 P1）/ bare_dollar ✅ / img_caption_md ✅ / svg_italic_zh ✅ / bare_url ✅ / frontmatter_yaml ✅；手动加跑的 orphan_files 仍报 2 处 false positive（r-brucer NUL byte 的副作用，sw 5-29 已记账）。
+- **结论**：今日 1 项无争议自动修复（pet-food 暗色 toast hover 守卫），1 项 P1 持续待办（NUL byte，需站主原文复核），4 项 P2 持续待办（全部设计取向）。今日内容产能集中在 pet-food 深做 + cat-language 新工具（共享组件抽取是好模式），无新增一级分类。
+
+### 💓 后端脉搏 / 📬 读者来信
+
+后端三件套（zircon-urge / leaderboards / zircon-comments waline）本次 `backend_pulse.py` 仍全报 HTTP 403。与 5-27 ~ 5-30 同因（沙箱无 fly.io 出口），不阻塞巡检，未主动重启 fly app。
+
+---
+
 ## 2026-05-30
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周六，未跑 dead_links / orphan_files / pii_scan 三项周一项）。距 5-29 巡检 20 个 commit，全部集中在 `guandan` / `doudizhu` / `pet-food` 三个百宝箱的深做与一处英文站 theme-toggle 字段级对齐，没有新增内容目录或一级分类。**今日审计全套绿、无可安全自动修复项**——5-29 的 3 项已修（`TOOLBOX_AUDIT_REPORT.md` exclude / guandan hover guard / 2 文件 6 处裸 `$`）依旧成立；P1 的 NUL byte 占位符 3 文件状态不变（仍需站主对照原图复核才能改）。
