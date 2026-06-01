@@ -440,3 +440,11 @@
   url: /toolbox/cat-language/
   category: 生活
   status: live
+
+- id: bazi
+  name: 八字排盘
+  icon: 🔮
+  tagline: 生辰八字 · 大运合婚（娱乐）
+  url: /toolbox/bazi/
+  category: 生活
+  status: live
