@@ -1974,9 +1974,11 @@
     state.hands = [[], [], [], []];
     for (let i = 0; i < 108; i++) state.hands[i % 4].push(deck[i]);
 
-    // 决定先手：首局座 0；之后由上局头游先出（贡牌后由还贡相关规则简化为头游先出）
-    let leader = 0;
+    // 决定先手：首局随机抽一家；之后由进贡/抗贡规则在 handleTribute 里改写
+    // （这里的 leader 只是非进贡场景的兜底：传入的是上局头游）
+    let leader;
     if (prevRanking && prevRanking.length) leader = prevRanking[0];
+    else leader = Math.floor(Math.random() * 4);   // 首局随机
     state.firstLeader = leader;
 
     // 进贡处理（非首局）
@@ -2116,42 +2118,69 @@
   }
 
   // ---- 进贡 / 还贡 ----
-  // 规则：上一局若一方"双下"（其两名成员是 3rd & 4th），3rd+4th 都各进贡
-  //      "最大非红桃级牌单张"；其中较大者→1st（头游），较小者→2nd（二游），
-  //      然后两边都还贡。
-  // 抗贡：贡方（即 3rd+4th 损方）手握两个大王 → 免贡（直接开打）。
+  // 进贡分两种（依官方规则，东南大学/BCTA/维基一致）：
+  //   单贡：普通局——末游(4th)给头游(1st)进"最大非红桃级牌单张"，头游还一张≤10。
+  //   双贡（双下）：上一局一方包揽 1st+2nd（3rd & 4th 同队且非胜方）——3rd+4th 都进贡，
+  //                 较大贡牌→头游、较小→二游，两边都还贡。
+  // 先出牌（首家）规则：
+  //   单贡正常        → 进贡者（末游）先出
+  //   单贡抗贡        → 收贡者（头游）先出
+  //   双贡正常        → 两个进贡者中"贡牌大"的那家先出；两张一样大则头游下家先出
+  //   双贡抗贡        → 头游先出
+  // 抗贡：贡方手握两个大王 → 免贡（单贡看末游一人，双贡看 3rd+4th 合计）。
   // 红心级牌不能进贡（pickTributeCard 已排除）。
-  // 还贡完成后，由"给头游进贡的人"领出下一圈（受了头游还贡的人），实现下游领出。
   function handleTribute(ranking, leader) {
     const first = ranking[0], second = ranking[1], third = ranking[2], fourth = ranking[3];
     const winTeam = TEAM(first);
     const doubleDown = (TEAM(third) === TEAM(fourth)) && (TEAM(third) !== winTeam);
-    if (!doubleDown) { beginPlay(leader); return; }
+    if (doubleDown) handleDoubleTribute(first, second, third, fourth);
+    else handleSingleTribute(first, fourth);
+  }
 
-    // 抗贡：贡方（损方，即 3rd+4th）合计是否握有 2 大王 → 免贡
-    const giverSeats = [third, fourth];
-    let bigJokers = 0;
-    for (const s of giverSeats)
-      for (const c of state.hands[s]) if (isJoker(c) && jokerKind(c) === 'big') bigJokers++;
-    if (bigJokers >= 2) {
-      // 抗贡：中央 banner 停留 2s 让用户看清，再开打
-      state.phase = PHASE.TRIBUTE;
-      renderAll();
-      showTributeBanner('🛡️ 抗贡成功', seatName(third) + ' & ' + seatName(fourth) + ' 握双大王，免进贡', 2000);
-      setTimeout(() => { beginPlay(leader); }, 2000);
-      return;
-    }
+  // 数某些座位手里共有几张大王（抗贡判定用）
+  function countBigJokers(seats) {
+    let n = 0;
+    for (const s of seats)
+      for (const c of state.hands[s]) if (isJoker(c) && jokerKind(c) === 'big') n++;
+    return n;
+  }
 
-    // 两位 giver 都要给"最大非红桃级牌单张"。如果玩家是其中之一，给他 5s
-    // 选同等级的其他花色（默认已选最大牌，超时自动确认）；AI 直接 pickTributeCard。
+  // 单贡：末游(fourth) → 头游(first)
+  function handleSingleTribute(first, fourth) {
     state.phase = PHASE.TRIBUTE;
     renderAll();
+    // 抗贡：末游独握双大王 → 免贡，头游先出
+    if (countBigJokers([fourth]) >= 2) {
+      showTributeBanner('🛡️ 抗贡成功', seatName(fourth) + ' 握双大王，免进贡', 2000);
+      setTimeout(() => { beginPlay(first); }, 2000);   // 收贡者（头游）先出
+      return;
+    }
+    resolveGiverCard(fourth, card => {
+      state.pendingTribute = {
+        pairs: [{ giver: fourth, receiver: first, tributeCard: card, returnCard: null }],
+        newLeader: fourth,   // 进贡者（末游）先出
+      };
+      processTributePair(0);
+    });
+  }
+
+  // 双贡（双下）：fourth & third 都进贡
+  function handleDoubleTribute(first, second, third, fourth) {
+    state.phase = PHASE.TRIBUTE;
+    renderAll();
+    // 抗贡：贡方（3rd+4th）合计握有 2 大王 → 免贡，头游先出
+    if (countBigJokers([third, fourth]) >= 2) {
+      showTributeBanner('🛡️ 抗贡成功', seatName(third) + ' & ' + seatName(fourth) + ' 握双大王，免进贡', 2000);
+      setTimeout(() => { beginPlay(first); }, 2000);   // 双贡抗贡 → 头游先出
+      return;
+    }
+    // 两位 giver 都给"最大非红桃级牌单张"。玩家是其一时给 5s 选同等级别花色。
     resolveGiverCard(fourth, fourthCard => {
       resolveGiverCard(third, thirdCard => {
         const level = currentLevelLabel();
         const fw = singleWeight(fourthCard, level);
         const tw = singleWeight(thirdCard, level);
-        // 大牌→头游、小牌→二游；并列时按顺时针（约定：fourth→first, third→second）
+        // 大牌→头游、小牌→二游；并列时按约定 fourth→first, third→second
         let bigGiver, bigCard, smallGiver, smallCard;
         if (fw >= tw) {
           bigGiver = fourth; bigCard = fourthCard;
@@ -2160,13 +2189,14 @@
           bigGiver = third; bigCard = thirdCard;
           smallGiver = fourth; smallCard = fourthCard;
         }
-        // pendingTribute.pairs: 顺序处理；每一 pair 完成后才开下一个
+        // 先出：贡牌大的那家先出；两张一样大则头游下家先出
+        const newLeader = (fw === tw) ? (first + 1) % 4 : bigGiver;
         state.pendingTribute = {
           pairs: [
             { giver: bigGiver, receiver: first, tributeCard: bigCard, returnCard: null },
             { giver: smallGiver, receiver: second, tributeCard: smallCard, returnCard: null },
           ],
-          headGiver: bigGiver,   // 进贡后由这人领出下一圈
+          newLeader,
         };
         processTributePair(0);
       });
@@ -2227,8 +2257,8 @@
   function processTributePair(idx) {
     const pt = state.pendingTribute;
     if (!pt || idx >= pt.pairs.length) {
-      // 全部完成 → 由"给头游进贡的人"领出下一圈
-      const newLeader = pt && pt.headGiver != null ? pt.headGiver : 0;
+      // 全部完成 → 按先出牌规则领出下一圈（newLeader 在 handleSingle/Double 里定好）
+      const newLeader = pt && pt.newLeader != null ? pt.newLeader : 0;
       finishTribute(newLeader);
       return;
     }
