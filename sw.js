@@ -71,7 +71,10 @@ self.addEventListener('fetch', (event) => {
   if (isHTMLRequest(req)) {
     event.respondWith((async () => {
       try {
-        const res = await fetch(req);
+        // 'no-cache'：HTML 导航总是向服务器复验（带 ETag，未变则 304，几乎零成本）。
+        // 否则 GitHub Pages 的 max-age=600 会让浏览器/SW 把页面缓存 10 分钟，刚部署
+        // 的更新要等缓存过期或硬刷新才出现——多次被误判成「改了没生效」。
+        const res = await fetch(req, { cache: 'no-cache' });
         if (res && res.ok) {
           const copy = res.clone();
           const cache = await caches.open(PAGE_CACHE);
