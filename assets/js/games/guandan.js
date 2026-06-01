@@ -1172,6 +1172,10 @@
     const hand = els.hand;
     const cols = hand.querySelectorAll('.gd-rank-col');
     if (!cols.length) return;
+    // 先清掉上一轮的内联覆盖，按当前断点的 CSS 默认重新量
+    hand.style.removeProperty('--gd-card-w');
+    hand.style.removeProperty('--gd-card-h');
+    hand.style.removeProperty('--gd-stack-step');
     const cs = getComputedStyle(hand);
     const defCardW = parseFloat(cs.getPropertyValue('--gd-card-w')) || 50;
     const defCardH = parseFloat(cs.getPropertyValue('--gd-card-h')) || 72;
@@ -1181,20 +1185,43 @@
     const padR = parseFloat(cs.paddingRight) || 0;
     const availW = hand.clientWidth - padL - padR;
     if (availW <= 0) return;
+
+    // ── 横向：按 15 列预算定卡宽（装得下就用默认尺寸） ──
+    let cardW = defCardW, cardH = defCardH, step = defStep;
     const neededW = MAX_HAND_COLS * defCardW + (MAX_HAND_COLS - 1) * gap;
-    if (neededW <= availW) return;   // 装得下 → 用 CSS 默认尺寸
-    const newCardW = Math.max(26, Math.floor((availW - (MAX_HAND_COLS - 1) * gap) / MAX_HAND_COLS));
-    if (newCardW >= defCardW) return;
-    const ratio = newCardW / defCardW;
-    const newCardH = Math.round(defCardH * ratio);
-    const newStep = Math.max(13, Math.round(defStep * ratio));
-    hand.style.setProperty('--gd-card-w', newCardW + 'px');
-    hand.style.setProperty('--gd-card-h', newCardH + 'px');
-    hand.style.setProperty('--gd-stack-step', newStep + 'px');
+    if (neededW > availW) {
+      cardW = Math.max(26, Math.floor((availW - (MAX_HAND_COLS - 1) * gap) / MAX_HAND_COLS));
+      if (cardW < defCardW) cardH = Math.round(defCardH * (cardW / defCardW));
+    }
+
+    // ── 纵向：最深的一摞（理论上 ≤ 8 张）也要塞进"手牌顶 → 屏幕底"的可用高，
+    //    不够先收每张露出高度(step)、仍不够再连卡高一起收 —— 深摞不再溢出画幅。 ──
+    let maxDepth = 1;
+    cols.forEach(col => { maxDepth = Math.max(maxDepth, col.querySelectorAll('.gd-card').length); });
+    // 可用高度 = 手牌容器自身的内容高（横屏下手牌 flex:1 撑满剩余空间，列在底对齐）。
+    // 用 clientHeight 而非 handTop，彻底避开 safe-center 下"高度↔位置"的循环依赖、稳定不抖。
+    const padT = parseFloat(cs.paddingTop) || 0;
+    const padB = parseFloat(cs.paddingBottom) || 0;
+    const availH = hand.clientHeight - padT - padB;
+    if (maxDepth > 1 && availH > 60) {
+      const STEP_FLOOR = 13;   // 每张至少露 13px，角标还看得见个大概
+      if (cardH + (maxDepth - 1) * step > availH) {
+        step = Math.max(STEP_FLOOR, Math.floor((availH - cardH) / (maxDepth - 1)));
+      }
+      if (cardH + (maxDepth - 1) * step > availH) {  // step 到底仍超 → 收卡高（卡宽按比例跟）
+        const h0 = cardH;
+        cardH = Math.max(40, Math.floor(availH - (maxDepth - 1) * step));
+        cardW = Math.max(24, Math.round(cardW * cardH / h0));
+      }
+    }
+
+    if (cardW !== defCardW) hand.style.setProperty('--gd-card-w', cardW + 'px');
+    if (cardH !== defCardH) hand.style.setProperty('--gd-card-h', cardH + 'px');
+    if (step !== defStep) hand.style.setProperty('--gd-stack-step', step + 'px');
     cols.forEach(col => {
       const cards = col.querySelectorAll('.gd-card');
-      col.style.height = ((cards.length - 1) * newStep + newCardH) + 'px';
-      cards.forEach((c, i) => { c.style.top = (i * newStep) + 'px'; });
+      col.style.height = ((cards.length - 1) * step + cardH) + 'px';
+      cards.forEach((c, i) => { c.style.top = (i * step) + 'px'; });
     });
   }
 

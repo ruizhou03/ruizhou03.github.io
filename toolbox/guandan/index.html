@@ -1641,34 +1641,45 @@ permalink: /toolbox/guandan/
   @media (orientation: landscape) and (max-height: 560px) {
     body.gd-game-fullscreen .guandan-wrap header { margin: 0; min-height: 0; }
     body.gd-game-fullscreen .guandan-wrap header h1 { display: none; }
-    body.gd-game-fullscreen .gd-table { min-height: 0; padding: 0.35rem 0.7rem 0.4rem; }
-    body.gd-game-fullscreen .gd-hand { --gd-stack-step: 20px; }
-    body.gd-game-fullscreen .gd-seats-mid { height: 96px; }
-    body.gd-game-fullscreen .gd-myplay-row { height: 42px; margin-top: 0.1rem; }
+    /* 全屏 chip 挪到右上角，让开左上角的级牌信息（我方/对方/积分） */
+    body.gd-game-fullscreen .gd-fullscreen-toggle { left: auto; right: 0.5rem; top: 0.45rem; }
+    /* 牌桌 flex 撑满视口高度，手牌吃掉座位/出牌行之后的全部剩余高度 */
+    body.gd-game-fullscreen .gd-table {
+      flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+      padding: 0.35rem 0.7rem 0.4rem;
+    }
+    body.gd-game-fullscreen .gd-seats-mid { height: 86px; }
+    body.gd-game-fullscreen .gd-myplay-row { height: 38px; margin-top: 0.1rem; }
     body.gd-game-fullscreen .gd-played,
-    body.gd-game-fullscreen .gd-side .gd-played { height: 64px; }
-    body.gd-game-fullscreen .gd-play-actions { min-height: 0; margin: 0.15rem 0 0.3rem; }
-    /* 关键：手牌左右各留出角标宽度，绝不重叠（adaptHandSize 会按缩小后的可用宽收口） */
+    body.gd-game-fullscreen .gd-side .gd-played { height: 60px; }
+    body.gd-game-fullscreen .gd-play-actions { min-height: 0; margin: 0.1rem 0 0.25rem; }
+    /* 手牌：吃满剩余高度、列在底对齐（深摞往上长进中间空地，不再溢出底边）；
+       默认 step 24 角标清晰，adaptHandSize 按 clientHeight 把最深的一摞收进画幅。
+       左右留出"我/托管"和"理牌图标键"的宽度，绝不压牌。 */
     body.gd-game-fullscreen .gd-hand {
-      padding: 0.2rem 96px 0.25rem 80px;
-      min-height: calc(var(--gd-card-h) + 3 * var(--gd-stack-step) + 6px);
+      --gd-stack-step: 24px;
+      flex: 1 1 auto; min-height: 0;
+      align-items: flex-end;
+      padding: 0.15rem 50px 0.2rem 62px;
     }
-    /* 左下：托管 chip 在上、"我"头像+张数在下，竖排挤进左侧 80px 内 */
-    body.gd-game-fullscreen .gd-autopilot-chip {
-      left: 0.4rem; bottom: 3.2rem; padding: 0.24rem 0.5rem; font-size: 0.74rem;
-    }
+    /* 左下："我"头像+张数在上、托管在下，竖排不重叠（挤进左侧 62px 内） */
     body.gd-game-fullscreen .gd-self-bar {
-      left: 0.4rem; bottom: 0.4rem; margin: 0;
-      flex-direction: column; align-items: flex-start; gap: 0.15rem;
+      left: 0.4rem; bottom: 2.3rem; margin: 0;
+      flex-direction: column; align-items: flex-start; gap: 0.1rem;
     }
     body.gd-game-fullscreen .gd-self-bar .gd-name { display: none; }
-    /* 右下：理牌键紧凑竖排，挤进右侧 96px 内 */
+    body.gd-game-fullscreen .gd-autopilot-chip {
+      left: 0.4rem; bottom: 0.4rem; padding: 0.22rem 0.5rem; font-size: 0.72rem;
+    }
+    /* 右下：只留 还原/理牌 两个图标键（去文字、去一键理牌），紧凑竖排（挤进右侧 50px 内） */
     body.gd-game-fullscreen .gd-sort-actions {
-      right: 0.4rem; bottom: 0.4rem; flex-direction: column; gap: 0.3rem; margin: 0;
+      right: 0.4rem; bottom: 0.4rem; flex-direction: column; gap: 0.35rem; margin: 0;
     }
     body.gd-game-fullscreen .gd-sort-actions .gd-btn {
-      min-width: 84px; padding: 0.3rem 0.5rem; font-size: 0.78rem;
+      min-width: 0; width: 40px; height: 36px; padding: 0; font-size: 1.05rem; line-height: 1;
     }
+    body.gd-game-fullscreen .gd-sort-actions .gd-btn-tx { display: none; }
+    body.gd-game-fullscreen #gdSortBtn { display: none; }   /* 一键理牌 横屏不显示 */
   }
 </style>
 
@@ -1783,9 +1794,9 @@ permalink: /toolbox/guandan/
 
     <!-- 理牌行：在表桌右下角纵向排列。还原一直可见，点击在无可还原选中时静默失败 -->
     <div class="gd-sort-actions" id="gdSortActions">
-      <button class="gd-btn" id="gdRestoreBtn" type="button" title="选中某一摞的全部牌后点击，把它解散回默认位置">↩ 还原</button>
-      <button class="gd-btn" id="gdArrangeBtn" type="button" title="选中若干张点击，把它们摞成一摞：炸弹自动摞左、其他摞右">🔀 理牌</button>
-      <button class="gd-btn" id="gdSortBtn" type="button" title="清掉所有自定义摞，恢复默认排序">🧩 一键理牌</button>
+      <button class="gd-btn" id="gdRestoreBtn" type="button" title="选中某一摞的全部牌后点击，把它解散回默认位置">↩<span class="gd-btn-tx"> 还原</span></button>
+      <button class="gd-btn" id="gdArrangeBtn" type="button" title="选中若干张点击，把它们摞成一摞：炸弹自动摞左、其他摞右">🔀<span class="gd-btn-tx"> 理牌</span></button>
+      <button class="gd-btn" id="gdSortBtn" type="button" title="清掉所有自定义摞，恢复默认排序">🧩<span class="gd-btn-tx"> 一键理牌</span></button>
     </div>
 
     <!-- Pre-game overlay -->
