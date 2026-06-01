@@ -4437,13 +4437,20 @@ permalink: /toolbox/pet-food/
       $bowlWeight.focus();
       return;
     }
-    // 30-minute throttle: warn (don't block) if a weigh record exists within 30 min
+    // 30-minute throttle: warn (don't block) if a weigh record exists within 30 min.
+    // 例外：这次称重明显比上一条「重」时（碗里变重 = 加粮），不弹窗。常见流程是
+    // 先称剩余、再加新粮、又称一次——第二条本就会记成「添了 X g」，不算误记。
     const sorted = [...pet.entries].filter(e => (e.kind || 'weigh') === 'weigh').sort((a, b) => b.ts - a.ts);
     if (sorted.length > 0) {
       const gap = Date.now() - sorted[0].ts;
       if (gap < 30 * 60 * 1000) {
-        const mins = Math.max(1, Math.round(gap / 60000));
-        if (!confirm(`距上一条记录 ${mins} 分钟，确定再记一次？`)) return;
+        const newFood = withBowl ? (gramsReading - pet.bowlWeight) : gramsReading;
+        const lastFood = foodWeight(sorted[0], pet);
+        const isRefill = Number.isFinite(newFood) && Number.isFinite(lastFood) && (newFood - lastFood) > 0.5;
+        if (!isRefill) {
+          const mins = Math.max(1, Math.round(gap / 60000));
+          if (!confirm(`距上一条记录 ${mins} 分钟，确定再记一次？`)) return;
+        }
       }
     }
     const mismatch = detectModeMismatch(pet, gramsReading, withBowl);
