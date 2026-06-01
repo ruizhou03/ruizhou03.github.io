@@ -26,6 +26,7 @@ PDF_LARGE = 2 * 1024 * 1024  # 2 MB 警告（PDF）
 # 已知豁免：损坏 PDF（不能重压）、已知就该大的归档文件
 EXEMPT_FILES = {
     "files/monetary-econ/monetary-econ-2023.pdf",   # 损坏，重压会丢内容
+    "files/or/or-2023.pdf",                          # 纯文字+矢量+内嵌字体，gs/qpdf 无损只降 1-2%，结构性不可压（2026-06-01 验证）
 }
 
 MD_IMG_RE = re.compile(r'!\[([^\]]*)\]\(([^)]+)\)')

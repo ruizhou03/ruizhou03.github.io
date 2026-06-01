@@ -243,7 +243,7 @@ def checklist_for(item):
     if t == "pdf_archive":
         return [
             "**归属与必要性**：这份 PDF 是被哪个 markdown 笔记 link 的？grep 一下 `files/<...>.pdf` 路径，找不到引用就说明已成孤儿文件。",
-            "**体积合理性**：是否过大（> 5MB）？是否已经 imgslim/pdfslim 过（[[reference_slim_tools]]）？注意 monetary-econ-2023 损坏不能压缩。",
+            "**体积合理性**：是否过大（> 5MB）？是否已经 imgslim/pdfslim 过（[[reference_slim_tools]]）？注意 monetary-econ-2023 损坏不能压缩、or-2023 纯文字矢量结构性不可压（均在 images.py 的 EXEMPT_FILES 里）。",
             "**LaTeX 化潜力**：评估值不值得 LaTeX 化（参考 lecture_note_pdf_only 的判定）。",
             "**front-matter 联动**：对应的 markdown 笔记 front-matter 中 `pdf_url` 路径是否一致？文件名是否符合 [[project_taxonomy_conventions]] 的命名规则？",
         ]

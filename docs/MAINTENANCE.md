@@ -41,8 +41,11 @@ ruizhou03.github.io/notes/  /life/  /research/  /essays/  /toolbox/ ...   中文
   - 字段：`main_category`（一级栏目）+ `sub_category`（专栏分组）。
   - landing 页 = 带日期、可翻页、可搜的文章流。
 - **资料型**（学习资料）：按课程查档案，下载 PDF，时间无关。
-  - 字段：`discipline`（学科分组）+ `course`（课程名）+ `material_type`
-    （Notes / Exams / Homework / 课程测评 …）。
+  - 字段：`discipline`（学科分组）+ `course`（课程名）+ `material_type`。
+    `material_type` 合法取值两类：学术资料 `Notes` / `Exams` / `Homework`
+    （模板 `post.html` 有专属文案）；非学术人面标签 `课程测评` / `经验之谈` /
+    `错题本` / `写作` / `词汇` / `口语`（模板走 `{% else %}` 兜底）。新增取值前
+    先想清楚是不是真有必要——`scripts/audit/material_type_enum.py` 的白名单与此同步。
   - `main_category: "学习资料"` 仍然要写——只是为了让首页“近期更新”
     和计数能统一处理；它在资料型里**不做分组用**，分组靠 `discipline`。
   - `/notes/` 页按 `discipline` 分组，组顺序由 `_config.yml` 的
