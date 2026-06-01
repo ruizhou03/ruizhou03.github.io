@@ -813,7 +813,8 @@
 
   const state = {
     aiLevel: ['easy','normal','hard'].includes(stored.lastDiff) ? stored.lastDiff : 'normal',
-    options: normalizeOptions(stored.options),   // 同队进贡 / 单局积分上限 / 出牌时间
+    options: normalizeOptions(stored.options),       // PGO 里可编辑的「下一盘」玩法设置
+    matchOptions: normalizeOptions(stored.options),  // 当前这盘冻结的玩法设置（startMatch 时从 options 拷贝）
     openMult: [1, 2, 3].includes(stored.lastMult) ? stored.lastMult : 1,
     stats: normalizeStats(stored.stats),
     phase: PHASE.IDLE,
@@ -916,6 +917,7 @@
       savedAt: Date.now(),
       aiLevel: state.aiLevel,
       options: state.options,
+      matchOptions: state.matchOptions,
       openMult: state.openMult,
       phase: state.phase,
       levels: state.levels.slice(),
@@ -1951,6 +1953,9 @@
   //  回合流程
   // ===========================================================
   function startMatch() {
+    // 冻结这一盘的玩法设置：只在开新一盘时从可编辑的 options 拷贝一次。
+    // 这盘进行中（含局与局之间）engine 只读 matchOptions，改 PGO 设置要等下一盘才生效。
+    state.matchOptions = normalizeOptions(state.options);
     state.levels = [0, 0];           // 都从 '2'
     state.actingTeam = 0;            // 你方先做主级（首局由座 0 起手）
     state.firstLeader = 0;
@@ -2153,7 +2158,7 @@
     if (doubleDown) { handleDoubleTribute(first, second, third, fourth); return; }
     // 单贡：末游→头游。若关了「同队进贡」且末游正好是头游队友（1、4 同队那局），
     // 则跳过进贡，直接由头游先出。
-    if (!state.options.teamTribute && TEAM(fourth) === TEAM(first)) {
+    if (!state.matchOptions.teamTribute && TEAM(fourth) === TEAM(first)) {
       beginPlay(first);
       return;
     }
@@ -2757,11 +2762,11 @@
     state.lastRanking = ranking;
 
     // 单局结算分：开局倍数 × 炸弹累乘 × 升级数。赢方得正，输方得负。
-    // 「单局积分上限」(state.options.scoreCap, 0=不限) 给一局输赢分数封顶；升级数不受影响。
+    // 「单局积分上限」(matchOptions.scoreCap, 0=不限) 给一局输赢分数封顶；升级数不受影响。
     const openMult = state.openMult || 1;
     const bombMult = state.bombMult || 1;
     const rawScore = openMult * bombMult * advance;
-    const cap = state.options.scoreCap | 0;
+    const cap = state.matchOptions.scoreCap | 0;
     const capped = cap > 0 && rawScore > cap;
     const roundScore = capped ? cap : rawScore;
     state.lastRoundScore = (winTeam === 0) ? roundScore : -roundScore;
@@ -2922,9 +2927,9 @@
   // ===========================================================
   const TURN_TIMEOUT_MS = 25000;
   const AI_CLOCK_MS = 25000;   // AI 通常 < 1s 出牌 → 这个值大多走不完
-  // 出牌时间（毫秒）：来自玩法设置 state.options.turnSec；0 = 不限（不挂时钟、不自动出）
+  // 出牌时间（毫秒）：来自本盘冻结的 matchOptions.turnSec；0 = 不限（不挂时钟、不自动出）
   function turnMs() {
-    const s = state.options.turnSec | 0;
+    const s = state.matchOptions.turnSec | 0;
     return s > 0 ? s * 1000 : 0;
   }
   let turnClockTimer = null;
@@ -3968,6 +3973,8 @@
     // 写回 state 数据字段
     if (['easy','normal','hard'].includes(snap.aiLevel)) state.aiLevel = snap.aiLevel;
     if (snap.options) state.options = normalizeOptions(snap.options);
+    // 恢复这盘冻结的设置；旧 session 没有 matchOptions 就退回 options
+    state.matchOptions = normalizeOptions(snap.matchOptions || snap.options);
     if ([1,2,3].includes(snap.openMult)) state.openMult = snap.openMult;
     state.phase = snap.phase;
     state.levels = Array.isArray(snap.levels) ? snap.levels.slice() : [0, 0];
