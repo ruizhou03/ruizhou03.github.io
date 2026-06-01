@@ -1553,11 +1553,10 @@ permalink: /toolbox/guandan/
     100% { opacity: 0; transform: translate(-50%, -50%) scale(1.05); }
   }
 
-  /* ======== 全屏切换 chip（左上方），与斗地主一致 ========
-     不用浏览器 Fullscreen API（桌面易把整窗进入全屏；iOS Safari 等基本不支持），
-     而是给 body 加 .gd-game-fullscreen 类，让 .guandan-wrap fixed 铺满 viewport。 */
+  /* ======== 游戏内「🏆 榜单」chip（替代退出全屏）========
+     永久全屏不跳出游戏外；玩法/战绩榜/评论改在游戏内浮层看，按钮挂头部角上。 */
   .guandan-wrap header { position: relative; }
-  .gd-fullscreen-toggle {
+  .gd-board-btn {
     position: absolute; top: 0.6rem; left: 0.6rem;
     padding: 0.28rem 0.65rem;
     border: 1px solid var(--color-border);
@@ -1571,11 +1570,39 @@ permalink: /toolbox/guandan/
     z-index: 5;
   }
   @media (hover: hover) {
-    .gd-fullscreen-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .gd-board-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
-  .gd-fullscreen-toggle.on {
-    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+
+  /* 游戏内「榜单/玩法/评论」浮层 */
+  .gd-board-modal {
+    position: fixed; inset: 0; z-index: 10001;
+    display: flex; align-items: center; justify-content: center;
   }
+  .gd-board-modal[hidden] { display: none; }
+  .gd-board-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(13,24,43,0.55);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  }
+  .gd-board-panel {
+    position: relative; z-index: 1;
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: 14px; padding: 1.5rem 1.2rem 1.2rem;
+    width: min(600px, 92vw); max-height: 88vh; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 12px 40px rgba(13,24,43,0.4);
+  }
+  .gd-board-close {
+    position: absolute; top: 0.5rem; right: 0.6rem;
+    width: 2rem; height: 2rem; border-radius: 50%;
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    font-size: 1.3rem; line-height: 1; cursor: pointer; color: var(--color-muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+  @media (hover: hover) { .gd-board-close:hover { border-color: var(--color-accent); color: var(--color-accent); } }
+  .gd-board-panel details.about { margin: 0 0 1rem; }
+  .gd-board-panel #gd-wlb-mount,
+  .gd-board-panel #gd-nick-mount { margin: 0 0 0.8rem; }
 
   body.gd-game-fullscreen { overflow: hidden; }
   body.gd-game-fullscreen .guandan-wrap {
@@ -1601,10 +1628,8 @@ permalink: /toolbox/guandan/
      一个没显式 width 的子元素；不给的话 .gd-table 就缩到内容（PGO 浮层）
      的天然宽度，看着像一根竖条 */
   body.gd-game-fullscreen .gd-table { width: 100%; max-width: 1100px; margin: 0 auto; }
-  body.gd-game-fullscreen .guandan-wrap details.about,
-  body.gd-game-fullscreen #gd-wlb-mount,
-  body.gd-game-fullscreen #gd-cm-mount,
-  body.gd-game-fullscreen #gd-nick-mount { display: none !important; }
+  /* 玩法 / 战绩榜 / 评论 已移进游戏内「🏆 榜单」浮层（gd-board-modal），
+     由浮层的 [hidden] 控制显隐——永久全屏、不再跳出游戏外，所以这里不再隐藏它们。 */
 
   /* ======== 手机竖屏：直接提示"请横屏"，不再硬塞竖屏牌桌 ========
      掼蛋 4 家 + 27 张牌竖屏怎么排都挤；竖握手机时盖一层引导，转横屏才开打。
@@ -1641,8 +1666,8 @@ permalink: /toolbox/guandan/
   @media (orientation: landscape) and (max-height: 560px) {
     body.gd-game-fullscreen .guandan-wrap header { margin: 0; min-height: 0; }
     body.gd-game-fullscreen .guandan-wrap header h1 { display: none; }
-    /* 全屏 chip 挪到右上角，让开左上角的级牌信息（我方/对方/积分） */
-    body.gd-game-fullscreen .gd-fullscreen-toggle { left: auto; right: 0.5rem; top: 0.45rem; }
+    /* 🏆 榜单 chip 挪到右上角，让开左上角的级牌信息（我方/对方/积分） */
+    body.gd-game-fullscreen .gd-board-btn { left: auto; right: 0.5rem; top: 0.45rem; }
     /* 牌桌 flex 撑满视口高度，手牌吃掉座位/出牌行之后的全部剩余高度 */
     body.gd-game-fullscreen .gd-table {
       flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
@@ -1691,7 +1716,7 @@ permalink: /toolbox/guandan/
     <div class="gd-rotate-sub">掼蛋牌桌横屏才放得下 · 转一下就开打<br>（若没自动旋转，请关掉控制中心里的「竖排方向锁定」）</div>
   </div>
   <header>
-    <button type="button" class="gd-fullscreen-toggle" id="gdFullscreenToggle" title="切换全屏">⛶ 全屏</button>
+    <button type="button" class="gd-board-btn" id="gdBoardBtn" title="榜单 / 玩法 / 评论">🏆 榜单</button>
     <h1>🀄 掼蛋</h1>
     <div class="sub">2 打 2 · 你与对家联手，打级牌到 A 取胜 · 三档 AI</div>
   </header>
@@ -1949,14 +1974,20 @@ permalink: /toolbox/guandan/
 
   </div><!-- /.gd-table -->
 
-  <details class="about">
-    <summary>游戏规则</summary>
-    <div class="body" id="gdRulesBody"></div>
-  </details>
-
-  <div id="gd-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
-  <div id="gd-nick-mount" style="max-width: 600px; margin: 0.6rem auto 0;"></div>
-  <div id="gd-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
+  <!-- 游戏内「榜单 / 玩法 / 评论」浮层：替代退出全屏（永久全屏，不再跳到游戏外） -->
+  <div class="gd-board-modal" id="gdBoardModal" hidden>
+    <div class="gd-board-backdrop" id="gdBoardBackdrop"></div>
+    <div class="gd-board-panel">
+      <button class="gd-board-close" id="gdBoardClose" type="button" aria-label="关闭">×</button>
+      <details class="about">
+        <summary>游戏规则</summary>
+        <div class="body" id="gdRulesBody"></div>
+      </details>
+      <div id="gd-wlb-mount"></div>
+      <div id="gd-nick-mount"></div>
+      <div id="gd-cm-mount"></div>
+    </div>
+  </div>
 
   <div class="gd-toast" id="gdToast"></div>
 </div>

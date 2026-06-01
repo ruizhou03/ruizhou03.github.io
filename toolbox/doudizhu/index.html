@@ -2004,8 +2004,8 @@ permalink: /toolbox/doudizhu/
     .ddz-setup-step-label { margin-bottom: 0.4rem; }
   }
 
-  /* 全屏按钮 chip（左上方，对称音效 chip） */
-  .ddz-fullscreen-toggle {
+  /* 游戏内「🏆 榜单」chip（左上方，对称音效 chip）——替代退出全屏 */
+  .ddz-board-btn {
     position: absolute; top: 0.6rem; left: 0.6rem;
     padding: 0.28rem 0.65rem;
     border: 1px solid var(--color-border);
@@ -2018,9 +2018,39 @@ permalink: /toolbox/doudizhu/
     transition: all 0.18s;
   }
   @media (hover: hover) {
-    .ddz-fullscreen-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .ddz-board-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
-  .ddz-fullscreen-toggle.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+
+  /* 游戏内「榜单/玩法/评论」浮层 */
+  .ddz-board-modal {
+    position: fixed; inset: 0; z-index: 10001;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ddz-board-modal[hidden] { display: none; }
+  .ddz-board-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(13,24,43,0.55);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  }
+  .ddz-board-panel {
+    position: relative; z-index: 1;
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: 14px; padding: 1.5rem 1.2rem 1.2rem;
+    width: min(600px, 92vw); max-height: 88vh; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 12px 40px rgba(13,24,43,0.4);
+  }
+  .ddz-board-close {
+    position: absolute; top: 0.5rem; right: 0.6rem;
+    width: 2rem; height: 2rem; border-radius: 50%;
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    font-size: 1.3rem; line-height: 1; cursor: pointer; color: var(--color-muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+  @media (hover: hover) { .ddz-board-close:hover { border-color: var(--color-accent); color: var(--color-accent); } }
+  .ddz-board-panel details.about { margin: 0 0 1rem !important; max-width: none !important; }
+  .ddz-board-panel #ddz-wlb-mount,
+  .ddz-board-panel #ddz-nick-mount { margin: 0 0 0.8rem !important; }
 
   /* ======== 游戏画幅全屏模式 (跨平台) ========
      点 "⛶ 全屏" → body 加 .ddz-game-fullscreen 类
@@ -2052,11 +2082,9 @@ permalink: /toolbox/doudizhu/
      一个没显式 width 的子元素；不给的话 .ddz-table 就缩到内容（setup 浮层）
      的天然宽度，看着像被压成手机条 */
   body.ddz-game-fullscreen .ddz-table { width: 100%; max-width: 900px; margin: 0 auto; }
-  body.ddz-game-fullscreen .ddz-help,
-  body.ddz-game-fullscreen #ddz-settle-btn-mount,
-  body.ddz-game-fullscreen #ddz-wlb-mount,
-  body.ddz-game-fullscreen #ddz-wlb-online-mount,
-  body.ddz-game-fullscreen #ddz-cm-mount { display: none !important; }
+  body.ddz-game-fullscreen .ddz-help { display: none !important; }
+  /* 玩法 / 战绩榜 / 评论 已移进游戏内「🏆 榜单」浮层（ddz-board-modal），
+     由浮层 [hidden] 控制显隐——永久全屏、不再跳出游戏外。 */
 
   /* ======== 手机竖屏：直接提示"请横屏"，不再硬塞竖屏牌桌 ========
      仅触屏(pointer:coarse)竖屏生效，桌面/平板横排不受影响。 */
@@ -2095,7 +2123,7 @@ permalink: /toolbox/doudizhu/
     <div class="ddz-rotate-sub">斗地主牌桌横屏才放得下 · 转一下就开打<br>（若没自动旋转，请关掉控制中心里的「竖排方向锁定」）</div>
   </div>
   <header>
-    <button type="button" class="ddz-fullscreen-toggle" id="ddzFullscreenToggle" title="切换全屏">⛶ 全屏</button>
+    <button type="button" class="ddz-board-btn" id="ddzBoardBtn" title="榜单 / 玩法 / 评论">🏆 榜单</button>
     <button type="button" class="ddz-sfx-toggle" id="ddzSfxToggle" title="切换音效">🔇 静音</button>
     <h1>🃏 斗地主</h1>
   </header>
@@ -2351,17 +2379,23 @@ permalink: /toolbox/doudizhu/
     </div>
   </div>
 
-  <details class="about" style="max-width:600px;margin:1rem auto 0;font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
-    <summary>游戏规则</summary>
-    <p>3 人一副牌（54 张，含大小王）。叫分最高者为地主，其余两人为农民合作对抗。地主先出完牌则地主胜，任一农民先出完则农民胜。</p>
-    <p>牌型：单张、对子、三条、三带一、三带二、顺子（≥5 张）、连对（≥3 对）、飞机（≥2 个连续三条带等量单/对）、炸弹（4 张同点）、火箭（大小王）。炸弹和火箭可压任何牌型。</p>
-    <p>倍数：叫地主（1/2/3 分）、炸弹和火箭每次翻倍、春天（对手一张未出）×2。最终输赢 = 底分 × 倍数。</p>
-  </details>
-
-  <div id="ddz-settle-btn-mount"></div>
-  <div id="ddz-wlb-mount" style="max-width: 600px; margin: 1.2rem auto 0;"></div>
-  <div id="ddz-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
-  <div id="ddz-cm-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
+  <!-- 游戏内「榜单 / 玩法 / 评论」浮层：替代退出全屏（永久全屏，不再跳到游戏外） -->
+  <div class="ddz-board-modal" id="ddzBoardModal" hidden>
+    <div class="ddz-board-backdrop" id="ddzBoardBackdrop"></div>
+    <div class="ddz-board-panel">
+      <button class="ddz-board-close" id="ddzBoardClose" type="button" aria-label="关闭">×</button>
+      <details class="about" style="font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
+        <summary>游戏规则</summary>
+        <p>3 人一副牌（54 张，含大小王）。叫分最高者为地主，其余两人为农民合作对抗。地主先出完牌则地主胜，任一农民先出完则农民胜。</p>
+        <p>牌型：单张、对子、三条、三带一、三带二、顺子（≥5 张）、连对（≥3 对）、飞机（≥2 个连续三条带等量单/对）、炸弹（4 张同点）、火箭（大小王）。炸弹和火箭可压任何牌型。</p>
+        <p>倍数：叫地主（1/2/3 分）、炸弹和火箭每次翻倍、春天（对手一张未出）×2。最终输赢 = 底分 × 倍数。</p>
+      </details>
+      <div id="ddz-settle-btn-mount"></div>
+      <div id="ddz-wlb-mount"></div>
+      <div id="ddz-nick-mount"></div>
+      <div id="ddz-cm-mount"></div>
+    </div>
+  </div>
 </div>
 
 <script src="/assets/js/games-shell/identity.js"></script>

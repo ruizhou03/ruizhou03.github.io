@@ -429,27 +429,15 @@
       commitDouble(0, want);
     }
   }
-  // 全屏切换 —— 用 body class 而非浏览器 fullscreen API：
-  // 1) 桌面：浏览器 fullscreen API 容易把整个浏览器进入全屏（含书签栏等）而非"游戏画幅"
-  // 2) 手机：浏览器 fullscreen API 在 Safari 等基本不支持
-  // body class 切换 → CSS 隐排行榜/评论、把 .ddz-wrap 固定铺满 viewport，跨平台稳定
-  const fsBtn = $('ddzFullscreenToggle');
-  function refreshFsBtn() {
-    if (!fsBtn) return;
-    const on = document.body.classList.contains('ddz-game-fullscreen');
-    fsBtn.classList.toggle('on', on);
-    fsBtn.textContent = on ? '⛶ 退出全屏' : '⛶ 全屏';
-  }
-  // 一进来就直接铺满 viewport——比"先看一眼局促的画幅再点全屏"舒服。
-  // 想退出仍可点右上角"退出全屏"。
+  // 永久全屏：进页面即铺满 viewport，不再提供退出全屏（最佳体验就是全屏玩）。
+  // 玩法 / 战绩榜 / 评论改在游戏内「🏆 榜单」浮层看，不用跳出游戏外。
   document.body.classList.add('ddz-game-fullscreen');
-  refreshFsBtn();
-  if (fsBtn) {
-    fsBtn.addEventListener('click', () => {
-      document.body.classList.toggle('ddz-game-fullscreen');
-      refreshFsBtn();
-    });
-  }
+  const ddzBoardModal = $('ddzBoardModal');
+  function ddzOpenBoard() { if (ddzBoardModal) ddzBoardModal.hidden = false; }
+  function ddzCloseBoard() { if (ddzBoardModal) ddzBoardModal.hidden = true; }
+  if ($('ddzBoardBtn')) $('ddzBoardBtn').addEventListener('click', ddzOpenBoard);
+  if ($('ddzBoardClose')) $('ddzBoardClose').addEventListener('click', ddzCloseBoard);
+  if ($('ddzBoardBackdrop')) $('ddzBoardBackdrop').addEventListener('click', ddzCloseBoard);
   $('ddzPlayAgainBtn').addEventListener('click', () => {
     gameOverOverlay.classList.remove('show', 'has-spring');
     startNewGame();

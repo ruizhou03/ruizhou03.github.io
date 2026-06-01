@@ -3798,25 +3798,15 @@
     '<strong>🔀 理牌</strong>：选中若干张点一下，把它们摞成一摞 —— 炸弹自动摞到最左（多个炸弹按强度从大到小排）、其他牌摞到最右。' +
     '<strong>↩ 还原</strong>：选中某一摞的所有牌后点击，把它解散回默认位置。<strong>🧩 一键理牌</strong>：把所有自定义摞清掉，全部回默认排序。</p>';
 
-  // ---- 全屏切换：参考斗地主，用 body 类而非浏览器 Fullscreen API；
-  //      进页面默认就铺满 viewport，不用先看局促画幅再点全屏。 ----
-  const fsBtn = $('gdFullscreenToggle');
-  function refreshFsBtn() {
-    if (!fsBtn) return;
-    const on = document.body.classList.contains('gd-game-fullscreen');
-    fsBtn.classList.toggle('on', on);
-    fsBtn.textContent = on ? '⛶ 退出全屏' : '⛶ 全屏';
-  }
+  // ---- 永久全屏：进页面即铺满 viewport，不再提供退出全屏（最佳体验就是全屏玩）。
+  //      玩法 / 战绩榜 / 评论改在游戏内「🏆 榜单」浮层看，不用跳出游戏外。 ----
   document.body.classList.add('gd-game-fullscreen');
-  refreshFsBtn();
-  if (fsBtn) {
-    fsBtn.addEventListener('click', () => {
-      document.body.classList.toggle('gd-game-fullscreen');
-      refreshFsBtn();
-      // 画幅变化 → 重新按可用宽度适配手牌
-      adaptHandSize();
-    });
-  }
+  const boardModal = $('gdBoardModal');
+  function openBoard() { if (boardModal) boardModal.hidden = false; }
+  function closeBoard() { if (boardModal) boardModal.hidden = true; }
+  if ($('gdBoardBtn')) $('gdBoardBtn').addEventListener('click', openBoard);
+  if ($('gdBoardClose')) $('gdBoardClose').addEventListener('click', closeBoard);
+  if ($('gdBoardBackdrop')) $('gdBoardBackdrop').addEventListener('click', closeBoard);
   window.addEventListener('resize', () => adaptHandSize());
 
   // ---- 启动 ----
