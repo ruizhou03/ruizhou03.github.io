@@ -289,6 +289,40 @@ permalink: /toolbox/bazi/
   .luck-cell .lk-dot { font-size: 0.7rem; margin-top: 0.15rem; }
   .dot-吉 { color:#3a7d4e; } .dot-凶 { color:#c0504d; } .dot-平 { color:var(--color-light); }
 
+  /* 大运 时间轴（每步十年） */
+  .dy-scroll { overflow-x: auto; padding: 0.4rem 0 0.2rem; margin: 0 -0.2rem; }
+  .dy-inner { min-width: 580px; padding: 0 0.6rem; }
+  .dy-line { display: flex; }
+  .dy-node {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center;
+    cursor: pointer; padding: 0.15rem 0;
+  }
+  .dy-top { display: flex; flex-direction: column; align-items: center; line-height: 1.12; }
+  .dy-gz { font-family: var(--font-display); font-size: 1.45rem; color: var(--color-muted); transition: color 0.15s; }
+  .dy-shi { font-size: 0.68rem; color: var(--color-light); margin-top: 1px; }
+  .dy-dotrow { position: relative; width: 100%; display: flex; justify-content: center; align-items: center; height: 0.9rem; margin: 0.32rem 0; }
+  .dy-node:not(:last-child) .dy-dotrow::after {
+    content: ''; position: absolute; top: 50%; left: 50%; width: 100%; height: 2px;
+    background: var(--color-border); transform: translateY(-50%); z-index: 0;
+  }
+  .dy-dot {
+    position: relative; z-index: 1; width: 14px; height: 14px; border-radius: 50%;
+    border: 3px solid var(--color-bg); box-sizing: content-box; background: var(--color-light); transition: all 0.16s;
+  }
+  .dy-node.lk-吉 .dy-dot { background: #3a7d4e; }
+  .dy-node.lk-平 .dy-dot { background: #c9b87f; }
+  .dy-node.lk-凶 .dy-dot { background: #c0504d; }
+  .dy-meta { font-size: 0.66rem; color: var(--color-light); text-align: center; line-height: 1.35; margin-top: 0.2rem; }
+  .dy-caret { font-size: 0.85rem; line-height: 1; height: 0.95rem; color: var(--color-accent); opacity: 0; transition: opacity 0.15s; }
+  .dy-node.sel .dy-gz { color: var(--color-accent); font-weight: 600; }
+  .dy-node.sel .dy-dot { transform: scale(1.4); box-shadow: 0 0 0 3px var(--color-accent); }
+  .dy-node.now .dy-dot { box-shadow: 0 0 0 3px rgba(30,58,95,0.18); }
+  .dy-node.sel.now .dy-dot { box-shadow: 0 0 0 3px var(--color-accent); }
+  .dy-node.sel .dy-caret { opacity: 1; }
+  @media (hover: hover) { .dy-node:hover .dy-dot { transform: scale(1.28); } }
+  .dy-panel { margin-top: 0.1rem; padding: 0.95rem 1.05rem 1rem; border-radius: 12px; background: var(--color-bg-warm, #f5f4f0); }
+  .dy-panel > .bz-p:first-child { margin-top: 0.15rem; }
+
   /* 近段趋势 时间轴 */
   .tl-scroll { overflow-x: auto; padding: 0.2rem 0 0.4rem; margin: 0 -0.2rem; }
   .tl-inner { min-width: 560px; padding: 0 0.4rem; }
@@ -1105,10 +1139,10 @@ function renderResult(b,gender,f){
       return wrap;
     };
 
-    var strip=el('div','luck-strip');
-    var decadeHost=el('div'); decadeHost.style.marginTop='0.4rem';
+    var dyScroll=el('div','dy-scroll'), dyInner=el('div','dy-inner'), dyLine=el('div','dy-line');
+    var decadeHost=el('div','dy-panel');
     var selectDecade=function(i){
-      $$('.luck-cell',strip).forEach(function(x){ x.classList.toggle('active', +x.dataset.i===i); });
+      $$('.dy-node',dyLine).forEach(function(x){ x.classList.toggle('sel', +x.dataset.i===i); });
       decadeHost.innerHTML='';
       var p=lp.pillars[i], pl=periodLuck(an,p.gan,p.zhi);
       var startA=lp.startAge!=null?Math.round(lp.startAge+i*10):null, startYr=decStartYr(i);
@@ -1119,28 +1153,30 @@ function renderResult(b,gender,f){
       var why=el('details','bz-why'); why.innerHTML='<summary>展开推理过程：为什么是这个判断</summary><div class="why-body">'+pl.reasons.map(function(r){return '· '+r;}).join('<br>')+'</div>';
       decadeHost.appendChild(why);
       if(startYr!=null){
-        decadeHost.appendChild(el('div','tl-sub','这十年的逐年流年（'+startYr+'–'+(startYr+9)+'）：'));
+        decadeHost.appendChild(el('div','tl-sub','▾ 这一步大运的十年，拆成逐年流年（'+startYr+'–'+(startYr+9)+'）：'));
         decadeHost.appendChild(yearTimeline(startYr,startYr+9));
+      } else {
+        decadeHost.appendChild(el('div','tl-sub','（没有真实生日，这步大运对不到具体年份）下面是今年起未来十年的逐年流年：'));
+        decadeHost.appendChild(yearTimeline(nowYear,nowYear+9));
       }
     };
 
     lp.pillars.forEach(function(p,i){
       var startA=lp.startAge!=null?Math.round(lp.startAge+i*10):null, startYr=decStartYr(i);
       var pl=periodLuck(an,p.gan,p.zhi);
-      var cell=el('div','luck-cell'); cell.dataset.i=i;
-      cell.innerHTML='<div class="lk-gz">'+gzHTML(p.gan,p.zhi)+'<small>'+shiShen(b.day[0],p.gan)+'</small></div>'
-        +'<div class="lk-age">'+(startA!=null?startA+'岁':(i*10+'+'))+(startYr?'<br>'+startYr:'')+'</div>'
-        +'<div class="lk-dot dot-'+pl.label+'">'+(pl.label==='吉'?'● 顺':(pl.label==='凶'?'● 慎':'● 平'))+'</div>';
-      cell.addEventListener('click',function(){ selectDecade(i); });
-      strip.appendChild(cell);
+      var isNow=(startYr!=null && nowYear>=startYr && nowYear<startYr+10);
+      var node=el('div','dy-node lk-'+pl.label+(isNow?' now':'')); node.dataset.i=i;
+      node.innerHTML='<div class="dy-top"><span class="dy-gz">'+gzHTML(p.gan,p.zhi)+'</span><span class="dy-shi">'+shiShen(b.day[0],p.gan)+'</span></div>'
+        +'<div class="dy-dotrow"><span class="dy-dot"></span></div>'
+        +'<div class="dy-meta">'+(startA!=null?startA+'岁':((i*10)+'+岁'))+(startYr?'<br>'+startYr:'')+(isNow?'<br><b style="color:var(--color-accent)">· 现在</b>':'')+'</div>'
+        +'<div class="dy-caret">▾</div>';
+      node.addEventListener('click',function(){ selectDecade(i); });
+      dyLine.appendChild(node);
     });
-    c4.appendChild(strip);
+    dyInner.appendChild(dyLine); dyScroll.appendChild(dyInner);
+    c4.appendChild(dyScroll);
     c4.appendChild(decadeHost);
     selectDecade(curIdx);
-    if(!hasYears){
-      decadeHost.appendChild(el('div','tl-sub','今年起未来十年的逐年流年：'));
-      decadeHost.appendChild(yearTimeline(nowYear,nowYear+9));
-    }
 
     // 近段速览（始终基于今年）
     var aggLabel=function(sp){ var a=0; for(var k=0;k<sp;k++){ var g=yearGZIndex(nowYear+k); a+=periodLuck(an,g%10,g%12).score; } var av=a/sp; return av>=0.5?'吉':(av<=-0.5?'凶':'平'); };

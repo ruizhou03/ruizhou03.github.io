@@ -242,11 +242,11 @@
   status: live
 
 # 派对 / 多人
-- id: dare
+- id: dontdoit
   name: 不要做挑战
   icon: 🃏
   tagline: 翻牌挑战
-  url: /toolbox/dare/
+  url: /toolbox/dontdoit/
   category: 游戏
   subcategory: 派对多人
   status: live
