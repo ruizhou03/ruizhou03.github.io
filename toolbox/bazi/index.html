@@ -332,6 +332,7 @@ permalink: /toolbox/bazi/
   .tl-legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
   .tl-legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 
+  .tl-sub { font-size: 0.82rem; color: var(--color-light); margin: 0.2rem 0 0.55rem; }
   /* 近段 摘要行 */
   .near-rows { margin-top: 1rem; display: grid; gap: 0.55rem; }
   .near-row {
@@ -1069,113 +1070,90 @@ function renderResult(b,gender,f){
   c3.appendChild(el('p','bz-p',overallText(b,an)));
   box.appendChild(c3);
 
-  /* ---- 大运 + 近段 ---- */
-  if(b._birth!=null || true){
+  /* ---- 大运 · 流年（整合：大运为主，点开看那十年的逐年流年） ---- */
+  {
     var lp=luckPillars(b,gender,f?f.dateReliable:true);
+    var nowYear=(new Date()).getFullYear();
+    var hasYears=(lp.startAge!=null && !!f);
     var c4=el('div','bz-card');
     var ageNote=lp.startAge!=null?('约 '+lp.startAge.toFixed(1)+' 岁起运，'+(lp.forward?'顺':'逆')+'排'):((lp.forward?'顺':'逆')+'排 · 未给真实生日，仅列顺序');
-    c4.innerHTML='<h3>大运 <span class="em">'+ageNote+' · 每步十年</span></h3>';
-    if(lp.startAge==null) c4.appendChild(el('p','bz-p muted','· 你是直接录入八字的，没有真实生日，无法精确推「起运年龄」与年份——下面只按顺序列出各步大运的干支与吉凶。想要精确起运，请改用左边「按生日推算」。'));
+    c4.innerHTML='<h3>大运 · 流年 <span class="em">'+ageNote+' · 点某步大运看那十年的逐年流年</span></h3>';
+    if(!hasYears) c4.appendChild(el('p','bz-p muted','· 直接录入八字、没有真实生日，大运只按顺序列出；流年仍按公历年正常推（见下方时间轴）。'));
+
+    var decStartYr=function(i){ return hasYears?Math.round(f.y+lp.startAge+i*10):null; };
+    var curIdx=0;
+    if(hasYears){ for(var ci=0;ci<lp.pillars.length;ci++){ var sy0=decStartYr(ci); if(nowYear>=sy0&&nowYear<sy0+10){ curIdx=ci; break; } } }
+
+    var legendEl=function(){
+      var lg=el('div','tl-legend');
+      lg.innerHTML='<span><i style="background:#3a7d4e"></i>较顺（吉）</span><span><i style="background:#c9b87f"></i>平稳（平）</span><span><i style="background:#c0504d"></i>宜稳（凶）</span><span style="color:var(--color-muted)">点圆点看当年详情</span>';
+      return lg;
+    };
+    var yearTimeline=function(fromY,toY){
+      var scroll=el('div','tl-scroll'), inner=el('div','tl-inner');
+      var yearsRow=el('div','tl-years'), yDetail=el('div'); yDetail.style.marginTop='0.85rem';
+      for(var y=fromY;y<=toY;y++){ (function(y){
+        var gi=yearGZIndex(y), ypl=periodLuck(an,gi%10,gi%12);
+        var yc=el('div','tl-year lk-'+ypl.label);
+        if(y===nowYear) yc.classList.add('now');
+        yc.innerHTML='<span class="ty-gz">'+gzHTML(gi%10,gi%12)+'</span><span class="ty-dot"></span><span class="ty-y">'+(y===nowYear?'今年':y)+'</span>';
+        yc.addEventListener('click',function(){ $$('.tl-year',yearsRow).forEach(function(x){x.classList.remove('sel');}); yc.classList.add('sel'); showYearDetail(an,b,{y:y,gan:gi%10,zhi:gi%12,pl:ypl},yDetail); });
+        yearsRow.appendChild(yc);
+      })(y); }
+      inner.appendChild(yearsRow); scroll.appendChild(inner);
+      var wrap=el('div'); wrap.appendChild(scroll); wrap.appendChild(legendEl()); wrap.appendChild(yDetail);
+      return wrap;
+    };
+
     var strip=el('div','luck-strip');
-    var nowYear=(new Date()).getFullYear();
-    var birthY=f?f.solarYearGuess:null;
-    var solarBirthYear=b.solarYear;
+    var decadeHost=el('div'); decadeHost.style.marginTop='0.4rem';
+    var selectDecade=function(i){
+      $$('.luck-cell',strip).forEach(function(x){ x.classList.toggle('active', +x.dataset.i===i); });
+      decadeHost.innerHTML='';
+      var p=lp.pillars[i], pl=periodLuck(an,p.gan,p.zhi);
+      var startA=lp.startAge!=null?Math.round(lp.startAge+i*10):null, startYr=decStartYr(i);
+      decadeHost.appendChild(el('p','bz-p','<b>'+GAN[p.gan]+ZHI[p.zhi]+'</b> 大运 '
+        +(startA!=null?('（约 '+startA+'–'+(startA+10)+' 岁'+(startYr?'，'+startYr+'–'+(startYr+9)+'年':'')+'）'):'')
+        +'　走 <b>'+shiShen(b.day[0],p.gan)+'</b> 运，'
+        +(pl.label==='吉'?'整体较顺，是适合发力的十年。':(pl.label==='凶'?'宜稳扎稳打、不宜冒进。':'平稳积累、按部就班即可。'))));
+      var why=el('details','bz-why'); why.innerHTML='<summary>展开推理过程：为什么是这个判断</summary><div class="why-body">'+pl.reasons.map(function(r){return '· '+r;}).join('<br>')+'</div>';
+      decadeHost.appendChild(why);
+      if(startYr!=null){
+        decadeHost.appendChild(el('div','tl-sub','这十年的逐年流年（'+startYr+'–'+(startYr+9)+'）：'));
+        decadeHost.appendChild(yearTimeline(startYr,startYr+9));
+      }
+    };
+
     lp.pillars.forEach(function(p,i){
-      var startA=lp.startAge!=null?(lp.startAge+i*10):null;
-      var startYr=(lp.startAge!=null&&f)?Math.round(f.y+lp.startAge+i*10):null;
+      var startA=lp.startAge!=null?Math.round(lp.startAge+i*10):null, startYr=decStartYr(i);
       var pl=periodLuck(an,p.gan,p.zhi);
-      var cell=el('div','luck-cell');
-      var active=(startYr!=null && nowYear>=startYr && nowYear<startYr+10);
-      if(active) cell.classList.add('active');
+      var cell=el('div','luck-cell'); cell.dataset.i=i;
       cell.innerHTML='<div class="lk-gz">'+gzHTML(p.gan,p.zhi)+'<small>'+shiShen(b.day[0],p.gan)+'</small></div>'
-        +'<div class="lk-age">'+(startA!=null?Math.round(startA)+'岁':(i*10+'+'))+(startYr?'<br>'+startYr:'')+'</div>'
+        +'<div class="lk-age">'+(startA!=null?startA+'岁':(i*10+'+'))+(startYr?'<br>'+startYr:'')+'</div>'
         +'<div class="lk-dot dot-'+pl.label+'">'+(pl.label==='吉'?'● 顺':(pl.label==='凶'?'● 慎':'● 平'))+'</div>';
-      cell.addEventListener('click',function(){
-        $$('.luck-cell',strip).forEach(function(x){ x.classList.remove('active'); });
-        cell.classList.add('active');
-        showLuckDetail(an,b,p,startA,startYr,detailBox);
-      });
+      cell.addEventListener('click',function(){ selectDecade(i); });
       strip.appendChild(cell);
     });
     c4.appendChild(strip);
-    var detailBox=el('div'); c4.appendChild(detailBox);
-    // 默认展开当前大运
-    var curIdx=0;
-    if(lp.startAge!=null&&f){ for(var i=0;i<lp.pillars.length;i++){ var sy=Math.round(f.y+lp.startAge+i*10); if(nowYear>=sy&&nowYear<sy+10){ curIdx=i; break; } } }
-    var cp=lp.pillars[curIdx];
-    showLuckDetail(an,b,cp,lp.startAge!=null?lp.startAge+curIdx*10:null,(lp.startAge!=null&&f)?Math.round(f.y+lp.startAge+curIdx*10):null,detailBox);
-    box.appendChild(c4);
-
-    /* ---- 近段趋势：时间轴 ---- */
-    var c5=el('div','bz-card');
-    c5.innerHTML='<h3>近段趋势 <span class="em">未来十年逐年走势 · 基于今年 '+nowYear+'</span></h3>';
-    var cur=lp.pillars[curIdx];
-
-    // 未来 10 年数据
-    var SPAN=10, yearsData=[];
-    for(var yy=nowYear; yy<nowYear+SPAN; yy++){
-      var gi=yearGZIndex(yy), ypl=periodLuck(an,gi%10,gi%12), daIdx=-1, daP=null;
-      if(lp.startAge!=null&&f){
-        for(var di=0;di<lp.pillars.length;di++){
-          var sy=Math.round(f.y+lp.startAge+di*10);
-          if(yy>=sy&&yy<sy+10){ daIdx=di; daP=lp.pillars[di]; break; }
-        }
-      }
-      yearsData.push({y:yy,gan:gi%10,zhi:gi%12,pl:ypl,daIdx:daIdx,daP:daP});
+    c4.appendChild(decadeHost);
+    selectDecade(curIdx);
+    if(!hasYears){
+      decadeHost.appendChild(el('div','tl-sub','今年起未来十年的逐年流年：'));
+      decadeHost.appendChild(yearTimeline(nowYear,nowYear+9));
     }
 
-    var scroll=el('div','tl-scroll'), inner=el('div','tl-inner');
-    // 大运分段带（仅在能定起运、可把年份映射到大运时显示）
-    if(lp.startAge!=null){
-      var band=el('div','tl-band'), segs=[];
-      yearsData.forEach(function(d){
-        var last=segs[segs.length-1];
-        if(last&&last.daIdx===d.daIdx) last.count++;
-        else segs.push({daIdx:d.daIdx,daP:d.daP,count:1});
-      });
-      segs.forEach(function(sg){
-        var seg=el('div','tl-seg'); seg.style.flex=sg.count+' 1 0';
-        if(sg.daP){
-          var dpl=periodLuck(an,sg.daP.gan,sg.daP.zhi);
-          seg.classList.add('lk-'+dpl.label);
-          seg.innerHTML='<div class="ts-gz">'+gzHTML(sg.daP.gan,sg.daP.zhi)+'</div><div class="ts-meta">'+shiShen(b.day[0],sg.daP.gan)+'大运</div>';
-          seg.title='大运 '+GAN[sg.daP.gan]+ZHI[sg.daP.zhi]+'（'+shiShen(b.day[0],sg.daP.gan)+'）';
-        } else { seg.innerHTML='<div class="ts-meta" style="padding:0.4rem 0">未起运</div>'; }
-        band.appendChild(seg);
-      });
-      inner.appendChild(band);
-    }
-    // 流年圆点
-    var yearsRow=el('div','tl-years'), detailHost=el('div'); detailHost.style.marginTop='0.85rem';
-    yearsData.forEach(function(d){
-      var yc=el('div','tl-year lk-'+d.pl.label);
-      if(d.y===nowYear) yc.classList.add('now');
-      yc.innerHTML='<span class="ty-gz">'+gzHTML(d.gan,d.zhi)+'</span><span class="ty-dot"></span><span class="ty-y">'+(d.y===nowYear?'今年':d.y)+'</span>';
-      yc.addEventListener('click',function(){
-        $$('.tl-year',yearsRow).forEach(function(x){ x.classList.remove('sel'); });
-        yc.classList.add('sel'); showYearDetail(an,b,d,detailHost);
-      });
-      yearsRow.appendChild(yc);
-    });
-    inner.appendChild(yearsRow); scroll.appendChild(inner); c5.appendChild(scroll);
-    var lg=el('div','tl-legend');
-    lg.innerHTML='<span><i style="background:#3a7d4e"></i>较顺（吉）</span><span><i style="background:#c9b87f"></i>平稳（平）</span><span><i style="background:#c0504d"></i>宜稳（凶）</span><span style="color:var(--color-muted)">点圆点看当年详情</span>';
-    c5.appendChild(lg);
-    c5.appendChild(detailHost);
-
-    // 摘要行
-    function aggLabel(sp){ var a=0; for(var i=0;i<sp;i++){ var g=yearGZIndex(nowYear+i); a+=periodLuck(an,g%10,g%12).score; } var av=a/sp; return av>=0.5?'吉':(av<=-0.5?'凶':'平'); }
-    var rows=el('div','near-rows');
-    var curPl=periodLuck(an,cur.gan,cur.zhi);
-    rows.appendChild(nearRow('当前大运·十年',curPl.label,'走 '+GAN[cur.gan]+ZHI[cur.zhi]+'（'+shiShen(b.day[0],cur.gan)+'）运，'+(curPl.label==='吉'?'整体较顺，是适合发力的十年。':(curPl.label==='凶'?'宜稳扎稳打、不宜冒进。':'平稳积累、按部就班即可。'))));
-    [[5,'未来五年'],[3,'未来三年']].forEach(function(sp){
+    // 近段速览（始终基于今年）
+    var aggLabel=function(sp){ var a=0; for(var k=0;k<sp;k++){ var g=yearGZIndex(nowYear+k); a+=periodLuck(an,g%10,g%12).score; } var av=a/sp; return av>=0.5?'吉':(av<=-0.5?'凶':'平'); };
+    var rows=el('div','near-rows'); rows.style.marginTop='1.2rem';
+    rows.appendChild(el('div','tl-sub','近段速览 · 基于今年 '+nowYear));
+    var gi0=yearGZIndex(nowYear), y0pl=periodLuck(an,gi0%10,gi0%12);
+    rows.appendChild(nearRow('今年 '+nowYear,y0pl.label,GAN[gi0%10]+ZHI[gi0%12]+'年，'+nearText(y0pl,an)));
+    [[3,'未来三年'],[5,'未来五年']].forEach(function(sp){
       var lab=aggLabel(sp[0]);
       rows.appendChild(nearRow(sp[1],lab,sp[0]+' 年内流年整体偏'+(lab==='吉'?'顺，可顺势推进。':(lab==='凶'?'紧，宜守成、稳健行事。':'稳，适合打基础、调状态。'))));
     });
-    var gi0=yearGZIndex(nowYear), y0pl=periodLuck(an,gi0%10,gi0%12);
-    rows.appendChild(nearRow('今年 '+nowYear,y0pl.label,GAN[gi0%10]+ZHI[gi0%12]+'年，'+nearText(y0pl,an)));
-    c5.appendChild(rows);
-    box.appendChild(c5);
+    c4.appendChild(rows);
+    box.appendChild(c4);
   }
 
   /* ---- 注意事项 ---- */
@@ -1210,19 +1188,6 @@ function showYearDetail(an,b,d,host){
   host.appendChild(why);
 }
 
-function showLuckDetail(an,b,p,startAge,startYr,host){
-  var pl=periodLuck(an,p.gan,p.zhi);
-  host.innerHTML='';
-  var head=el('p','bz-p','<b>'+GAN[p.gan]+ZHI[p.zhi]+'</b> 大运 '
-    +(startAge!=null?('（约 '+Math.round(startAge)+'–'+Math.round(startAge+10)+' 岁'+(startYr?'，'+startYr+'–'+(startYr+9)+'年':'')+'）'):'')
-    +'　走的是 <b>'+shiShen(b.day[0],p.gan)+'</b> 运，'
-    +(pl.label==='吉'?'整体较为顺遂。':(pl.label==='凶'?'宜稳扎稳打、不宜冒进。':'平稳过渡，按部就班即可。')));
-  host.appendChild(head);
-  var why=el('details','bz-why'); why.open=false;
-  why.innerHTML='<summary>展开推理过程：为什么是这个判断</summary><div class="why-body">'
-    +pl.reasons.map(function(r){ return '· '+r; }).join('<br>')+'</div>';
-  host.appendChild(why);
-}
 
 /* ---- 文案生成 ---- */
 function pad2(n){ return (n<10?'0':'')+n; }

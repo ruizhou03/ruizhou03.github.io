@@ -409,11 +409,11 @@
   category: 生活
   status: live
 
-- id: pet-food
+- id: pet
   name: 宠物中心
   icon: 🐾
   tagline: 食量 · 体重 · 猫语
-  url: /toolbox/pet-food/
+  url: /toolbox/pet/
   category: 生活
   status: live
 

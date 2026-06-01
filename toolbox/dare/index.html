@@ -1,7 +1,7 @@
 ---
 layout: default
-title: "不要做挑战 | Rui Zhou"
-permalink: /toolbox/dare/
+title: "不要做挑战 Don't Do It | Rui Zhou"
+permalink: /toolbox/dontdoit/
 ---
 
 <style>
@@ -13,6 +13,10 @@ permalink: /toolbox/dare/
   .dare-header { text-align: center; margin-bottom: 1.2rem; }
   .dare-header h1 {
     font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem;
+  }
+  .dare-header h1 .dare-en {
+    display: block; font-size: 0.95rem; font-weight: 400; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--color-muted, #9a948c); margin-top: 0.15rem;
   }
   .dare-header p {
     color: var(--color-light); font-style: normal; margin: 0;
@@ -270,7 +274,7 @@ permalink: /toolbox/dare/
 
 <article class="dare-wrap">
   <header class="dare-header">
-    <h1>🃏 不要做挑战</h1>
+    <h1>🃏 不要做挑战 <span class="dare-en">Don't Do It</span></h1>
     <p>手机屏幕朝外，你看不到自己的牌——别人想方设法诱导你做牌上那件事。</p>
   </header>
 
@@ -385,7 +389,7 @@ permalink: /toolbox/dare/
 (function () {
   'use strict';
 
-  const API_BASE = 'https://zircon-urge.fly.dev/api/dare';
+  const API_BASE = 'https://zircon-urge.fly.dev/api/dontdoit';
   const SESSION_KEY = 'dare:online.v1';
   const SINGLE_CPP_KEY = 'dare:single-cpp';
 
@@ -494,7 +498,7 @@ permalink: /toolbox/dare/
   // ============================================================
   // 加载卡池
   // ============================================================
-  fetch('{{ "/toolbox/dare/cards.json" | relative_url }}')
+  fetch('{{ "/toolbox/dontdoit/cards.json" | relative_url }}')
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(cards => {
       state.cards = cards;
