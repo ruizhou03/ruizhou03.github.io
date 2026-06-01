@@ -833,10 +833,15 @@ permalink: /toolbox/feixingqi/
   // ============================================================
   const STORE_KEY = 'tool.feixingqi.v1';
   const stored = (() => { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { return {}; } })();
+  // 难度 = 同一套 scoreOption 策略 + 不同的 ε（走随机手的概率）。
+  // ε 由 scripts/sim-feixingqi.js 自对弈实测校准：飞行棋是骰子游戏，手调
+  // 启发式已接近策略天花板（ES/坐标下降都打不赢 baseline），所以强弱差异
+  // 不来自权重，而来自「多大比例不走最优手」。ε-greedy 阶梯（vs 满力 hard）：
+  //   easy ε=0.55 ≈ 32%   normal ε=0.28 ≈ 42%   hard ε=0 ≈ 50%
   const DIFFICULTY = {
-    easy:   { difficulty: 'easy',   delayMs: 250 },
-    normal: { difficulty: 'normal', delayMs: 380 },
-    hard:   { difficulty: 'hard',   delayMs: 500 },
+    easy:   { difficulty: 'easy',   epsilon: 0.55, delayMs: 250 },
+    normal: { difficulty: 'normal', epsilon: 0.28, delayMs: 380 },
+    hard:   { difficulty: 'hard',   epsilon: 0,    delayMs: 500 },
   };
   const FXQ_DIFF_LABEL = { easy: '简单', normal: '普通', hard: '困难' };
 
@@ -2059,23 +2064,18 @@ permalink: /toolbox/feixingqi/
   // AI heuristic
   // ============================================================
   function pickAiPiece(player, dice, legal) {
-    if (state.difficulty === 'easy') {
-      // Slight preference: if 6 rolled and any plane in hangar, sometimes exit; otherwise pick random.
-      if (dice === 6 && Math.random() < 0.6) {
-        const inHangar = legal.filter(i => state.pieces[player][i].status === 'hangar');
-        if (inHangar.length > 0) return inHangar[0];
-      }
+    // 统一 ε-greedy 策略：以概率 ε 走随机手（难度旋钮），否则取 scoreOption 最优手。
+    // 三档共用同一套评估，只差 ε —— 见 DIFFICULTY 注释与 scripts/sim-feixingqi.js。
+    const cfg = DIFFICULTY[state.difficulty] || DIFFICULTY.normal;
+    if (cfg.epsilon && Math.random() < cfg.epsilon) {
       return legal[Math.floor(Math.random() * legal.length)];
     }
-    const scored = legal.map(idx => ({ idx, score: scoreOption(player, idx, dice) }));
-    scored.sort((a, b) => b.score - a.score);
-    if (state.difficulty === 'normal') {
-      // small randomness among top half
-      const k = Math.max(1, Math.ceil(scored.length / 2));
-      const top = scored.slice(0, k);
-      return top[Math.floor(Math.random() * top.length)].idx;
+    let bestIdx = legal[0], bestScore = -Infinity;
+    for (const idx of legal) {
+      const sc = scoreOption(player, idx, dice);
+      if (sc > bestScore) { bestScore = sc; bestIdx = idx; }
     }
-    return scored[0].idx;
+    return bestIdx;
   }
 
   function scoreOption(player, pieceIdx, dice) {
@@ -2126,14 +2126,12 @@ permalink: /toolbox/feixingqi/
       }
     }
 
-    // Hard: subtract risk of being captured next turn
-    if (state.difficulty === 'hard' && preview.toStatus === 'track') {
+    // 被吃风险规避 + 临门（靠近自家入口）加成。原先仅 hard 生效，现统一对
+    // 所有难度生效——难度差异已收归到 pickAiPiece 的 ε-greedy 混合，评估函数
+    // 本身三档共用（与 sim-feixingqi.js 的校准口径一致）。
+    if (preview.toStatus === 'track') {
       const risk = computeCaptureRisk(player, preview.toPos);
       s -= risk * 75;
-    }
-
-    // Hard: bonus for getting a plane closer to home stretch entry
-    if (state.difficulty === 'hard' && preview.toStatus === 'track') {
       const dist = distToStretchTransition(player, preview.toPos);
       s += Math.max(0, 30 - dist) * 1.5;
     }
