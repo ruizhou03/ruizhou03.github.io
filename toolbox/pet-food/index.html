@@ -602,21 +602,30 @@ permalink: /toolbox/pet-food/
     border: 1px solid var(--color-border); border-radius: 14px;
     background: var(--color-bg); padding: 1.15rem 1.15rem 1.2rem; margin-bottom: 1rem;
   }
-  .weight-box .weight-input-row {
-    display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+  /* Same shape as the food entry box: a fill area (toggle + readings) on the
+     left, a tall 记体重 button column on the right. */
+  .weight-box .weight-cols {
+    display: flex; align-items: stretch; gap: 0.7rem; flex-wrap: nowrap;
   }
-  .weight-box .reading-group.weight-reading { flex: 1 1 240px; max-width: 360px; }
-  .weight-box .weight-tip {
-    margin: 0.75rem 0 0; font-size: 0.8rem; color: var(--color-light); line-height: 1.5;
+  .weight-box .weight-fill {
+    flex: 1 1 auto; min-width: 0;
+    display: flex; flex-direction: column; gap: 0.6rem; justify-content: center;
   }
+  .weight-box .reading-group.weight-reading { flex: 1 1 auto; max-width: 360px; }
   .weight-box .save-btn {
-    font: inherit; font-size: 0.98rem; font-weight: 600; min-height: 44px;
-    padding: 0.7rem 1.4rem; border: none; border-radius: 999px;
+    flex: 0 0 auto; align-self: stretch; min-height: 52px;
+    font: inherit; font-size: 0.98rem; font-weight: 600;
+    padding: 0.7rem 1.4rem; border: none; border-radius: 18px;
     background: var(--color-accent); color: #fff; cursor: pointer; white-space: nowrap;
     box-shadow: 0 1px 2px rgba(0,0,0,0.08); transition: background 0.18s, transform 0.08s;
   }
   .weight-box .save-btn:active { transform: scale(0.97); }
   @media (hover: hover) { .weight-box .save-btn:hover { background: var(--color-accent-light); } }
+  /* Narrow screens: stack the readings above a full-width 记体重 button. */
+  @media (max-width: 560px) {
+    .weight-box .weight-cols { flex-direction: column; align-items: stretch; }
+    .weight-box .save-btn { align-self: stretch; width: 100%; }
+  }
   /* Featured current-weight card (mirrors the food board's stat cards). */
   .weight-hero {
     text-align: center; margin-bottom: 0.9rem;
@@ -645,18 +654,18 @@ permalink: /toolbox/pet-food/
 
   /* Weight entry: method toggle (直接称 / 做差) — reuses the app-grade segmented
      control (.mode-toggle) so it matches the food section. */
-  .weight-box .mode-toggle { margin-bottom: 0.95rem; }
+  .weight-box .weight-fill .mode-toggle { align-self: flex-start; }
   /* 做差 two-reading rows */
   .weight-diff { display: none; }
-  .weight-diff.active { display: block; }
+  .weight-diff.active { display: flex; flex-direction: column; gap: 0.55rem; }
   .weight-single.hidden { display: none; }
   .weight-diff .diff-row {
-    display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; margin-bottom: 0.6rem;
+    display: flex; align-items: center; gap: 0.7rem; margin: 0;
   }
   .weight-diff .diff-row > .diff-lbl {
-    flex: 0 0 56px; font-size: 0.86rem; font-weight: 500; color: var(--color-muted);
+    flex: 0 0 40px; font-size: 0.86rem; font-weight: 500; color: var(--color-muted);
   }
-  .weight-diff .diff-row .reading-group { flex: 1 1 220px; max-width: 340px; }
+  .weight-diff .diff-row .reading-group { flex: 1 1 auto; max-width: 320px; }
   /* echoed unit on the 2nd reading (mirrors the 1st input's unit) */
   .weight-diff .unit-echo {
     display: inline-flex; align-items: center; padding: 0 0.95rem;
@@ -665,14 +674,13 @@ permalink: /toolbox/pet-food/
   }
   /* live computed result — same accent-chip look as the food 等效干粮 row */
   .weight-diff .diff-result {
-    margin: 0.5rem 0 0.85rem; padding: 0.65rem 0.9rem; text-align: center;
+    margin: 0.1rem 0 0; padding: 0.6rem 0.9rem; text-align: center; max-width: 380px;
     background: var(--color-bg-warm); border: 1px dashed var(--color-border);
     border-radius: 10px; font-size: 0.92rem; color: var(--color-ink);
     font-variant-numeric: tabular-nums;
   }
   .weight-diff .diff-result strong { color: var(--color-accent); font-size: 1.15rem; font-weight: 600; }
   .weight-diff .diff-result.empty { color: var(--color-light); }
-  .weight-diff .diff-hint { font-size: 0.78rem; color: var(--color-light); margin: 0 0 0.85rem; line-height: 1.5; }
 
   .chart-wrap {
     border: 1px solid var(--color-border); border-radius: 10px;
@@ -1356,54 +1364,52 @@ permalink: /toolbox/pet-food/
         <div class="wh-sub" id="wh-sub">当前体重</div>
       </div>
       <div class="weight-box" id="weight-box">
-        <div class="mode-toggle weight-method" id="weight-method">
-          <label data-val="direct" class="active"><input type="radio" name="wmethod" value="direct" checked>直接称</label>
-          <label data-val="diff"><input type="radio" name="wmethod" value="diff">做差</label>
-        </div>
+        <div class="weight-cols">
+          <div class="weight-fill">
+            <div class="mode-toggle weight-method" id="weight-method">
+              <label data-val="direct" class="active"><input type="radio" name="wmethod" value="direct" checked>直接称</label>
+              <label data-val="diff"><input type="radio" name="wmethod" value="diff">做差</label>
+            </div>
 
-        <!-- 直接称：宠物自己上秤，或已经自己算好差值直接填 -->
-        <div class="weight-single" id="weight-single">
-          <div class="weight-input-row">
-            <div class="reading-group weight-reading">
-              <input type="number" class="reading" id="weight-input" step="any" min="0" placeholder="称一下宝贝" inputmode="decimal" />
-              <select class="unit-pick" id="weight-unit">
-                <option value="kg">kg</option>
-                <option value="斤">斤</option>
-                <option value="lb">lb</option>
-                <option value="g">g</option>
-              </select>
+            <!-- 直接称：宠物自己上秤，或已经自己算好差值直接填 -->
+            <div class="weight-single" id="weight-single">
+              <div class="reading-group weight-reading">
+                <input type="number" class="reading" id="weight-input" step="any" min="0" placeholder="称一下宝贝" inputmode="decimal" />
+                <select class="unit-pick" id="weight-unit">
+                  <option value="kg">kg</option>
+                  <option value="斤">斤</option>
+                  <option value="lb">lb</option>
+                  <option value="g">g</option>
+                </select>
+              </div>
             </div>
-            <button type="button" class="save-btn" id="weight-save">⚖️ 记体重</button>
-          </div>
-          <p class="weight-tip">宝贝乖乖上秤就用这个；坐不住、抱着才肯称，就切到「做差」。</p>
-        </div>
 
-        <!-- 做差：抱着宠物称一次、自己称一次，系统算差值 -->
-        <div class="weight-diff" id="weight-diff">
-          <div class="diff-row">
-            <span class="diff-lbl">抱着 TA</span>
-            <div class="reading-group weight-reading">
-              <input type="number" class="reading" id="weight-diff-a" step="any" min="0" placeholder="抱着宝贝的读数" inputmode="decimal" />
-              <select class="unit-pick" id="weight-diff-unit">
-                <option value="kg">kg</option>
-                <option value="斤">斤</option>
-                <option value="lb">lb</option>
-                <option value="g">g</option>
-              </select>
+            <!-- 做差：抱着宠物称一次、自己称一次，系统算差值 -->
+            <div class="weight-diff" id="weight-diff">
+              <div class="diff-row">
+                <span class="diff-lbl">抱着</span>
+                <div class="reading-group weight-reading">
+                  <input type="number" class="reading" id="weight-diff-a" step="any" min="0" placeholder="抱着宝贝的读数" inputmode="decimal" />
+                  <select class="unit-pick" id="weight-diff-unit">
+                    <option value="kg">kg</option>
+                    <option value="斤">斤</option>
+                    <option value="lb">lb</option>
+                    <option value="g">g</option>
+                  </select>
+                </div>
+              </div>
+              <div class="diff-row">
+                <span class="diff-lbl">不抱</span>
+                <div class="reading-group weight-reading">
+                  <input type="number" class="reading" id="weight-diff-b" step="any" min="0" placeholder="你自己的读数" inputmode="decimal" />
+                  <span class="unit-echo" id="weight-diff-unit-echo">kg</span>
+                </div>
+              </div>
+              <div class="diff-result empty" id="weight-diff-result">两次读数都填上，自动算出宝贝体重</div>
             </div>
           </div>
-          <div class="diff-row">
-            <span class="diff-lbl">不抱</span>
-            <div class="reading-group weight-reading">
-              <input type="number" class="reading" id="weight-diff-b" step="any" min="0" placeholder="你自己的读数" inputmode="decimal" />
-              <span class="unit-echo" id="weight-diff-unit-echo">kg</span>
-            </div>
-          </div>
-          <div class="diff-result empty" id="weight-diff-result">两次读数都填上，自动算出宝贝体重</div>
-          <div class="weight-input-row">
-            <button type="button" class="save-btn" id="weight-diff-save">⚖️ 记体重</button>
-          </div>
-          <p class="diff-hint">两次用同一个秤、同一单位；顺序不影响，取差的绝对值。</p>
+
+          <button type="button" class="save-btn" id="weight-save">⚖️ 记体重</button>
         </div>
       </div>
 
@@ -2351,7 +2357,6 @@ permalink: /toolbox/pet-food/
   const $weightDiffUnit = document.getElementById('weight-diff-unit');
   const $weightDiffUnitEcho = document.getElementById('weight-diff-unit-echo');
   const $weightDiffResult = document.getElementById('weight-diff-result');
-  const $weightDiffSave = document.getElementById('weight-diff-save');
   const $weightRangeLbl = document.getElementById('weight-range-lbl');
   const $weightTrendTabs = document.getElementById('weight-trend-tabs');
   const $weightTrendCustom = document.getElementById('weight-trend-custom');
@@ -4512,7 +4517,10 @@ permalink: /toolbox/pet-food/
   $reading.addEventListener('input', () => { if (recordFood !== 'kibble') updateExtraEq(); });
 
   // --- Body weight ---
-  $weightSave.addEventListener('click', saveWeight);
+  // One 记体重 button serves both methods (mirrors the food box's single 记一笔).
+  $weightSave.addEventListener('click', () => {
+    if ((state.weightMethod || 'direct') === 'diff') saveWeightDiff(); else saveWeight();
+  });
   $weightInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveWeight(); } });
   $weightUnit.addEventListener('change', () => {
     const pet = currentPet(); if (!pet) return;
@@ -4539,7 +4547,6 @@ permalink: /toolbox/pet-food/
       persist();
     });
   });
-  $weightDiffSave.addEventListener('click', saveWeightDiff);
   [$weightDiffA, $weightDiffB].forEach(el => el.addEventListener('input', refreshDiffResult));
   $weightDiffB.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveWeightDiff(); } });
   $weightDiffUnit.addEventListener('change', () => {
