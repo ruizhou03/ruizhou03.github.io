@@ -1,0 +1,120 @@
+{%- comment -%}
+  付费墙卡片。只在 post.html 里 page.paid 为真时被 include。
+  预览正文（{{ content }}）已经在上面渲染；这张卡盖在预览末尾，提供：
+    - 单篇买断 / 开通会员（跳爱发电付款页）
+    - 输入兑换码解锁（付款后拿到的码）
+  解锁后调后端取锁定正文，marked 渲染 + KaTeX，注入到下方。
+  凭证（unlock token）存 localStorage，账号无关。
+{%- endcomment -%}
+{%- assign pw_slug = page.paid_slug | default: page.slug -%}
+
+<div id="paywall" class="paywall"
+     data-slug="{{ pw_slug }}"
+     data-price="{{ page.price }}"
+     data-member-price="{{ page.member_price }}"
+     data-afdian="{{ page.afdian_url }}">
+  <div class="pw-fade" aria-hidden="true"></div>
+  <div class="pw-card">
+    <div class="pw-lock">🔒</div>
+    <h3 class="pw-title">这是一篇付费文章</h3>
+    <p class="pw-tagline">上面是免费预览。剩余部分需要单篇买断，或开通会员解锁全部付费内容。</p>
+
+    <div class="pw-options">
+      {% if page.price %}<a class="pw-btn pw-buy" href="{{ page.afdian_url }}" target="_blank" rel="noopener">单篇买断 ¥{{ page.price }}</a>{% endif %}
+      {% if page.member_price %}<a class="pw-btn pw-member" href="{{ page.afdian_url }}" target="_blank" rel="noopener">开通会员 ¥{{ page.member_price }}/月</a>{% endif %}
+    </div>
+
+    <div class="pw-redeem">
+      <p class="pw-redeem-hint">付款后你会拿到一个兑换码，在这里输入即可解锁：</p>
+      <div class="pw-redeem-row">
+        <input id="pw-code" class="pw-input" type="text" autocomplete="off"
+               spellcheck="false" placeholder="ZRC-XXXX-XXXX" />
+        <button id="pw-redeem-btn" class="pw-btn pw-redeem-btn" type="button">解锁</button>
+      </div>
+      <div id="pw-msg" class="pw-msg" role="status"></div>
+    </div>
+  </div>
+</div>
+
+<div id="pw-unlocked" class="markdown-content" hidden></div>
+
+<style>
+  .paywall {
+    position: relative;
+    margin: 0 0 2rem;
+  }
+  /* 渐隐遮罩：盖住预览最后一段，营造"被截断"的观感 */
+  .pw-fade {
+    position: absolute;
+    left: 0; right: 0; top: -8rem;
+    height: 8rem;
+    background: linear-gradient(to bottom, rgba(255,255,255,0), var(--color-bg, #fff));
+    pointer-events: none;
+  }
+  .pw-card {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 2rem 1.6rem;
+    text-align: center;
+    background: var(--color-bg, #fff);
+  }
+  .pw-lock { font-size: 1.8rem; line-height: 1; }
+  .pw-title {
+    font-family: var(--font-display), serif;
+    margin: 0.6rem 0 0.4rem;
+    color: var(--color-ink);
+  }
+  .pw-tagline {
+    color: var(--color-light);
+    font-size: 0.95rem;
+    margin: 0 auto 1.4rem;
+    max-width: 30em;
+  }
+  .pw-options {
+    display: flex; flex-wrap: wrap; gap: 0.7rem;
+    justify-content: center; margin-bottom: 1.6rem;
+  }
+  .pw-btn {
+    display: inline-block;
+    padding: 0.55rem 1.2rem;
+    border: 1px solid var(--color-ink);
+    color: var(--color-ink);
+    text-decoration: none;
+    font-family: var(--font-display), serif;
+    border-radius: 4px;
+    cursor: pointer;
+    background: transparent;
+    transition: 0.25s;
+    font-size: 0.95rem;
+  }
+  .pw-btn:hover { background: var(--color-ink); color: var(--color-bg, #fff); }
+  .pw-buy { border-color: var(--color-accent, var(--color-ink)); color: var(--color-accent, var(--color-ink)); }
+  .pw-buy:hover { background: var(--color-accent, var(--color-ink)); color: var(--color-bg, #fff); }
+  .pw-redeem {
+    border-top: 1px dashed var(--color-border);
+    padding-top: 1.2rem;
+  }
+  .pw-redeem-hint { color: var(--color-light); font-size: 0.88rem; margin: 0 0 0.7rem; }
+  .pw-redeem-row {
+    display: flex; gap: 0.5rem; justify-content: center;
+    flex-wrap: wrap;
+  }
+  .pw-input {
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    width: 14em; max-width: 70vw;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+  .pw-msg { margin-top: 0.8rem; font-size: 0.9rem; min-height: 1.2em; }
+  .pw-msg.ok { color: #2e7d32; }
+  .pw-msg.err { color: #c62828; }
+  #pw-unlocked { margin-top: 0.5rem; }
+</style>
+
+<!-- marked.js 仅在付费文章页加载，用于把锁定正文 markdown 渲染成 HTML -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" defer></script>
+<script src="{{ '/assets/js/paywall/paywall.js' | relative_url }}" defer></script>

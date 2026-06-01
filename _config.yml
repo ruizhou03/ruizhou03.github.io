@@ -45,6 +45,8 @@ exclude:
   - audio/
   # 网站后端：urge / comments / mcp 三个 fly app 的本机工作副本，独立 git，不进 Jekyll 构建
   - backends/
+  # 付费文章全文源（含锁定正文）：gitignore + 构建排除双保险，绝不进站
+  - _paid/
 
 # 播客音频根地址（Cloudflare R2 公共域名 + 前缀）。
 # post.html 检测到文章 podcast: true 就自动拼 {{ podcast_base }}/{{ slug }}.mp3。
