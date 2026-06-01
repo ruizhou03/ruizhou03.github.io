@@ -364,6 +364,15 @@ permalink: /toolbox/bazi/
   @media (max-width: 620px) { .match-pair { grid-template-columns: 1fr; } .match-score-ring { margin: 0 auto; } }
   .match-mini { border:1px solid var(--color-border); border-radius:12px; padding:0.9rem; }
   .match-mini h4 { font-family:var(--font-display); margin:0 0 0.6rem; color:var(--color-ink); font-size:1rem; }
+  .bz-mini-adv {
+    font: inherit; font-size: 0.8rem; color: var(--color-muted);
+    background: none; border: none; cursor: pointer; padding: 0.35rem 0; margin-top: 0.3rem;
+    display: inline-flex; align-items: center; gap: 0.25rem;
+  }
+  @media (hover: hover) { .bz-mini-adv:hover { color: var(--color-accent); } }
+  .bz-mini-manual { display: none; margin-top: 0.5rem; padding-top: 0.7rem; border-top: 1px dashed var(--color-border); }
+  .bz-mini-manual.show { display: grid; gap: 0.5rem; }
+  .bz-mini-manual .bz-pillar-pick { background: var(--color-bg-warm, #f5f4f0); }
   .match-score-big { text-align:center; font-family:var(--font-display); }
   .match-score-big .num { font-size:3rem; line-height:1; color:var(--color-accent); }
   .match-score-big .lbl { font-size:0.9rem; color:var(--color-muted); }
@@ -483,7 +492,8 @@ permalink: /toolbox/bazi/
         <div class="match-mini" id="mini-A"></div>
         <div class="match-mini" id="mini-B"></div>
       </div>
-      <div class="bz-row" style="margin-top:0.9rem; justify-content:center;">
+      <div class="bz-go-wrap" style="margin-top:1.1rem;">
+        <div class="bz-form-error" id="match-error"></div>
         <button class="bz-go" id="go-match">合一卦 →</button>
       </div>
     </div>
@@ -770,9 +780,8 @@ fillSelect($('#in-day'),1,31,'');
 $('#in-month').value=6; $('#in-day').value=15;
 (function(){ var s=$('#in-shichen'); SHICHEN.forEach(function(t,i){ var o=document.createElement('option'); o.value=i; o.textContent=t; s.appendChild(o); }); s.value=6; })();
 
-// 手动四柱选择器（默认留空，填了就用）
-(function(){
-  var cont=$('#manual-pillars');
+// 手动四柱选择器（默认留空，填了就用）—— 单人 / 合婚双方复用
+function buildPillarPickers(cont,onChange){
   ['年柱','月柱','日柱','时柱'].forEach(function(nm,pi){
     var box=el('div','bz-pillar-pick'); box.dataset.p=pi;
     box.appendChild(el('span','pk-lab',nm));
@@ -782,11 +791,38 @@ $('#in-month').value=6; $('#in-day').value=15;
     var zs=el('select','placeholder'); zs.dataset.z=pi;
     zs.innerHTML='<option value="">地支</option>';
     ZHI.forEach(function(z,i){ var o=document.createElement('option'); o.value=i; o.textContent=z; zs.appendChild(o); });
-    [gs,zs].forEach(function(s){ s.addEventListener('change',function(){ s.classList.toggle('placeholder', s.value===''); clearFormError(); }); });
+    [gs,zs].forEach(function(s){ s.addEventListener('change',function(){ s.classList.toggle('placeholder', s.value===''); if(onChange)onChange(); }); });
     box.appendChild(gs); box.appendChild(zs);
     cont.appendChild(box);
   });
-})();
+}
+// 读取某容器内手填四柱：返回各柱状态 + 校验信息（半填 / 无效干支）
+function readManualFrom(cont){
+  var labels=['年柱','月柱','日柱','时柱'], keys=['year','month','day','hour'];
+  var cells=[], errors=[];
+  $$('.bz-pillar-pick',cont).forEach(function(box){
+    var pi=+box.dataset.p, key=keys[pi], label=labels[pi];
+    var gv=$('select[data-g]',box).value, zv=$('select[data-z]',box).value;
+    var hasG=gv!=='', hasZ=zv!=='';
+    if(!hasG && !hasZ){ cells.push({key:key,filled:false}); return; }
+    if(hasG!==hasZ){ errors.push(label+'只填了「'+(hasG?'天干':'地支')+'」——请把另一半也选上，或两个都清空'); cells.push({key:key,filled:false}); return; }
+    var g=+gv, z=+zv;
+    if((g%2)!==(z%2)){ errors.push(label+'「'+GAN[g]+ZHI[z]+'」不是有效干支组合（阳干只配阳支、阴干只配阴支）'); cells.push({key:key,filled:false}); return; }
+    cells.push({key:key,filled:true,g:g,z:z});
+  });
+  return {cells:cells,errors:errors};
+}
+// 把手填四柱合并进 b（覆盖左边推算），返回哪几柱是手填的；时柱没填但日柱填了就按五鼠遁重排时干
+function mergeManual(b,cells,hourKnown,hh){
+  var mask={year:false,month:false,day:false,hour:false};
+  cells.forEach(function(c){ if(c.filled){ mask[c.key]=true; if(c.key==='hour') b.hour=[c.g,c.z]; else b[c.key]=[c.g,c.z]; } });
+  if(!mask.hour && hourKnown){
+    var hzhi=Math.floor((hh+1)/2)%12, ziGan=((b.day[0]%5)*2)%10;
+    b.hour=[(ziGan+hzhi)%10, hzhi];
+  }
+  return mask;
+}
+buildPillarPickers($('#manual-pillars'), clearFormError);
 
 // segmented controls 通用
 var state={cal:'solar',gender:'男',timemode:'shichen'};
@@ -877,7 +913,7 @@ function renderProfileChips(){
 }
 $('#profile-save').addEventListener('click',function(){
   clearFormError();
-  var man=readManual();
+  var man=readManualFrom($('#manual-pillars'));
   if(man.errors.length){ showFormError(man.errors); return; }
   var name=prompt('给这个人起个名字（例如：我、妈妈、小明）：');
   if(name==null) return; name=name.trim(); if(!name) return;
@@ -922,22 +958,6 @@ function readBirthForm(prefix){
   }
   return {y:y,m:m,d:d,hh:hh,mm:mm,hourKnown:hourKnown,gender:gender};
 }
-// 读取右列手填四柱：返回各柱状态 + 校验信息（半填 / 无效干支）
-function readManual(){
-  var labels=['年柱','月柱','日柱','时柱'], keys=['year','month','day','hour'];
-  var cells=[], errors=[];
-  $$('#manual-pillars .bz-pillar-pick').forEach(function(box){
-    var pi=+box.dataset.p, key=keys[pi], label=labels[pi];
-    var gv=$('select[data-g]',box).value, zv=$('select[data-z]',box).value;
-    var hasG=gv!=='', hasZ=zv!=='';
-    if(!hasG && !hasZ){ cells.push({key:key,filled:false}); return; }
-    if(hasG!==hasZ){ errors.push(label+'只填了「'+(hasG?'天干':'地支')+'」——请把另一半也选上，或两个都清空'); cells.push({key:key,filled:false}); return; }
-    var g=+gv, z=+zv;
-    if((g%2)!==(z%2)){ errors.push(label+'「'+GAN[g]+ZHI[z]+'」不是有效干支组合（阳干只配阳支、阴干只配阴支）'); cells.push({key:key,filled:false}); return; }
-    cells.push({key:key,filled:true,g:g,z:z});
-  });
-  return {cells:cells,errors:errors};
-}
 function showFormError(errs){
   var box=$('#form-error');
   box.innerHTML='<b>⚠ 右边「已知八字」还没填好：</b>'+errs.map(function(e){ return '· '+e; }).join('<br>');
@@ -949,18 +969,12 @@ function clearFormError(){ var b=$('#form-error'); if(b) b.classList.remove('sho
 // 排盘主流程：左右合并取值——右列填了的柱优先，留空的用左边生日补齐
 $('#go-single').addEventListener('click',function(){
   clearFormError();
-  var man=readManual();
+  var man=readManualFrom($('#manual-pillars'));
   if(man.errors.length){ showFormError(man.errors); return; }
   var f=readBirthForm();
   if(f.y<1901||f.y>2099){ alert('支持年份范围 1901–2099 哦'); return; }
   var b=getBazi(f.y,f.m,f.d,f.hh,f.mm,f.hourKnown);
-  var mask={year:false,month:false,day:false,hour:false};
-  man.cells.forEach(function(c){ if(c.filled){ mask[c.key]=true; if(c.key==='hour') b.hour=[c.g,c.z]; else b[c.key]=[c.g,c.z]; } });
-  // 时柱没手填但日柱被手填了 → 时干按手填的日干重排（五鼠遁）
-  if(!mask.hour && f.hourKnown){
-    var hzhi=Math.floor((f.hh+1)/2)%12, ziGan=((b.day[0]%5)*2)%10;
-    b.hour=[(ziGan+hzhi)%10, hzhi];
-  }
+  var mask=mergeManual(b, man.cells, f.hourKnown, f.hh);
   if(b.hour===undefined) b.hour=null;
   // 年月日三柱都填了 → 等于直接给了八字，左边生日只是占位、起运年龄不可信
   f.dateReliable = !(mask.year && mask.month && mask.day);
@@ -1316,6 +1330,13 @@ function buildMini(prefixId,title){
   var scRow=el('div','bz-row'); scRow.appendChild(el('span','bz-lab','时辰'));
   var scs=el('select'); SHICHEN.forEach(function(t,i){ var o=document.createElement('option'); o.value=i; o.textContent=t; scs.appendChild(o); }); scs.value=6;
   scRow.appendChild(scs); host.appendChild(scRow);
+  // 已知八字直接填（折叠）
+  var manToggle=el('button','bz-mini-adv','🀄 或：已知八字，直接填四柱 ›');
+  host.appendChild(manToggle);
+  var manBox=el('div','bz-mini-manual'); host.appendChild(manBox);
+  buildPillarPickers(manBox, clearMatchError);
+  function setManOpen(open){ manBox.classList.toggle('show',open); manToggle.innerHTML='🀄 或：已知八字，直接填四柱 '+(open?'‹':'›'); }
+  manToggle.addEventListener('click',function(){ setManOpen(!manBox.classList.contains('show')); });
 
   function setState(data){
     if(!data) return;
@@ -1324,15 +1345,28 @@ function buildMini(prefixId,title){
     ys.value=data.y; mns.value=data.m; ds.value=data.d;
     $('.lp',leapWrap).checked=!!data.leap;
     if(data.shichen!=null) scs.value=data.shichen;
+    // 手填四柱
+    var anyMan=false;
+    $$('.bz-pillar-pick',manBox).forEach(function(box,i){
+      var m=data.manual&&data.manual[i], gs=$('select[data-g]',box), zs=$('select[data-z]',box), gv='', zv='';
+      if(m){ if(m.on!==undefined){ if(m.on){ gv=String(m.g); zv=String(m.z); } } else { gv=(m.g==null?'':String(m.g)); zv=(m.z==null?'':String(m.z)); } }
+      gs.value=gv; zs.value=zv;
+      gs.classList.toggle('placeholder', gs.value===''); zs.classList.toggle('placeholder', zs.value==='');
+      if(gv!==''||zv!=='') anyMan=true;
+    });
+    if(anyMan) setManOpen(true);
   }
   refreshProfiles();
 
   return {
     read:function(){
+      var man=readManualFrom(manBox);
+      if(man.errors.length) return {error:man.errors};
       var y=+ys.value,mo=+mns.value,da=+ds.value;
       if(st.cal==='lunar'){ var isL=$('.lp',leapWrap).checked; if(isL&&lLeapMonth(y)!==mo)isL=false; var s=lunarToSolar(y,mo,da,isL); y=s.y;mo=s.m;da=s.d; }
       var hh=[0,2,4,6,8,10,12,14,16,18,20,22][+scs.value];
       var b=getBazi(y,mo,da,hh,0,true);
+      mergeManual(b, man.cells, true, hh);
       return {b:b,gender:st.gender,y:y,m:mo,d:da};
     },
     setState:setState, refreshProfiles:refreshProfiles
@@ -1347,9 +1381,19 @@ var LIUHE={0:1,1:0,2:11,11:2,3:10,10:3,4:9,9:4,5:8,8:5,6:7,7:6}; // 六合
 var SANHE=[[8,0,4],[11,3,7],[2,6,10],[5,9,1]]; // 三合
 function sameSanhe(a,b){ return SANHE.some(function(g){ return g.indexOf(a)>=0&&g.indexOf(b)>=0&&a!==b; }); }
 function liuchong(a,b){ return (a+6)%12===b; }
+function showMatchError(errs){
+  var box=$('#match-error');
+  box.innerHTML='<b>⚠ 八字还没填好：</b>'+errs.map(function(e){ return '· '+e; }).join('<br>');
+  box.classList.add('show'); box.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function clearMatchError(){ var b=$('#match-error'); if(b) b.classList.remove('show'); }
 
 $('#go-match').addEventListener('click',function(){
-  var A=miniA.read(), B=miniB.read();
+  clearMatchError();
+  var A=miniA.read(), B=miniB.read(), errs=[];
+  if(A.error) errs=errs.concat(A.error.map(function(e){ return '甲方 '+e; }));
+  if(B.error) errs=errs.concat(B.error.map(function(e){ return '乙方 '+e; }));
+  if(errs.length){ showMatchError(errs); return; }
   var anA=analyze(A.b), anB=analyze(B.b);
   var score=60, lines=[];
 
