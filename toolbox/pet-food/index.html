@@ -602,16 +602,36 @@ permalink: /toolbox/pet-food/
     border: 1px solid var(--color-border); border-radius: 14px;
     background: var(--color-bg); padding: 1.15rem 1.15rem 1.2rem; margin-bottom: 1rem;
   }
-  /* Same shape as the food entry box: a fill area (toggle + readings) on the
-     left, a tall 记体重 button column on the right. */
+  /* Same shape as the food entry box: [模式左列] [定宽填写块] [记体重整列]，
+     整组在卡片里居中。 */
   .weight-box .weight-cols {
-    display: flex; align-items: stretch; gap: 0.7rem; flex-wrap: nowrap;
+    display: flex; align-items: stretch; justify-content: center;
+    gap: 0.7rem; flex-wrap: nowrap;
   }
+  /* LEFT: 直接称 / 做差 stacked column (mirrors the food-type column). */
+  .weight-box .weight-method {
+    flex: 0 0 auto; align-self: center;
+    display: flex; flex-direction: column; align-items: stretch; gap: 0.45rem;
+  }
+  .weight-box .weight-method label {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 40px; padding: 0.5rem 1rem; border-radius: 999px;
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    color: var(--color-ink); font-size: 0.88rem; cursor: pointer;
+    white-space: nowrap; transition: all 0.15s;
+  }
+  .weight-box .weight-method label.active {
+    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+    font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+  @media (hover: hover) { .weight-box .weight-method label:not(.active):hover { border-color: var(--color-accent); } }
+  .weight-box .weight-method input { display: none; }
+  /* MIDDLE: fixed-width fill block (write-死), content centered. */
   .weight-box .weight-fill {
-    flex: 1 1 auto; min-width: 0;
-    display: flex; flex-direction: column; gap: 0.6rem; justify-content: center;
+    flex: 0 0 300px; width: 300px; align-self: center;
+    display: flex; flex-direction: column; gap: 0.55rem; justify-content: center;
   }
-  .weight-box .reading-group.weight-reading { flex: 1 1 auto; max-width: 360px; }
+  .weight-box .reading-group.weight-reading { width: 100%; max-width: none; }
   .weight-box .save-btn {
     flex: 0 0 auto; align-self: stretch; min-height: 52px;
     font: inherit; font-size: 0.98rem; font-weight: 600;
@@ -621,9 +641,12 @@ permalink: /toolbox/pet-food/
   }
   .weight-box .save-btn:active { transform: scale(0.97); }
   @media (hover: hover) { .weight-box .save-btn:hover { background: var(--color-accent-light); } }
-  /* Narrow screens: stack the readings above a full-width 记体重 button. */
+  /* Narrow screens: modes become a 2-up row, fill + button go full width. */
   @media (max-width: 560px) {
     .weight-box .weight-cols { flex-direction: column; align-items: stretch; }
+    .weight-box .weight-method { flex-direction: row; align-self: stretch; }
+    .weight-box .weight-method label { flex: 1; }
+    .weight-box .weight-fill { width: auto; flex: 1 1 auto; align-self: stretch; }
     .weight-box .save-btn { align-self: stretch; width: 100%; }
   }
   /* Featured current-weight card (mirrors the food board's stat cards). */
@@ -652,9 +675,6 @@ permalink: /toolbox/pet-food/
   .weight-list { margin-top: 0.6rem; }
   .weight-list:empty { display: none; }
 
-  /* Weight entry: method toggle (直接称 / 做差) — reuses the app-grade segmented
-     control (.mode-toggle) so it matches the food section. */
-  .weight-box .weight-fill .mode-toggle { align-self: flex-start; }
   /* 做差 two-reading rows */
   .weight-diff { display: none; }
   .weight-diff.active { display: flex; flex-direction: column; gap: 0.55rem; }
@@ -1365,12 +1385,14 @@ permalink: /toolbox/pet-food/
       </div>
       <div class="weight-box" id="weight-box">
         <div class="weight-cols">
-          <div class="weight-fill">
-            <div class="mode-toggle weight-method" id="weight-method">
-              <label data-val="direct" class="active"><input type="radio" name="wmethod" value="direct" checked>直接称</label>
-              <label data-val="diff"><input type="radio" name="wmethod" value="diff">做差</label>
-            </div>
+          <!-- LEFT: 直接称 / 做差 stacked as a column (mirrors the food-type column) -->
+          <div class="weight-method" id="weight-method">
+            <label data-val="direct" class="active"><input type="radio" name="wmethod" value="direct" checked>直接称</label>
+            <label data-val="diff"><input type="radio" name="wmethod" value="diff">做差</label>
+          </div>
 
+          <!-- MIDDLE: fixed-width fill block -->
+          <div class="weight-fill">
             <!-- 直接称：宠物自己上秤，或已经自己算好差值直接填 -->
             <div class="weight-single" id="weight-single">
               <div class="reading-group weight-reading">
@@ -4271,8 +4293,9 @@ permalink: /toolbox/pet-food/
     $weightDiffUnitEcho.textContent = unit;
     const d = readWeightDiff();
     if (!d) {
+      const nm = (currentPet() && currentPet().name) || '宝贝';
       $weightDiffResult.className = 'diff-result empty';
-      $weightDiffResult.textContent = '两次读数都填上，自动算出宝贝体重';
+      $weightDiffResult.textContent = '两次读数都填上，自动算出' + nm + '体重';
       return;
     }
     const disp = parseFloat(bwFromKg(d.kg, unit).toFixed(2));
@@ -4351,6 +4374,10 @@ permalink: /toolbox/pet-food/
     const unit = pet.bodyWeightUnit || 'kg';
     $weightUnit.value = unit;
     $weightDiffUnit.value = unit;   // 做差也跟随宠物偏好单位（默认别老是 kg）
+    // 占位文案用当前宠物的名字（「称一下橘座」「抱着橘座的读数」）
+    const nm = pet.name || '宝贝';
+    $weightInput.placeholder = '称一下' + nm;
+    $weightDiffA.placeholder = '抱着' + nm + '的读数';
     // Sync the entry-method toggle to remembered state.
     setWeightMethod(state.weightMethod || 'direct');
     refreshDiffResult();
