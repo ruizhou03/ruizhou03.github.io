@@ -19,363 +19,261 @@ permalink: /toolbox/dare/
     font-size: 0.95rem;
   }
 
-  /* —— 配置区 —— */
-  .dare-setup {
-    background: var(--color-bg-warm);
-    border: 1px solid var(--color-border);
-    border-radius: 14px;
-    padding: 1.4rem 1.2rem 1.2rem;
-    margin-bottom: 1rem;
-  }
-  .dare-setup h2 {
-    font-family: var(--font-display);
-    font-size: 1.15rem;
-    color: var(--color-ink);
-    margin: 0 0 1.1rem;
-    text-align: center;
-  }
-  .setup-row { margin-bottom: 1.1rem; }
-  .setup-row label.field-label {
-    display: block;
-    font-size: 0.86rem;
-    color: var(--color-muted);
-    margin-bottom: 0.45rem;
-    font-family: var(--font-display);
-  }
-  .player-count-chips {
-    display: flex; flex-wrap: wrap; gap: 0.4rem;
-  }
-  .player-count-chips button {
-    flex: 1 1 12%;
-    min-width: 2.4rem;
-    padding: 0.5rem 0;
-    font-size: 0.95rem;
-    font-family: var(--font-display);
-    font-weight: 600;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    border-radius: 8px;
-    cursor: pointer;
-    color: var(--color-ink);
-    transition: all 0.15s;
-  }
-  @media (hover: hover) {
-    .player-count-chips button:hover { border-color: var(--color-accent); }
-  }
-  .player-count-chips button.active {
-    background: var(--color-accent);
-    color: #fff;
-    border-color: var(--color-accent);
-  }
-
-  .cpp-row {
-    display: flex; align-items: center; gap: 0.7rem;
-  }
-  .cpp-row input[type="range"] {
-    flex: 1;
-    accent-color: var(--color-accent);
-  }
-  .cpp-row .cpp-val {
-    font-family: var(--font-display);
-    font-weight: 600;
-    color: var(--color-ink);
-    font-variant-numeric: tabular-nums;
-    min-width: 3.4rem;
-    text-align: right;
-    font-size: 0.95rem;
-  }
-
-  .setup-help {
-    color: var(--color-muted);
-    font-size: 0.84rem;
-    line-height: 1.7;
-    margin-top: 1rem;
-    padding-top: 0.9rem;
-    border-top: 1px dashed var(--color-border);
-  }
-
-  /* —— HUD（游戏中）—— */
-  .dare-hud {
-    margin-bottom: 1rem;
-  }
-  .player-roster {
-    display: flex; flex-wrap: wrap; gap: 0.35rem;
-    margin-bottom: 0.7rem;
-    justify-content: center;
-  }
-  .player-card {
-    display: inline-flex; align-items: center; gap: 0.3rem;
-    padding: 0.3rem 0.6rem;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    border-radius: 999px;
-    font-size: 0.82rem;
-    font-family: var(--font-display);
-    color: var(--color-muted);
-    transition: all 0.18s;
-  }
-  .player-card .pid { font-weight: 600; color: var(--color-ink); }
-  .player-card .rem {
-    color: var(--color-muted);
-    font-variant-numeric: tabular-nums;
-  }
-  .player-card.current {
-    background: var(--color-accent);
-    border-color: var(--color-accent);
-    color: #fff;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(30, 58, 95, 0.2);
-  }
-  .player-card.current .pid,
-  .player-card.current .rem { color: #fff; }
-  .player-card.out {
-    color: #a04030;
-    text-decoration: line-through;
-    opacity: 0.7;
-  }
-  .player-card.out .pid { color: #a04030; }
-  .player-card.won {
-    color: #4a7c59;
-    border-color: #4a7c59;
-    background: rgba(74, 124, 89, 0.08);
-  }
-  .player-card.won .pid { color: #4a7c59; }
-
-  .turn-banner {
-    text-align: center;
-    font-family: var(--font-display);
-    font-size: 0.95rem;
-    color: var(--color-ink);
-    padding: 0.4rem 0;
-    border-bottom: 1px dashed var(--color-border);
-    margin-bottom: 1.2rem;
-  }
-  .turn-banner .pid {
-    font-weight: 700;
-    color: var(--color-accent);
-  }
-
-  /* —— Stage / 场景（保留原结构）—— */
-  .dare-stage {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 5 / 7;
-    max-height: 70vh;
-    perspective: 1200px;
-    margin-bottom: 1.2rem;
-  }
-  .stage-screen {
-    position: absolute;
-    inset: 0;
-    border-radius: 18px;
-    overflow: hidden;
-    background: var(--color-bg-warm);
-    border: 1px solid var(--color-border);
-    box-shadow: 0 8px 30px rgba(30, 58, 95, 0.08);
-    transition: transform 0.3s ease;
-  }
-  .stage-screen.flipped { transform: rotate(180deg); }
-
-  .scene { position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    text-align: center;
-    padding: 1.8rem 1.4rem;
-    transition: opacity 0.25s;
-  }
-  .scene.hidden { opacity: 0; pointer-events: none; }
-
-  /* —— 待抽场景 —— */
-  .scene-idle .icon {
-    font-size: 4.6rem; margin-bottom: 1rem;
-  }
-  .scene-idle .hint {
-    color: var(--color-muted); font-size: 1rem; margin-bottom: 1.6rem;
-    line-height: 1.6; max-width: 320px;
-  }
-
-  /* —— 倒计时场景 —— */
-  .scene-countdown .num {
-    font-family: var(--font-display);
-    font-size: clamp(7rem, 30vw, 11rem);
-    font-weight: 700;
-    color: var(--color-accent);
-    line-height: 1;
-    animation: pop 1s ease;
-  }
-  @keyframes pop {
-    0%   { transform: scale(0.4); opacity: 0; }
-    25%  { transform: scale(1.1); opacity: 1; }
-    100% { transform: scale(0.7); opacity: 0; }
-  }
-  .scene-countdown .sub {
-    color: var(--color-muted); font-size: 0.95rem; margin-top: 0.6rem;
-    font-style: normal;
-  }
-
-  /* —— 卡片场景 —— */
-  .scene-card .tag {
-    display: inline-block;
-    padding: 0.2rem 0.7rem;
-    background: var(--color-bg);
-    border: 1px solid var(--color-border);
-    border-radius: 999px;
-    font-size: 0.78rem;
-    color: var(--color-muted);
-    margin-bottom: 1.4rem;
-  }
-  .scene-card .prompt {
-    font-family: var(--font-display);
-    font-size: clamp(1.4rem, 5.5vw, 1.9rem);
-    color: var(--color-ink);
-    font-weight: 600;
-    line-height: 1.5;
-    margin: 0 0 1.2rem;
-  }
-  .scene-card .id-num {
-    font-family: var(--font-body);
-    color: var(--color-light);
-    font-size: 0.86rem;
-    letter-spacing: 0.04em;
-    margin-bottom: 0.6rem;
-  }
-  .scene-card .duration-bar {
-    width: 80%;
-    max-width: 280px;
-    height: 6px;
-    border-radius: 999px;
-    background: var(--color-bg);
-    margin: 1rem 0 0.6rem;
-    overflow: hidden;
-  }
-  .scene-card .duration-fill {
-    height: 100%;
-    background: var(--color-accent);
-    width: 100%;
-    transition: width 1s linear;
-  }
-  .scene-card .duration-text {
-    font-family: var(--font-body);
-    color: var(--color-muted);
-    font-size: 0.92rem;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* —— 卡片翻转动画 ——
-     只对当前可见的 scene 跑翻转，否则隐藏 scene 末态会被 fill-mode 拉到
-     opacity:1 在 .flipping 期间穿透到卡片上。 */
-  .stage-screen.flipping .scene:not(.hidden) {
-    animation: flipIn 0.55s ease both;
-  }
-  @keyframes flipIn {
-    0%   { transform: rotateY(180deg); opacity: 0; }
-    50%  { opacity: 0; }
-    100% { transform: rotateY(0); opacity: 1; }
-  }
-
-  /* —— 按钮 —— */
-  .btn-row {
-    display: flex; gap: 0.7rem; flex-wrap: wrap;
-    justify-content: center;
-  }
+  /* —— 通用按钮 —— */
   .dare-btn {
     padding: 0.7rem 1.6rem;
     font: inherit; font-size: 1rem; font-weight: 600;
     border: none; border-radius: 999px;
     cursor: pointer;
     transition: transform 0.15s, box-shadow 0.15s;
+    color: var(--color-ink);
   }
   .dare-btn.primary {
     background: var(--color-accent); color: #fff;
     box-shadow: 0 3px 10px rgba(30, 58, 95, 0.25);
   }
-  @media (hover: hover) {
-    .dare-btn.primary:hover { transform: translateY(-1px); }
-  }
-  .dare-btn.success {
-    background: #4a7c59; color: #fff;
-  }
-  .dare-btn.danger {
-    background: #a04030; color: #fff;
-  }
+  @media (hover: hover) { .dare-btn.primary:hover { transform: translateY(-1px); } }
+  .dare-btn.success { background: #4a7c59; color: #fff; }
+  .dare-btn.danger  { background: #a04030; color: #fff; }
   .dare-btn.ghost {
     background: transparent; color: var(--color-muted);
     border: 1px solid var(--color-border);
   }
   @media (hover: hover) {
-    .dare-btn.ghost:hover {
-    color: var(--color-accent); border-color: var(--color-accent);
+    .dare-btn.ghost:hover { color: var(--color-accent); border-color: var(--color-accent); }
   }
+  .dare-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .dare-btn.tiny { padding: 0.35rem 0.9rem; font-size: 0.85rem; }
+  .dare-btn.block { display: block; width: 100%; }
+
+  .btn-row { display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: center; }
+
+  /* —— 模式选择 —— */
+  .mode-cards { display: flex; flex-direction: column; gap: 0.9rem; }
+  .mode-card {
+    text-align: left;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    padding: 1.2rem 1.2rem;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+    color: inherit; font: inherit;
   }
-  .dare-btn:disabled {
-    opacity: 0.4; cursor: not-allowed; transform: none;
+  @media (hover: hover) {
+    .mode-card:hover { border-color: var(--color-accent); transform: translateY(-1px); }
+  }
+  .mode-card .mc-title {
+    font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;
+    color: var(--color-ink); margin-bottom: 0.35rem;
+  }
+  .mode-card .mc-desc { color: var(--color-muted); font-size: 0.9rem; line-height: 1.6; }
+
+  .how-to {
+    margin-top: 1.4rem;
+    color: var(--color-muted); font-size: 0.86rem; line-height: 1.75;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 12px; padding: 1rem 1.1rem;
+  }
+  .how-to strong { color: var(--color-ink); }
+
+  /* —— 配置卡（单机 setup / 在线 create / join）—— */
+  .dare-panel {
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    padding: 1.4rem 1.2rem 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .dare-panel h2 {
+    font-family: var(--font-display); font-size: 1.15rem;
+    color: var(--color-ink); margin: 0 0 1.1rem; text-align: center;
+  }
+  .setup-row { margin-bottom: 1.1rem; }
+  .setup-row label.field-label {
+    display: block; font-size: 0.86rem; color: var(--color-muted);
+    margin-bottom: 0.45rem; font-family: var(--font-display);
+  }
+  .cpp-row { display: flex; align-items: center; gap: 0.7rem; }
+  .cpp-row input[type="range"] { flex: 1; accent-color: var(--color-accent); }
+  .cpp-row .cpp-val {
+    font-family: var(--font-display); font-weight: 600; color: var(--color-ink);
+    font-variant-numeric: tabular-nums; min-width: 3.4rem; text-align: right; font-size: 0.95rem;
+  }
+  .text-input {
+    width: 100%; box-sizing: border-box;
+    padding: 0.6rem 0.8rem; font: inherit; font-size: 1rem;
+    border: 1px solid var(--color-border); border-radius: 10px;
+    background: var(--color-bg); color: var(--color-ink);
+  }
+  .text-input:focus { outline: none; border-color: var(--color-accent); }
+  .code-input { letter-spacing: 0.3em; text-align: center; font-weight: 700; font-size: 1.3rem; }
+  .field-err { color: #a04030; font-size: 0.82rem; margin-top: 0.4rem; min-height: 1em; }
+
+  /* —— 进度面板（你 + 在线众人）—— */
+  .progress-panel { margin-bottom: 1rem; }
+  .pp-row {
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.35rem 0; font-size: 0.86rem;
+  }
+  .pp-name {
+    flex: 0 0 5.6rem; max-width: 5.6rem; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; font-family: var(--font-display); color: var(--color-ink);
+  }
+  .pp-row.me .pp-name { color: var(--color-accent); font-weight: 700; }
+  .pp-row.out .pp-name { color: #a04030; }
+  .pp-bar {
+    flex: 1; height: 9px; border-radius: 999px; overflow: hidden;
+    background: var(--color-bg); border: 1px solid var(--color-border);
+  }
+  .pp-fill { height: 100%; background: var(--color-accent); width: 0; transition: width 0.4s ease; }
+  .pp-row.out .pp-fill { background: #a04030; }
+  .pp-num {
+    flex: 0 0 auto; font-variant-numeric: tabular-nums; color: var(--color-muted);
+    min-width: 3.2rem; text-align: right;
+  }
+  .pp-dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: #c8c2b6; }
+  .pp-dot.on { background: #4a7c59; }
+
+  .play-banner {
+    text-align: center; font-family: var(--font-display); font-size: 0.95rem;
+    color: var(--color-ink); padding: 0.4rem 0;
+    border-bottom: 1px dashed var(--color-border); margin-bottom: 1rem;
+  }
+  .play-banner .hi { font-weight: 700; color: var(--color-accent); }
+  .play-dots { letter-spacing: 0.1em; font-size: 1rem; }
+
+  /* —— Stage / 场景 —— */
+  .dare-stage {
+    position: relative; width: 100%; aspect-ratio: 5 / 7; max-height: 64vh;
+    perspective: 1200px; margin-bottom: 1.1rem;
+  }
+  .stage-screen {
+    position: absolute; inset: 0; border-radius: 18px; overflow: hidden;
+    background: var(--color-bg-warm); border: 1px solid var(--color-border);
+    box-shadow: 0 8px 30px rgba(30, 58, 95, 0.08); transition: transform 0.3s ease;
+  }
+  .stage-screen.flipped { transform: rotate(180deg); }
+  .scene {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    padding: 1.8rem 1.4rem; transition: opacity 0.25s;
+  }
+  .scene.hidden { opacity: 0; pointer-events: none; }
+
+  .scene-idle .icon { font-size: 4.4rem; margin-bottom: 1rem; }
+  .scene-idle .hint {
+    color: var(--color-muted); font-size: 1rem; margin-bottom: 0.4rem;
+    line-height: 1.6; max-width: 320px;
   }
 
-  .quit-row {
-    text-align: center;
-    margin-top: 1rem;
+  .scene-countdown .num {
+    font-family: var(--font-display); font-size: clamp(7rem, 30vw, 11rem);
+    font-weight: 700; color: var(--color-accent); line-height: 1; animation: pop 1s ease;
   }
+  @keyframes pop {
+    0% { transform: scale(0.4); opacity: 0; }
+    25% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(0.7); opacity: 0; }
+  }
+  .scene-countdown .sub { color: var(--color-muted); font-size: 0.95rem; margin-top: 0.6rem; }
+
+  .scene-card .tag {
+    display: inline-block; padding: 0.2rem 0.7rem; background: var(--color-bg);
+    border: 1px solid var(--color-border); border-radius: 999px;
+    font-size: 0.78rem; color: var(--color-muted); margin-bottom: 1.1rem;
+  }
+  .scene-card .mission-label {
+    font-size: 0.8rem; color: var(--color-light); letter-spacing: 0.06em; margin-bottom: 0.6rem;
+  }
+  .scene-card .prompt {
+    font-family: var(--font-display); font-size: clamp(1.6rem, 6vw, 2.2rem);
+    color: var(--color-ink); font-weight: 700; line-height: 1.4; margin: 0 0 0.9rem;
+  }
+  .scene-card .tip {
+    color: var(--color-muted); font-size: 0.92rem; line-height: 1.6; max-width: 300px;
+  }
+  .scene-card .tip::before { content: '💡 '; }
+
+  .scene-out .icon { font-size: 4.4rem; margin-bottom: 0.8rem; }
+  .scene-out .big {
+    font-family: var(--font-display); font-size: 1.5rem; font-weight: 700;
+    color: #a04030; margin-bottom: 0.5rem;
+  }
+  .scene-out .sub { color: var(--color-muted); font-size: 0.95rem; line-height: 1.6; max-width: 300px; }
+
+  .stage-screen.flipping .scene:not(.hidden) { animation: flipIn 0.55s ease both; }
+  @keyframes flipIn {
+    0% { transform: rotateY(180deg); opacity: 0; }
+    50% { opacity: 0; }
+    100% { transform: rotateY(0); opacity: 1; }
+  }
+
+  #advance-row { margin-bottom: 0.6rem; }
+  #btn-advance { font-size: 1.1rem; padding: 0.85rem 1.8rem; }
 
   .footer-options {
-    margin-top: 1rem; text-align: center;
-    color: var(--color-light); font-size: 0.86rem;
+    margin-top: 0.8rem; text-align: center; color: var(--color-light); font-size: 0.86rem;
   }
-  .footer-options label {
-    cursor: pointer;
-    user-select: none;
-    margin-right: 1rem;
-  }
+  .footer-options label { cursor: pointer; user-select: none; margin: 0 0.6rem; }
   .footer-options input { vertical-align: middle; margin-right: 0.3rem; }
+
+  .quit-row { text-align: center; margin-top: 1rem; }
+
+  /* —— 房间横幅（在线 lobby/play）—— */
+  .room-banner {
+    background: var(--color-accent); color: #fff; border-radius: 14px;
+    padding: 0.9rem 1rem; margin-bottom: 1rem; text-align: center;
+  }
+  .room-banner .label { font-size: 0.8rem; opacity: 0.85; margin-bottom: 0.15rem; }
+  .room-banner .code { font-family: var(--font-display); font-size: 2rem; font-weight: 700; letter-spacing: 0.18em; }
+  .room-banner .actions { margin-top: 0.6rem; display: flex; gap: 0.5rem; justify-content: center; }
+  .room-banner .actions .dare-btn { background: rgba(255,255,255,0.18); color: #fff; border: none; }
+  .room-qr { display: flex; justify-content: center; margin: 0.8rem 0; }
+  .room-qr canvas, .room-qr img { border-radius: 8px; background: #fff; padding: 6px; }
+
+  .lobby-players { list-style: none; padding: 0; margin: 0 0 1rem; }
+  .lobby-players li {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.55rem 0.8rem; border: 1px solid var(--color-border);
+    border-radius: 10px; margin-bottom: 0.5rem; background: var(--color-bg);
+  }
+  .lobby-players .lp-dot { width: 8px; height: 8px; border-radius: 50%; background: #c8c2b6; flex: 0 0 auto; }
+  .lobby-players .lp-dot.on { background: #4a7c59; }
+  .lobby-players .lp-name { font-family: var(--font-display); color: var(--color-ink); flex: 1; }
+  .lobby-players .lp-host { font-size: 0.75rem; color: var(--color-accent); }
+  .lobby-players .lp-kick { font-size: 0.8rem; color: #a04030; cursor: pointer; background: none; border: none; }
 
   /* —— 结算 modal —— */
   .dare-modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1rem;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem;
   }
   .dare-modal[hidden] { display: none; }
   .dare-modal-card {
-    background: var(--color-bg);
-    border-radius: 16px;
-    padding: 1.6rem 1.4rem;
-    max-width: 380px;
-    width: 100%;
-    text-align: center;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    background: var(--color-bg); border-radius: 16px; padding: 1.6rem 1.4rem;
+    max-width: 400px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
   }
   .dare-modal-card h2 {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    color: var(--color-ink);
-    margin: 0 0 1rem;
+    font-family: var(--font-display); font-size: 1.5rem; color: var(--color-ink); margin: 0 0 1rem;
   }
   .modal-ranking {
-    text-align: left;
-    margin: 0 0 1.2rem;
-    padding: 0.8rem 1rem;
-    background: var(--color-bg-warm);
-    border-radius: 10px;
-    font-size: 0.92rem;
-    line-height: 1.9;
-    color: var(--color-ink);
+    text-align: left; margin: 0 0 1.2rem; padding: 0.6rem 0.9rem;
+    background: var(--color-bg-warm); border-radius: 10px; font-size: 0.94rem;
+    line-height: 1.5; color: var(--color-ink);
   }
-  .modal-ranking .rk { display: flex; justify-content: space-between; }
-  .modal-ranking .rk.win  { color: #4a7c59; font-weight: 600; }
-  .modal-ranking .rk.lose { color: #a04030; }
+  .modal-ranking .rk {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.35rem 0; border-bottom: 1px dashed var(--color-border);
+  }
+  .modal-ranking .rk:last-child { border-bottom: none; }
+  .modal-ranking .rk.champ { color: #b8860b; font-weight: 700; }
+  .modal-ranking .rk.me .rk-name::after { content: ' (你)'; color: var(--color-accent); font-size: 0.8rem; }
 
-  details.about {
-    margin-top: 1.4rem; font-size: 0.88rem;
-    color: var(--color-muted); line-height: 1.7;
-  }
+  details.about { margin-top: 1.4rem; font-size: 0.88rem; color: var(--color-muted); line-height: 1.7; }
   details.about summary {
-    cursor: pointer; padding: 0.4rem 0;
-    color: var(--color-muted); font-weight: 500;
-    list-style: none;
+    cursor: pointer; padding: 0.4rem 0; color: var(--color-muted); font-weight: 500; list-style: none;
   }
   details.about summary::before { content: '▸ '; transition: 0.2s; }
   details[open].about summary::before { content: '▾ '; }
@@ -385,619 +283,774 @@ permalink: /toolbox/dare/
 <article class="dare-wrap">
   <header class="dare-header">
     <h1>🃏 不要做挑战</h1>
+    <p>手机屏幕朝外，你看不到自己的牌——别人想方设法诱导你做牌上那件事。</p>
   </header>
 
-  <!-- ===== 配置阶段 ===== -->
-  <section class="dare-setup" id="setup-screen">
-    <h2>开始新对局</h2>
-
-    <div class="setup-row">
-      <label class="field-label">玩家人数</label>
-      <div class="player-count-chips" id="player-count-chips">
-        <button type="button" data-n="2">2</button>
-        <button type="button" data-n="3">3</button>
-        <button type="button" data-n="4">4</button>
-        <button type="button" data-n="5">5</button>
-        <button type="button" data-n="6">6</button>
-        <button type="button" data-n="7">7</button>
-        <button type="button" data-n="8">8</button>
-      </div>
+  <!-- ===== 模式选择 ===== -->
+  <section id="mode-screen">
+    <div class="mode-cards">
+      <button type="button" class="mode-card" id="mode-single">
+        <div class="mc-title">📱 单机 · 各玩各的</div>
+        <div class="mc-desc">每个人在自己手机上开一局，举着屏幕朝外。被诱导做了一次就烧一张，烧光就出局、接受惩罚。最方便，不用联网。</div>
+      </button>
+      <button type="button" class="mode-card" id="mode-online">
+        <div class="mc-title">🌐 联机 · 同房间比谁撑得久</div>
+        <div class="mc-desc">每人一台手机进同一个房号，实时看到大家的进度条。先烧光的先出局，坚持到最后的人第一名。</div>
+      </button>
     </div>
-
-    <div class="setup-row">
-      <label class="field-label">每人额度</label>
-      <div class="cpp-row">
-        <input type="range" id="cpp-slider" min="5" max="20" value="10" step="1">
-        <span class="cpp-val"><span id="cpp-val">10</span> 张</span>
-      </div>
-    </div>
-
-    <div class="btn-row">
-      <button class="dare-btn primary" id="btn-start" disabled>请先选玩家人数</button>
-    </div>
-
-    <div class="setup-help">
-      <strong>玩法：</strong>每人 N 张挑战卡的额度。看到题目立刻执行——做了就出局，没做就用掉一张。最后剩下没出局的玩家获胜。
+    <div class="how-to">
+      <strong>怎么玩：</strong>举起手机，屏幕朝外对着大家，你自己别偷看。牌上写着「让 TA 做某件事」——
+      其他人想办法诱导你。你一旦中招，谁都可以点「下一张」，会有 3-2-1 倒计时让你把屏幕转开，换下一张。
+      把分配到的牌全部烧完，你就出局。
     </div>
   </section>
 
-  <!-- ===== 游戏阶段 ===== -->
-  <section class="dare-game" id="game-screen" hidden>
-    <div class="dare-hud">
-      <div class="player-roster" id="player-roster"></div>
-      <div class="turn-banner" id="turn-banner">轮到 <span class="pid">P1</span> · 还剩 10 张</div>
+  <!-- ===== 单机配置 ===== -->
+  <section id="single-setup" hidden>
+    <div class="dare-panel">
+      <h2>📱 单机一局</h2>
+      <div class="setup-row">
+        <label class="field-label">这一局你有几张牌</label>
+        <div class="cpp-row">
+          <input type="range" id="single-cpp" min="3" max="20" value="10" step="1">
+          <span class="cpp-val"><span id="single-cpp-val">10</span> 张</span>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="dare-btn primary" id="single-start" disabled>加载中…</button>
+      </div>
     </div>
+    <div class="quit-row"><button class="dare-btn ghost tiny" id="single-back">← 换模式</button></div>
+  </section>
+
+  <!-- ===== 联机视图（路由渲染） ===== -->
+  <section id="online-screen" hidden>
+    <div id="online-view"></div>
+    <div class="quit-row"><button class="dare-btn ghost tiny" id="online-back">← 换模式</button></div>
+  </section>
+
+  <!-- ===== 游戏台（单机 / 联机共用） ===== -->
+  <section id="play-screen" hidden>
+    <div class="progress-panel" id="progress-panel"></div>
+    <div class="play-banner" id="play-banner"></div>
 
     <div class="dare-stage">
       <div class="stage-screen" id="stage">
-        <!-- 待抽 -->
         <div class="scene scene-idle" id="scene-idle">
-          <div class="icon">🃏</div>
-          <div class="hint" id="idle-hint">点下面按钮，3-2-1 倒计时之后翻面给当前玩家看。看到题目就要立刻执行——做了就出局。</div>
-          <div class="btn-row">
-            <button class="dare-btn primary" id="btn-draw" disabled>加载中…</button>
-          </div>
+          <div class="icon">🙈</div>
+          <div class="hint">举起手机，屏幕朝外对着大家——别偷看自己的牌。准备好就点「开始」。</div>
         </div>
 
-        <!-- 倒计时 -->
         <div class="scene scene-countdown hidden" id="scene-countdown">
           <div class="num" id="cd-num">3</div>
-          <div class="sub">把手机翻给当前玩家…</div>
+          <div class="sub">把屏幕转向大家，别让本人看到 👀</div>
         </div>
 
-        <!-- 卡片 -->
         <div class="scene scene-card hidden" id="scene-card">
-          <div class="tag" id="card-tag">—</div>
-          <div class="id-num" id="card-id">#0</div>
+          <div class="tag" id="card-tag">挑战</div>
+          <div class="mission-label">大家的任务</div>
           <div class="prompt" id="card-prompt">—</div>
-          <div class="duration-bar" id="duration-bar" style="display:none">
-            <div class="duration-fill" id="duration-fill"></div>
-          </div>
-          <div class="duration-text" id="duration-text" style="display:none">—</div>
-          <div class="btn-row" style="margin-top: 1.4rem">
-            <button class="dare-btn success" id="btn-win">✓ 我没做</button>
-            <button class="dare-btn danger"  id="btn-lose">✗ 我做了</button>
-          </div>
+          <div class="tip" id="card-tip"></div>
+        </div>
+
+        <div class="scene scene-out hidden" id="scene-out">
+          <div class="icon">💀</div>
+          <div class="big" id="out-big">出局！</div>
+          <div class="sub" id="out-sub">牌烧光了。</div>
         </div>
       </div>
     </div>
 
-    <div class="btn-row" id="post-card-row" style="display:none">
-      <button class="dare-btn primary" id="btn-next">下一张</button>
+    <div class="btn-row" id="advance-row">
+      <button class="dare-btn primary" id="btn-advance">开始</button>
     </div>
 
     <div class="footer-options">
-      <label>
-        <input type="checkbox" id="opt-flip">
-        反向显示（让对面看正向）
-      </label>
-      <label>
-        <input type="checkbox" id="opt-vibrate" checked>
-        倒计时震动
-      </label>
+      <label><input type="checkbox" id="opt-flip"> 反向显示（你那侧看反、对面看正）</label>
+      <label><input type="checkbox" id="opt-vibrate" checked> 倒计时震动</label>
     </div>
 
-    <div class="quit-row">
-      <button class="dare-btn ghost" id="btn-quit">放弃当前对局</button>
-    </div>
+    <div class="quit-row"><button class="dare-btn ghost tiny" id="btn-quit">放弃本局</button></div>
   </section>
 
   <!-- ===== 结算 modal ===== -->
-  <div class="dare-modal" id="modal-gameover" hidden>
+  <div class="dare-modal" id="modal-result" hidden>
     <div class="dare-modal-card">
-      <h2 id="winner-title">🎉 P3 获胜！</h2>
-      <div class="modal-ranking" id="winner-ranking"></div>
-      <button class="dare-btn primary" id="btn-replay">再来一局</button>
+      <h2 id="result-title">结算</h2>
+      <div id="result-body"></div>
+      <div class="btn-row" id="result-actions"></div>
     </div>
   </div>
 
   <details class="about">
     <summary>游戏规则</summary>
-    <p>2-8 人轮流抽卡，每人 N 张额度（默认 10 张）。抽到的题目要求你做某件事——做了就出局，没做就用掉 1 张额度。最后还没出局的玩家获胜。全员用完额度且都没出局则并列胜出。</p>
-    <p>每轮抽卡时会有 3-2-1 倒计时，把手机翻给当前玩家看。不想翻手机可以勾「反向显示」，卡片会旋转 180° 对面看正的。</p>
+    <p>每人分到 N 张「禁忌动作」卡（默认 10 张）。你举着手机、屏幕朝外，<strong>看不到自己的牌</strong>；其他人能看到，并想方设法诱导你做出牌上那件事（大笑、摸头发、说「我」字……）。</p>
+    <p>你一中招，任何人都可以点「下一张」，3-2-1 倒计时给你时间把屏幕转开，再翻下一张。把全部 N 张烧完，你就出局、接受惩罚。</p>
+    <p><strong>单机</strong>：各人在自己手机上玩，互不联网。<strong>联机</strong>：进同一房号，实时看到彼此进度，先烧光的先出局，坚持到最后的人获胜。</p>
   </details>
 
   <link rel="stylesheet" href="/assets/css/games-shell.css">
   <div id="dare-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </article>
 
+<script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/qrcode.js"></script>
 <script src="/assets/js/games-shell/comments.js"></script>
 <script>
 (function () {
-  const STORAGE_KEY = 'dare.session.v2';
+  'use strict';
 
+  const API_BASE = 'https://zircon-urge.fly.dev/api/dare';
+  const SESSION_KEY = 'dare:online.v1';
+  const SINGLE_CPP_KEY = 'dare:single-cpp';
+
+  const Identity = (window.GamesShell && GamesShell.Identity) || null;
+
+  // ── 全局状态 ──────────────────────────────────────────────
   const state = {
-    cards: [],            // 加载后的卡池
-    deck: [],             // 共享牌堆（card id 数组）
-    cursor: 0,            // deck 中下一张
-    // setup
-    numPlayers: null,     // 2-8
-    cardsPerPlayer: 10,   // 5-20
-    // game
-    started: false,
-    players: [],          // [{id:'P1', remaining:10, status:'alive'|'out'|'won'}]
-    currentIdx: 0,
-    phase: 'idle',
-    current: null,
-    durationTimer: null,
-    countdownTimer: null,
+    cards: [],
+    mode: null,            // 'single' | 'online'
+    screen: 'mode',        // 'mode' | 'single-setup' | 'online' | 'play'
+    // online
+    session: null,         // { code, token, playerId }
+    roomState: null,
+    lastVersion: 0,
+    polling: false,
+    onlineView: 'landing', // 'landing' | 'create' | 'join'
   };
 
-  // —— DOM refs ——
-  const $setup        = document.getElementById('setup-screen');
-  const $game         = document.getElementById('game-screen');
-  const $countChips   = document.getElementById('player-count-chips');
-  const $cppSlider    = document.getElementById('cpp-slider');
-  const $cppVal       = document.getElementById('cpp-val');
-  const $btnStart     = document.getElementById('btn-start');
-  const $roster       = document.getElementById('player-roster');
-  const $turnBanner   = document.getElementById('turn-banner');
-  const $stage        = document.getElementById('stage');
-  const $sIdle        = document.getElementById('scene-idle');
-  const $sCount       = document.getElementById('scene-countdown');
-  const $sCard        = document.getElementById('scene-card');
-  const $cdNum        = document.getElementById('cd-num');
-  const $idleHint     = document.getElementById('idle-hint');
-  const $cardTag      = document.getElementById('card-tag');
-  const $cardId       = document.getElementById('card-id');
-  const $cardPrompt   = document.getElementById('card-prompt');
-  const $durBar       = document.getElementById('duration-bar');
-  const $durFill      = document.getElementById('duration-fill');
-  const $durText      = document.getElementById('duration-text');
-  const $btnDraw      = document.getElementById('btn-draw');
-  const $btnWin       = document.getElementById('btn-win');
-  const $btnLose      = document.getElementById('btn-lose');
-  const $btnNext      = document.getElementById('btn-next');
-  const $btnQuit      = document.getElementById('btn-quit');
-  const $postRow      = document.getElementById('post-card-row');
-  const $optFlip      = document.getElementById('opt-flip');
-  const $optVib       = document.getElementById('opt-vibrate');
-  const $modal        = document.getElementById('modal-gameover');
-  const $winnerTitle  = document.getElementById('winner-title');
-  const $winnerRank   = document.getElementById('winner-ranking');
-  const $btnReplay    = document.getElementById('btn-replay');
+  // 本地翻牌引擎（单机与联机共用）
+  const engine = {
+    active: false,         // 正在翻牌（出局后变 false）
+    started: false,        // 本局是否已进入（出局后仍为 true，防止轮询重启牌堆）
+    deck: [],
+    total: 0,
+    burned: 0,
+    phase: 'idle',         // 'idle' | 'countdown' | 'card' | 'out'
+    cdTimer: null,
+    onBurn: null,          // (burned) => void
+    onOut: null,           // () => void
+  };
+
+  // ── DOM ──────────────────────────────────────────────────
+  const $ = (id) => document.getElementById(id);
+  const $modeScreen   = $('mode-screen');
+  const $singleSetup  = $('single-setup');
+  const $onlineScreen = $('online-screen');
+  const $onlineView   = $('online-view');
+  const $playScreen   = $('play-screen');
+  const $progressPanel= $('progress-panel');
+  const $playBanner   = $('play-banner');
+  const $stage        = $('stage');
+  const $sIdle        = $('scene-idle');
+  const $sCount       = $('scene-countdown');
+  const $sCard        = $('scene-card');
+  const $sOut         = $('scene-out');
+  const $cdNum        = $('cd-num');
+  const $cardTag      = $('card-tag');
+  const $cardPrompt   = $('card-prompt');
+  const $cardTip      = $('card-tip');
+  const $outBig       = $('out-big');
+  const $outSub       = $('out-sub');
+  const $btnAdvance   = $('btn-advance');
+  const $optFlip      = $('opt-flip');
+  const $optVib       = $('opt-vibrate');
+  const $modal        = $('modal-result');
+  const $resultTitle  = $('result-title');
+  const $resultBody   = $('result-body');
+  const $resultActions= $('result-actions');
+
+  // ── 工具 ──────────────────────────────────────────────────
+  function el(tag, attrs, children) {
+    const e = document.createElement(tag);
+    if (attrs) for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') e.className = v;
+      else if (k === 'html') e.innerHTML = v;
+      else if (k === 'on' && typeof v === 'object') for (const [ev, h] of Object.entries(v)) e.addEventListener(ev, h);
+      else if (k === 'style' && typeof v === 'object') for (const [sk, sv] of Object.entries(v)) e.style[sk] = sv;
+      else if (v != null) e.setAttribute(k, v);
+    }
+    if (children != null) (Array.isArray(children) ? children : [children]).forEach(c => {
+      if (c == null) return;
+      e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return e;
+  }
+  function toast(msg, ms) {
+    let t = $('dare-toast');
+    if (!t) { t = el('div', { id: 'dare-toast' });
+      Object.assign(t.style, { position: 'fixed', left: '50%', bottom: '2rem', transform: 'translateX(-50%)',
+        background: 'rgba(30,30,30,0.92)', color: '#fff', padding: '0.6rem 1.1rem', borderRadius: '999px',
+        fontSize: '0.9rem', zIndex: 2000, opacity: 0, transition: 'opacity 0.2s', pointerEvents: 'none', maxWidth: '90vw', textAlign: 'center' });
+      document.body.appendChild(t);
+    }
+    t.textContent = msg; t.style.opacity = '1';
+    clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = '0', ms || 2200);
+  }
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+  function buildDeck(total) {
+    let deck = [];
+    while (deck.length < total) deck = deck.concat(shuffle(state.cards));
+    return deck.slice(0, total);
+  }
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // ── 屏幕切换 ──────────────────────────────────────────────
+  function showScreen(name) {
+    state.screen = name;
+    $modeScreen.hidden   = name !== 'mode';
+    $singleSetup.hidden  = name !== 'single-setup';
+    $onlineScreen.hidden = name !== 'online';
+    $playScreen.hidden   = name !== 'play';
+  }
 
   // ============================================================
   // 加载卡池
   // ============================================================
   fetch('{{ "/toolbox/dare/cards.json" | relative_url }}')
-    .then(r => {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(cards => {
       state.cards = cards;
-      $btnDraw.textContent = '下一张';
-      $btnDraw.disabled = false;
-      restoreOrInit();
+      $('single-start').disabled = false;
+      $('single-start').textContent = '🎬 开始这一局';
+      boot();
     })
     .catch(err => {
       console.error('[dare] cards.json 加载失败:', err);
-      $idleHint.innerHTML = '⚠️ 加载卡池失败<br>请刷新页面重试。';
-      $idleHint.style.color = '#a04030';
-      $btnDraw.textContent = '加载失败';
-      $btnDraw.disabled = true;
-      $btnStart.disabled = true;
-      $btnStart.textContent = '加载失败';
+      $('single-start').textContent = '加载失败';
+      toast('卡池加载失败，请刷新页面');
     });
 
-  function restoreOrInit() {
-    try {
-      const raw = sessionStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw);
-        if (
-          saved && saved.started &&
-          Array.isArray(saved.players) && saved.players.length >= 2 &&
-          Array.isArray(saved.deck) && saved.deck.length === state.cards.length &&
-          typeof saved.cursor === 'number' &&
-          typeof saved.currentIdx === 'number'
-        ) {
-          state.numPlayers     = saved.players.length;
-          state.cardsPerPlayer = saved.cardsPerPlayer || 10;
-          state.deck           = saved.deck;
-          state.cursor         = saved.cursor;
-          state.players        = saved.players;
-          state.currentIdx     = saved.currentIdx;
-          state.started        = true;
-          enterGame();
-          // 如果存档时游戏其实已经结束（理论上不会存盘，但守卫一下）
-          const alive = state.players.filter(p => p.status === 'alive');
-          if (alive.length <= 1) showGameOver();
-          return;
-        }
-      }
-    } catch (e) { /* ignore */ }
-    // 没有存档：留在 setup
-    showSetup();
-  }
-
-  function persist() {
-    try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-        started:        state.started,
-        cardsPerPlayer: state.cardsPerPlayer,
-        deck:           state.deck,
-        cursor:         state.cursor,
-        players:        state.players,
-        currentIdx:     state.currentIdx,
-      }));
-    } catch (e) {}
-  }
-  function clearSave() {
-    try { sessionStorage.removeItem(STORAGE_KEY); } catch (e) {}
-  }
-  function shuffle(arr) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
+  function boot() {
+    // 深链：?room=1234 → 直接进联机加入
+    const params = new URLSearchParams(location.search);
+    const roomParam = (params.get('room') || '').trim();
+    if (/^\d{4}$/.test(roomParam)) {
+      state.mode = 'online';
+      state.onlineView = 'join';
+      state._prefillCode = roomParam;
+      showScreen('online');
+      renderOnline();
+      return;
     }
-    return a;
-  }
-
-  // ============================================================
-  // 配置阶段
-  // ============================================================
-  function showSetup() {
-    state.started = false;
-    $setup.hidden = false;
-    $game.hidden = true;
-    $modal.hidden = true;
-    refreshSetupButtons();
-  }
-
-  function refreshSetupButtons() {
-    $countChips.querySelectorAll('button').forEach(b => {
-      b.classList.toggle('active', Number(b.dataset.n) === state.numPlayers);
-    });
-    $cppVal.textContent = state.cardsPerPlayer;
-    $cppSlider.value = state.cardsPerPlayer;
-    if (!state.cards.length) {
-      $btnStart.disabled = true;
-      $btnStart.textContent = '加载中…';
-    } else if (state.numPlayers == null) {
-      $btnStart.disabled = true;
-      $btnStart.textContent = '请先选玩家人数';
-    } else {
-      $btnStart.disabled = false;
-      $btnStart.textContent = `🎮 开始游戏（${state.numPlayers} 人 · 每人 ${state.cardsPerPlayer} 张）`;
+    // 已有联机会话 → 尝试恢复
+    const s = loadSession();
+    if (s && s.code && s.token) {
+      state.mode = 'online';
+      state.session = s;
+      showScreen('online');
+      $onlineView.innerHTML = '<div class="dare-panel" style="text-align:center">正在恢复房间…</div>';
+      startPolling();
+      return;
     }
-  }
-
-  $countChips.addEventListener('click', e => {
-    const b = e.target.closest('button[data-n]');
-    if (!b) return;
-    state.numPlayers = Number(b.dataset.n);
-    refreshSetupButtons();
-  });
-  $cppSlider.addEventListener('input', () => {
-    state.cardsPerPlayer = Number($cppSlider.value);
-    refreshSetupButtons();
-  });
-  $btnStart.addEventListener('click', () => {
-    if ($btnStart.disabled) return;
-    startGame();
-  });
-
-  // ============================================================
-  // 游戏开局
-  // ============================================================
-  function startGame() {
-    state.players = [];
-    for (let i = 0; i < state.numPlayers; i++) {
-      state.players.push({
-        id: 'P' + (i + 1),
-        remaining: state.cardsPerPlayer,
-        status: 'alive',
-      });
-    }
-    state.currentIdx = 0;
-    state.deck = shuffle(state.cards.map(c => c.id));
-    state.cursor = 0;
-    state.started = true;
-    state.current = null;
-    persist();
-    enterGame();
-  }
-
-  function enterGame() {
-    $setup.hidden = true;
-    $game.hidden = false;
-    $modal.hidden = true;
-    showScene('idle');
-    renderHUD();
+    showScreen('mode');
   }
 
   // ============================================================
-  // HUD
+  // 翻牌引擎
   // ============================================================
-  function renderHUD() {
-    $roster.innerHTML = '';
-    state.players.forEach((p, i) => {
-      const card = document.createElement('span');
-      card.className = 'player-card';
-      if (p.status === 'out')  card.classList.add('out');
-      if (p.status === 'won')  card.classList.add('won');
-      if (p.status === 'alive' && i === state.currentIdx) card.classList.add('current');
-
-      const pid = document.createElement('span');
-      pid.className = 'pid';
-      pid.textContent = p.id;
-      card.appendChild(pid);
-
-      const rem = document.createElement('span');
-      rem.className = 'rem';
-      if (p.status === 'out')      rem.textContent = '✗';
-      else if (p.status === 'won') rem.textContent = '✓';
-      else                          rem.textContent = '· ' + p.remaining;
-      card.appendChild(rem);
-
-      $roster.appendChild(card);
-    });
-
-    const cur = state.players[state.currentIdx];
-    if (cur && cur.status === 'alive') {
-      $turnBanner.innerHTML = `轮到 <span class="pid">${cur.id}</span> · 还剩 ${cur.remaining} 张`;
-    } else {
-      $turnBanner.textContent = '—';
-    }
+  function engineStart(total, hooks) {
+    cleanupCountdown();
+    engine.active = true;
+    engine.deck = buildDeck(total);
+    engine.total = total;
+    engine.burned = 0;
+    engine.phase = 'idle';
+    engine.onBurn = hooks.onBurn || null;
+    engine.onOut = hooks.onOut || null;
+    setScene('idle');
+    setAdvance('▶ 开始（翻第一张）', engineCountdown, 'primary');
+    renderBanner();
   }
 
-  // ============================================================
-  // 场景切换
-  // ============================================================
-  function showScene(name) {
-    $sIdle.classList.toggle('hidden', name !== 'idle');
-    $sCount.classList.toggle('hidden', name !== 'countdown');
-    $sCard.classList.toggle('hidden', name !== 'card');
-    state.phase = name;
-    $postRow.style.display = (name === 'card') ? 'flex' : 'none';
-  }
-
-  // ============================================================
-  // 抽卡
-  // ============================================================
-  function startDraw() {
-    if (state.cards.length === 0) return;
-    if (state.cursor >= state.deck.length) {
-      // 重新洗牌（只是补充牌堆，不动玩家状态）
-      state.deck = shuffle(state.cards.map(c => c.id));
-      state.cursor = 0;
-      persist();
-    }
-    runCountdown();
-  }
-
-  function runCountdown() {
-    showScene('countdown');
+  function engineCountdown() {
+    if (engine.phase === 'countdown') return;
+    engine.phase = 'countdown';
+    setScene('countdown');
+    setAdvanceHidden(true);
     let n = 3;
-    $cdNum.textContent = n;
-    $cdNum.style.animation = 'none';
-    void $cdNum.offsetWidth;
-    $cdNum.style.animation = '';
-
-    if ($optVib.checked && navigator.vibrate) {
-      navigator.vibrate([60, 940, 60, 940, 200]);
-    }
-
-    state.countdownTimer = setInterval(() => {
+    pulseNum(n);
+    if ($optVib.checked && navigator.vibrate) navigator.vibrate([60, 940, 60, 940, 200]);
+    cleanupCountdown();
+    engine.cdTimer = setInterval(() => {
       n--;
-      if (n <= 0) {
-        clearInterval(state.countdownTimer);
-        state.countdownTimer = null;
-        revealCard();
-        return;
-      }
-      $cdNum.textContent = n;
-      $cdNum.style.animation = 'none';
-      void $cdNum.offsetWidth;
-      $cdNum.style.animation = '';
+      if (n <= 0) { cleanupCountdown(); engineReveal(); return; }
+      pulseNum(n);
     }, 1000);
   }
 
-  function revealCard() {
-    const id = state.deck[state.cursor];
-    const card = state.cards.find(c => c.id === id);
-    state.current = card;
-    state.cursor++;
-    persist();
-
+  function engineReveal() {
+    const card = engine.deck[engine.burned] || { prompt: '—', tip: '', tag: '挑战' };
+    engine.phase = 'card';
     $cardTag.textContent = card.tag || '挑战';
-    $cardId.textContent = `#${card.id}`;
     $cardPrompt.textContent = card.prompt;
-
-    if (state.durationTimer) {
-      clearInterval(state.durationTimer);
-      state.durationTimer = null;
-    }
-    if (typeof card.duration_sec === 'number' && card.duration_sec > 0) {
-      $durBar.style.display = 'block';
-      $durText.style.display = 'block';
-      $durFill.style.transition = 'none';
-      $durFill.style.width = '100%';
-      void $durFill.offsetWidth;
-      $durFill.style.transition = `width ${card.duration_sec}s linear`;
-      $durFill.style.width = '0%';
-
-      let remain = card.duration_sec;
-      $durText.textContent = formatDuration(remain);
-      state.durationTimer = setInterval(() => {
-        remain--;
-        if (remain <= 0) {
-          clearInterval(state.durationTimer);
-          state.durationTimer = null;
-          $durText.textContent = '时间到 ✓';
-        } else {
-          $durText.textContent = formatDuration(remain);
-        }
-      }, 1000);
-    } else {
-      $durBar.style.display = 'none';
-      $durText.style.display = 'none';
-    }
-
-    // 新卡：恢复 ✓/✗ 可点击
-    $btnWin.disabled = false;
-    $btnLose.disabled = false;
-
-    showScene('card');
-    $stage.classList.remove('flipping');
-    void $stage.offsetWidth;
-    $stage.classList.add('flipping');
-    setTimeout(() => $stage.classList.remove('flipping'), 600);
-
+    $cardTip.textContent = card.tip || '';
+    $cardTip.style.display = card.tip ? '' : 'none';
+    setScene('card');
+    flipStage();
+    setAdvanceHidden(false);
+    setAdvance('👉 TA 中招了 · 下一张', engineAdvance, 'danger');
+    renderBanner();
     if ($optVib.checked && navigator.vibrate) navigator.vibrate(120);
   }
-  function formatDuration(s) {
-    if (s >= 60) return `还剩 ${Math.floor(s / 60)} 分 ${(s % 60).toString().padStart(2, '0')} 秒`;
-    return `还剩 ${s} 秒`;
+
+  function engineAdvance() {
+    if (engine.phase !== 'card') return;
+    engine.burned++;
+    if (engine.onBurn) engine.onBurn(engine.burned);
+    if (engine.burned >= engine.total) { engineOut(); }
+    else { engineCountdown(); }
+    renderBanner();
   }
 
-  // ============================================================
-  // 回合 / 结算
-  // ============================================================
-  function recordWin() {
-    const cur = state.players[state.currentIdx];
-    if (!cur || cur.status !== 'alive') return;
-    cur.remaining = Math.max(0, cur.remaining - 1);
-    if (cur.remaining === 0) cur.status = 'won';
-    $btnWin.disabled = true;
-    $btnLose.disabled = true;
-    persist();
-    afterTurnAction();
-  }
-  function recordLose() {
-    const cur = state.players[state.currentIdx];
-    if (!cur || cur.status !== 'alive') return;
-    cur.status = 'out';
-    $btnWin.disabled = true;
-    $btnLose.disabled = true;
-    persist();
-    afterTurnAction();
-  }
-  function afterTurnAction() {
-    if (checkGameEnd()) return;
-    advanceToNextAlive();
-    renderHUD();
+  function engineOut() {
+    engine.phase = 'out';
+    engine.active = false;
+    cleanupCountdown();
+    setScene('out');
+    if (engine.onOut) engine.onOut();
   }
 
-  // 找下一个 alive 玩家。注意：如果当前 idx 还活着但已被换状态 (won/out)，
-  // 就从下一个开始；否则从当前开始往后扫一圈。
-  function advanceToNextAlive() {
-    const n = state.players.length;
-    for (let step = 1; step <= n; step++) {
-      const idx = (state.currentIdx + step) % n;
-      if (state.players[idx].status === 'alive') {
-        state.currentIdx = idx;
-        return;
-      }
-    }
-    // 没人活了 — 由 checkGameEnd 处理，这里保持 currentIdx 不变
+  function setScene(name) {
+    engine.phase = (name === 'card') ? 'card' : (name === 'countdown' ? 'countdown' : (name === 'out' ? 'out' : 'idle'));
+    $sIdle.classList.toggle('hidden', name !== 'idle');
+    $sCount.classList.toggle('hidden', name !== 'countdown');
+    $sCard.classList.toggle('hidden', name !== 'card');
+    $sOut.classList.toggle('hidden', name !== 'out');
+    $btnAdvance.parentElement.style.display = (name === 'out') ? 'none' : 'flex';
   }
-
-  function checkGameEnd() {
-    const alive = state.players.filter(p => p.status === 'alive');
-    if (alive.length <= 1) {
-      showGameOver();
-      return true;
-    }
-    return false;
+  function pulseNum(n) {
+    $cdNum.textContent = n;
+    $cdNum.style.animation = 'none'; void $cdNum.offsetWidth; $cdNum.style.animation = '';
   }
+  function flipStage() {
+    $stage.classList.remove('flipping'); void $stage.offsetWidth; $stage.classList.add('flipping');
+    setTimeout(() => $stage.classList.remove('flipping'), 600);
+  }
+  function setAdvance(label, handler, kind) {
+    $btnAdvance.textContent = label;
+    $btnAdvance.className = 'dare-btn ' + (kind || 'primary');
+    $btnAdvance.disabled = false;
+    $btnAdvance.onclick = handler;
+  }
+  function setAdvanceHidden(hidden) { $('advance-row').style.display = hidden ? 'none' : 'flex'; }
+  function cleanupCountdown() { if (engine.cdTimer) { clearInterval(engine.cdTimer); engine.cdTimer = null; } }
 
-  function showGameOver() {
-    state.started = false;  // 防止之后误触
-    clearSave();
-
-    const aliveList = state.players.filter(p => p.status === 'alive');
-    const wonList   = state.players.filter(p => p.status === 'won');
-    const outList   = state.players.filter(p => p.status === 'out');
-    const N = state.players.length;
-
-    // 标题：6 种结束态
-    let title;
-    if (outList.length === N) {
-      title = `💀 全军覆没`;
-    } else if (aliveList.length === 0) {
-      if (wonList.length === N) {
-        title = `🏆 全员通关！`;
-      } else if (wonList.length === 1) {
-        title = `🎉 ${wonList[0].id} 获胜！`;
-      } else {
-        title = `🏆 ${wonList.map(p => p.id).join(' / ')} 并列胜出`;
-      }
+  function renderBanner() {
+    const total = engine.total;
+    const burned = engine.burned;
+    const remain = Math.max(0, total - burned);
+    let dots = '';
+    const shown = Math.min(total, 16);
+    for (let i = 0; i < shown; i++) dots += (i < burned ? '●' : '○');
+    if (total > shown) dots += ` +${total - shown}`;
+    if (engine.phase === 'card') {
+      $playBanner.innerHTML = `第 <span class="hi">${burned + 1}</span> / ${total} 张 · 还剩 ${remain} 张<br><span class="play-dots">${dots}</span>`;
+    } else if (engine.phase === 'out') {
+      $playBanner.innerHTML = `<span class="play-dots">${dots}</span> · 全部烧完`;
     } else {
-      // alive = 1
-      const ls = aliveList[0];
-      if (wonList.length === 0) {
-        title = `🎉 ${ls.id} 独存为胜！`;
-      } else {
-        const ids = [ls.id, ...wonList.map(p => p.id)].sort();
-        title = `🏆 ${ids.join(' / ')} 共同获胜`;
-      }
+      $playBanner.innerHTML = `共 ${total} 张 · 还剩 ${remain} 张<br><span class="play-dots">${dots}</span>`;
     }
-    $winnerTitle.textContent = title;
+  }
 
-    $winnerRank.innerHTML = state.players.map(p => {
-      let label, cls;
-      if (p.status === 'alive')      { label = '🟢 独存'; cls = 'win'; }
-      else if (p.status === 'won')   { label = '✓ 通关'; cls = 'win'; }
-      else                           { label = '✗ 出局'; cls = 'lose'; }
-      const used = state.cardsPerPlayer - p.remaining;
-      const right = `走过 ${used}/${state.cardsPerPlayer}`;
-      return `<div class="rk ${cls}"><span><strong>${p.id}</strong> · ${label}</span><span>${right}</span></div>`;
-    }).join('');
+  $optFlip.addEventListener('change', () => $stage.classList.toggle('flipped', $optFlip.checked));
 
+  // ============================================================
+  // 单机模式
+  // ============================================================
+  const $singleCpp = $('single-cpp');
+  const $singleCppVal = $('single-cpp-val');
+  try {
+    const saved = parseInt(localStorage.getItem(SINGLE_CPP_KEY), 10);
+    if (saved >= 3 && saved <= 20) { $singleCpp.value = saved; $singleCppVal.textContent = saved; }
+  } catch (e) {}
+  $singleCpp.addEventListener('input', () => { $singleCppVal.textContent = $singleCpp.value; });
+
+  $('mode-single').addEventListener('click', () => { state.mode = 'single'; showScreen('single-setup'); });
+  $('single-back').addEventListener('click', () => { state.mode = null; showScreen('mode'); });
+
+  $('single-start').addEventListener('click', () => {
+    if (!state.cards.length) return;
+    const total = Number($singleCpp.value);
+    try { localStorage.setItem(SINGLE_CPP_KEY, String(total)); } catch (e) {}
+    $progressPanel.innerHTML = '';
+    $progressPanel.style.display = 'none';
+    showScreen('play');
+    $stage.classList.toggle('flipped', $optFlip.checked);
+    engineStart(total, {
+      onBurn: null,
+      onOut: () => {
+        $outBig.textContent = '💀 出局！';
+        $outSub.textContent = `${total} 张全烧光了，接受惩罚吧。`;
+        showSingleResult(total);
+      },
+    });
+  });
+
+  function showSingleResult(total) {
+    $resultTitle.textContent = '💀 你出局了';
+    $resultBody.innerHTML = `<div class="modal-ranking" style="text-align:center">全部 <strong>${total}</strong> 张都被诱导做掉了。<br>愿赌服输，接受惩罚！</div>`;
+    $resultActions.innerHTML = '';
+    $resultActions.appendChild(el('button', { class: 'dare-btn primary', on: { click: () => { $modal.hidden = true; $('single-start').click(); } } }, '再来一局'));
+    $resultActions.appendChild(el('button', { class: 'dare-btn ghost', on: { click: () => { $modal.hidden = true; state.mode = null; showScreen('mode'); } } }, '换模式'));
     $modal.hidden = false;
   }
 
   // ============================================================
-  // 事件绑定
+  // 联机模式
   // ============================================================
-  $btnDraw.addEventListener('click', startDraw);
-  $btnNext.addEventListener('click', () => {
-    cleanupTimers();
-    startDraw();
-  });
-  $btnWin.addEventListener('click', () => { recordWin(); });
-  $btnLose.addEventListener('click', () => { recordLose(); });
+  function loadSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
+  function saveSession(s) { try { s ? localStorage.setItem(SESSION_KEY, JSON.stringify(s)) : localStorage.removeItem(SESSION_KEY); } catch (e) {} }
 
-  $btnQuit.addEventListener('click', () => {
-    if (!confirm('确定放弃当前对局并回到配置页？战绩不会保存。')) return;
-    cleanupTimers();
-    clearSave();
-    state.started = false;
-    state.players = [];
-    state.numPlayers = null;
-    showSetup();
-    showScene('idle');
+  async function api(method, action, params) {
+    const url = new URL(API_BASE);
+    url.searchParams.set('action', action);
+    if (method === 'GET' && params) for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (method === 'POST') opts.body = JSON.stringify(params || {});
+    let resp;
+    try { resp = await fetch(url, opts); } catch (e) { throw Object.assign(new Error('network'), { network: true }); }
+    let data = {};
+    try { data = await resp.json(); } catch (e) {}
+    if (!resp.ok) throw Object.assign(new Error(data.reason || data.error || ('http_' + resp.status)), { status: resp.status, data });
+    return data;
+  }
+  function errMsg(e) {
+    if (!e) return '未知错误';
+    if (e.network) return '网络异常，稍后重试';
+    const t = (e.data && (e.data.reason || e.data.error)) || e.message;
+    return ({
+      nick_invalid: '昵称需 2-12 字，且不含特殊符号',
+      did_invalid: '设备标识无效，请刷新',
+      code_invalid: '房号必须是 4 位数字',
+      code_taken: '房号被占用了，换一个',
+      room_not_found: '房间不存在或已过期',
+      room_in_progress: '游戏已开始，无法加入',
+      room_full: '房间满了（最多 12 人）',
+      nick_taken_in_room: '房里已有人用这个昵称',
+      not_host: '只有房主能操作',
+      not_enough_players: '至少 2 人才能开始',
+      not_lobby: '游戏已开始',
+      retry: '系统繁忙，请重试',
+      locked: '操作太快了，稍后再试',
+      auth: '会话失效，请重新加入',
+    }[t]) || (t || '出错了');
+  }
+  function amIHost() { return !!(state.roomState && state.session && state.roomState.hostPlayerId === state.session.playerId); }
+
+  $('mode-online').addEventListener('click', () => {
+    state.mode = 'online';
+    state.onlineView = 'landing';
+    showScreen('online');
+    renderOnline();
+  });
+  $('online-back').addEventListener('click', () => {
+    if (state.session) { doLeave(); }
+    state.mode = null; showScreen('mode');
   });
 
-  $btnReplay.addEventListener('click', () => {
-    cleanupTimers();
-    clearSave();
-    state.started = false;
-    state.players = [];
-    state.numPlayers = null;
+  // —— 联机视图渲染 ——
+  function renderOnline() {
+    if (state.roomState) { applyRoomState(state.roomState); return; }
+    if (state.onlineView === 'create') return renderCreate();
+    if (state.onlineView === 'join') return renderJoin();
+    return renderLanding();
+  }
+
+  function renderLanding() {
+    $onlineView.innerHTML = '';
+    const panel = el('div', { class: 'dare-panel' }, [
+      el('h2', null, '🌐 联机房间'),
+      el('p', { style: { color: 'var(--color-muted)', fontSize: '0.9rem', textAlign: 'center', margin: '0 0 1.1rem' } },
+        '一人开房，其他人凭 4 位房号或链接加入。每人用自己的手机。'),
+      el('div', { class: 'btn-row' }, [
+        el('button', { class: 'dare-btn primary', on: { click: () => { state.onlineView = 'create'; renderOnline(); } } }, '🛠️ 创建房间'),
+        el('button', { class: 'dare-btn ghost', on: { click: () => { state.onlineView = 'join'; renderOnline(); } } }, '🚪 加入房间'),
+      ]),
+    ]);
+    $onlineView.appendChild(panel);
+  }
+
+  function nickField(defaultVal) {
+    const input = el('input', { class: 'text-input', type: 'text', maxlength: '24', placeholder: '2-12 字昵称', value: defaultVal || '' });
+    return input;
+  }
+
+  function renderCreate() {
+    $onlineView.innerHTML = '';
+    const nickInput = nickField(Identity ? Identity.getNick() : '');
+    const cppInput = el('input', { type: 'range', min: '3', max: '20', value: '10', step: '1' });
+    const cppVal = el('span', { class: 'cpp-val' }, [el('span', null, '10'), ' 张']);
+    cppInput.addEventListener('input', () => { cppVal.firstChild.textContent = cppInput.value; });
+    const err = el('div', { class: 'field-err' });
+    const btn = el('button', { class: 'dare-btn primary block' }, '创建并进入房间');
+
+    btn.addEventListener('click', async () => {
+      err.textContent = '';
+      const nick = nickInput.value.trim();
+      const v = Identity ? Identity.validateNick(nick) : { ok: nick.length >= 2 };
+      if (!v.ok) { err.textContent = v.reason || '昵称不合法'; return; }
+      if (Identity) Identity.setNick(nick);
+      btn.disabled = true; btn.textContent = '创建中…';
+      try {
+        const r = await api('POST', 'create', {
+          nick, deviceId: Identity ? Identity.getDeviceId() : ('d-' + Math.random().toString(36).slice(2)),
+          cardsPerPlayer: Number(cppInput.value),
+        });
+        onJoined(r);
+      } catch (e) { err.textContent = errMsg(e); btn.disabled = false; btn.textContent = '创建并进入房间'; }
+    });
+
+    $onlineView.appendChild(el('div', { class: 'dare-panel' }, [
+      el('h2', null, '🛠️ 创建房间'),
+      el('div', { class: 'setup-row' }, [el('label', { class: 'field-label' }, '你的昵称'), nickInput]),
+      el('div', { class: 'setup-row' }, [
+        el('label', { class: 'field-label' }, '每人几张牌'),
+        el('div', { class: 'cpp-row' }, [cppInput, cppVal]),
+      ]),
+      err, btn,
+      el('div', { style: { textAlign: 'center', marginTop: '0.8rem' } },
+        [el('button', { class: 'dare-btn ghost tiny', on: { click: () => { state.onlineView = 'landing'; renderOnline(); } } }, '← 返回')]),
+    ]));
+  }
+
+  function renderJoin() {
+    $onlineView.innerHTML = '';
+    const nickInput = nickField(Identity ? Identity.getNick() : '');
+    const codeInput = el('input', { class: 'text-input code-input', type: 'tel', maxlength: '4', inputmode: 'numeric', placeholder: '0000', value: state._prefillCode || '' });
+    state._prefillCode = null;
+    const err = el('div', { class: 'field-err' });
+    const btn = el('button', { class: 'dare-btn primary block' }, '加入房间');
+
+    btn.addEventListener('click', async () => {
+      err.textContent = '';
+      const nick = nickInput.value.trim();
+      const code = codeInput.value.trim();
+      if (!/^\d{4}$/.test(code)) { err.textContent = '房号是 4 位数字'; return; }
+      const v = Identity ? Identity.validateNick(nick) : { ok: nick.length >= 2 };
+      if (!v.ok) { err.textContent = v.reason || '昵称不合法'; return; }
+      if (Identity) Identity.setNick(nick);
+      btn.disabled = true; btn.textContent = '加入中…';
+      try {
+        const r = await api('POST', 'join', {
+          code, nick, deviceId: Identity ? Identity.getDeviceId() : ('d-' + Math.random().toString(36).slice(2)),
+        });
+        onJoined(r);
+      } catch (e) { err.textContent = errMsg(e); btn.disabled = false; btn.textContent = '加入房间'; }
+    });
+
+    $onlineView.appendChild(el('div', { class: 'dare-panel' }, [
+      el('h2', null, '🚪 加入房间'),
+      el('div', { class: 'setup-row' }, [el('label', { class: 'field-label' }, '房号'), codeInput]),
+      el('div', { class: 'setup-row' }, [el('label', { class: 'field-label' }, '你的昵称'), nickInput]),
+      err, btn,
+      el('div', { style: { textAlign: 'center', marginTop: '0.8rem' } },
+        [el('button', { class: 'dare-btn ghost tiny', on: { click: () => { state.onlineView = 'landing'; renderOnline(); } } }, '← 返回')]),
+    ]));
+  }
+
+  function onJoined(r) {
+    state.session = { code: r.code, token: r.playerToken, playerId: r.playerId };
+    saveSession(state.session);
+    state.roomState = r.room || null;
+    state.lastVersion = (r.room && r.room.version) || 0;
+    if (r.room) applyRoomState(r.room);
+    startPolling();
+  }
+
+  function endSession() {
+    state.session = null; state.roomState = null; state.lastVersion = 0;
+    engine.active = false; engine.started = false; cleanupCountdown();
+    saveSession(null);
+  }
+
+  async function doLeave() {
+    const s = state.session;
+    endSession();
     $modal.hidden = true;
-    showSetup();
-    showScene('idle');
-  });
+    if (s) { try { await api('POST', 'leave', { token: s.token }); } catch (e) {} }
+  }
 
-  $optFlip.addEventListener('change', () => {
-    $stage.classList.toggle('flipped', $optFlip.checked);
-  });
-
-  function cleanupTimers() {
-    if (state.durationTimer) {
-      clearInterval(state.durationTimer);
-      state.durationTimer = null;
+  // —— 轮询 ——
+  async function startPolling() {
+    if (state.polling) return;
+    state.polling = true;
+    while (state.session) {
+      try {
+        const r = await api('GET', 'state', { token: state.session.token, since: state.lastVersion });
+        if (r.room) { state.lastVersion = r.room.version; applyRoomState(r.room); }
+      } catch (e) {
+        if (e.status === 404) { toast('房间已解散'); endSession(); state.mode = 'online'; showScreen('online'); renderOnline(); break; }
+        if (e.status === 401) { toast('会话失效'); endSession(); showScreen('mode'); break; }
+        await sleep(1200);
+      }
     }
-    if (state.countdownTimer) {
-      clearInterval(state.countdownTimer);
-      state.countdownTimer = null;
+    state.polling = false;
+  }
+
+  // —— 根据房间状态决定画面 ——
+  function applyRoomState(room) {
+    state.roomState = room;
+    if (room.state === 'lobby') {
+      engine.active = false; engine.started = false;
+      if (state.screen !== 'online') showScreen('online');
+      renderLobby(room);
+    } else if (room.state === 'playing') {
+      $modal.hidden = true;
+      if (!engine.started) startOnlinePlay(room);
+      else renderProgressPanel(room);
+      if (state.screen !== 'play') showScreen('play');
+    } else if (room.state === 'ended') {
+      engine.active = false; engine.started = false;
+      if (state.screen !== 'play') showScreen('play');
+      renderProgressPanel(room);
+      showRanking(room);
     }
   }
+
+  function renderLobby(room) {
+    const me = room.players.find(p => p.id === (state.session && state.session.playerId));
+    const host = amIHost();
+    $onlineView.innerHTML = '';
+
+    const banner = el('div', { class: 'room-banner' }, [
+      el('div', { class: 'label' }, '房号'),
+      el('div', { class: 'code' }, room.code),
+      el('div', { class: 'actions' }, [
+        el('button', { class: 'dare-btn tiny', on: { click: () => copyText(room.code, '房号已复制') } }, '复制房号'),
+        el('button', { class: 'dare-btn tiny', on: { click: () => copyText(location.origin + location.pathname + '?room=' + room.code, '邀请链接已复制') } }, '复制链接'),
+      ]),
+    ]);
+    $onlineView.appendChild(banner);
+
+    const qrBox = el('div', { class: 'room-qr' });
+    $onlineView.appendChild(qrBox);
+    if (window.GamesShell && GamesShell.QR) {
+      try { GamesShell.QR.render(qrBox, location.origin + location.pathname + '?room=' + room.code, { scale: 4 }); } catch (e) {}
+    }
+
+    const list = el('ul', { class: 'lobby-players' });
+    room.players.forEach(p => {
+      const li = el('li', null, [
+        el('span', { class: 'lp-dot' + (p.online ? ' on' : '') }),
+        el('span', { class: 'lp-name' }, p.nick + (p.id === (state.session && state.session.playerId) ? ' (你)' : '')),
+        p.isHost ? el('span', { class: 'lp-host' }, '房主') : null,
+        (host && !p.isHost) ? el('button', { class: 'lp-kick', on: { click: () => doKick(p.id) } }, '踢出') : null,
+      ]);
+      list.appendChild(li);
+    });
+    $onlineView.appendChild(list);
+
+    $onlineView.appendChild(el('div', { style: { color: 'var(--color-muted)', fontSize: '0.85rem', textAlign: 'center', margin: '0 0 1rem' } },
+      `每人 ${room.config.cardsPerPlayer} 张牌 · ${room.players.length} 人在房（最多 12）`));
+
+    if (host) {
+      const startBtn = el('button', { class: 'dare-btn primary block' }, room.players.length < 2 ? '至少 2 人才能开始' : '🎬 开始游戏');
+      startBtn.disabled = room.players.length < 2;
+      startBtn.addEventListener('click', async () => {
+        startBtn.disabled = true;
+        try { await api('POST', 'start', { token: state.session.token }); }
+        catch (e) { toast(errMsg(e)); startBtn.disabled = false; }
+      });
+      $onlineView.appendChild(startBtn);
+    } else {
+      $onlineView.appendChild(el('div', { style: { textAlign: 'center', color: 'var(--color-muted)', padding: '0.6rem' } }, '等房主开始…'));
+    }
+  }
+
+  async function doKick(pid) {
+    try { await api('POST', 'kick', { token: state.session.token, targetPlayerId: pid }); }
+    catch (e) { toast(errMsg(e)); }
+  }
+
+  function startOnlinePlay(room) {
+    const total = room.config.cardsPerPlayer;
+    engine.started = true;
+    $progressPanel.style.display = '';
+    showScreen('play');
+    $stage.classList.toggle('flipped', $optFlip.checked);
+    engineStart(total, {
+      onBurn: (burned) => { api('POST', 'progress', { token: state.session.token, burned }).catch(() => {}); },
+      onOut: () => {
+        $outBig.textContent = '💀 你出局了';
+        $outSub.textContent = '牌烧光了，等其他人也烧完就出排名。';
+      },
+    });
+    renderProgressPanel(room);
+  }
+
+  function renderProgressPanel(room) {
+    const total = room.config.cardsPerPlayer;
+    const myId = state.session && state.session.playerId;
+    $progressPanel.style.display = '';
+    $progressPanel.innerHTML = '';
+    // 进度高（烧得多）的排前面，直观看到谁快出局
+    const ordered = room.players.slice().sort((a, b) => b.burned - a.burned);
+    ordered.forEach(p => {
+      const pct = Math.round((p.burned / total) * 100);
+      const row = el('div', { class: 'pp-row' + (p.id === myId ? ' me' : '') + (p.out ? ' out' : '') }, [
+        el('span', { class: 'pp-dot' + (p.online ? ' on' : '') }),
+        el('span', { class: 'pp-name' }, p.nick),
+        el('span', { class: 'pp-bar' }, [el('span', { class: 'pp-fill', style: { width: pct + '%' } })]),
+        el('span', { class: 'pp-num' }, p.out ? '出局' : `${p.burned}/${total}`),
+      ]);
+      $progressPanel.appendChild(row);
+    });
+  }
+
+  function showRanking(room) {
+    const total = room.config.cardsPerPlayer;
+    const myId = state.session && state.session.playerId;
+    // outOrder 越大 = 越晚出局 = 排名越高
+    const ranked = room.players.slice().sort((a, b) => (b.outOrder || 0) - (a.outOrder || 0));
+    const medals = ['🥇', '🥈', '🥉'];
+    $resultTitle.textContent = '🏁 本局结束';
+    const rows = ranked.map((p, i) => {
+      const place = medals[i] || `#${i + 1}`;
+      const cls = 'rk' + (i === 0 ? ' champ' : '') + (p.id === myId ? ' me' : '');
+      return `<div class="${cls}"><span class="rk-name">${place} ${escapeHtml(p.nick)}</span><span>烧完 ${total} 张${p.outOrder ? ' · 第 ' + p.outOrder + ' 个出局' : ''}</span></div>`;
+    }).join('');
+    $resultBody.innerHTML = `<div class="modal-ranking">${rows}</div><div style="color:var(--color-muted);font-size:0.85rem">坚持到最后的人获胜 🎉</div>`;
+
+    $resultActions.innerHTML = '';
+    if (amIHost()) {
+      $resultActions.appendChild(el('button', { class: 'dare-btn primary', on: { click: async () => {
+        try { await api('POST', 'restart', { token: state.session.token }); $modal.hidden = true; } catch (e) { toast(errMsg(e)); }
+      } } }, '🔄 再来一局'));
+    } else {
+      $resultActions.appendChild(el('div', { style: { color: 'var(--color-muted)', fontSize: '0.85rem', width: '100%' } }, '等房主开下一局…'));
+    }
+    $resultActions.appendChild(el('button', { class: 'dare-btn ghost', on: { click: () => doLeave().then(() => { state.mode = 'online'; showScreen('online'); renderOnline(); }) } }, '离开房间'));
+    $modal.hidden = false;
+  }
+
+  function copyText(text, msg) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => toast(msg)).catch(() => toast('复制失败，请手动复制'));
+    } else {
+      const ta = el('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); toast(msg); } catch (e) { toast('复制失败'); }
+      document.body.removeChild(ta);
+    }
+  }
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  // —— 放弃本局 ——
+  $('btn-quit').addEventListener('click', () => {
+    if (state.mode === 'online') {
+      if (!confirm('确定离开房间？')) return;
+      doLeave().then(() => { state.mode = 'online'; showScreen('online'); renderOnline(); });
+    } else {
+      if (!confirm('确定放弃本局？')) return;
+      cleanupCountdown(); engine.active = false;
+      state.mode = null; showScreen('mode');
+    }
+  });
+
 })();
 
 // 评论区（games-shell）
@@ -1007,7 +1060,7 @@ window.addEventListener('DOMContentLoaded', () => {
       container: document.getElementById('dare-cm-mount'),
       path: '/toolbox/dare/',
       title: '💬 玩友交流',
-      intro: '聊聊最离谱的失败、最经典的反向解题瞬间 ~',
+      intro: '聊聊最离谱的中招瞬间、最阴险的诱导套路 ~',
       placeholder: '聊聊你的「不要做挑战」战绩 ~',
     });
   }
