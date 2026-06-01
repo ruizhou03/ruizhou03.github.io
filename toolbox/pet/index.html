@@ -626,9 +626,9 @@ permalink: /toolbox/pet/
   }
   @media (hover: hover) { .weight-box .weight-method label:not(.active):hover { border-color: var(--color-accent); } }
   .weight-box .weight-method input { display: none; }
-  /* MIDDLE: fixed-width fill block (write-死), content centered. */
+  /* MIDDLE: fixed-width fill block (write-死，两种模式同宽，和粮食框一致 320px). */
   .weight-box .weight-fill {
-    flex: 0 0 300px; width: 300px; align-self: center;
+    flex: 0 0 320px; width: 320px; align-self: center;
     display: flex; flex-direction: column; gap: 0.55rem; justify-content: center;
   }
   .weight-box .reading-group.weight-reading { width: 100%; max-width: none; }
@@ -675,17 +675,10 @@ permalink: /toolbox/pet/
   .weight-list { margin-top: 0.6rem; }
   .weight-list:empty { display: none; }
 
-  /* 做差 two-reading rows */
+  /* 做差：两行整宽读数（无侧标签，靠占位文案区分） */
   .weight-diff { display: none; }
   .weight-diff.active { display: flex; flex-direction: column; gap: 0.55rem; }
   .weight-single.hidden { display: none; }
-  .weight-diff .diff-row {
-    display: flex; align-items: center; gap: 0.7rem; margin: 0;
-  }
-  .weight-diff .diff-row > .diff-lbl {
-    flex: 0 0 40px; font-size: 0.86rem; font-weight: 500; color: var(--color-muted);
-  }
-  .weight-diff .diff-row .reading-group { flex: 1 1 auto; max-width: 320px; }
   /* echoed unit on the 2nd reading (mirrors the 1st input's unit) */
   .weight-diff .unit-echo {
     display: inline-flex; align-items: center; padding: 0 0.95rem;
@@ -1406,26 +1399,21 @@ permalink: /toolbox/pet/
               </div>
             </div>
 
-            <!-- 做差：抱着宠物称一次、自己称一次，系统算差值 -->
+            <!-- 做差：抱着宠物称一次、自己称一次，系统算差值（顺序不影响，取绝对值，
+                 所以不放左侧标签，占位文案已说明哪一行填什么） -->
             <div class="weight-diff" id="weight-diff">
-              <div class="diff-row">
-                <span class="diff-lbl">抱着</span>
-                <div class="reading-group weight-reading">
-                  <input type="number" class="reading" id="weight-diff-a" step="any" min="0" placeholder="抱着宝贝的读数" inputmode="decimal" />
-                  <select class="unit-pick" id="weight-diff-unit">
-                    <option value="kg">kg</option>
-                    <option value="斤">斤</option>
-                    <option value="lb">lb</option>
-                    <option value="g">g</option>
-                  </select>
-                </div>
+              <div class="reading-group weight-reading">
+                <input type="number" class="reading" id="weight-diff-a" step="any" min="0" placeholder="抱着宝贝的读数" inputmode="decimal" />
+                <select class="unit-pick" id="weight-diff-unit">
+                  <option value="kg">kg</option>
+                  <option value="斤">斤</option>
+                  <option value="lb">lb</option>
+                  <option value="g">g</option>
+                </select>
               </div>
-              <div class="diff-row">
-                <span class="diff-lbl">不抱</span>
-                <div class="reading-group weight-reading">
-                  <input type="number" class="reading" id="weight-diff-b" step="any" min="0" placeholder="你自己的读数" inputmode="decimal" />
-                  <span class="unit-echo" id="weight-diff-unit-echo">kg</span>
-                </div>
+              <div class="reading-group weight-reading">
+                <input type="number" class="reading" id="weight-diff-b" step="any" min="0" placeholder="你自己的读数" inputmode="decimal" />
+                <span class="unit-echo" id="weight-diff-unit-echo">kg</span>
               </div>
               <div class="diff-result empty" id="weight-diff-result">两次读数都填上，自动算出宝贝体重</div>
             </div>
