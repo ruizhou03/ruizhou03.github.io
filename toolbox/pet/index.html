@@ -605,7 +605,7 @@ permalink: /toolbox/pet/
   /* Same shape as the food entry box: [模式左列] [定宽填写块] [记体重整列]，
      整组在卡片里居中。 */
   .weight-box .weight-cols {
-    display: flex; align-items: stretch; justify-content: center;
+    display: flex; align-items: stretch; justify-content: space-between;
     gap: 0.7rem; flex-wrap: nowrap;
   }
   /* LEFT: 直接称 / 做差 stacked column (mirrors the food-type column). */
@@ -626,9 +626,10 @@ permalink: /toolbox/pet/
   }
   @media (hover: hover) { .weight-box .weight-method label:not(.active):hover { border-color: var(--color-accent); } }
   .weight-box .weight-method input { display: none; }
-  /* MIDDLE: fixed-width fill block (write-死，两种模式同宽，和粮食框一致 320px). */
+  /* MIDDLE: 大小写死——宽 320 + 高 190 都固定，切直接称/做差时框不再变大小；
+     内容垂直居中（直接称只有一行时上下留白）。 */
   .weight-box .weight-fill {
-    flex: 0 0 320px; width: 320px; align-self: center;
+    flex: 0 0 320px; width: 320px; height: 190px; align-self: center;
     display: flex; flex-direction: column; gap: 0.55rem; justify-content: center;
   }
   .weight-box .reading-group.weight-reading { width: 100%; max-width: none; }
@@ -641,12 +642,13 @@ permalink: /toolbox/pet/
   }
   .weight-box .save-btn:active { transform: scale(0.97); }
   @media (hover: hover) { .weight-box .save-btn:hover { background: var(--color-accent-light); } }
-  /* Narrow screens: modes become a 2-up row, fill + button go full width. */
-  @media (max-width: 560px) {
-    .weight-box .weight-cols { flex-direction: column; align-items: stretch; }
+  /* Narrow screens: modes become a 2-up row, fill + button go full width,
+     高度恢复自适应（竖向堆叠时不需要写死高）。 */
+  @media (max-width: 680px) {
+    .weight-box .weight-cols { flex-direction: column; align-items: stretch; justify-content: flex-start; }
     .weight-box .weight-method { flex-direction: row; align-self: stretch; }
     .weight-box .weight-method label { flex: 1; }
-    .weight-box .weight-fill { width: auto; flex: 1 1 auto; align-self: stretch; }
+    .weight-box .weight-fill { width: auto; height: auto; flex: 1 1 auto; align-self: stretch; }
     .weight-box .save-btn { align-self: stretch; width: 100%; }
   }
   /* Featured current-weight card (mirrors the food board's stat cards). */
