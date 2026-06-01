@@ -179,22 +179,10 @@ permalink: /toolbox/dare/
   }
   .scene-countdown .sub { color: var(--color-muted); font-size: 0.95rem; margin-top: 0.6rem; }
 
-  .scene-card .tag {
-    display: inline-block; padding: 0.2rem 0.7rem; background: var(--color-bg);
-    border: 1px solid var(--color-border); border-radius: 999px;
-    font-size: 0.78rem; color: var(--color-muted); margin-bottom: 1.1rem;
-  }
-  .scene-card .mission-label {
-    font-size: 0.8rem; color: var(--color-light); letter-spacing: 0.06em; margin-bottom: 0.6rem;
-  }
   .scene-card .prompt {
-    font-family: var(--font-display); font-size: clamp(1.6rem, 6vw, 2.2rem);
-    color: var(--color-ink); font-weight: 700; line-height: 1.4; margin: 0 0 0.9rem;
+    font-family: var(--font-display); font-size: clamp(1.7rem, 6.5vw, 2.4rem);
+    color: var(--color-ink); font-weight: 700; line-height: 1.4; margin: 0;
   }
-  .scene-card .tip {
-    color: var(--color-muted); font-size: 0.92rem; line-height: 1.6; max-width: 300px;
-  }
-  .scene-card .tip::before { content: '💡 '; }
 
   .scene-out .icon { font-size: 4.4rem; margin-bottom: 0.8rem; }
   .scene-out .big {
@@ -347,10 +335,7 @@ permalink: /toolbox/dare/
         </div>
 
         <div class="scene scene-card hidden" id="scene-card">
-          <div class="tag" id="card-tag">挑战</div>
-          <div class="mission-label">大家的任务</div>
           <div class="prompt" id="card-prompt">—</div>
-          <div class="tip" id="card-tip"></div>
         </div>
 
         <div class="scene scene-out hidden" id="scene-out">
@@ -447,9 +432,7 @@ permalink: /toolbox/dare/
   const $sCard        = $('scene-card');
   const $sOut         = $('scene-out');
   const $cdNum        = $('cd-num');
-  const $cardTag      = $('card-tag');
   const $cardPrompt   = $('card-prompt');
-  const $cardTip      = $('card-tip');
   const $outBig       = $('out-big');
   const $outSub       = $('out-sub');
   const $btnAdvance   = $('btn-advance');
@@ -584,16 +567,13 @@ permalink: /toolbox/dare/
   }
 
   function engineReveal() {
-    const card = engine.deck[engine.burned] || { prompt: '—', tip: '', tag: '挑战' };
+    const card = engine.deck[engine.burned] || { prompt: '—' };
     engine.phase = 'card';
-    $cardTag.textContent = card.tag || '挑战';
     $cardPrompt.textContent = card.prompt;
-    $cardTip.textContent = card.tip || '';
-    $cardTip.style.display = card.tip ? '' : 'none';
     setScene('card');
     flipStage();
     setAdvanceHidden(false);
-    setAdvance('👉 TA 中招了 · 下一张', engineAdvance, 'danger');
+    setAdvance('下一张', engineAdvance, 'primary');
     renderBanner();
     if ($optVib.checked && navigator.vibrate) navigator.vibrate(120);
   }
