@@ -231,7 +231,7 @@
   // 时钟不再挂在头像上：
   //   - seat 0（我）出牌 / 叫地主 / 抢地主 阶段：统一用 #ddzSelfClock
   //     （动作行上方那条独立 clock-row），位置固定
-  //   - seat 0（我）加倍阶段：在"我"那格内部的 .ddz-double-cell-cd（renderDoublePanelLayout 渲染）
+  //   - seat 0（我）加倍阶段：面板正上方的 #ddzDoubleCountdown（renderDoublePanelLayout 渲染）
   //   - seat 1/2（AI）：注入到该家 .ddz-played 区域；一旦 AI 出牌，
   //     renderPlayedAt 覆盖 innerHTML，时钟自动消失
   function clockEl(seat) {
@@ -1822,12 +1822,11 @@
     function tick() {
       const left = Math.max(0, doubleEndAt - Date.now());
       const s = Math.ceil(left / 1000);
-      // 主显示位：挂在"我"这格右上角的 .ddz-double-cell-cd
-      const inCell = document.querySelector('.ddz-double-cell-cd .num');
-      if (inCell) inCell.textContent = String(s);
-      // 兼容：旧的角标也同步（CSS 已隐，但 SVG 在里面，不能 textContent 一冲）
-      const cbNum = document.querySelector('#ddzDoubleCountdown .num');
+      // 倒计时挂在面板正上方的 #ddzDoubleCountdown（只更新 .num，别冲掉里面的 SVG）
+      const cb = document.getElementById('ddzDoubleCountdown');
+      const cbNum = cb && cb.querySelector('.num');
       if (cbNum) cbNum.textContent = String(s);
+      if (cb) cb.classList.toggle('urgent', s <= 3);
       if (left <= 0) {
         clearInterval(doubleTimer); doubleTimer = null;
         finalizeDoubling();
@@ -1895,9 +1894,12 @@
   function renderDoublePanelLayout({ decided, choice, onChoose }) {
     bidTitle.innerHTML = '';
     bidButtonsEl.innerHTML = '';
-    // 加倍阶段不再用旧的右上角倒计时——已挪进"我"这格的 .ddz-double-cell-cd
+    // 写死面板宽度（CSS .in-double），按钮变短文字后不再左右收窄
+    bidPanel.classList.add('in-double');
+    // 倒计时挂在面板正上方（#ddzDoubleCountdown，bid-panel 顶部居中），
+    // 不再塞进"我"那格右上角 —— 否则我决定后跟"不加倍"结果文字重合
     const cdEl = document.getElementById('ddzDoubleCountdown');
-    if (cdEl) cdEl.hidden = true;
+    if (cdEl) { cdEl.hidden = false; cdEl.classList.remove('urgent'); }
 
     const grid = document.createElement('div');
     grid.className = 'ddz-double-grid';
@@ -1915,21 +1917,6 @@
       who.className = 'who';
       who.textContent = isMe ? '我' : 'AI';
       cell.appendChild(who);
-
-      // "我"这格：右上角挂倒计时——整个加倍阶段始终可见（哪怕我已经决定，
-      // 还有 AI 在思考时也得看着时钟）
-      if (isMe) {
-        const cd = document.createElement('span');
-        cd.className = 'ddz-double-cell-cd';
-        cd.innerHTML =
-          '<svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true">' +
-            '<circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/>' +
-            '<path d="M12 13 V8 M12 13 L15.4 14.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>' +
-            '<path d="M9.5 3.5 H14.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' +
-          '</svg>' +
-          '<span class="num">5</span>s';
-        cell.appendChild(cd);
-      }
 
       if (isMe && !isDecided) {
         // 中间未决：两个堆叠按钮
@@ -1965,6 +1952,7 @@
   }
 
   function renderBidButtons(items, onClick) {
+    bidPanel.classList.remove('in-double');
     bidButtonsEl.innerHTML = '';
     for (const it of items) {
       const b = document.createElement('button');
@@ -3508,7 +3496,9 @@
       const left = Math.max(0, (state.online.doubleEndAt || 0) - Date.now());
       const s = Math.ceil(left / 1000);
       const cd = document.getElementById('ddzDoubleCountdown');
-      if (cd) cd.textContent = s + 's';
+      const cdNum = cd && cd.querySelector('.num');
+      if (cdNum) cdNum.textContent = String(s);
+      if (cd) cd.classList.toggle('urgent', s <= 3);
       if (left <= 0) { clearInterval(onlineDoubleTimer); onlineDoubleTimer = null; }
     }
     tick();

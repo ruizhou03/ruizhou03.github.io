@@ -1196,10 +1196,15 @@ permalink: /toolbox/doudizhu/
     z-index: 1;
     transition: filter 0.18s ease, opacity 0.18s ease;
   }
-  /* 没有牌可以压过上家时 — 只隐"提示"和"出牌"按钮，只剩"不出"；
-     不再灰显手牌（之前 grayscale + opacity 太重，容易让人以为牌坏了） */
+  /* 没有牌可以压过上家时 — 只隐"提示"和"出牌"按钮，只剩"不出" */
   .ddz-actions.no-play #ddzHintBtn,
   .ddz-actions.no-play #ddzPlayBtn { display: none; }
+  /* 同时给整副手牌蒙一层灰 —— 一眼看出"这局压不住，只能点不出" */
+  .ddz-hand.no-play {
+    filter: grayscale(0.7) brightness(0.93);
+    opacity: 0.58;
+  }
+  .ddz-hand.no-play .ddz-card.size-full { cursor: not-allowed; }
   .ddz-hand::-webkit-scrollbar { display: none; }
   .ddz-hand .ddz-card.size-full {
     cursor: pointer;
@@ -1515,6 +1520,10 @@ permalink: /toolbox/doudizhu/
      │ 加倍/不加倍/│ [加倍 ×4]   │ 加倍/不加倍/│
      │ 思考中…     │ [不加倍]    │ 思考中…     │
      └────────────┴────────────┴────────────┘ */
+  /* 加倍阶段：面板写死宽度，避免"加倍/不加倍"按钮变成短文字后整块收窄、左右抖动 */
+  .ddz-bid-panel.in-double {
+    width: min(372px, calc(100% - 1rem));
+  }
   .ddz-double-grid {
     display: grid;
     grid-template-columns: 1fr 1.15fr 1fr;
@@ -1566,29 +1575,8 @@ permalink: /toolbox/doudizhu/
     animation: ddz-dots 1.2s steps(4, end) infinite;
     width: 1em; text-align: left; margin-left: 2px;
   }
-  /* 加倍阶段的倒计时——挂在"我"这格的右上角，跟回合时钟同款配色 */
-  .ddz-double-cell .ddz-double-cell-cd {
-    position: absolute;
-    top: 0.3rem; right: 0.4rem;
-    display: inline-flex; align-items: center; gap: 0.28rem;
-    padding: 0.18rem 0.45rem;
-    border-radius: 999px;
-    background: var(--ddz-card-bg);
-    border: 1.5px solid var(--ddz-accent);
-    color: var(--ddz-suit-black);
-    font-family: var(--font-body);
-    font-weight: 700;
-    font-size: 0.74rem;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    box-shadow: 0 1px 3px rgba(20,37,63,0.18);
-    pointer-events: none;
-  }
-  .ddz-double-cell .ddz-double-cell-cd svg { color: var(--ddz-accent); flex-shrink: 0; }
-  .ddz-double-cell .ddz-double-cell-cd .num {
-    display: inline-block; min-width: 1ch; text-align: right;
-  }
-  .ddz-double-cell { position: relative; }   /* 给上面的 absolute 倒计时一个定位上下文 */
+  /* 加倍阶段倒计时改挂在面板正上方（#ddzDoubleCountdown），不再塞进"我"那格右上角 */
+  .ddz-double-cell { position: relative; }
   /* 我（中间）这一列在未决时是两个堆叠按钮 */
   .ddz-double-cell.me-pending {
     background: linear-gradient(180deg, rgba(255,253,245,0.98) 0%, rgba(245,239,224,0.95) 100%);
