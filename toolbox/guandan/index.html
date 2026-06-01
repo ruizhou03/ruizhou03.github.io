@@ -1298,6 +1298,23 @@ permalink: /toolbox/guandan/
   }
   .gd-pgo-score strong { color: #ffe18d; }
 
+  /* 玩法设置折叠面板：默认收起，单机 + 联机「创建房间」共用（JS 在两处间搬移） */
+  .gd-gameopts { margin: 0.7rem auto 0; }
+  .gd-gameopts-toggle {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    font-size: 0.82rem; color: rgba(255,255,255,0.6);
+    padding: 0.3rem 0.5rem; letter-spacing: 0.03em; transition: color 0.16s;
+    border-radius: 999px;
+  }
+  .gd-gameopts-toggle:hover { color: rgba(255,255,255,0.92); }
+  .gd-gameopts-toggle .go-sum { font-size: 0.76rem; color: #ffe18d; opacity: 0.9; }
+  .gd-gameopts-toggle .go-chev { font-size: 0.66rem; transition: transform 0.2s; opacity: 0.8; }
+  .gd-gameopts-toggle[aria-expanded="true"] .go-chev { transform: rotate(180deg); }
+  .gd-gameopts-toggle[aria-expanded="true"] .go-sum { display: none; }
+  .gd-gameopts-body { animation: gd-opts-in 0.18s ease-out; }
+  @keyframes gd-opts-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
   .gd-result-score {
     margin: 0.7rem 0 0.2rem;
     font-size: 0.95rem; color: rgba(255,255,255,0.88);
@@ -1857,25 +1874,35 @@ permalink: /toolbox/guandan/
             <button class="gs-pgo-mode-tab" data-value="hard">🔥 高手</button>
           </div>
 
-          <!-- 玩法设置：同队进贡 / 单局积分上限 / 出牌时间。联机创建房间时随 config 同步给全房。 -->
-          <div class="gd-pgo-label">同队进贡</div>
-          <div class="gs-pgo-mode-picker" id="gdPgoTeamTrib">
-            <button class="gs-pgo-mode-tab" data-value="off" type="button">关</button>
-            <button class="gs-pgo-mode-tab selected" data-value="on" type="button">开</button>
-          </div>
-          <div class="gd-pgo-label">单局积分上限</div>
-          <div class="gs-pgo-mode-picker" id="gdPgoScoreCap">
-            <button class="gs-pgo-mode-tab selected" data-value="0" type="button">不限</button>
-            <button class="gs-pgo-mode-tab" data-value="3" type="button">3</button>
-            <button class="gs-pgo-mode-tab" data-value="5" type="button">5</button>
-            <button class="gs-pgo-mode-tab" data-value="8" type="button">8</button>
-          </div>
-          <div class="gd-pgo-label">出牌时间</div>
-          <div class="gs-pgo-mode-picker" id="gdPgoTurnSec">
-            <button class="gs-pgo-mode-tab" data-value="10" type="button">10秒</button>
-            <button class="gs-pgo-mode-tab selected" data-value="20" type="button">20秒</button>
-            <button class="gs-pgo-mode-tab" data-value="30" type="button">30秒</button>
-            <button class="gs-pgo-mode-tab" data-value="0" type="button">不限</button>
+          <!-- 玩法设置：默认折叠，单机 + 联机「创建房间」共用（JS 把它在两处间搬移）。
+               同队进贡 / 单局积分上限 / 出牌时间；联机创建房间时随 config 同步给全房。 -->
+          <div class="gd-gameopts" id="gdGameOpts">
+            <button class="gd-gameopts-toggle" id="gdGameOptsToggle" type="button" aria-expanded="false">
+              <span class="go-lbl">⚙️ 玩法设置</span>
+              <span class="go-sum" id="gdGameOptsSum"></span>
+              <span class="go-chev">▾</span>
+            </button>
+            <div class="gd-gameopts-body" id="gdGameOptsBody" hidden>
+              <div class="gd-pgo-label">同队进贡</div>
+              <div class="gs-pgo-mode-picker" id="gdPgoTeamTrib">
+                <button class="gs-pgo-mode-tab" data-value="off" type="button">关</button>
+                <button class="gs-pgo-mode-tab selected" data-value="on" type="button">开</button>
+              </div>
+              <div class="gd-pgo-label">单局积分上限</div>
+              <div class="gs-pgo-mode-picker" id="gdPgoScoreCap">
+                <button class="gs-pgo-mode-tab selected" data-value="0" type="button">不限</button>
+                <button class="gs-pgo-mode-tab" data-value="3" type="button">3</button>
+                <button class="gs-pgo-mode-tab" data-value="5" type="button">5</button>
+                <button class="gs-pgo-mode-tab" data-value="8" type="button">8</button>
+              </div>
+              <div class="gd-pgo-label">出牌时间</div>
+              <div class="gs-pgo-mode-picker" id="gdPgoTurnSec">
+                <button class="gs-pgo-mode-tab" data-value="10" type="button">10秒</button>
+                <button class="gs-pgo-mode-tab selected" data-value="20" type="button">20秒</button>
+                <button class="gs-pgo-mode-tab" data-value="30" type="button">30秒</button>
+                <button class="gs-pgo-mode-tab" data-value="0" type="button">不限</button>
+              </div>
+            </div>
           </div>
 
           <div class="gd-pgo-score" id="gdPgoScore"></div>

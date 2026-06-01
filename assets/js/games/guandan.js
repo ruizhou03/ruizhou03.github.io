@@ -864,6 +864,8 @@
     pgo: $('gdPgo'), pgoStart: $('gdPgoStart'),
     pgoDiff: $('gdPgoDiff'), pgoStats: $('gdPgoStats'), hs: $('gdHs'),
     pgoTeamTrib: $('gdPgoTeamTrib'), pgoScoreCap: $('gdPgoScoreCap'), pgoTurnSec: $('gdPgoTurnSec'),
+    gameOpts: $('gdGameOpts'), gameOptsToggle: $('gdGameOptsToggle'),
+    gameOptsBody: $('gdGameOptsBody'), gameOptsSum: $('gdGameOptsSum'),
     tribOverlay: $('gdTributeOverlay'), tribTitle: $('gdTribTitle'),
     tribDesc: $('gdTribDesc'), tribPick: $('gdTribPick'), tribConfirm: $('gdTribConfirm'),
     roundOverlay: $('gdRoundOverlay'), roundTitle: $('gdRoundTitle'),
@@ -3754,6 +3756,13 @@
     selectSeg(els.pgoTeamTrib, o.teamTribute ? 'on' : 'off');
     selectSeg(els.pgoScoreCap, String(o.scoreCap));
     selectSeg(els.pgoTurnSec, String(o.turnSec));
+    // 折叠态下显示的一行摘要
+    if (els.gameOptsSum) {
+      els.gameOptsSum.textContent =
+        (o.teamTribute ? '同队进贡' : '同队免贡') + ' · ' +
+        (o.scoreCap ? '上限' + o.scoreCap : '分不限') + ' · ' +
+        (o.turnSec ? o.turnSec + '秒' : '不限时');
+    }
   }
   function syncPgoScoreSummary() {
     if (!els.pgoScore) return;
@@ -3789,6 +3798,12 @@
     const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
     state.options.turnSec = parseInt(t.dataset.value, 10) || 0;
     persist(); syncPgoOptions();
+  });
+  // 玩法设置折叠/展开
+  if (els.gameOptsToggle) els.gameOptsToggle.addEventListener('click', () => {
+    const open = els.gameOptsBody.hidden;          // 当前收起 → 要展开
+    els.gameOptsBody.hidden = !open;
+    els.gameOptsToggle.setAttribute('aria-expanded', String(open));
   });
   els.pgoStart.addEventListener('click', () => {
     els.pgo.classList.remove('open');
@@ -4064,6 +4079,24 @@
     copyLinkBtn: $('gdCopyLinkBtn'),
   };
   let onlineTab = 'create';
+  let playMode = 'single';   // 'single' | 'online'
+
+  // 把「玩法设置」面板搬到当前该出现的位置：单机 → 难度下方；联机·创建房间 → 提交键上方；
+  // 联机·加入房间 → 隐藏（设置由房主定，加入者不需要）。移动 DOM 节点，监听器/选中态都保留。
+  function placeGameOpts() {
+    const opts = els.gameOpts;
+    if (!opts) return;
+    if (playMode === 'single') {
+      if (els.pgoScore) onlineEls.singleSetup.insertBefore(opts, els.pgoScore);
+      opts.hidden = false;
+    } else if (onlineTab === 'create') {
+      const form = onlineEls.submit && onlineEls.submit.parentNode;
+      if (form) form.insertBefore(opts, onlineEls.submit);
+      opts.hidden = false;
+    } else {
+      opts.hidden = true;
+    }
+  }
 
   // ---- API ----
   async function gdApi(action, opts) {
@@ -4152,6 +4185,7 @@
         onlineTab = b.dataset.tab;
         onlineEls.code.hidden = (onlineTab === 'create');
         onlineEls.submit.textContent = (onlineTab === 'create') ? '创建房间' : '加入房间';
+        placeGameOpts();   // 创建房间显示玩法设置，加入房间隐藏
         setOnlineHint('');
       });
     });
@@ -4163,6 +4197,7 @@
         [...onlineEls.pgoPlayMode.querySelectorAll('.gs-pgo-mode-tab')].forEach(x => x.classList.remove('selected'));
         b.classList.add('selected');
         const m = b.dataset.playmode;
+        playMode = m;
         if (m === 'online') {
           onlineEls.singleSetup.hidden = true;
           onlineEls.onlineSetup.hidden = false;
@@ -4173,9 +4208,11 @@
           onlineEls.singleSetup.hidden = false;
           onlineEls.onlineSetup.hidden = true;
         }
+        placeGameOpts();   // 切模式时把玩法设置搬到对应位置
       });
     });
   }
+  placeGameOpts();   // 初始（默认单机）把玩法设置放到难度下方
 
   // ---- resume ----
   function renderResumeOption() {
