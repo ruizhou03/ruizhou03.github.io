@@ -629,6 +629,18 @@ permalink: /toolbox/guandan/
     .gd-btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
   }
   .gd-btn.mini { padding: 0.32rem 0.7rem; font-size: 0.8rem; }
+  /* 加倍阶段两枚按钮：无背景无边框纯文字——加倍=红字 / 不加倍=黑字 */
+  #gdDblYesBtn, #gdDblNoBtn {
+    background: none; border: none; border-radius: 0;
+    padding: 0.5rem 0.9rem; font-weight: 600;
+  }
+  #gdDblYesBtn, #gdDblYesBtn.primary { color: #d23b3b; }
+  #gdDblNoBtn { color: #000; }
+  @media (hover: hover) {
+    #gdDblYesBtn:hover:not(:disabled),
+    #gdDblYesBtn.primary:hover:not(:disabled) { color: #d23b3b; border-color: transparent; filter: brightness(1.1); }
+    #gdDblNoBtn:hover:not(:disabled) { color: #000; border-color: transparent; filter: brightness(1.4); }
+  }
   /* 理牌按钮亮起态：颜色继承斗地主 toggle chip 的视觉语言 */
   .gd-btn.on {
     background: var(--gd-accent);
