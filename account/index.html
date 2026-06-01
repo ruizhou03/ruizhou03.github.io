@@ -1,0 +1,167 @@
+---
+layout: default
+title: 我的主页 | Rui Zhou
+permalink: /account/
+---
+
+<article style="max-width: 760px; margin: 0 auto; padding: 2rem 1rem;">
+  <header style="margin-bottom: 2rem;">
+    <h1 id="acc-title" style="font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem;">我的主页</h1>
+    <p id="acc-sub" style="color: var(--color-light);">收藏、点赞、浏览与评论，都在这里。</p>
+  </header>
+
+  {%- comment -%} 未登录态：引导登录 {%- endcomment -%}
+  <div id="acc-guest" style="display:none; text-align:center; padding:3rem 1rem; border:1px dashed var(--color-border); border-radius:14px;">
+    <p style="color:var(--color-muted); margin-bottom:1.2rem;">登录后即可查看你的收藏、点赞、浏览记录和评论。</p>
+    <button id="acc-login-btn" type="button"
+      style="padding:0.6rem 1.6rem; font-size:0.95rem; font-weight:700; font-family:inherit; cursor:pointer;
+             background:var(--color-highlight); color:#fff; border:none; border-radius:8px;">登录 / 注册</button>
+  </div>
+
+  {%- comment -%} 登录态：tab + 列表 {%- endcomment -%}
+  <div id="acc-main" style="display:none;">
+    <div class="acc-tabs" role="tablist">
+      <button class="acc-tab active" data-kind="fav">收藏</button>
+      <button class="acc-tab" data-kind="like">点赞</button>
+      <button class="acc-tab" data-kind="hist">浏览记录</button>
+      <button class="acc-tab" data-kind="comment">评论记录</button>
+    </div>
+    <div id="acc-list" class="acc-list"></div>
+  </div>
+</article>
+
+<style>
+  .acc-tabs { display:flex; gap:0.4rem; flex-wrap:wrap; margin-bottom:1.4rem;
+    border-bottom:1px solid var(--color-border); }
+  .acc-tab { padding:0.6rem 1rem; font-size:0.92rem; font-weight:600; font-family:inherit; cursor:pointer;
+    color:var(--color-muted); background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-1px; }
+  .acc-tab.active { color:var(--color-highlight); border-bottom-color:var(--color-highlight); }
+  .acc-list { min-height:160px; }
+  .acc-item { display:flex; align-items:center; gap:0.8rem; padding:0.85rem 0.2rem;
+    border-bottom:1px solid var(--color-border); }
+  .acc-item-main { flex:1; min-width:0; }
+  .acc-item-title { font-size:0.98rem; color:var(--color-text); text-decoration:none; display:block;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .acc-item-title:hover { color:var(--color-highlight); }
+  .acc-item-meta { font-size:0.76rem; color:var(--color-light); margin-top:0.2rem; }
+  .acc-item-rm { border:none; background:none; color:var(--color-light); cursor:pointer; font-size:1.1rem;
+    padding:0.2rem 0.4rem; border-radius:6px; flex-shrink:0; }
+  .acc-item-rm:hover { color:#b5483a; background:var(--color-bg-warm); }
+  .acc-empty, .acc-loading { text-align:center; color:var(--color-light); padding:3rem 1rem; font-size:0.9rem; }
+  .acc-comment-body { font-size:0.92rem; color:var(--color-text); line-height:1.6; }
+  .acc-comment-body :is(p) { margin:0.2rem 0; }
+</style>
+
+<script>
+(function () {
+  function start() {
+    if (!window.SiteAuth) { setTimeout(start, 100); return; }
+    var guest = document.getElementById('acc-guest');
+    var main = document.getElementById('acc-main');
+    var listEl = document.getElementById('acc-list');
+    var subEl = document.getElementById('acc-sub');
+    var tabs = document.querySelectorAll('.acc-tab');
+    var api = SiteAuth.API_BASE + '/me';
+    var current = 'fav';
+
+    document.getElementById('acc-login-btn').addEventListener('click', function () {
+      SiteAuth.openLogin && SiteAuth.openLogin('login');
+    });
+
+    function fmtDate(ts) {
+      if (!ts) return '';
+      try { return new Date(ts).toLocaleDateString('zh-CN', { year:'numeric', month:'long', day:'numeric' }); }
+      catch (e) { return ''; }
+    }
+    var KIND_EMPTY = {
+      fav: '还没有收藏。读到喜欢的文章，点文末的「收藏」吧。',
+      like: '还没有点赞过文章。',
+      hist: '还没有浏览记录。',
+      comment: '还没有评论记录。',
+    };
+
+    function renderList(kind, items) {
+      if (!items.length) { listEl.innerHTML = '<div class="acc-empty">' + KIND_EMPTY[kind] + '</div>'; return; }
+      listEl.innerHTML = items.map(function (it) {
+        var url = it.url || it.post || '#';
+        return '<div class="acc-item" data-post="' + encodeURIComponent(it.post) + '">' +
+            '<div class="acc-item-main">' +
+              '<a class="acc-item-title" href="' + url + '">' + (it.title || it.post) + '</a>' +
+              '<div class="acc-item-meta">' + fmtDate(it.ts) + '</div>' +
+            '</div>' +
+            '<button class="acc-item-rm" title="移除" aria-label="移除">×</button>' +
+          '</div>';
+      }).join('');
+      listEl.querySelectorAll('.acc-item-rm').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var item = btn.closest('.acc-item');
+          var post = decodeURIComponent(item.dataset.post);
+          item.style.opacity = '0.4';
+          try {
+            await SiteAuth.authedFetch(api + '?action=remove', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ kind: kind, post: post }),
+            });
+            item.remove();
+            if (!listEl.querySelector('.acc-item')) listEl.innerHTML = '<div class="acc-empty">' + KIND_EMPTY[kind] + '</div>';
+          } catch (e) { item.style.opacity = '1'; }
+        });
+      });
+    }
+
+    async function loadKind(kind) {
+      current = kind;
+      tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.kind === kind); });
+      listEl.innerHTML = '<div class="acc-loading">加载中…</div>';
+      if (kind === 'comment') { loadComments(); return; }
+      try {
+        var r = await SiteAuth.authedFetch(api + '?action=list&kind=' + kind);
+        var d = await r.json();
+        if (d && d.ok) renderList(kind, d.items || []);
+        else listEl.innerHTML = '<div class="acc-empty">加载失败，稍后再试。</div>';
+      } catch (e) {
+        listEl.innerHTML = '<div class="acc-empty">网络不太顺，稍后再试。</div>';
+      }
+    }
+
+    // Phase 4 占位：评论记录（接 zircon-comments 的 /api/my-comments）。
+    // 端点上线前先友好提示，不报错。
+    async function loadComments() {
+      listEl.innerHTML = '<div class="acc-loading">加载中…</div>';
+      try {
+        var base = SiteAuth.API_BASE.replace('zircon-urge', 'zircon-comments');
+        var r = await SiteAuth.authedFetch(base + '/my-comments');
+        if (!r.ok) throw new Error('not ready');
+        var d = await r.json();
+        if (!d.items || !d.items.length) { listEl.innerHTML = '<div class="acc-empty">' + KIND_EMPTY.comment + '</div>'; return; }
+        listEl.innerHTML = d.items.map(function (c) {
+          return '<div class="acc-item"><div class="acc-item-main">' +
+            '<a class="acc-item-title" href="' + (c.url || '#') + '">' + (c.title || c.url || '某篇文章') + '</a>' +
+            '<div class="acc-comment-body">' + (c.html || c.text || '') + '</div>' +
+            '<div class="acc-item-meta">' + fmtDate(c.ts) + '</div>' +
+          '</div></div>';
+        }).join('');
+      } catch (e) {
+        listEl.innerHTML = '<div class="acc-empty">评论记录正在接入中，敬请期待。</div>';
+      }
+    }
+
+    tabs.forEach(function (t) { t.addEventListener('click', function () { loadKind(t.dataset.kind); }); });
+
+    function applyAuth(user) {
+      if (user) {
+        guest.style.display = 'none';
+        main.style.display = 'block';
+        subEl.textContent = '你好，' + (user.nick || user.email) + '。';
+        loadKind(current);
+      } else {
+        main.style.display = 'none';
+        guest.style.display = 'block';
+        subEl.textContent = '收藏、点赞、浏览与评论，都在这里。';
+      }
+    }
+    SiteAuth.onChange(applyAuth);
+  }
+  start();
+})();
+</script>

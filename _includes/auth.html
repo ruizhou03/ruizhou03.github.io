@@ -1,0 +1,213 @@
+{%- comment -%}
+  统一账号 —— 登录/注册弹窗 + 导航头像组件，由 default.html 全站挂载。
+  依赖 /assets/js/auth/auth.js（window.SiteAuth）。导航里放一个 #auth-slot 占位，
+  本组件在其中渲染「登录」按钮或登录后的头像菜单。下方 JS 整段用 raw 包裹保护。
+{%- endcomment -%}
+{% raw %}
+<style>
+  /* ── 导航里的账号入口 ── */
+  #auth-slot { display: flex; align-items: center; }
+  .sa-login-btn {
+    font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em;
+    color: var(--color-muted); background: none;
+    border: 1px solid var(--color-border); padding: 0.3rem 0.6rem;
+    border-radius: 4px; cursor: pointer; white-space: nowrap;
+    transition: color .2s, border-color .2s;
+  }
+  .sa-login-btn:hover { color: var(--color-highlight); border-color: var(--color-highlight); }
+  .sa-avatar-wrap { position: relative; }
+  .sa-avatar {
+    width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--color-highlight); color: #fff;
+    font-size: 0.85rem; font-weight: 700; line-height: 30px; text-align: center;
+    padding: 0; font-family: inherit;
+  }
+  .sa-menu {
+    position: absolute; right: 0; top: calc(100% + 8px);
+    min-width: 148px; background: var(--color-bg);
+    border: 1px solid var(--color-border); border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 0.35rem;
+    display: none; z-index: 1090;
+  }
+  .sa-menu.open { display: block; }
+  .sa-menu-name {
+    font-size: 0.78rem; color: var(--color-muted); padding: 0.35rem 0.6rem 0.45rem;
+    border-bottom: 1px solid var(--color-border); margin-bottom: 0.3rem;
+    word-break: break-all;
+  }
+  .sa-menu a, .sa-menu button {
+    display: block; width: 100%; text-align: left; box-sizing: border-box;
+    padding: 0.45rem 0.6rem; font-size: 0.85rem; color: var(--color-text);
+    background: none; border: none; border-radius: 5px; cursor: pointer;
+    text-decoration: none; font-family: inherit;
+  }
+  .sa-menu a:hover, .sa-menu button:hover { background: var(--color-bg-warm); }
+  .sa-menu .sa-logout { color: #b5483a; }
+
+  /* ── 弹窗 ── */
+  #sa-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(20,28,40,0.45); backdrop-filter: blur(3px);
+    display: none; align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+  #sa-overlay.open { display: flex; }
+  .sa-card {
+    width: 360px; max-width: 100%; background: var(--color-bg);
+    border: 1px solid var(--color-border); border-radius: 14px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.25); padding: 1.6rem 1.6rem 1.8rem;
+    position: relative;
+  }
+  .sa-close {
+    position: absolute; top: 0.8rem; right: 0.9rem; border: none; background: none;
+    font-size: 1.4rem; line-height: 1; color: var(--color-muted); cursor: pointer;
+  }
+  .sa-title { font-size: 1.25rem; font-weight: 700; color: var(--color-ink); margin: 0 0 0.3rem; }
+  .sa-sub { font-size: 0.82rem; color: var(--color-muted); margin: 0 0 1.2rem; }
+  .sa-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.1rem; }
+  .sa-tab {
+    flex: 1; padding: 0.5rem; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    background: var(--color-bg-warm); color: var(--color-muted);
+    border: 1px solid var(--color-border); border-radius: 7px; font-family: inherit;
+  }
+  .sa-tab.active { background: var(--color-highlight); color: #fff; border-color: var(--color-highlight); }
+  .sa-field { margin-bottom: 0.85rem; }
+  .sa-field label { display: block; font-size: 0.78rem; color: var(--color-muted); margin-bottom: 0.3rem; }
+  .sa-field input {
+    width: 100%; box-sizing: border-box; padding: 0.6rem 0.7rem;
+    font-size: 0.95rem; font-family: inherit; color: var(--color-text);
+    background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 7px;
+  }
+  .sa-field input:focus { outline: none; border-color: var(--color-highlight); }
+  .sa-submit {
+    width: 100%; padding: 0.65rem; margin-top: 0.4rem; cursor: pointer;
+    font-size: 0.95rem; font-weight: 700; font-family: inherit;
+    background: var(--color-highlight); color: #fff; border: none; border-radius: 8px;
+  }
+  .sa-submit:disabled { opacity: 0.6; cursor: default; }
+  .sa-error { min-height: 1.1rem; font-size: 0.8rem; color: #c0392b; margin: 0.5rem 0 0; text-align: center; }
+  .sa-hint { font-size: 0.74rem; color: var(--color-light); text-align: center; margin-top: 0.9rem; line-height: 1.5; }
+</style>
+
+<div id="auth-modal-root">
+  <div id="sa-overlay" role="dialog" aria-modal="true" aria-label="登录或注册">
+    <div class="sa-card">
+      <button class="sa-close" type="button" aria-label="关闭">&times;</button>
+      <h3 class="sa-title" id="sa-title">登录</h3>
+      <p class="sa-sub">一个账号，打通收藏、点赞、浏览记录与百宝箱。</p>
+      <div class="sa-tabs">
+        <button type="button" class="sa-tab active" data-mode="login">登录</button>
+        <button type="button" class="sa-tab" data-mode="register">注册</button>
+      </div>
+      <form id="sa-form" autocomplete="on">
+        <div class="sa-field" id="sa-nick-field" style="display:none;">
+          <label for="sa-nick">昵称（选填）</label>
+          <input type="text" id="sa-nick" maxlength="16" autocomplete="nickname" placeholder="留空就用邮箱前缀">
+        </div>
+        <div class="sa-field">
+          <label for="sa-email">邮箱</label>
+          <input type="email" id="sa-email" autocomplete="email" required placeholder="you@example.com">
+        </div>
+        <div class="sa-field">
+          <label for="sa-password">密码</label>
+          <input type="password" id="sa-password" autocomplete="current-password" required placeholder="至少 6 位">
+        </div>
+        <button type="submit" class="sa-submit" id="sa-submit">登录</button>
+        <p class="sa-error" id="sa-error"></p>
+      </form>
+      <p class="sa-hint">密码经加盐哈希存储，本站看不到你的明文密码。</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  if (!window.SiteAuth) return;
+  var overlay = document.getElementById('sa-overlay');
+  var titleEl = document.getElementById('sa-title');
+  var form = document.getElementById('sa-form');
+  var emailEl = document.getElementById('sa-email');
+  var pwEl = document.getElementById('sa-password');
+  var nickEl = document.getElementById('sa-nick');
+  var nickField = document.getElementById('sa-nick-field');
+  var submitBtn = document.getElementById('sa-submit');
+  var errorEl = document.getElementById('sa-error');
+  var tabs = overlay.querySelectorAll('.sa-tab');
+  var mode = 'login';
+
+  function setMode(m) {
+    mode = m;
+    titleEl.textContent = m === 'login' ? '登录' : '注册';
+    submitBtn.textContent = m === 'login' ? '登录' : '注册并登录';
+    nickField.style.display = m === 'register' ? 'block' : 'none';
+    pwEl.setAttribute('autocomplete', m === 'login' ? 'current-password' : 'new-password');
+    tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.mode === m); });
+    errorEl.textContent = '';
+  }
+  function open(m) { setMode(m || 'login'); overlay.classList.add('open'); setTimeout(function () { emailEl.focus(); }, 50); }
+  function close() { overlay.classList.remove('open'); errorEl.textContent = ''; form.reset(); }
+
+  tabs.forEach(function (t) { t.addEventListener('click', function () { setMode(t.dataset.mode); }); });
+  overlay.querySelector('.sa-close').addEventListener('click', close);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && overlay.classList.contains('open')) close(); });
+
+  var ERRORS = {
+    invalid_email: '邮箱格式不对', weak_password: '密码至少 6 位',
+    email_taken: '这个邮箱已经注册过了，直接登录吧', bad_credentials: '邮箱或密码不对',
+    missing_fields: '请把邮箱和密码填完', login_required: '请先登录',
+  };
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    errorEl.textContent = '';
+    submitBtn.disabled = true;
+    var email = emailEl.value.trim();
+    var pw = pwEl.value;
+    var nick = nickEl.value.trim();
+    var r;
+    try {
+      r = mode === 'login'
+        ? await SiteAuth.login(email, pw)
+        : await SiteAuth.register(email, pw, nick);
+    } catch (err) {
+      r = { ok: false, error: 'network' };
+    }
+    submitBtn.disabled = false;
+    if (r.ok) { close(); return; }
+    errorEl.textContent = ERRORS[r.error] || (r.error === 'network' ? '网络不太顺，再试一次' : '出错了，再试一次');
+  });
+
+  // ── 导航入口渲染 ──
+  var slot = document.getElementById('auth-slot');
+  function initial(nick) { return (nick || '?').trim().charAt(0).toUpperCase(); }
+  function render(user) {
+    if (!slot) return;
+    if (!user) {
+      slot.innerHTML = '<button class="sa-login-btn" type="button">登录</button>';
+      slot.querySelector('button').addEventListener('click', function () { open('login'); });
+      return;
+    }
+    slot.innerHTML =
+      '<div class="sa-avatar-wrap">' +
+        '<button class="sa-avatar" type="button" title="' + (user.nick || '') + '">' + initial(user.nick) + '</button>' +
+        '<div class="sa-menu">' +
+          '<div class="sa-menu-name">' + (user.nick || user.email || '') + '</div>' +
+          '<a href="/account/">我的主页</a>' +
+          '<button type="button" class="sa-logout">退出登录</button>' +
+        '</div>' +
+      '</div>';
+    var avatarBtn = slot.querySelector('.sa-avatar');
+    var menu = slot.querySelector('.sa-menu');
+    avatarBtn.addEventListener('click', function (e) { e.stopPropagation(); menu.classList.toggle('open'); });
+    document.addEventListener('click', function () { menu.classList.remove('open'); });
+    slot.querySelector('.sa-logout').addEventListener('click', function () { SiteAuth.logout(); menu.classList.remove('open'); });
+  }
+
+  SiteAuth.onChange(render);
+
+  // 对外暴露：任何按钮都能 SiteAuth.openLogin() 唤起弹窗
+  window.SiteAuth.openLogin = open;
+})();
+</script>
+{% endraw %}

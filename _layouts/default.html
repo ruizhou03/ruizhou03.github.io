@@ -144,6 +144,8 @@
         <div class="nav-controls">
           <button class="theme-toggle" onclick="toggleTheme()" title="切换模式">&#9683;</button>
 
+          <div id="auth-slot"></div>
+
           <a href="{{ site.baseurl }}/" class="lang-toggle" title="English homepage"
              style="font-size:0.8rem;font-weight:600;letter-spacing:0.04em;color:var(--color-muted);
                     border:1px solid var(--color-border);padding:0.3rem 0.5rem;border-radius:4px;
@@ -207,6 +209,9 @@
     }
 
   </script>
+
+  <script src="{{ '/assets/js/auth/auth.js' | relative_url }}"></script>
+  {% include auth.html %}
 
   {% include assistant.html %}
   
