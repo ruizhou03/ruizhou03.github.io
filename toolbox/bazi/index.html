@@ -152,9 +152,19 @@ permalink: /toolbox/bazi/
     padding: 0.4rem 0.5rem; border-radius: 9px; background: var(--color-bg);
     border: 1px solid var(--color-border);
   }
-  .bz-pillar-pick .pk-lab { font-size: 0.82rem; color: var(--color-muted); min-width: 2.4rem; display: inline-flex; align-items: center; gap: 0.3rem; }
-  .bz-pillar-pick input[type=checkbox] { accent-color: var(--color-accent); width: 1rem; height: 1rem; }
+  .bz-pillar-pick .pk-lab { font-size: 0.85rem; color: var(--color-muted); min-width: 2.4rem; display: inline-flex; align-items: center; }
   .bz-pillar-pick select { height: 2.2rem !important; flex: 1; min-width: 0; padding-left: 0.6rem !important; }
+  .bz-pillar-pick select.placeholder { color: var(--color-light); }
+
+  /* 表单错误提示 */
+  .bz-form-error {
+    display: none; margin: 0 auto 1rem; max-width: 540px; text-align: left;
+    padding: 0.75rem 1rem; border-radius: 11px;
+    background: rgba(192,80,77,0.07); border: 1px solid rgba(192,80,77,0.32);
+    color: #b3413d; font-size: 0.85rem; line-height: 1.65;
+  }
+  .bz-form-error.show { display: block; }
+  .bz-form-error b { display: block; margin-bottom: 0.25rem; color: #a3322e; }
 
   /* 档案栏 */
   .bz-profiles {
@@ -451,13 +461,14 @@ permalink: /toolbox/bazi/
 
         <!-- 右：已知八字直接填 -->
         <div class="bz-col bz-col-right">
-          <div class="bz-col-head">🀄 已知八字 · 直接填<small>勾选的柱覆盖左边推算</small></div>
+          <div class="bz-col-head">🀄 已知八字 · 直接填<small>填了的柱覆盖左边推算</small></div>
           <div class="bz-known-grid" id="manual-pillars"></div>
-          <p class="bz-known-hint">只知道部分也行——勾上哪一柱就用你填的，其余的会用左边生日自动补齐。四柱都填了，左边生日就可以不用管（但「起运年龄」需要真实生日才能算准）。</p>
+          <p class="bz-known-hint">知道哪几柱就填哪几柱，留空的会用左边生日自动补齐。四柱都填了，左边生日就可以不用管（但「起运年龄」需要真实生日才能算准）。</p>
         </div>
       </div>
 
       <div class="bz-go-wrap">
+        <div class="bz-form-error" id="form-error"></div>
         <button class="bz-go" id="go-single">开始排盘 →</button>
       </div>
     </div>
@@ -759,19 +770,20 @@ fillSelect($('#in-day'),1,31,'');
 $('#in-month').value=6; $('#in-day').value=15;
 (function(){ var s=$('#in-shichen'); SHICHEN.forEach(function(t,i){ var o=document.createElement('option'); o.value=i; o.textContent=t; s.appendChild(o); }); s.value=6; })();
 
-// 手动四柱选择器
+// 手动四柱选择器（默认留空，填了就用）
 (function(){
   var cont=$('#manual-pillars');
   ['年柱','月柱','日柱','时柱'].forEach(function(nm,pi){
-    var box=el('div','bz-pillar-pick');
-    var lab=el('label','pk-lab');
-    var cb=el('input'); cb.type='checkbox'; cb.dataset.p=pi;
-    lab.appendChild(cb); lab.appendChild(document.createTextNode(' '+nm));
-    var gs=el('select'); gs.dataset.g=pi; GAN.forEach(function(g,i){ var o=document.createElement('option'); o.value=i; o.textContent=g; gs.appendChild(o); });
-    var zs=el('select'); zs.dataset.z=pi; ZHI.forEach(function(z,i){ var o=document.createElement('option'); o.value=i; o.textContent=z; zs.appendChild(o); });
-    gs.disabled=zs.disabled=true;
-    cb.addEventListener('change',function(){ gs.disabled=zs.disabled=!cb.checked; });
-    box.appendChild(lab); box.appendChild(gs); box.appendChild(zs);
+    var box=el('div','bz-pillar-pick'); box.dataset.p=pi;
+    box.appendChild(el('span','pk-lab',nm));
+    var gs=el('select','placeholder'); gs.dataset.g=pi;
+    gs.innerHTML='<option value="">天干</option>';
+    GAN.forEach(function(g,i){ var o=document.createElement('option'); o.value=i; o.textContent=g; gs.appendChild(o); });
+    var zs=el('select','placeholder'); zs.dataset.z=pi;
+    zs.innerHTML='<option value="">地支</option>';
+    ZHI.forEach(function(z,i){ var o=document.createElement('option'); o.value=i; o.textContent=z; zs.appendChild(o); });
+    [gs,zs].forEach(function(s){ s.addEventListener('change',function(){ s.classList.toggle('placeholder', s.value===''); clearFormError(); }); });
+    box.appendChild(gs); box.appendChild(zs);
     cont.appendChild(box);
   });
 })();
@@ -816,7 +828,7 @@ function getFormState(){
     y:+$('#in-year').value, m:+$('#in-month').value, d:+$('#in-day').value,
     leap:$('#in-leap').checked, shichen:+$('#in-shichen').value, time:$('#in-time').value,
     manual:$$('#manual-pillars .bz-pillar-pick').map(function(box){
-      return {on:$('input[type=checkbox]',box).checked, g:+$('select[data-g]',box).value, z:+$('select[data-z]',box).value};
+      return {g:$('select[data-g]',box).value, z:$('select[data-z]',box).value};
     })
   };
 }
@@ -828,10 +840,15 @@ function setFormState(s){
   if(s.shichen!=null) $('#in-shichen').value=s.shichen;
   if(s.time) $('#in-time').value=s.time;
   $$('#manual-pillars .bz-pillar-pick').forEach(function(box,i){
-    var m=s.manual&&s.manual[i]; if(!m) return;
-    var cb=$('input[type=checkbox]',box); cb.checked=!!m.on;
+    var m=s.manual&&s.manual[i];
     var gs=$('select[data-g]',box), zs=$('select[data-z]',box);
-    gs.value=m.g; zs.value=m.z; gs.disabled=zs.disabled=!m.on;
+    var gv='', zv='';
+    if(m){
+      if(m.on!==undefined){ if(m.on){ gv=String(m.g); zv=String(m.z); } }  // 旧档案格式兼容
+      else { gv=(m.g==null?'':String(m.g)); zv=(m.z==null?'':String(m.z)); }
+    }
+    gs.value=gv; zs.value=zv;
+    gs.classList.toggle('placeholder', gs.value===''); zs.classList.toggle('placeholder', zs.value==='');
   });
   onCalChange(); onTimeModeChange();
 }
@@ -859,6 +876,9 @@ function renderProfileChips(){
   });
 }
 $('#profile-save').addEventListener('click',function(){
+  clearFormError();
+  var man=readManual();
+  if(man.errors.length){ showFormError(man.errors); return; }
   var name=prompt('给这个人起个名字（例如：我、妈妈、小明）：');
   if(name==null) return; name=name.trim(); if(!name) return;
   var arr=loadProfiles();
@@ -902,32 +922,47 @@ function readBirthForm(prefix){
   }
   return {y:y,m:m,d:d,hh:hh,mm:mm,hourKnown:hourKnown,gender:gender};
 }
-// 应用右列手填四柱（覆盖左边推算），返回哪几柱是手填的
-function applyManual(b){
-  var mask={year:false,month:false,day:false,hour:false};
+// 读取右列手填四柱：返回各柱状态 + 校验信息（半填 / 无效干支）
+function readManual(){
+  var labels=['年柱','月柱','日柱','时柱'], keys=['year','month','day','hour'];
+  var cells=[], errors=[];
   $$('#manual-pillars .bz-pillar-pick').forEach(function(box){
-    var cb=$('input[type=checkbox]',box); if(!cb.checked) return;
-    var pi=+cb.dataset.p, g=+$('select[data-g]',box).value, z=+$('select[data-z]',box).value;
-    var key=['year','month','day','hour'][pi];
-    mask[key]=true;
-    if(key==='hour'){ b.hour=[g,z]; } else { b[key]=[g,z]; }
+    var pi=+box.dataset.p, key=keys[pi], label=labels[pi];
+    var gv=$('select[data-g]',box).value, zv=$('select[data-z]',box).value;
+    var hasG=gv!=='', hasZ=zv!=='';
+    if(!hasG && !hasZ){ cells.push({key:key,filled:false}); return; }
+    if(hasG!==hasZ){ errors.push(label+'只填了「'+(hasG?'天干':'地支')+'」——请把另一半也选上，或两个都清空'); cells.push({key:key,filled:false}); return; }
+    var g=+gv, z=+zv;
+    if((g%2)!==(z%2)){ errors.push(label+'「'+GAN[g]+ZHI[z]+'」不是有效干支组合（阳干只配阳支、阴干只配阴支）'); cells.push({key:key,filled:false}); return; }
+    cells.push({key:key,filled:true,g:g,z:z});
   });
-  return mask;
+  return {cells:cells,errors:errors};
 }
+function showFormError(errs){
+  var box=$('#form-error');
+  box.innerHTML='<b>⚠ 右边「已知八字」还没填好：</b>'+errs.map(function(e){ return '· '+e; }).join('<br>');
+  box.classList.add('show');
+  box.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function clearFormError(){ var b=$('#form-error'); if(b) b.classList.remove('show'); }
 
-// 排盘主流程：左右合并取值——右列勾的柱优先，没勾的用左边生日补齐
+// 排盘主流程：左右合并取值——右列填了的柱优先，留空的用左边生日补齐
 $('#go-single').addEventListener('click',function(){
+  clearFormError();
+  var man=readManual();
+  if(man.errors.length){ showFormError(man.errors); return; }
   var f=readBirthForm();
   if(f.y<1901||f.y>2099){ alert('支持年份范围 1901–2099 哦'); return; }
   var b=getBazi(f.y,f.m,f.d,f.hh,f.mm,f.hourKnown);
-  var mask=applyManual(b);
-  // 时柱没手填但日柱被手填了 → 时干要按手填的日干重排（五鼠遁）
+  var mask={year:false,month:false,day:false,hour:false};
+  man.cells.forEach(function(c){ if(c.filled){ mask[c.key]=true; if(c.key==='hour') b.hour=[c.g,c.z]; else b[c.key]=[c.g,c.z]; } });
+  // 时柱没手填但日柱被手填了 → 时干按手填的日干重排（五鼠遁）
   if(!mask.hour && f.hourKnown){
     var hzhi=Math.floor((f.hh+1)/2)%12, ziGan=((b.day[0]%5)*2)%10;
     b.hour=[(ziGan+hzhi)%10, hzhi];
   }
   if(b.hour===undefined) b.hour=null;
-  // 年月日三柱都手填了 → 等于直接给了八字，左边生日只是占位、起运年龄不可信
+  // 年月日三柱都填了 → 等于直接给了八字，左边生日只是占位、起运年龄不可信
   f.dateReliable = !(mask.year && mask.month && mask.day);
   f.fullManual = mask.year && mask.month && mask.day && (mask.hour || !b.hour);
   renderResult(b,f.gender,f);
