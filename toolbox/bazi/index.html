@@ -144,8 +144,63 @@ permalink: /toolbox/bazi/
     border: 1px solid var(--color-border);
   }
   .bz-pillar-pick .pk-lab { font-size: 0.82rem; color: var(--color-muted); min-width: 2.4rem; display: inline-flex; align-items: center; gap: 0.3rem; }
-  .bz-pillar-pick input[type=checkbox] { accent-color: var(--color-accent); }
-  .bz-pillar-pick select { height: 2.1rem !important; flex: 1; min-width: 0; padding-left: 0.6rem !important; }
+  .bz-pillar-pick input[type=checkbox] { accent-color: var(--color-accent); width: 1rem; height: 1rem; }
+  .bz-pillar-pick select { height: 2.2rem !important; flex: 1; min-width: 0; padding-left: 0.6rem !important; }
+
+  /* 档案栏 */
+  .bz-profiles {
+    display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+    padding-bottom: 1.1rem; margin-bottom: 1.2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .bz-profiles-label { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.08em; color: var(--color-light); text-transform: uppercase; }
+  .bz-profile-chips { display: flex; gap: 0.45rem; flex-wrap: wrap; flex: 1; min-width: 0; }
+  .bz-profile-empty { font-size: 0.82rem; color: var(--color-light); }
+  .bz-profile-chip {
+    display: inline-flex; align-items: center; gap: 0.1rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); transition: all 0.16s; overflow: hidden;
+  }
+  @media (hover: hover) { .bz-profile-chip:hover { border-color: var(--color-accent); } }
+  .bz-profile-chip.flash { border-color: var(--color-accent); box-shadow: 0 0 0 2px rgba(30,58,95,0.15); }
+  .bz-profile-chip .pc-name { font-size: 0.84rem; color: var(--color-ink); padding: 0.32rem 0.4rem 0.32rem 0.85rem; cursor: pointer; }
+  .bz-profile-chip .pc-del {
+    font: inherit; font-size: 1rem; line-height: 1; color: var(--color-light);
+    background: none; border: none; cursor: pointer; padding: 0.2rem 0.6rem 0.2rem 0.2rem;
+  }
+  @media (hover: hover) { .bz-profile-chip .pc-del:hover { color: #c0504d; } }
+  .bz-profile-save {
+    font: inherit; font-size: 0.82rem; font-weight: 500;
+    padding: 0.4rem 0.95rem; border: 1px dashed var(--color-border); border-radius: 999px;
+    background: none; color: var(--color-muted); cursor: pointer; transition: all 0.16s; white-space: nowrap;
+  }
+  @media (hover: hover) { .bz-profile-save:hover { border-color: var(--color-accent); color: var(--color-accent); } }
+
+  /* 左右分栏 */
+  .bz-cols { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.2rem; align-items: stretch; }
+  .bz-col-head { font-family: var(--font-display); font-size: 1rem; font-weight: 600; color: var(--color-ink); margin-bottom: 1rem; }
+  .bz-col-head small { font-family: inherit; font-weight: 400; font-size: 0.74rem; color: var(--color-light); margin-left: 0.4rem; }
+  .bz-col-left { padding-right: 1.3rem; }
+  .bz-col-right { padding-left: 1.3rem; }
+  .bz-or {
+    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+    color: var(--color-light); position: relative;
+  }
+  .bz-or::before, .bz-or::after { content: ''; flex: 1; width: 1px; background: var(--color-border); }
+  .bz-or span {
+    font-size: 0.78rem; color: var(--color-light);
+    width: 1.7rem; height: 1.7rem; display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-bg);
+  }
+  .bz-known-grid { display: grid; gap: 0.55rem; }
+  .bz-known-hint { font-size: 0.78rem; color: var(--color-light); line-height: 1.5; margin-top: 0.7rem; }
+  @media (max-width: 600px) {
+    .bz-cols { grid-template-columns: 1fr; }
+    .bz-col-left { padding-right: 0; padding-bottom: 0.4rem; }
+    .bz-col-right { padding-left: 0; padding-top: 1.2rem; margin-top: 1rem; border-top: 1px solid var(--color-border); }
+    .bz-or { flex-direction: row; margin: 0.3rem 0; }
+    .bz-or::before, .bz-or::after { width: auto; height: 1px; }
+  }
 
   /* result */
   #bz-result { display: none; }
@@ -321,58 +376,74 @@ permalink: /toolbox/bazi/
   <div id="panel-single">
     <div class="bz-form">
 
-      <div class="bz-field-split">
-        <div class="bz-field">
-          <span class="bz-field-label">历法</span>
-          <span class="bz-seg" data-seg="cal">
-            <button data-v="solar" class="active">公历</button>
-            <button data-v="lunar">农历</button>
-          </span>
-        </div>
-        <div class="bz-field">
-          <span class="bz-field-label">性别</span>
-          <span class="bz-seg" data-seg="gender">
-            <button data-v="男" class="active">男</button>
-            <button data-v="女">女</button>
-          </span>
-        </div>
+      <!-- 档案栏 -->
+      <div class="bz-profiles">
+        <span class="bz-profiles-label">档案</span>
+        <div class="bz-profile-chips" id="profile-chips"></div>
+        <button class="bz-profile-save" id="profile-save">＋ 存为档案</button>
       </div>
 
-      <div class="bz-field">
-        <span class="bz-field-label">出生日期</span>
-        <div class="bz-field-row">
-          <select id="in-year"></select><span class="bz-unit">年</span>
-          <select id="in-month"></select><span class="bz-unit">月</span>
-          <select id="in-day"></select><span class="bz-unit">日</span>
-          <label class="bz-leap-chk" id="leap-wrap" style="display:none;">
-            <input type="checkbox" id="in-leap"> 闰月
-          </label>
-        </div>
-      </div>
+      <div class="bz-cols">
+        <!-- 左：按生日推算 -->
+        <div class="bz-col bz-col-left">
+          <div class="bz-col-head">📅 按生日推算</div>
 
-      <div class="bz-field">
-        <span class="bz-field-label">出生时辰</span>
-        <div class="bz-field-row" style="margin-bottom:0.6rem;">
-          <span class="bz-seg" data-seg="timemode">
-            <button data-v="shichen" class="active">选时辰</button>
-            <button data-v="exact">精确到分</button>
-            <button data-v="unknown">不知道</button>
-          </span>
-        </div>
-        <div class="bz-field-row" id="row-shichen">
-          <select id="in-shichen"></select>
-        </div>
-        <div class="bz-field-row" id="row-exact" style="display:none;">
-          <input type="time" id="in-time" value="12:00">
-          <span class="bz-hint">夜里 23:00 后属次日子时，会自动换日</span>
-        </div>
-      </div>
+          <div class="bz-field-split">
+            <div class="bz-field">
+              <span class="bz-field-label">历法</span>
+              <span class="bz-seg" data-seg="cal">
+                <button data-v="solar" class="active">公历</button>
+                <button data-v="lunar">农历</button>
+              </span>
+            </div>
+            <div class="bz-field">
+              <span class="bz-field-label">性别</span>
+              <span class="bz-seg" data-seg="gender">
+                <button data-v="男" class="active">男</button>
+                <button data-v="女">女</button>
+              </span>
+            </div>
+          </div>
 
-      <div class="bz-field">
-        <button class="bz-adv-toggle" id="adv-toggle">⚙ 我已知道部分天干地支，想直接指定<span style="margin-left:0.1rem;">›</span></button>
-        <div class="bz-manual" id="adv-panel">
-          <p class="bz-hint">勾选任意一柱即用你指定的干支覆盖排盘结果（不填的柱仍按生日推算）。性别仍用于推算大运。</p>
-          <div class="bz-manual-grid" id="manual-pillars"></div>
+          <div class="bz-field">
+            <span class="bz-field-label">出生日期</span>
+            <div class="bz-field-row">
+              <select id="in-year"></select><span class="bz-unit">年</span>
+              <select id="in-month"></select><span class="bz-unit">月</span>
+              <select id="in-day"></select><span class="bz-unit">日</span>
+              <label class="bz-leap-chk" id="leap-wrap" style="display:none;">
+                <input type="checkbox" id="in-leap"> 闰月
+              </label>
+            </div>
+          </div>
+
+          <div class="bz-field">
+            <span class="bz-field-label">出生时辰</span>
+            <div class="bz-field-row" style="margin-bottom:0.6rem;">
+              <span class="bz-seg" data-seg="timemode">
+                <button data-v="shichen" class="active">选时辰</button>
+                <button data-v="exact">精确到分</button>
+                <button data-v="unknown">不知道</button>
+              </span>
+            </div>
+            <div class="bz-field-row" id="row-shichen">
+              <select id="in-shichen"></select>
+            </div>
+            <div class="bz-field-row" id="row-exact" style="display:none;">
+              <input type="time" id="in-time" value="12:00">
+              <span class="bz-hint">夜里 23:00 后属次日子时，会自动换日</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 或 -->
+        <div class="bz-or"><span>或</span></div>
+
+        <!-- 右：已知八字直接填 -->
+        <div class="bz-col bz-col-right">
+          <div class="bz-col-head">🀄 已知八字 · 直接填<small>勾选的柱覆盖左边推算</small></div>
+          <div class="bz-known-grid" id="manual-pillars"></div>
+          <p class="bz-known-hint">只知道部分也行——勾上哪一柱就用你填的，其余仍按左边生日算。性别仍取左边的设置（用于推大运）。</p>
         </div>
       </div>
 
@@ -683,12 +754,14 @@ $('#in-month').value=6; $('#in-day').value=15;
   var cont=$('#manual-pillars');
   ['年柱','月柱','日柱','时柱'].forEach(function(nm,pi){
     var box=el('div','bz-pillar-pick');
+    var lab=el('label','pk-lab');
     var cb=el('input'); cb.type='checkbox'; cb.dataset.p=pi;
+    lab.appendChild(cb); lab.appendChild(document.createTextNode(' '+nm));
     var gs=el('select'); gs.dataset.g=pi; GAN.forEach(function(g,i){ var o=document.createElement('option'); o.value=i; o.textContent=g; gs.appendChild(o); });
     var zs=el('select'); zs.dataset.z=pi; ZHI.forEach(function(z,i){ var o=document.createElement('option'); o.value=i; o.textContent=z; zs.appendChild(o); });
     gs.disabled=zs.disabled=true;
     cb.addEventListener('change',function(){ gs.disabled=zs.disabled=!cb.checked; });
-    box.appendChild(el('span','pk-lab',nm)); box.appendChild(cb); box.appendChild(gs); box.appendChild(zs);
+    box.appendChild(lab); box.appendChild(gs); box.appendChild(zs);
     cont.appendChild(box);
   });
 })();
@@ -713,10 +786,79 @@ function onTimeModeChange(){
   $('#row-shichen').style.display=state.timemode==='shichen'?'flex':'none';
   $('#row-exact').style.display=state.timemode==='exact'?'flex':'none';
 }
-$('#adv-toggle').addEventListener('click',function(){
-  var p=$('#adv-panel'); p.classList.toggle('show');
-  this.textContent=p.classList.contains('show')?'⚙ 收起手动指定 ‹':'⚙ 我已知道部分天干地支，想直接指定 ›';
+// 用代码设置某个分段控件（档案载入时用）
+function setSeg(key,val){
+  var seg=document.querySelector('.bz-col .bz-seg[data-seg="'+key+'"]');
+  if(!seg) return;
+  $$('button',seg).forEach(function(b){ b.classList.toggle('active', b.dataset.v===String(val)); });
+  state[key]=val;
+}
+
+/* ---------- 档案（localStorage） ---------- */
+var PKEY='bazi_profiles_v1';
+function loadProfiles(){ try{ return JSON.parse(localStorage.getItem(PKEY))||[]; }catch(e){ return []; } }
+function saveProfiles(a){ try{ localStorage.setItem(PKEY,JSON.stringify(a)); }catch(e){} }
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+function getFormState(){
+  return {
+    cal:state.cal, gender:state.gender, timemode:state.timemode,
+    y:+$('#in-year').value, m:+$('#in-month').value, d:+$('#in-day').value,
+    leap:$('#in-leap').checked, shichen:+$('#in-shichen').value, time:$('#in-time').value,
+    manual:$$('#manual-pillars .bz-pillar-pick').map(function(box){
+      return {on:$('input[type=checkbox]',box).checked, g:+$('select[data-g]',box).value, z:+$('select[data-z]',box).value};
+    })
+  };
+}
+function setFormState(s){
+  if(!s) return;
+  setSeg('cal',s.cal); setSeg('gender',s.gender); setSeg('timemode',s.timemode);
+  $('#in-year').value=s.y; $('#in-month').value=s.m; $('#in-day').value=s.d;
+  $('#in-leap').checked=!!s.leap;
+  if(s.shichen!=null) $('#in-shichen').value=s.shichen;
+  if(s.time) $('#in-time').value=s.time;
+  $$('#manual-pillars .bz-pillar-pick').forEach(function(box,i){
+    var m=s.manual&&s.manual[i]; if(!m) return;
+    var cb=$('input[type=checkbox]',box); cb.checked=!!m.on;
+    var gs=$('select[data-g]',box), zs=$('select[data-z]',box);
+    gs.value=m.g; zs.value=m.z; gs.disabled=zs.disabled=!m.on;
+  });
+  onCalChange(); onTimeModeChange();
+}
+
+function renderProfileChips(){
+  var box=$('#profile-chips'); box.innerHTML='';
+  var arr=loadProfiles();
+  if(!arr.length){ box.innerHTML='<span class="bz-profile-empty">还没有档案——填好下面的信息，点右边「存为档案」就能存下这个人。</span>'; return; }
+  arr.forEach(function(p){
+    var chip=el('span','bz-profile-chip');
+    chip.innerHTML='<span class="pc-name">'+escapeHtml(p.name)+'</span><button class="pc-del" title="删除">×</button>';
+    $('.pc-name',chip).addEventListener('click',function(){
+      setFormState(p.data);
+      $$('.bz-profile-chip').forEach(function(c){ c.classList.remove('flash'); });
+      chip.classList.add('flash'); setTimeout(function(){ chip.classList.remove('flash'); },1200);
+    });
+    $('.pc-del',chip).addEventListener('click',function(e){
+      e.stopPropagation();
+      if(confirm('删除档案「'+p.name+'」？')){
+        saveProfiles(loadProfiles().filter(function(x){ return x.id!==p.id; }));
+        renderProfileChips(); refreshMatchProfiles();
+      }
+    });
+    box.appendChild(chip);
+  });
+}
+$('#profile-save').addEventListener('click',function(){
+  var name=prompt('给这个人起个名字（例如：我、妈妈、小明）：');
+  if(name==null) return; name=name.trim(); if(!name) return;
+  var arr=loadProfiles();
+  var idx=arr.map(function(x){ return x.name; }).indexOf(name);
+  var rec={id:'p'+Date.now(), name:name, data:getFormState()};
+  if(idx>=0){ if(!confirm('已有同名档案「'+name+'」，覆盖它？')) return; rec.id=arr[idx].id; arr[idx]=rec; }
+  else { arr.push(rec); }
+  saveProfiles(arr); renderProfileChips(); refreshMatchProfiles();
 });
+renderProfileChips();
 
 // tab 切换
 $('#tab-single').addEventListener('click',function(){ swTab('single'); });
@@ -1072,16 +1214,30 @@ function buildMini(prefixId,title){
   var host=$('#'+prefixId);
   host.innerHTML='<h4>'+title+'</h4>';
   var st={cal:'solar',gender:title.indexOf('甲')>=0?'男':'女',timemode:'shichen'};
+  var segRefs={};
+  // 档案下拉
+  var prow=el('div','bz-row'); prow.appendChild(el('span','bz-lab','档案'));
+  var psel=el('select'); prow.appendChild(psel); host.appendChild(prow);
+  function refreshProfiles(){
+    var arr=loadProfiles();
+    psel.innerHTML='<option value="">— 从档案选人 —</option>'+arr.map(function(p){ return '<option value="'+p.id+'">'+escapeHtml(p.name)+'</option>'; }).join('');
+  }
+  psel.addEventListener('change',function(){ if(!psel.value)return; var p=loadProfiles().filter(function(x){return x.id===psel.value;})[0]; if(p) setState(p.data); });
+
   function seg(label,key,opts){
     var row=el('div','bz-row');
     row.appendChild(el('span','bz-lab',label));
-    var s=el('span','bz-seg');
+    var s=el('span','bz-seg'); segRefs[key]=s;
     opts.forEach(function(o,i){ var btn=el('button',i===0?'active':'',o[1]); btn.dataset.v=o[0];
       btn.addEventListener('click',function(){ $$('button',s).forEach(function(x){x.classList.remove('active');}); btn.classList.add('active'); st[key]=o[0];
-        if(key==='cal') leapWrap.style.display=o[0]==='lunar'?'inline':'none';
-        if(key==='timemode'){ scRow.style.display=o[0]==='shichen'?'flex':'none'; } });
+        if(key==='cal') leapWrap.style.display=o[0]==='lunar'?'inline':'none'; });
       s.appendChild(btn); });
     row.appendChild(s); host.appendChild(row); return row;
+  }
+  function setSegMini(key,val){
+    var s=segRefs[key]; if(!s)return;
+    $$('button',s).forEach(function(b){ b.classList.toggle('active', b.dataset.v===String(val)); });
+    st[key]=val;
   }
   seg('历法','cal',[['solar','公历'],['lunar','农历']]);
   seg('性别','gender',[[st.gender,st.gender],[st.gender==='男'?'女':'男',st.gender==='男'?'女':'男']]);
@@ -1093,12 +1249,22 @@ function buildMini(prefixId,title){
   for(var d=1;d<=31;d++){ var o3=document.createElement('option'); o3.value=d; o3.textContent=d+'日'; ds.appendChild(o3); }
   ys.value=1995; mns.value=6; ds.value=15;
   drow.appendChild(ys); drow.appendChild(mns); drow.appendChild(ds);
-  var leapWrap=el('label','',' <input type="checkbox" class="lp"> 闰月'); leapWrap.style.display='none'; leapWrap.style.fontSize='0.8rem'; leapWrap.style.color='var(--color-muted)';
+  var leapWrap=el('label','bz-leap-chk',' <input type="checkbox" class="lp"> 闰月'); leapWrap.style.display='none'; leapWrap.style.height='auto';
   drow.appendChild(leapWrap); host.appendChild(drow);
   // 时辰
   var scRow=el('div','bz-row'); scRow.appendChild(el('span','bz-lab','时辰'));
   var scs=el('select'); SHICHEN.forEach(function(t,i){ var o=document.createElement('option'); o.value=i; o.textContent=t; scs.appendChild(o); }); scs.value=6;
   scRow.appendChild(scs); host.appendChild(scRow);
+
+  function setState(data){
+    if(!data) return;
+    setSegMini('cal',data.cal); leapWrap.style.display=data.cal==='lunar'?'inline-flex':'none';
+    setSegMini('gender',data.gender);
+    ys.value=data.y; mns.value=data.m; ds.value=data.d;
+    $('.lp',leapWrap).checked=!!data.leap;
+    if(data.shichen!=null) scs.value=data.shichen;
+  }
+  refreshProfiles();
 
   return {
     read:function(){
@@ -1107,11 +1273,13 @@ function buildMini(prefixId,title){
       var hh=[0,2,4,6,8,10,12,14,16,18,20,22][+scs.value];
       var b=getBazi(y,mo,da,hh,0,true);
       return {b:b,gender:st.gender,y:y,m:mo,d:da};
-    }
+    },
+    setState:setState, refreshProfiles:refreshProfiles
   };
 }
 var miniA=buildMini('mini-A','甲方');
 var miniB=buildMini('mini-B','乙方');
+function refreshMatchProfiles(){ if(miniA) miniA.refreshProfiles(); if(miniB) miniB.refreshProfiles(); }
 
 // 生肖关系
 var LIUHE={0:1,1:0,2:11,11:2,3:10,10:3,4:9,9:4,5:8,8:5,6:7,7:6}; // 六合
