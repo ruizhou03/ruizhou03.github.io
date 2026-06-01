@@ -243,21 +243,27 @@
     }
     return worst;
   }
-  function minimax2p(board, ai, opp, depth, alpha, beta) {
+  // α-β minimax（2 人）。depth = 还要展开的 ply 数；toMove = 当前轮到谁。
+  // 叶子返回「ai 视角」的净分差。用法：AI 在根节点走完一步后，调
+  // minimax2p(board, opp, ai, opp, plies, …) 让对手最优应招——plies=1 即
+  // 「我走一步 + 对手最优回应」的真 depth-2 前瞻（探针实测 100% 胜纯贪心）。
+  // 注：旧版用 (depth%2) 推断该谁走，初始 depth=1 时误判成 ai 再走一步、
+  // 完全没算对手回应，导致「困难」实际≈贪心；此处改为显式传 toMove 修正。
+  function minimax2p(board, toMove, ai, opp, depth, alpha, beta) {
     if (depth === 0 || hasWon(board, ai) || hasWon(board, opp)) {
       return evalForPlayer(board, ai) - evalForPlayer(board, opp);
     }
-    const turn = (depth % 2 === 0) ? opp : ai;
-    const moves = legalMoves(board, turn);
+    const moves = legalMoves(board, toMove);
     if (moves.length === 0) return evalForPlayer(board, ai) - evalForPlayer(board, opp);
-    if (turn === ai) {
+    const next = (toMove === ai) ? opp : ai;
+    if (toMove === ai) {
       let best = -Infinity;
       for (const m of moves) {
         const u = makeMove(board, m);
-        const v = minimax2p(board, ai, opp, depth - 1, alpha, beta);
+        const v = minimax2p(board, next, ai, opp, depth - 1, alpha, beta);
         undoMove(board, u);
         if (v > best) best = v;
-        if (v > alpha) alpha = v;
+        if (best > alpha) alpha = best;
         if (alpha >= beta) break;
       }
       return best;
@@ -265,10 +271,10 @@
       let best = Infinity;
       for (const m of moves) {
         const u = makeMove(board, m);
-        const v = minimax2p(board, ai, opp, depth - 1, alpha, beta);
+        const v = minimax2p(board, next, ai, opp, depth - 1, alpha, beta);
         undoMove(board, u);
         if (v < best) best = v;
-        if (v < beta) beta = v;
+        if (best < beta) beta = best;
         if (alpha >= beta) break;
       }
       return best;
@@ -286,7 +292,8 @@
       let score = evalForPlayer(board, ai);
       if (cfg.difficulty === 'hard') {
         if (isTwoPlayer) {
-          score = minimax2p(board, ai, opp, 1, -Infinity, Infinity);
+          // 真 depth-2：我已走这步，让对手最优应招后再评估（plies=1）。
+          score = minimax2p(board, opp, ai, opp, 1, -Infinity, Infinity);
         } else {
           score = 0.6 * score + 0.4 * maxThreatToPlayer(board, players, aiIdx);
         }
