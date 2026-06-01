@@ -1856,6 +1856,28 @@ permalink: /toolbox/guandan/
             <button class="gs-pgo-mode-tab selected" data-value="normal">🙂 普通</button>
             <button class="gs-pgo-mode-tab" data-value="hard">🔥 高手</button>
           </div>
+
+          <!-- 玩法设置：同队进贡 / 单局积分上限 / 出牌时间。联机创建房间时随 config 同步给全房。 -->
+          <div class="gd-pgo-label">同队进贡</div>
+          <div class="gs-pgo-mode-picker" id="gdPgoTeamTrib">
+            <button class="gs-pgo-mode-tab" data-value="off" type="button">关</button>
+            <button class="gs-pgo-mode-tab selected" data-value="on" type="button">开</button>
+          </div>
+          <div class="gd-pgo-label">单局积分上限</div>
+          <div class="gs-pgo-mode-picker" id="gdPgoScoreCap">
+            <button class="gs-pgo-mode-tab selected" data-value="0" type="button">不限</button>
+            <button class="gs-pgo-mode-tab" data-value="3" type="button">3</button>
+            <button class="gs-pgo-mode-tab" data-value="5" type="button">5</button>
+            <button class="gs-pgo-mode-tab" data-value="8" type="button">8</button>
+          </div>
+          <div class="gd-pgo-label">出牌时间</div>
+          <div class="gs-pgo-mode-picker" id="gdPgoTurnSec">
+            <button class="gs-pgo-mode-tab" data-value="10" type="button">10秒</button>
+            <button class="gs-pgo-mode-tab selected" data-value="20" type="button">20秒</button>
+            <button class="gs-pgo-mode-tab" data-value="30" type="button">30秒</button>
+            <button class="gs-pgo-mode-tab" data-value="0" type="button">不限</button>
+          </div>
+
           <div class="gd-pgo-score" id="gdPgoScore"></div>
           <button class="gs-pgo-start-btn" id="gdPgoStart">▶ 开始游戏</button>
         </div>

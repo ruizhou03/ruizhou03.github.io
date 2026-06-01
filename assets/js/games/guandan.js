@@ -798,8 +798,22 @@
     return out;
   }
 
+  // 玩法可调选项的合法档位（UI 段选 + 房间 config 共用）
+  const SCORE_CAP_OPTS = [0, 3, 5, 8];     // 0 = 不限
+  const TURN_SEC_OPTS = [10, 20, 30, 0];   // 0 = 不限
+  // 同队进贡默认开（按官方名次规则，1、4 同队那局末游仍给队友头游进贡）
+  function normalizeOptions(o) {
+    o = o || {};
+    return {
+      teamTribute: (o.teamTribute === undefined) ? true : !!o.teamTribute,
+      scoreCap: SCORE_CAP_OPTS.includes(o.scoreCap) ? o.scoreCap : 0,
+      turnSec: TURN_SEC_OPTS.includes(o.turnSec) ? o.turnSec : 20,
+    };
+  }
+
   const state = {
     aiLevel: ['easy','normal','hard'].includes(stored.lastDiff) ? stored.lastDiff : 'normal',
+    options: normalizeOptions(stored.options),   // 同队进贡 / 单局积分上限 / 出牌时间
     openMult: [1, 2, 3].includes(stored.lastMult) ? stored.lastMult : 1,
     stats: normalizeStats(stored.stats),
     phase: PHASE.IDLE,
@@ -848,6 +862,7 @@
     autopilotBtn: $('gdAutopilotBtn'),
     pgo: $('gdPgo'), pgoStart: $('gdPgoStart'),
     pgoDiff: $('gdPgoDiff'), pgoStats: $('gdPgoStats'), hs: $('gdHs'),
+    pgoTeamTrib: $('gdPgoTeamTrib'), pgoScoreCap: $('gdPgoScoreCap'), pgoTurnSec: $('gdPgoTurnSec'),
     tribOverlay: $('gdTributeOverlay'), tribTitle: $('gdTribTitle'),
     tribDesc: $('gdTribDesc'), tribPick: $('gdTribPick'), tribConfirm: $('gdTribConfirm'),
     roundOverlay: $('gdRoundOverlay'), roundTitle: $('gdRoundTitle'),
@@ -882,6 +897,7 @@
       localStorage.setItem(STORE_KEY, JSON.stringify({
         lastDiff: state.aiLevel, lastMult: state.openMult,
         sortMode: state.sortMode, stats: state.stats,
+        options: state.options,
       }));
     } catch (e) { /* ignore */ }
   }
@@ -899,6 +915,7 @@
       v: 1,
       savedAt: Date.now(),
       aiLevel: state.aiLevel,
+      options: state.options,
       openMult: state.openMult,
       phase: state.phase,
       levels: state.levels.slice(),
@@ -2133,8 +2150,14 @@
     const first = ranking[0], second = ranking[1], third = ranking[2], fourth = ranking[3];
     const winTeam = TEAM(first);
     const doubleDown = (TEAM(third) === TEAM(fourth)) && (TEAM(third) !== winTeam);
-    if (doubleDown) handleDoubleTribute(first, second, third, fourth);
-    else handleSingleTribute(first, fourth);
+    if (doubleDown) { handleDoubleTribute(first, second, third, fourth); return; }
+    // 单贡：末游→头游。若关了「同队进贡」且末游正好是头游队友（1、4 同队那局），
+    // 则跳过进贡，直接由头游先出。
+    if (!state.options.teamTribute && TEAM(fourth) === TEAM(first)) {
+      beginPlay(first);
+      return;
+    }
+    handleSingleTribute(first, fourth);
   }
 
   // 数某些座位手里共有几张大王（抗贡判定用）
@@ -2733,12 +2756,16 @@
     state.actingTeam = winTeam;
     state.lastRanking = ranking;
 
-    // 单局结算分：开局倍数 × 炸弹累乘 × 升级数。赢方得正，输方得负
+    // 单局结算分：开局倍数 × 炸弹累乘 × 升级数。赢方得正，输方得负。
+    // 「单局积分上限」(state.options.scoreCap, 0=不限) 给一局输赢分数封顶；升级数不受影响。
     const openMult = state.openMult || 1;
     const bombMult = state.bombMult || 1;
-    const roundScore = openMult * bombMult * advance;
+    const rawScore = openMult * bombMult * advance;
+    const cap = state.options.scoreCap | 0;
+    const capped = cap > 0 && rawScore > cap;
+    const roundScore = capped ? cap : rawScore;
     state.lastRoundScore = (winTeam === 0) ? roundScore : -roundScore;
-    state.lastRoundDetail = { openMult, bombMult, advance, winTeam, beforeIdx, newIdx, matchWon };
+    state.lastRoundDetail = { openMult, bombMult, advance, winTeam, beforeIdx, newIdx, matchWon, cap: capped ? cap : 0 };
     // 累计到当前难度总分
     const stForScore = state.stats[state.aiLevel];
     if (stForScore) stForScore.totalScore = (stForScore.totalScore | 0) + state.lastRoundScore;
@@ -2818,7 +2845,9 @@
           '<span class="delta ' + cls + '">' + sign + score + ' 分</span>' +
           '<span class="breakdown">开局 ×' + detail.openMult +
           ' · 炸弹 ×' + detail.bombMult +
-          ' · 升 ' + detail.advance + ' 级 · 累计 ' + (total >= 0 ? '+' : '') + total + ' 分</span>';
+          ' · 升 ' + detail.advance + ' 级' +
+          (detail.cap ? ' · 封顶 ' + detail.cap : '') +
+          ' · 累计 ' + (total >= 0 ? '+' : '') + total + ' 分</span>';
       }
     }
 
@@ -2893,6 +2922,11 @@
   // ===========================================================
   const TURN_TIMEOUT_MS = 25000;
   const AI_CLOCK_MS = 25000;   // AI 通常 < 1s 出牌 → 这个值大多走不完
+  // 出牌时间（毫秒）：来自玩法设置 state.options.turnSec；0 = 不限（不挂时钟、不自动出）
+  function turnMs() {
+    const s = state.options.turnSec | 0;
+    return s > 0 ? s * 1000 : 0;
+  }
   let turnClockTimer = null;
   let turnClockEndAt = 0;
   let turnClockSeat = -1;
@@ -2975,9 +3009,13 @@
         }, 450);
         return;
       }
-      startTurnClock(0, autoPlayOnTimeout, TURN_TIMEOUT_MS);
+      const tm = turnMs();
+      if (tm === 0) { stopTurnClock(); return; }   // 不限：不挂时钟、不自动出
+      startTurnClock(0, autoPlayOnTimeout, tm);
     } else {
-      startTurnClock(seat, null, AI_CLOCK_MS);
+      const tm = turnMs();
+      if (tm === 0) { stopTurnClock(); return; }   // 不限：AI 也不显示时钟
+      startTurnClock(seat, null, tm);
     }
   }
   // 玩家被动 / 托管的"自动出"共享同一份决策；isTimeout 控制是否计入超时计数
@@ -3697,7 +3735,20 @@
   function syncPgoDiff() {
     [...els.pgoDiff.querySelectorAll('.gs-pgo-mode-tab')].forEach(t =>
       t.classList.toggle('selected', t.dataset.value === state.aiLevel));
+    syncPgoOptions();
     syncPgoScoreSummary();
+  }
+  // 段选组：把 value 对应的 tab 设为 selected
+  function selectSeg(container, value) {
+    if (!container) return;
+    [...container.querySelectorAll('.gs-pgo-mode-tab')].forEach(t =>
+      t.classList.toggle('selected', t.dataset.value === value));
+  }
+  function syncPgoOptions() {
+    const o = state.options;
+    selectSeg(els.pgoTeamTrib, o.teamTribute ? 'on' : 'off');
+    selectSeg(els.pgoScoreCap, String(o.scoreCap));
+    selectSeg(els.pgoTurnSec, String(o.turnSec));
   }
   function syncPgoScoreSummary() {
     if (!els.pgoScore) return;
@@ -3717,6 +3768,22 @@
     persist();
     syncPgoDiff();
     refreshScoreChip();
+  });
+  // 玩法设置段选：同队进贡 / 单局积分上限 / 出牌时间
+  if (els.pgoTeamTrib) els.pgoTeamTrib.addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
+    state.options.teamTribute = (t.dataset.value === 'on');
+    persist(); syncPgoOptions();
+  });
+  if (els.pgoScoreCap) els.pgoScoreCap.addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
+    state.options.scoreCap = parseInt(t.dataset.value, 10) || 0;
+    persist(); syncPgoOptions();
+  });
+  if (els.pgoTurnSec) els.pgoTurnSec.addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
+    state.options.turnSec = parseInt(t.dataset.value, 10) || 0;
+    persist(); syncPgoOptions();
   });
   els.pgoStart.addEventListener('click', () => {
     els.pgo.classList.remove('open');
@@ -3900,6 +3967,7 @@
   function restoreFromSession(snap) {
     // 写回 state 数据字段
     if (['easy','normal','hard'].includes(snap.aiLevel)) state.aiLevel = snap.aiLevel;
+    if (snap.options) state.options = normalizeOptions(snap.options);
     if ([1,2,3].includes(snap.openMult)) state.openMult = snap.openMult;
     state.phase = snap.phase;
     state.levels = Array.isArray(snap.levels) ? snap.levels.slice() : [0, 0];
@@ -4139,7 +4207,7 @@
       gdSetNick(nick);
       if (onlineTab === 'create') {
         setOnlineHint('创建中…');
-        const r = await gdApi('create', { body: { nick, deviceId: gdGetDeviceId(), config: { aiLevel: state.aiLevel } } });
+        const r = await gdApi('create', { body: { nick, deviceId: gdGetDeviceId(), config: { aiLevel: state.aiLevel, options: state.options } } });
         if (!r.ok) { setOnlineHint(errText(r.error), true); return; }
         enterRoom(r.data, nick);
       } else {
@@ -4377,11 +4445,18 @@
   // 滑到 south（lobby 期间座位是固定映射，我可能在 right/top/left），然后才开本地对局。
   //   Phase 1 没有真正的多人对局同步，每个人各自开 3 AI 的本地局。
   function triggerLobbyToGameTransition(srv) {
-    const lvl = (srv && srv.config && srv.config.aiLevel) || state.aiLevel;
+    const cfg = (srv && srv.config) || {};
+    const lvl = cfg.aiLevel || state.aiLevel;
     stopOnlinePolling();
     if (['easy','normal','hard'].includes(lvl)) {
       state.aiLevel = lvl;
       try { syncPgoDiff(); } catch {}
+      try { persist(); } catch {}
+    }
+    // 房主在 config 里带的玩法设置同步给本局（同队进贡 / 积分上限 / 出牌时间）
+    if (cfg.options) {
+      state.options = normalizeOptions(cfg.options);
+      try { syncPgoOptions(); } catch {}
       try { persist(); } catch {}
     }
     rotateLobbyToSouth(() => {
