@@ -156,17 +156,13 @@ function pickAiMove(board, moveCount, ai, cfg, rng) {
         board[oc.r][oc.c] = opp;
         if (checkWin(board, oc.r, oc.c, opp)) { oppWins = true; board[oc.r][oc.c] = EMPTY; break; }
         board[oc.r][oc.c] = EMPTY;
-        // FIX 变体：对手应招的威胁用「纯进攻分」(defenseWeight=0)，否则 evaluatePoint
-        // 内含 defenseWeight×我方威胁，会让我方强手反被扣分（原 bug）。
-        const FIX = process.env.GOMOKU_FIX || '0';
-        const oppDW = (FIX === '0') ? cfg.defenseWeight : 0;
-        const os = evaluatePoint(board, oc.r, oc.c, opp, oppDW);
+        // 对手应招威胁用「纯进攻分」(defenseWeight=0)——与 index.html 修复一致；
+        // 若用 cfg.defenseWeight 会把 defenseWeight×我方威胁算进 oppBest，导致我方强手
+        // 反被扣分（原 bug：hard 反输 normal 75%）。
+        const os = evaluatePoint(board, oc.r, oc.c, opp, 0);
         if (os > oppBest) oppBest = os;
       }
-      const FIX2 = process.env.GOMOKU_FIX || '0';
-      // 0=原版(buggy)  1=纯进攻oppBest+×defenseWeight  2=纯进攻oppBest+权重1.0
-      const oppPenalty = (FIX2 === '2') ? oppBest : oppBest * cfg.defenseWeight;
-      val = oppWins ? -1e8 : (cand.s - oppPenalty);
+      val = oppWins ? -1e8 : (cand.s - oppBest * cfg.defenseWeight);
     }
     board[cand.r][cand.c] = EMPTY;
     if (val > bestVal) { bestVal = val; best = cand; }
@@ -179,6 +175,19 @@ function playGame(blackCfg, whiteCfg, rng) {
   const board = newBoard();
   let turn = BLACK;
   let moveCount = 0;
+  // 随机开局：先在中心附近随机放 RAND_OPEN 子（交替色），打散确定性死锁，
+  // 让 hard vs normal 不再每局复现同一盘平局。避开会直接连五的位置。
+  const RO = parseInt(process.env.RAND_OPEN || '0', 10);
+  for (let i = 0; i < RO; i++) {
+    const cells = [];
+    for (let r = 5; r <= 9; r++) for (let c = 5; c <= 9; c++) if (board[r][c] === EMPTY) cells.push([r, c]);
+    if (!cells.length) break;
+    const [r, c] = cells[Math.floor(rng() * cells.length)];
+    board[r][c] = turn;
+    moveCount++;
+    if (checkWin(board, r, c, turn)) { return turn; }
+    turn = turn === BLACK ? WHITE : BLACK;
+  }
   while (moveCount < N * N) {
     const cfg = turn === BLACK ? blackCfg : whiteCfg;
     const mv = pickAiMove(board, moveCount, turn, cfg, rng);

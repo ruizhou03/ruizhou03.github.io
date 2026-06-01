@@ -637,7 +637,12 @@ permalink: /toolbox/gomoku/
           state.board[oc.r][oc.c] = opp;
           if (checkWin(oc.r, oc.c, opp)) { oppWins = true; state.board[oc.r][oc.c] = EMPTY; break; }
           state.board[oc.r][oc.c] = EMPTY;
-          const os = evaluatePoint(oc.r, oc.c, opp, cfg.defenseWeight);
+          // 对手应招的威胁要用「纯进攻分」(defenseWeight=0)。若沿用 cfg.defenseWeight，
+          // evaluatePoint 会把 defenseWeight×(我方威胁) 也算进 oppBest——我方这步越凶、
+          // 对手封堵点的分越高、oppBest 越大、val 被扣越狠，结果 hard 系统性专挑最软的
+          // 一手、自废武功（实测 hard 反输 normal 75%、连 easy 都打不过）。改纯进攻后
+          // hard 重新 ≥ normal、决定性局里约 73% 胜 normal。
+          const os = evaluatePoint(oc.r, oc.c, opp, 0);
           if (os > oppBest) oppBest = os;
         }
         val = oppWins ? -1e8 : (cand.s - oppBest * cfg.defenseWeight);

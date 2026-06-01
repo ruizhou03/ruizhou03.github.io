@@ -4062,10 +4062,6 @@
     code: $('gdOnlineCode'),
     submit: $('gdOnlineSubmit'),
     hint: $('gdOnlineHint'),
-    resume: $('gdOnlineResume'),
-    resumeCode: $('gdResumeCode'),
-    resumeBtn: $('gdResumeBtn'),
-    resumeForget: $('gdResumeForget'),
     lobby: $('gdLobby'),
     roomCode: $('gdRoomCode'),
     seatTop: $('gdLobbySeatTop'),
@@ -4122,10 +4118,6 @@
   }
 
   // ---- session ----
-  function onlineSessionLoad() {
-    try { return JSON.parse(localStorage.getItem(ONLINE_SESSION_KEY) || 'null'); }
-    catch { return null; }
-  }
   function onlineSessionSave(s) {
     try { localStorage.setItem(ONLINE_SESSION_KEY, JSON.stringify(s)); } catch {}
   }
@@ -4201,7 +4193,6 @@
         if (m === 'online') {
           onlineEls.singleSetup.hidden = true;
           onlineEls.onlineSetup.hidden = false;
-          renderResumeOption();
           // 预填昵称
           if (onlineEls.nick && !onlineEls.nick.value) onlineEls.nick.value = gdGetNick();
         } else {
@@ -4213,35 +4204,6 @@
     });
   }
   placeGameOpts();   // 初始（默认单机）把玩法设置放到难度下方
-
-  // ---- resume ----
-  function renderResumeOption() {
-    if (!onlineEls.resume) return;
-    const s = onlineSessionLoad();
-    if (!s || !s.code) { onlineEls.resume.hidden = true; return; }
-    onlineEls.resume.hidden = false;
-    if (onlineEls.resumeCode) onlineEls.resumeCode.textContent = s.code;
-  }
-  if (onlineEls.resumeBtn) {
-    onlineEls.resumeBtn.addEventListener('click', async () => {
-      const s = onlineSessionLoad();
-      if (!s) { renderResumeOption(); return; }
-      const nick = (onlineEls.nick.value.trim() || s.nick || '').slice(0, 12);
-      if (!nick) { setOnlineHint('请输入昵称', true); return; }
-      setOnlineHint('重新加入中…');
-      const r = await gdApi('join', { body: { code: s.code, nick, deviceId: gdGetDeviceId() } });
-      if (!r.ok) {
-        setOnlineHint(errText(r.error), true);
-        if (r.error === 'room_not_found' || r.error === 'room_dissolved') onlineSessionClear();
-        renderResumeOption();
-        return;
-      }
-      enterRoom(r.data, nick);
-    });
-  }
-  if (onlineEls.resumeForget) {
-    onlineEls.resumeForget.addEventListener('click', () => { onlineSessionClear(); renderResumeOption(); });
-  }
 
   // ---- submit (create/join) ----
   if (onlineEls.submit) {
@@ -4326,7 +4288,6 @@
       onlineEls.lobby.hidden = true;
       if (els.table) els.table.classList.remove('gd-in-lobby');
       els.pgo && els.pgo.classList.add('open');
-      renderResumeOption();
       return;
     }
     const body = { code: onlineState.code, token: onlineState.token };
@@ -4344,7 +4305,6 @@
     if (els.table) els.table.classList.remove('gd-in-lobby');
     if (els.pgo) els.pgo.classList.add('open');
     if (!silent) setOnlineHint('已离开房间');
-    renderResumeOption();
   }
 
   if (onlineEls.leaveBtn) {
@@ -5056,7 +5016,5 @@
       setOnlineHint('输入昵称后按回车自动加入房间');
     }
   })();
-
-  renderResumeOption();
 
 })();

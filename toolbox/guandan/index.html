@@ -802,12 +802,9 @@ permalink: /toolbox/guandan/
     align-items: center; gap: 0.3rem;
     z-index: 3;
   }
-  /* 4 个座位"绝对位置"对齐正式对局时的同方位 .gd-seat：开始游戏后头像不再瞬移。
-     - at-top  ↔ .gd-seats-top (gdSeat2)：在 .gd-table padding-top 0.6rem 那里
-     - at-left ↔ .gd-side-left (gdSeat3)：top 30% 近似对齐游戏中 seats-mid top:65%
-     - at-right↔ .gd-side-right(gdSeat1)
-     - at-bottom↔ .gd-self-bar (gdSeat0)：left 0.9rem; bottom 4.4rem
-     头像尺寸也同步缩到 46px 与 .gd-avatar 一致。 */
+  /* 上方/左/右三座对齐对局同方位；"我"(at-bottom) 在大厅里居中正对对家，
+     只有点开始游戏(.starting)后才滑到 bottom-left 的对局座位。
+     头像尺寸 46px 与 .gd-avatar 一致。 */
   .gd-lobby-seat.at-top {
     top: 0.6rem;
     left: 50%;
@@ -823,15 +820,14 @@ permalink: /toolbox/guandan/
     right: 0.4rem;
     transform: translateY(-50%);
   }
-  /* at-bottom = .gd-self-bar 的位置；seat-inner 翻转 column-reverse，让 avatar 落到 cell
-     底部（cell.bottom 4.4rem 时 avatar.bottom 也 ≈ 4.4rem，与 .gd-self-bar.avatar 同高）*/
+  /* "我"在大厅居中正对对家；开始游戏(.starting)时滑到 bottom-left 的对局自座 */
   .gd-lobby-seat.at-bottom {
-    bottom: 4.4rem;
-    left: 0.9rem;
-  }
-  .gd-lobby-seat.at-bottom .seat-inner {
-    flex-direction: column-reverse;
-    align-items: flex-start;
+    bottom: 1.2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: left 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+                bottom 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .gd-lobby.starting .gd-lobby-seat.at-bottom {
     left: 0.9rem;
@@ -1923,11 +1919,6 @@ permalink: /toolbox/guandan/
                    pattern="\d{4}" autocomplete="off" hidden />
             <button class="gs-pgo-start-btn" id="gdOnlineSubmit" type="button">创建房间</button>
             <div class="gd-online-hint" id="gdOnlineHint"></div>
-            <div class="gd-online-resume" id="gdOnlineResume" hidden>
-              上次进过房间 <span class="key" id="gdResumeCode"></span>
-              <button class="gd-btn mini" id="gdResumeBtn" type="button">重新加入</button>
-              <button class="gd-btn mini" id="gdResumeForget" type="button">忘掉</button>
-            </div>
           </div>
         </div>
       </div>
@@ -2059,4 +2050,4 @@ permalink: /toolbox/guandan/
 <script src="/assets/js/games-shell/nick-prompt.js"></script>
 <script src="/assets/js/games-shell/qrcode.js"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260601b"></script>
+<script src="/assets/js/games/guandan.js?v=20260601c"></script>
