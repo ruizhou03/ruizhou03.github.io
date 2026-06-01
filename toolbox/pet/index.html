@@ -157,16 +157,15 @@ permalink: /toolbox/pet/
     border-radius: 1px;
   }
 
+  /* 一体式三段卡（和体重卡同款）：左列食物种类 · 中间填写区 · 右列记一笔/记录时间，
+     左右两列满高贴合卡片边缘、无缝。 */
   .entry-form {
     background: var(--color-bg);
     border: 1px solid var(--color-border); border-radius: 12px;
-    padding: 1rem; margin-bottom: 1rem;
+    padding: 0; overflow: hidden; margin-bottom: 1rem;
   }
-  /* Column layout: [food types] · [fixed fill area] · [record time] · [save].
-     The fill area has a write-死 fixed width so it never reflows between food
-     modes; the other modes just optimise inside that same box. */
   .entry-form .entry-cols {
-    display: flex; align-items: stretch; gap: 0.7rem; flex-wrap: nowrap;
+    display: flex; align-items: stretch; gap: 0; flex-wrap: nowrap;
   }
   .entry-form .entry-main-row {
     display: flex; align-items: center; gap: 0.5rem;
@@ -183,25 +182,28 @@ permalink: /toolbox/pet/
   }
   .entry-form .mode-bowl .bowl-row input { width: 56px; padding: 0.4rem 0.45rem; }
   .entry-form .mode-bowl .bowl-row select { padding: 0.4rem 1.5rem 0.4rem 0.5rem; }
-  /* MIDDLE — fixed-width fill area (width = kibble mode). */
+  /* MIDDLE — 填写区撑满中间、内容居中；内层各行定宽不随食物模式变 */
   .entry-form .fill-area {
-    flex: 0 0 320px; width: 320px;
+    flex: 1 1 auto; min-width: 0; padding: 0.9rem 1.2rem;
     display: flex; flex-direction: column; gap: 0.55rem; justify-content: center;
   }
+  .entry-form .fill-area > * { width: 100%; max-width: 340px; margin-inline: auto; }
   .entry-form .fill-area .extra-eq-row,
   .entry-form .fill-area .bowl-row { margin-top: 0; }
-  /* RIGHT — one column: 记一笔 on top, 记录时间 as a small row beneath it.
-     Keeps the whole strip inside the box (no overflow off the right edge). */
+  /* RIGHT — 记一笔满高贴右边、直角和整卡贴合；记录时间作底部一条贴合的小行 */
   .entry-form .action-col {
-    flex: 0 0 auto; display: flex; flex-direction: column; gap: 0.4rem;
-    align-items: stretch;
+    flex: 0 0 150px; align-self: stretch; display: flex; flex-direction: column;
+    border-left: 1px solid var(--color-border);
   }
   .entry-form .action-col .save-btn {
-    flex: 1 1 auto; align-self: stretch; min-height: 52px;
-    border-radius: 18px; padding: 0.7rem 1.4rem;
+    flex: 1 1 auto; align-self: stretch; min-height: 56px; border: none; border-radius: 0;
+    padding: 0.7rem 1rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem;
   }
-  .entry-form .action-col .time-pill { width: 100%; justify-content: flex-start; }
-  .entry-form .action-col .link-btn { align-self: flex-start; }
+  .entry-form .action-col .time-pill {
+    width: 100%; border: none; border-top: 1px solid var(--color-border); border-radius: 0;
+    justify-content: center; background: var(--color-bg-warm); min-height: 40px;
+  }
+  .entry-form .action-col .link-btn { display: none; }
   /* Shared by the food input AND the weight input. */
   .reading-group {
     display: flex; align-items: stretch;
@@ -308,31 +310,35 @@ permalink: /toolbox/pet/
   /* Food-type column (kibble + saved treats/cans + new). Vertical list that
      scrolls when there are too many foods, so the fill area stays put. */
   .entry-form .food-selector {
-    flex: 0 0 128px; width: 128px;
+    flex: 0 0 132px; align-self: stretch;
     display: flex; flex-direction: column; gap: 0.45rem;
-    max-height: 172px; overflow-y: auto; overflow-x: hidden;
-    margin: 0; padding-right: 2px;
+    max-height: 220px; overflow-y: auto; overflow-x: hidden;
+    margin: 0; padding: 0.7rem; border-right: 1px solid var(--color-border);
+    background: var(--color-bg-warm);
   }
   .entry-form .food-selector .extra-chip {
     width: 100%; justify-content: flex-start;
     white-space: normal; text-align: left; line-height: 1.25;
     min-height: 40px;
   }
-  /* Narrow screens: drop the columns and stack like before. */
+  /* Narrow screens: 拆回竖排堆叠、恢复内边距与圆角、食物种类回到横向滚动一排。 */
   @media (max-width: 800px) {
-    .entry-form .entry-cols { flex-direction: column; align-items: stretch; }
+    .entry-form { padding: 1rem; }
+    .entry-form .entry-cols { flex-direction: column; align-items: stretch; gap: 0; }
     .entry-form .food-selector {
       flex: 0 0 auto; width: auto; flex-direction: row; flex-wrap: nowrap;
       max-height: none; overflow-x: auto; overflow-y: visible;
-      padding: 0 0 4px; margin-bottom: 0.85rem;
+      padding: 0 0 4px; margin-bottom: 0.85rem; border-right: none; background: none;
     }
     .entry-form .food-selector .extra-chip {
       flex: 0 0 auto; width: auto; white-space: nowrap; line-height: normal;
     }
-    .entry-form .fill-area { flex: 1 1 auto; width: auto; }
+    .entry-form .fill-area { flex: 1 1 auto; width: auto; padding: 0; }
+    .entry-form .fill-area > * { max-width: none; }
     /* 记录时间 on top, 记一笔 as the big action at the bottom. */
-    .entry-form .action-col { width: 100%; }
-    .entry-form .action-col .save-btn { order: 3; width: 100%; }
+    .entry-form .action-col { width: 100%; border-left: none; margin-top: 0.7rem; }
+    .entry-form .action-col .save-btn { order: 3; width: 100%; border-radius: 14px; min-height: 48px; }
+    .entry-form .action-col .time-pill { border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-bg-warm); justify-content: flex-start; }
   }
   .extra-chip {
     font: inherit; font-size: 0.88rem; cursor: pointer;
