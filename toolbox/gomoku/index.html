@@ -269,7 +269,8 @@ permalink: /toolbox/gomoku/
     mode: stored.lastMode || 'pvp',
     difficulty: DIFFICULTY[stored.difficulty] ? stored.difficulty : 'normal',
     tally: Object.assign({ black: 0, white: 0 }, stored.tally || {}),
-    board: [],
+    // 初始即建成完整 N×N，避免 newGame 之前的 resize 重绘读到空 board[r]（draw 会崩）
+    board: Array.from({ length: N }, () => Array(N).fill(EMPTY)),
     history: [],
     turn: BLACK,
     over: false,
