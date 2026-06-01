@@ -4612,9 +4612,24 @@ permalink: /toolbox/pet-food/
     // 切走「猫语」时停止仍在循环的叫声
     if (b !== 'meow') document.dispatchEvent(new Event('cat-board-stop'));
   }
+  // 让每个板块可被链接直达：#food / #weight / #meow（兼容 #cat）。这样可以
+  // 单独收藏/分享某个 tab，打开就停在那个板块，而不是总落回「粮食」。
+  function boardFromHash() {
+    const h = (location.hash || '').replace(/^#/, '').toLowerCase();
+    if (['meow', 'cat', 'catlang', '猫语'].includes(h)) return 'meow';
+    if (['weight', '体重'].includes(h)) return 'weight';
+    if (['food', '粮食'].includes(h)) return 'food';
+    return null;
+  }
+  function syncBoardHash(b) {
+    const want = '#' + b;
+    if (location.hash !== want) history.replaceState(null, '', location.pathname + location.search + want);
+  }
   $boardTabs.querySelectorAll('button').forEach(btn => {
-    btn.addEventListener('click', () => { setBoard(btn.dataset.board); persist(); });
+    btn.addEventListener('click', () => { setBoard(btn.dataset.board); persist(); syncBoardHash(state.board); });
   });
+  // 直接改 hash（粘贴链接 / 浏览器前进后退）也跟着切板块
+  window.addEventListener('hashchange', () => { const b = boardFromHash(); if (b && b !== state.board) { setBoard(b); persist(); } });
 
   // ===== Reusable date+time picker modal =====
   let tpOnConfirm = null;
@@ -5204,6 +5219,9 @@ permalink: /toolbox/pet-food/
 
   // ===== Init =====
   load();
+  // 打开时若链接带 #food/#weight/#meow，就停在那个板块（覆盖上次记住的）
+  const hashBoard = boardFromHash();
+  if (hashBoard) state.board = hashBoard;
   render();
   // Pull profile + shared pet data (best-effort, parallel)
   loadProfile().catch(() => {});
