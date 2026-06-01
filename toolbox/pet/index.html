@@ -598,58 +598,62 @@ permalink: /toolbox/pet/
     background: var(--color-bg); color: var(--color-ink);
   }
   /* ===== Weight section ===== */
+  /* 一体式三段卡：左列「直接称/做差」整列一分为二 · 中间填写区 · 右列「记体重」，
+     三段都满高贴合卡片、无缝；切两种模式整卡大小写死不变（高度固定）。 */
   .weight-box {
     border: 1px solid var(--color-border); border-radius: 14px;
-    background: var(--color-bg); padding: 1.15rem 1.15rem 1.2rem; margin-bottom: 1rem;
+    background: var(--color-bg); margin-bottom: 1rem;
+    padding: 0; overflow: hidden;
   }
-  /* Same shape as the food entry box: [模式左列] [定宽填写块] [记体重整列]，
-     整组在卡片里居中。 */
   .weight-box .weight-cols {
-    display: flex; align-items: stretch; justify-content: space-between;
-    gap: 0.7rem; flex-wrap: nowrap;
+    display: flex; align-items: stretch; flex-wrap: nowrap; gap: 0;
+    height: 196px;                       /* 写死高度：两种模式同高，不再切换变大小 */
   }
-  /* LEFT: 直接称 / 做差 stacked column (mirrors the food-type column). */
+  /* LEFT: 一整列一分为二的 直接称 / 做差（满高、贴左边、无缝分隔） */
   .weight-box .weight-method {
-    flex: 0 0 auto; align-self: center;
-    display: flex; flex-direction: column; align-items: stretch; gap: 0.45rem;
+    flex: 0 0 104px; display: flex; flex-direction: column; gap: 0;
+    border-right: 1px solid var(--color-border);
   }
   .weight-box .weight-method label {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-height: 40px; padding: 0.5rem 1rem; border-radius: 999px;
-    border: 1px solid var(--color-border); background: var(--color-bg);
-    color: var(--color-ink); font-size: 0.88rem; cursor: pointer;
-    white-space: nowrap; transition: all 0.15s;
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: var(--color-bg-warm); color: var(--color-ink);
+    font-size: 0.92rem; cursor: pointer; transition: all 0.15s;
   }
-  .weight-box .weight-method label.active {
-    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
-    font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-  }
-  @media (hover: hover) { .weight-box .weight-method label:not(.active):hover { border-color: var(--color-accent); } }
+  .weight-box .weight-method label:first-child { border-bottom: 1px solid var(--color-border); }
+  .weight-box .weight-method label.active { background: var(--color-accent); color: #fff; font-weight: 600; }
+  @media (hover: hover) { .weight-box .weight-method label:not(.active):hover { background: var(--color-bg); } }
   .weight-box .weight-method input { display: none; }
-  /* MIDDLE: 大小写死——宽 320 + 高 190 都固定，切直接称/做差时框不再变大小；
-     内容垂直居中（直接称只有一行时上下留白）。 */
+  /* MIDDLE: 填写区，撑满中间、内容垂直居中（直接称单行上下留白，做差填满同一框） */
   .weight-box .weight-fill {
-    flex: 0 0 320px; width: 320px; height: 190px; align-self: center;
+    flex: 1 1 auto; min-width: 0; padding: 0 1.3rem;
     display: flex; flex-direction: column; gap: 0.55rem; justify-content: center;
   }
-  .weight-box .reading-group.weight-reading { width: 100%; max-width: none; }
+  .weight-box .reading-group.weight-reading { width: 100%; max-width: 380px; align-self: center; margin-inline: auto; }
+  .weight-box .weight-diff .diff-result { max-width: 380px; align-self: center; width: 100%; box-sizing: border-box; }
+  /* RIGHT: 记体重 满高贴右边、和整卡贴合（直角，靠卡片 overflow:hidden 切圆角） */
   .weight-box .save-btn {
-    flex: 0 0 auto; align-self: stretch; min-height: 52px;
-    font: inherit; font-size: 0.98rem; font-weight: 600;
-    padding: 0.7rem 1.4rem; border: none; border-radius: 18px;
+    flex: 0 0 134px; border: none; border-radius: 0;
+    font: inherit; font-size: 1rem; font-weight: 600;
     background: var(--color-accent); color: #fff; cursor: pointer; white-space: nowrap;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.08); transition: background 0.18s, transform 0.08s;
+    display: flex; align-items: center; justify-content: center; gap: 0.3rem;
+    transition: background 0.18s;
   }
-  .weight-box .save-btn:active { transform: scale(0.97); }
+  .weight-box .save-btn:active { background: var(--color-accent-light); }
   @media (hover: hover) { .weight-box .save-btn:hover { background: var(--color-accent-light); } }
-  /* Narrow screens: modes become a 2-up row, fill + button go full width,
-     高度恢复自适应（竖向堆叠时不需要写死高）。 */
+  /* 窄屏：拆成竖排，三段各自满宽、恢复内边距与圆角、高度自适应 */
   @media (max-width: 680px) {
-    .weight-box .weight-cols { flex-direction: column; align-items: stretch; justify-content: flex-start; }
-    .weight-box .weight-method { flex-direction: row; align-self: stretch; }
-    .weight-box .weight-method label { flex: 1; }
-    .weight-box .weight-fill { width: auto; height: auto; flex: 1 1 auto; align-self: stretch; }
-    .weight-box .save-btn { align-self: stretch; width: 100%; }
+    .weight-box { padding: 1.1rem; }
+    .weight-box .weight-cols { flex-direction: column; align-items: stretch; height: auto; gap: 0.7rem; }
+    .weight-box .weight-method {
+      flex: 0 0 auto; flex-direction: row; border-right: none;
+      border: 1px solid var(--color-border); border-radius: 999px; overflow: hidden;
+    }
+    .weight-box .weight-method label { padding: 0.5rem 1rem; min-height: 42px; }
+    .weight-box .weight-method label:first-child { border-bottom: none; border-right: 1px solid var(--color-border); }
+    .weight-box .weight-fill { padding: 0; }
+    .weight-box .reading-group.weight-reading { max-width: none; }
+    .weight-box .weight-diff .diff-result { max-width: none; }
+    .weight-box .save-btn { flex: 0 0 auto; width: 100%; min-height: 48px; border-radius: 14px; padding: 0.7rem 1.4rem; }
   }
   /* Featured current-weight card (mirrors the food board's stat cards). */
   .weight-hero {
