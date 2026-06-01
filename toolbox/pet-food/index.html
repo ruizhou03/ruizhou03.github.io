@@ -617,10 +617,24 @@ permalink: /toolbox/pet-food/
   }
   .weight-box .save-btn:active { transform: scale(0.97); }
   @media (hover: hover) { .weight-box .save-btn:hover { background: var(--color-accent-light); } }
-  .section-title .right#weight-summary { font-variant-numeric: tabular-nums; }
-  #weight-summary .ws-cur { color: var(--color-ink); font-weight: 600; }
+  /* Featured current-weight card (mirrors the food board's stat cards). */
+  .weight-hero {
+    text-align: center; margin-bottom: 0.9rem;
+    padding: 1.05rem 1rem 1.1rem; border-radius: 14px;
+    background: var(--color-bg-warm); border: 1px solid var(--color-border);
+  }
+  .weight-hero .wh-num {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 2.3rem; color: var(--color-ink); line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .weight-hero .wh-unit {
+    font-family: var(--font-display); font-size: 1.2rem;
+    color: var(--color-muted); margin-left: 0.25rem;
+  }
+  .weight-hero .wh-sub { margin-top: 0.55rem; font-size: 0.82rem; color: var(--color-muted); }
   /* Direction only — no good/bad color (gain isn't "bad" for a growing pet). */
-  #weight-summary .ws-up, #weight-summary .ws-down { color: var(--color-muted); }
+  .weight-hero .wh-sub .wh-delta { color: var(--color-ink); font-variant-numeric: tabular-nums; }
   .weight-chart-wrap { position: relative; margin-top: 0.9rem; }
   .weight-chart-wrap svg { width: 100%; height: auto; display: block; overflow: visible; }
   .weight-empty {
@@ -1336,9 +1350,10 @@ permalink: /toolbox/pet-food/
 
     <!-- ===== 体重 board ===== -->
     <div class="board-panel" id="panel-weight" data-board="weight">
-      <div class="section-title">
-        体重记录
-        <span class="right" id="weight-summary"></span>
+      <div class="section-title">体重记录</div>
+      <div class="weight-hero" id="weight-hero" style="display:none;">
+        <div class="wh-main"><span class="wh-num" id="wh-num">—</span><span class="wh-unit" id="wh-unit">斤</span></div>
+        <div class="wh-sub" id="wh-sub">当前体重</div>
       </div>
       <div class="weight-box" id="weight-box">
         <div class="mode-toggle weight-method" id="weight-method">
@@ -2321,7 +2336,10 @@ permalink: /toolbox/pet-food/
   const $weightInput = document.getElementById('weight-input');
   const $weightUnit = document.getElementById('weight-unit');
   const $weightSave = document.getElementById('weight-save');
-  const $weightSummary = document.getElementById('weight-summary');
+  const $weightHero = document.getElementById('weight-hero');
+  const $whNum = document.getElementById('wh-num');
+  const $whUnit = document.getElementById('wh-unit');
+  const $whSub = document.getElementById('wh-sub');
   const $weightChart = document.getElementById('weight-chart');
   const $weightEmpty = document.getElementById('weight-empty');
   const $weightList = document.getElementById('weight-list');
@@ -4339,9 +4357,9 @@ permalink: /toolbox/pet-food/
     if (state.weightCustomStart) $weightCustomStart.value = state.weightCustomStart;
     if (state.weightCustomEnd) $weightCustomEnd.value = state.weightCustomEnd;
     const ws = weightEntries(pet).sort((a, b) => a.ts - b.ts);
-    // Summary: current weight + change vs ~30 days ago (always over the full log)
+    // Featured current-weight card: current weight + change vs ~30 days ago.
     if (ws.length === 0) {
-      $weightSummary.textContent = '';
+      $weightHero.style.display = 'none';
     } else {
       const curKg = Number(ws[ws.length - 1].kg);
       const curTs = ws[ws.length - 1].ts;
@@ -4350,14 +4368,16 @@ permalink: /toolbox/pet-food/
       const ref = ws.find(w => w.ts >= since) || ws[0];
       const dKg = curKg - Number(ref.kg);
       const curStr = parseFloat(bwFromKg(curKg, unit).toFixed(2));
-      let deltaHtml = '';
+      let subHtml = '当前体重';
       if (ws.length >= 2 && Math.abs(dKg) >= 0.005) {
         const dStr = parseFloat(Math.abs(bwFromKg(dKg, unit)).toFixed(2));
-        const cls = dKg > 0 ? 'ws-up' : 'ws-down';
         const arrow = dKg > 0 ? '↑' : '↓';
-        deltaHtml = ` · <span class="${cls}">${arrow}${dStr}${unit}</span>`;
+        subHtml += ` · 近 30 天 <span class="wh-delta">${arrow}${dStr} ${unit}</span>`;
       }
-      $weightSummary.innerHTML = `<span class="ws-cur">${curStr} ${unit}</span>${deltaHtml}`;
+      $whNum.textContent = curStr;
+      $whUnit.textContent = unit;
+      $whSub.innerHTML = subHtml;
+      $weightHero.style.display = '';
     }
     // Windowed entries drive the chart.
     const win = weightWindow();
