@@ -180,18 +180,18 @@ permalink: /toolbox/pet-food/
   }
   .entry-form .fill-area .extra-eq-row,
   .entry-form .fill-area .bowl-row { margin-top: 0; }
-  /* RIGHT — record-time column (fixed). */
-  .entry-form .time-col {
-    flex: 0 0 auto; display: flex; flex-direction: column;
-    gap: 0.3rem; justify-content: center; align-items: flex-start;
+  /* RIGHT — one column: 记一笔 on top, 记录时间 as a small row beneath it.
+     Keeps the whole strip inside the box (no overflow off the right edge). */
+  .entry-form .action-col {
+    flex: 0 0 auto; display: flex; flex-direction: column; gap: 0.4rem;
+    align-items: stretch;
   }
-  /* FAR RIGHT — save column, full height (fixed). Tall rounded rectangle
-     rather than a pill so it doesn't blow up into an oval when the row is
-     tall (e.g. a long food list). */
-  .entry-form .entry-cols > .save-btn {
-    flex: 0 0 auto; align-self: stretch;
+  .entry-form .action-col .save-btn {
+    flex: 1 1 auto; align-self: stretch; min-height: 52px;
     border-radius: 18px; padding: 0.7rem 1.4rem;
   }
+  .entry-form .action-col .time-pill { width: 100%; justify-content: flex-start; }
+  .entry-form .action-col .link-btn { align-self: flex-start; }
   /* Shared by the food input AND the weight input. */
   .reading-group {
     display: flex; align-items: stretch;
@@ -321,8 +321,9 @@ permalink: /toolbox/pet-food/
       flex: 0 0 auto; width: auto; white-space: nowrap; line-height: normal;
     }
     .entry-form .fill-area { flex: 1 1 auto; width: auto; }
-    .entry-form .time-col { align-items: stretch; }
-    .entry-form .entry-cols > .save-btn { align-self: stretch; width: 100%; }
+    /* 记录时间 on top, 记一笔 as the big action at the bottom. */
+    .entry-form .action-col { width: 100%; }
+    .entry-form .action-col .save-btn { order: 3; width: 100%; }
   }
   .extra-chip {
     font: inherit; font-size: 0.88rem; cursor: pointer;
@@ -1270,8 +1271,9 @@ permalink: /toolbox/pet-food/
           </div>
         </div>
 
-        <!-- RIGHT: record-time column (fixed, not affected by food mode) -->
-        <div class="time-col">
+        <!-- RIGHT: save button + record-time stacked in one column (fixed) -->
+        <div class="action-col">
+          <button type="button" class="save-btn" id="save-entry">📝 记一笔</button>
           <button type="button" class="time-pill" id="time-toggle">
             <span class="tp-ico">🕑</span>
             <span class="tp-lbl">记录时间</span>
@@ -1280,9 +1282,6 @@ permalink: /toolbox/pet-food/
           </button>
           <button type="button" class="link-btn" id="time-now" style="display:none;">改回现在</button>
         </div>
-
-        <!-- FAR RIGHT: save column (fixed, not affected by food mode) -->
-        <button type="button" class="save-btn" id="save-entry">📝 记一笔</button>
       </div>
     </div>
 
