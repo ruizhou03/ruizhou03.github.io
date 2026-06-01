@@ -162,18 +162,35 @@ permalink: /toolbox/pet-food/
     border: 1px solid var(--color-border); border-radius: 12px;
     padding: 1rem; margin-bottom: 1rem;
   }
-  /* Compact entry form: input + toggle + save share one row; bowl & time
-     pills share the next row. Left-packed (no space-between gaps). */
+  /* Column layout: [food types] · [fixed fill area] · [record time] · [save].
+     The fill area has a write-死 fixed width so it never reflows between food
+     modes; the other modes just optimise inside that same box. */
+  .entry-form .entry-cols {
+    display: flex; align-items: stretch; gap: 0.7rem; flex-wrap: nowrap;
+  }
   .entry-form .entry-main-row {
-    display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 0.5rem;
   }
-  .entry-form .entry-main-row .reading-group { flex: 1 1 180px; max-width: 320px; }
-  @media (max-width: 520px) {
-    /* input takes its own row; toggle + save pair on the next row */
-    .entry-form .entry-main-row .reading-group { flex-basis: 100%; max-width: none; }
+  .entry-form .entry-main-row .reading-group { flex: 1 1 auto; min-width: 0; }
+  .entry-form .entry-main-row .mode-toggle { flex: 0 0 auto; }
+  /* MIDDLE — fixed-width fill area (width = kibble mode). */
+  .entry-form .fill-area {
+    flex: 0 0 320px; width: 320px;
+    display: flex; flex-direction: column; gap: 0.55rem; justify-content: center;
   }
-  .entry-form .entry-meta-row {
-    display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.7rem;
+  .entry-form .fill-area .extra-eq-row,
+  .entry-form .fill-area .bowl-row { margin-top: 0; }
+  /* RIGHT — record-time column (fixed). */
+  .entry-form .time-col {
+    flex: 0 0 auto; display: flex; flex-direction: column;
+    gap: 0.3rem; justify-content: center; align-items: flex-start;
+  }
+  /* FAR RIGHT — save column, full height (fixed). Tall rounded rectangle
+     rather than a pill so it doesn't blow up into an oval when the row is
+     tall (e.g. a long food list). */
+  .entry-form .entry-cols > .save-btn {
+    flex: 0 0 auto; align-self: stretch;
+    border-radius: 18px; padding: 0.7rem 1.4rem;
   }
   /* Shared by the food input AND the weight input. */
   .reading-group {
@@ -203,8 +220,6 @@ permalink: /toolbox/pet-food/
     border-left: 1px solid var(--color-border); background: var(--color-bg-warm);
     font-size: 0.92rem; color: var(--color-muted); white-space: nowrap; font-weight: 500;
   }
-  .entry-form .entry-main-row .mode-toggle { flex: 0 0 auto; }
-  .entry-form .entry-main-row .save-btn { flex: 0 0 auto; }
   /* App-grade segmented control (iOS-style: track + inset thumb), centered text.
      Used in the entry form AND inside modals. */
   .mode-toggle {
@@ -281,9 +296,33 @@ permalink: /toolbox/pet-food/
   }
   .entry-form .bowl-row.shake input { animation: bowl-shake 0.32s; }
 
-  /* Food selector chip row (kibble + saved treats/cans + new) */
+  /* Food-type column (kibble + saved treats/cans + new). Vertical list that
+     scrolls when there are too many foods, so the fill area stays put. */
   .entry-form .food-selector {
-    display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem;
+    flex: 0 0 128px; width: 128px;
+    display: flex; flex-direction: column; gap: 0.45rem;
+    max-height: 172px; overflow-y: auto; overflow-x: hidden;
+    margin: 0; padding-right: 2px;
+  }
+  .entry-form .food-selector .extra-chip {
+    width: 100%; justify-content: flex-start;
+    white-space: normal; text-align: left; line-height: 1.25;
+    min-height: 40px;
+  }
+  /* Narrow screens: drop the columns and stack like before. */
+  @media (max-width: 800px) {
+    .entry-form .entry-cols { flex-direction: column; align-items: stretch; }
+    .entry-form .food-selector {
+      flex: 0 0 auto; width: auto; flex-direction: row; flex-wrap: nowrap;
+      max-height: none; overflow-x: auto; overflow-y: visible;
+      padding: 0 0 4px; margin-bottom: 0.85rem;
+    }
+    .entry-form .food-selector .extra-chip {
+      flex: 0 0 auto; width: auto; white-space: nowrap; line-height: normal;
+    }
+    .entry-form .fill-area { flex: 1 1 auto; width: auto; }
+    .entry-form .time-col { align-items: stretch; }
+    .entry-form .entry-cols > .save-btn { align-self: stretch; width: 100%; }
   }
   .extra-chip {
     font: inherit; font-size: 0.88rem; cursor: pointer;
@@ -1194,45 +1233,56 @@ permalink: /toolbox/pet-food/
     </div>
 
     <div class="entry-form">
-      <div class="food-selector" id="food-selector"></div>
-      <div class="entry-main-row">
-        <div class="reading-group">
-          <input type="number" class="reading" id="reading" step="any" placeholder="粮食称重" inputmode="decimal" />
-          <select class="unit-pick" id="unit-pick">
-            <option value="g">g</option>
-            <option value="kg">kg</option>
-            <option value="oz">oz</option>
-            <option value="lb">lb</option>
-          </select>
-          <span class="unit-suffix" id="unit-suffix" style="display:none;">份</span>
+      <div class="entry-cols">
+        <!-- LEFT: food-type column (scrolls vertically when there are many) -->
+        <div class="food-selector" id="food-selector"></div>
+
+        <!-- MIDDLE: fixed-width fill area — same width in every food mode -->
+        <div class="fill-area">
+          <div class="entry-main-row">
+            <div class="reading-group">
+              <input type="number" class="reading" id="reading" step="any" placeholder="粮食称重" inputmode="decimal" />
+              <select class="unit-pick" id="unit-pick">
+                <option value="g">g</option>
+                <option value="kg">kg</option>
+                <option value="oz">oz</option>
+                <option value="lb">lb</option>
+              </select>
+              <span class="unit-suffix" id="unit-suffix" style="display:none;">份</span>
+            </div>
+            <div class="mode-toggle" id="mode-toggle">
+              <label data-val="1" class="active"><input type="radio" name="with-bowl" value="1" checked>含碗</label>
+              <label data-val="0"><input type="radio" name="with-bowl" value="0">不含碗</label>
+            </div>
+          </div>
+          <div class="extra-eq-row" id="extra-eq-row" style="display:none;">
+            <span class="extra-eq" id="extra-eq">≈ — g 等效干粮</span>
+          </div>
+          <div class="bowl-row" id="bowl-row">
+            <span>碗的空重</span>
+            <input type="number" id="bowl-weight" step="any" min="0" placeholder="未设" inputmode="decimal" />
+            <select id="bowl-weight-unit">
+              <option value="g">g</option>
+              <option value="kg">kg</option>
+              <option value="oz">oz</option>
+              <option value="lb">lb</option>
+            </select>
+          </div>
         </div>
-        <div class="mode-toggle" id="mode-toggle">
-          <label data-val="1" class="active"><input type="radio" name="with-bowl" value="1" checked>含碗</label>
-          <label data-val="0"><input type="radio" name="with-bowl" value="0">不含碗</label>
+
+        <!-- RIGHT: record-time column (fixed, not affected by food mode) -->
+        <div class="time-col">
+          <button type="button" class="time-pill" id="time-toggle">
+            <span class="tp-ico">🕑</span>
+            <span class="tp-lbl">记录时间</span>
+            <span class="tp-val" id="time-val">现在</span>
+            <span class="tp-edit">✎</span>
+          </button>
+          <button type="button" class="link-btn" id="time-now" style="display:none;">改回现在</button>
         </div>
+
+        <!-- FAR RIGHT: save column (fixed, not affected by food mode) -->
         <button type="button" class="save-btn" id="save-entry">📝 记一笔</button>
-      </div>
-      <div class="extra-eq-row" id="extra-eq-row" style="display:none;">
-        <span class="extra-eq" id="extra-eq">≈ — g 等效干粮</span>
-      </div>
-      <div class="entry-meta-row">
-        <div class="bowl-row" id="bowl-row">
-          <span>碗的空重</span>
-          <input type="number" id="bowl-weight" step="any" min="0" placeholder="未设" inputmode="decimal" />
-          <select id="bowl-weight-unit">
-            <option value="g">g</option>
-            <option value="kg">kg</option>
-            <option value="oz">oz</option>
-            <option value="lb">lb</option>
-          </select>
-        </div>
-        <button type="button" class="time-pill" id="time-toggle">
-          <span class="tp-ico">🕑</span>
-          <span class="tp-lbl">记录时间</span>
-          <span class="tp-val" id="time-val">现在</span>
-          <span class="tp-edit">✎</span>
-        </button>
-        <button type="button" class="link-btn" id="time-now" style="display:none;">改回现在</button>
       </div>
     </div>
 
