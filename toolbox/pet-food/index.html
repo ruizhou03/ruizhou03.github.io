@@ -172,7 +172,17 @@ permalink: /toolbox/pet-food/
     display: flex; align-items: center; gap: 0.5rem;
   }
   .entry-form .entry-main-row .reading-group { flex: 1 1 auto; min-width: 0; }
-  .entry-form .entry-main-row .mode-toggle { flex: 0 0 auto; }
+  /* 含碗/不含碗 开关 + 空碗重量，组成一条集成控件。选「含碗」时碗重设置出现在
+     开关右侧，选「不含碗」时收起 —— 由 JS 切换 #bowl-row 的显示。 */
+  .entry-form .mode-bowl {
+    display: flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap;
+  }
+  .entry-form .mode-bowl .mode-toggle { flex: 0 0 auto; }
+  .entry-form .mode-bowl .bowl-row {
+    flex: 0 1 auto; min-width: 0; gap: 0.4rem; padding: 0.42rem 0.65rem;
+  }
+  .entry-form .mode-bowl .bowl-row input { width: 56px; padding: 0.4rem 0.45rem; }
+  .entry-form .mode-bowl .bowl-row select { padding: 0.4rem 1.5rem 0.4rem 0.5rem; }
   /* MIDDLE — fixed-width fill area (width = kibble mode). */
   .entry-form .fill-area {
     flex: 0 0 320px; width: 320px;
@@ -262,7 +272,6 @@ permalink: /toolbox/pet-food/
     transition: opacity 0.18s;
   }
   .entry-form .bowl-row > span:first-child { color: var(--color-muted); }
-  .entry-form .bowl-row.muted { opacity: 0.45; }
   .entry-form .bowl-row input {
     width: 84px; padding: 0.45rem 0.6rem;
     border: 1px solid var(--color-border); border-radius: 8px;
@@ -1251,23 +1260,26 @@ permalink: /toolbox/pet-food/
               </select>
               <span class="unit-suffix" id="unit-suffix" style="display:none;">份</span>
             </div>
+          </div>
+          <!-- 含碗/不含碗 开关；选「含碗」时右侧附带空碗重量设置，选「不含碗」时收起 -->
+          <div class="mode-bowl" id="mode-bowl-row">
             <div class="mode-toggle" id="mode-toggle">
               <label data-val="1" class="active"><input type="radio" name="with-bowl" value="1" checked>含碗</label>
               <label data-val="0"><input type="radio" name="with-bowl" value="0">不含碗</label>
             </div>
+            <div class="bowl-row" id="bowl-row">
+              <span>空碗</span>
+              <input type="number" id="bowl-weight" step="any" min="0" placeholder="未设" inputmode="decimal" />
+              <select id="bowl-weight-unit">
+                <option value="g">g</option>
+                <option value="kg">kg</option>
+                <option value="oz">oz</option>
+                <option value="lb">lb</option>
+              </select>
+            </div>
           </div>
           <div class="extra-eq-row" id="extra-eq-row" style="display:none;">
             <span class="extra-eq" id="extra-eq">≈ — g 等效干粮</span>
-          </div>
-          <div class="bowl-row" id="bowl-row">
-            <span>碗的空重</span>
-            <input type="number" id="bowl-weight" step="any" min="0" placeholder="未设" inputmode="decimal" />
-            <select id="bowl-weight-unit">
-              <option value="g">g</option>
-              <option value="kg">kg</option>
-              <option value="oz">oz</option>
-              <option value="lb">lb</option>
-            </select>
           </div>
         </div>
 
@@ -1280,7 +1292,6 @@ permalink: /toolbox/pet-food/
             <span class="tp-val" id="time-val">现在</span>
             <span class="tp-edit">✎</span>
           </button>
-          <button type="button" class="link-btn" id="time-now" style="display:none;">改回现在</button>
         </div>
       </div>
     </div>
@@ -1608,6 +1619,7 @@ permalink: /toolbox/pet-food/
         </div>
       </div>
       <div class="modal-actions">
+        <button type="button" class="link-btn" id="tp-now" style="display:none; margin-right:auto;">用现在</button>
         <button type="button" class="cancel" id="tp-cancel">取消</button>
         <button type="button" class="save" id="tp-confirm">确定</button>
       </div>
@@ -2299,6 +2311,7 @@ permalink: /toolbox/pet-food/
   const $bowlWeight = document.getElementById('bowl-weight');
   const $bowlWeightUnit = document.getElementById('bowl-weight-unit');
   const $bowlRow = document.getElementById('bowl-row');
+  const $modeBowlRow = document.getElementById('mode-bowl-row');
   const $chartRangeLbl = document.getElementById('chart-range-lbl');
 
   const $weightInput = document.getElementById('weight-input');
@@ -2331,13 +2344,13 @@ permalink: /toolbox/pet-food/
   const $extraEq = document.getElementById('extra-eq');
   const $timeToggle = document.getElementById('time-toggle');
   const $timeVal = document.getElementById('time-val');
-  const $timeNow = document.getElementById('time-now');
 
   // Time-picker modal
   const $tpModal = document.getElementById('time-picker-modal');
   const $tpTitle = document.getElementById('tp-title');
   const $tpDate = document.getElementById('tp-date');
   const $tpTime = document.getElementById('tp-time');
+  const $tpNow = document.getElementById('tp-now');
   const $tpCancel = document.getElementById('tp-cancel');
   const $tpConfirm = document.getElementById('tp-confirm');
 
@@ -2620,13 +2633,12 @@ permalink: /toolbox/pet-food/
 
   function checkFormWarn() {
     const pet = currentPet();
-    if (!pet) {
-      $bowlRow.classList.remove('needs-bowl', 'muted');
-      return;
-    }
-    const withBowl = currentMode();
-    $bowlRow.classList.toggle('muted', !withBowl);
-    $bowlRow.classList.toggle('needs-bowl', withBowl && pet.bowlWeight == null);
+    const withBowl = pet ? currentMode() : false;
+    // 空碗重量设置只在「含碗」且当前是干粮称重时出现；「不含碗」直接收起。
+    const showBowl = (recordFood === 'kibble') && withBowl;
+    $bowlRow.style.display = showBowl ? '' : 'none';
+    $bowlRow.classList.remove('muted');
+    $bowlRow.classList.toggle('needs-bowl', !!pet && showBowl && pet.bowlWeight == null);
   }
 
   function currentPet() {
@@ -4033,11 +4045,9 @@ permalink: /toolbox/pet-food/
     if (pendingEntryTs) {
       $timeVal.textContent = shortMD(isoDate(pendingEntryTs)) + ' ' + fmtTime(pendingEntryTs);
       $timeToggle.classList.add('custom');
-      $timeNow.style.display = '';
     } else {
       $timeVal.textContent = '现在';
       $timeToggle.classList.remove('custom');
-      $timeNow.style.display = 'none';
     }
   }
   function resetEntryTime() { setPendingEntryTs(null); }
@@ -4086,15 +4096,14 @@ permalink: /toolbox/pet-food/
       // kibble: weigh flow
       $unitPick.style.display = '';
       $unitSuffix.style.display = 'none';
-      $modeToggle.style.display = '';
-      $bowlRow.style.display = '';
+      $modeBowlRow.style.display = '';
       $extraEqRow.style.display = 'none';
       const pet = currentPet();
       $reading.placeholder = (pet && pet.preferredUnit && pet.preferredUnit !== 'g') ? `粮食称重（${pet.preferredUnit}）` : '粮食称重';
+      checkFormWarn();   // 按当前 含碗/不含碗 决定空碗设置是否出现
     } else {
       $unitPick.style.display = 'none';
-      $modeToggle.style.display = 'none';
-      $bowlRow.style.display = 'none';
+      $modeBowlRow.style.display = 'none';
       $extraEqRow.style.display = '';
       if (food.measure === 'gram') {
         $unitSuffix.style.display = '';
@@ -4550,16 +4559,20 @@ permalink: /toolbox/pet-food/
 
   // ===== Reusable date+time picker modal =====
   let tpOnConfirm = null;
-  function openTimePicker(initialTs, onConfirm, title) {
+  let tpOnReset = null;   // 可选：弹窗里「用现在」按钮的回调（仅记录新条目时给）
+  function openTimePicker(initialTs, onConfirm, title, onReset) {
     tpOnConfirm = onConfirm;
+    tpOnReset = onReset || null;
+    $tpNow.style.display = tpOnReset ? '' : 'none';
     $tpTitle.textContent = title || '选择时间';
     const local = tsToLocalInput(initialTs || Date.now()); // YYYY-MM-DDTHH:MM
     $tpDate.value = local.slice(0, 10);
     $tpTime.value = local.slice(11, 16);
     $tpModal.classList.add('open');
   }
-  function closeTimePicker() { $tpModal.classList.remove('open'); tpOnConfirm = null; }
+  function closeTimePicker() { $tpModal.classList.remove('open'); tpOnConfirm = null; tpOnReset = null; }
   $tpCancel.addEventListener('click', closeTimePicker);
+  $tpNow.addEventListener('click', () => { const cb = tpOnReset; closeTimePicker(); if (cb) cb(); });
   $tpModal.addEventListener('click', e => { if (e.target === $tpModal) closeTimePicker(); });
   $tpConfirm.addEventListener('click', () => {
     if (!$tpDate.value || !$tpTime.value) { alert('日期和时间都要选'); return; }
@@ -4572,9 +4585,8 @@ permalink: /toolbox/pet-food/
 
   // --- Custom record time (add) ---
   $timeToggle.addEventListener('click', () => {
-    openTimePicker(pendingEntryTs || Date.now(), ts => setPendingEntryTs(ts), '这次记录的时间');
+    openTimePicker(pendingEntryTs || Date.now(), ts => setPendingEntryTs(ts), '这次记录的时间', () => resetEntryTime());
   });
-  $timeNow.addEventListener('click', () => resetEntryTime());
 
   // ===== Food (treat/can) modal =====
   const FOOD_EMOJIS = ['🍖','🥫','🍗','🐟','🍤','🧀','🥩','🍪','🥛','💊'];
