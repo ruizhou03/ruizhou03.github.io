@@ -430,9 +430,15 @@ permalink: /toolbox/pet/
     background: var(--color-bg); color: var(--color-ink); outline: none; box-sizing: border-box;
   }
   #time-picker-modal input:focus { border-color: var(--color-accent); }
-  /* Segmented controls inside the food modal stretch to full width, two halves. */
-  #food-modal .mode-toggle { display: flex; width: 100%; }
-  #food-modal .mode-toggle label { flex: 1; justify-content: center; }
+  /* Segmented controls inside the food modal: a single frame split in two,
+     each half fills its side flush to the frame edge (no floating inner pill). */
+  #food-modal .mode-toggle {
+    display: flex; width: 100%; padding: 0; gap: 0; overflow: hidden;
+  }
+  #food-modal .mode-toggle label {
+    flex: 1; justify-content: center; padding: 0.6rem 1rem; border-radius: 0;
+  }
+  #food-modal .mode-toggle label.active { border-radius: 0; box-shadow: none; }
   #food-modal .emoji-pick { display: flex; flex-wrap: wrap; gap: 0.35rem; }
   #food-modal .emoji-pick button {
     font-size: 1.15rem; line-height: 1; padding: 0.3rem 0.45rem; cursor: pointer;
