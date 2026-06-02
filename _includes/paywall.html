@@ -267,4 +267,6 @@
 
 <!-- marked.js 仅在付费文章页加载，用于把锁定正文 markdown 渲染成 HTML -->
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" defer></script>
-<script src="{{ '/assets/js/paywall/paywall.js' | relative_url }}" defer></script>
+<!-- ?v=构建时间戳：每次部署 URL 都变 → service worker 的 SWR 缓存自动失效，
+     避免"新版 HTML + 旧版 JS"错配（付费墙 HTML 与 JS 必须同版本）。 -->
+<script src="{{ '/assets/js/paywall/paywall.js' | relative_url }}?v={{ site.time | date: '%s' }}" defer></script>
