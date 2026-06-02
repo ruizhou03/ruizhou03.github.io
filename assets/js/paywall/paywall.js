@@ -285,9 +285,16 @@
         // 手机端：原生码不便自扫，给个"在本机打开支付"
         if (d.payUrl) coTip.innerHTML = '请扫码支付，或 <a href="' + d.payUrl + '" target="_blank" rel="noopener">在本机打开支付</a>';
       } else if (d.mock) {
-        // 联调用假支付源：给个"模拟支付"按钮
+        // 联调用假支付源：点按钮在后台触发"已支付"，不开新页；轮询随后自动解锁。
         coTip.textContent = '【测试支付源】真实支付码接上虎皮椒后出现';
-        coQr.innerHTML = '<a class="pw-pay-link" href="' + d.payUrl + '" target="_blank" rel="noopener">点我模拟支付成功</a>';
+        coQr.innerHTML = '<button class="pw-pay-link" type="button" id="pw-mock-pay">点我模拟支付成功</button>';
+        var mb = document.getElementById('pw-mock-pay');
+        if (mb) mb.addEventListener('click', function () {
+          mb.disabled = true; mb.textContent = '模拟支付中…';
+          setCoStatus('✓ 支付成功，正在解锁…', true);
+          // 后台打 devpay 标记已付，付完立刻查一次→自动解锁(轮询也会兜底)
+          fetch(d.payUrl).then(function () { pollStatus(); }).catch(function () {});
+        });
       } else if (d.payUrl) {
         coQr.innerHTML = '<a class="pw-pay-link" href="' + d.payUrl + '" target="_blank" rel="noopener">前往支付</a>';
       }
