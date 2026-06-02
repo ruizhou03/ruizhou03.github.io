@@ -381,11 +381,7 @@
   };
 
   // DOM refs
-  const setupControls = document.getElementById('tqSetupControls');
   const gameControls = document.getElementById('tqGameControls');
-  const startBtn = document.getElementById('tqStartBtn');
-  const difficultyRow = document.getElementById('tqDifficultyRow');
-  const difficultyTabs = document.getElementById('tqDifficultyTabs');
   const turnEl = document.getElementById('tqTurn');
   const rosterEl = document.getElementById('tqRoster');
   const svg = document.getElementById('tqSvg');
@@ -399,76 +395,35 @@
   const pauseBtn = document.getElementById('tqPauseBtn');
   const newBtn = document.getElementById('tqNewBtn');
   const endChainBtn = document.getElementById('tqEndChainBtn');
-  const chips = {};
-  document.querySelectorAll('.tq-corner-chip').forEach(el => { chips[el.dataset.corner] = el; });
 
   function persist() {
     localStorage.setItem(STORE_KEY, JSON.stringify({ setupConfig: state.setupConfig, difficulty: state.difficulty }));
   }
 
   // ============================================================
-  // Setup: chip rendering, kind cycling, controls visibility
+  // Setup: tap a territory on the board to cycle 空 → 人类 → AI.
+  // Seat state is drawn as corner-tip badges inside the SVG (see renderBoard);
+  // the centered card holds mode/difficulty/start.
   // ============================================================
   function cycleKind(corner) {
     if (state.started) return;
     const cur = state.setupConfig[corner];
     state.setupConfig[corner] = cur === 'empty' ? 'human' : (cur === 'human' ? 'ai' : 'empty');
     persist();
-    renderCornerChips();
     renderBoard();
     refreshSetupControls();
   }
 
-  function renderCornerChips() {
-    for (const ck of CORNER_KEYS) {
-      const el = chips[ck];
-      if (!el) continue;
-      const kind = state.started
-        ? (state.players.includes(ck) ? state.playerKinds[ck] : 'empty')
-        : state.setupConfig[ck];
-      el.dataset.kind = kind;
-      el.classList.toggle('locked', state.started);
-      el.disabled = state.started;
-      const c = CORNERS[ck];
-      const kindLabel = kind === 'empty' ? '空' : (kind === 'human' ? '👤 人类' : '🤖 AI');
-      el.innerHTML = '';
-      const sw = document.createElement('span');
-      sw.className = 'swatch';
-      sw.style.background = c.color;
-      const txt = document.createElement('span');
-      txt.textContent = `${c.name} · ${kindLabel}`;
-      el.appendChild(sw);
-      el.appendChild(txt);
-    }
-  }
-
+  // Sync the center card's start button + AI-difficulty visibility from setupConfig.
   function refreshSetupControls() {
-    if (state.started) return;  // game-mode: setup controls hidden anyway
-    const hasAi = Object.values(state.setupConfig).some(v => v === 'ai');
-    difficultyRow.hidden = !hasAi;
-    document.querySelectorAll('#tqDifficultyTabs .tq-mode-tab').forEach(t => {
-      t.classList.toggle('active', t.dataset.diff === state.difficulty);
-    });
+    if (state.started) return;
+    if (typeof tqUpdatePgoDiffVisibility === 'function') tqUpdatePgoDiffVisibility();
+    const startEl = document.getElementById('tqPgoStartBtn');
+    if (!startEl) return;
     const activeCount = Object.values(state.setupConfig).filter(v => v !== 'empty').length;
-    startBtn.disabled = activeCount < 2;
-    startBtn.textContent = activeCount < 2 ? '需要至少 2 个玩家' : `🎮 开始游戏（${activeCount} 人）`;
+    startEl.disabled = activeCount < 2;
+    startEl.textContent = activeCount < 2 ? '需要至少 2 席' : `▶ 开始游戏（${activeCount} 人）`;
   }
-
-  // Click handlers for the 6 chip buttons (cycle kind in config mode)
-  Object.entries(chips).forEach(([ck, el]) => {
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      cycleKind(ck);
-    });
-  });
-
-  difficultyTabs.addEventListener('click', (e) => {
-    const t = e.target.closest('.tq-mode-tab');
-    if (!t || !DIFFICULTY[t.dataset.diff]) return;
-    state.difficulty = t.dataset.diff;
-    persist();
-    refreshSetupControls();
-  });
 
   // ============================================================
   // Game lifecycle
@@ -498,7 +453,6 @@
     state.finalRanking = [];
     state.lastMove = null;
     state.started = true;
-    setupControls.hidden = true;
     gameControls.hidden = false;
     rosterEl.hidden = false;
     overlay.classList.remove('show');
@@ -509,7 +463,6 @@
     tqLastResult = null;
     if (typeof tqSettleBtn !== 'undefined' && tqSettleBtn) tqSettleBtn.setEnabled(false);
     pauseBtn.hidden = !Object.values(state.playerKinds).includes('ai');
-    renderCornerChips();
     renderBoard();
     updateStatus();
     if (currentKindIsAi()) setTimeout(triggerAiMove, 320);
@@ -530,13 +483,12 @@
     state.chainPiece = null;
     state.chainStartFrom = null;
     state.lastTrail = null;
-    setupControls.hidden = false;
     gameControls.hidden = true;
     rosterEl.hidden = true;
     overlay.classList.remove('show');
     pausedOverlay.classList.remove('show');
+    tqPgoOverlay.classList.add('open');
     if (typeof tqSave !== 'undefined' && tqSave) tqSave.discard();
-    renderCornerChips();
     refreshSetupControls();
     renderBoard();
     updateStatus();
@@ -705,6 +657,57 @@
       }
     }
     svg.appendChild(hits);
+
+    // Layer 6: corner-tip seat badges (config mode only). Drawn in the SVG's
+    // expanded viewBox padding ring so they never clip on narrow screens.
+    if (!state.started) drawSeatBadges();
+  }
+
+  // Outermost tip cell of each corner + the outward direction to push its badge.
+  const BADGE_TIP = {
+    N:  { cell: [0, 12],  dx: 0,   dy: -34 },
+    S:  { cell: [16, 12], dx: 0,   dy: 34 },
+    NE: { cell: [4, 24],  dx: 32,  dy: 0 },
+    SE: { cell: [12, 24], dx: 32,  dy: 0 },
+    NW: { cell: [4, 0],   dx: -32, dy: 0 },
+    SW: { cell: [12, 0],  dx: -32, dy: 0 },
+  };
+
+  function drawSeatBadges() {
+    const g = svgEl('g', { class: 'seat-badges' });
+    for (const ck of CORNER_KEYS) {
+      const tip = BADGE_TIP[ck];
+      const cx = svgX(tip.cell[1]) + tip.dx;
+      const cy = svgY(tip.cell[0]) + tip.dy;
+      const kind = state.setupConfig[ck];
+      const color = CORNERS[ck].color;
+      const empty = kind === 'empty';
+      const W = 50, H = 28;
+      const grp = svgEl('g', { class: 'seat-badge', 'data-corner': ck, style: 'cursor:pointer;' });
+      // Larger transparent hit area so the badge is easy to tap.
+      grp.appendChild(svgEl('rect', {
+        x: cx - W / 2 - 6, y: cy - H / 2 - 6, width: W + 12, height: H + 12,
+        rx: 16, fill: 'transparent',
+      }));
+      grp.appendChild(svgEl('rect', {
+        x: cx - W / 2, y: cy - H / 2, width: W, height: H, rx: 14,
+        fill: empty ? '#ffffff' : lighten(color, 0.30),
+        stroke: empty ? '#b3a98c' : color,
+        'stroke-width': 2,
+        'stroke-dasharray': empty ? '4 3' : 'none',
+      }));
+      const txt = svgEl('text', {
+        x: cx, y: cy + 1,
+        'text-anchor': 'middle', 'dominant-baseline': 'central',
+        'font-size': empty ? 15 : 17,
+        fill: empty ? '#8a7a5a' : '#1a1a1a',
+        style: 'font-weight:600;',
+      });
+      txt.textContent = empty ? '空' : (kind === 'human' ? '👤' : '🤖');
+      grp.appendChild(txt);
+      g.appendChild(grp);
+    }
+    svg.appendChild(g);
   }
 
   // ============================================================
@@ -929,17 +932,21 @@
   // Input — three-state machine: IDLE / SELECTED / CHAIN
   // ============================================================
   svg.addEventListener('click', (e) => {
+    // Config mode: tapping a corner-tip badge or a territory cell cycles its seat.
+    if (!state.started) {
+      const badge = e.target.closest('.seat-badge');
+      if (badge) { cycleKind(badge.getAttribute('data-corner')); return; }
+      const hit = e.target.closest('.cell-hit');
+      if (!hit) return;
+      const ck = CELL_TRIANGLE[key(parseInt(hit.getAttribute('data-row'), 10), parseInt(hit.getAttribute('data-col'), 10))];
+      if (ck) cycleKind(ck);
+      return;
+    }
+
     const target = e.target.closest('.cell-hit');
     if (!target) return;
     const r = parseInt(target.getAttribute('data-row'), 10);
     const c = parseInt(target.getAttribute('data-col'), 10);
-
-    // Config mode
-    if (!state.started) {
-      const ck = CELL_TRIANGLE[key(r, c)];
-      if (ck) cycleKind(ck);
-      return;
-    }
 
     if (state.over || state.aiThinking || state.paused) return;
     if (currentKindIsAi()) return;
@@ -989,11 +996,6 @@
       renderBoard();
     }
   });
-
-  startBtn.onclick = () => {
-    if (startBtn.disabled) return;
-    startGame();
-  };
 
   newBtn.onclick = backToSetup;
   ovBtn.onclick = backToSetup;
@@ -1254,11 +1256,10 @@
     state.started = true;
     tqRunStartedAt = Number(saved.runStartedAt) || Date.now();
     tqRunNonce = saved.runNonce || ((window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now()));
-    setupControls.hidden = true;
+    tqPgoOverlay.classList.remove('open');
     gameControls.hidden = false;
     rosterEl.hidden = false;
     pauseBtn.hidden = !Object.values(state.playerKinds).includes('ai');
-    renderCornerChips();
     renderBoard();
     updateStatus();
     if (!state.paused && currentKindIsAi()) setTimeout(triggerAiMove, 320);
@@ -1266,7 +1267,6 @@
 
   // Initial render (config mode by default)
   function initialSetupRender() {
-    renderCornerChips();
     refreshSetupControls();
     renderBoard();
     updateStatus();
@@ -1276,38 +1276,6 @@
   const tqPgoOverlay = document.getElementById('tqPreGameOverlay');
   const tqPgoDiffPicker = document.getElementById('tqPgoDiffPicker');
   let tqPgoSelectedDiff = state.difficulty || 'normal';
-
-  function tqSyncOverlayChips() {
-    const chipContainer = document.getElementById('tqPgoChips');
-    if (!chipContainer) return;
-    chipContainer.className = 'gs-pgo-config-chips cols-3';
-    chipContainer.innerHTML = '';
-    const labels = { N: '北', NE: '东北', SE: '东南', S: '南', SW: '西南', NW: '西北' };
-    const emojis = { N: '🔴', NE: '🟠', SE: '🟢', S: '🔵', SW: '🟣', NW: '🟤' };
-    // 3 列网格：上行 NW-N-NE，下行 SW-S-SE
-    const gridPos = {
-      NW: [1,1], N: [1,2], NE: [1,3],
-      SW: [2,1], S: [2,2], SE: [2,3],
-    };
-    CORNER_KEYS.forEach(ck => {
-      const chip = document.createElement('button');
-      chip.className = 'gs-pgo-config-chip ' + state.setupConfig[ck];
-      chip.dataset.corner = ck;
-      chip.style.gridRow = gridPos[ck][0];
-      chip.style.gridColumn = gridPos[ck][1];
-      const kindLabel = state.setupConfig[ck] === 'human' ? '人类' : state.setupConfig[ck] === 'ai' ? 'AI' : '空';
-      chip.textContent = `${emojis[ck]} ${labels[ck]} · ${kindLabel}`;
-      chip.addEventListener('click', () => {
-        const cycle = { empty: 'human', human: 'ai', ai: 'empty' };
-        state.setupConfig[ck] = cycle[state.setupConfig[ck]];
-        persist();
-        renderCornerChips();
-        tqSyncOverlayChips();
-        tqUpdatePgoDiffVisibility();
-      });
-      chipContainer.appendChild(chip);
-    });
-  }
 
   function tqUpdatePgoDiffVisibility() {
     const hasAI = Object.values(state.setupConfig).some(v => v === 'ai');
@@ -1578,9 +1546,8 @@
     if (typeof tqSave !== 'undefined' && tqSave) tqSave.start();
   });
 
-  // Render board background behind overlay
+  // Render the live board; the centered config card floats over its middle.
   initialSetupRender();
-  tqSyncOverlayChips();
   tqUpdatePgoDiffVisibility();
   tqPgoOverlay.classList.add('open');
 

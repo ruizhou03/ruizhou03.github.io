@@ -62,101 +62,52 @@ permalink: /toolbox/tiaoqi/
 
   .difficulty-row { margin-top: 0.6rem; }
 
-  /* === Board stage: holds the bordered wrap + 6 floating chips ===
-     Asymmetric outer margin: top 1.7rem (statusbar above already adds 0.9rem of
-     its own bottom margin → ~2.6rem total clearance for the N chip). Bottom
-     2.6rem because the next sibling (#tqSetupControls / #tqGameControls) has no
-     top margin of its own, and the S chip with padding+border renders ~2rem
-     below the wrap edge. Side chips overflow horizontally into the surrounding
-     page space. */
+  /* === Board stage: holds the bordered wrap + the centered config card ===
+     The card floats over the board's middle; the 6 territories around it stay
+     visible and tappable. Corner-tip seat badges are drawn inside the SVG (in
+     the expanded viewBox padding ring) so they never clip. */
   .tq-board-stage {
     position: relative;
     width: 100%;
     max-width: 600px;
-    margin: 1.7rem auto 2.6rem;
+    margin: 0.6rem auto 1rem;
   }
 
-  /* === Corner chips (config-mode buttons → game-mode read-only labels) ===
-     Each chip sits OUTSIDE its corner's tip cell (no overlap with cells).
-     Per-direction rules set the anchor edge + a custom translate so the
-     chip lands fully beyond the wrap with a 0.3rem gap. */
-  .tq-corner-chip {
+  /* === Centered config card (overrides shared .gs-pgo-overlay for tiaoqi) ===
+     Shared gs-pgo is a full-board dark modal; here we shrink it to a card that
+     floats over the board's empty middle, so the 6 territories around it stay
+     visible and tappable. The card itself keeps a dark background so the shared
+     white gs-pgo text stays readable. */
+  .tq-center-card.gs-pgo-overlay {
     position: absolute;
-    --tq-tx: -50%;
-    --tq-ty: -50%;
-    --tq-scale: 1;
-    transform: translate(var(--tq-tx), var(--tq-ty)) scale(var(--tq-scale));
-    display: inline-flex; align-items: center; gap: 0.3rem;
-    padding: 0.32rem 0.65rem;
+    inset: auto;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(86%, 340px);
+    max-height: 94%;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    overflow: visible;
+    pointer-events: none;   /* clicks outside the card fall through to the board */
+  }
+  .tq-center-card .gs-pgo-view {
+    pointer-events: auto;
+    background: rgba(18, 22, 28, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 1rem 0.95rem 1.1rem;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.4);
+    max-height: 94vh;
+    overflow-y: auto;
+  }
+  .tq-center-card .gs-pgo-icon { font-size: 2rem; margin-bottom: 0.25rem; }
+  .tq-center-card .gs-pgo-title { font-size: 1.25rem; margin-bottom: 0.3rem; }
+  .tq-config-hint {
     font-size: 0.78rem;
-    font-family: var(--font-display);
-    font-weight: 600;
-    border: 1.5px dashed var(--color-border);
-    background: var(--color-bg);
-    border-radius: 999px;
-    cursor: pointer;
-    white-space: nowrap;
-    min-width: 4.4rem;
-    justify-content: center;
-    z-index: 5;
-    transition: transform 0.12s ease, filter 0.12s, background 0.15s, border-color 0.15s, color 0.15s;
-    color: var(--color-muted);
-    -webkit-user-select: none; user-select: none;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  }
-  @media (hover: hover) {
-    .tq-corner-chip:hover:not(:disabled) {
-    filter: brightness(1.05);
-    --tq-scale: 1.06;
-  }
-  }
-  .tq-corner-chip[data-kind="empty"] {
-    color: var(--color-muted);
-    border-style: dashed;
-    background: rgba(255, 255, 255, 0.85);
-  }
-  .tq-corner-chip[data-kind="human"] {
-    border-style: solid;
-    border-color: #1a6c2e;
-    background: rgba(46, 204, 113, 0.16);
-    color: #1a6c2e;
-  }
-  .tq-corner-chip[data-kind="ai"] {
-    border-style: solid;
-    border-color: #c9852e;
-    background: rgba(243, 156, 18, 0.16);
-    color: #8a4a00;
-  }
-  /* Locked = game-mode read-only label. Hidden because the roster row above the
-     board already names every player+kind, and the corner colors are visible
-     directly via the on-board pieces — keeping chips here only causes the top
-     chip to collide with the roster and the bottom one to crowd the controls. */
-  .tq-corner-chip.locked { display: none; }
-  .tq-corner-chip .swatch {
-    width: 0.7rem; height: 0.7rem;
-    border-radius: 50%;
-    border: 1.2px solid #222;
-    flex-shrink: 0;
-  }
-
-  /* Per-direction anchors. Translate moves chip fully outside the wrap edge;
-     negative margin on the anchor side adds a 0.3rem visual gap. */
-  .tq-corner-chip.at-N  { top: 0;     left: 50%;  --tq-ty: -100%; margin-top: -0.3rem; }
-  .tq-corner-chip.at-S  { bottom: 0;  left: 50%;  --tq-ty: 100%;  margin-bottom: -0.3rem; }
-  .tq-corner-chip.at-NE { top: 27%;   right: 0;   --tq-tx: 100%;  --tq-ty: -50%; margin-right: -0.3rem; }
-  .tq-corner-chip.at-SE { top: 73%;   right: 0;   --tq-tx: 100%;  --tq-ty: -50%; margin-right: -0.3rem; }
-  .tq-corner-chip.at-NW { top: 27%;   left: 0;    --tq-tx: -100%; --tq-ty: -50%; margin-left: -0.3rem; }
-  .tq-corner-chip.at-SW { top: 73%;   left: 0;    --tq-tx: -100%; --tq-ty: -50%; margin-left: -0.3rem; }
-
-  /* Narrow viewports: shrink the chip so it can fit (or at least overhang less). */
-  @media (max-width: 600px) {
-    .tq-corner-chip {
-      font-size: 0.7rem;
-      padding: 0.22rem 0.5rem;
-      min-width: 3.2rem;
-      gap: 0.22rem;
-    }
-    .tq-corner-chip .swatch { width: 0.6rem; height: 0.6rem; }
+    color: rgba(255, 255, 255, 0.72);
+    line-height: 1.5;
+    margin: 0.1rem 0 0.7rem;
   }
 
   .tq-statusbar {
@@ -196,7 +147,7 @@ permalink: /toolbox/tiaoqi/
     width: 100%;
     max-width: 600px;
     margin: 0 auto;
-    aspect-ratio: 660 / 753;
+    aspect-ratio: 748 / 841;
     background: #f8f3e6;
     border: 2px solid #5a4530;
     border-radius: 8px;
@@ -305,7 +256,7 @@ permalink: /toolbox/tiaoqi/
 
   <div class="tq-board-stage">
     <div class="tq-board-wrap">
-      <svg class="tq-svg" id="tqSvg" viewBox="0 0 660 753" preserveAspectRatio="xMidYMid meet"></svg>
+      <svg class="tq-svg" id="tqSvg" viewBox="-44 -44 748 841" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="tq-overlay" id="tqOverlay">
         <h2 id="tqOvTitle">游戏结束</h2>
         <div class="ranking" id="tqOvRanking"></div>
@@ -315,15 +266,13 @@ permalink: /toolbox/tiaoqi/
         <h2>⏸ 已暂停</h2>
         <button class="tq-btn" id="tqResumeBtn">▶ 继续</button>
       </div>
-      <!-- 预进入界面 -->
-      <div class="gs-pgo-overlay open" id="tqPreGameOverlay">
+    </div>
+    <!-- 中心配置卡片：浮在棋盘中部，四周领地可见可点 -->
+    <div class="gs-pgo-overlay tq-center-card open" id="tqPreGameOverlay">
         <div class="gs-pgo-view active" id="tqPgoViewMain">
           <div class="gs-pgo-icon">🔺</div>
           <h2 class="gs-pgo-title">跳棋</h2>
-          <div class="gs-pgo-local-config" id="tqPgoConfig">
-            <div class="gs-pgo-config-label">点击角配置玩家（空 / 人类 / AI）</div>
-            <div class="gs-pgo-config-chips" id="tqPgoChips"></div>
-          </div>
+          <div class="tq-config-hint" id="tqConfigHint">👆 点棋盘上的领地配置玩家（空 / 人类 / AI），至少 2 席</div>
           <div class="gs-pgo-mode-picker" id="tqPgoDiffPicker" style="display:none;">
             <button class="gs-pgo-mode-tab" data-value="easy">新手</button>
             <button class="gs-pgo-mode-tab selected" data-value="normal">普通</button>
@@ -367,28 +316,6 @@ permalink: /toolbox/tiaoqi/
           </div>
           <button class="gs-pgo-start-btn" id="tqPgoStartBtn">▶ 开始游戏</button>
         </div>
-      </div>
-    </div>
-    <button class="tq-corner-chip at-N"  data-corner="N"  type="button"></button>
-    <button class="tq-corner-chip at-NE" data-corner="NE" type="button"></button>
-    <button class="tq-corner-chip at-SE" data-corner="SE" type="button"></button>
-    <button class="tq-corner-chip at-S"  data-corner="S"  type="button"></button>
-    <button class="tq-corner-chip at-SW" data-corner="SW" type="button"></button>
-    <button class="tq-corner-chip at-NW" data-corner="NW" type="button"></button>
-  </div>
-
-  <!-- Setup-only controls (hidden once a game starts) -->
-  <div id="tqSetupControls">
-    <div class="tq-controls difficulty-row" id="tqDifficultyRow" hidden>
-      <span style="font-size: 0.82rem; color: var(--color-muted); margin-right: 0.15rem;">AI 难度</span>
-      <div class="tq-mode-tabs" id="tqDifficultyTabs">
-        <button class="tq-mode-tab" data-diff="easy">🌱 新手</button>
-        <button class="tq-mode-tab active" data-diff="normal">🙂 普通</button>
-        <button class="tq-mode-tab" data-diff="hard">🔥 高手</button>
-      </div>
-    </div>
-    <div class="tq-controls" style="margin-top: 0.6rem;">
-      <button class="tq-btn primary" id="tqStartBtn">🎮 开始游戏</button>
     </div>
   </div>
 
