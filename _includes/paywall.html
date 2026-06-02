@@ -203,6 +203,10 @@
   }
 
   /* ── 收银浮层 ───────────────────────────────────────────── */
+  /* 关键：hidden 属性必须真正隐藏。下面 .pw-checkout{display:flex} 会压过 [hidden] 的
+     UA display:none，所以显式用更高优先级的 [hidden] 规则盖回去，否则浮层一加载就常显、
+     盖住整页 → 点不到档位、也关不掉。 */
+  .pw-checkout[hidden] { display: none !important; }
   .pw-checkout {
     position: fixed; inset: 0; z-index: 9999;
     display: flex; align-items: center; justify-content: center;
