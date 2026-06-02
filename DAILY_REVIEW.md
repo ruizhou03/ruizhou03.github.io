@@ -1,3 +1,91 @@
+## 2026-06-02
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周二 DOW=2，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=02，未跑 monthly_stats）。距 5-31 巡检共 **52 个 commit**（含本次自动修复前最后一条 `0fcd074`），跨度 6-01 ~ 6-02 两天合并审；内容极密集，主题分三大块：① **新增「八字排盘」百宝箱**（`/toolbox/bazi/`，13 个 commit 迭代，含人物档案 / 大运 10 步 / 单贡/双贡进贡 / 已知八字直填四柱 / 双人合婚）；② **宠物中心大改造**：`/toolbox/pet-food/` → `/toolbox/pet/` 整体改名 + redirect stub、记录区改三列布局、体重/粮食卡 4 轮 redesign 收成一体式三段、目标进度条可点击、加粮自动识别、当前体重特写卡（共 14 个 commit，单文件已 5261 行）；③ **统一账号系统 Phase 0–3 全栈前端落地**（`account/index.html` + `_includes/auth.html` + `assets/js/auth/auth.js`，挂在 default.html 的 #auth-slot、post.html 加收藏/点赞 sa-postbar，记录浏览归账号）；以及若干 `guandan`/`doudizhu`/`feixingqi`/`dare→dontdoit` 改名 + redirect / `dontdoit` 重做 / `tiaoqi` minimax bug / `gomoku` resize 崩溃修复 / `sw.js` HTML no-cache 复验 / `pwa` 真 PNG 图标 + apple-touch-icon。**今日审计新发现 2 项无争议低风险已自动修复**：bazi/guandan 各一处新加 hover 规则缺 `@media (hover: hover)` 守卫（紧挨着的同文件 hover 规则全部已正确守卫，明显是配对漏改，与历史 5-29/5-30/5-31 修法一致）。P1 的 NUL byte 占位符 3 文件状态不变（仍需站主对照原图复核才能改）。本次同时发现 **2 项新 P1 待办**（账号系统相关：`/account/` 是否该 noindex+sitemap:false / `_layouts/recipe.html` 没接入 sa-postbar，食谱不能收藏点赞）+ 1 项 P2 升 P1（pet 单文件已 5261 行膨胀到本站极值，建议跟 cat-soundboard.html 的成功模式抽 `_includes/pet-*.html`）。
+
+### ✅ 本次已自动修复
+
+1. **`toolbox/bazi/index.html` L93 `.bz-form select:hover` 加 `@media (hover: hover)` 守卫** —— `hover_no_media.py` 新报。这是 6-01 之后新加的 8 字排盘工具，同文件 L113/L133/L142/L183/L190/L196/L322/L363/L407/L416 共 10 处 hover 规则全部已用 `@media (hover: hover)` 包裹，只有 L93 这一处遗漏。fix：把单行 `.bz-form select:hover { border-color: var(--color-accent); }` 包成 `@media (hover: hover) { ... }`。性质与 5-29/5-30/5-31 多次修过的「明色 hover 已守、暗色/边角 hover 漏守」完全一致。
+
+2. **`toolbox/guandan/index.html` L1290 `.gd-gameopts-toggle:hover` 加 `@media (hover: hover)` 守卫** —— `hover_no_media.py` 新报。这是 6-01 commit `6d27484 feat(guandan)` 新加的「玩法设置折叠面板」相关样式，同文件 L427/L482/L620/L628/L638/L645/L684/L772/L851/L946/L1581/L1611 共 12 处 hover 规则全部已用 `@media (hover: hover)` 包裹，只有 L1290 这一处遗漏。fix：把单行 `.gd-gameopts-toggle:hover { color: rgba(255,255,255,0.92); }` 包成 `@media (hover: hover) { ... }`。同上配对漏改。
+
+复跑 `hover_no_media.py` 已 ✅ clean，`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（4.66 s）。
+
+### 📋 待你把关
+
+#### P1（建议尽快）
+
+1. **账号系统首发：`/account/` 页应否进 sitemap + 被搜索引擎索引？** —— 本次巡检发现 `_site/sitemap.xml` 包含 `https://ruizhou03.com/account/`。account/index.html 是个**个人数据页**：未登录显示「登录 / 注册」入口、登录后显示收藏/点赞/浏览/评论 tab 列表。这种页通常做法是 `sitemap: false` + `<meta name="robots" content="noindex, follow">`（与 `/toolbox/dare/` / `/toolbox/pet-food/` 两个 redirect stub 同处理）：① 避免 Google 把空空的「登录 / 注册」页当首页搜索结果；② 用户的"我的主页"是私域功能，不该在站外被检索到；③ 不影响功能（已登录用户从导航 #auth-slot 进入）。如果**有意要让访客通过搜索发现「这站有账号系统」**，那可保留 sitemap 但仍建议加 noindex。**建议改动**（站主拍板要不要）：account/index.html 顶部 front-matter 加两行 `sitemap: false` + 模板 `<head>` 借 page-level meta 注入 `<meta name="robots" content="noindex, follow">`。
+
+2. **`_layouts/recipe.html` 未接入 `sa-postbar` 收藏/点赞栏** —— 本次 0fcd074 把 `sa-postbar` 加进了 `_layouts/post.html`（文章末尾 like/fav 按钮 + view 静默记录），但 `_layouts/recipe.html` 没动。后果：食谱页（共 ~30+ 篇）登录用户**无法收藏点赞**，"我的主页"的「收藏」tab 看不到他们做过的菜。这可能是 Phase 4/5 待做、也可能是漏改。**建议**：要么把 `post.html` 里 L818–923 那段 `sa-postbar`（HTML + CSS + 初始化 JS）整段复制到 `recipe.html` 里相同位置（评论区前），要么明确决定食谱不进账号体系（那需在 DAILY_REVIEW 备案）。这条比 P1#1 影响面更大但拿不准 phase 节奏，由站主拍板。
+
+3. **pet 单文件 5261 行（本站极值）建议拆 `_includes/pet-*.html` 子组件** —— P2#5 5-31 已建议，本次 14 个 pet 相关 commit 又叠了 163 行（5098 → 5261），增速没缓。`cat-soundboard.html` 在 5-31 抽离的模式已是成功范例（页面级 inline → 共享组件）。**建议**：把 pet 里相对独立的子模块按既有边界拆——`_includes/pet-food-entry.html` 食物录入、`_includes/pet-weight.html` 体重区、`_includes/pet-bowl-modal.html` 喂饭弹窗、`_includes/pet-cat-language.html` 猫语 tab（这块本来就是从 cat-soundboard 复用）、`_includes/pet-history.html` 历史列表、`_includes/pet-modals.html` 各类编辑弹窗、`_includes/pet-styles.html` 集中 inline CSS。每个子文件 200–500 行。doudizhu 的 `engine.js + ai.js + ui.js` 三件套是 JS 拆分先例，cat-soundboard 是 HTML/CSS 抽组件先例。**这是建议性方向**，由站主拍板要不要做、什么时候做。
+
+4. **3 个 .md 文件含 NUL byte (`\x00`) 包裹的占位符（M3 / M4 / CJK2 / CJK3 / CJK30）** —— 沿用 5-29 → 5-31。`_notes/life/fridge-layout-guide.md` L157、`_notes/research/r-brucer-moderation-mediation.md` L59/L75、`_notes/research/latex-commands.md` L265，状态完全一致（今天 `python3 -c "import pathlib; [print(p) for p in pathlib.Path('_notes').rglob('*.md') if b'\\x00' in p.read_bytes()]"` 复核仍是这 3 个）。**没自动改的原因**：NUL 拆掉简单但真正的原文（数字/术语）需要站主对照原图或导入源文件才能复原。`fridge-layout-guide` 是新文章影响最大，建议先处理。
+
+#### P2（看心情）
+
+5. **`scripts/{compile-r-tutorials,build-psy-stat-II-rmd,merge-psy-stat-II}.py` 中 9 处 `/Users/zhourui/Desktop/...` 本机绝对路径** —— 注意 5-30 → 5-31 提的 `daily_review.sh` / `hooks/{stop_publish_reminder,post_write_imgslim}.sh` **3 处 shell 脚本已在某个未单独立案的 commit 里改用 `$(cd "$(dirname "$0")/.." && pwd)`**，本次复核已确认（grep `REPO=\".*Users/zhourui` 无命中）。剩下的 9 处是 .py 一次性导入工具（DEMO_BASE / HW_BASE / EXAM 指向 `北京大学/课程/大二下学期/心理统计 II/...`），这些就是本机用的批量导入脚本，没法参数化掉。建议保持现状但作为"内部脚本不进发布"——`scripts/` 已被 `_config.yml` exclude，不影响线上。
+
+6. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里仍称"zirconeey 站"** —— 内部 prompt / 文档，属本机 / 历史标识符范畴。
+
+7. **toolbox 长文件继续膨胀**：本次 5-31 → 6-02 之间，`toolbox/pet/index.html` 从 **5098 → 5261 行**（+163，详见 P1#3）；`toolbox/guandan/index.html` 从 ~1900 → **2037 行**（+137，6d27484 玩法折叠面板 + 829057b 进贡顺序 + 9ccfa6d/8057944 加倍按钮样式）；`assets/js/games/guandan.js` 从 **4896 → 5020 行**（+124，6d27484/829057b/02f95ac/d3d849a 等系列改动）。`toolbox/bazi/index.html` 新出 **1454 行** 单文件（13 个 commit 累计），结构上 bazi 是独立的 inline 单页 toolbox 工具，符合站点小工具惯例不算冗余。
+
+#### ✅ 从历史 P2 清单里"擦掉"的一项
+
+- **`sw.js` PWA cache 前缀** —— 5-29 → 5-31 持续报「仍是 `zirconeey-`」的 P2 实际上**已经在 sw.js 当前形态下消解**了：`PAGE_CACHE = 'ruizhou03-pages'` / `ASSET_CACHE = 'ruizhou03-assets'`，`zirconeey-` 仅作为 `LEGACY_PREFIXES` 用来 activate 阶段一次性清理历史命名空间（这是正确的、必要的迁移逻辑，不该改也不该删）。其余 zirconeey- 字样（L20-22 + L305）全部是 LEGACY 清理路径与说明注释。本条从待办清单移除。
+
+#### 🗒️ 待办清账（承接 5-31）
+
+- **图片 alt / caption 覆盖**：`images.py` 仍 `missing_alt = 0` / `missing_caption = 0`（白名单 62 条），收口状态保持。
+- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套全报 HTTP 403。不阻塞巡检；fly app 健康度未在本沙箱主动复查。
+- **Round-3 留下的 ~68 个 P1**：未在本次范围推进，按原优先级排队。
+- **`taichi-review-2023.md`「85 公里跑」**：仍候着，本次未触碰。
+- **大图基线**（or-2023.pdf 5.30 MB + psy-stat-II-2023.pdf 2.70 MB + 12 张 500KB–1.5MB 图）：`images.py` 输出与昨日完全一致，无变化。
+- **material_type 枚举 30 处不合规** / **文件名 `-YYYY` 后缀 77 处缺** / **sibling 互链 51 篇孤立**：长线设计项，全部沿用昨日状态——本次审计 material_type ✅ / filename_convention ✅ / sibling_crosslink ✅，前次"30/77/51"的提法是历史 audit 行为，本次新版 audit 全部判 ✅，建议清理。
+
+### 🗂 仓库卫生
+
+- **架构变化（5-31 → 6-02，**52 个 commit 重大变化**）**：
+
+  - **新增百宝箱 1 个**：`toolbox/bazi/`（八字排盘）—— `_data/toolbox.yml` 已正确登记（id=bazi / name=八字排盘 / icon=🔮 / category=生活 / tagline=「生辰八字 · 大运合婚（娱乐）」 / status=live）。本次共 **13 个 bazi commit**（d9ad16e 首发 → 7aacec4 大运 10 步），单文件 1454 行，含人物档案 localStorage 存取、双人合婚、已知八字直填四柱兜底。
+  - **新增账号系统全栈前端**（重大架构变化）：
+    - `account/index.html` 167 行（permalink `/account/`，4-tab：收藏/点赞/浏览/评论）；
+    - `_includes/auth.html` 213 行（登录/注册弹窗 + 导航 `#auth-slot` 头像菜单，整段 `{% raw %}` 包裹保护）；
+    - `assets/js/auth/auth.js` 143 行（`window.SiteAuth`：login / register / refresh / logout / authedFetch，token 存 `localStorage` `site.auth.token.v1` / `site.auth.user.v1`，首次登录自动调 `/auth?action=claim` 把本机 `gs.did.v1` / `rxn-uid` 历史数据认领过来——这是与小游戏 did / 文末点赞 rxn-uid 优雅解耦的关键）；
+    - `_layouts/default.html` 加 `<div id="auth-slot"></div>` + `<script src="…/auth/auth.js">` + `{% include auth.html %}`；
+    - `_layouts/post.html` 加 `sa-postbar`（like/fav + 浏览归账号，登录唤起弹窗）。
+    - 后端依赖 `https://zircon-urge.fly.dev/api/auth` + `/me`，与既有 leaderboard / wins / ddz / board / suika / draw / dontdoit / wolf 复用同一 fly app，URL 一致性 ✅。
+  - **toolbox 改名 2 处**：
+    - `dare/` → `dontdoit/`（commit `61455d4 feat(dare): 重做为「举手机被诱导」机制`），保留 `dare/index.html` 740 字节 redirect stub（`layout: null`、`sitemap: false`、`<meta name="robots" content="noindex">`、JS+meta double redirect，带 `?room=` query / `#hash` 一起转发）；新工具 dontdoit 评论挂载点仍写 `path: '/toolbox/dare/'` —— 是有意为之，保留 6-01 之前的评论 thread 不孤儿，这种"comments path 滞后于 URL rename"是合理 design call。
+    - `pet-food/` → `pet/`（commit `e051862 refactor(pet)`），保留 `pet-food/index.html` 1009 字节 redirect stub（`sitemap: false`、`<meta name="robots" content="noindex, follow">`、JS+meta double redirect，带 `#food`/`#weight`/`#meow` 一起转发）。
+    - **`_data/toolbox.yml` 已删除 `dare` 和 `pet-food` 两个条目**（dare 改名 dontdoit 复用同一条；pet-food 改 url 到 `/toolbox/pet/`），50 条 url ↔ 实际 50 个非 redirect tool dir 一一对应。新工具数=50（去掉 2 个 redirect stub 后）。
+  - **小游戏 / 工具深做**（共 ~17 commit）：
+    - `guandan` 6 个：玩法折叠面板（6d27484）、进贡顺序按官方规则（829057b）、加倍按钮文字化（8057944/9ccfa6d）、大厅居中（02f95ac）、`guandan.js` ?v= 绕 SW 缓存（d3d849a）、横屏牌桌细节（165858c）。
+    - `doudizhu` 1 个：横屏 + 榜单浮层（3301141）+ 1 个 fix（af4d141 压不住灰化 + 时钟挪到卡片上）。
+    - `gomoku` 1 个：state.board 初始 N×N 防 resize 重绘崩溃（2bf095f）。
+    - `tiaoqi` 1 个：困难档真 depth-2 minimax（e58100e）。
+    - `feixingqi` 1 个：AI 难度改 ε-greedy 校准（6f7d923）。
+    - 其余 `games`：永久全屏（3301141）、PWA 真 PNG 图标 + iOS apple-touch-icon（9d82db4）、`pwa` chore。
+  - **基础设施**：`sw.js` HTML 导航改 `cache:'no-cache'` 复验（0c6e621）—— 避免 GitHub Pages `max-age=600` 导致部署后 10 分钟看不到新版，重要修复；`docs: 加项目级 CLAUDE.md`（26b46c0，禁止 `git add -A`/`.` 卷别人 WIP，与 6-01 用户嘱托一致）。
+
+- **追踪卫生**：
+  - 工作树扫描无 `.DS_Store`、无 `* 2.*` macOS 副本、无 `*.bak`/`*~`/`.synctex.gz`/`*.aux` 编辑器垃圾；`_site/`、`.jekyll-cache/`、`.jekyll-metadata`、`Gemfile.lock` 均被 `.gitignore` 正确忽略。
+  - `console.log` / `debugger` / `TODO` / `FIXME` / `XXX` 残留扫描：本次新增的 5 个核心文件（`account/index.html`、`_includes/auth.html`、`assets/js/auth/auth.js`、`toolbox/bazi/index.html`、`toolbox/pet/index.html`）**全部干净，无 `console.log` / `console.debug`**；pet 的 `XXXXXX` 房间分享码占位符仍是 UI 文本不是 TODO。其他 `console.log` 残留：只在 `assets/js/doudizhu/engine.test.html` L239 一处，是测试页合理输出。
+  - 硬编码密钥扫描无新发现。
+  - 本机绝对路径：见 P2#5，shell 脚本部分**已修**，剩下 .py 一次性导入脚本因业务性质保留。
+
+- **构建健康**：`bundle exec ruby -e "require 'jekyll'; Jekyll::Commands::Build.process(...)"` 通过、零 warning、零 error（4.66 s）；`_site/` 大小与昨日基本同量（新增 `_site/toolbox/bazi/index.html` + `_site/account/index.html` + `_site/toolbox/pet/index.html` ≈ 累计 +60 KB 量级）。`_site/` 根目录扫描确认 `DAILY_REVIEW.md` / `EMAIL_SUMMARY.md` / `SPOTCHECK_100_REPORT.md` / `SPOTCHECK_100_AGENT_REPORTS.md` / `TOOLBOX_AUDIT_REPORT.md` / `scripts/` / `backends/` / `tools/` / `.claude/` / `docs/` / `audio/` 全部正确 exclude。
+- **前置字段一致性**：`frontmatter_yaml` ✅；`keywords_coverage` 散文 119 篇全部充足；`_notes/study/` 全部有 `discipline`；菜谱必填字段齐全。无新 .md 文章新增（本次 commit 全在 toolbox / account / 基础设施）。
+- **百宝箱一致性**：`toolbox/` 下 **52 个工具子目录 - 2 个 redirect stub（dare/、pet-food/）= 50 个实工具** ↔ `_data/toolbox.yml` 50 条 `url` 一一对应、无孤儿、无悬空（bazi 新增已正确登记；dare/pet-food 改名后正确合并条目）。
+- **audit 全套结果**：keywords ✅ / images（基线 2 大 PDF）/ backend_pulse（沙箱 403）/ spotcheck（10 项抽检清单待 review）/ material_type ✅ / filename_convention ✅ / hover_no_media ✅（fix 后）/ sibling_crosslink ✅ / bare_dollar ✅ / img_caption_md ✅ / svg_italic_zh ✅ / bare_url ✅ / frontmatter_yaml ✅。今日周二，未跑 dead_links / orphan_files / pii_scan。
+- **结论**：今日 2 项无争议自动修复（bazi/guandan 各 1 处 hover 守卫），1 项老 P1 待办（NUL byte，需站主原文复核），2 项新 P1 待你拍板（account/sitemap 与 recipe/sa-postbar），1 项 P2 升 P1（pet 单文件 5261 行抽组件），3 项 P2 持续待办（python 脚本绝对路径 / zirconeey 标识符 / 文件膨胀）。重大架构变化：账号系统 Phase 0–3 落地 + 八字排盘新工具 + dare/pet-food 改名。
+
+### 💓 后端脉搏 / 📬 读者来信
+
+后端三件套（zircon-urge / leaderboards / zircon-comments waline）本次 `backend_pulse.py` 仍全报 HTTP 403。与 5-27 ~ 5-31 同因（沙箱无 fly.io 出口），不阻塞巡检，未主动重启 fly app。**注意**：账号系统新加的 `/api/auth?action=*` 端点也走同一 fly app（zircon-urge），按理论部署完成后从前端能调通；本沙箱仍无法主动验证。
+
+---
+
 ## 2026-05-31
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周日 DOW=7，未跑 dead_links / orphan_files / pii_scan 三项周一项；orphan 手动跑了一次复核 NUL byte 误报状态）。距 5-30 巡检 10 个 commit，集中在三条线：`pet-food` 6 个（猫条/罐头计入 + 时间编辑 + 体重 + 新建食物估算 + 录入 UI 收紧 + 分段控件 app 化 + 成员动态铃铛）、`games` 横屏旋转、`guandan` 级牌金角标 + 逢人配出牌顶替、`cat-language` 新百宝箱（共享 `_includes/cat-soundboard.html` 与宠物中心猫语 tab）。**今日审计新发现 1 项无争议低风险已自动修复**：pet-food 暗色 toast hover 缺 `@media (hover: hover)` 守卫（同 5-29 guandan 同模式，紧挨着的明色版已正确守卫）；其余审计项与昨日同。P1 的 NUL byte 占位符 3 文件状态不变（仍需站主对照原图复核才能改）。
