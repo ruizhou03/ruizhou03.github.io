@@ -99,6 +99,12 @@
       return afterAuth(r);
     },
 
+    // 用 Google ID token 登录/注册（前端由 Google Identity Services 拿到 credential）
+    loginWithGoogle: async function (idToken) {
+      var r = await post('/auth?action=google', { idToken: idToken });
+      return afterAuth(r);
+    },
+
     logout: function () { clearSession(); },
 
     // 校验本地 token 是否仍有效；无效则登出。返回最新 user 或 null。

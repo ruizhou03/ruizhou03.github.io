@@ -87,6 +87,10 @@
   .sa-submit:disabled { opacity: 0.6; cursor: default; }
   .sa-error { min-height: 1.1rem; font-size: 0.8rem; color: #c0392b; margin: 0.5rem 0 0; text-align: center; }
   .sa-hint { font-size: 0.74rem; color: var(--color-light); text-align: center; margin-top: 0.9rem; line-height: 1.5; }
+  .sa-google-wrap { margin-top: 1rem; }
+  .sa-divider { display: flex; align-items: center; gap: 0.6rem; margin: 0.2rem 0 0.9rem; color: var(--color-light); font-size: 0.78rem; }
+  .sa-divider::before, .sa-divider::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
+  #sa-google-btn { display: flex; justify-content: center; min-height: 40px; }
 </style>
 
 <div id="auth-modal-root">
@@ -115,6 +119,11 @@
         <button type="submit" class="sa-submit" id="sa-submit">登录</button>
         <p class="sa-error" id="sa-error"></p>
       </form>
+      <!-- Google 登录：仅当配置了 client_id 且 GIS 脚本加载成功才显示（国内被墙时自动隐藏） -->
+      <div id="sa-google-wrap" class="sa-google-wrap" style="display:none;">
+        <div class="sa-divider"><span>或</span></div>
+        <div id="sa-google-btn"></div>
+      </div>
       <p class="sa-hint">密码经加盐哈希存储，本站看不到你的明文密码。</p>
     </div>
   </div>
@@ -208,6 +217,43 @@
 
   // 对外暴露：任何按钮都能 SiteAuth.openLogin() 唤起弹窗
   window.SiteAuth.openLogin = open;
+
+  // ── Google 登录（Google Identity Services）──
+  // 填上 Google Cloud 的 OAuth Web Client ID 即启用；留空则整块不出现。
+  // 国内 gsi/client 脚本被墙，加载失败时按钮静默隐藏，不影响邮箱密码登录。
+  var GOOGLE_CLIENT_ID = '';  // ← 待填：xxxxx.apps.googleusercontent.com
+  function initGoogle() {
+    if (!GOOGLE_CLIENT_ID) return;
+    var wrap = document.getElementById('sa-google-wrap');
+    var btnBox = document.getElementById('sa-google-btn');
+    if (!wrap || !btnBox) return;
+    var s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true; s.defer = true;
+    s.onload = function () {
+      if (!(window.google && google.accounts && google.accounts.id)) return;
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async function (resp) {
+          if (!resp || !resp.credential) return;
+          errorEl.textContent = '';
+          var r;
+          try { r = await SiteAuth.loginWithGoogle(resp.credential); }
+          catch (e) { r = { ok: false, error: 'network' }; }
+          if (r.ok) { close(); }
+          else { errorEl.textContent = r.error === 'google_not_configured' ? 'Google 登录暂未开启' : 'Google 登录失败，换邮箱试试'; }
+        },
+      });
+      google.accounts.id.renderButton(btnBox, {
+        theme: 'outline', size: 'large', type: 'standard',
+        text: 'continue_with', shape: 'pill', logo_alignment: 'center', width: 296,
+      });
+      wrap.style.display = 'block';  // 脚本加载成功才显示
+    };
+    s.onerror = function () { /* 被墙/失败：保持隐藏 */ };
+    document.head.appendChild(s);
+  }
+  initGoogle();
 })();
 </script>
 {% endraw %}
