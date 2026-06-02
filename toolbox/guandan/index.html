@@ -1686,7 +1686,23 @@ permalink: /toolbox/guandan/
     body.gd-game-fullscreen .gd-myplay-row { height: 38px; margin-top: 0.1rem; }
     body.gd-game-fullscreen .gd-played,
     body.gd-game-fullscreen .gd-side .gd-played { height: 60px; }
-    body.gd-game-fullscreen .gd-play-actions { min-height: 0; margin: 0.1rem 0 0.25rem; }
+    /* 别人/对家出牌：整张缩到 80%（高 58px ≤ 槽高 60px），避免被 overflow:hidden
+       从上下裁掉一道（issue：出牌区比牌矮，牌像被截断）。比例不变、角标只是同比缩小。 */
+    body.gd-game-fullscreen .gd-played .gd-card.size-full { width: 40px; height: 58px; }
+    body.gd-game-fullscreen .gd-played .gd-card.size-full .corner .rk { font-size: 11px; }
+    body.gd-game-fullscreen .gd-played .gd-card.size-full .corner .su { font-size: 10px; }
+    body.gd-game-fullscreen .gd-played .gd-card.size-full .pip { font-size: 21px; }
+    body.gd-game-fullscreen .gd-played .gd-card.size-full.is-joker .pip .joker-text { font-size: 6px; }
+    body.gd-game-fullscreen .gd-played .gd-card.size-full.is-joker .pip .joker-icon { font-size: 16px; }
+    body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full { margin-left: -22px; }
+    body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
+    /* 操作行（不出/提示/出牌 · 加倍）：① 用 order 挪到手牌「下方」，牌往上叠、
+       永远长不到按钮上（issue：牌盖住按钮）；② min-height 写死，按钮显隐不再
+       改变手牌可用高度——否则一选牌/进加倍阶段，手牌高度跳变、adaptHandSize 把
+       牌重算成另一套尺寸（issue：牌时大时小）。 */
+    body.gd-game-fullscreen .gd-play-actions {
+      order: 5; min-height: 2.3rem; margin: 0.15rem 0 0.1rem; flex-wrap: nowrap;
+    }
     /* 手牌：吃满剩余高度、列在底对齐（深摞往上长进中间空地，不再溢出底边）；
        默认 step 24 角标清晰，adaptHandSize 按 clientHeight 把最深的一摞收进画幅。
        左右留出"我/托管"和"理牌图标键"的宽度，绝不压牌。 */
@@ -1714,6 +1730,28 @@ permalink: /toolbox/guandan/
     }
     body.gd-game-fullscreen .gd-sort-actions .gd-btn-tx { display: none; }
     body.gd-game-fullscreen #gdSortBtn { display: none; }   /* 一键理牌 横屏不显示 */
+
+    /* ===== 横屏结算面板（回合 / 整局）整体收紧，刚好一屏放下，不必下滑找「继续」=====
+       横屏视口高 ≤560px 时，默认的大标题 + 宽松内边距会把面板撑得比画幅高。
+       这里同比缩小标题/头像/间距，让标题+双队+积分+按钮一次全显。 */
+    .gd-overlay .gd-result-panel { padding: 0.7rem 1rem 0.75rem; max-height: 98vh; }
+    .gd-result-title { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .gd-result-vs { gap: 0.45rem; margin-bottom: 0.5rem; }
+    .gd-result-team { padding: 0.5rem 0.55rem 0.55rem; gap: 0.3rem; }
+    .gd-result-team-head { padding-bottom: 0.25rem; }
+    .gd-result-team-label { font-size: 0.92rem; }
+    .gd-result-level { font-size: 0.76rem; }
+    .gd-result-level strong { font-size: 0.92rem; }
+    .gd-result-players { gap: 0.3rem; }
+    .gd-result-player { padding: 0.25rem 0.45rem; gap: 0.45rem; }
+    .gd-result-avatar { width: 28px; height: 28px; font-size: 1rem; }
+    .gd-result-name { font-size: 0.82rem; }
+    .gd-result-rank { font-size: 0.74rem; padding: 0.12rem 0.45rem; }
+    .gd-result-vs-divider { font-size: 1.05rem; }
+    .gd-result-score { margin: 0.4rem 0 0.1rem; font-size: 0.84rem; line-height: 1.3; }
+    .gd-result-score .delta { font-size: 1.15rem; }
+    .gd-result-score .breakdown { font-size: 0.72rem; }
+    .gd-result-actions { margin-top: 0.35rem; }
   }
 </style>
 
