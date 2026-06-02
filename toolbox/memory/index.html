@@ -112,6 +112,9 @@ permalink: /toolbox/memory/
     width: 100%;
     max-width: 480px;
     margin: 0 auto;
+    /* 开局前 memGrid 为空，给个最小高度让「开始」卡片有地方撑开显示，
+       不致塌成一条；开局后卡牌会撑高，min-height 不起作用。 */
+    min-height: 340px;
     background: var(--color-bg-warm);
     border: 1px solid var(--color-border);
     border-radius: 10px;

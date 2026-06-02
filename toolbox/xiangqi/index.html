@@ -54,6 +54,14 @@ permalink: /toolbox/xiangqi/
   .xq-row-label { font-size: 0.82rem; color: var(--color-muted); margin-right: 0.15rem; }
   .xq-difficulty-row { margin-top: -0.3rem; }
 
+  /* 手机端紧凑化：收紧控件行距 + 缩小按钮，减少开局前的拥挤感 */
+  @media (max-width: 600px) {
+    .xq-controls { gap: 0.3rem; margin-bottom: 0.5rem; }
+    .xq-mode-tabs { gap: 0.2rem; }
+    .xq-mode-tab { padding: 0.3rem 0.5rem; font-size: 0.78rem; }
+    .xq-btn { padding: 0.32rem 0.55rem; font-size: 0.78rem; }
+  }
+
   .xq-statusbar {
     display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;
     margin-bottom: 0.9rem;

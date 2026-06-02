@@ -113,7 +113,8 @@ body { font-synthesis: weight; }
   grid-template-columns: 2.2rem 1fr auto;
   align-items: baseline;
   gap: 0.5rem;
-  padding: 0.4rem 0.2rem;
+  /* 右侧多留一点呼吸位，让右对齐的分数 / H·N·E 胜场不贴卡片边缘 */
+  padding: 0.4rem 0.45rem 0.4rem 0.2rem;
   border-bottom: 1px dashed var(--color-border);
   font-size: 0.88rem;
 }

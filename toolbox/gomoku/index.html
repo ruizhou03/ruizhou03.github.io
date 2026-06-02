@@ -115,6 +115,14 @@ permalink: /toolbox/gomoku/
     margin-right: 0.15rem;
   }
 
+  /* 手机端紧凑化：收紧控件行距 + 缩小按钮，减少开局前的拥挤感 */
+  @media (max-width: 600px) {
+    .gm-controls { gap: 0.3rem; margin-bottom: 0.5rem; }
+    .gm-mode-tabs { gap: 0.2rem; }
+    .gm-mode-tab { padding: 0.3rem 0.5rem; font-size: 0.78rem; }
+    .gm-btn { padding: 0.32rem 0.55rem; font-size: 0.78rem; }
+  }
+
   .gm-help {
     margin-top: 1rem;
     font-size: 0.82rem;
