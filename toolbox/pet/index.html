@@ -81,11 +81,25 @@ permalink: /toolbox/pet/
 
   .empty-zone { text-align: center; padding: 3.5rem 2rem; color: var(--color-light); }
   .empty-zone .empty-emoji { font-size: 3rem; margin-bottom: 1rem; opacity: 0.55; }
+  .empty-zone .empty-actions {
+    margin-top: 1.4rem;
+    display: flex; flex-direction: column; align-items: center; gap: 0.7rem;
+  }
   .empty-zone .add-btn {
     font: inherit; font-size: 0.95rem; font-weight: 600;
     padding: 0.6rem 1.4rem; border: none; border-radius: 999px;
     background: var(--color-accent); color: #fff; cursor: pointer;
-    margin-top: 1rem;
+    transition: opacity 0.18s;
+  }
+  .empty-zone .join-btn {
+    font: inherit; font-size: 0.86rem;
+    padding: 0.4rem 1rem; border: none; border-radius: 999px;
+    background: transparent; color: var(--color-muted); cursor: pointer;
+    transition: color 0.18s;
+  }
+  @media (hover: hover) {
+    .empty-zone .add-btn:hover { opacity: 0.88; }
+    .empty-zone .join-btn:hover { color: var(--color-accent); }
   }
 
   .summary-row {
@@ -1252,8 +1266,10 @@ permalink: /toolbox/pet/
   <div class="empty-zone" id="pet-empty">
     <div class="empty-emoji">🐾</div>
     <div>还没有宠物——先建一只吧</div>
-    <button type="button" class="add-btn" id="empty-add">+ 添加第一只</button>
-    <button type="button" class="icon-btn" id="empty-join" style="margin-top: 0.6rem;">🔑 用宠物码添加</button>
+    <div class="empty-actions">
+      <button type="button" class="add-btn" id="empty-add">+ 添加第一只</button>
+      <button type="button" class="join-btn" id="empty-join">🔑 用宠物码添加</button>
+    </div>
   </div>
 
   <div id="pet-view" style="display: none;">
