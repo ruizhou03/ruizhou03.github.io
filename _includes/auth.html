@@ -7,6 +7,12 @@
 <style>
   /* ── 导航里的账号入口 ── */
   #auth-slot { display: flex; align-items: center; }
+  /* 桌面端：账号入口绝对定位到导航最右（脱离 flex 流 → 主题/语言切换完全不受影响、
+     与英文站绝对位置一致）。锚定 position:fixed 的 <nav>，距视口右缘 2.2rem。
+     ≤980px 退回内联（窄屏右侧无富余空间，绝对定位会和 EN 重叠）。 */
+  @media (min-width: 981px) {
+    #auth-slot { position: absolute; right: 2.2rem; top: 50%; transform: translateY(-50%); }
+  }
   .sa-login-btn {
     font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em;
     color: var(--color-muted); background: none;
