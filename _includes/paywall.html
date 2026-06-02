@@ -20,9 +20,13 @@
     <p class="pw-tagline">上面是免费预览。剩余部分需要单篇买断，或开通会员解锁全部付费内容。</p>
 
     <div class="pw-options">
-      {% if page.price %}<a class="pw-btn pw-buy" href="{{ page.afdian_url }}" target="_blank" rel="noopener">单篇买断 ¥{{ page.price }}</a>{% endif %}
-      {% if page.member_price %}<a class="pw-btn pw-member" href="{{ page.afdian_url }}" target="_blank" rel="noopener">开通会员 ¥{{ page.member_price }}/月</a>{% endif %}
+      {% if page.price %}<a class="pw-btn pw-buy" href="{{ page.afdian_url }}" target="_blank" rel="noopener">
+        <span class="pw-btn-label">单篇买断</span><span class="pw-btn-price">¥{{ page.price }}</span></a>{% endif %}
+      {% if page.member_price %}<a class="pw-btn pw-member" href="{{ page.afdian_url }}" target="_blank" rel="noopener">
+        <span class="pw-btn-label">开通会员</span><span class="pw-btn-price">¥{{ page.member_price }}<small>/月</small></span></a>{% endif %}
     </div>
+
+    <p id="pw-account-note" class="pw-account-note" hidden></p>
 
     <div class="pw-redeem">
       <p class="pw-redeem-hint">付款后你会拿到一个兑换码，在这里输入即可解锁：</p>
@@ -43,56 +47,84 @@
     position: relative;
     margin: 0 0 2rem;
   }
-  /* 渐隐遮罩：盖住预览最后一段，营造"被截断"的观感 */
+  /* 渐隐遮罩：盖住预览最后一段，营造"被截断"的观感。轻盈、不压暗。 */
   .pw-fade {
     position: absolute;
-    left: 0; right: 0; top: -8rem;
-    height: 8rem;
-    background: linear-gradient(to bottom, rgba(255,255,255,0), var(--color-bg, #fff));
+    left: 0; right: 0; top: -7rem;
+    height: 7rem;
+    background: linear-gradient(to bottom,
+      rgba(255,255,255,0) 0%,
+      var(--color-bg, #fff) 88%);
     pointer-events: none;
   }
   .pw-card {
+    position: relative;
     border: 1px solid var(--color-border);
-    border-radius: 10px;
-    padding: 2rem 1.6rem;
+    border-radius: 12px;
+    padding: 2.2rem 1.6rem 1.8rem;
     text-align: center;
     background: var(--color-bg, #fff);
+    box-shadow: 0 2px 18px rgba(0,0,0,0.04);
   }
-  .pw-lock { font-size: 1.8rem; line-height: 1; }
+  .pw-lock {
+    font-size: 1.7rem; line-height: 1;
+    width: 3rem; height: 3rem; margin: 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-accent, #b8860b) 12%, transparent);
+  }
   .pw-title {
     font-family: var(--font-display), serif;
-    margin: 0.6rem 0 0.4rem;
+    font-size: 1.3rem;
+    margin: 0.8rem 0 0.4rem;
     color: var(--color-ink);
   }
   .pw-tagline {
     color: var(--color-light);
     font-size: 0.95rem;
-    margin: 0 auto 1.4rem;
-    max-width: 30em;
+    line-height: 1.6;
+    margin: 0 auto 1.5rem;
+    max-width: 28em;
   }
   .pw-options {
-    display: flex; flex-wrap: wrap; gap: 0.7rem;
-    justify-content: center; margin-bottom: 1.6rem;
+    display: flex; flex-wrap: wrap; gap: 0.8rem;
+    justify-content: center; margin-bottom: 1rem;
   }
   .pw-btn {
-    display: inline-block;
-    padding: 0.55rem 1.2rem;
+    display: inline-flex; align-items: baseline; gap: 0.5em;
+    padding: 0.6rem 1.3rem;
     border: 1px solid var(--color-ink);
     color: var(--color-ink);
     text-decoration: none;
     font-family: var(--font-display), serif;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     background: transparent;
-    transition: 0.25s;
-    font-size: 0.95rem;
+    transition: background .2s, color .2s, transform .1s, box-shadow .2s;
+    font-size: 0.98rem;
   }
   .pw-btn:hover { background: var(--color-ink); color: var(--color-bg, #fff); }
-  .pw-buy { border-color: var(--color-accent, var(--color-ink)); color: var(--color-accent, var(--color-ink)); }
-  .pw-buy:hover { background: var(--color-accent, var(--color-ink)); color: var(--color-bg, #fff); }
+  .pw-btn:active { transform: translateY(1px); }
+  .pw-btn-price { font-weight: 600; }
+  .pw-btn-price small { font-weight: 400; opacity: 0.75; }
+  /* 单篇买断：实心强调色，作为主行动 */
+  .pw-buy {
+    border-color: var(--color-accent, var(--color-ink));
+    background: var(--color-accent, var(--color-ink));
+    color: var(--color-bg, #fff);
+  }
+  .pw-buy:hover { box-shadow: 0 4px 14px color-mix(in srgb, var(--color-accent, #000) 35%, transparent); color: var(--color-bg, #fff); }
+  /* 开通会员：描边次要行动 */
+  .pw-member { border-color: var(--color-accent, var(--color-ink)); color: var(--color-accent, var(--color-ink)); }
+  .pw-member:hover { background: var(--color-accent, var(--color-ink)); color: var(--color-bg, #fff); }
+  .pw-account-note {
+    font-size: 0.82rem; color: var(--color-light);
+    margin: 0 0 1.4rem;
+  }
+  .pw-account-note.ok { color: #2e7d32; }
   .pw-redeem {
     border-top: 1px dashed var(--color-border);
-    padding-top: 1.2rem;
+    padding-top: 1.3rem;
   }
   .pw-redeem-hint { color: var(--color-light); font-size: 0.88rem; margin: 0 0 0.7rem; }
   .pw-redeem-row {
@@ -100,19 +132,46 @@
     flex-wrap: wrap;
   }
   .pw-input {
-    padding: 0.5rem 0.7rem;
+    padding: 0.55rem 0.8rem;
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 0.95rem;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    width: 14em; max-width: 70vw;
+    width: 14em; max-width: 100%;
+    text-align: center;
     font-family: ui-monospace, Menlo, monospace;
+    transition: border-color .2s, box-shadow .2s;
   }
+  .pw-input:focus {
+    outline: none;
+    border-color: var(--color-accent, var(--color-ink));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent, #b8860b) 18%, transparent);
+  }
+  .pw-redeem-btn { padding-left: 1.4rem; padding-right: 1.4rem; }
+  .pw-redeem-btn:disabled { opacity: 0.55; cursor: default; }
   .pw-msg { margin-top: 0.8rem; font-size: 0.9rem; min-height: 1.2em; }
   .pw-msg.ok { color: #2e7d32; }
   .pw-msg.err { color: #c62828; }
+  /* 解锁后正文淡入上滑，避免"砰"地一下出现 */
   #pw-unlocked { margin-top: 0.5rem; }
+  #pw-unlocked.pw-reveal { animation: pw-reveal .45s ease both; }
+  @keyframes pw-reveal {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  /* 手机：按钮整行铺开、输入框与按钮各占一行 */
+  @media (max-width: 480px) {
+    .pw-card { padding: 1.8rem 1.1rem 1.5rem; }
+    .pw-options { flex-direction: column; }
+    .pw-btn { justify-content: center; width: 100%; }
+    .pw-redeem-row { flex-direction: column; align-items: stretch; }
+    .pw-input { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #pw-unlocked.pw-reveal { animation: none; }
+    .pw-btn { transition: none; }
+  }
 </style>
 
 <!-- marked.js 仅在付费文章页加载，用于把锁定正文 markdown 渲染成 HTML -->

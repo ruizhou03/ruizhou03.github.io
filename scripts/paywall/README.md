@@ -16,26 +16,34 @@ Upstash，验证读者凭证后才下发。
 | 全文源 | `_paid/*.md`（**已 gitignore**，永不提交/发布） | 你写付费文章全文的地方 |
 | 构建脚本 | `scripts/paywall/build_paid.py` | 劈分预览/锁定，写预览文件 + 上传锁定正文 |
 | 发码脚本 | `scripts/paywall/gen_codes.py` | 收钱后发兑换码 |
-| 后端 | `backends/urge/api/paid.js`、`api/redeem.js`、`lib/paywall.js` | 存正文、发码、验证、下发 |
+| 后端 | `backends/urge/api/paid.js`、`api/redeem.js`、`api/afdian-webhook.js`、`lib/paywall.js` | 存正文、发码、验证、下发、账号绑定、爱发电回调 |
 | 前端 | `_includes/paywall.html`、`assets/js/paywall/paywall.js` | 付费墙卡片 + 输码解锁 + 注入正文 |
 
-## 凭证模型（账号无关）
+## 凭证模型（账号无关 + 可选账号绑定）
 
 兑换码兑换后，后端给读者发一个随机 **unlock token**，存读者浏览器 localStorage，就是凭证。
-不需要登录。一个 token 上可累加多篇买断 + 会员到期日。将来站点账号系统落地后，可把 token
-绑到 accountId 让解锁跨设备漫游（第二期，无需重做）。
+不需要登录。一个 token 上可累加多篇买断 + 会员到期日。
+
+**登录读者自动跨设备漫游（已实现）**：若读者用站点账号（SiteAuth）登录，购买/解锁时前端会带上
+`Authorization: Bearer <jwt>`，后端把权益收敛到该账号的一条“规范 token”并记 `paid:acct:{accountId}`。
+换设备、清缓存后只要再登录，`status`/`content` 会凭 accountId 取回权益——无需重新输码。匿名读者
+完全不受影响（没 accountId 就走纯 token）。先匿名解锁、之后才登录的，下次打开付费页会自动把本地
+token 认领（`bind`）进账号。
 
 后端 Upstash key：
 ```
 paid:content:{slug}  → { body, format, title }   锁定正文（markdown）
 paid:meta:{slug}     → { price, memberPrice, afdianUrl }
 code:{code}          → { grant, max, used, note }  兑换码
-unlock:{token}       → { slugs:[...], memberUntil } 读者凭证（存 2 年）
+unlock:{token}       → { slugs:[...], memberUntil, accountId? } 读者凭证（存 2 年）
+paid:acct:{accountId}→ { token }                  账号 → 规范 token（登录漫游用）
+afdian:done:{order}  → '1'                         webhook 幂等标记
+afdian:order:{order} → { code, grant }            webhook 自动铸的码（备查）
 ```
 
 ## 一次性部署点火（只做一次）
 
-后端 = 现有 fly app `zircon-urge`，新增了 paid/redeem 两个路由。
+后端 = 现有 fly app `zircon-urge`，新增了 paid / redeem / afdian-webhook 三个路由。
 
 ```bash
 # 1) 设两个 fly secret（管理密钥自己随便定一个长随机串）
@@ -83,8 +91,33 @@ python3 scripts/paywall/gen_codes.py article --slug my-slug --count 1
 - ✅ `$...$` / `$$...$$` 数学（页面已加载 KaTeX，注入后自动渲染）
 - ❌ Liquid 标签 `{% … %}` / `{{ … }}`、kramdown 行内属性 `{:.class}`（marked 不认）
 
-## 第二期（已预留、暂不做）
+## 自动发货 / 免手动发码（两条路，二选一或并用）
 
-- 爱发电 webhook：`/api/afdian-webhook` 收到订单 → 自动发码/直接解锁，免手动。
-- 账号绑定：登录后把 unlock token 挂到 accountId，跨设备漫游。
+### 路 A：爱发电「卡密自动发货」（最省事，零代码）
+1. `gen_codes.py article --slug xxx --count 50` 先批量铸 50 张码（打印出来）。
+2. 爱发电后台给该商品开「自动发货 → 卡密」，把这 50 行码粘进库存。
+3. 买家付款后爱发电自动吐一张码给他，他在文章里输码解锁。卖完了再补铸补库存。
+
+### 路 B：webhook 自动处理（`/api/afdian-webhook`，已实现）
+爱发电后台「开发者 → Webhook」填回调地址：`https://zircon-urge.fly.dev/api/afdian-webhook?key=<你的KEY>`。
+收到订单后后端会：核实订单 → 按 plan 映射出权益 → 铸码存档（或按备注直接解锁）。配置（fly secret）：
+
+```bash
+cd backends/urge
+fly secrets set AFDIAN_WEBHOOK_KEY="$(openssl rand -hex 12)"          # 回调地址 ?key= 防乱探
+fly secrets set AFDIAN_USER_ID="你的爱发电 user_id"                    # 选填：配上才会反查核实订单
+fly secrets set AFDIAN_TOKEN="你的爱发电 token"                        # 选填：同上（强烈建议）
+# plan_id → 权益映射（爱发电每个"方案/商品"一个 plan_id）：
+fly secrets set AFDIAN_PLAN_MAP='{"plan_abc":{"kind":"member","days":30},"plan_xyz":{"kind":"article","slug":"my-slug"}}'
+```
+
+- 会员按订单月数成倍顺延（买 3 个月 → `days*3`）。
+- 买家若在爱发电**留言**里写 `t_xxxx`（自己的 unlock token）→ 直接解锁，免兑换码；写 `slug:my-article`
+  也能指定单篇。认不出买什么的订单存进 `afdian:unmapped:{order}` 等人工。
+- 幂等：同一订单重复推送只处理一次。
+- 推荐：路 A 做交付主力，路 B 兜底 + 做核实/对账。
+
+## 还没做（更后面）
+
 - 游戏/工具内购：同一套 token + `/api/paid?action=status` 查权益，门控高级特性。
+- 爱发电订单 → 自动把码邮件/站内信推给买家（目前靠卡密自动发货代偿）。

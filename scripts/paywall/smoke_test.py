@@ -7,9 +7,13 @@
     export PAYWALL_ADMIN_SECRET=xxxx
     python3 scripts/paywall/smoke_test.py
     python3 scripts/paywall/smoke_test.py --backend http://localhost:3000   # 本地起服务时
+    python3 scripts/paywall/smoke_test.py --account   # 额外验证账号绑定/跨设备漫游
+
+--account 段会注册一个一次性测试账号（随机邮箱）验证：登录态兑换 → 权益绑到账号 →
+"换个设备"（只带 JWT、不带本地 token）也能取到正文。需后端已部署含账号绑定的新版本。
 """
 from __future__ import annotations
-import argparse, os, sys
+import argparse, os, sys, secrets
 try:
     import requests
 except ImportError:
@@ -22,6 +26,8 @@ SLUG = "__smoke_test__"
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--backend", default=os.environ.get("PAYWALL_BACKEND", DEFAULT_BACKEND))
+    ap.add_argument("--account", action="store_true",
+                    help="额外验证账号绑定/跨设备漫游（需后端含账号绑定新版本）")
     args = ap.parse_args()
     secret = os.environ.get("PAYWALL_ADMIN_SECRET", "")
     if not secret:
@@ -68,7 +74,40 @@ def main() -> int:
         check(f"带凭证 200 (got {r.status_code})", r.status_code == 200)
         check("正文非空", bool(r.json().get("body")) if r.ok else False)
 
-    print("6) 清理：下架测试 slug")
+    if args.account:
+        print("\n── 账号绑定 / 跨设备漫游 ──")
+        print("A) 注册一次性测试账号")
+        email = f"smoke_{secrets.token_hex(6)}@example.com"
+        r = requests.post(f"{B}/api/auth?action=register",
+                          headers={"Content-Type": "application/json"},
+                          json={"email": email, "password": secrets.token_hex(8), "nick": "smoke"}, timeout=30)
+        jwt = r.json().get("token") if r.ok else None
+        check(f"register 拿到 JWT ({str(jwt)[:10]}…)", bool(jwt))
+        if jwt:
+            auth_hdr = {"Content-Type": "application/json", "Authorization": f"Bearer {jwt}"}
+            print("B) 重新发码并登录态兑换（权益应绑到账号）")
+            code2 = (requests.post(f"{B}/api/paid?action=mintcode", headers=admin,
+                     json={"kind": "article", "slug": SLUG, "count": 1}, timeout=30).json().get("codes") or [None])[0]
+            # 测试 slug 上一段已下架，这里重新 publish 一下供本段验证
+            requests.post(f"{B}/api/paid?action=publish", headers=admin,
+                          json={"slug": SLUG, "body": "# 漫游\n账号绑定正文。", "title": "漫游"}, timeout=30)
+            r = requests.post(f"{B}/api/redeem", headers=auth_hdr, json={"code": code2}, timeout=30)
+            acct_token = r.json().get("token") if r.ok else None
+            check("登录态 redeem 成功", bool(acct_token))
+
+            print("C) 模拟新设备：只带 JWT、不带本地 token，应已解锁")
+            r = requests.get(f"{B}/api/paid?action=status&slug={SLUG}", headers={"Authorization": f"Bearer {jwt}"}, timeout=30)
+            d = r.json() if r.ok else {}
+            check(f"status entitled=True (got {d.get('entitled')})", d.get("entitled") is True)
+            check("status 回传账号规范 token", bool(d.get("token")))
+            r = requests.get(f"{B}/api/paid?action=content&slug={SLUG}", headers={"Authorization": f"Bearer {jwt}"}, timeout=30)
+            check(f"新设备取正文 200 (got {r.status_code})", r.status_code == 200)
+
+            print("D) bind 幂等：再 bind 一次仍返回同一规范 token")
+            r = requests.post(f"{B}/api/paid?action=bind", headers=auth_hdr, json={}, timeout=30)
+            check("bind ok 且 token 一致", r.ok and r.json().get("token") == acct_token)
+
+    print("\n6) 清理：下架测试 slug")
     requests.post(f"{B}/api/paid?action=unpublish", headers=admin, json={"slug": SLUG}, timeout=30)
 
     print(f"\n{'✅ 全部通过' if not fails else '❌ 失败: ' + ', '.join(fails)}")
