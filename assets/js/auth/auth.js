@@ -30,6 +30,7 @@
   function clearSession() {
     lsDel(K_TOKEN);
     lsDel(K_USER);
+    restoreAnonIdentity();   // 还原匿名身份（登出/登录态失效时）
     emit();
   }
 
@@ -39,6 +40,30 @@
       did: lsGet('gs.did.v1') || '',
       rxnUid: lsGet('rxn-uid') || '',
     };
+  }
+
+  // ── 身份采用（Phase 5：百宝箱打通）──
+  // 登录后把 games-shell 的设备身份切成账号身份：gs.did.v1 = accountId、
+  // gs.nick.v1 = 账号昵称。于是所有按 did 存的联网工具（20+ 小游戏排行榜等）
+  // 自动按账号存、跨设备同步。登出时还原匿名身份。
+  var ADOPT_FLAG = 'gs.id.adopted.v1';
+  function adoptAccountIdentity(user) {
+    if (!user || !user.accountId) return;
+    if (lsGet(ADOPT_FLAG) !== '1') {
+      lsSet('gs.did.anon.v1', lsGet('gs.did.v1') || '');   // 空串表示原本无匿名 did
+      lsSet('gs.nick.anon.v1', lsGet('gs.nick.v1') || '');
+      lsSet(ADOPT_FLAG, '1');
+    }
+    lsSet('gs.did.v1', user.accountId);
+    if (user.nick) lsSet('gs.nick.v1', user.nick);
+  }
+  function restoreAnonIdentity() {
+    if (lsGet(ADOPT_FLAG) !== '1') return;
+    var d = lsGet('gs.did.anon.v1');
+    if (d) lsSet('gs.did.v1', d); else lsDel('gs.did.v1');   // 原本无 → 删除让其重新生成
+    var n = lsGet('gs.nick.anon.v1');
+    if (n) lsSet('gs.nick.v1', n); else lsDel('gs.nick.v1');
+    lsDel('gs.did.anon.v1'); lsDel('gs.nick.anon.v1'); lsDel(ADOPT_FLAG);
   }
 
   async function post(path, body, withAuth) {
@@ -66,9 +91,10 @@
     }
     setSession(r.data.token, r.data.user);
     try {
-      var ident = deviceIdentity();
+      var ident = deviceIdentity();   // 用当前(匿名)did 上报认领，须在采用前
       if (ident.did || ident.rxnUid) await post('/auth?action=claim', ident, true);
     } catch (e) {}
+    adoptAccountIdentity(r.data.user);  // 切成账号身份（联网工具跨设备同步）
     return { ok: true, user: r.data.user };
   }
 
@@ -142,8 +168,9 @@
 
   window.SiteAuth = SiteAuth;
 
-  // 启动时后台静默校验一次 token（不阻塞渲染）
+  // 启动时：已登录则确保账号身份生效（幂等），再后台静默校验 token
   if (SiteAuth.isLoggedIn()) {
+    adoptAccountIdentity(SiteAuth.getUser());
     setTimeout(function () { SiteAuth.refresh(); }, 300);
   }
 })();

@@ -1005,6 +1005,24 @@ layout: default
           wrap.dataset.walineField = name;
         }
       });
+      // 登录用户：用账号信息预填并锁定昵称/邮箱，评论即归账号（"我的评论记录"可查）
+      if (window.SiteAuth && SiteAuth.isLoggedIn()) {
+        const u = SiteAuth.getUser() || {};
+        const lock = (name, val) => {
+          const input = walineEl.querySelector(`input[name="${name}"]`);
+          if (!input || !val) return;
+          if (input.value !== val) {
+            input.value = val;
+            // 触发原生 input 事件，让 Waline(preact) 同步内部状态，提交时才带上
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          input.readOnly = true;
+          input.style.opacity = '0.65';
+          input.title = '已用登录账号信息填写';
+        };
+        lock('nick', u.nick);
+        lock('mail', u.email);
+      }
     };
     new MutationObserver(patchMeta).observe(walineEl, { childList: true, subtree: true });
   });
