@@ -13,6 +13,8 @@ _paid/<name>.md 的 front-matter 约定（除常规 post 字段外）：
     paid_public: life/xxx/slug.md   # 必须：预览文件写到仓库里的哪个路径
     paid_slug: my-slug      # 可选：后端 key，默认取 permalink 末段
     price: 9.9              # 单篇买断价（元），展示用
+    column: liuxue          # 可选：所属专栏 id；买断该专栏的码可解锁本篇（含将来新增）
+    column_price: 39        # 可选：整栏买断价（元），展示用
     member_price: 19        # 可选：月费会员价，展示用
     afdian_url: https://afdian.com/a/ruizhou03   # 可选：爱发电付款页
 正文里用一行 `<!-- PAYWALL -->` 分隔免费预览和锁定正文。
@@ -49,7 +51,7 @@ DEFAULT_BACKEND = "https://zircon-urge.fly.dev"
 PUBLIC_FIELDS = [
     "layout", "title", "main_category", "sub_category", "date", "author",
     "permalink", "published", "keywords", "summary", "image", "cover",
-    "paid", "paid_slug", "price", "member_price", "afdian_url",
+    "paid", "paid_slug", "price", "column", "column_price", "member_price", "afdian_url",
 ]
 # 仅供构建用、绝不写进公开文件的字段
 INTERNAL_FIELDS = {"paid_public"}
@@ -137,15 +139,17 @@ def process(path: Path, backend: str, secret: str, dry_run: bool) -> bool:
 
     meta = {
         "price": fm.get("price"),
+        "columnPrice": fm.get("column_price"),
         "memberPrice": fm.get("member_price"),
         "afdianUrl": fm.get("afdian_url"),
+        "column": fm.get("column"),
     }
     meta = {k: v for k, v in meta.items() if v is not None}
     resp = requests.post(
         f"{backend}/api/paid?action=publish",
         headers={"Content-Type": "application/json", "X-Admin-Secret": secret},
         json={"slug": slug, "body": locked, "format": "markdown",
-              "title": fm.get("title"), "meta": meta},
+              "title": fm.get("title"), "column": fm.get("column"), "meta": meta},
         timeout=30,
     )
     if resp.ok:

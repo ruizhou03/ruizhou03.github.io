@@ -10,7 +10,9 @@
 
 <div id="paywall" class="paywall"
      data-slug="{{ pw_slug }}"
+     data-column="{{ page.column }}"
      data-price="{{ page.price }}"
+     data-column-price="{{ page.column_price }}"
      data-member-price="{{ page.member_price }}"
      data-afdian="{{ page.afdian_url }}">
   <div class="pw-fade" aria-hidden="true"></div>
@@ -22,9 +24,12 @@
     <div class="pw-options">
       {% if page.price %}<a class="pw-btn pw-buy" href="{{ page.afdian_url }}" target="_blank" rel="noopener">
         <span class="pw-btn-label">单篇买断</span><span class="pw-btn-price">¥{{ page.price }}</span></a>{% endif %}
+      {% if page.column_price %}<a class="pw-btn pw-column" href="{{ page.afdian_url }}" target="_blank" rel="noopener">
+        <span class="pw-btn-label">整栏买断</span><span class="pw-btn-price">¥{{ page.column_price }}</span></a>{% endif %}
       {% if page.member_price %}<a class="pw-btn pw-member" href="{{ page.afdian_url }}" target="_blank" rel="noopener">
         <span class="pw-btn-label">开通会员</span><span class="pw-btn-price">¥{{ page.member_price }}<small>/月</small></span></a>{% endif %}
     </div>
+    {% if page.column_price %}<p class="pw-column-hint">整栏买断 = 一次解锁本专栏全部文章（含日后新增），最划算。</p>{% endif %}
 
     <p id="pw-account-note" class="pw-account-note" hidden></p>
 
@@ -107,16 +112,16 @@
   .pw-btn:active { transform: translateY(1px); }
   .pw-btn-price { font-weight: 600; }
   .pw-btn-price small { font-weight: 400; opacity: 0.75; }
-  /* 单篇买断：实心强调色，作为主行动 */
-  .pw-buy {
+  /* 整栏买断：实心强调色，作为主推（最划算）。单篇 / 会员为描边次要行动。 */
+  .pw-column {
     border-color: var(--color-accent, var(--color-ink));
     background: var(--color-accent, var(--color-ink));
     color: var(--color-bg, #fff);
   }
-  .pw-buy:hover { box-shadow: 0 4px 14px color-mix(in srgb, var(--color-accent, #000) 35%, transparent); color: var(--color-bg, #fff); }
-  /* 开通会员：描边次要行动 */
-  .pw-member { border-color: var(--color-accent, var(--color-ink)); color: var(--color-accent, var(--color-ink)); }
-  .pw-member:hover { background: var(--color-accent, var(--color-ink)); color: var(--color-bg, #fff); }
+  .pw-column:hover { box-shadow: 0 4px 14px color-mix(in srgb, var(--color-accent, #000) 35%, transparent); color: var(--color-bg, #fff); }
+  .pw-buy, .pw-member { border-color: var(--color-accent, var(--color-ink)); color: var(--color-accent, var(--color-ink)); }
+  .pw-buy:hover, .pw-member:hover { background: var(--color-accent, var(--color-ink)); color: var(--color-bg, #fff); }
+  .pw-column-hint { font-size: 0.8rem; color: var(--color-light); margin: 0 0 1.2rem; }
   .pw-account-note {
     font-size: 0.82rem; color: var(--color-light);
     margin: 0 0 1.4rem;

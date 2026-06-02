@@ -4,9 +4,11 @@
 机制：本脚本调后端 /api/paid?action=mintcode（带 X-Admin-Secret），后端在 Upstash
 里写入码记录并返回明码。你把码发给读者，读者在文章付费墙里输码即解锁。
 
-两种码：
+三种码：
   - 单篇买断：解锁某一篇付费文章。
         python3 scripts/paywall/gen_codes.py article --slug my-slug --count 5
+  - 整栏买断：解锁某专栏全部文章（含将来新增）。
+        python3 scripts/paywall/gen_codes.py column --column liuxue --count 5
   - 站点会员：N 天内解锁全部付费文章。
         python3 scripts/paywall/gen_codes.py member --days 30 --count 3
 
@@ -37,10 +39,13 @@ def main() -> int:
     a = sub.add_parser("article", help="单篇买断码")
     a.add_argument("--slug", required=True, help="付费文章的 paid_slug")
 
+    c = sub.add_parser("column", help="整栏买断码（解锁某专栏全部文章，含将来新增）")
+    c.add_argument("--column", required=True, help="专栏 id（与文章 front-matter 的 column 一致）")
+
     m = sub.add_parser("member", help="会员码（解锁全部付费文章 N 天）")
     m.add_argument("--days", type=int, required=True, help="会员天数")
 
-    for p in (a, m):
+    for p in (a, c, m):
         p.add_argument("--count", type=int, default=1, help="发几张码（默认 1）")
         p.add_argument("--max", type=int, default=1, help="每张码可用几次（默认 1）")
         p.add_argument("--note", default="", help="备注（只存后端，自己看）")
@@ -55,6 +60,8 @@ def main() -> int:
     payload = {"kind": args.kind, "count": args.count, "max": args.max, "note": args.note}
     if args.kind == "article":
         payload["slug"] = args.slug
+    elif args.kind == "column":
+        payload["column"] = args.column
     else:
         payload["days"] = args.days
 
