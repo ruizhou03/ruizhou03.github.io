@@ -1,13 +1,14 @@
-/* 付费墙前端 —— 账号无关的"兑换码即凭证"。
+/* 付费墙前端 —— 站内扫码收银，付完自动解锁，无需手输码。
  *
  * 流程：
- *   1. 读 #paywall 上的 slug；从 localStorage 取已有 unlock token。
+ *   1. 读 #paywall 上的 slug/column；从 localStorage 取已有 unlock token。
  *   2. 调 /api/paid?action=status 看本读者是否已解锁；已解锁 → 直接取正文注入、藏卡片。
- *   3. 未解锁 → 显示卡片（买断/会员去爱发电；输码解锁）。
- *   4. 输码 → /api/redeem → 存 token → 取正文注入。
+ *   3. 未解锁 → 显示卡片三档（单篇/整栏/会员）。点档位 → 弹收银浮层扫码。
+ *   4. /api/pay?action=create 建单拿扫码 → 轮询 status → 付款成功后端把权益记到本 token →
+ *      自动取正文展开、收起浮层。兑换码入口保留为次要（礼品/补发）。
  *
- * 凭证存 localStorage 'pw.token.v1'，一个 token 累加多篇买断 + 会员到期日。
- * 后端没部署 / 网络挂时优雅降级：卡片照常显示，解锁会给出错误提示。
+ * 凭证存 localStorage 'pw.token.v1'；登录后绑账号可跨设备。
+ * 后端没部署 / 网络挂时优雅降级：卡片照常显示。
  */
 (function () {
   'use strict';
@@ -19,12 +20,24 @@
   if (!el) return;
   var slug = el.getAttribute('data-slug') || '';
   if (!slug) return;
+  var column = el.getAttribute('data-column') || '';
 
   var out = document.getElementById('pw-unlocked');
   var msgEl = document.getElementById('pw-msg');
   var codeInput = document.getElementById('pw-code');
   var redeemBtn = document.getElementById('pw-redeem-btn');
   var acctNote = document.getElementById('pw-account-note');
+
+  // 收银浮层元素
+  var coEl = document.getElementById('pw-checkout');
+  var coTitle = document.getElementById('pw-checkout-title');
+  var coAmount = document.getElementById('pw-checkout-amount');
+  var coQr = document.getElementById('pw-checkout-qr');
+  var coTip = document.getElementById('pw-checkout-tip');
+  var coStatus = document.getElementById('pw-checkout-status');
+  var coStatusText = document.getElementById('pw-checkout-statustext');
+  var coClose = document.getElementById('pw-checkout-close');
+  var coMask = document.getElementById('pw-checkout-mask');
 
   function getToken() { try { return localStorage.getItem(K_TOKEN) || ''; } catch (e) { return ''; } }
   function setToken(t) { try { if (t) localStorage.setItem(K_TOKEN, t); } catch (e) {} }
@@ -188,6 +201,110 @@
       if (redeemBtn) redeemBtn.disabled = false;
     });
   }
+
+  // ── 扫码收银 ────────────────────────────────────────────────
+  var pollTimer = null;
+  var curOrder = '';
+
+  function authHeaders() {
+    var h = { 'Content-Type': 'application/json' };
+    var a = authToken();
+    if (a) h['Authorization'] = 'Bearer ' + a;
+    return h;
+  }
+
+  function stopPoll() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+  function closeCheckout() {
+    stopPoll();
+    curOrder = '';
+    if (coEl) coEl.hidden = true;
+  }
+
+  function setCoStatus(text, ok) {
+    if (coStatusText) coStatusText.textContent = text || '';
+    if (coStatus) coStatus.className = 'pw-checkout-status' + (ok ? ' ok' : '');
+  }
+
+  // 付款成功：取正文、展开、收起浮层。
+  function onPaid(token) {
+    if (token) adoptToken(token);
+    setCoStatus('✓ 支付成功，正在解锁…', true);
+    fetchContent().then(function (d) {
+      if (d && !d._err) { inject(d); closeCheckout(); }
+      else { setCoStatus('支付成功，但取正文失败，刷新页面即可。', true); }
+    });
+  }
+
+  function pollStatus() {
+    if (!curOrder) return;
+    fetch(API + '/pay?action=status&orderId=' + encodeURIComponent(curOrder))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (s) {
+        if (s && s.status === 'paid') { stopPoll(); onPaid(s.token); }
+      }).catch(function () {});
+  }
+
+  function openCheckout(tier) {
+    if (!coEl) return;
+    // 重置浮层
+    coEl.hidden = false;
+    coAmount.textContent = '';
+    coQr.innerHTML = '';
+    coTip.textContent = '请用微信 / 支付宝扫码支付';
+    setCoStatus('正在生成支付码…', false);
+
+    fetch(API + '/pay?action=create', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        tier: tier, slug: slug, column: column,
+        token: getToken() || undefined,
+        returnUrl: location.href
+      })
+    }).then(function (r) {
+      return r.json().then(function (d) { return { status: r.status, data: d }; });
+    }).then(function (res) {
+      var d = res.data || {};
+      if (res.status !== 200 || !d.orderId) {
+        setCoStatus('下单失败（' + (d.error || res.status) + '），请稍后再试。', false);
+        return;
+      }
+      adoptToken(d.token);          // 采纳订单 token，跳回/留存都对得上
+      curOrder = d.orderId;
+      if (coTitle) coTitle.textContent = d.title || '扫码支付';
+      if (coAmount) coAmount.textContent = '¥' + d.amount;
+
+      if (d.qrImage) {
+        coQr.innerHTML = '<img src="' + d.qrImage + '" alt="支付二维码">';
+        // 手机端：原生码不便自扫，给个"在本机打开支付"
+        if (d.payUrl) coTip.innerHTML = '请扫码支付，或 <a href="' + d.payUrl + '" target="_blank" rel="noopener">在本机打开支付</a>';
+      } else if (d.mock) {
+        // 联调用假支付源：给个"模拟支付"按钮
+        coTip.textContent = '【测试支付源】真实支付码接上虎皮椒后出现';
+        coQr.innerHTML = '<a class="pw-pay-link" href="' + d.payUrl + '" target="_blank" rel="noopener">点我模拟支付成功</a>';
+      } else if (d.payUrl) {
+        coQr.innerHTML = '<a class="pw-pay-link" href="' + d.payUrl + '" target="_blank" rel="noopener">前往支付</a>';
+      }
+      setCoStatus('等待支付…', false);
+      stopPoll();
+      pollTimer = setInterval(pollStatus, 1500);
+      pollStatus();
+    }).catch(function () {
+      setCoStatus('网络错误，请稍后再试。', false);
+    });
+  }
+
+  // 三档按钮 → 起收银
+  var tierBtns = el.querySelectorAll('.pw-options .pw-btn[data-tier]');
+  Array.prototype.forEach.call(tierBtns, function (b) {
+    b.addEventListener('click', function () { openCheckout(b.getAttribute('data-tier')); });
+  });
+  if (coClose) coClose.addEventListener('click', closeCheckout);
+  if (coMask) coMask.addEventListener('click', closeCheckout);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && coEl && !coEl.hidden) closeCheckout();
+  });
 
   if (redeemBtn) redeemBtn.addEventListener('click', doRedeem);
   if (codeInput) codeInput.addEventListener('keydown', function (e) {

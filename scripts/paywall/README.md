@@ -91,7 +91,29 @@ python3 scripts/paywall/gen_codes.py article --slug my-slug --count 1
 - ✅ `$...$` / `$$...$$` 数学（页面已加载 KaTeX，注入后自动渲染）
 - ❌ Liquid 标签 `{% … %}` / `{{ … }}`、kramdown 行内属性 `{:.class}`（marked 不认）
 
-## 自动发货 / 免手动发码（两条路，二选一或并用）
+## 站内扫码收银（虎皮椒，现在的主路）
+
+读者点档位（单篇/整栏/会员）→ 站内弹收银浮层扫码 → 付完**自动解锁**、无需手输码。
+后端 `api/pay.js` + 适配层 `lib/pay-xunhupay.js`，钱走聚合支付**虎皮椒**（个人实名即可、免营业执照）。
+
+流程：`create` 建单拿扫码（金额一律由后端按 `paid:meta:{slug}` 决定，不信前端）→ 前端每 1.5s 轮询
+`status`（pending 时后端顺手主动查单兜底）→ 虎皮椒 `notify` 回调 / 查单任一确认到账 → 后端把权益记到
+读者 token（登录则绑账号）→ 浮层收起、正文当场展开。付款绑在 token 上，关了页面重开仍是解锁态。
+
+**配置（fly secret）**：
+```bash
+cd backends/urge
+fly secrets set XUNHUPAY_APPID="虎皮椒后台的 appid"
+fly secrets set XUNHUPAY_APPSECRET="虎皮椒后台的 appsecret"
+# notify/return 地址后端自动拼（PAY_PUBLIC_BASE 默认 https://zircon-urge.fly.dev，换域名再设）
+```
+虎皮椒后台「回调通知地址」填：`https://zircon-urge.fly.dev/api/pay?action=notify`
+
+> **没配 key 时自动走 mock 支付源**：`create` 返回一个“点我模拟支付”链接（`?action=devpay`），
+> 整条 UX（选档→浮层→付款→自动解锁）照样能端到端联调，不碰真钱。配上真 key 后 devpay 自动失效。
+> ⚠️ `lib/pay-xunhupay.js` 的字段名/签名按虎皮椒文档实现，拿到真 key 后请用一笔真实小额订单核对一遍。
+
+## 兑换码 / 卡密（备用：礼品、补发、或不接聚合时）
 
 ### 路 A：爱发电「卡密自动发货」（最省事，零代码）
 1. `gen_codes.py article --slug xxx --count 50` 先批量铸 50 张码（打印出来）。

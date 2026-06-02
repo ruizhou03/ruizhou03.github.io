@@ -22,30 +22,46 @@
     <p class="pw-tagline">上面是免费预览。剩余部分需要单篇买断，或开通会员解锁全部付费内容。</p>
 
     <div class="pw-options">
-      {% if page.price %}<a class="pw-btn pw-buy" href="{{ page.afdian_url }}" target="_blank" rel="noopener">
-        <span class="pw-btn-label">单篇买断</span><span class="pw-btn-price">¥{{ page.price }}</span></a>{% endif %}
-      {% if page.column_price %}<a class="pw-btn pw-column" href="{{ page.afdian_url }}" target="_blank" rel="noopener">
-        <span class="pw-btn-label">整栏买断</span><span class="pw-btn-price">¥{{ page.column_price }}</span></a>{% endif %}
-      {% if page.member_price %}<a class="pw-btn pw-member" href="{{ page.afdian_url }}" target="_blank" rel="noopener">
-        <span class="pw-btn-label">开通会员</span><span class="pw-btn-price">¥{{ page.member_price }}<small>/月</small></span></a>{% endif %}
+      {% if page.price %}<button class="pw-btn pw-buy" type="button" data-tier="article">
+        <span class="pw-btn-label">单篇买断</span><span class="pw-btn-price">¥{{ page.price }}</span></button>{% endif %}
+      {% if page.column_price %}<button class="pw-btn pw-column" type="button" data-tier="column">
+        <span class="pw-btn-label">整栏买断</span><span class="pw-btn-price">¥{{ page.column_price }}</span></button>{% endif %}
+      {% if page.member_price %}<button class="pw-btn pw-member" type="button" data-tier="member">
+        <span class="pw-btn-label">开通会员</span><span class="pw-btn-price">¥{{ page.member_price }}<small>/月</small></span></button>{% endif %}
     </div>
     {% if page.column_price %}<p class="pw-column-hint">整栏买断 = 一次解锁本专栏全部文章（含日后新增），最划算。</p>{% endif %}
 
+    <p class="pw-pay-hint">扫码付款后自动解锁，无需手动输码。</p>
     <p id="pw-account-note" class="pw-account-note" hidden></p>
 
-    <div class="pw-redeem">
-      <p class="pw-redeem-hint">付款后你会拿到一个兑换码，在这里输入即可解锁：</p>
+    <details class="pw-redeem">
+      <summary class="pw-redeem-toggle">有兑换码？点此输入</summary>
       <div class="pw-redeem-row">
         <input id="pw-code" class="pw-input" type="text" autocomplete="off"
                spellcheck="false" placeholder="ZRC-XXXX-XXXX" />
         <button id="pw-redeem-btn" class="pw-btn pw-redeem-btn" type="button">解锁</button>
       </div>
       <div id="pw-msg" class="pw-msg" role="status"></div>
-    </div>
+    </details>
   </div>
 </div>
 
 <div id="pw-unlocked" class="markdown-content" hidden></div>
+
+<!-- 收银浮层：选档后弹出，扫码付款，付完自动解锁并收起 -->
+<div id="pw-checkout" class="pw-checkout" hidden>
+  <div class="pw-checkout-mask" id="pw-checkout-mask"></div>
+  <div class="pw-checkout-card" role="dialog" aria-modal="true">
+    <button class="pw-checkout-close" id="pw-checkout-close" type="button" aria-label="关闭">×</button>
+    <h3 class="pw-checkout-title" id="pw-checkout-title">扫码支付</h3>
+    <p class="pw-checkout-amount" id="pw-checkout-amount"></p>
+    <div class="pw-checkout-qr" id="pw-checkout-qr"></div>
+    <p class="pw-checkout-tip" id="pw-checkout-tip">请用微信 / 支付宝扫码支付</p>
+    <div class="pw-checkout-status" id="pw-checkout-status">
+      <span class="pw-spinner" aria-hidden="true"></span><span id="pw-checkout-statustext">等待支付…</span>
+    </div>
+  </div>
+</div>
 
 <style>
   .paywall {
@@ -127,10 +143,18 @@
     margin: 0 0 1.4rem;
   }
   .pw-account-note.ok { color: #2e7d32; }
+  .pw-pay-hint { font-size: 0.82rem; color: var(--color-light); margin: 0 0 1.2rem; }
   .pw-redeem {
     border-top: 1px dashed var(--color-border);
-    padding-top: 1.3rem;
+    padding-top: 1rem; margin-top: 0.3rem;
   }
+  .pw-redeem-toggle {
+    cursor: pointer; color: var(--color-light); font-size: 0.85rem;
+    list-style: none; user-select: none;
+  }
+  .pw-redeem-toggle::-webkit-details-marker { display: none; }
+  .pw-redeem-toggle:hover { color: var(--color-accent, var(--color-ink)); }
+  .pw-redeem[open] .pw-redeem-toggle { margin-bottom: 0.8rem; }
   .pw-redeem-hint { color: var(--color-light); font-size: 0.88rem; margin: 0 0 0.7rem; }
   .pw-redeem-row {
     display: flex; gap: 0.5rem; justify-content: center;
@@ -176,6 +200,68 @@
   @media (prefers-reduced-motion: reduce) {
     #pw-unlocked.pw-reveal { animation: none; }
     .pw-btn { transition: none; }
+  }
+
+  /* ── 收银浮层 ───────────────────────────────────────────── */
+  .pw-checkout {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pw-checkout-mask {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(2px);
+  }
+  .pw-checkout-card {
+    position: relative;
+    background: var(--color-bg, #fff);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    padding: 1.8rem 1.8rem 1.6rem;
+    width: 320px; max-width: 88vw;
+    text-align: center;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.25);
+    animation: pw-pop .25s ease both;
+  }
+  @keyframes pw-pop { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
+  .pw-checkout-close {
+    position: absolute; top: 0.6rem; right: 0.8rem;
+    background: none; border: none; cursor: pointer;
+    font-size: 1.4rem; line-height: 1; color: var(--color-light);
+  }
+  .pw-checkout-close:hover { color: var(--color-ink); }
+  .pw-checkout-title { font-family: var(--font-display), serif; margin: 0 0 0.2rem; color: var(--color-ink); }
+  .pw-checkout-amount { font-size: 1.5rem; font-weight: 600; color: var(--color-accent, var(--color-ink)); margin: 0 0 1rem; }
+  .pw-checkout-qr {
+    width: 200px; height: 200px; margin: 0 auto 0.9rem;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--color-border); border-radius: 8px;
+    background: #fff; overflow: hidden;
+  }
+  .pw-checkout-qr img { width: 100%; height: 100%; object-fit: contain; }
+  .pw-checkout-tip { font-size: 0.85rem; color: var(--color-light); margin: 0 0 1rem; }
+  .pw-checkout-status {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    font-size: 0.92rem; color: var(--color-light); min-height: 1.4em;
+  }
+  .pw-checkout-status.ok { color: #2e7d32; }
+  .pw-spinner {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--color-border);
+    border-top-color: var(--color-accent, var(--color-ink));
+    animation: pw-spin .8s linear infinite;
+  }
+  .pw-checkout-status.ok .pw-spinner { display: none; }
+  @keyframes pw-spin { to { transform: rotate(360deg); } }
+  .pw-pay-link {
+    display: inline-block; margin: 0.2rem auto;
+    padding: 0.6rem 1.4rem; border-radius: 6px;
+    background: var(--color-accent, var(--color-ink)); color: var(--color-bg, #fff);
+    text-decoration: none; font-family: var(--font-display), serif;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pw-checkout-card { animation: none; }
+    .pw-spinner { animation-duration: 2s; }
   }
 </style>
 
