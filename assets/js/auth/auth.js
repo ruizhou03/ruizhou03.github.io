@@ -57,13 +57,19 @@
   ];
   function adoptAccountIdentity(user) {
     if (!user || !user.accountId) return;
-    if (lsGet(ADOPT_FLAG) !== '1') {
-      DEVICE_KEYS.forEach(function (m) { lsSet(m.bak, lsGet(m.key) || ''); }); // 空串=原本无
+    var acc = user.accountId;
+    // 逐个 key 独立备份：仅当"该 key 还没备份过"且"当前值不是账号 id"时才备份当前值，
+    // 再覆盖为 accountId。这样即使后来往列表里新增 key（如 pet-food），也不会无备份覆盖。
+    DEVICE_KEYS.forEach(function (m) {
+      var cur = lsGet(m.key);
+      if (lsGet(m.bak) === null && cur !== acc) lsSet(m.bak, cur || ''); // 空串=原本无
+      lsSet(m.key, acc);
+    });
+    if (lsGet('gs.nick.anon.v1') === null && lsGet('gs.nick.v1') !== (user.nick || '')) {
       lsSet('gs.nick.anon.v1', lsGet('gs.nick.v1') || '');
-      lsSet(ADOPT_FLAG, '1');
     }
-    DEVICE_KEYS.forEach(function (m) { lsSet(m.key, user.accountId); });
     if (user.nick) lsSet('gs.nick.v1', user.nick);
+    lsSet(ADOPT_FLAG, '1');
   }
   function restoreAnonIdentity() {
     if (lsGet(ADOPT_FLAG) !== '1') return;
