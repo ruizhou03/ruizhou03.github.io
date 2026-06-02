@@ -1542,6 +1542,9 @@
     if (selfBar) selfBar.classList.remove('is-dim');
     if (handEl) handEl.classList.remove('is-dim');
     if (state.phase !== PHASE.PLAYING) return;
+    // 加倍阶段（4 人同时决策）：turn=leader 多半不是我，但我此刻正要按"加倍/不加倍"，
+    // 不能把我的手牌 dim 成半透明（用户反馈像"一层蒙版盖住牌"）。整桌全亮。
+    if (state._doublingActive) return;
     const curr = state.turn;
     // 座位 0（我）的 .gd-seat 已经是 .gd-self-bar 的子节点，dim 父级即可，
     // 不要双重 dim 否则 opacity 复合后过暗。AI 三家直接 dim 各自 .gd-seat。
