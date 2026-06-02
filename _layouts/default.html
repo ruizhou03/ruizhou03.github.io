@@ -239,6 +239,14 @@
     (function () {
       if (!('serviceWorker' in navigator)) return;
 
+      // 本地预览（jekyll serve）一律不挂 SW，并清掉可能已注册的旧实例。
+      // 否则 stale-while-revalidate 会让 localhost 也先给旧版资源，违背"本地即时预览"的初衷。
+      if (['localhost', '127.0.0.1', '0.0.0.0'].includes(location.hostname)) {
+        navigator.serviceWorker.getRegistrations?.().then((regs) => regs.forEach((r) => r.unregister()));
+        if (window.caches) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k)));
+        return;
+      }
+
       const SW_URL = '{{ "/sw.js" | relative_url }}';
       const SCOPE = '{{ "/" | relative_url }}';
       const statusDot = document.getElementById('offline-status-dot');
