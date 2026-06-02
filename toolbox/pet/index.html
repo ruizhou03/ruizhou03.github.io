@@ -2784,6 +2784,13 @@ permalink: /toolbox/pet/
   let metaPushTimer = null;
   function schedulePushMeta(pet) {
     if (!pet || !pet.shared || !pet.serverPetId) return;
+    // Mark this pet as having a local edit that hasn't reached the server yet,
+    // so a concurrent pull (60s poll / tab refocus) won't clobber it back to the
+    // stale server copy before our push lands. _metaSeq guards against an in-flight
+    // push clearing the flag when a newer edit arrived during its await.
+    pet._metaDirty = true;
+    pet._metaSeq = (pet._metaSeq || 0) + 1;
+    const mySeq = pet._metaSeq;
     clearTimeout(metaPushTimer);
     metaPushTimer = setTimeout(async () => {
       try {
@@ -2791,8 +2798,22 @@ permalink: /toolbox/pet/
           petId: pet.serverPetId,
           body: { patch: petMetaPatch(pet) },
         });
-      } catch (e) { /* swallow; cached locally */ }
+        if (pet._metaSeq === mySeq) pet._metaDirty = false;
+      } catch (e) { /* swallow; stays dirty so pulls keep the local copy */ }
     }, 600);
+  }
+  // Push any pets whose local meta edits never reached the server (e.g. saved then
+  // reloaded before the debounced push fired). Run before the first pull so the
+  // initial sync can't overwrite an unsynced local edit.
+  async function flushDirtyMeta() {
+    await Promise.all(state.pets
+      .filter(p => p._metaDirty && p.shared && p.serverPetId)
+      .map(async p => {
+        try {
+          await api('update', { petId: p.serverPetId, body: { patch: petMetaPatch(p) } });
+          p._metaDirty = false;
+        } catch (e) { /* stays dirty; retried next session */ }
+      }));
   }
 
   async function pullSharedPets() {
@@ -2801,7 +2822,9 @@ permalink: /toolbox/pet/
     await Promise.all(shared.map(async p => {
       try {
         const r = await api('get', { petId: p.serverPetId });
-        if (r && r.pet) {
+        // Don't apply server meta over a local edit that hasn't synced yet, or we'd
+        // revert the user's just-saved change (e.g. a new food type's config).
+        if (r && r.pet && !p._metaDirty) {
           META_FIELDS.forEach(k => { if (r.pet[k] !== undefined) p[k] = r.pet[k]; });
         }
         if (r && Array.isArray(r.members)) p.members = r.members;
@@ -5265,7 +5288,7 @@ permalink: /toolbox/pet/
   render();
   // Pull profile + shared pet data (best-effort, parallel)
   loadProfile().catch(() => {});
-  pullSharedPets().then(() => render()).catch(() => {});
+  flushDirtyMeta().then(() => pullSharedPets()).then(() => render()).catch(() => {});
 
   // No realtime backend: refresh shared data when the tab regains focus and on
   // a slow 60s poll, so time-change requests/notices show up without a reload.
