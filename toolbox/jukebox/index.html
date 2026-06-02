@@ -54,9 +54,9 @@ noindex: true
 
   /* ===== NOW PLAYING ===== */
   .np{position:fixed;inset:0;z-index:50;color:#fff;display:flex;flex-direction:column;
-    opacity:0;visibility:hidden;transform:translateY(26px) scale(.992);
+    opacity:0;visibility:hidden;pointer-events:none;transform:translateY(26px) scale(.992);
     transition:opacity .34s ease,transform .34s cubic-bezier(.22,1,.36,1),visibility .34s}
-  .np.open{opacity:1;visibility:visible;transform:none}
+  .np.open{opacity:1;visibility:visible;pointer-events:auto;transform:none}
   .np .npbg{position:absolute;inset:-60px;z-index:-2;filter:blur(60px) saturate(1.5);transform:scale(1.25);transition:background .5s}
   .np::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.6))}
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;flex:none}
@@ -117,8 +117,8 @@ noindex: true
   /* ===== MINI ===== */
   .mini{position:fixed;left:0;right:0;bottom:0;z-index:40;height:calc(66px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);
     background:rgba(250,247,242,.92);backdrop-filter:blur(14px);border-top:1px solid var(--line);box-shadow:0 -4px 20px rgba(40,30,20,.08);
-    transform:translateY(120%);transition:transform .32s cubic-bezier(.22,1,.36,1)}
-  .mini.show{transform:none}
+    transform:translateY(120%);pointer-events:none;transition:transform .32s cubic-bezier(.22,1,.36,1)}
+  .mini.show{transform:none;pointer-events:auto}
   .mini .miniprog{position:absolute;left:0;right:0;top:-2px;height:6px;cursor:pointer;touch-action:none}
   .mini .miniprog::before{content:"";position:absolute;left:0;right:0;top:2px;height:3px;background:var(--line)}
   .mini .miniprog i{position:absolute;left:0;top:2px;height:3px;background:var(--accent);width:0%}
@@ -220,7 +220,11 @@ const aud=$('aud');
 let TRACKS=[], cur=-1, mode='list', view='C';
 const MODES={list:{ico:'↻',lab:'列表循环'},one:{ico:'¹↻',lab:'单曲循环'},shuffle:{ico:'⇄',lab:'随机播放'}};
 
-fetch('manifest.json').then(r=>r.json()).then(d=>{TRACKS=d;init();})
+// 加 cache-busting 绕过 service worker 的 stale-while-revalidate，保证歌单总是最新；
+// 失败(如离线)再退回普通请求走 SW 缓存。
+fetch('manifest.json?v='+Date.now(),{cache:'no-store'}).then(r=>r.json())
+  .catch(()=>fetch('manifest.json').then(r=>r.json()))
+  .then(d=>{TRACKS=d;init();})
   .catch(()=>{$('walls').innerHTML='<div class="loading">歌单载入失败，请刷新重试。</div>';});
 
 function init(){
