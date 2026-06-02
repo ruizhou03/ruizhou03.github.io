@@ -226,13 +226,18 @@
     if (coStatus) coStatus.className = 'pw-checkout-status' + (ok ? ' ok' : '');
   }
 
-  // 付款成功：取正文、展开、收起浮层。
+  // 付款成功：取正文、展开、收起浮层。无论取正文成功与否都不能卡死——
+  // 权益已记在 token 上，最差也能靠刷新页面(init 会自动解锁)兜底。
   function onPaid(token) {
     if (token) adoptToken(token);
     setCoStatus('✓ 支付成功，正在解锁…', true);
     fetchContent().then(function (d) {
       if (d && !d._err) { inject(d); closeCheckout(); }
-      else { setCoStatus('支付成功，但取正文失败，刷新页面即可。', true); }
+      else { setCoStatus('✓ 支付成功，正在载入全文…', true); setTimeout(function () { location.reload(); }, 800); }
+    }).catch(function () {
+      // fetch 直接 reject(网络/CORS) → 别静默卡死，刷新页面让 init 解锁
+      setCoStatus('✓ 支付成功，正在载入全文…', true);
+      setTimeout(function () { location.reload(); }, 800);
     });
   }
 
