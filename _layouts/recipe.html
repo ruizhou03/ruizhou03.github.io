@@ -133,6 +133,113 @@ layout: default
   </section>
   {% endif %}
 
+  {%- comment -%} 收藏 / 点赞栏 —— 登录后归账号，"我的主页"可回看。匿名点击唤起登录弹窗。 {%- endcomment -%}
+  <style>
+    .sa-postbar {
+      display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap;
+      margin: 3rem 0 0; padding-top: 1.6rem; border-top: 1px dashed var(--color-border);
+    }
+    .sa-pb-btn {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      padding: 0.5rem 0.95rem; font-size: 0.92rem; font-family: inherit; cursor: pointer;
+      color: var(--color-text); background: var(--color-bg);
+      border: 1px solid var(--color-border); border-radius: 999px;
+      transition: border-color .2s, color .2s, background .2s;
+    }
+    .sa-pb-btn:hover { border-color: var(--color-highlight); }
+    .sa-pb-btn .sa-pb-ico { font-size: 1.05rem; line-height: 1; }
+    .sa-pb-btn .sa-pb-num { font-variant-numeric: tabular-nums; color: var(--color-muted); }
+    .sa-pb-btn.active { border-color: var(--color-highlight); color: var(--color-highlight); background: var(--color-bg-warm); }
+    .sa-pb-btn.active .sa-pb-num { color: var(--color-highlight); }
+    .sa-pb-btn[disabled] { opacity: 0.55; cursor: default; }
+    .sa-pb-hint { font-size: 0.78rem; color: var(--color-light); margin-left: auto; }
+  </style>
+  <div id="sa-postbar" class="sa-postbar" style="display:none;"
+       data-post="{{ page.permalink | default: page.url }}"
+       data-title="{{ page.title | escape }}"
+       data-url="{{ page.url }}">
+    <button type="button" class="sa-pb-btn" data-act="like" aria-pressed="false">
+      <span class="sa-pb-ico">👍</span><span class="sa-pb-label">点赞</span><span class="sa-pb-num" data-num="like">·</span>
+    </button>
+    <button type="button" class="sa-pb-btn" data-act="fav" aria-pressed="false">
+      <span class="sa-pb-ico">☆</span><span class="sa-pb-label">收藏</span>
+    </button>
+    <span class="sa-pb-hint"></span>
+  </div>
+  <script>
+    (function () {
+      function initPostbar() {
+        var bar = document.getElementById('sa-postbar');
+        if (!bar || !window.SiteAuth) return;
+        var POST = bar.dataset.post, TITLE = bar.dataset.title, URL = bar.dataset.url;
+        var likeBtn = bar.querySelector('[data-act="like"]');
+        var favBtn = bar.querySelector('[data-act="fav"]');
+        var likeNum = bar.querySelector('[data-num="like"]');
+        var hint = bar.querySelector('.sa-pb-hint');
+        var state = { liked: false, favorited: false, likeCount: 0 };
+        var api = SiteAuth.API_BASE + '/me';
+
+        function paint() {
+          likeNum.textContent = state.likeCount;
+          likeBtn.classList.toggle('active', state.liked);
+          likeBtn.setAttribute('aria-pressed', String(state.liked));
+          favBtn.classList.toggle('active', state.favorited);
+          favBtn.setAttribute('aria-pressed', String(state.favorited));
+          favBtn.querySelector('.sa-pb-ico').textContent = state.favorited ? '★' : '☆';
+          favBtn.querySelector('.sa-pb-label').textContent = state.favorited ? '已收藏' : '收藏';
+          hint.textContent = SiteAuth.isLoggedIn() ? '' : '登录后可同步收藏 / 点赞';
+        }
+
+        async function loadStatus() {
+          try {
+            var r = await SiteAuth.authedFetch(api + '?action=status&post=' + encodeURIComponent(POST));
+            var d = await r.json();
+            if (d && d.ok) { state.liked = d.liked; state.favorited = d.favorited; state.likeCount = d.likeCount; }
+          } catch (e) {}
+          bar.style.display = 'flex';
+          paint();
+        }
+
+        // Phase 3：登录态下记录浏览（静默，失败不影响阅读）
+        async function recordView() {
+          if (!SiteAuth.isLoggedIn()) return;
+          try {
+            await SiteAuth.authedFetch(api + '?action=view', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ post: POST, title: TITLE, url: URL }),
+            });
+          } catch (e) {}
+        }
+
+        async function toggle(kind, btn) {
+          if (!SiteAuth.isLoggedIn()) { SiteAuth.openLogin && SiteAuth.openLogin('login'); return; }
+          btn.disabled = true;
+          try {
+            var r = await SiteAuth.authedFetch(api + '?action=' + kind, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ post: POST, title: TITLE, url: URL }),
+            });
+            var d = await r.json();
+            if (d && d.ok) {
+              if (kind === 'like') { state.liked = d.active; state.likeCount = d.likeCount; }
+              else { state.favorited = d.active; }
+              paint();
+            }
+          } catch (e) {}
+          finally { btn.disabled = false; }
+        }
+
+        likeBtn.addEventListener('click', function () { toggle('like', likeBtn); });
+        favBtn.addEventListener('click', function () { toggle('fav', favBtn); });
+        // onChange 注册时会立即回调一次 → 完成首次加载；之后登录/登出再刷新状态
+        SiteAuth.onChange(function () { loadStatus(); });
+        recordView();
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initPostbar);
+      else initPostbar();
+    })();
+  </script>
+
   <style>
     .wl-actions a { display: none !important; }
     .wl-editor, .wl-input, .wl-btn { font-family: inherit !important; }
