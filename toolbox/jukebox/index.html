@@ -112,7 +112,29 @@ noindex: true
   .ctrl .pp{width:62px;height:62px;border-radius:50%;background:#fff;color:#1d1b18;font-size:23px;box-shadow:0 6px 22px rgba(0,0,0,.35)}
   .ctrl .mode,.ctrl .lyric{font-size:18px;position:relative;min-width:34px}
   .ctrl .mode .lab,.ctrl .lyric .lab{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.05em;white-space:nowrap;opacity:.85}
-  .ctrl .lyric{opacity:.5}
+  .ctrl .lyric{opacity:.4;cursor:default}
+  .ctrl .lyric.ready{opacity:.92;cursor:pointer}
+  .ctrl .lyric.active{opacity:1;text-shadow:0 0 12px rgba(255,255,255,.65)}
+
+  /* ===== LYRICS ===== */
+  .lyrics{flex:1;width:100%;max-width:560px;display:none;flex-direction:column;min-height:0;margin-top:6px}
+  .np.showlyrics .viewC{justify-content:flex-start;padding-top:14px}
+  .np.showlyrics #cBig,.np.showlyrics #cTtl,.np.showlyrics .tgwrap{display:none}
+  .np.showlyrics .lyrics{display:flex}
+  .lyscroll{flex:1;overflow-y:auto;width:100%;text-align:center;padding:30vh 6px;scroll-behavior:smooth;
+    -webkit-mask-image:linear-gradient(180deg,transparent,#000 16%,#000 84%,transparent);
+    mask-image:linear-gradient(180deg,transparent,#000 16%,#000 84%,transparent)}
+  .lyscroll::-webkit-scrollbar{display:none}
+  .lyline{font-size:20px;line-height:1.45;padding:9px 6px;color:rgba(255,255,255,.4);cursor:pointer;font-weight:500;
+    transition:color .12s,font-size .12s,opacity .12s}
+  @media (hover: hover) { .lyline:hover{color:rgba(255,255,255,.72)} }
+  .lyline.on{color:#fff;font-size:25px;font-weight:700}
+  .lyline.skip{color:rgba(255,255,255,.26)}
+  .lyline.skip.on{color:rgba(255,255,255,.42);font-size:20px;font-weight:500;text-shadow:none}
+  .lyoff{display:flex;align-items:center;justify-content:center;gap:14px;font-size:12px;opacity:.78;padding:6px 0 2px}
+  .lyoff button{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:17px;line-height:1}
+  @media (hover: hover) { .lyoff button:hover{background:rgba(255,255,255,.24)} }
+  .lyver{opacity:.4;font-size:11px;margin-left:12px;letter-spacing:.05em}
 
   /* ===== MINI ===== */
   .mini{position:fixed;left:0;right:0;bottom:0;z-index:40;height:calc(66px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);
@@ -179,13 +201,17 @@ noindex: true
     <div class="viewC" id="viewC">
       <div class="big cover" id="cBig"><span class="ch" id="cCh"></span><span class="eq"><i></i><i></i><i></i><i></i></span></div>
       <div class="ttl" id="cTtl"></div>
-      <div><span class="tg2" id="cTg"></span></div>
+      <div class="tgwrap"><span class="tg2" id="cTg"></span></div>
+      <div class="lyrics" id="lyrics">
+        <div class="lyscroll" id="lyScroll"></div>
+        <div class="lyoff"><button id="lyMinus" title="歌词提前">−</button><span id="lyOff">校准 0.0s</span><button id="lyPlus" title="歌词延后">+</button><span class="lyver" id="lyVer"></span></div>
+      </div>
       <div class="transport">
         <div class="seekrow"><span class="tm" id="cCur">0:00</span><div class="bar" id="cSeek"><i id="cFill"></i><span class="knob" id="cKnob"></span></div><span class="tm" id="cDur">0:00</span></div>
         <div class="ctrl">
           <button class="mode" id="cMode"><span class="lab" id="cModeLab">列表循环</span><span id="cModeIco">↻</span></button>
           <button id="cPrev">⏮</button><button class="pp" id="cPP">▶</button><button id="cNext">⏭</button>
-          <button class="lyric" title="歌词（敬请期待）"><span class="lab">歌词</span>词</button>
+          <button class="lyric" id="cLyric" title="暂无歌词"><span class="lab">歌词</span>词</button>
         </div>
       </div>
     </div>
@@ -200,7 +226,7 @@ noindex: true
         <div class="ctrl">
           <button class="mode" id="bMode"><span class="lab" id="bModeLab">列表循环</span><span id="bModeIco">↻</span></button>
           <button id="bPrev">⏮</button><button class="pp" id="bPP">▶</button><button id="bNext">⏭</button>
-          <button class="lyric" title="歌词（敬请期待）"><span class="lab">歌词</span>词</button>
+          <button class="lyric" id="bLyric" title="暂无歌词"><span class="lab">歌词</span>词</button>
         </div>
       </div>
     </div>
@@ -218,6 +244,9 @@ function fmt(s){if(!s||isNaN(s)||!isFinite(s))return'0:00';s=Math.floor(s);retur
 
 const aud=$('aud');
 let TRACKS=[], cur=-1, mode='list', view='C';
+let LYRICS={}, lyLines=[], lyActive=-1, lyOffset=0, lyricsOn=false;
+const LYRIC_LEAD=0.15;  // 小提前量(秒)：主要靠下面把高亮动画改快来消除延迟，这里只留一点点
+const lrcHash=s=>{let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h.toString(36).slice(0,4);};
 const MODES={list:{ico:'↻',lab:'列表循环'},one:{ico:'¹↻',lab:'单曲循环'},shuffle:{ico:'⇄',lab:'随机播放'}};
 
 // 加 cache-busting 绕过 service worker 的 stale-while-revalidate，保证歌单总是最新；
@@ -226,6 +255,11 @@ fetch('manifest.json?v='+Date.now(),{cache:'no-store'}).then(r=>r.json())
   .catch(()=>fetch('manifest.json').then(r=>r.json()))
   .then(d=>{TRACKS=d;init();})
   .catch(()=>{$('walls').innerHTML='<div class="loading">歌单载入失败，请刷新重试。</div>';});
+
+// 歌词独立异步加载（可选，缺失不影响播放）；key = manifest 里的唯一文件路径 f
+fetch('lyrics.json?v='+Date.now(),{cache:'no-store'}).then(r=>r.json())
+  .catch(()=>fetch('lyrics.json').then(r=>r.json()))
+  .then(d=>{LYRICS=d||{};if(cur>=0)loadLyrics();}).catch(()=>{});
 
 function init(){
   $('sub').textContent='点一首开始听 · 共 '+TRACKS.length+' 首';
@@ -254,7 +288,7 @@ function openPlayer(i){applyView();$('np').classList.add('open');$('mini').class
 function expandPlayer(){applyView();$('np').classList.add('open');$('mini').classList.remove('show');}
 $('back').onclick=()=>{$('np').classList.remove('open');if(cur>=0)$('mini').classList.add('show');};
 $('miniTap').onclick=expandPlayer;$('mExpand').onclick=expandPlayer;
-$('viewtog').onclick=()=>{view=view==='C'?'B':'C';applyView();};
+$('viewtog').onclick=()=>{view=view==='C'?'B':'C';if(view==='B'&&lyricsOn)closeLyrics();applyView();};
 
 function load(i,autoplay){
   cur=i;const t=TRACKS[i];aud.src=url(t.f);if(autoplay)aud.play().catch(()=>{});
@@ -267,6 +301,7 @@ function load(i,autoplay){
   $('walls').querySelectorAll('.card').forEach(c=>c.classList.toggle('now',+c.dataset.i===i));
   $('bRows').querySelectorAll('.row').forEach(r=>r.classList.toggle('on',+r.dataset.i===i));
   scrollToCur();
+  loadLyrics();
 }
 function scrollToCur(){const el=$('bRows').querySelector('.row.on');if(el&&view==='B')el.scrollIntoView({block:'nearest'});}
 
@@ -293,8 +328,64 @@ aud.addEventListener('timeupdate',()=>{
   const p=aud.duration?aud.currentTime/aud.duration*100:0;
   ['c','b'].forEach(pre=>{$(pre+'Fill').style.width=p+'%';$(pre+'Knob').style.left=p+'%';$(pre+'Cur').textContent=fmt(aud.currentTime);});
   $('mFill').style.width=p+'%';$('mKnob').style.left=p+'%';
+  syncLyrics();
 });
 aud.addEventListener('loadedmetadata',()=>{if(isFinite(aud.duration)){$('cDur').textContent=fmt(aud.duration);$('bDur').textContent=fmt(aud.duration);}});
+
+// ===== 歌词 =====
+function curLrc(){return cur>=0&&TRACKS[cur]?LYRICS[TRACKS[cur].f]:null;}
+function parseLRC(s){
+  const out=[];
+  s.split('\n').forEach(line=>{
+    const m=line.match(/^\[(\d+):(\d+(?:\.\d+)?)\](.*)$/);
+    if(!m)return;
+    const t=(+m[1])*60+parseFloat(m[2]);
+    let x=m[3].trim(),skip=false;
+    if(x.charCodeAt(0)===1){skip=true;x=x.slice(1).trim();}  //  前缀=这版没唱，置灰
+    if(x)out.push({t,x,skip});
+  });
+  return out.sort((a,b)=>a.t-b.t);
+}
+function updateLyricBtn(){
+  const ok=!!curLrc();
+  ['cLyric','bLyric'].forEach(id=>{const b=$(id);b.classList.toggle('ready',ok);b.classList.toggle('active',ok&&lyricsOn);b.title=ok?'歌词':'暂无歌词';});
+}
+function loadLyrics(){
+  const lrc=curLrc();
+  lyLines=lrc?parseLRC(lrc):[];
+  $('lyVer').textContent=lrc?('v·'+lrcHash(lrc)):'';   // 版本标记，确认听的是最新 LRC
+  lyActive=-1;
+  $('lyScroll').innerHTML=lyLines.map((l,i)=>'<div class="lyline'+(l.skip?' skip':'')+'" data-i="'+i+'">'+l.x.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</div>').join('');
+  $('lyScroll').querySelectorAll('.lyline').forEach(el=>el.onclick=()=>{aud.currentTime=lyLines[+el.dataset.i].t+lyOffset;aud.play().catch(()=>{});});
+  $('lyScroll').scrollTop=0;
+  if(!lyLines.length&&lyricsOn)closeLyrics();
+  updateLyricBtn();
+  if(lyricsOn)syncLyrics(true);
+}
+function closeLyrics(){lyricsOn=false;$('np').classList.remove('showlyrics');updateLyricBtn();}
+function toggleLyrics(){
+  if(!curLrc())return;
+  lyricsOn=!lyricsOn;
+  if(lyricsOn){view='C';applyView();}
+  $('np').classList.toggle('showlyrics',lyricsOn);
+  updateLyricBtn();
+  if(lyricsOn)syncLyrics(true);
+}
+function syncLyrics(force){
+  if(!lyricsOn||!lyLines.length)return;
+  const tt=aud.currentTime-lyOffset+LYRIC_LEAD;  // 提前触发，等动画演完正好卡在开口
+  let idx=-1;
+  for(let i=0;i<lyLines.length;i++){if(lyLines[i].t<=tt)idx=i;else break;}
+  if(idx===lyActive&&!force)return;
+  const els=$('lyScroll').children;
+  if(lyActive>=0&&els[lyActive])els[lyActive].classList.remove('on');
+  lyActive=idx;
+  if(idx>=0&&els[idx]){els[idx].classList.add('on');const el=els[idx];
+    $('lyScroll').scrollTo({top:el.offsetTop-$('lyScroll').clientHeight/2+el.offsetHeight/2,behavior:'smooth'});}
+}
+$('cLyric').onclick=toggleLyrics;$('bLyric').onclick=toggleLyrics;
+function nudge(d){lyOffset=Math.round((lyOffset+d)*10)/10;$('lyOff').textContent='校准 '+(lyOffset>0?'+':'')+lyOffset.toFixed(1)+'s';syncLyrics(true);}
+$('lyMinus').onclick=()=>nudge(-0.1);$('lyPlus').onclick=()=>nudge(0.1);
 
 function attachSeek(bar){
   let drag=false;
