@@ -1,0 +1,394 @@
+  <!-- Pet modal -->
+  <div class="modal-backdrop" id="pet-modal">
+    <div class="modal">
+      <h2 id="pm-title">添加宠物</h2>
+      <div class="field">
+        <label>名字</label>
+        <input type="text" id="pm-name" placeholder="咪咪 / Whiskers" maxlength="30" />
+      </div>
+      <div class="field">
+        <label>头像</label>
+        <div class="avatar-row" id="pm-avatar-row">
+          <button type="button" class="avatar-cell photo-cell" id="pm-photo-btn" title="拍照 / 从相册选">
+            <span class="ph-icon" id="pm-photo-icon">📷</span>
+            <img id="pm-photo-thumb" style="display:none;" alt="" />
+          </button>
+          <!-- emoji cells appended at runtime -->
+        </div>
+        <input type="file" id="pm-avatar-file" accept="image/*" style="display:none;" />
+      </div>
+      <div class="sub-section">宠物档案（选填）</div>
+      <div class="field-grid">
+        <div class="field">
+          <label>物种</label>
+          <select id="pm-species">
+            <option value=""></option>
+            <option value="cat">猫</option>
+            <option value="dog">狗</option>
+            <option value="rabbit">兔</option>
+            <option value="hamster">仓鼠</option>
+            <option value="bird">鸟（鹦鹉等）</option>
+            <option value="ferret">雪貂</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>品种（可选）</label>
+          <div class="custom-select" id="pm-breed-select">
+            <button type="button" class="cs-trigger" id="pm-breed-trigger">
+              <span class="cs-label placeholder" id="pm-breed-label"></span>
+              <span class="cs-chevron">▾</span>
+            </button>
+            <ul class="cs-menu" id="pm-breed-menu" role="listbox"></ul>
+          </div>
+          <input type="hidden" id="pm-breed" value="" />
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label>年龄</label>
+          <div class="age-inputs">
+            <div class="age-cell">
+              <input type="number" id="pm-age-years" min="0" step="1" placeholder="0" inputmode="numeric" />
+              <span class="unit-tag">岁</span>
+            </div>
+            <div class="age-cell">
+              <input type="number" id="pm-age-months" min="0" max="11" step="1" placeholder="0" inputmode="numeric" />
+              <span class="unit-tag">个月</span>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>体重</label>
+          <div class="input-unit-group">
+            <input type="number" id="pm-body-weight" step="0.1" min="0" placeholder="" inputmode="decimal" />
+            <select id="pm-body-weight-unit">
+              <option value="kg">kg</option>
+              <option value="斤">斤</option>
+              <option value="lb">lb</option>
+              <option value="g">g</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label>活动量</label>
+          <select id="pm-activity">
+            <option value="">普通</option>
+            <option value="low">较低（不爱动）</option>
+            <option value="normal">普通</option>
+            <option value="high">较高（爱蹦跶）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <label class="checkbox-row" style="padding: 0.65rem 0.85rem; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-bg);">
+            <input type="checkbox" id="pm-neutered" />
+            <span>已绝育</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="sub-section">每日目标食量（选填）</div>
+      <div class="field-grid">
+        <div class="field">
+          <label>下限 (g/天)</label>
+          <input type="number" id="pm-target-min" step="0.1" min="0" placeholder="" inputmode="decimal" />
+        </div>
+        <div class="field">
+          <label>上限 (g/天)</label>
+          <input type="number" id="pm-target-max" step="0.1" min="0" placeholder="" inputmode="decimal" />
+        </div>
+      </div>
+      <div class="rec-preview-inline">
+        <span class="rec-preview" id="pm-rec-preview">完善宠物档案以估算</span>
+        <button type="button" class="estimator-apply" id="pm-rec-apply" disabled>↑ 套用</button>
+      </div>
+
+      <div class="sub-section">干粮热量</div>
+      <div class="field">
+        <label>每克干粮多少大卡</label>
+        <input type="number" id="pm-kibble-kcal" step="0.1" min="0" placeholder="3.8" inputmode="decimal" />
+        <p class="hint" style="margin: 0.3rem 0 0;">用来把猫条、罐头换算成「相当于多少克干粮」。看粮袋上的热量，一般 3.5–4.2；不确定就留 3.8。</p>
+      </div>
+
+      <div class="sub-section" id="pm-share-section">分享给其他人</div>
+      <div class="share-block" id="pm-share-block">
+        <div id="pm-share-create" style="display:none;">
+          <p class="hint" style="margin: 0 0 0.5rem;">把宠物分享给家人，他们可以一起记录食量</p>
+          <button type="button" class="share-mini-btn" id="pm-make-shared" style="font-size: 0.85rem; padding: 0.45rem 1rem;">🔗 生成宠物码</button>
+        </div>
+        <div id="pm-share-existing" style="display:none;">
+          <div class="share-code-row">
+            <span class="hint" style="margin: 0;">宠物码</span>
+            <code class="pet-code" id="pm-share-code">XXXXXX</code>
+            <button type="button" class="share-mini-btn" id="pm-copy-code">📋 复制</button>
+            <button type="button" class="share-mini-btn" id="pm-regen-code">🔄 重生</button>
+          </div>
+          <div>
+            <span class="hint" style="margin: 0;">成员</span>
+            <ul class="members-list" id="pm-members-list"></ul>
+          </div>
+          <div class="your-role" id="pm-your-role"></div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="del" id="pm-delete" style="display: none;">🗑 删除</button>
+        <button type="button" class="cancel" id="pm-cancel">取消</button>
+        <button type="button" class="save" id="pm-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile modal -->
+  <div class="modal-backdrop" id="profile-modal">
+    <div class="modal">
+      <h2>👤 我的档案</h2>
+      <div class="field">
+        <label>昵称</label>
+        <input type="text" id="profile-nickname" placeholder="比如 周睿" maxlength="40" />
+      </div>
+      <div class="sub-section" style="border-top: none; padding-top: 0; margin-top: 0.8rem;">我的宠物</div>
+      <ul class="my-pets-list" id="my-pets-list"></ul>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="profile-close">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Join via code modal -->
+  <div class="modal-backdrop join-modal" id="join-modal">
+    <div class="modal">
+      <h2>🔑 用宠物码添加</h2>
+      <p class="hint" style="text-align: center; margin-bottom: 0.9rem;">向主人要 6 位宠物码，添加后可一起记录</p>
+      <input type="text" id="join-code" class="code-input" maxlength="6" placeholder="ABCXYZ" autocomplete="off" />
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="join-cancel">取消</button>
+        <button type="button" class="save" id="join-confirm">加入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mismatch prompt -->
+  <div class="modal-backdrop mismatch-prompt" id="mismatch-modal">
+    <div class="modal">
+      <h2>📐 数字有点超常</h2>
+      <div class="mm-body" id="mm-body"></div>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="mm-keep">仍按当前模式</button>
+        <button type="button" class="save" id="mm-swap">换成另一个模式</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Time picker modal: date (calendar) + time (spinner) -->
+  <div class="modal-backdrop" id="time-picker-modal">
+    <div class="modal">
+      <h2 id="tp-title">选择时间</h2>
+      <div class="tp-fields">
+        <div class="field">
+          <label>日期</label>
+          <input type="date" id="tp-date" />
+        </div>
+        <div class="field">
+          <label>时间</label>
+          <input type="time" id="tp-time" step="60" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="link-btn" id="tp-now" style="display:none; margin-right:auto;">用现在</button>
+        <button type="button" class="cancel" id="tp-cancel">取消</button>
+        <button type="button" class="save" id="tp-confirm">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Food modal: EDIT an existing food in the library (A card layout).
+       New foods are created through #food-wizard below; this modal is edit-only.
+       Same field IDs + radio structure as before, so the fm* save/read JS is unchanged. -->
+  <div class="modal-backdrop" id="food-modal">
+    <div class="modal">
+      <h2 id="fm-title">编辑食物</h2>
+      <div class="field">
+        <label>名字</label>
+        <input type="text" id="fm-name" placeholder="妙鲜猫条 / 希尔思罐头" maxlength="20" />
+      </div>
+      <div class="field">
+        <label>图标</label>
+        <div class="emoji-pick" id="fm-emoji-pick"></div>
+      </div>
+      <div class="field">
+        <label>怎么算量</label>
+        <div class="opt-cards fm-measure" id="fm-measure">
+          <label class="opt-card active" data-val="count">
+            <input type="radio" name="fm-measure" value="count" checked>
+            <span class="oc-ico">🍢</span>
+            <span class="oc-txt"><b>按个 / 根 / 份</b><small>猫条 · 冻干 · 整罐</small></span>
+            <span class="oc-check">✓</span>
+          </label>
+          <label class="opt-card" data-val="gram">
+            <input type="radio" name="fm-measure" value="gram">
+            <span class="oc-ico">⚖️</span>
+            <span class="oc-txt"><b>按克数</b><small>用秤称的主粮</small></span>
+            <span class="oc-check">✓</span>
+          </label>
+        </div>
+        <div class="inline-unit" id="fm-unit-label-field">
+          一份叫作
+          <input type="text" id="fm-unit-label" placeholder="份 / 根 / 个" maxlength="4" value="份" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>热量怎么填</label>
+        <div class="opt-cards fm-source" id="fm-source">
+          <label class="opt-card active" data-val="direct">
+            <input type="radio" name="fm-source" value="direct" checked>
+            <span class="oc-ico">✏️</span>
+            <span class="oc-txt"><b>直接填</b><small>包装上有大卡</small></span>
+            <span class="oc-check">✓</span>
+          </label>
+          <label class="opt-card" data-val="analysis">
+            <input type="radio" name="fm-source" value="analysis">
+            <span class="oc-ico">🧮</span>
+            <span class="oc-txt"><b>照成分估算</b><small>只有蛋白脂肪%</small></span>
+            <span class="oc-check">✓</span>
+          </label>
+        </div>
+
+        <!-- direct: enter kcal straight -->
+        <div id="fm-direct-block">
+          <div class="kcal-input" id="fm-count-fields">
+            <input type="number" id="fm-kcal-count" step="any" min="0" placeholder="包装上找「热量/能量」，比如 6" inputmode="decimal" />
+            <span class="suffix">大卡 / 每<span id="fm-unit-echo">份</span></span>
+          </div>
+          <div class="kcal-input" id="fm-gram-fields" style="display:none;">
+            <input type="number" id="fm-kcal-100g" step="any" min="0" placeholder="包装上找「热量/能量」，比如 80" inputmode="decimal" />
+            <span class="suffix">大卡 / 100 克</span>
+          </div>
+        </div>
+
+        <!-- analysis: estimate kcal from the guaranteed-analysis percentages on the label -->
+        <div id="fm-analysis-block" style="display:none;">
+          <p class="hint" style="margin:0.7rem 0 0.6rem;">包装上没写热量？把下面这几个百分比照着填（一般写在「成分」「保证分析值」那一栏），热量会自己算出来。</p>
+          <div class="inline-unit" id="fm-grams-per-unit-field" style="display:none;">
+            一<span id="fm-unit-echo2">份</span>大约
+            <input type="number" id="fm-grams-per-unit" step="any" min="0" placeholder="14" inputmode="decimal" />
+            克
+          </div>
+          <div class="fm-analysis-grid">
+            <div class="field"><label>蛋白质 %</label><input type="number" id="fm-an-protein" step="any" min="0" placeholder="比如 10" inputmode="decimal" /></div>
+            <div class="field"><label>脂肪 %</label><input type="number" id="fm-an-fat" step="any" min="0" placeholder="比如 5" inputmode="decimal" /></div>
+            <div class="field"><label>水分 %</label><input type="number" id="fm-an-moisture" step="any" min="0" placeholder="比如 80" inputmode="decimal" /></div>
+            <div class="field"><label>灰分 %<span class="opt">没有就不填</span></label><input type="number" id="fm-an-ash" step="any" min="0" placeholder="2" inputmode="decimal" /></div>
+            <div class="field"><label>纤维 %<span class="opt">没有就不填</span></label><input type="number" id="fm-an-fiber" step="any" min="0" placeholder="0.5" inputmode="decimal" /></div>
+          </div>
+          <div class="fm-est-result" id="fm-est-result">≈ — 大卡 / 100 克</div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="danger" id="fm-delete" style="display:none; margin-right:auto;">删除</button>
+        <button type="button" class="cancel" id="fm-cancel">取消</button>
+        <button type="button" class="save" id="fm-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Food wizard: FIRST-TIME new food, 3-step guided flow (C). On finish it
+       hydrates the #food-modal inputs above and reuses saveFood() — one save path. -->
+  <div class="modal-backdrop" id="food-wizard">
+    <div class="modal">
+      <div class="fw-steps" id="fw-dots"><span class="fw-dot active"></span><span class="fw-dot"></span><span class="fw-dot"></span></div>
+
+      <!-- Step 1: name + icon -->
+      <div class="fw-step" id="fw-step1">
+        <h2>这是什么？</h2>
+        <p class="fw-hint">第 1 步 / 共 3 步 · 起个名、挑个图标</p>
+        <div class="field">
+          <label>名字</label>
+          <input type="text" id="fw-name" placeholder="妙鲜猫条 / 希尔思罐头" maxlength="20" />
+        </div>
+        <div class="field">
+          <label>图标</label>
+          <div class="emoji-pick" id="fw-emoji-pick"></div>
+        </div>
+      </div>
+
+      <!-- Step 2: how to measure -->
+      <div class="fw-step" id="fw-step2" hidden>
+        <h2>这<span id="fw-emoji-echo">🍖</span>怎么记？</h2>
+        <p class="fw-hint">第 2 步 / 共 3 步 · 选一种记录方式</p>
+        <div class="big-choices" id="fw-measure">
+          <button type="button" class="big-choice active" data-val="count"><span class="bc-ico">🍢</span><span class="bc-title">按个 / 根 / 份</span><span class="bc-sub">猫条、冻干、整罐这类，数着喂</span></button>
+          <button type="button" class="big-choice" data-val="gram"><span class="bc-ico">⚖️</span><span class="bc-title">按克数</span><span class="bc-sub">用秤称的主粮，按克算</span></button>
+        </div>
+        <div class="inline-unit fw-unit" id="fw-unit-field">一份叫作<input type="text" id="fw-unit-label" maxlength="4" value="份" placeholder="份 / 根 / 个" /></div>
+      </div>
+
+      <!-- Step 3: calories -->
+      <div class="fw-step" id="fw-step3" hidden>
+        <h2>多少热量？</h2>
+        <p class="fw-hint">第 3 步 / 共 3 步 · 填热量就完成</p>
+        <div class="big-choices" id="fw-source">
+          <button type="button" class="big-choice active" data-val="direct"><span class="bc-ico">✏️</span><span class="bc-title">直接填大卡</span><span class="bc-sub">包装上印了「每份 / 每100克 热量」</span></button>
+          <button type="button" class="big-choice" data-val="analysis"><span class="bc-ico">🧮</span><span class="bc-title">照成分估算</span><span class="bc-sub">只有蛋白、脂肪、水分百分比</span></button>
+        </div>
+        <div class="kcal-input" id="fw-direct">
+          <input type="number" id="fw-kcal" step="any" min="0" placeholder="比如 100" inputmode="decimal" />
+          <span class="suffix" id="fw-suffix">大卡 / 每份</span>
+        </div>
+        <div id="fw-analysis" hidden>
+          <p class="hint" style="margin:0.8rem 0 0.6rem;">照「成分 / 保证分析值」那栏填，热量会自己算出来。</p>
+          <div class="inline-unit" id="fw-gpu-field">一<span id="fw-unit-echo">份</span>大约<input type="number" id="fw-gpu" step="any" min="0" placeholder="14" inputmode="decimal" />克</div>
+          <div class="fm-analysis-grid">
+            <div class="field"><label>蛋白质 %</label><input type="number" class="fw-an" data-k="protein" step="any" min="0" placeholder="比如 10" inputmode="decimal" /></div>
+            <div class="field"><label>脂肪 %</label><input type="number" class="fw-an" data-k="fat" step="any" min="0" placeholder="比如 5" inputmode="decimal" /></div>
+            <div class="field"><label>水分 %</label><input type="number" class="fw-an" data-k="moisture" step="any" min="0" placeholder="比如 80" inputmode="decimal" /></div>
+            <div class="field"><label>灰分 %<span class="opt">没有就不填</span></label><input type="number" class="fw-an" data-k="ash" step="any" min="0" placeholder="2" inputmode="decimal" /></div>
+            <div class="field"><label>纤维 %<span class="opt">没有就不填</span></label><input type="number" class="fw-an" data-k="fiber" step="any" min="0" placeholder="0.5" inputmode="decimal" /></div>
+          </div>
+          <div class="fm-est-result" id="fw-est">≈ — 大卡 / 100 克</div>
+        </div>
+      </div>
+
+      <div class="modal-actions fw-actions">
+        <button type="button" class="cancel" id="fw-cancel" style="margin-right:auto;">取消</button>
+        <button type="button" class="cancel" id="fw-back" style="visibility:hidden;">← 上一步</button>
+        <button type="button" class="save" id="fw-next">下一步 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inbox modal: time-change requests / notices -->
+  <div class="modal-backdrop" id="inbox-modal">
+    <div class="modal">
+      <h2>🔔 时间修改</h2>
+      <div class="inbox-list" id="inbox-list"></div>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="inbox-close">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Crop modal -->
+  <div class="modal-backdrop crop-modal-bk" id="crop-modal">
+    <div class="modal">
+      <h2>裁剪头像</h2>
+      <div class="crop-stage" id="crop-stage">
+        <img id="crop-img" alt="" />
+        <div class="crop-frame" id="crop-frame">
+          <div class="crop-handle h-nw" data-handle="nw"></div>
+          <div class="crop-handle h-ne" data-handle="ne"></div>
+          <div class="crop-handle h-sw" data-handle="sw"></div>
+          <div class="crop-handle h-se" data-handle="se"></div>
+        </div>
+      </div>
+      <div class="crop-hint">拖动方框选择头像，四角可缩放</div>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="crop-cancel">取消</button>
+        <button type="button" class="save" id="crop-apply">应用</button>
+      </div>
+    </div>
+  </div>

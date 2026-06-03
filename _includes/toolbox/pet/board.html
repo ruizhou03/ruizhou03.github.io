@@ -1,0 +1,240 @@
+  <header>
+    <h1>🐾 宠物中心</h1>
+  </header>
+
+  <div class="pet-bar" id="pet-bar">
+    <div class="pet-tabs" id="pet-tabs"></div>
+    <div class="pet-add-wrap" id="pet-add-wrap">
+      <button type="button" class="icon-btn" id="pet-add">+ 宠物 ▾</button>
+      <div class="pet-add-menu" id="pet-add-menu">
+        <button type="button" data-act="new">🆕 新建宠物</button>
+        <button type="button" data-act="join">🔑 用宠物码添加</button>
+      </div>
+    </div>
+    <button type="button" class="icon-btn inbox-btn" id="inbox-btn" style="display:none;" title="时间修改通知" aria-label="时间修改通知">🔔<span class="inbox-dot" id="inbox-dot" style="display:none;"></span></button>
+    <button type="button" class="icon-btn" id="profile-btn" title="我的昵称" aria-label="我的昵称">👤</button>
+  </div>
+
+  <div class="empty-zone" id="pet-empty">
+    <div class="empty-emoji">🐾</div>
+    <div>还没有宠物——先建一只吧</div>
+    <div class="empty-actions">
+      <button type="button" class="add-btn" id="empty-add">+ 添加第一只</button>
+      <button type="button" class="join-btn" id="empty-join">🔑 用宠物码添加</button>
+    </div>
+  </div>
+
+  <div id="pet-view" style="display: none;">
+    <div class="board-tabs" id="board-tabs">
+      <button type="button" data-board="food" class="active"><span class="bt-ico">🥣</span>粮食</button>
+      <button type="button" data-board="weight"><span class="bt-ico">⚖️</span>体重</button>
+      <button type="button" data-board="meow"><span class="bt-ico">🐱</span>猫语</button>
+    </div>
+    <div class="link-toast-mount" id="link-toast-mount"></div>
+
+    <div class="board-panel active" id="panel-food" data-board="food">
+    <div class="summary-row">
+      <div class="sum-card">
+        <div class="sc-num" id="sc-today">— g</div>
+        <div class="sc-lbl">今日已吃</div>
+      </div>
+      <div class="sum-card">
+        <div class="sc-num" id="sc-count">—</div>
+        <div class="sc-lbl">今日称重</div>
+      </div>
+      <div class="sum-card">
+        <div class="sc-num" id="sc-avg">— g</div>
+        <div class="sc-lbl" id="sc-avg-lbl">日均</div>
+      </div>
+      <div class="sum-card">
+        <div class="sc-num" id="sc-bowl">— g</div>
+        <div class="sc-lbl">当前碗中剩</div>
+      </div>
+    </div>
+
+    <div class="rec-strip" id="rec-strip" style="display:none;">
+      <div class="rec-strip-head">
+        <span class="rec-title" id="rec-title">推荐 — g/天</span>
+        <span class="rec-now" id="rec-now">今日 <strong>— g</strong></span>
+      </div>
+      <div class="rec-bar">
+        <div class="rec-band" id="rec-band"></div>
+        <div class="rec-fill" id="rec-fill"></div>
+        <div class="rec-marker" id="rec-marker" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div class="entry-form">
+      <div class="entry-cols">
+        <!-- LEFT: food-type column (scrolls vertically when there are many) -->
+        <div class="food-selector" id="food-selector"></div>
+
+        <!-- MIDDLE: fixed-width fill area — same width in every food mode -->
+        <div class="fill-area">
+          <div class="entry-main-row">
+            <div class="reading-group">
+              <input type="number" class="reading" id="reading" step="any" placeholder="粮食称重" inputmode="decimal" />
+              <select class="unit-pick" id="unit-pick">
+                <option value="g">g</option>
+                <option value="kg">kg</option>
+                <option value="oz">oz</option>
+                <option value="lb">lb</option>
+              </select>
+              <span class="unit-suffix" id="unit-suffix" style="display:none;">份</span>
+            </div>
+          </div>
+          <!-- 含碗/不含碗 开关；选「含碗」时右侧附带空碗重量设置，选「不含碗」时收起 -->
+          <div class="mode-bowl" id="mode-bowl-row">
+            <div class="mode-toggle" id="mode-toggle">
+              <label data-val="1" class="active"><input type="radio" name="with-bowl" value="1" checked>含碗</label>
+              <label data-val="0"><input type="radio" name="with-bowl" value="0">不含碗</label>
+            </div>
+            <div class="bowl-row" id="bowl-row">
+              <span>空碗</span>
+              <input type="number" id="bowl-weight" step="any" min="0" placeholder="未设" inputmode="decimal" />
+              <select id="bowl-weight-unit">
+                <option value="g">g</option>
+                <option value="kg">kg</option>
+                <option value="oz">oz</option>
+                <option value="lb">lb</option>
+              </select>
+            </div>
+          </div>
+          <div class="extra-eq-row" id="extra-eq-row" style="display:none;">
+            <span class="extra-eq" id="extra-eq">≈ — g 等效干粮</span>
+          </div>
+        </div>
+
+        <!-- RIGHT: save button + record-time stacked in one column (fixed) -->
+        <div class="action-col">
+          <button type="button" class="save-btn" id="save-entry">📝 记一笔</button>
+          <button type="button" class="time-pill" id="time-toggle">
+            <span class="tp-ico">🕑</span>
+            <span class="tp-lbl">记录时间</span>
+            <span class="tp-val" id="time-val">现在</span>
+            <span class="tp-edit">✎</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">今日记录</div>
+    <div class="entries-list" id="entries-today"></div>
+
+    <div class="section-title">
+      趋势
+      <span class="right" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end;">
+        <span id="chart-range-lbl"></span>
+        <button type="button" class="target-toggle" id="chart-target-toggle" style="display: none;">目标参考线</button>
+      </span>
+    </div>
+    <div class="trend-tabs" id="trend-tabs">
+      <button type="button" data-p="today" class="active">今日时段</button>
+      <button type="button" data-p="7">近 7 日</button>
+      <button type="button" data-p="30">近 30 日</button>
+      <button type="button" data-p="180">近半年</button>
+      <button type="button" data-p="365">近 1 年</button>
+      <button type="button" data-p="custom">自定义</button>
+    </div>
+    <div class="trend-custom" id="trend-custom" style="display: none;">
+      <span>从</span>
+      <input type="date" id="custom-start" />
+      <span>到</span>
+      <input type="date" id="custom-end" />
+    </div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 600 240" id="trend-chart" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="chart-meta" id="chart-meta"></div>
+    </div>
+
+    <div class="section-title">
+      历史 <span class="right"><button type="button" class="icon-btn" id="toggle-history" style="border: none; background: none; padding: 0; color: var(--color-muted);">展开 ▾</button></span>
+    </div>
+    <div class="entries-list scroll" id="entries-history" style="display: none;"></div>
+    </div><!-- /panel-food -->
+
+    <!-- ===== 体重 board ===== -->
+    <div class="board-panel" id="panel-weight" data-board="weight">
+      <div class="section-title">体重记录</div>
+      <div class="weight-hero" id="weight-hero" style="display:none;">
+        <div class="wh-main"><span class="wh-num" id="wh-num">—</span><span class="wh-unit" id="wh-unit">斤</span></div>
+        <div class="wh-sub" id="wh-sub">当前体重</div>
+      </div>
+      <div class="weight-box" id="weight-box">
+        <div class="weight-cols">
+          <!-- LEFT: 直接称 / 做差 stacked as a column (mirrors the food-type column) -->
+          <div class="weight-method" id="weight-method">
+            <label data-val="direct" class="active"><input type="radio" name="wmethod" value="direct" checked>直接称</label>
+            <label data-val="diff"><input type="radio" name="wmethod" value="diff">做差</label>
+          </div>
+
+          <!-- MIDDLE: fixed-width fill block -->
+          <div class="weight-fill">
+            <!-- 直接称：宠物自己上秤，或已经自己算好差值直接填 -->
+            <div class="weight-single" id="weight-single">
+              <div class="reading-group weight-reading">
+                <input type="number" class="reading" id="weight-input" step="any" min="0" placeholder="称一下宝贝" inputmode="decimal" />
+                <select class="unit-pick" id="weight-unit">
+                  <option value="kg">kg</option>
+                  <option value="斤">斤</option>
+                  <option value="lb">lb</option>
+                  <option value="g">g</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 做差：抱着宠物称一次、自己称一次，系统算差值（顺序不影响，取绝对值，
+                 所以不放左侧标签，占位文案已说明哪一行填什么） -->
+            <div class="weight-diff" id="weight-diff">
+              <div class="reading-group weight-reading">
+                <input type="number" class="reading" id="weight-diff-a" step="any" min="0" placeholder="抱着宝贝的读数" inputmode="decimal" />
+                <select class="unit-pick" id="weight-diff-unit">
+                  <option value="kg">kg</option>
+                  <option value="斤">斤</option>
+                  <option value="lb">lb</option>
+                  <option value="g">g</option>
+                </select>
+              </div>
+              <div class="reading-group weight-reading">
+                <input type="number" class="reading" id="weight-diff-b" step="any" min="0" placeholder="你自己的读数" inputmode="decimal" />
+                <span class="unit-echo" id="weight-diff-unit-echo">kg</span>
+              </div>
+              <div class="diff-result empty" id="weight-diff-result">两次读数都填上，自动算出宝贝体重</div>
+            </div>
+          </div>
+
+          <button type="button" class="save-btn" id="weight-save">⚖️ 记体重</button>
+        </div>
+      </div>
+
+      <div class="section-title">
+        体重趋势
+        <span class="right" id="weight-range-lbl"></span>
+      </div>
+      <div class="trend-tabs" id="weight-trend-tabs">
+        <button type="button" data-p="30" class="active">近 30 日</button>
+        <button type="button" data-p="90">近 3 月</button>
+        <button type="button" data-p="180">近半年</button>
+        <button type="button" data-p="365">近 1 年</button>
+        <button type="button" data-p="all">全部</button>
+        <button type="button" data-p="custom">自定义</button>
+      </div>
+      <div class="trend-custom" id="weight-trend-custom" style="display: none;">
+        <span>从</span>
+        <input type="date" id="weight-custom-start" />
+        <span>到</span>
+        <input type="date" id="weight-custom-end" />
+      </div>
+      <div class="weight-chart-wrap">
+        <svg viewBox="0 0 600 200" id="weight-chart" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="weight-empty" id="weight-empty">还没有体重记录——称一次就能看到变化曲线</div>
+      </div>
+      <div class="section-title">最近记录</div>
+      <div class="weight-list" id="weight-list"></div>
+    </div><!-- /panel-weight -->
+
+    <!-- ===== 猫语 board ===== -->
+    <div class="board-panel" id="panel-meow" data-board="meow">
+      {% include cat-soundboard.html %}
+    </div><!-- /panel-meow -->
+  </div>
