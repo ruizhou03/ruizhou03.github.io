@@ -24,5 +24,8 @@
 2. **需要隔离时（高风险大改 / 想本地多开），用 `git worktree` 开短命分支，同一会话内合回 `main`。** 用真合并（`git merge`，必要时 `--no-ff`），合完**立刻删分支 + 撤 worktree**。分支不过夜。
 3. **铁律：绝不把一个分支的改动「重新敲一遍 / cherry-pick / squash 重提交」到 `main`——永远真合并。** 在 `main` 上重抄同一个改动会制造「同内容、不同 SHA」的提交，让今后每次合并都在相同几行上重复冲突。
 4. **任务一落 `main` 立即删掉对应分支**，别让分支累积分叉。长命 feature 分支是分叉与冲突的蓄水池。
+5. **发现自己正处在一个落后于 `main` 的老分支上时**：不要整条 merge 回去（会把 `main` 的新东西回退掉），也不要逐条 cherry-pick（大概率 `main` 已用别的 SHA 重做过、只会重复冲突）。正确做法是先做内容比对（`git diff main..<branch>`，按 merge-base 把每个文件分成 AHEAD / 两边都改 / 落后三类）找出 **`main` 真正还缺的那几处**，只把这几处摘成一个干净小提交落 `main`，然后删掉老分支。
+
+**实操：工作区是脏的（有别的会话未提交的 WIP）又要往 `main` 落一条提交时**——别在当前脏工作区里切分支 / stash / 还原。开一个隔离 worktree：`git worktree add -B tmp /tmp/land origin/main`，进去只改你那一两个文件、`git add <具体文件>`、commit，`git fetch origin main` 后把自己这条 rebase 上去，再 `git push origin HEAD:main`，最后 `git worktree remove /tmp/land`。全程不碰别人的脏工作区。
 
 **为什么**：2026-06 引入过 feature/paywall、feature/feixingqi-ui、feature/tiaoqi-ui、hotfix-* 一堆长命分支，又用「重抄到 main」代替合并，结果分支与 `main` 各有一份「同内容不同 SHA」的提交，每次合并都重复冲突、agent 频繁停下请示。回到主干开发后这些都不再发生。
