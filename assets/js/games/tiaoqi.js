@@ -354,11 +354,15 @@
   };
   const TQ_DIFF_LABEL = { easy: '简单', normal: '普通', hard: '困难' };
 
-  // setupConfig: { N: 'empty'|'human'|'ai', NE: ..., ... }
+  // setupConfig: { N: 'empty'|'human'|'ai'|'remote', NE: ..., ... }
   function defaultSetup() { return { N: 'human', NE: 'empty', SE: 'empty', S: 'human', SW: 'empty', NW: 'empty' }; }
+  // Per-base AI difficulty (each robot seat has its own).
+  function defaultAiDiff() { const o = {}; for (const ck of CORNER_KEYS) o[ck] = 'normal'; return o; }
+  function aiDiffOf(corner) { return (state.aiDiff && state.aiDiff[corner]) || 'normal'; }
 
   const state = {
     setupConfig: stored.setupConfig || defaultSetup(),
+    aiDiff: stored.aiDiff || defaultAiDiff(),
     difficulty: DIFFICULTY[stored.difficulty] ? stored.difficulty : 'normal',
     // Active game state (populated when a game starts):
     started: false,
@@ -397,7 +401,7 @@
   const endChainBtn = document.getElementById('tqEndChainBtn');
 
   function persist() {
-    localStorage.setItem(STORE_KEY, JSON.stringify({ setupConfig: state.setupConfig, difficulty: state.difficulty }));
+    localStorage.setItem(STORE_KEY, JSON.stringify({ setupConfig: state.setupConfig, aiDiff: state.aiDiff, difficulty: state.difficulty }));
   }
 
   // ============================================================
@@ -405,24 +409,11 @@
   // Seat state is drawn as corner-tip badges inside the SVG (see renderBoard);
   // the centered card holds mode/difficulty/start.
   // ============================================================
-  function cycleKind(corner) {
-    if (state.started) return;
-    const cur = state.setupConfig[corner];
-    state.setupConfig[corner] = cur === 'empty' ? 'human' : (cur === 'human' ? 'ai' : 'empty');
-    persist();
-    renderBoard();
-    refreshSetupControls();
-  }
-
-  // Sync the center card's start button + AI-difficulty visibility from setupConfig.
+  // Re-render the setup/lobby overlay (seat cards + top-bar start). Seat config
+  // now lives on the HTML lobby cards (#tqLobby), not on SVG badges.
   function refreshSetupControls() {
     if (state.started) return;
-    if (typeof tqUpdatePgoDiffVisibility === 'function') tqUpdatePgoDiffVisibility();
-    const startEl = document.getElementById('tqPgoStartBtn');
-    if (!startEl) return;
-    const activeCount = Object.values(state.setupConfig).filter(v => v !== 'empty').length;
-    startEl.disabled = activeCount < 2;
-    startEl.textContent = activeCount < 2 ? '需要至少 2 席' : `▶ 开始游戏（${activeCount} 人）`;
+    if (typeof tqRenderLobby === 'function') tqRenderLobby();
   }
 
   // ============================================================
@@ -433,11 +424,16 @@
     state.players = [];
     state.playerKinds = {};
     for (const ck of CORNER_KEYS) {
-      if (state.setupConfig[ck] !== 'empty') {
+      // Online pre-maps a seated 联机真人 to 'human'; only human/ai seats play.
+      if (state.setupConfig[ck] === 'human' || state.setupConfig[ck] === 'ai') {
         state.players.push(ck);
         state.playerKinds[ck] = state.setupConfig[ck];
       }
     }
+    // Representative difficulty for the vs-AI leaderboard = the hardest AI seat.
+    const dord = { easy: 0, normal: 1, hard: 2 };
+    const aiDiffs = state.players.filter(c => state.playerKinds[c] === 'ai').map(aiDiffOf);
+    if (aiDiffs.length) state.difficulty = aiDiffs.reduce((a, b) => dord[b] > dord[a] ? b : a);
     state.board = startingBoard(state.players);
     state.turnIdx = 0;
     state.selected = null;
@@ -457,15 +453,16 @@
     rosterEl.hidden = false;
     overlay.classList.remove('show');
     pausedOverlay.classList.remove('show');
-    tqPgoOverlay.classList.remove('open');
+    tqHideLobby();
     tqRunStartedAt = Date.now();
     tqRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     tqLastResult = null;
     if (typeof tqSettleBtn !== 'undefined' && tqSettleBtn) tqSettleBtn.setEnabled(false);
-    pauseBtn.hidden = !Object.values(state.playerKinds).includes('ai');
+    pauseBtn.hidden = (typeof tqOnline !== 'undefined' && tqOnline.active()) || !Object.values(state.playerKinds).includes('ai');
     renderBoard();
     updateStatus();
-    if (currentKindIsAi()) setTimeout(triggerAiMove, 320);
+    maybeTriggerAi(320);
+    if (typeof tqPumpRemote === 'function') tqPumpRemote();
   }
 
   function backToSetup() {
@@ -487,7 +484,7 @@
     rosterEl.hidden = true;
     overlay.classList.remove('show');
     pausedOverlay.classList.remove('show');
-    tqPgoOverlay.classList.add('open');
+    if (typeof tqOnline !== 'undefined' && tqOnline.active()) tqOnline.leave();
     if (typeof tqSave !== 'undefined' && tqSave) tqSave.discard();
     refreshSetupControls();
     renderBoard();
@@ -616,7 +613,9 @@
     // Layer 3: pieces. In game mode use state.board; in config mode show a preview
     // built from setupConfig (each non-empty corner has its 10 starting pieces).
     const pcs = svgEl('g', { class: 'pieces' });
-    const previewBoard = state.started ? state.board : startingBoard([...activeCorners]);
+    // During setup the home triangles stay clear (just tinted) so the config
+    // cards read cleanly; marbles appear once play starts.
+    const previewBoard = state.started ? state.board : {};
     for (const k in previewBoard) {
       const owner = previewBoard[k];
       if (!owner) continue;
@@ -658,56 +657,8 @@
     }
     svg.appendChild(hits);
 
-    // Layer 6: corner-tip seat badges (config mode only). Drawn in the SVG's
-    // expanded viewBox padding ring so they never clip on narrow screens.
-    if (!state.started) drawSeatBadges();
-  }
-
-  // Outermost tip cell of each corner + the outward direction to push its badge.
-  const BADGE_TIP = {
-    N:  { cell: [0, 12],  dx: 0,   dy: -34 },
-    S:  { cell: [16, 12], dx: 0,   dy: 34 },
-    NE: { cell: [4, 24],  dx: 32,  dy: 0 },
-    SE: { cell: [12, 24], dx: 32,  dy: 0 },
-    NW: { cell: [4, 0],   dx: -32, dy: 0 },
-    SW: { cell: [12, 0],  dx: -32, dy: 0 },
-  };
-
-  function drawSeatBadges() {
-    const g = svgEl('g', { class: 'seat-badges' });
-    for (const ck of CORNER_KEYS) {
-      const tip = BADGE_TIP[ck];
-      const cx = svgX(tip.cell[1]) + tip.dx;
-      const cy = svgY(tip.cell[0]) + tip.dy;
-      const kind = state.setupConfig[ck];
-      const color = CORNERS[ck].color;
-      const empty = kind === 'empty';
-      const W = 50, H = 28;
-      const grp = svgEl('g', { class: 'seat-badge', 'data-corner': ck, style: 'cursor:pointer;' });
-      // Larger transparent hit area so the badge is easy to tap.
-      grp.appendChild(svgEl('rect', {
-        x: cx - W / 2 - 6, y: cy - H / 2 - 6, width: W + 12, height: H + 12,
-        rx: 16, fill: 'transparent',
-      }));
-      grp.appendChild(svgEl('rect', {
-        x: cx - W / 2, y: cy - H / 2, width: W, height: H, rx: 14,
-        fill: empty ? '#ffffff' : lighten(color, 0.30),
-        stroke: empty ? '#b3a98c' : color,
-        'stroke-width': 2,
-        'stroke-dasharray': empty ? '4 3' : 'none',
-      }));
-      const txt = svgEl('text', {
-        x: cx, y: cy + 1,
-        'text-anchor': 'middle', 'dominant-baseline': 'central',
-        'font-size': empty ? 15 : 17,
-        fill: empty ? '#8a7a5a' : '#1a1a1a',
-        style: 'font-weight:600;',
-      });
-      txt.textContent = empty ? '空' : (kind === 'human' ? '👤' : '🤖');
-      grp.appendChild(txt);
-      g.appendChild(grp);
-    }
-    svg.appendChild(g);
+    // Setup-mode seat config is handled by the HTML lobby cards (#tqLobby),
+    // not by SVG corner badges.
   }
 
   // ============================================================
@@ -745,6 +696,8 @@
     state.lastTrail = null;
     endChainBtn.hidden = true;
     const cur = currentPlayer();
+    // Online: the controlling client broadcasts this completed move so others replay it.
+    if (typeof tqEmitMove === 'function') tqEmitMove(cur, originalFrom, finalTo);
     if (hasWon(state.board, cur)) {
       state.over = true;
       state.winner = cur;
@@ -752,12 +705,14 @@
       finishGame();
       renderBoard();
       updateStatus();
+      if (typeof tqAfterTurnResolved === 'function') tqAfterTurnResolved();
       return;
     }
     nextTurn();
     renderBoard();
     updateStatus();
-    if (!state.paused && currentKindIsAi()) setTimeout(triggerAiMove, 100);
+    if (typeof maybeTriggerAi === 'function') maybeTriggerAi(100);
+    if (typeof tqAfterTurnResolved === 'function') tqAfterTurnResolved();
   }
 
   // Human single-step (1-cell walk). Fully commits the turn.
@@ -765,6 +720,7 @@
   // previous player's trail is dropped here.
   function applyHumanStep(from, to) {
     state.lastTrail = null;
+    tqMovePath = [to.slice()];
     const fromK = key(from[0], from[1]);
     const piece = state.board[fromK];
     state.board[fromK] = null;
@@ -779,6 +735,7 @@
   function applyHumanFirstHop(from, to) {
     const fromK = key(from[0], from[1]);
     const piece = state.board[fromK];
+    tqMovePath = [to.slice()];
     state.lastTrail = { color: CORNERS[piece].color, cells: [from.slice(), to.slice()] };
     state.board[fromK] = null;
     state.board[key(to[0], to[1])] = piece;
@@ -807,6 +764,7 @@
     state.board[fromK] = null;
     state.board[key(to[0], to[1])] = piece;
     state.lastMove = { from: cp.slice(), to: to.slice() };
+    if (tqMovePath) tqMovePath.push(to.slice());
     if (state.lastTrail) state.lastTrail.cells.push(to.slice());
     state.chainPiece = to.slice();
     state.selected = to.slice();
@@ -832,6 +790,7 @@
   // a faded "trail" of cells the piece passed through (start + every landing) so
   // the human can read the chain's geometry after the fact.
   async function applyAiMove(move) {
+    tqMovePath = move.path.map(p => p.slice());
     const fromK = key(move.from[0], move.from[1]);
     const piece = state.board[fromK];
     // Reset trail to the start cell only; landings get pushed during animation.
@@ -906,10 +865,12 @@
 
   function triggerAiMove() {
     if (state.over || state.paused) return;
+    if (typeof tqReplaying !== 'undefined' && tqReplaying) return;   // replay drives moves itself
+    if (typeof tqControlsCurrent === 'function' && !tqControlsCurrent()) return;  // online: only the seat's controller (host) runs AI
     if (!currentKindIsAi()) return;
     state.aiThinking = true;
     updateStatus();
-    const cfg = DIFFICULTY[state.difficulty];
+    const cfg = DIFFICULTY[aiDiffOf(currentPlayer())] || DIFFICULTY.normal;
     setTimeout(() => {
       const t0 = Date.now();
       const move = pickAiMove(state.board, state.players, state.turnIdx, cfg);
@@ -922,7 +883,7 @@
           await applyAiMove(move);
         } else {
           nextTurn(); updateStatus();
-          if (currentKindIsAi()) setTimeout(triggerAiMove, 100);
+          maybeTriggerAi(100);
         }
       }, wait);
     }, 30);
@@ -932,16 +893,8 @@
   // Input — three-state machine: IDLE / SELECTED / CHAIN
   // ============================================================
   svg.addEventListener('click', (e) => {
-    // Config mode: tapping a corner-tip badge or a territory cell cycles its seat.
-    if (!state.started) {
-      const badge = e.target.closest('.seat-badge');
-      if (badge) { cycleKind(badge.getAttribute('data-corner')); return; }
-      const hit = e.target.closest('.cell-hit');
-      if (!hit) return;
-      const ck = CELL_TRIANGLE[key(parseInt(hit.getAttribute('data-row'), 10), parseInt(hit.getAttribute('data-col'), 10))];
-      if (ck) cycleKind(ck);
-      return;
-    }
+    // Setup-mode seat config is on the HTML lobby cards, not the SVG.
+    if (!state.started) return;
 
     const target = e.target.closest('.cell-hit');
     if (!target) return;
@@ -950,6 +903,8 @@
 
     if (state.over || state.aiThinking || state.paused) return;
     if (currentKindIsAi()) return;
+    if (typeof tqReplaying !== 'undefined' && tqReplaying) return;
+    if (typeof tqControlsCurrent === 'function' && !tqControlsCurrent()) return;  // online: only the seat's controller moves
     const owner = state.board[key(r, c)];
     const me = currentPlayer();
 
@@ -1004,13 +959,14 @@
     if (state.over || !Object.values(state.playerKinds).includes('ai')) return;
     state.paused = !state.paused;
     updateStatus();
-    if (!state.paused && currentKindIsAi() && !state.aiThinking) setTimeout(triggerAiMove, 100);
+    maybeTriggerAi(100);
   }
   pauseBtn.onclick = togglePause;
   resumeBtn.onclick = togglePause;
   endChainBtn.onclick = commitChain;
 
   undoBtn.onclick = () => {
+    if (typeof tqOnline !== 'undefined' && tqOnline.active()) return;   // no undo in online (would desync)
     if (state.aiThinking || state.paused || state.history.length === 0 || state.over || state.chainPiece) return;
     // Undo: in vs-AI mode, roll back enough plies so it's the human's turn again.
     // Simpler: undo 1 ply if no AI in game; otherwise keep undoing until last move
@@ -1256,13 +1212,13 @@
     state.started = true;
     tqRunStartedAt = Number(saved.runStartedAt) || Date.now();
     tqRunNonce = saved.runNonce || ((window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now()));
-    tqPgoOverlay.classList.remove('open');
+    tqHideLobby();
     gameControls.hidden = false;
     rosterEl.hidden = false;
     pauseBtn.hidden = !Object.values(state.playerKinds).includes('ai');
     renderBoard();
     updateStatus();
-    if (!state.paused && currentKindIsAi()) setTimeout(triggerAiMove, 320);
+    maybeTriggerAi(320);
   }
 
   // Initial render (config mode by default)
@@ -1272,286 +1228,429 @@
     updateStatus();
   }
 
-  // ============ Pre-game Overlay ============
-  const tqPgoOverlay = document.getElementById('tqPreGameOverlay');
-  const tqPgoDiffPicker = document.getElementById('tqPgoDiffPicker');
-  let tqPgoSelectedDiff = state.difficulty || 'normal';
+  // ============ Setup / Lobby (config cards on each home triangle) ============
+  const tqLobby = document.getElementById('tqLobby');
+  const tqLobbyHint = document.getElementById('tqLobbyHint');
+  const tqLobbyErr = document.getElementById('tqLobbyErr');
+  const tqRoomChip = document.getElementById('tqRoomChip');
+  const tqRoomCodeNum = document.getElementById('tqRoomCodeNum');
+  const tqStartBtn = document.getElementById('tqStartBtn');
+  const tqSeatEls = {};
+  for (const ck of CORNER_KEYS) tqSeatEls[ck] = document.getElementById('tqSeat' + ck);
 
-  function tqUpdatePgoDiffVisibility() {
-    const hasAI = Object.values(state.setupConfig).some(v => v === 'ai');
-    tqPgoDiffPicker.style.display = hasAI ? '' : 'none';
-  }
+  const KIND_ICON = { empty: '➕', human: '👤', ai: '🤖', remote: '🔗' };
+  const DIFF3 = { easy: '新手', normal: '普通', hard: '高手' };
+  const LOCAL_SUB = { empty: '空位', human: '本机真人', ai: '电脑', remote: '邀请加入' };
+  const LOCAL_CYCLE = ['empty', 'human', 'ai', 'remote'];
 
-  document.getElementById('tqPgoDiffPicker').addEventListener('click', e => {
-    const t = e.target.closest('.gs-pgo-mode-tab');
-    if (!t) return;
-    tqPgoSelectedDiff = t.dataset.value;
-    document.querySelectorAll('#tqPgoDiffPicker .gs-pgo-mode-tab').forEach(b => {
-      b.classList.toggle('selected', b.dataset.value === tqPgoSelectedDiff);
+  function tqEl(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+  function tqSetErr(m) { tqLobbyErr.textContent = m || ''; }
+  function tqActiveCount() { return CORNER_KEYS.filter(ck => state.setupConfig[ck] !== 'empty').length; }
+  function tqGetNick() { return (window.GamesShell && GamesShell.Identity.getNick && GamesShell.Identity.getNick()) || ('玩家' + Math.floor(Math.random() * 9000 + 1000)); }
+
+  function tqHideLobby() { tqLobby.hidden = true; tqStartBtn.hidden = true; tqRoomChip.hidden = true; tqLobbyHint.hidden = true; }
+
+  // Per-base AI difficulty chips.
+  function tqDiffChips(curDiff, onPick) {
+    const wrap = tqEl('div', 'tq-seat-diff');
+    ['easy', 'normal', 'hard'].forEach(d => {
+      const b = tqEl('button', d === (curDiff || 'normal') ? 'sel' : '', DIFF3[d]);
+      b.onclick = (e) => { e.stopPropagation(); onPick(d); };
+      wrap.appendChild(b);
     });
-  });
-
-  // ============ Room Client ============
-  const BOARD_API = 'https://zircon-urge.fly.dev/api/board';
-  let tqRoomToken = null, tqRoomPlayerId = null, tqRoomCode = null, tqRoomHost = false;
-  let tqRoomStatePoller = null, tqIsOnline = false;
-  const TQ_MIN_PLAYERS = 2;
-  const TQ_PROFILES_KEY = 'tool.tiaoqi.room-profiles.v1';
-  let tqRoomCfg = { maxPlayers: 6, aiFill: 'off', aiDiff: 'normal' };
-  let tqProfiles = [];
-  try { tqProfiles = JSON.parse(localStorage.getItem(TQ_PROFILES_KEY) || '[]'); } catch(e) {}
-  let TQ_MIN_PLAYERS_VAL = 6;
-
-  function tqSaveProfile(cfg) {
-    tqProfiles.unshift({ ...cfg, ts: Date.now(), nick: GamesShell.Identity.getNick() });
-    if (tqProfiles.length > 8) tqProfiles.length = 8;
-    try { localStorage.setItem(TQ_PROFILES_KEY, JSON.stringify(tqProfiles)); } catch(e) {}
-    tqRenderProfiles();
+    return wrap;
   }
 
-  function tqRenderProfiles() {
-    const c = document.getElementById('tqProfilesList'), w = document.getElementById('tqRoomProfiles');
-    if (!c || !w) return; c.innerHTML = '';
-    if (!tqProfiles.length) { w.style.display = 'none'; return; }
-    w.style.display = '';
-    tqProfiles.slice(0, 5).forEach(p => {
-      const b = document.createElement('button'); b.className = 'fn-room-profile-chip';
-      const ago = (m => m < 1 ? '刚才' : m < 60 ? m + '分钟前' : m < 1440 ? Math.floor(m/60) + '小时前' : Math.floor(m/1440) + '天前')(Math.floor((Date.now() - p.ts) / 60000));
-      const ai = p.aiDiff === 'hard' ? 'AI高手' : p.aiDiff === 'easy' ? 'AI新手' : 'AI普通';
-      b.textContent = `${p.maxPlayers}人 · ${p.aiFill === 'on' ? ai : '纯人对战'} · ${ago}`;
-      b.addEventListener('click', () => { tqRoomCfg = { maxPlayers: p.maxPlayers, aiFill: p.aiFill, aiDiff: p.aiDiff }; tqApplyRoomCfg(); });
-      c.appendChild(b);
-    });
-  }
-
-  function tqApplyRoomCfg() {
-    document.querySelectorAll('#tqRoomMaxPlayers .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === String(tqRoomCfg.maxPlayers)));
-    document.querySelectorAll('#tqRoomAiFill .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === tqRoomCfg.aiFill));
-    document.querySelectorAll('#tqRoomAiDiff .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === tqRoomCfg.aiDiff));
-    document.getElementById('tqRoomAiDiffRow').style.display = tqRoomCfg.aiFill === 'on' ? '' : 'none';
-    TQ_MIN_PLAYERS_VAL = tqRoomCfg.maxPlayers;
-  }
-
-  document.getElementById('tqRoomMaxPlayers').addEventListener('click', e => { const t = e.target.closest('.gs-pgo-mode-tab'); if (t) { tqRoomCfg.maxPlayers = parseInt(t.dataset.val); tqApplyRoomCfg(); } });
-  document.getElementById('tqRoomAiFill').addEventListener('click', e => { const t = e.target.closest('.gs-pgo-mode-tab'); if (t) { tqRoomCfg.aiFill = t.dataset.val; tqApplyRoomCfg(); } });
-  document.getElementById('tqRoomAiDiff').addEventListener('click', e => { const t = e.target.closest('.gs-pgo-mode-tab'); if (t) { tqRoomCfg.aiDiff = t.dataset.val; tqApplyRoomCfg(); } });
-  tqApplyRoomCfg(); tqRenderProfiles();
-
-  function tqRoomApi(method, action, body) {
-    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(12000), body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(e => ({ error: e.name === 'TimeoutError' ? 'timeout' : 'network' }));
-  }
-  function tqGetNick() { return GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000)); }
-
-  document.getElementById('tqPgoRoomTabs').addEventListener('click', e => {
-    const t = e.target.closest('.gs-pgo-room-tab');
-    if (!t) return;
-    const tab = t.dataset.tab;
-    document.querySelectorAll('#tqPgoRoomTabs .gs-pgo-room-tab').forEach(b => b.classList.toggle('selected', b.dataset.tab === tab));
-    document.getElementById('tqPgoLocalPanel').classList.toggle('active', tab === 'local');
-    document.getElementById('tqPgoOnlinePanel').classList.toggle('active', tab === 'online');
-    document.getElementById('tqPgoConfig').style.display = tab === 'online' ? 'none' : '';
-    document.getElementById('tqPgoDiffPicker').style.display = tab === 'online' ? 'none' : '';
-    document.getElementById('tqPgoStartBtn').style.display = tab === 'online' ? 'none' : '';
-    tqIsOnline = tab === 'online';
-  });
-
-  function tqShowError(msg) { document.getElementById('tqPgoRoomError').textContent = msg || ''; }
-
-  async function tqRoomAction() {
-    const code = (document.getElementById('tqPgoRoomCodeInput').value || '').trim();
-    const btn = document.getElementById('tqPgoRoomActionBtn');
-    tqShowError(''); btn.textContent = '连接中…'; btn.disabled = true;
-    try {
-      const nick = tqGetNick(), did = GamesShell.Identity.getDeviceId();
-      const ping = await tqRoomApi('GET', 'ping');
-      if (ping.error) { tqShowError('无法连接到服务器，请确认网络后重试'); return; }
-      if (/^\d{4}$/.test(code)) {
-        const r = await tqRoomApi('POST', 'join', { code, nick, deviceId: did });
-        if (r.ok) { tqEnterLobby(r); return; }
-        if (r.reason === 'room_not_found') {
-          const cr = await tqRoomApi('POST', 'create', { gameId: 'tiaoqi', nick, deviceId: did, code });
-          if (cr.ok) { tqEnterLobby(cr); return; }
-          const msgs = { code_taken: '该房号已被占用，换一个试试', timeout: '连接超时，请检查网络', network: '网络错误，请稍后再试' };
-          tqShowError(msgs[cr.reason] || msgs[cr.error] || '创建失败');
-          return;
-        }
-        const msgs = { room_full: '房间已满，换一个房号试试', nick_taken_in_room: '昵称已被占用，换一个试试', room_in_progress: '游戏已开始，无法加入', timeout: '连接超时，请检查网络', network: '网络错误，请稍后再试' };
-        tqShowError(msgs[r.reason] || msgs[r.error] || '加入失败');
-        return;
-      }
-      const r = await tqRoomApi('POST', 'create', { gameId: 'tiaoqi', nick, deviceId: did });
-      if (r.ok) { tqEnterLobby(r); return; }
-      tqShowError('创建失败');
-    } finally {
-      btn.textContent = '创建 / 加入房间'; btn.disabled = false;
+  // Build one home-triangle config card from a model + handlers.
+  function tqMakeCard(ck, m, h) {
+    const info = CORNERS[ck];
+    const card = tqEl('div', 'tq-seat-card'
+      + (m.kind === 'empty' ? ' empty' : '')
+      + (m.me ? ' is-me' : '') + (m.sel ? ' swap-sel' : ''));
+    card.style.setProperty('--seat', info.color);
+    if (h.onTap) card.onclick = h.onTap;
+    card.appendChild(tqEl('span', 'ico', m.icon || KIND_ICON[m.kind] || '👤'));
+    card.appendChild(tqEl('span', 'lbl', m.label || (info.label + '方')));
+    if (m.host || m.off) {
+      const tags = tqEl('div', 'tq-seat-badges');
+      if (m.host) tags.appendChild(tqEl('span', 'tq-seat-tag host', '房主'));
+      if (m.off) tags.appendChild(tqEl('span', 'tq-seat-tag off', '离线'));
+      card.appendChild(tags);
     }
+    card.appendChild(tqEl('span', 'sub', m.sub || ''));
+    if (m.kind === 'ai' && h.onDiff) card.appendChild(tqDiffChips(m.aiDiff, h.onDiff));
+    if (m.showCopy && h.onCopy) { const b = tqEl('button', 'tq-seat-mini', '🔗 复制链接'); b.onclick = (e) => { e.stopPropagation(); h.onCopy(); }; card.appendChild(b); }
+    if (m.showKick && h.onKick) { const b = tqEl('button', 'tq-seat-mini kick', '✕ 踢出'); b.onclick = (e) => { e.stopPropagation(); h.onKick(); }; card.appendChild(b); }
+    return card;
   }
 
-  function tqEnterLobby(r) {
-    tqRoomToken = r.playerToken; tqRoomPlayerId = r.playerId; tqRoomCode = r.code;
-    document.getElementById('tqPgoRoomEntry').style.display = 'none';
-    document.getElementById('tqRoomParams').style.display = 'none';
-    document.getElementById('tqRoomProfiles').style.display = 'none';
-    document.getElementById('tqPgoRoomLobby').style.display = '';
-    document.getElementById('tqPgoRoomCodeNum').textContent = r.code;
-    if (window.GamesShell && GamesShell.QR) GamesShell.QR.render(document.getElementById('tqPgoRoomQr'), location.origin + '/toolbox/tiaoqi/?room=' + r.code);
-    tqSaveProfile(tqRoomCfg);
-    tqUpdateLobby(r.room); tqStartPolling();
+  function tqCycleLocal(ck) {
+    const cur = state.setupConfig[ck];
+    state.setupConfig[ck] = LOCAL_CYCLE[(LOCAL_CYCLE.indexOf(cur) + 1) % LOCAL_CYCLE.length];
+    persist(); tqRenderLobby(); renderBoard();
   }
 
-  function gsEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  function tqUpdateLobby(room) {
-    const list = document.getElementById('tqPgoRoomPlayers');
-    tqRoomHost = !!room.youAreHost;
-    list.innerHTML = (room.players || []).map((p, i) => {
-      const isMe = p.id === tqRoomPlayerId, isHost = p.isHost;
-      let h = '<li>';
-      if (tqRoomHost && room.state === 'lobby' && !isMe) {
-        if (i > 0) h += `<button class="tq-room-act up" data-act="up" data-id="${p.id}">▲</button>`;
-        if (i < room.players.length - 1) h += `<button class="tq-room-act down" data-act="down" data-id="${p.id}">▼</button>`;
-      }
-      h += gsEsc(p.nick);
-      if (isMe) h += ' (你)';
-      if (isHost) h += ' <span class="gs-pgo-room-host-badge">房主</span>';
-      if (tqRoomHost && room.state === 'lobby' && !isMe) h += `<button class="tq-room-kick" data-act="kick" data-id="${p.id}" aria-label="踢出 ${p.nick}">✕</button>`;
-      h += '</li>';
-      return h;
-    }).join('');
-    list.querySelectorAll('[data-act]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const act = btn.dataset.act, pid = btn.dataset.id;
-        if (act === 'kick') await tqRoomApi('POST', 'kick', { code: tqRoomCode, token: tqRoomToken, targetPlayerId: pid });
-        else if (act === 'up' || act === 'down') {
-          const ids = room.players.map(p => p.id), idx = ids.indexOf(pid);
-          if (act === 'up' && idx > 0) [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
-          else if (act === 'down' && idx < ids.length - 1) [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
-          await tqRoomApi('POST', 'reorder', { code: tqRoomCode, token: tqRoomToken, playerIds: ids });
-        }
-      });
-    });
-    document.getElementById('tqRoomEditBtn').style.display = tqRoomHost ? '' : 'none';
-    tqRenderProposal(room);
-    document.getElementById('tqPgoRoomStartBtn').disabled = !(tqRoomHost && room.players.length >= TQ_MIN_PLAYERS_VAL);
-    document.getElementById('tqPgoRoomStartBtn').textContent = tqRoomHost ? `开始游戏 (${room.players.length}/${TQ_MIN_PLAYERS_VAL})` : '等待房主开始…';
-  }
-
-  function tqRenderProposal(room) {
-    const box = document.getElementById('tqVoteBox'), p = room.pendingProposal;
-    if (!box || !p || p.result !== null) { box && (box.style.display = 'none'); return; }
-    box.style.display = '';
-    const cfg = p.config;
-    const aiLabel = cfg.aiDiff === 'hard' ? 'AI高手' : cfg.aiDiff === 'easy' ? 'AI新手' : 'AI普通';
-    const desc = `人数上限 ${cfg.maxPlayers} · AI 补齐 ${cfg.aiFill === 'on' ? '开(' + aiLabel + ')' : '关'}`;
-    const votedCount = Object.values(p.votes).filter(v => v !== null && v !== undefined).length;
-    const totalVoters = Object.keys(p.votes).filter(id => id !== p.proposedBy).length;
-    const proposerNick = room.players.find(pl => pl.id === p.proposedBy)?.nick || '房主';
-    let html = `<div style="font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:0.3rem;">📋 ${proposerNick} 提议：${desc}</div>`;
-    html += `<div style="font-size:0.72rem;color:rgba(255,255,255,0.35);margin-bottom:0.4rem;">需全票通过 · 已投 ${votedCount}/${totalVoters} · 30秒超时</div>`;
-    if (tqRoomPlayerId !== p.proposedBy) {
-      const myVote = p.votes[tqRoomPlayerId];
-      if (myVote === null || myVote === undefined) {
-        html += `<div style="display:flex;gap:0.4rem;"><button class="gs-pgo-room-btn primary fn-vote-btn gs-vote-yes" data-vote="yes" aria-label="同意房主提议">✅ 同意</button><button class="gs-pgo-room-btn fn-vote-btn gs-vote-no" data-vote="no" aria-label="拒绝房主提议">❌ 拒绝</button></div>`;
-      } else {
-        html += `<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);">你已投票：${myVote === 'yes' ? '✅ 同意' : '❌ 拒绝'}</div>`;
-      }
-    } else {
-      html += `<div style="font-size:0.74rem;color:rgba(255,255,255,0.35);">你是提议者，无需投票</div>`;
-    }
-    box.innerHTML = html;
-    box.querySelectorAll('.fn-vote-btn').forEach(btn => btn.addEventListener('click', async () => {
-      await tqRoomApi('POST', 'vote', { code: tqRoomCode, token: tqRoomToken, vote: btn.dataset.vote });
-    }));
-  }
-
-  document.getElementById('tqRoomEditBtn').addEventListener('click', () => {
-    const panel = document.getElementById('tqRoomEditPanel');
-    panel.style.display = panel.style.display === 'none' ? '' : 'none';
-    document.querySelectorAll('#tqEditMaxPlayers .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === String(tqRoomCfg.maxPlayers)));
-    document.querySelectorAll('#tqEditAiFill .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === tqRoomCfg.aiFill));
-    document.querySelectorAll('#tqEditAiDiff .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === tqRoomCfg.aiDiff));
-    document.getElementById('tqEditAiDiffRow').style.display = tqRoomCfg.aiFill === 'on' ? '' : 'none';
-  });
-  document.getElementById('tqCancelEditBtn').addEventListener('click', () => { document.getElementById('tqRoomEditPanel').style.display = 'none'; });
-  document.getElementById('tqProposeBtn').addEventListener('click', async () => {
-    await tqRoomApi('POST', 'propose', { code: tqRoomCode, token: tqRoomToken, config: tqRoomCfg });
-    document.getElementById('tqRoomEditPanel').style.display = 'none';
-  });
-  document.getElementById('tqEditMaxPlayers').addEventListener('click', e => { const t = e.target.closest('.gs-pgo-mode-tab'); if (t) { tqRoomCfg.maxPlayers = parseInt(t.dataset.val); document.querySelectorAll('#tqEditMaxPlayers .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === String(tqRoomCfg.maxPlayers))); } });
-  document.getElementById('tqEditAiFill').addEventListener('click', e => { const t = e.target.closest('.gs-pgo-mode-tab'); if (t) { tqRoomCfg.aiFill = t.dataset.val; document.querySelectorAll('#tqEditAiFill .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === t.dataset.val)); document.getElementById('tqEditAiDiffRow').style.display = t.dataset.val === 'on' ? '' : 'none'; } });
-  document.getElementById('tqEditAiDiff').addEventListener('click', e => { const t = e.target.closest('.gs-pgo-mode-tab'); if (t) { tqRoomCfg.aiDiff = t.dataset.val; document.querySelectorAll('#tqEditAiDiff .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === t.dataset.val)); } });
-
-  async function tqLeaveRoom() {
-    if (tqRoomStatePoller) { clearTimeout(tqRoomStatePoller); tqRoomStatePoller = null; }
-    if (tqRoomToken) await tqRoomApi('POST', 'leave', { code: tqRoomCode, token: tqRoomToken });
-    tqRoomToken = null; tqRoomPlayerId = null; tqRoomCode = null; tqRoomHost = false;
-    document.getElementById('tqPgoRoomEntry').style.display = '';
-    document.getElementById('tqRoomParams').style.display = '';
-    document.getElementById('tqRoomProfiles').style.display = '';
-    document.getElementById('tqPgoRoomLobby').style.display = 'none';
-    document.getElementById('tqPgoRoomCodeInput').value = '';
-    tqRenderProfiles();
-  }
-
-  function tqStartPolling() {
-    if (tqRoomStatePoller) clearTimeout(tqRoomStatePoller);
-    let since = 0;
-    async function poll() {
-      if (!tqRoomToken) return;
-      const r = await tqRoomApi('GET', `state&code=${tqRoomCode}&token=${tqRoomToken}&since=${since}`);
-      if (!r.ok) { tqRoomStatePoller = setTimeout(poll, 2000); return; }
-      if (r.room) {
-        since = r.version;
-        if (r.room.state === 'playing') { tqPgoOverlay.classList.remove('open'); state.difficulty = tqPgoSelectedDiff; startGame(); if (typeof tqSave !== 'undefined' && tqSave) tqSave.start(); return; }
-        if (!r.room.players.some(p => p.id === tqRoomPlayerId)) { tqLeaveRoom(); tqShowError('你已被房主移出房间'); return; }
-        tqUpdateLobby(r.room);
-      }
-      tqRoomStatePoller = setTimeout(poll, 1500);
-    }
-    poll();
-  }
-
-  document.getElementById('tqPgoRoomActionBtn').addEventListener('click', tqRoomAction);
-  document.getElementById('tqPgoRoomLeaveBtn').addEventListener('click', tqLeaveRoom);
-  document.getElementById('tqPgoRoomCopyBtn').addEventListener('click', () => {
-    navigator.clipboard.writeText(`${location.origin}/toolbox/tiaoqi/?room=${tqRoomCode}`).then(() => {
-      const btn = document.getElementById('tqPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '🔗 复制链接'; }, 2000);
-    }).catch(() => {});
-  });
-  document.getElementById('tqPgoRoomCopyCodeBtn').addEventListener('click', () => {
-    navigator.clipboard.writeText(tqRoomCode).then(() => {
-      const btn = document.getElementById('tqPgoRoomCopyCodeBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制房号'; }, 2000);
-    }).catch(() => {});
-  });
-  document.getElementById('tqPgoRoomStartBtn').addEventListener('click', async () => {
-    const r = await tqRoomApi('POST', 'start', { code: tqRoomCode, token: tqRoomToken });
-    if (r.ok) { tqPgoOverlay.classList.remove('open'); state.difficulty = tqPgoSelectedDiff; startGame(); if (typeof tqSave !== 'undefined' && tqSave) tqSave.start(); }
-  });
-
-  (function tqAutoJoin() {
-    const code = new URLSearchParams(location.search).get('room');
-    if (code && /^\d{4}$/.test(code)) {
-      document.getElementById('tqPgoRoomCodeInput').value = code;
-      setTimeout(() => {
-        document.querySelector('#tqPgoRoomTabs .gs-pgo-room-tab[data-tab="online"]')?.click();
-        setTimeout(tqRoomAction, 800);
-      }, 500);
-    }
-  })();
-
-  document.getElementById('tqPgoStartBtn').addEventListener('click', () => {
-    if (tqIsOnline) return;
-    state.difficulty = tqPgoSelectedDiff;
+  function tqStartLocalGame() {
+    if (tqActiveCount() < 2) return;
+    if (CORNER_KEYS.some(ck => state.setupConfig[ck] === 'remote')) return;  // invite seats need a room first
     if (typeof tqSave !== 'undefined' && tqSave) tqSave.discard();
     startGame();
     if (typeof tqSave !== 'undefined' && tqSave) tqSave.start();
-  });
+  }
 
-  // Render the live board; the centered config card floats over its middle.
+  function tqRenderLobby() {
+    if (state.started) { tqHideLobby(); return; }
+    tqLobby.hidden = false; tqLobbyHint.hidden = false;
+    if (tqOnline.active()) { tqOnline.renderLobby(); return; }
+    // ---- LOCAL config (no room) ----
+    tqRoomChip.hidden = true;
+    for (const ck of CORNER_KEYS) {
+      const kind = state.setupConfig[ck];
+      const m = { kind, sub: LOCAL_SUB[kind], aiDiff: state.aiDiff[ck], showCopy: kind === 'remote' };
+      const h = {
+        onTap: () => tqCycleLocal(ck),
+        onDiff: kind === 'ai' ? (d) => { state.aiDiff[ck] = d; persist(); tqRenderLobby(); } : null,
+        onCopy: kind === 'remote' ? () => tqOnline.goOnline() : null,
+      };
+      const hostEl = tqSeatEls[ck]; hostEl.innerHTML = '';
+      hostEl.appendChild(tqMakeCard(ck, m, h));
+    }
+    const remoteNoRoom = CORNER_KEYS.some(ck => state.setupConfig[ck] === 'remote');
+    const n = tqActiveCount();
+    tqStartBtn.hidden = false;
+    tqStartBtn.onclick = tqStartLocalGame;
+    if (remoteNoRoom) {
+      tqStartBtn.disabled = true;
+      tqStartBtn.textContent = '▶ 开始游戏';
+      tqLobbyHint.textContent = '点「邀请」领地里的「🔗 复制链接」即可建房、邀请好友联机';
+    } else {
+      tqStartBtn.disabled = n < 2;
+      tqStartBtn.textContent = n < 2 ? '▶ 开始游戏' : ('▶ 开始游戏（' + n + ' 人）');
+      tqLobbyHint.textContent = '点六角领地切换 空 / 本机真人 / 电脑（可设难度）/ 邀请联机';
+    }
+    tqSetErr('');
+  }
+
+  // ============ Online (rooms + deterministic move-event sync) ============
+  // Lobby + gameplay ride the relay event log (board.js `event` action):
+  //   {t:'seats', seats}                          host broadcasts seat config
+  //   {t:'turn', corner, from:[r,c], path:[[r,c]…]} one completed move (step/jump/chain)
+  // Every client converges by replaying moves in seq order. The host runs every
+  // ai/local seat; each guest runs its own seat. Reuses the same `event` action
+  // already deployed for feixingqi (no backend change).
+  const tqOnline = (() => {
+    const API = 'https://zircon-urge.fly.dev/api/board';
+    let net = null;
+    // net = { code, token, playerId, deviceId, isHost, players:[], seats:{ck:{kind,pid,aiDiff?}}, swapSel, ver, lastSeq, started, poller }
+
+    function active() { return !!net; }
+    function isHost() { return !!net && net.isHost; }
+    function seatMap() { return net && net.seats; }
+
+    function api(method, action, body) {
+      return fetch(API + '?action=' + action, {
+        method, headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(15000),
+        body: body ? JSON.stringify(body) : undefined,
+      }).then(r => r.json()).catch(e => ({ error: e.name === 'TimeoutError' ? 'timeout' : 'network' }));
+    }
+    async function emit(data) {
+      if (!net) return null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const r = await api('POST', 'event', { code: net.code, token: net.token, event: data });
+        if (r && r.ok) { net.ver = r.version; return r; }
+        if (r && r.error === 'locked') { await new Promise(s => setTimeout(s, 160)); continue; }
+        return r;
+      }
+      return { error: 'locked' };
+    }
+
+    function seatsFromSetup() {
+      const s = {};
+      for (const ck of CORNER_KEYS) {
+        const k = state.setupConfig[ck];
+        if (k === 'human') s[ck] = { kind: 'human', pid: null };
+        else if (k === 'ai') s[ck] = { kind: 'ai', pid: null, aiDiff: state.aiDiff[ck] || 'normal' };
+        else if (k === 'remote') s[ck] = { kind: 'remote', pid: null };
+        else s[ck] = { kind: 'empty', pid: null };
+      }
+      return s;
+    }
+
+    async function goOnline() {
+      tqSetErr('正在创建房间…');
+      const deviceId = GamesShell.Identity.getDeviceId();
+      const cr = await api('POST', 'create', { gameId: 'tiaoqi', nick: tqGetNick(), deviceId });
+      if (!cr || !cr.ok) { tqSetErr('创建房间失败，请检查网络后重试'); return; }
+      net = { code: cr.code, token: cr.playerToken, playerId: cr.playerId, deviceId,
+        isHost: true, players: (cr.room && cr.room.players) || [], seats: seatsFromSetup(),
+        swapSel: null, ver: (cr.room && cr.room.version) || 0, lastSeq: 0, started: false, poller: null };
+      tqSetErr('');
+      await emit({ t: 'seats', seats: net.seats });
+      startPolling();
+      tqRenderLobby();
+      copyLink();
+    }
+
+    async function join(rawCode) {
+      const c = String(rawCode || '').replace(/\D/g, '').slice(0, 4);
+      if (c.length !== 4) { tqSetErr('请输入 4 位房号'); return; }
+      tqSetErr('正在加入…');
+      const deviceId = GamesShell.Identity.getDeviceId();
+      const r = await api('POST', 'join', { code: c, nick: tqGetNick(), deviceId });
+      if (!r || !r.ok) {
+        const msgs = { room_not_found: '房间不存在', room_full: '房间已满', room_in_progress: '游戏已开始，无法加入', nick_taken_in_room: '昵称已被占用，换一个' };
+        tqSetErr((r && (msgs[r.reason] || msgs[r.error])) || '加入失败'); return;
+      }
+      net = { code: r.code, token: r.playerToken, playerId: r.playerId, deviceId,
+        isHost: false, players: (r.room && r.room.players) || [], seats: null,
+        swapSel: null, ver: (r.room && r.room.version) || 0, lastSeq: 0, started: false, poller: null };
+      tqSetErr('');
+      startPolling();
+      tqRenderLobby();
+    }
+
+    async function leave() {
+      stopPolling();
+      const had = net; net = null;
+      if (had && had.token) { try { await api('POST', 'leave', { code: had.code, token: had.token }); } catch (e) {} }
+      for (const ck of CORNER_KEYS) if (state.setupConfig[ck] === 'remote') state.setupConfig[ck] = 'empty';
+      persist();
+      if (!state.started) { tqRenderLobby(); renderBoard(); }
+    }
+
+    function copyLink() {
+      if (!net) return;
+      const url = location.origin + '/toolbox/tiaoqi/?room=' + net.code;
+      if (navigator.clipboard) navigator.clipboard.writeText(url)
+        .then(() => { tqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入'; })
+        .catch(() => { tqLobbyHint.textContent = '房号 ' + net.code + '，发给好友加入'; });
+      else tqLobbyHint.textContent = '房号 ' + net.code + '，发给好友加入';
+    }
+
+    function hostReconcile() {
+      if (!net.isHost) return false;
+      let changed = false;
+      const ids = net.players.map(p => p.id);
+      for (const ck of CORNER_KEYS) {
+        const s = net.seats[ck];
+        if (s.kind === 'remote' && s.pid && !ids.includes(s.pid)) { s.pid = null; changed = true; }
+      }
+      for (const p of net.players) {
+        if (p.id === net.playerId) continue;
+        if (CORNER_KEYS.some(ck => net.seats[ck].pid === p.id)) continue;
+        const slot = CORNER_KEYS.find(ck => net.seats[ck].kind === 'remote' && !net.seats[ck].pid)
+          || CORNER_KEYS.find(ck => net.seats[ck].kind === 'empty');
+        if (slot) { net.seats[slot] = { kind: 'remote', pid: p.id }; changed = true; }
+      }
+      return changed;
+    }
+    function broadcastSeats() { if (net && net.isHost) emit({ t: 'seats', seats: net.seats }); }
+
+    function onSeatClick(ck) {
+      if (!net.isHost) return;
+      const s = net.seats[ck];
+      if (net.swapSel == null) {
+        if (s.kind === 'remote' && s.pid) { net.swapSel = ck; renderLobby(); return; }   // occupied: select for swap (kick to change)
+        const cyc = ['empty', 'human', 'ai', 'remote'];
+        const next = cyc[(cyc.indexOf(s.kind) + 1) % cyc.length];
+        net.seats[ck] = next === 'ai' ? { kind: 'ai', pid: null, aiDiff: 'normal' } : { kind: next, pid: null };
+        broadcastSeats(); renderLobby(); return;
+      }
+      if (net.swapSel === ck) { net.swapSel = null; renderLobby(); return; }
+      const a = net.swapSel; const t = net.seats[a]; net.seats[a] = net.seats[ck]; net.seats[ck] = t;
+      net.swapSel = null; broadcastSeats(); renderLobby();
+    }
+
+    async function kick(ck) {
+      const s = net.seats[ck];
+      if (!net.isHost || !(s.kind === 'remote' && s.pid)) return;
+      await api('POST', 'kick', { code: net.code, token: net.token, targetPlayerId: s.pid });
+    }
+
+    function seatedCount() { return CORNER_KEYS.filter(ck => { const s = net.seats[ck]; return s && (s.kind === 'human' || s.kind === 'ai' || (s.kind === 'remote' && s.pid)); }).length; }
+    function remoteJoined() { return CORNER_KEYS.some(ck => { const s = net.seats[ck]; return s && s.kind === 'remote' && s.pid && s.pid !== net.playerId; }); }
+
+    async function start() {
+      if (!net.isHost) return;
+      if (seatedCount() < 2) { tqSetErr('至少需要 2 席'); return; }
+      if (!remoteJoined()) { tqSetErr('还需至少 1 位联机真人加入（否则用本地模式即可）'); return; }
+      await emit({ t: 'seats', seats: net.seats });
+      const r = await api('POST', 'start', { code: net.code, token: net.token });
+      if (!r || !r.ok) {
+        const msgs = { not_enough_players: '还需至少 1 位玩家加入', not_host: '只有房主能开始' };
+        tqSetErr((r && (msgs[r.reason] || msgs[r.error])) || '开始失败'); return;
+      }
+    }
+
+    function stopPolling() { if (net && net.poller) { clearTimeout(net.poller); net.poller = null; } }
+    function startPolling() {
+      stopPolling();
+      const tick = async () => {
+        if (!net) return;
+        const r = await api('GET', 'state&code=' + net.code + '&token=' + net.token + '&since=' + net.ver);
+        if (!net) return;
+        if (r && r.ok && r.room) {
+          net.ver = r.room.version;
+          net.players = r.room.players || [];
+          applyLog(r.room.moves || []);
+          if (!net.players.some(p => p.id === net.playerId)) { onGone('你已离开房间'); return; }
+          if (net.isHost && r.room.state === 'lobby' && hostReconcile()) broadcastSeats();
+          if (r.room.state === 'playing' && !net.started) beginGame();
+          if (!state.started) tqRenderLobby();
+        } else if (r && (r.reason === 'room_not_found' || r.reason === 'room_dissolved')) {
+          onGone('房间已关闭'); return;
+        }
+        if (net) net.poller = setTimeout(tick, state.started ? 800 : 1000);
+      };
+      tick();
+    }
+    function onGone(msg) {
+      stopPolling(); const wasStarted = state.started; net = null;
+      if (!wasStarted) {
+        for (const ck of CORNER_KEYS) if (state.setupConfig[ck] === 'remote') state.setupConfig[ck] = 'empty';
+        tqSetErr(msg); tqRenderLobby(); renderBoard();
+      }
+    }
+
+    function applyLog(moves) {
+      for (const m of moves) {
+        if (!m || typeof m.seq !== 'number' || m.seq <= net.lastSeq) continue;
+        net.lastSeq = m.seq;
+        const ev = m.event; if (!ev) continue;
+        if (ev.t === 'seats') { if (!net.isHost) net.seats = ev.seats; }
+        else if (ev.t === 'turn') { if (m.playerId !== net.playerId) tqEnqueueRemoteTurn(ev); }
+      }
+    }
+
+    function controlsColor(corner) {
+      if (!net) return true;
+      const s = net.seats[corner];
+      if (!s) return false;
+      if (s.kind === 'remote') return s.pid === net.playerId;
+      return net.isHost;
+    }
+
+    function beginGame() {
+      net.started = true;
+      net.swapSel = null;
+      tqApplyOnlineSeatsToGame();
+      tqHideLobby();
+      if (typeof tqSave !== 'undefined' && tqSave) tqSave.discard();
+      startGame();
+      tqPumpRemote();
+    }
+
+    function nickOf(pid) { const p = net.players.find(x => x.id === pid); return p ? p.nick : '玩家'; }
+    function onlineOf(pid) { const p = net.players.find(x => x.id === pid); return p ? p.online : false; }
+    function hostOf(pid) { const p = net.players.find(x => x.id === pid); return !!(p && p.isHost); }
+    function onlineModel(ck, s) {
+      const sel = net.swapSel === ck;
+      if (s.kind === 'empty') return { kind: 'empty', sub: '空位', sel };
+      if (s.kind === 'human') return { kind: 'human', sub: '本机真人', sel };
+      if (s.kind === 'ai') return { kind: 'ai', sub: '电脑', aiDiff: s.aiDiff || 'normal', sel };
+      if (!s.pid) return { kind: 'remote', icon: '🔗', sub: '等待加入…', showCopy: true, sel };
+      const me = s.pid === net.playerId;
+      return { kind: 'remote', icon: '🌐', label: nickOf(s.pid) + (me ? '（你）' : ''), sub: '联机真人', me, off: !onlineOf(s.pid), host: hostOf(s.pid), showKick: net.isHost && !me, sel };
+    }
+
+    function renderLobby() {
+      tqRoomChip.hidden = false; tqRoomCodeNum.textContent = net.code; tqRoomChip.onclick = () => copyLink();
+      for (const ck of CORNER_KEYS) {
+        const s = (net.seats && net.seats[ck]) || { kind: 'empty', pid: null };
+        const m = onlineModel(ck, s);
+        const h = {
+          onTap: net.isHost ? () => onSeatClick(ck) : null,
+          onDiff: (net.isHost && s.kind === 'ai') ? (d) => { net.seats[ck].aiDiff = d; broadcastSeats(); renderLobby(); } : null,
+          onCopy: m.showCopy ? () => copyLink() : null,
+          onKick: m.showKick ? () => kick(ck) : null,
+        };
+        const hostEl = tqSeatEls[ck]; hostEl.innerHTML = '';
+        hostEl.appendChild(tqMakeCard(ck, m, h));
+      }
+      if (net.isHost) {
+        const ok = seatedCount() >= 2 && remoteJoined();
+        tqStartBtn.hidden = false; tqStartBtn.disabled = !ok;
+        tqStartBtn.textContent = '▶ 开始游戏（' + seatedCount() + '）';
+        tqStartBtn.onclick = start;
+        tqLobbyHint.textContent = net.swapSel ? '再点另一块领地完成换位'
+          : '点领地切模式（改联机真人要先「踢出」）· 点两个已入座者换位 · 房号 ' + net.code;
+      } else {
+        tqStartBtn.hidden = true;
+        tqLobbyHint.textContent = '已加入房间 ' + net.code + '，等待房主开始…（点房号可把链接转发给别人）';
+      }
+      tqSetErr('');
+    }
+
+    return { active, isHost, seatMap, controlsColor, goOnline, join, leave, broadcastSeats, onSeatClick, renderLobby, emit, autoJoin };
+
+    function autoJoin() { const code = new URLSearchParams(location.search).get('room'); if (code && /^\d{4}$/.test(code)) join(code); }
+  })();
+
+  // ---- move-event sync bridges (used by the turn flow above) ----
+  let tqReplaying = false;       // true while replaying a remote move
+  let tqMovePath = null;         // landings of the move in progress (set by the appliers)
+  let tqAiTimer = 0;
+  const tqRemoteQueue = [];      // queued remote moves awaiting replay
+
+  function tqControlsCurrent() { return tqOnline.active() ? tqOnline.controlsColor(currentPlayer()) : true; }
+
+  function maybeTriggerAi(delay) {
+    if (state.over || state.paused || tqReplaying) return;
+    if (!tqControlsCurrent()) return;       // online: only the controller (host) runs AI
+    if (!currentKindIsAi()) return;
+    clearTimeout(tqAiTimer);
+    tqAiTimer = setTimeout(triggerAiMove, delay || 100);
+  }
+
+  // Freeze online seats into setupConfig so startGame() builds players/kinds.
+  function tqApplyOnlineSeatsToGame() {
+    const seats = tqOnline.seatMap() || {};
+    for (const ck of CORNER_KEYS) {
+      const s = seats[ck] || { kind: 'empty' };
+      state.setupConfig[ck] = (s.kind === 'ai') ? 'ai'
+        : (s.kind === 'human') ? 'human'
+        : (s.kind === 'remote' && s.pid) ? 'human' : 'empty';
+      if (s.kind === 'ai' && s.aiDiff) state.aiDiff[ck] = s.aiDiff;
+    }
+  }
+
+  // Broadcast a completed move (called from commitTurn on the controlling client).
+  function tqEmitMove(corner, fromArr, toArr) {
+    if (!tqOnline.active() || tqReplaying) return;
+    if (!tqOnline.controlsColor(corner)) return;
+    const path = (tqMovePath && tqMovePath.length) ? tqMovePath.map(p => p.slice()) : [toArr.slice()];
+    tqOnline.emit({ t: 'turn', corner, from: fromArr.slice(), path });
+  }
+
+  function tqEnqueueRemoteTurn(ev) { tqRemoteQueue.push(ev); tqPumpRemote(); }
+  function tqAfterTurnResolved() { tqPumpRemote(); }
+  function tqPumpRemote() {
+    if (tqReplaying || !state.started || state.over || state.paused) return;
+    if (state.aiThinking || state.chainPiece) return;
+    if (!tqRemoteQueue.length) return;
+    const ev = tqRemoteQueue[0];
+    if (ev.corner !== currentPlayer()) return;   // ordered log: wait until it's that seat's turn
+    tqRemoteQueue.shift();
+    tqReplaying = true;
+    const move = { from: ev.from, to: ev.path[ev.path.length - 1], path: ev.path };
+    Promise.resolve(applyAiMove(move)).then(() => {
+      tqReplaying = false;
+      updateStatus();
+      maybeTriggerAi(100);
+      tqPumpRemote();
+    });
+  }
+
+  // Initial render (config mode by default)
   initialSetupRender();
-  tqUpdatePgoDiffVisibility();
-  tqPgoOverlay.classList.add('open');
 
-  if (window.GamesShell && GamesShell.SaveState) {
+  // Opening a ?room=XXXX invite link drops you straight into that lobby.
+  const tqHasRoomLink = /[?&]room=\d{4}/.test(location.search);
+  if (tqHasRoomLink) tqOnline.autoJoin();
+
+  // Resume of a saved LOCAL game — skipped when arriving via an invite link.
+  if (!tqHasRoomLink && window.GamesShell && GamesShell.SaveState) {
     tqSave = GamesShell.SaveState.create({
       key: 'tool.tiaoqi.savestate.v1',
       ttlMs: 48 * 3600 * 1000,
@@ -1569,4 +1668,5 @@
       tqSave.start();
     }
   }
+
 })();

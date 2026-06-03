@@ -4,7 +4,7 @@ title: "跳棋 | Rui Zhou"
 permalink: /toolbox/tiaoqi/
 ---
 
-<link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="/assets/css/games-shell.css">
 
 <style>
   .tq-wrap { max-width: 760px; margin: 0 auto; padding: 1rem; --gs-wrap-half: 380px; }
@@ -73,42 +73,58 @@ permalink: /toolbox/tiaoqi/
     margin: 0.6rem auto 1rem;
   }
 
-  /* === Centered config card (overrides shared .gs-pgo-overlay for tiaoqi) ===
-     Shared gs-pgo is a full-board dark modal; here we shrink it to a card that
-     floats over the board's empty middle, so the 6 territories around it stay
-     visible and tappable. The card itself keeps a dark background so the shared
-     white gs-pgo text stays readable. */
-  .tq-center-card.gs-pgo-overlay {
-    position: absolute;
-    inset: auto;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: min(86%, 340px);
-    max-height: 94%;
-    padding: 0;
-    background: transparent;
-    backdrop-filter: none;
-    overflow: visible;
-    pointer-events: none;   /* clicks outside the card fall through to the board */
+  /* === Setup / lobby overlay ===
+     One config card sits on each of the 6 home triangles; the board fills the
+     whole frame (SVG viewBox 0 0 660 753). Start + room code live in the top
+     status bar — nothing floats in the centre. */
+  .tq-lobby { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+  .tq-lobby[hidden] { display: none; }
+  .tq-seat {
+    position: absolute; transform: translate(-50%, -50%);
+    width: 23%; max-width: 132px; pointer-events: auto;
   }
-  .tq-center-card .gs-pgo-view {
-    pointer-events: auto;
-    background: rgba(18, 22, 28, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
-    padding: 1rem 0.95rem 1.1rem;
-    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.4);
-    max-height: 94vh;
-    overflow-y: auto;
+  .tq-seat.at-n  { top: 15.5%; left: 50%; }
+  .tq-seat.at-ne { top: 32.7%; left: 84.1%; }
+  .tq-seat.at-se { top: 67.3%; left: 84.1%; }
+  .tq-seat.at-s  { top: 84.5%; left: 50%; }
+  .tq-seat.at-sw { top: 67.3%; left: 15.9%; }
+  .tq-seat.at-nw { top: 32.7%; left: 15.9%; }
+
+  .tq-seat-card {
+    --seat: #888;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.08rem; padding: 0.32rem 0.28rem; border-radius: 12px;
+    background: rgba(255, 255, 255, 0.95); border: 2px solid var(--seat);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    cursor: pointer; user-select: none; text-align: center; overflow: hidden;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
   }
-  .tq-center-card .gs-pgo-icon { font-size: 2rem; margin-bottom: 0.25rem; }
-  .tq-center-card .gs-pgo-title { font-size: 1.25rem; margin-bottom: 0.3rem; }
-  .tq-config-hint {
-    font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.72);
-    line-height: 1.5;
-    margin: 0.1rem 0 0.7rem;
-  }
+  .tq-seat-card .ico { font-size: 1.2rem; line-height: 1; }
+  .tq-seat-card .lbl { font-size: 0.78rem; font-weight: 700; color: var(--color-ink); font-family: var(--font-display); white-space: nowrap; }
+  .tq-seat-card .sub { font-size: 0.6rem; color: var(--color-muted); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .tq-seat-card.empty { background: rgba(255, 255, 255, 0.62); border-style: dashed; border-color: rgba(120, 108, 84, 0.6); }
+  .tq-seat-card.empty .lbl { color: var(--color-muted); }
+  @media (hover: hover) { .tq-seat-card:hover { box-shadow: 0 5px 15px rgba(0, 0, 0, 0.26); } }
+  .tq-seat-card.is-me { box-shadow: 0 0 0 3px rgba(229, 181, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.2); }
+  .tq-seat-card.swap-sel { border-color: #e5b500; box-shadow: 0 0 0 4px rgba(229, 181, 0, 0.55); }
+  .tq-seat-badges { display: flex; gap: 0.18rem; flex-wrap: wrap; justify-content: center; }
+  .tq-seat-tag { font-size: 0.54rem; padding: 0.02rem 0.3rem; border-radius: 999px; font-weight: 700; color: #fff; }
+  .tq-seat-tag.host { background: linear-gradient(135deg, #ffd86b, #c9a227); }
+  .tq-seat-tag.off { background: #9aa0a6; }
+  .tq-seat-diff { display: flex; gap: 0.12rem; margin-top: 0.14rem; }
+  .tq-seat-diff button { font-size: 0.56rem; padding: 0.06rem 0.28rem; border-radius: 6px; line-height: 1.25; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-muted); cursor: pointer; }
+  .tq-seat-diff button.sel { background: var(--seat); color: #fff; border-color: var(--seat); font-weight: 700; }
+  .tq-seat-mini { margin-top: 0.18rem; font-size: 0.58rem; padding: 0.1rem 0.4rem; border-radius: 999px; border: 1px solid var(--seat); background: #fff; color: var(--seat); cursor: pointer; font-weight: 700; white-space: nowrap; }
+  .tq-seat-mini.kick { border-color: #c0563f; color: #c0563f; }
+
+  .tq-lobby-hint { font-size: 0.78rem; color: var(--color-muted); text-align: center; line-height: 1.5; margin: 0.1rem auto 0; max-width: 34rem; }
+  .tq-lobby-hint[hidden] { display: none; }
+  .tq-lobby-err { font-size: 0.8rem; color: #c0392b; text-align: center; margin-top: 0.2rem; }
+  .tq-lobby-err:empty { display: none; }
+  .tq-lobby-room-chip { padding: 0.36rem 0.85rem; border-radius: 999px; background: var(--color-bg-warm); border: 1px solid var(--color-border); font-size: 0.85rem; cursor: pointer; font-family: var(--font-display); color: var(--color-ink); }
+  .tq-lobby-room-chip[hidden] { display: none; }
+  .tq-lobby-room-chip strong { color: var(--color-accent); letter-spacing: 0.08em; margin-left: 0.3rem; font-variant-numeric: tabular-nums; }
+  @media (hover: hover) { .tq-lobby-room-chip:hover { border-color: var(--color-accent); } }
 
   .tq-statusbar {
     display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; align-items: center;
@@ -147,7 +163,7 @@ permalink: /toolbox/tiaoqi/
     width: 100%;
     max-width: 600px;
     margin: 0 auto;
-    aspect-ratio: 748 / 841;
+    aspect-ratio: 660 / 753;
     background: #f8f3e6;
     border: 2px solid #5a4530;
     border-radius: 8px;
@@ -250,13 +266,28 @@ permalink: /toolbox/tiaoqi/
 
   <div class="tq-statusbar">
     <div class="tq-turn" id="tqTurn">— 请配置玩家 —</div>
+    <button class="tq-lobby-room-chip" id="tqRoomChip" hidden>房号<strong id="tqRoomCodeNum">----</strong></button>
+    <button class="tq-btn primary" id="tqStartBtn" hidden>▶ 开始游戏</button>
   </div>
+  <div class="tq-lobby-hint" id="tqLobbyHint" hidden></div>
+  <div class="tq-lobby-err" id="tqLobbyErr"></div>
 
   <div class="tq-roster" id="tqRoster" hidden></div>
 
   <div class="tq-board-stage">
     <div class="tq-board-wrap">
-      <svg class="tq-svg" id="tqSvg" viewBox="-44 -44 748 841" preserveAspectRatio="xMidYMid meet"></svg>
+      <svg class="tq-svg" id="tqSvg" viewBox="0 0 660 753" preserveAspectRatio="xMidYMid meet"></svg>
+
+      <!-- Setup / lobby overlay: one config card on each of the 6 home triangles. -->
+      <div class="tq-lobby" id="tqLobby">
+        <div class="tq-seat at-n"  data-corner="N"  id="tqSeatN"></div>
+        <div class="tq-seat at-ne" data-corner="NE" id="tqSeatNE"></div>
+        <div class="tq-seat at-se" data-corner="SE" id="tqSeatSE"></div>
+        <div class="tq-seat at-s"  data-corner="S"  id="tqSeatS"></div>
+        <div class="tq-seat at-sw" data-corner="SW" id="tqSeatSW"></div>
+        <div class="tq-seat at-nw" data-corner="NW" id="tqSeatNW"></div>
+      </div>
+
       <div class="tq-overlay" id="tqOverlay">
         <h2 id="tqOvTitle">游戏结束</h2>
         <div class="ranking" id="tqOvRanking"></div>
@@ -266,56 +297,6 @@ permalink: /toolbox/tiaoqi/
         <h2>⏸ 已暂停</h2>
         <button class="tq-btn" id="tqResumeBtn">▶ 继续</button>
       </div>
-    </div>
-    <!-- 中心配置卡片：浮在棋盘中部，四周领地可见可点 -->
-    <div class="gs-pgo-overlay tq-center-card open" id="tqPreGameOverlay">
-        <div class="gs-pgo-view active" id="tqPgoViewMain">
-          <div class="gs-pgo-icon">🔺</div>
-          <h2 class="gs-pgo-title">跳棋</h2>
-          <div class="tq-config-hint" id="tqConfigHint">👆 点棋盘上的领地配置玩家（空 / 人类 / AI），至少 2 席</div>
-          <div class="gs-pgo-mode-picker" id="tqPgoDiffPicker" style="display:none;">
-            <button class="gs-pgo-mode-tab" data-value="easy">新手</button>
-            <button class="gs-pgo-mode-tab selected" data-value="normal">普通</button>
-            <button class="gs-pgo-mode-tab" data-value="hard">高手</button>
-          </div>
-          <div class="gs-pgo-room-tabs" id="tqPgoRoomTabs">
-            <button class="gs-pgo-room-tab selected" data-tab="local">🏠 本地</button>
-            <button class="gs-pgo-room-tab" data-tab="online">🌐 联机</button>
-          </div>
-          <div class="gs-pgo-room-panel active" id="tqPgoLocalPanel"></div>
-          <div class="gs-pgo-room-panel" id="tqPgoOnlinePanel">
-            <div class="fn-room-params" id="tqRoomParams">
-              <div class="fn-room-params-label">⚙ 房间设置</div>
-              <div class="fn-room-params-row"><span class="fn-room-params-key">人数上限</span><div class="gs-pgo-mode-picker" id="tqRoomMaxPlayers"><button class="gs-pgo-mode-tab" data-val="2">2</button><button class="gs-pgo-mode-tab" data-val="3">3</button><button class="gs-pgo-mode-tab" data-val="4">4</button><button class="gs-pgo-mode-tab" data-val="5">5</button><button class="gs-pgo-mode-tab selected" data-val="6">6</button></div></div>
-              <div class="fn-room-params-row"><span class="fn-room-params-key">AI 补齐</span><div class="gs-pgo-mode-picker" id="tqRoomAiFill"><button class="gs-pgo-mode-tab" data-val="on">开</button><button class="gs-pgo-mode-tab selected" data-val="off">关</button></div></div>
-              <div class="fn-room-params-row" id="tqRoomAiDiffRow" style="display:none;"><span class="fn-room-params-key">AI 难度</span><div class="gs-pgo-mode-picker" id="tqRoomAiDiff"><button class="gs-pgo-mode-tab" data-val="easy">新手</button><button class="gs-pgo-mode-tab selected" data-val="normal">普通</button><button class="gs-pgo-mode-tab" data-val="hard">高手</button></div></div>
-            </div>
-            <div class="fn-room-profiles" id="tqRoomProfiles" style="display:none;"><div class="fn-room-params-label">📋 历史配置 <span style="font-weight:400;font-size:0.72rem;color:rgba(255,255,255,0.35);">点击即用</span></div><div id="tqProfilesList"></div></div>
-            <div id="tqPgoRoomEntry">
-              <input type="text" class="gs-pgo-room-input" id="tqPgoRoomCodeInput" placeholder="输入4位房号加入（留空创建新房）" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
-              <button class="gs-pgo-room-btn primary" id="tqPgoRoomActionBtn">创建 / 加入房间</button>
-              <div class="gs-pgo-room-error" id="tqPgoRoomError"></div>
-            </div>
-            <div id="tqPgoRoomLobby" style="display:none;">
-              <div class="gs-pgo-room-code">房号：<strong id="tqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="tqPgoRoomCopyCodeBtn">📋 复制房号</button> <button class="gs-pgo-room-copy-btn" id="tqPgoRoomCopyBtn">🔗 复制链接</button></div>
-              <div class="gs-room-qr" id="tqPgoRoomQr"></div><ul class="gs-pgo-room-players" id="tqPgoRoomPlayers"></ul>
-              <div class="fn-vote-box" id="tqVoteBox" style="display:none;"></div>
-              <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
-                <button class="gs-pgo-room-btn primary" id="tqPgoRoomStartBtn" disabled>需要 2 人</button>
-                <button class="gs-pgo-room-btn" id="tqPgoRoomLeaveBtn">退出房间</button>
-              </div>
-              <button class="gs-pgo-room-btn" id="tqRoomEditBtn" style="display:none;margin-top:0.3rem;">⚙ 修改设置</button>
-              <div class="fn-room-params" id="tqRoomEditPanel" style="display:none;margin-top:0.3rem;">
-                <div class="fn-room-params-label">修改房间设置</div>
-                <div class="fn-room-params-row"><span class="fn-room-params-key">人数上限</span><div class="gs-pgo-mode-picker" id="tqEditMaxPlayers"><button class="gs-pgo-mode-tab" data-val="2">2</button><button class="gs-pgo-mode-tab" data-val="3">3</button><button class="gs-pgo-mode-tab" data-val="4">4</button><button class="gs-pgo-mode-tab" data-val="5">5</button><button class="gs-pgo-mode-tab selected" data-val="6">6</button></div></div>
-                <div class="fn-room-params-row"><span class="fn-room-params-key">AI 补齐</span><div class="gs-pgo-mode-picker" id="tqEditAiFill"><button class="gs-pgo-mode-tab" data-val="on">开</button><button class="gs-pgo-mode-tab selected" data-val="off">关</button></div></div>
-                <div class="fn-room-params-row" id="tqEditAiDiffRow" style="display:none;"><span class="fn-room-params-key">AI 难度</span><div class="gs-pgo-mode-picker" id="tqEditAiDiff"><button class="gs-pgo-mode-tab" data-val="easy">新手</button><button class="gs-pgo-mode-tab selected" data-val="normal">普通</button><button class="gs-pgo-mode-tab" data-val="hard">高手</button></div></div>
-                <div style="display:flex;gap:0.4rem;margin-top:0.5rem;"><button class="gs-pgo-room-btn primary" id="tqProposeBtn">提议修改（需全票通过）</button><button class="gs-pgo-room-btn" id="tqCancelEditBtn">取消</button></div>
-              </div>
-            </div>
-          </div>
-          <button class="gs-pgo-start-btn" id="tqPgoStartBtn">▶ 开始游戏</button>
-        </div>
     </div>
   </div>
 
@@ -341,13 +322,13 @@ permalink: /toolbox/tiaoqi/
   <div id="tq-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
 
-<script src="/assets/js/games-shell/identity.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/wins-leaderboard.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/save-state.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/settings-panel.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/qrcode.js"></script>
+<script src="/assets/js/games-shell/wins-leaderboard.js"></script>
+<script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
+<script src="/assets/js/games-shell/save-state.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/games-shell/settings-panel.js"></script>
 
-<script src="/assets/js/games/tiaoqi.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games/tiaoqi.js"></script>
