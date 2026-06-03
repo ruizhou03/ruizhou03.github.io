@@ -172,6 +172,16 @@ noindex: true
   }
   function fmt(n) { n = Number(n) || 0; return n >= 10000 ? (n / 10000).toFixed(1) + '万' : String(n); }
 
+  // comments 数据：优先走 urge 服务端代理；若 urge 尚未部署该接口（旧版返回 404 → null），
+  // 回退直连 comments（手机等无广告拦截的环境仍可用，避免过渡期手机端也变空）。
+  function cmtGet(sub, limit) {
+    var q = 'sub=' + sub + (limit ? '&limit=' + limit : '');
+    return jget('/api/admin?action=cmt&' + q).then(function (d) {
+      if (d != null) return d;
+      return jget('https://zircon-comments.fly.dev/api/admin-stats?action=' + sub + (limit ? '&limit=' + limit : ''));
+    });
+  }
+
   // 排行榜（带链接，path 解析成标题）
   function renderRank(elId, items, key, unit) {
     var el = document.getElementById(elId);
@@ -216,15 +226,15 @@ noindex: true
         renderRank('rk-favs', d && d.items, 'favs', '藏');
         var note = document.getElementById('adm-fav-note'); if (note) note.hidden = false;
       });
-      // comments（Postgres）：经 urge 代取 —— 总浏览/总评论 + 阅读量榜 + 评论榜
-      jget('/api/admin?action=cmt&sub=overview').then(function (d) {
+      // comments（Postgres）：经 urge 代取（带直连兜底）—— 总浏览/总评论 + 阅读量榜 + 评论榜
+      cmtGet('overview').then(function (d) {
         if (d && d.ok) {
           var v = document.getElementById('ov-views'); if (v) v.textContent = fmt(d.totalViews);
           var c = document.getElementById('ov-comments'); if (c) c.textContent = fmt(d.totalComments);
         }
       });
-      jget('/api/admin?action=cmt&sub=top-read&limit=10').then(function (d) { renderRank('rk-read', d && d.items, 'views', '次'); });
-      jget('/api/admin?action=cmt&sub=top-commented&limit=10').then(function (d) { renderRank('rk-commented', d && d.items, 'comments', '条'); });
+      cmtGet('top-read', 10).then(function (d) { renderRank('rk-read', d && d.items, 'views', '次'); });
+      cmtGet('top-commented', 10).then(function (d) { renderRank('rk-commented', d && d.items, 'comments', '条'); });
       // Cloudflare 整体流量
       loadTraffic();
     });
