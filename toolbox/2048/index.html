@@ -4,7 +4,7 @@ title: "2048 | Rui Zhou"
 permalink: /toolbox/2048/
 ---
 
-<link rel="stylesheet" href="/assets/css/games-shell.css">
+<link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
 
 <style>
   .g2048-wrap { max-width: 560px; margin: 0 auto; padding: 1rem; }
@@ -305,11 +305,11 @@ permalink: /toolbox/2048/
 </div>
 
 <!-- 共享 game-shell 模块 -->
-<script src="/assets/js/games-shell/identity.js"></script>
-<script src="/assets/js/games-shell/leaderboard.js"></script>
-<script src="/assets/js/games-shell/comments.js"></script>
-<script src="/assets/js/games-shell/nick-prompt.js"></script>
-<script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/games-shell/identity.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games-shell/leaderboard.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
 
 <script>
 (() => {

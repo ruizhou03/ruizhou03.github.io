@@ -372,11 +372,11 @@ permalink: /toolbox/countdown/
     </div>
   </div>
 
-  <link rel="stylesheet" href="/assets/css/games-shell.css">
+  <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
   <div id="countdown-cm-mount" style="max-width: 720px; margin: 2rem auto 0;"></div>
 </div>
 
-<script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 
 <style>
   .preset-list {

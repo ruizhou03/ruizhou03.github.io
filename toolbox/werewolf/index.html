@@ -504,13 +504,13 @@ permalink: /toolbox/werewolf/
     <p>房间 24 小时无操作自动清理，游戏中刷新页面自动恢复。身份和行动记录由服务端保密，每人只能看到自己有权看的内容。</p>
   </details>
 
-  <link rel="stylesheet" href="/assets/css/games-shell.css">
+  <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
   <div id="ww-cm-mount" style="max-width: 720px; margin: 1.4rem auto 0;"></div>
 </article>
 
-<script src="/assets/js/games-shell/identity.js"></script>
-<script src="/assets/js/games-shell/qrcode.js"></script>
-<script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/identity.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 
 <script>
 (function () {
