@@ -4,7 +4,7 @@ title: "飞行棋 | Rui Zhou"
 permalink: /toolbox/feixingqi/
 ---
 
-<link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="/assets/css/games-shell.css">
 
 <style>
   .fxq-wrap { max-width: 760px; margin: 0 auto; padding: 1rem; --gs-wrap-half: 380px; }
@@ -76,22 +76,57 @@ permalink: /toolbox/feixingqi/
   }
   .fxq-turn .swatch { display: inline-block; width: 0.85rem; height: 0.85rem; border-radius: 50%; border: 1.5px solid #222; vertical-align: -2px; margin-right: 0.3rem; }
 
-  .fxq-dice-area {
-    display: inline-flex; gap: 0.5rem; align-items: center;
-  }
-  .fxq-dice-display {
-    width: 2.4rem; height: 2.4rem;
-    background: #fff;
-    border: 2px solid #5a4530;
-    border-radius: 10px;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 1.5rem;
-    font-weight: 700;
+  /* === Center dice ===
+     Lives at the dead-center of the board, over the goal pinwheel. Small and
+     translucent by default so the goal triangle reads through it; becomes
+     solid, larger and tappable on the local human's turn to roll. After 5s of
+     no tap it grows a breathing ring in the current player's colour. The roll
+     shake is applied to the inner .face so it doesn't fight the centring
+     transform on the button itself. */
+  .fxq-center-dice {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2.5rem; height: 2.5rem;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.5);
+    border: 2px solid rgba(90, 69, 48, 0.45);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: 700;
     font-family: var(--font-display);
     color: #2c2014;
-    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.08);
+    opacity: 0.5;
+    cursor: default;
+    z-index: 8;
+    /* Only the active (roll-turn) dice captures clicks; otherwise let taps
+       fall through to planes sitting near the centre of the board. */
+    pointer-events: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
   }
-  .fxq-dice-display.rolling { animation: fxq-shake 0.08s linear infinite; }
+  .fxq-center-dice[hidden] { display: none; }
+  .fxq-center-dice .face { display: block; line-height: 1; }
+  .fxq-center-dice .face.rolling { animation: fxq-shake 0.08s linear infinite; }
+  /* Active = it's the local human's turn to roll */
+  .fxq-center-dice.active {
+    opacity: 1;
+    background: #fff;
+    border-color: #5a4530;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22), inset 0 -2px 0 rgba(0, 0, 0, 0.08);
+  }
+  @media (hover: hover) {
+    .fxq-center-dice.active:hover { transform: translate(-50%, -50%) scale(1.08); }
+  }
+  .fxq-center-dice.active:active { transform: translate(-50%, -50%) scale(0.93); }
+  /* 5s idle → breathing ring in the current player's colour (--seat-ring) */
+  .fxq-center-dice.idle-glow { animation: fxq-dice-breathe 1.5s ease-in-out infinite; }
+  @keyframes fxq-dice-breathe {
+    0%, 100% { box-shadow: 0 0 0 0 var(--seat-ring, rgba(32,116,214,0)); }
+    50%      { box-shadow: 0 0 0 7px var(--seat-ring, rgba(32,116,214,0.45)); }
+  }
   @keyframes fxq-shake {
     0%   { transform: translate(-1px, -1px) rotate(-3deg); }
     25%  { transform: translate(1px, -1px) rotate(2deg); }
@@ -124,41 +159,78 @@ permalink: /toolbox/feixingqi/
     margin: 0.6rem auto 1rem;
   }
 
-  /* === Centered config card (overrides shared .gs-pgo-overlay for feixingqi) ===
-     Shrinks the shared full-board dark modal into a card floating over the
-     board's middle, so the 4 corner home zones stay visible and tappable.
-     Seat badges are drawn inside the SVG (expanded viewBox) so they never clip. */
-  .fxq-center-card.gs-pgo-overlay {
+  /* === Setup / lobby overlay ===
+     Replaces the old pre-game modal. Lives over the board while the game
+     hasn't started: a config card sits in the centre of each of the 4 home
+     bases, with difficulty + start floating just above the board centre and
+     (online) a room-code chip pinned to the top. The board itself now fills
+     the whole frame (SVG viewBox 0 0 660 660), so the cards anchor at the
+     base centres (~11.8% / 88.2% of each side). */
+  .fxq-lobby { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+  .fxq-lobby[hidden] { display: none; }
+
+  .fxq-seat {
     position: absolute;
-    inset: auto;
-    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: min(86%, 340px);
-    max-height: 94%;
-    padding: 0;
-    background: transparent;
-    backdrop-filter: none;
-    overflow: visible;
-    pointer-events: none;
-  }
-  .fxq-center-card .gs-pgo-view {
+    width: 27%; max-width: 144px;
     pointer-events: auto;
-    background: rgba(18, 22, 28, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
-    padding: 1rem 0.95rem 1.1rem;
-    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.4);
-    max-height: 94vh;
-    overflow-y: auto;
   }
-  .fxq-center-card .gs-pgo-icon { font-size: 2rem; margin-bottom: 0.25rem; }
-  .fxq-center-card .gs-pgo-title { font-size: 1.25rem; margin-bottom: 0.3rem; }
-  .fxq-config-hint {
-    font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.72);
-    line-height: 1.5;
-    margin: 0.1rem 0 0.7rem;
+  .fxq-seat.at-nw { top: 11.8%; left: 11.8%; }
+  .fxq-seat.at-ne { top: 11.8%; left: 88.2%; }
+  .fxq-seat.at-sw { top: 88.2%; left: 11.8%; }
+  .fxq-seat.at-se { top: 88.2%; left: 88.2%; }
+
+  .fxq-seat-card {
+    --seat: #888;
+    display: flex; flex-direction: column; align-items: center; gap: 0.1rem;
+    padding: 0.4rem 0.3rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.93);
+    border: 2px solid var(--seat);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    cursor: pointer; user-select: none; text-align: center;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   }
+  .fxq-seat-card .ico { font-size: 1.45rem; line-height: 1; }
+  .fxq-seat-card .lbl { font-size: 0.8rem; font-weight: 700; color: var(--color-ink); font-family: var(--font-display); white-space: nowrap; }
+  .fxq-seat-card .sub { font-size: 0.64rem; color: var(--color-muted); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .fxq-seat-card.empty { background: rgba(255, 255, 255, 0.6); border-style: dashed; border-color: rgba(120, 108, 84, 0.6); }
+  .fxq-seat-card.empty .lbl { color: var(--color-muted); }
+  @media (hover: hover) { .fxq-seat-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 0, 0, 0.24); } }
+  .fxq-seat-card.is-me { box-shadow: 0 0 0 3px rgba(229, 181, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.2); }
+  .fxq-seat-card.swap-sel { border-color: #e5b500; box-shadow: 0 0 0 4px rgba(229, 181, 0, 0.55); }
+  .fxq-seat-badges { display: flex; gap: 0.2rem; flex-wrap: wrap; justify-content: center; }
+  .fxq-seat-tag { font-size: 0.58rem; padding: 0.02rem 0.34rem; border-radius: 999px; font-weight: 700; color: #fff; }
+  .fxq-seat-tag.host { background: linear-gradient(135deg, #ffd86b, #c9a227); }
+  .fxq-seat-tag.off { background: #9aa0a6; }
+  .fxq-seat-acts { display: flex; gap: 0.2rem; margin-top: 0.16rem; }
+  .fxq-seat-acts button { font-size: 0.6rem; padding: 0.05rem 0.34rem; border-radius: 999px; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-ink); cursor: pointer; }
+
+  .fxq-lobby-center {
+    position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+    width: min(76%, 320px); pointer-events: auto;
+  }
+  .fxq-diff-picker { display: inline-flex; gap: 0.2rem; background: rgba(255, 255, 255, 0.9); border-radius: 10px; padding: 0.2rem; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.12); }
+  .fxq-diff-picker[hidden] { display: none; }
+  .fxq-diff-tab { padding: 0.3rem 0.7rem; font-size: 0.82rem; border: none; background: transparent; border-radius: 8px; cursor: pointer; color: var(--color-muted); font-family: var(--font-display); }
+  .fxq-diff-tab.sel { background: var(--color-accent); color: #fff; font-weight: 600; }
+  .fxq-lobby-actions { display: flex; gap: 0.45rem; flex-wrap: wrap; justify-content: center; }
+  .fxq-lobby-hint { font-size: 0.74rem; color: var(--color-ink); text-align: center; line-height: 1.5; background: rgba(255, 255, 255, 0.82); border-radius: 8px; padding: 0.22rem 0.55rem; max-width: 100%; }
+  .fxq-lobby-err { font-size: 0.74rem; color: #c0392b; text-align: center; }
+  .fxq-lobby-err:empty { display: none; }
+  .fxq-lobby-join { display: flex; gap: 0.3rem; }
+  .fxq-lobby-join input { width: 6.5rem; padding: 0.35rem 0.5rem; border: 1px solid var(--color-border); border-radius: 8px; text-align: center; font-size: 0.92rem; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
+
+  .fxq-lobby-room-chip {
+    position: absolute; top: 0.5rem; left: 50%; transform: translateX(-50%);
+    pointer-events: auto; padding: 0.28rem 0.8rem; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.93); border: 1px solid var(--color-border);
+    font-size: 0.78rem; cursor: pointer; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.14);
+    font-family: var(--font-display); color: var(--color-ink);
+  }
+  .fxq-lobby-room-chip[hidden] { display: none; }
+  .fxq-lobby-room-chip strong { color: var(--color-accent); letter-spacing: 0.08em; margin-left: 0.3rem; font-variant-numeric: tabular-nums; }
 
   .fxq-board-wrap {
     position: relative;
@@ -290,17 +362,36 @@ permalink: /toolbox/feixingqi/
 
   <div class="fxq-statusbar">
     <div class="fxq-turn" id="fxqTurn">— 请配置玩家 —</div>
-    <div class="fxq-dice-area" id="fxqDiceArea" hidden>
-      <div class="fxq-dice-display" id="fxqDiceDisplay">—</div>
-      <button class="fxq-btn primary" id="fxqDiceBtn">🎲 掷骰</button>
-    </div>
   </div>
 
   <div class="fxq-roster" id="fxqRoster" hidden></div>
 
   <div class="fxq-board-stage">
     <div class="fxq-board-wrap">
-      <svg class="fxq-svg" id="fxqSvg" viewBox="-46 -46 752 752" preserveAspectRatio="xMidYMid meet"></svg>
+      <svg class="fxq-svg" id="fxqSvg" viewBox="0 0 660 660" preserveAspectRatio="xMidYMid meet"></svg>
+      <button class="fxq-center-dice" id="fxqCenterDice" hidden aria-label="掷骰"><span class="face" id="fxqCenterDiceFace">🎲</span></button>
+
+      <!-- Setup / lobby overlay (shown until the game starts). Seat cards sit
+           in the centre of each home base; difficulty + start float just above
+           the board centre; an online room shows a code chip up top. -->
+      <div class="fxq-lobby" id="fxqLobby">
+        <button class="fxq-lobby-room-chip" id="fxqRoomChip" hidden>房号<strong id="fxqRoomCodeNum">----</strong></button>
+        <div class="fxq-seat at-nw" data-corner="NW" id="fxqSeatNW"></div>
+        <div class="fxq-seat at-ne" data-corner="NE" id="fxqSeatNE"></div>
+        <div class="fxq-seat at-sw" data-corner="SW" id="fxqSeatSW"></div>
+        <div class="fxq-seat at-se" data-corner="SE" id="fxqSeatSE"></div>
+        <div class="fxq-lobby-center">
+          <div class="fxq-diff-picker" id="fxqDiffPicker" hidden>
+            <button class="fxq-diff-tab" data-value="easy">新手</button>
+            <button class="fxq-diff-tab sel" data-value="normal">普通</button>
+            <button class="fxq-diff-tab" data-value="hard">高手</button>
+          </div>
+          <div class="fxq-lobby-actions" id="fxqLobbyActions"></div>
+          <div class="fxq-lobby-hint" id="fxqLobbyHint"></div>
+          <div class="fxq-lobby-err" id="fxqLobbyErr"></div>
+        </div>
+      </div>
+
       <div class="fxq-toast" id="fxqToast"></div>
       <div class="fxq-overlay" id="fxqOverlay">
         <h2 id="fxqOvTitle">游戏结束</h2>
@@ -311,87 +402,6 @@ permalink: /toolbox/feixingqi/
         <h2>⏸ 已暂停</h2>
         <button class="fxq-btn" id="fxqResumeBtn">▶ 继续</button>
       </div>
-    </div>
-    <!-- 中心配置卡片：浮在棋盘中部，四角领地可见可点 -->
-    <div class="gs-pgo-overlay fxq-center-card open" id="fxqPreGameOverlay">
-        <div class="gs-pgo-view active" id="fxqPgoViewMain">
-          <div class="gs-pgo-icon">✈️</div>
-          <h2 class="gs-pgo-title">飞行棋</h2>
-          <div class="fxq-config-hint" id="fxqConfigHint">👆 点棋盘四角的领地配置玩家（空 / 人类 / AI），至少 2 席</div>
-          <div class="gs-pgo-mode-picker" id="fxqPgoDiffPicker" style="display:none;">
-            <button class="gs-pgo-mode-tab" data-value="easy">新手</button>
-            <button class="gs-pgo-mode-tab selected" data-value="normal">普通</button>
-            <button class="gs-pgo-mode-tab" data-value="hard">高手</button>
-          </div>
-          <div class="gs-pgo-room-tabs" id="fxqPgoRoomTabs">
-            <button class="gs-pgo-room-tab selected" data-tab="local">🏠 本地</button>
-            <button class="gs-pgo-room-tab" data-tab="online">🌐 联机</button>
-          </div>
-          <div class="gs-pgo-room-panel active" id="fxqPgoLocalPanel"></div>
-          <div class="gs-pgo-room-panel" id="fxqPgoOnlinePanel">
-            <!-- 房间参数设置 -->
-            <div class="fn-room-params" id="fxqRoomParams">
-              <div class="fn-room-params-label">⚙ 房间设置</div>
-              <div class="fn-room-params-row">
-                <span class="fn-room-params-key">人数上限</span>
-                <div class="gs-pgo-mode-picker" id="fxqRoomMaxPlayers">
-                  <button class="gs-pgo-mode-tab" data-val="2">2</button>
-                  <button class="gs-pgo-mode-tab" data-val="3">3</button>
-                  <button class="gs-pgo-mode-tab selected" data-val="4">4</button>
-                </div>
-              </div>
-              <div class="fn-room-params-row">
-                <span class="fn-room-params-key">AI 补齐</span>
-                <div class="gs-pgo-mode-picker" id="fxqRoomAiFill">
-                  <button class="gs-pgo-mode-tab" data-val="on">开</button>
-                  <button class="gs-pgo-mode-tab selected" data-val="off">关</button>
-                </div>
-              </div>
-              <div class="fn-room-params-row" id="fxqRoomAiDiffRow" style="display:none;">
-                <span class="fn-room-params-key">AI 难度</span>
-                <div class="gs-pgo-mode-picker" id="fxqRoomAiDiff">
-                  <button class="gs-pgo-mode-tab" data-val="easy">新手</button>
-                  <button class="gs-pgo-mode-tab selected" data-val="normal">普通</button>
-                  <button class="gs-pgo-mode-tab" data-val="hard">高手</button>
-                </div>
-              </div>
-            </div>
-            <!-- 历史配置 profile -->
-            <div class="fn-room-profiles" id="fxqRoomProfiles" style="display:none;">
-              <div class="fn-room-params-label">📋 历史配置 <span style="font-weight:400;font-size:0.72rem;color:rgba(255,255,255,0.35);">点击即用</span></div>
-              <div id="fxqProfilesList"></div>
-            </div>
-            <div id="fxqPgoRoomEntry">
-              <input type="text" class="gs-pgo-room-input" id="fxqPgoRoomCodeInput" placeholder="输入4位房号加入（留空创建新房）" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
-              <button class="gs-pgo-room-btn primary" id="fxqPgoRoomActionBtn">创建 / 加入房间</button>
-              <div class="gs-pgo-room-error" id="fxqPgoRoomError"></div>
-            </div>
-            <div id="fxqPgoRoomLobby" style="display:none;">
-              <div class="gs-pgo-room-code">房号：<strong id="fxqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="fxqPgoRoomCopyCodeBtn">📋 复制房号</button> <button class="gs-pgo-room-copy-btn" id="fxqPgoRoomCopyBtn">🔗 复制链接</button></div>
-              <div class="gs-room-qr" id="fxqPgoRoomQr"></div><ul class="gs-pgo-room-players" id="fxqPgoRoomPlayers"></ul>
-              <!-- 表决区 -->
-              <div class="fn-vote-box" id="fxqVoteBox" style="display:none;"></div>
-              <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
-                <button class="gs-pgo-room-btn primary" id="fxqPgoRoomStartBtn" disabled>需要 2 人</button>
-                <button class="gs-pgo-room-btn" id="fxqPgoRoomLeaveBtn">退出房间</button>
-              </div>
-              <!-- 房主修改设置 -->
-              <button class="gs-pgo-room-btn" id="fxqRoomEditBtn" style="display:none;margin-top:0.3rem;">⚙ 修改设置</button>
-              <!-- 设置编辑面板（弹出） -->
-              <div class="fn-room-params" id="fxqRoomEditPanel" style="display:none;margin-top:0.3rem;">
-                <div class="fn-room-params-label">修改房间设置</div>
-                <div class="fn-room-params-row"><span class="fn-room-params-key">人数上限</span><div class="gs-pgo-mode-picker" id="fxqEditMaxPlayers"><button class="gs-pgo-mode-tab" data-val="2">2</button><button class="gs-pgo-mode-tab" data-val="3">3</button><button class="gs-pgo-mode-tab selected" data-val="4">4</button></div></div>
-                <div class="fn-room-params-row"><span class="fn-room-params-key">AI 补齐</span><div class="gs-pgo-mode-picker" id="fxqEditAiFill"><button class="gs-pgo-mode-tab" data-val="on">开</button><button class="gs-pgo-mode-tab selected" data-val="off">关</button></div></div>
-                <div class="fn-room-params-row" id="fxqEditAiDiffRow" style="display:none;"><span class="fn-room-params-key">AI 难度</span><div class="gs-pgo-mode-picker" id="fxqEditAiDiff"><button class="gs-pgo-mode-tab" data-val="easy">新手</button><button class="gs-pgo-mode-tab selected" data-val="normal">普通</button><button class="gs-pgo-mode-tab" data-val="hard">高手</button></div></div>
-                <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
-                  <button class="gs-pgo-room-btn primary" id="fxqProposeBtn">提议修改（需全票通过）</button>
-                  <button class="gs-pgo-room-btn" id="fxqCancelEditBtn">取消</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <button class="gs-pgo-start-btn" id="fxqPgoStartBtn">▶ 开始游戏</button>
-        </div>
     </div>
   </div>
 
@@ -417,14 +427,14 @@ permalink: /toolbox/feixingqi/
   <div id="fxq-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
 </div>
 
-<script src="/assets/js/games-shell/identity.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/wins-leaderboard.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/save-state.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/games-shell/settings-panel.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games-shell/identity.js"></script>
+<script src="/assets/js/games-shell/qrcode.js"></script>
+<script src="/assets/js/games-shell/wins-leaderboard.js"></script>
+<script src="/assets/js/games-shell/comments.js"></script>
+<script src="/assets/js/games-shell/nick-prompt.js"></script>
+<script src="/assets/js/games-shell/save-state.js"></script>
+<script src="/assets/js/games-shell/settlement.js"></script>
+<script src="/assets/js/games-shell/settings-panel.js"></script>
 
 <script>
 (() => {
@@ -836,9 +846,38 @@ permalink: /toolbox/feixingqi/
   const resumeBtn = document.getElementById('fxqResumeBtn');
   const pauseBtn = document.getElementById('fxqPauseBtn');
   const newBtn = document.getElementById('fxqNewBtn');
-  const diceArea = document.getElementById('fxqDiceArea');
-  const diceBtn = document.getElementById('fxqDiceBtn');
-  const diceDisp = document.getElementById('fxqDiceDisplay');
+  // Center dice doubles as both the roll button and the face display, so the
+  // legacy diceArea / diceBtn / diceDisp names all map onto it.
+  const centerDice = document.getElementById('fxqCenterDice');
+  const diceArea = centerDice;
+  const diceBtn = centerDice;
+  const diceDisp = document.getElementById('fxqCenterDiceFace');
+  let fxqDiceIdleTimer = 0;
+  function fxqHexToRgba(hex, a) {
+    const h = hex.replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  }
+  // Drive the center dice's visual state (visibility / active / breathing ring).
+  // Called at the end of updateStatus, so diceBtn.disabled is already set.
+  function fxqRenderCenterDice() {
+    clearTimeout(fxqDiceIdleTimer);
+    if (!state.started || state.over) {
+      centerDice.hidden = true;
+      centerDice.classList.remove('idle-glow', 'active');
+      return;
+    }
+    centerDice.hidden = false;
+    if (!diceDisp.classList.contains('rolling')) {
+      diceDisp.textContent = state.dice != null ? String(state.dice) : '🎲';
+    }
+    const canRoll = !diceBtn.disabled;
+    centerDice.classList.toggle('active', canRoll);
+    const p = currentPlayer();
+    if (p && COLOR_INFO[p]) centerDice.style.setProperty('--seat-ring', fxqHexToRgba(COLOR_INFO[p].hex, 0.5));
+    centerDice.classList.remove('idle-glow');
+    if (canRoll) fxqDiceIdleTimer = setTimeout(() => centerDice.classList.add('idle-glow'), 5000);
+  }
   const toastEl = document.getElementById('fxqToast');
 
   function persist() {
@@ -870,24 +909,11 @@ permalink: /toolbox/feixingqi/
     }
   }
 
-  function cycleKind(corner) {
-    if (state.started) return;
-    const cur = state.setupConfig[corner];
-    state.setupConfig[corner] = cur === 'empty' ? 'human' : (cur === 'human' ? 'ai' : 'empty');
-    persist();
-    renderBoard();
-    refreshSetupControls();
-  }
-
-  // Sync the center card's start button + AI-difficulty visibility from setupConfig.
+  // Re-render the setup/lobby overlay (seat cards, difficulty, start button).
+  // Seat configuration now happens on the HTML lobby cards, not the SVG.
   function refreshSetupControls() {
     if (state.started) return;
-    if (typeof fxqUpdatePgoDiffVisibility === 'function') fxqUpdatePgoDiffVisibility();
-    const startEl = document.getElementById('fxqPgoStartBtn');
-    if (!startEl) return;
-    const activeCount = Object.values(state.setupConfig).filter(v => v !== 'empty').length;
-    startEl.disabled = activeCount < 2;
-    startEl.textContent = activeCount < 2 ? '需要至少 2 席' : `▶ 开始游戏（${activeCount} 人）`;
+    if (typeof fxqRenderLobby === 'function') fxqRenderLobby();
   }
 
   function startGame() {
@@ -921,16 +947,16 @@ permalink: /toolbox/feixingqi/
     diceArea.hidden = false;
     overlay.classList.remove('show');
     pausedOverlay.classList.remove('show');
-    fxqPgoOverlay.classList.remove('open');
+    fxqLobby.hidden = true;
     fxqRunStartedAt = Date.now();
     fxqRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     fxqLastResult = null;
     if (typeof fxqSettleBtn !== 'undefined' && fxqSettleBtn) fxqSettleBtn.setEnabled(false);
-    pauseBtn.hidden = !Object.values(state.playerKinds).includes('ai');
+    pauseBtn.hidden = fxqOnline.active() || !Object.values(state.playerKinds).includes('ai');
     diceDisp.textContent = '—';
     renderBoard();
     updateStatus();
-    if (currentKindIsAi()) { clearTimeout(aiTimer); aiTimer = setTimeout(triggerAiTurn, 320); }
+    maybeTriggerAi();
   }
 
   function backToSetup() {
@@ -951,7 +977,7 @@ permalink: /toolbox/feixingqi/
     diceArea.hidden = true;
     overlay.classList.remove('show');
     pausedOverlay.classList.remove('show');
-    fxqPgoOverlay.classList.add('open');
+    if (typeof fxqOnline !== 'undefined' && fxqOnline.active()) fxqOnline.leave();
     if (typeof fxqSave !== 'undefined' && fxqSave) fxqSave.discard();
     refreshSetupControls();
     renderBoard();
@@ -997,10 +1023,11 @@ permalink: /toolbox/feixingqi/
       rosterEl.appendChild(item);
     });
 
-    diceBtn.disabled = !state.started || state.over || state.paused || state.awaitingPick || state.aiThinking || currentKindIsAi();
+    diceBtn.disabled = !state.started || state.over || state.paused || state.awaitingPick || state.aiThinking || currentKindIsAi() || fxqReplaying || !fxqControlsCurrent();
     pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
     pauseBtn.disabled = state.over || !Object.values(state.playerKinds).includes('ai');
     pausedOverlay.classList.toggle('show', state.paused && !state.over);
+    fxqRenderCenterDice();
   }
 
   // ============================================================
@@ -1322,8 +1349,10 @@ permalink: /toolbox/feixingqi/
       if (status === 'stretch' || status === 'goal') return layout.STRETCH_HEADINGS[color];
       return PLAY_DIR_SVG_ROT[color];
     };
-    if (state.players.length > 0 || !state.started) {
-      const colorsToDraw = state.started ? state.players : Array.from(activeColors);
+    // Game pieces only render once play has started; during setup the home
+    // bases stay clear so the lobby seat cards read cleanly.
+    if (state.started && state.players.length > 0) {
+      const colorsToDraw = state.players;
       // Stack counts (animating pieces excluded — they're rendered separately
       // at their tween position, not at their data-state cell).
       const stackKey = (piece, color) => `${piece.status}:${color}:${piece.pos}`;
@@ -1428,61 +1457,8 @@ permalink: /toolbox/feixingqi/
     }
     svg.appendChild(planeGroup);
 
-    // === Layer: click hit-targets (setup mode) ===
-    const hits = svgEl('g', { class: 'hits' });
-    if (!state.started) {
-      for (const ck of CORNER_KEYS) {
-        const color = CORNER_TO_COLOR[ck];
-        const z = layout.HOME_ZONES[color];
-        hits.appendChild(svgEl('rect', {
-          ...homeBoxAttrs(z),
-          class: 'cell-hit',
-          'data-corner': ck,
-        }));
-      }
-    }
-    svg.appendChild(hits);
-
-    // === Layer: corner seat badges (setup mode) — drawn in the expanded viewBox
-    // padding ring so they never clip on narrow screens. ===
-    if (!state.started) drawSeatBadges();
-  }
-
-  // Badge anchor per corner: board-unit center of its home zone + outward push.
-  const BADGE_POS = {
-    NW: { ux: 1,   uy: 0,   dy: -24 },
-    NE: { ux: 7.5, uy: 0,   dy: -24 },
-    SW: { ux: 1,   uy: 8.5, dy: 24 },
-    SE: { ux: 7.5, uy: 8.5, dy: 24 },
-  };
-  function drawSeatBadges() {
-    const g = svgEl('g', { class: 'seat-badges' });
-    for (const ck of CORNER_KEYS) {
-      const p = BADGE_POS[ck];
-      const cx = px(p.ux);
-      const cy = px(p.uy) + p.dy;
-      const info = COLOR_INFO[CORNER_TO_COLOR[ck]];
-      const kind = state.setupConfig[ck];
-      const empty = kind === 'empty';
-      const W = 52, H = 28;
-      const grp = svgEl('g', { class: 'seat-badge', 'data-corner': ck, style: 'cursor:pointer;' });
-      grp.appendChild(svgEl('rect', { x: cx - W/2 - 6, y: cy - H/2 - 6, width: W+12, height: H+12, rx: 16, fill: 'transparent' }));
-      grp.appendChild(svgEl('rect', {
-        x: cx - W/2, y: cy - H/2, width: W, height: H, rx: 14,
-        fill: empty ? '#ffffff' : info.light,
-        stroke: empty ? '#b3a98c' : info.hex,
-        'stroke-width': 2,
-        'stroke-dasharray': empty ? '4 3' : 'none',
-      }));
-      const txt = svgEl('text', {
-        x: cx, y: cy + 1, 'text-anchor': 'middle', 'dominant-baseline': 'central',
-        'font-size': empty ? 15 : 17, fill: empty ? '#8a7a5a' : '#1a1a1a', style: 'font-weight:600;',
-      });
-      txt.textContent = empty ? '空' : (kind === 'human' ? '👤' : '🤖');
-      grp.appendChild(txt);
-      g.appendChild(grp);
-    }
-    svg.appendChild(g);
+    // Seat configuration in setup mode is handled by the HTML lobby overlay
+    // (#fxqLobby), not by SVG hit-targets / badges.
   }
 
   // ============================================================
@@ -1829,9 +1805,15 @@ permalink: /toolbox/feixingqi/
   // ============================================================
   let diceRollAnimTimer = 0;
 
-  function rollDice(callback) {
+  // `forced` is supplied when replaying a remote turn online: the dice value
+  // is taken from the event log instead of rolled locally, so every client
+  // resolves the identical move.
+  function rollDice(callback, forced) {
     if (state.over || state.paused) return;
     if (state.awaitingPick) return;
+    if (state.rollsThisTurn === 0) fxqTurnBegin(currentPlayer());
+    clearTimeout(fxqDiceIdleTimer);
+    centerDice.classList.remove('idle-glow', 'active');
     diceDisp.classList.add('rolling');
     let ticks = 8;
     clearInterval(diceRollAnimTimer);
@@ -1840,10 +1822,11 @@ permalink: /toolbox/feixingqi/
       ticks--;
       if (ticks <= 0) {
         clearInterval(diceRollAnimTimer);
-        const v = 1 + Math.floor(Math.random() * 6);
+        const v = (forced != null) ? forced : (1 + Math.floor(Math.random() * 6));
         state.dice = v;
         diceDisp.textContent = String(v);
         diceDisp.classList.remove('rolling');
+        fxqRecordRoll(v);
         afterRoll();
         if (callback) callback();
       }
@@ -1877,6 +1860,7 @@ permalink: /toolbox/feixingqi/
       renderBoard();
       updateStatus();
       autosave();
+      fxqEmitTurn();
       maybeTriggerAi();
       return;
     }
@@ -1893,6 +1877,7 @@ permalink: /toolbox/feixingqi/
       renderBoard();
       updateStatus();
       autosave();
+      fxqEmitTurn();
       maybeTriggerAi();
       return;
     }
@@ -1901,11 +1886,14 @@ permalink: /toolbox/feixingqi/
     updateStatus();
   }
 
-  function selectPiece(pieceIdx) {
+  // `onResolved` is supplied during online replay so the next recorded roll
+  // only fires after this move (and its animation) fully resolves.
+  function selectPiece(pieceIdx, onResolved) {
     if (!state.awaitingPick || state.over || state.paused) return;
     const player = currentPlayer();
     if (!state.legalPieces.includes(pieceIdx)) return;
     const dice = state.dice;
+    fxqRecordPick(pieceIdx);
 
     // Lock further input. Clear the "legal" highlight so it doesn't pulse during animation.
     state.awaitingPick = false;
@@ -1915,7 +1903,7 @@ permalink: /toolbox/feixingqi/
     animatePieceMove(player, pieceIdx, dice, () => {
       // Animation done — now apply the actual state transition.
       const result = applyMove(player, pieceIdx, dice);
-      if (!result) return;
+      if (!result) { if (onResolved) onResolved(); return; }
       state.lastMove = { color: player, pieceIdx };
       state.history.push({ color: player, pieceIdx, dice });
 
@@ -1935,17 +1923,19 @@ permalink: /toolbox/feixingqi/
           renderBoard();
           updateStatus();
           autosave();
+          fxqEmitTurn();
+          if (onResolved) onResolved();
           return;
         }
       }
 
-      // Roll-again on 6 (unless we just won)
+      // Roll-again on 6 (unless we just won). Turn continues — do NOT emit yet.
       if (dice === 6 && !allInGoal && state.consecutiveSixes < 3) {
         state.dice = null;
         renderBoard();
         updateStatus();
         autosave();
-        maybeTriggerAi(true);
+        if (onResolved) onResolved(); else maybeTriggerAi(true);
         return;
       }
       // Otherwise turn passes
@@ -1956,13 +1946,16 @@ permalink: /toolbox/feixingqi/
       renderBoard();
       updateStatus();
       autosave();
-      maybeTriggerAi();
+      fxqEmitTurn();
+      if (onResolved) onResolved(); else maybeTriggerAi();
     });
   }
 
   let aiTimer = 0; // 防并发：每次设新 timer 前清除旧的
   function maybeTriggerAi(sameTurn) {
     if (state.over || state.paused) return;
+    if (fxqReplaying) return;             // replay drives its own steps
+    if (!fxqControlsCurrent()) return;    // online: only the seat's controller acts
     if (currentKindIsAi()) {
       clearTimeout(aiTimer);
       aiTimer = setTimeout(triggerAiTurn, sameTurn ? 250 : 400);
@@ -2106,14 +2099,11 @@ permalink: /toolbox/feixingqi/
   // SVG input
   // ============================================================
   svg.addEventListener('click', (e) => {
-    // setup mode: click on home zones to cycle kind
-    if (!state.started) {
-      const hit = e.target.closest('[data-corner]');
-      if (hit) cycleKind(hit.dataset.corner);
-      return;
-    }
+    // Setup-mode seat config is on the HTML lobby cards, not the SVG.
+    if (!state.started) return;
     if (state.over || state.paused || state.aiThinking) return;
     if (currentKindIsAi()) return;
+    if (fxqReplaying || !fxqControlsCurrent()) return;   // online: only the controller picks
     if (!state.awaitingPick) return;
     const planeEl = e.target.closest('.plane');
     if (!planeEl) return;
@@ -2426,11 +2416,11 @@ permalink: /toolbox/feixingqi/
     state.started = true;
     fxqRunStartedAt = Number(saved.runStartedAt) || Date.now();
     fxqRunNonce = saved.runNonce || ((window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now()));
-    fxqPgoOverlay.classList.remove('open');
+    fxqLobby.hidden = true;
     gameControls.hidden = false;
     rosterEl.hidden = false;
     diceArea.hidden = false;
-    pauseBtn.hidden = !Object.values(state.playerKinds).includes('ai');
+    pauseBtn.hidden = fxqOnline.active() || !Object.values(state.playerKinds).includes('ai');
     diceDisp.textContent = state.dice == null ? '—' : String(state.dice);
     renderBoard();
     updateStatus();
@@ -2438,6 +2428,7 @@ permalink: /toolbox/feixingqi/
   }
 
   function autosave() {
+    if (fxqOnline.active()) return;   // online games aren't locally resumable
     if (fxqSave) fxqSave.requestSave && fxqSave.requestSave();
   }
 
@@ -2447,351 +2438,468 @@ permalink: /toolbox/feixingqi/
     updateStatus();
   }
 
-  // ============ Pre-game Overlay ============
-  const fxqPgoOverlay = document.getElementById('fxqPreGameOverlay');
-  const fxqPgoDiffPicker = document.getElementById('fxqPgoDiffPicker');
-  let fxqPgoSelectedDiff = state.difficulty || 'normal';
+  // ============ Setup / Lobby ============
+  // Replaces the old pre-game modal. Players are configured directly on the
+  // four home bases (seat cards), with difficulty + start floating above the
+  // board centre and (when online) a room-code chip pinned to the top. The
+  // online invite / seat-swap / sync layer is wired in fxq-online below.
+  const fxqLobby = document.getElementById('fxqLobby');
+  const fxqDiffPicker = document.getElementById('fxqDiffPicker');
+  const fxqLobbyActions = document.getElementById('fxqLobbyActions');
+  const fxqLobbyHint = document.getElementById('fxqLobbyHint');
+  const fxqLobbyErr = document.getElementById('fxqLobbyErr');
+  const fxqRoomChip = document.getElementById('fxqRoomChip');
+  const fxqRoomCodeNum = document.getElementById('fxqRoomCodeNum');
+  const fxqSeatEls = {
+    NW: document.getElementById('fxqSeatNW'), NE: document.getElementById('fxqSeatNE'),
+    SE: document.getElementById('fxqSeatSE'), SW: document.getElementById('fxqSeatSW'),
+  };
+  // Local seat kinds. 'invite' is added to the cycle once the online layer
+  // loads; here the base cycle is empty -> human -> ai.
+  const KIND_LABEL = { empty: '空位', human: '本机真人', ai: '电脑 AI', invite: '邀请加入', remote: '' };
+  const KIND_ICON = { empty: '➕', human: '👤', ai: '🤖', invite: '🔗', remote: '🌐' };
+  let LOCAL_CYCLE = ['empty', 'human', 'ai', 'invite'];
 
-  function fxqUpdatePgoDiffVisibility() {
-    const hasAI = Object.values(state.setupConfig).some(v => v === 'ai');
-    fxqPgoDiffPicker.style.display = hasAI ? '' : 'none';
-  }
+  function fxqSetErr(m) { fxqLobbyErr.textContent = m || ''; }
+  function fxqActiveCount() { return CORNER_KEYS.filter(ck => state.setupConfig[ck] !== 'empty').length; }
+  function fxqGetNick() { return (window.GamesShell && GamesShell.Identity.getNick && GamesShell.Identity.getNick()) || ('玩家' + Math.floor(Math.random() * 9000 + 1000)); }
 
-  document.getElementById('fxqPgoDiffPicker').addEventListener('click', e => {
-    const t = e.target.closest('.gs-pgo-mode-tab');
-    if (!t) return;
-    fxqPgoSelectedDiff = t.dataset.value;
-    document.querySelectorAll('#fxqPgoDiffPicker .gs-pgo-mode-tab').forEach(b => {
-      b.classList.toggle('selected', b.dataset.value === fxqPgoSelectedDiff);
-    });
+  fxqDiffPicker.addEventListener('click', (e) => {
+    const t = e.target.closest('.fxq-diff-tab'); if (!t) return;
+    state.difficulty = t.dataset.value; persist();
+    if (fxqOnline.active() && fxqOnline.isHost()) fxqOnline.broadcastSeats();
+    fxqRenderLobby();
   });
 
-  // ============ Room Client ============
-  const BOARD_API = 'https://zircon-urge.fly.dev/api/board';
-  let fxqRoomToken = null, fxqRoomPlayerId = null, fxqRoomCode = null, fxqRoomHost = false;
-  let fxqRoomStatePoller = null, fxqIsOnline = false;
-  const FXQ_MIN_PLAYERS = 2;
-  const FXQ_PROFILES_KEY = 'tool.feixingqi.room-profiles.v1';
-
-  // ── 房间参数 ──
-  let fxqRoomCfg = { maxPlayers: 4, aiFill: 'off', aiDiff: 'normal' };
-
-  // Load persisted profiles
-  let fxqProfiles = [];
-  try { fxqProfiles = JSON.parse(localStorage.getItem(FXQ_PROFILES_KEY) || '[]'); } catch(e) {}
-
-  function fxqSaveProfile(config) {
-    const entry = { ...config, ts: Date.now(), nick: GamesShell.Identity.getNick() };
-    fxqProfiles.unshift(entry);
-    if (fxqProfiles.length > 8) fxqProfiles.length = 8;
-    try { localStorage.setItem(FXQ_PROFILES_KEY, JSON.stringify(fxqProfiles)); } catch(e) {}
-    fxqRenderProfiles();
-  }
-
-  function fxqRenderProfiles() {
-    const container = document.getElementById('fxqProfilesList');
-    const wrap = document.getElementById('fxqRoomProfiles');
-    if (!container || !wrap) return;
-    container.innerHTML = '';
-    if (!fxqProfiles.length) { wrap.style.display = 'none'; return; }
-    wrap.style.display = '';
-    fxqProfiles.slice(0, 5).forEach((p, i) => {
-      const btn = document.createElement('button');
-      btn.className = 'fn-room-profile-chip';
-      const ago = fxqFmtAgo(p.ts);
-      const aiLabel = p.aiDiff === 'hard' ? 'AI高手' : p.aiDiff === 'easy' ? 'AI新手' : 'AI普通';
-      btn.textContent = `${p.maxPlayers}人 · ${p.aiFill === 'on' ? aiLabel : '纯人对战'} · ${ago}`;
-      btn.addEventListener('click', () => {
-        fxqRoomCfg = { maxPlayers: p.maxPlayers, aiFill: p.aiFill, aiDiff: p.aiDiff };
-        fxqApplyRoomCfgUI();
-      });
-      container.appendChild(btn);
+  // Seat-card tap. Local: cycle the kind. Online: delegate to the online layer
+  // (cycle host-controlled seats, or swap-select occupied remote seats).
+  for (const ck of CORNER_KEYS) {
+    fxqSeatEls[ck].addEventListener('click', () => {
+      if (state.started) return;
+      if (fxqOnline.active()) { fxqOnline.onSeatClick(ck); return; }
+      const cur = state.setupConfig[ck];
+      const next = LOCAL_CYCLE[(LOCAL_CYCLE.indexOf(cur) + 1) % LOCAL_CYCLE.length];
+      state.setupConfig[ck] = next;
+      persist();
+      if (next === 'invite') { fxqOnline.goOnline(ck); return; }
+      fxqRenderLobby(); renderBoard();
     });
   }
 
-  function fxqFmtAgo(ts) {
-    const m = Math.floor((Date.now() - ts) / 60000);
-    if (m < 1) return '刚才'; if (m < 60) return m + '分钟前';
-    const h = Math.floor(m / 60); if (h < 24) return h + '小时前';
-    return Math.floor(h / 24) + '天前';
+  function fxqStartLocalGame() {
+    if (fxqActiveCount() < 2) return;
+    if (fxqSave) fxqSave.discard();
+    startGame();
+    if (fxqSave) fxqSave.start();
   }
 
-  function fxqApplyRoomCfgUI() {
-    document.querySelectorAll('#fxqRoomMaxPlayers .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === String(fxqRoomCfg.maxPlayers)));
-    document.querySelectorAll('#fxqRoomAiFill .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === fxqRoomCfg.aiFill));
-    document.querySelectorAll('#fxqRoomAiDiff .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === fxqRoomCfg.aiDiff));
-    document.getElementById('fxqRoomAiDiffRow').style.display = fxqRoomCfg.aiFill === 'on' ? '' : 'none';
-    FXQ_MIN_PLAYERS_VAL = fxqRoomCfg.maxPlayers;
-  }
-
-  let FXQ_MIN_PLAYERS_VAL = 4;
-
-  // Wire parameter pickers
-  document.getElementById('fxqRoomMaxPlayers').addEventListener('click', e => {
-    const t = e.target.closest('.gs-pgo-mode-tab');
-    if (!t) return;
-    fxqRoomCfg.maxPlayers = parseInt(t.dataset.val);
-    fxqApplyRoomCfgUI();
-  });
-  document.getElementById('fxqRoomAiFill').addEventListener('click', e => {
-    const t = e.target.closest('.gs-pgo-mode-tab');
-    if (!t) return;
-    fxqRoomCfg.aiFill = t.dataset.val;
-    fxqApplyRoomCfgUI();
-  });
-  document.getElementById('fxqRoomAiDiff').addEventListener('click', e => {
-    const t = e.target.closest('.gs-pgo-mode-tab');
-    if (!t) return;
-    fxqRoomCfg.aiDiff = t.dataset.val;
-    fxqApplyRoomCfgUI();
-  });
-
-  fxqApplyRoomCfgUI();
-  fxqRenderProfiles();
-
-  function fxqRoomApi(method, action, body) {
-    return fetch(`${BOARD_API}?action=${action}`, { method, headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(12000), body: body ? JSON.stringify(body) : undefined }).then(r => r.json()).catch(e => ({ error: e.name === 'TimeoutError' ? 'timeout' : 'network' }));
-  }
-  function fxqGetNick() { return GamesShell.Identity.getNick() || ('玩家' + Math.floor(Math.random() * 9000 + 1000)); }
-
-  document.getElementById('fxqPgoRoomTabs').addEventListener('click', e => {
-    const t = e.target.closest('.gs-pgo-room-tab');
-    if (!t) return;
-    const tab = t.dataset.tab;
-    document.querySelectorAll('#fxqPgoRoomTabs .gs-pgo-room-tab').forEach(b => b.classList.toggle('selected', b.dataset.tab === tab));
-    document.getElementById('fxqPgoLocalPanel').classList.toggle('active', tab === 'local');
-    document.getElementById('fxqPgoOnlinePanel').classList.toggle('active', tab === 'online');
-    document.getElementById('fxqConfigHint').style.display = tab === 'online' ? 'none' : '';
-    document.getElementById('fxqPgoDiffPicker').style.display = tab === 'online' ? 'none' : '';
-    document.getElementById('fxqPgoStartBtn').style.display = tab === 'online' ? 'none' : '';
-    fxqIsOnline = tab === 'online';
-  });
-
-  function fxqShowError(msg) { document.getElementById('fxqPgoRoomError').textContent = msg || ''; }
-
-  async function fxqRoomAction() {
-    const code = (document.getElementById('fxqPgoRoomCodeInput').value || '').trim();
-    const btn = document.getElementById('fxqPgoRoomActionBtn');
-    fxqShowError(''); btn.textContent = '连接中…'; btn.disabled = true;
-    try {
-      const nick = fxqGetNick(), did = GamesShell.Identity.getDeviceId();
-      const ping = await fxqRoomApi('GET', 'ping');
-      if (ping.error) { fxqShowError('无法连接到服务器，请确认网络后重试'); return; }
-      if (/^\d{4}$/.test(code)) {
-        const r = await fxqRoomApi('POST', 'join', { code, nick, deviceId: did });
-        if (r.ok) { fxqEnterLobby(r); return; }
-        if (r.reason === 'room_not_found') {
-          const cr = await fxqRoomApi('POST', 'create', { gameId: 'feixingqi', nick, deviceId: did, code });
-          if (cr.ok) { fxqEnterLobby(cr); return; }
-          const msgs = { code_taken: '该房号已被占用，换一个试试', timeout: '连接超时，请检查网络', network: '网络错误，请稍后再试' };
-          fxqShowError(msgs[cr.reason] || msgs[cr.error] || '创建失败');
-          return;
-        }
-        const msgs = { room_full: '房间已满，换一个房号试试', nick_taken_in_room: '昵称已被占用，换一个试试', room_in_progress: '游戏已开始，无法加入', timeout: '连接超时，请检查网络', network: '网络错误，请稍后再试' };
-        fxqShowError(msgs[r.reason] || msgs[r.error] || '加入失败');
-        return;
-      }
-      const r = await fxqRoomApi('POST', 'create', { gameId: 'feixingqi', nick, deviceId: did });
-      if (r.ok) { fxqEnterLobby(r); return; }
-      fxqShowError('创建失败');
-    } finally {
-      btn.textContent = '创建 / 加入房间'; btn.disabled = false;
+  // Build a seat card element for one corner from a model:
+  //   { kind, label, sub, me, host, off, sel, swatch }
+  function fxqSeatCard(ck, m) {
+    const info = COLOR_INFO[CORNER_TO_COLOR[ck]];
+    const card = document.createElement('div');
+    card.className = 'fxq-seat-card'
+      + (m.kind === 'empty' || m.kind === 'invite' ? ' empty' : '')
+      + (m.me ? ' is-me' : '') + (m.sel ? ' swap-sel' : '');
+    card.style.setProperty('--seat', info.hex);
+    const ico = document.createElement('span'); ico.className = 'ico'; ico.textContent = KIND_ICON[m.kind] || '👤';
+    const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = m.label || (info.label + '方');
+    card.append(ico, lbl);
+    if (m.host || m.off) {
+      const tags = document.createElement('span'); tags.className = 'fxq-seat-badges';
+      if (m.host) { const t = document.createElement('span'); t.className = 'fxq-seat-tag host'; t.textContent = '房主'; tags.appendChild(t); }
+      if (m.off) { const t = document.createElement('span'); t.className = 'fxq-seat-tag off'; t.textContent = '离线'; tags.appendChild(t); }
+      card.appendChild(tags);
     }
+    const sub = document.createElement('span'); sub.className = 'sub'; sub.textContent = m.sub || KIND_LABEL[m.kind] || '';
+    card.appendChild(sub);
+    return card;
   }
 
-  function fxqEnterLobby(r) {
-    fxqRoomToken = r.playerToken; fxqRoomPlayerId = r.playerId; fxqRoomCode = r.code;
-    document.getElementById('fxqPgoRoomEntry').style.display = 'none';
-    document.getElementById('fxqRoomParams').style.display = 'none';
-    document.getElementById('fxqRoomProfiles').style.display = 'none';
-    document.getElementById('fxqPgoRoomLobby').style.display = '';
-    document.getElementById('fxqPgoRoomCodeNum').textContent = r.code;
-    if (window.GamesShell && GamesShell.QR) GamesShell.QR.render(document.getElementById('fxqPgoRoomQr'), location.origin + '/toolbox/feixingqi/?room=' + r.code);
-    fxqSaveProfile(fxqRoomCfg);
-    fxqUpdateLobby(r.room); fxqStartPolling();
+  function fxqRenderLobby() {
+    if (state.started) { fxqLobby.hidden = true; return; }
+    fxqLobby.hidden = false;
+    if (fxqOnline.active()) { fxqOnline.renderLobby(); return; }
+    // ---- local config ----
+    fxqRoomChip.hidden = true;
+    for (const ck of CORNER_KEYS) {
+      const kind = state.setupConfig[ck];
+      const el = fxqSeatEls[ck]; el.innerHTML = '';
+      el.appendChild(fxqSeatCard(ck, { kind, sub: KIND_LABEL[kind] }));
+    }
+    const hasAI = CORNER_KEYS.some(ck => state.setupConfig[ck] === 'ai');
+    fxqDiffPicker.hidden = !hasAI;
+    fxqDiffPicker.querySelectorAll('.fxq-diff-tab').forEach(b => b.classList.toggle('sel', b.dataset.value === state.difficulty));
+    const n = fxqActiveCount();
+    fxqLobbyActions.innerHTML = '';
+    const startBtn = document.createElement('button');
+    startBtn.className = 'fxq-btn primary';
+    startBtn.disabled = n < 2;
+    startBtn.textContent = n < 2 ? '至少 2 席' : ('▶ 开始游戏（' + n + ' 人）');
+    startBtn.onclick = fxqStartLocalGame;
+    fxqLobbyActions.appendChild(startBtn);
+    const joinBtn = document.createElement('button');
+    joinBtn.className = 'fxq-btn';
+    joinBtn.textContent = '🔗 加入房间';
+    joinBtn.onclick = fxqOnline.promptJoin;
+    fxqLobbyActions.appendChild(joinBtn);
+    fxqLobbyHint.textContent = '点领地切换 空 / 真人 / 电脑 / 邀请；选「邀请」即可联机';
+    fxqSetErr('');
   }
 
-  function gsEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  function fxqUpdateLobby(room) {
-    fxqRoomHost = room.youAreHost;
-    const list = document.getElementById('fxqPgoRoomPlayers');
-    list.innerHTML = (room.players || []).map((p, i) => {
-      const isMe = p.id === fxqRoomPlayerId, isHost = p.isHost;
-      let h = '<li>';
-      if (fxqRoomHost && room.state === 'lobby' && !isMe) {
-        if (i > 0) h += `<button class="fxq-room-act up" data-act="up" data-id="${p.id}" aria-label="上移">▲</button>`;
-        if (i < room.players.length - 1) h += `<button class="fxq-room-act down" data-act="down" data-id="${p.id}" aria-label="下移">▼</button>`;
+  // ============ Online (rooms + deterministic turn-event sync) ============
+  // Lobby and gameplay both ride the relay event log (board.js `event` action):
+  //   {t:'seats', seats, difficulty}                  host broadcasts seat config
+  //   {t:'turn',  color, rolls:[{dice,pieceIdx|null}]} one fully-played turn
+  // Game state is derived by replaying turn events in seq order, so every
+  // client converges (dice values live inside each event — no RNG divergence).
+  // The host drives every human(local)/ai seat; each guest drives its own seat.
+  const fxqOnline = (() => {
+    const API = 'https://zircon-urge.fly.dev/api/board';
+    let net = null;
+    // net = { code, token, playerId, deviceId, isHost, players:[],
+    //         seats:{ck:{kind:'empty'|'human'|'ai'|'remote', pid}},
+    //         swapSel, ver, lastSeq, started, poller }
+
+    function active() { return !!net; }
+    function isHost() { return !!net && net.isHost; }
+    function seatMap() { return net && net.seats; }
+
+    function api(method, action, body) {
+      return fetch(API + '?action=' + action, {
+        method, headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(15000),
+        body: body ? JSON.stringify(body) : undefined,
+      }).then(r => r.json()).catch(e => ({ error: e.name === 'TimeoutError' ? 'timeout' : 'network' }));
+    }
+
+    async function emit(data) {
+      if (!net) return null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const r = await api('POST', 'event', { code: net.code, token: net.token, event: data });
+        if (r && r.ok) { net.ver = r.version; return r; }
+        if (r && r.error === 'locked') { await new Promise(s => setTimeout(s, 160)); continue; }
+        return r;
       }
-      h += gsEsc(p.nick);
-      if (isMe) h += ' (你)';
-      if (isHost) h += ' <span class="gs-pgo-room-host-badge">房主</span>';
-      if (fxqRoomHost && room.state === 'lobby' && !isMe) h += `<button class="fxq-room-kick" data-act="kick" data-id="${p.id}" aria-label="踢出">✕</button>`;
-      h += '</li>';
-      return h;
-    }).join('');
-    list.querySelectorAll('[data-act]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const act = btn.dataset.act, pid = btn.dataset.id;
-        if (act === 'kick') await fxqRoomApi('POST', 'kick', { code: fxqRoomCode, token: fxqRoomToken, targetPlayerId: pid });
-        else if (act === 'up' || act === 'down') {
-          const ids = room.players.map(p => p.id), idx = ids.indexOf(pid);
-          if (act === 'up' && idx > 0) [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
-          else if (act === 'down' && idx < ids.length - 1) [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
-          await fxqRoomApi('POST', 'reorder', { code: fxqRoomCode, token: fxqRoomToken, playerIds: ids });
+      return { error: 'locked' };
+    }
+
+    function seatsFromSetup(triggerCorner) {
+      const s = {};
+      for (const ck of CORNER_KEYS) {
+        const k = state.setupConfig[ck];
+        if (ck === triggerCorner || k === 'invite') s[ck] = { kind: 'remote', pid: null };
+        else if (k === 'human') s[ck] = { kind: 'human', pid: null };
+        else if (k === 'ai') s[ck] = { kind: 'ai', pid: null };
+        else s[ck] = { kind: 'empty', pid: null };
+      }
+      return s;
+    }
+
+    async function goOnline(triggerCorner) {
+      fxqSetErr('正在创建房间…');
+      const deviceId = GamesShell.Identity.getDeviceId();
+      const cr = await api('POST', 'create', { gameId: 'feixingqi', nick: fxqGetNick(), deviceId });
+      if (!cr || !cr.ok) { fxqSetErr('创建房间失败，请检查网络后重试'); revert(triggerCorner); return; }
+      net = { code: cr.code, token: cr.playerToken, playerId: cr.playerId, deviceId,
+        isHost: true, players: (cr.room && cr.room.players) || [], seats: seatsFromSetup(triggerCorner),
+        swapSel: null, ver: (cr.room && cr.room.version) || 0, lastSeq: 0, started: false, poller: null };
+      fxqSetErr('');
+      await emit({ t: 'seats', seats: net.seats, difficulty: state.difficulty });
+      startPolling();
+      fxqRenderLobby();
+      copyLink(true);
+    }
+    function revert(ck) { if (state.setupConfig[ck] === 'invite') { state.setupConfig[ck] = 'empty'; persist(); } fxqRenderLobby(); renderBoard(); }
+
+    async function join(rawCode) {
+      const c = String(rawCode || '').replace(/\D/g, '').slice(0, 4);
+      if (c.length !== 4) { fxqSetErr('请输入 4 位房号'); return; }
+      fxqSetErr('正在加入…');
+      const deviceId = GamesShell.Identity.getDeviceId();
+      const r = await api('POST', 'join', { code: c, nick: fxqGetNick(), deviceId });
+      if (!r || !r.ok) {
+        const msgs = { room_not_found: '房间不存在', room_full: '房间已满', room_in_progress: '游戏已开始，无法加入', nick_taken_in_room: '昵称已被占用，换一个' };
+        fxqSetErr((r && (msgs[r.reason] || msgs[r.error])) || '加入失败'); return;
+      }
+      net = { code: r.code, token: r.playerToken, playerId: r.playerId, deviceId,
+        isHost: false, players: (r.room && r.room.players) || [], seats: null,
+        swapSel: null, ver: (r.room && r.room.version) || 0, lastSeq: 0, started: false, poller: null };
+      fxqSetErr('');
+      startPolling();
+      fxqRenderLobby();
+    }
+
+    async function leave() {
+      stopPolling();
+      const had = net; net = null;
+      if (had && had.token) { try { await api('POST', 'leave', { code: had.code, token: had.token }); } catch (e) {} }
+      for (const ck of CORNER_KEYS) if (state.setupConfig[ck] === 'invite') state.setupConfig[ck] = 'empty';
+      persist();
+      if (!state.started) { fxqRenderLobby(); renderBoard(); }
+    }
+
+    function promptJoin() {
+      fxqLobbyActions.innerHTML = '';
+      const wrap = document.createElement('div'); wrap.className = 'fxq-lobby-join';
+      const inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 4; inp.inputMode = 'numeric'; inp.placeholder = '房号';
+      const go = document.createElement('button'); go.className = 'fxq-btn primary'; go.textContent = '加入'; go.onclick = () => join(inp.value);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') join(inp.value); });
+      const back = document.createElement('button'); back.className = 'fxq-btn'; back.textContent = '返回'; back.onclick = fxqRenderLobby;
+      wrap.append(inp, go, back); fxqLobbyActions.appendChild(wrap); fxqLobbyHint.textContent = '输入好友给你的 4 位房号'; inp.focus();
+    }
+
+    function copyLink(silent) {
+      if (!net) return;
+      const url = location.origin + '/toolbox/feixingqi/?room=' + net.code;
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => { fxqLobbyHint.textContent = '✓ 已复制邀请链接，发给好友打开即可加入'; }).catch(() => {});
+      else if (!silent) fxqLobbyHint.textContent = '房号 ' + net.code + '，发给好友加入';
+    }
+
+    // host: keep remote seats in sync with relay membership
+    function hostReconcile() {
+      if (!net.isHost) return false;
+      let changed = false;
+      const ids = net.players.map(p => p.id);
+      for (const ck of CORNER_KEYS) {
+        const s = net.seats[ck];
+        if (s.kind === 'remote' && s.pid && !ids.includes(s.pid)) { s.pid = null; changed = true; }
+      }
+      for (const p of net.players) {
+        if (p.id === net.playerId) continue;
+        if (CORNER_KEYS.some(ck => net.seats[ck].pid === p.id)) continue;
+        const slot = CORNER_KEYS.find(ck => net.seats[ck].kind === 'remote' && !net.seats[ck].pid)
+          || CORNER_KEYS.find(ck => net.seats[ck].kind === 'empty');
+        if (slot) { net.seats[slot] = { kind: 'remote', pid: p.id }; changed = true; }
+      }
+      return changed;
+    }
+    function broadcastSeats() { if (net && net.isHost) emit({ t: 'seats', seats: net.seats, difficulty: state.difficulty }); }
+
+    function onSeatClick(ck) {
+      if (!net.isHost) return;                       // guests can't reconfigure
+      const s = net.seats[ck];
+      if (net.swapSel == null) {
+        if (s.kind === 'remote' && s.pid) { net.swapSel = ck; fxqRenderLobby(); return; }
+        const cyc = ['empty', 'human', 'ai', 'remote'];
+        const cur = s.kind;
+        net.seats[ck] = { kind: cyc[(cyc.indexOf(cur) + 1) % cyc.length], pid: null };
+        broadcastSeats(); fxqRenderLobby(); return;
+      }
+      if (net.swapSel === ck) { net.swapSel = null; fxqRenderLobby(); return; }
+      const a = net.swapSel; const t = net.seats[a]; net.seats[a] = net.seats[ck]; net.seats[ck] = t;
+      net.swapSel = null; broadcastSeats(); fxqRenderLobby();
+    }
+
+    async function kick(ck) {
+      const s = net.seats[ck];
+      if (!net.isHost || !(s.kind === 'remote' && s.pid)) return;
+      await api('POST', 'kick', { code: net.code, token: net.token, targetPlayerId: s.pid });
+    }
+
+    function seatedCount() {
+      return CORNER_KEYS.filter(ck => { const s = net.seats[ck]; return s && (s.kind === 'human' || s.kind === 'ai' || (s.kind === 'remote' && s.pid)); }).length;
+    }
+    function remoteJoined() { return CORNER_KEYS.some(ck => { const s = net.seats[ck]; return s && s.kind === 'remote' && s.pid && s.pid !== net.playerId; }); }
+
+    async function start() {
+      if (!net.isHost) return;
+      if (seatedCount() < 2) { fxqSetErr('至少需要 2 席'); return; }
+      if (!remoteJoined()) { fxqSetErr('还需要至少 1 位远端玩家加入（否则请用本地模式）'); return; }
+      await emit({ t: 'seats', seats: net.seats, difficulty: state.difficulty });
+      const r = await api('POST', 'start', { code: net.code, token: net.token });
+      if (!r || !r.ok) {
+        const msgs = { not_enough_players: '还需要至少 1 位玩家加入', not_host: '只有房主能开始' };
+        fxqSetErr((r && (msgs[r.reason] || msgs[r.error])) || '开始失败'); return;
+      }
+    }
+
+    function stopPolling() { if (net && net.poller) { clearTimeout(net.poller); net.poller = null; } }
+    function startPolling() {
+      stopPolling();
+      const tick = async () => {
+        if (!net) return;
+        const r = await api('GET', 'state&code=' + net.code + '&token=' + net.token + '&since=' + net.ver);
+        if (!net) return;
+        if (r && r.ok && r.room) {
+          net.ver = r.room.version;
+          net.players = r.room.players || [];
+          applyLog(r.room.moves || []);
+          if (!net.players.some(p => p.id === net.playerId)) { onGone('你已离开房间'); return; }
+          if (net.isHost && r.room.state === 'lobby' && hostReconcile()) broadcastSeats();
+          if (r.room.state === 'playing' && !net.started) beginGame();
+          if (!state.started) fxqRenderLobby();
+        } else if (r && (r.reason === 'room_not_found' || r.reason === 'room_dissolved')) {
+          onGone('房间已关闭'); return;
         }
-      });
-    });
-    // Show/hide host edit button
-    document.getElementById('fxqRoomEditBtn').style.display = fxqRoomHost ? '' : 'none';
-    // Render proposal if any
-    fxqRenderProposal(room);
-    document.getElementById('fxqPgoRoomStartBtn').disabled = !(fxqRoomHost && room.players.length >= FXQ_MIN_PLAYERS_VAL);
-    document.getElementById('fxqPgoRoomStartBtn').textContent = fxqRoomHost ? `开始游戏 (${room.players.length}/${FXQ_MIN_PLAYERS_VAL})` : '等待房主开始…';
-  }
+        if (net) net.poller = setTimeout(tick, state.started ? 700 : 950);
+      };
+      tick();
+    }
+    function onGone(msg) {
+      stopPolling(); const wasStarted = state.started; net = null;
+      if (!wasStarted) {
+        for (const ck of CORNER_KEYS) if (state.setupConfig[ck] === 'invite') state.setupConfig[ck] = 'empty';
+        fxqSetErr(msg); fxqRenderLobby(); renderBoard();
+      } else { toast(msg + '，转为本地继续'); }
+    }
 
-  // ── 表决 UI ──
-  function fxqRenderProposal(room) {
-    const box = document.getElementById('fxqVoteBox'), p = room.pendingProposal;
-    if (!box) return;
-    if (!p || p.result !== null) { box.style.display = 'none'; return; }
-    box.style.display = '';
+    function applyLog(moves) {
+      for (const m of moves) {
+        if (!m || typeof m.seq !== 'number' || m.seq <= net.lastSeq) continue;
+        net.lastSeq = m.seq;
+        const ev = m.event; if (!ev) continue;
+        if (ev.t === 'seats') {
+          if (!net.isHost) { net.seats = ev.seats; if (ev.difficulty) state.difficulty = ev.difficulty; }
+        } else if (ev.t === 'turn') {
+          if (m.playerId !== net.playerId) fxqEnqueueRemoteTurn(ev);
+        }
+      }
+    }
 
-    const cfg = p.config;
-    const aiLabel = cfg.aiDiff === 'hard' ? 'AI高手' : cfg.aiDiff === 'easy' ? 'AI新手' : 'AI普通';
-    const desc = `人数上限 ${cfg.maxPlayers} · AI 补齐 ${cfg.aiFill === 'on' ? '开(' + aiLabel + ')' : '关'}`;
-    const votedCount = Object.values(p.votes).filter(v => v !== null && v !== undefined).length;
-    const totalVoters = Object.keys(p.votes).filter(id => id !== p.proposedBy).length;
-    const proposerNick = room.players.find(pl => pl.id === p.proposedBy)?.nick || '房主';
+    function controlsColor(color) {
+      if (!net) return true;
+      const s = net.seats[COLOR_INFO[color].corner];
+      if (!s) return false;
+      if (s.kind === 'remote') return s.pid === net.playerId;
+      return net.isHost;                 // host runs human(local) + ai seats
+    }
 
-    let html = `<div style="font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:0.3rem;">📋 ${proposerNick} 提议：${desc}</div>`;
-    html += `<div style="font-size:0.72rem;color:rgba(255,255,255,0.35);margin-bottom:0.4rem;">需全票通过 · 已投 ${votedCount}/${totalVoters} · 30秒超时</div>`;
+    function beginGame() {
+      net.started = true;
+      net.swapSel = null;
+      fxqApplyOnlineSeatsToGame();
+      fxqLobby.hidden = true;
+      if (fxqSave) fxqSave.discard();
+      startGame();
+      fxqPumpRemote();
+    }
 
-    if (fxqRoomPlayerId !== p.proposedBy) {
-      const myVote = p.votes[fxqRoomPlayerId];
-      if (myVote === null || myVote === undefined) {
-        html += `<div style="display:flex;gap:0.4rem;"><button class="gs-pgo-room-btn primary fn-vote-btn gs-vote-yes" data-vote="yes">✅ 同意</button><button class="gs-pgo-room-btn fn-vote-btn gs-vote-no" data-vote="no">❌ 拒绝</button></div>`;
+    function nickOf(pid) { const p = net.players.find(x => x.id === pid); return p ? p.nick : '玩家'; }
+    function onlineOf(pid) { const p = net.players.find(x => x.id === pid); return p ? p.online : false; }
+    function hostOf(pid) { const p = net.players.find(x => x.id === pid); return !!(p && p.isHost); }
+    function seatModel(ck, s) {
+      const sel = net.swapSel === ck;
+      if (s.kind === 'empty') return { kind: 'empty', sub: '空位', sel };
+      if (s.kind === 'human') return { kind: 'human', sub: '本机真人', sel };
+      if (s.kind === 'ai') return { kind: 'ai', sub: '电脑 AI', sel };
+      if (!s.pid) return { kind: 'invite', sub: '等待加入…', sel };
+      const me = s.pid === net.playerId;
+      return { kind: 'remote', label: nickOf(s.pid) + (me ? '（你）' : ''), sub: '远端玩家', me, off: !onlineOf(s.pid), host: hostOf(s.pid), sel };
+    }
+
+    function renderLobby() {
+      fxqRoomChip.hidden = false;
+      fxqRoomCodeNum.textContent = net.code;
+      fxqRoomChip.onclick = () => copyLink(false);
+      for (const ck of CORNER_KEYS) {
+        const el = fxqSeatEls[ck]; el.innerHTML = '';
+        const s = (net.seats && net.seats[ck]) || { kind: 'empty', pid: null };
+        const card = fxqSeatCard(ck, seatModel(ck, s));
+        if (net.isHost && s.kind === 'remote' && s.pid) {
+          const acts = document.createElement('div'); acts.className = 'fxq-seat-acts';
+          const k = document.createElement('button'); k.textContent = '✕ 踢'; k.onclick = (e) => { e.stopPropagation(); kick(ck); };
+          acts.appendChild(k); card.appendChild(acts);
+        }
+        el.appendChild(card);
+      }
+      const hasAI = net.seats && CORNER_KEYS.some(ck => net.seats[ck] && net.seats[ck].kind === 'ai');
+      fxqDiffPicker.hidden = !(net.isHost && hasAI);
+      fxqDiffPicker.querySelectorAll('.fxq-diff-tab').forEach(b => b.classList.toggle('sel', b.dataset.value === state.difficulty));
+      fxqLobbyActions.innerHTML = '';
+      if (net.isHost) {
+        const n = seatedCount();
+        const startBtn = document.createElement('button'); startBtn.className = 'fxq-btn primary';
+        startBtn.disabled = n < 2; startBtn.textContent = '▶ 开始（' + n + ' 席）'; startBtn.onclick = start;
+        const inv = document.createElement('button'); inv.className = 'fxq-btn'; inv.textContent = '🔗 复制邀请'; inv.onclick = () => copyLink(false);
+        fxqLobbyActions.append(startBtn, inv);
       } else {
-        html += `<div style="font-size:0.78rem;color:rgba(255,255,255,0.5);">你已投票：${myVote === 'yes' ? '✅ 同意' : '❌ 拒绝'}</div>`;
+        const wait = document.createElement('button'); wait.className = 'fxq-btn'; wait.disabled = true; wait.textContent = '等待房主开始…';
+        fxqLobbyActions.appendChild(wait);
       }
-    } else {
-      html += `<div style="font-size:0.74rem;color:rgba(255,255,255,0.35);">你是提议者，无需投票</div>`;
+      const leaveBtn = document.createElement('button'); leaveBtn.className = 'fxq-btn'; leaveBtn.textContent = '退出'; leaveBtn.onclick = leave;
+      fxqLobbyActions.appendChild(leaveBtn);
+      fxqLobbyHint.textContent = net.isHost
+        ? (net.swapSel ? '再点另一块领地完成换位' : '点领地切 空/真人/电脑/邀请 · 点已入座者换位 · 复制房号发好友')
+        : '已加入房间，等待房主开始';
+      fxqSetErr('');
     }
-    box.innerHTML = html;
 
-    // Wire vote buttons
-    box.querySelectorAll('.fn-vote-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const v = btn.dataset.vote;
-        await fxqRoomApi('POST', 'vote', { code: fxqRoomCode, token: fxqRoomToken, vote: v });
-      });
-    });
-  }
+    return { active, isHost, seatMap, controlsColor, goOnline, join, promptJoin, leave,
+      broadcastSeats, onSeatClick, renderLobby, emit, autoJoin };
 
-  // ── 房主修改设置 ──
-  document.getElementById('fxqRoomEditBtn').addEventListener('click', () => {
-    const panel = document.getElementById('fxqRoomEditPanel');
-    panel.style.display = panel.style.display === 'none' ? '' : 'none';
-    // Sync edit pickers with current roomCfg
-    document.querySelectorAll('#fxqEditMaxPlayers .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === String(fxqRoomCfg.maxPlayers)));
-    document.querySelectorAll('#fxqEditAiFill .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === fxqRoomCfg.aiFill));
-    document.querySelectorAll('#fxqEditAiDiff .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === fxqRoomCfg.aiDiff));
-    document.getElementById('fxqEditAiDiffRow').style.display = fxqRoomCfg.aiFill === 'on' ? '' : 'none';
-  });
-  document.getElementById('fxqCancelEditBtn').addEventListener('click', () => {
-    document.getElementById('fxqRoomEditPanel').style.display = 'none';
-  });
-  document.getElementById('fxqProposeBtn').addEventListener('click', async () => {
-    await fxqRoomApi('POST', 'propose', { code: fxqRoomCode, token: fxqRoomToken, config: fxqRoomCfg });
-    document.getElementById('fxqRoomEditPanel').style.display = 'none';
-  });
-  // Wire edit pickers
-  document.getElementById('fxqEditMaxPlayers').addEventListener('click', e => {
-    const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
-    fxqRoomCfg.maxPlayers = parseInt(t.dataset.val);
-    document.querySelectorAll('#fxqEditMaxPlayers .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === String(fxqRoomCfg.maxPlayers)));
-  });
-  document.getElementById('fxqEditAiFill').addEventListener('click', e => {
-    const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
-    fxqRoomCfg.aiFill = t.dataset.val;
-    document.querySelectorAll('#fxqEditAiFill .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === t.dataset.val));
-    document.getElementById('fxqEditAiDiffRow').style.display = t.dataset.val === 'on' ? '' : 'none';
-  });
-  document.getElementById('fxqEditAiDiff').addEventListener('click', e => {
-    const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
-    fxqRoomCfg.aiDiff = t.dataset.val;
-    document.querySelectorAll('#fxqEditAiDiff .gs-pgo-mode-tab').forEach(b => b.classList.toggle('selected', b.dataset.val === t.dataset.val));
-  });
-
-  async function fxqLeaveRoom() {
-    if (fxqRoomStatePoller) { clearTimeout(fxqRoomStatePoller); fxqRoomStatePoller = null; }
-    if (fxqRoomToken) await fxqRoomApi('POST', 'leave', { code: fxqRoomCode, token: fxqRoomToken });
-    fxqRoomToken = null; fxqRoomPlayerId = null; fxqRoomCode = null; fxqRoomHost = false;
-    document.getElementById('fxqPgoRoomEntry').style.display = '';
-    document.getElementById('fxqRoomParams').style.display = '';
-    document.getElementById('fxqRoomProfiles').style.display = '';
-    document.getElementById('fxqPgoRoomLobby').style.display = 'none';
-    document.getElementById('fxqPgoRoomCodeInput').value = '';
-  }
-
-  function fxqStartPolling() {
-    if (fxqRoomStatePoller) clearTimeout(fxqRoomStatePoller);
-    let since = 0;
-    async function poll() {
-      if (!fxqRoomToken) return;
-      const r = await fxqRoomApi('GET', `state&code=${fxqRoomCode}&token=${fxqRoomToken}&since=${since}`);
-      if (!r.ok) { fxqRoomStatePoller = setTimeout(poll, 1000); return; }
-      if (r.room) {
-        since = r.version;
-        if (r.room.state === 'playing') { fxqPgoOverlay.classList.remove('open'); state.difficulty = fxqPgoSelectedDiff; startGame(); if (typeof fxqSave !== 'undefined' && fxqSave) fxqSave.start(); fxqRoomStatePoller = setTimeout(poll, 500); return; }
-        if (!r.room.players.some(p => p.id === fxqRoomPlayerId)) { fxqLeaveRoom(); fxqShowError('你已被房主移出房间'); return; }
-        fxqUpdateLobby(r.room);
-      }
-      fxqRoomStatePoller = setTimeout(poll, 500);
-    }
-    poll();
-  }
-
-  document.getElementById('fxqPgoRoomActionBtn').addEventListener('click', fxqRoomAction);
-  document.getElementById('fxqPgoRoomLeaveBtn').addEventListener('click', fxqLeaveRoom);
-  document.getElementById('fxqPgoRoomCopyBtn').addEventListener('click', () => {
-    navigator.clipboard.writeText(`${location.origin}/toolbox/feixingqi/?room=${fxqRoomCode}`).then(() => {
-      const btn = document.getElementById('fxqPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '🔗 复制链接'; }, 2000);
-    }).catch(() => {});
-  });
-  document.getElementById('fxqPgoRoomCopyCodeBtn').addEventListener('click', () => {
-    navigator.clipboard.writeText(fxqRoomCode).then(() => {
-      const btn = document.getElementById('fxqPgoRoomCopyCodeBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制房号'; }, 2000);
-    }).catch(() => {});
-  });
-  document.getElementById('fxqPgoRoomStartBtn').addEventListener('click', async () => {
-    const r = await fxqRoomApi('POST', 'start', { code: fxqRoomCode, token: fxqRoomToken });
-    if (r.ok) { fxqPgoOverlay.classList.remove('open'); state.difficulty = fxqPgoSelectedDiff; startGame(); if (typeof fxqSave !== 'undefined' && fxqSave) fxqSave.start(); }
-  });
-
-  (function fxqAutoJoin() {
-    const code = new URLSearchParams(location.search).get('room');
-    if (code && /^\d{4}$/.test(code)) {
-      document.getElementById('fxqPgoRoomCodeInput').value = code;
-      setTimeout(() => {
-        document.querySelector('#fxqPgoRoomTabs .gs-pgo-room-tab[data-tab="online"]')?.click();
-        setTimeout(fxqRoomAction, 800);
-      }, 500);
+    function autoJoin() {
+      const code = new URLSearchParams(location.search).get('room');
+      if (code && /^\d{4}$/.test(code)) join(code);
     }
   })();
 
-  document.getElementById('fxqPgoStartBtn').addEventListener('click', () => {
-    if (fxqIsOnline) return;
-    state.difficulty = fxqPgoSelectedDiff;
-    if (typeof fxqSave !== 'undefined' && fxqSave) fxqSave.discard();
-    startGame();
-    if (typeof fxqSave !== 'undefined' && fxqSave) fxqSave.start();
-  });
+  // ---- turn-event sync bridges (used by the turn flow above) ----
+  let fxqReplaying = false;          // true while replaying a remote turn
+  let fxqCurTurnRolls = null;        // accumulator for the local turn in progress
+  let fxqCurTurnColor = null;
+  const fxqRemoteQueue = [];         // queued remote turns awaiting replay
+
+  function fxqControlsCurrent() { return fxqOnline.active() ? fxqOnline.controlsColor(currentPlayer()) : true; }
+
+  // Freeze online seats into setupConfig so startGame() builds players/kinds.
+  function fxqApplyOnlineSeatsToGame() {
+    const seats = fxqOnline.seatMap() || {};
+    for (const ck of CORNER_KEYS) {
+      const s = seats[ck] || { kind: 'empty' };
+      state.setupConfig[ck] = (s.kind === 'ai') ? 'ai'
+        : (s.kind === 'human') ? 'human'
+        : (s.kind === 'remote' && s.pid) ? 'human' : 'empty';
+    }
+  }
+
+  function fxqTurnBegin(color) { if (fxqOnline.active() && !fxqReplaying) { fxqCurTurnRolls = []; fxqCurTurnColor = color; } }
+  function fxqRecordRoll(dice) { if (fxqOnline.active() && !fxqReplaying && fxqCurTurnRolls) fxqCurTurnRolls.push({ dice, pieceIdx: null }); }
+  function fxqRecordPick(pieceIdx) { if (fxqOnline.active() && !fxqReplaying && fxqCurTurnRolls && fxqCurTurnRolls.length) fxqCurTurnRolls[fxqCurTurnRolls.length - 1].pieceIdx = pieceIdx; }
+  function fxqEmitTurn() {
+    if (!fxqOnline.active() || fxqReplaying) return;
+    if (!fxqCurTurnRolls || !fxqCurTurnRolls.length) { fxqCurTurnRolls = null; return; }
+    if (fxqCurTurnColor == null || !fxqOnline.controlsColor(fxqCurTurnColor)) { fxqCurTurnRolls = null; return; }
+    const rec = { t: 'turn', color: fxqCurTurnColor, rolls: fxqCurTurnRolls };
+    fxqCurTurnRolls = null;
+    fxqOnline.emit(rec);
+  }
+
+  function fxqEnqueueRemoteTurn(ev) { fxqRemoteQueue.push(ev); fxqPumpRemote(); }
+  function fxqPumpRemote() {
+    if (fxqReplaying || !state.started || state.over || state.paused || state.animating) return;
+    if (!fxqRemoteQueue.length) return;
+    const ev = fxqRemoteQueue[0];
+    // The log is ordered, so the head should be exactly the seat that's to
+    // move. If it isn't yet (a local turn is still resolving), wait — never
+    // replay an event for a colour that isn't currently up.
+    if (ev.color !== currentPlayer()) return;
+    fxqRemoteQueue.shift();
+    fxqReplayTurn(ev, () => { fxqReplaying = false; updateStatus(); maybeTriggerAi(); fxqPumpRemote(); });
+  }
+
+  function fxqReplayTurn(rec, done) {
+    fxqReplaying = true;
+    let i = 0;
+    (function step() {
+      if (i >= rec.rolls.length || state.over) { done(); return; }
+      const r = rec.rolls[i++];
+      rollDice(() => {
+        if (r.pieceIdx != null && state.awaitingPick) selectPiece(r.pieceIdx, step);
+        else step();
+      }, r.dice);
+    })();
+  }
+
 
   initialSetupRender();
-  fxqUpdatePgoDiffVisibility();
-  fxqPgoOverlay.classList.add('open');
 
-  if (window.GamesShell && GamesShell.SaveState) {
+  // Opening a ?room=XXXX invite link drops you straight into that lobby.
+  const fxqHasRoomLink = /[?&]room=\d{4}/.test(location.search);
+  if (fxqHasRoomLink) fxqOnline.autoJoin();
+
+  // Resume of a saved LOCAL game — skipped when arriving via an invite link.
+  if (!fxqHasRoomLink && window.GamesShell && GamesShell.SaveState) {
     fxqSave = GamesShell.SaveState.create({
       key: 'tool.feixingqi.savestate.v1',
       ttlMs: 48 * 3600 * 1000,
