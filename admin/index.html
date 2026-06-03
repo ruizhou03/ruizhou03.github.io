@@ -31,38 +31,47 @@ noindex: true
   <div id="adm-main" hidden>
     <div class="adm-verified">已验证管理员：<strong id="adm-email"></strong></div>
 
-    <div class="adm-grid">
-      <section class="adm-card">
-        <div class="adm-card-top">
-          <h2>内容管理</h2><span class="adm-soon">即将上线 · Phase 1</span>
-        </div>
-        <ul class="adm-card-list">
-          <li>文章 / 专栏 隐藏 · 公开</li>
-          <li>收费 · 取消收费</li>
-          <li>修改正文与参数</li>
-          <li>删除 + 回收站（可还原）</li>
-        </ul>
-      </section>
+    {%- comment -%} 数据看板 {%- endcomment -%}
+    <section class="adm-sec">
+      <div class="adm-sec-top">
+        <h2>数据看板</h2>
+        <button id="adm-refresh" class="adm-mini" type="button">刷新</button>
+      </div>
+      <div class="adm-ov-row">
+        <div class="adm-ov"><div class="adm-ov-n" id="ov-views">—</div><div class="adm-ov-l">总浏览量</div></div>
+        <div class="adm-ov"><div class="adm-ov-n" id="ov-comments">—</div><div class="adm-ov-l">总评论数</div></div>
+        <div class="adm-ov"><div class="adm-ov-n" id="ov-mood">—</div><div class="adm-ov-l">心情互动</div></div>
+      </div>
+      <div class="adm-rank-grid">
+        <div class="adm-rank"><h3>最受欢迎 · 阅读量</h3><ol id="rk-read" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
+        <div class="adm-rank"><h3>点赞最多</h3><ol id="rk-likes" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
+        <div class="adm-rank"><h3>收藏最多</h3><ol id="rk-favs" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
+        <div class="adm-rank"><h3>评论最多</h3><ol id="rk-commented" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
+      </div>
+      <p class="adm-note" id="adm-fav-note" hidden>收藏数据从计数器上线起累计；要并入历史收藏，在后端跑一次 <code>backfill-favcount</code>。</p>
+    </section>
 
-      <section class="adm-card">
-        <div class="adm-card-top">
-          <h2>数据看板</h2><span class="adm-soon">即将上线 · Phase 2</span>
-        </div>
-        <ul class="adm-card-list">
-          <li>最受欢迎文章（阅读量）</li>
-          <li>点赞 · 收藏排行</li>
-          <li>整体流量（访客 / 来源 / 设备）</li>
-          <li>收入分析（后续）</li>
-        </ul>
-      </section>
-    </div>
+    {%- comment -%} 内容管理：占位（Phase 1）{%- endcomment -%}
+    <section class="adm-sec">
+      <div class="adm-sec-top"><h2>内容管理</h2><span class="adm-soon">即将上线 · Phase 1</span></div>
+      <ul class="adm-card-list">
+        <li>文章 / 专栏 隐藏 · 公开</li>
+        <li>收费 · 取消收费</li>
+        <li>修改正文与参数</li>
+        <li>删除 + 回收站（可还原）</li>
+      </ul>
+    </section>
 
-    <p class="adm-foot">骨架已就绪，鉴权链路已打通。各功能将按阶段逐步接入。</p>
+    {%- comment -%} 整体流量：待接入 Cloudflare {%- endcomment -%}
+    <section class="adm-sec">
+      <div class="adm-sec-top"><h2>整体流量</h2><span class="adm-soon">待接入 · Cloudflare</span></div>
+      <p class="adm-muted">独立访客 / 来源 / 设备等整体流量，待接入 Cloudflare Web Analytics（免费、不弹隐私横幅）。</p>
+    </section>
   </div>
 </article>
 
 <style>
-  .adm-wrap { max-width: 880px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  .adm-wrap { max-width: 920px; margin: 0 auto; padding: 2rem 1rem 4rem; }
   .adm-head h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
   .adm-sub { color: var(--color-light); margin-bottom: 2rem; }
   .adm-state { text-align: center; padding: 3rem 1rem; color: var(--color-muted);
@@ -72,23 +81,126 @@ noindex: true
   .adm-btn { padding: 0.6rem 1.6rem; font-size: 0.95rem; font-weight: 700; font-family: inherit;
     cursor: pointer; background: var(--color-highlight); color: #fff; border: none; border-radius: 8px; }
   .adm-verified { font-size: 0.9rem; color: var(--color-muted); background: var(--color-bg-warm);
-    border: 1px solid var(--color-border); border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 1.6rem; }
+    border: 1px solid var(--color-border); border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 2rem; }
   .adm-verified strong { color: var(--color-ink); }
-  .adm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; }
-  .adm-card { border: 1px solid var(--color-border); border-radius: 14px; padding: 1.3rem 1.4rem;
-    background: var(--color-bg); }
-  .adm-card-top { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
-    margin-bottom: 0.9rem; }
-  .adm-card-top h2 { font-size: 1.15rem; color: var(--color-ink); margin: 0; }
+
+  .adm-sec { margin-bottom: 2.6rem; }
+  .adm-sec-top { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.1rem; }
+  .adm-sec-top h2 { font-size: 1.3rem; color: var(--color-ink); margin: 0; }
+  .adm-mini { font-size: 0.78rem; font-family: inherit; cursor: pointer; color: var(--color-muted);
+    background: none; border: 1px solid var(--color-border); border-radius: 6px; padding: 0.25rem 0.7rem; }
+  .adm-mini:hover { color: var(--color-highlight); border-color: var(--color-highlight); }
   .adm-soon { font-size: 0.68rem; color: var(--color-light); white-space: nowrap;
     border: 1px solid var(--color-border); border-radius: 999px; padding: 0.15rem 0.55rem; }
+
+  .adm-ov-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.6rem; }
+  .adm-ov { border: 1px solid var(--color-border); border-radius: 12px; padding: 1.1rem 1.2rem; background: var(--color-bg); }
+  .adm-ov-n { font-size: 1.7rem; font-weight: 700; color: var(--color-ink); line-height: 1.1; }
+  .adm-ov-l { font-size: 0.8rem; color: var(--color-light); margin-top: 0.35rem; }
+
+  .adm-rank-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem; }
+  .adm-rank { border: 1px solid var(--color-border); border-radius: 14px; padding: 1.2rem 1.3rem; background: var(--color-bg); }
+  .adm-rank h3 { font-size: 1rem; color: var(--color-ink); margin: 0 0 0.8rem; }
+  .adm-ol { list-style: none; margin: 0; padding: 0; }
+  .adm-ol li { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0; border-bottom: 1px solid var(--color-border); }
+  .adm-ol li:last-child { border-bottom: none; }
+  .adm-rk-i { flex-shrink: 0; width: 1.4rem; height: 1.4rem; line-height: 1.4rem; text-align: center;
+    font-size: 0.75rem; font-weight: 700; color: var(--color-muted); background: var(--color-bg-warm); border-radius: 5px; }
+  .adm-rk-t { flex: 1; min-width: 0; font-size: 0.88rem; color: var(--color-text); text-decoration: none;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .adm-rk-t:hover { color: var(--color-highlight); }
+  .adm-rk-n { flex-shrink: 0; font-size: 0.85rem; font-weight: 700; color: var(--color-ink); }
+  .adm-rk-n small { font-size: 0.7rem; font-weight: 400; color: var(--color-light); margin-left: 0.15rem; }
+  .adm-empty { color: var(--color-light); font-size: 0.85rem; justify-content: center; }
+  .adm-note { font-size: 0.76rem; color: var(--color-light); margin-top: 1rem; }
+  .adm-note code { font-size: 0.72rem; background: var(--color-bg-warm); padding: 0.05rem 0.35rem; border-radius: 4px; }
   .adm-card-list { margin: 0; padding-left: 1.1rem; }
   .adm-card-list li { font-size: 0.9rem; color: var(--color-text); line-height: 1.9; }
-  .adm-foot { text-align: center; color: var(--color-light); font-size: 0.8rem; margin-top: 2rem; }
 </style>
 
 <script>
 (function () {
+  var CMT = 'https://zircon-comments.fly.dev';
+  var titleMap = null;
+  var dashLoaded = false;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  // 路径归一：去协议域名、去尾斜杠，好和 search.json 的 url 对齐
+  function normPath(p) {
+    if (!p) return '';
+    p = String(p);
+    if (p.indexOf('http') === 0) { try { p = new URL(p).pathname; } catch (e) {} }
+    if (p.length > 1) p = p.replace(/\/+$/, '');
+    return p;
+  }
+  function loadTitles() {
+    if (titleMap) return Promise.resolve(titleMap);
+    return fetch('/search.json').then(function (r) { return r.ok ? r.json() : []; }).then(function (arr) {
+      titleMap = {};
+      (arr || []).forEach(function (it) {
+        if (it && it.url) titleMap[normPath(it.url)] = { title: it.title || it.url, category: it.category || '' };
+      });
+      return titleMap;
+    }).catch(function () { titleMap = {}; return titleMap; });
+  }
+  function resolve(path) {
+    var hit = titleMap && titleMap[normPath(path)];
+    return hit ? hit : { title: path || '(未知)', category: '' };
+  }
+  function jget(url) {
+    return window.SiteAuth.authedFetch(url)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; });
+  }
+  function fmt(n) { n = Number(n) || 0; return n >= 10000 ? (n / 10000).toFixed(1) + '万' : String(n); }
+
+  function renderRank(elId, items, key, unit) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    if (!items || !items.length) { el.innerHTML = '<li class="adm-empty">暂无数据</li>'; return; }
+    el.innerHTML = items.map(function (it, i) {
+      var path = it.url || it.post || '';
+      var info = resolve(path);
+      var n = it[key] || 0;
+      return '<li>' +
+        '<span class="adm-rk-i">' + (i + 1) + '</span>' +
+        '<a class="adm-rk-t" href="' + esc(normPath(path)) + '" target="_blank" rel="noopener" title="' + esc(path) + '">' + esc(info.title) + '</a>' +
+        '<span class="adm-rk-n">' + n + '<small>' + unit + '</small></span>' +
+      '</li>';
+    }).join('');
+  }
+
+  function loadDashboard() {
+    loadTitles().then(function () {
+      // zircon-urge（Redis 侧）：总览 + 点赞榜 + 收藏榜
+      jget('/api/admin?action=overview').then(function (d) {
+        if (d && d.reactions) {
+          var r = d.reactions;
+          var el = document.getElementById('ov-mood');
+          if (el) el.textContent = fmt((r.urge || 0) + (r.like || 0) + (r.heart || 0) + (r.star || 0));
+        }
+      });
+      jget('/api/admin?action=top-likes&limit=10').then(function (d) { renderRank('rk-likes', d && d.items, 'likes', '赞'); });
+      jget('/api/admin?action=top-favs&limit=10').then(function (d) {
+        renderRank('rk-favs', d && d.items, 'favs', '藏');
+        var note = document.getElementById('adm-fav-note'); if (note) note.hidden = false;
+      });
+      // zircon-comments（Postgres 侧）：总浏览/总评论 + 阅读量榜 + 评论榜
+      jget(CMT + '/api/admin-stats?action=overview').then(function (d) {
+        if (d) {
+          var v = document.getElementById('ov-views'); if (v) v.textContent = fmt(d.totalViews);
+          var c = document.getElementById('ov-comments'); if (c) c.textContent = fmt(d.totalComments);
+        }
+      });
+      jget(CMT + '/api/admin-stats?action=top-read&limit=10').then(function (d) { renderRank('rk-read', d && d.items, 'views', '次'); });
+      jget(CMT + '/api/admin-stats?action=top-commented&limit=10').then(function (d) { renderRank('rk-commented', d && d.items, 'comments', '条'); });
+    });
+  }
+
   function start() {
     if (!window.SiteAuth) { setTimeout(start, 100); return; }
 
@@ -112,13 +224,14 @@ noindex: true
       if (verifying) return;
       verifying = true;
       show(elLoading);
-      SiteAuth.authedFetch('/api/admin?action=whoami')
+      window.SiteAuth.authedFetch('/api/admin?action=whoami')
         .then(function (res) { return res.ok ? res.json() : null; })
         .then(function (data) {
           verifying = false;
           if (data && data.ok) {
             if (elEmail) elEmail.textContent = data.email || user.email || '';
             show(elMain);
+            if (!dashLoaded) { dashLoaded = true; loadDashboard(); }
           } else {
             show(elDenied);
           }
@@ -130,8 +243,10 @@ noindex: true
     if (loginBtn) loginBtn.addEventListener('click', function () {
       if (window.SiteAuth.openLogin) window.SiteAuth.openLogin('login');
     });
+    var refreshBtn = document.getElementById('adm-refresh');
+    if (refreshBtn) refreshBtn.addEventListener('click', loadDashboard);
 
-    SiteAuth.onChange(gate);
+    window.SiteAuth.onChange(gate);
   }
   start();
 })();
