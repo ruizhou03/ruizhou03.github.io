@@ -28,22 +28,24 @@ def split_fm(text):
 
 
 def count_keywords(fm):
-    m = re.search(r"^keywords:\s*(.+)$", fm, re.M)
-    if not m:
-        return None
-    raw = m.group(1).strip()
-    if raw.startswith("["):
-        return len([x for x in re.findall(r'"[^"]*"', raw) if x.strip('"').strip()])
-    # YAML block list
+    # 先找 keywords: 行；可能是 inline 流式 `keywords: ["a","b"]`
+    # 也可能是块式（下方 `- item`，支持缩进与否）
     lines = fm.splitlines()
     idx = next((i for i, l in enumerate(lines) if l.startswith("keywords:")), -1)
     if idx == -1:
-        return 0
+        return None
+    same_line = lines[idx][len("keywords:"):].strip()
+    if same_line.startswith("["):
+        return len([x for x in re.findall(r'"[^"]*"', same_line) if x.strip('"').strip()])
+    # YAML 块式列表：支持缩进 `  - item` 与不缩进 `- item` 两种合法格式
     count = 0
     for l in lines[idx + 1:]:
-        if l.startswith(" ") and l.lstrip().startswith("-"):
+        stripped = l.lstrip()
+        if stripped.startswith("- "):
             count += 1
-        elif l and not l.startswith(" "):
+        elif stripped == "":
+            continue
+        else:
             break
     return count
 

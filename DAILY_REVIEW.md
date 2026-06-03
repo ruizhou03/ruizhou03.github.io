@@ -1,3 +1,95 @@
+## 2026-06-03
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周三 DOW=3，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=03，未跑 monthly_stats）。距 6-02 巡检共 **29 个 commit**（4fcdde1 ~ 9bbe11a，含本次自动修复前最后一条 `9bbe11a`），主题分两大块：① **付费墙系统首发与多轮调优**（`a7e8407 feat(paywall): 账号无关的兑换码付费墙机制` → `3389ef2 feat(paywall): 站内扫码收银（虎皮椒）` → `7faec92 feat(paywall): 账号绑定跨设备漫游` → `712d826 feat(paywall): 三档制——加「整栏买断」专栏权益 + 留学攻略付费测试两篇`，含 4 次紧密调优 `57496e6 / 16e7194 / d8716f4 / 9bbe11a`，新增 `_includes/paywall.html`、`assets/js/paywall/paywall.js`、`scripts/paywall/{build_paid,gen_codes,smoke_test}.py`、`_paid/_TEMPLATE.md`，并在 `.gitignore` + `_config.yml` 双重屏蔽 `_paid/` 全文源，2 篇留学攻略测试文章上线 `/life/paid-test/us-{banking-guide,visa-types}`）；② **统一账号系统 Phase 4 ~ 5b 收尾**（`93373c2` Google Identity Services 登录、`2ff7707 / f559bfa` 桌面端账号入口绝对定位、`82a46cd / 86293ae` 评论框预填 + 文末点赞接入账号身份、`e1e7625` CloudSync 全局模块、`8a70b7b` 修身份采用的关键 bugfix）；以及 `2e16cee` 新增 JJ 私藏歌单隐藏播放页（`/toolbox/jukebox/`，noindex + sitemap:false，不进 toolbox.yml 故不上百宝箱主页）、`106778a` 飞行棋移动端重构 + 棋类控件紧凑化、`6f3d66e` 跳棋 pregame 遮罩推翻、`84f46c1 / 5d98d19 / c772939` pet 小调、`2e50b9c / 2be3c40` guandan 横屏 4 处 UI + 加倍阶段 dim、`72c39ae` localhost 不注册 SW、`410682f / e7c27eb` jukebox 修整页点不动 + manifest MIME。**今日审计新发现 2 项无争议低风险已自动修复**：jukebox/index.html 5 处 hover 缺 `@media (hover: hover)` 守卫；audit 脚本 `keywords_coverage.py` 不识别"无缩进 YAML 块式 keywords 列表"，把 2 篇付费测试文章误判为 0 项 keywords（实际两篇都有 24-46 项）。3 项 P1 持续待办（NUL byte 3 文件 / `/account/` sitemap / `_layouts/recipe.html` 没接 sa-postbar / pet 单文件膨胀）状态不变；新增 1 项 P2（toolbox/random hover 守卫的内层缩进格式）+ 2 项 P2（mid-2015 与 anova-R 这种纯 PDF 存档可加同课程互链入口）。
+
+### ✅ 本次已自动修复
+
+1. **`toolbox/jukebox/index.html` 5 处 hover 规则补 `@media (hover: hover)` 守卫** —— `hover_no_media.py` 新报。L45 `.card:hover .play`、L64 `.topbar button:hover`、L91 `.row:hover`、L108 `.bar:hover .knob`、L126 `.mini .miniprog:hover .knob`，5 处全部裸 `:hover`。jukebox 是 6-01 `2e16cee` 新建的 JJ 私藏歌单隐藏播放页（`sitemap: false`、`noindex: true`、`<meta name="robots" content="noindex, nofollow">`），整个文件从头开始写，作者未沿用 toolbox 内 hover 守卫的全局约定，5 处都漏。fix：每条单行 `selector:hover{...}` 包成 `@media (hover: hover) { selector:hover{...} }`。修完 `hover_no_media.py` 复跑 ✅ clean。性质与 5-29 ~ 6-02 系列 hover 守卫一致，触摸设备不再卡在 hover 高亮态。
+
+2. **`scripts/audit/keywords_coverage.py` 修 `count_keywords` 误判 bug：现支持无缩进 YAML 块式列表** —— 今天 `keywords_coverage.py` 把 `_notes/life/paid-test-us-banking-guide.md`（46 项）和 `_notes/life/paid-test-us-visa-types.md`（24 项）误报为「仅 0 项」。根因：`scripts/paywall/build_paid.py` 用 `yaml.safe_dump(... default_flow_style=False)` 生成预览文件，PyYAML 默认把列表项写在父键同列、不带前导空格（`keywords:\n- a\n- b\n`），这是合法 YAML（Jekyll 也正确解析），但 `count_keywords` 旧逻辑要求 `l.startswith(" ") and l.lstrip().startswith("-")` 才计数，遇上零缩进 `- item` 直接 `break`。fix：① 把行内/块式分支统一从 `lines[idx]` 切割再判断（不再依赖 `re.search(r"^keywords:\s*(.+)$"` 在「同行无内容」时漏匹配的副作用）；② 块式分支用 `stripped.startswith("- ")` 容纳缩进与零缩进两种合法格式，空行 `continue`，遇下一个键 `break`。修完两篇付费测试文章的 keywords 正确被计数（46 / 24 项），全站 `keywords_coverage` ✅ clean。**为什么不反向改文件**：这两篇是 `build_paid.py` 自动生成产物，手改 .md 下次重跑会回退；source 的 `_paid/` 在 `.gitignore` 内且仅用户本地有，无法直接动；最小正确修法是修审计脚本（一个真 bug：误判合法 YAML 格式）。
+
+复跑全套 `scripts/audit/run.sh` ✅ clean（含本次修复的 keywords 和 hover_no_media），`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（5.68 s）。
+
+### 📋 待你把关
+
+#### P1（建议尽快，承接 6-02）
+
+1. **账号系统首发：`/account/` 页应否进 sitemap + 被搜索引擎索引？** —— 承接 6-02 P1#1，状态完全不变。`account/index.html` 顶部 front-matter 仍只有 `layout / title / permalink`，sitemap 仍报 `https://ruizhou03.com/account/`。建议给 front-matter 加 `sitemap: false`，并通过 `_layouts/default.html` 注入 `<meta name="robots" content="noindex, follow">`（参考 `/toolbox/dare/` / `/toolbox/pet-food/` 两个 redirect stub）。本次本想顺手做但仍属设计判断（要不要让访客通过 Google 发现"这站有账号系统"），不擅动。
+
+2. **`_layouts/recipe.html` 未接入 `sa-postbar` 收藏/点赞栏** —— 承接 6-02 P1#2，状态不变。`grep "sa-postbar" _layouts/recipe.html` 0 命中；`_layouts/post.html` L818–923 已有完整 sa-postbar HTML+CSS+初始化 JS。后果：登录用户做菜谱无法收藏点赞，"我的主页"的「收藏」tab 看不到他们打开过的菜谱。本次新加 Phase 4/5 评论框预填 + 后端 CloudSync 都未涉及 recipe.html，所以这块仍待拍板。
+
+3. **pet 单文件 5261 行（本站极值）建议拆 `_includes/pet-*.html` 子组件** —— 承接 6-02 P1#3，今日 3 次 pet style/fix 触及（`84f46c1` 空状态宠物码移位 + `5d98d19` 食量分段控件 + `c772939` 修食量配置被后台拉取覆盖），单文件行数小幅 +30 ~ +60 行（精确数未跑 wc），仍在 5300 行量级。建议方向不变。
+
+4. **3 个 .md 文件含 NUL byte (`\x00`) 包裹的占位符（M3 / M4 / CJK2 / CJK3 / CJK30）** —— 沿用 5-29 → 6-02。`_notes/life/fridge-layout-guide.md` L157、`_notes/research/r-brucer-moderation-mediation.md` L59/L75、`_notes/research/latex-commands.md` L265，今日 `python3 -c "import pathlib; [print(p) for p in pathlib.Path('_notes').rglob('*.md') if b'\\x00' in p.read_bytes()]"` 复核仍是这 3 个文件。`fridge-layout-guide` 是新文章影响最大，建议先处理。
+
+#### P2（看心情）
+
+5. **新付费墙系统初版上线但本沙箱无后端出口验证**：`zircon-urge.fly.dev` 在沙箱内 HTTP 403，今日新加的 `/api/auth?action=*`、`/api/paid?action=publish`、`/api/redeem` 等付费墙端点全部无法实际拉测。仅做静态检查（include 模板、JS 文件结构、`_paid/_TEMPLATE.md` schema、scripts/paywall/{build_paid,gen_codes,smoke_test}.py 代码合理性）。建议站主在生产环境跑一次 `python3 scripts/paywall/smoke_test.py` 覆盖：生成兑换码 → 上传锁定正文 → 解锁 → 看到正文 全链路。
+
+6. **`scripts/{compile-r-tutorials,build-psy-stat-II-rmd,merge-psy-stat-II}.py` 中 9 处 `/Users/zhourui/Desktop/...` 本机绝对路径** —— 沿用 6-02 P2#5。`scripts/` 已被 `_config.yml` exclude，不影响线上，是一次性导入工具的合理硬编码。
+
+7. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里仍称"zirconeey 站"** —— 沿用 6-02 P2#6。内部 prompt / 文档，属本机 / 历史标识符范畴。
+
+8. **`toolbox/random/index.html` 5 处 hover 守卫的内层缩进格式不统一** —— 本次抽检发现（详见下方抽检 6/10）。所有 5 处 `:hover` 规则均已被 `@media (hover: hover) { ... }` 正确守卫，仅闭合 `}` 视觉对齐与其它 toolbox 工具略有差异。纯 cosmetic 问题，**功能完全正常**，建议不动。如果将来批量整理 toolbox 代码风格再一起处理。
+
+9. **`_notes/study/adv-metrics-pku/mid-2015.md`、`_notes/study/psy-stat-I/anova-R.md` 这两类纯 PDF 存档可考虑加同课程互链入口** —— 本次抽检 3/10 与 7/10 发现（详见下方抽检小节）。两篇本身 front-matter 齐全、keywords 充足、PDF 可达、`sibling_crosslink.py` 也判 ✅（同 `sub_category` 已有互链入口），但单篇正文是 0 字（纯 PDF 存档）。如果想做得更厚——给每篇正文补 1 ~ 3 行手写互链，让用户从这一页能一键跳到同课程的 cheat-sheet / 作业 / 期末等姐妹篇，会比 sibling 侧栏更显眼。**设计取向项**，由站主拍板要不要做、做哪些 PDF-only 存档。
+
+#### 🗒️ 待办清账（承接 6-02）
+
+- **图片 alt / caption 覆盖**：`images.py` 仍 `missing_alt = 0` / `missing_caption = 0`（白名单 62 条），收口状态保持。
+- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套全报 HTTP 403。不阻塞巡检；fly app 健康度未在本沙箱主动复查。
+- **Round-3 留下的 ~68 个 P1**：未在本次范围推进，按原优先级排队。
+- **`taichi-review-2023.md`「85 公里跑」**：仍候着，本次未触碰。
+- **大图基线**（or-2023.pdf 5.30 MB + psy-stat-II-2023.pdf 2.70 MB + 12 张 500KB–1.5MB 图）：`images.py` 输出与昨日完全一致，无变化。
+
+### 🔬 抽检专项
+
+> 本次种子抽 10 项（强制配额 game/pdf_archive/lecture_note_pdf_only 各 ≥1，其余随机）。逐项过审查清单，按"已修复 / 待办 / 长期建议"分类汇总。
+
+- **抽检 1/10 · game · `toolbox/runner/index.html`**（1077 行）——✅ 无问题。全文 0 处 `:hover` 规则（runner 专为触摸设计），有 `@media (hover: none) and (pointer: coarse)` 块（L120）专门走 tap 路径；touchstart/touchend/touchcancel 三事件配对干净；无 console.log/debugger。
+- **抽检 2/10 · pdf_archive · `files/adv-metrics-psu/midterm-spring-2025-with-solutions.pdf`**（111.2 KB）——✅ 无问题。被 `_notes/study/adv-metrics-psu/midterm-spring-2026.md:17` 作为「配套阅读」引用；同目录 .md 的 `pdf_url` 路径一致；体积合理。
+- **抽检 3/10 · lecture_note_pdf_only · `_notes/study/adv-metrics-pku/mid-2015.md`**（17 行 / 1.2 KB）——✅ front-matter 齐全（discipline / course / material_type / date / pdf_url / permalink / keywords 26+ 项），PDF 可达 `/files/adv-metrics-pku/mid-2015.pdf`；同 sub_category 的 `sibling_crosslink.py` 已 ✅。📋 **P2#9**：可考虑补正文手写互链到 `final-2015` / `adv-metrics-pku-2023` 教材。
+- **抽检 4/10 · game · `toolbox/bazi/index.html`**（1455 行）——✅ 无问题。11 处 `:hover` 全部独立用 `@media (hover: hover)` 守卫（含昨日修的 L93），0 console.log/debugger。
+- **抽检 5/10 · pdf_archive · `files/gre/GRE-Verbal-Blanks.pdf`**（255 KB）——✅ 无问题。被 `_notes/gre/gre-verbal-errors.md:22` 与 `_notes/gre/gre-exam-ui-notebook.md:321` 双向引用；`gre-verbal-errors.md` 的 `pdf_url` 指 `-Ans.pdf`（答案版为主、题目版正文里 link）是有意为之。
+- **抽检 6/10 · game · `toolbox/random/index.html`**（2093 行）——✅ 功能干净。5 处 `:hover` 全部用 `@media (hover: hover)` 守卫，0 console.log/debugger。📋 **P2#8**：守卫内层闭合 `}` 视觉对齐与其它工具略有差异，纯 cosmetic。
+- **抽检 7/10 · lecture_note_pdf_only · `_notes/study/psy-stat-I/anova-R.md`**（17 行 / 1.2 KB）——✅ front-matter 齐全（29 项 keywords，极厚），PDF 可达 `/files/psy-stat-I/anova-R.pdf`，sibling crosslink ✅。📋 **P2#9**：同课程有 6 篇姐妹笔记（cheat-sheet-mid/final、demo-summary、final-2022、hw-summary、mid-2022），可考虑补手写互链。
+- **抽检 8/10 · game · `toolbox/blackjack/index.html`**（1139 行）——✅ 无问题。2 处 `:hover` 全部用 `@media (hover: hover)` 守卫（L294 / L301），0 console.log/debugger，12 处事件监听调用配对干净。
+- **抽检 9/10 · pdf_archive · `files/real-anal/real-anal-ch5-2024.pdf`**（57 KB）——✅ 无问题。同目录 `_notes/study/real-anal/real-anal-ch5-2024.md` 的 `pdf_url` 一致；体积合理；仅被自身 .md front-matter 引用（独立章节存档的正常模式）。
+- **抽检 10/10 · note · `_notes/life/us-bathroom-stall-gaps.md`**（186 行 / 13.6 KB）——✅ 无问题。全文通读后未发现事实错误 / 自相矛盾；`<p class="img-caption">` 配文无 markdown 残留；keywords 20 项足量；SVG 图表无中文斜体。L8 keywords 含「公共测所门缝」typo——按 `search-keywords` skill 哲学这是**有意为之**的容错关键词（catch typos），保留。
+
+### 🗂 仓库卫生
+
+- **架构变化（6-02 → 6-03，29 个 commit）**：
+  - **新增付费墙系统（重大架构变化）**：
+    - `_includes/paywall.html` 全新（约 280 行：付费卡 HTML + 收银浮层 + 内嵌 CSS + 凭证存取注释），仅在 `_layouts/post.html:262` 经 `{% if page.paid %}` 闸门 include；
+    - `assets/js/paywall/paywall.js` 全新（站内扫码收银流程 + onPaid 回调 + fetchContent 兜底 + token 注入）；
+    - `scripts/paywall/{build_paid.py, gen_codes.py, smoke_test.py, README.md}` 全新（构建/发码/烟测/文档四件套）；
+    - `_paid/_TEMPLATE.md` 全新（付费文章源 schema 模板）；
+    - `.gitignore` + `_config.yml` 同时屏蔽 `_paid/*`（仅 `_TEMPLATE.md` 留作公开示范）——双重保险，**锁定正文绝不进公开仓库**；
+    - 2 篇留学攻略付费测试文章上线：`_notes/life/paid-test-us-banking-guide.md`（46 keywords / `paid_slug=liuxue-test-banking` / `price=¥6` / `column=liuxue` / `column_price=¥39` / `member_price=¥15`）与 `paid-test-us-visa-types.md`（24 keywords / `paid_slug=liuxue-test-visa`），均含 `<!-- 由 build_paid.py 自动生成 -->` 警告横幅；
+    - 后端依赖：`https://zircon-urge.fly.dev/api/paid?action=publish`、`/api/redeem?action=verify`、`/api/me` 等，**本沙箱无 fly 出口未实际验证**；
+    - `_site/_paid` 不存在 ✅，`_site/scripts` 不存在 ✅，sitemap 含 `/life/paid-test/us-{banking-guide,visa-types}` 是有意为之（付费文章主体页对外索引、付款墙隐藏正文）。
+  - **账号系统 Phase 4 ~ 5b 收尾**：`93373c2` Google Identity Services 登录按钮（前端 GIS SDK 集成）；`2ff7707 / f559bfa` 桌面端账号入口绝对定位到顶栏最右（与英文站 theme/lang 切换像素级对齐）；`82a46cd` 评论框预填用户身份（Phase 4）+ 登录后采用账号身份覆盖匿名 did（Phase 5a）；`86293ae` 宠物中心 + 文末点赞接入账号身份（Phase 5b 收尾）；`e1e7625` CloudSync 全局模块挂上 `_layouts/default.html`，本地工具数据云同步；`8a70b7b` 身份采用 bug：逐 key 独立备份避免无备份覆盖设备 id（关键修复）；`4d66e71` 填入 OAuth Client ID 启用 Google 登录。
+  - **新增 toolbox 1 个（隐藏，未登记）**：`toolbox/jukebox/`（JJ 私藏歌单，`sitemap: false`、`noindex: true`、`<meta name="robots" content="noindex, nofollow">`、L13 `<title>JJ · 私藏歌单</title>`），**未登记到 `_data/toolbox.yml`**——这是有意为之的"隐藏页"模式，类似 `unlisted` 路径，搜索引擎不索引，百宝箱主页也不挂入口，仅供作者自用。toolbox/ 实际子目录 53 个，扣 dare/pet-food 两个 redirect stub + jukebox 一个隐藏页 = 50 实工具 ↔ `_data/toolbox.yml` 50 条 url 一一对应、无孤儿、无悬空。
+  - **小游戏 / 工具深做**：`106758a` 飞行棋手机配置重构 + 棋类控件紧凑化 + memory 开局卡片 + 榜单呼吸位（6 个文件改动）；`6f3d66e` 跳棋推翻 pregame 遮罩，进入即真棋盘；`84f46c1 / 5d98d19 / c772939` pet 三处小调（空状态宠物码移位 / 食量分段控件改贴合 / 食量配置被后台拉取覆盖修复）；`2e50b9c` guandan 手机横屏 4 处 UI；`2be3c40` guandan 加倍阶段不再 dim 我的手牌；`410682f` jukebox 修整页点不动 + manifest 绕 SW；`e7c27eb` jukebox 串烧曲名分隔符统一。
+  - **基础设施**：`72c39ae` localhost 不注册 Service Worker（本地 jekyll serve 即时预览不再被 SWR 拖成旧版）。
+- **追踪卫生**：
+  - 工作树扫描无 `.DS_Store`、无 `* 2.*` macOS 副本、无 `*.bak` / `*~` / `.synctex.gz` / `*.aux` 编辑器垃圾；`git ls-files --others --exclude-standard` 0 命中（无未跟踪文件）；`_site/`、`.jekyll-cache/`、`.jekyll-metadata`、`Gemfile.lock` 均被 `.gitignore` 正确忽略。
+  - `console.log` / `debugger` / `TODO` / `FIXME` / `XXX` 残留扫描：本次新增的 5 个核心文件（`_includes/paywall.html`、`_includes/auth.html`、`assets/js/auth/auth.js`、`assets/js/auth/cloud-sync.js`、`assets/js/paywall/paywall.js`、`toolbox/jukebox/index.html`）**全部干净，0 处 console.log/debugger**。
+  - 硬编码密钥扫描无新发现；`_paid/*` 已被 `.gitignore` + `_config.yml` 双重屏蔽，付费正文不会泄露。
+  - 本机绝对路径：见 P2#6，状态不变（shell 脚本已修，剩 3 个 .py 一次性导入工具不变）。
+- **构建健康**：`bundle exec ruby -e "require 'jekyll'; Jekyll::Commands::Build.process(...)"` 通过、零 warning、零 error（5.68 s）；`_site/_paid` 不存在 ✅，`_site/scripts` 不存在 ✅。`_site/` 根目录扫描确认 `DAILY_REVIEW.md` / `EMAIL_SUMMARY.md` / `SPOTCHECK_100_REPORT.md` / `SPOTCHECK_100_AGENT_REPORTS.md` / `TOOLBOX_AUDIT_REPORT.md` / `scripts/` / `backends/` / `tools/` / `.claude/` / `docs/` / `audio/` / `_paid/` 全部正确 exclude。
+- **前置字段一致性**：`frontmatter_yaml` ✅；`keywords_coverage` 散文 121 篇全部充足（修 audit bug 后，2 篇付费测试文章正确被计数）；`_notes/study/` 全部有 `discipline`；菜谱必填字段齐全。新付费测试文章 2 篇均有完整 front-matter（含 paid_slug / price / column / column_price / member_price / afdian_url）。
+- **百宝箱一致性**：`toolbox/` 下 **53 个工具子目录 - 2 个 redirect stub（dare/、pet-food/）- 1 个隐藏页（jukebox/）= 50 个公开实工具** ↔ `_data/toolbox.yml` 50 条 `url` 一一对应、无孤儿、无悬空。
+- **audit 全套结果**：keywords ✅（修 audit bug 后）/ images（基线 2 大 PDF）/ backend_pulse（沙箱 403）/ spotcheck（10 项已逐条审完，见上）/ material_type ✅ / filename_convention ✅ / hover_no_media ✅（fix 后）/ sibling_crosslink ✅ / bare_dollar ✅ / img_caption_md ✅ / svg_italic_zh ✅ / bare_url ✅ / frontmatter_yaml ✅。今日周三，未跑 dead_links / orphan_files / pii_scan。
+- **结论**：今日 2 项无争议自动修复（jukebox 5 处 hover 守卫 + keywords_coverage 误判合法 YAML 的 bug），4 项 P1 持续待办（NUL byte / account sitemap / recipe sa-postbar / pet 拆组件），新增 2 项 P2（toolbox/random 缩进 cosmetic / 纯 PDF 存档可加手写互链），3 项 P2 持续待办。重大架构变化：付费墙系统首发上线 + 账号系统 Phase 4 ~ 5b 收尾 + JJ 私藏歌单隐藏页。
+
+### 💓 后端脉搏 / 📬 读者来信
+
+后端三件套（zircon-urge / leaderboards / zircon-comments waline）本次 `backend_pulse.py` 仍全报 HTTP 403。与 5-27 ~ 6-02 同因（沙箱无 fly.io 出口），不阻塞巡检，未主动重启 fly app。**重要新增**：付费墙系统的 `/api/paid?action=publish`、`/api/redeem?action=verify` 端点也走同一 fly app（zircon-urge），本沙箱无法主动验证；建议站主在生产环境跑 `python3 scripts/paywall/smoke_test.py` 全链路烟测。
+
+---
+
 ## 2026-06-02
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周二 DOW=2，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=02，未跑 monthly_stats）。距 5-31 巡检共 **52 个 commit**（含本次自动修复前最后一条 `0fcd074`），跨度 6-01 ~ 6-02 两天合并审；内容极密集，主题分三大块：① **新增「八字排盘」百宝箱**（`/toolbox/bazi/`，13 个 commit 迭代，含人物档案 / 大运 10 步 / 单贡/双贡进贡 / 已知八字直填四柱 / 双人合婚）；② **宠物中心大改造**：`/toolbox/pet-food/` → `/toolbox/pet/` 整体改名 + redirect stub、记录区改三列布局、体重/粮食卡 4 轮 redesign 收成一体式三段、目标进度条可点击、加粮自动识别、当前体重特写卡（共 14 个 commit，单文件已 5261 行）；③ **统一账号系统 Phase 0–3 全栈前端落地**（`account/index.html` + `_includes/auth.html` + `assets/js/auth/auth.js`，挂在 default.html 的 #auth-slot、post.html 加收藏/点赞 sa-postbar，记录浏览归账号）；以及若干 `guandan`/`doudizhu`/`feixingqi`/`dare→dontdoit` 改名 + redirect / `dontdoit` 重做 / `tiaoqi` minimax bug / `gomoku` resize 崩溃修复 / `sw.js` HTML no-cache 复验 / `pwa` 真 PNG 图标 + apple-touch-icon。**今日审计新发现 2 项无争议低风险已自动修复**：bazi/guandan 各一处新加 hover 规则缺 `@media (hover: hover)` 守卫（紧挨着的同文件 hover 规则全部已正确守卫，明显是配对漏改，与历史 5-29/5-30/5-31 修法一致）。P1 的 NUL byte 占位符 3 文件状态不变（仍需站主对照原图复核才能改）。本次同时发现 **2 项新 P1 待办**（账号系统相关：`/account/` 是否该 noindex+sitemap:false / `_layouts/recipe.html` 没接入 sa-postbar，食谱不能收藏点赞）+ 1 项 P2 升 P1（pet 单文件已 5261 行膨胀到本站极值，建议跟 cat-soundboard.html 的成功模式抽 `_includes/pet-*.html`）。

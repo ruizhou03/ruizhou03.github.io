@@ -42,7 +42,7 @@ noindex: true
   .cover{position:relative;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(40,30,20,.16)}
   .cover .ch{font-weight:700;color:rgba(255,255,255,.93);text-shadow:0 2px 8px rgba(0,0,0,.25);transition:opacity .25s;padding:0 .12em;text-align:center;line-height:1.05}
   .cover .play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;background:rgba(0,0,0,.28);transition:.18s;color:#fff;font-size:1.6em}
-  .card:hover .play{opacity:1}
+  @media (hover: hover) { .card:hover .play{opacity:1} }
   .cover .eq{position:absolute;left:9px;bottom:9px;height:18px;color:#fff;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));display:none}
   .card.now .cover .eq{display:inline-flex}
   .card.now .cover .ch{opacity:.32}
@@ -61,7 +61,7 @@ noindex: true
   .np::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.6))}
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;flex:none}
   .topbar button{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px;padding:7px 16px;font-size:15px;cursor:pointer}
-  .topbar button:hover{background:rgba(255,255,255,.22)}
+  @media (hover: hover) { .topbar button:hover{background:rgba(255,255,255,.22)} }
   .topbar .where{font-size:13px;letter-spacing:.16em;opacity:.7}
 
   .stage{flex:1;position:relative;overflow:hidden}
@@ -88,7 +88,7 @@ noindex: true
   .nowcard .st{font-size:14px;opacity:.8;margin-top:4px}
   .rows{list-style:none}
   .row{display:flex;align-items:center;gap:14px;padding:12px;border-radius:8px;cursor:pointer;transition:background .15s}
-  .row:hover{background:rgba(255,255,255,.08)}
+  @media (hover: hover) { .row:hover{background:rgba(255,255,255,.08)} }
   .row.on{background:rgba(255,255,255,.14)}
   .row .ix{width:24px;text-align:center;font-variant-numeric:tabular-nums;font-size:15px;display:flex;justify-content:center;flex:none}
   .row .ix .num{opacity:.6}
@@ -105,7 +105,7 @@ noindex: true
   .bar{flex:1;height:6px;background:rgba(255,255,255,.26);border-radius:3px;position:relative;cursor:pointer;touch-action:none}
   .bar i{position:absolute;left:0;top:0;bottom:0;background:#fff;border-radius:3px;width:0%}
   .bar .knob{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);left:0%;box-shadow:0 1px 4px rgba(0,0,0,.4);opacity:0;transition:opacity .15s}
-  .bar:hover .knob{opacity:1}
+  @media (hover: hover) { .bar:hover .knob{opacity:1} }
   .tm{font-size:12px;opacity:.85;font-variant-numeric:tabular-nums}
   .ctrl{display:flex;align-items:center;justify-content:center;gap:30px;margin-top:18px}
   .ctrl button{background:none;border:none;color:#fff;cursor:pointer;font-size:23px;opacity:.92;display:flex;align-items:center;justify-content:center}
@@ -123,7 +123,7 @@ noindex: true
   .mini .miniprog::before{content:"";position:absolute;left:0;right:0;top:2px;height:3px;background:var(--line)}
   .mini .miniprog i{position:absolute;left:0;top:2px;height:3px;background:var(--accent);width:0%}
   .mini .miniprog .knob{position:absolute;top:3px;width:11px;height:11px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);left:0%;opacity:0;transition:opacity .15s}
-  .mini .miniprog:hover .knob{opacity:1}
+  @media (hover: hover) { .mini .miniprog:hover .knob{opacity:1} }
   .mini .miniinner{max-width:1000px;margin:0 auto;height:66px;display:flex;align-items:center;gap:16px;padding:0 20px}
   .mini .minitap{display:flex;align-items:center;gap:12px;min-width:0;flex:1;cursor:pointer}
   .mini .cover{width:46px;height:46px;border-radius:7px;flex:none}
