@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LaunchAgent 模板 —— 由 install.sh 把 __WRAPPER__ / __SITE_REPO__ 替换成绝对路径后
+  写入 ~/Library/LaunchAgents/com.ruizhou03.site-preview.plist。请勿直接加载本模板。
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ruizhou03.site-preview</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>__WRAPPER__</string>
+  </array>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>ThrottleInterval</key>
+  <integer>30</integer>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/ruizhou03-jekyll-preview.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/ruizhou03-jekyll-preview.err.log</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>LANG</key><string>en_US.UTF-8</string>
+    <key>LC_ALL</key><string>en_US.UTF-8</string>
+    <key>SITE_REPO</key><string>__SITE_REPO__</string>
+  </dict>
+</dict>
+</plist>
