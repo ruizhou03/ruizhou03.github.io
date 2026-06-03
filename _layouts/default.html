@@ -36,6 +36,8 @@
 
   <meta name="description" content="{{ og_description }}">
   <link rel="canonical" href="{{ og_url }}">
+  {%- comment -%} 私域/空壳页（如 /account/ 个人主页）：不进搜索结果但允许跟踪出链 {%- endcomment -%}
+  {%- if page.noindex -%}<meta name="robots" content="noindex, follow">{%- endif -%}
 
   <meta property="og:title" content="{{ og_title }}">
   <meta property="og:description" content="{{ og_description }}">
