@@ -51,6 +51,25 @@ noindex: true
       <p class="adm-note" id="adm-fav-note" hidden>收藏数据从计数器上线起累计；要并入历史收藏，在后端跑一次 <code>backfill-favcount</code>。</p>
     </section>
 
+    {%- comment -%} 整体流量（Cloudflare Web Analytics，经 urge 服务端代取）{%- endcomment -%}
+    <section class="adm-sec">
+      <div class="adm-sec-top">
+        <h2>整体流量</h2>
+        <span class="adm-soon" id="cf-range">近 7 天 · Cloudflare</span>
+      </div>
+      <div class="adm-ov-row">
+        <div class="adm-ov"><div class="adm-ov-n" id="cf-visits">—</div><div class="adm-ov-l">访问 visits</div></div>
+        <div class="adm-ov"><div class="adm-ov-n" id="cf-pv">—</div><div class="adm-ov-l">页面浏览 PV</div></div>
+      </div>
+      <div class="adm-rank-grid">
+        <div class="adm-rank"><h3>热门页面</h3><ol id="cf-pages" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
+        <div class="adm-rank"><h3>来源</h3><ol id="cf-ref" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
+        <div class="adm-rank"><h3>国家 / 地区</h3><ol id="cf-geo" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
+        <div class="adm-rank"><h3>设备</h3><ol id="cf-dev" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
+      </div>
+      <p class="adm-note" id="cf-note" hidden></p>
+    </section>
+
     {%- comment -%} 内容管理：占位（Phase 1）{%- endcomment -%}
     <section class="adm-sec">
       <div class="adm-sec-top"><h2>内容管理</h2><span class="adm-soon">即将上线 · Phase 1</span></div>
@@ -60,12 +79,6 @@ noindex: true
         <li>修改正文与参数</li>
         <li>删除 + 回收站（可还原）</li>
       </ul>
-    </section>
-
-    {%- comment -%} 整体流量：待接入 Cloudflare {%- endcomment -%}
-    <section class="adm-sec">
-      <div class="adm-sec-top"><h2>整体流量</h2><span class="adm-soon">待接入 · Cloudflare</span></div>
-      <p class="adm-muted">独立访客 / 来源 / 设备等整体流量，待接入 Cloudflare Web Analytics（免费、不弹隐私横幅）。</p>
     </section>
   </div>
 </article>
@@ -120,7 +133,6 @@ noindex: true
 
 <script>
 (function () {
-  var CMT = 'https://zircon-comments.fly.dev';
   var titleMap = null;
   var dashLoaded = false;
 
@@ -149,8 +161,10 @@ noindex: true
   }
   function resolve(path) {
     var hit = titleMap && titleMap[normPath(path)];
-    return hit ? hit : { title: path || '(未知)', category: '' };
+    return hit ? hit.title : (path || '(未知)');
   }
+  // 所有数据请求都只走 zircon-urge（authedFetch 会自动带 token；comments 的数据由 urge 服务端代取，
+  // 这样既绕开浏览器侧广告/隐私拦截，也不受桌面网络对 comments 域名的影响）。
   function jget(url) {
     return window.SiteAuth.authedFetch(url)
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -158,25 +172,38 @@ noindex: true
   }
   function fmt(n) { n = Number(n) || 0; return n >= 10000 ? (n / 10000).toFixed(1) + '万' : String(n); }
 
+  // 排行榜（带链接，path 解析成标题）
   function renderRank(elId, items, key, unit) {
     var el = document.getElementById(elId);
     if (!el) return;
     if (!items || !items.length) { el.innerHTML = '<li class="adm-empty">暂无数据</li>'; return; }
     el.innerHTML = items.map(function (it, i) {
       var path = it.url || it.post || '';
-      var info = resolve(path);
       var n = it[key] || 0;
       return '<li>' +
         '<span class="adm-rk-i">' + (i + 1) + '</span>' +
-        '<a class="adm-rk-t" href="' + esc(normPath(path)) + '" target="_blank" rel="noopener" title="' + esc(path) + '">' + esc(info.title) + '</a>' +
+        '<a class="adm-rk-t" href="' + esc(normPath(path)) + '" target="_blank" rel="noopener" title="' + esc(path) + '">' + esc(resolve(path)) + '</a>' +
         '<span class="adm-rk-n">' + n + '<small>' + unit + '</small></span>' +
+      '</li>';
+    }).join('');
+  }
+  // 简单列表（无链接，流量维度用）
+  function renderSimple(elId, items, unit) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    if (!items || !items.length) { el.innerHTML = '<li class="adm-empty">暂无数据</li>'; return; }
+    el.innerHTML = items.map(function (it, i) {
+      return '<li>' +
+        '<span class="adm-rk-i">' + (i + 1) + '</span>' +
+        '<span class="adm-rk-t" title="' + esc(it.label) + '">' + esc(it.label) + '</span>' +
+        '<span class="adm-rk-n">' + (it.n || 0) + (unit ? '<small>' + unit + '</small>' : '') + '</span>' +
       '</li>';
     }).join('');
   }
 
   function loadDashboard() {
     loadTitles().then(function () {
-      // zircon-urge（Redis 侧）：总览 + 点赞榜 + 收藏榜
+      // urge（Redis）：点赞榜 + 收藏榜 + 反应总量
       jget('/api/admin?action=overview').then(function (d) {
         if (d && d.reactions) {
           var r = d.reactions;
@@ -189,15 +216,43 @@ noindex: true
         renderRank('rk-favs', d && d.items, 'favs', '藏');
         var note = document.getElementById('adm-fav-note'); if (note) note.hidden = false;
       });
-      // zircon-comments（Postgres 侧）：总浏览/总评论 + 阅读量榜 + 评论榜
-      jget(CMT + '/api/admin-stats?action=overview').then(function (d) {
-        if (d) {
+      // comments（Postgres）：经 urge 代取 —— 总浏览/总评论 + 阅读量榜 + 评论榜
+      jget('/api/admin?action=cmt&sub=overview').then(function (d) {
+        if (d && d.ok) {
           var v = document.getElementById('ov-views'); if (v) v.textContent = fmt(d.totalViews);
           var c = document.getElementById('ov-comments'); if (c) c.textContent = fmt(d.totalComments);
         }
       });
-      jget(CMT + '/api/admin-stats?action=top-read&limit=10').then(function (d) { renderRank('rk-read', d && d.items, 'views', '次'); });
-      jget(CMT + '/api/admin-stats?action=top-commented&limit=10').then(function (d) { renderRank('rk-commented', d && d.items, 'comments', '条'); });
+      jget('/api/admin?action=cmt&sub=top-read&limit=10').then(function (d) { renderRank('rk-read', d && d.items, 'views', '次'); });
+      jget('/api/admin?action=cmt&sub=top-commented&limit=10').then(function (d) { renderRank('rk-commented', d && d.items, 'comments', '条'); });
+      // Cloudflare 整体流量
+      loadTraffic();
+    });
+  }
+
+  function loadTraffic() {
+    jget('/api/admin?action=traffic').then(function (d) {
+      var note = document.getElementById('cf-note');
+      if (!d || !d.ok) {
+        if (note) {
+          note.hidden = false;
+          note.textContent = (d && d.error === 'cf_not_configured')
+            ? '尚未配置 Cloudflare API Token（在 zircon-urge 设 CF_API_TOKEN / CF_ACCOUNT_ID 后即可）。'
+            : '流量数据暂时取不到' + (d && d.error ? '（' + d.error + '）' : '') + '。';
+        }
+        ['cf-pages', 'cf-ref', 'cf-geo', 'cf-dev'].forEach(function (id) {
+          var el = document.getElementById(id); if (el) el.innerHTML = '<li class="adm-empty">暂无数据</li>';
+        });
+        return;
+      }
+      if (note) note.hidden = true;
+      var visits = document.getElementById('cf-visits'); if (visits) visits.textContent = fmt(d.visits);
+      var pv = document.getElementById('cf-pv'); if (pv) pv.textContent = fmt(d.pageviews);
+      var range = document.getElementById('cf-range'); if (range && d.since) range.textContent = d.since + ' ~ ' + d.until;
+      renderSimple('cf-pages', (d.pages || []).map(function (x) { return { label: resolve(x.path), n: x.views }; }), '次');
+      renderSimple('cf-ref', (d.referers || []).map(function (x) { return { label: x.host || '(直接访问)', n: x.visits }; }), '');
+      renderSimple('cf-geo', (d.countries || []).map(function (x) { return { label: x.name || '(未知)', n: x.visits }; }), '');
+      renderSimple('cf-dev', (d.devices || []).map(function (x) { return { label: x.type || '(未知)', n: x.views }; }), '');
     });
   }
 
