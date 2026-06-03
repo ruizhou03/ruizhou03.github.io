@@ -2550,7 +2550,7 @@ permalink: /toolbox/feixingqi/
       const h = {
         onTap: () => fxqCycleLocal(ck),
         onDiff: kind === 'ai' ? (d) => { state.aiDiff[ck] = d; persist(); fxqRenderLobby(); } : null,
-        onCopy: kind === 'remote' ? () => fxqOnline.goOnline() : null,
+        onCopy: kind === 'remote' ? () => fxqOnline.startInvite() : null,
       };
       const hostEl = fxqSeatEls[ck]; hostEl.innerHTML = '';
       hostEl.appendChild(fxqMakeCard(ck, m, h));
@@ -2621,11 +2621,27 @@ permalink: /toolbox/feixingqi/
       return s;
     }
 
-    async function goOnline() {
-      fxqSetErr('正在创建房间…');
+    // Clipboard writes MUST happen synchronously inside the click gesture or the
+    // browser blocks them — so the first 复制链接 pre-generates a code and copies
+    // the link BEFORE the async room-create round-trip.
+    function writeClip(text) { try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text); } catch (e) {} }
+    function inviteUrl(code) { return location.origin + '/toolbox/feixingqi/?room=' + code; }
+
+    // First 复制链接 tap (no room yet): pick a code, copy the link instantly
+    // (in-gesture), then create the room with that code in the background.
+    function startInvite() {
+      if (net) { writeClip(inviteUrl(net.code)); fxqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入'; return; }
+      const code = String(Math.floor(1000 + Math.random() * 9000));
+      writeClip(inviteUrl(code));
+      fxqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + code + '），正在建房…';
+      goOnline(code);
+    }
+
+    async function goOnline(presetCode) {
       const deviceId = GamesShell.Identity.getDeviceId();
-      const cr = await api('POST', 'create', { gameId: 'feixingqi', nick: fxqGetNick(), deviceId });
-      if (!cr || !cr.ok) { fxqSetErr('创建房间失败，请检查网络后重试'); return; }
+      let cr = await api('POST', 'create', { gameId: 'feixingqi', nick: fxqGetNick(), deviceId, code: presetCode });
+      if (cr && cr.reason === 'code_taken') cr = await api('POST', 'create', { gameId: 'feixingqi', nick: fxqGetNick(), deviceId });
+      if (!cr || !cr.ok) { fxqSetErr('创建房间失败，请检查网络后重试'); fxqLobbyHint.textContent = ''; return; }
       net = { code: cr.code, token: cr.playerToken, playerId: cr.playerId, deviceId,
         isHost: true, players: (cr.room && cr.room.players) || [], seats: seatsFromSetup(),
         swapSel: null, ver: (cr.room && cr.room.version) || 0, lastSeq: 0, started: false, poller: null };
@@ -2633,7 +2649,8 @@ permalink: /toolbox/feixingqi/
       await emit({ t: 'seats', seats: net.seats });
       startPolling();
       fxqRenderLobby();
-      copyLink();
+      if (presetCode && cr.code !== presetCode) { writeClip(inviteUrl(cr.code)); fxqLobbyHint.textContent = '房号已更新为 ' + cr.code + '（已复制新链接，旧号失效）'; }
+      else fxqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + cr.code + '），发给好友打开即加入';
     }
 
     async function join(rawCode) {
@@ -2666,11 +2683,8 @@ permalink: /toolbox/feixingqi/
     // The room link is sharable by anyone in the room (host or joiners).
     function copyLink() {
       if (!net) return;
-      const url = location.origin + '/toolbox/feixingqi/?room=' + net.code;
-      if (navigator.clipboard) navigator.clipboard.writeText(url)
-        .then(() => { fxqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入'; })
-        .catch(() => { fxqLobbyHint.textContent = '房号 ' + net.code + '，发给好友加入'; });
-      else fxqLobbyHint.textContent = '房号 ' + net.code + '，发给好友加入';
+      writeClip(inviteUrl(net.code));   // existing room → in-gesture copy
+      fxqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入';
     }
 
     // host: keep remote seats in sync with relay membership
@@ -2832,7 +2846,7 @@ permalink: /toolbox/feixingqi/
       fxqSetErr('');
     }
 
-    return { active, isHost, seatMap, controlsColor, goOnline, join, leave, broadcastSeats, onSeatClick, renderLobby, emit, autoJoin };
+    return { active, isHost, seatMap, controlsColor, goOnline, startInvite, join, leave, broadcastSeats, onSeatClick, renderLobby, emit, autoJoin };
 
     function autoJoin() {
       const code = new URLSearchParams(location.search).get('room');
