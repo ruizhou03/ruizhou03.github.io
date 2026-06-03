@@ -209,6 +209,7 @@
         '<div class="sa-menu">' +
           '<div class="sa-menu-name">' + (user.nick || user.email || '') + '</div>' +
           '<a href="/account/">我的主页</a>' +
+          (user.isAdmin ? '<a href="/admin/">管理后台</a>' : '') +
           '<button type="button" class="sa-logout">退出登录</button>' +
         '</div>' +
       '</div>';

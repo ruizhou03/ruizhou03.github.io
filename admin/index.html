@@ -1,0 +1,138 @@
+---
+layout: default
+title: 管理后台 | Rui Zhou
+permalink: /admin/
+sitemap: false
+noindex: true
+---
+
+<article class="adm-wrap">
+  <header class="adm-head">
+    <h1>管理后台</h1>
+    <p class="adm-sub">站点内容与数据的统一管理入口。</p>
+  </header>
+
+  {%- comment -%} 加载中 {%- endcomment -%}
+  <div id="adm-loading" class="adm-state">正在校验权限…</div>
+
+  {%- comment -%} 未登录 {%- endcomment -%}
+  <div id="adm-guest" class="adm-state" hidden>
+    <p>管理后台需用 Google 登录（管理员账号）。</p>
+    <button id="adm-login-btn" type="button" class="adm-btn">去登录</button>
+  </div>
+
+  {%- comment -%} 已登录但非管理员 {%- endcomment -%}
+  <div id="adm-denied" class="adm-state" hidden>
+    <p>当前账号没有管理权限。</p>
+    <p class="adm-muted">管理后台仅对站点所有者开放，且需通过 Google 登录。</p>
+  </div>
+
+  {%- comment -%} 管理员（后端 whoami 二次确认通过后才显示）{%- endcomment -%}
+  <div id="adm-main" hidden>
+    <div class="adm-verified">已验证管理员：<strong id="adm-email"></strong></div>
+
+    <div class="adm-grid">
+      <section class="adm-card">
+        <div class="adm-card-top">
+          <h2>内容管理</h2><span class="adm-soon">即将上线 · Phase 1</span>
+        </div>
+        <ul class="adm-card-list">
+          <li>文章 / 专栏 隐藏 · 公开</li>
+          <li>收费 · 取消收费</li>
+          <li>修改正文与参数</li>
+          <li>删除 + 回收站（可还原）</li>
+        </ul>
+      </section>
+
+      <section class="adm-card">
+        <div class="adm-card-top">
+          <h2>数据看板</h2><span class="adm-soon">即将上线 · Phase 2</span>
+        </div>
+        <ul class="adm-card-list">
+          <li>最受欢迎文章（阅读量）</li>
+          <li>点赞 · 收藏排行</li>
+          <li>整体流量（访客 / 来源 / 设备）</li>
+          <li>收入分析（后续）</li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="adm-foot">骨架已就绪，鉴权链路已打通。各功能将按阶段逐步接入。</p>
+  </div>
+</article>
+
+<style>
+  .adm-wrap { max-width: 880px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  .adm-head h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
+  .adm-sub { color: var(--color-light); margin-bottom: 2rem; }
+  .adm-state { text-align: center; padding: 3rem 1rem; color: var(--color-muted);
+    border: 1px dashed var(--color-border); border-radius: 14px; }
+  .adm-state p { margin: 0 0 1rem; }
+  .adm-muted { color: var(--color-light); font-size: 0.85rem; }
+  .adm-btn { padding: 0.6rem 1.6rem; font-size: 0.95rem; font-weight: 700; font-family: inherit;
+    cursor: pointer; background: var(--color-highlight); color: #fff; border: none; border-radius: 8px; }
+  .adm-verified { font-size: 0.9rem; color: var(--color-muted); background: var(--color-bg-warm);
+    border: 1px solid var(--color-border); border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 1.6rem; }
+  .adm-verified strong { color: var(--color-ink); }
+  .adm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; }
+  .adm-card { border: 1px solid var(--color-border); border-radius: 14px; padding: 1.3rem 1.4rem;
+    background: var(--color-bg); }
+  .adm-card-top { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+    margin-bottom: 0.9rem; }
+  .adm-card-top h2 { font-size: 1.15rem; color: var(--color-ink); margin: 0; }
+  .adm-soon { font-size: 0.68rem; color: var(--color-light); white-space: nowrap;
+    border: 1px solid var(--color-border); border-radius: 999px; padding: 0.15rem 0.55rem; }
+  .adm-card-list { margin: 0; padding-left: 1.1rem; }
+  .adm-card-list li { font-size: 0.9rem; color: var(--color-text); line-height: 1.9; }
+  .adm-foot { text-align: center; color: var(--color-light); font-size: 0.8rem; margin-top: 2rem; }
+</style>
+
+<script>
+(function () {
+  function start() {
+    if (!window.SiteAuth) { setTimeout(start, 100); return; }
+
+    var elLoading = document.getElementById('adm-loading');
+    var elGuest = document.getElementById('adm-guest');
+    var elDenied = document.getElementById('adm-denied');
+    var elMain = document.getElementById('adm-main');
+    var elEmail = document.getElementById('adm-email');
+    var all = [elLoading, elGuest, elDenied, elMain];
+
+    function show(which) {
+      all.forEach(function (e) { if (e) e.hidden = true; });
+      if (which) which.hidden = false;
+    }
+
+    var verifying = false;
+    function gate(user) {
+      // 前端 user.isAdmin 只用来快速决定显示什么；真正放行以后端 whoami 为准。
+      if (!user) { show(elGuest); return; }
+      if (!user.isAdmin) { show(elDenied); return; }
+      if (verifying) return;
+      verifying = true;
+      show(elLoading);
+      SiteAuth.authedFetch('/api/admin?action=whoami')
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          verifying = false;
+          if (data && data.ok) {
+            if (elEmail) elEmail.textContent = data.email || user.email || '';
+            show(elMain);
+          } else {
+            show(elDenied);
+          }
+        })
+        .catch(function () { verifying = false; show(elDenied); });
+    }
+
+    var loginBtn = document.getElementById('adm-login-btn');
+    if (loginBtn) loginBtn.addEventListener('click', function () {
+      if (window.SiteAuth.openLogin) window.SiteAuth.openLogin('login');
+    });
+
+    SiteAuth.onChange(gate);
+  }
+  start();
+})();
+</script>
