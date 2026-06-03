@@ -81,7 +81,8 @@ permalink: /toolbox/tiaoqi/
   .tq-lobby[hidden] { display: none; }
   .tq-seat {
     position: absolute; transform: translate(-50%, -50%);
-    width: 23%; max-width: 132px; pointer-events: auto;
+    display: flex; justify-content: center;
+    max-width: 38%; pointer-events: auto;   /* shrink-wraps the label, centred on the triangle */
   }
   .tq-seat.at-n  { top: 15.5%; left: 50%; }
   .tq-seat.at-ne { top: 32.7%; left: 84.1%; }
@@ -90,23 +91,24 @@ permalink: /toolbox/tiaoqi/
   .tq-seat.at-sw { top: 67.3%; left: 15.9%; }
   .tq-seat.at-nw { top: 32.7%; left: 15.9%; }
 
+  /* The card is just a soft label inside the SVG triangle frame — it has no
+     rectangle border of its own (the triangle outlines the base). */
   .tq-seat-card {
     --seat: #888;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 0.08rem; padding: 0.32rem 0.28rem; border-radius: 12px;
-    background: rgba(255, 255, 255, 0.95); border: 2px solid var(--seat);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    cursor: pointer; user-select: none; text-align: center; overflow: hidden;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.04rem; padding: 0.2rem 0.5rem; border-radius: 11px;
+    background: rgba(255, 255, 255, 0.8); border: none;
+    cursor: pointer; user-select: none; text-align: center;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
   }
-  .tq-seat-card .ico { font-size: 1.2rem; line-height: 1; }
-  .tq-seat-card .lbl { font-size: 0.78rem; font-weight: 700; color: var(--color-ink); font-family: var(--font-display); white-space: nowrap; }
-  .tq-seat-card .sub { font-size: 0.6rem; color: var(--color-muted); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-  .tq-seat-card.empty { background: rgba(255, 255, 255, 0.62); border-style: dashed; border-color: rgba(120, 108, 84, 0.6); }
+  .tq-seat-card .ico { font-size: 1.25rem; line-height: 1; }
+  .tq-seat-card .lbl { font-size: 0.82rem; font-weight: 700; color: var(--seat); font-family: var(--font-display); white-space: nowrap; }
+  .tq-seat-card .sub { font-size: 0.62rem; color: var(--color-muted); white-space: nowrap; }
+  .tq-seat-card.empty { background: rgba(255, 255, 255, 0.55); }
   .tq-seat-card.empty .lbl { color: var(--color-muted); }
-  @media (hover: hover) { .tq-seat-card:hover { box-shadow: 0 5px 15px rgba(0, 0, 0, 0.26); } }
-  .tq-seat-card.is-me { box-shadow: 0 0 0 3px rgba(229, 181, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.2); }
-  .tq-seat-card.swap-sel { border-color: #e5b500; box-shadow: 0 0 0 4px rgba(229, 181, 0, 0.55); }
+  @media (hover: hover) { .tq-seat-card:hover { background: rgba(255, 255, 255, 0.96); } }
+  .tq-seat-card.is-me { box-shadow: 0 0 0 3px rgba(229, 181, 0, 0.5); }
+  .tq-seat-card.swap-sel { box-shadow: 0 0 0 4px rgba(229, 181, 0, 0.6); }
   .tq-seat-badges { display: flex; gap: 0.18rem; flex-wrap: wrap; justify-content: center; }
   .tq-seat-tag { font-size: 0.54rem; padding: 0.02rem 0.3rem; border-radius: 999px; font-weight: 700; color: #fff; }
   .tq-seat-tag.host { background: linear-gradient(135deg, #ffd86b, #c9a227); }

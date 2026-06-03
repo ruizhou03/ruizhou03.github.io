@@ -584,6 +584,11 @@
     }
     svg.appendChild(bgGroup);
 
+    // Layer 1b: setup-mode base frames — outline each home base by its TRIANGLE
+    // shape (not a rectangle): solid colour when a player sits there, dashed grey
+    // when empty. The HTML config card floats inside the framed triangle.
+    if (!state.started) drawBaseFrames(activeCorners);
+
     // Layer 2: last-move halos (game mode only)
     if (state.started && state.lastMove) {
       const halo = svgEl('g');
@@ -659,6 +664,39 @@
 
     // Setup-mode seat config is handled by the HTML lobby cards (#tqLobby),
     // not by SVG corner badges.
+  }
+
+  // The 3 outer cells of each home triangle (tip + the two base ends).
+  const TRI_VERTS = {
+    N:  [[0, 12], [3, 9], [3, 15]],
+    S:  [[16, 12], [13, 9], [13, 15]],
+    NE: [[4, 24], [4, 18], [7, 21]],
+    NW: [[4, 0], [4, 6], [7, 3]],
+    SE: [[12, 24], [12, 18], [9, 21]],
+    SW: [[12, 0], [12, 6], [9, 3]],
+  };
+  // Outline each home base by its triangle, expanded outward from the centroid
+  // so the frame clears the cell circles.
+  function drawBaseFrames(activeCorners) {
+    const g = svgEl('g', { class: 'base-frames' });
+    const EXP = 1.34;
+    for (const ck of CORNER_KEYS) {
+      const v = TRI_VERTS[ck].map(([r, c]) => [svgX(c), svgY(r)]);
+      const cx = (v[0][0] + v[1][0] + v[2][0]) / 3, cy = (v[0][1] + v[1][1] + v[2][1]) / 3;
+      const pts = v.map(([x, y]) => (cx + (x - cx) * EXP).toFixed(1) + ',' + (cy + (y - cy) * EXP).toFixed(1)).join(' ');
+      const active = activeCorners.has(ck);
+      const color = CORNERS[ck].color;
+      g.appendChild(svgEl('polygon', {
+        points: pts,
+        fill: active ? lighten(color, 0.14) : 'none',
+        'fill-opacity': active ? 0.9 : 1,
+        stroke: active ? color : '#b09a78',
+        'stroke-width': active ? 3 : 2,
+        'stroke-linejoin': 'round',
+        'stroke-dasharray': active ? 'none' : '6 5',
+      }));
+    }
+    svg.appendChild(g);
   }
 
   // ============================================================
@@ -1310,7 +1348,7 @@
       const h = {
         onTap: () => tqCycleLocal(ck),
         onDiff: kind === 'ai' ? (d) => { state.aiDiff[ck] = d; persist(); tqRenderLobby(); } : null,
-        onCopy: kind === 'remote' ? () => tqOnline.goOnline() : null,
+        onCopy: kind === 'remote' ? () => tqOnline.startInvite() : null,
       };
       const hostEl = tqSeatEls[ck]; hostEl.innerHTML = '';
       hostEl.appendChild(tqMakeCard(ck, m, h));
@@ -1377,11 +1415,29 @@
       return s;
     }
 
-    async function goOnline() {
-      tqSetErr('正在创建房间…');
+    // Clipboard writes MUST happen synchronously inside the click gesture or the
+    // browser blocks them — which is exactly why the first 复制链接 pre-generates
+    // a code and copies the link BEFORE the async room-create round-trip.
+    function writeClip(text) { try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text); } catch (e) {} }
+    function inviteUrl(code) { return location.origin + '/toolbox/tiaoqi/?room=' + code; }
+
+    // First 复制链接 tap (no room yet): pick a code, copy the link instantly
+    // (in-gesture), then create the room with that code in the background. If
+    // the room already exists, just re-copy its link.
+    function startInvite() {
+      if (net) { writeClip(inviteUrl(net.code)); tqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入'; return; }
+      const code = String(Math.floor(1000 + Math.random() * 9000));
+      writeClip(inviteUrl(code));
+      tqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + code + '），正在建房…';
+      goOnline(code);
+    }
+
+    async function goOnline(presetCode) {
       const deviceId = GamesShell.Identity.getDeviceId();
-      const cr = await api('POST', 'create', { gameId: 'tiaoqi', nick: tqGetNick(), deviceId });
-      if (!cr || !cr.ok) { tqSetErr('创建房间失败，请检查网络后重试'); return; }
+      let cr = await api('POST', 'create', { gameId: 'tiaoqi', nick: tqGetNick(), deviceId, code: presetCode });
+      // Rare: the pre-picked code collided — let the server assign a fresh one.
+      if (cr && cr.reason === 'code_taken') cr = await api('POST', 'create', { gameId: 'tiaoqi', nick: tqGetNick(), deviceId });
+      if (!cr || !cr.ok) { tqSetErr('创建房间失败，请检查网络后重试'); tqLobbyHint.textContent = ''; return; }
       net = { code: cr.code, token: cr.playerToken, playerId: cr.playerId, deviceId,
         isHost: true, players: (cr.room && cr.room.players) || [], seats: seatsFromSetup(),
         swapSel: null, ver: (cr.room && cr.room.version) || 0, lastSeq: 0, started: false, poller: null };
@@ -1389,7 +1445,8 @@
       await emit({ t: 'seats', seats: net.seats });
       startPolling();
       tqRenderLobby();
-      copyLink();
+      if (presetCode && cr.code !== presetCode) { writeClip(inviteUrl(cr.code)); tqLobbyHint.textContent = '房号已更新为 ' + cr.code + '（已复制新链接，旧号失效）'; }
+      else tqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + cr.code + '），发给好友打开即加入';
     }
 
     async function join(rawCode) {
@@ -1421,11 +1478,8 @@
 
     function copyLink() {
       if (!net) return;
-      const url = location.origin + '/toolbox/tiaoqi/?room=' + net.code;
-      if (navigator.clipboard) navigator.clipboard.writeText(url)
-        .then(() => { tqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入'; })
-        .catch(() => { tqLobbyHint.textContent = '房号 ' + net.code + '，发给好友加入'; });
-      else tqLobbyHint.textContent = '房号 ' + net.code + '，发给好友加入';
+      writeClip(inviteUrl(net.code));   // existing room → in-gesture copy
+      tqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入';
     }
 
     function hostReconcile() {
@@ -1582,7 +1636,7 @@
       tqSetErr('');
     }
 
-    return { active, isHost, seatMap, controlsColor, goOnline, join, leave, broadcastSeats, onSeatClick, renderLobby, emit, autoJoin };
+    return { active, isHost, seatMap, controlsColor, goOnline, startInvite, join, leave, broadcastSeats, onSeatClick, renderLobby, emit, autoJoin };
 
     function autoJoin() { const code = new URLSearchParams(location.search).get('room'); if (code && /^\d{4}$/.test(code)) join(code); }
   })();
