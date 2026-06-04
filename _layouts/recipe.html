@@ -7,6 +7,8 @@ layout: default
 
 <article class="recipe-container" style="max-width: 760px; margin: 0 auto; padding: 1.5rem 1rem 4rem;">
 
+  {% include admin-article-bar.html %}
+
   {% if page.cover %}
   <div class="recipe-cover" style="margin-bottom: 2rem;">
     <img src="{{ page.cover | relative_url }}" alt="{{ page.title }}"

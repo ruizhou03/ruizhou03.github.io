@@ -196,7 +196,24 @@
   // ── 导航入口渲染 ──
   var slot = document.getElementById('auth-slot');
   function initial(nick) { return (nick || '?').trim().charAt(0).toUpperCase(); }
+  // 管理员专属：顶部导航注入「数据看板」项（非管理员则移除）
+  function syncAdminNav(user) {
+    var links = document.querySelector('.nav-links');
+    if (!links) return;
+    var existing = document.getElementById('nav-admin-dash');
+    if (user && user.isAdmin) {
+      if (!existing) {
+        var li = document.createElement('li');
+        li.id = 'nav-admin-dash';
+        li.innerHTML = '<a href="/admin/">数据看板</a>';
+        links.appendChild(li);
+      }
+    } else if (existing && existing.parentNode) {
+      existing.parentNode.removeChild(existing);
+    }
+  }
   function render(user) {
+    syncAdminNav(user);
     if (!slot) return;
     if (!user) {
       slot.innerHTML = '<button class="sa-login-btn" type="button">登录</button>';
@@ -209,7 +226,7 @@
         '<div class="sa-menu">' +
           '<div class="sa-menu-name">' + (user.nick || user.email || '') + '</div>' +
           '<a href="/account/">我的主页</a>' +
-          (user.isAdmin ? '<a href="/admin/">管理后台</a>' : '') +
+          (user.isAdmin ? '<a href="/admin/">数据看板</a>' : '') +
           '<button type="button" class="sa-logout">退出登录</button>' +
         '</div>' +
       '</div>';

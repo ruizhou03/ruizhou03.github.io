@@ -261,6 +261,7 @@ layout: default
     {{ content }}
     {% if page.paid %}{% include paywall.html %}{% endif %}
   </div>
+  {% include admin-article-bar.html %}
 
   {%- comment -%}
     "同课程其他资料" 自动区块：基于 page.course 聚合 site.notes 里所有
