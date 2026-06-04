@@ -1190,6 +1190,12 @@ permalink: /toolbox/feixingqi/
 
   function activeCornerSet() {
     if (state.started) return new Set(state.players);
+    // In an online lobby the live seat config lives in fxqOnline (net.seats),
+    // not state.setupConfig — read it so the home-base tints track the seats.
+    if (fxqOnline.active() && fxqOnline.seatMap) {
+      const seats = fxqOnline.seatMap() || {};
+      return new Set(CORNER_KEYS.filter(c => seats[c] && seats[c].kind !== 'empty').map(c => CORNER_TO_COLOR[c]));
+    }
     return new Set(CORNER_KEYS.filter(c => state.setupConfig[c] !== 'empty').map(c => CORNER_TO_COLOR[c]));
   }
 
@@ -2569,6 +2575,7 @@ permalink: /toolbox/feixingqi/
       fxqLobbyHint.textContent = '点基地切换 空 / 本机真人 / 电脑（可设难度）/ 邀请联机';
     }
     fxqSetErr('');
+    renderBoard();   // keep home-base tints in sync with the seat config
   }
 
   // ============ Online (rooms + deterministic turn-event sync) ============
@@ -2844,6 +2851,7 @@ permalink: /toolbox/feixingqi/
         fxqLobbyHint.textContent = '已加入房间 ' + net.code + '，等待房主开始…（点房号可把链接转发给别人）';
       }
       fxqSetErr('');
+      renderBoard();   // keep home-base tints in sync with the live online seats
     }
 
     return { active, isHost, seatMap, controlsColor, goOnline, startInvite, join, leave, broadcastSeats, onSeatClick, renderLobby, emit, autoJoin };
