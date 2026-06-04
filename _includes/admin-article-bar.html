@@ -14,9 +14,21 @@
     <div class="ab-row"><span class="ab-dot" id="ab-dot"></span><span id="ab-state">公开</span></div>
     <button class="ab-act" id="ab-toggle-pub" type="button">隐藏此文</button>
     <button class="ab-act" id="ab-paid" type="button" disabled>设为付费 <span class="ab-soon">即将上线</span></button>
-    <button class="ab-act" id="ab-edit" type="button" disabled>编辑正文 <span class="ab-soon">即将上线</span></button>
+    <button class="ab-act" id="ab-edit" type="button">编辑正文与参数</button>
     <button class="ab-act ab-danger" id="ab-del" type="button" disabled>删除 <span class="ab-soon">即将上线</span></button>
     <div class="ab-msg" id="ab-msg"></div>
+  </div>
+</div>
+<div id="ab-edit-mask" class="ab-edit-mask">
+  <div class="ab-edit-card">
+    <div class="ab-edit-h">编辑源文件 · <span id="abe-path"></span></div>
+    <textarea id="abe-text" class="ab-edit-text" spellcheck="false" wrap="off"></textarea>
+    <div class="ab-edit-foot">
+      <span class="ab-edit-msg" id="abe-msg"></span>
+      <span style="flex:1"></span>
+      <button type="button" class="ab-edit-btn" id="abe-cancel">取消</button>
+      <button type="button" class="ab-edit-btn ab-edit-primary" id="abe-save" disabled>保存并提交</button>
+    </div>
   </div>
 </div>
 <style>
@@ -47,6 +59,27 @@
   #admin-fab .ab-soon { font-size: 0.6rem; color: var(--color-light); border: 1px solid var(--color-border);
     border-radius: 999px; padding: 0.02rem 0.4rem; white-space: nowrap; }
   #admin-fab .ab-msg { font-size: 0.72rem; color: var(--color-muted); margin-top: 0.5rem; min-height: 1rem; padding: 0 0.25rem; }
+
+  /* 编辑弹窗 */
+  .ab-edit-mask { display: none; position: fixed; inset: 0; z-index: 1600;
+    background: rgba(20,28,40,0.5); backdrop-filter: blur(3px); align-items: center; justify-content: center; padding: 1rem; }
+  .ab-edit-mask.open { display: flex; }
+  .ab-edit-card { width: 760px; max-width: 100%; max-height: 88vh; display: flex; flex-direction: column;
+    background: var(--color-bg, #fff); color: var(--color-text); border: 1px solid var(--color-border);
+    border-radius: 14px; box-shadow: 0 18px 50px rgba(0,0,0,0.3); padding: 1rem 1.1rem 1.1rem; }
+  .ab-edit-h { font-size: 0.85rem; font-weight: 700; color: var(--color-ink); margin-bottom: 0.6rem; word-break: break-all; }
+  .ab-edit-h span { color: var(--color-muted); font-weight: 400; }
+  .ab-edit-text { flex: 1; min-height: 50vh; width: 100%; box-sizing: border-box; resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.82rem; line-height: 1.5;
+    color: var(--color-text); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px;
+    padding: 0.7rem 0.8rem; white-space: pre; }
+  .ab-edit-foot { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.7rem; }
+  .ab-edit-msg { font-size: 0.7rem; color: var(--color-light); }
+  .ab-edit-btn { font-family: inherit; font-size: 0.85rem; cursor: pointer; padding: 0.4rem 0.9rem;
+    border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-bg); color: var(--color-text); }
+  .ab-edit-btn:hover:not(:disabled) { border-color: var(--color-highlight); }
+  .ab-edit-primary { background: var(--color-highlight); color: #fff; border-color: var(--color-highlight); font-weight: 700; }
+  .ab-edit-btn:disabled { opacity: 0.5; cursor: default; }
 </style>
 {% raw %}
 <script>
@@ -94,6 +127,46 @@
         })
         .catch(function (e) { msg.textContent = '失败：' + ((e && e.error) || '请重试'); })
         .then(function () { btn.disabled = false; });
+    });
+
+    // ── 编辑正文与参数（整文件覆盖写）──
+    var editBtn = document.getElementById('ab-edit');
+    var mask = document.getElementById('ab-edit-mask');
+    var textEl = document.getElementById('abe-text');
+    var pathEl = document.getElementById('abe-path');
+    var eMsg = document.getElementById('abe-msg');
+    var saveBtn = document.getElementById('abe-save');
+    var cancelBtn = document.getElementById('abe-cancel');
+    var editSha = null;
+    var HINT = '保存即提交到 main，约 1–2 分钟生效。改开头 --- 之间的 front-matter 请保持 YAML 格式正确。';
+
+    function openEdit() {
+      fab.classList.remove('ab-open');
+      mask.classList.add('open');
+      pathEl.textContent = path;
+      textEl.value = ''; saveBtn.disabled = true; eMsg.textContent = '加载中…';
+      window.SiteAuth.authedFetch('/api/admin?action=gh-get&path=' + encodeURIComponent(path))
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+        .then(function (d) { textEl.value = d.content || ''; editSha = d.sha; saveBtn.disabled = false; eMsg.textContent = HINT; })
+        .catch(function (e) { eMsg.textContent = '加载失败：' + ((e && e.error) || '请重试'); });
+    }
+    function closeEdit() { mask.classList.remove('open'); }
+
+    editBtn.addEventListener('click', openEdit);
+    cancelBtn.addEventListener('click', closeEdit);
+    mask.addEventListener('click', function (e) { if (e.target === mask) closeEdit(); });
+    saveBtn.addEventListener('click', function () {
+      saveBtn.disabled = true; eMsg.textContent = '提交中…';
+      window.SiteAuth.authedFetch('/api/admin?action=gh-put', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: path, content: textEl.value, sha: editSha })
+      })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+        .then(function (d) { editSha = d.sha; eMsg.textContent = '已提交，约 1–2 分钟生效。'; setTimeout(closeEdit, 1100); })
+        .catch(function (e) {
+          saveBtn.disabled = false;
+          eMsg.textContent = '保存失败：' + ((e && e.error) || '请重试') + '（若提示冲突，请关闭重开再编辑）';
+        });
     });
 
     var openedOnce = false;
