@@ -158,7 +158,7 @@
   </nav>
 
   <main data-hidden="{% if page.hidden %}true{% else %}false{% endif %}">
-    {% if page.hidden %}<div class="hidden-gate">这篇文章尚未公开。</div>{% endif %}
+    {% if page.hidden %}<div class="hidden-gate"><h1 class="hidden-gate-title">页面不存在</h1><p>抱歉，没有找到这个页面。<a href="{{ '/zh/' | relative_url }}">返回首页</a></p></div>{% endif %}
     {{ content }}
   </main>
 

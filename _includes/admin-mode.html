@@ -7,7 +7,9 @@
 {%- endcomment -%}
 <style>
   /* 文章软隐藏：访客（无 .sa-admin）藏正文、显提示；管理员正常可读 + 顶部预览提示 */
-  .hidden-gate { display: none; text-align: center; color: var(--color-light); padding: 4rem 1rem; font-size: 0.95rem; }
+  .hidden-gate { display: none; text-align: center; color: var(--color-muted); padding: 5rem 1rem; }
+  .hidden-gate-title { font-size: 2rem; color: var(--color-ink); margin: 0 0 0.6rem; }
+  .hidden-gate a { color: var(--color-highlight); }
   body:not(.sa-admin) main[data-hidden="true"] > :not(.hidden-gate) { display: none; }
   body:not(.sa-admin) main[data-hidden="true"] .hidden-gate { display: block; }
   body.sa-admin main[data-hidden="true"]::before {
@@ -36,6 +38,23 @@
 </style>
 {% raw %}
 <script>
+// 待生效缓冲：管理员翻 hidden 后要等 Pages 重建(~1-2min)；这期间刷新会读到旧构建。
+// 把"意图状态"存本地，刷新时优先显示意图(标注重建中)，等构建追上(构建值==意图)再归位。
+window.SaPending = window.SaPending || (function () {
+  var KEY = 'sa.pending.hidden.v1', TTL = 20 * 60 * 1000;
+  function load() { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function save(o) { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
+  return {
+    // 返回 {hidden, pending}：pending=本地有意图但构建还没追上
+    state: function (path, buildHidden) {
+      var all = load(), p = all[path], bh = !!buildHidden;
+      if (!p) return { hidden: bh, pending: false };
+      if (Date.now() - p.t > TTL || !!p.h === bh) { delete all[path]; save(all); return { hidden: bh, pending: false }; }
+      return { hidden: !!p.h, pending: true };
+    },
+    mark: function (path, hidden) { var all = load(); all[path] = { h: hidden ? 1 : 0, t: Date.now() }; save(all); }
+  };
+})();
 (function () {
   function injectListToggles() {
     var items = document.querySelectorAll('li.paginated-item[data-path]');
@@ -44,11 +63,15 @@
       var path = el.getAttribute('data-path');
       if (!path) return;
       el.setAttribute('data-sa-wired', '1');
-      var hidden = el.getAttribute('data-hidden') === 'true';
+      var bh = el.getAttribute('data-hidden') === 'true';
+      var st = window.SaPending.state(path, bh);
+      var hidden = st.hidden, pending = st.pending;
+      el.setAttribute('data-hidden', hidden ? 'true' : 'false');  // 反映本地意图，重建中也保持一致
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'sa-item-toggle';
-      btn.textContent = hidden ? '取消隐藏' : '隐藏';
+      function label() { btn.textContent = (hidden ? '取消隐藏' : '隐藏') + (pending ? '·重建中' : ''); }
+      label();
       btn.addEventListener('click', function (e) {
         e.preventDefault(); e.stopPropagation();
         var next = !hidden;
@@ -59,12 +82,12 @@
         })
           .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
           .then(function () {
-            hidden = next;
+            hidden = next; pending = (next !== bh);
+            window.SaPending.mark(path, next);
             el.setAttribute('data-hidden', next ? 'true' : 'false');
-            btn.textContent = next ? '取消隐藏' : '隐藏';
-            btn.disabled = false;
+            btn.disabled = false; label();
           })
-          .catch(function () { btn.textContent = '失败'; btn.disabled = false; });
+          .catch(function () { btn.disabled = false; label(); });
       });
       el.appendChild(btn);
     });

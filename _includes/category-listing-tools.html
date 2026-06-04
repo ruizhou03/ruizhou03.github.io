@@ -140,10 +140,16 @@
   var GQ = '';
   var sections = [];
 
+  function saIsAdmin() {
+    try { var u = window.SiteAuth && SiteAuth.getUser && SiteAuth.getUser(); return !!(u && u.isAdmin); }
+    catch (e) { return false; }
+  }
+
   function wireSection(section) {
     var list = section.querySelector('.paginated-list');
     if (!list) return;
-    var items = Array.prototype.slice.call(list.querySelectorAll('.paginated-item'));
+    var allItems = Array.prototype.slice.call(list.querySelectorAll('.paginated-item'));
+    var items = allItems;  // 当前可见集；applyFilter 按管理员状态重算（访客排除软隐藏项 → 消除分页弹坑）
     var pageSize = parseInt(list.dataset.pageSize, 10) || 5;
     var paginationEl = section.querySelector('.pagination-wrap');
     var emptyEl = section.querySelector('.paginated-empty');
@@ -154,6 +160,8 @@
     var searchOnly = section.classList.contains('cat-search-only');
 
     function applyFilter() {
+      // 访客视角排除软隐藏项（管理员则纳入并变灰）；这样分页按可见集重排，不留弹坑
+      items = saIsAdmin() ? allItems : allItems.filter(function (i) { return i.getAttribute('data-hidden') !== 'true'; });
       filteredItems = GQ ? items.filter(function(i) {
         return (i.dataset.title || '').indexOf(GQ) !== -1;
       }) : items.slice();
@@ -256,6 +264,17 @@
   }
 
   document.querySelectorAll('.post-list-section').forEach(wireSection);
+
+  // 管理员登录态确定/变化后重排各小节：访客视角排除软隐藏项（不留弹坑），管理员则纳入并变灰
+  (function waitAuth() {
+    if (window.SiteAuth && window.SiteAuth.onChange) {
+      var last = null;
+      window.SiteAuth.onChange(function (u) {
+        var a = !!(u && u.isAdmin);
+        if (a !== last) { last = a; sections.forEach(function (s) { s.apply(); }); }
+      });
+    } else { setTimeout(waitAuth, 150); }
+  })();
 
   // ─── 顶部全局搜索：跨所有小节按标题筛选，空小节整块隐藏 ───
   (function () {
