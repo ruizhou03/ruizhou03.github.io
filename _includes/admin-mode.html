@@ -1,0 +1,84 @@
+{%- comment -%}
+  管理员模式 —— 登录管理员后给 <body> 加 .sa-admin 类，据此：
+  ① 隐藏站内小助手（与文章右下角齿轮重合）；
+  ② 软隐藏：hidden:true 的文章/列表项，访客藏（CSS body:not(.sa-admin)），管理员变灰可点可读；
+  ③ 给栏目列表每项注入「隐藏/取消隐藏」切换（data-path 调 set-flag）。
+  由 default.html 全站引入。依赖 SiteAuth + 列表项 data-hidden/data-path + 文章页 main[data-hidden]。
+{%- endcomment -%}
+<style>
+  /* 文章软隐藏：访客（无 .sa-admin）藏正文、显提示；管理员正常可读 + 顶部预览提示 */
+  .hidden-gate { display: none; text-align: center; color: var(--color-light); padding: 4rem 1rem; font-size: 0.95rem; }
+  body:not(.sa-admin) main[data-hidden="true"] > :not(.hidden-gate) { display: none; }
+  body:not(.sa-admin) main[data-hidden="true"] .hidden-gate { display: block; }
+  body.sa-admin main[data-hidden="true"]::before {
+    content: "管理员预览 · 本文已隐藏，访客看不到"; display: block; text-align: center;
+    font-size: 0.78rem; color: #9a6a00; background: #fff4d6; border: 1px solid #f0d68a;
+    border-radius: 8px; padding: 0.4rem 0.6rem; margin: 0 0 1.2rem; }
+
+  /* 列表里 hidden 项：访客不见；管理员变灰 */
+  body:not(.sa-admin) [data-hidden="true"].paginated-item,
+  body:not(.sa-admin) [data-hidden="true"].yearly-card,
+  body:not(.sa-admin) li[data-hidden="true"] { display: none !important; }
+  body.sa-admin [data-hidden="true"].paginated-item,
+  body.sa-admin [data-hidden="true"].yearly-card,
+  body.sa-admin li[data-hidden="true"] { opacity: 0.5; }
+
+  /* 管理员模式隐藏站内小助手（避免与文章齿轮重合） */
+  body.sa-admin #za-fab, body.sa-admin #za-panel,
+  body.sa-admin #zs-mask, body.sa-admin #zs-modal { display: none !important; }
+
+  /* 栏目列表项注入的小开关 */
+  .sa-item-toggle { margin-left: 0.5rem; font-family: inherit; font-size: 0.66rem; cursor: pointer;
+    color: var(--color-muted); background: var(--color-bg-warm); border: 1px solid var(--color-border);
+    border-radius: 999px; padding: 0.04rem 0.5rem; vertical-align: middle; white-space: nowrap; }
+  .sa-item-toggle:hover:not(:disabled) { color: var(--color-highlight); border-color: var(--color-highlight); }
+  .sa-item-toggle:disabled { opacity: 0.6; cursor: default; }
+</style>
+{% raw %}
+<script>
+(function () {
+  function injectListToggles() {
+    var items = document.querySelectorAll('li.paginated-item[data-path]');
+    Array.prototype.forEach.call(items, function (el) {
+      if (el.getAttribute('data-sa-wired')) return;
+      var path = el.getAttribute('data-path');
+      if (!path) return;
+      el.setAttribute('data-sa-wired', '1');
+      var hidden = el.getAttribute('data-hidden') === 'true';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sa-item-toggle';
+      btn.textContent = hidden ? '取消隐藏' : '隐藏';
+      btn.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        var next = !hidden;
+        btn.disabled = true; btn.textContent = '…';
+        window.SiteAuth.authedFetch('/api/admin?action=set-flag', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: path, key: 'hidden', value: next })
+        })
+          .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+          .then(function () {
+            hidden = next;
+            el.setAttribute('data-hidden', next ? 'true' : 'false');
+            btn.textContent = next ? '取消隐藏' : '隐藏';
+            btn.disabled = false;
+          })
+          .catch(function () { btn.textContent = '失败'; btn.disabled = false; });
+      });
+      el.appendChild(btn);
+    });
+  }
+  function apply(user) {
+    var on = !!(user && user.isAdmin);
+    document.body.classList.toggle('sa-admin', on);
+    if (on) injectListToggles();
+  }
+  function start() {
+    if (!window.SiteAuth) { setTimeout(start, 120); return; }
+    window.SiteAuth.onChange(apply);
+  }
+  start();
+})();
+</script>
+{% endraw %}

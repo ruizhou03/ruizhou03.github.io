@@ -5,7 +5,7 @@
   付费/编辑/删除占位「即将上线」，下一块接。下方 JS 用 raw 包裹保护。
 {%- endcomment -%}
 {%- if page.path -%}
-<div id="admin-fab" data-path="{{ page.path }}" data-published="{{ page.published }}" data-paid="{{ page.paid }}">
+<div id="admin-fab" data-path="{{ page.path }}" data-hidden="{% if page.hidden %}true{% else %}false{% endif %}" data-paid="{{ page.paid }}">
   <button id="ab-gear" class="ab-gear" type="button" title="管理本文" aria-label="管理本文">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
   </button>
@@ -62,35 +62,41 @@
     var btn = document.getElementById('ab-toggle-pub');
     var msg = document.getElementById('ab-msg');
     var path = fab.getAttribute('data-path');
-    var published = fab.getAttribute('data-published') !== 'false';  // 未设=空=公开
+    var hidden = fab.getAttribute('data-hidden') === 'true';  // 软隐藏：true=已隐藏（访客看不到，管理员可读）
 
     function paint() {
-      dot.classList.toggle('is-hidden', !published);
-      stateEl.textContent = published ? '当前：公开' : '当前：已隐藏';
-      btn.textContent = published ? '隐藏此文' : '取消隐藏（公开）';
+      dot.classList.toggle('is-hidden', hidden);
+      stateEl.textContent = hidden ? '当前：已隐藏' : '当前：公开';
+      btn.textContent = hidden ? '取消隐藏（公开）' : '隐藏此文';
     }
 
     gear.addEventListener('click', function (e) { e.stopPropagation(); fab.classList.toggle('ab-open'); });
     document.addEventListener('click', function (e) { if (!fab.contains(e.target)) fab.classList.remove('ab-open'); });
 
     btn.addEventListener('click', function () {
-      var next = !published;
+      var next = !hidden;
       msg.textContent = '提交中…';
       btn.disabled = true;
       window.SiteAuth.authedFetch('/api/admin?action=set-flag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: path, key: 'published', value: next })
+        body: JSON.stringify({ path: path, key: 'hidden', value: next })
       })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
-        .then(function () { published = next; paint(); msg.textContent = '已提交，约 1–2 分钟生效'; })
+        .then(function () { hidden = next; paint(); msg.textContent = '已提交，约 1–2 分钟生效'; })
         .catch(function (e) { msg.textContent = '失败：' + ((e && e.error) || '请重试'); })
         .then(function () { btn.disabled = false; });
     });
 
+    var openedOnce = false;
     window.SiteAuth.onChange(function (user) {
-      if (user && user.isAdmin) { paint(); fab.classList.add('ab-show'); }
-      else { fab.classList.remove('ab-show'); fab.classList.remove('ab-open'); }
+      if (user && user.isAdmin) {
+        paint();
+        fab.classList.add('ab-show');
+        if (!openedOnce) { openedOnce = true; fab.classList.add('ab-open'); }  // 进文章默认展开一次
+      } else {
+        fab.classList.remove('ab-show'); fab.classList.remove('ab-open');
+      }
     });
   }
   start();

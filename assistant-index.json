@@ -68,6 +68,7 @@ layout: null
       "url"     : "{{ site.baseurl }}{{ item.url }}",
       "category": {{ cat_str | jsonify }},
       "type"    : "{{ _type }}",
+      "hidden"  : {% if item.hidden %}true{% else %}false{% endif %},
       "download": "{% if _dl %}{{ site.baseurl }}{{ _dl }}{% endif %}",
       "summary" : {{ _sum | jsonify }},
       "keywords": {{ kw | jsonify }},

@@ -157,7 +157,8 @@
     </div>
   </nav>
 
-  <main>
+  <main data-hidden="{% if page.hidden %}true{% else %}false{% endif %}">
+    {% if page.hidden %}<div class="hidden-gate">这篇文章尚未公开。</div>{% endif %}
     {{ content }}
   </main>
 
@@ -217,6 +218,7 @@
   {% include auth.html %}
 
   {% include assistant.html %}
+  {% include admin-mode.html %}
   
   <script>
     // 接管所有 details 的点击事件，实现完美双向动画

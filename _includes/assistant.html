@@ -359,6 +359,7 @@
           return {
             title: it.title || '', url: it.url || '', category: it.category || '',
             type: it.type || 'article', download: it.download || '', summary: it.summary || '',
+            hidden: !!it.hidden,
             blob: ((it.title || '') + ' ' + (it.keywords || '') + ' ' + (it.summary || '')).toLowerCase(),
             titleLow: (it.title || '').toLowerCase()
           };
@@ -393,7 +394,9 @@
     var ts = terms(q);
     var matIntent = /资料|下载|pdf|讲义|习题|作业|真题|试卷|往年题|课件|速查|cheat/i.test(q);
     var scored = [];
+    var saAdmin = !!(window.SiteAuth && SiteAuth.getUser && SiteAuth.getUser() && SiteAuth.getUser().isAdmin);
     idx.forEach(function (it) {
+      if (it.hidden && !saAdmin) return;   // 软隐藏文章：非管理员搜不到
       var s = 0, hit = 0;
       ts.forEach(function (t) {
         if (STOP[t]) return;
