@@ -91,24 +91,22 @@ permalink: /toolbox/tiaoqi/
   .tq-seat.at-sw { top: 67.3%; left: 15.9%; }
   .tq-seat.at-nw { top: 32.7%; left: 15.9%; }
 
-  /* The card is just a soft label inside the SVG triangle frame — it has no
-     rectangle border of its own (the triangle outlines the base). */
+  /* The card is just the centred text label; the SVG rounded-triangle frame
+     behind it is the 底框 (white fill covering the whole base), so the card
+     itself carries no rectangle background, border, or box-shadow. */
   .tq-seat-card {
     --seat: #888;
     display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 0.04rem; padding: 0.2rem 0.5rem; border-radius: 11px;
-    background: rgba(255, 255, 255, 0.8); border: none;
+    gap: 0.04rem; padding: 0.2rem 0.5rem;
+    background: transparent; border: none;
     cursor: pointer; user-select: none; text-align: center;
-    transition: background 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.15s ease;
   }
   .tq-seat-card .ico { font-size: 1.25rem; line-height: 1; }
   .tq-seat-card .lbl { font-size: 0.82rem; font-weight: 700; color: var(--seat); font-family: var(--font-display); white-space: nowrap; }
   .tq-seat-card .sub { font-size: 0.62rem; color: var(--color-muted); white-space: nowrap; }
-  .tq-seat-card.empty { background: rgba(255, 255, 255, 0.55); }
   .tq-seat-card.empty .lbl { color: var(--color-muted); }
-  @media (hover: hover) { .tq-seat-card:hover { background: rgba(255, 255, 255, 0.96); } }
-  .tq-seat-card.is-me { box-shadow: 0 0 0 3px rgba(229, 181, 0, 0.5); }
-  .tq-seat-card.swap-sel { box-shadow: 0 0 0 4px rgba(229, 181, 0, 0.6); }
+  @media (hover: hover) { .tq-seat-card:hover { transform: scale(1.05); } }
   .tq-seat-badges { display: flex; gap: 0.18rem; flex-wrap: wrap; justify-content: center; }
   .tq-seat-tag { font-size: 0.54rem; padding: 0.02rem 0.3rem; border-radius: 999px; font-weight: 700; color: #fff; }
   .tq-seat-tag.host { background: linear-gradient(135deg, #ffd86b, #c9a227); }

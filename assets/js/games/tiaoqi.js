@@ -675,26 +675,78 @@
     SE: [[12, 24], [12, 18], [9, 21]],
     SW: [[12, 0], [12, 6], [9, 3]],
   };
-  // Outline each home base by its triangle, expanded outward from the centroid
-  // so the frame clears the cell circles.
+  // Rounded-triangle path = Minkowski sum of the 3-vertex home triangle with a
+  // disk of radius `pad`: every straight edge is pushed outward by pad (so it
+  // clears the marbles on that edge), and each corner becomes a pad-radius arc
+  // centred on the corner cell. That rounds the three spikes off *around the
+  // corner grid points* instead of ending in sharp points, and the offset edges
+  // fully enclose the 10 base marbles.
+  function roundedTriPath(verts, pad) {
+    const cx = (verts[0][0] + verts[1][0] + verts[2][0]) / 3;
+    const cy = (verts[0][1] + verts[1][1] + verts[2][1]) / 3;
+    // Shoelace in SVG (y-down) coords: >0 ⇒ clockwise on screen ⇒ the outward
+    // corner arcs sweep clockwise (SVG sweep-flag 1); <0 ⇒ flag 0.
+    let area = 0;
+    for (let i = 0; i < 3; i++) { const a = verts[i], b = verts[(i + 1) % 3]; area += a[0] * b[1] - b[0] * a[1]; }
+    const sweep = area > 0 ? 1 : 0;
+    // Per edge: outward unit normal (flipped to always point away from centroid).
+    const edges = verts.map((a, i) => {
+      const b = verts[(i + 1) % 3];
+      let nx = -(b[1] - a[1]), ny = (b[0] - a[0]);
+      const len = Math.hypot(nx, ny) || 1; nx /= len; ny /= len;
+      const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      if ((mx + nx - cx) ** 2 + (my + ny - cy) ** 2 < (mx - cx) ** 2 + (my - cy) ** 2) { nx = -nx; ny = -ny; }
+      return { a, b, nx, ny };
+    });
+    let d = '';
+    for (let i = 0; i < 3; i++) {
+      const e = edges[i], next = edges[(i + 1) % 3];
+      const sx = e.a[0] + pad * e.nx, sy = e.a[1] + pad * e.ny;
+      const ex = e.b[0] + pad * e.nx, ey = e.b[1] + pad * e.ny;
+      const nsx = next.a[0] + pad * next.nx, nsy = next.a[1] + pad * next.ny;
+      if (i === 0) d += `M ${sx.toFixed(1)} ${sy.toFixed(1)} `;
+      d += `L ${ex.toFixed(1)} ${ey.toFixed(1)} A ${pad} ${pad} 0 0 ${sweep} ${nsx.toFixed(1)} ${nsy.toFixed(1)} `;
+    }
+    return d + 'Z';
+  }
+
+  // Setup-mode online seats can be highlighted: 'me' = your own joined seat,
+  // 'sel' = the seat the host has picked to swap. Rendered on the SVG frame so
+  // it reads as a glow on the whole base, never a floating rectangle.
+  function cornerHighlight(ck) {
+    if (state.started) return null;
+    return (tqOnline.active() && tqOnline.highlightFor) ? tqOnline.highlightFor(ck) : null;
+  }
+
+  // Frame each home base with a rounded triangle that doubles as the config
+  // card's backdrop: a near-opaque white fill (the 底框, covering the whole
+  // base) plus the team-colour border — dashed grey when the seat is empty.
   function drawBaseFrames(activeCorners) {
     const g = svgEl('g', { class: 'base-frames' });
-    const EXP = 1.34;
+    const PAD = 26;
     for (const ck of CORNER_KEYS) {
-      const v = TRI_VERTS[ck].map(([r, c]) => [svgX(c), svgY(r)]);
-      const cx = (v[0][0] + v[1][0] + v[2][0]) / 3, cy = (v[0][1] + v[1][1] + v[2][1]) / 3;
-      const pts = v.map(([x, y]) => (cx + (x - cx) * EXP).toFixed(1) + ',' + (cy + (y - cy) * EXP).toFixed(1)).join(' ');
+      const verts = TRI_VERTS[ck].map(([r, c]) => [svgX(c), svgY(r)]);
+      const d = roundedTriPath(verts, PAD);
       const active = activeCorners.has(ck);
       const color = CORNERS[ck].color;
-      g.appendChild(svgEl('polygon', {
-        points: pts,
-        fill: active ? lighten(color, 0.14) : 'none',
-        'fill-opacity': active ? 0.9 : 1,
+      g.appendChild(svgEl('path', {
+        d,
+        fill: active ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.42)',
         stroke: active ? color : '#b09a78',
         'stroke-width': active ? 3 : 2,
         'stroke-linejoin': 'round',
         'stroke-dasharray': active ? 'none' : '6 5',
       }));
+      const hl = cornerHighlight(ck);
+      if (hl) {
+        g.appendChild(svgEl('path', {
+          d, fill: 'none',
+          stroke: '#e5b500',
+          'stroke-width': hl === 'sel' ? 5 : 3.5,
+          'stroke-linejoin': 'round',
+          'stroke-opacity': hl === 'sel' ? 0.95 : 0.6,
+        }));
+      }
     }
     svg.appendChild(g);
   }
@@ -1367,6 +1419,7 @@
       tqLobbyHint.textContent = '点六角领地切换 空 / 本机真人 / 电脑（可设难度）/ 邀请联机';
     }
     tqSetErr('');
+    renderBoard();   // keep SVG base-frame fills in sync with seat config
   }
 
   // ============ Online (rooms + deterministic move-event sync) ============
@@ -1634,9 +1687,19 @@
         tqLobbyHint.textContent = '已加入房间 ' + net.code + '，等待房主开始…（点房号可把链接转发给别人）';
       }
       tqSetErr('');
+      renderBoard();   // keep SVG base-frame fills + me/swap highlights in sync
     }
 
-    return { active, isHost, seatMap, controlsColor, goOnline, startInvite, join, leave, broadcastSeats, onSeatClick, renderLobby, emit, autoJoin };
+    // Which highlight (if any) the SVG base frame should draw for corner `ck`.
+    function highlightFor(ck) {
+      if (!net || net.started) return null;
+      if (net.swapSel === ck) return 'sel';
+      const s = net.seats && net.seats[ck];
+      if (s && s.kind === 'remote' && s.pid && s.pid === net.playerId) return 'me';
+      return null;
+    }
+
+    return { active, isHost, seatMap, controlsColor, highlightFor, goOnline, startInvite, join, leave, broadcastSeats, onSeatClick, renderLobby, emit, autoJoin };
 
     function autoJoin() { const code = new URLSearchParams(location.search).get('room'); if (code && /^\d{4}$/.test(code)) join(code); }
   })();
