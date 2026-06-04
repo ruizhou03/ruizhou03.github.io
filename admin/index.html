@@ -159,9 +159,23 @@ noindex: true
       return titleMap;
     }).catch(function () { titleMap = {}; return titleMap; });
   }
+  // 站点固定落地/板块页：不在 search.json，但都是活页面，给友好名 + 视为可链接。
+  var KNOWN = {
+    '/': '网站首页（EN）', '/zh': '中文首页', '/en': '英文首页',
+    '/toolbox': '百宝箱', '/notes': '学习资料', '/life': '生活攻略',
+    '/research': '科研妙招', '/essays': '随笔漫谈',
+    '/account': '我的主页', '/admin': '管理后台', '/search': '搜索'
+  };
+  var HIDE_PATHS = { '/admin': 1, '/account': 1 };  // 流量「热门页面」里隐藏的内部页
+  var CC = { CN:'中国', US:'美国', JP:'日本', HK:'香港', TW:'台湾', GB:'英国', CA:'加拿大', AU:'澳大利亚', DE:'德国', SG:'新加坡', KR:'韩国', FR:'法国', NL:'荷兰', IN:'印度' };
+  var DEV = { desktop:'桌面', mobile:'手机', tablet:'平板' };
+
+  // 返回 {title, live}：命中 search.json 或 KNOWN = 活页面（可链接）；否则 = 已下线（不链接 / 不进榜）
   function resolve(path) {
-    var hit = titleMap && titleMap[normPath(path)];
-    return hit ? hit.title : (path || '(未知)');
+    var k = normPath(path);
+    if (titleMap && titleMap[k]) return { title: titleMap[k].title, live: true };
+    if (KNOWN[k]) return { title: KNOWN[k], live: true };
+    return { title: path || '(未知)', live: false };
   }
   // 所有数据请求都只走 zircon-urge（authedFetch 会自动带 token；comments 的数据由 urge 服务端代取，
   // 这样既绕开浏览器侧广告/隐私拦截，也不受桌面网络对 comments 域名的影响）。
@@ -182,22 +196,53 @@ noindex: true
     });
   }
 
-  // 排行榜（带链接，path 解析成标题）
+  // 数据看板排行榜：只保留活页面（已下线的不再追踪，避免点开 404），活页面带链接。
   function renderRank(elId, items, key, unit) {
     var el = document.getElementById(elId);
     if (!el) return;
-    if (!items || !items.length) { el.innerHTML = '<li class="adm-empty">暂无数据</li>'; return; }
-    el.innerHTML = items.map(function (it, i) {
+    var rows = (items || []).map(function (it) {
       var path = it.url || it.post || '';
-      var n = it[key] || 0;
+      return { path: path, info: resolve(path), n: it[key] || 0 };
+    }).filter(function (x) { return x.info.live; }).slice(0, 10);
+    if (!rows.length) { el.innerHTML = '<li class="adm-empty">暂无数据</li>'; return; }
+    el.innerHTML = rows.map(function (x, i) {
       return '<li>' +
         '<span class="adm-rk-i">' + (i + 1) + '</span>' +
-        '<a class="adm-rk-t" href="' + esc(normPath(path)) + '" target="_blank" rel="noopener" title="' + esc(path) + '">' + esc(resolve(path)) + '</a>' +
-        '<span class="adm-rk-n">' + n + '<small>' + unit + '</small></span>' +
+        '<a class="adm-rk-t" href="' + esc(normPath(x.path)) + '" target="_blank" rel="noopener" title="' + esc(x.path) + '">' + esc(x.info.title) + '</a>' +
+        '<span class="adm-rk-n">' + x.n + '<small>' + unit + '</small></span>' +
       '</li>';
     }).join('');
   }
-  // 简单列表（无链接，流量维度用）
+  // 流量「热门页面」：排除内部页（/admin 等）；活页面带链接，已下线显示纯文本（不 404）。
+  function renderTrafficPages(items) {
+    var el = document.getElementById('cf-pages');
+    if (!el) return;
+    var rows = (items || []).filter(function (x) { return !HIDE_PATHS[normPath(x.path)]; }).slice(0, 10);
+    if (!rows.length) { el.innerHTML = '<li class="adm-empty">暂无数据</li>'; return; }
+    el.innerHTML = rows.map(function (x, i) {
+      var info = resolve(x.path), p = normPath(x.path);
+      var cell = info.live
+        ? '<a class="adm-rk-t" href="' + esc(p) + '" target="_blank" rel="noopener" title="' + esc(x.path) + '">' + esc(info.title) + '</a>'
+        : '<span class="adm-rk-t" title="' + esc(x.path) + '">' + esc(info.title) + '</span>';
+      return '<li><span class="adm-rk-i">' + (i + 1) + '</span>' + cell +
+        '<span class="adm-rk-n">' + (x.views || 0) + '<small>次</small></span></li>';
+    }).join('');
+  }
+  // 流量「来源」：外链到来源域名（直接访问无链接）。
+  function renderReferers(items) {
+    var el = document.getElementById('cf-ref');
+    if (!el) return;
+    if (!items || !items.length) { el.innerHTML = '<li class="adm-empty">暂无数据</li>'; return; }
+    el.innerHTML = items.map(function (x, i) {
+      var host = x.host || '';
+      var cell = host
+        ? '<a class="adm-rk-t" href="https://' + esc(host) + '" target="_blank" rel="noopener" title="' + esc(host) + '">' + esc(host) + '</a>'
+        : '<span class="adm-rk-t">(直接访问)</span>';
+      return '<li><span class="adm-rk-i">' + (i + 1) + '</span>' + cell +
+        '<span class="adm-rk-n">' + (x.visits || 0) + '</span></li>';
+    }).join('');
+  }
+  // 简单列表（无链接，国家/设备用）
   function renderSimple(elId, items, unit) {
     var el = document.getElementById(elId);
     if (!el) return;
@@ -221,8 +266,9 @@ noindex: true
           if (el) el.textContent = fmt((r.urge || 0) + (r.like || 0) + (r.heart || 0) + (r.star || 0));
         }
       });
-      jget('/api/admin?action=top-likes&limit=10').then(function (d) { renderRank('rk-likes', d && d.items, 'likes', '赞'); });
-      jget('/api/admin?action=top-favs&limit=10').then(function (d) {
+      // 多取一些（30），客户端滤掉已下线页后仍凑得满 Top10
+      jget('/api/admin?action=top-likes&limit=30').then(function (d) { renderRank('rk-likes', d && d.items, 'likes', '赞'); });
+      jget('/api/admin?action=top-favs&limit=30').then(function (d) {
         renderRank('rk-favs', d && d.items, 'favs', '藏');
         var note = document.getElementById('adm-fav-note'); if (note) note.hidden = false;
       });
@@ -233,8 +279,8 @@ noindex: true
           var c = document.getElementById('ov-comments'); if (c) c.textContent = fmt(d.totalComments);
         }
       });
-      cmtGet('top-read', 10).then(function (d) { renderRank('rk-read', d && d.items, 'views', '次'); });
-      cmtGet('top-commented', 10).then(function (d) { renderRank('rk-commented', d && d.items, 'comments', '条'); });
+      cmtGet('top-read', 30).then(function (d) { renderRank('rk-read', d && d.items, 'views', '次'); });
+      cmtGet('top-commented', 30).then(function (d) { renderRank('rk-commented', d && d.items, 'comments', '条'); });
       // Cloudflare 整体流量
       loadTraffic();
     });
@@ -259,10 +305,10 @@ noindex: true
       var visits = document.getElementById('cf-visits'); if (visits) visits.textContent = fmt(d.visits);
       var pv = document.getElementById('cf-pv'); if (pv) pv.textContent = fmt(d.pageviews);
       var range = document.getElementById('cf-range'); if (range && d.since) range.textContent = d.since + ' ~ ' + d.until;
-      renderSimple('cf-pages', (d.pages || []).map(function (x) { return { label: resolve(x.path), n: x.views }; }), '次');
-      renderSimple('cf-ref', (d.referers || []).map(function (x) { return { label: x.host || '(直接访问)', n: x.visits }; }), '');
-      renderSimple('cf-geo', (d.countries || []).map(function (x) { return { label: x.name || '(未知)', n: x.visits }; }), '');
-      renderSimple('cf-dev', (d.devices || []).map(function (x) { return { label: x.type || '(未知)', n: x.views }; }), '');
+      renderTrafficPages(d.pages || []);
+      renderReferers(d.referers || []);
+      renderSimple('cf-geo', (d.countries || []).map(function (x) { return { label: CC[x.name] || x.name || '(未知)', n: x.visits }; }), '');
+      renderSimple('cf-dev', (d.devices || []).map(function (x) { return { label: DEV[x.type] || x.type || '(未知)', n: x.views }; }), '次');
     });
   }
 
