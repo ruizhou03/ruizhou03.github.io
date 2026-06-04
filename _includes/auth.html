@@ -7,6 +7,12 @@
 <style>
   /* ── 导航里的账号入口 ── */
   #auth-slot { display: flex; align-items: center; }
+  /* 管理员专属「数据看板」图标（EN 与头像之间），样式对齐 EN/搜索 */
+  .nav-dash-btn { display: inline-flex; align-items: center; justify-content: center;
+    color: var(--color-muted); border: 1px solid var(--color-border); border-radius: 4px;
+    padding: 0.26rem 0.4rem; margin-left: 0.4rem; cursor: pointer; text-decoration: none;
+    transition: color .2s, border-color .2s; }
+  .nav-dash-btn:hover { color: var(--color-highlight); border-color: var(--color-highlight); }
   /* 桌面端：账号入口绝对定位到导航最右（脱离 flex 流 → 主题/语言切换完全不受影响、
      与英文站绝对位置一致）。锚定 position:fixed 的 <nav>，距视口右缘 2.2rem。
      ≤980px 退回内联（窄屏右侧无富余空间，绝对定位会和 EN 重叠）。 */
@@ -196,17 +202,21 @@
   // ── 导航入口渲染 ──
   var slot = document.getElementById('auth-slot');
   function initial(nick) { return (nick || '?').trim().charAt(0).toUpperCase(); }
-  // 管理员专属：顶部导航注入「数据看板」项（非管理员则移除）
+  // 管理员专属：在导航右侧 EN 与头像之间注入「数据看板」图标（非管理员则移除）
   function syncAdminNav(user) {
-    var links = document.querySelector('.nav-links');
-    if (!links) return;
+    var controls = document.querySelector('.nav-controls');
+    if (!controls) return;
     var existing = document.getElementById('nav-admin-dash');
     if (user && user.isAdmin) {
       if (!existing) {
-        var li = document.createElement('li');
-        li.id = 'nav-admin-dash';
-        li.innerHTML = '<a href="/admin/">数据看板</a>';
-        links.appendChild(li);
+        var a = document.createElement('a');
+        a.id = 'nav-admin-dash';
+        a.className = 'nav-dash-btn';
+        a.href = '/admin/';
+        a.title = '数据看板';
+        a.setAttribute('aria-label', '数据看板');
+        a.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="18" y1="20" x2="18" y2="9"></line></svg>';
+        controls.appendChild(a);   // .nav-controls 顺序为 头像/主题/EN，追加即落在 EN 之后、头像之前
       }
     } else if (existing && existing.parentNode) {
       existing.parentNode.removeChild(existing);

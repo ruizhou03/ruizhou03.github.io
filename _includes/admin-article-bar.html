@@ -1,55 +1,81 @@
 {%- comment -%}
-  管理员就地编辑浮条 —— 仅管理员（SiteAuth.isAdmin）可见，由 post.html / recipe.html 引入。
-  显示当前文章 公开/隐藏 状态，一键切换：经 /api/admin?action=set-flag 提交 main（page.path
-  定位源文件，~1-2min 生效）。可见性靠 .ab-show 类（默认 display:none，绝不泄露给访客）。
-  外观/位置后续按用户选定方案重做。下方 JS 用 raw 包裹保护。
+  管理员就地编辑控件 —— 右下角悬浮齿轮，点开小面板。仅管理员（SiteAuth.isAdmin）可见
+  （默认 display:none，靠 .ab-show 显示，绝不泄露给访客）。由 post.html / recipe.html 引入。
+  本块：隐藏/公开（/api/admin?action=set-flag 提交 main，page.path 定位源文件，~1-2min 生效）。
+  付费/编辑/删除占位「即将上线」，下一块接。下方 JS 用 raw 包裹保护。
 {%- endcomment -%}
 {%- if page.path -%}
-<div id="admin-bar" data-path="{{ page.path }}" data-published="{{ page.published }}" data-paid="{{ page.paid }}">
-  <span class="ab-tag">管理员</span>
-  <span class="ab-state" id="ab-state">…</span>
-  <button type="button" class="ab-btn" id="ab-toggle-pub">隐藏此文</button>
-  <span class="ab-msg" id="ab-msg"></span>
+<div id="admin-fab" data-path="{{ page.path }}" data-published="{{ page.published }}" data-paid="{{ page.paid }}">
+  <button id="ab-gear" class="ab-gear" type="button" title="管理本文" aria-label="管理本文">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+  </button>
+  <div id="ab-panel" class="ab-panel" role="menu" aria-label="文章管理">
+    <div class="ab-panel-h">管理 · 本文</div>
+    <div class="ab-row"><span class="ab-dot" id="ab-dot"></span><span id="ab-state">公开</span></div>
+    <button class="ab-act" id="ab-toggle-pub" type="button">隐藏此文</button>
+    <button class="ab-act" id="ab-paid" type="button" disabled>设为付费 <span class="ab-soon">即将上线</span></button>
+    <button class="ab-act" id="ab-edit" type="button" disabled>编辑正文 <span class="ab-soon">即将上线</span></button>
+    <button class="ab-act ab-danger" id="ab-del" type="button" disabled>删除 <span class="ab-soon">即将上线</span></button>
+    <div class="ab-msg" id="ab-msg"></div>
+  </div>
 </div>
 <style>
-  /* 默认隐藏——只有管理员 JS 校验通过后加 .ab-show 才显示，杜绝泄露给访客 */
-  #admin-bar { display: none; position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px;
-    z-index: 1500; align-items: center; gap: 0.7rem; padding: 0.5rem 0.95rem;
-    background: var(--color-ink, #1c2530); color: #fff; border-radius: 999px;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.28); font-size: 0.85rem; max-width: 92vw; }
-  #admin-bar.ab-show { display: flex; }
-  #admin-bar .ab-tag { font-size: 0.64rem; font-weight: 700; letter-spacing: .06em;
-    background: rgba(255,255,255,0.16); padding: 0.14rem 0.5rem; border-radius: 999px; white-space: nowrap; }
-  #admin-bar .ab-state { opacity: 0.92; white-space: nowrap; }
-  #admin-bar .ab-btn { font-family: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
-    border: none; border-radius: 999px; padding: 0.34rem 0.95rem; background: #fff; color: #1c2530; white-space: nowrap; }
-  #admin-bar .ab-btn:disabled { opacity: 0.55; cursor: default; }
-  #admin-bar .ab-btn.danger { background: #ffd9d3; color: #9a2b1c; }
-  #admin-bar .ab-msg { font-size: 0.74rem; opacity: 0.82; }
+  /* 默认隐藏，仅管理员 JS 校验通过加 .ab-show 才显示 */
+  #admin-fab { display: none; position: fixed; right: 18px; bottom: 18px; z-index: 1500; }
+  #admin-fab.ab-show { display: block; }
+  #admin-fab .ab-gear { width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--color-ink, #1c2530); color: #fff; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.28); padding: 0; }
+  #admin-fab .ab-gear:hover { opacity: 0.92; }
+  #admin-fab .ab-panel { position: absolute; right: 0; bottom: 54px; width: 222px; display: none;
+    background: var(--color-bg, #fff); color: var(--color-text); border: 1px solid var(--color-border);
+    border-radius: 12px; box-shadow: 0 12px 36px rgba(0,0,0,0.22); padding: 0.7rem; }
+  #admin-fab.ab-open .ab-panel { display: block; }
+  #admin-fab .ab-panel-h { font-size: 0.7rem; font-weight: 700; color: var(--color-muted); letter-spacing: .06em;
+    padding: 0 0.2rem 0.5rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem; }
+  #admin-fab .ab-row { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem;
+    color: var(--color-text); padding: 0.1rem 0.25rem 0.55rem; }
+  #admin-fab .ab-dot { width: 8px; height: 8px; border-radius: 50%; background: #38a169; flex-shrink: 0; }
+  #admin-fab .ab-dot.is-hidden { background: #b5483a; }
+  #admin-fab .ab-act { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    width: 100%; text-align: left; font-family: inherit; font-size: 0.85rem; cursor: pointer; margin-top: 0.3rem;
+    padding: 0.45rem 0.6rem; border: 1px solid var(--color-border); border-radius: 8px;
+    background: var(--color-bg); color: var(--color-text); }
+  #admin-fab .ab-act:hover:not(:disabled) { background: var(--color-bg-warm); border-color: var(--color-highlight); }
+  #admin-fab .ab-act:disabled { opacity: 0.5; cursor: default; }
+  #admin-fab .ab-act.ab-danger { color: #b5483a; }
+  #admin-fab .ab-soon { font-size: 0.6rem; color: var(--color-light); border: 1px solid var(--color-border);
+    border-radius: 999px; padding: 0.02rem 0.4rem; white-space: nowrap; }
+  #admin-fab .ab-msg { font-size: 0.72rem; color: var(--color-muted); margin-top: 0.5rem; min-height: 1rem; padding: 0 0.25rem; }
 </style>
 {% raw %}
 <script>
 (function () {
   function start() {
-    var bar = document.getElementById('admin-bar');
-    if (!bar) return;
-    if (!window.SiteAuth) { setTimeout(start, 120); return; }  // 等 SiteAuth 就绪（修载入顺序导致的点击无效）
+    var fab = document.getElementById('admin-fab');
+    if (!fab) return;
+    if (!window.SiteAuth) { setTimeout(start, 120); return; }  // 等 SiteAuth 就绪
 
+    var gear = document.getElementById('ab-gear');
+    var dot = document.getElementById('ab-dot');
     var stateEl = document.getElementById('ab-state');
     var btn = document.getElementById('ab-toggle-pub');
     var msg = document.getElementById('ab-msg');
-    var path = bar.getAttribute('data-path');
-    var published = bar.getAttribute('data-published') !== 'false';  // 未设=空=公开
+    var path = fab.getAttribute('data-path');
+    var published = fab.getAttribute('data-published') !== 'false';  // 未设=空=公开
 
     function paint() {
-      stateEl.textContent = published ? '状态：公开' : '状态：已隐藏';
+      dot.classList.toggle('is-hidden', !published);
+      stateEl.textContent = published ? '当前：公开' : '当前：已隐藏';
       btn.textContent = published ? '隐藏此文' : '取消隐藏（公开）';
-      btn.classList.toggle('danger', published);
     }
+
+    gear.addEventListener('click', function (e) { e.stopPropagation(); fab.classList.toggle('ab-open'); });
+    document.addEventListener('click', function (e) { if (!fab.contains(e.target)) fab.classList.remove('ab-open'); });
 
     btn.addEventListener('click', function () {
       var next = !published;
-      msg.textContent = '';
+      msg.textContent = '提交中…';
       btn.disabled = true;
       window.SiteAuth.authedFetch('/api/admin?action=set-flag', {
         method: 'POST',
@@ -63,8 +89,8 @@
     });
 
     window.SiteAuth.onChange(function (user) {
-      if (user && user.isAdmin) { paint(); bar.classList.add('ab-show'); }
-      else { bar.classList.remove('ab-show'); }
+      if (user && user.isAdmin) { paint(); fab.classList.add('ab-show'); }
+      else { fab.classList.remove('ab-show'); fab.classList.remove('ab-open'); }
     });
   }
   start();

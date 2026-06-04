@@ -118,6 +118,8 @@ noindex: true
   .adm-rk-t { flex: 1; min-width: 0; font-size: 0.88rem; color: var(--color-text); text-decoration: none;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .adm-rk-t:hover { color: var(--color-highlight); }
+  .adm-type { flex-shrink: 0; font-size: 0.64rem; color: var(--color-muted); background: var(--color-bg-warm);
+    border: 1px solid var(--color-border); border-radius: 4px; padding: 0.05rem 0.35rem; }
   .adm-rk-n { flex-shrink: 0; font-size: 0.85rem; font-weight: 700; color: var(--color-ink); }
   .adm-rk-n small { font-size: 0.7rem; font-weight: 400; color: var(--color-light); margin-left: 0.15rem; }
   .adm-empty { color: var(--color-light); font-size: 0.85rem; justify-content: center; }
@@ -166,12 +168,23 @@ noindex: true
   var CC = { CN:'中国', US:'美国', JP:'日本', HK:'香港', TW:'台湾', GB:'英国', CA:'加拿大', AU:'澳大利亚', DE:'德国', SG:'新加坡', KR:'韩国', FR:'法国', NL:'荷兰', IN:'印度' };
   var DEV = { desktop:'桌面', mobile:'手机', tablet:'平板' };
 
-  // 返回 {title, live}：命中 search.json 或 KNOWN = 活页面（可链接）；否则 = 已下线（不链接 / 不进榜）
+  var KNOWN_TYPE = { '/': 'home', '/zh': 'home', '/en': 'home',
+    '/toolbox': 'section', '/notes': 'section', '/life': 'section',
+    '/research': 'section', '/essays': 'section', '/account': 'page', '/admin': 'page', '/search': 'page' };
+  var TYPE_TAG = { home: '首页', section: '栏目', tool: '工具', page: '页面' };  // article → 无标签
+  function typeTag(type) {
+    var t = TYPE_TAG[type];
+    return t ? '<span class="adm-type">' + t + '</span>' : '';
+  }
+  // 返回 {title, live, type}：命中 search.json(文章/工具) 或 KNOWN(首页/栏目) = 活页面；否则 = 已下线。
   function resolve(path) {
     var k = normPath(path);
-    if (titleMap && titleMap[k]) return { title: titleMap[k].title, live: true };
-    if (KNOWN[k]) return { title: KNOWN[k], live: true };
-    return { title: path || '(未知)', live: false };
+    if (titleMap && titleMap[k]) {
+      var cat = titleMap[k].category || '';
+      return { title: titleMap[k].title, live: true, type: cat.indexOf('工具') === 0 ? 'tool' : 'article' };
+    }
+    if (KNOWN[k]) return { title: KNOWN[k], live: true, type: KNOWN_TYPE[k] || 'section' };
+    return { title: path || '(未知)', live: false, type: 'dead' };
   }
   // 所有数据请求都只走 zircon-urge（authedFetch 会自动带 token；comments 的数据由 urge 服务端代取，
   // 这样既绕开浏览器侧广告/隐私拦截，也不受桌面网络对 comments 域名的影响）。
@@ -204,6 +217,7 @@ noindex: true
     el.innerHTML = rows.map(function (x, i) {
       return '<li>' +
         '<span class="adm-rk-i">' + (i + 1) + '</span>' +
+        typeTag(x.info.type) +
         '<a class="adm-rk-t" href="' + esc(normPath(x.path)) + '" target="_blank" rel="noopener" title="' + esc(x.path) + '">' + esc(x.info.title) + '</a>' +
         '<span class="adm-rk-n">' + x.n + '<small>' + unit + '</small></span>' +
       '</li>';
@@ -220,7 +234,7 @@ noindex: true
       var cell = info.live
         ? '<a class="adm-rk-t" href="' + esc(p) + '" target="_blank" rel="noopener" title="' + esc(x.path) + '">' + esc(info.title) + '</a>'
         : '<span class="adm-rk-t" title="' + esc(x.path) + '">' + esc(info.title) + '</span>';
-      return '<li><span class="adm-rk-i">' + (i + 1) + '</span>' + cell +
+      return '<li><span class="adm-rk-i">' + (i + 1) + '</span>' + typeTag(info.type) + cell +
         '<span class="adm-rk-n">' + (x.views || 0) + '<small>次</small></span></li>';
     }).join('');
   }
