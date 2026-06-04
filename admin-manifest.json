@@ -1,0 +1,18 @@
+---
+layout: null
+sitemap: false
+---
+[
+  {% for item in site.notes %}{% unless forloop.first %},{% endunless %}
+  {
+    "title": {{ item.title | jsonify }},
+    "path": {{ item.path | jsonify }},
+    "url": "{{ item.url }}",
+    "hidden": {% if item.hidden %}true{% else %}false{% endif %},
+    "paid": {% if item.paid %}true{% else %}false{% endif %},
+    "trashed": {% if item.trashed %}true{% else %}false{% endif %},
+    "cat": {{ item.main_category | default: item.discipline | default: "" | jsonify }},
+    "sub": {{ item.sub_category | default: "" | jsonify }},
+    "date": "{{ item.date | date: '%Y-%m-%d' }}"
+  }{% endfor %}
+]

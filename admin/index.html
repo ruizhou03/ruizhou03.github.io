@@ -70,11 +70,20 @@ noindex: true
       <p class="adm-note" id="cf-note" hidden></p>
     </section>
 
-    {%- comment -%} 内容管理：已改为「就地编辑」，不在本页 {%- endcomment -%}
+    {%- comment -%} 内容管理（清单视角；文章页齿轮是就地补充）{%- endcomment -%}
     <section class="adm-sec">
-      <div class="adm-sec-top"><h2>内容管理</h2><span class="adm-soon">就地编辑</span></div>
-      <p class="adm-muted">内容管理已移到文章页本身：用管理员登录后，照常浏览任意文章，
-      页面底部会出现只有你可见的「管理浮条」，在那里直接 隐藏/公开（付费、改文、删除等陆续加上）。</p>
+      <div class="adm-sec-top">
+        <h2>内容管理</h2>
+        <input id="cm-search" class="cm-search" type="search" placeholder="搜标题 / 路径…" autocomplete="off">
+      </div>
+      <div class="cm-tabs">
+        <button type="button" class="cm-tab cm-on" data-f="all">全部</button>
+        <button type="button" class="cm-tab" data-f="hidden">软隐藏</button>
+        <button type="button" class="cm-tab" data-f="paid">付费</button>
+        <button type="button" class="cm-tab" data-f="trash">已下架 / 回收站</button>
+      </div>
+      <div id="cm-list" class="cm-list"><div class="cm-empty">加载中…</div></div>
+      <p class="adm-note">软隐藏=访客看不到、你能预览；硬下架=真 404、彻底不进 HTML；删除=进回收站可还原。改动提交后约 1–2 分钟生效（这期间列表可能仍显旧态，已就地标「重建中」）。也可在文章页用右下角齿轮就地操作。</p>
     </section>
   </div>
 </article>
@@ -127,6 +136,38 @@ noindex: true
   .adm-note code { font-size: 0.72rem; background: var(--color-bg-warm); padding: 0.05rem 0.35rem; border-radius: 4px; }
   .adm-card-list { margin: 0; padding-left: 1.1rem; }
   .adm-card-list li { font-size: 0.9rem; color: var(--color-text); line-height: 1.9; }
+
+  /* 内容管理列表 */
+  .cm-search { font-family: inherit; font-size: 0.82rem; padding: 0.3rem 0.6rem; min-width: 180px;
+    color: var(--color-text); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 7px; }
+  .cm-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+  .cm-tab { font-family: inherit; font-size: 0.8rem; cursor: pointer; padding: 0.3rem 0.8rem;
+    color: var(--color-muted); background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 999px; }
+  .cm-tab.cm-on { background: var(--color-highlight); color: #fff; border-color: var(--color-highlight); }
+  .cm-list { border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; }
+  .cm-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--color-border); }
+  .cm-row:last-child { border-bottom: none; }
+  .cm-main { flex: 1; min-width: 0; }
+  .cm-title { font-size: 0.9rem; color: var(--color-text); text-decoration: none; display: block;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cm-title:hover { color: var(--color-highlight); }
+  .cm-meta { font-size: 0.7rem; color: var(--color-light); margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cm-badges { display: flex; gap: 0.3rem; flex-shrink: 0; }
+  .cm-badge { font-size: 0.62rem; padding: 0.03rem 0.4rem; border-radius: 4px; border: 1px solid var(--color-border); color: var(--color-muted); }
+  .cm-badge.b-hidden { color: #9a6a00; border-color: #f0d68a; background: #fff8e6; }
+  .cm-badge.b-paid { color: #1d6f5c; border-color: #a8d8c8; background: #ecf7f2; }
+  .cm-badge.b-off { color: #b5483a; border-color: #e6b3aa; background: #fbeeec; }
+  .cm-acts { display: flex; gap: 0.3rem; flex-shrink: 0; }
+  .cm-btn { font-family: inherit; font-size: 0.7rem; cursor: pointer; padding: 0.22rem 0.55rem;
+    color: var(--color-muted); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; white-space: nowrap; }
+  .cm-btn:hover:not(:disabled) { color: var(--color-highlight); border-color: var(--color-highlight); }
+  .cm-btn.danger:hover:not(:disabled) { color: #b5483a; border-color: #b5483a; }
+  .cm-btn:disabled { opacity: 0.5; cursor: default; }
+  .cm-row.cm-busy { opacity: 0.55; }
+  .cm-pend { font-size: 0.62rem; color: #9a6a00; margin-left: 0.3rem; }
+  .cm-empty { padding: 2rem 1rem; text-align: center; color: var(--color-light); font-size: 0.85rem; }
+  .cm-sub-h { padding: 0.5rem 0.85rem; font-size: 0.72rem; font-weight: 700; color: var(--color-muted);
+    background: var(--color-bg-warm); border-bottom: 1px solid var(--color-border); }
 </style>
 
 <script>
@@ -322,6 +363,108 @@ noindex: true
     });
   }
 
+  // ── 内容管理 ──
+  var cmItems = null, cmFilter = 'all', cmLoaded = false;
+  function cmSlug(p) { var s = String(p).replace(/\.md$/, '').split('/'); return s[s.length - 1] || p; }
+
+  function loadContent() {
+    var listEl = document.getElementById('cm-list');
+    Promise.all([
+      fetch('/admin-manifest.json').then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }),
+      jget('/api/admin?action=list-notes')
+    ]).then(function (res) {
+      var manifest = res[0] || [], listed = res[1] || {}, paths = listed.paths || [], onSet = {};
+      var items = manifest.map(function (m) {
+        onSet[m.path] = 1;
+        return { path: m.path, title: m.title || cmSlug(m.path), url: m.url, hidden: !!m.hidden, paid: !!m.paid, off: false, sub: m.sub || m.cat || '', date: m.date || '' };
+      });
+      paths.forEach(function (p) {
+        if (!onSet[p]) items.push({ path: p, title: cmSlug(p), url: '', hidden: false, paid: false, off: true, sub: '', date: '' });
+      });
+      items.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+      cmItems = items;
+      renderContent();
+    }).catch(function () { if (listEl) listEl.innerHTML = '<div class="cm-empty">加载失败，刷新重试</div>'; });
+  }
+
+  function cmMatch(it) {
+    if (cmFilter === 'trash') return it.off;
+    if (it.off) return false;
+    if (cmFilter === 'hidden') return it.hidden;
+    if (cmFilter === 'paid') return it.paid;
+    return true;
+  }
+  function cmRowHtml(it) {
+    var badges = '';
+    if (it.off) badges += '<span class="cm-badge b-off">' + (it.trashed ? '回收站' : '已下架') + '</span>';
+    if (it.hidden) badges += '<span class="cm-badge b-hidden">软隐藏</span>';
+    if (it.paid) badges += '<span class="cm-badge b-paid">付费</span>';
+    if (it.pending) badges += '<span class="cm-pend">重建中</span>';
+    var titleHtml = it.url
+      ? '<a class="cm-title" href="' + esc(it.url) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a>'
+      : '<span class="cm-title">' + esc(it.title) + '</span>';
+    var acts = it.off
+      ? '<button type="button" class="cm-btn" data-a="restore">还原</button>'
+      : '<button type="button" class="cm-btn" data-a="hide">' + (it.hidden ? '取消软隐藏' : '软隐藏') + '</button>' +
+        '<button type="button" class="cm-btn" data-a="off">硬下架</button>' +
+        '<button type="button" class="cm-btn danger" data-a="trash">删除</button>';
+    return '<div class="cm-row">' +
+      '<div class="cm-main">' + titleHtml + '<div class="cm-meta">' + (it.sub ? esc(it.sub) + ' · ' : '') + (it.date ? it.date + ' · ' : '') + esc(it.path) + '</div></div>' +
+      '<div class="cm-badges">' + badges + '</div>' +
+      '<div class="cm-acts">' + acts + '</div>' +
+    '</div>';
+  }
+  function renderContent() {
+    var el = document.getElementById('cm-list');
+    if (!el || !cmItems) return;
+    var q = ((document.getElementById('cm-search') || {}).value || '').trim().toLowerCase();
+    var rows = cmItems.filter(cmMatch).filter(function (it) { return !q || (it.title + ' ' + it.path).toLowerCase().indexOf(q) !== -1; });
+    if (!rows.length) { el.innerHTML = '<div class="cm-empty">没有匹配的文章</div>'; return; }
+    el.innerHTML = rows.map(cmRowHtml).join('');
+    var rowEls = el.querySelectorAll('.cm-row');
+    rows.forEach(function (it, i) {
+      var row = rowEls[i]; if (!row) return;
+      Array.prototype.forEach.call(row.querySelectorAll('.cm-btn'), function (btn) {
+        btn.addEventListener('click', function () { cmAction(it, row, btn.getAttribute('data-a')); });
+      });
+    });
+  }
+  function cmAction(it, row, a) {
+    var body, confirmMsg, single = false;
+    if (a === 'hide') { single = true; body = { path: it.path, key: 'hidden', value: !it.hidden }; }
+    else if (a === 'off') { confirmMsg = '硬下架「' + it.title + '」？将变成真 404、彻底不进 HTML，只能在「已下架/回收站」里还原。'; body = { path: it.path, flags: { published: false } }; }
+    else if (a === 'trash') { confirmMsg = '删除「' + it.title + '」到回收站？（可还原）'; body = { path: it.path, flags: { published: false, trashed: true } }; }
+    else if (a === 'restore') { body = { path: it.path, flags: { published: true, trashed: false } }; }
+    else return;
+    if (confirmMsg && !window.confirm(confirmMsg)) return;
+    row.classList.add('cm-busy');
+    window.SiteAuth.authedFetch('/api/admin?action=' + (single ? 'set-flag' : 'set-flags'), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+      .then(function () {
+        if (a === 'hide') it.hidden = !it.hidden;
+        else if (a === 'off') { it.off = true; it.trashed = false; }
+        else if (a === 'trash') { it.off = true; it.trashed = true; }
+        else if (a === 'restore') { it.off = false; it.trashed = false; }
+        it.pending = true;
+        renderContent();
+      })
+      .catch(function (e) { row.classList.remove('cm-busy'); alert('操作失败：' + ((e && e.error) || '请重试')); });
+  }
+  function cmWireControls() {
+    Array.prototype.forEach.call(document.querySelectorAll('.cm-tab'), function (t) {
+      t.addEventListener('click', function () {
+        Array.prototype.forEach.call(document.querySelectorAll('.cm-tab'), function (x) { x.classList.remove('cm-on'); });
+        t.classList.add('cm-on');
+        cmFilter = t.getAttribute('data-f');
+        renderContent();
+      });
+    });
+    var cs = document.getElementById('cm-search');
+    if (cs) cs.addEventListener('input', renderContent);
+  }
+
   function start() {
     if (!window.SiteAuth) { setTimeout(start, 100); return; }
 
@@ -353,6 +496,7 @@ noindex: true
             if (elEmail) elEmail.textContent = data.email || user.email || '';
             show(elMain);
             if (!dashLoaded) { dashLoaded = true; loadDashboard(); }
+            if (!cmLoaded) { cmLoaded = true; cmWireControls(); loadContent(); }
           } else {
             show(elDenied);
           }

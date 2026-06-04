@@ -15,7 +15,8 @@
     <button class="ab-act" id="ab-toggle-pub" type="button">隐藏此文</button>
     <button class="ab-act" id="ab-paid" type="button" disabled>设为付费 <span class="ab-soon">即将上线</span></button>
     <button class="ab-act" id="ab-edit" type="button">编辑正文与参数</button>
-    <button class="ab-act ab-danger" id="ab-del" type="button" disabled>删除 <span class="ab-soon">即将上线</span></button>
+    <button class="ab-act" id="ab-off" type="button">硬下架（真 404）</button>
+    <button class="ab-act ab-danger" id="ab-del" type="button">删除（进回收站）</button>
     <div class="ab-msg" id="ab-msg"></div>
   </div>
 </div>
@@ -168,6 +169,25 @@
           eMsg.textContent = '保存失败：' + ((e && e.error) || '请重试') + '（若提示冲突，请关闭重开再编辑）';
         });
     });
+
+    // ── 硬下架（真404）/ 删除（进回收站）：published:false（+trashed:true）。页面将不可见 → 完成后去管理后台 ──
+    var offBtn = document.getElementById('ab-off');
+    var delBtn = document.getElementById('ab-del');
+    function hardAction(flags, confirmMsg) {
+      if (!window.confirm(confirmMsg)) return;
+      msg.textContent = '提交中…';
+      if (offBtn) offBtn.disabled = true;
+      if (delBtn) delBtn.disabled = true;
+      window.SiteAuth.authedFetch('/api/admin?action=set-flags', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: path, flags: flags })
+      })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+        .then(function () { msg.textContent = '已提交，约 1–2 分钟后此页不可见。正在去管理后台…'; setTimeout(function () { location.href = '/admin/'; }, 1500); })
+        .catch(function (e) { if (offBtn) offBtn.disabled = false; if (delBtn) delBtn.disabled = false; msg.textContent = '失败：' + ((e && e.error) || '请重试'); });
+    }
+    if (offBtn) offBtn.addEventListener('click', function () { hardAction({ published: false }, '硬下架本文？将变成真 404、彻底不进 HTML。之后只能在管理后台「已下架」里还原。'); });
+    if (delBtn) delBtn.addEventListener('click', function () { hardAction({ published: false, trashed: true }, '删除本文到回收站？（可在管理后台还原）'); });
 
     var openedOnce = false;
     window.SiteAuth.onChange(function (user) {
