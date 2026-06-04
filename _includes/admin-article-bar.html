@@ -1,21 +1,23 @@
 {%- comment -%}
   管理员就地编辑浮条 —— 仅管理员（SiteAuth.isAdmin）可见，由 post.html / recipe.html 引入。
-  显示当前文章的 公开/隐藏 状态，一键切换：经 /api/admin?action=set-flag 提交到 main，
-  约 1–2 分钟 Pages 重建后生效。依赖 page.path（源文件路径，GitHub 提交用）。
-  付费/改文/删除等后续增量再加。下方 JS 用 raw 包裹保护。
+  显示当前文章 公开/隐藏 状态，一键切换：经 /api/admin?action=set-flag 提交 main（page.path
+  定位源文件，~1-2min 生效）。可见性靠 .ab-show 类（默认 display:none，绝不泄露给访客）。
+  外观/位置后续按用户选定方案重做。下方 JS 用 raw 包裹保护。
 {%- endcomment -%}
 {%- if page.path -%}
-<div id="admin-bar" data-path="{{ page.path }}" data-published="{{ page.published }}" data-paid="{{ page.paid }}" hidden>
+<div id="admin-bar" data-path="{{ page.path }}" data-published="{{ page.published }}" data-paid="{{ page.paid }}">
   <span class="ab-tag">管理员</span>
   <span class="ab-state" id="ab-state">…</span>
   <button type="button" class="ab-btn" id="ab-toggle-pub">隐藏此文</button>
   <span class="ab-msg" id="ab-msg"></span>
 </div>
 <style>
-  #admin-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 1500;
-    display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0.95rem;
+  /* 默认隐藏——只有管理员 JS 校验通过后加 .ab-show 才显示，杜绝泄露给访客 */
+  #admin-bar { display: none; position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px;
+    z-index: 1500; align-items: center; gap: 0.7rem; padding: 0.5rem 0.95rem;
     background: var(--color-ink, #1c2530); color: #fff; border-radius: 999px;
     box-shadow: 0 8px 28px rgba(0,0,0,0.28); font-size: 0.85rem; max-width: 92vw; }
+  #admin-bar.ab-show { display: flex; }
   #admin-bar .ab-tag { font-size: 0.64rem; font-weight: 700; letter-spacing: .06em;
     background: rgba(255,255,255,0.16); padding: 0.14rem 0.5rem; border-radius: 999px; white-space: nowrap; }
   #admin-bar .ab-state { opacity: 0.92; white-space: nowrap; }
@@ -28,41 +30,44 @@
 {% raw %}
 <script>
 (function () {
-  var bar = document.getElementById('admin-bar');
-  if (!bar || !window.SiteAuth) return;
-  var stateEl = document.getElementById('ab-state');
-  var btn = document.getElementById('ab-toggle-pub');
-  var msg = document.getElementById('ab-msg');
-  var path = bar.getAttribute('data-path');
-  // page.published 渲染：未设=空（视为公开），'false'=隐藏
-  var published = bar.getAttribute('data-published') !== 'false';
+  function start() {
+    var bar = document.getElementById('admin-bar');
+    if (!bar) return;
+    if (!window.SiteAuth) { setTimeout(start, 120); return; }  // 等 SiteAuth 就绪（修载入顺序导致的点击无效）
 
-  function paint() {
-    stateEl.textContent = published ? '状态：公开' : '状态：已隐藏';
-    btn.textContent = published ? '隐藏此文' : '取消隐藏（公开）';
-    btn.classList.toggle('danger', published);
+    var stateEl = document.getElementById('ab-state');
+    var btn = document.getElementById('ab-toggle-pub');
+    var msg = document.getElementById('ab-msg');
+    var path = bar.getAttribute('data-path');
+    var published = bar.getAttribute('data-published') !== 'false';  // 未设=空=公开
+
+    function paint() {
+      stateEl.textContent = published ? '状态：公开' : '状态：已隐藏';
+      btn.textContent = published ? '隐藏此文' : '取消隐藏（公开）';
+      btn.classList.toggle('danger', published);
+    }
+
+    btn.addEventListener('click', function () {
+      var next = !published;
+      msg.textContent = '';
+      btn.disabled = true;
+      window.SiteAuth.authedFetch('/api/admin?action=set-flag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: path, key: 'published', value: next })
+      })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+        .then(function () { published = next; paint(); msg.textContent = '已提交，约 1–2 分钟生效'; })
+        .catch(function (e) { msg.textContent = '失败：' + ((e && e.error) || '请重试'); })
+        .then(function () { btn.disabled = false; });
+    });
+
+    window.SiteAuth.onChange(function (user) {
+      if (user && user.isAdmin) { paint(); bar.classList.add('ab-show'); }
+      else { bar.classList.remove('ab-show'); }
+    });
   }
-
-  btn.addEventListener('click', function () {
-    var next = !published;            // 公开→隐藏：published=false
-    msg.textContent = '';
-    btn.disabled = true;
-    window.SiteAuth.authedFetch('/api/admin?action=set-flag', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: path, key: 'published', value: next })
-    })
-      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
-      .then(function () { published = next; paint(); msg.textContent = '已提交，约 1–2 分钟生效'; })
-      .catch(function (e) { msg.textContent = '失败：' + ((e && e.error) || '请重试'); })
-      .then(function () { btn.disabled = false; });
-  });
-
-  // 仅管理员显示（前端 isAdmin 只控显隐，后端 set-flag 再校验一次）
-  window.SiteAuth.onChange(function (user) {
-    if (user && user.isAdmin) { paint(); bar.hidden = false; }
-    else { bar.hidden = true; }
-  });
+  start();
 })();
 </script>
 {% endraw %}
