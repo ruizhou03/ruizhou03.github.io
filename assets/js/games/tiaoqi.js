@@ -558,6 +558,12 @@
   // it derives from state.setupConfig.
   function activeCornerSet() {
     if (state.started) return new Set(state.players);
+    // In an online lobby the live seat config lives in tqOnline (net.seats),
+    // not state.setupConfig — read it so the SVG frames track the actual seats.
+    if (tqOnline.active() && tqOnline.seatMap) {
+      const seats = tqOnline.seatMap() || {};
+      return new Set(CORNER_KEYS.filter(c => seats[c] && seats[c].kind !== 'empty'));
+    }
     return new Set(CORNER_KEYS.filter(c => state.setupConfig[c] !== 'empty'));
   }
 
@@ -723,7 +729,9 @@
   // base) plus the team-colour border — dashed grey when the seat is empty.
   function drawBaseFrames(activeCorners) {
     const g = svgEl('g', { class: 'base-frames' });
-    const PAD = 26;
+    // pad clears the base marbles (r=18) with a hair of margin but stops short
+    // of the next board-cell row outside the base (its rim sits ~25px out).
+    const PAD = 21;
     for (const ck of CORNER_KEYS) {
       const verts = TRI_VERTS[ck].map(([r, c]) => [svgX(c), svgY(r)]);
       const d = roundedTriPath(verts, PAD);

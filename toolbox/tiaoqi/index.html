@@ -82,7 +82,10 @@ permalink: /toolbox/tiaoqi/
   .tq-seat {
     position: absolute; transform: translate(-50%, -50%);
     display: flex; justify-content: center;
-    max-width: 38%; pointer-events: auto;   /* shrink-wraps the label, centred on the triangle */
+    /* width:max-content sizes to the label itself; without it an abs element with
+       left:% shrink-fits to (stage − left), so right-side seats got squeezed and
+       wrapped their difficulty chips. max-width keeps it inside the triangle. */
+    width: max-content; max-width: 38%; pointer-events: auto;
   }
   .tq-seat.at-n  { top: 15.5%; left: 50%; }
   .tq-seat.at-ne { top: 32.7%; left: 84.1%; }
@@ -111,8 +114,8 @@ permalink: /toolbox/tiaoqi/
   .tq-seat-tag { font-size: 0.54rem; padding: 0.02rem 0.3rem; border-radius: 999px; font-weight: 700; color: #fff; }
   .tq-seat-tag.host { background: linear-gradient(135deg, #ffd86b, #c9a227); }
   .tq-seat-tag.off { background: #9aa0a6; }
-  .tq-seat-diff { display: flex; gap: 0.12rem; margin-top: 0.14rem; }
-  .tq-seat-diff button { font-size: 0.56rem; padding: 0.06rem 0.28rem; border-radius: 6px; line-height: 1.25; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-muted); cursor: pointer; }
+  .tq-seat-diff { display: flex; flex-wrap: nowrap; gap: 0.12rem; margin-top: 0.14rem; }
+  .tq-seat-diff button { font-size: 0.56rem; padding: 0.06rem 0.28rem; border-radius: 6px; line-height: 1.25; white-space: nowrap; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-muted); cursor: pointer; }
   .tq-seat-diff button.sel { background: var(--seat); color: #fff; border-color: var(--seat); font-weight: 700; }
   .tq-seat-mini { margin-top: 0.18rem; font-size: 0.58rem; padding: 0.1rem 0.4rem; border-radius: 999px; border: 1px solid var(--seat); background: #fff; color: var(--seat); cursor: pointer; font-weight: 700; white-space: nowrap; }
   .tq-seat-mini.kick { border-color: #c0563f; color: #c0563f; }
