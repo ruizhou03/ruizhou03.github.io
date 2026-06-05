@@ -267,11 +267,27 @@
 
   document.querySelectorAll('.post-list-section').forEach(wireSection);
 
-  // ── 管理员：把本栏目「已删除」(真404)的文章注入成带删除线、点了真 404 的墓碑条目 ──
+  // ── 管理员：把本栏目「已删除」(真404)的文章就地注入到各自 sub_category 小节，成带删除线的墓碑 ──
   function escHtml(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
   function escAttr(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function wireTombstones(sec) {
-    Array.prototype.forEach.call(sec.querySelectorAll('.paginated-item'), function (li) {
+  function tombstoneLi(it) {
+    return '<li class="paginated-item sa-tombstone" data-path="' + escAttr(it.path) + '" title="已删除 · 点进去是 404">' +
+      '<a href="' + escAttr(it.url) + '" style="text-decoration:line-through;opacity:0.55">' + escHtml(it.title || it.url) + '</a>' +
+      '<span class="sa-item-tools"><button type="button" class="sa-item-toggle" data-a="restore">还原</button>' +
+      '<button type="button" class="sa-item-toggle sa-danger" data-a="purge">彻底删除</button></span></li>';
+  }
+  function findOrMakeList(article, sub) {
+    var secs = article.querySelectorAll('.post-list-section[data-sub]');
+    for (var i = 0; i < secs.length; i++) { if (secs[i].getAttribute('data-sub') === sub) return secs[i].querySelector('.paginated-list'); }
+    var sec = document.createElement('section');   // 该 sub 的文章被删光了、小节不存在 → 新建一个
+    sec.className = 'post-list-section'; sec.setAttribute('data-sub', sub || '其他');
+    sec.innerHTML = '<div class="post-list-head"><h2 class="post-list-title"><span class="sec-icon">📂</span>' + escHtml(sub || '其他') + '</h2></div><ul class="paginated-list"></ul>';
+    article.appendChild(sec);
+    return sec.querySelector('.paginated-list');
+  }
+  function wireTombstones() {
+    Array.prototype.forEach.call(document.querySelectorAll('.sa-tombstone:not([data-sa-wired])'), function (li) {
+      li.setAttribute('data-sa-wired', '1');
       var p = li.getAttribute('data-path');
       Array.prototype.forEach.call(li.querySelectorAll('.sa-item-toggle'), function (btn) {
         btn.addEventListener('click', function (e) {
@@ -301,24 +317,26 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (!d || !d.items) return;
+        // 1) 隐藏静态列表里(旧构建)仍残留的被删项，避免刷新后又显示成正常（Pages 还没重建时）
+        var byPath = {}; d.items.forEach(function (it) { if (it.path) byPath[it.path] = 1; });
+        Array.prototype.forEach.call(document.querySelectorAll('li.paginated-item[data-path]'), function (li) {
+          if (byPath[li.getAttribute('data-path')] && !li.classList.contains('sa-tombstone')) li.style.display = 'none';
+        });
+        // 2) 本栏目被删项就地注入到各自 sub_category 小节
         var mine = d.items.filter(function (it) {
           var u = (it.url || '').replace(/\/+$/, '');
           return u && u !== base && (u + '/').indexOf(base + '/') === 0;
         });
-        if (!mine.length || document.getElementById('sa-deleted-section')) return;
-        var sec = document.createElement('section');
-        sec.className = 'post-list-section'; sec.id = 'sa-deleted-section';
-        var html = '<div class="post-list-head"><h2 class="post-list-title"><span class="sec-icon">🗑️</span>已删除（仅你可见 · 点进去是 404）</h2></div><ul class="paginated-list">';
+        var sel = (window.CSS && CSS.escape) ? null : 1;
         mine.forEach(function (it) {
-          html += '<li class="paginated-item" data-path="' + escAttr(it.path) + '">' +
-            '<a href="' + escAttr(it.url) + '" style="text-decoration:line-through;opacity:0.6">' + escHtml(it.title || it.url) + '</a>' +
-            '<span class="sa-item-tools"><button type="button" class="sa-item-toggle" data-a="restore">还原</button>' +
-            '<button type="button" class="sa-item-toggle sa-danger" data-a="purge">彻底删除</button></span></li>';
+          var existsSel = '.sa-tombstone[data-path="' + (sel ? it.path : CSS.escape(it.path)) + '"]';
+          try { if (document.querySelector(existsSel)) return; } catch (e) {}
+          var list = findOrMakeList(article, it.sub || '其他');
+          if (!list) return;
+          var tmp = document.createElement('div'); tmp.innerHTML = tombstoneLi(it);
+          list.appendChild(tmp.firstChild);
         });
-        html += '</ul>';
-        sec.innerHTML = html;
-        article.appendChild(sec);
-        wireTombstones(sec);
+        wireTombstones();
       })
       .catch(function () { tombstonesDone = false; });
   }

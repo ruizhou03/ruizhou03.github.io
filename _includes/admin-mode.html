@@ -149,7 +149,8 @@ window.SaPending = window.SaPending || (function () {
 
     function labels() {
       hideBtn.disabled = false;
-      hideBtn.textContent = (hidden ? '恢复' : '下架') + (hPending ? '·重建中' : '');
+      // 重建中：显示「刚做的动作·重建中」(下架后显下架·重建中)；稳定后：显示「下一步动作」(已下架→恢复)
+      hideBtn.textContent = hPending ? ((hidden ? '下架' : '恢复') + '·重建中') : (hidden ? '恢复' : '下架');
       delBtn.textContent = '删除';
     }
     labels();
@@ -182,7 +183,8 @@ window.SaPending = window.SaPending || (function () {
         .then(function () {
           if (a) a.style.textDecoration = 'line-through';
           el.style.opacity = '0.5';
-          hideBtn.style.display = 'none'; delBtn.textContent = '已删除·重建中'; delBtn.disabled = true;
+          hideBtn.style.display = 'none'; paidBtn.style.display = 'none';   // 删除态不再有 下架/付费
+          delBtn.textContent = '已删除·重建中'; delBtn.disabled = true;
         })
         .catch(function () { hideBtn.disabled = false; delBtn.disabled = false; labels(); });
     }

@@ -16,7 +16,7 @@ JS 逻辑保留兜底：当 search-wrap 缺失时，filter/分页仍会安全降
 {%- assign _ps = include.page_size | default: 5 -%}
 {%- assign _published_count = 0 -%}
 {%- for _p in include.posts -%}{%- if _p.published != false -%}{%- assign _published_count = _published_count | plus: 1 -%}{%- endif -%}{%- endfor -%}
-<section class="post-list-section{% if include.search_only %} cat-search-only{% endif %}">
+<section class="post-list-section{% if include.search_only %} cat-search-only{% endif %}" data-sub="{{ include.sub }}">
   <div class="post-list-head">
     <h2 class="post-list-title"><span class="sec-icon">📂</span>{% if include.zone_url %}<a href="{{ include.zone_url | relative_url }}" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--color-border);">{{ include.sub }}</a>{% else %}{{ include.sub }}{% endif %}{% if include.search_only %} <span style="font-size:0.78rem;color:var(--color-light);font-weight:400;">· 来自专区，点标题进入</span>{% endif %}</h2>
     <div class="section-tools">
