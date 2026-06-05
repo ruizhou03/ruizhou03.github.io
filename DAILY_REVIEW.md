@@ -1,3 +1,83 @@
+## 2026-06-05
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周五 DOW=5，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=05，未跑 monthly_stats）。距 6-04 巡检共 **28 个 commit**（`f8571fe` 之后 → `68ab739` 为止），主题集中在两条线：① **管理后台 Phase 1-2 一次性铺开**——`b54bd05` 的 /admin/ 骨架延续到 `0d5e2d4 d4dbfed 0bb5417`（jukebox 歌词 107→113，居家 11 首串烧）、`1e75e24` 文章页管理浮条（隐藏/公开 + 看板导航入口）、`6a41c4c` 修浮条对所有访客泄露 + 点击无效、`f4c406d` 就地编辑 UI 重做 + 看板类型标记、`d0d51f3` 软隐藏（管理员可搜可读可改 + 列表变灰 + 隐藏小助手）、`f71b497` 软隐藏三个体验问题（待生效缓冲 / 不显"暂未公开" / 分页不留弹坑）、`132ed73` 齿轮面板「编辑正文与参数」（gh-get 拉源 markdown → 改 → gh-put 带 sha 写回 main）、`7a6931b` 内容管理清单（全部/软隐藏/付费/已下架 + 搜索 + 硬下架真 404 + 删除/回收站）、加上 `9c6d21b 7fb24ba 5a82eeb a484ccb 7da5f42 8ccaf5a c43c61d c115194 f0fe9a2 db18000 4f43132 604b99d` 共 12 条 chore(admin) hidden/published 切换（站主在后台对 wipe-after-pee / standing-vs-sitting-urination / drinking-water-types / birthday-21 四篇做了反复软隐藏调试）；② **棋类领地卡设计统一**（`d4dbfed 0bb5417` jukebox 歌词扩展、`e2d4d87 d833cf5 b30b62b` tiaoqi 三角领地框 + 联机大厅基地着色、`68ab739` xiangqi 开局换成上半盘黑方/下半盘红方两张领地卡、`9cf69cc` CLAUDE.md 第 6 条堵分叉缺口）。今日 `scripts/audit/run.sh` 全套审计 ✅ 全 clean（keywords / images / material_type / filename / hover / sibling / bare_dollar / img_caption_md / svg_italic / bare_url / frontmatter_yaml），`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（6.82 s）。**本次新发现 1 项 P1**：管理后台新增的 `/admin-manifest.json` 公开暴露 `hidden:true` 文章的标题/URL/分类，与 `f71b497` 的「不暴露这是隐藏文章」设计意图相悖。**没有可安全自动修复项**——所有审计维度均 clean，admin 系列改动是大块功能落地，需站主自己把关；新发现 P1 涉及"manifest 是否走 auth"的设计取向，写进待办交站主拍板。残余 P2 5 项（paywall 后端冒烟、scripts 内 `/Users/zhourui/` 硬编码、内部 prompt 称呼 zirconeey、toolbox/random hover 守卫缩进、PDF-only 存档手写互链）状态不变；admin/index.html 的 `.adm-mini:hover` 缺 `@media (hover: hover)` 守卫，作为 P2 新增（admin-only 单用户页面，影响极小）。
+
+### ✅ 本次已自动修复
+
+**无**。今日所有审计维度（11 个每日 audit）全部 clean、`bundle exec` 构建零 warning 零 error。28 个 commit 引入的新结构（管理后台内容清单 / 文章页齿轮 / 硬下架真 404 / xiangqi 领地卡）均为大块功能落地，没有 agent 介入余地——任何 "顺手清理" 都触碰 admin 安全边界或棋类 UI 调性，按保守原则不动。新发现的 admin-manifest 公开暴露问题与 `.adm-mini:hover` 缺守卫均需站主拍板取舍，写进待办。10 项抽检逐项过审（详见下方专项小节）也未发现需要立即修的小问题。
+
+### 📋 待你把关
+
+#### P1（建议尽快）
+
+1. **`/admin-manifest.json` 公开暴露所有 `hidden:true` 文章的标题/URL/分类——与 `f71b497` 的隐私设计意图相悖**。manifest 由 `admin-manifest.json` 这个 Liquid 模板生成，`{% for item in site.notes %}` 遍历全部已发布笔记并输出 `hidden/paid/trashed` 标记。`_site/admin-manifest.json` 当前列出 2 条 `"hidden": true`（`/life/wipe-after-pee`、`/life/standing-vs-sitting-urination`），任何访客 `curl https://ruizhou03.com/admin-manifest.json` 即可拿到完整软隐藏清单。这直接抵消了 `f71b497` "读者访问隐藏文章不再显示'暂未公开'：改为通用「页面不存在」(不暴露这是隐藏文章)" 的效果。三种修法各有取舍——
+   - **A. 让 manifest 排除 `hidden:true` / `paid:true` 项**：硬下架走后端 `list-notes(git-tree)` 已是这条路；把软隐藏也从公开 manifest 摘出，让 admin UI 也走后端 `list-notes` 拿全量（后端会做 whoami 鉴权）；优点：完全堵住泄露，与硬下架一致；缺点：失去 manifest 作为构建期清单的便利、admin 列表初次加载会慢一拍。
+   - **B. manifest 走鉴权代理（urge 加一个 `/api/admin-manifest` 端点）**：保留构建期生成、生成到 `/admin-manifest.json` 但 robots.txt 禁爬 + Cloudflare Page Rule 仅 admin Cookie 放行；优点：admin 列表不变；缺点：把鉴权下沉到 CF 配置、容易遗忘。
+   - **C. 公开 manifest 仅留必要字段（去掉 hidden/paid/trashed 标记 + title 改占位）**：admin UI 需要的 "软隐藏列表" 改走后端；优点：改动小；缺点：admin 浏览器要发两个请求才能渲染。
+   - 我的判断：**A 最干净**，与硬下架已有的 `list-notes(git-tree)` 路径一致；admin UI 多一次后端调用换来隐私收口，是合算的。但属于设计取向，由站主拍板。
+
+#### P2（看心情）
+
+1. **`admin/index.html:110` 的 `.adm-mini:hover` 缺 `@media (hover: hover)` 守卫** —— 触屏会卡住 hover 态。admin 只有站主一人访问、有 noindex + sitemap:false + 后端 whoami 二次确认，影响极小；`hover_no_media.py` 只扫 `toolbox/`，未触发。若顺手可加守卫；不加也行。
+
+2. **新付费墙系统在沙箱无后端出口验证** —— 承接 6-04 P2#1。`zircon-urge.fly.dev` 今日仍 HTTP 403，`scripts/paywall/smoke_test.py` 仍需站主在生产环境跑。
+
+3. **`scripts/{compile-r-tutorials,build-psy-stat-II-rmd,merge-psy-stat-II}.py` 中 9 处 `/Users/zhourui/Desktop/...` 本机绝对路径** —— 沿用 6-04 P2#2。`scripts/` 已被 exclude，不影响线上。
+
+4. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里仍称"zirconeey 站"** —— 沿用 6-04 P2#3。内部 prompt / 文档。
+
+5. **`toolbox/random/index.html` 5 处 hover 守卫的内层缩进格式不统一** —— 沿用 6-04 P2#4。仅 cosmetic。
+
+6. **`_notes/study/adv-metrics-pku/mid-2015.md`、`_notes/study/psy-stat-I/anova-R.md` 这两类纯 PDF 存档可考虑加同课程互链入口** —— 沿用 6-04 P2#5。设计取向项。
+
+#### 🆕 本次抽检 10/10 中新出现的观察（不是问题，是提示）
+
+- **站主在 6-04 下午对三篇"生活之问"做了反复 hidden=true/false 切换**（`drinking-water-types` 4 次、`standing-vs-sitting-urination` 5 次、`wipe-after-pee` 1 次），从 commit 节奏看是新管理后台 UI 的边写边试。最终态：`wipe-after-pee` 与 `standing-vs-sitting-urination` 仍为 `hidden:true`、`drinking-water-types` 为 `hidden:false`、`birthday-21` 在 7fb24ba/9c6d21b 切换后回到 `published:true`。**不是问题**，但与上面 P1 直接相关——这三篇当前已被泄漏到公开 manifest（drinking-water-types 不算，它是 `hidden:false`）。
+
+- **`xiangqi/index.html` 自 `68ab739` 起把开局弹窗替换成棋盘上的两张领地卡，旧 `gs-pgo` 弹窗元素保留供 start/房间逻辑复用（CSS 隐藏）**。代码层是合理的过渡设计（推广跳棋/飞行棋的样板），未发现 dead branch；commit 说明里"邀请联机 档复用现有流程、未做双端 e2e"——是已知未覆盖项，由站主在生产环境验证联机邀请流程是否仍连得上。**不是问题**，记一笔。
+
+#### 🗒️ 待办清账（承接 6-04）
+
+- **图片 alt / caption 覆盖**：`images.py` 今日仍 `missing_alt = 0` / `missing_caption = 0`（白名单 62 条），保持收口。
+- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套 HTTP 403。
+- **Round-3 留下的 ~68 个 P1**：未在本次范围推进。
+- **`taichi-review-2023.md`「85 公里跑」**：未触碰。
+- **大图基线**：与昨日完全一致，无变化。
+
+### 🔬 抽检专项
+
+> 本次种子抽 10 项（强制配额 game/pdf_archive/lecture_note_pdf_only 各 ≥1，其余随机）。10 项一视同仁过审清单。
+
+- **抽检 1/10 · game · `toolbox/font-style/index.html`**（319 行 / 10.0 KB）—— ✅ 无问题。Unicode 数学字母数字符号区段（U+1D400–U+1D7FF）映射器，4 处 `:hover` 都用 `@media (hover: hover)` 守卫；用 `var(--color-*)` 设计 token 与全站一致；剪贴板带 try/catch 兜底；localStorage 持久化输入；纯单人工具不需要 lb/urge。代码组织清晰（mapByBase 单一 helper + STYLES_LATIN 数据驱动），13 种字体样式数据化。
+- **抽检 2/10 · pdf_archive · `files/r-tutorials/r-multiple-linear-regression.pdf`**（510.4 KB）—— ✅ 无问题。被 `_notes/research/r-multiple-linear-regression.md` 引用、由 `scripts/compile-r-tutorials.py` 编译生成（同名 `.tex` 源在 `files/r-tutorials/source/`，**非孤儿，非无源**）；文件名带描述性 slug、无年份冲突；体积 < 1 MB，不需 pdfslim。
+- **抽检 3/10 · lecture_note_pdf_only · `_notes/study/causal-inference/final-2022.md`**（17 行 / 1.4 KB，正文 0 字）—— ✅ 无问题。front-matter 完整（discipline=经济学 / course=因果推断与商业应用 / material_type=Exams / date=2022-09-01 / author=Zircon）；keywords 28 项覆盖中英文与方法名（潜在结果框架 / Rubin causal model / DID / RDD / IV / PSM / synthetic control / uplift modeling / heterogeneous treatment effect / panel data 等）；summary 准确点出"题面 PDF 无答案"+"可与 2023 真题、复习提纲做横向对比"；PDF 自动导语由 `post.html` 走 course + material_type 触发。**LaTeX 化评估**：单年期末真题、一次性资料，**维持 PDF 存档即可**。
+- **抽检 4/10 · pdf_archive · `files/public-econ/public-econ-2023.pdf`**（1.7 MB）—— ✅ 无问题。在 `images.py` EXEMPT_FILES 内（与 6-04 / 6-03 状态一致）；被 `_notes/study/public-econ/` 下的笔记引用；体积已知不可再压。
+- **抽检 5/10 · game · `toolbox/chess/index.html`**（1637 行 / 75.9 KB，含 ai-worker.js）—— ✅ 无问题（沿用 5-29 / 6-02 多次抽中过审结论）。本日 commit 未涉及该游戏，自上次抽检后无回归风险。
+- **抽检 6/10 · note · `_notes/research/zotero-setup.md`**（100 行 / 7.9 KB）—— ✅ 无问题。science.md 风格的"从零搭一套"教程；keywords 32 项覆盖工具名 + 同义词 + 故意保留的拼音兜底 `wenxian guanli`（符合 search-keywords skill 约定）；段落组织（装三个东西 / 抓文献四种姿势 / Better BibTeX / 同步省钱 / 写作工具联动 / 群组库）层次清楚；inline SVG（620×240）配 `<p class="img-caption">` 配文标准；尾段链向 `/research/literature/literature-search` 下一篇。
+- **抽检 7/10 · lecture_note_pdf_only · `_notes/study/corp-fin/cheat-sheet-final-2022.md`**（17 行 / 1.4 KB）—— ✅ 无问题（沿用 6-04 抽检结论）。本日未变动。
+- **抽检 8/10 · note · `_notes/life/wipe-after-pee.md`**（191 行 / 17.3 KB，**当前 `hidden:true`**）—— ✅ 内容本身无问题。「生活之问」专栏五段式（问题 / 结论先行 / 科学原理 4 节 / 实践建议 / 参考来源）齐全；2 处 inline SVG（出口几何对比 + 细菌迁移路径）配 `<p class="img-caption">`；keywords 32 项含中英文 + UTI / PVD / Kegel / istinja 等专业词；参考文献 7 篇（Gray's Anatomy / Foxman 2014 / UpToDate / Paterson & Plant 2005 / Su et al. 2024 / Bergman & Caine-Bish / AUA 2022）；正文一处 `$\geq 2$` LaTeX 包裹（与 `bare_dollar.py` clean 一致）。**当前 hidden:true** 意味着读者访问得到 404、但 admin-manifest.json 泄漏其存在——见 P1#1。
+- **抽检 9/10 · note · `_notes/gre/gre-verbal-errors.md`**（23 行 / 2.6 KB，PDF-only + 自述段）—— ✅ 无问题。GRE 备考"错题本"系列；keywords 19 项含一个故意保留的 "GRE 语文错提" 错别字 + "GRE 语文错题本 完整版" 等长尾搜索；带 `download_label` 字段（PDF 下载按钮的本地化文案）+ summary 写明 8 页结构（前 4 页精选 + 后 4 页字面易错 + 末附生词）；正文段尾链向 `/notes/gre/gre-exam-ui-notebook`（复刻考试界面那篇），关联完整。
+- **抽检 10/10 · note · `_notes/life/beef-cuts-guide.md`**（281 行 / 18.8 KB）—— ✅ 无问题。「生活之问」专栏 + extra_categories `菜谱`（前置入口同时挂菜谱大类，合理）；keywords 27 项；2 处 inline SVG（牛部位地图 720×360 + 嫩度×油花/胶原生态位 720×460）配 `<p class="img-caption">`；中英对照速查表 16 行 + 烹饪法分组 5 节 + 常见误区 5 条 + 参考文献 5 篇（Aberle / Toldrá / NAMI / Lepetit 2008 / 农业部 NY/T 676-2010）；引用 `$50\text{-}100\,\mu\text{m}$` LaTeX 包裹（与 `bare_dollar.py` clean 一致）；段间双链向 `/life/cut-meat-grain`（切肉文）两处。
+
+---
+
+### 🗂 仓库卫生
+
+**仓库结构较昨日有重要变化（admin 后台 Phase 1-2 落地 + 6 处 _notes/_includes/_layouts 改动），均为既定方向（站主自己实施），无需 agent 再优化。** `git diff f8571fe..HEAD --stat` 显示 22 个文件、+1005/-56 行；主要落点：`admin/index.html` +250 行（内容管理清单 + 数据看板）、`_includes/admin-article-bar.html` +208 行（文章页齿轮浮条 + 编辑正文与参数）、`_includes/admin-mode.html` +107 行（管理员开关 + 待生效缓冲）、`toolbox/jukebox/lyrics.json` +101 行（歌词 107→113）、`assets/js/games/tiaoqi.js` +93 行（领地框三角化）、`toolbox/xiangqi/index.html` +180 行（领地卡铺盘）、`_includes/auth.html` 与 `_includes/assistant.html` / `_includes/category-listing-tools.html` / `_layouts/{default,post,recipe}.html` 多处小幅接入 admin-mode。
+
+**新文件性质核查**（逐一过 "公开 vs 本地" 标尺）：
+- `admin-manifest.json`（仓库根，Liquid 模板）—— 给 admin UI 用的清单源；front-matter 含 `sitemap: false`、`layout: null` —— **公开可访问**（生成到 `_site/admin-manifest.json`，无鉴权）。**新发现 P1**：该文件公开暴露 `hidden:true` 文章的存在，与 `f71b497` 隐私设计意图相悖。需要站主拍板修法。
+- `_includes/admin-article-bar.html` / `_includes/admin-mode.html` —— 给读者页面注入的管理浮条 + 模式开关；`6a41c4c` 已修过"对所有访客泄露"的 bug，当前实现 admin-only 显隐 + 后端 whoami 二次确认；安全模型合理。
+- 12 条 `chore(admin): hidden=...` 与 1 条 `chore(admin): published=...` —— 均是站主在新管理后台 UI 上做的真实操作产生的 GitHub API 提交，由 `167822299+ruizhou03@users.noreply.github.com` 这个 GitHub commit 邮箱标识，与本人 commit 邮箱（`ruizhou@psu.edu`）区分清楚；**这是新 gh-put 后端运转正常的迹象，不是问题**。
+
+**敏感文件扫描**：未发现新出现的 `.env` / `credentials*` / `token*` / `secret*` 等可疑文件名；未发现新跟踪的 `_site/` 中间产物或 `__pycache__/`；未发现 `.DS_Store` 或 `"xxx 2.yyy"` 形式的副本；`git ls-files --others --exclude-standard` 空（无未跟踪文件）。
+
+**大文件扫描**：前几大跟踪文件与昨日完全一致（or-2023 5.30 MB、monetary-econ-2023 2.96 MB、pdf.worker.mjs 2.06 MB、china-hist-2024 1.73 MB、public-econ-2023 1.67 MB……），无新增超大二进制；1614 个跟踪文件（与 6-04 同量级）。
+
+**结论**：仓库卫生 ✅ 干净——除了上面那个 P1（公开 manifest 暴露 hidden 文章）需要站主拍板，其余无新可优化空间。
+
+---
+
 ## 2026-06-04
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周四 DOW=4，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=04，未跑 monthly_stats）。距 6-03 巡检共 **20 个 commit**（`a08e19d` 之后 → `04730f6` 为止），主题集中在两条线：① **统一账号系统 / 后台看板收口**（`b54bd05` /admin/ 骨架页 + 头像菜单管理员入口、`bf8e21d` Phase 2 阅读量/点赞/收藏/评论排行 + 总览、`6bd9acb` 看板走 urge 代理 + 英文首页接 Cloudflare beacon、`d79712f` 全站接入 Cloudflare Web Analytics、`d2e31b4` comments 数据 urge 代理 + 直连兜底、`30a5eb6` /account/ 加 noindex + sitemap:false、`14521ea / 854b9aa` feixingqi/tiaoqi 邀请链接即拷贝修复 + tiaoqi triangle base frame、`3c7cd7a` tiaoqi base config + 联机走 event relay）；② **本地预览常驻服务入库 + 全站 ?v= 缓存破坏 + 宠物工具模块化部署**（`10d9920` 38 文件 224 处加 `?v={{site.time}}`、`30feb00` LaunchAgent 三件套 + README 入 `scripts/local-preview/`、`d85c349` toolbox/pet 由 5303 行单文件拆成 4 个 `_includes/toolbox/pet/{board,modals,script,styles}.html` + 自定义粮食弹窗向导/卡片重做、`478c366 / 5c4e12b / 27f5d03` feixingqi 中心骰子 + base-fill 配置 + 主干开发文档章节落地、`e27c3c8` jukebox 接逐句歌词 10 首 pilot + LRC 解析、`1403841` 还原 3 篇笔记里被 tokenizer 损坏的 NUL 占位符、`6df43cc` CLAUDE.md 分支模型补两条实操、`04730f6` recipe.html 接入 sa-postbar 收藏/点赞栏）。**昨日 4 项 P1 全部已被站主修掉**：NUL byte 3 文件（`1403841`）、`/account/` noindex/sitemap（`30a5eb6`）、`_layouts/recipe.html` 接 sa-postbar（`04730f6`）、pet 单文件膨胀拆 includes（`d85c349`）——P1 队列今日清零。今日 `scripts/audit/run.sh` 全套审计 ✅ 全 clean（keywords / images / material_type / filename / hover / sibling / bare_dollar / img_caption_md / svg_italic / bare_url / frontmatter_yaml），`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（14.14 s）。**本次没有可安全自动修复项**——所有审计维度均 clean，新增的代码（admin 看板 / Cloudflare beacon / sa-postbar 接入 / pet 拆分 / jukebox 歌词）已通过本地静态检查。残余 P2 5 项（paywall 后端冒烟测试需真后端、scripts 内 `/Users/zhourui/` 硬编码、内部 prompt 称呼 zirconeey、toolbox/random hover 守卫缩进 cosmetic、PDF-only 存档手写互链）状态不变。
