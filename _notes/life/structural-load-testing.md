@@ -6,6 +6,10 @@ main_category: "生活攻略"
 sub_category: "生活之问"
 permalink: "/life/structural-load-testing"
 keywords: ["大楼承重 怎么测", "桥梁承重 测试", "隧道承重", "结构承重 怎么算", "建筑承重 计算", "建筑安全 怎么保证", "结构工程", "有限元 FEM 结构", "材料力学", "结构力学", "钢筋混凝土 抗压", "混凝土强度", "钢材屈服强度", "安全系数 结构", "factor of safety", "极限状态设计", "承载能力极限状态", "正常使用极限状态", "桥梁荷载试验", "bridge load test", "静载试验", "动载试验", "建筑规范 GB 50010", "建筑结构荷载规范", "ASCE 7 荷载", "结构健康监测", "structural health monitoring", "围岩分级 RMR Q", "隧道监控量测", "收敛计", "应变片", "比例模型 实验", "振动台 抗震试验", "E-Defense 振动台", "结构事故 学到", "塔科马大桥"]
+hidden: false
+trashed: false
+bodyremote: false
+published: false
 ---
 
 # 1. 问题
