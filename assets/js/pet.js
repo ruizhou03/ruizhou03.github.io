@@ -1,4 +1,3 @@
-<script>
 (function () {
   'use strict';
 
@@ -3773,4 +3772,3 @@
   });
   setInterval(() => { if (!document.hidden) refreshShared(); }, 60000);
 })();
-</script>

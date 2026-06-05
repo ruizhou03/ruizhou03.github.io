@@ -5,12 +5,18 @@ permalink: /toolbox/pet/
 ---
 
 {%- comment -%}
-  宠物中心——单页工具。原本 5000+ 行单文件，按关注点拆成四个 include：
-  styles（全部 CSS）/ board（粮食·体重·猫语三个面板）/ modals（各类弹窗）/ script（单一 IIFE 全部逻辑）。
-  渲染结果与拆分前等价；JS 是同一个闭包作用域，故整体保留为一个 include 不再细分。
+  宠物中心——单页工具。结构：
+  styles → /assets/css/pet.css（外部资源，走 SW 的 stale-while-revalidate 缓存）
+  board（粮食·体重·猫语三个面板）/ modals（各类弹窗）→ 仍内联为 include
+  script → /assets/js/pet.js（外部资源，单一 IIFE 全部逻辑）
+  把最大的 CSS(≈60KB)+JS(≈167KB) 抽成外部资源，是为了给 HTML 文档减重：内联时整页
+  ≈347KB（全站最大），弱网下大文档下不动会一直转圈、连 SW 缓存都回退不到（见 sw.js
+  导航超时兜底）。外置后文档瘦回正常量级，资源还能跨访问缓存复用。
+  ⚠️ pet.js 不加 defer：它特意放在 DOM 之后、按到达顺序同步执行（等价于原来的行内
+  <script>），依赖上方 board/modals 的元素已就位。
 {%- endcomment -%}
 
-{% include toolbox/pet/styles.html %}
+<link rel="stylesheet" href="{{ '/assets/css/pet.css' | relative_url }}?v={{ site.time | date: '%s' }}">
 
 <div class="pf-wrap">
 {% include toolbox/pet/board.html %}
@@ -18,4 +24,4 @@ permalink: /toolbox/pet/
 {% include toolbox/pet/modals.html %}
 </div>
 
-{% include toolbox/pet/script.html %}
+<script src="{{ '/assets/js/pet.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
