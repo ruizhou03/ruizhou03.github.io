@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "中国象棋 v3 | Rui Zhou"
+title: "中国象棋 v4 | Rui Zhou"
 permalink: /toolbox/xiangqi/
 ---
 
@@ -213,6 +213,7 @@ permalink: /toolbox/xiangqi/
   .xq-terr-card .ico { font-size: 1.5rem; line-height: 1; }
   .xq-terr-card .lbl { font-size: 0.95rem; font-weight: 700; color: var(--seat); font-family: var(--font-display); white-space: nowrap; }
   .xq-terr-card .sub { font-size: 0.7rem; color: var(--color-muted); white-space: nowrap; }
+  .xq-terr-card .sub2 { font-size: 0.6rem; color: var(--color-muted); white-space: nowrap; opacity: 0.85; }
   .xq-terr-diff { display: flex; flex-wrap: nowrap; gap: 0.16rem; margin-top: 0.2rem; }
   .xq-terr-diff button { font-size: 0.64rem; padding: 0.1rem 0.42rem; border-radius: 7px; line-height: 1.25; white-space: nowrap; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-muted); cursor: pointer; }
   .xq-terr-diff button.sel { background: var(--seat); color: #fff; border-color: var(--seat); font-weight: 700; }
@@ -232,7 +233,7 @@ permalink: /toolbox/xiangqi/
 
 <div class="xq-wrap">
   <header>
-    <h1>♟ 中国象棋 v3</h1>
+    <h1>♟ 中国象棋 v4</h1>
     <div class="sub">楚河汉界</div>
   </header>
 
@@ -281,7 +282,7 @@ permalink: /toolbox/xiangqi/
     <div class="gs-pgo-overlay open" id="xqPreGameOverlay">
       <div class="gs-pgo-view active" id="xqPgoViewMain">
         <div class="gs-pgo-icon">帥</div>
-        <h2 class="gs-pgo-title">中国象棋 v3</h2>
+        <h2 class="gs-pgo-title">中国象棋 v4</h2>
         <div class="gs-pgo-mode-picker" id="xqPgoModePicker">
           <button class="gs-pgo-mode-tab selected" data-value="pvp">双人同机</button>
           <button class="gs-pgo-mode-tab" data-value="ai-black">人机（执黑）</button>
@@ -1535,13 +1536,7 @@ permalink: /toolbox/xiangqi/
 
   (function xqAutoJoin() {
     const code = new URLSearchParams(location.search).get('room');
-    if (code && /^\d{4}$/.test(code)) {
-      document.getElementById('xqPgoRoomCodeInput').value = code;
-      setTimeout(() => {
-        document.querySelector('#xqPgoRoomTabs .gs-pgo-room-tab[data-tab="online"]')?.click();
-        setTimeout(xqRoomAction, 800);
-      }, 500);
-    }
+    if (code && /^\d{4}$/.test(code)) setTimeout(() => xqJoinViaLink(code), 400);   // straight into territory lobby
   })();
 
   document.getElementById('xqPgoStartBtn').addEventListener('click', () => {
@@ -1588,7 +1583,7 @@ permalink: /toolbox/xiangqi/
     return { mode: null };   // both 电脑 — outside the 3 engine modes
   }
 
-  let xqRoomPlayers = 0, xqRoomReady = false, xqRoomError = '', xqOnlineBegun = false, xqReordered = false;
+  let xqRoomPlayers = 0, xqRoomReady = false, xqRoomError = '', xqOnlineBegun = false, xqReordered = false, xqLobbyRoom = null;
 
   function xqTerrCard(side) {
     const info = XQ_SIDE[side], kind = xqRoles[side];
@@ -1625,19 +1620,125 @@ permalink: /toolbox/xiangqi/
   }
 
   function xqRenderTerr() {
+    if (xqIsOnline && (xqRemoteSide != null || xqRoomToken)) { xqRenderOnlineLobby(); return; }
     const blackHost = document.getElementById('xqSeatBlack'), redHost = document.getElementById('xqSeatRed');
     blackHost.innerHTML = ''; redHost.innerHTML = '';
     blackHost.appendChild(xqTerrCard('black'));
     redHost.appendChild(xqTerrCard('red'));
-    const md = xqTerrComputeMode();
     const startBtn = document.getElementById('xqTerrStart');   // always on the river
-    if (md.online) {
-      startBtn.disabled = !(xqRoomReady && xqRoomHost && xqRoomPlayers >= 2 && xqReordered);
-      startBtn.textContent = '▶ 开始游戏';
+    startBtn.style.display = '';
+    startBtn.disabled = (xqTerrComputeMode().mode === null);   // both 电脑: nothing to start
+    startBtn.textContent = '▶ 开始游戏';
+  }
+
+  // ── Online lobby: render the two side cards from the live room state ──
+  function xqRenderOnlineLobby() {
+    const players = (xqLobbyRoom && xqLobbyRoom.players) || [];
+    const guest = players.find(p => p.id !== xqRoomPlayerId);
+    const nPlayers = players.length;
+    const blackHost = document.getElementById('xqSeatBlack'), redHost = document.getElementById('xqSeatRed');
+    blackHost.innerHTML = ''; redHost.innerHTML = '';
+    blackHost.appendChild(xqOnlineSideCard('black', guest));
+    redHost.appendChild(xqOnlineSideCard('red', guest));
+    const startBtn = document.getElementById('xqTerrStart');
+    if (xqRoomHost) {
+      startBtn.style.display = '';
+      startBtn.disabled = !(nPlayers >= 2 && xqReordered);
+      startBtn.textContent = nPlayers >= 2 ? '▶ 开始游戏' : '▶ 等对手加入';
     } else {
-      startBtn.disabled = (md.mode === null);   // both 电脑: nothing to start
-      startBtn.textContent = '▶ 开始游戏';
+      startBtn.style.display = 'none';   // only the host starts
     }
+  }
+
+  function xqOnlineSideCard(side, guest) {
+    const info = XQ_SIDE[side];
+    const card = xqEl('div', 'xq-terr-card');
+    card.style.setProperty('--seat', info.color);
+    let occ;   // 'me' | 'host' | 'guest' | 'invite'
+    if (xqRemoteSide != null) {                 // HOST view — by the side it invited
+      occ = (side === xqRemoteSide) ? (guest ? 'guest' : 'invite') : 'me';
+    } else {                                     // GUEST view — by seat ORDER (index 0 = 红; seat field is null in lobby)
+      const players = (xqLobbyRoom && xqLobbyRoom.players) || [];
+      const myIdx = players.findIndex(p => p.id === xqRoomPlayerId);
+      const mySide = (myIdx === 0) ? 'red' : 'black';
+      occ = (side === mySide) ? 'me' : 'host';
+    }
+    card.appendChild(xqEl('span', 'ico', occ === 'invite' ? '🔗' : (occ === 'me' ? '👤' : '🌐')));
+    card.appendChild(xqEl('span', 'lbl', info.label));
+    if (occ === 'me') {
+      card.appendChild(xqEl('span', 'sub', '你'));
+    } else if (occ === 'host') {
+      card.appendChild(xqEl('span', 'sub', '房主'));
+      card.appendChild(xqEl('span', 'sub2', '等房主开始…'));
+    } else if (occ === 'guest') {
+      card.appendChild(xqEl('span', 'sub', (guest && guest.nick) ? guest.nick : '对手'));
+      card.appendChild(xqEl('span', 'sub2', '已加入 ✓'));
+      if (xqRoomHost) {
+        const sw = xqEl('button', 'xq-terr-mini', '⇅ 交换红黑');
+        sw.onclick = (e) => { e.stopPropagation(); xqSwapSides(); };
+        card.appendChild(sw);
+      }
+    } else {   // invite slot (host only, before the guest joins)
+      card.appendChild(xqEl('span', 'sub', '邀请联机'));
+      card.appendChild(xqEl('div', 'xq-room-code', '房号 ' + (xqRoomCode || '…')));
+      const copy = xqEl('button', 'xq-terr-mini', '🔗 复制邀请链接');
+      copy.onclick = (e) => { e.stopPropagation(); xqCopyInvite(xqRoomCode, copy); };
+      card.appendChild(copy);
+      card.appendChild(xqEl('div', 'xq-room-status', !xqRoomReady ? '建房中…' : '等对手加入…'));
+    }
+    return card;
+  }
+
+  // Host swaps which colour each player gets (lobby only). The guest's board
+  // perspective doesn't move until the game starts (it re-reads its seat then).
+  function xqSwapSides() {
+    if (!xqRoomHost || !xqLobbyRoom) return;
+    const players = xqLobbyRoom.players || [];
+    if (players.length < 2) return;
+    xqRemoteSide = (xqRemoteSide === 'red') ? 'black' : 'red';
+    const guest = players.find(p => p.id !== xqRoomPlayerId);
+    if (guest) {
+      const redId = (xqRemoteSide === 'red') ? guest.id : xqRoomPlayerId;
+      const blackId = (xqRemoteSide === 'red') ? xqRoomPlayerId : guest.id;
+      xqRoomApi('POST', 'reorder', { code: xqRoomCode, token: xqRoomToken, playerIds: [redId, blackId] });
+    }
+    xqRenderTerr();
+  }
+
+  // Invite-link joiner: join the room and drop straight into the territory lobby
+  // (no classic modal); seat/perspective settle when the host starts.
+  async function xqJoinViaLink(code) {
+    xqIsOnline = true; xqRemoteSide = null; xqRoomHost = false; xqOnlineBegun = false;
+    xqMyColor = null; xqMovesApplied = 0; xqRoomGameOver = false; xqReordered = true; xqRoomError = '';
+    const nick = xqGetNick(), did = GamesShell.Identity.getDeviceId();
+    const r = await xqRoomApi('POST', 'join', { code, nick, deviceId: did });
+    if (r && r.ok) {
+      xqRoomToken = r.playerToken; xqRoomPlayerId = r.playerId; xqRoomCode = r.code;
+      xqLobbyRoom = r.room; xqRoomHost = !!(r.room && r.room.youAreHost);
+      xqRoomPlayers = ((r.room && r.room.players) || []).length;
+      xqTerrPoll();
+    } else {
+      const msgs = { room_not_found: '房间不存在或已关闭', room_full: '房间已满', room_in_progress: '游戏已开始，无法加入' };
+      xqRoomError = (r && (msgs[r.reason] || msgs[r.error])) || '加入失败';
+      xqIsOnline = false;
+    }
+    xqRenderTerr();
+  }
+
+  // Opening flip: when I play 黑, the board turns 180° so my side is at the bottom.
+  function xqFlipAnimate() {
+    if (xqMyColor !== BLACK) return;
+    const wrap = document.querySelector('.xq-board-wrap');
+    if (!wrap) return;
+    wrap.style.overflow = 'visible';
+    wrap.style.transition = 'none';
+    wrap.style.transform = 'rotate(180deg)';
+    void wrap.offsetWidth;
+    requestAnimationFrame(() => {
+      wrap.style.transition = 'transform 0.8s cubic-bezier(.45,.05,.25,1)';
+      wrap.style.transform = 'rotate(0deg)';
+    });
+    setTimeout(() => { wrap.style.transition = ''; wrap.style.transform = ''; wrap.style.overflow = ''; }, 900);
   }
 
   function xqCycleSide(side) {
@@ -1701,8 +1802,8 @@ permalink: /toolbox/xiangqi/
     if (xqOnlineBegun) return;
     xqOnlineBegun = true;
     if (xqMyColor == null) {
-      const me = (room.players || []).find(p => p.id === xqRoomPlayerId);
-      xqMyColor = (me && me.seat === 'first') ? RED : BLACK;
+      const idx = (room.players || []).findIndex(p => p.id === xqRoomPlayerId);
+      xqMyColor = (idx === 0) ? RED : BLACK;   // seat order: index 0 = 红 (moves first)
     }
     xqPgoOverlay.classList.remove('open');
     state.mode = 'pvp'; persist();
@@ -1711,6 +1812,7 @@ permalink: /toolbox/xiangqi/
     xqRoomGameOver = false;
     if (typeof xqSave !== 'undefined' && xqSave) xqSave.start();
     updateStatus();
+    xqFlipAnimate();   // 黑方开局：棋盘转到我方在下方
   }
   function xqReplayMoves(room) {
     const moves = room.moves || [];
@@ -1739,22 +1841,27 @@ permalink: /toolbox/xiangqi/
     if (xqRoomStatePoller) { clearTimeout(xqRoomStatePoller); xqRoomStatePoller = null; }
     let since = 0;
     async function tick() {
-      if (!xqRoomToken || (xqRemoteSide == null && !xqOnlineBegun)) return;
+      if (!xqRoomToken) return;
       const r = await xqRoomApi('GET', 'state&code=' + xqRoomCode + '&token=' + xqRoomToken + '&since=' + since);
       if (!xqRoomToken) return;
       if (r.ok && r.room) {
         since = r.version;
+        xqLobbyRoom = r.room;
         if (r.room.state === 'playing') {
           xqEnterOnlineGame(r.room);
           xqReplayMoves(r.room);
           xqRoomStatePoller = setTimeout(tick, 500); return;   // keep polling for opponent moves
+        }
+        // guest got kicked / room dissolved
+        if (!xqRoomHost && xqRoomPlayerId && !(r.room.players || []).some(p => p.id === xqRoomPlayerId)) {
+          xqRoomError = '你已离开房间'; xqTerrLeaveRoom(); xqRenderTerr(); return;
         }
         xqRoomPlayers = (r.room.players || []).length;
         xqRoomHost = r.room.youAreHost;
         xqMaybeReorder(r.room);
         xqRenderTerr();
       }
-      xqRoomStatePoller = setTimeout(tick, 1500);
+      xqRoomStatePoller = setTimeout(tick, 1200);
     }
     tick();
   }
@@ -1784,10 +1891,7 @@ permalink: /toolbox/xiangqi/
     document.getElementById('xqPgoStartBtn').click();   // reuse the existing local-start path
   });
 
-  xqPgoOverlay.classList.add('xq-terr');   // switch the pre-game overlay to territory mode
-  // Invite-link joiners just wait in a room (they don't configure seats); keep the
-  // classic modal room lobby for them rather than the host-oriented territory cards.
-  if (/[?&]room=\d{4}/.test(location.search)) xqPgoOverlay.classList.remove('xq-terr');
+  xqPgoOverlay.classList.add('xq-terr');   // territory mode for everyone (host + invite-link joiner)
   xqRenderTerr();
 
   // While the territory setup is up, the in-game mode/difficulty rows would just
