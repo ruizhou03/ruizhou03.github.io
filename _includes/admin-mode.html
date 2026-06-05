@@ -144,10 +144,10 @@ window.SaPending = window.SaPending || (function () {
     });
 
     function labels() {
-      // labels() 全权决定两个按钮的 禁用态 + 文案。删除态下「隐藏」无意义（整篇已对访客不可见）→ 禁用。
+      // labels() 全权决定两个按钮的 禁用态 + 文案。删除态下「下架」无意义（整篇已对访客不可见）→ 禁用。
       hideBtn.disabled = trashed;
       delBtn.disabled = false;
-      hideBtn.textContent = (hidden ? '取消隐藏' : '隐藏') + (hPending ? '·重建中' : '');
+      hideBtn.textContent = (hidden ? '恢复' : '下架') + (hPending ? '·重建中' : '');
       delBtn.textContent = (trashed ? '恢复' : '删除') + (tPending ? '·重建中' : '');
     }
     labels();

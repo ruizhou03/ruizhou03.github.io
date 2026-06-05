@@ -78,12 +78,12 @@ noindex: true
       </div>
       <div class="cm-tabs">
         <button type="button" class="cm-tab cm-on" data-f="all">全部</button>
-        <button type="button" class="cm-tab" data-f="hidden">软隐藏</button>
+        <button type="button" class="cm-tab" data-f="offshelf">已下架</button>
         <button type="button" class="cm-tab" data-f="paid">付费</button>
-        <button type="button" class="cm-tab" data-f="trash">已下架 / 回收站</button>
+        <button type="button" class="cm-tab" data-f="trash">回收站</button>
       </div>
       <div id="cm-list" class="cm-list"><div class="cm-empty">加载中…</div></div>
-      <p class="adm-note">软隐藏=访客看不到、你能预览（栏目里变灰）；删除=进回收站，访客看不到、你仍可点开预览、可随时还原（栏目里变灰+删除线）；硬下架=真 404、彻底不进 HTML（你也无法预览，只能在此还原）。改动提交后约 1–2 分钟生效（这期间列表可能仍显旧态，已就地标「重建中」）。也可在文章页用右下角齿轮就地操作。</p>
+      <p class="adm-note">下架＝正文搬后端、访客（含查看源码）看不到、你仍可预览、可随时恢复（栏目里变灰）；删除＝同样搬后端但归入「回收站」、可预览、可还原（栏目里变灰+删除线）；彻底删除＝从仓库抹除文件、真 404，站内不可恢复（只能从 git 历史找回）。改动提交后约 1–2 分钟生效（这期间列表可能仍显旧态，已就地标「重建中」）。也可在文章页用右下角齿轮就地操作。</p>
     </section>
   </div>
 </article>
@@ -398,30 +398,29 @@ noindex: true
   }
 
   function cmMatch(it) {
-    var gone = it.off || it.trashed;            // 已下架(真404) 或 软删除(回收站)
-    if (cmFilter === 'trash') return gone;
-    if (gone) return false;                     // 其它 tab 都不显示回收站里的
-    if (cmFilter === 'hidden') return it.hidden;
+    if (cmFilter === 'trash') return it.trashed || it.off;   // 回收站：删除的 + 旧硬下架/未发布
+    if (it.trashed || it.off) return false;                  // 其它 tab 都不显示回收站里的
+    if (cmFilter === 'offshelf') return it.hidden;           // 已下架：真隐藏(下架)的
     if (cmFilter === 'paid') return it.paid;
-    return true;
+    return true;                                             // 全部：公开 + 下架(变灰)
   }
   function cmRowHtml(it) {
     var badges = '';
-    if (it.off) badges += '<span class="cm-badge b-off">已下架</span>';
+    if (it.off) badges += '<span class="cm-badge b-off">未发布</span>';
     else if (it.trashed) badges += '<span class="cm-badge b-off">回收站</span>';
-    if (it.hidden && !it.trashed) badges += '<span class="cm-badge b-hidden">软隐藏</span>';
+    else if (it.hidden) badges += '<span class="cm-badge b-hidden">已下架</span>';
     if (it.paid) badges += '<span class="cm-badge b-paid">付费</span>';
     if (it.pending) badges += '<span class="cm-pend">重建中</span>';
     var titleHtml = it.url
       ? '<a class="cm-title" href="' + esc(it.url) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a>'
       : '<span class="cm-title">' + esc(it.title) + '</span>';
-    var acts = (it.off || it.trashed)
-      ? '<button type="button" class="cm-btn" data-a="restore">还原</button>'
+    var acts = (it.trashed || it.off)
+      ? '<button type="button" class="cm-btn" data-a="restore">还原</button>' +
+        '<button type="button" class="cm-btn danger" data-a="purge">彻底删除</button>'
       : (it.paid ? '<button type="button" class="cm-btn" data-a="unpay">取消付费</button>'
                  : '<button type="button" class="cm-btn" data-a="setpaid">设为付费</button>') +
-        '<button type="button" class="cm-btn" data-a="hide">' + (it.hidden ? '取消软隐藏' : '软隐藏') + '</button>' +
-        '<button type="button" class="cm-btn" data-a="trash">删除</button>' +
-        '<button type="button" class="cm-btn danger" data-a="off">硬下架</button>';
+        '<button type="button" class="cm-btn" data-a="hide">' + (it.hidden ? '恢复（公开）' : '下架') + '</button>' +
+        '<button type="button" class="cm-btn danger" data-a="trash">删除</button>';
     return '<div class="cm-row">' +
       '<div class="cm-main">' + titleHtml + '<div class="cm-meta">' + (it.sub ? esc(it.sub) + ' · ' : '') + (it.date ? it.date + ' · ' : '') + esc(it.path) + '</div></div>' +
       '<div class="cm-badges">' + badges + '</div>' +
@@ -466,12 +465,12 @@ noindex: true
     } else if (a === 'trash') {
       confirmMsg = '删除「' + it.title + '」到回收站？正文搬后端、访客看不到，你仍可点开预览、可随时还原。';
       action = 'hide-publish'; body = { path: it.path, flag: 'trashed' };
-    } else if (a === 'off') {
-      confirmMsg = '硬下架「' + it.title + '」？将变成真 404、彻底不进 HTML，只能在「已下架/回收站」里还原。';
-      action = 'set-flags'; body = { path: it.path, flags: { published: false } };
+    } else if (a === 'purge') {
+      confirmMsg = '彻底删除「' + it.title + '」？将从仓库当前版本抹除该文件、真 404，站内无法再恢复（只能从 git 历史找回）。确定？';
+      action = 'purge'; body = { path: it.path };
     } else if (a === 'restore') {
       if (it.off) { action = 'set-flags'; body = { path: it.path, flags: { published: true, trashed: false } }; }
-      else { action = 'hide-restore'; body = { path: it.path }; }   // 软删/隐藏(bodyremote)：合并回正文
+      else { action = 'hide-restore'; body = { path: it.path }; }   // 下架/删除(bodyremote)：合并回正文
     } else return;
     if (confirmMsg && !window.confirm(confirmMsg)) return;
     row.classList.add('cm-busy');
@@ -480,9 +479,9 @@ noindex: true
     })
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
       .then(function () {
+        if (a === 'purge') { var i = cmItems.indexOf(it); if (i >= 0) cmItems.splice(i, 1); renderContent(); return; }
         if (a === 'hide') { it.hidden = !it.hidden; if (!it.hidden) it.trashed = false; }
         else if (a === 'trash') { it.trashed = true; it.hidden = false; }
-        else if (a === 'off') { it.off = true; it.trashed = false; }
         else if (a === 'restore') { it.off = false; it.trashed = false; it.hidden = false; }
         it.pending = true;
         renderContent();
