@@ -120,6 +120,28 @@ window.SaPending = window.SaPending || (function () {
     hideBtn.type = 'button'; hideBtn.className = 'sa-item-toggle';
     var delBtn = document.createElement('button');
     delBtn.type = 'button'; delBtn.className = 'sa-item-toggle sa-danger';
+    var bPaid = el.getAttribute('data-paid') === 'true';
+    var paid = window.SaPending.stateFlag(path, 'paid', bPaid).value;
+    var paidBtn = document.createElement('button');
+    paidBtn.type = 'button'; paidBtn.className = 'sa-item-toggle';
+    function paidLabel() { paidBtn.textContent = paid ? '取消付费' : '设为付费'; }
+    paidLabel();
+    paidBtn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      if (!paid) {                       // 设为付费要在文章里放分界标记 → 跳到文章页用齿轮付费流程
+        var u = el.getAttribute('data-url'); if (u) location.href = u + '#ab-set-paid';
+        return;
+      }
+      if (!window.confirm('取消付费、改回免费？将从后端取回付费正文、合并还原进文章。')) return;
+      paidBtn.disabled = true; paidBtn.textContent = '…';
+      window.SiteAuth.authedFetch('/api/admin?action=paid-unpublish', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: path })
+      })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+        .then(function () { paid = false; window.SaPending.markFlag(path, 'paid', false); el.setAttribute('data-paid', 'false'); })
+        .catch(function () {})
+        .then(function () { paidBtn.disabled = false; paidLabel(); });
+    });
 
     function labels() {
       // labels() 全权决定两个按钮的 禁用态 + 文案。删除态下「隐藏」无意义（整篇已对访客不可见）→ 禁用。
@@ -155,7 +177,7 @@ window.SaPending = window.SaPending || (function () {
 
     hideBtn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); flip('hide'); });
     delBtn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); flip('del'); });
-    tools.appendChild(hideBtn); tools.appendChild(delBtn);
+    tools.appendChild(hideBtn); tools.appendChild(delBtn); tools.appendChild(paidBtn);
     el.appendChild(tools);
   }
 

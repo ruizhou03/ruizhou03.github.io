@@ -407,7 +407,9 @@ noindex: true
       : '<span class="cm-title">' + esc(it.title) + '</span>';
     var acts = (it.off || it.trashed)
       ? '<button type="button" class="cm-btn" data-a="restore">还原</button>'
-      : '<button type="button" class="cm-btn" data-a="hide">' + (it.hidden ? '取消软隐藏' : '软隐藏') + '</button>' +
+      : (it.paid ? '<button type="button" class="cm-btn" data-a="unpay">取消付费</button>'
+                 : '<button type="button" class="cm-btn" data-a="setpaid">设为付费</button>') +
+        '<button type="button" class="cm-btn" data-a="hide">' + (it.hidden ? '取消软隐藏' : '软隐藏') + '</button>' +
         '<button type="button" class="cm-btn" data-a="trash">删除</button>' +
         '<button type="button" class="cm-btn danger" data-a="off">硬下架</button>';
     return '<div class="cm-row">' +
@@ -432,6 +434,20 @@ noindex: true
     });
   }
   function cmAction(it, row, a) {
+    // 设为付费需在文章里放分界标记 → 打开文章页用齿轮付费流程
+    if (a === 'setpaid') { if (it.url) window.open(it.url + '#ab-set-paid', '_blank', 'noopener'); return; }
+    // 取消付费：从后端取回付费正文合并还原（独立端点，不走 set-flags）
+    if (a === 'unpay') {
+      if (!window.confirm('取消付费「' + it.title + '」、改回免费？将从后端取回付费正文、合并还原进文章。')) return;
+      row.classList.add('cm-busy');
+      window.SiteAuth.authedFetch('/api/admin?action=paid-unpublish', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: it.path })
+      })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+        .then(function () { it.paid = false; it.pending = true; renderContent(); })
+        .catch(function (e) { row.classList.remove('cm-busy'); alert('操作失败：' + ((e && e.error) || '请重试')); });
+      return;
+    }
     var body, confirmMsg, single = false;
     if (a === 'hide') { single = true; body = { path: it.path, key: 'hidden', value: !it.hidden }; }
     else if (a === 'off') { confirmMsg = '硬下架「' + it.title + '」？将变成真 404、彻底不进 HTML，只能在「已下架/回收站」里还原。'; body = { path: it.path, flags: { published: false } }; }

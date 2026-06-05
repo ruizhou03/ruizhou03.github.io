@@ -13,7 +13,7 @@
     <div class="ab-panel-h">管理 · 本文</div>
     <div class="ab-row"><span class="ab-dot" id="ab-dot"></span><span id="ab-state">公开</span></div>
     <button class="ab-act" id="ab-toggle-pub" type="button">隐藏此文</button>
-    <button class="ab-act" id="ab-paid" type="button" disabled>设为付费 <span class="ab-soon">即将上线</span></button>
+    <button class="ab-act" id="ab-paid" type="button">设为付费</button>
     <button class="ab-act" id="ab-edit" type="button">编辑正文与参数</button>
     <button class="ab-act" id="ab-off" type="button">硬下架（真 404）</button>
     <button class="ab-act ab-danger" id="ab-del" type="button">删除（进回收站）</button>
@@ -23,12 +23,15 @@
 <div id="ab-edit-mask" class="ab-edit-mask">
   <div class="ab-edit-card">
     <div class="ab-edit-h">编辑源文件 · <span id="abe-path"></span></div>
+    <div class="abe-paid-hint" id="abe-paid-hint" hidden>设为付费：在免费 / 付费的分界处<b>单独一行</b>插入 <code>&lt;!-- PAYWALL --&gt;</code> —— 上面留作免费预览（提交进仓库），下面是付费正文（<b>只存后端、不进仓库</b>）。填好价格后点「设为付费并提交」。</div>
     <textarea id="abe-text" class="ab-edit-text" spellcheck="false" wrap="off"></textarea>
     <div class="ab-edit-foot">
       <span class="ab-edit-msg" id="abe-msg"></span>
       <span style="flex:1"></span>
+      <label class="abe-price-wrap" id="abe-price-wrap" hidden>价格 ¥<input type="number" id="abe-price" class="abe-price" min="0" step="0.1" placeholder="9.9"></label>
       <button type="button" class="ab-edit-btn" id="abe-cancel">取消</button>
       <button type="button" class="ab-edit-btn ab-edit-primary" id="abe-save" disabled>保存并提交</button>
+      <button type="button" class="ab-edit-btn ab-edit-primary" id="abe-paid-save" hidden>设为付费并提交</button>
     </div>
   </div>
 </div>
@@ -81,6 +84,14 @@
   .ab-edit-btn:hover:not(:disabled) { border-color: var(--color-highlight); }
   .ab-edit-primary { background: var(--color-highlight); color: #fff; border-color: var(--color-highlight); font-weight: 700; }
   .ab-edit-btn:disabled { opacity: 0.5; cursor: default; }
+  .abe-paid-hint { font-size: 0.74rem; line-height: 1.5; color: var(--color-muted);
+    background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 8px;
+    padding: 0.5rem 0.7rem; margin-bottom: 0.6rem; }
+  .abe-paid-hint code { font-family: ui-monospace, Menlo, monospace; font-size: 0.72rem;
+    background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 4px; padding: 0.02rem 0.3rem; }
+  .abe-price-wrap { font-size: 0.78rem; color: var(--color-muted); display: inline-flex; align-items: center; gap: 0.25rem; }
+  .abe-price { width: 5.5em; font-family: inherit; font-size: 0.82rem; padding: 0.3rem 0.5rem;
+    border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); color: var(--color-text); }
 </style>
 {% raw %}
 <script>
@@ -103,6 +114,8 @@
     var stt = window.SaPending ? window.SaPending.stateFlag(path, 'trashed', buildTrashed) : { value: buildTrashed, pending: false };
     var hidden = sh.value, pending = sh.pending;
     var trashed = stt.value, tPending = stt.pending;
+    var paid = fab.getAttribute('data-paid') === 'true';
+    var paidBtn = document.getElementById('ab-paid');
 
     function paint() {
       dot.classList.toggle('is-hidden', hidden || trashed);
@@ -111,6 +124,7 @@
       btn.disabled = trashed;                               // 删除态下「隐藏」无意义
       btn.textContent = hidden ? '取消隐藏（公开）' : '隐藏此文';
       if (delBtn) delBtn.textContent = (trashed ? '从回收站恢复' : '删除（进回收站）') + (tPending ? '（重建中）' : '');
+      if (paidBtn) paidBtn.textContent = paid ? '取消付费（改回免费）' : '设为付费';
     }
 
     gear.addEventListener('click', function (e) { e.stopPropagation(); fab.classList.toggle('ab-open'); });
@@ -144,22 +158,42 @@
     var eMsg = document.getElementById('abe-msg');
     var saveBtn = document.getElementById('abe-save');
     var cancelBtn = document.getElementById('abe-cancel');
+    var paidHint = document.getElementById('abe-paid-hint');
+    var priceWrap = document.getElementById('abe-price-wrap');
+    var priceInput = document.getElementById('abe-price');
+    var paidSaveBtn = document.getElementById('abe-paid-save');
     var editSha = null;
+    var editMode = 'edit';   // 'edit' = 整文件覆盖写；'paid' = 设为付费（劈分上传）
     var HINT = '保存即提交到 main，约 1–2 分钟生效。改开头 --- 之间的 front-matter 请保持 YAML 格式正确。';
 
-    function openEdit() {
+    function openEdit(mode) {
+      editMode = mode === 'paid' ? 'paid' : 'edit';
+      var isPaid = editMode === 'paid';
       fab.classList.remove('ab-open');
       mask.classList.add('open');
       pathEl.textContent = path;
-      textEl.value = ''; saveBtn.disabled = true; eMsg.textContent = '加载中…';
+      textEl.value = ''; eMsg.textContent = '加载中…';
+      saveBtn.hidden = isPaid; saveBtn.disabled = true;
+      paidSaveBtn.hidden = !isPaid; paidSaveBtn.disabled = true;
+      priceWrap.hidden = !isPaid; paidHint.hidden = !isPaid;
       window.SiteAuth.authedFetch('/api/admin?action=gh-get&path=' + encodeURIComponent(path))
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
-        .then(function (d) { textEl.value = d.content || ''; editSha = d.sha; saveBtn.disabled = false; eMsg.textContent = HINT; })
+        .then(function (d) {
+          textEl.value = d.content || ''; editSha = d.sha;
+          if (isPaid) {
+            var pm = (d.content || '').match(/^[ \t]*price[ \t]*:[ \t]*(.*)$/m);
+            if (pm) priceInput.value = pm[1].trim().replace(/^["']|["']$/g, '');
+            paidSaveBtn.disabled = false;
+            eMsg.textContent = '在分界处插入一行 <!-- PAYWALL --> 后点「设为付费并提交」。';
+          } else {
+            saveBtn.disabled = false; eMsg.textContent = HINT;
+          }
+        })
         .catch(function (e) { eMsg.textContent = '加载失败：' + ((e && e.error) || '请重试'); });
     }
     function closeEdit() { mask.classList.remove('open'); }
 
-    editBtn.addEventListener('click', openEdit);
+    editBtn.addEventListener('click', function () { openEdit('edit'); });
     cancelBtn.addEventListener('click', closeEdit);
     mask.addEventListener('click', function (e) { if (e.target === mask) closeEdit(); });
     saveBtn.addEventListener('click', function () {
@@ -174,6 +208,47 @@
           saveBtn.disabled = false;
           eMsg.textContent = '保存失败：' + ((e && e.error) || '请重试') + '（若提示冲突，请关闭重开再编辑）';
         });
+    });
+
+    // 设为付费并提交：把编辑框整源文件按 <!-- PAYWALL --> 劈分，锁定正文存后端、预览提交 main
+    paidSaveBtn.addEventListener('click', function () {
+      if (textEl.value.indexOf('<!-- PAYWALL -->') === -1) {
+        eMsg.textContent = '请先在免费/付费分界处单独插入一行 <!-- PAYWALL -->'; return;
+      }
+      paidSaveBtn.disabled = true; eMsg.textContent = '提交中…';
+      var priceVal = priceInput.value.trim();
+      window.SiteAuth.authedFetch('/api/admin?action=paid-publish', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: path, content: textEl.value, sha: editSha, price: priceVal === '' ? null : Number(priceVal) })
+      })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+        .then(function () {
+          paid = true; paint();
+          eMsg.textContent = '已设为付费，约 1–2 分钟生效。付费正文已存后端、不进仓库。';
+          setTimeout(closeEdit, 1400);
+        })
+        .catch(function (e) {
+          paidSaveBtn.disabled = false;
+          var m = (e && e.error) || '请重试';
+          if (m === 'need_marker') m = '没找到 <!-- PAYWALL --> 分界标记';
+          if (m === 'empty_locked') m = '标记后面没有付费正文';
+          eMsg.textContent = '设为付费失败：' + m;
+        });
+    });
+
+    // 齿轮「设为付费 / 取消付费」入口
+    if (paidBtn) paidBtn.addEventListener('click', function () {
+      if (!paid) { openEdit('paid'); return; }
+      if (!window.confirm('取消付费、改回免费？将从后端取回付费正文、合并还原进文章，付费正文随之下架。')) return;
+      msg.textContent = '提交中…'; paidBtn.disabled = true;
+      window.SiteAuth.authedFetch('/api/admin?action=paid-unpublish', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: path })
+      })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+        .then(function () { paid = false; msg.textContent = '已取消付费，约 1–2 分钟后全文免费。'; })
+        .catch(function (e) { msg.textContent = '失败：' + ((e && e.error) || '请重试'); })
+        .then(function () { paidBtn.disabled = false; paint(); });
     });
 
     // ── 删除/恢复（软删除=翻 trashed，保持 published）：页面对访客隐藏、管理员仍可预览；就地更新不跳转 ──
@@ -215,13 +290,19 @@
         .catch(function (e) { offBtn.disabled = false; if (delBtn) delBtn.disabled = false; msg.textContent = '失败：' + ((e && e.error) || '请重试'); });
     });
 
-    var openedOnce = false;
+    var openedOnce = false, paidHashDone = false;
     window.SiteAuth.onChange(function (user) {
       if (user && user.isAdmin) {
         paint();
         if (pending && !msg.textContent) msg.textContent = '上次改动重建中，约 1–2 分钟生效';
         fab.classList.add('ab-show');
         if (!openedOnce) { openedOnce = true; fab.classList.add('ab-open'); }  // 进文章默认展开一次
+        // 从栏目列表「设为付费」跳进来：自动打开付费编辑器
+        if (!paidHashDone && location.hash === '#ab-set-paid') {
+          paidHashDone = true;
+          if (history.replaceState) history.replaceState(null, '', location.pathname + location.search);
+          if (!paid) openEdit('paid');
+        }
       } else {
         fab.classList.remove('ab-show'); fab.classList.remove('ab-open');
       }
