@@ -160,6 +160,7 @@
     var searchOnly = section.classList.contains('cat-search-only');
 
     function applyFilter() {
+      allItems = Array.prototype.slice.call(list.querySelectorAll('.paginated-item'));  // 每次重查，纳入后注入的墓碑(参与分页/回原位)
       // 访客视角排除软隐藏 / 已删除（回收站）项（管理员则纳入并变灰）；分页按可见集重排，不留弹坑
       items = saIsAdmin() ? allItems : allItems.filter(function (i) {
         return i.getAttribute('data-hidden') !== 'true' && i.getAttribute('data-trashed') !== 'true';
@@ -271,10 +272,22 @@
   function escHtml(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
   function escAttr(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function tombstoneLi(it) {
-    return '<li class="paginated-item sa-tombstone" data-path="' + escAttr(it.path) + '" title="已删除 · 点进去是 404">' +
+    return '<li class="paginated-item sa-tombstone" data-path="' + escAttr(it.path) + '" data-date="' + escAttr(it.date || '') + '" title="已删除 · 点进去是 404">' +
       '<a href="' + escAttr(it.url) + '" style="text-decoration:line-through;opacity:0.55">' + escHtml(it.title || it.url) + '</a>' +
+      '<span class="post-date">' + escHtml(it.date || '') + '</span>' +
       '<span class="sa-item-tools"><button type="button" class="sa-item-toggle" data-a="restore">还原</button>' +
       '<button type="button" class="sa-item-toggle sa-danger" data-a="purge">彻底删除</button></span></li>';
+  }
+  // 按日期(降序)把墓碑插回它原来的位置：插在第一个比它更早的条目前；找不到则追加。
+  function insertByDate(list, li, date) {
+    if (date) {
+      var items = list.querySelectorAll('.paginated-item');
+      for (var i = 0; i < items.length; i++) {
+        var dd = items[i].getAttribute('data-date') || '';
+        if (dd && dd < date) { list.insertBefore(li, items[i]); return; }
+      }
+    }
+    list.appendChild(li);
   }
   function findOrMakeList(article, sub) {
     var secs = article.querySelectorAll('.post-list-section[data-sub]');
@@ -317,26 +330,23 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (!d || !d.items) return;
-        // 1) 隐藏静态列表里(旧构建)仍残留的被删项，避免刷新后又显示成正常（Pages 还没重建时）
-        var byPath = {}; d.items.forEach(function (it) { if (it.path) byPath[it.path] = 1; });
-        Array.prototype.forEach.call(document.querySelectorAll('li.paginated-item[data-path]'), function (li) {
-          if (byPath[li.getAttribute('data-path')] && !li.classList.contains('sa-tombstone')) li.style.display = 'none';
-        });
-        // 2) 本栏目被删项就地注入到各自 sub_category 小节
         var mine = d.items.filter(function (it) {
           var u = (it.url || '').replace(/\/+$/, '');
           return u && u !== base && (u + '/').indexOf(base + '/') === 0;
         });
-        var sel = (window.CSS && CSS.escape) ? null : 1;
+        if (!mine.length) return;
+        function byPath(sel, p) { try { return document.querySelector(sel + '[data-path="' + ((window.CSS && CSS.escape) ? CSS.escape(p) : p) + '"]'); } catch (e) { return null; } }
         mine.forEach(function (it) {
-          var existsSel = '.sa-tombstone[data-path="' + (sel ? it.path : CSS.escape(it.path)) + '"]';
-          try { if (document.querySelector(existsSel)) return; } catch (e) {}
+          if (byPath('.sa-tombstone', it.path)) return;                       // 已注入
+          var stale = byPath('li.paginated-item:not(.sa-tombstone)', it.path); // 旧构建残留的同路径条 → 移除(避免重复/双计数)，墓碑会插回原位
+          if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
           var list = findOrMakeList(article, it.sub || '其他');
           if (!list) return;
           var tmp = document.createElement('div'); tmp.innerHTML = tombstoneLi(it);
-          list.appendChild(tmp.firstChild);
+          insertByDate(list, tmp.firstChild, it.date);                        // 按日期插回原位
         });
         wireTombstones();
+        sections.forEach(function (s) { s.apply(); });                        // 重排分页 → 墓碑回到它原本所在的那一页/那一位
       })
       .catch(function () { tombstonesDone = false; });
   }

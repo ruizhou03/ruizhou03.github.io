@@ -82,6 +82,7 @@ noindex: true
         <button type="button" class="cm-tab" data-f="paid">付费</button>
         <button type="button" class="cm-tab" data-f="trash">回收站</button>
       </div>
+      <div id="cm-batch" class="cm-batch" hidden></div>
       <div id="cm-list" class="cm-list"><div class="cm-empty">加载中…</div></div>
       <p class="adm-note">下架＝正文搬后端、访客（含查看源码）看不到、你仍可预览、可随时恢复（栏目里变灰）；删除＝真 404（文章不再构建），访客和你都打不开，栏目里就地留一条带删除线的墓碑、可还原或彻底删除；彻底删除＝从仓库抹除文件，站内不可恢复（只能从 git 历史找回）。改动提交后约 1–2 分钟生效（这期间列表可能仍显旧态，已就地标「重建中」）。也可在文章页用右下角齿轮就地操作。</p>
     </section>
@@ -147,6 +148,13 @@ noindex: true
     color: var(--color-muted); background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 999px; }
   .cm-tab.cm-on { background: var(--color-highlight); color: #fff; border-color: var(--color-highlight); }
   .cm-list { border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; }
+  .cm-batch { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem;
+    padding: 0.5rem 0.85rem; background: var(--color-bg-warm); border: 1px solid var(--color-highlight); border-radius: 10px; }
+  .cm-batch[hidden] { display: none; }
+  .cm-batch-n { font-size: 0.82rem; color: var(--color-ink); font-weight: 700; }
+  .cm-batch .cm-spacer { flex: 1; }
+  .cm-batch .cm-btn { font-size: 0.78rem; }
+  .cm-check { width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; accent-color: var(--color-highlight); }
   .cm-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--color-border); }
   .cm-row:last-child { border-bottom: none; }
   .cm-main { flex: 1; min-width: 0; }
@@ -366,7 +374,7 @@ noindex: true
   }
 
   // ── 内容管理 ──
-  var cmItems = null, cmFilter = 'all', cmLoaded = false;
+  var cmItems = null, cmFilter = 'all', cmLoaded = false, cmSel = {};
   function cmSlug(p) { var s = String(p).replace(/\.md$/, '').split('/'); return s[s.length - 1] || p; }
 
   function loadContent() {
@@ -424,70 +432,124 @@ noindex: true
         '<button type="button" class="cm-btn" data-a="hide">' + (it.hidden ? '恢复（公开）' : '下架') + '</button>' +
         '<button type="button" class="cm-btn danger" data-a="trash">删除</button>';
     return '<div class="cm-row">' +
+      '<input type="checkbox" class="cm-check"' + (cmSel[it.path] ? ' checked' : '') + ' aria-label="选择">' +
       '<div class="cm-main">' + titleHtml + '<div class="cm-meta">' + (it.sub ? esc(it.sub) + ' · ' : '') + (it.date ? it.date + ' · ' : '') + esc(it.path) + '</div></div>' +
       '<div class="cm-badges">' + badges + '</div>' +
       '<div class="cm-acts">' + acts + '</div>' +
     '</div>';
   }
+  var CM_TAB_NAME = { all: '全部', offshelf: '已下架', paid: '付费', trash: '回收站' };
+  function cmVisibleRows() {
+    var q = ((document.getElementById('cm-search') || {}).value || '').trim().toLowerCase();
+    return cmItems.filter(cmMatch).filter(function (it) { return !q || (it.title + ' ' + it.path).toLowerCase().indexOf(q) !== -1; });
+  }
   function renderContent() {
     var el = document.getElementById('cm-list');
     if (!el || !cmItems) return;
-    var q = ((document.getElementById('cm-search') || {}).value || '').trim().toLowerCase();
-    var rows = cmItems.filter(cmMatch).filter(function (it) { return !q || (it.title + ' ' + it.path).toLowerCase().indexOf(q) !== -1; });
-    if (!rows.length) { el.innerHTML = '<div class="cm-empty">没有匹配的文章</div>'; return; }
+    var qRaw = ((document.getElementById('cm-search') || {}).value || '').trim();
+    var rows = cmVisibleRows();
+    var visPaths = {}; rows.forEach(function (it) { visPaths[it.path] = 1; });
+    Object.keys(cmSel).forEach(function (p) { if (!visPaths[p]) delete cmSel[p]; });   // 切 tab/搜索后丢掉不再可见的勾选
+    if (!rows.length) {
+      el.innerHTML = '<div class="cm-empty">' + (qRaw ? '没有匹配的文章' : (cmFilter === 'all' ? '还没有文章' : '没有「' + (CM_TAB_NAME[cmFilter] || '') + '」的文章')) + '</div>';
+      renderBatchBar(rows); return;
+    }
     el.innerHTML = rows.map(cmRowHtml).join('');
     var rowEls = el.querySelectorAll('.cm-row');
     rows.forEach(function (it, i) {
       var row = rowEls[i]; if (!row) return;
+      var chk = row.querySelector('.cm-check');
+      if (chk) chk.addEventListener('change', function () { if (chk.checked) cmSel[it.path] = 1; else delete cmSel[it.path]; renderBatchBar(rows); });
       Array.prototype.forEach.call(row.querySelectorAll('.cm-btn'), function (btn) {
         btn.addEventListener('click', function () { cmAction(it, row, btn.getAttribute('data-a')); });
       });
     });
+    renderBatchBar(rows);
   }
-  function cmAction(it, row, a) {
-    // 设为付费需在文章里放分界标记 → 打开文章页用齿轮付费流程
-    if (a === 'setpaid') { if (it.url) window.open(it.url + '#ab-set-paid', '_blank', 'noopener'); return; }
-    // 取消付费：从后端取回付费正文合并还原（独立端点，不走 set-flags）
-    if (a === 'unpay') {
-      if (!window.confirm('取消付费「' + it.title + '」、改回免费？将从后端取回付费正文、合并还原进文章。')) return;
-      row.classList.add('cm-busy');
-      window.SiteAuth.authedFetch('/api/admin?action=paid-unpublish', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: it.path })
-      })
-        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
-        .then(function () { it.paid = false; it.pending = true; renderContent(); })
-        .catch(function (e) { row.classList.remove('cm-busy'); alert('操作失败：' + ((e && e.error) || '请重试')); });
-      return;
+  function renderBatchBar(rows) {
+    var bar = document.getElementById('cm-batch'); if (!bar) return;
+    var sel = Object.keys(cmSel);
+    if (!sel.length) { bar.hidden = true; bar.innerHTML = ''; return; }
+    bar.hidden = false;
+    var btns;
+    if (cmFilter === 'trash') btns = [['restore', '批量还原', ''], ['purge', '批量彻底删除', 'danger']];
+    else if (cmFilter === 'offshelf') btns = [['restore', '批量恢复', ''], ['trash', '批量删除', 'danger']];
+    else btns = [['hide', '批量下架', ''], ['trash', '批量删除', 'danger']];   // 全部 / 付费
+    var html = '<span class="cm-batch-n">已选 ' + sel.length + ' 篇</span>' +
+      '<button type="button" class="cm-btn" data-b="all">全选本页</button>' +
+      '<button type="button" class="cm-btn" data-b="none">清空</button><span class="cm-spacer"></span>';
+    btns.forEach(function (b) { html += '<button type="button" class="cm-btn ' + b[2] + '" data-bk="' + b[0] + '">' + b[1] + '</button>'; });
+    bar.innerHTML = html;
+    bar.querySelector('[data-b="all"]').addEventListener('click', function () { rows.forEach(function (it) { cmSel[it.path] = 1; }); renderContent(); });
+    bar.querySelector('[data-b="none"]').addEventListener('click', function () { cmSel = {}; renderContent(); });
+    Array.prototype.forEach.call(bar.querySelectorAll('[data-bk]'), function (btn) {
+      btn.addEventListener('click', function () { batchRun(btn.getAttribute('data-bk')); });
+    });
+  }
+  function batchRun(key) {
+    var ops = cmItems.filter(function (it) {
+      if (!cmSel[it.path]) return false;
+      if (key === 'hide') return !it.hidden && !it.off && !it.trashed;     // 只下架还公开的
+      if (key === 'restore') return it.hidden || it.off || it.trashed;     // 只还原下架/删除的
+      if (key === 'trash') return !it.off && !it.trashed;                  // 只删非回收站的
+      if (key === 'purge') return true;
+      return false;
+    });
+    var label = { hide: '下架', restore: '还原', trash: '删除', purge: '彻底删除' }[key];
+    if (!ops.length) { alert('选中的文章里没有可「批量' + label + '」的。'); return; }
+    var warn = key === 'trash' ? '（变真 404，可在回收站还原）' : (key === 'purge' ? '（从仓库抹除文件、不可恢复！）' : '');
+    if (!window.confirm('确定批量' + label + ' ' + ops.length + ' 篇？' + warn)) return;
+    var bar = document.getElementById('cm-batch');
+    if (bar) Array.prototype.forEach.call(bar.querySelectorAll('button'), function (b) { b.disabled = true; });
+    var i = 0, ok = 0, fail = 0;
+    function next() {
+      if (i >= ops.length) {
+        ops.forEach(function (it) { delete cmSel[it.path]; });
+        renderContent();
+        if (fail) alert('批量' + label + '完成：成功 ' + ok + ' 篇，失败 ' + fail + ' 篇。');
+        return;
+      }
+      var it = ops[i++];
+      var n = document.querySelector('#cm-batch .cm-batch-n'); if (n) n.textContent = '处理中 ' + i + '/' + ops.length + '…';
+      cmExec(it, key).then(function () { ok++; }).catch(function () { fail++; }).then(next);
     }
-    // 真隐藏：隐藏/删除=正文搬后端(hide-publish)、取消=合并回(hide-restore)；硬下架仍走 set-flags published:false
-    var action, body, confirmMsg;
-    if (a === 'hide') {
-      if (it.hidden) { action = 'hide-restore'; body = { path: it.path }; }
-      else { action = 'hide-publish'; body = { path: it.path, flag: 'hidden' }; }
-    } else if (a === 'trash') {
-      confirmMsg = '删除「' + it.title + '」到回收站？将变成真 404（不再构建），访客和你都打不开；可随时还原或彻底删除。';
-      action = 'del-publish'; body = { path: it.path, url: it.url || '', title: it.title || '' };
-    } else if (a === 'purge') {
-      confirmMsg = '彻底删除「' + it.title + '」？将从仓库当前版本抹除该文件、真 404，站内无法再恢复（只能从 git 历史找回）。确定？';
-      action = 'purge'; body = { path: it.path };
-    } else if (a === 'restore') {
-      if (it.off) { action = 'del-restore'; body = { path: it.path }; }      // 已删除(真404)/草稿：published:true + 删墓碑
-      else { action = 'hide-restore'; body = { path: it.path }; }            // 下架(bodyremote)：合并回正文
-    } else return;
-    if (confirmMsg && !window.confirm(confirmMsg)) return;
-    row.classList.add('cm-busy');
-    window.SiteAuth.authedFetch('/api/admin?action=' + action, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    next();
+  }
+  // 把一个动作映射成 {后端 action, body}。hide/restore 按当前状态选方向。
+  function cmActionParams(it, a) {
+    if (a === 'unpay') return { action: 'paid-unpublish', body: { path: it.path } };
+    if (a === 'hide') return it.hidden ? { action: 'hide-restore', body: { path: it.path } } : { action: 'hide-publish', body: { path: it.path, flag: 'hidden' } };
+    if (a === 'trash') return { action: 'del-publish', body: { path: it.path, url: it.url || '', title: it.title || '' } };
+    if (a === 'purge') return { action: 'purge', body: { path: it.path } };
+    if (a === 'restore') return it.off ? { action: 'del-restore', body: { path: it.path } } : { action: 'hide-restore', body: { path: it.path } };
+    return null;
+  }
+  function cmApplyLocal(it, a) {
+    if (a === 'purge') { var i = cmItems.indexOf(it); if (i >= 0) cmItems.splice(i, 1); return; }
+    if (a === 'unpay') it.paid = false;
+    else if (a === 'hide') { it.hidden = !it.hidden; if (!it.hidden) it.trashed = false; }
+    else if (a === 'trash') { it.off = true; it.trashed = false; it.hidden = false; }   // 真404 → off(回收站)
+    else if (a === 'restore') { it.off = false; it.trashed = false; it.hidden = false; }
+    it.pending = true;
+  }
+  function cmExec(it, a) {   // 单文章执行；返回 Promise。供逐篇 + 批量复用。
+    var p = cmActionParams(it, a); if (!p) return Promise.resolve(false);
+    return window.SiteAuth.authedFetch('/api/admin?action=' + p.action, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p.body)
     })
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
-      .then(function () {
-        if (a === 'purge') { var i = cmItems.indexOf(it); if (i >= 0) cmItems.splice(i, 1); renderContent(); return; }
-        if (a === 'hide') { it.hidden = !it.hidden; if (!it.hidden) it.trashed = false; }
-        else if (a === 'trash') { it.off = true; it.trashed = false; it.hidden = false; }   // 真404 → off(回收站)
-        else if (a === 'restore') { it.off = false; it.trashed = false; it.hidden = false; }
-        it.pending = true;
-        renderContent();
-      })
+      .then(function () { cmApplyLocal(it, a); return true; });
+  }
+  function cmAction(it, row, a) {
+    if (a === 'setpaid') { if (it.url) window.open(it.url + '#ab-set-paid', '_blank', 'noopener'); return; }   // 设付费要去文章页放分界标记
+    var cm = {
+      unpay: '取消付费「' + it.title + '」、改回免费？将从后端取回付费正文、合并还原进文章。',
+      trash: '删除「' + it.title + '」到回收站？将变成真 404（不再构建），访客和你都打不开；可随时还原或彻底删除。',
+      purge: '彻底删除「' + it.title + '」？将从仓库当前版本抹除该文件、真 404，站内无法再恢复（只能从 git 历史找回）。确定？'
+    }[a];
+    if (cm && !window.confirm(cm)) return;
+    row.classList.add('cm-busy');
+    cmExec(it, a).then(function () { renderContent(); })
       .catch(function (e) { row.classList.remove('cm-busy'); alert('操作失败：' + ((e && e.error) || '请重试')); });
   }
   function cmWireControls() {
@@ -496,6 +558,7 @@ noindex: true
         Array.prototype.forEach.call(document.querySelectorAll('.cm-tab'), function (x) { x.classList.remove('cm-on'); });
         t.classList.add('cm-on');
         cmFilter = t.getAttribute('data-f');
+        cmSel = {};                 // 切 tab 清空批量选择
         renderContent();
       });
     });
