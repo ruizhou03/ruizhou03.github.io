@@ -374,10 +374,12 @@ noindex: true
     Promise.all([
       fetch('/admin-manifest.json').then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }),
       jget('/api/admin?action=list-notes'),
-      jget('/api/admin?action=hidden-list')
+      jget('/api/admin?action=hidden-list'),
+      jget('/api/admin?action=deleted-list')
     ]).then(function (res) {
       var manifest = res[0] || [], listed = res[1] || {}, paths = listed.paths || [], onSet = {};
       var hiddenList = (res[2] && res[2].items) || [];   // 公开 manifest 已剔除 hidden/trashed，从鉴权后端取
+      var delMap = {}; (((res[3] || {}).items) || []).forEach(function (d) { if (d && d.path) delMap[d.path] = d; });  // 已删除(真404)墓碑元数据
       var items = manifest.map(function (m) {
         onSet[m.path] = 1;
         return { path: m.path, title: m.title || cmSlug(m.path), url: m.url, hidden: !!m.hidden, paid: !!m.paid, trashed: !!m.trashed, off: false, sub: m.sub || m.cat || '', date: m.date || '' };
@@ -389,7 +391,7 @@ noindex: true
         items.push({ path: h.path, title: h.title || cmSlug(h.path), url: h.url || '', hidden: !isTrash, paid: false, trashed: isTrash, off: false, sub: '', date: '' });
       });
       paths.forEach(function (p) {
-        if (!onSet[p]) items.push({ path: p, title: cmSlug(p), url: '', hidden: false, paid: false, off: true, sub: '', date: '' });
+        if (!onSet[p]) { var dm = delMap[p]; items.push({ path: p, title: (dm && dm.title) || cmSlug(p), url: (dm && dm.url) || '', hidden: false, paid: false, off: true, deleted: !!dm, sub: '', date: '' }); }
       });
       items.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
       cmItems = items;
@@ -406,7 +408,7 @@ noindex: true
   }
   function cmRowHtml(it) {
     var badges = '';
-    if (it.off) badges += '<span class="cm-badge b-off">未发布</span>';
+    if (it.off) badges += '<span class="cm-badge b-off">' + (it.deleted ? '回收站' : '未发布') + '</span>';
     else if (it.trashed) badges += '<span class="cm-badge b-off">回收站</span>';
     else if (it.hidden) badges += '<span class="cm-badge b-hidden">已下架</span>';
     if (it.paid) badges += '<span class="cm-badge b-paid">付费</span>';
@@ -463,14 +465,14 @@ noindex: true
       if (it.hidden) { action = 'hide-restore'; body = { path: it.path }; }
       else { action = 'hide-publish'; body = { path: it.path, flag: 'hidden' }; }
     } else if (a === 'trash') {
-      confirmMsg = '删除「' + it.title + '」到回收站？正文搬后端、访客看不到，你仍可点开预览、可随时还原。';
-      action = 'hide-publish'; body = { path: it.path, flag: 'trashed' };
+      confirmMsg = '删除「' + it.title + '」到回收站？将变成真 404（不再构建），访客和你都打不开；可随时还原或彻底删除。';
+      action = 'del-publish'; body = { path: it.path, url: it.url || '', title: it.title || '' };
     } else if (a === 'purge') {
       confirmMsg = '彻底删除「' + it.title + '」？将从仓库当前版本抹除该文件、真 404，站内无法再恢复（只能从 git 历史找回）。确定？';
       action = 'purge'; body = { path: it.path };
     } else if (a === 'restore') {
-      if (it.off) { action = 'set-flags'; body = { path: it.path, flags: { published: true, trashed: false } }; }
-      else { action = 'hide-restore'; body = { path: it.path }; }   // 下架/删除(bodyremote)：合并回正文
+      if (it.off) { action = 'del-restore'; body = { path: it.path }; }      // 已删除(真404)/草稿：published:true + 删墓碑
+      else { action = 'hide-restore'; body = { path: it.path }; }            // 下架(bodyremote)：合并回正文
     } else return;
     if (confirmMsg && !window.confirm(confirmMsg)) return;
     row.classList.add('cm-busy');
@@ -481,7 +483,7 @@ noindex: true
       .then(function () {
         if (a === 'purge') { var i = cmItems.indexOf(it); if (i >= 0) cmItems.splice(i, 1); renderContent(); return; }
         if (a === 'hide') { it.hidden = !it.hidden; if (!it.hidden) it.trashed = false; }
-        else if (a === 'trash') { it.trashed = true; it.hidden = false; }
+        else if (a === 'trash') { it.off = true; it.trashed = false; it.hidden = false; }   // 真404 → off(回收站)
         else if (a === 'restore') { it.off = false; it.trashed = false; it.hidden = false; }
         it.pending = true;
         renderContent();

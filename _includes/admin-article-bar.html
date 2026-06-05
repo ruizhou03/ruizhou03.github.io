@@ -5,7 +5,7 @@
   付费/编辑/删除占位「即将上线」，下一块接。下方 JS 用 raw 包裹保护。
 {%- endcomment -%}
 {%- if page.path -%}
-<div id="admin-fab" data-path="{{ page.path }}" data-hidden="{% if page.hidden %}true{% else %}false{% endif %}" data-trashed="{% if page.trashed %}true{% else %}false{% endif %}" data-paid="{{ page.paid }}">
+<div id="admin-fab" data-path="{{ page.path }}" data-hidden="{% if page.hidden %}true{% else %}false{% endif %}" data-trashed="{% if page.trashed %}true{% else %}false{% endif %}" data-paid="{{ page.paid }}" data-url="{{ page.url }}" data-title="{{ page.title | escape }}">
   <button id="ab-gear" class="ab-gear" type="button" title="管理本文" aria-label="管理本文">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
   </button>
@@ -16,7 +16,6 @@
     <button class="ab-act ab-danger" id="ab-del" type="button">删除（进回收站）</button>
     <button class="ab-act" id="ab-paid" type="button">设为付费</button>
     <button class="ab-act" id="ab-edit" type="button">编辑正文与参数</button>
-    <button class="ab-act ab-danger" id="ab-off" type="button">彻底删除（从仓库抹除）</button>
     <div class="ab-msg" id="ab-msg"></div>
   </div>
 </div>
@@ -118,12 +117,9 @@
     var paidBtn = document.getElementById('ab-paid');
 
     function paint() {
-      dot.classList.toggle('is-hidden', hidden || trashed);
-      var label = trashed ? '当前：已删除（回收站）' : (hidden ? '当前：已下架' : '当前：公开');
-      stateEl.textContent = label + ((pending || tPending) ? '（重建中）' : '');
-      btn.disabled = trashed;                               // 删除态下「下架」无意义
+      dot.classList.toggle('is-hidden', hidden);
+      stateEl.textContent = (hidden ? '当前：已下架' : '当前：公开') + (pending ? '（重建中）' : '');
       btn.textContent = hidden ? '恢复（重新公开）' : '下架此文';
-      if (delBtn) delBtn.textContent = (trashed ? '从回收站恢复' : '删除（进回收站）') + (tPending ? '（重建中）' : '');
       if (paidBtn) paidBtn.textContent = paid ? '取消付费（改回免费）' : '设为付费';
     }
 
@@ -256,44 +252,24 @@
         .then(function () { paidBtn.disabled = false; paint(); });
     });
 
-    // ── 删除/恢复（软删除=翻 trashed，保持 published）：页面对访客隐藏、管理员仍可预览；就地更新不跳转 ──
-    // ── 硬下架（真404）=published:false：页面彻底消失 → 提交后去管理后台 ──
-    var offBtn = document.getElementById('ab-off');
+    // ── 删除：真 404 = published:false（文章不构建）。页面将打不开 → 提交后回到本栏目（那里有带删除线的墓碑条目）。
+    //    彻底删除是回收站里的操作，不放在此处。──
     var delBtn = document.getElementById('ab-del');
-
     if (delBtn) delBtn.addEventListener('click', function () {
-      var next = !trashed;
-      if (next && !window.confirm('删除本文到回收站？正文搬到后端、访客看不到，你仍可预览，可随时恢复。')) return;
+      if (!window.confirm('删除本文到回收站？将变成真 404（不再构建），访客和你都打不开；栏目里会留一条带删除线的条目，可在回收站「还原 / 彻底删除」。')) return;
       msg.textContent = '提交中…'; delBtn.disabled = true;
-      var url = next ? '/api/admin?action=hide-publish' : '/api/admin?action=hide-restore';
-      var bodyObj = next ? { path: path, flag: 'trashed' } : { path: path };
-      window.SiteAuth.authedFetch(url, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bodyObj)
+      window.SiteAuth.authedFetch('/api/admin?action=del-publish', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: path, url: fab.getAttribute('data-url') || '', title: fab.getAttribute('data-title') || '' })
       })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
         .then(function () {
-          trashed = next; tPending = (next !== buildTrashed);
-          if (window.SaPending) window.SaPending.markFlag(path, 'trashed', next);
-          if (next) { hidden = false; if (window.SaPending) window.SaPending.markFlag(path, 'hidden', false); }  // 删除与隐藏互斥
-          var mainEl = document.querySelector('main');     // 同步本体软门控 → 当场出现/撤掉删除提示条
-          if (mainEl) mainEl.setAttribute('data-trashed', next ? 'true' : 'false');
-          msg.textContent = next
-            ? '已删除到回收站：正文已搬后端、访客看不到；约 1–2 分钟生效。'
-            : '已从回收站恢复：正文已合并回、重新公开；约 1–2 分钟生效。';
+          msg.textContent = '已删除，约 1–2 分钟后此页变 404。正在离开…';
+          var u = fab.getAttribute('data-url') || '';
+          var base = u ? u.replace(/\/[^/]*\/?$/, '/') : '/admin/';
+          setTimeout(function () { location.href = base || '/admin/'; }, 1500);
         })
-        .catch(function (e) { msg.textContent = '失败：' + ((e && e.error) || '请重试'); })
-        .then(function () { delBtn.disabled = false; paint(); });
-    });
-
-    if (offBtn) offBtn.addEventListener('click', function () {
-      if (!window.confirm('彻底删除本文？将从仓库当前版本抹除该文件、变成真 404，站内无法再恢复（只能从 git 历史找回）。确定？')) return;
-      msg.textContent = '提交中…'; offBtn.disabled = true; if (delBtn) delBtn.disabled = true;
-      window.SiteAuth.authedFetch('/api/admin?action=purge', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: path })
-      })
-        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
-        .then(function () { msg.textContent = '已彻底删除，约 1–2 分钟后此页变 404。正在去管理后台…'; setTimeout(function () { location.href = '/admin/'; }, 1500); })
-        .catch(function (e) { offBtn.disabled = false; if (delBtn) delBtn.disabled = false; msg.textContent = '失败：' + ((e && e.error) || '请重试'); });
+        .catch(function (e) { delBtn.disabled = false; msg.textContent = '失败：' + ((e && e.error) || '请重试'); });
     });
 
     // ── 真隐藏的管理员加载器：正文已搬后端、shell 页对访客空白；管理员把正文取回来渲染 ──

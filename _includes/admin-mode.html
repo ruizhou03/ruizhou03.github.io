@@ -148,40 +148,47 @@ window.SaPending = window.SaPending || (function () {
     });
 
     function labels() {
-      // labels() 全权决定两个按钮的 禁用态 + 文案。删除态下「下架」无意义（整篇已对访客不可见）→ 禁用。
-      hideBtn.disabled = trashed;
-      delBtn.disabled = false;
+      hideBtn.disabled = false;
       hideBtn.textContent = (hidden ? '恢复' : '下架') + (hPending ? '·重建中' : '');
-      delBtn.textContent = (trashed ? '恢复' : '删除') + (tPending ? '·重建中' : '');
+      delBtn.textContent = '删除';
     }
     labels();
 
-    function flip(action) {
-      hideBtn.disabled = true; delBtn.disabled = true;
-      (action === 'hide' ? hideBtn : delBtn).textContent = '…';
-      // 真隐藏：隐藏/删除=正文搬后端(hide-publish)；取消=正文合并回(hide-restore，恢复公开)
-      var goingOn = action === 'hide' ? !hidden : !trashed;
+    // 下架 / 恢复：真隐藏(正文搬后端 hide-publish)；取消=合并回(hide-restore)。就地切换。
+    function flipHide() {
+      hideBtn.disabled = true; delBtn.disabled = true; hideBtn.textContent = '…';
+      var goingOn = !hidden;
       var url = goingOn ? '/api/admin?action=hide-publish' : '/api/admin?action=hide-restore';
-      var body = goingOn ? { path: path, flag: action === 'hide' ? 'hidden' : 'trashed' } : { path: path };
+      var body = goingOn ? { path: path, flag: 'hidden' } : { path: path };
       window.SiteAuth.authedFetch(url, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
       })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
-        .then(function () {
-          if (action === 'hide') {
-            hidden = !hidden; hPending = (hidden !== bHidden); window.SaPending.markFlag(path, 'hidden', hidden);
-            if (!hidden) { trashed = false; window.SaPending.markFlag(path, 'trashed', false); }  // 取消隐藏=恢复公开
-          } else {
-            trashed = !trashed; tPending = (trashed !== bTrashed); window.SaPending.markFlag(path, 'trashed', trashed);
-            if (trashed) { hidden = false; window.SaPending.markFlag(path, 'hidden', false); }     // 删除与隐藏互斥
-          }
-        })
-        .catch(function () {})              // 失败：状态不变，labels() 会恢复原文案
-        .then(function () { paintRow(); labels(); });
+        .then(function () { hidden = goingOn; hPending = (hidden !== bHidden); window.SaPending.markFlag(path, 'hidden', hidden); })
+        .catch(function () {})
+        .then(function () { delBtn.disabled = false; paintRow(); labels(); });
     }
 
-    hideBtn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); flip('hide'); });
-    delBtn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); flip('del'); });
+    // 删除：真 404 = published:false（不再构建）。就地把这条变成带删除线的墓碑（重建后会被注入的墓碑取代）。
+    function doDelete() {
+      if (!window.confirm('删除这篇到回收站？将变成真 404，访客和你都打不开；这条会变成带删除线的墓碑，可在回收站「还原 / 彻底删除」。')) return;
+      hideBtn.disabled = true; delBtn.disabled = true; delBtn.textContent = '…';
+      var a = el.querySelector('a');
+      window.SiteAuth.authedFetch('/api/admin?action=del-publish', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: path, url: el.getAttribute('data-url') || '', title: a ? (a.textContent || '').trim() : '' })
+      })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+        .then(function () {
+          if (a) a.style.textDecoration = 'line-through';
+          el.style.opacity = '0.5';
+          hideBtn.style.display = 'none'; delBtn.textContent = '已删除·重建中'; delBtn.disabled = true;
+        })
+        .catch(function () { hideBtn.disabled = false; delBtn.disabled = false; labels(); });
+    }
+
+    hideBtn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); flipHide(); });
+    delBtn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); doDelete(); });
     tools.appendChild(hideBtn); tools.appendChild(delBtn); tools.appendChild(paidBtn);
     el.appendChild(tools);
   }

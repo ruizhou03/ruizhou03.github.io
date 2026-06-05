@@ -267,6 +267,62 @@
 
   document.querySelectorAll('.post-list-section').forEach(wireSection);
 
+  // ── 管理员：把本栏目「已删除」(真404)的文章注入成带删除线、点了真 404 的墓碑条目 ──
+  function escHtml(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+  function escAttr(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function wireTombstones(sec) {
+    Array.prototype.forEach.call(sec.querySelectorAll('.paginated-item'), function (li) {
+      var p = li.getAttribute('data-path');
+      Array.prototype.forEach.call(li.querySelectorAll('.sa-item-toggle'), function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault(); e.stopPropagation();
+          var a = btn.getAttribute('data-a');
+          if (a === 'purge' && !window.confirm('彻底删除？从仓库抹除该文件、站内不可恢复（只能翻 git 历史）。')) return;
+          btn.disabled = true; btn.textContent = '…';
+          window.SiteAuth.authedFetch('/api/admin?action=' + (a === 'restore' ? 'del-restore' : 'purge'), {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: p })
+          })
+            .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+            .then(function () { if (li.parentNode) li.parentNode.removeChild(li); })
+            .catch(function () { btn.disabled = false; btn.textContent = a === 'restore' ? '还原' : '彻底删除'; });
+        });
+      });
+    });
+  }
+  var tombstonesDone = false;
+  function injectDeletedTombstones() {
+    if (tombstonesDone || !window.SiteAuth) return;
+    var article = document.querySelector('article');
+    if (!article) return;
+    var base = location.pathname.replace(/\/+$/, '');   // 例如 /life
+    if (!base) return;
+    tombstonesDone = true;
+    window.SiteAuth.authedFetch('/api/admin?action=deleted-list')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.items) return;
+        var mine = d.items.filter(function (it) {
+          var u = (it.url || '').replace(/\/+$/, '');
+          return u && u !== base && (u + '/').indexOf(base + '/') === 0;
+        });
+        if (!mine.length || document.getElementById('sa-deleted-section')) return;
+        var sec = document.createElement('section');
+        sec.className = 'post-list-section'; sec.id = 'sa-deleted-section';
+        var html = '<div class="post-list-head"><h2 class="post-list-title"><span class="sec-icon">🗑️</span>已删除（仅你可见 · 点进去是 404）</h2></div><ul class="paginated-list">';
+        mine.forEach(function (it) {
+          html += '<li class="paginated-item" data-path="' + escAttr(it.path) + '">' +
+            '<a href="' + escAttr(it.url) + '" style="text-decoration:line-through;opacity:0.6">' + escHtml(it.title || it.url) + '</a>' +
+            '<span class="sa-item-tools"><button type="button" class="sa-item-toggle" data-a="restore">还原</button>' +
+            '<button type="button" class="sa-item-toggle sa-danger" data-a="purge">彻底删除</button></span></li>';
+        });
+        html += '</ul>';
+        sec.innerHTML = html;
+        article.appendChild(sec);
+        wireTombstones(sec);
+      })
+      .catch(function () { tombstonesDone = false; });
+  }
+
   // 管理员登录态确定/变化后重排各小节：访客视角排除软隐藏项（不留弹坑），管理员则纳入并变灰
   (function waitAuth() {
     if (window.SiteAuth && window.SiteAuth.onChange) {
@@ -274,6 +330,7 @@
       window.SiteAuth.onChange(function (u) {
         var a = !!(u && u.isAdmin);
         if (a !== last) { last = a; sections.forEach(function (s) { s.apply(); }); }
+        if (a) injectDeletedTombstones();
       });
     } else { setTimeout(waitAuth, 150); }
   })();
