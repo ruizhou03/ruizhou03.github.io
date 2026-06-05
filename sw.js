@@ -70,39 +70,62 @@ self.addEventListener('fetch', (event) => {
 
   if (isHTMLRequest(req)) {
     event.respondWith((async () => {
-      try {
-        // 'no-cache'：HTML 导航总是向服务器复验（带 ETag，未变则 304，几乎零成本）。
-        // 否则 GitHub Pages 的 max-age=600 会让浏览器/SW 把页面缓存 10 分钟，刚部署
-        // 的更新要等缓存过期或硬刷新才出现——多次被误判成「改了没生效」。
-        const res = await fetch(req, { cache: 'no-cache' });
-        if (res && res.ok) {
-          const copy = res.clone();
-          const cache = await caches.open(PAGE_CACHE);
-          cache.put(req, copy).catch(() => {});
-        }
-        return res;
-      } catch (e) {
-        // 仅当同一 URL 自己有离线副本时才返回 —— 永远不要把 / 的缓存当成其它 URL 的响应，
-        // 否则浏览器地址栏和页面内容会脱节（曾导致 /toolbox/2048/ 渲染成首页）
-        const cached = await caches.match(req);
-        if (cached) return cached;
+      // 'no-cache'：HTML 导航总是向服务器复验（带 ETag，未变则 304，几乎零成本）。
+      // 否则 GitHub Pages 的 max-age=600 会让浏览器/SW 把页面缓存 10 分钟，刚部署
+      // 的更新要等缓存过期或硬刷新才出现——多次被误判成「改了没生效」。
+      //
+      // 但 network-first 不能裸 await：弱网下大页面常「连上了、传一半挂住、迟迟不返回」，
+      // 裸 await 会永久挂着、respondWith 永不 resolve，浏览器就一直转圈、连缓存都不回退
+      // （曾让全站最大的 /toolbox/pet/ ≈347KB 在手机上完全打不开）。所以：
+      //   ① 给网络请求一个硬上限（AbortController），保证不会无限挂；
+      //   ② 有离线副本时先给网络几秒，没及时返回就立刻吐缓存、网络留到后台刷新。
+      const cached = await caches.match(req);
 
-        // 带上 query string 的 URL（如 ?room=1234）大概率是同一个 HTML 页面。
-        // 网络失败时回退到无 query 参数的缓存副本，避免用户看到"没缓存过"的 503 错误。
-        if (url.search) {
-          const baseUrl = url.origin + url.pathname;
-          const baseCached = await caches.match(baseUrl);
-          if (baseCached) return baseCached;
-        }
+      const ctrl = new AbortController();
+      const hardStop = setTimeout(() => ctrl.abort(), 20000);
+      const netFetch = fetch(req, { cache: 'no-cache', signal: ctrl.signal })
+        .then((res) => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(PAGE_CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+          }
+          return res;
+        })
+        .finally(() => clearTimeout(hardStop));
 
-        return new Response(
-          '<!doctype html><meta charset="utf-8"><title>离线</title>' +
-          '<p style="font-family:serif;text-align:center;margin-top:30vh;color:#666;">' +
-          '🥲 这一页还没缓存过，等有网了再来吧。<br>' +
-          '或者 <a href="/" style="color:#1e3a5f;">回到首页看看</a>。</p>',
-          { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-        );
+      if (cached) {
+        // 给网络一个短窗口抢答；超时或失败就用缓存，网络留到后台跑完更新缓存。
+        const timeout = new Promise((resolve) => setTimeout(() => resolve('__TIMEOUT__'), 4000));
+        const winner = await Promise.race([
+          netFetch.then((res) => res || '__ERR__').catch(() => '__ERR__'),
+          timeout,
+        ]);
+        if (winner && typeof winner !== 'string') return winner; // 网络先返回了真正的响应
+        netFetch.catch(() => {});                                // 让它在后台跑完、刷新缓存
+        return cached;
       }
+
+      // 没有离线副本：只能等网络（最多到硬上限），失败再走回退。
+      try {
+        const res = await netFetch;
+        if (res) return res;
+      } catch (e) { /* 网络失败 / 被 abort，落到下面的回退 */ }
+
+      // 带上 query string 的 URL（如 ?room=1234）大概率是同一个 HTML 页面。
+      // 网络失败时回退到无 query 参数的缓存副本，避免用户看到"没缓存过"的 503 错误。
+      if (url.search) {
+        const baseUrl = url.origin + url.pathname;
+        const baseCached = await caches.match(baseUrl);
+        if (baseCached) return baseCached;
+      }
+
+      return new Response(
+        '<!doctype html><meta charset="utf-8"><title>离线</title>' +
+        '<p style="font-family:serif;text-align:center;margin-top:30vh;color:#666;">' +
+        '🥲 这一页还没缓存过，等有网了再来吧。<br>' +
+        '或者 <a href="/" style="color:#1e3a5f;">回到首页看看</a>。</p>',
+        { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+      );
     })());
     return;
   }
