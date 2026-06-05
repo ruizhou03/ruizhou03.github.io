@@ -2365,12 +2365,10 @@
     // Selected food may have been deleted/synced away → fall back to kibble.
     if (recordFood !== 'kibble' && !lib.some(f => f.id === recordFood)) recordFood = 'kibble';
     const canEdit = isAdminOrUp(pet);
-    let html = `<button type="button" class="extra-chip${recordFood==='kibble'?' active':''}" data-food="kibble">🥣 干粮</button>`;
+    let html = `<button type="button" class="extra-chip${recordFood==='kibble'?' active':''}" data-food="kibble"><span class="fc-emoji">🥣</span><span class="fc-name">干粮</span></button>`;
     html += lib.map(f => `
-      <button type="button" class="extra-chip${recordFood===f.id?' active':''}" data-food="${f.id}">
-        ${f.emoji || '🍖'} ${escapeHtml(f.name)}${canEdit ? `<span class="edit-food" data-edit="${f.id}" title="编辑">✎</span>` : ''}
-      </button>`).join('');
-    if (canEdit) html += `<button type="button" class="extra-chip add-chip" data-food="__new">➕ 新建</button>`;
+      <button type="button" class="extra-chip${recordFood===f.id?' active':''}" data-food="${f.id}"><span class="fc-emoji">${f.emoji || '🍖'}</span><span class="fc-name">${escapeHtml(f.name)}</span>${canEdit ? `<span class="edit-food" data-edit="${f.id}" title="编辑">✎</span>` : ''}</button>`).join('');
+    if (canEdit) html += `<button type="button" class="extra-chip add-chip" data-food="__new"><span class="fc-emoji">➕</span><span class="fc-name">新建</span></button>`;
     $foodSelector.innerHTML = html;
     $foodSelector.querySelectorAll('.extra-chip').forEach(chip => {
       chip.addEventListener('click', e => {
