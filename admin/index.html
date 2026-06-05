@@ -373,12 +373,20 @@ noindex: true
     var listEl = document.getElementById('cm-list');
     Promise.all([
       fetch('/admin-manifest.json').then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }),
-      jget('/api/admin?action=list-notes')
+      jget('/api/admin?action=list-notes'),
+      jget('/api/admin?action=hidden-list')
     ]).then(function (res) {
       var manifest = res[0] || [], listed = res[1] || {}, paths = listed.paths || [], onSet = {};
+      var hiddenList = (res[2] && res[2].items) || [];   // 公开 manifest 已剔除 hidden/trashed，从鉴权后端取
       var items = manifest.map(function (m) {
         onSet[m.path] = 1;
         return { path: m.path, title: m.title || cmSlug(m.path), url: m.url, hidden: !!m.hidden, paid: !!m.paid, trashed: !!m.trashed, off: false, sub: m.sub || m.cat || '', date: m.date || '' };
+      });
+      hiddenList.forEach(function (h) {
+        if (onSet[h.path]) return;
+        onSet[h.path] = 1;
+        var isTrash = h.flag === 'trashed';
+        items.push({ path: h.path, title: h.title || cmSlug(h.path), url: h.url || '', hidden: !isTrash, paid: false, trashed: isTrash, off: false, sub: '', date: '' });
       });
       paths.forEach(function (p) {
         if (!onSet[p]) items.push({ path: p, title: cmSlug(p), url: '', hidden: false, paid: false, off: true, sub: '', date: '' });

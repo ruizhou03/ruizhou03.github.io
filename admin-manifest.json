@@ -3,16 +3,16 @@ layout: null
 sitemap: false
 ---
 [
-  {% for item in site.notes %}{% unless forloop.first %},{% endunless %}
+  {% comment %} 防泄漏：hidden:true / trashed:true 的文章不进公开清单（它们对访客应「不存在」）。
+     管理后台改从鉴权后端 /api/admin?action=hidden-list 取这批。付费文是公开的(有预览+购买)，保留。 {% endcomment %}
+  {% assign n = 0 %}{% for item in site.notes %}{% unless item.hidden or item.trashed %}{% if n > 0 %},{% endif %}
   {
     "title": {{ item.title | jsonify }},
     "path": {{ item.path | jsonify }},
     "url": "{{ item.url }}",
-    "hidden": {% if item.hidden %}true{% else %}false{% endif %},
     "paid": {% if item.paid %}true{% else %}false{% endif %},
-    "trashed": {% if item.trashed %}true{% else %}false{% endif %},
     "cat": {{ item.main_category | default: item.discipline | default: "" | jsonify }},
     "sub": {{ item.sub_category | default: "" | jsonify }},
     "date": "{{ item.date | date: '%Y-%m-%d' }}"
-  }{% endfor %}
+  }{% assign n = n | plus: 1 %}{% endunless %}{% endfor %}
 ]
