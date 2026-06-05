@@ -1600,13 +1600,7 @@ permalink: /toolbox/xiangqi/
     room.appendChild(copy);
     room.appendChild(xqEl('div', 'xq-room-status',
       !xqRoomReady ? '建房中…' : (xqRoomPlayers >= 2 ? '✓ 对手已加入' : '等对手加入…')));
-    if (xqRoomReady && xqRoomHost) {
-      const sb = xqEl('button', 'xq-terr-roomstart', '▶ 开始游戏');
-      sb.disabled = xqRoomPlayers < 2;
-      sb.onclick = (e) => { e.stopPropagation(); xqTerrStartOnline(); };
-      room.appendChild(sb);
-    }
-    return room;
+    return room;   // start button stays on the river (楚河汉界), not in the card
   }
 
   function xqRenderTerr() {
@@ -1615,9 +1609,14 @@ permalink: /toolbox/xiangqi/
     blackHost.appendChild(xqTerrCard('black'));
     redHost.appendChild(xqTerrCard('red'));
     const md = xqTerrComputeMode();
-    const startBtn = document.getElementById('xqTerrStart');
-    startBtn.style.display = md.online ? 'none' : '';
-    startBtn.disabled = (md.mode === null);   // both 电脑: nothing to start
+    const startBtn = document.getElementById('xqTerrStart');   // always on the river
+    if (md.online) {
+      startBtn.disabled = !(xqRoomReady && xqRoomHost && xqRoomPlayers >= 2);
+      startBtn.textContent = '▶ 开始游戏';
+    } else {
+      startBtn.disabled = (md.mode === null);   // both 电脑: nothing to start
+      startBtn.textContent = '▶ 开始游戏';
+    }
   }
 
   function xqCycleSide(side) {
@@ -1716,7 +1715,8 @@ permalink: /toolbox/xiangqi/
 
   document.getElementById('xqTerrStart').addEventListener('click', () => {
     const md = xqTerrComputeMode();
-    if (md.online || md.mode === null) return;
+    if (md.online) { xqTerrStartOnline(); return; }   // online host starts from the river button
+    if (md.mode === null) return;
     xqPgoSelectedMode = md.mode;
     if (md.diff) xqPgoSelectedDiff = md.diff;
     document.getElementById('xqPgoStartBtn').click();   // reuse the existing local-start path
