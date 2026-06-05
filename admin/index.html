@@ -448,23 +448,32 @@ noindex: true
         .catch(function (e) { row.classList.remove('cm-busy'); alert('操作失败：' + ((e && e.error) || '请重试')); });
       return;
     }
-    var body, confirmMsg, single = false;
-    if (a === 'hide') { single = true; body = { path: it.path, key: 'hidden', value: !it.hidden }; }
-    else if (a === 'off') { confirmMsg = '硬下架「' + it.title + '」？将变成真 404、彻底不进 HTML，只能在「已下架/回收站」里还原。'; body = { path: it.path, flags: { published: false } }; }
-    else if (a === 'trash') { confirmMsg = '删除「' + it.title + '」到回收站？访客看不到，你仍可点开预览，可随时还原。'; body = { path: it.path, flags: { trashed: true } }; }
-    else if (a === 'restore') { body = { path: it.path, flags: { published: true, trashed: false } }; }
-    else return;
+    // 真隐藏：隐藏/删除=正文搬后端(hide-publish)、取消=合并回(hide-restore)；硬下架仍走 set-flags published:false
+    var action, body, confirmMsg;
+    if (a === 'hide') {
+      if (it.hidden) { action = 'hide-restore'; body = { path: it.path }; }
+      else { action = 'hide-publish'; body = { path: it.path, flag: 'hidden' }; }
+    } else if (a === 'trash') {
+      confirmMsg = '删除「' + it.title + '」到回收站？正文搬后端、访客看不到，你仍可点开预览、可随时还原。';
+      action = 'hide-publish'; body = { path: it.path, flag: 'trashed' };
+    } else if (a === 'off') {
+      confirmMsg = '硬下架「' + it.title + '」？将变成真 404、彻底不进 HTML，只能在「已下架/回收站」里还原。';
+      action = 'set-flags'; body = { path: it.path, flags: { published: false } };
+    } else if (a === 'restore') {
+      if (it.off) { action = 'set-flags'; body = { path: it.path, flags: { published: true, trashed: false } }; }
+      else { action = 'hide-restore'; body = { path: it.path }; }   // 软删/隐藏(bodyremote)：合并回正文
+    } else return;
     if (confirmMsg && !window.confirm(confirmMsg)) return;
     row.classList.add('cm-busy');
-    window.SiteAuth.authedFetch('/api/admin?action=' + (single ? 'set-flag' : 'set-flags'), {
+    window.SiteAuth.authedFetch('/api/admin?action=' + action, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     })
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
       .then(function () {
-        if (a === 'hide') it.hidden = !it.hidden;
+        if (a === 'hide') { it.hidden = !it.hidden; if (!it.hidden) it.trashed = false; }
+        else if (a === 'trash') { it.trashed = true; it.hidden = false; }
         else if (a === 'off') { it.off = true; it.trashed = false; }
-        else if (a === 'trash') { it.trashed = true; }   // 软删除：保持 published，仍是“活页面”
-        else if (a === 'restore') { it.off = false; it.trashed = false; }
+        else if (a === 'restore') { it.off = false; it.trashed = false; it.hidden = false; }
         it.pending = true;
         renderContent();
       })

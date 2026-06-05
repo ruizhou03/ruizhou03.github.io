@@ -155,21 +155,22 @@ window.SaPending = window.SaPending || (function () {
     function flip(action) {
       hideBtn.disabled = true; delBtn.disabled = true;
       (action === 'hide' ? hideBtn : delBtn).textContent = '…';
-      var url, body;
-      if (action === 'hide') {
-        url = '/api/admin?action=set-flag';
-        body = { path: path, key: 'hidden', value: !hidden };
-      } else { // delete / restore：软删除 = 翻 trashed（保持 published，管理员仍可点开预览）
-        url = '/api/admin?action=set-flags';
-        body = { path: path, flags: { trashed: !trashed } };
-      }
+      // 真隐藏：隐藏/删除=正文搬后端(hide-publish)；取消=正文合并回(hide-restore，恢复公开)
+      var goingOn = action === 'hide' ? !hidden : !trashed;
+      var url = goingOn ? '/api/admin?action=hide-publish' : '/api/admin?action=hide-restore';
+      var body = goingOn ? { path: path, flag: action === 'hide' ? 'hidden' : 'trashed' } : { path: path };
       window.SiteAuth.authedFetch(url, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
       })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
         .then(function () {
-          if (action === 'hide') { hidden = !hidden; hPending = (hidden !== bHidden); window.SaPending.markFlag(path, 'hidden', hidden); }
-          else { trashed = !trashed; tPending = (trashed !== bTrashed); window.SaPending.markFlag(path, 'trashed', trashed); }
+          if (action === 'hide') {
+            hidden = !hidden; hPending = (hidden !== bHidden); window.SaPending.markFlag(path, 'hidden', hidden);
+            if (!hidden) { trashed = false; window.SaPending.markFlag(path, 'trashed', false); }  // 取消隐藏=恢复公开
+          } else {
+            trashed = !trashed; tPending = (trashed !== bTrashed); window.SaPending.markFlag(path, 'trashed', trashed);
+            if (trashed) { hidden = false; window.SaPending.markFlag(path, 'hidden', false); }     // 删除与隐藏互斥
+          }
         })
         .catch(function () {})              // 失败：状态不变，labels() 会恢复原文案
         .then(function () { paintRow(); labels(); });

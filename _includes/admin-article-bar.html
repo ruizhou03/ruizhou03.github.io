@@ -131,20 +131,22 @@
     document.addEventListener('click', function (e) { if (!fab.contains(e.target)) fab.classList.remove('ab-open'); });
 
     btn.addEventListener('click', function () {
-      var next = !hidden;
+      var next = !hidden;   // next=true → 真隐藏(正文搬后端)；false → 取消隐藏(正文合并回)
       msg.textContent = '提交中…';
       btn.disabled = true;
-      window.SiteAuth.authedFetch('/api/admin?action=set-flag', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: path, key: 'hidden', value: next })
+      var url = next ? '/api/admin?action=hide-publish' : '/api/admin?action=hide-restore';
+      var bodyObj = next ? { path: path, flag: 'hidden' } : { path: path };
+      window.SiteAuth.authedFetch(url, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bodyObj)
       })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
         .then(function () {
           hidden = next; pending = (next !== buildHidden);
           if (window.SaPending) window.SaPending.mark(path, next);
           paint();
-          msg.textContent = '已提交，约 1–2 分钟后生效' + (pending ? '（这期间刷新仍按你的设置显示）' : '');
+          msg.textContent = next
+            ? '已隐藏：正文已搬到后端，访客（含查看源码）看不到；约 1–2 分钟生效。'
+            : '已取消隐藏：正文已合并回、重新公开；约 1–2 分钟生效。';
         })
         .catch(function (e) { msg.textContent = '失败：' + ((e && e.error) || '请重试'); })
         .then(function () { btn.disabled = false; });
@@ -186,7 +188,10 @@
             paidSaveBtn.disabled = false;
             eMsg.textContent = '在分界处插入一行 <!-- PAYWALL --> 后点「设为付费并提交」。';
           } else {
-            saveBtn.disabled = false; eMsg.textContent = HINT;
+            saveBtn.disabled = false;
+            eMsg.textContent = /^[ \t]*bodyremote[ \t]*:[ \t]*true/m.test(textEl.value)
+              ? '注意：本文正文已隐藏到后端，这里只是空壳；要改正文请先「取消隐藏 / 从回收站恢复」再编辑。'
+              : HINT;
           }
         })
         .catch(function (e) { eMsg.textContent = '加载失败：' + ((e && e.error) || '请重试'); });
@@ -258,21 +263,23 @@
 
     if (delBtn) delBtn.addEventListener('click', function () {
       var next = !trashed;
-      if (next && !window.confirm('删除本文到回收站？访客将看不到，你仍可点开预览，可随时恢复。')) return;
+      if (next && !window.confirm('删除本文到回收站？正文搬到后端、访客看不到，你仍可预览，可随时恢复。')) return;
       msg.textContent = '提交中…'; delBtn.disabled = true;
-      window.SiteAuth.authedFetch('/api/admin?action=set-flags', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: path, flags: { trashed: next } })
+      var url = next ? '/api/admin?action=hide-publish' : '/api/admin?action=hide-restore';
+      var bodyObj = next ? { path: path, flag: 'trashed' } : { path: path };
+      window.SiteAuth.authedFetch(url, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bodyObj)
       })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
         .then(function () {
           trashed = next; tPending = (next !== buildTrashed);
           if (window.SaPending) window.SaPending.markFlag(path, 'trashed', next);
+          if (next) { hidden = false; if (window.SaPending) window.SaPending.markFlag(path, 'hidden', false); }  // 删除与隐藏互斥
           var mainEl = document.querySelector('main');     // 同步本体软门控 → 当场出现/撤掉删除提示条
           if (mainEl) mainEl.setAttribute('data-trashed', next ? 'true' : 'false');
           msg.textContent = next
-            ? '已删除到回收站，约 1–2 分钟后访客看不到；你仍可预览。'
-            : '已从回收站恢复，约 1–2 分钟后重新公开。';
+            ? '已删除到回收站：正文已搬后端、访客看不到；约 1–2 分钟生效。'
+            : '已从回收站恢复：正文已合并回、重新公开；约 1–2 分钟生效。';
         })
         .catch(function (e) { msg.textContent = '失败：' + ((e && e.error) || '请重试'); })
         .then(function () { delBtn.disabled = false; paint(); });
@@ -290,10 +297,50 @@
         .catch(function (e) { offBtn.disabled = false; if (delBtn) delBtn.disabled = false; msg.textContent = '失败：' + ((e && e.error) || '请重试'); });
     });
 
+    // ── 真隐藏的管理员加载器：正文已搬后端、shell 页对访客空白；管理员把正文取回来渲染 ──
+    var remoteLoaded = false;
+    function renderRemote(box, md) {
+      var html = '';
+      if (window.marked && typeof window.marked.parse === 'function') html = window.marked.parse(md || '');
+      else html = '<pre style="white-space:pre-wrap">' + String(md || '').replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</pre>';
+      box.innerHTML = html;
+      if (window.renderMathInElement) {
+        try {
+          window.renderMathInElement(box, { delimiters: [
+            { left: '$$', right: '$$', display: true }, { left: '\\[', right: '\\]', display: true },
+            { left: '$', right: '$', display: false }, { left: '\\(', right: '\\)', display: false }
+          ], throwOnError: false });
+        } catch (e) {}
+      }
+    }
+    function loadRemoteBody() {
+      if (remoteLoaded) return;
+      var main = document.querySelector('main');
+      if (!main || main.getAttribute('data-bodyremote') !== 'true') return;
+      remoteLoaded = true;
+      var box = document.createElement('div');
+      box.id = 'ab-remote-body'; box.className = 'markdown-content';
+      box.style.cssText = 'margin-top:1.2rem';
+      box.innerHTML = '<p style="color:var(--color-muted)">正在载入隐藏正文…</p>';
+      main.appendChild(box);
+      window.SiteAuth.authedFetch('/api/admin?action=hidden-content&path=' + encodeURIComponent(path))
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+        .then(function (d) {
+          if (window.marked && window.marked.parse) { renderRemote(box, d.body); return; }
+          var s = document.createElement('script');           // 按需加载 marked，再渲染
+          s.src = 'https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js';
+          s.onload = function () { renderRemote(box, d.body); };
+          s.onerror = function () { renderRemote(box, d.body); };  // 加载失败退化为纯文本
+          document.head.appendChild(s);
+        })
+        .catch(function (e) { box.innerHTML = '<p style="color:#b5483a">隐藏正文载入失败：' + ((e && e.error) || '请重试') + '</p>'; });
+    }
+
     var openedOnce = false, paidHashDone = false;
     window.SiteAuth.onChange(function (user) {
       if (user && user.isAdmin) {
         paint();
+        loadRemoteBody();
         if (pending && !msg.textContent) msg.textContent = '上次改动重建中，约 1–2 分钟生效';
         fab.classList.add('ab-show');
         if (!openedOnce) { openedOnce = true; fab.classList.add('ab-open'); }  // 进文章默认展开一次
