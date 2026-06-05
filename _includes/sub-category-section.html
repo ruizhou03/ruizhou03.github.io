@@ -35,7 +35,7 @@ JS 逻辑保留兜底：当 search-wrap 缺失时，filter/分页仍会安全降
       {% if post.published != false %}
       {%- capture _base -%}{{ post.title }} {{ post.keywords | join: ' ' }} {{ post.tags | join: ' ' }}{%- endcapture -%}
       {%- capture _exp -%}{% include search-expand.html text=_base %}{%- endcapture -%}
-      <li class="paginated-item" data-title="{{ _exp | downcase }}" data-url="{{ post.url | relative_url }}" data-hidden="{% if post.hidden %}true{% else %}false{% endif %}" data-path="{{ post.path }}">
+      <li class="paginated-item" data-title="{{ _exp | downcase }}" data-url="{{ post.url | relative_url }}" data-hidden="{% if post.hidden %}true{% else %}false{% endif %}" data-trashed="{% if post.trashed %}true{% else %}false{% endif %}" data-paid="{% if post.paid %}true{% else %}false{% endif %}" data-path="{{ post.path }}">
         <a href="{{ post.url | relative_url }}">{% include latex-logo.html title=post.title %}</a>
         <span class="post-date">{% if post.date %}{{ post.date | date: "%Y-%m-%d" }}{% endif %}</span>
       </li>

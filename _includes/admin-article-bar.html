@@ -5,7 +5,7 @@
   付费/编辑/删除占位「即将上线」，下一块接。下方 JS 用 raw 包裹保护。
 {%- endcomment -%}
 {%- if page.path -%}
-<div id="admin-fab" data-path="{{ page.path }}" data-hidden="{% if page.hidden %}true{% else %}false{% endif %}" data-paid="{{ page.paid }}">
+<div id="admin-fab" data-path="{{ page.path }}" data-hidden="{% if page.hidden %}true{% else %}false{% endif %}" data-trashed="{% if page.trashed %}true{% else %}false{% endif %}" data-paid="{{ page.paid }}">
   <button id="ab-gear" class="ab-gear" type="button" title="管理本文" aria-label="管理本文">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
   </button>
@@ -96,15 +96,21 @@
     var btn = document.getElementById('ab-toggle-pub');
     var msg = document.getElementById('ab-msg');
     var path = fab.getAttribute('data-path');
-    var buildHidden = fab.getAttribute('data-hidden') === 'true';  // 此页构建时的状态
+    var buildHidden = fab.getAttribute('data-hidden') === 'true';   // 此页构建时的状态
+    var buildTrashed = fab.getAttribute('data-trashed') === 'true';
     // 待生效缓冲：刚翻过、构建还没追上时，优先显示本地意图（标注重建中），不被旧构建带回去
-    var st = window.SaPending ? window.SaPending.state(path, buildHidden) : { hidden: buildHidden, pending: false };
-    var hidden = st.hidden, pending = st.pending;
+    var sh = window.SaPending ? window.SaPending.stateFlag(path, 'hidden', buildHidden) : { value: buildHidden, pending: false };
+    var stt = window.SaPending ? window.SaPending.stateFlag(path, 'trashed', buildTrashed) : { value: buildTrashed, pending: false };
+    var hidden = sh.value, pending = sh.pending;
+    var trashed = stt.value, tPending = stt.pending;
 
     function paint() {
-      dot.classList.toggle('is-hidden', hidden);
-      stateEl.textContent = (hidden ? '当前：已隐藏' : '当前：公开') + (pending ? '（重建中）' : '');
+      dot.classList.toggle('is-hidden', hidden || trashed);
+      var label = trashed ? '当前：已删除（回收站）' : (hidden ? '当前：已隐藏' : '当前：公开');
+      stateEl.textContent = label + ((pending || tPending) ? '（重建中）' : '');
+      btn.disabled = trashed;                               // 删除态下「隐藏」无意义
       btn.textContent = hidden ? '取消隐藏（公开）' : '隐藏此文';
+      if (delBtn) delBtn.textContent = (trashed ? '从回收站恢复' : '删除（进回收站）') + (tPending ? '（重建中）' : '');
     }
 
     gear.addEventListener('click', function (e) { e.stopPropagation(); fab.classList.toggle('ab-open'); });
@@ -170,24 +176,44 @@
         });
     });
 
-    // ── 硬下架（真404）/ 删除（进回收站）：published:false（+trashed:true）。页面将不可见 → 完成后去管理后台 ──
+    // ── 删除/恢复（软删除=翻 trashed，保持 published）：页面对访客隐藏、管理员仍可预览；就地更新不跳转 ──
+    // ── 硬下架（真404）=published:false：页面彻底消失 → 提交后去管理后台 ──
     var offBtn = document.getElementById('ab-off');
     var delBtn = document.getElementById('ab-del');
-    function hardAction(flags, confirmMsg) {
-      if (!window.confirm(confirmMsg)) return;
-      msg.textContent = '提交中…';
-      if (offBtn) offBtn.disabled = true;
-      if (delBtn) delBtn.disabled = true;
+
+    if (delBtn) delBtn.addEventListener('click', function () {
+      var next = !trashed;
+      if (next && !window.confirm('删除本文到回收站？访客将看不到，你仍可点开预览，可随时恢复。')) return;
+      msg.textContent = '提交中…'; delBtn.disabled = true;
       window.SiteAuth.authedFetch('/api/admin?action=set-flags', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: path, flags: flags })
+        body: JSON.stringify({ path: path, flags: { trashed: next } })
       })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
-        .then(function () { msg.textContent = '已提交，约 1–2 分钟后此页不可见。正在去管理后台…'; setTimeout(function () { location.href = '/admin/'; }, 1500); })
-        .catch(function (e) { if (offBtn) offBtn.disabled = false; if (delBtn) delBtn.disabled = false; msg.textContent = '失败：' + ((e && e.error) || '请重试'); });
-    }
-    if (offBtn) offBtn.addEventListener('click', function () { hardAction({ published: false }, '硬下架本文？将变成真 404、彻底不进 HTML。之后只能在管理后台「已下架」里还原。'); });
-    if (delBtn) delBtn.addEventListener('click', function () { hardAction({ published: false, trashed: true }, '删除本文到回收站？（可在管理后台还原）'); });
+        .then(function () {
+          trashed = next; tPending = (next !== buildTrashed);
+          if (window.SaPending) window.SaPending.markFlag(path, 'trashed', next);
+          var mainEl = document.querySelector('main');     // 同步本体软门控 → 当场出现/撤掉删除提示条
+          if (mainEl) mainEl.setAttribute('data-trashed', next ? 'true' : 'false');
+          msg.textContent = next
+            ? '已删除到回收站，约 1–2 分钟后访客看不到；你仍可预览。'
+            : '已从回收站恢复，约 1–2 分钟后重新公开。';
+        })
+        .catch(function (e) { msg.textContent = '失败：' + ((e && e.error) || '请重试'); })
+        .then(function () { delBtn.disabled = false; paint(); });
+    });
+
+    if (offBtn) offBtn.addEventListener('click', function () {
+      if (!window.confirm('硬下架本文？将变成真 404、彻底不进 HTML。之后只能在管理后台「已下架」里还原。')) return;
+      msg.textContent = '提交中…'; offBtn.disabled = true; if (delBtn) delBtn.disabled = true;
+      window.SiteAuth.authedFetch('/api/admin?action=set-flags', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: path, flags: { published: false } })
+      })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+        .then(function () { msg.textContent = '已提交，约 1–2 分钟后此页变 404。正在去管理后台…'; setTimeout(function () { location.href = '/admin/'; }, 1500); })
+        .catch(function (e) { offBtn.disabled = false; if (delBtn) delBtn.disabled = false; msg.textContent = '失败：' + ((e && e.error) || '请重试'); });
+    });
 
     var openedOnce = false;
     window.SiteAuth.onChange(function (user) {

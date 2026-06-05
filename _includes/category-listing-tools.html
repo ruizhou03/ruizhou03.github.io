@@ -160,8 +160,10 @@
     var searchOnly = section.classList.contains('cat-search-only');
 
     function applyFilter() {
-      // 访客视角排除软隐藏项（管理员则纳入并变灰）；这样分页按可见集重排，不留弹坑
-      items = saIsAdmin() ? allItems : allItems.filter(function (i) { return i.getAttribute('data-hidden') !== 'true'; });
+      // 访客视角排除软隐藏 / 已删除（回收站）项（管理员则纳入并变灰）；分页按可见集重排，不留弹坑
+      items = saIsAdmin() ? allItems : allItems.filter(function (i) {
+        return i.getAttribute('data-hidden') !== 'true' && i.getAttribute('data-trashed') !== 'true';
+      });
       filteredItems = GQ ? items.filter(function(i) {
         return (i.dataset.title || '').indexOf(GQ) !== -1;
       }) : items.slice();

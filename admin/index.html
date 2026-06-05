@@ -83,7 +83,7 @@ noindex: true
         <button type="button" class="cm-tab" data-f="trash">已下架 / 回收站</button>
       </div>
       <div id="cm-list" class="cm-list"><div class="cm-empty">加载中…</div></div>
-      <p class="adm-note">软隐藏=访客看不到、你能预览；硬下架=真 404、彻底不进 HTML；删除=进回收站可还原。改动提交后约 1–2 分钟生效（这期间列表可能仍显旧态，已就地标「重建中」）。也可在文章页用右下角齿轮就地操作。</p>
+      <p class="adm-note">软隐藏=访客看不到、你能预览（栏目里变灰）；删除=进回收站，访客看不到、你仍可点开预览、可随时还原（栏目里变灰+删除线）；硬下架=真 404、彻底不进 HTML（你也无法预览，只能在此还原）。改动提交后约 1–2 分钟生效（这期间列表可能仍显旧态，已就地标「重建中」）。也可在文章页用右下角齿轮就地操作。</p>
     </section>
   </div>
 </article>
@@ -376,7 +376,7 @@ noindex: true
       var manifest = res[0] || [], listed = res[1] || {}, paths = listed.paths || [], onSet = {};
       var items = manifest.map(function (m) {
         onSet[m.path] = 1;
-        return { path: m.path, title: m.title || cmSlug(m.path), url: m.url, hidden: !!m.hidden, paid: !!m.paid, off: false, sub: m.sub || m.cat || '', date: m.date || '' };
+        return { path: m.path, title: m.title || cmSlug(m.path), url: m.url, hidden: !!m.hidden, paid: !!m.paid, trashed: !!m.trashed, off: false, sub: m.sub || m.cat || '', date: m.date || '' };
       });
       paths.forEach(function (p) {
         if (!onSet[p]) items.push({ path: p, title: cmSlug(p), url: '', hidden: false, paid: false, off: true, sub: '', date: '' });
@@ -388,26 +388,28 @@ noindex: true
   }
 
   function cmMatch(it) {
-    if (cmFilter === 'trash') return it.off;
-    if (it.off) return false;
+    var gone = it.off || it.trashed;            // 已下架(真404) 或 软删除(回收站)
+    if (cmFilter === 'trash') return gone;
+    if (gone) return false;                     // 其它 tab 都不显示回收站里的
     if (cmFilter === 'hidden') return it.hidden;
     if (cmFilter === 'paid') return it.paid;
     return true;
   }
   function cmRowHtml(it) {
     var badges = '';
-    if (it.off) badges += '<span class="cm-badge b-off">' + (it.trashed ? '回收站' : '已下架') + '</span>';
-    if (it.hidden) badges += '<span class="cm-badge b-hidden">软隐藏</span>';
+    if (it.off) badges += '<span class="cm-badge b-off">已下架</span>';
+    else if (it.trashed) badges += '<span class="cm-badge b-off">回收站</span>';
+    if (it.hidden && !it.trashed) badges += '<span class="cm-badge b-hidden">软隐藏</span>';
     if (it.paid) badges += '<span class="cm-badge b-paid">付费</span>';
     if (it.pending) badges += '<span class="cm-pend">重建中</span>';
     var titleHtml = it.url
       ? '<a class="cm-title" href="' + esc(it.url) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a>'
       : '<span class="cm-title">' + esc(it.title) + '</span>';
-    var acts = it.off
+    var acts = (it.off || it.trashed)
       ? '<button type="button" class="cm-btn" data-a="restore">还原</button>'
       : '<button type="button" class="cm-btn" data-a="hide">' + (it.hidden ? '取消软隐藏' : '软隐藏') + '</button>' +
-        '<button type="button" class="cm-btn" data-a="off">硬下架</button>' +
-        '<button type="button" class="cm-btn danger" data-a="trash">删除</button>';
+        '<button type="button" class="cm-btn" data-a="trash">删除</button>' +
+        '<button type="button" class="cm-btn danger" data-a="off">硬下架</button>';
     return '<div class="cm-row">' +
       '<div class="cm-main">' + titleHtml + '<div class="cm-meta">' + (it.sub ? esc(it.sub) + ' · ' : '') + (it.date ? it.date + ' · ' : '') + esc(it.path) + '</div></div>' +
       '<div class="cm-badges">' + badges + '</div>' +
@@ -433,7 +435,7 @@ noindex: true
     var body, confirmMsg, single = false;
     if (a === 'hide') { single = true; body = { path: it.path, key: 'hidden', value: !it.hidden }; }
     else if (a === 'off') { confirmMsg = '硬下架「' + it.title + '」？将变成真 404、彻底不进 HTML，只能在「已下架/回收站」里还原。'; body = { path: it.path, flags: { published: false } }; }
-    else if (a === 'trash') { confirmMsg = '删除「' + it.title + '」到回收站？（可还原）'; body = { path: it.path, flags: { published: false, trashed: true } }; }
+    else if (a === 'trash') { confirmMsg = '删除「' + it.title + '」到回收站？访客看不到，你仍可点开预览，可随时还原。'; body = { path: it.path, flags: { trashed: true } }; }
     else if (a === 'restore') { body = { path: it.path, flags: { published: true, trashed: false } }; }
     else return;
     if (confirmMsg && !window.confirm(confirmMsg)) return;
@@ -445,7 +447,7 @@ noindex: true
       .then(function () {
         if (a === 'hide') it.hidden = !it.hidden;
         else if (a === 'off') { it.off = true; it.trashed = false; }
-        else if (a === 'trash') { it.off = true; it.trashed = true; }
+        else if (a === 'trash') { it.trashed = true; }   // 软删除：保持 published，仍是“活页面”
         else if (a === 'restore') { it.off = false; it.trashed = false; }
         it.pending = true;
         renderContent();
