@@ -3771,4 +3771,47 @@
     if (!document.hidden && Date.now() - lastPull > 20000) refreshShared();
   });
   setInterval(() => { if (!document.hidden) refreshShared(); }, 60000);
+
+  // ===== 账号云同步：宠物数据跟账号跨设备同步 =====
+  // 身份 tool.pet-food.deviceId 已由 auth.js 在登录时切成 accountId；CloudSync 负责把
+  // 宠物状态 tool.pet-food.v1 随账号搬运（/api/me kv）。CloudSync 拉回时对 localStorage 是
+  // “整份覆盖”，这里在它拉完后改成“按宠物 id 取并集”地并入内存——既让远端的本地宠物（如
+  // 旺仔）出现，又不会让某台设备较空的快照把本地已有宠物冲掉（护住数据，绝不丢宠物）。
+  function mergeEntries(a, b) {
+    const seen = new Set((a || []).map(e => e && e.id).filter(Boolean));
+    return (a || []).concat((b || []).filter(e => e && e.id && !seen.has(e.id)));
+  }
+  function mergePetPair(local, remote) {
+    // 条目更全的一方做底，另一方补齐它缺的条目；其余字段以条目更全者为准。
+    const base  = (remote.entries || []).length >= (local.entries || []).length ? remote : local;
+    const other = base === remote ? local : remote;
+    return Object.assign({}, base, { entries: mergeEntries(base.entries, other.entries) });
+  }
+  function mergeInRemotePets() {
+    let incoming = null;
+    try { incoming = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (_) { return; }
+    if (!incoming || !Array.isArray(incoming.pets)) return;
+    const byId = new Map();
+    state.pets.forEach(p => { if (p && p.id) byId.set(p.id, p); });   // 本地（内存）现有的先占位
+    incoming.pets.forEach(rp => {                                     // 远端按 id 合并 / 补充
+      if (!rp || !rp.id) return;
+      const cur = byId.get(rp.id);
+      byId.set(rp.id, cur ? mergePetPair(cur, rp) : rp);
+    });
+    const merged = Array.from(byId.values());
+    const unchanged = merged.length === state.pets.length &&
+      merged.every((p, i) => state.pets[i] && state.pets[i].id === p.id &&
+                             (state.pets[i].entries || []).length === (p.entries || []).length);
+    if (unchanged) return;                                            // 没有新宠物 / 新条目就别折腾
+    state.pets = merged;
+    if (!state.currentId || !state.pets.some(p => p.id === state.currentId)) {
+      state.currentId = (state.pets[0] && state.pets[0].id) || null;
+    }
+    migratePets();
+    persist();   // 写回并集——下次 CloudSync push 上传的就是并集，顺带把云端补全
+    render();
+  }
+  // CloudSync 同标签页拉取（登录 / 换设备首屏）→ 合并；其它标签页改动 → storage 兜底
+  window.addEventListener('cloudsync:pulled', mergeInRemotePets);
+  window.addEventListener('storage', (e) => { if (e && e.key === STORE_KEY) mergeInRemotePets(); });
 })();

@@ -16,6 +16,10 @@
     'tool.forest.active.v1', 'tool.forest.activeField.v1', 'tool.forest.theme.v1',
     'tool.goals.v1',
     'vision.history',
+    // 宠物中心：身份(tool.pet-food.deviceId)已由 auth.js 在登录时切成 accountId，这里
+    // 再把“宠物数据”随账号同步，本地宠物（如旺仔）就能跨设备出现。只同步状态、不同步
+    // deviceId（deviceId 归 auth.js 的身份采用管，重复同步会和它的登出还原打架）。
+    'tool.pet-food.v1',
   ];
 
   function snapshot() {
@@ -44,6 +48,9 @@
           }
         });
         lastSent = JSON.stringify(snapshot());
+        // 同标签页内 localStorage 改动不会触发 storage 事件，工具页拿不到拉取通知。
+        // 主动派发一个事件，让已加载的工具（如宠物中心）合并并重渲染，无需手动刷新。
+        try { window.dispatchEvent(new CustomEvent('cloudsync:pulled', { detail: { keys: keys } })); } catch (e) {}
       } else {
         push(true); // 云端为空 → 首次播种本地数据
       }
