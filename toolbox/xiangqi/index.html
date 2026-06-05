@@ -781,6 +781,7 @@ permalink: /toolbox/xiangqi/
   }
   // Flip board so the human plays from the bottom: by default red is at bottom; if human is black, flip.
   function isFlipped() {
+    if (xqIsOnline && xqMyColor) return xqMyColor === BLACK;   // 联机：我方棋子永远在下方
     return state.mode === 'ai-black';
   }
 
@@ -1002,7 +1003,8 @@ permalink: /toolbox/xiangqi/
     return true;
   }
 
-  function applyMove(m) {
+  function applyMove(m, opts) {
+    opts = opts || {};
     const undo = makeMove(state.board, m);
     state.history.push({ undo, prevTurn: state.turn });
     state.lastMove = { from: m.from.slice(), to: m.to.slice() };
@@ -1010,12 +1012,24 @@ permalink: /toolbox/xiangqi/
     state.legalTargets = [];
     state.turn = opp(state.turn);
     renderBoard();
+    // Online relay: broadcast my own moves to the room; remote-applied moves never re-broadcast.
+    if (xqIsOnline && xqRoomToken && !opts.fromRemote && !xqRoomGameOver) {
+      xqRoomApi('POST', 'move', { code: xqRoomCode, token: xqRoomToken, move: { from: m.from.slice(), to: m.to.slice() } }).then(resp => {
+        if (resp && resp.ok) { xqMovesApplied++; }   // count it so the next poll won't replay our own move
+        else if (resp && resp.reason === 'not_your_turn') {   // raced with opponent — roll back
+          const h = state.history.pop();
+          if (h) { undoMove(state.board, h.undo); state.turn = h.prevTurn; }
+          state.selected = null; state.legalTargets = []; renderBoard(); updateStatus();
+        }
+      });
+    }
     if (!endGameIfOver()) {
       updateStatus();
-      if (!state.paused && aiSide() === state.turn) {
+      if (!xqIsOnline && !state.paused && aiSide() === state.turn) {
         setTimeout(triggerAiMove, 100);
       }
     } else {
+      xqRoomGameOver = true;
       updateStatus();
     }
   }
@@ -1052,6 +1066,7 @@ permalink: /toolbox/xiangqi/
     const piece = state.board[r][f];
 
     if (aiSide() !== null && state.turn !== humanSide()) return;
+    if (xqIsOnline && xqMyColor && state.turn !== xqMyColor) return;   // 联机：只能在自己回合走自己的子
 
     if (state.selected) {
       const [sf, sr] = state.selected;
@@ -1373,6 +1388,7 @@ permalink: /toolbox/xiangqi/
   const BOARD_API = 'https://zircon-urge.fly.dev/api/board';
   let xqRoomToken = null, xqRoomPlayerId = null, xqRoomCode = null, xqRoomHost = false;
   let xqRoomStatePoller = null, xqIsOnline = false;
+  let xqMyColor = null, xqMovesApplied = 0, xqRoomGameOver = false;   // 联机：我方颜色 / 已应用走子数 / 终局标记
   const XQ_MIN_PLAYERS = 2;
 
   function xqRoomApi(method, action, body) {
@@ -1472,6 +1488,7 @@ permalink: /toolbox/xiangqi/
     if (xqRoomStatePoller) { clearTimeout(xqRoomStatePoller); xqRoomStatePoller = null; }
     if (xqRoomToken) await xqRoomApi('POST', 'leave', { code: xqRoomCode, token: xqRoomToken });
     xqRoomToken = null; xqRoomPlayerId = null; xqRoomCode = null; xqRoomHost = false;
+    xqMyColor = null; xqMovesApplied = 0; xqRoomGameOver = false; xqOnlineBegun = false;
     document.getElementById('xqPgoRoomCodeInput').parentElement.style.display = '';
     document.getElementById('xqPgoRoomLobby').style.display = 'none';
     document.getElementById('xqPgoRoomCodeInput').value = '';
@@ -1486,7 +1503,11 @@ permalink: /toolbox/xiangqi/
       if (!r.ok) { xqRoomStatePoller = setTimeout(poll, 2000); return; }
       if (r.room) {
         since = r.version;
-        if (r.room.state === 'playing') { xqPgoOverlay.classList.remove('open'); state.mode = 'pvp'; persist(); newGame(); if (typeof xqSave !== 'undefined' && xqSave) xqSave.start(); return; }
+        if (r.room.state === 'playing') {
+          xqEnterOnlineGame(r.room);   // assigns my colour from seat, flips board, starts
+          xqReplayMoves(r.room);       // apply opponent (and own, on reconnect) moves
+          xqRoomStatePoller = setTimeout(poll, 500); return;   // faster poll during play
+        }
         if (!r.room.players.some(p => p.id === xqRoomPlayerId)) { xqLeaveRoom(); xqShowError('你已被房主移出房间'); return; }
         xqUpdateLobby(r.room);
       }
@@ -1567,7 +1588,7 @@ permalink: /toolbox/xiangqi/
     return { mode: null };   // both 电脑 — outside the 3 engine modes
   }
 
-  let xqRoomPlayers = 0, xqRoomReady = false, xqRoomError = '', xqOnlineBegun = false;
+  let xqRoomPlayers = 0, xqRoomReady = false, xqRoomError = '', xqOnlineBegun = false, xqReordered = false;
 
   function xqTerrCard(side) {
     const info = XQ_SIDE[side], kind = xqRoles[side];
@@ -1611,7 +1632,7 @@ permalink: /toolbox/xiangqi/
     const md = xqTerrComputeMode();
     const startBtn = document.getElementById('xqTerrStart');   // always on the river
     if (md.online) {
-      startBtn.disabled = !(xqRoomReady && xqRoomHost && xqRoomPlayers >= 2);
+      startBtn.disabled = !(xqRoomReady && xqRoomHost && xqRoomPlayers >= 2 && xqReordered);
       startBtn.textContent = '▶ 开始游戏';
     } else {
       startBtn.disabled = (md.mode === null);   // both 电脑: nothing to start
@@ -1645,6 +1666,7 @@ permalink: /toolbox/xiangqi/
   function xqInviteStart(side) {
     xqRemoteSide = side; xqIsOnline = true; xqOnlineBegun = false;
     xqRoomReady = false; xqRoomError = ''; xqRoomPlayers = 1; xqRoomHost = true;
+    xqMyColor = null; xqReordered = false; xqMovesApplied = 0; xqRoomGameOver = false;
     const code = xqRand4();
     xqRoomCode = code;        // optimistic: show + copy immediately, before the server round-trip
     xqCopyInvite(code);       // in-gesture clipboard write
@@ -1671,18 +1693,65 @@ permalink: /toolbox/xiangqi/
     xqRenderTerr();
   }
 
+  // ── Shared online-game plumbing (used by both host poll and guest poll) ──
+  // Colour binds to seat order: 'first' = 红, else = 黑. The host reorders the
+  // seats so whoever should be 红 is first (see xqMaybeReorder), which lets the
+  // host pick either side and the guest just inherit the opposite.
+  function xqEnterOnlineGame(room) {
+    if (xqOnlineBegun) return;
+    xqOnlineBegun = true;
+    if (xqMyColor == null) {
+      const me = (room.players || []).find(p => p.id === xqRoomPlayerId);
+      xqMyColor = (me && me.seat === 'first') ? RED : BLACK;
+    }
+    xqPgoOverlay.classList.remove('open');
+    state.mode = 'pvp'; persist();
+    newGame();
+    xqMovesApplied = (room.moves || []).length;   // pre-game log entries are already accounted for
+    xqRoomGameOver = false;
+    if (typeof xqSave !== 'undefined' && xqSave) xqSave.start();
+    updateStatus();
+  }
+  function xqReplayMoves(room) {
+    const moves = room.moves || [];
+    for (let i = xqMovesApplied; i < moves.length; i++) {
+      const e = moves[i];
+      if (e && e.move) { try { applyMove(e.move, { fromRemote: true }); } catch (_) {} }
+    }
+    xqMovesApplied = moves.length;
+  }
+  // Host: once the guest is in, order seats so the 红 side is 'first' (the backend
+  // makes seat 'first' move first, and 红 moves first in xiangqi).
+  function xqMaybeReorder(room) {
+    if (xqReordered || !xqRoomHost || xqRemoteSide == null) return;
+    const players = room.players || [];
+    if (players.length < 2) return;
+    // Invited on 黑 ⇒ host plays 红 ⇒ host is already 'first'. No reorder needed.
+    if (xqRemoteSide === 'black') { xqReordered = true; return; }
+    // Invited on 红 ⇒ guest plays 红 ⇒ guest must become 'first'.
+    const guest = players.find(p => p.id !== xqRoomPlayerId);
+    if (!guest) return;
+    xqRoomApi('POST', 'reorder', { code: xqRoomCode, token: xqRoomToken, playerIds: [guest.id, xqRoomPlayerId] })
+      .then(() => { xqReordered = true; xqRenderTerr(); });
+  }
+
   function xqTerrPoll() {
     if (xqRoomStatePoller) { clearTimeout(xqRoomStatePoller); xqRoomStatePoller = null; }
     let since = 0;
     async function tick() {
-      if (!xqRoomToken || xqRemoteSide == null) return;
+      if (!xqRoomToken || (xqRemoteSide == null && !xqOnlineBegun)) return;
       const r = await xqRoomApi('GET', 'state&code=' + xqRoomCode + '&token=' + xqRoomToken + '&since=' + since);
-      if (xqRemoteSide == null) return;
+      if (!xqRoomToken) return;
       if (r.ok && r.room) {
         since = r.version;
-        if (r.room.state === 'playing') { xqBeginOnline(); return; }
+        if (r.room.state === 'playing') {
+          xqEnterOnlineGame(r.room);
+          xqReplayMoves(r.room);
+          xqRoomStatePoller = setTimeout(tick, 500); return;   // keep polling for opponent moves
+        }
         xqRoomPlayers = (r.room.players || []).length;
         xqRoomHost = r.room.youAreHost;
+        xqMaybeReorder(r.room);
         xqRenderTerr();
       }
       xqRoomStatePoller = setTimeout(tick, 1500);
@@ -1692,24 +1761,17 @@ permalink: /toolbox/xiangqi/
 
   async function xqTerrStartOnline() {
     if (!xqRoomHost || xqRoomPlayers < 2) return;
-    const r = await xqRoomApi('POST', 'start', { code: xqRoomCode, token: xqRoomToken });
-    if (r.ok) xqBeginOnline();
-  }
-
-  function xqBeginOnline() {
-    if (xqOnlineBegun) return;
-    xqOnlineBegun = true;
-    if (xqRoomStatePoller) { clearTimeout(xqRoomStatePoller); xqRoomStatePoller = null; }
-    xqPgoOverlay.classList.remove('open');
-    state.mode = 'pvp'; persist(); newGame();
-    if (typeof xqSave !== 'undefined' && xqSave) xqSave.start();
+    // Don't enter the game here — let the poll see 'playing' and enter via the same
+    // path on both sides (host + guest), so seat→colour assignment is consistent.
+    await xqRoomApi('POST', 'start', { code: xqRoomCode, token: xqRoomToken });
   }
 
   function xqTerrLeaveRoom() {
     if (xqRoomStatePoller) { clearTimeout(xqRoomStatePoller); xqRoomStatePoller = null; }
     if (xqRoomToken) xqRoomApi('POST', 'leave', { code: xqRoomCode, token: xqRoomToken });
     xqRoomToken = null; xqRoomPlayerId = null; xqRoomCode = null; xqRoomHost = false;
-    xqRoomPlayers = 0; xqRoomReady = false; xqRoomError = ''; xqOnlineBegun = false;
+    xqRoomPlayers = 0; xqRoomReady = false; xqRoomError = ''; xqOnlineBegun = false; xqReordered = false;
+    xqMyColor = null; xqMovesApplied = 0; xqRoomGameOver = false;
     xqRemoteSide = null; xqIsOnline = false;
   }
 
