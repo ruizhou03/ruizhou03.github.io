@@ -2413,10 +2413,11 @@
     fd.timer = null; fd.active = true; fd.translate = 0;
     fd.chip.classList.add('fc-dragging');
     $foodSelector.classList.add('fc-reordering');
-    $foodSelector.style.touchAction = 'none';
+    $foodSelector.style.touchAction = 'none';   // 触摸期间不让原生滚动抢手势
     try { fd.chip.setPointerCapture(fd.pointerId); } catch (_) {}
     if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
     fdPosition(fd.lastX, fd.lastY);
+    fd.raf = requestAnimationFrame(fdTick);
   }
   function fdMove(e) {
     if (!fd) return;
@@ -2430,25 +2431,64 @@
     fdPosition(e.clientX, e.clientY);
   }
   function fdReorder(cx, cy) {
-    const main = fd.axis === 'y' ? cy : cx;
+    const axisY = fd.axis === 'y';
+    const main = axisY ? cy : cx;
     let ref = null;
     for (const s of fdEligible()) {
       if (s === fd.chip) continue;
       const r = s.getBoundingClientRect();
-      const mid = fd.axis === 'y' ? r.top + r.height / 2 : r.left + r.width / 2;
+      const mid = axisY ? r.top + r.height / 2 : r.left + r.width / 2;
       if (main < mid) { ref = s; break; }
     }
-    const before = ref || $foodSelector.querySelector('.add-chip');
-    if (before) { if (fd.chip.nextSibling !== before) $foodSelector.insertBefore(fd.chip, before); }
-    else if ($foodSelector.lastElementChild !== fd.chip) $foodSelector.appendChild(fd.chip);
+    const target = ref || $foodSelector.querySelector('.add-chip');
+    // 已经在该位置就别动（用 nextElementSibling 跳过模板里的空白文本节点，避免每帧空重排导致抖动）
+    if (target) { if (fd.chip.nextElementSibling === target) return; }
+    else if ($foodSelector.lastElementChild === fd.chip) return;
+    // FLIP：让位的食物从「原位」滑到「新位」。用 offsetTop/Left 记录（与 transform、滚动都无关）。
+    const movers = fdEligible().filter(c => c !== fd.chip);
+    const first = movers.map(c => axisY ? c.offsetTop : c.offsetLeft);
+    if (target) $foodSelector.insertBefore(fd.chip, target);
+    else $foodSelector.appendChild(fd.chip);
+    movers.forEach((c, i) => {
+      const d = first[i] - (axisY ? c.offsetTop : c.offsetLeft);
+      if (!d) return;
+      c.style.transition = 'none';
+      c.style.transform = axisY ? `translateY(${d}px)` : `translateX(${d}px)`;
+      requestAnimationFrame(() => { c.style.transition = 'transform 0.16s cubic-bezier(0.2,0.7,0.3,1)'; c.style.transform = ''; });
+    });
   }
-  function fdPosition(cx, cy) {                             // 跟手：用当前 rect 减已应用位移得到自然位置，再算新位移（重排后自动校正）
+  // 边缘自动滚动：指针进入容器上下/左右 30px 边缘带就滚动，速度随深入加快但封顶（恒定限速，不累加）。
+  function fdTick() {
+    if (!fd || !fd.active) { if (fd) fd.raf = null; return; }
+    const r = $foodSelector.getBoundingClientRect();
+    const EDGE = 30, MAX = 9, axisY = fd.axis === 'y';
+    const p = axisY ? fd.lastY : fd.lastX;
+    const lo = (axisY ? r.top : r.left) + EDGE, hi = (axisY ? r.bottom : r.right) - EDGE;
+    let dv = 0;
+    if (p < lo) dv = -Math.min(MAX, (lo - p) / EDGE * MAX);
+    else if (p > hi) dv = Math.min(MAX, (p - hi) / EDGE * MAX);
+    if (dv) {
+      const key = axisY ? 'scrollTop' : 'scrollLeft';
+      const before = $foodSelector[key];
+      $foodSelector[key] = before + dv;
+      if ($foodSelector[key] !== before) { fdReorder(fd.lastX, fd.lastY); fdPosition(fd.lastX, fd.lastY); }
+    }
+    fd.raf = requestAnimationFrame(fdTick);
+  }
+  function fdPosition(cx, cy) {                             // 跟手 + 夹住在容器可视范围内
     const chip = fd.chip, rect = chip.getBoundingClientRect();
-    const pointer = fd.axis === 'y' ? cy : cx;
-    const center = fd.axis === 'y' ? rect.top + rect.height / 2 : rect.left + rect.width / 2;
-    const t = pointer - (center - fd.translate);
+    const cont = $foodSelector.getBoundingClientRect();
+    const axisY = fd.axis === 'y';
+    const pointer = axisY ? cy : cx;
+    const center = axisY ? rect.top + rect.height / 2 : rect.left + rect.width / 2;
+    const natural = center - fd.translate;                 // 当前自然中心（剔除已应用位移；重排后自动校正）
+    const half = (axisY ? rect.height : rect.width) / 2;
+    const lo = (axisY ? cont.top : cont.left) + half;
+    const hi = (axisY ? cont.bottom : cont.right) - half;
+    // 夹住被拖项中心，不让它（连同 transform）越出容器——否则会撑大滚动溢出、触发浏览器反馈式自动滚动而失控
+    const t = Math.max(lo, Math.min(hi, pointer)) - natural;
     fd.translate = t;
-    chip.style.transform = fd.axis === 'y' ? `translateY(${t}px)` : `translateX(${t}px)`;
+    chip.style.transform = axisY ? `translateY(${t}px)` : `translateX(${t}px)`;
   }
   function fdUp() {
     if (!fd) return;
@@ -2466,6 +2506,7 @@
     window.removeEventListener('pointerup', fdUp);
     window.removeEventListener('pointercancel', fdUp);
     if (fd) {
+      if (fd.raf) cancelAnimationFrame(fd.raf);
       if (fd.active) {
         fd.chip.classList.remove('fc-dragging');
         fd.chip.style.transform = '';
