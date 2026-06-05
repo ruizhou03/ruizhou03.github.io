@@ -654,6 +654,8 @@
   const $fmDelete = document.getElementById('fm-delete');
   const $fmCancel = document.getElementById('fm-cancel');
   const $fmSave = document.getElementById('fm-save');
+  const $fmMeasureField = document.getElementById('fm-measure-field');
+  const $fmKibbleHint = document.getElementById('fm-kibble-hint');
 
   const $inboxBtn = document.getElementById('inbox-btn');
   const $inboxDot = document.getElementById('inbox-dot');
@@ -971,7 +973,7 @@
     'dailyTargetMin','dailyTargetMax','showTargetOnChart','targetFollowsRecommendation',
     'species','breed','ageYears','bodyWeight','bodyWeightUnit','activity','neutered',
     'preferredUnit',
-    'kibbleKcalPerG','foodLibrary',
+    'kibbleKcalPerG','kibble','foodLibrary',
   ];
   function petMetaPatch(pet) {
     const out = {};
@@ -2365,13 +2367,17 @@
     // Selected food may have been deleted/synced away → fall back to kibble.
     if (recordFood !== 'kibble' && !lib.some(f => f.id === recordFood)) recordFood = 'kibble';
     const canEdit = isAdminOrUp(pet);
-    let html = `<button type="button" class="extra-chip${recordFood==='kibble'?' active':''}" data-food="kibble"><span class="fc-emoji">🥣</span><span class="fc-name">干粮</span></button>`;
+    const kb = pet.kibble || {};
+    const kbEmoji = kb.emoji || '🥣';
+    const kbName = kb.name || '干粮';
+    let html = `<button type="button" class="extra-chip${recordFood==='kibble'?' active':''}" data-food="kibble"><span class="fc-emoji">${kbEmoji}</span><span class="fc-name">${escapeHtml(kbName)}</span>${canEdit ? `<span class="edit-food" data-edit="kibble" title="编辑">✎</span>` : ''}</button>`;
     html += lib.map(f => `
-      <button type="button" class="extra-chip${recordFood===f.id?' active':''}" data-food="${f.id}"><span class="fc-emoji">${f.emoji || '🍖'}</span><span class="fc-name">${escapeHtml(f.name)}</span>${canEdit ? `<span class="edit-food" data-edit="${f.id}" title="编辑">✎</span>` : ''}</button>`).join('');
+      <button type="button" class="extra-chip${canEdit ? ' fc-draggable' : ''}${recordFood===f.id?' active':''}" data-food="${f.id}"><span class="fc-emoji">${f.emoji || '🍖'}</span><span class="fc-name">${escapeHtml(f.name)}</span>${canEdit ? `<span class="edit-food" data-edit="${f.id}" title="编辑">✎</span>` : ''}</button>`).join('');
     if (canEdit) html += `<button type="button" class="extra-chip add-chip" data-food="__new"><span class="fc-emoji">➕</span><span class="fc-name">新建</span></button>`;
     $foodSelector.innerHTML = html;
     $foodSelector.querySelectorAll('.extra-chip').forEach(chip => {
       chip.addEventListener('click', e => {
+        if (fdDidReorder) return;   // 刚拖完那一下 click 不当选择处理
         if (e.target.dataset.edit) { openFoodModal(e.target.dataset.edit); return; }
         const f = chip.dataset.food;
         if (f === '__new') { openFoodModal(null); return; }
@@ -2379,6 +2385,110 @@
       });
     });
   }
+
+  // ===== 长按拖拽给食物排序（干粮固定顶、新建固定底；仅管理员；松手即生效）=====
+  let fdDidReorder = false;          // 刚拖完抑制随之而来的 click
+  let fd = null;                     // 当前拖拽状态
+  function fdEligible() {            // 可排序的库内食物 chip（按当前 DOM 顺序）
+    return Array.from($foodSelector.querySelectorAll('.extra-chip.fc-draggable'));
+  }
+  function fdAxis() {
+    const dir = getComputedStyle($foodSelector).flexDirection;
+    return (dir === 'row' || dir === 'row-reverse') ? 'x' : 'y';
+  }
+  function fdDown(e) {
+    if (e.button != null && e.button > 0) return;          // 只认主键 / 触摸
+    const chip = e.target.closest('.extra-chip.fc-draggable');
+    if (!chip || e.target.closest('.edit-food')) return;   // 非库内食物、或点在铅笔上 → 不拖
+    const pet = currentPet();
+    if (!pet || !isAdminOrUp(pet)) return;
+    fd = { chip, startX: e.clientX, startY: e.clientY, lastX: e.clientX, lastY: e.clientY,
+           pointerId: e.pointerId, axis: fdAxis(), active: false, translate: 0, timer: null };
+    fd.timer = setTimeout(fdBegin, 260);                   // 长按 260ms 才进入拖动
+    window.addEventListener('pointermove', fdMove, { passive: false });
+    window.addEventListener('pointerup', fdUp);
+    window.addEventListener('pointercancel', fdUp);
+  }
+  function fdBegin() {
+    if (!fd) return;
+    fd.timer = null; fd.active = true; fd.translate = 0;
+    fd.chip.classList.add('fc-dragging');
+    $foodSelector.classList.add('fc-reordering');
+    $foodSelector.style.touchAction = 'none';
+    try { fd.chip.setPointerCapture(fd.pointerId); } catch (_) {}
+    if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
+    fdPosition(fd.lastX, fd.lastY);
+  }
+  function fdMove(e) {
+    if (!fd) return;
+    fd.lastX = e.clientX; fd.lastY = e.clientY;
+    if (!fd.active) {                                       // 长按未触发前：移动超阈值视为滚动/轻点，放弃拖动
+      if (Math.hypot(e.clientX - fd.startX, e.clientY - fd.startY) > 10) { clearTimeout(fd.timer); fdCleanup(false); }
+      return;
+    }
+    e.preventDefault();
+    fdReorder(e.clientX, e.clientY);
+    fdPosition(e.clientX, e.clientY);
+  }
+  function fdReorder(cx, cy) {
+    const main = fd.axis === 'y' ? cy : cx;
+    let ref = null;
+    for (const s of fdEligible()) {
+      if (s === fd.chip) continue;
+      const r = s.getBoundingClientRect();
+      const mid = fd.axis === 'y' ? r.top + r.height / 2 : r.left + r.width / 2;
+      if (main < mid) { ref = s; break; }
+    }
+    const before = ref || $foodSelector.querySelector('.add-chip');
+    if (before) { if (fd.chip.nextSibling !== before) $foodSelector.insertBefore(fd.chip, before); }
+    else if ($foodSelector.lastElementChild !== fd.chip) $foodSelector.appendChild(fd.chip);
+  }
+  function fdPosition(cx, cy) {                             // 跟手：用当前 rect 减已应用位移得到自然位置，再算新位移（重排后自动校正）
+    const chip = fd.chip, rect = chip.getBoundingClientRect();
+    const pointer = fd.axis === 'y' ? cy : cx;
+    const center = fd.axis === 'y' ? rect.top + rect.height / 2 : rect.left + rect.width / 2;
+    const t = pointer - (center - fd.translate);
+    fd.translate = t;
+    chip.style.transform = fd.axis === 'y' ? `translateY(${t}px)` : `translateX(${t}px)`;
+  }
+  function fdUp() {
+    if (!fd) return;
+    if (fd.timer) clearTimeout(fd.timer);
+    const wasActive = fd.active;
+    if (wasActive) {
+      fdCommit();
+      fdDidReorder = true;
+      setTimeout(() => { fdDidReorder = false; }, 0);       // 抑制紧随的 click，下一拍恢复
+    }
+    fdCleanup(wasActive);
+  }
+  function fdCleanup(rerender) {
+    window.removeEventListener('pointermove', fdMove);
+    window.removeEventListener('pointerup', fdUp);
+    window.removeEventListener('pointercancel', fdUp);
+    if (fd) {
+      if (fd.active) {
+        fd.chip.classList.remove('fc-dragging');
+        fd.chip.style.transform = '';
+        try { fd.chip.releasePointerCapture(fd.pointerId); } catch (_) {}
+      }
+      $foodSelector.classList.remove('fc-reordering');
+      $foodSelector.style.touchAction = '';
+    }
+    fd = null;
+    if (rerender) renderFoodSelector();
+  }
+  function fdCommit() {
+    const pet = currentPet();
+    if (!pet || !Array.isArray(pet.foodLibrary)) return;
+    const ids = fdEligible().map(c => c.dataset.food);
+    const rank = new Map(ids.map((id, i) => [id, i]));
+    pet.foodLibrary.sort((a, b) => (rank.has(a.id) ? rank.get(a.id) : 1e9) - (rank.has(b.id) ? rank.get(b.id) : 1e9));
+    persist();
+    schedulePushMeta(pet);
+  }
+  $foodSelector.addEventListener('pointerdown', fdDown);
+
   function selectRecordFood(id) {
     recordFood = id;
     $reading.value = '';
@@ -2921,9 +3031,10 @@
   });
 
   // ===== Food (treat/can) modal =====
-  const FOOD_EMOJIS = ['🍖','🥫','🍗','🐟','🍤','🧀','🥩','🍪','🥛','💊'];
+  const FOOD_EMOJIS = ['🥣','🍚','🍖','🥫','🍗','🐟','🍤','🧀','🥩','🍪','🥛','💊'];
   let fmEditingId = null;
   let fmEmoji = '🍖';
+  let fmKibbleMode = false;          // 编辑「干粮」基准时为 true（写 pet.kibbleKcalPerG，不进 foodLibrary）
 
   // Estimate metabolizable energy (kcal per 100g as-fed) from the guaranteed
   // analysis using modified Atwater factors (protein 3.5, fat 8.5, NFE 3.5).
@@ -3018,11 +3129,37 @@
     $fmAnAsh.value = a && a.ash != null ? a.ash : '';
     $fmAnFiber.value = a && a.fiber != null ? a.fiber : '';
   }
+  function openKibbleEditor(pet) {
+    // 复用本弹窗编辑「干粮」基准：只填名字/图标/每100克大卡（或照成分估算），强制按克、无删除。
+    fmKibbleMode = true;
+    fmEditingId = null;
+    fmClearAnalysis();
+    const k = pet.kibble || {};
+    $fmTitle.textContent = '编辑干粮';
+    $fmKibbleHint.style.display = '';
+    $fmName.value = k.name || '干粮';
+    fmEmoji = k.emoji || '🥣';
+    setFmMeasure('gram');                       // 干粮永远按克
+    $fmMeasureField.style.display = 'none';      // 隐藏「怎么算量」整块
+    $fmUnitLabel.value = '份';
+    const perG = (Number.isFinite(pet.kibbleKcalPerG) && pet.kibbleKcalPerG > 0) ? pet.kibbleKcalPerG : 3.8;
+    if (k.analysis) fmSetAnalysis(k.analysis);
+    if (k.kcalSource === 'analysis') { $fmKcal100g.value = ''; setFmSource('analysis'); }
+    else { $fmKcal100g.value = parseFloat((perG * 100).toFixed(1)); setFmSource('direct'); }
+    $fmDelete.style.display = 'none';            // 基准干粮不能删
+    fmRenderEmoji();
+    $foodModal.classList.add('open');
+    $fmName.focus();
+  }
   function openFoodModal(id) {
     const pet = currentPet();
     if (!pet || !isAdminOrUp(pet)) { alert('只有主人/管理员能添加或修改食物'); return; }
+    if (id === 'kibble') { openKibbleEditor(pet); return; }
     // 新建走分步向导（C）；本弹窗（A 卡片）只负责编辑已有食物。
     if (!id) { openFoodWizard(); return; }
+    fmKibbleMode = false;
+    $fmMeasureField.style.display = '';
+    $fmKibbleHint.style.display = 'none';
     fmEditingId = id;
     fmClearAnalysis();
     const f = (pet.foodLibrary || []).find(x => x.id === id);
@@ -3050,12 +3187,39 @@
     $foodModal.classList.add('open');
     $fmName.focus();
   }
-  function closeFoodModal() { $foodModal.classList.remove('open'); fmEditingId = null; }
+  function closeFoodModal() {
+    $foodModal.classList.remove('open'); fmEditingId = null;
+    fmKibbleMode = false;
+    if ($fmMeasureField) $fmMeasureField.style.display = '';
+    if ($fmKibbleHint) $fmKibbleHint.style.display = 'none';
+  }
+  function saveKibble(pet, name) {
+    const source = fmSourceVal();
+    let perG, analysis = null;
+    if (source === 'analysis') {
+      const k100 = kcalPer100gFromAnalysis(fmReadAnalysis());
+      if (k100 == null) { alert('至少把粗蛋白、粗脂肪、水分填上'); return; }
+      analysis = fmReadAnalysis();
+      perG = k100 / 100;
+    } else {
+      const k100 = parseFloat($fmKcal100g.value);
+      if (!Number.isFinite(k100) || k100 <= 0) { alert('填一下每 100 克干粮多少大卡'); return; }
+      perG = k100 / 100;
+    }
+    pet.kibbleKcalPerG = perG;                  // 换算基准（kcal/g）—— 全局换算都读它
+    pet.kibble = { name, emoji: fmEmoji, kcalSource: source, analysis };
+    persist();
+    schedulePushMeta(pet);
+    closeFoodModal();
+    selectRecordFood('kibble');                 // 重渲染并把基准变化带进等效预览
+    return true;
+  }
   function saveFood() {
     const pet = currentPet();
     if (!pet || !isAdminOrUp(pet)) return;
     const name = $fmName.value.trim();
     if (!name) { alert('给食物起个名'); return; }
+    if (fmKibbleMode) return saveKibble(pet, name);
     const measure = fmMeasureVal();
     const source = fmSourceVal();
     const unitLabel = measure === 'gram' ? 'g' : ($fmUnitLabel.value.trim() || '份');
@@ -3202,6 +3366,7 @@
   function finishFoodWizard() {
     // Funnel wizard answers into the canonical edit-modal inputs, then save once.
     fmEditingId = null;
+    fmKibbleMode = false;   // 向导永远存的是库内食物，绝不能误走干粮分支
     $fmName.value = $fwName.value.trim();
     fmEmoji = fwEmoji;
     setFmMeasure(fwMeasure);

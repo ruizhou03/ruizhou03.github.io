@@ -340,6 +340,13 @@
     overflow: hidden; overflow-wrap: anywhere;
   }
   .entry-form .food-selector .edit-food { flex: 0 0 auto; margin-left: 0.1rem; }
+  /* 长按拖拽排序：抓手光标、拖起的悬浮态、排序中禁选中 */
+  .entry-form .food-selector .fc-draggable { cursor: grab; }
+  .entry-form .food-selector.fc-reordering { user-select: none; }
+  .entry-form .food-selector .extra-chip.fc-dragging {
+    position: relative; z-index: 5; cursor: grabbing;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.22); opacity: 0.97; transition: none;
+  }
   /* Narrow screens: 拆回竖排堆叠、恢复内边距与圆角、食物种类回到横向滚动一排。 */
   @media (max-width: 800px) {
     .entry-form { padding: 1rem; }

@@ -210,6 +210,7 @@
   <div class="modal-backdrop" id="food-modal">
     <div class="modal">
       <h2 id="fm-title">编辑食物</h2>
+      <p class="hint" id="fm-kibble-hint" style="display:none; margin:0 0 0.6rem;">干粮是所有食物的「换算基准」。把它的真实热量填准，其它罐头 / 猫条换算成「等效干粮」才准。看粮袋上的能量，一般 350–420 大卡/100 克；没印能量就用「照成分估算」。</p>
       <div class="field">
         <label>名字</label>
         <input type="text" id="fm-name" placeholder="妙鲜猫条 / 希尔思罐头" maxlength="20" />
@@ -218,7 +219,7 @@
         <label>图标</label>
         <div class="emoji-pick" id="fm-emoji-pick"></div>
       </div>
-      <div class="field">
+      <div class="field" id="fm-measure-field">
         <label>怎么算量</label>
         <div class="opt-cards fm-measure" id="fm-measure">
           <label class="opt-card active" data-val="count">
