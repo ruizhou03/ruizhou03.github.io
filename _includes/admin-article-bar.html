@@ -316,6 +316,7 @@
       if (remoteLoaded) return;
       var main = document.querySelector('main');
       if (!main || main.getAttribute('data-bodyremote') !== 'true') return;
+      if (main.getAttribute('data-trashed') === 'true') return;  // 删除的文章：你也不预览（和访客一样）
       remoteLoaded = true;
       var box = document.createElement('div');
       box.id = 'ab-remote-body'; box.className = 'markdown-content';

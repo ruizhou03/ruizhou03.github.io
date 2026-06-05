@@ -11,17 +11,21 @@
   .hidden-gate { display: none; text-align: center; color: var(--color-muted); padding: 5rem 1rem; }
   .hidden-gate-title { font-size: 2rem; color: var(--color-ink); margin: 0 0 0.6rem; }
   .hidden-gate a { color: var(--color-highlight); }
+  /* 访客：下架 / 删除 都藏正文、显「页面不存在」 */
   body:not(.sa-admin) main[data-hidden="true"] > :not(.hidden-gate),
   body:not(.sa-admin) main[data-trashed="true"] > :not(.hidden-gate) { display: none; }
   body:not(.sa-admin) main[data-hidden="true"] .hidden-gate,
   body:not(.sa-admin) main[data-trashed="true"] .hidden-gate { display: block; }
-  body.sa-admin main[data-hidden="true"]::before {
-    content: "管理员预览 · 本文已隐藏，访客看不到"; display: block; text-align: center;
+  /* 下架：只有访客被挡，管理员可预览（正文由加载器从后端取回） */
+  body.sa-admin main[data-hidden="true"]:not([data-trashed="true"])::before {
+    content: "管理员预览 · 本文已下架，访客看不到（你仍可读）"; display: block; text-align: center;
     font-size: 0.78rem; color: #9a6a00; background: #fff4d6; border: 1px solid #f0d68a;
     border-radius: 8px; padding: 0.4rem 0.6rem; margin: 0 0 1.2rem; }
-  /* 删除（回收站）优先级高于隐藏：放在后面，::before 覆盖上面那条 */
+  /* 删除：管理员也看不到正文（和访客一样显「页面不存在」），只在列表里留个带删除线的条目 */
+  body.sa-admin main[data-trashed="true"] > :not(.hidden-gate) { display: none; }
+  body.sa-admin main[data-trashed="true"] .hidden-gate { display: block; }
   body.sa-admin main[data-trashed="true"]::before {
-    content: "管理员预览 · 本文已删除（在回收站），访客看不到——可在右下角齿轮或管理后台还原";
+    content: "本文已删除：你和访客都看不到，点开是空页——可在右下角齿轮或回收站「还原 / 彻底删除」";
     display: block; text-align: center;
     font-size: 0.78rem; color: #b5483a; background: #fbeeec; border: 1px solid #e6b3aa;
     border-radius: 8px; padding: 0.4rem 0.6rem; margin: 0 0 1.2rem; }
