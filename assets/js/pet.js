@@ -1935,7 +1935,7 @@
           actions.push(`<button data-act="alias" data-target="${m.deviceId}" title="本地备注">✎ 备注</button>`);
         }
         if (owner && !self) {
-          if (m.role === 'admin') actions.push(`<button data-act="role" data-target="${m.deviceId}" data-role="regular">设为成员</button>`);
+          if (m.role === 'admin') actions.push(`<button data-act="role" data-target="${m.deviceId}" data-role="regular">取消管理</button>`);
           else if (m.role === 'regular') actions.push(`<button data-act="role" data-target="${m.deviceId}" data-role="admin">设为管理员</button>`);
           actions.push(`<button data-act="transfer" data-target="${m.deviceId}">转让主人</button>`);
           actions.push(`<button class="danger" data-act="remove" data-target="${m.deviceId}">移除</button>`);
