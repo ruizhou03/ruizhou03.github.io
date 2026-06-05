@@ -679,6 +679,8 @@
   const $pmTargetMax = document.getElementById('pm-target-max');
   const $pmKibbleKcal = document.getElementById('pm-kibble-kcal');
   const $pmConvBase = document.getElementById('pm-conv-base');
+  const $pmTgtUnitMin = document.getElementById('pm-tgt-unit-min');
+  const $pmTgtUnitMax = document.getElementById('pm-tgt-unit-max');
   const $chartTargetToggle = document.getElementById('chart-target-toggle');
   const $pmSpecies = document.getElementById('pm-species');
   const $pmBreed = document.getElementById('pm-breed'); // hidden input
@@ -838,6 +840,30 @@
       neutered:     !!$pmNeutered.checked,
     };
   }
+  // ===== 弹窗里「每日目标」跟随换算基准 =====
+  // pmTargetG 缓存 canonical 等效干粮克数（真值）；输入框只是它在当前基准单位下的显示。
+  // 改基准下拉 / 改干粮热量 → 从缓存按新倍率重渲染；保存直接读缓存（无需反算）。
+  let pmBaseId = 'kibble';
+  let pmTargetG = { min: null, max: null };
+  function pmEditingPet() { return state.editingId ? state.pets.find(p => p.id === state.editingId) : null; }
+  function pmKibbleKcalLive() { const v = parseFloat($pmKibbleKcal.value); return (Number.isFinite(v) && v > 0) ? v : 3.8; }
+  function pmBaseFood(baseId) {
+    const pet = pmEditingPet();
+    if (baseId && baseId !== 'kibble' && pet) {
+      const f = (pet.foodLibrary || []).find(x => x.id === baseId);
+      if (f && Number.isFinite(f.kcalPerUnit) && f.kcalPerUnit > 0) return { kcalPerUnit: f.kcalPerUnit, measure: f.measure || 'count', unitLabel: f.unitLabel || '份' };
+    }
+    return { kcalPerUnit: pmKibbleKcalLive(), measure: 'gram', unitLabel: 'g' };   // 干粮基准 → kcalPerUnit=每克干粮大卡
+  }
+  function pmConvM(baseId) { return pmKibbleKcalLive() / pmBaseFood(baseId).kcalPerUnit; }   // 干粮基准 → 1
+  function pmConvUnit(baseId) { const b = pmBaseFood(baseId); return b.measure === 'gram' ? 'g' : b.unitLabel; }
+  function pmRenderTargetInputs() {
+    const M = pmConvM(pmBaseId), u = pmConvUnit(pmBaseId);
+    $pmTargetMin.value = (pmTargetG.min != null) ? parseFloat((pmTargetG.min * M).toFixed(1)) : '';
+    $pmTargetMax.value = (pmTargetG.max != null) ? parseFloat((pmTargetG.max * M).toFixed(1)) : '';
+    $pmTgtUnitMin.textContent = u; $pmTgtUnitMax.textContent = u;
+  }
+
   function refreshEstimatorPreview() {
     const r = estimatorCompute(readEstimatorInputs());
     if (!r) {
@@ -848,10 +874,11 @@
       $pmRecApply.dataset.max = '';
       return;
     }
-    $pmRecPreview.textContent = `估算 ${fmtG(r.min)} – ${fmtG(r.max)} g/天`;
+    const M = pmConvM(pmBaseId), u = pmConvUnit(pmBaseId);
+    $pmRecPreview.textContent = `估算 ${fmtG(r.min * M)} – ${fmtG(r.max * M)} ${u}/天`;
     $pmRecPreview.classList.add('has-value');
     $pmRecApply.disabled = false;
-    $pmRecApply.dataset.min = String(r.min);
+    $pmRecApply.dataset.min = String(r.min);   // dataset 仍存 canonical 克数
     $pmRecApply.dataset.max = String(r.max);
   }
   $pmSpecies.addEventListener('change', () => {
@@ -862,20 +889,38 @@
   [$pmAgeYears, $pmAgeMonths, $pmBodyWeight].forEach(el => el.addEventListener('input', refreshEstimatorPreview));
   $pmNeutered.addEventListener('change', refreshEstimatorPreview);
   $pmRecApply.addEventListener('click', () => {
-    const mn = parseFloat($pmRecApply.dataset.min);
+    const mn = parseFloat($pmRecApply.dataset.min);   // canonical 克数
     const mx = parseFloat($pmRecApply.dataset.max);
-    if (Number.isFinite(mn)) $pmTargetMin.value = parseFloat(mn.toFixed(1));
-    if (Number.isFinite(mx)) $pmTargetMax.value = parseFloat(mx.toFixed(1));
+    pmTargetG.min = Number.isFinite(mn) ? mn : null;
+    pmTargetG.max = Number.isFinite(mx) ? mx : null;
+    pmRenderTargetInputs();                           // 按当前基准单位显示
     // Mark that the target now mirrors the recommendation — so it auto-follows
     // future body-weight changes (see maybeFollowRecommendation).
     recAppliedThisSession = true;
     targetEditedManually = false;
   });
   // Hand-editing the target means the user has taken manual control → stop auto-following.
-  [$pmTargetMin, $pmTargetMax].forEach(el => el.addEventListener('input', () => {
-    targetEditedManually = true;
-    recAppliedThisSession = false;
-  }));
+  // 输入是当前基准单位，÷M 回到 canonical 克数存进缓存。
+  $pmTargetMin.addEventListener('input', () => {
+    const v = parseFloat($pmTargetMin.value);
+    pmTargetG.min = (Number.isFinite(v) && v > 0) ? v / pmConvM(pmBaseId) : null;
+    targetEditedManually = true; recAppliedThisSession = false;
+  });
+  $pmTargetMax.addEventListener('input', () => {
+    const v = parseFloat($pmTargetMax.value);
+    pmTargetG.max = (Number.isFinite(v) && v > 0) ? v / pmConvM(pmBaseId) : null;
+    targetEditedManually = true; recAppliedThisSession = false;
+  });
+  // 改基准下拉 / 改干粮热量 → 目标输入框与估算预览按新倍率重渲染（缓存的克数不变）。
+  $pmConvBase.addEventListener('change', () => {
+    pmBaseId = $pmConvBase.value || 'kibble';
+    pmRenderTargetInputs();
+    refreshEstimatorPreview();
+  });
+  $pmKibbleKcal.addEventListener('input', () => {
+    pmRenderTargetInputs();
+    refreshEstimatorPreview();
+  });
 
   // Mode toggle
   $modeToggle.querySelectorAll('label').forEach(lbl => {
@@ -1994,8 +2039,8 @@
       if (!p) return;
       $pmTitle.textContent = '编辑宠物';
       $pmName.value = p.name;
-      $pmTargetMin.value = Number.isFinite(p.dailyTargetMin) && p.dailyTargetMin > 0 ? parseFloat(p.dailyTargetMin.toFixed(1)) : '';
-      $pmTargetMax.value = Number.isFinite(p.dailyTargetMax) && p.dailyTargetMax > 0 ? parseFloat(p.dailyTargetMax.toFixed(1)) : '';
+      pmTargetG.min = (Number.isFinite(p.dailyTargetMin) && p.dailyTargetMin > 0) ? p.dailyTargetMin : null;
+      pmTargetG.max = (Number.isFinite(p.dailyTargetMax) && p.dailyTargetMax > 0) ? p.dailyTargetMax : null;
       $pmSpecies.value = p.species || '';
       buildBreedDropdown(p.species || '', p.breed || '');
       const ageParts = splitAge(p.ageYears);
@@ -2016,8 +2061,7 @@
     } else {
       $pmTitle.textContent = '添加宠物';
       $pmName.value = '';
-      $pmTargetMin.value = '';
-      $pmTargetMax.value = '';
+      pmTargetG.min = null; pmTargetG.max = null;
       $pmSpecies.value = '';
       buildBreedDropdown('', '');
       $pmAgeYears.value = '';
@@ -2032,6 +2076,8 @@
       state.pendingAvatar = null;
       $pmDelete.style.display = 'none';
     }
+    pmBaseId = $pmConvBase.value || 'kibble';
+    pmRenderTargetInputs();              // 把缓存的克数按基准单位填进输入框 + 单位标签
     refreshEstimatorPreview();
     updateAvatarSelection();
     const editingPet = id ? state.pets.find(x => x.id === id) : null;
@@ -2248,8 +2294,9 @@
   $pmSave.addEventListener('click', () => {
     const name = $pmName.value.trim();
     if (!name) { alert('请输入名字'); return; }
-    const tMin = parseFloat($pmTargetMin.value);
-    const tMax = parseFloat($pmTargetMax.value);
+    // 目标按 canonical 等效干粮克数存（pmTargetG 已随输入框实时同步，输入框只是基准单位的显示）
+    const tMin = (pmTargetG.min != null) ? pmTargetG.min : NaN;
+    const tMax = (pmTargetG.max != null) ? pmTargetG.max : NaN;
     const species = $pmSpecies.value || null;
     const breed = $pmBreed.value || null;
     const ageYears = combineAge($pmAgeYears.value, $pmAgeMonths.value);
@@ -2773,9 +2820,10 @@
     const unit = pet.bodyWeightUnit || 'kg';
     const wOld = prevWeight ? `${parseFloat(bwFromKg(prevWeight, unit).toFixed(2))}` : '—';
     const wNew = parseFloat(bwFromKg(pet.bodyWeight, unit).toFixed(2));
-    const oldStr = (oldMin || oldMax) ? `${fmtG(oldMin || oldMax)}–${fmtG(oldMax || oldMin)}` : '未设';
+    const M = convM(pet), U = convUnit(pet);
+    const oldStr = (oldMin || oldMax) ? `${fmtG((oldMin || oldMax) * M)}–${fmtG((oldMax || oldMin) * M)}` : '未设';
     showLinkToast(
-      `体重 ${wOld}→${wNew} ${unit}，目标食量已从 <strong>${oldStr}</strong> 调到 <strong>${fmtG(newMin)}–${fmtG(newMax)} g</strong>`,
+      `体重 ${wOld}→${wNew} ${unit}，目标食量已从 <strong>${oldStr}</strong> 调到 <strong>${fmtG(newMin * M)}–${fmtG(newMax * M)} ${U}</strong>`,
       () => { pet.dailyTargetMin = oldMin; pet.dailyTargetMax = oldMax; persist(); render(); schedulePushMeta(pet); }
     );
   }
