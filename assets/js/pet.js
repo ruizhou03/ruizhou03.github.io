@@ -678,6 +678,7 @@
   const $pmTargetMin = document.getElementById('pm-target-min');
   const $pmTargetMax = document.getElementById('pm-target-max');
   const $pmKibbleKcal = document.getElementById('pm-kibble-kcal');
+  const $pmConvBase = document.getElementById('pm-conv-base');
   const $chartTargetToggle = document.getElementById('chart-target-toggle');
   const $pmSpecies = document.getElementById('pm-species');
   const $pmBreed = document.getElementById('pm-breed'); // hidden input
@@ -972,7 +973,7 @@
     'dailyTargetMin','dailyTargetMax','showTargetOnChart','targetFollowsRecommendation',
     'species','breed','ageYears','bodyWeight','bodyWeightUnit','activity','neutered',
     'preferredUnit',
-    'kibbleKcalPerG','kibble','foodLibrary',
+    'kibbleKcalPerG','kibble','foodLibrary','conversionBase',
   ];
   function petMetaPatch(pet) {
     const out = {};
@@ -1145,18 +1146,18 @@
     });
     const avg = days > 0 ? sum / days : NaN;
 
-    $scToday.textContent = fmtG(todayEaten) + ' g';
+    $scToday.textContent = fmtEq(pet, todayEaten);
     $scCount.textContent = todayCount;
-    $scAvg.textContent = fmtG(avg) + ' g';
+    $scAvg.textContent = fmtEq(pet, avg);
     $scAvgLbl.textContent = days >= 1 ? `近 ${days} 日均` : '日均（无数据）';
 
     const weighEntries = [...pet.entries].filter(e => (e.kind || 'weigh') === 'weigh').sort((a, b) => b.ts - a.ts);
     const lastEntry = weighEntries[0] || null;
     if (lastEntry) {
       const fw = foodWeight(lastEntry, pet);
-      $scBowl.textContent = (fw === null ? '?' : fmtG(fw)) + ' g';
+      $scBowl.textContent = (fw === null) ? ('? ' + convUnit(pet)) : fmtEq(pet, fw);
     } else {
-      $scBowl.textContent = '— g';
+      $scBowl.textContent = '— ' + convUnit(pet);
     }
 
     renderRecommendation(pet, todayEaten);
@@ -1195,13 +1196,14 @@
     $recStrip.style.display = '';
     const isPoint = rec.min === rec.max;
     const canEdit = isAdminOrUp(pet);
+    const M = convM(pet), U = convUnit(pet);
     const titleText = isPoint
-      ? `🎯 目标 ${fmtG(rec.min)} g/天`
-      : `🎯 目标 ${fmtG(rec.min)}–${fmtG(rec.max)} g/天`;
+      ? `🎯 目标 ${fmtG(rec.min * M)} ${U}/天`
+      : `🎯 目标 ${fmtG(rec.min * M)}–${fmtG(rec.max * M)} ${U}/天`;
     // 目标栏可点击修改（管理员及以上）：标题后挂个 ✎ 提示，整条加 editable 手势。
     $recTitle.innerHTML = titleText + (canEdit ? '<span class="rec-edit">✎ 改目标</span>' : '');
     $recStrip.classList.toggle('editable', canEdit);
-    $recNow.innerHTML = `今日 <strong>${fmtG(todayEaten)} g</strong>`;
+    $recNow.innerHTML = `今日 <strong>${fmtEq(pet, todayEaten)}</strong>`;
     const scale = Math.max(rec.max * 1.3, todayEaten * 1.1, rec.max + 5);
     const bandLeft = (rec.min / scale) * 100;
     const bandWidth = Math.max(0.5, ((rec.max - rec.min) / scale) * 100);
@@ -1280,7 +1282,7 @@
         <span class="er-time">${fmtTime(e.ts)}</span>
         <span class="er-main">
           <span class="er-delta extra">${emoji} ${name} ${amountStr}</span>
-          <span class="er-reading">≈ ${fmtG(eq)} g 等效干粮</span>
+          <span class="er-reading">≈ ${fmtEq(pet, eq)} 等效${escapeHtml(convName(pet))}</span>
         </span>
         ${entryRowActions(e, pet)}
       </div>
@@ -1294,9 +1296,9 @@
     if (d.type === 'first') deltaHtml = `<span class="er-delta first">起点</span>`;
     else if (d.type === 'unknown') deltaHtml = `<span class="er-delta unknown">无法换算</span>`;
     else if (d.amount === 0) deltaHtml = `<span class="er-delta eat">没变化</span>`;
-    else if (d.type === 'eat') deltaHtml = `<span class="er-delta eat">吃了 ${fmtG(d.amount)} g</span>`;
-    else deltaHtml = `<span class="er-delta refill">添了 ${fmtG(d.amount)} g</span>`;
-    const fwStr = d.foodWeight === null ? '?' : fmtG(d.foodWeight) + ' g';
+    else if (d.type === 'eat') deltaHtml = `<span class="er-delta eat">吃了 ${fmtEq(pet, d.amount)}</span>`;
+    else deltaHtml = `<span class="er-delta refill">添了 ${fmtEq(pet, d.amount)}</span>`;
+    const fwStr = d.foodWeight === null ? '?' : fmtEq(pet, d.foodWeight);
     const modeStr = e.withBowl ? '含碗' : '不含碗';
     return `
       <div class="entry-row">
@@ -1327,7 +1329,7 @@
       const items = groups.get(date);
       const eaten = items.filter(x => x.type === 'eat' || x.type === 'extra').reduce((s, x) => s + x.amount, 0);
       const sortedItems = [...items].sort((a, b) => b.ts - a.ts);
-      html += `<div class="day-divider"><span>${date}</span><span>当日 <strong>${fmtG(eaten)} g</strong> · ${items.length} 条记录</span></div>`;
+      html += `<div class="day-divider"><span>${date}</span><span>当日 <strong>${fmtEq(pet, eaten)}</strong> · ${items.length} 条记录</span></div>`;
       sortedItems.forEach(d => { html += renderEntryRow(d, pet); });
     });
     $entriesHistory.innerHTML = html;
@@ -1464,6 +1466,7 @@
     const innerW = W - m.l - m.r;
     const innerH = H - m.t - m.b;
 
+    const M = convM(pet), U = convUnit(pet);   // 标签层换算（几何仍按等效干粮克数算）
     const target = (pet.showTargetOnChart !== false) ? targetRange(pet) : null;
     const dataMax = Math.max(1, ...points.map(p => p.c));
     const targetCeil = target ? target.max : 0;
@@ -1478,9 +1481,9 @@
     yTicks.forEach(v => {
       const y = yScale(v);
       html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="var(--color-border)" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.6"/>`;
-      html += `<text x="${m.l - 6}" y="${y + 3.5}" text-anchor="end" fill="var(--color-light)" font-size="9.5">${fmtG(v)}</text>`;
+      html += `<text x="${m.l - 6}" y="${y + 3.5}" text-anchor="end" fill="var(--color-light)" font-size="9.5">${fmtG(v * M)}</text>`;
     });
-    html += `<text x="6" y="${m.t + 4}" fill="var(--color-light)" font-size="9.5">g</text>`;
+    html += `<text x="6" y="${m.t + 4}" fill="var(--color-light)" font-size="9.5">${escapeHtml(U)}</text>`;
 
     html += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + innerH}" y2="${m.t + innerH}" stroke="var(--color-border)"/>`;
     for (let off = 0; off <= 24; off += 6) {
@@ -1509,8 +1512,8 @@
       }
       const lblY = Math.max(yMax, m.t + 12);
       const targetLbl = target.min === target.max
-        ? `目标 ${fmtG(target.min)}g`
-        : `目标 ${fmtG(target.min)}–${fmtG(target.max)}g`;
+        ? `目标 ${fmtG(target.min * M)}${U}`
+        : `目标 ${fmtG(target.min * M)}–${fmtG(target.max * M)}${U}`;
       html += `<text x="${xB - 4}" y="${lblY - 4}" text-anchor="end" fill="#4a7c59" font-size="10">${targetLbl}</text>`;
     }
 
@@ -1540,7 +1543,7 @@
     if (cum > 0) {
       const lx = xScale(endT);
       const ly = yScale(cum);
-      html += `<text x="${Math.min(lx + 4, W - m.r - 4)}" y="${Math.max(ly - 6, m.t + 10)}" text-anchor="${lx > W - 60 ? 'end' : 'start'}" fill="var(--color-accent)" font-size="10.5" font-weight="600">${fmtG(cum)} g</text>`;
+      html += `<text x="${Math.min(lx + 4, W - m.r - 4)}" y="${Math.max(ly - 6, m.t + 10)}" text-anchor="${lx > W - 60 ? 'end' : 'start'}" fill="var(--color-accent)" font-size="10.5" font-weight="600">${fmtG(cum * M)} ${escapeHtml(U)}</text>`;
     }
 
     $trendChart.innerHTML = html;
@@ -1549,7 +1552,7 @@
     $chartRangeLbl.textContent = `${pad2(startD.getMonth() + 1)}/${pad2(startD.getDate())} 00:00 起 · 24h`;
     $chartMeta.innerHTML = `
       <span><span class="legend-dot" style="background:var(--color-accent);opacity:0.6;"></span>累计已吃（假设两次称重之间匀速进食）</span>
-      <span>共 ${fmtG(cum)} g</span>
+      <span>共 ${fmtEq(pet, cum)}</span>
     `;
   }
 
@@ -1615,10 +1618,11 @@
     }
 
     const target = targetForAggregation(pet, agg);
-    drawBars(bars, agg, startIso, endIso, dayList.length, target);
+    drawBars(bars, agg, startIso, endIso, dayList.length, target, pet);
   }
 
-  function drawBars(bars, agg, startIso, endIso, dayCount, target) {
+  function drawBars(bars, agg, startIso, endIso, dayCount, target, pet) {
+    const M = convM(pet), U = convUnit(pet);   // 标签层换算（柱高/几何仍按等效干粮克数）
     const W = 600, H = 240;
     const m = { l: 44, r: 16, t: 22, b: 34 };
     const innerW = W - m.l - m.r;
@@ -1637,9 +1641,9 @@
     yTicks.forEach(v => {
       const y = yScale(v);
       html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="var(--color-border)" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.6"/>`;
-      html += `<text x="${m.l - 6}" y="${y + 3.5}" text-anchor="end" fill="var(--color-light)" font-size="9.5">${fmtG(v)}</text>`;
+      html += `<text x="${m.l - 6}" y="${y + 3.5}" text-anchor="end" fill="var(--color-light)" font-size="9.5">${fmtG(v * M)}</text>`;
     });
-    html += `<text x="6" y="${m.t + 4}" fill="var(--color-light)" font-size="9.5">g</text>`;
+    html += `<text x="6" y="${m.t + 4}" fill="var(--color-light)" font-size="9.5">${escapeHtml(U)}</text>`;
     html += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + innerH}" y2="${m.t + innerH}" stroke="var(--color-border)"/>`;
 
     // Target band (drawn behind bars so bars overlay nicely)
@@ -1655,8 +1659,8 @@
       }
       const unitName = agg === 'day' ? '日' : (agg === 'week' ? '周' : '月');
       const tLbl = target.min === target.max
-        ? `目标 ${fmtG(target.min)}g/${unitName}`
-        : `目标 ${fmtG(target.min)}–${fmtG(target.max)} g/${unitName}`;
+        ? `目标 ${fmtG(target.min * M)}${U}/${unitName}`
+        : `目标 ${fmtG(target.min * M)}–${fmtG(target.max * M)} ${U}/${unitName}`;
       html += `<text x="${W - m.r - 4}" y="${Math.max(yMax, m.t + 10) - 4}" text-anchor="end" fill="#4a7c59" font-size="10">${tLbl}</text>`;
     }
 
@@ -1666,9 +1670,9 @@
       const bh = (b.value / niceMax) * innerH;
       const y = m.t + innerH - bh;
       const fill = b.isToday ? 'var(--color-accent)' : '#c9a96e';
-      html += `<rect x="${x}" y="${y}" width="${w}" height="${bh}" fill="${fill}" rx="2"><title>${b.label}${b.sub ? ' ('+b.sub+')' : ''}: ${fmtG(b.value)} g</title></rect>`;
+      html += `<rect x="${x}" y="${y}" width="${w}" height="${bh}" fill="${fill}" rx="2"><title>${b.label}${b.sub ? ' ('+b.sub+')' : ''}: ${fmtG(b.value * M)} ${U}</title></rect>`;
       if (b.value > 0 && (n <= 14 || i % labelEvery === 0)) {
-        html += `<text x="${x + w / 2}" y="${y - 3}" text-anchor="middle" fill="var(--color-muted)" font-size="9">${fmtG(b.value)}</text>`;
+        html += `<text x="${x + w / 2}" y="${y - 3}" text-anchor="middle" fill="var(--color-muted)" font-size="9">${fmtG(b.value * M)}</text>`;
       }
       if (i % labelEvery === 0 || i === n - 1) {
         html += `<text x="${x + w / 2}" y="${H - 14}" text-anchor="middle" fill="var(--color-light)" font-size="9.5">${escapeHtml(b.label)}</text>`;
@@ -1682,7 +1686,7 @@
     const avgPerDay = dayCount > 0 ? totalEaten / dayCount : 0;
     $chartMeta.innerHTML = `
       <span><span class="legend-dot" style="background:#c9a96e;"></span>每${aggName}吃量 <span class="legend-dot" style="background:var(--color-accent);margin-left:0.5rem;"></span>今日</span>
-      <span>共 ${fmtG(totalEaten)} g · 平均 ${fmtG(avgPerDay)} g/日</span>
+      <span>共 ${fmtG(totalEaten * M)} ${U} · 平均 ${fmtG(avgPerDay * M)} ${U}/日</span>
     `;
     $chartRangeLbl.textContent = `${startIso} → ${endIso} · 按${aggName}`;
   }
@@ -2005,6 +2009,7 @@
       $pmActivity.value = p.activity || '';
       $pmNeutered.checked = !!p.neutered;
       $pmKibbleKcal.value = (Number.isFinite(p.kibbleKcalPerG) && p.kibbleKcalPerG > 0) ? parseFloat(p.kibbleKcalPerG.toFixed(2)) : '';
+      renderConvBaseOptions(p);
       state.selectedEmoji = p.emoji || EMOJIS[0];
       state.pendingAvatar = p.avatar || null;
       $pmDelete.style.display = '';
@@ -2022,6 +2027,7 @@
       $pmActivity.value = '';
       $pmNeutered.checked = false;
       $pmKibbleKcal.value = '';
+      renderConvBaseOptions(null);
       state.selectedEmoji = EMOJIS[0];
       state.pendingAvatar = null;
       $pmDelete.style.display = 'none';
@@ -2254,6 +2260,7 @@
     const neutered = !!$pmNeutered.checked;
     const kkRaw = parseFloat($pmKibbleKcal.value);
     const kibbleKcalPerG = (Number.isFinite(kkRaw) && kkRaw > 0) ? kkRaw : 3.8;
+    const conversionBase = $pmConvBase.value || 'kibble';
     if (state.editingId) {
       const p = state.pets.find(x => x.id === state.editingId);
       if (!p) return;
@@ -2273,6 +2280,7 @@
       p.activity = activity;
       p.neutered = neutered;
       p.kibbleKcalPerG = kibbleKcalPerG;
+      p.conversionBase = conversionBase;
       delete p.lifeStage;
     } else {
       const id = uuid('pet');
@@ -2294,6 +2302,7 @@
         activity,
         neutered,
         kibbleKcalPerG,
+        conversionBase,
         foodLibrary: [],
         preferredUnit: 'g',
         entries: [],
@@ -2565,9 +2574,9 @@
   }
   function updateExtraEq() {
     const pet = currentPet(); const food = currentFoodItem();
-    if (!pet || !food) { $extraEq.textContent = '≈ — g 等效干粮'; return; }
+    if (!pet || !food) { $extraEq.textContent = '≈ — 等效干粮'; return; }
     const eq = kibbleEqOf(pet, parseFloat($reading.value), food.kcalPerUnit);
-    $extraEq.textContent = (eq > 0) ? `≈ ${fmtG(eq)} g 等效干粮` : '≈ — g 等效干粮';
+    $extraEq.textContent = (eq > 0) ? `≈ ${fmtEq(pet, eq)} 等效${convName(pet)}` : `≈ — 等效${convName(pet)}`;
   }
 
   function saveEntry(reading, withBowl) {
@@ -2599,6 +2608,39 @@
   function kibbleEqOf(pet, count, kcalPerUnit) {
     const dens = (Number.isFinite(pet.kibbleKcalPerG) && pet.kibbleKcalPerG > 0) ? pet.kibbleKcalPerG : 3.8;
     return (Number(count) || 0) * (Number(kcalPerUnit) || 0) / dens;
+  }
+  // ===== 换算基准：内部一切量始终以「等效干粮克数」为 canonical 单位；这里只做显示层折算。
+  //       基准=干粮时 M=1、单位 g，所有显示与原先逐字节相同；选了别的食物才变化。
+  function kibbleKcalPerGOf(pet) {
+    return (pet && Number.isFinite(pet.kibbleKcalPerG) && pet.kibbleKcalPerG > 0) ? pet.kibbleKcalPerG : 3.8;
+  }
+  function convBaseFood(pet) {
+    const id = pet && pet.conversionBase;
+    if (id && id !== 'kibble') {
+      const f = ((pet && pet.foodLibrary) || []).find(x => x.id === id);
+      if (f && Number.isFinite(f.kcalPerUnit) && f.kcalPerUnit > 0) {
+        return { kcalPerUnit: f.kcalPerUnit, measure: f.measure || 'count', unitLabel: f.unitLabel || '份', name: f.name || '该食物' };
+      }
+    }
+    const kbName = (pet && pet.kibble && pet.kibble.name) ? pet.kibble.name : '干粮';
+    return { kcalPerUnit: kibbleKcalPerGOf(pet), measure: 'gram', unitLabel: 'g', name: kbName };
+  }
+  function convM(pet) { return kibbleKcalPerGOf(pet) / convBaseFood(pet).kcalPerUnit; }   // 干粮基准 → 1
+  function convUnit(pet) { const b = convBaseFood(pet); return b.measure === 'gram' ? 'g' : b.unitLabel; }
+  function convName(pet) { return convBaseFood(pet).name; }
+  function fmtEq(pet, grams) { return fmtG(grams * convM(pet)) + ' ' + convUnit(pet); }    // 等效干粮克数 → 「X 基准单位」
+  // 宠物弹窗里「换算基准」下拉的选项：干粮（默认）+ 食物库全部
+  function renderConvBaseOptions(p) {
+    const kbName = (p && p.kibble && p.kibble.name) ? p.kibble.name : '干粮';
+    const kbEmoji = (p && p.kibble && p.kibble.emoji) ? p.kibble.emoji : '🥣';
+    let html = `<option value="kibble">${kbEmoji} ${escapeHtml(kbName)}（默认）</option>`;
+    ((p && p.foodLibrary) || []).forEach(f => {
+      html += `<option value="${f.id}">${f.emoji || '🍖'} ${escapeHtml(f.name)}</option>`;
+    });
+    $pmConvBase.innerHTML = html;
+    const want = (p && p.conversionBase) || 'kibble';
+    $pmConvBase.value = want;
+    if (!$pmConvBase.value) $pmConvBase.value = 'kibble';   // 所选基准已被删除 → 回落干粮
   }
   // Save an extra (treat/can) entry from the currently-selected food in the unified input.
   function saveSelectedExtra() {
