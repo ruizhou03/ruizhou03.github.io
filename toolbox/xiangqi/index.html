@@ -216,13 +216,18 @@ permalink: /toolbox/xiangqi/
   .xq-terr-diff { display: flex; flex-wrap: nowrap; gap: 0.16rem; margin-top: 0.2rem; }
   .xq-terr-diff button { font-size: 0.64rem; padding: 0.1rem 0.42rem; border-radius: 7px; line-height: 1.25; white-space: nowrap; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-muted); cursor: pointer; }
   .xq-terr-diff button.sel { background: var(--seat); color: #fff; border-color: var(--seat); font-weight: 700; }
-  .xq-terr-room { margin-top: 0.3rem; display: flex; flex-direction: column; gap: 0.25rem; align-items: center; max-width: 15rem; }
-  .xq-terr-room .gs-pgo-room-code { font-size: 0.72rem; color: var(--color-ink); }
-  .xq-terr-startbar { position: absolute; left: 0; right: 0; bottom: 3.5%; display: flex; flex-direction: column; align-items: center; gap: 0.4rem; pointer-events: none; }
+  .xq-terr-room { margin-top: 0.28rem; display: flex; flex-direction: column; gap: 0.22rem; align-items: center; max-width: 13rem; }
+  .xq-room-code { font-size: 0.78rem; font-weight: 700; color: var(--color-ink); font-variant-numeric: tabular-nums; letter-spacing: 0.06em; }
+  .xq-room-status { font-size: 0.64rem; color: var(--color-muted); }
+  .xq-terr-roomstart { margin-top: 0.1rem; font-family: var(--font-display); font-weight: 700; font-size: 0.78rem; padding: 0.28rem 0.95rem; border-radius: 999px; border: none; background: var(--color-accent); color: #fff; cursor: pointer; }
+  .xq-terr-roomstart:disabled { opacity: 0.45; cursor: not-allowed; }
+  /* 开始按钮浮在楚河汉界（盘面中央）那条空带上 */
+  .xq-terr-startbar { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; justify-content: center; pointer-events: none; }
   .xq-terr-startbar > * { pointer-events: auto; }
-  .xq-terr-start { font-family: var(--font-display); font-size: 1rem; font-weight: 700; padding: 0.5rem 1.7rem; border-radius: 999px; border: none; background: var(--color-accent); color: #fff; cursor: pointer; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28); }
+  .xq-terr-start { font-family: var(--font-display); font-size: 1rem; font-weight: 700; padding: 0.5rem 1.7rem; border-radius: 999px; border: none; background: var(--color-accent); color: #fff; cursor: pointer; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.32); }
   .xq-terr-start:disabled { opacity: 0.5; cursor: not-allowed; }
-  .xq-terr-hint { font-size: 0.72rem; color: #fff; background: rgba(0, 0, 0, 0.42); padding: 0.22rem 0.75rem; border-radius: 999px; text-align: center; max-width: 92%; }
+  /* 邀请只给复制链接，不要二维码 */
+  #xqPgoRoomQr { display: none; }
 </style>
 
 <div class="xq-wrap">
@@ -315,7 +320,6 @@ permalink: /toolbox/xiangqi/
         <div class="xq-terr-seat at-red" id="xqSeatRed"></div>
         <div class="xq-terr-startbar">
           <button class="xq-terr-start" id="xqTerrStart">▶ 开始游戏</button>
-          <div class="xq-terr-hint" id="xqTerrHint">点上下半盘切换 本机真人 / 电脑（难度）/ 邀请联机</div>
         </div>
       </div>
     </div>
@@ -1563,6 +1567,8 @@ permalink: /toolbox/xiangqi/
     return { mode: null };   // both 电脑 — outside the 3 engine modes
   }
 
+  let xqRoomPlayers = 0, xqRoomReady = false, xqRoomError = '', xqOnlineBegun = false;
+
   function xqTerrCard(side) {
     const info = XQ_SIDE[side], kind = xqRoles[side];
     const card = xqEl('div', 'xq-terr-card');
@@ -1580,14 +1586,27 @@ permalink: /toolbox/xiangqi/
       });
       card.appendChild(wrap);
     }
-    if (kind === 'remote') {
-      const room = xqEl('div', 'xq-terr-room'); room.id = 'xqTerrRoomHost';
-      if (!document.getElementById('xqPgoRoomLobby') || document.getElementById('xqPgoRoomLobby').style.display === 'none') {
-        room.appendChild(xqEl('span', 'sub', '🔗 建房中…'));
-      }
-      card.appendChild(room);
-    }
+    if (kind === 'remote') card.appendChild(xqRoomPanel());
     return card;
+  }
+
+  // The invited side's card: room code + copy-link + join status + (host) start.
+  function xqRoomPanel() {
+    const room = xqEl('div', 'xq-terr-room');
+    if (!xqRoomCode) { room.appendChild(xqEl('div', 'xq-room-status', xqRoomError || '🔗 建房中…')); return room; }
+    room.appendChild(xqEl('div', 'xq-room-code', '房号 ' + xqRoomCode));
+    const copy = xqEl('button', 'xq-terr-mini', '🔗 复制邀请链接');
+    copy.onclick = (e) => { e.stopPropagation(); xqCopyInvite(xqRoomCode, copy); };
+    room.appendChild(copy);
+    room.appendChild(xqEl('div', 'xq-room-status',
+      !xqRoomReady ? '建房中…' : (xqRoomPlayers >= 2 ? '✓ 对手已加入' : '等对手加入…')));
+    if (xqRoomReady && xqRoomHost) {
+      const sb = xqEl('button', 'xq-terr-roomstart', '▶ 开始游戏');
+      sb.disabled = xqRoomPlayers < 2;
+      sb.onclick = (e) => { e.stopPropagation(); xqTerrStartOnline(); };
+      room.appendChild(sb);
+    }
+    return room;
   }
 
   function xqRenderTerr() {
@@ -1595,22 +1614,10 @@ permalink: /toolbox/xiangqi/
     blackHost.innerHTML = ''; redHost.innerHTML = '';
     blackHost.appendChild(xqTerrCard('black'));
     redHost.appendChild(xqTerrCard('red'));
-    if (xqRemoteSide) {   // re-home the live room lobby into the remote card (node persists)
-      const lobby = document.getElementById('xqPgoRoomLobby'), host = document.getElementById('xqTerrRoomHost');
-      if (lobby && host && lobby.style.display !== 'none') { host.innerHTML = ''; host.appendChild(lobby); }
-    }
     const md = xqTerrComputeMode();
-    const startBtn = document.getElementById('xqTerrStart'), hint = document.getElementById('xqTerrHint');
-    if (md.online) {
-      startBtn.style.display = 'none';
-      hint.textContent = '等对手扫码 / 点链接加入，满 2 人房主即可开局';
-    } else if (md.mode === null) {
-      startBtn.style.display = ''; startBtn.disabled = true;
-      hint.textContent = '两边都是电脑啦——至少留一方「本机真人」';
-    } else {
-      startBtn.style.display = ''; startBtn.disabled = false;
-      hint.textContent = '点上下半盘切换 本机真人 / 电脑（难度）/ 邀请联机';
-    }
+    const startBtn = document.getElementById('xqTerrStart');
+    startBtn.style.display = md.online ? 'none' : '';
+    startBtn.disabled = (md.mode === null);   // both 电脑: nothing to start
   }
 
   function xqCycleSide(side) {
@@ -1620,22 +1627,91 @@ permalink: /toolbox/xiangqi/
     xqRoles[side] = next;
     if (next === 'remote') {
       const other = side === 'red' ? 'black' : 'red';
-      if (xqRoles[other] === 'remote') xqRoles[other] = 'human';   // only one online seat
-      xqTerrCreateRoom(side);
+      xqRoles[other] = 'human';   // online is 2-player — the other side is you (本机真人)
+      xqInviteStart(side);
     }
     xqRenderTerr();
   }
 
-  function xqTerrCreateRoom(side) {
-    xqRemoteSide = side; xqIsOnline = true;
-    document.getElementById('xqPgoRoomCodeInput').value = '';   // empty ⇒ create
-    Promise.resolve(xqRoomAction()).then(() => xqRenderTerr());
+  // ── 邀请联机：tiaoqi 式——先随机 4 位房号 + 当场复制链接（在点击手势里），
+  //    再在后台把真房间建出来；不出二维码。 ──
+  function xqInviteUrl(code) { return location.origin + '/toolbox/xiangqi/?room=' + code; }
+  function xqRand4() { return String(Math.floor(Math.random() * 9000) + 1000); }
+  function xqCopyInvite(code, btn) {
+    navigator.clipboard.writeText(xqInviteUrl(code)).then(() => {
+      if (btn) { const t = btn.textContent; btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = t; }, 1800); }
+    }).catch(() => {});
   }
+
+  function xqInviteStart(side) {
+    xqRemoteSide = side; xqIsOnline = true; xqOnlineBegun = false;
+    xqRoomReady = false; xqRoomError = ''; xqRoomPlayers = 1; xqRoomHost = true;
+    const code = xqRand4();
+    xqRoomCode = code;        // optimistic: show + copy immediately, before the server round-trip
+    xqCopyInvite(code);       // in-gesture clipboard write
+    xqRenderTerr();
+    xqCreateRoomBg(code);
+  }
+
+  async function xqCreateRoomBg(code) {
+    const nick = xqGetNick(), did = GamesShell.Identity.getDeviceId();
+    let r = await xqRoomApi('POST', 'create', { gameId: 'xiangqi', nick, deviceId: did, code });
+    if (xqRemoteSide == null) return;   // user cycled away while we waited
+    if (!r.ok && (r.reason === 'code_taken' || r.error === 'code_taken')) {
+      code = xqRand4(); xqRoomCode = code; xqCopyInvite(code); xqRenderTerr();   // collision → new code + recopy
+      r = await xqRoomApi('POST', 'create', { gameId: 'xiangqi', nick, deviceId: did, code });
+      if (xqRemoteSide == null) return;
+    }
+    if (r.ok) {
+      xqRoomToken = r.playerToken; xqRoomPlayerId = r.playerId; xqRoomCode = r.code; xqRoomHost = true;
+      xqRoomPlayers = (r.room && r.room.players) ? r.room.players.length : 1;
+      xqRoomReady = true; xqTerrPoll();
+    } else {
+      xqRoomError = '建房失败，再点一次试试';
+    }
+    xqRenderTerr();
+  }
+
+  function xqTerrPoll() {
+    if (xqRoomStatePoller) { clearTimeout(xqRoomStatePoller); xqRoomStatePoller = null; }
+    let since = 0;
+    async function tick() {
+      if (!xqRoomToken || xqRemoteSide == null) return;
+      const r = await xqRoomApi('GET', 'state&code=' + xqRoomCode + '&token=' + xqRoomToken + '&since=' + since);
+      if (xqRemoteSide == null) return;
+      if (r.ok && r.room) {
+        since = r.version;
+        if (r.room.state === 'playing') { xqBeginOnline(); return; }
+        xqRoomPlayers = (r.room.players || []).length;
+        xqRoomHost = r.room.youAreHost;
+        xqRenderTerr();
+      }
+      xqRoomStatePoller = setTimeout(tick, 1500);
+    }
+    tick();
+  }
+
+  async function xqTerrStartOnline() {
+    if (!xqRoomHost || xqRoomPlayers < 2) return;
+    const r = await xqRoomApi('POST', 'start', { code: xqRoomCode, token: xqRoomToken });
+    if (r.ok) xqBeginOnline();
+  }
+
+  function xqBeginOnline() {
+    if (xqOnlineBegun) return;
+    xqOnlineBegun = true;
+    if (xqRoomStatePoller) { clearTimeout(xqRoomStatePoller); xqRoomStatePoller = null; }
+    xqPgoOverlay.classList.remove('open');
+    state.mode = 'pvp'; persist(); newGame();
+    if (typeof xqSave !== 'undefined' && xqSave) xqSave.start();
+  }
+
   function xqTerrLeaveRoom() {
+    if (xqRoomStatePoller) { clearTimeout(xqRoomStatePoller); xqRoomStatePoller = null; }
+    if (xqRoomToken) xqRoomApi('POST', 'leave', { code: xqRoomCode, token: xqRoomToken });
+    xqRoomToken = null; xqRoomPlayerId = null; xqRoomCode = null; xqRoomHost = false;
+    xqRoomPlayers = 0; xqRoomReady = false; xqRoomError = ''; xqOnlineBegun = false;
     xqRemoteSide = null; xqIsOnline = false;
-    xqLeaveRoom();
-    const lobby = document.getElementById('xqPgoRoomLobby'), orig = document.getElementById('xqPgoOnlinePanel');
-    if (lobby && orig) { orig.appendChild(lobby); lobby.style.display = 'none'; }
   }
 
   document.getElementById('xqTerrStart').addEventListener('click', () => {
