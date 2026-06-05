@@ -47,7 +47,10 @@
     }
     return data;
   }
-  const EMOJIS = ['🐱', '🐈', '🐈‍⬛', '🐕', '🐶', '🐰', '🐹', '🐭', '🐦', '🦜', '🐢', '🐠'];
+  const EMOJIS = ['🐱', '🐈', '🐈‍⬛', '🐕', '🐶', '🐰', '🐹', '🐭', '🦔', '🐦', '🦜', '🐢', '🐠'];   // 13 个 + 拍照格 = 14，正好铺满两行（每行 7）
+  // 各物种干粮默认能量密度（kcal/g，可被用户覆盖）——粗略行业基线：猫粮≈3.8、狗粮略低、兔粮高纤偏低、雪貂高蛋白偏高。
+  const KIBBLE_KCAL_DEFAULT = { cat: 3.8, dog: 3.5, rabbit: 2.6, hamster: 3.2, bird: 3.5, ferret: 4.2 };
+  function kibbleDefaultFor(species) { return KIBBLE_KCAL_DEFAULT[species] || 3.8; }
   const DAY_MS = 86400000;
 
   // Recommended dry food intake (g per kg body weight per day for body-weight-aware species;
@@ -704,9 +707,31 @@
   const $imPetName = document.getElementById('im-pet-name');
   const $imPetSub = document.getElementById('im-pet-sub');
   const $imEditProfile = document.getElementById('im-edit-profile');
+  const $imKibbleField = document.getElementById('im-kibble-field');
   const $imCancel = document.getElementById('im-cancel');
   const $imSave = document.getElementById('im-save');
   const $fmSetbase = document.getElementById('fm-setbase');
+  // 档案必填项的 .field 容器（红框校验用）
+  const $pmNameField = $pmName.closest('.field');
+  const $pmSpeciesField = $pmSpecies.closest('.field');
+  const $pmBreedField = $pmBreedSelect.closest('.field');
+  const $pmAgeField = $pmAgeYears.closest('.field');
+  const $pmWeightField = $pmBodyWeight.closest('.field');
+  function pmSetErr(field, msg) {
+    if (!field) return;
+    field.classList.add('invalid');
+    let e = field.querySelector('.field-err');
+    if (!e) { e = document.createElement('div'); e.className = 'field-err'; field.appendChild(e); }
+    e.textContent = msg;
+  }
+  function pmClearErr(field) {
+    if (!field) return;
+    field.classList.remove('invalid');
+    const e = field.querySelector('.field-err'); if (e) e.remove();
+  }
+  function pmClearAllErrors() {
+    [$pmNameField, $pmSpeciesField, $pmBreedField, $pmAgeField, $pmWeightField].forEach(pmClearErr);
+  }
   const $pmAvatarRow = document.getElementById('pm-avatar-row');
   const $pmAvatarFile = document.getElementById('pm-avatar-file');
   const $pmPhotoBtn = document.getElementById('pm-photo-btn');
@@ -811,8 +836,10 @@
         addItem(b, full, b);
       });
     }
+    addItem('其他 / 不确定', '其他 / 不确定', '其他 / 不确定');   // 兜底项：品种必填又不在列表（含雪貂无品种）时可选
     // Set initial label / value
-    const validSelected = selected && sp && sp.breeds && sp.breeds[selected] ? selected : '';
+    const known = sp && sp.breeds && sp.breeds[selected];
+    const validSelected = selected && (known || selected === '其他 / 不确定') ? selected : '';
     $pmBreed.value = validSelected;
     $pmBreedLabel.textContent = validSelected || '';
     $pmBreedLabel.classList.toggle('placeholder', !validSelected);
@@ -825,6 +852,7 @@
       li.classList.toggle('selected', li.dataset.value === value);
     });
     $pmBreedSelect.classList.remove('open');
+    if (value) pmClearErr($pmBreedField);
   }
   $pmBreedTrigger.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -833,6 +861,11 @@
   document.addEventListener('click', (e) => {
     if (!$pmBreedSelect.contains(e.target)) $pmBreedSelect.classList.remove('open');
   });
+  // 用户开始填写就消掉对应红框
+  $pmName.addEventListener('input', () => pmClearErr($pmNameField));
+  $pmSpecies.addEventListener('change', () => pmClearErr($pmSpeciesField));
+  [$pmAgeYears, $pmAgeMonths].forEach(el => el.addEventListener('input', () => pmClearErr($pmAgeField)));
+  $pmBodyWeight.addEventListener('input', () => pmClearErr($pmWeightField));
 
   // ===== 弹窗里「每日目标」跟随换算基准 =====
   // pmTargetG 缓存 canonical 等效干粮克数（真值）；输入框只是它在当前基准单位下的显示。
@@ -912,9 +945,14 @@
     pmTargetG.max = (Number.isFinite(v) && v > 0) ? v / pmConvM(pmBaseId) : null;
     targetEditedManually = true; recAppliedThisSession = false;
   });
-  // 改基准下拉 / 改干粮热量 → 目标输入框与估算预览按新倍率重渲染（缓存的克数不变）。
+  function imToggleKibbleField() {
+    // 「干粮每克大卡」只在主粮=干粮时填；选了某款罐头/猫条当主粮则隐藏（其能量在该食物里设）。
+    if ($imKibbleField) $imKibbleField.style.display = (pmBaseId === 'kibble') ? '' : 'none';
+  }
+  // 改主粮下拉 / 改干粮热量 → 目标输入框与估算预览按新倍率重渲染（缓存的克数不变）。
   $pmConvBase.addEventListener('change', () => {
     pmBaseId = $pmConvBase.value || 'kibble';
+    imToggleKibbleField();
     pmRenderTargetInputs();
     refreshEstimatorPreview();
   });
@@ -1922,7 +1960,7 @@
       $pmShareCode.style.opacity = hasCode ? '' : '0.55';
       $pmCopyCode.style.display = hasCode ? '' : 'none';
       $pmRegenCode.style.display = owner ? '' : 'none';
-      $pmRegenCode.textContent = hasCode ? '🔄 重生' : '🔄 生成';
+      $pmRegenCode.textContent = hasCode ? '🔄 重新生成' : '🔄 生成';
       // Members list
       const meId = DEVICE_ID;
       const members = p.members || [];
@@ -2045,6 +2083,7 @@
     state.editingId = id || null;
     recAppliedThisSession = false;
     targetEditedManually = false;
+    pmClearAllErrors();
     if (id) {
       const p = state.pets.find(x => x.id === id);
       if (!p) return;
@@ -2294,20 +2333,36 @@
   });
 
   $pmSave.addEventListener('click', () => {
-    // —— 宠物档案为必填，逐项校验填写是否合理 ——
+    // —— 宠物档案为必填：收集所有不合格项，用红框标出（仿表单校验），不弹窗 ——
+    pmClearAllErrors();
+    const errs = [];
     const name = $pmName.value.trim();
-    if (!name) { alert('请输入名字'); $pmName.focus(); return; }
+    if (!name) errs.push([$pmNameField, '请填写名字']);
     const species = $pmSpecies.value || null;
-    if (!species) { alert('请选择物种'); $pmSpecies.focus(); return; }
+    if (!species) errs.push([$pmSpeciesField, '请选择物种']);
+    const breed = $pmBreed.value || null;
+    if (!breed) errs.push([$pmBreedField, '请选择品种（不确定就选「其他」）']);
     const ageYears = combineAge($pmAgeYears.value, $pmAgeMonths.value);
-    if (!Number.isFinite(ageYears) || ageYears <= 0) { alert('请填写年龄（「岁」「个月」至少填一个，且为数字）'); $pmAgeYears.focus(); return; }
-    if (ageYears > 40) { alert('年龄看起来不太对，请检查（最多 40 岁）'); $pmAgeYears.focus(); return; }
+    if (!Number.isFinite(ageYears) || ageYears <= 0) errs.push([$pmAgeField, '请填写年龄（数字）']);
+    else if (ageYears > 40) errs.push([$pmAgeField, '年龄看起来不太对（最多 40 岁）']);
     const bwUnit = $pmBodyWeightUnit.value || 'kg';
     const bwRaw = parseFloat($pmBodyWeight.value);
-    if (!Number.isFinite(bwRaw) || bwRaw <= 0) { alert('请填写体重（数字，且大于 0）'); $pmBodyWeight.focus(); return; }
-    const bodyWeight = bwToKg(bwRaw, bwUnit);
-    if (!Number.isFinite(bodyWeight) || bodyWeight <= 0 || bodyWeight > 120) { alert('体重看起来不太对，请检查'); $pmBodyWeight.focus(); return; }
-    const breed = $pmBreed.value || null;
+    let bodyWeight = NaN;
+    if (!Number.isFinite(bwRaw) || bwRaw <= 0) errs.push([$pmWeightField, '请填写体重（数字）']);
+    else {
+      bodyWeight = bwToKg(bwRaw, bwUnit);
+      if (!Number.isFinite(bodyWeight) || bodyWeight <= 0 || bodyWeight > 120) errs.push([$pmWeightField, '体重看起来不太对']);
+    }
+    if (errs.length) {
+      errs.forEach(([f, m]) => pmSetErr(f, m));
+      const first = errs[0][0];
+      if (first) {
+        first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        const inp = first.querySelector('input, select, .cs-trigger');
+        if (inp) inp.focus({ preventScroll: true });
+      }
+      return;
+    }
     const activity = $pmActivity.value || 'normal';   // 留空=普通
     const neutered = !!$pmNeutered.checked;
 
@@ -2347,7 +2402,7 @@
         bodyWeightUnit: bwUnit,
         activity,
         neutered,
-        kibbleKcalPerG: 3.8,
+        kibbleKcalPerG: kibbleDefaultFor(species),
         conversionBase: 'kibble',
         foodLibrary: [],
         preferredUnit: 'g',
@@ -2390,8 +2445,10 @@
     pmTargetG.min = (Number.isFinite(pet.dailyTargetMin) && pet.dailyTargetMin > 0) ? pet.dailyTargetMin : null;
     pmTargetG.max = (Number.isFinite(pet.dailyTargetMax) && pet.dailyTargetMax > 0) ? pet.dailyTargetMax : null;
     $pmKibbleKcal.value = (Number.isFinite(pet.kibbleKcalPerG) && pet.kibbleKcalPerG > 0) ? parseFloat(pet.kibbleKcalPerG.toFixed(2)) : '';
+    $pmKibbleKcal.placeholder = String(kibbleDefaultFor(pet.species));   // 默认能量密度随物种
     renderConvBaseOptions(pet);
     pmBaseId = $pmConvBase.value || 'kibble';
+    imToggleKibbleField();
     pmRenderTargetInputs();
     refreshEstimatorPreview();
     $intakeModal.classList.add('open');
