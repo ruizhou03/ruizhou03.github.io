@@ -17,7 +17,7 @@
         </div>
         <input type="file" id="pm-avatar-file" accept="image/*" style="display:none;" />
       </div>
-      <div class="sub-section">宠物档案（选填）</div>
+      <div class="sub-section">宠物档案</div>
       <div class="field-grid">
         <div class="field">
           <label>物种</label>
@@ -89,36 +89,6 @@
         </div>
       </div>
 
-      <div class="sub-section">每日目标食量（选填）</div>
-      <div class="field-grid">
-        <div class="field">
-          <label>下限 (<span id="pm-tgt-unit-min">g</span>/天)</label>
-          <input type="number" id="pm-target-min" step="0.1" min="0" placeholder="" inputmode="decimal" />
-        </div>
-        <div class="field">
-          <label>上限 (<span id="pm-tgt-unit-max">g</span>/天)</label>
-          <input type="number" id="pm-target-max" step="0.1" min="0" placeholder="" inputmode="decimal" />
-        </div>
-      </div>
-      <div class="rec-preview-inline">
-        <span class="rec-preview" id="pm-rec-preview">完善宠物档案以估算</span>
-        <button type="button" class="estimator-apply" id="pm-rec-apply" disabled>↑ 套用</button>
-      </div>
-
-      <div class="sub-section">干粮热量</div>
-      <div class="field">
-        <label>每克干粮多少大卡</label>
-        <input type="number" id="pm-kibble-kcal" step="0.1" min="0" placeholder="3.8" inputmode="decimal" />
-        <p class="hint" style="margin: 0.3rem 0 0;">用来把猫条、罐头换算成「相当于多少克干粮」。看粮袋上的热量，一般 3.5–4.2；不确定就留 3.8。</p>
-      </div>
-
-      <div class="sub-section">换算基准</div>
-      <div class="field">
-        <label>把所有食物折算成谁</label>
-        <select id="pm-conv-base"></select>
-        <p class="hint" style="margin: 0.3rem 0 0;">默认「干粮」——记录页和看板的「等效」都按它折成克数。改成某款罐头/猫条后，全部改成「相当于几份它」。</p>
-      </div>
-
       <div class="sub-section" id="pm-share-section">分享给其他人</div>
       <div class="share-block" id="pm-share-block">
         <div id="pm-share-create" style="display:none;">
@@ -144,6 +114,54 @@
         <button type="button" class="del" id="pm-delete" style="display: none;">🗑 删除</button>
         <button type="button" class="cancel" id="pm-cancel">取消</button>
         <button type="button" class="save" id="pm-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Intake / food-amount settings modal (opened from the 🎯 target strip) -->
+  <div class="modal-backdrop" id="intake-modal">
+    <div class="modal">
+      <h2>🎯 食量设置</h2>
+      <div class="im-petcard">
+        <span class="im-av" id="im-pet-av">🐱</span>
+        <span class="im-meta">
+          <span class="im-name" id="im-pet-name">宝贝</span>
+          <span class="im-sub" id="im-pet-sub">完善宠物档案以估算</span>
+        </span>
+        <button type="button" class="im-editprofile" id="im-edit-profile">改档案 ›</button>
+      </div>
+
+      <div class="sub-section">每日目标食量（选填）</div>
+      <div class="field-grid">
+        <div class="field">
+          <label>下限 (<span id="pm-tgt-unit-min">g</span>/天)</label>
+          <input type="number" id="pm-target-min" step="0.1" min="0" placeholder="" inputmode="decimal" />
+        </div>
+        <div class="field">
+          <label>上限 (<span id="pm-tgt-unit-max">g</span>/天)</label>
+          <input type="number" id="pm-target-max" step="0.1" min="0" placeholder="" inputmode="decimal" />
+        </div>
+      </div>
+      <div class="rec-preview-inline">
+        <span class="rec-preview" id="pm-rec-preview">完善宠物档案以估算</span>
+        <button type="button" class="estimator-apply" id="pm-rec-apply" disabled>↑ 套用</button>
+      </div>
+
+      <div class="sub-section">折算设置</div>
+      <div class="field">
+        <label>换算基准（所有食物折算成它）</label>
+        <select id="pm-conv-base"></select>
+        <p class="hint" style="margin: 0.3rem 0 0;">默认「干粮」——记录页和看板的「等效」都按它折成克数。改成某款罐头/猫条后，全部改成「相当于几份它」。也可在某款食物的设置里点「设为基准」。</p>
+      </div>
+      <div class="field">
+        <label>干粮每克多少大卡</label>
+        <input type="number" id="pm-kibble-kcal" step="0.1" min="0" placeholder="3.8" inputmode="decimal" />
+        <p class="hint" style="margin: 0.3rem 0 0;">用来把猫条、罐头换算成「相当于多少克干粮」。看粮袋上的热量，一般 3.5–4.2；不确定就留 3.8。</p>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="im-cancel">取消</button>
+        <button type="button" class="save" id="im-save">保存</button>
       </div>
     </div>
   </div>
@@ -295,6 +313,8 @@
           <div class="fm-est-result" id="fm-est-result">≈ — 大卡 / 100 克</div>
         </div>
       </div>
+
+      <button type="button" id="fm-setbase" class="fm-setbase" style="display:none;">⭐ 把它设为换算基准</button>
 
       <div class="modal-actions">
         <button type="button" class="danger" id="fm-delete" style="display:none; margin-right:auto;">删除</button>

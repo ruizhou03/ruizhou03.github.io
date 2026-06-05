@@ -699,6 +699,14 @@
   const $pmSave = document.getElementById('pm-save');
   const $pmCancel = document.getElementById('pm-cancel');
   const $pmDelete = document.getElementById('pm-delete');
+  const $intakeModal = document.getElementById('intake-modal');
+  const $imPetAv = document.getElementById('im-pet-av');
+  const $imPetName = document.getElementById('im-pet-name');
+  const $imPetSub = document.getElementById('im-pet-sub');
+  const $imEditProfile = document.getElementById('im-edit-profile');
+  const $imCancel = document.getElementById('im-cancel');
+  const $imSave = document.getElementById('im-save');
+  const $fmSetbase = document.getElementById('fm-setbase');
   const $pmAvatarRow = document.getElementById('pm-avatar-row');
   const $pmAvatarFile = document.getElementById('pm-avatar-file');
   const $pmPhotoBtn = document.getElementById('pm-photo-btn');
@@ -817,7 +825,6 @@
       li.classList.toggle('selected', li.dataset.value === value);
     });
     $pmBreedSelect.classList.remove('open');
-    refreshEstimatorPreview();
   }
   $pmBreedTrigger.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -827,25 +834,22 @@
     if (!$pmBreedSelect.contains(e.target)) $pmBreedSelect.classList.remove('open');
   });
 
-  function readEstimatorInputs() {
-    const rawBw = parseFloat($pmBodyWeight.value);
-    const unit = $pmBodyWeightUnit.value || 'kg';
-    const bwKg = Number.isFinite(rawBw) ? bwToKg(rawBw, unit) : NaN;
-    return {
-      species:      $pmSpecies.value || '',
-      breed:        $pmBreed.value || '',
-      age:          combineAge($pmAgeYears.value, $pmAgeMonths.value),
-      bodyWeightKg: bwKg,
-      activity:     $pmActivity.value || 'normal',
-      neutered:     !!$pmNeutered.checked,
-    };
-  }
   // ===== 弹窗里「每日目标」跟随换算基准 =====
   // pmTargetG 缓存 canonical 等效干粮克数（真值）；输入框只是它在当前基准单位下的显示。
   // 改基准下拉 / 改干粮热量 → 从缓存按新倍率重渲染；保存直接读缓存（无需反算）。
   let pmBaseId = 'kibble';
   let pmTargetG = { min: null, max: null };
-  function pmEditingPet() { return state.editingId ? state.pets.find(p => p.id === state.editingId) : null; }
+  let intakeEditId = null;   // 食量设置弹窗当前编辑的宠物（与档案弹窗的 state.editingId 分开）
+  function pmEditingPet() { return intakeEditId ? state.pets.find(p => p.id === intakeEditId) : null; }
+  // 从「已保存的档案」算每日推荐食量（克干粮/天）——食量设置弹窗用，不读档案弹窗的 DOM
+  function estimatorFromPet(pet) {
+    if (!pet) return null;
+    return estimatorCompute({
+      species: pet.species || '', breed: pet.breed || '',
+      age: pet.ageYears, bodyWeightKg: pet.bodyWeight,
+      activity: pet.activity || 'normal', neutered: !!pet.neutered,
+    });
+  }
   function pmKibbleKcalLive() { const v = parseFloat($pmKibbleKcal.value); return (Number.isFinite(v) && v > 0) ? v : 3.8; }
   function pmBaseFood(baseId) {
     const pet = pmEditingPet();
@@ -865,7 +869,7 @@
   }
 
   function refreshEstimatorPreview() {
-    const r = estimatorCompute(readEstimatorInputs());
+    const r = estimatorFromPet(pmEditingPet());
     if (!r) {
       $pmRecPreview.textContent = '完善宠物档案以估算';
       $pmRecPreview.classList.remove('has-value');
@@ -883,11 +887,8 @@
   }
   $pmSpecies.addEventListener('change', () => {
     buildBreedDropdown($pmSpecies.value, '');
-    refreshEstimatorPreview();
   });
-  [$pmActivity, $pmBodyWeightUnit].forEach(el => el.addEventListener('change', refreshEstimatorPreview));
-  [$pmAgeYears, $pmAgeMonths, $pmBodyWeight].forEach(el => el.addEventListener('input', refreshEstimatorPreview));
-  $pmNeutered.addEventListener('change', refreshEstimatorPreview);
+  // 估算改成在「食量设置」弹窗里按已存档案算，故档案里的体型字段不再实时刷新估算预览。
   $pmRecApply.addEventListener('click', () => {
     const mn = parseFloat($pmRecApply.dataset.min);   // canonical 克数
     const mx = parseFloat($pmRecApply.dataset.max);
@@ -1237,10 +1238,20 @@
 
   function renderRecommendation(pet, todayEaten) {
     const rec = targetRange(pet);
-    if (!rec) { $recStrip.style.display = 'none'; return; }
+    const canEdit = isAdminOrUp(pet);
+    if (!rec) {
+      // 没设目标：管理员看到「设定目标」入口（点开食量设置），普通成员则隐藏。
+      if (!canEdit) { $recStrip.style.display = 'none'; return; }
+      $recStrip.style.display = '';
+      $recStrip.classList.add('editable', 'no-target');
+      $recTitle.innerHTML = '🎯 点这里设定每日目标';
+      $recNow.innerHTML = '';
+      $recMarker.style.display = 'none';
+      return;
+    }
+    $recStrip.classList.remove('no-target');
     $recStrip.style.display = '';
     const isPoint = rec.min === rec.max;
-    const canEdit = isAdminOrUp(pet);
     const M = convM(pet), U = convUnit(pet);
     const titleText = isPoint
       ? `🎯 目标 ${fmtG(rec.min * M)} ${U}/天`
@@ -2039,8 +2050,6 @@
       if (!p) return;
       $pmTitle.textContent = '编辑宠物';
       $pmName.value = p.name;
-      pmTargetG.min = (Number.isFinite(p.dailyTargetMin) && p.dailyTargetMin > 0) ? p.dailyTargetMin : null;
-      pmTargetG.max = (Number.isFinite(p.dailyTargetMax) && p.dailyTargetMax > 0) ? p.dailyTargetMax : null;
       $pmSpecies.value = p.species || '';
       buildBreedDropdown(p.species || '', p.breed || '');
       const ageParts = splitAge(p.ageYears);
@@ -2053,15 +2062,12 @@
         : '';
       $pmActivity.value = p.activity || '';
       $pmNeutered.checked = !!p.neutered;
-      $pmKibbleKcal.value = (Number.isFinite(p.kibbleKcalPerG) && p.kibbleKcalPerG > 0) ? parseFloat(p.kibbleKcalPerG.toFixed(2)) : '';
-      renderConvBaseOptions(p);
       state.selectedEmoji = p.emoji || EMOJIS[0];
       state.pendingAvatar = p.avatar || null;
       $pmDelete.style.display = '';
     } else {
       $pmTitle.textContent = '添加宠物';
       $pmName.value = '';
-      pmTargetG.min = null; pmTargetG.max = null;
       $pmSpecies.value = '';
       buildBreedDropdown('', '');
       $pmAgeYears.value = '';
@@ -2070,15 +2076,10 @@
       $pmBodyWeight.value = '';
       $pmActivity.value = '';
       $pmNeutered.checked = false;
-      $pmKibbleKcal.value = '';
-      renderConvBaseOptions(null);
       state.selectedEmoji = EMOJIS[0];
       state.pendingAvatar = null;
       $pmDelete.style.display = 'none';
     }
-    pmBaseId = $pmConvBase.value || 'kibble';
-    pmRenderTargetInputs();              // 把缓存的克数按基准单位填进输入框 + 单位标签
-    refreshEstimatorPreview();
     updateAvatarSelection();
     const editingPet = id ? state.pets.find(x => x.id === id) : null;
     renderShareSection(editingPet);
@@ -2288,37 +2289,34 @@
     else if ($joinModal.classList.contains('open')) closeJoinModal();
     else if ($profileModal.classList.contains('open')) closeProfileModal();
     else if ($mmModal.classList.contains('open')) $mmModal.classList.remove('open');
+    else if ($intakeModal.classList.contains('open')) closeIntakeModal();
     else if ($modal.classList.contains('open')) closeModal();
   });
 
   $pmSave.addEventListener('click', () => {
+    // —— 宠物档案为必填，逐项校验填写是否合理 ——
     const name = $pmName.value.trim();
-    if (!name) { alert('请输入名字'); return; }
-    // 目标按 canonical 等效干粮克数存（pmTargetG 已随输入框实时同步，输入框只是基准单位的显示）
-    const tMin = (pmTargetG.min != null) ? pmTargetG.min : NaN;
-    const tMax = (pmTargetG.max != null) ? pmTargetG.max : NaN;
+    if (!name) { alert('请输入名字'); $pmName.focus(); return; }
     const species = $pmSpecies.value || null;
-    const breed = $pmBreed.value || null;
+    if (!species) { alert('请选择物种'); $pmSpecies.focus(); return; }
     const ageYears = combineAge($pmAgeYears.value, $pmAgeMonths.value);
+    if (!Number.isFinite(ageYears) || ageYears <= 0) { alert('请填写年龄（「岁」「个月」至少填一个，且为数字）'); $pmAgeYears.focus(); return; }
+    if (ageYears > 40) { alert('年龄看起来不太对，请检查（最多 40 岁）'); $pmAgeYears.focus(); return; }
     const bwUnit = $pmBodyWeightUnit.value || 'kg';
     const bwRaw = parseFloat($pmBodyWeight.value);
-    const bodyWeight = Number.isFinite(bwRaw) && bwRaw > 0 ? bwToKg(bwRaw, bwUnit) : 0;
-    const activity = $pmActivity.value || null;
+    if (!Number.isFinite(bwRaw) || bwRaw <= 0) { alert('请填写体重（数字，且大于 0）'); $pmBodyWeight.focus(); return; }
+    const bodyWeight = bwToKg(bwRaw, bwUnit);
+    if (!Number.isFinite(bodyWeight) || bodyWeight <= 0 || bodyWeight > 120) { alert('体重看起来不太对，请检查'); $pmBodyWeight.focus(); return; }
+    const breed = $pmBreed.value || null;
+    const activity = $pmActivity.value || 'normal';   // 留空=普通
     const neutered = !!$pmNeutered.checked;
-    const kkRaw = parseFloat($pmKibbleKcal.value);
-    const kibbleKcalPerG = (Number.isFinite(kkRaw) && kkRaw > 0) ? kkRaw : 3.8;
-    const conversionBase = $pmConvBase.value || 'kibble';
+
     if (state.editingId) {
       const p = state.pets.find(x => x.id === state.editingId);
       if (!p) return;
       p.name = name;
       p.emoji = state.selectedEmoji;
       p.avatar = state.pendingAvatar || null;
-      p.dailyTargetMin = Number.isFinite(tMin) && tMin > 0 ? tMin : null;
-      p.dailyTargetMax = Number.isFinite(tMax) && tMax > 0 ? tMax : null;
-      // Linkage flag: 套用 sets it, manual edit clears it, otherwise leave as-is.
-      if (recAppliedThisSession) p.targetFollowsRecommendation = true;
-      else if (targetEditedManually) p.targetFollowsRecommendation = false;
       p.species = species;
       p.breed = breed;
       p.ageYears = ageYears;
@@ -2326,21 +2324,22 @@
       p.bodyWeightUnit = bwUnit;
       p.activity = activity;
       p.neutered = neutered;
-      p.kibbleKcalPerG = kibbleKcalPerG;
-      p.conversionBase = conversionBase;
+      // 目标 / 干粮热量 / 换算基准 不在档案弹窗里改 —— 由「食量设置」弹窗负责，这里别动它们。
       delete p.lifeStage;
     } else {
       const id = uuid('pet');
+      // 档案已必填 → 估算一定算得出，新宠物默认套用推荐并跟随。
+      const est = estimatorCompute({ species, breed: breed || '', age: ageYears, bodyWeightKg: bodyWeight, activity, neutered });
       state.pets.push({
         id, name,
         emoji: state.selectedEmoji,
         avatar: state.pendingAvatar || null,
         bowlWeight: null,
         bowlUnit: 'g',
-        dailyTargetMin: Number.isFinite(tMin) && tMin > 0 ? tMin : null,
-        dailyTargetMax: Number.isFinite(tMax) && tMax > 0 ? tMax : null,
+        dailyTargetMin: est ? est.min : null,
+        dailyTargetMax: est ? est.max : null,
         showTargetOnChart: true,
-        targetFollowsRecommendation: recAppliedThisSession === true,
+        targetFollowsRecommendation: !!est,
         species,
         breed,
         ageYears,
@@ -2348,8 +2347,8 @@
         bodyWeightUnit: bwUnit,
         activity,
         neutered,
-        kibbleKcalPerG,
-        conversionBase,
+        kibbleKcalPerG: 3.8,
+        conversionBase: 'kibble',
         foodLibrary: [],
         preferredUnit: 'g',
         entries: [],
@@ -2363,6 +2362,64 @@
     render();
     schedulePushMeta(state.pets.find(p => p.id === savedId) || null);
   });
+
+  // ===== 食量设置弹窗（点 🎯 目标条打开）=====
+  function petBodySummary(pet) {
+    const bits = [];
+    const ap = splitAge(pet.ageYears);
+    let a = '';
+    if (ap.years !== '' && ap.years > 0) a += ap.years + '岁';
+    if (ap.months !== '' && ap.months > 0) a += ap.months + '月';
+    if (a) bits.push(a);
+    if (pet.neutered) bits.push('已绝育');
+    if (Number.isFinite(pet.bodyWeight) && pet.bodyWeight > 0) {
+      const u = pet.bodyWeightUnit || 'kg';
+      bits.push(parseFloat(bwFromKg(pet.bodyWeight, u).toFixed(2)) + ' ' + u);
+    }
+    return bits.length ? bits.join(' · ') : '完善宠物档案以估算';
+  }
+  function openIntakeModal() {
+    const pet = currentPet();
+    if (!pet) return;
+    intakeEditId = pet.id;
+    recAppliedThisSession = false;
+    targetEditedManually = false;
+    $imPetAv.textContent = pet.emoji || '🐱';
+    $imPetName.textContent = pet.name || '宝贝';
+    $imPetSub.textContent = petBodySummary(pet);
+    pmTargetG.min = (Number.isFinite(pet.dailyTargetMin) && pet.dailyTargetMin > 0) ? pet.dailyTargetMin : null;
+    pmTargetG.max = (Number.isFinite(pet.dailyTargetMax) && pet.dailyTargetMax > 0) ? pet.dailyTargetMax : null;
+    $pmKibbleKcal.value = (Number.isFinite(pet.kibbleKcalPerG) && pet.kibbleKcalPerG > 0) ? parseFloat(pet.kibbleKcalPerG.toFixed(2)) : '';
+    renderConvBaseOptions(pet);
+    pmBaseId = $pmConvBase.value || 'kibble';
+    pmRenderTargetInputs();
+    refreshEstimatorPreview();
+    $intakeModal.classList.add('open');
+  }
+  function closeIntakeModal() { $intakeModal.classList.remove('open'); intakeEditId = null; }
+  function saveIntake() {
+    const pet = state.pets.find(p => p.id === intakeEditId);
+    if (!pet) { closeIntakeModal(); return; }
+    if (!isAdminOrUp(pet)) { alert('只有主人/管理员能改食量设置'); return; }
+    if (pmTargetG.min != null && pmTargetG.max != null && pmTargetG.min > pmTargetG.max) {
+      alert('每日目标的下限不能大于上限'); return;
+    }
+    pet.dailyTargetMin = (pmTargetG.min != null) ? pmTargetG.min : null;
+    pet.dailyTargetMax = (pmTargetG.max != null) ? pmTargetG.max : null;
+    if (recAppliedThisSession) pet.targetFollowsRecommendation = true;
+    else if (targetEditedManually) pet.targetFollowsRecommendation = false;
+    const kkRaw = parseFloat($pmKibbleKcal.value);
+    pet.kibbleKcalPerG = (Number.isFinite(kkRaw) && kkRaw > 0) ? kkRaw : 3.8;
+    pet.conversionBase = $pmConvBase.value || 'kibble';
+    persist();
+    render();
+    schedulePushMeta(pet);
+    closeIntakeModal();
+  }
+  $imSave.addEventListener('click', saveIntake);
+  $imCancel.addEventListener('click', closeIntakeModal);
+  $intakeModal.addEventListener('click', e => { if (e.target === $intakeModal) closeIntakeModal(); });
+  $imEditProfile.addEventListener('click', () => { const id = intakeEditId; closeIntakeModal(); openModal(id); });
 
   $pmDelete.addEventListener('click', async () => {
     if (!state.editingId) return;
@@ -3123,10 +3180,7 @@
   $recStrip.addEventListener('click', () => {
     const pet = currentPet();
     if (!pet || !isAdminOrUp(pet)) return;
-    openModal(pet.id);
-    setTimeout(() => {
-      if ($pmTargetMin) { $pmTargetMin.scrollIntoView({ block: 'center' }); $pmTargetMin.focus(); }
-    }, 60);
+    openIntakeModal();   // 点目标条 → 打开聚焦的「食量设置」弹窗（不再弹整张档案）
   });
 
   // ===== Reusable date+time picker modal =====
@@ -3277,9 +3331,16 @@
     if (k.kcalSource === 'analysis') { $fmKcal100g.value = ''; setFmSource('analysis'); }
     else { $fmKcal100g.value = parseFloat((perG * 100).toFixed(1)); setFmSource('direct'); }
     $fmDelete.style.display = 'none';            // 基准干粮不能删
+    $fmSetbase.style.display = 'none';           // 干粮基准由换算基准下拉管理，这里不放「设为基准」
     fmRenderEmoji();
     $foodModal.classList.add('open');
     $fmName.focus();
+  }
+  function fmUpdateSetbase(pet, id) {
+    const isBase = pet.conversionBase === id;
+    $fmSetbase.classList.toggle('is-base', isBase);
+    $fmSetbase.textContent = isBase ? '✓ 它已是换算基准' : '⭐ 把它设为换算基准';
+    $fmSetbase.style.display = '';
   }
   function openFoodModal(id) {
     const pet = currentPet();
@@ -3311,6 +3372,7 @@
     if (f.analysis) { fmSetAnalysis(f.analysis); if (f.gramsPerUnit != null) $fmGramsPerUnit.value = f.gramsPerUnit; }
     setFmSource(f.kcalSource === 'analysis' ? 'analysis' : 'direct');
     $fmDelete.style.display = '';
+    fmUpdateSetbase(pet, id);
     $fmUnitEcho.textContent = $fmUnitLabel.value || '份';
     $fmUnitEcho2.textContent = $fmUnitLabel.value || '份';
     fmRenderEmoji();
@@ -3322,7 +3384,18 @@
     fmKibbleMode = false;
     if ($fmMeasureField) $fmMeasureField.style.display = '';
     if ($fmKibbleHint) $fmKibbleHint.style.display = 'none';
+    if ($fmSetbase) $fmSetbase.style.display = 'none';
   }
+  $fmSetbase.addEventListener('click', () => {
+    const pet = currentPet();
+    if (!pet || !isAdminOrUp(pet) || !fmEditingId) return;
+    if (pet.conversionBase === fmEditingId) return;   // 已是基准
+    pet.conversionBase = fmEditingId;
+    persist();
+    schedulePushMeta(pet);
+    render();                       // 看板/记录的「等效」立即按新基准刷新（弹窗保持打开）
+    fmUpdateSetbase(pet, fmEditingId);
+  });
   function saveKibble(pet, name) {
     const source = fmSourceVal();
     let perG, analysis = null;
