@@ -614,18 +614,23 @@ noindex: true
     cmExec(it, a).then(function () { renderContent(); })
       .catch(function (e) { row.classList.remove('cm-busy'); alert('操作失败：' + ((e && e.error) || '请重试')); });
   }
-  function wireBoardTabs() {   // 顶层「数据分析 / 内容管理」两板块切换
-    var tabs = document.querySelectorAll('.adm-board-tab');
-    Array.prototype.forEach.call(tabs, function (t) {
+  function setBoard(name) {   // 切换顶层「数据分析 / 内容管理」板块
+    if (name !== 'content') name = 'data';
+    Array.prototype.forEach.call(document.querySelectorAll('.adm-board-tab'), function (x) { x.classList.toggle('adm-bon', x.getAttribute('data-board') === name); });
+    var dd = document.getElementById('adm-board-data'), cc = document.getElementById('adm-board-content');
+    if (dd) dd.hidden = (name !== 'data');
+    if (cc) cc.hidden = (name !== 'content');
+  }
+  function wireBoardTabs() {
+    Array.prototype.forEach.call(document.querySelectorAll('.adm-board-tab'), function (t) {
       t.addEventListener('click', function () {
-        Array.prototype.forEach.call(tabs, function (x) { x.classList.remove('adm-bon'); });
-        t.classList.add('adm-bon');
         var b = t.getAttribute('data-board');
-        var dd = document.getElementById('adm-board-data'), cc = document.getElementById('adm-board-content');
-        if (dd) dd.hidden = (b !== 'data');
-        if (cc) cc.hidden = (b !== 'content');
+        if (window.history && history.replaceState) history.replaceState(null, '', '#' + b); else location.hash = b;
+        setBoard(b);
       });
     });
+    window.addEventListener('hashchange', function () { setBoard((location.hash || '').replace(/^#/, '')); });
+    setBoard((location.hash || '').replace(/^#/, ''));   // 进来按 URL hash 选板块（导航栏「数据分析 / 内容管理」可直达）
   }
   function cmWireControls() {
     wireBoardTabs();

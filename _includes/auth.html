@@ -213,8 +213,8 @@
         a.id = 'nav-admin-dash';
         a.className = 'nav-dash-btn';
         a.href = '/admin/';
-        a.title = '数据看板';
-        a.setAttribute('aria-label', '数据看板');
+        a.title = '管理后台';
+        a.setAttribute('aria-label', '管理后台');
         a.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="18" y1="20" x2="18" y2="9"></line></svg>';
         controls.appendChild(a);   // .nav-controls 顺序为 头像/主题/EN，追加即落在 EN 之后、头像之前
       }
@@ -236,7 +236,7 @@
         '<div class="sa-menu">' +
           '<div class="sa-menu-name">' + (user.nick || user.email || '') + '</div>' +
           '<a href="/account/">我的主页</a>' +
-          (user.isAdmin ? '<a href="/admin/">数据看板</a>' : '') +
+          (user.isAdmin ? '<a href="/admin/#data">数据分析</a><a href="/admin/#content">内容管理</a>' : '') +
           '<button type="button" class="sa-logout">退出登录</button>' +
         '</div>' +
       '</div>';
