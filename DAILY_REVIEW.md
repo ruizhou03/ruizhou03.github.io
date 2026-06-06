@@ -1,3 +1,77 @@
+## 2026-06-06
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周六 DOW=6，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=06，未跑 monthly_stats）。距 6-05 巡检共 **30 个 commit**（`518c778` 之后 → `4730a56` 为止），主线两条：① **管理后台「下架/删除/回收站」可见性体系收口**——`6b92659` 修上一份 P1（公开 manifest 不再泄漏 `hidden:true` 文 + 后台改从鉴权后端 `/api/admin?action=hidden-list` 取隐藏清单，与 `f71b497` 隐私意图收敛）、`25e2bb3` 栏目内逐篇删除/恢复 + 删除线/变灰、`c5b3267` 可见性重定为两档（下架 / 删除回收站 + 彻底删除）、`5487cda` 删除 = 你和读者都看不到（点开 404）与下架预览分清、`e4213f5` 删除改 `published:false` + 栏目注入墓碑、`7d74498` 付费/取消付费齿轮分界标记 + 就地开关、`4ad51b3` 真隐藏正文搬后端·空壳页（访客看不到、管理员可预览）、`3b13685` 按钮文案/删除付费按钮/墓碑内联/管理员默认享付费、`4730a56` 墓碑回原位（按日期 + 参与分页）+ 空态按 tab + 内容管理批量操作；穿插 11 条 `chore(admin) ...via 管理后台` 的 GitHub API 提交（站主真实操作产生：`structural-load-testing / wipe-after-pee / standing-vs-sitting-urination` 走「真 404」、`fridge-layout-guide / drinking-water-types / condoms-guide` 反复隐藏-恢复、`paid-test-us-banking-guide / paid-test-us-visa-types` 取消付费）。② **棋类联机 / 宠物中心 / SW 韧性三件套**——`358533e` xiangqi 联机引擎 Phase 1（走子同步 + 颜色绑定 + 视角 + 回合）、`55e547e` Phase 2/3（被邀请者进领地卡坐对应座位 + 房主看入座可换位 + 开局翻盘动画）、`7b61e23` v5（回合倒计时/超时托管 + mode 反转 bug + 取消邀请 + 美化按钮 + 本地翻盘）、`3f0b77b` 把 xiangqi v5 整套领地卡迁移到国际象棋（v1）、`7743c04 4591a76 033fd24` xiangqi 打磨；`07407ac` 食物列表长按拖拽排序 + 干粮可编辑、`04a58de eb82f21 1d19484 a9ba1ab 95f44a0 6be24b3 9e51248` pet-food 弹窗/必填校验/换算基准/拖拽 FLIP/食物选择器圆角；`8fdb248` 宠物数据随账号跨设备同步、`c4d056a` 宠物中心 CSS/JS 外置（HTML 347→128KB）、`5d2ced8` SW HTML 导航加 20s 硬上限 + 4s 网络抢答兜底；额外 `4c8cc78` 修 6-05 P2#1（admin `.adm-mini:hover` + toolbox/random 缩进对齐）、`d9786a9` 加 `docs/territory-lobby-pattern.md` 模板交接文档。**6-05 P1（admin-manifest 公开泄漏 hidden 文）由 `6b92659` 修完，P2#1（admin `.adm-mini:hover` 守卫缺失）+ P2#4（random CSS 缩进）由 `4c8cc78` 修完——P1 队列今日清零，P2 也清掉两项**。今日 `scripts/audit/run.sh` 全套审计 ✅ 全 clean（keywords / images / material_type / filename / hover / sibling / bare_dollar / img_caption_md / svg_italic / bare_url / frontmatter_yaml），`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（8.39 s）。**本次没有可安全自动修复项**——所有审计维度均 clean，30 个 commit 全是大块功能落地，admin 安全模型与棋类调性都涉及取舍，按保守原则不动。残余 P2 4 项（paywall 后端冒烟、scripts 内 `/Users/zhourui/` 硬编码、内部 prompt 称呼 zirconeey、PDF-only 存档手写互链）状态不变。
+
+### ✅ 本次已自动修复
+
+**无**。今日所有审计维度（11 个每日 audit）全部 clean、`bundle exec` 构建零 warning 零 error。30 个 commit 引入的新结构（admin 可见性两档体系 + 墓碑分页归位 + 批量操作 + xiangqi 联机引擎 v5 + chess 领地卡 v1 + pet 跨设备同步 + SW 超时兜底）均为站主大块落地，无 agent 介入余地。6-05 P1（manifest 隐藏文泄漏）已被 `6b92659` 修掉，6-05 P2#1（admin hover 守卫）与 P2#4（random 缩进）已被 `4c8cc78` 修掉——这三项从待办清单移除。
+
+### 📋 待你把关
+
+#### P1（建议尽快）
+
+**P1 队列今日清零** —— 6-05 的唯一一项 P1（公开 manifest 暴露 `hidden:true` 文章标题/URL/分类）已被 `6b92659` 修复：模板加 `{% unless item.hidden or item.trashed %}`、移除 `hidden`/`trashed` 字段；admin UI 改从鉴权后端 `/api/admin?action=hidden-list` 拉。本地构建验证：`_site/admin-manifest.json` 262 条、`grep -E '"hidden"|"trashed"' = 0`、三篇 `published:false` 文（`wipe-after-pee` / `standing-vs-sitting-urination` / `structural-load-testing`）均不在公开清单。本次巡检未新增 P1。
+
+#### P2（看心情）
+
+1. **新付费墙系统在沙箱无后端出口验证** —— 承接 6-04/6-05 P2#1。`zircon-urge.fly.dev` 今日仍 HTTP 403，`scripts/paywall/smoke_test.py` 仍需站主在生产环境跑。本次 `_notes/life/paid-test-{us-banking-guide,us-visa-types}.md` 两篇被站主从付费取消（`chore(admin): 取消付费`），当前 `paid:false` + 标题仍带「（付费）」后缀；从 commit 节奏看是后台付费切换流程的真实操作，不是问题，但标题文字与状态不一致——后续若长期保持非付费态可考虑去掉「（付费）」标签，**由站主拍板**。
+
+2. **`scripts/{compile-r-tutorials,build-psy-stat-II-rmd,merge-psy-stat-II}.py` 中 9 处 `/Users/zhourui/Desktop/...` 本机绝对路径** —— 沿用 6-05 P2#3。`scripts/` 已被 exclude，不影响线上。
+
+3. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里仍称"zirconeey 站"** —— 沿用 6-05 P2#4。内部 prompt / 文档。
+
+4. **`_notes/study/adv-metrics-pku/mid-2015.md`、`_notes/study/psy-stat-I/anova-R.md` 这两类纯 PDF 存档可考虑加同课程互链入口** —— 沿用 6-05 P2#6。设计取向项，`sibling_crosslink.py` 当前不报警（已用自动侧栏覆盖）。
+
+#### 🆕 本次抽检 10/10 中新出现的观察（不是问题，是提示）
+
+- **国际象棋 `toolbox/chess/index.html` 由 1632 行 → 1986 行（+354 行）**，把 xiangqi v5 整套领地卡 + 联机 + 60s 倒计时 + 翻盘动画一次性迁移过来。`grep` 显示 7 处 `:hover` 全数守卫 `@media (hover: hover)`，与 `hover_no_media.py` clean 一致；架构 inline-only（无 .js / .css 拆分），与 doudizhu / xiangqi 一致同质，不是问题，但**两个文件双双逼近 2000 行**——若以后再加规则变体（变化象棋、960 等）建议照 pet 那种方式抽 .js/.css，**架构判断由站主**。
+
+- **`_notes/life/paid-test-{us-banking-guide,us-visa-types}.md` 体积分别 542 行 / 358 行**，是站主在后台测付费流程时实际写入的完整正文（不再是占位）。当前 `paid:false`、`published:true`、标题含「（付费）」、permalink `/life/paid-test/<slug>`。**不是问题**——sub_category=留学攻略 是合理归类、keywords 充足（22+10 条）；与 P2#1 第二条相关。
+
+- **站主在 6-05 18:00–6-06 01:00 一晚连发 11 条 `chore(admin) ... via 管理后台`**，从 GitHub commit author email `167822299+ruizhou03@users.noreply.github.com` 标识为后台 gh-put 后端运转产生的真实操作 —— 反复 `恢复→真404→恢复→彻底删除→恢复` 调试可见性两档体系（`c5b3267 / 5487cda / e4213f5 / 25e2bb3 / 4ad51b3 / 7d74498` 这一组 feat 与之同步迭代）。**不是问题**，记一笔。
+
+#### 🗒️ 待办清账（承接 6-05）
+
+- **图片 alt / caption 覆盖**：`images.py` 今日仍 `missing_alt = 0` / `missing_caption = 0`（白名单 62 条），保持收口。
+- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套 HTTP 403。
+- **Round-3 留下的 ~68 个 P1**：未在本次范围推进。
+- **`taichi-review-2023.md`「85 公里跑」**：未触碰。
+- **大图基线**：与昨日完全一致，无变化。
+
+### 🔬 抽检专项
+
+> 本次种子抽 10 项（强制配额 game/pdf_archive/lecture_note_pdf_only 各 ≥1，其余随机）。10 项一视同仁过审清单。
+
+- **抽检 1/10 · game · `toolbox/doudizhu/index.html`**（2399 行 / 92.8 KB，inline-only）—— ✅ 无问题。18 处 `:hover` 全数 `@media (hover: hover)` 守卫；`<link href="/assets/css/games-shell.css">` 与全站游戏骨架一致；单文件大但与全站同质（chess 1986、xiangqi 2108、八字 / 2048 同量级），与 6-02 抽中过审结论一致，本日无回归（最近 30 commit 未涉及 doudizhu）。
+- **抽检 2/10 · pdf_archive · `files/adv-metrics-psu/midterm-spring-2025-with-solutions.pdf`**（111.2 KB）—— ✅ 无问题。被 `_notes/study/adv-metrics-psu/midterm-spring-2025-with-solutions.md` 引用、体积 < 1 MB 不需 pdfslim；文件名带年份 + season + with-solutions 信息丰富，命名规则 OK。**LaTeX 化评估**：一次性带答 mid，**维持 PDF 存档即可**。
+- **抽检 3/10 · lecture_note_pdf_only · `_notes/study/adv-micro-pku/adv-micro-pku-2023.md`**（16 行 / 1.3 KB，正文 0 字）—— ✅ 无问题。front-matter 完整（discipline=经济学 / course=高级微观经济学（北大）/ material_type=Notes / date=2023-09-01 / author=Zircon）；keywords 充足覆盖中英文术语；PDF 自动导语由 `post.html` 走 course + material_type 触发。**LaTeX 化评估**：PKU 高微全本课程笔记，工作量大、复用频次中等，**加入低优队列**。
+- **抽检 4/10 · lecture_note_full · `_notes/study/adv-metrics-psu/survival-guide.md`**（134 行 / 9.8 KB）—— ✅ 无问题（沿用 6-02 抽检结论：八天自救指南，与 PSU 计量同课程交叉链完整、math 段全 LaTeX、keywords 25 条）。本日无变动。
+- **抽检 5/10 · lecture_note_full · `_notes/study/mao-thought/mao-final-highlights-2023.md`**（33 行 / 2.5 KB）—— ✅ 无问题。期末重点 highlights 风格，front-matter 含 keywords ≥15 项含中英文（"毛概期末" / "毛中特" / "Mao thought final" / "马克思主义中国化"）；同 sub_category 已由 `sibling_crosslink.py` clean 验证有互链。
+- **抽检 6/10 · lecture_note_pdf_only · `_notes/study/corp-fin/mid-sample-1-sol.md`**（16 行 / 1.4 KB）—— ✅ 无问题（沿用 6-05 抽检结论）。本日未变动；与 `mid-sample-1.md`（题面）互为答案/题面对（summary 互链清楚）。
+- **抽检 7/10 · pdf_archive · `files/adv-macro-psu/chapters/ch4.pdf`**（177.5 KB）—— ✅ 无问题。同目录有 `ch1_complete_markets.tex / ch2_exogenous_incomplete.tex / ch3_endogenous_incomplete.tex` 这批 .tex 源（**非孤儿，非无源**），ch4 是合并产物或对应 .tex 暂未签入；体积 < 200 KB 不需压。
+- **抽检 8/10 · lecture_note_pdf_only · `_notes/study/corp-fin/final-2020.md`**（16 行 / 1.3 KB）—— ✅ 无问题。front-matter 完整（discipline=管理学 / course=公司财务管理 / material_type=Exams / date=2020-09-01）；keywords 27 项含中英文 + 故意保留的"公司材务"错别字兜底；PDF 在 `files/corp-fin/final-2020.pdf`。**LaTeX 化评估**：单年期末真题，**维持 PDF 存档即可**。
+- **抽检 9/10 · lecture_note_pdf_only · `_notes/study/corp-fin/mid-sample-1.md`**（16 行 / 1.0 KB）—— ✅ 无问题。题面 PDF，summary 写「配套答案见 mid-sample-1-sol.md；可掐时做完后对照」清晰引导；keywords 24 项含中英文 + 故意保留的"公司材务"与"公司金融"两种别名。
+- **抽检 10/10 · note · `_notes/life/sleep-position-curl-up.md`**（293 行 / 23.8 KB）—— ✅ 无问题。「生活之问」专栏五段式齐全；keywords 29 项含中英文（"胎儿姿势" / "fetal position sleep" / "Idzikowski 睡姿调查" / "glymphatic 侧睡" / "阿尔茨海默 侧睡"）；4 处 inline SVG 配 `<p class="img-caption">`；6 个二级标题 + 多个三级标题层次清楚；**`img_caption_md.py` / `svg_italic_zh.py` clean** 印证 caption 与 SVG 格式合规。
+
+---
+
+### 🗂 仓库卫生
+
+**仓库结构较昨日有变化**（30 commit、26 文件、+3162/-399 行；admin 可见性两档体系收口 + xiangqi 联机引擎 v5 + chess 领地卡迁移 + pet 中心瘦身 + SW 韧性），均为既定方向（站主自己实施），无需 agent 再优化。`git diff --diff-filter=A 518c778..HEAD` 仅 1 个新文件：`docs/territory-lobby-pattern.md`（114 行的领地卡设计模板交接文档）—— `docs/` 已在 `_config.yml` exclude 列表内、不会发布到线上、`_site/docs/` 不存在；新文件性质合理（**内部设计文档，非公开内容**）。
+
+**新文件性质核查**：
+- `docs/territory-lobby-pattern.md` —— 内部设计模板交接文档，明确"不是公开博文"；已被 `_config.yml: exclude` 截断、构建产物 `_site/docs/` 不存在；**合理新文件**。
+- `assets/css/pet.css` + `assets/js/pet.js` —— 由 `_includes/toolbox/pet/{styles,script}.html` `git mv` 改名而来（commit `c4d056a`），原 inline 资源外置；`toolbox/pet/index.html` 引用路径带 `?v={{site.time|date:'%s'}}` 与站内惯例一致；**合理重命名**。
+- `assets/js/auth/cloud-sync.js` +7 行（属于 `8fdb248` 宠物跨设备同步），承接已有 auth 命名空间。
+
+**敏感文件扫描**：未发现新出现的 `.env` / `credentials*` / `token*` / `secret*` 等可疑文件名；未发现新跟踪的 `_site/` 中间产物或 `__pycache__/`；未发现 `.DS_Store` 或 `"xxx 2.yyy"` 形式的副本；`git ls-files --others --exclude-standard` 空（无未跟踪文件）；`git status --short` 空（工作区干净）。
+
+**大文件扫描**：前几大跟踪文件与昨日完全一致（or-2023 5.30 MB、monetary-econ-2023 2.96 MB、pdf.worker.mjs 2.06 MB、china-hist-2024 1.73 MB、public-econ-2023 1.67 MB……），无新增超大二进制。
+
+**结论**：仓库卫生 ✅ 干净 —— `docs/territory-lobby-pattern.md` 是合理的内部设计文档（已被 exclude），无新可优化空间。
+
+---
+
 ## 2026-06-05
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周五 DOW=5，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=05，未跑 monthly_stats）。距 6-04 巡检共 **28 个 commit**（`f8571fe` 之后 → `68ab739` 为止），主题集中在两条线：① **管理后台 Phase 1-2 一次性铺开**——`b54bd05` 的 /admin/ 骨架延续到 `0d5e2d4 d4dbfed 0bb5417`（jukebox 歌词 107→113，居家 11 首串烧）、`1e75e24` 文章页管理浮条（隐藏/公开 + 看板导航入口）、`6a41c4c` 修浮条对所有访客泄露 + 点击无效、`f4c406d` 就地编辑 UI 重做 + 看板类型标记、`d0d51f3` 软隐藏（管理员可搜可读可改 + 列表变灰 + 隐藏小助手）、`f71b497` 软隐藏三个体验问题（待生效缓冲 / 不显"暂未公开" / 分页不留弹坑）、`132ed73` 齿轮面板「编辑正文与参数」（gh-get 拉源 markdown → 改 → gh-put 带 sha 写回 main）、`7a6931b` 内容管理清单（全部/软隐藏/付费/已下架 + 搜索 + 硬下架真 404 + 删除/回收站）、加上 `9c6d21b 7fb24ba 5a82eeb a484ccb 7da5f42 8ccaf5a c43c61d c115194 f0fe9a2 db18000 4f43132 604b99d` 共 12 条 chore(admin) hidden/published 切换（站主在后台对 wipe-after-pee / standing-vs-sitting-urination / drinking-water-types / birthday-21 四篇做了反复软隐藏调试）；② **棋类领地卡设计统一**（`d4dbfed 0bb5417` jukebox 歌词扩展、`e2d4d87 d833cf5 b30b62b` tiaoqi 三角领地框 + 联机大厅基地着色、`68ab739` xiangqi 开局换成上半盘黑方/下半盘红方两张领地卡、`9cf69cc` CLAUDE.md 第 6 条堵分叉缺口）。今日 `scripts/audit/run.sh` 全套审计 ✅ 全 clean（keywords / images / material_type / filename / hover / sibling / bare_dollar / img_caption_md / svg_italic / bare_url / frontmatter_yaml），`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（6.82 s）。**本次新发现 1 项 P1**：管理后台新增的 `/admin-manifest.json` 公开暴露 `hidden:true` 文章的标题/URL/分类，与 `f71b497` 的「不暴露这是隐藏文章」设计意图相悖。**没有可安全自动修复项**——所有审计维度均 clean，admin 系列改动是大块功能落地，需站主自己把关；新发现 P1 涉及"manifest 是否走 auth"的设计取向，写进待办交站主拍板。残余 P2 5 项（paywall 后端冒烟、scripts 内 `/Users/zhourui/` 硬编码、内部 prompt 称呼 zirconeey、toolbox/random hover 守卫缩进、PDF-only 存档手写互链）状态不变；admin/index.html 的 `.adm-mini:hover` 缺 `@media (hover: hover)` 守卫，作为 P2 新增（admin-only 单用户页面，影响极小）。
