@@ -14,6 +14,8 @@
     padding: 0.26rem 0.5rem; margin-left: 0.4rem; cursor: pointer; text-decoration: none;
     transition: color .2s, border-color .2s; }
   .nav-dash-btn:hover { color: var(--color-highlight); border-color: var(--color-highlight); }
+  .nav-dash-tx { display: none; }                                          /* 桌面顶栏只图标 */
+  @media (max-width: 768px) { .nav-links .nav-dash-tx { display: inline; } }  /* 收进汉堡菜单时显示文字 */
   /* 桌面端：账号入口绝对定位到导航最右（脱离 flex 流 → 主题/语言切换完全不受影响、
      与英文站绝对位置一致）。锚定 position:fixed 的 <nav>，距视口右缘 2.2rem。
      ≤980px 退回内联（窄屏右侧无富余空间，绝对定位会和 EN 重叠）。 */
@@ -216,12 +218,32 @@
         wrap.id = 'nav-admin-links';
         wrap.className = 'nav-admin-links';
         wrap.innerHTML =
-          '<a class="nav-dash-btn" href="/admin/#data" title="数据分析" aria-label="数据分析">' + NAV_ICON_DATA + '</a>' +
-          '<a class="nav-dash-btn" href="/admin/#content" title="内容管理" aria-label="内容管理">' + NAV_ICON_CONTENT + '</a>';
+          '<a class="nav-dash-btn" href="/admin/#data" title="数据分析" aria-label="数据分析">' + NAV_ICON_DATA + '<span class="nav-dash-tx">数据分析</span></a>' +
+          '<a class="nav-dash-btn" href="/admin/#content" title="内容管理" aria-label="内容管理">' + NAV_ICON_CONTENT + '<span class="nav-dash-tx">内容管理</span></a>';
         controls.appendChild(wrap);
       }
     } else if (existing && existing.parentNode) {
       existing.parentNode.removeChild(existing);
+    }
+    relocateNavControls();
+  }
+  // 手机端(≤768px)：把 搜索/主题/EN/管理后台 收进汉堡菜单(.nav-links)，顶栏只留 锆铌/☰/头像；桌面端还原。
+  function relocateNavControls() {
+    var menu = document.querySelector('.nav-links');
+    var rightBox = document.querySelector('.nav-right-box');
+    var controls = document.querySelector('.nav-controls');
+    if (!menu || !rightBox || !controls) return;
+    var search = document.getElementById('nav-search-btn');
+    var theme = document.querySelector('.theme-toggle');
+    var en = document.querySelector('.lang-toggle');
+    var admin = document.getElementById('nav-admin-links');
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      [search, theme, en, admin].forEach(function (el) { if (el && el.parentNode !== menu) menu.appendChild(el); });
+    } else {   // 桌面还原原位（auth-slot 留在 controls 最前）
+      if (theme && theme.parentNode !== controls) controls.appendChild(theme);
+      if (en && en.parentNode !== controls) controls.appendChild(en);
+      if (admin && admin.parentNode !== controls) controls.appendChild(admin);
+      if (search && search.parentNode !== rightBox) rightBox.insertBefore(search, controls);
     }
   }
   function render(user) {
@@ -289,6 +311,14 @@
     document.head.appendChild(s);
   }
   initGoogle();
+
+  // 初次 + 断点变化时重排导航控件（手机收进菜单 / 桌面还原）
+  relocateNavControls();
+  (function () {
+    var mq = window.matchMedia('(max-width: 768px)');
+    if (mq.addEventListener) mq.addEventListener('change', relocateNavControls);
+    else if (mq.addListener) mq.addListener(relocateNavControls);
+  })();
 })();
 </script>
 {% endraw %}

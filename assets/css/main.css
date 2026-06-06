@@ -78,6 +78,8 @@
 
     /* 返回链接样式 */
     .nav-back { font-size: 0.9rem; font-weight: 500; color: var(--color-accent); text-decoration: none; display: flex; align-items: center; gap: 0.3rem; }
+    /* 手机端左上角品牌「锆铌」→ 中文首页（桌面隐藏，桌面靠 .nav-links 里的锆铌） */
+    .nav-brand { display: none; font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; color: var(--color-ink); text-decoration: none; letter-spacing: 0.02em; }
 
     /* 汉堡菜单按钮 (默认隐藏) */
     .nav-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0.5rem; }
@@ -105,23 +107,32 @@
         padding: 0.6rem 1.2rem;
       }
       
-      .nav-back { justify-self: start; font-size: 0.8rem; } /* 左对齐 */
+      .nav-brand { display: inline-block; justify-self: start; }   /* 左：锆铌 */
+      .nav-left-zone .nav-back { display: none; }                  /* 手机端不显示返回链接，左上角统一锆铌 */
       .nav-toggle { display: block; justify-self: center; } /* 居中汉堡包 */
-      .nav-right-box { justify-self: end; } /* 右对齐亮度 */
+      .nav-right-box { justify-self: end; } /* 右：只剩头像 */
 
       /* 手机端下拉菜单 */
-      .nav-links { 
-        display: none; 
-        flex-direction: column; 
-        position: absolute; 
-        top: 100%; left: 0; right: 0; 
-        background: var(--color-nav-bg); 
-        padding: 1.5rem; gap: 1.2rem; 
-        border-bottom: 1px solid var(--color-border); 
+      .nav-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%; left: 0; right: 0;
+        background: var(--color-nav-bg);
+        padding: 1.5rem; gap: 1.2rem;
+        border-bottom: 1px solid var(--color-border);
         text-align: center;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
       }
       .nav-links.open { display: flex; }
+      /* 收进汉堡菜单的次要控件（搜索/主题/EN/管理后台）：各自居中成一行 */
+      .nav-links #nav-search-btn,
+      .nav-links .theme-toggle,
+      .nav-links .lang-toggle,
+      .nav-links #nav-admin-links { align-self: center; }
+      .nav-links #nav-search-btn .nav-search-text { display: inline; }   /* 菜单里显示「搜索」文字 */
+      .nav-links #nav-admin-links { display: inline-flex; gap: 1rem; }
+      .nav-links #nav-search-btn { border: 1px solid var(--color-border); border-radius: 6px; padding: 0.4rem 1rem; }
       
       /* 汉堡菜单变成 X */
       .nav-toggle.active span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
