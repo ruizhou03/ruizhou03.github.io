@@ -449,7 +449,10 @@
               const eq = isKibble ? du : du * (Number(e.kcalPerUnit) || 0) / kpg;
               result.push({ entry: e, ts: e.ts, type: isKibble ? 'eat' : 'remain-eat', amount: eq, unitsEaten: du, foodWeight: isKibble ? nl : undefined, prevTs, startTs: prevTs, endTs: e.ts });
             } else if (du < 0) {
-              result.push({ entry: e, ts: e.ts, type: isKibble ? 'refill' : 'remain-refill', amount: 0, unitsEaten: du, foodWeight: isKibble ? nl : undefined, prevTs, startTs: e.ts, endTs: e.ts });
+              // 碗里/还剩 变多 = 添了粮（refill），amount 记添加量供「添了 X」显示；
+              // eatenByDate/drawIntraday 按 type 过滤（refill 不在 EAT_TYPES），不会计入吃了。
+              const added = isKibble ? (-du) : (-du) * (Number(e.kcalPerUnit) || 0) / kpg;
+              result.push({ entry: e, ts: e.ts, type: isKibble ? 'refill' : 'remain-refill', amount: added, unitsEaten: du, foodWeight: isKibble ? nl : undefined, prevTs, startTs: e.ts, endTs: e.ts });
             } else {
               result.push({ entry: e, ts: e.ts, type: isKibble ? 'eat' : 'remain-eat', amount: 0, unitsEaten: 0, foodWeight: isKibble ? nl : undefined, prevTs, startTs: prevTs, endTs: e.ts });
             }
