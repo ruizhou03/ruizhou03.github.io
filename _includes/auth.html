@@ -14,8 +14,6 @@
     padding: 0.26rem 0.5rem; margin-left: 0.4rem; cursor: pointer; text-decoration: none;
     transition: color .2s, border-color .2s; }
   .nav-dash-btn:hover { color: var(--color-highlight); border-color: var(--color-highlight); }
-  .nav-dash-tx { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
-  @media (max-width: 600px) { .nav-dash-tx { display: none; } }   /* 窄屏只留图标 */
   /* 桌面端：账号入口绝对定位到导航最右（脱离 flex 流 → 主题/语言切换完全不受影响、
      与英文站绝对位置一致）。锚定 position:fixed 的 <nav>，距视口右缘 2.2rem。
      ≤980px 退回内联（窄屏右侧无富余空间，绝对定位会和 EN 重叠）。 */
@@ -218,8 +216,8 @@
         wrap.id = 'nav-admin-links';
         wrap.className = 'nav-admin-links';
         wrap.innerHTML =
-          '<a class="nav-dash-btn" href="/admin/#data" title="数据分析" aria-label="数据分析">' + NAV_ICON_DATA + '<span class="nav-dash-tx">数据分析</span></a>' +
-          '<a class="nav-dash-btn" href="/admin/#content" title="内容管理" aria-label="内容管理">' + NAV_ICON_CONTENT + '<span class="nav-dash-tx">内容管理</span></a>';
+          '<a class="nav-dash-btn" href="/admin/#data" title="数据分析" aria-label="数据分析">' + NAV_ICON_DATA + '</a>' +
+          '<a class="nav-dash-btn" href="/admin/#content" title="内容管理" aria-label="内容管理">' + NAV_ICON_CONTENT + '</a>';
         controls.appendChild(wrap);
       }
     } else if (existing && existing.parentNode) {
