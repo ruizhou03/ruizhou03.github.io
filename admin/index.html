@@ -31,6 +31,12 @@ noindex: true
   <div id="adm-main" hidden>
     <div class="adm-verified">已验证管理员：<strong id="adm-email"></strong></div>
 
+    <div class="adm-board-tabs">
+      <button type="button" class="adm-board-tab adm-bon" data-board="data">📊 数据分析</button>
+      <button type="button" class="adm-board-tab" data-board="content">🗂 内容管理</button>
+    </div>
+
+    <div id="adm-board-data" class="adm-board">
     {%- comment -%} 数据看板 {%- endcomment -%}
     <section class="adm-sec">
       <div class="adm-sec-top">
@@ -69,7 +75,9 @@ noindex: true
       </div>
       <p class="adm-note" id="cf-note" hidden></p>
     </section>
+    </div><!-- /adm-board-data -->
 
+    <div id="adm-board-content" class="adm-board" hidden>
     {%- comment -%} 内容管理（清单视角；文章页齿轮是就地补充）{%- endcomment -%}
     <section class="adm-sec">
       <div class="adm-sec-top">
@@ -84,8 +92,10 @@ noindex: true
       </div>
       <div id="cm-batch" class="cm-batch" hidden></div>
       <div id="cm-list" class="cm-list"><div class="cm-empty">加载中…</div></div>
+      <div id="cm-pager" class="cm-pager"></div>
       <p class="adm-note">下架＝正文搬后端、访客（含查看源码）看不到、你仍可预览、可随时恢复（栏目里变灰）；删除＝真 404（文章不再构建），访客和你都打不开，栏目里就地留一条带删除线的墓碑、可还原或彻底删除；彻底删除＝从仓库抹除文件，站内不可恢复（只能从 git 历史找回）。改动提交后约 1–2 分钟生效（这期间列表可能仍显旧态，已就地标「重建中」）。也可在文章页用右下角齿轮就地操作。</p>
     </section>
+    </div><!-- /adm-board-content -->
   </div>
 </article>
 
@@ -148,6 +158,20 @@ noindex: true
     color: var(--color-muted); background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 999px; }
   .cm-tab.cm-on { background: var(--color-highlight); color: #fff; border-color: var(--color-highlight); }
   .cm-list { border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; }
+  .adm-board-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.8rem; border-bottom: 1px solid var(--color-border); }
+  .adm-board-tab { font-family: inherit; font-size: 0.98rem; cursor: pointer; padding: 0.55rem 1.1rem; color: var(--color-muted);
+    background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .adm-board-tab.adm-bon { color: var(--color-ink); font-weight: 700; border-bottom-color: var(--color-highlight); }
+  .adm-board[hidden] { display: none; }
+  .cm-pager { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.9rem; font-size: 0.8rem; color: var(--color-muted); }
+  .cm-pager:empty { display: none; }
+  .cm-pg-info { margin-right: 0.4rem; }
+  .cm-pg-size { font: inherit; font-size: 0.78rem; padding: 0.15rem 0.3rem; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); color: var(--color-text); margin-right: 0.5rem; }
+  .cm-pg-btn { min-width: 28px; padding: 0.2rem 0.5rem; border: 1px solid var(--color-border); border-radius: 6px;
+    background: var(--color-bg); color: var(--color-text); cursor: pointer; font: inherit; font-size: 0.8rem; }
+  .cm-pg-btn:hover:not(:disabled):not(.cm-pg-on) { border-color: var(--color-highlight); color: var(--color-highlight); }
+  .cm-pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .cm-pg-btn.cm-pg-on { background: var(--color-highlight); color: #fff; border-color: var(--color-highlight); }
   .cm-batch { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem;
     padding: 0.5rem 0.85rem; background: var(--color-bg-warm); border: 1px solid var(--color-highlight); border-radius: 10px; }
   .cm-batch[hidden] { display: none; }
@@ -374,7 +398,7 @@ noindex: true
   }
 
   // ── 内容管理 ──
-  var cmItems = null, cmFilter = 'all', cmLoaded = false, cmSel = {};
+  var cmItems = null, cmFilter = 'all', cmLoaded = false, cmSel = {}, cmPage = 1, cmPageSize = 20;
   function cmSlug(p) { var s = String(p).replace(/\.md$/, '').split('/'); return s[s.length - 1] || p; }
 
   function loadContent() {
@@ -452,19 +476,55 @@ noindex: true
     Object.keys(cmSel).forEach(function (p) { if (!visPaths[p]) delete cmSel[p]; });   // 切 tab/搜索后丢掉不再可见的勾选
     if (!rows.length) {
       el.innerHTML = '<div class="cm-empty">' + (qRaw ? '没有匹配的文章' : (cmFilter === 'all' ? '还没有文章' : '没有「' + (CM_TAB_NAME[cmFilter] || '') + '」的文章')) + '</div>';
-      renderBatchBar(rows); return;
+      renderBatchBar([]); renderPager(0, 1); return;
     }
-    el.innerHTML = rows.map(cmRowHtml).join('');
+    var total = rows.length, pages = Math.max(1, Math.ceil(total / cmPageSize));
+    if (cmPage > pages) cmPage = pages; if (cmPage < 1) cmPage = 1;
+    var pageRows = rows.slice((cmPage - 1) * cmPageSize, cmPage * cmPageSize);   // 只渲染当前页，避免一长条
+    el.innerHTML = pageRows.map(cmRowHtml).join('');
     var rowEls = el.querySelectorAll('.cm-row');
-    rows.forEach(function (it, i) {
+    pageRows.forEach(function (it, i) {
       var row = rowEls[i]; if (!row) return;
       var chk = row.querySelector('.cm-check');
-      if (chk) chk.addEventListener('change', function () { if (chk.checked) cmSel[it.path] = 1; else delete cmSel[it.path]; renderBatchBar(rows); });
+      if (chk) chk.addEventListener('change', function () { if (chk.checked) cmSel[it.path] = 1; else delete cmSel[it.path]; renderBatchBar(pageRows); });
       Array.prototype.forEach.call(row.querySelectorAll('.cm-btn'), function (btn) {
         btn.addEventListener('click', function () { cmAction(it, row, btn.getAttribute('data-a')); });
       });
     });
-    renderBatchBar(rows);
+    renderBatchBar(pageRows);
+    renderPager(total, pages);
+  }
+  function pagerNums(cur, total) {
+    if (total <= 7) { var a = []; for (var i = 1; i <= total; i++) a.push(i); return a; }
+    var set = {}; [1, total, cur, cur - 1, cur + 1].forEach(function (p) { if (p >= 1 && p <= total) set[p] = 1; });
+    var sorted = Object.keys(set).map(Number).sort(function (a, b) { return a - b; });
+    var res = []; for (var j = 0; j < sorted.length; j++) { if (j > 0 && sorted[j] - sorted[j - 1] > 1) res.push('...'); res.push(sorted[j]); }
+    return res;
+  }
+  function renderPager(total, pages) {
+    var el = document.getElementById('cm-pager'); if (!el) return;
+    if (!total) { el.innerHTML = ''; return; }
+    var html = '<span class="cm-pg-info">共 ' + total + ' 条</span>每页 <select class="cm-pg-size">';
+    [10, 20, 50, 100].forEach(function (n) { html += '<option value="' + n + '"' + (n === cmPageSize ? ' selected' : '') + '>' + n + '</option>'; });
+    html += '</select>';
+    if (pages > 1) {
+      html += '<button class="cm-pg-btn" data-pg="prev"' + (cmPage <= 1 ? ' disabled' : '') + '>‹</button>';
+      pagerNums(cmPage, pages).forEach(function (p) {
+        html += (p === '...') ? '<span style="padding:0 .15rem">…</span>'
+          : '<button class="cm-pg-btn ' + (p === cmPage ? 'cm-pg-on' : '') + '" data-pg="' + p + '">' + p + '</button>';
+      });
+      html += '<button class="cm-pg-btn" data-pg="next"' + (cmPage >= pages ? ' disabled' : '') + '>›</button>';
+    }
+    el.innerHTML = html;
+    var sizeSel = el.querySelector('.cm-pg-size');
+    if (sizeSel) sizeSel.addEventListener('change', function () { cmPageSize = parseInt(sizeSel.value, 10) || 20; cmPage = 1; renderContent(); });
+    Array.prototype.forEach.call(el.querySelectorAll('.cm-pg-btn'), function (btn) {
+      btn.addEventListener('click', function () {
+        var pg = btn.getAttribute('data-pg');
+        cmPage = pg === 'prev' ? cmPage - 1 : (pg === 'next' ? cmPage + 1 : (parseInt(pg, 10) || 1));
+        renderContent();
+      });
+    });
   }
   function renderBatchBar(rows) {
     var bar = document.getElementById('cm-batch'); if (!bar) return;
@@ -473,8 +533,9 @@ noindex: true
     bar.hidden = false;
     var btns;
     if (cmFilter === 'trash') btns = [['restore', '批量还原', ''], ['purge', '批量彻底删除', 'danger']];
-    else if (cmFilter === 'offshelf') btns = [['restore', '批量恢复', ''], ['trash', '批量删除', 'danger']];
-    else btns = [['hide', '批量下架', ''], ['trash', '批量删除', 'danger']];   // 全部 / 付费
+    else if (cmFilter === 'offshelf') btns = [['restore', '批量恢复', ''], ['unpay', '批量取消付费', ''], ['trash', '批量删除', 'danger']];
+    else if (cmFilter === 'paid') btns = [['unpay', '批量取消付费', ''], ['hide', '批量下架', ''], ['trash', '批量删除', 'danger']];
+    else btns = [['hide', '批量下架', ''], ['unpay', '批量取消付费', ''], ['trash', '批量删除', 'danger']];   // 全部
     var html = '<span class="cm-batch-n">已选 ' + sel.length + ' 篇</span>' +
       '<button type="button" class="cm-btn" data-b="all">全选本页</button>' +
       '<button type="button" class="cm-btn" data-b="none">清空</button><span class="cm-spacer"></span>';
@@ -492,10 +553,11 @@ noindex: true
       if (key === 'hide') return !it.hidden && !it.off && !it.trashed;     // 只下架还公开的
       if (key === 'restore') return it.hidden || it.off || it.trashed;     // 只还原下架/删除的
       if (key === 'trash') return !it.off && !it.trashed;                  // 只删非回收站的
+      if (key === 'unpay') return it.paid;                                 // 只取消已付费的
       if (key === 'purge') return true;
       return false;
     });
-    var label = { hide: '下架', restore: '还原', trash: '删除', purge: '彻底删除' }[key];
+    var label = { hide: '下架', restore: '还原', trash: '删除', purge: '彻底删除', unpay: '取消付费' }[key];
     if (!ops.length) { alert('选中的文章里没有可「批量' + label + '」的。'); return; }
     var warn = key === 'trash' ? '（变真 404，可在回收站还原）' : (key === 'purge' ? '（从仓库抹除文件、不可恢复！）' : '');
     if (!window.confirm('确定批量' + label + ' ' + ops.length + ' 篇？' + warn)) return;
@@ -552,18 +614,32 @@ noindex: true
     cmExec(it, a).then(function () { renderContent(); })
       .catch(function (e) { row.classList.remove('cm-busy'); alert('操作失败：' + ((e && e.error) || '请重试')); });
   }
+  function wireBoardTabs() {   // 顶层「数据分析 / 内容管理」两板块切换
+    var tabs = document.querySelectorAll('.adm-board-tab');
+    Array.prototype.forEach.call(tabs, function (t) {
+      t.addEventListener('click', function () {
+        Array.prototype.forEach.call(tabs, function (x) { x.classList.remove('adm-bon'); });
+        t.classList.add('adm-bon');
+        var b = t.getAttribute('data-board');
+        var dd = document.getElementById('adm-board-data'), cc = document.getElementById('adm-board-content');
+        if (dd) dd.hidden = (b !== 'data');
+        if (cc) cc.hidden = (b !== 'content');
+      });
+    });
+  }
   function cmWireControls() {
+    wireBoardTabs();
     Array.prototype.forEach.call(document.querySelectorAll('.cm-tab'), function (t) {
       t.addEventListener('click', function () {
         Array.prototype.forEach.call(document.querySelectorAll('.cm-tab'), function (x) { x.classList.remove('cm-on'); });
         t.classList.add('cm-on');
         cmFilter = t.getAttribute('data-f');
-        cmSel = {};                 // 切 tab 清空批量选择
+        cmSel = {}; cmPage = 1;     // 切 tab：清空批量选择 + 回第一页
         renderContent();
       });
     });
     var cs = document.getElementById('cm-search');
-    if (cs) cs.addEventListener('input', renderContent);
+    if (cs) cs.addEventListener('input', function () { cmPage = 1; renderContent(); });
   }
 
   function start() {
