@@ -414,59 +414,58 @@
   function computeDeltas(pet) {
     const entries = pet.entries || [];
     const result = [];
-    // 1) 干粮称重链（kind 'weigh'）：碗里读数作差
-    const weigh = [...entries].filter(e => (e.kind || 'weigh') === 'weigh').sort((a, b) => a.ts - b.ts);
-    let prevFood = null, prevTs = null;
-    weigh.forEach((e, i) => {
-      const fw = foodWeight(e, pet);
-      if (i === 0) {
-        result.push({ entry: e, ts: e.ts, type: 'first', amount: 0, foodWeight: fw, prevTs: null, startTs: e.ts, endTs: e.ts });
-        prevFood = fw; prevTs = e.ts; return;
-      }
-      if (fw === null || prevFood === null) {
-        result.push({ entry: e, ts: e.ts, type: 'unknown', amount: 0, foodWeight: fw, prevTs, startTs: e.ts, endTs: e.ts });
-        prevFood = fw; prevTs = e.ts; return;
-      }
-      const delta = fw - prevFood;
-      if (delta < 0) result.push({ entry: e, ts: e.ts, type: 'eat', amount: -delta, foodWeight: fw, prevTs, startTs: prevTs, endTs: e.ts });
-      else if (delta > 0) result.push({ entry: e, ts: e.ts, type: 'refill', amount: delta, foodWeight: fw, prevTs, startTs: e.ts, endTs: e.ts });
-      else result.push({ entry: e, ts: e.ts, type: 'eat', amount: 0, foodWeight: fw, prevTs, startTs: prevTs, endTs: e.ts });
-      prevFood = fw; prevTs = e.ts;
-    });
-    // 2) 每种食物各一条「作差(remain)链」：记现在还剩多少，相邻两次作差
     const kpg = kibbleKcalPerGOf(pet);
-    const remainByFood = new Map();
-    entries.filter(e => e.kind === 'remain').forEach(e => {
-      const fid = e.foodId || e.foodName || '?';
-      if (!remainByFood.has(fid)) remainByFood.set(fid, []);
-      remainByFood.get(fid).push(e);
+    // 按「食物容器」分组，每个容器各一条统一时间线：
+    //   · 水平项（lvl）= 称重(weigh，干粮碗) / 记还剩(remain，其它食物) → 设绝对水平；
+    //   · 直接填（fill = extra）→ 消耗一笔，并把该容器水平往下扣（补充机制）。
+    // 这样「先称重→后直接填→再称重」时，下一次称重只对扣减后的水平作差，不重复计已直接填的量。
+    // 干粮容器 id='kibble'，水平用 foodWeight(克)、1:1 折等效；其它食物水平用 reading(份/克)，按 kcalPerUnit/kpg 折等效。
+    const containers = new Map();
+    const C = fid => { if (!containers.has(fid)) containers.set(fid, { lvl: [], fill: [] }); return containers.get(fid); };
+    entries.forEach(e => {
+      const k = e.kind || 'weigh';
+      if (k === 'weigh') C('kibble').lvl.push(e);
+      else if (k === 'remain') C(e.foodId || e.foodName || '?').lvl.push(e);
+      else if (k === 'extra') C(e.foodId || '__legacy__').fill.push(e);   // 无 foodId 的旧 extra → 独立桶（水平恒为 null，互不联动）
     });
-    remainByFood.forEach(list => {
-      list.sort((a, b) => a.ts - b.ts);
-      let pRem = null, pTs = null;
-      list.forEach((e, i) => {
-        const cur = Number(e.reading);
-        if (i === 0 || pRem === null || !Number.isFinite(cur)) {
-          result.push({ entry: e, ts: e.ts, type: 'remain-first', amount: 0, unitsEaten: 0, prevTs: null, startTs: e.ts, endTs: e.ts });
-          if (Number.isFinite(cur)) { pRem = cur; pTs = e.ts; }
-          return;
-        }
-        const dUnits = pRem - cur;
-        if (dUnits > 0) {
-          const eq = dUnits * (Number(e.kcalPerUnit) || 0) / kpg;
-          result.push({ entry: e, ts: e.ts, type: 'remain-eat', amount: eq, unitsEaten: dUnits, prevTs: pTs, startTs: pTs, endTs: e.ts });
-        } else if (dUnits < 0) {
-          result.push({ entry: e, ts: e.ts, type: 'remain-refill', amount: 0, unitsEaten: dUnits, prevTs: pTs, startTs: e.ts, endTs: e.ts });
+    containers.forEach((c, fid) => {
+      const isKibble = (fid === 'kibble');
+      const timeline = [...c.lvl.map(e => ({ k: 'lvl', e })), ...c.fill.map(e => ({ k: 'fill', e }))].sort((a, b) => a.e.ts - b.e.ts);
+      let level = null, prevTs = null;
+      timeline.forEach(it => {
+        const e = it.e;
+        if (it.k === 'lvl') {
+          const raw = isKibble ? foodWeight(e, pet) : Number(e.reading);
+          const nl = (raw == null || !Number.isFinite(raw)) ? null : raw;
+          if (nl === null) {
+            result.push({ entry: e, ts: e.ts, type: isKibble ? 'unknown' : 'remain-first', amount: 0, foodWeight: null, prevTs: null, startTs: e.ts, endTs: e.ts });
+          } else if (level === null) {
+            result.push({ entry: e, ts: e.ts, type: isKibble ? 'first' : 'remain-first', amount: 0, foodWeight: isKibble ? nl : undefined, prevTs: null, startTs: e.ts, endTs: e.ts });
+            level = nl; prevTs = e.ts;
+          } else {
+            const du = level - nl;
+            if (du > 0) {
+              const eq = isKibble ? du : du * (Number(e.kcalPerUnit) || 0) / kpg;
+              result.push({ entry: e, ts: e.ts, type: isKibble ? 'eat' : 'remain-eat', amount: eq, unitsEaten: du, foodWeight: isKibble ? nl : undefined, prevTs, startTs: prevTs, endTs: e.ts });
+            } else if (du < 0) {
+              result.push({ entry: e, ts: e.ts, type: isKibble ? 'refill' : 'remain-refill', amount: 0, unitsEaten: du, foodWeight: isKibble ? nl : undefined, prevTs, startTs: e.ts, endTs: e.ts });
+            } else {
+              result.push({ entry: e, ts: e.ts, type: isKibble ? 'eat' : 'remain-eat', amount: 0, unitsEaten: 0, foodWeight: isKibble ? nl : undefined, prevTs, startTs: prevTs, endTs: e.ts });
+            }
+            level = nl; prevTs = e.ts;
+          }
         } else {
-          result.push({ entry: e, ts: e.ts, type: 'remain-eat', amount: 0, unitsEaten: 0, prevTs: pTs, startTs: pTs, endTs: e.ts });
+          // 直接填一笔：消耗 kibbleEqG（有 tsEnd 则摊在时间段），并扣减该容器水平
+          const eq = Number(e.kibbleEqG) || 0;
+          const endTs = (Number.isFinite(e.tsEnd) && e.tsEnd > e.ts) ? e.tsEnd : e.ts;
+          result.push({ entry: e, ts: e.ts, type: 'extra', amount: eq, foodWeight: null, prevTs: null, startTs: e.ts, endTs });
+          if (level !== null) {
+            const dec = isKibble ? (Number(e.count) || eq) : (Number(e.count) || 0);   // 扣减用食物原生单位（干粮=克、其它=份/克）
+            level = Math.max(0, level - dec);
+            prevTs = e.ts;   // 下一次称重/记还剩 从这笔之后、对扣减后的水平作差
+          }
         }
-        pRem = cur; pTs = e.ts;
       });
-    });
-    // 3) 直接填（kind 'extra'）：一笔吃了多少；有 tsEnd 则摊在 [ts, tsEnd]
-    entries.filter(e => e.kind === 'extra').forEach(e => {
-      const endTs = (Number.isFinite(e.tsEnd) && e.tsEnd > e.ts) ? e.tsEnd : e.ts;
-      result.push({ entry: e, ts: e.ts, type: 'extra', amount: Number(e.kibbleEqG) || 0, foodWeight: null, prevTs: null, startTs: e.ts, endTs });
     });
     return result;
   }
@@ -1268,7 +1267,14 @@
     const lastEntry = weighEntries[0] || null;
     if (lastEntry) {
       const fw = foodWeight(lastEntry, pet);
-      $scBowl.textContent = (fw === null) ? ('? ' + convUnit(pet)) : fmtEq(pet, fw);
+      if (fw === null) {
+        $scBowl.textContent = '? ' + convUnit(pet);
+      } else {
+        // 补充机制：最近一次称重之后的干粮「直接填」消耗，从碗中剩里扣掉
+        const since = (pet.entries || []).filter(e => e.kind === 'extra' && e.foodId === 'kibble' && e.ts > lastEntry.ts)
+          .reduce((s, e) => s + (Number(e.count) || Number(e.kibbleEqG) || 0), 0);
+        $scBowl.textContent = fmtEq(pet, Math.max(0, fw - since));
+      }
     } else {
       $scBowl.textContent = '— ' + convUnit(pet);
     }
