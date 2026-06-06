@@ -439,8 +439,9 @@
           const nl = (raw == null || !Number.isFinite(raw)) ? null : raw;
           if (nl === null) {
             result.push({ entry: e, ts: e.ts, type: isKibble ? 'unknown' : 'remain-first', amount: 0, foodWeight: null, prevTs: null, startTs: e.ts, endTs: e.ts });
-          } else if (level === null) {
-            result.push({ entry: e, ts: e.ts, type: isKibble ? 'first' : 'remain-first', amount: 0, foodWeight: isKibble ? nl : undefined, prevTs: null, startTs: e.ts, endTs: e.ts });
+          } else if (e.reset || level === null) {
+            // 倒掉换新 或 第一条 → 这次的量作为新起点，不和上次作差、不计消耗
+            result.push({ entry: e, ts: e.ts, type: isKibble ? 'first' : 'remain-first', amount: 0, foodWeight: isKibble ? nl : undefined, reset: !!e.reset, prevTs: null, startTs: e.ts, endTs: e.ts });
             level = nl; prevTs = e.ts;
           } else {
             const du = level - nl;
@@ -642,6 +643,8 @@
   const $timeEndToggle = document.getElementById('time-end-toggle');
   const $timeEndVal = document.getElementById('time-end-val');
   const $timeEndClear = document.getElementById('time-end-clear');
+  const $resetRow = document.getElementById('reset-row');
+  const $resetCheck = document.getElementById('reset-check');
 
   // Time-picker modal
   const $tpModal = document.getElementById('time-picker-modal');
@@ -1427,7 +1430,7 @@
     const unit = e.measure === 'gram' ? 'g' : (e.unitLabel || '份');
     const remStr = `${fmtAmt(Number(e.reading))} ${unit}`;
     let deltaHtml;
-    if (d.type === 'remain-first') deltaHtml = `<span class="er-delta first">${emoji} ${name} · 记下起点</span>`;
+    if (d.type === 'remain-first') deltaHtml = `<span class="er-delta first">${emoji} ${name} · ${d.reset ? '🗑 倒掉换新·起点' : '记下起点'}</span>`;
     else if (d.type === 'remain-refill') deltaHtml = `<span class="er-delta refill">${emoji} ${name} · 又开了一份</span>`;
     else if (!(d.amount > 0)) deltaHtml = `<span class="er-delta eat">${emoji} ${name} · 没变化</span>`;
     else deltaHtml = `<span class="er-delta eat">${emoji} ${name} 吃了 ${fmtEq(pet, d.amount)}</span>`;
@@ -1448,7 +1451,7 @@
     if (e.kind === 'extra') return renderExtraRow(d, pet);
     if (e.kind === 'remain') return renderRemainRow(d, pet);
     let deltaHtml;
-    if (d.type === 'first') deltaHtml = `<span class="er-delta first">起点</span>`;
+    if (d.type === 'first') deltaHtml = `<span class="er-delta first">${d.reset ? '🗑 倒掉换新 · 起点' : '起点'}</span>`;
     else if (d.type === 'unknown') deltaHtml = `<span class="er-delta unknown">无法换算</span>`;
     else if (d.amount === 0) deltaHtml = `<span class="er-delta eat">没变化</span>`;
     else if (d.type === 'eat') deltaHtml = `<span class="er-delta eat">吃了 ${fmtEq(pet, d.amount)}</span>`;
@@ -2773,6 +2776,7 @@
     const pet = currentPet();
     recordMethod = (pet && getMethodPref(pet, id)) || defaultMethodFor(id);
     pendingEntryTsEnd = null;
+    $resetCheck.checked = false;
     $reading.value = '';
     renderFoodSelector();
     applyRecordFoodUI();
@@ -2816,6 +2820,10 @@
       }
     }
     applyTimeEndUI(method === 'direct');   // 时间段只在「直接填」模式可用
+    // 「倒掉换新」只在 作差/称重 模式出现（直接填没有这个概念）
+    const showReset = (method === 'diff');
+    $resetRow.style.display = showReset ? '' : 'none';
+    if (!showReset) $resetCheck.checked = false;
   }
   function updateExtraEq() {
     const pet = currentPet(); const food = currentFoodItem();
@@ -2850,6 +2858,7 @@
       reading,
       withBowl,
       bowlWeight: withBowl ? pet.bowlWeight : null,  // snapshot at record time
+      reset: !!$resetCheck.checked,   // 倒掉换新 → 作为新起点
       note: '',
       author: DEVICE_ID,
     };
@@ -2857,6 +2866,7 @@
     pet.preferredUnit = $unitPick.value || 'g';
     persist();
     $reading.value = '';
+    $resetCheck.checked = false;
     resetEntryTime();
     render();
     $reading.focus();
@@ -2975,6 +2985,7 @@
     const newEntry = {
       id: uuid('e'), ts: pickedEntryTs(), addedAt: Date.now(),
       kind: 'remain', reading: val,
+      reset: !!$resetCheck.checked,   // 倒掉换新 → 作为新起点
       foodId: food.id, foodName: food.name, emoji: food.emoji || '🍖',
       measure: food.measure || 'count',
       unitLabel: food.measure === 'gram' ? 'g' : (food.unitLabel || '份'),
@@ -2984,6 +2995,7 @@
     pet.entries.push(newEntry);
     persist();
     $reading.value = '';
+    $resetCheck.checked = false;
     resetEntryTime();
     updateExtraEq();
     render();
@@ -3261,6 +3273,8 @@
       $bowlWeight.focus();
       return;
     }
+    // 倒掉换新：作为新起点，跳过「最近记录/含碗模式」的提醒（这一称重不和上次作差）
+    if ($resetCheck.checked) { saveEntry(gramsReading, withBowl); return; }
     // 30-minute throttle: warn (don't block) if a weigh record exists within 30 min.
     // 例外：这次称重明显比上一条「重」时（碗里变重 = 加粮），不弹窗。常见流程是
     // 先称剩余、再加新粮、又称一次——第二条本就会记成「添了 X g」，不算误记。

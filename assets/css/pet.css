@@ -264,6 +264,11 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.18);
   }
   @media (hover: hover) { .mode-toggle label:not(.active):hover { color: var(--color-ink); } }
+  .entry-form .reset-row {
+    display: flex; align-items: center; gap: 0.45rem; margin-top: 0.6rem;
+    font-size: 0.84rem; color: var(--color-muted); cursor: pointer;
+  }
+  .entry-form .reset-row input { width: 16px; height: 16px; flex: 0 0 auto; cursor: pointer; }
   .entry-form .method-toggle { display: flex; margin-bottom: 0.6rem; }
   .entry-form .method-toggle label { flex: 1 1 0; }
   /* 加结束时间 link + 结束时间 pill */
