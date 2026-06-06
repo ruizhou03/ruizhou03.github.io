@@ -408,34 +408,65 @@
     return { start, end: start + DAY_MS };
   }
 
+  // 算「吃了多少」的 delta 类型；每个 delta 同时带显示字段(type/entry)和数学字段(amount=等效干粮克数, startTs, endTs)。
+  // startTs<endTs 表示这笔消耗匀速摊在这段时间里（作差链相邻两次之间 / 直接填的时间段）；相等=某一刻的一笔。
+  const EAT_TYPES = new Set(['eat', 'remain-eat', 'extra']);
   function computeDeltas(pet) {
-    // Weigh entries form the delta chain; extras (treats/cans) are direct-fed
-    // and tracked as their own kibble-equivalent events, never in the chain.
-    const sorted = [...pet.entries].filter(e => (e.kind || 'weigh') === 'weigh').sort((a, b) => a.ts - b.ts);
-    const extras = pet.entries.filter(e => e.kind === 'extra');
+    const entries = pet.entries || [];
     const result = [];
-    let prevFood = null;
-    sorted.forEach((e, i) => {
+    // 1) 干粮称重链（kind 'weigh'）：碗里读数作差
+    const weigh = [...entries].filter(e => (e.kind || 'weigh') === 'weigh').sort((a, b) => a.ts - b.ts);
+    let prevFood = null, prevTs = null;
+    weigh.forEach((e, i) => {
       const fw = foodWeight(e, pet);
       if (i === 0) {
-        result.push({ entry: e, ts: e.ts, type: 'first', amount: 0, foodWeight: fw, prevTs: null });
-        prevFood = fw;
-        return;
+        result.push({ entry: e, ts: e.ts, type: 'first', amount: 0, foodWeight: fw, prevTs: null, startTs: e.ts, endTs: e.ts });
+        prevFood = fw; prevTs = e.ts; return;
       }
-      const prevTs = sorted[i - 1].ts;
       if (fw === null || prevFood === null) {
-        result.push({ entry: e, ts: e.ts, type: 'unknown', amount: 0, foodWeight: fw, prevTs });
-        prevFood = fw;
-        return;
+        result.push({ entry: e, ts: e.ts, type: 'unknown', amount: 0, foodWeight: fw, prevTs, startTs: e.ts, endTs: e.ts });
+        prevFood = fw; prevTs = e.ts; return;
       }
       const delta = fw - prevFood;
-      if (delta < 0) result.push({ entry: e, ts: e.ts, type: 'eat', amount: -delta, foodWeight: fw, prevTs });
-      else if (delta > 0) result.push({ entry: e, ts: e.ts, type: 'refill', amount: delta, foodWeight: fw, prevTs });
-      else result.push({ entry: e, ts: e.ts, type: 'eat', amount: 0, foodWeight: fw, prevTs });
-      prevFood = fw;
+      if (delta < 0) result.push({ entry: e, ts: e.ts, type: 'eat', amount: -delta, foodWeight: fw, prevTs, startTs: prevTs, endTs: e.ts });
+      else if (delta > 0) result.push({ entry: e, ts: e.ts, type: 'refill', amount: delta, foodWeight: fw, prevTs, startTs: e.ts, endTs: e.ts });
+      else result.push({ entry: e, ts: e.ts, type: 'eat', amount: 0, foodWeight: fw, prevTs, startTs: prevTs, endTs: e.ts });
+      prevFood = fw; prevTs = e.ts;
     });
-    extras.forEach(e => {
-      result.push({ entry: e, ts: e.ts, type: 'extra', amount: Number(e.kibbleEqG) || 0, foodWeight: null, prevTs: null });
+    // 2) 每种食物各一条「作差(remain)链」：记现在还剩多少，相邻两次作差
+    const kpg = kibbleKcalPerGOf(pet);
+    const remainByFood = new Map();
+    entries.filter(e => e.kind === 'remain').forEach(e => {
+      const fid = e.foodId || e.foodName || '?';
+      if (!remainByFood.has(fid)) remainByFood.set(fid, []);
+      remainByFood.get(fid).push(e);
+    });
+    remainByFood.forEach(list => {
+      list.sort((a, b) => a.ts - b.ts);
+      let pRem = null, pTs = null;
+      list.forEach((e, i) => {
+        const cur = Number(e.reading);
+        if (i === 0 || pRem === null || !Number.isFinite(cur)) {
+          result.push({ entry: e, ts: e.ts, type: 'remain-first', amount: 0, unitsEaten: 0, prevTs: null, startTs: e.ts, endTs: e.ts });
+          if (Number.isFinite(cur)) { pRem = cur; pTs = e.ts; }
+          return;
+        }
+        const dUnits = pRem - cur;
+        if (dUnits > 0) {
+          const eq = dUnits * (Number(e.kcalPerUnit) || 0) / kpg;
+          result.push({ entry: e, ts: e.ts, type: 'remain-eat', amount: eq, unitsEaten: dUnits, prevTs: pTs, startTs: pTs, endTs: e.ts });
+        } else if (dUnits < 0) {
+          result.push({ entry: e, ts: e.ts, type: 'remain-refill', amount: 0, unitsEaten: dUnits, prevTs: pTs, startTs: e.ts, endTs: e.ts });
+        } else {
+          result.push({ entry: e, ts: e.ts, type: 'remain-eat', amount: 0, unitsEaten: 0, prevTs: pTs, startTs: pTs, endTs: e.ts });
+        }
+        pRem = cur; pTs = e.ts;
+      });
+    });
+    // 3) 直接填（kind 'extra'）：一笔吃了多少；有 tsEnd 则摊在 [ts, tsEnd]
+    entries.filter(e => e.kind === 'extra').forEach(e => {
+      const endTs = (Number.isFinite(e.tsEnd) && e.tsEnd > e.ts) ? e.tsEnd : e.ts;
+      result.push({ entry: e, ts: e.ts, type: 'extra', amount: Number(e.kibbleEqG) || 0, foodWeight: null, prevTs: null, startTs: e.ts, endTs });
     });
     return result;
   }
@@ -443,33 +474,20 @@
   function eatenByDate(deltas) {
     const map = new Map();
     deltas.forEach(d => {
-      if (d.type === 'extra') {
-        if (d.amount > 0) {
-          const k = bucketDateIso(d.ts);
-          map.set(k, (map.get(k) || 0) + d.amount);
-        }
-        return;
-      }
-      if (d.type !== 'eat' || d.amount === 0) return;
-      if (d.prevTs === null) {
-        const k = bucketDateIso(d.ts);
+      if (!EAT_TYPES.has(d.type) || !(d.amount > 0)) return;
+      const s = d.startTs, e = d.endTs;
+      if (!(e > s)) {   // 某一刻的一笔：整笔归到那天
+        const k = bucketDateIso(s);
         map.set(k, (map.get(k) || 0) + d.amount);
         return;
       }
-      const dur = d.ts - d.prevTs;
-      if (dur <= 0) {
-        const k = bucketDateIso(d.ts);
-        map.set(k, (map.get(k) || 0) + d.amount);
-        return;
-      }
-      const rate = d.amount / dur;
-      let cursor = d.prevTs;
-      while (cursor < d.ts) {
+      const rate = d.amount / (e - s);   // 摊在 [s,e]，跨天则按各天占比分
+      let cursor = s;
+      while (cursor < e) {
         const dayIso = bucketDateIso(cursor);
         const { end } = dayRangeMs(dayIso);
-        const segEnd = Math.min(end, d.ts);
-        const portion = (segEnd - cursor) * rate;
-        map.set(dayIso, (map.get(dayIso) || 0) + portion);
+        const segEnd = Math.min(end, e);
+        map.set(dayIso, (map.get(dayIso) || 0) + (segEnd - cursor) * rate);
         cursor = segEnd;
       }
     });
@@ -618,6 +636,13 @@
   const $extraEq = document.getElementById('extra-eq');
   const $timeToggle = document.getElementById('time-toggle');
   const $timeVal = document.getElementById('time-val');
+  const $methodToggle = document.getElementById('method-toggle');
+  const $mtDirectLbl = document.getElementById('mt-direct-lbl');
+  const $mtDiffLbl = document.getElementById('mt-diff-lbl');
+  const $timeAddEnd = document.getElementById('time-add-end');
+  const $timeEndToggle = document.getElementById('time-end-toggle');
+  const $timeEndVal = document.getElementById('time-end-val');
+  const $timeEndClear = document.getElementById('time-end-clear');
 
   // Time-picker modal
   const $tpModal = document.getElementById('time-picker-modal');
@@ -1197,7 +1222,11 @@
         else setMode(true);  // bowl set + no history → 含碗
       }
     }
-    if (state.lastRenderedPetId !== pet.id) recordFood = 'kibble'; // reset food picker on pet switch
+    if (state.lastRenderedPetId !== pet.id) {
+      recordFood = 'kibble'; // reset food picker on pet switch
+      recordMethod = (getMethodPref(pet, 'kibble')) || defaultMethodFor('kibble');
+      pendingEntryTsEnd = null;
+    }
     state.lastRenderedPetId = pet.id;
 
     $unitPick.value = pet.preferredUnit || 'g';
@@ -1220,7 +1249,7 @@
 
     const { start: todayStart, end: todayEnd } = dayRangeMs(todayIso);
     const todayDeltas = deltas.filter(d => d.ts >= todayStart && d.ts < todayEnd);
-    const todayCount = todayDeltas.filter(d => d.type !== 'extra').length;
+    const todayCount = todayDeltas.length;   // 每条记录(称重/作差/直接填)各一笔
 
     const recent = lastNDays(7, todayIso);
     const recentExclToday = recent.filter(d => d !== todayIso);
@@ -1362,18 +1391,20 @@
     return `<span class="er-actions">${edit}<button type="button" class="er-del" data-eid="${e.id}" title="删除" aria-label="删除这条记录">×</button></span>`;
   }
 
+  function fmtAmt(n) { return Number.isInteger(n) ? String(n) : parseFloat(Number(n).toFixed(2)); }
   function renderExtraRow(d, pet) {
     const e = d.entry;
     const eq = Number(e.kibbleEqG) || 0;
-    const cnt = (Number(e.count) || 1);
-    const cntStr = Number.isInteger(cnt) ? cnt : parseFloat(cnt.toFixed(2));
+    const cntStr = fmtAmt(Number(e.count) || 1);
     const name = escapeHtml(e.foodName || '零食');
     const emoji = e.emoji || '🍖';
     // gram-measured: "罐头 40g" ; count-measured: "猫条 ×2 根"
     const amountStr = (e.measure === 'gram') ? `${cntStr}g` : `×${cntStr} ${e.unitLabel || '份'}`;
+    // 有结束时间戳 → 显示成时间段
+    const timeStr = (Number.isFinite(e.tsEnd) && e.tsEnd > e.ts) ? `${fmtTime(e.ts)}–${fmtTime(e.tsEnd)}` : fmtTime(e.ts);
     return `
       <div class="entry-row entry-row-extra">
-        <span class="er-time">${fmtTime(e.ts)}</span>
+        <span class="er-time">${timeStr}</span>
         <span class="er-main">
           <span class="er-delta extra">${emoji} ${name} ${amountStr}</span>
           <span class="er-reading">≈ ${fmtEq(pet, eq)} 等效${escapeHtml(convName(pet))}</span>
@@ -1383,9 +1414,33 @@
     `;
   }
 
+  function renderRemainRow(d, pet) {
+    const e = d.entry;
+    const name = escapeHtml(e.foodName || '食物');
+    const emoji = e.emoji || '🍖';
+    const unit = e.measure === 'gram' ? 'g' : (e.unitLabel || '份');
+    const remStr = `${fmtAmt(Number(e.reading))} ${unit}`;
+    let deltaHtml;
+    if (d.type === 'remain-first') deltaHtml = `<span class="er-delta first">${emoji} ${name} · 记下起点</span>`;
+    else if (d.type === 'remain-refill') deltaHtml = `<span class="er-delta refill">${emoji} ${name} · 又开了一份</span>`;
+    else if (!(d.amount > 0)) deltaHtml = `<span class="er-delta eat">${emoji} ${name} · 没变化</span>`;
+    else deltaHtml = `<span class="er-delta eat">${emoji} ${name} 吃了 ${fmtEq(pet, d.amount)}</span>`;
+    return `
+      <div class="entry-row entry-row-extra">
+        <span class="er-time">${fmtTime(e.ts)}</span>
+        <span class="er-main">
+          ${deltaHtml}
+          <span class="er-reading">现在还剩 ${remStr}</span>
+        </span>
+        ${entryRowActions(e, pet)}
+      </div>
+    `;
+  }
+
   function renderEntryRow(d, pet) {
     const e = d.entry;
     if (e.kind === 'extra') return renderExtraRow(d, pet);
+    if (e.kind === 'remain') return renderRemainRow(d, pet);
     let deltaHtml;
     if (d.type === 'first') deltaHtml = `<span class="er-delta first">起点</span>`;
     else if (d.type === 'unknown') deltaHtml = `<span class="er-delta unknown">无法换算</span>`;
@@ -1421,7 +1476,7 @@
     let html = '';
     sortedDates.forEach(date => {
       const items = groups.get(date);
-      const eaten = items.filter(x => x.type === 'eat' || x.type === 'extra').reduce((s, x) => s + x.amount, 0);
+      const eaten = items.filter(x => EAT_TYPES.has(x.type) && x.amount > 0).reduce((s, x) => s + x.amount, 0);
       const sortedItems = [...items].sort((a, b) => b.ts - a.ts);
       html += `<div class="day-divider"><span>${date}</span><span>当日 <strong>${fmtEq(pet, eaten)}</strong> · ${items.length} 条记录</span></div>`;
       sortedItems.forEach(d => { html += renderEntryRow(d, pet); });
@@ -1494,63 +1549,40 @@
     const todayIso = todayBucketIso();
     const { start: dayStart, end: dayEnd } = dayRangeMs(todayIso);
 
-    const sortedEntries = [...pet.entries].filter(e => { const k = e.kind || 'weigh'; return k === 'weigh' || k === 'extra'; }).sort((a, b) => a.ts - b.ts);
-    const points = [{ t: dayStart, c: 0 }];
-    let cum = 0;
-    let prevTs = null;
-    let prevFood = null;
-
-    for (let i = 0; i < sortedEntries.length; i++) {
-      const e = sortedEntries[i];
-
-      // Extras: instantaneous jump in cumulative intake, not part of the
-      // weigh-based delta chain (don't touch prevTs/prevFood).
-      if (e.kind === 'extra') {
-        const eq = Number(e.kibbleEqG) || 0;
-        if (eq > 0 && e.ts >= dayStart && e.ts < dayEnd) {
-          if (e.ts > points[points.length - 1].t) points.push({ t: e.ts, c: cum });
-          cum += eq;
-          points.push({ t: e.ts, c: cum });
-        }
-        continue;
+    // 把今天所有消耗事件整理成 斜坡(ramp，时间段匀速涨) + 瞬时(step，某一刻一笔)，再扫描积分成累计曲线。
+    // 用统一的 delta（startTs/endTs）—— 作差链、直接填、时间段都已归一，且能正确处理事件重叠（如罐头与干粮区间叠加）。
+    const ramps = [];  // {s, e, rate}
+    const steps = [];  // {t, amount}
+    const bset = new Set([dayStart]);
+    deltas.forEach(d => {
+      if (!EAT_TYPES.has(d.type) || !(d.amount > 0)) return;
+      if (d.endTs > d.startTs) {
+        const s = Math.max(d.startTs, dayStart), e = Math.min(d.endTs, dayEnd);
+        if (e > s) { ramps.push({ s, e, rate: d.amount / (d.endTs - d.startTs) }); bset.add(s); bset.add(e); }
+      } else if (d.startTs >= dayStart && d.startTs < dayEnd) {
+        steps.push({ t: d.startTs, amount: d.amount }); bset.add(d.startTs);
       }
-
-      const fw = foodWeight(e, pet);
-
-      if (prevTs === null || prevFood === null || fw === null) {
-        prevTs = e.ts;
-        prevFood = fw;
-        continue;
-      }
-
-      const delta = fw - prevFood;
-      if (delta < 0) {
-        const eaten = -delta;
-        const dur = e.ts - prevTs;
-        if (dur > 0) {
-          const segStart = Math.max(prevTs, dayStart);
-          const segEnd = Math.min(e.ts, dayEnd);
-          if (segEnd > segStart) {
-            const rate = eaten / dur;
-            if (segStart > points[points.length - 1].t) points.push({ t: segStart, c: cum });
-            const newCum = cum + (segEnd - segStart) * rate;
-            points.push({ t: segEnd, c: newCum });
-            cum = newCum;
-          }
-        }
-      } else {
-        if (e.ts >= dayStart && e.ts < dayEnd) {
-          if (e.ts > points[points.length - 1].t) points.push({ t: e.ts, c: cum });
-        }
-      }
-      prevTs = e.ts;
-      prevFood = fw;
-    }
-
+    });
     const now = Date.now();
     const endT = (now >= dayStart && now < dayEnd) ? now : dayEnd;
-    if (endT > points[points.length - 1].t) points.push({ t: endT, c: cum });
+    bset.add(endT);
+    const xs = [...bset].filter(t => t >= dayStart && t <= endT).sort((a, b) => a - b);
+    const points = [{ t: dayStart, c: 0 }];
+    let cum = 0;
+    for (let i = 0; i < xs.length; i++) {
+      const t = xs[i];
+      const stepSum = steps.reduce((a, st) => a + (st.t === t ? st.amount : 0), 0);
+      if (stepSum > 0) { points.push({ t, c: cum }); cum += stepSum; points.push({ t, c: cum }); }
+      if (i + 1 < xs.length) {
+        const t2 = xs[i + 1];
+        const rate = ramps.reduce((a, r) => a + ((r.s <= t && r.e >= t2) ? r.rate : 0), 0);
+        cum += rate * (t2 - t);
+        points.push({ t: t2, c: cum });
+      }
+    }
+    if (points[points.length - 1].t < endT) points.push({ t: endT, c: cum });
 
+    const sortedEntries = [...pet.entries].filter(e => { const k = e.kind || 'weigh'; return k === 'weigh' || k === 'extra' || k === 'remain'; }).sort((a, b) => a.ts - b.ts);
     const todayMeasurements = sortedEntries.filter(e => e.ts >= dayStart && e.ts < dayEnd).map(e => ({
       ts: e.ts, c: interpolateCum(points, e.ts),
     }));
@@ -2520,10 +2552,41 @@
       $timeToggle.classList.remove('custom');
     }
   }
-  function resetEntryTime() { setPendingEntryTs(null); }
+  let pendingEntryTsEnd = null;   // 直接填模式可选的结束时间戳（构成时间段）
+  function setPendingEntryTsEnd(ts) {
+    pendingEntryTsEnd = ts || null;
+    applyTimeEndUI(recordMethod === 'direct');
+  }
+  function applyTimeEndUI(enabled) {
+    if (!enabled) { $timeAddEnd.style.display = 'none'; $timeEndToggle.style.display = 'none'; return; }
+    if (pendingEntryTsEnd) {
+      $timeAddEnd.style.display = 'none';
+      $timeEndToggle.style.display = '';
+      $timeEndVal.textContent = shortMD(isoDate(pendingEntryTsEnd)) + ' ' + fmtTime(pendingEntryTsEnd);
+    } else {
+      $timeAddEnd.style.display = '';
+      $timeEndToggle.style.display = 'none';
+    }
+  }
+  function resetEntryTime() { setPendingEntryTs(null); pendingEntryTsEnd = null; applyTimeEndUI(recordMethod === 'direct'); }
 
   // ===== Unified food selector (kibble + saved treats/cans) =====
   let recordFood = 'kibble';  // 'kibble' | foodId
+  let recordMethod = 'diff';  // 'direct' | 'diff'（每种食物可不同；干粮默认 diff，其它默认 direct）
+  // 记住每种食物上次用的填法（设备本地，不跨设备同步）
+  function methodPrefKey(pet) { return 'pet-method-pref'; }
+  function getMethodPref(pet, foodKey) {
+    try { const m = JSON.parse(localStorage.getItem(methodPrefKey(pet)) || '{}'); return m[pet.id + '|' + foodKey] || null; } catch (_) { return null; }
+  }
+  function setMethodPref(pet, foodKey, method) {
+    try { const m = JSON.parse(localStorage.getItem(methodPrefKey(pet)) || '{}'); m[pet.id + '|' + foodKey] = method; localStorage.setItem(methodPrefKey(pet), JSON.stringify(m)); } catch (_) {}
+  }
+  function defaultMethodFor(foodKey) { return foodKey === 'kibble' ? 'diff' : 'direct'; }
+  function lastRemainReading(pet, foodId) {
+    const list = (pet.entries || []).filter(e => e.kind === 'remain' && e.foodId === foodId).sort((a, b) => b.ts - a.ts);
+    return list.length ? Number(list[0].reading) : null;
+  }
+  function unitOf(food) { return food.measure === 'gram' ? 'g' : (food.unitLabel || '份'); }
   function currentFoodItem() {
     if (recordFood === 'kibble') return null;
     const pet = currentPet();
@@ -2701,43 +2764,73 @@
 
   function selectRecordFood(id) {
     recordFood = id;
+    const pet = currentPet();
+    recordMethod = (pet && getMethodPref(pet, id)) || defaultMethodFor(id);
+    pendingEntryTsEnd = null;
     $reading.value = '';
     renderFoodSelector();
     applyRecordFoodUI();
     updateExtraEq();
   }
-  // Adapt the single input box to whatever food is selected.
+  // 按 选中的食物 × 当前填法 调整输入框 / 切换块 / 时间段控件
   function applyRecordFoodUI() {
     const food = currentFoodItem();
-    if (!food) {
-      // kibble: weigh flow
+    const isKibble = !food;
+    const method = recordMethod;
+    const pet = currentPet();
+    // 填法切换条
+    $methodToggle.style.display = '';
+    $mtDirectLbl.textContent = '直接填吃了多少';
+    $mtDiffLbl.textContent = isKibble ? '称重作差' : '作差·记还剩';
+    $methodToggle.querySelectorAll('label').forEach(l => l.classList.toggle('active', l.dataset.m === method));
+    const mr = $methodToggle.querySelector(`input[value="${method}"]`); if (mr) mr.checked = true;
+
+    if (isKibble) {
       $unitPick.style.display = '';
       $unitSuffix.style.display = 'none';
-      $modeBowlRow.style.display = '';
       $extraEqRow.style.display = 'none';
-      const pet = currentPet();
-      $reading.placeholder = (pet && pet.preferredUnit && pet.preferredUnit !== 'g') ? `粮食称重（${pet.preferredUnit}）` : '粮食称重';
-      checkFormWarn();   // 按当前 含碗/不含碗 决定空碗设置是否出现
+      if (method === 'diff') {
+        $modeBowlRow.style.display = '';
+        $reading.placeholder = (pet && pet.preferredUnit && pet.preferredUnit !== 'g') ? `碗里现在（${pet.preferredUnit}）` : '碗里现在的重量';
+        checkFormWarn();
+      } else {
+        $modeBowlRow.style.display = 'none';
+        $reading.placeholder = '吃了多少';
+      }
     } else {
       $unitPick.style.display = 'none';
       $modeBowlRow.style.display = 'none';
       $extraEqRow.style.display = '';
-      if (food.measure === 'gram') {
-        $unitSuffix.style.display = '';
-        $unitSuffix.textContent = 'g';
-        $reading.placeholder = '吃了多少';
+      $unitSuffix.style.display = '';
+      $unitSuffix.textContent = unitOf(food);
+      if (method === 'diff') {
+        $reading.placeholder = food.measure === 'gram' ? '现在还剩多少' : ('现在还剩几' + (food.unitLabel || '份'));
       } else {
-        $unitSuffix.style.display = '';
-        $unitSuffix.textContent = food.unitLabel || '份';
-        $reading.placeholder = '吃了几' + (food.unitLabel || '份');
+        $reading.placeholder = food.measure === 'gram' ? '吃了多少' : ('吃了几' + (food.unitLabel || '份'));
       }
     }
+    applyTimeEndUI(method === 'direct');   // 时间段只在「直接填」模式可用
   }
   function updateExtraEq() {
     const pet = currentPet(); const food = currentFoodItem();
     if (!pet || !food) { $extraEq.textContent = '≈ — 等效干粮'; return; }
-    const eq = kibbleEqOf(pet, parseFloat($reading.value), food.kcalPerUnit);
-    $extraEq.textContent = (eq > 0) ? `≈ ${fmtEq(pet, eq)} 等效${convName(pet)}` : `≈ — 等效${convName(pet)}`;
+    const val = parseFloat($reading.value);
+    if (recordMethod === 'diff') {
+      const prev = lastRemainReading(pet, food.id);
+      const u = unitOf(food);
+      if (prev == null) {
+        $extraEq.textContent = Number.isFinite(val) ? `记下起点：还剩 ${fmtAmt(val)} ${u}（下次再记就能算出吃了多少）` : '第一次记「现在还剩多少」当起点';
+        return;
+      }
+      if (!Number.isFinite(val)) { $extraEq.textContent = `上次还剩 ${fmtAmt(prev)} ${u}`; return; }
+      const eaten = prev - val;
+      if (eaten > 0) { const eq = kibbleEqOf(pet, eaten, food.kcalPerUnit); $extraEq.textContent = `比上次少 ${fmtAmt(eaten)} ${u} → 吃了 ≈ ${fmtEq(pet, eq)} 等效${convName(pet)}`; }
+      else if (eaten < 0) { $extraEq.textContent = `比上次多 → 算「又开了一份」，不计为吃`; }
+      else { $extraEq.textContent = `和上次一样，没吃`; }
+    } else {
+      const eq = kibbleEqOf(pet, val, food.kcalPerUnit);
+      $extraEq.textContent = (eq > 0) ? `≈ ${fmtEq(pet, eq)} 等效${convName(pet)}` : `≈ — 等效${convName(pet)}`;
+    }
   }
 
   function saveEntry(reading, withBowl) {
@@ -2813,12 +2906,15 @@
       return;
     }
     const eq = kibbleEqOf(pet, count, food.kcalPerUnit);
+    const endTs = (pendingEntryTsEnd && pendingEntryTsEnd > pickedEntryTs()) ? pendingEntryTsEnd : undefined;
     const newEntry = {
       id: uuid('e'),
       ts: pickedEntryTs(),
+      tsEnd: endTs,            // 可选结束时间 → 时间段
       addedAt: Date.now(),
       kind: 'extra',
       reading: null,           // keep null so legacy clients mark it 无法换算, not pollute deltas
+      foodId: food.id,
       foodName: food.name,
       emoji: food.emoji || '🍖',
       measure: food.measure || 'count',
@@ -2828,6 +2924,56 @@
       kibbleEqG: eq,           // snapshot the conversion at record time
       note: '',
       author: DEVICE_ID,
+    };
+    pet.entries.push(newEntry);
+    persist();
+    $reading.value = '';
+    resetEntryTime();
+    updateExtraEq();
+    render();
+    pushAddEntry(pet, newEntry);
+  }
+  // 干粮「直接填吃了多少」—— 记成一笔 extra（等效干粮=克数，1:1）
+  function saveKibbleDirect() {
+    const pet = currentPet();
+    if (!pet) return;
+    const raw = parseFloat($reading.value);
+    const unit = $unitPick.value || 'g';
+    const grams = toGrams(raw, unit);
+    if (!Number.isFinite(grams) || grams <= 0) { alert('吃了多少克填一下'); return; }
+    const kb = pet.kibble || {};
+    const endTs = (pendingEntryTsEnd && pendingEntryTsEnd > pickedEntryTs()) ? pendingEntryTsEnd : undefined;
+    const newEntry = {
+      id: uuid('e'), ts: pickedEntryTs(), tsEnd: endTs, addedAt: Date.now(),
+      kind: 'extra', reading: null,
+      foodId: 'kibble', foodName: kb.name || '干粮', emoji: kb.emoji || '🥣',
+      measure: 'gram', unitLabel: 'g', count: grams,
+      kcalPerUnit: kibbleKcalPerGOf(pet), kibbleEqG: grams,
+      note: '', author: DEVICE_ID,
+    };
+    pet.entries.push(newEntry);
+    pet.preferredUnit = unit;
+    persist();
+    $reading.value = '';
+    resetEntryTime();
+    updateExtraEq();
+    render();
+    pushAddEntry(pet, newEntry);
+  }
+  // 食物「作差·记现在还剩」—— 记成一笔 remain，吃了多少靠相邻两次差值算
+  function saveFoodRemain() {
+    const pet = currentPet(); const food = currentFoodItem();
+    if (!pet || !food) return;
+    const val = parseFloat($reading.value);
+    if (!Number.isFinite(val) || val < 0) { alert('填一下现在还剩多少'); return; }
+    const newEntry = {
+      id: uuid('e'), ts: pickedEntryTs(), addedAt: Date.now(),
+      kind: 'remain', reading: val,
+      foodId: food.id, foodName: food.name, emoji: food.emoji || '🍖',
+      measure: food.measure || 'count',
+      unitLabel: food.measure === 'gram' ? 'g' : (food.unitLabel || '份'),
+      kcalPerUnit: food.kcalPerUnit,
+      note: '', author: DEVICE_ID,
     };
     pet.entries.push(newEntry);
     persist();
@@ -3090,8 +3236,13 @@
   function attemptSave() {
     const pet = currentPet();
     if (!pet) { alert('先添加一只宠物'); return; }
-    // Non-kibble food selected → unified extra-save path.
-    if (recordFood !== 'kibble') { saveSelectedExtra(); return; }
+    // 按 (食物 × 填法) 分派：
+    if (recordFood !== 'kibble') {
+      if (recordMethod === 'diff') { saveFoodRemain(); return; }   // 食物·作差·记还剩
+      saveSelectedExtra(); return;                                  // 食物·直接填(+时间段)
+    }
+    if (recordMethod === 'direct') { saveKibbleDirect(); return; }  // 干粮·直接填(+时间段)
+    // 干粮·称重作差（现状）：
     const raw = parseFloat($reading.value);
     if (!Number.isFinite(raw) || raw < 0) { alert('请输入碗里现在的重量'); return; }
     const unit = $unitPick.value || 'g';
@@ -3269,6 +3420,26 @@
   // --- Custom record time (add) ---
   $timeToggle.addEventListener('click', () => {
     openTimePicker(pendingEntryTs || Date.now(), ts => setPendingEntryTs(ts), '这次记录的时间', () => resetEntryTime());
+  });
+  // --- 结束时间（构成时间段，仅直接填模式）---
+  function pickEndTime() {
+    openTimePicker(pendingEntryTsEnd || pickedEntryTs(), ts => setPendingEntryTsEnd(ts), '吃完的时间（结束）', () => setPendingEntryTsEnd(null));
+  }
+  $timeAddEnd.addEventListener('click', pickEndTime);
+  $timeEndToggle.addEventListener('click', (e) => {
+    if (e.target === $timeEndClear) { setPendingEntryTsEnd(null); return; }
+    pickEndTime();
+  });
+
+  // --- 填法切换（直接填 / 作差）---
+  $methodToggle.querySelectorAll('input[name="rec-method"]').forEach(r => {
+    r.addEventListener('change', () => {
+      recordMethod = r.value;
+      const pet = currentPet();
+      if (pet) setMethodPref(pet, recordFood, recordMethod);
+      applyRecordFoodUI();
+      updateExtraEq();
+    });
   });
 
   // ===== Food (treat/can) modal =====

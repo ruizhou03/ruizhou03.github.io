@@ -264,6 +264,18 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.18);
   }
   @media (hover: hover) { .mode-toggle label:not(.active):hover { color: var(--color-ink); } }
+  .entry-form .method-toggle { display: flex; margin-bottom: 0.6rem; }
+  .entry-form .method-toggle label { flex: 1 1 0; }
+  /* 加结束时间 link + 结束时间 pill */
+  .entry-form .action-col .time-add-end {
+    font: inherit; font-size: 0.8rem; cursor: pointer; color: var(--color-accent);
+    background: var(--color-bg-warm); border: 1px dashed var(--color-accent); border-radius: 999px;
+    padding: 0.4rem 0.7rem; white-space: nowrap;
+  }
+  .entry-form .action-col .time-pill-end .tp-clear {
+    margin-left: 0.3rem; color: var(--color-muted); font-size: 0.85rem; padding: 0 0.15rem;
+  }
+  @media (hover: hover) { .entry-form .action-col .time-add-end:hover { background: var(--color-bg); } }
   .entry-form .save-btn {
     font: inherit; font-size: 0.98rem; font-weight: 600;
     padding: 0.7rem 1.6rem; border: none; border-radius: 999px;

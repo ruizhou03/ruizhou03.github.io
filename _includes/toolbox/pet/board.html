@@ -40,7 +40,7 @@
       </div>
       <div class="sum-card">
         <div class="sc-num" id="sc-count">—</div>
-        <div class="sc-lbl">今日称重</div>
+        <div class="sc-lbl">今日记录</div>
       </div>
       <div class="sum-card">
         <div class="sc-num" id="sc-avg">— g</div>
@@ -71,6 +71,11 @@
 
         <!-- MIDDLE: fixed-width fill area — same width in every food mode -->
         <div class="fill-area">
+          <!-- 填法切换：每种食物都能「直接填吃了多少」或「作差·记现在还剩」 -->
+          <div class="method-toggle mode-toggle" id="method-toggle">
+            <label data-m="direct" class="active"><input type="radio" name="rec-method" value="direct" checked><span id="mt-direct-lbl">直接填吃了多少</span></label>
+            <label data-m="diff"><input type="radio" name="rec-method" value="diff"><span id="mt-diff-lbl">作差</span></label>
+          </div>
           <div class="entry-main-row">
             <div class="reading-group">
               <input type="number" class="reading" id="reading" step="any" placeholder="粮食称重" inputmode="decimal" />
@@ -113,6 +118,14 @@
             <span class="tp-lbl">记录时间</span>
             <span class="tp-val" id="time-val">现在</span>
             <span class="tp-edit">✎</span>
+          </button>
+          <!-- 直接填模式可选填一个结束时间，构成时间段（只影响今日曲线） -->
+          <button type="button" class="time-add-end" id="time-add-end" style="display:none;">＋ 加结束时间</button>
+          <button type="button" class="time-pill time-pill-end" id="time-end-toggle" style="display:none;">
+            <span class="tp-ico">🕑</span>
+            <span class="tp-lbl">结束</span>
+            <span class="tp-val" id="time-end-val">—</span>
+            <span class="tp-clear" id="time-end-clear" title="去掉结束时间">✕</span>
           </button>
         </div>
       </div>
