@@ -7,12 +7,15 @@
 <style>
   /* ── 导航里的账号入口 ── */
   #auth-slot { display: flex; align-items: center; }
-  /* 管理员专属「数据看板」图标（EN 与头像之间），样式对齐 EN/搜索 */
-  .nav-dash-btn { display: inline-flex; align-items: center; justify-content: center;
+  /* 管理员专属「数据分析 / 内容管理」按钮（EN 旁），样式对齐 EN/搜索 */
+  .nav-admin-links { display: inline-flex; align-items: center; }
+  .nav-dash-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.28rem;
     color: var(--color-muted); border: 1px solid var(--color-border); border-radius: 4px;
-    padding: 0.26rem 0.4rem; margin-left: 0.4rem; cursor: pointer; text-decoration: none;
+    padding: 0.26rem 0.5rem; margin-left: 0.4rem; cursor: pointer; text-decoration: none;
     transition: color .2s, border-color .2s; }
   .nav-dash-btn:hover { color: var(--color-highlight); border-color: var(--color-highlight); }
+  .nav-dash-tx { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+  @media (max-width: 600px) { .nav-dash-tx { display: none; } }   /* 窄屏只留图标 */
   /* 桌面端：账号入口绝对定位到导航最右（脱离 flex 流 → 主题/语言切换完全不受影响、
      与英文站绝对位置一致）。锚定 position:fixed 的 <nav>，距视口右缘 2.2rem。
      ≤980px 退回内联（窄屏右侧无富余空间，绝对定位会和 EN 重叠）。 */
@@ -202,21 +205,22 @@
   // ── 导航入口渲染 ──
   var slot = document.getElementById('auth-slot');
   function initial(nick) { return (nick || '?').trim().charAt(0).toUpperCase(); }
-  // 管理员专属：在导航右侧 EN 与头像之间注入「数据看板」图标（非管理员则移除）
+  // 管理员专属：在导航右侧注入「数据分析 / 内容管理」两个可见按钮（非管理员则移除）
+  var NAV_ICON_DATA = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="18" y1="20" x2="18" y2="9"></line></svg>';
+  var NAV_ICON_CONTENT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>';
   function syncAdminNav(user) {
     var controls = document.querySelector('.nav-controls');
     if (!controls) return;
-    var existing = document.getElementById('nav-admin-dash');
+    var existing = document.getElementById('nav-admin-links');
     if (user && user.isAdmin) {
       if (!existing) {
-        var a = document.createElement('a');
-        a.id = 'nav-admin-dash';
-        a.className = 'nav-dash-btn';
-        a.href = '/admin/';
-        a.title = '管理后台';
-        a.setAttribute('aria-label', '管理后台');
-        a.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="18" y1="20" x2="18" y2="9"></line></svg>';
-        controls.appendChild(a);   // .nav-controls 顺序为 头像/主题/EN，追加即落在 EN 之后、头像之前
+        var wrap = document.createElement('span');
+        wrap.id = 'nav-admin-links';
+        wrap.className = 'nav-admin-links';
+        wrap.innerHTML =
+          '<a class="nav-dash-btn" href="/admin/#data" title="数据分析" aria-label="数据分析">' + NAV_ICON_DATA + '<span class="nav-dash-tx">数据分析</span></a>' +
+          '<a class="nav-dash-btn" href="/admin/#content" title="内容管理" aria-label="内容管理">' + NAV_ICON_CONTENT + '<span class="nav-dash-tx">内容管理</span></a>';
+        controls.appendChild(wrap);
       }
     } else if (existing && existing.parentNode) {
       existing.parentNode.removeChild(existing);
@@ -236,7 +240,6 @@
         '<div class="sa-menu">' +
           '<div class="sa-menu-name">' + (user.nick || user.email || '') + '</div>' +
           '<a href="/account/">我的主页</a>' +
-          (user.isAdmin ? '<a href="/admin/#data">数据分析</a><a href="/admin/#content">内容管理</a>' : '') +
           '<button type="button" class="sa-logout">退出登录</button>' +
         '</div>' +
       '</div>';
