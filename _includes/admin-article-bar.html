@@ -23,7 +23,10 @@
   <div class="ab-edit-card">
     <div class="ab-edit-h">编辑源文件 · <span id="abe-path"></span></div>
     <div class="abe-paid-hint" id="abe-paid-hint" hidden>设为付费：在免费 / 付费的分界处<b>单独一行</b>插入 <code>&lt;!-- PAYWALL --&gt;</code> —— 上面留作免费预览（提交进仓库），下面是付费正文（<b>只存后端、不进仓库</b>）。填好价格后点「设为付费并提交」。</div>
-    <textarea id="abe-text" class="ab-edit-text" spellcheck="false" wrap="off"></textarea>
+    <div class="ab-edit-panes">
+      <textarea id="abe-text" class="ab-edit-text" spellcheck="false" wrap="off"></textarea>
+      <div id="abe-preview" class="markdown-content ab-edit-preview" aria-label="实时预览"></div>
+    </div>
     <div class="ab-edit-foot">
       <span class="ab-edit-msg" id="abe-msg"></span>
       <span style="flex:1"></span>
@@ -67,15 +70,26 @@
   .ab-edit-mask { display: none; position: fixed; inset: 0; z-index: 1600;
     background: rgba(20,28,40,0.5); backdrop-filter: blur(3px); align-items: center; justify-content: center; padding: 1rem; }
   .ab-edit-mask.open { display: flex; }
-  .ab-edit-card { width: 760px; max-width: 100%; max-height: 88vh; display: flex; flex-direction: column;
+  .ab-edit-card { width: 1120px; max-width: 100%; max-height: 90vh; display: flex; flex-direction: column;
     background: var(--color-bg, #fff); color: var(--color-text); border: 1px solid var(--color-border);
     border-radius: 14px; box-shadow: 0 18px 50px rgba(0,0,0,0.3); padding: 1rem 1.1rem 1.1rem; }
   .ab-edit-h { font-size: 0.85rem; font-weight: 700; color: var(--color-ink); margin-bottom: 0.6rem; word-break: break-all; }
   .ab-edit-h span { color: var(--color-muted); font-weight: 400; }
-  .ab-edit-text { flex: 1; min-height: 50vh; width: 100%; box-sizing: border-box; resize: vertical;
+  /* 分栏：左源码(CodeMirror，未加载时回退为 textarea) + 右实时预览 */
+  .ab-edit-panes { display: flex; gap: 0.8rem; flex: 1; min-height: 0; }
+  .ab-edit-text { flex: 1 1 50%; min-width: 0; box-sizing: border-box; resize: none;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.82rem; line-height: 1.5;
     color: var(--color-text); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px;
     padding: 0.7rem 0.8rem; white-space: pre; }
+  .ab-edit-panes > .CodeMirror { flex: 1 1 50%; min-width: 0; height: 62vh; border: 1px solid var(--color-border);
+    border-radius: 8px; font-size: 0.82rem; line-height: 1.5; }
+  .ab-edit-preview { flex: 1 1 50%; min-width: 0; height: 62vh; overflow: auto; box-sizing: border-box;
+    border: 1px solid var(--color-border); border-radius: 8px; padding: 0.8rem 1.1rem; background: var(--color-bg); }
+  .ab-edit-preview:empty::before { content: "实时预览"; color: var(--color-light); font-size: 0.8rem; }
+  @media (max-width: 860px) {
+    .ab-edit-panes { flex-direction: column; }
+    .ab-edit-panes > .CodeMirror, .ab-edit-preview, .ab-edit-text { height: 34vh; flex: 0 0 auto; }
+  }
   .ab-edit-foot { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.7rem; }
   .ab-edit-msg { font-size: 0.7rem; color: var(--color-light); }
   .ab-edit-btn { font-family: inherit; font-size: 0.85rem; cursor: pointer; padding: 0.4rem 0.9rem;
@@ -162,7 +176,49 @@
     var paidSaveBtn = document.getElementById('abe-paid-save');
     var editSha = null;
     var editMode = 'edit';   // 'edit' = 整文件覆盖写；'paid' = 设为付费（劈分上传）
-    var HINT = '保存即提交到 main，约 1–2 分钟生效。改开头 --- 之间的 front-matter 请保持 YAML 格式正确。';
+    var HINT = '左边编源码、右边实时预览；保存即提交到 main，约 1–2 分钟生效。改开头 --- 之间的 front-matter 请保持 YAML 格式正确。';
+
+    // ── 分栏编辑器：左 CodeMirror 源码 + 右实时预览(marked+KaTeX)。库按需懒加载；加载失败回退 textarea ──
+    var cm = null, previewTimer = null, editorLibs = 0, editorCbs = [];   // editorLibs: 0未load 1加载中 2就绪
+    var previewEl = document.getElementById('abe-preview');
+    function loadScript(src, cb) { var s = document.createElement('script'); s.src = src; s.onload = cb; s.onerror = cb; document.head.appendChild(s); }
+    function ensureMarked(cb) { if (window.marked && window.marked.parse) { cb(); return; } loadScript('https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js', cb); }
+    function loadEditorLibs(cb) {
+      if (editorLibs === 2) { cb(); return; }
+      editorCbs.push(cb);
+      if (editorLibs === 1) return;
+      editorLibs = 1;
+      var css = document.createElement('link'); css.rel = 'stylesheet';
+      css.href = 'https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css'; document.head.appendChild(css);
+      loadScript('https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js', function () {
+        loadScript('https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/markdown/markdown.min.js', function () {
+          ensureMarked(function () { editorLibs = 2; editorCbs.forEach(function (c) { c(); }); editorCbs = []; });
+        });
+      });
+    }
+    function setEditorValue(v) { if (cm) cm.setValue(v); else textEl.value = v; schedulePreview(); }
+    function getEditorValue() { return cm ? cm.getValue() : textEl.value; }
+    function renderPreview() {
+      if (!previewEl) return;
+      var body = getEditorValue().replace(/^---\r?\n[\s\S]*?\r?\n---[ \t]*\r?\n?/, '');   // 去掉 front-matter，只渲染正文
+      previewEl.innerHTML = (window.marked && window.marked.parse) ? window.marked.parse(body) : '';
+      if (window.renderMathInElement) {
+        try { window.renderMathInElement(previewEl, { delimiters: [
+          { left: '$$', right: '$$', display: true }, { left: '\\[', right: '\\]', display: true },
+          { left: '$', right: '$', display: false }, { left: '\\(', right: '\\)', display: false } ], throwOnError: false }); } catch (e) {}
+      }
+    }
+    function schedulePreview() { clearTimeout(previewTimer); previewTimer = setTimeout(renderPreview, 250); }
+    function ensureEditor() {
+      loadEditorLibs(function () {
+        if (!cm && window.CodeMirror && textEl) {
+          cm = CodeMirror.fromTextArea(textEl, { mode: 'markdown', lineWrapping: true, viewportMargin: Infinity });
+          cm.on('change', schedulePreview);   // 尺寸由 CSS .ab-edit-panes > .CodeMirror 控制
+        }
+        if (cm) cm.refresh();
+        schedulePreview();
+      });
+    }
 
     function openEdit(mode) {
       editMode = mode === 'paid' ? 'paid' : 'edit';
@@ -170,14 +226,16 @@
       fab.classList.remove('ab-open');
       mask.classList.add('open');
       pathEl.textContent = path;
-      textEl.value = ''; eMsg.textContent = '加载中…';
+      setEditorValue(''); eMsg.textContent = '加载中…';
       saveBtn.hidden = isPaid; saveBtn.disabled = true;
       paidSaveBtn.hidden = !isPaid; paidSaveBtn.disabled = true;
       priceWrap.hidden = !isPaid; paidHint.hidden = !isPaid;
+      ensureEditor();   // 懒加载分栏编辑器（库没到位则回退纯 textarea）
       window.SiteAuth.authedFetch('/api/admin?action=gh-get&path=' + encodeURIComponent(path))
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
         .then(function (d) {
-          textEl.value = d.content || ''; editSha = d.sha;
+          setEditorValue(d.content || ''); editSha = d.sha;
+          if (cm) cm.refresh();
           if (isPaid) {
             var pm = (d.content || '').match(/^[ \t]*price[ \t]*:[ \t]*(.*)$/m);
             if (pm) priceInput.value = pm[1].trim().replace(/^["']|["']$/g, '');
@@ -185,7 +243,7 @@
             eMsg.textContent = '在分界处插入一行 <!-- PAYWALL --> 后点「设为付费并提交」。';
           } else {
             saveBtn.disabled = false;
-            eMsg.textContent = /^[ \t]*bodyremote[ \t]*:[ \t]*true/m.test(textEl.value)
+            eMsg.textContent = /^[ \t]*bodyremote[ \t]*:[ \t]*true/m.test(getEditorValue())
               ? '注意：本文正文已隐藏到后端，这里只是空壳；要改正文请先「取消隐藏 / 从回收站恢复」再编辑。'
               : HINT;
           }
@@ -201,7 +259,7 @@
       saveBtn.disabled = true; eMsg.textContent = '提交中…';
       window.SiteAuth.authedFetch('/api/admin?action=gh-put', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: path, content: textEl.value, sha: editSha })
+        body: JSON.stringify({ path: path, content: getEditorValue(), sha: editSha })
       })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
         .then(function (d) { editSha = d.sha; eMsg.textContent = '已提交，约 1–2 分钟生效。'; setTimeout(closeEdit, 1100); })
@@ -213,14 +271,14 @@
 
     // 设为付费并提交：把编辑框整源文件按 <!-- PAYWALL --> 劈分，锁定正文存后端、预览提交 main
     paidSaveBtn.addEventListener('click', function () {
-      if (textEl.value.indexOf('<!-- PAYWALL -->') === -1) {
+      if (getEditorValue().indexOf('<!-- PAYWALL -->') === -1) {
         eMsg.textContent = '请先在免费/付费分界处单独插入一行 <!-- PAYWALL -->'; return;
       }
       paidSaveBtn.disabled = true; eMsg.textContent = '提交中…';
       var priceVal = priceInput.value.trim();
       window.SiteAuth.authedFetch('/api/admin?action=paid-publish', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: path, content: textEl.value, sha: editSha, price: priceVal === '' ? null : Number(priceVal) })
+        body: JSON.stringify({ path: path, content: getEditorValue(), sha: editSha, price: priceVal === '' ? null : Number(priceVal) })
       })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
         .then(function () {
