@@ -1,3 +1,67 @@
+## 2026-06-07
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周日 DOW=7，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=07，未跑 monthly_stats）。距 6-06 巡检共 **20 个 commit**（`632b269` 之后 → `9a199f5` 为止），主线三条：① **宠物食量记录大重构**——`c1b5aa0` 食量记录统一（每种食物都能「直接填吃了多少」或「作差·记现在还剩」，pet.js +288 行）、`36950b1` 补充机制（填扣减容器水平、下次称重/作差只算增量，重构 104 行）、`07bdfa1` 倒掉换新（作差/称重模式可标 "这次作为新起点"）、`9a199f5` 修「碗里/还剩变多」误标 "没变化"（→ 正确显示 "添了 X"）。② **手机端顶栏三栏化**——`9cf494d` `_includes/auth.html` + `assets/css/main.css` + `_layouts/default.html` 重排：手机端顶栏只留「锆铌 / ☰ / 头像」，其它（搜索 / 主题 / EN / 管理后台）收进汉堡菜单；新加 `.nav-brand` + `relocateNavControls()` 在 matchMedia 断点变化时动态移动 DOM 节点；管理后台「数据分析 / 内容管理」桌面端只图标、菜单里露文字。③ **管理后台收口**——`d4eb5fd` 后台拆「数据分析/内容管理」两板块 + 内容管理分页 + 批量取消付费；`df6ae09 5bcc2ca 3e105d1` 导航菜单露 admin 两入口（直达对应板块 → 可见双按钮 → 只图标精修）；`00e8ef3` admin-article-bar 加 Typora 式分栏编辑器（左 CodeMirror 源码 + 右实时预览，68 行）。穿插 **6 条 `chore(admin) 还原 ...` + 2 条 `chore(admin) 删除(真404) ...`**（站主 6-06 16:45–17:10 在后台对 `wipe-after-pee / structural-load-testing / standing-vs-sitting-urination / fridge-layout-guide / drinking-water-types / condoms-guide` 共 6 篇做隐藏 / 真 404 / 恢复调试，最终全部恢复 `published:true`）。最后 `046cb4e` jukebox 歌词重对齐 69 首（large-v3 单曲 + 串烧丢未唱段）。今日 `scripts/audit/run.sh` 全套审计 ✅ 全 clean（keywords / images / material_type / filename / hover / sibling / bare_dollar / img_caption_md / svg_italic / bare_url / frontmatter_yaml），`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（约 16 s，首次 cold build）。**本次没有可安全自动修复项**——所有审计维度均 clean，20 个 commit 全是大块功能落地（pet-food 重构、手机 nav、admin Typora 编辑器），按保守原则不动。残余 P2 4 项（paywall 后端冒烟、scripts 内 `/Users/zhourui/` 硬编码、内部 prompt 称呼 zirconeey、PDF-only 存档手写互链）状态不变。
+
+### ✅ 本次已自动修复
+
+**无**。今日所有审计维度（11 个每日 audit）全部 clean、`bundle exec` 构建零 warning 零 error。20 个 commit 引入的新结构（pet-food 食量统一 + 补充机制 + 倒掉换新 / 手机 nav 三栏化 / admin Typora 分栏编辑器 / jukebox 69 首歌词重对齐）均为站主大块落地，没有 agent 介入余地——任何 "顺手清理" 都触碰功能边界或 UX 调性，按保守原则不动。10 项抽检逐项过审（详见下方专项小节）也未发现需要立即修的小问题。
+
+### 📋 待你把关
+
+#### P1（建议尽快）
+
+**P1 队列今日清零** —— 与 6-06 一致，未新增 P1。
+
+#### P2（看心情）
+
+1. **新付费墙系统在沙箱无后端出口验证** —— 承接 6-04/6-05/6-06 P2#1。`zircon-urge.fly.dev` 今日仍 HTTP 403，`scripts/paywall/smoke_test.py` 仍需站主在生产环境跑。
+
+2. **`scripts/{compile-r-tutorials,build-psy-stat-II-rmd,merge-psy-stat-II}.py` 中 9 处 `/Users/zhourui/Desktop/...` 本机绝对路径** —— 沿用 6-04 P2#2/6-06 P2#2。`scripts/` 已被 exclude，不影响线上。
+
+3. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里仍称"zirconeey 站"** —— 沿用 6-05 P2#4/6-06 P2#3。内部 prompt / 文档。
+
+4. **`_notes/study/adv-metrics-pku/mid-2015.md`、`_notes/study/psy-stat-I/anova-R.md` 这两类纯 PDF 存档可考虑加同课程互链入口** —— 沿用 6-05 P2#6/6-06 P2#4。设计取向项，`sibling_crosslink.py` 当前不报警（已用自动侧栏覆盖）。
+
+#### 🆕 本次抽检 10/10 中新出现的观察（不是问题，是提示）
+
+- **`assets/js/pet.js` 当前 4272 行**（6-06 `c4d056a` 拆出来时是 ~3150 行，今天 `c1b5aa0` 食量记录统一 +288 行、`36950b1` 补充机制重构 104 行、`07bdfa1` 倒掉换新 +18 行、`9a199f5` 修 "添了 X" +3 行；累计约 +1120 行）。**不是问题**——纯单文件 inline JS、SW 缓存友好、与站点风格一致；但若再加新模式（自动喂食预测 / 多猫账户切换 / 食材换算建议）会逼近 5000 行，届时可考虑按业务面拆 `pet-food.js` / `pet-data.js` / `pet-ui.js`，**架构判断由站主**。
+
+- **手机端顶栏三栏化（`9cf494d`）用 `relocateNavControls()` 在 `matchMedia('(max-width: 768px)').change` 时动态 `menu.appendChild(el)` / `controls.appendChild(el)` 移动 DOM 节点**——干净优雅、不复制结构。**不是问题**，记一笔：以后若再加 nav 控件（如「公众号」入口、「订阅」入口）需要同步加入 `[search, theme, en, admin]` 的迁移列表，否则会在断点切换时漏迁。
+
+- **站主 6-06 16:45–17:10 集中做后台可见性调试**：`condoms-guide / drinking-water-types` 走「真 404 → 恢复」、`structural-load-testing / wipe-after-pee / standing-vs-sitting-urination / fridge-layout-guide` 走「隐藏 → 恢复」，最终全部 `published:true`。从 commit 节奏看是测 6-06 `4730a56` 墓碑回原位 + 6-07 `d4eb5fd` 内容管理批量取消付费这两个新功能。**不是问题**，记一笔。
+
+#### 🗒️ 待办清账（承接 6-06）
+
+- **图片 alt / caption 覆盖**：`images.py` 今日仍 `missing_alt = 0` / `missing_caption = 0`（白名单 62 条），保持收口。
+- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套 HTTP 403。
+- **Round-3 留下的 ~68 个 P1**：未在本次范围推进。
+- **`taichi-review-2023.md`「85 公里跑」**：未触碰。
+- **大图基线**：与昨日完全一致，无变化。
+- **`_notes/life/paid-test-{us-banking-guide,us-visa-types}.md` 标题仍带"（付费）"后缀但 `paid:false`**：承接 6-06 P2#1 第二条，等站主拍板是否清掉「（付费）」标签。
+
+### 🔬 抽检专项
+
+> 本次种子抽 10 项（强制配额 game/pdf_archive/lecture_note_pdf_only 各 ≥1，其余随机）。10 项一视同仁过审清单。
+
+- **抽检 1/10 · game · `toolbox/typing/index.html`**（745 行 / 35.7 KB，inline-only）—— ✅ 无问题。2 处 `:hover` 全数 `@media (hover: hover)` 守卫；引用 `assets/js/games-shell/leaderboard.js` 接入排行榜（与全站游戏一致）；单文件下还有打字内容（quotes 数组）、UI、统计、排行榜接线，结构紧凑无冗余；与全站游戏 inline-only 同质（doudizhu 2399 行 / chess 1986 行均同模式）。无需 LaTeX 化或拆分。
+- **抽检 2/10 · pdf_archive · `files/china-hist/china-hist-2024.pdf`**（1.7 MB）—— ✅ 无问题。被 `_notes/study/china-hist/china-hist-2024.md` 引用、front-matter `pdf_url: /files/china-hist/china-hist-2024.pdf` 路径一致；体积 < 5 MB 不需 pdfslim；文件名带年份、命名规则 OK。无 .tex 源——这是一份课程笔记 PDF（北大通识《中国古代文化》），**LaTeX 化评估**：通识课程笔记、复用频次中等、若按朝代主题章节多含图表则迁移成本高；**维持 PDF 存档即可**。
+- **抽检 3/10 · lecture_note_pdf_only · `_notes/study/public-econ/public-econ-2023.md`**（17 行 / 1.3 KB，正文 0 字）—— ✅ 无问题。front-matter 完整（discipline=经济学 / course=公共经济学 / material_type=Notes / date=2023-09-01 / author=Zircon）；keywords 26 条覆盖中英文术语（"公共物品 public goods" / "皮古税 Pigouvian tax" / "Mirrlees 最优所得税" / "Atkinson Stiglitz" / "Salanié 公共经济学 教材"）+ summary 7 模块导览；pdf_url 与 `files/public-econ/public-econ-2023.pdf` 一致；PDF 自动导语由 `post.html` 走 course + material_type 触发。**LaTeX 化评估**：光华本科公经笔记、模块齐全、自用复习频次中高，**加入低优队列**（与 6-06 抽检 3/10 adv-micro-pku-2023 同档）。
+- **抽检 4/10 · note · `_notes/research/literature-search.md`**（97 行 / 7.8 KB）—— ✅ 无问题。文献检索与追踪攻略，front-matter 完整（sub_category=文献管理 / date=2026-05-20）；keywords 37 条覆盖中英文 + 错别字兜底（"wenxian jiansuo" / "怎么找文献" / "找不到文献"）；五段结构（Scholar 高级 / 引用网络 / alert 订阅 / AI 工具红线 / 每周 30 分钟习惯）调性清晰；inline SVG（引用图谱可视化）配 `text-anchor` + `font-size` 合规、无中文斜体；交叉链 [Zotero](/research/literature/zotero-setup) 出现 3 次形成串读。**`bare_dollar / img_caption_md / svg_italic_zh` clean** 印证格式合规。
+- **抽检 5/10 · pdf_archive · `files/corp-fin/mid-sample-2.pdf`**（290.3 KB）—— ✅ 无问题。被 `_notes/study/corp-fin/mid-sample-2.md` 引用、front-matter `pdf_url` 路径一致；体积 < 5 MB 不需 pdfslim；文件名 `mid-sample-2` 命名规则 OK（公司财务样卷 2，配套答案 `mid-sample-2-sol.pdf` 同目录）。**LaTeX 化评估**：样卷题面 + 答案对，公司财务 NPV/IRR/WACC/CAPM/MM 标配题，**维持 PDF 存档即可**（样卷迭代成本低）。
+- **抽检 6/10 · lecture_note_pdf_only · `_notes/study/psy-stat-I/mid-2022.md`**（17 行 / 672 B，正文 0 字）—— ✅ 无问题。front-matter 完整（discipline=心理学 / course=心理统计Ⅰ / material_type=Exams / date=2022-09-01）；keywords 6 条偏少但覆盖中英文 + 错别字兜底（"心理统计 1 期中" / "psy stat 1 midterm 2022" / "心里统计 期中"）；pdf_url 与 `files/psy-stat-I/mid-2022.pdf` 一致；summary 写"做完再对照站里这门课的其他资料复盘"——同课程互链入口由 `sibling_crosslink.py` clean 印证自动侧栏覆盖。**LaTeX 化评估**：单年期中真题、复用频次低，**维持 PDF 存档即可**。
+- **抽检 7/10 · note · `_notes/life/eye-chart-numbers.md`**（201 行 / 14.9 KB）—— ✅ 无问题。「生活之问」专栏五段结构齐全（问题 / 结论先行 / 科学原理 / 实践 / 总结）；keywords 40 条覆盖中英文 + 同义词（"20/20 vision" / "Snellen" / "logMAR" / "MAR" / "5.0 算近视吗" / "diopter"）+ 故意保留口语错别字；2 处 inline SVG（视标几何 + 对数刻度对比）配 `<p class="img-caption">` 合规；正文用 `\$1.0 = 20/20$` 与 `\$5.0 = 1.0 = 20/20$` 这种"开口 `\$` 转义 + 闭口裸 `$`"——**乍看可疑但实际合规**：kramdown 把 `\$` 渲染成字面 `$`，最终 HTML 是 `$1.0 = 20/20$`，KaTeX auto-render 正确识别为内联公式（已在 `_site/life/eye-chart-numbers.html:182-183` 抽样验证）；`bare_dollar.py` 不报警因为 `\$` 的转义优先级正确。**保留原样**。
+- **抽检 8/10 · pdf_archive · `files/public-econ/public-econ-2023.pdf`**（1.7 MB）—— ✅ 无问题。与抽检 3/10 互为正文 / PDF 对；体积合理（< 5 MB）；被 `_notes/study/public-econ/public-econ-2023.md` 引用，无孤儿。已在抽检 3/10 给出 LaTeX 化建议（加入低优队列）。
+- **抽检 9/10 · game · `toolbox/timemachine/index.html`**（477 行 / 14.3 KB，inline-only）—— ✅ 无问题。3 处 `:hover` 全数 `@media (hover: hover)` 守卫（重置按钮 / 文章行 / 热力图格子）；包含 `@media (max-width: 600px)` 响应式断点；单文件 477 行小巧（与 typing 745 / chess 1986 同质 inline-only 但远短）；为索引式工具（X 年前的今天回顾），无对局状态，单人小工具不需排行榜——合理不接入。
+- **抽检 10/10 · lecture_note_pdf_only · `_notes/study/psy-stat-I/final-2022.md`**（17 行 / 1.3 KB，正文 0 字）—— ✅ 无问题。与抽检 6/10 配套同课程；front-matter 完整；keywords 28 条比 mid-2022 厚（"z 检验 期末" / "ANOVA 期末" / "卡方检验 期末" / "假设检验 期末" / "效应量 期末" + 心理学/心理统计/心里统计 别名）+ summary 写"配合本课 cheat sheet 和 anova-R 笔记一起复盘"；pdf_url 与 `files/psy-stat-I/final-2022.pdf` 一致。**LaTeX 化评估**：单年期末真题、复用频次低，**维持 PDF 存档即可**。
+
+---
+
+### 🗂 仓库卫生
+
+**仓库结构较昨日无变化** —— `git diff --diff-filter=A 4730a56..HEAD` 与 `git diff --diff-filter=D` 均为空（20 commit 全是已有文件修改）；工作区 clean、`git status --short` 空、`git ls-files --others --exclude-standard` 空。**敏感文件扫描**：未发现新 `.env` / `credentials*` / `token*` / `secret*`；未发现 `.DS_Store` 或 `"xxx 2.yyy"` 形式副本；`_config.yml` exclude 列表完备（含 DAILY_REVIEW.md / SPOTCHECK_* / docs/ / scripts/ / backends/ / _paid/）。**结论**：仓库卫生 ✅ 干净，承接 6-06 与之前的整理成果，无新可优化空间。
+
+---
+
 ## 2026-06-06
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周六 DOW=6，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=06，未跑 monthly_stats）。距 6-05 巡检共 **30 个 commit**（`518c778` 之后 → `4730a56` 为止），主线两条：① **管理后台「下架/删除/回收站」可见性体系收口**——`6b92659` 修上一份 P1（公开 manifest 不再泄漏 `hidden:true` 文 + 后台改从鉴权后端 `/api/admin?action=hidden-list` 取隐藏清单，与 `f71b497` 隐私意图收敛）、`25e2bb3` 栏目内逐篇删除/恢复 + 删除线/变灰、`c5b3267` 可见性重定为两档（下架 / 删除回收站 + 彻底删除）、`5487cda` 删除 = 你和读者都看不到（点开 404）与下架预览分清、`e4213f5` 删除改 `published:false` + 栏目注入墓碑、`7d74498` 付费/取消付费齿轮分界标记 + 就地开关、`4ad51b3` 真隐藏正文搬后端·空壳页（访客看不到、管理员可预览）、`3b13685` 按钮文案/删除付费按钮/墓碑内联/管理员默认享付费、`4730a56` 墓碑回原位（按日期 + 参与分页）+ 空态按 tab + 内容管理批量操作；穿插 11 条 `chore(admin) ...via 管理后台` 的 GitHub API 提交（站主真实操作产生：`structural-load-testing / wipe-after-pee / standing-vs-sitting-urination` 走「真 404」、`fridge-layout-guide / drinking-water-types / condoms-guide` 反复隐藏-恢复、`paid-test-us-banking-guide / paid-test-us-visa-types` 取消付费）。② **棋类联机 / 宠物中心 / SW 韧性三件套**——`358533e` xiangqi 联机引擎 Phase 1（走子同步 + 颜色绑定 + 视角 + 回合）、`55e547e` Phase 2/3（被邀请者进领地卡坐对应座位 + 房主看入座可换位 + 开局翻盘动画）、`7b61e23` v5（回合倒计时/超时托管 + mode 反转 bug + 取消邀请 + 美化按钮 + 本地翻盘）、`3f0b77b` 把 xiangqi v5 整套领地卡迁移到国际象棋（v1）、`7743c04 4591a76 033fd24` xiangqi 打磨；`07407ac` 食物列表长按拖拽排序 + 干粮可编辑、`04a58de eb82f21 1d19484 a9ba1ab 95f44a0 6be24b3 9e51248` pet-food 弹窗/必填校验/换算基准/拖拽 FLIP/食物选择器圆角；`8fdb248` 宠物数据随账号跨设备同步、`c4d056a` 宠物中心 CSS/JS 外置（HTML 347→128KB）、`5d2ced8` SW HTML 导航加 20s 硬上限 + 4s 网络抢答兜底；额外 `4c8cc78` 修 6-05 P2#1（admin `.adm-mini:hover` + toolbox/random 缩进对齐）、`d9786a9` 加 `docs/territory-lobby-pattern.md` 模板交接文档。**6-05 P1（admin-manifest 公开泄漏 hidden 文）由 `6b92659` 修完，P2#1（admin `.adm-mini:hover` 守卫缺失）+ P2#4（random CSS 缩进）由 `4c8cc78` 修完——P1 队列今日清零，P2 也清掉两项**。今日 `scripts/audit/run.sh` 全套审计 ✅ 全 clean（keywords / images / material_type / filename / hover / sibling / bare_dollar / img_caption_md / svg_italic / bare_url / frontmatter_yaml），`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（8.39 s）。**本次没有可安全自动修复项**——所有审计维度均 clean，30 个 commit 全是大块功能落地，admin 安全模型与棋类调性都涉及取舍，按保守原则不动。残余 P2 4 项（paywall 后端冒烟、scripts 内 `/Users/zhourui/` 硬编码、内部 prompt 称呼 zirconeey、PDF-only 存档手写互链）状态不变。
