@@ -11,7 +11,15 @@ permalink: /toolbox/pindou/
   .pb-sub { color: var(--color-light); font-style: normal; font-size: 0.9rem; }
 
   .pb-step { border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-bg); padding: 1.1rem 1.1rem 1.2rem; margin-bottom: 1rem; }
-  .pb-step.is-disabled { opacity: 0.45; pointer-events: none; }
+  .pb-step.pb-locked { display: none; }  /* 未到达的步骤直接不渲染（渐进展开） */
+
+  /* 分享「看图模式」：主视觉直接是拼豆图，藏掉上传/滑杆 */
+  .pb-wrap.is-shared #step1 { display: none; }
+  .pb-wrap.is-shared .pb-step-n { display: none; }
+  .pb-wrap.is-shared #step2 .pb-step-h, .pb-wrap.is-shared #step2 .pb-step-hint { display: none; }
+  .pb-wrap.is-shared #step2 .pb-ctl { display: none; }
+  .pb-wrap.is-shared #step2 .pb-work { grid-template-columns: 1fr; }
+  .pb-wrap.is-shared #step2 .pb-stats { margin-top: .8rem; }
   .pb-step-h { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.85rem; }
   .pb-step-n { flex: 0 0 auto; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
   .pb-step-t { font-family: var(--font-display); font-size: 1.08rem; font-weight: 600; color: var(--color-ink); }
@@ -127,7 +135,7 @@ permalink: /toolbox/pindou/
   .pb-hidden { display: none !important; }
 </style>
 
-<div class="pb-wrap">
+<div class="pb-wrap" id="pbwrap">
   <header>
     <h1>🧩 拼豆图纸生成器</h1>
     <p class="pb-sub">上传一张图 → 自动抠出主体 → 变成可照着摆的拼豆像素图纸</p>
@@ -137,7 +145,7 @@ permalink: /toolbox/pindou/
     <div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;">
       <div style="font-size:1.4rem;">📤</div>
       <div style="flex:1 1 200px;font-size:.9rem;color:var(--color-ink);line-height:1.5;">这是别人分享的拼豆图纸——下面可直接看图纸、配色清单，或下载 / 打印。想做自己的，上传一张图即可。</div>
-      <button class="pb-btn pri" id="makeOwn">＋ 自己做一张</button>
+      <button class="pb-btn pri" id="makeOwn">✏️ 创建我的拼豆图</button>
     </div>
   </div>
 
@@ -202,7 +210,7 @@ permalink: /toolbox/pindou/
   </section>
 
   <!-- ========== ② 调精细度 & 配色 ========== -->
-  <section class="pb-step is-disabled" id="step2">
+  <section class="pb-step pb-locked" id="step2">
     <div class="pb-step-h"><div class="pb-step-n">2</div><div class="pb-step-t">调精细度 & 配色</div></div>
     <div class="pb-step-hint">左边是拼豆效果，右边随手调。三条滑杆联动；左图随调随变，且始终完整显示——想看细节可手动放大。</div>
 
@@ -245,7 +253,7 @@ permalink: /toolbox/pindou/
   </section>
 
   <!-- ========== ③ 图纸 & 清单 ========== -->
-  <section class="pb-step is-disabled" id="step3">
+  <section class="pb-step pb-locked" id="step3">
     <div class="pb-step-h"><div class="pb-step-n">3</div><div class="pb-step-t">图纸 & 购物清单</div></div>
     <div class="pb-step-hint">照着图纸一格一格摆。「带坐标图纸」每 10 格有粗线和编号、每种颜色一个字母符号，适合打印对照。</div>
 
@@ -329,7 +337,7 @@ permalink: /toolbox/pindou/
     aiGen: 0, aiGaveUp: false, timeDragging: false, shared: false
   };
 
-  function enableStep(id){ $(id).classList.remove('is-disabled'); }
+  function enableStep(id){ $(id).classList.remove('pb-locked'); }
   function showMsg(id,t,err){ const e=$(id); e.textContent=t; e.classList.remove('pb-hidden'); e.style.color = err ? '#b4451f' : 'var(--color-light)'; }
   function hideMsg(id){ $(id).classList.add('pb-hidden'); }
 
@@ -345,11 +353,16 @@ permalink: /toolbox/pindou/
   let imglyMod = null;
   async function getModule(){ if(imglyMod) return imglyMod; imglyMod = await import(IMGLY_URL); return imglyMod; }
   let onModelProgress = null; // runAI 用它把预下载进度映射到抠图遮罩
+  // 模型在浏览器缓存里(R2 已设 immutable Cache-Control)→ 记一个标记,文案区分"首次/已缓存"
+  function modelSeen(){ try{ return localStorage.getItem('pindou_model_dl')==='1'; }catch(e){ return false; } }
+  function markModelSeen(){ try{ localStorage.setItem('pindou_model_dl','1'); }catch(e){} }
 
   function showModelStatus(state, frac){
     const e = $('modelStatus');
     if(state==='loading'){ e.classList.remove('pb-hidden'); e.style.color='var(--color-light)';
-      e.textContent = '🤖 正在后台准备 AI 抠图模型…' + (frac ? ' '+Math.round(frac*100)+'%' : '（首次约 50MB）'); }
+      e.textContent = modelSeen()
+        ? '🤖 正在载入 AI 抠图模型…（已缓存，很快）' + (frac ? ' '+Math.round(frac*100)+'%' : '')
+        : '🤖 正在后台准备 AI 抠图模型…' + (frac ? ' '+Math.round(frac*100)+'%' : '（首次约 50MB）'); }
     else if(state==='ready'){ e.classList.remove('pb-hidden'); e.style.color='#2e8b57';
       e.textContent = '🤖 ✓ AI 抠图模型已就绪，上传后可立即抠图';
       setTimeout(()=>{ if(S.modelReady) e.classList.add('pb-hidden'); }, 4000); }
@@ -365,7 +378,7 @@ permalink: /toolbox/pindou/
           if(DL_RE.test(key)){ const f = tot?cur/tot:0; S.preloadFrac=f; showModelStatus('loading', f); if(onModelProgress) onModelProgress(f); }
         }}));
       }
-      S.modelReady = true; showModelStatus('ready');
+      S.modelReady = true; markModelSeen(); showModelStatus('ready');
     }catch(e){ console.warn('preload failed', e); showModelStatus('hide'); }
   }
 
@@ -424,7 +437,7 @@ permalink: /toolbox/pindou/
     $('cutOverlay').classList.remove('pb-hidden'); editCanvas.classList.add('processing');
     $('cutSpinner').classList.remove('spin');
     const v=visibleDl(frac); setRing(v); $('cutPct').textContent=Math.round(v*100)+'%';
-    $('cutLabel').textContent='下载 AI 模型…（首次）'; $('cutBarWrap').classList.add('pb-hidden');
+    $('cutLabel').textContent = modelSeen() ? '载入 AI 模型…' : '下载 AI 模型…（首次）'; $('cutBarWrap').classList.add('pb-hidden');
   }
   let creepTimer=null;
   function startCreep(){ stopCreep(); $('cutBarWrap').classList.remove('pb-hidden'); let v=0.04;
@@ -473,7 +486,7 @@ permalink: /toolbox/pindou/
       clearTimers();
       if(myGen!==S.aiGen){ stopCreep(); return; }
       const cutMs = cutStart ? (Date.now()-cutStart) : 0;
-      S.modelReady = true; showModelStatus('hide');
+      S.modelReady = true; markModelSeen(); showModelStatus('hide');
       $('cutBar').style.width='100%';
       const bmp = await blobToCanvasData(blob, S.W, S.H);
       const m = new Uint8Array(S.W*S.H); let anyBead=0;
@@ -542,7 +555,7 @@ permalink: /toolbox/pindou/
   $('undoBtn').addEventListener('click', ()=>{
     if(!undoStack.length) return; S.mask=undoStack.pop(); S.painted=true; renderEdit();
     if(!undoStack.length) $('undoBtn').disabled=true;
-    if(!$('step2').classList.contains('is-disabled')) regenerate();
+    if(!$('step2').classList.contains('pb-locked')) regenerate();
   });
   $('resetMask').addEventListener('click', ()=>{ S.painted=false; clearUndo(); runAI(); });
 
@@ -574,7 +587,7 @@ permalink: /toolbox/pindou/
   }
   function startPaint(e){ if(!S.mask || !toolsOpen()) return; e.preventDefault(); pushUndo(); painting=true; moveCursor(e); const [x,y]=canvasXY(e); paintAt(x,y); }
   function movePaint(e){ moveCursor(e); if(!painting) return; e.preventDefault(); const [x,y]=canvasXY(e); paintAt(x,y); }
-  function endPaint(){ if(painting){ painting=false; if(!$('step2').classList.contains('is-disabled')) regenerate(); } }
+  function endPaint(){ if(painting){ painting=false; if(!$('step2').classList.contains('pb-locked')) regenerate(); } }
   editCanvas.addEventListener('mousedown', startPaint);
   editCanvas.addEventListener('mousemove', movePaint);
   editCanvas.addEventListener('mouseleave', ()=>{ brushCursor.style.display='none'; });
@@ -887,6 +900,7 @@ permalink: /toolbox/pindou/
     const m=location.hash.match(/[#&]p=([A-Za-z0-9_\-]+)/);
     if(!m) return false;
     if(decodeShare(m[1])){
+      $('pbwrap').classList.add('is-shared');   // 看图模式：主视觉=拼豆图，藏掉上传/滑杆
       $('sharedBanner').classList.remove('pb-hidden');
       enableStep('step2'); enableStep('step3');
       const lng=Math.max(S.cols,S.rows);
