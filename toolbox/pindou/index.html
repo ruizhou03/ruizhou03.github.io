@@ -264,7 +264,7 @@ permalink: /toolbox/pindou/
         <span class="pb-pager"><button id="legPrev">‹</button>第 <span id="legPageNo">1</span>/<span id="legPages">1</span> 页<button id="legNext">›</button></span>
       </div>
       <table>
-        <thead><tr><th>符号</th><th>颜色</th><th>色号 · 名称</th><th class="num">颗数</th><th class="num">占比</th></tr></thead>
+        <thead><tr><th>色号</th><th>颜色</th><th>名称</th><th class="num">颗数</th><th class="num">占比</th></tr></thead>
         <tbody id="legendBody"></tbody>
         <tfoot id="legendFoot"></tfoot>
       </table>
@@ -767,9 +767,9 @@ permalink: /toolbox/pindou/
     if(!S.legendPage || S.legendPage>pages) S.legendPage = 1;
     const start=(S.legendPage-1)*per;
     $('legendBody').innerHTML = S.used.slice(start, start+per).map(u=>
-      '<tr><td class="pb-symcell">'+u.sym+'</td>'+
+      '<tr><td class="pb-symcell">'+(u.code||u.sym||'')+'</td>'+
       '<td><span class="pb-sw" style="background:'+u.h+'"></span></td>'+
-      '<td><b class="pb-symcell">'+(u.code||'')+'</b> '+u.n+'</td>'+
+      '<td>'+u.n+'</td>'+
       '<td class="num">'+u.count.toLocaleString()+'</td>'+
       '<td class="num">'+(total?(u.count/total*100).toFixed(1):0)+'%</td></tr>'
     ).join('');
@@ -791,12 +791,15 @@ permalink: /toolbox/pindou/
     c.width=S.cols*cp+lab+6; c.height=S.rows*cp+lab+6;
     const cx=c.getContext('2d');
     cx.fillStyle='#fff'; cx.fillRect(0,0,c.width,c.height);
-    cx.font=Math.round(cp*0.55)+'px ui-monospace, monospace'; cx.textAlign='center'; cx.textBaseline='middle';
+    cx.textAlign='center'; cx.textBaseline='middle';
     for(let y=0;y<S.rows;y++) for(let x=0;x<S.cols;x++){
       const g=S.grid[y][x]; const px=lab+x*cp, py=lab+y*cp;
       if(g>=0){ const u=S.used[g]; cx.fillStyle=u.h; cx.fillRect(px,py,cp,cp);
+        const code=u.code||u.sym||''; // 直接写色号(H11 / H103 等)
+        const fs=Math.max(5, Math.min(cp*0.5, cp*1.7/Math.max(2,code.length)));
+        cx.font=fs.toFixed(1)+'px ui-monospace, monospace';
         const rgb=hexToRgb(u.h); const lum=0.299*rgb[0]+0.587*rgb[1]+0.114*rgb[2];
-        cx.fillStyle=lum>140?'rgba(0,0,0,.6)':'rgba(255,255,255,.85)'; cx.fillText(u.sym, px+cp/2, py+cp/2+1);
+        cx.fillStyle=lum>140?'rgba(0,0,0,.7)':'rgba(255,255,255,.9)'; cx.fillText(code, px+cp/2, py+cp/2+1);
       } else { cx.fillStyle='#fafafa'; cx.fillRect(px,py,cp,cp); }
     }
     cx.strokeStyle='rgba(0,0,0,.12)'; cx.lineWidth=1;
@@ -812,16 +815,16 @@ permalink: /toolbox/pindou/
   }
   function dlCanvas(canvas, name){ canvas.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }); }
   $('dlPreview').addEventListener('click', ()=>{ const big=S.cellPx; S.cellPx=Math.max(S.cellPx,14); renderPreview(); dlCanvas(preview,'拼豆效果图.png'); S.cellPx=big; renderPreview(); });
-  $('dlChart').addEventListener('click', ()=> dlCanvas(buildChartCanvas(28),'拼豆图纸_带坐标.png'));
+  $('dlChart').addEventListener('click', ()=> dlCanvas(buildChartCanvas(32),'拼豆图纸_带坐标.png'));
 
   $('printChart').addEventListener('click', ()=>{
-    const chart=buildChartCanvas(26).toDataURL('image/png');
+    const chart=buildChartCanvas(28).toDataURL('image/png');
     let total=0; S.used.forEach(u=>total+=u.count);
-    const rows=S.used.map(u=>'<tr><td style="font-family:monospace">'+u.sym+'</td><td><span style="display:inline-block;width:14px;height:14px;border:1px solid #999;background:'+u.h+'"></span></td><td><b>'+(u.code||'')+'</b> '+u.n+'</td><td style="text-align:right">'+u.count+'</td></tr>').join('');
+    const rows=S.used.map(u=>'<tr><td style="font-family:monospace">'+(u.code||u.sym||'')+'</td><td><span style="display:inline-block;width:14px;height:14px;border:1px solid #999;background:'+u.h+'"></span></td><td>'+u.n+'</td><td style="text-align:right">'+u.count+'</td></tr>').join('');
     const w=window.open('','_blank');
     w.document.write('<html><head><title>拼豆图纸</title><style>body{font-family:sans-serif;padding:16px;color:#222}img{max-width:100%}table{border-collapse:collapse;font-size:13px;margin-top:10px}td,th{border:1px solid #ccc;padding:3px 8px}h2{font-size:16px}</style></head><body>'+
       '<h2>拼豆图纸 · '+S.cols+'×'+S.rows+' · 共 '+total+' 颗 · '+S.used.length+' 色</h2>'+
-      '<img src="'+chart+'"><h2>配色清单</h2><table><tr><th>符号</th><th>颜色</th><th>色号·名称</th><th>颗数</th></tr>'+rows+'</table>'+
+      '<img src="'+chart+'"><h2>配色清单</h2><table><tr><th>色号</th><th>颜色</th><th>名称</th><th>颗数</th></tr>'+rows+'</table>'+
       '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print()},300)}</scr'+'ipt></body></html>');
     w.document.close();
   });
