@@ -1,0 +1,17 @@
+{
+  "name": "宠物中心",
+  "short_name": "宠物中心",
+  "description": "记录爱宠的吃饭、体重和猫语——周睿的宠物中心",
+  "id": "/toolbox/pet/",
+  "start_url": "/toolbox/pet/",
+  "scope": "/toolbox/pet/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#fafaf9",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "/assets/icons/pet-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/pet-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/pet-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

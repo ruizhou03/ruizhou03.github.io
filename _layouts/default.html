@@ -61,11 +61,16 @@
   <link rel="image_src" href="{{ og_image }}">
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='82' font-family='Georgia, serif' font-size='95' font-weight='bold' fill='%23c9a96e' text-anchor='middle'>Zr</text></svg>">
-  <link rel="manifest" href="{{ '/manifest.json' | relative_url }}">
-  <link rel="apple-touch-icon" href="{{ '/assets/icons/apple-touch-icon.png' | relative_url }}">
-  <meta name="theme-color" content="#1e3a5f">
+  {%- comment -%}
+    PWA manifest / 图标 / app 名默认是全站「Zircon」；子工具想作为独立 app 安装（自己的
+    名字、图标、限定作用域），在该页 front-matter 里设 manifest / apple_touch_icon /
+    app_title / theme_color 即可覆盖。例：宠物中心 /toolbox/pet/。
+  {%- endcomment -%}
+  <link rel="manifest" href="{{ page.manifest | default: '/manifest.json' | relative_url }}">
+  <link rel="apple-touch-icon" href="{{ page.apple_touch_icon | default: '/assets/icons/apple-touch-icon.png' | relative_url }}">
+  <meta name="theme-color" content="{{ page.theme_color | default: '#1e3a5f' }}">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Zircon">
+  <meta name="apple-mobile-web-app-title" content="{{ page.app_title | default: 'Zircon' }}">
 
   {%- comment -%}
     每页的离线版本戳：文章用 page.date（写完后稳定）；
