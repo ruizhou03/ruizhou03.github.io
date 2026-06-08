@@ -3521,7 +3521,8 @@
   });
 
   // ===== Food (treat/can) modal =====
-  const FOOD_EMOJIS = ['🥣','🍚','🍖','🥫','🍗','🐟','🍤','🧀','🥩','🍪','🥛','💊'];
+  // 5 列网格——保持整行（15 个 = 3 整行）。分三行：主食/罐头·蛋白来源·蛋奶零食补剂。
+  const FOOD_EMOJIS = ['🥣','🍚','🥫','🍖','🍗','🐔','🥩','🐟','🦐','🦴','🥚','🧀','🥛','🍪','💊'];
   let fmEditingId = null;
   let fmEmoji = '🍖';
   let fmKibbleMode = false;          // 编辑「干粮」基准时为 true（写 pet.kibbleKcalPerG，不进 foodLibrary）
