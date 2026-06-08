@@ -17,11 +17,14 @@ permalink: /toolbox/pindou/
   .pb-step-t { font-family: var(--font-display); font-size: 1.08rem; font-weight: 600; color: var(--color-ink); }
   .pb-step-hint { font-size: 0.8rem; color: var(--color-muted); margin: -0.3rem 0 0.8rem 2.15rem; line-height: 1.5; }
 
+  /* model preload status */
+  .pb-model-status { font-size: .8rem; color: var(--color-light); margin: -0.3rem 0 0.8rem 2.15rem; line-height: 1.5; }
+
   /* upload */
-  .pb-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 170px; border: 2px dashed var(--color-border); border-radius: 12px; padding: 2.1rem 1rem; text-align: center; cursor: pointer; transition: all .18s; color: var(--color-light); }
+  .pb-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 190px; border: 2px dashed var(--color-border); border-radius: 12px; padding: 2.4rem 1rem; text-align: center; cursor: pointer; transition: all .18s; color: var(--color-light); }
   .pb-drop:hover, .pb-drop.drag { border-color: var(--color-accent); background: rgba(30,58,95,.04); color: var(--color-ink); }
-  .pb-drop .pb-drop-icon { font-size: 2.1rem; }
-  .pb-drop .pb-drop-main { font-size: 1rem; color: var(--color-ink); margin: .5rem 0 .2rem; font-weight: 600; }
+  .pb-drop .pb-drop-icon { font-size: 2.4rem; }
+  .pb-drop .pb-drop-main { font-size: 1.05rem; color: var(--color-ink); margin: .55rem 0 .2rem; font-weight: 600; }
   .pb-drop .pb-drop-sub { font-size: .8rem; }
 
   /* canvases */
@@ -32,6 +35,21 @@ permalink: /toolbox/pindou/
   @media (max-width: 620px) { .pb-two { grid-template-columns: 1fr; } }
   .pb-cap { font-size: .76rem; color: var(--color-muted); text-align: center; margin-top: .35rem; }
 
+  /* processing overlay (download / cutout) */
+  #editCanvas.processing { filter: blur(3px) brightness(.95); }
+  .pb-cut-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .55rem; background: rgba(18,28,42,.36); overflow: hidden; z-index: 4; }
+  .pb-cut-overlay::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.22) 50%, transparent 65%); transform: translateX(-120%); animation: pb-shimmer 1.5s ease-in-out infinite; pointer-events: none; }
+  @keyframes pb-shimmer { to { transform: translateX(120%); } }
+  .pb-cut-label { color: #fff; font-size: .84rem; text-shadow: 0 1px 3px rgba(0,0,0,.55); position: relative; z-index: 1; }
+  .pb-spinner { position: relative; width: 62px; height: 62px; z-index: 1; }
+  .pb-spinner svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .pb-spinner circle { fill: none; stroke-width: 4; }
+  .pb-spinner .track { stroke: rgba(255,255,255,.3); }
+  .pb-spinner .bar { stroke: #fff; stroke-linecap: round; stroke-dasharray: 125.66; stroke-dashoffset: 125.66; transition: stroke-dashoffset .25s linear; transform-origin: center; }
+  .pb-spinner.spin .bar { stroke-dasharray: 80 125.66; stroke-dashoffset: 0; transition: none; animation: pb-rot .9s linear infinite; }
+  @keyframes pb-rot { to { transform: rotate(360deg); } }
+  .pb-spinner #cutPct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: .8rem; font-variant-numeric: tabular-nums; }
+
   /* buttons */
   .pb-btn { display: inline-flex; align-items: center; gap: .35rem; font-family: var(--font-display); font-size: .9rem; padding: .5rem .95rem; border-radius: 9px; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-ink); cursor: pointer; transition: all .15s; }
   .pb-btn:hover { border-color: var(--color-accent); }
@@ -41,12 +59,6 @@ permalink: /toolbox/pindou/
   .pb-btn.sm { font-size: .8rem; padding: .35rem .7rem; }
   .pb-btnrow { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .85rem; }
   .pb-btn.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
-
-  /* progress */
-  .pb-prog { margin-top: .9rem; }
-  .pb-prog-bar { height: 8px; border-radius: 5px; background: var(--color-border); overflow: hidden; }
-  .pb-prog-bar > i { display: block; height: 100%; width: 0; background: var(--color-accent); transition: width .2s; }
-  .pb-prog-txt { font-size: .8rem; color: var(--color-light); margin-top: .4rem; text-align: center; }
 
   /* manual tools */
   .pb-tools { display: none; margin-top: .85rem; padding: .8rem .85rem; border: 1px dashed var(--color-accent); border-radius: 10px; background: rgba(30,58,95,.03); }
@@ -61,7 +73,7 @@ permalink: /toolbox/pindou/
   .pb-brush-cursor { position: absolute; border: 2px solid rgba(214,42,51,.9); border-radius: 50%; pointer-events: none; transform: translate(-50%,-50%); display: none; box-shadow: 0 0 0 1px rgba(255,255,255,.7); z-index: 3; }
   .pb-brush-cursor.restore { border-color: rgba(46,115,200,.95); }
 
-  /* controls (step 3) */
+  /* controls */
   .pb-ctl { margin-bottom: 1rem; }
   .pb-ctl-lab { display: flex; justify-content: space-between; align-items: baseline; font-size: .85rem; color: var(--color-ink); margin-bottom: .35rem; }
   .pb-ctl-lab b { font-weight: 600; }
@@ -73,17 +85,13 @@ permalink: /toolbox/pindou/
   .pb-seg { display: inline-flex; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; }
   .pb-seg button { border: none; background: var(--color-bg); color: var(--color-light); font-size: .8rem; padding: .35rem .7rem; cursor: pointer; }
   .pb-seg button.on { background: var(--color-accent); color: #fff; }
+  .pb-ctl.pb-target { border: 1px solid var(--color-border); border-radius: 10px; padding: .7rem .8rem; background: rgba(30,58,95,.025); }
 
   /* stats */
   .pb-stats { display: flex; flex-wrap: wrap; gap: .6rem; margin: .2rem 0 1rem; }
   .pb-stat { flex: 1 1 90px; border: 1px solid var(--color-border); border-radius: 10px; padding: .55rem .4rem; text-align: center; background: var(--color-bg); }
   .pb-stat b { display: block; font-size: 1.15rem; color: var(--color-ink); font-variant-numeric: tabular-nums; line-height: 1.2; }
   .pb-stat small { font-size: .72rem; color: var(--color-muted); }
-  .pb-time { margin: .2rem 0 1.1rem; }
-  .pb-time-head { display: flex; justify-content: space-between; align-items: baseline; font-size: .86rem; color: var(--color-ink); margin-bottom: .4rem; }
-  .pb-time-head b { font-variant-numeric: tabular-nums; color: var(--color-ink); }
-  .pb-time-bar { height: 10px; border-radius: 6px; background: var(--color-border); overflow: hidden; }
-  .pb-time-bar > i { display: block; height: 100%; width: 0; border-radius: 6px; transition: width .12s ease, background .12s; }
 
   /* preview */
   .pb-preview-box { overflow: auto; max-height: 62vh; border: 1px solid var(--color-border); border-radius: 10px; background: #fbfbfc; padding: .5rem; text-align: center; }
@@ -117,24 +125,22 @@ permalink: /toolbox/pindou/
     </div>
   </div>
 
-  <!-- ========== 步骤 1：上传 ========== -->
+  <!-- ========== ① 上传 & 抠图（合并） ========== -->
   <section class="pb-step" id="step1">
-    <div class="pb-step-h"><div class="pb-step-n">1</div><div class="pb-step-t">上传图片</div></div>
-    <div class="pb-step-hint">卡通形象、表情包、宠物照都行。主体清晰、跟背景有区分的图效果最好。</div>
+    <div class="pb-step-h"><div class="pb-step-n">1</div><div class="pb-step-t">上传图片，自动抠出主体</div></div>
+    <div class="pb-step-hint">卡通形象、表情包、宠物照都行，主体清晰、跟背景有区分的图最好。上传后自动抠出主体，抠不干净可手动擦补。</div>
+    <div class="pb-model-status pb-hidden" id="modelStatus"></div>
+
     <input type="file" id="file" accept="image/*" class="pb-hidden">
+    <!-- 上传前：大投放框 -->
     <div class="pb-drop" id="drop">
       <div class="pb-drop-icon">🖼️</div>
       <div class="pb-drop-main">点这里选图 / 拖进来</div>
       <div class="pb-drop-sub">支持 JPG · PNG · WebP，图片只在你自己浏览器里处理，不上传服务器</div>
     </div>
-  </section>
 
-  <!-- ========== 步骤 2：抠图 ========== -->
-  <section class="pb-step is-disabled" id="step2">
-    <div class="pb-step-h"><div class="pb-step-n">2</div><div class="pb-step-t">抠出主体</div></div>
-    <div class="pb-step-hint">AI 自动把主体从背景里抠出来。第一次用需下载约 50MB 模型（已托管在国内可达的 CDN，之后浏览器缓存、离线也能用）。抠得不干净就点「🖌️ 手动修一下」擦补。</div>
-
-    <div class="pb-two">
+    <!-- 上传后：分裂成 原图 | 抠图 -->
+    <div class="pb-two pb-hidden" id="split">
       <div>
         <div class="pb-canvas-box" style="background:none;"><img id="origImg" alt=""></div>
         <div class="pb-cap">原图</div>
@@ -143,14 +149,16 @@ permalink: /toolbox/pindou/
         <div class="pb-canvas-box" id="editBox">
           <canvas id="editCanvas"></canvas>
           <div class="pb-brush-cursor" id="brushCursor"></div>
+          <div class="pb-cut-overlay pb-hidden" id="cutOverlay">
+            <div class="pb-spinner" id="cutSpinner">
+              <svg viewBox="0 0 48 48"><circle class="track" cx="24" cy="24" r="20"></circle><circle class="bar" id="ringBar" cx="24" cy="24" r="20"></circle></svg>
+              <span id="cutPct"></span>
+            </div>
+            <div class="pb-cut-label" id="cutLabel">准备中…</div>
+          </div>
         </div>
         <div class="pb-cap">抠图结果（灰白格 = 透明，将不放珠子）</div>
       </div>
-    </div>
-
-    <div class="pb-prog pb-hidden" id="prog">
-      <div class="pb-prog-bar"><i id="progBar"></i></div>
-      <div class="pb-prog-txt" id="progTxt">准备中…</div>
     </div>
 
     <div class="pb-tools" id="tools">
@@ -166,19 +174,20 @@ permalink: /toolbox/pindou/
       </div>
     </div>
 
-    <div class="pb-btnrow">
+    <div class="pb-btnrow pb-hidden" id="cutBtns">
       <button class="pb-btn pri" id="goStep3">下一步：转拼豆 →</button>
       <button class="pb-btn" id="toggleManual">🖌️ 手动修一下</button>
       <button class="pb-btn" id="reCut">✨ 重新 AI 抠图</button>
       <button class="pb-btn" id="useWhole">用整张图</button>
+      <button class="pb-btn" id="changeImg">↻ 换一张</button>
     </div>
     <div class="pb-msg pb-hidden" id="cutMsg"></div>
   </section>
 
-  <!-- ========== 步骤 3：转拼豆 ========== -->
-  <section class="pb-step is-disabled" id="step3">
-    <div class="pb-step-h"><div class="pb-step-n">3</div><div class="pb-step-t">调精细度 & 配色</div></div>
-    <div class="pb-step-hint">拖动滑杆实时预览。拼豆颗数 ≈ 宽 × 高，是平方级增长 —— 越细越还原，但珠子越多越费工。</div>
+  <!-- ========== ② 调精细度 & 配色 ========== -->
+  <section class="pb-step is-disabled" id="step2">
+    <div class="pb-step-h"><div class="pb-step-n">2</div><div class="pb-step-t">调精细度 & 配色</div></div>
+    <div class="pb-step-hint">拖动滑杆实时预览。三条滑杆联动：调精细度/颜色会更新预计耗时；反过来拖「目标耗时」，精细度和颜色会自动配一个最优方案。</div>
 
     <div class="pb-ctl">
       <div class="pb-ctl-lab"><b>精细度（最长边格数）</b><span id="resVal">48 格</span></div>
@@ -194,7 +203,13 @@ permalink: /toolbox/pindou/
     <div class="pb-ctl">
       <div class="pb-ctl-lab"><b>颜色种数</b><span id="colVal">16 色</span></div>
       <input type="range" class="pb-range" id="cols" min="2" max="36" step="1" value="16">
-      <div class="pb-cap" style="text-align:left;">颜色越少越好买、好分拣；越多越还原。实际用到的颜色可能更少。</div>
+      <div class="pb-cap" style="text-align:left;">颜色越少越好买、好分拣、也越省时间；越多越还原。实际用到的颜色可能更少。</div>
+    </div>
+
+    <div class="pb-ctl pb-target">
+      <div class="pb-ctl-lab"><b>🎯 目标耗时（反向）</b><span id="timeEst">约 …</span></div>
+      <input type="range" class="pb-range" id="timeTarget" min="15" max="900" step="5" value="160">
+      <div class="pb-cap" style="text-align:left;"><span id="effortLabel"></span> · 拖这条直接定「想花多久做完」，精细度+颜色自动适配。手工预估，因人 / 熟练度而异。</div>
     </div>
 
     <div class="pb-ctl">
@@ -207,11 +222,6 @@ permalink: /toolbox/pindou/
     </div>
 
     <div class="pb-stats" id="stats"></div>
-    <div class="pb-time">
-      <div class="pb-time-head"><span id="effortLabel"></span><b id="timeEst"></b></div>
-      <div class="pb-time-bar"><i id="timeBar"></i></div>
-      <div class="pb-cap" style="text-align:right;margin-top:.3rem;">⏱ 手工预估耗时，因人 / 熟练度而异</div>
-    </div>
 
     <div class="pb-preview-box"><canvas id="preview"></canvas></div>
     <div class="pb-zoom">
@@ -222,9 +232,9 @@ permalink: /toolbox/pindou/
     <div class="pb-msg pb-hidden" id="genMsg"></div>
   </section>
 
-  <!-- ========== 步骤 4：图纸 & 清单 ========== -->
-  <section class="pb-step is-disabled" id="step4">
-    <div class="pb-step-h"><div class="pb-step-n">4</div><div class="pb-step-t">图纸 & 购物清单</div></div>
+  <!-- ========== ③ 图纸 & 清单 ========== -->
+  <section class="pb-step is-disabled" id="step3">
+    <div class="pb-step-h"><div class="pb-step-n">3</div><div class="pb-step-t">图纸 & 购物清单</div></div>
     <div class="pb-step-hint">照着图纸一格一格摆。「带坐标图纸」每 10 格有粗线和编号、每种颜色一个字母符号，适合打印对照。</div>
 
     <div class="pb-btnrow" style="margin-top:0;">
@@ -294,22 +304,61 @@ permalink: /toolbox/pindou/
 
   // ---------- 状态 ----------
   const S = {
-    baseData: null,   // Uint8ClampedArray RGBA（原图，缩到工作尺寸）
-    mask: null,       // Uint8Array，每像素 0/255（是否属于主体）
-    W: 0, H: 0,
-    grid: null,       // 二维：usedPalette 下标，或 -1（空）
-    cols: 0, rows: 0,
-    used: [],         // [{pi,h,n,count,sym}]
-    res: 48, colorN: 16, bg: 'none',
-    cellPx: 12,
-    busy: false
+    baseData: null, mask: null, W: 0, H: 0,
+    grid: null, cols: 0, rows: 0, used: [],
+    res: 48, colorN: 16, bg: 'none', cellPx: 12,
+    busy: false, painted: false,
+    bboxAR: 0, lastFill: 1, lastBeads: 0,
+    modelReady: false, preloadFrac: 0, preloadPromise: null,
+    aiGen: 0, aiGaveUp: false, timeDragging: false, shared: false
   };
 
+  function enableStep(id){ $(id).classList.remove('is-disabled'); }
+  function showMsg(id,t,err){ const e=$(id); e.textContent=t; e.classList.remove('pb-hidden'); e.style.color = err ? '#b4451f' : 'var(--color-light)'; }
+  function hideMsg(id){ $(id).classList.add('pb-hidden'); }
+
   // ===================================================================
-  //  步骤 1：上传
+  //  模型：进页面就后台预下载（托在用户 R2，国内快），上传时基本已就绪
+  // ===================================================================
+  const IMGLY_URL = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm';
+  const R2_MODEL_PATH = 'https://pub-6ce548df24434edb9fea591e78eecdbd.r2.dev/bg/imgly/1.5.5/dist/';
+  const MODEL_CFG = { model: 'isnet_quint8', device: 'cpu', publicPath: R2_MODEL_PATH };
+  const STALL_MS = 15000; // 连续 15 秒毫无下载进度才判定卡住放弃
+  const DL_RE = /fetch|download|model|onnx|wasm/i;
+
+  let imglyMod = null;
+  async function getModule(){ if(imglyMod) return imglyMod; imglyMod = await import(IMGLY_URL); return imglyMod; }
+  let onModelProgress = null; // runAI 用它把预下载进度映射到抠图遮罩
+
+  function showModelStatus(state, frac){
+    const e = $('modelStatus');
+    if(state==='loading'){ e.classList.remove('pb-hidden'); e.style.color='var(--color-light)';
+      e.textContent = '🤖 正在后台准备 AI 抠图模型…' + (frac ? ' '+Math.round(frac*100)+'%' : '（首次约 50MB）'); }
+    else if(state==='ready'){ e.classList.remove('pb-hidden'); e.style.color='#2e8b57';
+      e.textContent = '🤖 ✓ AI 抠图模型已就绪，上传后可立即抠图';
+      setTimeout(()=>{ if(S.modelReady) e.classList.add('pb-hidden'); }, 4000); }
+    else { e.classList.add('pb-hidden'); }
+  }
+  async function preloadModel(){
+    if(navigator.connection && navigator.connection.saveData) return; // 省流量模式不预下载
+    try{
+      const mod = await getModule();
+      showModelStatus('loading', 0);
+      if(mod.preload){
+        await mod.preload(Object.assign({}, MODEL_CFG, { progress: (key,cur,tot)=>{
+          if(DL_RE.test(key)){ const f = tot?cur/tot:0; S.preloadFrac=f; showModelStatus('loading', f); if(onModelProgress) onModelProgress(f); }
+        }}));
+      }
+      S.modelReady = true; showModelStatus('ready');
+    }catch(e){ console.warn('preload failed', e); showModelStatus('hide'); }
+  }
+
+  // ===================================================================
+  //  ① 上传
   // ===================================================================
   const drop = $('drop'), fileInput = $('file');
   drop.addEventListener('click', ()=> fileInput.click());
+  $('changeImg').addEventListener('click', ()=> fileInput.click());
   fileInput.addEventListener('change', ()=>{ if(fileInput.files[0]) loadFile(fileInput.files[0]); });
   ;['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,(e)=>{e.preventDefault();drop.classList.add('drag');}));
   ;['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,(e)=>{e.preventDefault();drop.classList.remove('drag');}));
@@ -321,7 +370,6 @@ permalink: /toolbox/pindou/
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      // 缩到工作尺寸
       let w = img.naturalWidth, h = img.naturalHeight;
       const sc = Math.min(1, MAXDIM/Math.max(w,h));
       w = Math.max(1, Math.round(w*sc)); h = Math.max(1, Math.round(h*sc));
@@ -331,80 +379,81 @@ permalink: /toolbox/pindou/
       S.baseData = cx.getImageData(0,0,w,h).data;
       $('origImg').src = url;
       S.painted = false;
-      // 先用整张图，立刻出像素预览（不依赖网络/AI，秒出，永远有反馈）
+      // 投放框 → 分裂双图
+      drop.classList.add('pb-hidden');
+      $('split').classList.remove('pb-hidden');
+      $('cutBtns').classList.remove('pb-hidden');
+      // 先用整张图，立刻出像素预览（零网络依赖，秒出）
       S.mask = new Uint8Array(w*h).fill(255);
       clearUndo();
       renderEdit();
-      enableStep('step1'); enableStep('step2'); enableStep('step3');
+      enableStep('step2');
       regenerate();
-      $('step2').scrollIntoView({behavior:'smooth', block:'start'});
-      // 再让 AI 在后台自动抠图，抠好了替换
+      // 再让 AI 在后台抠图，抠好替换
       runAI();
     };
     img.onerror = ()=> showMsg('cutMsg','图片读取失败，换一张试试。', true);
     img.src = url;
   }
 
-  function enableStep(id){ $(id).classList.remove('is-disabled'); }
-  function disableStep(id){ $(id).classList.add('is-disabled'); }
-  function showMsg(id,t,err){ const e=$(id); e.textContent=t; e.classList.remove('pb-hidden'); e.style.color = err ? '#b4451f' : 'var(--color-light)'; }
-  function hideMsg(id){ $(id).classList.add('pb-hidden'); }
-
   // ===================================================================
-  //  步骤 2：AI 抠图 + 手动修整
+  //  抠图进度遮罩（盖在右侧抠图图上：模糊 + 流动微光 + 转圈进度）
   // ===================================================================
-  let bgRemover = null;
-  async function getRemover(){
-    if(bgRemover) return bgRemover;
-    const mod = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm');
-    bgRemover = mod.default || mod.removeBackground || mod;
-    return bgRemover;
+  const editCanvas = $('editCanvas');
+  const RING_C = 125.66; // 2π·20
+  function setRing(frac){ $('ringBar').style.strokeDashoffset = RING_C*(1-Math.max(0,Math.min(1,frac))); }
+  // 把"剩余下载量"重新铺满 0~100%：进页面已预下载 80% 的话，抠图时进度条仍从 0 走到 100，体感更快
+  function visibleDl(raw){ const s=S.dlStart||0; return s>=1 ? 1 : Math.max(0, Math.min(1, ((raw||0)-s)/(1-s))); }
+  function showCut(phase, frac){
+    $('cutOverlay').classList.remove('pb-hidden'); editCanvas.classList.add('processing');
+    const sp = $('cutSpinner');
+    if(phase==='download'){ const v=visibleDl(frac); sp.classList.remove('spin'); setRing(v);
+      $('cutPct').textContent = Math.round(v*100)+'%'; $('cutLabel').textContent='下载 AI 模型…（首次）'; }
+    else { sp.classList.add('spin'); $('cutPct').textContent=''; $('cutLabel').textContent='正在抠图…'; }
   }
+  function hideCut(){ $('cutOverlay').classList.add('pb-hidden'); editCanvas.classList.remove('processing'); $('cutSpinner').classList.remove('spin'); }
 
-  // 模型托管在用户自己的 R2(Cloudflare,国内快)，而非默认的 staticimgly(国内极慢)
-  const R2_MODEL_PATH = 'https://pub-6ce548df24434edb9fea591e78eecdbd.r2.dev/bg/imgly/1.5.5/dist/';
-  const STALL_MS = 15000; // 15 秒"毫无下载进度"才判定卡住放弃（正常下载会持续有进度、不会误杀）
+  // ===================================================================
+  //  AI 抠图（复用预下载，两段进度：下载 → 抠图）
+  // ===================================================================
   async function runAI(){
     if(S.busy) return;
     S.busy = true; S.aiGaveUp = false; hideMsg('cutMsg');
-    const myGen = (S.aiGen = (S.aiGen||0)+1); // 用代号区分轮次，旧轮结果作废
-    $('prog').classList.remove('pb-hidden');
-    setProg(0.06, '正在准备 AI 抠图…（首次需下载约 50MB 模型）');
-    // 卡住看门狗：每来一次进度就重置；只有连续 15 秒毫无进度才放弃（整张图已可用，可重试）
+    const myGen = (S.aiGen = S.aiGen + 1);
+    // 抠图开始时"已下载到哪"——之后进度条把剩余量铺满 0~100%（见 visibleDl）
+    S.dlStart = S.modelReady ? 1 : (S.preloadFrac||0);
+    if(S.modelReady) showCut('cut'); else showCut('download', S.preloadFrac);
     let stall;
-    const giveUp = ()=>{
-      if(myGen !== S.aiGen) return;
-      S.aiGaveUp = true; S.busy = false; $('prog').classList.add('pb-hidden');
-      showMsg('cutMsg','AI 抠图卡住了（网络问题）。当前用的是整张图，可点「🖌️ 手动修一下」擦掉背景，或点「重新 AI 抠图」再试一次。', true);
-    };
+    const giveUp = ()=>{ if(myGen!==S.aiGen) return; S.aiGaveUp=true; S.busy=false; onModelProgress=null; hideCut();
+      showMsg('cutMsg','AI 抠图卡住了（网络问题）。当前用的是整张图，可点「🖌️ 手动修一下」擦掉背景，或「重新 AI 抠图」再试。', true); };
     const armStall = ()=>{ clearTimeout(stall); stall = setTimeout(giveUp, STALL_MS); };
     armStall();
-    try {
-      const removeBackground = await getRemover();
-      if(myGen !== S.aiGen) { clearTimeout(stall); return; }
+    // 若预下载还在跑，把它的进度映射到遮罩
+    onModelProgress = (f)=>{ if(myGen!==S.aiGen) return; armStall(); if(!S.modelReady) showCut('download', f); };
+    try{
+      const mod = await getModule();
+      if(myGen!==S.aiGen){ clearTimeout(stall); return; }
       armStall();
-      const blob = await removeBackground(currentFile, {
-        model: 'isnet_quint8',
-        device: 'cpu',
-        publicPath: R2_MODEL_PATH,
+      // 复用预下载：等它下完，避免重复下载；失败也不阻断（下面会自己再试）
+      if(S.preloadPromise){ try{ await S.preloadPromise; }catch(e){} }
+      if(myGen!==S.aiGen){ clearTimeout(stall); return; }
+      onModelProgress = null;
+      showCut('cut'); armStall();
+      const removeBackground = mod.removeBackground || mod.default;
+      const blob = await removeBackground(currentFile, Object.assign({}, MODEL_CFG, {
         output: { format: 'image/png' },
-        progress: (key, cur, tot) => {
-          if(myGen !== S.aiGen) return;
-          armStall(); // 有进度就重置"卡住"计时
-          const frac = tot ? cur/tot : 0;
-          if(/fetch|download|model|onnx|wasm/i.test(key)) setProg(0.06+frac*0.8, '下载模型 ' + Math.round(frac*100) + '%…（首次，之后浏览器缓存）');
-          else setProg(0.86 + frac*0.12, '正在抠图 ' + Math.round(frac*100) + '%…');
-        }
-      });
+        progress: (key, cur, tot) => { if(myGen!==S.aiGen) return; armStall();
+          const f = tot ? cur/tot : 0;
+          if(DL_RE.test(key)) showCut('download', f); else showCut('cut'); }
+      }));
       clearTimeout(stall);
-      if(myGen !== S.aiGen) return; // 已被新一轮取代，丢弃
+      if(myGen!==S.aiGen) return;
+      S.modelReady = true; showModelStatus('hide');
       const bmp = await blobToCanvasData(blob, S.W, S.H);
       const m = new Uint8Array(S.W*S.H); let anyBead=0;
       for(let i=0;i<m.length;i++){ const a = bmp[i*4+3] >= 128 ? 255 : 0; m[i]=a; if(a) anyBead++; }
-      $('prog').classList.add('pb-hidden');
-      if(S.aiGaveUp){
-        showMsg('cutMsg','✓ 模型已下载好（刚才卡了一下跳过了）。点「重新 AI 抠图」就能秒抠。');
-      } else if(anyBead < m.length*0.003){
+      hideCut();
+      if(anyBead < m.length*0.003){
         showMsg('cutMsg','AI 没找到明显主体，已保留整张图——可「手动修一下」擦掉背景。', true);
       } else if(!S.painted){
         S.mask = m; clearUndo(); renderEdit(); regenerate();
@@ -412,15 +461,13 @@ permalink: /toolbox/pindou/
       } else {
         showMsg('cutMsg','✓ AI 抠图已就绪（你手动改过了，没自动覆盖）。想用的话点「重新 AI 抠图」。');
       }
-    } catch(err){
+    }catch(err){
       clearTimeout(stall); console.error(err);
-      if(myGen !== S.aiGen) return;
-      $('prog').classList.add('pb-hidden');
+      if(myGen!==S.aiGen) return;
+      onModelProgress=null; hideCut();
       if(!S.aiGaveUp) showMsg('cutMsg','AI 抠图没成功（' + (err && err.message ? err.message : '未知错误') + '）。当前用整张图，可「手动修一下」擦背景，或「重新 AI 抠图」重试。', true);
-    } finally { if(myGen === S.aiGen) S.busy = false; }
+    }finally{ if(myGen===S.aiGen){ S.busy=false; onModelProgress=null; } }
   }
-
-  function setProg(frac, txt){ $('progBar').style.width = Math.round(frac*100)+'%'; if(txt) $('progTxt').textContent = txt; }
 
   // 把 PNG blob 画到 W×H，返回 RGBA 数据
   function blobToCanvasData(blob, w, h){
@@ -435,15 +482,12 @@ permalink: /toolbox/pindou/
   }
 
   // 把 base + mask 合成画到 editCanvas（透明处露出 CSS 灰白格）
-  const editCanvas = $('editCanvas');
   function renderEdit(){
     editCanvas.width = S.W; editCanvas.height = S.H;
     const cx = editCanvas.getContext('2d');
     const out = cx.createImageData(S.W, S.H);
     const d = out.data, b = S.baseData, m = S.mask;
-    for(let i=0, p=0; i<m.length; i++, p+=4){
-      d[p]=b[p]; d[p+1]=b[p+1]; d[p+2]=b[p+2]; d[p+3]=m[i];
-    }
+    for(let i=0, p=0; i<m.length; i++, p+=4){ d[p]=b[p]; d[p+1]=b[p+1]; d[p+2]=b[p+2]; d[p+3]=m[i]; }
     cx.putImageData(out, 0, 0);
   }
 
@@ -456,7 +500,7 @@ permalink: /toolbox/pindou/
     const t = $('tools'); const open = !t.classList.contains('show');
     t.classList.toggle('show', open);
     $('toggleManual').classList.toggle('on', open);
-    if(open) editCanvas.scrollIntoView({behavior:'smooth', block:'center'});
+    if(open) $('editBox').scrollIntoView({behavior:'smooth', block:'center'});
     else brushCursor.style.display='none';
   });
   $('modeErase').addEventListener('click', ()=>setMode('erase'));
@@ -465,17 +509,15 @@ permalink: /toolbox/pindou/
     brushCursor.classList.toggle('restore', m==='restore'); }
   $('brush').addEventListener('input', e=>{ brushR=+e.target.value; $('brushVal').textContent=brushR; sizeCursor(); });
 
-  // 撤销栈：每一笔涂抹前存一份 mask 快照
   function pushUndo(){ undoStack.push(S.mask.slice()); if(undoStack.length>15) undoStack.shift(); $('undoBtn').disabled=false; }
   function clearUndo(){ undoStack.length=0; const b=$('undoBtn'); if(b) b.disabled=true; }
   $('undoBtn').addEventListener('click', ()=>{
     if(!undoStack.length) return; S.mask=undoStack.pop(); S.painted=true; renderEdit();
     if(!undoStack.length) $('undoBtn').disabled=true;
-    if(!$('step3').classList.contains('is-disabled')) regenerate();
+    if(!$('step2').classList.contains('is-disabled')) regenerate();
   });
   $('resetMask').addEventListener('click', ()=>{ S.painted=false; clearUndo(); runAI(); });
 
-  // 笔刷光标圈（让用户看清笔刷大小和位置，不再盲涂）
   function sizeCursor(){ const r=editCanvas.getBoundingClientRect(); const sc=r.width/(editCanvas.width||1);
     const d=brushR*2*sc; brushCursor.style.width=d+'px'; brushCursor.style.height=d+'px'; }
   function moveCursor(e){
@@ -485,7 +527,6 @@ permalink: /toolbox/pindou/
     if(x<0||y<0||x>r.width||y>r.height){ brushCursor.style.display='none'; return; }
     sizeCursor(); brushCursor.style.left=x+'px'; brushCursor.style.top=y+'px'; brushCursor.style.display='block';
   }
-
   function canvasXY(e){
     const r = editCanvas.getBoundingClientRect();
     const sx = editCanvas.width / r.width, sy = editCanvas.height / r.height;
@@ -505,7 +546,7 @@ permalink: /toolbox/pindou/
   }
   function startPaint(e){ if(!S.mask || !toolsOpen()) return; e.preventDefault(); pushUndo(); painting=true; moveCursor(e); const [x,y]=canvasXY(e); paintAt(x,y); }
   function movePaint(e){ moveCursor(e); if(!painting) return; e.preventDefault(); const [x,y]=canvasXY(e); paintAt(x,y); }
-  function endPaint(){ if(painting){ painting=false; if(!$('step3').classList.contains('is-disabled')) regenerate(); } }
+  function endPaint(){ if(painting){ painting=false; if(!$('step2').classList.contains('is-disabled')) regenerate(); } }
   editCanvas.addEventListener('mousedown', startPaint);
   editCanvas.addEventListener('mousemove', movePaint);
   editCanvas.addEventListener('mouseleave', ()=>{ brushCursor.style.display='none'; });
@@ -517,30 +558,27 @@ permalink: /toolbox/pindou/
   $('reCut').addEventListener('click', ()=>{ S.painted=false; clearUndo(); runAI(); });
   $('useWhole').addEventListener('click', ()=>{
     if(!S.W) return; S.painted = true; S.mask = new Uint8Array(S.W*S.H).fill(255); clearUndo(); renderEdit();
-    enableStep('step3'); regenerate(); $('step3').scrollIntoView({behavior:'smooth',block:'start'});
+    enableStep('step2'); regenerate(); $('step2').scrollIntoView({behavior:'smooth',block:'start'});
   });
-  $('goStep3').addEventListener('click', ()=>{ if(!S.mask) return; enableStep('step3'); regenerate(); $('step3').scrollIntoView({behavior:'smooth',block:'start'}); });
-
-  let scrolledHint = false;
-  function scheduleScrollHint(){ if(scrolledHint) return; scrolledHint = true; }
+  $('goStep3').addEventListener('click', ()=>{ if(!S.mask) return; enableStep('step2'); regenerate(); $('step2').scrollIntoView({behavior:'smooth',block:'start'}); });
 
   // ===================================================================
-  //  步骤 3：像素化 + 量化
+  //  ② 像素化 + 量化
   // ===================================================================
-  // 精细度
-  const resInput = $('res');
-  resInput.addEventListener('input', ()=>{ S.res=+resInput.value; $('resVal').textContent=S.res+' 格'; syncPreset();
-    const est=estimateBeads(S.res); if(est!=null) renderTimeBar(est); // 即时跟着拖动更新耗时条
-    debouncedGen(); });
+  const resInput = $('res'), colsInput = $('cols'), timeInput = $('timeTarget');
+  resInput.addEventListener('input', ()=>{ S.res=+resInput.value; $('resVal').textContent=S.res+' 格'; syncPreset(); liveTimeUpdate(); debouncedGen(); });
   $('resPresets').addEventListener('click', (e)=>{ const c=e.target.closest('.pb-chip'); if(!c) return;
-    S.res=+c.dataset.res; resInput.value=S.res; $('resVal').textContent=S.res+' 格'; syncPreset(); regenerate(); });
+    S.res=+c.dataset.res; resInput.value=S.res; $('resVal').textContent=S.res+' 格'; syncPreset(); liveTimeUpdate(); regenerate(); });
   function syncPreset(){ document.querySelectorAll('#resPresets .pb-chip').forEach(c=>c.classList.toggle('on', +c.dataset.res===S.res)); }
-  // 颜色数
-  const colsInput = $('cols');
-  colsInput.addEventListener('input', ()=>{ S.colorN=+colsInput.value; $('colVal').textContent=S.colorN+' 色'; debouncedGen(); });
-  // 背景
+  colsInput.addEventListener('input', ()=>{ S.colorN=+colsInput.value; $('colVal').textContent=S.colorN+' 色'; liveTimeUpdate(); debouncedGen(); });
   $('bgSeg').addEventListener('click', (e)=>{ const b=e.target.closest('button'); if(!b) return;
     S.bg=b.dataset.bg; document.querySelectorAll('#bgSeg button').forEach(x=>x.classList.toggle('on',x===b)); regenerate(); });
+
+  // 目标耗时（反向）：拖它自动配 精细度 + 颜色
+  timeInput.addEventListener('input', ()=>{ controlsFromTime(+timeInput.value); });
+  ;['mousedown','touchstart'].forEach(ev=>timeInput.addEventListener(ev,()=>{ S.timeDragging=true; }));
+  ;['mouseup','touchend','blur'].forEach(ev=>timeInput.addEventListener(ev,()=>{ S.timeDragging=false; }));
+  window.addEventListener('mouseup', ()=>{ S.timeDragging=false; });
 
   let genTimer = null;
   function debouncedGen(){ clearTimeout(genTimer); genTimer=setTimeout(regenerate, 90); }
@@ -548,19 +586,16 @@ permalink: /toolbox/pindou/
   function regenerate(){
     if(!S.mask) return;
     hideMsg('genMsg');
-    // 1) 主体包围盒（裁掉透明边）
     const W=S.W, H=S.H, m=S.mask;
     let minX=W,minY=H,maxX=-1,maxY=-1;
     for(let y=0;y<H;y++) for(let x=0;x<W;x++){ if(m[y*W+x]){ if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; } }
-    if(maxX<0){ showMsg('genMsg','没抠到主体——回上一步点「找回」补一点，或「用整张图」。'); return; }
+    if(maxX<0){ showMsg('genMsg','没抠到主体——回上一步点「找回」补一点，或「用整张图」。', true); return; }
     const bw=maxX-minX+1, bh=maxY-minY+1;
     S.bboxAR = bw/bh;
-    // 2) 网格尺寸（最长边 = res）
     let cols, rows;
     if(bw>=bh){ cols=S.res; rows=Math.max(1,Math.round(S.res*bh/bw)); }
     else { rows=S.res; cols=Math.max(1,Math.round(S.res*bw/bh)); }
     S.cols=cols; S.rows=rows;
-    // 3) 降采样：把主体区域画进 cols×rows
     const src=document.createElement('canvas'); src.width=W; src.height=H;
     const scx=src.getContext('2d'); const id=scx.createImageData(W,H); const dd=id.data, b=S.baseData;
     for(let i=0,p=0;i<m.length;i++,p+=4){ dd[p]=b[p]; dd[p+1]=b[p+1]; dd[p+2]=b[p+2]; dd[p+3]=m[i]; }
@@ -569,23 +604,19 @@ permalink: /toolbox/pindou/
     const smc=small.getContext('2d'); smc.imageSmoothingEnabled=true;
     smc.drawImage(src, minX,minY,bw,bh, 0,0,cols,rows);
     const sd=smc.getImageData(0,0,cols,rows).data;
-    // 4) 取出珠子格颜色
     const cells=new Array(cols*rows); let beadN=0;
     for(let i=0;i<cols*rows;i++){
       const a=sd[i*4+3];
       if(a>=128){ cells[i]=[sd[i*4],sd[i*4+1],sd[i*4+2]]; beadN++; }
       else cells[i]=null;
     }
-    if(!beadN){ showMsg('genMsg','主体太小了，调高精细度或换张图。'); return; }
-    // 5) 每格直接吸附到最近的真实拼豆色（全 45 色卡）
+    if(!beadN){ showMsg('genMsg','主体太小了，调高精细度或换张图。', true); return; }
     const cellPi=new Int16Array(cols*rows); cellPi.fill(-1);
     const palCount={};
     for(let i=0;i<cols*rows;i++){ const rgb=cells[i]; if(!rgb) continue;
       const pi=nearestPalette(rgb); cellPi[i]=pi; palCount[pi]=(palCount[pi]||0)+1; }
-    // 背景填充：空格并入背景色
     if(S.bg!=='none'){ const bgPi=nearestPalette(hexToRgb(S.bg));
       for(let i=0;i<cols*rows;i++) if(cellPi[i]<0){ cellPi[i]=bgPi; palCount[bgPi]=(palCount[bgPi]||0)+1; } }
-    // 6) 用色数超标 → 反复把"用得最少的色"并进色彩上最接近的在用色
     let usedPis=Object.keys(palCount).map(Number);
     while(usedPis.length>S.colorN){
       usedPis.sort((a,b)=>palCount[a]-palCount[b]);
@@ -597,7 +628,6 @@ permalink: /toolbox/pindou/
       palCount[tgt]+=palCount[victim]; delete palCount[victim];
       usedPis=Object.keys(palCount).map(Number);
     }
-    // 7) 整理用到的颜色（按用量降序）+ 建网格
     const order=Object.keys(palCount).map(Number).sort((a,b)=>palCount[b]-palCount[a]);
     const remap={}; const used=[];
     order.forEach((pi,idx)=>{ remap[pi]=idx; used.push({pi, code:PALETTE[pi].code, h:PALETTE[pi].h, n:PALETTE[pi].n, count:palCount[pi], sym:SYMBOLS[idx]||'·'}); });
@@ -605,44 +635,72 @@ permalink: /toolbox/pindou/
     for(let y=0;y<rows;y++){ grid[y]=new Array(cols);
       for(let x=0;x<cols;x++){ const pi=cellPi[y*cols+x]; grid[y][x]= pi<0?-1:remap[pi]; } }
     S.grid=grid; S.used=used;
-    // 9) 渲染
-    renderStats(); fitZoom(); renderPreview(); enableStep('step4'); renderLegend();
+    renderStats(); fitZoom(); renderPreview(); enableStep('step3'); renderLegend();
   }
 
-  // ---- 统计 + 预估耗时 ----
-  const BEADS_PER_MIN = 12; // 手工大致速度（含找色/分拣），仅供参考
-  function tierOf(total){
-    if(total<800)  return {name:'轻松',   tip:'一两个晚上',   color:'#5DB12F'};
-    if(total<2500) return {name:'适中',   tip:'大概一个周末', color:'#E0A800'};
-    if(total<5000) return {name:'认真',   tip:'需要点耐心',   color:'#F08643'};
+  // ---- 耗时模型（颜色数也计入：颜色越多越慢 + 每色一次分拣成本）----
+  const SORT_PER_COLOR = 1.5;
+  function rateOf(colors){ return Math.max(6, 13 - 0.12*colors); }       // 珠/分钟
+  function timeMin(beads, colors){ return beads/rateOf(colors) + colors*SORT_PER_COLOR; }
+  function balancedColors(res){ return Math.max(4, Math.min(36, Math.round(4 + res*0.26))); }
+  function tierByTime(min){
+    if(min<90)  return {name:'轻松',   tip:'一两个晚上',   color:'#5DB12F'};
+    if(min<300) return {name:'适中',   tip:'大概一个周末', color:'#E0A800'};
+    if(min<600) return {name:'认真',   tip:'需要点耐心',   color:'#F08643'};
     return            {name:'大工程', tip:'做好打持久战', color:'#D62A33'};
   }
-  function fmtTime(min){ if(min<60) return '约 '+Math.max(1,min)+' 分钟';
+  function fmtTime(min){ if(min<60) return '约 '+Math.max(1,Math.round(min))+' 分钟';
     const h=min/60; return '约 '+(h<10 ? h.toFixed(1).replace(/\.0$/,'') : Math.round(h))+' 小时'; }
-  function renderTimeBar(total){
-    const t=tierOf(total), min=Math.round(total/BEADS_PER_MIN);
-    $('effortLabel').textContent = '🧩 '+t.name+' · '+t.tip;
-    $('timeEst').textContent = '⏱ '+fmtTime(min);
-    $('timeBar').style.width = (Math.min(1,total/9000)*100).toFixed(0)+'%';
-    $('timeBar').style.background = t.color;
-  }
-  // 拖动精细度时用上一轮的「占格率」即时估珠数，免得等完整重算
   function estimateBeads(res){
     if(!S.bboxAR) return null;
     let c,r; if(S.bboxAR>=1){ c=res; r=Math.max(1,Math.round(res/S.bboxAR)); }
     else { r=res; c=Math.max(1,Math.round(res*S.bboxAR)); }
     return Math.round(c*r*(S.lastFill!=null ? S.lastFill : 1));
   }
+  function renderTimeLabel(min){
+    const t=tierByTime(min);
+    $('timeEst').textContent = '⏱ '+fmtTime(min);
+    $('effortLabel').textContent = '🧩 '+t.name+' · '+t.tip;
+    timeInput.style.accentColor = t.color;
+  }
+  function clampT(t){ return Math.max(15, Math.min(900, Math.round(t))); }
+  // 正向：res/colors 变 → 即时估时、移动时间滑杆
+  function liveTimeUpdate(){
+    const beads=estimateBeads(S.res); if(beads==null) return;
+    const t=timeMin(beads, S.colorN);
+    if(!S.timeDragging) timeInput.value=clampT(t);
+    renderTimeLabel(t);
+  }
+  // 反向：拖时间 → 二分找 res（配套 balancedColors），同步两条滑杆
+  function controlsFromTime(T){
+    if(!S.bboxAR){ renderTimeLabel(T); return; }
+    let lo=20, hi=120;
+    for(let it=0; it<24; it++){ const mid=(lo+hi)/2;
+      const t=timeMin(estimateBeads(mid), balancedColors(mid));
+      if(t<T) lo=mid; else hi=mid; }
+    let res=Math.max(20, Math.min(120, Math.round((lo+hi)/2)));
+    const cols=balancedColors(res);
+    S.res=res; S.colorN=cols;
+    resInput.value=res; $('resVal').textContent=res+' 格'; syncPreset();
+    colsInput.value=cols; $('colVal').textContent=cols+' 色';
+    renderTimeLabel(T);
+    debouncedGen();
+  }
+
   function renderStats(){
     let total=0; S.used.forEach(u=>total+=u.count);
     S.lastFill = (S.cols*S.rows) ? total/(S.cols*S.rows) : 1;
+    S.lastBeads = total;
     const boards=Math.ceil(total/841);
     $('stats').innerHTML =
       '<div class="pb-stat"><b>'+S.cols+'×'+S.rows+'</b><small>网格</small></div>'+
       '<div class="pb-stat"><b>'+total.toLocaleString()+'</b><small>珠子总数</small></div>'+
       '<div class="pb-stat"><b>'+S.used.length+'</b><small>用到颜色</small></div>'+
       '<div class="pb-stat"><b>'+boards+'</b><small>块拼豆板(29×29)</small></div>';
-    renderTimeBar(total);
+    // 实际颜色数算时间（比目标 colorN 更准）
+    const t = timeMin(total, S.used.length || S.colorN);
+    if(!S.timeDragging) timeInput.value = clampT(t);
+    renderTimeLabel(t);
   }
 
   // ---- 预览（拼豆珠样式） ----
@@ -684,11 +742,11 @@ permalink: /toolbox/pindou/
   }
 
   // ===================================================================
-  //  步骤 4：导出（效果图 / 坐标图纸 / 打印）
+  //  ③ 导出（效果图 / 坐标图纸 / 打印）
   // ===================================================================
   function buildChartCanvas(cp){
     cp = cp || 26;
-    const lab=Math.max(22, cp); // 行列号留白
+    const lab=Math.max(22, cp);
     const c=document.createElement('canvas');
     c.width=S.cols*cp+lab+6; c.height=S.rows*cp+lab+6;
     const cx=c.getContext('2d');
@@ -697,15 +755,13 @@ permalink: /toolbox/pindou/
     for(let y=0;y<S.rows;y++) for(let x=0;x<S.cols;x++){
       const g=S.grid[y][x]; const px=lab+x*cp, py=lab+y*cp;
       if(g>=0){ const u=S.used[g]; cx.fillStyle=u.h; cx.fillRect(px,py,cp,cp);
-        const rgb=PAL_RGB[u.pi]; const lum=0.299*rgb[0]+0.587*rgb[1]+0.114*rgb[2];
+        const rgb=hexToRgb(u.h); const lum=0.299*rgb[0]+0.587*rgb[1]+0.114*rgb[2];
         cx.fillStyle=lum>140?'rgba(0,0,0,.6)':'rgba(255,255,255,.85)'; cx.fillText(u.sym, px+cp/2, py+cp/2+1);
       } else { cx.fillStyle='#fafafa'; cx.fillRect(px,py,cp,cp); }
     }
-    // 网格线
     cx.strokeStyle='rgba(0,0,0,.12)'; cx.lineWidth=1;
     for(let x=0;x<=S.cols;x++){ cx.beginPath(); cx.moveTo(lab+x*cp+.5,lab); cx.lineTo(lab+x*cp+.5,lab+S.rows*cp); cx.stroke(); }
     for(let y=0;y<=S.rows;y++){ cx.beginPath(); cx.moveTo(lab,lab+y*cp+.5); cx.lineTo(lab+S.cols*cp,lab+y*cp+.5); cx.stroke(); }
-    // 每 10 格粗线 + 编号
     cx.strokeStyle='rgba(0,0,0,.5)'; cx.lineWidth=2; cx.fillStyle='#333';
     cx.font=Math.round(lab*0.5)+'px sans-serif';
     for(let x=0;x<=S.cols;x+=10){ cx.beginPath(); cx.moveTo(lab+x*cp+.5,lab); cx.lineTo(lab+x*cp+.5,lab+S.rows*cp); cx.stroke();
@@ -786,18 +842,24 @@ permalink: /toolbox/pindou/
 
   function tryLoadShared(){
     const m=location.hash.match(/[#&]p=([A-Za-z0-9_\-]+)/);
-    if(!m) return;
+    if(!m) return false;
     if(decodeShare(m[1])){
       $('sharedBanner').classList.remove('pb-hidden');
-      enableStep('step3'); enableStep('step4');
+      enableStep('step2'); enableStep('step3');
       const lng=Math.max(S.cols,S.rows);
       S.res=Math.min(120,Math.max(20,lng)); resInput.value=S.res; $('resVal').textContent=lng+' 格';
       S.colorN=Math.min(36,Math.max(2,S.used.length)); colsInput.value=S.colorN; $('colVal').textContent=S.used.length+' 色';
       renderStats(); fitZoom(); renderPreview(); renderLegend();
-      window.scrollTo(0,0); // 停在顶部，先看到分享横幅
+      window.scrollTo(0,0);
+      return true;
     }
+    return false;
   }
-  tryLoadShared();
+
+  // ---- 启动 ----
+  if(!tryLoadShared()){
+    S.preloadPromise = preloadModel(); // 进页面就后台预下载模型
+  }
 
 })();
 </script>
