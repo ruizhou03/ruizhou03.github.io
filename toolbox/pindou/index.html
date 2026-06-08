@@ -72,7 +72,11 @@ permalink: /toolbox/pindou/
   .pb-stat { flex: 1 1 90px; border: 1px solid var(--color-border); border-radius: 10px; padding: .55rem .4rem; text-align: center; background: var(--color-bg); }
   .pb-stat b { display: block; font-size: 1.15rem; color: var(--color-ink); font-variant-numeric: tabular-nums; line-height: 1.2; }
   .pb-stat small { font-size: .72rem; color: var(--color-muted); }
-  .pb-effort { font-size: .82rem; text-align: center; color: var(--color-light); margin-bottom: .4rem; }
+  .pb-time { margin: .2rem 0 1.1rem; }
+  .pb-time-head { display: flex; justify-content: space-between; align-items: baseline; font-size: .86rem; color: var(--color-ink); margin-bottom: .4rem; }
+  .pb-time-head b { font-variant-numeric: tabular-nums; color: var(--color-ink); }
+  .pb-time-bar { height: 10px; border-radius: 6px; background: var(--color-border); overflow: hidden; }
+  .pb-time-bar > i { display: block; height: 100%; width: 0; border-radius: 6px; transition: width .12s ease, background .12s; }
 
   /* preview */
   .pb-preview-box { overflow: auto; max-height: 62vh; border: 1px solid var(--color-border); border-radius: 10px; background: #fbfbfc; padding: .5rem; text-align: center; }
@@ -193,7 +197,11 @@ permalink: /toolbox/pindou/
     </div>
 
     <div class="pb-stats" id="stats"></div>
-    <div class="pb-effort" id="effort"></div>
+    <div class="pb-time">
+      <div class="pb-time-head"><span id="effortLabel"></span><b id="timeEst"></b></div>
+      <div class="pb-time-bar"><i id="timeBar"></i></div>
+      <div class="pb-cap" style="text-align:right;margin-top:.3rem;">⏱ 手工预估耗时，因人 / 熟练度而异</div>
+    </div>
 
     <div class="pb-preview-box"><canvas id="preview"></canvas></div>
     <div class="pb-zoom">
@@ -342,32 +350,43 @@ permalink: /toolbox/pindou/
     return bgRemover;
   }
 
+  const AI_TIMEOUT = 10000; // 超过 10 秒就放弃 AI，用整张图（模型源国内常下不动）
   async function runAI(){
     if(S.busy) return;
-    S.busy = true; hideMsg('cutMsg');
+    S.busy = true; S.aiGaveUp = false; hideMsg('cutMsg');
+    const myGen = (S.aiGen = (S.aiGen||0)+1); // 用代号区分轮次，旧轮结果作废
     $('prog').classList.remove('pb-hidden');
-    setProg(0.04, '正在加载 AI 抠图模型…（首次约 40MB，慢的话请稍候）');
-    // 看门狗：60s 还没好就提示，但不打断（整张图已可用）
-    const watchdog = setTimeout(()=>{ if(S.busy){ $('prog').classList.add('pb-hidden');
-      showMsg('cutMsg','AI 抠图比较慢（可能网络或模型源的问题）。当前用的是整张图，可点「手动修一下」擦背景，或稍后「重新 AI 抠图」。', true); } }, 60000);
+    setProg(0.06, '正在试 AI 抠图…（最多等 10 秒，下不动就用整张图）');
+    // 看门狗：10 秒还没好就放弃，不再傻等（整张图已可用），并允许重试
+    const watchdog = setTimeout(()=>{
+      if(myGen !== S.aiGen) return;
+      S.aiGaveUp = true; S.busy = false; $('prog').classList.add('pb-hidden');
+      showMsg('cutMsg','AI 抠图太慢，已跳过——当前用的是整张图。可点「🖌️ 手动修一下」擦掉背景，或点「重新 AI 抠图」再试一次。', true);
+    }, AI_TIMEOUT);
     try {
       const removeBackground = await getRemover();
-      setProg(0.1, '模型加载 / 抠图中…');
+      if(myGen !== S.aiGen) { clearTimeout(watchdog); return; }
+      setProg(0.12, '抠图中…');
       const blob = await removeBackground(currentFile, {
         model: 'isnet_quint8',
         output: { format: 'image/png' },
         progress: (key, cur, tot) => {
+          if(myGen !== S.aiGen) return;
           const frac = tot ? cur/tot : 0;
-          if(/fetch|download|model|onnx|wasm/i.test(key)) setProg(0.05+frac*0.8, '下载模型 ' + Math.round(frac*100) + '%…（首次约 40MB，之后缓存）');
-          else setProg(0.85 + frac*0.13, '正在抠图 ' + Math.round(frac*100) + '%…');
+          if(/fetch|download|model|onnx|wasm/i.test(key)) setProg(0.06+frac*0.8, '下载模型 ' + Math.round(frac*100) + '%…');
+          else setProg(0.86 + frac*0.12, '正在抠图 ' + Math.round(frac*100) + '%…');
         }
       });
       clearTimeout(watchdog);
+      if(myGen !== S.aiGen) return; // 已被新一轮取代，丢弃
       const bmp = await blobToCanvasData(blob, S.W, S.H);
       const m = new Uint8Array(S.W*S.H); let anyBead=0;
       for(let i=0;i<m.length;i++){ const a = bmp[i*4+3] >= 128 ? 255 : 0; m[i]=a; if(a) anyBead++; }
-      setProg(1,'完成！'); setTimeout(()=>$('prog').classList.add('pb-hidden'), 600);
-      if(anyBead < m.length*0.003){
+      $('prog').classList.add('pb-hidden');
+      if(S.aiGaveUp){
+        // 之前 10 秒超时放弃了，但模型其实已下好（缓存）→ 提示秒抠
+        showMsg('cutMsg','✓ 模型已下载好（刚才太慢跳过了）。点「重新 AI 抠图」就能秒抠。');
+      } else if(anyBead < m.length*0.003){
         showMsg('cutMsg','AI 没找到明显主体，已保留整张图——可「手动修一下」擦掉背景。', true);
       } else if(!S.painted){
         S.mask = m; renderEdit(); regenerate();
@@ -377,9 +396,10 @@ permalink: /toolbox/pindou/
       }
     } catch(err){
       clearTimeout(watchdog); console.error(err);
+      if(myGen !== S.aiGen) return;
       $('prog').classList.add('pb-hidden');
-      showMsg('cutMsg','AI 抠图没成功（可能网络慢或模型源被挡）。当前用的是整张图，可「手动修一下」擦背景，或点「重新 AI 抠图」重试。', true);
-    } finally { S.busy = false; }
+      if(!S.aiGaveUp) showMsg('cutMsg','AI 抠图没成功（可能网络慢或模型源被挡）。当前用的是整张图，可「手动修一下」擦背景，或点「重新 AI 抠图」重试。', true);
+    } finally { if(myGen === S.aiGen) S.busy = false; }
   }
 
   function setProg(frac, txt){ $('progBar').style.width = Math.round(frac*100)+'%'; if(txt) $('progTxt').textContent = txt; }
@@ -463,7 +483,9 @@ permalink: /toolbox/pindou/
   // ===================================================================
   // 精细度
   const resInput = $('res');
-  resInput.addEventListener('input', ()=>{ S.res=+resInput.value; $('resVal').textContent=S.res+' 格'; syncPreset(); debouncedGen(); });
+  resInput.addEventListener('input', ()=>{ S.res=+resInput.value; $('resVal').textContent=S.res+' 格'; syncPreset();
+    const est=estimateBeads(S.res); if(est!=null) renderTimeBar(est); // 即时跟着拖动更新耗时条
+    debouncedGen(); });
   $('resPresets').addEventListener('click', (e)=>{ const c=e.target.closest('.pb-chip'); if(!c) return;
     S.res=+c.dataset.res; resInput.value=S.res; $('resVal').textContent=S.res+' 格'; syncPreset(); regenerate(); });
   function syncPreset(){ document.querySelectorAll('#resPresets .pb-chip').forEach(c=>c.classList.toggle('on', +c.dataset.res===S.res)); }
@@ -486,6 +508,7 @@ permalink: /toolbox/pindou/
     for(let y=0;y<H;y++) for(let x=0;x<W;x++){ if(m[y*W+x]){ if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; } }
     if(maxX<0){ showMsg('genMsg','没抠到主体——回上一步点「找回」补一点，或「用整张图」。'); return; }
     const bw=maxX-minX+1, bh=maxY-minY+1;
+    S.bboxAR = bw/bh;
     // 2) 网格尺寸（最长边 = res）
     let cols, rows;
     if(bw>=bh){ cols=S.res; rows=Math.max(1,Math.round(S.res*bh/bw)); }
@@ -540,21 +563,40 @@ permalink: /toolbox/pindou/
     renderStats(); fitZoom(); renderPreview(); enableStep('step4'); renderLegend();
   }
 
-  // ---- 统计 ----
+  // ---- 统计 + 预估耗时 ----
+  const BEADS_PER_MIN = 12; // 手工大致速度（含找色/分拣），仅供参考
+  function tierOf(total){
+    if(total<800)  return {name:'轻松',   tip:'一两个晚上',   color:'#5DB12F'};
+    if(total<2500) return {name:'适中',   tip:'大概一个周末', color:'#E0A800'};
+    if(total<5000) return {name:'认真',   tip:'需要点耐心',   color:'#F08643'};
+    return            {name:'大工程', tip:'做好打持久战', color:'#D62A33'};
+  }
+  function fmtTime(min){ if(min<60) return '约 '+Math.max(1,min)+' 分钟';
+    const h=min/60; return '约 '+(h<10 ? h.toFixed(1).replace(/\.0$/,'') : Math.round(h))+' 小时'; }
+  function renderTimeBar(total){
+    const t=tierOf(total), min=Math.round(total/BEADS_PER_MIN);
+    $('effortLabel').textContent = '🧩 '+t.name+' · '+t.tip;
+    $('timeEst').textContent = '⏱ '+fmtTime(min);
+    $('timeBar').style.width = (Math.min(1,total/9000)*100).toFixed(0)+'%';
+    $('timeBar').style.background = t.color;
+  }
+  // 拖动精细度时用上一轮的「占格率」即时估珠数，免得等完整重算
+  function estimateBeads(res){
+    if(!S.bboxAR) return null;
+    let c,r; if(S.bboxAR>=1){ c=res; r=Math.max(1,Math.round(res/S.bboxAR)); }
+    else { r=res; c=Math.max(1,Math.round(res*S.bboxAR)); }
+    return Math.round(c*r*(S.lastFill!=null ? S.lastFill : 1));
+  }
   function renderStats(){
     let total=0; S.used.forEach(u=>total+=u.count);
+    S.lastFill = (S.cols*S.rows) ? total/(S.cols*S.rows) : 1;
     const boards=Math.ceil(total/841);
     $('stats').innerHTML =
       '<div class="pb-stat"><b>'+S.cols+'×'+S.rows+'</b><small>网格</small></div>'+
       '<div class="pb-stat"><b>'+total.toLocaleString()+'</b><small>珠子总数</small></div>'+
       '<div class="pb-stat"><b>'+S.used.length+'</b><small>用到颜色</small></div>'+
       '<div class="pb-stat"><b>'+boards+'</b><small>块拼豆板(29×29)</small></div>';
-    let label, tip;
-    if(total<800){ label='🟢 轻松'; tip='一两个晚上能摆完'; }
-    else if(total<2500){ label='🟡 适中'; tip='一个周末的量'; }
-    else if(total<5000){ label='🟠 认真'; tip='需要点耐心的项目'; }
-    else { label='🔴 大工程'; tip='做好打持久战的准备'; }
-    $('effort').textContent = '工作量：'+label+' · '+tip;
+    renderTimeBar(total);
   }
 
   // ---- 预览（拼豆珠样式） ----
@@ -706,7 +748,7 @@ permalink: /toolbox/pindou/
       S.res=Math.min(120,Math.max(20,lng)); resInput.value=S.res; $('resVal').textContent=lng+' 格';
       S.colorN=Math.min(36,Math.max(2,S.used.length)); colsInput.value=S.colorN; $('colVal').textContent=S.used.length+' 色';
       renderStats(); fitZoom(); renderPreview(); renderLegend();
-      $('sharedBanner').scrollIntoView({behavior:'smooth',block:'start'});
+      window.scrollTo(0,0); // 停在顶部，先看到分享横幅
     }
   }
   tryLoadShared();
