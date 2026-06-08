@@ -448,3 +448,11 @@
   url: /toolbox/bazi/
   category: 生活
   status: live
+
+- id: perler
+  name: 拼豆图纸
+  icon: 🧩
+  tagline: 上传图 → 自动抠图 → 拼豆像素图纸
+  url: /toolbox/perler/
+  category: 生活
+  status: live
