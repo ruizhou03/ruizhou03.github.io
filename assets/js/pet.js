@@ -1712,34 +1712,55 @@
   function drawAggregatedBars(deltas, pet, startIso, endIso, agg) {
     const eatenMap = eatenByDate(deltas);
     const todayIso = todayBucketIso();
+    // 不完整周期修正：第一条记录时间 tFirst、现在 now，用来判断每个桶是否「不完整」(起始/进行中)。
+    const entriesAll = (pet.entries || []).filter(e => (e.kind || 'weigh') !== 'bodyweight');
+    const tFirst = entriesAll.length ? Math.min(...entriesAll.map(e => e.ts)) : null;
+    const now = Date.now();
+    const dayMeta = (dIso) => {
+      const { start, end } = dayRangeMs(dIso);
+      const complete = (tFirst != null && start >= tFirst && end <= now);          // 整天都在 [第一条记录, 现在] 内
+      const partial = (tFirst != null && ((start < tFirst && end > tFirst) || (start <= now && end > now))); // 跨过 tFirst(起始日) 或 now(今天)
+      return { complete, partial, eaten: eatenMap.get(dIso) || 0 };
+    };
+    const isoOf = (y, mIdx, d) => y + '-' + pad2(mIdx + 1) + '-' + pad2(d);
 
     const dayList = [];
     let cur = parseIsoDate(startIso);
     const endD = parseIsoDate(endIso);
     while (cur <= endD) {
-      dayList.push(cur.getFullYear() + '-' + pad2(cur.getMonth() + 1) + '-' + pad2(cur.getDate()));
+      dayList.push(isoOf(cur.getFullYear(), cur.getMonth(), cur.getDate()));
       cur.setDate(cur.getDate() + 1);
     }
+    // 「平均」只用完整天的日均（排除起始日 / 今天 这类不完整天）
+    let cSum = 0, cCount = 0;
+    dayList.forEach(d => { const mm = dayMeta(d); if (mm.complete) { cSum += mm.eaten; cCount++; } });
+    const avgCompleteDay = cCount > 0 ? cSum / cCount : 0;
 
     const bars = [];
     if (agg === 'day') {
       dayList.forEach(d => {
-        bars.push({ key: d, label: shortMD(d), value: eatenMap.get(d) || 0, isToday: d === todayIso, sub: null });
+        const mm = dayMeta(d);
+        bars.push({ key: d, label: shortMD(d), value: mm.eaten, isToday: d === todayIso, sub: null, incomplete: mm.partial, projected: null });
       });
     } else if (agg === 'week') {
       const groups = new Map();
       dayList.forEach(d => {
         const dt = parseIsoDate(d);
-        const dayFromMon = (dt.getDay() + 6) % 7;
-        const mon = new Date(dt);
-        mon.setDate(mon.getDate() - dayFromMon);
-        const monIso = mon.getFullYear() + '-' + pad2(mon.getMonth() + 1) + '-' + pad2(mon.getDate());
+        const mon = new Date(dt); mon.setDate(mon.getDate() - ((dt.getDay() + 6) % 7));
+        const monIso = isoOf(mon.getFullYear(), mon.getMonth(), mon.getDate());
         if (!groups.has(monIso)) groups.set(monIso, { sum: 0, count: 0 });
         groups.get(monIso).sum += (eatenMap.get(d) || 0);
         groups.get(monIso).count++;
       });
-      [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([k, g]) => {
-        bars.push({ key: k, label: shortMD(k), value: g.sum, isToday: false, sub: g.count < 7 ? `${g.count}d` : null });
+      [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([monIso, g]) => {
+        const ws = parseIsoDate(monIso);
+        const weekStart = new Date(ws.getFullYear(), ws.getMonth(), ws.getDate()).getTime();
+        const weekEnd = weekStart + 7 * DAY_MS;
+        let compSum = 0, compCnt = 0;
+        for (let k = 0; k < 7; k++) { const dd = new Date(weekStart + k * DAY_MS); const mm = dayMeta(isoOf(dd.getFullYear(), dd.getMonth(), dd.getDate())); if (mm.complete) { compSum += mm.eaten; compCnt++; } }
+        const incomplete = (tFirst != null) && ((weekStart < tFirst && weekEnd > tFirst) || (weekStart <= now && weekEnd > now));
+        const projected = (incomplete && compCnt > 0) ? (compSum / compCnt) * 7 : null;   // 折算满周 = 完整天日均 × 7
+        bars.push({ key: monIso, label: shortMD(monIso), value: g.sum, isToday: false, sub: g.count < 7 ? `${g.count}d` : null, incomplete, projected, recordedDays: g.count });
       });
     } else {
       const groups = new Map();
@@ -1749,23 +1770,31 @@
         groups.get(ym).sum += (eatenMap.get(d) || 0);
         groups.get(ym).count++;
       });
-      [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([k, g]) => {
-        const month = parseInt(k.split('-')[1], 10);
-        bars.push({ key: k, label: month + '月', value: g.sum, isToday: false, sub: null });
+      [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([ym, g]) => {
+        const yy = parseInt(ym.slice(0, 4), 10), mm0 = parseInt(ym.slice(5, 7), 10);
+        const monStart = new Date(yy, mm0 - 1, 1).getTime();
+        const daysInMonth = new Date(yy, mm0, 0).getDate();
+        const monEnd = new Date(yy, mm0 - 1, daysInMonth).getTime() + DAY_MS;
+        let compSum = 0, compCnt = 0;
+        for (let k = 1; k <= daysInMonth; k++) { const mm = dayMeta(isoOf(yy, mm0 - 1, k)); if (mm.complete) { compSum += mm.eaten; compCnt++; } }
+        const incomplete = (tFirst != null) && ((monStart < tFirst && monEnd > tFirst) || (monStart <= now && monEnd > now));
+        const projected = (incomplete && compCnt > 0) ? (compSum / compCnt) * daysInMonth : null;   // 折算满月 = 完整天日均 × 当月天数
+        bars.push({ key: ym, label: mm0 + '月', value: g.sum, isToday: false, sub: null, incomplete, projected, recordedDays: g.count });
       });
     }
 
     const target = targetForAggregation(pet, agg);
-    drawBars(bars, agg, startIso, endIso, dayList.length, target, pet);
+    drawBars(bars, agg, startIso, endIso, dayList.length, target, pet, avgCompleteDay);
   }
 
-  function drawBars(bars, agg, startIso, endIso, dayCount, target, pet) {
+  function drawBars(bars, agg, startIso, endIso, dayCount, target, pet, avgCompleteDay) {
     const M = convM(pet), U = convUnit(pet);   // 标签层换算（柱高/几何仍按等效干粮克数）
     const W = 600, H = 240;
     const m = { l: 44, r: 16, t: 22, b: 34 };
     const innerW = W - m.l - m.r;
     const innerH = H - m.t - m.b;
-    const dataMax = Math.max(1, ...bars.map(b => b.value));
+    const periodName = agg === 'week' ? '周' : '月';
+    const dataMax = Math.max(1, ...bars.map(b => Math.max(b.value, b.projected || 0)));   // 含折算值，预测段也能放下
     const niceMax = niceCeil(Math.max(dataMax, target ? target.max : 0));
     const n = Math.max(1, bars.length);
     const barW = innerW / n;
@@ -1802,18 +1831,36 @@
       html += `<text x="${W - m.r - 4}" y="${Math.max(yMax, m.t + 10) - 4}" text-anchor="end" fill="#4a7c59" font-size="10">${tLbl}</text>`;
     }
 
+    let anyIncomplete = false, anyProjected = false;
     bars.forEach((b, i) => {
       const x = m.l + barW * i + 1.5;
       const w = Math.max(1, barW - 3);
       const bh = (b.value / niceMax) * innerH;
       const y = m.t + innerH - bh;
-      const fill = b.isToday ? 'var(--color-accent)' : '#c9a96e';
-      html += `<rect x="${x}" y="${y}" width="${w}" height="${bh}" fill="${fill}" rx="2"><title>${b.label}${b.sub ? ' ('+b.sub+')' : ''}: ${fmtG(b.value * M)} ${U}</title></rect>`;
-      if (b.value > 0 && (n <= 14 || i % labelEvery === 0)) {
+      const baseFill = b.isToday ? 'var(--color-accent)' : '#c9a96e';
+      const hasProj = b.projected && b.projected > b.value;
+      if (b.incomplete) anyIncomplete = true;
+      // 折算满周期 的虚线预测段（实际柱顶 → 折算值）
+      if (hasProj) {
+        anyProjected = true;
+        const yp = m.t + innerH - (b.projected / niceMax) * innerH;
+        html += `<rect x="${x}" y="${yp}" width="${w}" height="${y - yp}" fill="#4a7c59" fill-opacity="0.10" stroke="#4a7c59" stroke-width="1" stroke-dasharray="3 2" rx="2"/>`;
+        if (n <= 14 || i % labelEvery === 0) html += `<text x="${x + w / 2}" y="${yp - 3}" text-anchor="middle" fill="#4a7c59" font-size="9" font-weight="600">折算${fmtG(b.projected * M)}</text>`;
+      }
+      // 实际柱：不完整桶用半透明 + 虚线描边标出
+      const incAttr = b.incomplete ? ' fill-opacity="0.5" stroke="' + baseFill + '" stroke-width="1" stroke-dasharray="3 2"' : '';
+      const tip = b.incomplete
+        ? (hasProj
+            ? `${b.label}：已记录 ${fmtG(b.value * M)} ${U} → 折算满${periodName} ${fmtG(b.projected * M)} ${U}`
+            : `${b.label} · 不完整: 已记录 ${fmtG(b.value * M)} ${U}`)
+        : `${b.label}${b.sub ? ' (' + b.sub + ')' : ''}: ${fmtG(b.value * M)} ${U}`;
+      html += `<rect x="${x}" y="${y}" width="${w}" height="${bh}" fill="${baseFill}"${incAttr} rx="2"><title>${tip}</title></rect>`;
+      // 实际值标签（有折算段时上方已标折算值，这里就不重复标）
+      if (b.value > 0 && !hasProj && (n <= 14 || i % labelEvery === 0)) {
         html += `<text x="${x + w / 2}" y="${y - 3}" text-anchor="middle" fill="var(--color-muted)" font-size="9">${fmtG(b.value * M)}</text>`;
       }
       if (i % labelEvery === 0 || i === n - 1) {
-        html += `<text x="${x + w / 2}" y="${H - 14}" text-anchor="middle" fill="var(--color-light)" font-size="9.5">${escapeHtml(b.label)}</text>`;
+        html += `<text x="${x + w / 2}" y="${H - 14}" text-anchor="middle" fill="${b.incomplete ? '#b9975f' : 'var(--color-light)'}" font-size="9.5">${escapeHtml(b.label)}</text>`;
       }
     });
 
@@ -1821,10 +1868,11 @@
 
     const totalEaten = bars.reduce((s, b) => s + b.value, 0);
     const aggName = agg === 'day' ? '日' : (agg === 'week' ? '周' : '月');
-    const avgPerDay = dayCount > 0 ? totalEaten / dayCount : 0;
+    const incLegend = anyProjected ? ' · <span style="color:#4a7c59;">┈ 折算满' + periodName + '</span>'
+      : (anyIncomplete ? ' · <span style="color:#b9975f;">┈ 不完整</span>' : '');
     $chartMeta.innerHTML = `
-      <span><span class="legend-dot" style="background:#c9a96e;"></span>每${aggName}吃量 <span class="legend-dot" style="background:var(--color-accent);margin-left:0.5rem;"></span>今日</span>
-      <span>共 ${fmtG(totalEaten * M)} ${U} · 平均 ${fmtG(avgPerDay * M)} ${U}/日</span>
+      <span><span class="legend-dot" style="background:#c9a96e;"></span>每${aggName}吃量 <span class="legend-dot" style="background:var(--color-accent);margin-left:0.5rem;"></span>今日${incLegend}</span>
+      <span>共 ${fmtG(totalEaten * M)} ${U} · 日均 ${fmtG(avgCompleteDay * M)} ${U}<span style="color:var(--color-light);">（仅完整天）</span></span>
     `;
     $chartRangeLbl.textContent = `${startIso} → ${endIso} · 按${aggName}`;
   }
