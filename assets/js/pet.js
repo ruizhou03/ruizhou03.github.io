@@ -683,6 +683,14 @@
   const $fmAnAsh = document.getElementById('fm-an-ash');
   const $fmAnFiber = document.getElementById('fm-an-fiber');
   const $fmEstResult = document.getElementById('fm-est-result');
+  const $fmBasisNote = document.getElementById('fm-basis-note');
+  const $fmEquivBlock = document.getElementById('fm-equiv-block');
+  const $fmEquivCount = document.getElementById('fm-equiv-count');
+  const $fmEquivGramField = document.getElementById('fm-equiv-gram-field');
+  const $fmEquivGrams = document.getElementById('fm-equiv-grams');
+  const $fmEquivGrams100 = document.getElementById('fm-equiv-grams100');
+  const $fmUnitEcho3 = document.getElementById('fm-unit-echo3');
+  const $fmSourceEquiv = document.getElementById('fm-source-equiv');
   const $fmDelete = document.getElementById('fm-delete');
   const $fmCancel = document.getElementById('fm-cancel');
   const $fmSave = document.getElementById('fm-save');
@@ -740,7 +748,6 @@
   const $imKibbleField = document.getElementById('im-kibble-field');
   const $imCancel = document.getElementById('im-cancel');
   const $imSave = document.getElementById('im-save');
-  const $fmSetbase = document.getElementById('fm-setbase');
   // 档案必填项的 .field 容器（红框校验用）
   const $pmNameField = $pmName.closest('.field');
   const $pmSpeciesField = $pmSpecies.closest('.field');
@@ -3523,19 +3530,43 @@
   // analysis using modified Atwater factors (protein 3.5, fat 8.5, NFE 3.5).
   // NFE (carbs) = 100 − moisture − protein − fat − ash − fiber. Ash/fiber are
   // small; default to typical values (2 / 0.5) when the label omits them.
-  function kcalPer100gFromAnalysis(a) {
+  //
+  // Mixed-basis guard (common on Chinese labels): protein/fat/ash/fiber are
+  // often printed on a DRY-MATTER basis while moisture is as-fed. Then the
+  // numbers sum past 100% (e.g. protein 45 + water 85 is impossible as-fed —
+  // there's only 15g of dry matter per 100g). When we detect that, we scale the
+  // macros back to as-fed (× dry-matter fraction) before computing energy, so a
+  // 15g 85%-water stick reads as ~2g of kibble instead of a bogus ~10g.
+  // Returns { kcal, corrected } so the UI can explain when it auto-corrected.
+  function analyzeKcal(a) {
     // Empty fields must be "missing", not 0 — Number('') is 0 (finite), which
     // would silently treat blanks as 0% and inflate NFE. Parse blanks to NaN.
     const num = v => (v === '' || v == null) ? NaN : Number(v);
     const p = num(a.protein), f = num(a.fat), m = num(a.moisture);
     if (!Number.isFinite(p) || !Number.isFinite(f) || !Number.isFinite(m)) return null;
     const ashN = num(a.ash), fiberN = num(a.fiber);
-    const ash = Number.isFinite(ashN) ? ashN : 2;
-    const fiber = Number.isFinite(fiberN) ? fiberN : 0.5;
-    const nfe = Math.max(0, 100 - m - p - f - ash - fiber);
-    const kcal = p * 3.5 + f * 8.5 + nfe * 3.5;
-    return kcal > 0 ? kcal : null;
+    let ash = Number.isFinite(ashN) ? ashN : 2;
+    let fiber = Number.isFinite(fiberN) ? fiberN : 0.5;
+    let P = p, F = f;
+    let corrected = false;
+    // Dry-basis tell: stated protein can't exceed the non-water mass (dry matter
+    // = 100 − moisture). If it does, the macros are physically impossible as-fed
+    // and must be on a dry-matter basis — fold them back to as-fed (× dry frac).
+    // (As-fed guaranteed values are min/max bounds and can legitimately sum a few
+    // points past 100, so a bare sum>100 check over-fires; the protein>DM test is
+    // the hard one, with a generous sum>110 backstop for odd fat-heavy labels.)
+    const dryMatter = 100 - m;
+    if (m > 0 && m < 100 && (p > dryMatter || (m + p + f + ash + fiber) > 110)) {
+      const dryFrac = dryMatter / 100;
+      P = p * dryFrac; F = f * dryFrac; ash = ash * dryFrac; fiber = fiber * dryFrac;
+      corrected = true;
+    }
+    const nfe = Math.max(0, 100 - m - P - F - ash - fiber);
+    const kcal = P * 3.5 + F * 8.5 + nfe * 3.5;
+    return kcal > 0 ? { kcal, corrected } : null;
   }
+  function kcalPer100gFromAnalysis(a) { const r = analyzeKcal(a); return r ? r.kcal : null; }
+  const BASIS_NOTE = '⚠️ 这几项加起来超过 100%，多半是包装按「干物质(干基)」标的——已自动折算回实物再估热量。';
   function fmReadAnalysis() {
     return {
       protein: $fmAnProtein.value, fat: $fmAnFat.value, moisture: $fmAnMoisture.value,
@@ -3557,12 +3588,15 @@
     $fmGramFields.style.display = isCount ? 'none' : '';
     $fmUnitLabelField.style.display = isCount ? '' : 'none';
     $fmGramsPerUnitField.style.display = (isCount && fmSourceVal() === 'analysis') ? '' : 'none';
+    $fmEquivCount.style.display = isCount ? '' : 'none';
+    $fmEquivGramField.style.display = isCount ? 'none' : '';
     $fmMeasure.querySelectorAll('label').forEach(l => l.classList.toggle('active', l.dataset.val === m));
   }
   function fmApplySourceUI() {
     const s = fmSourceVal();
     $fmDirectBlock.style.display = s === 'direct' ? '' : 'none';
     $fmAnalysisBlock.style.display = s === 'analysis' ? '' : 'none';
+    $fmEquivBlock.style.display = s === 'equiv' ? '' : 'none';
     $fmGramsPerUnitField.style.display = (fmMeasureVal() === 'count' && s === 'analysis') ? '' : 'none';
     $fmSource.querySelectorAll('label').forEach(l => l.classList.toggle('active', l.dataset.val === s));
     fmUpdateEstimate();
@@ -3570,8 +3604,9 @@
   // Live estimate readout under the analysis fields.
   function fmUpdateEstimate() {
     if (fmSourceVal() !== 'analysis') return;
-    const k100 = kcalPer100gFromAnalysis(fmReadAnalysis());
-    if (k100 == null) { $fmEstResult.textContent = '≈ — 大卡 / 100 克'; return; }
+    const r = analyzeKcal(fmReadAnalysis());
+    if (r == null) { $fmEstResult.textContent = '≈ — 大卡 / 100 克'; $fmBasisNote.style.display = 'none'; return; }
+    const k100 = r.kcal;
     if (fmMeasureVal() === 'gram') {
       $fmEstResult.textContent = `≈ ${fmtG(k100)} 大卡 / 100 克`;
     } else {
@@ -3583,6 +3618,8 @@
         $fmEstResult.textContent = `≈ ${fmtG(k100)} 大卡 / 100 克（填上一${label}多少克，就能算每${label}热量）`;
       }
     }
+    $fmBasisNote.textContent = r.corrected ? BASIS_NOTE : '';
+    $fmBasisNote.style.display = r.corrected ? '' : 'none';
   }
   function fmRenderEmoji() {
     $fmEmojiPick.innerHTML = FOOD_EMOJIS.map(e =>
@@ -3604,6 +3641,8 @@
   function fmClearAnalysis() {
     $fmAnProtein.value = ''; $fmAnFat.value = ''; $fmAnMoisture.value = '';
     $fmAnAsh.value = ''; $fmAnFiber.value = ''; $fmGramsPerUnit.value = '';
+    $fmEquivGrams.value = ''; $fmEquivGrams100.value = '';
+    if ($fmBasisNote) $fmBasisNote.style.display = 'none';
   }
   function fmSetAnalysis(a) {
     $fmAnProtein.value = a && a.protein != null ? a.protein : '';
@@ -3630,16 +3669,10 @@
     if (k.kcalSource === 'analysis') { $fmKcal100g.value = ''; setFmSource('analysis'); }
     else { $fmKcal100g.value = parseFloat((perG * 100).toFixed(1)); setFmSource('direct'); }
     $fmDelete.style.display = 'none';            // 基准干粮不能删
-    $fmSetbase.style.display = 'none';           // 干粮基准由换算基准下拉管理，这里不放「设为基准」
+    if ($fmSourceEquiv) $fmSourceEquiv.style.display = 'none';   // 干粮本身就是基准，「折成干粮」对它无意义
     fmRenderEmoji();
     $foodModal.classList.add('open');
     $fmName.focus();
-  }
-  function fmUpdateSetbase(pet, id) {
-    const isBase = pet.conversionBase === id;
-    $fmSetbase.classList.toggle('is-base', isBase);
-    $fmSetbase.textContent = isBase ? '✓ 它已是换算基准' : '⭐ 把它设为换算基准';
-    $fmSetbase.style.display = '';
   }
   function openFoodModal(id) {
     const pet = currentPet();
@@ -3650,6 +3683,7 @@
     fmKibbleMode = false;
     $fmMeasureField.style.display = '';
     $fmKibbleHint.style.display = 'none';
+    if ($fmSourceEquiv) $fmSourceEquiv.style.display = '';       // 普通食物可用「折成干粮」
     fmEditingId = id;
     fmClearAnalysis();
     const f = (pet.foodLibrary || []).find(x => x.id === id);
@@ -3669,11 +3703,15 @@
     }
     // Restore the estimator if this food was created from an analysis.
     if (f.analysis) { fmSetAnalysis(f.analysis); if (f.gramsPerUnit != null) $fmGramsPerUnit.value = f.gramsPerUnit; }
-    setFmSource(f.kcalSource === 'analysis' ? 'analysis' : 'direct');
+    // Restore the "folds into kibble" quick-entry.
+    if (f.kcalSource === 'equiv' && f.equivGrams != null) {
+      if (measure === 'gram') $fmEquivGrams100.value = f.equivGrams; else $fmEquivGrams.value = f.equivGrams;
+    }
+    setFmSource(f.kcalSource === 'analysis' ? 'analysis' : (f.kcalSource === 'equiv' ? 'equiv' : 'direct'));
     $fmDelete.style.display = '';
-    fmUpdateSetbase(pet, id);
     $fmUnitEcho.textContent = $fmUnitLabel.value || '份';
     $fmUnitEcho2.textContent = $fmUnitLabel.value || '份';
+    $fmUnitEcho3.textContent = $fmUnitLabel.value || '份';
     fmRenderEmoji();
     $foodModal.classList.add('open');
     $fmName.focus();
@@ -3683,18 +3721,9 @@
     fmKibbleMode = false;
     if ($fmMeasureField) $fmMeasureField.style.display = '';
     if ($fmKibbleHint) $fmKibbleHint.style.display = 'none';
-    if ($fmSetbase) $fmSetbase.style.display = 'none';
   }
-  $fmSetbase.addEventListener('click', () => {
-    const pet = currentPet();
-    if (!pet || !isAdminOrUp(pet) || !fmEditingId) return;
-    if (pet.conversionBase === fmEditingId) return;   // 已是基准
-    pet.conversionBase = fmEditingId;
-    persist();
-    schedulePushMeta(pet);
-    render();                       // 看板/记录的「等效」立即按新基准刷新（弹窗保持打开）
-    fmUpdateSetbase(pet, fmEditingId);
-  });
+  // 换算基准只在「🎯 食量设置 › 平时主要吃什么」下拉里切换（默认干粮）——
+  // 不在每个食物编辑弹窗里放「设为基准」按钮，免得打扰日常使用。
   function saveKibble(pet, name) {
     const source = fmSourceVal();
     let perG, analysis = null;
@@ -3725,7 +3754,7 @@
     const measure = fmMeasureVal();
     const source = fmSourceVal();
     const unitLabel = measure === 'gram' ? 'g' : ($fmUnitLabel.value.trim() || '份');
-    let kcalPerUnit, analysis = null, gramsPerUnit = null;
+    let kcalPerUnit, analysis = null, gramsPerUnit = null, equivGrams = null;
 
     if (source === 'analysis') {
       const k100 = kcalPer100gFromAnalysis(fmReadAnalysis());
@@ -3739,6 +3768,22 @@
         kcalPerUnit = k100 * g / 100;    // kcal per piece
         gramsPerUnit = g;
       }
+    } else if (source === 'equiv') {
+      // User states this food is worth N grams of kibble. Store the energy
+      // (N × kibble's kcal/g) so it slots into the same kcalPerUnit pipeline;
+      // keep equivGrams for re-editing. (Display back as N grams when base=kibble.)
+      const dens = kibbleKcalPerGOf(pet);
+      if (measure === 'gram') {
+        const g100 = parseFloat($fmEquivGrams100.value);
+        if (!Number.isFinite(g100) || g100 <= 0) { alert('填一下每 100 克相当于多少克干粮'); return; }
+        kcalPerUnit = (g100 / 100) * dens;   // kcal per gram
+        equivGrams = g100;
+      } else {
+        const g = parseFloat($fmEquivGrams.value);
+        if (!Number.isFinite(g) || g <= 0) { alert('填一下每' + unitLabel + '相当于多少克干粮'); return; }
+        kcalPerUnit = g * dens;              // kcal per piece
+        equivGrams = g;
+      }
     } else {
       if (measure === 'gram') {
         const k100 = parseFloat($fmKcal100g.value);
@@ -3751,7 +3796,7 @@
       }
     }
 
-    const data = { name, emoji: fmEmoji, measure, unitLabel, kcalPerUnit, kcalSource: source, analysis, gramsPerUnit };
+    const data = { name, emoji: fmEmoji, measure, unitLabel, kcalPerUnit, kcalSource: source, analysis, gramsPerUnit, equivGrams };
     pet.foodLibrary = pet.foodLibrary || [];
     let savedId;
     if (fmEditingId) {
@@ -3782,7 +3827,7 @@
   $fmSource.querySelectorAll('input[name="fm-source"]').forEach(r => r.addEventListener('change', fmApplySourceUI));
   $fmUnitLabel.addEventListener('input', () => {
     const v = $fmUnitLabel.value.trim() || '份';
-    $fmUnitEcho.textContent = v; $fmUnitEcho2.textContent = v; fmUpdateEstimate();
+    $fmUnitEcho.textContent = v; $fmUnitEcho2.textContent = v; $fmUnitEcho3.textContent = v; fmUpdateEstimate();
   });
   [$fmAnProtein, $fmAnFat, $fmAnMoisture, $fmAnAsh, $fmAnFiber, $fmGramsPerUnit].forEach(el =>
     el.addEventListener('input', fmUpdateEstimate));
@@ -3809,6 +3854,13 @@
   const $fwGpu = document.getElementById('fw-gpu');
   const $fwUnitEcho = document.getElementById('fw-unit-echo');
   const $fwEst = document.getElementById('fw-est');
+  const $fwBasisNote = document.getElementById('fw-basis-note');
+  const $fwEquiv = document.getElementById('fw-equiv');
+  const $fwEquivCount = document.getElementById('fw-equiv-count');
+  const $fwEquivGramField = document.getElementById('fw-equiv-gram-field');
+  const $fwEquivGrams = document.getElementById('fw-equiv-grams');
+  const $fwEquivGrams100 = document.getElementById('fw-equiv-grams100');
+  const $fwUnitEcho2 = document.getElementById('fw-unit-echo2');
   const $fwDots = Array.from(document.getElementById('fw-dots').children);
   const $fwBack = document.getElementById('fw-back');
   const $fwNext = document.getElementById('fw-next');
@@ -3829,14 +3881,19 @@
   }
   function fwUpdateEstimate() {
     if (fwSource !== 'analysis') return;
-    const k = kcalPer100gFromAnalysis(fwReadAnalysis());
-    if (k == null) { $fwEst.textContent = '≈ — 大卡 / 100 克'; return; }
-    if (fwMeasure === 'gram') { $fwEst.textContent = `≈ ${fmtG(k)} 大卡 / 100 克`; return; }
-    const g = parseFloat($fwGpu.value);
-    const lb = $fwUnitLabel.value.trim() || '份';
-    $fwEst.textContent = (Number.isFinite(g) && g > 0)
-      ? `每${lb} ≈ ${parseFloat((k * g / 100).toFixed(1))} 大卡`
-      : `≈ ${fmtG(k)} 大卡 / 100 克（填上一${lb}多少克，就能算每${lb}热量）`;
+    const r = analyzeKcal(fwReadAnalysis());
+    if (r == null) { $fwEst.textContent = '≈ — 大卡 / 100 克'; $fwBasisNote.style.display = 'none'; return; }
+    const k = r.kcal;
+    if (fwMeasure === 'gram') { $fwEst.textContent = `≈ ${fmtG(k)} 大卡 / 100 克`; }
+    else {
+      const g = parseFloat($fwGpu.value);
+      const lb = $fwUnitLabel.value.trim() || '份';
+      $fwEst.textContent = (Number.isFinite(g) && g > 0)
+        ? `每${lb} ≈ ${parseFloat((k * g / 100).toFixed(1))} 大卡`
+        : `≈ ${fmtG(k)} 大卡 / 100 克（填上一${lb}多少克，就能算每${lb}热量）`;
+    }
+    $fwBasisNote.textContent = r.corrected ? BASIS_NOTE : '';
+    $fwBasisNote.style.display = r.corrected ? '' : 'none';
   }
   function fwRefresh() {
     [1, 2, 3].forEach(n => document.getElementById('fw-step' + n).hidden = (n !== fwStep));
@@ -3849,13 +3906,18 @@
     $fwSuffix.textContent = fwMeasure === 'gram' ? '大卡 / 100 克' : ('大卡 / 每' + lb);
     $fwGpuField.style.display = (fwMeasure === 'count' && fwSource === 'analysis') ? '' : 'none';
     $fwUnitEcho.textContent = lb;
+    $fwUnitEcho2.textContent = lb;
     $fwDirect.hidden = fwSource !== 'direct';
     $fwAnalysis.hidden = fwSource !== 'analysis';
+    $fwEquiv.hidden = fwSource !== 'equiv';
+    $fwEquivCount.style.display = fwMeasure === 'count' ? '' : 'none';
+    $fwEquivGramField.style.display = fwMeasure === 'count' ? 'none' : '';
     fwUpdateEstimate();
   }
   function openFoodWizard() {
     fwStep = 1; fwMeasure = 'count'; fwSource = 'direct'; fwEmoji = '🍖';
     $fwName.value = ''; $fwUnitLabel.value = '份'; $fwKcal.value = ''; $fwGpu.value = '';
+    $fwEquivGrams.value = ''; $fwEquivGrams100.value = '';
     $fwAnalysis.querySelectorAll('.fw-an').forEach(i => i.value = '');
     $fwMeasure.querySelectorAll('.big-choice').forEach(x => x.classList.toggle('active', x.dataset.val === 'count'));
     $fwSource.querySelectorAll('.big-choice').forEach(x => x.classList.toggle('active', x.dataset.val === 'direct'));
@@ -3877,6 +3939,9 @@
     if (fwSource === 'analysis') {
       fmSetAnalysis(fwReadAnalysis());
       if (fwMeasure === 'count') $fmGramsPerUnit.value = $fwGpu.value;
+    } else if (fwSource === 'equiv') {
+      if (fwMeasure === 'gram') $fmEquivGrams100.value = $fwEquivGrams100.value;
+      else $fmEquivGrams.value = $fwEquivGrams.value;
     } else {
       if (fwMeasure === 'gram') $fmKcal100g.value = $fwKcal.value;
       else $fmKcalCount.value = $fwKcal.value;

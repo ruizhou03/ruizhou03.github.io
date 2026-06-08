@@ -479,6 +479,8 @@
 
   /* A layout (edit modal): tappable option cards replace the old pill toggles. */
   #food-modal .opt-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+  /* The 热量来源 row now has 3 options (含「折成干粮」)—stack full-width so none squish. */
+  #food-modal .fm-source { grid-template-columns: 1fr; }
   #food-modal .opt-card {
     position: relative; display: flex; align-items: center; gap: 0.6rem; text-align: left;
     font: inherit; padding: 0.7rem 0.8rem; border: 1.5px solid var(--color-border);
@@ -1011,17 +1013,6 @@
   }
   @media (hover: hover) { .im-petcard .im-editprofile:hover { text-decoration: underline; } }
 
-  /* 食物编辑弹窗：把它设为换算基准 */
-  .fm-setbase {
-    width: 100%; margin-top: 0.9rem; font: inherit; font-size: 0.9rem; font-weight: 600;
-    cursor: pointer; padding: 0.7rem; border-radius: 10px;
-    border: 1px dashed var(--color-accent); background: var(--color-bg-warm); color: var(--color-accent);
-    transition: background 0.15s;
-  }
-  .fm-setbase.is-base {
-    border-style: solid; background: var(--color-accent); color: #fff; cursor: default;
-  }
-  @media (hover: hover) { .fm-setbase:not(.is-base):hover { background: var(--color-bg); } }
   .modal .checkbox-row {
     display: flex; align-items: center; gap: 0.45rem;
     cursor: pointer; font-size: 0.92rem; color: var(--color-ink);
