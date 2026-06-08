@@ -129,12 +129,16 @@
       </button>
 
       <ul class="nav-links">
-        <li><a href="{{ site.baseurl }}/zh/">锆铌</a></li>
+        <li class="nav-link-home"><a href="{{ site.baseurl }}/zh/">锆铌</a></li>
         <li><a href="{{ site.baseurl }}/notes/">学习资料</a></li>
         <li><a href="{{ site.baseurl }}/research/">科研妙招</a></li>
         <li><a href="{{ site.baseurl }}/life/">生活攻略</a></li>
         <li><a href="{{ site.baseurl }}/toolbox/">百宝箱</a></li>
         <li><a href="{{ site.baseurl }}/essays/">随笔漫谈</a></li>
+        <li class="nav-settings">
+          <button type="button" class="nav-set-btn" onclick="toggleTheme()" aria-label="切换明暗">&#9683; 主题</button>
+          <a class="nav-set-btn" href="{{ site.baseurl }}/">EN 英文站</a>
+        </li>
       </ul>
 
       <div class="nav-right-box">

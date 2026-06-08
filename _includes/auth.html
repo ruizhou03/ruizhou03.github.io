@@ -14,8 +14,12 @@
     padding: 0.26rem 0.5rem; margin-left: 0.4rem; cursor: pointer; text-decoration: none;
     transition: color .2s, border-color .2s; }
   .nav-dash-btn:hover { color: var(--color-highlight); border-color: var(--color-highlight); }
-  .nav-dash-tx { display: none; }                                          /* 桌面顶栏只图标 */
-  @media (max-width: 768px) { .nav-links .nav-dash-tx { display: inline; } }  /* 收进汉堡菜单时显示文字 */
+  .nav-dash-tx { display: none; }                          /* 顶栏管理按钮只图标 */
+  /* 头像下拉项：图标 + 文字对齐 */
+  .sa-menu .sa-mi { display: flex; align-items: center; gap: 0.6rem; }
+  .sa-menu .sa-mi svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .sa-menu .sa-admin-link { display: none; }                                  /* 桌面：管理入口在顶栏，下拉不显示 */
+  @media (max-width: 768px) { .sa-menu .sa-admin-link { display: flex; } }     /* 手机：管理入口收进头像下拉 */
   /* 桌面端：账号入口绝对定位到导航最右（脱离 flex 流 → 主题/语言切换完全不受影响、
      与英文站绝对位置一致）。锚定 position:fixed 的 <nav>，距视口右缘 2.2rem。
      ≤980px 退回内联（窄屏右侧无富余空间，绝对定位会和 EN 重叠）。 */
@@ -208,6 +212,8 @@
   // 管理员专属：在导航右侧注入「数据分析 / 内容管理」两个可见按钮（非管理员则移除）
   var NAV_ICON_DATA = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="18" y1="20" x2="18" y2="9"></line></svg>';
   var NAV_ICON_CONTENT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>';
+  var ICON_HOME = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>';
+  var ICON_LOGOUT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>';
   function syncAdminNav(user) {
     var controls = document.querySelector('.nav-controls');
     if (!controls) return;
@@ -225,26 +231,6 @@
     } else if (existing && existing.parentNode) {
       existing.parentNode.removeChild(existing);
     }
-    relocateNavControls();
-  }
-  // 手机端(≤768px)：把 搜索/主题/EN/管理后台 收进汉堡菜单(.nav-links)，顶栏只留 锆铌/☰/头像；桌面端还原。
-  function relocateNavControls() {
-    var menu = document.querySelector('.nav-links');
-    var rightBox = document.querySelector('.nav-right-box');
-    var controls = document.querySelector('.nav-controls');
-    if (!menu || !rightBox || !controls) return;
-    var search = document.getElementById('nav-search-btn');
-    var theme = document.querySelector('.theme-toggle');
-    var en = document.querySelector('.lang-toggle');
-    var admin = document.getElementById('nav-admin-links');
-    if (window.matchMedia('(max-width: 768px)').matches) {
-      [search, theme, en, admin].forEach(function (el) { if (el && el.parentNode !== menu) menu.appendChild(el); });
-    } else {   // 桌面还原原位（auth-slot 留在 controls 最前）
-      if (theme && theme.parentNode !== controls) controls.appendChild(theme);
-      if (en && en.parentNode !== controls) controls.appendChild(en);
-      if (admin && admin.parentNode !== controls) controls.appendChild(admin);
-      if (search && search.parentNode !== rightBox) rightBox.insertBefore(search, controls);
-    }
   }
   function render(user) {
     syncAdminNav(user);
@@ -259,8 +245,9 @@
         '<button class="sa-avatar" type="button" title="' + (user.nick || '') + '">' + initial(user.nick) + '</button>' +
         '<div class="sa-menu">' +
           '<div class="sa-menu-name">' + (user.nick || user.email || '') + '</div>' +
-          '<a href="/account/">我的主页</a>' +
-          '<button type="button" class="sa-logout">退出登录</button>' +
+          '<a class="sa-mi" href="/account/">' + ICON_HOME + '我的主页</a>' +
+          (user.isAdmin ? '<a class="sa-mi sa-admin-link" href="/admin/#data">' + NAV_ICON_DATA + '数据分析</a><a class="sa-mi sa-admin-link" href="/admin/#content">' + NAV_ICON_CONTENT + '内容管理</a>' : '') +
+          '<button type="button" class="sa-logout sa-mi">' + ICON_LOGOUT + '退出登录</button>' +
         '</div>' +
       '</div>';
     var avatarBtn = slot.querySelector('.sa-avatar');
@@ -311,14 +298,6 @@
     document.head.appendChild(s);
   }
   initGoogle();
-
-  // 初次 + 断点变化时重排导航控件（手机收进菜单 / 桌面还原）
-  relocateNavControls();
-  (function () {
-    var mq = window.matchMedia('(max-width: 768px)');
-    if (mq.addEventListener) mq.addEventListener('change', relocateNavControls);
-    else if (mq.addListener) mq.addListener(relocateNavControls);
-  })();
 })();
 </script>
 {% endraw %}

@@ -80,6 +80,7 @@
     .nav-back { font-size: 0.9rem; font-weight: 500; color: var(--color-accent); text-decoration: none; display: flex; align-items: center; gap: 0.3rem; }
     /* 手机端左上角品牌「锆铌」→ 中文首页（桌面隐藏，桌面靠 .nav-links 里的锆铌） */
     .nav-brand { display: none; font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; color: var(--color-ink); text-decoration: none; letter-spacing: 0.02em; }
+    .nav-settings { display: none; }   /* ☰ 菜单底部设置区，只手机端显示 */
 
     /* 汉堡菜单按钮 (默认隐藏) */
     .nav-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0.5rem; }
@@ -125,15 +126,19 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
       }
       .nav-links.open { display: flex; }
-      /* 收进汉堡菜单的次要控件（搜索/主题/EN/管理后台）：各自居中成一行 */
-      .nav-links #nav-search-btn,
-      .nav-links .theme-toggle,
-      .nav-links .lang-toggle,
-      .nav-links #nav-admin-links { align-self: center; }
-      .nav-links #nav-search-btn .nav-search-text { display: inline; }   /* 菜单里显示「搜索」文字 */
-      .nav-links #nav-admin-links { display: inline-flex; gap: 1rem; }
-      .nav-links #nav-search-btn { border: 1px solid var(--color-border); border-radius: 6px; padding: 0.4rem 1rem; }
-      
+      /* 顶栏右侧只留 搜索 + 头像；主题/EN 移到 ☰ 菜单底部，管理后台移到头像下拉 */
+      .nav-controls .theme-toggle,
+      .nav-controls .lang-toggle,
+      #nav-admin-links { display: none; }
+      .nav-link-home { display: none; }   /* 菜单里的「锆铌」与左上品牌重复，隐去 */
+      /* ☰ 菜单底部设置区：主题 / 中英文（人人可用，没登录也够得着） */
+      .nav-settings { display: flex; justify-content: center; gap: 0.7rem;
+        margin-top: 0.4rem; padding-top: 1rem; border-top: 1px solid var(--color-border); }
+      .nav-set-btn { display: inline-flex; align-items: center; gap: 0.35rem; font-family: inherit; font-size: 0.9rem;
+        color: var(--color-text); text-decoration: none; cursor: pointer; background: none;
+        border: 1px solid var(--color-border); border-radius: 999px; padding: 0.35rem 0.9rem; }
+      .nav-set-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
       /* 汉堡菜单变成 X */
       .nav-toggle.active span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
       .nav-toggle.active span:nth-child(2) { opacity: 0; }
