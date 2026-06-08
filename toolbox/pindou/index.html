@@ -49,10 +49,17 @@ permalink: /toolbox/pindou/
   .pb-prog-txt { font-size: .8rem; color: var(--color-light); margin-top: .4rem; text-align: center; }
 
   /* manual tools */
-  .pb-tools { display: none; margin-top: .85rem; padding: .75rem .8rem; border: 1px dashed var(--color-border); border-radius: 10px; }
+  .pb-tools { display: none; margin-top: .85rem; padding: .8rem .85rem; border: 1px dashed var(--color-accent); border-radius: 10px; background: rgba(30,58,95,.03); }
   .pb-tools.show { display: block; }
-  .pb-tools-row { display: flex; flex-wrap: wrap; align-items: center; gap: .7rem; font-size: .82rem; color: var(--color-light); }
+  .pb-tools-title { font-size: .82rem; color: var(--color-ink); line-height: 1.5; margin-bottom: .65rem; }
+  .pb-tools-row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; font-size: .82rem; color: var(--color-light); }
   .pb-tools-row input[type=range] { vertical-align: middle; }
+  .pb-mode button { font-size: .82rem; padding: .4rem .75rem; }
+  .pb-brush-lab { display: inline-flex; align-items: center; gap: .4rem; }
+  .pb-brush-lab input[type=range] { width: 110px; accent-color: var(--color-accent); }
+  .pb-brush-lab #brushVal { min-width: 1.8em; text-align: right; font-variant-numeric: tabular-nums; color: var(--color-ink); }
+  .pb-brush-cursor { position: absolute; border: 2px solid rgba(214,42,51,.9); border-radius: 50%; pointer-events: none; transform: translate(-50%,-50%); display: none; box-shadow: 0 0 0 1px rgba(255,255,255,.7); z-index: 3; }
+  .pb-brush-cursor.restore { border-color: rgba(46,115,200,.95); }
 
   /* controls (step 3) */
   .pb-ctl { margin-bottom: 1rem; }
@@ -125,7 +132,7 @@ permalink: /toolbox/pindou/
   <!-- ========== 步骤 2：抠图 ========== -->
   <section class="pb-step is-disabled" id="step2">
     <div class="pb-step-h"><div class="pb-step-n">2</div><div class="pb-step-t">抠出主体</div></div>
-    <div class="pb-step-hint">AI 自动把主体从背景里抠出来。第一次用会下载约 40MB 的模型（之后浏览器缓存，离线也能用）。抠得不干净可以手动擦补。</div>
+    <div class="pb-step-hint">AI 自动把主体从背景里抠出来。第一次用需下载约 50MB 模型（已托管在国内可达的 CDN，之后浏览器缓存、离线也能用）。抠得不干净就点「🖌️ 手动修一下」擦补。</div>
 
     <div class="pb-two">
       <div>
@@ -133,7 +140,10 @@ permalink: /toolbox/pindou/
         <div class="pb-cap">原图</div>
       </div>
       <div>
-        <div class="pb-canvas-box"><canvas id="editCanvas"></canvas></div>
+        <div class="pb-canvas-box" id="editBox">
+          <canvas id="editCanvas"></canvas>
+          <div class="pb-brush-cursor" id="brushCursor"></div>
+        </div>
         <div class="pb-cap">抠图结果（灰白格 = 透明，将不放珠子）</div>
       </div>
     </div>
@@ -144,23 +154,23 @@ permalink: /toolbox/pindou/
     </div>
 
     <div class="pb-tools" id="tools">
+      <div class="pb-tools-title">🖌️ 在右图上涂抹来修整 —— 选「擦掉背景」抹去多余背景，选「找回主体」把误删的补回来</div>
       <div class="pb-tools-row">
-        <span>手动修整：</span>
-        <button class="pb-btn sm on" id="modeErase" data-mode="erase">🩹 擦掉</button>
-        <button class="pb-btn sm" id="modeRestore" data-mode="restore">↩︎ 找回</button>
-        <label>笔刷
-          <input type="range" id="brush" min="6" max="80" value="28">
-        </label>
-        <button class="pb-btn sm" id="resetMask">复原 AI 结果</button>
+        <div class="pb-seg pb-mode" id="modeSeg">
+          <button class="on" id="modeErase" data-mode="erase">🩹 擦掉背景</button>
+          <button id="modeRestore" data-mode="restore">↩︎ 找回主体</button>
+        </div>
+        <label class="pb-brush-lab">笔刷<input type="range" id="brush" min="10" max="150" value="50"><span id="brushVal">50</span></label>
+        <button class="pb-btn sm" id="undoBtn" disabled>↶ 撤销</button>
+        <button class="pb-btn sm" id="resetMask">⟲ 复原 AI</button>
       </div>
-      <div class="pb-cap" style="text-align:left;margin-top:.5rem;">在右侧图上涂抹：「擦掉」抹去多余背景，「找回」把误删的主体补回来。</div>
     </div>
 
     <div class="pb-btnrow">
-      <button class="pb-btn pri" id="reCut">✨ 重新 AI 抠图</button>
+      <button class="pb-btn pri" id="goStep3">下一步：转拼豆 →</button>
       <button class="pb-btn" id="toggleManual">🖌️ 手动修一下</button>
-      <button class="pb-btn" id="useWhole">用整张图（不抠）</button>
-      <button class="pb-btn" id="goStep3">下一步：转拼豆 →</button>
+      <button class="pb-btn" id="reCut">✨ 重新 AI 抠图</button>
+      <button class="pb-btn" id="useWhole">用整张图</button>
     </div>
     <div class="pb-msg pb-hidden" id="cutMsg"></div>
   </section>
@@ -323,6 +333,7 @@ permalink: /toolbox/pindou/
       S.painted = false;
       // 先用整张图，立刻出像素预览（不依赖网络/AI，秒出，永远有反馈）
       S.mask = new Uint8Array(w*h).fill(255);
+      clearUndo();
       renderEdit();
       enableStep('step1'); enableStep('step2'); enableStep('step3');
       regenerate();
@@ -350,55 +361,62 @@ permalink: /toolbox/pindou/
     return bgRemover;
   }
 
-  const AI_TIMEOUT = 10000; // 超过 10 秒就放弃 AI，用整张图（模型源国内常下不动）
+  // 模型托管在用户自己的 R2(Cloudflare,国内快)，而非默认的 staticimgly(国内极慢)
+  const R2_MODEL_PATH = 'https://pub-6ce548df24434edb9fea591e78eecdbd.r2.dev/bg/imgly/1.5.5/dist/';
+  const STALL_MS = 15000; // 15 秒"毫无下载进度"才判定卡住放弃（正常下载会持续有进度、不会误杀）
   async function runAI(){
     if(S.busy) return;
     S.busy = true; S.aiGaveUp = false; hideMsg('cutMsg');
     const myGen = (S.aiGen = (S.aiGen||0)+1); // 用代号区分轮次，旧轮结果作废
     $('prog').classList.remove('pb-hidden');
-    setProg(0.06, '正在试 AI 抠图…（最多等 10 秒，下不动就用整张图）');
-    // 看门狗：10 秒还没好就放弃，不再傻等（整张图已可用），并允许重试
-    const watchdog = setTimeout(()=>{
+    setProg(0.06, '正在准备 AI 抠图…（首次需下载约 50MB 模型）');
+    // 卡住看门狗：每来一次进度就重置；只有连续 15 秒毫无进度才放弃（整张图已可用，可重试）
+    let stall;
+    const giveUp = ()=>{
       if(myGen !== S.aiGen) return;
       S.aiGaveUp = true; S.busy = false; $('prog').classList.add('pb-hidden');
-      showMsg('cutMsg','AI 抠图太慢，已跳过——当前用的是整张图。可点「🖌️ 手动修一下」擦掉背景，或点「重新 AI 抠图」再试一次。', true);
-    }, AI_TIMEOUT);
+      showMsg('cutMsg','AI 抠图卡住了（网络问题）。当前用的是整张图，可点「🖌️ 手动修一下」擦掉背景，或点「重新 AI 抠图」再试一次。', true);
+    };
+    const armStall = ()=>{ clearTimeout(stall); stall = setTimeout(giveUp, STALL_MS); };
+    armStall();
     try {
       const removeBackground = await getRemover();
-      if(myGen !== S.aiGen) { clearTimeout(watchdog); return; }
-      setProg(0.12, '抠图中…');
+      if(myGen !== S.aiGen) { clearTimeout(stall); return; }
+      armStall();
       const blob = await removeBackground(currentFile, {
         model: 'isnet_quint8',
+        device: 'cpu',
+        publicPath: R2_MODEL_PATH,
         output: { format: 'image/png' },
         progress: (key, cur, tot) => {
           if(myGen !== S.aiGen) return;
+          armStall(); // 有进度就重置"卡住"计时
           const frac = tot ? cur/tot : 0;
-          if(/fetch|download|model|onnx|wasm/i.test(key)) setProg(0.06+frac*0.8, '下载模型 ' + Math.round(frac*100) + '%…');
+          if(/fetch|download|model|onnx|wasm/i.test(key)) setProg(0.06+frac*0.8, '下载模型 ' + Math.round(frac*100) + '%…（首次，之后浏览器缓存）');
           else setProg(0.86 + frac*0.12, '正在抠图 ' + Math.round(frac*100) + '%…');
         }
       });
-      clearTimeout(watchdog);
+      clearTimeout(stall);
       if(myGen !== S.aiGen) return; // 已被新一轮取代，丢弃
       const bmp = await blobToCanvasData(blob, S.W, S.H);
       const m = new Uint8Array(S.W*S.H); let anyBead=0;
       for(let i=0;i<m.length;i++){ const a = bmp[i*4+3] >= 128 ? 255 : 0; m[i]=a; if(a) anyBead++; }
       $('prog').classList.add('pb-hidden');
       if(S.aiGaveUp){
-        // 之前 10 秒超时放弃了，但模型其实已下好（缓存）→ 提示秒抠
-        showMsg('cutMsg','✓ 模型已下载好（刚才太慢跳过了）。点「重新 AI 抠图」就能秒抠。');
+        showMsg('cutMsg','✓ 模型已下载好（刚才卡了一下跳过了）。点「重新 AI 抠图」就能秒抠。');
       } else if(anyBead < m.length*0.003){
         showMsg('cutMsg','AI 没找到明显主体，已保留整张图——可「手动修一下」擦掉背景。', true);
       } else if(!S.painted){
-        S.mask = m; renderEdit(); regenerate();
+        S.mask = m; clearUndo(); renderEdit(); regenerate();
         showMsg('cutMsg','✓ 已自动抠出主体。不干净就点「手动修一下」擦补，或「用整张图」。');
       } else {
         showMsg('cutMsg','✓ AI 抠图已就绪（你手动改过了，没自动覆盖）。想用的话点「重新 AI 抠图」。');
       }
     } catch(err){
-      clearTimeout(watchdog); console.error(err);
+      clearTimeout(stall); console.error(err);
       if(myGen !== S.aiGen) return;
       $('prog').classList.add('pb-hidden');
-      if(!S.aiGaveUp) showMsg('cutMsg','AI 抠图没成功（可能网络慢或模型源被挡）。当前用的是整张图，可「手动修一下」擦背景，或点「重新 AI 抠图」重试。', true);
+      if(!S.aiGaveUp) showMsg('cutMsg','AI 抠图没成功（' + (err && err.message ? err.message : '未知错误') + '）。当前用整张图，可「手动修一下」擦背景，或「重新 AI 抠图」重试。', true);
     } finally { if(myGen === S.aiGen) S.busy = false; }
   }
 
@@ -430,16 +448,43 @@ permalink: /toolbox/pindou/
   }
 
   // ---- 手动笔刷 ----
-  let manualMode = 'erase', brushR = 28, painting = false, rafPending = false;
+  let manualMode = 'erase', brushR = 50, painting = false, rafPending = false;
+  const undoStack = [];
+  const brushCursor = $('brushCursor');
+  function toolsOpen(){ return $('tools').classList.contains('show'); }
   $('toggleManual').addEventListener('click', ()=>{
-    const t = $('tools'); t.classList.toggle('show');
-    $('toggleManual').classList.toggle('on', t.classList.contains('show'));
+    const t = $('tools'); const open = !t.classList.contains('show');
+    t.classList.toggle('show', open);
+    $('toggleManual').classList.toggle('on', open);
+    if(open) editCanvas.scrollIntoView({behavior:'smooth', block:'center'});
+    else brushCursor.style.display='none';
   });
   $('modeErase').addEventListener('click', ()=>setMode('erase'));
   $('modeRestore').addEventListener('click', ()=>setMode('restore'));
-  function setMode(m){ manualMode=m; $('modeErase').classList.toggle('on',m==='erase'); $('modeRestore').classList.toggle('on',m==='restore'); }
-  $('brush').addEventListener('input', e=> brushR = +e.target.value);
-  $('resetMask').addEventListener('click', ()=>{ S.painted=false; runAI(); });
+  function setMode(m){ manualMode=m; $('modeErase').classList.toggle('on',m==='erase'); $('modeRestore').classList.toggle('on',m==='restore');
+    brushCursor.classList.toggle('restore', m==='restore'); }
+  $('brush').addEventListener('input', e=>{ brushR=+e.target.value; $('brushVal').textContent=brushR; sizeCursor(); });
+
+  // 撤销栈：每一笔涂抹前存一份 mask 快照
+  function pushUndo(){ undoStack.push(S.mask.slice()); if(undoStack.length>15) undoStack.shift(); $('undoBtn').disabled=false; }
+  function clearUndo(){ undoStack.length=0; const b=$('undoBtn'); if(b) b.disabled=true; }
+  $('undoBtn').addEventListener('click', ()=>{
+    if(!undoStack.length) return; S.mask=undoStack.pop(); S.painted=true; renderEdit();
+    if(!undoStack.length) $('undoBtn').disabled=true;
+    if(!$('step3').classList.contains('is-disabled')) regenerate();
+  });
+  $('resetMask').addEventListener('click', ()=>{ S.painted=false; clearUndo(); runAI(); });
+
+  // 笔刷光标圈（让用户看清笔刷大小和位置，不再盲涂）
+  function sizeCursor(){ const r=editCanvas.getBoundingClientRect(); const sc=r.width/(editCanvas.width||1);
+    const d=brushR*2*sc; brushCursor.style.width=d+'px'; brushCursor.style.height=d+'px'; }
+  function moveCursor(e){
+    if(!toolsOpen() || !S.mask){ brushCursor.style.display='none'; return; }
+    const r=editCanvas.getBoundingClientRect(); const pt=e.touches?e.touches[0]:e;
+    const x=pt.clientX-r.left, y=pt.clientY-r.top;
+    if(x<0||y<0||x>r.width||y>r.height){ brushCursor.style.display='none'; return; }
+    sizeCursor(); brushCursor.style.left=x+'px'; brushCursor.style.top=y+'px'; brushCursor.style.display='block';
+  }
 
   function canvasXY(e){
     const r = editCanvas.getBoundingClientRect();
@@ -458,19 +503,20 @@ permalink: /toolbox/pindou/
     }
     if(!rafPending){ rafPending=true; requestAnimationFrame(()=>{ rafPending=false; renderEdit(); }); }
   }
-  function startPaint(e){ if(!S.mask) return; e.preventDefault(); painting=true; const [x,y]=canvasXY(e); paintAt(x,y); }
-  function movePaint(e){ if(!painting) return; e.preventDefault(); const [x,y]=canvasXY(e); paintAt(x,y); }
+  function startPaint(e){ if(!S.mask || !toolsOpen()) return; e.preventDefault(); pushUndo(); painting=true; moveCursor(e); const [x,y]=canvasXY(e); paintAt(x,y); }
+  function movePaint(e){ moveCursor(e); if(!painting) return; e.preventDefault(); const [x,y]=canvasXY(e); paintAt(x,y); }
   function endPaint(){ if(painting){ painting=false; if(!$('step3').classList.contains('is-disabled')) regenerate(); } }
   editCanvas.addEventListener('mousedown', startPaint);
   editCanvas.addEventListener('mousemove', movePaint);
+  editCanvas.addEventListener('mouseleave', ()=>{ brushCursor.style.display='none'; });
   window.addEventListener('mouseup', endPaint);
   editCanvas.addEventListener('touchstart', startPaint, {passive:false});
   editCanvas.addEventListener('touchmove', movePaint, {passive:false});
   editCanvas.addEventListener('touchend', endPaint);
 
-  $('reCut').addEventListener('click', ()=>{ S.painted=false; runAI(); });
+  $('reCut').addEventListener('click', ()=>{ S.painted=false; clearUndo(); runAI(); });
   $('useWhole').addEventListener('click', ()=>{
-    if(!S.W) return; S.painted = true; S.mask = new Uint8Array(S.W*S.H).fill(255); renderEdit();
+    if(!S.W) return; S.painted = true; S.mask = new Uint8Array(S.W*S.H).fill(255); clearUndo(); renderEdit();
     enableStep('step3'); regenerate(); $('step3').scrollIntoView({behavior:'smooth',block:'start'});
   });
   $('goStep3').addEventListener('click', ()=>{ if(!S.mask) return; enableStep('step3'); regenerate(); $('step3').scrollIntoView({behavior:'smooth',block:'start'}); });
