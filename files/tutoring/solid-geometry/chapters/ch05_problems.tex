@@ -1,232 +1,352 @@
 % !TEX root = ../Main.tex
-\chapter{精选题与综合应用}
+\chapter{例题}
 
-本章精选 7 道典型立体几何综合题，覆盖\textbf{翻折、动点、建系求角、线面关系证明}等核心题型。每道题附完整解答——重点不在算，而在看清\textbf{建系策略}、\textbf{路径选择}与\textbf{定理调用}。
+下面七道题都是立体几何证明与求角的常见类型：平行四边形折起、矩形棱锥、动点线面角、矩形翻折，最后一道是大兴机场背景的离散曲率题。做题时回到前面几章——证平行、垂直就调用判定与性质定理，求角、求距离就建系用向量。
 
-\section{翻折四棱锥的平行与线面垂直}
+\section{例 1：平行四边形折起后的平行、垂直与线面角}
 
-\ex[翻折平行四边形]{
-    在平行四边形 $ABCD$ 中，$AB = 2AD = 2$，$\angle DAB = 60^\circ$。将 $\triangle ABD$ 沿 $BD$ 折起，使平面 $ABD \perp$ 平面 $BCD$，形成三棱锥 $A$-$BCD$；之后在空间中延伸 $AB$ 至新四棱锥 $E$-$ABCD$ 使 $E$ 满足 $DE = \sqrt 5$。$F, G, H$ 分别是 $AE$、$AD$、$AB$ 的中点。
+\ex{
+    如图，四边形 $ABCD$ 是平行四边形，平面 $AED\perp$ 平面 $ABCD$，$EF\parallel AB$，$AB=2$，$BC=EF=1$，$AE=\sqrt6$，$DE=3$，$\angle BAD=60^\circ$，$G$ 为 $BC$ 的中点，$H$ 为 $CD$ 的中点。
+    \begin{enumerate}
+        \item 求证：平面 $FGH\parallel$ 平面 $BED$；
+        \item 求证：$BD\perp$ 平面 $AED$；
+        \item 求直线 $EF$ 与平面 $BED$ 所成角的正弦值。
+    \end{enumerate}
+}
+
+\begin{center}
+\begin{tikzpicture}[scale=1, every node/.style={font=\footnotesize}]
+    \coordinate (A) at (2.4,0.2);
+    \coordinate (B) at (1.2,0.95);
+    \coordinate (C) at (-0.6,0.95);
+    \coordinate (D) at (0.6,0.2);
+    \coordinate (E) at (3.0,3.0);
+    \coordinate (F) at (1.7,2.7);
+    \draw[thick] (A)--(B)--(C)--(D)--cycle;
+    \draw[thick] (A)--(E)--(D);
+    \draw[thick] (E)--(F);
+    \draw[dashed] (F)--(A); \draw[dashed] (F)--(B); \draw[dashed] (F)--(C); \draw[dashed] (F)--(D);
+    \draw[dashed] (B)--(E); \draw[dashed] (B)--(D);
+    \coordinate (G) at ($(B)!0.5!(C)$);
+    \coordinate (H) at ($(C)!0.5!(D)$);
+    \fill (A) circle (1pt) node[right] {$A$};
+    \fill (B) circle (1pt) node[above right] {$B$};
+    \fill (C) circle (1pt) node[left] {$C$};
+    \fill (D) circle (1pt) node[below] {$D$};
+    \fill (E) circle (1pt) node[right] {$E$};
+    \fill (F) circle (1pt) node[above left] {$F$};
+    \fill (G) circle (1pt) node[above] {$G$};
+    \fill (H) circle (1pt) node[below] {$H$};
+\end{tikzpicture}
+\end{center}
+
+\sol{
+    先把底面的边算清楚。平行四边形 $ABCD$ 中 $AD=BC=1$，$AB=2$，$\angle BAD=60^\circ$，由余弦定理
+    \[
+    BD^2=AB^2+AD^2-2\cdot AB\cdot AD\cos 60^\circ=4+1-2\cdot 2\cdot 1\cdot\tfrac12=3,
+    \]
+    故 $BD=\sqrt3$。又 $AD^2+BD^2=1+3=4=AB^2$，所以 $\angle ADB=90^\circ$，即 $BD\perp AD$。
+
+    \textbf{(1)} $G$ 为 $BC$ 中点、$H$ 为 $CD$ 中点，所以 $GH\parallel BD$（中位线）。$F$ 为 $AE$ 中点（由 $EF\parallel AB$ 且 $EF=\tfrac12 AB$，结合图形 $F$ 是 $AE$ 中点）、$H$ 为 $CD$ 中点，可证 $FH\parallel ED$。$GH\cap FH=H$，$BD\cap ED=D$，由面面平行判定定理，平面 $FGH\parallel$ 平面 $BED$。
+
+    \textbf{(2)} 平面 $AED\perp$ 平面 $ABCD$，交线为 $AD$；$BD\subset$ 平面 $ABCD$ 且 $BD\perp AD$。由面面垂直的性质定理，$BD\perp$ 平面 $AED$。
+
+    \textbf{(3)} 以 $D$ 为原点，$DA$ 为 $x$ 轴、$DB$ 为 $y$ 轴（已证 $DA\perp DB$），竖直向上为 $z$ 轴建系。则
+    \[
+    D=(0,0,0),\quad A=(1,0,0),\quad B=(0,\sqrt3,0).
+    \]
+    平面 $AED\perp$ 底面且交线为 $AD$，所以 $E$ 在 $xz$ 平面内，设 $E=(x,0,z)$。由 $DE=3$、$AE=\sqrt6$：
+    \[
+    \bc x^2+z^2=9\\ (x-1)^2+z^2=6\ec\ \Rightarrow\ x=2,\ z=\sqrt5,
+    \]
+    即 $E=(2,0,\sqrt5)$。$EF\parallel AB$，故 $\vec{EF}$ 与 $\vec{AB}=(-1,\sqrt3,0)$ 同向，可直接用 $\vec{AB}$ 作方向向量。
+
+    平面 $BED$ 过原点，由 $\vec{DB}=(0,\sqrt3,0)$、$\vec{DE}=(2,0,\sqrt5)$ 求法向量：
+    \[
+    \vec n=\vec{DB}\times\vec{DE}=(\sqrt{15},\,0,\,-2\sqrt3).
+    \]
+    于是
+    \[
+    \sin\theta=\frac{|\vec{AB}\cdot\vec n|}{|\vec{AB}|\,|\vec n|}
+    =\frac{|-\sqrt{15}|}{2\cdot\sqrt{15+12}}
+    =\frac{\sqrt{15}}{2\cdot 3\sqrt3}=\frac{\sqrt5}{6}.
+    \]
+    故 $EF$ 与平面 $BED$ 所成角的正弦值为 $\dfrac{\sqrt5}{6}$。
+}
+
+\section{例 2：$PD\perp$ 底面的矩形棱锥}
+
+\ex{
+    如图，在四棱锥 $P$-$ABCD$ 中，$PD\perp$ 平面 $ABCD$，底面 $ABCD$ 是矩形，$AD=PD$，$E$、$F$ 分别是 $CD$、$PB$ 的中点。
+    \begin{enumerate}
+        \item 求证：$EF\perp$ 平面 $PAB$；
+        \item 设 $AB=\sqrt3\,BC=3$，求三棱锥 $P$-$AEF$ 的体积。
+    \end{enumerate}
+}
+
+\begin{center}
+\begin{tikzpicture}[scale=1, every node/.style={font=\footnotesize}]
+    \coordinate (D) at (0,0);
+    \coordinate (A) at (2.6,0.3);
+    \coordinate (C) at (-1.0,1.1);
+    \coordinate (B) at (1.6,1.4);
+    \coordinate (P) at (0,2.6);
+    \draw[thick] (A)--(B)--(C)--(D)--cycle;
+    \draw[thick] (P)--(A); \draw[thick] (P)--(B); \draw[thick] (P)--(C);
+    \draw[thick] (P)--(D);
+    \coordinate (E) at ($(C)!0.5!(D)$);
+    \coordinate (F) at ($(P)!0.5!(B)$);
+    \draw[thick] (E)--(F);
+    \fill (A) circle (1pt) node[right] {$A$};
+    \fill (B) circle (1pt) node[right] {$B$};
+    \fill (C) circle (1pt) node[left] {$C$};
+    \fill (D) circle (1pt) node[below] {$D$};
+    \fill (P) circle (1pt) node[above] {$P$};
+    \fill (E) circle (1pt) node[left] {$E$};
+    \fill (F) circle (1pt) node[right] {$F$};
+\end{tikzpicture}
+\end{center}
+
+\sol{
+    \textbf{(1)} 取 $AB$ 的中点 $G$，连 $EG$、$FG$。
     \begin{itemize}
-        \item[(1)] 证明：平面 $FGH \parallel$ 平面 $BED$；
-        \item[(2)] 证明：$BD \perp$ 平面 $AED$；
-        \item[(3)] 求 $EF$ 与平面 $BED$ 所成角的正弦值。
+        \item $F$、$G$ 分别为 $PB$、$AB$ 的中点，由中位线 $FG\parallel PA$。
+        \item $E$、$G$ 分别为 $CD$、$AB$ 的中点，矩形里 $EG\parallel AD$ 且 $EG=AD$。
     \end{itemize}
+    下面证 $EF$ 同时垂直于平面 $PAB$ 内两条相交直线 $AB$、$PB$。
+
+    其一，记 $AD=PD=a$。$PD\perp$ 底面 $\Rightarrow PD\perp DC$，又矩形 $\Rightarrow AD\perp DC$，故 $DC\perp$ 平面 $PAD$，从而 $DC\perp PA$；这说明 $\triangle PAB$ 里 $PA\perp AB$（$AB\parallel DC$）。再由 $FG\parallel PA$ 得 $FG\perp AB$；而 $EG\parallel AD\perp AB$，故 $AB\perp$ 平面 $EFG$，于是 $AB\perp EF$。
+
+    其二，$PE=BE$：在 $\triangle PDE$ 与 $\triangle BCE$ 中，$PD=AD=BC$、$DE=CE$、两个直角，故 $PE=BE$，$\triangle PEB$ 是等腰三角形；$F$ 为底边 $PB$ 中点，所以 $EF\perp PB$。
+
+    $AB\cap PB=B$，故 $EF\perp$ 平面 $PAB$。
+
+    \textbf{(2)} 由 $AB=\sqrt3\,BC=3$ 得 $AB=3$、$BC=\sqrt3$，于是 $AD=BC=\sqrt3$、$PD=AD=\sqrt3$、$DC=AB=3$。以 $D$ 为原点建系：
+    \[
+    D=(0,0,0),\ A=(\sqrt3,0,0),\ B=(\sqrt3,3,0),\ C=(0,3,0),\ P=(0,0,\sqrt3),
+    \]
+    则 $E=\left(0,\tfrac32,0\right)$，$F=\left(\tfrac{\sqrt3}{2},\tfrac32,\tfrac{\sqrt3}{2}\right)$。三棱锥 $P$-$AEF$ 的体积
+    \[
+    V=\frac16\left|\,(\vec{PA})\cdot(\vec{PE}\times\vec{PF})\,\right|=\frac34.
+    \]
+    故 $V_{P\text{-}AEF}=\dfrac34$。
+}
+
+\section{例 3：$\angle PBA=\angle PBC=60^\circ$ 的矩形棱锥}
+
+\ex{
+    如图，四棱锥 $P$-$ABCD$ 的底面 $ABCD$ 为矩形，$E$ 是边 $AD$ 上的点，$PA=AB=AE=2DE$，$\angle PBA=\angle PBC=60^\circ$。
+    \begin{enumerate}
+        \item 求证：平面 $PBE\perp$ 平面 $ABCD$；
+        \item 求直线 $PC$ 和平面 $PBD$ 所成角的正弦值。
+    \end{enumerate}
 }
 
 \sol{
-    由 $\angle DAB = 60^\circ$，$AB = 2, AD = 1$，余弦定理 $BD^2 = 1 + 4 - 2 \cdot 1 \cdot 2 \cdot \cos 60^\circ = 3$，故 $BD = \sqrt 3$。$AD^2 + BD^2 = 4 = AB^2$，所以 $AD \perp BD$。
+    取 $DE=1$，则 $AE=2$、$AD=AE+ED=3$、$PA=AB=2$、$BC=AD=3$。
 
-    \textbf{(1) 平面平行}。$H$ 为 $AB$ 中点、$G$ 为 $AD$ 中点，故 $GH \parallel BD$；$F$ 为 $AE$ 中点、$G$ 为 $AD$ 中点，故 $FG \parallel ED$。$GH \cap FG = G$（平面 $FGH$ 内相交），$BD \cap ED = D$（平面 $BED$ 内相交）。由面面平行判定：$\textbf{平面 } FGH \parallel \textbf{平面 } BED$。
+    \textbf{(1)} 先求 $PB$。在 $\triangle PAB$ 中 $PA=AB=2$，$\angle PBA=60^\circ$，由余弦定理 $PA^2=PB^2+AB^2-2\,PB\cdot AB\cos60^\circ$，解得 $PB=2$。
 
-    \textbf{(2) 线面垂直}。平面 $ADE \perp $ 平面 $ABCD$，交线为 $AD$；$BD \perp AD$ 且 $BD \subset $ 平面 $ABCD$。由面面垂直性质定理，$BD \perp $ 平面 $AED$。
+    底面里 $AB=AE=2$、$\angle BAE=90^\circ$，故 $\triangle ABE$ 是等腰直角三角形，$BE=2\sqrt2$。可算得 $PE=2$（由 $PB=2$、$\angle PBC=60^\circ$ 与矩形条件），于是 $\triangle PBE$ 也等腰。
 
-    \textbf{(3) 线面角}。以 $D$ 为原点，$DA$ 沿 $x$ 轴，$DB$ 沿 $y$ 轴建系。由平面 $ADE \perp $ 平面 $ABCD$，$E$ 在 $xz$ 平面内；由 $AE = 2, DE = \sqrt 5$，解得 $E = (1, 0, 2)$。此时 $A = (1, 0, 0)$，$B = (0, \sqrt 3, 0)$，$F = (1, 0, 1)$。
+    取 $BE$ 中点 $F$，连 $PF$、$AF$。等腰 $\triangle PBE$ 中 $PF\perp BE$，等腰直角 $\triangle ABE$ 中 $AF\perp BE$，且 $AF=PF=\sqrt2$。又 $PA=2$，而 $AF^2+PF^2=2+2=4=PA^2$，故 $\angle AFP=90^\circ$，即 $PF\perp AF$。$PF$ 同时垂直于 $BE$、$AF$，且 $BE\cap AF=F$，所以 $PF\perp$ 平面 $ABCD$。$PF\subset$ 平面 $PBE$，由面面垂直判定定理，平面 $PBE\perp$ 平面 $ABCD$。
 
-    平面 $BED$ 过原点，法向量由 $\vec{DB} = (0, \sqrt 3, 0)$ 与 $\vec{DE} = (1, 0, 2)$ 计算：
+    \textbf{(2)} 以 $A$ 为原点，$AB$、$AD$ 为 $x$、$y$ 轴，竖直向上为 $z$ 轴建系：
     \[
-    \vec n = \vec{DB} \times \vec{DE} = (2\sqrt 3, 0, -\sqrt 3).
+    A=(0,0,0),\ B=(2,0,0),\ C=(2,3,0),\ D=(0,3,0),\ E=(0,2,0).
     \]
-    $\vec{EF} = (0, 0, -1)$。
-    \[
-    \sin \theta = \frac{|\vec{EF} \cdot \vec n|}{|\vec{EF}| \cdot |\vec n|} = \frac{\sqrt 3}{\sqrt{12 + 3}} = \frac{\sqrt 3}{\sqrt{15}} = \frac{\sqrt 5}{5}.
-    \]
+    由 $PA=PB=PE=2$ 解得 $P=(1,1,\sqrt2)$（恰在 $BE$ 中点正上方，与 (1) 一致）。则 $\vec{PC}=(1,2,-\sqrt2)$。
 
-    故 $EF$ 与平面 $BED$ 所成角的正弦值为 $\dfrac{\sqrt 5}{5}$。
+    平面 $PBD$：$\vec{BP}=(-1,1,\sqrt2)$、$\vec{BD}=(-2,3,0)$，法向量
+    \[
+    \vec n=\vec{BP}\times\vec{BD}=(-3\sqrt2,\,-2\sqrt2,\,-1).
+    \]
+    于是
+    \[
+    \sin\theta=\frac{|\vec{PC}\cdot\vec n|}{|\vec{PC}|\,|\vec n|}
+    =\frac{|-3\sqrt2-4\sqrt2+\sqrt2|}{\sqrt7\cdot\sqrt{18+8+1}}
+    =\frac{6\sqrt2}{\sqrt7\cdot 3\sqrt3}=\frac{2\sqrt{42}}{21}.
+    \]
+    故 $PC$ 与平面 $PBD$ 所成角的正弦值为 $\dfrac{2\sqrt{42}}{21}$。
 }
 
-\section{$PD \perp$ 底面的矩形四棱锥}
+\section{例 4：$PA\perp$ 底面矩形的线面平行、垂直与体积}
 
-\ex[矩形底面、侧棱垂直]{
-    四棱锥 $P$-$ABCD$ 中 $PD \perp $ 底面 $ABCD$，$ABCD$ 为矩形，$AB = 3$, $AD = PD = \sqrt 3$。$E$ 为 $AB$ 中点，$F$ 为 $PB$ 中点。
-    \begin{itemize}
-        \item[(1)] 求证：$EF \parallel $ 平面 $PAD$；
-        \item[(2)] 求三棱锥 $P$-$AEF$ 的体积。
-    \end{itemize}
+\ex{
+    如图所示，在四棱锥 $P$-$ABCD$ 中，底面 $ABCD$ 是矩形，$PA\perp$ 平面 $ABCD$，且 $PA=AD=4$，$AB=3$，点 $E$ 为线段 $PD$ 的中点。
+    \begin{enumerate}
+        \item 求证：$PB\parallel$ 平面 $AEC$；
+        \item 求证：$AE\perp PC$；
+        \item 求三棱锥 $P$-$ACE$ 的体积。
+    \end{enumerate}
+}
+
+\begin{center}
+\begin{tikzpicture}[scale=1, every node/.style={font=\footnotesize}]
+    \coordinate (A) at (0,0);
+    \coordinate (B) at (-1.3,-0.5);
+    \coordinate (C) at (1.5,0.0);
+    \coordinate (D) at (2.8,0.5);
+    \coordinate (P) at (0,2.8);
+    \draw[thick] (B)--(A)--(D);
+    \draw[dashed] (B)--(C)--(D);
+    \draw[thick] (P)--(A); \draw[thick] (P)--(B); \draw[thick] (P)--(D);
+    \draw[dashed] (P)--(C);
+    \coordinate (E) at ($(P)!0.5!(D)$);
+    \draw[thick] (A)--(E); \draw[thick] (A)--(C); \draw[thick] (E)--(C);
+    \fill (A) circle (1pt) node[below left] {$A$};
+    \fill (B) circle (1pt) node[below] {$B$};
+    \fill (C) circle (1pt) node[below] {$C$};
+    \fill (D) circle (1pt) node[right] {$D$};
+    \fill (P) circle (1pt) node[above] {$P$};
+    \fill (E) circle (1pt) node[right] {$E$};
+\end{tikzpicture}
+\end{center}
+
+\sol{
+    \textbf{(1)} 设 $O=AC\cap BD$。矩形对角线互相平分，$O$ 为 $BD$ 中点；$E$ 为 $PD$ 中点，故 $\triangle PBD$ 中 $OE\parallel PB$。$OE\subset$ 平面 $AEC$，$PB\not\subset$ 平面 $AEC$，由线面平行判定定理，$PB\parallel$ 平面 $AEC$。
+
+    \textbf{(2)} $PA\perp$ 底面 $\Rightarrow PA\perp CD$；矩形 $\Rightarrow AD\perp CD$。$PA\cap AD=A$，故 $CD\perp$ 平面 $PAD$，从而 $CD\perp AE$。又 $\triangle PAD$ 中 $PA=AD=4$、$\angle PAD=90^\circ$，$E$ 为斜边 $PD$ 中点，等腰三角形三线合一得 $AE\perp PD$。$AE$ 同时垂直 $CD$、$PD$，$CD\cap PD=D$，所以 $AE\perp$ 平面 $PCD$，从而 $AE\perp PC$。
+
+    \textbf{(3)} 以 $A$ 为原点，$AB$、$AD$、$AP$ 为 $x$、$y$、$z$ 轴建系：
+    \[
+    A=(0,0,0),\ C=(3,4,0),\ P=(0,0,4),\ E=(0,2,2).
+    \]
+    三棱锥 $P$-$ACE$ 的体积
+    \[
+    V=\frac16\left|\,\vec{PA}\cdot(\vec{PC}\times\vec{PE})\,\right|=4.
+    \]
+    故 $V_{P\text{-}ACE}=4$。
+}
+
+\section{例 5：三棱锥中的动点线面角}
+
+\ex{
+    如图，在三棱锥 $P$-$ABC$ 中，$AB=BC$，$AP=PC$，$\angle ABC=60^\circ$，$AP\perp PC$，直线 $BP$ 与平面 $ABC$ 成 $30^\circ$ 角，$D$ 为 $AC$ 的中点，$\overrightarrow{PQ}=\lambda\overrightarrow{PC}$，$\lambda\in(0,1)$。
+    \begin{enumerate}
+        \item 若 $PB>PC$，求证：平面 $ABC\perp$ 平面 $PAC$；
+        \item 若 $PB<PC$，求直线 $BQ$ 与平面 $PAB$ 所成角的正弦值的取值范围。
+    \end{enumerate}
 }
 
 \sol{
-    建系：$D = (0, 0, 0), A = (\sqrt 3, 0, 0), B = (\sqrt 3, 3, 0), C = (0, 3, 0), P = (0, 0, \sqrt 3)$。
-    $E = \left(\sqrt 3, \tfrac{3}{2}, 0\right)$，$F = \left(\tfrac{\sqrt 3}{2}, \tfrac{3}{2}, \tfrac{\sqrt 3}{2}\right)$。
+    设 $AC=2$。$AB=BC$ 且 $\angle ABC=60^\circ$，故 $\triangle ABC$ 为等边三角形，$AB=BC=AC=2$；$D$ 为 $AC$ 中点，$BD\perp AC$，$BD=\sqrt3$。$AP=PC$、$AP\perp PC$，故 $\triangle APC$ 是等腰直角三角形，$PD\perp AC$ 且 $PD=\tfrac12 AC=1$。所以 $BD$、$PD$ 都垂直于 $AC$，$\angle BDP$ 就是二面角 $B$-$AC$-$P$。
 
-    \textbf{(1)} $\triangle PAB$ 中 $E, F$ 分别为 $AB, PB$ 的中点，由中位线定理 $EF \parallel PA$。又 $PA \subset $ 平面 $PAD$，$EF \not\subset $ 平面 $PAD$，故 $EF \parallel $ 平面 $PAD$。
-
-    \textbf{(2)} $V_{P\text{-}AEF} = \dfrac{1}{4} V_{P\text{-}ABD}$（$E$ 为 $AB$ 中点、$F$ 为 $PB$ 中点，$\triangle AEF$ 面积为 $\triangle ABP$ 面积的 $\tfrac{1}{4}$，且 $D$ 到两者平面垂足重合）。
+    把 $D$ 放在原点，$AC$ 沿 $x$ 轴：$A=(-1,0,0)$，$C=(1,0,0)$，$B=(0,\sqrt3,0)$。设 $P=(0,\cos t,\sin t)$（$t=\angle BDP$，$PD=1$）。由 $BP$ 与底面成 $30^\circ$，$\dfrac{|\sin t|}{|BP|}=\sin30^\circ=\tfrac12$，解得 $t=\tfrac{\pi}{6}$ 或 $t=\tfrac{\pi}{2}$。两者分别给出
     \[
-    V_{P\text{-}ABD} = \frac{1}{3} S_{\triangle ABD} \cdot PD = \frac{1}{3} \cdot \frac{1}{2} \cdot 3 \cdot \sqrt 3 \cdot \sqrt 3 = \frac{3}{2}.
+    \ba
+    t=\tfrac{\pi}{2}:\ &P=(0,0,1),\ &&PB=2>PC=\sqrt2;\\
+    t=\tfrac{\pi}{6}:\ &P=\Big(0,\tfrac{\sqrt3}{2},\tfrac12\Big),\ &&PB=1<PC=\sqrt2.
+    \ea
     \]
-    故 $V_{P\text{-}AEF} = \dfrac{3}{8}$。
+
+    \textbf{(1)} $PB>PC$ 对应 $t=\tfrac{\pi}{2}$，此时 $P=(0,0,1)$ 在 $D$ 正上方，即 $PD\perp$ 平面 $ABC$。$PD\subset$ 平面 $PAC$，由面面垂直判定定理，平面 $ABC\perp$ 平面 $PAC$。
+
+    \textbf{(2)} $PB<PC$ 对应 $t=\tfrac{\pi}{6}$，$P=\Big(0,\tfrac{\sqrt3}{2},\tfrac12\Big)$。$Q=P+\lambda(C-P)$，$\vec{BQ}=Q-B$。平面 $PAB$ 的法向量取 $\vec n=\vec{PA}\times\vec{PB}=\Big(\tfrac{\sqrt3}{2},-\tfrac12,-\tfrac{\sqrt3}{2}\Big)$。代入整理得
+    \[
+    \sin^2\theta=\frac{|\vec{BQ}\cdot\vec n|^2}{|\vec{BQ}|^2\,|\vec n|^2}
+    =\frac{12\lambda^2}{7(2\lambda^2+\lambda+1)}.
+    \]
+    对 $\lambda$ 求导，分子为 $12\lambda(\lambda+2)>0$（$\lambda\in(0,1)$），故 $\sin^2\theta$ 在 $(0,1)$ 上严格递增。$\lambda\to0^+$ 时 $\sin\theta\to0$；$\lambda\to1^-$ 时 $\sin^2\theta\to\tfrac{12}{7\cdot4}=\tfrac37$，即 $\sin\theta\to\dfrac{\sqrt{21}}{7}$。两端都取不到，所以
+    \[
+    \sin\theta\in\left(0,\ \frac{\sqrt{21}}{7}\right).
+    \]
 }
 
-\section{正方形内翻折与面面垂直}
+\section{例 6：矩形沿 $AE$ 翻折}
 
-\ex[正方形翻折成四棱锥]{
-    正方形 $ABCD$ 边长为 $3$，$E$ 在 $AD$ 上，$AE = 2, DE = 1$。将 $\triangle ABE$ 沿 $BE$ 折起至 $\triangle PBE$，折后 $P$ 在底面 $BCDE$ 上的投影恰为 $BE$ 的中点。
-    \begin{itemize}
-        \item[(1)] 证明：平面 $PBE \perp $ 平面 $BCDE$；
-        \item[(2)] 求 $PC$ 与平面 $PBD$ 所成角的正弦值。
-    \end{itemize}
+\ex{
+    如图 1，在矩形 $ABCD$ 中，$AB=3\sqrt5$，$BC=2\sqrt5$，点 $E$ 在线段 $DC$ 上，且 $DE=\sqrt5$，现将 $\triangle AED$ 沿 $AE$ 折到 $\triangle AED'$ 的位置，连结 $CD'$、$BD'$，如图 2。
+    \begin{enumerate}
+        \item 若点 $P$ 在线段 $BC$ 上，且 $BP=\dfrac{\sqrt5}{2}$，证明：$AE\perp D'P$；
+        \item 记平面 $AD'E$ 与平面 $BCD'$ 的交线为 $l$。若二面角 $B$-$AE$-$D'$ 为 $\dfrac{2\pi}{3}$，求 $l$ 与平面 $D'CE$ 所成角的正弦值。
+    \end{enumerate}
 }
+
+\begin{center}
+\begin{tikzpicture}[scale=0.6, every node/.style={font=\footnotesize}]
+    % 图1：平面矩形
+    \coordinate (A1) at (0,0); \coordinate (B1) at (6,0); \coordinate (C1) at (6,4); \coordinate (D1) at (0,4);
+    \coordinate (E1) at (2,4);
+    \draw[thick] (A1)--(B1)--(C1)--(D1)--cycle;
+    \draw[thick] (A1)--(E1);
+    \fill (A1) circle (1.5pt) node[below left] {$A$};
+    \fill (B1) circle (1.5pt) node[below right] {$B$};
+    \fill (C1) circle (1.5pt) node[above right] {$C$};
+    \fill (D1) circle (1.5pt) node[above left] {$D$};
+    \fill (E1) circle (1.5pt) node[above] {$E$};
+    \node at (3,-1.2) {图 1};
+    \begin{scope}[xshift=10cm]
+    % 图2：折起后
+    \coordinate (A2) at (0,0); \coordinate (B2) at (6,0.3); \coordinate (C2) at (6.6,2.2);
+    \coordinate (E2) at (3.4,1.7); \coordinate (Dp) at (1.4,4.0);
+    \draw[thick] (A2)--(B2)--(C2);
+    \draw[dashed] (A2)--(E2)--(C2);
+    \draw[thick] (Dp)--(A2); \draw[thick] (Dp)--(E2);
+    \draw[thick] (Dp)--(B2); \draw[thick] (Dp)--(C2);
+    \coordinate (P2) at ($(B2)!0.5!(C2)$);
+    \fill (A2) circle (1.5pt) node[below left] {$A$};
+    \fill (B2) circle (1.5pt) node[below] {$B$};
+    \fill (C2) circle (1.5pt) node[right] {$C$};
+    \fill (E2) circle (1.5pt) node[below] {$E$};
+    \fill (Dp) circle (1.5pt) node[above] {$D'$};
+    \fill (P2) circle (1.5pt) node[right] {$P$};
+    \node at (3,-1.2) {图 2};
+    \end{scope}
+\end{tikzpicture}
+\end{center}
 
 \sol{
-    \textbf{(1)} 设 $M$ 为 $BE$ 中点。由题意 $PM \perp $ 平面 $BCDE$；又 $PM \subset $ 平面 $PBE$。由面面垂直判定定理，\textbf{平面 $PBE \perp $ 平面 $BCDE$}。
+    在原矩形里，$\triangle AED$ 中 $AD=BC=2\sqrt5$、$DE=\sqrt5$、$\angle ADE=90^\circ$，故 $AE=5$。设 $Q$ 为 $D$ 在 $AE$ 上的垂足，则 $DQ=\dfrac{AD\cdot DE}{AE}=2$，$AQ=\dfrac{AD^2}{AE}=4$，$QE=\dfrac{DE^2}{AE}=1$。翻折时 $DQ\perp AE$ 这条关系保持，即折后 $D'Q\perp AE$。
 
-    \textbf{(2)} 由 $AE = AB = $\,？ 此处题设 $AE = 2, AB = 3$，要让 $P$ 投影为 $BE$ 中点 $M$，必须 $PB = PE$——此即 $AB = AE$ 的对称条件。按题设 $AB = 3, AE = 2$ 不匹配；按\textbf{笔记原题}修正为 $AE = AB = 2$（即原正方形边长为 $2$，$E$ 为 $AD$ 中点），建系如下：
+    \textbf{(1)} 在底面里验证 $QP\perp AE$。建底面坐标：$A=(0,0,0)$，$B=(3\sqrt5,0,0)$，$C=(3\sqrt5,2\sqrt5,0)$，$E=(\sqrt5,2\sqrt5,0)$，则 $Q=\Big(\tfrac{4\sqrt5}{5},\tfrac{8\sqrt5}{5},0\Big)$。$P$ 在 $BC$ 上、$BP=\tfrac{\sqrt5}{2}$，故 $P=\Big(3\sqrt5,\tfrac{\sqrt5}{2},0\Big)$。直接算 $\vec{QP}\cdot\vec{AE}=0$，即 $QP\perp AE$。于是 $AE\perp D'Q$、$AE\perp QP$，$D'Q\cap QP=Q$，所以 $AE\perp$ 平面 $D'QP$，从而 $AE\perp D'P$。
 
-    $B = (0, 0, 0), C = (2, 0, 0), D = (2, 2, 0), E = (1, 2, 0)$，$M = \left(\tfrac{1}{2}, 1, 0\right)$。由 $PB = 2$、$PM \perp $ 底面：$P = \left(\tfrac{1}{2}, 1, h\right)$，$PB^2 = \tfrac{1}{4} + 1 + h^2 = 4$，$h = \tfrac{\sqrt{11}}{2}$。
-
-    为与笔记给出的\textbf{最终答案}（$\sin \theta = \tfrac{2\sqrt{42}}{21}$）匹配，原始设定为 $AB = 2, DE = 1, AE = 1$（$E$ 为 $AD$ 中点的另一种选法）：建系后 $P = (1, 1, \sqrt 2)$，$C = (2, 0, 0)$。
+    \textbf{(2)} 折后 $D'Q\perp AE$、$QD\perp AE$（$D$ 指底面内原 $D$ 的位置），所以 $\angle D'QD$ 就是二面角 $B$-$AE$-$D'$。把折叠后的图建成空间坐标：$A$、$B$、$C$、$E$、$Q$ 同上（都在 $z=0$ 底面），$|QD'|=2$ 且 $D'Q\perp AE$，二面角为 $\tfrac{2\pi}{3}$。解得
     \[
-    \vec{PC} = (1, -1, -\sqrt 2).
+    D'=\left(\tfrac{2\sqrt5}{5},\ \tfrac{9\sqrt5}{5},\ \sqrt3\right),
     \]
-    平面 $PBD$ 过 $P = (1, 1, \sqrt 2), B = (0, 0, 0), D = (2, 2, 0)$。$\vec{BP} = (1, 1, \sqrt 2), \vec{BD} = (2, 2, 0)$。法向量
+    可验证 $AD'=2\sqrt5$、$D'E=\sqrt5$，与翻折前一致。
+
+    交线 $l$：平面 $AD'E$ 的法向量 $\vec n_1=\vec{AE}\times\vec{AD'}=(2\sqrt{15},-\sqrt{15},5)$，平面 $BCD'$ 的法向量 $\vec n_2=\vec{BC}\times\vec{BD'}=(2\sqrt{15},0,26)$，故 $l$ 的方向
     \[
-    \vec n = \vec{BP} \times \vec{BD} = (1 \cdot 0 - \sqrt 2 \cdot 2,\ \sqrt 2 \cdot 2 - 1 \cdot 0,\ 1 \cdot 2 - 1 \cdot 2) = (-2\sqrt 2, 2\sqrt 2, 0).
+    \vec l=\vec n_1\times\vec n_2\ \parallel\ (-13\sqrt{15},\,-21\sqrt{15},\,15).
     \]
-    简化 $\vec n = (-1, 1, 0)$，$|\vec n| = \sqrt 2$。
+    平面 $D'CE$ 的法向量 $\vec n_3=\vec{EC}\times\vec{ED'}\parallel(0,\sqrt{15},1)$。于是
     \[
-    \vec{PC} \cdot \vec n = -1 - 1 + 0 = -2, \qquad |\vec{PC}| = \sqrt{1 + 1 + 2} = 2.
+    \sin\varphi=\frac{|\vec l\cdot\vec n_3|}{|\vec l|\,|\vec n_3|}=\frac{\sqrt{15}}{5}.
     \]
-    \[
-    \sin \theta = \frac{|\vec{PC} \cdot \vec n|}{|\vec{PC}| \cdot |\vec n|} = \frac{2}{2 \cdot \sqrt 2} = \frac{\sqrt 2}{2}.
-    \]
-    故 $PC$ 与平面 $PBD$ 所成角为 $45^\circ$，正弦值 $\dfrac{\sqrt 2}{2}$。
-}
-
-\section{矩形棱锥的线面平行、垂直与体积}
-
-\ex[$PA \perp$ 底面矩形]{
-    四棱锥 $P$-$ABCD$ 中 $PA \perp $ 底面 $ABCD$，$ABCD$ 为矩形，$AB = 3, AD = PA = 4$，$E$ 为 $PD$ 中点。
-    \begin{itemize}
-        \item[(1)] 证明：$PB \parallel $ 平面 $AEC$；
-        \item[(2)] 证明：$AE \perp PC$；
-        \item[(3)] 求三棱锥 $P$-$ACE$ 的体积。
-    \end{itemize}
-}
-
-\sol{
-    \textbf{(1) 线面平行}。令 $O = AC \cap BD$，矩形对角线互相平分，$O$ 为 $BD$ 中点。$\triangle PBD$ 中 $O, E$ 分别为 $BD, PD$ 中点，故 $OE \parallel PB$。$OE \subset $ 平面 $AEC$、$PB \not\subset $ 平面 $AEC$，故 $PB \parallel $ 平面 $AEC$。
-
-    \textbf{(2) 线线垂直}。$PA \perp $ 底面 $\Rightarrow PA \perp CD$；矩形 $\Rightarrow AD \perp CD$。$PA \cap AD = A$，所以 $CD \perp $ 平面 $PAD \Rightarrow CD \perp AE$。
-
-    $\triangle PAD$ 中 $PA = AD = 4$ 且 $\angle PAD = 90^\circ$，$E$ 为斜边 $PD$ 中点，故 $AE \perp PD$。
-
-    $AE \perp CD$ 与 $AE \perp PD$ 且 $CD \cap PD = D$，故 $AE \perp $ 平面 $PCD$，从而 $AE \perp PC$。
-
-    \textbf{(3) 体积}。$V_{P\text{-}ACE} = V_{E\text{-}ACD} \cdot 1 = \dfrac{1}{2} V_{P\text{-}ACD}$（$E$ 为 $PD$ 中点到 $ACD$ 的高为 $P$ 的一半）。
-    \[
-    V_{P\text{-}ACD} = \frac{1}{3} S_{\triangle ACD} \cdot PA = \frac{1}{3} \cdot \frac{1}{2} \cdot 3 \cdot 4 \cdot 4 = 8.
-    \]
-    故 $V_{P\text{-}ACE} = 4$。
-}
-
-\section{等边三角形折起与动点线面角}
-
-\ex[等边三角形折起，动点线面角]{
-    等边 $\triangle ABC$ 边长为 $4$，$D$ 为 $BC$ 中点。将 $\triangle ABD$ 沿 $BD$ 折起，使折后 $A$ 的位置 $P$ 满足 $PB$ 与底面所成角为 $30^\circ$，且 $P$ 在底面的投影恰好在 $BD$ 的中垂面上。$Q$ 为线段 $BP$ 上的动点，$BQ = \lambda BP$（$\lambda \in (0, 1)$）。求 $CQ$ 与平面 $PBD$ 所成角的正弦值 $\sin \theta$ 的取值范围。
-}
-
-\sol{
-    建系：$B = (0, 0, 0), C = (4, 0, 0), D = (2, 0, 0)$。由 $PB = 2$（折前 $AB$ 中折 $AD$ 为\textbf{高}后保留值）以及 $PB$ 与底面所成角 $30^\circ$，令 $P = (0, \sqrt 3, 1)$（$|PB| = 2$，与底面 $z = 0$ 的夹角 $\sin = \tfrac{1}{2}$）。
-
-    $Q = \lambda P = (0, \sqrt 3 \lambda, \lambda)$，$\vec{CQ} = (-4, \sqrt 3 \lambda, \lambda)$。
-
-    平面 $PBD$ 过原点、$D$、$P$。$\vec{BD} = (2, 0, 0)$、$\vec{BP} = (0, \sqrt 3, 1)$。
-    \[
-    \vec n = \vec{BD} \times \vec{BP} = (0, -2, 2\sqrt 3) \propto (0, -1, \sqrt 3), \quad |\vec n| = 2.
-    \]
-
-    注意：$\vec{CQ} \cdot \vec n = 0 \cdot (-4) + (-1)(\sqrt 3 \lambda) + \sqrt 3 \cdot \lambda = 0$，说明 $CQ$ 方向与平面 $PBD$\textbf{平行}——即 $CQ$ 始终在平面 $PBD$ 内或与之平行。这说明当前坐标设定与原图不符。修正：$P$ 位于 $y > 0$ 一侧而 $C$ 位于 $x > 0$ 一侧时，平面 $PBD$ 即 $xz$ 平面绕 $BD$ 旋转的像——与笔记中 $P$ 的具体位置相关。
-
-    采用\textbf{笔记给出的精细建系}：$B = (0, 0, 0), D = (2, 0, 0), C = (4, 0, 0)$，但 $P = \left(\tfrac{1}{2}, \tfrac{\sqrt 3}{2}, 1\right) \cdot \text{适当系数}$。经完整代入，$\sin^2 \theta$ 可写成关于 $\lambda$ 的分式：
-    \[
-    \sin^2 \theta = \frac{12 \lambda^2}{7(2\lambda^2 + \lambda + 1)}.
-    \]
-    该函数在 $\lambda \in (0, 1)$ 上\textbf{严格递增}（分子 $\lambda^2$ 主导），$\lambda \to 0$ 时 $\sin \theta \to 0$，$\lambda \to 1$ 时 $\sin^2 \theta \to \tfrac{12}{7 \cdot 4} = \tfrac{3}{7}$，即 $\sin \theta \to \tfrac{\sqrt{21}}{7}$。
-
-    \textbf{因此 $\sin \theta \in \left(0, \dfrac{\sqrt{21}}{7}\right)$}。
-}
-
-\section{矩形翻折与线面角}
-
-\ex[矩形沿对角线段翻折]{
-    矩形 $ABCD$ 中 $AB = 3\sqrt 5, BC = 2\sqrt 5$，$E$ 在 $CD$ 上使 $DE = \sqrt 5$。沿 $AE$ 将 $\triangle ADE$ 翻折至空间位置 $D'$，使二面角 $D'$-$AE$-$B$ 为 $60^\circ$；$Q$ 为 $D'$ 在 $AE$ 上的垂足、$P$ 为底面内满足 $PQ \perp AE$ 的点。
-    \begin{itemize}
-        \item[(1)] 证明：$AE \perp D'P$；
-        \item[(2)] 求直线 $l$（过 $D'$ 与底面上点 $(3\sqrt 5, 6\sqrt 5, 0)$ 相连）与平面 $D'CE$ 所成角的正弦值。
-    \end{itemize}
-}
-
-\sol{
-    \textbf{(1)} $D'Q \perp AE$（翻折前 $DQ \perp AE$，翻折保角）与 $PQ \perp AE$（题设）——$D'Q \cap PQ = Q$，故 $AE \perp $ 平面 $D'QP$，从而 $AE \perp D'P$。
-
-    \textbf{(2) 建系}：$A = (0, 0, 0), B = (3\sqrt 5, 0, 0), D = (0, 2\sqrt 5, 0), C = (3\sqrt 5, 2\sqrt 5, 0), E = (\sqrt 5, 2\sqrt 5, 0)$。
-
-    $\vec{AE} = (\sqrt 5, 2\sqrt 5, 0)$，$|\vec{AE}| = 5$。$Q$ 为 $D$ 在 $AE$ 上的垂足：
-    \[
-    Q = \frac{\vec{AD} \cdot \vec{AE}}{|\vec{AE}|^2} \vec{AE} = \frac{20}{25} (\sqrt 5, 2\sqrt 5, 0) = \left(\tfrac{4\sqrt 5}{5}, \tfrac{8\sqrt 5}{5}, 0\right).
-    \]
-    $DQ$ 方向（底面内、$\perp AE$）单位向量 $\vec u = \left(-\tfrac{2}{\sqrt 5}, \tfrac{1}{\sqrt 5}, 0\right)$，$|DQ| = 2$。翻折 $60^\circ$ 后：
-    \[
-    D' = Q + 2\left(\cos 60^\circ \cdot \vec u + \sin 60^\circ \cdot (0, 0, 1)\right) = \left(\tfrac{2\sqrt 5}{5}, \tfrac{9\sqrt 5}{5}, \sqrt 3\right).
-    \]
-
-    平面 $D'CE$ 法向量：$\vec{EC} = (2\sqrt 5, 0, 0)$，$\vec{ED'} = \left(-\tfrac{3\sqrt 5}{5}, -\tfrac{\sqrt 5}{5}, \sqrt 3\right)$。
-    \[
-    \vec n = \vec{EC} \times \vec{ED'} = (0, -2\sqrt 5 \cdot \sqrt 3, -2\sqrt 5 \cdot \tfrac{\sqrt 5}{5} \cdot (-1)) = \cdots = (0, -2\sqrt{15}, -2).
-    \]
-    简化 $\vec n = (0, \sqrt{15}, 1)$，$|\vec n| = 4$。
-
-    直线 $l$ 方向 $\vec l = (3\sqrt 5, 6\sqrt 5, 0) - D' = \left(\tfrac{13\sqrt 5}{5}, \tfrac{21\sqrt 5}{5}, -\sqrt 3\right)$。取平行向量 $(13, 21, -\sqrt{15})$（消分母方便计算），$|\vec l|^2 = 169 + 441 + 15 = 625$，$|\vec l| = 25$。
-    \[
-    \vec l \cdot \vec n = 0 + 21\sqrt{15} - \sqrt{15} = 20\sqrt{15}.
-    \]
-    \[
-    \sin \theta = \frac{|\vec l \cdot \vec n|}{|\vec l| \cdot |\vec n|} = \frac{20\sqrt{15}}{25 \cdot 4} = \frac{\sqrt{15}}{5}.
-    \]
-
     故 $l$ 与平面 $D'CE$ 所成角的正弦值为 $\dfrac{\sqrt{15}}{5}$。
 }
 
-\section{大兴机场：多面体离散曲率}
+\section{例 7：大兴机场——多面体的离散曲率}
 
-\ex[多面体离散曲率（北京大兴机场启发题）]{
-    定义多面体顶点 $v$ 处的\textbf{离散曲率}为
-    \[
-    K(v) = 2\pi - \sum_{v \in f} \theta_{v, f},
-    \]
-    其中 $\theta_{v, f}$ 是面 $f$ 在 $v$ 处的内角。多面体的\textbf{总曲率} $K = \sum_v K(v)$。
-    \begin{itemize}
-        \item[(1)] 求一个\textbf{正四棱锥}（底面为正方形、四个侧面为等边三角形）的总曲率；
-        \item[(2)] 设多面体满足欧拉公式 $V - E + F = 2$。求其总曲率。
-    \end{itemize}
+\ex{
+    北京大兴国际机场的显著特点之一是各种弯曲空间的运用。刻画空间的弯曲性是几何研究的重要内容。用曲率刻画空间弯曲性，规定：多面体顶点的曲率等于 $2\pi$ 与多面体在该点的面角之和的差（多面体的面的内角叫做多面体的面角，角度用弧度制），多面体面上非顶点的曲率均为零，多面体的总曲率等于该多面体各顶点的曲率之和。例如：正四面体在每个顶点有 $3$ 个面角，每个面角是 $\dfrac{\pi}{3}$，所以正四面体在各顶点的曲率为 $2\pi-3\times\dfrac{\pi}{3}=\pi$，故其总曲率为 $4\pi$。
+    \begin{enumerate}
+        \item 求四棱锥的总曲率；
+        \item 若多面体满足：顶点数 $-$ 棱数 $+$ 面数 $=2$，证明：这类多面体的总曲率是常数。
+    \end{enumerate}
 }
 
 \sol{
-    \textbf{(1)} 正四棱锥共 $5$ 个顶点。
-    \begin{itemize}
-        \item \textbf{4 个底面顶点}：每个处有\textbf{底面正方形 $90^\circ$} $+$ \textbf{两个侧等边三角形各 $60^\circ$}，合计 $90^\circ + 120^\circ = 210^\circ$；曲率 $= 360^\circ - 210^\circ = 150^\circ$；
-        \item \textbf{1 个顶点}：$4$ 个等边三角形的内角共 $4 \cdot 60^\circ = 240^\circ$；曲率 $= 360^\circ - 240^\circ = 120^\circ$。
-    \end{itemize}
-    总曲率 $K = 4 \cdot 150^\circ + 120^\circ = 720^\circ = 4\pi$。
-
-    \textbf{(2)} 所有面角之和：每个面 $f$ 若为 $n_f$ 边形，内角和 $= (n_f - 2) \pi$。每条棱恰在两个面中出现，故 $\sum_f n_f = 2E$。所以
+    把定义写成式子：顶点 $v$ 处的曲率 $K(v)=2\pi-\displaystyle\sum_{v\in f}\theta_{v,f}$，其中 $\theta_{v,f}$ 是面 $f$ 在 $v$ 处的内角；总曲率 $K=\displaystyle\sum_v K(v)$。注意把所有顶点的曲率加起来时，$2\pi$ 出现 $V$ 次，而所有面角恰好被全部算了一遍，所以
     \[
-    \sum_f (n_f - 2) \pi = 2\pi E - 2\pi F.
+    K=2\pi V-\sum_{\text{所有面角}}\theta=2\pi V-\sum_{f}(\text{面 }f\text{ 的内角和}).
     \]
-    总曲率
-    \[
-    K = \sum_v K(v) = 2\pi V - \sum_f (n_f - 2) \pi = 2\pi V - 2\pi E + 2\pi F = 2\pi (V - E + F) = \boxed{4 \pi}.
-    \]
-    \textbf{这正是欧拉公式的"几何体现"——多面体的总离散曲率恒为 $4\pi$，独立于具体形状。}
-}
 
-\rmkb{
-    \textbf{精选题通用套路小结}：
-    \begin{enumerate}
-        \item \textbf{平行 / 垂直证明}——找\textbf{中位线}、\textbf{矩形对角线中点}、\textbf{等腰三角形中线}构造关键关系；
-        \item \textbf{建系求角}——\textbf{优先找正交三脚架}（如 $PA \perp $ 底面型），没有时用判定定理证出两两垂直再建系；
-        \item \textbf{动点线面角}——设参数 $\lambda$、写出 $\sin^2\theta$ 关于 $\lambda$ 的分式、分析单调性或极值；
-        \item \textbf{翻折问题}——利用\textbf{保长、保垂直足}的不变量锁定折后坐标；常见手段是\textbf{取垂足 + 二面角} 建立 $D' = Q + d(\cos \theta \cdot \vec u + \sin \theta \cdot \vec z)$。
-    \end{enumerate}
+    \textbf{(1)} 四棱锥有 $5$ 个顶点（$1$ 个顶点、$4$ 个底面顶点）、$5$ 个面（$1$ 个四边形底面、$4$ 个三角形侧面）。每个面的内角和：四边形底面为 $2\pi$，每个三角形侧面为 $\pi$。所以
+    \[
+    K=2\pi\times5-\big(2\pi+4\times\pi\big)=10\pi-6\pi=4\pi.
+    \]
+    这一步对\textbf{任意}四棱锥都成立——和具体的形状、各个面角的大小无关。
+
+    \textbf{(2)} 设多面体的每个面 $f$ 是 $n_f$ 边形，则它的内角和为 $(n_f-2)\pi$。每条棱恰好被两个面共用，所以所有面的边数之和 $\displaystyle\sum_f n_f=2E$。于是
+    \[
+    \sum_f(n_f-2)\pi=\pi\sum_f n_f-2\pi F=2\pi E-2\pi F.
+    \]
+    代回总曲率：
+    \[
+    K=2\pi V-\big(2\pi E-2\pi F\big)=2\pi(V-E+F)=2\pi\times2=4\pi.
+    \]
+    所以凡满足 $V-E+F=2$ 的多面体，总曲率恒为 $4\pi$，是与形状无关的常数。
 }

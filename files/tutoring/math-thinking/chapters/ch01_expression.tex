@@ -1,0 +1,487 @@
+% !TEX root = ../Main.tex
+\chapter{式子处理}
+
+很多题目难，不是难在思路，而是难在式子的形状不顺手。这一章把常用的"整理式子"的招式过一遍：换元、拆项、消次、齐次化、分式处理，最后落到数形结合——把式子翻译成图上的几何量来读。
+
+\section{换元法}
+
+正如研究函数要先研究函数的定义域，引入新元后，必不可少的一步是研究\textbf{新元的取值范围}。
+
+\ex[1]{设 $f(\theta)=\sin\theta+\cos\theta+\sin\theta\cos\theta$，$\theta\in\RR$，求 $f(\theta)$ 的值域。}
+
+\sol{
+    依模型：$\sin\theta+\cos\theta$ 与 $\sin\theta\cos\theta$ 之间，有桥梁 $\sin^2\theta+\cos^2\theta=1$。
+
+    令 $t=\sin\theta+\cos\theta$，先用 $t$ 去写 $(\sin\theta+\cos\theta)$ 与 $(\sin\theta\cos\theta)$ 的关系，并先求出 $t$ 的范围：
+    \[
+    t=\sin\theta+\cos\theta=\sqrt2\sin\pr{\theta+\tfrac\pi4}\in[-\sqrt2,\sqrt2].
+    \]
+    又 $(\sin\theta+\cos\theta)^2=1+2\sin\theta\cos\theta$，故 $\sin\theta\cos\theta=\dfrac{t^2-1}{2}$。于是
+    \[
+    f(\theta)=t+\frac{t^2-1}{2}=\frac12(t+1)^2-1,\qquad t\in[-\sqrt2,\sqrt2].
+    \]
+    这是关于 $t$ 的二次函数，顶点 $t=-1$ 在区间内，取最小值 $-1$；右端 $t=\sqrt2$ 取最大值 $\frac12(\sqrt2+1)^2-1=\sqrt2+\frac12$。
+    \[
+    \text{值域}=\br{-1,\ \sqrt2+\tfrac12}.
+    \]
+}
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth, scale=0.7]
+    \draw[->] (-2.6,0) -- (2.6,0) node[right] {$t$};
+    \draw[->] (0,-0.3) -- (0,2.4) node[above] {};
+    \draw[thick, blue, domain=-2.05:0.65, samples=60, smooth] plot (\x, {0.5*(\x+1)*(\x+1)-1+1});
+    \draw[dashed] (-1.414,0)--(-1.414,1.59);
+    \draw[dashed] (1.414,0)--(1.414,2.4);
+    \node[below] at (-1.414,-0.05) {\footnotesize $-\sqrt2$};
+    \node[below] at (1.414,-0.05) {\footnotesize $\sqrt2$};
+    \node[below] at (-1,0) {\footnotesize $-1$};
+\end{tikzpicture}
+\end{center}
+
+\section{拆项法}
+
+\subsection*{裂项：等差型}
+
+\ex[2]{已知数列 $\{a_n\}$ 有 $a_n=\dfrac{1}{(2n+1)(2n-1)}$，$T_n$ 为 $\{a_n\}$ 的前 $n$ 项和，求 $T_n$。}
+
+\sol{
+    分母两个因子相差 $2$，凑出这个因子（容易漏掉这个 $\frac12$）：
+    \[
+    a_n=\frac{\frac12\br{(2n+1)-(2n-1)}}{(2n+1)(2n-1)}=\frac12\pr{\frac{1}{2n-1}-\frac{1}{2n+1}}.
+    \]
+    逐项相消：
+    \[
+    T_n=\frac12\pr{1-\frac{1}{2n+1}}=\frac{n}{2n+1}.
+    \]
+}
+
+\subsection*{裂项：等比型}
+
+\ex[3]{已知数列 $\{b_n\}$ 的通项公式 $b_n=\dfrac{2^n}{(2^{n+1}-1)(2^n-1)}$，$\{b_n\}$ 的前 $n$ 项和记为 $S_n$。若 $\forall n\in\NN^+,\ a\in[-1,1]$ 均有 $x^2-ax-2S_n\ge0$ 成立，求 $x$ 的取值范围。}
+
+\sol{
+    把分子也拆成两个分母因子之差：$2^n=(2^{n+1}-1)-(2^n-1)$，于是
+    \[
+    b_n=\frac{1}{2^n-1}-\frac{1}{2^{n+1}-1}.
+    \]
+    逐项相消：
+    \[
+    S_n=1-\frac{1}{2^{n+1}-1}.
+    \]
+    由极限思想，$n\to+\infty$ 时 $S_n\to1$（且 $S_n<1$）。要 $\forall n\in\NN^+$ 都有 $x^2-ax>2S_n$，只需 $x^2-ax\ge2$，即
+    \[
+    x^2-ax-2\ge0\quad\text{对任意 }a\in[-1,1]\text{ 恒成立}.
+    \]
+    用主元法：把 $g(a)=x^2-ax-2$ 看作关于 $a$ 的一次函数，区间端点处都非负即可。
+    \[
+    \bc
+    a=-1:\ x^2+x-2\ge0\ \Rightarrow\ x\in(-\infty,-2]\cup[1,+\infty)\\
+    a=1:\ x^2-x-2\ge0\ \Rightarrow\ x\in(-\infty,-1]\cup[2,+\infty)
+    \ec
+    \]
+    两者取交集：
+    \[
+    x\in(-\infty,-2]\cup[2,+\infty).
+    \]
+}
+
+\subsection*{裂项：等差 $+$ 等比型}
+
+\ex[4]{已知数列 $\{a_n\}$ 满足 $a_n=\dfrac{(2n-3)\cdot 2^n}{4n^2-1}$，$S_n$ 为 $\{a_n\}$ 的前 $n$ 项和，求 $S_n$。}
+
+\sol{
+    等差 $+$ 等比型数列，仍考虑裂项：要把它写成 $a_n=b_{n+1}-b_n$ 的形状。裂项后 $\{b_n\}$ 的分子应该除以 $2$（同样地，分母 $4n^2-1=(2n+1)(2n-1)$）。先把等差因子 $2n-3$ 用两个分母因子凑出来：
+    \[
+    2n-3=2(2n-1)-(2n+1),
+    \]
+    于是
+    \[
+    a_n=\frac{\br{2(2n-1)-(2n+1)}2^n}{(2n+1)(2n-1)}
+    =\frac{2^{n+1}}{2n+1}-\frac{2^n}{2n-1}.
+    \]
+    这正是 $b_{n+1}-b_n$ 的形状（$b_n=\frac{2^n}{2n-1}$），逐项相消，只剩头尾：
+    \[
+    S_n=\frac{2^{n+1}}{2n+1}-2.
+    \]
+}
+
+\subsection*{和项}
+
+裂项是把一项拆成两项之差再相消；和项则是把相邻两项\textbf{配对相加}，让中间整段消去。带 $(-1)^n$ 的交错数列常用这一招。
+
+\ex[5]{已知数列 $\{C_n\}$ 的通项公式为 $C_n=(-1)^n\dfrac{4n}{(2n+1)(2n-1)}$，$\{C_n\}$ 的前 $n$ 项和为 $T_n$，求 $T_n$。}
+
+\sol{
+    先把 $\dfrac{4n}{(2n+1)(2n-1)}$ 裂开（$4n=(2n+1)+(2n-1)$）：
+    \[
+    C_n=(-1)^n\pr{\frac{1}{2n-1}+\frac{1}{2n+1}}.
+    \]
+    \textbf{当 $n$ 为奇数时}，设 $n=2k-1$，把 $C_n$ 与 $C_{n+1}$ 配对：
+    \[
+    C_n+C_{n+1}=-\frac{1}{2n-1}-\frac{1}{2n+1}+\frac{1}{2n+1}+\frac{1}{2n+3}
+    =-\frac{1}{2n-1}+\frac{1}{2n+3}.
+    \]
+    这样整段相消，到末项 $n$（奇数）时
+    \[
+    T_n=-\frac{1}{2n+1}-1=-\frac{2n+2}{2n+1}.
+    \]
+    \textbf{当 $n$ 为偶数时}，同理可得
+    \[
+    T_n=-\frac{2n}{2n+1}.
+    \]
+}
+
+\section{消次处理}
+
+\subsection*{$\pr{x\pm\dfrac1x}$ 及其衍生式}
+
+\[
+\pr{x\pm\frac1x}^2=x^2+\frac{1}{x^2}\pm2.
+\]
+因此，如果出现 $x^2+\frac{1}{x^2}$ 的形式，完全可以由常数的凑配，凑回 $\pr{x\pm\frac1x}^2$ 这个完全平方式，实现形式的统一。
+
+\ex[6]{在平面直角坐标系 $xOy$ 中，一点 $(a,a)$ 到曲线 $y=\dfrac1x$ 上的点的距离的最小值为 $\sqrt{10}$，其中 $a>0$，求 $a$ 的值。}
+
+\sol{
+    设曲线上的点为 $\pr{x,\frac1x}$，则
+    \[
+    \ba
+    d^2&=(x-a)^2+\pr{\frac1x-a}^2
+    =x^2+\frac{1}{x^2}+2a^2-2a\pr{x+\frac1x}\\
+    &=\pr{x^2+\frac{1}{x^2}+2}-2+2a^2-2a\pr{x+\frac1x}
+    =\pr{x+\frac1x}^2-2a\pr{x+\frac1x}+2a^2-2.
+    \ea
+    \]
+    令 $t=x+\dfrac1x$（$x>0$ 时 $t\ge2$；这里取 $x>0$ 一支即可），则
+    \[
+    d^2=(t-a)^2+a^2-2,\qquad t\ge2.
+    \]
+    这是关于 $t$ 的二次函数，分类讨论顶点 $t=a$ 是否落在 $t\ge2$ 内：
+    \begin{enumerate}
+        \item $a\ge2$ 时，顶点在区间内，$d^2_{\min}=a^2-2=10$，得 $a^2=12$，$a=2\sqrt3$；
+        \item $0<a<2$ 时，区间内 $d^2$ 在 $t=2$ 处最小，
+        \[
+        d^2_{\min}=(2-a)^2+a^2-2=2a^2-4a+2=10\ \Longrightarrow\ a^2-2a-4=0,
+        \]
+        解得 $a=1-\sqrt5$。
+    \end{enumerate}
+    所以 $a=2\sqrt3$ 或 $a=1-\sqrt5$。
+}
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth, scale=0.8]
+    \draw[->] (-2.6,0) -- (2.8,0) node[right] {$t$};
+    \draw[->] (0,-0.3) -- (0,2.3) node[above] {};
+    \draw[thick, blue, domain=-1.95:1.55, samples=60, smooth] plot (\x, {0.6*(\x+0.3)*(\x+0.3)+0.2});
+    \draw[dashed] (-1.6,0)--(-1.6,1.4);
+    \draw[dashed] (1.4,0)--(1.4,2.0);
+    \node[below] at (-1.6,-0.05) {\footnotesize $-2$};
+    \node[below] at (-0.3,-0.05) {\footnotesize $a$};
+    \node[below] at (1.4,-0.05) {\footnotesize $2$};
+\end{tikzpicture}
+\end{center}
+
+\subsection*{基本不等式}
+
+\ex[7]{已知 $a+2b=1$，求 $\dfrac{a^2+4b}{ab}$ 的最小值（$a>0,b>0$）。}
+
+\sol{
+    运用基本不等式中的"一正、二定、三相等"。要实现"定"，那么在关键步 $x+y\ge2\sqrt{xy}$ 中，$xy$ 的次数应该是 $0$，即是个常数；那么在此前的 $x+y$ 中，$x$ 与 $y$ 的次数即应实现\textbf{中和}（相反）。
+
+    先拆开：
+    \[
+    \frac{a^2+4b}{ab}=\frac ab+\frac4a.
+    \]
+    $\frac ab$ 是 $0$ 次、$\frac4a$ 是 $-1$ 次，两者次数不会中和。而已知是 $a+2b=1$，左为 $1$ 次、右为 $0$ 次。因此，可借助常数的配凑实现\textbf{升次}，进而达到次数中和：
+    \[
+    \frac{a^2+4b}{ab}=\frac ab+\frac{4\cdot1}{a}=\frac ab+\frac{4(a+2b)}{a}
+    =\frac ab+8\frac ba+4\ge 2\sqrt{\frac ab\cdot8\frac ba}+4=4\sqrt2+4.
+    \]
+    当且仅当 $8b^2=a^2$ 时取等号。所以最小值为 $4\sqrt2+4$。
+}
+
+\rmkb{
+    在出现形如 $x+\dfrac ax$ 的式子时：
+    \begin{enumerate}
+        \item 看 $a$ 的正负：$a>0$ 时图象是勾函数；$a<0$ 时图象是飘带函数。
+        \item 看 $x$ 的取值：$a>0$ 时，当且仅当 $x=\pm\sqrt a$ 取得最值（极值），但 $x$ 不一定可以取到 $\pm\sqrt a$（如 $x\in[\sqrt a+1,+\infty)$ 或 $x\in\NN^+$），需结合 $x$ 的范围另判。
+    \end{enumerate}
+}
+
+\section{齐次化处理}
+
+\subsection*{三角函数类}
+
+正、余弦为一次，正切为零次。如步用 $\sin^2x+\cos^2x=1$ 的关系凑出齐次，就能"弦化切"。
+
+\ex[8]{若 $\tan\theta=-2$，求 $\dfrac{\sin\theta(1+\sin2\theta)}{\sin\theta+\cos\theta}$。}
+
+\sol{
+    若以 $\theta$ 为基准，则 $\sin\theta,\cos\theta$ 为一次、$\tan\theta$ 为零次，$\sin2\theta,\cos2\theta$ 为二次。故待求式本身齐次，弦化切即可：
+    \[
+    \ba
+    \frac{\sin\theta(1+\sin2\theta)}{\sin\theta+\cos\theta}
+    &=\frac{\tan\theta}{\tan\theta+1}\cdot\frac{\sin^2\theta+\cos^2\theta+2\sin\theta\cos\theta}{\sin^2\theta+\cos^2\theta}\\
+    &=\frac{\tan\theta}{\tan\theta+1}\pr{1+\frac{2\tan\theta}{\tan^2\theta+1}}
+    =\frac{-2}{-1}\pr{1+\frac{-4}{5}}=\frac25.
+    \ea
+    \]
+}
+
+\subsection*{变 $1$ 法}
+
+前面引入 $1=\sin^2\theta+\cos^2\theta$，也是变 $1$ 法的一种。如前所述，把 $1$ 写成 $1=tx+my$ 形式的式子，合理运用即可升次，从而对于整体的处理来说，可实现齐次（次数中和）。
+
+\ex[9]{已知 $a>0,\ b>0,\ 2a+b=4$，求 $\dfrac4a+\dfrac1b$ 的最小值。}
+
+\sol{
+    $\frac4a+\frac1b$ 次数不为 $0$，则对其升次，套用平时配凑的处理方法，即所谓"$1$ 的妙用"：
+    \[
+    \frac4a+\frac1b=1\times\pr{\frac4a+\frac1b}=\frac14(2a+b)\pr{\frac4a+\frac1b}
+    =\frac14\pr{9+\frac{2a}{b}+\frac{4b}{a}}\ge\frac{9+4\sqrt2}{4}.
+    \]
+    当且仅当 $a=\sqrt2\,b$ 时取得最小值 $\dfrac{9+4\sqrt2}{4}$。
+}
+
+\subsection*{赋予含义}
+
+如点 $(x,y)$（$x\ne0$）对原点 $O$ 求斜率 $k=\frac yx$，即是一个 $0$ 次式——把这部分以斜率的赋义来观察，往往更常直观（坐标几何中很多最值问题，由此化为图上的斜率、距离来研究）。下面的椭圆例就是范例：通过\textbf{坐标平移}把 $k_{PM}+k_{PN}=0$ 化成齐次方程来读斜率。
+
+\ex[10]{已知椭圆 $C:\dfrac{x^2}{8}+\dfrac{y^2}{2}=1$，$C$ 上有一定点 $P(2,1)$，有一直线 $l$ 与 $C$ 相交于不同的两点 $M,N$，且满足 $k_{PM}+k_{PN}=0$。求证：直线 $l$ 的斜率为一定值。}
+
+\sol{
+    $k_{PM}+k_{PN}=0$ 可以联系韦达定理，而 $k=\dfrac{y-1}{x-2}$。为方便该形式的实现，平移坐标系。令
+    \[
+    \bc x'=x-2\\ y'=y-1\ec
+    \ \Longrightarrow\
+    \bc x=x'+2\\ y=y'+1\ec
+    \]
+    同时设直线 $mx'+ny'=1$。因坐标系平移前后直线的斜率保持不变，故在 $x'Oy'$ 下求出的 $m,n$ 的关系，可用于直接求算斜率。
+
+    椭圆 $C:x^2+4y^2=8$ 平移后：
+    \[
+    (x'+2)^2+4(y'+1)^2=8
+    \ \Longrightarrow\
+    x'^2+4y'^2+4x'+8y'=0.\quad(*)
+    \]
+    要使 $k=\dfrac{y'}{x'}$ 成为 $(*)$ 的根，则 $(*)$ 左侧必须齐次。代入 $1=mx'+ny'$，把一次项升次：
+    \[
+    x'^2+4y'^2+4x'(mx'+ny')+8y'(mx'+ny')=0,
+    \]
+    整理为齐次二次式
+    \[
+    (4+8n)y'^2+(8m+4n)x'y'+(1+4m)x'^2=0.
+    \]
+    同除以 $x'^2$，又 $k=\dfrac{y'}{x'}$，得
+    \[
+    (4+8n)k^2+(8m+4n)k+(1+4m)=0.
+    \]
+    两根之和 $k_1+k_2=-\dfrac{8m+4n}{4+8n}$。由 $k_{PM}+k_{PN}=0$，得 $8m+4n=0$，即 $2m+n=0$。于是
+    \[
+    k=-\frac mn=-\frac{m}{-2m}=\frac12.
+    \]
+    所以直线 $l$ 的斜率为一定值，此定值为 $\dfrac12$。
+}
+
+\section{分式处理}
+
+分式式子的处理，核心是看分子、分母的次数，再决定是\textbf{分离常数}、\textbf{整体换元}还是\textbf{裂项}。
+
+\subsection*{分母为一次，视分子次数}
+
+\textbf{(a) 分子为一次}：分离常数变反比例函数。如
+\[
+y=\frac{x+7}{x+3}=\frac{(x+3)+4}{x+3}=1+\frac{4}{x+3},
+\]
+如此转化后，求单调性、值域都很直接。这类形变经常要灵活转化，例如
+\[
+1-\frac{1}{x+1}=\frac{x}{x+1},\qquad 1-\frac{x}{x+1}=\frac{1}{x+1}.
+\]
+
+\textbf{(b) 分子为二次}：视分母为整体进行换元。如
+\[
+y=\frac{x^2+2x+5}{x-1}\xrightarrow[x=t+1]{t=x-1}\frac{(t+1)^2+2(t+1)+5}{t}=\frac{t^2+4t+8}{t}=t+\frac8t+4,
+\]
+又如
+\[
+y=\frac{x^2-8x+9}{x+1}\xrightarrow[x=t-1]{t=x+1}\frac{(t-1)^2-8(t-1)+9}{t}=\frac{t^2-10t+18}{t}=t+\frac{18}{t}-10.
+\]
+综上，换元并整理后可以得到两种形式的
+\[
+y=x+\frac ax+b\ :\quad
+\begin{cases}
+\text{勾函数}, & a>0;\\
+\text{飘带函数}, & a<0.
+\end{cases}
+\]
+同时，一定要注意换元后\textbf{新元的取值范围}。
+
+\subsection*{分母为二次，视分子次数}
+
+\textbf{(a) 分子为一次}：视分子为整体进行换元。\quad
+\textbf{(b) 分子为二次}：先分离常数，同时得一二次比二次。有的可以拆开，乘除掉的二次式可以进行裂项处理。下面的题就把分式的裂项思想与放缩结合起来。
+
+\ex[11]{已知数列 $A_n=\dfrac{3n^2-n-2}{2n^2+2n}$。求证：$\displaystyle\sum_{i=2}^n A_i>n-1+\sum_{i=2}^n\ln\frac{2}{i^2-1}$。}
+
+\sol{
+    先把 $A_n$ 分离整理：
+    \[
+    A_n=\frac{\frac32(2n^2+2n)-(4n+2)}{2n^2+2n}
+    =\frac32-\frac{2(2n+1)}{2n(n+1)}
+    =\frac32-\frac1n-\frac1{n+1}.
+    \]
+    注意到 $b_n=\dfrac{1}{n-1}-\dfrac{1}{n+1}=\dfrac{2}{n^2-1}$，且对 $n\ge2$ 有 $A_n\ge\dfrac{2}{n^2-1}$（$n=2$ 时取等）。于是只要证
+    \[
+    \frac{2}{n^2-1}\ge 1+\ln\frac{2}{n^2-1}.
+    \]
+    由 $\ln x\le x-1$（$x>0$，$x=1$ 取等），令 $x=\dfrac{2}{n^2-1}$ 即得上式。从而对 $i=2,\dots,n$，$A_i\ge 1+\ln\dfrac{2}{i^2-1}$，且 $x=\frac{2}{i^2-1}\ne1$ 使不等号严格，求和即
+    \[
+    \sum_{i=2}^n A_i>\sum_{i=2}^n\pr{1+\ln\frac{2}{i^2-1}}=n-1+\sum_{i=2}^n\ln\frac{2}{i^2-1}.
+    \]
+}
+
+\section{数形结合法}
+
+把一个 $0$ 次式、一段距离、一个角，翻译成图上的几何量，常常一眼看出最值。下面按斜率、点点距、点线距、向量夹角、三角函数几类各举一例。
+
+\subsection*{斜率}
+
+\[
+k=\frac{y-b}{x-a}:\ \text{即定点 }(a,b)\text{ 与动点 }(x,y)\text{ 连线的斜率。}
+\]
+
+\ex[12]{已知 $y=\dfrac{2\sin x-4}{3\cos x}$，求 $y$ 的值域。}
+
+\sol{
+    \textbf{法一（直接关联斜率）.} $y=\dfrac{2\sin x-4}{3\cos x}$ 可视为定点 $(0,4)$ 与动点 $(3\cos x,2\sin x)$ 连线的斜率（$\cos x\ne0$）。动点在椭圆 $\dfrac{X^2}{9}+\dfrac{Y^2}{4}=1$ 上，定点在椭圆外。连线的斜率的取值范围由两条切线的斜率给出（即左、右极限情况，切线斜率本身可取到）：
+    \[
+    y\in\left(-\infty,-\tfrac23\sqrt3\right]\cup\left[\tfrac23\sqrt3,+\infty\right).
+    \]
+
+    \textbf{法二（化归单位圆基本模型）.} 提出系数：
+    \[
+    y=\frac23\cdot\frac{\sin x-2}{\cos x}=\frac23\,t,\qquad t=\frac{\sin x-2}{\cos x}.
+    \]
+    $t$ 是定点 $(0,2)$ 与单位圆上动点 $(\cos x,\sin x)$ 连线的斜率，由两条切线得
+    \[
+    t\in(-\infty,-\sqrt3]\cup[\sqrt3,+\infty),
+    \]
+    故
+    \[
+    y\in\pr{-\infty,-\tfrac23\sqrt3}\cup\br{\tfrac23\sqrt3,+\infty}.
+    \]
+}
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth, scale=0.9]
+    \draw[->] (-2,0) -- (2,0) node[right] {$x$};
+    \draw[->] (0,-1.4) -- (0,2.6) node[above] {$y$};
+    \draw[thick] (0,0) circle (1);
+    \filldraw (0,2) circle (1pt) node[right] {\footnotesize $(0,2)$};
+    \draw[blue] (0,2) -- (0.97,-0.26);
+    \draw[blue] (0,2) -- (-0.97,-0.26);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{点点距离}
+
+典型特点：出现 $(a-b)^2+(c-d)^2$ 的形式。关键信息：（i）平方内作差；（ii）两平方相加。
+
+\ex[13]{已知 $x\in\RR,\ y>0$，求 $(\cos x-y)^2+(1+\sin x-\ln y)^2$ 的最小值。}
+
+\sol{
+    由式子的形式，摆取两点：
+    \[
+    (\cos x,\ 1+\sin x)\quad\text{与}\quad(y,\ \ln y).
+    \]
+    前者是圆 $a^2+(b-1)^2=1$（圆心 $(0,1)$、半径 $1$）上的点，后者是曲线 $b=\ln a$ 上的点。研究圆上点与另一曲线相关距离的问题，通常\textbf{先把圆缩成一个点，再把圆"还原"}：先看圆心 $(0,1)$ 到 $y=\ln x$（即 $b=\ln a$）上点的距离最小值。
+
+    可类比抛体作曲线运动时合外力与速度的关系——当 $PQ$ 与 $b=\ln a$ 在 $P$ 点处的切线\textbf{垂直}时，$|PQ|$ 取最小值。设切点 $(a,\ln a)$，则
+    \[
+    \frac{\ln a-1}{a}\cdot\frac1a=-1\ \Longrightarrow\ a^2+\ln a-1=0\ \Longrightarrow\ a=1,
+    \]
+    此方程的唯一解。于是圆心到曲线的最短距离 $|PQ|_{\min}=\sqrt{(1-0)^2+(0-1)^2}=\sqrt2$，还原半径后
+    \[
+    d_{\min}=|PQ|_{\min}-1=\sqrt2-1,\qquad
+    d^2_{\min}=(\sqrt2-1)^2=3-2\sqrt2.
+    \]
+}
+
+\subsection*{点线距}
+
+绝对值直线型，二元含参。
+
+\ex[14]{已知 $P(x_0,e^{x_0})$，求 $\dfrac{|3x_0-4e^{x_0}-9|}{5}$ 的最小值。}
+
+\sol{
+    令 $y_0=e^{x_0}$，则待求式是点 $P(x_0,y_0)$ 到直线 $3x-4y-9=0$ 的距离
+    \[
+    d=\frac{|3x_0-4y_0-9|}{\sqrt{3^2+4^2}}=\frac{|3x_0-4e^{x_0}-9|}{5}.
+    \]
+    $P$ 在曲线 $y=e^x$ 上，距离最小时，$y=e^x$ 在 $P$ 处的切线与直线平行，即切线斜率为 $\dfrac34$：
+    \[
+    y'=e^x=\frac34\ \Longrightarrow\ x_0=\ln\frac34.
+    \]
+    此时 $4e^{x_0}=3$，分子
+    \[
+    \abs{3x_0-4e^{x_0}-9}_{\min}=\abs{3\ln\tfrac34-3-9}=12-3\ln\tfrac34.
+    \]
+}
+
+\subsection*{向量夹角}
+
+\[
+\cos\langle\vb a,\vb b\rangle=\frac{\vb a\cdot\vb b}{|\vb a|\,|\vb b|}.
+\]
+
+\ex[15]{已知约束条件 $\bc x\ge0\\ y\ge0\\ x+y-1\le0\ec$，求 $\dfrac{2x+3y}{\sqrt{x^2+y^2}}$ 的最小值。}
+
+\sol{
+    令 $t=\dfrac{2x+3y}{\sqrt{x^2+y^2}}$，配上模长写成夹角余弦：
+    \[
+    t=\frac{2x+3y}{\sqrt{x^2+y^2}}
+    =\frac{(2,3)\cdot(x,y)}{|(x,y)|}
+    =\sqrt{13}\cdot\frac{(2,3)\cdot(x,y)}{|(2,3)|\,|(x,y)|}
+    =\sqrt{13}\,\cos\langle(2,3),(x,y)\rangle.
+    \]
+    要使 $t$ 最小，就要使 $(2,3)$ 与 $(x,y)$ 的夹角最大。$(x,y)$ 在三角形区域内，由图可知取 $(x,y)$ 为 $(1,0)$ 方向时夹角最大，此时
+    \[
+    t_{\min}=\frac{2\cdot1+3\cdot0}{\sqrt{1^2+0^2}}=2.
+    \]
+}
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth, scale=1.6]
+    \fill[blue!8] (0,0)--(1,0)--(0,1)--cycle;
+    \draw[->] (-0.2,0) -- (1.4,0) node[right] {$x$};
+    \draw[->] (0,-0.2) -- (0,1.4) node[above] {$y$};
+    \draw (1,0)--(0,1);
+    \draw[->,thick,red] (0,0)--(0.5,0.75) node[above right] {\footnotesize $(2,3)$};
+    \draw[->,thick,blue] (0,0)--(1,0);
+    \node at (0.35,0.18) {\footnotesize $\theta$};
+\end{tikzpicture}
+\end{center}
+
+\subsection*{三角函数（抛物线定义）}
+
+\ex[16]{已知抛物线 $C:y^2=4x$，$F$ 为 $C$ 的焦点，$M$ 为准线与 $x$ 轴的交点，$P$ 为 $C$ 上一动点。当 $\dfrac{|PM|}{|PF|}$ 取得最大值时，$P$ 恰在以 $M,F$ 为焦点的双曲线 $C'$ 上，求 $C'$ 的方程。}
+
+\sol{
+    $F(1,0)$，准线 $x=-1$，$M(-1,0)$。由抛物线的定义，作 $PN\perp$ 准线，则 $|PF|=|PN|$，故
+    \[
+    \frac{|PM|}{|PF|}=\frac{|PM|}{|PN|}=\frac{1}{\cos\theta},\qquad \theta=\angle PMN.
+    \]
+    $\cos\theta$ 取最小值时该比值最大，即 $\theta$ 最大，此时 $PM$ 与抛物线 $C$ 相切。求得切点 $P(1,2)$。于是
+    \[
+    |PM|=\sqrt{(1+1)^2+2^2}=2\sqrt2,\qquad |PF|=2.
+    \]
+    以 $M(-1,0),F(1,0)$ 为焦点，$c=1$；又 $2a=|PM|-|PF|=2\sqrt2-2$，得 $a=\sqrt2-1$，
+    \[
+    a^2=3-2\sqrt2,\qquad b^2=c^2-a^2=2\sqrt2-2.
+    \]
+    所以
+    \[
+    C':\ \frac{x^2}{3-2\sqrt2}-\frac{y^2}{2\sqrt2-2}=1.
+    \]
+}

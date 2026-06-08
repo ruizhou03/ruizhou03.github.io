@@ -1,56 +1,67 @@
 % !TEX root = ../Main.tex
-\chapter{斜率 $K$}
+\chapter{斜率 $k$}
 
-平面直角坐标系中，若一条非竖直直线与 $x$ 轴正方向的夹角为 $\alpha$（$0 \le \alpha < \pi$），则定义该直线的\textbf{斜率}为
+斜率 $k$ 描述一条直线的\textbf{倾斜程度}。设直线与 $x$ 轴正方向的夹角为倾斜角 $\alpha$，约定 $\alpha\in[0^\circ,180^\circ)$，则
 \[
-k = \tan\alpha.
+k=\tan\alpha,
+\qquad
+\bc
+\alpha\ne 90^\circ, & k\ \text{存在};\\
+\alpha=90^\circ, & k\ \text{不存在}.
+\ec
 \]
-几何上，$k$ 衡量"每向右走 $1$ 单位，$y$ 上升多少"；代数上，对直线上任意两点 $P_1(x_1,y_1)$ 与 $P_2(x_2,y_2)$（$x_1 \ne x_2$），有
+直线的常用写法是 $y=kx+b$，其中 $k$ 是斜率、$b$ 是纵截距。下面看两直线\textbf{平行}与\textbf{垂直}各对应斜率的什么关系。
+
+\section{平行}
+
+\state{两直线平行}{
+    \[
+    \ell_1\parallel\ell_2
+    \quad\Longleftrightarrow\quad
+    k_1=k_2,\ \underline{b_1\ne b_2}
+    \quad(\text{两直线不可重合}).
+    \]
+}
+
+原理很直接：平行就是\textbf{倾斜角相等}（$\alpha_1=\alpha_2$ 且 $\alpha_1,\alpha_2\ne 90^\circ$），倾斜角相等正切就相等，即 $k_1=k_2$。这里要补上 $b_1\ne b_2$，否则两条线会重合成同一条。
+
+\rmk{两直线的斜率\textbf{都不存在}时（都竖直），它们也平行。}
+
+\section{垂直}
+
+\state{两直线垂直}{
+    \[
+    \ell_1\perp\ell_2
+    \quad\Longleftrightarrow\quad
+    k_1\cdot k_2=-1.
+    \]
+}
+
+推导：设 $\ell_1$ 的倾斜角为 $\alpha_1$。两线垂直时，$\ell_2$ 的倾斜角比 $\ell_1$ 大 $90^\circ$，即
 \[
-k = \frac{y_2 - y_1}{x_2 - x_1}.
+\alpha_2=90^\circ+\alpha_1.
 \]
+于是
+\[
+\tan\alpha_2=\tan(90^\circ+\alpha_1)=-\frac{1}{\tan\alpha_1},
+\qquad\text{即}\qquad
+k_2=-\frac{1}{k_1},
+\]
+两边相乘即得 $k_1k_2=-1$。
 
 \begin{center}
 \begin{tikzpicture}[>=Stealth,scale=1.0]
-  \draw[->] (-0.5,0) -- (5,0) node[right]{$x$};
-  \draw[->] (0,-0.5) -- (0,3.2) node[above]{$y$};
-  \draw[thick,blue!70!black] (-0.3,-0.3*0.6) -- (4.5,4.5*0.6) node[right,black]{$\ell$};
-  \draw (1.8,0) arc (0:31:1.8);
-  \node at (2.3,0.25) {$\alpha$};
-  \node[below] at (2.5,-0.05) {$\Delta x$};
-  \node[right] at (2.5,0.75) {$\Delta y$};
-  \draw[dashed] (2.5,0) -- (2.5,1.5);
+  \draw[->] (-2.6,0) -- (2.8,0);
+  \draw[thick,blue!60!black] (-1.6,-0.9) -- (2.4,1.35);
+  \draw[thick,blue!60!black] (1.1,-1.3) -- (-1.1,1.95);
+  \draw (0.9,0) arc (0:29:0.9);
+  \node at (1.25,0.18) {\footnotesize$\alpha_1$};
+  \draw (-0.55,0) arc (180:124:0.55);
+  \node at (-0.55,0.4) {\footnotesize$\alpha_2$};
+  \draw (0.18,0.27) -- (0.45,0.07) -- (0.25,-0.2);
 \end{tikzpicture}
 \end{center}
 
-\defn{斜率}{
-    一条非竖直直线 $\ell$ 的\textbf{斜率}为其倾角 $\alpha$ 的正切值 $k = \tan\alpha$。竖直直线的斜率不存在（或约定为 $\infty$）。
-}
-
-\prop{平行与垂直判据}{
-    设两条直线 $\ell_1, \ell_2$ 的斜率分别为 $k_1, k_2$（均存在），则
-    \[
-    \ell_1 \parallel \ell_2 \iff k_1 = k_2,
-    \qquad
-    \ell_1 \perp \ell_2 \iff k_1 k_2 = -1.
-    \]
-}
-
-\ex[两点求斜率]{
-    求经过 $A(-1, 2)$ 与 $B(3, -4)$ 的直线斜率。
-}
-
-\sol{
-    由两点式，
-    \[
-    k = \frac{-4 - 2}{3 - (-1)} = \frac{-6}{4} = -\frac{3}{2}.
-    \]
-}
-
-\ex[垂直判定]{
-    直线 $\ell_1: y = 2x + 1$ 与 $\ell_2: y = -\tfrac{1}{2}x + 5$ 是否垂直？
-}
-
-\sol{
-    $k_1 = 2,\ k_2 = -\tfrac{1}{2}$，故 $k_1 k_2 = -1$，二者垂直。
+\rmkb{
+    \textbf{注意点}：当一条直线 $k=0$（水平），另一条直线的斜率\textbf{不存在}（竖直）时，两条直线也互相垂直。此时不能套 $k_1k_2=-1$（一个斜率不存在），要单独识别。
 }

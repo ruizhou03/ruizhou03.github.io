@@ -1,0 +1,64 @@
+% !TEX root = ../Main.tex
+\chapter{比较大小}
+
+比较几个数的大小，直接比往往很难。两条常用思路：引入中介数字把它们分到不同的区间里，或者用放缩把式子放大、缩小到容易比较的形状。
+
+\section{引入中介数字}
+
+引入中介数字，如 $0,\ 1,\ \dfrac12$ 等，把待比较的数分到中介数字的两侧。
+
+\ex[25]{已知 $\theta\in\left(0,\dfrac\pi4\right)$，$a=(\cos\theta)^{\sin\theta}$，$b=\log_{\cos\theta}\sin\theta$，$c=\log_{\sin\theta\cos\theta}(\sin^2\theta+\cos^2\theta)$，求 $a,b,c$ 的大小关系。}
+
+\sol{
+    $\theta\in\left(0,\dfrac\pi4\right)$ 时，$0<\sin\theta<\cos\theta<\dfrac{\sqrt2}{2}<1$。以 $0$ 和 $1$ 作中介数字分段：
+
+    \textbf{$a$}：底 $\cos\theta\in(0,1)$、指数 $\sin\theta>0$，故 $a=(\cos\theta)^{\sin\theta}<(\cos\theta)^0=1$，又 $a>0$，所以 $a\in(0,1)$。
+
+    \textbf{$b$}：底 $\cos\theta\in(0,1)$、真数 $\sin\theta<\cos\theta$，故 $b=\log_{\cos\theta}\sin\theta>\log_{\cos\theta}\cos\theta=1$，所以 $b>1$。
+
+    \textbf{$c$}：真数 $\sin^2\theta+\cos^2\theta=1$，故 $c=\log_{\sin\theta\cos\theta}1=0$。
+
+    综上 $c=0<a<1<b$，即
+    \[
+    b>a>c.
+    \]
+}
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth, scale=0.8]
+    \draw[->] (-0.4,0) -- (2.8,0) node[right] {$x$};
+    \draw[->] (0,-0.4) -- (0,1.9) node[above] {};
+    \draw[thick, blue, domain=-0.3:2.6, samples=60, smooth] plot (\x, {1.7*exp(-0.85*\x)});
+    \node[above right] at (1.2,0.85) {\footnotesize $y=(\cos\theta)^x$};
+\end{tikzpicture}
+\qquad
+\begin{tikzpicture}[>=Stealth, scale=0.8]
+    \draw[->] (-0.4,0) -- (2.8,0) node[right] {$x$};
+    \draw[->] (0,-0.9) -- (0,1.8) node[above] {};
+    \draw[thick, blue, domain=0.22:2.6, samples=60, smooth] plot (\x, {-ln(\x)*0.8});
+    \draw[dashed] (1,0)--(1,-0.02);
+    \node[below right] at (1,0) {\footnotesize $1$};
+    \node[above] at (2.0,1.0) {\footnotesize $y=\log_{\cos\theta}x$};
+\end{tikzpicture}
+\end{center}
+
+\rmk{此类题，一般选取 $0$ 和 $1$ 进行区间分割。如仍无法完全比出，再选取 $\frac12,\frac1e,e$ 等数。}
+
+\section{放缩：三角函数解析性}
+
+\ex[26]{已知函数 $f(x)=\dfrac{\ln x+\sin x}{x}$，求证：$f(x)<1$。}
+
+\sol{
+    $f(x)$ 直接求导（或构造 $g(x)=x-\sin x-\ln x>0$）也可以，但放缩更快。$x>0$，待证 $f(x)<1$ 等价于
+    \[
+    \ln x+\sin x<x\ \Longleftrightarrow\ \ln x<x-\sin x.
+    \]
+    又 $\ln x\le x-1$（$x=1$ 取等），$\sin x\le1$（$x=\frac\pi2+2k\pi$ 取等），相加得 $\ln x+\sin x\le(x-1)+1=x$。两式不可同时取等（$\ln x$ 在 $x=1$ 取等、$\sin x$ 在 $x=\frac\pi2$ 取等，不能同时），故
+    \[
+    \ln x+\sin x<x\ \Longrightarrow\ f(x)<1.\qquad\text{证毕}
+    \]
+}
+
+\rmkb{
+    在有限长区间内，三角函数（正、余弦）往往与 $0$ 比；在无限长区间内，三角函数往往与 $\pm1$ 比较。取 $\pm1$ 中的哪一个，要依据不等号的方向而定。三角函数本身不断振荡，会引入很多麻烦因素，去成常数后，可简化比较过程（把它一般"放"去）。
+}

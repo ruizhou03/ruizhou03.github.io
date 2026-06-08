@@ -1,0 +1,50 @@
+% !TEX root = ../Main.tex
+\chapter{概率（一）：抽样与统计量}
+
+这一讲先把统计部分串一遍：怎么抽样、频率分布直方图怎么读、几个重要参数怎么算，最后把频率和概率的关系点明。
+
+\section{抽样}
+
+\subsection*{简单随机抽样}
+
+从总体里一个一个等可能地抽。按是否把抽出的个体放回，分两类：
+
+\begin{itemize}
+    \item \textbf{放回}：每次抽完放回去，下一次还可能抽到它；
+    \item \textbf{不放回}：抽出来就不再放回，同一个个体最多被抽到一次。
+\end{itemize}
+
+具体操作有两种方法：
+
+\begin{itemize}
+    \item \textbf{抽签法}；
+    \item \textbf{随机数法}。
+\end{itemize}
+
+\subsection*{分层抽样}
+
+总体由几个差异明显的\textbf{层（子总体）}组成时，按各层在总体中所占的\textbf{比例}分配抽取的名额，再在每层里做简单随机抽样。这样抽到的样本结构和总体一致。
+
+\section{频率分布直方图}
+
+把数据分组，每组画一个小长方形。关键是：
+
+\state{直方图的面积就是频率}{
+    每个小长方形的\textbf{面积}（而不是高度）等于该组数据的\textbf{频率}。横轴是数据，纵轴是 $\dfrac{\text{频率}}{\text{组距}}$，所以面积 $=$ 组距 $\times\dfrac{\text{频率}}{\text{组距}}=$ 频率。所有长方形面积之和为 $1$。
+}
+
+直方图可以用来估\textbf{平均数}和\textbf{中位数}。
+
+\section{重要参数}
+
+\begin{itemize}
+    \item \textbf{极差} $=\max-\min$，衡量数据的跨度；
+    \item \textbf{平均数} $\bar{x}=\dfrac{1}{n}(x_1+x_2+\cdots+x_n)$，衡量集中位置；
+    \item \textbf{方差} $S^2=\dfrac{1}{n}\displaystyle\sum_{i=1}^{n}(x_i-\bar{x})^2$，衡量离散程度。
+\end{itemize}
+
+\rmk{方差还有一个更好算的等价写法 $S^2=\overline{x^2}-\bar{x}^2$，推导见最后一讲的知识点补充。}
+
+\section{频率与概率}
+
+做大量重复试验时，某事件出现的\textbf{频率}会在一个常数附近摆动，并且试验次数越多越稳定——这个稳定的常数就是该事件的\textbf{概率}，这叫\textbf{频率的稳定性}。

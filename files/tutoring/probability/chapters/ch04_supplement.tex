@@ -1,0 +1,47 @@
+% !TEX root = ../Main.tex
+\chapter{知识点补充}
+
+\section{两个计数原理}
+
+数基本事件离不开两个计数原理：
+
+\state{分类加法计数原理}{
+    完成一件事有 $n$ 类\textbf{互不相干}的办法，第一类有 $m_1$ 种方法、第二类有 $m_2$ 种……第 $n$ 类有 $m_n$ 种，则完成这件事共有
+    \[
+    N=m_1+m_2+\cdots+m_n
+    \]
+    种方法。\textbf{分类用加法}（每一类都能独立完成整件事）。
+}
+
+\state{分步乘法计数原理}{
+    完成一件事需要\textbf{依次}分成 $n$ 个步骤，第一步有 $m_1$ 种方法、第二步有 $m_2$ 种……第 $n$ 步有 $m_n$ 种，则完成这件事共有
+    \[
+    N=m_1\times m_2\times\cdots\times m_n
+    \]
+    种方法。\textbf{分步用乘法}（每一步都做完才算完成整件事）。
+}
+
+\section{方差的简便公式}
+
+直接按定义 $S^2=\dfrac{1}{n}\sum(x_i-\bar{x})^2$ 算要先求 $\bar{x}$、再逐项作差平方，比较费。把平方拆开能化出一个更顺手的式子：
+
+\state{方差 $=$ 平方的平均 $-$ 平均的平方}{
+    \[
+    S^2=\overline{x^2}-\bar{x}^2,
+    \]
+    其中 $\overline{x^2}=\dfrac{1}{n}\displaystyle\sum_{i=1}^{n}x_i^2$ 是"平方的平均"，$\bar{x}^2$ 是"平均的平方"。
+}
+
+\sol{
+    把定义式里的平方展开：
+    \[
+    \ba
+    S^2&=\frac{1}{n}\br{(x_1-\bar{x})^2+(x_2-\bar{x})^2+\cdots+(x_n-\bar{x})^2}\\
+    &=\frac{1}{n}\br{(x_1^2+x_2^2+\cdots+x_n^2)+n\bar{x}^2-2\bar{x}(\underbrace{x_1+x_2+\cdots+x_n}_{=\,n\bar{x}})}\\
+    &=\frac{1}{n}\br{\sum_{i=1}^{n}x_i^2+n\bar{x}^2-2n\bar{x}^2}\\
+    &=\frac{\displaystyle\sum_{i=1}^{n}x_i^2}{n}-\bar{x}^2
+    =\overline{x^2}-\bar{x}^2.
+    \ea
+    \]
+    中间用到 $x_1+x_2+\cdots+x_n=n\bar{x}$，于是含 $\bar{x}$ 的两项合并成 $n\bar{x}^2-2n\bar{x}^2=-n\bar{x}^2$。
+}

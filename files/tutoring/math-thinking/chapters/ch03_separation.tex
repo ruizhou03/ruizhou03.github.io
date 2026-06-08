@@ -1,0 +1,109 @@
+% !TEX root = ../Main.tex
+\chapter{恒成立与有解：分离法}
+
+含参的恒成立、有解、零点问题，常常把参数 $a$ 单独"剥"出来，再去研究剩下那个不含参的函数。分两类：分离参数法（剥成 $a=f(x)$，研究 $f$ 的值域）与分离函数法（把不等式两侧各看成一条曲线，研究它们的交点）。
+
+\section{分离参数法}
+
+适用于能剥成 $a=f(x)$、且 $f(x)$ 易于研究的情况。
+
+\ex[22]{已知 $f(x)=e^x-e^{-x}-ax$。若 $f(x)\ge0$ 对 $x\ge0$ 恒成立（并对称地 $f(x)\le0$ 对 $x\le0$ 恒成立），求 $a$ 的取值范围。}
+
+\sol{
+    $x=0$ 时 $f(0)=0\ge0$ 自动成立。分离参数：
+    \[
+    x>0:\ \frac{e^x-e^{-x}}{x}\ge a;\qquad
+    x<0:\ \frac{e^x-e^{-x}}{x}\le a.
+    \]
+    令 $g(x)=\dfrac{e^x-e^{-x}}{x}$，则 $g(x)$ 是奇函数（$x\ne0$）。求导：
+    \[
+    g'(x)=\frac{(e^x+e^{-x})x-(e^x-e^{-x})}{x^2}=\frac{h(x)}{x^2},
+    \]
+    其中 $h(x)=x(e^x+e^{-x})-(e^x-e^{-x})$，$h(0)=0$，$h'(x)=x(e^x-e^{-x})>0$（$x\ne0$），故 $h$ 单调递增，$x>0$ 时 $h(x)>h(0)=0$。于是 $g'(x)>0$，$g$ 在 $(0,+\infty)$ 上递增。又
+    \[
+    x\to0^+:\ g(x)\to2,\qquad x\to0^-:\ g(x)\to-2.
+    \]
+    所以 $x>0$ 时 $g(x)>2$，要 $a\le g(x)$ 恒成立须 $a\le2$；由奇偶性，$x<0$ 时须 $a\ge-2$。综上
+    \[
+    a\in[-2,2].
+    \]
+}
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth, scale=0.8]
+    \draw[->] (-2.4,0) -- (2.4,0) node[right] {$x$};
+    \draw[->] (0,-3.2) -- (0,3.4) node[above] {$g$};
+    \draw[thick, blue, domain=0.05:2.0, samples=60, smooth] plot (\x, {(exp(\x)-exp(-\x))/\x});
+    \draw[thick, blue, domain=-2.0:-0.05, samples=60, smooth] plot (\x, {(exp(\x)-exp(-\x))/\x});
+    \draw[dashed] (-2.4,2)--(2.4,2);
+    \draw[dashed] (-2.4,-2)--(2.4,-2);
+    \node[left] at (0,2) {\footnotesize $2$};
+    \node[left] at (0,-2) {\footnotesize $-2$};
+\end{tikzpicture}
+\end{center}
+
+\section{分离函数法}
+
+当参数没法干净地剥成 $a=f(x)$（剥出来的函数太复杂、或与之关联的点不止一处），就把不等式两侧各看成一条曲线，研究它们的相对位置。可以分为两大类：\textbf{动直线}与\textbf{变开口}。
+
+\subsection*{动直线}
+
+\ex[23]{已知函数 $f(x)=e^x-a+\dfrac ax$（$x<0$），若 $f(x)\ge0$ 只有 $1$ 个整数解，求 $a$ 的取值范围。}
+
+\sol{
+    除非作出整数解恰为 $1$ 个的分离参数后的函数 $g(x)=\dfrac{x}{x-1}e^x$ 的极值点，或与之关联的点（不止一处），太复杂了；多处出现参数 $a$、以及"整数解"的设定，一般用分离函数法做。
+
+    $f(x)=e^x-a+\dfrac ax\ge0$（$x<0$）的形式不好放，等价变形（乘以 $x<0$，不等号翻向）：
+    \[
+    f(x)\ge0\ \Longleftrightarrow\ xe^x\le a(x-1)\quad(x<0).
+    \]
+    取 $M(x)=xe^x$（一条定曲线），$a(x-1)$ 是过定点 $(1,0)$、斜率为 $a$ 的动直线。"$xe^x\le a(x-1)$"即曲线 $M$ 在动直线下方（或线上）。画出草图后知，负整数解只能是 $x=-1$（再往左不进入解集）。于是取 $M(x)=xe^x$ 上的两个特殊点
+    \[
+    \pr{-1,-\tfrac1e}\to k_1=\frac{-\frac1e-0}{-1-1}=\frac{1}{2e},\qquad
+    \pr{-2,-\tfrac{2}{e^2}}\to k_2=\frac{-\frac{2}{e^2}-0}{-2-1}=\frac{2}{3e^2}.
+    \]
+    要让恰好整数解只有 $x=-1$，斜率 $a$ 须满足 $a\in(k_2,k_1]$，即
+    \[
+    a\in\left(\frac{2}{3e^2},\ \frac{1}{2e}\right].
+    \]
+}
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth, scale=1.0]
+    \draw[->] (-3.2,0) -- (1.6,0) node[right] {$x$};
+    \draw[->] (0,-0.55) -- (0,0.5) node[above] {};
+    \draw[thick, blue, domain=-3.1:0.4, samples=80, smooth] plot (\x, {\x*exp(\x)});
+    \filldraw (-1,-0.368) circle (1pt) node[below left] {\footnotesize $(-1,-\frac1e)$};
+    \filldraw (-2,-0.271) circle (1pt) node[below] {\footnotesize $(-2,-\frac{2}{e^2})$};
+    \filldraw (1,0) circle (1pt) node[above right] {\footnotesize $(1,0)$};
+    \draw[red] (1,0)--(-2.8,{-0.5*(1/2.718281)*(1-(-2.8))});
+    \node at (-2.7,-0.42) {\footnotesize $a(x-1)$};
+\end{tikzpicture}
+\end{center}
+
+\subsection*{变开口}
+
+\ex[24]{设函数 $f(x)=e^{ax}-\dfrac1a\ln x$，若方程 $f(x)=0$ 有实根，求 $a$ 的取值范围。}
+
+\sol{
+    \textbf{法一（反函数法）.} 由 $f(x)=0$ 得 $e^{ax}=\dfrac{\ln x}{a}$。可以发现 $y=e^{ax}$ 与 $y=\dfrac{\ln x}{a}$ 互为反函数，二者关于直线 $y=x$ 对称。要使两者有交点，只要使 $y=e^{ax}$ 与 $y=x$ 有交点即可。
+
+    随 $a$ 的减小，$y=e^{ax}$ 变得更为"平缓"。$a$ 为负时，$y=e^{ax}$ 递减，与 $y=x$ 必有交点。$a>0$ 时求临界：设切点 $x_0>0$，切线即 $y=x$，则
+    \[
+    e^{ax_0}=x_0,\qquad ae^{ax_0}=1\ \Longrightarrow\ ax_0=1\ \Longrightarrow\ x_0=e,\ a=\frac1e.
+    \]
+    故 $a>0$ 时须 $a\le\dfrac1e$（$a=\frac1e$ 时相切于 $(e,e)$，仍有实根）。综上
+    \[
+    a\in(-\infty,0)\cup\left(0,\frac1e\right].
+    \]
+    （$a=0$ 时 $f$ 无意义，已排除。）
+
+    \textbf{法二（同构法）.} 把 $e^{ax}=\dfrac{\ln x}{a}$ 两边凑成同一函数 $\varphi(t)=te^t$：
+    \[
+    e^{ax}=\frac{\ln x}{a}\ \Longrightarrow\ ax\,e^{ax}=x\ln x=\ln x\cdot e^{\ln x}.
+    \]
+    构造 $\varphi(t)=te^t$（在所需区间上单调），则 $\varphi(ax)=\varphi(\ln x)$，得 $a=\dfrac{\ln x}{x}$。而 $\dfrac{\ln x}{x}$ 的最大值为 $\dfrac1e$（$x=e$ 处），故同样
+    \[
+    a\in(-\infty,0)\cup\left(0,\frac1e\right].
+    \]
+}

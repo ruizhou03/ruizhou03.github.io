@@ -1,84 +1,87 @@
 % !TEX root = ../Main.tex
-\chapter{韦达定理与弦长}
-
-一元二次方程是初升高衔接最"硬"的一块。韦达定理不仅告诉你根与系数的关系，更是解析几何里"直线与圆锥曲线相交"问题的万能工具——因为\textbf{几乎所有"弦"的信息都能转化为韦达公式的线性组合}。
+\chapter{二次方程的韦达定理}
 
 \section{韦达定理}
 
-\thm{韦达定理}{
-    若一元二次方程 $ax^2 + bx + c = 0$（$a \ne 0$）的两根为 $x_1, x_2$，则
+对一元二次方程
+\[
+ax^2+bx+c=0\quad(a\ne 0),
+\]
+\textbf{使用前提}是方程有实根，即 $\Delta=b^2-4ac\ge 0$。
+
+\state{韦达定理}{
+    设两实根为 $x_1,x_2$，则
     \[
-    x_1 + x_2 = -\frac{b}{a},\qquad x_1 x_2 = \frac{c}{a}.
+    \bc
+    x_1+x_2=-\dfrac{b}{a},\\[4pt]
+    x_1x_2=\dfrac{c}{a}.
+    \ec
     \]
 }
 
-\pf{
-    由求根公式 $x_{1,2} = \dfrac{-b \pm \sqrt{b^2 - 4ac}}{2a}$，直接相加相乘即得。
-
-    更简洁的代数证明：$ax^2 + bx + c = a(x - x_1)(x - x_2) = a\bigl[x^2 - (x_1+x_2)x + x_1 x_2\bigr]$，比较系数即得。
-}
+由"和"与"积"可以立刻拼出"根的差"的绝对值：
+\[
+\abs{x_1-x_2}=\sqrt{(x_1+x_2)^2-4x_1x_2}
+=\sqrt{\frac{b^2-4ac}{a^2}}
+=\frac{\sqrt{\Delta}}{\abs{a}}.
+\]
 
 \rmkb{
-    韦达定理的威力在于：很多问题不需要解出 $x_1, x_2$ 各自的值，只需要 $x_1 + x_2$ 和 $x_1 x_2$ 就能推出答案。
+    韦达定理体现的思想是：$x_1$ 与 $x_2$ 的\textbf{和、积、差}这些对称关系，可以直接从系数读出来，\textbf{不必先把 $x_1,x_2$ 各自解出来}。所以做题时——能不具体求根，就不求。
 }
 
 \section{弦长公式}
 
-设直线 $\ell: y = kx + m$ 与曲线交于 $A(x_1, y_1), B(x_2, y_2)$。则
+直线与曲线交于 $A(x_1,y_1)$、$B(x_2,y_2)$，要算弦长 $\abs{AB}$。设直线斜率 $k=\tan\theta$（$\theta$ 为倾斜角）。
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth,scale=1.2]
+  \coordinate (A) at (0,0);
+  \coordinate (B) at (2.4,1.4);
+  \draw[thick,blue!60!black] (-0.3,-0.175) -- (2.8,1.633);
+  \draw[dashed] (A) -- (B |- A) node[midway,below]{\footnotesize$\abs{x_2-x_1}$};
+  \draw[dashed] (B) -- (B |- A) node[midway,right]{\footnotesize$\abs{y_2-y_1}$};
+  \draw (A) ++(0.5,0) arc (0:30:0.5);
+  \node at ($(A)+(0.68,0.16)$) {\footnotesize$\theta$};
+  \fill (A) circle (1pt) node[left]{\footnotesize$A(x_1,y_1)$};
+  \fill (B) circle (1pt) node[above left]{\footnotesize$B(x_2,y_2)$};
+\end{tikzpicture}
+\end{center}
+
+水平投影满足 $\abs{AB}\cos\theta=\abs{x_2-x_1}$，故 $\abs{AB}=\dfrac{1}{\abs{\cos\theta}}\abs{x_2-x_1}$。又由 $\sin^2\theta+\cos^2\theta=1$ 两边除以 $\cos^2\theta$：
 \[
-|AB|^2 = (x_1 - x_2)^2 + (y_1 - y_2)^2 = (x_1 - x_2)^2 (1 + k^2).
+\tan^2\theta+1=\frac{1}{\cos^2\theta}
+\quad\Longrightarrow\quad
+\frac{1}{\abs{\cos\theta}}=\sqrt{k^2+1}.
 \]
-又
-\[
-(x_1 - x_2)^2 = (x_1 + x_2)^2 - 4 x_1 x_2,
-\]
-故
 
 \state{弦长公式}{
     \[
-    |AB| = \sqrt{1 + k^2} \cdot |x_1 - x_2| = \sqrt{1 + k^2} \cdot \sqrt{(x_1 + x_2)^2 - 4 x_1 x_2}.
+    \abs{AB}=\sqrt{k^2+1}\;\abs{x_2-x_1}
+    =\sqrt{k^2+1}\;\sqrt{(x_1+x_2)^2-4x_1x_2}.
     \]
-    把"交点的横坐标"通过韦达定理整体刻画，避免求具体的交点坐标。
 }
 
-\ex[抛物线弦长]{
-    直线 $y = x - 1$ 与抛物线 $y^2 = 4x$ 交于 $A, B$。求 $|AB|$。
-}
+把交点横坐标 $x_1,x_2$ 整体用韦达定理替换，就不用解出交点坐标了。
+
+\ex{已知 $y_1=x^2+2x+3$ 与 $y_2=x+6$ 相交于 $A,B$ 两点，求线段 $AB$ 的长度。}
 
 \sol{
-    代入得 $(x-1)^2 = 4x$，即 $x^2 - 6x + 1 = 0$。由韦达定理 $x_1 + x_2 = 6$，$x_1 x_2 = 1$。又 $k = 1$。
+    联立 $x^2+2x+3=x+6$，即 $x^2+x-3=0$。由韦达定理 $x_1+x_2=-1$、$x_1x_2=-3$，故
     \[
-    |AB| = \sqrt{1 + 1^2} \cdot \sqrt{6^2 - 4 \cdot 1} = \sqrt{2} \cdot \sqrt{32} = \sqrt{64} = 8.
+    (x_1-x_2)^2=(x_1+x_2)^2-4x_1x_2=1+12=13.
+    \]
+    直线 $y=x+6$ 斜率 $k=1$，代入弦长公式：
+    \[
+    \abs{AB}=\sqrt{k^2+1}\,\abs{x_2-x_1}=\sqrt2\cdot\sqrt{13}=\sqrt{26}.
     \]
 }
 
-\ex[椭圆内接三角形的面积]{
-    直线 $\ell: y = kx + 1$ 与椭圆 $\dfrac{x^2}{4} + y^2 = 1$ 交于 $A, B$。求 $k$ 使得 $\triangle OAB$ 面积最大（$O$ 为原点）。
-}
+\ex{已知圆 $x^2+y^2=4$ 与直线 $y=x+1$ 相交于 $A,B$ 两点，求线段 $AB$ 的长度。}
 
 \sol{
-    代入椭圆方程：
+    把 $y=x+1$ 代入 $x^2+y^2=4$：$x^2+(x+1)^2=4$，整理得 $2x^2+2x-3=0$。由韦达定理 $x_1+x_2=-1$、$x_1x_2=-\tfrac32$，故 $(x_1-x_2)^2=(x_1+x_2)^2-4x_1x_2=1+6=7$。斜率 $k=1$：
     \[
-    \frac{x^2}{4} + (kx+1)^2 = 1
-    \implies (1 + 4k^2) x^2 + 8kx + 0 = 0.
+    \abs{AB}=\sqrt{k^2+1}\,\abs{x_2-x_1}=\sqrt2\cdot\sqrt7=\sqrt{14}.
     \]
-    等等，展开仔细：$\tfrac{x^2}{4} + k^2 x^2 + 2kx + 1 = 1$，即 $\left(\tfrac{1}{4} + k^2\right) x^2 + 2kx = 0$，
-    \[
-    (1 + 4k^2) x^2 + 8kx = 0.
-    \]
-    由韦达 $x_1 + x_2 = -\tfrac{8k}{1+4k^2}$，$x_1 x_2 = 0$。于是一根为 $0$（恰对应 $\ell$ 与 $y$ 轴的交点 $(0, 1)$）。这个特例让结果退化。
-
-    \textbf{换一种设置}：让 $\ell$ 不过 $y$ 轴固定截距，改设 $\ell: y = kx + m$ 且 $m$ 可变，求 $|OA||OB|$ 最大时 $m, k$。完整讨论留给读者，以上只演示了弦长公式的机械流程。
-}
-
-\rmkb{
-    做解析几何大题时，\textbf{一般路线}是：
-    \begin{enumerate}
-        \item 设直线方程（分斜率存在/不存在两种讨论）；
-        \item 联立代入曲线，得到关于 $x$ 的二次方程；
-        \item 用\textbf{韦达定理}得 $x_1 + x_2, x_1 x_2$；
-        \item 用\textbf{弦长公式}、\textbf{距离公式}或\textbf{向量内积}把题目要求的量写成 $x_1 + x_2, x_1 x_2$ 的函数；
-        \item 代入并化简，求最值或解方程。
-    \end{enumerate}
-    这是解析几何"韦达流"的完整套路。
 }

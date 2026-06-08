@@ -1,61 +1,91 @@
 % !TEX root = ../Main.tex
-\chapter{古典概型}
+\chapter{概率（二）：随机事件与古典概型}
 
-古典概型是所有概率的\textbf{起点}：所有基本事件\textbf{等可能}发生、事件总数\textbf{有限}。这两条假设使"概率"成为\textbf{"数数"}的问题——计数即解题。
+\section{随机事件}
 
-\section{样本空间与事件}
+\subsection*{事件的运算}
 
-\defn{样本空间与样本点}{
-    随机试验的\textbf{全部可能结果}构成的集合，称为\textbf{样本空间}，记为 $\Omega$。$\Omega$ 中的每个元素称为\textbf{样本点}。$\Omega$ 的任一子集 $A$ 称为\textbf{事件}——"$A$ 发生" $\iff$ "试验结果属于 $A$"。
-}
+\begin{itemize}
+    \item \textbf{交事件（积事件）}：$A$ 与 $B$ \textbf{同时}发生，记作 $A\cap B$（或 $AB$）；
+    \item \textbf{并事件（和事件）}：$A$、$B$ \textbf{至少一个}发生，记作 $A\cup B$。
+\end{itemize}
 
-\defn{古典概型}{
-    若随机试验满足：
-    \begin{enumerate}
-        \item 样本空间 $\Omega$ 是\textbf{有限}的；
-        \item 每个样本点\textbf{等可能}发生。
-    \end{enumerate}
-    称之为\textbf{古典概型}。事件 $A$ 的概率
-    \[
-    P(A) = \frac{|A|}{|\Omega|} = \frac{A \text{ 中样本点个数}}{\Omega \text{ 中样本点总数}}.
-    \]
-}
+\subsection*{事件的关系}
 
-\section{事件间的运算}
+\begin{itemize}
+    \item \textbf{包含}：$A$ 发生则 $B$ 一定发生，记 $A\subseteq B$。特别地，$A\subseteq B$ 且 $B\subseteq A$ 时 $A$、$B$ \textbf{相等}；
+    \item \textbf{互斥}：$A$、$B$ 不能同时发生，$A\cap B=\varnothing$。特别地，若还"必有一个发生"，就是\textbf{对立}（非此即彼），$B=\bar{A}$；
+    \item \textbf{独立}：$A$ 发生与否不影响 $B$ 的概率，判定式是 $P(AB)=P(A)P(B)$。
+\end{itemize}
 
-\state{互斥、对立、和事件、积事件}{
+\section{古典概型}
+
+\state{古典概型的两个前提}{
     \begin{itemize}
-        \item \textbf{和事件} $A \cup B$（也写作 $A + B$）：$A$ 或 $B$ 至少一个发生；
-        \item \textbf{积事件} $A \cap B$（也写作 $AB$）：$A$ 与 $B$ 同时发生；
-        \item \textbf{互斥}：$A \cap B = \varnothing$——不可能同时发生；
-        \item \textbf{对立}：$A \cup B = \Omega$ 且 $A \cap B = \varnothing$——\textbf{必有一个且仅有一个}发生，记 $\bar A = B$。
+        \item \textbf{有限性}：基本事件只有有限个；
+        \item \textbf{等可能性}：每个基本事件发生的可能性相等。
     \end{itemize}
 }
 
-\state{概率的加法公式}{
-    对任意事件 $A, B$：
+满足这两条时，事件 $A$ 的概率为
+\[
+P(A)=\frac{A\ \text{包含的基本事件数}}{\text{总基本事件数}}.
+\]
+
+所以做古典概型，核心就是\textbf{把基本事件数清楚}——常用的就是\textbf{穷举法}：把所有情形一个不漏地列出来数。
+
+\section{两道古典概型例题}
+
+\ex[例 1]{在 $0,1,2,3,4,5,6,7,8$ 这 $9$ 个数中\textbf{不放回}地取出两个。记事件 $A$ 为"取出的两个数中有且仅有一个为奇数"，事件 $B$ 为"取出的两个数中有且仅有一个为偶数"。问是否有 $P(A)=P(B)$？}
+
+\sol{
+    这 $9$ 个数里奇数有 $1,3,5,7$ 共 $4$ 个，偶数有 $0,2,4,6,8$ 共 $5$ 个。不放回取两个、不计顺序，总基本事件数 $C_9^2=36$。
+
+    事件 $A$"恰好一个奇数"就是\textbf{一奇一偶}：
     \[
-    P(A \cup B) = P(A) + P(B) - P(A \cap B).
+    P(A)=\frac{C_4^1\,C_5^1}{C_9^2}=\frac{4\times 5}{36}=\frac{20}{36}=\frac{5}{9}.
     \]
-
-    \textbf{若 $A, B$ 互斥}：$P(A \cup B) = P(A) + P(B)$。
-
-    \textbf{对立事件}：$P(\bar A) = 1 - P(A)$。
+    取两个数"恰好一个奇数"和"恰好一个偶数"说的是同一件事——一奇一偶，所以 $A$、$B$ \textbf{本来就是同一个事件}，自然
+    \[
+    P(A)=P(B)=\frac{5}{9}.
+    \]
 }
 
-\begin{center}
-\begin{tikzpicture}[>=Stealth,scale=1]
-  % Venn diagram
-  \draw[thick] (-2,-1.3) rectangle (2,1.3);
-  \node[above right] at (-2,1.3) {\scriptsize $\Omega$};
-  \draw[thick,fill=red!20,fill opacity=0.6] (-0.6,0) circle (0.9);
-  \draw[thick,fill=blue!20,fill opacity=0.6] (0.6,0) circle (0.9);
-  \node at (-1.1,0) {\scriptsize $A$};
-  \node at (1.1,0) {\scriptsize $B$};
-  \node at (0,0) {\scriptsize $A \cap B$};
-\end{tikzpicture}
-\end{center}
+\ex[例 1 变形]{把"不放回"改成\textbf{有放回}，其它条件不变，问是否还有 $P(A)=P(B)$？}
 
-\rmkb{
-    \textbf{"至少"类问题}优先考虑\textbf{对立事件}——如"至少有一件次品"，其对立"全是正品"通常远比正面枚举简单。\textbf{正面难算时走反面}，这是概率题的通用策略。
+\sol{
+    有放回取两次、分先后，总基本事件数 $9\times 9=81$。
+
+    事件 $A$"恰好一次取到奇数"：哪一次取奇数有 $2$ 种，奇数 $4$ 个、偶数 $5$ 个，
+    \[
+    P(A)=\frac{2\times 4\times 5}{81}=\frac{40}{81}.
+    \]
+    同理 $B$"恰好一次取到偶数"也是恰好一次取奇数一次取偶数，$P(B)=\dfrac{2\times 5\times 4}{81}=\dfrac{40}{81}$。仍然
+    \[
+    P(A)=P(B)=\frac{40}{81}.
+    \]
+    取两次时"恰好一个奇数"与"恰好一个偶数"永远是同一件事，所以放不放回都相等。
+}
+
+\ex[例 2]{一只器皿中装有 $7$ 个红玻璃球、$3$ 个绿玻璃球。从中\textbf{无放回}地任取 $2$ 次，每次取 $1$ 个。求：取得两个红球的概率、取得两个绿球的概率、取得两个同色球的概率、至少取得一个红球的概率。}
+
+\sol{
+    共 $10$ 个球，无放回取两个、不计顺序，总基本事件数 $C_{10}^2=45$。
+
+    取得两红：
+    \[
+    P(\text{两红})=\frac{C_7^2}{C_{10}^2}=\frac{21}{45}=\frac{7}{15}.
+    \]
+    取得两绿：
+    \[
+    P(\text{两绿})=\frac{C_3^2}{C_{10}^2}=\frac{3}{45}=\frac{1}{15}.
+    \]
+    "两个同色"就是"两红"或"两绿"，这两个事件互斥，概率相加：
+    \[
+    P(\text{同色})=\frac{7}{15}+\frac{1}{15}=\frac{8}{15}.
+    \]
+    "至少一个红"的对立事件是"一个红都没有"，即"两个都是绿"，用对立事件最省事：
+    \[
+    P(\text{至少一红})=1-P(\text{两绿})=1-\frac{1}{15}=\frac{14}{15}.
+    \]
 }

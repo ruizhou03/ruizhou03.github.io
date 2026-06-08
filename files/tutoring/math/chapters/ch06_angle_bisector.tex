@@ -1,84 +1,90 @@
 % !TEX root = ../Main.tex
 \chapter{角平分线}
 
-角平分线定理在初中就学过结论，但它的\textbf{证法}（特别是用面积比证）体现了"同一个量用两种方式算"的思想——这正是许多几何证明的底色。
+角平分线题的关键是\textbf{添辅助线}，而辅助线的核心思想是凑出\textbf{相似（或全等）}。下面先看两种添线方式，再用面积比证角平分线定理。
+
+\section{几何辅助线构造}
+
+设 $OP$ 平分 $\angle O$，$P$ 在角平分线上。
+
+\textbf{课内做法（最常见）}：从 $P$ 向角的两边各作垂线，垂足为 $M,N$。由角平分线上的点到两边距离相等，$PM=PN$，于是 $\triangle OPM\cong\triangle OPN$。
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth,scale=1.0]
+  \coordinate (O) at (0,0);
+  \draw[thick] (O) -- (4,1.4);
+  \draw[thick] (O) -- (4,-1.4);
+  \draw[thick] (O) -- (3.6,0);
+  \coordinate (P) at (2.2,0);
+  \fill (P) circle (1.1pt) node[below]{$P$};
+  \fill (O) circle (1.1pt) node[left]{$O$};
+  % perpendicular feet
+  \coordinate (M) at ({2.2*cos(19.29)*cos(19.29)},{2.2*cos(19.29)*sin(19.29)});
+  \coordinate (N) at ({2.2*cos(19.29)*cos(19.29)},{-2.2*cos(19.29)*sin(19.29)});
+  \draw[dashed] (P) -- (M) node[above right]{\footnotesize$M$};
+  \draw[dashed] (P) -- (N) node[below right]{\footnotesize$N$};
+\end{tikzpicture}
+\end{center}
+
+\textbf{课外做法}：过 $P$ 作\textbf{垂直于角平分线 $OP$} 的直线，交两边于 $S,T$。因为 $OP$ 既平分 $\angle O$、又垂直于 $ST$，所以 $\triangle OST$ 是等腰三角形，$P$ 是 $ST$ 的中点（$SP=PT$）。
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth,scale=1.0]
+  \coordinate (O) at (0,0);
+  \draw[thick] (O) -- (4,1.4);
+  \draw[thick] (O) -- (4,-1.4);
+  \draw[thick] (O) -- (3.6,0);
+  \coordinate (P) at (2.2,0);
+  \coordinate (S) at (2.2,0.77);
+  \coordinate (T) at (2.2,-0.77);
+  \draw[dashed] (S) -- (T);
+  \fill (P) circle (1.1pt) node[below right]{$P$};
+  \fill (O) circle (1.1pt) node[left]{$O$};
+  \fill (S) circle (1.1pt) node[above]{$S$};
+  \fill (T) circle (1.1pt) node[below]{$T$};
+\end{tikzpicture}
+\end{center}
+
+\rmk{两种做法都把问题拉回到\textbf{相似（全等）}上——剖析到相似关系，许多角平分线问题就一通百通了。}
 
 \section{角平分线定理}
 
 \thm{角平分线定理}{
-    在 $\triangle ABC$ 中，设 $AD$ 是 $\angle BAC$ 的角平分线，$D$ 在 $BC$ 上。则
+    在 $\triangle ABC$ 中，$AD$ 平分 $\angle BAC$，$D$ 在 $BC$ 上，则
     \[
-    \frac{BD}{DC} = \frac{AB}{AC}.
+    \frac{AB}{BD}=\frac{AC}{CD}.
     \]
 }
 
 \begin{center}
 \begin{tikzpicture}[>=Stealth,scale=1.0]
-  \coordinate (A) at (0, 2.8);
-  \coordinate (B) at (-2.2, 0);
-  \coordinate (C) at (2.6, 0);
-  \coordinate (D) at ($(B)!{2.2/(2.2+3.1)}!(C)$);
-
+  \coordinate (A) at (0.8,2.6);
+  \coordinate (B) at (-1.4,0);
+  \coordinate (C) at (4,0);
+  \coordinate (D) at ($(B)!{2.97/(2.97+3.83)}!(C)$);
   \draw[thick] (A) -- (B) -- (C) -- cycle;
   \draw[thick,red!70!black] (A) -- (D);
-
-  \fill (A) circle (1.5pt) node[above]{$A$};
-  \fill (B) circle (1.5pt) node[below left]{$B$};
-  \fill (C) circle (1.5pt) node[below right]{$C$};
-  \fill (D) circle (1.5pt) node[below]{$D$};
-
-  % arc marks for equal angles at A
-  \draw (A) ++ (-68:0.55) arc (-68:-85:0.55);
-  \draw (A) ++ (-85:0.65) arc (-85:-100:0.65);
-  \node[below] at ($(A)+(-85:0.9)$) {\scriptsize$\alpha\ \alpha$};
-
-  % show distances
-  \node[left] at ($(A)!0.5!(B)$) {$c$};
-  \node[right] at ($(A)!0.5!(C)$) {$b$};
-  \node[below] at ($(B)!0.5!(D)$) {$BD$};
-  \node[below] at ($(D)!0.5!(C)$) {$DC$};
+  \node at (0.0,1.0) {$S_1$};
+  \node at (1.2,1.0) {$S_2$};
+  \fill (A) circle (1.3pt) node[above]{$A$};
+  \fill (B) circle (1.3pt) node[below left]{$B$};
+  \fill (C) circle (1.3pt) node[below right]{$C$};
+  \fill (D) circle (1.3pt) node[below]{$D$};
 \end{tikzpicture}
 \end{center}
 
-\pf[面积比法]{
-    记 $\angle BAD = \angle CAD = \alpha$，$AB = c$，$AC = b$，$AD = d$。
+\pf[面积之比]{
+    记 $S_1=S_{\triangle ABD}$，$S_2=S_{\triangle ACD}$，并设 $\angle BAD=\angle CAD=\alpha$。\textbf{同一个面积比，用两种方式数。}
 
-    \textbf{思路：} 用两种方式计算 $\triangle ABD$ 与 $\triangle ACD$ 的面积比。
-
-    \textbf{方式一（共顶点 $A$、夹角为 $\alpha$）：}
+    其一，两个三角形都以 $A$ 为公共顶点、夹角都是 $\alpha$：
     \[
-    \frac{S_{\triangle ABD}}{S_{\triangle ACD}} = \frac{\tfrac{1}{2} \cdot AB \cdot AD \cdot \sin\alpha}{\tfrac{1}{2} \cdot AC \cdot AD \cdot \sin\alpha} = \frac{AB}{AC} = \frac{c}{b}.
+    \frac{S_1}{S_2}=\frac{\frac12\,AB\cdot AD\sin\alpha}{\frac12\,AC\cdot AD\sin\alpha}=\frac{AB}{AC}.
     \]
 
-    \textbf{方式二（共顶点 $A$、$D$ 到底边 $BC$ 的高相同）：} 两个小三角形公用从 $A$ 到 $BC$ 的同一条高 $h_A$，故
+    其二，$\triangle ABD$ 与 $\triangle ACD$ 以 $BD,DC$ 为底，公用从 $A$ 到 $BC$ 的同一条高 $h$：
     \[
-    \frac{S_{\triangle ABD}}{S_{\triangle ACD}} = \frac{\tfrac{1}{2} \cdot BD \cdot h_A}{\tfrac{1}{2} \cdot DC \cdot h_A} = \frac{BD}{DC}.
+    \frac{S_1}{S_2}=\frac{\frac12\,BD\cdot h}{\frac12\,DC\cdot h}=\frac{BD}{DC}.
     \]
 
-    两式左端相同，故
-    \[
-    \frac{BD}{DC} = \frac{c}{b} = \frac{AB}{AC}.
-    \]
-}
-
-\rmkb{
-    证法的核心是"\textbf{同一个量，两种数法}"。面积比既可以按边长和夹角算，又可以按底和高算。这个双重观点在许多比例型定理里都有效（如 Ceva、Menelaus、Stewart 等）。
-}
-
-\section{逆定理与应用}
-
-\thm{角平分线定理的逆定理}{
-    若 $D \in BC$ 使 $\dfrac{BD}{DC} = \dfrac{AB}{AC}$，则 $AD$ 平分 $\angle BAC$。
-}
-
-\ex[角平分线切 $BC$]{
-    在 $\triangle ABC$ 中，$AB = 7$，$AC = 5$，$BC = 9$。$\angle BAC$ 的角平分线交 $BC$ 于 $D$。求 $BD$ 和 $DC$。
-}
-
-\sol{
-    由角平分线定理，$\tfrac{BD}{DC} = \tfrac{7}{5}$，且 $BD + DC = 9$。
-    \[
-    BD = 9 \cdot \tfrac{7}{12} = \tfrac{63}{12} = \tfrac{21}{4},\quad
-    DC = 9 \cdot \tfrac{5}{12} = \tfrac{45}{12} = \tfrac{15}{4}.
-    \]
+    两式左端相同，故 $\dfrac{AB}{AC}=\dfrac{BD}{DC}$，即 $\dfrac{AB}{BD}=\dfrac{AC}{CD}$。
 }

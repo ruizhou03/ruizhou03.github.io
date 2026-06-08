@@ -1,0 +1,181 @@
+% !TEX root = ../Main.tex
+\chapter{数形结合}
+
+上一章的数形结合，是把式子翻译成图上的\textbf{基础几何量}（斜率、距离、点线距、向量夹角等），具体内容已在"式子处理"一章里完整说明过。这一章换一个角度：关联图形的\textbf{几何性质}——三角不等式、对称转化、圆周角、构造三角形、米勒定理。
+
+\section{关联几何性质：三角不等式}
+
+\state{三角不等式}{
+    \[
+    \big|\,|a|-|b|\,\big|\le|a\pm b|\le|a|+|b|.
+    \]
+    几何上：三角形两边之和大于第三边、两边之差小于第三边；当不构成三角形（三点共线）时，可取得等号。
+}
+
+\ex[17]{函数 $f(x)=\sqrt{2x^2-2x+1}-\sqrt{2x^2+2x+5}$，求 $f(x)$ 的值域。}
+
+\sol{
+    求导的方法就不必说了。根号里都是二次式，很容易和点点距去关联。配方：
+    \[
+    f(x)=\sqrt{(x-1)^2+x^2}-\sqrt{(x-1)^2+(x+2)^2}.
+    \]
+    则可提取出一个公共动点 $(x,x)$，它在 $y=x$ 上。把根号统一成与 $(x,x)$ 的距离：
+    \[
+    \sqrt{(x-1)^2+x^2}=\sqrt{(x-1)^2+(x-0)^2},\qquad
+    \sqrt{(x-1)^2+(x+2)^2}.
+    \]
+    另两点可以是 $(1,0),(0,1)$ 或 $(1,-2),(-2,1)$；但最好取在 $y=x$ 的\textbf{同侧}，这样距离之差容易研究。取 $A(1,0),\ B(1,-2),\ P(x,x)$，则
+    \[
+    f(x)=|PA|-|PB|.
+    \]
+    由两边之差小于（等于）第三边，$|PA|-|PB|\ge-|AB|=-2$，当 $P,A,B$ 共线时取等，故 $f(x)$ 的最小值为 $-2$。
+
+    再看两端的极限：$x\to-\infty$ 时，用极限的思想，$P$ 沿 $y=x$ 远去，$\triangle PAB$ 趋于退化，$|PA|-|PB|\to|CA|=\sqrt2$（$C$ 为 $A$ 在 $y=x$ 上的投影方向的极限位置，$K_{PA}\to1$）；同理 $x\to+\infty$ 时 $|PA|-|PB|\to-\sqrt2$。$\sqrt2$ 只是极限、取不到。综上
+    \[
+    f(x)\in[-2,\ \sqrt2).
+    \]
+}
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth, scale=0.8]
+    \draw[->] (-1.2,0) -- (3,0) node[right] {$x$};
+    \draw[->] (0,-2.6) -- (0,2.4) node[above] {$y$};
+    \draw[thick] (-1,-1) -- (2.4,2.4) node[above right] {\footnotesize $y=x$};
+    \filldraw (1,0) circle (1.4pt) node[above right] {\footnotesize $A(1,0)$};
+    \filldraw (1,-2) circle (1.4pt) node[below right] {\footnotesize $B(1,-2)$};
+    \filldraw (1.7,1.7) circle (1.4pt) node[above left] {\footnotesize $P$};
+    \draw[blue] (1.7,1.7)--(1,0);
+    \draw[blue] (1.7,1.7)--(1,-2);
+\end{tikzpicture}
+\end{center}
+
+\section{对称转化}
+
+"将军饮马"问题靠的是\textbf{对称转化}：把一点关于直线作对称，化折为直。圆锥曲线中的\textbf{定义转化}也是一种对称转化——把到一个焦点的距离，借椭圆/双曲线的定义换成到另一焦点的距离。
+
+\ex[18]{已知椭圆 $C:\dfrac{x^2}{4}+\dfrac{y^2}{3}=1$，$F_1,F_2$ 分别为 $C$ 的左、右焦点，$A(-1,1)$，$P$ 为 $C$ 上一动点，求 $|PA|+|PF_2|$ 的最大值。}
+
+\sol{
+    圆锥曲线中，焦点成对视。直接看 $|PA|+|PF_2|$ 无法求最大值，也没把握取得最值的情况。由椭圆的定义 $|PF_1|+|PF_2|=2a=4$，把 $|PF_2|$ 换成 $4-|PF_1|$：
+    \[
+    |PA|+|PF_2|=|PA|+4-|PF_1|=4+(|PA|-|PF_1|).
+    \]
+    由三角不等式 $-|AF_1|\le|PA|-|PF_1|\le|AF_1|$，而 $A(-1,1),F_1(-1,0)$，$|AF_1|=1$，故
+    \[
+    (|PA|+|PF_2|)_{\max}=4+1=5.
+    \]
+}
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth, scale=1.1]
+    \draw[->] (-2.6,0) -- (2.6,0) node[right] {$x$};
+    \draw[->] (0,-1.9) -- (0,1.9) node[above] {$y$};
+    \draw[thick] (0,0) ellipse (2 and 1.732);
+    \filldraw (-1,0) circle (1.2pt) node[below] {\footnotesize $F_1$};
+    \filldraw (1,0) circle (1.2pt) node[below] {\footnotesize $F_2$};
+    \filldraw (-1,1) circle (1.2pt) node[above left] {\footnotesize $A$};
+    \filldraw (-1.6,1.04) circle (1.2pt) node[above] {\footnotesize $P$};
+    \draw[blue] (-1.6,1.04)--(-1,1);
+    \draw[blue] (-1.6,1.04)--(1,0);
+    \draw[gray,dashed] (-1.6,1.04)--(-1,0);
+\end{tikzpicture}
+\end{center}
+
+\section{圆周角}
+
+\ex[19]{$\triangle ABC$ 中，$C=60^\circ$，$c=2$，求 $\triangle ABC$ 的面积的最大值。}
+
+\sol{
+    $C=60^\circ$，$c=2$，即代表了圆上定弦所对的圆周角。弦长及圆周角大小均不变，故 $C$（弦 $AB$）与外接圆固定。由正弦定理
+    \[
+    2R=\frac{c}{\sin C}\ \Longrightarrow\ R=\frac{2}{\sqrt3}.
+    \]
+    作出外接圆，知当 $CO\perp AB$ 时（$C$ 到 $AB$ 的高最大，即 $C$ 在弧的"最高"处），$\triangle ABC$ 的面积最大：
+    \[
+    S_{\max}=\frac12 c\cdot h_{\max}=\frac12\cdot2\cdot\sqrt3=\sqrt3.
+    \]
+}
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth, scale=1.2]
+    \draw[thick] (0,0) circle (1.1547);
+    \coordinate (A) at (-1,-0.577);
+    \coordinate (B) at (1,-0.577);
+    \coordinate (C) at (0,1.1547);
+    \draw (A)--(B)--(C)--cycle;
+    \filldraw (0,0) circle (0.6pt) node[right] {\footnotesize $O$};
+    \node[below left] at (A) {\footnotesize $A$};
+    \node[below right] at (B) {\footnotesize $B$};
+    \node[above] at (C) {\footnotesize $C$};
+\end{tikzpicture}
+\end{center}
+
+\section{构造三角形}
+
+\ex[20]{已知 $a>0,\ b>0,\ c>0$，且满足 $b^2=a^2+c^2-ac$，$b=2$，求 $a+c$ 的最大值。}
+
+\sol{
+    这道题有三种思路：基本不等式、万能 $K$ 法、构造三角形。其实它和例 19 是同一题。由余弦定理逆用，$b^2=a^2+c^2-ac$ 表示在 $\triangle BAC$ 中 $\cos B=\dfrac{a^2+c^2-b^2}{2ac}=\dfrac{ac}{2ac}=\dfrac12$，即 $\angle B=60^\circ$，对边 $AC=b=2$。
+
+    可以证明：当 $B$ 沿外接圆从一侧运动到 $BO\perp AC$ 的过弧中点位置时，$\triangle BAC$ 的周长和面积均在单调增加，故 $a+c$ 在 $a=c$（等腰）时最大。此时 $a^2+a^2-a^2=a^2=b^2=4$，$a=2$，
+    \[
+    (a+c)_{\max}=2+2=4.
+    \]
+}
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth, scale=1.2]
+    \draw[thick] (0,0) circle (1.1547);
+    \coordinate (A) at (-1,-0.577);
+    \coordinate (C) at (1,-0.577);
+    \coordinate (B) at (0,1.1547);
+    \draw (A)--(C)--(B)--cycle;
+    \filldraw (0,0) circle (0.6pt) node[right] {\footnotesize $O$};
+    \node[below left] at (A) {\footnotesize $A$};
+    \node[below right] at (C) {\footnotesize $C$};
+    \node[above] at (B) {\footnotesize $B$};
+\end{tikzpicture}
+\end{center}
+
+\ex[21]{已知函数 $f(x)=2\sin x+\sin 2x$，求 $f(x)$ 的最小值。}
+
+\sol{
+    化积：
+    \[
+    f(x)=2\sin x+2\sin x\cos x=2\sin x(1+\cos x).
+    \]
+    在课内 $\sin,\cos,\tan$ 的教法下，用的是单位圆，则 $\sin x$ 与 $\cos x$ 是"基"、是互余的关系。把 $f(x)$ 视 $x$ 为相位，凑成
+    \[
+    f(x)=\frac12(2\sin x)(1+\cos x),
+    \]
+    恰是\textbf{圆内接三角形的面积}的形状（两邻边为 $2\sin x$ 与 $1+\cos x$、夹角为直角的等价模型）。由"半径为 $R$ 的圆，其内接三角形面积的最大值为 $S_{\max}=\dfrac{3\sqrt3}{4}R^2$"，这里 $R=1$，
+    \[
+    f(x)_{\max}=\frac{3\sqrt3}{4}\cdot1^2\cdot2=\frac{3\sqrt3}{2}.
+    \]
+    又 $f(x)$ 是奇函数，故
+    \[
+    f(x)_{\min}=-f(x)_{\max}=-\frac{3\sqrt3}{2}.
+    \]
+}
+
+\section{米勒定理}
+
+\rmkb{
+    \textbf{米勒定理（最大视角）.} 如左图，$l_1$ 上有两定点 $A,B$，$l_1\perp l_2$，$P$ 为 $l_2$ 上的动点。当过 $A,B$ 的圆恰与 $l_2$ 相切时，张角 $\angle APB$ 取得最大值。这类题不必用向量去算 $\cos\angle APB$，那样会很麻烦。
+}
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth, scale=1.2]
+    \draw[thick] (-2.2,0) -- (2.2,0) node[right] {\footnotesize $l_1$};
+    \draw[thick] (0,-2.2) -- (0,1.0) node[above] {\footnotesize $l_2$};
+    \coordinate (A) at (-1.4,0);
+    \coordinate (B) at (-0.5,0);
+    \filldraw (A) circle (1.2pt) node[above] {\footnotesize $A$};
+    \filldraw (B) circle (1.2pt) node[above] {\footnotesize $B$};
+    % circle through A,B tangent to l2 (x=0). center on perp bisector of AB: x=-0.95; tangent to x=0 means radius=0.95
+    \draw (-0.95,0) circle (0.95);
+    \coordinate (P) at (0,-0.95);
+    \filldraw (P) circle (1.2pt) node[right] {\footnotesize $P$};
+    \draw[blue] (A)--(P)--(B);
+\end{tikzpicture}
+\end{center}

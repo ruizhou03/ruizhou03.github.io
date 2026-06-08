@@ -1,73 +1,104 @@
 % !TEX root = ../Main.tex
 \chapter{三角换元}
 
-凡是题目里出现 $x^2 + y^2 = r^2$、$\sqrt{1 - x^2}$、$\sqrt{a^2 - x^2}$ 这类"圆的方程"或"根号减平方"，都可以考虑用三角函数换元，把\textbf{二元约束}变成\textbf{单参数}，从而把"在圆周上求最值"这类几何题压缩为"关于一个角 $\theta$ 的三角函数题"。
+三角换元的根基是那条最基本的恒等式
+\[
+\sin^2\theta+\cos^2\theta=1.
+\]
+凡是题目里出现"平方和"或"圆"的结构，就可以用一个角 $\theta$ 把两个变量串起来，把约束自动满足掉。
 
-\section{基本换元}
+\section{$\sin\theta$ 和 $\cos\theta$ 的再定义}
 
-\prop{圆周参数化}{
-    点 $(x, y)$ 在圆 $x^2 + y^2 = r^2$ 上 $\iff$ 存在 $\theta \in [0, 2\pi)$ 使得
-    \[
-    x = r\cos\theta,\qquad y = r\sin\theta.
-    \]
-}
+在\textbf{单位圆} $x^2+y^2=1$ 上取一点 $(x,y)$，设它与原点连线和 $x$ 轴正方向的夹角为 $\theta$，则规定
+\[
+\cos\theta=x,\qquad \sin\theta=y.
+\]
 
-\prop{根号平方型}{
-    若出现 $\sqrt{a^2 - x^2}$（$|x| \le a$），可令 $x = a\sin\theta$，$\theta \in [-\tfrac{\pi}{2}, \tfrac{\pi}{2}]$，则 $\sqrt{a^2 - x^2} = a\cos\theta \ge 0$，根号自然消去。
+\begin{center}
+\begin{tikzpicture}[>=Stealth,scale=1.4]
+  \draw[->] (-1.4,0) -- (1.5,0) node[right]{$x$};
+  \draw[->] (0,-1.4) -- (0,1.5) node[above]{$y$};
+  \draw[thick,blue!60!black] (0,0) circle (1);
+  \coordinate (P) at (40:1);
+  \draw[thick] (0,0) -- (P);
+  \draw (0.32,0) arc (0:40:0.32);
+  \node at (0.5,0.18) {\footnotesize$\theta$};
+  \fill (P) circle (0.6pt) node[above right]{\footnotesize$(x,y)$};
+  \draw[dashed] (P) -- (40:1 |- 0,0);
+\end{tikzpicture}
+\end{center}
 
-    类似地，$\sqrt{a^2 + x^2}$ 可令 $x = a\tan\theta$，$\sqrt{x^2 - a^2}$ 可令 $x = a\sec\theta$。
-}
+让 $\theta$ 沿圆周扫一圈，点 $(x,y)$ 始终在圆上，于是 $x^2+y^2=1$ 永远成立，也就\textbf{反过来得到}
+\[
+\cos^2\theta+\sin^2\theta=1.
+\]
+这就是用几何（单位圆）重新认识 $\sin,\cos$。
 
-\section{最值题套路}
+\section{平方和为 1 的代换}
 
-\ex[圆周上求线性函数最值]{
-    点 $(x, y)$ 满足 $x^2 + y^2 = 4$，求 $3x + 4y$ 的最大值与最小值。
-}
+只要看到形如
+\[
+(x-1)^2+(y-2)^2=1
+\]
+的"两个平方相加等于 $1$"，就把它和 $\cos^2\theta+\sin^2\theta=1$ 对照：
+\[
+\underbrace{(x-1)^2}_{\cos^2\theta}+\underbrace{(y-2)^2}_{\sin^2\theta}=1
+\quad\Longrightarrow\quad
+\bc
+x-1=\cos\theta,\\
+y-2=\sin\theta,
+\ec
+\]
+即
+\[
+\bc
+x=1+\cos\theta,\\
+y=2+\sin\theta.
+\ec
+\]
+两个变量 $x,y$ 被压缩成一个角 $\theta$，约束自动满足。
 
-\sol{
-    令 $x = 2\cos\theta$，$y = 2\sin\theta$。则
-    \[
-    3x + 4y = 6\cos\theta + 8\sin\theta = 10 \sin(\theta + \varphi),
-    \]
-    其中 $\tan\varphi = \tfrac{6}{8} = \tfrac{3}{4}$（辅助角公式）。因 $\sin(\cdot) \in [-1, 1]$，最大值 $10$，最小值 $-10$。
-}
+\section{圆的三角代换}
 
-\rmkb{
-    几何上，$3x + 4y = c$ 是一族平行直线。让它扫过圆，与圆相切时 $|c|$ 最大。圆心 $(0,0)$ 到直线 $3x + 4y = c$ 的距离 $\tfrac{|c|}{5} \le 2$，即 $|c| \le 10$。两种方法殊途同归。
-}
+把上面的想法推广到一般的圆。单位圆 $x=\cos\theta,\ y=\sin\theta$ 经过两步变换就能覆盖任意圆：
 
-\ex[带根号的最值]{
-    求 $f(x) = x + \sqrt{1 - x^2}$ 在 $x \in [-1, 1]$ 上的最大值。
-}
+\begin{itemize}
+    \item \textbf{放缩}：半径从 $1$ 放大到 $R$，得 $(R\cos\theta,\ R\sin\theta)$；
+    \item \textbf{平移}：圆心从 $(0,0)$ 移到 $(a,b)$。
+\end{itemize}
+于是圆 $(x-a)^2+(y-b)^2=R^2$ 上的点可写成
+\[
+\bc
+x=a+R\cos\theta,\\
+y=b+R\sin\theta.
+\ec
+\]
 
-\sol{
-    令 $x = \sin\theta$，$\theta \in [-\tfrac{\pi}{2}, \tfrac{\pi}{2}]$，则 $\sqrt{1-x^2} = \cos\theta$，故
-    \[
-    f = \sin\theta + \cos\theta = \sqrt{2} \sin\!\left(\theta + \tfrac{\pi}{4}\right).
-    \]
-    当 $\theta + \tfrac{\pi}{4} = \tfrac{\pi}{2}$ 即 $\theta = \tfrac{\pi}{4}$，$\sin = 1$，$f_{\max} = \sqrt{2}$。此时 $x = \tfrac{\sqrt{2}}{2}$。
-}
+\section{直线的三角代换}
 
-\ex[圆上两点距离]{
-    已知 $A(1, 0)$，$P$ 在单位圆 $x^2 + y^2 = 1$ 上。求 $|AP|$ 的取值范围。
-}
+直线也能用同样的"方向角"思想参数化。设直线过定点 $P(a,b)$，倾斜角为 $\theta$，$Q(x,y)$ 是线上动点、到 $P$ 的有向距离为 $t$。
 
-\sol{
-    令 $P = (\cos\theta, \sin\theta)$。
-    \[
-    |AP|^2 = (\cos\theta - 1)^2 + \sin^2\theta = 2 - 2\cos\theta.
-    \]
-    $\cos\theta \in [-1, 1]$，故 $|AP|^2 \in [0, 4]$，即 $|AP| \in [0, 2]$。
-}
+\begin{center}
+\begin{tikzpicture}[>=Stealth,scale=1.2]
+  \draw[->] (-0.5,0) -- (3,0) node[right]{$x$};
+  \draw[->] (0,-0.4) -- (0,2.4) node[above]{$y$};
+  \coordinate (P) at (0.7,0.6);
+  \coordinate (Q) at (2.3,1.8);
+  \draw[thick,blue!60!black] (0.2,0.225) -- (2.6,2.025);
+  \draw[dashed] (Q) -- (Q |- P) node[midway,right]{\footnotesize$t\sin\theta$};
+  \draw[dashed] (P) -- (Q |- P) node[midway,below]{\footnotesize$t\cos\theta$};
+  \draw (P) ++(0.45,0) arc (0:37:0.45);
+  \node at ($(P)+(0.65,0.18)$) {\footnotesize$\theta$};
+  \fill (P) circle (0.8pt) node[below left]{\footnotesize$P(a,b)$};
+  \fill (Q) circle (0.8pt) node[above right]{\footnotesize$Q(x,y)$};
+\end{tikzpicture}
+\end{center}
 
-\section{何时该用三角换元}
-
-\rmkb{
-    题目具备如下特征之一，考虑三角换元：
-    \begin{itemize}
-        \item 变量满足形如 $x^2 + y^2 = r^2$ 的平方和约束；
-        \item 表达式含 $\sqrt{a^2 - x^2}$、$\sqrt{a^2 + x^2}$ 或 $\sqrt{x^2 - a^2}$；
-        \item 要求的是\textbf{带约束的最值}或\textbf{轨迹}。
-    \end{itemize}
-    核心思想：把 $k$ 元约束变量通过三角函数压缩到 $k-1$ 个自由参数。
-}
+把位移 $t$ 沿 $x,y$ 两个方向分解，得到直线的参数式
+\[
+\bc
+x=a+t\cos\theta,\\
+y=b+t\sin\theta.
+\ec
+\]
+这里 $\theta$ 是固定的（直线方向），变的是 $t$；它和圆的代换形式上一致，区别只是圆里 $R$ 固定、$\theta$ 变，直线里 $\theta$ 固定、$t$ 变。
