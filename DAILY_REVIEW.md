@@ -1,3 +1,77 @@
+## 2026-06-08
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周一 DOW=1，**加跑 dead_links / orphan_files / pii_scan 三项周一项**；DOM=08，未跑 monthly_stats）。距 6-07 巡检共 **0 个 commit**（HEAD 仍是 `63ab7b4 chore(daily-review): 2026-06-07 自动巡检`，今天没有新的功能落地），仓库内容与昨日完全一致。今日 `scripts/audit/run.sh` 全套审计 ✅ 全 clean（keywords / images / material_type / filename / hover / sibling / bare_dollar / img_caption_md / svg_italic / bare_url / frontmatter_yaml），`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（12.881 s）。周一三项也跑了：**orphan_files 0 个孤儿** ✅；**pii_scan 18 篇命中**（与 6-01 / 5-25 多次扫描的 18 篇一致，全部是已知性质——`_notes/essays/birthday-*` 与 `letter-to-*` 含三明二中是本人成长经历的必要内容，`_notes/course-reviews/*-review-2023.md` 的「疑似学号」全是公众号 URL 里 `mid=...` 参数被正则误命中，`_notes/life/us-{health-insurance-basics,postal-system-guide}.md` 的「学号」是教程里 SSN/手机号示例字符串，**不是真正的 PII 问题**）；**dead_links 253 条疑似** 但 **绝大多数是沙箱出口被反爬挡了的 HTTP 403**（包括 `www.zotero.org` / `www.uscis.gov` / `www.irs.gov` / `www.hmart.com` / `cdn.jsdelivr.net` 等已知活跃站点 + 所有 fly.io 后端 + `accounts.google.com/gsi/client`；甚至 148 处把 SVG 的 `xmlns="http://www.w3.org/2000/svg"` 命名空间字符串误判为外链），**真正的 DNS NameResolutionError 只有 5 条**（centretax.net、offcampus.psu.edu、www.hwdrivingschool.com、www.judicialinformation.com、www.textile-outlook.com），其中前两条是 PSU 周边/Centre County 本地服务、后三条是教程参考资源，**沙箱 DNS 不能确证是否真死**——写进 P2 给站主在生产环境复验。**本次没有可安全自动修复项**——所有 audit 维度 clean、0 个 commit、抽检 10/10 全部过审。残余 P2 4 项（paywall 后端冒烟、scripts 内 `/Users/zhourui/` 硬编码、内部 prompt 称呼 zirconeey、PDF-only 存档手写互链）状态不变，本次新增 P2 两项（5 条 DNS NameResolutionError 待站主复验、dead_links.py 把 SVG xmlns 误当外链）。
+
+### ✅ 本次已自动修复
+
+**无**。今日所有审计维度（11 个每日 audit + 周一加跑的 3 项 dead_links/orphan/pii）均无可安全自动修复项；HEAD 自 6-07 巡检后未推进任何新 commit，没有"新落地"可顺手清理；10 项抽检逐项过审（详见下方专项小节）也未发现需要立即修的小问题。
+
+### 📋 待你把关
+
+#### P1（建议尽快）
+
+**P1 队列今日清零** —— 与 6-07 / 6-06 一致，未新增 P1。
+
+#### P2（看心情）
+
+1. **新付费墙系统在沙箱无后端出口验证** —— 承接 6-04/6-05/6-06/6-07 P2#1。`zircon-urge.fly.dev` 今日仍 HTTP 403，`scripts/paywall/smoke_test.py` 仍需站主在生产环境跑。
+
+2. **`scripts/{compile-r-tutorials,build-psy-stat-II-rmd,merge-psy-stat-II}.py` 中 9 处 `/Users/zhourui/Desktop/...` 本机绝对路径** —— 沿用 6-04/6-07 P2#2。`scripts/` 已被 exclude，不影响线上。
+
+3. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里仍称"zirconeey 站"** —— 沿用 6-05/6-07 P2#3。内部 prompt / 文档。
+
+4. **`_notes/study/adv-metrics-pku/mid-2015.md`、`_notes/study/psy-stat-I/anova-R.md` 这两类纯 PDF 存档可考虑加同课程互链入口** —— 沿用 6-05/6-07 P2#4。设计取向项，`sibling_crosslink.py` 当前不报警（已用自动侧栏覆盖）。
+
+5. **🆕 5 条 DNS NameResolutionError 外链需站主在生产环境复验** —— `dead_links.py` 报这 5 条主机解析不到，但沙箱出口 DNS 可能本身就不全：
+   - `https://centretax.net/` —— `_notes/life/us-tax-filing-process.md:411,526`，Centre County（PSU 所在县）地方税务局；可能改名或 SSL 配置变化。
+   - `https://offcampus.psu.edu/` —— `_notes/life/us-renting-guide.md:135,463`，PSU 校外房源资源页。
+   - `https://www.hwdrivingschool.com/` —— `_notes/life/pa-drivers-license.md:169`，PA 本地驾校（H&W Driving School），小本经营可能停业。
+   - `https://www.judicialinformation.com/` —— `_notes/life/can-i-default-and-leave-us.md:70`，司法记录查询。
+   - `https://www.textile-outlook.com` —— `_notes/life/laundry-frequency.md:404`，纺织行业咨询站点。
+   - **建议**：站主用本机/真实浏览器逐一打开确认；若真死可换更稳的替代或把段落改"线下查询"指引；若是沙箱 DNS 问题不动即可（其余 248 条 403 沿用 7 天缓存，下周一不会再重抓）。
+
+6. **🆕 `dead_links.py` 把 SVG `xmlns="http://www.w3.org/2000/svg"` 命名空间误判为外链** —— 同一 URL 在 `_notes/research/*` 与多个工具页里被命中 148 处，全部是 inline SVG 的命名空间字符串，根本不是真链接。正则 `URL_RE` 没排除 `xmlns=` 上下文；建议加一条跳过 `^https?://(www\.)?w3\.org/(\d{4}/(xlink|svg)|graphics/SVG)`（XML 命名空间 URI 一律不查）。**改 audit 脚本而非内容**，cosmetic，承接 6-05 起的 audit 脚本启发式队列。
+
+#### 🆕 本次抽检 10/10 中新出现的观察（不是问题，是提示）
+
+- **`toolbox/snake/index.html` 1016 行 / 34.0 KB** 与 **`toolbox/suika/index.html` 1299 行 / 42.6 KB**：本次 game 配额抽中两款；snake 2 处 `:hover` / suika 18 处 `:hover` 均带 `@media (hover: hover)` 守卫（`hover_no_media.py` ✅ 印证）；两款均接入 `games-shell.{css,js}` + `leaderboard.js` + `comments.js` + `nick-prompt.js` + `identity.js` 全套（与全站游戏标配齐平）；snake 单文件接近 1000 行边界但 inline-only 与全站 chess 1986 / doudizhu 2399 同质同模式，**不是问题**。
+- **`files/corp-fin/{final-2020,final-2022,cheat-sheet-final-2022}.pdf` 与 `files/adv-metrics-psu/midterm-spring-2026.pdf` 四份 pdf_archive 全部被对应 markdown 笔记的 `pdf_url` 引用**（非孤儿，与 `orphan_files.py` 0 个孤儿一致）；体积分别 203.8 / 277.1 / 818.0 / 63.0 KB（均 < 1 MB 不需 pdfslim）；命名带年份符合 `filename_convention.py` ✅。
+- **`_notes/study/corp-fin/mid-sample-3-sol.md` 与 `_notes/study/adv-metrics-pku/mid-2015.md` 两份 lecture_note_pdf_only**：前者 24 项 keywords 覆盖中英文 + 教材/教师别名（MM 定理 / 资本结构 / Modigliani Miller / 光华 corp fin），后者 26 项 keywords（OLS / 渐近理论 / 大样本理论 / GMM / IV / MLE / 高计 北大 / PKU 高级计量），summary 准确（前者描述"NPV/IRR/WACC/资本结构"、后者描述"渐近理论 / OLS / GLS / 异方差 / 工具变量 / 可与 final-2015 配套"）；adv-metrics-pku/mid-2015 即昨日 P2#4 列出的"加同课程互链入口"候选之一，仍维持低优 / 由站主拍板。
+- **`_notes/life/us-asian-grocery.md` 410 行 / 22.9 KB** 是「美国超市三部曲（二）」中段，专栏一致性好——开篇先把第一篇地图、第三篇行动手册的串读路径列清楚；keywords 29 项覆盖中英文 + 故意保留的"亚州超市"错别字 + 在线品牌中英文（Weee! / Yamibuy 亚米 / H Mart / 99 Ranch / Fubonn / Pearl River Bridge）；一张 inline SVG（6 种食材柱状对比 760×380）配 `<p class="img-caption">` 合规；30+ 项价格对照表分调料/香料干货/米面/肉类/海鲜/蔬菜/冷冻/零食 8 大类清晰；价格段全用 `\$` 转义（与 `bare_dollar.py` clean 一致）。
+- **`_notes/pre-high-school/sphere.md` 47 行 / 1.1 KB**（PDF-only · 已 LaTeX 化）：本笔记**正文 0 字**但 `files/pre-high-school/sphere/` 已存在完整 LaTeX 项目（`Main.tex` 1812 B + `chapters/` + `commands.tex` 920 B + `theorems.tex` 4623 B + `Makefile`，PDF 277.9 KB），说明这份"球（内切球与外接球）"讲义已是 LaTeX 工程，与 `pre-high-school/physics.md` 一脉相承；keywords 32 项含中英文 + 故意保留的"内切求 外接求"错别字（覆盖错搜场景，符合 search-keywords skill 约定）；**不是问题**——已超出"PDF-only 存档"的"评估 LaTeX 化潜力"范畴，状态属于"立刻 LaTeX 化"档已实现。
+
+#### 🗒️ 待办清账（承接 6-07）
+
+- **图片 alt / caption 覆盖**：`images.py` 今日仍 `missing_alt = 0` / `missing_caption = 0`（白名单 62 条），保持收口。
+- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套 HTTP 403。
+- **Round-3 留下的 ~68 个 P1**：未在本次范围推进。
+- **`taichi-review-2023.md`「85 公里跑」**：未触碰。
+- **大图基线**：与昨日完全一致，无变化。
+- **`_notes/life/paid-test-{us-banking-guide,us-visa-types}.md` 标题仍带"（付费）"后缀但 `paid:false`**：承接 6-06 / 6-07 P2 列表条，等站主拍板是否清掉「（付费）」标签。
+
+### 🔬 抽检专项
+
+> 本次种子抽 10 项（强制配额 game/pdf_archive/lecture_note_pdf_only 各 ≥1，其余随机）。10 项一视同仁过审清单。
+
+- **抽检 1/10 · game · `toolbox/snake/index.html`**（1016 行 / 34.0 KB，inline-only）—— ✅ 无问题。2 处 `:hover` 全数 `@media (hover: hover)` 守卫；`<link href="/assets/css/games-shell.css?v=...">` + 4 个 games-shell `.js`（identity / leaderboard / comments / nick-prompt）齐全；与全站游戏同质同模式（chess 1986 / doudizhu 2399 / typing 745）；单文件 ~1k 行属可读范围，无需拆分。**无需 LaTeX 化** —— 此类问题不适用 game 配额。
+- **抽检 2/10 · pdf_archive · `files/corp-fin/final-2020.pdf`**（203.8 KB）—— ✅ 无问题。被 `_notes/study/corp-fin/final-2020.md` 引用、front-matter `pdf_url: /files/corp-fin/final-2020.pdf` 路径一致；体积 < 5 MB 不需 pdfslim；文件名带年份 + 单年期末，命名规则 OK。**LaTeX 化评估**：单年期末真题、复用频次低、一次性资料，**维持 PDF 存档即可**（与 6-06 同抽中过审结论一致）。
+- **抽检 3/10 · lecture_note_pdf_only · `_notes/study/corp-fin/mid-sample-3-sol.md`**（17 行 / 1.3 KB，正文 0 字）—— ✅ 无问题。front-matter 完整（discipline=管理学 / course=公司财务管理 / material_type=Exams / date=2022-09-01 / author=Zircon）；keywords 24 条覆盖中英文 + 教材/教师别名（"MM 定理 期中 题" / "资本结构 期中 解答" / "光华 corp fin 期中 sample 3" / "公司财物" 错别字兜底）；summary 准确点出"NPV/IRR/WACC/资本结构核心题型解答"+"与同目录题面 PDF 配套"；pdf_url 与 `files/corp-fin/mid-sample-3-sol.pdf` 一致；PDF 自动导语由 `post.html` 走 course + material_type 触发。**LaTeX 化评估**：样卷答案 / 一次性资料，**维持 PDF 存档即可**（与同目录 mid-sample-1-sol / mid-sample-2-sol 同档）。
+- **抽检 4/10 · game · `toolbox/suika/index.html`**（1299 行 / 42.6 KB，inline-only）—— ✅ 无问题。18 处 `:hover` 全数 `@media (hover: hover)` 守卫；包含完整 leaderboard aside（`.sk-leaderboard`，与全站游戏 leaderboard 命名一致）；games-shell 全套接入；合成大西瓜典型物理 game，inline 单文件合理（与 doudizhu / chess 同质同模式）；**无需 LaTeX 化** —— 此类问题不适用 game 配额。
+- **抽检 5/10 · pdf_archive · `files/adv-metrics-psu/midterm-spring-2026.pdf`**（63.0 KB）—— ✅ 无问题。被 `_notes/study/adv-metrics-psu/midterm-spring-2026.md` 引用、命名带 season+年份 + 单年期中信息完整、体积极小（< 100 KB 矢量 PDF）；命名规则 OK。**LaTeX 化评估**：当年期中真题、一次性资料，**维持 PDF 存档即可**。
+- **抽检 6/10 · pdf_archive · `files/corp-fin/cheat-sheet-final-2022.pdf`**（818.0 KB）—— ✅ 无问题（沿用 6-04 抽检结论：cheat sheet 高度紧凑、不需 imgslim / pdfslim）。本日无变动。
+- **抽检 7/10 · lecture_note_pdf_only · `_notes/study/adv-metrics-pku/mid-2015.md`**（17 行 / 1.2 KB，正文 0 字）—— ✅ 无问题（沿用 6-04 起的待办：P2#4 候选"加同课程互链入口"，但 `sibling_crosslink.py` 已用自动侧栏覆盖、不报警，本次保持现状）。front-matter 完整（discipline=经济学 / course=高级计量经济学（北大）/ material_type=Exams / date=2015-09-01）；keywords 26 项覆盖中英文 + 学校别名（"PKU 高计" / "北大 经院 高计" / "高级计量 PKU" / "metrics midterm"）；summary 准确点出"渐近理论 / OLS / GLS / 异方差 / 工具变量"+"可与 final-2015 期末真题配套"。**LaTeX 化评估**：单年期中真题、复用频次低，**维持 PDF 存档即可**。
+- **抽检 8/10 · pdf_archive · `files/corp-fin/final-2022.pdf`**（277.1 KB）—— ✅ 无问题。被 `_notes/study/corp-fin/final-2022.md` 引用、体积 < 5 MB 不需 pdfslim；命名规则 OK。**LaTeX 化评估**：单年期末真题，**维持 PDF 存档即可**（与抽检 2 同档）。
+- **抽检 9/10 · note · `_notes/life/us-asian-grocery.md`**（410 行 / 22.9 KB）—— ✅ 无问题。「美国超市三部曲」第二篇 / sub_category=留学攻略；keywords 29 项覆盖中英文 + 故意保留的"亚州超市"错别字 + 在线品牌（"Weee" / "Yamibuy 亚米" / "H Mart" / "99 Ranch" / "Fubonn" / "Pearl River Bridge"）+ 同义口语（"美国买中餐食材" / "中餐食材性价比" / "留学生省钱"）；专栏一致性 OK（"这篇文章给谁看 / 结论先行 / 8 大品类对照表 / 反直觉提示 / 地区速查"五段）；1 处 inline SVG（6 种食材柱状对比 760×380）配 `<p class="img-caption">` + `<strong>` 加粗合规；30+ 项价格对照表分 8 大类 + 留学生场景三档预算（\$350-650/月）+ 各品类亚超优势倍数（3-5 倍调料 / 4-5 倍干货 / 2-3 倍蔬菜）信息密度极高；价格段全用 `\$` 转义（与 `bare_dollar.py` clean 一致）；尾段链向第三篇行动手册形成串读。
+- **抽检 10/10 · note · `_notes/pre-high-school/sphere.md`**（47 行 / 1.1 KB，**已是完整 LaTeX 项目**）—— ✅ 无问题。这份"球（内切球与外接球）"讲义虽然正文 0 字但 `files/pre-high-school/sphere/` 已包含 `Main.tex` + `chapters/` + `commands.tex` + `theorems.tex` + `Makefile` 的完整 LaTeX 工程（PDF 277.9 KB / 49 行 KB-byte 比合理），说明已实现"立刻 LaTeX 化"——与 `_notes/pre-high-school/physics.md` 一脉相承的可编辑数学讲义形态；keywords 32 项含中英文 + 故意保留的"内切求 外接求"错别字（覆盖错搜场景）+ 中英文术语（"inscribed sphere circumscribed sphere" / "外接球半径公式" / "正四面体 外接球" / "补形法 外接球" / "截面法 球" / "球面距离"）；front-matter 完整（discipline=初升高 / course=数学 / material_type=Notes / date=2026-01-22 / published=true）；pdf_url `/files/pre-high-school/sphere/Main.pdf` 与实际文件一致。
+
+---
+
+### 🗂 仓库卫生
+
+**仓库结构较昨日无变化** —— 自 6-07 巡检（`63ab7b4`）以来无新 commit，HEAD 仍是昨日的 daily-review 自动提交；`git status --short` 空、`git ls-files --others --exclude-standard` 空、`git diff --diff-filter=A 63ab7b4..HEAD` 与 `git diff --diff-filter=D` 均为空。**敏感文件扫描**：未发现新 `.env` / `credentials*` / `token*` / `secret*`；未发现 `.DS_Store` 或 `"xxx 2.yyy"` 形式副本；`_config.yml` exclude 列表完备（含 DAILY_REVIEW.md / SPOTCHECK_* / docs/ / scripts/ / backends/ / _paid/）。**周一加跑的 orphan_files = 0** 也印证非课程目录（`files/{en,images,audio,podcasts}` + `audio/`）扫 477 个文件无孤儿。**结论**：仓库卫生 ✅ 干净，承接 6-07 与之前的整理成果，无新可优化空间。
+
+---
+
 ## 2026-06-07
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周日 DOW=7，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=07，未跑 monthly_stats）。距 6-06 巡检共 **20 个 commit**（`632b269` 之后 → `9a199f5` 为止），主线三条：① **宠物食量记录大重构**——`c1b5aa0` 食量记录统一（每种食物都能「直接填吃了多少」或「作差·记现在还剩」，pet.js +288 行）、`36950b1` 补充机制（填扣减容器水平、下次称重/作差只算增量，重构 104 行）、`07bdfa1` 倒掉换新（作差/称重模式可标 "这次作为新起点"）、`9a199f5` 修「碗里/还剩变多」误标 "没变化"（→ 正确显示 "添了 X"）。② **手机端顶栏三栏化**——`9cf494d` `_includes/auth.html` + `assets/css/main.css` + `_layouts/default.html` 重排：手机端顶栏只留「锆铌 / ☰ / 头像」，其它（搜索 / 主题 / EN / 管理后台）收进汉堡菜单；新加 `.nav-brand` + `relocateNavControls()` 在 matchMedia 断点变化时动态移动 DOM 节点；管理后台「数据分析 / 内容管理」桌面端只图标、菜单里露文字。③ **管理后台收口**——`d4eb5fd` 后台拆「数据分析/内容管理」两板块 + 内容管理分页 + 批量取消付费；`df6ae09 5bcc2ca 3e105d1` 导航菜单露 admin 两入口（直达对应板块 → 可见双按钮 → 只图标精修）；`00e8ef3` admin-article-bar 加 Typora 式分栏编辑器（左 CodeMirror 源码 + 右实时预览，68 行）。穿插 **6 条 `chore(admin) 还原 ...` + 2 条 `chore(admin) 删除(真404) ...`**（站主 6-06 16:45–17:10 在后台对 `wipe-after-pee / structural-load-testing / standing-vs-sitting-urination / fridge-layout-guide / drinking-water-types / condoms-guide` 共 6 篇做隐藏 / 真 404 / 恢复调试，最终全部恢复 `published:true`）。最后 `046cb4e` jukebox 歌词重对齐 69 首（large-v3 单曲 + 串烧丢未唱段）。今日 `scripts/audit/run.sh` 全套审计 ✅ 全 clean（keywords / images / material_type / filename / hover / sibling / bare_dollar / img_caption_md / svg_italic / bare_url / frontmatter_yaml），`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（约 16 s，首次 cold build）。**本次没有可安全自动修复项**——所有审计维度均 clean，20 个 commit 全是大块功能落地（pet-food 重构、手机 nav、admin Typora 编辑器），按保守原则不动。残余 P2 4 项（paywall 后端冒烟、scripts 内 `/Users/zhourui/` 硬编码、内部 prompt 称呼 zirconeey、PDF-only 存档手写互链）状态不变。
