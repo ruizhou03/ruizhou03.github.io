@@ -28,7 +28,7 @@ ROOT = REPO / "files"
 SKIP_DIRS = {"audio", "images", "_archive", "en"}
 
 # 常青/暂缓 topic 目录：内容不绑定具体开课年份，不要求年份后缀
-EVERGREEN_DIRS = {"r-tutorials", "gre", "pre-high-school"}
+EVERGREEN_DIRS = {"r-tutorials", "gre", "tutoring"}
 
 # 已确认"本就无单一年份"的资料：跨学期样卷、作业/演示汇总、讲义合订本等。
 # 它们不绑定某一年，且改名会动到线上 URL，故保留原名、计为合规。

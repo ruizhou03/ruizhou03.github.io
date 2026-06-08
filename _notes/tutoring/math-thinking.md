@@ -39,7 +39,9 @@ date: 2026-01-19
 discipline: "初升高"
 course: "数学"
 material_type: "Notes"
-permalink: "/notes/pre-high-school/math-thinking"
-pdf_url: "/files/pre-high-school/math-thinking/Main.pdf"
+permalink: "/notes/tutoring/math-thinking"
+redirect_from:
+  - /notes/pre-high-school/math-thinking
+pdf_url: "/files/tutoring/math-thinking/Main.pdf"
 published: true
 ---

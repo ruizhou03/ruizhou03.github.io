@@ -38,7 +38,9 @@ date: 2026-01-20
 discipline: "初升高"
 course: "数学"
 material_type: "Notes"
-permalink: "/notes/pre-high-school/probability"
-pdf_url: "/files/pre-high-school/probability/Main.pdf"
+permalink: "/notes/tutoring/probability"
+redirect_from:
+  - /notes/pre-high-school/probability
+pdf_url: "/files/tutoring/probability/Main.pdf"
 published: true
 ---

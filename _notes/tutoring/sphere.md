@@ -40,7 +40,9 @@ date: 2026-01-22
 discipline: "初升高"
 course: "数学"
 material_type: "Notes"
-permalink: "/notes/pre-high-school/sphere"
-pdf_url: "/files/pre-high-school/sphere/Main.pdf"
+permalink: "/notes/tutoring/sphere"
+redirect_from:
+  - /notes/pre-high-school/sphere
+pdf_url: "/files/tutoring/sphere/Main.pdf"
 published: true
 ---

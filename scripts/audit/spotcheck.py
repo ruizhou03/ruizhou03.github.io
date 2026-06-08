@@ -2,7 +2,7 @@
 """抽检专项：每天从全站随机抽 10 个"项目"做深度审查（建设期高频抽检）。
 
 "项目"的定义：
-- note          —— 散文/笔记类 markdown（_notes/life, /research, /essays, /course-reviews, /gre, /toefl, /pre-high-school）
+- note          —— 散文/笔记类 markdown（_notes/life, /research, /essays, /course-reviews, /gre, /toefl, /tutoring）
 - lecture_note  —— 课程笔记 markdown（_notes/study/**）；又分两小类：
                    - lecture_note_full      正文有实质内容
                    - lecture_note_pdf_only  仅 PDF 存档（front-matter 设 pdf_url 且 markdown 正文几乎为空）
@@ -33,7 +33,7 @@ ARTICLE_DIRS = [
     "_notes/course-reviews",
     "_notes/gre",
     "_notes/toefl",
-    "_notes/pre-high-school",
+    "_notes/tutoring",
 ]
 LECTURE_DIR = "_notes/study"
 TOOLBOX_DIR = "toolbox"

@@ -39,8 +39,10 @@ date: 2026-01-18
 discipline: "初升高"
 course: "物理"
 material_type: "Notes"
-permalink: "/notes/pre-high-school/physics"
-pdf_url: "/files/pre-high-school/physics/Main.pdf"
+permalink: "/notes/tutoring/physics"
+redirect_from:
+  - /notes/pre-high-school/physics
+pdf_url: "/files/tutoring/physics/Main.pdf"
 summary: "写给刚结束中考、准备进高中物理的同学：高中物理和初中物理的差距，不在于公式更多，而在于「思维方式」变了——要开始把瞬时、无穷小、矢量方向这些初中没正经讲过的东西当工具用。这份讲义挑了 8 个最容易让人卡住的思维门槛，每章给一个直观例子 + 一个标准定义 + 一两道把思维方式说透的题，让你进高一时不再被「极限」「微元」「矢量分解」这些词吓住。"
 published: true
 ---

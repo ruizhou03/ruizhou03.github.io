@@ -38,7 +38,9 @@ date: 2026-01-25
 discipline: "初升高"
 course: "数学"
 material_type: "Notes"
-permalink: "/notes/pre-high-school/space-vectors"
-pdf_url: "/files/pre-high-school/space-vectors/Main.pdf"
+permalink: "/notes/tutoring/space-vectors"
+redirect_from:
+  - /notes/pre-high-school/space-vectors
+pdf_url: "/files/tutoring/space-vectors/Main.pdf"
 published: true
 ---

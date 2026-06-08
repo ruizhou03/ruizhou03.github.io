@@ -37,7 +37,9 @@ date: 2026-01-17
 discipline: "初升高"
 course: "数学"
 material_type: "Notes"
-permalink: "/notes/pre-high-school/math"
-pdf_url: "/files/pre-high-school/math/Main.pdf"
+permalink: "/notes/tutoring/math"
+redirect_from:
+  - /notes/pre-high-school/math
+pdf_url: "/files/tutoring/math/Main.pdf"
 published: true
 ---

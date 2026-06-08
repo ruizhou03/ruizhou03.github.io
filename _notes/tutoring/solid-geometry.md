@@ -37,7 +37,9 @@ date: 2026-01-23
 discipline: "初升高"
 course: "数学"
 material_type: "Notes"
-permalink: "/notes/pre-high-school/solid-geometry"
-pdf_url: "/files/pre-high-school/solid-geometry/Main.pdf"
+permalink: "/notes/tutoring/solid-geometry"
+redirect_from:
+  - /notes/pre-high-school/solid-geometry
+pdf_url: "/files/tutoring/solid-geometry/Main.pdf"
 published: true
 ---

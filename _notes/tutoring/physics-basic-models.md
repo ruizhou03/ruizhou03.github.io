@@ -40,7 +40,9 @@ discipline: "初升高"
 course: "物理"
 material_type: "Notes"
 summary: "初升高/高一物理常见基本模型整理，含受力分析、运动学、牛顿定律、斜面与连接体等典型套路。"
-permalink: "/notes/pre-high-school/physics-basic-models"
-pdf_url: "/files/pre-high-school/physics-basic-models/Main.pdf"
+permalink: "/notes/tutoring/physics-basic-models"
+redirect_from:
+  - /notes/pre-high-school/physics-basic-models
+pdf_url: "/files/tutoring/physics-basic-models/Main.pdf"
 published: true
 ---

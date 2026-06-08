@@ -9,6 +9,7 @@ gem 'jekyll', '~> 4.3'
 gem 'jekyll-seo-tag'
 gem 'jekyll-sitemap'
 gem 'jekyll-feed'
+gem 'jekyll-redirect-from'
 
 # Ruby 3.0+ 不再自带 webrick；jekyll serve 必须装
 gem 'webrick'
