@@ -3537,7 +3537,10 @@
   // there's only 15g of dry matter per 100g). When we detect that, we scale the
   // macros back to as-fed (× dry-matter fraction) before computing energy, so a
   // 15g 85%-water stick reads as ~2g of kibble instead of a bogus ~10g.
-  // Returns { kcal, corrected } so the UI can explain when it auto-corrected.
+  // This correction is SILENT — the dry/as-fed basis is our internal accounting,
+  // never surfaced to the user (it only confuses; they just copy the label).
+  // Returns { kcal, corrected, asfed:{p,f,m} } — asfed = the as-fed macro values
+  // after any silent correction, used by sanityHint() for typo detection.
   function analyzeKcal(a) {
     // Empty fields must be "missing", not 0 — Number('') is 0 (finite), which
     // would silently treat blanks as 0% and inflate NFE. Parse blanks to NaN.
@@ -3563,10 +3566,39 @@
     }
     const nfe = Math.max(0, 100 - m - P - F - ash - fiber);
     const kcal = P * 3.5 + F * 8.5 + nfe * 3.5;
-    return kcal > 0 ? { kcal, corrected } : null;
+    return kcal > 0 ? { kcal, corrected, asfed: { p: P, f: F, m } } : null;
   }
   function kcalPer100gFromAnalysis(a) { const r = analyzeKcal(a); return r ? r.kcal : null; }
-  const BASIS_NOTE = '⚠️ 这几项加起来超过 100%，多半是包装按「干物质(干基)」标的——已自动折算回实物再估热量。';
+
+  // ===== 离谱值轻声提醒 =====
+  // 干湿基那套已在 analyzeKcal 里静默修正、绝不提示用户。这里只做另一件事：
+  // 用户大概率是照包装老实抄的，但偶尔会手滑（多打一位 / 看错行 / 数字写串）。
+  // 水分这一项本身就告诉了我们是干粮还是湿粮，无需再问「这是哪种食物」——
+  // 据此取该类「实物成分」的常见上限，只有当某项**明显说不通**时才轻声问一句。
+  // 阈值刻意放宽，照抄正常标签几乎不会触发；命中也只是中性提示，绝不拦保存。
+  const SANITY_CAPS = {                 // 实物(as-fed)成分离谱上限 [蛋白, 脂肪]%
+    wet:  { protein: 30, fat: 22 },     // 猫条 / 罐头 / 主食湿粮（水分≥65）
+    dry:  { protein: 68, fat: 58 },     // 干粮 / 膨化 / 冻干（水分≤16，留足冻干高蛋白余量）
+    semi: { protein: 55, fat: 45 },     // 半湿 / 不确定
+  };
+  function sanityHint(a) {
+    const r = analyzeKcal(a);
+    if (!r) return null;
+    const { p, f, m } = r.asfed;        // 已按干湿基静默修正后的实物值
+    const rawP = parseFloat(a.protein), rawF = parseFloat(a.fat);  // 用户原样填的
+    const offs = [];
+    if (m > 95) offs.push('水分');       // 再湿的猫条一般也不超 ~90%
+    const cls = m >= 65 ? 'wet' : (m <= 16 ? 'dry' : 'semi');
+    const cap = SANITY_CAPS[cls];
+    // 实物值超该类常见上限，或原始值在任何基准下都不可能(>90%，真实标签最高 ~65%)
+    // ——后者专抓「多打一位」这类手滑（干基修正会把它缩成正常值、躲过上面那关）。
+    if (p > cap.protein || rawP > 90) offs.push('粗蛋白质');
+    if (f > cap.fat || rawF > 90) offs.push('粗脂肪');
+    if (!offs.length) return null;
+    if (offs.length === 1 && offs[0] === '水分')
+      return '水分这项偏高，确认下没看错喔（再湿的猫条一般也不超过 90%）。';
+    return `「${offs.join('」「')}」${offs.length > 1 ? '这几项' : '这项'}数字偏高，确认下是不是看错、或多打了一位。`;
+  }
   function fmReadAnalysis() {
     return {
       protein: $fmAnProtein.value, fat: $fmAnFat.value, moisture: $fmAnMoisture.value,
@@ -3604,7 +3636,8 @@
   // Live estimate readout under the analysis fields.
   function fmUpdateEstimate() {
     if (fmSourceVal() !== 'analysis') return;
-    const r = analyzeKcal(fmReadAnalysis());
+    const a = fmReadAnalysis();
+    const r = analyzeKcal(a);
     if (r == null) { $fmEstResult.textContent = '≈ — 大卡 / 100 克'; $fmBasisNote.style.display = 'none'; return; }
     const k100 = r.kcal;
     if (fmMeasureVal() === 'gram') {
@@ -3618,8 +3651,9 @@
         $fmEstResult.textContent = `≈ ${fmtG(k100)} 大卡 / 100 克（填上一${label}多少克，就能算每${label}热量）`;
       }
     }
-    $fmBasisNote.textContent = r.corrected ? BASIS_NOTE : '';
-    $fmBasisNote.style.display = r.corrected ? '' : 'none';
+    const hint = sanityHint(a);
+    $fmBasisNote.textContent = hint || '';
+    $fmBasisNote.style.display = hint ? '' : 'none';
   }
   function fmRenderEmoji() {
     $fmEmojiPick.innerHTML = FOOD_EMOJIS.map(e =>
@@ -3881,7 +3915,8 @@
   }
   function fwUpdateEstimate() {
     if (fwSource !== 'analysis') return;
-    const r = analyzeKcal(fwReadAnalysis());
+    const a = fwReadAnalysis();
+    const r = analyzeKcal(a);
     if (r == null) { $fwEst.textContent = '≈ — 大卡 / 100 克'; $fwBasisNote.style.display = 'none'; return; }
     const k = r.kcal;
     if (fwMeasure === 'gram') { $fwEst.textContent = `≈ ${fmtG(k)} 大卡 / 100 克`; }
@@ -3892,8 +3927,9 @@
         ? `每${lb} ≈ ${parseFloat((k * g / 100).toFixed(1))} 大卡`
         : `≈ ${fmtG(k)} 大卡 / 100 克（填上一${lb}多少克，就能算每${lb}热量）`;
     }
-    $fwBasisNote.textContent = r.corrected ? BASIS_NOTE : '';
-    $fwBasisNote.style.display = r.corrected ? '' : 'none';
+    const hint = sanityHint(a);
+    $fwBasisNote.textContent = hint || '';
+    $fwBasisNote.style.display = hint ? '' : 'none';
   }
   function fwRefresh() {
     [1, 2, 3].forEach(n => document.getElementById('fw-step' + n).hidden = (n !== fwStep));
