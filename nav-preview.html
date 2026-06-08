@@ -1,0 +1,121 @@
+---
+layout: null
+permalink: /nav-preview/
+sitemap: false
+---
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>手机顶栏方案预览</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/600.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css">
+  <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+  <style>
+    body { margin: 0; padding: 1.2rem 1rem 4rem; background: var(--color-bg); color: var(--color-text); }
+    .pv-h { max-width: 460px; margin: 0 auto 1.6rem; }
+    .pv-h h1 { font-size: 1.4rem; color: var(--color-ink); margin: 0 0 0.4rem; }
+    .pv-h p { font-size: 0.86rem; color: var(--color-light); line-height: 1.7; margin: 0; }
+    .pv-card { max-width: 460px; margin: 0 auto 1.8rem; border: 1px solid var(--color-border); border-radius: 14px; overflow: hidden; }
+    .pv-tag { font-size: 0.8rem; font-weight: 700; color: var(--color-ink); background: var(--color-bg-warm); padding: 0.5rem 0.9rem; border-bottom: 1px solid var(--color-border); }
+    .pv-tag span { font-weight: 400; color: var(--color-light); }
+    .pv-bar { background: var(--color-nav-bg, var(--color-bg)); }
+
+    /* 通用：品牌 / 图标 / 头像 */
+    .pv-brand { font-family: var(--font-display); font-size: 1.15rem; font-weight: 600; color: var(--color-ink); text-decoration: none; letter-spacing: 0.02em; white-space: nowrap; }
+    .pv-ic { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 32px;
+      background: none; border: none; cursor: pointer; color: var(--color-muted); text-decoration: none; padding: 0; }
+    .pv-ic svg { width: 19px; height: 19px; }
+    .pv-en { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; }
+    .pv-theme { font-size: 1.1rem; line-height: 1; }
+    .pv-avatar { width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--color-highlight); color: #fff;
+      font-size: 0.85rem; font-weight: 700; line-height: 30px; text-align: center; padding: 0; cursor: pointer; flex-shrink: 0; }
+
+    /* 方案 A：单行·统一极简图标 */
+    .pvA { display: flex; align-items: center; gap: 0.35rem; padding: 0.6rem 1rem; }
+    .pvA .pv-brand { margin-right: 0.1rem; }
+    .pvA .pv-icons { display: flex; align-items: center; gap: 0.35rem; margin: 0 auto; }
+
+    /* 方案 B：两行 */
+    .pvB { padding: 0.55rem 1rem 0.6rem; }
+    .pvB .pv-row1 { display: flex; justify-content: space-between; align-items: center; }
+    .pvB .pv-row2 { display: flex; justify-content: space-between; align-items: center; margin-top: 0.55rem; padding-top: 0.55rem; border-top: 1px solid var(--color-border); }
+
+    /* 方案 C：单行 + 功能收进圆角工具组 */
+    .pvC { display: flex; align-items: center; gap: 0.4rem; padding: 0.6rem 1rem; }
+    .pvC .pv-pill { display: inline-flex; align-items: center; gap: 0.15rem; margin: 0 auto;
+      padding: 0.12rem 0.45rem; background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 999px; }
+    .pvC .pv-pill .pv-ic { width: 30px; height: 28px; }
+    .pvC .pv-pill .pv-ic svg { width: 17px; height: 17px; }
+
+    .pv-note { max-width: 460px; margin: 1.4rem auto 0; font-size: 0.8rem; color: var(--color-light); line-height: 1.7; }
+    .pv-foot { max-width: 460px; margin: 2rem auto 0; padding-top: 1.2rem; border-top: 1px dashed var(--color-border); font-size: 0.82rem; color: var(--color-muted); line-height: 1.8; }
+  </style>
+</head>
+<body>
+  <div class="pv-h">
+    <h1>手机顶栏 · 三版预览</h1>
+    <p>下面是 A / B / C 三种顶栏排布（管理员视角，含 8 个元素）。用真实字体配色渲染，<b>请在手机上看</b>。挑好后回去告诉我「要 A / B / C」，我就照那版做进真正的导航。</p>
+  </div>
+
+  <!-- 方案 A -->
+  <div class="pv-card">
+    <div class="pv-tag">方案 A <span>· 单行 · 统一极简图标（品牌左 / 图标居中 / 头像右）</span></div>
+    <div class="pv-bar pvA">
+      <a class="pv-brand" href="#">锆铌</a>
+      <span class="pv-icons">
+        <button class="pv-ic" title="菜单"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <button class="pv-ic" title="搜索"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+        <button class="pv-ic pv-theme" title="主题">&#9683;</button>
+        <a class="pv-ic pv-en" title="English">EN</a>
+        <button class="pv-ic" title="数据分析"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg></button>
+        <button class="pv-ic" title="内容管理"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+      </span>
+      <button class="pv-avatar">R</button>
+    </div>
+  </div>
+
+  <!-- 方案 B -->
+  <div class="pv-card">
+    <div class="pv-tag">方案 B <span>· 两行（上：品牌+头像 / 下：功能图标条）—— 最宽松</span></div>
+    <div class="pv-bar pvB">
+      <div class="pv-row1">
+        <a class="pv-brand" href="#">锆铌</a>
+        <button class="pv-avatar">R</button>
+      </div>
+      <div class="pv-row2">
+        <button class="pv-ic" title="菜单"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <button class="pv-ic" title="搜索"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+        <button class="pv-ic pv-theme" title="主题">&#9683;</button>
+        <a class="pv-ic pv-en" title="English">EN</a>
+        <button class="pv-ic" title="数据分析"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg></button>
+        <button class="pv-ic" title="内容管理"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 方案 C -->
+  <div class="pv-card">
+    <div class="pv-tag">方案 C <span>· 单行 + 功能收进浅色圆角工具组</span></div>
+    <div class="pv-bar pvC">
+      <a class="pv-brand" href="#">锆铌</a>
+      <button class="pv-ic" title="菜单"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <span class="pv-pill">
+        <button class="pv-ic" title="搜索"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+        <button class="pv-ic pv-theme" title="主题">&#9683;</button>
+        <a class="pv-ic pv-en" title="English">EN</a>
+        <button class="pv-ic" title="数据分析"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg></button>
+        <button class="pv-ic" title="内容管理"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+      </span>
+      <button class="pv-avatar">R</button>
+    </div>
+  </div>
+
+  <p class="pv-note">说明：☰ 仍是「站点栏目菜单」（学习资料 / 科研妙招 / 生活攻略 / 百宝箱 / 随笔漫谈），点开才展开那 5 个链接；📊 数据分析 与 ▤ 内容管理 仅管理员可见。非管理员会少这两个图标，更宽。</p>
+
+  <div class="pv-foot">挑好后告诉我「<b>要方案 A / B / C</b>」，我就把它做进真正的导航（同时把现在「全收进菜单」那版撤掉、这个预览页删掉）。要是三版都不太对，也告诉我哪里不顺眼，我再调。</div>
+</body>
+</html>
