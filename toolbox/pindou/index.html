@@ -44,6 +44,11 @@ permalink: /toolbox/pindou/
   .pb-two { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; align-items: start; }
   @media (max-width: 620px) { .pb-two { grid-template-columns: 1fr; } }
   .pb-cap { font-size: .76rem; color: var(--color-muted); text-align: center; margin-top: .35rem; }
+  /* 上传后先单图（只显可编辑画布）；点「抠出主体」抠好后才分裂成 原图|结果 做前后对比 */
+  #split.pb-single { grid-template-columns: 1fr; }
+  #split.pb-single .pb-col-orig { display: none; }
+  #split.pb-single .pb-col-cut { max-width: 380px; margin: 0 auto; }
+  #split.pb-single .pb-col-cut .pb-cap { display: none; }
 
   /* processing overlay (download / cutout) */
   #editCanvas.processing { filter: blur(3px) brightness(.95); }
@@ -67,6 +72,7 @@ permalink: /toolbox/pindou/
     .pb-btn:hover { border-color: var(--color-accent); }
     .pb-btn.pri:hover { filter: brightness(1.08); }
   }
+  .pb-btn.pri.ready { box-shadow: 0 0 0 3px rgba(30,58,95,.16); }
   .pb-btn:disabled { opacity: .5; cursor: default; }
   .pb-btn.sm { font-size: .8rem; padding: .35rem .7rem; }
   .pb-btnrow { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .85rem; }
@@ -111,8 +117,8 @@ permalink: /toolbox/pindou/
   .pb-toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; margin-bottom: .5rem; }
 
   /* stats */
-  .pb-stats { display: flex; flex-wrap: wrap; gap: .5rem; margin: .2rem 0 0; }
-  .pb-stat { flex: 1 1 calc(50% - .25rem); border: 1px solid var(--color-border); border-radius: 10px; padding: .5rem .3rem; text-align: center; background: var(--color-bg); }
+  .pb-stats { display: flex; flex-wrap: wrap; gap: .5rem; margin: .2rem 0 1rem; }
+  .pb-stat { flex: 1 1 calc(25% - .4rem); min-width: 116px; border: 1px solid var(--color-border); border-radius: 10px; padding: .5rem .3rem; text-align: center; background: var(--color-bg); }
   .pb-stat b { display: block; font-size: 1.1rem; color: var(--color-ink); font-variant-numeric: tabular-nums; line-height: 1.2; }
   .pb-stat small { font-size: .7rem; color: var(--color-muted); }
 
@@ -170,7 +176,7 @@ permalink: /toolbox/pindou/
   <!-- ========== ① 上传 & 抠图（合并） ========== -->
   <section class="pb-step" id="step1">
     <div class="pb-step-h"><div class="pb-step-n">1</div><div class="pb-step-t">上传图片，自动抠出主体</div></div>
-    <div class="pb-step-hint">卡通形象、表情包、宠物照都行，主体清晰、跟背景有区分的图最好。上传后自动抠出主体，抠不干净可手动擦补。</div>
+    <div class="pb-step-hint">卡通形象、表情包、宠物照都行，主体清晰、跟背景有区分的图最好。上传后点「抠出主体」自动抠图（已在后台偷跑，多半秒出结果），抠不干净可手动擦补；也可「用整张图」。</div>
     <div class="pb-model-status pb-hidden" id="modelStatus"></div>
 
     <input type="file" id="file" accept="image/*" class="pb-hidden">
@@ -181,13 +187,13 @@ permalink: /toolbox/pindou/
       <div class="pb-drop-sub">支持 JPG · PNG · WebP，图片只在你自己浏览器里处理，不上传服务器</div>
     </div>
 
-    <!-- 上传后：分裂成 原图 | 抠图 -->
+    <!-- 上传后：先单图（只显右侧可编辑画布）；抠出主体后再分裂成 原图 | 结果 -->
     <div class="pb-two pb-hidden" id="split">
-      <div>
+      <div class="pb-col-orig">
         <div class="pb-canvas-box" style="background:none;"><img id="origImg" alt=""></div>
         <div class="pb-cap">原图</div>
       </div>
-      <div>
+      <div class="pb-col-cut">
         <div class="pb-canvas-box" id="editBox">
           <canvas id="editCanvas"></canvas>
           <div class="pb-brush-cursor" id="brushCursor"></div>
@@ -218,7 +224,7 @@ permalink: /toolbox/pindou/
     </div>
 
     <div class="pb-btnrow pb-hidden" id="cutBtns">
-      <button class="pb-btn pri" id="aiCut">✨ AI 抠图</button>
+      <button class="pb-btn pri" id="aiCut">✨ 抠出主体</button>
       <button class="pb-btn pri pb-hidden" id="goStep3">下一步：转拼豆 →</button>
       <button class="pb-btn pb-hidden" id="toggleManual">🖌️ 手动修一下</button>
       <button class="pb-btn" id="useWhole">用整张图</button>
@@ -230,7 +236,7 @@ permalink: /toolbox/pindou/
   <!-- ========== ② 调整 · 图纸 · 清单 ========== -->
   <section class="pb-step pb-locked" id="step2">
     <div class="pb-step-h"><div class="pb-step-n">2</div><div class="pb-step-t">调整 · 图纸 · 清单</div></div>
-    <div class="pb-step-hint">左边切「效果图 / 坐标图」随调随变，可下载或「⛶ 全屏看图纸」对着拼；右边调精细度/颜色/耗时；下方是采买清单。</div>
+    <div class="pb-step-hint">上方调精细度 / 颜色 / 耗时，参数实时跟着变；中间切「效果图 / 坐标图」随调随看，可下载或「⛶ 全屏看图纸」对着拼；下方是采买清单。</div>
 
     <!-- 控件收顶，紧凑 2 列 -->
     <div class="pb-ctlbar">
@@ -257,6 +263,9 @@ permalink: /toolbox/pindou/
       </div>
     </div>
 
+    <!-- 图纸参数（跟控件放一起，拖动时实时变化） -->
+    <div class="pb-stats" id="stats"></div>
+
     <!-- 大画布（全宽主视觉） -->
     <div class="pb-work-main">
       <div class="pb-toolrow">
@@ -277,7 +286,6 @@ permalink: /toolbox/pindou/
         <button class="pb-btn" id="shareBtn">🔗 复制分享链接</button>
         <span class="pb-cap" id="shareMsg" style="align-self:center;"></span>
       </div>
-      <div class="pb-stats" id="stats"></div>
     </div>
     <div class="pb-msg pb-hidden" id="genMsg"></div>
 
@@ -289,13 +297,13 @@ permalink: /toolbox/pindou/
         <span>每页 <select id="legendPer"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="999">全部</option></select> 个</span>
         <span id="legendTotal" style="font-weight:600;color:var(--color-ink);"></span>
       </div>
+      <div class="pb-legend-ctl" id="legendPagerWrap" style="justify-content:center;margin:.1rem 0 .5rem;">
+        <span class="pb-pager"><button id="legPrev">‹</button>第 <span id="legPageNo">1</span> / <span id="legPages">1</span> 页<button id="legNext">›</button></span>
+      </div>
       <table>
         <thead><tr><th>色号</th><th>颜色</th><th>名称</th><th class="num">颗数</th><th class="num">占比</th></tr></thead>
         <tbody id="legendBody"></tbody>
       </table>
-      <div class="pb-legend-ctl" id="legendPagerWrap" style="justify-content:center;margin-top:.5rem;">
-        <span class="pb-pager"><button id="legPrev">‹</button>第 <span id="legPageNo">1</span> / <span id="legPages">1</span> 页<button id="legNext">›</button></span>
-      </div>
     </div>
   </section>
 
@@ -446,16 +454,19 @@ permalink: /toolbox/pindou/
       S.baseData = cx.getImageData(0,0,w,h).data;
       $('origImg').src = url;
       S.painted = false;
-      // 投放框 → 分裂双图
+      // 投放框 → 先显示「单张」（Option A：只露可编辑画布，选了底图才分裂成 原图|结果）
       drop.classList.add('pb-hidden');
       $('split').classList.remove('pb-hidden');
+      $('split').classList.add('pb-single');
       $('cutBtns').classList.remove('pb-hidden');
-      // 右侧先显示整张图；不自动进②、不自动弹遮罩
+      $('aiCut').textContent = '✨ 抠出主体'; $('aiCut').classList.remove('ready'); $('aiCut').disabled = false;
+      // 画布先备好整张图（单图态就看这一张）
       S.mask = new Uint8Array(w*h).fill(255);
       clearUndo();
       renderEdit();
-      setCutBtns(false);   // 初始只显 [✨AI抠图][用整张图][换一张]
-      startBgCut();        // 后台静默跑 AI 抠图，藏掉等待；用户点了才显进度/应用
+      setCutBtns(false);   // 单图态：只显 [✨抠出主体][用整张图][换一张]
+      showMsg('cutMsg','已读入图片。点「✨ 抠出主体」自动抠出主角，或「用整张图」整张都做成珠子。');
+      startBgCut();        // 后台静默下模型 + 偷跑抠图；抠好按钮标「已就绪」，点一下秒应用
     };
     img.onerror = ()=> showMsg('cutMsg','图片读取失败，换一张试试。', true);
     img.src = url;
@@ -495,14 +506,17 @@ permalink: /toolbox/pindou/
   function setCutBtns(done){
     $('goStep3').classList.toggle('pb-hidden', !done);
     $('toggleManual').classList.toggle('pb-hidden', !done);
-    $('aiCut').textContent = done ? '✨ 重新 AI 抠图' : '✨ AI 抠图';
   }
+  // 后台偷跑抠好（用户还没点）→ 按钮标「已就绪」，点一下即用缓存秒应用，不重算
+  function markCutReady(){ if(S.cutApplied) return; const b=$('aiCut'); b.textContent='✨ 抠出主体 · 已就绪'; b.classList.add('ready'); }
   function applyCut(){
     if(!S.cutMask) return;
     S.aiShown=true; S.cutApplied=true; S.painted=false;
     S.mask = S.cutMask.slice(); clearUndo(); renderEdit(); hideCut();
+    $('split').classList.remove('pb-single');   // 分裂：左原图 | 右抠好的主体（此刻两图真的不同）
+    $('aiCut').textContent='✨ 抠出主体'; $('aiCut').classList.remove('ready');
     setCutBtns(true); $('aiCut').disabled=false;
-    showMsg('cutMsg','✓ 已自动抠出主体（抠图用了 '+((S.cutMs||0)/1000).toFixed(1)+' 秒）。不干净就「🖌️ 手动修一下」，或「用整张图」。');
+    showMsg('cutMsg','✓ 已抠出主体（用了 '+((S.cutMs||0)/1000).toFixed(1)+' 秒）。不干净就「🖌️ 手动修一下」，或「用整张图」。');
     if(!$('step2').classList.contains('pb-locked')) regenerate();
   }
   async function cutTask(gen){
@@ -542,6 +556,7 @@ permalink: /toolbox/pindou/
       S.cutMask = m; S.cutState='done';
       console.log('[pindou] 抠图推理耗时 '+(S.cutMs/1000).toFixed(1)+'s');
       if(S.aiShown) applyCut();   // 用户已点 → 立刻应用
+      else markCutReady();        // 后台偷跑完、用户还没点 → 按钮标「已就绪」
     }catch(err){ console.error(err); fail('AI 抠图没成功（'+(err&&err.message?err.message:'未知错误')+'）。可「用整张图」或重试。'); }
   }
   function startBgCut(){ S.aiShown=false; S.cutApplied=false; S.cutMask=null; S.cutGen=(S.cutGen||0)+1; cutTask(S.cutGen); }
@@ -549,11 +564,11 @@ permalink: /toolbox/pindou/
     S.cutGen=(S.cutGen||0)+1; S.dlStart=S.modelReady?1:(S.preloadFrac||0); cutTask(S.cutGen); }
   function clickAICut(){
     if(!S.W) return;
-    if(S.cutApplied){ reRunCut(); return; }                 // 已抠过 → 重新抠
+    // 模型确定性：同图同设置重跑结果一字不差，故不提供「重新抠」——已抠好就用缓存秒应用（含从「用整张图」切回）
     S.aiShown=true; $('aiCut').disabled=true; S.dlStart=S.modelReady?1:(S.cutFrac||0);
     if(S.cutState==='done') applyCut();
     else if(S.cutState==='running'){ if(S.cutPhase==='cut') showCutting(); else showCut(S.cutFrac||0); } // 接管运行中的遮罩
-    else reRunCut();                                         // none/failed/nosubject → 重跑
+    else reRunCut();                                         // none/failed/nosubject → 重试
   }
 
   // 把 PNG blob 画到 W×H，返回 RGBA 数据
@@ -587,7 +602,7 @@ permalink: /toolbox/pindou/
     const t = $('tools'); const open = !t.classList.contains('show');
     t.classList.toggle('show', open);
     $('toggleManual').classList.toggle('on', open);
-    if(open) $('editBox').scrollIntoView({behavior:'smooth', block:'center'});
+    if(open){ $('split').classList.remove('pb-single'); $('editBox').scrollIntoView({behavior:'smooth', block:'center'}); } // 涂抹要露出左侧原图当参照
     else brushCursor.style.display='none';
   });
   $('modeErase').addEventListener('click', ()=>setMode('erase'));
@@ -648,7 +663,10 @@ permalink: /toolbox/pindou/
   $('aiCut').addEventListener('click', clickAICut);
   $('useWhole').addEventListener('click', ()=>{
     if(!S.W) return; S.painted = true; S.cutApplied = true; S.mask = new Uint8Array(S.W*S.H).fill(255); clearUndo(); renderEdit(); hideCut();
-    setCutBtns(true); showMsg('cutMsg','用的是整张图（背景也会变成珠子）。可「🖌️ 手动修一下」擦掉背景，或直接「下一步」。');
+    // 整张图==原图，无需前后对比 → 收回单图态（不分裂出两张一样的）
+    $('split').classList.add('pb-single');
+    $('aiCut').textContent='✨ 抠出主体'; $('aiCut').classList.remove('ready');
+    setCutBtns(true); showMsg('cutMsg','用的是整张图（背景也会变成珠子）。想只留主体可点「✨ 抠出主体」，或「🖌️ 手动修一下」擦背景，或直接「下一步」。');
     if(!$('step2').classList.contains('pb-locked')) regenerate();
   });
   $('goStep3').addEventListener('click', ()=>{ if(!S.mask) return; enableStep('step2'); regenerate(); $('step2').scrollIntoView({behavior:'smooth',block:'start'}); });
