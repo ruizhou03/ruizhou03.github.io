@@ -1,0 +1,26 @@
+---
+layout: default
+title: "记账 | Rui Zhou"
+permalink: /toolbox/ledger/
+# 让记账可作为独立 PWA 安装（自己的图标/名字/作用域），覆盖全站默认 manifest
+manifest: /toolbox/ledger/manifest.json
+apple_touch_icon: /assets/icons/ledger-apple-touch-icon.png
+app_title: 记账
+theme_color: "#fafaf9"
+---
+
+{%- comment -%}
+  记账——单页工具，复刻宠物中心结构（外链 css/js + board/modals 两个 include）。
+  数据只进 localStorage(tool.ledger.v1)，永不上传、不入 cloud-sync；备份靠工具内「导出文件」。
+  ⚠️ ledger.js 不加 defer：放在 DOM 之后按到达顺序同步执行，依赖上方 board/modals 元素已就位。
+{%- endcomment -%}
+
+<link rel="stylesheet" href="{{ '/assets/css/ledger.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+
+<div class="lg-wrap">
+{% include toolbox/ledger/board.html %}
+
+{% include toolbox/ledger/modals.html %}
+</div>
+
+<script src="{{ '/assets/js/ledger.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>

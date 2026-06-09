@@ -1,0 +1,73 @@
+<div class="lg-board">
+
+  <header class="lg-head">
+    <h1>📒 记账</h1>
+    <div class="lg-head-actions">
+      <button id="lg-cur-toggle" class="lg-pill" type="button" title="切换显示币种">¥ CNY</button>
+      <button id="lg-io-btn" class="lg-icon-btn" type="button" title="备份 / 导入">⤓</button>
+      <button id="lg-settings-btn" class="lg-icon-btn" type="button" title="设置">⚙️</button>
+    </div>
+  </header>
+
+  <!-- 汇总卡（由 JS 填充） -->
+  <div class="lg-summary" id="lg-summary"></div>
+
+  <!-- 多账户余额条（>1 账户时由 JS 显示） -->
+  <div class="lg-accounts" id="lg-accounts" hidden></div>
+
+  <!-- 实际花销 / 现金流 切换 -->
+  <div class="lg-mode-toggle" id="lg-mode-toggle">
+    <button type="button" data-basis="net" class="active">实际花销</button>
+    <button type="button" data-basis="gross">现金流</button>
+    <span class="lg-mode-hint" id="lg-mode-hint"></span>
+  </div>
+
+  <!-- 周期切换 -->
+  <div class="lg-period" id="lg-period">
+    <button type="button" data-period="today">今天</button>
+    <button type="button" data-period="week">本周</button>
+    <button type="button" data-period="month" class="active">本月</button>
+    <button type="button" data-period="year">今年</button>
+    <button type="button" data-period="custom">自定义</button>
+  </div>
+  <div class="lg-period-custom" id="lg-period-custom" hidden>
+    <input type="date" id="lg-custom-start" aria-label="开始日期">
+    <span>至</span>
+    <input type="date" id="lg-custom-end" aria-label="结束日期">
+  </div>
+
+  <!-- 预算面板（由 JS 填充；无预算时隐藏） -->
+  <div class="lg-budget" id="lg-budget" hidden></div>
+
+  <!-- 趋势图 -->
+  <div class="lg-charts">
+    <div class="lg-chart-tabs">
+      <button type="button" data-chart="burn" class="active">本月进度</button>
+      <button type="button" data-chart="trend">月度趋势</button>
+    </div>
+    <svg id="lg-chart" viewBox="0 0 600 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="花费趋势图"></svg>
+    <div class="lg-chart-empty" id="lg-chart-empty" hidden>记几笔后这里会出现趋势图</div>
+  </div>
+
+  <button id="lg-add-btn" class="lg-add-btn" type="button">＋ 记一笔</button>
+
+  <!-- 搜索 / 筛选 -->
+  <div class="lg-search">
+    <input type="search" id="lg-search-input" placeholder="搜索 备注 / 商家 / 类目" autocomplete="off">
+    <select id="lg-filter-type" aria-label="按类型筛选">
+      <option value="all">全部</option>
+      <option value="expense">支出</option>
+      <option value="income">收入</option>
+    </select>
+  </div>
+
+  <!-- 流水（由 JS 填充） -->
+  <div class="lg-list" id="lg-list"></div>
+
+</div>
+
+<!-- 撤销提示条 -->
+<div class="lg-toast" id="lg-toast" hidden>
+  <span id="lg-toast-msg"></span>
+  <button type="button" id="lg-toast-undo">撤销</button>
+</div>

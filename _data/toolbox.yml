@@ -456,3 +456,11 @@
   url: /toolbox/pindou/
   category: 生活
   status: live
+
+- id: ledger
+  name: 记账
+  icon: 📒
+  tagline: 闪记 · 垫付报销 · 多时区
+  url: /toolbox/ledger/
+  category: 生活
+  status: live

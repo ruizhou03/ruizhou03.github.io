@@ -1,0 +1,246 @@
+/* 记账 ledger —— 作用域全部挂在 .lg-wrap 下，复用站点 --color-* 设计令牌 */
+.lg-wrap {
+  --lg-exp: #c0392b;
+  --lg-inc: #2e7d32;
+  --lg-warn: #c77700;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0.8rem 1rem 4rem;
+}
+@media (prefers-color-scheme: dark) {
+  .lg-wrap { --lg-exp: #e57373; --lg-inc: #81c784; --lg-warn: #e0a33e; }
+}
+/* [hidden] 必须真的隐藏：作用域内有些元素带 display:flex/block，会盖过 UA 的 [hidden]{display:none} */
+.lg-wrap [hidden] { display: none !important; }
+
+.lg-c-exp { color: var(--lg-exp); }
+.lg-c-inc { color: var(--lg-inc); }
+.lg-c-warn { color: var(--lg-warn); }
+.lg-c-neu { color: var(--color-ink); }
+
+.lg-board * { box-sizing: border-box; }
+
+/* 头部 */
+.lg-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.9rem; }
+.lg-head h1 { font-size: 1.4rem; margin: 0; color: var(--color-ink); flex: 1; }
+.lg-head-actions { display: flex; gap: 0.4rem; align-items: center; }
+.lg-pill {
+  font: inherit; font-size: 0.85rem; font-weight: 600;
+  padding: 0.35rem 0.7rem; border: 1px solid var(--color-border); border-radius: 999px;
+  background: var(--color-bg); color: var(--color-ink); cursor: pointer;
+}
+.lg-icon-btn {
+  font-size: 1.1rem; line-height: 1; width: 2.1rem; height: 2.1rem;
+  border: 1px solid var(--color-border); border-radius: 50%;
+  background: var(--color-bg); color: var(--color-muted); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+@media (hover: hover) {
+  .lg-pill:hover, .lg-icon-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+}
+
+/* 汇总卡 */
+.lg-cur-toggle-hint { font-size: 0.78rem; color: var(--color-light); margin-bottom: 0.35rem; }
+.lg-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+.lg-card {
+  background: var(--color-bg-warm); border: 1px solid var(--color-border);
+  border-radius: 0.7rem; padding: 0.6rem 0.5rem; text-align: center;
+}
+.lg-card-label { font-size: 0.72rem; color: var(--color-muted); margin-bottom: 0.25rem; }
+.lg-card-val { font-size: 0.98rem; font-weight: 700; font-family: var(--font-display); word-break: break-all; }
+.lg-foot-note { font-size: 0.78rem; color: var(--color-muted); margin-top: 0.5rem; text-align: center; }
+
+/* 实际 / 现金流 */
+.lg-mode-toggle { display: flex; align-items: center; gap: 0.4rem; margin: 0.9rem 0 0.5rem; }
+.lg-mode-toggle button {
+  font: inherit; font-size: 0.84rem; padding: 0.3rem 0.8rem;
+  border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-muted);
+  cursor: pointer; border-radius: 999px;
+}
+.lg-mode-toggle button.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+.lg-mode-hint { font-size: 0.74rem; color: var(--color-light); }
+
+/* 周期切换 */
+.lg-period { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.lg-period button {
+  font: inherit; font-size: 0.84rem; padding: 0.32rem 0.7rem;
+  border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-muted);
+  cursor: pointer; border-radius: 0.5rem; flex: 1; min-width: 3rem;
+}
+.lg-period button.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+.lg-period-custom { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.5rem; font-size: 0.85rem; color: var(--color-muted); }
+.lg-period-custom input { font: inherit; padding: 0.3rem 0.4rem; border: 1px solid var(--color-border); border-radius: 0.4rem; background: var(--color-bg); color: var(--color-ink); }
+
+/* 预算面板 */
+.lg-budget { margin-top: 0.9rem; background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 0.7rem; padding: 0.7rem 0.8rem; }
+.lg-budget-top { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--color-muted); margin-bottom: 0.4rem; }
+.lg-budget-top b { color: var(--color-ink); }
+.lg-bar { height: 0.5rem; background: var(--color-border); border-radius: 999px; overflow: hidden; }
+.lg-bar-fill { height: 100%; background: var(--color-accent); border-radius: 999px; transition: width 0.3s; }
+.lg-bar-fill.lg-bar-warn { background: var(--lg-warn); }
+.lg-bar-fill.lg-bar-over { background: var(--lg-exp); }
+.lg-budget-msg { font-size: 0.78rem; color: var(--color-muted); margin-top: 0.35rem; }
+
+/* 图表 */
+.lg-charts { margin-top: 1rem; }
+.lg-chart-tabs { display: flex; gap: 0.4rem; margin-bottom: 0.3rem; }
+.lg-chart-tabs button {
+  font: inherit; font-size: 0.82rem; padding: 0.25rem 0.7rem; cursor: pointer;
+  border: none; background: none; color: var(--color-light); border-bottom: 2px solid transparent;
+}
+.lg-chart-tabs button.active { color: var(--color-accent); border-bottom-color: var(--color-accent); font-weight: 600; }
+#lg-chart { width: 100%; height: auto; display: block; }
+.lg-chart-empty { text-align: center; color: var(--color-light); font-size: 0.85rem; padding: 2rem 0; }
+
+/* 记一笔按钮 */
+.lg-add-btn {
+  display: block; width: 100%; margin: 1rem 0; font: inherit; font-size: 1rem; font-weight: 600;
+  padding: 0.8rem; border: none; border-radius: 0.7rem; background: var(--color-accent); color: #fff;
+  cursor: pointer; box-shadow: 0 2px 10px rgba(30,58,95,0.2);
+}
+@media (hover: hover) { .lg-add-btn:hover { background: var(--color-accent-light); } }
+
+/* 搜索 */
+.lg-search { display: flex; gap: 0.5rem; margin-bottom: 0.6rem; }
+.lg-search input { flex: 1; font: inherit; padding: 0.5rem 0.7rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-bg); color: var(--color-ink); }
+.lg-search select { font: inherit; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-bg); color: var(--color-ink); }
+
+/* 流水 */
+.lg-list { margin-top: 0.4rem; }
+.lg-empty { text-align: center; color: var(--color-light); font-size: 0.88rem; padding: 2.5rem 1rem; }
+.lg-day { margin-bottom: 0.6rem; }
+.lg-day-h { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--color-muted); padding: 0.3rem 0.2rem; border-bottom: 1px solid var(--color-border); }
+.lg-day-sum span { margin-left: 0.4rem; font-weight: 600; }
+.lg-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.2rem; border-bottom: 1px solid var(--color-border); cursor: pointer; }
+@media (hover: hover) { .lg-row:hover { background: var(--color-bg-warm); } }
+.lg-row-emoji { font-size: 1.3rem; width: 2.3rem; height: 2.3rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--color-bg-warm); border-radius: 50%; }
+.lg-row-mid { flex: 1; min-width: 0; }
+.lg-row-title { font-size: 0.95rem; color: var(--color-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lg-row-sub { font-size: 0.76rem; color: var(--color-light); margin-top: 0.1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lg-row-amt { font-size: 1rem; font-weight: 700; font-family: var(--font-display); flex-shrink: 0; }
+.lg-zone { display: inline-block; font-size: 0.68rem; color: var(--color-muted); background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 0.4rem; padding: 0 0.3rem; vertical-align: middle; }
+.lg-row-chips { margin-top: 0.3rem; }
+.lg-chip { font: inherit; font-size: 0.72rem; padding: 0.12rem 0.5rem; border: 1px solid var(--lg-warn); color: var(--lg-warn); background: none; border-radius: 0.4rem; cursor: pointer; }
+.lg-chip-done { border-color: var(--color-border); color: var(--color-muted); }
+
+/* 撤销提示条 */
+.lg-toast {
+  position: fixed; left: 50%; bottom: 1.4rem; transform: translateX(-50%);
+  background: var(--color-ink); color: var(--color-bg); padding: 0.6rem 0.9rem; border-radius: 0.6rem;
+  display: flex; align-items: center; gap: 0.8rem; font-size: 0.85rem; z-index: 1200; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+.lg-toast button { font: inherit; font-weight: 700; background: none; border: none; color: var(--color-highlight); cursor: pointer; }
+
+/* ===== 弹窗 ===== */
+body.lg-modal-open { overflow: hidden; }
+.lg-modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1100;
+  display: flex; align-items: flex-end; justify-content: center; padding: 0;
+}
+.lg-modal {
+  background: var(--color-bg); width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto;
+  border-radius: 1rem 1rem 0 0; padding: 1rem 1.1rem 1.4rem;
+}
+@media (min-width: 600px) {
+  .lg-modal-backdrop { align-items: center; }
+  .lg-modal { border-radius: 1rem; }
+}
+.lg-modal-head { display: flex; align-items: center; margin-bottom: 0.8rem; }
+.lg-modal-head h2 { font-size: 1.15rem; margin: 0; flex: 1; color: var(--color-ink); }
+.lg-x { font-size: 1.6rem; line-height: 1; background: none; border: none; color: var(--color-light); cursor: pointer; padding: 0 0.2rem; }
+
+.lg-type-toggle { display: flex; gap: 0; border: 1px solid var(--color-border); border-radius: 0.6rem; overflow: hidden; margin-bottom: 0.8rem; }
+.lg-type-toggle button { flex: 1; font: inherit; font-size: 0.95rem; padding: 0.55rem; border: none; background: var(--color-bg); color: var(--color-muted); cursor: pointer; }
+.lg-type-toggle button.active { background: var(--color-accent); color: #fff; }
+
+.lg-amount-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem; border-bottom: 2px solid var(--color-accent); padding-bottom: 0.3rem; }
+.lg-cur-suffix { font-size: 1.5rem; font-weight: 700; background: none; border: none; color: var(--color-muted); cursor: pointer; width: 1.8rem; }
+#lg-amount { flex: 1; font-size: 2rem; font-weight: 700; font-family: var(--font-display); border: none; background: none; color: var(--color-ink); outline: none; width: 100%; }
+
+.lg-cat-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.8rem; }
+.lg-cat-chip { font: inherit; font-size: 0.82rem; padding: 0.3rem 0.6rem; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-bg); color: var(--color-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem; }
+.lg-cat-chip.active { border-color: var(--color-accent); background: var(--color-accent); color: #fff; }
+.lg-cat-chip-e { font-size: 0.95rem; }
+
+.lg-text-input { width: 100%; font: inherit; padding: 0.5rem 0.6rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-bg); color: var(--color-ink); margin-bottom: 0.6rem; }
+
+.lg-more-toggle { font: inherit; font-size: 0.85rem; background: none; border: none; color: var(--color-accent); cursor: pointer; padding: 0.3rem 0; }
+.lg-more { margin-top: 0.4rem; }
+.lg-field { display: block; margin-bottom: 0.6rem; }
+.lg-field > span { display: block; font-size: 0.78rem; color: var(--color-muted); margin-bottom: 0.2rem; }
+.lg-field input, .lg-field select { width: 100%; font: inherit; padding: 0.5rem 0.6rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-bg); color: var(--color-ink); }
+.lg-field-row { display: flex; gap: 0.6rem; }
+.lg-field-row .lg-field { flex: 1; }
+.lg-field-time { max-width: 9rem; }
+
+.lg-check { display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; color: var(--color-ink); cursor: pointer; }
+.lg-check input { width: 1.05rem; height: 1.05rem; }
+.lg-check-block { margin: 0.6rem 0; }
+.lg-settle-toggle { margin: 0.5rem 0; padding: 0.5rem; background: var(--color-bg-warm); border-radius: 0.5rem; }
+.lg-settle-fields { margin-top: 0.5rem; }
+.lg-hint { font-size: 0.78rem; color: var(--color-muted); line-height: 1.5; }
+.lg-privacy-note { margin-top: 0.8rem; padding-top: 0.6rem; border-top: 1px dashed var(--color-border); }
+
+.lg-modal-foot { display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; }
+.lg-foot-spacer { flex: 1; }
+.lg-btn-primary { font: inherit; font-weight: 600; padding: 0.55rem 1.3rem; border: none; border-radius: 0.5rem; background: var(--color-accent); color: #fff; cursor: pointer; }
+.lg-btn-primary.lg-btn-sm { padding: 0.4rem 0.9rem; font-size: 0.85rem; }
+.lg-btn-ghost { font: inherit; padding: 0.55rem 1rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-bg); color: var(--color-muted); cursor: pointer; }
+.lg-btn-ghost.lg-btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+.lg-del { color: var(--lg-exp); border-color: transparent; }
+
+/* 垫付详情 */
+.lg-settle-sum { background: var(--color-bg-warm); border-radius: 0.6rem; padding: 0.7rem 0.9rem; margin-bottom: 0.8rem; }
+.lg-settle-sum > div { display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.18rem 0; color: var(--color-muted); }
+.lg-settle-sum b { color: var(--color-ink); font-family: var(--font-display); }
+.lg-settle-actual { border-top: 1px solid var(--color-border); margin-top: 0.3rem; padding-top: 0.4rem !important; font-weight: 600; }
+.lg-rb-list { margin-bottom: 0.6rem; }
+.lg-rb-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 0.35rem 0.2rem; border-bottom: 1px solid var(--color-border); color: var(--color-ink); }
+.lg-rb-del { background: none; border: none; color: var(--lg-exp); cursor: pointer; font-size: 1rem; padding: 0 0.3rem; }
+.lg-settle-addbox { background: var(--color-bg-warm); border-radius: 0.6rem; padding: 0.7rem; margin-bottom: 0.5rem; }
+.lg-settle-closed { font-size: 0.82rem; color: var(--color-muted); background: var(--color-bg-warm); padding: 0.5rem; border-radius: 0.5rem; }
+
+/* 类目管理 */
+.lg-cat-tabs { display: flex; gap: 0.4rem; margin-bottom: 0.7rem; }
+.lg-cat-tabs button { flex: 1; font: inherit; font-size: 0.85rem; padding: 0.4rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-bg); color: var(--color-muted); cursor: pointer; }
+.lg-cat-tabs button.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+.lg-cat-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--color-border); }
+.lg-cat-item-e { font-size: 1.2rem; }
+.lg-cat-item-n { flex: 1; color: var(--color-ink); }
+.lg-cat-del { font: inherit; font-size: 0.78rem; background: none; border: none; color: var(--lg-exp); cursor: pointer; }
+.lg-cat-add { display: flex; gap: 0.4rem; margin-top: 0.8rem; }
+.lg-cat-emoji-in { width: 3rem !important; text-align: center; }
+.lg-cat-add input { font: inherit; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-bg); color: var(--color-ink); }
+.lg-cat-add input:nth-child(2) { flex: 1; }
+
+/* 备份/导入 */
+.lg-io-btns { display: flex; gap: 0.6rem; margin: 0.8rem 0; }
+.lg-io-import-label { display: inline-flex; align-items: center; cursor: pointer; }
+
+/* 多账户余额条 */
+.lg-accounts { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
+.lg-acc-chip { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; padding: 0.3rem 0.6rem; background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 0.5rem; }
+.lg-acc-chip b { font-family: var(--font-display); }
+
+/* 折算/分开 内联切换 */
+.lg-link-btn { font: inherit; font-size: 0.78rem; background: none; border: none; padding: 0; color: var(--color-accent); cursor: pointer; text-decoration: underline; }
+
+/* 预算多条 */
+.lg-budget-item { margin-bottom: 0.5rem; }
+.lg-budget-item:last-child { margin-bottom: 0; }
+
+/* 类目管理：预算输入 + 上下移 */
+.lg-cat-budget { width: 4.5rem !important; font: inherit; padding: 0.3rem 0.4rem; border: 1px solid var(--color-border); border-radius: 0.4rem; background: var(--color-bg); color: var(--color-ink); text-align: right; }
+.lg-cat-mv { font: inherit; font-size: 0.95rem; line-height: 1; width: 1.9rem; height: 1.9rem; border: 1px solid var(--color-border); border-radius: 0.4rem; background: var(--color-bg); color: var(--color-muted); cursor: pointer; }
+.lg-cat-mv:disabled { opacity: 0.3; cursor: default; }
+.lg-cat-item-n small { color: var(--color-light); font-weight: normal; }
+
+/* 转账 / AA 字段 */
+.lg-transfer-fields { margin-bottom: 0.8rem; }
+.lg-aa-fields { margin-top: 0.4rem; }
+
+/* 周期账添加区 */
+.lg-rec-add { margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed var(--color-border); }
+
+/* 设置里的管理入口 */
+.lg-set-links { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.4rem 0; }

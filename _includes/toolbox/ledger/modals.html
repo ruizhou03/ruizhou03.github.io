@@ -1,0 +1,272 @@
+<!-- ============ 记一笔 / 编辑 弹窗 ============ -->
+<div class="lg-modal-backdrop" id="lg-entry-modal" hidden>
+  <div class="lg-modal" role="dialog" aria-modal="true" aria-labelledby="lg-entry-title">
+    <div class="lg-modal-head">
+      <h2 id="lg-entry-title">记一笔</h2>
+      <button type="button" class="lg-x" data-close="lg-entry-modal" aria-label="关闭">×</button>
+    </div>
+
+    <!-- 支出 / 收入 / 转账 -->
+    <div class="lg-type-toggle" id="lg-type-toggle">
+      <button type="button" data-type="expense" class="active">支出</button>
+      <button type="button" data-type="income">收入</button>
+      <button type="button" data-type="transfer">转账</button>
+    </div>
+
+    <!-- 金额（闪记只需填这里） -->
+    <div class="lg-amount-row">
+      <button type="button" id="lg-entry-cur" class="lg-cur-suffix" title="切换这笔的币种">¥</button>
+      <input type="number" id="lg-amount" inputmode="decimal" step="any" min="0" placeholder="0.00" autocomplete="off">
+    </div>
+
+    <!-- 类目 -->
+    <div class="lg-cat-chips" id="lg-cat-chips"></div>
+
+    <!-- 转账：从哪个账户到哪个账户 -->
+    <div class="lg-transfer-fields" id="lg-transfer-fields" hidden>
+      <div class="lg-field-row">
+        <label class="lg-field"><span>从</span><select id="lg-from-acc"></select></label>
+        <label class="lg-field"><span>到</span><select id="lg-to-acc"></select></label>
+      </div>
+    </div>
+
+    <!-- 备注 -->
+    <input type="text" id="lg-note" class="lg-text-input" placeholder="备注（可留空）" maxlength="80" autocomplete="off">
+
+    <!-- 更多（精细记录） -->
+    <button type="button" class="lg-more-toggle" id="lg-more-toggle" aria-expanded="false">更多 ▾</button>
+    <div class="lg-more" id="lg-more" hidden>
+      <label class="lg-field" id="lg-account-field" hidden>
+        <span>账户 / 钱包</span>
+        <select id="lg-account"></select>
+      </label>
+
+      <div id="lg-fine-extra">
+        <label class="lg-field">
+          <span>商家 / 地点</span>
+          <input type="text" id="lg-merchant" maxlength="60" placeholder="如：海底捞 国贸店" autocomplete="off">
+        </label>
+        <label class="lg-field">
+          <span>支付方式</span>
+          <input type="text" id="lg-method" list="lg-method-list" maxlength="20" placeholder="现金 / 卡 / 支付宝…" autocomplete="off">
+          <datalist id="lg-method-list">
+            <option value="现金"></option><option value="信用卡"></option><option value="借记卡"></option>
+            <option value="支付宝"></option><option value="微信"></option><option value="Apple Pay"></option>
+          </datalist>
+        </label>
+        <label class="lg-field">
+          <span>标签</span>
+          <input type="text" id="lg-tags" maxlength="60" placeholder="逗号分隔，如 朋友, 旅行" autocomplete="off">
+        </label>
+      </div>
+
+      <div class="lg-field-row">
+        <label class="lg-field"><span>日期</span><input type="date" id="lg-date"></label>
+        <label class="lg-field lg-field-time"><span>时间</span><input type="time" id="lg-time"></label>
+      </div>
+      <label class="lg-field"><span>记录时区</span><select id="lg-tz"></select></label>
+
+      <!-- 垫付 / 代收 -->
+      <div id="lg-settle-wrap">
+        <div class="lg-settle-toggle">
+          <label class="lg-check">
+            <input type="checkbox" id="lg-settle-on">
+            <span id="lg-settle-label">这是我垫付的（之后有人还我）</span>
+          </label>
+        </div>
+        <div class="lg-settle-fields" id="lg-settle-fields" hidden>
+          <div class="lg-settle-toggle">
+            <label class="lg-check">
+              <input type="checkbox" id="lg-aa-on">
+              <span>平均分账（AA）：填总人数自动算我的份额</span>
+            </label>
+          </div>
+          <div class="lg-aa-fields" id="lg-aa-fields" hidden>
+            <div class="lg-field-row">
+              <label class="lg-field"><span>总人数</span><input type="number" id="lg-aa-people" inputmode="numeric" step="1" min="1" placeholder="如 10"></label>
+              <label class="lg-field"><span>我出几份</span><input type="number" id="lg-aa-cover" inputmode="numeric" step="1" min="1" value="1"></label>
+            </div>
+          </div>
+          <div class="lg-field-row">
+            <label class="lg-field"><span id="lg-myshare-label">我的份额</span><input type="number" id="lg-myshare" inputmode="decimal" step="any" min="0" placeholder="0.00"></label>
+            <label class="lg-field"><span id="lg-expected-label">应收回</span><input type="number" id="lg-expected" inputmode="decimal" step="any" min="0" placeholder="0.00"></label>
+          </div>
+          <p class="lg-hint" id="lg-settle-hint"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="lg-modal-foot">
+      <button type="button" class="lg-btn-ghost lg-del" id="lg-entry-del" hidden>删除</button>
+      <span class="lg-foot-spacer"></span>
+      <button type="button" class="lg-btn-ghost" data-close="lg-entry-modal">取消</button>
+      <button type="button" class="lg-btn-primary" id="lg-entry-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 垫付详情 弹窗 ============ -->
+<div class="lg-modal-backdrop" id="lg-settle-modal" hidden>
+  <div class="lg-modal" role="dialog" aria-modal="true" aria-labelledby="lg-settle-title">
+    <div class="lg-modal-head">
+      <h2 id="lg-settle-title">垫付详情</h2>
+      <button type="button" class="lg-x" data-close="lg-settle-modal" aria-label="关闭">×</button>
+    </div>
+    <div id="lg-settle-body"></div>
+    <div class="lg-settle-addbox" id="lg-settle-addbox">
+      <div class="lg-field-row">
+        <label class="lg-field"><span id="lg-rb-amount-label">收到金额</span><input type="number" id="lg-rb-amount" inputmode="decimal" step="any" min="0" placeholder="0.00"></label>
+        <label class="lg-field"><span id="lg-rb-from-label">来自谁</span><input type="text" id="lg-rb-from" maxlength="30" placeholder="如：小王"></label>
+      </div>
+      <button type="button" class="lg-btn-primary lg-btn-sm" id="lg-rb-add">＋ 记一笔回款</button>
+    </div>
+    <div class="lg-modal-foot">
+      <button type="button" class="lg-btn-ghost lg-del" id="lg-settle-reopen" hidden>撤销结清</button>
+      <span class="lg-foot-spacer"></span>
+      <button type="button" class="lg-btn-ghost" data-close="lg-settle-modal">关闭</button>
+      <button type="button" class="lg-btn-primary" id="lg-settle-close">结清</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 类目管理 弹窗 ============ -->
+<div class="lg-modal-backdrop" id="lg-cat-modal" hidden>
+  <div class="lg-modal" role="dialog" aria-modal="true" aria-labelledby="lg-cat-title">
+    <div class="lg-modal-head">
+      <h2 id="lg-cat-title">类目管理</h2>
+      <button type="button" class="lg-x" data-close="lg-cat-modal" aria-label="关闭">×</button>
+    </div>
+    <div class="lg-cat-tabs" id="lg-cat-tabs">
+      <button type="button" data-ctype="expense" class="active">支出类目</button>
+      <button type="button" data-ctype="income">收入类目</button>
+    </div>
+    <p class="lg-hint">支出类目可填月预算（留空=不限）；↑↓ 调顺序。</p>
+    <div class="lg-cat-manage" id="lg-cat-manage"></div>
+    <div class="lg-cat-add">
+      <input type="text" id="lg-cat-emoji" class="lg-cat-emoji-in" maxlength="2" placeholder="🍜">
+      <input type="text" id="lg-cat-name" maxlength="12" placeholder="新类目名">
+      <button type="button" class="lg-btn-primary lg-btn-sm" id="lg-cat-add-btn">添加</button>
+    </div>
+    <div class="lg-modal-foot"><span class="lg-foot-spacer"></span><button type="button" class="lg-btn-primary" data-close="lg-cat-modal">完成</button></div>
+  </div>
+</div>
+
+<!-- ============ 账户管理 弹窗 ============ -->
+<div class="lg-modal-backdrop" id="lg-acc-modal" hidden>
+  <div class="lg-modal" role="dialog" aria-modal="true" aria-labelledby="lg-acc-title">
+    <div class="lg-modal-head">
+      <h2 id="lg-acc-title">账户 / 钱包</h2>
+      <button type="button" class="lg-x" data-close="lg-acc-modal" aria-label="关闭">×</button>
+    </div>
+    <p class="lg-hint">分开管现金、银行卡、支付宝等。建了多个账户后，记账时可指定钱从哪个账户走，还能「转账」在账户间移钱。</p>
+    <div class="lg-cat-manage" id="lg-acc-manage"></div>
+    <div class="lg-cat-add">
+      <input type="text" id="lg-acc-emoji" class="lg-cat-emoji-in" maxlength="2" placeholder="💳">
+      <input type="text" id="lg-acc-name" maxlength="12" placeholder="新账户名">
+      <button type="button" class="lg-btn-primary lg-btn-sm" id="lg-acc-add-btn">添加</button>
+    </div>
+    <div class="lg-modal-foot"><span class="lg-foot-spacer"></span><button type="button" class="lg-btn-primary" data-close="lg-acc-modal">完成</button></div>
+  </div>
+</div>
+
+<!-- ============ 周期账 弹窗 ============ -->
+<div class="lg-modal-backdrop" id="lg-rec-modal" hidden>
+  <div class="lg-modal" role="dialog" aria-modal="true" aria-labelledby="lg-rec-title">
+    <div class="lg-modal-head">
+      <h2 id="lg-rec-title">周期记账</h2>
+      <button type="button" class="lg-x" data-close="lg-rec-modal" aria-label="关闭">×</button>
+    </div>
+    <div class="lg-cat-manage" id="lg-rec-list"></div>
+    <div class="lg-rec-add">
+      <div class="lg-field-row">
+        <label class="lg-field"><span>类型</span>
+          <select id="lg-rec-type"><option value="expense">支出</option><option value="income">收入</option></select>
+        </label>
+        <label class="lg-field"><span>类目</span><select id="lg-rec-cat"></select></label>
+      </div>
+      <div class="lg-field-row">
+        <label class="lg-field"><span>金额</span><input type="number" id="lg-rec-amount" inputmode="decimal" step="any" min="0" placeholder="0.00"></label>
+        <label class="lg-field"><span>币种</span><select id="lg-rec-cur"><option value="CNY">¥ CNY</option><option value="USD">$ USD</option></select></label>
+      </div>
+      <div class="lg-field-row">
+        <label class="lg-field"><span>频率</span>
+          <select id="lg-rec-freq"><option value="monthly">每月</option><option value="weekly">每周</option><option value="daily">每天</option></select>
+        </label>
+        <label class="lg-field" id="lg-rec-day-wrap"><span>哪天</span><select id="lg-rec-day"></select></label>
+      </div>
+      <label class="lg-field"><span>备注</span><input type="text" id="lg-rec-note" maxlength="40" placeholder="如：房租 / Netflix"></label>
+      <button type="button" class="lg-btn-primary lg-btn-sm" id="lg-rec-add-btn">＋ 添加周期账</button>
+    </div>
+    <div class="lg-modal-foot"><span class="lg-foot-spacer"></span><button type="button" class="lg-btn-primary" data-close="lg-rec-modal">完成</button></div>
+  </div>
+</div>
+
+<!-- ============ 设置 弹窗 ============ -->
+<div class="lg-modal-backdrop" id="lg-settings-modal" hidden>
+  <div class="lg-modal" role="dialog" aria-modal="true" aria-labelledby="lg-set-title">
+    <div class="lg-modal-head">
+      <h2 id="lg-set-title">设置</h2>
+      <button type="button" class="lg-x" data-close="lg-settings-modal" aria-label="关闭">×</button>
+    </div>
+    <label class="lg-field">
+      <span>默认显示币种</span>
+      <select id="lg-set-cur"><option value="CNY">¥ 人民币 (CNY)</option><option value="USD">$ 美元 (USD)</option></select>
+    </label>
+    <label class="lg-field">
+      <span>每周从星期几开始</span>
+      <select id="lg-set-week"><option value="1">周一</option><option value="0">周日</option></select>
+    </label>
+    <label class="lg-field">
+      <span>本月总预算（按显示币种，留空=不设）</span>
+      <input type="number" id="lg-set-budget" inputmode="decimal" step="any" min="0" placeholder="如 600">
+    </label>
+    <label class="lg-field">
+      <span>预算用到多少时提醒</span>
+      <select id="lg-set-warn"><option value="0.7">70%</option><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option></select>
+    </label>
+    <div class="lg-field-row">
+      <label class="lg-field"><span>手动汇率　1 $ = ? ¥</span><input type="number" id="lg-set-fxrate" inputmode="decimal" step="any" min="0" placeholder="如 7.2"></label>
+    </div>
+    <label class="lg-check lg-check-block">
+      <input type="checkbox" id="lg-set-fxmerge">
+      <span>把其他币种按此汇率折算进合计（默认关，分开看）</span>
+    </label>
+    <label class="lg-check lg-check-block">
+      <input type="checkbox" id="lg-set-badge">
+      <span>当某笔的时区与当前不同时，显示时区角标</span>
+    </label>
+    <div class="lg-set-links">
+      <button type="button" class="lg-btn-ghost lg-btn-sm" id="lg-cat-open">管理类目…</button>
+      <button type="button" class="lg-btn-ghost lg-btn-sm" id="lg-acc-open">管理账户…</button>
+      <button type="button" class="lg-btn-ghost lg-btn-sm" id="lg-rec-open">周期记账…</button>
+    </div>
+    <p class="lg-hint lg-privacy-note">🔒 所有数据只存在这台设备的浏览器里，永不上传，谁也读不到。换设备请用「备份 / 导入」。</p>
+    <div class="lg-modal-foot"><span class="lg-foot-spacer"></span><button type="button" class="lg-btn-primary" id="lg-set-save">保存</button></div>
+  </div>
+</div>
+
+<!-- ============ 备份 / 导入 弹窗 ============ -->
+<div class="lg-modal-backdrop" id="lg-io-modal" hidden>
+  <div class="lg-modal" role="dialog" aria-modal="true" aria-labelledby="lg-io-title">
+    <div class="lg-modal-head">
+      <h2 id="lg-io-title">备份 / 导入</h2>
+      <button type="button" class="lg-x" data-close="lg-io-modal" aria-label="关闭">×</button>
+    </div>
+    <p class="lg-hint">导出一个文件保存到网盘 / 发给自己，换设备或清缓存后导入即可恢复。勾选加密后文件用你的密码上锁，没有密码谁也打不开。</p>
+    <label class="lg-check lg-check-block"><input type="checkbox" id="lg-io-encrypt"><span>用密码加密导出文件</span></label>
+    <label class="lg-field" id="lg-io-pass-field" hidden>
+      <span>密码（导入时需要，忘了找不回）</span>
+      <input type="password" id="lg-io-pass" autocomplete="new-password" placeholder="设一个密码">
+    </label>
+    <div class="lg-io-btns">
+      <button type="button" class="lg-btn-primary" id="lg-io-export">导出备份</button>
+      <label class="lg-btn-ghost lg-io-import-label">导入文件…<input type="file" id="lg-io-import" accept=".json,application/json" hidden></label>
+    </div>
+    <p class="lg-hint" id="lg-io-status"></p>
+    <div class="lg-modal-foot">
+      <button type="button" class="lg-btn-ghost lg-del" id="lg-io-clear">清空全部数据</button>
+      <span class="lg-foot-spacer"></span>
+      <button type="button" class="lg-btn-ghost" data-close="lg-io-modal">关闭</button>
+    </div>
+  </div>
+</div>
