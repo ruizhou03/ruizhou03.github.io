@@ -17,8 +17,7 @@ permalink: /toolbox/pindou/
   .pb-wrap.is-shared #step1 { display: none; }
   .pb-wrap.is-shared .pb-step-n { display: none; }
   .pb-wrap.is-shared #step2 .pb-step-h, .pb-wrap.is-shared #step2 .pb-step-hint { display: none; }
-  .pb-wrap.is-shared #step2 .pb-ctl { display: none; }
-  .pb-wrap.is-shared #step2 .pb-work { grid-template-columns: 1fr; }
+  .pb-wrap.is-shared #step2 .pb-ctlbar { display: none; }
   .pb-wrap.is-shared #step2 .pb-stats { margin-top: .8rem; }
   .pb-step-h { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.85rem; }
   .pb-step-n { flex: 0 0 auto; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
@@ -105,9 +104,11 @@ permalink: /toolbox/pindou/
   .pb-cut-bar > i { display: block; height: 100%; width: 0; background: #fff; border-radius: 3px; transition: width .25s linear; }
 
   /* step2 工作区：左拼豆主视觉 + 右控件 */
-  .pb-work { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(208px,1fr); gap: 1rem; align-items: start; }
-  @media (max-width: 720px) { .pb-work { grid-template-columns: 1fr; } }
-  .pb-work-side .pb-ctl { margin-bottom: .9rem; }
+  /* 控件收顶(紧凑 2 列) + 画布全宽 */
+  .pb-ctlbar { display: grid; grid-template-columns: 1fr 1fr; gap: .2rem 1.2rem; margin-bottom: 1rem; }
+  @media (max-width: 560px) { .pb-ctlbar { grid-template-columns: 1fr; gap: .2rem; } }
+  .pb-ctlbar .pb-ctl { margin-bottom: .5rem; }
+  .pb-toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; margin-bottom: .5rem; }
 
   /* stats */
   .pb-stats { display: flex; flex-wrap: wrap; gap: .5rem; margin: .2rem 0 0; }
@@ -116,7 +117,7 @@ permalink: /toolbox/pindou/
   .pb-stat small { font-size: .7rem; color: var(--color-muted); }
 
   /* preview：始终完整自适应居中，放大才滚动 */
-  .pb-preview-box { display: flex; height: 56vh; max-height: 540px; min-height: 240px; overflow: auto; border: 1px solid var(--color-border); border-radius: 10px; background: #fbfbfc; padding: .5rem; }
+  .pb-preview-box { display: flex; height: 60vh; max-height: 660px; min-height: 260px; overflow: auto; border: 1px solid var(--color-border); border-radius: 10px; background: #fbfbfc; padding: .5rem; }
   .pb-preview-box canvas { image-rendering: auto; margin: auto; }
   .pb-zoom { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; font-size: .82rem; color: var(--color-light); }
 
@@ -142,6 +143,7 @@ permalink: /toolbox/pindou/
   .pb-legend { margin-top: .4rem; }
   .pb-legend table { width: 100%; border-collapse: collapse; font-size: .84rem; }
   .pb-legend th { text-align: left; color: var(--color-muted); font-weight: 500; font-size: .76rem; padding: .3rem .4rem; border-bottom: 1px solid var(--color-border); }
+  .pb-legend th.num { text-align: right; }
   .pb-legend td { padding: .32rem .4rem; border-bottom: 1px solid var(--color-border); color: var(--color-ink); }
   .pb-legend td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .pb-sw { display: inline-block; width: 1.05rem; height: 1.05rem; border-radius: 4px; border: 1px solid rgba(0,0,0,.15); vertical-align: middle; }
@@ -230,50 +232,56 @@ permalink: /toolbox/pindou/
     <div class="pb-step-h"><div class="pb-step-n">2</div><div class="pb-step-t">调整 · 图纸 · 清单</div></div>
     <div class="pb-step-hint">左边切「效果图 / 坐标图」随调随变，可下载或「⛶ 全屏看图纸」对着拼；右边调精细度/颜色/耗时；下方是采买清单。</div>
 
-    <div class="pb-work">
-      <div class="pb-work-main">
-        <div class="pb-seg" id="previewMode" style="margin-bottom:.55rem;">
+    <!-- 控件收顶，紧凑 2 列 -->
+    <div class="pb-ctlbar">
+      <div class="pb-ctl">
+        <div class="pb-ctl-lab"><b>精细度</b><span id="resVal">48 格 · 普通</span></div>
+        <input type="range" class="pb-range" id="res" min="20" max="120" step="1" value="48">
+      </div>
+      <div class="pb-ctl">
+        <div class="pb-ctl-lab"><b>颜色种数</b><span id="colVal">16 色</span></div>
+        <input type="range" class="pb-range" id="cols" min="2" max="36" step="1" value="16">
+      </div>
+      <div class="pb-ctl pb-target">
+        <div class="pb-ctl-lab"><b>🎯 目标耗时</b><span id="timeEst">约 …</span></div>
+        <input type="range" class="pb-range" id="timeTarget" min="15" max="900" step="5" value="160">
+        <div class="pb-cap" style="text-align:left;"><span id="effortLabel"></span> · 拖它定「想花多久」，精细度+颜色自动适配</div>
+      </div>
+      <div class="pb-ctl">
+        <div class="pb-ctl-lab"><b>底板背景</b></div>
+        <div class="pb-seg" id="bgSeg">
+          <button class="on" data-bg="none">留空</button>
+          <button data-bg="#FFFFFF">填白</button>
+          <button data-bg="#1A1A1A">填黑</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 大画布（全宽主视觉） -->
+    <div class="pb-work-main">
+      <div class="pb-toolrow">
+        <div class="pb-seg" id="previewMode">
           <button class="on" data-mode="effect">🧩 效果图</button>
           <button data-mode="chart">🔢 坐标图</button>
         </div>
-        <div class="pb-preview-box"><canvas id="preview"></canvas></div>
-        <div class="pb-zoom">
-          <button class="pb-btn sm" id="zoomOut">－ 缩小</button>
-          <button class="pb-btn sm" id="zoomFit">⤢ 适应</button>
-          <button class="pb-btn sm" id="zoomIn">＋ 放大</button>
-          <button class="pb-btn sm" id="fsOpen">⛶ 全屏看图纸</button>
-          <button class="pb-btn sm pri" id="dlCurrent">⬇︎ 下载这张（带图例）</button>
-          <span id="zoomTxt"></span>
-        </div>
+        <span style="flex:1 1 auto;"></span>
+        <button class="pb-btn sm" id="zoomOut">－</button>
+        <button class="pb-btn sm" id="zoomFit">⤢ 适应</button>
+        <button class="pb-btn sm" id="zoomIn">＋</button>
+        <button class="pb-btn sm" id="fsOpen">⛶ 全屏</button>
+        <span id="zoomTxt" style="font-size:.78rem;color:var(--color-light);"></span>
       </div>
-      <div class="pb-work-side">
-        <div class="pb-ctl">
-          <div class="pb-ctl-lab"><b>精细度</b><span id="resVal">48 格 · 普通</span></div>
-          <input type="range" class="pb-range" id="res" min="20" max="120" step="1" value="48">
-        </div>
-        <div class="pb-ctl">
-          <div class="pb-ctl-lab"><b>颜色种数</b><span id="colVal">16 色</span></div>
-          <input type="range" class="pb-range" id="cols" min="2" max="36" step="1" value="16">
-        </div>
-        <div class="pb-ctl pb-target">
-          <div class="pb-ctl-lab"><b>🎯 目标耗时</b><span id="timeEst">约 …</span></div>
-          <input type="range" class="pb-range" id="timeTarget" min="15" max="900" step="5" value="160">
-          <div class="pb-cap" style="text-align:left;"><span id="effortLabel"></span> · 拖它直接定「想花多久」，精细度+颜色自动适配</div>
-        </div>
-        <div class="pb-ctl">
-          <div class="pb-ctl-lab"><b>底板背景</b></div>
-          <div class="pb-seg" id="bgSeg">
-            <button class="on" data-bg="none">留空</button>
-            <button data-bg="#FFFFFF">填白</button>
-            <button data-bg="#1A1A1A">填黑</button>
-          </div>
-        </div>
-        <div class="pb-stats" id="stats"></div>
+      <div class="pb-preview-box"><canvas id="preview"></canvas></div>
+      <div class="pb-btnrow" style="margin-top:.6rem;">
+        <button class="pb-btn pri" id="dlCurrent">⬇︎ 下载这张（带图例）</button>
+        <button class="pb-btn" id="shareBtn">🔗 复制分享链接</button>
+        <span class="pb-cap" id="shareMsg" style="align-self:center;"></span>
       </div>
+      <div class="pb-stats" id="stats"></div>
     </div>
     <div class="pb-msg pb-hidden" id="genMsg"></div>
 
-    <!-- 采买清单 & 分享（原步骤③并入此处） -->
+    <!-- 采买清单 -->
     <div class="pb-legend">
       <div style="font-size:.9rem;color:var(--color-ink);font-weight:600;margin:1.2rem 0 .3rem;">🛒 采买清单</div>
       <div class="pb-legend-ctl">
@@ -288,10 +296,6 @@ permalink: /toolbox/pindou/
       <div class="pb-legend-ctl" id="legendPagerWrap" style="justify-content:center;margin-top:.5rem;">
         <span class="pb-pager"><button id="legPrev">‹</button>第 <span id="legPageNo">1</span> / <span id="legPages">1</span> 页<button id="legNext">›</button></span>
       </div>
-    </div>
-    <div class="pb-btnrow">
-      <button class="pb-btn" id="shareBtn">🔗 复制分享链接</button>
-      <span class="pb-cap" id="shareMsg" style="align-self:center;"></span>
     </div>
   </section>
 
