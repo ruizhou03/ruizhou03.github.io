@@ -127,6 +127,17 @@ permalink: /toolbox/pindou/
   .pb-pager button { border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-ink); border-radius: 6px; width: 1.7rem; height: 1.7rem; cursor: pointer; font-size: .9rem; }
   .pb-pager button:disabled { opacity: .4; cursor: default; }
 
+  /* 全屏看图纸 */
+  .pb-fs { position: fixed; inset: 0; z-index: 9999; background: #2b2e33; display: flex; flex-direction: column; }
+  .pb-fs-bar { display: flex; align-items: center; gap: .5rem; padding: .5rem .7rem; background: #1f2226; flex-wrap: wrap; }
+  .pb-fs-bar .pb-btn { background: #34383d; color: #eee; border-color: #4a4f55; }
+  .pb-fs-bar .pb-btn:hover { border-color: #7da7d8; }
+  .pb-fs-bar .pb-seg { border-color: #565b61; }
+  .pb-fs-bar .pb-seg button { background: #34383d; color: #cfd3d8; }
+  .pb-fs-bar .pb-seg button.on { background: var(--color-accent); color: #fff; }
+  .pb-fs-scroll { flex: 1; overflow: auto; display: flex; padding: 10px; }
+  .pb-fs-scroll canvas { margin: auto; image-rendering: auto; background: #fff; border-radius: 4px; }
+
   /* legend / shopping list */
   .pb-legend { margin-top: .4rem; }
   .pb-legend table { width: 100%; border-collapse: collapse; font-size: .84rem; }
@@ -214,10 +225,10 @@ permalink: /toolbox/pindou/
     <div class="pb-msg pb-hidden" id="cutMsg"></div>
   </section>
 
-  <!-- ========== ② 调精细度 & 配色 ========== -->
+  <!-- ========== ② 调整 · 图纸 · 清单 ========== -->
   <section class="pb-step pb-locked" id="step2">
-    <div class="pb-step-h"><div class="pb-step-n">2</div><div class="pb-step-t">调精细度 & 配色</div></div>
-    <div class="pb-step-hint">左边是拼豆效果，右边随手调。三条滑杆联动；左图随调随变，且始终完整显示——想看细节可手动放大。</div>
+    <div class="pb-step-h"><div class="pb-step-n">2</div><div class="pb-step-t">调整 · 图纸 · 清单</div></div>
+    <div class="pb-step-hint">左边切「效果图 / 坐标图」随调随变，可下载或「⛶ 全屏看图纸」对着拼；右边调精细度/颜色/耗时；下方是采买清单。</div>
 
     <div class="pb-work">
       <div class="pb-work-main">
@@ -230,6 +241,7 @@ permalink: /toolbox/pindou/
           <button class="pb-btn sm" id="zoomOut">－ 缩小</button>
           <button class="pb-btn sm" id="zoomFit">⤢ 适应</button>
           <button class="pb-btn sm" id="zoomIn">＋ 放大</button>
+          <button class="pb-btn sm" id="fsOpen">⛶ 全屏看图纸</button>
           <button class="pb-btn sm pri" id="dlCurrent">⬇︎ 下载这张（带图例）</button>
           <span id="zoomTxt"></span>
         </div>
@@ -260,20 +272,10 @@ permalink: /toolbox/pindou/
       </div>
     </div>
     <div class="pb-msg pb-hidden" id="genMsg"></div>
-  </section>
 
-  <!-- ========== ③ 图纸 & 清单 ========== -->
-  <section class="pb-step pb-locked" id="step3">
-    <div class="pb-step-h"><div class="pb-step-n">3</div><div class="pb-step-t">购物清单 & 分享</div></div>
-    <div class="pb-step-hint">上方预览区可切换「效果图 / 坐标图」并下载（都带底部配色图例）。下面是采买清单，照着买就行。</div>
-
-    <div class="pb-btnrow" style="margin-top:0;">
-      <button class="pb-btn pri" id="shareBtn">🔗 复制分享链接</button>
-    </div>
-    <div class="pb-cap" id="shareMsg" style="text-align:left;min-height:1em;"></div>
-
+    <!-- 采买清单 & 分享（原步骤③并入此处） -->
     <div class="pb-legend">
-      <div style="font-size:.85rem;color:var(--color-ink);font-weight:600;margin:1rem 0 .3rem;">🛒 配色清单</div>
+      <div style="font-size:.9rem;color:var(--color-ink);font-weight:600;margin:1.2rem 0 .3rem;">🛒 采买清单</div>
       <div class="pb-legend-ctl">
         <span>排序 <select id="legendSort"><option value="count">按用量 ↓</option><option value="code">按色号</option></select></span>
         <span>每页 <select id="legendPer"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="999">全部</option></select> 个</span>
@@ -287,7 +289,24 @@ permalink: /toolbox/pindou/
         <span class="pb-pager"><button id="legPrev">‹</button>第 <span id="legPageNo">1</span> / <span id="legPages">1</span> 页<button id="legNext">›</button></span>
       </div>
     </div>
+    <div class="pb-btnrow">
+      <button class="pb-btn" id="shareBtn">🔗 复制分享链接</button>
+      <span class="pb-cap" id="shareMsg" style="align-self:center;"></span>
+    </div>
   </section>
+
+  <!-- 全屏看图纸（对着拼） -->
+  <div class="pb-fs pb-hidden" id="fsOverlay">
+    <div class="pb-fs-bar">
+      <div class="pb-seg" id="fsMode"><button data-mode="effect">🧩 效果图</button><button data-mode="chart">🔢 坐标图</button></div>
+      <span style="flex:1 1 auto;"></span>
+      <button class="pb-btn sm" id="fsOut">－</button>
+      <button class="pb-btn sm" id="fsFit">适应</button>
+      <button class="pb-btn sm" id="fsIn">＋</button>
+      <button class="pb-btn sm" id="fsClose">✕ 关闭</button>
+    </div>
+    <div class="pb-fs-scroll" id="fsScroll"><canvas id="fsCanvas"></canvas></div>
+  </div>
 </div>
 
 {% raw %}
@@ -699,7 +718,7 @@ permalink: /toolbox/pindou/
     for(let y=0;y<rows;y++){ grid[y]=new Array(cols);
       for(let x=0;x<cols;x++){ const pi=cellPi[y*cols+x]; grid[y][x]= pi<0?-1:remap[pi]; } }
     S.grid=grid; S.used=used;
-    renderStats(); fitZoom(); renderPreview(); enableStep('step3'); renderLegend();
+    renderStats(); fitZoom(); renderPreview(); renderLegend();
   }
 
   // ---- 耗时模型（颜色数也计入：颜色越多越慢 + 每色一次分拣成本）----
@@ -803,6 +822,28 @@ permalink: /toolbox/pindou/
   $('zoomIn').addEventListener('click', ()=>{ S.cellPx=Math.min(40, S.cellPx*1.35); renderPreview(); });
   $('zoomOut').addEventListener('click', ()=>{ S.cellPx=Math.max(1.5, S.cellPx/1.35); renderPreview(); });
   $('zoomFit').addEventListener('click', ()=>{ fitZoom(); renderPreview(); });
+
+  // ---- 全屏看图纸（对着拼）----
+  let fsCellPx=20, fsMode='chart';
+  function fsRender(){ const c=$('fsCanvas'); if(!S.grid) return;
+    if(fsMode==='chart') renderChartTo(c, fsCellPx); else renderEffectTo(c, fsCellPx); }
+  function fsFit(){ const box=$('fsScroll'); const aw=Math.max(120,box.clientWidth-24), ah=Math.max(120,box.clientHeight-24);
+    if(fsMode==='chart'){ const m=30; fsCellPx=Math.max(4, Math.floor(Math.min((aw-m)/S.cols, (ah-m)/S.rows))); }
+    else fsCellPx=Math.max(3, Math.floor(Math.min(aw/S.cols, ah/S.rows)));
+    fsRender(); }
+  function openFs(){ if(!S.grid) return; fsMode = S.previewMode || 'effect';
+    document.querySelectorAll('#fsMode button').forEach(b=>b.classList.toggle('on', b.dataset.mode===fsMode));
+    $('fsOverlay').classList.remove('pb-hidden'); document.body.style.overflow='hidden';
+    requestAnimationFrame(fsFit); }  // 等遮罩布局好再按尺寸适应
+  function closeFs(){ $('fsOverlay').classList.add('pb-hidden'); document.body.style.overflow=''; }
+  $('fsOpen').addEventListener('click', openFs);
+  $('fsClose').addEventListener('click', closeFs);
+  $('fsIn').addEventListener('click', ()=>{ fsCellPx=Math.min(64, fsCellPx*1.3); fsRender(); });
+  $('fsOut').addEventListener('click', ()=>{ fsCellPx=Math.max(2, fsCellPx/1.3); fsRender(); });
+  $('fsFit').addEventListener('click', fsFit);
+  $('fsMode').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; fsMode=b.dataset.mode;
+    document.querySelectorAll('#fsMode button').forEach(x=>x.classList.toggle('on',x===b)); fsFit(); });
+  window.addEventListener('keydown', e=>{ if(e.key==='Escape' && !$('fsOverlay').classList.contains('pb-hidden')) closeFs(); });
 
   // ---- 配色清单（排序 + 分页）----
   function codeNum(c){ const n=parseInt(String(c||'').replace(/^[A-Za-z]+/,'')); return isNaN(n)?9999:n; }
@@ -978,7 +1019,7 @@ permalink: /toolbox/pindou/
     if(decodeShare(m[1])){
       $('pbwrap').classList.add('is-shared');   // 看图模式：主视觉=拼豆图，藏掉上传/滑杆
       $('sharedBanner').classList.remove('pb-hidden');
-      enableStep('step2'); enableStep('step3');
+      enableStep('step2');
       const lng=Math.max(S.cols,S.rows);
       S.res=Math.min(120,Math.max(20,lng)); resInput.value=S.res; $('resVal').textContent=lng+' 格';
       S.colorN=Math.min(36,Math.max(2,S.used.length)); colsInput.value=S.colorN; $('colVal').textContent=S.used.length+' 色';
