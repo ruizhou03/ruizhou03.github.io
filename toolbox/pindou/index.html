@@ -221,11 +221,16 @@ permalink: /toolbox/pindou/
 
     <div class="pb-work">
       <div class="pb-work-main">
+        <div class="pb-seg" id="previewMode" style="margin-bottom:.55rem;">
+          <button class="on" data-mode="effect">🧩 效果图</button>
+          <button data-mode="chart">🔢 坐标图</button>
+        </div>
         <div class="pb-preview-box"><canvas id="preview"></canvas></div>
         <div class="pb-zoom">
           <button class="pb-btn sm" id="zoomOut">－ 缩小</button>
           <button class="pb-btn sm" id="zoomFit">⤢ 适应</button>
           <button class="pb-btn sm" id="zoomIn">＋ 放大</button>
+          <button class="pb-btn sm pri" id="dlCurrent">⬇︎ 下载这张（带图例）</button>
           <span id="zoomTxt"></span>
         </div>
       </div>
@@ -259,13 +264,11 @@ permalink: /toolbox/pindou/
 
   <!-- ========== ③ 图纸 & 清单 ========== -->
   <section class="pb-step pb-locked" id="step3">
-    <div class="pb-step-h"><div class="pb-step-n">3</div><div class="pb-step-t">图纸 & 购物清单</div></div>
-    <div class="pb-step-hint">照着图纸一格一格摆，格子里的色号对应下方清单。两种图都带底部配色图例（颜色 + 个数）。</div>
+    <div class="pb-step-h"><div class="pb-step-n">3</div><div class="pb-step-t">购物清单 & 分享</div></div>
+    <div class="pb-step-hint">上方预览区可切换「效果图 / 坐标图」并下载（都带底部配色图例）。下面是采买清单，照着买就行。</div>
 
     <div class="pb-btnrow" style="margin-top:0;">
-      <button class="pb-btn pri" id="dlPreview">⬇︎ 下载效果图（带图例）</button>
-      <button class="pb-btn" id="dlChart">⬇︎ 下载坐标图纸（带图例）</button>
-      <button class="pb-btn" id="shareBtn">🔗 复制分享链接</button>
+      <button class="pb-btn pri" id="shareBtn">🔗 复制分享链接</button>
     </div>
     <div class="pb-cap" id="shareMsg" style="text-align:left;min-height:1em;"></div>
 
@@ -274,13 +277,15 @@ permalink: /toolbox/pindou/
       <div class="pb-legend-ctl">
         <span>排序 <select id="legendSort"><option value="count">按用量 ↓</option><option value="code">按色号</option></select></span>
         <span>每页 <select id="legendPer"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="999">全部</option></select> 个</span>
-        <span class="pb-pager"><button id="legPrev">‹</button>第 <span id="legPageNo">1</span>/<span id="legPages">1</span> 页<button id="legNext">›</button></span>
+        <span id="legendTotal" style="font-weight:600;color:var(--color-ink);"></span>
       </div>
       <table>
         <thead><tr><th>色号</th><th>颜色</th><th>名称</th><th class="num">颗数</th><th class="num">占比</th></tr></thead>
         <tbody id="legendBody"></tbody>
-        <tfoot id="legendFoot"></tfoot>
       </table>
+      <div class="pb-legend-ctl" id="legendPagerWrap" style="justify-content:center;margin-top:.5rem;">
+        <span class="pb-pager"><button id="legPrev">‹</button>第 <span id="legPageNo">1</span> / <span id="legPages">1</span> 页<button id="legNext">›</button></span>
+      </div>
     </div>
   </section>
 </div>
@@ -351,9 +356,12 @@ permalink: /toolbox/pindou/
   // ===================================================================
   const IMGLY_URL = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm';
   const R2_MODEL_PATH = 'https://pub-6ce548df24434edb9fea591e78eecdbd.r2.dev/bg/imgly/1.5.5/dist/';
-  // 有 WebGPU 就用 GPU 跑(快得多,30s→几秒)，没有则回退 CPU(慢但能用)；两种 wasm 都已托管
+  // 有 WebGPU 就先试 GPU(快,30s→几秒)，失败自动回退 CPU(慢但稳)。两种 wasm 都已托管。
+  // onnxruntime-web 1.18 调 adapter.requestAdapterInfo()，新版 Chrome 已移除该 API → WebGPU 报错；补 polyfill
+  try{ if(typeof GPUAdapter!=='undefined' && GPUAdapter.prototype && !GPUAdapter.prototype.requestAdapterInfo){
+    GPUAdapter.prototype.requestAdapterInfo = function(){ return Promise.resolve(this.info || {}); }; } }catch(e){}
   const USE_GPU = !!(typeof navigator!=='undefined' && navigator.gpu);
-  const MODEL_CFG = { model: 'isnet_quint8', device: USE_GPU ? 'gpu' : 'cpu', publicPath: R2_MODEL_PATH };
+  const MODEL_CFG = { model: 'isnet_quint8', publicPath: R2_MODEL_PATH };
   const STALL_MS = 15000; // 连续 15 秒毫无下载进度才判定卡住放弃
   const DL_RE = /fetch|download|model|onnx|wasm/i;
 
@@ -485,11 +493,20 @@ permalink: /toolbox/pindou/
       onModelProgress = null;
       if(S.modelReady) toCut(); else toDownload(S.preloadFrac);
       const removeBackground = mod.removeBackground || mod.default;
-      const blob = await removeBackground(currentFile, Object.assign({}, MODEL_CFG, {
-        output: { format: 'image/png' },
-        progress: (key, cur, tot) => { if(myGen!==S.aiGen) return;
-          if(DL_RE.test(key) && phase!=='cut') toDownload(tot?cur/tot:0); else toCut(); }
-      }));
+      const progCb = (key, cur, tot) => { if(myGen!==S.aiGen) return;
+        if(DL_RE.test(key) && phase!=='cut') toDownload(tot?cur/tot:0); else toCut(); };
+      const run = (dev) => removeBackground(currentFile, Object.assign({device:dev}, MODEL_CFG, { output:{format:'image/png'}, progress: progCb }));
+      let blob;
+      if(USE_GPU){
+        try { blob = await run('gpu'); }
+        catch(gpuErr){
+          if(myGen!==S.aiGen){ clearTimers(); stopCreep(); return; }
+          console.warn('[pindou] WebGPU 抠图失败，回退 CPU：', gpuErr && gpuErr.message);
+          toCut(); blob = await run('cpu');   // CPU 一定能跑（原本就用 CPU）
+        }
+      } else {
+        blob = await run('cpu');
+      }
       clearTimers();
       if(myGen!==S.aiGen){ stopCreep(); return; }
       const cutMs = cutStart ? (Date.now()-cutStart) : 0;
@@ -750,21 +767,23 @@ permalink: /toolbox/pindou/
     renderTimeLabel(t);
   }
 
-  // ---- 预览（拼豆珠样式）：始终整张铺满自适应，放大才滚动 ----
+  // ---- 预览：效果图(珠样) / 坐标图(色号格) 两种模式，始终整张铺满自适应，放大才滚动 ----
   const preview=$('preview');
   function fitZoom(){
     const box=document.querySelector('.pb-preview-box');
     const availW=Math.max(120,(box.clientWidth||400)-14);
     const availH=Math.max(120,(box.clientHeight||320)-14);
-    S.cellPx=Math.max(2, Math.floor(Math.min(availW/S.cols, availH/S.rows)));
+    if(S.previewMode==='chart'){ const m=26; // 坐标图有行列号留白
+      S.cellPx=Math.max(3, Math.floor(Math.min((availW-m)/S.cols, (availH-m)/S.rows))); }
+    else S.cellPx=Math.max(2, Math.floor(Math.min(availW/S.cols, availH/S.rows)));
     S.fitPx=S.cellPx;
   }
-  function renderPreview(){
-    if(!S.grid) return;
-    const cp=S.cellPx, pad=Math.max(5,cp*0.4);
-    preview.width=Math.round(S.cols*cp+pad*2); preview.height=Math.round(S.rows*cp+pad*2);
-    const cx=preview.getContext('2d');
-    cx.fillStyle='#ECEDEF'; cx.fillRect(0,0,preview.width,preview.height);
+  // 效果图(拼豆珠样式)画到任意 canvas
+  function renderEffectTo(c, cp){
+    const pad=Math.max(5,cp*0.4);
+    c.width=Math.round(S.cols*cp+pad*2); c.height=Math.round(S.rows*cp+pad*2);
+    const cx=c.getContext('2d');
+    cx.fillStyle='#ECEDEF'; cx.fillRect(0,0,c.width,c.height);
     for(let y=0;y<S.rows;y++) for(let x=0;x<S.cols;x++){
       const g=S.grid[y][x]; const ccx=pad+x*cp+cp/2, ccy=pad+y*cp+cp/2;
       if(g<0){ cx.beginPath(); cx.arc(ccx,ccy,cp*0.12,0,7); cx.fillStyle='rgba(0,0,0,.06)'; cx.fill(); continue; }
@@ -772,8 +791,14 @@ permalink: /toolbox/pindou/
       cx.lineWidth=Math.max(1,cp*0.045); cx.strokeStyle='rgba(0,0,0,.12)'; cx.stroke();
       cx.beginPath(); cx.arc(ccx,ccy,cp*0.17,0,7); cx.fillStyle='#ECEDEF'; cx.fill();
     }
-    const fit = S.fitPx && Math.abs(cp-S.fitPx)<0.6;
-    $('zoomTxt').textContent = fit ? '整张已铺满' : '珠 '+Math.round(cp)+'px';
+    return c;
+  }
+  function renderPreview(){
+    if(!S.grid) return;
+    if(S.previewMode==='chart') renderChartTo(preview, Math.max(4, Math.round(S.cellPx)));
+    else renderEffectTo(preview, S.cellPx);
+    const fit = S.fitPx && Math.abs(S.cellPx-S.fitPx)<0.6;
+    $('zoomTxt').textContent = fit ? '整张已铺满' : (S.previewMode==='chart'?'格 ':'珠 ')+Math.round(S.cellPx)+'px';
   }
   $('zoomIn').addEventListener('click', ()=>{ S.cellPx=Math.min(40, S.cellPx*1.35); renderPreview(); });
   $('zoomOut').addEventListener('click', ()=>{ S.cellPx=Math.max(1.5, S.cellPx/1.35); renderPreview(); });
@@ -800,9 +825,10 @@ permalink: /toolbox/pindou/
       '<td class="num">'+u.count.toLocaleString()+'</td>'+
       '<td class="num">'+(total?(u.count/total*100).toFixed(1):0)+'%</td></tr>'
     ).join('');
-    $('legendFoot').innerHTML='<tr><td></td><td></td><td><b>合计 '+list.length+' 色</b></td><td class="num"><b>'+total.toLocaleString()+'</b></td><td></td></tr>';
+    $('legendTotal').textContent = '共 '+list.length+' 色 · '+total.toLocaleString()+' 颗';
     $('legPageNo').textContent = S.legendPage; $('legPages').textContent = pages;
     $('legPrev').disabled = S.legendPage<=1; $('legNext').disabled = S.legendPage>=pages;
+    $('legendPagerWrap').style.display = pages>1 ? '' : 'none';
   }
   $('legendSort').addEventListener('change', e=>{ S.legendSort=e.target.value; S.legendPage=1; if(S.used.length) renderLegend(); });
   $('legendPer').addEventListener('change', e=>{ S.legendPer=+e.target.value; S.legendPage=1; if(S.used.length) renderLegend(); });
@@ -812,10 +838,10 @@ permalink: /toolbox/pindou/
   // ===================================================================
   //  ③ 导出（效果图 / 坐标图纸 / 打印）
   // ===================================================================
-  function buildChartCanvas(cp){
+  function buildChartCanvas(cp){ return renderChartTo(document.createElement('canvas'), cp); }
+  function renderChartTo(c, cp){
     cp = cp || 26;
     const lab=Math.max(22, cp);
-    const c=document.createElement('canvas');
     c.width=S.cols*cp+lab+6; c.height=S.rows*cp+lab+6;
     const cx=c.getContext('2d');
     cx.fillStyle='#fff'; cx.fillRect(0,0,c.width,c.height);
@@ -881,9 +907,16 @@ permalink: /toolbox/pindou/
     cx.drawImage(main,0,0); cx.drawImage(strip,0,main.height);
     return out;
   }
-  $('dlPreview').addEventListener('click', ()=>{ const big=S.cellPx; S.cellPx=Math.max(S.cellPx,14); renderPreview();
-    dlCanvas(composeWithLegend(preview),'拼豆效果图.png'); S.cellPx=big; renderPreview(); });
-  $('dlChart').addEventListener('click', ()=> dlCanvas(composeWithLegend(buildChartCanvas(32)),'拼豆坐标图纸.png'));
+  // 预览模式切换：效果图 / 坐标图
+  $('previewMode').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return;
+    S.previewMode=b.dataset.mode; document.querySelectorAll('#previewMode button').forEach(x=>x.classList.toggle('on',x===b));
+    fitZoom(); renderPreview(); });
+  // 下载当前显示的那张（带底部配色图例）
+  $('dlCurrent').addEventListener('click', ()=>{
+    if(!S.grid) return;
+    if(S.previewMode==='chart') dlCanvas(composeWithLegend(buildChartCanvas(32)), '拼豆坐标图纸.png');
+    else { const cp=Math.max(14, Math.round(S.fitPx||14)); dlCanvas(composeWithLegend(renderEffectTo(document.createElement('canvas'), cp)), '拼豆效果图.png'); }
+  });
 
   // ===================================================================
   //  分享链接：把图纸 RLE 压进 URL hash（#p=...），纯前端，别人打开即渲染
