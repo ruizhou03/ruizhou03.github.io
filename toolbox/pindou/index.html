@@ -260,19 +260,19 @@ permalink: /toolbox/pindou/
   <!-- ========== ③ 图纸 & 清单 ========== -->
   <section class="pb-step pb-locked" id="step3">
     <div class="pb-step-h"><div class="pb-step-n">3</div><div class="pb-step-t">图纸 & 购物清单</div></div>
-    <div class="pb-step-hint">照着图纸一格一格摆。「带坐标图纸」每 10 格有粗线和编号、每种颜色一个字母符号，适合打印对照。</div>
+    <div class="pb-step-hint">照着图纸一格一格摆，格子里的色号对应下方清单。两种图都带底部配色图例（颜色 + 个数）。</div>
 
     <div class="pb-btnrow" style="margin-top:0;">
-      <button class="pb-btn pri" id="dlPreview">⬇︎ 下载效果图</button>
-      <button class="pb-btn" id="dlChart">⬇︎ 下载带坐标图纸</button>
-      <button class="pb-btn" id="printChart">🖨️ 打印图纸+清单</button>
+      <button class="pb-btn pri" id="dlPreview">⬇︎ 下载效果图（带图例）</button>
+      <button class="pb-btn" id="dlChart">⬇︎ 下载坐标图纸（带图例）</button>
       <button class="pb-btn" id="shareBtn">🔗 复制分享链接</button>
     </div>
     <div class="pb-cap" id="shareMsg" style="text-align:left;min-height:1em;"></div>
 
     <div class="pb-legend">
-      <div style="font-size:.85rem;color:var(--color-ink);font-weight:600;margin:1rem 0 .3rem;">🛒 配色清单（按用量排序）</div>
+      <div style="font-size:.85rem;color:var(--color-ink);font-weight:600;margin:1rem 0 .3rem;">🛒 配色清单</div>
       <div class="pb-legend-ctl">
+        <span>排序 <select id="legendSort"><option value="count">按用量 ↓</option><option value="code">按色号</option></select></span>
         <span>每页 <select id="legendPer"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="999">全部</option></select> 个</span>
         <span class="pb-pager"><button id="legPrev">‹</button>第 <span id="legPageNo">1</span>/<span id="legPages">1</span> 页<button id="legNext">›</button></span>
       </div>
@@ -351,7 +351,9 @@ permalink: /toolbox/pindou/
   // ===================================================================
   const IMGLY_URL = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm';
   const R2_MODEL_PATH = 'https://pub-6ce548df24434edb9fea591e78eecdbd.r2.dev/bg/imgly/1.5.5/dist/';
-  const MODEL_CFG = { model: 'isnet_quint8', device: 'cpu', publicPath: R2_MODEL_PATH };
+  // 有 WebGPU 就用 GPU 跑(快得多,30s→几秒)，没有则回退 CPU(慢但能用)；两种 wasm 都已托管
+  const USE_GPU = !!(typeof navigator!=='undefined' && navigator.gpu);
+  const MODEL_CFG = { model: 'isnet_quint8', device: USE_GPU ? 'gpu' : 'cpu', publicPath: R2_MODEL_PATH };
   const STALL_MS = 15000; // 连续 15 秒毫无下载进度才判定卡住放弃
   const DL_RE = /fetch|download|model|onnx|wasm/i;
 
@@ -777,24 +779,32 @@ permalink: /toolbox/pindou/
   $('zoomOut').addEventListener('click', ()=>{ S.cellPx=Math.max(1.5, S.cellPx/1.35); renderPreview(); });
   $('zoomFit').addEventListener('click', ()=>{ fitZoom(); renderPreview(); });
 
-  // ---- 配色清单（分页）----
+  // ---- 配色清单（排序 + 分页）----
+  function codeNum(c){ const n=parseInt(String(c||'').replace(/^[A-Za-z]+/,'')); return isNaN(n)?9999:n; }
+  function sortedUsed(){
+    const arr=S.used.slice();
+    if(S.legendSort==='code') arr.sort((a,b)=>codeNum(a.code)-codeNum(b.code) || (a.code<b.code?-1:1));
+    return arr; // 默认 'count'：S.used 本就按用量降序
+  }
   function renderLegend(){
     let total=0; S.used.forEach(u=>total+=u.count);
+    const list=sortedUsed();
     const per = S.legendPer || 10;
-    const pages = Math.max(1, Math.ceil(S.used.length/per));
+    const pages = Math.max(1, Math.ceil(list.length/per));
     if(!S.legendPage || S.legendPage>pages) S.legendPage = 1;
     const start=(S.legendPage-1)*per;
-    $('legendBody').innerHTML = S.used.slice(start, start+per).map(u=>
+    $('legendBody').innerHTML = list.slice(start, start+per).map(u=>
       '<tr><td class="pb-symcell">'+(u.code||u.sym||'')+'</td>'+
       '<td><span class="pb-sw" style="background:'+u.h+'"></span></td>'+
       '<td>'+u.n+'</td>'+
       '<td class="num">'+u.count.toLocaleString()+'</td>'+
       '<td class="num">'+(total?(u.count/total*100).toFixed(1):0)+'%</td></tr>'
     ).join('');
-    $('legendFoot').innerHTML='<tr><td></td><td></td><td><b>合计 '+S.used.length+' 色</b></td><td class="num"><b>'+total.toLocaleString()+'</b></td><td></td></tr>';
+    $('legendFoot').innerHTML='<tr><td></td><td></td><td><b>合计 '+list.length+' 色</b></td><td class="num"><b>'+total.toLocaleString()+'</b></td><td></td></tr>';
     $('legPageNo').textContent = S.legendPage; $('legPages').textContent = pages;
     $('legPrev').disabled = S.legendPage<=1; $('legNext').disabled = S.legendPage>=pages;
   }
+  $('legendSort').addEventListener('change', e=>{ S.legendSort=e.target.value; S.legendPage=1; if(S.used.length) renderLegend(); });
   $('legendPer').addEventListener('change', e=>{ S.legendPer=+e.target.value; S.legendPage=1; if(S.used.length) renderLegend(); });
   $('legPrev').addEventListener('click', ()=>{ if(S.legendPage>1){ S.legendPage--; renderLegend(); } });
   $('legNext').addEventListener('click', ()=>{ S.legendPage++; renderLegend(); });
@@ -832,20 +842,48 @@ permalink: /toolbox/pindou/
     return c;
   }
   function dlCanvas(canvas, name){ canvas.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }); }
-  $('dlPreview').addEventListener('click', ()=>{ const big=S.cellPx; S.cellPx=Math.max(S.cellPx,14); renderPreview(); dlCanvas(preview,'拼豆效果图.png'); S.cellPx=big; renderPreview(); });
-  $('dlChart').addEventListener('click', ()=> dlCanvas(buildChartCanvas(32),'拼豆图纸_带坐标.png'));
+  function roundRect(cx,x,y,w,h,r){ cx.beginPath(); cx.moveTo(x+r,y); cx.arcTo(x+w,y,x+w,y+h,r); cx.arcTo(x+w,y+h,x,y+h,r); cx.arcTo(x,y+h,x,y,r); cx.arcTo(x,y,x+w,y,r); cx.closePath(); }
 
-  $('printChart').addEventListener('click', ()=>{
-    const chart=buildChartCanvas(28).toDataURL('image/png');
-    let total=0; S.used.forEach(u=>total+=u.count);
-    const rows=S.used.map(u=>'<tr><td style="font-family:monospace">'+(u.code||u.sym||'')+'</td><td><span style="display:inline-block;width:14px;height:14px;border:1px solid #999;background:'+u.h+'"></span></td><td>'+u.n+'</td><td style="text-align:right">'+u.count+'</td></tr>').join('');
-    const w=window.open('','_blank');
-    w.document.write('<html><head><title>拼豆图纸</title><style>body{font-family:sans-serif;padding:16px;color:#222}img{max-width:100%}table{border-collapse:collapse;font-size:13px;margin-top:10px}td,th{border:1px solid #ccc;padding:3px 8px}h2{font-size:16px}</style></head><body>'+
-      '<h2>拼豆图纸 · '+S.cols+'×'+S.rows+' · 共 '+total+' 颗 · '+S.used.length+' 色</h2>'+
-      '<img src="'+chart+'"><h2>配色清单</h2><table><tr><th>色号</th><th>颜色</th><th>名称</th><th>颗数</th></tr>'+rows+'</table>'+
-      '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print()},300)}</scr'+'ipt></body></html>');
-    w.document.close();
-  });
+  // 底部配色图例条（彩色小卡：色号 + 个数），跟随当前排序；画在 canvas 上,颜色一定渲染得出来
+  function buildLegendStrip(width){
+    const list=sortedUsed(); const k=Math.max(1, width/640); // 随图宽缩放
+    const pad=14*k, gap=8*k, H=30*k, sw=18*k, fs=Math.round(14*k), titleFs=Math.round(15*k);
+    const meas=document.createElement('canvas').getContext('2d'); meas.font=fs+'px ui-monospace, monospace';
+    const chips=list.map(u=>{ const label=(u.code||'?')+'  '+u.count; const tw=meas.measureText(label).width;
+      return {u, label, w: 6*k+sw+8*k+tw+12*k}; });
+    const rows=[[]]; let rowW=pad;
+    for(const c of chips){ if(rowW+c.w+gap>width-pad && rows[rows.length-1].length){ rows.push([]); rowW=pad; }
+      rows[rows.length-1].push(c); rowW+=c.w+gap; }
+    const titleH=titleFs+12*k;
+    const cv=document.createElement('canvas'); cv.width=Math.round(width);
+    cv.height=Math.round(pad + titleH + rows.length*(H+gap) - gap + pad);
+    const cx=cv.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,cv.width,cv.height);
+    let total=0; list.forEach(u=>total+=u.count);
+    cx.fillStyle='#333'; cx.font='600 '+titleFs+'px sans-serif'; cx.textBaseline='middle';
+    cx.fillText('配色 / 用量（共 '+list.length+' 色 · '+total+' 颗）', pad, pad+titleFs*0.7);
+    let y=pad+titleH;
+    for(const row of rows){ let x=pad;
+      for(const c of row){
+        cx.fillStyle='#f4f5f7'; roundRect(cx,x,y,c.w,H,7*k); cx.fill(); cx.lineWidth=1; cx.strokeStyle='#e3e3e6'; cx.stroke();
+        cx.fillStyle=c.u.h; roundRect(cx,x+6*k,y+(H-sw)/2,sw,sw,4*k); cx.fill(); cx.strokeStyle='rgba(0,0,0,.18)'; cx.stroke();
+        cx.fillStyle='#333'; cx.font=fs+'px ui-monospace, monospace'; cx.textBaseline='middle';
+        cx.fillText(c.label, x+6*k+sw+8*k, y+H/2+1);
+        x+=c.w+gap;
+      }
+      y+=H+gap;
+    }
+    return cv;
+  }
+  function composeWithLegend(main){
+    const strip=buildLegendStrip(main.width);
+    const out=document.createElement('canvas'); out.width=main.width; out.height=main.height+strip.height;
+    const cx=out.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,out.width,out.height);
+    cx.drawImage(main,0,0); cx.drawImage(strip,0,main.height);
+    return out;
+  }
+  $('dlPreview').addEventListener('click', ()=>{ const big=S.cellPx; S.cellPx=Math.max(S.cellPx,14); renderPreview();
+    dlCanvas(composeWithLegend(preview),'拼豆效果图.png'); S.cellPx=big; renderPreview(); });
+  $('dlChart').addEventListener('click', ()=> dlCanvas(composeWithLegend(buildChartCanvas(32)),'拼豆坐标图纸.png'));
 
   // ===================================================================
   //  分享链接：把图纸 RLE 压进 URL hash（#p=...），纯前端，别人打开即渲染
