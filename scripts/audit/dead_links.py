@@ -37,10 +37,18 @@ SKIP_HOST_PATTERNS = [
     r"^ruizhou03\.github\.io$",  # 英文镜像
 ]
 
+# 看着像外链、其实是 XML 命名空间 URI / 规范标识符（不会真去访问），按整条 URL 匹配跳过
+SKIP_URL_PATTERNS = [
+    r"^https?://(www\.)?w3\.org/(\d{4}/(svg|xlink)|graphics/svg)",  # SVG/xlink xmlns 命名空间
+]
+
 URL_RE = re.compile(r'https?://[^\s)<>"\'`，。、；！？]+')
 
 
 def should_skip_url(url: str) -> bool:
+    for pat in SKIP_URL_PATTERNS:
+        if re.match(pat, url, re.I):
+            return True
     try:
         host = urllib.parse.urlparse(url).hostname or ""
     except Exception:

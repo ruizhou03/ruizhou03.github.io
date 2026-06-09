@@ -4,9 +4,9 @@
 import subprocess, shutil, re
 from pathlib import Path
 
-EXAM = Path("/Users/zhourui/Desktop/其他/北京大学/课程/大二下学期/心理统计 II/Exam")
-HW_BASE = Path("/Users/zhourui/Desktop/其他/北京大学/课程/大二下学期/心理统计 II/Homework")
-REPO = Path("/Users/zhourui/Desktop/ruizhou03.github.io")
+EXAM = Path.home() / "Desktop/其他/北京大学/课程/大二下学期/心理统计 II/Exam"
+HW_BASE = Path.home() / "Desktop/其他/北京大学/课程/大二下学期/心理统计 II/Homework"
+REPO = Path(__file__).resolve().parent.parent
 TMP = Path("/tmp/rb_psy_merged")
 
 MID_DIR = EXAM / "Midterm 2023" / "1-7 Midterm Review"
@@ -45,7 +45,7 @@ fin_body = strip_yaml(fin_text)
 # 通用补丁：剥本机绝对路径
 def strip_abspath(text):
     text = re.sub(
-        r"(['\"])/Users/zhourui/Desktop/Psychological Statistics/[^'\"]+?/([^'\"/]+?)\1",
+        rf"(['\"]){re.escape(str(Path.home()))}/Desktop/Psychological Statistics/[^'\"]+?/([^'\"/]+?)\1",
         lambda m: m.group(1) + m.group(2) + m.group(1),
         text
     )

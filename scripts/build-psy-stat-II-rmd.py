@@ -4,15 +4,15 @@
 import subprocess, shutil, re
 from pathlib import Path
 
-DEMO_BASE = Path("/Users/zhourui/Desktop/其他/北京大学/课程/大二下学期/心理统计 II/Demo")
-HW_BASE = Path("/Users/zhourui/Desktop/其他/北京大学/课程/大二下学期/心理统计 II/Homework")
-REPO = Path("/Users/zhourui/Desktop/ruizhou03.github.io")
+DEMO_BASE = Path.home() / "Desktop/其他/北京大学/课程/大二下学期/心理统计 II/Demo"
+HW_BASE = Path.home() / "Desktop/其他/北京大学/课程/大二下学期/心理统计 II/Homework"
+REPO = Path(__file__).resolve().parent.parent
 TMP = Path("/tmp/rb_psy4")
 
 # 通用：剥掉本机绝对路径前缀（单/双引号都处理）
 def strip_abspath(text):
     text = re.sub(
-        r"(['\"])/Users/zhourui/Desktop/Psychological Statistics/[^'\"]+?/([^'\"/]+?)\1",
+        rf"(['\"]){re.escape(str(Path.home()))}/Desktop/Psychological Statistics/[^'\"]+?/([^'\"/]+?)\1",
         lambda m: m.group(1) + m.group(2) + m.group(1),
         text
     )

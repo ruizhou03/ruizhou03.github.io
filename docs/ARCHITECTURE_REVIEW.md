@@ -423,7 +423,7 @@ gem 'jekyll-feed'
 - `notes/index.html` 第 82 和 115 行
 - `notes/course-reviews/index.html` 第 70 行
 - `notes/toefl-gre/index.html` 第 68 行
-- `notes/pre-high-school/index.html` 第 68 行
+- `notes/tutoring/index.html` 第 68 行
 - `life/recipes/index.html` 第 240 行
 
 **改法**：

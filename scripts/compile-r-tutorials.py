@@ -3,11 +3,11 @@
 import subprocess, shutil
 from pathlib import Path
 
-REPO = Path("/Users/zhourui/Desktop/ruizhou03.github.io")
+REPO = Path(__file__).resolve().parent.parent
 SOURCE = REPO / "files/r-tutorials/source"
 DEST = REPO / "files/r-tutorials"
-DEMO_BASE = Path("/Users/zhourui/Desktop/其他/北京大学/课程/大二下学期/心理统计 II/Demo")
-HW_BASE = Path("/Users/zhourui/Desktop/其他/北京大学/课程/大二下学期/心理统计 II/Homework")
+DEMO_BASE = Path.home() / "Desktop/其他/北京大学/课程/大二下学期/心理统计 II/Demo"
+HW_BASE = Path.home() / "Desktop/其他/北京大学/课程/大二下学期/心理统计 II/Homework"
 TMP = Path("/tmp/r_compile")
 
 # slug → demo_dir → extra data files
