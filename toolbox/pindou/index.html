@@ -218,9 +218,9 @@ permalink: /toolbox/pindou/
     </div>
 
     <div class="pb-btnrow pb-hidden" id="cutBtns">
-      <button class="pb-btn pri" id="goStep3">下一步：转拼豆 →</button>
-      <button class="pb-btn" id="toggleManual">🖌️ 手动修一下</button>
-      <button class="pb-btn" id="reCut">✨ 重新 AI 抠图</button>
+      <button class="pb-btn pri" id="aiCut">✨ AI 抠图</button>
+      <button class="pb-btn pri pb-hidden" id="goStep3">下一步：转拼豆 →</button>
+      <button class="pb-btn pb-hidden" id="toggleManual">🖌️ 手动修一下</button>
       <button class="pb-btn" id="useWhole">用整张图</button>
       <button class="pb-btn" id="changeImg">↻ 换一张</button>
     </div>
@@ -390,7 +390,7 @@ permalink: /toolbox/pindou/
 
   let imglyMod = null;
   async function getModule(){ if(imglyMod) return imglyMod; imglyMod = await import(IMGLY_URL); return imglyMod; }
-  let onModelProgress = null; // runAI 用它把预下载进度映射到抠图遮罩
+  let onModelProgress = null; // cutTask 用它把预下载进度映射到抠图遮罩
   // 模型在浏览器缓存里(R2 已设 immutable Cache-Control)→ 记一个标记,文案区分"首次/已缓存"
   function modelSeen(){ try{ return localStorage.getItem('pindou_model_dl')==='1'; }catch(e){ return false; } }
   function markModelSeen(){ try{ localStorage.setItem('pindou_model_dl','1'); }catch(e){} }
@@ -450,14 +450,12 @@ permalink: /toolbox/pindou/
       drop.classList.add('pb-hidden');
       $('split').classList.remove('pb-hidden');
       $('cutBtns').classList.remove('pb-hidden');
-      // 先用整张图，立刻出像素预览（零网络依赖，秒出）
+      // 右侧先显示整张图；不自动进②、不自动弹遮罩
       S.mask = new Uint8Array(w*h).fill(255);
       clearUndo();
       renderEdit();
-      enableStep('step2');
-      regenerate();
-      // 再让 AI 在后台抠图，抠好替换
-      runAI();
+      setCutBtns(false);   // 初始只显 [✨AI抠图][用整张图][换一张]
+      startBgCut();        // 后台静默跑 AI 抠图，藏掉等待；用户点了才显进度/应用
     };
     img.onerror = ()=> showMsg('cutMsg','图片读取失败，换一张试试。', true);
     img.src = url;
@@ -492,69 +490,70 @@ permalink: /toolbox/pindou/
   // ===================================================================
   //  AI 抠图（下载阶段才检测卡住；推理阶段转圈+爬动条，给宽松绝对上限）
   // ===================================================================
-  const CUT_TIMEOUT = 120000; // 推理绝对上限：超过才放弃（不靠"无进度"误杀长推理）
-  async function runAI(){
-    if(S.busy) return;
-    S.busy = true; S.aiGaveUp = false; hideMsg('cutMsg');
-    const myGen = (S.aiGen = S.aiGen + 1);
-    S.dlStart = S.modelReady ? 1 : (S.preloadFrac||0);
-    let phase='', stall=null, hard=null, cutStart=0;
-    const clearTimers = ()=>{ clearTimeout(stall); clearTimeout(hard); };
-    const giveUp = (msg)=>{ if(myGen!==S.aiGen) return; S.aiGaveUp=true; S.busy=false; onModelProgress=null; clearTimers(); hideCut(); showMsg('cutMsg', msg, true); };
-    const armStall = ()=>{ clearTimeout(stall); stall=setTimeout(()=>giveUp('AI 抠图卡住了（网络问题）。当前用整张图，可「🖌️ 手动修一下」擦背景，或「重新 AI 抠图」再试。'), STALL_MS); };
-    function toDownload(frac){ phase='download'; stopCreep(); armStall(); showCut(frac); }
-    function toCut(){ if(phase==='cut') return; phase='cut'; clearTimeout(stall);
-      if(!cutStart) cutStart=Date.now(); showCutting();
-      clearTimeout(hard); hard=setTimeout(()=>giveUp('AI 抠图太久了（可能图太大或机器较慢）。当前用整张图，可「手动修一下」擦背景，或换张小一点的图重试。'), CUT_TIMEOUT); }
-    if(S.modelReady) toCut(); else toDownload(S.preloadFrac);
-    onModelProgress = (f)=>{ if(myGen!==S.aiGen) return; if(!S.modelReady && phase!=='cut') toDownload(f); };
+  const CUT_TIMEOUT = 120000; // 推理绝对上限
+  // 单一抠图任务：上传后静默后台跑；只有用户点了「AI 抠图」(S.aiShown)才显遮罩;抠好存 S.cutMask
+  function setCutBtns(done){
+    $('goStep3').classList.toggle('pb-hidden', !done);
+    $('toggleManual').classList.toggle('pb-hidden', !done);
+    $('aiCut').textContent = done ? '✨ 重新 AI 抠图' : '✨ AI 抠图';
+  }
+  function applyCut(){
+    if(!S.cutMask) return;
+    S.aiShown=true; S.cutApplied=true; S.painted=false;
+    S.mask = S.cutMask.slice(); clearUndo(); renderEdit(); hideCut();
+    setCutBtns(true); $('aiCut').disabled=false;
+    showMsg('cutMsg','✓ 已自动抠出主体（抠图用了 '+((S.cutMs||0)/1000).toFixed(1)+' 秒）。不干净就「🖌️ 手动修一下」，或「用整张图」。');
+    if(!$('step2').classList.contains('pb-locked')) regenerate();
+  }
+  async function cutTask(gen){
+    S.cutState='running'; S.cutFrac=0; S.cutPhase='';
+    let stall=null, hard=null, cutStart=0;
+    const alive = ()=> gen===S.cutGen;
+    const clearT = ()=>{ clearTimeout(stall); clearTimeout(hard); };
+    const fail = (msg)=>{ if(!alive())return; S.cutState='failed'; clearT(); stopCreep();
+      if(S.aiShown){ hideCut(); showMsg('cutMsg', msg, true); $('aiCut').disabled=false; } };
+    const armStall = ()=>{ clearTimeout(stall); stall=setTimeout(()=>fail('AI 抠图卡住了（网络问题）。可点「用整张图」，或「重新 AI 抠图」再试。'), STALL_MS); };
+    function onDl(frac){ S.cutPhase='download'; S.cutFrac=frac; armStall(); if(S.aiShown){ stopCreep(); showCut(frac); } }
+    function onCut(){ if(S.cutPhase!=='cut'){ S.cutPhase='cut'; clearTimeout(stall); if(!cutStart)cutStart=Date.now();
+        clearTimeout(hard); hard=setTimeout(()=>fail('AI 抠图太久了（图太大或机器慢）。可「用整张图」或换张小图重试。'), CUT_TIMEOUT); }
+      if(S.aiShown) showCutting(); }
+    armStall();
     try{
-      const mod = await getModule();
-      if(myGen!==S.aiGen){ clearTimers(); stopCreep(); return; }
-      if(S.preloadPromise){ try{ await S.preloadPromise; }catch(e){} }
-      if(myGen!==S.aiGen){ clearTimers(); stopCreep(); return; }
+      const mod = await getModule(); if(!alive())return;
+      onModelProgress = (f)=>{ if(!alive())return; if(!S.modelReady && S.aiShown) onDl(f); };
+      if(S.preloadPromise){ try{ await S.preloadPromise; }catch(e){} } if(!alive()){ onModelProgress=null; return; }
       onModelProgress = null;
-      if(S.modelReady) toCut(); else toDownload(S.preloadFrac);
-      const removeBackground = mod.removeBackground || mod.default;
-      const progCb = (key, cur, tot) => { if(myGen!==S.aiGen) return;
-        if(DL_RE.test(key) && phase!=='cut') toDownload(tot?cur/tot:0); else toCut(); };
-      const run = (dev) => removeBackground(currentFile, Object.assign({device:dev}, MODEL_CFG, { output:{format:'image/png'}, progress: progCb }));
+      const rb = mod.removeBackground || mod.default;
+      const progCb = (key,cur,tot)=>{ if(!alive())return; if(DL_RE.test(key)&&S.cutPhase!=='cut') onDl(tot?cur/tot:0); else onCut(); };
+      const run = (dev)=> rb(currentFile, Object.assign({device:dev}, MODEL_CFG, { output:{format:'image/png'}, progress: progCb }));
+      if(S.modelReady) onCut(); else onDl(S.cutFrac);
       let blob;
-      if(USE_GPU){
-        try { blob = await run('gpu'); }
-        catch(gpuErr){
-          if(myGen!==S.aiGen){ clearTimers(); stopCreep(); return; }
-          console.warn('[pindou] WebGPU 抠图失败，回退 CPU：', gpuErr && gpuErr.message);
-          toCut(); blob = await run('cpu');   // CPU 一定能跑（原本就用 CPU）
-        }
-      } else {
-        blob = await run('cpu');
-      }
-      clearTimers();
-      if(myGen!==S.aiGen){ stopCreep(); return; }
-      const cutMs = cutStart ? (Date.now()-cutStart) : 0;
-      S.modelReady = true; markModelSeen(); showModelStatus('hide');
-      $('cutBar').style.width='100%';
+      if(USE_GPU){ try{ blob=await run('gpu'); }catch(e){ if(!alive())return; console.warn('[pindou] WebGPU→CPU:', e&&e.message); onCut(); blob=await run('cpu'); } }
+      else blob = await run('cpu');
+      clearT(); if(!alive())return;
+      S.modelReady=true; markModelSeen(); showModelStatus('hide');
       const bmp = await blobToCanvasData(blob, S.W, S.H);
-      const m = new Uint8Array(S.W*S.H); let anyBead=0;
-      for(let i=0;i<m.length;i++){ const a = bmp[i*4+3] >= 128 ? 255 : 0; m[i]=a; if(a) anyBead++; }
-      hideCut();
-      const sec = (cutMs/1000).toFixed(1);
-      console.log('[pindou] 抠图推理耗时 ' + sec + 's');
-      if(anyBead < m.length*0.003){
-        showMsg('cutMsg','AI 没找到明显主体，已保留整张图——可「手动修一下」擦掉背景。', true);
-      } else if(!S.painted){
-        S.mask = m; clearUndo(); renderEdit(); regenerate();
-        showMsg('cutMsg','✓ 已自动抠出主体（抠图用了 '+sec+' 秒）。不干净就点「手动修一下」擦补，或「用整张图」。');
-      } else {
-        showMsg('cutMsg','✓ AI 抠图已就绪（用了 '+sec+' 秒；你手动改过了，没自动覆盖）。想用就点「重新 AI 抠图」。');
-      }
-    }catch(err){
-      clearTimers(); stopCreep(); console.error(err);
-      if(myGen!==S.aiGen) return;
-      onModelProgress=null; hideCut();
-      if(!S.aiGaveUp) showMsg('cutMsg','AI 抠图没成功（' + (err && err.message ? err.message : '未知错误') + '）。当前用整张图，可「手动修一下」擦背景，或「重新 AI 抠图」重试。', true);
-    }finally{ if(myGen===S.aiGen){ S.busy=false; onModelProgress=null; } }
+      const m = new Uint8Array(S.W*S.H); let any=0;
+      for(let i=0;i<m.length;i++){ const a=bmp[i*4+3]>=128?255:0; m[i]=a; if(a)any++; }
+      S.cutMs = cutStart ? (Date.now()-cutStart) : 0;
+      if(any < m.length*0.003){ S.cutState='nosubject';
+        if(S.aiShown){ hideCut(); showMsg('cutMsg','AI 没找到明显主体——建议「用整张图」，或手动擦。', true); $('aiCut').disabled=false; }
+        return; }
+      S.cutMask = m; S.cutState='done';
+      console.log('[pindou] 抠图推理耗时 '+(S.cutMs/1000).toFixed(1)+'s');
+      if(S.aiShown) applyCut();   // 用户已点 → 立刻应用
+    }catch(err){ console.error(err); fail('AI 抠图没成功（'+(err&&err.message?err.message:'未知错误')+'）。可「用整张图」或重试。'); }
+  }
+  function startBgCut(){ S.aiShown=false; S.cutApplied=false; S.cutMask=null; S.cutGen=(S.cutGen||0)+1; cutTask(S.cutGen); }
+  function reRunCut(){ S.cutApplied=false; S.aiShown=true; S.cutMask=null; $('aiCut').disabled=true;
+    S.cutGen=(S.cutGen||0)+1; S.dlStart=S.modelReady?1:(S.preloadFrac||0); cutTask(S.cutGen); }
+  function clickAICut(){
+    if(!S.W) return;
+    if(S.cutApplied){ reRunCut(); return; }                 // 已抠过 → 重新抠
+    S.aiShown=true; $('aiCut').disabled=true; S.dlStart=S.modelReady?1:(S.cutFrac||0);
+    if(S.cutState==='done') applyCut();
+    else if(S.cutState==='running'){ if(S.cutPhase==='cut') showCutting(); else showCut(S.cutFrac||0); } // 接管运行中的遮罩
+    else reRunCut();                                         // none/failed/nosubject → 重跑
   }
 
   // 把 PNG blob 画到 W×H，返回 RGBA 数据
@@ -604,7 +603,10 @@ permalink: /toolbox/pindou/
     if(!undoStack.length) $('undoBtn').disabled=true;
     if(!$('step2').classList.contains('pb-locked')) regenerate();
   });
-  $('resetMask').addEventListener('click', ()=>{ S.painted=false; clearUndo(); runAI(); });
+  $('resetMask').addEventListener('click', ()=>{ // 复原到 AI 抠图结果
+    if(S.cutMask){ S.painted=false; S.mask=S.cutMask.slice(); clearUndo(); renderEdit();
+      if(!$('step2').classList.contains('pb-locked')) regenerate(); showMsg('cutMsg','✓ 已复原到 AI 抠图结果。'); }
+    else reRunCut(); });
 
   function sizeCursor(){ const r=editCanvas.getBoundingClientRect(); const sc=r.width/(editCanvas.width||1);
     const d=brushR*2*sc; brushCursor.style.width=d+'px'; brushCursor.style.height=d+'px'; }
@@ -643,10 +645,11 @@ permalink: /toolbox/pindou/
   editCanvas.addEventListener('touchmove', movePaint, {passive:false});
   editCanvas.addEventListener('touchend', endPaint);
 
-  $('reCut').addEventListener('click', ()=>{ S.painted=false; clearUndo(); runAI(); });
+  $('aiCut').addEventListener('click', clickAICut);
   $('useWhole').addEventListener('click', ()=>{
-    if(!S.W) return; S.painted = true; S.mask = new Uint8Array(S.W*S.H).fill(255); clearUndo(); renderEdit();
-    enableStep('step2'); regenerate(); $('step2').scrollIntoView({behavior:'smooth',block:'start'});
+    if(!S.W) return; S.painted = true; S.cutApplied = true; S.mask = new Uint8Array(S.W*S.H).fill(255); clearUndo(); renderEdit(); hideCut();
+    setCutBtns(true); showMsg('cutMsg','用的是整张图（背景也会变成珠子）。可「🖌️ 手动修一下」擦掉背景，或直接「下一步」。');
+    if(!$('step2').classList.contains('pb-locked')) regenerate();
   });
   $('goStep3').addEventListener('click', ()=>{ if(!S.mask) return; enableStep('step2'); regenerate(); $('step2').scrollIntoView({behavior:'smooth',block:'start'}); });
 
