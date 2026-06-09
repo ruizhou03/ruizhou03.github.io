@@ -145,11 +145,44 @@
         recurring: state.recurring,
         settings: state.settings
       }));
+      try { window.dispatchEvent(new CustomEvent('ledger:changed')); } catch (e2) {}
     } catch (e) {
       if (e && e.name === 'QuotaExceededError') {
         alert('本地存储空间已满，最近这笔可能没存上。可在「备份 / 导入」导出后清理。');
       }
     }
+  }
+
+  // 给云同步模块（ledger-sync.js）用：取快照 / 按笔合并云端拉回的数据 / 重渲染。
+  function snapshot() {
+    return JSON.parse(JSON.stringify({
+      version: state.version, transactions: state.transactions,
+      categories: state.categories, accounts: state.accounts,
+      recurring: state.recurring, settings: state.settings
+    }));
+  }
+  function mergeSnapshot(inc) {
+    if (!inc || typeof inc !== 'object') return;
+    // 交易：按 id 取并集，同一笔以 updatedAt 较新的为准（决策：按笔合并，尽量不丢）
+    var byId = {};
+    state.transactions.forEach(function (t) { byId[t.id] = t; });
+    (inc.transactions || []).forEach(function (t) {
+      if (!t || !t.id) return;
+      var ex = byId[t.id];
+      if (!ex || num(t.updatedAt) >= num(ex.updatedAt)) byId[t.id] = t;
+    });
+    state.transactions = Object.keys(byId).map(function (k) { return byId[k]; });
+    // 类目 / 账户 / 周期：按 id 并集，冲突保留本机（避免回退本地改名/排序）
+    function unionLocal(localArr, incArr) {
+      var seen = {}; localArr.forEach(function (x) { seen[x.id] = true; });
+      (incArr || []).forEach(function (x) { if (x && x.id && !seen[x.id]) { localArr.push(x); seen[x.id] = true; } });
+      return localArr;
+    }
+    state.categories = unionLocal(state.categories, inc.categories);
+    state.accounts = unionLocal(state.accounts, inc.accounts);
+    state.recurring = unionLocal(state.recurring, inc.recurring);
+    // settings 保持本机（预算/汇率/视图各设备独立，不跨设备覆盖）
+    migrate(); persist(); render();
   }
 
   // ============ 基础工具 ============
@@ -984,6 +1017,7 @@
     $('lg-set-fxrate').value = s.fxRate != null ? s.fxRate : '';
     $('lg-set-fxmerge').checked = !!s.fxMerge;
     openModal('lg-settings-modal');
+    if (window.LedgerSync && window.LedgerSync.renderStatus) window.LedgerSync.renderStatus();
   }
   function saveSettings() {
     var s = state.settings;
@@ -1223,6 +1257,9 @@
       if (e.key === 'Escape') { var open = document.querySelectorAll('.lg-modal-backdrop:not([hidden])'); if (open.length) closeModal(open[open.length - 1].id); }
     });
   }
+
+  // 暴露给 ledger-sync.js（端到端加密云同步）
+  window.LedgerCore = { getSnapshot: snapshot, mergeSnapshot: mergeSnapshot, render: render };
 
   // ============ 启动 ============
   load();

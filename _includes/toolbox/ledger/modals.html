@@ -240,7 +240,16 @@
       <button type="button" class="lg-btn-ghost lg-btn-sm" id="lg-acc-open">管理账户…</button>
       <button type="button" class="lg-btn-ghost lg-btn-sm" id="lg-rec-open">周期记账…</button>
     </div>
-    <p class="lg-hint lg-privacy-note">🔒 所有数据只存在这台设备的浏览器里，永不上传，谁也读不到。换设备请用「备份 / 导入」。</p>
+    <div class="lg-sync-box">
+      <div class="lg-sync-title">☁️ 云同步（端到端加密）</div>
+      <div class="lg-hint" id="lg-sync-status">…</div>
+      <input type="password" id="lg-sync-pass" class="lg-text-input" autocomplete="new-password" placeholder="同步密码" hidden>
+      <div class="lg-sync-btns">
+        <button type="button" class="lg-btn-primary lg-btn-sm" id="lg-sync-action" hidden></button>
+        <button type="button" class="lg-btn-ghost lg-btn-sm lg-del" id="lg-sync-off" hidden>关闭同步</button>
+      </div>
+    </div>
+    <p class="lg-hint lg-privacy-note">🔒 默认数据只存这台设备、永不上传。开启云同步后，上传的也是<b>加密密文</b>（密码只在本机），站长读不到。换设备也可用「备份 / 导入」文件。</p>
     <div class="lg-modal-foot"><span class="lg-foot-spacer"></span><button type="button" class="lg-btn-primary" id="lg-set-save">保存</button></div>
   </div>
 </div>

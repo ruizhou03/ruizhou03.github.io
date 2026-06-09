@@ -20,6 +20,9 @@
     // 再把“宠物数据”随账号同步，本地宠物（如旺仔）就能跨设备出现。只同步状态、不同步
     // deviceId（deviceId 归 auth.js 的身份采用管，重复同步会和它的登出还原打架）。
     'tool.pet-food.v1',
+    // 记账：只同步“加密镜像”（端到端加密，由 ledger-sync.js 维护）。明文 tool.ledger.v1
+    // 永远只在本机、绝不进此列表——后端那段永远是密文，站长也读不到。
+    'tool.ledger.enc.v1',
   ];
 
   function snapshot() {
@@ -85,4 +88,7 @@
   });
   window.addEventListener('beforeunload', function () { push(); });
   setInterval(function () { push(); }, 30000);
+
+  // 暴露给工具：写完同步 key 后可立刻推一次（不必等 30s 兜底）。记账加密同步用。
+  window.CloudSync = { push: push, pull: pull };
 })();

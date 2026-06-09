@@ -244,3 +244,9 @@ body.lg-modal-open { overflow: hidden; }
 
 /* 设置里的管理入口 */
 .lg-set-links { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.4rem 0; }
+
+/* 云同步 */
+.lg-sync-box { margin: 0.8rem 0; padding: 0.7rem 0.8rem; background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 0.6rem; }
+.lg-sync-title { font-size: 0.9rem; font-weight: 600; color: var(--color-ink); margin-bottom: 0.4rem; }
+.lg-sync-box .lg-text-input { margin: 0.5rem 0; }
+.lg-sync-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; }
