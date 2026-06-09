@@ -1918,8 +1918,10 @@
   // ===== Crop modal =====
   const cropState = { scale: 1, w: 0, h: 0, frame: { x: 0, y: 0, size: 0 } };
   let cropDrag = null;
+  let cropApplyFn = null;   // 裁剪「应用」后把结果 dataURL 交给谁；null=默认走宠物头像
 
-  function openCropModal(srcDataUrl) {
+  function openCropModal(srcDataUrl, onApply) {
+    cropApplyFn = onApply || null;
     $cropImg.onload = () => {
       const modalEl = $cropModal.querySelector('.modal');
       const containerW = (modalEl.clientWidth || 360) - 64;
@@ -2025,8 +2027,9 @@
       const sy = cropState.frame.y / cropState.scale;
       const ss = cropState.frame.size / cropState.scale;
       ctx.drawImage($cropImg, sx, sy, ss, ss, 0, 0, 160, 160);
-      state.pendingAvatar = canvas.toDataURL('image/jpeg', 0.82);
-      updateAvatarSelection();
+      const url = canvas.toDataURL('image/jpeg', 0.82);
+      if (cropApplyFn) { cropApplyFn(url); }
+      else { state.pendingAvatar = url; updateAvatarSelection(); }   // 默认：宠物头像
       closeCropModal();
     } catch (err) { alert('裁剪失败：' + err.message); }
   });
@@ -2659,6 +2662,12 @@
     const pet = currentPet();
     return ((pet && pet.foodLibrary) || []).find(f => f.id === recordFood) || null;
   }
+  // 食物图标：有照片用照片(小方图)，否则用 emoji。
+  function foodIconHTML(item, fallback) {
+    return (item && item.iconPhoto)
+      ? `<img class="fc-photo" src="${item.iconPhoto}" alt="">`
+      : ((item && item.emoji) || fallback);
+  }
   function renderFoodSelector() {
     const pet = currentPet();
     if (!pet) { $foodSelector.innerHTML = ''; return; }
@@ -2667,11 +2676,10 @@
     if (recordFood !== 'kibble' && !lib.some(f => f.id === recordFood)) recordFood = 'kibble';
     const canEdit = isAdminOrUp(pet);
     const kb = pet.kibble || {};
-    const kbEmoji = kb.emoji || '🥣';
     const kbName = kb.name || '干粮';
-    let html = `<button type="button" class="extra-chip${recordFood==='kibble'?' active':''}" data-food="kibble"><span class="fc-emoji">${kbEmoji}</span><span class="fc-name">${escapeHtml(kbName)}</span>${canEdit ? `<span class="edit-food" data-edit="kibble" title="编辑">✎</span>` : ''}</button>`;
+    let html = `<button type="button" class="extra-chip${recordFood==='kibble'?' active':''}" data-food="kibble"><span class="fc-emoji">${foodIconHTML(kb,'🥣')}</span><span class="fc-name">${escapeHtml(kbName)}</span>${canEdit ? `<span class="edit-food" data-edit="kibble" title="编辑">✎</span>` : ''}</button>`;
     html += lib.map(f => `
-      <button type="button" class="extra-chip${canEdit ? ' fc-draggable' : ''}${recordFood===f.id?' active':''}" data-food="${f.id}"><span class="fc-emoji">${f.emoji || '🍖'}</span><span class="fc-name">${escapeHtml(f.name)}</span>${canEdit ? `<span class="edit-food" data-edit="${f.id}" title="编辑">✎</span>` : ''}</button>`).join('');
+      <button type="button" class="extra-chip${canEdit ? ' fc-draggable' : ''}${recordFood===f.id?' active':''}" data-food="${f.id}"><span class="fc-emoji">${foodIconHTML(f,'🍖')}</span><span class="fc-name">${escapeHtml(f.name)}</span>${canEdit ? `<span class="edit-food" data-edit="${f.id}" title="编辑">✎</span>` : ''}</button>`).join('');
     if (canEdit) html += `<button type="button" class="extra-chip add-chip" data-food="__new"><span class="fc-emoji">➕</span><span class="fc-name">新建</span></button>`;
     $foodSelector.innerHTML = html;
     $foodSelector.querySelectorAll('.extra-chip').forEach(chip => {
@@ -3521,10 +3529,11 @@
   });
 
   // ===== Food (treat/can) modal =====
-  // 5 列网格——保持整行（15 个 = 3 整行）。分三行：主食/罐头·蛋白来源·蛋奶零食补剂。
-  const FOOD_EMOJIS = ['🥣','🍚','🥫','🍖','🍗','🐔','🥩','🐟','🦐','🦴','🥚','🧀','🥛','🍪','💊'];
+  // 5 列网格，保持整行：图标格(📷)+14 emoji = 15 格 = 3 整行（同头像那套 13+拍照格=14）。
+  const FOOD_EMOJIS = ['🥣','🍚','🥫','🍗','🐔','🥩','🐟','🦐','🦴','🥚','🧀','🥛','🍪','💊'];
   let fmEditingId = null;
   let fmEmoji = '🍖';
+  let fmIconPhoto = null;             // 食物图标用的照片(160px JPEG dataURL)；存在则优先于 emoji
   let fmKibbleMode = false;          // 编辑「干粮」基准时为 true（写 pet.kibbleKcalPerG，不进 foodLibrary）
 
   // Estimate metabolizable energy (kcal per 100g as-fed) from the guaranteed
@@ -3656,12 +3665,32 @@
     $fmBasisNote.textContent = hint || '';
     $fmBasisNote.style.display = hint ? '' : 'none';
   }
+  // 食物图标的「拍照 / 选图」——编辑弹窗与向导共用这个隐藏 input，
+  // 裁剪结果(160px JPEG)按 onApply 回调写到对应字段(fmIconPhoto / fwIconPhoto)。
+  const $foodPhotoFile = document.getElementById('food-photo-file');
+  let foodPhotoApply = null;
+  function pickFoodPhoto(onApply) { foodPhotoApply = onApply; $foodPhotoFile.value = ''; $foodPhotoFile.click(); }
+  $foodPhotoFile.addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    $foodPhotoFile.value = '';
+    if (!f) return;
+    if (!f.type || f.type.indexOf('image/') !== 0) { alert('请选图片文件'); return; }
+    const cb = foodPhotoApply;
+    try { const dataUrl = await readAsDataURL(f); openCropModal(dataUrl, cb); }
+    catch (err) { alert('读取图片失败：' + (err && err.message || err)); }
+  });
+  // 图标网格 = 照片格（拍照/选图）+ emoji；选 emoji 会清掉照片，反之照片优先、emoji 不再高亮。
   function fmRenderEmoji() {
-    $fmEmojiPick.innerHTML = FOOD_EMOJIS.map(e =>
-      `<button type="button" class="${e === fmEmoji ? 'active' : ''}" data-emoji="${e}">${e}</button>`).join('');
-    $fmEmojiPick.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-      fmEmoji = b.dataset.emoji; fmRenderEmoji();
+    const photo = fmIconPhoto
+      ? `<button type="button" class="photo-cell active" data-photo="1" title="换图标照片"><img src="${fmIconPhoto}" alt=""></button>`
+      : `<button type="button" class="photo-cell" data-photo="1" title="拍照 / 从相册选">📷</button>`;
+    $fmEmojiPick.innerHTML = photo + FOOD_EMOJIS.map(e =>
+      `<button type="button" class="${!fmIconPhoto && e === fmEmoji ? 'active' : ''}" data-emoji="${e}">${e}</button>`).join('');
+    $fmEmojiPick.querySelectorAll('button[data-emoji]').forEach(b => b.addEventListener('click', () => {
+      fmEmoji = b.dataset.emoji; fmIconPhoto = null; fmRenderEmoji();
     }));
+    $fmEmojiPick.querySelector('button[data-photo]').addEventListener('click', () =>
+      pickFoodPhoto(url => { fmIconPhoto = url; fmRenderEmoji(); }));
   }
   function setFmMeasure(m) {
     const r = $fmMeasure.querySelector(`input[value="${m}"]`);
@@ -3696,6 +3725,7 @@
     $fmKibbleHint.style.display = '';
     $fmName.value = k.name || '干粮';
     fmEmoji = k.emoji || '🥣';
+    fmIconPhoto = k.iconPhoto || null;
     setFmMeasure('gram');                       // 干粮永远按克
     $fmMeasureField.style.display = 'none';      // 隐藏「怎么算量」整块
     $fmUnitLabel.value = '份';
@@ -3726,6 +3756,7 @@
     $fmTitle.textContent = '编辑食物';
     $fmName.value = f.name || '';
     fmEmoji = f.emoji || '🍖';
+    fmIconPhoto = f.iconPhoto || null;
     const measure = f.measure || 'count';
     setFmMeasure(measure);
     $fmUnitLabel.value = measure === 'gram' ? '份' : (f.unitLabel || '份');
@@ -3773,7 +3804,7 @@
       perG = k100 / 100;
     }
     pet.kibbleKcalPerG = perG;                  // 换算基准（kcal/g）—— 全局换算都读它
-    pet.kibble = { name, emoji: fmEmoji, kcalSource: source, analysis };
+    pet.kibble = { name, emoji: fmEmoji, iconPhoto: fmIconPhoto || null, kcalSource: source, analysis };
     persist();
     schedulePushMeta(pet);
     closeFoodModal();
@@ -3831,7 +3862,7 @@
       }
     }
 
-    const data = { name, emoji: fmEmoji, measure, unitLabel, kcalPerUnit, kcalSource: source, analysis, gramsPerUnit, equivGrams };
+    const data = { name, emoji: fmEmoji, iconPhoto: fmIconPhoto || null, measure, unitLabel, kcalPerUnit, kcalSource: source, analysis, gramsPerUnit, equivGrams };
     pet.foodLibrary = pet.foodLibrary || [];
     let savedId;
     if (fmEditingId) {
@@ -3900,7 +3931,7 @@
   const $fwBack = document.getElementById('fw-back');
   const $fwNext = document.getElementById('fw-next');
   const $fwCancel = document.getElementById('fw-cancel');
-  let fwStep = 1, fwMeasure = 'count', fwSource = 'direct', fwEmoji = '🍖';
+  let fwStep = 1, fwMeasure = 'count', fwSource = 'direct', fwEmoji = '🍖', fwIconPhoto = null;
 
   function fwReadAnalysis() {
     const o = {};
@@ -3908,11 +3939,16 @@
     return o;
   }
   function fwRenderEmoji() {
-    $fwEmojiPick.innerHTML = FOOD_EMOJIS.map(e =>
-      `<button type="button" class="${e === fwEmoji ? 'active' : ''}" data-emoji="${e}">${e}</button>`).join('');
-    $fwEmojiPick.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-      fwEmoji = b.dataset.emoji; fwRenderEmoji(); $fwEmojiEcho.textContent = fwEmoji;
+    const photo = fwIconPhoto
+      ? `<button type="button" class="photo-cell active" data-photo="1" title="换图标照片"><img src="${fwIconPhoto}" alt=""></button>`
+      : `<button type="button" class="photo-cell" data-photo="1" title="拍照 / 从相册选">📷</button>`;
+    $fwEmojiPick.innerHTML = photo + FOOD_EMOJIS.map(e =>
+      `<button type="button" class="${!fwIconPhoto && e === fwEmoji ? 'active' : ''}" data-emoji="${e}">${e}</button>`).join('');
+    $fwEmojiPick.querySelectorAll('button[data-emoji]').forEach(b => b.addEventListener('click', () => {
+      fwEmoji = b.dataset.emoji; fwIconPhoto = null; fwRenderEmoji(); $fwEmojiEcho.textContent = fwEmoji;
     }));
+    $fwEmojiPick.querySelector('button[data-photo]').addEventListener('click', () =>
+      pickFoodPhoto(url => { fwIconPhoto = url; fwRenderEmoji(); $fwEmojiEcho.textContent = '📷'; }));
   }
   function fwUpdateEstimate() {
     if (fwSource !== 'analysis') return;
@@ -3952,7 +3988,7 @@
     fwUpdateEstimate();
   }
   function openFoodWizard() {
-    fwStep = 1; fwMeasure = 'count'; fwSource = 'direct'; fwEmoji = '🍖';
+    fwStep = 1; fwMeasure = 'count'; fwSource = 'direct'; fwEmoji = '🍖'; fwIconPhoto = null;
     $fwName.value = ''; $fwUnitLabel.value = '份'; $fwKcal.value = ''; $fwGpu.value = '';
     $fwEquivGrams.value = ''; $fwEquivGrams100.value = '';
     $fwAnalysis.querySelectorAll('.fw-an').forEach(i => i.value = '');
@@ -3970,6 +4006,7 @@
     fmKibbleMode = false;   // 向导永远存的是库内食物，绝不能误走干粮分支
     $fmName.value = $fwName.value.trim();
     fmEmoji = fwEmoji;
+    fmIconPhoto = fwIconPhoto;
     setFmMeasure(fwMeasure);
     $fmUnitLabel.value = fwMeasure === 'gram' ? '份' : ($fwUnitLabel.value.trim() || '份');
     $fmKcalCount.value = ''; $fmKcal100g.value = ''; fmClearAnalysis();

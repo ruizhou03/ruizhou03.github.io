@@ -243,6 +243,8 @@
         <label>图标</label>
         <div class="emoji-pick" id="fm-emoji-pick"></div>
       </div>
+      <!-- 食物图标的「拍照/选图」用同一个隐藏输入，编辑弹窗与向导共用（裁剪结果按回调写到对应那个） -->
+      <input type="file" id="food-photo-file" accept="image/*" style="display:none;" />
       <div class="field" id="fm-measure-field">
         <label>怎么算量</label>
         <div class="opt-cards fm-measure" id="fm-measure">
