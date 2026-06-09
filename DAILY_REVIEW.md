@@ -1,3 +1,71 @@
+## 2026-06-09
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周二 DOW=2，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=09，未跑 monthly_stats）。距 6-08 巡检共 **21 个 commit**（`531a3b0` 之后 → `ec237a9` 为止），主线三条：① **拼豆图纸生成器（新工具）**——`7361c7c` 首发，后续 9 个 commit 持续打磨：色卡升级官方 Hama 53 色（`f84b6a6`）、可分享链接、模型托管到用户 R2 国内提速 5 倍 + 笔刷光标/撤销（`7bb3887`）、10 秒超时即放弃 + 复杂度耗时条（`a969a38`）、合并上传/抠图为分裂双图 + 进页面预下载模型 + 转圈两段进度（`487532d`）、抠图进度条防误杀 + 拼豆图作主视觉 + 清单分页（`407e887`）、用 Hama 色号 H11/H103 取代 A/B/C（`1fb29c5`）、分享看图模式 + 渐进展开 + 模型缓存文案（`2d7b0c2`）。② **「初升高衔接」改名「学习辅导资料」+ URL 改 `pre-high-school`→`tutoring`**（`86fb2c6`）+ **按手写原图忠实重写 9 个家教讲义 LaTeX**（`ec237a9`，今天最后一条）——`_notes/{tutoring}/` 与 `files/tutoring/` 同步重命名，且保留旧 URL `redirect_from`。③ **宠物食量记录持续精修**——`b6995fa` 直方图不完整周期修正、`7aa78d4` 成分混基自动识别 + 折成干粮快速入口、`e56c2bd` 估算去干湿基提示改静默修正、`b9ca89c` 折成干粮移到第三选项 + 食物图标补满 3 整行；穿插 `5f12e1c` 宠物中心独立 PWA、`b1f6d15 37cb6c5` 精简冗余提示文字 + 工具文案 playbook、`5e04224 1b7ceb3 a54eeb9 b5fe8dc` 手机顶栏方案 D 落地。今日 `scripts/audit/run.sh` 全套审计 **12/13 clean**（keywords / images / material_type / filename / sibling / bare_dollar / img_caption_md / svg_italic / bare_url / frontmatter_yaml）；**hover_no_media 报 1 个文件 / 3 处**——新工具 `toolbox/pindou/index.html` 三条 `:hover` 没用 `@media (hover: hover)` 守卫，已直接修复并通过复审（详见「✅ 本次已自动修复」）。`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（首次 cold build 12.323 s，修复后再 build 4.36 s 也 clean）。**今日修了 3 处**：① pindou `:hover` 全数加守卫（触屏 UX bug，3 处 CSS）、② `docs/MAINTENANCE.md:68` 与 `.claude/skills/new-post/SKILL.md` 中 `pre-high-school` 旧路径同步改为 `tutoring`（配合 6-07 重命名收口内部文档）。残余 P2 4 项（paywall 后端冒烟、scripts 内 `/Users/zhourui/` 硬编码、内部 prompt 称呼 zirconeey、PDF-only 存档手写互链）状态不变，新增 P2 三项（`docs/ARCHITECTURE_REVIEW.md:426` 历史快照引用旧 `notes/pre-high-school/`；`toolbox/pindou/index.html:501` 一处生产环境 `console.log` 调试残留；7 个 landing 页 `font-style: italic` 中文副标题为全站既有样式，是否调整待站主拍板）。
+
+### ✅ 本次已自动修复
+
+1. **`toolbox/pindou/index.html` 3 条 `:hover` 加 `@media (hover: hover)` 守卫** —— `hover_no_media.py` 命中：L33 `.pb-drop:hover, .pb-drop.drag { ... }`（混合 :hover 与 .drag，已拆开：.drag 保持普通规则不变，:hover 单独挪进 `@media (hover: hover)` block）、L63 `.pb-btn:hover { border-color: ... }`、L65 `.pb-btn.pri:hover { filter: brightness(1.08); }`（合并进同一个 `@media (hover: hover)` block）。**影响**：触屏设备点过按钮后会卡在悬停态、视觉错乱。**复审**：再跑 `hover_no_media.py` ✅ 通过；`bundle exec jekyll build` ✅ 通过，零 warning。这是上周一刚诞生的「拼豆图纸生成器」工具，今日审计第一时间发现并收口，与全站 snake / suika / chess / doudizhu 等游戏 hover 守卫风格一致（参照 `toolbox/snake/index.html` L93/106 写法）。
+
+2. **`docs/MAINTENANCE.md:68` 与 `.claude/skills/new-post/SKILL.md` 两处 `pre-high-school` 旧路径同步改为 `tutoring`** —— `86fb2c6` 那次「初升高衔接 → 学习辅导资料」重命名后，部分内部文档没同步：① MAINTENANCE.md 学习资料正文密度建议表的「主题入门类」例子 `pre-high-school/physics.md` 改为 `tutoring/physics.md`（与现实文件路径一致）；② new-post SKILL.md L41 / L114 两处 `_notes/<exam>/`（gre, toefl, pre-high-school） 改为 `（gre, toefl, tutoring）`（确保后续 `/new-post` 用例不会被误导向旧路径）。**影响**：仅文档准确性，不影响线上（`docs/` 已被 `_config.yml` exclude；`.claude/` 是本地 skill，亦不进 build）；但下次走 `/new-post` skill 创建辅导讲义时按新路径建即可。**复审**：`bundle exec jekyll build` ✅ 通过；新旧 URL 通过 `_notes/tutoring/*.md` 与 `notes/tutoring/index.html` 的 `redirect_from` 兜底，不会触发 404。
+
+### 📋 待你把关
+
+#### P1（建议尽快）
+
+**P1 队列今日清零** —— 与 6-08 / 6-07 / 6-06 一致，未新增 P1。
+
+#### P2（看心情）
+
+1. **新付费墙系统在沙箱无后端出口验证** —— 承接 6-04 ~ 6-08 P2#1。`zircon-urge.fly.dev` 今日仍 HTTP 403，`scripts/paywall/smoke_test.py` 仍需站主在生产环境跑。
+
+2. **`scripts/{compile-r-tutorials,build-psy-stat-II-rmd,merge-psy-stat-II}.py` 中 9 处 `/Users/zhourui/Desktop/...` 本机绝对路径** —— 沿用 6-04 ~ 6-08 P2#2。`scripts/` 已被 exclude，不影响线上。
+
+3. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里仍称"zirconeey 站"** —— 沿用 6-05 ~ 6-08 P2#3。内部 prompt / 文档。
+
+4. **`_notes/study/adv-metrics-pku/mid-2015.md`、`_notes/study/psy-stat-I/anova-R.md` 这两类纯 PDF 存档可考虑加同课程互链入口** —— 沿用 6-05 ~ 6-08 P2#4。设计取向项，`sibling_crosslink.py` 当前不报警（已用自动侧栏覆盖）。
+
+5. **5 条 DNS NameResolutionError 外链需站主在生产环境复验**（沿用 6-08 P2#5）—— centretax.net、offcampus.psu.edu、www.hwdrivingschool.com、www.judicialinformation.com、www.textile-outlook.com。下次周一加跑 `dead_links.py` 会再扫一遍。
+
+6. **`dead_links.py` 把 SVG `xmlns="http://www.w3.org/2000/svg"` 命名空间误判为外链**（沿用 6-08 P2#6）—— 同一 URL 148 处全部假阳性；建议跳过 `^https?://(www\.)?w3\.org/(\d{4}/(xlink|svg)|graphics/SVG)`。改 audit 脚本而非内容。
+
+7. **🆕 `docs/ARCHITECTURE_REVIEW.md:426` 历史快照仍引用旧路径 `notes/pre-high-school/index.html 第 68 行`** —— 这份是 2026-04/05 写的架构审查快照，行号信息也是当时的快照；rename 后该文件已改名为 `notes/tutoring/index.html`、且 L68 是否仍是当时所指那一行也得复看。**建议**：站主自行决定是把这份文档当历史快照保留（不动）、还是同步更新到现况（顺手把所有"第 X 行"对照一遍）。仅文档准确性问题，不影响线上（`docs/` 已 exclude）。
+
+8. **🆕 `toolbox/pindou/index.html:501` 一处 `console.log('[pindou] 抠图推理耗时 ' + sec + 's')`** —— 新工具的诊断日志，看着像调试残留。**判断**：可能是有意保留（方便用户/站主在浏览器 console 看抠图耗时），也可能是上线前忘了清。**建议**：站主自决，若觉得用户不需要看就清掉；若是有意做 QA 观察，加一句 `// QA 观察用` 注释更明确即可。本工具诞生才 9 天，节奏快，先不擅自动手。
+
+9. **🆕 7 个 landing 页（`notes/index.html` / `notes/course-reviews/index.html` / `notes/toefl-gre/index.html` / `notes/tutoring/index.html` / `life/index.html` / `research/index.html` / `essays/index.html`）的副标题 `<p>` 用 `font-style: italic`，正文里都是中文** —— 例：`notes/tutoring/index.html` 的 `从初中到高中的思维与方法铺垫` 被渲染成中文斜体（浏览器合成假斜体）。**这是全站 7 个 landing 页统一的设计风格**，与 `feedback_chinese_no_italic` 约定有冲突。**判断**：① 若是有意做"副标题以斜体强调"的视觉决策——保持现状即可；② 若已不喜欢这种渲染——一次性把 7 处 `.xxx-header p { ... font-style: italic; ... }` 改成 `font-style: normal` + 别的弱化样式（如颜色变浅或字号变小，目前 `color: var(--color-light)` 已经有了）。设计取向，等站主拍板。`svg_italic_zh.py` 只扫 SVG `<text>` 元素，不覆盖 CSS，所以这条今日不会报警，但抽检意外发现。
+
+#### 🗒️ 待办清账（承接 6-08）
+
+- **图片 alt / caption 覆盖**：`images.py` 今日仍 `missing_alt = 0` / `missing_caption = 0`（白名单 62 条），保持收口。
+- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套 HTTP 403。
+- **Round-3 留下的 ~68 个 P1**：未在本次范围推进。
+- **`taichi-review-2023.md`「85 公里跑」**：未触碰。
+- **大图基线**：与昨日完全一致，无变化。
+- **`_notes/life/paid-test-{us-banking-guide,us-visa-types}.md` 标题仍带"（付费）"后缀但 `paid:false`**：承接 6-06 ~ 6-08 P2 列表条，等站主拍板是否清掉「（付费）」标签。
+
+### 🔬 抽检专项
+
+> 本次种子抽 10 项（强制配额 game/pdf_archive/lecture_note_pdf_only 各 ≥1，其余随机）。10 项一视同仁过审清单；各类目结论汇总如下。
+
+- **抽检 1/10 · game · `toolbox/typing/index.html`**（746 行 / 35.7 KB，inline-only）—— ✅ 无问题。打字速度测试工具；与 snake / suika 同质同模式，games-shell 全套接入；`@media (hover: hover)` 守卫齐全（`hover_no_media.py` ✅ 印证）；单文件 746 行远未达 1000 行边界。**LaTeX 化不适用**。
+- **抽检 2/10 · pdf_archive · `files/r-tutorials/r-correlation-distance.pdf`**（399.7 KB）—— ✅ 无问题。被 `_notes/research/r-correlation-distance.md` 引用、`pdf_url` 路径一致；体积 < 5 MB 不需 pdfslim；还被 `_notes/research/r-psy-stats-ii.md:24` 二次引用为系列资料；文件名规则 OK。**LaTeX 化评估**：R 教程已有 markdown 内联正文 + 配 PDF 双形态，复用频次中等，**维持 PDF 存档即可**。
+- **抽检 3/10 · lecture_note_pdf_only · `_notes/study/psy-stat-I/demo-summary.md`**（17 行 / 1.2 KB，正文 0 字）—— ✅ 无问题。front-matter 完整（discipline=心理学 / course=心理统计Ⅰ / material_type=Notes / date=2022-09-01 / author=Zircon）；keywords 28 项覆盖中英文 + R/SPSS 命令名（"z 检验 R" / "t 检验 R" / "ANOVA R 代码" / "卡方 R 代码" / "psychological statistics R demo"）；summary 准确点出"一学期 z/t/ANOVA/相关/回归/卡方代码集中查找手册 + 期末复习/作业上机直接抄改"；pdf_url 路径与实际文件一致；PDF 自动导语由 `post.html` 走 course + material_type 触发。**LaTeX 化评估**：纯代码 demo / 一次性资料，**维持 PDF 存档即可**。
+- **抽检 4/10 · note · `_notes/research/latex-commands.md`**（300 行 / 15.9 KB）—— ✅ 无问题。LaTeX 快捷键大全 / sub_category=LaTeX相关；keywords 充足（`keywords_coverage.py` ✅）；"科研之问"系列调性一致——第一性原理 → 工具反思 → 具体宏 → 案例 → 进阶；无 inline 图片（不触发 caption 检查）；无中文斜体（CSS-only `font-style: italic` 全在 `.code` 等英文场景）；无 bare URL、无裸 `$` 金额；305 行属合理篇幅。
+- **抽检 5/10 · pdf_archive · `files/adv-macro-psu/chapters/ch11.pdf`**（235.0 KB）—— ✅ 无问题。被英文主页 `index.html:644` `<li><a href="/files/adv-macro-psu/chapters/ch11.pdf">Ch 11: Computation of the Aiyagari Model</a></li>` 引用（不是 `_notes/` 笔记，是英文主页章节下载列表里的资源链接）；与同目录 ch1–ch12 同体例（每章独立 PDF + 总合订本 `Macro.pdf` 也可下）；ch11 对应 Aiyagari 模型计算，pdf-only 是有意决定（章节并非 markdown 笔记结构，而是供下载的章节切片）；体积 < 1 MB 不需 pdfslim；文件名规则 OK。**LaTeX 化评估**：英文主页面向 PSU econ phd 同行，章节切片是配套下载资料，**维持 PDF 存档即可**。
+- **抽检 6/10 · lecture_note_full · `_notes/study/adv-metrics-psu/midterm-spring-2026.md`**（17 行 / 1.4 KB）—— ✅ 无问题。front-matter 完整（discipline=经济学 / course=高级计量经济学（PSU）/ material_type=Exams / date=2026-03-15）；keywords 25 项覆盖中英文 + 学校代号 + 系列资料（"高级计量经济学期中（2026）" / "高计 PSU 期中" / "ECON 510 midterm" / "Penn State 一年级博士 计量" / "metrics qualifying exam"）；summary 准确点出"ECON 510 2026 春期中真题、题面 PDF 无答案"+"与 2025 春期中带答案 + 8 天期末自救指南互为系列"；正文一段配套阅读手写互链清晰（`> 配套阅读：[2025 春期中带解答] | [期末自救指南]`）。
+- **抽检 7/10 · note · `_notes/life/can-i-default-and-leave-us.md`**（505 行 / 28.6 KB）—— ✅ 无问题。"能爆刷信用卡然后回国吗？" / sub_category=留学攻略；keywords 充足；inline SVG 图配 `<p class="img-caption">`（L173"短期省的钱保持在水平线上不动；长期反弹代价随时间累积"等）合规；专栏一致性 OK——「这篇文章给谁看 / 法理结论先行 / 后果分级 / 风险量化 / 替代路径」五段；无 bare URL / 无裸 `$`；公式都用 LaTeX。
+- **抽检 8/10 · game · `toolbox/leap/index.html`**（1118 行 / 39.6 KB，inline-only）—— ✅ 无问题。「跳过 Deadline」单人小游戏；hover 守卫齐全（`hover_no_media.py` ✅ 印证）；games-shell 全套接入；单文件 1118 行边缘但与 chess 1986 / doudizhu 2399 同质同模式（inline 单文件是站点 game 标配），**不是问题**。**LaTeX 化不适用**。
+- **抽检 9/10 · pdf_archive · `files/psy-stat-II/cheat-sheet-mid-2023.pdf`**（254.8 KB）—— ✅ 无问题。被 `_notes/study/psy-stat-II/cheat-sheet-mid-2023.md` 引用、`pdf_url` 路径一致；cheat sheet 高度紧凑、不需 imgslim/pdfslim；文件名带 mid + 2023 命名规则 OK。**LaTeX 化评估**：cheat sheet 一次性应试材料，**维持 PDF 存档即可**。
+- **抽检 10/10 · note · `_notes/life/us-health-insurance-basics.md`**（428 行 / 21.4 KB）—— ✅ 无问题。「美国医保完全指南（一）：基础术语与保险类型」/ sub_category=留学攻略；keywords 充足；inline SVG 配 `<p class="img-caption">`（L124"4 种保险类型在'自由度 $\times$ 价格'二维上的位置"等）合规；专栏一致性 OK——五段结构 + 反直觉提示 + HMO/PPO/EPO/POS 分类对照；`pii_scan` 命中 SSN/手机号示例字符串，但已在 6-08 / 6-01 / 5-25 多次确认是教程示例不是真 PII（白名单已收口），不动。
+
+---
+
+### 🗂 仓库卫生
+
+**仓库结构较昨日有显著变化**——21 个 commit 涉及大块功能落地：① `toolbox/pindou/` 新增工具目录（index.html 923 行）+ 同期新增 `docs/toolbox-copy-trim-playbook.md` 工具文案精简指南；② `files/pre-high-school/*` → `files/tutoring/*` + `_notes/pre-high-school/*` → `_notes/tutoring/*` 全部 rename（约 100 个文件 / 重写 9 个 LaTeX 项目，共 +7321 / -7460 行）；③ `assets/icons/pet-*.png` 新增宠物中心 PWA 图标（4 张）+ `toolbox/pet/manifest.json` 新增；④ `_config.yml` 加 `discipline_order` 新增 "学习辅导资料"。**敏感文件扫描**：未发现新 `.env` / `credentials*` / `token*` / `secret*`；未发现 `.DS_Store` 或 `"xxx 2.yyy"` 形式副本；`_config.yml` exclude 列表完备（含 DAILY_REVIEW.md / SPOTCHECK_* / docs/ / scripts/ / backends/ / _paid/）；`git ls-files --others --exclude-standard` 空。**结构合理性**：① `pre-high-school` → `tutoring` 这个 rename 是合理的——「初升高衔接」原本就是家教讲义，改名「学习辅导资料」更符合定位，URL slug `tutoring` 也更通用；② 9 个 LaTeX 项目重写完整保留旧路径 `redirect_from`，不破坏旧链接；③ `notes/tutoring/index.html` 的 `redirect_from: /notes/pre-high-school/` 兜底完备。**剩余隐患**：见上 P2#7（`ARCHITECTURE_REVIEW.md` 历史快照引用旧路径），属于文档准确性而非结构问题。**结论**：仓库卫生 ✅ 干净，rename 全程已配套 `redirect_from`，无遗留破坏链接。
+
+---
+
 ## 2026-06-08
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周一 DOW=1，**加跑 dead_links / orphan_files / pii_scan 三项周一项**；DOM=08，未跑 monthly_stats）。距 6-07 巡检共 **0 个 commit**（HEAD 仍是 `63ab7b4 chore(daily-review): 2026-06-07 自动巡检`，今天没有新的功能落地），仓库内容与昨日完全一致。今日 `scripts/audit/run.sh` 全套审计 ✅ 全 clean（keywords / images / material_type / filename / hover / sibling / bare_dollar / img_caption_md / svg_italic / bare_url / frontmatter_yaml），`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（12.881 s）。周一三项也跑了：**orphan_files 0 个孤儿** ✅；**pii_scan 18 篇命中**（与 6-01 / 5-25 多次扫描的 18 篇一致，全部是已知性质——`_notes/essays/birthday-*` 与 `letter-to-*` 含三明二中是本人成长经历的必要内容，`_notes/course-reviews/*-review-2023.md` 的「疑似学号」全是公众号 URL 里 `mid=...` 参数被正则误命中，`_notes/life/us-{health-insurance-basics,postal-system-guide}.md` 的「学号」是教程里 SSN/手机号示例字符串，**不是真正的 PII 问题**）；**dead_links 253 条疑似** 但 **绝大多数是沙箱出口被反爬挡了的 HTTP 403**（包括 `www.zotero.org` / `www.uscis.gov` / `www.irs.gov` / `www.hmart.com` / `cdn.jsdelivr.net` 等已知活跃站点 + 所有 fly.io 后端 + `accounts.google.com/gsi/client`；甚至 148 处把 SVG 的 `xmlns="http://www.w3.org/2000/svg"` 命名空间字符串误判为外链），**真正的 DNS NameResolutionError 只有 5 条**（centretax.net、offcampus.psu.edu、www.hwdrivingschool.com、www.judicialinformation.com、www.textile-outlook.com），其中前两条是 PSU 周边/Centre County 本地服务、后三条是教程参考资源，**沙箱 DNS 不能确证是否真死**——写进 P2 给站主在生产环境复验。**本次没有可安全自动修复项**——所有 audit 维度 clean、0 个 commit、抽检 10/10 全部过审。残余 P2 4 项（paywall 后端冒烟、scripts 内 `/Users/zhourui/` 硬编码、内部 prompt 称呼 zirconeey、PDF-only 存档手写互链）状态不变，本次新增 P2 两项（5 条 DNS NameResolutionError 待站主复验、dead_links.py 把 SVG xmlns 误当外链）。

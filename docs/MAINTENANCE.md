@@ -65,7 +65,7 @@ PDF-only 资料不用手写正文：`post.html` 会按 `course` + `material_type
 |------|----------------------|------|
 | 期末样卷 / 一次性应试材料 | front-matter only，正文留空（让 post.html 自动导语兜底） | corp-fin/mid-sample-1.md |
 | 课程章节笔记 / 主讲义 | front-matter + 一段 `summary` 字段 | real-anal-ch1-2024.md |
-| 主题入门 / 思维提升类讲义 | front-matter + `summary` + 一段导语 + 章节 outline 表 | pre-high-school/physics.md |
+| 主题入门 / 思维提升类讲义 | front-matter + `summary` + 一段导语 + 章节 outline 表 | tutoring/physics.md |
 
 旧文章不满足这个标准也没关系——当时是“先上架/备份”的优先级。新建（或主动想重写）时按这个梯度填即可。
 不要因为旧文密度不够就否定它们的存在价值；只是日后顺手时可以补充。

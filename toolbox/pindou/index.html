@@ -30,7 +30,10 @@ permalink: /toolbox/pindou/
 
   /* upload */
   .pb-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 190px; border: 2px dashed var(--color-border); border-radius: 12px; padding: 2.4rem 1rem; text-align: center; cursor: pointer; transition: all .18s; color: var(--color-light); }
-  .pb-drop:hover, .pb-drop.drag { border-color: var(--color-accent); background: rgba(30,58,95,.04); color: var(--color-ink); }
+  .pb-drop.drag { border-color: var(--color-accent); background: rgba(30,58,95,.04); color: var(--color-ink); }
+  @media (hover: hover) {
+    .pb-drop:hover { border-color: var(--color-accent); background: rgba(30,58,95,.04); color: var(--color-ink); }
+  }
   .pb-drop .pb-drop-icon { font-size: 2.4rem; }
   .pb-drop .pb-drop-main { font-size: 1.05rem; color: var(--color-ink); margin: .55rem 0 .2rem; font-weight: 600; }
   .pb-drop .pb-drop-sub { font-size: .8rem; }
@@ -60,9 +63,11 @@ permalink: /toolbox/pindou/
 
   /* buttons */
   .pb-btn { display: inline-flex; align-items: center; gap: .35rem; font-family: var(--font-display); font-size: .9rem; padding: .5rem .95rem; border-radius: 9px; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-ink); cursor: pointer; transition: all .15s; }
-  .pb-btn:hover { border-color: var(--color-accent); }
   .pb-btn.pri { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
-  .pb-btn.pri:hover { filter: brightness(1.08); }
+  @media (hover: hover) {
+    .pb-btn:hover { border-color: var(--color-accent); }
+    .pb-btn.pri:hover { filter: brightness(1.08); }
+  }
   .pb-btn:disabled { opacity: .5; cursor: default; }
   .pb-btn.sm { font-size: .8rem; padding: .35rem .7rem; }
   .pb-btnrow { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .85rem; }
