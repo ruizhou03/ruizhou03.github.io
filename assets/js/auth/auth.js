@@ -107,9 +107,12 @@
       return { ok: false, error: (r.data && r.data.error) || 'auth_failed', status: r.status };
     }
     setSession(r.data.token, r.data.user);
+    // 认领是 best-effort，不该挡在登录关键路径上：fire-and-forget，让弹窗能立刻关。
+    // 必须在 adopt 之前发起——post() 同步读取匿名 gs.did.v1 作 X-Device-Id（在首个 await 前），
+    // 之后再 adopt 覆写成 accountId，已发出的请求头不受影响。
     try {
       var ident = deviceIdentity();   // 用当前(匿名)did 上报认领，须在采用前
-      if (ident.did || ident.rxnUid) await post('/auth?action=claim', ident, true);
+      if (ident.did || ident.rxnUid) post('/auth?action=claim', ident, true).catch(function () {});
     } catch (e) {}
     adoptAccountIdentity(r.data.user);  // 切成账号身份（联网工具跨设备同步）
     return { ok: true, user: r.data.user };

@@ -78,7 +78,7 @@
     position: relative;
   }
   .sa-close {
-    position: absolute; top: 0.8rem; right: 0.9rem; border: none; background: none;
+    position: absolute; top: 0.8rem; right: 0.9rem; z-index: 6; border: none; background: none;
     font-size: 1.4rem; line-height: 1; color: var(--color-muted); cursor: pointer;
   }
   .sa-title { font-size: 1.25rem; font-weight: 700; color: var(--color-ink); margin: 0 0 0.3rem; }
@@ -110,6 +110,21 @@
   .sa-divider { display: flex; align-items: center; gap: 0.6rem; margin: 0.2rem 0 0.9rem; color: var(--color-light); font-size: 0.78rem; }
   .sa-divider::before, .sa-divider::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
   #sa-google-btn { display: flex; justify-content: center; min-height: 40px; }
+  /* ── 登录中遮罩：Google 弹窗关闭后到拿到 token 期间盖在卡片上，避免"像是失败了" ── */
+  .sa-loading {
+    position: absolute; inset: 0; z-index: 5; border-radius: 14px;
+    background: var(--color-bg); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 0.9rem;
+  }
+  .sa-loading[hidden] { display: none; }
+  .sa-spinner {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 3px solid var(--color-border); border-top-color: var(--color-highlight);
+    animation: sa-spin 0.7s linear infinite;
+  }
+  @keyframes sa-spin { to { transform: rotate(360deg); } }
+  .sa-loading p { margin: 0; font-size: 0.9rem; color: var(--color-muted); letter-spacing: 0.03em; }
+  @media (prefers-reduced-motion: reduce) { .sa-spinner { animation-duration: 1.6s; } }
 </style>
 
 <div id="auth-modal-root">
@@ -144,6 +159,10 @@
         <div id="sa-google-btn"></div>
       </div>
       <p class="sa-hint">密码经加盐哈希存储，本站看不到你的明文密码。</p>
+      <div class="sa-loading" id="sa-loading" hidden>
+        <div class="sa-spinner" aria-hidden="true"></div>
+        <p>正在登录…</p>
+      </div>
     </div>
   </div>
 </div>
@@ -160,8 +179,11 @@
   var nickField = document.getElementById('sa-nick-field');
   var submitBtn = document.getElementById('sa-submit');
   var errorEl = document.getElementById('sa-error');
+  var loadingEl = document.getElementById('sa-loading');
   var tabs = overlay.querySelectorAll('.sa-tab');
   var mode = 'login';
+
+  function setLoading(on) { if (loadingEl) loadingEl.hidden = !on; }
 
   function setMode(m) {
     mode = m;
@@ -173,7 +195,7 @@
     errorEl.textContent = '';
   }
   function open(m) { setMode(m || 'login'); overlay.classList.add('open'); setTimeout(function () { emailEl.focus(); }, 50); }
-  function close() { overlay.classList.remove('open'); errorEl.textContent = ''; form.reset(); }
+  function close() { overlay.classList.remove('open'); errorEl.textContent = ''; setLoading(false); form.reset(); }
 
   tabs.forEach(function (t) { t.addEventListener('click', function () { setMode(t.dataset.mode); }); });
   overlay.querySelector('.sa-close').addEventListener('click', close);
@@ -190,6 +212,7 @@
     e.preventDefault();
     errorEl.textContent = '';
     submitBtn.disabled = true;
+    setLoading(true);
     var email = emailEl.value.trim();
     var pw = pwEl.value;
     var nick = nickEl.value.trim();
@@ -203,6 +226,7 @@
     }
     submitBtn.disabled = false;
     if (r.ok) { close(); return; }
+    setLoading(false);
     errorEl.textContent = ERRORS[r.error] || (r.error === 'network' ? '网络不太顺，再试一次' : '出错了，再试一次');
   });
 
@@ -266,11 +290,19 @@
   // 填上 Google Cloud 的 OAuth Web Client ID 即启用；留空则整块不出现。
   // 国内 gsi/client 脚本被墙，加载失败时按钮静默隐藏，不影响邮箱密码登录。
   var GOOGLE_CLIENT_ID = '845656839887-f6d403jvh63a2vg7bjrdikblrs3u7ufp.apps.googleusercontent.com';
+  // 提前与 Google / 后端建立连接（DNS+TLS），等用户走完 Google 弹窗时这几条链路已是热的
+  function preconnect(href, cors) {
+    var l = document.createElement('link');
+    l.rel = 'preconnect'; l.href = href; if (cors) l.crossOrigin = '';
+    document.head.appendChild(l);
+  }
   function initGoogle() {
     if (!GOOGLE_CLIENT_ID) return;
     var wrap = document.getElementById('sa-google-wrap');
     var btnBox = document.getElementById('sa-google-btn');
     if (!wrap || !btnBox) return;
+    preconnect('https://accounts.google.com', true);
+    preconnect('https://zircon-urge.fly.dev', true);
     var s = document.createElement('script');
     s.src = 'https://accounts.google.com/gsi/client';
     s.async = true; s.defer = true;
@@ -281,11 +313,15 @@
         callback: async function (resp) {
           if (!resp || !resp.credential) return;
           errorEl.textContent = '';
+          setLoading(true);   // 弹窗刚关、正在向后端换 token：立刻给"登录中"反馈，别让用户以为失败了
           var r;
           try { r = await SiteAuth.loginWithGoogle(resp.credential); }
           catch (e) { r = { ok: false, error: 'network' }; }
           if (r.ok) { close(); }
-          else { errorEl.textContent = r.error === 'google_not_configured' ? 'Google 登录暂未开启' : 'Google 登录失败，换邮箱试试'; }
+          else {
+            setLoading(false);
+            errorEl.textContent = r.error === 'google_not_configured' ? 'Google 登录暂未开启' : 'Google 登录失败，换邮箱试试';
+          }
         },
       });
       google.accounts.id.renderButton(btnBox, {
