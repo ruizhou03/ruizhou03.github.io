@@ -212,24 +212,75 @@ permalink: /toolbox/tetris/
     font-size: 0.78rem;
   }
 
-  /* —— 手机端：原本棋盘被 max-width:240 卡死、两侧 74px 固定 → 棋盘瘦小、
-     Hold/Next 大半截空着显得臃肿。这里收窄两侧、放开棋盘上限，把腾出来的
-     宽度全给棋盘（棋盘仍是 1:2，靠宽度驱动高度，不会拉伸变形）。 */
+  /* 退出全屏按钮（仅手机沉浸模式显示，固定在右上角，盖在游戏壳之上） */
+  .tt-exit {
+    display: none;
+    position: fixed;
+    top: calc(0.5rem + env(safe-area-inset-top));
+    right: calc(0.6rem + env(safe-area-inset-right));
+    z-index: 5001;
+    width: 34px; height: 34px;
+    align-items: center; justify-content: center;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-bg-warm);
+    color: var(--color-muted);
+    font-size: 1rem; line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* —— 手机端沉浸全屏：游戏壳盖住整页（含网站导航），棋盘撑满首屏，
+     排行榜/规则滑到下面才出现，右上角 ✕ 退出回百宝箱。
+     棋盘尺寸取「横向预算」与「纵向预算」的较小值：既不会横向溢出，也保证
+     上方计分条 + 下方两排 d-pad 都留在首屏内、不被挤出去。棋盘仍 1:2 不变形。 */
   @media (max-width: 560px) {
-    .tt-stage { gap: 0.4rem; }
-    .tt-side { width: 52px; }
-    .tt-canvas-wrap { max-width: 340px; }
+    .tetris-wrap {
+      position: fixed; inset: 0; z-index: 5000;
+      max-width: none; margin: 0; padding: 0;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      background: var(--color-bg);
+    }
+    .tetris-wrap > header { display: none; }
+    .tt-help { display: none; }
+    .tt-exit { display: flex; }
+
+    .tt-game {
+      min-height: 100dvh;
+      box-sizing: border-box;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 0.45rem;
+      padding: calc(0.5rem + env(safe-area-inset-top)) 0.5rem
+               calc(0.6rem + env(safe-area-inset-bottom));
+    }
+    .tt-game > * { width: 100%; max-width: 380px; }
+
+    .tt-scorebar { margin: 0; }
+    .tt-controls { margin: 0; }
+
+    .tt-stage { gap: 0.4rem; align-items: flex-start; justify-content: center; }
+    .tt-side { width: 48px; }
+    .tt-canvas-wrap {
+      flex: 0 0 auto;
+      max-width: none;
+      width: min(calc(100vw - 122px), calc((100dvh - 276px) / 2));
+    }
     .tt-mini { padding: 0.25rem; }
-    .tt-mini .mlabel { font-size: 0.56rem; }
+    .tt-mini .mlabel { font-size: 0.54rem; }
+
+    .tt-dpad, .tt-dpad-row2 { margin: 0 auto; }
   }
 </style>
 
 <div class="tetris-wrap">
+  <button type="button" class="tt-exit" aria-label="退出全屏" onclick="if(history.length>1){history.back()}else{location.href='/toolbox/'}">✕</button>
   <header>
     <h1>🧱 俄罗斯方块</h1>
     <div class="sub">堆满一行就消除，别让方块顶到天花板</div>
   </header>
 
+  <div class="tt-game">
   <div class="tt-scorebar">
     <div class="tt-score-box">
       <div class="label">Score</div>
@@ -310,6 +361,7 @@ permalink: /toolbox/tetris/
     <button data-act="harddrop" aria-label="硬降">⤓ 硬降</button>
     <button data-act="pause" aria-label="暂停">⏸ 暂停</button>
   </div>
+  </div><!-- /.tt-game -->
 
   <div class="tt-help">
     <kbd>←</kbd><kbd>→</kbd> 移动 · <kbd>↓</kbd> 软降 · <kbd>↑</kbd>/<kbd>X</kbd> 顺时针转 · <kbd>Z</kbd> 逆时针转 · <kbd>空格</kbd> 硬降 · <kbd>C</kbd> Hold · <kbd>P</kbd> 暂停
