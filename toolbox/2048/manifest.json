@@ -1,0 +1,17 @@
+{
+  "name": "2048",
+  "short_name": "2048",
+  "description": "经典 2048 数字合成游戏——周睿的百宝箱",
+  "id": "/toolbox/2048/",
+  "start_url": "/toolbox/2048/",
+  "scope": "/toolbox/2048/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#fafaf9",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "/assets/icons/2048-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/2048-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/2048-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

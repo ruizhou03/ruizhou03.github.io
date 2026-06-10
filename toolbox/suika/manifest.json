@@ -1,0 +1,17 @@
+{
+  "name": "合成大西瓜",
+  "short_name": "大西瓜",
+  "description": "把水果一步步合成到大西瓜的物理小游戏——周睿的百宝箱",
+  "id": "/toolbox/suika/",
+  "start_url": "/toolbox/suika/",
+  "scope": "/toolbox/suika/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#fafaf9",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "/assets/icons/suika-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/suika-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/suika-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

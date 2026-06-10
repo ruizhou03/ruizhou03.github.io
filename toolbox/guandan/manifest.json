@@ -1,0 +1,17 @@
+{
+  "name": "掼蛋",
+  "short_name": "掼蛋",
+  "description": "四人两副牌的扑克游戏，三档 AI 陪练——周睿的百宝箱",
+  "id": "/toolbox/guandan/",
+  "start_url": "/toolbox/guandan/",
+  "scope": "/toolbox/guandan/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#fafaf9",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "/assets/icons/guandan-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/guandan-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/guandan-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
