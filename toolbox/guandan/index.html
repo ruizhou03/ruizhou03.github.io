@@ -162,7 +162,7 @@ theme_color: "#fafaf9"
      而上下移。z-index:6 盖在手牌之上。 */
   .gd-side {
     display: flex; flex-direction: row; align-items: center;
-    gap: 0.55rem;
+    gap: 0.28rem;
     position: absolute;
     top: 35%; transform: translateY(-50%);
     z-index: 6;
@@ -170,7 +170,9 @@ theme_color: "#fafaf9"
   /* 左右贴边时加上安全区内缩：横屏刘海/灵动岛在哪侧，那侧的玩家就让开它，不被遮挡 */
   .gd-side-left  { left: calc(0.4rem + env(safe-area-inset-left, 0px)); flex-direction: row; }
   .gd-side-right { right: calc(0.4rem + env(safe-area-inset-right, 0px)); flex-direction: row-reverse; }
-  .gd-side .gd-seat { flex: 0 0 auto; width: 90px; align-items: center; }
+  /* 头像那一栏收窄(90→60)、间距收紧 —— 让左右对手出的牌更贴近自己头像、别往中间飘 */
+  .gd-side .gd-seat { flex: 0 0 auto; width: 60px; align-items: center; }
+  .gd-side .gd-name { white-space: nowrap; }
   .gd-center {
     /* partner 出牌靠顶（flex-start），让它明显高于侧位出牌（top:70% 下移） */
     height: 100%;
@@ -1783,8 +1785,9 @@ theme_color: "#fafaf9"
        永远长不到按钮上（issue：牌盖住按钮）；② min-height 写死，按钮显隐不再
        改变手牌可用高度——否则一选牌/进加倍阶段，手牌高度跳变、adaptHandSize 把
        牌重算成另一套尺寸（issue：牌时大时小）。 */
+    /* 竖直方向收紧（按钮本身大小不变，只缩上下间隙）—— 把出牌按钮行压低、压紧 */
     body.gd-game-fullscreen .gd-play-actions {
-      order: 5; min-height: 2.3rem; margin: 0.15rem 0 0.1rem; flex-wrap: nowrap;
+      order: 5; min-height: 2.05rem; margin: 0.03rem 0 0.02rem; flex-wrap: nowrap;
     }
     /* 手牌：吃满剩余高度、列在底对齐。默认 step 24 恒定不变——深的一摞就让它
        自然往上长、溢进手牌上方那片空地（overflow:visible 不裁切），错落间距与卡片
@@ -1797,16 +1800,16 @@ theme_color: "#fafaf9"
       flex: 1 1 auto; min-height: 0;
       align-items: flex-end;
       overflow: visible;
-      /* 底留 24px 把整把牌「抬高」到左下角「我/托管」chip 的上方 —— 这样左边就不必再为
-         头像留一大块宽，手牌能用上几乎整幅宽度、15 列也放得下 50px 的大牌。右边仍给
-         理牌竖排键留 36px（它比头像高、抬不过）。左 8px 即可。 */
-      padding: 0.15rem 36px 24px 8px;
+      /* 底留 18px 把整把牌「抬高」到左下角「我/托管」chip 的上方（比之前 24px 低一点、
+         整把牌更靠下，离中间的出牌区更远、不被它压住）—— 左边仍不必为头像留宽，手牌用上
+         几乎整幅宽、15 列也放得下 50px。右边仍给理牌竖排键留 36px。左 8px 即可。 */
+      padding: 0.15rem 36px 18px 8px;
     }
     /* 左下："我" 头像 | 张数 + 托管机器人 横排（张数与机器人都在头像右边、右下方），
        不再竖排单开一行（挤进左侧 ~104px 内）。 */
     body.gd-game-fullscreen .gd-self-bar {
       left: calc(0.4rem + env(safe-area-inset-left, 0px));
-      bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)); margin: 0;
+      bottom: calc(0.25rem + env(safe-area-inset-bottom, 0px)); margin: 0;
       flex-direction: row; align-items: center; gap: 0.32rem;
     }
     body.gd-game-fullscreen .gd-self-bar .gd-name { display: none; }
@@ -1814,8 +1817,8 @@ theme_color: "#fafaf9"
     /* 右下：只留 还原/理牌 两个图标键（去文字、去一键理牌），紧凑竖排（挤进右侧 50px 内） */
     body.gd-game-fullscreen .gd-sort-actions {
       right: calc(0.4rem + env(safe-area-inset-right, 0px));
-      bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
-      flex-direction: column; gap: 0.35rem; margin: 0;
+      bottom: calc(0.25rem + env(safe-area-inset-bottom, 0px));
+      flex-direction: column; gap: 0.3rem; margin: 0;
     }
     body.gd-game-fullscreen .gd-sort-actions .gd-btn {
       min-width: 0; width: 40px; height: 36px; padding: 0; font-size: 1.05rem; line-height: 1;
@@ -2184,4 +2187,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260610k"></script>
+<script src="/assets/js/games/guandan.js?v=20260610l"></script>
