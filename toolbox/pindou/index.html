@@ -206,7 +206,7 @@ permalink: /toolbox/pindou/
   <!-- ========== ① 上传 & 抠图（合并） ========== -->
   <section class="pb-step" id="step1">
     <div class="pb-step-h"><div class="pb-step-n">1</div><div class="pb-step-t">上传图片，选好底图</div></div>
-    <div class="pb-step-hint">卡通形象、表情包、宠物照都行，主体清晰、跟背景有区分的图最好。</div>
+    <div class="pb-step-hint">主体清晰、和背景分明的图，抠出来效果最好。</div>
     <div class="pb-model-status pb-hidden" id="modelStatus"></div>
 
     <input type="file" id="file" accept="image/*" class="pb-hidden">
@@ -214,7 +214,7 @@ permalink: /toolbox/pindou/
     <div class="pb-drop" id="drop">
       <div class="pb-drop-icon">🖼️</div>
       <div class="pb-drop-main">点这里选图 / 拖进来</div>
-      <div class="pb-drop-sub">支持 JPG · PNG · WebP，图片只在你自己浏览器里处理，不上传服务器</div>
+      <div class="pb-drop-sub">图片只在你自己浏览器里处理，不上传服务器</div>
     </div>
 
     <!-- 上传后：先单图（只显右侧可编辑画布）；抠出主体后再分裂成 原图 | 结果 -->
@@ -241,7 +241,7 @@ permalink: /toolbox/pindou/
     </div>
 
     <div class="pb-tools" id="tools">
-      <div class="pb-tools-title">在右图涂抹：<b>擦掉</b> = 抹成透明、不放珠；<b>补回</b> = 加回主体。笔刷大小可滚轮 / 双指捏合。</div>
+      <div class="pb-tools-title"><b>擦掉</b>＝变透明（不放珠）· <b>补回</b>＝加回主体。笔刷大小可滚轮 / 双指捏合。</div>
       <div class="pb-tools-row">
         <div class="pb-seg pb-mode" id="modeSeg">
           <button class="on" id="modeErase" data-mode="erase" title="把涂到的地方变透明，不放珠子">🩹 擦掉</button>
