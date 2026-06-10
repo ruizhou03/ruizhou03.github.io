@@ -3945,7 +3945,14 @@
     refreshHs();
     els.pgo.classList.add('open');
   }
-  if ($('gdQuitBtn')) $('gdQuitBtn').addEventListener('click', quitToSetup);
+  // 右上角「退出本局」按钮 → 先弹确认窗（用户明确要求确认），确认后才 quitToSetup
+  const confirmExit = $('gdConfirmExit');
+  function openConfirmExit() { if (confirmExit) confirmExit.hidden = false; }
+  function closeConfirmExit() { if (confirmExit) confirmExit.hidden = true; }
+  if ($('gdExitBtn')) $('gdExitBtn').addEventListener('click', openConfirmExit);
+  if ($('gdConfirmExitCancel')) $('gdConfirmExitCancel').addEventListener('click', closeConfirmExit);
+  if ($('gdConfirmExitBackdrop')) $('gdConfirmExitBackdrop').addEventListener('click', closeConfirmExit);
+  if ($('gdConfirmExitOk')) $('gdConfirmExitOk').addEventListener('click', () => { closeConfirmExit(); quitToSetup(); });
   window.addEventListener('resize', () => adaptHandSize());
 
   // ---- 启动 ----

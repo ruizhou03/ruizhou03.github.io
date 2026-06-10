@@ -1583,21 +1583,26 @@ theme_color: "#fafaf9"
   /* ======== 游戏内「🏆 榜单」chip（替代退出全屏）========
      永久全屏不跳出游戏外；玩法/战绩榜/评论改在游戏内浮层看，按钮挂头部角上。 */
   .guandan-wrap header { position: relative; }
-  .gd-board-btn {
-    position: absolute; top: 0.6rem; left: 0.6rem;
-    padding: 0.28rem 0.65rem;
+  /* 榜单(🏆) / 退出(✕) 两个角标圆钮：去文字、纯图标 */
+  .gd-board-btn, .gd-exit-btn {
+    position: absolute; top: 0.6rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.95rem; height: 1.95rem; padding: 0;
     border: 1px solid var(--color-border);
     background: var(--color-bg);
     color: var(--color-muted);
-    border-radius: 999px;
-    font-size: 0.78rem;
+    border-radius: 50%;
+    font-size: 1rem; line-height: 1;
     cursor: pointer;
     font-family: inherit;
     transition: all 0.18s;
     z-index: 5;
   }
+  .gd-board-btn { left: 0.6rem; }
+  .gd-exit-btn  { right: 0.6rem; }
   @media (hover: hover) {
     .gd-board-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .gd-exit-btn:hover  { border-color: var(--gd-team-opp); color: var(--gd-team-opp); }
   }
 
   /* 游戏内「榜单/玩法/评论」浮层 */
@@ -1640,6 +1645,23 @@ theme_color: "#fafaf9"
   .gd-board-panel details.about { margin: 0 0 1rem; }
   .gd-board-panel #gd-wlb-mount,
   .gd-board-panel #gd-nick-mount { margin: 0 0 0.8rem; }
+
+  /* 退出确认弹窗 */
+  .gd-confirm-modal { position: fixed; inset: 0; z-index: 10002; display: flex; align-items: center; justify-content: center; }
+  .gd-confirm-modal[hidden] { display: none; }
+  .gd-confirm-backdrop { position: absolute; inset: 0; background: rgba(13,24,43,0.5); }
+  .gd-confirm-panel {
+    position: relative; z-index: 1;
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: 14px; padding: 1.4rem 1.4rem 1.1rem;
+    width: min(340px, 86vw); text-align: center;
+    box-shadow: 0 12px 40px rgba(13,24,43,0.4);
+  }
+  .gd-confirm-msg { font-size: 1.05rem; font-weight: 600; color: var(--color-ink); line-height: 1.5; }
+  .gd-confirm-sub { font-size: 0.82rem; font-weight: 400; color: var(--color-muted); }
+  .gd-confirm-actions { display: flex; gap: 0.7rem; justify-content: center; margin-top: 1.1rem; }
+  .gd-confirm-actions .gd-btn { min-width: 5rem; }
+  .gd-confirm-actions .gd-btn.primary { background: var(--gd-team-opp); border-color: var(--gd-team-opp); color: #fff; }
 
   body.gd-game-fullscreen { overflow: hidden; }
   body.gd-game-fullscreen .guandan-wrap {
@@ -1704,9 +1726,14 @@ theme_color: "#fafaf9"
     body.gd-game-fullscreen .guandan-wrap header { margin: 0; min-height: 0; }
     body.gd-game-fullscreen .guandan-wrap header h1 { display: none; }
     /* 🏆 榜单 chip 挪到右上角，让开左上角的级牌信息（我方/对方/积分） */
+    /* 横屏：退出(✕)钉在最右上角，榜单(🏆)紧挨它左边 */
+    body.gd-game-fullscreen .gd-exit-btn {
+      right: calc(0.5rem + env(safe-area-inset-right, 0px));
+      top: calc(0.45rem + env(safe-area-inset-top, 0px));
+    }
     body.gd-game-fullscreen .gd-board-btn {
       left: auto;
-      right: calc(0.5rem + env(safe-area-inset-right, 0px));
+      right: calc(2.9rem + env(safe-area-inset-right, 0px));
       top: calc(0.45rem + env(safe-area-inset-top, 0px));
     }
     /* 画幅铺满：去掉外圈那圈奶油色边 + 金色细边 + 圆角，让羊皮纸牌桌一直延伸到
@@ -1756,7 +1783,7 @@ theme_color: "#fafaf9"
       flex: 1 1 auto; min-height: 0;
       align-items: flex-end;
       overflow: visible;
-      padding: 0.15rem calc(50px + env(safe-area-inset-right, 0px)) 0.2rem calc(104px + env(safe-area-inset-left, 0px));
+      padding: 0.15rem calc(50px + env(safe-area-inset-right, 0px)) 0.2rem calc(90px + env(safe-area-inset-left, 0px));
     }
     /* 左下："我" 头像 | 张数 + 托管机器人 横排（张数与机器人都在头像右边、右下方），
        不再竖排单开一行（挤进左侧 ~104px 内）。 */
@@ -1811,7 +1838,10 @@ theme_color: "#fafaf9"
     <div class="gd-rotate-sub">掼蛋牌桌横屏才放得下 · 转一下就开打<br>（若没自动旋转，请关掉控制中心里的「竖排方向锁定」）</div>
   </div>
   <header>
-    <button type="button" class="gd-board-btn" id="gdBoardBtn" title="榜单 / 玩法 / 评论">🏆 榜单</button>
+    <button type="button" class="gd-board-btn" id="gdBoardBtn" title="榜单 / 玩法 / 评论" aria-label="榜单">🏆</button>
+    <button type="button" class="gd-exit-btn" id="gdExitBtn" title="退出本局" aria-label="退出本局">
+      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
     <h1>🀄 掼蛋</h1>
     <div class="sub">2 打 2 · 你与对家联手，打级牌到 A 取胜 · 三档 AI</div>
   </header>
@@ -1819,10 +1849,10 @@ theme_color: "#fafaf9"
   <div class="gd-table" id="gdTable">
 
     <!-- 级牌信息：占左上角小角标，节省纵向空间。当前主级用一颗亮点提示 -->
+    <!-- 积分已移除：本游戏是「谁先打级到 A、先过尖谁赢」，积分无实际用途，不再显示 -->
     <div class="gd-levelbar-corner">
       <div class="gd-level-chip you" id="gdChipYou"><span class="lab">我方</span><span class="val" id="gdLevelYou">2</span></div>
       <div class="gd-level-chip opp" id="gdChipOpp"><span class="lab">对方</span><span class="val" id="gdLevelOpp">2</span></div>
-      <div class="gd-level-chip score" id="gdChipScore" title="本难度累计分数"><span class="lab">积分</span><span class="val" id="gdScoreVal">+0</span></div>
     </div>
 
     <!-- 上家：对家。头像 + (名字/张数) 横排 —— 张数挪到头像右边，整块更扁，
@@ -1884,14 +1914,15 @@ theme_color: "#fafaf9"
       <div class="gd-seat" id="gdSeat0" data-seat="0">
         <div class="gd-avatar team-you" id="gdAv0">😎<span class="gd-clock" id="gdClk0" hidden></span></div>
       </div>
-      <div class="gd-seat-meta">
+      <!-- 头像右边分两行：上一行牌数、下一行托管机器人 -->
+      <div class="gd-seat-meta gd-self-meta">
         <div class="gd-name">我 <span class="tag" id="gdMyTag">座位 0</span></div>
         <div class="gd-seat-cnt">
           <span class="gd-count" id="gdCnt0">27</span>
           <span class="gd-rank-badge" id="gdRk0" hidden></span>
-          <!-- 托管：纯机器人图标，无文字。点一下进入托管、图标变橙高亮；再点取消。 -->
-          <button class="gd-autopilot-chip" id="gdAutopilotBtn" type="button" title="托管：让 AI 替你打牌（再点一下取消）" aria-label="托管">🤖</button>
         </div>
+        <!-- 托管：纯机器人图标，无文字。点一下进入托管、图标变橙高亮；再点取消。 -->
+        <button class="gd-autopilot-chip" id="gdAutopilotBtn" type="button" title="托管：让 AI 替你打牌（再点一下取消）" aria-label="托管">🤖</button>
       </div>
     </div>
 
@@ -2105,7 +2136,6 @@ theme_color: "#fafaf9"
     <div class="gd-board-backdrop" id="gdBoardBackdrop"></div>
     <div class="gd-board-panel">
       <button class="gd-board-close" id="gdBoardClose" type="button" aria-label="关闭">×</button>
-      <button class="gd-quit-btn" id="gdQuitBtn" type="button">退出本局 · 回到难度选择</button>
       <details class="about">
         <summary>游戏规则</summary>
         <div class="body" id="gdRulesBody"></div>
@@ -2113,6 +2143,18 @@ theme_color: "#fafaf9"
       <div id="gd-wlb-mount"></div>
       <div id="gd-nick-mount"></div>
       <div id="gd-cm-mount"></div>
+    </div>
+  </div>
+
+  <!-- 退出本局确认弹窗（用户明确要求：退出前先问一句） -->
+  <div class="gd-confirm-modal" id="gdConfirmExit" hidden>
+    <div class="gd-confirm-backdrop" id="gdConfirmExitBackdrop"></div>
+    <div class="gd-confirm-panel">
+      <div class="gd-confirm-msg">退出本局？<br><span class="gd-confirm-sub">当前牌局会结束，回到难度选择页。</span></div>
+      <div class="gd-confirm-actions">
+        <button class="gd-btn" id="gdConfirmExitCancel" type="button">取消</button>
+        <button class="gd-btn primary" id="gdConfirmExitOk" type="button">退出</button>
+      </div>
     </div>
   </div>
 
@@ -2125,4 +2167,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260610d"></script>
+<script src="/assets/js/games/guandan.js?v=20260610e"></script>
