@@ -1755,14 +1755,20 @@ theme_color: "#fafaf9"
         calc(0.4rem + env(safe-area-inset-bottom, 0px))
         calc(0.7rem + env(safe-area-inset-left, 0px));
     }
-    body.gd-game-fullscreen .gd-seats-mid { height: 66px; }   /* 只剩对家出牌，收紧把空间还给手牌 */
-    body.gd-game-fullscreen .gd-myplay-row { height: 38px; margin-top: 0.1rem; }
+    body.gd-game-fullscreen .gd-seats-mid { height: 76px; }   /* 只剩对家出牌（放大后槽高 70px） */
+    /* 我的出牌：从流里拎出来、绝对定位钉死在「下半场」(63%)——紧挨手牌上方、在我这一侧，
+       不再卡在对家出牌区正下方。z-index:6 + pointer-events:none 仍生效：盖在手牌上、点击穿透。 */
+    body.gd-game-fullscreen .gd-myplay-row {
+      position: absolute; left: 0; right: 0;
+      top: 63%; transform: translateY(-50%);
+      height: auto; margin: 0;
+    }
     body.gd-game-fullscreen .gd-played,
-    body.gd-game-fullscreen .gd-side .gd-played { height: 60px; }
+    body.gd-game-fullscreen .gd-side .gd-played { height: 70px; }
     /* 别人/对家出牌：整张 40×58（≤ 槽高 60px，不被 overflow:hidden 裁断）。字号交给
        上面的等比公式（按 --gd-card-w 算），手牌设同样的 --gd-card-w 即与此处完全一致。 */
-    body.gd-game-fullscreen .gd-played { --gd-card-w: 40px; --gd-card-h: 58px; }
-    body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full { margin-left: -22px; }
+    body.gd-game-fullscreen .gd-played { --gd-card-w: 46px; --gd-card-h: 66px; }
+    body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full { margin-left: -25px; }
     body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
     /* 操作行（不出/提示/出牌 · 加倍）：① 用 order 挪到手牌「下方」，牌往上叠、
        永远长不到按钮上（issue：牌盖住按钮）；② min-height 写死，按钮显隐不再
@@ -1776,9 +1782,9 @@ theme_color: "#fafaf9"
        大小始终保持原样，绝不为了塞进画幅而压扁成数不清张数的一团。
        左右留出"我/托管"和"理牌图标键"的宽度（含安全区），绝不压牌。 */
     body.gd-game-fullscreen .gd-hand {
-      /* 手牌跟出牌区完全同尺寸(40×58)同字号(等比公式) —— 不再比出牌区"大一圈+字更粗"。
-         adaptHandSize 仍可在窄屏进一步缩小，字号会跟着等比缩。 */
-      --gd-card-w: 40px; --gd-card-h: 58px;
+      /* 手牌跟出牌区完全同尺寸同字号(等比公式) —— 不再比出牌区"大一圈+字更粗"。
+         整体再放大一档(46×66)更好认好点；adaptHandSize 仍可在窄屏进一步缩小，字号等比跟。 */
+      --gd-card-w: 46px; --gd-card-h: 66px;
       --gd-stack-step: 24px;
       flex: 1 1 auto; min-height: 0;
       align-items: flex-end;
@@ -2167,4 +2173,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260610g"></script>
+<script src="/assets/js/games/guandan.js?v=20260610h"></script>
