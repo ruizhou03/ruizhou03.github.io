@@ -1218,47 +1218,17 @@
       if (cardW < defCardW) cardH = Math.round(defCardH * (cardW / defCardW));
     }
 
-    // ── 纵向：默认保持原样的错落(step)与卡高不动，深摞自然往上长、溢进手牌上方空地 ──
-    // 旧逻辑只要有一摞放不下就收整手牌的 step/卡高，挤成一团数不清——已废弃。
-    // 现在：① 普通深度完全用默认 step（外观与旧版逐像素一致）；② 摞溢出到「我自己
-    // 出牌区」以上的那几张蒙灰(.gd-card-spill)，弱化存在感、不抢牌桌；③ 只有当一摞深
-    // 到要顶进「对方出牌区」时，才「单独」把这一摞的 step 收一点点压回安全线内（其余
-    // 列分毫不动），避免戳到对方的牌。每一摞各自算 step，绝不让一摞深拖累整手牌。
-    const bottomAligned = cs.alignItems === 'flex-end';
-    const padT = parseFloat(cs.paddingTop) || 0;
-    const padB = parseFloat(cs.paddingBottom) || 0;
-    const availH = hand.clientHeight - padT - padB;
-    // headroom = 手牌内容顶 → 对方出牌区下沿 之间这段空当（≈我方出牌行的高度），
-    // 允许摞往上长进来；再往上就戳进对方出牌区，留 6px 余量不贴住对方的牌。
-    let headroom = 0;
-    if (bottomAligned && availH > 0) {
-      const handTop = hand.getBoundingClientRect().top + padT;
-      const seatsMid = document.querySelector('.gd-seats-mid');
-      const oppBottom = seatsMid ? seatsMid.getBoundingClientRect().bottom : handTop;
-      headroom = Math.max(0, handTop - oppBottom - 6);
-    }
-    const maxStackH = availH + headroom;
-
+    // ── 纵向：恒定保持默认错落(step)与默认卡高，绝不因为某一摞深就压扁/缩小/蒙灰 ──
+    // 外观永远和浅摞时（用户认可的那一版）逐像素一致；深的一摞就让它自然往上叠、跟
+    // 上方重叠也没关系（横屏手牌 overflow:visible 不裁切）。重叠部分由「我方/对家出牌区」
+    // 盖在上面（z-index），但出牌区 pointer-events:none，点击会穿透到底下的手牌——被
+    // 盖住的那几张手牌依旧能正常点选。
     if (cardW !== defCardW) hand.style.setProperty('--gd-card-w', cardW + 'px');
     if (cardH !== defCardH) hand.style.setProperty('--gd-card-h', cardH + 'px');
-    // 全局 step 保持默认；每一摞各自定 step，互不牵连
     cols.forEach(col => {
       const cards = col.querySelectorAll('.gd-card');
-      const N = cards.length;
-      let colStep = step;
-      // 只有这一摞会顶进对方出牌区时，才单独把它压回安全线（maxStackH）之内
-      if (bottomAligned && N > 1 && (N - 1) * step + cardH > maxStackH) {
-        colStep = Math.max(12, (maxStackH - cardH) / (N - 1));
-      }
-      const colH = (N - 1) * colStep + cardH;
-      col.style.height = colH + 'px';
-      cards.forEach((c, i) => {
-        const top = i * colStep;
-        c.style.top = top + 'px';
-        // 这张牌顶是否升到了手牌框顶（=我自己出牌区）以上？是则蒙灰
-        const cardTopInHand = (availH - colH) + top;
-        c.classList.toggle('gd-card-spill', bottomAligned && cardTopInHand < 0);
-      });
+      col.style.height = ((cards.length - 1) * step + cardH) + 'px';
+      cards.forEach((c, i) => { c.style.top = (i * step) + 'px'; });
     });
   }
 
