@@ -75,6 +75,7 @@ permalink: /toolbox/tetris/
     margin-bottom: 0.9rem;
   }
   .tt-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.3em;
     padding: 0.4rem 0.85rem;
     font-size: 0.86rem;
     border: 1px solid var(--color-border);
@@ -84,6 +85,8 @@ permalink: /toolbox/tetris/
     color: var(--color-ink);
     transition: all 0.18s ease;
   }
+  .tt-btn .tt-ico { display: inline-flex; line-height: 0; }
+  .tt-btn .tt-ico svg { display: block; }
   @media (hover: hover) {
     .tt-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
@@ -154,48 +157,6 @@ permalink: /toolbox/tetris/
   .tt-overlay--pause { background: rgba(0, 0, 0, 0.34); }
   .tt-overlay--pause #ttOvBtn { display: none; }
 
-  .tt-dpad {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.4rem;
-    max-width: 360px;
-    margin: 1rem auto 0;
-  }
-  .tt-dpad button {
-    background: var(--color-bg-warm);
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    font-size: 1.15rem;
-    padding: 0.7rem 0;
-    color: var(--color-ink);
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
-  }
-  .tt-dpad button:active { background: var(--color-accent); color: #fff; }
-  .tt-dpad .span2 { grid-column: span 2; }
-  .tt-dpad-row2 {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.4rem;
-    max-width: 360px;
-    margin: 0.4rem auto 0;
-  }
-  .tt-dpad-row2 button {
-    background: var(--color-bg-warm);
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    font-size: 0.92rem;
-    padding: 0.6rem 0;
-    color: var(--color-ink);
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
-  }
-  .tt-dpad-row2 button:active { background: var(--color-accent); color: #fff; }
-
   .tt-help {
     margin-top: 1rem;
     font-size: 0.82rem;
@@ -259,17 +220,30 @@ permalink: /toolbox/tetris/
     .tt-scorebar { margin: 0; }
     .tt-controls { margin: 0; }
 
-    .tt-stage { gap: 0.4rem; align-items: flex-start; justify-content: center; }
-    .tt-side { width: 48px; }
+    .tt-stage { gap: 0.35rem; align-items: flex-start; justify-content: center; }
+    .tt-side { width: 44px; }
     .tt-canvas-wrap {
       flex: 0 0 auto;
       max-width: none;
-      width: min(calc(100vw - 122px), calc((100dvh - 276px) / 2));
+      width: min(calc(100vw - 116px), calc((100dvh - 150px) / 2));
     }
-    .tt-mini { padding: 0.25rem; }
-    .tt-mini .mlabel { font-size: 0.54rem; }
+    .tt-mini { padding: 0.22rem; }
+    .tt-mini .mlabel { font-size: 0.52rem; }
 
-    .tt-dpad, .tt-dpad-row2 { margin: 0 auto; }
+    /* 预进入（开始页）：藏掉顶部计分条/控制键和两侧预览，开始遮罩铺满整屏；
+       开局后（遮罩关闭，:has 不再命中）才显示顶栏，避免一进来就先看到一排
+       初始化的 0。画布在开始页被遮罩盖住，隐藏掉避免拉伸的空棋盘透出来。 */
+    .tetris-wrap:has(#ttPreGameOverlay.open) .tt-game { padding: 0; }
+    .tetris-wrap:has(#ttPreGameOverlay.open) .tt-scorebar,
+    .tetris-wrap:has(#ttPreGameOverlay.open) .tt-controls,
+    .tetris-wrap:has(#ttPreGameOverlay.open) .tt-side { display: none; }
+    .tetris-wrap:has(#ttPreGameOverlay.open) .tt-stage { width: 100%; max-width: none; flex: 1 1 auto; }
+    .tetris-wrap:has(#ttPreGameOverlay.open) .tt-canvas-wrap {
+      width: 100%; max-width: none; aspect-ratio: auto;
+      align-self: stretch; flex: 1 1 auto;
+      border: none; border-radius: 0;
+    }
+    .tetris-wrap:has(#ttPreGameOverlay.open) .tt-canvas-wrap canvas { visibility: hidden; }
   }
 </style>
 
@@ -301,8 +275,8 @@ permalink: /toolbox/tetris/
   </div>
 
   <div class="tt-controls">
-    <button class="tt-btn" id="ttPauseBtn" aria-label="暂停 / 继续">⏸ 暂停</button>
-    <button class="tt-btn" id="ttNewBtn" aria-label="开始新一局">🔄 新游戏</button>
+    <button class="tt-btn" id="ttPauseBtn" aria-label="暂停 / 继续"><span class="tt-ico"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.4"/><rect x="14" y="5" width="4" height="14" rx="1.4"/></svg></span><span class="tt-lbl">暂停</span></button>
+    <button class="tt-btn" id="ttNewBtn" aria-label="开始新一局"><span class="tt-ico"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="2 4 2 10 8 10"/><path d="M3.6 15a9 9 0 1 0 2-9.4L2 10"/></svg></span><span>新游戏</span></button>
   </div>
 
   <div class="tt-stage">
@@ -337,7 +311,7 @@ permalink: /toolbox/tetris/
           <h2 class="gs-pgo-title">上次还没玩完</h2>
           <div class="gs-pgo-resume-summary" id="ttPgoResumeSummary"></div>
           <button class="gs-pgo-start-btn" id="ttPgoResumeContinueBtn">▶ 继续上次</button>
-          <button class="gs-pgo-start-btn" id="ttPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;">🔄 重新开始</button>
+          <button class="gs-pgo-start-btn" id="ttPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;"><svg viewBox="0 0 24 24" width="0.95em" height="0.95em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;margin-right:0.35em" aria-hidden="true"><polyline points="2 4 2 10 8 10"/><path d="M3.6 15a9 9 0 1 0 2-9.4L2 10"/></svg>重新开始</button>
         </div>
       </div>
     </div>
@@ -350,17 +324,6 @@ permalink: /toolbox/tetris/
     </div>
   </div>
 
-  <div class="tt-dpad">
-    <button data-act="left" aria-label="左移">←</button>
-    <button data-act="rotate" aria-label="旋转">⟳</button>
-    <button data-act="right" aria-label="右移">→</button>
-    <button data-act="hold" aria-label="暂存方块">Hold</button>
-  </div>
-  <div class="tt-dpad-row2">
-    <button data-act="softdrop" aria-label="软降">↓ 软降</button>
-    <button data-act="harddrop" aria-label="硬降">⤓ 硬降</button>
-    <button data-act="pause" aria-label="暂停">⏸ 暂停</button>
-  </div>
   </div><!-- /.tt-game -->
 
   <div class="tt-help">
@@ -372,7 +335,7 @@ permalink: /toolbox/tetris/
 
   <details class="about" style="max-width:480px;margin-left:auto;margin-right:auto;">
     <summary>游戏规则</summary>
-    <p>方块从顶部落下，把它们拼成完整的一整行就会消除并得分。<kbd>←</kbd> <kbd>→</kbd> 左右移动，<kbd>↓</kbd> 软降（每格 +1 分），<kbd>↑</kbd> 或 <kbd>X</kbd> 顺时针旋转，<kbd>Z</kbd> 逆时针旋转，<kbd>空格</kbd> 硬降（每格 +2 分并立即锁定），<kbd>C</kbd> 暂存当前方块（一回合只能暂存一次），<kbd>P</kbd> 或 <kbd>Esc</kbd> 暂停。手机可用屏幕按钮，或直接在棋盘上滑动：左右滑实时左右移（跟手，一格一格走）、下滑软降、快速下甩硬降、轻点旋转。</p>
+    <p>方块从顶部落下，把它们拼成完整的一整行就会消除并得分。<kbd>←</kbd> <kbd>→</kbd> 左右移动，<kbd>↓</kbd> 软降（每格 +1 分），<kbd>↑</kbd> 或 <kbd>X</kbd> 顺时针旋转，<kbd>Z</kbd> 逆时针旋转，<kbd>空格</kbd> 硬降（每格 +2 分并立即锁定），<kbd>C</kbd> 暂存当前方块（一回合只能暂存一次），<kbd>P</kbd> 或 <kbd>Esc</kbd> 暂停。手机端直接在棋盘上滑动操作：左右滑实时左右移（跟手，一格一格走）、下滑软降、快速下甩硬降、轻点旋转、点 Hold 框暂存。</p>
     <p>消行得分按一次消除的行数计：1 行 100、2 行 300、3 行 500、4 行（Tetris）800，再乘以当前等级。每累计消除 10 行升一级，方块下落速度随等级加快。半透明的「幽灵」方块显示当前方块会落到哪里。采用 7-bag 随机：每 7 个方块为一组保证每种各出现一次。方块堆到顶部、新方块无处生成时游戏结束。</p>
   </details>
 
@@ -499,6 +462,16 @@ permalink: /toolbox/tetris/
   const ovTitle = document.getElementById('ttOvTitle');
   const ovMsg = document.getElementById('ttOvMsg');
   const ovBtn = document.getElementById('ttOvBtn');
+
+  // 暂停/继续按钮的矢量图标（无背景，跟随文字色），替掉原来的 ⏸ / ▶ emoji
+  const SVG_PAUSE = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.4"/><rect x="14" y="5" width="4" height="14" rx="1.4"/></svg>';
+  const SVG_PLAY  = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.52.86l10.5-6.5a1 1 0 0 0 0-1.72L9.52 4.64A1 1 0 0 0 8 5.5z"/></svg>';
+  function setPauseUI(paused) {
+    const ico = pauseBtn.querySelector('.tt-ico');
+    const lbl = pauseBtn.querySelector('.tt-lbl');
+    if (ico) ico.innerHTML = paused ? SVG_PLAY : SVG_PAUSE;
+    if (lbl) lbl.textContent = paused ? '继续' : '暂停';
+  }
 
   function persist() {
     localStorage.setItem(STORE_KEY, JSON.stringify({ best: state.best }));
@@ -694,7 +667,7 @@ permalink: /toolbox/tetris/
     ensureQueue();
     spawnPiece();
     overlay.classList.remove('show', 'tt-overlay--pause');
-    pauseBtn.textContent = '⏸ 暂停';
+    setPauseUI(false);
     updateHud();
     drawHold();
     drawNext();
@@ -911,7 +884,7 @@ permalink: /toolbox/tetris/
   function togglePause() {
     if (state.over || !state.running) return;
     state.paused = !state.paused;
-    pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+    setPauseUI(state.paused);
     if (state.paused) {
       ovTitle.textContent = '暂停中';
       ovMsg.textContent = '按 P 或继续按钮恢复';
@@ -935,10 +908,13 @@ permalink: /toolbox/tetris/
     else if (k === 'p' || k === 'escape') { togglePause(); e.preventDefault(); }
   });
 
-  // 屏幕按钮
-  document.querySelectorAll('.tt-dpad button, .tt-dpad-row2 button').forEach(b => {
-    b.addEventListener('click', () => act(b.dataset.act));
-  });
+  // 屏幕方向键已撤掉（桌面用键盘、手机用滑动）。Hold 没有滑动手势，
+  // 保留「点一下 Hold 预览框 = 暂存」，手机上也能用 Hold。
+  const holdMini = holdCv.closest('.tt-mini');
+  if (holdMini) {
+    holdMini.style.cursor = 'pointer';
+    holdMini.addEventListener('click', () => act('hold'));
+  }
 
   // 触摸滑动（在棋盘上）——实时跟手：手指横向每滑过一格宽就左右移一格、
   // 纵向每滑过一格高就软降一格，方块跟着手指一格一格走（不再"松手才动"）。
@@ -1159,7 +1135,7 @@ permalink: /toolbox/tetris/
     state.paused = false;
     state.running = true;
     overlay.classList.remove('show', 'tt-overlay--pause');
-    pauseBtn.textContent = '⏸ 暂停';
+    setPauseUI(false);
     updateHud();
     redrawSidebars();
     startLoop();
@@ -1218,6 +1194,7 @@ permalink: /toolbox/tetris/
     // 总是先画一帧预览
     draw();
     redrawSidebars();
+    updateHud();   // 把已存档的 best 写进顶栏（之前只在开局后才刷新，刷新页面后顶栏一直显示 0）
 
     if (!window.GamesShell) {
       ttPgoOverlay.classList.remove('open');
