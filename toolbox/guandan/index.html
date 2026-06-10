@@ -1594,8 +1594,8 @@ theme_color: "#fafaf9"
   /* ======== 游戏内「🏆 榜单」chip（替代退出全屏）========
      永久全屏不跳出游戏外；玩法/战绩榜/评论改在游戏内浮层看，按钮挂头部角上。 */
   .guandan-wrap header { position: relative; }
-  /* 榜单(🏆) / 退出(✕) 两个角标圆钮：去文字、纯图标 */
-  .gd-board-btn, .gd-exit-btn {
+  /* 设置(⚙️) / 榜单(🏆) / 退出(✕) 角标圆钮：去文字、纯图标 */
+  .gd-board-btn, .gd-exit-btn, .gd-settings-btn {
     position: absolute; top: 0.6rem;
     display: inline-flex; align-items: center; justify-content: center;
     width: 1.95rem; height: 1.95rem; padding: 0;
@@ -1613,9 +1613,11 @@ theme_color: "#fafaf9"
   }
   .gd-board-btn { left: 0.6rem; }
   .gd-exit-btn  { right: 0.6rem; }
+  .gd-settings-btn { right: 3rem; }   /* 桌面：退出左边；横屏下方另定位 */
   @media (hover: hover) {
     .gd-board-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
     .gd-exit-btn:hover  { border-color: var(--gd-team-opp); color: var(--gd-team-opp); }
+    .gd-settings-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
 
   /* 游戏内「榜单/玩法/评论」浮层 */
@@ -1675,6 +1677,53 @@ theme_color: "#fafaf9"
   .gd-confirm-actions { display: flex; gap: 0.7rem; justify-content: center; margin-top: 1.1rem; }
   .gd-confirm-actions .gd-btn { min-width: 5rem; }
   .gd-confirm-actions .gd-btn.primary { background: var(--gd-team-opp); border-color: var(--gd-team-opp); color: #fff; }
+
+  /* ===== 桌面优先：PGO 不再盖满牌桌，改成牌桌正中一张深色卡片（开始游戏 / 加入房间）=====
+     overlay 背景透明（露出底下牌桌），内容卡片深色（沿用 mode-tab 等深色组件）。 */
+  body.gd-game-fullscreen .gs-pgo-overlay {
+    background: transparent;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+    padding: 1rem;
+  }
+  body.gd-game-fullscreen .gs-pgo-view {
+    background: rgba(24,28,34,0.94);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    padding: 1.3rem 1.6rem 1.5rem;
+    width: min(330px, 86vw);
+    box-shadow: 0 14px 44px rgba(0,0,0,0.45);
+  }
+  body.gd-game-fullscreen .gs-pgo-icon { font-size: 2.3rem; margin-bottom: 0.15rem; }
+  body.gd-game-fullscreen .gs-pgo-title { font-size: 1.35rem; margin-bottom: 0.9rem; }
+  /* 主页两大按钮竖排；加入房间用次要(描边)样式区分 */
+  .gd-home-btns { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; }
+  .gd-home-join { background: transparent; border: 1px solid rgba(255,255,255,0.35); color: #fff; }
+  @media (hover: hover) { .gd-home-join:hover { background: rgba(255,255,255,0.1); } }
+  .gd-online-back {
+    align-self: flex-start; background: none; border: none; color: rgba(255,255,255,0.6);
+    font-size: 0.85rem; cursor: pointer; padding: 0 0 0.4rem; font-family: inherit;
+  }
+
+  /* 设置浮层：深色面板（跟 PGO 卡片同款），承载难度/同队进贡/出牌时间 */
+  .gd-settings-modal { position: fixed; inset: 0; z-index: 10002; display: flex; align-items: center; justify-content: center; }
+  .gd-settings-modal[hidden] { display: none; }
+  .gd-settings-backdrop { position: absolute; inset: 0; background: rgba(13,18,26,0.55); }
+  .gd-settings-panel {
+    position: relative; z-index: 1;
+    background: rgba(24,28,34,0.97); color: #fff;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
+    padding: 1.3rem 1.5rem 1.4rem; width: min(340px, 88vw);
+    box-shadow: 0 14px 44px rgba(0,0,0,0.5);
+    text-align: center;
+  }
+  .gd-settings-title { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.2rem; color: #fff; }
+  .gd-settings-close {
+    position: absolute; top: 0.5rem; right: 0.6rem; width: 2rem; height: 2rem; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.2); background: transparent; color: rgba(255,255,255,0.75);
+    font-size: 1.3rem; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .gd-settings-panel .gs-pgo-mode-picker { justify-content: center; }
+  .gd-settings-note { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 0.9rem; line-height: 1.5; }
 
   body.gd-game-fullscreen { overflow: hidden; }
   body.gd-game-fullscreen .guandan-wrap {
@@ -1739,8 +1788,7 @@ theme_color: "#fafaf9"
   @media (orientation: landscape) and (pointer: coarse) {
     body.gd-game-fullscreen .guandan-wrap header { margin: 0; min-height: 0; }
     body.gd-game-fullscreen .guandan-wrap header h1 { display: none; }
-    /* 🏆 榜单 chip 挪到右上角，让开左上角的级牌信息（我方/对方/积分） */
-    /* 横屏：退出(✕)钉在最右上角，榜单(🏆)紧挨它左边 */
+    /* 横屏右上角从右到左：退出(✕) → 榜单(🏆) → 设置(⚙️)，都钉在顶部安全区内 */
     body.gd-game-fullscreen .gd-exit-btn {
       right: calc(0.5rem + env(safe-area-inset-right, 0px));
       top: calc(0.45rem + env(safe-area-inset-top, 0px));
@@ -1748,6 +1796,10 @@ theme_color: "#fafaf9"
     body.gd-game-fullscreen .gd-board-btn {
       left: auto;
       right: calc(2.9rem + env(safe-area-inset-right, 0px));
+      top: calc(0.45rem + env(safe-area-inset-top, 0px));
+    }
+    body.gd-game-fullscreen .gd-settings-btn {
+      right: calc(5.3rem + env(safe-area-inset-right, 0px));
       top: calc(0.45rem + env(safe-area-inset-top, 0px));
     }
     /* 画幅铺满：去掉外圈那圈奶油色边 + 金色细边 + 圆角，让羊皮纸牌桌一直延伸到
@@ -1859,6 +1911,9 @@ theme_color: "#fafaf9"
     <div class="gd-rotate-sub">掼蛋牌桌横屏才放得下 · 转一下就开打<br>（若没自动旋转，请关掉控制中心里的「竖排方向锁定」）</div>
   </div>
   <header>
+    <button type="button" class="gd-settings-btn" id="gdSettingsBtn" title="游戏设置" aria-label="游戏设置">
+      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 8.5 a3.5 3.5 0 1 0 0 7 a3.5 3.5 0 0 0 0 -7 Z M12 2.6 l1.3 2.2 a7.5 7.5 0 0 1 1.9 0.8 l2.5 -0.5 1.7 2.9 -1.6 2 a7.5 7.5 0 0 1 0 2 l1.6 2 -1.7 2.9 -2.5 -0.5 a7.5 7.5 0 0 1 -1.9 0.8 L12 21.4 l-1.3 -2.2 a7.5 7.5 0 0 1 -1.9 -0.8 l-2.5 0.5 -1.7 -2.9 1.6 -2 a7.5 7.5 0 0 1 0 -2 l-1.6 -2 1.7 -2.9 2.5 0.5 a7.5 7.5 0 0 1 1.9 -0.8 Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    </button>
     <button type="button" class="gd-board-btn" id="gdBoardBtn" title="榜单 / 玩法 / 评论" aria-label="榜单">🏆</button>
     <button type="button" class="gd-exit-btn" id="gdExitBtn" title="退出本局" aria-label="退出本局">
       <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -1981,58 +2036,15 @@ theme_color: "#fafaf9"
         <div class="gs-pgo-icon">🀄</div>
         <h2 class="gs-pgo-title">掼蛋</h2>
 
-        <!-- 玩法模式：单机 / 联机 -->
-        <div class="gs-pgo-mode-picker" id="gdPgoPlayMode" style="margin-bottom:0.6rem;">
-          <button class="gs-pgo-mode-tab selected" data-playmode="single" type="button">🎴 单机</button>
-          <button class="gs-pgo-mode-tab" data-playmode="online" type="button">👥 联机</button>
-        </div>
-
-        <!-- 单机：AI 难度 + 开始 -->
-        <div id="gdSingleSetup">
-          <div class="gd-pgo-label">难度</div>
-          <div class="gs-pgo-mode-picker" id="gdPgoDiff">
-            <button class="gs-pgo-mode-tab" data-value="easy">🌱 新手</button>
-            <button class="gs-pgo-mode-tab selected" data-value="normal">🙂 普通</button>
-            <button class="gs-pgo-mode-tab" data-value="hard">🔥 高手</button>
-          </div>
-
-          <!-- 玩法设置：默认折叠，单机 + 联机「创建房间」共用（JS 把它在两处间搬移）。
-               同队进贡 / 单局积分上限 / 出牌时间；联机创建房间时随 config 同步给全房。 -->
-          <div class="gd-gameopts" id="gdGameOpts">
-            <button class="gd-gameopts-toggle" id="gdGameOptsToggle" type="button" aria-expanded="false">
-              <span class="go-lbl">⚙️ 玩法设置</span>
-              <span class="go-sum" id="gdGameOptsSum"></span>
-              <span class="go-chev">▾</span>
-            </button>
-            <div class="gd-gameopts-body" id="gdGameOptsBody" hidden>
-              <div class="gd-pgo-label">同队进贡</div>
-              <div class="gs-pgo-mode-picker" id="gdPgoTeamTrib">
-                <button class="gs-pgo-mode-tab" data-value="off" type="button">关</button>
-                <button class="gs-pgo-mode-tab selected" data-value="on" type="button">开</button>
-              </div>
-              <div class="gd-pgo-label">单局积分上限</div>
-              <div class="gs-pgo-mode-picker" id="gdPgoScoreCap">
-                <button class="gs-pgo-mode-tab selected" data-value="0" type="button">不限</button>
-                <button class="gs-pgo-mode-tab" data-value="3" type="button">3</button>
-                <button class="gs-pgo-mode-tab" data-value="5" type="button">5</button>
-                <button class="gs-pgo-mode-tab" data-value="8" type="button">8</button>
-              </div>
-              <div class="gd-pgo-label">出牌时间</div>
-              <div class="gs-pgo-mode-picker" id="gdPgoTurnSec">
-                <button class="gs-pgo-mode-tab" data-value="10" type="button">10秒</button>
-                <button class="gs-pgo-mode-tab selected" data-value="20" type="button">20秒</button>
-                <button class="gs-pgo-mode-tab" data-value="30" type="button">30秒</button>
-                <button class="gs-pgo-mode-tab" data-value="0" type="button">不限</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="gd-pgo-score" id="gdPgoScore"></div>
+        <!-- 主页：开始游戏（单机对 AI）/ 加入房间（联机）。难度与玩法设置收进右上角 ⚙️。 -->
+        <div class="gd-home-btns" id="gdHomeBtns">
           <button class="gs-pgo-start-btn" id="gdPgoStart">▶ 开始游戏</button>
+          <button class="gs-pgo-start-btn gd-home-join" id="gdJoinRoomBtn" type="button">🚪 加入房间</button>
         </div>
 
-        <!-- 联机：创建 / 加入 房间 -->
+        <!-- 联机：创建 / 加入 房间（点「加入房间」展开） -->
         <div id="gdOnlineSetup" hidden>
+          <button class="gd-online-back" id="gdOnlineBack" type="button">← 返回</button>
           <div class="gd-online-tabs" id="gdOnlineTabs">
             <button class="gd-online-tab active" data-tab="create" type="button">🛠️ 创建房间</button>
             <button class="gd-online-tab" data-tab="join" type="button">🚪 加入房间</button>
@@ -2171,11 +2183,39 @@ theme_color: "#fafaf9"
   <div class="gd-confirm-modal" id="gdConfirmExit" hidden>
     <div class="gd-confirm-backdrop" id="gdConfirmExitBackdrop"></div>
     <div class="gd-confirm-panel">
-      <div class="gd-confirm-msg">退出本局？<br><span class="gd-confirm-sub">当前牌局会结束，回到难度选择页。</span></div>
+      <div class="gd-confirm-msg">退出本局？<br><span class="gd-confirm-sub">当前牌局会结束，回到主页。</span></div>
       <div class="gd-confirm-actions">
         <button class="gd-btn" id="gdConfirmExitCancel" type="button">取消</button>
         <button class="gd-btn primary" id="gdConfirmExitOk" type="button">退出</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 游戏设置浮层（右上角 ⚙️）：难度 / 同队进贡 / 出牌时间。深色面板，配合白字段选组件。 -->
+  <div class="gd-settings-modal" id="gdSettingsModal" hidden>
+    <div class="gd-settings-backdrop" id="gdSettingsBackdrop"></div>
+    <div class="gd-settings-panel">
+      <button class="gd-settings-close" id="gdSettingsClose" type="button" aria-label="关闭">×</button>
+      <div class="gd-settings-title">游戏设置</div>
+      <div class="gd-pgo-label">难度（单机对 AI）</div>
+      <div class="gs-pgo-mode-picker" id="gdPgoDiff">
+        <button class="gs-pgo-mode-tab" data-value="easy">🌱 新手</button>
+        <button class="gs-pgo-mode-tab selected" data-value="normal">🙂 普通</button>
+        <button class="gs-pgo-mode-tab" data-value="hard">🔥 高手</button>
+      </div>
+      <div class="gd-pgo-label">同队进贡</div>
+      <div class="gs-pgo-mode-picker" id="gdPgoTeamTrib">
+        <button class="gs-pgo-mode-tab" data-value="off" type="button">关</button>
+        <button class="gs-pgo-mode-tab selected" data-value="on" type="button">开</button>
+      </div>
+      <div class="gd-pgo-label">出牌时间</div>
+      <div class="gs-pgo-mode-picker" id="gdPgoTurnSec">
+        <button class="gs-pgo-mode-tab" data-value="10" type="button">10秒</button>
+        <button class="gs-pgo-mode-tab selected" data-value="20" type="button">20秒</button>
+        <button class="gs-pgo-mode-tab" data-value="30" type="button">30秒</button>
+        <button class="gs-pgo-mode-tab" data-value="0" type="button">不限</button>
+      </div>
+      <div class="gd-settings-note">联机创建房间时，以上设置随房间同步给全房。</div>
     </div>
   </div>
 
@@ -2188,4 +2228,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260610m"></script>
+<script src="/assets/js/games/guandan.js?v=20260611a"></script>

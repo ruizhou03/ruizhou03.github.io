@@ -3810,6 +3810,12 @@
     els.gameOptsBody.hidden = !open;
     els.gameOptsToggle.setAttribute('aria-expanded', String(open));
   });
+  // 桌面优先主页：PGO 卡片回到「开始游戏 / 加入房间」两按钮态（收起联机表单）
+  function gdResetPgoHome() {
+    const h = $('gdHomeBtns'), o = $('gdOnlineSetup');
+    if (h) h.hidden = false;
+    if (o) o.hidden = true;
+  }
   els.pgoStart.addEventListener('click', () => {
     els.pgo.classList.remove('open');
     startMatch();
@@ -3825,6 +3831,7 @@
     refreshPgoStats();
     syncPgoDiff();
     refreshHs();
+    gdResetPgoHome();
     els.pgo.classList.add('open');
   });
 
@@ -3943,6 +3950,7 @@
     refreshPgoStats();
     syncPgoDiff();
     refreshHs();
+    gdResetPgoHome();
     els.pgo.classList.add('open');
   }
   // 右上角「退出本局」按钮 → 先弹确认窗（用户明确要求确认），确认后才 quitToSetup
@@ -4232,7 +4240,24 @@
       });
     });
   }
-  placeGameOpts();   // 初始（默认单机）把玩法设置放到难度下方
+  placeGameOpts();   // no-op（玩法设置已固定在 ⚙️ 设置浮层；els.gameOpts 不存在则直接返回）
+
+  // ---- 主页「加入房间」/「返回」/ ⚙️设置 ----
+  const joinRoomBtn = $('gdJoinRoomBtn'), onlineBackBtn = $('gdOnlineBack');
+  if (joinRoomBtn) joinRoomBtn.addEventListener('click', () => {
+    playMode = 'online';
+    if ($('gdHomeBtns')) $('gdHomeBtns').hidden = true;
+    if (onlineEls.onlineSetup) onlineEls.onlineSetup.hidden = false;
+    if (onlineEls.nick && !onlineEls.nick.value) onlineEls.nick.value = gdGetNick();
+    if (onlineEls.nick) onlineEls.nick.focus();
+  });
+  if (onlineBackBtn) onlineBackBtn.addEventListener('click', () => { playMode = 'single'; gdResetPgoHome(); });
+  const gdSettingsModal = $('gdSettingsModal');
+  function openSettings() { if (gdSettingsModal) gdSettingsModal.hidden = false; }
+  function closeSettings() { if (gdSettingsModal) gdSettingsModal.hidden = true; }
+  if ($('gdSettingsBtn')) $('gdSettingsBtn').addEventListener('click', openSettings);
+  if ($('gdSettingsClose')) $('gdSettingsClose').addEventListener('click', closeSettings);
+  if ($('gdSettingsBackdrop')) $('gdSettingsBackdrop').addEventListener('click', closeSettings);
 
   // ---- submit (create/join) ----
   if (onlineEls.submit) {
@@ -4316,6 +4341,7 @@
       onlineSessionClear();
       onlineEls.lobby.hidden = true;
       if (els.table) els.table.classList.remove('gd-in-lobby');
+      gdResetPgoHome();
       els.pgo && els.pgo.classList.add('open');
       return;
     }
@@ -4332,6 +4358,7 @@
       onlineEls.lobby.classList.remove('starting');
     }
     if (els.table) els.table.classList.remove('gd-in-lobby');
+    gdResetPgoHome();
     if (els.pgo) els.pgo.classList.add('open');
     if (!silent) setOnlineHint('已离开房间');
   }
@@ -5030,9 +5057,9 @@
     const m = location.search.match(/[?&]room=(\d{4})/);
     if (!m) return;
     const code = m[1];
-    // 切到联机 + 加入 tab
-    const onlineBtn = onlineEls.pgoPlayMode && onlineEls.pgoPlayMode.querySelector('[data-playmode="online"]');
-    if (onlineBtn) onlineBtn.click();
+    // 切到联机 + 加入 tab（桌面优先：点「加入房间」展开联机表单）
+    const joinBtn = document.getElementById('gdJoinRoomBtn');
+    if (joinBtn) joinBtn.click();
     const joinTab = onlineEls.tabs && onlineEls.tabs.querySelector('[data-tab="join"]');
     if (joinTab) joinTab.click();
     if (onlineEls.code) onlineEls.code.value = code;
