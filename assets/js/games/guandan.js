@@ -1206,14 +1206,15 @@
     const availW = hand.clientWidth - padL - padR;
     if (availW <= 0) return;
 
-    // ── 横向：按「当前实际列数」预算卡宽，装得下就用默认大小(= 出牌区同款 46px) ──
-    // 旧逻辑按最坏 15 列预算，列没满时也把手牌缩得比出牌区小一圈；改成按真实列数算，
-    // 只有列真的多到一行放不下才缩。封顶 defCardW，列变少也不会涨过出牌区那么大。
+    // ── 横向：按「最大可能列数 15」恒定预算卡宽，整局不变 ──
+    // 关键：卡宽锁死成"装得下 15 列"的大小，开局牌多/后面牌少都用同一尺寸 —— 不再
+    // 开局缩小、出着出着又变大（用户反馈的"刚开局牌更小"）。15 列 = 2~A(13) + 大小王(2)。
+    // 装得下就用默认大小(= 出牌区同款)。
+    const MAX_HAND_COLS = 15;
     let cardW = defCardW, cardH = defCardH, step = defStep;
-    const nCols = cols.length;
-    const neededW = nCols * defCardW + (nCols - 1) * gap;
+    const neededW = MAX_HAND_COLS * defCardW + (MAX_HAND_COLS - 1) * gap;
     if (neededW > availW) {
-      cardW = Math.max(26, Math.floor((availW - (nCols - 1) * gap) / nCols));
+      cardW = Math.max(26, Math.floor((availW - (MAX_HAND_COLS - 1) * gap) / MAX_HAND_COLS));
       if (cardW < defCardW) cardH = Math.round(defCardH * (cardW / defCardW));
     }
 

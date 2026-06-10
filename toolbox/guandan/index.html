@@ -64,7 +64,7 @@ theme_color: "#fafaf9"
   /* ======== 级牌角标：原来横放在表格上方占 ~85px，现在挤到牌桌左上角小气泡里 ======== */
   .gd-levelbar-corner {
     position: absolute;
-    top: 0.55rem; left: 0.6rem;
+    top: 0.55rem; left: calc(0.6rem + env(safe-area-inset-left, 0px));
     display: flex; gap: 0.35rem;
     z-index: 4;
     pointer-events: none;
@@ -167,8 +167,9 @@ theme_color: "#fafaf9"
     top: 38%; transform: translateY(-50%);
     z-index: 6;
   }
-  .gd-side-left  { left: 0.4rem; flex-direction: row; }
-  .gd-side-right { right: 0.4rem; flex-direction: row-reverse; }
+  /* 左右贴边时加上安全区内缩：横屏刘海/灵动岛在哪侧，那侧的玩家就让开它，不被遮挡 */
+  .gd-side-left  { left: calc(0.4rem + env(safe-area-inset-left, 0px)); flex-direction: row; }
+  .gd-side-right { right: calc(0.4rem + env(safe-area-inset-right, 0px)); flex-direction: row-reverse; }
   .gd-side .gd-seat { flex: 0 0 auto; width: 90px; align-items: center; }
   .gd-center {
     /* partner 出牌靠顶（flex-start），让它明显高于侧位出牌（top:70% 下移） */
@@ -481,10 +482,16 @@ theme_color: "#fafaf9"
     min-width: 96px;
     /* 图标 + 文字横排对齐；横屏隐藏文字后图标自动居中 */
     display: inline-flex; align-items: center; justify-content: center; gap: 0.34rem;
-    /* 半透明底，万一手牌延伸到这一块也能看见底下的牌 */
+    /* 半透明白底（深浅色模式都白），万一手牌延伸到这一块也能看见底下的牌 */
     background: rgba(255,255,255,0.85);
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
+    /* 底是固定白，图标也固定深色 —— 否则深色模式下 currentColor 变浅、白底上看不清 */
+    color: #2b2b2b;
+    border-color: rgba(0,0,0,0.22);
+  }
+  @media (hover: hover) {
+    .gd-sort-actions .gd-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
   /* 理牌行三个按钮的矢量图标：描边用 currentColor，跟随按钮文字色 / hover 高亮 */
   .gd-btn-ic { flex: 0 0 auto; display: block; }
@@ -1598,7 +1605,9 @@ theme_color: "#fafaf9"
     cursor: pointer;
     font-family: inherit;
     transition: all 0.18s;
-    z-index: 5;
+    /* 必须高过 seats-top/出牌区那些 z-index:6 的层，否则它们铺满顶部一条、
+       盖住这俩按钮、把点击吃掉（=之前"按了没反应"的根因） */
+    z-index: 20;
   }
   .gd-board-btn { left: 0.6rem; }
   .gd-exit-btn  { right: 0.6rem; }
@@ -1789,7 +1798,10 @@ theme_color: "#fafaf9"
       flex: 1 1 auto; min-height: 0;
       align-items: flex-end;
       overflow: visible;
-      padding: 0.15rem calc(50px + env(safe-area-inset-right, 0px)) 0.2rem calc(90px + env(safe-area-inset-left, 0px));
+      /* 左右只留"我/托管"和"理牌键"的宽度即可，不再额外叠加 safe-area —— 那俩 chip 自身
+         已含 safe-area，手牌让开它们就等于让开了刘海（安全区在算式里相互抵消）。少占
+         ~70px 宽给手牌，开局 15 列也能接近 46px 标准大小、不被缩小。 */
+      padding: 0.15rem 40px 0.2rem 72px;
     }
     /* 左下："我" 头像 | 张数 + 托管机器人 横排（张数与机器人都在头像右边、右下方），
        不再竖排单开一行（挤进左侧 ~104px 内）。 */
@@ -2173,4 +2185,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260610i"></script>
+<script src="/assets/js/games/guandan.js?v=20260610j"></script>
