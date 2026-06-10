@@ -157,16 +157,15 @@ theme_color: "#fafaf9"
     pointer-events: none;
   }
   .gd-myplay-row .gd-played { width: auto; min-width: 0; }
-  /* 侧位：横向布局 [头像 | 出牌区]（右侧反过来），整体绝对定位贴边、纵向略
-     高于中线（让出"我的出牌区"的下半部分）。 */
+  /* 侧位：横向布局 [头像 | 出牌区]（右侧反过来）。绝对定位「相对牌桌」(已移出
+     seats-mid)，竖向钉死在牌桌正中偏上一点（≈我的出牌区与对家之间），写死 44%，
+     不随对家座位高度变化而上下移。z-index:6 盖在手牌之上。 */
   .gd-side {
     display: flex; flex-direction: row; align-items: center;
     gap: 0.55rem;
     position: absolute;
-    /* 下移：让 partner 出牌（在 .gd-center 顶部）明显高于侧位出牌；
-       65% 让侧位刚好坐在 seats-mid 下沿、不超出，跟 partner 拉开 ~40px 高度差 */
-    top: 65%; transform: translateY(-50%);
-    z-index: 2;
+    top: 44%; transform: translateY(-50%);
+    z-index: 6;
   }
   .gd-side-left  { left: 0.4rem; flex-direction: row; }
   .gd-side-right { right: 0.4rem; flex-direction: row-reverse; }
@@ -1753,7 +1752,7 @@ theme_color: "#fafaf9"
         calc(0.4rem + env(safe-area-inset-bottom, 0px))
         calc(0.7rem + env(safe-area-inset-left, 0px));
     }
-    body.gd-game-fullscreen .gd-seats-mid { height: 86px; }
+    body.gd-game-fullscreen .gd-seats-mid { height: 66px; }   /* 只剩对家出牌，收紧把空间还给手牌 */
     body.gd-game-fullscreen .gd-myplay-row { height: 38px; margin-top: 0.1rem; }
     body.gd-game-fullscreen .gd-played,
     body.gd-game-fullscreen .gd-side .gd-played { height: 60px; }
@@ -1870,37 +1869,37 @@ theme_color: "#fafaf9"
       </div>
     </div>
 
+    <!-- 中央：对家的出牌（partner 头像在 seats-top） -->
     <div class="gd-seats-mid">
-      <!-- 左对手（座位 3）：头像 + 出牌区横排，出牌向右延展 -->
-      <div class="gd-side gd-side-left">
-        <div class="gd-seat" id="gdSeat3" data-seat="3">
-          <div class="gd-avatar team-opp" id="gdAv3">🐱<span class="gd-clock" id="gdClk3" hidden></span></div>
-          <div class="gd-name">对手·左 <span class="tag">AI</span></div>
-          <div style="display:flex;gap:0.3rem;align-items:center;">
-            <span class="gd-count" id="gdCnt3">27</span>
-            <span class="gd-rank-badge" id="gdRk3" hidden></span>
-          </div>
-        </div>
-        <div class="gd-played" id="gdPlay3"></div>
-      </div>
-
-      <!-- 中央：对家的出牌（partner 头像在 seats-top） -->
       <div class="gd-center">
         <div class="gd-played" id="gdPlay2"></div>
       </div>
+    </div>
 
-      <!-- 右对手（座位 1）：出牌区 + 头像 横排（row-reverse），出牌向左延展 -->
-      <div class="gd-side gd-side-right">
-        <div class="gd-seat" id="gdSeat1" data-seat="1">
-          <div class="gd-avatar team-opp" id="gdAv1">🦊<span class="gd-clock" id="gdClk1" hidden></span></div>
-          <div class="gd-name">对手·右 <span class="tag">AI</span></div>
-          <div style="display:flex;gap:0.3rem;align-items:center;">
-            <span class="gd-count" id="gdCnt1">27</span>
-            <span class="gd-rank-badge" id="gdRk1" hidden></span>
-          </div>
+    <!-- 左右对手：从 seats-mid 里拎出来、绝对定位钉死在牌桌竖向中间（我的出牌区与
+         对家之间），不再随对家座位变扁而一起上移。 -->
+    <div class="gd-side gd-side-left">
+      <div class="gd-seat" id="gdSeat3" data-seat="3">
+        <div class="gd-avatar team-opp" id="gdAv3">🐱<span class="gd-clock" id="gdClk3" hidden></span></div>
+        <div class="gd-name">对手·左 <span class="tag">AI</span></div>
+        <div style="display:flex;gap:0.3rem;align-items:center;">
+          <span class="gd-count" id="gdCnt3">27</span>
+          <span class="gd-rank-badge" id="gdRk3" hidden></span>
         </div>
-        <div class="gd-played" id="gdPlay1"></div>
       </div>
+      <div class="gd-played" id="gdPlay3"></div>
+    </div>
+
+    <div class="gd-side gd-side-right">
+      <div class="gd-seat" id="gdSeat1" data-seat="1">
+        <div class="gd-avatar team-opp" id="gdAv1">🦊<span class="gd-clock" id="gdClk1" hidden></span></div>
+        <div class="gd-name">对手·右 <span class="tag">AI</span></div>
+        <div style="display:flex;gap:0.3rem;align-items:center;">
+          <span class="gd-count" id="gdCnt1">27</span>
+          <span class="gd-rank-badge" id="gdRk1" hidden></span>
+        </div>
+      </div>
+      <div class="gd-played" id="gdPlay1"></div>
     </div>
 
     <!-- 我的出牌（最近一手 / 不要）：单独一行放在 mid 行下方、手牌上方，
@@ -2167,4 +2166,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260610e"></script>
+<script src="/assets/js/games/guandan.js?v=20260610f"></script>
