@@ -427,6 +427,16 @@ theme_color: "#fafaf9"
     opacity: 0.78;
     box-shadow: inset 0 0 0 2px var(--gd-accent), 0 1px 3px rgba(20,37,63,0.18);
   }
+  /* 摞太深、往上溢出到「我自己出牌区」以上的那几张：蒙一层灰 + 半透明，弱化存在感，
+     不跟牌桌中央的出牌抢视线（仍可点选）。由 adaptHandSize 逐张判定后加/去该类。 */
+  .gd-rank-col .gd-card.size-full.gd-card-spill {
+    filter: grayscale(0.55) brightness(0.93);
+    opacity: 0.5;
+  }
+  .gd-rank-col .gd-card.size-full.gd-card-spill.selected {
+    filter: grayscale(0.65) brightness(0.85);
+    opacity: 0.42;
+  }
   /* 桌面 hover 预览：鼠标停在某张未选中的牌上时小幅抬升，让用户清楚
      当前要点哪张（堆叠列里光看角标容易点错）。仿斗地主 .ddz-card.hover-preview */
   @media (hover: hover) {
@@ -499,16 +509,14 @@ theme_color: "#fafaf9"
     opacity: 0.72;
     pointer-events: none;
   }
-  /* 旁观队友手牌：禁交互 + 在原"出牌按钮"那行的位置挂一条提示
-     （我已出完时该行是空的，刚好让出来给状态条用） */
+  /* 旁观队友手牌：手牌禁交互。提示文字改放进「出牌按钮行」（gdSpectateNote），
+     不再用浮在手牌上方的 ::before —— 见 .gd-spectate-note。 */
   .gd-hand.is-spectating {
     pointer-events: none;
   }
-  .gd-hand.is-spectating::before {
-    content: '正在查看队友手牌';
-    position: absolute;
-    top: -2.6rem;
-    left: 50%; transform: translateX(-50%);
+  /* 「正在查看队友手牌」：占住出牌按钮那一行（我已出完时该行本就是空的），
+     做成跟动作行协调的胶囊文字，居中显示。 */
+  .gd-spectate-note {
     font-size: 0.88rem;
     color: var(--gd-accent-strong);
     background: rgba(255,255,255,0.85);
@@ -516,11 +524,10 @@ theme_color: "#fafaf9"
     border-radius: 999px;
     padding: 0.32rem 0.95rem;
     white-space: nowrap;
-    z-index: 5;
-    pointer-events: none;
     font-family: var(--font-body);
     box-shadow: 0 1px 3px rgba(20,37,63,0.12);
   }
+  .gd-spectate-note[hidden] { display: none; }
   /* 接风：中央横排大字 + 风筝图标 + 副标题（替代以前的 toast） */
   .gd-jiefeng-banner {
     display: flex; align-items: center; gap: 0.5rem;
@@ -1614,6 +1621,16 @@ theme_color: "#fafaf9"
     display: flex; align-items: center; justify-content: center;
   }
   @media (hover: hover) { .gd-board-close:hover { border-color: var(--color-accent); color: var(--color-accent); } }
+  /* 退出本局：放在榜单浮层顶部，随时可中途弃局回到难度选择页 */
+  .gd-quit-btn {
+    display: block; width: 100%;
+    margin: 0 0 1rem; padding: 0.55rem 1rem;
+    border: 1px solid var(--gd-team-opp); border-radius: 10px;
+    background: rgba(139,46,46,0.06); color: var(--gd-team-opp);
+    font-family: var(--font-body); font-size: 0.9rem; font-weight: 600;
+    cursor: pointer;
+  }
+  @media (hover: hover) { .gd-quit-btn:hover { background: rgba(139,46,46,0.12); } }
   .gd-board-panel details.about { margin: 0 0 1rem; }
   .gd-board-panel #gd-wlb-mount,
   .gd-board-panel #gd-nick-mount { margin: 0 0 0.8rem; }
@@ -1873,6 +1890,8 @@ theme_color: "#fafaf9"
     <!-- 出牌动作行：在手牌上方（仿斗地主）。轮到我时显示倒计时 + 不出/提示/出牌
          加倍阶段也复用此行：不加倍 / 加倍 ×2 按钮 + 5s 倒计时 -->
     <div class="gd-play-actions" id="gdPlayActions">
+      <!-- 我已出完、正在看队友打牌时，这条提示占住「出牌按钮行」（最底一行） -->
+      <span class="gd-spectate-note" id="gdSpectateNote" hidden>正在查看队友手牌</span>
       <span class="gd-self-clock" id="gdSelfClock" hidden aria-hidden="true">
         <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
           <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
@@ -2081,6 +2100,7 @@ theme_color: "#fafaf9"
     <div class="gd-board-backdrop" id="gdBoardBackdrop"></div>
     <div class="gd-board-panel">
       <button class="gd-board-close" id="gdBoardClose" type="button" aria-label="关闭">×</button>
+      <button class="gd-quit-btn" id="gdQuitBtn" type="button">退出本局 · 回到难度选择</button>
       <details class="about">
         <summary>游戏规则</summary>
         <div class="body" id="gdRulesBody"></div>
@@ -2100,4 +2120,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260610a"></script>
+<script src="/assets/js/games/guandan.js?v=20260610b"></script>

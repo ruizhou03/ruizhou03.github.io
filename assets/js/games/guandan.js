@@ -860,6 +860,7 @@
     hintBtn: $('gdHintBtn'), sortBtn: $('gdSortBtn'),
     arrangeBtn: $('gdArrangeBtn'), restoreBtn: $('gdRestoreBtn'),
     selfClock: $('gdSelfClock'),
+    spectateNote: $('gdSpectateNote'),
     autopilotBtn: $('gdAutopilotBtn'),
     pgo: $('gdPgo'), pgoStart: $('gdPgoStart'),
     pgoDiff: $('gdPgoDiff'), pgoStats: $('gdPgoStats'), hs: $('gdHs'),
@@ -1134,6 +1135,8 @@
     const cols = buildHandColumns(remainingHand);
     if (!isSpectating()) state.handOrder = cols.map(c => c.weight);
     els.hand.classList.toggle('is-spectating', isSpectating());
+    // 「正在查看队友手牌」提示挪到出牌按钮那一行（最底一行）显示
+    if (els.spectateNote) els.spectateNote.hidden = !isSpectating();
 
     const stackStep = parseFloat(
       getComputedStyle(els.hand).getPropertyValue('--gd-stack-step')
@@ -1215,19 +1218,47 @@
       if (cardW < defCardW) cardH = Math.round(defCardH * (cardW / defCardW));
     }
 
-    // ── 纵向：不再因为某一摞深就压扁整手牌 ──
-    // 旧逻辑会在最深的一摞放不下时收 step（甚至连卡高一起收），结果是只要有一摞牌多，
-    // 全手牌的错落间距、卡片大小都跟着缩水，挤成一团、张数都数不清。
-    // 现在固定保持默认 step 与默认卡高：深摞就让它自然往上长，溢进手牌上方那片空地
-    //（CSS 里横屏手牌 overflow:visible + 底对齐，溢出不裁切）。错落格式与卡片尺寸恒定。
+    // ── 纵向：默认保持原样的错落(step)与卡高不动，深摞自然往上长、溢进手牌上方空地 ──
+    // 旧逻辑只要有一摞放不下就收整手牌的 step/卡高，挤成一团数不清——已废弃。
+    // 现在：① 普通深度完全用默认 step（外观与旧版逐像素一致）；② 摞溢出到「我自己
+    // 出牌区」以上的那几张蒙灰(.gd-card-spill)，弱化存在感、不抢牌桌；③ 只有当一摞深
+    // 到要顶进「对方出牌区」时，才「单独」把这一摞的 step 收一点点压回安全线内（其余
+    // 列分毫不动），避免戳到对方的牌。每一摞各自算 step，绝不让一摞深拖累整手牌。
+    const bottomAligned = cs.alignItems === 'flex-end';
+    const padT = parseFloat(cs.paddingTop) || 0;
+    const padB = parseFloat(cs.paddingBottom) || 0;
+    const availH = hand.clientHeight - padT - padB;
+    // headroom = 手牌内容顶 → 对方出牌区下沿 之间这段空当（≈我方出牌行的高度），
+    // 允许摞往上长进来；再往上就戳进对方出牌区，留 6px 余量不贴住对方的牌。
+    let headroom = 0;
+    if (bottomAligned && availH > 0) {
+      const handTop = hand.getBoundingClientRect().top + padT;
+      const seatsMid = document.querySelector('.gd-seats-mid');
+      const oppBottom = seatsMid ? seatsMid.getBoundingClientRect().bottom : handTop;
+      headroom = Math.max(0, handTop - oppBottom - 6);
+    }
+    const maxStackH = availH + headroom;
 
     if (cardW !== defCardW) hand.style.setProperty('--gd-card-w', cardW + 'px');
     if (cardH !== defCardH) hand.style.setProperty('--gd-card-h', cardH + 'px');
-    if (step !== defStep) hand.style.setProperty('--gd-stack-step', step + 'px');
+    // 全局 step 保持默认；每一摞各自定 step，互不牵连
     cols.forEach(col => {
       const cards = col.querySelectorAll('.gd-card');
-      col.style.height = ((cards.length - 1) * step + cardH) + 'px';
-      cards.forEach((c, i) => { c.style.top = (i * step) + 'px'; });
+      const N = cards.length;
+      let colStep = step;
+      // 只有这一摞会顶进对方出牌区时，才单独把它压回安全线（maxStackH）之内
+      if (bottomAligned && N > 1 && (N - 1) * step + cardH > maxStackH) {
+        colStep = Math.max(12, (maxStackH - cardH) / (N - 1));
+      }
+      const colH = (N - 1) * colStep + cardH;
+      col.style.height = colH + 'px';
+      cards.forEach((c, i) => {
+        const top = i * colStep;
+        c.style.top = top + 'px';
+        // 这张牌顶是否升到了手牌框顶（=我自己出牌区）以上？是则蒙灰
+        const cardTopInHand = (availH - colH) + top;
+        c.classList.toggle('gd-card-spill', bottomAligned && cardTopInHand < 0);
+      });
     });
   }
 
@@ -1646,8 +1677,9 @@
     if (!canInteract) return;
     if (!els.hand.contains(e.target)) return;
     // 进贡 / 还贡阶段：只追踪 first touch。已经有指针在追了就忽略后续触点
-    // （多指滑动 / 第二根手指落下都不会改变本次选中）
-    const inTribute = !!activeTributeGive() || !!activeTributePair();
+    // （多指滑动 / 第二根手指落下都不会改变本次选中）。用 phase 判定更稳——
+    // 别人进贡、我等待时 give/pair 都为 null 也算 inTribute，杜绝此刻乱选牌。
+    const inTribute = state.phase === PHASE.TRIBUTE;
     if (inTribute && pState) return;
     const card = e.target.closest('.gd-card');
     const pt = e.touches ? e.touches[0] : e;
@@ -1669,9 +1701,10 @@
 
     if (pState.mode === 'PENDING') {
       if (Math.abs(dx) < MOVE_THRESHOLD && Math.abs(dy) < MOVE_THRESHOLD) return;
-      // 进贡 / 还贡阶段：禁用矩形框选；只认 first touch 的那张牌。即使用户滑出
-      // 阈值距离也保持 PENDING — 让 pointerup 的"单击 = 选中起点牌"分支起作用
-      if (activeTributeGive() || activeTributePair()) return;
+      // 进贡 / 还贡阶段：整段禁用矩形框选；只认 first touch 的那张牌。即使用户滑出
+      // 阈值距离也保持 PENDING — 让 pointerup 的"单击 = 选中起点牌"分支起作用。
+      // 用 phase 判定（而非 give/pair 是否激活），杜绝框选绕过校验把非法牌选中。
+      if (state.phase === PHASE.TRIBUTE) return;
       pState.mode = 'MULTI_SELECT';
       pState.dragMode = (pState.startCid != null && state.selected.has(pState.startCid)) ? 'remove' : 'add';
       pState.originalSelected = new Set(state.selected);
@@ -1692,7 +1725,8 @@
     if (pState.mode === 'PENDING') {
       // 没动过 → 当作点击
       if (pState.startCid != null) {
-        // 进贡阶段（玩家是 giver）：只能点同等级合法牌；并且是单选（替换）
+        // 进贡阶段（玩家是 giver）：只能点同等级合法牌；并且是单选（替换）。
+        // 点了不合法的牌：直接「不让选中」、静默忽略，不弹任何提示窗。
         const giveCtx = activeTributeGive();
         if (giveCtx) {
           if (giveCtx.validCards.includes(pState.startCid)) {
@@ -1700,13 +1734,12 @@
             state.selected.add(pState.startCid);
             renderHand();
             updateActions();
-          } else {
-            toast('只能选同等级的最大可进贡牌');
           }
           pState = null;
           return;
         }
-        // 还贡阶段（玩家是 receiver）：只能点合法还贡牌；同样单选（替换）
+        // 还贡阶段（玩家是 receiver）：只能点合法还贡牌（≤10，详见 isValidReturnCard）；
+        // 同样单选替换。点了不合法的牌：直接不让选中、静默忽略，不弹窗。
         const returnCtx = activeTributePair();
         if (returnCtx) {
           if (isValidReturnCard(pState.startCid)) {
@@ -1714,12 +1747,14 @@
             state.selected.add(pState.startCid);
             renderHand();
             updateActions();
-          } else {
-            toast('请选 ≤10 的一张牌');
           }
           pState = null;
           return;
         }
+        // 仍在进贡阶段、但此刻轮不到我给/还（在等别人）：一律不许普通选牌。
+        // 杜绝 give/pair 都为 null 时落到下面无校验的普通选牌分支、把非法牌选中
+        //（这正是"第一次点弹窗没选中、第二次却能选中并真把大牌进贡出去"的根因）。
+        if (state.phase === PHASE.TRIBUTE) { pState = null; return; }
         // 正常切换该卡选中。smartSnap 只在用户"刚加进一张牌"时触发，自动补齐成
         // 复合牌型；如果用户是"去掉一张已选牌"，听用户的，别再把那张牌补回来。
         const wasSelected = state.selected.has(pState.startCid);
@@ -1965,6 +2000,11 @@
   // tributeResult: null（首局）| { from, to, card }（含还贡后）
   function startRound(prevRanking) {
     state.phase = PHASE.PLAYING;
+    // 新一局默认「不」继承上一局的托管：每局都要用户自己再点一次「🤖 托管」才接管。
+    // （超时被动开启的计数也清零，新局从头算。）
+    state.autopilot = false;
+    state._consecutiveTimeouts = 0;
+    refreshAutopilotBtn();
     state.out = [];
     state.selected.clear();
     state.handOrder = null;          // 重新发牌 → 重置自定义列顺序
@@ -3914,6 +3954,23 @@
   if ($('gdBoardBtn')) $('gdBoardBtn').addEventListener('click', openBoard);
   if ($('gdBoardClose')) $('gdBoardClose').addEventListener('click', closeBoard);
   if ($('gdBoardBackdrop')) $('gdBoardBackdrop').addEventListener('click', closeBoard);
+  // 中途退出本局：随时弃掉当前这副牌，回到难度选择页（PGO）。复用 matchSetup 那套
+  // 收尾——停时钟、关托管、回 IDLE、重渲、亮起 PGO。不弹确认窗（用户讨厌弹窗）；
+  // 旧对局快照留着不清，万一手滑还能靠 resume 救回来，开新局时 startMatch 自会覆盖。
+  function quitToSetup() {
+    closeBoard();
+    stopTurnClock();
+    state.phase = PHASE.IDLE;
+    state.autopilot = false;
+    state._consecutiveTimeouts = 0;
+    refreshAutopilotBtn();
+    renderAll();
+    refreshPgoStats();
+    syncPgoDiff();
+    refreshHs();
+    els.pgo.classList.add('open');
+  }
+  if ($('gdQuitBtn')) $('gdQuitBtn').addEventListener('click', quitToSetup);
   window.addEventListener('resize', () => adaptHandSize());
 
   // ---- 启动 ----
