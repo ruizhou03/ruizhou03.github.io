@@ -1732,10 +1732,11 @@ theme_color: "#fafaf9"
     .gd-rotate-sub { font-size: 0.9rem; color: var(--color-muted); max-width: 17rem; line-height: 1.65; }
   }
 
-  /* ======== 手机横屏（窄高）：纵向收紧 + 给左下"我/托管"、右下理牌键让位 ========
-     手牌横向铺满时，左下的"我"、托管 chip 和右下的理牌键会压住头尾几张牌；
-     这里给手牌左右各留出它们的宽度（padding），并把这些角标收紧钉到角上。 */
-  @media (orientation: landscape) and (max-height: 560px) {
+  /* ======== 触屏设备横屏：纵向收紧 + 给左下"我/托管"、右下理牌键让位 ========
+     用 (pointer: coarse) 判定「触屏 + 横屏」，不再用 max-height:560px —— 旋转时浏览器
+     会短暂报旧的竖屏高度(>560)，导致这套横屏布局瞬间失配、退回非全屏的「网页」样式
+     （表头露出、牌桌居中）。pointer/orientation 在旋转时更新更可靠，不会再掉出全屏。 */
+  @media (orientation: landscape) and (pointer: coarse) {
     body.gd-game-fullscreen .guandan-wrap header { margin: 0; min-height: 0; }
     body.gd-game-fullscreen .guandan-wrap header h1 { display: none; }
     /* 🏆 榜单 chip 挪到右上角，让开左上角的级牌信息（我方/对方/积分） */
@@ -2187,4 +2188,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260610l"></script>
+<script src="/assets/js/games/guandan.js?v=20260610m"></script>
