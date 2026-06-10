@@ -132,6 +132,7 @@ permalink: /toolbox/pindou/
   @media (max-width: 520px) { .pb-panel-grid { grid-template-columns: 1fr; } }
   .pb-panel-grid .pb-ctl { margin: 0 0 .3rem; }
   .pb-bgrow { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin-top: .6rem; padding-top: .65rem; border-top: 1px dashed var(--color-border); font-size: .85rem; color: var(--color-ink); }
+  .pb-bgrow-sep { flex: 1 1 .5rem; min-width: .5rem; }
   .pb-bgrow b { font-weight: 600; }
   /* 图上方工具行：分组 + 留白，不再挤成一坨 */
   .pb-toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .6rem; }
@@ -291,6 +292,12 @@ permalink: /toolbox/pindou/
           <button data-bg="#FFFFFF">填白</button>
           <button data-bg="#1A1A1A">填黑</button>
         </div>
+        <span class="pb-bgrow-sep"></span>
+        <b>上色</b>
+        <div class="pb-seg" id="ditherSeg">
+          <button class="on" data-dither="0" title="每格一种纯色，干净利落——卡通 / logo / 简单图适合">平涂</button>
+          <button data-dither="1" title="相邻珠子交错混色，渐变更顺——照片 / 渐变适合（用色会更杂）">抖动</button>
+        </div>
       </div>
     </div>
 
@@ -408,6 +415,24 @@ permalink: /toolbox/pindou/
     for(let i=0;i<PAL_RGB.length;i++){ const d=colorDist(rgb, PAL_RGB[i]); if(d<bd){bd=d; bi=i;} }
     return bi;
   }
+  // Floyd–Steinberg 抖动：把每格量化到「已定好的成品色板 palPis」并把误差扩散给右/左下/下/右下邻格，
+  // 用交错的珠子骗出渐变。只在主体格之间扩散(透明/背景格不参与)。返回每格的 pi（-1=透明）。
+  function ditherToPalette(cells, cols, rows, palPis){
+    const palRGB = palPis.map(pi=>PAL_RGB[pi]);
+    const work = new Float32Array(cols*rows*3);
+    for(let i=0;i<cols*rows;i++){ const c=cells[i]; if(c){ work[i*3]=c[0]; work[i*3+1]=c[1]; work[i*3+2]=c[2]; } }
+    const out = new Int16Array(cols*rows).fill(-1);
+    for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+      const i=y*cols+x; if(!cells[i]) continue;
+      const r=work[i*3], g=work[i*3+1], b=work[i*3+2];
+      let bi=0,bd=Infinity; for(let k=0;k<palRGB.length;k++){ const d=colorDist([r,g,b],palRGB[k]); if(d<bd){bd=d;bi=k;} }
+      out[i]=palPis[bi];
+      const er=r-palRGB[bi][0], eg=g-palRGB[bi][1], eb=b-palRGB[bi][2];
+      const sp=(xx,yy,f)=>{ if(xx<0||xx>=cols||yy<0||yy>=rows)return; const j=yy*cols+xx; if(!cells[j])return; work[j*3]+=er*f; work[j*3+1]+=eg*f; work[j*3+2]+=eb*f; };
+      sp(x+1,y,7/16); sp(x-1,y+1,3/16); sp(x,y+1,5/16); sp(x+1,y+1,1/16);
+    }
+    return out;
+  }
 
   const MAXDIM = 1000; // 工作画布上限，控内存/性能
 
@@ -420,7 +445,7 @@ permalink: /toolbox/pindou/
     bboxAR: 0, lastFill: 1, lastBeads: 0,
     modelReady: false, preloadFrac: 0, preloadPromise: null,
     aiGen: 0, aiGaveUp: false, timeDragging: false, shared: false,
-    sortKey: 'count', sortDir: 'desc'
+    sortKey: 'count', sortDir: 'desc', dither: false
   };
 
   function enableStep(id){ $(id).classList.remove('pb-locked'); }
@@ -751,6 +776,8 @@ permalink: /toolbox/pindou/
   colsInput.addEventListener('input', ()=>{ S.colorN=+colsInput.value; $('colVal').textContent=S.colorN+' 色'; liveTimeUpdate(); debouncedGen(); });   // 重算后 setColLabel 会补上「实际 N 色」
   $('bgSeg').addEventListener('click', (e)=>{ const b=e.target.closest('button'); if(!b) return;
     S.bg=b.dataset.bg; document.querySelectorAll('#bgSeg button').forEach(x=>x.classList.toggle('on',x===b)); regenerate(); });
+  $('ditherSeg').addEventListener('click', (e)=>{ const b=e.target.closest('button'); if(!b) return;
+    S.dither=b.dataset.dither==='1'; document.querySelectorAll('#ditherSeg button').forEach(x=>x.classList.toggle('on',x===b)); regenerate(); });
 
   // 目标耗时（反向）：拖它自动配 精细度 + 颜色
   timeInput.addEventListener('input', ()=>{ controlsFromTime(+timeInput.value); });
@@ -806,12 +833,23 @@ permalink: /toolbox/pindou/
       palCount[tgt]+=palCount[victim]; delete palCount[victim];
       usedPis=Object.keys(palCount).map(Number);
     }
-    const order=Object.keys(palCount).map(Number).sort((a,b)=>palCount[b]-palCount[a]);
+    // 成品色板已定。抖动开关：开则用 Floyd–Steinberg 把主体格重铺到这块成品色板上(背景格保持纯色)
+    const finalPalPis=Object.keys(palCount).map(Number);
+    let cellFinalPi;
+    if(S.dither && finalPalPis.length>1){
+      cellFinalPi=ditherToPalette(cells, cols, rows, finalPalPis);
+      if(S.bg!=='none'){ const bgPi=nearestPalette(hexToRgb(S.bg));
+        for(let i=0;i<cols*rows;i++) if(!cells[i]) cellFinalPi[i]=bgPi; }
+    } else cellFinalPi=cellPi;
+    // 用最终落格重新统计——抖动会改变各色实际用量，清单/统计要照实算
+    const finalCount={};
+    for(let i=0;i<cols*rows;i++){ const pi=cellFinalPi[i]; if(pi>=0) finalCount[pi]=(finalCount[pi]||0)+1; }
+    const order=Object.keys(finalCount).map(Number).sort((a,b)=>finalCount[b]-finalCount[a]);
     const remap={}; const used=[];
-    order.forEach((pi,idx)=>{ remap[pi]=idx; used.push({pi, code:PALETTE[pi].code, h:PALETTE[pi].h, n:PALETTE[pi].n, count:palCount[pi], sym:SYMBOLS[idx]||'·'}); });
+    order.forEach((pi,idx)=>{ remap[pi]=idx; used.push({pi, code:PALETTE[pi].code, h:PALETTE[pi].h, n:PALETTE[pi].n, count:finalCount[pi], sym:SYMBOLS[idx]||'·'}); });
     const grid=new Array(rows);
     for(let y=0;y<rows;y++){ grid[y]=new Array(cols);
-      for(let x=0;x<cols;x++){ const pi=cellPi[y*cols+x]; grid[y][x]= pi<0?-1:remap[pi]; } }
+      for(let x=0;x<cols;x++){ const pi=cellFinalPi[y*cols+x]; grid[y][x]= pi<0?-1:remap[pi]; } }
     S.grid=grid; S.used=used;
     renderStats(); fitZoom(); renderPreview(); renderLegend();
   }
