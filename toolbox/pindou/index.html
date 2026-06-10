@@ -17,7 +17,7 @@ permalink: /toolbox/pindou/
   .pb-wrap.is-shared #step1 { display: none; }
   .pb-wrap.is-shared .pb-step-n { display: none; }
   .pb-wrap.is-shared #step2 .pb-step-h, .pb-wrap.is-shared #step2 .pb-step-hint { display: none; }
-  .pb-wrap.is-shared #step2 .pb-ctlbar, .pb-wrap.is-shared #step2 .pb-timebar { display: none; }
+  .pb-wrap.is-shared #step2 .pb-panel, .pb-wrap.is-shared #step2 .pb-timebar { display: none; }
   .pb-wrap.is-shared #step2 .pb-stats { margin-top: .8rem; }
   .pb-step-h { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.85rem; }
   .pb-step-n { flex: 0 0 auto; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
@@ -77,12 +77,16 @@ permalink: /toolbox/pindou/
   .pb-btn.sm { font-size: .8rem; padding: .35rem .7rem; }
   .pb-btnrow { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .85rem; }
   .pb-btn.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  /* 步骤①按钮 + 引导语居中 */
+  #cutBtns { justify-content: center; gap: .55rem; }
+  #cutMsg { text-align: center; }
 
   /* manual tools */
   .pb-tools { display: none; margin-top: .85rem; padding: .8rem .85rem; border: 1px dashed var(--color-accent); border-radius: 10px; background: rgba(30,58,95,.03); }
   .pb-tools.show { display: block; }
-  .pb-tools-title { font-size: .82rem; color: var(--color-ink); line-height: 1.5; margin-bottom: .65rem; }
-  .pb-tools-row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; font-size: .82rem; color: var(--color-light); }
+  .pb-tools-title { font-size: .82rem; color: var(--color-ink); line-height: 1.55; margin-bottom: .7rem; }
+  .pb-tools-title b { font-weight: 600; }
+  .pb-tools-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .6rem; font-size: .82rem; color: var(--color-light); }
   .pb-tools-row input[type=range] { vertical-align: middle; }
   .pb-mode button { font-size: .82rem; padding: .4rem .75rem; }
   .pb-brush-lab { display: inline-flex; align-items: center; gap: .4rem; }
@@ -104,23 +108,30 @@ permalink: /toolbox/pindou/
   .pb-seg button { border: none; background: var(--color-bg); color: var(--color-light); font-size: .8rem; padding: .35rem .7rem; cursor: pointer; }
   .pb-seg button.on { background: var(--color-accent); color: #fff; }
 
-  /* 预计耗时条：本质是 珠子数+颜色 → 时间 的「结果读数」，反向拖动是附加能力 */
-  .pb-timebar { border: 1px solid var(--color-border); border-radius: 10px; padding: .6rem .8rem .55rem; background: rgba(30,58,95,.025); margin-bottom: 1rem; }
-  .pb-timebar-top { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; font-size: .85rem; color: var(--color-ink); margin-bottom: .35rem; }
-  .pb-timebar-top b { font-weight: 600; }
-  .pb-timebar-top #timeEst { color: var(--color-accent); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .pb-timebar-top #effortLabel { font-size: .8rem; color: var(--color-light); }
+  /* 预计耗时：双向读数条——上面两项「算出」它；也能拖它「反推」上面两项。做得比普通控件更醒目 */
+  .pb-timebar { border: 1px solid var(--color-accent); border-radius: 12px; padding: .7rem 1rem .65rem; background: rgba(30,58,95,.05); margin-bottom: .9rem; }
+  .pb-timebar-top { display: flex; align-items: baseline; gap: .55rem; flex-wrap: wrap; color: var(--color-ink); margin-bottom: .4rem; }
+  .pb-timebar-top b { font-weight: 600; font-size: .92rem; }
+  .pb-timebar-top #timeEst { color: var(--color-accent); font-weight: 700; font-size: 1.18rem; font-variant-numeric: tabular-nums; }
+  .pb-timebar-top #effortLabel { font-size: .8rem; color: var(--color-light); margin-left: auto; }
+  .pb-bidi { font-size: .76rem; color: var(--color-light); margin-top: .4rem; line-height: 1.5; display: flex; align-items: flex-start; gap: .35rem; }
+  .pb-bidi .pb-bidi-ico { color: var(--color-accent); font-weight: 700; }
+  .pb-bidi b { color: var(--color-ink); font-weight: 600; }
 
   /* 抠图进度：转圈 + 爬动进度条 */
   .pb-cut-bar { width: 60%; max-width: 180px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.28); overflow: hidden; position: relative; z-index: 1; }
   .pb-cut-bar > i { display: block; height: 100%; width: 0; background: #fff; border-radius: 3px; transition: width .25s linear; }
 
-  /* step2 工作区：左拼豆主视觉 + 右控件 */
-  /* 控件收顶(紧凑 2 列) + 画布全宽 */
-  .pb-ctlbar { display: grid; grid-template-columns: 1fr 1fr; gap: .2rem 1.2rem; margin-bottom: 1rem; }
-  @media (max-width: 560px) { .pb-ctlbar { grid-template-columns: 1fr; gap: .2rem; } }
-  .pb-ctlbar .pb-ctl { margin-bottom: .5rem; }
-  .pb-toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; margin-bottom: .5rem; }
+  /* 调整面板：精细度 + 颜色上限 + 底板背景 全收进一个矩形卡，压缩占行 */
+  .pb-panel { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-bg); padding: .85rem 1rem .8rem; margin-bottom: .9rem; }
+  .pb-panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .1rem 1.6rem; }
+  @media (max-width: 520px) { .pb-panel-grid { grid-template-columns: 1fr; } }
+  .pb-panel-grid .pb-ctl { margin: 0 0 .3rem; }
+  .pb-bgrow { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin-top: .6rem; padding-top: .65rem; border-top: 1px dashed var(--color-border); font-size: .85rem; color: var(--color-ink); }
+  .pb-bgrow b { font-weight: 600; }
+  /* 图上方工具行：分组 + 留白，不再挤成一坨 */
+  .pb-toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .6rem; }
+  .pb-zoomgrp { display: inline-flex; gap: .3rem; }
 
   /* stats */
   .pb-stats { display: flex; flex-wrap: wrap; gap: .5rem; margin: .2rem 0 1rem; }
@@ -136,8 +147,9 @@ permalink: /toolbox/pindou/
   /* legend / shopping list 分页 */
   .pb-legend-ctl { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; justify-content: space-between; font-size: .8rem; color: var(--color-light); margin: .5rem 0 .3rem; }
   .pb-legend-ctl select { font-size: .8rem; padding: .15rem .3rem; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); color: var(--color-ink); }
-  .pb-pager { display: inline-flex; align-items: center; gap: .5rem; }
-  .pb-pager button { border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-ink); border-radius: 6px; width: 1.7rem; height: 1.7rem; cursor: pointer; font-size: .9rem; }
+  .pb-lc-grp { display: inline-flex; align-items: center; flex-wrap: wrap; gap: .5rem .8rem; }
+  .pb-pager { display: inline-flex; align-items: center; gap: .4rem; }
+  .pb-pager button { border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-ink); border-radius: 6px; width: 1.6rem; height: 1.6rem; cursor: pointer; font-size: .9rem; }
   .pb-pager button:disabled { opacity: .4; cursor: default; }
 
   /* 全屏看图纸 */
@@ -219,15 +231,15 @@ permalink: /toolbox/pindou/
     </div>
 
     <div class="pb-tools" id="tools">
-      <div class="pb-tools-title">🖌️ 在图上涂抹来修整 —— 选「擦掉背景」抹去多余背景，选「找回主体」把误删的补回来</div>
+      <div class="pb-tools-title">🖌️ 在右图上涂抹修整边缘：<b>擦掉</b> = 把涂到的地方变透明、不放珠子；<b>补回</b> = 把误删的主体重新加回来。<br>笔刷大小：拖下面的滑杆，或在图上滚轮 / 触控板双指捏合。</div>
       <div class="pb-tools-row">
         <div class="pb-seg pb-mode" id="modeSeg">
-          <button class="on" id="modeErase" data-mode="erase">🩹 擦掉背景</button>
-          <button id="modeRestore" data-mode="restore">↩︎ 找回主体</button>
+          <button class="on" id="modeErase" data-mode="erase" title="把涂到的地方变透明，不放珠子">🩹 擦掉</button>
+          <button id="modeRestore" data-mode="restore" title="把涂到的地方加回主体，会放珠子">↩︎ 补回</button>
         </div>
         <label class="pb-brush-lab">笔刷<input type="range" id="brush" min="10" max="150" value="50"><span id="brushVal">50</span></label>
-        <button class="pb-btn sm" id="undoBtn" disabled>↶ 撤销</button>
-        <button class="pb-btn sm" id="resetMask">⟲ 复原 AI</button>
+        <button class="pb-btn sm" id="undoBtn" disabled>↶ 撤销一步</button>
+        <button class="pb-btn sm" id="resetMask" title="丢弃所有手动涂抹，回到 AI 抠出的结果">↺ 重置涂抹</button>
       </div>
     </div>
 
@@ -246,18 +258,20 @@ permalink: /toolbox/pindou/
     <div class="pb-step-h"><div class="pb-step-n">2</div><div class="pb-step-t">调整 · 图纸 · 清单</div></div>
     <div class="pb-step-hint">上方调精细度 / 颜色，参数和预计耗时实时跟着变；图上方一行可切「效果图 / 坐标图」、缩放、下载、分享，「⛶ 全屏」对着拼；下方是采买清单。</div>
 
-    <!-- 控件收顶，紧凑 2 列 -->
-    <div class="pb-ctlbar">
-      <div class="pb-ctl">
-        <div class="pb-ctl-lab"><b>精细度</b><span id="resVal">48 格 · 普通</span></div>
-        <input type="range" class="pb-range" id="res" min="20" max="120" step="1" value="48">
+    <!-- 调整：精细度 + 颜色上限 + 底板背景 收进一个矩形卡 -->
+    <div class="pb-panel">
+      <div class="pb-panel-grid">
+        <div class="pb-ctl">
+          <div class="pb-ctl-lab"><b>精细度</b><span id="resVal">48 格 · 普通</span></div>
+          <input type="range" class="pb-range" id="res" min="20" max="120" step="1" value="48">
+        </div>
+        <div class="pb-ctl">
+          <div class="pb-ctl-lab"><b>颜色上限</b><span id="colVal">16 色</span></div>
+          <input type="range" class="pb-range" id="cols" min="2" max="36" step="1" value="16">
+        </div>
       </div>
-      <div class="pb-ctl">
-        <div class="pb-ctl-lab"><b>颜色上限</b><span id="colVal">16 色</span></div>
-        <input type="range" class="pb-range" id="cols" min="2" max="36" step="1" value="16">
-      </div>
-      <div class="pb-ctl">
-        <div class="pb-ctl-lab"><b>底板背景</b></div>
+      <div class="pb-bgrow">
+        <b>底板背景</b>
         <div class="pb-seg" id="bgSeg">
           <button class="on" data-bg="none">留空</button>
           <button data-bg="#FFFFFF">填白</button>
@@ -266,14 +280,14 @@ permalink: /toolbox/pindou/
       </div>
     </div>
 
-    <!-- 预计耗时：由 珠子数+颜色 算出的结果读数；滑杆是反向快捷方式 -->
+    <!-- 预计耗时：双向。上面两项→耗时；也能拖它反推上面两项 -->
     <div class="pb-timebar">
       <div class="pb-timebar-top"><b>⏱ 预计耗时</b><span id="timeEst">约 …</span><span id="effortLabel"></span></div>
       <input type="range" class="pb-range" id="timeTarget" min="15" max="900" step="5" value="160">
-      <div class="pb-cap" style="text-align:left;">由上面的精细度和颜色算出来；也可以反着拖这条——定下想花多久，精细度+颜色自动适配</div>
+      <div class="pb-bidi"><span class="pb-bidi-ico">⇅</span><span>上面的<b>精细度 + 颜色</b>算出这个耗时；反过来拖这条，自动<b>反推</b>出最合适的精细度 + 颜色。</span></div>
     </div>
 
-    <!-- 图纸参数（跟控件放一起，拖动时实时变化） -->
+    <!-- 图纸参数（拖动时实时变化） -->
     <div class="pb-stats" id="stats"></div>
 
     <!-- 大画布（全宽主视觉） -->
@@ -283,11 +297,12 @@ permalink: /toolbox/pindou/
           <button class="on" data-mode="effect">🧩 效果图</button>
           <button data-mode="chart">🔢 坐标图</button>
         </div>
-        <button class="pb-btn sm" id="zoomOut">－</button>
-        <button class="pb-btn sm" id="zoomFit">⤢ 适应</button>
-        <button class="pb-btn sm" id="zoomIn">＋</button>
+        <span class="pb-zoomgrp">
+          <button class="pb-btn sm" id="zoomOut" title="缩小">－</button>
+          <button class="pb-btn sm" id="zoomFit" title="整张铺满">⤢ 适应</button>
+          <button class="pb-btn sm" id="zoomIn" title="放大">＋</button>
+        </span>
         <button class="pb-btn sm" id="fsOpen">⛶ 全屏</button>
-        <span id="zoomTxt" style="font-size:.78rem;color:var(--color-light);"></span>
         <span style="flex:1 1 auto;"></span>
         <button class="pb-btn sm pri" id="dlCurrent">⬇︎ 下载（带图例）</button>
         <button class="pb-btn sm" id="shareBtn">🔗 分享</button>
@@ -301,12 +316,14 @@ permalink: /toolbox/pindou/
     <div class="pb-legend">
       <div style="font-size:.9rem;color:var(--color-ink);font-weight:600;margin:1.2rem 0 .3rem;">🛒 采买清单</div>
       <div class="pb-legend-ctl">
-        <span>排序 <select id="legendSort"><option value="count">按用量 ↓</option><option value="code">按色号</option></select></span>
-        <span>每页 <select id="legendPer"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="999">全部</option></select> 个</span>
-        <span id="legendTotal" style="font-weight:600;color:var(--color-ink);"></span>
-      </div>
-      <div class="pb-legend-ctl" id="legendPagerWrap" style="justify-content:center;margin:.1rem 0 .5rem;">
-        <span class="pb-pager"><button id="legPrev">‹</button>第 <span id="legPageNo">1</span> / <span id="legPages">1</span> 页<button id="legNext">›</button></span>
+        <span class="pb-lc-grp">
+          <span>排序 <select id="legendSort"><option value="count">按用量 ↓</option><option value="code">按色号</option></select></span>
+          <span>每页 <select id="legendPer"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="999">全部</option></select> 个</span>
+        </span>
+        <span class="pb-lc-grp">
+          <span class="pb-pager" id="legendPagerWrap"><button id="legPrev">‹</button>第 <span id="legPageNo">1</span>/<span id="legPages">1</span> 页<button id="legNext">›</button></span>
+          <span id="legendTotal" style="font-weight:600;color:var(--color-ink);"></span>
+        </span>
       </div>
       <table>
         <thead><tr><th>色号</th><th>颜色</th><th>名称</th><th class="num">颗数</th><th class="num">占比</th></tr></thead>
@@ -643,7 +660,14 @@ permalink: /toolbox/pindou/
   $('modeRestore').addEventListener('click', ()=>setMode('restore'));
   function setMode(m){ manualMode=m; $('modeErase').classList.toggle('on',m==='erase'); $('modeRestore').classList.toggle('on',m==='restore');
     brushCursor.classList.toggle('restore', m==='restore'); }
-  $('brush').addEventListener('input', e=>{ brushR=+e.target.value; $('brushVal').textContent=brushR; sizeCursor(); });
+  function setBrush(v){ brushR=Math.max(10,Math.min(150,Math.round(v))); $('brush').value=brushR; $('brushVal').textContent=brushR; sizeCursor(); }
+  $('brush').addEventListener('input', e=>setBrush(+e.target.value));
+  // 在画布上滚轮 / 触控板双指捏合 → 调笔刷大小（手动修整时）。捏合=ctrl+wheel，步子更跟手
+  editCanvas.addEventListener('wheel', (e)=>{
+    if(!toolsOpen() || !S.mask) return;
+    e.preventDefault();
+    setBrush(brushR * Math.exp(-e.deltaY * (e.ctrlKey ? 0.04 : 0.012))); moveCursor(e);
+  }, {passive:false});
 
   function pushUndo(){ undoStack.push(S.mask.slice()); if(undoStack.length>15) undoStack.shift(); $('undoBtn').disabled=false; }
   function clearUndo(){ undoStack.length=0; const b=$('undoBtn'); if(b) b.disabled=true; }
@@ -684,9 +708,17 @@ permalink: /toolbox/pindou/
     }
     if(!rafPending){ rafPending=true; requestAnimationFrame(()=>{ rafPending=false; renderEdit(); }); }
   }
-  function startPaint(e){ if(!S.mask || !toolsOpen()) return; e.preventDefault(); pushUndo(); painting=true; moveCursor(e); const [x,y]=canvasXY(e); paintAt(x,y); }
-  function movePaint(e){ moveCursor(e); if(!painting) return; e.preventDefault(); const [x,y]=canvasXY(e); paintAt(x,y); }
-  function endPaint(){ if(painting){ painting=false; if(!$('step2').classList.contains('pb-locked')) regenerate(); } }
+  let pinching=false, pinchD=0;
+  const tDist=(t)=>Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY);
+  function startPaint(e){ if(!S.mask || !toolsOpen()) return;
+    if(e.touches && e.touches.length>=2){ e.preventDefault(); pinching=true; painting=false; pinchD=tDist(e.touches); brushCursor.style.display='none'; return; } // 双指=调笔刷
+    e.preventDefault(); pushUndo(); painting=true; moveCursor(e); const [x,y]=canvasXY(e); paintAt(x,y); }
+  function movePaint(e){
+    if(pinching){ if(e.touches && e.touches.length>=2){ e.preventDefault(); const d=tDist(e.touches); if(pinchD>0) setBrush(brushR*d/pinchD); pinchD=d; } return; }
+    moveCursor(e); if(!painting) return; e.preventDefault(); const [x,y]=canvasXY(e); paintAt(x,y); }
+  function endPaint(e){
+    if(pinching && (!e || !e.touches || e.touches.length<2)){ pinching=false; pinchD=0; }
+    if(painting){ painting=false; if(!$('step2').classList.contains('pb-locked')) regenerate(); } }
   editCanvas.addEventListener('mousedown', startPaint);
   editCanvas.addEventListener('mousemove', movePaint);
   editCanvas.addEventListener('mouseleave', ()=>{ brushCursor.style.display='none'; });
@@ -732,7 +764,7 @@ permalink: /toolbox/pindou/
     const W=S.W, H=S.H, m=S.mask;
     let minX=W,minY=H,maxX=-1,maxY=-1;
     for(let y=0;y<H;y++) for(let x=0;x<W;x++){ if(m[y*W+x]){ if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; } }
-    if(maxX<0){ showMsg('genMsg','没抠到主体——回上一步点「找回」补一点，或「用整张图」。', true); return; }
+    if(maxX<0){ showMsg('genMsg','没抠到主体——回上一步点「补回」补一点，或「用整张图」。', true); return; }
     const bw=maxX-minX+1, bh=maxY-minY+1;
     S.bboxAR = bw/bh;
     let cols, rows;
@@ -895,8 +927,6 @@ permalink: /toolbox/pindou/
     if(!S.grid) return;
     if(S.previewMode==='chart') renderChartTo(preview, S.cellPx); // 不再加最小格下限,宽图也能完整铺满
     else renderEffectTo(preview, S.cellPx);
-    const fit = S.fitPx && Math.abs(S.cellPx-S.fitPx)<0.6;
-    $('zoomTxt').textContent = fit ? '整张已铺满' : (S.previewMode==='chart'?'格 ':'珠 ')+Math.round(S.cellPx)+'px';
   }
   $('zoomIn').addEventListener('click', ()=>{ S.cellPx=Math.min(40, S.cellPx*1.35); renderPreview(); });
   $('zoomOut').addEventListener('click', ()=>{ S.cellPx=Math.max(1.5, S.cellPx/1.35); renderPreview(); });
