@@ -102,7 +102,7 @@ permalink: /toolbox/tetris/
     .tt-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
 
-  /* 主体：左侧 hold，中间棋盘，右侧 next */
+  /* 主体：中间棋盘，右侧 next（+ 可选 hold，设置里开启） */
   .tt-stage {
     display: flex;
     gap: 0.55rem;
@@ -222,7 +222,7 @@ permalink: /toolbox/tetris/
     .tt-canvas-wrap {
       flex: 0 0 auto;
       max-width: none;
-      width: min(calc(100vw - 116px), calc((100dvh - 150px) / 2));
+      width: min(calc(100vw - 72px), calc((100dvh - 150px) / 2));
     }
     .tt-mini { padding: 0.22rem; }
     .tt-mini .mlabel { font-size: 0.52rem; }
@@ -276,13 +276,6 @@ permalink: /toolbox/tetris/
   </div>
 
   <div class="tt-stage">
-    <div class="tt-side">
-      <div class="tt-mini">
-        <div class="mlabel">Hold</div>
-        <canvas id="ttHoldCanvas" width="120" height="120"></canvas>
-      </div>
-    </div>
-
     <div class="tt-canvas-wrap">
       <canvas id="ttCanvas" width="240" height="480"></canvas>
       <div class="tt-overlay" id="ttOverlay">
@@ -301,6 +294,7 @@ permalink: /toolbox/tetris/
             <div class="gs-pgo-hs-label">历史最高分</div>
           </div>
           <button class="gs-pgo-start-btn" id="ttPgoStartBtn">▶ 开始游戏</button>
+          <button class="gs-pgo-settings-link" id="ttPgoSettingsLink" type="button">⚙ 设置</button>
         </div>
         <div class="gs-pgo-view" id="ttPgoViewResume">
           <div class="gs-pgo-icon">👋</div>
@@ -309,6 +303,11 @@ permalink: /toolbox/tetris/
           <button class="gs-pgo-start-btn" id="ttPgoResumeContinueBtn">▶ 继续上次</button>
           <button class="gs-pgo-start-btn" id="ttPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;"><svg viewBox="0 0 24 24" width="0.95em" height="0.95em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;margin-right:0.35em" aria-hidden="true"><polyline points="2 4 2 10 8 10"/><path d="M3.6 15a9 9 0 1 0 2-9.4L2 10"/></svg>重新开始</button>
         </div>
+        <div class="gs-pgo-view" id="ttPgoViewSettings">
+          <h2 class="gs-pgo-settings-title">⚙ 设置</h2>
+          <div class="gs-pgo-settings-body" id="ttPgoSettingsBody"></div>
+          <button class="gs-pgo-back-link" id="ttPgoBackLink" type="button">← 返回</button>
+        </div>
       </div>
     </div>
 
@@ -316,6 +315,10 @@ permalink: /toolbox/tetris/
       <div class="tt-mini">
         <div class="mlabel">Next</div>
         <canvas id="ttNextCanvas" width="120" height="300"></canvas>
+      </div>
+      <div class="tt-mini tt-hold-mini" id="ttHoldMini" hidden>
+        <div class="mlabel">Hold</div>
+        <canvas id="ttHoldCanvas" width="120" height="120"></canvas>
       </div>
     </div>
   </div>
@@ -331,7 +334,7 @@ permalink: /toolbox/tetris/
 
   <details class="about" style="max-width:480px;margin-left:auto;margin-right:auto;">
     <summary>游戏规则</summary>
-    <p>方块从顶部落下，把它们拼成完整的一整行就会消除并得分。<kbd>←</kbd> <kbd>→</kbd> 左右移动，<kbd>↓</kbd> 软降（每格 +1 分），<kbd>↑</kbd> 或 <kbd>X</kbd> 顺时针旋转，<kbd>Z</kbd> 逆时针旋转，<kbd>空格</kbd> 硬降（每格 +2 分并立即锁定），<kbd>C</kbd> 暂存当前方块（一回合只能暂存一次），<kbd>P</kbd> 或 <kbd>Esc</kbd> 暂停。手机端直接在棋盘上滑动操作：左右滑实时左右移（跟手，一格一格走）、下滑软降、快速下甩硬降、轻点旋转、点 Hold 框暂存。</p>
+    <p>方块从顶部落下，把它们拼成完整的一整行就会消除并得分。<kbd>←</kbd> <kbd>→</kbd> 左右移动，<kbd>↓</kbd> 软降（每格 +1 分），<kbd>↑</kbd> 或 <kbd>X</kbd> 顺时针旋转，<kbd>Z</kbd> 逆时针旋转，<kbd>空格</kbd> 硬降（每格 +2 分并立即锁定），<kbd>C</kbd> 暂存方块 Hold（需在 ⚙ 设置里开启，一回合限一次），<kbd>P</kbd> 或 <kbd>Esc</kbd> 暂停。手机端直接在棋盘上滑动操作：左右滑实时左右移（跟手，一格一格走）、下滑软降、快速下甩硬降、轻点旋转；开启 Hold 后可点右侧 Hold 框暂存。</p>
     <p>消行得分按一次消除的行数计：1 行 100、2 行 300、3 行 500、4 行（Tetris）800，再乘以当前等级。每累计消除 10 行升一级，方块下落速度随等级加快。半透明的「幽灵」方块显示当前方块会落到哪里。采用 7-bag 随机：每 7 个方块为一组保证每种各出现一次。方块堆到顶部、新方块无处生成时游戏结束。</p>
   </details>
 
@@ -620,6 +623,7 @@ permalink: /toolbox/tetris/
   }
 
   function holdSwap() {
+    if (!holdAllowed) return;   // Hold 默认关，需在 ⚙ 设置里开启
     if (state.holdUsed || !state.current) return;
     const curType = state.current.type;
     if (state.holdPiece == null) {
@@ -1156,16 +1160,43 @@ permalink: /toolbox/tetris/
   const ttPgoOverlay = document.getElementById('ttPreGameOverlay');
   const ttPgoViewMain = document.getElementById('ttPgoViewMain');
   const ttPgoViewResume = document.getElementById('ttPgoViewResume');
+  const ttPgoViewSettings = document.getElementById('ttPgoViewSettings');
   const ttPgoHighScore = document.getElementById('ttPgoHighScore');
   const ttPgoResumeSummary = document.getElementById('ttPgoResumeSummary');
 
   function ttShowOverlayView(name) {
     ttPgoViewMain.classList.toggle('active', name === 'main');
     ttPgoViewResume.classList.toggle('active', name === 'resume');
+    ttPgoViewSettings.classList.toggle('active', name === 'settings');
   }
 
   function ttUpdatePgoHighScore() {
     ttPgoHighScore.textContent = state.best > 0 ? state.best.toLocaleString() : '--';
+  }
+
+  // 设置：Hold 寄存开关（默认关）。开启 → 右列显示 Hold 框、允许 C 键 / 点框暂存。
+  let holdAllowed = false;
+  const ttHoldMini = document.getElementById('ttHoldMini');
+  function ttApplyHold(on) {
+    holdAllowed = !!on;
+    if (ttHoldMini) ttHoldMini.hidden = !on;
+    if (!on) { state.holdPiece = null; state.holdUsed = false; }
+    drawHold();
+  }
+  if (window.GamesShell && GamesShell.Settings) {
+    const ttSettings = GamesShell.Settings.mount({
+      container: document.getElementById('ttPgoSettingsBody'),
+      storageKey: 'tool.tetris.settings.v1',
+      defaults: { hold: false },
+      items: [{ key: 'hold', label: 'Hold 寄存', type: 'toggle' }],
+      onChange: (k, v, vals) => ttApplyHold(vals.hold),
+    });
+    ttApplyHold(ttSettings.get('hold'));
+    document.getElementById('ttPgoSettingsLink').addEventListener('click', () => ttShowOverlayView('settings'));
+    document.getElementById('ttPgoBackLink').addEventListener('click', () => ttShowOverlayView('main'));
+  } else {
+    ttApplyHold(false);
+    document.getElementById('ttPgoSettingsLink').style.display = 'none';
   }
 
   document.getElementById('ttPgoStartBtn').addEventListener('click', ttStartFresh);
