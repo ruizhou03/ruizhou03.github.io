@@ -3123,8 +3123,9 @@
   }
   function refreshAutopilotBtn() {
     if (!els.autopilotBtn) return;
+    // 纯机器人图标，不再改文字；托管中靠 .on 的橙色高亮表示，点一下即切换。
     els.autopilotBtn.classList.toggle('on', !!state.autopilot);
-    els.autopilotBtn.textContent = state.autopilot ? '🛑 退出托管' : '🤖 托管';
+    els.autopilotBtn.title = state.autopilot ? '正在托管中 · 点一下取消' : '托管：让 AI 替你打牌';
   }
 
   function scheduleAI() {
@@ -3711,6 +3712,10 @@
       }
       const level = currentLevelLabel();
       const cb = classify(sel, level);
+      // 只允许把「能整摞一起打出去的合法牌型」摞起来：对子/三张/三带二/顺子/连对(木板)/
+      // 钢板/炸弹/同花顺/天王炸……classify 认得就放行，认不得(随手凑的一堆杂牌)就静默不摞，
+      // 杜绝把任意张数(甚至 8+)的杂牌硬摞成一摞。不弹窗，点错了什么都不发生。
+      if (!cb) return;
       const isBomb = cb && isBombType(cb.type);
       const strength = isBomb ? (cb.bombStrength || 0) : 0;
       state.customGroups.push({

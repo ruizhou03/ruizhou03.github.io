@@ -184,6 +184,10 @@ theme_color: "#fafaf9"
     gap: 0.15rem; transition: opacity 0.2s;
   }
   .gd-seat.dim { opacity: 0.45; }
+  /* 横排座位（对家）：头像 | (名字/张数)，张数移到头像右边、整块更扁 */
+  .gd-seat.gd-seat-h { flex-direction: row; align-items: center; gap: 0.45rem; }
+  .gd-seat-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 0.05rem; }
+  .gd-seat-cnt { display: flex; align-items: center; gap: 0.32rem; }
   .gd-avatar {
     width: 46px; height: 46px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
@@ -482,30 +486,28 @@ theme_color: "#fafaf9"
   }
   /* 理牌行三个按钮的矢量图标：描边用 currentColor，跟随按钮文字色 / hover 高亮 */
   .gd-btn-ic { flex: 0 0 auto; display: block; }
-  /* 托管 chip：左下角，跟我头像同行旁边；on 状态金色高亮 */
+  /* 托管：纯机器人图标按钮，跟在「我」的张数右边（头像右下方），不再绝对定位单开一行。
+     未托管=略灰；点亮(.on)=橙色高亮，表示「正在托管」。点一下切换。 */
   .gd-autopilot-chip {
-    position: absolute;
-    left: 0.9rem;
-    bottom: 0.6rem;
-    padding: 0.28rem 0.7rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.7rem; height: 1.7rem; padding: 0;
     border: 1px solid var(--color-border);
     background: rgba(255,255,255,0.85);
-    color: var(--color-muted);
-    border-radius: 999px;
-    font-size: 0.78rem;
+    border-radius: 50%;
+    font-size: 0.95rem; line-height: 1;
     cursor: pointer;
     font-family: inherit;
-    z-index: 5;
     transition: all 0.18s;
+    filter: grayscale(0.55); opacity: 0.82;
   }
   @media (hover: hover) {
-    .gd-autopilot-chip:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .gd-autopilot-chip:hover { border-color: var(--color-accent); opacity: 1; filter: grayscale(0.2); }
   }
   .gd-autopilot-chip.on {
-    background: var(--gd-accent-strong);
-    color: #fff;
-    border-color: var(--gd-accent-strong);
-    box-shadow: 0 0 12px rgba(168,122,42,0.5);
+    background: #e8843a;
+    border-color: #e8843a;
+    box-shadow: 0 0 10px rgba(232,132,58,0.6);
+    filter: none; opacity: 1;
   }
   /* 压不过上家：手牌整体灰显 + 禁交互 */
   .gd-hand.no-play {
@@ -1754,20 +1756,17 @@ theme_color: "#fafaf9"
       flex: 1 1 auto; min-height: 0;
       align-items: flex-end;
       overflow: visible;
-      padding: 0.15rem calc(50px + env(safe-area-inset-right, 0px)) 0.2rem calc(62px + env(safe-area-inset-left, 0px));
+      padding: 0.15rem calc(50px + env(safe-area-inset-right, 0px)) 0.2rem calc(104px + env(safe-area-inset-left, 0px));
     }
-    /* 左下："我"头像+张数在上、托管在下，竖排不重叠（挤进左侧 62px 内） */
+    /* 左下："我" 头像 | 张数 + 托管机器人 横排（张数与机器人都在头像右边、右下方），
+       不再竖排单开一行（挤进左侧 ~104px 内）。 */
     body.gd-game-fullscreen .gd-self-bar {
       left: calc(0.4rem + env(safe-area-inset-left, 0px));
-      bottom: calc(2.3rem + env(safe-area-inset-bottom, 0px)); margin: 0;
-      flex-direction: column; align-items: flex-start; gap: 0.1rem;
+      bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)); margin: 0;
+      flex-direction: row; align-items: center; gap: 0.32rem;
     }
     body.gd-game-fullscreen .gd-self-bar .gd-name { display: none; }
-    body.gd-game-fullscreen .gd-autopilot-chip {
-      left: calc(0.4rem + env(safe-area-inset-left, 0px));
-      bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
-      padding: 0.22rem 0.5rem; font-size: 0.72rem;
-    }
+    body.gd-game-fullscreen .gd-autopilot-chip { width: 1.5rem; height: 1.5rem; font-size: 0.85rem; }
     /* 右下：只留 还原/理牌 两个图标键（去文字、去一键理牌），紧凑竖排（挤进右侧 50px 内） */
     body.gd-game-fullscreen .gd-sort-actions {
       right: calc(0.4rem + env(safe-area-inset-right, 0px));
@@ -1826,14 +1825,17 @@ theme_color: "#fafaf9"
       <div class="gd-level-chip score" id="gdChipScore" title="本难度累计分数"><span class="lab">积分</span><span class="val" id="gdScoreVal">+0</span></div>
     </div>
 
-    <!-- 上家：对家 -->
+    <!-- 上家：对家。头像 + (名字/张数) 横排 —— 张数挪到头像右边，整块更扁，
+         让出一整行高度给对家出牌区往上挪。 -->
     <div class="gd-seats-top">
-      <div class="gd-seat" id="gdSeat2" data-seat="2">
+      <div class="gd-seat gd-seat-h" id="gdSeat2" data-seat="2">
         <div class="gd-avatar team-you" id="gdAv2">🤝<span class="gd-clock" id="gdClk2" hidden></span></div>
-        <div class="gd-name">对家 <span class="tag">AI</span></div>
-        <div style="display:flex;gap:0.3rem;align-items:center;">
-          <span class="gd-count" id="gdCnt2">27</span>
-          <span class="gd-rank-badge" id="gdRk2" hidden></span>
+        <div class="gd-seat-meta">
+          <div class="gd-name">对家 <span class="tag">AI</span></div>
+          <div class="gd-seat-cnt">
+            <span class="gd-count" id="gdCnt2">27</span>
+            <span class="gd-rank-badge" id="gdRk2" hidden></span>
+          </div>
         </div>
       </div>
     </div>
@@ -1877,16 +1879,18 @@ theme_color: "#fafaf9"
       <div class="gd-played" id="gdPlay0Center"></div>
     </div>
 
-    <!-- 我（座位 0） -->
+    <!-- 我（座位 0）。张数 + 托管机器人都挪到头像右边（右下方），不再单开一行。 -->
     <div class="gd-self-bar">
       <div class="gd-seat" id="gdSeat0" data-seat="0">
         <div class="gd-avatar team-you" id="gdAv0">😎<span class="gd-clock" id="gdClk0" hidden></span></div>
       </div>
-      <div>
+      <div class="gd-seat-meta">
         <div class="gd-name">我 <span class="tag" id="gdMyTag">座位 0</span></div>
-        <div style="display:flex;gap:0.3rem;align-items:center;margin-top:0.15rem;">
+        <div class="gd-seat-cnt">
           <span class="gd-count" id="gdCnt0">27</span>
           <span class="gd-rank-badge" id="gdRk0" hidden></span>
+          <!-- 托管：纯机器人图标，无文字。点一下进入托管、图标变橙高亮；再点取消。 -->
+          <button class="gd-autopilot-chip" id="gdAutopilotBtn" type="button" title="托管：让 AI 替你打牌（再点一下取消）" aria-label="托管">🤖</button>
         </div>
       </div>
     </div>
@@ -1909,9 +1913,6 @@ theme_color: "#fafaf9"
       <button class="gd-btn" id="gdDblNoBtn" type="button" hidden>不加倍</button>
       <button class="gd-btn primary" id="gdDblYesBtn" type="button" hidden>加倍 ×2</button>
     </div>
-
-    <!-- 托管开关 chip：左下角 / 我头像旁。autopilot 模式下高亮 -->
-    <button class="gd-autopilot-chip" id="gdAutopilotBtn" type="button" title="托管：让 AI 替你打牌">🤖 托管</button>
 
     <div class="gd-hand" id="gdHand"></div>
 
@@ -2124,4 +2125,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260610c"></script>
+<script src="/assets/js/games/guandan.js?v=20260610d"></script>
