@@ -131,6 +131,9 @@ permalink: /toolbox/pindou/
   .pb-panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .1rem 1.6rem; }
   @media (max-width: 520px) { .pb-panel-grid { grid-template-columns: 1fr; } }
   .pb-panel-grid .pb-ctl { margin: 0 0 .3rem; }
+  .pb-brandrow { display: flex; align-items: center; flex-wrap: wrap; gap: .55rem; margin-bottom: .7rem; padding-bottom: .65rem; border-bottom: 1px dashed var(--color-border); font-size: .85rem; color: var(--color-ink); }
+  .pb-brandrow b { font-weight: 600; }
+  .pb-brandrow select { font-size: .85rem; padding: .28rem .5rem; border: 1px solid var(--color-border); border-radius: 7px; background: var(--color-bg); color: var(--color-ink); cursor: pointer; }
   .pb-bgrow { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin-top: .6rem; padding-top: .65rem; border-top: 1px dashed var(--color-border); font-size: .85rem; color: var(--color-ink); }
   .pb-bgrow b { font-weight: 600; }
   /* 图上方工具行：分组 + 留白，不再挤成一坨 */
@@ -176,6 +179,7 @@ permalink: /toolbox/pindou/
   .pb-legend table { width: 100%; border-collapse: collapse; font-size: .84rem; }
   .pb-legend th { text-align: left; color: var(--color-muted); font-weight: 500; font-size: .76rem; padding: .3rem .4rem; border-bottom: 1px solid var(--color-border); }
   .pb-legend th.num { text-align: right; }
+  .pb-legend.no-names th:nth-child(3), .pb-legend.no-names td:nth-child(3) { display: none; }  /* 无中文名的色卡(如 MARD)隐藏「名称」列 */
   .pb-legend th.pb-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
   .pb-legend th.pb-sortable.active { color: var(--color-accent); }
   .pb-sort-ind { display: inline-block; width: .9em; margin-left: .1em; font-size: .9em; color: var(--color-accent); }
@@ -272,8 +276,15 @@ permalink: /toolbox/pindou/
   <section class="pb-step pb-locked" id="step2">
     <div class="pb-step-h"><div class="pb-step-n">2</div><div class="pb-step-t">调整 · 图纸 · 清单</div></div>
 
-    <!-- 调整：精细度 + 颜色上限 + 底板背景 收进一个矩形卡 -->
+    <!-- 调整：色卡 + 精细度 + 颜色上限 + 底板背景 收进一个矩形卡 -->
     <div class="pb-panel">
+      <div class="pb-brandrow">
+        <b>色卡</b>
+        <select id="brandSel">
+          <option value="mard">漫漫 MARD · 221 色</option>
+          <option value="hama">Hama · 53 色</option>
+        </select>
+      </div>
       <div class="pb-panel-grid">
         <div class="pb-ctl">
           <div class="pb-ctl-lab"><b>精细度</b><span id="resVal">48 格 · 普通</span></div>
@@ -372,7 +383,7 @@ permalink: /toolbox/pindou/
   const $ = (id) => document.getElementById(id);
 
   // ---------- 官方 Hama Midi 53 色色卡（代码 + 中文名 + 精确 hex，可直接照着买） ----------
-  const PALETTE = [
+  const PAL_HAMA = [
     {code:'H01',n:'白',h:'#ECEDED'},{code:'H77',n:'象牙白',h:'#EDE7DF'},{code:'H02',n:'米白',h:'#F0E8B9'},
     {code:'H17',n:'灰',h:'#83888A'},{code:'H71',n:'深炭灰',h:'#464541'},{code:'H28',n:'深灰',h:'#363F38'},
     {code:'H18',n:'炭黑',h:'#2E2F31'},
@@ -394,7 +405,26 @@ permalink: /toolbox/pindou/
     {code:'H27',n:'米色',h:'#DEB48B'},{code:'H21',n:'茶棕',h:'#A5693F'},{code:'H75',n:'赭',h:'#BF7B4D'},
     {code:'H12',n:'棕',h:'#534137'},{code:'H20',n:'深褐',h:'#7F332A'},{code:'H76',n:'深赭',h:'#663317'}
   ];
-  const PAL_RGB = PALETTE.map(p => hexToRgb(p.h));
+  // ---------- MARD 漫漫 221 色色卡（字母=色系 A–H/M，数字=组内序号；数据源：Zippland/perler-beads 跨牌对照表，无中文名） ----------
+  const PAL_MARD = [
+    {code:'A01',h:'#FAF4C8'},{code:'A02',h:'#FFFFD5'},{code:'A03',h:'#FEFF8B'},{code:'A04',h:'#FBED56'},{code:'A05',h:'#F4D738'},{code:'A06',h:'#FEAC4C'},{code:'A07',h:'#FE8B4C'},{code:'A08',h:'#FFDA45'},{code:'A09',h:'#FF995B'},{code:'A10',h:'#F77C31'},{code:'A11',h:'#FFDD99'},{code:'A12',h:'#FE9F72'},{code:'A13',h:'#FFC365'},{code:'A14',h:'#FD543D'},{code:'A15',h:'#FFF365'},{code:'A16',h:'#FFFF9F'},{code:'A17',h:'#FFE36E'},{code:'A18',h:'#FEBE7D'},{code:'A19',h:'#FD7C72'},{code:'A20',h:'#FFD568'},{code:'A21',h:'#FFE395'},{code:'A22',h:'#F4F57D'},{code:'A23',h:'#E6C9B7'},{code:'A24',h:'#F7F8A2'},{code:'A25',h:'#FFD67D'},{code:'A26',h:'#FFC830'},
+    {code:'B01',h:'#E6EE31'},{code:'B02',h:'#63F347'},{code:'B03',h:'#9EF780'},{code:'B04',h:'#5DE035'},{code:'B05',h:'#35E352'},{code:'B06',h:'#65E2A6'},{code:'B07',h:'#3DAF80'},{code:'B08',h:'#1C9C4F'},{code:'B09',h:'#27523A'},{code:'B10',h:'#95D3C2'},{code:'B11',h:'#5D722A'},{code:'B12',h:'#166F41'},{code:'B13',h:'#CAEB7B'},{code:'B14',h:'#ADE946'},{code:'B15',h:'#2E5132'},{code:'B16',h:'#C5ED9C'},{code:'B17',h:'#9BB13A'},{code:'B18',h:'#E6EE49'},{code:'B19',h:'#24B88C'},{code:'B20',h:'#C2F0CC'},{code:'B21',h:'#156A6B'},{code:'B22',h:'#0B3C43'},{code:'B23',h:'#303A21'},{code:'B24',h:'#EEFCA5'},{code:'B25',h:'#4E846D'},{code:'B26',h:'#8D7A35'},{code:'B27',h:'#CCE1AF'},{code:'B28',h:'#9EE5B9'},{code:'B29',h:'#C5E254'},{code:'B30',h:'#E2FCB1'},{code:'B31',h:'#B0E792'},{code:'B32',h:'#9CAB5A'},
+    {code:'C01',h:'#E8FFE7'},{code:'C02',h:'#A9F9FC'},{code:'C03',h:'#A0E2FB'},{code:'C04',h:'#41CCFF'},{code:'C05',h:'#01ACEB'},{code:'C06',h:'#50AAF0'},{code:'C07',h:'#3677D2'},{code:'C08',h:'#0F54C0'},{code:'C09',h:'#324BCA'},{code:'C10',h:'#3EBCE2'},{code:'C11',h:'#28DDDE'},{code:'C12',h:'#1C334D'},{code:'C13',h:'#CDE8FF'},{code:'C14',h:'#D5FDFF'},{code:'C15',h:'#22C4C6'},{code:'C16',h:'#1557A8'},{code:'C17',h:'#04D1F6'},{code:'C18',h:'#1D3344'},{code:'C19',h:'#1887A2'},{code:'C20',h:'#176DAF'},{code:'C21',h:'#BEDDFF'},{code:'C22',h:'#67B4BE'},{code:'C23',h:'#C8E2FF'},{code:'C24',h:'#7CC4FF'},{code:'C25',h:'#A9E5E5'},{code:'C26',h:'#3CAED8'},{code:'C27',h:'#D3DFFA'},{code:'C28',h:'#BBCFED'},{code:'C29',h:'#34488E'},
+    {code:'D01',h:'#AEB4F2'},{code:'D02',h:'#858EDD'},{code:'D03',h:'#2F54AF'},{code:'D04',h:'#182A84'},{code:'D05',h:'#B843C5'},{code:'D06',h:'#AC7BDE'},{code:'D07',h:'#8854B3'},{code:'D08',h:'#E2D3FF'},{code:'D09',h:'#D5B9F8'},{code:'D10',h:'#361851'},{code:'D11',h:'#B9BAE1'},{code:'D12',h:'#DE9AD4'},{code:'D13',h:'#B90095'},{code:'D14',h:'#8B279B'},{code:'D15',h:'#2F1F90'},{code:'D16',h:'#E3E1EE'},{code:'D17',h:'#C4D4F6'},{code:'D18',h:'#A45EC7'},{code:'D19',h:'#D8C3D7'},{code:'D20',h:'#9C32B2'},{code:'D21',h:'#9A009B'},{code:'D22',h:'#333A95'},{code:'D23',h:'#EBDAFC'},{code:'D24',h:'#7786E5'},{code:'D25',h:'#494FC7'},{code:'D26',h:'#DFC2F8'},
+    {code:'E01',h:'#FDD3CC'},{code:'E02',h:'#FEC0DF'},{code:'E03',h:'#FFB7E7'},{code:'E04',h:'#E8649E'},{code:'E05',h:'#F551A2'},{code:'E06',h:'#F13D74'},{code:'E07',h:'#C63478'},{code:'E08',h:'#FFDBE9'},{code:'E09',h:'#E970CC'},{code:'E10',h:'#D33793'},{code:'E11',h:'#FCDDD2'},{code:'E12',h:'#F78FC3'},{code:'E13',h:'#B5006D'},{code:'E14',h:'#FFD1BA'},{code:'E15',h:'#F8C7C9'},{code:'E16',h:'#FFF3EB'},{code:'E17',h:'#FFE2EA'},{code:'E18',h:'#FFC7DB'},{code:'E19',h:'#FEBAD5'},{code:'E20',h:'#D8C7D1'},{code:'E21',h:'#BD9DA1'},{code:'E22',h:'#B785A1'},{code:'E23',h:'#937A8D'},{code:'E24',h:'#E1BCE8'},
+    {code:'F01',h:'#FD957B'},{code:'F02',h:'#FC3D46'},{code:'F03',h:'#F74941'},{code:'F04',h:'#FC283C'},{code:'F05',h:'#E7002F'},{code:'F06',h:'#943630'},{code:'F07',h:'#971937'},{code:'F08',h:'#BC0028'},{code:'F09',h:'#E2677A'},{code:'F10',h:'#8A4526'},{code:'F11',h:'#5A2121'},{code:'F12',h:'#FD4E6A'},{code:'F13',h:'#F35744'},{code:'F14',h:'#FFA9AD'},{code:'F15',h:'#D30022'},{code:'F16',h:'#FEC2A6'},{code:'F17',h:'#E69C79'},{code:'F18',h:'#D37C46'},{code:'F19',h:'#C1444A'},{code:'F20',h:'#CD9391'},{code:'F21',h:'#F7B4C6'},{code:'F22',h:'#FDC0D0'},{code:'F23',h:'#F67E66'},{code:'F24',h:'#E698AA'},{code:'F25',h:'#E54B4F'},
+    {code:'G01',h:'#FFE2CE'},{code:'G02',h:'#FFC4AA'},{code:'G03',h:'#F4C3A5'},{code:'G04',h:'#E1B383'},{code:'G05',h:'#EDB045'},{code:'G06',h:'#E99C17'},{code:'G07',h:'#9D5B3E'},{code:'G08',h:'#753832'},{code:'G09',h:'#E6B483'},{code:'G10',h:'#D98C39'},{code:'G11',h:'#E0C593'},{code:'G12',h:'#FFC890'},{code:'G13',h:'#B7714A'},{code:'G14',h:'#8D614C'},{code:'G15',h:'#FCF9E0'},{code:'G16',h:'#F2D9BA'},{code:'G17',h:'#78524B'},{code:'G18',h:'#FFE4CC'},{code:'G19',h:'#E07935'},{code:'G20',h:'#A94023'},{code:'G21',h:'#B88558'},
+    {code:'H01',h:'#FDFBFF'},{code:'H02',h:'#FEFFFF'},{code:'H03',h:'#B6B1BA'},{code:'H04',h:'#89858C'},{code:'H05',h:'#48464E'},{code:'H06',h:'#2F2B2F'},{code:'H07',h:'#000000'},{code:'H08',h:'#E7D6DB'},{code:'H09',h:'#EDEDED'},{code:'H10',h:'#EEE9EA'},{code:'H11',h:'#CECDD5'},{code:'H12',h:'#FFF5ED'},{code:'H13',h:'#F5ECD2'},{code:'H14',h:'#CFD7D3'},{code:'H15',h:'#98A6A8'},{code:'H16',h:'#1D1414'},{code:'H17',h:'#F1EDED'},{code:'H18',h:'#FFFDF0'},{code:'H19',h:'#F6EFE2'},{code:'H20',h:'#949FA3'},{code:'H21',h:'#FFFBE1'},{code:'H22',h:'#CACAD4'},{code:'H23',h:'#9A9D94'},
+    {code:'M01',h:'#BCC6B8'},{code:'M02',h:'#8AA386'},{code:'M03',h:'#697D80'},{code:'M04',h:'#E3D2BC'},{code:'M05',h:'#D0CCAA'},{code:'M06',h:'#B0A782'},{code:'M07',h:'#B4A497'},{code:'M08',h:'#B38281'},{code:'M09',h:'#A58767'},{code:'M10',h:'#C5B2BC'},{code:'M11',h:'#9F7594'},{code:'M12',h:'#644749'},{code:'M13',h:'#D19066'},{code:'M14',h:'#C77362'},{code:'M15',h:'#757D78'}
+  ];
+  const PALETTES = { mard: PAL_MARD, hama: PAL_HAMA };
+  const BRAND_LABEL = { mard: '漫漫 MARD · 221 色', hama: 'Hama · 53 色' };
+  const BRAND_IDS = ['hama', 'mard'];   // 分享字节用固定索引——勿改顺序，否则老链接对不上品牌
+  function loadBrand(){ try{ const b=localStorage.getItem('pindou_brand'); if(b && PALETTES[b]) return b; }catch(e){} return 'mard'; }
+  let curBrand = loadBrand();
+  let PALETTE = PALETTES[curBrand];               // 当前色卡（量化/清单都用它）
+  let PAL_RGB = PALETTE.map(p => hexToRgb(p.h));
+  function setBrand(b){ if(!PALETTES[b]) return; curBrand=b; PALETTE=PALETTES[b]; PAL_RGB=PALETTE.map(p=>hexToRgb(p.h)); try{localStorage.setItem('pindou_brand',b);}catch(e){} }
   const SYMBOLS = 'ABCDEFGHJKLMNPQRTUVWXYZ23456789abcdefghkmnpqrtuvwxyz'.split('');
 
   function hexToRgb(h){ const x=parseInt(h.slice(1),16); return [x>>16&255, x>>8&255, x&255]; }
@@ -751,6 +781,9 @@ permalink: /toolbox/pindou/
   colsInput.addEventListener('input', ()=>{ S.colorN=+colsInput.value; $('colVal').textContent=S.colorN+' 色'; liveTimeUpdate(); debouncedGen(); });   // 重算后 setColLabel 会补上「实际 N 色」
   $('bgSeg').addEventListener('click', (e)=>{ const b=e.target.closest('button'); if(!b) return;
     S.bg=b.dataset.bg; document.querySelectorAll('#bgSeg button').forEach(x=>x.classList.toggle('on',x===b)); regenerate(); });
+  // 色卡品牌：换牌＝换整套可用颜色，图要整张重排；记住选择
+  $('brandSel').value = curBrand;
+  $('brandSel').addEventListener('change', (e)=>{ setBrand(e.target.value); if(S.grid && !$('step2').classList.contains('pb-locked')) regenerate(); });
 
   // 目标耗时（反向）：拖它自动配 精细度 + 颜色
   timeInput.addEventListener('input', ()=>{ controlsFromTime(+timeInput.value); });
@@ -808,7 +841,7 @@ permalink: /toolbox/pindou/
     }
     const order=Object.keys(palCount).map(Number).sort((a,b)=>palCount[b]-palCount[a]);
     const remap={}; const used=[];
-    order.forEach((pi,idx)=>{ remap[pi]=idx; used.push({pi, code:PALETTE[pi].code, h:PALETTE[pi].h, n:PALETTE[pi].n, count:palCount[pi], sym:SYMBOLS[idx]||'·'}); });
+    order.forEach((pi,idx)=>{ remap[pi]=idx; used.push({pi, code:PALETTE[pi].code, h:PALETTE[pi].h, n:PALETTE[pi].n||'', count:palCount[pi], sym:SYMBOLS[idx]||'·'}); });
     const grid=new Array(rows);
     for(let y=0;y<rows;y++){ grid[y]=new Array(cols);
       for(let x=0;x<cols;x++){ const pi=cellPi[y*cols+x]; grid[y][x]= pi<0?-1:remap[pi]; } }
@@ -943,20 +976,23 @@ permalink: /toolbox/pindou/
   window.addEventListener('keydown', e=>{ if(e.key==='Escape' && !$('fsOverlay').classList.contains('pb-hidden')) closeFs(); });
 
   // ---- 配色清单（排序 + 分页）----
-  function codeNum(c){ const n=parseInt(String(c||'').replace(/^[A-Za-z]+/,'')); return isNaN(n)?9999:n; }
+  // 先按字母前缀(色系)再按数字——Hama 全是 H 等于只按数字；MARD 则 A 组、B 组…再组内排
+  function cmpCode(a,b){ const ma=String(a||'').match(/^([A-Za-z]*)(\d*)/), mb=String(b||'').match(/^([A-Za-z]*)(\d*)/);
+    if(ma[1]!==mb[1]) return ma[1]<mb[1]?-1:1; return (parseInt(ma[2])||0)-(parseInt(mb[2])||0); }
   function sortedUsed(){
     const arr=S.used.slice();
     if(S.sortKey==='code'){
-      arr.sort((a,b)=>codeNum(a.code)-codeNum(b.code) || (a.code<b.code?-1:1));
+      arr.sort((a,b)=>cmpCode(a.code,b.code));
       if(S.sortDir==='desc') arr.reverse();
     } else { // count：默认按用量降序，再点切升序
-      arr.sort((a,b)=> b.count-a.count || codeNum(a.code)-codeNum(b.code));
+      arr.sort((a,b)=> b.count-a.count || cmpCode(a.code,b.code));
       if(S.sortDir==='asc') arr.reverse();
     }
     return arr;
   }
   function renderLegend(){
     let total=0; S.used.forEach(u=>total+=u.count);
+    const lw=document.querySelector('.pb-legend'); if(lw) lw.classList.toggle('no-names', !S.used.some(u=>u.n)); // 无中文名色卡隐藏名称列
     const list=sortedUsed();
     const per = S.legendPer || 10;
     const pages = Math.max(1, Math.ceil(list.length/per));
@@ -1084,7 +1120,8 @@ permalink: /toolbox/pindou/
 
   function encodeShare(){
     if(!S.grid) return null;
-    const N=S.used.length; const bytes=[1, S.cols, S.rows, N];
+    const N=S.used.length; const brandId=Math.max(0,BRAND_IDS.indexOf(curBrand));
+    const bytes=[2, brandId, S.cols, S.rows, N];   // ver2：第2字节=色卡品牌
     for(const u of S.used){ const rgb=hexToRgb(u.h); bytes.push(rgb[0],rgb[1],rgb[2]); }
     let prev=-2, run=0;
     const flush=()=>{ if(run>0){ bytes.push(prev<0?255:prev); vpush(bytes,run); } };
@@ -1096,13 +1133,16 @@ permalink: /toolbox/pindou/
   function decodeShare(s){
     try{
       const b=b64urlToBytes(s); let p=0;
-      if(b[p++]!==1) return false;
+      const ver=b[p++]; if(ver!==1 && ver!==2) return false;
+      // ver1 老链接都是 Hama；ver2 第2字节记了分享者的色卡。用它来查色号（不写入本地默认）
+      const shareBrand = ver===2 ? (BRAND_IDS[b[p++]]||'mard') : 'hama';
+      if(PALETTES[shareBrand]){ curBrand=shareBrand; PALETTE=PALETTES[shareBrand]; PAL_RGB=PALETTE.map(q=>hexToRgb(q.h)); if($('brandSel')) $('brandSel').value=shareBrand; }
       const cols=b[p++], rows=b[p++], N=b[p++];
       if(!cols||!rows||!N) return false;
       const hexMap={}; PAL_RGB.forEach((r,i)=>{ hexMap[r[0]+','+r[1]+','+r[2]]=i; });
       const used=[];
       for(let i=0;i<N;i++){ const r=b[p++],g=b[p++],bl=b[p++]; const pi=hexMap[r+','+g+','+bl];
-        if(pi!=null) used.push({pi, code:PALETTE[pi].code, n:PALETTE[pi].n, h:PALETTE[pi].h, count:0, sym:SYMBOLS[i]||'·'});
+        if(pi!=null) used.push({pi, code:PALETTE[pi].code, n:PALETTE[pi].n||'', h:PALETTE[pi].h, count:0, sym:SYMBOLS[i]||'·'});
         else used.push({pi:-1, code:'?', n:'自定义', h:'#'+hex2(r)+hex2(g)+hex2(bl), count:0, sym:SYMBOLS[i]||'·'}); }
       const grid=[]; for(let y=0;y<rows;y++) grid.push(new Array(cols).fill(-1));
       let idx=0; const total=cols*rows;
