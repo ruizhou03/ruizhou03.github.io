@@ -320,7 +320,7 @@ permalink: /toolbox/tetris/
 
   <details class="about" style="max-width:480px;margin-left:auto;margin-right:auto;">
     <summary>游戏规则</summary>
-    <p>方块从顶部落下，把它们拼成完整的一整行就会消除并得分。<kbd>←</kbd> <kbd>→</kbd> 左右移动，<kbd>↓</kbd> 软降（每格 +1 分），<kbd>↑</kbd> 或 <kbd>X</kbd> 顺时针旋转，<kbd>Z</kbd> 逆时针旋转，<kbd>空格</kbd> 硬降（每格 +2 分并立即锁定），<kbd>C</kbd> 暂存当前方块（一回合只能暂存一次），<kbd>P</kbd> 或 <kbd>Esc</kbd> 暂停。手机可用屏幕按钮，或在棋盘上滑动：左右滑移动、下滑软降、上滑旋转、快速下滑硬降。</p>
+    <p>方块从顶部落下，把它们拼成完整的一整行就会消除并得分。<kbd>←</kbd> <kbd>→</kbd> 左右移动，<kbd>↓</kbd> 软降（每格 +1 分），<kbd>↑</kbd> 或 <kbd>X</kbd> 顺时针旋转，<kbd>Z</kbd> 逆时针旋转，<kbd>空格</kbd> 硬降（每格 +2 分并立即锁定），<kbd>C</kbd> 暂存当前方块（一回合只能暂存一次），<kbd>P</kbd> 或 <kbd>Esc</kbd> 暂停。手机可用屏幕按钮，或直接在棋盘上滑动：左右滑实时左右移（跟手，一格一格走）、下滑软降、快速下甩硬降、轻点旋转。</p>
     <p>消行得分按一次消除的行数计：1 行 100、2 行 300、3 行 500、4 行（Tetris）800，再乘以当前等级。每累计消除 10 行升一级，方块下落速度随等级加快。半透明的「幽灵」方块显示当前方块会落到哪里。采用 7-bag 随机：每 7 个方块为一组保证每种各出现一次。方块堆到顶部、新方块无处生成时游戏结束。</p>
   </details>
 
@@ -888,44 +888,55 @@ permalink: /toolbox/tetris/
     b.addEventListener('click', () => act(b.dataset.act));
   });
 
-  // 触摸滑动（在棋盘上）
-  let touchStart = null;
+  // 触摸滑动（在棋盘上）——实时跟手：手指横向每滑过一格宽就左右移一格、
+  // 纵向每滑过一格高就软降一格，方块跟着手指一格一格走（不再"松手才动"）。
+  // 用相对触点起点的"绝对格数"映射：往回滑会自动抵消，能精细控制移几格。
+  // 快速下甩=硬降；几乎没动就松手=轻点=旋转。
+  let touchDrag = null;
   canvas.addEventListener('touchstart', (e) => {
     if (e.touches.length !== 1) return;
     const t = e.touches[0];
-    touchStart = { x: t.clientX, y: t.clientY, t: performance.now() };
+    touchDrag = {
+      x0: t.clientX, y0: t.clientY,
+      lastY: t.clientY, lastT: performance.now(),
+      cols: 0, rows: 0, axis: null, hard: false, moved: false,
+    };
   }, { passive: true });
-  canvas.addEventListener('touchend', (e) => {
-    if (!touchStart) return;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - touchStart.x;
-    const dy = t.clientY - touchStart.y;
-    const dt = Math.max(1, performance.now() - touchStart.t);
-    const ts = touchStart;
-    touchStart = null;
-    const adx = Math.abs(dx), ady = Math.abs(dy);
-    if (adx < SWIPE_THRESHOLD && ady < SWIPE_THRESHOLD) {
-      // 视为点击 → 旋转
-      act('rotate');
-      return;
+  canvas.addEventListener('touchmove', (e) => {
+    if (!touchDrag || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchDrag.x0;
+    const dy = t.clientY - touchDrag.y0;
+    const cell = (canvas.clientWidth / COLS) || 24;   // 一格的屏幕尺寸（方块正方形，行高同此）
+    const DEAD = 8;
+    // 主轴锁定：超过死区后，横向位移大走横移、纵向位移大走下降，避免斜滑乱跳
+    if (!touchDrag.axis && (Math.abs(dx) > DEAD || Math.abs(dy) > DEAD)) {
+      touchDrag.axis = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
     }
-    if (adx > ady) {
-      // 横向滑动：按格数移动
-      const steps = Math.max(1, Math.round(adx / (canvas.clientWidth / COLS)));
-      for (let i = 0; i < steps; i++) act(dx > 0 ? 'right' : 'left');
-    } else if (dy > 0) {
-      // 下滑：快则硬降，慢则软降
-      if (ady / dt > HARD_SWIPE_V && ady > SWIPE_THRESHOLD * 2) act('harddrop');
-      else {
-        const steps = Math.max(1, Math.round(ady / (canvas.clientWidth / COLS)));
-        for (let i = 0; i < steps; i++) act('softdrop');
+    if (touchDrag.axis === 'h') {
+      touchDrag.moved = true;
+      const target = Math.round(dx / cell);
+      while (touchDrag.cols < target) { act('right'); touchDrag.cols++; }
+      while (touchDrag.cols > target) { act('left');  touchDrag.cols--; }
+    } else if (touchDrag.axis === 'v' && !touchDrag.hard) {
+      const now = performance.now();
+      const vy = (t.clientY - touchDrag.lastY) / Math.max(1, now - touchDrag.lastT);
+      if (vy > HARD_SWIPE_V && dy > SWIPE_THRESHOLD) {
+        act('harddrop'); touchDrag.hard = true; touchDrag.moved = true;   // 快速下甩→硬降，本次手势结束
+      } else if (dy > 0) {
+        touchDrag.moved = true;
+        const target = Math.round(dy / cell);
+        while (touchDrag.rows < target) { act('softdrop'); touchDrag.rows++; }
       }
-    } else {
-      // 上滑：旋转
-      act('rotate');
     }
+    touchDrag.lastY = t.clientY; touchDrag.lastT = performance.now();
   }, { passive: true });
-  canvas.addEventListener('touchcancel', () => { touchStart = null; }, { passive: true });
+  canvas.addEventListener('touchend', () => {
+    if (!touchDrag) return;
+    if (!touchDrag.moved && !touchDrag.hard) act('rotate');   // 几乎没动 = 轻点 → 旋转
+    touchDrag = null;
+  }, { passive: true });
+  canvas.addEventListener('touchcancel', () => { touchDrag = null; }, { passive: true });
 
   pauseBtn.onclick = togglePause;
   newBtn.onclick = () => { ttStartFresh(); };
