@@ -44,6 +44,17 @@ permalink: /toolbox/tetris/
   .tetris-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
   .tetris-wrap header .sub { color: var(--color-light); font-style: normal; font-size: 0.92rem; }
 
+  /* 游戏区禁止文本选择 / 长按弹出菜单：手机上滑动操作时容易误把画布或分数
+     "选中"（蓝色选区 + 放大镜）打断游戏，桌面拖鼠标也会选中。只作用于 .tt-game，
+     下面的排行榜/评论仍可正常选中复制。 */
+  .tt-game {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   .tt-scorebar {
     display: flex; gap: 0.5rem; justify-content: center;
     margin-bottom: 0.9rem;
@@ -139,7 +150,12 @@ permalink: /toolbox/tetris/
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) .tt-canvas-wrap { background: #232320; }
   }
-  .tt-canvas-wrap canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .tt-canvas-wrap canvas {
+    display: block; width: 100%; height: 100%;
+    touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+  }
 
   .tt-overlay {
     position: absolute; inset: 0;
