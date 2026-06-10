@@ -71,6 +71,10 @@ permalink: /toolbox/runner/
     image-rendering: pixelated;   /* 像素清脆 */
     image-rendering: crisp-edges;
   }
+  /* 预进入 / GG / 暂停遮罩的内容比 4:1 画布高得多——遮罩开着时把画布区撑到
+     足够高，让"开始游戏"按钮完整露出；遮罩关掉（开始游戏）后恢复 4:1。
+     画布只是背景、被深色遮罩盖住，撑高不影响观感；startGame 里会重新 fit。 */
+  .canvas-wrap:has(.gs-pgo-overlay.open) { min-height: 360px; }
 
   .controls-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -378,6 +382,7 @@ permalink: /toolbox/runner/
     resetGame();
     state.phase = 'playing';
     setPgoView('hidden');
+    resizeCanvas();   // 遮罩撑高的 min-height 已撤销，重新按 4:1 fit 画布，防止竖向拉伸
     runnerRunStartedAt = Date.now();
     runnerRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     runnerPendingSubmit = false;

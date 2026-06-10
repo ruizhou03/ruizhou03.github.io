@@ -67,6 +67,10 @@ permalink: /toolbox/leap/
     border-radius: 10px;
     overflow: hidden;
   }
+  /* 开始遮罩的内容（图标+标题+历史最佳+开始按钮）比 5:2 矮条高得多，手机上
+     画布只有 ~143px 高会把"开始游戏"切掉。遮罩开着时把画布区撑高，开局后
+     恢复 5:2；画布被深色遮罩盖住、撑高不影响观感，startGame 里会重新 fit。 */
+  .canvas-wrap:has(.gs-pgo-overlay.open) { min-height: 340px; }
   .game-canvas {
     width: 100%; height: 100%;
     display: block;
@@ -448,6 +452,7 @@ permalink: /toolbox/leap/
     $overStart.classList.add('hidden');
     $overStart.classList.remove('open');
     $overOver.classList.add('hidden');
+    resizeCanvas();   // 遮罩撑高的 min-height 已撤销，按 5:2 重新 fit 画布，防竖向拉伸
     leapRunStartedAt = Date.now();
     leapRunNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     leapPendingSubmit = false;

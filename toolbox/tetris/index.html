@@ -211,6 +211,17 @@ permalink: /toolbox/tetris/
     font-family: ui-monospace, monospace;
     font-size: 0.78rem;
   }
+
+  /* —— 手机端：原本棋盘被 max-width:240 卡死、两侧 74px 固定 → 棋盘瘦小、
+     Hold/Next 大半截空着显得臃肿。这里收窄两侧、放开棋盘上限，把腾出来的
+     宽度全给棋盘（棋盘仍是 1:2，靠宽度驱动高度，不会拉伸变形）。 */
+  @media (max-width: 560px) {
+    .tt-stage { gap: 0.4rem; }
+    .tt-side { width: 52px; }
+    .tt-canvas-wrap { max-width: 340px; }
+    .tt-mini { padding: 0.25rem; }
+    .tt-mini .mlabel { font-size: 0.56rem; }
+  }
 </style>
 
 <div class="tetris-wrap">
