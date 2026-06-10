@@ -138,7 +138,9 @@ permalink: /toolbox/pindou/
   .pb-fs { position: fixed; inset: 0; z-index: 9999; background: #2b2e33; display: flex; flex-direction: column; }
   .pb-fs-bar { display: flex; align-items: center; gap: .5rem; padding: .5rem .7rem; background: #1f2226; flex-wrap: wrap; }
   .pb-fs-bar .pb-btn { background: #34383d; color: #eee; border-color: #4a4f55; }
-  .pb-fs-bar .pb-btn:hover { border-color: #7da7d8; }
+  @media (hover: hover) {
+    .pb-fs-bar .pb-btn:hover { border-color: #7da7d8; }
+  }
   .pb-fs-bar .pb-seg { border-color: #565b61; }
   .pb-fs-bar .pb-seg button { background: #34383d; color: #cfd3d8; }
   .pb-fs-bar .pb-seg button.on { background: var(--color-accent); color: #fff; }
