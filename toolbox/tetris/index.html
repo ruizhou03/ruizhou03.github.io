@@ -189,24 +189,6 @@ permalink: /toolbox/tetris/
     font-size: 0.78rem;
   }
 
-  /* 退出全屏按钮（仅手机沉浸模式显示，固定在右上角，盖在游戏壳之上） */
-  .tt-exit {
-    display: none;
-    position: fixed;
-    top: calc(0.5rem + env(safe-area-inset-top));
-    right: calc(0.6rem + env(safe-area-inset-right));
-    z-index: 5001;
-    width: 34px; height: 34px;
-    align-items: center; justify-content: center;
-    border: 1px solid var(--color-border);
-    border-radius: 50%;
-    background: var(--color-bg-warm);
-    color: var(--color-muted);
-    font-size: 1rem; line-height: 1;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-
   /* —— 手机端沉浸全屏：游戏壳盖住整页（含网站导航），棋盘撑满首屏，
      排行榜/规则滑到下面才出现，右上角 ✕ 退出回百宝箱。
      棋盘尺寸取「横向预算」与「纵向预算」的较小值：既不会横向溢出，也保证
@@ -220,7 +202,6 @@ permalink: /toolbox/tetris/
     }
     .tetris-wrap > header { display: none; }
     .tt-help { display: none; }
-    .tt-exit { display: flex; }
 
     .tt-game {
       min-height: 100dvh;
@@ -264,7 +245,6 @@ permalink: /toolbox/tetris/
 </style>
 
 <div class="tetris-wrap">
-  <button type="button" class="tt-exit" aria-label="退出全屏" onclick="if(history.length>1){history.back()}else{location.href='/toolbox/'}">✕</button>
   <header>
     <h1>🧱 俄罗斯方块</h1>
     <div class="sub">堆满一行就消除，别让方块顶到天花板</div>
@@ -1252,6 +1232,9 @@ permalink: /toolbox/tetris/
       serialize: ttSerialize,
     });
 
+    // 历史最高分无条件先填好：即使先进续局视图，切回主视图也是对的。
+    // （旧逻辑只在 else 分支调用，有存档时主视图历史最高分一直停在默认 0。）
+    ttUpdatePgoHighScore();
     // 有存档 → 显示续局视图
     const peek = ttSave.peek();
     if (peek && peek.data && Array.isArray(peek.data.board)) {
@@ -1259,7 +1242,6 @@ permalink: /toolbox/tetris/
       ttPgoResumeSummary.innerHTML = `得分 <strong>${Number(d.score || 0).toLocaleString()}</strong> 分 · ${d.lines || 0} 行 · Lv.${d.level || 1}<span class="gs-pgo-resume-meta">${peek.agoText || ''}保存</span>`;
       ttShowOverlayView('resume');
     } else {
-      ttUpdatePgoHighScore();
       ttShowOverlayView('main');
     }
     ttPgoOverlay.classList.add('open');
