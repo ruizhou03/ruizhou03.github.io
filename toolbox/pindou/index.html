@@ -205,7 +205,7 @@ permalink: /toolbox/pindou/
   <!-- ========== ① 上传 & 抠图（合并） ========== -->
   <section class="pb-step" id="step1">
     <div class="pb-step-h"><div class="pb-step-n">1</div><div class="pb-step-t">上传图片，选好底图</div></div>
-    <div class="pb-step-hint">卡通形象、表情包、宠物照都行，主体清晰、跟背景有区分的图最好。上传后二选一：「✨ 抠出主体」只把主角做成珠子，或「🖼 用整张图」连背景一起；抠不干净可手动擦补。</div>
+    <div class="pb-step-hint">卡通形象、表情包、宠物照都行，主体清晰、跟背景有区分的图最好。</div>
     <div class="pb-model-status pb-hidden" id="modelStatus"></div>
 
     <input type="file" id="file" accept="image/*" class="pb-hidden">
@@ -235,12 +235,12 @@ permalink: /toolbox/pindou/
             <div class="pb-cut-bar pb-hidden" id="cutBarWrap"><i id="cutBar"></i></div>
           </div>
         </div>
-        <div class="pb-cap">抠图结果（灰白格 = 透明，将不放珠子）</div>
+        <div class="pb-cap">抠图结果</div>
       </div>
     </div>
 
     <div class="pb-tools" id="tools">
-      <div class="pb-tools-title">🖌️ 在右图上涂抹修整边缘：<b>擦掉</b> = 把涂到的地方变透明、不放珠子；<b>补回</b> = 把误删的主体重新加回来。<br>笔刷大小：拖下面的滑杆，或在图上滚轮 / 触控板双指捏合。</div>
+      <div class="pb-tools-title">在右图涂抹：<b>擦掉</b> = 抹成透明、不放珠；<b>补回</b> = 加回主体。笔刷大小可滚轮 / 双指捏合。</div>
       <div class="pb-tools-row">
         <div class="pb-seg pb-mode" id="modeSeg">
           <button class="on" id="modeErase" data-mode="erase" title="把涂到的地方变透明，不放珠子">🩹 擦掉</button>
@@ -271,7 +271,6 @@ permalink: /toolbox/pindou/
   <!-- ========== ② 调整 · 图纸 · 清单 ========== -->
   <section class="pb-step pb-locked" id="step2">
     <div class="pb-step-h"><div class="pb-step-n">2</div><div class="pb-step-t">调整 · 图纸 · 清单</div></div>
-    <div class="pb-step-hint">上方调精细度 / 颜色，参数和预计耗时实时跟着变；图上方一行可切「效果图 / 坐标图」、缩放、下载、分享，「⛶ 全屏」对着拼；下方按颜色列出用量，照着买就行。</div>
 
     <!-- 调整：精细度 + 颜色上限 + 底板背景 收进一个矩形卡 -->
     <div class="pb-panel">
@@ -299,7 +298,7 @@ permalink: /toolbox/pindou/
     <div class="pb-timebar">
       <div class="pb-timebar-top"><b>⏱ 预计耗时</b><span id="timeEst">约 …</span><span id="effortLabel"></span></div>
       <input type="range" class="pb-range" id="timeTarget" min="15" max="900" step="5" value="160">
-      <div class="pb-bidi"><span class="pb-bidi-ico">⇅</span><span>上面的<b>精细度 + 颜色</b>算出这个耗时；反过来拖这条，自动<b>反推</b>出最合适的精细度 + 颜色。</span></div>
+      <div class="pb-bidi"><span class="pb-bidi-ico">⇅</span><span>由上面<b>精细度 + 颜色</b>算出；也可反向拖它，自动回配精细度 + 颜色。</span></div>
     </div>
 
     <!-- 图纸参数（拖动时实时变化） -->
@@ -399,36 +398,14 @@ permalink: /toolbox/pindou/
   const SYMBOLS = 'ABCDEFGHJKLMNPQRTUVWXYZ23456789abcdefghkmnpqrtuvwxyz'.split('');
 
   function hexToRgb(h){ const x=parseInt(h.slice(1),16); return [x>>16&255, x>>8&255, x&255]; }
-  // OKLab 感知色彩空间匹配。RGB/redmean 的坑：色卡中性阶在 白#ECEDED 之后直接跳到中灰#83888A，
-  // 浅灰像素（白T恤阴影）没有中性归宿，按 RGB 距离反而离同亮度的淡绿/淡紫珠更近 → 白衣服出彩斑。
-  // OKLab 下亮度(L)与色相饱和(a,b)解耦，再把 a,b 偏差按 2 倍计——亮度差可以忍，串色不能忍。
-  function srgb2lin(u){ u/=255; return u<=0.04045 ? u/12.92 : Math.pow((u+0.055)/1.055, 2.4); }
-  function rgb2lab(rgb){
-    const r=srgb2lin(rgb[0]), g=srgb2lin(rgb[1]), b=srgb2lin(rgb[2]);
-    const l=Math.cbrt(0.4122214708*r+0.5363325363*g+0.0514459929*b);
-    const m=Math.cbrt(0.2119034982*r+0.6806995451*g+0.1073969566*b);
-    const s=Math.cbrt(0.0883024619*r+0.2817188376*g+0.6299787005*b);
-    return [0.2104542553*l+0.7936177850*m-0.0040720468*s,
-            1.9779984951*l-2.4285922050*m+0.4505937099*s,
-            0.0259040371*l+0.7827717662*m-0.8086757660*s];
+  // 感知加权颜色距离（redmean），比纯欧氏更接近人眼
+  function colorDist(a, b){
+    const rm=(a[0]+b[0])/2, dr=a[0]-b[0], dg=a[1]-b[1], db=a[2]-b[2];
+    return (2+rm/256)*dr*dr + 4*dg*dg + (2+(255-rm)/256)*db*db;
   }
-  // A=源色(像素)，B=候选珠色。源越接近中性，串色惩罚越重——色卡白(#ECEDED)到中灰(#83888A)间没有中性珠，
-  // 亮度居中的灰必须宁可跨亮度选中性，也不能吸到同亮度的淡彩（白T恤阴影出绿/紫斑的第二根因）
-  function labDist2(A, B){
-    const dL=A[0]-B[0], da=A[1]-B[1], db=A[2]-B[2];
-    const cIn=Math.hypot(A[1],A[2]);
-    const w = cIn<0.09 ? 4 + 10*(1-cIn/0.09) : 4;
-    return dL*dL + w*(da*da + db*db);
-  }
-  const PAL_LAB = PAL_RGB.map(rgb2lab);
   function nearestPalette(rgb){
-    let lab=rgb2lab(rgb);
-    // 彩度死区：照片里白/米/灰受光照偏色或 JPEG 噪声常带 15~25 的轻微色偏（肉眼自动脑补成白，像素却是
-    // 淡绿/淡紫）。先压掉一截彩度，把这种"伪色"拉回中性；鲜艳色彩度高，几乎不受影响。(帆布袋发绿的根因)
-    const c=Math.hypot(lab[1],lab[2]);
-    if(c>0){ const f=Math.max(0, c-0.022)/c; lab=[lab[0], lab[1]*f, lab[2]*f]; }
     let bi=0, bd=Infinity;
-    for(let i=0;i<PAL_LAB.length;i++){ const d=labDist2(lab, PAL_LAB[i]); if(d<bd){bd=d; bi=i;} }
+    for(let i=0;i<PAL_RGB.length;i++){ const d=colorDist(rgb, PAL_RGB[i]); if(d<bd){bd=d; bi=i;} }
     return bi;
   }
 
@@ -534,7 +511,6 @@ permalink: /toolbox/pindou/
       clearUndo();
       renderEdit();
       updateCutBtns();     // 选路径态：[✨抠出主体][🖼用整张图][↻换一张]
-      showMsg('cutMsg','已读入图片。点「✨ 抠出主体」自动抠出主角，或「🖼 用整张图」整张都做成珠子。');
       startBgCut();        // 后台静默下模型 + 偷跑抠图；抠好按钮标「已就绪」，点一下秒应用
     };
     img.onerror = ()=> showMsg('cutMsg','图片读取失败，换一张试试。', true);
@@ -593,7 +569,7 @@ permalink: /toolbox/pindou/
     S.mask = S.cutMask.slice(); clearUndo(); renderEdit(); hideCut();
     $('split').classList.remove('pb-single');   // 分裂：左原图 | 右抠好的主体（此刻两图真的不同）
     updateCutBtns(); $('aiCut').disabled=false;
-    showMsg('cutMsg','✓ 已抠出主体（用了 '+((S.cutMs||0)/1000).toFixed(1)+' 秒）。不干净就「🖌️ 手动修一下」，或「改用整张图」。');
+    showMsg('cutMsg','✓ 已抠出主体（用了 '+((S.cutMs||0)/1000).toFixed(1)+' 秒）。');
     if(!$('step2').classList.contains('pb-locked')) regenerate();
   }
   async function cutTask(gen){
@@ -760,7 +736,7 @@ permalink: /toolbox/pindou/
     // 整张图==原图，无需前后对比 → 收回单图态（不分裂出两张一样的）
     $('split').classList.add('pb-single');
     updateCutBtns();
-    showMsg('cutMsg','用的是整张图（背景也会变成珠子）。想只留主体可点「✨ 抠出主体」，或「🖌️ 手动修一下」擦背景，或直接「下一步」。');
+    showMsg('cutMsg','✓ 用整张图（背景也会做成珠子）。');
     if(!$('step2').classList.contains('pb-locked')) regenerate();
   });
   $('goStep3').addEventListener('click', ()=>{ if(!S.mask) return; enableStep('step2'); regenerate(); $('step2').scrollIntoView({behavior:'smooth',block:'start'}); });
@@ -819,27 +795,12 @@ permalink: /toolbox/pindou/
       const pi=nearestPalette(rgb); cellPi[i]=pi; palCount[pi]=(palCount[pi]||0)+1; }
     if(S.bg!=='none'){ const bgPi=nearestPalette(hexToRgb(S.bg));
       for(let i=0;i<cols*rows;i++) if(cellPi[i]<0){ cellPi[i]=bgPi; palCount[bgPi]=(palCount[bgPi]||0)+1; } }
-    // 防孤色：只占两三颗、且和某个在用色肉眼几乎一样的，直接并掉——不值得为它单买一包珠
-    let totB=0; for(const k in palCount) totB+=palCount[k];
-    const minKeep=Math.max(2, Math.round(totB*0.004)), ABSORB=0.02;
-    const keepRare=new Set();
-    for(;;){
-      const pis=Object.keys(palCount).map(Number);
-      const cand=pis.filter(pi=>palCount[pi]<minKeep && !keepRare.has(pi)).sort((a,b)=>palCount[a]-palCount[b]);
-      if(!cand.length) break;
-      const v=cand[0];
-      let tgt=-1,bd=Infinity;
-      for(const pi of pis){ if(pi===v) continue; const d=labDist2(PAL_LAB[v],PAL_LAB[pi]); if(d<bd){bd=d;tgt=pi;} }
-      if(tgt>=0 && bd<ABSORB){ for(let i=0;i<cellPi.length;i++) if(cellPi[i]===v) cellPi[i]=tgt;
-        palCount[tgt]+=palCount[v]; delete palCount[v]; }
-      else keepRare.add(v);   // 离谁都远的小色块是真细节（比如眼睛高光），留
-    }
     let usedPis=Object.keys(palCount).map(Number);
     while(usedPis.length>S.colorN){
       usedPis.sort((a,b)=>palCount[a]-palCount[b]);
       const victim=usedPis[0];
       let tgt=-1,bd=Infinity;
-      for(const pi of usedPis){ if(pi===victim) continue; const d=labDist2(PAL_LAB[victim],PAL_LAB[pi]); if(d<bd){bd=d;tgt=pi;} }
+      for(const pi of usedPis){ if(pi===victim) continue; const d=colorDist(PAL_RGB[victim],PAL_RGB[pi]); if(d<bd){bd=d;tgt=pi;} }
       if(tgt<0) break;
       for(let i=0;i<cellPi.length;i++) if(cellPi[i]===victim) cellPi[i]=tgt;
       palCount[tgt]+=palCount[victim]; delete palCount[victim];
