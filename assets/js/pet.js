@@ -712,6 +712,7 @@
   const $customStart = document.getElementById('custom-start');
   const $customEnd = document.getElementById('custom-end');
   const $chartMeta = document.getElementById('chart-meta');
+  const $chartTip = document.getElementById('chart-tip');
 
   const $modal = document.getElementById('pet-modal');
   const $pmTitle = document.getElementById('pm-title');
@@ -1505,7 +1506,12 @@
   }
 
   // ===== Trend chart =====
+  // 悬停/框选交互的当前几何，由 draw* 函数每次重绘时填好：
+  //   bars     = 柱状(每根柱悬停给读数)；intraday = 当日累计曲线(悬停给读数 + 拖动框选算平均速度)
+  let trendHit = null;
   function renderTrend(deltas, pet) {
+    // 重绘时先收掉上一帧残留的浮窗（SVG 里的 overlay 会被 innerHTML 自然清掉，浮窗是 SVG 外的兄弟节点需手动收）
+    if ($chartTip) { $chartTip.hidden = true; $chartTip.classList.remove('show'); }
     $trendTabs.querySelectorAll('button').forEach(b => {
       b.classList.toggle('active', b.dataset.p === state.period);
     });
@@ -1560,6 +1566,7 @@
   }
 
   function renderEmptyChart(msg) {
+    trendHit = null;
     $trendChart.innerHTML = '';
     $chartMeta.innerHTML = `<div style="text-align:center;width:100%;padding:1.5rem;color:var(--color-light);">${escapeHtml(msg)}</div>`;
   }
@@ -1691,6 +1698,7 @@
       html += `<text x="${Math.min(lx + 4, W - m.r - 4)}" y="${Math.max(ly - 6, m.t + 10)}" text-anchor="${lx > W - 60 ? 'end' : 'start'}" fill="var(--color-accent)" font-size="10.5" font-weight="600">${fmtG(cum * M)} ${escapeHtml(U)}</text>`;
     }
 
+    trendHit = { kind: 'intraday', m, innerW, innerH, dayStart, dayEnd, endT, niceMax, points, M, U };
     $trendChart.innerHTML = html;
 
     const startD = new Date(dayStart);
@@ -1839,6 +1847,7 @@
     }
 
     let anyIncomplete = false, anyProjected = false;
+    const hitBars = [];
     bars.forEach((b, i) => {
       const x = m.l + barW * i + 1.5;
       const w = Math.max(1, barW - 3);
@@ -1847,30 +1856,36 @@
       const baseFill = b.isToday ? 'var(--color-accent)' : '#c9a96e';
       const hasProj = b.projected && b.projected > b.value;
       if (b.incomplete) anyIncomplete = true;
-      // 折算满周期 的虚线预测段（实际柱顶 → 折算值）
+      let topY = b.value > 0 ? y : m.t + innerH;
+      // 折算满周期 的虚线预测段（实际柱顶 → 折算值）。折算值只在悬停浮窗里给，柱顶不再常驻「折算 X 克」文字。
       if (hasProj) {
         anyProjected = true;
         const yp = m.t + innerH - (b.projected / niceMax) * innerH;
         html += `<rect x="${x}" y="${yp}" width="${w}" height="${y - yp}" fill="#4a7c59" fill-opacity="0.10" stroke="#4a7c59" stroke-width="1" stroke-dasharray="3 2" rx="2"/>`;
-        if (n <= 14 || i % labelEvery === 0) html += `<text x="${x + w / 2}" y="${yp - 3}" text-anchor="middle" fill="#4a7c59" font-size="9" font-weight="600">折算${fmtG(b.projected * M)}</text>`;
+        topY = yp;
       }
-      // 实际柱：不完整桶用半透明 + 虚线描边标出
+      // 实际柱：不完整桶用半透明 + 虚线描边标出。读数（X 克）一律收进悬停浮窗，柱顶不再常驻数字。
       const incAttr = b.incomplete ? ' fill-opacity="0.5" stroke="' + baseFill + '" stroke-width="1" stroke-dasharray="3 2"' : '';
-      const tip = b.incomplete
-        ? (hasProj
-            ? `${b.label}：已记录 ${fmtG(b.value * M)} ${U} → 折算满${periodName} ${fmtG(b.projected * M)} ${U}`
-            : `${b.label} · 不完整: 已记录 ${fmtG(b.value * M)} ${U}`)
-        : `${b.label}${b.sub ? ' (' + b.sub + ')' : ''}: ${fmtG(b.value * M)} ${U}`;
-      html += `<rect x="${x}" y="${y}" width="${w}" height="${bh}" fill="${baseFill}"${incAttr} rx="2"><title>${tip}</title></rect>`;
-      // 实际值标签（有折算段时上方已标折算值，这里就不重复标）
-      if (b.value > 0 && !hasProj && (n <= 14 || i % labelEvery === 0)) {
-        html += `<text x="${x + w / 2}" y="${y - 3}" text-anchor="middle" fill="var(--color-muted)" font-size="9">${fmtG(b.value * M)}</text>`;
-      }
+      html += `<rect x="${x}" y="${y}" width="${w}" height="${bh}" fill="${baseFill}"${incAttr} rx="2"/>`;
       if (i % labelEvery === 0 || i === n - 1) {
         html += `<text x="${x + w / 2}" y="${H - 14}" text-anchor="middle" fill="${b.incomplete ? '#b9975f' : 'var(--color-light)'}" font-size="9.5">${escapeHtml(b.label)}</text>`;
       }
+      // 悬停命中区：整列（含柱间空隙）都算这根柱，浮窗里给读数
+      const lbl = `<strong>${escapeHtml(b.label)}</strong>`;
+      let tipHtml;
+      if (b.incomplete && hasProj) {
+        tipHtml = `${lbl}<br>已记录 ${fmtG(b.value * M)} ${escapeHtml(U)}<br><span class="tip-sub">折算满${periodName} ${fmtG(b.projected * M)} ${escapeHtml(U)}</span>`;
+      } else if (b.incomplete) {
+        tipHtml = `${lbl} <span class="tip-sub">· 不完整</span><br>已记录 ${fmtG(b.value * M)} ${escapeHtml(U)}`;
+      } else {
+        const days = (b.recordedDays && agg !== 'day') ? ` <span class="tip-sub">· 记录 ${b.recordedDays} 天</span>`
+          : (b.sub ? ` <span class="tip-sub">· ${escapeHtml(b.sub)}</span>` : '');
+        tipHtml = `${lbl}${days}<br>${fmtG(b.value * M)} ${escapeHtml(U)}`;
+      }
+      hitBars.push({ slotX0: m.l + barW * i, slotX1: m.l + barW * (i + 1), cx: x + w / 2, topY, tip: tipHtml });
     });
 
+    trendHit = { kind: 'bars', bars: hitBars, m, innerW, innerH };
     $trendChart.innerHTML = html;
 
     const totalEaten = bars.reduce((s, b) => s + b.value, 0);
@@ -1882,6 +1897,146 @@
       <span>共 ${fmtG(totalEaten * M)} ${U} · 日均 ${fmtG(avgCompleteDay * M)} ${U}<span style="color:var(--color-light);">（仅完整天）</span></span>
     `;
     $chartRangeLbl.textContent = `${startIso} → ${endIso} · 按${aggName}`;
+  }
+
+  // ===== 趋势图悬停 / 框选交互 =====
+  // 一套指针处理器挂在 SVG 上，按 trendHit.kind 分流：
+  //   bars     —— 悬停某一列 → 浮窗给该桶读数（柱顶已不再常驻数字）
+  //   intraday —— 悬停 → 十字线 + 该时刻累计；按住拖动 → 框选区间 → 平均进食速度 + 区间吃了多少克
+  // 浮窗用绝对定位的 .chart-tip（在 .chart-wrap 内），SVG 里的高亮/十字/框选用一个临时 overlay <g> 画，
+  // 每次重绘 innerHTML 会自然清掉它，所以无需手动同步。
+  function setupTrendInteraction() {
+    const svg = $trendChart, tip = $chartTip;
+    if (!svg || !tip) return;
+    const NS = 'http://www.w3.org/2000/svg';
+    let dragging = false, pinned = false, pinnedHit = null, dragX0 = 0;
+    const pinActive = () => pinned && pinnedHit === trendHit;
+
+    function ensureOverlay() {
+      let g = svg.querySelector('#trend-ovl');
+      if (!g || g.parentNode !== svg) {
+        g = document.createElementNS(NS, 'g');
+        g.id = 'trend-ovl'; g.setAttribute('pointer-events', 'none');
+        svg.appendChild(g);
+      }
+      return g;
+    }
+    function clearOverlay() { const g = svg.querySelector('#trend-ovl'); if (g) g.innerHTML = ''; }
+    function hideTip() { tip.classList.remove('show'); tip.hidden = true; }
+
+    function vb(ev) {
+      const r = svg.getBoundingClientRect();
+      if (!r.width || !r.height) return null;
+      return { x: (ev.clientX - r.left) / r.width * 600, y: (ev.clientY - r.top) / r.height * 240 };
+    }
+    // vbX/vbY 是 viewBox(600×240) 坐标，换算成相对 .chart-wrap 的 CSS 像素来摆浮窗
+    function placeTip(html, vbX, vbY) {
+      tip.innerHTML = html;
+      tip.hidden = false;
+      const wrap = svg.parentElement;
+      const sr = svg.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+      const left = (sr.left - wr.left) + (vbX / 600) * sr.width;
+      let top = (sr.top - wr.top) + (vbY / 240) * sr.height;
+      tip.style.top = top + 'px';
+      tip.style.left = left + 'px';
+      tip.classList.add('show');
+      // 夹住，别让浮窗溢出卡片。浮窗 transform 是 translate(-50%,-100%)：left 是中心、top 是其底边。
+      const half = tip.offsetWidth / 2;
+      const minL = half + 4, maxL = wrap.clientWidth - half - 4;
+      if (maxL > minL) tip.style.left = Math.max(minL, Math.min(maxL, left)) + 'px';
+      const minTop = tip.offsetHeight + 2;   // 柱子很高时浮窗别飞出卡片上沿
+      if (top < minTop) { top = minTop; tip.style.top = top + 'px'; }
+    }
+
+    const fmtClock = ts => { const d = new Date(ts); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); };
+    const clampX = (h, x) => Math.max(h.m.l, Math.min(h.m.l + h.innerW, x));
+    const tAtX = (h, x) => h.dayStart + (clampX(h, x) - h.m.l) / h.innerW * DAY_MS;
+    const xAtT = (h, t) => h.m.l + (t - h.dayStart) / DAY_MS * h.innerW;
+    const yAtC = (h, c) => h.m.t + h.innerH - (c / h.niceMax) * h.innerH;
+
+    function drawCrosshair(h, x) {
+      const t = Math.min(tAtX(h, x), h.endT);
+      const cum = interpolateCum(h.points, t);
+      const px = xAtT(h, t), py = yAtC(h, cum);
+      ensureOverlay().innerHTML =
+        `<line x1="${px.toFixed(1)}" x2="${px.toFixed(1)}" y1="${h.m.t}" y2="${h.m.t + h.innerH}" stroke="var(--color-accent)" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>` +
+        `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4" fill="var(--color-accent)" stroke="var(--color-bg)" stroke-width="1.5"/>`;
+      placeTip(`<strong>${fmtClock(t)}</strong><br>累计 ${fmtG(cum * h.M)} ${escapeHtml(h.U)}`, px, py - 8);
+    }
+
+    function drawBrush(h, xa, xb) {
+      const x0 = clampX(h, Math.min(xa, xb)), x1 = clampX(h, Math.max(xa, xb));
+      const t0 = tAtX(h, x0), t1 = Math.min(tAtX(h, x1), h.endT);
+      const c0 = interpolateCum(h.points, t0), c1 = interpolateCum(h.points, t1);
+      const grams = (c1 - c0) * h.M, hours = (t1 - t0) / 3600000;
+      const yTop = h.m.t, yBot = h.m.t + h.innerH;
+      const ya = yAtC(h, c0), yb = yAtC(h, c1);
+      ensureOverlay().innerHTML =
+        `<rect x="${x0.toFixed(1)}" y="${yTop}" width="${Math.max(0, x1 - x0).toFixed(1)}" height="${(yBot - yTop).toFixed(1)}" fill="var(--color-accent)" fill-opacity="0.12" stroke="var(--color-accent)" stroke-opacity="0.45" stroke-width="1"/>` +
+        `<line x1="${x0.toFixed(1)}" y1="${ya.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${yb.toFixed(1)}" stroke="var(--color-accent)" stroke-width="1.6"/>` +
+        `<circle cx="${x0.toFixed(1)}" cy="${ya.toFixed(1)}" r="3" fill="var(--color-accent)"/>` +
+        `<circle cx="${x1.toFixed(1)}" cy="${yb.toFixed(1)}" r="3" fill="var(--color-accent)"/>`;
+      let body;
+      if (grams <= 0.05) {
+        body = `<span class="tip-sub">这段时间没进食</span>`;
+      } else {
+        const rate = hours > 0.0001 ? grams / hours : 0;
+        body = `吃了 <strong>${fmtG(grams)}</strong> ${escapeHtml(h.U)}<br><span class="tip-sub">平均 ${fmtG(rate)} ${escapeHtml(h.U)}/小时</span>`;
+      }
+      placeTip(`<strong>${fmtClock(t0)} – ${fmtClock(t1)}</strong><br>${body}`, (x0 + x1) / 2, yTop - 4);
+    }
+
+    function onMove(ev) {
+      const h = trendHit;
+      if (!h) { hideTip(); return; }
+      const c = vb(ev); if (!c) return;
+      if (h.kind === 'bars') {
+        const slot = h.bars.find(b => c.x >= b.slotX0 && c.x < b.slotX1);
+        if (!slot) { clearOverlay(); hideTip(); return; }
+        ensureOverlay().innerHTML =
+          `<rect x="${slot.slotX0.toFixed(1)}" y="${h.m.t}" width="${(slot.slotX1 - slot.slotX0).toFixed(1)}" height="${h.innerH}" fill="var(--color-accent)" fill-opacity="0.08"/>`;
+        placeTip(slot.tip, slot.cx, slot.topY - 6);
+        return;
+      }
+      // intraday
+      if (dragging) { drawBrush(h, dragX0, c.x); return; }
+      if (pinActive()) { pinned = false; pinnedHit = null; }   // 钉住的框选：光标一旦在图上移动就让位给悬停十字线（触屏抬手无 move，仍保留）
+      drawCrosshair(h, c.x);
+    }
+
+    function onDown(ev) {
+      const h = trendHit;
+      if (!h) return;
+      if (h.kind === 'bars') { onMove(ev); return; }   // 触屏点一下柱子也出读数（无悬停）
+      const c = vb(ev); if (!c) return;
+      if (c.y < h.m.t - 6 || c.y > h.m.t + h.innerH + 6) return;   // 只在绘图区内起手
+      dragging = true; pinned = false; pinnedHit = null;
+      dragX0 = clampX(h, c.x);
+      try { svg.setPointerCapture(ev.pointerId); } catch (e) {}
+      ev.preventDefault();
+    }
+    function onUp(ev) {
+      if (!dragging) return;
+      dragging = false;
+      try { svg.releasePointerCapture(ev.pointerId); } catch (e) {}
+      const h = trendHit, c = vb(ev);
+      if (h && h.kind === 'intraday' && c && Math.abs(clampX(h, c.x) - dragX0) >= 6) {
+        pinned = true; pinnedHit = h;   // 真框选：钉住，方便（尤其触屏抬手后）继续读
+        return;
+      }
+      pinned = false; pinnedHit = null; clearOverlay();   // 太短当点击：回到悬停
+      if (h && h.kind === 'intraday' && c) drawCrosshair(h, c.x);
+    }
+    function onLeave() {
+      if (dragging || pinActive()) return;
+      clearOverlay(); hideTip();
+    }
+
+    svg.addEventListener('pointermove', onMove);
+    svg.addEventListener('pointerdown', onDown);
+    svg.addEventListener('pointerup', onUp);
+    svg.addEventListener('pointerleave', onLeave);
+    svg.style.touchAction = 'pan-y';   // 触屏上横向拖动归框选，纵向仍可滚页
   }
 
   function niceCeil(v) {
@@ -4384,6 +4539,7 @@
   });
   $customStart.addEventListener('change', () => { state.customStart = $customStart.value || null; persist(); render(); });
   $customEnd.addEventListener('change', () => { state.customEnd = $customEnd.value || null; persist(); render(); });
+  setupTrendInteraction();
 
   $toggleHistory.addEventListener('click', () => {
     state.historyOpen = !state.historyOpen;
