@@ -1188,10 +1188,6 @@
     return cb ? cb.type : T.SINGLE;
   }
 
-  // 按"最大可能列数 15"算目标卡宽并锁定整局不变——避免出过几张牌、列消失后
-  // 卡变大、整张手牌横向画幅缩小的"画幅抖动"。最大列数 = 2~A + 大小王 = 15。
-  // 实际列数 ≤ 15，按 15 列预算的尺寸装下当前任意列数都绰绰有余。
-  const MAX_HAND_COLS = 15;
   function adaptHandSize() {
     const hand = els.hand;
     const cols = hand.querySelectorAll('.gd-rank-col');
@@ -1210,11 +1206,14 @@
     const availW = hand.clientWidth - padL - padR;
     if (availW <= 0) return;
 
-    // ── 横向：按 15 列预算定卡宽（装得下就用默认尺寸） ──
+    // ── 横向：按「当前实际列数」预算卡宽，装得下就用默认大小(= 出牌区同款 46px) ──
+    // 旧逻辑按最坏 15 列预算，列没满时也把手牌缩得比出牌区小一圈；改成按真实列数算，
+    // 只有列真的多到一行放不下才缩。封顶 defCardW，列变少也不会涨过出牌区那么大。
     let cardW = defCardW, cardH = defCardH, step = defStep;
-    const neededW = MAX_HAND_COLS * defCardW + (MAX_HAND_COLS - 1) * gap;
+    const nCols = cols.length;
+    const neededW = nCols * defCardW + (nCols - 1) * gap;
     if (neededW > availW) {
-      cardW = Math.max(26, Math.floor((availW - (MAX_HAND_COLS - 1) * gap) / MAX_HAND_COLS));
+      cardW = Math.max(26, Math.floor((availW - (nCols - 1) * gap) / nCols));
       if (cardW < defCardW) cardH = Math.round(defCardH * (cardW / defCardW));
     }
 

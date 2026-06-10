@@ -158,13 +158,13 @@ theme_color: "#fafaf9"
   }
   .gd-myplay-row .gd-played { width: auto; min-width: 0; }
   /* 侧位：横向布局 [头像 | 出牌区]（右侧反过来）。绝对定位「相对牌桌」(已移出
-     seats-mid)，竖向钉死在牌桌正中偏上一点（≈我的出牌区与对家之间），写死 44%，
-     不随对家座位高度变化而上下移。z-index:6 盖在手牌之上。 */
+     seats-mid)，竖向钉死在上半场 38%（对家与我的出牌区之间），不随对家座位高度变化
+     而上下移。z-index:6 盖在手牌之上。 */
   .gd-side {
     display: flex; flex-direction: row; align-items: center;
     gap: 0.55rem;
     position: absolute;
-    top: 44%; transform: translateY(-50%);
+    top: 38%; transform: translateY(-50%);
     z-index: 6;
   }
   .gd-side-left  { left: 0.4rem; flex-direction: row; }
@@ -1756,11 +1756,11 @@ theme_color: "#fafaf9"
         calc(0.7rem + env(safe-area-inset-left, 0px));
     }
     body.gd-game-fullscreen .gd-seats-mid { height: 76px; }   /* 只剩对家出牌（放大后槽高 70px） */
-    /* 我的出牌：从流里拎出来、绝对定位钉死在「下半场」(63%)——紧挨手牌上方、在我这一侧，
-       不再卡在对家出牌区正下方。z-index:6 + pointer-events:none 仍生效：盖在手牌上、点击穿透。 */
+    /* 我的出牌：从流里拎出来、绝对定位在牌桌中部偏下 52%——在我这一侧、又不至于
+       低到压住手牌。z-index:6 + pointer-events:none 仍生效（盖在手牌上、点击穿透）。 */
     body.gd-game-fullscreen .gd-myplay-row {
       position: absolute; left: 0; right: 0;
-      top: 63%; transform: translateY(-50%);
+      top: 52%; transform: translateY(-50%);
       height: auto; margin: 0;
     }
     body.gd-game-fullscreen .gd-played,
@@ -2173,4 +2173,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260610h"></script>
+<script src="/assets/js/games/guandan.js?v=20260610i"></script>
