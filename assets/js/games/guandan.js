@@ -1215,26 +1215,11 @@
       if (cardW < defCardW) cardH = Math.round(defCardH * (cardW / defCardW));
     }
 
-    // ── 纵向：最深的一摞（理论上 ≤ 8 张）也要塞进"手牌顶 → 屏幕底"的可用高，
-    //    不够先收每张露出高度(step)、仍不够再连卡高一起收 —— 深摞不再溢出画幅。 ──
-    let maxDepth = 1;
-    cols.forEach(col => { maxDepth = Math.max(maxDepth, col.querySelectorAll('.gd-card').length); });
-    // 可用高度 = 手牌容器自身的内容高（横屏下手牌 flex:1 撑满剩余空间，列在底对齐）。
-    // 用 clientHeight 而非 handTop，彻底避开 safe-center 下"高度↔位置"的循环依赖、稳定不抖。
-    const padT = parseFloat(cs.paddingTop) || 0;
-    const padB = parseFloat(cs.paddingBottom) || 0;
-    const availH = hand.clientHeight - padT - padB;
-    if (maxDepth > 1 && availH > 60) {
-      const STEP_FLOOR = 13;   // 每张至少露 13px，角标还看得见个大概
-      if (cardH + (maxDepth - 1) * step > availH) {
-        step = Math.max(STEP_FLOOR, Math.floor((availH - cardH) / (maxDepth - 1)));
-      }
-      if (cardH + (maxDepth - 1) * step > availH) {  // step 到底仍超 → 收卡高（卡宽按比例跟）
-        const h0 = cardH;
-        cardH = Math.max(40, Math.floor(availH - (maxDepth - 1) * step));
-        cardW = Math.max(24, Math.round(cardW * cardH / h0));
-      }
-    }
+    // ── 纵向：不再因为某一摞深就压扁整手牌 ──
+    // 旧逻辑会在最深的一摞放不下时收 step（甚至连卡高一起收），结果是只要有一摞牌多，
+    // 全手牌的错落间距、卡片大小都跟着缩水，挤成一团、张数都数不清。
+    // 现在固定保持默认 step 与默认卡高：深摞就让它自然往上长，溢进手牌上方那片空地
+    //（CSS 里横屏手牌 overflow:visible + 底对齐，溢出不裁切）。错落格式与卡片尺寸恒定。
 
     if (cardW !== defCardW) hand.style.setProperty('--gd-card-w', cardW + 'px');
     if (cardH !== defCardH) hand.style.setProperty('--gd-card-h', cardH + 'px');
@@ -2679,9 +2664,11 @@
     let nx = nextAlive(seat);
     state.turn = nx;
     state.trick.lead = nx;
-    // 把这家在本圈里"不出"的残留清掉——既然又轮到他/她，旧的 pass 已过期。
-    // （本圈内有人翻新最大 → trick.passes 回到 0 → 之前不出过的人重新可决策）
-    if (state.lastPlay[nx] === 'pass') state.lastPlay[nx] = null;
+    // 又轮到这家出牌了 → 把他/她上一手的残留清掉，不论那是"不出"还是出过的牌。
+    // 旧牌已经过期，留在桌上会让人误以为"他又出了一样的牌却被跳过"，体验很怪。
+    // 注意：本圈里能轮回到某家，必有人在中途翻新过最大（否则早就满弃收圈了），
+    // 所以此处被清掉的一定不是当前最大那一手——当前最大属于另一家、照常保留展示。
+    state.lastPlay[nx] = null;
     renderAll();
     saveSession();
     if (nx === 0 && !state.out.includes(0)) {

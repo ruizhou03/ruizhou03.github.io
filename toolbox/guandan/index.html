@@ -1681,11 +1681,27 @@ theme_color: "#fafaf9"
     body.gd-game-fullscreen .guandan-wrap header { margin: 0; min-height: 0; }
     body.gd-game-fullscreen .guandan-wrap header h1 { display: none; }
     /* 🏆 榜单 chip 挪到右上角，让开左上角的级牌信息（我方/对方/积分） */
-    body.gd-game-fullscreen .gd-board-btn { left: auto; right: 0.5rem; top: 0.45rem; }
+    body.gd-game-fullscreen .gd-board-btn {
+      left: auto;
+      right: calc(0.5rem + env(safe-area-inset-right, 0px));
+      top: calc(0.45rem + env(safe-area-inset-top, 0px));
+    }
+    /* 画幅铺满：去掉外圈那圈奶油色边 + 金色细边 + 圆角，让羊皮纸牌桌一直延伸到
+       屏幕物理边缘（含刘海/圆角安全区），不再留一道贴合感差的浅色框；
+       安全区改用 env() 内缩到牌桌「内部」——背景照样满铺到边，只把内容顶离刘海。 */
+    body.gd-game-fullscreen .guandan-wrap {
+      padding: 0;
+      background: var(--gd-felt-1);
+    }
     /* 牌桌 flex 撑满视口高度，手牌吃掉座位/出牌行之后的全部剩余高度 */
     body.gd-game-fullscreen .gd-table {
       flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
-      padding: 0.35rem 0.7rem 0.4rem;
+      max-width: none; border: 0; border-radius: 0;
+      padding:
+        calc(0.35rem + env(safe-area-inset-top, 0px))
+        calc(0.7rem + env(safe-area-inset-right, 0px))
+        calc(0.4rem + env(safe-area-inset-bottom, 0px))
+        calc(0.7rem + env(safe-area-inset-left, 0px));
     }
     body.gd-game-fullscreen .gd-seats-mid { height: 86px; }
     body.gd-game-fullscreen .gd-myplay-row { height: 38px; margin-top: 0.1rem; }
@@ -1708,27 +1724,34 @@ theme_color: "#fafaf9"
     body.gd-game-fullscreen .gd-play-actions {
       order: 5; min-height: 2.3rem; margin: 0.15rem 0 0.1rem; flex-wrap: nowrap;
     }
-    /* 手牌：吃满剩余高度、列在底对齐（深摞往上长进中间空地，不再溢出底边）；
-       默认 step 24 角标清晰，adaptHandSize 按 clientHeight 把最深的一摞收进画幅。
-       左右留出"我/托管"和"理牌图标键"的宽度，绝不压牌。 */
+    /* 手牌：吃满剩余高度、列在底对齐。默认 step 24 恒定不变——深的一摞就让它
+       自然往上长、溢进手牌上方那片空地（overflow:visible 不裁切），错落间距与卡片
+       大小始终保持原样，绝不为了塞进画幅而压扁成数不清张数的一团。
+       左右留出"我/托管"和"理牌图标键"的宽度（含安全区），绝不压牌。 */
     body.gd-game-fullscreen .gd-hand {
       --gd-stack-step: 24px;
       flex: 1 1 auto; min-height: 0;
       align-items: flex-end;
-      padding: 0.15rem 50px 0.2rem 62px;
+      overflow: visible;
+      padding: 0.15rem calc(50px + env(safe-area-inset-right, 0px)) 0.2rem calc(62px + env(safe-area-inset-left, 0px));
     }
     /* 左下："我"头像+张数在上、托管在下，竖排不重叠（挤进左侧 62px 内） */
     body.gd-game-fullscreen .gd-self-bar {
-      left: 0.4rem; bottom: 2.3rem; margin: 0;
+      left: calc(0.4rem + env(safe-area-inset-left, 0px));
+      bottom: calc(2.3rem + env(safe-area-inset-bottom, 0px)); margin: 0;
       flex-direction: column; align-items: flex-start; gap: 0.1rem;
     }
     body.gd-game-fullscreen .gd-self-bar .gd-name { display: none; }
     body.gd-game-fullscreen .gd-autopilot-chip {
-      left: 0.4rem; bottom: 0.4rem; padding: 0.22rem 0.5rem; font-size: 0.72rem;
+      left: calc(0.4rem + env(safe-area-inset-left, 0px));
+      bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
+      padding: 0.22rem 0.5rem; font-size: 0.72rem;
     }
     /* 右下：只留 还原/理牌 两个图标键（去文字、去一键理牌），紧凑竖排（挤进右侧 50px 内） */
     body.gd-game-fullscreen .gd-sort-actions {
-      right: 0.4rem; bottom: 0.4rem; flex-direction: column; gap: 0.35rem; margin: 0;
+      right: calc(0.4rem + env(safe-area-inset-right, 0px));
+      bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
+      flex-direction: column; gap: 0.35rem; margin: 0;
     }
     body.gd-game-fullscreen .gd-sort-actions .gd-btn {
       min-width: 0; width: 40px; height: 36px; padding: 0; font-size: 1.05rem; line-height: 1;
@@ -2077,4 +2100,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260601c"></script>
+<script src="/assets/js/games/guandan.js?v=20260610a"></script>
