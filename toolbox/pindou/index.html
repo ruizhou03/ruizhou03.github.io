@@ -77,8 +77,12 @@ permalink: /toolbox/pindou/
   .pb-btn.sm { font-size: .8rem; padding: .35rem .7rem; }
   .pb-btnrow { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .85rem; }
   .pb-btn.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
-  /* 步骤①按钮 + 引导语居中 */
-  #cutBtns { justify-content: center; gap: .55rem; }
+  /* 步骤①：主行动按钮(抠出主体 / 下一步)独占一行、放大突出；次要操作缩进下一行 */
+  #cutBtns { display: flex; flex-direction: column; align-items: center; gap: .6rem; margin-top: 1rem; }
+  .pb-cta { font-family: var(--font-display); font-size: 1.02rem; font-weight: 600; padding: .68rem 1.7rem; border-radius: 11px; box-shadow: 0 2px 10px rgba(30,58,95,.22); }
+  .pb-cta.ready { box-shadow: 0 0 0 3px rgba(30,58,95,.16), 0 2px 10px rgba(30,58,95,.22); }
+  .pb-subrow { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .45rem; }
+  .pb-sub-lab { font-size: .8rem; color: var(--color-light); margin-right: .1rem; }
   #cutMsg { text-align: center; }
 
   /* manual tools */
@@ -132,6 +136,8 @@ permalink: /toolbox/pindou/
   /* 图上方工具行：分组 + 留白，不再挤成一坨 */
   .pb-toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .6rem; }
   .pb-zoomgrp { display: inline-flex; gap: .3rem; }
+  .pb-spring { flex: 1 1 auto; }
+  @media (max-width: 560px) { .pb-spring { flex-basis: 100%; height: 0; } }  /* 窄屏让分组各自换行 */
 
   /* stats */
   .pb-stats { display: flex; flex-wrap: wrap; gap: .5rem; margin: .2rem 0 1rem; }
@@ -170,6 +176,9 @@ permalink: /toolbox/pindou/
   .pb-legend table { width: 100%; border-collapse: collapse; font-size: .84rem; }
   .pb-legend th { text-align: left; color: var(--color-muted); font-weight: 500; font-size: .76rem; padding: .3rem .4rem; border-bottom: 1px solid var(--color-border); }
   .pb-legend th.num { text-align: right; }
+  .pb-legend th.pb-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+  .pb-legend th.pb-sortable.active { color: var(--color-accent); }
+  .pb-sort-ind { display: inline-block; width: .9em; margin-left: .1em; font-size: .9em; color: var(--color-accent); }
   .pb-legend td { padding: .32rem .4rem; border-bottom: 1px solid var(--color-border); color: var(--color-ink); }
   .pb-legend td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .pb-sw { display: inline-block; width: 1.05rem; height: 1.05rem; border-radius: 4px; border: 1px solid rgba(0,0,0,.15); vertical-align: middle; }
@@ -243,12 +252,18 @@ permalink: /toolbox/pindou/
       </div>
     </div>
 
-    <div class="pb-btnrow pb-hidden" id="cutBtns">
-      <button class="pb-btn pri" id="aiCut">✨ 抠出主体</button>
-      <button class="pb-btn pri pb-hidden" id="goStep3">下一步：转拼豆 →</button>
-      <button class="pb-btn pb-hidden" id="toggleManual">🖌️ 手动修一下</button>
-      <button class="pb-btn" id="useWhole">🖼 用整张图</button>
-      <button class="pb-btn" id="changeImg">↻ 换一张</button>
+    <div class="pb-hidden" id="cutBtns">
+      <!-- 主行动：选路径态=抠出主体；已选底图态=下一步（大按钮，独占一行） -->
+      <button class="pb-btn pri pb-cta" id="aiCut">✨ 抠出主体</button>
+      <button class="pb-btn pri pb-cta pb-hidden" id="goStep3">下一步：做成拼豆图 →</button>
+      <!-- 次要：不满意时的微调入口（小按钮） -->
+      <div class="pb-subrow">
+        <span class="pb-sub-lab pb-hidden" id="tweakLab">不满意可：</span>
+        <button class="pb-btn sm pb-hidden" id="toggleManual">🖌️ 手动修</button>
+        <button class="pb-btn sm pb-hidden" id="aiCutSmall">✨ 改抠主体</button>
+        <button class="pb-btn sm" id="useWhole">🖼 用整张图</button>
+        <button class="pb-btn sm" id="changeImg">↻ 换一张</button>
+      </div>
     </div>
     <div class="pb-msg pb-hidden" id="cutMsg"></div>
   </section>
@@ -256,7 +271,7 @@ permalink: /toolbox/pindou/
   <!-- ========== ② 调整 · 图纸 · 清单 ========== -->
   <section class="pb-step pb-locked" id="step2">
     <div class="pb-step-h"><div class="pb-step-n">2</div><div class="pb-step-t">调整 · 图纸 · 清单</div></div>
-    <div class="pb-step-hint">上方调精细度 / 颜色，参数和预计耗时实时跟着变；图上方一行可切「效果图 / 坐标图」、缩放、下载、分享，「⛶ 全屏」对着拼；下方是采买清单。</div>
+    <div class="pb-step-hint">上方调精细度 / 颜色，参数和预计耗时实时跟着变；图上方一行可切「效果图 / 坐标图」、缩放、下载、分享，「⛶ 全屏」对着拼；下方按颜色列出用量，照着买就行。</div>
 
     <!-- 调整：精细度 + 颜色上限 + 底板背景 收进一个矩形卡 -->
     <div class="pb-panel">
@@ -297,36 +312,41 @@ permalink: /toolbox/pindou/
           <button class="on" data-mode="effect">🧩 效果图</button>
           <button data-mode="chart">🔢 坐标图</button>
         </div>
+        <span class="pb-spring"></span>
         <span class="pb-zoomgrp">
           <button class="pb-btn sm" id="zoomOut" title="缩小">－</button>
           <button class="pb-btn sm" id="zoomFit" title="整张铺满">⤢ 适应</button>
           <button class="pb-btn sm" id="zoomIn" title="放大">＋</button>
+          <button class="pb-btn sm" id="fsOpen">⛶ 全屏</button>
         </span>
-        <button class="pb-btn sm" id="fsOpen">⛶ 全屏</button>
-        <span style="flex:1 1 auto;"></span>
-        <button class="pb-btn sm pri" id="dlCurrent">⬇︎ 下载（带图例）</button>
-        <button class="pb-btn sm" id="shareBtn">🔗 分享</button>
+        <span class="pb-spring"></span>
+        <span class="pb-zoomgrp">
+          <button class="pb-btn sm pri" id="dlCurrent">⬇︎ 下载（带图例）</button>
+          <button class="pb-btn sm" id="shareBtn">🔗 分享</button>
+        </span>
       </div>
       <div class="pb-preview-box"><canvas id="preview"></canvas></div>
       <div class="pb-cap pb-hidden" id="shareMsg" style="text-align:left;margin-top:.4rem;"></div>
     </div>
     <div class="pb-msg pb-hidden" id="genMsg"></div>
 
-    <!-- 采买清单 -->
+    <!-- 颜色清单（点表头排序，无需单独排序控件） -->
     <div class="pb-legend">
-      <div style="font-size:.9rem;color:var(--color-ink);font-weight:600;margin:1.2rem 0 .3rem;">🛒 采买清单</div>
       <div class="pb-legend-ctl">
-        <span class="pb-lc-grp">
-          <span>排序 <select id="legendSort"><option value="count">按用量 ↓</option><option value="code">按色号</option></select></span>
-          <span>每页 <select id="legendPer"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="999">全部</option></select> 个</span>
-        </span>
+        <span id="legendTotal" style="font-weight:600;color:var(--color-ink);"></span>
         <span class="pb-lc-grp">
           <span class="pb-pager" id="legendPagerWrap"><button id="legPrev">‹</button>第 <span id="legPageNo">1</span>/<span id="legPages">1</span> 页<button id="legNext">›</button></span>
-          <span id="legendTotal" style="font-weight:600;color:var(--color-ink);"></span>
+          <span>每页 <select id="legendPer"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="999">全部</option></select></span>
         </span>
       </div>
       <table>
-        <thead><tr><th>色号</th><th>颜色</th><th>名称</th><th class="num">颗数</th><th class="num">占比</th></tr></thead>
+        <thead><tr>
+          <th class="pb-sortable" data-sort="code">色号<span class="pb-sort-ind"></span></th>
+          <th>颜色</th>
+          <th>名称</th>
+          <th class="num pb-sortable" data-sort="count">颗数<span class="pb-sort-ind"></span></th>
+          <th class="num">占比</th>
+        </tr></thead>
         <tbody id="legendBody"></tbody>
       </table>
     </div>
@@ -397,12 +417,17 @@ permalink: /toolbox/pindou/
   function labDist2(A, B){
     const dL=A[0]-B[0], da=A[1]-B[1], db=A[2]-B[2];
     const cIn=Math.hypot(A[1],A[2]);
-    const w = cIn<0.04 ? 4 + 12*(1-cIn/0.04) : 4;
+    const w = cIn<0.09 ? 4 + 10*(1-cIn/0.09) : 4;
     return dL*dL + w*(da*da + db*db);
   }
   const PAL_LAB = PAL_RGB.map(rgb2lab);
   function nearestPalette(rgb){
-    const lab=rgb2lab(rgb); let bi=0, bd=Infinity;
+    let lab=rgb2lab(rgb);
+    // 彩度死区：照片里白/米/灰受光照偏色或 JPEG 噪声常带 15~25 的轻微色偏（肉眼自动脑补成白，像素却是
+    // 淡绿/淡紫）。先压掉一截彩度，把这种"伪色"拉回中性；鲜艳色彩度高，几乎不受影响。(帆布袋发绿的根因)
+    const c=Math.hypot(lab[1],lab[2]);
+    if(c>0){ const f=Math.max(0, c-0.022)/c; lab=[lab[0], lab[1]*f, lab[2]*f]; }
+    let bi=0, bd=Infinity;
     for(let i=0;i<PAL_LAB.length;i++){ const d=labDist2(lab, PAL_LAB[i]); if(d<bd){bd=d; bi=i;} }
     return bi;
   }
@@ -417,7 +442,8 @@ permalink: /toolbox/pindou/
     busy: false, painted: false, applyMode: null,
     bboxAR: 0, lastFill: 1, lastBeads: 0,
     modelReady: false, preloadFrac: 0, preloadPromise: null,
-    aiGen: 0, aiGaveUp: false, timeDragging: false, shared: false
+    aiGen: 0, aiGaveUp: false, timeDragging: false, shared: false,
+    sortKey: 'count', sortDir: 'desc'
   };
 
   function enableStep(id){ $(id).classList.remove('pb-locked'); }
@@ -549,17 +575,17 @@ permalink: /toolbox/pindou/
   // 按钮区三态（S.applyMode）：null=刚上传，选路径 / 'cut'=已抠出主体 / 'whole'=用整张图。
   // 每个状态只露用得上的按钮：已走的路藏掉（抠图确定性，重抠无意义），另一条路当备选。
   function updateCutBtns(){
-    const m=S.applyMode;
-    $('aiCut').classList.toggle('pb-hidden', m==='cut');
-    $('goStep3').classList.toggle('pb-hidden', !m);
-    $('toggleManual').classList.toggle('pb-hidden', !m);
+    const m=S.applyMode, ready=(S.cutState==='done' && S.cutMask);
+    // 主行动按钮：null→抠出主体(大)；cut/whole→下一步(大)
+    $('aiCut').classList.toggle('pb-hidden', m!==null);
+    $('goStep3').classList.toggle('pb-hidden', m===null);
+    if(m===null){ $('aiCut').textContent = ready ? '✨ 抠出主体 · 已就绪' : '✨ 抠出主体'; $('aiCut').classList.toggle('ready', !!ready); }
+    // 次要操作行
+    $('tweakLab').classList.toggle('pb-hidden', m===null);
+    $('toggleManual').classList.toggle('pb-hidden', m===null);
+    $('aiCutSmall').classList.toggle('pb-hidden', m!=='whole');   // 仅整张态露出「改抠主体」(已抠态确定性、无需重抠)
     $('useWhole').classList.toggle('pb-hidden', m==='whole');
     $('useWhole').textContent = m==='cut' ? '🖼 改用整张图' : '🖼 用整张图';
-    if(m!=='cut'){ // 露出的抠图按钮：后台缓存好了就标「已就绪」，点一下秒应用
-      const b=$('aiCut'), ready=(S.cutState==='done' && S.cutMask);
-      b.textContent = ready ? '✨ 抠出主体 · 已就绪' : '✨ 抠出主体';
-      b.classList.toggle('ready', !!ready);
-    }
   }
   function applyCut(){
     if(!S.cutMask) return;
@@ -728,6 +754,7 @@ permalink: /toolbox/pindou/
   editCanvas.addEventListener('touchend', endPaint);
 
   $('aiCut').addEventListener('click', clickAICut);
+  $('aiCutSmall').addEventListener('click', clickAICut);   // 整张态切回 AI 抠图
   $('useWhole').addEventListener('click', ()=>{
     if(!S.W) return; S.painted = true; S.applyMode = 'whole'; S.mask = new Uint8Array(S.W*S.H).fill(255); clearUndo(); renderEdit(); hideCut();
     // 整张图==原图，无需前后对比 → 收回单图态（不分裂出两张一样的）
@@ -958,8 +985,14 @@ permalink: /toolbox/pindou/
   function codeNum(c){ const n=parseInt(String(c||'').replace(/^[A-Za-z]+/,'')); return isNaN(n)?9999:n; }
   function sortedUsed(){
     const arr=S.used.slice();
-    if(S.legendSort==='code') arr.sort((a,b)=>codeNum(a.code)-codeNum(b.code) || (a.code<b.code?-1:1));
-    return arr; // 默认 'count'：S.used 本就按用量降序
+    if(S.sortKey==='code'){
+      arr.sort((a,b)=>codeNum(a.code)-codeNum(b.code) || (a.code<b.code?-1:1));
+      if(S.sortDir==='desc') arr.reverse();
+    } else { // count：默认按用量降序，再点切升序
+      arr.sort((a,b)=> b.count-a.count || codeNum(a.code)-codeNum(b.code));
+      if(S.sortDir==='asc') arr.reverse();
+    }
+    return arr;
   }
   function renderLegend(){
     let total=0; S.used.forEach(u=>total+=u.count);
@@ -979,8 +1012,18 @@ permalink: /toolbox/pindou/
     $('legPageNo').textContent = S.legendPage; $('legPages').textContent = pages;
     $('legPrev').disabled = S.legendPage<=1; $('legNext').disabled = S.legendPage>=pages;
     $('legendPagerWrap').style.display = pages>1 ? '' : 'none';
+    document.querySelectorAll('.pb-legend th.pb-sortable').forEach(th=>{
+      const active = th.dataset.sort===S.sortKey;
+      th.classList.toggle('active', active);
+      th.querySelector('.pb-sort-ind').textContent = active ? (S.sortDir==='asc'?'↑':'↓') : '';
+    });
   }
-  $('legendSort').addEventListener('change', e=>{ S.legendSort=e.target.value; S.legendPage=1; if(S.used.length) renderLegend(); });
+  function setSort(key){
+    if(S.sortKey===key) S.sortDir = (S.sortDir==='asc'?'desc':'asc');
+    else { S.sortKey=key; S.sortDir = (key==='count'?'desc':'asc'); }  // 点色号默认升序、点颗数默认降序
+    S.legendPage=1; if(S.used.length) renderLegend();
+  }
+  document.querySelectorAll('.pb-legend th.pb-sortable').forEach(th=> th.addEventListener('click', ()=> setSort(th.dataset.sort)));
   $('legendPer').addEventListener('change', e=>{ S.legendPer=+e.target.value; S.legendPage=1; if(S.used.length) renderLegend(); });
   $('legPrev').addEventListener('click', ()=>{ if(S.legendPage>1){ S.legendPage--; renderLegend(); } });
   $('legNext').addEventListener('click', ()=>{ S.legendPage++; renderLegend(); });
