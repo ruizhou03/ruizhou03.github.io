@@ -153,8 +153,21 @@ theme_color: "#fafaf9"
   .pb-stat small { font-size: .7rem; color: var(--color-muted); }
 
   /* preview：始终完整自适应居中，放大才滚动 */
-  .pb-preview-box { display: flex; height: 60vh; max-height: 660px; min-height: 260px; overflow: auto; border: 1px solid var(--color-border); border-radius: 10px; background: #fbfbfc; padding: .5rem; }
+  .pb-work-main { margin: .9rem 0; }   /* 与上下两块(调整参数 / 采购清单)错开,别挨太近 */
+  /* 画幅高度由 JS 贴合当前画布高度(横图不再上下大留白)；这里给个 JS 跑之前的兜底 */
+  .pb-preview-box { display: flex; height: 56vh; max-height: 620px; min-height: 160px; overflow: auto; border: 1px solid var(--color-border); border-radius: 10px; background: #fbfbfc; padding: .5rem; }
   .pb-preview-box canvas { image-rendering: auto; margin: auto; }
+  /* 预览外壳：缩放/全屏浮在画幅里,且锚在外壳上(不在滚动盒子里)→放大滚动时不跟着跑 */
+  .pb-preview-shell { position: relative; }
+  .pb-zoomfloat { position: absolute; right: .5rem; bottom: .5rem; display: inline-flex; gap: .2rem;
+    background: rgba(255,255,255,.84); border-radius: 9px; padding: .18rem; box-shadow: 0 1px 6px rgba(0,0,0,.14); }
+  .pb-zoomfloat .pb-btn { padding: .28rem .5rem; font-size: .85rem; border-color: transparent; background: transparent; }
+  /* 用量小字（替代原来 3 张大卡），贴在模式切换那一行右侧 */
+  .pb-stats-line { font-size: .8rem; color: var(--color-light); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* ⇌ 可逆反应箭头：连接「硬参数」与「预计耗时」两块 */
+  .pb-link-arrow { text-align: center; color: var(--color-accent); font-size: 1.35rem; line-height: 1; font-weight: 700; margin: -.15rem 0 .5rem; }
+  /* 下载/分享：放在图与采购清单之间 */
+  .pb-actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin: .2rem 0 .3rem; }
   .pb-zoom { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; font-size: .82rem; color: var(--color-light); }
 
   /* legend / shopping list 分页 */
@@ -197,18 +210,19 @@ theme_color: "#fafaf9"
 
   /* 可折叠的「调整参数」面板：桌面端不折叠（toggle 隐藏、内容常显，与原来一样）；手机端折叠条 */
   .pb-adjust-toggle { display: none; }
-  /* 分享「看图模式」：没有调参需求 → 永远藏掉折叠条、强制展开内容（让 stats 照常显示） */
-  .pb-wrap.is-shared .pb-adjust-toggle { display: none !important; }
-  .pb-wrap.is-shared .pb-adjust-body { display: block !important; }
+  /* 分享「看图模式」：没有调参需求 → 整块调参面板都不显示 */
+  .pb-wrap.is-shared #adjustWrap { display: none !important; }
+  [data-theme="dark"] .pb-zoomfloat { background: rgba(38,40,44,.84); }
 
   /* 手机端（≤600px）：预览图提到最前 + 调参面板默认折叠并压缩，先看到图、再下拉调 */
   @media (max-width: 600px) {
     #step2:not(.pb-locked) { display: flex; flex-direction: column; }
-    #step2 .pb-step-h { order: 0; }
+    #step2 .pb-step-h    { order: 0; }
     #step2 .pb-work-main { order: 1; }   /* 预览大图提到最前 */
-    #step2 #adjustWrap   { order: 2; }
-    #step2 #genMsg       { order: 3; }
-    #step2 .pb-legend    { order: 4; }
+    #step2 #genMsg       { order: 2; }
+    #step2 #adjustWrap   { order: 3; }
+    #step2 #pbActions    { order: 4; }   /* 下载/分享在调整参数之后 */
+    #step2 .pb-legend    { order: 5; }
 
     #adjustWrap { border: 1px solid var(--color-border); border-radius: 12px; margin-bottom: .9rem; }
     .pb-adjust-toggle { display: flex; align-items: center; gap: .5rem; width: 100%;
@@ -220,14 +234,8 @@ theme_color: "#fafaf9"
     #adjustWrap:not(.collapsed) .pb-adjust-caret { transform: rotate(180deg); }
     #adjustWrap.collapsed .pb-adjust-body { display: none; }
     .pb-adjust-body { padding: .15rem .7rem .7rem; }
-    .pb-adjust-body .pb-panel { margin-bottom: .7rem; }
-    .pb-adjust-body .pb-timebar { margin-bottom: .7rem; padding: .55rem .8rem .5rem; }
-    /* 压缩：stats 三卡收成一行小字、矮一截 */
-    #step2 .pb-stats { gap: .35rem; margin: .2rem 0 0; }
-    #step2 .pb-stat { min-width: 0; padding: .4rem .2rem; border-radius: 8px; }
-    #step2 .pb-stat b { font-size: .95rem; }
-    #step2 .pb-stat small { font-size: .62rem; }
-    .pb-wrap.is-shared #step2 { display: block; }   /* 看图模式不参与重排 */
+    .pb-adjust-body .pb-panel { margin-bottom: .4rem; }
+    .pb-adjust-body .pb-timebar { margin-bottom: .2rem; padding: .55rem .8rem .5rem; }
   }
 
   /* 手机端（≈≤480px）收尾：标题/边距收紧、换行后的工具行居中、触控目标加大、窄屏表格防溢出 */
@@ -355,19 +363,18 @@ theme_color: "#fafaf9"
       </div>
     </div>
 
+    <!-- ⇌ 可逆反应箭头：明示「硬参数」与「预计耗时」双向联动 -->
+    <div class="pb-link-arrow" aria-hidden="true">⇌</div>
     <!-- 预计耗时：双向。上面两项→耗时；也能拖它反推上面两项 -->
     <div class="pb-timebar">
       <div class="pb-timebar-top"><b>⏱ 预计耗时</b><span id="timeEst">约 …</span><span id="effortLabel"></span></div>
       <input type="range" class="pb-range" id="timeTarget" min="15" max="900" step="5" value="120">
       <div class="pb-bidi"><span class="pb-bidi-ico">⇅</span><span>由上面<b>精细度 + 颜色</b>算出；也可反向拖它，自动回配精细度 + 颜色。</span></div>
     </div>
-
-    <!-- 图纸参数（拖动时实时变化） -->
-    <div class="pb-stats" id="stats"></div>
       </div>
     </div>
 
-    <!-- 大画布（全宽主视觉） -->
+    <!-- 大画布（全宽主视觉）：上排=模式切换+用量小字；缩放/全屏浮在画幅里；下载/分享挪到图与采购清单之间 -->
     <div class="pb-work-main">
       <div class="pb-toolrow">
         <div class="pb-seg" id="previewMode">
@@ -375,20 +382,22 @@ theme_color: "#fafaf9"
           <button data-mode="chart">🔢 坐标图</button>
         </div>
         <span class="pb-spring"></span>
-        <span class="pb-zoomgrp">
-          <button class="pb-btn sm" id="zoomOut" title="缩小">－</button>
-          <button class="pb-btn sm" id="zoomFit" title="整张铺满">⤢ 适应</button>
-          <button class="pb-btn sm" id="zoomIn" title="放大">＋</button>
-          <button class="pb-btn sm" id="fsOpen">⛶ 全屏</button>
-        </span>
-        <span class="pb-spring"></span>
-        <span class="pb-zoomgrp">
-          <button class="pb-btn sm pri" id="dlCurrent">⬇︎ 下载（带图例）</button>
-          <button class="pb-btn sm" id="shareBtn">🔗 分享</button>
-        </span>
+        <span class="pb-stats-line" id="statsLine"></span>
       </div>
-      <div class="pb-preview-box"><canvas id="preview"></canvas></div>
+      <div class="pb-preview-shell">
+        <div class="pb-preview-box"><canvas id="preview"></canvas></div>
+        <div class="pb-zoomfloat">
+          <button class="pb-btn sm" id="zoomOut" title="缩小">－</button>
+          <button class="pb-btn sm" id="zoomFit" title="整张铺满">⤢</button>
+          <button class="pb-btn sm" id="zoomIn" title="放大">＋</button>
+          <button class="pb-btn sm" id="fsOpen" title="全屏">⛶</button>
+        </div>
+      </div>
       <div class="pb-cap pb-hidden" id="shareMsg" style="text-align:left;margin-top:.4rem;"></div>
+    </div>
+    <div class="pb-actions" id="pbActions">
+      <button class="pb-btn sm pri" id="dlCurrent">⬇︎ 下载（带图例）</button>
+      <button class="pb-btn sm" id="shareBtn">🔗 分享</button>
     </div>
     <div class="pb-msg pb-hidden" id="genMsg"></div>
 
@@ -530,18 +539,8 @@ theme_color: "#fafaf9"
   function modelSeen(){ try{ return localStorage.getItem('pindou_model_dl')==='1'; }catch(e){ return false; } }
   function markModelSeen(){ try{ localStorage.setItem('pindou_model_dl','1'); }catch(e){} }
 
-  function showModelStatus(state, frac){
-    const e = $('modelStatus');
-    if(S.aiOptOut && state!=='hide'){ e.classList.add('pb-hidden'); return; }  // 用户已选不用 AI → 不再显示任何「加载 AI 模型」提示
-    if(state==='loading'){ e.classList.remove('pb-hidden'); e.style.color='var(--color-light)';
-      e.textContent = modelSeen()
-        ? '🤖 正在载入 AI 抠图模型…（已缓存，很快）' + (frac ? ' '+Math.round(frac*100)+'%' : '')
-        : '🤖 正在后台准备 AI 抠图模型…' + (frac ? ' '+Math.round(frac*100)+'%' : '（首次约 50MB）'); }
-    else if(state==='ready'){ e.classList.remove('pb-hidden'); e.style.color='#2e8b57';
-      e.textContent = '🤖 ✓ AI 抠图模型已就绪，上传后可立即抠图';
-      setTimeout(()=>{ if(S.modelReady) e.classList.add('pb-hidden'); }, 4000); }
-    else { e.classList.add('pb-hidden'); }
-  }
+  // 顶部「准备 AI 模型」提示一律不显示——后台偷偷跑就行（用户要求）；保留函数签名,所有调用都只是隐藏
+  function showModelStatus(){ const e = $('modelStatus'); if(e) e.classList.add('pb-hidden'); }
   async function preloadModel(){
     if(navigator.connection && navigator.connection.saveData) return; // 省流量模式不预下载
     try{
@@ -590,7 +589,7 @@ theme_color: "#fafaf9"
       $('aiCut').disabled = false;
       // 画布先备好整张图（单图态就看这一张）
       S.mask = new Uint8Array(w*h).fill(255);
-      S.applyMode = null; S.didDefaultTime = false; S.aiOptOut = false;   // 新图：重置「2小时默认」一次性标记 + 恢复 AI 提示
+      S.applyMode = null; S.didDefaultTime = false; S.aiOptOut = false; cancelFake();   // 新图：重置一次性标记 + 恢复 AI 提示 + 停掉假加载动画
       clearUndo();
       renderEdit();
       updateCutBtns();     // 选路径态：[✨抠出主体][🖼用整张图][↻换一张]
@@ -624,7 +623,7 @@ theme_color: "#fafaf9"
     $('cutSpinner').classList.add('spin'); $('cutPct').textContent='';
     $('cutLabel').textContent='正在抠图…'; startCreep();
   }
-  function hideCut(){ stopCreep(); $('cutOverlay').classList.add('pb-hidden'); editCanvas.classList.remove('processing'); $('cutSpinner').classList.remove('spin'); }
+  function hideCut(){ cancelFake(); stopCreep(); $('cutOverlay').classList.add('pb-hidden'); editCanvas.classList.remove('processing'); $('cutSpinner').classList.remove('spin'); }
 
   // ===================================================================
   //  AI 抠图（下载阶段才检测卡住；推理阶段转圈+爬动条，给宽松绝对上限）
@@ -652,7 +651,7 @@ theme_color: "#fafaf9"
     S.mask = S.cutMask.slice(); clearUndo(); renderEdit(); hideCut();
     $('split').classList.remove('pb-single');   // 分裂：左原图 | 右抠好的主体（此刻两图真的不同）
     updateCutBtns(); $('aiCut').disabled=false;
-    showMsg('cutMsg','✓ 已抠出主体（用了 '+((S.cutMs||0)/1000).toFixed(1)+' 秒）。');
+    hideMsg('cutMsg');   // 抠好直接显示结果,不再赘述「已抠出主体用时X秒」
     if(!$('step2').classList.contains('pb-locked')) regenerate();
   }
   async function cutTask(gen){
@@ -706,14 +705,53 @@ theme_color: "#fafaf9"
   function startBgCut(){ S.aiShown=false; S.cutMask=null; S.cutGen=(S.cutGen||0)+1; cutTask(S.cutGen); }
   function reRunCut(){ S.aiShown=true; S.cutMask=null; $('aiCut').disabled=true;
     S.cutGen=(S.cutGen||0)+1; S.dlStart=S.modelReady?1:(S.preloadFrac||0); cutTask(S.cutGen); }
+  // 「加载 AI 模型」假进度：模型已就绪时也走一段确定进度条(~4s),期间真抠图在后台静默跑(aiShown=false),
+  // 加载满再接管进抠图阶段——把真实抠图藏在这段时间里,体感更顺、更快。
+  const FAKE_LOAD_MS = 4000;
+  let fakeRaf = null;
+  function cancelFake(){ if(fakeRaf){ cancelAnimationFrame(fakeRaf); fakeRaf=null; } }
+  function startFakeLoad(){
+    cancelFake(); stopCreep();
+    $('cutOverlay').classList.remove('pb-hidden'); editCanvas.classList.add('processing');
+    $('cutSpinner').classList.remove('spin'); $('cutBarWrap').classList.add('pb-hidden');
+    $('cutLabel').textContent='加载 AI 模型…';
+    const start=Date.now();
+    const tick=()=>{
+      if($('cutOverlay').classList.contains('pb-hidden')){ fakeRaf=null; return; }   // 被收起(用整张图/换图) → 停
+      const p=Math.min(1,(Date.now()-start)/FAKE_LOAD_MS);
+      setRing(p); $('cutPct').textContent=Math.round(p*100)+'%';
+      if(p<1){ fakeRaf=requestAnimationFrame(tick); } else { fakeRaf=null; finishFakeLoad(); }
+    };
+    tick();
+  }
+  function finishFakeLoad(){
+    if($('cutOverlay').classList.contains('pb-hidden')) return;
+    S.aiShown=true;   // 接管：进入抠图阶段（cutTask 完成会自动 applyCut）
+    if(S.cutState==='done' && S.cutMask){
+      $('cutLabel').textContent='正在抠图…'; $('cutSpinner').classList.remove('spin'); setRing(1); $('cutPct').textContent='100%';
+      setTimeout(()=>{ if(S.aiShown && S.cutState==='done') applyCut(); }, 220);
+    } else if(S.cutState==='nosubject'){
+      hideCut(); showMsg('cutMsg','AI 没找到明显主体——建议「用整张图」，或手动擦。', true); $('aiCut').disabled=false;
+    } else if(S.cutState==='failed'){
+      hideCut(); showMsg('cutMsg','AI 抠图没成功，可「用整张图」或重试。', true); $('aiCut').disabled=false;
+    } else {
+      showCutting();   // 还在抠 → 转圈,等 cutTask 完成回调 applyCut
+    }
+  }
   function clickAICut(){
     if(!S.W || S.applyMode==='cut') return;
     S.aiOptOut=false;   // 用户又要用 AI 了 → 恢复 AI 提示
-    // 模型确定性：同图同设置重跑结果一字不差，故已抠态干脆藏掉本按钮——这里只处理首次应用/从整张图切回/失败重试
-    S.aiShown=true; $('aiCut').disabled=true; S.dlStart=S.modelReady?1:(S.cutFrac||0);
-    if(S.cutState==='done') applyCut();
-    else if(S.cutState==='running'){ if(S.cutPhase==='cut') showCutting(); else showCut(S.cutFrac||0); } // 接管运行中的遮罩
-    else reRunCut();                                         // none/failed/nosubject → 重试
+    $('aiCut').disabled=true;
+    if(S.modelReady){
+      // 已就绪也假装「加载模型」走一段进度,期间真抠图在后台静默跑
+      S.aiShown=false;
+      if(S.cutState!=='done' && S.cutState!=='running') startBgCut();   // 没结果且没在跑 → 静默(重)启
+      startFakeLoad();
+    } else {
+      S.aiShown=true; S.dlStart=S.cutFrac||0;
+      if(S.cutState==='running'){ if(S.cutPhase==='cut') showCutting(); else showCut(S.cutFrac||0); } // 接管运行中的下载遮罩
+      else reRunCut();                                         // none/failed/nosubject → 重试
+    }
   }
 
   // 把 PNG blob 画到 W×H，返回 RGBA 数据
@@ -918,7 +956,7 @@ theme_color: "#fafaf9"
     for(let y=0;y<rows;y++){ grid[y]=new Array(cols);
       for(let x=0;x<cols;x++){ const pi=cellPi[y*cols+x]; grid[y][x]= pi<0?-1:remap[pi]; } }
     S.grid=grid; S.used=used;
-    renderStats(); fitZoom(); renderPreview(); renderLegend();
+    renderStats(); fitAndRender(); renderLegend();
   }
 
   // ---- 耗时模型（颜色数也计入：颜色越多越慢 + 每色一次分拣成本）----
@@ -989,24 +1027,22 @@ theme_color: "#fafaf9"
     let total=0; S.used.forEach(u=>total+=u.count);
     S.lastFill = (S.cols*S.rows) ? total/(S.cols*S.rows) : 1;
     S.lastBeads = total;
-    $('stats').innerHTML =
-      '<div class="pb-stat"><b>'+S.cols+'×'+S.rows+'</b><small>网格</small></div>'+
-      '<div class="pb-stat"><b>'+total.toLocaleString()+'</b><small>珠子总数</small></div>'+
-      '<div class="pb-stat"><b>'+S.used.length+'</b><small>用到颜色</small></div>';
+    const sl=$('statsLine'); if(sl) sl.textContent = S.cols+'×'+S.rows+' · '+total.toLocaleString()+' 珠 · '+S.used.length+' 色';
     setColLabel();
     // 实际颜色数算时间（比目标 colorN 更准）
     const t = timeMin(total, S.used.length || S.colorN);
     if(!S.timeDragging) timeInput.value = clampT(t);
     renderTimeLabel(t);
-    const sum=$('adjustSum'); if(sum) sum.textContent = S.cols+'×'+S.rows+' · '+total.toLocaleString()+' 珠 · '+S.used.length+' 色 · '+fmtTime(t);
+    const sum=$('adjustSum'); if(sum) sum.textContent = fmtTime(t);   // 折叠条只显耗时（用量已在图上方小字里）
   }
 
   // ---- 预览：效果图(珠样) / 坐标图(色号格) 两种模式，始终整张铺满自适应，放大才滚动 ----
   const preview=$('preview');
+  function heightBudget(){ return Math.min(window.innerHeight*0.62, 620); }
   function fitZoom(){
     const box=document.querySelector('.pb-preview-box');
     const availW=Math.max(120,(box.clientWidth||400)-14);
-    const availH=Math.max(120,(box.clientHeight||320)-14);
+    const availH=Math.max(140, heightBudget()-14);   // 用视口预算,不依赖盒子当前高(盒子高由 JS 贴合画布,避免循环)
     if(S.previewMode==='chart'){ // 坐标图含行列号 + 外圈呼吸留白,两种格距区间都夹住防溢出
       const small=Math.floor(Math.min((availW-54)/S.cols, (availH-54)/S.rows));
       const big=Math.floor(Math.min(availW/(S.cols+2.5), availH/(S.rows+2.5)));
@@ -1014,6 +1050,12 @@ theme_color: "#fafaf9"
     else S.cellPx=Math.max(2, Math.floor(Math.min(availW/S.cols, availH/S.rows)));
     S.fitPx=S.cellPx;
   }
+  // 画幅高度贴合「适应」时的画布高度——横图不再上下大留白；放大溢出再滚动（高度不变）
+  function setPreviewBoxHeight(){
+    const box=document.querySelector('.pb-preview-box');
+    if(box) box.style.height = Math.min(preview.height + 16, heightBudget()) + 'px';
+  }
+  function fitAndRender(){ fitZoom(); renderPreview(); setPreviewBoxHeight(); }
   // 效果图(拼豆珠样式)画到任意 canvas
   function renderEffectTo(c, cp){
     const pad=Math.max(5,cp*0.4);
@@ -1036,7 +1078,10 @@ theme_color: "#fafaf9"
   }
   $('zoomIn').addEventListener('click', ()=>{ S.cellPx=Math.min(40, S.cellPx*1.35); renderPreview(); });
   $('zoomOut').addEventListener('click', ()=>{ S.cellPx=Math.max(1.5, S.cellPx/1.35); renderPreview(); });
-  $('zoomFit').addEventListener('click', ()=>{ fitZoom(); renderPreview(); });
+  $('zoomFit').addEventListener('click', ()=>{ fitAndRender(); });
+  let pbRsTimer=null;
+  window.addEventListener('resize', ()=>{ if(!S.grid) return; clearTimeout(pbRsTimer);
+    pbRsTimer=setTimeout(()=>{ if(S.cellPx===S.fitPx) fitAndRender(); }, 160); });   // 旋转/改窗 → 仅在「适应」态重新贴合
 
   // ---- 全屏看图纸（对着拼）----
   let fsCellPx=20, fsMode='chart';
@@ -1219,7 +1264,7 @@ theme_color: "#fafaf9"
   // 预览模式切换：效果图 / 坐标图
   $('previewMode').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return;
     S.previewMode=b.dataset.mode; document.querySelectorAll('#previewMode button').forEach(x=>x.classList.toggle('on',x===b));
-    fitZoom(); renderPreview(); });
+    fitAndRender(); });
   // 下载当前显示的那张（带底部配色图例）
   $('dlCurrent').addEventListener('click', ()=>{
     if(!S.grid) return;
@@ -1295,7 +1340,7 @@ theme_color: "#fafaf9"
       const lng=Math.max(S.cols,S.rows);
       S.res=Math.min(120,Math.max(20,lng)); resInput.value=S.res; $('resVal').textContent=lng+' 格';
       S.colorN=Math.min(36,Math.max(2,S.used.length)); colsInput.value=S.colorN; $('colVal').textContent=S.used.length+' 色';
-      renderStats(); fitZoom(); renderPreview(); renderLegend();
+      renderStats(); fitAndRender(); renderLegend();
       window.scrollTo(0,0);
       return true;
     }
