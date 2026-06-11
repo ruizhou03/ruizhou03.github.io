@@ -333,7 +333,9 @@ theme_color: "#fafaf9"
   .gd-card .corner.br { display: none; }
   /* Cormorant 默认是 oldstyle 数字（3/5/7/9 带下伸、矮于大写字母），所以「字母看着比数字大」。
      强制用 lining（等高大写）数字，让 10/9/8… 跟 J/Q/K/A 一样满高、一样醒目。 */
-  .gd-card .corner .rk { font-weight: 700; font-variant-numeric: lining-nums; font-feature-settings: "lnum" 1; }
+  /* rank 用「定宽盒子」+ 左对齐：不论点数是 10(两位)/9(一位)/K(字母)，盒子宽度一样，
+     花色永远紧跟在盒子右侧的同一个 x 上 → 花色位置统一、不再错落。 */
+  .gd-card .corner .rk { font-weight: 700; font-variant-numeric: lining-nums; font-feature-settings: "lnum" 1; flex: 0 0 auto; text-align: left; }
   .gd-card .corner .su { font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", monospace; }
   .gd-card .pip {
     position: absolute; top: 50%; left: 50%;
@@ -348,9 +350,11 @@ theme_color: "#fafaf9"
   /* 角标点数（1~K + 大小王的 ★）放大到 0.38 卡宽（50px 卡 → 19px，原 14px），配合上面的
      lining 数字更醒目。纵向：大写高约 13px + top 3px，仍 < 列内错落（手牌横屏 step24/竖屏 22）；
      横向：出牌区叠牌露出的左侧窄带也容得下「10」这种两位点数（见下方 --gd-card-overlap）。 */
-  .gd-card.size-full .corner .rk { font-size: calc(var(--gd-card-w, 50px) * 0.38); }
-  .gd-card.size-full .corner .su { font-size: calc(var(--gd-card-w, 50px) * 0.26); }
-  .gd-card.size-full .pip { font-size: calc(var(--gd-card-w, 50px) * 0.52); }
+  /* rank 盒子宽度写死到 0.44 卡宽（刚好容下两位的「10」），花色因此永远从同一 x 起。
+     花色（角标 0.26→0.34、中心 0.52→0.62）整体做大一档，更醒目。 */
+  .gd-card.size-full .corner .rk { font-size: calc(var(--gd-card-w, 50px) * 0.38); width: calc(var(--gd-card-w, 50px) * 0.44); }
+  .gd-card.size-full .corner .su { font-size: calc(var(--gd-card-w, 50px) * 0.34); }
+  .gd-card.size-full .pip { font-size: calc(var(--gd-card-w, 50px) * 0.62); }
   .gd-card.size-mini { width: var(--gd-card-mini-w); height: var(--gd-card-mini-h); }
   .gd-card.size-mini .corner .rk { font-size: 10px; }
   .gd-card.size-mini .corner .su { font-size: 9px; }
@@ -1892,13 +1896,15 @@ theme_color: "#fafaf9"
        更深的摞偶尔被盖住可接受（>6 张极少见）——所以手牌可以贴底自由往上长、无需为 8 张预留下方空间。 */
     body.gd-game-fullscreen .gd-play-band {
       position: absolute; left: 0; right: 0;
-      top: 43%; transform: translateY(-50%);
+      top: 46%; transform: translateY(-50%);
       margin: 0; z-index: 6; pointer-events: none;
     }
     body.gd-game-fullscreen .gd-play-band > .gd-play-actions { flex-wrap: nowrap; min-height: 0; }
     body.gd-game-fullscreen .gd-play-band .gd-btn { pointer-events: auto; }   /* 只有按钮接管点击 */
     body.gd-game-fullscreen .gd-played,
     body.gd-game-fullscreen .gd-side .gd-played { height: 64px; }
+    /* 左右对手（含出牌区）跟着「我」这块一起略往下：35% → 38% */
+    body.gd-game-fullscreen .gd-side { top: 38%; }
     /* 出牌区(每个玩家打出去的牌)整张做小一些 42×60（≤ 槽高 64px，不被 overflow:hidden
        裁断）。手牌仍 50×72，比出牌区大一圈 —— 故意不同尺寸，手牌更醒目好点。 */
     body.gd-game-fullscreen .gd-played { --gd-card-w: 42px; --gd-card-h: 60px; }
@@ -1917,8 +1923,9 @@ theme_color: "#fafaf9"
          决策带在 43% 处盖在它上面（>6 张才会被盖到）。错落间距/卡片大小始终保持原样。 */
       align-items: flex-end;
       overflow: visible;
-      /* 底留 18px 把整把牌抬到左下角「我/托管」chip 之上；左 8px 不为头像留宽，右 36px 给理牌键 */
-      padding: 0.15rem 36px 18px 8px;
+      /* 整把牌再往下一点（底留 12px）+ 整体右移：左留 52px 让开左下角「张数/托管」chip 不再被牌压住，
+         右收到 28px 吃掉原来跟理牌键之间的空隙——净效果是手牌整体右移、左侧不再重合。含安全区。 */
+      padding: 0.15rem calc(28px + env(safe-area-inset-right, 0px)) 12px calc(52px + env(safe-area-inset-left, 0px));
     }
     /* 左下："我" 头像 | 张数 + 托管机器人 横排（张数与机器人都在头像右边、右下方），
        不再竖排单开一行（挤进左侧 ~104px 内）。 */
