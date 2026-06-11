@@ -133,8 +133,9 @@ theme_color: "#fafaf9"
   .pb-cut-bar > i { display: block; height: 100%; width: 0; background: #fff; border-radius: 3px; transition: width .25s linear; }
 
   /* 调整面板：精细度 + 颜色上限 + 底板背景 全收进一个矩形卡，压缩占行 */
-  /* 色卡/硬参数块与预计耗时配成「相互决定」的一对；具体上色由 .pb-driving/.pb-driven 实时切换 */
-  .pb-panel { border: 1.5px solid var(--color-accent); border-radius: 12px; background: rgba(30,58,95,.05); padding: .85rem 1rem .8rem; margin-bottom: .55rem; }
+  /* 初始灰框+白底,无色调——用户拖滑杆后才由 .pb-driving/.pb-driven 实时上色 */
+  .pb-panel { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-bg); padding: .85rem 1rem .8rem; margin-bottom: .55rem; }
+  .pb-timebar { border: 1px solid var(--color-border); }   /* 初始也是灰框 */
   .pb-panel, .pb-timebar { transition: border-color .25s, background-color .25s, box-shadow .25s; }
   /* 正在调的那块=暖金高亮(「你在调这个」)，跟着动的那块=藏蓝(「这个在响应」)；调另一块时整个反过来 */
   .pb-driving { border-color: #c9a96e !important; background: rgba(201,169,110,.15) !important; box-shadow: 0 0 0 2px rgba(201,169,110,.22); }
@@ -375,7 +376,7 @@ theme_color: "#fafaf9"
     </div>
 
     <!-- 竖起来的可逆反应箭头：连接「硬参数」与「预计耗时」两块 -->
-    <div class="pb-link-arrow" id="linkArrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="la-up" d="M9 19V5L12.6 8.7"/><path class="la-down" d="M15 5V19L11.4 15.3"/></svg></div>
+    <div class="pb-link-arrow" id="linkArrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="la-down" d="M9 5V19L12.6 15.3"/><path class="la-up" d="M15 19V5L11.4 8.7"/></svg></div>
     <!-- 预计耗时：双向。上面两项→耗时；也能拖它反推上面两项（关系靠 ⇅ 箭头表达，不再赘述文字） -->
     <div class="pb-timebar">
       <div class="pb-timebar-top"><b>⏱ 预计耗时</b><span id="timeEst">约 …</span></div>
