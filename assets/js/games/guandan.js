@@ -2433,10 +2433,10 @@
     if (!els.table) return;
     const ban = document.createElement('div');
     ban.className = 'gd-fx-banner gd-jiefeng-banner';
+    // 只显示「接风」两字（去掉「X 领出」副标题，多余）
     ban.innerHTML =
       '<span class="gd-jiefeng-icon">🪁</span>' +
-      '<span class="gd-jiefeng-text">接风</span>' +
-      '<span class="gd-jiefeng-sub">' + seatName(toSeat) + ' 领出</span>';
+      '<span class="gd-jiefeng-text">接风</span>';
     els.table.appendChild(ban);
     setTimeout(() => ban.remove(), 1500);
     // 来源和接收方头像各闪一次金光

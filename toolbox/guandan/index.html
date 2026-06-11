@@ -600,10 +600,15 @@ theme_color: "#fafaf9"
     animation: gd-jiefeng-icon-rise 1.5s ease-out;
   }
   .gd-jiefeng-banner .gd-jiefeng-text {
-    background: linear-gradient(135deg, #ffefb8, #f5d142, #c9a227);
+    /* 加深金色渐变，并配一圈深色描边阴影 —— 原来浅金落在暖奶油牌桌上对比太低、看不清，
+       现在金字本身更沉、外加深色描边，在任何底上都清楚。 */
+    background: linear-gradient(135deg, #f6d987, #dca221, #9a6c10);
     -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 2px 6px rgba(168, 122, 42, 0.55));
+    text-shadow: none;   /* 盖掉父级蓝光，避免与深色描边糊在一起 */
+    filter:
+      drop-shadow(0 0 1px rgba(35, 25, 5, 0.95))
+      drop-shadow(0 2px 4px rgba(20, 25, 45, 0.7));
   }
   .gd-jiefeng-banner .gd-jiefeng-sub {
     font-size: 0.85rem; letter-spacing: 0.06em;
@@ -1881,30 +1886,24 @@ theme_color: "#fafaf9"
         calc(0.7rem + env(safe-area-inset-left, 0px));
     }
     body.gd-game-fullscreen .gd-seats-mid { height: 70px; }   /* 只剩对家出牌（出牌槽 64px） */
-    /* 出牌决策带（手机）：用「出牌按钮」定义带高（紧凑一行），坐在手牌正上方；
-       打出的牌做绝对覆盖、从按钮位置起向下延伸、轻盖到手牌顶部，不再额外吃一截纵向空间——
-       这样下面留得出 8 张手牌从上往下排的高度。 */
-    /* margin-top:auto → 把「决策带 + 手牌」整块往下推到牌桌下部（吃掉下方空当）：
-       浅摞手牌时整块明显下移、贴近"我"，更顺手；满 8 张的深摞时空当为 0、自动顶住不外溢。 */
-    body.gd-game-fullscreen .gd-play-band { display: block; position: relative; margin: auto 0 0; }
-    body.gd-game-fullscreen .gd-play-band > .gd-myplay-row {
-      position: absolute; left: 0; right: 0; top: 0; height: auto; margin: 0; z-index: 6;
+    /* 出牌决策带（手机）：绝对定位、浮在手牌「上方」一层、盖在牌上 —— 手牌贴底往上长，
+       这条带浮在它上面。带本身不挡触摸（pointer-events:none），只有按钮可点：被按钮完全盖住的
+       牌，点击算点在按钮上（按钮优先、永不失效），但仍能用滑动选到。带只需让出约 6 张牌的高度，
+       更深的摞偶尔被盖住可接受（>6 张极少见）——所以手牌可以贴底自由往上长、无需为 8 张预留下方空间。 */
+    body.gd-game-fullscreen .gd-play-band {
+      position: absolute; left: 0; right: 0;
+      top: 43%; transform: translateY(-50%);
+      margin: 0; z-index: 6; pointer-events: none;
     }
+    body.gd-game-fullscreen .gd-play-band > .gd-play-actions { flex-wrap: nowrap; min-height: 0; }
+    body.gd-game-fullscreen .gd-play-band .gd-btn { pointer-events: auto; }   /* 只有按钮接管点击 */
     body.gd-game-fullscreen .gd-played,
     body.gd-game-fullscreen .gd-side .gd-played { height: 64px; }
-    /* 左右对手（含他们的出牌区）跟着「我」这块整体下移：从 35% 挪到 44%，
-       让对家(顶) → 左右(中) → 我(下) 的纵向分布更均匀。 */
-    body.gd-game-fullscreen .gd-side { top: 44%; }
     /* 出牌区(每个玩家打出去的牌)整张做小一些 42×60（≤ 槽高 64px，不被 overflow:hidden
        裁断）。手牌仍 50×72，比出牌区大一圈 —— 故意不同尺寸，手牌更醒目好点。 */
     body.gd-game-fullscreen .gd-played { --gd-card-w: 42px; --gd-card-h: 60px; }
     body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full { margin-left: -22px; }
     body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
-    /* 决策带里的按钮：紧凑一行，定义这条带的高度。按钮显隐都不改变带高（高度写死）→
-       手牌可用高度恒定、不抖；做出决定按钮隐藏后，同一位置露出打出的牌/「不出」「加倍」。 */
-    body.gd-game-fullscreen .gd-play-band > .gd-play-actions {
-      order: 0; height: 2.2rem; min-height: 0; margin: 0; flex-wrap: nowrap;
-    }
     /* 手牌：吃满剩余高度、列在底对齐。默认 step 24 恒定不变——深的一摞就让它
        自然往上长、溢进手牌上方那片空地（overflow:visible 不裁切），错落间距与卡片
        大小始终保持原样，绝不为了塞进画幅而压扁成数不清张数的一团。
@@ -1912,18 +1911,14 @@ theme_color: "#fafaf9"
     body.gd-game-fullscreen .gd-hand {
       /* 手牌跟出牌区完全同尺寸同字号(等比公式)。整体再放大一档到 50×72。 */
       --gd-card-w: 50px; --gd-card-h: 72px;
-      /* step 22：从上往下排时，单门 8 张 = 7×22+72 = 226px，刚好塞进决策带下方那段高度 */
-      --gd-stack-step: 22px;
-      /* flex 不再 grow（0 1 auto）：手牌只占自身内容高度，把多余空当让给上面的 auto 间距，
-         整块手牌随决策带一起下移；深摞时仍能占满。手牌顶部与决策带之间留 0.55rem 呼吸距离。 */
-      flex: 0 1 auto; min-height: 0;
-      margin-top: 0.55rem;
-      /* 顶部对齐、向下排列（跟电脑端一致）：手牌从决策带下方往下挂、一门最多 8 张也排得下。 */
-      align-items: flex-start;
+      --gd-stack-step: 24px;
+      flex: 1 1 auto; min-height: 0;
+      /* 贴底、向上生长：手牌列底对齐牌桌下沿，深摞自然往上长、溢进上方空地（不裁切），
+         决策带在 43% 处盖在它上面（>6 张才会被盖到）。错落间距/卡片大小始终保持原样。 */
+      align-items: flex-end;
       overflow: visible;
-      /* 左 8px（不为头像留宽，手牌用满整幅、15 列也放得下 50px），右 36px 给理牌竖排键；
-         底留 0.5rem 不让最底一张顶死屏幕边。 */
-      padding: 0.1rem 36px 0.5rem 8px;
+      /* 底留 18px 把整把牌抬到左下角「我/托管」chip 之上；左 8px 不为头像留宽，右 36px 给理牌键 */
+      padding: 0.15rem 36px 18px 8px;
     }
     /* 左下："我" 头像 | 张数 + 托管机器人 横排（张数与机器人都在头像右边、右下方），
        不再竖排单开一行（挤进左侧 ~104px 内）。 */
@@ -2314,4 +2309,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260611e"></script>
+<script src="/assets/js/games/guandan.js?v=20260611f"></script>
