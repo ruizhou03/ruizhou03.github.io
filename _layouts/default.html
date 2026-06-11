@@ -88,6 +88,12 @@
           document.documentElement.setAttribute('data-theme', t);
         }
       } catch (e) {}
+      // 旧式 iOS「添加到主屏」的 standalone 检测（现代浏览器靠 @media(display-mode:standalone)，无需此项）
+      try {
+        if (window.navigator.standalone === true) {
+          document.documentElement.classList.add('ios-standalone');
+        }
+      } catch (e) {}
     })();
   </script>
 
@@ -100,7 +106,7 @@
   <link rel="stylesheet" href="https://unpkg.com/@waline/client@v2/dist/waline.css" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://unpkg.com/@waline/client@v2/dist/waline.css"></noscript>
 </head>
-<body>
+<body class="{% if page.manifest %}app-shell{% endif %}">
 
   <nav>
     <div class="nav-inner">

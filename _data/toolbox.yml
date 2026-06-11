@@ -451,7 +451,7 @@
 
 - id: pindou
   name: 拼豆图纸
-  icon: 🧩
+  icon: /assets/icons/pindou-icon-192.png
   tagline: 上传图 → 自动抠图 → 拼豆像素图纸
   url: /toolbox/pindou/
   category: 生活

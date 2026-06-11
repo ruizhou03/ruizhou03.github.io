@@ -147,6 +147,17 @@
 
     /* 主体内容 */
     main { max-width: var(--max-width); margin: 6.5rem auto 4rem; padding: 0 2rem; }
+
+    /* === 独立 PWA 沉浸式 APP：把某个工具「添加到主屏/安装」后单独打开时，隐藏整站导航/页脚，
+       让它像一个只做这一件事的全屏 APP，而不是带网站外壳的网页。仅在 standalone 模式 + 该页
+       front-matter 设了自己的 manifest（即 body.app-shell）时生效，普通浏览器访问完全不受影响。 === */
+    @media (display-mode: standalone) {
+      body.app-shell > nav, body.app-shell > footer { display: none !important; }
+      body.app-shell > main { margin-top: calc(env(safe-area-inset-top, 0px) + 0.6rem); margin-bottom: 1.5rem; }
+    }
+    /* 旧式 iOS「添加到主屏」(navigator.standalone) 兜底，由 head 脚本给 <html> 加类 */
+    html.ios-standalone body.app-shell > nav, html.ios-standalone body.app-shell > footer { display: none !important; }
+    html.ios-standalone body.app-shell > main { margin-top: calc(env(safe-area-inset-top, 0px) + 0.6rem); margin-bottom: 1.5rem; }
     h1, h2, h3 { font-family: var(--font-display); color: var(--color-ink); font-weight: 600; margin-bottom: 1rem; }
     h1 { font-size: 2.5rem; }
     

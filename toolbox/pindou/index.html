@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "拼豆图纸生成器 | Rui Zhou"
+title: "拼豆图纸 | Rui Zhou"
 permalink: /toolbox/pindou/
 # 可作为独立 PWA 安装（自己的图标/名字/作用域），覆盖全站默认 manifest
 manifest: /toolbox/pindou/manifest.json
@@ -12,7 +12,8 @@ theme_color: "#fafaf9"
 <style>
   .pb-wrap { max-width: 880px; margin: 0 auto; padding: 1.4rem 1rem 3rem; }
   .pb-wrap header { text-align: center; margin-bottom: 1.4rem; }
-  .pb-wrap h1 { font-size: 1.9rem; color: var(--color-ink); margin-bottom: 0.4rem; }
+  .pb-wrap h1 { font-size: 1.9rem; color: var(--color-ink); margin-bottom: 0.4rem; display: inline-flex; align-items: center; gap: .5rem; }
+  .pb-titleicon { width: 1.5em; height: 1.5em; border-radius: .34em; vertical-align: middle; flex: 0 0 auto; }
   .pb-sub { color: var(--color-light); font-style: normal; font-size: 0.9rem; }
 
   .pb-step { border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-bg); padding: 1.1rem 1.1rem 1.2rem; margin-bottom: 1rem; }
@@ -207,7 +208,7 @@ theme_color: "#fafaf9"
 
 <div class="pb-wrap" id="pbwrap">
   <header>
-    <h1>🧩 拼豆图纸生成器</h1>
+    <h1><img class="pb-titleicon" src="/assets/icons/pindou-icon-192.png" alt="">拼豆图纸</h1>
   </header>
 
   <div class="pb-step pb-hidden" id="sharedBanner" style="border-color:var(--color-accent);background:rgba(30,58,95,.05);">
@@ -479,7 +480,7 @@ theme_color: "#fafaf9"
     GPUAdapter.prototype.requestAdapterInfo = function(){ return Promise.resolve(this.info || {}); }; } }catch(e){}
   const USE_GPU = !!(typeof navigator!=='undefined' && navigator.gpu);
   const MODEL_CFG = { model: 'isnet_quint8', publicPath: R2_MODEL_PATH };
-  const STALL_MS = 15000; // 连续 15 秒毫无下载进度才判定卡住放弃
+  const STALL_MS = 20000; // 连续 20s 毫无下载进度 → 只温和提示「网络慢」,不再判失败(下载仍在后台继续,愿意等的用户能等到好)
   const DL_RE = /fetch|download|model|onnx|wasm/i;
 
   let imglyMod = null;
@@ -491,6 +492,7 @@ theme_color: "#fafaf9"
 
   function showModelStatus(state, frac){
     const e = $('modelStatus');
+    if(S.aiOptOut && state!=='hide'){ e.classList.add('pb-hidden'); return; }  // 用户已选不用 AI → 不再显示任何「加载 AI 模型」提示
     if(state==='loading'){ e.classList.remove('pb-hidden'); e.style.color='var(--color-light)';
       e.textContent = modelSeen()
         ? '🤖 正在载入 AI 抠图模型…（已缓存，很快）' + (frac ? ' '+Math.round(frac*100)+'%' : '')
@@ -587,7 +589,7 @@ theme_color: "#fafaf9"
   // ===================================================================
   //  AI 抠图（下载阶段才检测卡住；推理阶段转圈+爬动条，给宽松绝对上限）
   // ===================================================================
-  const CUT_TIMEOUT = 120000; // 推理绝对上限
+  const CUT_TIMEOUT = 180000; // 推理绝对上限（放宽，愿意等的用户/慢机器也能跑完）
   // 单一抠图任务：上传后静默后台跑；只有用户点了「AI 抠图」(S.aiShown)才显遮罩;抠好存 S.cutMask
   // 按钮区三态（S.applyMode）：null=刚上传，选路径 / 'cut'=已抠出主体 / 'whole'=用整张图。
   // 每个状态只露用得上的按钮：已走的路藏掉（抠图确定性，重抠无意义），另一条路当备选。
@@ -620,8 +622,16 @@ theme_color: "#fafaf9"
     const clearT = ()=>{ clearTimeout(stall); clearTimeout(hard); };
     const fail = (msg)=>{ if(!alive())return; S.cutState='failed'; clearT(); stopCreep();
       if(S.aiShown){ hideCut(); showMsg('cutMsg', msg, true); $('aiCut').disabled=false; } };
-    const armStall = ()=>{ clearTimeout(stall); stall=setTimeout(()=>fail('AI 抠图卡住了（网络问题）。可点「用整张图」，或「重新 AI 抠图」再试。'), STALL_MS); };
-    function onDl(frac){ S.cutPhase='download'; S.cutFrac=frac; armStall(); if(S.aiShown){ stopCreep(); showCut(frac); } }
+    let slowShown=false;
+    const armStall = ()=>{ clearTimeout(stall); stall=setTimeout(()=>{
+        if(!alive())return;
+        // 不再判失败：下载在后台继续，只温和提示「网络慢」，让用户自行决定等下去或先用整张图
+        if(S.aiShown && S.cutPhase!=='cut'){ slowShown=true; showMsg('cutMsg','网络有点慢，AI 模型还在后台下载…愿意等就稍候，或先点下面「用整张图」开始做。'); }
+        armStall();
+      }, STALL_MS); };
+    function onDl(frac){ S.cutPhase='download'; S.cutFrac=frac; armStall();
+        if(slowShown){ hideMsg('cutMsg'); slowShown=false; }   // 进度恢复 → 收起慢网提示
+        if(S.aiShown){ stopCreep(); showCut(frac); } }
     function onCut(){ if(S.cutPhase!=='cut'){ S.cutPhase='cut'; clearTimeout(stall); if(!cutStart)cutStart=Date.now();
         clearTimeout(hard); hard=setTimeout(()=>fail('AI 抠图太久了（图太大或机器慢）。可「用整张图」或换张小图重试。'), CUT_TIMEOUT); }
       if(S.aiShown) showCutting(); }
@@ -658,6 +668,7 @@ theme_color: "#fafaf9"
     S.cutGen=(S.cutGen||0)+1; S.dlStart=S.modelReady?1:(S.preloadFrac||0); cutTask(S.cutGen); }
   function clickAICut(){
     if(!S.W || S.applyMode==='cut') return;
+    S.aiOptOut=false;   // 用户又要用 AI 了 → 恢复 AI 提示
     // 模型确定性：同图同设置重跑结果一字不差，故已抠态干脆藏掉本按钮——这里只处理首次应用/从整张图切回/失败重试
     S.aiShown=true; $('aiCut').disabled=true; S.dlStart=S.modelReady?1:(S.cutFrac||0);
     if(S.cutState==='done') applyCut();
@@ -773,7 +784,9 @@ theme_color: "#fafaf9"
   $('aiCut').addEventListener('click', clickAICut);
   $('aiCutSmall').addEventListener('click', clickAICut);   // 整张态切回 AI 抠图
   $('useWhole').addEventListener('click', ()=>{
-    if(!S.W) return; S.painted = true; S.applyMode = 'whole'; S.mask = new Uint8Array(S.W*S.H).fill(255); clearUndo(); renderEdit(); hideCut();
+    if(!S.W) return;
+    S.aiShown=false; S.aiOptOut=true; showModelStatus('hide');   // 用户决定不用 AI → 停掉画布遮罩 + 顶部「加载 AI 模型」提示，后台下载不再驱动遮罩
+    S.painted = true; S.applyMode = 'whole'; S.mask = new Uint8Array(S.W*S.H).fill(255); clearUndo(); renderEdit(); hideCut();
     // 整张图==原图，无需前后对比 → 收回单图态（不分裂出两张一样的）
     $('split').classList.add('pb-single');
     updateCutBtns();

@@ -1,13 +1,13 @@
 {%- assign t = include.tool -%}
 {%- if t.status == "coming" -%}
 <div class="tool-card coming-soon">
-  <div class="tool-icon">{{ t.icon }}</div>
+  <div class="tool-icon">{%- if t.icon contains "/" -%}<img src="{{ t.icon | relative_url }}" alt="">{%- else -%}{{ t.icon }}{%- endif -%}</div>
   <div class="tool-name">{{ t.name }}</div>
   <div class="tool-status">🔜 敬请期待</div>
 </div>
 {%- else -%}
 <a class="tool-card live" href="{{ t.url | relative_url }}">
-  <div class="tool-icon">{{ t.icon }}</div>
+  <div class="tool-icon">{%- if t.icon contains "/" -%}<img src="{{ t.icon | relative_url }}" alt="">{%- else -%}{{ t.icon }}{%- endif -%}</div>
   <div class="tool-name">{{ t.name }}</div>
 </a>
 {%- endif -%}
