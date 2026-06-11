@@ -921,8 +921,10 @@ permalink: /toolbox/pindou/
     const box=document.querySelector('.pb-preview-box');
     const availW=Math.max(120,(box.clientWidth||400)-14);
     const availH=Math.max(120,(box.clientHeight||320)-14);
-    if(S.previewMode==='chart'){ const m=26; // 坐标图有行列号留白
-      S.cellPx=Math.max(3, Math.floor(Math.min((availW-m)/S.cols, (availH-m)/S.rows))); }
+    if(S.previewMode==='chart'){ // 坐标图含行列号 + 外圈呼吸留白,两种格距区间都夹住防溢出
+      const small=Math.floor(Math.min((availW-54)/S.cols, (availH-54)/S.rows));
+      const big=Math.floor(Math.min(availW/(S.cols+2.5), availH/(S.rows+2.5)));
+      S.cellPx=Math.max(3, Math.min(small, big)); }
     else S.cellPx=Math.max(2, Math.floor(Math.min(availW/S.cols, availH/S.rows)));
     S.fitPx=S.cellPx;
   }
@@ -1026,65 +1028,99 @@ permalink: /toolbox/pindou/
   //  ③ 导出（效果图 / 坐标图纸 / 打印）
   // ===================================================================
   function buildChartCanvas(cp){ return renderChartTo(document.createElement('canvas'), cp); }
+  // 画到 canvas 上的全部文字统一用全站展示字体(与网页正文一致),下载图也保持一致
+  const SITE_FONT="'Cormorant Garamond','Noto Serif SC','Source Han Serif SC','Songti SC',Georgia,serif";
   function renderChartTo(c, cp){
     cp = cp || 26;
-    const lab=Math.max(22, cp);
-    c.width=S.cols*cp+lab+6; c.height=S.rows*cp+lab+6;
+    const NAVY='#1e3a5f';
+    const lab=Math.max(22, cp);            // 行列号留白
+    const M=Math.round(lab*0.7);           // 外圈呼吸留白,让图纸不再被生切到画布边
+    const gw=S.cols*cp, gh=S.rows*cp;      // 网格像素尺寸
+    const ox=M+lab, oy=M+lab;              // (0,0) 格左上角
+    const r=Math.min(7, Math.round(cp*0.6));
+    c.width=ox+gw+M; c.height=oy+gh+M;
     const cx=c.getContext('2d');
     cx.fillStyle='#fff'; cx.fillRect(0,0,c.width,c.height);
+
+    // 网格内容裁进一个圆角面板,既给空格区淡淡的方格纸质感,又让四角不外溢
+    cx.save(); roundRect(cx, ox, oy, gw, gh, r); cx.clip();
+    cx.fillStyle='#fafafb'; cx.fillRect(ox,oy,gw,gh);
     cx.textAlign='center'; cx.textBaseline='middle';
     for(let y=0;y<S.rows;y++) for(let x=0;x<S.cols;x++){
-      const g=S.grid[y][x]; const px=lab+x*cp, py=lab+y*cp;
-      if(g>=0){ const u=S.used[g]; cx.fillStyle=u.h; cx.fillRect(px,py,cp,cp);
-        if(cp>=9){ const code=u.code||u.sym||''; // 格够大才写色号(H11/H103)；缩略时只剩彩格,避免挤字
-          const fs=Math.max(5, Math.min(cp*0.5, cp*1.7/Math.max(2,code.length)));
-          cx.font=fs.toFixed(1)+'px ui-monospace, monospace';
-          const rgb=hexToRgb(u.h); const lum=0.299*rgb[0]+0.587*rgb[1]+0.114*rgb[2];
-          cx.fillStyle=lum>140?'rgba(0,0,0,.7)':'rgba(255,255,255,.9)'; cx.fillText(code, px+cp/2, py+cp/2+1); }
-      } else { cx.fillStyle='#fafafa'; cx.fillRect(px,py,cp,cp); }
+      const g=S.grid[y][x]; if(g<0) continue;            // 空格留作淡方格纸,不再单独填
+      const u=S.used[g]; const px=ox+x*cp, py=oy+y*cp;
+      cx.fillStyle=u.h; cx.fillRect(px,py,cp,cp);
+      if(cp>=9){ const code=u.code||u.sym||''; // 格够大才写色号(H11/H103)；缩略时只剩彩格,避免挤字
+        const fs=Math.max(5, Math.min(cp*0.5, cp*1.7/Math.max(2,code.length)));
+        cx.font='600 '+fs.toFixed(1)+'px '+SITE_FONT;
+        const rgb=hexToRgb(u.h); const lum=0.299*rgb[0]+0.587*rgb[1]+0.114*rgb[2];
+        cx.fillStyle=lum>140?'rgba(0,0,0,.66)':'rgba(255,255,255,.92)'; cx.fillText(code, px+cp/2, py+cp/2+1); }
     }
-    cx.strokeStyle='rgba(0,0,0,.12)'; cx.lineWidth=1;
-    for(let x=0;x<=S.cols;x++){ cx.beginPath(); cx.moveTo(lab+x*cp+.5,lab); cx.lineTo(lab+x*cp+.5,lab+S.rows*cp); cx.stroke(); }
-    for(let y=0;y<=S.rows;y++){ cx.beginPath(); cx.moveTo(lab,lab+y*cp+.5); cx.lineTo(lab+S.cols*cp,lab+y*cp+.5); cx.stroke(); }
-    cx.strokeStyle='rgba(0,0,0,.5)'; cx.lineWidth=2; cx.fillStyle='#333';
-    cx.font=Math.round(lab*0.5)+'px sans-serif';
-    for(let x=0;x<=S.cols;x+=10){ cx.beginPath(); cx.moveTo(lab+x*cp+.5,lab); cx.lineTo(lab+x*cp+.5,lab+S.rows*cp); cx.stroke();
-      if(x<S.cols) cx.fillText(String(x), lab+x*cp+cp/2, lab*0.5); }
-    for(let y=0;y<=S.rows;y+=10){ cx.beginPath(); cx.moveTo(lab,lab+y*cp+.5); cx.lineTo(lab+S.cols*cp,lab+y*cp+.5); cx.stroke();
-      if(y<S.rows) cx.fillText(String(y), lab*0.5, lab+y*cp+cp/2); }
+    // 细网格线（藏蓝极淡,比原来的黑灰更透气）
+    cx.strokeStyle='rgba(30,58,95,.08)'; cx.lineWidth=1; cx.beginPath();
+    for(let x=0;x<=S.cols;x++){ cx.moveTo(ox+x*cp+.5,oy); cx.lineTo(ox+x*cp+.5,oy+gh); }
+    for(let y=0;y<=S.rows;y++){ cx.moveTo(ox,oy+y*cp+.5); cx.lineTo(ox+gw,oy+y*cp+.5); }
+    cx.stroke();
+    // 每 10 格的分隔粗线（柔和藏蓝,不再是刺眼黑线）
+    cx.strokeStyle='rgba(30,58,95,.22)'; cx.lineWidth=Math.max(1, cp*0.06); cx.beginPath();
+    for(let x=0;x<=S.cols;x+=10){ cx.moveTo(ox+x*cp+.5,oy); cx.lineTo(ox+x*cp+.5,oy+gh); }
+    for(let y=0;y<=S.rows;y+=10){ cx.moveTo(ox,oy+y*cp+.5); cx.lineTo(ox+gw,oy+y*cp+.5); }
+    cx.stroke();
+    cx.restore();
+
+    // 外框：让边界看着是「有意收口」而非被裁断
+    cx.strokeStyle='rgba(30,58,95,.36)'; cx.lineWidth=Math.max(1.4, cp*0.08);
+    roundRect(cx, ox, oy, gw, gh, r); cx.stroke();
+
+    // 行列号：站点展示字体(Cormorant) + 藏蓝 + 刻度小线,对齐到 10 格线
+    const numFs=Math.round(lab*0.52), tick=Math.max(3, lab*0.18);
+    cx.fillStyle=NAVY; cx.font='600 '+numFs+'px '+SITE_FONT;
+    cx.strokeStyle='rgba(30,58,95,.36)'; cx.lineWidth=1;
+    cx.textAlign='center'; cx.textBaseline='middle';
+    for(let x=0;x<=S.cols;x+=10){ const gx=ox+x*cp+.5;
+      cx.beginPath(); cx.moveTo(gx, oy-2); cx.lineTo(gx, oy-2-tick); cx.stroke();
+      cx.fillText(String(x), gx, oy-2-tick-numFs*0.6); }
+    cx.textAlign='right';
+    for(let y=0;y<=S.rows;y+=10){ const gy=oy+y*cp+.5;
+      cx.beginPath(); cx.moveTo(ox-2, gy); cx.lineTo(ox-2-tick, gy); cx.stroke();
+      cx.fillText(String(y), ox-2-tick-3, gy); }
     return c;
   }
   function dlCanvas(canvas, name){ canvas.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }); }
   function roundRect(cx,x,y,w,h,r){ cx.beginPath(); cx.moveTo(x+r,y); cx.arcTo(x+w,y,x+w,y+h,r); cx.arcTo(x+w,y+h,x,y+h,r); cx.arcTo(x,y+h,x,y,r); cx.arcTo(x,y,x+w,y,r); cx.closePath(); }
 
-  // 底部配色图例条（彩色小卡：色号 + 个数），跟随当前排序；画在 canvas 上,颜色一定渲染得出来
+  // 底部配色图例条：固定每行 5 列(列宽恒定),每块本身就是该颜色的填充卡,色号+个数用对比色压在上面
   function buildLegendStrip(width){
-    const list=sortedUsed(); const k=Math.max(1, width/640); // 随图宽缩放
-    const pad=14*k, gap=8*k, H=30*k, sw=18*k, fs=Math.round(14*k), titleFs=Math.round(15*k);
-    const meas=document.createElement('canvas').getContext('2d'); meas.font=fs+'px ui-monospace, monospace';
-    const chips=list.map(u=>{ const label=(u.code||'?')+'  '+u.count; const tw=meas.measureText(label).width;
-      return {u, label, w: 6*k+sw+8*k+tw+12*k}; });
-    const rows=[[]]; let rowW=pad;
-    for(const c of chips){ if(rowW+c.w+gap>width-pad && rows[rows.length-1].length){ rows.push([]); rowW=pad; }
-      rows[rows.length-1].push(c); rowW+=c.w+gap; }
-    const titleH=titleFs+12*k;
+    const list=sortedUsed();
+    const COLS=5;                                   // 写死每行 5 列
+    const k=Math.max(1, width/640);                 // 随图宽等比缩放
+    const pad=16*k, gap=10*k, H=42*k;
+    const titleFs=Math.round(16*k), fs=Math.round(15*k);
+    const ipad=Math.round(14*k), rad=Math.round(10*k);
+    const colW=(width-2*pad-(COLS-1)*gap)/COLS;     // 列宽固定,与色号/数量无关
+    const nRows=Math.ceil(list.length/COLS);
+    const titleH=titleFs+16*k;
     const cv=document.createElement('canvas'); cv.width=Math.round(width);
-    cv.height=Math.round(pad + titleH + rows.length*(H+gap) - gap + pad);
+    cv.height=Math.round(pad + titleH + nRows*(H+gap) - gap + pad);
     const cx=cv.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,cv.width,cv.height);
+    // 标题（全站字体 · 藏蓝）
     let total=0; list.forEach(u=>total+=u.count);
-    cx.fillStyle='#333'; cx.font='600 '+titleFs+'px sans-serif'; cx.textBaseline='middle';
-    cx.fillText('配色 / 用量（共 '+list.length+' 色 · '+total+' 颗）', pad, pad+titleFs*0.7);
-    let y=pad+titleH;
-    for(const row of rows){ let x=pad;
-      for(const c of row){
-        cx.fillStyle='#f4f5f7'; roundRect(cx,x,y,c.w,H,7*k); cx.fill(); cx.lineWidth=1; cx.strokeStyle='#e3e3e6'; cx.stroke();
-        cx.fillStyle=c.u.h; roundRect(cx,x+6*k,y+(H-sw)/2,sw,sw,4*k); cx.fill(); cx.strokeStyle='rgba(0,0,0,.18)'; cx.stroke();
-        cx.fillStyle='#333'; cx.font=fs+'px ui-monospace, monospace'; cx.textBaseline='middle';
-        cx.fillText(c.label, x+6*k+sw+8*k, y+H/2+1);
-        x+=c.w+gap;
-      }
-      y+=H+gap;
-    }
+    cx.fillStyle='#1e3a5f'; cx.font='600 '+titleFs+'px '+SITE_FONT;
+    cx.textBaseline='middle'; cx.textAlign='left';
+    cx.fillText('配色 / 用量（共 '+list.length+' 色 · '+total+' 颗）', pad, pad+titleFs*0.72);
+    // 色卡：整块填该颜色,文字按亮度取深/浅(同坐标图逻辑)以保证对比
+    const top=pad+titleH;
+    list.forEach((u,i)=>{
+      const col=i%COLS, row=(i-col)/COLS;
+      const x=pad+col*(colW+gap), y=top+row*(H+gap);
+      cx.fillStyle=u.h; roundRect(cx,x,y,colW,H,rad); cx.fill();
+      cx.lineWidth=1; cx.strokeStyle='rgba(0,0,0,.12)'; cx.stroke();
+      const rgb=hexToRgb(u.h); const lum=0.299*rgb[0]+0.587*rgb[1]+0.114*rgb[2];
+      const ink=lum>140?'rgba(0,0,0,.74)':'rgba(255,255,255,.95)';
+      cx.fillStyle=ink; cx.textBaseline='middle';
+      cx.textAlign='left';  cx.font='700 '+fs+'px '+SITE_FONT; cx.fillText(u.code||'?', x+ipad, y+H/2+1);
+      cx.textAlign='right'; cx.font='600 '+fs+'px '+SITE_FONT; cx.fillText(String(u.count), x+colW-ipad, y+H/2+1);
+    });
     return cv;
   }
   function composeWithLegend(main){
