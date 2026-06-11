@@ -42,7 +42,7 @@ theme_color: "#fafaf9"
     --gs-wrap-half: 440px;
     --gd-card-w: 50px;
     --gd-card-h: 72px;
-    --gd-card-overlap: 28px;
+    --gd-card-overlap: 26px;   /* 出牌区叠牌露出的左侧窄带：放大点数后留宽 2px，「10」不被邻牌切掉 */
     --gd-card-mini-w: 34px;
     --gd-card-mini-h: 50px;
     --gd-card-mini-overlap: 20px;
@@ -328,7 +328,7 @@ theme_color: "#fafaf9"
     line-height: 1;
     font-family: 'Cormorant Garamond', Georgia, "Songti SC", serif;
   }
-  .gd-card .corner.tl { top: 4px; left: 5px; }
+  .gd-card .corner.tl { top: 3px; left: 4px; }
   /* 反转角标取消：堆叠列里底部一角看不到，保留只是徒增视觉噪音 */
   .gd-card .corner.br { display: none; }
   .gd-card .corner .rk { font-weight: 700; }
@@ -343,7 +343,10 @@ theme_color: "#fafaf9"
   /* 角标/中心花色字号按卡宽等比缩放 —— 卡片缩小时字号同步缩小，永远协调。
      50px 卡 → rk 14 / su 13 / pip 26（与旧基准一致）；40px 卡 → 11.2 / 10.4 / 20.8。
      这样手牌不论被 adaptHandSize 缩到多大，都跟出牌区的牌「同一套比例」、一样精致。 */
-  .gd-card.size-full .corner .rk { font-size: calc(var(--gd-card-w, 50px) * 0.28); }
+  /* 角标点数（1~K + 大小王的 ★）放大到 0.34 卡宽（50px 卡 → 17px，原 14px），更醒目。
+     纵向：角标 top 3px + 17px = 20px < 列内错落 22px，不会被下一张牌盖住；
+     横向：出牌区叠牌露出的左侧窄带也容得下「10」这种两位点数（见下方 --gd-card-overlap）。 */
+  .gd-card.size-full .corner .rk { font-size: calc(var(--gd-card-w, 50px) * 0.34); }
   .gd-card.size-full .corner .su { font-size: calc(var(--gd-card-w, 50px) * 0.26); }
   .gd-card.size-full .pip { font-size: calc(var(--gd-card-w, 50px) * 0.52); }
   .gd-card.size-mini { width: var(--gd-card-mini-w); height: var(--gd-card-mini-h); }
@@ -1981,7 +1984,7 @@ theme_color: "#fafaf9"
       <div class="gd-seat gd-seat-h" id="gdSeat2" data-seat="2">
         <div class="gd-avatar team-you" id="gdAv2">🤖<span class="gd-clock" id="gdClk2" hidden></span></div>
         <div class="gd-seat-meta">
-          <div class="gd-name">AI</div>
+          <div class="gd-name">AI 2</div>
           <div class="gd-seat-cnt">
             <span class="gd-count" id="gdCnt2">27</span>
             <span class="gd-rank-badge" id="gdRk2" hidden></span>
@@ -2002,7 +2005,7 @@ theme_color: "#fafaf9"
     <div class="gd-side gd-side-left">
       <div class="gd-seat" id="gdSeat3" data-seat="3">
         <div class="gd-avatar team-opp" id="gdAv3">🤖<span class="gd-clock" id="gdClk3" hidden></span></div>
-        <div class="gd-name">AI</div>
+        <div class="gd-name">AI 3</div>
         <div style="display:flex;gap:0.3rem;align-items:center;">
           <span class="gd-count" id="gdCnt3">27</span>
           <span class="gd-rank-badge" id="gdRk3" hidden></span>
@@ -2014,7 +2017,7 @@ theme_color: "#fafaf9"
     <div class="gd-side gd-side-right">
       <div class="gd-seat" id="gdSeat1" data-seat="1">
         <div class="gd-avatar team-opp" id="gdAv1">🤖<span class="gd-clock" id="gdClk1" hidden></span></div>
-        <div class="gd-name">AI</div>
+        <div class="gd-name">AI 1</div>
         <div style="display:flex;gap:0.3rem;align-items:center;">
           <span class="gd-count" id="gdCnt1">27</span>
           <span class="gd-rank-badge" id="gdRk1" hidden></span>
@@ -2289,4 +2292,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260611c"></script>
+<script src="/assets/js/games/guandan.js?v=20260611d"></script>

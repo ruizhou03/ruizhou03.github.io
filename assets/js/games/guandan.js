@@ -2136,9 +2136,9 @@
   }
 
   function seatName(s) {
-    // 不再用「对家 / 对手·左 / 对手·右」方位标签：三家电脑一律显示 AI（座 0 是我）。
-    // 结算面板、进贡 / 接风提示都走这里。
-    return ['你', 'AI', 'AI', 'AI'][s];
+    // 不用「对家 / 对手·左 / 对手·右」方位标签（不同人视角下方位会错乱）：
+    // 三家电脑按固定编号 AI 1 / 2 / 3（座 0 是我）。结算面板、进贡 / 接风提示都走这里。
+    return ['你', 'AI 1', 'AI 2', 'AI 3'][s];
   }
 
   // ---- 进贡 / 还贡 ----
@@ -4328,15 +4328,46 @@
       _animating: false,
       _swapPhase: null,        // null | 'animating' | 'holding'
       _expectedVersion: 0,     // 乐观操作期望服端推到的最小 version
+      _revealPending: !isCreate, // 加入者：等第一条 server state 才揭开大厅（别先画空房）
+      _autoSatTried: false,    // 加入者：进房后自动找空座落座，只试一次
     };
-    setOnlineHint('');
+    if (onlineEls.roomCode) onlineEls.roomCode.textContent = joinData.code;
+    if (isCreate) {
+      // 房主：已知自己占座 0，立刻进大厅画出来。
+      setOnlineHint('');
+      revealLobby();
+      renderLobbyOptimistic();
+    } else {
+      // 加入者：此刻还不知道房间长啥样（players 是空的）。若现在就画大厅会是"一屋子空座 +
+      // 坐下按钮"，加入者会误以为这是自己开的新房、自己是房主。所以先停在 PGO 显示「加入中…」，
+      // 等第一条 server state 回来（applyServerOnlineState 里的 _revealPending）再揭开大厅。
+      setOnlineHint('加入中…');
+    }
+    startOnlinePolling();
+  }
+
+  // 揭开联机大厅：关掉 PGO 浮层、显示大厅、给牌桌挂 gd-in-lobby（藏掉牌局 UI）。
+  function revealLobby() {
     if (els.pgo) els.pgo.classList.remove('open');
     if (onlineEls.lobby) onlineEls.lobby.hidden = false;
     if (els.table) els.table.classList.add('gd-in-lobby');
-    if (onlineEls.roomCode) onlineEls.roomCode.textContent = joinData.code;
-    // 立刻渲染 lobby（避免"光画了房间号 + 两个按钮"的中间态闪一下）
-    renderLobbyOptimistic();
-    startOnlinePolling();
+  }
+
+  // 加入者自动落座：进房默认是 standing（seat=null，旧版根本不渲染 standing 玩家，于是
+  // 房主看不到人进来、加入者也一直浮在房外）。这里找一个空座自动坐下 —— 房主立刻能在大厅
+  // 看到这个人，加入者也清楚自己只是普通玩家（房主标签挂在房主头上）。只尝试一次；4 座全满
+  // （房主把空位都填了 AI）时保持 standing 不动。
+  function maybeAutoSit(srv) {
+    if (!onlineState || onlineState.isHost) return;
+    if (!srv || srv.state !== 'lobby') return;
+    if (typeof onlineState.mySeat === 'number') return;   // 已坐下
+    if (onlineState._autoSatTried) return;
+    const taken = new Set((srv.players || []).filter(p => typeof p.seat === 'number').map(p => p.seat));
+    let emptySeat = -1;
+    for (let s = 0; s < 4; s++) { if (!taken.has(s)) { emptySeat = s; break; } }
+    if (emptySeat < 0) return;
+    onlineState._autoSatTried = true;
+    sendSit(emptySeat);
   }
 
   async function leaveRoom(silent, opts) {
@@ -4490,12 +4521,20 @@
       leaveRoom(true);
       return;
     }
+    // 加入者：第一条 server state 到了，现在才揭开大厅（之前停在 PGO「加入中…」）。
+    if (onlineState._revealPending) {
+      onlineState._revealPending = false;
+      setOnlineHint('');
+      revealLobby();
+    }
     // 本地正在跑 swap / 旋转动画：onlineState.players 已经同步成 srv 的真状态，
     // 但 DOM 里那两个 seat-inner 正在 FLIP transition 中——如果这里 renderLobby
     // 会清掉 innerHTML 重建，动画就被掐了。所以动画期间跳过重绘，等动画完成后由
     // sendSwapSeats / rotateLobbyToSouth 的回调里收尾再绘一次。
     // _swapPhase 在 swap 动画 → hold（金边保留）阶段也设置，同样跳过重绘。
     if (!onlineState._animating && !onlineState._swapPhase) renderLobby(srv);
+    // 加入者进房后自动落座（让房主立刻看到人、加入者明确不是房主）
+    maybeAutoSit(srv);
     // 状态从 lobby → playing 的第一次跃迁：触发"我滑到 bottom-left"动画
     if (wasState !== 'playing' && srv.state === 'playing' && !onlineState._startedTransition) {
       onlineState._startedTransition = true;
