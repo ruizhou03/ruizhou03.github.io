@@ -2,6 +2,11 @@
 layout: default
 title: "拼豆图纸生成器 | Rui Zhou"
 permalink: /toolbox/pindou/
+# 可作为独立 PWA 安装（自己的图标/名字/作用域），覆盖全站默认 manifest
+manifest: /toolbox/pindou/manifest.json
+apple_touch_icon: /assets/icons/pindou-apple-touch-icon.png
+app_title: 拼豆
+theme_color: "#fafaf9"
 ---
 
 <style>
@@ -188,18 +193,27 @@ permalink: /toolbox/pindou/
 
   .pb-msg { font-size: .85rem; color: #b4451f; margin-top: .7rem; }
   .pb-hidden { display: none !important; }
+
+  /* 手机端（≈≤480px）收尾：标题/边距收紧、换行后的工具行居中、触控目标加大、窄屏表格防溢出 */
+  @media (max-width: 480px) {
+    .pb-wrap { padding: 1.1rem .7rem 2.4rem; }
+    .pb-wrap h1 { font-size: 1.5rem; }
+    .pb-toolrow { justify-content: center; }
+    .pb-seg button { padding: .46rem .8rem; }
+    .pb-pager button { width: 2rem; height: 2rem; }
+    .pb-legend th, .pb-legend td { padding: .3rem .25rem; }
+  }
 </style>
 
 <div class="pb-wrap" id="pbwrap">
   <header>
     <h1>🧩 拼豆图纸生成器</h1>
-    <p class="pb-sub">上传一张图 → 自动抠出主体 → 变成可照着摆的拼豆像素图纸</p>
   </header>
 
   <div class="pb-step pb-hidden" id="sharedBanner" style="border-color:var(--color-accent);background:rgba(30,58,95,.05);">
     <div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;">
       <div style="font-size:1.4rem;">📤</div>
-      <div style="flex:1 1 200px;font-size:.9rem;color:var(--color-ink);line-height:1.5;">这是别人分享的拼豆图纸——下面可直接看图纸、配色清单，或下载 / 打印。想做自己的，上传一张图即可。</div>
+      <div style="flex:1 1 200px;font-size:.9rem;color:var(--color-ink);line-height:1.5;">这是别人分享的拼豆图纸——下面可直接看图纸、配色清单，或下载 / 打印。</div>
       <button class="pb-btn pri" id="makeOwn">✏️ 创建我的拼豆图</button>
     </div>
   </div>
