@@ -1947,6 +1947,128 @@
   // ===========================================================
   //  回合流程
   // ===========================================================
+  // ===========================================================
+  //  联网模式（服务器权威 Phase 2）
+  // ===========================================================
+  // 服务器只下发当前座位的手牌 + 四家张数 + 当前桌面（lastPlay/trick）。
+  // 客户端不从服务器拿到别人的手牌，对手手牌用 stub 占位（只显示张数/头像，不渲染卡面）。
+  function startNetworkedGame(gv) {
+    // 标记为联网模式：本地 AI 不跑，回合/牌面全由服务器驱动。
+    state.isNetworked = true;
+    state.phase = PHASE.PLAYING;  // 目前不接 tribute → 直接进 playing
+    state.matchOptions = normalizeOptions(state.options || { teamTribute: false, scoreCap: 0, turnSec: state.matchOptions ? state.matchOptions.turnSec : 20 });
+    state.levels = gv.levels.slice();
+    state.actingTeam = gv.actingTeam;
+    state.firstLeader = gv.turn;
+    state.out = gv.out.slice();
+    state.selected.clear();
+    state.handOrder = null;
+    state.customGroups = [];
+    state.bombMult = gv.bombMult;
+    state.openMult = gv.openMult;
+    state._needDoubleChoice = false;  // 服务器暂不做加倍阶段
+    applyServerGameState(gv);
+    renderAll();
+    saveSession();  // 断线后能续
+  }
+
+  // 每轮收到服务器状态时刷新本地的牌面/回合/出牌区
+  function applyServerGameState(gv) {
+    if (!gv || !state.isNetworked) return;
+    // 手牌：0 = 自己的真牌；1/2/3 = 只知张数
+    state.hands[0] = gv.myHand.slice();
+    for (let s = 1; s < 4; s++) {
+      const want = (gv.counts && gv.counts[s]) || 0;
+      const cur = (state.hands[s] && state.hands[s].length) || 0;
+      if (cur !== want) state.hands[s] = new Array(want).fill(-1);  // stub：足够渲染张数
+    }
+    state.turn = gv.turn;
+    state.phase = gv.phase;
+    state.out = gv.out.slice();
+    state.lastPlay = gv.lastPlay ? gv.lastPlay.slice() : [null, null, null, null];
+    state.trick = {
+      lead: gv.trick ? gv.trick.lead : gv.turn,
+      best: gv.trick ? gv.trick.best : null,
+      bestSeat: gv.trick ? gv.trick.bestSeat : -1,
+      passes: gv.trick ? gv.trick.passes : 0,
+    };
+    state.bombMult = gv.bombMult;
+    state.ranking = gv.ranking;
+    state.roundResult = gv.roundResult;
+    state.matchWinner = gv.matchWinner;
+
+    if (gv.phase === 'round_end') endRound();
+    else if (gv.phase === 'match_end') { endRound(); endMatch(gv.matchWinner); }
+    else {
+      renderAll();
+      saveSession();
+      // 若轮到真人且服务器说能 passed，亮按钮；AI 回合静等下次轮询
+      if (gv.turn === 0 && gv.phase === 'playing') {
+        updateActions();
+        armTurnClock();
+      } else {
+        applyAttentionFocus();
+        updateActions();
+      }
+    }
+  }
+
+  // 联网模式下我的出牌/不出 → 发给服务器（不是本地 commit）
+  async function sendNetworkedMove(action, cards) {
+    if (!state.isNetworked || !onlineState) return;
+    state.busy = true;
+    updateActions();
+    const r = await gdApi('move', {
+      body: { code: onlineState.code, token: onlineState.token, move: { action, cards } }
+    });
+    state.busy = false;
+    if (!r.ok) {
+      const err = r.error || 'illegal_move';
+      // 非法操作（例如点慢了 server 已不在你的回合）：用服务器状态强行覆盖
+      if (r.data && r.data.state && r.data.state.game) {
+        clearSession();
+        applyServerGameState(r.data.state.game);
+        if (err === 'not_your_turn') { /* 静默，只是慢了一点 */ }
+        else toast(errText(err));
+      } else {
+        toast(errText(err));
+      }
+      return;
+    }
+    // 成功：服务器已认证这一手，立刻 apply 带回来的新状态
+    clearSession();
+    if (r.data && r.data.state && r.data.state.game) {
+      state.selected.clear();
+      applyServerGameState(r.data.state.game);
+    }
+    // 让轮询也不停拉最新（万一 POST 和 poll 有竞态）
+    pokePoll();
+  }
+
+  // 联网模式下开下一局（局末点"继续" / 整盘结束点"再来一局"）
+  async function nextRoundNet() {
+    if (!state.isNetworked || !onlineState) return;
+    state.phase = PHASE.IDLE;
+    renderAll();
+    const r = await gdApi('next_round', { body: { code: onlineState.code, token: onlineState.token } });
+    if (r.ok && r.data && r.data.state && r.data.state.game) {
+      state.selected.clear();
+      state.hands = [[], [], [], []];
+      state.lastPlay = [null, null, null, null];
+      state.out = [];
+      state.ranking = null;
+      state.matchWinner = null;
+      state.bombMult = 1;
+      state.customGroups = [];
+      startNetworkedGame(r.data.state.game);
+    } else {
+      toast('开下一局失败');
+    }
+  }
+
+  // 检查是否联网模式且需要跳过本地 AI / commit
+  function isNetworked() { return !!state.isNetworked; }
+
   function startMatch() {
     // 冻结这一盘的玩法设置：只在开新一盘时从可编辑的 options 拷贝一次。
     // 这盘进行中（含局与局之间）engine 只读 matchOptions，改 PGO 设置要等下一盘才生效。
@@ -2557,6 +2679,7 @@
 
   // ---- 出牌 ----
   function commitPlay(seat, combo) {
+    if (isNetworked()) { sendNetworkedMove('play', combo.cards.slice()); return; }
     const level = currentLevelLabel();
     const beforeLen = state.hands[seat].length;
     // 从手牌移除
@@ -2627,6 +2750,7 @@
   }
 
   function commitPass(seat) {
+    if (isNetworked()) { sendNetworkedMove('pass'); return; }
     state.lastPlay[seat] = 'pass';
     state.trick.passes++;
     renderAll();
@@ -2865,8 +2989,14 @@
     els.roundOverlay.classList.add('open');
     els.roundNext.onclick = () => {
       els.roundOverlay.classList.remove('open');
-      if (matchWon) endMatch(winTeam);
-      else startRound(ranking);
+      if (isNetworked()) {
+        // 服务器权威：发 next_round → 服务器开下一局 → 轮询拉回新状态
+        nextRoundNet();
+      } else if (matchWon) {
+        endMatch(winTeam);
+      } else {
+        startRound(ranking);
+      }
     };
     if (matchWon) state._pendingMatchWin = winTeam;
   }
@@ -3131,6 +3261,7 @@
   }
 
   function scheduleAI() {
+    if (isNetworked()) return;   // 联网模式：AI 在服务器跑，客户端只等轮询
     if (state.busy) return;
     state.busy = true;
     renderAll();
@@ -3817,7 +3948,8 @@
   });
   els.matchAgain.addEventListener('click', () => {
     els.matchOverlay.classList.remove('open');
-    startMatch();
+    if (isNetworked()) nextRoundNet();
+    else startMatch();
   });
   els.matchSetup.addEventListener('click', () => {
     els.matchOverlay.classList.remove('open');
@@ -4534,6 +4666,10 @@
     if (!onlineState._animating && !onlineState._swapPhase) renderLobby(srv);
     // 加入者进房后自动落座（让房主立刻看到人、加入者明确不是房主）
     maybeAutoSit(srv);
+    // 联网模式中：每当服务器 game 状态变更，刷新本地牌局（AI 回合的进展 / 其他人出牌）
+    if (srv.state === 'playing' && srv.game && state.isNetworked && !onlineState._startedTransition) {
+      applyServerGameState(srv.game);
+    }
     // 状态从 lobby → playing 的第一次跃迁：触发"我滑到 bottom-left"动画
     if (wasState !== 'playing' && srv.state === 'playing' && !onlineState._startedTransition) {
       onlineState._startedTransition = true;
@@ -4547,28 +4683,27 @@
   function triggerLobbyToGameTransition(srv) {
     const cfg = (srv && srv.config) || {};
     const lvl = cfg.aiLevel || state.aiLevel;
-    stopOnlinePolling();
+    // Phase 2: 服务器权威 —— 不再停止轮询（接下来整盘靠服务器喂状态），不设 onlineState=null
     if (['easy','normal','hard'].includes(lvl)) {
       state.aiLevel = lvl;
       try { syncPgoDiff(); } catch {}
       try { persist(); } catch {}
     }
-    // 房主在 config 里带的玩法设置同步给本局（同队进贡 / 积分上限 / 出牌时间）
     if (cfg.options) {
       state.options = normalizeOptions(cfg.options);
       try { syncPgoOptions(); } catch {}
       try { persist(); } catch {}
     }
     rotateLobbyToSouth(() => {
-      onlineSessionClear();
-      onlineState = null;
       if (onlineEls.lobby) {
         onlineEls.lobby.hidden = true;
         onlineEls.lobby.classList.remove('starting');
       }
       if (els.table) els.table.classList.remove('gd-in-lobby');
       if (els.pgo) els.pgo.classList.remove('open');
-      startMatch();
+      // Phase 2: 从服务器 game 视图初始化本地状态（替代 Phase 1 的本地 startMatch()）
+      if (srv && srv.game) startNetworkedGame(srv.game);
+      else startMatch();   // 兜底：如果服务器没带 game（旧版/降级），走本地局
     });
   }
   // 开局旋转动画：lobby 是固定映射，我可能视觉上不在 bottom；现在打开 preStartRotation
