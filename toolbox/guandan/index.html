@@ -498,6 +498,18 @@ theme_color: "#fafaf9"
     display: flex; gap: 0.55rem; justify-content: center; align-items: center;
     flex-wrap: wrap; min-height: 2.4rem; margin-top: 0.3rem; margin-bottom: 0.7rem;
   }
+  /* 出牌决策带：按钮 与「打出的牌 / 不出 / 加倍」叠进同一 grid 格 —— 互斥显示。
+     轮到我时按钮压在最上面；做出决定后按钮整体隐藏，同一格露出打出的牌 / 决定文字，
+     不再各占一行，纵向省一截。电脑/手机同一套。 */
+  .gd-play-band {
+    display: grid;
+    grid-template-areas: "stack";
+    justify-items: center; align-items: center;
+    margin: 0.2rem 0 0.5rem;
+  }
+  .gd-play-band > .gd-myplay-row,
+  .gd-play-band > .gd-play-actions { grid-area: stack; margin: 0; }
+  .gd-play-band > .gd-play-actions { position: relative; z-index: 7; }
   .gd-sort-actions {
     position: absolute;
     right: 0.9rem;
@@ -1869,12 +1881,12 @@ theme_color: "#fafaf9"
         calc(0.7rem + env(safe-area-inset-left, 0px));
     }
     body.gd-game-fullscreen .gd-seats-mid { height: 70px; }   /* 只剩对家出牌（出牌槽 64px） */
-    /* 我的出牌：绝对定位在牌桌中部 48%（比之前 52% 再往上一点）——在我这一侧、又不压手牌。
-       z-index:6 + pointer-events:none 仍生效（盖在手牌上、点击穿透）。 */
-    body.gd-game-fullscreen .gd-myplay-row {
-      position: absolute; left: 0; right: 0;
-      top: 48%; transform: translateY(-50%);
-      height: auto; margin: 0;
+    /* 出牌决策带（手机）：用「出牌按钮」定义带高（紧凑一行），坐在手牌正上方；
+       打出的牌做绝对覆盖、从按钮位置起向下延伸、轻盖到手牌顶部，不再额外吃一截纵向空间——
+       这样下面留得出 8 张手牌从上往下排的高度。 */
+    body.gd-game-fullscreen .gd-play-band { display: block; position: relative; margin: 0.1rem 0 0.12rem; }
+    body.gd-game-fullscreen .gd-play-band > .gd-myplay-row {
+      position: absolute; left: 0; right: 0; top: 0; height: auto; margin: 0; z-index: 6;
     }
     body.gd-game-fullscreen .gd-played,
     body.gd-game-fullscreen .gd-side .gd-played { height: 64px; }
@@ -1883,15 +1895,10 @@ theme_color: "#fafaf9"
     body.gd-game-fullscreen .gd-played { --gd-card-w: 42px; --gd-card-h: 60px; }
     body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full { margin-left: -22px; }
     body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
-    /* 操作行（不出/提示/出牌 · 加倍）：① 用 order 挪到手牌「下方」，牌往上叠、
-       永远长不到按钮上（issue：牌盖住按钮）；② min-height 写死，按钮显隐不再
-       改变手牌可用高度——否则一选牌/进加倍阶段，手牌高度跳变、adaptHandSize 把
-       牌重算成另一套尺寸（issue：牌时大时小）。 */
-    /* 竖直方向收紧（按钮本身大小不变，只缩上下间隙）—— 把出牌按钮行压低、压紧 */
-    /* 高度「写死」(不是 min-height)：轮到我/不轮到我，出牌按钮显隐都不改变这一行高度，
-       手牌可用高度恒定 → 手牌位置彻底固定、不再微动。按钮本身大小不变，行内居中。 */
-    body.gd-game-fullscreen .gd-play-actions {
-      order: 5; height: 2.3rem; min-height: 0; margin: 0.03rem 0 0.02rem; flex-wrap: nowrap;
+    /* 决策带里的按钮：紧凑一行，定义这条带的高度。按钮显隐都不改变带高（高度写死）→
+       手牌可用高度恒定、不抖；做出决定按钮隐藏后，同一位置露出打出的牌/「不出」「加倍」。 */
+    body.gd-game-fullscreen .gd-play-band > .gd-play-actions {
+      order: 0; height: 2.2rem; min-height: 0; margin: 0; flex-wrap: nowrap;
     }
     /* 手牌：吃满剩余高度、列在底对齐。默认 step 24 恒定不变——深的一摞就让它
        自然往上长、溢进手牌上方那片空地（overflow:visible 不裁切），错落间距与卡片
@@ -1900,14 +1907,15 @@ theme_color: "#fafaf9"
     body.gd-game-fullscreen .gd-hand {
       /* 手牌跟出牌区完全同尺寸同字号(等比公式)。整体再放大一档到 50×72。 */
       --gd-card-w: 50px; --gd-card-h: 72px;
-      --gd-stack-step: 24px;
+      /* step 22：从上往下排时，单门 8 张 = 7×22+72 = 226px，刚好塞进决策带下方那段高度 */
+      --gd-stack-step: 22px;
       flex: 1 1 auto; min-height: 0;
-      align-items: flex-end;
+      /* 顶部对齐、向下排列（跟电脑端一致）：决策带固定在最上面，手牌从带下方往下挂、
+         一门最多 8 张也排得下，不再从下往上叠。 */
+      align-items: flex-start;
       overflow: visible;
-      /* 底留 18px 把整把牌「抬高」到左下角「我/托管」chip 的上方（比之前 24px 低一点、
-         整把牌更靠下，离中间的出牌区更远、不被它压住）—— 左边仍不必为头像留宽，手牌用上
-         几乎整幅宽、15 列也放得下 50px。右边仍给理牌竖排键留 36px。左 8px 即可。 */
-      padding: 0.15rem 36px 18px 8px;
+      /* 左 8px（不为头像留宽，手牌用满整幅、15 列也放得下 50px），右 36px 给理牌竖排键 */
+      padding: 0.1rem 36px 0.3rem 8px;
     }
     /* 左下："我" 头像 | 张数 + 托管机器人 横排（张数与机器人都在头像右边、右下方），
        不再竖排单开一行（挤进左侧 ~104px 内）。 */
@@ -2032,12 +2040,6 @@ theme_color: "#fafaf9"
       <div class="gd-played" id="gdPlay1"></div>
     </div>
 
-    <!-- 我的出牌（最近一手 / 不要）：单独一行放在 mid 行下方、手牌上方，
-         在视觉上紧贴左下角的"我"，并保证我的"不要"比 mid 行三家的更低 -->
-    <div class="gd-myplay-row">
-      <div class="gd-played" id="gdPlay0Center"></div>
-    </div>
-
     <!-- 我（座位 0）。张数 + 托管机器人都挪到头像右边（右下方），不再单开一行。 -->
     <div class="gd-self-bar">
       <div class="gd-seat" id="gdSeat0" data-seat="0">
@@ -2055,8 +2057,13 @@ theme_color: "#fafaf9"
       </div>
     </div>
 
-    <!-- 出牌动作行：在手牌上方（仿斗地主）。轮到我时显示倒计时 + 不出/提示/出牌
-         加倍阶段也复用此行：不加倍 / 加倍 ×2 按钮 + 5s 倒计时 -->
+    <!-- 出牌决策带：把「我打出的牌 / 不出 / 加倍」与「出牌按钮」叠进同一格（grid 同 cell，
+         互斥显示）—— 轮到我时显示按钮；一旦做出决定，按钮消失、同一格立刻拿来显示打出的牌/
+         决定文字，省掉「按钮一行 + 出牌一行」分占两段纵向空间。手机/电脑同一套机制。 -->
+    <div class="gd-play-band">
+      <div class="gd-myplay-row">
+        <div class="gd-played" id="gdPlay0Center"></div>
+      </div>
     <div class="gd-play-actions" id="gdPlayActions">
       <!-- 我已出完、正在看队友打牌时，这条提示占住「出牌按钮行」（最底一行） -->
       <span class="gd-spectate-note" id="gdSpectateNote" hidden>正在查看队友手牌</span>
@@ -2073,6 +2080,7 @@ theme_color: "#fafaf9"
       <button class="gd-btn" id="gdDblNoBtn" type="button" hidden>不加倍</button>
       <button class="gd-btn primary" id="gdDblYesBtn" type="button" hidden>加倍 ×2</button>
     </div>
+    </div><!-- /.gd-play-band -->
 
     <div class="gd-hand" id="gdHand"></div>
 
