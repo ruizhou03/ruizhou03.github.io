@@ -1884,12 +1884,17 @@ theme_color: "#fafaf9"
     /* 出牌决策带（手机）：用「出牌按钮」定义带高（紧凑一行），坐在手牌正上方；
        打出的牌做绝对覆盖、从按钮位置起向下延伸、轻盖到手牌顶部，不再额外吃一截纵向空间——
        这样下面留得出 8 张手牌从上往下排的高度。 */
-    body.gd-game-fullscreen .gd-play-band { display: block; position: relative; margin: 0.1rem 0 0.12rem; }
+    /* margin-top:auto → 把「决策带 + 手牌」整块往下推到牌桌下部（吃掉下方空当）：
+       浅摞手牌时整块明显下移、贴近"我"，更顺手；满 8 张的深摞时空当为 0、自动顶住不外溢。 */
+    body.gd-game-fullscreen .gd-play-band { display: block; position: relative; margin: auto 0 0; }
     body.gd-game-fullscreen .gd-play-band > .gd-myplay-row {
       position: absolute; left: 0; right: 0; top: 0; height: auto; margin: 0; z-index: 6;
     }
     body.gd-game-fullscreen .gd-played,
     body.gd-game-fullscreen .gd-side .gd-played { height: 64px; }
+    /* 左右对手（含他们的出牌区）跟着「我」这块整体下移：从 35% 挪到 44%，
+       让对家(顶) → 左右(中) → 我(下) 的纵向分布更均匀。 */
+    body.gd-game-fullscreen .gd-side { top: 44%; }
     /* 出牌区(每个玩家打出去的牌)整张做小一些 42×60（≤ 槽高 64px，不被 overflow:hidden
        裁断）。手牌仍 50×72，比出牌区大一圈 —— 故意不同尺寸，手牌更醒目好点。 */
     body.gd-game-fullscreen .gd-played { --gd-card-w: 42px; --gd-card-h: 60px; }
@@ -1909,13 +1914,16 @@ theme_color: "#fafaf9"
       --gd-card-w: 50px; --gd-card-h: 72px;
       /* step 22：从上往下排时，单门 8 张 = 7×22+72 = 226px，刚好塞进决策带下方那段高度 */
       --gd-stack-step: 22px;
-      flex: 1 1 auto; min-height: 0;
-      /* 顶部对齐、向下排列（跟电脑端一致）：决策带固定在最上面，手牌从带下方往下挂、
-         一门最多 8 张也排得下，不再从下往上叠。 */
+      /* flex 不再 grow（0 1 auto）：手牌只占自身内容高度，把多余空当让给上面的 auto 间距，
+         整块手牌随决策带一起下移；深摞时仍能占满。手牌顶部与决策带之间留 0.55rem 呼吸距离。 */
+      flex: 0 1 auto; min-height: 0;
+      margin-top: 0.55rem;
+      /* 顶部对齐、向下排列（跟电脑端一致）：手牌从决策带下方往下挂、一门最多 8 张也排得下。 */
       align-items: flex-start;
       overflow: visible;
-      /* 左 8px（不为头像留宽，手牌用满整幅、15 列也放得下 50px），右 36px 给理牌竖排键 */
-      padding: 0.1rem 36px 0.3rem 8px;
+      /* 左 8px（不为头像留宽，手牌用满整幅、15 列也放得下 50px），右 36px 给理牌竖排键；
+         底留 0.5rem 不让最底一张顶死屏幕边。 */
+      padding: 0.1rem 36px 0.5rem 8px;
     }
     /* 左下："我" 头像 | 张数 + 托管机器人 横排（张数与机器人都在头像右边、右下方），
        不再竖排单开一行（挤进左侧 ~104px 内）。 */
