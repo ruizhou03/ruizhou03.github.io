@@ -3118,8 +3118,8 @@
     state._consecutiveTimeouts = (state._consecutiveTimeouts || 0) + 1;
     if (!state.autopilot && state._consecutiveTimeouts >= 2) {
       state.autopilot = true;
+      // 不弹提示：靠托管按钮持续橙色高亮(.on)表示已进入托管即可（用户不喜欢弹窗）
       refreshAutopilotBtn();
-      toast('连续 2 次超时 — 已进入托管，再点"托管"退出');
     }
     doAutoPlayPick();
   }
