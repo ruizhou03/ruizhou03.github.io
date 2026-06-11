@@ -134,8 +134,6 @@ permalink: /toolbox/pindou/
   .pb-brandrow { display: flex; align-items: center; flex-wrap: wrap; gap: .55rem; margin-bottom: .7rem; padding-bottom: .65rem; border-bottom: 1px dashed var(--color-border); font-size: .85rem; color: var(--color-ink); }
   .pb-brandrow b { font-weight: 600; }
   .pb-brandrow select { font-size: .85rem; padding: .28rem .5rem; border: 1px solid var(--color-border); border-radius: 7px; background: var(--color-bg); color: var(--color-ink); cursor: pointer; }
-  .pb-bgrow { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin-top: .6rem; padding-top: .65rem; border-top: 1px dashed var(--color-border); font-size: .85rem; color: var(--color-ink); }
-  .pb-bgrow b { font-weight: 600; }
   /* 图上方工具行：分组 + 留白，不再挤成一坨 */
   .pb-toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .6rem; }
   .pb-zoomgrp { display: inline-flex; gap: .3rem; }
@@ -284,6 +282,13 @@ permalink: /toolbox/pindou/
           <option value="mard">漫漫 MARD · 221 色</option>
           <option value="hama">Hama · 53 色</option>
         </select>
+        <span class="pb-spring"></span>
+        <b>底板背景</b>
+        <div class="pb-seg" id="bgSeg">
+          <button class="on" data-bg="none">留空</button>
+          <button data-bg="#FFFFFF">填白</button>
+          <button data-bg="#1A1A1A">填黑</button>
+        </div>
       </div>
       <div class="pb-panel-grid">
         <div class="pb-ctl">
@@ -293,14 +298,6 @@ permalink: /toolbox/pindou/
         <div class="pb-ctl">
           <div class="pb-ctl-lab"><b>颜色上限</b><span id="colVal">16 色</span></div>
           <input type="range" class="pb-range" id="cols" min="2" max="36" step="1" value="16">
-        </div>
-      </div>
-      <div class="pb-bgrow">
-        <b>底板背景</b>
-        <div class="pb-seg" id="bgSeg">
-          <button class="on" data-bg="none">留空</button>
-          <button data-bg="#FFFFFF">填白</button>
-          <button data-bg="#1A1A1A">填黑</button>
         </div>
       </div>
     </div>
@@ -450,7 +447,7 @@ permalink: /toolbox/pindou/
     bboxAR: 0, lastFill: 1, lastBeads: 0,
     modelReady: false, preloadFrac: 0, preloadPromise: null,
     aiGen: 0, aiGaveUp: false, timeDragging: false, shared: false,
-    sortKey: 'count', sortDir: 'desc'
+    sortKey: 'code', sortDir: 'asc'
   };
 
   function enableStep(id){ $(id).classList.remove('pb-locked'); }
