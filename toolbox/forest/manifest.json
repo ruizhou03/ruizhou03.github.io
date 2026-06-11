@@ -1,0 +1,17 @@
+{
+  "name": "种树",
+  "short_name": "种树",
+  "description": "番茄钟式专注种树——专注就长出一棵树，分心就枯萎，攒成一片自己的森林。周睿的百宝箱",
+  "id": "/toolbox/forest/",
+  "start_url": "/toolbox/forest/",
+  "scope": "/toolbox/forest/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#fafaf9",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "/assets/icons/forest-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/forest-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/forest-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

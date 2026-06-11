@@ -105,6 +105,13 @@
 .lg-search input { flex: 1; font: inherit; padding: 0.5rem 0.7rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-bg); color: var(--color-ink); }
 .lg-search select { font: inherit; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-bg); color: var(--color-ink); }
 
+/* 极窄屏（小手机）：汇总卡降到 2 列、搜索框换行铺满，避免横向挤压 */
+@media (max-width: 380px) {
+  .lg-cards { grid-template-columns: repeat(2, 1fr); }
+  .lg-search { flex-wrap: wrap; }
+  .lg-search input { flex-basis: 100%; }
+}
+
 /* 流水 */
 .lg-list { margin-top: 0.4rem; }
 .lg-empty { text-align: center; color: var(--color-light); font-size: 0.88rem; padding: 2.5rem 1rem; }
@@ -125,7 +132,7 @@
 
 /* 撤销提示条 */
 .lg-toast {
-  position: fixed; left: 50%; bottom: 1.4rem; transform: translateX(-50%);
+  position: fixed; left: 50%; bottom: max(1.4rem, calc(env(safe-area-inset-bottom) + 0.6rem)); transform: translateX(-50%);
   background: var(--color-ink); color: var(--color-bg); padding: 0.6rem 0.9rem; border-radius: 0.6rem;
   display: flex; align-items: center; gap: 0.8rem; font-size: 0.85rem; z-index: 1200; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
 }
@@ -139,7 +146,9 @@ body.lg-modal-open { overflow: hidden; }
 }
 .lg-modal {
   background: var(--color-bg); width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto;
-  border-radius: 1rem 1rem 0 0; padding: 1rem 1.1rem 1.4rem;
+  border-radius: 1rem 1rem 0 0;
+  /* 底部内边距吃进 Home 指示条，保证「保存」按钮不被遮住 */
+  padding: 1rem 1.1rem max(1.4rem, calc(env(safe-area-inset-bottom) + 0.6rem));
 }
 @media (min-width: 600px) {
   .lg-modal-backdrop { align-items: center; }
@@ -155,7 +164,7 @@ body.lg-modal-open { overflow: hidden; }
 
 .lg-amount-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem; border-bottom: 2px solid var(--color-accent); padding-bottom: 0.3rem; }
 .lg-cur-suffix { font-size: 1.5rem; font-weight: 700; background: none; border: none; color: var(--color-muted); cursor: pointer; width: 1.8rem; }
-#lg-amount { flex: 1; font-size: 2rem; font-weight: 700; font-family: var(--font-display); border: none; background: none; color: var(--color-ink); outline: none; width: 100%; }
+#lg-amount { flex: 1; font-size: min(2rem, 8vw); font-weight: 700; font-family: var(--font-display); border: none; background: none; color: var(--color-ink); outline: none; width: 100%; }
 
 .lg-cat-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.8rem; }
 .lg-cat-chip { font: inherit; font-size: 0.82rem; padding: 0.3rem 0.6rem; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-bg); color: var(--color-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem; }

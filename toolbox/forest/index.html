@@ -2,6 +2,11 @@
 layout: default
 title: "种树专注计时器 | Rui Zhou"
 permalink: /toolbox/forest/
+# 可作为独立 PWA 安装（自己的图标/名字/作用域），覆盖全站默认 manifest
+manifest: /toolbox/forest/manifest.json
+apple_touch_icon: /assets/icons/forest-apple-touch-icon.png
+app_title: 种树
+theme_color: "#fafaf9"
 ---
 
 <style>
@@ -688,6 +693,15 @@ permalink: /toolbox/forest/
     .field-cell-grid { background-size: 25% 70px; }
     .tree-tooltip { font-size: 0.72rem; }
   }
+  /* 手机窄屏：压缩主舞台让首屏就能看到操作区；输入框 ≥16px 防 iOS 聚焦缩放 */
+  @media (max-width: 480px) {
+    .ft-wrap { padding: 0.75rem; }
+    .tree-svg { width: min(168px, 44vw); height: min(168px, 44vw); }
+    .timer-display { font-size: 2.2rem; }
+    .focus-overlay svg { width: min(220px, 56vw); height: min(220px, 56vw); }
+    .focus-overlay .timer-big { font-size: 3rem; }
+    .ft-wrap input[type="number"], .ft-wrap input[type="text"] { font-size: 16px; }
+  }
 
   /* 锁屏遮罩（focus 时） */
   .focus-overlay {
@@ -699,7 +713,8 @@ permalink: /toolbox/forest/
     align-items: center; justify-content: center;
     flex-direction: column;
     color: #fff;
-    padding: 2rem;
+    /* 全屏专注遮罩盖住整个视口（含刘海/底部 Home 条），用安全区撑开内边距 */
+    padding: max(2rem, env(safe-area-inset-top)) max(2rem, env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom)) max(2rem, env(safe-area-inset-left));
     overflow: hidden;
     transition: background 0.6s;
   }
@@ -888,7 +903,9 @@ permalink: /toolbox/forest/
     margin-bottom: 0.5rem;
   }
   .focus-overlay .pomodoro-counter {
-    position: absolute; top: 1.4rem; right: 1.4rem;
+    position: absolute;
+    top: max(1.4rem, calc(env(safe-area-inset-top) + 0.5rem));
+    right: max(1.4rem, calc(env(safe-area-inset-right) + 0.5rem));
     color: rgba(255, 255, 255, 0.8);
     font-size: 0.85rem;
     background: rgba(255, 255, 255, 0.08);
@@ -897,7 +914,7 @@ permalink: /toolbox/forest/
     border: 1px solid rgba(255, 255, 255, 0.18);
   }
   .focus-overlay .grace-banner {
-    position: absolute; bottom: 5rem;
+    position: absolute; bottom: calc(5rem + env(safe-area-inset-bottom));
     color: rgba(255, 255, 255, 0.65);
     font-size: 0.85rem;
     font-style: normal;
@@ -2459,6 +2476,8 @@ permalink: /toolbox/forest/
     const popW = 280;
     let top = rect.top - popH - 8;
     if (top < 8) top = rect.bottom + 8;
+    // 贴底防溢出：下方放不下时钳回视口内（留出底部安全区余量）
+    if (top + popH > window.innerHeight - 16) top = Math.max(8, window.innerHeight - popH - 16);
     let left = rect.left + rect.width / 2 - popW / 2;
     left = Math.max(8, Math.min(window.innerWidth - popW - 8, left));
     $treeDetail.style.top = top + 'px';
