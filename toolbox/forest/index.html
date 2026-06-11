@@ -219,6 +219,54 @@ theme_color: "#fafaf9"
     transform: scale(1.1);
   }
 
+  /* ============ 种树主卡片（舞台 + 设置 + 开始 合成一张大卡片）============ */
+  .plant-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    padding: 1rem 1rem 1.1rem;
+    margin-bottom: 1.4rem;
+    box-shadow: 0 6px 24px rgba(30, 58, 95, 0.08);
+  }
+  .plant-card .stage { margin: 0 0 0.9rem; }
+  .plant-card > .duration-row { margin-bottom: 0.7rem; }
+
+  /* 时长行：单行不换行，预设按钮等分 */
+  .duration-row { flex-wrap: nowrap; }
+  .duration-row .duration-tabs { flex-wrap: nowrap; gap: 0.35rem; }
+  .duration-row .duration-tabs button { flex: 1 1 0; min-width: 0; padding: 0.45rem 0; text-align: center; }
+  .duration-row input[type="number"] { width: 72px; flex-shrink: 0; }
+  .duration-row .unit { color: var(--color-light); font-size: 0.85rem; flex-shrink: 0; }
+
+  /* 更多设置：原生 <details> 折叠，默认收起保持首屏清爽 */
+  .more-settings {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-bg);
+    overflow: hidden;
+  }
+  .more-settings > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.7rem 0.95rem;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    display: flex; align-items: center; gap: 0.45rem;
+  }
+  .more-settings > summary::-webkit-details-marker { display: none; }
+  .more-settings > summary::after { content: '▾'; margin-left: auto; transition: transform 0.2s; }
+  .more-settings[open] > summary { border-bottom: 1px solid var(--color-border); }
+  .more-settings[open] > summary::after { transform: rotate(180deg); }
+  .more-settings-body { display: grid; gap: 0.6rem; padding: 0.8rem 0.85rem 0.9rem; }
+  /* 折叠区里的设置行扁平化（外层 details 已有边框）*/
+  .more-settings-body .setting-row {
+    border: none; background: none; border-radius: 0; padding: 0.15rem 0.1rem;
+  }
+
+  /* 开始按钮：卡片内、大号、铺满 */
+  .plant-card .action-row { margin: 1.1rem 0 0.1rem; }
+  .plant-card .action-btn { width: 100%; max-width: 420px; padding: 1.05rem 2rem; font-size: 1.15rem; }
+
   /* ============ 主操作按钮 ============ */
   .action-row {
     text-align: center; margin: 1.4rem 0;
@@ -696,8 +744,12 @@ theme_color: "#fafaf9"
   /* 手机窄屏：压缩主舞台让首屏就能看到操作区；输入框 ≥16px 防 iOS 聚焦缩放 */
   @media (max-width: 480px) {
     .ft-wrap { padding: 0.75rem; }
-    .tree-svg { width: min(168px, 44vw); height: min(168px, 44vw); }
-    .timer-display { font-size: 2.2rem; }
+    .ft-wrap header { margin-bottom: 0.8rem; }
+    .ft-wrap header h1 { font-size: 1.6rem; }
+    .plant-card { padding: 0.85rem 0.8rem 1rem; border-radius: 16px; }
+    .tree-svg { width: min(150px, 40vw); height: min(150px, 40vw); }
+    .timer-display { font-size: 2.1rem; margin: 0.6rem 0 0.3rem; }
+    .stage { padding: 1.1rem 0.9rem 1rem; }
     .focus-overlay svg { width: min(220px, 56vw); height: min(220px, 56vw); }
     .focus-overlay .timer-big { font-size: 3rem; }
     .ft-wrap input[type="number"], .ft-wrap input[type="text"] { font-size: 16px; }
@@ -953,86 +1005,94 @@ theme_color: "#fafaf9"
     <h1>🌳 种树</h1>
   </header>
 
-  <!-- ========== 主舞台 ========== -->
-  <div class="stage" id="stage">
-    <div class="stage-particles" id="stage-particles"></div>
-    <div id="tree-container">
-      <!-- tree SVG 动态注入 -->
+  <!-- ========== 种树主卡片：舞台 + 设置 + 开始（一张大卡片，首屏即懂怎么用）========== -->
+  <div class="plant-card">
+    <!-- 舞台（树 + 计时）-->
+    <div class="stage" id="stage">
+      <div class="stage-particles" id="stage-particles"></div>
+      <div id="tree-container">
+        <!-- tree SVG 动态注入 -->
+      </div>
+      <div class="timer-display" id="timer-display">25:00</div>
+      <div class="timer-status" id="timer-status">选好时长，点下面按钮种一棵树 🌱</div>
     </div>
-    <div class="timer-display" id="timer-display">25:00</div>
-    <div class="timer-status" id="timer-status">点「开始」种一棵树</div>
-  </div>
 
-  <!-- ========== 设置 ========== -->
-  <div class="settings">
-    <div class="setting-row">
+    <!-- 时长：首屏直接可调 -->
+    <div class="setting-row duration-row">
       <label>时长</label>
       <div class="duration-tabs">
-        <button type="button" data-min="15">15 分</button>
-        <button type="button" data-min="25" class="active">25 分</button>
-        <button type="button" data-min="50">50 分</button>
-        <button type="button" data-min="90">90 分</button>
+        <button type="button" data-min="15">15</button>
+        <button type="button" data-min="25" class="active">25</button>
+        <button type="button" data-min="50">50</button>
+        <button type="button" data-min="90">90</button>
       </div>
       <input type="number" id="custom-min" min="1" max="180" placeholder="自定义" />
-      <span style="color: var(--color-light); font-size: 0.85rem;">分钟</span>
+      <span class="unit">分</span>
     </div>
-    <div class="setting-row">
-      <label>在做什么</label>
-      <input type="text" id="task-input" placeholder="例如：写论文初稿（可选）" maxlength="60" />
-    </div>
-    <div class="setting-row">
-      <label>树种</label>
-      <div class="tree-types" id="tree-types">
-        <button type="button" data-tree="oak" class="active" title="橡树">🌳</button>
-        <button type="button" data-tree="pine" title="松树">🌲</button>
-        <button type="button" data-tree="sakura" title="樱花">🌸</button>
-        <button type="button" data-tree="palm" title="椰子树">🌴</button>
-        <button type="button" data-tree="cactus" title="仙人掌">🌵</button>
-      </div>
-    </div>
-    <div class="setting-row">
-      <label>🍅 Pomodoro</label>
-      <label class="pomodoro-toggle" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; user-select: none;">
-        <input type="checkbox" id="pomodoro-on" />
-        <span>循环模式（专心 → 休息 → 专心 → 休息）</span>
-      </label>
-      <span style="flex-grow: 1;"></span>
-      <span style="color: var(--color-muted); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
-        休息
-        <input type="number" id="break-min" min="1" max="60" value="5" style="width: 56px; padding: 0.3rem 0.45rem; text-align: center; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); color: var(--color-ink); font: inherit; font-size: 0.88rem;" />
-        分
-      </span>
-    </div>
-    <div class="setting-row">
-      <label>🎨 主题</label>
-      <div class="pill-group" id="theme-bg-pills">
-        <button type="button" data-value="default" title="默认（白色）">⚪</button>
-        <button type="button" data-value="night" title="沉浸夜">🌙</button>
-        <button type="button" data-value="bubbles" title="气泡">🫧</button>
-        <button type="button" data-value="stars" title="星空">⭐</button>
-        <button type="button" data-value="sunrise" title="日出">🌅</button>
-        <button type="button" data-value="rain" title="雨">🌧</button>
-        <button type="button" data-value="aurora" title="极光">🌌</button>
-      </div>
-      <span class="pill-divider"></span>
-      <span class="group-label">计时</span>
-      <div class="pill-group" id="theme-timer-pills">
-        <button type="button" data-value="countdown" title="倒计时">⏳</button>
-        <button type="button" data-value="countup" title="正计时">⏱</button>
-        <button type="button" data-value="hidden" title="只看树">🌳</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- ========== 灌溉 banner ========== -->
-  <div class="revival-banner" id="revival-banner">
-    <!-- JS 动态填 -->
-  </div>
+    <!-- 更多设置：折叠收起，保持首屏清爽 -->
+    <details class="more-settings">
+      <summary>⚙ 更多设置 · 树种 / 主题 / 番茄循环</summary>
+      <div class="more-settings-body">
+        <div class="setting-row">
+          <label>在做什么</label>
+          <input type="text" id="task-input" placeholder="例如：写论文初稿（可选）" maxlength="60" />
+        </div>
+        <div class="setting-row">
+          <label>树种</label>
+          <div class="tree-types" id="tree-types">
+            <button type="button" data-tree="oak" class="active" title="橡树">🌳</button>
+            <button type="button" data-tree="pine" title="松树">🌲</button>
+            <button type="button" data-tree="sakura" title="樱花">🌸</button>
+            <button type="button" data-tree="palm" title="椰子树">🌴</button>
+            <button type="button" data-tree="cactus" title="仙人掌">🌵</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label>🍅 番茄循环</label>
+          <label class="pomodoro-toggle" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; user-select: none;">
+            <input type="checkbox" id="pomodoro-on" />
+            <span>专注 ↔ 休息 循环</span>
+          </label>
+          <span style="flex-grow: 1;"></span>
+          <span style="color: var(--color-muted); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+            休息
+            <input type="number" id="break-min" min="1" max="60" value="5" style="width: 56px; padding: 0.3rem 0.45rem; text-align: center; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); color: var(--color-ink); font: inherit; font-size: 0.88rem;" />
+            分
+          </span>
+        </div>
+        <div class="setting-row">
+          <label>🎨 主题</label>
+          <div class="pill-group" id="theme-bg-pills">
+            <button type="button" data-value="default" title="默认（白色）">⚪</button>
+            <button type="button" data-value="night" title="沉浸夜">🌙</button>
+            <button type="button" data-value="bubbles" title="气泡">🫧</button>
+            <button type="button" data-value="stars" title="星空">⭐</button>
+            <button type="button" data-value="sunrise" title="日出">🌅</button>
+            <button type="button" data-value="rain" title="雨">🌧</button>
+            <button type="button" data-value="aurora" title="极光">🌌</button>
+          </div>
+          <span class="pill-divider"></span>
+          <span class="group-label">计时</span>
+          <div class="pill-group" id="theme-timer-pills">
+            <button type="button" data-value="countdown" title="倒计时">⏳</button>
+            <button type="button" data-value="countup" title="正计时">⏱</button>
+            <button type="button" data-value="hidden" title="只看树">🌳</button>
+          </div>
+        </div>
+      </div>
+    </details>
 
-  <!-- ========== 主操作 ========== -->
-  <div class="action-row">
-    <button type="button" class="action-btn" id="start-btn">🌱 开始种树</button>
-    <div class="focus-warning" id="focus-warning"></div>
+    <!-- 灌溉 banner（就近放在开始按钮上方）-->
+    <div class="revival-banner" id="revival-banner">
+      <!-- JS 动态填 -->
+    </div>
+
+    <!-- 开始：大按钮，卡片内，首屏可见 -->
+    <div class="action-row">
+      <button type="button" class="action-btn" id="start-btn">🌱 开始种树</button>
+      <div class="focus-warning" id="focus-warning"></div>
+    </div>
   </div>
 
   <!-- ========== 统计 ========== -->
