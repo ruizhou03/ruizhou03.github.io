@@ -158,6 +158,11 @@
     /* 旧式 iOS「添加到主屏」(navigator.standalone) 兜底，由 head 脚本给 <html> 加类 */
     html.ios-standalone body.app-shell > nav, html.ios-standalone body.app-shell > footer { display: none !important; }
     html.ios-standalone body.app-shell > main { margin-top: calc(env(safe-area-inset-top, 0px) + 0.6rem); margin-bottom: 1.5rem; }
+
+    /* 站内小助手：百宝箱工具属纯工具体验，不需要它 → 独立 PWA 一律隐藏，手机端 toolbox 也隐藏（桌面网页保留）。 */
+    @media (display-mode: standalone) { body.app-shell #za-fab, body.app-shell #za-panel { display: none !important; } }
+    html.ios-standalone body.app-shell #za-fab, html.ios-standalone body.app-shell #za-panel { display: none !important; }
+    @media (max-width: 768px) { body.is-toolbox #za-fab, body.is-toolbox #za-panel { display: none !important; } }
     h1, h2, h3 { font-family: var(--font-display); color: var(--color-ink); font-weight: 600; margin-bottom: 1rem; }
     h1 { font-size: 2.5rem; }
     

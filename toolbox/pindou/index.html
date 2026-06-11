@@ -133,7 +133,13 @@ theme_color: "#fafaf9"
   .pb-cut-bar > i { display: block; height: 100%; width: 0; background: #fff; border-radius: 3px; transition: width .25s linear; }
 
   /* 调整面板：精细度 + 颜色上限 + 底板背景 全收进一个矩形卡，压缩占行 */
-  .pb-panel { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-bg); padding: .85rem 1rem .8rem; margin-bottom: .9rem; }
+  /* 色卡/硬参数块也上蓝边 + faint 蓝底，与预计耗时配成「相互决定」的一对 */
+  .pb-panel { border: 1px solid var(--color-accent); border-radius: 12px; background: rgba(30,58,95,.05); padding: .85rem 1rem .8rem; margin-bottom: .55rem; }
+  /* 竖起来的可逆反应箭头：做大、圆徽章骑在两块边框中间,上下各咬进一点,像把两块「连起来 / 穿过」 */
+  .pb-link-arrow { position: relative; z-index: 3; width: 2.1rem; height: 2.1rem; margin: -1.05rem auto;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--color-bg); border: 1.5px solid var(--color-accent); border-radius: 50%;
+    color: var(--color-accent); font-size: 1.15rem; font-weight: 700; line-height: 1; }
   .pb-panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .1rem 1.6rem; }
   @media (max-width: 520px) { .pb-panel-grid { grid-template-columns: 1fr; } }
   .pb-panel-grid .pb-ctl { margin: 0 0 .3rem; }
@@ -154,18 +160,16 @@ theme_color: "#fafaf9"
 
   /* preview：始终完整自适应居中，放大才滚动 */
   .pb-work-main { margin: .9rem 0; }   /* 与上下两块(调整参数 / 采购清单)错开,别挨太近 */
-  /* 画幅高度由 JS 贴合当前画布高度(横图不再上下大留白)；这里给个 JS 跑之前的兜底 */
-  .pb-preview-box { display: flex; height: 56vh; max-height: 620px; min-height: 160px; overflow: auto; border: 1px solid var(--color-border); border-radius: 10px; background: #fbfbfc; padding: .5rem; }
-  .pb-preview-box canvas { image-rendering: auto; margin: auto; }
-  /* 预览外壳：缩放/全屏浮在画幅里,且锚在外壳上(不在滚动盒子里)→放大滚动时不跟着跑 */
-  .pb-preview-shell { position: relative; }
-  .pb-zoomfloat { position: absolute; right: .5rem; bottom: .5rem; display: inline-flex; gap: .2rem;
-    background: rgba(255,255,255,.84); border-radius: 9px; padding: .18rem; box-shadow: 0 1px 6px rgba(0,0,0,.14); }
-  .pb-zoomfloat .pb-btn { padding: .28rem .5rem; font-size: .85rem; border-color: transparent; background: transparent; }
+  /* 画幅 = 滚动区(画布) + 底部一行缩放条；滚动区高度由 JS 贴合画布高度(横图不再上下大留白) */
+  .pb-preview-box { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--color-border); border-radius: 10px; background: #fbfbfc; }
+  .pb-preview-scroll { flex: 1 1 auto; min-height: 150px; height: 52vh; overflow: auto; display: flex; padding: .5rem; }
+  .pb-preview-scroll canvas { image-rendering: auto; margin: auto; }
+  /* 缩放/全屏：在画幅里、图片下面单独一行（不再浮在右下角遮挡图） */
+  .pb-zoombar { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: .3rem;
+    padding: .35rem; border-top: 1px solid var(--color-border); background: var(--color-bg); }
+  .pb-zoombar .pb-btn { padding: .3rem .6rem; font-size: .82rem; }
   /* 用量小字（替代原来 3 张大卡），贴在模式切换那一行右侧 */
   .pb-stats-line { font-size: .8rem; color: var(--color-light); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  /* ⇌ 可逆反应箭头：连接「硬参数」与「预计耗时」两块 */
-  .pb-link-arrow { text-align: center; color: var(--color-accent); font-size: 1.35rem; line-height: 1; font-weight: 700; margin: -.15rem 0 .5rem; }
   /* 下载/分享：放在图与采购清单之间 */
   .pb-actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin: .2rem 0 .3rem; }
   .pb-zoom { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; font-size: .82rem; color: var(--color-light); }
@@ -363,13 +367,12 @@ theme_color: "#fafaf9"
       </div>
     </div>
 
-    <!-- ⇌ 可逆反应箭头：明示「硬参数」与「预计耗时」双向联动 -->
-    <div class="pb-link-arrow" aria-hidden="true">⇌</div>
-    <!-- 预计耗时：双向。上面两项→耗时；也能拖它反推上面两项 -->
+    <!-- 竖起来的可逆反应箭头：连接「硬参数」与「预计耗时」两块 -->
+    <div class="pb-link-arrow" aria-hidden="true">⇅</div>
+    <!-- 预计耗时：双向。上面两项→耗时；也能拖它反推上面两项（关系靠 ⇅ 箭头表达，不再赘述文字） -->
     <div class="pb-timebar">
-      <div class="pb-timebar-top"><b>⏱ 预计耗时</b><span id="timeEst">约 …</span><span id="effortLabel"></span></div>
+      <div class="pb-timebar-top"><b>⏱ 预计耗时</b><span id="timeEst">约 …</span></div>
       <input type="range" class="pb-range" id="timeTarget" min="15" max="900" step="5" value="120">
-      <div class="pb-bidi"><span class="pb-bidi-ico">⇅</span><span>由上面<b>精细度 + 颜色</b>算出；也可反向拖它，自动回配精细度 + 颜色。</span></div>
     </div>
       </div>
     </div>
@@ -384,13 +387,13 @@ theme_color: "#fafaf9"
         <span class="pb-spring"></span>
         <span class="pb-stats-line" id="statsLine"></span>
       </div>
-      <div class="pb-preview-shell">
-        <div class="pb-preview-box"><canvas id="preview"></canvas></div>
-        <div class="pb-zoomfloat">
+      <div class="pb-preview-box">
+        <div class="pb-preview-scroll"><canvas id="preview"></canvas></div>
+        <div class="pb-zoombar">
           <button class="pb-btn sm" id="zoomOut" title="缩小">－</button>
-          <button class="pb-btn sm" id="zoomFit" title="整张铺满">⤢</button>
+          <button class="pb-btn sm" id="zoomFit" title="整张铺满">⤢ 适应</button>
           <button class="pb-btn sm" id="zoomIn" title="放大">＋</button>
-          <button class="pb-btn sm" id="fsOpen" title="全屏">⛶</button>
+          <button class="pb-btn sm" id="fsOpen" title="全屏">⛶ 全屏</button>
         </div>
       </div>
       <div class="pb-cap pb-hidden" id="shareMsg" style="text-align:left;margin-top:.4rem;"></div>
@@ -589,7 +592,7 @@ theme_color: "#fafaf9"
       $('aiCut').disabled = false;
       // 画布先备好整张图（单图态就看这一张）
       S.mask = new Uint8Array(w*h).fill(255);
-      S.applyMode = null; S.didDefaultTime = false; S.aiOptOut = false; cancelFake();   // 新图：重置一次性标记 + 恢复 AI 提示 + 停掉假加载动画
+      S.applyMode = null; S.didDefaultTime = false; S.aiOptOut = false; cancelProgress();   // 新图：重置一次性标记 + 恢复 AI 提示 + 停掉进度动画
       clearUndo();
       renderEdit();
       updateCutBtns();     // 选路径态：[✨抠出主体][🖼用整张图][↻换一张]
@@ -604,26 +607,37 @@ theme_color: "#fafaf9"
   // ===================================================================
   const editCanvas = $('editCanvas');
   const RING_C = 125.66; // 2π·20
-  function setRing(frac){ $('ringBar').style.strokeDashoffset = RING_C*(1-Math.max(0,Math.min(1,frac))); }
-  // 把"剩余下载量"重新铺满 0~100%：进页面已预下载 80% 的话，抠图时进度条仍从 0 走到 100，体感更快
-  function visibleDl(raw){ const s=S.dlStart||0; return s>=1 ? 1 : Math.max(0, Math.min(1, ((raw||0)-s)/(1-s))); }
-  function showCut(frac){ // 下载阶段：确定进度环（带 remap）
+  function setRingRaw(f){ $('ringBar').style.strokeDashoffset = RING_C*(1-Math.max(0,Math.min(1,f))); }
+  // 抠图进度：一条「只进不退」的平滑进度环。**不再**拿每个模型分块各自的 cur/tot 喂进度——那会让环反复来回跳、
+  // 像被骗；改成按阶段(下模型/抠图)朝软上限平滑爬升，真完成时才补到 100%；模型已就绪也至少占满 MIN_SHOW_MS。
+  let progRaf=null, progShown=0, progT0=0;
+  const MIN_SHOW_MS=3500;
+  function cancelProgress(){ if(progRaf){ cancelAnimationFrame(progRaf); progRaf=null; } }
+  function startProgressOverlay(){
+    cancelProgress();
     $('cutOverlay').classList.remove('pb-hidden'); editCanvas.classList.add('processing');
-    $('cutSpinner').classList.remove('spin');
-    const v=visibleDl(frac); setRing(v); $('cutPct').textContent=Math.round(v*100)+'%';
-    $('cutLabel').textContent = modelSeen() ? '载入 AI 模型…' : '下载 AI 模型…（首次）'; $('cutBarWrap').classList.add('pb-hidden');
+    $('cutSpinner').classList.remove('spin'); $('cutBarWrap').classList.add('pb-hidden');
+    progShown=0; progT0=Date.now(); progLoop();
   }
-  let creepTimer=null;
-  function startCreep(){ stopCreep(); $('cutBarWrap').classList.remove('pb-hidden'); let v=0.04;
-    const set=()=>{ $('cutBar').style.width=(v*100).toFixed(1)+'%'; }; set();
-    creepTimer=setInterval(()=>{ v += (0.95-v)*0.045; set(); }, 200); }
-  function stopCreep(){ if(creepTimer){ clearInterval(creepTimer); creepTimer=null; } }
-  function showCutting(){ // 抠图阶段：转圈 + 爬动进度条（推理无法报真实进度）
-    $('cutOverlay').classList.remove('pb-hidden'); editCanvas.classList.add('processing');
-    $('cutSpinner').classList.add('spin'); $('cutPct').textContent='';
-    $('cutLabel').textContent='正在抠图…'; startCreep();
+  function progLoop(){
+    if($('cutOverlay').classList.contains('pb-hidden')){ progRaf=null; return; }
+    if(S.cutState==='failed'){ progRaf=null; hideCut(); showMsg('cutMsg', S.cutFailMsg||'AI 抠图没成功，可「用整张图」或重试。', true); $('aiCut').disabled=false; return; }
+    if(S.cutState==='nosubject'){ progRaf=null; hideCut(); showMsg('cutMsg','AI 没找到明显主体——建议「用整张图」，或手动擦。', true); $('aiCut').disabled=false; return; }
+    const elapsed=Date.now()-progT0;
+    const ready=(S.cutState==='done' && S.cutMask);
+    const loaded=(S.modelReady || S.cutPhase==='cut' || ready);
+    $('cutLabel').textContent = (loaded && elapsed>MIN_SHOW_MS*0.5) ? '正在抠图…' : '加载 AI 模型…';
+    if(ready && elapsed>=MIN_SHOW_MS){
+      progShown += (1-progShown)*0.22;                                  // 真完成 → 补满
+      if(progShown>0.992){ setRingRaw(1); $('cutPct').textContent='100%'; progRaf=null; if(S.aiShown) applyCut(); return; }
+    } else {
+      const cap = loaded ? 0.96 : 0.9;                                  // 朝软上限渐近,永不回退
+      progShown += (cap-progShown)*0.045; if(progShown>cap) progShown=cap;
+    }
+    setRingRaw(progShown); $('cutPct').textContent=Math.round(progShown*100)+'%';
+    progRaf=requestAnimationFrame(progLoop);
   }
-  function hideCut(){ cancelFake(); stopCreep(); $('cutOverlay').classList.add('pb-hidden'); editCanvas.classList.remove('processing'); $('cutSpinner').classList.remove('spin'); }
+  function hideCut(){ cancelProgress(); $('cutOverlay').classList.add('pb-hidden'); editCanvas.classList.remove('processing'); $('cutSpinner').classList.remove('spin'); }
 
   // ===================================================================
   //  AI 抠图（下载阶段才检测卡住；推理阶段转圈+爬动条，给宽松绝对上限）
@@ -654,104 +668,55 @@ theme_color: "#fafaf9"
     hideMsg('cutMsg');   // 抠好直接显示结果,不再赘述「已抠出主体用时X秒」
     if(!$('step2').classList.contains('pb-locked')) regenerate();
   }
+  // cutTask 只负责「算」：更新 S.cutState / cutPhase / cutMask / cutFailMsg；所有进度 UI 交给上面的进度环。
   async function cutTask(gen){
-    S.cutState='running'; S.cutFrac=0; S.cutPhase='';
+    S.cutState='running'; S.cutFrac=0; S.cutPhase=''; S.cutFailMsg='';
     let stall=null, hard=null, cutStart=0;
     const alive = ()=> gen===S.cutGen;
     const clearT = ()=>{ clearTimeout(stall); clearTimeout(hard); };
-    const fail = (msg)=>{ if(!alive())return; S.cutState='failed'; clearT(); stopCreep();
-      if(S.aiShown){ hideCut(); showMsg('cutMsg', msg, true); $('aiCut').disabled=false; } };
+    const fail = (msg)=>{ if(!alive())return; S.cutState='failed'; S.cutFailMsg=msg; clearT(); };  // 仅记状态,UI 交给进度环
     let slowShown=false;
     const armStall = ()=>{ clearTimeout(stall); stall=setTimeout(()=>{
         if(!alive())return;
-        // 不再判失败：下载在后台继续，只温和提示「网络慢」，让用户自行决定等下去或先用整张图
+        // 不判失败：下载在后台继续，只温和提示「网络慢」
         if(S.aiShown && S.cutPhase!=='cut'){ slowShown=true; showMsg('cutMsg','网络有点慢，AI 模型还在后台下载…愿意等就稍候，或先点下面「用整张图」开始做。'); }
         armStall();
       }, STALL_MS); };
     function onDl(frac){ S.cutPhase='download'; S.cutFrac=frac; armStall();
-        if(slowShown){ hideMsg('cutMsg'); slowShown=false; }   // 进度恢复 → 收起慢网提示
-        if(S.aiShown){ stopCreep(); showCut(frac); } }
+        if(slowShown){ hideMsg('cutMsg'); slowShown=false; } }   // 不再驱动进度环(避免分块来回跳),只管阶段 + 慢网提示
     function onCut(){ if(S.cutPhase!=='cut'){ S.cutPhase='cut'; clearTimeout(stall); if(!cutStart)cutStart=Date.now();
-        clearTimeout(hard); hard=setTimeout(()=>fail('AI 抠图太久了（图太大或机器慢）。可「用整张图」或换张小图重试。'), CUT_TIMEOUT); }
-      if(S.aiShown) showCutting(); }
+        clearTimeout(hard); hard=setTimeout(()=>fail('AI 抠图太久了（图太大或机器慢）。可「用整张图」或换张小图重试。'), CUT_TIMEOUT); } }
     armStall();
     try{
       const mod = await getModule(); if(!alive())return;
-      onModelProgress = (f)=>{ if(!alive())return; if(!S.modelReady && S.aiShown) onDl(f); };
+      onModelProgress = (f)=>{ if(!alive())return; if(!S.modelReady) onDl(f); };
       if(S.preloadPromise){ try{ await S.preloadPromise; }catch(e){} } if(!alive()){ onModelProgress=null; return; }
       onModelProgress = null;
       const rb = mod.removeBackground || mod.default;
       const progCb = (key,cur,tot)=>{ if(!alive())return; if(DL_RE.test(key)&&S.cutPhase!=='cut') onDl(tot?cur/tot:0); else onCut(); };
       const run = (dev)=> rb(currentFile, Object.assign({device:dev}, MODEL_CFG, { output:{format:'image/png'}, progress: progCb }));
-      if(S.modelReady) onCut(); else onDl(S.cutFrac);
+      if(S.modelReady) onCut(); else onDl(0);
       let blob;
       if(USE_GPU){ try{ blob=await run('gpu'); }catch(e){ if(!alive())return; console.warn('[pindou] WebGPU→CPU:', e&&e.message); onCut(); blob=await run('cpu'); } }
       else blob = await run('cpu');
       clearT(); if(!alive())return;
-      S.modelReady=true; markModelSeen(); showModelStatus('hide');
+      S.modelReady=true; markModelSeen();
       const bmp = await blobToCanvasData(blob, S.W, S.H);
       const m = new Uint8Array(S.W*S.H); let any=0;
       for(let i=0;i<m.length;i++){ const a=bmp[i*4+3]>=128?255:0; m[i]=a; if(a)any++; }
       S.cutMs = cutStart ? (Date.now()-cutStart) : 0;
-      if(any < m.length*0.003){ S.cutState='nosubject';
-        if(S.aiShown){ hideCut(); showMsg('cutMsg','AI 没找到明显主体——建议「用整张图」，或手动擦。', true); $('aiCut').disabled=false; }
-        return; }
+      if(any < m.length*0.003){ S.cutState='nosubject'; if(!S.aiShown) updateCutBtns(); return; }
       S.cutMask = m; S.cutState='done';
-      console.log('[pindou] 抠图推理耗时 '+(S.cutMs/1000).toFixed(1)+'s');
-      if(S.aiShown) applyCut();   // 用户已点 → 立刻应用
-      else updateCutBtns();       // 后台偷跑完、用户还没点 → 按钮标「已就绪」
+      if(!S.aiShown) updateCutBtns();   // 后台偷跑完、用户还没点 → 按钮标「已就绪」；前台时由进度环检测 done 后 applyCut
     }catch(err){ console.error(err); fail('AI 抠图没成功（'+(err&&err.message?err.message:'未知错误')+'）。可「用整张图」或重试。'); }
   }
   function startBgCut(){ S.aiShown=false; S.cutMask=null; S.cutGen=(S.cutGen||0)+1; cutTask(S.cutGen); }
-  function reRunCut(){ S.aiShown=true; S.cutMask=null; $('aiCut').disabled=true;
-    S.cutGen=(S.cutGen||0)+1; S.dlStart=S.modelReady?1:(S.preloadFrac||0); cutTask(S.cutGen); }
-  // 「加载 AI 模型」假进度：模型已就绪时也走一段确定进度条(~4s),期间真抠图在后台静默跑(aiShown=false),
-  // 加载满再接管进抠图阶段——把真实抠图藏在这段时间里,体感更顺、更快。
-  const FAKE_LOAD_MS = 4000;
-  let fakeRaf = null;
-  function cancelFake(){ if(fakeRaf){ cancelAnimationFrame(fakeRaf); fakeRaf=null; } }
-  function startFakeLoad(){
-    cancelFake(); stopCreep();
-    $('cutOverlay').classList.remove('pb-hidden'); editCanvas.classList.add('processing');
-    $('cutSpinner').classList.remove('spin'); $('cutBarWrap').classList.add('pb-hidden');
-    $('cutLabel').textContent='加载 AI 模型…';
-    const start=Date.now();
-    const tick=()=>{
-      if($('cutOverlay').classList.contains('pb-hidden')){ fakeRaf=null; return; }   // 被收起(用整张图/换图) → 停
-      const p=Math.min(1,(Date.now()-start)/FAKE_LOAD_MS);
-      setRing(p); $('cutPct').textContent=Math.round(p*100)+'%';
-      if(p<1){ fakeRaf=requestAnimationFrame(tick); } else { fakeRaf=null; finishFakeLoad(); }
-    };
-    tick();
-  }
-  function finishFakeLoad(){
-    if($('cutOverlay').classList.contains('pb-hidden')) return;
-    S.aiShown=true;   // 接管：进入抠图阶段（cutTask 完成会自动 applyCut）
-    if(S.cutState==='done' && S.cutMask){
-      $('cutLabel').textContent='正在抠图…'; $('cutSpinner').classList.remove('spin'); setRing(1); $('cutPct').textContent='100%';
-      setTimeout(()=>{ if(S.aiShown && S.cutState==='done') applyCut(); }, 220);
-    } else if(S.cutState==='nosubject'){
-      hideCut(); showMsg('cutMsg','AI 没找到明显主体——建议「用整张图」，或手动擦。', true); $('aiCut').disabled=false;
-    } else if(S.cutState==='failed'){
-      hideCut(); showMsg('cutMsg','AI 抠图没成功，可「用整张图」或重试。', true); $('aiCut').disabled=false;
-    } else {
-      showCutting();   // 还在抠 → 转圈,等 cutTask 完成回调 applyCut
-    }
-  }
   function clickAICut(){
     if(!S.W || S.applyMode==='cut') return;
-    S.aiOptOut=false;   // 用户又要用 AI 了 → 恢复 AI 提示
-    $('aiCut').disabled=true;
-    if(S.modelReady){
-      // 已就绪也假装「加载模型」走一段进度,期间真抠图在后台静默跑
-      S.aiShown=false;
-      if(S.cutState!=='done' && S.cutState!=='running') startBgCut();   // 没结果且没在跑 → 静默(重)启
-      startFakeLoad();
-    } else {
-      S.aiShown=true; S.dlStart=S.cutFrac||0;
-      if(S.cutState==='running'){ if(S.cutPhase==='cut') showCutting(); else showCut(S.cutFrac||0); } // 接管运行中的下载遮罩
-      else reRunCut();                                         // none/failed/nosubject → 重试
-    }
+    S.aiOptOut=false; $('aiCut').disabled=true; S.aiShown=true; hideMsg('cutMsg');
+    // 没结果且没在跑 → (重)启一轮；已 done/running 的复用。进度环统一驱动 UI（含 done 后 applyCut）
+    if(S.cutState!=='done' && S.cutState!=='running'){ S.cutMask=null; S.cutGen=(S.cutGen||0)+1; cutTask(S.cutGen); }
+    startProgressOverlay();
   }
 
   // 把 PNG blob 画到 W×H，返回 RGBA 数据
@@ -812,7 +777,7 @@ theme_color: "#fafaf9"
     if(S.cutMask){ S.painted=false; S.applyMode='cut'; S.mask=S.cutMask.slice(); clearUndo(); renderEdit();
       $('split').classList.remove('pb-single'); updateCutBtns();
       if(!$('step2').classList.contains('pb-locked')) regenerate(); showMsg('cutMsg','✓ 已复原到 AI 抠图结果。'); }
-    else reRunCut(); });
+    else clickAICut(); });
 
   function sizeCursor(){ const r=editCanvas.getBoundingClientRect(); const sc=r.width/(editCanvas.width||1);
     const d=brushR*2*sc; brushCursor.style.width=d+'px'; brushCursor.style.height=d+'px'; }
@@ -964,11 +929,10 @@ theme_color: "#fafaf9"
   function rateOf(colors){ return Math.max(6, 13 - 0.12*colors); }       // 珠/分钟
   function timeMin(beads, colors){ return beads/rateOf(colors) + colors*SORT_PER_COLOR; }
   function balancedColors(res){ return Math.max(4, Math.min(36, Math.round(4 + res*0.26))); }
-  function tierByTime(min){
-    if(min<90)  return {name:'轻松',   tip:'一两个晚上',   color:'#5DB12F'};
-    if(min<300) return {name:'适中',   tip:'大概一个周末', color:'#E0A800'};
-    if(min<600) return {name:'认真',   tip:'需要点耐心',   color:'#F08643'};
-    return            {name:'大工程', tip:'做好打持久战', color:'#D62A33'};
+  // 耗时颜色：≤2h 纯绿，往上平滑过渡到红，给足区分度（不再一过 1h 就一片黄）
+  function tierColor(min){
+    const t = Math.max(0, Math.min(1, (min-120)/(720-120)));  // 120min(2h)→绿, 720min(12h)→红
+    return 'hsl('+Math.round(110 - t*110)+', 66%, 42%)';      // 110°绿 → 0°红
   }
   function fmtTime(min){ if(min<60) return '约 '+Math.max(1,Math.round(min))+' 分钟';
     const h=min/60; return '约 '+(h<10 ? h.toFixed(1).replace(/\.0$/,'') : Math.round(h))+' 小时'; }
@@ -979,10 +943,10 @@ theme_color: "#fafaf9"
     return Math.round(c*r*(S.lastFill!=null ? S.lastFill : 1));
   }
   function renderTimeLabel(min){
-    const t=tierByTime(min);
     $('timeEst').textContent = fmtTime(min);
-    $('effortLabel').textContent = '🧩 '+t.name+' · '+t.tip;
-    timeInput.style.accentColor = t.color;
+    const c = tierColor(min);
+    timeInput.style.accentColor = c;
+    resInput.style.accentColor = c;   // 精细度滑杆同色：耗时越长（精细度越高）颜色越深/越红
   }
   function clampT(t){ return Math.max(15, Math.min(900, Math.round(t))); }
   // 正向：res/colors 变 → 即时估时、移动时间滑杆
@@ -1040,7 +1004,7 @@ theme_color: "#fafaf9"
   const preview=$('preview');
   function heightBudget(){ return Math.min(window.innerHeight*0.62, 620); }
   function fitZoom(){
-    const box=document.querySelector('.pb-preview-box');
+    const box=document.querySelector('.pb-preview-scroll');
     const availW=Math.max(120,(box.clientWidth||400)-14);
     const availH=Math.max(140, heightBudget()-14);   // 用视口预算,不依赖盒子当前高(盒子高由 JS 贴合画布,避免循环)
     if(S.previewMode==='chart'){ // 坐标图含行列号 + 外圈呼吸留白,两种格距区间都夹住防溢出
@@ -1052,7 +1016,7 @@ theme_color: "#fafaf9"
   }
   // 画幅高度贴合「适应」时的画布高度——横图不再上下大留白；放大溢出再滚动（高度不变）
   function setPreviewBoxHeight(){
-    const box=document.querySelector('.pb-preview-box');
+    const box=document.querySelector('.pb-preview-scroll');
     if(box) box.style.height = Math.min(preview.height + 16, heightBudget()) + 'px';
   }
   function fitAndRender(){ fitZoom(); renderPreview(); setPreviewBoxHeight(); }
