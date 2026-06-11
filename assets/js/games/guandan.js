@@ -3929,6 +3929,17 @@
   if ($('gdBoardBtn')) $('gdBoardBtn').addEventListener('click', openBoard);
   if ($('gdBoardClose')) $('gdBoardClose').addEventListener('click', closeBoard);
   if ($('gdBoardBackdrop')) $('gdBoardBackdrop').addEventListener('click', closeBoard);
+  // ⚙️ 设置：调出 Pre-Game 页（含全部设置）。对局进行中露出「返回游戏」让你能关掉续局。
+  const gdPgoCloseBtn = $('gdPgoClose');
+  if ($('gdSettingsBtn')) $('gdSettingsBtn').addEventListener('click', () => {
+    const mid = state.phase === PHASE.PLAYING || state.phase === PHASE.TRIBUTE;
+    if (gdPgoCloseBtn) gdPgoCloseBtn.hidden = !mid;
+    els.pgo.classList.add('open');
+  });
+  if (gdPgoCloseBtn) gdPgoCloseBtn.addEventListener('click', () => {
+    els.pgo.classList.remove('open');
+    gdPgoCloseBtn.hidden = true;
+  });
   // 中途退出本局：随时弃掉当前这副牌，回到难度选择页（PGO）。复用 matchSetup 那套
   // 收尾——停时钟、关托管、回 IDLE、重渲、亮起 PGO。不弹确认窗（用户讨厌弹窗）；
   // 旧对局快照留着不清，万一手滑还能靠 resume 救回来，开新局时 startMatch 自会覆盖。
@@ -3953,7 +3964,23 @@
   if ($('gdConfirmExitCancel')) $('gdConfirmExitCancel').addEventListener('click', closeConfirmExit);
   if ($('gdConfirmExitBackdrop')) $('gdConfirmExitBackdrop').addEventListener('click', closeConfirmExit);
   if ($('gdConfirmExitOk')) $('gdConfirmExitOk').addEventListener('click', () => { closeConfirmExit(); quitToSetup(); });
-  window.addEventListener('resize', () => adaptHandSize());
+  // 旋转/尺寸变化：复位滚动 + 强制 position:fixed 重新按当前视口铺满，避免 Safari 旋转后
+  // 顶部残留一小栏（wrap 被滚下去一点 / fixed 没按新视口重算）的坑。
+  function gdReflowViewport() {
+    const wrap = document.querySelector('.guandan-wrap');
+    if (wrap) {
+      wrap.scrollTop = 0;
+      // toggle display 触发整块重新布局，逼浏览器按当前视口重排 fixed 容器
+      const prev = wrap.style.display;
+      wrap.style.display = 'none';
+      void wrap.offsetHeight;
+      wrap.style.display = prev;
+    }
+    try { window.scrollTo(0, 0); } catch (e) { /* ignore */ }
+    adaptHandSize();
+  }
+  window.addEventListener('resize', gdReflowViewport);
+  window.addEventListener('orientationchange', () => { setTimeout(gdReflowViewport, 120); setTimeout(gdReflowViewport, 400); });
 
   // ---- 启动 ----
   refreshHs();

@@ -1594,8 +1594,8 @@ theme_color: "#fafaf9"
   /* ======== 游戏内「🏆 榜单」chip（替代退出全屏）========
      永久全屏不跳出游戏外；玩法/战绩榜/评论改在游戏内浮层看，按钮挂头部角上。 */
   .guandan-wrap header { position: relative; }
-  /* 榜单(🏆) / 退出(✕) 两个角标圆钮：去文字、纯图标 */
-  .gd-board-btn, .gd-exit-btn {
+  /* 设置(⚙️) / 榜单(🏆) / 退出(✕) 角标圆钮：去文字、纯图标 */
+  .gd-board-btn, .gd-exit-btn, .gd-settings-btn {
     position: absolute; top: 0.6rem;
     display: inline-flex; align-items: center; justify-content: center;
     width: 1.95rem; height: 1.95rem; padding: 0;
@@ -1613,9 +1613,11 @@ theme_color: "#fafaf9"
   }
   .gd-board-btn { left: 0.6rem; }
   .gd-exit-btn  { right: 0.6rem; }
+  .gd-settings-btn { right: 3rem; }
   @media (hover: hover) {
     .gd-board-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
     .gd-exit-btn:hover  { border-color: var(--gd-team-opp); color: var(--gd-team-opp); }
+    .gd-settings-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
 
   /* 游戏内「榜单/玩法/评论」浮层 */
@@ -1675,6 +1677,55 @@ theme_color: "#fafaf9"
   .gd-confirm-actions { display: flex; gap: 0.7rem; justify-content: center; margin-top: 1.1rem; }
   .gd-confirm-actions .gd-btn { min-width: 5rem; }
   .gd-confirm-actions .gd-btn.primary { background: var(--gd-team-opp); border-color: var(--gd-team-opp); color: #fff; }
+
+  /* ===== Pre-Game 页改暖色调：贴合牌桌的羊皮纸底 + 奶白卡片 + 暖金/藏蓝点缀（替掉
+     games-shell 自带的冷深蓝磨砂）。沿用同一套 gs-pgo-* 组件，只把字色/底色翻成深字浅底。 */
+  body.gd-game-fullscreen .gs-pgo-overlay {
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(255,253,245,0.5) 0%, transparent 62%),
+      linear-gradient(160deg, var(--gd-felt-1) 0%, var(--gd-felt-2) 60%, var(--gd-felt-3) 100%);
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  body.gd-game-fullscreen .gs-pgo-view {
+    background: linear-gradient(160deg, var(--gd-card-bg) 0%, var(--gd-card-bg-2) 100%);
+    border: 1px solid var(--gd-frame-2);
+    border-radius: 20px;
+    padding: 1.3rem 1.7rem 1.5rem;
+    width: min(360px, 90vw);
+    box-shadow: 0 16px 46px rgba(141,110,55,0.28), inset 0 0 0 1px rgba(255,255,255,0.5);
+    color: var(--color-ink);   /* 卡片内文字一律深字（覆盖 games-shell 的白字默认） */
+  }
+  /* 掌踋 app 图标（暖奶油 tile 风），圆角方形 */
+  .gd-pgo-applogo {
+    width: 72px; height: 72px; border-radius: 18px; display: block; margin: 0 auto 0.5rem;
+    box-shadow: 0 4px 14px rgba(141,110,55,0.3);
+  }
+  /* 卡片内文字翻成深字（羊皮纸底） */
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-title { color: var(--color-ink); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-pgo-label { color: var(--color-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-picker { background: rgba(20,37,63,0.06); }
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab { color: var(--color-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab:hover { color: var(--color-ink); }
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab.selected {
+    background: var(--gd-accent); color: #fff; box-shadow: 0 1px 4px rgba(141,110,55,0.4);
+  }
+  /* 开始/创建按钮：暖金实心；联机输入框翻成浅底深字 */
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-start-btn { background: var(--gd-accent-strong); box-shadow: 0 3px 10px rgba(141,110,55,0.35); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-online-tab { color: var(--color-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-online-tab.active { color: var(--color-ink); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-online-input {
+    background: rgba(20,37,63,0.05); border-color: var(--gd-frame-2); color: var(--color-ink);
+  }
+  body.gd-game-fullscreen .gs-pgo-view .gd-online-input::placeholder { color: var(--color-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-gameopts-toggle { color: var(--color-muted); }
+  /* 对局进行中从 ⚙️ 调出设置时，卡片左上角的「返回游戏」（关掉设置续局） */
+  .gd-pgo-close {
+    position: absolute; top: 0.7rem; left: 0.9rem;
+    background: none; border: none; color: var(--color-muted);
+    font-size: 0.82rem; cursor: pointer; padding: 0; font-family: inherit;
+  }
+  .gd-pgo-close[hidden] { display: none; }
+  body.gd-game-fullscreen .gs-pgo-view { position: relative; }
 
   body.gd-game-fullscreen { overflow: hidden; }
   body.gd-game-fullscreen .guandan-wrap {
@@ -1739,8 +1790,7 @@ theme_color: "#fafaf9"
   @media (orientation: landscape) and (pointer: coarse) {
     body.gd-game-fullscreen .guandan-wrap header { margin: 0; min-height: 0; }
     body.gd-game-fullscreen .guandan-wrap header h1 { display: none; }
-    /* 🏆 榜单 chip 挪到右上角，让开左上角的级牌信息（我方/对方/积分） */
-    /* 横屏：退出(✕)钉在最右上角，榜单(🏆)紧挨它左边 */
+    /* 横屏右上角从右到左：退出(✕) → 榜单(🏆) → 设置(⚙️) */
     body.gd-game-fullscreen .gd-exit-btn {
       right: calc(0.5rem + env(safe-area-inset-right, 0px));
       top: calc(0.45rem + env(safe-area-inset-top, 0px));
@@ -1748,6 +1798,10 @@ theme_color: "#fafaf9"
     body.gd-game-fullscreen .gd-board-btn {
       left: auto;
       right: calc(2.9rem + env(safe-area-inset-right, 0px));
+      top: calc(0.45rem + env(safe-area-inset-top, 0px));
+    }
+    body.gd-game-fullscreen .gd-settings-btn {
+      right: calc(5.3rem + env(safe-area-inset-right, 0px));
       top: calc(0.45rem + env(safe-area-inset-top, 0px));
     }
     /* 画幅铺满：去掉外圈那圈奶油色边 + 金色细边 + 圆角，让羊皮纸牌桌一直延伸到
@@ -1767,7 +1821,7 @@ theme_color: "#fafaf9"
         calc(0.4rem + env(safe-area-inset-bottom, 0px))
         calc(0.7rem + env(safe-area-inset-left, 0px));
     }
-    body.gd-game-fullscreen .gd-seats-mid { height: 84px; }   /* 只剩对家出牌（放大后槽高 78px） */
+    body.gd-game-fullscreen .gd-seats-mid { height: 70px; }   /* 只剩对家出牌（出牌槽 64px） */
     /* 我的出牌：绝对定位在牌桌中部 48%（比之前 52% 再往上一点）——在我这一侧、又不压手牌。
        z-index:6 + pointer-events:none 仍生效（盖在手牌上、点击穿透）。 */
     body.gd-game-fullscreen .gd-myplay-row {
@@ -1776,19 +1830,21 @@ theme_color: "#fafaf9"
       height: auto; margin: 0;
     }
     body.gd-game-fullscreen .gd-played,
-    body.gd-game-fullscreen .gd-side .gd-played { height: 78px; }
-    /* 出牌区整张 50×72（≤ 槽高 78px，不被 overflow:hidden 裁断）。字号交给上面的等比
-       公式（按 --gd-card-w 算），手牌设同样的 --gd-card-w 即与此处完全一致。 */
-    body.gd-game-fullscreen .gd-played { --gd-card-w: 50px; --gd-card-h: 72px; }
-    body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full { margin-left: -27px; }
+    body.gd-game-fullscreen .gd-side .gd-played { height: 64px; }
+    /* 出牌区(每个玩家打出去的牌)整张做小一些 42×60（≤ 槽高 64px，不被 overflow:hidden
+       裁断）。手牌仍 50×72，比出牌区大一圈 —— 故意不同尺寸，手牌更醒目好点。 */
+    body.gd-game-fullscreen .gd-played { --gd-card-w: 42px; --gd-card-h: 60px; }
+    body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full { margin-left: -22px; }
     body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
     /* 操作行（不出/提示/出牌 · 加倍）：① 用 order 挪到手牌「下方」，牌往上叠、
        永远长不到按钮上（issue：牌盖住按钮）；② min-height 写死，按钮显隐不再
        改变手牌可用高度——否则一选牌/进加倍阶段，手牌高度跳变、adaptHandSize 把
        牌重算成另一套尺寸（issue：牌时大时小）。 */
     /* 竖直方向收紧（按钮本身大小不变，只缩上下间隙）—— 把出牌按钮行压低、压紧 */
+    /* 高度「写死」(不是 min-height)：轮到我/不轮到我，出牌按钮显隐都不改变这一行高度，
+       手牌可用高度恒定 → 手牌位置彻底固定、不再微动。按钮本身大小不变，行内居中。 */
     body.gd-game-fullscreen .gd-play-actions {
-      order: 5; min-height: 2.05rem; margin: 0.03rem 0 0.02rem; flex-wrap: nowrap;
+      order: 5; height: 2.3rem; min-height: 0; margin: 0.03rem 0 0.02rem; flex-wrap: nowrap;
     }
     /* 手牌：吃满剩余高度、列在底对齐。默认 step 24 恒定不变——深的一摞就让它
        自然往上长、溢进手牌上方那片空地（overflow:visible 不裁切），错落间距与卡片
@@ -1859,6 +1915,9 @@ theme_color: "#fafaf9"
     <div class="gd-rotate-sub">掼蛋牌桌横屏才放得下 · 转一下就开打<br>（若没自动旋转，请关掉控制中心里的「竖排方向锁定」）</div>
   </div>
   <header>
+    <button type="button" class="gd-settings-btn" id="gdSettingsBtn" title="游戏设置" aria-label="游戏设置">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+    </button>
     <button type="button" class="gd-board-btn" id="gdBoardBtn" title="榜单 / 玩法 / 评论" aria-label="榜单">🏆</button>
     <button type="button" class="gd-exit-btn" id="gdExitBtn" title="退出本局" aria-label="退出本局">
       <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -1978,7 +2037,8 @@ theme_color: "#fafaf9"
     <!-- Pre-game overlay -->
     <div class="gs-pgo-overlay open" id="gdPgo">
       <div class="gs-pgo-view active" id="gdPgoMain">
-        <div class="gs-pgo-icon">🀄</div>
+        <button class="gd-pgo-close" id="gdPgoClose" type="button" hidden aria-label="返回游戏">← 返回游戏</button>
+        <img class="gd-pgo-applogo" src="/assets/icons/guandan-icon-192.png" alt="掼蛋" width="72" height="72" />
         <h2 class="gs-pgo-title">掼蛋</h2>
 
         <!-- 玩法模式：单机 / 联机 -->
@@ -2010,8 +2070,9 @@ theme_color: "#fafaf9"
                 <button class="gs-pgo-mode-tab" data-value="off" type="button">关</button>
                 <button class="gs-pgo-mode-tab selected" data-value="on" type="button">开</button>
               </div>
-              <div class="gd-pgo-label">单局积分上限</div>
-              <div class="gs-pgo-mode-picker" id="gdPgoScoreCap">
+              <!-- 单局积分上限已隐藏：积分玩法不再用（元素保留供 JS 引用，默认"不限"=0） -->
+              <div class="gd-pgo-label" hidden>单局积分上限</div>
+              <div class="gs-pgo-mode-picker" id="gdPgoScoreCap" hidden>
                 <button class="gs-pgo-mode-tab selected" data-value="0" type="button">不限</button>
                 <button class="gs-pgo-mode-tab" data-value="3" type="button">3</button>
                 <button class="gs-pgo-mode-tab" data-value="5" type="button">5</button>
@@ -2188,4 +2249,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260610m"></script>
+<script src="/assets/js/games/guandan.js?v=20260611b"></script>
