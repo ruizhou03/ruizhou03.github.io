@@ -133,13 +133,20 @@ theme_color: "#fafaf9"
   .pb-cut-bar > i { display: block; height: 100%; width: 0; background: #fff; border-radius: 3px; transition: width .25s linear; }
 
   /* 调整面板：精细度 + 颜色上限 + 底板背景 全收进一个矩形卡，压缩占行 */
-  /* 色卡/硬参数块也上蓝边 + faint 蓝底，与预计耗时配成「相互决定」的一对 */
-  .pb-panel { border: 1px solid var(--color-accent); border-radius: 12px; background: rgba(30,58,95,.05); padding: .85rem 1rem .8rem; margin-bottom: .55rem; }
-  /* 竖起来的可逆反应箭头：做大、圆徽章骑在两块边框中间,上下各咬进一点,像把两块「连起来 / 穿过」 */
+  /* 色卡/硬参数块与预计耗时配成「相互决定」的一对；具体上色由 .pb-driving/.pb-driven 实时切换 */
+  .pb-panel { border: 1.5px solid var(--color-accent); border-radius: 12px; background: rgba(30,58,95,.05); padding: .85rem 1rem .8rem; margin-bottom: .55rem; }
+  .pb-panel, .pb-timebar { transition: border-color .25s, background-color .25s, box-shadow .25s; }
+  /* 正在调的那块=暖金高亮(「你在调这个」)，跟着动的那块=藏蓝(「这个在响应」)；调另一块时整个反过来 */
+  .pb-driving { border-color: #c9a96e !important; background: rgba(201,169,110,.15) !important; box-shadow: 0 0 0 2px rgba(201,169,110,.22); }
+  .pb-driven  { border-color: var(--color-accent) !important; background: rgba(30,58,95,.06) !important; box-shadow: none; }
+  /* 竖起来的可逆反应箭头(两根内向半箭/harpoon)：圆徽章骑在两块边框中间,上下各咬进一点,连接两框 */
   .pb-link-arrow { position: relative; z-index: 3; width: 2.1rem; height: 2.1rem; margin: -1.05rem auto;
     display: flex; align-items: center; justify-content: center;
-    background: var(--color-bg); border: 1.5px solid var(--color-accent); border-radius: 50%;
-    color: var(--color-accent); font-size: 1.15rem; font-weight: 700; line-height: 1; }
+    background: var(--color-bg); border: 1.5px solid var(--color-accent); border-radius: 50%; color: var(--color-accent); }
+  .pb-link-arrow svg { width: 1.35rem; height: 1.35rem; }
+  .pb-link-arrow .la-up, .pb-link-arrow .la-down { transition: stroke .25s; }
+  .pb-link-arrow.drive-down .la-down { stroke: #c9a96e; }   /* 硬参数→耗时：向下那根高亮 */
+  .pb-link-arrow.drive-up .la-up { stroke: #c9a96e; }       /* 耗时→硬参数：向上那根高亮 */
   .pb-panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .1rem 1.6rem; }
   @media (max-width: 520px) { .pb-panel-grid { grid-template-columns: 1fr; } }
   .pb-panel-grid .pb-ctl { margin: 0 0 .3rem; }
@@ -368,7 +375,7 @@ theme_color: "#fafaf9"
     </div>
 
     <!-- 竖起来的可逆反应箭头：连接「硬参数」与「预计耗时」两块 -->
-    <div class="pb-link-arrow" aria-hidden="true">⇅</div>
+    <div class="pb-link-arrow" id="linkArrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="la-up" d="M9 19V5L12.6 8.7"/><path class="la-down" d="M15 5V19L11.4 15.3"/></svg></div>
     <!-- 预计耗时：双向。上面两项→耗时；也能拖它反推上面两项（关系靠 ⇅ 箭头表达，不再赘述文字） -->
     <div class="pb-timebar">
       <div class="pb-timebar-top"><b>⏱ 预计耗时</b><span id="timeEst">约 …</span></div>
@@ -626,13 +633,21 @@ theme_color: "#fafaf9"
     const elapsed=Date.now()-progT0;
     const ready=(S.cutState==='done' && S.cutMask);
     const loaded=(S.modelReady || S.cutPhase==='cut' || ready);
-    $('cutLabel').textContent = (loaded && elapsed>MIN_SHOW_MS*0.5) ? '正在抠图…' : '加载 AI 模型…';
+    $('cutLabel').textContent = (loaded && elapsed>MIN_SHOW_MS*0.4) ? '正在抠图…' : '加载 AI 模型…';
     if(ready && elapsed>=MIN_SHOW_MS){
-      progShown += (1-progShown)*0.22;                                  // 真完成 → 补满
-      if(progShown>0.992){ setRingRaw(1); $('cutPct').textContent='100%'; progRaf=null; if(S.aiShown) applyCut(); return; }
+      progShown += (1-progShown)*0.25;                                  // 真完成 → 快速补满
+      if(progShown>0.993){ setRingRaw(1); $('cutPct').textContent='100%'; progRaf=null; if(S.aiShown) applyCut(); return; }
     } else {
-      const cap = loaded ? 0.96 : 0.9;                                  // 朝软上限渐近,永不回退
-      progShown += (cap-progShown)*0.045; if(progShown>cap) progShown=cap;
+      // 时间节奏推进（而非冲到上限就卡）：抠图阶段在 MIN_SHOW 内匀速走到 ~0.9，之后极慢往 0.97 蹭；
+      // 下模型阶段(可能很久)只缓慢走到 0.7，绝不冲到 90% 卡住——始终有可见微动。
+      let target;
+      if(loaded){
+        target = 0.9*Math.min(1, elapsed/MIN_SHOW_MS)
+               + (elapsed>MIN_SHOW_MS ? Math.min(0.07, (elapsed-MIN_SHOW_MS)/20000*0.07) : 0);
+      } else {
+        target = Math.min(0.7, elapsed/12000*0.7);
+      }
+      if(target>progShown) progShown=target;                           // 只进不退
     }
     setRingRaw(progShown); $('cutPct').textContent=Math.round(progShown*100)+'%';
     progRaf=requestAnimationFrame(progLoop);
@@ -850,10 +865,19 @@ theme_color: "#fafaf9"
   //  ② 像素化 + 量化
   // ===================================================================
   const resInput = $('res'), colsInput = $('cols'), timeInput = $('timeTarget');
+  // 实时反馈「你正在调哪块、另一块在跟着动」：正在调的=暖金高亮，跟着动的=藏蓝；调另一块整个反过来
+  function setDriver(which){
+    const panel=document.querySelector('.pb-panel'), tb=document.querySelector('.pb-timebar'), arr=$('linkArrow');
+    if(!panel||!tb) return;
+    const pDrive = which==='params';
+    panel.classList.toggle('pb-driving', pDrive); panel.classList.toggle('pb-driven', !pDrive);
+    tb.classList.toggle('pb-driving', !pDrive);   tb.classList.toggle('pb-driven', pDrive);
+    if(arr){ arr.classList.toggle('drive-down', pDrive); arr.classList.toggle('drive-up', !pDrive); }
+  }
   function resTier(res){ return res<35?'入门' : res<55?'普通' : res<80?'精进' : '大师'; }
   function setResLabel(){ $('resVal').textContent = S.res+' 格 · '+resTier(S.res); }
-  resInput.addEventListener('input', ()=>{ S.res=+resInput.value; setResLabel(); liveTimeUpdate(); debouncedGen(); });
-  colsInput.addEventListener('input', ()=>{ S.colorN=+colsInput.value; $('colVal').textContent=S.colorN+' 色'; liveTimeUpdate(); debouncedGen(); });   // 重算后 setColLabel 会补上「实际 N 色」
+  resInput.addEventListener('input', ()=>{ setDriver('params'); S.res=+resInput.value; setResLabel(); liveTimeUpdate(); debouncedGen(); });
+  colsInput.addEventListener('input', ()=>{ setDriver('params'); S.colorN=+colsInput.value; $('colVal').textContent=S.colorN+' 色'; liveTimeUpdate(); debouncedGen(); });   // 重算后 setColLabel 会补上「实际 N 色」
   $('bgSeg').addEventListener('click', (e)=>{ const b=e.target.closest('button'); if(!b) return;
     S.bg=b.dataset.bg; document.querySelectorAll('#bgSeg button').forEach(x=>x.classList.toggle('on',x===b)); regenerate(); });
   // 色卡品牌：换牌＝换整套可用颜色，图要整张重排；记住选择
@@ -861,7 +885,7 @@ theme_color: "#fafaf9"
   $('brandSel').addEventListener('change', (e)=>{ setBrand(e.target.value); if(S.grid && !$('step2').classList.contains('pb-locked')) regenerate(); });
 
   // 目标耗时（反向）：拖它自动配 精细度 + 颜色
-  timeInput.addEventListener('input', ()=>{ controlsFromTime(+timeInput.value); });
+  timeInput.addEventListener('input', ()=>{ setDriver('time'); controlsFromTime(+timeInput.value); });
   ;['mousedown','touchstart'].forEach(ev=>timeInput.addEventListener(ev,()=>{ S.timeDragging=true; }));
   ;['mouseup','touchend','blur'].forEach(ev=>timeInput.addEventListener(ev,()=>{ S.timeDragging=false; }));
   window.addEventListener('mouseup', ()=>{ S.timeDragging=false; });
