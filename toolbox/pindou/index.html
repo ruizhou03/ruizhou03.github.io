@@ -195,6 +195,41 @@ theme_color: "#fafaf9"
   .pb-msg { font-size: .85rem; color: #b4451f; margin-top: .7rem; }
   .pb-hidden { display: none !important; }
 
+  /* 可折叠的「调整参数」面板：桌面端不折叠（toggle 隐藏、内容常显，与原来一样）；手机端折叠条 */
+  .pb-adjust-toggle { display: none; }
+  /* 分享「看图模式」：没有调参需求 → 永远藏掉折叠条、强制展开内容（让 stats 照常显示） */
+  .pb-wrap.is-shared .pb-adjust-toggle { display: none !important; }
+  .pb-wrap.is-shared .pb-adjust-body { display: block !important; }
+
+  /* 手机端（≤600px）：预览图提到最前 + 调参面板默认折叠并压缩，先看到图、再下拉调 */
+  @media (max-width: 600px) {
+    #step2:not(.pb-locked) { display: flex; flex-direction: column; }
+    #step2 .pb-step-h { order: 0; }
+    #step2 .pb-work-main { order: 1; }   /* 预览大图提到最前 */
+    #step2 #adjustWrap   { order: 2; }
+    #step2 #genMsg       { order: 3; }
+    #step2 .pb-legend    { order: 4; }
+
+    #adjustWrap { border: 1px solid var(--color-border); border-radius: 12px; margin-bottom: .9rem; }
+    .pb-adjust-toggle { display: flex; align-items: center; gap: .5rem; width: 100%;
+      background: var(--color-bg); border: none; border-radius: 12px; text-align: left;
+      padding: .7rem .9rem; font-family: var(--font-display); font-size: .92rem; color: var(--color-ink); cursor: pointer; }
+    .pb-adjust-lab { font-weight: 600; }
+    .pb-adjust-sum { color: var(--color-light); font-size: .78rem; font-weight: 400; }
+    .pb-adjust-caret { margin-left: auto; color: var(--color-light); transition: transform .2s; }
+    #adjustWrap:not(.collapsed) .pb-adjust-caret { transform: rotate(180deg); }
+    #adjustWrap.collapsed .pb-adjust-body { display: none; }
+    .pb-adjust-body { padding: .15rem .7rem .7rem; }
+    .pb-adjust-body .pb-panel { margin-bottom: .7rem; }
+    .pb-adjust-body .pb-timebar { margin-bottom: .7rem; padding: .55rem .8rem .5rem; }
+    /* 压缩：stats 三卡收成一行小字、矮一截 */
+    #step2 .pb-stats { gap: .35rem; margin: .2rem 0 0; }
+    #step2 .pb-stat { min-width: 0; padding: .4rem .2rem; border-radius: 8px; }
+    #step2 .pb-stat b { font-size: .95rem; }
+    #step2 .pb-stat small { font-size: .62rem; }
+    .pb-wrap.is-shared #step2 { display: block; }   /* 看图模式不参与重排 */
+  }
+
   /* 手机端（≈≤480px）收尾：标题/边距收紧、换行后的工具行居中、触控目标加大、窄屏表格防溢出 */
   @media (max-width: 480px) {
     .pb-wrap { padding: 1.1rem .7rem 2.4rem; }
@@ -289,7 +324,10 @@ theme_color: "#fafaf9"
   <section class="pb-step pb-locked" id="step2">
     <div class="pb-step-h"><div class="pb-step-n">2</div><div class="pb-step-t">调整 · 图纸 · 清单</div></div>
 
-    <!-- 调整：色卡 + 精细度 + 颜色上限 + 底板背景 收进一个矩形卡 -->
+    <!-- 调整：色卡/精细度/颜色/背景 收进可折叠面板（手机端默认折叠 + 压缩；桌面常展开） -->
+    <div class="pb-adjust collapsed" id="adjustWrap">
+      <button class="pb-adjust-toggle" id="adjustToggle" type="button" aria-expanded="false"><span class="pb-adjust-ico">⚙</span><span class="pb-adjust-lab">调整参数</span><span class="pb-adjust-sum" id="adjustSum"></span><span class="pb-adjust-caret">▾</span></button>
+      <div class="pb-adjust-body">
     <div class="pb-panel">
       <div class="pb-brandrow">
         <b>色卡</b>
@@ -320,12 +358,14 @@ theme_color: "#fafaf9"
     <!-- 预计耗时：双向。上面两项→耗时；也能拖它反推上面两项 -->
     <div class="pb-timebar">
       <div class="pb-timebar-top"><b>⏱ 预计耗时</b><span id="timeEst">约 …</span><span id="effortLabel"></span></div>
-      <input type="range" class="pb-range" id="timeTarget" min="15" max="900" step="5" value="160">
+      <input type="range" class="pb-range" id="timeTarget" min="15" max="900" step="5" value="120">
       <div class="pb-bidi"><span class="pb-bidi-ico">⇅</span><span>由上面<b>精细度 + 颜色</b>算出；也可反向拖它，自动回配精细度 + 颜色。</span></div>
     </div>
 
     <!-- 图纸参数（拖动时实时变化） -->
     <div class="pb-stats" id="stats"></div>
+      </div>
+    </div>
 
     <!-- 大画布（全宽主视觉） -->
     <div class="pb-work-main">
@@ -550,7 +590,7 @@ theme_color: "#fafaf9"
       $('aiCut').disabled = false;
       // 画布先备好整张图（单图态就看这一张）
       S.mask = new Uint8Array(w*h).fill(255);
-      S.applyMode = null;
+      S.applyMode = null; S.didDefaultTime = false; S.aiOptOut = false;   // 新图：重置「2小时默认」一次性标记 + 恢复 AI 提示
       clearUndo();
       renderEdit();
       updateCutBtns();     // 选路径态：[✨抠出主体][🖼用整张图][↻换一张]
@@ -793,7 +833,15 @@ theme_color: "#fafaf9"
     showMsg('cutMsg','✓ 用整张图（背景也会做成珠子）。');
     if(!$('step2').classList.contains('pb-locked')) regenerate();
   });
-  $('goStep3').addEventListener('click', ()=>{ if(!S.mask) return; enableStep('step2'); regenerate(); $('step2').scrollIntoView({behavior:'smooth',block:'start'}); });
+  $('goStep3').addEventListener('click', ()=>{ if(!S.mask) return;
+    enableStep('step2');
+    if(!S.didDefaultTime){ S.didDefaultTime=true; applyDefaultTime(); }   // 首次进②：默认按「约2小时完成量」推荐参数出图
+    else regenerate();
+    $('step2').scrollIntoView({behavior:'smooth',block:'start'}); });
+  // 手机端折叠条：点一下展开/收起「调整参数」
+  $('adjustToggle').addEventListener('click', ()=>{ const w=$('adjustWrap');
+    const collapsed=w.classList.toggle('collapsed');
+    $('adjustToggle').setAttribute('aria-expanded', String(!collapsed)); });
 
   // ===================================================================
   //  ② 像素化 + 量化
@@ -921,6 +969,16 @@ theme_color: "#fafaf9"
     renderTimeLabel(T);
     debouncedGen();
   }
+  // 首次进②时：从 mask 估 bbox + 填充率（controlsFromTime 需要），按「约 2 小时完成量」推荐参数出第一张图
+  function applyDefaultTime(){
+    const W=S.W,H=S.H,m=S.mask; if(!m){ regenerate(); return; }
+    let minX=W,minY=H,maxX=-1,maxY=-1,fillN=0;
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){ if(m[y*W+x]){ if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y; fillN++; } }
+    if(maxX<0){ regenerate(); return; }
+    const bw=maxX-minX+1, bh=maxY-minY+1;
+    S.bboxAR=bw/bh; S.lastFill=Math.max(0.05, fillN/(bw*bh));
+    controlsFromTime(120);   // 设 res/cols + 同步两条滑杆 + 触发出图（debouncedGen）
+  }
 
   // 颜色滑杆是「上限」：图里本来就没那么多种颜色时实际会更少，把两个数同时亮出来防误会
   function setColLabel(){
@@ -940,6 +998,7 @@ theme_color: "#fafaf9"
     const t = timeMin(total, S.used.length || S.colorN);
     if(!S.timeDragging) timeInput.value = clampT(t);
     renderTimeLabel(t);
+    const sum=$('adjustSum'); if(sum) sum.textContent = S.cols+'×'+S.rows+' · '+total.toLocaleString()+' 珠 · '+S.used.length+' 色 · '+fmtTime(t);
   }
 
   // ---- 预览：效果图(珠样) / 坐标图(色号格) 两种模式，始终整张铺满自适应，放大才滚动 ----
