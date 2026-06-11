@@ -2136,7 +2136,9 @@
   }
 
   function seatName(s) {
-    return ['你', '对手·右', '对家', '对手·左'][s];
+    // 不再用「对家 / 对手·左 / 对手·右」方位标签：三家电脑一律显示 AI（座 0 是我）。
+    // 结算面板、进贡 / 接风提示都走这里。
+    return ['你', 'AI', 'AI', 'AI'][s];
   }
 
   // ---- 进贡 / 还贡 ----
@@ -2784,7 +2786,7 @@
   }
 
   // 座位 avatar 表（跟桌面 .gd-avatar 里的 emoji 一致）
-  const SEAT_AVATARS = ['😎', '🦊', '🤝', '🐱'];
+  const SEAT_AVATARS = ['😎', '🤖', '🤖', '🤖'];
   const POS_NAMES = ['头游', '二游', '三游', '末游'];
 
   // 给一个 .gd-result-players 容器渲染 [seat0, seat2] 或 [seat1, seat3] 的玩家卡

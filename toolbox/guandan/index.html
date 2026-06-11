@@ -11,6 +11,21 @@ theme_color: "#fafaf9"
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
 
+<script>
+  /* 这是一款正经游戏，不是可缩放网页：写死 viewport（禁双击放大 / 禁双指捏合），
+     用户的任何缩放手势一律不读取。盖掉全站 default 布局里那条允许缩放的 viewport。 */
+  (function () {
+    var vp = document.querySelector('meta[name="viewport"]');
+    if (!vp) { vp = document.createElement('meta'); vp.name = 'viewport'; document.head.appendChild(vp); }
+    vp.setAttribute('content',
+      'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+    // iOS Safari 在普通网页会忽略 user-scalable=no —— 双指捏合用 gesturestart 兜底拦掉。
+    document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
+    document.addEventListener('gesturechange', function (e) { e.preventDefault(); }, { passive: false });
+    document.addEventListener('dblclick', function (e) { e.preventDefault(); }, { passive: false });
+  })();
+</script>
+
 <style>
   /* ============================================================
      掼蛋 调色板：与主站协调
@@ -22,6 +37,8 @@ theme_color: "#fafaf9"
     max-width: 880px;
     margin: 0 auto;
     padding: 1rem;
+    /* 游戏区域：禁掉双击放大（manipulation 仍保留单击/滚动，不破坏按钮交互） */
+    touch-action: manipulation;
     --gs-wrap-half: 440px;
     --gd-card-w: 50px;
     --gd-card-h: 72px;
@@ -244,6 +261,9 @@ theme_color: "#fafaf9"
   .gd-rank-badge {
     font-size: 0.66rem; padding: 0.05rem 0.4rem; border-radius: 999px;
     color: #fff; font-weight: 600;
+    /* 侧位座只有 60px 宽，「头游」会被挤成「头/游」竖排两行 ——
+       写死单行、不收缩，让它跟张数并成「张数 | 头游」横向一行两列。 */
+    white-space: nowrap; flex: 0 0 auto;
   }
   .gd-rank-badge.r1 { background: #c9a227; }
   .gd-rank-badge.r2 { background: #6b8f9c; }
@@ -783,10 +803,12 @@ theme_color: "#fafaf9"
   }
   .gd-lobby[hidden] { display: none; }
 
-  /* 房号 chip：右上角；点击复制（直接代替单独的"复制房号"按钮） */
+  /* 房号 chip：点击复制（直接代替单独的"复制房号"按钮）。
+     原本钉右上角，会跟 ⚙️🏆✕ 那三颗角钮叠在一起；改成坐在右上角按钮行「下方」一档，
+     竖屏 / 桌面都不再打架。横屏手机另有覆盖把它挪到左上（见下方 media query）。 */
   .gd-lobby-room-chip {
     position: absolute;
-    top: 0.55rem; right: 0.65rem;
+    top: 3rem; right: 0.7rem;
     padding: 0.28rem 0.75rem;
     background: rgba(255,255,255,0.7);
     border: 1px solid var(--gd-frame-2);
@@ -1037,7 +1059,11 @@ theme_color: "#fafaf9"
   .gd-table.gd-in-lobby .gd-levelbar-corner,
   .gd-table.gd-in-lobby .gd-self-bar,
   .gd-table.gd-in-lobby .gd-autopilot-chip,
-  .gd-table.gd-in-lobby .gd-sort-actions { display: none !important; }
+  .gd-table.gd-in-lobby .gd-sort-actions,
+  /* 左右对手座（绝对定位、钉死在牌桌中部）lobby 期间也得藏起来 ——
+     否则它们会透到大厅的「坐下 / 加机器人」上面，跟空座按钮打架。 */
+  .gd-table.gd-in-lobby .gd-side-left,
+  .gd-table.gd-in-lobby .gd-side-right { display: none !important; }
 
   /* 窄屏：座位往里收一点；头像缩小 */
   @media (max-width: 560px) {
@@ -1686,14 +1712,16 @@ theme_color: "#fafaf9"
       linear-gradient(160deg, var(--gd-felt-1) 0%, var(--gd-felt-2) 60%, var(--gd-felt-3) 100%);
     -webkit-backdrop-filter: none; backdrop-filter: none;
   }
+  /* 不再用一张浅白卡片把设置框起来：内容直接坐在铺满全屏的羊皮纸背景上，
+     只保留一个居中可读的窄列宽度，去掉底色 / 边框 / 圆角 / 阴影那个矩形。 */
   body.gd-game-fullscreen .gs-pgo-view {
-    background: linear-gradient(160deg, var(--gd-card-bg) 0%, var(--gd-card-bg-2) 100%);
-    border: 1px solid var(--gd-frame-2);
-    border-radius: 20px;
+    background: none;
+    border: none;
+    border-radius: 0;
     padding: 1.3rem 1.7rem 1.5rem;
     width: min(360px, 90vw);
-    box-shadow: 0 16px 46px rgba(141,110,55,0.28), inset 0 0 0 1px rgba(255,255,255,0.5);
-    color: var(--color-ink);   /* 卡片内文字一律深字（覆盖 games-shell 的白字默认） */
+    box-shadow: none;
+    color: var(--color-ink);   /* 文字一律深字（覆盖 games-shell 的白字默认） */
   }
   /* 掌踋 app 图标（暖奶油 tile 风），圆角方形 */
   .gd-pgo-applogo {
@@ -1718,6 +1746,11 @@ theme_color: "#fafaf9"
   }
   body.gd-game-fullscreen .gs-pgo-view .gd-online-input::placeholder { color: var(--color-muted); }
   body.gd-game-fullscreen .gs-pgo-view .gd-gameopts-toggle { color: var(--color-muted); }
+  /* 「玩法设置」那行的小结（同队进贡·分不限·20秒）原本是浅金 #ffe18d，落在暖色羊皮纸上
+     几乎看不清 —— 换成深琥珀，跟暖底拉开对比。下方「本难度累计」分数同理（原来是白字）。 */
+  body.gd-game-fullscreen .gs-pgo-view .gd-gameopts-toggle .go-sum { color: #8a6312; opacity: 1; }
+  body.gd-game-fullscreen .gs-pgo-view .gd-pgo-score { color: var(--color-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-pgo-score strong { color: var(--gd-accent-strong); }
   /* 对局进行中从 ⚙️ 调出设置时，卡片左上角的「返回游戏」（关掉设置续局） */
   .gd-pgo-close {
     position: absolute; top: 0.7rem; left: 0.9rem;
@@ -1803,6 +1836,13 @@ theme_color: "#fafaf9"
     body.gd-game-fullscreen .gd-settings-btn {
       right: calc(5.3rem + env(safe-area-inset-right, 0px));
       top: calc(0.45rem + env(safe-area-inset-top, 0px));
+    }
+    /* 横屏：三颗角钮全在右上，左上角空着（级牌角标在大厅里已隐藏）→ 房号挪去左上，
+       彻底跟那三颗钮分开，不再压在 ✕ 上面。 */
+    body.gd-game-fullscreen .gd-lobby-room-chip {
+      top: calc(0.5rem + env(safe-area-inset-top, 0px));
+      left: calc(0.6rem + env(safe-area-inset-left, 0px));
+      right: auto;
     }
     /* 画幅铺满：去掉外圈那圈奶油色边 + 金色细边 + 圆角，让羊皮纸牌桌一直延伸到
        屏幕物理边缘（含刘海/圆角安全区），不再留一道贴合感差的浅色框；
@@ -1939,9 +1979,9 @@ theme_color: "#fafaf9"
          让出一整行高度给对家出牌区往上挪。 -->
     <div class="gd-seats-top">
       <div class="gd-seat gd-seat-h" id="gdSeat2" data-seat="2">
-        <div class="gd-avatar team-you" id="gdAv2">🤝<span class="gd-clock" id="gdClk2" hidden></span></div>
+        <div class="gd-avatar team-you" id="gdAv2">🤖<span class="gd-clock" id="gdClk2" hidden></span></div>
         <div class="gd-seat-meta">
-          <div class="gd-name">对家 <span class="tag">AI</span></div>
+          <div class="gd-name">AI</div>
           <div class="gd-seat-cnt">
             <span class="gd-count" id="gdCnt2">27</span>
             <span class="gd-rank-badge" id="gdRk2" hidden></span>
@@ -1961,8 +2001,8 @@ theme_color: "#fafaf9"
          对家之间），不再随对家座位变扁而一起上移。 -->
     <div class="gd-side gd-side-left">
       <div class="gd-seat" id="gdSeat3" data-seat="3">
-        <div class="gd-avatar team-opp" id="gdAv3">🐱<span class="gd-clock" id="gdClk3" hidden></span></div>
-        <div class="gd-name">对手·左 <span class="tag">AI</span></div>
+        <div class="gd-avatar team-opp" id="gdAv3">🤖<span class="gd-clock" id="gdClk3" hidden></span></div>
+        <div class="gd-name">AI</div>
         <div style="display:flex;gap:0.3rem;align-items:center;">
           <span class="gd-count" id="gdCnt3">27</span>
           <span class="gd-rank-badge" id="gdRk3" hidden></span>
@@ -1973,8 +2013,8 @@ theme_color: "#fafaf9"
 
     <div class="gd-side gd-side-right">
       <div class="gd-seat" id="gdSeat1" data-seat="1">
-        <div class="gd-avatar team-opp" id="gdAv1">🦊<span class="gd-clock" id="gdClk1" hidden></span></div>
-        <div class="gd-name">对手·右 <span class="tag">AI</span></div>
+        <div class="gd-avatar team-opp" id="gdAv1">🤖<span class="gd-clock" id="gdClk1" hidden></span></div>
+        <div class="gd-name">AI</div>
         <div style="display:flex;gap:0.3rem;align-items:center;">
           <span class="gd-count" id="gdCnt1">27</span>
           <span class="gd-rank-badge" id="gdRk1" hidden></span>
@@ -2249,4 +2289,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260611b"></script>
+<script src="/assets/js/games/guandan.js?v=20260611c"></script>
