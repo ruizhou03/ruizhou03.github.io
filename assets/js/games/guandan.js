@@ -1331,9 +1331,9 @@
       const bw = isJoker(b) || isWild(b, level);
       const aRank = aw ? tripleRank : cardRankIdx(a);
       const bRank = bw ? tripleRank : cardRankIdx(b);
-      // 三张组在前，对子在后
-      const aTrip = aRank === tripleRank ? 0 : 1;
-      const bTrip = bRank === tripleRank ? 0 : 1;
+      // 对子在前(列顶)、三张组在后(列底)：摞成一列时三张在下、对子在上
+      const aTrip = aRank === tripleRank ? 1 : 0;
+      const bTrip = bRank === tripleRank ? 1 : 0;
       if (aTrip !== bTrip) return aTrip - bTrip;
       // 同组里：真牌在前、wild 在后
       if (aw !== bw) return aw ? 1 : -1;
@@ -3707,17 +3707,16 @@
     els.arrangeBtn.addEventListener('click', () => {
       const sel = [...state.selected].filter(c => state.hands[0].includes(c));
       if (sel.length < 2) return;
-      // 选中的牌不能跨越已有 group（要先还原再重新理）
-      for (const g of state.customGroups) {
-        const cs = new Set(g.cards);
-        if (sel.some(c => cs.has(c))) return;
-      }
       const level = currentLevelLabel();
       const cb = classify(sel, level);
       // 只允许把「能整摞一起打出去的合法牌型」摞起来：对子/三张/三带二/顺子/连对(木板)/
       // 钢板/炸弹/同花顺/天王炸……classify 认得就放行，认不得(随手凑的一堆杂牌)就静默不摞，
       // 杜绝把任意张数(甚至 8+)的杂牌硬摞成一摞。不弹窗，点错了什么都不发生。
       if (!cb) return;
+      // 选中的牌若与已有摞重叠：直接拆掉那些旧摞、用当前选中重新摞一摞 ——
+      // 这样「已摞好的三张」+「一对」可以直接并成一摞三带二，不必先还原。
+      const selSet = new Set(sel);
+      state.customGroups = state.customGroups.filter(g => !g.cards.some(c => selSet.has(c)));
       const isBomb = cb && isBombType(cb.type);
       const strength = isBomb ? (cb.bombStrength || 0) : 0;
       state.customGroups.push({
