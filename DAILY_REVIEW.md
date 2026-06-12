@@ -1,3 +1,78 @@
+## 2026-06-12
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周五 DOW=5，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=12，未跑 monthly_stats）。距 6-11 巡检共 **23 个 commit**（`3efbe4f` 之后 → `62f08be` 为止），主线四条：① **掼蛋 8 commit**——`9ef3648`/`40894e9`（误标 pindou，已写入）后从 `ace702d` 开始：「禁缩放写死 viewport + PreGame 去白卡片/修金字对比度 + 大厅藏漏出对手座/挪房号 + 头游标签单行 + 对家对手统一 AI+机器人图标」、`4a563b0`「修联机加入者变房主/房主看不到人 + AI 改固定编号 + 放大牌面点数」、`e91974f`「牌面数字 lining 满高再放大 + 托管不弹窗 + 大厅座位防刘海 + 张数与托管按钮分开」、`466cd17`「恢复 Pre-Game 页（暖色调+app 图标）+ ⚙️齿轮重画 + 出牌区缩小 + 手牌位置写死 + 旋转复位」（前一日 `eedf2ee` 桌面优先 UI 已被 `616acff` 整条 revert）、`b298cac`「出牌按钮与出牌/不出/加倍合并成同一条决策带（电脑省一行+手机改顶对齐从上往下）」、`23759d`「手机出牌区改回贴底往上长+决策带浮在牌上一层 + 接风只留二字提高对比」、`a48f9fa`「手机端整块（决策带+手牌+左右对手）下移到牌桌下部 + 带与手牌间留呼吸距离」、`da396d1`「手机端整块再下移一点 + 手牌右移避开左下角 chip + 牌面花色加大并统一位置」、`2f7dbc8`「理牌支持把已摞的三张+一对并成一摞三带二（三张在下、对子在上）」、`1cf6756`「Phase 2 前端联网模式 —— 开局拿服务器真牌 + 出牌发 move + 轮询收 AI 进展」（`assets/js/games/guandan.js` +151/-9，新增 `startNetworkedGame` / `applyServerGameState` / `sendNetworkedMove` / `nextRoundNet`，后端引擎只改 1 行 `viewForSeat` 补 trick 结构向前兼容）。② **拼豆图纸 7 commit**——`9ef3648`「底板背景按钮并入色卡行省一行 + 采购清单默认按色号升序」、`40894e9`「坐标图/图例改版——呼吸留白+收口外框、画布文字统一全站字体、图例固定 5 列彩色卡」、`4b7373c`「上线独立 PWA + 文案精简 + 手机端适配」（新增 `toolbox/pindou/manifest.json` + 4 张图标 `pindou-{apple-touch,192,512,maskable-512}-icon.png`）、`ef59b34`「标题用拼豆图标+改名『拼豆图纸』、抠图超时改温和不再误杀、用整张图后停掉 AI 遮罩、独立 PWA 沉浸式隐藏整站外壳」、`af7357c`「手机端 ②区改版——预览图提到最前 + 调参面板可折叠压缩 + 默认出『约 2 小时完成量』」、`bfb56eb`「抠图进度/预览区大改版 + 去冗余提示」、`0eee009`「抠图进度只进不退（修来回跳/转二圈）+ 预览区与调参面板多项打磨 + PWA/手机端去小助手」、`495a92f`「双向联动面板实时着色+可逆反应箭头+进度环修复 90% 卡顿」（拖硬参时上面板暖金高亮+下面板藏蓝跟随；拖耗时滑杆时反过来；进度环改按时间均匀推进、不再 90% 卡顿）、`62f08be`「面板初始灰框白底（拖滑块才上色）+ 可逆反应箭头左右对调」（箭头修正左 la-down 右 la-up 与 ⇌ 标准化学符号一致）。③ **种树 2 commit**——`a7f25c8`「上线独立 PWA + 账本图标收编进家族 + 两者手机端适配」（新增 `toolbox/forest/manifest.json` + 4 张图标 + ledger 全套图标重制；`_data/toolbox.yml` 更新 + `_includes/tool-card.html` +4 行）、`eebf1d8`「种树图标加倒计时环、账本图标加 ¥ 金币；种树重排为一张大卡片+折叠次要设置」（`toolbox/forest/index.html` +225/-? 行）。④ **维护**——`ce80fe1`「台账登记拼豆已扫（随 PWA 上线）」记 `docs/toolbox-copy-trim-playbook.md` +1。今日 `scripts/audit/run.sh` 全套审计 **12/13 clean**（keywords / images / material_type / filename / sibling / bare_dollar / img_caption_md / svg_italic / bare_url / frontmatter_yaml）；**hover_no_media 报 1 个文件 / 1 处**——新加的 `toolbox/guandan/index.html` L1764「Pre-Game 模式切换标签」`body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab:hover` 没用 `@media (hover: hover)` 守卫（`466cd17` Pre-Game 恢复时引入），已直接修复并通过复审。`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（cold build 通过；修复后再 build 也 clean）。**今日修了 1 处**：guandan L1764 加 `@media (hover: hover)` 守卫，与 L1373 / L1703 / L1713 既有 inline guard 同款写法。残余 P2 4 项状态见下（昨日 P2#4 pindou `console.log` 调试残留今日 ✅ 已由站主在 `bfb56eb`/`0eee009` 抠图进度改版时一并清掉，全仓库 grep `console.log` 仅剩 `assets/js/doudizhu/engine.test.html` 一个测试页内）。
+
+### ✅ 本次已自动修复
+
+1. **`toolbox/guandan/index.html:1764` `body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab:hover` 加 `@media (hover: hover)` 守卫** —— `hover_no_media.py` 命中：「Pre-Game 模式切换标签」（单机/联机 tab）的 `:hover` 是 `466cd17` 那次「恢复 Pre-Game 页」时新加的暖色主题悬停态（`color: var(--color-muted)` → `var(--color-ink)`），没跟着前几日修过的 `.gd-board-close` / `.gd-quit-btn` / `.gd-gameopts-toggle` 一起加守卫。**影响**：触屏设备点过 Pre-Game 页的「单机 / 联机」切换标签后会卡在悬停态、字色留着不掉。**复审**：`hover_no_media.py` ✅ 通过；`bundle exec jekyll build` ✅ 通过零 warning。与 6-10 / 6-11 同 pattern——guandan 这工具 Pre-Game 页恢复 + 联网模式 Phase 2 一周两次大改，几乎每次都得跟着加 hover 守卫；今日审计第一时间发现并收口，与 L1373/L1703/L1713 既有 inline guard 同款写法（一行内联包住单个 `:hover` 规则）。
+
+### 📋 待你把关
+
+#### P1（建议尽快）
+
+**P1 队列今日清零** —— 与 6-04 ~ 6-11 一致，未新增 P1。
+
+#### P2（看心情）
+
+1. **新付费墙系统在沙箱无后端出口验证** —— 承接 6-04 ~ 6-11 P2#1。`zircon-urge.fly.dev` 今日 `backend_pulse.py` 仍 HTTP 403，`scripts/paywall/smoke_test.py` 仍需站主在生产环境跑。
+
+2. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里仍称"zirconeey 站"** —— 沿用 6-05 ~ 6-11。属本地标识符，不影响线上；若想顺手统一文字描述（不动文件名），改 `prompt.md` / SKILL.md 正文「zirconeey 站」→「ruizhou03 站」即可。
+
+3. **`_notes/study/adv-metrics-pku/mid-2015.md`、`_notes/study/psy-stat-I/anova-R.md` 这两类纯 PDF 存档可考虑加同课程互链入口** —— 沿用 6-05 ~ 6-11 P2#4。设计取向项，`sibling_crosslink.py` 当前不报警（已用自动侧栏覆盖）。
+
+4. **5 条 DNS NameResolutionError 外链需站主在生产环境复验**（沿用 6-08 ~ 6-11）—— centretax.net、offcampus.psu.edu、www.hwdrivingschool.com、www.judicialinformation.com、www.textile-outlook.com。今日没跑 `dead_links.py`（周一项），下周一会再扫一遍。
+
+5. **`_notes/life/paid-test-{us-banking-guide,us-visa-types}.md` 标题仍带"（付费）"后缀但 `paid:false`** —— 沿用 6-06 ~ 6-11，等站主拍板是否清掉「（付费）」标签。
+
+#### 🆕 本次抽检 10/10 中新出现的观察（不是问题，是提示）
+
+- **抽检 1/10 · game · `toolbox/feixingqi/index.html`**（2951 行 / 123.9 KB，inline-only）—— ✅ 无问题。承接 6-10 抽检结论，本周未改动；与「掼蛋 / 跳棋 / 麻将」同属大型对局游戏家族，单文件接近 3K 行但 `hover_no_media.py` 验证 hover 守卫齐全；与 games-shell 接入 lb/urge/comments；inline `<style>` + `<script>` 风格统一。**不是问题**——稳定运行。
+
+- **抽检 6/10 · lecture_note_full · `_notes/study/real-anal/real-anal-ch2-2024.md`**（20 行 / 1.6 KB）—— ✅ 无问题。实分析 Ch2 Integration（英文标题、中文内容）；front-matter 完整（discipline=数学 / course=实分析 / material_type=Notes / date=2024-09-01）；keywords 充分覆盖（Lebesgue integration、可测函数、Fatou 引理、Monotone Convergence 等）；`pdf_url=/files/real-anal/real-anal-ch2-2024.pdf` 路径有效；与 `real-anal-ch1-2024.md`、`real-anal-ch3-2024.md` 形成"实分析章节"系列。**LaTeX 化评估**：已有 PDF 配套笔记，复用频次低（一次性章节笔记），**维持 PDF 存档即可**。
+
+- **抽检 8/10 · note · `_notes/tutoring/space-vectors.md`**（47 行 / 1.1 KB）—— ✅ 无问题。「空间直角坐标系」初升高数学讲义；front-matter 完整（main_category=学习资料 / sub_category=数学 / course=数学 / date=2026-01-25）；keywords 充分（初升高、高二、立体几何坐标法、向量点积叉积、空间向量运算等中英文同义词覆盖）；`pdf_url=/files/tutoring/space-vectors/Main.pdf` 路径有效。**不是问题**——属"初升高数学衔接"专栏标准 PDF-only 存档。
+
+- **掼蛋 8 commit 高密度迭代**：单文件 `toolbox/guandan/index.html` 累计 +358 / -? 行 + `assets/js/games/guandan.js` +291/-? 行（Phase 2 联网模式占大头），inline `<style>` 块已超过 850 行。主线在「Pre-Game 重建（暖色调）+ 桌面 / 手机决策带统一 + 牌面 lining 数字 + 联网 Phase 2」。**不是问题**——与 6-11 评估一致，仍维持 inline-only 风格、`@media (hover: hover)` 守卫今日靠 audit 发现一次漏并已修复；若再持续每周 8+ commit 节奏，下季度可考虑拆出 `guandan.css`。**Phase 2 联网模式**新增 4 个核心函数（startNetworkedGame / applyServerGameState / sendNetworkedMove / nextRoundNet）+ `isNetworked()` 守卫在 `commitPlay`/`commitPass`/`scheduleAI` 三处生效，后端引擎只改 1 行 `viewForSeat` 补 trick 结构（lead/best/bestSeat/passes），向前兼容。
+
+- **拼豆图纸 7 commit**：今日新增独立 PWA（`toolbox/pindou/manifest.json` + 4 张图标）；UI 双重交互升级——「拖硬参时上面板暖金高亮+下面板藏蓝跟随；拖耗时滑杆时反过来」做成可逆反应箭头 ⇌ SVG 圆徽章（`62f08be` 进一步修正左右对调，la-down/la-up 与标准化学符号一致）；进度环修复 90% 卡顿（改按时间均匀推进）。**不是问题**——稳定迭代、首发即合规，构建产物 `_site/toolbox/pindou/index.html` ✅ 正确写出 `<link rel="manifest" href="/toolbox/pindou/manifest.json">` + `<link rel="apple-touch-icon">` + `<meta name="apple-mobile-web-app-title" content="拼豆">`。承接 6-09 ~ 6-11 P2#4 pindou `console.log` 调试残留**今日已由站主一并清掉**（`bfb56eb`/`0eee009` 抠图进度改版时移除），全仓库 grep `console.log` 仅剩 `assets/js/doudizhu/engine.test.html` 一个测试页。
+
+- **种树独立 PWA 上线**：`a7f25c8` 把「种树」做成可安装 PWA（`toolbox/forest/manifest.json` + 4 张图标 `forest-{apple-touch,192,512,maskable-512}-icon.png`），同时把账本图标也收编进同款奶油底家族（`assets/icons/ledger-*.png` 4 张全部重制）；`eebf1d8` 进一步给种树图标加倒计时环、账本图标加 ¥ 金币，并把种树 UI 重排成一张大卡片 + 折叠次要设置（`toolbox/forest/index.html` +225 行）。**不是问题**——首发即合规，与 6-10 「记账」/ 6-11 三个游戏 PWA 同 pattern；构建产物 `_site/toolbox/forest/index.html` ✅ 正确写出 manifest / apple_touch_icon / app_title。两个图标家族（forest 倒计时环 + ledger ¥ 金币）凸显工具语义，是设计语言升级。
+
+- **6-11 「桌面优先 UI 改成牌桌中心卡片」一日内被 revert + 反向恢复 Pre-Game 页**：`616acff` Revert `eedf2ee`、`466cd17` 重建 Pre-Game（暖色调+app 图标+齿轮重画）。**不是问题**——属于站主对设计取向的迭代修正（决定保留 Pre-Game 页作为玩前入口）；revert 干净（`git log --oneline eedf2ee..616acff` 单条 revert 提交无附带改动），后续 `466cd17` 把 Pre-Game 重新打磨成更适合当前 UI 语言的版本。这种「试一种方案-revert-换一种思路」是健康的迭代节奏，没有遗留死代码。
+
+- **抽检 2/4/5/7/9/10 各项均 ✅ 无问题**：`files/tennis/tennis-exam-prep.pdf`（267.7 KB，被 `_notes/study/tennis/tennis-exam-prep.md` 引用，体积 < 5 MB 不需 pdfslim，**LaTeX 化评估：维持 PDF 存档**）；`_notes/study/interm-metrics/interm-metrics-2023.md`（17 行 / 1.3 KB，PKU 中级计量 2023 笔记，summary 准确含「ar(1) 动态酝酿名场面」彩蛋，keywords 24 条覆盖中英文 + 课程别名 + 拼写变体，**LaTeX 化评估：维持 PDF 存档**）；`_notes/gre/gre-exam-ui-notebook.md`（406 行 / 17.4 KB，「我把 GRE 的考试界面搬到了错题本上」，img-caption 4 处齐全）；`_notes/life/sleep-sensory-gating.md`（309 行 / 24.7 KB，「闭上眼能感觉到光的强弱…眼皮和大脑怎么『关掉』感官」生活之问专栏，img-caption 2 处齐全，丘脑网状核 / ipRGC / melanopsin 等术语 keywords 全覆盖）；`_notes/life/cooking-water.md`（310 行 / 20.0 KB，「做饭用自来水还是瓶装纯净水？分场景给答案」生活之问专栏，img-caption 1 处齐全）；`files/adv-micro-psu/chapters/ch7.pdf`（132.4 KB，章节切片之一与 ch1-ch12 合订本双形态共存，同目录有 `.tex` 源 = 已 LaTeX 化）；`_notes/study/corp-fin/mid-2020-zh.md`（17 行 / 1.4 KB，「公司财务管理期中 2020 中文卷」与 `mid-2020-en.md` 配对，keywords 27 条覆盖 ross westerfield/WACC/DCF/NPV/MM 定理等）。
+
+#### 🗒️ 待办清账（承接 6-11）
+
+- **图片 alt / caption 覆盖**：`images.py` 今日仍 `missing_alt = 0` / `missing_caption = 0`（白名单 62 条），保持收口。
+- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套 HTTP 403。
+- **Round-3 留下的 ~68 个 P1**：未在本次范围推进。
+- **`taichi-review-2023.md`「85 公里跑」**：未触碰。
+- **大图基线**：与 6-11 完全一致，无变化。
+
+### 🔬 抽检专项
+
+> 本次种子抽 10 项（强制配额 game/pdf_archive/lecture_note_pdf_only 各 ≥1，其余随机）。10 项一视同仁过审清单；各类目结论汇总如下。
+
+- **抽检 1/10 · game · `toolbox/feixingqi/index.html`**（2951 行 / 123.9 KB，inline-only）—— ✅ 无问题。结论同上「本次新出现的观察」段。
+- **抽检 2/10 · pdf_archive · `files/tennis/tennis-exam-prep.pdf`**（267.7 KB）—— ✅ 无问题。被 `_notes/study/tennis/tennis-exam-prep.md` 引用；体积 < 5 MB 不需 pdfslim；**LaTeX 化评估：维持 PDF 存档**。
+- **抽检 3/10 · lecture_note_pdf_only · `_notes/study/interm-metrics/interm-metrics-2023.md`**（17 行 / 1.3 KB）—— ✅ 无问题。`summary` 字段写明笔记内容与「ar(1) 动态酝酿名场面」彩蛋；keywords 24 条覆盖中英文 + 课程别名（光华/PKU/北大 中级计量）+ 教材（Wooldridge / Stock Watson）+ 知识点（OLS 五大假设 / IV 弱识别 / Probit Logit）。**LaTeX 化评估**：单年课程笔记、复用频次低，**维持 PDF 存档即可**。
+- **抽检 4/10 · note · `_notes/gre/gre-exam-ui-notebook.md`**（406 行 / 17.4 KB）—— ✅ 无问题。「我把 GRE 的考试界面搬到了错题本上」/ sub_category=GRE / date=2024-08-09；img-caption 4 处齐全；正文结构清晰、有 takeaway；keywords 覆盖"错题本 GRE / Pythagorea 几何 / 模考界面 / 真题界面"等读者口语。
+- **抽检 5/10 · note · `_notes/life/sleep-sensory-gating.md`**（309 行 / 24.7 KB）—— ✅ 无问题。生活之问专栏标准五段结构（"你常感觉到 → 真相 → 机制 → 启发 → takeaway"）；keywords 27 条覆盖中英文术语（丘脑网状核 / ipRGC / melanopsin / SCN）+ 口语（"睡着了为什么看不到"/"梦中能听到"）+ 错别字（"为什么打雷会醒"）；img-caption 2 处齐全；中文未用斜体；公式无（生理学科普性质，不需要 LaTeX）。
+- **抽检 6/10 · lecture_note_full · `_notes/study/real-anal/real-anal-ch2-2024.md`**（20 行 / 1.6 KB）—— ✅ 无问题。结论同上「本次新出现的观察」段。
+- **抽检 7/10 · note · `_notes/life/cooking-water.md`**（310 行 / 20.0 KB）—— ✅ 无问题。生活之问专栏「做饭到底用自来水还是瓶装纯净水？分场景给答案」；img-caption 1 处齐全；分场景给答案结构合理（煮米饭 / 煲汤 / 婴儿食物 / 茶咖啡分别给场景化建议）；keywords 覆盖"瓶装水做饭"/"自来水蒸饭"/"婴儿辅食用什么水"等口语。
+- **抽检 8/10 · note · `_notes/tutoring/space-vectors.md`**（47 行 / 1.1 KB）—— ✅ 无问题。结论同上「本次新出现的观察」段。
+- **抽检 9/10 · pdf_archive · `files/adv-micro-psu/chapters/ch7.pdf`**（132.4 KB）—— ✅ 无问题。被英文学术主页 `/index.html` L640 引用；与 ch1-ch12 章节切片 + `Macro.pdf` 合订本双形态共存（沿用 6-11 PSU 高宏 ch7 抽检结论，本周未改动）；同目录有 `ch7_neoclassical_vs_data.tex` 源码。**LaTeX 化评估**：**已 LaTeX 化**状态，**保持现状**。
+- **抽检 10/10 · lecture_note_pdf_only · `_notes/study/corp-fin/mid-2020-zh.md`**（17 行 / 1.4 KB，正文 0 字）—— ✅ 无问题。「公司财务管理期中 2020 中文卷」；与 `mid-2020-en.md`（英文版）配对形成「期中 2020 中英双卷」系列；front-matter 完整（discipline=管理学 / course=公司财务管理 / material_type=Exams / date=2020-09-01）；keywords 27 条覆盖中英文 + 课程别名（光华/PKU/北大）+ 教材（ross westerfield）+ 知识点（WACC/DCF/NPV/MM 定理/资本结构）+ 错别字（"公司财物 期中 中文"）；`summary` 准确（"建议先掐时间做一遍，再对照站里同课程的样题卷与 cheat sheet 复盘。同一份卷子另有英文版可对照"）。**LaTeX 化评估**：单年期中真题、复用频次低、与英文卷已配对，**维持 PDF 存档即可**。
+
+---
+
+### 🗂 仓库卫生
+
+**仓库结构较 6-11 有显著变化**——23 个 commit 涉及四类高频迭代：① 掼蛋 8 commit（Pre-Game 重建 + 联网 Phase 2 上线 + 决策带统一 + 牌面 lining 数字 + 横屏 pointer:coarse 判定 + 理牌三带二并摞）`toolbox/guandan/index.html` +358 行 + `assets/js/games/guandan.js` +291 行；② 拼豆 7 commit（独立 PWA + 改名「拼豆图纸」+ 抠图进度均匀推进 + 双向联动面板 + 可逆反应箭头 + 控件统一字体）+ 新增 `toolbox/pindou/manifest.json` + 4 张 PWA 图标；③ 种树 2 commit（独立 PWA + 倒计时环图标 + 账本图标 ¥ 金币 + UI 重排）+ 新增 `toolbox/forest/manifest.json` + 4 张图标 + 账本图标家族 4 张重制；④ 1 处 revert（`616acff` 干净 revert `eedf2ee` 桌面优先 UI）。**敏感文件扫描**：`git ls-files | grep -iE '\.env$|credentials|\.DS_Store|token\.json|secret'` ✅ 全空；未发现 `"xxx 2.yyy"` 形式副本；`_config.yml` exclude 列表完备（含 DAILY_REVIEW.md / SPOTCHECK_* / docs/ / scripts/ / backends/ / _paid/）；`git ls-files --others --exclude-standard` ✅ 空。**结构合理性**：① 两个新 PWA（pindou / forest）的 manifest / icons / `app_title` 字段全部齐整，构建产物 ✅ 正确写出（手动 grep `_site/toolbox/{forest,pindou}/index.html` 印证 `<link rel="manifest" href="/toolbox/<slug>/manifest.json">` + `<link rel="apple-touch-icon">` + `<meta name="apple-mobile-web-app-title">`）；② 掼蛋 8 次大改全部沿用既有 hover 守卫 / games-shell 接入 / `.zone-side` 风格，**今日审计抓到 1 处 Pre-Game 恢复时新增的 `:hover` 漏判已秒修**；③ pindou 7 次改动延续稳定迭代节奏；④ ledger 图标家族被 forest 拉齐成同款奶油底家族（`assets/icons/ledger-*.png` 4 张全部重制为带 ¥ 金币的新设计），是设计语言升级；⑤ 6-11 P2#4 pindou `console.log` 调试残留**今日由站主在 `bfb56eb`/`0eee009` 抠图进度改版时一并清掉** ✅。**剩余隐患**：见上 P2 #1 / #2 / #3 / #4 / #5；今日新增隐患 0 项（hover 漏判已秒修）。**结论**：仓库卫生 ✅ 干净，23 个 commit 全程合规（除 1 处 hover 漏判已修），revert 干净无遗留。
+
+---
+
 ## 2026-06-11
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周四 DOW=4，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=11，未跑 monthly_stats）。距 6-10 巡检共 **33 个 commit**（`a8d5f07` 之后 → `eedf2ee` 为止），主线五条：① **掼蛋大规模 UI 重做 21 commit**——从「沉浸全屏 + 满铺安全区 + 深摞错落不压扁」起（`1b62f45`），一路打磨到「右上角带确认退出钮 / 榜单冠军图标 / 我方头像双行」（`8c5bce1`）、「理牌行三键改手绘矢量图标」（`387e829`）、「理牌仅限合法牌型 + 张数挪头像旁 + 托管图标贴头像」（`e3f946e`）、「牌堆回截图版深摞纯重叠」（`6469e49`）、对手左/右钉竖向中间（`952054c`）、连续四档放大手牌至 50×72 与出牌区追平（`b66fb58 9291c98 64b484c`）、左右对手出牌更贴头像（`5d8fca9`）、横屏布局判定改 `pointer:coarse`（`287a31e`），并以「桌面优先 UI：去掉全屏 Pre-Game 页、改成牌桌中心卡片 + ⚙️ 设置浮层」收官（`eedf2ee`）。② **俄罗斯方块手机端沉浸化 6 commit**——`fcffc38` 棋盘撑满首屏、`8eb6d6e` 删屏幕按钮 + 开始页全屏 + Best 持久化 + 暂停/新游戏矢量图标、`726561a` 禁止游戏区文本选择防滑动误选、`61ad935` 棋盘滑动改实时跟手一格一格走、`2005d84` 修预进入页历史最佳一直显示 0 + 删右上角退出键、`36d7d8c` Hold 改可选设置默认关 + 棋盘更宽。③ **拼豆图纸 5 commit**——`257f80a` 量化改 OKLab 修白衣彩斑 + 抠图按钮三态化、`ee43913` 笔刷滚轮 / 双指捏合调大小 + 调整面板收成卡片、`603e8e1` 白底发绿修复（彩度死区）+ 第一步主次按钮分层、`24eef43` 颜色量化回退 redmean + 提示文字精简、`0448dc8` 新增「抖动」上色模式（Floyd–Steinberg），随后 `ee659c5` 又删掉「平涂/抖动」开关（用户觉得没用，标志稳定迭代里也敢做减法），最后 `56cf64d` 新增可切换色卡——默认 MARD 漫漫 221 色、可切回 Hama 53 色。④ **三个高频游戏独立 PWA 化**——`a0d0d4e` 把 2048 / 合成大西瓜 / 掼蛋 各自做成可安装的 PWA（每个加 per-tool `manifest.json`、`apple_touch_icon`、`app_title`，配 4 张 192/512/maskable/apple-touch 图标，统一奶油底家族语言）。⑤ **配套修复**——`460fd7e` 手机端修 runner/leap 开始遮罩被矮画布裁切（4:1 / 5:2 画布配 `:has(.gs-pgo-overlay.open)` 撑高，开局后 `resizeCanvas()` 恢复）+ tetris 棋盘 max-width 放开到 340、两侧缩到 52；`a913f2f` 宠物趋势图加悬停 / 框选互动，柱顶数字收进浮窗，触屏抬手后可钉住读数；`0c80dc9` `lane-change-illusion` 去掉「对个人提问作答」的措辞，让文章读起来是科普而非大号回复（4 处「你那句」「你描述的那个」改成面向大众读者的中性表述）。今日 `scripts/audit/run.sh` 全套审计 **13/13 全 clean**（keywords / images / material_type / filename / sibling / hover_no_media / bare_dollar / img_caption_md / svg_italic / bare_url / frontmatter_yaml；backend_pulse 仍 403 无外网出口；spotcheck 10/10 全 ✅），是本季度第一次每日 13 项零命中。`bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` 通过、零 warning、零 error（cold build 13.704 s）。**今日没有发现需要自动修复的项**——33 个 commit 全部合规：21 处掼蛋改动遵守既有 `@media (hover: hover)` 守卫 / `.zone-side` 风格、6 处 tetris 改动正确处理触屏 `user-select` 与遮罩 `min-height` 互动、5 处 pindou 改动延续 OKLab→redmean 的稳定回退路径、3 个新 PWA manifest 字段齐全（id/start_url/scope 自洽 + 三档 icons 含 maskable）；pet 趋势图新加的 SVG overlay 与 `.chart-tip` 在 `pet.css` 第 27 处 `:hover` 全部包在 `@media (hover: hover)` 块内。残余 P2 5 项（paywall 后端冒烟、内部 prompt 称呼 zirconeey、PDF-only 存档手写互链、pindou `console.log` 调试残留、5 条 DNS NameResolutionError 待生产复验）状态见下，与 6-10 同。
@@ -936,62 +1011,4 @@
 - 后端三件套（zircon-urge / leaderboards / zircon-comments waline）本次 `backend_pulse.py` 全报 HTTP 403。与 5-27 / 5-28 同因，**沙箱无 fly.io 出口**；不阻塞巡检，未主动重启 fly app。
 
 ---
-
-## 2026-05-28
-
-### ✅ 本次已自动修复
-
-1. **4 个 SKILL.md 的 `description` 字段统一为 `ruizhou03.github.io`**
-   - 现象：`.claude/skills/{search-keywords,recipe,image-caption,new-post}/SKILL.md` 的 front-matter `description` 字段仍写「zirconeey.github.io」，但站点早在 2026-05 已经合并为 `ruizhou03/ruizhou03.github.io`（见 `4a487b9 feat(merge): 中英文双站合并` + `c15b3c9 docs(merge): 重写 MAINTENANCE.md`），同目录的 `wechat-export` 已对齐为 `ruizhou03.github.io`。
-   - 影响：`description` 是 Claude session 启动时显示给我的 skill 元数据（system-reminder 里能看到），写着旧域名会让 Claude 把站点身份误判为"zirconeey 站"，潜在影响 skill 调用时的判断。**这不是"本机标识符"——`MAINTENANCE.md` 第 25 行豁免的本机字样指的是钩子/脚本/LaunchAgent 这类内部标识符，对外描述应跟实际站点身份对齐。**
-   - 处理：4 个 `description` 字段都把 `zirconeey.github.io` 改成 `ruizhou03.github.io`；`image-caption` 里第二处「zirconeey 站的固定格式」改为「本站的固定格式」（避免重复啰嗦）。
-   - 复构建：`jekyll build` 通过、零 warning（`.claude/` 在 exclude 内、不会影响 `_site/`）。
-   - 验证：本 session 内 system-reminder 重新加载 skills 列表时已显示新 description。
-
-### 📋 待你把关
-
-#### P1（有空再做）
-
-1. **`sw.js` 里 PWA cache 前缀仍是 `zirconeey-`（4 处）**
-   - 位置：`sw.js:20-22` 与 `sw.js:279`，cache 名 `zirconeey-pages` / `zirconeey-assets`，`LEGACY_PREFIXES` 数组里也是 `zirconeey-shell-/pages-v/assets-v`。
-   - 影响：仅是浏览器端 cache key 的命名，**不影响功能**。看着旧名字觉得别扭可以改成 `ruizhou03-`；改时把当前的 `zirconeey-pages` / `zirconeey-assets` 也写进 `LEGACY_PREFIXES`，让老访客的旧 cache 在下次 SW activate 时被 delete 掉。
-   - 我没自动改：PWA cache rename 涉及用户端缓存清理路径，属设计取向（且新名字到底叫 `ruizhou03-` 还是 `rz-` 还是别的，由你定）。
-
-2. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL 正文里还称"zirconeey 站"**
-   - 已知位置：`scripts/email_summary.prompt.md:1`、`scripts/daily_review.prompt.md:1,23`、`.claude/skills/wechat-export/SKILL.md:8,46`、`.claude/skills/search-keywords/SKILL.md` 等正文若干处（description 已修，正文里"zirconeey 站"称呼还在）。
-   - 影响：这些是给 Claude 看的 system prompt 与 skill 正文，跟当前实际站身份不一致；但都是内部文档，不影响公开站，**改 vs 不改属设计取向**。
-   - 我没自动改：description 4 处是无争议小修；正文段落里的"zirconeey 站"称呼属于「本机/历史标识符」范畴，按 `MAINTENANCE.md:25` 的指引由你决定要不要批量替换。
-
-#### P2（看心情）
-
-3. **`scripts/daily_review.sh:15` 与 `scripts/hooks/{stop_publish_reminder,post_write_imgslim}.sh:10` 仍有 `REPO="/Users/zhourui/Desktop/..."` 本机绝对路径**
-   - 5-23 的 `443febc chore(email-summary): 脱敏本机绝对路径，plist 改走 .template` 已经把 `email_summary.sh` 与 `io.github.zirconeey.email-summary.plist` 都脱敏了（plist 改走 `.template`），但同模式的 daily-review 与两个 hooks 脚本里 `REPO=` 这一行**没跟着改**。
-   - 影响：把 macOS 本机用户名 `zhourui` 与桌面目录结构继续暴露在公开仓库里。**不是密钥泄漏。**
-   - 建议：跟当时 email-summary 一样的最小改动——`REPO="$(cd "$(dirname "$0")/.." && pwd)"`（脚本会自己定位仓库根，不依赖绝对路径）。三处都改即可。
-   - 我没自动改：与 5-23 已修批次同性质，设计取向交你拍板。
-
-#### 🗒️ 待办清账（承接 5-27）
-
-- **图片 alt / caption 覆盖**：`images.py` 当前 `missing_alt = 0`、`missing_caption = 0`（`caption_whitelist.txt` 62 条人工确认误报全部豁免），之前积压的「414 处缺 alt」「65 处疑似漏 caption」已收口。
-- **`SPOTCHECK_100_AGENT_REPORTS.md` exclude**：5-27 已加入 `_config.yml` exclude，本次 `_site/` 验证未再外泄。
-- **后端脉搏（5-27 报的 `backend_pulse.py` 失败）**：本沙箱仍无 fly.io 出口（`dead_links.py` 也对 fly.dev 端点全报 403/连不上），不阻塞巡检，仅记录。本次未主动复查 fly app。
-- **Round-3 留下的 ~68 个 P1**：未在本次范围内推进，按原优先级排队。
-- **`taichi-review-2023.md`「85 公里跑」**：5-27 仍候着，本次未触碰。
-- **大图基线**（or-2023.pdf 5.30 MB + 12 张 500KB–1.5MB 图）：本次 `images.py` 输出与昨日完全一致，无变化。
-
-### 🗂 仓库卫生
-
-- **架构变化（5-27 之后新增）**：5-27 报告与今天之间只多了 3 个 commit（`6a7427d` assistant 头部浅色化 + `d884075` 全文检索库 + `c2b0f11` 本机文件夹改名 + `f0fbc97` email-summary HTML 渲染），属现有 routine 的微调，无新增内容目录或文件类型；本次自动修复的 4 个 SKILL.md 是 `c2b0f11` 改名 commit 的边角遗漏。**结构层面相对昨日无实质变化。** 站点更早的几大架构变动（中英文双站合并 / podcast / flight-watch / assistant 起步 / 猫语文章 / Round-3 抽检）已经在 5-26 / 5-27 巡检里完整覆盖，本节不再赘述——
-  - `c2b0f11` 本机文件夹改名 commit 把三个本机 `REPO=` 脚本与 4 个 SKILL.md 顶部的「仓库根」声明都改了路径，但 4 个 SKILL.md 的 `description` front-matter 字段漏改（本次已修）。
-  - `f0fbc97 feat(email-summary): HTML 渲染 + 实质摘要 + 纳入全部未读邮件`——email-summary routine 的可读性增强，纯 routine 内部，不影响公开站。
-  - `d884075` 新增 `assistant-fulltext.json` liquid 模板源（789 B），构建后展开为 1.5 MB 全文检索库；属 assistant 小助手的能力升级。
-- **追踪卫生**：
-  - 工作树扫描无 `.DS_Store`、无 `* 2.*` macOS 副本、无 `*.bak`/`*~` 编辑器垃圾；`_site/`、`.jekyll-cache/` 已被 `.gitignore` 正确忽略。
-  - 硬编码密钥扫描无新发现（`grep -E "(API_KEY|SECRET|TOKEN|PASSWORD)\\s*=\\s*['\"]"` 全 repo 命中为零）。
-  - 本机绝对路径：3 处脚本（见 P2#3）+ `_notes/research/reproducible-project.md` 中 `/Users/zircon/...`（教学反面教材的代码示例，不是泄漏）+ `.claude/skills/*/SKILL.md` 顶部「仓库根：/Users/zhourui/...」声明（本机标识符）+ `docs/ARCHITECTURE_REVIEW.md` 两个 `file:///Users/zhourui/...` 链接（本机 Claude project memory 路径）。
-- **构建健康**：`jekyll build` 通过、零 warning、零 error；`_site/` 不含 `DAILY_REVIEW.md`、`EMAIL_SUMMARY.md`、`docs/`。
-- **前置字段一致性**：246 篇 `_notes` 全部有 `main_category`；`_notes/study/` 全部有 `discipline`；32 篇菜谱必填字段齐全；**246/246 篇有 `keywords:`**（含新文章 cat-language）。
-- **百宝箱一致性**：`toolbox/` 下 45 个工具子目录与 `_data/toolbox.yml` 的 45 条 `url` 登记一一对应，无孤儿、无悬空。
-- **assistant 索引文件**：源 `assistant-fulltext.json` 仅 789 B（liquid 模板），构建后 `_site/assistant-fulltext.json` 1.5 MB / `_site/assistant-index.json` 213 KB，是全文检索预期大小，正常。
-- **结论**：本次仅一项自动修复（SKILL description 域名对齐），仓库结构与卫生整体很干净，剩余待办全部是设计取向类（domain rename 的边角清理）。
 
