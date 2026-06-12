@@ -1,0 +1,313 @@
+% !TEX root = ../main.tex
+\chapter{Qualitative Information: Dummy Variables}
+\label{ch:dummies}
+
+So far every variable in our regressions has been quantitative --- wages, years of schooling, prices, interest rates --- things that arrive already attached to a number. But much of the information an economist cares about is qualitative: a worker is male or female, a firm is unionized or not, a household lives in the city or the country, an applicant is approved or denied. These attributes have no natural numerical scale, yet they plainly belong in the model. The device that lets us fold them in is the \emph{dummy variable}: a variable that takes only the values $0$ and $1$, recording the \emph{presence} or \emph{absence} of a qualitative trait.
+
+The beauty of the dummy variable is that, once coded, it is just another regressor. All the OLS machinery of Chapters~\ref{ch:mlr}--\ref{ch:inference} applies unchanged --- the estimators, their unbiasedness, the $t$ and $F$ tests. What changes is the \emph{interpretation}. A dummy entered on its own shifts the intercept, splitting one population into a base group and a comparison group; a dummy \emph{interacted} with a continuous regressor lets the two groups have different slopes as well. We will see how to combine several dummies to encode ordered categories, how to test whether two groups obey the same regression at all (the Chow test), what happens when the dependent variable is itself a dummy (the linear probability model), and finally how dummies organize the modern language of treatment effects and self-selection.
+
+A single recurring caution ties the chapter together. Because a dummy and its complement are perfectly correlated by construction --- knowing you are male tells you exactly that you are not female --- one must always leave a base group \emph{out} of the regression, or drop the intercept. Forgetting this is the \emph{dummy variable trap}, and it is the first thing to internalize.
+
+\section{Different Intercepts: Dummies as Regressors}
+
+A dummy variable --- also called a \emph{binary} or \emph{$0$--$1$ variable} --- encodes a two-way qualitative distinction. The choice of which state gets coded $0$ and which gets coded $1$ is arbitrary and does not affect the substance of the analysis; what it \emph{does} fix is the \emph{base group} (or \emph{benchmark group}), the state coded $0$, against which everything else is measured. Keeping clear sight of the base group is the single most important habit in reading dummy-variable regressions.
+
+\defn{Dummy (Binary) Variable}{
+A \emph{dummy variable} $d$ takes the value
+\[
+d = \bc 1 & \text{if the observation has the attribute,}\\ 0 & \text{if it does not (the base group).}\ec
+\]
+It carries qualitative information into an otherwise quantitative regression.
+}
+
+Consider a population split into two groups by a single dummy $d$, alongside one continuous regressor $x_1$. The model is
+\[
+y = \beta_0 + \delta_0 \, d + \beta_1 x_1 + u.
+\]
+To read off what $\delta_0$ does, take the conditional mean of $y$ within each group. For the base group ($d=0$),
+\[
+\E{y \given x_1, d=0} = \beta_0 + \beta_1 x_1,
+\]
+while for the comparison group ($d=1$),
+\[
+\E{y \given x_1, d=1} = (\beta_0 + \delta_0) + \beta_1 x_1.
+\]
+The two population lines are \emph{parallel} --- both have slope $\beta_1$ --- but the second sits a vertical distance $\delta_0$ above (or below, if $\delta_0<0$) the first. The base group's intercept is $\beta_0$; the comparison group's intercept is $\beta_0+\delta_0$. Thus $\delta_0$ is an \emph{intercept shift}.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.05]
+  % axes
+  \draw[->] (0,0) -- (6.2,0) node[right] {$x_1$};
+  \draw[->] (0,0) -- (0,4.6) node[above] {$y$};
+  % base line: intercept 1, slope 0.5
+  \draw[thick] (0,1) -- (6,4) node[right] {$\beta_0 + \beta_1 x_1$ \ \small($d=0$, base)};
+  % comparison line: intercept 1+1.3, slope 0.5
+  \draw[thick, dashed] (0,2.3) -- (6,5.3);
+  \node[right] at (4.55,5.0) {\small($d=1$)};
+  \node[right] at (3.0,4.1) {$(\beta_0+\delta_0) + \beta_1 x_1$};
+  % intercept markers
+  \node[left] at (0,1) {$\beta_0$};
+  \node[left] at (0,2.3) {$\beta_0+\delta_0$};
+  % two-headed dimension arrow for delta_0, just to the right of the y-axis
+  \draw[<->, >=Latex] (1.4,1.49) -- (1.4,2.79);
+  \node[right] at (1.45,2.14) {$\delta_0$};
+  % thin guide lines connecting the two intercepts to the arrow
+  \draw[densely dotted] (0,1) -- (1.4,1.49);
+  \draw[densely dotted] (0,2.3) -- (1.4,2.79);
+\end{tikzpicture}
+\caption{An intercept shift. The dummy $d$ moves the whole line up by $\delta_0$ without changing the slope $\beta_1$; the two groups differ by the constant vertical gap $\delta_0$ at every value of $x_1$.}
+\label{fig:intercept-shift}
+\end{figure}
+
+The interpretation generalizes immediately. \emph{The coefficient on a dummy variable is the difference in the (conditional) mean of $y$ between the two states, holding all other regressors fixed.} Here, at any fixed $x_1$, the average of $y$ in the $d=1$ group exceeds that in the base group by exactly $\delta_0$.
+
+\ex[Wage and gender]{
+Let $\text{wage}$ be hourly wage, $\text{educ}$ years of schooling, and $\text{female}$ a dummy equal to $1$ for women, so men are the base group. The model
+\[
+\text{wage} = \beta_0 + \delta_0\,\text{female} + \beta_1\,\text{educ} + u
+\]
+makes $\delta_0$ the average wage gap between a woman and a man with the \emph{same} education. A negative estimate $\widehat{\delta}_0<0$ says that, at every level of schooling, women earn on average $|\widehat{\delta}_0|$ less per hour; the return to a year of education, $\beta_1$, is assumed common to both.
+}
+
+\subsection{The Dummy Variable Trap}
+
+If we tried to include a dummy for \emph{every} level of a qualitative variable \emph{and} kept the intercept, we would create perfect multicollinearity. With two states and dummies $d_0$ (for the base) and $d_1$ (for the other), every observation has $d_0 + d_1 = 1$, which is exactly the constant column already supplied by the intercept. OLS cannot then separate the intercept from the dummies, and the design matrix loses full rank --- a violation of the no-perfect-collinearity assumption MLR.3 of Chapter~\ref{ch:mlr}. This is the \emph{dummy variable trap}.
+
+\state{The dummy variable trap}{
+To represent a qualitative variable with $m$ mutually exclusive categories in a model \emph{with an intercept}, include exactly $m-1$ dummies and omit one category as the base group. Including all $m$ dummies alongside the intercept produces perfect collinearity, and OLS breaks down.
+}
+
+There is one legitimate alternative: include all $m$ dummies but \emph{drop the intercept}. With two groups,
+\[
+y = \gamma_0 \, d_0 + \gamma_1 \, d_1 + \beta_1 x_1 + u,
+\]
+where now $d_0$ is the base-group indicator. Here $\gamma_0$ and $\gamma_1$ are the two group intercepts \emph{directly}: $\E{y\given x_1, \text{base}} = \gamma_0 + \beta_1 x_1$ and $\E{y\given x_1, \text{other}} = \gamma_1 + \beta_1 x_1$. The estimated difference between the groups is $|\widehat{\gamma}_1 - \widehat{\gamma}_0|$. This parametrization is internally consistent and gives correct coefficient estimates, but it has two practical drawbacks:
+\begin{itemize}
+\item The quantity we usually care about --- the \emph{difference} between groups --- is now a linear combination $\gamma_1-\gamma_0$ rather than a single coefficient, so testing whether the groups differ requires a test on that combination instead of a simple $t$ test on one estimate. The intercept-plus-$(m-1)$-dummies parametrization is more convenient precisely because the gap is read off a single coefficient ($\delta_0$ above).
+\item With no intercept in the model, the usual $R^2$ loses its standard interpretation (and reported software values can even be misleading), because the total-sum-of-squares decomposition that defines $R^2$ relies on an intercept being present.
+\end{itemize}
+For these reasons the textbook default is to keep the intercept and omit one category.
+
+\section{Incorporating Ordinal Information}
+
+Some qualitative variables are not merely categorical but \emph{ordered}: they rank observations without supplying a meaningful scale of distances. A leading example is a city's credit rating $\text{CR}$, an integer running $0,1,2,3,4$, which we wish to relate to the interest rate $\text{MBR}$ the city pays on its municipal bonds.
+
+The naive approach treats $\text{CR}$ as if it were an ordinary continuous regressor,
+\[
+\text{MBR} = \beta_0 + \beta_1 \, \text{CR} + (\text{other factors}),
+\]
+which we call the \emph{fixed-partial-effect model}. Its single slope $\beta_1$ forces the effect of moving up one notch in the rating to be \emph{identical} at every notch: the gap between ratings $0$ and $1$ is assumed equal to the gap between ratings $3$ and $4$. But an ordinal variable carries only ordinal meaning, not interval meaning; there is no reason the rungs of the ladder should be equally spaced in their effect on $\text{MBR}$.
+
+A more flexible specification defines a separate dummy for each level (minding the dummy variable trap by omitting one as the base):
+\[
+\text{MBR} = \beta_0 + \delta_1 \, \text{CR}_1 + \delta_2 \, \text{CR}_2 + \delta_3 \, \text{CR}_3 + \delta_4 \, \text{CR}_4 + (\text{other factors}),
+\]
+where $\text{CR}_j = 1$ if the rating equals $j$ and $0$ otherwise, and $\text{CR}=0$ is the base group. Now each $\delta_j$ is the effect of having rating $j$ \emph{relative to} rating $0$, free to differ across levels. This lets the data, rather than the functional form, decide how the steps are spaced.
+
+\subsection{The Fixed-Partial-Effect Model as a Restricted Special Case}
+
+The continuous-$\text{CR}$ model is nested inside the dummy model: it is the dummy model with the rungs forced to be evenly spaced. Indeed, if the per-notch effect is the constant $\delta_1$, then rating $j$ should be worth $j\,\delta_1$ relative to the base, i.e.
+\[
+\delta_2 = 2\delta_1, \qquad \delta_3 = 3\delta_1, \qquad \delta_4 = 4\delta_1.
+\]
+Imposing these three restrictions on the dummy model collapses it back to the fixed-partial-effect model:
+\[
+\ba
+\text{MBR}
+  &= \beta_0 + \delta_1\big(\text{CR}_1 + 2\,\text{CR}_2 + 3\,\text{CR}_3 + 4\,\text{CR}_4\big) + (\text{other factors})\\
+  &= \beta_0 + \delta_1 \, \text{CR} + (\text{other factors}),
+\ea
+\]
+because $\text{CR}_1 + 2\,\text{CR}_2 + 3\,\text{CR}_3 + 4\,\text{CR}_4$ is exactly the numerical rating $\text{CR}$ (only one of the dummies is nonzero, and it equals the rating). The restriction
+\[
+H_0:\quad \delta_2 = 2\delta_1,\ \ \delta_3 = 3\delta_1,\ \ \delta_4 = 4\delta_1
+\]
+imposes three linear constraints and can be tested with the usual $F$ test (Chapter~\ref{ch:inference}): estimate the unrestricted dummy model and the restricted continuous-$\text{CR}$ model, and compare their sums of squared residuals. Rejecting $H_0$ says the equal-spacing shortcut is too crude.
+
+\rmkb[When there are too many levels]{If the ordinal variable takes a great many values, a separate dummy for each is impractical (and burns degrees of freedom). The usual remedy is to \emph{bin} the variable into a handful of ranges --- for instance, group credit scores into ``low,'' ``medium,'' and ``high'' bands --- and enter a dummy for each band but one. This trades some resolution for parsimony while still relaxing the equal-spacing assumption.}
+
+\section{Different Slopes: Interaction with a Dummy}
+
+An intercept-shift dummy lets two groups differ by a constant. But often we suspect the groups respond \emph{differently} to a continuous regressor --- that the \emph{return} to education differs by gender, say, not merely the level of wages. To allow this we interact the dummy with the continuous regressor:
+\[
+y = \beta_0 + \beta_1 x_1 + \delta_0 \, d + \delta_1 \, (d \cdot x_1) + u.
+\]
+Reading the two group lines off this equation:
+\[
+\ba
+\E{y \given x_1, d=0} &= \beta_0 + \beta_1 x_1, \\
+\E{y \given x_1, d=1} &= (\beta_0 + \delta_0) + (\beta_1 + \delta_1)\,x_1.
+\ea
+\]
+Now the two groups differ in \emph{both} intercept and slope. As before, $\delta_0$ shifts the intercept. The new coefficient $\delta_1$ is the \emph{difference in slopes}: the partial effect of $x_1$ on $y$ is $\beta_1$ in the base group and $\beta_1+\delta_1$ in the comparison group, so the two partial effects differ by exactly $\delta_1$.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.05]
+  % axes
+  \draw[->] (0,0) -- (6.2,0) node[right] {$x_1$};
+  \draw[->] (0,0) -- (0,4.8) node[above] {$y$};
+  % base line: intercept 0.9, slope 0.35
+  \draw[thick] (0,0.9) -- (6,3.0) node[right] {\small($d=0$, slope $\beta_1$)};
+  % comparison line: intercept 1.3, steeper slope 0.62 -> crosses higher
+  \draw[thick, dashed] (0,1.3) -- (6,5.0) node[right] {\small($d=1$, slope $\beta_1+\delta_1$)};
+  % intercept labels
+  \node[left] at (0,0.9) {$\beta_0$};
+  \node[left] at (0,1.3) {$\beta_0+\delta_0$};
+  % two-headed dimension arrow showing the slope gap at the right edge
+  \draw[<->, >=Latex] (5.7,3.0) -- (5.7,5.0);
+  \node[left] at (5.65,4.0) {\small slope gap $\delta_1$};
+\end{tikzpicture}
+\caption{Different slopes. The interaction term $d\cdot x_1$ lets the comparison line ($d=1$) have slope $\beta_1+\delta_1$, so the vertical gap between the groups widens (or narrows) with $x_1$ instead of staying constant.}
+\label{fig:slope-shift}
+\end{figure}
+
+Several special cases are worth naming. If $\delta_1 = 0$, the slopes coincide and we are back to the parallel-lines model of Figure~\ref{fig:intercept-shift}: $x_1$ has the same partial effect in both groups. If $\delta_0 = \delta_1 = 0$, the two groups obey \emph{exactly the same} regression --- the dummy is irrelevant. These restrictions are testable, and testing them jointly is the subject of the Chow test below.
+
+\state{Interpreting a coefficient once its variable is interacted}{
+When $x_1$ enters both alone and through an interaction, $\beta_1$ is \emph{not} the partial effect of $x_1$ in general --- it is the partial effect of $x_1$ only in the base group, i.e.\ only when $d=0$. Symmetrically, $\delta_0$ is the group gap only at $x_1 = 0$. If $x_1 = 0$ is not a meaningful or observed value, $\delta_0$ as reported is not interpretable on its own. The standard fix is to \emph{center} $x_1$ at its sample mean (replace $x_1$ by $x_1 - \bar x_1$) before forming the interaction, so that $\delta_0$ becomes the group gap \emph{at the average} $x_1$, which is a quantity one can actually speak about.
+}
+
+\subsection{The Chow Test}
+
+The interaction approach extends naturally to many regressors: to let \emph{every} slope and the intercept differ between two groups, interact the dummy with each regressor (and include the dummy itself for the intercept). Testing whether the dummy classification matters at all then amounts to a joint $F$ test that \emph{all} the interaction coefficients are zero. When there are only a few regressors this ``direct method'' is easy. But with many regressors it is cumbersome to build and name all the interaction terms. The \emph{Chow test} is an algebraically equivalent shortcut that computes the same $F$ statistic from three separate regressions.
+
+The null hypothesis of the Chow test is that the \emph{entire regression function is identical} across the two groups --- same intercept and same slopes. Let there be $k$ regressors (so $k+1$ parameters including the intercept), and split the $n$ observations into group $1$ (size $n_1$) and group $2$ (size $n_2$), $n = n_1 + n_2$.
+
+\state{Chow Test --- procedure}{
+\begin{enumerate}
+\item \textbf{Unrestricted fit.} Run \emph{separate} regressions on each group and record their residual sums of squares. The unrestricted SSR is their sum,
+\[
+\text{SSR}_{ur} = \text{SSR}_1 + \text{SSR}_2.
+\]
+(This is exactly the SSR one would get from the fully-interacted single regression, which allows all coefficients to differ by group.)
+\item \textbf{Restricted (pooled) fit.} Run one regression on the \emph{pooled} data, ignoring the group distinction, and record the restricted (pooled) residual sum of squares $\text{SSR}_p$.
+\item \textbf{Form the statistic.}
+\[
+F = \frac{(\text{SSR}_p - \text{SSR}_{ur})/(k+1)}{\text{SSR}_{ur}/\big(n - 2(k+1)\big)}
+  = \frac{\text{SSR}_p - (\text{SSR}_1 + \text{SSR}_2)}{\text{SSR}_1 + \text{SSR}_2}\cdot \frac{n - 2(k+1)}{k+1}.
+\]
+Under $H_0$, $F \sim F_{\,k+1,\ n-2(k+1)}$.
+\end{enumerate}
+}
+
+The numerator degrees of freedom, $k+1$, count the restrictions: forcing all $k$ slopes \emph{and} the intercept to be equal across groups is $k+1$ constraints. The denominator degrees of freedom, $n - 2(k+1)$, count the residual degrees of freedom of the unrestricted model, which fits $2(k+1)$ parameters in all ($k+1$ for each group).
+
+\rmkb[Allowing the intercept to differ]{The plain Chow test forces the intercept to be common as well, which is often too strong --- two groups may share the same slopes yet sit at different baseline levels. A more useful variant allows the intercepts to differ and tests only the \emph{slopes}. Operationally one keeps an intercept-shift dummy in both the restricted and unrestricted models, so the restriction count drops from $k+1$ to $k$, and the $F$ statistic uses numerator degrees of freedom $k$ accordingly.}
+
+\subsection{Structural Change Over Time}
+
+The same idea detects \emph{structural change}: whether the regression relationship is stable across $T$ time periods, or whether the coefficients (intercept included) shift from one era to the next. We now use dummies for the time periods. Running a separate regression in each period $t = 1,\dots,T$ gives
+\[
+\text{SSR}_{ur} = \text{SSR}_1 + \text{SSR}_2 + \cdots + \text{SSR}_T.
+\]
+With $k$ regressors and $T$ periods, the unrestricted model estimates $T(k+1)$ parameters --- a full set of $k+1$ coefficients per period. Stability requires that all $T$ periods share one set of coefficients, which imposes $(T-1)(k+1)$ restrictions (each of the $T-1$ non-base periods must match the base period in all $k+1$ coefficients). Hence, with $n = n_1 + \cdots + n_T$ total observations, the $F$ statistic has
+\[
+(T-1)(k+1) \quad \text{numerator and} \quad n - T(k+1) \quad \text{denominator degrees of freedom.}
+\]
+
+\state{Heteroskedasticity caveat}{
+The Chow test --- in either its group form or its structural-change form --- \emph{assumes the error variance is constant across groups (and over time)}. The derivation of the pooled $F$ statistic relies on a single common $\sigma^2$; if the error variance differs across groups, the statistic does not have the stated $F$ distribution and the test is invalid. Under heteroskedasticity one should not use the pooled-SSR shortcut at all. Instead, build the full set of interaction terms explicitly and run one regression, then conduct a \emph{heteroskedasticity-robust} joint test (Wald/$F$) on the interaction coefficients using robust standard errors (Chapter~\ref{ch:hetero}).
+}
+
+\section{A Binary Regressand: The Linear Probability Model}
+
+Dummies need not be confined to the right-hand side. When the \emph{dependent} variable is itself binary --- loan approved or denied, employed or not, in the labor force or out --- regressing it on a set of explanatory variables produces the \emph{linear probability model} (LPM).
+
+Write the binary outcome $y \in \{0,1\}$ as
+\[
+y = \beta_0 + \beta_1 x_1 + \cdots + \beta_k x_k + u.
+\]
+Because $y$ takes only the values $0$ and $1$, its conditional expectation \emph{is} a probability:
+\[
+\E{y \given \vb x} = 1\cdot \Pr{y=1 \given \vb x} + 0\cdot \Pr{y=0 \given \vb x} = \Pr{y=1 \given \vb x}.
+\]
+Combining this with the zero-conditional-mean assumption $\E{u\given \vb x}=0$ gives the defining identity of the LPM:
+\[
+\Pr{y=1 \given \vb x} = \beta_0 + \beta_1 x_1 + \cdots + \beta_k x_k.
+\]
+The response probability is modeled as linear in the parameters, and consequently each slope has a clean probability interpretation:
+\[
+\beta_j = \frac{\Delta\, \Pr{y=1 \given \vb x}}{\Delta x_j}.
+\]
+A one-unit increase in $x_j$ changes the probability that $y=1$ by $\beta_j$ (in percentage-point terms, holding the other regressors fixed).
+
+\defn{Linear Probability Model}{
+A regression $y = \beta_0 + \sum_{j=1}^k \beta_j x_j + u$ with a binary dependent variable $y\in\{0,1\}$ is a \emph{linear probability model}. The fitted value $\widehat y$ estimates the conditional probability $\Pr{y=1\given\vb x}$, and each $\beta_j$ measures the change in that probability per unit of $x_j$.
+}
+
+The LPM is attractive for its transparency --- it is estimated by ordinary OLS and read like any other regression --- but it has genuine drawbacks, all stemming from forcing a probability to be linear.
+
+\begin{itemize}
+\item \textbf{Out-of-range predictions.} A linear function is unbounded, so fitted probabilities can fall below $0$ or rise above $1$, which is nonsensical for a probability.
+\item \textbf{Constant (and sometimes impossible) marginal effects.} A constant $\beta_j$ says a unit change in $x_j$ moves the probability by the same amount no matter where one starts. Near the boundaries this can be logically impossible (you cannot raise a probability already at $0.98$ by another $0.10$), whereas in reality such effects are usually nonlinear, tapering off as the probability approaches $0$ or $1$.
+\item \textbf{Built-in heteroskedasticity.} This is unavoidable, not incidental. Since $y$ given $\vb x$ is a Bernoulli random variable with success probability $p(\vb x) := \Pr{y=1\given \vb x}$, its conditional variance is
+\[
+\Var{y \given \vb x} = p(\vb x)\,\big[1 - p(\vb x)\big] = \big(\beta_0 + \beta_1 x_1 + \cdots + \beta_k x_k\big)\big(1 - \beta_0 - \cdots - \beta_k x_k\big).
+\]
+This depends on $\vb x$, so the homoskedasticity assumption of the classical model necessarily fails. OLS remains unbiased and consistent, but its usual standard errors are wrong; one must use heteroskedasticity-robust (White/Eicker--Huber) standard errors, the subject of Chapter~\ref{ch:hetero}.
+\end{itemize}
+
+\rmkb[Why use it anyway]{Despite these flaws, the LPM is widely used because its coefficients are directly interpretable as effects on a probability and because, for $x$ values near the center of the data, its estimated partial effects are often close to those from the more elaborate logit and probit models. It is an honest first pass; the out-of-range and heteroskedasticity problems are managed (robust SEs) rather than ignored.}
+
+\section{Self-Selection and Treatment Effects}
+
+Dummies are the natural language for program evaluation, where we ask whether a binary \emph{treatment} $w$ --- a job-training program, a scholarship, a medical intervention --- causes a change in an outcome $y$. The challenge is \emph{self-selection}: the people who take a treatment usually differ systematically from those who do not, so a raw comparison of treated and untreated outcomes confounds the effect of treatment with the effect of those differences.
+
+\subsection{The Potential-Outcomes Setup}
+
+For each unit, imagine two potential outcomes: $y(0)$, the outcome it would realize \emph{without} treatment, and $y(1)$, the outcome it would realize \emph{with} treatment. We only ever observe one of them, the one corresponding to the treatment actually received:
+\[
+y = (1-w)\,y(0) + w\,y(1),
+\]
+where $w=1$ for the treated and $w=0$ for controls. The individual causal effect is $y(1)-y(0)$, which is never directly observed for any single unit.
+
+A regression model for the observed outcome, including controls $x_1,\dots,x_k$, is
+\[
+\E{y \given w, \vb x} = \alpha + \tau\, w + \gamma_1 x_1 + \cdots + \gamma_k x_k.
+\]
+The controls $x_1,\dots,x_k$ are included precisely to address self-selection: they soak up the systematic differences between who gets treated and who does not, moving us closer to the as-good-as-random-assignment ideal. The coefficient $\tau$ on the treatment dummy is the treatment effect, \emph{assumed constant across units} in this specification.
+
+\subsection{Regression Adjustment}
+
+For $\tau$ to recover the causal effect, we need the controls to render treatment ignorable. The required condition is \emph{conditional independence}: given the covariates, treatment assignment is independent of the potential outcomes,
+\[
+w \perp \big[\,y(0),\, y(1)\,\big] \;\Big|\; x_1,\dots,x_k.
+\]
+This is the \emph{unconfoundedness} (or \emph{selection-on-observables}) assumption, and the estimator built on it is called \emph{regression adjustment}: we adjust for measured differences across units, treating treatment as random \emph{within} cells defined by the covariates. It is a strong assumption --- it asserts there are no unmeasured confounders --- but it is what makes the regression coefficient $\tau$ interpretable as a causal effect.
+
+\subsection{Heterogeneous Effects and the Average Treatment Effect}
+
+The constant-$\tau$ model is restrictive: in reality the treatment may help some units more than others. We can relax it by letting the effect vary with the covariates, interacting the treatment dummy with each (mean-centered) control:
+\[
+y_i = \alpha + \tau\, w_i + \sum_{j=1}^k \gamma_j x_{ij} + \sum_{j=1}^k \delta_j\, w_i\,(x_{ij} - \bar x_j) + u_i.
+\]
+With the interactions \emph{centered} at the covariate means, the coefficient $\tau$ on $w_i$ equals the \emph{average treatment effect} (ATE) --- the mean of the individual effects $y(1)-y(0)$ over the population. The centering is what makes this work: it ensures the interaction terms average to zero in the sample, so $\tau$ captures the effect at the average covariate values, which coincides with the population-average effect.
+
+\state{Restricted vs.\ unrestricted regression adjustment}{
+\begin{itemize}
+\item \emph{Unrestricted regression adjustment} (URA): the model with the $w_i\,(x_{ij}-\bar x_j)$ interactions, allowing the treatment effect to differ across units. It is closer to reality, since effects are rarely homogeneous, and its $\tau$ estimates the ATE.
+\item \emph{Restricted regression adjustment} (RRA): the simpler model with no treatment--covariate interactions, forcing a single common treatment effect for everyone.
+\end{itemize}
+}
+
+\rmkb[Which terms to center]{It does not matter whether the \emph{main} control terms $\gamma_j x_{ij}$ are centered --- centering them only relabels the intercept $\alpha$. But it \emph{does} matter that the \emph{interaction} terms are centered: if $w_i\,x_{ij}$ is used uncentered, the coefficient $\tau$ no longer equals the ATE but instead the treatment effect evaluated at $x=0$, which is generally not the quantity of interest.}
+
+\subsection{An Equivalent Two-Regression Estimator of the ATE}
+
+The URA-based ATE can also be computed by fitting the covariate model separately within each treatment arm and then predicting both potential outcomes for every unit. Using only the control observations, estimate
+\[
+\widehat y_i^{(0)} = \widehat\alpha^{(0)} + \widehat\gamma_{0,1} x_{i1} + \cdots + \widehat\gamma_{0,k} x_{ik},
+\]
+and, using only the treated observations, estimate
+\[
+\widehat y_i^{(1)} = \widehat\alpha^{(1)} + \widehat\gamma_{1,1} x_{i1} + \cdots + \widehat\gamma_{1,k} x_{ik}.
+\]
+Then, for \emph{every} unit in the full sample --- regardless of which group it actually belongs to --- form both predicted potential outcomes $\widehat y_i^{(0)}$ and $\widehat y_i^{(1)}$, and average their difference:
+\[
+\widehat{\text{ATE}} = \frac{1}{n}\sumi \Big(\widehat y_i^{(1)} - \widehat y_i^{(0)}\Big).
+\]
+This delivers the \emph{same} point estimate as the centered-interaction (URA) regression. Its drawback is purely practical: computing a correct standard error by hand for this two-step predict-and-average estimator is awkward, whereas the single interacted regression reports the standard error of $\tau$ automatically.
+
+\rmkb[Where this is heading]{Dummy variables let qualitative information enter regression without any new estimation theory --- only new interpretation: an isolated dummy shifts the intercept, an interacted dummy shifts the slope, and joint $F$ (Chow) tests ask whether the groups differ at all. Two threads point forward. The linear probability model and the Chow test both founder on non-constant error variance, motivating the systematic treatment of heteroskedasticity in Chapter~\ref{ch:hetero}; and the treatment-effect framework, which here rests on selection-on-observables, is exactly where instrumental variables (Chapter~\ref{ch:iv}) take over when unmeasured confounders make that assumption untenable.}

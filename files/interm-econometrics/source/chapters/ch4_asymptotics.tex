@@ -1,0 +1,234 @@
+% !TEX root = ../main.tex
+\chapter{Large-Sample Properties of OLS}
+\label{ch:asymptotics}
+
+So far we have judged the OLS estimator by its \emph{finite-sample} behavior: under the Gauss--Markov assumptions it is unbiased (Chapter~\ref{ch:mlr}), it has the smallest variance among linear unbiased estimators, and --- once we add normality of the errors --- its $t$ and $F$ statistics have exact $t$ and $F$ distributions (Chapter~\ref{ch:inference}). Those are strong guarantees, but they come at a price. Unbiasedness leans on the zero conditional mean assumption MLR.4, which is genuinely demanding; and the exact distributions of $t$ and $F$ lean on the normality assumption MLR.6, which real data rarely honor.
+
+This chapter asks a different and more forgiving question: what can we say about OLS when the sample is large? Two ideas organize the answer. The first is \emph{consistency} --- as the sample grows, $\hb_j$ collapses onto the true $\beta_j$. We will see that consistency survives even when unbiasedness does not: it needs only a weaker, zero-\emph{correlation} version of MLR.4, and it lets us define an asymptotic analogue of omitted-variable bias. The second is \emph{asymptotic normality} --- even when the errors are not normal, the central limit theorem makes $\hb_j$ approximately normal in large samples, so the usual $t$ and $F$ inference is approximately valid \emph{without} assuming MLR.6. The cost is that all of these statements are approximations that improve as $n$ grows, with the estimated variance of $\hb_j$ shrinking to zero at the rate $1/n$.
+
+Throughout, keep one distinction firmly in mind, because it is the conceptual heart of the chapter: \emph{bias} is a statement about averaging over many hypothetical samples of fixed size, while \emph{inconsistency} is a statement about what happens to a \emph{single} estimate as the one sample we have grows without bound. They usually point the same way, but they are not the same thing, and the algebra that describes them differs in a subtle way we will make precise.
+
+\section{Consistency of OLS}
+
+Consistency is the most basic requirement we can ask of an estimator. An estimator that is not even consistent is using more data to home in on the wrong answer, and no sample size can rescue it. We recall the definition in the form we will use.
+
+\defn{Consistency}{
+An estimator $\hth_n$ of a parameter $\theta$ (computed from a sample of size $n$) is \emph{consistent} if it converges in probability to $\theta$:
+\[
+\hth_n \pto \theta,
+\qquad\text{i.e.}\qquad
+\plim_{n\to\infty}\hth_n = \theta .
+\]
+Equivalently, for every $\varepsilon>0$, $\Pr{\abs{\hth_n-\theta}>\varepsilon}\to 0$ as $n\to\infty$: with probability approaching one, $\hth_n$ lies arbitrarily close to $\theta$.
+}
+
+The central result of this section is that OLS is consistent under exactly the assumptions that already delivered unbiasedness in Chapter~\ref{ch:mlr}.
+
+\thm{Consistency of OLS}{
+Under assumptions MLR.1 through MLR.4 (linear in parameters, random sampling, no perfect collinearity, and zero conditional mean $\E{u \given x_1,\dots,x_k}=0$), the OLS estimators are consistent: for every $j=0,1,\dots,k$,
+\[
+\plim_{n\to\infty}\hb_j = \beta_j .
+\]
+}
+
+It is instructive to prove this in the simple regression model, where the algebra is transparent and the mechanism --- a law of large numbers acting on sample moments --- is laid bare.
+
+\pf[simple regression]{
+Take the model $y = \beta_0 + \beta_1 x_1 + u$ with $\E{u}=0$ and $\Cov{x_1}{u}=0$. As in Chapter~\ref{ch:slr}, write the slope estimator in error form:
+\[
+\hb_1
+= \beta_1 + \frac{\,n^{-1}\sumi (x_{i1}-\bar x_1)\,u_i\,}{\,n^{-1}\sumi (x_{i1}-\bar x_1)^2\,}.
+\]
+By the law of large numbers each sample average converges in probability to its population counterpart: the numerator $\pto \Cov{x_1}{u}$ and the denominator $\pto \Var{x_1}$. Since $\Var{x_1}>0$ (the population analogue of MLR.3), Slutsky's theorem lets us pass the plim through the ratio:
+\[
+\plim \hb_1 = \beta_1 + \frac{\Cov{x_1}{u}}{\Var{x_1}} = \beta_1 + \frac{0}{\Var{x_1}} = \beta_1 .
+\]
+The same argument applied to the general $k$-regressor case (using the partialled-out residual $\hat r_{ij}$ in place of $x_{i1}-\bar x_1$) gives $\plim\hb_j=\beta_j$ for every $j$.
+}
+
+The proof exposes the engine of consistency: OLS replaces the \emph{population} moment condition $\Cov{x_1}{u}=0$ with its \emph{sample} analogue, and the law of large numbers guarantees that the sample analogue converges to the truth. Nothing in this argument required the errors to be normal, homoskedastic, or even to have a zero conditional mean at every value of $x$ --- only that, in the population, the regressors are uncorrelated with the error.
+
+\subsection{The Weaker Condition for Consistency: MLR.4-prime}
+
+The proof above used much less than the full force of MLR.4. It never needed $\E{u\given x_1,\dots,x_k}=0$ for every configuration of the regressors; it needed only that $u$ has mean zero and is \emph{uncorrelated} with each regressor. This motivates a deliberately weaker assumption.
+
+\asm{MLR.4$'$ (Zero Mean and Zero Correlation)}{
+The error has mean zero and is uncorrelated with each regressor:
+\[
+\E{u}=0
+\qquad\text{and}\qquad
+\Cov{x_j}{u}=0
+\quad\text{for all } j=1,2,\dots,k .
+\]
+}
+
+Assumption MLR.4$'$ is strictly weaker than MLR.4: zero conditional mean implies both $\E{u}=0$ and $\Cov{x_j}{u}=0$, but not conversely. The two are worth comparing carefully, because the difference is exactly the difference between consistency and unbiasedness.
+
+\state{MLR.4 versus MLR.4$'$}{
+\begin{itemize}
+\item \textbf{MLR.4$'$ is the natural condition for consistency.} It is precisely the population moment condition that OLS imposes in the sample, so it is the minimal requirement under which $\plim\hb_j=\beta_j$. Under MLR.4$'$ alone, however, OLS may be \emph{biased in finite samples} even though it is consistent.
+\item \textbf{MLR.4 is stronger, and buys finite-sample properties.} Zero conditional mean is what we need to establish exact, sample-size-$n$ properties such as unbiasedness (Chapter~\ref{ch:mlr}) and the Gauss--Markov optimality of OLS.
+\item \textbf{MLR.4 says the model is correctly specified as a conditional mean.} It implies
+\[
+\E{y \given x_1,\dots,x_k}=\beta_0+\beta_1 x_1+\dots+\beta_k x_k,
+\]
+so the coefficients are partial effects of the regressors on the \emph{conditional expectation} of $y$. Under MLR.4$'$ this need not hold: the linear index $\beta_0+\beta_1 x_1+\dots+\beta_k x_k$ need not be the population regression function, because some nonlinear function of the regressors could still be correlated with $u$ even though the regressors themselves are not.
+\end{itemize}
+}
+
+The practical upshot is symmetric. If $u$ is correlated with \emph{any} of $x_1,\dots,x_k$, then MLR.4$'$ fails, and OLS generally loses \emph{both} unbiasedness and consistency at once --- the worst case, because no amount of data fixes it.
+
+\section{Inconsistency and Asymptotic Bias}
+
+When MLR.4$'$ fails, the plim of $\hb_j$ no longer equals $\beta_j$. The gap is the asymptotic counterpart of bias, and it has a clean closed form.
+
+\defn{Inconsistency (Asymptotic Bias)}{
+The \emph{inconsistency} or \emph{asymptotic bias} of an estimator $\hth$ for $\theta$ is
+\[
+\plim \hth - \theta .
+\]
+A consistent estimator has zero inconsistency by definition. A nonzero inconsistency is the error that \emph{remains} no matter how large the sample.
+}
+
+In the simple regression $y=\beta_0+\beta_1 x_1 + u$, retracing the consistency proof but now \emph{without} assuming $\Cov{x_1}{u}=0$ gives the inconsistency of the slope directly.
+
+\thm{Inconsistency of the Slope}{
+In the simple regression model, the inconsistency of the OLS slope is
+\[
+\plim \hb_1 - \beta_1 = \frac{\Cov{x_1}{u}}{\Var{x_1}} .
+\]
+Hence $\hb_1$ is consistent if and only if $x_1$ is uncorrelated with $u$ in the population.
+}
+
+The sign of the asymptotic bias is the sign of $\Cov{x_1}{u}$: if the regressor is positively correlated with the omitted factors in $u$, OLS overstates $\beta_1$ asymptotically, and conversely.
+
+\subsection{The Asymptotic Analogue of Omitted-Variable Bias}
+
+The most common reason $\Cov{x_1}{u}\neq 0$ is that the error absorbs a relevant variable that happens to be correlated with $x_1$. Suppose the correctly specified model is
+\[
+y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + v,
+\qquad \E{v\given x_1,x_2}=0,
+\]
+but we estimate the short regression of $y$ on $x_1$ alone, so the error we are actually working with is $u = \beta_2 x_2 + v$. Then $\Cov{x_1}{u}=\beta_2\,\Cov{x_1}{x_2}$, and substituting into the inconsistency formula yields the asymptotic version of omitted-variable bias.
+
+\thm{Asymptotic Omitted-Variable Bias}{
+If $x_2$ is omitted from the regression of $y$ on $x_1$, the OLS slope $\tilde\beta_1$ from the short regression satisfies
+\[
+\plim \tilde\beta_1 = \beta_1 + \beta_2\,\delta_1,
+\qquad
+\delta_1 = \frac{\Cov{x_1}{x_2}}{\Var{x_1}},
+\]
+where $\delta_1$ is the slope of the \emph{population} regression of $x_2$ on $x_1$. The asymptotic bias is therefore $\beta_2\delta_1$, whose sign is given by the table below.
+}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & $\Cov{x_1}{x_2}>0$ & $\Cov{x_1}{x_2}<0$ \\
+\midrule
+$\beta_2>0$ & positive bias & negative bias \\
+$\beta_2<0$ & negative bias & positive bias \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This is exactly the table you met for finite-sample omitted-variable bias in Chapter~\ref{ch:mlr}, and the parallel is the point. But the parallel is not an identity, and the difference is worth stating precisely.
+
+\state{Bias and inconsistency are related but not the same}{
+The two formulas look almost identical, yet they describe different objects:
+\begin{itemize}
+\item \textbf{Inconsistency} is written with \emph{population} moments: $\delta_1=\Cov{x_1}{x_2}/\Var{x_1}$. It is the error that survives as $n\to\infty$.
+\item \textbf{Bias} is written with the \emph{sample} regression slope $\hat\delta_1=\widehat{\operatorname{Cov}}(x_1,x_2)/\widehat{\operatorname{Var}}(x_1)$, because finite-sample bias is computed conditional on the particular sample of regressors we hold.
+\end{itemize}
+The sample quantity $\hat\delta_1$ converges in probability to the population quantity $\delta_1$, which is why the two notions coincide in large samples --- but they can diverge in any given finite sample.
+}
+
+The cleanest way to feel the distinction is to look at a case where the population correlation is exactly zero.
+
+\ex[Zero population correlation: consistent but possibly biased]{
+Let the true model be $y=\beta_0+\beta_1 x_1+\beta_2 x_2+u$, and suppose $x_1$ and $x_2$ are \emph{uncorrelated in the population}, so $\Cov{x_1}{x_2}=0$ and hence $\delta_1=0$. For a given sample, run the three regressions
+\[
+\ba
+(1)\quad & \hat y = \hb_0 + \hb_1 x_1 + \hb_2 x_2 \quad\text{(long, both regressors)},\\
+(2)\quad & \hat y = \tilde\alpha_0 + \tilde\alpha_1 x_1 \quad\text{(short, omit $x_2$)},\\
+(3)\quad & \hat y = \tilde\gamma_0 + \tilde\gamma_2 x_2 \quad\text{(short, omit $x_1$)}.
+\ea
+\]
+What can we say about the short-regression slopes $\tilde\alpha_1$ and $\tilde\gamma_2$?
+}
+
+\sol{
+Because $\delta_1 = \Cov{x_1}{x_2}/\Var{x_1}=0$, the asymptotic bias term $\beta_2\delta_1$ vanishes, so
+\[
+\plim\tilde\alpha_1 = \beta_1
+\qquad\text{and similarly}\qquad
+\plim\tilde\gamma_2 = \beta_2 .
+\]
+Both short-regression slopes are therefore \emph{consistent} for the corresponding long-regression coefficients.
+
+\emph{Unbiasedness, however, can fail.} Finite-sample bias depends on the \emph{sample} regression slope $\hat\delta_1=\widehat{\operatorname{Cov}}(x_1,x_2)/\widehat{\operatorname{Var}}(x_1)$, and in any particular sample the sample covariance between $x_1$ and $x_2$ is essentially never exactly zero, so $\hat\delta_1\neq 0$ generically. Hence the omitted-variable bias term $\beta_2\hat\delta_1$ is nonzero in that sample, and $\tilde\alpha_1$ need not be unbiased for $\beta_1$ (likewise $\tilde\gamma_2$ for $\beta_2$). The population correlation being zero kills the \emph{asymptotic} bias but not the \emph{finite-sample} bias --- a crisp illustration that consistency and unbiasedness are logically distinct.
+}
+
+\rmkb[Why the asymptotics is the more robust statement]{In practice we never average over infinitely many samples; we have one sample, and we want to know whether using more of it would push the estimate toward the truth. That is exactly what consistency answers. This is why much of modern econometrics is built on $\plim$ arguments: they require weaker assumptions (MLR.4$'$ rather than MLR.4) and they speak directly to the question an applied researcher actually faces.}
+
+\section{Asymptotic Normality and Large-Sample Inference}
+
+Consistency tells us that $\hb_j$ converges to $\beta_j$, but it says nothing about the \emph{distribution} of the estimate around the truth, and inference requires a distribution. In Chapter~\ref{ch:inference} we obtained exact $t$ and $F$ distributions by adding the normality assumption MLR.6 (the errors are normally distributed and independent of the regressors). That assumption is convenient but often implausible. The remarkable fact of this section is that we can drop it: in large samples the central limit theorem manufactures approximate normality for us.
+
+\state{Normality is not needed for the core results}{
+The normality assumption MLR.6 plays \emph{no} role in the unbiasedness of OLS, and it plays no role in the Gauss--Markov conclusion that OLS is the best linear unbiased estimator under MLR.1--MLR.5. Normality enters only to make the $t$ and $F$ statistics \emph{exactly} $t$- and $F$-distributed in finite samples. Once we are content with large-sample approximations, even that role disappears.
+}
+
+The intuition is the one behind every appearance of the normal distribution. From the error representation, $\hb_j-\beta_j$ is (after scaling) an average of the form $n^{-1}\sumi \hat r_{ij}u_i$, and an appropriately normalized average of independent terms is asymptotically normal even when the individual $y_i$ are drawn from a decidedly non-normal distribution. The price is the factor $\rtn$: it is $\rtn(\hb_j-\beta_j)$, not $\hb_j-\beta_j$ itself, that settles down to a nondegenerate normal limit.
+
+\thm{Asymptotic Normality of OLS}{
+Under the Gauss--Markov assumptions MLR.1 through MLR.5 (i.e.\ \emph{without} the normality assumption MLR.6):
+\begin{enumerate}
+\item For each $j$,
+\[
+\rtn\,(\hb_j-\beta_j) \;\dto\; N\!\pr{0,\ \sigma^2/a_j^2},
+\qquad
+a_j^2 = \plim\!\pr{\frac1n \sumi \hat r_{ij}^{\,2}},
+\]
+where $\hat r_{ij}$ is the residual from regressing $x_j$ on all the other regressors. Equivalently, $\hb_j$ is \emph{asymptotically normally distributed}, with asymptotic variance $\sigma^2/a_j^2$.
+\item The error-variance estimator $\widehat\sigma^2 = \frac{1}{n-k-1}\sumi \hat u_i^{\,2}$ is a consistent estimator of $\sigma^2=\Var{u}$: $\;\widehat\sigma^2 \pto \sigma^2$.
+\item For each $j$, the standardized estimator is asymptotically standard normal, whether we standardize by the (unknown) standard deviation or by the (estimated) standard error:
+\[
+\frac{\hb_j-\beta_j}{\operatorname{sd}(\hb_j)} \;\dto\; N(0,1),
+\qquad
+\frac{\hb_j-\beta_j}{\operatorname{se}(\hb_j)} \;\dto\; N(0,1).
+\]
+\end{enumerate}
+}
+
+\rmkb[Why se and sd are asymptotically interchangeable]{The two standardizations in part (3) give the same limit because $\widehat\sigma\pto\sigma$ (part 2): from an asymptotic point of view $\widehat\sigma$ and $\sigma$ are ``equivalent,'' so replacing the unknown $\operatorname{sd}(\hb_j)$ by the estimated $\operatorname{se}(\hb_j)$ does not change the limiting distribution. This is exactly why, in large samples, we may treat the usual $t$ ratio as standard normal even though we never know $\sigma$.}
+
+\subsection{Large-Sample t and F Inference}
+
+Part (3) of the theorem is the license for everyday inference. The $t$ statistic $t_{\hb_j}=(\hb_j-\beta_j)/\operatorname{se}(\hb_j)$, which under MLR.6 had an exact $t_{n-k-1}$ distribution, now has an \emph{approximate} standard normal distribution in large samples even when the errors are non-normal. Because $t_{n-k-1}\to N(0,1)$ as $n\to\infty$, this is no contradiction: for large $n$ the $t$ distribution and the standard normal are indistinguishable, so we may keep using the same critical values and $p$-values. The same logic applies to multiple restrictions: the $F$ statistic from Chapter~\ref{ch:inference} retains its (approximate) $F_{q,\,n-k-1}$ distribution without normality, and $q\cdot F$ is asymptotically $\chi^2_q$.
+
+\fact{What changes and what does not}{
+With MLR.6 dropped and only MLR.1--MLR.5 maintained, the mechanics of inference are unchanged: compute the same $\hb_j$, the same $\operatorname{se}(\hb_j)$, the same $t$ and $F$ statistics, and compare to the same critical values. Only the \emph{justification} changes --- from ``exact in finite samples under normality'' to ``approximately valid in large samples by the central limit theorem.''
+}
+
+\subsection{The Estimated Variance and Its Rate of Decay}
+
+The estimated sampling variance of $\hb_j$ has the same algebraic form as in the finite-sample theory of Chapter~\ref{ch:mlr}:
+\[
+\widehat{\operatorname{Var}}(\hb_j) = \frac{\widehat\sigma^2}{\text{SST}_j\,(1-R_j^2)},
+\]
+where $\text{SST}_j=\sumi(x_{ij}-\bar x_j)^2$ is the total sample variation in $x_j$ and $R_j^2$ is the $R^2$ from regressing $x_j$ on the remaining regressors. The asymptotic theory tells us how fast this quantity shrinks. As $n\to\infty$ each ingredient behaves predictably: $\widehat\sigma^2 \pto \sigma^2$, a finite constant; while $\text{SST}_j \approx n\,\sigma_j^2$ grows linearly in $n$, where $\sigma_j^2=\Var{x_j}$ is the population variance of $x_j$. Holding $R_j^2$ at its limiting value, the denominator therefore grows like $n$ while the numerator settles to a constant, so
+\[
+\widehat{\operatorname{Var}}(\hb_j) \;\approx\; \frac{\sigma^2}{n\,\sigma_j^2\,(1-R_j^2)} \;=\; \Op(1/n).
+\]
+
+\state{The $1/n$ shrinkage of the variance}{
+The estimated variance of $\hb_j$ shrinks to zero at the rate $1/n$; equivalently, the standard error $\operatorname{se}(\hb_j)$ shrinks at the rate $1/\rtn$. Two consequences follow:
+\begin{itemize}
+\item This $1/n$ rate is the quantitative content of consistency: as the variance vanishes and $\hb_j$ stays centered at $\beta_j$, the estimator concentrates on the truth.
+\item Because $\operatorname{se}(\hb_j)\propto 1/\rtn$, cutting the standard error in half requires \emph{quadrupling} the sample. Precision improves with more data, but only at the square-root rate --- a useful sense of how much data ``buys'' how much precision.
+\end{itemize}
+}
+
+\rmkb[Where this is heading]{We now have the two large-sample pillars: OLS is consistent under the weak condition MLR.4$'$, with a clean formula for its inconsistency when that fails; and OLS is asymptotically normal under MLR.1--MLR.5, so the familiar $t$ and $F$ procedures remain (approximately) valid without the normality assumption MLR.6. Both pillars matter for what follows. Chapter~\ref{ch:hetero} drops homoskedasticity (MLR.5) and rebuilds the standard errors so that this same asymptotic inference survives heteroskedasticity; Chapter~\ref{ch:iv} confronts the case where MLR.4$'$ itself fails --- a regressor is correlated with the error --- and introduces instrumental variables, an estimator that is biased but, crucially, consistent.}

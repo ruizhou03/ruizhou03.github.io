@@ -1,0 +1,408 @@
+% !TEX root = ../main.tex
+\chapter{Heteroskedasticity}
+\label{ch:hetero}
+
+Every variance formula we have written so far rests on a single quiet assumption: that the error term has the same spread at every value of the regressors. This is homoskedasticity, assumption SLR.5 / MLR.5 of the Gauss--Markov family. It is a convenience, not a law of nature, and in real data it routinely fails. The dispersion of savings around its mean is wider for high-income households than for low-income ones; the spread of test scores is narrower in small classes than in large ones; the variance of a binary outcome is mechanically tied to its mean. When the conditional variance of the error moves with the regressors, we say the error is \emph{heteroskedastic}.
+
+The good news is that heteroskedasticity is a far milder ailment than the endogeneity of Chapter~\ref{ch:mlr}. It has nothing to do with whether OLS lands on the right answer: the slope estimators remain unbiased and consistent, and the unconditional-variance reading of $R^2$ is untouched. What heteroskedasticity breaks is the bookkeeping of \emph{precision}. The textbook variance formula $\sigma^2/\text{SST}_x$ is no longer correct, so every standard error, $t$ statistic, $F$ statistic, and confidence interval built from it is wrong --- and OLS forfeits its claim to being the best linear unbiased estimator.
+
+This chapter does three things, in order. First we sort out exactly what survives and what fails. Then we repair inference without touching the estimator, through heteroskedasticity-robust (White/Huber/Eicker) standard errors, and we develop two tests --- Breusch--Pagan and White --- for deciding whether the repair is needed. Finally we ask whether we can do better than OLS by reweighting the data, through weighted and feasible generalized least squares. Throughout, keep one slogan in mind: heteroskedasticity is a problem of \emph{inference}, not of \emph{estimation}.
+
+\section{Properties of OLS Under Heteroskedasticity}
+
+Recall the homoskedasticity assumption, here stated for the multiple regression model with regressor vector $\vec x = (x_1,\dots,x_k)$.
+
+\asm{MLR.5 (Homoskedasticity)}{
+The error has constant conditional variance,
+\[
+\Var{u \given \vec x} = \Var{u \given x_1,\dots,x_k} = \sigma^2,
+\]
+the same value of $\sigma^2$ for every configuration of the regressors. When this fails --- when $\Var{u \given \vec x}$ depends on $\vec x$ --- the error is \emph{heteroskedastic}.
+}
+
+\subsection{Unbiasedness and Consistency Survive}
+
+It is worth being very precise about which assumptions each property needs, because the headline of this chapter is that heteroskedasticity touches none of them.
+
+\begin{itemize}
+    \item \textbf{Unbiasedness} ($\E{\hb_j} = \beta_j$ for every sample size) follows from MLR.1--MLR.4. The binding assumption is the zero conditional mean MLR.4, $\E{u \given \vec x} = 0$.
+    \item \textbf{Consistency} ($\hb_j \pto \beta_j$ as $n \to \infty$) needs much less. It is enough that the regressors be \emph{uncorrelated} with the error, namely $\E{u}=0$ and $\Cov{x_j}{u}=0$ for each $j$. This is strictly weaker than zero conditional mean.
+\end{itemize}
+
+\state{What survives heteroskedasticity}{
+Neither the unbiasedness condition (MLR.4) nor the weaker consistency condition (zero correlation of regressors with the error) mentions the conditional \emph{variance} of $u$ at all. Therefore:
+\begin{center}
+\emph{Under heteroskedasticity, OLS is still unbiased and still consistent.}
+\end{center}
+Heteroskedasticity is a statement about the second moment of $u$ given $\vec x$; unbiasedness and consistency are statements about its first moment. The two never meet.
+}
+
+\rmkb[Do not conflate the two conditions]{A common slip is to write ``consistency requires $\E{u\given \vec x}=0$.'' It does not. Consistency requires only the population orthogonality conditions $\E{u}=0$ and $\Cov{x_j}{u}=0$, which the sample moment conditions of OLS impose by construction. Zero conditional mean is sufficient for these (it implies $\Cov{x_j}{u}=0$) but is much stronger than necessary. This distinction matters here: it is precisely because consistency asks so little that heteroskedasticity --- a statement purely about variances --- cannot disturb it.}
+
+\subsection{The Interpretation of $R^2$ Is Unchanged}
+
+A pleasant corollary is that the population content of $R^2$ does not change either. Recall from Chapter~\ref{ch:asymptotics} that the sample sums of squares, divided by $n$, converge to population variances:
+\[
+\frac1n\,\text{SSR} = \frac1n\sumi \hat u_i^{\,2} \;\pto\; \sigma_u^2,
+\qquad
+\frac1n\,\text{SST} = \frac1n\sumi (y_i-\bar y)^2 \;\pto\; \sigma_y^2,
+\]
+where $\sigma_u^2 = \Var{u}$ and $\sigma_y^2 = \Var{y}$ are \emph{unconditional} variances. Hence
+\[
+R^2 = 1 - \frac{\text{SSR}}{\text{SST}} \;\pto\; 1 - \frac{\sigma_u^2}{\sigma_y^2}.
+\]
+The point is that $\sigma_u^2 = \Var{u}$ is the \emph{unconditional} error variance, an average over all values of $\vec x$. Heteroskedasticity concerns how $\Var{u \given \vec x}$ varies \emph{across} values of $\vec x$, but it leaves the overall average $\Var{u}$ in place. By the law of total variance, the unconditional variance is unaffected by how the conditional variance is distributed, so the probability limit of $R^2$ is exactly what it was under homoskedasticity. The familiar reading --- ``$R^2$ is the fraction of the variance of $y$ explained by the regressors'' --- still holds.
+
+\subsection{What Breaks: The Usual Variance Formula and BLUE}
+
+Two things do fail, and they are the reason this chapter exists.
+
+\state{What heteroskedasticity breaks}{
+\begin{enumerate}
+    \item \textbf{The usual variance formulas for OLS are no longer valid.} The formula $\Var{\hb_1} = \sigma^2/\text{SST}_x$ (and its multiple-regression analogue) was derived using MLR.5. Without it, that formula is simply the wrong number, so the conventional standard errors, $t$ statistics, $F$ statistics, and confidence intervals are all invalid --- regardless of sample size.
+    \item \textbf{OLS is no longer BLUE.} The Gauss--Markov theorem requires homoskedasticity. Drop MLR.5 and OLS, while still unbiased, is no longer the minimum-variance linear unbiased estimator. A reweighted estimator (Section~\ref{sec:wls}) can do better.
+\end{enumerate}
+}
+
+\subsection{The Correct Variance Under Heteroskedasticity}
+
+To see exactly how the variance formula changes, return to the simple regression $y_i = \beta_0 + \beta_1 x_i + u_i$ and let the conditional variance carry an index,
+\[
+\Var{u_i \given x_i} = \sigma_i^2,
+\]
+the general form of heteroskedasticity (each observation may have its own error variance). As in Chapter~\ref{ch:slr}, write the slope estimator as the truth plus a weighted sum of errors,
+\[
+\hb_1 = \frac{\sumi (x_i-\bar x)\,y_i}{\sumi (x_i-\bar x)^2}
+      = \beta_1 + \frac{\sumi (x_i-\bar x)\,u_i}{\sumi (x_i-\bar x)^2}.
+\]
+Conditioning on the regressors and using independence across $i$,
+\[
+\Var{\hb_1 \given \vec x}
+= \frac{\sumi (x_i-\bar x)^2\,\Var{u_i \given x_i}}{\br{\sumi (x_i-\bar x)^2}^2}
+= \frac{\sumi (x_i-\bar x)^2\,\sigma_i^2}{\br{\sumi (x_i-\bar x)^2}^2}.
+\tag{$\star$}\label{eq:het-var}
+\]
+
+\rmkb[Which formula is general?]{Equation~\eqref{eq:het-var} is the \emph{general} variance of the OLS slope: it holds whether or not the errors are homoskedastic. Only when every $\sigma_i^2$ equals the same $\sigma^2$ can we pull it out of the sum, $\sum (x_i-\bar x)^2 \sigma^2 = \sigma^2\,\text{SST}_x$, and collapse \eqref{eq:het-var} to the familiar $\sigma^2/\text{SST}_x$. So the textbook formula is the special case; \eqref{eq:het-var} is the truth.}
+
+\section{Heteroskedasticity-Robust Inference}
+\label{sec:robust}
+
+Formula~\eqref{eq:het-var} involves the unknown variances $\sigma_i^2$, and there are as many of them as there are observations, so we cannot estimate each one separately. The breakthrough of White (1980), building on Eicker and Huber, is that we do not need to: to estimate the \emph{sum} in \eqref{eq:het-var} consistently it suffices to replace each unknown $\sigma_i^2$ by the squared OLS residual $\hat u_i^{\,2}$.
+
+\defn{Heteroskedasticity-Robust Variance Estimator (simple regression)}{
+A valid estimator of $\Var{\hb_1}$ under arbitrary heteroskedasticity is
+\[
+\widehat{\Var{\hb_1}}
+= \frac{\sumi (x_i-\bar x)^2\,\hat u_i^{\,2}}{\br{\sumi (x_i-\bar x)^2}^2},
+\qquad
+\mathrm{se}(\hb_1) = \sqrt{\widehat{\Var{\hb_1}}}.
+\]
+The resulting $\mathrm{se}(\hb_1)$ is the \emph{heteroskedasticity-robust} standard error.
+}
+
+The recipe is to take the general formula \eqref{eq:het-var} and plug $\hat u_i^{\,2}$ in for the unobservable $\sigma_i^2$. The justification is asymptotic: the robust estimator does not converge to the true finite-sample variance term by term, but its scaled version has the same probability limit as the scaled true variance.
+
+\thm{Consistency of the Robust Variance Estimator}{
+Under MLR.1--MLR.4 (no homoskedasticity required), the scaled robust estimator is consistent for the scaled true variance:
+\[
+\plim_{n\to\infty} \, n\,\widehat{\Var{\hb_1}}
+= \plim_{n\to\infty} \, n\,\Var{\hb_1 \given \vec x}
+= \frac{\E{(x-\mu_x)^2\,\sigma^2(x)}}{\pr{\sigma_x^2}^2},
+\]
+where $\mu_x = \E{x}$, $\sigma_x^2 = \Var{x}$, and $\sigma^2(x) = \E{u^2 \given x}$ is the conditional-variance function.
+}
+
+\pf{
+Scale numerator and denominator of \eqref{eq:het-var} by appropriate powers of $n$. The denominator obeys $\frac1n\sumi (x_i-\bar x)^2 \pto \sigma_x^2$ by the law of large numbers, so its square $\pto (\sigma_x^2)^2$. For the numerator, replacing $\bar x$ by $\mu_x$ is asymptotically negligible, and the law of large numbers gives
+\[
+\frac1n\sumi (x_i-\mu_x)^2\,\sigma_i^2 \;\pto\; \E{(x-\mu_x)^2\,\sigma^2(x)}.
+\]
+This delivers $\plim\, n\,\Var{\hb_1\given\vec x} = \E{(x-\mu_x)^2\sigma^2(x)}/(\sigma_x^2)^2$. For the estimated version, the key step is that replacing $\sigma_i^2$ by $\hat u_i^{\,2}$ does not change the limit:
+\[
+\frac1n\sumi (x_i-\mu_x)^2\,\hat u_i^{\,2} \;\pto\; \E{(x-\mu_x)^2\,\sigma^2(x)}.
+\]
+To see why the same limit appears, use the law of iterated expectations and $\E{u^2 \given x} = \sigma^2(x)$:
+\[
+\E{(x-\mu_x)^2\,u^2}
+= \E{\,\E{(x-\mu_x)^2\,u^2 \given x}\,}
+= \E{(x-\mu_x)^2\,\E{u^2 \given x}}
+= \E{(x-\mu_x)^2\,\sigma^2(x)}.
+\]
+Since the two scaled quantities share a probability limit, their ratio converges to $1$, which is what consistency of the robust standard error means.
+}
+
+\rmkb[Robust standard errors are large-sample objects]{Two caveats follow from the proof. First, the robust standard error is justified only \emph{asymptotically}; in small samples it can be a poor approximation (degrees-of-freedom corrections such as the HC1--HC3 variants exist to mitigate this). Second, the residual $\hat u_i$ is not the error $u_i$, but in large samples $\hat u_i^{\,2} - u_i^{\,2} \pto 0$ uniformly enough that the substitution is harmless.}
+
+\subsection{The Multiple Regression Case}
+
+The same idea extends to any coefficient in a multiple regression $y_i = \beta_0 + \beta_1 x_{i1} + \dots + \beta_k x_{ik} + u_i$. Let $\hat r_{ij}$ denote the $i$-th residual from regressing $x_j$ on all the other regressors, and let $\text{SSR}_j = \sumi \hat r_{ij}^{\,2}$ be the corresponding residual sum of squares (the partialling-out machinery of Chapter~\ref{ch:mlr}).
+
+\defn{Robust Variance Estimator (multiple regression)}{
+A valid estimator of $\Var{\hb_j}$ under arbitrary heteroskedasticity is
+\[
+\widehat{\Var{\hb_j}}
+= \frac{\sumi \hat r_{ij}^{\,2}\,\hat u_i^{\,2}}{\pr{\text{SSR}_j}^2}.
+\]
+The square roots of these quantities are the \emph{White}, \emph{Huber}, or \emph{Eicker} standard errors, after the three statisticians who developed them.
+}
+
+The construction uses two sets of residuals: the $\hat u_i$ from the original regression, and the $\hat r_{ij}$ from the auxiliary regression of $x_j$ on the other regressors. In the one-regressor case $\hat r_{i1} = x_i - \bar x$ and the formula reduces to the simple-regression version above.
+
+\subsection{Robust $t$ Statistics and the Fate of the $F$ Test}
+
+Once we have a robust standard error, inference proceeds almost as before. The robust $t$ statistic is the usual ratio with the robust standard error in the denominator,
+\[
+t = \frac{\hb_j - \beta_{j,0}}{\mathrm{se}(\hb_j)},
+\qquad\qquad
+t_{\text{robust}} = \frac{\hb_j - \beta_{j,0}}{\mathrm{se}_{\text{robust}}(\hb_j)} .
+\]
+Under heteroskedasticity the ordinary $t$ statistic is invalid even in large samples, because its standard error estimates the wrong variance. The robust $t$ statistic, by contrast, is valid \emph{asymptotically}: it has an approximate standard normal (equivalently $t$) distribution under the null. The only thing that changes between the two formulas is the version of the standard error in the denominator.
+
+\rmkb[Are robust standard errors always larger?]{As a rough empirical regularity --- not a theorem --- heteroskedasticity-robust standard errors tend to be \emph{somewhat larger} than the conventional ones. They can also be smaller. What is diagnostically useful is the \emph{gap}: if the robust and conventional standard errors differ substantially, that is a sign of strong heteroskedasticity. If they are close, the homoskedasticity-based inference was probably fine.}
+
+The usual $F$ statistic for joint hypotheses is built on the conventional variance estimates and therefore also fails under heteroskedasticity. Heteroskedasticity-robust versions of the $F$ test (and its asymptotic cousin, the robust Wald statistic) exist and are produced automatically by modern software, but their algebra is involved and we do not reproduce it here. The practical message is simple: report robust standard errors and robust test statistics whenever heteroskedasticity is a live possibility, which in cross-sectional work is almost always.
+
+\section{Testing for Heteroskedasticity}
+\label{sec:tests}
+
+Robust standard errors fix inference whether or not heteroskedasticity is present, so why test at all? Two reasons. First, if the errors are in fact homoskedastic, OLS is BLUE and we lose efficiency by switching to a reweighting scheme; a test tells us whether the extra machinery is warranted. Second, evidence of heteroskedasticity that depends on the regressors in a structured way can be a symptom of deeper misspecification (a wrong functional form), which is worth knowing about. Every test below shares one idea: the conditional variance of $u$ equals the conditional mean of $u^2$, so we look for dependence of $\hat u_i^{\,2}$ on the regressors.
+
+\subsection{The Breusch--Pagan Test}
+
+Work under MLR.4, so that $\E{u \given \vec x} = 0$. Then the conditional variance is just the conditional second moment,
+\[
+\Var{u \given \vec x} = \E{u^2 \given \vec x} - \br{\E{u \given \vec x}}^2 = \E{u^2 \given \vec x}.
+\]
+Homoskedasticity says $\Var{u \given \vec x} = \sigma^2$, a constant, so the null hypothesis can be written as the statement that $\E{u^2 \given \vec x}$ does not vary with the regressors:
+\[
+H_0: \quad \E{u^2 \given x_1,\dots,x_k} = \E{u^2} = \sigma^2.
+\]
+The Breusch--Pagan idea is to test this by regressing $u^2$ linearly on the regressors,
+\[
+u^2 = \delta_0 + \delta_1 x_1 + \delta_2 x_2 + \dots + \delta_k x_k + v.
+\]
+Under $H_0$ none of the regressors should help, i.e.\ $\delta_1 = \delta_2 = \dots = \delta_k = 0$. Of course $u^2$ is unobservable, so we use the squared OLS residual $\hat u^2$ in its place,
+\[
+\hat u^2 = \delta_0 + \delta_1 x_1 + \delta_2 x_2 + \dots + \delta_k x_k + \text{error}.
+\]
+The error in this feasible regression is $\text{error}_i = v_i + (\hat u_i^{\,2} - u_i^{\,2})$, and the substitution is asymptotically innocuous because $\hat u_i^{\,2} - u_i^{\,2} \pto 0$ in large samples.
+
+Let $R^2_{\hat u^2}$ be the $R$-squared from this auxiliary regression of $\hat u^2$ on $x_1,\dots,x_k$. There are two equivalent test statistics.
+
+\thm{Breusch--Pagan Test Statistics}{
+To test $H_0: \delta_1 = \dots = \delta_k = 0$ in the auxiliary regression of $\hat u^2$ on $x_1,\dots,x_k$:
+\begin{itemize}
+    \item the \textbf{$F$ form} is the usual $F$ statistic for joint significance of all $k$ regressors,
+    \[
+    F = \frac{R^2_{\hat u^2}/k}{\pr{1 - R^2_{\hat u^2}}/(n-k-1)} \;\overset{a}{\sim}\; F_{k,\,n-k-1};
+    \]
+    \item the \textbf{$LM$ form} (Lagrange multiplier, or ``$n R^2$'' form) is
+    \[
+    LM = n\cdot R^2_{\hat u^2} \;\overset{a}{\sim}\; \chi^2_k .
+    \]
+\end{itemize}
+A large value of either statistic rejects homoskedasticity.
+}
+
+Note carefully the denominator of the $F$ statistic: it is $(1 - R^2_{\hat u^2})/(n-k-1)$ --- one minus the auxiliary $R$-squared, divided by the residual degrees of freedom $n-k-1$ ($k$ slopes plus an intercept). No quantity is squared here. The $LM$ form multiplies the auxiliary $R^2$ by the full sample size $n$ and compares it to a $\chi^2_k$ critical value.
+
+\rmkb[A small $R^2$ need not mean a small statistic]{The auxiliary $R^2_{\hat u^2}$ is typically small even under strong heteroskedasticity, but this does \emph{not} make the $LM$ statistic small: $LM = nR^2_{\hat u^2}$ is the product of $R^2$ with the sample size, and a large $n$ can turn a modest $R^2$ into a decisive rejection. Read the statistic, not the $R^2$.}
+
+\subsection{The Algebraic Link Between $F$ and $LM$}
+
+The two forms are asymptotically equivalent, and it is worth seeing why, since the same pairing of an $F$ test and an $n R^2$ Lagrange-multiplier test recurs throughout the book. As $n \to \infty$ with $k$ fixed, an $F_{k,\,n-k-1}$ random variable behaves like $\chi^2_k / k$:
+\[
+F_{k,\,n-k-1} \;\xrightarrow{\,n\to\infty\,}\; F_{k,\infty} \;\overset{a}{\sim}\; \chi^2_k / k .
+\]
+The reason is that the denominator of an $F$ statistic is itself a normalized chi-square that converges to a constant. If $X_i \iid \mathcal N(0,1)$, then $\frac1n\sumi X_i^2 \sim \chi^2_n/n$, and by the law of large numbers
+\[
+\frac1n\sumi X_i^2 \;\pto\; \E{X_i^2} = \Var{X_i} = 1,
+\qquad\text{so}\qquad \chi^2_n / n \;\pto\; 1 .
+\]
+Hence the $F$ denominator stabilizes at $1$ and $F$ collapses to $\chi^2_k/k$. Multiplying through, $LM \overset{a}{\sim} k \cdot F$ as $n \to \infty$, which is exactly the relationship $LM = nR^2_{\hat u^2}$ versus $F = \tfrac{R^2/k}{(1-R^2)/(n-k-1)}$ encodes once the small terms are dropped.
+
+\rmkb[Two practical notes]{Two further points about the Breusch--Pagan test. First, it only detects heteroskedasticity that is a \emph{linear} function of the regressors; a variance that depends on $\vec x$ in a purely nonlinear, mean-zero way can slip past it. Second, taking logarithms of variables often dampens heteroskedasticity, and this works chiefly through logging the \emph{dependent} variable rather than the regressors, because logs compress the right tail where the largest errors usually live.}
+
+\subsection{The White Test}
+
+Because the Breusch--Pagan auxiliary regression is linear in $\vec x$, it misses heteroskedasticity that operates through squares and cross-products of the regressors. White's test enlarges the auxiliary regression to include the regressors, their squares, and all their pairwise interactions. With three regressors $x_1, x_2, x_3$ the White auxiliary regression is
+\[
+\hat u^2 = \delta_0 + \underbrace{\delta_1 x_1 + \delta_2 x_2 + \delta_3 x_3}_{\text{levels}}
++ \underbrace{\delta_4 x_1^2 + \delta_5 x_2^2 + \delta_6 x_3^2}_{\text{squares}}
++ \underbrace{\delta_7 x_1 x_2 + \delta_8 x_1 x_3 + \delta_9 x_2 x_3}_{\text{interactions}} + \text{error},
+\]
+and we test the joint significance of all the included terms (everything but the intercept) via the same $F$ or $LM = nR^2$ statistic as before, now with the larger number of regressors driving the degrees of freedom.
+
+The drawback is combinatorial. With $k$ regressors the number of squares and interactions grows roughly as $k^2$, so the auxiliary regression burns through degrees of freedom quickly; with many regressors the test estimates a large number of nuisance parameters and its power deteriorates.
+
+\subsection{The Reduced (Special-Case) White Test}
+
+A clever economization sidesteps the explosion of terms. The fitted value $\hat y_i = \hb_0 + \hb_1 x_{i1} + \dots + \hb_k x_{ik}$ is a linear combination of the regressors, so $\hat y_i$ and $\hat y_i^{\,2}$ are functions of exactly the levels, squares, and cross-products that the full White test enumerates. We can therefore proxy for that whole list with just two terms.
+
+\defn{Reduced White Test (special case)}{
+Run the auxiliary regression of the squared residuals on the fitted values and their squares,
+\[
+\hat u^2 = \delta_0 + \delta_1 \hat y + \delta_2 \hat y^2 + \text{error},
+\]
+and test $H_0: \delta_1 = \delta_2 = 0$ with the $F$ statistic ($\overset{a}{\sim} F_{2,\,n-3}$) or the $LM$ statistic $nR^2_{\hat u^2} \overset{a}{\sim} \chi^2_2$.
+}
+
+Two cautions on the construction. First, it is the \emph{fitted} value $\hat y$, not the observed $y$, that enters: only $\hat y$ is a function of the regressors, so only $\hat y$ implicitly carries the squares and interactions we are after. Second, because $\hat y$ and $\hat y^2$ together stand in for the full battery of nonlinear terms, this regression tests dependence of $\hat u^2$ on the regressors, their squares, and their interactions \emph{indirectly}, using only two degrees of freedom regardless of how many regressors the original model contains. This is why it is called the special case of the White test.
+
+\section{Weighted Least Squares}
+\label{sec:wls}
+
+Robust standard errors leave OLS in place and merely correct its standard errors. But if we actually know the shape of the heteroskedasticity, we can do strictly better: by reweighting the data to undo the unequal variances we recover an estimator that is BLUE again. This is \emph{weighted least squares} (WLS), the leading special case of generalized least squares.
+
+\subsection{Known Variance Up to a Constant}
+
+Suppose the conditional variance is known up to an overall scale,
+\[
+\Var{u_i \given \vec x_i} = \sigma^2\, h(\vec x_i), \qquad h(\vec x_i) = h_i > 0 ,
+\]
+where the function $h(\cdot) > 0$ captures the \emph{shape} of the heteroskedasticity and the unknown constant $\sigma^2$ its overall level. The positivity $h_i > 0$ is the primary condition to verify --- a variance cannot be negative --- and it is also what limits where WLS can be applied. The functional form $h(\cdot)$ is something we must \emph{assume}; in practice that assumption deserves an argument grounded in how the data are generated.
+
+\subsection{The Model Transformation}
+
+The trick is to divide the entire equation by $\sqrt{h_i}$, which rescales each observation's error to a common variance. Indeed,
+\[
+\Var{\frac{u_i}{\sqrt{h_i}}\;\Big|\;\vec x_i} = \frac{1}{h_i}\,\Var{u_i \given \vec x_i} = \frac{\sigma^2 h_i}{h_i} = \sigma^2 ,
+\]
+a constant. Applying the same division to every term of the model $y_i = \beta_0 + \beta_1 x_{i1} + \dots + \beta_k x_{ik} + u_i$ produces a transformed model that is homoskedastic:
+\[
+\frac{y_i}{\sqrt{h_i}}
+= \beta_0\,\frac{1}{\sqrt{h_i}}
++ \beta_1\,\frac{x_{i1}}{\sqrt{h_i}}
++ \dots
++ \beta_k\,\frac{x_{ik}}{\sqrt{h_i}}
++ \frac{u_i}{\sqrt{h_i}},
+\]
+or compactly, with starred variables $y_i^* = y_i/\sqrt{h_i}$, $x_{ij}^* = x_{ij}/\sqrt{h_i}$, $x_{i0}^* = 1/\sqrt{h_i}$, and $u_i^* = u_i/\sqrt{h_i}$,
+\[
+y_i^* = \beta_0\, x_{i0}^* + \beta_1\, x_{i1}^* + \dots + \beta_k\, x_{ik}^* + u_i^* .
+\]
+
+\rmkb[Two features of the transformed model]{Two things to notice. First, the transformed model has \emph{no} ordinary intercept: the constant term becomes the regressor $x_{i0}^* = 1/\sqrt{h_i}$, which now varies across $i$. Second, the weighting factor need not be exactly $1/\sqrt{h_i}$ --- any constant multiple of it gives the same WLS estimates, since the overall scale cancels. This is the same freedom that let us leave $\sigma^2$ unspecified.}
+
+\subsection{WLS as Weighted Minimization}
+
+Running OLS on the transformed (starred) model is, by construction, the same as minimizing a \emph{weighted} sum of squared residuals in the original variables:
+\[
+\min_{b_0,\dots,b_k}\;
+\sumi \pr{\frac{y_i}{\sqrt{h_i}} - b_0\,\frac{1}{\sqrt{h_i}} - \dots - b_k\,\frac{x_{ik}}{\sqrt{h_i}}}^2
+\;=\;
+\min_{b_0,\dots,b_k}\;
+\sumi \frac{1}{h_i}\,\pr{y_i - b_0 - b_1 x_{i1} - \dots - b_k x_{ik}}^2 .
+\]
+Each squared residual is weighted by $1/h_i$, which gives the method its name. The logic of the weights is exactly the logic of efficiency: an observation with a large variance $h_i$ is noisy and uninformative, so it receives a small weight $1/h_i$; an observation with a small variance is reliable and gets a large weight. (If $h_i$ is constant across $i$, every weight is the same and WLS collapses back to OLS.)
+
+\thm{Optimality of WLS}{
+If $\Var{u_i \given \vec x_i} = \sigma^2 h_i$ with $h_i$ known, and the remaining Gauss--Markov assumptions hold, then OLS applied to the transformed model --- equivalently, WLS with weights $1/h_i$ --- is the \emph{best linear unbiased estimator} (BLUE). Because the transformed errors $u_i^*$ are homoskedastic, the Gauss--Markov theorem applies to the transformed model.
+}
+
+In practice WLS standard errors are often noticeably smaller than OLS standard errors, which is precisely the efficiency gain the theorem promises. Two reminders complete the picture. The goodness-of-fit measure for WLS is a \emph{weighted} $R^2$, $R^2 = 1 - \text{SSR}_{\text{w}}/\text{SST}_{\text{w}}$, computed from the weighted sums of squares of the transformed model. And the \emph{interpretation} of the coefficients always returns to the \emph{original} model $y = \beta_0 + \dots + \beta_k x_k + u$: the transformation is a device for efficient estimation, not a respecification, so $\beta_j$ still measures the partial effect of $x_j$ on $y$.
+
+\rmkb[WLS and robust SEs as a cross-check]{Robust standard errors and WLS are two responses to the same disease. They use the data differently, so when both the OLS-with-robust-SE results and the WLS results agree --- coefficients close in magnitude with comparable standard errors --- you can be confident the inference is sound. Large discrepancies are a warning that something beyond heteroskedasticity (such as a violation of MLR.4) may be at work.}
+
+\subsection{A Leading Special Case: Averaged (Grouped) Data}
+
+A common and important situation where $h_i$ is known arises when the data are reported as \emph{averages over groups of unequal size} --- average outcomes by city, by firm, by school. Suppose the individual-level model holds for person $e$ in unit $i$,
+\[
+y_{i,e} = \beta_0 + \beta_1 x_{1,i,e} + \beta_2 x_{2,i,e} + \beta_3 x_{3,i} + u_{i,e},
+\]
+where unit $i$ contains $m_i$ individuals and $x_{3,i}$ is a unit-level regressor (the same for everyone in the unit). Averaging over the $m_i$ members of unit $i$ gives a regression in the group means,
+\[
+\bar y_i = \beta_0 + \beta_1 \bar x_{1,i} + \beta_2 \bar x_{2,i} + \beta_3 x_{3,i} + \bar u_i,
+\qquad
+\bar u_i = \frac{1}{m_i}\sum_{e=1}^{m_i} u_{i,e} .
+\]
+Even if the individual errors $u_{i,e}$ are homoskedastic at the individual level --- i.i.d.\ with variance $\sigma^2$ --- the averaged error is not. Averaging shrinks variance in proportion to group size:
+\[
+\Var{\bar u_i} = \Var{\frac{1}{m_i}\sum_{e=1}^{m_i} u_{i,e}} = \frac{1}{m_i^2}\sum_{e=1}^{m_i} \Var{u_{i,e}} = \frac{m_i\,\sigma^2}{m_i^2} = \frac{\sigma^2}{m_i} .
+\]
+So the grouped-data error variance is $\sigma^2/m_i$: large units have precise averages and small units have noisy ones. This is heteroskedasticity with a \emph{known} form, $h_i = 1/m_i$, and the correct WLS weight is $1/h_i = m_i$.
+
+\state{Weighting grouped data}{
+When the regression is run on group averages and the underlying individual errors are homoskedastic, use WLS with weights equal to the \emph{group size} $m_i$. Larger groups give more reliable averages and so deserve more weight. If you doubt the individual-level homoskedasticity, run WLS and report \emph{robust} standard errors for the transformed model, getting the best of both corrections.
+}
+
+\section{Feasible GLS: Unknown Variance Function}
+\label{sec:fgls}
+
+The preceding section assumed $h(\vec x)$ known. Usually it is not. \emph{Feasible} generalized least squares (FGLS) estimates the variance function from the data and then performs WLS with the estimated weights. The challenge is to model $h(\vec x)$ in a way that automatically respects the positivity $h(\vec x) > 0$. The standard device is to put the linear index inside an exponential, which is positive for any value of its argument.
+
+\defn{Exponential Variance Model}{
+Model the conditional variance as
+\[
+\Var{u \given \vec x} = \sigma^2 \exp\!\pr{\delta_0 + \delta_1 x_1 + \dots + \delta_k x_k} = \sigma^2 h(\vec x),
+\]
+where the $\exp(\cdot)$ guarantees $h(\vec x) > 0$ regardless of the $\delta$'s.
+}
+
+To estimate the $\delta$'s, start from $\E{u^2 \given \vec x} = \Var{u \given \vec x}$ and write the second moment as the variance times a multiplicative error,
+\[
+u^2 = \sigma^2 \exp\!\pr{\delta_0 + \delta_1 x_1 + \dots + \delta_k x_k}\, v,
+\]
+where $v > 0$ is assumed independent of the regressors with $\E{v}=1$. Taking logs linearizes the model:
+\[
+\log(u^2) = \alpha_0 + \delta_1 x_1 + \dots + \delta_k x_k + e,
+\]
+where $\alpha_0$ absorbs $\log\sigma^2$, $\delta_0$, and $\E{\log v}$, and $e = \log v - \E{\log v}$ has mean zero. Since $u^2$ is unobserved, replace it with $\hat u^2$ and run OLS:
+\[
+\log(\hat u^2) = \hat\alpha_0 + \hat\delta_1 x_1 + \dots + \hat\delta_k x_k + \text{error}.
+\]
+Exponentiating the fitted values recovers estimated weights that are guaranteed positive,
+\[
+\hat h_i = \exp\!\pr{\hat\alpha_0 + \hat\delta_1 x_{i1} + \dots + \hat\delta_k x_{ik}} > 0 .
+\]
+These $\hat h_i$ are then used as the WLS weights $1/\hat h_i$. As always, $\hat h_i$ need only be proportional to the true $h_i$; the overall scale is irrelevant.
+
+\state{FGLS recipe}{
+\begin{enumerate}
+    \item Run OLS of $y$ on $x_1,\dots,x_k$ and save the residuals $\hat u_i$.
+    \item Run OLS of $\log(\hat u_i^{\,2})$ on $x_1,\dots,x_k$ and save the fitted values $\hat g_i$.
+    \item Form the estimated weights $\hat h_i = \exp(\hat g_i)$.
+    \item Run WLS of $y$ on $x_1,\dots,x_k$ with weights $1/\hat h_i$.
+\end{enumerate}
+The $\log$ in step~2 and the $\exp$ in step~3 are the two halves of a single trick: regressing on the log keeps the model linear, and exponentiating back guarantees the weights are positive.
+}
+
+\subsection{Misspecified Variance Functions}
+
+The variance model $h(\vec x)$ is, like any model, possibly wrong. What happens then? Remarkably little, and the reason is the central theme of this chapter once more.
+
+\state{WLS is robust to a misspecified variance function}{
+If the variance function $h(\vec x)$ is misspecified but MLR.1--MLR.4 hold, WLS is still \emph{consistent}. As we have stressed, heteroskedasticity --- and hence any modeling of it --- has nothing to do with unbiasedness or consistency, which depend only on the conditional mean MLR.4, not on the conditional variance. A wrong $h(\vec x)$ costs efficiency, not consistency.
+}
+
+Two practical corollaries follow. First, if OLS and WLS produce \emph{very different} coefficient estimates, the culprit is usually not the variance model but a failure of MLR.4 (e.g.\ omitted variables or a wrong functional form): both estimators should be consistent for the same $\beta_j$ when MLR.4 holds, so a large gap signals that one of them is inconsistent. Second, when heteroskedasticity is strong, it is often still worthwhile to use an admittedly imperfect form of $h(\vec x)$ in WLS, because even an approximate reweighting buys an efficiency gain over plain OLS. (If you remain uneasy about the variance model, compute robust standard errors after WLS, which protect inference even when the weights are wrong.)
+
+\subsection{WLS for the Linear Probability Model}
+
+A textbook case where the variance function is \emph{exactly} known --- not merely assumed --- is the linear probability model (LPM) of Chapter~\ref{ch:dummies}, where the dependent variable is binary. There the conditional mean is a probability,
+\[
+\Pr{y = 1 \given \vec x} = p(\vec x) = \beta_0 + \beta_1 x_1 + \dots + \beta_k x_k,
+\]
+and because a Bernoulli variable's variance is determined by its mean, the conditional variance is pinned down with no extra assumption:
+\[
+\Var{y \given \vec x} = p(\vec x)\,\br{1 - p(\vec x)} .
+\]
+The LPM is therefore \emph{inherently} heteroskedastic, and its variance function is known. The natural WLS weight uses the fitted probability $\hat y_i = \hb_0 + \hb_1 x_{i1} + \dots + \hb_k x_{ik}$ in place of $p(\vec x_i)$:
+\[
+\hat h_i = \hat y_i\,(1 - \hat y_i) .
+\]
+
+\ex[WLS for the LPM]{
+Estimate an LPM for whether a household owns its home, $\Pr{\texttt{own}=1\given\vec x} = \beta_0 + \beta_1\,\texttt{income} + \beta_2\,\texttt{age}$, on $n$ households. Describe a WLS estimator that accounts for the model's built-in heteroskedasticity.}
+\sol{
+First run OLS of \texttt{own} on \texttt{income} and \texttt{age} to obtain fitted probabilities $\hat y_i = \hb_0 + \hb_1\,\texttt{income}_i + \hb_2\,\texttt{age}_i$. Form the known variance estimates $\hat h_i = \hat y_i(1-\hat y_i)$. Then run WLS of \texttt{own} on \texttt{income} and \texttt{age} with weights $1/\hat h_i = 1/[\hat y_i(1-\hat y_i)]$. The reweighting downweights households whose fitted probability is near $0$ or $1$ (where the binary outcome is nearly deterministic and $\hat h_i$ is small) relative to those near $\hat y_i = 0.5$ (where $\hat h_i$ is largest). No separate variance model needs to be assumed, because the LPM's variance function is exact.}
+
+\rmkb[When the LPM weights misbehave]{The procedure is infeasible whenever a fitted probability falls outside $(0,1)$, since then $\hat h_i = \hat y_i(1-\hat y_i) \le 0$ and the weight $1/\hat h_i$ is undefined or negative. Two remedies:
+\begin{itemize}
+    \item if such cases are rare, truncate the offending fitted values to, say, $0.01$ or $0.99$ and proceed with WLS;
+    \item if they are common, abandon WLS and report OLS with heteroskedasticity-robust standard errors instead.
+\end{itemize}
+The out-of-bounds fitted values are themselves a known limitation of the LPM, which the robust-standard-error route sidesteps entirely.}
+
+\rmkb[Where this leaves us]{Heteroskedasticity is the gentlest of the classical-assumption failures: it leaves OLS unbiased and consistent and leaves the meaning of $R^2$ intact, demanding only that we repair our standard errors. The robust standard errors of Section~\ref{sec:robust} do this with no extra assumptions; WLS and FGLS go further and recover efficiency when the variance function is known or estimable. Chapter~\ref{ch:specification} turns to a graver class of problems --- misspecified functional form, measurement error, and missing or non-random data --- where, unlike here, the conditional-mean assumption MLR.4 itself is at stake and consistency is no longer guaranteed.}

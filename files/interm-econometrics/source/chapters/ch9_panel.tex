@@ -1,0 +1,419 @@
+% !TEX root = ../main.tex
+\chapter{Panel Data Methods}
+\label{ch:panel}
+
+So far every dataset has been a single cross section: one observation per unit, taken at one moment. The recurring danger has been omitted variables --- some unobserved factor, correlated with our regressor, that biases the slope (Chapter~\ref{ch:mlr}). If that factor were observed we would simply control for it; the trouble is precisely that it is not. \emph{Panel data} offer a way out that needs no proxy and no instrument. A panel follows the \emph{same} units --- people, firms, cities, countries --- over two or more time periods. The extra dimension lets each unit serve as its own control: by comparing a unit to \emph{itself} across time, any characteristic of the unit that does not change over the window of observation cancels out, whether we ever observe it or not.
+
+This is a powerful idea, and most of this chapter is one idea worn four ways. We split the error into a time-constant unobserved \emph{effect} $a_i$ (ability, location, management culture, soil quality) and a time-varying \emph{idiosyncratic} error $u_{it}$, and then we eliminate $a_i$ by differencing or demeaning. Difference-in-differences compares the before/after change in a treated group to the before/after change in a control group. First differencing subtracts adjacent periods. The fixed-effects (within) estimator subtracts each unit's time average. Random effects subtracts only a \emph{fraction} of that average, and correlated random effects ties the whole family together and hands us a clean test for which method to use. Throughout, the prize is a causal slope in the presence of unobserved, time-constant endogeneity --- exactly the situation a single cross section cannot handle.
+
+We index a unit by $i=1,\dots,N$ and a time period by $t=1,\dots,T$. A central modeling premise is that units are independent draws --- each $i$ is i.i.d.\ --- while observations \emph{within} a unit are allowed to be correlated across time. Cross-unit correlation is ruled out; within-unit serial correlation is not, and managing it will be a recurring theme.
+
+\section{Difference-in-Differences}
+\label{sec:did}
+
+Most policy questions concern an event located in time --- a law passed, a plant opened, a tax changed --- and ideally one we can treat as exogenous to the units it affects. We sort units into a \emph{treatment} group (those exposed to the event) and a \emph{control} group (those not), and we ask how the event moved the outcome. The obstacle is that the two groups usually differ for reasons unrelated to the event: treated units may have been on a different level all along. Difference-in-differences (DiD) handles this by focusing not on the levels, nor even on the trends, but on the \emph{difference between the trends}.
+
+\subsection{The parallel-trends idea}
+
+Consider the effect of building a garbage incinerator on nearby house prices. Let $rprice$ be the real house price and $nearinc$ a dummy equal to one for houses near the incinerator site. A naive analyst takes data from the year construction began and runs
+\[
+rprice = \gamma_0 + \gamma_1\, nearinc + u,
+\]
+reading $\gamma_1$ as ``the effect of the incinerator.'' But houses near the future site were farther from the city center and cheaper \emph{regardless} of the incinerator. The coefficient $\gamma_1$ confounds the incinerator's effect with a pre-existing level difference between the two neighborhoods.
+
+The fix is to look at how the gap between the groups \emph{changed}. We need data from at least two years, one before the event and one after, and we maintain the \emph{parallel-trends assumption}: in the absence of the event, the average outcome in the two groups would have moved by the same amount in the same direction. Under parallel trends, any divergence in the gap between groups, before versus after, must be attributable to the event.
+
+\asm{Parallel Trends}{
+Let $y_{it}^{0}$ denote the outcome unit $i$ would have at time $t$ if untreated (its potential outcome under no treatment). The \emph{parallel-trends} assumption states that, in the absence of treatment, the average change in $y^0$ is the same for the treatment ($T$) and control ($C$) groups:
+\[
+\E{y_{i,\text{after}}^{0} - y_{i,\text{before}}^{0} \given T}
+=
+\E{y_{i,\text{after}}^{0} - y_{i,\text{before}}^{0} \given C}.
+\]
+Equivalently, the two groups share a common time trend; they may sit at different \emph{levels} but they drift in parallel. This is what makes the untreated control group a valid stand-in for what would have happened to the treated group.
+}
+
+\subsection{The two-period regression}
+
+The cleanest way to compute the DiD estimator is by a single regression with an interaction term. Define a time dummy $y81=1$ for the post-event year (1981, when incinerator construction started) and $0$ otherwise. Estimate
+\[
+rprice = \beta_0 + \delta_0\, y81 + \beta_1\, nearinc + \delta_1\,(y81 \cdot nearinc) + u.
+\]
+The coefficient $\delta_1$ on the interaction is the DiD estimator. In the general notation, with $dT=1$ for the treatment group, $d2=1$ for the second (post) period, and possibly other controls,
+\[
+y = \beta_0 + \delta_0\, d2 + \beta_1\, dT + \delta_1\,(d2 \cdot dT) + \text{(other factors)} + u.
+\]
+Each coefficient has a job, and reading them off is the key to understanding the method:
+\begin{itemize}
+    \item $\beta_1\, dT$ controls for the \emph{fixed level difference} between the treatment and control groups (the pre-existing gap).
+    \item $\delta_0\, d2$ controls for the \emph{common time trend} affecting both groups.
+    \item $\delta_1\,(d2 \cdot dT)$ captures the \emph{extra} change experienced only by the treated group after the event --- the difference in trends, which is the treatment effect.
+\end{itemize}
+Note that to detect a slope difference at all, one must first control for the parallel trend; the group dummy $dT$ and the time dummy $d2$ are therefore both indispensable, never to be dropped.
+
+\subsection{The \texorpdfstring{$2\times 2$}{2x2} table}
+
+The four conditional means produced by the model lay out as a small table, and reading the margins two different ways reveals the two equivalent meanings of $\delta_1$.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+ & Before & After & After $-$ Before \\
+\midrule
+Control   & $\beta_0$           & $\beta_0+\delta_0$                       & $\delta_0$ \\
+Treatment & $\beta_0+\beta_1$   & $\beta_0+\beta_1+\delta_0+\delta_1$      & $\delta_0+\delta_1$ \\
+\midrule
+Treatment $-$ Control & $\beta_1$ & $\beta_1+\delta_1$ & $\delta_1$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The lower-right cell is $\delta_1$ no matter which way we reach it, and that is the whole point.
+
+\state{Two readings of the same number}{
+Let $\bar y_{p,g}$ be the sample mean for period $p\in\{0,1\}$ (before/after) and group $g\in\{C,T\}$. The DiD estimator $\hat\delta_1$ admits two algebraically identical expressions:
+\[
+\ba
+\hat\delta_1
+&= \underbrace{(\bar y_{1,T}-\bar y_{1,C})}_{\text{after-gap}}
+ - \underbrace{(\bar y_{0,T}-\bar y_{0,C})}_{\text{before-gap}}
+ && \text{(difference of cross-group differences)},\\[4pt]
+\hat\delta_1
+&= \underbrace{(\bar y_{1,T}-\bar y_{0,T})}_{\text{treated change}}
+ - \underbrace{(\bar y_{1,C}-\bar y_{0,C})}_{\text{control change}}
+ && \text{(difference of over-time differences)}.
+\ea
+\]
+First reading: how much did the treated-minus-control gap widen from before to after. Second reading: how much more did the treated group change over time than the control group did. They are equal because both compute the same corner of the $2\times2$ table.
+}
+
+\subsection{Why \texorpdfstring{$\delta_1$}{delta1} is the ATE}
+
+The subtraction is what does the work. Comparing the change in the treated group to the change in the control group nets out anything common to both groups over the period --- macroeconomic shocks, seasonality, secular drift --- because those common factors enter the control change too and cancel. What remains is the part of the treated group's movement that the control group did \emph{not} share, which, under parallel trends, is the causal effect of the event. When assignment to treatment is effectively random (a natural or quasi-natural experiment), $\delta_1$ identifies the \emph{average treatment effect} (ATE).
+
+\rmkb[Natural experiments]{DiD is the workhorse for (quasi-)natural experiments. In a \emph{true} experiment, subjects are randomly assigned to treatment or control, so the groups are comparable by construction. In a \emph{natural} experiment, the two groups arise from some change in policy or circumstance and may differ systematically; the before/after differencing is precisely how we control for that systematic difference. DiD therefore evaluates policy changes and other exogenous events when randomization was not under our control.}
+
+\subsection{When parallel trends fails: triple differences}
+
+DiD is only as good as its identifying assumption. If the two groups would have followed \emph{different} trends even without the event --- a differential trend --- then $\delta_1$ mixes the treatment effect with that pre-existing divergence, and we can no longer say it isolates the policy. We cannot be sure whether $\delta_1$ reflects the policy or merely some unaccounted factor pushing the groups apart.
+
+One remedy is to add flexibility through a second control dimension. Suppose we worry that the treatment and control neighborhoods are trending differently because of, say, their differing age composition. We can find a second pair of groups --- treated and untreated --- that shares the suspect trend but is unaffected by the policy, and difference \emph{again}. The result is the \emph{difference-in-difference-in-differences} (DDD, or triple-differences) estimator: it adds further interaction terms so that any common differential trend across the extra dimension is itself differenced away, leaving a cleaner estimate of the policy effect.
+
+\section{First Differencing}
+\label{sec:fd}
+
+We now move from the two-group, before/after setup to a panel of many units each observed over time, and to a continuous (rather than binary) regressor. The mechanics differ but the spirit is identical: subtract to eliminate the unobserved, time-constant nuisance.
+
+\subsection{The unobserved-effects model}
+
+Suppose we want the causal effect of $x_{it}$ on $y_{it}$ and have no other regressors at hand. We can still hope to recover it if each unit is observed for at least two periods and the \emph{other} factors affecting $y_{it}$ stay roughly constant over the window. Write the model as
+\[
+y_{it} = \beta_0 + \delta_0\, d_t + \beta_1\, x_{it} + v_{it},
+\qquad
+v_{it} = a_i + u_{it},
+\]
+where:
+\begin{itemize}
+    \item $d_t$ is a time dummy for the second period (allowing a different intercept across periods);
+    \item $a_i$ is the \emph{unobserved effect} (also called the fixed effect, individual heterogeneity, or unobserved heterogeneity): time-constant factors specific to unit $i$;
+    \item $u_{it}$ is the \emph{idiosyncratic error}: time-varying unobserved factors.
+\end{itemize}
+The composite error $v_{it}=a_i+u_{it}$ packages the two together.
+
+\subsection{The heterogeneity bias of pooled OLS}
+
+The crudest approach ignores the panel structure: stack all $NT$ observations and run OLS on the original equation. This \emph{pooled OLS} estimator is consistent only if the entire composite error $v_{it}$ is uncorrelated with $x_{it}$. Even granting that the idiosyncratic part is clean, $\Cov{x_{it}}{u_{it}}=0$, consistency still requires $\Cov{x_{it}}{a_i}=0$. But the unobserved effect is exactly the sort of thing --- ability, location quality, firm culture --- that we expect to be correlated with the regressor.
+
+\state{Heterogeneity bias}{
+If the time-constant unobserved effect $a_i$ is correlated with $x_{it}$, then pooled OLS on $y_{it}=\beta_0+\delta_0 d_t+\beta_1 x_{it}+v_{it}$ is biased and inconsistent for $\beta_1$. This is called \emph{heterogeneity bias} --- it is simply omitted-variable bias (Chapter~\ref{ch:mlr}) with the omitted variable being $a_i$.
+}
+
+This is the whole reason we collected a panel: to allow $a_i$ to be \emph{arbitrarily} correlated with the regressors and still estimate $\beta_1$ consistently.
+
+\subsection{Differencing out the effect}
+
+Because $a_i$ does not change over time, it disappears when we subtract one period from another. Take the model in two periods $t$ with $d_t=0$ (period 1) and $d_t=1$ (period 2) and difference:
+\[
+\Delta y_i = \delta_0 + \beta_1\,\Delta x_i + \Delta u_i,
+\]
+where $\Delta y_i = y_{i2}-y_{i1}$, and likewise for $\Delta x_i$ and $\Delta u_i$. The term $a_i$ is gone: $a_i - a_i = 0$. This is the \emph{first-differenced (FD) equation}. The time dummy's coefficient $\delta_0$ survives as the new intercept (since $\Delta d_t = 1-0 = 1$).
+
+The FD equation is just a cross-sectional regression of $\Delta y_i$ on $\Delta x_i$, so all the OLS machinery returns, provided one new condition holds.
+
+\asm{Strict Exogeneity}{
+The idiosyncratic error is \emph{strictly exogenous} if, in every period, it is uncorrelated with the explanatory variables in \emph{all} periods:
+\[
+\E{u_{it} \given x_{i1},x_{i2},\dots,x_{iT},\, a_i} = 0 \qquad \text{for all } t.
+\]
+This is stronger than contemporaneous exogeneity $\E{u_{it}\given x_{it}}=0$: it forbids feedback from past shocks to future regressors and from future shocks to current regressors. Strict exogeneity is exactly what guarantees $\Cov{\Delta x_i}{\Delta u_i}=0$, so that FD-OLS is unbiased and consistent for $\beta_1$.
+}
+
+\thm{Consistency of First Differencing}{
+In the unobserved-effects model $y_{it}=\beta_0+\delta_0 d_t+\beta_1 x_{it}+a_i+u_{it}$ with $T=2$, if $u_{it}$ is strictly exogenous and $\Delta x_i$ has variation across $i$, then OLS on the first-differenced equation is consistent for $\beta_1$ regardless of how $a_i$ correlates with the regressors.
+}
+
+The crucial freedom is that we placed \emph{no} restriction on $\Cov{x_{it}}{a_i}$: the differencing annihilates $a_i$, so any form of correlation between $a_i$ and the regressors is permitted. The effect $a_i$ is left completely general. ``General,'' though, is not the same as ``random'': here $a_i$ is treated as a fixed, unit-specific quantity, not as a draw from a distribution we model.
+
+\rmkb[FD equals DiD]{When $x_{it}$ is itself a treatment dummy, first differencing reproduces DiD exactly. In DiD, the group dummy $dT$ absorbs the fixed level difference, the time dummy $d2$ absorbs the common trend, and the interaction $\delta_1(d2\cdot dT)$ is the effect. In FD, differencing wipes out the fixed effect at the outset, the common trend lands in the intercept $\delta_0$, and the term $\beta_1\Delta x_i$ \emph{is} the interaction by construction. Same estimate, two routes.}
+
+\subsection{Costs of differencing}
+
+Eliminating $a_i$ is not free. Two limitations recur for every differencing/demeaning method in this chapter.
+
+\emph{Lost variation, larger standard errors.} Differencing can sharply reduce the variation in the regressor. Even if $x_{it}$ varies a lot across units in levels, the within-unit change $\Delta x_i$ may move very little. Recall from Chapter~\ref{ch:slr} that $\Var{\hb_1}=\sigma^2/\text{SST}_x$: little variation in $\Delta x_i$ inflates the standard error and costs precision.
+
+\emph{Time-invariant regressors vanish.} Any regressor that is constant over time --- gender, race, a person's education if fixed over the window --- has $\Delta x_i = 0$ and is differenced away. Its effect simply cannot be estimated by FD (or, as we will see, by fixed effects). This is the price of letting $a_i$ be arbitrary: the method cannot distinguish a time-constant regressor from the time-constant effect it eliminates.
+
+\emph{Strict exogeneity is essential.} If strict exogeneity fails --- for instance, if a shock $u_{it}$ today feeds into next period's $x_{i,t+1}$ --- then $\Delta x_i$ is correlated with $\Delta u_i$ and the FD estimator loses consistency.
+
+\subsection{More than two periods, and the serial-correlation check}
+
+First differencing extends to $T>2$. With three periods, allow a separate intercept in each:
+\[
+y_{it} = \delta_1 + \delta_2\, d2_t + \delta_3\, d3_t + \beta_1\, x_{it} + u_{it},
+\]
+where $d2_t,d3_t$ are dummies for periods 2 and 3 (so $a_i$ is folded into $\delta_1$ for exposition, or carried along and differenced out). Differencing adjacent periods gives
+\[
+\Delta y_{it} = \delta_2\,\Delta d2_t + \delta_3\,\Delta d3_t + \beta_1\,\Delta x_{it} + \Delta u_{it}.
+\]
+Here $\Delta d2_t=1,\ \Delta d3_t=0$ at $t=2$, while $\Delta d2_t=-1,\ \Delta d3_t=1$ at $t=3$. This differenced equation has no intercept, which is inconvenient for computing $R^2$. It is cleaner to estimate the algebraically equivalent form with an intercept,
+\[
+\Delta y_{it} = \alpha_0 + \alpha_3\, d3_t + \beta_1\,\Delta x_{it} + \Delta u_{it},
+\]
+which reports the same $\hb_1$ but a usable $R^2$.
+
+A standing requirement of FD is that the \emph{differenced} errors $\Delta u_{it}$ be serially uncorrelated, and this is easy to test. Let $r_{it}=\Delta u_{it}$ (estimated by the FD residuals) and posit an AR(1) structure $r_{it}=\rho\, r_{i,t-1}+e_{it}$. No serial correlation means $\rho=0$. Regress the residuals on their own lag, and test $H_0:\rho=0$ with the usual $t$ statistic. Rejection signals serial correlation in $\Delta u_{it}$, calling for robust standard errors or for the fixed-effects estimator instead.
+
+\section{Fixed Effects Estimation}
+\label{sec:fe}
+
+First differencing subtracts \emph{adjacent} periods. Fixed effects subtracts each unit's \emph{time average}. For $T=2$ the two coincide, but for $T>2$ they are genuinely different estimators with different efficiency properties. We work with the model
+\[
+y_{it} = \beta_1\, x_{it} + a_i + u_{it},
+\]
+where $a_i$ is the fixed effect for unit $i$ and $u_{it}$ the idiosyncratic error. (An overall intercept is omitted because it is perfectly absorbed into $a_i$.)
+
+\subsection{The within (time-demeaning) estimator}
+
+The idea is to exploit the variation of each unit \emph{around its own mean over time}. Average the model over the $T$ periods for a fixed unit $i$:
+\[
+\bar y_i = \beta_1\,\bar x_i + a_i + \bar u_i,
+\qquad
+\bar y_i := \frac1T\sum_{t=1}^{T} y_{it},
+\]
+and similarly $\bar x_i := \frac1T\sum_{t=1}^T x_{it}$, $\bar u_i := \frac1T\sum_{t=1}^T u_{it}$. Note that $a_i$ is constant in $t$, so its average over time is just $a_i$ itself. Subtract this time-average equation from the original:
+\[
+y_{it} - \bar y_i = \beta_1\,(x_{it}-\bar x_i) + (u_{it}-\bar u_i).
+\]
+Writing $\ddot y_{it} := y_{it}-\bar y_i$ (and likewise $\ddot x_{it}, \ddot u_{it}$) gives the \emph{within} or \emph{time-demeaned} equation
+\[
+\ddot y_{it} = \beta_1\,\ddot x_{it} + \ddot u_{it}.
+\]
+
+\defn{Fixed-Effects (Within) Estimator}{
+The \emph{fixed-effects estimator} $\hb_{\text{FE}}$ is the pooled OLS estimator of the time-demeaned equation $\ddot y_{it}=\beta_1\ddot x_{it}+\ddot u_{it}$. The transformation $x_{it}\mapsto \ddot x_{it}=x_{it}-\bar x_i$ is the \emph{within transformation}; it removes $a_i$ because the effect is constant over time. The within equation has no intercept --- the intercept is absorbed by $a_i$.
+}
+
+As with FD, strict exogeneity of $u_{it}$ (conditional on all $x_{it}$ and $a_i$) is what makes $\ddot x_{it}$ uncorrelated with $\ddot u_{it}$, so that $\hb_{\text{FE}}$ is consistent for any correlation pattern between $a_i$ and the regressors.
+
+Once $\hb_{\text{FE}}$ is in hand, the individual effects can be recovered. Since $\bar u_i \pto 0$ as $T$ grows, an estimate of the fixed effect is
+\[
+\hat a_i = \bar y_i - \hb_{\text{FE}}\,\bar x_i.
+\]
+
+The within transformation has the same Achilles' heel as FD: time-invariant regressors are demeaned to zero and their effects cannot be estimated. A constant-over-time variable $x_{it}=x_i$ has $\ddot x_{it}=0$.
+
+\subsection{Degrees of freedom}
+
+A subtle but important accounting point: forming the within-transformed data uses up degrees of freedom, because we estimated $N$ time-averages (one $\bar y_i$ per unit) in addition to the $k$ slope parameters. With $NT$ total observations, $N$ averages, and $k$ regressors, the residual degrees of freedom are
+\[
+df = NT - N - k = N(T-1) - k.
+\]
+Software that runs OLS on the demeaned data without this correction will report degrees of freedom that are too large and standard errors that are too small; the correction is essential.
+
+\subsection{The dummy-variable interpretation}
+
+There is an equivalent and illuminating way to see fixed effects: put a separate intercept dummy for each unit directly into the level equation,
+\[
+y_{it} = a_1\, ind1_{it} + a_2\, ind2_{it} + \cdots + a_N\, indN_{it} + \beta_1\, x_{it} + u_{it},
+\]
+where $indK_{it}=1$ if the observation belongs to unit $K$ and $0$ otherwise. Running OLS on this is the \emph{least-squares dummy-variable} (LSDV) regression, and it returns exactly $\hb_{\text{FE}}$ together with $\hat a_i$ as the dummy coefficients. Because the overall intercept is excluded, the full set of $N$ dummies does not create a dummy-variable trap; including both the $N$ dummies and a separate intercept \emph{would} cause perfect multicollinearity. The LSDV view also makes the $NT-N-k$ degree-of-freedom count transparent: we literally estimate $N+k$ parameters. When $N$ is large the LSDV regression becomes impractical (too many dummies), which is exactly why the algebraically identical within transformation is used in practice.
+
+\subsection{The between estimator}
+
+The within estimator throws away the cross-sectional (level) information and keeps only within-unit variation. The \emph{between estimator} does the opposite: it discards time variation and uses only the cross-sectional means. Take the time-averaged equation
+\[
+\bar y_i = \beta_1\,\bar x_i + a_i + \bar u_i, \qquad i=1,\dots,N,
+\]
+and run OLS of $\bar y_i$ on $\bar x_i$ across the $N$ units. The resulting slope is the \emph{between estimator}. Because $a_i$ remains in this equation and is allowed to correlate with $\bar x_i$, the between estimator is generally biased and inconsistent for $\beta_1$; it ignores the within-unit information that fixed effects exploits. (If one is willing to assume $a_i$ is uncorrelated with $x_{it}$, the random-effects estimator of the next section uses the data more efficiently.) Even for unbiasedness of the between estimator one needs strict exogeneity, $u_{it}$ uncorrelated with $x_{it}$ at every lead and lag.
+
+\subsection{Some practical points on within estimation}
+
+\begin{itemize}
+    \item The $R^2$ from the demeaned regression is misleading as a measure of overall fit, because it ignores the variation explained by the $a_i$.
+    \item Effects of \emph{time-invariant} regressors cannot be estimated. However, the effect of an \emph{interaction} between a time-varying variable and a time-invariant one \emph{can} be estimated, because the interaction itself varies over time.
+    \item If a full set of time dummies is included, the effect of any variable whose change over time is constant across units (e.g.\ work experience measured in years) cannot be separately identified --- it is perfectly collinear with the time dummies.
+    \item Remember to adjust degrees of freedom to $NT-N-k$.
+\end{itemize}
+
+\subsection{FD versus FE}
+
+Both estimators kill $a_i$ and require strict exogeneity, and they suit slightly different circumstances.
+
+\state{When to use which}{
+\begin{itemize}
+    \item \textbf{$T=2$:} FD and FE are \emph{numerically identical}. (For exact equivalence the FE model must include a dummy for the second period, since FD carries a time dummy automatically.)
+    \item \textbf{$T>2$, classical assumptions:} If the idiosyncratic errors $u_{it}$ are serially uncorrelated and homoskedastic, FE is \emph{more efficient} than FD.
+    \item \textbf{Strong serial correlation:} FD can be better when the $u_{it}$ are highly serially correlated. In the extreme where the $u_{it}$ follow a random walk ($u_{it}=\rho u_{i,t-1}+e_{it}$ with $\rho=1$), differencing yields $\Delta y_{it}=\beta_1\Delta x_{it}+e_{it}$ with a well-behaved error $e_{it}$. When $T$ is large relative to $N$ the panel takes on a time-series character and serial correlation matters more.
+    \item \textbf{Simplicity:} FD is more transparent, and heteroskedasticity-robust standard errors are easier to compute for it.
+    \item \textbf{Unbalanced panels:} FE tolerates units with some missing periods (it just averages over the periods that are present), whereas FD needs both $t$ and $t-1$ present to form $\Delta$. FE generally preserves more data.
+    \item \textbf{In practice:} compute both and check that the conclusions are robust.
+\end{itemize}
+}
+
+\ex[FD and FE coincide at $T=2$]{
+With two periods, show that the FE within transformation and first differencing give the same slope.
+}
+\sol{
+With $T=2$ the time average for unit $i$ is $\bar y_i=\tfrac12(y_{i1}+y_{i2})$, so the demeaned values are
+\[
+\ddot y_{i1} = y_{i1}-\tfrac12(y_{i1}+y_{i2}) = -\tfrac12\,\Delta y_i,
+\qquad
+\ddot y_{i2} = y_{i2}-\tfrac12(y_{i1}+y_{i2}) = +\tfrac12\,\Delta y_i,
+\]
+and identically $\ddot x_{i1}=-\tfrac12\Delta x_i$, $\ddot x_{i2}=+\tfrac12\Delta x_i$. The within estimator is
+\[
+\hb_{\text{FE}}
+= \frac{\sum_i \sum_{t=1}^{2}\ddot x_{it}\,\ddot y_{it}}{\sum_i\sum_{t=1}^{2}\ddot x_{it}^{\,2}}
+= \frac{\sum_i\br{\tfrac14\Delta x_i\Delta y_i + \tfrac14\Delta x_i\Delta y_i}}{\sum_i\br{\tfrac14\Delta x_i^2 + \tfrac14\Delta x_i^2}}
+= \frac{\sum_i \Delta x_i\,\Delta y_i}{\sum_i \Delta x_i^2},
+\]
+which is exactly the OLS slope from regressing $\Delta y_i$ on $\Delta x_i$ --- the FD estimator. The two are identical.
+}
+
+\section{Random Effects Estimation}
+\label{sec:re}
+
+Fixed effects buys robustness --- it allows $a_i$ to correlate freely with the regressors --- at the cost of efficiency and of any ability to estimate time-invariant effects. If we are willing to assume that $a_i$ is \emph{uncorrelated} with the regressors, we can do better on both counts. This is the random-effects (RE) model:
+\[
+y_{it} = \beta_0 + \beta_1\, x_{it} + a_i + u_{it},
+\qquad \Cov{x_{it}}{a_i} = 0.
+\]
+Now $a_i$ is treated as a random draw, unrelated to the explanatory variables; the composite error $v_{it}=a_i+u_{it}$ is then uncorrelated with $x_{it}$, so pooled OLS is at least \emph{consistent}. The problem is efficiency.
+
+\subsection{The serial correlation in the composite error}
+
+Even though $a_i$ is unrelated to the regressors, it is shared by all of unit $i$'s observations, which induces serial correlation in $v_{it}$. Assuming the idiosyncratic errors are serially uncorrelated ($\Cov{u_{it}}{u_{is}}=0$ for $t\ne s$) and writing $\sigma_a^2=\Var{a_i}$, $\sigma_u^2=\Var{u_{it}}$,
+\[
+\ba
+\Cov{v_{it}}{v_{is}}
+&= \Cov{a_i+u_{it}}{a_i+u_{is}}\\
+&= \Var{a_i} + \Cov{a_i}{u_{is}} + \Cov{a_i}{u_{it}} + \Cov{u_{it}}{u_{is}}\\
+&= \sigma_a^2 + 0 + 0 + 0 = \sigma_a^2 \ne 0, \qquad t\ne s.
+\ea
+\]
+Since $\Var{v_{it}}=\sigma_a^2+\sigma_u^2$, the within-unit (intraclass) correlation is
+\[
+\Corr(v_{it},v_{is}) = \frac{\Cov{v_{it}}{v_{is}}}{\sqrt{\Var{v_{it}}\Var{v_{is}}}} = \frac{\sigma_a^2}{\sigma_a^2+\sigma_u^2} > 0,
+\qquad t\ne s.
+\]
+This positive serial correlation means pooled OLS, while consistent, is \emph{inefficient}, and its usual standard errors are wrong unless adjusted for the within-unit correlation. We would like a transformation that restores the Gauss--Markov structure (a homoskedastic, serially uncorrelated error). Full time-demeaning, as in FE, over-corrects: $v_{it}-\bar v_i$ is still serially correlated.
+
+\subsection{Quasi-demeaning}
+
+The right amount of demeaning is partial. Subtract only a \emph{fraction} $\lambda$ of the time average:
+\[
+y_{it} - \lambda\,\bar y_i = \beta_0(1-\lambda) + \beta_1\,(x_{it}-\lambda\,\bar x_i) + (v_{it}-\lambda\,\bar v_i).
+\]
+This is \emph{quasi-demeaning}, and $\lambda$ is the quasi-demeaning parameter. The hope is to choose $\lambda$ so that the transformed error $e_{it}=v_{it}-\lambda\bar v_i$ is serially uncorrelated, $\Cov{e_{it}}{e_{is}}=0$ for all $t\ne s$. The value that achieves this is
+\[
+\lambda = 1 - \sqrt{\frac{\sigma_u^2}{\sigma_u^2 + T\,\sigma_a^2}}, \qquad \lambda \in [0,1].
+\]
+The parameters $\sigma_u^2$ and $\sigma_a^2$ are unknown but can be estimated from residuals of a preliminary regression (e.g.\ pooled OLS or FE), making the procedure a \emph{feasible generalized least squares} (FGLS) estimator. With $\hat\lambda$ in hand, run OLS on the quasi-demeaned data; that is the random-effects estimator.
+
+\thm{Random Effects as FGLS Between Pooled OLS and FE}{
+The RE estimator is the FGLS estimator of the unobserved-effects model under $\Cov{x_{it}}{a_i}=0$. The quasi-demeaning weight $\lambda$ interpolates between two familiar special cases:
+\[
+\lambda = 0 \;\Rightarrow\; \text{pooled OLS},
+\qquad
+\lambda = 1 \;\Rightarrow\; \text{fixed effects (full demeaning)}.
+\]
+\begin{itemize}
+    \item If the random effect is unimportant relative to the idiosyncratic error ($\sigma_a^2$ small, $\lambda\to 0$), RE approaches pooled OLS.
+    \item If the random effect dominates ($\sigma_a^2$ large or $T$ large, $\lambda\to 1$), RE approaches fixed effects.
+\end{itemize}
+}
+
+\rmkb[Properties of the transformed error]{It is a worthwhile exercise to verify, with $\lambda$ as above, that the quasi-demeaned error $e_{it}=v_{it}-\lambda\bar v_i$ satisfies $\E{e_{it}}=0$, $\Var{e_{it}}=\sigma_u^2$, and $\Cov{e_{it}}{e_{is}}=0$ for $t\ne s$. These three facts are exactly the Gauss--Markov conditions, which is why $\hb_1$ from the quasi-demeaned regression is BLUE under the RE assumptions.}
+
+\subsection{What RE buys and what it assumes}
+
+A genuine advantage of RE over FE is that it \emph{can} estimate the effects of time-invariant regressors: because it does not fully demean, a constant-over-time variable is not annihilated. The catch is the maintained assumption $\Cov{x_{it}}{a_i}=0$. In economics, unobserved individual effects are rarely plausibly uncorrelated with the regressors --- ability is correlated with schooling, location quality with firm decisions --- so fixed effects is usually the more convincing default. The choice between RE (efficient but fragile) and FE (robust but less efficient) is the central modeling decision, and the next section turns it into a formal test.
+
+\section{Correlated Random Effects}
+\label{sec:cre}
+
+Correlated random effects (CRE) is a device that contains FE and RE as special cases, makes the difference between them visible, and delivers a clean test for choosing between them. We start from the same model,
+\[
+y_{it} = \beta_1\, x_{it} + a_i + u_{it},
+\]
+but now we neither force $a_i$ to be uncorrelated with the regressors (as RE does) nor leave its correlation entirely unmodeled (as FE does). Instead we model that correlation through Mundlak's device.
+
+\subsection{Mundlak's device}
+
+Project the unobserved effect onto the unit's time-average regressors:
+\[
+a_i = \gamma_0 + \gamma_1\,\bar x_i + \gamma_i,
+\]
+where $\bar x_i$ is the time average of $x_{it}$ and the new error $\gamma_i$ is assumed random and uncorrelated with each $x_{it}$ (so $\Cov{\gamma_i}{\bar x_i}=0$). This says: whatever correlation $a_i$ has with the regressors runs through their time average $\bar x_i$. Substituting into the model gives the \emph{CRE equation}
+\[
+y_{it} = \gamma_0 + \beta_1\, x_{it} + \gamma_1\,\bar x_i + v_{it},
+\qquad v_{it} = u_{it} + \gamma_i,
+\]
+with $\E{v_{it}}=0$ and $\Cov{v_{it}}{x_{it}}=0$. The only thing distinguishing the CRE equation from a plain RE (or pooled OLS) equation is the extra regressor $\gamma_1\bar x_i$ --- the unit's time-average of $x$.
+
+\subsection{CRE reproduces fixed effects}
+
+Estimating the CRE equation by RE (or even by pooled OLS) yields a remarkable identity: the coefficient on the time-varying regressor equals the fixed-effects estimate,
+\[
+\hb_{1,\text{CRE}} = \hb_{1,\text{FE}}.
+\]
+In words: adding the time average $\bar x_i$ as a regressor and then running RE/OLS is \emph{equivalent} to demeaning out the time average and running pooled OLS. This gives a new reading of fixed effects --- when estimating the partial effect of $x_{it}$, FE is implicitly \emph{controlling for the time average} $\bar x_i$.
+
+\state{CRE as a unifying device}{
+The single coefficient $\gamma_1$ organizes the whole family:
+\begin{itemize}
+    \item CRE estimated as above reproduces the \emph{FE} slope $\hb_{1,\text{FE}}$ exactly.
+    \item Setting $\gamma_1=0$ collapses the CRE equation to the \emph{RE} equation.
+    \item So $\gamma_1$ measures precisely the gap between RE and FE.
+\end{itemize}
+When $\gamma_1\ne 0$, the regressors $\bar x_i$ and $x_{it}$ appear together and are collinear (especially when $x_{it}$ varies little over time), which inflates the standard error of $\hb_{1,\text{FE}}$. This is the formal reason FE is generally less precise than RE. A bonus of the CRE formulation is that, unlike pure FE, it \emph{can} also estimate the effects of time-constant regressors, by including them alongside the time averages.
+}
+
+\subsection{A formal FE-versus-RE test}
+
+Because $\gamma_1$ is exactly the wedge between RE and FE, testing whether it is zero \emph{is} the test of RE against FE. RE imposes $\gamma_1=0$; FE leaves $\gamma_1$ free. The null hypothesis favors the simpler, more efficient model:
+\[
+H_0: \gamma_1 = 0 \quad (\text{RE is valid}).
+\]
+Estimate the CRE equation and test $H_0$ with a (cluster-robust) $t$ or $F$ statistic. If we fail to reject, RE is adequate and we enjoy its efficiency and its ability to estimate time-invariant effects. If we reject, the unobserved effect is correlated with the regressors and FE is preferred. This Mundlak/CRE test is a robust, regression-based alternative to the classical Hausman test, and it makes precise what ``choosing between FE and RE'' really means.
+
+\section{General Policy Analysis with Panel Data}
+\label{sec:policy}
+
+The two-period before/after design of Section~\ref{sec:did} is the simplest case of a much more general panel policy framework, available whenever $T\ge 2$. Write
+\[
+y_{it} = \delta_1 + \delta_2\, d2_t + \cdots + \delta_T\, dT_t + \beta\, w_{it} + x_{it}\varphi + a_i + u_{it},
+\]
+where $d2_t,\dots,dT_t$ are time dummies (aggregate shocks common to all units), $w_{it}$ is the binary policy variable, $x_{it}$ are other controls with coefficient vector $\varphi$, $a_i$ is the unit fixed effect, and $u_{it}$ the idiosyncratic error. The coefficient $\beta$ is the ATE of the policy.
+
+The whole point of the panel is to let the policy be \emph{systematically related} to the unobserved effect $a_i$ --- as happens under self-selection, when units that adopt a policy differ in unobserved, time-constant ways from those that do not. We accommodate this by estimating with FD or FE (both of which eliminate $a_i$), using \emph{cluster-robust} standard errors to handle within-unit serial correlation.
+
+Two refinements matter for credible policy work.
+
+\rmkb[Testing for feedback]{Strict exogeneity rules out feedback from the error to future policy. If we worry that the policy variable \emph{reacts} to past shocks --- the outcome's error feeds back into next period's policy --- we can test for it. Add a \emph{lead} of the policy, $\delta\, w_{i,t+1}$, to the model. Under strict exogeneity the future policy should not predict the current outcome, so we test $H_0:\delta=0$. Rejection is evidence of feedback (and a violation of strict exogeneity).}
+
+\rmkb[Unit-specific trends]{If different units are on different time \emph{trends} (not just different levels), and $T\ge3$, we can add a unit-specific linear trend $g_i\,t$ to the model. This lets the policy be correlated not only with level differences across units (captured by $a_i$) but also with trend differences. The augmented model is still estimated by FE; under first differencing the term $g_i\,t$ differences to the unit-specific constant $g_i$, which is then swept out alongside the usual intercept.}
+
+\rmkb[Where this is heading]{Panel methods defeat endogeneity of a very specific kind: \emph{time-constant} unobserved heterogeneity, removable by differencing or demeaning, provided the regressors vary over time and the idiosyncratic error is strictly exogenous. They cannot rescue us from endogeneity that is itself time-varying, nor from time-invariant regressors of direct interest, nor from violations of strict exogeneity such as simultaneity or measurement error. For those problems we need a genuinely external source of variation --- an instrument --- which is the subject of Chapter~\ref{ch:iv}.}

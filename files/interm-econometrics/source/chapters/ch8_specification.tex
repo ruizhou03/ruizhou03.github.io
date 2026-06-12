@@ -1,0 +1,398 @@
+% !TEX root = ../main.tex
+\chapter{Specification and Data Issues}
+\label{ch:specification}
+
+By now we have a thorough understanding of what makes ordinary least squares work. Under the Gauss--Markov assumptions the slope estimators are unbiased and consistent; under homoskedasticity their variances take a simple form; and Chapter~\ref{ch:hetero} showed how to repair inference when that last convenience fails. In every case the load-bearing assumption was zero conditional mean, $\E{u \given \vec x}=0$: the error must be uncorrelated with the regressors. We have repeatedly warned that this assumption is the fragile one, and that omitting a relevant variable correlated with $\vec x$ breaks it. This chapter is about the other, subtler ways the same assumption can fail --- failures that are not about \emph{which} variables we include, but about the \emph{form} the model takes and the \emph{quality of the data} we feed it.
+
+Three threads run through the chapter. The first is \emph{specification}: have we written down the right functional form, and how would we know? We develop the RESET test for functional-form misspecification, and a way to choose between two rival models that are not nested inside one another. The second thread is \emph{unobservables}: a variable we know matters cannot be measured, so we substitute something we can measure --- a proxy --- and ask when that substitution leaves our coefficients of interest intact. We also study the random coefficient model, where the very parameters differ across individuals. The third thread is \emph{imperfect data}: variables measured with error, observations missing entirely, and a handful of extreme observations that distort the fit. Each problem is diagnosed the same way --- write down what the contaminated regression secretly estimates, and ask whether its error term is still uncorrelated with the regressors. When it is not, we either find a repair or characterize the bias precisely. The single most important quantitative result of the chapter, \emph{attenuation bias}, falls out of exactly this bookkeeping.
+
+\section{Testing for Functional-Form Misspecification}
+
+Recall the assumption that does all the work, here written for the multiple regression model with regressor vector $\vec x=(x_1,\dots,x_k)$.
+
+\asm{MLR.4 (Zero Conditional Mean)}{
+The error has zero conditional mean,
+\[
+\E{u \given \vec x} = \E{u \given x_1,\dots,x_k} = 0.
+\]
+}
+
+We usually think of this assumption being broken by an \emph{omitted variable} --- some determinant of $y$ left inside $u$ and correlated with the included regressors. But it can also be broken even when every relevant variable is present, if those variables enter in the wrong \emph{form}. Suppose the true conditional mean depends on $x_1^2$ or on an interaction $x_1 x_2$, but we fit a model that is linear in $x_1$ and $x_2$ alone. Then the omitted nonlinear terms are swept into $u$, they are functions of the included regressors, and so they are mechanically correlated with $\vec x$: zero conditional mean fails. We call this \emph{functional-form misspecification}. Its consequence is the usual one --- the slope estimators are biased and inconsistent. And the damage is not confined to one coefficient: because the regressors are correlated with one another, a single contaminated term typically biases all of the slopes at once.
+
+\state{Functional form is part of the specification}{
+Getting the list of variables right is necessary but not sufficient. If the right variables enter in the wrong form --- a missing square, a missing interaction, a level where a log belongs --- the omitted nonlinear terms are functions of the included regressors, so they correlate with $\vec x$ and MLR.4 fails. The symptom is the same as a classic omitted variable: biased, inconsistent slopes.
+}
+
+\subsection{The RESET Test}
+
+We would like a general test that asks, ``is there evidence of \emph{any} omitted nonlinearity?'' without our having to guess in advance which squares or interactions are missing. Ramsey's \emph{Regression Specification Error Test} (RESET) supplies one. The idea is economical: instead of adding back every conceivable squared and interaction term --- of which there are many once $k$ is large --- we add back low-order powers of the \emph{fitted values}. The fitted value
+\[
+\hat y = \hb_0 + \hb_1 x_1 + \cdots + \hb_k x_k
+\]
+is a single linear combination of all the regressors, so $\hat y^2$ is a particular combination of all the squares and cross-products $x_j^2$ and $x_j x_\ell$, and $\hat y^3$ brings in cubic terms. Thus two extra regressors stand in for a whole family of nonlinear terms at once.
+
+\defn{RESET (Ramsey's Regression Specification Error Test)}{
+Let $\hat y_i$ be the fitted values from the original OLS regression of $y$ on $x_1,\dots,x_k$. The RESET regression is the expanded model
+\[
+y = \beta_0 + \beta_1 x_1 + \cdots + \beta_k x_k + \delta_1 \hat y^2 + \delta_2 \hat y^3 + \text{error},
+\]
+and the test of correct functional form is the joint test
+\[
+H_0:\ \delta_1 = \delta_2 = 0.
+\]
+}
+
+If the original model has the correct functional form --- if $\E{y \given \vec x}$ really is linear in $x_1,\dots,x_k$ --- then no power of $\hat y$ should help explain $y$, so under $H_0$ the population coefficients $\delta_1,\delta_2$ are zero. Rejecting $H_0$ is evidence that omitted higher-order terms (squares, interactions) belong in the model: functional-form misspecification. The test is run as an ordinary $F$ test of the two exclusion restrictions.
+
+\thm{Distribution of the RESET Statistic}{
+Under MLR.1--MLR.5 and the null hypothesis $H_0:\delta_1=\delta_2=0$, the $F$ statistic for the two restrictions has, in large samples, an $F$ distribution with two numerator degrees of freedom:
+\[
+F \sim F_{2,\, n-k-3}.
+\]
+The numerator carries $q=2$ degrees of freedom (one for each excluded term, $\hat y^2$ and $\hat y^3$); the denominator carries $n-k-3$, because the unrestricted RESET regression estimates $k+3$ parameters in all --- the intercept, the $k$ original slopes, and the two coefficients $\delta_1,\delta_2$.
+}
+
+Two cautions complete the picture. First, one must never add $\hat y$ \emph{itself} (its first power) to the regression: since $\hat y$ is by construction an exact linear combination of $1,x_1,\dots,x_k$, including it produces perfect multicollinearity and the regression cannot be estimated. We start the powers at the square. Second, and more important in practice, RESET is a \emph{detector}, not a \emph{diagnosis}. A rejection tells us that \emph{some} nonlinearity is missing, but it gives no guidance about \emph{which} variable enters wrongly or \emph{what} form would fix it. It is a smoke alarm: useful for telling you there is a fire, useless for telling you which room.
+
+\rmkb[Why fitted powers and not the regressors' own powers]{
+RESET is deliberately frugal. Adding $\hat y^2$ and $\hat y^3$ costs only two degrees of freedom regardless of how many regressors the model has, whereas adding every $x_j^2$ and every interaction $x_j x_\ell$ would cost $k + \binom{k}{2}$ degrees of freedom and quickly exhaust a small sample. The price of this frugality is the loss of specificity just noted: by collapsing all nonlinear terms into powers of a single index $\hat y$, we can detect misspecification cheaply but cannot localize it.
+}
+
+\subsection{Testing Against Nonnested Alternatives}
+
+The exclusion tests we have used so far --- and RESET itself --- all compare a restricted model with an unrestricted one that \emph{contains} it. The restricted model is a special case of the larger model, obtained by setting some coefficients to zero. Such models are called \emph{nested}. But applied work often confronts two genuinely different specifications, neither of which is a special case of the other. The classic example is a choice between levels and logs:
+\[
+\ba
+\text{Model 1:}\quad & y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + u,\\
+\text{Model 2:}\quad & y = \beta_0 + \beta_1 \log x_1 + \beta_2 \log x_2 + u.
+\ea
+\]
+There is no restriction on Model 2 that collapses it to Model 1, nor vice versa. They are \emph{nonnested} alternatives, and the ordinary $F$ test does not apply.
+
+\paragraph{The encompassing (comprehensive) model.}
+One natural approach is to build a single \emph{comprehensive} model that contains both rivals as special cases, and then test each rival as a set of exclusion restrictions inside it. For the levels-versus-logs example the comprehensive model is
+\[
+y = \gamma_0 + \gamma_1 x_1 + \gamma_2 x_2 + \gamma_3 \log x_1 + \gamma_4 \log x_2 + u.
+\]
+Model 1 is the special case $\gamma_3 = \gamma_4 = 0$; Model 2 is the special case $\gamma_1 = \gamma_2 = 0$. We can now run two ordinary $F$ tests:
+\[
+H_0^{(1)}:\ \gamma_3 = \gamma_4 = 0 \quad(\text{test of Model 1}), \qquad
+H_0^{(2)}:\ \gamma_1 = \gamma_2 = 0 \quad(\text{test of Model 2}).
+\]
+If $H_0^{(1)}$ cannot be rejected we say Model 1 is \emph{preferred}; if $H_0^{(2)}$ cannot be rejected we say Model 2 is preferred. The word ``preferred'' is chosen carefully. Preference is not truth: failing to reject Model 1 does not prove it is correctly specified, and it is entirely possible that \emph{neither} rival is the true model, since the truth requires zero conditional mean to hold and neither levels nor logs need satisfy it. The four outcomes (reject both, reject neither, reject exactly one of each) are all possible, and a clear winner need not emerge.
+
+\rmkb[A subtlety of the comprehensive approach]{
+There is a logical wrinkle worth stating. Suppose Model 1 really is the true model, so $\E{u \given x_1,x_2}=0$. Then \emph{any} transformation of the regressors is also uncorrelated with the error --- in particular $\log x_1$ and $\log x_2$ carry no additional explanatory power, so $\gamma_3=\gamma_4=0$ in the population. The comprehensive test of Model 1 is then valid. But the comprehensive framework treats the two models symmetrically, and that symmetry can blur which rival actually fails. A more pointed procedure tests each model directly against its rival's \emph{fit}.
+}
+
+\paragraph{The Davidson--MacKinnon regression.}
+A sharper test, due to Davidson and MacKinnon, takes the null model seriously and confronts it with the \emph{fitted values} of the rival. The recipe, with Model 1 as the null, is:
+\begin{enumerate}
+    \item Estimate the alternative, Model 2, by OLS and save its fitted values $\tilde y_i$ (the fitted values of the rival).
+    \item Estimate the augmented null regression
+    \[
+    y = \alpha_0 + \alpha_1 x_1 + \alpha_2 x_2 + \alpha_3 \tilde y + \text{error},
+    \]
+    and examine the $t$ statistic on $\alpha_3$. The test is $H_0:\alpha_3 = 0$.
+\end{enumerate}
+The logic is that if Model 1 is adequate, the rival's fitted value $\tilde y$ --- which encodes the log specification --- should add nothing once the level regressors are present, so $\alpha_3=0$. A significant $\alpha_3$ is evidence against Model 1 in favor of Model 2. By the same construction with the roles reversed, one obtains a $t$ test of Model 2 against Model 1: estimate Model 1, save its fitted values $\hat y_i$, and test the coefficient on $\hat y$ in a regression of $y$ on $\log x_1, \log x_2$, and $\hat y$.
+
+\rmkb[Three things to remember about nonnested testing]{
+\begin{enumerate}
+    \item It matters which model you name the null --- the two roles are not symmetric, and reversing them can reverse the verdict.
+    \item No clear winner need emerge: both models can be rejected (both misspecified), or neither can be rejected (the data cannot tell them apart). Even when one is preferred, it may still differ from the true model.
+    \item These tests require the rival models to share the \emph{same} dependent variable. They cannot compare, say, a model for $y$ against a model for $\log y$, because the sums of squares are then not on the same scale.
+\end{enumerate}
+}
+
+\section{Using Proxy Variables for Unobserved Regressors}
+
+Some determinants of $y$ are real, important, and impossible to measure directly. Individual ``ability'' in a wage equation, ``management quality'' in a firm-performance equation, ``health'' in a mortality equation --- each clearly belongs in the model, yet none has a thermometer. Leaving such a variable out is a textbook omitted-variable problem: if it is correlated with the included regressors, every slope is biased. When we cannot measure the variable itself, the next best thing is to measure a \emph{proxy} --- an observable variable that stands in for the unobservable --- and include the proxy instead. The question is exactly when this substitution rescues the coefficients we care about.
+
+\subsection{The Plug-In Solution and When It Works}
+
+Suppose the population model is
+\[
+y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \beta_3 x_3^* + u,
+\]
+where $x_3^*$ (think: ability) is unobserved while $x_1,x_2$ (think: education, experience) are observed. We have available a proxy $x_3$ (think: an IQ score) related to the unobservable by
+\[
+x_3^* = \delta_0 + \delta_3 x_3 + v_3,
+\]
+where $v_3$ is the part of $x_3^*$ that the proxy fails to capture. The \emph{plug-in solution} is simply to run OLS of $y$ on $x_1, x_2, x_3$ --- substituting the proxy for the unobservable. Substituting the proxy relation into the population model gives
+\[
+y = (\beta_0 + \beta_3 \delta_0) + \beta_1 x_1 + \beta_2 x_2 + (\beta_3 \delta_3)\, x_3 + (u + \beta_3 v_3).
+\]
+This is a regression of $y$ on $x_1, x_2, x_3$ with a composite error $u+\beta_3 v_3$. For OLS to deliver unbiased, consistent estimates of $\beta_1$ and $\beta_2$ --- our coefficients of interest --- the composite error must be uncorrelated with all three included regressors. Two assumptions secure exactly this.
+
+\asm{Conditions for a Good Proxy Variable}{
+\begin{description}
+    \item[(i) The original error is exogenous.] $u$ is uncorrelated with $x_1, x_2$, and $x_3^*$; in particular $\E{u \given x_1,x_2,x_3^*}=0$. The deeper requirement embedded here is that the proxy be irrelevant once the true variable is held fixed --- $u$ is also uncorrelated with $x_3$. The proxy is ``just a proxy'': it does not belong in the structural model in its own right, and would drop out if $x_3^*$ could be observed.
+    \item[(ii) The proxy is a good stand-in.] The error $v_3$ in the proxy relation is uncorrelated with $x_1, x_2$, and $x_3$. Equivalently, $\E{x_3^* \given x_1,x_2,x_3} = \E{x_3^* \given x_3} = \delta_0 + \delta_3 x_3$: once we know the proxy, the other regressors carry no further information about the unobservable.
+\end{description}
+}
+
+\thm{Validity of the Plug-In Estimator}{
+Under conditions (i) and (ii), the composite error $u + \beta_3 v_3$ is uncorrelated with $x_1, x_2, x_3$. Consequently the OLS regression of $y$ on $x_1,x_2,x_3$ consistently estimates $\beta_1$ and $\beta_2$, and the coefficient on $x_3$ consistently estimates $\beta_3 \delta_3$ --- a (scaled) version of the unobservable's effect.
+}
+
+\pf{
+Condition (i) makes $u$ uncorrelated with $x_1, x_2, x_3$. Condition (ii) makes $v_3$ uncorrelated with $x_1, x_2, x_3$. Hence the linear combination $u + \beta_3 v_3$ is uncorrelated with each of $x_1, x_2, x_3$, which is precisely the exogeneity requirement for OLS on the rewritten equation. By the consistency of OLS under zero correlation between regressors and error (Chapter~\ref{ch:asymptotics}), all slope coefficients in that equation are consistently estimated. The slope on $x_3$ is $\beta_3\delta_3$ by construction.
+}
+
+It is worth dwelling on why both assumptions are needed and what goes wrong if either fails. If condition (ii) is violated --- say $x_3$ is correlated with the omitted part $v_3$ through $x_1$ --- then $x_1$ is correlated with the composite error and $\hb_1$ is biased: the proxy is not good enough, and including it does not purge the omitted-variable bias. If condition (i) is violated --- if the proxy belongs in the model in its own right, so $u$ is correlated with $x_3$ --- then the composite error is correlated with $x_3$ and the proxy itself is endogenous. The coefficient on $x_3$ is then a tangle of $\beta_3\delta_3$ and the spurious direct effect, and it is no longer a clean multiple of the unobservable's coefficient. Note throughout that a proxy is \emph{not} the same object as the variable it proxies; we never claim to have measured ability, only to have controlled for it well enough that the other slopes come out right.
+
+\subsection{A Lagged Dependent Variable as a Proxy}
+
+A particularly useful proxy for a stew of unmeasured factors is the \emph{past value of the dependent variable itself}. Many outcomes carry inertia: a city with a high crime rate this year almost certainly had a high crime rate last year, and the gap between high-crime and low-crime cities reflects a long list of unobserved factors --- enforcement intensity, social cohesion, economic structure --- that persist over time. Conditioning on last year's outcome controls, at least partly, for all of those persistent unobservables at once. Consider modeling this year's crime rate as a function of current unemployment, with last year's crime rate included as a proxy:
+\[
+\textit{crime} = \beta_0 + \beta_1\, \textit{crime}_{-1} + \beta_2\, \textit{unem} + u.
+\]
+The estimate $\hb_2$ now answers a sharper question. Rather than comparing cities at large --- which differ in countless unobserved ways --- it compares cities that \emph{started from the same crime level last year}, and asks how their crime rates this year differ with unemployment. By holding fixed last year's outcome, we hold fixed the bulk of the persistent unobserved heterogeneity, and the unemployment coefficient is far more credible than in a cross-sectional regression without the lag.
+
+\section{The Random Coefficient Model}
+
+Every model so far has assumed that a single slope $\beta_1$ describes the entire population: the effect of $x$ on $y$ is the same for everyone. That is often too rigid. The return to a year of schooling may genuinely differ from person to person; the effect of a price cut may differ across stores. The \emph{random coefficient model} (also called the random slope model) takes this seriously by letting each individual have her own intercept and slope.
+
+For the simple regression case, write
+\[
+y_i = a_i + b_i x_i,
+\]
+where the intercept $a_i$ and slope $b_i$ vary across individuals $i$. With only one observation $(y_i,x_i)$ per person we obviously cannot estimate a separate $(a_i,b_i)$ for each one. What we \emph{can} hope to estimate is the population \emph{average} intercept and slope. Decompose each random coefficient into a fixed population mean plus a mean-zero individual deviation:
+\[
+a_i = \alpha + c_i, \qquad b_i = \beta + d_i, \qquad \E{c_i}=\E{d_i}=0,
+\]
+where $\alpha=\E{a_i}$ is the average intercept and $\beta=\E{b_i}$ is the average slope --- the parameter of central interest. Substituting,
+\[
+y_i = (\alpha + c_i) + (\beta + d_i)x_i = \underbrace{(\alpha + \beta x_i)}_{\text{systematic part}} + \underbrace{(c_i + d_i x_i)}_{\text{composite error}}.
+\]
+This is just a simple regression of $y_i$ on $x_i$ with a particular composite error $u_i := c_i + d_i x_i$. Whether OLS recovers the average slope $\beta$ depends, as always, on whether that error is mean-independent of $x_i$.
+
+\asm{Exogeneity of the Random Components}{
+The individual deviations are mean-independent of the regressor:
+\[
+\E{c_i \given x_i} = \E{d_i \given x_i} = 0,
+\]
+equivalently $\E{a_i \given x_i}=\alpha$ and $\E{b_i \given x_i}=\beta$. The random parts of the intercept and slope are unrelated to the value of $x$.
+}
+
+\thm{OLS Estimates the Average Slope}{
+Under the exogeneity assumption, the composite error has zero conditional mean,
+\[
+\E{c_i + d_i x_i \given x_i} = \E{c_i \given x_i} + x_i\,\E{d_i \given x_i} = 0,
+\]
+so OLS of $y_i$ on $x_i$ consistently and unbiasedly estimates the \emph{average} intercept $\alpha$ and the \emph{average} slope $\beta$.
+}
+
+So far this looks like ordinary OLS, and indeed the point estimates are fine. The catch lies in the variance. Even if the underlying components $c_i$ and $d_i$ are each homoskedastic, the composite error is \emph{not}: its conditional variance depends on $x_i$.
+
+\thm{Induced Heteroskedasticity}{
+Suppose $\Var{c_i \given x_i}=\sigma_c^2$, $\Var{d_i \given x_i}=\sigma_d^2$, and $\Cov{c_i}{d_i}=0$ given $x_i$. Then the composite error in the random coefficient model is heteroskedastic, with conditional variance
+\[
+\Var{c_i + d_i x_i \given x_i} = \sigma_c^2 + \sigma_d^2\, x_i^2.
+\]
+}
+
+\pf{
+Conditional on $x_i$, $x_i$ is a constant, so
+\[
+\Var{c_i + d_i x_i \given x_i} = \Var{c_i \given x_i} + x_i^2\,\Var{d_i \given x_i} + 2 x_i \Cov{c_i}{d_i} = \sigma_c^2 + \sigma_d^2\, x_i^2,
+\]
+using $\Cov{c_i}{d_i}=0$. The variance rises with $x_i^2$ because the slope deviation $d_i$ is scaled by $x_i$.
+}
+
+This is heteroskedasticity, but of an unusually friendly kind: its \emph{functional form is known}, $h(x_i)=\sigma_c^2+\sigma_d^2 x_i^2$. We may therefore proceed in either of the two ways developed in Chapter~\ref{ch:hetero}. We can run plain OLS and report heteroskedasticity-robust standard errors --- valid because OLS still consistently estimates $\alpha$ and $\beta$. Or, for efficiency, we can use weighted least squares with weights based on the known variance form. Either route consistently estimates the population-average intercept and slope.
+
+\state{What the random coefficient model cannot do}{
+The random coefficient model recovers \emph{population averages}, $\alpha$ and $\beta$ --- and nothing more. Because each individual carries her own unobserved deviations $c_i$ and $d_i$, the model cannot predict the outcome for any particular individual, nor identify any individual's personal slope. It tells us the average effect in the population, while remaining silent about who is above or below that average.
+}
+
+\section{Measurement Error}
+
+Often a variable in our model is recorded with error: survey respondents misreport income, accounting figures are revised, instruments are imprecise. The consequences of measurement error depend sharply on \emph{which} variable is mismeasured --- the dependent variable or an explanatory variable --- and the contrast between the two cases is one of the most important lessons in this chapter. The method, as always, is to write the observed-data regression explicitly and inspect the correlation between its error and its regressors.
+
+\subsection{Measurement Error in the Dependent Variable}
+
+Let the true model be
+\[
+y^* = \beta_0 + \beta_1 x_1 + \cdots + \beta_k x_k + u,
+\]
+where $y^*$ is the correctly measured outcome, which we cannot observe. Instead we observe $y$, which differs from $y^*$ by a measurement error $e_0$:
+\[
+e_0 = y - y^*, \qquad \text{so} \qquad y = y^* + e_0.
+\]
+Substituting $y^* = y - e_0$ into the true model and rearranging,
+\[
+y = \beta_0 + \beta_1 x_1 + \cdots + \beta_k x_k + (u + e_0).
+\]
+We can only regress the observed $y$ on the regressors, which means living with the composite error $u + e_0$. The decisive question is whether $e_0$ is correlated with the regressors. If the measurement error is mean-independent of the regressors --- $\E{u + e_0 \given x_1,\dots,x_k}=0$, which holds when $e_0$ has zero mean and is uncorrelated with the $x_j$ --- then OLS of $y$ on $x_1,\dots,x_k$ remains unbiased and consistent for every slope.
+
+\thm{Measurement Error in $y$ Is Harmless (in Expectation)}{
+If the measurement error $e_0$ in the dependent variable is uncorrelated with the explanatory variables and with $u$, then OLS of the observed $y$ on $x_1,\dots,x_k$ is unbiased and consistent for $\beta_0,\beta_1,\dots,\beta_k$. The only cost is a loss of precision: the error variance is inflated from $\sigma_u^2$ to
+\[
+\Var{u + e_0} = \sigma_u^2 + \sigma_{e_0}^2 \;>\; \sigma_u^2,
+\]
+so the sampling variances of the OLS estimators are larger than they would be with the true $y^*$.
+}
+
+The intuition is reassuring: noise in the outcome simply pools with the existing disturbance. As long as that noise does not systematically move with the regressors, it cannot bias the slopes; it only adds to the unexplained variation, widening standard errors. (If $e_0$ \emph{were} correlated with some $x_j$ --- say people with more education systematically over-report wages --- this benign verdict would fail, and the affected slopes would be biased. The classical case assumes this away.)
+
+\subsection{Measurement Error in an Explanatory Variable}
+
+Mismeasuring a regressor is a different and more serious matter. Take the simple regression with a single mismeasured regressor,
+\[
+y = \beta_0 + \beta_1 x^* + u,
+\]
+where the true $x^*$ is unobserved and we observe instead
+\[
+x = x^* + e,
+\]
+with $e$ the measurement error. Substituting $x^* = x - e$,
+\[
+y = \beta_0 + \beta_1 x + (u - \beta_1 e).
+\]
+We regress $y$ on the observed $x$, carrying the composite error $u - \beta_1 e$. Whether $\hb_1$ is consistent turns entirely on whether $x$ is correlated with this composite error --- and the answer depends on which of two assumptions we make about $e$.
+
+\paragraph{Case 1: error uncorrelated with the observed regressor.}
+If we assume $\Cov{x}{e}=0$ --- the measurement error is uncorrelated with the \emph{observed} value --- then $\E{x^* \given x}=x$, the observed $x$ is the best predictor of the truth, and $x$ plays exactly the role of a good proxy for $x^*$. In this case the composite error is uncorrelated with $x$, and $\hb_1$ is unbiased and consistent. This assumption is convenient but often implausible: it requires the noise to be larger precisely when the recorded value is larger.
+
+\paragraph{Case 2: the classical errors-in-variables assumption.}
+The more standard and realistic assumption is that the measurement error is uncorrelated with the \emph{true, unobserved} value:
+\[
+\boxed{\,\Cov{x^*}{e} = 0\,} \qquad \text{(classical errors-in-variables, CEV).}
+\]
+
+\defn{Classical Errors-in-Variables (CEV)}{
+The measurement error $e = x - x^*$ in an explanatory variable satisfies the \emph{classical errors-in-variables assumption} if it is uncorrelated with the true value of the variable,
+\[
+\Cov{x^*}{e} = 0,
+\]
+and (as throughout) uncorrelated with the structural error $u$.
+}
+
+Under CEV, the error contaminates the observed regressor in a way that cannot be wished away. Compute the covariance between the observed regressor $x$ and the composite error $u-\beta_1 e$:
+\[
+\ba
+\Cov{x}{u - \beta_1 e}
+&= \Cov{x^* + e}{u - \beta_1 e}\\
+&= \underbrace{\Cov{x^*}{u}}_{=0} - \beta_1\underbrace{\Cov{x^*}{e}}_{=0\ (\text{CEV})} + \underbrace{\Cov{e}{u}}_{=0} - \beta_1\,\Cov{e}{e}\\
+&= -\beta_1\,\sigma_e^2.
+\ea
+\]
+The observed regressor is correlated with the error whenever $\beta_1\neq 0$ and there is any measurement error at all ($\sigma_e^2>0$). Endogeneity is unavoidable, and OLS is inconsistent. We can pin down the inconsistency exactly. Writing the estimated equation as $y=\beta_0+\beta_1 x + v$ with $v=u-\beta_1 e$,
+\[
+\plim \hb_1 = \beta_1 + \frac{\Cov{x}{v}}{\Var{x}} = \beta_1 + \frac{-\beta_1\sigma_e^2}{\sigma_{x^*}^2 + \sigma_e^2}.
+\]
+The last step uses $\Var{x}=\Var{x^*+e}=\sigma_{x^*}^2+\sigma_e^2$ under CEV (because $x^*$ and $e$ are uncorrelated). Simplifying,
+
+\thm{Attenuation Bias Under CEV}{
+Under the classical errors-in-variables assumption, OLS of $y$ on the mismeasured regressor $x$ is inconsistent, with probability limit
+\[
+\plim \hb_1 = \beta_1\left(\frac{\sigma_{x^*}^2}{\sigma_{x^*}^2 + \sigma_e^2}\right) = \beta_1\cdot\frac{\Var{x^*}}{\Var{x}}.
+\]
+The multiplier
+\[
+\frac{\Var{x^*}}{\Var{x}} = \frac{\sigma_{x^*}^2}{\sigma_{x^*}^2 + \sigma_e^2} \in (0,1)
+\]
+is always strictly between zero and one. Hence $\plim\hb_1$ has the same sign as $\beta_1$ but is smaller in magnitude: the estimated effect is biased \emph{toward zero}. This is called \emph{attenuation bias}.
+}
+
+\pf{
+From the covariance computation, $\plim\hb_1 = \beta_1 - \beta_1\sigma_e^2/(\sigma_{x^*}^2+\sigma_e^2)$. Factoring out $\beta_1$,
+\[
+\plim\hb_1 = \beta_1\left(1 - \frac{\sigma_e^2}{\sigma_{x^*}^2+\sigma_e^2}\right) = \beta_1\cdot\frac{\sigma_{x^*}^2}{\sigma_{x^*}^2+\sigma_e^2}.
+\]
+Since $\sigma_{x^*}^2>0$ and $\sigma_e^2>0$, the ratio lies strictly in $(0,1)$, so $\abs{\plim\hb_1}<\abs{\beta_1}$ while $\sgn(\plim\hb_1)=\sgn(\beta_1)$.
+}
+
+\state{The two measurement-error verdicts}{
+\textbf{Error in $y$:} harmless to the slopes if uncorrelated with the regressors --- it only inflates the error variance and widens standard errors.\\[2pt]
+\textbf{Error in a regressor (CEV):} not harmless --- it makes the mismeasured regressor endogenous and biases its slope \emph{toward zero} by the factor $\Var{x^*}/\Var{x}\in(0,1)$. The noisier the measurement (larger $\sigma_e^2$), the worse the attenuation.
+}
+
+\ex[Attenuation in a wage regression]{
+Suppose the true return to actual labor-market experience is $\beta_1 = 0.06$ (six percent per year), but survey-reported experience $x$ equals true experience $x^*$ plus a reporting error $e$ satisfying CEV. If the variance of true experience is $\sigma_{x^*}^2=64$ and the measurement-error variance is $\sigma_e^2=16$, what does OLS estimate in a large sample?
+}
+\sol{
+The attenuation factor is
+\[
+\frac{\sigma_{x^*}^2}{\sigma_{x^*}^2+\sigma_e^2} = \frac{64}{64+16} = \frac{64}{80} = 0.8.
+\]
+Hence $\plim\hb_1 = 0.06\times 0.8 = 0.048$. OLS will, on average in large samples, report a return of about $4.8\%$ rather than the true $6\%$ --- the effect is pulled $20\%$ of the way toward zero, the proportion of the observed variance that is pure noise.
+}
+
+\subsection{Measurement Error in the Multiple Regression Case}
+
+When the mismeasured regressor sits inside a multiple regression, the situation is messier. Let
+\[
+y = \beta_0 + \beta_1 x_1^* + \beta_2 x_2 + \cdots + \beta_k x_k + u, \qquad x_1 = x_1^* + e,
+\]
+with $x_2,\dots,x_k$ measured without error. Substituting gives
+\[
+y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_k x_k + (u - \beta_1 e).
+\]
+As before, $x_1$ is correlated with the composite error $u-\beta_1 e$ under CEV. But now the contamination spreads: even though $u-\beta_1 e$ is uncorrelated with the correctly measured regressors $x_2,\dots,x_k$, those regressors are in general correlated with $x_1$, and through that channel the bias in $\hb_1$ leaks into the other coefficients. The upshot is that \emph{all} of the slopes can be biased and inconsistent, not just the one on the mismeasured variable. The exact expressions for the various $\plim\hb_j$ are algebraically involved and depend on the full correlation structure among the regressors; we do not reproduce them here. The qualitative lesson is what matters: mismeasuring even a single regressor can corrupt every coefficient in the model, and the only fully general repair is instrumental variables (Chapter~\ref{ch:iv}).
+
+\section{Missing Data and Nonrandom Samples}
+
+Real datasets have holes. A respondent skips the income question; a firm does not report R\&D spending; a record is simply lost. Missing data is best understood as a special case of \emph{nonrandom sampling} (sample selection): the observations we actually use are not a random draw from the population, because the ones with missing values are dropped. Whether this matters follows the same principle that has organized the whole chapter.
+
+\state{The selection principle}{
+Dropping observations is harmless to OLS \emph{if the rule that decides which observations are kept is uncorrelated with the error term}. Selection on the explanatory variables (\emph{exogenous} sample selection) is fine, because the regression already conditions on those variables. Selection on the dependent variable or on the error itself (\emph{endogenous} sample selection) is a genuine problem and biases the estimates.
+}
+
+To make the missingness mechanism precise, let $m_{ik}=1$ if observation $i$ has a valid value of variable $x_k$ and $m_{ik}=0$ if it is missing. Two benchmark assumptions are standard.
+
+\defn{MCAR and MAR}{
+The data are \emph{Missing Completely at Random} (MCAR) if missingness is unrelated to everything --- to the error $u$ and to all regressors:
+\[
+\Pr{m_k = 1 \given u, x_1,\dots,x_k} = \Pr{m_k = 1}.
+\]
+The data are \emph{Missing at Random} (MAR) if, once we condition on the \emph{observed} regressors, missingness is unrelated to the error:
+\[
+\Pr{m_k = 1 \given u, x_1,\dots,x_k} = \Pr{m_k = 1 \given x_1,\dots,x_k}.
+\]
+Under MAR the missingness mechanism is allowed to depend on $x_1,\dots,x_k$ but must be conditionally independent of $u$ given the regressors.
+}
+
+MCAR is the strongest and cleanest assumption: missingness is pure coin-flipping, so the complete cases are themselves a random sample and ordinary OLS on them is unbiased --- just based on fewer observations. MAR is weaker and more realistic, allowing, for example, that high earners are more likely to skip the income question, as long as nothing in the unexplained part of $y$ drives the missingness.
+
+\subsection{The Missing-Indicator Method}
+
+Suppose we are missing values of a single regressor $x_k$, while $y$ and the other regressors $x_1,\dots,x_{k-1}$ are fully observed. The simplest response is to use only the \emph{complete cases} --- discard any observation with a missing $x_k$ --- yielding the complete-case estimator. This is robust but wasteful: it throws away the fully observed information on $y$ and $x_1,\dots,x_{k-1}$ for every dropped row. The \emph{missing-indicator method} (MIM) tries to keep all the rows. It builds two new variables:
+\[
+z_{ik} = \bc x_{ik}, & \text{if } x_{ik}\text{ is observed},\\ 0, & \text{if } x_{ik}\text{ is missing}, \ec
+\qquad
+m_{ik} = \bc 1, & \text{if } x_{ik}\text{ is observed},\\ 0, & \text{if } x_{ik}\text{ is missing}, \ec
+\]
+where $z_{ik}$ is the regressor zeroed-out where missing and $m_{ik}$ is the missing-data indicator. One then regresses $y_i$ on $x_{i1},\dots,x_{i,k-1}, z_{ik}, m_{ik}$ using \emph{all} observations. Including the indicator $m_{ik}$ is essential: it allows the regression to assign a separate intercept to the observations whose $x_k$ was set to zero, so that they are not forced to behave as though $x_k$ truly equalled zero.
+
+\rmkb[The strong assumption behind MIM]{
+The missing-indicator method buys back the discarded rows only at the price of a stringent assumption. It delivers consistent estimates of the other coefficients essentially only when the partially-missing regressor $x_k$ is \emph{uncorrelated with the remaining regressors},
+\[
+\Cov{x_k}{x_j} = 0 \quad \text{for all } j \neq k.
+\]
+This is rarely true in practice --- regressors in economic models are routinely correlated --- so MIM, despite its convenience, can introduce its own bias. Note also that simply \emph{omitting} the indicator $m_{ik}$ and using $z_{ik}$ alone is equivalent to pretending $x_{ik}=0$ wherever it is missing, which is clearly worse.
+}
+
+\section{Outliers and Influential Observations}
+
+A handful of extreme observations can exert outsized leverage on an OLS fit, because least squares minimizes the \emph{sum of squared} residuals: a single point far from the cloud contributes its squared deviation, and the line bends to accommodate it. Such an \emph{outlier} is \emph{influential} when its presence or absence noticeably changes the estimated coefficients. The first question is always the source. If an outlier is a data-entry mistake --- a misplaced decimal, a coding error --- the right action is simply to correct or discard it. But if the outlier is a genuine product of the data-generating process --- a real, if unusual, observation --- the decision is delicate: discarding it discards real information, while keeping it lets one point dominate the analysis.
+
+\subsection{Least Absolute Deviations}
+
+When outliers are real and we do not wish to drop them, we can change the \emph{estimator} to one that is less sensitive to extreme observations. \emph{Least absolute deviations} (LAD) replaces the squared residuals of OLS with absolute residuals:
+\[
+\min_{b_0,b_1,\dots,b_k}\ \sumi \abs{\,y_i - b_0 - b_1 x_{i1} - \cdots - b_k x_{ik}\,}.
+\]
+Because deviations are not squared, a far-flung point contributes its distance only linearly rather than quadratically, so LAD pulls toward the bulk of the data far less than OLS does. This robustness has a precise statistical counterpart.
+
+\thm{LAD Estimates the Conditional Median}{
+The least absolute deviations estimator estimates the parameters of the \emph{conditional median} of $y$ given $\vec x$, whereas OLS estimates the parameters of the \emph{conditional mean}. The two coincide when the error distribution is \emph{symmetric} about zero --- then the conditional mean and conditional median are equal --- but they differ when the error distribution is skewed.
+}
+
+The median is the natural target for a robust procedure: it is the value that minimizes expected absolute deviation, just as the mean minimizes expected squared deviation, and the median is famously insensitive to extreme observations. Finally, LAD is not an isolated trick but the simplest member of a broad family: it is the special case of \emph{quantile regression} (Chapter-level developments aside) corresponding to the $0.5$ quantile. Quantile regression generalizes the idea by minimizing an asymmetrically weighted sum of absolute residuals to estimate any conditional quantile --- the conditional first quartile, the ninth decile, and so on --- giving a far richer picture of how $\vec x$ shifts the entire conditional distribution of $y$, not merely its center.
+
+\rmkb[Where this leaves us]{
+Every problem in this chapter was diagnosed by the same maneuver: write down the regression we can actually run, identify its error term, and ask whether that error is correlated with the regressors. Functional-form errors, omitted unobservables, and mismeasured regressors all break that correlation condition and bias OLS; measurement error in $y$, exogenous selection, and symmetric outliers leave the slopes intact (costing only precision or efficiency). When a regressor is genuinely endogenous --- as under classical errors-in-variables --- no reweighting or proxy fully repairs the damage, and we need a new tool that manufactures exogenous variation from outside the model. That tool is instrumental variables, the subject of Chapter~\ref{ch:iv}.
+}

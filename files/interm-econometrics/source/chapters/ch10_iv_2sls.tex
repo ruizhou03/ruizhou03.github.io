@@ -1,0 +1,427 @@
+% !TEX root = ../main.tex
+\chapter{Instrumental Variables and Two-Stage Least Squares}
+\label{ch:iv}
+
+Every estimator in this book has rested on one fragile assumption: that the explanatory variables are uncorrelated with the error term. When wages depend on education, we assumed that the unobserved factors lumped into the error --- innate ability, family background, drive --- were unrelated to how much schooling a person got. That assumption is almost never literally true. People who would earn more anyway also tend to acquire more education, so the very thing we cannot measure is tangled up with the thing we can. When this happens we say the regressor is \emph{endogenous}, and ordinary least squares no longer recovers the parameter we care about: it is biased and, worse, inconsistent --- more data does not save us.
+
+The previous chapters offered two partial cures. A good proxy variable (Chapter~\ref{ch:specification}) can stand in for the missing factor; fixed effects (Chapter~\ref{ch:panel}) can sweep out an omitted variable when it is constant over time and we have panel data. Both are special-purpose tools that work only under favorable circumstances. This chapter introduces the most general and most widely used remedy for endogeneity: the method of \emph{instrumental variables} (IV), and its operational cousin, \emph{two-stage least squares} (2SLS). The idea is to find a new variable --- an \emph{instrument} --- that is correlated with the troublesome regressor but otherwise plays no role in the equation and is unrelated to the error. Such a variable provides a clean source of variation in the regressor that we can use to identify its effect, much as a randomized nudge would.
+
+The price of this generality is a new burden of belief. Two of an instrument's three defining properties can be checked in the data; the crucial third one --- that the instrument is unrelated to the error --- cannot be tested with a single instrument and must be argued from economic reasoning. The IV estimator is also biased in finite samples, even when it is consistent, and it behaves badly when the instrument is only weakly related to the regressor. The bulk of this chapter is about making these trade-offs precise.
+
+\section{Endogeneity}
+
+Recall the central assumption that makes OLS work. In the simple regression model
+\[
+y = \beta_0 + \beta_1 x + u,
+\]
+the slope $\beta_1$ is consistently estimated by OLS provided the \emph{weak} condition
+\[
+\Cov{x}{u} = 0
+\]
+holds. (We call it weak because it is implied by, but weaker than, the zero conditional mean assumption $\E{u\given x}=0$ of Chapter~\ref{ch:slr}; for \emph{consistency} of the slope, zero covariance is all we need.) When this condition holds, OLS is the best tool available and there is no reason to look further.
+
+\defn{Endogenous and Exogenous Regressors}{
+A regressor $x$ is \emph{endogenous} if it is correlated with the error term,
+\[
+\Cov{x}{u} \neq 0,
+\]
+and \emph{exogenous} otherwise. In the multiple regression model $y=\beta_0+\beta_1 x_1+\dots+\beta_k x_k + u$, the regressor $x_j$ is endogenous whenever $\Cov{x_j}{u}\neq 0$ for that particular $j$.
+}
+
+When a regressor is endogenous, OLS is inconsistent: the part of $u$ that moves with $x$ gets misattributed to $x$, and the estimated slope absorbs a contaminating term that does not vanish as the sample grows. Endogeneity is, in the words of applied economists, \emph{endemic} in the social sciences. It arises through several distinct channels, but for the purposes of this chapter you need not agonize over which one is operating --- it is enough to picture an important variable that has been left out of the equation and folded into $u$. The main sources are:
+\begin{itemize}
+    \item \emph{Omitted variables.} Important personal characteristics --- ability, motivation, health --- often cannot be observed, and they are typically correlated with the included regressors. Their absence pushes their influence into $u$, which then moves with $x$.
+    \item \emph{Measurement error.} If we observe a noisy proxy for the true regressor instead of the regressor itself, the measurement noise enters the error term and is mechanically correlated with the mismeasured variable. We treat this case in detail in Section~\ref{sec:iv-measurement}.
+    \item \emph{Simultaneity.} When $y$ and $x$ are determined jointly --- price and quantity, for instance --- feedback from $y$ to $x$ makes $x$ correlated with $u$.
+\end{itemize}
+
+The tools we already have address endogeneity only under restrictive conditions: the proxy-variable method handles certain omitted regressors, and fixed-effects methods work when panel data are available, the source of endogeneity is time-constant, and the regressors of interest \emph{do} vary over time. Instrumental variables estimation is the general-purpose alternative, and it is today the most well-known and favored approach to the problem.
+
+\section{The Instrumental Variable}
+
+An instrument is a variable $z$ that lets us extract clean variation in an endogenous regressor. To do its job it must satisfy three requirements. The first is a modeling restriction (an exclusion), the second can be verified in the data, and the third must be taken largely on faith.
+
+\defn{Instrument: the Three Requirements}{
+A variable $z$ is a valid \emph{instrument} for the endogenous regressor $x$ in $y=\beta_0+\beta_1 x+u$ if it satisfies:
+\begin{enumerate}
+    \item \textbf{Exclusion.} $z$ does not appear in the structural equation; it has no direct effect on $y$ once $x$ is accounted for.
+    \item \textbf{Relevance.} $z$ is correlated with the endogenous regressor:
+    \[
+    \Cov{z}{x} \neq 0.
+    \]
+    \item \textbf{Exogeneity.} $z$ is uncorrelated with the error term:
+    \[
+    \Cov{z}{u} = 0.
+    \]
+\end{enumerate}
+}
+
+It is worth dwelling on each requirement, because everything in this chapter follows from them.
+
+\paragraph{Exclusion.} The instrument must not be one of the explanatory variables in the equation of interest --- it must not help explain $y$ directly. There is a purely mechanical reason for this, beyond the conceptual one. If $z$ already appeared in the structural equation, then using it as an instrument would leave us with fewer moment conditions than unknown parameters, and the slope coefficients could not be solved for by the method of moments (Section~\ref{sec:iv-mlr}); in a two-stage least squares implementation the same redundancy shows up as severe multicollinearity. The instrument earns its keep precisely by being \emph{outside} the equation.
+
+\paragraph{Relevance.} The instrument must be correlated with the endogenous regressor; otherwise it is not a ``representative'' of $x$ and carries no usable information about it. This requirement \emph{can} be checked: simply regress $x$ on $z$ (and on any other exogenous variables in the model) and test whether the coefficient on $z$ is statistically significant. When the correlation is present but faint --- $\Cov{z}{x}$ close to zero --- we call $z$ a \emph{weak instrument}, and Section~\ref{sec:weak} shows that weak instruments do real damage.
+
+\paragraph{Exogeneity.} The instrument must be uncorrelated with the structural error. This is the requirement that gives IV its power --- and its peril --- because in general it \emph{cannot be tested} when there is only one instrument per endogenous regressor. The reason is circular: to test whether $z$ is correlated with $u$ we would need the errors $u_i$, but the errors are unobserved and can only be estimated from residuals, which themselves require consistent coefficient estimates --- exactly what we are trying to obtain. Because $x$ is endogenous, OLS gives us the wrong $\hb_0,\hb_1$ and hence the wrong residuals, so there is nothing reliable to test against. Exogeneity therefore rests on an economic argument, a \emph{belief} about how the world works, rather than on a statistic. (When instruments outnumber endogenous regressors, a partial test becomes available; see Section~\ref{sec:sargan}.)
+
+\section{IV Estimation in Simple Regression}
+\label{sec:iv-slr}
+
+We build intuition in the one-regressor case, contrasting the exogenous and endogenous situations and reading off the IV estimator as a natural generalization of OLS.
+
+\subsection{The Exogenous Benchmark}
+
+Start from $y_i = \beta_0 + \beta_1 x_i + u_i$ and suppose $x$ is exogenous. Identification of $\beta_1$ flows directly from the zero-covariance condition. Imposing $\Cov{x}{u}=0$ and substituting for $u=y-\beta_0-\beta_1 x$,
+\[
+\ba
+&\Cov{x_i}{u_i} = 0\\
+\Longrightarrow\;& \Cov{x_i}{y_i-\beta_0-\beta_1 x_i} = 0\\
+\Longrightarrow\;& \Cov{x_i}{y_i} - \beta_1\,\Var{x_i} = 0\\
+\Longrightarrow\;& \beta_1 = \frac{\Cov{x_i}{y_i}}{\Var{x_i}}.
+\ea
+\]
+Replacing each population moment by its sample analogue recovers the familiar OLS slope,
+\[
+\hb_1 = \frac{\widehat{\operatorname{Cov}}(x_i,y_i)}{\widehat{\operatorname{Var}}(x_i)}
+      = \frac{\sumi (x_i-\bar x)(y_i-\bar y)}{\sumi (x_i-\bar x)^2},
+\qquad
+\hb_0 = \bar y - \hb_1 \bar x,
+\]
+which is consistent, $\hb_1 \pto \beta_1$, exactly as long as exogeneity holds.
+
+\subsection{The Endogenous Case and the IV Estimator}
+
+Now suppose $\Cov{x_i}{u_i}\neq 0$, so $x$ is endogenous and the OLS argument above collapses --- we can no longer set $\Cov{x}{u}$ to zero. Suppose, however, that we have found an instrument $z_i$ satisfying the three requirements, in particular exogeneity $\Cov{z_i}{u_i}=0$ and relevance $\Cov{z_i}{x_i}\neq 0$. Repeating the identification argument but anchoring it on $z$ rather than $x$,
+\[
+\ba
+&\Cov{z_i}{u_i} = 0\\
+\Longrightarrow\;& \Cov{z_i}{y_i-\beta_0-\beta_1 x_i} = 0\\
+\Longrightarrow\;& \Cov{z_i}{y_i} - \beta_1\,\Cov{z_i}{x_i} = 0\\
+\Longrightarrow\;& \beta_1 = \frac{\Cov{z_i}{y_i}}{\Cov{z_i}{x_i}}.
+\ea
+\]
+The relevance condition $\Cov{z_i}{x_i}\neq 0$ is what makes this division legitimate; it is the reason relevance is indispensable. Replacing population moments by sample moments gives the \emph{instrumental variables estimator}.
+
+\defn{IV Estimator (Simple Regression)}{
+Given an instrument $z$ for the endogenous regressor $x$, the IV estimator of the slope is the ratio of sample covariances
+\[
+\hb_{1,\mathrm{IV}} = \frac{\widehat{\operatorname{Cov}}(z_i,y_i)}{\widehat{\operatorname{Cov}}(z_i,x_i)}
+= \frac{\sumi (z_i-\bar z)(y_i-\bar y)}{\sumi (z_i-\bar z)(x_i-\bar x)},
+\]
+and the intercept is $\hb_{0,\mathrm{IV}} = \bar y - \hb_{1,\mathrm{IV}}\,\bar x$.
+}
+
+The denominator is the sample covariance \emph{between the instrument and the regressor}, $\widehat{\operatorname{Cov}}(z_i,x_i)$ --- not a variance. The intercept formula is valid because $\bar y = \beta_0 + \beta_1\bar x$ continues to hold whenever $\E{u}=0$, regardless of endogeneity.
+
+Two special cases tie this back to what we know. First, if $x$ happens to be exogenous, we may simply take $z\equiv x$: the IV formula then reduces to the OLS formula, because $\widehat{\operatorname{Cov}}(x,x)=\widehat{\operatorname{Var}}(x)$. In this sense \emph{every exogenous variable is its own instrument}. Second, the IV estimator has a finite-sample property worth flagging.
+
+\state{IV is biased but consistent}{
+Unlike OLS under exogeneity, the IV estimator is \emph{biased} in finite samples:
+\[
+\E{\hb_{1,\mathrm{IV}}} \neq \beta_1,
+\qquad\text{yet}\qquad
+\hb_{1,\mathrm{IV}} \pto \beta_1.
+\]
+The bias arises because the estimator is a ratio of random quantities, and the expectation of a ratio is not the ratio of expectations. Consistency holds as the sample grows because sample covariances converge to their population counterparts and the ratio converges to $\Cov{z}{y}/\Cov{z}{x}=\beta_1$.
+}
+
+\subsection{What a Poor Instrument Costs: IV versus OLS}
+
+When can IV actually be \emph{worse} than the OLS estimator it is meant to replace? The danger is an instrument that is not perfectly exogenous (a small $\Cov{z}{u}$) and only weakly relevant (a small $\Cov{z}{x}$). To compare the two estimators we examine their probability limits --- the values they converge to, which capture their inconsistency.
+
+Write the IV estimator in terms of the errors. Substituting $y_i=\beta_0+\beta_1 x_i + u_i$ into the numerator and using $\sumi (z_i-\bar z)=0$,
+\[
+\ba
+\hb_{1,\mathrm{IV}}
+&= \frac{\sumi (z_i-\bar z)(y_i-\bar y)}{\sumi (z_i-\bar z)(x_i-\bar x)}
+ = \frac{\sumi (z_i-\bar z)(\beta_0+\beta_1 x_i + u_i)}{\sumi (z_i-\bar z)(x_i-\bar x)}\\
+&= \beta_1 + \frac{\sumi (z_i-\bar z)\,u_i}{\sumi (z_i-\bar z)(x_i-\bar x)}.
+\ea
+\]
+Dividing numerator and denominator of the second term by $n$ and taking probability limits (sample covariances converge to population covariances, which we may write in correlation form),
+\[
+\ba
+\plim \hb_{1,\mathrm{OLS}} &= \beta_1 + \Corr(x,u)\cdot \dfrac{\sigma_u}{\sigma_x},\\[2mm]
+\plim \hb_{1,\mathrm{IV}}  &= \beta_1 + \dfrac{\Corr(z,u)}{\Corr(z,x)}\cdot \dfrac{\sigma_u}{\sigma_x}.
+\ea
+\]
+The OLS expression is the familiar inconsistency from endogeneity: its size is governed by $\Corr(x,u)$. The IV expression replaces this with the ratio $\Corr(z,u)/\Corr(z,x)$. Comparing the magnitudes of the two contaminating terms gives a sharp criterion.
+
+\state{When IV is worse than OLS}{
+The IV estimator is \emph{more} inconsistent than OLS if and only if
+\[
+\frac{\abs{\Corr(z,u)}}{\abs{\Corr(z,x)}} > \abs{\Corr(x,u)}.
+\]
+Two readings follow. A small violation of exogeneity ($\Corr(z,u)$ slightly nonzero) can be amplified into a large inconsistency when relevance is weak ($\Corr(z,x)$ small), because the violation is divided by a small number. Conversely, a strong, clean instrument --- $\Corr(z,u)\approx 0$ and $\Corr(z,x)$ large --- makes the IV term negligible and IV strictly preferable.
+}
+
+This is the formal warning behind the slogan that a slightly invalid, weak instrument can be worse than no instrument at all.
+
+\section{IV Estimation in Multiple Regression}
+\label{sec:iv-mlr}
+
+Real applications have several regressors, some exogenous and some not. Write the equation of interest --- the \emph{structural equation} --- as
+\[
+y_1 = \beta_0 + \beta_1 y_2 + \beta_2 z_1 + \dots + \beta_k z_{k-1} + u_1,
+\]
+where $y_2$ is the endogenous explanatory variable (the change of name from $x$ to $y_2$ signals that it, like $y_1$, is correlated with the error), and $z_1,\dots,z_{k-1}$ are exogenous explanatory variables already in the equation. We call this a structural equation because the $\beta_j$ are the parameters of economic interest; the label does \emph{not} assert that the equation represents a causal mechanism --- it is simply the relationship we wish to estimate.
+
+To handle the endogenous $y_2$ we need an instrument $z_k$ satisfying the three requirements, restated for the multiple-regression setting:
+\begin{enumerate}
+    \item $z_k$ does not appear in the structural equation (exclusion);
+    \item $z_k$ is uncorrelated with the error term $u_1$ (exogeneity);
+    \item $z_k$ is \emph{partially} correlated with $y_2$ after the other exogenous variables are controlled for (relevance).
+\end{enumerate}
+The word ``partially'' matters. With other regressors present, the relevant notion of relevance is the correlation of $z_k$ with $y_2$ \emph{net of} $z_1,\dots,z_{k-1}$. To make this precise, project $y_2$ onto \emph{all} the exogenous variables:
+
+\defn{Reduced Form (First-Stage) Equation}{
+The \emph{reduced form} for the endogenous regressor $y_2$ regresses it on every exogenous variable in the system --- the exogenous regressors already in the structural equation \emph{and} the excluded instrument(s):
+\[
+y_2 = \pi_0 + \pi_1 z_1 + \dots + \pi_{k-1} z_{k-1} + \pi_k z_k + v_2,
+\]
+with $\E{v_2}=0$ and $v_2$ uncorrelated with every exogenous variable. The included exogenous regressors $z_1,\dots,z_{k-1}$ are present to prevent omitted-variable bias in the reduced form.
+}
+
+The partial-relevance condition is now an honest statistical hypothesis: $z_k$ is relevant precisely when $\pi_k\neq 0$. The coefficient $\pi_k$ measures the strength of the (partial) correlation between $y_2$ and $z_k$, and we want the null hypothesis $\pi_k=0$ to be firmly rejected. When there is more than one excluded instrument, relevance becomes the joint hypothesis that \emph{all} their reduced-form coefficients are zero, which we again want to reject.
+
+IV estimation in this setting can be carried out in two equivalent ways: the \emph{method of moments} and \emph{two-stage least squares}. We take them in turn.
+
+\subsection{The Method of Moments}
+
+Consider the compact case
+\[
+y_{1i} = \beta_0 + \beta_1 y_{2i} + \beta_2 z_{1i} + u_i,
+\]
+with $y_2$ endogenous, $z_1$ exogenous, and an instrument $z_2$ found for $y_2$. We have three parameters $(\beta_0,\beta_1,\beta_2)$ and exactly three population moment conditions: $\E{u}=0$ (from the intercept), and the exogeneity of the two exogenous variables $z_1$ and $z_2$. Writing each condition out and replacing it by its sample analogue:
+\[
+\bc
+\E{u_i}=0 &\Longrightarrow\; \dfrac1n\sumi \pr{y_{1i}-\beta_0-\beta_1 y_{2i}-\beta_2 z_{1i}} = 0,\\[2mm]
+\Cov{z_{1i}}{u_i}=0 &\Longrightarrow\; \dfrac1n\sumi z_{1i}\pr{y_{1i}-\beta_0-\beta_1 y_{2i}-\beta_2 z_{1i}} = 0,\\[2mm]
+\Cov{z_{2i}}{u_i}=0 &\Longrightarrow\; \dfrac1n\sumi z_{2i}\pr{y_{1i}-\beta_0-\beta_1 y_{2i}-\beta_2 z_{1i}} = 0.
+\ec
+\]
+(For the latter two, $\Cov{z_j}{u}=0$ together with $\E{u}=0$ gives $\E{z_j u}=0$, whose sample analogue is the displayed equation.) These are three linear equations in three unknowns, and solving them yields the method-of-moments IV estimators $\hb_0,\hb_1,\hb_2$.
+
+The counting of equations against unknowns gives the language of identification.
+
+\defn{Identification by Counting Instruments}{
+Let the structural equation have $g$ endogenous regressors and suppose we have $m$ excluded instruments available. Then:
+\begin{itemize}
+    \item $m = g$: \emph{just-identified}. The number of moment conditions equals the number of unknowns; the method of moments has a unique solution.
+    \item $m > g$: \emph{over-identified}. There are more moment conditions than unknowns.
+    \item $m < g$: \emph{under-identified}. There are too few; the parameters cannot be estimated.
+\end{itemize}
+}
+
+The method of moments handles only the just-identified case cleanly: with one endogenous variable it needs exactly one instrument; with two endogenous variables it needs exactly two; in general the number of instruments must equal the number of endogenous regressors so that the system has exactly one solution. If we are fortunate enough to have \emph{more} instruments than endogenous variables --- say three instruments for one endogenous regressor --- the method of moments breaks down, because the system of equations would be overdetermined (one solution per equation, but no single set of coefficients satisfies all of them). The valuable extra instruments simply cannot be used. This limitation is exactly what two-stage least squares overcomes.
+
+\section{Two-Stage Least Squares}
+
+Two-stage least squares (2SLS) is the workhorse implementation of IV. It accommodates over-identification gracefully, extends to several endogenous regressors, and reduces to plain IV in the just-identified case. As its name promises, it runs two ordinary regressions in sequence.
+
+\subsection{The Two Stages}
+
+Consider the general model
+\[
+y_1 = \beta_0 + \beta_1 y_2 + \beta_2 z_1 + \dots + \beta_k z_{k-1} + u,
+\]
+with $y_2$ endogenous, the remaining explanatory variables exogenous, and an instrument $z_k$ found for $y_2$.
+
+\state{The 2SLS Algorithm}{
+\textbf{First stage (reduced form).} Regress the endogenous variable $y_2$ on \emph{all} exogenous variables --- the exogenous regressors $z_1,\dots,z_{k-1}$ already in the equation together with the excluded instrument(s) $z_k$ --- by OLS, and form the fitted values:
+\[
+\widehat y_2 = \widehat\pi_0 + \widehat\pi_1 z_1 + \dots + \widehat\pi_{k-1} z_{k-1} + \widehat\pi_k z_k.
+\]
+This strips $y_2$ of its endogenous part, keeping only the component explained by exogenous information.
+
+\textbf{Second stage.} Run OLS on the structural equation with $y_2$ replaced by its first-stage fitted value $\widehat y_2$:
+\[
+y_1 = \beta_0 + \beta_1 \widehat y_2 + \beta_2 z_1 + \dots + \beta_k z_{k-1} + \text{error}.
+\]
+The resulting coefficient on $\widehat y_2$ is the 2SLS estimate of $\beta_1$.
+}
+
+Note the asymmetry between stages: the first stage uses the actual instrument $z_k$ to build $\widehat y_2$, but the instrument $z_k$ itself never appears in the second stage --- it has done its work by purifying $y_2$.
+
+\subsection{Why 2SLS Works}
+
+\paragraph{The intuition.} Every regressor in the second-stage equation is exogenous. The original exogenous variables $z_1,\dots,z_{k-1}$ were exogenous to begin with, and the constructed regressor $\widehat y_2$ is a linear combination of exogenous variables only, so it too is uncorrelated with $u$. By replacing $y_2$ with a prediction built from exogenous information, we have purged it of the endogenous component that was correlated with the error. With every regressor now exogenous, OLS in the second stage is consistent.
+
+\paragraph{The reduced-form derivation.} To see why the fitted value is the \emph{best} possible instrument, take the simplest over-identified case: the structural equation $y_1 = \beta_0 + \beta_1 y_2 + \beta_2 z_1 + u$, with two excluded exogenous variables $z_2$ and $z_3$ available. By assumption $z_2$ and $z_3$ do not appear in the structural equation and each is uncorrelated with $u$ --- conditions known as the \emph{exclusion restrictions} (these are the IV requirements minus relevance).
+
+Now observe: since the included exogenous $z_1$ is uncorrelated with $u$, and the excluded $z_2,z_3$ are each uncorrelated with $u$, \emph{any} linear combination of $z_1,z_2,z_3$ is uncorrelated with $u$ and hence a valid instrument. There are infinitely many candidates. The best one --- the combination most strongly correlated with $y_2$, and therefore the strongest instrument --- is the linear combination delivered by the reduced form of $y_2$:
+\[
+y_2 = \pi_0 + \pi_1 z_1 + \pi_2 z_2 + \pi_3 z_3 + v,
+\qquad \E{v}=0,\ \ \Cov{z_1}{v}=\Cov{z_2}{v}=\Cov{z_3}{v}=0.
+\]
+Call the systematic part $y_2^{*} = \pi_0 + \pi_1 z_1 + \pi_2 z_2 + \pi_3 z_3$. The reduced form cleanly splits $y_2$ into the exogenous piece $y_2^{*}$, which is uncorrelated with $u$, and the disturbance $v$, which carries the endogeneity: $v$ is the reason $y_2$ may be correlated with $u$. For this best instrument to add information beyond $z_1$ --- that is, for the relevance / identification condition to hold --- $y_2^{*}$ must not be perfectly explained by $z_1$ alone. We check this by testing the joint hypothesis $\pi_2 = \pi_3 = 0$ in the reduced form. If we \emph{cannot} reject it, the excluded instruments add nothing and the structural equation is not identified.
+
+We do not know the true $\pi_j$, but we can estimate the reduced form by OLS to obtain
+\[
+\widehat y_2 = \widehat\pi_0 + \widehat\pi_1 z_1 + \widehat\pi_2 z_2 + \widehat\pi_3 z_3,
+\]
+and use $\widehat y_2$ as the single instrument for $y_2$. This is the key economy of 2SLS: no matter how many instruments we started with, after estimating the reduced form there is exactly \emph{one} constructed instrument, $\widehat y_2$, the best linear combination of all the exogenous variables.
+
+Feeding $\widehat y_2$ into the just-identified method-of-moments system makes the equivalence with two-stage least squares transparent:
+\[
+\bc
+\sumi \pr{y_{1i}-\hb_0-\hb_1 y_{2i}-\hb_2 z_{1i}} = 0,\\[1mm]
+\sumi z_{1i}\pr{y_{1i}-\hb_0-\hb_1 y_{2i}-\hb_2 z_{1i}} = 0,\\[1mm]
+\sumi \widehat y_{2i}\pr{y_{1i}-\hb_0-\hb_1 y_{2i}-\hb_2 z_{1i}} = 0.
+\ec
+\]
+Solving this system gives the same estimates as the two-stage procedure. We can also read the consistency off the second-stage equation directly. Writing $y_2 = y_2^{*} + v$ and substituting,
+\[
+y_1 = \beta_0 + \beta_1 y_2^{*} + \beta_2 z_1 + \pr{u + \beta_1 v},
+\]
+where the composite error $u+\beta_1 v$ has mean zero and is uncorrelated with both $y_2^{*}$ and $z_1$ (because $u$ is uncorrelated with the exogenous variables by exogeneity, and $v$ is uncorrelated with them by construction of the reduced form). That is exactly why regressing $y_1$ on $\widehat y_2$ and $z_1$ delivers consistent estimates.
+
+\rmkb[2SLS contains IV as a special case]{If there is one endogenous variable and exactly one instrument, 2SLS is numerically identical to the simple IV estimator of Section~\ref{sec:iv-slr}. When instruments outnumber endogenous regressors, 2SLS uses all of them at once through the reduced form, whereas the basic method of moments cannot. This is why we say 2SLS is more general than the method of moments.}
+
+\subsection{Several Endogenous Variables}
+
+The procedure scales directly. Suppose the structural equation has two endogenous regressors,
+\[
+y_1 = \beta_0 + \beta_1 y_2 + \beta_2 y_3 + \beta_3 z_1 + u,
+\]
+and we have located two excluded instruments $z_2,z_3$ (at least as many instruments as endogenous variables). Then:
+\begin{itemize}
+    \item \textbf{First stage:} regress $y_2$ on $z_1,z_2,z_3$ to get $\widehat y_2$, and \emph{separately} regress $y_3$ on $z_1,z_2,z_3$ to get $\widehat y_3$. Each endogenous regressor gets its own reduced form, using the same full set of exogenous variables.
+    \item \textbf{Second stage:} regress $y_1$ on $\widehat y_2,\widehat y_3,z_1$.
+\end{itemize}
+In general, identification by 2SLS requires at least as many excluded instruments as endogenous regressors.
+
+\subsection{Two Cautions in Practice}
+
+\rmkb[Multicollinearity and wrong standard errors]{Two practical points govern any 2SLS application.
+
+\textbf{(1) Multicollinearity.} With more than one endogenous regressor, the fitted values $\widehat y_2$ and $\widehat y_3$ are both linear combinations of the \emph{same} exogenous variables $z_1,z_2,z_3$, so they tend to be highly correlated with each other. As long as the collinearity is not perfect, 2SLS proceeds without difficulty, but the estimates may be imprecise.
+
+\textbf{(2) The naive second-stage standard errors are wrong.} If one literally runs the two OLS regressions by hand, the standard errors reported by the second stage are incorrect. The reason is that the second stage treats $\widehat y_2$ as if it were data, ignoring that $\widehat y_2$ is itself an \emph{estimate} from the first stage. Correct standard errors must propagate the first-stage estimation uncertainty into the second stage. Crucially, the \emph{coefficient estimates} (the magnitudes of the slopes) are correct --- it is only their reported standard errors that need fixing. In practice, dedicated 2SLS software computes the right standard errors automatically; one should never report the hand-run second-stage OLS standard errors.}
+
+\section{Weak Instruments}
+\label{sec:weak}
+
+Return to the simple IV estimator and look at its denominator,
+\[
+\hb_{1,\mathrm{IV}} = \frac{\widehat{\operatorname{Cov}}(z_i,y_i)}{\widehat{\operatorname{Cov}}(z_i,x_i)}
+= \frac{\sumi (z_i-\bar z)(y_i-\bar y)}{\sumi (z_i-\bar z)(x_i-\bar x)}.
+\]
+If $z$ is a weak instrument --- only faintly correlated with $x$ --- the denominator $\sumi (z_i-\bar z)(x_i-\bar x)$ is close to zero. Dividing by a number near zero makes the estimator volatile: its sampling distribution becomes \emph{fat-tailed}, and the associated $t$ statistic departs sharply from the standard normal that the usual asymptotics promise. The practical consequence is an inflated Type-I error rate. A test conducted at a nominal $5\%$ level may in truth reject a true null far more often, so one risks ``finding'' an effect that is not there. Because this distortion is invisible if one trusts the textbook formulas blindly, weak instruments must be diagnosed explicitly --- typically by checking that the first-stage relevance is strong (a large first-stage $F$ statistic on the excluded instruments), not merely nonzero.
+
+\section{IV as a Cure for Measurement Error}
+\label{sec:iv-measurement}
+
+Instrumental variables address more than omitted variables; they also repair the bias caused by \emph{measurement error} in a regressor. Suppose the true model is
+\[
+y = \beta_0 + \beta_1 x^{*} + u,
+\qquad \Cov{x^{*}}{u}=0,
+\]
+where the true regressor $x^{*}$ is unobservable. What we observe instead is a noisy measurement
+\[
+x = x^{*} + e,
+\]
+where $e$ is the measurement error. Under the \emph{classical errors-in-variables} (CEV) assumption, the error is uncorrelated with the true value, $\Cov{x^{*}}{e}=0$, which implies $\Cov{x}{e} = \Cov{x^{*}+e}{e} = \Var{e} = \sigma_e^2 \neq 0$. Substituting $x^{*}=x-e$ into the model rewrites it in terms of the observable $x$:
+\[
+y = \beta_0 + \beta_1 x + (u - \beta_1 e).
+\]
+The composite error $u-\beta_1 e$ is correlated with the regressor $x$, because both contain $e$: indeed $\Cov{x}{u-\beta_1 e} = -\beta_1\sigma_e^2 \neq 0$. So $x$ is endogenous, purely as a result of measurement error, and OLS is inconsistent (it suffers from \emph{attenuation bias}, pulling the estimate toward zero).
+
+What we need is an instrument for $x$ --- a variable strongly correlated with $x$ but uncorrelated with the measurement error $e$ (and with $u$). A natural candidate is a \emph{second, independent measurement} of the same underlying quantity. Let
+\[
+z = x^{*} + \eta,
+\]
+a different noisy reading of $x^{*}$ with its own measurement error $\eta$. Assume the two measurement errors are uncorrelated, $\Cov{e}{\eta}=0$ (and that $\eta$ is uncorrelated with $u$). Then $z$ qualifies as an instrument for $x$:
+\begin{itemize}
+    \item \emph{Relevance:} $z$ and $x$ are correlated because both track the common signal $x^{*}$ --- they share the term $x^{*}$.
+    \item \emph{Exogeneity:} $z$ is uncorrelated with the composite error $u-\beta_1 e$, since $\eta$ is uncorrelated with both $u$ and $e$.
+\end{itemize}
+Using the second measurement $z$ as an instrument for the first measurement $x$ therefore restores consistency.
+
+\section{Testing for Endogeneity}
+\label{sec:endog-test}
+
+IV/2SLS is the right tool only when a regressor really is endogenous. If $y_2$ is in fact exogenous, OLS is consistent and \emph{more efficient} than 2SLS, so we would not want to pay the variance cost of IV needlessly. We therefore want a test of whether $y_2$ is endogenous. Consider the structural equation
+\[
+y_1 = \beta_0 + \beta_1 y_2 + \beta_2 z_1 + \dots + \beta_k z_{k-1} + u_1,
+\]
+where $y_2$ is suspected to be endogenous and $z_1,\dots,z_{k-1}$ are exogenous.
+
+One could simply compare the OLS and 2SLS coefficient estimates: if they differ significantly, $y_2$ is likely endogenous (this is the logic of the Hausman test). A more convenient implementation runs entirely through a single auxiliary regression --- the \emph{control-function} approach. Begin with the reduced form
+\[
+y_2 = \pi_0 + \pi_1 z_1 + \dots + \pi_k z_k + v_2,
+\]
+where $z_k$ satisfies the exclusion restrictions. As we saw, $\widehat y_2$ is the clean, exogenous part of $y_2$, and the reduced-form residual $v_2$ absorbs all the potential endogeneity. It follows that $y_2$ is exogenous if and only if $v_2$ is uncorrelated with $u_1$. Write $u_1$ as a linear function of $v_2$,
+\[
+u_1 = \delta_1 v_2 + e_1,
+\]
+so that the endogeneity question reduces to the single hypothesis $\delta_1 = 0$.
+
+\state{The Regression-Based (Wu--Hausman) Endogeneity Test}{
+\begin{enumerate}
+    \item Estimate the reduced form of $y_2$ by OLS and save the residuals $\widehat v_2$.
+    \item Add $\widehat v_2$ to the structural equation and estimate by OLS:
+    \[
+    y_1 = \beta_0 + \beta_1 y_2 + \beta_2 z_1 + \dots + \beta_k z_{k-1} + \delta_1 \widehat v_2 + \text{error}.
+    \]
+    \item Test $H_0:\delta_1 = 0$ with the usual $t$ statistic (using heteroskedasticity-robust standard errors if needed). Rejecting $H_0$ is evidence that $v_2$ and $u_1$ are correlated, hence that $y_2$ is endogenous.
+\end{enumerate}
+}
+
+When several regressors are suspected of endogeneity, the procedure generalizes naturally: regress each suspect variable on \emph{all} exogenous variables (those in the structural equation and the excluded instruments) to obtain its reduced-form residual; add all the residuals to the structural equation and run OLS; then test the \emph{joint} hypothesis that all the residual coefficients are zero with an $F$ test. A rejection signals that at least one of the suspect regressors is endogenous.
+
+\section{Testing the Over-Identifying Restrictions}
+\label{sec:sargan}
+
+The exogeneity of an instrument cannot be tested when the model is just-identified. But when we have \emph{more} instruments than we strictly need --- the over-identified case --- a partial test becomes possible. The idea is intuitive: if all the instruments are valid, then each one alone should produce an estimate consistent with the others, so estimates based on different instruments should agree up to sampling error. Equivalently, if every instrument is exogenous, the 2SLS residuals should be uncorrelated with all the instruments. A correlation between the residuals and the instruments is evidence that some instrument is invalid.
+
+\state{The Over-Identification (Sargan) Test}{
+\begin{enumerate}
+    \item Estimate the structural equation by 2SLS and obtain the residuals $\widehat u_1$.
+    \item Regress $\widehat u_1$ on \emph{all} the exogenous variables (the included exogenous regressors and every instrument), and record the $R^2$ from this auxiliary regression.
+    \item Under the null hypothesis that all instruments are uncorrelated with $u_1$,
+    \[
+    n R^2 \;\overset{a}{\sim}\; \chi^2_q,
+    \qquad q = (\text{number of instruments}) - (\text{number of endogenous regressors}).
+    \]
+    If $nR^2$ exceeds the chi-square critical value with $q$ degrees of freedom, reject $H_0$: at least one instrument fails exogeneity.
+\end{enumerate}
+}
+
+The degrees of freedom $q$ are exactly the number of \emph{surplus} instruments, the over-identifying restrictions being tested. Note the limits of the test. It can only be run when $q\geq 1$, so a just-identified model offers nothing to test. And a rejection tells us that \emph{some} instrument is invalid without saying which; a failure to reject is reassuring but is not proof that all instruments are exogenous, since the test has no power to detect violations common to all of them.
+
+\section{A Worked Example}
+
+\ex[Schooling and wages]{
+A researcher wants the return to education in the log-wage equation
+\[
+\log(\text{wage}) = \beta_0 + \beta_1\,\text{educ} + \beta_2\,\text{exper} + u,
+\]
+but worries that \emph{educ} is endogenous: unobserved ability raises both schooling and wages, so $\Cov{\text{educ}}{u}>0$ and OLS overstates $\beta_1$. She proposes the subject's \emph{number of siblings} as an instrument $z$, on the grounds that children from larger families tend to receive less schooling (relevance) but that family size has no direct effect on the wage once education and experience are controlled for (exclusion and exogeneity). Outline the 2SLS estimation, the endogeneity test, and explain why the over-identification test cannot be run here.
+}
+
+\sol{
+\textbf{Identification.} There is one endogenous regressor (\emph{educ}) and one excluded instrument (\emph{siblings}), so the model is just-identified, $m=g=1$. Here 2SLS coincides with the simple IV estimator.
+
+\textbf{First stage (relevance check).} Regress the endogenous variable on all exogenous variables, including the instrument:
+\[
+\text{educ} = \pi_0 + \pi_1\,\text{exper} + \pi_2\,\text{siblings} + v,
+\]
+and confirm that $\widehat\pi_2$ is significantly negative (a strong first stage). A weak first stage would warn of the weak-instrument problem of Section~\ref{sec:weak}; check the first-stage $F$ on \emph{siblings}.
+
+\textbf{Second stage.} Form $\widehat{\text{educ}}$ from the first stage and regress
+\[
+\log(\text{wage}) = \beta_0 + \beta_1\,\widehat{\text{educ}} + \beta_2\,\text{exper} + \text{error}.
+\]
+The coefficient on $\widehat{\text{educ}}$ is the 2SLS estimate of $\beta_1$. Report 2SLS (not hand-run OLS) standard errors, since the second stage uses a generated regressor.
+
+\textbf{Endogeneity test.} Save the first-stage residual $\widehat v$, add it to the original (uninstrumented) equation,
+\[
+\log(\text{wage}) = \beta_0 + \beta_1\,\text{educ} + \beta_2\,\text{exper} + \delta_1\widehat v + \text{error},
+\]
+and test $H_0:\delta_1=0$ with a $t$ test. Rejection confirms that \emph{educ} is endogenous and that IV was warranted.
+
+\textbf{Why no over-identification test.} The model is just-identified, so $q = 1 - 1 = 0$: there are no surplus instruments and the Sargan statistic has zero degrees of freedom. The exogeneity of \emph{siblings} therefore cannot be tested and must be defended by argument. To enable the over-identification test, she would need a \emph{second} instrument for \emph{educ} (giving $q=1$).
+}
+
+\rmkb[Where this leaves us]{Instrumental variables convert the untestable assumption $\Cov{x}{u}=0$ into a different, often more credible one: the existence of a variable that shifts $x$ without otherwise touching $y$. The estimator is biased but consistent, vulnerable to weak and invalid instruments, and best implemented as two-stage least squares so that over-identifying instruments can all be used and the standard errors come out right. We can test whether IV is needed (the endogeneity test) and, when instruments are plentiful, partially test their validity (the over-identification test) --- but the core exogeneity assumption, in the just-identified case, remains a matter of economic judgment.}

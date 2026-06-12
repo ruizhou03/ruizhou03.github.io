@@ -1,0 +1,259 @@
+% !TEX root = ../main.tex
+\chapter{Multiple Regression: Inference}
+\label{ch:inference}
+
+So far we have learned how to \emph{estimate} the parameters of a multiple regression model and what we can say about the estimators across repeated samples: under the Gauss--Markov assumptions OLS is unbiased and, among linear unbiased estimators, has the smallest variance. But estimation is only half of empirical work. Having computed a number like $\hb_1 = 0.083$ for the return to a year of schooling, the practitioner wants to know whether that number is reliably different from zero, whether it is compatible with a theoretical value like $0.10$, and how confident we should be in any of this. These are questions of \emph{inference}: statements about the unknown population parameters that come with an explicit probability of error.
+
+To make such statements precise we need to know the full \emph{sampling distribution} of the OLS estimators, not just their first two moments. The Gauss--Markov assumptions pin down the mean and variance of $\hb_j$, but they say nothing about its shape; without a known distribution we cannot compute the probability that $\hb_j$ lands within a given distance of $\beta_j$. This chapter adds one final assumption --- that the error is normally distributed --- which delivers an exact normal sampling distribution and, through it, the $t$ and $F$ statistics that dominate applied econometrics. We develop the $t$ test for a single coefficient and its equivalence with confidence intervals, the trick that turns a test of a linear combination of parameters into an ordinary $t$ test, and the $F$ test for several restrictions at once. We close by separating two ideas that are constantly confused: \emph{statistical} significance, which is about precision, and \emph{economic} significance, which is about magnitude.
+
+\section{The Normal Sampling Distribution}
+
+Conditional on the sample values of the regressors, the sampling distribution of each $\hb_j$ is inherited entirely from the distribution of the unobserved errors. In Chapter~\ref{ch:mlr} we saw that $\hb_j$ is a linear function of the $y_i$, hence a linear function of the errors $u_i$; its mean and variance therefore followed from the mean and variance of $u$. To know its full distribution we must say something about the \emph{shape} of the error distribution. The simplest tractable choice, and the one that makes the finite-sample theory exact, is normality.
+
+\asm{MLR.6 (Normality)}{
+The population error $u$ is independent of the explanatory variables $x_1,x_2,\dots,x_k$ and is normally distributed with zero mean and variance $\sigma^2$:
+\[
+u \sim N(0,\sigma^2).
+\]
+}
+
+This is a strong assumption. Independence of $u$ from the regressors is more than the zero conditional mean MLR.4 and the constant conditional variance MLR.5; it fixes the \emph{entire} conditional distribution of $u$, not just its first two moments. Consequently MLR.6 \emph{implies} both MLR.4 ($\E{u\given \vb x}=0$) and MLR.5 ($\Var{u\given \vb x}=\sigma^2$), and adds the assumption of a normal shape on top of them.
+
+\defn{Classical Linear Model (CLM)}{
+The assumptions MLR.1 through MLR.6 are called the \emph{classical linear model (CLM)} assumptions. Under the CLM, the conditional distribution of the dependent variable given the regressors is
+\[
+y \given \vb x \;\sim\; N\!\pr{\beta_0 + \beta_1 x_1 + \dots + \beta_k x_k,\ \sigma^2}.
+\]
+}
+
+In words, the CLM says that for each fixed configuration of the regressors, $y$ is normally distributed about the population regression function $\beta_0+\beta_1 x_1+\dots+\beta_k x_k$ with a variance $\sigma^2$ that is the same at every configuration. The population regression function fixes the mean of this normal distribution; homoskedasticity fixes its spread; normality fixes its shape.
+
+\rmkb[Why normality is plausible --- and when it fails]{The error $u$ is the sum of the many unobserved factors that influence $y$. If these factors are numerous, have comparable individual effects, and are roughly independent, a central limit argument suggests that their sum is approximately normal. The approximation is only as good as those premises: a single dominant factor, strongly skewed components, or strong dependence among them can all spoil it. Variables that are bounded, count-valued, or sharply skewed (wages, firm sizes) often have decidedly non-normal errors. This is exactly why Chapter~\ref{ch:asymptotics} develops large-sample inference, which dispenses with MLR.6 entirely: as $n\to\infty$ the OLS estimators are approximately normal regardless of the error distribution.}
+
+Under the CLM we can strengthen what we know about OLS in two ways. First, its efficiency improves: under the Gauss--Markov assumptions OLS is best only within the class of \emph{linear} unbiased estimators (the BLUE property of Chapter~\ref{ch:mlr}); under the additional normality of MLR.6, OLS is the \emph{minimum variance unbiased estimator}, best among \emph{all} unbiased estimators, linear or not. Second, and central to this chapter, we obtain its exact sampling distribution.
+
+\thm{Normal Sampling Distribution}{
+Under the CLM assumptions MLR.1--MLR.6, conditional on the sample values of the independent variables,
+\[
+\hb_j \;\sim\; N\!\pr{\beta_j,\ \Var{\hb_j}}, \qquad j=0,1,\dots,k,
+\]
+and therefore the standardized estimator is standard normal:
+\[
+\frac{\hb_j - \beta_j}{\operatorname{sd}(\hb_j)} \;\sim\; N(0,1),
+\qquad \operatorname{sd}(\hb_j)=\sqrt{\Var{\hb_j}}.
+\]
+}
+
+\pf{
+Each OLS estimator can be written as a linear combination of the errors,
+\[
+\hb_j = \beta_j + \sumi w_{ij}\, u_i,
+\]
+where the weights $w_{ij}$ are (nonrandom) functions of the sample values of the regressors alone --- for the slopes, $w_{ij}=\hat r_{ij}/\sum_{i} \hat r_{ij}^2$ in the partialling-out notation of Chapter~\ref{ch:mlr}. Conditional on the regressors the weights are constants. Under MLR.6 the $u_i$ are independent $N(0,\sigma^2)$ variables, and any linear combination of independent normal random variables is itself normal. Hence $\hb_j$ is normal; its mean $\beta_j$ and variance $\Var{\hb_j}$ are exactly the Gauss--Markov values derived in Chapter~\ref{ch:mlr}. Standardizing gives the $N(0,1)$ result.
+}
+
+The same argument shows more: \emph{any} linear combination of the $\hb_j$ is also exactly normal, because it too is a linear combination of the independent normal errors. We will exploit this repeatedly below.
+
+\section{Testing a Single Parameter: The $t$ Test}
+
+The standard normal result above is not yet usable, because $\operatorname{sd}(\hb_j)$ contains the unknown error variance $\sigma^2$. Replacing $\sigma$ by its estimator $\widehat\sigma$ (and hence $\operatorname{sd}(\hb_j)$ by the standard error $\operatorname{se}(\hb_j)$ from Chapter~\ref{ch:mlr}) changes the distribution from normal to Student's $t$, because we have introduced extra sampling noise through $\widehat\sigma$.
+
+\thm{$t$ Distribution of the Standardized Estimator}{
+Under the CLM assumptions MLR.1--MLR.6,
+\[
+\frac{\hb_j - \beta_j}{\operatorname{se}(\hb_j)} \;\sim\; t_{\,n-k-1},
+\]
+where $n-k-1$ is the residual degrees of freedom and $k+1$ is the number of parameters (intercept plus $k$ slopes) estimated in the model.
+}
+
+The degrees of freedom $n-k-1$ are exactly the divisor in the unbiased variance estimator $\widehat\sigma^2 = \tfrac{1}{n-k-1}\sumi \hat u_i^2$: we lose one degree of freedom for each of the $k+1$ estimated parameters. As $n-k-1$ grows the $t$ distribution approaches the standard normal, which is why large-sample $t$ tests are conducted using normal critical values.
+
+\subsection{Carrying out the test}
+
+To test a hypothesis about a single coefficient we form the $t$ statistic by plugging the hypothesized value into the standardized ratio. The most common null is that $\beta_j$ equals zero,
+\[
+H_0:\ \beta_j = 0,
+\]
+under which $x_j$ has no \emph{partial} effect on $y$ once the other regressors are controlled for. The corresponding statistic is simply the coefficient divided by its standard error,
+\[
+t_{\hb_j} = \frac{\hb_j}{\operatorname{se}(\hb_j)},
+\]
+which under $H_0$ follows $t_{\,n-k-1}$. We reject $H_0$ in favor of the alternative when $|t_{\hb_j}|$ (for a two-sided alternative) or $t_{\hb_j}$ (for a one-sided alternative) exceeds the relevant critical value, or equivalently when the $p$-value falls below the chosen significance level.
+
+\rmkb[Reading the $t$ test correctly]{Several points trip up beginners and deserve to be stated once and for all.
+\begin{itemize}
+\item The null need not be zero. To test whether the coefficient equals some theoretical value $a_j$, use $H_0:\ \beta_j = a_j$ and the statistic $t = (\hb_j - a_j)/\operatorname{se}(\hb_j)$.
+\item Match the tails. A two-sided alternative $H_1:\ \beta_j \ne a_j$ uses the absolute value of $t$ and a two-tailed critical value; a one-sided alternative ($H_1:\ \beta_j > a_j$ or $H_1:\ \beta_j < a_j$) uses the signed statistic and a one-tailed critical value. The $p$-value and critical value must be computed for the alternative actually being tested.
+\item In large samples the $t$ test may be carried out using standard normal critical values.
+\item ``Fail to reject $H_0$'' is not the same as ``accept $H_0$.'' Failing to reject means the data are consistent with $H_0$, not that $H_0$ is true; many other values of $\beta_j$ would also fail to be rejected.
+\end{itemize}}
+
+\subsection{Confidence intervals and the duality with testing}
+
+A confidence interval inverts the test: instead of fixing one null value and asking whether the data reject it, it reports the entire set of null values the data would \emph{not} reject. Under the CLM the $(1-\alpha)$ confidence interval for $\beta_j$ is
+\[
+\hb_j \;\pm\; c_{\alpha/2}\cdot \operatorname{se}(\hb_j),
+\]
+where $c_{\alpha/2}$ is the two-tailed critical value from $t_{\,n-k-1}$ (for the usual $95\%$ interval and moderate degrees of freedom, $c_{\alpha/2}\approx 1.96$).
+
+\state{Testing and confidence intervals are equivalent}{A value $a_j$ lies \emph{outside} the $(1-\alpha)$ confidence interval for $\beta_j$ if and only if the two-sided $t$ test of $H_0:\ \beta_j=a_j$ rejects at level $\alpha$. The interval is therefore a complete summary of every two-sided test at once: one can read off acceptance or rejection of any null directly, without recomputing a statistic.}
+
+This duality is the reason confidence intervals are often preferred for reporting: a single interval communicates both the point estimate and the full range of values compatible with the data, and it answers every two-sided hypothesis test simultaneously.
+
+\section{Testing a Linear Combination of Parameters}
+
+Often the hypothesis of interest involves \emph{several} coefficients tied together by one linear relation --- for example, that the return to a year at a junior college equals the return to a year at a university, or that two elasticities are equal. The obstacle is that the relevant standard error is not printed by the regression software. A clever reparametrization sidesteps the difficulty by turning the question into an ordinary single-coefficient $t$ test.
+
+\subsection{The reparametrization trick}
+
+Consider the model
+\[
+y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + u,
+\]
+and suppose we wish to test a linear restriction relating the two slopes,
+\[
+H_0:\ \beta_1 = p + q\,\beta_2,
+\]
+for known constants $p$ and $q$. The idea is to express the restriction with a single new parameter $\theta$ that is zero exactly when $H_0$ holds. Write, with full generality,
+\[
+\beta_1 = p + q\,\beta_2 + \theta, \qquad\text{so that}\qquad H_0:\ \theta = 0.
+\]
+Substituting this into the regression equation and collecting terms,
+\[
+\ba
+y &= \beta_0 + (p + q\,\beta_2 + \theta)\,x_1 + \beta_2 x_2 + u\\
+&= \beta_0 + p\,x_1 + \theta\,x_1 + \beta_2(q\,x_1 + x_2) + u,
+\ea
+\]
+which rearranges to
+\[
+\underbrace{y - p\,x_1}_{\text{new dependent variable}}
+= \beta_0 + \theta\,x_1 + \beta_2 \underbrace{(q\,x_1 + x_2)}_{\text{new regressor}} + u.
+\]
+Now run OLS of the transformed dependent variable $y - p\,x_1$ on $x_1$ and the transformed regressor $q\,x_1 + x_2$. The coefficient on $x_1$ in this regression \emph{is} $\theta$, and the original null $H_0:\ \beta_1 = p+q\beta_2$ is now the elementary null $H_0:\ \theta=0$. We test it with the standard $t$ statistic $\hth/\operatorname{se}(\hth)$ that the software reports directly.
+
+The payoff is twofold. The regression delivers $\hth = \hb_1 - p - q\,\hb_2$ (a point estimate of the linear combination) and, crucially, its standard error $\operatorname{se}(\hth) = \operatorname{se}(\hb_1 - q\,\hb_2)$ \emph{automatically} --- a quantity that would otherwise be awkward to compute by hand, because it requires the covariance between two estimated coefficients.
+
+\ex[Equal returns to two-year and four-year college]{Let $\log(\text{wage}) = \beta_0 + \beta_1\,\text{jc} + \beta_2\,\text{univ} + \beta_3\,\text{exper} + u$, where $\text{jc}$ and $\text{univ}$ are years at a junior college and at a university. To test whether a year of each yields the same return, $H_0:\ \beta_1 = \beta_2$, take $p=0$ and $q=1$: define $\theta = \beta_1 - \beta_2$, regress $\log(\text{wage})$ on $\text{jc}$, the combined variable $\text{jc}+\text{univ}$, and $\text{exper}$, and read the $t$ statistic on $\text{jc}$. A negative, significant $\hth$ would say a junior-college year is worth less than a university year.}
+
+\subsection{The covariance of two coefficients}
+
+To see why the standard error of $\hb_1 - q\hb_2$ requires the covariance $\Cov{\hb_1}{\hb_2}$, expand the variance of the linear combination:
+\[
+\Var{\hb_1 - q\,\hb_2} = \Var{\hb_1} + q^2\,\Var{\hb_2} - 2q\,\Cov{\hb_1}{\hb_2}.
+\]
+The two individual variances are printed by the software, but the cross term is not. We compute it directly, using the fact (from Chapter~\ref{ch:mlr}) that each slope estimator is a linear function of the $y_i$ written through the partialling-out residuals $\hat r_{ij}$ --- the residuals from regressing $x_j$ on all the other regressors:
+\[
+\hb_1 = \frac{\sumi \hat r_{i1}\,y_i}{\sumi \hat r_{i1}^2},
+\qquad
+\hb_2 = \frac{\sumi \hat r_{i2}\,y_i}{\sumi \hat r_{i2}^2}.
+\]
+Because the observations are independently sampled, the $y_i$ are mutually independent (conditional on the regressors), each with variance $\Var{y_i\given \vb x} = \sigma^2$. Bilinearity of covariance then gives
+\[
+\ba
+\Cov{\hb_1}{\hb_2}
+&= \Cov{\frac{\sumi \hat r_{i1} y_i}{\sumi \hat r_{i1}^2}}{\frac{\sumi \hat r_{i2} y_i}{\sumi \hat r_{i2}^2}}\\[4pt]
+&= \frac{1}{\pr{\sumi \hat r_{i1}^2}\pr{\sumi \hat r_{i2}^2}}\;
+\Cov{\sumi \hat r_{i1} y_i}{\sumi \hat r_{i2} y_i}\\[4pt]
+&= \frac{1}{\pr{\sumi \hat r_{i1}^2}\pr{\sumi \hat r_{i2}^2}}\;
+\sumi \hat r_{i1}\,\hat r_{i2}\,\Var{y_i}\\[4pt]
+&= \sigma^2\,\frac{\sumi \hat r_{i1}\,\hat r_{i2}}{\pr{\sumi \hat r_{i1}^2}\pr{\sumi \hat r_{i2}^2}},
+\ea
+\]
+where the cross terms $\Cov{y_i}{y_j}=0$ for $i\ne j$ vanish by independence. The same idea gives a single tidy formula for any weighted combination of the two slopes. Writing $a_{ij} := \hat r_{ij}/\sum_l \hat r_{lj}^2$, so that $\hb_j = \sum_i a_{ij}\,y_i$, the combination $w_1\hb_1 + w_2\hb_2 = \sumi (w_1 a_{i1} + w_2 a_{i2})\,y_i$ is again a linear function of the independent $y_i$, hence
+\[
+\Var{w_1\hb_1 + w_2\hb_2}
+= \sigma^2 \sumi \pr{w_1\,a_{i1} + w_2\,a_{i2}}^2.
+\]
+Expanding the square reproduces $w_1^2\Var{\hb_1} + w_2^2\Var{\hb_2} + 2w_1 w_2 \Cov{\hb_1}{\hb_2}$ with the variances and covariance just derived.
+In practice one never plugs into this by hand; the reparametrization of the previous subsection lets OLS compute $\operatorname{se}(\hth)$ for us. The point of the derivation is conceptual: the standard error of a \emph{difference} of coefficients depends on how those coefficients covary, and ignoring the covariance term --- treating the two estimates as independent --- generally gives the wrong answer.
+
+\rmkb[General linear combinations]{For a general linear combination $\sum_{j} w_j \hb_j$ of several coefficients, the variance is
+\[
+\Var{\textstyle\sum_j w_j \hb_j} = \sum_j w_j^2\,\Var{\hb_j} + \sum_{j\ne l} w_j w_l\, \Cov{\hb_j}{\hb_l},
+\]
+with each covariance computed exactly as above. Equivalently, in matrix form $\Var{\vb w' \hb} = \vb w'\,\Var{\hb}\,\vb w$, where $\Var{\hb}=\sigma^2 (\bX'\bX)^{-1}$ is the full covariance matrix of the coefficient vector. The reparametrization trick remains the practical route whenever the combination can be folded into a single redefined regressor.}
+
+\section{Testing Multiple Linear Restrictions: The $F$ Test}
+
+A single $t$ statistic tests one restriction. To test \emph{several} restrictions simultaneously --- ``do these three variables jointly belong in the model?'' --- we need a statistic that evaluates all the restrictions at once. This is the $F$ test.
+
+\subsection{Restricted and unrestricted models}
+
+A null that sets one population parameter to zero, say $H_0:\ \beta_k = 0$, is an \emph{exclusion restriction}: it excludes the corresponding variable. A null that constrains several parameters at once is a set of \emph{multiple restrictions}, and the test of such a null is a \emph{joint} (or multiple) hypothesis test. The leading case is a joint exclusion null,
+\[
+H_0:\ \beta_{k-q+1} = \beta_{k-q+2} = \dots = \beta_k = 0,
+\]
+which asserts that a designated group of $q$ regressors has no partial effect on $y$ as a group.
+
+Imposing the restrictions gives the \emph{restricted model}, which drops the $q$ variables; the full model with all regressors is the \emph{unrestricted model}. The restricted model is \emph{nested} inside the unrestricted one --- it is the special case obtained by forcing $q$ coefficients to zero --- and the difference in the number of estimated parameters between the two models is exactly $q$, the number of restrictions being tested.
+
+\subsection{The $F$ statistic in SSR form}
+
+Dropping variables can never lower the sum of squared residuals: a restricted model fits no better than the model that is free to use the extra variables, so $\text{SSR}_r \ge \text{SSR}_{ur}$ always. The question is whether the \emph{increase} $\text{SSR}_r - \text{SSR}_{ur}$ is large enough --- relative to how well the unrestricted model fits --- to be incompatible with the restrictions being true. The $F$ statistic scales this increase appropriately.
+
+\thm{The $F$ Statistic (SSR Form)}{
+Under the CLM assumptions, with $q$ restrictions and $k$ regressors in the unrestricted model,
+\[
+F = \frac{(\text{SSR}_r - \text{SSR}_{ur})/q}{\text{SSR}_{ur}/(n-k-1)} \;\sim\; F_{\,q,\ n-k-1}
+\qquad \text{under } H_0.
+\]
+}
+
+The numerator is the increase in unexplained variation per restriction; the denominator is $\widehat\sigma^2$ from the unrestricted model, i.e.\ the unbiased estimate of the unrestricted error variance. The numerator degrees of freedom $q$ is the number of restrictions (equivalently, the difference in degrees of freedom between the two models), and the denominator degrees of freedom $n-k-1$ is the residual degrees of freedom of the unrestricted model. Because $\text{SSR}_r\ge\text{SSR}_{ur}$, the statistic is always nonnegative, and large values are evidence against $H_0$. We reject when $F$ exceeds the upper-tail critical value of the $F_{q,\,n-k-1}$ distribution.
+
+\state{What rejection means}{If $F$ exceeds its critical value we reject $H_0$ and conclude that the excluded variables are \emph{jointly statistically significant} at the chosen level. If we cannot reject, the group is jointly insignificant --- the data do not establish that those variables, taken together, belong in the model. The SSR form is completely general: it is valid whether or not the restricted and unrestricted models share the same dependent variable, since it is built only from sums of squared residuals.}
+
+\subsection{The $F$ statistic in $R^2$ form}
+
+When the restricted and unrestricted models have the \emph{same} dependent variable --- as in any joint exclusion test --- the total sum of squares $\text{SST}$ is identical across the two models, so we may divide numerator and denominator by it and rewrite the statistic in terms of the $R^2$'s. Using $\text{SSR} = \text{SST}\,(1-R^2)$,
+\[
+F = \frac{(R_{ur}^2 - R_r^2)/q}{(1 - R_{ur}^2)/(n-k-1)} \;\sim\; F_{\,q,\ n-k-1}.
+\]
+This form is convenient because regression output reports $R^2$ directly. Note carefully that the denominator is $(1 - R_{ur}^2)$, the unexplained fraction of variation in the unrestricted model, divided by its degrees of freedom --- \emph{not} $(1-R_{ur})^2$. The $R^2$ form is restricted to the equal-dependent-variable case; whenever the dependent variable changes (e.g.\ a log transformation under one model), only the SSR form applies.
+
+\subsection{Overall significance of the regression}
+
+A special case worth singling out is the test that \emph{no} regressor matters,
+\[
+H_0:\ \beta_1 = \beta_2 = \dots = \beta_k = 0,
+\]
+the test of overall significance of the regression. Here the restricted model contains only the intercept, so $R_r^2 = 0$ and $q = k$. The $R^2$ form collapses to
+\[
+F = \frac{R^2/k}{(1 - R^2)/(n-k-1)} \;\sim\; F_{\,k,\ n-k-1}.
+\]
+This statistic appears in nearly every regression printout. Rejecting $H_0$ says only that \emph{at least one} regressor has explanatory power --- it does not identify which.
+
+\subsection{$F$ versus $t$, and joint versus individual significance}
+
+The $t$ and $F$ tests are intimately related but not interchangeable.
+
+\state{Joint significance can survive when individual significance does not}{When two or more regressors are highly correlated (multicollinearity), each individual coefficient is estimated imprecisely, so the individual $t$ statistics may all be insignificant even though the variables clearly matter as a group. The $F$ test, which examines the variables \emph{jointly}, is essentially immune to this: it asks whether the group as a whole improves the fit, a question multicollinearity does not obscure. It is entirely possible --- and common --- for an $F$ test to reject the joint null while no single $t$ statistic is significant.}
+
+The reason is geometric. Multicollinearity inflates the variance of each $\hb_j$ (recall $\Var{\hb_j} = \sigma^2/[\text{SST}_j(1-R_j^2)]$ from Chapter~\ref{ch:mlr}, which blows up as $R_j^2\to 1$) and induces a strong negative covariance between the correlated coefficients, so that each is poorly determined alone while their joint contribution is well determined. The $F$ statistic accounts for this covariance automatically; the separate $t$ statistics do not.
+
+For a \emph{single} restriction the two tests coincide: the square of the $t$ statistic equals the $F$ statistic ($t^2 = F$ with $q=1$), and the two-sided $t$ test is exactly equivalent to the corresponding $F$ test. The $t$ statistic retains two practical advantages, however: it handles \emph{one-sided} alternatives, which the (inherently two-sided, nonnegative) $F$ statistic cannot, and it is more directly available, being printed automatically for every coefficient.
+
+\subsection{General linear restrictions}
+
+The $F$ machinery is not limited to exclusion restrictions. Any set of linear restrictions can be reduced to exclusion restrictions by the same reparametrization used for the single-restriction $t$ test. A general linear restriction has the form $\beta_1 = f(\boldsymbol\beta)$, where $f$ is a linear function of the other parameters. Writing it most generally as $\beta_1 = f(\boldsymbol\beta) + \theta$ and substituting into the equation, the restriction $H_0$ becomes $\theta = 0$:
+\begin{itemize}
+\item additive constants in $f$ get absorbed into a redefined dependent variable;
+\item the linear coefficients in $f$ get absorbed into redefined regressors (combinations of the original ones).
+\end{itemize}
+After this transformation the joint null is a set of plain exclusion restrictions on the new parameters, and the ordinary SSR-form $F$ test applies. Thus exclusion restrictions are the canonical case to which all linear restrictions reduce.
+
+\section{Economic versus Statistical Significance}
+
+A coefficient can be statistically significant and economically trivial, or economically large and statistically uncertain. Keeping the two notions distinct is one of the most important habits in applied work.
+
+\state{Two different questions}{The \emph{economic} (or \emph{practical}) significance of a variable is determined entirely by the \emph{size and sign} of its coefficient: how much does $y$ move, in units that matter, for a realistic change in $x_j$? The \emph{statistical} significance is determined entirely by the \emph{size of the $t$ statistic}: is the coefficient precisely enough estimated to rule out zero? A large coefficient with a small $t$ statistic is economically important but statistically shaky; a tiny coefficient with a huge $t$ statistic (common in very large samples) is statistically significant but may be economically negligible.}
+
+Several practical guidelines follow.
+\begin{itemize}
+\item As the sample grows, smaller significance levels are warranted. Standard errors shrink with $n$, so even economically trivial effects eventually become statistically significant; using a stricter level offsets this and makes economic and statistical significance more likely to agree.
+\item Check statistical significance first, but interpret economic significance in light of how the variable enters the equation --- its units, and whether it appears in levels, logs, or interactions, all change what ``the size of the coefficient'' means.
+\item A variable with the wrong sign or an unexpected magnitude that is statistically insignificant can usually be set aside, but it may also be a symptom of a deeper specification problem --- an omitted variable, a wrong functional form, or multicollinearity --- and is worth investigating rather than ignoring.
+\end{itemize}
+
+\rmkb[Where this is heading]{We have added normality (MLR.6) to complete the classical linear model, obtained the exact normal sampling distribution of OLS, and built the $t$ and $F$ tests on top of it, along with the reparametrization device that handles any linear hypothesis. The exactness of these results rests on MLR.6, which is often only approximately true. Chapter~\ref{ch:asymptotics} shows that the same $t$ and $F$ procedures remain valid in large samples \emph{without} normality, by appeal to the central limit theorem; Chapter~\ref{ch:hetero} revisits inference once the homoskedasticity assumption MLR.5 is dropped.}

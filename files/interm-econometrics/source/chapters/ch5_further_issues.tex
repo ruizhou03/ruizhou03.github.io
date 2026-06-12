@@ -1,0 +1,230 @@
+% !TEX root = ../main.tex
+\chapter{Further Issues in Multiple Regression}
+\label{ch:further}
+
+By now the multiple regression model is a finished machine: Chapter~\ref{ch:mlr} built the OLS estimator, Chapter~\ref{ch:inference} taught us to test its coefficients, and Chapter~\ref{ch:asymptotics} showed that the same estimator behaves well even when the errors are not normal. In every one of those chapters the model was written as $y = \beta_0 + \beta_1 x_1 + \dots + \beta_k x_k + u$, linear in the parameters \emph{and} linear in the variables, with the slope $\beta_j$ read off as ``the change in $y$ for a one-unit change in $x_j$.'' That reading is correct, but it is also limiting. Many of the relationships we care about are not straight lines: returns to experience flatten out, a tax cut helps the rich differently than the poor, wages respond to a \emph{percentage} change in firm sales rather than a dollar change.
+
+This chapter shows how far the linear model stretches once we are willing to transform the variables. Logarithms turn slopes into elasticities and tame skewed data; quadratics let a relationship rise and then fall; interaction terms let one variable's effect depend on the level of another. None of this requires a new estimator --- OLS still does all the work, because the model remains linear \emph{in the parameters}. What changes is the bookkeeping: how we read a coefficient, where the ``turning point'' of a quadratic lies, and how to summarize an effect that is no longer a single number. We close with the question that always follows a richer specification: did the extra flexibility actually buy us a better model? The honest answer requires a goodness-of-fit measure that charges for complexity --- the adjusted $R^2$ --- and an understanding of exactly what it can and cannot compare.
+
+\section{More on Functional Form}
+
+\subsection{Which Variables to Include}
+
+The first decision in any specification is which regressors to put in. There is a genuine tension here, and it is worth stating plainly before we get to functional form.
+
+Adding a regressor that genuinely belongs in the model can only help on one front: it removes a piece of variation from the error term, lowering the error variance $\sigma^2$ and, all else equal, tightening every standard error. But ``all else equal'' is exactly what we cannot take for granted, because a new regressor that is correlated with the ones already present \emph{raises} the multicollinearity term $R_j^2$ in the variance formula
+\[
+\Var{\hb_j} = \frac{\sigma^2}{\text{SST}_j\,(1-R_j^2)}.
+\]
+The net effect on $\Var{\hb_j}$ is a contest between a smaller numerator $\sigma^2$ and a larger denominator factor $(1-R_j^2)$.
+
+\state{Add what is orthogonal, be wary of what is collinear}{
+A regressor that is \emph{uncorrelated} with the existing regressors is close to a free lunch: it can lower $\sigma^2$ without touching any $R_j^2$, so it shrinks the standard errors of the coefficients you already care about. The catch is that such variables are hard to find in practice --- in observational data, the interesting controls tend to be correlated with everything. And there is a deeper warning: if you ``hold fixed'' too many things, you may hold fixed the very channel you set out to study. Controlling for occupation when estimating the return to education, for instance, partials out exactly the mechanism (people get better jobs) through which education raises wages.}
+
+\subsection{Logarithmic Functional Forms}
+
+We met the four level/log combinations in Chapter~\ref{ch:slr}; here we collect the practical reasons logs are so common in applied work, and one important pitfall when $\log y$ is the dependent variable.
+
+The interpretive advantages are familiar. A logged independent variable lets the slope speak in percentages; a log--log slope is an elasticity; and because $\log(c\,x) = \log c + \log x$, rescaling the units of a logged variable changes only the intercept, leaving the slope of interest untouched. To these we add three more pragmatic benefits. Taking logs of a strictly positive, right-skewed variable (income, firm size, population) typically compresses the long upper tail, so a few enormous observations no longer dominate the fit --- logs \emph{dampen the influence of outliers}. The same compression often makes the conditional distribution of the error look more symmetric and bell-shaped, helping the \emph{normality} approximation, and it frequently stabilizes the spread of the error, helping \emph{homoskedasticity} (a theme we return to in Chapter~\ref{ch:hetero}).
+
+\state{When \emph{not} to take logs}{
+Logs are not automatic. Three cautions:
+\begin{itemize}
+    \item A variable already measured in \emph{percentage points} or as a \emph{rate} --- an unemployment rate, a literacy rate, an interest rate --- should usually be left in levels, because a change in such a variable is already naturally read as a percentage-point change, and logging it obscures that.
+    \item A variable measured in a small number of natural \emph{units} or \emph{years} (years of schooling, number of children) is often kept in levels, both for interpretability and because the log transform exaggerates differences at the low end.
+    \item Logs require strictly \emph{positive} values: $\log 0$ and $\log(\text{negative})$ are undefined, so variables that can be zero or negative (net profit, change in inventory) cannot be logged directly.
+\end{itemize}}
+
+\subsection{Predicting \texorpdfstring{$y$}{y} When the Dependent Variable Is \texorpdfstring{$\log y$}{log y}}
+\label{sec:logy-prediction}
+
+Suppose we have estimated a model in which the dependent variable is $\log y$:
+\[
+\log y = \beta_0 + \beta_1 x_1 + \dots + \beta_k x_k + u .
+\]
+This is ideal for interpreting how the regressors move $y$ in percentage terms. But often we want an actual prediction of $y$ itself --- a predicted wage in dollars, not a predicted log-wage. Exponentiating both sides,
+\[
+y = \exp(\beta_0 + \beta_1 x_1 + \dots + \beta_k x_k)\cdot \exp(u),
+\]
+and the naive temptation is to estimate $y$ by simply exponentiating the fitted log-value, $\widehat{\log y} = \hb_0 + \hb_1 x_1 + \dots + \hb_k x_k$. This is \emph{systematically too low}, and understanding why is the point of this subsection.
+
+The clean way to see the problem is to compute the conditional mean of $y$. Add the assumption that $u$ is \emph{independent} of $(x_1,\dots,x_k)$ --- stronger than the zero-conditional-mean assumption we usually impose, but it lets the error term factor out cleanly. Then
+\[
+\E{y \given x} = \exp(\beta_0 + \beta_1 x_1 + \dots + \beta_k x_k)\cdot \E{\exp(u)} .
+\]
+The first factor is what we would get from exponentiating the population regression function; the second factor, $\E{\exp(u)}$, is a constant multiplier that the naive predictor silently sets to $1$. It is not $1$.
+
+\thm{Jensen's Inequality Makes the Naive Predictor Biased Downward}{
+Because $\exp(\cdot)$ is a strictly convex function, Jensen's inequality gives
+\[
+\E{\exp(u)} \;>\; \exp\!\big(\E{u}\big) = \exp(0) = 1 ,
+\]
+using $\E{u}=0$. Hence $\E{y\given x}$ is the naive exponentiated prediction scaled \emph{up} by a factor strictly greater than $1$: simply exponentiating $\widehat{\log y}$ underpredicts $y$ on average.}
+
+The practical fix is to estimate the missing multiplier from the residuals. Since $\E{\exp(u)}$ is a population mean, replace it by its sample analogue using the OLS residuals $\hat u_i = \log y_i - \widehat{\log y}_i$, giving the corrected prediction
+\[
+\hat y = \widehat{\alpha}_0 \cdot \exp\!\big(\hb_0 + \hb_1 x_1 + \dots + \hb_k x_k\big),
+\qquad
+\widehat{\alpha}_0 = \frac{1}{n}\sumi \exp(\hat u_i).
+\]
+This is Duan's \emph{smearing} estimate of the retransformation factor.
+
+\rmkb[Consistent but biased: a recurring distinction]{The corrected predictor $\hat y$ is \emph{not} an unbiased estimator of $\E{y\given x}$ in finite samples: $\frac1n\sumi \exp(\hat u_i)$ is a nonlinear function of estimated residuals, and nonlinear functions of unbiased inputs are not unbiased. What we \emph{can} guarantee is \emph{consistency}. As $n\to\infty$, $\hb_j \pto \beta_j$ and $\frac1n\sumi \exp(\hat u_i) \pto \E{\exp(u)}$, so by the continuous mapping theorem $\plim \hat y = \E{y\given x}$. ``Consistent but biased'' is a pattern you will see again --- most prominently for the IV estimator in Chapter~\ref{ch:iv} --- and it is the right standard to hold a nonlinear predictor to.}
+
+\ex[Retransforming a log-wage prediction]{
+A wage equation is estimated as $\widehat{\log(\text{wage})} = 1.20 + 0.090\,\text{educ}$, with smearing factor $\widehat{\alpha}_0 = \frac1n\sumi\exp(\hat u_i) = 1.08$. Predict the wage for a worker with $\text{educ}=12$.}
+\sol{
+The fitted log-wage is $\widehat{\log(\text{wage})} = 1.20 + 0.090(12) = 2.28$. The naive prediction would be $\exp(2.28) \approx 9.78$. Applying the smearing correction,
+\[
+\hat y = 1.08 \cdot \exp(2.28) \approx 1.08 \cdot 9.78 \approx 10.56 .
+\]
+Ignoring the factor of $1.08$ would understate the predicted wage by about eight percent --- exactly the Jensen gap.}
+
+\subsection{Quadratics and the Turning Point}
+
+When $y$ bends with $x$ --- rising quickly at first and then leveling off, or falling and then rising --- a straight line is the wrong shape. Adding the square of a regressor lets the model curve while staying linear in the parameters:
+\[
+y = \beta_0 + \beta_1 x + \beta_2 x^2 + u .
+\]
+The crucial change is that the partial effect of $x$ is no longer a constant. Differentiating,
+\[
+\frac{\partial y}{\partial x} = \beta_1 + 2\beta_2 x ,
+\]
+so the marginal effect of $x$ depends on the level of $x$ itself. A useful approximation for a one-unit change is $\Delta y \approx (\beta_1 + 2\beta_2 x)\,\Delta x$. The coefficient $\beta_1$ alone is the slope only at $x=0$ and is meaningless to report in isolation; you must always pair it with $\beta_2$.
+
+The two coefficients typically have opposite signs, producing a parabola with a single \emph{turning point} (a maximum if $\beta_2<0$, a minimum if $\beta_2>0$). Setting the partial effect to zero,
+\[
+\beta_1 + 2\beta_2 x^* = 0
+\quad\Longrightarrow\quad
+x^* = -\frac{\beta_1}{2\beta_2} .
+\]
+On one side of $x^*$ the relationship between $y$ and $x$ slopes up; on the other side it slopes down. In the typical case of opposite-signed coefficients ($\beta_1>0$, $\beta_2<0$, giving a downward-opening parabola), this turning point is positive and equals $-\beta_1/(2\beta_2)$.
+
+\state{Always interpret \emph{both} sides --- and count how many observations lie past the turn}{
+A quadratic forces a turnaround on the data whether or not the turnaround is economically real. If a wage--experience profile peaks at $x^* \approx 24.4$ years and then formally ``declines,'' you must ask: does that downturn describe a meaningful feature of the data, or is it an artifact? The diagnostic is to count how many sample observations lie on the ``unwanted'' side of $x^*$. If almost no one in the sample has more than $24$ years of experience, the implied decline rests on a handful of points (or none) and should be read with great caution --- effectively, the fitted relationship is increasing over the entire range that matters. If, on the other hand, a non-negligible fraction of the sample sits on a side where the sign of the effect makes no economic sense, that is a signal that the quadratic is the wrong functional form and the model must be refined.}
+
+\ex[Locating and reading a turning point]{
+A regression of hourly wage on experience gives $\widehat{\text{wage}} = 3.73 + 0.298\,\text{exper} - 0.0061\,\text{exper}^2$. Find the experience level at which predicted wage is maximized, and describe the shape on each side.}
+\sol{
+Here $\beta_1 = 0.298 > 0$ and $\beta_2 = -0.0061 < 0$, so the parabola opens downward and has a maximum. The turning point is
+\[
+\text{exper}^* = -\frac{0.298}{2(-0.0061)} = \frac{0.298}{0.0122} \approx 24.4 \text{ years}.
+\]
+For $\text{exper} < 24.4$, the marginal effect $0.298 - 2(0.0061)\,\text{exper}$ is positive, so wage rises with experience; for $\text{exper}>24.4$ the effect turns negative and predicted wage falls. Whether to take the post-$24.4$ decline seriously depends on how many workers in the sample have more than $24$ years of experience; if few do, the model is effectively saying wages rise (at a diminishing rate) throughout the relevant range.}
+
+\subsection{Interaction Terms}
+
+Sometimes the effect of one regressor depends on the \emph{level} of another --- the value of a bedroom depends on the size of the house, the wage premium for experience differs by education. An \emph{interaction term} captures this by entering the product of two regressors:
+\[
+y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \beta_3\,x_1 x_2 + u .
+\]
+The partial effect of $x_2$ is now
+\[
+\frac{\partial y}{\partial x_2} = \beta_2 + \beta_3 x_1 ,
+\]
+which depends on $x_1$. The interaction coefficient $\beta_3$ measures how the effect of $x_2$ changes as $x_1$ increases (equivalently, how the effect of $x_1$ changes with $x_2$ --- the relationship is symmetric).
+
+This flexibility comes at a cost to interpretation. The coefficient $\beta_2$ is \emph{not} the average effect of $x_2$; it is the effect of $x_2$ \emph{only when $x_1 = 0$}. If $x_1=0$ is an unusual value --- or, worse, an impossible one, as when $x_1$ is firm size or a test score that is never zero --- then $\beta_2$ describes a counterfactual no one in the data occupies, and reporting it as ``the effect of $x_2$'' is misleading.
+
+\paragraph{Reparametrization by centering.} The clean remedy is to center the interacting variables at meaningful values, typically their means $\mu_1 = \E{x_1}$ and $\mu_2 = \E{x_2}$ (replaced in practice by the sample means $\bar x_1, \bar x_2$). Rewrite the model as
+\[
+y = \alpha_0 + \delta_1 x_1 + \delta_2 x_2 + \beta_3 (x_1 - \mu_1)(x_2 - \mu_2) + u .
+\]
+This is the \emph{same} model algebraically --- expanding the product and collecting terms recovers the original equation, with $\beta_3$ unchanged --- but the level coefficients now have a far more useful meaning. In the centered form,
+\[
+\frac{\partial y}{\partial x_2} = \delta_2 + \beta_3 (x_1 - \mu_1),
+\]
+so $\delta_2$ is the partial effect of $x_2$ evaluated \emph{at the mean of $x_1$}, the effect for a typical observation rather than for the (possibly fictional) $x_1=0$ case. Centering carries a second, equally important benefit: the standard error of the partial effect at the mean is the standard error of the single coefficient $\delta_2$, which the regression reports directly. In the uncentered model, $\widehat{\partial y/\partial x_2} = \hb_2 + \hb_3 \bar x_1$ is a \emph{linear combination} of two estimates, and its standard error requires the covariance $\Cov{\hb_2}{\hb_3}$ --- extra work the centering sidesteps. If some value other than the mean is of interest, center there instead.
+
+\subsection{The Average Partial Effect}
+
+Quadratics and interactions share a feature that breaks the old habit of reading a single slope: the partial effect of a regressor is no longer one number but a \emph{function} of the data. In
+\[
+y = \beta_0 + \beta_1 x + \beta_2 x^2 + u,
+\qquad
+\frac{\partial y}{\partial x} = \beta_1 + 2\beta_2 x ,
+\]
+the effect varies observation by observation. To report a single representative figure we use the \emph{average partial effect}.
+
+\defn{Average Partial Effect (APE)}{
+The \emph{average partial effect} of $x_j$ is the partial effect $\partial y / \partial x_j$, evaluated at the estimated coefficients and averaged across the sample:
+\[
+\widehat{\text{APE}}_j = \frac{1}{n}\sumi \left.\frac{\partial \hat y}{\partial x_j}\right|_{\text{obs } i} .
+\]
+}
+
+The computation is mechanical: write down the partial-effect expression, plug in the OLS estimates, evaluate it at each observation, and average. For the quadratic above,
+\[
+\widehat{\text{APE}}_x = \frac{1}{n}\sumi \big(\hb_1 + 2\hb_2 x_i\big) = \hb_1 + 2\hb_2\,\bar x ,
+\]
+which equals the partial effect evaluated at the sample mean $\bar x$ --- here the ``average of the effect'' and the ``effect at the average'' coincide because the partial effect is linear in $x$. This gives a clean connection to centering.
+
+\state{Centering makes a coefficient equal its own APE}{
+If you center the regressor before squaring or interacting --- replacing $x$ by $x - \bar x$ --- the coefficient on the linear term \emph{becomes} the average partial effect, with the correct standard error reported automatically. For the quadratic, writing $y = \gamma_0 + \gamma_1(x - \bar x) + \gamma_2 (x-\bar x)^2 + u$ makes $\widehat{\gamma}_1 = \hb_1 + 2\hb_2\bar x = \widehat{\text{APE}}_x$. This is the practical reason centering is the default for nonlinear specifications: it puts the number you want to report, with its standard error, directly on the regression output.}
+
+\section{Goodness of Fit Revisited}
+
+A richer specification almost always raises the ordinary $R^2$. That alone is not evidence that the richer model is better, so we need to revisit what $R^2$ measures and build a version that charges for added complexity.
+
+\subsection{What \texorpdfstring{$R^2$}{R-squared} Does and Does Not Tell You}
+
+Two cautions carry over from Chapter~\ref{ch:slr} and are worth restating now that the model is rich:
+\begin{itemize}
+    \item A \emph{high} $R^2$ does not imply a causal interpretation. Fit measures association between $y$ and its fitted value, nothing more; an omitted variable can inflate $R^2$ while ruining every coefficient.
+    \item A \emph{low} $R^2$ does not preclude precise estimation of a partial effect. We may pin down a slope $\beta_j$ tightly even when the regressors leave most of the variation in $y$ to the error.
+\end{itemize}
+
+There is also a population target lurking behind $R^2$. Writing it with the sample sizes made explicit,
+\[
+R^2 = 1 - \frac{\text{SSR}}{\text{SST}} = 1 - \frac{\text{SSR}/n}{\text{SST}/n}
+\;\pto\; 1 - \frac{\sigma_u^2}{\sigma_y^2},
+\]
+because $\text{SSR}/n \pto \sigma_u^2 = \Var{u}$ and $\text{SST}/n \pto \sigma_y^2 = \Var{y}$. So $R^2$ is a (slightly biased) estimate of the population quantity $1 - \sigma_u^2/\sigma_y^2$, the fraction of the variance of $y$ that is \emph{not} error. The bias is the entry point for the adjustment that follows.
+
+\subsection{The Adjusted \texorpdfstring{$R^2$}{R-squared}}
+
+The estimator $R^2$ uses $\text{SSR}/n$ and $\text{SST}/n$, but neither $\text{SSR}/n$ nor $\text{SST}/n$ is an unbiased estimator of the variance it targets. Correcting each by its proper degrees of freedom --- $n-k-1$ for the residual sum of squares (we estimated $k+1$ parameters to form it) and $n-1$ for the total sum of squares (one parameter, the mean, was used) --- gives the adjusted $R^2$.
+
+\defn{Adjusted $R^2$}{
+\[
+\bar R^2 = 1 - \frac{\text{SSR}/(n-k-1)}{\text{SST}/(n-1)} .
+\]
+Equivalently, in terms of the ordinary $R^2$,
+\[
+\bar R^2 = 1 - \frac{n-1}{\,n-k-1\,}\,(1 - R^2) .
+\]
+}
+
+The two forms are identical: substitute $\text{SSR}/\text{SST} = 1 - R^2$ into the first and factor out. The fraction $\tfrac{n-1}{n-k-1}$ exceeds $1$ whenever $k\ge 1$, so $\bar R^2 < R^2$ in any model with at least one regressor; the gap is the \emph{penalty}.
+
+\state{The penalty and the $|t|>1$ rule}{
+Because the $\tfrac{n-1}{n-k-1}$ factor grows with $k$, $\bar R^2$ does not automatically rise when a regressor is added. There is a sharp characterization of when it rises:
+\begin{center}
+\emph{Adding one regressor raises $\bar R^2$ if and only if the absolute $t$ statistic of that regressor exceeds $1$.}
+\end{center}
+A new variable lifts the penalized fit only if it clears a $|t|>1$ bar --- a threshold notably \emph{lower} than the usual significance cutoffs near $2$. So a variable can raise $\bar R^2$ while still being statistically insignificant at conventional levels. The adjusted $R^2$ is therefore a lenient model-selection device, not a hypothesis test.}
+
+\rmkb[$\bar R^2$ can be negative]{Unlike $R^2 \in [0,1]$, the adjusted $R^2$ has no nonnegativity guarantee. If the regressors explain very little and $k$ is large relative to $n$, the penalty term can drive $\bar R^2$ below zero. A negative $\bar R^2$ is a blunt warning that the model fits worse, after accounting for its complexity, than a model with no regressors at all (which predicts $y$ by its mean).}
+
+\ex[When an extra regressor lowers the adjusted fit]{
+A model with $k$ regressors on $n=50$ observations has $R^2 = 0.400$. Adding one more regressor (so $k+1$ in total) raises the ordinary fit to $R^2 = 0.405$. Did the adjusted $R^2$ go up? Take $k=4$ before the addition.}
+\sol{
+Before: $\bar R^2 = 1 - \frac{49}{45}(1 - 0.400) = 1 - \frac{49}{45}(0.600) \approx 1 - 0.653 = 0.347$.
+
+After (now $k=5$, so denominator $n-k-1 = 44$): $\bar R^2 = 1 - \frac{49}{44}(1 - 0.405) = 1 - \frac{49}{44}(0.595) \approx 1 - 0.663 = 0.337$.
+
+The ordinary $R^2$ rose, but the adjusted $R^2$ \emph{fell} from $0.347$ to $0.337$: the half-percentage-point gain in raw fit did not justify the lost degree of freedom. Equivalently, the new regressor's $t$ statistic must have been below $1$ in absolute value.}
+
+\subsection{Using \texorpdfstring{$\bar R^2$}{adjusted R-squared} to Compare Nonnested Models}
+
+Two models are \emph{nested} when one is a special case of the other (obtained by setting some coefficients to zero); they are \emph{nonnested} when neither contains the other --- for example, one uses $x$ and $x^2$ while the other uses $\log x$, or one has three regressors and a competitor has three entirely different regressors. Nested models are compared with an $F$ test; nonnested models cannot be, because there is no set of restrictions taking one to the other.
+
+\state{$\bar R^2$ levels the playing field across nonnested models}{
+The adjusted $R^2$ is well suited to choosing between nonnested specifications precisely because it penalizes for the number of parameters. Comparing ordinary $R^2$ values here would be \emph{unfair}: the model with more regressors (or with more flexible terms) has a built-in advantage in raw fit that has nothing to do with being a better model. Because $\bar R^2$ docks each model for its complexity, a higher $\bar R^2$ is a defensible reason to prefer one nonnested model over another.}
+
+There is one hard limit, and it is not a matter of fairness but of arithmetic.
+
+\state{Neither $R^2$ measure can compare models with different dependent variables}{
+If two models use different definitions of the dependent variable --- most commonly $y$ in one and $\log y$ in the other --- then \emph{neither} $R^2$ nor $\bar R^2$ can be used to choose between them. The reason is that $R^2$ measures explained variation \emph{relative to} the total variation $\text{SST}$ in the dependent variable, and $\text{SST}$ for $y$ and $\text{SST}$ for $\log y$ are variations in different quantities, on different scales. A model explaining $70\%$ of the variation in $\log(\text{wage})$ and a model explaining $65\%$ of the variation in $\text{wage}$ are simply not on the same ruler. Choosing between a level and a log dependent variable requires a different tool --- for instance, comparing how well each predicts the \emph{same} target after retransforming, as in the smearing prediction of Section~\ref{sec:logy-prediction} --- not a contest of $R^2$ values.}
+
+\rmkb[Where this leaves us]{We have stretched the linear model to fit curves, percentages, and effects that depend on context, all without leaving OLS. The recurring lesson is that flexibility shifts the work from estimation to \emph{interpretation}: a logged dependent variable demands a retransformation, a quadratic demands a turning point and a count of observations past it, an interaction demands centering, and a richer model demands the adjusted $R^2$ to keep the comparison honest. Chapter~\ref{ch:dummies} adds the last piece of functional-form vocabulary --- qualitative regressors --- by letting dummy variables shift intercepts and, through interactions, slopes.}

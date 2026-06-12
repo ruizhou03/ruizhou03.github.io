@@ -1,0 +1,301 @@
+% !TEX root = ../main.tex
+\chapter{Multiple Regression: Estimation}
+\label{ch:mlr}
+
+The simple regression model of Chapter~\ref{ch:slr} rested on one fragile assumption: that the single regressor $x$ is uncorrelated with everything else that affects $y$. In practice this almost never holds. Wages rise with education, but more-educated people also tend to have more able parents, more innate ability, and better schools --- all of which raise wages on their own and all of which are correlated with education. A simple regression of wage on education cannot tell the effect of an extra year of school apart from the effect of the things that travel with it. The slope we estimate is contaminated.
+
+Multiple regression is the tool that lets us hold those other factors fixed. By bringing the confounders into the model as additional regressors, we can ask the question we actually care about: what is the effect of $x_1$ on $y$, \emph{comparing observations that are identical in $x_2,\dots,x_k$}? This is the meaning of ``other things equal'' in an empirical setting, and it is what gives a regression coefficient its causal reading.
+
+This chapter develops the multiple linear regression model and its OLS estimator. The mechanics will look familiar --- we minimize a sum of squared residuals, the estimators are unbiased under an analogous list of assumptions, and we again derive a sampling variance. What is genuinely new, and what occupies the heart of the chapter, is \emph{omitted-variable bias}: a precise account of exactly what goes wrong, and in which direction, when we leave a relevant variable out. That formula is the engine behind most of the rest of the book; nearly every later technique exists to defuse some version of it.
+
+\section{The Multiple Regression Model}
+
+\defn{Multiple Linear Regression Model}{
+The \emph{multiple linear regression (MLR) model} relates a dependent variable $y$ to $k$ explanatory variables through
+\[
+y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_k x_k + u,
+\]
+where $\beta_0$ is the intercept, $\beta_1,\dots,\beta_k$ are the slope parameters, and $u$ is the error term collecting all factors other than $x_1,\dots,x_k$ that affect $y$.
+}
+
+The interpretation of each slope is the key idea of the entire chapter. The coefficient $\beta_j$ is a \emph{partial effect}: it measures the change in $y$ associated with a one-unit change in $x_j$, \emph{holding all other regressors and the error fixed},
+\[
+\Delta y = \beta_j\, \Delta x_j \qquad \text{when } \Delta x_\ell = 0 \text{ for all } \ell \ne j \text{ and } \Delta u = 0.
+\]
+This is the ``other things equal'' or \emph{ceteris paribus} effect that simple regression could not isolate. Note that the intercept $\beta_0$ --- the predicted value of $y$ when every regressor is zero --- frequently has no sensible real-world meaning, and we rarely interpret it directly.
+
+\section{Ordinary Least Squares}
+
+Exactly as in the simple case, OLS is defined by imposing the sample analogues of two population moment conditions. Zero conditional mean of the error will deliver these, and OLS solves for $\beta_0,\beta_1,\dots,\beta_k$ by setting the sample versions to zero.
+
+\state{The two moment conditions behind OLS}{
+\[
+\E{u} = 0, \qquad \E{x_j u} = 0 \quad \text{for every } j = 1,\dots,k.
+\]
+The first fixes the intercept; the $k$ orthogonality conditions $\E{x_j u}=0$ fix the slopes. Together with the model equation, these $k+1$ conditions have sample analogues that pin down the $k+1$ OLS estimates uniquely.
+}
+
+Given a sample $\{(x_{i1},\dots,x_{ik},y_i):i=1,\dots,n\}$, the OLS estimators $\hb_0,\hb_1,\dots,\hb_k$ are the values $b_0,\dots,b_k$ that minimize the sum of squared residuals,
+\[
+\min_{b_0,\dots,b_k} \; \sumi \pr{y_i - b_0 - b_1 x_{i1} - \cdots - b_k x_{ik}}^2.
+\]
+The fitted values are $\hat y_i = \hb_0 + \hb_1 x_{i1} + \cdots + \hb_k x_{ik}$ and the residuals are $\hat u_i := y_i - \hat y_i$. The first-order conditions of this problem are precisely the sample analogues of the moment conditions above.
+
+\subsection{The Partialling-Out Interpretation}
+
+With several regressors the closed-form expression for a single slope is no longer a one-line ratio. There is, however, a beautiful and revealing formula for it, due to Frisch and Waugh, that makes the ``other things equal'' interpretation literal.
+
+\thm{Partialling Out}{
+The OLS slope $\hb_1$ in the regression of $y$ on $x_1,\dots,x_k$ can be written as
+\[
+\hb_1 = \frac{\sumi \hat r_{i1}\, y_i}{\sumi \hat r_{i1}^{\,2}},
+\]
+where $\hat r_{i1}$ is the residual from regressing $x_1$ on all the \emph{other} regressors $x_2,\dots,x_k$ (with an intercept). The same statement holds for each $\hb_j$, regressing $x_j$ on the remaining regressors.
+}
+
+The construction has two steps. First, regress $x_1$ on $x_2,\dots,x_k$ and save the residuals $\hat r_{i1}$; these are the part of $x_1$ that cannot be explained by the other regressors --- $x_1$ with the linear influence of $x_2,\dots,x_k$ \emph{partialled out}. Second, regress $y$ on those residuals. Because $\hat r_{i1}$ is by construction uncorrelated with $x_2,\dots,x_k$, the resulting slope captures only the relationship between $y$ and the part of $x_1$ that is unique to $x_1$.
+
+\state{What $\hb_1$ measures}{
+$\hb_1$ measures the sample relationship between $y$ and $x_1$ \emph{after the effects of all other regressors have been removed from $x_1$}. This is the algebraic content of ``holding $x_2,\dots,x_k$ fixed.'' If $x_1$ were already uncorrelated with the other regressors, $\hat r_{i1}$ would equal $x_{i1}-\bar x_1$ and $\hb_1$ would coincide with the simple-regression slope; in general it does not.
+}
+
+The intercept does not require a separate minimization: like the simple-regression case, it follows from the fact that the OLS fit passes through the sample means,
+\[
+\hb_0 = \bar y - \hb_1 \bar x_1 - \hb_2 \bar x_2 - \cdots - \hb_k \bar x_k.
+\]
+
+\subsection{Algebraic Properties}
+
+The following identities hold in \emph{every} sample, regardless of whether any assumption about the population is true, because they are exactly the first-order conditions of the least-squares problem.
+
+\thm{Algebraic Properties of OLS}{
+The multiple-regression OLS fit satisfies:
+\begin{enumerate}
+    \item The residuals have zero sample mean: $\displaystyle\sumi \hat u_i = 0$, hence $\bar{\hat y} = \bar y$.
+    \item Each regressor has zero sample covariance with the residuals: $\displaystyle\sumi x_{ij}\,\hat u_i = 0$ for every $j=1,\dots,k$. Consequently the fitted values are also uncorrelated with the residuals, $\displaystyle\sumi \hat y_i\,\hat u_i = 0$.
+    \item The point of means $(\bar x_1,\bar x_2,\dots,\bar x_k,\bar y)$ lies on the OLS regression surface: $\bar y = \hb_0 + \hb_1 \bar x_1 + \cdots + \hb_k \bar x_k$.
+\end{enumerate}
+}
+
+\section{Expected Value and Unbiasedness}
+
+We now state the assumptions under which OLS recovers the population parameters on average. The first four parallel SLR.1--SLR.4 of Chapter~\ref{ch:slr}; the only genuinely new one is MLR.3, which has no real bite in the one-regressor case.
+
+\asm{MLR.1--MLR.5 (Gauss--Markov Assumptions, Multiple Regression)}{
+\begin{description}
+    \item[MLR.1 --- Linear in parameters.] The population model is
+    $y = \beta_0 + \beta_1 x_1 + \cdots + \beta_k x_k + u$.
+    \item[MLR.2 --- Random sampling.] $\{(x_{i1},\dots,x_{ik},y_i):i=1,\dots,n\}$ is a random sample from the population, so $y_i = \beta_0 + \beta_1 x_{i1} + \cdots + \beta_k x_{ik} + u_i$.
+    \item[MLR.3 --- No perfect collinearity.] In the sample no regressor is constant, and there is no \emph{exact} linear relationship among the regressors.
+    \item[MLR.4 --- Zero conditional mean.] $\E{u \given x_1,\dots,x_k} = 0$.
+    \item[MLR.5 --- Homoskedasticity.] $\Var{u \given x_1,\dots,x_k} = \sigma^2$, constant in the regressors.
+\end{description}
+}
+
+MLR.3 deserves a word, because it is the one new assumption. It rules out an \emph{exact} linear dependence among regressors, not a strong one; high-but-imperfect correlation (multicollinearity) is allowed and is treated separately below. The danger is subtle because collinearity can hide inside transformed variables: including both $\log(w)$ and $\log(w^2)$ violates MLR.3, since $\log(w^2) = 2\log(w)$ is an exact linear function of $\log(w)$. When MLR.3 fails, the OLS estimates are not even defined --- there is no unique way to allocate a common movement between two regressors that always move together.
+
+\thm{Unbiasedness of OLS}{
+Under MLR.1--MLR.4, the OLS estimators are unbiased for the population parameters:
+\[
+\E{\hb_j} = \beta_j \qquad \text{for every } j = 0,1,\dots,k.
+\]
+}
+
+The proof generalizes the simple-regression argument: writing each $\hb_j$ via the partialling-out formula as $\beta_j$ plus a linear combination of the errors, and applying MLR.4 conditional on the regressors, makes the error term vanish in expectation. As in Chapter~\ref{ch:slr}, the fragile assumption is MLR.4: if any factor inside $u$ is correlated with a regressor, MLR.4 fails and unbiasedness is generally lost. Quantifying exactly that failure is the subject of the next section.
+
+\section{Misspecified Models: Omitted-Variable Bias}
+
+This is the conceptual centerpiece of the chapter, and arguably of the first half of the course. We study two opposite mistakes --- including a variable that does not belong, and excluding one that does --- and find that they have very different consequences. Including an irrelevant variable costs us precision but not unbiasedness; omitting a relevant one biases our estimates, sometimes severely.
+
+\subsection{Including an Irrelevant Variable}
+
+Suppose the true model is $y = \beta_0 + \beta_1 x_1 + u$ but we estimate
+\[
+\hat y = \hb_0 + \hb_1 x_1 + \hb_2 x_2,
+\]
+where $x_2$ has no effect on $y$ --- that is, its true coefficient is zero. Over-specifying the model in this way does \emph{not} bias any OLS estimator: MLR.1--MLR.4 still hold (with the true $\beta_2 = 0$), so $\E{\hb_1}=\beta_1$ and $\E{\hb_2}=0$. The price is paid in \emph{variance}. As we will see in the variance formula below, adding $x_2$ can only raise (and generally does raise) the sampling variance of $\hb_1$ by introducing collinearity between $x_1$ and the new regressor. We therefore prefer not to include regressors that we have good reason to believe are irrelevant --- not because they bias us, but because they make us less precise.
+
+\subsection{Omitting a Relevant Variable}
+
+Now the dangerous mistake. Suppose the correct model is
+\[
+y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + u, \qquad \beta_2 \ne 0,
+\]
+but we leave $x_2$ out and run the \emph{short} (misspecified) regression
+\[
+\tilde y = \tilde\beta_0 + \tilde\beta_1 x_1,
+\]
+where we write $\tilde\beta_0,\tilde\beta_1$ for the short-regression estimator to distinguish it from the correct $\hb$ from the long regression. Let $\tilde\delta_1$ be the slope from regressing the omitted variable $x_2$ on the included variable $x_1$,
+\[
+\tilde x_2 = \tilde\delta_0 + \tilde\delta_1 x_1.
+\]
+Then the short and long slope estimates are linked by an exact algebraic identity.
+
+\thm{Omitted-Variable Bias}{
+With the notation above, the short-regression slope satisfies
+\[
+\tilde\beta_1 = \hb_1 + \hb_2\,\tilde\delta_1,
+\]
+and therefore, taking expectations under the correct (long) model,
+\[
+\operatorname{Bias}(\tilde\beta_1) = \E{\tilde\beta_1} - \beta_1 = \beta_2\,\tilde\delta_1.
+\]
+}
+
+\pf{
+By the partialling-out formula in the long regression, $\hb_1$ and $\hb_2$ are the OLS coefficients on $x_1$ and $x_2$. Regress $x_2$ on $x_1$ to get fitted values $\tilde x_{i2} = \tilde\delta_0 + \tilde\delta_1 x_{i1}$. Plugging the long fitted equation $\hat y_i = \hb_0 + \hb_1 x_{i1} + \hb_2 x_{i2}$ into the short regression of $y$ on $x_1$ and using the algebra of OLS gives
+\[
+\tilde\beta_1 = \hb_1 + \hb_2\,\tilde\delta_1.
+\]
+Taking expectations conditional on the regressors and using $\E{\hb_1}=\beta_1$, $\E{\hb_2}=\beta_2$ from unbiasedness of the long regression yields $\E{\tilde\beta_1} = \beta_1 + \beta_2\,\tilde\delta_1$, so $\operatorname{Bias}(\tilde\beta_1)=\beta_2\tilde\delta_1$.
+}
+
+This little formula is worth memorizing, because it tells us not only that the short regression is biased but \emph{in which direction}. The bias is the product of two pieces:
+\begin{itemize}
+    \item $\beta_2$ --- how the omitted variable affects $y$;
+    \item $\tilde\delta_1$ --- how the omitted variable correlates with the included variable, which has the same sign as $\Cov{x_1}{x_2}$.
+\end{itemize}
+The sign of the bias is the product of these two signs.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & $\Cov{x_1}{x_2} > 0$ & $\Cov{x_1}{x_2} < 0$ \\
+\midrule
+$\beta_2 > 0$ & Positive bias (upward) & Negative bias (downward) \\
+$\beta_2 < 0$ & Negative bias (downward) & Positive bias (upward) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+A positive (\emph{upward}) bias means $\E{\tilde\beta_1} > \beta_1$, so the short regression tends to overstate the effect; a negative (\emph{downward}) bias means it understates the effect. When $\beta_1 > 0$ and the bias is negative --- or $\beta_1 < 0$ and the bias is positive --- the estimate is pulled \emph{toward zero}, a case so common it earns its own name, \emph{attenuation toward zero}. Note carefully that ``upward'' refers to the algebraic value of the estimate, not its magnitude: an upward bias on a negative true coefficient makes it less negative, i.e.\ moves it toward zero.
+
+\ex[The ability bias in a wage regression]{
+We want the return to education $\beta_1$ in $\log(\text{wage}) = \beta_0 + \beta_1\,\text{educ} + \beta_2\,\text{abil} + u$, but ability is unobserved and we run the short regression of $\log(\text{wage})$ on education alone. Ability raises wages, so $\beta_2 > 0$; more able people tend to acquire more schooling, so $\Cov{\text{educ}}{\text{abil}} > 0$ and $\tilde\delta_1 > 0$.
+}
+\sol{
+The bias is $\beta_2\tilde\delta_1 > 0$: the short regression has an \emph{upward} (positive) bias. The naive estimate of the return to education overstates the true causal return, because it credits education with the wage gains that are really due to the higher ability that accompanies it. This is the classic ``ability bias,'' and it is exactly why economists work so hard to control for or instrument out ability.
+}
+
+\subsection{The General Lesson and Two Subtleties}
+
+The two-variable formula generalizes. In a model with many regressors, \emph{if any included regressor is correlated with an omitted variable that belongs in the model (and hence is sitting in the error term), then in general \underline{all} of the OLS slope estimates are biased}, not just the coefficient on the correlated regressor. The clean ``only $\hb_1$ is biased'' conclusion holds only in the special case where $x_1$ is the lone regressor correlated with the omission. This is why omitted-variable bias is so corrosive: a single confounder can contaminate an entire equation.
+
+Two subtleties are worth stating precisely.
+
+\rmkb[The bias is conditional on the sample]{The bias formula $\beta_2\tilde\delta_1$ is derived conditional on the sample values of the regressors, and $\tilde\delta_1$ is a \emph{sample} regression coefficient. Even if $x_1$ and $x_2$ are \emph{uncorrelated in the population} (so that the population analogue $\delta_1 = 0$), in any particular finite sample $\tilde\delta_1$ will generally not be exactly zero. Hence the short estimator can still be biased in a given sample. Population uncorrelatedness buys unbiasedness only in expectation over repeated sampling; it does not zero out the sample-specific tilt. (We return to the population version --- inconsistency --- in Chapter~\ref{ch:asymptotics}.)}
+
+The second subtlety is the bias--variance trade-off implicit in the choice of whether to include $x_2$:
+\begin{itemize}
+    \item If $\beta_2 = 0$ (truly irrelevant), both $\tilde\beta_1$ and $\hb_1$ are unbiased, but
+    \[
+    \Var{\tilde\beta_1} = \frac{\sigma^2}{\text{SST}_1}, \qquad
+    \Var{\hb_1} = \frac{\sigma^2}{\text{SST}_1\,(1-R_1^2)},
+    \]
+    so $\Var{\tilde\beta_1} \le \Var{\hb_1}$ whenever $x_1$ has any sample correlation with $x_2$ (i.e.\ $R_1^2 > 0$). Including an irrelevant variable thus needlessly inflates the variance through multicollinearity --- the precision cost flagged earlier.
+    \item If $\beta_2 \ne 0$ (truly relevant), $\tilde\beta_1$ is biased while $\hb_1$ is not. The long regression's variance disadvantage can be overcome by collecting more data, but no amount of data removes the short regression's bias. We therefore generally prefer to include $x_2$.
+\end{itemize}
+
+\section{Variance of OLS and Multicollinearity}
+
+Having established unbiasedness, we ask the second standard question: how precise is OLS? Adding the homoskedasticity assumption MLR.5 yields a clean formula.
+
+\thm{Sampling Variance of OLS}{
+Under MLR.1--MLR.5, conditional on the sample values of the regressors,
+\[
+\Var{\hb_j} = \frac{\sigma^2}{\text{SST}_j\,(1 - R_j^2)}
+\qquad \text{for each } j = 1,\dots,k,
+\]
+where $\text{SST}_j = \sumi (x_{ij}-\bar x_j)^2$ is the total sample variation in $x_j$, and $R_j^2$ is the $R$-squared from regressing $x_j$ on all the other regressors.
+}
+
+Three forces drive the variance of $\hb_j$, all visible in the formula:
+\begin{enumerate}
+    \item the error variance $\sigma^2$ --- more unexplained noise in $y$ makes every coefficient harder to pin down (numerator);
+    \item the total variation $\text{SST}_j$ in the regressor --- more spread in $x_j$ sharpens the estimate, and more data raises $\text{SST}_j$ (denominator);
+    \item the term $1 - R_j^2$ --- how much of $x_j$ is \emph{linearly explained by the other regressors}. This is the genuinely new term relative to simple regression.
+\end{enumerate}
+
+\subsection{The Variance Inflation Factor}
+
+The third force has a name. As $R_j^2$ rises toward $1$ --- meaning $x_j$ is nearly a linear combination of the other regressors --- the factor $1/(1-R_j^2)$ blows up and the variance of $\hb_j$ explodes. This is \emph{multicollinearity}.
+
+\defn{Variance Inflation Factor (VIF)}{
+The \emph{variance inflation factor} for regressor $j$ is
+\[
+\text{VIF}_j = \frac{1}{1 - R_j^2},
+\]
+the factor by which $\Var{\hb_j}$ is multiplied due to the linear association of $x_j$ with the other regressors. A common (informal) rule of thumb flags $\text{VIF}_j > 10$ (equivalently $R_j^2 > 0.9$) as a sign of serious multicollinearity.
+}
+
+It is important to be precise about what multicollinearity does and does not do.
+
+\state{What multicollinearity actually means}{
+\begin{itemize}
+    \item It \emph{inflates standard errors}: collinear coefficients are estimated imprecisely, are individually hard to make statistically significant, and can swing wildly across samples.
+    \item It does \emph{not} bias OLS or violate any Gauss--Markov assumption (MLR.3 forbids only \emph{perfect} collinearity). OLS remains BLUE.
+    \item It \emph{cannot always be cured by more data} the way ordinary imprecision can: if two regressors are intrinsically near-duplicates, additional observations may add little independent variation.
+    \item It afflicts the \emph{individual} $t$-tests but not the \emph{joint} $F$-test: an $F$-test of several collinear variables together is immune to the problem and can be highly significant even when no single coefficient is (see Chapter~\ref{ch:inference}).
+\end{itemize}
+}
+
+A coefficient that is imprecise because its regressor barely moves on its own is telling us something real --- the data simply do not contain enough independent variation in $x_j$ to separate its effect from the others. The remedy, when one exists, is more or better-targeted variation, not a statistical trick.
+
+\subsection{Estimating the Error Variance and Standard Errors}
+
+The variance formula depends on the unknown $\sigma^2$, which we must estimate from the residuals.
+
+\defn{Error Variance Estimator and Standard Error}{
+Under MLR.1--MLR.5, the unbiased estimator of $\sigma^2$ is
+\[
+\widehat\sigma^2 = \frac{1}{n-k-1}\sumi \hat u_i^{\,2},
+\qquad \E{\widehat\sigma^2} = \sigma^2,
+\]
+and $\widehat\sigma = \sqrt{\widehat\sigma^2}$ is the \emph{standard error of the regression} (SER). The standard error of a slope coefficient is
+\[
+\operatorname{se}(\hb_j) = \frac{\widehat\sigma}{\sqrt{\text{SST}_j\,(1-R_j^2)}}
+= \frac{\widehat\sigma}{\sqrt{n}\;\operatorname{sd}(x_j)\sqrt{1-R_j^2}}.
+\]
+}
+
+The divisor $n-k-1$ is the degrees of freedom: we estimate $k+1$ parameters (the $k$ slopes plus the intercept) before forming the residuals, and subtracting them makes $\widehat\sigma^2$ unbiased. This generalizes the $n-2$ of the one-regressor case in Chapter~\ref{ch:slr}, which is exactly $n-k-1$ with $k=1$.
+
+\section{Efficiency: The Gauss--Markov Theorem}
+
+Unbiasedness alone does not single out OLS --- many unbiased estimators exist. The case for OLS is that, among a natural and broad class, it is the most precise.
+
+\thm{Gauss--Markov Theorem}{
+Under MLR.1--MLR.5, the OLS estimators $\hb_0,\hb_1,\dots,\hb_k$ are the \emph{best linear unbiased estimators} (BLUE) of $\beta_0,\beta_1,\dots,\beta_k$: among all estimators that are linear in $y$ and unbiased, OLS has the smallest variance.
+}
+
+Each word in ``BLUE'' carries content:
+\begin{description}
+    \item[Linear.] An estimator $\hth_j$ is linear if it can be written as a linear function of the sample values of the dependent variable, $\hth_j = \sumi w_i y_i$, where the weights $w_i$ may depend on the sample values of the regressors but not on $y$.
+    \item[Unbiased.] $\E{\hth_j} = \beta_j$ for every value of the parameters.
+    \item[Best.] Smallest sampling variance within the linear-unbiased class: $\Var{\hb_j} \le \Var{\hth_j}$ for any other linear unbiased $\hth_j$.
+\end{description}
+
+The assumptions MLR.1--MLR.5 are collectively called the \emph{Gauss--Markov assumptions}. The theorem is the formal justification for using OLS: as long as the model is correctly specified, sampling is random, there is no perfect collinearity, the error is mean-independent of the regressors, and the error variance is constant, no linear unbiased rule beats OLS. When homoskedasticity (MLR.5) fails, OLS loses the ``best'' property --- a thread we pick up in Chapter~\ref{ch:hetero}.
+
+\section{Goodness of Fit}
+
+Finally, as in Chapter~\ref{ch:slr}, we summarize how well the model fits with the coefficient of determination.
+
+\defn{$R^2$ in Multiple Regression}{
+With $\text{SST} = \sumi(y_i-\bar y)^2$, $\text{SSE} = \sumi(\hat y_i - \bar y)^2$, and $\text{SSR} = \sumi \hat u_i^{\,2}$,
+\[
+R^2 = \frac{\text{SSE}}{\text{SST}} = 1 - \frac{\text{SSR}}{\text{SST}}
+= \frac{\br{\sumi (y_i-\bar y)(\hat y_i-\bar y)}^2}
+       {\br{\sumi (y_i-\bar y)^2}\br{\sumi(\hat y_i-\bar y)^2}}.
+\]
+The last expression shows that $R^2$ equals the squared sample correlation between $y_i$ and its fitted value $\hat y_i$.
+}
+
+Two cautions, both consequential, attach to $R^2$ in the multiple-regression setting.
+
+\rmkb[$R^2$ never decreases when you add a regressor]{Adding any regressor to a model can only \emph{increase} (or leave unchanged) the $R^2$, even if the new variable is pure noise. The reason is mechanical: OLS minimizes SSR over a larger parameter space, so the minimized SSR can only fall, and $R^2 = 1-\text{SSR}/\text{SST}$ can only rise. It follows that a rise in $R^2$ is \emph{not} a valid reason to keep a variable. The right criterion is whether the variable's partial effect is nonzero (a question of statistical significance, Chapter~\ref{ch:inference}), not whether it nudges $R^2$ upward.}
+
+Because of this monotonicity, $R^2$ is a poor tool for comparing models with different numbers of regressors. The standard remedy is the \emph{adjusted} $R^2$, which penalizes the addition of regressors via the degrees of freedom; we defer it to Chapter~\ref{ch:further}, where model comparison is treated systematically.
+
+\rmkb[Where this is heading]{We have built the multiple regression model, interpreted each coefficient as a partial effect via partialling out, shown OLS is unbiased under MLR.1--MLR.4 and BLUE under MLR.1--MLR.5, and --- most importantly --- derived the omitted-variable bias formula $\tilde\beta_1 = \hb_1 + \hb_2\tilde\delta_1$ that governs what goes wrong when MLR.4 fails. Chapter~\ref{ch:inference} adds the normality assumption MLR.6 to test hypotheses about these coefficients; Chapter~\ref{ch:asymptotics} shows that the bias formula has a large-sample twin (inconsistency) that survives even without finite-sample assumptions; and the back half of the book is, in large part, a catalogue of repairs for a failing MLR.4.}

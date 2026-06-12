@@ -1,0 +1,195 @@
+% !TEX root = ../main.tex
+\chapter{The Simple Regression Model}
+\label{ch:slr}
+
+Econometrics begins with a deceptively simple question: how does one variable move with another, \emph{on average}, once we admit that the relationship is not exact? Suppose we believe that wages rise with education, that consumption rises with income, or that a crop yield rises with rainfall. In each case the relationship is real but noisy --- two people with the same education earn different wages. The simple regression model is the smallest formal object that captures this idea: a straight line for the average, plus an error term for everything else.
+
+This chapter introduces that model, defines the ordinary least squares (OLS) estimator that fits it, and asks the two questions we will ask of \emph{every} estimator in this course: is it correct on average (unbiased), and how precise is it (variance)? The answers here, in the one-regressor case, set the template for the multiple regression model in Chapter~\ref{ch:mlr}.
+
+\section{The Population Model}
+
+\defn{Simple Linear Regression Model}{
+The \emph{simple linear regression (SLR) model} relates a dependent variable $y$ to a single explanatory variable $x$ through
+\[
+y = \beta_0 + \beta_1 x + u,
+\]
+where $\beta_0$ is the intercept, $\beta_1$ the slope, and $u$ the error (or disturbance) term collecting all factors other than $x$ that affect $y$.
+}
+
+The vocabulary is worth fixing once, because different fields use different names for the same objects:
+\begin{itemize}
+    \item $y$: \emph{dependent} variable, explained variable, response, or regressand;
+    \item $x$: \emph{independent} variable, explanatory variable, control, or regressor;
+    \item $u$: \emph{error} term or disturbance.
+\end{itemize}
+
+The slope $\beta_1$ is the object of interest: it is the change in $y$ associated with a one-unit change in $x$, \emph{holding the error fixed}, i.e.\ $\Delta y = \beta_1 \, \Delta x$ when $\Delta u = 0$. For this to have a causal reading we need the error to be unrelated to $x$, which we now make precise.
+
+Normalizing $\E{u}=0$ is free: any nonzero mean of $u$ can be absorbed into the intercept $\beta_0$. The substantive assumption is the next one.
+
+\defn{Zero Conditional Mean}{
+The error has \emph{zero conditional mean} if
+\[
+\E{u \given x} = 0 \qquad \text{for every value of } x.
+\]
+Equivalently, the average of the unobserved factors does not vary with $x$.
+}
+
+Under zero conditional mean, taking the expectation of the model conditional on $x$ gives the \emph{population regression function (PRF)},
+\[
+\E{y \given x} = \beta_0 + \beta_1 x,
+\]
+which says that the conditional mean of $y$ is linear in $x$. This is what OLS will try to recover from a sample.
+
+\section{Ordinary Least Squares}
+
+Zero conditional mean implies two \emph{population moment conditions}: $\E{u}=0$ and $\E{xu}=0$ (the latter follows because $\E{u\given x}=0 \Rightarrow \Cov{x}{u}=0$). OLS is the method that imposes the sample analogues of these two conditions and solves for the two unknowns $\beta_0,\beta_1$.
+
+\defn{OLS Estimators}{
+Given a sample $\{(x_i,y_i):i=1,\dots,n\}$, the OLS estimators are
+\[
+\hb_1 = \frac{\sumi (x_i-\bar x)(y_i-\bar y)}{\sumi (x_i-\bar x)^2}
+      = \frac{\sumi (x_i-\bar x)\,y_i}{\sumi (x_i-\bar x)^2},
+\qquad
+\hb_0 = \bar y - \hb_1 \bar x.
+\]
+The fitted (sample regression) function is $\hat y_i = \hb_0 + \hb_1 x_i$, and the residual is $\hat u_i := y_i - \hat y_i$.
+}
+
+The two equalities for $\hb_1$ coincide because $\sumi (x_i-\bar x)\bar y = \bar y \sumi(x_i-\bar x) = 0$; more generally $\sumi c\,(x_i-\bar x)=0$ for any constant $c$, a trick we will reuse constantly.
+
+The slope can also be written in terms of moments,
+\[
+\hb_1 = \frac{\Cov{x}{y}}{\Var{x}} = \widehat\rho_{xy}\cdot \frac{\widehat\sigma_y}{\widehat\sigma_x},
+\]
+which shows that the sign of the slope is the sign of the sample correlation between $x$ and $y$.
+
+\thm{Algebraic Properties of OLS}{
+The OLS fit satisfies three identities by construction:
+\begin{enumerate}
+    \item $\sumi \hat u_i = 0$ \quad (residuals sum to zero, hence have zero sample mean);
+    \item $\sumi x_i \hat u_i = 0$ \quad (regressor and residuals have zero sample covariance);
+    \item $\bar y = \hb_0 + \hb_1 \bar x$ \quad (the point of means lies on the regression line).
+\end{enumerate}
+}
+
+These are not assumptions about the world; they hold in \emph{every} sample because they are exactly the first-order conditions of the least-squares problem $\min_{b_0,b_1}\sumi (y_i - b_0 - b_1 x_i)^2$.
+
+\section{Goodness of Fit}
+
+How much of the variation in $y$ does the line explain? Decompose the total variation into an explained part and a residual part.
+
+\defn{Sums of Squares and $R^2$}{
+\[
+\ba
+\text{SST} &= \sumi (y_i-\bar y)^2 &&\text{(total)}\\
+\text{SSE} &= \sumi (\hat y_i-\bar y)^2 &&\text{(explained)}\\
+\text{SSR} &= \sumi (y_i-\hat y_i)^2 &&\text{(residual)}
+\ea
+\]
+With $\text{SST}=\text{SSE}+\text{SSR}$, the \emph{coefficient of determination} is
+\[
+R^2 = \frac{\text{SSE}}{\text{SST}} = 1 - \frac{\text{SSR}}{\text{SST}} \in [0,1].
+\]
+}
+
+$R^2$ is the fraction of the sample variation in $y$ explained by the model. Two cautions worth internalizing now, because they recur in the multiple regression model (Chapter~\ref{ch:mlr}):
+\begin{itemize}
+    \item $R^2$ equals the squared sample correlation between $y_i$ and its fitted value $\hat y_i$; it is a measure of fit, \emph{not} of causality.
+    \item A low $R^2$ does not invalidate the regression. We may estimate the slope $\beta_1$ very precisely even when most of the variation in $y$ is left to the error.
+\end{itemize}
+
+\section{Units of Measurement and Functional Form}
+
+The linear model is more flexible than it looks: by taking logs of $y$, of $x$, or of both, the \emph{same} OLS machinery delivers different and often more natural interpretations of the slope. The four standard cases are summarized below; $\%\Delta$ denotes a percentage change.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{@{}llll@{}}
+\toprule
+Model & Dep.\ var. & Indep.\ var. & Interpretation of $\beta_1$ \\
+\midrule
+Level--level & $y$       & $x$       & $\Delta y = \beta_1\,\Delta x$ \\
+Level--log   & $y$       & $\log x$  & $\Delta y = (\beta_1/100)\,(\%\Delta x)$ \\
+Log--level   & $\log y$  & $x$       & $\%\Delta y \approx (100\,\beta_1)\,\Delta x$ \\
+Log--log     & $\log y$  & $\log x$  & $\%\Delta y = \beta_1\,(\%\Delta x)$ \quad (elasticity) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The log--log slope is an elasticity, and logged slopes are invariant to rescaling the units of the logged variable --- two reasons logs are ubiquitous in applied work. We return to functional form systematically in Chapter~\ref{ch:further}.
+
+\section{Expected Value and Variance of the OLS Estimators}
+
+We now ask the two questions that organize the rest of the course. To answer them we need a list of assumptions; the first four deliver unbiasedness, and the fifth (homoskedasticity) delivers the simple variance formula.
+
+\asm{SLR.1--SLR.5 (Gauss--Markov Assumptions, Simple Regression)}{
+\begin{description}
+    \item[SLR.1 — Linear in parameters.] The population model is $y = \beta_0 + \beta_1 x + u$.
+    \item[SLR.2 — Random sampling.] $\{(x_i,y_i):i=1,\dots,n\}$ is a random sample from the population, so $y_i = \beta_0 + \beta_1 x_i + u_i$.
+    \item[SLR.3 — Sample variation in $x$.] The $x_i$ are not all equal: $\text{SST}_x := \sumi (x_i-\bar x)^2 > 0$.
+    \item[SLR.4 — Zero conditional mean.] $\E{u \given x} = 0$.
+    \item[SLR.5 — Homoskedasticity.] $\Var{u \given x} = \sigma^2$ (the error variance does not depend on $x$).
+\end{description}
+}
+
+\thm{Unbiasedness of OLS}{
+Under SLR.1--SLR.4, the OLS estimators are unbiased:
+\[
+\E{\hb_1} = \beta_1, \qquad \E{\hb_0} = \beta_0.
+\]
+}
+
+\pf{
+Write the slope as a function of the errors. Substituting $y_i = \beta_0+\beta_1 x_i + u_i$ into the numerator and using $\sumi(x_i-\bar x)=0$,
+\[
+\ba
+\hb_1 &= \frac{\sumi (x_i-\bar x)\,y_i}{\text{SST}_x}
+       = \frac{\sumi (x_i-\bar x)(\beta_0+\beta_1 x_i + u_i)}{\text{SST}_x}\\
+      &= \frac{\beta_1 \sumi (x_i-\bar x)(x_i-\bar x) + \sumi (x_i-\bar x)u_i}{\text{SST}_x}
+       = \beta_1 + \frac{\sumi (x_i-\bar x)u_i}{\text{SST}_x}.
+\ea
+\]
+Conditioning on the sample of $x$'s and applying SLR.4 ($\E{u_i\given x}=0$),
+\[
+\E{\hb_1} = \beta_1 + \frac{1}{\text{SST}_x}\sumi (x_i-\bar x)\,\E{u_i \given x} = \beta_1.
+\]
+For the intercept, $\hb_0 = \bar y - \hb_1\bar x = \beta_0 + (\beta_1-\hb_1)\bar x + \tfrac1n\sumi u_i$, so $\E{\hb_0} = \beta_0$ by the result just shown and $\E{u_i}=0$.
+}
+
+If any of SLR.1--SLR.4 fails, unbiasedness generally fails too. The fragile one is SLR.4: whenever an omitted factor inside $u$ is correlated with $x$, the slope is biased --- the central theme of Chapter~\ref{ch:mlr}.
+
+\thm{Sampling Variance of OLS}{
+Under SLR.1--SLR.5,
+\[
+\Var{\hb_1} = \frac{\sigma^2}{\text{SST}_x},
+\qquad
+\Var{\hb_0} = \frac{\sigma^2\, n^{-1}\sumi x_i^2}{\text{SST}_x}.
+\]
+}
+
+\pf{
+From $\hb_1 = \beta_1 + \dfrac{\sumi (x_i-\bar x)u_i}{\text{SST}_x}$, treating the $x$'s as fixed and using independence across $i$ together with homoskedasticity $\Var{u_i\given x}=\sigma^2$,
+\[
+\Var{\hb_1} = \frac{1}{(\text{SST}_x)^2}\sumi (x_i-\bar x)^2\,\Var{u_i\given x}
+            = \frac{\sigma^2}{\text{SST}_x}.
+\]
+}
+
+Two messages are already visible in $\Var{\hb_1}=\sigma^2/\text{SST}_x$: the slope is estimated more precisely when the error is small ($\sigma^2$ low) and when the regressor varies a lot ($\text{SST}_x$ large). More data raises $\text{SST}_x$ and so shrinks the variance.
+
+The error variance $\sigma^2$ is unknown and must itself be estimated.
+
+\defn{Error Variance Estimator and Standard Error}{
+The unbiased estimator of $\sigma^2$ and the implied standard error of the slope are
+\[
+\widehat\sigma^2 = \frac{1}{n-2}\sumi \hat u_i^{\,2},
+\qquad
+\widehat\sigma = \sqrt{\widehat\sigma^2},
+\qquad
+\operatorname{se}(\hb_1) = \frac{\widehat\sigma}{\sqrt{\text{SST}_x}}.
+\]
+The divisor $n-2$ corrects for the two parameters ($\beta_0,\beta_1$) already used to form the residuals; $\widehat\sigma$ is called the \emph{standard error of the regression} (SER).
+}
+
+\rmkb[Where this is heading]{We have, for one regressor, found the OLS estimator, shown it is unbiased under SLR.1--SLR.4, and derived its variance under the extra homoskedasticity assumption SLR.5. Chapter~\ref{ch:mlr} repeats this exact program with many regressors, where the new and important phenomenon is omitted-variable bias; Chapter~\ref{ch:hetero} returns to drop SLR.5 and asks what survives under heteroskedasticity.}
