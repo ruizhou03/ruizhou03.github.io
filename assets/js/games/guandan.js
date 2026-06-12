@@ -3311,7 +3311,7 @@
   // ============================================================
 
   // 三档权重来自群体训练 + 锦标赛分级（K=8 ES runs × 4 gen × 16 pop × 50 matches
-  // → 24 候选 + DEFAULT_W + coord-best = 26 → 325 pair round-robin → Elo 排名）：
+  // → 26 候选 round-robin → Elo 排名；2026-06-12 新大训练 run15_gen6 替代旧 hard（胜率 +6%））：
   //   hard   = run2_gen0 (Elo 1544, rank 1/26)  战术家：敢拆组、保炸、拼走完
   //   normal = run3_gen3 (Elo 1480, rank 16/26) 守成派：极不拆组、狠让队友
   //   easy   = run6_gen3 (Elo 1442, rank 26/26) 冒进派：爱炸、爱 pass、会抢队友圈
@@ -3319,16 +3319,17 @@
   // 三档差异完全来自策略偏好，不是噪声 —— easy AI 始终按其"较弱但连贯"策略打
   const WEIGHTS_BY_DIFFICULTY = {
     hard: {
-      passBase: -3.505, passPartnerWin: 16.695, passPartnerLow: 4,
-      playFollowActive: 3.596, playFinish: 68.208,
-      playFinishPartnerWin: 35, playPartnerWinPenalty: -17.238,
+      // 2026-06-12: 新训练 run15_gen6 (胜旧 hard 56%, +6%), Elo 待 tournament 重排
+      passBase: -4.331, passPartnerWin: 9.401, passPartnerLow: 4,
+      playFollowActive: 2.183, playFinish: 67.738,
+      playFinishPartnerWin: 35, playPartnerWinPenalty: -18.745,
       playLeadLength: 0.35, playFollowLength: -0.12,
-      breakMult: 0.572, wildCost: 7, jokerCost: 5,
-      bombBase4: 11.200, bombPerExtra: 4,
+      breakMult: 1.398, wildCost: 7, jokerCost: 5,
+      bombBase4: 8.726, bombPerExtra: 4,
       bombLeadMult: 1, bombLeadLateBonus: 0.6,
       bombFollowMult: 0.6, bombFollowOppLow: 1.3, bombFollowOppMed: 0.3,
       groupBombBase: 14, groupBombPerExtra: 8,
-      handLenPenalty: 0.586,
+      handLenPenalty: 0.519, lookaheadDepth: 2,
     },
     normal: {
       passBase: -2.960, passPartnerWin: 24.372, passPartnerLow: 4,
