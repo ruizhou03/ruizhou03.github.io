@@ -542,6 +542,12 @@ theme_color: "#fafaf9"
   const MODEL_CFG = { model: 'isnet_quint8', publicPath: R2_MODEL_PATH };
   const STALL_MS = 20000; // 连续 20s 毫无下载进度 → 只温和提示「网络慢」,不再判失败(下载仍在后台继续,愿意等的用户能等到好)
   const DL_RE = /fetch|download|model|onnx|wasm/i;
+  // 累计真实下载字节——供进度环按「谁快用谁」混合推进（imgly 回调是每文件粒度，需跨文件求和）
+  let dlBytesMap={};
+  function dlBytesDone(){ let s=0; for(const k in dlBytesMap)s+=dlBytesMap[k].cur; return s; }
+  function dlBytesTotal(){ let s=0; for(const k in dlBytesMap)s+=dlBytesMap[k].tot; return s; }
+  function actualDlFrac(){ const t=dlBytesTotal(); return t>0 ? Math.max(0, Math.min(1, dlBytesDone()/t)) : 0; }
+  function resetDlBytes(){ dlBytesMap={}; }
 
   let imglyMod = null;
   async function getModule(){ if(imglyMod) return imglyMod; imglyMod = await import(IMGLY_URL); return imglyMod; }
@@ -619,7 +625,17 @@ theme_color: "#fafaf9"
   // 抠图进度：一条「只进不退」的平滑进度环。**不再**拿每个模型分块各自的 cur/tot 喂进度——那会让环反复来回跳、
   // 像被骗；改成按阶段(下模型/抠图)朝软上限平滑爬升，真完成时才补到 100%；模型已就绪也至少占满 MIN_SHOW_MS。
   let progRaf=null, progShown=0, progT0=0;
-  const MIN_SHOW_MS=3500;
+  // 三段制进度环：前两段「看谁快」混合推进(预定节奏 vs 真实下载速度)，最后一段只等真人(不到不前进)
+  const MIN_SHOW_MS=3000;
+  // 下载阶段三段时间(s)：0→70 / 70→90 / 90→100(≈等待真人,用极大值表示「永远不自动走到」)
+  const DL_BANDS=[40, 25, 1e9];
+  // 抠图阶段三段时间(s)：0→85 / 85→96 / 96→100(等真人)
+  const CUT_BANDS=[6, 22, 1e9];
+  function bandTarget(t, bands, caps){
+    if(t<bands[0]) return caps[0]*Math.min(1,t/bands[0]);
+    if(t<bands[0]+bands[1]) return caps[0]+(caps[1]-caps[0])*Math.min(1,(t-bands[0])/bands[1]);
+    return caps[1]+(caps[2]-caps[1])*Math.min(1,(t-bands[0]-bands[1])/bands[2]);
+  }
   function cancelProgress(){ if(progRaf){ cancelAnimationFrame(progRaf); progRaf=null; } }
   function startProgressOverlay(){
     cancelProgress();
@@ -631,26 +647,32 @@ theme_color: "#fafaf9"
     if($('cutOverlay').classList.contains('pb-hidden')){ progRaf=null; return; }
     if(S.cutState==='failed'){ progRaf=null; hideCut(); showMsg('cutMsg', S.cutFailMsg||'AI 抠图没成功，可「用整张图」或重试。', true); $('aiCut').disabled=false; return; }
     if(S.cutState==='nosubject'){ progRaf=null; hideCut(); showMsg('cutMsg','AI 没找到明显主体——建议「用整张图」，或手动擦。', true); $('aiCut').disabled=false; return; }
-    const elapsed=Date.now()-progT0;
+    const elapsed=(Date.now()-progT0)/1000;
     const ready=(S.cutState==='done' && S.cutMask);
     const loaded=(S.modelReady || S.cutPhase==='cut' || ready);
-    $('cutLabel').textContent = (loaded && elapsed>MIN_SHOW_MS*0.4) ? '正在抠图…' : '加载 AI 模型…';
-    if(ready && elapsed>=MIN_SHOW_MS){
-      progShown += (1-progShown)*0.25;                                  // 真完成 → 快速补满
-      if(progShown>0.993){ setRingRaw(1); $('cutPct').textContent='100%'; progRaf=null; if(S.aiShown) applyCut(); return; }
+    $('cutLabel').textContent = loaded ? '正在抠图…' : '加载 AI 模型…';
+    let target;
+    if(ready){
+      // 真抠完了 → 快速补到 100%
+      target = 1;
+    } else if(loaded){
+      // 抠图阶段：只有 start/finish 两个信号，无真实进度 → 纯 scheduled
+      // 最后一段(96→100)极慢，progShown 靠在「done 触发 ready=true → target=1」里跳上去
+      target = bandTarget(elapsed, CUT_BANDS, [0, 0.96, 1]);
     } else {
-      // 时间节奏推进（而非冲到上限就卡）：抠图阶段在 MIN_SHOW 内匀速走到 ~0.9，之后极慢往 0.97 蹭；
-      // 下模型阶段(可能很久)只缓慢走到 0.7，绝不冲到 90% 卡住——始终有可见微动。
-      let target;
-      if(loaded){
-        target = 0.9*Math.min(1, elapsed/MIN_SHOW_MS)
-               + (elapsed>MIN_SHOW_MS ? Math.min(0.07, (elapsed-MIN_SHOW_MS)/20000*0.07) : 0);
-      } else {
-        target = Math.min(0.7, elapsed/12000*0.7);
+      // 下载阶段：混合推进——取「预定节奏」与「真实下载百分比」中**更大的那个**
+      const sched = bandTarget(elapsed, DL_BANDS, [0, 0.70, 0.90]);
+      const actual = actualDlFrac();
+      // 前两段谁快用谁；90% 以后只跟真人(actual 不到 90% 就停在 90%)
+      target = Math.min(0.90, Math.max(sched, actual));
+      if(actual>=0.90){
+        // 真人到了 90% 以上 → 直接跟真人(含 90→100)
+        target = Math.max(target, actual);
       }
-      if(target>progShown) progShown=target;                           // 只进不退
     }
+    if(target>progShown) progShown=target;   // 只进不退
     setRingRaw(progShown); $('cutPct').textContent=Math.round(progShown*100)+'%';
+    if(ready && progShown>0.995){ setRingRaw(1); $('cutPct').textContent='100%'; progRaf=null; if(S.aiShown) applyCut(); return; }
     progRaf=requestAnimationFrame(progLoop);
   }
   function hideCut(){ cancelProgress(); $('cutOverlay').classList.add('pb-hidden'); editCanvas.classList.remove('processing'); $('cutSpinner').classList.remove('spin'); }
@@ -687,6 +709,7 @@ theme_color: "#fafaf9"
   // cutTask 只负责「算」：更新 S.cutState / cutPhase / cutMask / cutFailMsg；所有进度 UI 交给上面的进度环。
   async function cutTask(gen){
     S.cutState='running'; S.cutFrac=0; S.cutPhase=''; S.cutFailMsg='';
+    resetDlBytes();   // 新任务 → 重置真实下载字节计数器
     let stall=null, hard=null, cutStart=0;
     const alive = ()=> gen===S.cutGen;
     const clearT = ()=>{ clearTimeout(stall); clearTimeout(hard); };
@@ -709,7 +732,11 @@ theme_color: "#fafaf9"
       if(S.preloadPromise){ try{ await S.preloadPromise; }catch(e){} } if(!alive()){ onModelProgress=null; return; }
       onModelProgress = null;
       const rb = mod.removeBackground || mod.default;
-      const progCb = (key,cur,tot)=>{ if(!alive())return; if(DL_RE.test(key)&&S.cutPhase!=='cut') onDl(tot?cur/tot:0); else onCut(); };
+      const progCb = (key,cur,tot)=>{ if(!alive())return;
+        if(DL_RE.test(key)&&S.cutPhase!=='cut'){
+          // 跨文件累计真实下载字节：每文件(key)报自己的 cur/tot,求和得全局百分比
+          dlBytesMap[key]={cur,tot}; onDl(0);
+        } else onCut(); };
       const run = (dev)=> rb(currentFile, Object.assign({device:dev}, MODEL_CFG, { output:{format:'image/png'}, progress: progCb }));
       if(S.modelReady) onCut(); else onDl(0);
       let blob;
