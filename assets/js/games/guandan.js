@@ -3382,46 +3382,46 @@
   // → 26 候选 round-robin → Elo 排名；2026-06-12 新大训练 run15_gen6 替代旧 hard（胜率 +6%））：
   //   hard   = run2_gen0 (Elo 1544, rank 1/26)  战术家：敢拆组、保炸、拼走完
   //   normal = run3_gen3 (Elo 1480, rank 16/26) 守成派：极不拆组、狠让队友
-  //   easy   = run6_gen3 (Elo 1442, rank 26/26) 冒进派：爱炸、爱 pass、会抢队友圈
-  // 头对头：hard vs normal 68%  ·  hard vs easy 75%  ·  normal vs easy 60%
-  // 三档差异完全来自策略偏好，不是噪声 —— easy AI 始终按其"较弱但连贯"策略打
+  //   hard   = coord-best  (Elo 1576, #1/62,  62.6% win)
+  //   normal = run12_gen6  (Elo 1493, #31/62, 47.0% win)
+  //   easy   = run9_gen0   (Elo 1385, #62/62, 30.8% win)
+  // 62 候选 × 1891 对 × 20 局 tournament，2026-06-12
   const WEIGHTS_BY_DIFFICULTY = {
     hard: {
-      // 2026-06-12: 新训练 run15_gen6 (胜旧 hard 56%, +6%), Elo 待 tournament 重排
-      passBase: -4.331, passPartnerWin: 9.401, passPartnerLow: 4,
-      playFollowActive: 2.183, playFinish: 67.738,
-      playFinishPartnerWin: 35, playPartnerWinPenalty: -18.745,
+      passBase: -4.658, passPartnerWin: 13.685, passPartnerLow: 4,
+      playFollowActive: 2.125, playFinish: 51,
+      playFinishPartnerWin: 35, playPartnerWinPenalty: -19.305,
       playLeadLength: 0.35, playFollowLength: -0.12,
-      breakMult: 1.398, wildCost: 7, jokerCost: 5,
-      bombBase4: 8.726, bombPerExtra: 4,
+      breakMult: 1.316, wildCost: 7, jokerCost: 5,
+      bombBase4: 6.8, bombPerExtra: 4,
       bombLeadMult: 1, bombLeadLateBonus: 0.6,
       bombFollowMult: 0.6, bombFollowOppLow: 1.3, bombFollowOppMed: 0.3,
       groupBombBase: 14, groupBombPerExtra: 8,
-      handLenPenalty: 0.519, lookaheadDepth: 2,
+      handLenPenalty: 0.325, lookaheadDepth: 2,
     },
     normal: {
-      passBase: -2.960, passPartnerWin: 24.372, passPartnerLow: 4,
-      playFollowActive: 2.574, playFinish: 34.636,
-      playFinishPartnerWin: 35, playPartnerWinPenalty: -20.035,
+      passBase: -4.135, passPartnerWin: 11.089, passPartnerLow: 4,
+      playFollowActive: 2.255, playFinish: 27.101,
+      playFinishPartnerWin: 35, playPartnerWinPenalty: -23.474,
       playLeadLength: 0.35, playFollowLength: -0.12,
-      breakMult: 3.136, wildCost: 7, jokerCost: 5,
-      bombBase4: 8.976, bombPerExtra: 4,
+      breakMult: 1.285, wildCost: 7, jokerCost: 5,
+      bombBase4: 8.420, bombPerExtra: 4,
       bombLeadMult: 1, bombLeadLateBonus: 0.6,
       bombFollowMult: 0.6, bombFollowOppLow: 1.3, bombFollowOppMed: 0.3,
       groupBombBase: 14, groupBombPerExtra: 8,
-      handLenPenalty: 0.740,
+      handLenPenalty: 0.319, lookaheadDepth: 2,
     },
     easy: {
-      passBase: -2.121, passPartnerWin: 5.874, passPartnerLow: 4,
-      playFollowActive: 1.959, playFinish: 32.316,
-      playFinishPartnerWin: 35, playPartnerWinPenalty: -11.260,
+      passBase: -3.241, passPartnerWin: 10.712, passPartnerLow: 4,
+      playFollowActive: 2.054, playFinish: 33.185,
+      playFinishPartnerWin: 35, playPartnerWinPenalty: -19.329,
       playLeadLength: 0.35, playFollowLength: -0.12,
-      breakMult: 1.439, wildCost: 7, jokerCost: 5,
-      bombBase4: 4.226, bombPerExtra: 4,
+      breakMult: 1.057, wildCost: 7, jokerCost: 5,
+      bombBase4: 0.910, bombPerExtra: 4,
       bombLeadMult: 1, bombLeadLateBonus: 0.6,
       bombFollowMult: 0.6, bombFollowOppLow: 1.3, bombFollowOppMed: 0.3,
       groupBombBase: 14, groupBombPerExtra: 8,
-      handLenPenalty: 0.538,
+      handLenPenalty: 0.133,
     },
   };
   function aiWeights() {
