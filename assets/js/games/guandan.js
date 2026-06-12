@@ -1953,9 +1953,8 @@
   // 服务器只下发当前座位的手牌 + 四家张数 + 当前桌面（lastPlay/trick）。
   // 客户端不从服务器拿到别人的手牌，对手手牌用 stub 占位（只显示张数/头像，不渲染卡面）。
   function startNetworkedGame(gv) {
-    // 标记为联网模式：本地 AI 不跑，回合/牌面全由服务器驱动。
     state.isNetworked = true;
-    state.phase = PHASE.PLAYING;  // 目前不接 tribute → 直接进 playing
+    state.phase = gv.phase === 'tribute' ? PHASE.TRIBUTE : PHASE.PLAYING;
     state.matchOptions = normalizeOptions(state.options || { teamTribute: false, scoreCap: 0, turnSec: state.matchOptions ? state.matchOptions.turnSec : 20 });
     state.levels = gv.levels.slice();
     state.actingTeam = gv.actingTeam;
@@ -1966,24 +1965,23 @@
     state.customGroups = [];
     state.bombMult = gv.bombMult;
     state.openMult = gv.openMult;
-    state._needDoubleChoice = false;  // 服务器暂不做加倍阶段
+    state._needDoubleChoice = false;
     applyServerGameState(gv);
     renderAll();
-    saveSession();  // 断线后能续
+    saveSession();
   }
 
   // 每轮收到服务器状态时刷新本地的牌面/回合/出牌区
   function applyServerGameState(gv) {
     if (!gv || !state.isNetworked) return;
-    // 手牌：0 = 自己的真牌；1/2/3 = 只知张数
     state.hands[0] = gv.myHand.slice();
     for (let s = 1; s < 4; s++) {
       const want = (gv.counts && gv.counts[s]) || 0;
       const cur = (state.hands[s] && state.hands[s].length) || 0;
-      if (cur !== want) state.hands[s] = new Array(want).fill(-1);  // stub：足够渲染张数
+      if (cur !== want) state.hands[s] = new Array(want).fill(-1);
     }
     state.turn = gv.turn;
-    state.phase = gv.phase;
+    state.phase = gv.phase === 'tribute' ? PHASE.TRIBUTE : gv.phase;
     state.out = gv.out.slice();
     state.lastPlay = gv.lastPlay ? gv.lastPlay.slice() : [null, null, null, null];
     state.trick = {
@@ -1997,12 +1995,52 @@
     state.roundResult = gv.roundResult;
     state.matchWinner = gv.matchWinner;
 
+    // 进贡阶段：根据服务器状态设置本地 tribute 上下文，让已有 UI 复用
+    state._activeTributeGive = null;
+    state._activeTributePair = null;
+    state.pendingTribute = null;
+    if (gv.tribute) {
+      const tv = gv.tribute;
+      if (tv.myAction === 'give' && tv.validGiveCards) {
+        state._activeTributeGive = {
+          seat: 0,
+          defaultCard: tv.defaultGiveCard,
+          validCards: tv.validGiveCards,
+        };
+        state.selected.clear();
+        if (tv.defaultGiveCard != null) state.selected.add(tv.defaultGiveCard);
+      } else if (tv.myAction === 'return') {
+        state.pendingTribute = {
+          pairs: tv.pairs || [],
+          newLeader: null,
+        };
+        const pairIdx = (tv.pairs || []).findIndex(p => p.receiver === 0 && !p.returnCard);
+        if (pairIdx >= 0) {
+          state._activeTributePair = pairIdx;
+          state.selected.clear();
+        }
+      }
+    }
+
     if (gv.phase === 'round_end') endRound();
     else if (gv.phase === 'match_end') { endRound(); endMatch(gv.matchWinner); }
-    else {
+    else if (gv.phase === 'tribute') {
       renderAll();
       saveSession();
-      // 若轮到真人且服务器说能 passed，亮按钮；AI 回合静等下次轮询
+      updateActions();
+      if (gv.tribute && gv.tribute.myAction === 'give') {
+        startTurnClock(0, () => {
+          if (state._activeTributeGive) sendNetworkedTribute('give', state._activeTributeGive.defaultCard);
+        }, 5000);
+      } else if (gv.tribute && gv.tribute.myAction === 'return') {
+        startTurnClock(0, () => {
+          const card = pickReturnCard(state.hands[0], currentLevelLabel());
+          sendNetworkedTribute('return', card);
+        }, 20000);
+      }
+    } else {
+      renderAll();
+      saveSession();
       if (gv.turn === 0 && gv.phase === 'playing') {
         updateActions();
         armTurnClock();
@@ -2042,6 +2080,35 @@
       applyServerGameState(r.data.state.game);
     }
     // 让轮询也不停拉最新（万一 POST 和 poll 有竞态）
+    pokePoll();
+  }
+
+  // 联网模式下进贡/还贡 → 发给服务器
+  async function sendNetworkedTribute(type, card) {
+    if (!state.isNetworked || !onlineState) return;
+    state.busy = true;
+    state._activeTributeGive = null;
+    state._activeTributePair = null;
+    stopTurnClock();
+    updateActions();
+    const r = await gdApi('tribute', {
+      body: { code: onlineState.code, token: onlineState.token, tribute: { type, card } }
+    });
+    state.busy = false;
+    if (!r.ok) {
+      if (r.data && r.data.state && r.data.state.game) {
+        clearSession();
+        applyServerGameState(r.data.state.game);
+      } else {
+        toast(errText(r.error || 'tribute_error'));
+      }
+      return;
+    }
+    clearSession();
+    if (r.data && r.data.state && r.data.state.game) {
+      state.selected.clear();
+      applyServerGameState(r.data.state.game);
+    }
     pokePoll();
   }
 
@@ -2394,6 +2461,7 @@
     const sel = selectedCards();
     if (sel.length !== 1) { toast('请选一张'); return; }
     if (!ctx.validCards.includes(sel[0])) { toast('只能选同等级的最大可进贡牌'); return; }
+    if (isNetworked()) { sendNetworkedTribute('give', sel[0]); return; }
     commitGivePlayer(sel[0], state._tributeGiveCb);
   }
   function activeTributeGive() {
@@ -2669,11 +2737,11 @@
     const sel = selectedCards();
     if (sel.length !== 1) { toast('请选一张牌'); return; }
     if (!isValidReturnCard(sel[0])) { toast('请选 ≤10 的一张牌'); return; }
+    if (isNetworked()) { sendNetworkedTribute('return', sel[0]); return; }
     pair.returnCard = sel[0];
     state.selected.clear();
     stopTurnClock();
     state._activeTributePair = null;
-    // 进贡牌 + 还贡牌 同时起飞，相互交换 → 各塞入对方牌堆（swapTributePair）
     swapTributePair(idx);
   }
 
