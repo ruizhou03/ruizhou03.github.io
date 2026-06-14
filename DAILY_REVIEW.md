@@ -1,3 +1,87 @@
+## 2026-06-14
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周日 DOW=7，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=14，未跑 monthly_stats）。距 6-13 巡检共 **1 个 commit**（`309cef4`「fix(notes): 中级计量讲义勘误」，6-13 上午站主亲手作出）：① 修正授课老师**肖筱林 → 宋晓军**——肖筱林是货币经济学，宋晓军才是中级计量经济学的授课人；同步更新 `_notes/study/interm-econometrics/interm-econometrics-2023.md` keywords 里的 "宋晓军 计量经济学 / 宋晓军 中级计量"、summary 里「(2023 春，宋晓军)」、以及 PDF 标题页（`source/main.tex` 改一行）；② 署名 **Zircon → Rui Zhou**（PDF 标题页 + front-matter `author` 字段，仅这一篇；全站其余 131 篇笔记的 `author: "Zircon"` 暂未触碰，属站主对**这一篇**的有意切换，不是全站迁移信号）；③ 修复 Ch6 图 6.1 截距移动图：标签被虚线穿过的重叠，挪至线右端（`source/chapters/ch6_dummies.tex` 6 行）。重新编译后 PDF 体积 765213 → 765420 字节（+207 字节）。**这条勘误顺手刷掉了昨天巡检报告里两个错认**——昨日 P1#1 与「新内容上线」段都把授课老师写作"肖筱林"，照搬了 commit 信息里的笔误；今日校正过来。`bundle install` ✅ + `bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` ✅ 通过、零 warning、零 error（14.264 s，cold build）。今日 `scripts/audit/run.sh` 全套审计 **13/13 全 clean**——`keywords_coverage`（散文 121 篇全部充足）/ `images` / `material_type_enum`（Notes×43 / Exams×40 / 课程测评×18 / 经验之谈×5 / 错题本×3 / 写作×2 / 口语×1 / 词汇×1，分布同昨日）/ `filename_convention` / `hover_no_media` / `sibling_crosslink`（9 个 ≥3 篇 sub_category 组全互链）/ `bare_dollar` / `img_caption_md` / `svg_italic_zh` / `bare_url` / `frontmatter_yaml` / `spotcheck`（10 项配额抽检列表）/ `backend_pulse`（仍 HTTP 403，承接 6-04 ~ 6-13）。**今日 0 项自动修复**——唯一 commit 是站主亲手勘误，完全合规；昨日 P1#1（`study_order` 未列 `interm-econometrics` → 新讲义在 `/notes/` landing 不可见）今天仍待站主拍板，未自动推进（属设计判断，按巡检规则不擅改）。
+
+### ✅ 本次已自动修复
+
+**今日无自动修复项** —— 1 个 commit（`309cef4` 勘误）全部合规：① 改授课老师 / 署名 / 图标签是站主对新讲义内容质量的主动校准；② `frontmatter_yaml` ✅ 通过、`keywords_coverage` ✅ 通过（宋晓军 keywords 已补，但 keywords 列表整体计数仍是 80+ 条 ≥10 充足）；③ build ✅ 零 warning，PDF 路径稳定（仅 +207 字节属重新编译合理波动）。
+
+### 📋 待你把关
+
+#### P1（建议尽快，承接 6-13）
+
+1. **`_config.yml` 的 `study_order` 缺 `interm-econometrics`，新讲义在 `/notes/` landing 仍不可见** —— 承接 6-13 P1#1，今日状态**完全不变**：`grep -c "interm-econometrics" _site/notes/index.html` = **0**；`grep -c "interm-econometrics" _site/sitemap.xml` = **2** + `_site/search.json` = **1**（站内搜索 + 全站 sitemap 仍能命中，但 `/notes/` 浏览路径搜不到）。三个走法不变：
+   - **方案 A**（最快）：`_config.yml` L80 `- interm-metrics` 后追加 `- interm-econometrics` —— 代价是「中级计量经济学」课程在 `/notes/` 经济学栏目下出**两张同名课程卡**（旧卡片课程笔记 1 篇 + 新卡片讲义 1 篇）。
+   - **方案 B**（最合架构）：把 `_notes/study/interm-econometrics/interm-econometrics-2023.md` 物理搬到 `_notes/study/interm-metrics/`，permalink 同步改 `/notes/interm-metrics/interm-econometrics-2023`，PDF 也搬到 `files/interm-metrics/`。`/notes/` 一张「中级计量经济学」课程卡下出两份 Notes（课程笔记 + 讲义），干净。代价是改 permalink、搬 PDF 路径；本周才上线、外链未传开，可不加 `jekyll-redirect-from`。**仍是巡检本意推荐的方向**（与 `adv-micro-pku/` 章节切片 + 合订本双形态共存同 pattern）。
+   - **方案 C**（保持现状）：让讲义只通过搜索 / sitemap 发现——目前实际就是这个状态，但 `post.html` 的「📚 同课程其他资料」自动侧栏已经把两个文件互相串到对方页面里（已验证 `_site/notes/interm-econometrics/interm-econometrics-2023.html` 渲染了 `<aside class="course-related">` 块，列出讲义形态 + 课程笔记形态 + 课程测评），所以**单页可发现性其实是通的，只是栏目入口没有**。
+   - **本巡检仍建议方案 B**，仅作建议，不动手。等站主拍板。
+
+#### P2（看心情）
+
+1. **新付费墙系统在沙箱无后端出口验证** —— 承接 6-04 ~ 6-13 P2#1。`zircon-urge.fly.dev` 今日 `backend_pulse.py` 仍 HTTP 403，`scripts/paywall/smoke_test.py` 仍需站主在生产环境跑。
+
+2. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里仍称"zirconeey 站"** —— 沿用 6-05 ~ 6-13。属本地标识符，不影响线上；若想顺手统一文字描述，改 `prompt.md` / SKILL.md 正文「zirconeey 站」→「ruizhou03 站」即可（不动文件名）。
+
+3. **`_notes/study/adv-metrics-pku/mid-2015.md`、`_notes/study/psy-stat-I/anova-R.md` 这两类纯 PDF 存档可考虑加同课程互链入口** —— 沿用 6-05 ~ 6-13 P2#4。设计取向项，`sibling_crosslink.py` 当前不报警（已用自动侧栏覆盖）。
+
+4. **5 条 DNS NameResolutionError 外链需站主在生产环境复验**（沿用 6-08 ~ 6-13）—— centretax.net、offcampus.psu.edu、www.hwdrivingschool.com、www.judicialinformation.com、www.textile-outlook.com。明日（周一 DOW=1）会自动跑 `dead_links.py` 再复扫一次。
+
+5. **`_notes/life/paid-test-{us-banking-guide,us-visa-types}.md` 标题仍带"（付费）"后缀但 `paid:false`** —— 沿用 6-06 ~ 6-13，等站主拍板是否清掉「（付费）」标签。
+
+#### 🆕 本次新出现的观察（不是问题，是提示）
+
+- **「Zircon → Rui Zhou」署名只在新讲义这一篇做了切换**：全站统计 `grep -E "^author:" _notes -r | awk '{print $2}' | sort | uniq -c` 结果——`"Zircon"` × 131、`周睿` × 2、`"Rui Zhou"` × 1（即今日勘误后的新讲义）。**不是问题**——属站主对**这一篇**学术形态笔记的有意切换（学术讲义类内容用真名更合适，也与 PDF 标题页、英文学术主页 `Rui Zhou` 一致），并非全站迁移信号；其余 131 篇 `Zircon` 署名属博客 / 工具笔记/ 课程测评等非正式形态，沿用沿用即可。若站主未来想统一切换，可单独写脚本批量；目前不擅自动手。
+
+- **`/notes/interm-econometrics/interm-econometrics-2023` 单页可发现性其实通了**：今日深查 `_site/notes/interm-econometrics/interm-econometrics-2023.html`，`<aside class="course-related">`「📚 同课程其他资料」自动侧栏已正确渲染——列出讲义形态自己（高亮）+ 旧课程笔记 `interm-metrics-2023` + 课程测评 `interm-metrics-review-2023`（位于 `_notes/course-reviews/`）；侧栏 Liquid 取数走 `page.course` 字段不分文件夹，所以**两个文件夹同 course 的注释互相能串到**。这意味着：P1#1 方案 C（保持现状）实际上**并非完全无入口**——sitemap 收录 + 同课程侧栏互链已经能让顺着旧 `interm-metrics-2023` 进来的读者看到新讲义。唯一缺口是 `/notes/` 一级 landing 页的栏目浏览路径。**这给方案 C 加了一点底气**，但仍推荐方案 B 让架构更清爽。
+
+- **PDF 重新编译体积变化可忽略**：765213 → 765420 字节（+207 字节，+0.03%），属勘误只动 3 处局部（教师名 1 处 + 图 6.1 标签 1 处 + 署名 1 处）的正常 LaTeX 编译波动；未触发任何 image embed / font cache 之类的大块刷新。
+
+#### 🗒️ 待办清账（承接 6-13）
+
+- **图片 alt / caption 覆盖**：`images.py` 今日 ✅ 保持收口。
+- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套 HTTP 403。
+- **Round-3 留下的 ~68 个 P1**：未在本次范围推进。
+- **`taichi-review-2023.md`「85 公里跑」**：未触碰。
+- **大图基线**：与 6-13 完全一致，无变化。
+
+### 🔬 抽检专项
+
+> 本次种子抽 10 项（强制配额 game / pdf_archive / lecture_note_pdf_only 各 ≥1，其余随机）。10 项一视同仁过审清单；今日抽中已多次复审过的稳定项，结论汇总如下，未发现需自动修复处。
+
+- **抽检 1/10 · game · `toolbox/goals/index.html`**（996 行 / 36.6KB，inline-only）—— ✅ 无问题。沿用 6-10 / 6-11 抽检结论：目标进度跟踪小工具，单人小工具不需排行榜（合理不接入 games-shell 排行榜），hover 守卫齐全，本周未改动。**LaTeX 化不适用**。
+
+- **抽检 2/10 · pdf_archive · `files/interm-econometrics/interm-econometrics-2023.pdf`**（747.5KB，对应 `_notes/study/interm-econometrics/interm-econometrics-2023.md` 入口；同目录有 `source/main.tex + commands.tex + theorems.tex + 10 章 chapters/`）—— ✅ 无问题。本次抽检命中正是今天勘误过的讲义；`pdf_url` 路径有效；体积 < 5 MB 不需 pdfslim；**已 LaTeX 化**（同目录 15 个 .tex 源 / 3637 行）状态稳固——属全站第一份「LaTeX 源 + 编译 PDF + markdown 入口」三件套完整可编辑教科书形态。
+
+- **抽检 3/10 · lecture_note_pdf_only · `_notes/study/tennis/tennis-exam-prep.md`**（17 行 / 1.0KB，PDF 757 KB）—— ✅ 无问题。承接 6-12 ~ 6-13 抽检结论；本周未改动；`pdf_url=/files/tennis/tennis-exam-prep.pdf` 路径有效；front-matter 完整。**LaTeX 化评估：维持 PDF 存档**。
+
+- **抽检 4/10 · lecture_note_full · `_notes/study/marxism/marxism-principles.md`**（550 行 / 37.3KB）—— ✅ 无问题。马克思主义基本原理知识点梳理；front-matter 完整（main_category=学习资料 / sub_category=马克思主义基本原理 / course=马克思主义基本原理 / date=2024-01-04）；正文 markdown 富文本（550 行覆盖辩证唯物主义 / 历史唯物主义 / 政治经济学 / 科学社会主义四大块）；keywords 覆盖中英文 + 课程别名（"马原"/"马克思主义"/"思政"）+ 教材（PSU/PKU 学位课）。**LaTeX 化评估**：已是 markdown 富文本知识点梳理，**无需再 LaTeX 化**。
+
+- **抽检 5/10 · pdf_archive · `files/psy-stat-I/cheat-sheet-mid-2022.pdf`**（1.2MB）—— ✅ 无问题。被 `_notes/study/psy-stat-I/cheat-sheet-mid-2022.md` 引用；体积 < 5 MB 不需 pdfslim；心理统计 I 期中考 cheat sheet 单页综合表，**LaTeX 化评估：维持 PDF 存档**（已稳定使用、迁移收益不匹配；命名 `cheat-sheet-mid-` 后缀清晰）。
+
+- **抽检 6/10 · note · `_notes/course-reviews/monetary-econ-review-2023.md`**（92 行 / 10.3KB）—— ✅ 无问题。（个人向）货币经济学课程测评 / 2023-07-07 / sub_category=货币经济学；keywords 覆盖中英文 + 课程别名 + 教师名（**注意**：货币经济学的授课人是肖筱林，与今天勘误中区分中级计量授课人不混淆——这正是今日勘误的根因）；正文结构清晰、有 takeaway。本周未改动。**不是问题**——稳定运行。
+
+- **抽检 7/10 · note · `_notes/life/vpn-setup-ios.md`**（195 行 / 14.6KB）—— ✅ 无问题。「优雅地为 iPhone / iPad 配置 VPN」/ sub_category=效率工具 / date=2023-10-07；keywords 覆盖中英文 + 口语（"iPhone 翻墙"/"iOS 科学上网"）+ 工具名（Shadowrocket / Quantumult X / Surge / Loon）；img-caption 齐全；本周未改动。**不是问题**——稳定运行的留学攻略热门入口。
+
+- **抽检 8/10 · pdf_archive · `files/china-econ/final-prep-2025.pdf`**（381.0KB）—— ✅ 无问题。被 `_notes/study/china-econ/final-prep-2025.md` 引用；体积 < 5 MB 不需 pdfslim；命名 `final-prep-YYYY` 清晰可见年份。**LaTeX 化评估**：单年期末复习材料、复用频次低，**维持 PDF 存档即可**。
+
+- **抽检 9/10 · note · `_notes/research/r-psy-stats-ii.md`**（33 行 / 2.7KB）—— ✅ 无问题。「优雅地用 R 拿捏心理统计 II」/ sub_category=R 教程 / date=2023-05-23；属 `r-tutorials/` 系列（permalink 走 `/research/r-tutorials/r-psy-stats-ii`）；正文短小精悍（33 行）给的是 R 代码片段。本周未改动。**不是问题**——稳定运行。
+
+- **抽检 10/10 · lecture_note_pdf_only · `_notes/study/corp-fin/mid-2020-zh.md`**（17 行 / 1.4KB，正文 0 字）—— ✅ 无问题。承接 6-12 抽检 10/10 结论；与 `mid-2020-en.md` 配对成「期中 2020 中英双卷」系列；front-matter 完整；keywords 27 条充分。**LaTeX 化评估：维持 PDF 存档**（单年真题、与英文卷已配对）。
+
+---
+
+### 🗂 仓库卫生
+
+**仓库结构较 6-13 几无变化**——1 个 commit 涉及 4 个文件：`_notes/study/interm-econometrics/interm-econometrics-2023.md`（front-matter 字段更新 6 行）/ `files/interm-econometrics/interm-econometrics-2023.pdf`（+207 字节）/ `files/interm-econometrics/source/chapters/ch6_dummies.tex`（图 6.1 标签挪位置，6 行）/ `files/interm-econometrics/source/main.tex`（标题页署名 1 行）；**未新增 / 未移动 / 未删除任何目录或文件**。按巡检规则的「仓库卫生（4a）」判断条款：架构与昨日同构、无新增可优化空间——**写一句「仓库结构较昨日无变化，无需再优化」即可跳过 b–e**。不过为完整起见仍快速复核：① **敏感文件扫描** `git ls-files | grep -iE '\.env$|credentials|\.DS_Store|token\.json|secret|\.pem$|\.key$'` ✅ 全空；② **副本扫描** `git ls-files | grep -E " 2\.|copy [0-9]\."` ✅ 全空（macOS 副本 0）；③ **未跟踪扫描** `git ls-files --others --exclude-standard` ✅ 空（工作区干净）；④ `_config.yml` exclude 列表完备（含 DAILY_REVIEW.md / SPOTCHECK_* / docs/ / scripts/ / backends/ / _paid/）；⑤ 红线全部守住（未改写历史、未 force-push、未动 .git/）。**结论**：仓库卫生 ✅ 干净，无新增 hygiene 隐患；唯一架构待办项是 P1#1（`study_order` 是否加 / 是否搬合目录），属设计判断而非 hygiene 问题。
+
+---
+
+### 💓 后端脉搏 / 📬 读者来信
+
+后端三件套（zircon-urge / leaderboards / zircon-comments waline）本次 `backend_pulse.py` 仍全报 HTTP 403。与 6-04 ~ 6-13 同因（沙箱无 fly.io 出口），不阻塞巡检，未主动重启 fly app。
+
+---
+
 ## 2026-06-13
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周六 DOW=6，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=13，未跑 monthly_stats）。距 6-12 巡检共 **7 个 commit**（`15d5f3e` 之后 → `6f081dc` 为止），主线三条：① **新内容上线 1 篇**——`bc78b8c`「中级计量经济学讲义上线」：把本科《中级计量经济学》（2023 春·肖筱林·光华）整学期课堂笔记重写并统一为一本自足的英文教科书式讲义（10 章 / 120 页 / 765 KB / 教科书彩色盒子排版），覆盖简单/多元回归、推断、大样本理论、函数形式、虚拟变量、异方差、设定与数据问题、面板数据、IV 与 2SLS，新建 `_notes/study/interm-econometrics/interm-econometrics-2023.md` + `files/interm-econometrics/interm-econometrics-2023.pdf` + LaTeX 源（`source/main.tex` + `commands.tex` + `theorems.tex` + 10 章 `chapters/ch{1..10}_*.tex`，共 15 文件 / 3637 行）。② **掼蛋 3 commit**——`3556d2b`「新训练 run15_gen6 替代旧 hard AI（+6% 胜率 / 700 局验证）」（`guandan.js` 15 行 + `sim-guandan-weights-final.json` 三档权重更新 + `index.html` v 号 +1）、`9a48d6f`「联机模式支持进贡/还贡 + 服务器训练 AI 适配」（`guandan.js` +88/-10，扩 startNetworkedGame/applyServerGameState 与进贡场触发路径）、`6f081dc`「62 候选大锦标赛 Elo 排名 + 三档权重更新」（`guandan.js` 44 行 + `scripts/sim-guandan-{population,ranking,wins-matrix,weights-final}.json` 大规模训练产物刷新；`scripts/` 在 `_config.yml` exclude 不进站）。③ **拼豆图纸 3 commit**——`5ca6236`「进度环三段制混合推进——前两段『谁快用谁』+ 最后一段只等真人」（`toolbox/pindou/index.html` +43/-16）、`42939d7`「抠图进度拆为六档逐段放慢（0→33→50→75→90→95→100）」（+15/-9）、`d282bc0`「模型缓存时假跑下载条 8s 给抠图偷跑 + done 后平滑补满不做瞬跳」（+15/-8）。`bundle install` + `bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` ✅ 通过、零 warning、零 error（13.213 s）。今日 `scripts/audit/run.sh` 全套审计 **13/13 全 clean**——`keywords_coverage`（散文 121 篇全部充足，新讲义 keywords 80+ 条覆盖中英文 + 课程别名 + 教材 + 章节关键词）/ `images` / `material_type_enum`（枚举内分布：Notes×43 含今日新增 1 / Exams×40 / 课程测评×18 / 经验之谈×5 / 错题本×3 / 写作×2 / 口语×1 / 词汇×1）/ `filename_convention` / `hover_no_media`（pindou 3 处改动全部沿用 `@media (hover: hover)` 守卫包 4 个 :hover 规则）/ `sibling_crosslink`（9 个 ≥3 篇 sub_category 组全互链）/ `bare_dollar` / `img_caption_md` / `svg_italic_zh` / `bare_url` / `frontmatter_yaml` / `spotcheck`（10 项配额抽检列表生成，全部 ✅ 已建过往复审）。`backend_pulse` 仍 HTTP 403（沙箱无 fly.io 出口，承接 6-04 ~ 6-12）。**今日 0 项自动修复**——7 个 commit 全部合规；但抓到 **1 项 P1 设计判断**待站主拍板：新讲义文件夹 `interm-econometrics` 未列入 `_config.yml` 的 `study_order`，导致 `/notes/` 一级 landing 页**搜不到这篇新讲义**（只能通过站内搜索或直接 URL 抵达；sitemap 与 search.json 都已正确收录）。展开见下。
@@ -957,63 +1041,3 @@
 后端三件套（zircon-urge / leaderboards / zircon-comments waline）本次 `backend_pulse.py` 仍全报 HTTP 403。与 5-27 ~ 5-30 同因（沙箱无 fly.io 出口），不阻塞巡检，未主动重启 fly app。
 
 ---
-
-## 2026-05-30
-
-> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周六，未跑 dead_links / orphan_files / pii_scan 三项周一项）。距 5-29 巡检 20 个 commit，全部集中在 `guandan` / `doudizhu` / `pet-food` 三个百宝箱的深做与一处英文站 theme-toggle 字段级对齐，没有新增内容目录或一级分类。**今日审计全套绿、无可安全自动修复项**——5-29 的 3 项已修（`TOOLBOX_AUDIT_REPORT.md` exclude / guandan hover guard / 2 文件 6 处裸 `$`）依旧成立；P1 的 NUL byte 占位符 3 文件状态不变（仍需站主对照原图复核才能改）。
-
-### ✅ 本次已自动修复
-
-无。今日 audit 全套 ✅ clean（keywords / hover_no_media / bare_dollar / img_caption_md / svg_italic_zh / bare_url / frontmatter_yaml 七项；images 仅基线 2 大 PDF；backend_pulse 沙箱 HTTP 403 已知；spotcheck 10 项为抽检清单不算 issue）。`bundle exec ruby -e "require 'jekyll'; Jekyll::Commands::Build.process(...)"` 通过、零 warning、零 error（13.5 s，本沙箱 binstubs 未生成所以走 ruby 直调而非 `bundle exec jekyll build`，构建结果等价）。`_site/` 根目录扫描确认 `DAILY_REVIEW.md` / `EMAIL_SUMMARY.md` / `SPOTCHECK_100_REPORT.md` / `SPOTCHECK_100_AGENT_REPORTS.md` / `TOOLBOX_AUDIT_REPORT.md` / `scripts/` / `backends/` 全部正确 exclude。
-
-### 📋 待你把关
-
-#### P1（建议尽快，承接 5-29）
-
-1. **3 个 .md 文件含 NUL byte (`\x00`) 包裹的占位符（M3 / M4 / CJK2 / CJK3 / CJK30）** —— `_notes/life/fridge-layout-guide.md` L157、`_notes/research/r-brucer-moderation-mediation.md` L59/L75、`_notes/research/latex-commands.md` L265，状态与 5-29 完全一致（今天又跑了一遍 `python3 -c "import pathlib; ..."` 复核）。占位符规律强烈暗示是某次自动化处理（imgslim / alt 生成 / fix_quotes 之类）把数学片段（`M{n}`）或中文术语（`CJK{n}`）先替换成 placeholder 再放回时漏了一步，且不知怎么用 NUL 当了分隔符。**没自动改的原因**：NUL 拆掉简单（共 8 个字节），但真正的原文（数字 / 术语）需要站主对照原图或导入源文件才能复原。`fridge-layout-guide` 是 5-26 才上的新文章，对用户可见的温度梯度乱码影响最严重；建议先处理这条。检测命令：`python3 -c "import pathlib; [print(p) for p in pathlib.Path('_notes').rglob('*.md') if b'\\x00' in p.read_bytes()]"`。
-
-#### P2（看心情，全部承接 5-29 → 5-28；本次扫描状态不变）
-
-2. **`sw.js` PWA cache 前缀仍是 `zirconeey-`（4 处）** —— L20-22、L279。设计取向（cache key 重命名要带 LEGACY 回退），不擅改。
-
-3. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里仍称"zirconeey 站"** —— 内部 prompt / 文档，属本机 / 历史标识符范畴。
-
-4. **`scripts/daily_review.sh:15` 与 `scripts/hooks/{stop_publish_reminder,post_write_imgslim}.sh:10` 仍带 `REPO="/Users/zhourui/Desktop/..."` 本机绝对路径**（叠加 `scripts/{merge-psy-stat-II,compile-r-tutorials,build-psy-stat-II-rmd}.py` 中 9 处同类）。最小改动是 `REPO="$(cd "$(dirname "$0")/.." && pwd)"`，由站主拍板。
-
-5. **toolbox 长文件继续膨胀**：本次 5-29 → 5-30 之间，`assets/js/games/guandan.js` 从 **4436 → 4822 行**（+386，guandan online 系列 6 个 commit），`toolbox/pet-food/index.html` 从 **3393 → 3980 行**（+587，pet-food 1 个 commit 含猫条 / 罐头 / 时间编辑大功能）。`assets/js/doudizhu/ui.js` 维持 3884 行，`assets/js/doudizhu/ai.js` 从 524 → 880 行（v2-deep + v3 记牌器训练）。延续 Round-3 P1#5「批量拆 `/assets/js/games/<name>.js`」清单。**建议方向**：doudizhu 已完成 `engine.js + ai.js + ui.js` 三件套拆分（Round-2 P1 已收口），可作为 guandan / pet-food 的拆分参考；scripts 目录里也已经有 `scripts/HANDOFF-doudizhu-ai-population.md` 这种「给下个对话用」的指导文档先例，做拆分时可以同样产出 handoff 文档。
-
-#### 🗒️ 待办清账（承接 5-29）
-
-- **图片 alt / caption 覆盖**：`images.py` 仍 `missing_alt = 0` / `missing_caption = 0`（白名单 62 条），收口状态保持。
-- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套全报 HTTP 403。不阻塞巡检；fly app 健康度未在本沙箱主动复查。
-- **Round-3 留下的 ~68 个 P1**：未在本次范围推进，按原优先级排队。
-- **`taichi-review-2023.md`「85 公里跑」**：仍候着，本次未触碰。
-- **大图基线**（or-2023.pdf 5.30 MB + psy-stat-II-2023.pdf 2.70 MB + 12 张 500KB–1.5MB 图）：`images.py` 输出与昨日完全一致，无变化。
-- **material_type 枚举 30 处不合规** / **文件名 `-YYYY` 后缀 77 处缺** / **sibling 互链 51 篇孤立**：长线设计项，全部沿用昨日状态。
-
-### 🗂 仓库卫生
-
-- **架构变化（5-29 → 5-30）**：**结构层面无变化**——没有新一级分类、没有新内容目录、没有 toolbox 新增（仍 48 个工具子目录 ↔ `_data/toolbox.yml` 48 条 `url`，一一对应、无孤儿、无悬空）。20 个 commit 的去向（按 timeline 由早到晚）：
-  - `c40a8bf docs(guandan-handoff)` — 286 行 plan，给下个对话用（属 scripts/，已 exclude）。
-  - `c796c7d refactor(doudizhu)` + `93da07f feat(doudizhu) 三档群体训练` + `2b15105 feat(doudizhu) v2-deep` + `32f5f8a feat(doudizhu) v3 记牌器` + `d6d6398 chore(doudizhu) v3-deep 90 候选归档` — 共 5 commit，把斗地主 AI 从「同模型加噪降级」改造成「三档独立 ES 权重」，方法论复用自掼蛋；`scripts/sim-doudizhu-*.json` 是训练产物（已 exclude）。`assets/js/doudizhu/ai.js` 524 → 880 行。
-  - `66223b5 fix(guandan lobby)` + `f10a7a6 fix(guandan)` + `101311a fix(guandan online) 联机直接开局` + `535aab9 fix(guandan online) 即时刷新` + `734fcc3 feat(guandan online) swap 滑动动画` + `2f112a2 fix(guandan online) swap hold` + `76bca9a fix(guandan online) per-seat in-flight 锁` + `eede692 fix(guandan online) lobby 头像位对齐` — 共 8 commit，掼蛋联机大厅/换座/动画连续打磨；`assets/js/games/guandan.js` 4436 → 4822 行。
-  - `58ae91b feat(pet-food)` — 猫条 / 罐头计入总量 + 可改记录时间 + 改时间审批；`toolbox/pet-food/index.html` 3393 → 3980 行。
-  - `7e8e640 chore: 后端工作副本归并到 backends/` — `.gitignore` + `_config.yml` exclude 都加了 `backends/`（这是 5-29 当晚的清理，符合「不该被 git 跟踪 / 不该公开」原则；本沙箱无 `backends/` 目录，已确认）。
-  - `d351ee9` + `d0bbc09 fix(en) 深浅模式按钮 / theme-toggle CSS 字段级对齐中文站` — 共 2 commit，根 `index.html` L204-205 三处差异（`line-height:1` 多余 / `transition` 应为 all / hover 缺 color）已按中文站对齐；diff 看着干净，已与 `assets/css/main.css` 同步。
-  - `0f3c636 perf(chess-ai) 根节点 α-β + quiescence 加 ply 上限` — `assets/js/games-shell/chess-ai.js` 30 行变更，单纯性能优化。
-- **追踪卫生**：
-  - 工作树扫描无 `.DS_Store`、无 `* 2.*` macOS 副本、无 `*.bak`/`*~`/`.synctex.gz`/`*.aux` 编辑器垃圾；`_site/`、`.jekyll-cache/`、`.jekyll-metadata`、`Gemfile.lock` 均被 `.gitignore` 正确忽略。
-  - `console.log` / `debugger` / `TODO` / `FIXME` / `XXX` 残留扫描：今日新改的 4 个核心文件（`toolbox/pet-food/index.html`、`assets/js/games/guandan.js`、`assets/js/doudizhu/ai.js`、`assets/js/doudizhu/ui.js`）全部 0 命中 console/debugger；pet-food 一处 "XXX" 是 UI 占位文本 `<code class="pet-code">XXXXXX</code>`（房间分享码），非 TODO，正常。
-  - 硬编码密钥扫描无新发现。
-  - 本机绝对路径：见 P2#4，状态不变（5-29 已记账）。
-- **构建健康**：`_site/` 大小与昨日基本同量（`assistant-fulltext.json` 1.83 MB / `assistant-index.json` 281 KB / `search.json` 227 KB，索引随新内容线性增长属正常）；零 warning、零 error。
-- **前置字段一致性**：`frontmatter_yaml` ✅；`keywords_coverage` 散文 119 篇全部充足；`_notes/study/` 全部有 `discipline`；菜谱必填字段齐全。
-- **audit 全套结果**：keywords ✅ / images（基线 2 大 PDF）/ backend_pulse（沙箱 403）/ spotcheck（10 项抽检清单待 review）/ material_type（30 处⚠️长线）/ filename_convention（77 处⚠️长线）/ hover_no_media ✅ / sibling_crosslink（51 篇⚠️ 沿用 P1）/ bare_dollar ✅ / img_caption_md ✅ / svg_italic_zh ✅ / bare_url ✅ / frontmatter_yaml ✅。
-- **结论**：仓库结构较昨日无变化、且 5-29 已做过清理（`backends/` 收口），无需再优化。本日 0 项自动修复，1 项 P1 持续待办（NUL byte），4 项 P2 持续待办（全部设计取向）。今日内容产能完全在游戏 AI / 联机大厅这条线上，没有写入新的内容文章。
-
-### 💓 后端脉搏 / 📬 读者来信
-
-后端三件套（zircon-urge / leaderboards / zircon-comments waline）本次 `backend_pulse.py` 仍全报 HTTP 403。与 5-27 ~ 5-29 同因（沙箱无 fly.io 出口），不阻塞巡检，未主动重启 fly app。
-
----
-
