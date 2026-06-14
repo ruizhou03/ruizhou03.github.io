@@ -39,6 +39,7 @@ theme_color: "#fafaf9"
     padding: 1rem;
     /* 游戏区域：禁掉双击放大（manipulation 仍保留单击/滚动，不破坏按钮交互） */
     touch-action: manipulation;
+    user-select: none; -webkit-user-select: none;
     --gs-wrap-half: 440px;
     --gd-card-w: 50px;
     --gd-card-h: 72px;
@@ -329,8 +330,7 @@ theme_color: "#fafaf9"
     font-family: 'Cormorant Garamond', Georgia, "Songti SC", serif;
   }
   .gd-card .corner.tl { top: 3px; left: 4px; }
-  /* 反转角标取消：堆叠列里底部一角看不到，保留只是徒增视觉噪音 */
-  .gd-card .corner.br { display: none; }
+  .gd-card .corner.bl { bottom: 3px; left: 4px; }
   /* Cormorant 默认是 oldstyle 数字（3/5/7/9 带下伸、矮于大写字母），所以「字母看着比数字大」。
      强制用 lining（等高大写）数字，让 10/9/8… 跟 J/Q/K/A 一样满高、一样醒目。 */
   /* rank 用「定宽盒子」+ 左对齐：不论点数是 10(两位)/9(一位)/K(字母)，盒子宽度一样，
@@ -354,10 +354,20 @@ theme_color: "#fafaf9"
      花色（角标 0.26→0.34、中心 0.52→0.62）整体做大一档，更醒目。 */
   .gd-card.size-full .corner .rk { font-size: calc(var(--gd-card-w, 50px) * 0.38); width: calc(var(--gd-card-w, 50px) * 0.44); }
   .gd-card.size-full .corner .su { font-size: calc(var(--gd-card-w, 50px) * 0.34); }
+  .gd-card.size-full .corner.bl .su { font-size: calc(var(--gd-card-w, 50px) * 0.26); }
   .gd-card.size-full .pip { font-size: calc(var(--gd-card-w, 50px) * 0.62); }
+  .gd-card .corner.bl .lvl-badge {
+    font-size: calc(var(--gd-card-w, 50px) * 0.16);
+    color: var(--gd-accent-strong); font-weight: 700;
+    font-family: var(--font-body);
+    background: rgba(255,255,255,0.7); border-radius: 2px; padding: 0 1px;
+    line-height: 1.1;
+  }
   .gd-card.size-mini { width: var(--gd-card-mini-w); height: var(--gd-card-mini-h); }
   .gd-card.size-mini .corner .rk { font-size: 10px; }
   .gd-card.size-mini .corner .su { font-size: 9px; }
+  .gd-card.size-mini .corner.bl .su { font-size: 7px; }
+  .gd-card.size-mini .corner.bl .lvl-badge { font-size: 6px; }
   .gd-card.size-mini .pip { font-size: 18px; }
   .gd-card.is-joker .pip {
     display: flex; flex-direction: column; align-items: center;
@@ -373,21 +383,7 @@ theme_color: "#fafaf9"
   .gd-card.size-full.is-joker .pip .joker-icon { font-size: calc(var(--gd-card-w, 50px) * 0.40); }
   .gd-card.size-mini.is-joker .pip .joker-text { font-size: 6px; }
   .gd-card.size-mini.is-joker .pip .joker-icon { font-size: 14px; }
-  /* 红桃级牌（逢人配）：只保留右上角"配"小角标，不要金边——金边容易被
-     误认为"选中"。同花顺辨识由角标花色解决，单独的列分隔（columnKey 15.5）
-     也帮助识别。 */
-  .gd-card.is-wild::after {
-    content: '配'; position: absolute; top: 2px; right: 3px;
-    font-size: 8px; color: var(--gd-accent-strong); font-weight: 700;
-    background: rgba(255,255,255,0.7); border-radius: 3px; padding: 0 1px;
-  }
-  /* 普通级牌（当前级别、非红桃逢人配）：右上角金色「级」小角标。
-     跟"配"同位、互斥（一张牌要么逢人配、要么普通级牌），一眼看出它抬到 A 之上。 */
-  .gd-card.is-level::after {
-    content: '级'; position: absolute; top: 2px; right: 3px;
-    font-size: 8px; color: var(--gd-accent-strong); font-weight: 700;
-    background: rgba(255,255,255,0.7); border-radius: 3px; padding: 0 1px;
-  }
+  /* 级/配 角标改由 DOM 元素放在左下角 .corner.bl 里，不再用 ::after —— 避免与左上角花色重叠 */
   /* 逢人配在出牌区被画成它顶替的牌时：淡金底提示"这是万能牌顶上来的"，仍保留"配"标 */
   .gd-card.is-wild-sub {
     background:
@@ -434,7 +430,7 @@ theme_color: "#fafaf9"
     overflow-x: auto; overflow-y: visible;
     /* 拖矩形框选时不要把卡上的"K / A"误选成文字 */
     user-select: none; -webkit-user-select: none;
-    padding: 0.4rem 0.4rem 0.5rem;
+    padding: 0.4rem 7rem 0.5rem 4.5rem;
     min-height: calc(var(--gd-card-h) + 6 * var(--gd-stack-step) + 10px);
     justify-content: safe center;
     scrollbar-width: none;
@@ -567,25 +563,27 @@ theme_color: "#fafaf9"
     opacity: 0.72;
     pointer-events: none;
   }
-  /* 旁观队友手牌：手牌禁交互。提示文字改放进「出牌按钮行」（gdSpectateNote），
-     不再用浮在手牌上方的 ::before —— 见 .gd-spectate-note。 */
   .gd-hand.is-spectating {
     pointer-events: none;
   }
-  /* 「正在查看队友手牌」：占住出牌按钮那一行（我已出完时该行本就是空的），
-     做成跟动作行协调的胶囊文字，居中显示。 */
-  .gd-spectate-note {
+  .gd-hand.is-spectating::after {
+    content: '正在查看队友手牌';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.35);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 0.6rem;
+    color: rgba(31,42,61,0.45);
     font-size: 0.88rem;
-    color: var(--gd-accent-strong);
-    background: rgba(255,255,255,0.85);
-    border: 1px solid var(--gd-frame-2);
-    border-radius: 999px;
-    padding: 0.32rem 0.95rem;
-    white-space: nowrap;
     font-family: var(--font-body);
-    box-shadow: 0 1px 3px rgba(20,37,63,0.12);
+    letter-spacing: 0.06em;
+    pointer-events: none;
+    z-index: 10;
+    border-radius: 6px;
   }
-  .gd-spectate-note[hidden] { display: none; }
+  .gd-spectate-note { display: none !important; }
   /* 接风：中央横排大字 + 风筝图标 + 副标题（替代以前的 toast） */
   .gd-jiefeng-banner {
     display: flex; align-items: center; gap: 0.5rem;
@@ -1391,6 +1389,40 @@ theme_color: "#fafaf9"
     font-size: 0.78rem; color: rgba(255,255,255,0.55);
   }
 
+  .gd-result-level-cards {
+    display: flex; justify-content: center; gap: 1.2rem;
+    margin-top: 0.6rem; margin-bottom: 0.2rem;
+  }
+  .gd-result-level-cards .gd-lc-team {
+    display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+  }
+  .gd-result-level-cards .gd-lc-label {
+    font-size: 0.72rem; color: var(--color-muted); font-family: var(--font-body);
+  }
+  .gd-level-flip {
+    perspective: 500px;
+    width: 46px; height: 66px;
+  }
+  .gd-level-flip-inner {
+    position: relative;
+    width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.7s ease;
+  }
+  .gd-level-flip.flipped .gd-level-flip-inner {
+    transform: rotateY(180deg);
+  }
+  .gd-level-flip-inner > .gd-card {
+    position: absolute !important;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    width: 100% !important; height: 100% !important;
+  }
+  .gd-level-flip-inner > .gd-card.lc-back {
+    transform: rotateY(180deg);
+  }
+
   .gd-resume-summary {
     margin: 0.6rem auto 0.8rem; max-width: 26rem;
     font-size: 0.92rem; color: var(--color-ink);
@@ -1447,7 +1479,7 @@ theme_color: "#fafaf9"
     }
     .gd-side { width: 64px; }
     .gd-table { padding: 0.55rem; }
-    /* 窄屏：手牌占满整宽，左下角放不下头像 —— 回到 in-flow 居中 */
+    .gd-hand { padding-left: 0.4rem; padding-right: 0.4rem; }
     .gd-self-bar {
       position: static;
       margin: 0.5rem 0 0.3rem;
@@ -2145,6 +2177,13 @@ theme_color: "#fafaf9"
                 <button class="gs-pgo-mode-tab" data-value="5" type="button">5</button>
                 <button class="gs-pgo-mode-tab" data-value="8" type="button">8</button>
               </div>
+              <div class="gd-pgo-label">手牌大小</div>
+              <div class="gs-pgo-mode-picker" id="gdPgoCardSize">
+                <button class="gs-pgo-mode-tab" data-value="0.85" type="button">小</button>
+                <button class="gs-pgo-mode-tab selected" data-value="1" type="button">中</button>
+                <button class="gs-pgo-mode-tab" data-value="1.25" type="button">大</button>
+                <button class="gs-pgo-mode-tab" data-value="1.5" type="button">特大</button>
+              </div>
               <div class="gd-pgo-label">出牌时间</div>
               <div class="gs-pgo-mode-picker" id="gdPgoTurnSec">
                 <button class="gs-pgo-mode-tab" data-value="10" type="button">10秒</button>
@@ -2244,6 +2283,7 @@ theme_color: "#fafaf9"
             <div class="gd-result-players" id="gdResultPlayersOpp"></div>
           </div>
         </div>
+        <div class="gd-result-level-cards" id="gdRoundLevelCards"></div>
         <div class="gd-result-score" id="gdRoundScore"></div>
         <button class="gd-btn primary" id="gdRoundNext" type="button">继续 ▶</button>
       </div>
@@ -2270,6 +2310,7 @@ theme_color: "#fafaf9"
             <div class="gd-result-players" id="gdMatchPlayersOpp"></div>
           </div>
         </div>
+        <div class="gd-result-level-cards" id="gdMatchLevelCards"></div>
         <div class="gd-result-score" id="gdMatchScore"></div>
         <div class="gd-result-actions">
           <button class="gd-btn primary" id="gdMatchAgain" type="button">再来一局</button>

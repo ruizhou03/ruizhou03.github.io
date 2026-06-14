@@ -811,11 +811,13 @@
     };
   }
 
+  const CARD_SIZE_OPTS = [0.85, 1, 1.25, 1.5];
   const state = {
     aiLevel: ['easy','normal','hard'].includes(stored.lastDiff) ? stored.lastDiff : 'normal',
     options: normalizeOptions(stored.options),       // PGO 里可编辑的「下一盘」玩法设置
     matchOptions: normalizeOptions(stored.options),  // 当前这盘冻结的玩法设置（startMatch 时从 options 拷贝）
     openMult: [1, 2, 3].includes(stored.lastMult) ? stored.lastMult : 1,
+    cardSizeMult: CARD_SIZE_OPTS.includes(stored.cardSizeMult) ? stored.cardSizeMult : 1,
     stats: normalizeStats(stored.stats),
     phase: PHASE.IDLE,
     levels: [2 - 2, 2 - 2],          // team level index into LEVEL_SEQ (0='2')
@@ -864,7 +866,7 @@
     autopilotBtn: $('gdAutopilotBtn'),
     pgo: $('gdPgo'), pgoStart: $('gdPgoStart'),
     pgoDiff: $('gdPgoDiff'), pgoStats: $('gdPgoStats'), hs: $('gdHs'),
-    pgoTeamTrib: $('gdPgoTeamTrib'), pgoScoreCap: $('gdPgoScoreCap'), pgoTurnSec: $('gdPgoTurnSec'),
+    pgoTeamTrib: $('gdPgoTeamTrib'), pgoScoreCap: $('gdPgoScoreCap'), pgoTurnSec: $('gdPgoTurnSec'), pgoCardSize: $('gdPgoCardSize'),
     gameOpts: $('gdGameOpts'), gameOptsToggle: $('gdGameOptsToggle'),
     gameOptsBody: $('gdGameOptsBody'), gameOptsSum: $('gdGameOptsSum'),
     tribOverlay: $('gdTributeOverlay'), tribTitle: $('gdTribTitle'),
@@ -874,13 +876,13 @@
     roundLevelYou: $('gdResultLevelYou'), roundLevelOpp: $('gdResultLevelOpp'),
     roundPlayersYou: $('gdResultPlayersYou'), roundPlayersOpp: $('gdResultPlayersOpp'),
     roundTeamYou: $('gdResultTeamYou'), roundTeamOpp: $('gdResultTeamOpp'),
-    roundScore: $('gdRoundScore'),
+    roundScore: $('gdRoundScore'), roundLevelCards: $('gdRoundLevelCards'),
     matchOverlay: $('gdMatchOverlay'), matchTitle: $('gdMatchTitle'),
     matchAgain: $('gdMatchAgain'), matchSetup: $('gdMatchSetup'),
     matchLevelYou: $('gdMatchLevelYou'), matchLevelOpp: $('gdMatchLevelOpp'),
     matchPlayersYou: $('gdMatchPlayersYou'), matchPlayersOpp: $('gdMatchPlayersOpp'),
     matchTeamYou: $('gdMatchTeamYou'), matchTeamOpp: $('gdMatchTeamOpp'),
-    matchScore: $('gdMatchScore'),
+    matchScore: $('gdMatchScore'), matchLevelCards: $('gdMatchLevelCards'),
     pgoScore: $('gdPgoScore'),
     dblNoBtn: $('gdDblNoBtn'), dblYesBtn: $('gdDblYesBtn'),
     resumeOverlay: $('gdResumeOverlay'), resumeSummary: $('gdResumeSummary'),
@@ -901,7 +903,7 @@
       localStorage.setItem(STORE_KEY, JSON.stringify({
         lastDiff: state.aiLevel, lastMult: state.openMult,
         sortMode: state.sortMode, stats: state.stats,
-        options: state.options,
+        options: state.options, cardSizeMult: state.cardSizeMult,
       }));
     } catch (e) { /* ignore */ }
   }
@@ -1018,14 +1020,12 @@
     if (opts.groupStart) el.classList.add('group-start');
 
     if (isJoker(c)) {
-      for (const pos of ['tl', 'br']) {
-        const corner = document.createElement('span');
-        corner.className = 'corner ' + pos;
-        const rk = document.createElement('span');
-        rk.className = 'rk'; rk.textContent = '★';
-        corner.appendChild(rk);
-        el.appendChild(corner);
-      }
+      const corner = document.createElement('span');
+      corner.className = 'corner tl';
+      const rk = document.createElement('span');
+      rk.className = 'rk'; rk.textContent = '★';
+      corner.appendChild(rk);
+      el.appendChild(corner);
       const pip = document.createElement('span');
       pip.className = 'pip';
       const txt = document.createElement('span');
@@ -1040,14 +1040,25 @@
       const suitIdx = (opts.repSuit != null) ? opts.repSuit : cardSuit(c);
       const rkLabel = RANK_LABELS[rankIdx];
       const suLabel = SUIT_LABELS[suitIdx];
-      for (const pos of ['tl', 'br']) {
-        const corner = document.createElement('span');
-        corner.className = 'corner ' + pos;
-        const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = rkLabel;
-        const su = document.createElement('span'); su.className = 'su'; su.textContent = suLabel;
-        corner.appendChild(rk); corner.appendChild(su);
-        el.appendChild(corner);
+      const tl = document.createElement('span');
+      tl.className = 'corner tl';
+      const rkEl = document.createElement('span'); rkEl.className = 'rk'; rkEl.textContent = rkLabel;
+      const suEl = document.createElement('span'); suEl.className = 'su'; suEl.textContent = suLabel;
+      tl.appendChild(rkEl); tl.appendChild(suEl);
+      el.appendChild(tl);
+      const bl = document.createElement('span');
+      bl.className = 'corner bl';
+      const blSu = document.createElement('span'); blSu.className = 'su'; blSu.textContent = suLabel;
+      bl.appendChild(blSu);
+      const cardIsWild = level && isWild(c, level);
+      const cardIsLevel = !cardIsWild && level && RANK_LABELS[cardRankIdx(c)] === level;
+      if (cardIsWild || cardIsLevel) {
+        const badge = document.createElement('span');
+        badge.className = 'lvl-badge';
+        badge.textContent = cardIsWild ? '配' : '级';
+        bl.appendChild(badge);
       }
+      el.appendChild(bl);
       const pip = document.createElement('span');
       pip.className = 'pip'; pip.textContent = suLabel;
       el.appendChild(pip);
@@ -1192,7 +1203,6 @@
     const hand = els.hand;
     const cols = hand.querySelectorAll('.gd-rank-col');
     if (!cols.length) return;
-    // 先清掉上一轮的内联覆盖，按当前断点的 CSS 默认重新量
     hand.style.removeProperty('--gd-card-w');
     hand.style.removeProperty('--gd-card-h');
     hand.style.removeProperty('--gd-stack-step');
@@ -1206,25 +1216,21 @@
     const availW = hand.clientWidth - padL - padR;
     if (availW <= 0) return;
 
-    // ── 横向：按「最大可能列数 15」恒定预算卡宽，整局不变 ──
-    // 关键：卡宽锁死成"装得下 15 列"的大小，开局牌多/后面牌少都用同一尺寸 —— 不再
-    // 开局缩小、出着出着又变大（用户反馈的"刚开局牌更小"）。15 列 = 2~A(13) + 大小王(2)。
-    // 装得下就用默认大小(= 出牌区同款)。
+    const mult = state.cardSizeMult || 1;
+    const userW = Math.round(defCardW * mult);
+    const userH = Math.round(defCardH * mult);
+    const userStep = Math.round(defStep * mult);
     const MAX_HAND_COLS = 15;
-    let cardW = defCardW, cardH = defCardH, step = defStep;
-    const neededW = MAX_HAND_COLS * defCardW + (MAX_HAND_COLS - 1) * gap;
-    if (neededW > availW) {
+    let cardW = userW, cardH = userH, step = userStep;
+    const neededW = MAX_HAND_COLS * userW + (MAX_HAND_COLS - 1) * gap;
+    if (neededW > availW && mult <= 1) {
       cardW = Math.max(26, Math.floor((availW - (MAX_HAND_COLS - 1) * gap) / MAX_HAND_COLS));
-      if (cardW < defCardW) cardH = Math.round(defCardH * (cardW / defCardW));
+      cardH = Math.round(defCardH * (cardW / defCardW));
+      step = Math.round(defStep * (cardW / defCardW));
     }
-
-    // ── 纵向：恒定保持默认错落(step)与默认卡高，绝不因为某一摞深就压扁/缩小/蒙灰 ──
-    // 外观永远和浅摞时（用户认可的那一版）逐像素一致；深的一摞就让它自然往上叠、跟
-    // 上方重叠也没关系（横屏手牌 overflow:visible 不裁切）。重叠部分由「我方/对家出牌区」
-    // 盖在上面（z-index），但出牌区 pointer-events:none，点击会穿透到底下的手牌——被
-    // 盖住的那几张手牌依旧能正常点选。
     if (cardW !== defCardW) hand.style.setProperty('--gd-card-w', cardW + 'px');
     if (cardH !== defCardH) hand.style.setProperty('--gd-card-h', cardH + 'px');
+    if (step !== defStep) hand.style.setProperty('--gd-stack-step', step + 'px');
     cols.forEach(col => {
       const cards = col.querySelectorAll('.gd-card');
       col.style.height = ((cards.length - 1) * step + cardH) + 'px';
@@ -1331,10 +1337,10 @@
       const bw = isJoker(b) || isWild(b, level);
       const aRank = aw ? tripleRank : cardRankIdx(a);
       const bRank = bw ? tripleRank : cardRankIdx(b);
-      // 对子在前(列顶)、三张组在后(列底)：摞成一列时三张在下、对子在上
+      // 三张组在前(列顶/出牌区左侧)、对子在后(列底/出牌区右侧)
       const aTrip = aRank === tripleRank ? 1 : 0;
       const bTrip = bRank === tripleRank ? 1 : 0;
-      if (aTrip !== bTrip) return aTrip - bTrip;
+      if (aTrip !== bTrip) return bTrip - aTrip;
       // 同组里：真牌在前、wild 在后
       if (aw !== bw) return aw ? 1 : -1;
       // 都真牌：高 rank 在前
@@ -2997,6 +3003,69 @@
     }
   }
 
+  function buildLevelCardEl(rankLabel) {
+    const el = document.createElement('span');
+    const red = true;
+    el.className = 'gd-card size-full' + (red ? ' suit-red' : ' suit-black');
+    const tl = document.createElement('span');
+    tl.className = 'corner tl';
+    const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = rankLabel;
+    const su = document.createElement('span'); su.className = 'su'; su.textContent = '♥';
+    tl.appendChild(rk); tl.appendChild(su);
+    el.appendChild(tl);
+    const bl = document.createElement('span');
+    bl.className = 'corner bl';
+    const blSu = document.createElement('span'); blSu.className = 'su'; blSu.textContent = '♥';
+    bl.appendChild(blSu);
+    el.appendChild(bl);
+    const pip = document.createElement('span');
+    pip.className = 'pip'; pip.textContent = '♥';
+    el.appendChild(pip);
+    return el;
+  }
+
+  function renderLevelCards(container, youLabel, oppLabel, winTeam, beforeLabel, afterLabel) {
+    if (!container) return;
+    container.innerHTML = '';
+    function makeTeam(label, lvBefore, lvAfter, isWinner) {
+      const team = document.createElement('div');
+      team.className = 'gd-lc-team';
+      const lbl = document.createElement('span');
+      lbl.className = 'gd-lc-label';
+      lbl.textContent = label;
+      team.appendChild(lbl);
+      if (isWinner && lvBefore !== lvAfter) {
+        const flip = document.createElement('div');
+        flip.className = 'gd-level-flip';
+        const inner = document.createElement('div');
+        inner.className = 'gd-level-flip-inner';
+        const front = buildLevelCardEl(lvBefore);
+        front.classList.add('lc-front');
+        const back = buildLevelCardEl(lvAfter);
+        back.classList.add('lc-back');
+        inner.appendChild(front); inner.appendChild(back);
+        flip.appendChild(inner);
+        team.appendChild(flip);
+        setTimeout(() => flip.classList.add('flipped'), 600);
+      } else {
+        const flip = document.createElement('div');
+        flip.className = 'gd-level-flip';
+        const inner = document.createElement('div');
+        inner.className = 'gd-level-flip-inner';
+        inner.appendChild(buildLevelCardEl(lvBefore));
+        flip.appendChild(inner);
+        team.appendChild(flip);
+      }
+      return team;
+    }
+    const youBefore = winTeam === 0 ? beforeLabel : youLabel;
+    const youAfter  = winTeam === 0 ? afterLabel  : youLabel;
+    const oppBefore = winTeam === 1 ? beforeLabel : oppLabel;
+    const oppAfter  = winTeam === 1 ? afterLabel  : oppLabel;
+    container.appendChild(makeTeam('你方', youBefore, youAfter, winTeam === 0));
+    container.appendChild(makeTeam('对方', oppBefore, oppAfter, winTeam === 1));
+  }
+
   function showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon) {
     const seatToRank = {};
     for (let i = 0; i < 4; i++) seatToRank[ranking[i]] = i + 1;
@@ -3031,6 +3100,9 @@
     // 玩家卡：0+2 = 你方；1+3 = 对方
     renderResultTeamPlayers(els.roundPlayersYou, [0, 2], seatToRank);
     renderResultTeamPlayers(els.roundPlayersOpp, [1, 3], seatToRank);
+
+    // 级牌翻牌动画
+    renderLevelCards(els.roundLevelCards, youLvCurr, oppLvCurr, winTeam, winnerBefore, winnerAfter);
 
     // 分数展示
     if (els.roundScore) {
@@ -3092,6 +3164,13 @@
     for (let i = 0; i < 4; i++) seatToRank[r[i]] = i + 1;
     renderResultTeamPlayers(els.matchPlayersYou, [0, 2], seatToRank);
     renderResultTeamPlayers(els.matchPlayersOpp, [1, 3], seatToRank);
+    // 级牌翻牌：胜方从当前级翻到 A（打过），败方维持当前
+    const youLv = LEVEL_SEQ[state.levels[0]];
+    const oppLv = LEVEL_SEQ[state.levels[1]];
+    const detail = state.lastRoundDetail;
+    const bLabel = detail ? LEVEL_SEQ[detail.beforeIdx] : youLv;
+    const aLabel = detail ? LEVEL_SEQ[detail.newIdx] : youLv;
+    renderLevelCards(els.matchLevelCards, youLv, oppLv, winTeam, bLabel, aLabel);
     // 战绩
     const st = state.stats[state.aiLevel];
     if (youWon) st.w++; else st.l++;
@@ -3962,6 +4041,7 @@
     selectSeg(els.pgoTeamTrib, o.teamTribute ? 'on' : 'off');
     selectSeg(els.pgoScoreCap, String(o.scoreCap));
     selectSeg(els.pgoTurnSec, String(o.turnSec));
+    if (els.pgoCardSize) selectSeg(els.pgoCardSize, String(state.cardSizeMult));
     // 折叠态下显示的一行摘要
     if (els.gameOptsSum) {
       els.gameOptsSum.textContent =
@@ -4004,6 +4084,12 @@
     const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
     state.options.turnSec = parseInt(t.dataset.value, 10) || 0;
     persist(); syncPgoOptions();
+  });
+  if (els.pgoCardSize) els.pgoCardSize.addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
+    state.cardSizeMult = parseFloat(t.dataset.value) || 1;
+    selectSeg(els.pgoCardSize, t.dataset.value);
+    persist(); renderHand();
   });
   // 玩法设置折叠/展开
   if (els.gameOptsToggle) els.gameOptsToggle.addEventListener('click', () => {
