@@ -1151,7 +1151,7 @@
 
     const stackStep = parseFloat(
       getComputedStyle(els.hand).getPropertyValue('--gd-stack-step')
-    ) || 22;
+    ) || 18;
     const cardH = parseFloat(
       getComputedStyle(els.hand).getPropertyValue('--gd-card-h')
     ) || 72;
@@ -1209,7 +1209,7 @@
     const cs = getComputedStyle(hand);
     const defCardW = parseFloat(cs.getPropertyValue('--gd-card-w')) || 50;
     const defCardH = parseFloat(cs.getPropertyValue('--gd-card-h')) || 72;
-    const defStep  = parseFloat(cs.getPropertyValue('--gd-stack-step')) || 22;
+    const defStep  = parseFloat(cs.getPropertyValue('--gd-stack-step')) || 18;
     const gap = parseFloat(cs.getPropertyValue('--gd-col-gap')) || 4;
     const padL = parseFloat(cs.paddingLeft)  || 0;
     const padR = parseFloat(cs.paddingRight) || 0;

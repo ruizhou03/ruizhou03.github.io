@@ -43,7 +43,7 @@ theme_color: "#fafaf9"
     --gs-wrap-half: 440px;
     --gd-card-w: 50px;
     --gd-card-h: 72px;
-    --gd-card-overlap: 26px;   /* 出牌区叠牌露出的左侧窄带：放大点数后留宽 2px，「10」不被邻牌切掉 */
+    --gd-card-overlap: 28px;   /* 出牌区叠牌露出的左侧窄带 */
     --gd-card-mini-w: 34px;
     --gd-card-mini-h: 50px;
     --gd-card-mini-overlap: 20px;
@@ -318,6 +318,16 @@ theme_color: "#fafaf9"
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
   }
+  /* 反重影：非首张卡顶部补一道矩形底条，遮住 border-radius 弧后
+     本该透出的下层花色 pip */
+  .gd-rank-col .gd-card.size-full + .gd-card.size-full::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 7px;
+    background: var(--gd-card-bg);
+    z-index: -1;
+  }
   .gd-card.suit-red { color: var(--gd-suit-red); }
   .gd-card.suit-black { color: var(--gd-suit-black); }
   /* 角标：rank + 花色 水平排列。仿欢乐斗地主——堆叠列里只能看到每张牌顶部
@@ -348,8 +358,8 @@ theme_color: "#fafaf9"
      50px 卡 → rk 14 / su 13 / pip 26（与旧基准一致）；40px 卡 → 11.2 / 10.4 / 20.8。
      这样手牌不论被 adaptHandSize 缩到多大，都跟出牌区的牌「同一套比例」、一样精致。 */
   /* 角标点数（1~K + 大小王的 ★）放大到 0.38 卡宽（50px 卡 → 19px，原 14px），配合上面的
-     lining 数字更醒目。纵向：大写高约 13px + top 3px，仍 < 列内错落（手牌横屏 step24/竖屏 22）；
-     横向：出牌区叠牌露出的左侧窄带也容得下「10」这种两位点数（见下方 --gd-card-overlap）。 */
+     lining 数字更醒目。纵向：大写高约 13px + top 3px，仍 < 列内错落 step 18；
+     横向：出牌区叠牌露出的左侧窄带也容得下「10」这种两位点数（见 --gd-card-overlap）。 */
   /* rank 盒子宽度写死到 0.44 卡宽（刚好容下两位的「10」），花色因此永远从同一 x 起。
      花色（角标 0.26→0.34、中心 0.52→0.62）整体做大一档，更醒目。 */
   .gd-card.size-full .corner .rk { font-size: calc(var(--gd-card-w, 50px) * 0.38); width: calc(var(--gd-card-w, 50px) * 0.44); }
@@ -422,7 +432,7 @@ theme_color: "#fafaf9"
      列横向并排（手牌多于屏宽时可滚）。长按某列可以拖到新位置，自定义理牌顺序；
      单击/拖选则照常多选。 */
   .gd-hand {
-    --gd-stack-step: 22px;       /* 列内每张牌的纵向偏移 */
+    --gd-stack-step: 18px;       /* 列内每张牌的纵向偏移：仅露出 rank+suit 窄带 */
     --gd-col-gap: 4px;           /* 列之间的横向间距 */
     display: flex; flex-wrap: nowrap;
     align-items: flex-start;
@@ -1472,7 +1482,7 @@ theme_color: "#fafaf9"
     .guandan-wrap {
       --gd-card-w: 40px;
       --gd-card-h: 58px;
-      --gd-card-overlap: 23px;
+      --gd-card-overlap: 24px;
       --gd-card-mini-w: 28px;
       --gd-card-mini-h: 41px;
       --gd-card-mini-overlap: 17px;
@@ -1496,7 +1506,7 @@ theme_color: "#fafaf9"
     .gd-sort-actions .gd-btn { min-width: 0; background: var(--color-bg); }
   }
   @media (max-width: 380px) {
-    .guandan-wrap { --gd-card-w: 34px; --gd-card-h: 50px; --gd-card-overlap: 20px; }
+    .guandan-wrap { --gd-card-w: 34px; --gd-card-h: 50px; --gd-card-overlap: 21px; }
   }
 
   .gd-toast {
@@ -2155,6 +2165,14 @@ theme_color: "#fafaf9"
             <button class="gs-pgo-mode-tab" data-value="hard">🔥 高手</button>
           </div>
 
+          <div class="gd-pgo-label">手牌大小</div>
+          <div class="gs-pgo-mode-picker" id="gdPgoCardSize">
+            <button class="gs-pgo-mode-tab" data-value="0.85" type="button">小</button>
+            <button class="gs-pgo-mode-tab selected" data-value="1" type="button">中</button>
+            <button class="gs-pgo-mode-tab" data-value="1.25" type="button">大</button>
+            <button class="gs-pgo-mode-tab" data-value="1.5" type="button">特大</button>
+          </div>
+
           <!-- 玩法设置：默认折叠，单机 + 联机「创建房间」共用（JS 把它在两处间搬移）。
                同队进贡 / 单局积分上限 / 出牌时间；联机创建房间时随 config 同步给全房。 -->
           <div class="gd-gameopts" id="gdGameOpts">
@@ -2176,13 +2194,6 @@ theme_color: "#fafaf9"
                 <button class="gs-pgo-mode-tab" data-value="3" type="button">3</button>
                 <button class="gs-pgo-mode-tab" data-value="5" type="button">5</button>
                 <button class="gs-pgo-mode-tab" data-value="8" type="button">8</button>
-              </div>
-              <div class="gd-pgo-label">手牌大小</div>
-              <div class="gs-pgo-mode-picker" id="gdPgoCardSize">
-                <button class="gs-pgo-mode-tab" data-value="0.85" type="button">小</button>
-                <button class="gs-pgo-mode-tab selected" data-value="1" type="button">中</button>
-                <button class="gs-pgo-mode-tab" data-value="1.25" type="button">大</button>
-                <button class="gs-pgo-mode-tab" data-value="1.5" type="button">特大</button>
               </div>
               <div class="gd-pgo-label">出牌时间</div>
               <div class="gs-pgo-mode-picker" id="gdPgoTurnSec">
