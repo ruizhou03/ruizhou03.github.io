@@ -1,0 +1,37 @@
+\begin{tikzpicture}[scale=1.0]
+  \def\yV{8}\def\yH{4.2}        % steep (no-inflation) line, intercepts y, y
+  \def\flatV{5.5}\def\flatH{7.4}% flat (inflation) line, intercepts y/z+a, y+za
+  \pgfmathsetmacro{\mg}{\yV/\yH}
+  \pgfmathsetmacro{\mb}{\flatV/\flatH}
+  \pgfmathsetmacro{\cx}{(\yV-\flatV)/(\mg-\mb)}  % crossing c1*
+  \pgfmathsetmacro{\cy}{\yV-\mg*\cx}              % c2*
+  \pgfmathsetmacro{\rhoB}{\mb*\cx/\cy}            % lower curve tangent to flat line at crossing
+  \pgfmathsetmacro{\KB}{\cy*pow(\cx,\rhoB)}
+  \pgfmathsetmacro{\Ax}{1.5}                       % A on the steep line
+  \pgfmathsetmacro{\Ay}{\yV-\mg*\Ax}
+  \pgfmathsetmacro{\rhoA}{\mg*\Ax/\Ay}            % higher curve tangent to steep line at A
+  \pgfmathsetmacro{\KA}{\Ay*pow(\Ax,\rhoA)}
+  % axes
+  \draw[-Latex] (0,0) -- (8.4,0) node[right] {$c_1$};
+  \draw[-Latex] (0,0) -- (0,8.8) node[above] {$c_2$};
+  % budget lines (black; steep thick, flat thin)
+  \draw[line width=1.4pt] (0,\yV) -- (\yH,0);
+  \draw[thick] (0,\flatV) -- (\flatH,0);
+  % indifference curves
+  \draw[semithick,smooth,samples=140,domain=0.95:7.9] plot (\x,{\KB*pow(\x,-\rhoB)});
+  \draw[semithick,smooth,samples=140,domain=0.70:6.6] plot (\x,{\KA*pow(\x,-\rhoA)});
+  \node at (5.05,3.25) {$U^{1}$};
+  % equilibrium + A
+  \fill (\cx,\cy) circle (1.4pt);
+  \draw[densely dashed] (\cx,0) -- (\cx,\cy) -- (0,\cy);
+  \fill (\Ax,\Ay) circle (1.4pt);
+  \node[above right=-1pt and 1pt] at (\Ax,\Ay) {$A$};
+  % labels
+  \node[left] at (0,\yV)   {$y$};
+  \node[left] at (0,\flatV){$\dfrac{y}{z}+a$};
+  \node[below] at (\yH,-0.05)  {$y$};
+  \node[below] at (\flatH,-0.05) {$y+za$};
+  \node[left]  at (0,\cy)  {$c_2^{*}$};
+  \node[below] at (\cx,-0.05) {$c_1^{*}$};
+  \node[anchor=west] at (5.05,1.95) {$y+\left[\dfrac{v_t}{v_{t+1}}\right]a = y+za$};
+\end{tikzpicture}

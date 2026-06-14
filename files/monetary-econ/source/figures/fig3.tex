@@ -1,0 +1,36 @@
+\begin{tikzpicture}[scale=1.0]
+  % budget line: (0,4.6) -> (8.4,0)
+  \def\BV{4.6}\def\BX{8.4}
+  \pgfmathsetmacro{\m}{\BV/\BX}
+  \def\cx{3.0}                                   % c1*
+  \pgfmathsetmacro{\cy}{\BV-\m*\cx}              % c2* on the line
+  \pgfmathsetmacro{\rho}{\m*\cx/\cy}             % tangency exponent
+  \pgfmathsetmacro{\K}{\cy*pow(\cx,\rho)}
+  % axes
+  \draw[thick,-Latex] (0,0) -- (0,8.6) node[above] {$c_2$};
+  \draw[thick,-Latex] (0,0) -- (10.2,0) node[right] {$c_1$};
+  % budget line
+  \draw[thick] (0,\BV) -- (\BX,0);
+  % indifference curve U^0, tangent to the budget line at (c1*,c2*)
+  \draw[semithick,domain=1.35:9.4,smooth,variable=\x,samples=160]
+        plot (\x,{\K*pow(\x,-\rho)});
+  \node at (8.2,2.55) {$U^{0}$};
+  % vertical ticks y and y+a
+  \draw (-0.10,5.9) -- (0.10,5.9); \node[left] at (-0.12,5.9) {$y$};
+  \draw (-0.10,7.1) -- (0.10,7.1); \node[left] at (-0.12,7.1) {$y+a$};
+  % budget vertical-intercept algebraic label
+  \node[left] at (-0.12,\BV) {$\left[\dfrac{v_{t+1}}{v_t}\right] y + a = \dfrac{y}{z} + a$};
+  % equilibrium guides
+  \fill (\cx,\cy) circle (1.4pt);
+  \draw[densely dotted] (\cx,\cy) -- (\cx,0);
+  \draw[densely dotted] (\cx,\cy) -- (0,\cy);
+  \node[left] at (0,\cy) {$c_2^{*}$};
+  % horizontal ticks c1* and y
+  \draw (\cx,-0.10) -- (\cx,0.10); \node[below] at (\cx,-0.12) {$c_1^{*}$};
+  \draw (4.7,-0.10) -- (4.7,0.10); \node[below] at (4.7,-0.12) {$y$};
+  % budget horizontal-intercept algebraic label
+  \node[below right] at (8.0,-0.15) {$y+\left[\dfrac{v_t}{v_{t+1}}\right] a = y + z a$};
+  % brace: real money demand from c1* to y
+  \draw[decorate,decoration={brace,amplitude=6pt,mirror}] (\cx,-0.65) -- (4.7,-0.65);
+  \node[below] at ({(\cx+4.7)/2},-0.78) {\itshape Real money demand};
+\end{tikzpicture}

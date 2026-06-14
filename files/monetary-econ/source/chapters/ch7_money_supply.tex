@@ -1,0 +1,354 @@
+% !TEX root = ../main.tex
+\chapter{The Money Supply Process}
+\label{ch:money-supply}
+
+The previous chapter described the central bank as an institution---who sits on its board, how independent it is, who pulls the lever. This chapter asks the mechanical question that the institutional account left open: when the central bank decides to change the quantity of money, how does it actually do so? The abstract growth factor $z$ of the inflation model in Chapter~\ref{ch:inflation} has to be implemented through real transactions on a real balance sheet, and the quantity of money the public ends up holding is not chosen by the central bank alone.
+
+In fact three sets of actors jointly determine the money supply: the central bank (in the United States, the Federal Reserve System, or ``the Fed''), the commercial banks that take deposits and make loans, and the depositors who decide how much of their money to hold as cash rather than as bank deposits. We proceed in two stages. First we follow the Fed's own balance sheet and show how open market operations and discount loans change the \emph{monetary base}---the raw material of the money supply. Then we show how the banking system multiplies that base into a much larger stock of money, and how the behavior of banks and depositors modifies the size of the multiplier. The recurring theme is that the Fed controls the base tightly but the multiplier only loosely, so the final money supply is the product of decisions made by all three players.
+
+\section{The Players and the Factors}
+
+\state{Three players in the money supply process}{
+\begin{enumerate}
+    \item \textbf{The central bank}---the Federal Reserve System (the Fed)---which conducts monetary policy.
+    \item \textbf{Banks}---depository institutions, i.e.\ financial intermediaries that take deposits and make loans.
+    \item \textbf{Depositors}---individuals and institutions that hold deposits at, and currency issued through, the banking system.
+\end{enumerate}
+}
+
+The Fed can change the money supply through two principal channels, plus a handful of secondary ones.
+
+The two principal factors are \emph{open market operations}---the Fed's purchase or sale of securities in the open market---and \emph{loans to financial institutions}, the discount loans the Fed extends to banks. Both, as we will see, inject reserves into or drain reserves out of the banking system.
+
+Several \emph{other factors} also move the money supply, though they are not deliberate policy instruments:
+\begin{itemize}
+    \item \emph{float}---reserves created temporarily in the check-clearing process;
+    \item \emph{Treasury deposits at the Fed}---when the Treasury moves balances into its account at the Fed, reserves leave the banking system;
+    \item \emph{interventions in the foreign exchange market}---which, under a broad definition, are simply open market operations conducted in foreign rather than domestic assets.
+\end{itemize}
+
+\section{The Fed's Balance Sheet}
+
+Everything the Fed does to the money supply shows up on its balance sheet, so it pays to fix that balance sheet first. In its simplest form it has two assets and two liabilities.
+
+\begin{table}[h]
+\centering
+\caption{The Fed's balance sheet in simplified form.}
+\label{tab:money-fed-balance-sheet}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Assets} & \textbf{Liabilities} \\
+\midrule
+Securities & Currency in circulation \\
+Loans to financial institutions & Reserves \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\defn{The Monetary Base}{
+The \emph{monetary base} (also called high-powered money) is the sum of the Fed's monetary liabilities:
+\[
+MB = C + R,
+\]
+where $C$ is currency in circulation---cash in the hands of the public---and $R$ is reserves---bank deposits held at the Fed plus vault cash. The monetary base is the raw material out of which the banking system creates the broader money supply.
+}
+
+The two liability items are worth distinguishing carefully, because only changes in them move the base.
+\begin{itemize}
+    \item \textbf{Currency in circulation} is currency in the hands of the public. (Currency still sitting in the Fed's or banks' own vaults is not ``in circulation.'')
+    \item \textbf{Reserves} are banks' deposits at the Fed together with their vault cash. Reserves are an asset of the banks but a liability of the Fed.
+\end{itemize}
+On the asset side:
+\begin{itemize}
+    \item \textbf{Government securities} are the Fed's holdings of (chiefly U.S.\ Treasury) bonds. Buying and selling them is how the Fed changes the money supply, and they earn the Fed interest along the way.
+    \item \textbf{Discount loans} are the loans the Fed makes to banks. They supply reserves to the banking system and earn the Fed the discount rate.
+\end{itemize}
+
+\rmkb[The Fed and the PBoC compared]{The same two-sided logic describes any central bank, but the dominant entries differ across countries. For the People's Bank of China (PBoC), the major asset items are \emph{foreign exchange} and \emph{claims on other depository corporations}, and the major liability item is \emph{reserve money}. For the Fed, the major assets are \emph{U.S.\ Treasury securities} and \emph{agency mortgage-backed securities (MBS)}, and the major monetary liability is \emph{deposits held by depository institutions} (other than term deposits). That foreign exchange looms so large on the PBoC's books, but barely figures on the Fed's, reflects the very intervention mechanics discussed in Chapter~\ref{ch:international}.}
+
+\section{Open Market Purchases}
+
+We now trace, step by step, what an open market purchase does to reserves and to the monetary base. To keep the bookkeeping transparent we follow a single purchase of \$100 million of securities, and---until we reach the multiplier---we assume a $100\%$ required reserve ratio. The crucial lesson is that the effect on \emph{reserves} depends on who sells the bonds and what they do with the proceeds, whereas the effect on the \emph{monetary base} does not.
+
+\subsection{Purchase from a Bank}
+
+Suppose the Fed buys \$100 million of securities directly from a bank. The bank gives up securities and receives reserves; the Fed acquires securities and creates the reserves to pay for them. The two balance-sheet changes are shown below (T-accounts record only the \emph{changes}, so each side need not list every item).
+
+\begin{table}[h]
+\centering
+\caption{Open market purchase from a bank: changes in T-accounts.}
+\label{tab:money-omo-bank}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\multicolumn{4}{@{}l}{\textbf{Federal Reserve System}}\\
+\midrule
+\textbf{Assets} & & \textbf{Liabilities} & \\
+\midrule
+Securities & $+\$100\text{m}$ & Reserves & $+\$100\text{m}$ \\
+\bottomrule
+\end{tabular}
+
+\vspace{1em}
+
+\begin{tabular}{@{}llll@{}}
+\toprule
+\multicolumn{4}{@{}l}{\textbf{Banking System}}\\
+\midrule
+\textbf{Assets} & & \textbf{Liabilities} & \\
+\midrule
+Securities & $-\$100\text{m}$ & & \\
+Reserves & $+\$100\text{m}$ & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The net result is that reserves rise by \$100 million, and therefore the monetary base rises by \$100 million, with \emph{no} change in currency. The Fed has simply swapped an asset (securities) for a newly created liability (reserves).
+
+\subsection{Purchase from the Nonbank Public}
+
+Now suppose the Fed buys the securities not from a bank but from a member of the nonbank public---a household or a firm. The outcome now turns on what the seller does with the Fed's check.
+
+\subsubsection*{Case 1: the seller deposits the check in a bank}
+
+If the seller deposits the Fed's check into a checking account, the funds re-enter the banking system. Tracing the three balance sheets:
+
+\begin{table}[h]
+\centering
+\caption{Open market purchase from the public, proceeds deposited: changes in T-accounts.}
+\label{tab:money-omo-public-deposit}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\multicolumn{4}{@{}l}{\textbf{Nonbank Public}}\\
+\midrule
+\textbf{Assets} & & \textbf{Liabilities} & \\
+\midrule
+Securities & $-\$100\text{m}$ & & \\
+Checkable deposits & $+\$100\text{m}$ & & \\
+\bottomrule
+\end{tabular}
+
+\vspace{1em}
+
+\begin{tabular}{@{}llll@{}}
+\toprule
+\multicolumn{4}{@{}l}{\textbf{Banking System}}\\
+\midrule
+\textbf{Assets} & & \textbf{Liabilities} & \\
+\midrule
+Reserves & $+\$100\text{m}$ & Checkable deposits & $+\$100\text{m}$ \\
+\bottomrule
+\end{tabular}
+
+\vspace{1em}
+
+\begin{tabular}{@{}llll@{}}
+\toprule
+\multicolumn{4}{@{}l}{\textbf{Federal Reserve System}}\\
+\midrule
+\textbf{Assets} & & \textbf{Liabilities} & \\
+\midrule
+Securities & $+\$100\text{m}$ & Reserves & $+\$100\text{m}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The effect on the Fed's balance sheet, and hence on reserves and the monetary base, is \emph{identical} to the purchase from a bank: reserves and the base each rise by \$100 million.
+
+\subsubsection*{Case 2: the seller cashes the check}
+
+If instead the seller cashes the Fed's check and walks away with currency, the proceeds never enter the banking system.
+
+\begin{table}[h]
+\centering
+\caption{Open market purchase from the public, proceeds taken as cash: changes in T-accounts.}
+\label{tab:money-omo-public-cash}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\multicolumn{4}{@{}l}{\textbf{Nonbank Public}}\\
+\midrule
+\textbf{Assets} & & \textbf{Liabilities} & \\
+\midrule
+Securities & $-\$100\text{m}$ & & \\
+Currency & $+\$100\text{m}$ & & \\
+\bottomrule
+\end{tabular}
+
+\vspace{1em}
+
+\begin{tabular}{@{}llll@{}}
+\toprule
+\multicolumn{4}{@{}l}{\textbf{Federal Reserve System}}\\
+\midrule
+\textbf{Assets} & & \textbf{Liabilities} & \\
+\midrule
+Securities & $+\$100\text{m}$ & Currency in circulation & $+\$100\text{m}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Now reserves are unchanged. Instead currency in circulation rises by the amount of the purchase. The monetary base still increases by the full \$100 million---but as currency rather than as reserves.
+
+\subsection{Summary of Open Market Purchases}
+
+\state{Open market purchases and the monetary base}{
+\begin{itemize}
+    \item The effect of an open market purchase on \textbf{reserves} depends on whether the seller of the bonds keeps the proceeds in deposits (reserves rise) or in currency (reserves unchanged).
+    \item The effect of an open market purchase on the \textbf{monetary base} is the same regardless: the base always rises by the full amount of the purchase.
+\end{itemize}
+}
+
+The asymmetry matters because, as the next section shows, only \emph{reserves} feed the multiple expansion of deposits. Currency held by the public adds to the base dollar for dollar but is not multiplied.
+
+\section{Loans to Financial Institutions}
+
+The second principal factor is the discount loan. When the Fed lends \$100 million to a bank, it credits the bank's reserve account and records a loan as its own asset; the bank gains reserves and records a corresponding borrowing.
+
+\begin{table}[h]
+\centering
+\caption{A discount loan from the Fed: changes in T-accounts.}
+\label{tab:money-discount-loan}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\multicolumn{4}{@{}l}{\textbf{Banking System}}\\
+\midrule
+\textbf{Assets} & & \textbf{Liabilities} & \\
+\midrule
+Reserves & $+\$100\text{m}$ & Loans (borrowing from Fed) & $+\$100\text{m}$ \\
+\bottomrule
+\end{tabular}
+
+\vspace{1em}
+
+\begin{tabular}{@{}llll@{}}
+\toprule
+\multicolumn{4}{@{}l}{\textbf{Federal Reserve System}}\\
+\midrule
+\textbf{Assets} & & \textbf{Liabilities} & \\
+\midrule
+Loans (borrowing from Fed) & $+\$100\text{m}$ & Reserves & $+\$100\text{m}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The monetary liabilities of the Fed have risen by \$100 million, so the monetary base rises by the same amount. The mechanics are parallel to an open market purchase: a new Fed asset (the loan, rather than securities) is matched by newly created reserves.
+
+\section{Multiple Deposit Creation}
+
+We have seen how the Fed changes the monetary base. We now turn to how the banking system turns a given base into a much larger money supply. Before building the model it is worth being clear about the limits of the Fed's control.
+
+\state{How tightly does the Fed control the base?}{
+Open market operations are firmly controlled by the Fed. Discount loans are \emph{not}: the Fed sets the discount rate, but it cannot dictate how much banks choose to borrow. It is therefore useful to split the base into a part the Fed controls and a part it does not,
+\[
+MB_n = MB - BR,
+\]
+where $BR$ is borrowed reserves (discount loans outstanding) and $MB_n$ is the \emph{nonborrowed monetary base}. The money supply is positively related both to the nonborrowed base $MB_n$ and to borrowed reserves $BR$.
+}
+
+\rmkb[Structural monetary policy]{The distinction is sharper in some systems than others. China's frequent use of \emph{structural} monetary policy means that a large share of base money is supplied through targeted lending facilities whose volume is steered by government policy guidance rather than left to banks' discretion---closer in spirit to a controllable $BR$ than the U.S.\ arrangement assumes.}
+
+\subsection{The Simple Model}
+
+Start from the most idealized case: banks hold no excess reserves, and the public holds no currency. Then every dollar of reserves is held only because it is required against deposits, so total reserves $R$ equal required reserves $RR$:
+\[
+RR = R.
+\]
+Required reserves are, by definition, the required reserve ratio $r$ times the stock of checkable deposits $D$. Setting required reserves equal to total reserves and solving for deposits,
+\[
+\ba
+r \cdot D &= R \\
+\Longrightarrow\quad D &= \frac{1}{r}\, R \\
+\Longrightarrow\quad \Delta D &= \frac{1}{r}\, \Delta R.
+\ea
+\]
+A \$1 increase in reserves supports a $1/r$ increase in deposits. With a $10\%$ reserve ratio, for instance, each extra dollar of reserves can support ten dollars of deposits: the banking system multiplies reserves into money.
+
+\rmkb[Critique of the simple model]{The simple model overstates the multiplier because it ignores every leakage that stops the expansion short:
+\begin{itemize}
+    \item \textbf{Currency drains.} Whenever the public chooses to hold proceeds as cash rather than as deposits, those dollars leave the banking system; currency undergoes no multiple expansion.
+    \item \textbf{Excess reserves.} Banks need not lend out every spare dollar; reserves a bank chooses to hold above the requirement are not relent and do not create new deposits.
+    \item \textbf{Behavior matters.} Depositors' decisions about how much currency to hold, and banks' decisions about how many excess reserves to keep, therefore move the money supply independently of the Fed.
+\end{itemize}
+The advanced model puts these leakages in explicitly.}
+
+\subsection{The Advanced Model}
+
+The full picture has all three players acting. Before the algebra, it helps to collect the comparative statics: which variable each player controls, and which way the money supply moves when that variable rises.
+
+\begin{table}[h]
+\centering
+\caption{Factors determining the money supply.}
+\label{tab:money-factors}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}llccp{4.6cm}@{}}
+\toprule
+\textbf{Player} & \textbf{Variable} & \textbf{Change} & \textbf{$M$ response} & \textbf{Reason} \\
+\midrule
+Federal Reserve & Nonborrowed base $MB_n$ & $\uparrow$ & $\uparrow$ & More base for deposit creation \\
+                & Required reserve ratio $r$ & $\uparrow$ & $\downarrow$ & Less multiple deposit expansion \\
+\midrule
+Banks           & Borrowed reserves $BR$ & $\uparrow$ & $\uparrow$ & More base for deposit creation \\
+                & Excess reserves & $\uparrow$ & $\downarrow$ & Fewer loans and less deposit creation \\
+\midrule
+Depositors      & Currency holdings & $\uparrow$ & $\downarrow$ & Less multiple deposit expansion \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We now derive the multiplier that delivers these signs. Define money as currency plus checkable deposits---the monetary aggregate $M_1$---and link the money supply $M$ to the monetary base $MB$ through the \emph{money multiplier} $m$:
+\[
+M = m \times MB.
+\]
+In the idealized environment of the simple model, $m = 1/r$. To go beyond it, we let the public's desired currency holdings and the banks' desired excess reserves both grow in proportion to deposits.
+
+\defn{Currency and excess-reserve ratios}{
+Let $C$ be currency held by the public and $ER$ excess reserves held by banks. Assuming both grow proportionally with checkable deposits $D$, define the \emph{currency ratio} and the \emph{excess-reserve ratio} as
+\[
+c \equiv \frac{C}{D}, \qquad e \equiv \frac{ER}{D}.
+\]
+The ratio $c$ summarizes depositor behavior; $e$ summarizes bank behavior; the required reserve ratio $r$ is the Fed's instrument.
+}
+
+Total reserves are required reserves plus excess reserves, and required reserves are $r$ times deposits, so
+\[
+\ba
+R &= RR + ER \\
+  &= r\cdot D + e\cdot D \\
+  &= (r + e)\cdot D.
+\ea
+\]
+The monetary base is currency plus reserves:
+\[
+\ba
+MB &= C + R \\
+   &= c\cdot D + (r+e)\cdot D \\
+   &= (c + r + e)\cdot D.
+\ea
+\]
+This expression says exactly how much base is needed to support the existing stock of deposits, currency, and excess reserves. Inverting it gives deposits as a function of the base, $D = MB / (c+r+e)$.
+
+The total money supply is currency plus deposits, $M = C + D = (1+c)\,D$. Substituting for $D$,
+\[
+\ba
+M &= C + D \\
+  &= (1+c)\cdot D \\
+  &= (1+c)\cdot \frac{MB}{c+r+e} \\
+  &= \frac{1+c}{c+r+e}\cdot MB.
+\ea
+\]
+Comparing with $M = m\cdot MB$ identifies the multiplier.
+
+\thm{The money multiplier}{
+With a currency ratio $c$, an excess-reserve ratio $e$, and a required reserve ratio $r$, the money multiplier is
+\[
+m = \frac{1+c}{c+r+e}.
+\]
+The money supply is $M = m\cdot MB$.
+}
+
+The formula reproduces every sign in Table~\ref{tab:money-factors}. A higher required reserve ratio $r$ or a higher excess-reserve ratio $e$ enlarges the denominator and shrinks the multiplier; a higher currency ratio $c$ also shrinks it, because $c$ enters the denominator more heavily than the numerator (currency is base that does not get multiplied). Raising the base $MB$---whether through the nonborrowed base or through borrowed reserves---raises $M$ proportionally.
+
+\rmkb[Recovering the simple model]{Set $c = e = 0$: the public holds no currency and banks hold no excess reserves. Then
+\[
+m = \frac{1+0}{0+r+0} = \frac{1}{r},
+\]
+exactly the simple-model multiplier. The advanced model is thus the simple model with two leakages---currency and excess reserves---restored. It makes precise the earlier point that the Fed controls the base far more tightly than it controls the multiplier: $MB_n$ is the Fed's lever, but $c$ belongs to depositors and $e$ to banks, so the final money supply is the joint product of all three players' decisions.}

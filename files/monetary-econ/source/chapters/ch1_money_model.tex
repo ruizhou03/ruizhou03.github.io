@@ -1,0 +1,201 @@
+% !TEX root = ../main.tex
+\chapter{A Simple Model of Money}
+\label{ch:money-model}
+
+Money is strange among the objects economists study. We want bread because eating it gives us utility, and we want a coat because wearing it keeps us warm; the demand for an ordinary good is a demand for the good itself. Money is different. Nobody eats a banknote or wears a coin. We hold money not for its own sake but because it lets us obtain the things we actually want to consume. In the standard threefold description, money serves as a \emph{medium of exchange}, a \emph{unit of account}, and a \emph{store of value}; this chapter takes the first of these as the point of departure and builds the smallest model in which money does something useful.
+
+The model is an overlapping-generations (OLG) economy in which each person is endowed with goods only when young but wishes to consume when old. The economic problem is therefore one of transferring consumption forward in time, from the young to their older selves. We solve it twice. First a benevolent planner allocates the single good directly; this \emph{centralized} solution defines what an efficient outcome looks like --- the golden-rule allocation. Then we let people trade on their own, first through bilateral transfers backed by perfect record-keeping and then through intrinsically worthless fiat money. The central result is that money, by serving as a record of past contributions, lets the \emph{decentralized} economy reproduce exactly the planner's allocation. In a slogan that organizes the rest of the chapter: money is memory.
+
+\section{Overlapping Generations Model}
+
+\subsection{Assumptions}
+
+The environment is deliberately spare. Time runs in discrete periods $t = 1, 2, \dots$, without end, and the economy is populated by successive generations whose lives overlap.
+
+\begin{itemize}
+    \item Each individual lives for exactly two periods. She is \emph{young} in the first period of her life and \emph{old} in the second.
+    \item There is a single consumption good, and it is \emph{nonstorable}: a unit produced in period $t$ that is not consumed in period $t$ simply perishes.
+    \item The young are endowed with $y$ units of the good; the old receive no endowment.
+    \item The economy continues for infinitely many periods.
+\end{itemize}
+
+The infinite horizon is not a technical convenience but the heart of the matter. If the economy were known to end at some finite date, the last generation of young would have no reason to give anything to the old --- there would be no future selves to reward them for it --- and the logic would unravel backward to the present. With no last period, every young generation can be induced to provide for the old in the expectation of receiving the same treatment in turn. We will return to this point repeatedly.
+
+\subsection{Centralized Solution}
+
+Consider first an all-knowing, benevolent planner who allocates the good directly. Let $N_t$ denote the size of the young generation born in period $t$, and write $c_{1,t}$ for the consumption of a young person and $c_{2,t}$ for that of an old person in period $t$. The only goods available in period $t$ are the endowments of the current young, since the good cannot be stored and the old produce nothing. The economy's resource constraint in period $t$ is therefore
+\[
+N_t\, c_{1,t} + N_{t-1}\, c_{2,t} \le N_t\, y,
+\]
+which says that the total consumption of the young and the old alive at $t$ cannot exceed the total endowment of the current young.
+
+We focus throughout on \emph{stationary} allocations, in which a constant population $N_t = N$ for all $t$ consumes the same bundle every period. Dividing the resource constraint by $N$, the stationary feasible set collapses to
+\begin{equation}
+c_1 + c_2 \le y.
+\label{eq:money-feasible}
+\end{equation}
+A useful way to read \eqref{eq:money-feasible} is as a lifetime budget for a representative individual: whatever she consumes when young plus whatever she consumes when old must, in a stationary economy, be covered by her single endowment $y$.
+
+One generation sits outside this logic: the \emph{initial old}, who are old in period $1$ and were never young inside the model. A purely selfish initial old generation would want to consume as much as possible, taking $c_{2,1}$ up to $y$ and leaving nothing for intergenerational arrangements to build on. If instead the initial old place some weight on future generations --- or if the planner does --- the difficulty disappears, and we may treat every generation symmetrically.
+
+The planner chooses the stationary bundle $(c_1, c_2)$ on the frontier $c_1 + c_2 = y$ that the representative individual most prefers. Geometrically, this is the point at which an indifference curve is tangent to the feasible line, illustrated in Figure~\ref{fig:money-1}.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig1}
+\caption{The golden-rule allocation in the stationary OLG economy: the planner picks the bundle $E=(c_1^*,c_2^*)$ at which an indifference curve is tangent to the feasible line $c_1+c_2=y$; bundles such as $D$ are preferred but infeasible, while feasible bundles such as $B$ and $C$ yield lower utility.}
+\label{fig:money-1}
+\end{figure}
+
+\defn{Golden-Rule Allocation}{
+The \emph{golden-rule allocation} is the stationary bundle $(c_1^*, c_2^*)$ that maximizes the representative individual's utility subject to the stationary feasible set $c_1 + c_2 \le y$. It is the tangency point $E$ between the highest attainable indifference curve and the feasible line, and it is the benchmark against which decentralized outcomes are judged.
+}
+
+In Figure~\ref{fig:money-1}, feasible bundles such as $B$ and $C$ lie on the frontier but on lower indifference curves than $E$, so they deliver less utility; the bundle $D$ lies on a higher indifference curve but outside the feasible set, so it cannot be reached. The golden-rule point $E$ is the best the economy can do.
+
+\subsection{Decentralized Solution}
+
+The planner is a fiction. The real question is whether self-interested individuals, trading on their own, can reproduce the allocation $E$. Suppose markets are perfectly competitive and, for now, that the economy has a perfect record-keeping system, so that every transfer between generations is observed and remembered.
+
+When young, an individual splits her endowment between current consumption and a transfer $\varphi_t$ handed to the current old. When old, she consumes whatever the next young generation transfers to her. Her two budget constraints are
+\[
+\ba
+\text{Young: }\quad & c_{1,t} + \varphi_t \le y,\\
+\text{Old: }\quad & c_{2,t+1} \le \varphi_{t+1}^{R},
+\ea
+\]
+where $\varphi_t$ is a choice variable the young set freely, and $\varphi_{t+1}^{R}$ is the transfer she receives when old, determined by the \emph{next} young generation and so outside her own control. Define the conversion rate $x_{t+1}$ between a unit given up when young and a unit received when old as
+\[
+x_{t+1} = \frac{\varphi_{t+1}^{R}}{\varphi_t}.
+\]
+Solving the old-age constraint for $\varphi_t = \varphi_{t+1}^{R}/x_{t+1} = c_{2,t+1}/x_{t+1}$ at equality and substituting into the youth constraint combines the two into a single lifetime budget,
+\begin{equation}
+c_{1,t} + \frac{c_{2,t+1}}{x_{t+1}} \le c_{1,t} + \varphi_t \le y.
+\label{eq:money-decentral-bc}
+\end{equation}
+
+The conversion rate $x_{t+1}$ is not a free parameter; it is pinned down by market clearing. The transfers received by the old in period $t$ must equal the transfers made by the young in period $t$. The old of period $t$ each carry a claim $\varphi_{t-1}$ from when they were young, redeemable at rate $x_t$, so their total claim --- the demand for resources --- is
+\[
+\ba
+\text{Demand} &= N_{t-1}\, c_{2,t} = N_{t-1}\pr{\varphi_{t-1}\, x_t},\\
+\text{Supply} &= N_t\pr{y - c_{1,t}},
+\ea
+\]
+where the supply is the goods the current young choose not to consume. Equating demand and supply and solving for $x_t$,
+\[
+x_t = \frac{N_t\pr{y - c_{1,t}}}{N_{t-1}\,\varphi_{t-1}}
+    = \frac{N_t\pr{y - c_{1,t}}}{N_{t-1}\pr{y - c_{1,t-1}}},
+\]
+where the last step uses $\varphi_{t-1} = y - c_{1,t-1}$ from the youth budget at equality. In a stationary equilibrium with constant population and constant consumption, $c_{1,t} = c_1$ for all $t$ and $N_{t-1} = N_t = N$, so the numerator and denominator coincide and
+\[
+x_t = 1.
+\]
+With a unit conversion rate, the lifetime budget \eqref{eq:money-decentral-bc} reduces to
+\[
+c_1 + c_2 \le y,
+\]
+which is exactly the planner's feasible set \eqref{eq:money-feasible}. The decentralized economy with perfect records therefore faces precisely the constraint the planner faced, and the two solutions coincide.
+
+\state{When records are perfect, decentralization is free}{
+With a perfect record-keeping system and a stationary, competitive economy, the conversion rate between youth and old-age consumption is $x_t = 1$, and the representative individual's lifetime budget $c_1 + c_2 \le y$ is identical to the planner's feasible set. The decentralized allocation reproduces the golden-rule allocation $E$.
+}
+
+What if records are imperfect? In the centralized economy nothing changes: the planner already knows everything and allocates the good directly. In the decentralized economy, by contrast, the absence of records is fatal. A young person who gives goods to the old today has no way to prove, when she is old, that she ever contributed; the next young generation cannot tell a past contributor from a free rider and has no reason to transfer anything. The only sustainable outcome is \emph{autarky}: no trade between generations, each person consuming only $c_1 = y$ when young and $c_2 = 0$ when old. This is strictly worse than the golden rule. The friction that breaks the decentralized economy is precisely the lack of memory --- which is what fiat money will supply.
+
+\section{Money is Memory}
+
+Instead of transferring goods directly, suppose the government issues an intrinsically useless token --- \emph{fiat money} --- that the young can sell to the old in exchange for goods. We will see that this token does the job that perfect records did, and for the same reason: holding money is evidence of having contributed in the past.
+
+\defn{Fiat Money}{
+\emph{Fiat money} is an object that is
+\begin{itemize}
+    \item provided by the government at no cost,
+    \item storable across periods without cost, and
+    \item fully divisible,
+\end{itemize}
+and that has no intrinsic value --- it yields no utility from consumption and serves no purpose other than as a medium of exchange and store of value.
+}
+
+Suppose the government has issued a fixed stock $M$ of fiat money, and that a representative individual holds $m_t$ units. Let $v_t$ be the real value of one unit of money in period $t$ --- the amount of the consumption good it commands --- and let $p_t$ be the money price of one unit of the good. The two are reciprocals:
+\[
+v_t = \frac{1}{p_t}.
+\]
+
+The young now acquire money by selling some of their endowment, and the old finance their consumption by spending the money they accumulated when young. The budget constraints become
+\[
+\ba
+\text{When young: }\quad & c_{1,t} + v_t\, m_t \le y,\\
+\text{When old: }\quad & c_{2,t+1} \le v_{t+1}\, m_t,\\
+\Longrightarrow\quad & c_{1,t} + \frac{v_t}{v_{t+1}}\, c_{2,t+1} \le y,
+\ea
+\]
+where the third line combines the first two by eliminating $m_t$. The ratio $v_t / v_{t+1}$ is the price at which old-age consumption trades against youth consumption, and it has a clean interpretation.
+
+\defn{Real Return of Money}{
+The \emph{gross real return} on money held from period $t$ to period $t+1$ is $v_{t+1}/v_t$: one unit of money buys $v_t$ goods when young and $v_{t+1}$ goods when old. Its reciprocal $v_t/v_{t+1}$ is therefore the relative price of old-age consumption that appears in the lifetime budget. The \emph{net} real return is $\dfrac{v_{t+1}}{v_t} - 1$.
+}
+
+The value of money is determined by market clearing in the money market. The young supply goods in exchange for money, and the real value of the entire money stock is what the old bring to the market. Demand and supply for goods through the money market are
+\[
+\ba
+\text{Demand} &= N_t\pr{y - c_{1,t}},\\
+\text{Supply} &= v_t\, M_t,\\
+\Longrightarrow\quad v_t &= \frac{N_t\pr{y - c_{1,t}}}{M_t},
+\ea
+\]
+where the money stock $M_t$ is converted to real terms by multiplying by $v_t$. Taking the ratio of this expression across two adjacent periods gives the evolution of the value of money,
+\begin{equation}
+\frac{v_{t+1}}{v_t}
+= \frac{N_{t+1}\pr{y - c_{1,t+1}}}{N_t\pr{y - c_{1,t}}}\cdot\frac{M_t}{M_{t+1}}.
+\label{eq:money-vratio}
+\end{equation}
+Under stationarity with constant population ($N_{t+1} = N_t$) and a fixed money stock ($M_{t+1} = M_t$), every factor on the right-hand side equals one, so the gross real return on money is
+\[
+\frac{v_{t+1}}{v_t} = 1.
+\]
+The lifetime budget then becomes
+\[
+c_1 + c_2 \le y,
+\]
+which once again coincides with the planner's feasible set \eqref{eq:money-feasible}. Fiat money, holding no intrinsic value whatsoever, has reproduced the golden-rule allocation.
+
+The reason it works is exactly the reason perfect records worked. An old person who holds money is, in effect, holding a verifiable record that she gave up goods when young; the young accept her money because they expect to do the same and be repaid in turn. Where the economy without records collapsed into autarky, money allocates resources across generations by serving as a store of value that doubles as a memory of past contributions. This is the sense in which \emph{money is memory}.
+
+\state{Money is memory}{
+Fiat money has no intrinsic worth, yet in the OLG economy it implements the golden-rule allocation that the recordless decentralized economy could not reach. It does so by acting as a portable, verifiable record of past contributions to the previous generation --- it substitutes for the missing record-keeping technology.
+}
+
+It remains to read off the behavior of the price level. Inverting the market-clearing value of money,
+\begin{equation}
+p_t = \frac{1}{v_t} = \frac{M_t}{N_t\pr{y - c_{1,t}}}.
+\label{eq:money-price}
+\end{equation}
+Equation~\eqref{eq:money-price} separates what money does from what money is worth. The real allocation --- how much each individual consumes when young and old --- is determined by preferences and the feasible set and does \emph{not} depend on $M_t$. A larger money stock raises the price level $p_t$ proportionally but leaves the consumption decision untouched. This is the \emph{neutrality} of money.
+
+\rmkb[Neutrality is not uselessness]{Neutrality says that the \emph{quantity} of money affects nominal prices but not the real allocation; doubling $M_t$ doubles $p_t$ and halves $v_t$, leaving every $c$ unchanged. It is easy to misread this as saying money does nothing. It does not say that. The very existence of money is what lets the decentralized economy escape autarky and reach the golden rule in the first place. Money is neutral in its quantity and indispensable in its presence.}
+
+\section{Population Growth}
+
+The stationary case set both the population and the money stock constant. We now relax the first of these and let the population grow geometrically,
+\[
+N_t = n\, N_{t-1}, \qquad n > 1,
+\]
+so that each generation is $n$ times larger than the one before. The money stock is still fixed at $M$.
+
+The resource constraint in period $t$ is unchanged in form: the current young, of whom there are $N_t$, must feed themselves and the $N_{t-1}$ old. In a stationary allocation $c_{1,t} = c_1$ and $c_{2,t} = c_2$ for all $t$, so
+\[
+N_t\, c_1 + N_{t-1}\, c_2 \le N_t\, y
+\quad\Longleftrightarrow\quad
+c_1 + \frac{1}{n}\, c_2 \le y,
+\]
+where the second form divides through by $N_t$ and uses $N_{t-1}/N_t = 1/n$. Population growth relaxes the feasible set: because each old generation is small relative to the young generation supporting it, a given amount of old-age consumption costs the economy less per young person, so the term $c_2$ enters with the discount factor $1/n$.
+
+Turning to the decentralized economy, the value of money evolves according to \eqref{eq:money-vratio} with $M_{t+1} = M_t$ and $N_{t+1} = n N_t$. Under stationary consumption the factor $\pr{y - c_{1,t+1}}/\pr{y - c_{1,t}}$ is one, so the gross real return on money becomes
+\[
+\frac{v_{t+1}}{v_t} = n.
+\]
+Money now \emph{appreciates} in real terms at the population growth rate: a larger young generation arrives each period to buy the fixed money stock from the smaller old generation, bidding up its value. Recall that the lifetime budget is $c_{1,t} + (v_t/v_{t+1})\,c_{2,t+1} \le y$. With $v_{t+1}/v_t = n$ we have $v_t/v_{t+1} = 1/n$, so the stationary lifetime budget becomes
+\[
+c_1 + \frac{1}{n}\, c_2 \le y,
+\]
+which is again identical to the feasible set. The conclusion of the stationary case survives population growth intact: the decentralized monetary economy reproduces the planner's allocation, now along a feasible frontier tilted by the growth factor $n$. Money continues to do the work of memory; growth simply changes the rate at which old-age claims are valued.

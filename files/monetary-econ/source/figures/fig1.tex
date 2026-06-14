@@ -1,0 +1,36 @@
+\begin{tikzpicture}[scale=1.0]
+  % axes
+  \draw[-Latex] (0,0) -- (8.4,0) node[right] {$c_1$};
+  \draw[-Latex] (0,0) -- (0,7.0) node[above] {$c_2$};
+  % feasible line c1+c2=6
+  \draw[line width=1.2pt] (0,6) -- (6,0);
+  \node[left] at (0,6) {$y$};
+  \node[below] at (6,0) {$y$};
+  % innermost indifference curve c1*c2=5 : passes through C=(1,5) and B=(5,1),
+  % crossing the budget line on both sides.
+  \draw[semithick,domain=0.85:5.85,smooth,variable=\x,samples=120]
+        plot ({\x},{5/\x});
+  % middle curve c1*c2=9 : tangent to the line at E=(3,3) (golden rule)
+  \draw[semithick,domain=1.5:6.0,smooth,variable=\x,samples=120]
+        plot ({\x},{9/\x});
+  % outer curve c1*c2=14 : higher utility, infeasible, passes through D=(2.8,5)
+  \draw[semithick,domain=2.0:7.6,smooth,variable=\x,samples=120]
+        plot ({\x},{14/\x});
+  % golden-rule allocation E
+  \fill (3,3) circle (1.6pt);
+  \node[below left=-1pt and 0pt] at (3,3) {$E$};
+  \draw[densely dashed] (3,3) -- (3,0) node[below] {$c_1^*$};
+  \draw[densely dashed] (3,3) -- (0,3) node[left] {$c_2^*$};
+  % points C and B (the two crossings of the innermost curve with the line)
+  \fill (1,5) circle (1.6pt);
+  \node[above right=-1pt and 1pt] at (1,5) {$C$};
+  \fill (5,1) circle (1.6pt);
+  \node[above right=-1pt and 1pt] at (5,1) {$B$};
+  % point D on the outer (unattainable) curve
+  \fill (2.8,5) circle (1.6pt);
+  \node[above right=-1pt and 1pt] at (2.8,5) {$D$};
+  % annotation
+  \node at (6.15,4.55) {The Golden Rule};
+  \node at (6.6,3.95) {Allocation};
+  \draw[-Latex] (5.2,4.2) -- (3.28,3.18);
+\end{tikzpicture}

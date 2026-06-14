@@ -1,0 +1,219 @@
+% !TEX root = ../main.tex
+\chapter{International Monetary Systems}
+\label{ch:international}
+
+So far each economy has had a single fiat money, issued by a single government, whose value was pinned down by the balance between the supply of money and the demand for real balances of its young (Chapters~\ref{ch:money-model} and \ref{ch:inflation}). The world, however, contains many governments, each printing its own currency. The organizing fact of international monetary economics is that these currencies trade for one another at a price: the \emph{exchange rate}. A dollar buys a certain number of yen today and perhaps a different number tomorrow.
+
+This chapter embeds the overlapping-generations model of money into a two-country world and asks what determines that price. We will find that the answer depends sharply on the institutions in place. When citizens may hold only their home currency, each country's money market clears separately and the exchange rate is determined by relative supplies and demands, just as a price should be. The moment we allow people to hold either currency, that determinacy collapses: a single world money market cannot pin down two currency values, and the exchange rate becomes whatever people believe it to be. The rest of the chapter studies why private portfolio diversification cannot anchor the rate, and the institutional devices --- cooperative stabilization and unilateral defense --- through which governments can, tracing who bears the cost of defending a peg.
+
+\section{International Exchange}
+
+To study these questions we extend the overlapping-generations setup of Chapter~\ref{ch:money-model} to two countries, labeled $a$ and $b$, each issuing its own fiat money. People live two-period lives in overlapping generations: they are endowed with goods when young, receive nothing when old, yet wish to consume in both periods. The two countries produce the \emph{same} good --- a unit of the good in country $a$ is indistinguishable from a unit in country $b$ --- and people are indifferent to where the goods they buy were produced. We use superscripts $a$ and $b$ to tag the parameters and variables of each country. As before, all changes in a country's fiat money stock are used to buy goods for its government, and we assume free international trade in goods.
+
+The two monies can be traded at the exchange rate $e_t$, defined as the number of units of country $b$ money that one unit of country $a$ money buys.
+
+\defn{Exchange Rate}{
+The \emph{exchange rate} $e_t$ is the units of country $b$ money purchased with one unit of country $a$ money. Taking country $a$ to be the United States and country $b$ to be Japan,
+\[
+e_t = \frac{\text{Japanese yen}}{\text{U.S.\ dollar}},
+\]
+the number of yen per dollar --- equivalently, the number of yen a dollar can buy.
+}
+
+By definition, the owner of one unit of country $a$ money at time $t$ can buy $v_t^a$ goods with it, and the owner of one unit of country $b$ money can buy $v_t^b$ goods. When people are free to trade currencies at the rate $e_t$, the holder of a unit of country $a$ money has two options: buy $v_t^a$ goods directly, or first trade the unit for $e_t$ units of country $b$ money and then buy $e_t v_t^b$ goods. The same comparison, reversed, faces a holder of country $b$ money. Holders of both monies are indifferent between their two options --- and arbitrage leaves no profit on the table --- if and only if the two routes deliver the same goods:
+\[
+v_t^a = e_t\, v_t^b
+\qquad\Longleftrightarrow\qquad
+e_t = \frac{v_t^a}{v_t^b} \left(= \frac{p_t^b}{p_t^a}\right).
+\]
+This is the \emph{Law of One Price}: the exchange rate equals the ratio of the goods-values of the two monies, or equivalently the ratio of the two countries' price levels.
+
+\defn{Law of One Price}{
+With free trade in goods and currencies, the exchange rate is the ratio of the real values of the two monies,
+\[
+e_t = \frac{v_t^a}{v_t^b} = \frac{p_t^b}{p_t^a},
+\]
+so that one unit of country $a$ money buys the same quantity of goods whether spent at home or converted and spent abroad.
+}
+
+We now ask how this exchange rate behaves under alternative international monetary arrangements. Two polar cases organize the discussion: one in which young people are constrained to hold only the money of their home country, and one in which young people may hold any country's currency.
+
+\section{Foreign Currency Controls}
+
+Under \emph{foreign currency controls}, the citizens of each country are permitted to carry over time only the fiat money of their own country. These controls do not forbid trade between the two countries: young people simply do not migrate, while an old citizen who wishes to buy foreign goods may travel abroad, exchange his money, and make the purchase. There is a single consumption good in the world. The decisive consequence of foreign currency controls is that each country now has its own, self-contained money supply and demand, which independently determine the value of its fiat money. The two money-market-clearing conditions are
+\[
+\ba
+v_t^a M_t^a &= N_t^a\!\left(y^a - c_{1,t}^a\right),\\
+v_t^b M_t^b &= N_t^b\!\left(y^b - c_{1,t}^b\right),
+\ea
+\]
+each saying that the real value of a country's money stock equals the real balances its young generation wishes to hold (their endowment $y$ net of first-period consumption $c_1$, summed over the $N_t$ young).
+
+In the absence of market frictions, competition forces the price of the good to be equal across countries. Applying the Law of One Price, the exchange rate is therefore
+\[
+e_t = \frac{v_t^a}{v_t^b}
+= \frac{\;N_t^a\!\left(y^a - c_{1,t}^a\right)/M_t^a\;}{\;N_t^b\!\left(y^b - c_{1,t}^b\right)/M_t^b\;}
+= \frac{N_t^a\!\left(y^a - c_{1,t}^a\right)}{N_t^b\!\left(y^b - c_{1,t}^b\right)} \cdot \frac{M_t^b}{M_t^a}.
+\]
+
+\state{What pins down the exchange rate under controls}{
+The exchange rate --- the value of country $a$ money in terms of country $b$ money --- depends only on the \emph{relative} levels of money demand and money supply in the two countries. A larger money demand in country $a$, or a smaller money supply, makes country $a$ money more valuable and raises $e_t$.
+}
+
+Because each $v_t$ evolves exactly as in the one-country model of Chapter~\ref{ch:money-model}, the exchange rate's growth rate follows from the two countries' growth rates of population, $n$, and of the money stock, $z$. Using $v_{t+1}/v_t = n/z$ in each country,
+\[
+\frac{e_{t+1}}{e_t}
+= \frac{v_{t+1}^a / v_t^a}{v_{t+1}^b / v_t^b}
+= \frac{n^a / z^a}{n^b / z^b}
+= \frac{n^a}{n^b} \cdot \frac{z^b}{z^a}.
+\]
+The exchange rate appreciates for country $a$ when its population grows faster (raising its money demand) or when it prints money more slowly than country $b$.
+
+\section{Indeterminacy of the Exchange Rate}
+
+Foreign currency controls force people to swap monies before they can buy another country's goods, and in a world where exchanging money is itself costly, this is a real burden on international trade. Suppose instead that young people are free to hold and use the money of either country.
+
+Once people may hold either money, we can no longer treat the two money markets separately; we must look at the \emph{world} supply of and demand for money. The world supply of fiat money, measured in goods, is $v_t^a M_t^a + v_t^b M_t^b$, and the world demand for real balances is $N_t^a(y^a - c_{1,t}^a) + N_t^b(y^b - c_{1,t}^b)$. Market clearing requires
+\[
+v_t^a M_t^a + v_t^b M_t^b = N_t^a\!\left(y^a - c_{1,t}^a\right) + N_t^b\!\left(y^b - c_{1,t}^b\right).
+\]
+
+A serious problem now surfaces. We have a single equation but \emph{two} unknowns, $v_t^a$ and $v_t^b$. Such an equation has infinitely many solutions. Since $e_t = v_t^a / v_t^b$, world supply can be made to equal world demand at \emph{any} positive exchange rate $e_t$: pick any $e_t > 0$, and there is a pair $(v_t^a, v_t^b)$ with $v_t^a = e_t v_t^b$ that clears the world market.
+
+\thm{Exchange-Rate Indeterminacy}{
+When citizens may hold either country's money, the single world money-market-clearing condition
+\[
+v_t^a M_t^a + v_t^b M_t^b = N_t^a\!\left(y^a - c_{1,t}^a\right) + N_t^b\!\left(y^b - c_{1,t}^b\right)
+\]
+does not determine the two currency values $v_t^a, v_t^b$ separately. Every positive exchange rate $e_t = v_t^a / v_t^b$ is consistent with a world equilibrium. The exchange rate is \emph{indeterminate}.
+}
+
+\pf{
+Fix any candidate rate $e_t > 0$ and impose $v_t^a = e_t v_t^b$. Substituting into the world-clearing condition gives
+\[
+v_t^b\left(e_t M_t^a + M_t^b\right) = N_t^a\!\left(y^a - c_{1,t}^a\right) + N_t^b\!\left(y^b - c_{1,t}^b\right),
+\]
+a single equation that solves for a unique positive $v_t^b$ (and hence $v_t^a = e_t v_t^b$). Since this works for every $e_t > 0$, no economic condition selects among them.
+}
+
+This indeterminacy did not arise under foreign currency controls. There, the two separate market-clearing equations fixed the value of fiat money in each country, and their ratio then fixed the exchange rate. The reason for the change is economic, not merely algebraic. Because people are now free to hold either money, the size of one nation's money demand affects the real value of the \emph{world} money supply but no longer determines the exchange rate, since residents are not restricted to their own currency. Symmetrically, the quantity of money printed by any one country does not determine the rate either, because that money can be spent anywhere.
+
+\state{Beliefs pin down what fundamentals do not}{
+With no government action fixing the rate, the exchange rate in a unified world economy can be whatever people \emph{believe} it to be. If those beliefs fluctuate, so will the exchange rate, because nothing else anchors it --- and these fluctuations need not correspond to any change in real economic conditions.
+}
+
+\section{International Currency Traders}
+
+Exchange-rate indeterminacy means a whole continuum of rates is consistent with a stationary equilibrium, so the rate may swing sharply as large holders rebalance their money portfolios. These swings make each individual currency a risky asset. Someone with access to only one currency watches the real value of his balances --- and hence his old-age consumption --- rise and fall with the exchange rate. A multinational, by contrast, can insure against this risk by holding a balanced portfolio of both monies: when the exchange rate moves, the loss on one currency is offset by the gain on the other.
+
+To formalize this, consider an economy with three types of people:
+\begin{enumerate}
+    \item citizens of country $a$, required by law to hold only country $a$ money;
+    \item citizens of country $b$, required by law to hold only country $b$ money;
+    \item multinational people, free to hold either currency.
+\end{enumerate}
+Let $N_t^a, N_t^b, N_t^c$ denote the numbers of people of each type in a generation born in period $t$.
+
+Each country's money is held by its own citizens and, possibly, by multinationals. Let $\lambda_t$ be the fraction of the multinationals' money balances held in the form of country $a$ money. The two currency markets then clear according to
+\[
+\ba
+v_t^a M_t^a &= N_t^a\!\left(y^a - c_{1,t}^a\right) + \lambda_t\, N_t^c\!\left(y^c - c_{1,t}^c\right),\\
+v_t^b M_t^b &= N_t^b\!\left(y^b - c_{1,t}^b\right) + \left(1 - \lambda_t\right) N_t^c\!\left(y^c - c_{1,t}^c\right).
+\ea
+\]
+
+The more the multinationals wish to hold country $a$ money --- the larger $\lambda_t$ --- the greater the value of country $a$ money and the smaller that of country $b$ money, and hence the higher the exchange rate $e_t$. But precisely because multinationals may split their balances in any proportion they like, $\lambda_t$ is free, and with it a whole range of equilibrium exchange rates. Indeterminacy persists; the multinationals' portfolio choice merely relabels it.
+
+\rmkb[A frictionless idealization]{In practice, the diversification that frees a multinational from exchange-rate risk is not costless. Holding perfectly balanced stocks of two currencies, and continually rebalancing them, can be bothersome and expensive --- one reason real-world agents do not hold the textbook-optimal hedged portfolio.}
+
+\section{Fixed Exchange Rate}
+
+A \emph{fixed exchange rate} is an equilibrium in which the rate is constant over time. From the growth law derived under currency controls, constancy requires
+\[
+\ba
+& e_{t+1} = e_t\\
+\Longrightarrow\quad & z^a = \frac{n^a}{n^b}\, z^b.
+\ea
+\]
+To hold the rate fixed, then, one or both countries must choose money-creation rates satisfying this relation. The cost is a loss of monetary independence: a government committed to a fixed exchange rate can no longer set its money-growth rate freely to extract a chosen amount of seigniorage.
+
+\state{The peg--seigniorage trade-off}{
+A country may set its rate of money creation either to fix the exchange rate ($z^a = (n^a/n^b)\,z^b$) or to raise its preferred level of seigniorage revenue, but \emph{not both}. Committing to a peg surrenders the seigniorage instrument.
+}
+
+\subsection{Cooperative Stabilization}
+
+\emph{Cooperative stabilization} refers to exchange-rate policy run jointly by two governments that stand ready to exchange their currencies at a given rate. The rate is then fixed over time. Note that in the absence of foreign currency controls, currencies are held only voluntarily --- and no currency will be held voluntarily if its value is expected to fall over time relative to the others. A depreciating currency offers a lower rate of return, which would induce everyone to abandon it for the alternatives. A credible peg, backed by both governments, removes that asymmetry and lets both monies be held side by side.
+
+\subsection{Unilateral Defense}
+
+Getting every country to agree on every exchange rate is difficult; sovereign nations rarely commit without limit. A fixed rate can nonetheless be supported without the full cooperation of the foreign central bank, but only by a costly device: the government doing the defending must tax its own citizens and use the proceeds to buy up the foreign currency that the market demands.
+
+To see how a \emph{unilateral defense} works, return to the two-country economy with no foreign currency controls and no cooperation between central banks. Suppose the entire world arbitrarily decides to convert part of its country $a$ money into country $b$ money. Under cooperative stabilization the holders of country $a$ money would simply exchange it for country $b$ money supplied by country $b$'s central bank. Under unilateral defense, by contrast, country $b$ refuses to trade one money for another --- though its central bank will still trade money for goods. The government of country $a$ then pledges to tax its old in order to defend the fixed rate. (The tax falls on the old because they are the citizens who lose if the nation's money loses value.) Because there are no currency controls, some of each money is held by the old of each country. The world currency market is
+\[
+\ba
+& v_t^a M_t^a + v_t^b M_t^b = N_t^a\!\left(y^a - c_{1,t}^a\right) + N_t^b\!\left(y^b - c_{1,t}^b\right)\\
+\Longleftrightarrow\quad & \bar e\, v_t^b M_t^a + v_t^b M_t^b = N_t^a\!\left(y^a - c_{1,t}^a\right) + N_t^b\!\left(y^b - c_{1,t}^b\right),
+\ea
+\]
+where $\bar e$ denotes the fixed exchange rate and the second line uses $v_t^a = \bar e\, v_t^b$.
+
+The contrast between the two policies is sharpest in a concrete numerical example, which we now work through.
+
+\ex[Defending a peg: cooperation versus unilateral defense]{
+Let countries $a$ and $b$ be identical. In each, every generation has population $100$, and each young person wants real balances worth $10$ goods, so aggregate real balances in each country are
+\[
+N_t^a\!\left(y^a - c_{1,t}^a\right) = N_t^b\!\left(y^b - c_{1,t}^b\right) = (100)(10) = 1000.
+\]
+The total fiat money stock is \$800 in country $a$ and \pounds600 in country $b$. There are no currency controls, and each money is held in both countries: the stocks are spread evenly across the $200$ initial old (100 born per generation in each country), so each member of the initial old holds \$4 and \pounds3, regardless of citizenship. The rate is fixed at $\bar e = \tfrac12$; that is, \$1 trades for \pounds0.5.
+
+\medskip\noindent\textbf{Baseline.} From the world clearing condition $\bar e\, v_t^b M_t^a + v_t^b M_t^b = 2000$,
+\[
+\tfrac12\, v_t^b (800) + v_t^b (600) = 1000 + 1000
+\;\Longrightarrow\; v_t^b = 2,
+\qquad v_t^a = \bar e\, v_t^b = 1.
+\]
+Each old person's consumption is the real value of his total money holdings,
+\[
+c_t^a = c_t^b = v_t^a \cdot 4 + v_t^b \cdot 3 = 1\cdot 4 + 2 \cdot 3 = 10 \text{ goods}.
+\]
+
+\medskip\noindent\textbf{Cooperative stabilization.} Now suppose every member of the initial old halves his real balances of country $a$ money, turning in \$2 each to acquire country $b$ money. Country $b$'s authority cooperates, printing as much currency as demanded and shipping it to country $a$. At the fixed rate $\tfrac12$, country $b$ prints \pounds0.5 for every dollar turned in. With $200$ old each turning in \$2, the dollar stock falls by \$400 and the pound stock rises by \pounds200, leaving $M_t^a = 400$ and $M_t^b = 800$. Re-solving,
+\[
+\tfrac12\, v_t^b (400) + v_t^b (800) = 2000
+\;\Longrightarrow\; v_t^b = 2,
+\qquad v_t^a = \bar e\, v_t^b = 1,
+\]
+so $c_t^a = c_t^b = 1\cdot 4 + 2\cdot 3 = 10$ goods. Consumption is unchanged: world money demand is unchanged, and the real world money supply is unchanged because the old simply hold fewer dollars and more pounds.
+
+\medskip\noindent\textbf{Unilateral defense.} Suppose instead country $b$ refuses to print pounds to accommodate the old, and country $a$ honors its pledge by an equal tax on each of its old citizens, using the proceeds to supply the country $b$ money demanded. The steps are as follows. There are $200$ old across the two countries, each turning in \$2, so country $a$'s authority must acquire \pounds200 in exchange (at $\bar e = \tfrac12$). Since country $b$ prints nothing, country $a$ must \emph{give up goods} equal in value to the pounds it acquires, namely $v_t^b(\pounds200)$ goods. Because country $a$ can tax only its own $100$ old citizens, each pays a tax of
+\[
+\frac{200\, v_t^b}{100} = 2 v_t^b.
+\]
+To evaluate the tax we need $v_t^b$. Defending the rate this way shrinks country $a$'s money stock to $400$ while country $b$'s stays at $M_t^b = 600$:
+\[
+\tfrac12\, v_t^b (400) + v_t^b (600) = 2000
+\;\Longrightarrow\; v_t^b = 2.5,
+\qquad v_t^a = \bar e\, v_t^b = 1.25.
+\]
+By decreasing the total world money supply while leaving money demand unchanged, the unilateral defense \emph{raises} the value of every currency --- in sharp contrast to cooperative stabilization, where each currency's value was unchanged. The tax per old citizen of country $a$ is therefore
+\[
+2 v_t^b = 2(2.5) = 5 \text{ goods}.
+\]
+The collected goods, $500$ in total, buy newly issued pounds: at $2.5$ goods per pound the $500$ goods (shared by the $200$ old returning country $a$ money) purchase \pounds200, so each old person acquires one additional pound. After turning in \$400 (leaving \$2 each) and receiving the new pounds, each old person who began with \pounds3 ends with \pounds4.
+
+For the old of country $b$, who pay no tax, old-age consumption is
+\[
+c_t^b = v_t^a \cdot 2 + v_t^b \cdot 4 = 1.25 \cdot 2 + 2.5 \cdot 4 = 12.5 \text{ goods}.
+\]
+For the old of country $a$, who must pay the tax to defend their currency,
+\[
+c_t^a = v_t^a \cdot 2 + v_t^b \cdot 4 - (\text{tax}) = 12.5 - 5 = 7.5 \text{ goods}.
+\]
+}
+
+The example delivers a clean distributional verdict. The old of country $b$ \emph{benefit} from country $a$'s unilateral defense: the real value of their currency holdings rises and they pay no tax. The old of country $a$ are made \emph{worse off} than under cooperative stabilization. In effect, only the citizens of the defending country pay the tax, and that tax raises the value of money held by everyone --- so the policy transfers wealth from the taxpayers of the country defending the exchange rate to the money holders of the other country.
+
+\state{Who pays for a unilateral peg}{
+A unilateral defense shrinks the world money supply by taxing the defending country's old, which raises every currency's real value. The defending country's old bear the entire cost; the foreign country's old enjoy a windfall. Cooperative stabilization, by reallocating currencies without changing the world money supply, imposes no such cost.
+}

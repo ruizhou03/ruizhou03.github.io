@@ -1,0 +1,32 @@
+\begin{tikzpicture}[scale=1.05]
+  \def\ny{5.6}\def\yh{3.9}\def\budgY{3.7}\def\budgX{5.4}
+  \pgfmathsetmacro{\mg}{\ny/\yh}
+  \pgfmathsetmacro{\mb}{\budgY/\budgX}
+  \pgfmathsetmacro{\cx}{(\ny-\budgY)/(\mg-\mb)}
+  \pgfmathsetmacro{\cy}{\ny-\mg*\cx}
+  \pgfmathsetmacro{\Ax}{\yh/2}
+  \pgfmathsetmacro{\Ay}{\ny-\mg*\Ax}
+  \draw[-Latex] (0,0) -- (6.6,0) node[right] {$c_1$};
+  \draw[-Latex] (0,0) -- (0,6.2) node[above] {$c_2$};
+  % inner curve tangent to steep line at A (c2=kA/c1)
+  \pgfmathsetmacro{\kA}{\Ax*\Ay}
+  \draw[semithick] plot[smooth,domain=1.25:3.55,samples=80] (\x, {\kA/\x});
+  % outer curve tangent to flat line at B
+  \pgfmathsetmacro{\pO}{\mb*\cx/\cy}
+  \pgfmathsetmacro{\kO}{\cy*pow(\cx,\pO)}
+  \draw[semithick] plot[smooth,domain=1.55:6.2,samples=90] (\x, {\kO*pow(\x,-\pO)});
+  % budget / feasible lines (black; steep thick, flat thin)
+  \draw[line width=1.4pt] (0,\ny) -- (\yh,0);
+  \draw[thick] (0,\budgY) -- (\budgX,0);
+  \draw[densely dashed] (\cx,0) -- (\cx,\cy) -- (0,\cy);
+  \fill (\Ax,\Ay) circle (1.0pt);
+  \node[above right] at (\Ax,\Ay) {$A$};
+  \fill (\cx,\cy) circle (1.0pt);
+  \node[below left=-1pt and 0pt] at (\cx,\cy) {$B$};
+  \node[left] at (0,\ny) {$ny$};
+  \node[left] at (0,\budgY) {$\left[\dfrac{n}{z}\right]y+a$};
+  \node[left] at (0,\cy) {$c_2^*$};
+  \node[below] at (\cx,-0.05) {$c_1^*$};
+  \node[below] at (\yh,-0.05) {$y$};
+  \node[below] at (\budgX,-0.05) {$y+\dfrac{z}{n}a$};
+\end{tikzpicture}

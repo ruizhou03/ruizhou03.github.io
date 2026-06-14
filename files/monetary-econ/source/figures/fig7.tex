@@ -1,0 +1,39 @@
+\begin{tikzpicture}[scale=1.0]
+  \def\A{6.2}      % y-g intercept (both axes, steep feasible line, slope -1)
+  \def\Y{7.6}      % y, horizontal intercept of flat distorting line
+  \def\Yz{4.7}     % y/z, vertical intercept of flat line
+  \pgfmathsetmacro{\mb}{\Yz/\Y}                 % flat slope magnitude (1/z)
+  \pgfmathsetmacro{\bx}{(\A-\Yz)/(1-\mb)}       % c1* (crossing)
+  \pgfmathsetmacro{\by}{\A-\bx}                  % c2*
+  \pgfmathsetmacro{\rhoB}{\mb*\bx/\by}           % tangency exponent at B (flat line)
+  \pgfmathsetmacro{\KB}{\by*pow(\bx,\rhoB)}
+  \pgfmathsetmacro{\Ax}{2.5}                      % point A on the steep line
+  \pgfmathsetmacro{\Ay}{\A-\Ax}
+  \pgfmathsetmacro{\rhoA}{\Ax/\Ay}               % tangency exponent at A (slope -1)
+  \pgfmathsetmacro{\KA}{\Ay*pow(\Ax,\rhoA)}
+  % axes
+  \draw[-Latex] (0,0) -- (9.2,0) node[right] {$c_1$};
+  \draw[-Latex] (0,0) -- (0,7.4) node[above] {$c_2$};
+  % budget lines (both black; steep thick, flat thin)
+  \draw[line width=1.4pt] (0,\A) -- (\A,0);     % feasible / non-distorting
+  \draw[thick] (0,\Yz) -- (\Y,0);               % distorting monetary eq
+  % indifference curves (black): tangent to steep line at A, tangent to flat line at B
+  \draw[semithick,smooth,samples=120,domain=1.35:5.6]
+        plot (\x,{\KA*pow(\x,-\rhoA)});
+  \draw[semithick,smooth,samples=120,domain=1.7:7.4]
+        plot (\x,{\KB*pow(\x,-\rhoB)});
+  % equilibrium B + guides
+  \fill (\bx,\by) circle (1.5pt);
+  \draw[densely dashed] (0,\by) -- (\bx,\by) -- (\bx,0);
+  \node[above right=-1pt and 1pt] at (\bx,\by) {$B$};
+  % point A
+  \fill (\Ax,\Ay) circle (1.5pt);
+  \node[above right=-1pt and 1pt] at (\Ax,\Ay) {$A$};
+  % labels
+  \node[left] at (0,\A)  {$y-g$};
+  \node[left] at (0,\Yz) {$\dfrac{y}{z}$};
+  \node[left] at (0,\by) {$c_2^*$};
+  \node[below] at (\bx,-0.05) {$c_1^*$};
+  \node[below] at (\A,-0.05)  {$y-g$};
+  \node[below] at (\Y,-0.05)  {$y$};
+\end{tikzpicture}

@@ -1,0 +1,130 @@
+% ============================================================
+%  commands.tex — Custom macros for ECON 510 (Econometrics)
+%  Adapted from adv-micro-psu, expanded for asymptotic theory
+% ============================================================
+
+\usepackage{amsmath}
+
+% Environment shortcuts
+\newcommand{\ba}{\begin{aligned}}
+\newcommand{\ea}{\end{aligned}}
+\newcommand{\bc}{\begin{cases}}
+\newcommand{\ec}{\end{cases}}
+
+% Number sets
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\QQ}{\mathbb{Q}}
+\newcommand{\ZZ}{\mathbb{Z}}
+\newcommand{\NN}{\mathbb{N}}
+
+% Calligraphic
+\renewcommand{\P}{\mathcal{P}}
+\renewcommand{\S}{\mathcal{S}}
+\newcommand{\T}{\mathcal{T}}
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\B}{\mathcal{B}}
+\newcommand{\C}{\mathcal{C}}
+\renewcommand{\L}{\mathcal{L}}
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\W}{\mathcal{W}}
+
+% Bold (use distinct names to avoid clash with calligraphic)
+\newcommand{\vb}[1]{\mathbf{#1}}
+\newcommand{\bX}{\mathbf{X}}
+\newcommand{\bY}{\mathbf{Y}}
+\newcommand{\bW}{\mathbf{W}}
+\newcommand{\bZ}{\mathbf{Z}}
+\newcommand{\bU}{\mathbf{U}}
+
+% Greek
+\newcommand{\ve}{\varepsilon}
+\newcommand{\s}{\sigma}
+\renewcommand{\l}{\lambda}
+\newcommand{\g}{\gamma}
+\newcommand{\Th}{\Theta}
+\renewcommand{\th}{\theta}    % overwrite built-in thorn (\th)
+\newcommand{\Om}{\Omega}
+\newcommand{\om}{\omega}
+\newcommand{\Gm}{\Gamma}
+
+% Delimiters
+\newcommand{\br}[1]{\left[#1\right]}
+\newcommand{\pr}[1]{\left(#1\right)}
+\renewcommand{\brace}[1]{\left\{#1\right\}}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\norm}[2][]{\left\| #2 \right\|_{#1}}
+\newcommand{\floor}[1]{\left\lfloor #1 \right\rfloor}
+\newcommand{\ceil}[1]{\left\lceil #1 \right\rceil}
+
+% Operators
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\plim}{plim}
+\DeclareMathOperator{\rk}{rk}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\diag}{Diag}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\Corr}{Corr}
+
+% Probability/Expectation
+% Usage: \E{x \given y}, \Pr{A}, \Var{x}, \Cov{x}{y}.
+% For starred bootstrap versions, write \mathbb{E}^*, \mathrm{P}^*, etc. directly.
+\newcommand{\given}{\,|\,}   % plain bar: works in subscripts and \pr{} alike
+\renewcommand{\Pr}[1]{\operatorname{P}\!\left(#1\right)}
+\newcommand{\E}[2][]{\mathbb{E}_{#1}\!\pr{#2}}
+% \Var: parentheses (econometric convention). Accepts both \Var{X} and \Var(X).
+% Calling \Var{X} -> Var(X); calling \Var(X) (explicit parens) also works since
+% the macro renders Var with no implicit delimiter when called as a no-arg op.
+\newcommand{\Var}[2][]{\operatorname{Var}_{#1}\!\pr{#2}}
+\newcommand{\Cov}[2]{\operatorname{Cov}\!\pr{#1,#2}}
+
+% Convergence
+\newcommand{\dto}{\overset{d}{\to}}
+\newcommand{\pto}{\overset{p}{\to}}
+\newcommand{\asto}{\overset{a.s.}{\to}}
+\newcommand{\dteq}{\overset{d}{=}}
+\newcommand{\iid}{\overset{i.i.d.}{\sim}}
+
+% Asymptotic order (the user's weak point — treat clearly)
+\newcommand{\Op}{O_{p}}      % O_p
+\newcommand{\op}{o_{p}}      % o_p
+\newcommand{\rtn}{\sqrt{n}}  % \sqrt{n} shortcut
+
+% Calculus
+\renewcommand{\d}{\text{d}}
+\newcommand{\dd}[2]{\frac{\d #1}{\d #2}}
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\inv}[1]{{#1}^{-1}}
+
+% Logic
+\newcommand{\se}{\subseteq}
+\newcommand{\bs}{\setminus}
+\newcommand{\st}{\text{ s.t. }}
+\newcommand{\mif}{\text{ if }}
+\newcommand{\miff}{\;\text{iff}\;}
+
+% Hat / bar / tilde shortcuts (used everywhere in econometrics)
+\newcommand{\hb}{\widehat{\beta}}
+\newcommand{\hth}{\widehat{\theta}}
+\newcommand{\tth}{\widetilde{\theta}}
+
+% Sums / products
+\newcommand{\sumi}{\sum_{i=1}^n}
+\newcommand{\prodi}{\prod_{i=1}^n}
+
+% Highlighting
+\newcommand{\match}[1]{\textcolor{ForestGreen}{$\boldsymbol{#1}$}}
+\newcommand{\hl}[1]{\textcolor{red!70!black}{\textbf{#1}}}
+
+% ----------------------------------------------------------------
+% Proof tier tags (place at the start of a proof body)
+% ----------------------------------------------------------------
+%   \reproduce  — must memorize and reproduce on the exam
+%   \structure  — know the steps; details may be fudged
+%   \intuition  — included for understanding only; do not memorize
+%   \proofskip  — included for completeness; safe to skip entirely
+% (\skip is reserved by LaTeX, so we use \proofskip.)
+\newcommand{\reproduce}{\textcolor{ForestGreen!70!black}{\textbf{[REPRODUCE — memorize this proof]}}\par\smallskip}
+\newcommand{\structure}{\textcolor{orange!85!black}{\textbf{[STRUCTURE — know the steps, fudge details]}}\par\smallskip}
+\newcommand{\intuition}{\textcolor{blue!70!black}{\textbf{[INTUITION ONLY — read once, do not memorize]}}\par\smallskip}
+\newcommand{\proofskip}{\textcolor{gray!50!black}{\textbf{[SKIP — included for completeness, safe to skip]}}\par\smallskip}

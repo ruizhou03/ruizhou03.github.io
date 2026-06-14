@@ -1,0 +1,106 @@
+\documentclass[oneside]{book}
+
+\usepackage{amsmath, amsthm, amssymb, amsfonts}
+\usepackage{thmtools}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{framed}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{environ}
+\usepackage{tcolorbox}
+\tcbuselibrary{theorems,skins,breakable}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{multicol}
+\usetikzlibrary{positioning, arrows.meta, patterns, calc, decorations.pathreplacing}
+\usepackage[normalem]{ulem}
+\usepackage{colortbl}
+\usepackage{cancel}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=*,labelindent=0pt}
+
+\usepackage{fancyhdr}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\thepage}}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhead[L]{\textit{\uppercase{\leftmark}}}
+\fancyhead[R]{\thepage}
+\fancyfoot[R]{\tiny Monetary Economics \textemdash\ ruizhou03.com}
+
+\setstretch{1.2}
+\geometry{
+    textheight=9in, textwidth=5.5in, top=1in,
+    headheight=12pt, headsep=25pt, footskip=30pt
+}
+
+\def\notetitle{Monetary Economics}
+\def\notesubtitle{A Self-Contained Course Companion}
+\def\noteauthor{Lecture course by \textbf{Prof. Sylvia Xiaolin Xiao} \\
+    Guanghua School of Management, Peking University \\
+    \vspace{0.5em}
+    Notes written and {\LaTeX}-typeset by Rui Zhou}
+\def\notedate{Spring 2023 \\ \small (rewritten and unified, 2026)}
+
+\input{theorems.tex}
+\input{commands.tex}
+
+\begin{document}
+
+\title{\textbf{
+    \LARGE{\notetitle}\\
+    \vspace{0.5em}
+    \large\textit{\notesubtitle}
+    \vspace*{8\baselineskip}}
+}
+\author{\noteauthor}
+\date{\notedate}
+
+\maketitle
+\newpage
+
+\thispagestyle{empty}
+\section*{How to Read This Book}
+
+This is a course companion for a one-semester \textbf{monetary economics} course. It is written to be read straight through, like a short textbook, rather than skimmed like a formula sheet.
+
+The book builds monetary theory from first principles. We start in a world without money and ask why a society would adopt it at all, using the overlapping-generations (OLG) framework to show that money can serve as a substitute for a missing record of past transactions --- ``money is memory.'' From that foundation we study commodity money, the inflation tax and the limits of seigniorage, the determination (and indeterminacy) of exchange rates across countries, the institutions and independence of central banks, and finally the mechanics by which a central bank actually changes the money supply through its balance sheet. The early chapters are model-driven and abstract; the later chapters are institutional and concrete. Read them in order: each builds on the language of the one before.
+
+\subsection*{How Each Chapter Is Organized}
+
+Each chapter opens with a short \emph{story} in plain English explaining what question we are answering and why we are about to introduce a particular tool. We then formalize the idea, work through the algebra of the model, and read the economics off the diagrams. Definitions and key results are boxed so you can find them quickly when reviewing.
+
+\subsection*{Box Color Code}
+
+\begin{itemize}
+    \item \tcbox[colback=green!10!white, colframe=green!10!white, size=fbox]{\textbf{Green: Definition}} --- the objects and concepts we build on (fiat money, seigniorage, real money demand, \dots).
+    \item \tcbox[colback=cyan!10!white, colframe=cyan!10!white, size=fbox]{\textbf{Blue: Theorem / Result}} --- the central results of each model.
+    \item Worked \textbf{examples}, boxed \textbf{remarks}, and emphasis boxes appear throughout.
+\end{itemize}
+
+\subsection*{A Note on Notation}
+
+Throughout, a representative agent lives for two periods and consumes $c_1$ when young and $c_2$ when old, against an endowment $y$. We write $v_t$ for the value (purchasing power) of a unit of money at date $t$, so $v_t/v_{t+1}$ is the gross rate at which money loses or gains value; $z$ denotes the gross money-growth factor and $n$ the gross population-growth factor. $a$ denotes real money balances acquired when young.
+
+\newpage
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+\include{chapters/ch1_money_model}
+\include{chapters/ch2_barter}
+\include{chapters/ch3_commodity_money}
+\include{chapters/ch4_inflation}
+\include{chapters/ch5_international}
+\include{chapters/ch6_central_bank}
+\include{chapters/ch7_money_supply}
+
+\end{document}

@@ -1,0 +1,114 @@
+% !TEX root = ../main.tex
+\chapter{Commodity Money}
+\label{ch:commodity}
+
+The fiat money of Chapter~\ref{ch:money-model} is, by construction, intrinsically worthless: a piece of paper is valued in equilibrium only because everyone expects everyone else to accept it tomorrow. Historically, however, the first monies were not worthless at all. Gold, silver, salt, cattle, and cigarettes have all circulated as money, and each of them is also a \emph{thing} --- a commodity with a use of its own. This is the defining feature of \emph{commodity money}: unlike fiat money, it carries an intrinsic value, so its owner always has an outside option, namely to stop trading it and simply consume it.
+
+This chapter places commodity money inside the same overlapping-generations machinery we built for fiat money. We will find that the equilibrium price of the commodity differs from the fiat case in exactly one respect: its intrinsic value sets a \emph{floor} below which it will not trade. That single inequality reshapes two conclusions of the fiat model. First, the quantity theory of money no longer links the price level cleanly to the total stock of the commodity. Second, although both regimes deliver the \emph{same} consumption possibilities to every future generation, the commodity regime is wasteful: it ties up a genuinely useful resource to do a job that an intrinsically worthless token could do just as well. We make each of these claims precise in turn.
+
+\section{The Commodity-Money Environment}
+
+We keep the demographic and technological structure of the fiat economy and change only the asset. In each period $N$ young agents are born, each endowed with $y$ units of the consumption good when young and nothing when old. Agents live two periods and care about consumption in both, so a young agent who wishes to consume when old must carry purchasing power forward. In the fiat economy that carrier was paper money; here it is a commodity.
+
+\defn{Commodity Money}{
+\emph{Commodity money} is a good that serves as a medium of exchange while also possessing an \emph{intrinsic value} --- a payoff its holder can obtain by consuming it instead of trading it. Write $\tilde v$ for the intrinsic value of one unit of the commodity, measured in units of the consumption good. Fiat money is the special case $\tilde v = 0$.
+}
+
+Let the commodity be gold. The total stock is $M^g$ units, held initially by the initial old, who receive $m^g = M^g/N$ units each.\footnote{As in the fiat model, the initial old are the only generation that begins life holding the asset; every later generation must acquire it by selling goods when young.} Let $v^g_t$ denote the \emph{trading value} of one unit of gold at date $t$, again measured in units of the consumption good, so that $1/v^g_t$ is the gold price of one consumption good. The intrinsic value $\tilde v$ and the trading value $v^g_t$ are distinct objects: the former is a fixed parameter of the technology, the latter an endogenous price determined in equilibrium.
+
+\section{The Budget Constraint and Market Clearing}
+
+A representative agent born at date $t$ chooses how much gold $m^g_t$ to carry from youth into old age. When young she splits her endowment between consumption and gold purchases; when old she sells the gold and consumes the proceeds. Her two-period problem is governed by
+\[
+\ba
+\text{when young:}\quad & c_{1,t} + v^g_t\, m^g_t \le y,\\
+\text{when old:}\quad & c_{2,t+1} \le v^g_{t+1}\, m^g_t.
+\ea
+\]
+The first line says spending plus gold purchases cannot exceed the endowment; the second says old-age consumption is financed entirely by selling the gold carried over, valued at next period's trading price. Solving the second constraint for $m^g_t = c_{2,t+1}/v^g_{t+1}$ and substituting into the first gives the consolidated lifetime budget constraint
+\begin{equation}
+c_{1,t} + \frac{v^g_t}{v^g_{t+1}}\, c_{2,t+1} \le y.
+\label{eq:commodity-budget}
+\end{equation}
+The price of future consumption in terms of present consumption is the gross rate of return on holding gold reversed, $v^g_t/v^g_{t+1}$. When the trading value of gold is rising ($v^g_{t+1} > v^g_t$), carrying gold forward is rewarded and future consumption is cheap. This is structurally identical to the fiat budget constraint of Chapter~\ref{ch:money-model}, with the value of gold playing the role formerly played by the value of fiat money.
+
+\rmkb[Same form, different asset]{Constraint~\eqref{eq:commodity-budget} is the same lifetime budget line we derived in the fiat economy. The price ratio $v^g_t/v^g_{t+1}$ inherits all the comparative statics of the fiat ratio $v_t/v_{t+1}$. What is genuinely new in the commodity case is not the agent's optimization but a side constraint on the equilibrium price, developed in Section~\ref{sec:floor}.}
+
+We now impose market clearing. The young as a group wish to acquire gold using their unspent endowment, $N(y - c_{1,t})$ units of the consumption good. The old as a group supply the entire stock, $N m^g = M^g$ units of gold, whose total trading value is $v^g_t M^g$. Equating the value of gold demanded to the value of gold supplied,
+\[
+N(y - c_{1,t}) = v^g_t \, (N\, m^g) = v^g_t\, M^g.
+\]
+Restricting attention to a \emph{stationary} equilibrium, in which quantities and prices are constant over time, $c_{1,t} = c_1$, $v^g_t = v^g$, and $m^g_t = m^g$ for all $t$, the clearing condition pins down the trading value of gold:
+\begin{equation}
+v^g = \frac{N(y - c_1)}{M^g}.
+\label{eq:commodity-value}
+\end{equation}
+This is the commodity-money analogue of the fiat pricing equation: the value of one unit of the medium of exchange is the total real saving of a young generation divided by the stock of the medium. Doubling the stock $M^g$ halves the trading value, holding real saving fixed --- the seed of the quantity theory, to which we return.
+
+\section{The Intrinsic-Value Floor}
+\label{sec:floor}
+
+Here the commodity case parts ways with the fiat case. Because gold has an intrinsic value $\tilde v$, no one will ever trade away a unit of gold for less than $\tilde v$ worth of goods: doing so is dominated by simply consuming the gold. Gold therefore circulates as money if and only if its trading value is at least its intrinsic value.
+
+\state{When commodity money circulates}{
+Gold is used as a medium of exchange if and only if its trading value weakly exceeds its intrinsic value,
+\[
+v^g = \frac{N(y - c_1)}{M^g} \ge \tilde v.
+\]
+If this inequality fails, gold exits circulation and is consumed rather than traded.
+}
+
+What happens when the candidate trading value~\eqref{eq:commodity-value} falls short of $\tilde v$? Suppose $v^g < \tilde v$. Then the initial old prefer to consume gold rather than trade it away at a loss. They do not, however, consume \emph{all} of it. As gold is consumed, the stock $M^g$ shrinks, and by~\eqref{eq:commodity-value} a smaller stock raises the trading value $v^g$. As long as $v^g < \tilde v$ the consumption of gold continues and the trading value keeps climbing. The process halts precisely when the trading value has risen to meet the intrinsic value, $v^g = \tilde v$. From that point on, no further gold is consumed and the remainder circulates as money. In equilibrium, therefore, the trading value of a commodity money can never settle below its intrinsic value:
+\[
+v^g \ge \tilde v
+\qquad\text{whenever gold is used as a medium of exchange.}
+\]
+The intrinsic value acts as an absorbing floor: the market self-adjusts the \emph{quantity} of gold in monetary use until the value of the gold that remains is at least $\tilde v$.
+
+\section{The Quantity Theory Revisited}
+
+Because commodity money can be consumed at the margin, the quantity theory of money need not hold in the form it took for fiat money. Recall the fiat statement.
+
+\state{Quantity theory of money (fiat case)}{
+Take two economies identical in every respect except that one holds twice the stock of fiat money. Then the price level is twice as high --- equivalently, the value of money is half as high --- in the economy with the larger stock. Prices adjust to the stock of money.
+}
+
+Now run the same comparison with gold, in two cases.
+
+\textbf{Case 1: gold is never consumed.} If gold serves purely as a commodity money and is never consumed, the comparison is identical to the fiat case. The economy with twice the gold stock has prices twice as high, exactly as~\eqref{eq:commodity-value} predicts when $M^g$ doubles and $N(y-c_1)$ is held fixed. The quantity theory holds.
+
+\textbf{Case 2: gold is consumed at the margin.} Suppose instead that in both economies gold is consumed up to the point where its trading value just equals its intrinsic value, $v^g = \tilde v$. By the floor mechanism of Section~\ref{sec:floor}, the economy that began with twice the gold stock simply consumes more gold until its trading value, too, equals $\tilde v$. After this adjustment the \emph{quantity of gold actually used as money} is the same in both economies, and so is the price level. The intrinsic value $\tilde v$ has imposed a \emph{minimum} on the trading value of gold --- equivalently, a \emph{maximum} on the nominal price level --- that prevents the larger-stock economy from having higher prices.
+
+The upshot is a careful restatement of the quantity theory for commodity money.
+
+\state{Quantity theory of money (commodity case)}{
+Compare two economies that differ only in their gold stock, with gold consumed at the margin in both.
+\begin{itemize}
+    \item In terms of the \emph{initial} stocks of gold, the quantity theory \emph{fails}: the economy with the larger initial stock does not have a proportionately higher price level, because the floor $v^g \ge \tilde v$ caps prices.
+    \item In terms of the stocks of gold \emph{actually used as money}, the quantity theory \emph{holds} --- but for a reversed reason. Here the stock of monetary gold adjusts to the price level, rather than the price level adjusting to the stock of money.
+\end{itemize}
+}
+
+The reversal of causation in the second bullet is the heart of the matter. Under fiat money the price level chases an exogenously fixed stock; under commodity money with marginal consumption the monetary stock chases a price level anchored at $\tilde v$.
+
+\section{Distribution of Wealth}
+
+Because the trading value of a commodity money equals or exceeds its intrinsic value whenever it is used as a medium of exchange, \emph{what} serves as money in an economy carries consequences for the distribution of wealth, not merely for the price level. The owners of the monetary commodity enjoy a trading value $v^g \ge \tilde v$ on their holdings; that premium over intrinsic value is theirs only so long as the commodity retains its monetary role.
+
+\ex[Replacing gold with fiat money]{
+Suppose an economy runs on commodity money with $v^g > \tilde v$, and it switches to a fiat money system. With gold demonetized, no one trades for it above its intrinsic value, so its price collapses to $v^g = \tilde v$. The wealth of gold holders falls by the lost monetary premium $v^g - \tilde v$ per unit. This is why owners of gold --- or of any candidate commodity money --- take a keen interest in which medium of exchange their economy adopts: a change of monetary regime is a transfer of wealth toward or away from them.
+}
+
+\section{The Inefficiency of Commodity Money}
+
+We close by comparing the two regimes on welfare grounds, starting from a common microeconomic foundation. The striking result is that commodity money is \emph{inefficient}: it can be replaced by fiat money in a way that makes someone strictly better off and no one worse off.
+
+First, the two regimes offer identical consumption possibilities to every generation. The lifetime budget constraint~\eqref{eq:commodity-budget} has the same form whether the carrier of value is gold or paper; the set of feasible consumption pairs $(c_1, c_2)$ available to any young agent is the same in both economies. With regard to all future generations, then, the commodity regime confers no advantage and no disadvantage relative to fiat money.
+
+\state{Commodity money is inefficient}{
+Switching from commodity money to fiat money makes the \emph{initial old} strictly better off while leaving every future generation exactly as well off as before. A fiat system supports the same trading patterns as a commodity system while freeing up the intrinsically valuable commodity for its nonmonetary uses.
+}
+
+The gain accrues to the initial old. In a fiat regime they sell their fiat money for precisely the same amount of the consumption good they would have obtained by selling gold --- the medium of exchange does the same monetary work either way. But on top of that, with gold demonetized they may now \emph{consume} their entire stock of gold, harvesting its intrinsic value $\tilde v$ per unit. Their consumption and utility are therefore strictly higher under fiat money, and this improvement is achieved without lowering the welfare of any later generation.
+
+The intuition is one of resource cost. Under commodity money, a resource that has genuine intrinsic value --- gold, with its uses in jewelry, electronics, dentistry, and the like --- is tied up to perform the function of a medium of exchange. Under fiat money the same monetary services are provided by an intrinsically worthless token, leaving the valuable commodity free to be put to its productive nonmonetary uses. The lesson generalizes well beyond gold: any economy that monetizes a useful good pays a real resource cost for its money, a cost a fiat system avoids. We carry this efficiency comparison forward when we examine inflation and the optimal provision of money in Chapter~\ref{ch:inflation}.

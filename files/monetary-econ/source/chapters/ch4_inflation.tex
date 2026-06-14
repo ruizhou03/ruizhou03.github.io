@@ -1,0 +1,292 @@
+% !TEX root = ../main.tex
+\chapter{Inflation and Seigniorage}
+\label{ch:inflation}
+
+In the overlapping-generations model of Chapter~\ref{ch:money-model}, a constant stock of fiat money supported a clean intertemporal trade: the young sold goods for money, the old spent the money back, and a unit of money held its value from one period to the next. We now let the government \emph{print}. Once the money stock grows, the value of money no longer stands still, and the same currency that smoothed exchange becomes a vehicle for taxation. This chapter studies that double role.
+
+The central economic idea is simple to state and surprisingly far-reaching. An increasing fiat money stock acts as an implicit proportional tax on money holdings. Faced with money that loses value over time, individuals economize on their holdings; in doing so they forgo some of the very benefits that fiat money provides, and they end up at a lower level of utility than a stable currency would allow. We trace this distortion through the budget set, ask how much real revenue the government can actually extract from printing money (the answer is: a bounded amount, because the tax base shrinks when the tax rate rises), and finally contrast the inflation tax with a lump-sum tax that raises the same revenue without distortion. Throughout we reuse the equilibrium machinery of Chapter~\ref{ch:money-model}; the only new ingredient is a money-growth factor $z$.
+
+\section{Basic Model}
+
+We keep every feature of the overlapping-generations environment and add a growing money supply. Let the stock of fiat money expand at the constant gross rate $z$,
+\[
+M_t = z\,M_{t-1}, \qquad z > 1,
+\]
+so that $z$ is the gross growth factor of the money stock. It will be convenient to express the new money issued in period $t$ as a fraction of the new total: from $M_t = z M_{t-1}$ we have $M_{t-1} = M_t/z$, hence
+\[
+M_t - M_{t-1} = \left(1 - \frac{1}{z}\right) M_t .
+\]
+
+Suppose the newly created money is distributed evenly to the current old as a lump-sum transfer, worth $a_t$ units of the consumption good per old person:
+\[
+a_t = \frac{v_t\,(M_t - M_{t-1})}{N_{t-1}}
+    = \frac{v_t\left(1 - \tfrac{1}{z}\right) M_t}{N_{t-1}} .
+\]
+In words, the freshly printed money enters the economy as a lump-sum subsidy handed to the old.
+
+\defn{Real Money Demand}{
+The \emph{real demand for money} of a young person is the real value of the money balances she chooses to carry into old age,
+\[
+v_t m_t = y - c_{1,t},
+\]
+i.e.\ the part of her endowment she does not consume when young. Aggregated across the young it equals the real value of the money stock, $v_t M_t = N_t(y - c_{1,t})$.
+}
+
+\subsection*{The budget constraint with transfers}
+
+With a lump-sum transfer to the old, the two-period problem of a representative young person born at $t$ is
+\[
+\ba
+\text{When young: }&\ c_{1,t} + v_t m_t \le y,\\
+\text{When old: }&\ c_{2,t+1} \le v_{t+1} m_t + a_{t+1},\\[2pt]
+\Longrightarrow\quad &\ c_{1,t} + \frac{v_t}{v_{t+1}}\,c_{2,t+1}
+   \;\le\; y + \frac{v_t}{v_{t+1}}\,a_{t+1}.
+\ea
+\]
+The transfer relaxes the lifetime constraint by $\tfrac{v_t}{v_{t+1}} a_{t+1}$, the present value of the old-age subsidy.
+
+The money market clears exactly as before: aggregate real money demand equals the real value of the money stock,
+\[
+N_t\,(y - c_{1,t}) = v_t M_t
+\qquad\Longrightarrow\qquad
+v_t = \frac{N_t\,(y - c_{1,t})}{M_t}.
+\]
+Taking the ratio of this expression at $t+1$ and $t$ under a stationary allocation (so $c_{1,t}=c_1$ for all $t$) gives the gross rate of return on money,
+\[
+\frac{v_{t+1}}{v_t} = \frac{N_{t+1}/N_t}{M_{t+1}/M_t} = \frac{n}{z},
+\]
+where $n = N_{t+1}/N_t$ is the population growth factor and $z = M_{t+1}/M_t$ the money growth factor. The return on money is the ratio of the growth of money \emph{demand} to the growth of money \emph{supply}.
+
+\subsection*{Inflation as a fall in the return on money}
+
+Specialize now to a constant population, $n=1$, with a growing money supply, $z>1$. Then
+\[
+\frac{v_{t+1}}{v_t} = \frac{1}{z}
+\qquad\Longleftrightarrow\qquad
+\frac{v_{t+1}}{v_t} - 1 = \frac{1}{z} - 1 < 0 .
+\]
+The value of money falls over time. Equivalently, since the price level is $p_t = 1/v_t$, prices rise: more dollars chase the same quantity of goods, so each dollar buys less. This is inflation, and its real cost is that money offers a rate of return below the one a stable currency ($z=1$) would deliver.
+
+\state{Inflation lowers the return on money}{
+When the money supply grows faster than money demand ($z>n$), the gross return on money $v_{t+1}/v_t = n/z$ is less than one: money loses value over time. With constant population this return is exactly $1/z$. The faster the printing, the worse the return.
+}
+
+Using $v_t/v_{t+1} = z$ and stationarity, the lifetime budget constraint collapses to
+\[
+c_1 + z\,c_2 \le y + z\,a .
+\]
+Inflation has reshaped the budget set in two ways, both visible in Figure~\ref{fig:money-3}. First, the budget line is \emph{flatter}: the slope (in absolute value) is now $1/z < 1$, so to obtain one unit of old-age consumption a person must give up $z$ units of youthful consumption rather than one. This is precisely the lower rate of return offered by money when new money is being created. Second, the horizontal intercept is $y + za$ rather than $y$, because lifetime resources now include both the endowment and the subsidy.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig3}
+\caption{Stationary monetary equilibrium under inflation: the flatter budget line $c_1 + z c_2 \le y + za$ is tangent to an indifference curve at $(c_1^*,c_2^*)$, and the brace marks the resulting real money demand $y - c_1^*$.}
+\label{fig:money-3}
+\end{figure}
+
+\subsection*{Where the subsidy really comes from}
+
+It is tempting to read the outward shift of the budget line as a free lunch, but it is not. Although the government can create fiat money out of thin air, the real value of the subsidy must come from \emph{somewhere}. Printing intrinsically worthless pieces of paper does not magically enlarge what the economy can produce. The total number of goods is fixed at the aggregate endowment $N_t y$, so any gift to the old must be paid for by losses borne by the old themselves or by others.
+
+The genuine resource constraint --- the \emph{feasible set} for stationary allocations --- is unchanged by the printing press. Adding up the consumption of the $N_t$ young and the $N_{t-1}$ old in period $t$,
+\[
+N_t c_{1,t} + N_{t-1} c_{2,t} \le N_t y
+\qquad\Longleftrightarrow\qquad
+c_1 + c_2 \le y
+\]
+under stationarity and constant population. The feasible-set line starts at $y$ on the vertical axis and has slope $-1$, steeper than the budget line.
+
+\thm{Equilibrium lies on the feasible-set boundary}{
+The stationary monetary-equilibrium bundle $(c_1^*,c_2^*)$ lies \emph{on} the feasible-set line $c_1 + c_2 = y$, where the feasible-set line crosses the (flatter) budget line.
+}
+
+\pf{
+If $(c_1^*,c_2^*)$ lay strictly inside the feasible set, some goods would be thrown away, which no utility-maximizer would do; if it lay outside, people would consume more goods than exist, which is impossible. Hence the equilibrium bundle must sit on the boundary. The algebraic verification is given in Section~\ref{sec:feasible-algebra}.
+}
+
+This crossing is shown in Figure~\ref{fig:money-4}. Point $A$, where the feasible-set line is tangent to a higher indifference curve, is preferred by every future generation over the inflationary equilibrium $(c_1^*,c_2^*)$, because it lies on a higher indifference curve. Moreover, second-period consumption is higher at $A$ than at $(c_1^*,c_2^*)$, so even the initial old --- who care only about $c_2$ --- prefer $A$. Inflation makes \emph{everyone} worse off.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig4}
+\caption{The inflationary equilibrium $(c_1^*,c_2^*)$ sits where the steeper feasible-set line meets the flatter budget line; the no-inflation allocation $A$ lies on a strictly higher indifference curve and Pareto-dominates it.}
+\label{fig:money-4}
+\end{figure}
+
+The mechanism is a tax. The inflation tax on money balances induces future generations to \emph{reduce} their money demand $y - c_1$ below the level they would hold in the efficient equilibrium. This drop in demand for fiat money lowers the value of the initial balances held by the initial old, reducing their utility as well. Because the inflation tax is a \emph{proportional} tax --- the same rate falls on everyone holding money --- it distorts the incentive to hold real balances, and through that the incentive to supply labor. Inflation can therefore affect \emph{aggregate output}, not merely the \emph{timing} of consumption.
+
+\subsection*{Loss and gain balance for the marginal holder}
+
+For an individual who carries balances from $t-1$ to $t$, the real loss from inflation --- the erosion in the value of the money she holds --- is
+\[
+\frac{M_{t-1}(v_{t-1} - v_t)}{N} = \frac{M_{t-1}\,v_t\,(z-1)}{N},
+\]
+using $v_{t-1} = z\,v_t$ (constant population, $v_t/v_{t+1}=z$). The gain she receives is the lump-sum transfer,
+\[
+a_t = \frac{(M_t - M_{t-1})\,v_t}{N} = \frac{M_{t-1}\,v_t\,(z-1)}{N}.
+\]
+The two are equal: the transfer just compensates the holder for the inflation she suffers. Inflation is therefore a pure redistribution at the margin --- it transfers no net resources --- yet it still destroys welfare, because the \emph{anticipation} of the tax makes people hold too little money in the first place. The deadweight loss is the distortion, not a net transfer.
+
+\section{The Limits to Seigniorage}
+
+The government can print any number of dollars, but the value of those dollars shrinks the more it prints. Real government revenue is therefore bounded by the real value of the money stock; seigniorage is not an unlimited source of funds.
+
+\defn{Seigniorage}{
+\emph{Seigniorage} is the real revenue a government earns by issuing new money. In period $t$ it equals the real value of the newly printed money,
+\[
+(M_t - M_{t-1})\,v_t = \left(1 - \frac{1}{z}\right) v_t M_t .
+\]
+Here $v_t M_t$ is the real value of the money stock --- the \emph{tax base} --- and $\bigl(1 - \tfrac{1}{z}\bigr)$ is the fraction of that base captured by the government --- the inflation \emph{tax rate}.
+}
+
+The catch is that the base depends on the rate. When $z$ rises, each person reduces the real balances she holds, precisely to limit the goods she loses to the government through inflation. Lower real money demand means a smaller $v_t M_t$, so the tax base shrinks as the money-growth rate increases. Revenue is the product of a rising tax rate $\bigl(1-\tfrac1z\bigr)$ and a falling tax base $v_t M_t$, so it cannot grow without bound --- and beyond some point it falls. Figure~\ref{fig:money-5} shows the mechanism behind the shrinking base: raising the money-growth factor from the constant-money benchmark $z=1$ to $z>1$ contracts the real balances each young household chooses to hold.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig5}
+\caption{Real money demand and the money-growth rate. The grey line (slope $-1$, intercepts $y-g$) and the flatter black line (intercepts $y/z$ and $y$) give the household's optimum at $A$ and $B$; the two brackets beneath the axis show that real money demand is smaller when $z>1$ than in the constant-money case $z=1$ --- the mechanism by which a higher inflation rate erodes the seigniorage tax base.}
+\label{fig:money-5}
+\end{figure}
+
+\rmkb[The inflation Laffer curve]{Just as an income tax rate of $100\%$ would raise no revenue because no one would work, an inflation rate so high that money becomes worthless raises no real revenue because no one holds money. Real-world hyperinflations sit on the wrong side of this curve: the government prints ever faster yet extracts ever less, because the public flees the currency.}
+
+\section{Equilibrium Consumption and the Feasible Set}
+\label{sec:feasible-algebra}
+
+We now verify algebraically the claim made in Figure~\ref{fig:money-4}: that all goods are consumed in equilibrium, i.e.\ the monetary-equilibrium bundle $(c_1^*,c_2^*)$ lies on the feasible-set line. Three equations from the analysis above describe the stationary monetary equilibrium --- the lifetime budget constraint, the definition of the subsidy, and money-market clearing:
+\[
+\ba
+&c_1^* + \frac{z}{n}\,c_2^* = y + \frac{z}{n}\,a, \\[4pt]
+&a = \frac{\left(1 - \tfrac{1}{z}\right) v_t M_t}{N_{t-1}}, \\[4pt]
+&v_t M_t = N_t\,(y - c_1^*).
+\ea
+\]
+Substitute the clearing condition into the subsidy, using $N_t = n\,N_{t-1}$ so that $N_t/N_{t-1}=n$ and $v_t M_t / N_t = v_t m_t = y - c_1^*$:
+\[
+a = \frac{\left(1 - \tfrac{1}{z}\right) v_t M_t}{N_{t-1}}
+  = \left(1 - \frac{1}{z}\right) v_t M_t \cdot \frac{n}{N_t}
+  = \left(1 - \frac{1}{z}\right) n\,(y - c_1^*).
+\]
+Insert this into the lifetime budget constraint:
+\[
+c_1^* + \frac{z}{n}\,c_2^*
+ = y + \frac{z}{n}\cdot \left(1 - \frac{1}{z}\right) n\,(y - c_1^*)
+ = y + (z-1)(y - c_1^*).
+\]
+Collecting terms,
+\[
+c_1^* + \frac{z}{n}\,c_2^* = y + (z-1)(y - c_1^*)
+\quad\Longrightarrow\quad
+c_1^* + \frac{1}{n}\,c_2^* = y .
+\]
+With constant population $n=1$ this is exactly $c_1^* + c_2^* = y$, the feasible-set line. The growth factors $z$ and the subsidy $a$ have cancelled, confirming that they cannot change what is feasible --- only how the equilibrium sits relative to the feasible boundary.
+
+\section{Growing Population}
+
+Now allow the population to grow, $N_t = n N_{t-1}$ with $n > 1$. From money-market clearing $v_t = N_t(y-c_1)/M_t$, the return on money becomes
+\[
+\frac{v_{t+1}}{v_t} = \frac{n}{z},
+\]
+where stationarity ($a_{t+1}=a$, $c_{1,t}=c_1$ for all $t$) is again assumed. Money demand now grows at the population rate $n$. To keep the value of money --- and hence the price level --- constant, the government must expand the money stock at exactly the rate at which money demand grows, that is, it must set
+\[
+z = n .
+\]
+Printing money at the rate of population growth is non-inflationary, because the extra currency is exactly absorbed by the extra young who want to hold it.
+
+The lifetime budget line has the same algebraic form as before. Substituting $v_t/v_{t+1} = z/n$ and stationarity,
+\[
+c_1 + \frac{z}{n}\,c_2 \le y + \frac{z}{n}\,a .
+\]
+The feasible set, by contrast, is shaped only by the real resources of a growing economy --- neither printing money nor the subsidy can change it:
+\[
+c_1 + \frac{1}{n}\,c_2 \le y .
+\]
+Note that $z$ and $a$ do not appear: they are nominal and redistributive, not technological.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig6}
+\caption{Growing population: even when the government sets $z=n$ so that prices are constant, the flatter budget line $c_1 + \tfrac{z}{n}c_2 \le y$ cannot coincide with the steeper feasible-set line $c_1 + \tfrac{1}{n}c_2 \le y$, leaving the equilibrium $(c_1^*,c_2^*)$ at $B$ below the efficient point $A$.}
+\label{fig:money-6}
+\end{figure}
+
+The striking lesson of Figure~\ref{fig:money-6} is that even the non-inflationary policy $z=n$ fails to make the budget set coincide with the feasible set. The budget set tells a person that goods are equally available across periods --- its slope reflects the constant price level. But that is not the true state of a \emph{growing} economy. If each generation of young consumes one less good when young, there are $n$ extra goods available for the old in each generation. With constant prices, the budget set never communicates this $n$-for-one technology of growth. Consequently people value future consumption \emph{less} than they should, consuming too much when young and too little when old. Stable prices remove the inflation distortion but not the deeper distortion of population growth.
+
+\section{Government Expenditure}
+
+So far the printed money was returned to the old as a subsidy. We now let the government \emph{keep} the goods it buys with seigniorage, so that we can study the cost of raising revenue in isolation from any benefit of spending it.
+
+The government's budget constraint, in dollars, balances expenditure against revenue:
+\[
+\ba
+\text{Expenditure: }&\ p_t G_t + (1+i)\,D_{t-1},\\
+\text{Revenue: }&\ T_t + D_t + (M_t - M_{t-1}),
+\ea
+\]
+where $G_t$ is real government purchases, while $D_t$ (debt), $T_t$ (taxes) and $M_t$ (money) are in dollars. The term $(1+i)D_{t-1}$ is principal plus interest on maturing debt, and $(M_t - M_{t-1})$ is the seigniorage implicitly levied by expanding the money supply. Multiplying through by $v_t = 1/p_t$ to express everything in goods,
+\[
+G_t + (1+i)\,D_{t-1}\,v_t = v_t\,(T_t + D_t) + v_t\,(M_t - M_{t-1}).
+\]
+
+For simplicity, suppose the government runs no debt and levies no explicit taxes, financing all of its purchases by seigniorage alone:
+\[
+G_t = v_t\,(M_t - M_{t-1}) = v_t M_t\left(1 - \frac{1}{z}\right).
+\]
+Denote constant real purchases per \emph{old} person by
+\[
+g = \frac{G_t}{N_{t-1}} .
+\]
+We assume the goods the government acquires are used in a way that does not affect any individual's consumption choice and does not change the relative desirability of $c_1$ versus $c_2$ --- for concreteness, imagine the government simply dumps them into the ocean. There is \emph{no subsidy} to the old this time. This isolates the cost of raising revenue from the benefits of spending it.
+
+The feasible set for stationary allocations now subtracts the government's take:
+\[
+\ba
+\text{Feasible set:}\ \ & N_t c_1 + N_{t-1} c_2 + G_t \le N_t y,\\
+\text{Per-capita form:}\ \ & c_1 + \frac{c_2}{n} + g \le y,\\
+\text{Constant population:}\ \ & c_1 + c_2 + g \le y.
+\ea
+\]
+Take constant population, so $v_{t+1}/v_t = 1/z$, and the lifetime budget constraint under stationarity is (with no subsidy, $a=0$)
+\[
+c_1 + z\,c_2 \le y .
+\]
+As before, the budget line is flatter --- an individual must give up more $c_1$ to gain a unit of $c_2$ because money's return is low. But now the budget set has also \emph{shrunk}: it lies strictly inside the no-inflation budget set, because the goods extracted by money creation are consumed by the government rather than returned to individuals. Both effects appear in Figure~\ref{fig:money-7}.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig7}
+\caption{Government expenditure financed by seigniorage: the inflation-tax budget line $c_1 + z c_2 \le y$ (intercept $y/z$) is both flatter and inside the feasible set $c_1 + c_2 \le y - g$, so the inflation tax still distorts the consumption choice.}
+\label{fig:money-7}
+\end{figure}
+
+The picture makes plain that seigniorage finance distorts: the equilibrium bundle no longer lies on the feasible-set boundary, because the flatter budget line pushes people to hold too little money. The inflation tax buys the government $g$ goods per old person, but at a deadweight cost.
+
+\section{A Non-Distorting Tax}
+
+Can the government raise the same revenue $g$ without distorting the budget set? The distortion came entirely from the inflation tax falling on an economic activity --- holding money --- and thereby discouraging it. A tax that does not depend on any choice the individual makes would avoid this. That is a lump-sum tax.
+
+\defn{Lump-Sum Tax}{
+A \emph{lump-sum tax} is a fixed levy $\tau$ of goods, collected from each old person, whose amount does not depend on any action the individual takes. Because it cannot be reduced by changing behavior, it leaves marginal incentives --- in particular the incentive to hold money --- undistorted.
+}
+
+Replace seigniorage with a lump-sum tax $\tau$ on the old. The two-period problem becomes
+\[
+\ba
+\text{Young: }& c_{1,t} + v_t m_t \le y,\\
+\text{Old: }& c_{2,t+1} \le v_{t+1} m_t - \tau,\\[2pt]
+\text{Lifetime budget: }& c_{1,t} + \frac{v_t}{v_{t+1}}\,c_{2,t+1} \le y - \frac{v_t}{v_{t+1}}\,\tau .
+\ea
+\]
+Now hold both the population (hence money demand) and the money stock fixed over time, so $z=1$ and $v_{t+1}/v_t = 1$: there is no inflation. Set the tax to fully finance the government, $\tau = g$. The lifetime budget constraint becomes
+\[
+c_1 + c_2 \le y - g,
+\]
+which is \emph{identical} to the per-capita feasible set $c_1 + c_2 + g \le y$.
+
+\state{Lump-sum beats inflation}{
+By using a lump-sum tax instead of seigniorage, the government raises the same real revenue $g$ with \emph{no distortion} of the budget set: the budget line coincides with the feasible-set line, so individuals are not induced to shrink their money balances to dodge the inflation tax. Any tax on a productive (positive) activity is inferior to a lump-sum tax, because the activity tax reduces the incentive to undertake the activity.
+}
+
+This is a recurring theme in public finance, and the monetary model delivers it in an especially clean form: the inflation tax is a tax on the useful service that money provides, and like any such tax it carries a deadweight loss that an equal-yield lump-sum tax avoids.
+
+\rmkb[Where this is heading]{We have seen that money growth is an implicit, proportional, and distorting tax; that the revenue it raises is bounded by a Laffer-type relationship; and that an equal-yield lump-sum tax dominates it. Chapter~\ref{ch:international} extends the monetary model to an open economy with more than one currency, and Chapter~\ref{ch:central-bank} turns to the institution that actually controls $z$ in practice --- the central bank.}

@@ -1,0 +1,112 @@
+% !TEX root = ../main.tex
+\chapter{Barter and the Cost of Exchange}
+\label{ch:barter}
+
+The overlapping-generations model of Chapter~\ref{ch:money-model} took the existence of fiat money for granted: a young person hands her goods to an old person and walks away holding intrinsically worthless tokens, confident that some future young person will accept those same tokens in turn. But money is only one of several technologies a society can use to move goods through time and across people. The oldest alternative is \emph{barter} --- the direct swap of one good for another, with no intermediating object at all. Why, then, do real economies overwhelmingly choose money?
+
+This chapter answers that question by treating money as a device for \emph{economizing on the cost of trade}. We enrich the environment with many distinct goods and attach an explicit cost to the act of searching for a trading partner and to the act of accepting delivery. Money turns out to win not because it is valuable in itself --- by assumption it is not --- but because it relaxes the ``double coincidence of wants'' that cripples barter, and it does so ever more decisively in larger, more specialized economies. We also see the limit of the argument: money's search-cost advantage can be undone if money itself is expensive to handle.
+
+\section{A Many-Goods Exchange Economy}
+
+We keep the overlapping-generations structure of Chapter~\ref{ch:money-model} but replace the single consumption good with $J$ distinct types of goods.
+
+\state{Environment}{
+There are $J$ different types of goods. When an individual is young she is endowed with $y$ units of \emph{one} type of good; when she becomes old she has no further endowment but wishes to consume \emph{another} type of good. Goods can be stored costlessly, and the economy holds a total stock of fiat money $M$ that is also stored costlessly. Every search for a trading partner --- every attempt at a match --- carries a cost $\alpha$.
+}
+
+The crucial friction is that a young person's good is generically \emph{not} the good her own future self wants to consume, nor the good that the particular old person she meets happens to want. Trade therefore requires finding the right counterparty, and finding takes costly search. The whole comparison below turns on how many costly searches each exchange technology forces upon a typical individual.
+
+\section{The Cost of Barter}
+
+Under \emph{direct barter}, two parties trade only if each holds exactly what the other wants. This is the classic \emph{double coincidence of wants}: the old person I meet must both have the good I want \emph{and} want the good I have.
+
+\defn{Double Coincidence of Wants}{
+In direct barter an exchange occurs between two individuals only if each holds the good that the other desires. With $J$ goods, an arbitrary pair of traders satisfies this requirement only for a small fraction of all possible meetings, and the fraction shrinks as $J$ grows.
+}
+
+With $J$ types of goods, the number of ordered ``what I have, what I want'' combinations across the population is $J^2 - J$ (all $J^2$ pairs, less the $J$ pairs in which the two goods coincide, which require no trade). Since each match costs $\alpha$ by definition, the average search cost of organizing trade through barter is
+\[
+\text{barter search cost} \;=\; \alpha\,(J^2 - J).
+\]
+The cost grows \emph{quadratically} in the number of goods: doubling the variety of goods in the economy roughly quadruples the search burden of barter.
+
+\section{The Cost of Monetary Exchange}
+
+Now introduce fiat money as a generally accepted means of payment. Trade is broken into two legs. When matched, the young person gives her goods to an old person and in return receives money; later, when old, she gives that money to some young person and in return receives the consumption good she wants.
+
+The key simplification is that money dissolves one half of the double coincidence. A young seller wants \emph{money}, and she does not care which type of old person she meets, because \emph{every} old person carries the one thing she is willing to accept --- fiat money. The only coincidence that must still be arranged is that the old person wants the particular good the young person is selling, which happens with probability $\tfrac1J$ in a single try.
+
+\state{Why money raises the match probability}{
+Under barter, a successful meeting requires a \emph{two-sided} coincidence of wants. Under monetary exchange only \emph{one} side must coincide, because money is universally accepted. The probability of a successful match is therefore strictly higher with money than with barter.
+}
+
+Each individual now undertakes \emph{two} costly searches over a lifetime --- one when young (selling goods for money) and one when old (spending money on goods). Hence the lifetime search cost under monetary exchange averages
+\[
+\text{money search cost} \;=\; 2\alpha J,
+\]
+which grows only \emph{linearly} in the number of goods.
+
+\section{When Does Money Beat Barter?}
+
+Comparing the two search costs, money lowers search costs whenever
+\[
+\alpha\,(J^2 - J) \;>\; 2\alpha J
+\quad\Longleftrightarrow\quad
+J^2 - J > 2J
+\quad\Longleftrightarrow\quad
+J > 3 .
+\]
+
+\thm{Money Dominates Barter in a Complex Economy}{
+Holding the per-search cost $\alpha$ fixed, monetary exchange entails lower total search costs than direct barter if and only if there are more than three types of goods,
+\[
+\alpha\,(J^2-J) > 2\alpha J \iff J > 3 .
+\]
+Moreover the search-cost advantage of money, $\alpha(J^2-J) - 2\alpha J = \alpha J(J-3)$, is increasing in $J$: money becomes more valuable as the economy grows more complex.
+}
+
+\pf{
+Divide both sides of $\alpha(J^2-J) > 2\alpha J$ by $\alpha>0$ to obtain $J^2 - J > 2J$, i.e.\ $J^2 - 3J > 0$, i.e.\ $J(J-3) > 0$. Since $J \ge 1$, this holds exactly when $J > 3$. The advantage is the gap $\alpha J(J-3)$, whose derivative in $J$ is $\alpha(2J-3) > 0$ for all $J \ge 2$, so the gap widens as $J$ rises.
+}
+
+The economic content is intuitive. In a tiny economy --- only two or three goods --- finding someone with a matching double coincidence is easy, and the bookkeeping of a two-leg monetary trade is not worth the trouble. But specialization multiplies the number of distinct goods, the double coincidence becomes vanishingly rare, and a universally accepted medium of exchange becomes indispensable. Money is, in this precise sense, a technology whose payoff scales with the sophistication of the division of labor.
+
+\section{Exchange Costs and the Limits of Money}
+
+The search-cost comparison above counts only the cost of \emph{finding} a partner. But every act of trade also carries an \emph{exchange cost} --- the cost incurred whenever goods or money are accepted and handled. Here barter enjoys a structural advantage that can, in principle, offset money's gains: barter completes an exchange in a \emph{single} trade (goods for goods), whereas monetary exchange requires \emph{two} trades (goods for money, then money for goods).
+
+Let $\lambda$ denote the exchange cost of accepting goods, per person, and let $\lambda_M$ denote the additional exchange cost associated with accepting money. An exchange cost is incurred each time goods or money are accepted.
+
+\defn{Exchange Cost}{
+The \emph{exchange cost} is the cost borne whenever a party accepts delivery of goods or of money in a trade. We write $\lambda$ for the cost of accepting goods and $\lambda_M$ for the cost of accepting money.
+}
+
+Under barter, a person trades only once in a lifetime, and only when old: a young person's consumption comes entirely from her own endowment, so she has no reason to trade while young. She accepts delivery of goods exactly once, so her lifetime exchange cost is
+\[
+\text{barter exchange cost} \;=\; \lambda .
+\]
+Under monetary exchange, the same person accepts money once (when young, in exchange for her goods) and accepts goods once (when old, in exchange for her money). Her lifetime exchange cost is therefore
+\[
+\text{money exchange cost} \;=\; \lambda + \lambda_M .
+\]
+
+\rmkb[The trade-off in one line]{
+Money buys a lower \emph{search} cost ($2\alpha J$ instead of $\alpha(J^2-J)$) at the price of a higher \emph{exchange} cost ($\lambda + \lambda_M$ instead of $\lambda$). Money is the superior technology only when its search-cost saving exceeds the extra exchange cost $\lambda_M$ of handling the second trade. A money that is cheap to find a partner for but expensive to accept --- a clumsy or insecure money --- can lose this comparison even in a large economy.
+}
+
+Combining the two channels, the total lifetime cost of each technology is the sum of its expected search cost and its exchange cost, as collected in Figure~\ref{fig:money-2}.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig2}
+\caption{Total lifetime cost of trade under barter and under monetary exchange, decomposed into expected search cost and exchange cost; money lowers the search cost from $\alpha(J^2-J)$ to $2\alpha J$ but adds the money-handling cost $\lambda_M$.}
+\label{fig:money-2}
+\end{figure}
+
+Reading down the total-cost column of Figure~\ref{fig:money-2}, money is the cheaper technology overall precisely when
+\[
+2\alpha J + \lambda + \lambda_M \;<\; \alpha(J^2 - J) + \lambda,
+\quad\text{i.e.}\quad
+\alpha\,J(J-3) \;>\; \lambda_M .
+\]
+This sharpens the earlier result. The bare search-cost comparison, $J > 3$, is the special case $\lambda_M = 0$ in which accepting money is free. Once money carries its own handling cost $\lambda_M > 0$, the threshold rises: the economy must be complex enough --- $J$ large enough that the search saving $\alpha J(J-3)$ clears the hurdle $\lambda_M$ --- before money is worth adopting. The usefulness of any object as a medium of exchange thus depends jointly on how badly the economy needs to escape the double coincidence of wants and on how cheaply that object can itself be exchanged. This same tension between search frictions and handling costs reappears when we turn to commodity money in Chapter~\ref{ch:commodity}.
