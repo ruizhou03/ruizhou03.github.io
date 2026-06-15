@@ -324,29 +324,29 @@ theme_color: "#fafaf9"
   .gd-card.suit-red { color: var(--gd-suit-red); }
   .gd-card.suit-black { color: var(--gd-suit-black); }
   /* 级牌 / 逢人配：整张深色（深色即"这是级牌"信号；逢人配顶替时显示成它代替的牌、仍深色 → 深色的"3"即配牌） */
-  .gd-card.is-level { background: linear-gradient(160deg, #ece4d0 0%, #ddd1b2 100%); border-color: rgba(165,142,88,0.65); }
+  .gd-card.is-level { background: linear-gradient(160deg, #ffffff 0%, #d8b355 100%); border-color: #e6dcc7; }
 
   /* ===== 四象限：一横一纵在 0.39W 处切四格 ===== */
   .gd-card .q { position: absolute; display: flex; line-height: 1; }
   /* ① 左上正方形：点数，居中，统一字号（"10"不缩、字母不放大） */
   .gd-card .q-tl {
-    left: 0; top: 0; width: calc(var(--gd-card-w, 50px) * 0.39); height: calc(var(--gd-card-w, 50px) * 0.39);
+    left: 0; top: 0; width: calc(var(--gd-card-w, 50px) * 0.4); height: calc(var(--gd-card-w, 50px) * 0.4);
     align-items: center; justify-content: center;
     font-family: 'Cormorant Garamond', Georgia, "Songti SC", serif; font-weight: 700;
     font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum" 1, "lnum" 1;
-    font-size: calc(var(--gd-card-w, 50px) * 0.38);
+    font-size: calc(var(--gd-card-w, 50px) * 0.355);
   }
   /* J 偏长，单独缩一点点 */
-  .gd-card.rank-j .q-tl { font-size: calc(var(--gd-card-w, 50px) * 0.335); }
+  .gd-card.rank-j .q-tl { font-size: calc(var(--gd-card-w, 50px) * 0.315); }
   /* ② 右上：花色正中（竖排顶栏可见） */
   .gd-card .q-tr {
-    left: calc(var(--gd-card-w, 50px) * 0.39); top: 0; right: 0; height: calc(var(--gd-card-w, 50px) * 0.39);
+    left: calc(var(--gd-card-w, 50px) * 0.4); top: 0; right: 0; height: calc(var(--gd-card-w, 50px) * 0.4);
     align-items: center; justify-content: center;
     font-size: calc(var(--gd-card-w, 50px) * var(--gd-tr, 0.35));
   }
   /* ③ 左下：花色，靠上贴近点数（横排左条可见） */
   .gd-card .q-bl {
-    left: 0; top: calc(var(--gd-card-w, 50px) * 0.39); width: calc(var(--gd-card-w, 50px) * 0.39); bottom: 0;
+    left: 0; top: calc(var(--gd-card-w, 50px) * 0.4); width: calc(var(--gd-card-w, 50px) * 0.4); bottom: 0;
     align-items: flex-start; justify-content: center; padding-top: calc(var(--gd-card-w, 50px) * 0.05);
     font-size: calc(var(--gd-card-w, 50px) * var(--gd-bl, 0.35));
   }
@@ -372,20 +372,20 @@ theme_color: "#fafaf9"
   .gd-card.joker-small { color: var(--gd-joker-grey); }
   .gd-card.is-joker .q-tl { font-family: "Apple Symbols", "Segoe UI Symbol", 'Cormorant Garamond', serif; font-size: calc(var(--gd-card-w, 50px) * 0.37); }  /* 左上 ★ */
   /* 右上：竖排时星星右边的 JOKER（横排被隐） */
-  .gd-card.is-joker .q-tr { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; letter-spacing: 0; font-size: calc(var(--gd-card-w, 50px) * 0.19); }
+  .gd-card.is-joker .q-tr { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; letter-spacing: 0; font-size: calc(var(--gd-card-w, 50px) * 0.18); }
   /* 左下：横排时星星下方竖排 JOKER（默认/竖排被隐，仅横排出牌区露）；靠上、贴稳左下不越界 */
   .gd-card.is-joker .q-bl { flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 0; font-family: var(--font-body); font-weight: 800; letter-spacing: 1px; line-height: 1; font-size: calc(var(--gd-card-w, 50px) * 0.185); }
   /* 右下：皇冠（竖排/单卡版面：大皇冠） */
   .gd-card.is-joker .bigsuit {
     display: flex; align-items: center; justify-content: center;
-    right: calc(var(--gd-card-w, 50px) * 0.05); bottom: calc(var(--gd-card-w, 50px) * 0.11);
+    right: calc(var(--gd-card-w, 50px) * 0.02); bottom: calc(var(--gd-card-w, 50px) * 0.125);
     font-family: "Apple Symbols", "Segoe UI Symbol", monospace; font-size: calc(var(--gd-card-w, 50px) * 0.91);
   }
   /* 横排出牌版面：皇冠居中于右下象限矩形（不挤角落），略小于单卡版，避开左条竖排 JOKER */
   .gd-played-row .gd-card.is-joker .bigsuit {
-    left: calc(var(--gd-card-w, 50px) * 0.39); top: calc(var(--gd-card-w, 50px) * 0.39);
+    left: calc(var(--gd-card-w, 50px) * 0.4); top: calc(var(--gd-card-w, 50px) * 0.4);
     right: 0; bottom: 0; width: auto; height: auto;
-    font-size: calc(var(--gd-card-w, 50px) * 0.95);
+    font-size: calc(var(--gd-card-w, 50px) * 0.68);
   }
   .gd-card-back {
     display: inline-block;
@@ -2364,4 +2364,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260615h"></script>
+<script src="/assets/js/games/guandan.js?v=20260615i"></script>
