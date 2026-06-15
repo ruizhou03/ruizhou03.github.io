@@ -26,12 +26,12 @@
   }
   // 逐花色参数（编辑器调好的定稿）：tr/bl 角标大小、big 大花色大小、br/bb 右移/下沉、op 不透明度
   const SUITP = {
-    0: { tr: 0.35, bl: 0.35, big: 0.69, br: 0.025, bb: 0.2,  op: 1 },
-    1: { tr: 0.30, bl: 0.30, big: 0.60, br: 0.04,  bb: 0.2,  op: 1 },
-    2: { tr: 0.35, bl: 0.35, big: 0.71, br: -0.01, bb: 0.15, op: 0.9 },
-    3: { tr: 0.35, bl: 0.35, big: 0.62, br: 0.02,  bb: 0.2,  op: 0.9 },
+    0: { tr: 0.24, bl: 0.25, big: 0.69, br: 0.025, bb: 0.2,  op: 1 },
+    1: { tr: 0.20, bl: 0.21, big: 0.60, br: 0.04,  bb: 0.2,  op: 1 },
+    2: { tr: 0.24, bl: 0.25, big: 0.71, br: -0.01, bb: 0.15, op: 0.9 },
+    3: { tr: 0.24, bl: 0.25, big: 0.62, br: 0.02,  bb: 0.2,  op: 0.9 },
   };
-  const GD_S_RATIO = 0.4;   // 左上正方形 / 横纵分割线 = 0.39W；竖排错位也用它（露横分割线以上）
+  const GD_S_RATIO = 0.38;   // 左上正方形 / 横纵分割线 = 0.39W；竖排错位也用它（露横分割线以上）
   const LEVEL_SEQ = ['2','3','4','5','6','7','8','9','10','J','Q','K','A']; // 级牌进阶序
 
   // 炸弹 → 倍数（仿斗地主：每出一次累乘到 state.bombMult）
@@ -4464,11 +4464,13 @@
   });
   window.addEventListener('beforeunload', () => { saveSessionSync(); });
 
-  // 检测未完成对局 → 显示恢复 modal（盖在初始 pgo 之上）
+  // 进入游戏即全屏：有未完成对局 → 弹恢复 modal；否则跳过 PGO 设置面板，直接发一局单机掼蛋。
+  // （难度 / 玩法 / 联机仍可随时点右上角 ⚙️ 设置进 PGO 调整，下一盘生效。）
   (function maybeResumeOnLoad() {
     const snap = loadSession();
-    if (!snap) return;
-    showResumeOverlay(snap);
+    if (snap) { showResumeOverlay(snap); return; }
+    if (els.pgo) els.pgo.classList.remove('open');
+    startMatch();
   })();
 
   function showResumeOverlay(snap) {
@@ -4495,6 +4497,8 @@
       const snap = loadSession();
       if (!snap) {
         els.resumeOverlay.classList.remove('open');
+        els.pgo.classList.remove('open');
+        startMatch();
         return;
       }
       els.resumeOverlay.classList.remove('open');
@@ -4506,6 +4510,9 @@
     els.resumeDiscard.addEventListener('click', () => {
       clearSession();
       els.resumeOverlay.classList.remove('open');
+      // PGO 现已默认隐藏：放弃续局后直接开一局新的单机全屏掼蛋，别把用户留在空桌
+      els.pgo.classList.remove('open');
+      startMatch();
     });
   }
 

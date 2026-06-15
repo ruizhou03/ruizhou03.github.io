@@ -324,29 +324,29 @@ theme_color: "#fafaf9"
   .gd-card.suit-red { color: var(--gd-suit-red); }
   .gd-card.suit-black { color: var(--gd-suit-black); }
   /* 级牌 / 逢人配：整张深色（深色即"这是级牌"信号；逢人配顶替时显示成它代替的牌、仍深色 → 深色的"3"即配牌） */
-  .gd-card.is-level { background: linear-gradient(160deg, #ffffff 0%, #d8b355 100%); border-color: #e6dcc7; }
+  .gd-card.is-level { background: linear-gradient(160deg, #ffffff 0%, #ded2b5 100%); border-color: #e6dcc7; }
 
   /* ===== 四象限：一横一纵在 0.39W 处切四格 ===== */
   .gd-card .q { position: absolute; display: flex; line-height: 1; }
   /* ① 左上正方形：点数，居中，统一字号（"10"不缩、字母不放大） */
   .gd-card .q-tl {
-    left: 0; top: 0; width: calc(var(--gd-card-w, 50px) * 0.4); height: calc(var(--gd-card-w, 50px) * 0.4);
+    left: 0; top: 0; width: calc(var(--gd-card-w, 50px) * 0.38); height: calc(var(--gd-card-w, 50px) * 0.38);
     align-items: center; justify-content: center;
     font-family: 'Cormorant Garamond', Georgia, "Songti SC", serif; font-weight: 700;
     font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum" 1, "lnum" 1;
-    font-size: calc(var(--gd-card-w, 50px) * 0.355);
+    font-size: calc(var(--gd-card-w, 50px) * 0.28);
   }
   /* J 偏长，单独缩一点点 */
-  .gd-card.rank-j .q-tl { font-size: calc(var(--gd-card-w, 50px) * 0.315); }
+  .gd-card.rank-j .q-tl { font-size: calc(var(--gd-card-w, 50px) * 0.27); }
   /* ② 右上：花色正中（竖排顶栏可见） */
   .gd-card .q-tr {
-    left: calc(var(--gd-card-w, 50px) * 0.4); top: 0; right: 0; height: calc(var(--gd-card-w, 50px) * 0.4);
+    left: calc(var(--gd-card-w, 50px) * 0.38); top: 0; right: 0; height: calc(var(--gd-card-w, 50px) * 0.38);
     align-items: center; justify-content: center;
     font-size: calc(var(--gd-card-w, 50px) * var(--gd-tr, 0.35));
   }
   /* ③ 左下：花色，靠上贴近点数（横排左条可见） */
   .gd-card .q-bl {
-    left: 0; top: calc(var(--gd-card-w, 50px) * 0.4); width: calc(var(--gd-card-w, 50px) * 0.4); bottom: 0;
+    left: 0; top: calc(var(--gd-card-w, 50px) * 0.38); width: calc(var(--gd-card-w, 50px) * 0.38); bottom: 0;
     align-items: flex-start; justify-content: center; padding-top: calc(var(--gd-card-w, 50px) * 0.05);
     font-size: calc(var(--gd-card-w, 50px) * var(--gd-bl, 0.35));
   }
@@ -383,7 +383,7 @@ theme_color: "#fafaf9"
   }
   /* 横排出牌版面：皇冠居中于右下象限矩形（不挤角落），略小于单卡版，避开左条竖排 JOKER */
   .gd-played-row .gd-card.is-joker .bigsuit {
-    left: calc(var(--gd-card-w, 50px) * 0.4); top: calc(var(--gd-card-w, 50px) * 0.4);
+    left: calc(var(--gd-card-w, 50px) * 0.38); top: calc(var(--gd-card-w, 50px) * 0.38);
     right: 0; bottom: 0; width: auto; height: auto;
     font-size: calc(var(--gd-card-w, 50px) * 0.68);
   }
@@ -2144,8 +2144,8 @@ theme_color: "#fafaf9"
       <button class="gd-btn" id="gdSortBtn" type="button" title="清掉所有自定义摞，恢复默认排序"><svg class="gd-btn-ic" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><rect x="3.5" y="7.5" width="8.2" height="12" rx="1.6" fill="var(--gd-card-bg)" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="7.5" width="8.2" height="12" rx="1.6" fill="var(--gd-card-bg)" stroke="currentColor" stroke-width="1.3"/><path d="M18.6 3 L19.5 5.4 L21.9 6.3 L19.5 7.2 L18.6 9.6 L17.7 7.2 L15.3 6.3 L17.7 5.4 Z" fill="currentColor"/></svg><span class="gd-btn-tx">一键理牌</span></button>
     </div>
 
-    <!-- Pre-game overlay -->
-    <div class="gs-pgo-overlay open" id="gdPgo">
+    <!-- Pre-game overlay（默认隐藏：进游戏直接开局，点 ⚙️ 设置才打开） -->
+    <div class="gs-pgo-overlay" id="gdPgo">
       <div class="gs-pgo-view active" id="gdPgoMain">
         <button class="gd-pgo-close" id="gdPgoClose" type="button" hidden aria-label="返回游戏">← 返回游戏</button>
         <img class="gd-pgo-applogo" src="/assets/icons/guandan-icon-192.png" alt="掼蛋" width="72" height="72" />
@@ -2364,4 +2364,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260615i"></script>
+<script src="/assets/js/games/guandan.js?v=20260615j"></script>
