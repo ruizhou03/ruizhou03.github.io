@@ -381,10 +381,11 @@ theme_color: "#fafaf9"
     right: calc(var(--gd-card-w, 50px) * 0.05); bottom: calc(var(--gd-card-w, 50px) * 0.11);
     font-family: "Apple Symbols", "Segoe UI Symbol", monospace; font-size: calc(var(--gd-card-w, 50px) * 0.84);
   }
-  /* 横排出牌版面：皇冠右移 + 缩小，避开左条竖排 JOKER（最右完整一张时两者不再重叠） */
+  /* 横排出牌版面：皇冠居中于右下象限矩形（不挤角落），略小于单卡版，避开左条竖排 JOKER */
   .gd-played-row .gd-card.is-joker .bigsuit {
-    right: calc(var(--gd-card-w, 50px) * -0.04); bottom: calc(var(--gd-card-w, 50px) * 0.06);
-    font-size: calc(var(--gd-card-w, 50px) * 0.60);
+    left: calc(var(--gd-card-w, 50px) * 0.39); top: calc(var(--gd-card-w, 50px) * 0.39);
+    right: 0; bottom: 0; width: auto; height: auto;
+    font-size: calc(var(--gd-card-w, 50px) * 0.72);
   }
   .gd-card-back {
     display: inline-block;
@@ -2363,4 +2364,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260615f"></script>
+<script src="/assets/js/games/guandan.js?v=20260615g"></script>
