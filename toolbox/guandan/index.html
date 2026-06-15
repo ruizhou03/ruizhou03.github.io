@@ -370,16 +370,16 @@ theme_color: "#fafaf9"
   /* ===== 大小王：四象限版型（★ / JOKER / 皇冠），与常规牌同一套分割线 ===== */
   .gd-card.joker-big { color: var(--gd-joker-red); }
   .gd-card.joker-small { color: var(--gd-joker-grey); }
-  .gd-card.is-joker .q-tl { font-family: "Apple Symbols", "Segoe UI Symbol", 'Cormorant Garamond', serif; }  /* 左上 ★ */
-  /* 右上：竖排时星星右边的 JOKER（横排被隐）。用窄衬线 + 小字号，确保不溢出 */
-  .gd-card.is-joker .q-tr { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; letter-spacing: 0; font-size: calc(var(--gd-card-w, 50px) * 0.15); }
-  /* 左下：横排时星星下方竖排 JOKER（默认/竖排被隐，仅横排出牌区露） */
-  .gd-card.is-joker .q-bl { flex-direction: column; align-items: center; justify-content: center; padding-top: calc(var(--gd-card-w, 50px) * 0.06); font-family: var(--font-body); font-weight: 800; letter-spacing: 1px; line-height: 1.05; font-size: calc(var(--gd-card-w, 50px) * 0.20); }
+  .gd-card.is-joker .q-tl { font-family: "Apple Symbols", "Segoe UI Symbol", 'Cormorant Garamond', serif; font-size: calc(var(--gd-card-w, 50px) * 0.45); }  /* 左上 ★ */
+  /* 右上：竖排时星星右边的 JOKER（横排被隐） */
+  .gd-card.is-joker .q-tr { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; letter-spacing: 0; font-size: calc(var(--gd-card-w, 50px) * 0.18); }
+  /* 左下：横排时星星下方竖排 JOKER（默认/竖排被隐，仅横排出牌区露）；靠上、贴稳左下不越界 */
+  .gd-card.is-joker .q-bl { flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 0; font-family: var(--font-body); font-weight: 800; letter-spacing: 1px; line-height: 1; font-size: calc(var(--gd-card-w, 50px) * 0.175); }
   /* 右下：皇冠 */
   .gd-card.is-joker .bigsuit {
     display: flex; align-items: center; justify-content: center;
-    right: calc(var(--gd-card-w, 50px) * 0.05); bottom: calc(var(--gd-card-w, 50px) * 0.03);
-    font-family: "Apple Symbols", "Segoe UI Symbol", monospace; font-size: calc(var(--gd-card-w, 50px) * 0.6);
+    right: calc(var(--gd-card-w, 50px) * 0.05); bottom: calc(var(--gd-card-w, 50px) * 0.11);
+    font-family: "Apple Symbols", "Segoe UI Symbol", monospace; font-size: calc(var(--gd-card-w, 50px) * 0.84);
   }
   .gd-card-back {
     display: inline-block;
@@ -1213,16 +1213,20 @@ theme_color: "#fafaf9"
     font-weight: 700; font-size: 1.02rem;
   }
   .gd-result-level .arrow { margin: 0 0.18rem; color: var(--gd-accent-strong); }
+  /* 每栏两列：左=先走(名次靠前)玩家，右=后走玩家；每列头像/昵称/名次竖向堆叠 */
   .gd-result-players {
-    display: flex; flex-direction: column; gap: 0.4rem;
+    display: flex; flex-direction: row; gap: 0.5rem; justify-content: center;
   }
   .gd-result-player {
-    display: flex; align-items: center; gap: 0.55rem;
-    padding: 0.35rem 0.55rem;
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+    padding: 0.45rem 0.4rem;
     background: rgba(255,255,255,0.6);
     border-radius: 10px;
     border: 1px solid rgba(0,0,0,0.06);
   }
+  .gd-result-team-label { display: block; text-align: center; }
+  .gd-result-team-flip { display: flex; justify-content: center; margin-top: 0.5rem; }
   .gd-result-rank {
     font-family: var(--font-display);
     font-weight: 700; font-size: 0.82rem;
@@ -1246,9 +1250,9 @@ theme_color: "#fafaf9"
     flex-shrink: 0;
   }
   .gd-result-name {
-    font-size: 0.9rem; font-weight: 600;
+    font-size: 0.84rem; font-weight: 600;
     color: var(--color-ink);
-    flex: 1; min-width: 0;
+    max-width: 100%; text-align: center;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .gd-result-vs-divider {
@@ -1395,11 +1399,15 @@ theme_color: "#fafaf9"
   }
   /* 输赢蒙版：输方偏灰、赢方偏亮（盖在静态 perspective 容器上，不卷入 3D 翻转） */
   .gd-result-level-cards .lc-lose .gd-level-flip::after,
-  .gd-result-level-cards .lc-win .gd-level-flip::after {
+  .gd-result-level-cards .lc-win .gd-level-flip::after,
+  .gd-result-team-flip.lc-lose .gd-level-flip::after,
+  .gd-result-team-flip.lc-win .gd-level-flip::after {
     content: ''; position: absolute; inset: 0; border-radius: 5px; pointer-events: none; z-index: 5;
   }
-  .gd-result-level-cards .lc-lose .gd-level-flip::after { box-shadow: inset 0 0 0 2px rgba(150,152,162,0.9), 0 0 5px rgba(150,152,162,0.4); }
-  .gd-result-level-cards .lc-win .gd-level-flip::after { box-shadow: inset 0 0 0 2px rgba(214,172,82,0.95), 0 0 10px rgba(255,214,106,0.55); }
+  .gd-result-level-cards .lc-lose .gd-level-flip::after,
+  .gd-result-team-flip.lc-lose .gd-level-flip::after { box-shadow: inset 0 0 0 2px rgba(150,152,162,0.9), 0 0 5px rgba(150,152,162,0.4); }
+  .gd-result-level-cards .lc-win .gd-level-flip::after,
+  .gd-result-team-flip.lc-win .gd-level-flip::after { box-shadow: inset 0 0 0 2px rgba(214,172,82,0.95), 0 0 10px rgba(255,214,106,0.55); }
   .gd-level-flip-inner {
     position: relative;
     width: 100%; height: 100%;
@@ -2266,22 +2274,17 @@ theme_color: "#fafaf9"
         <h2 class="gd-result-title" id="gdRoundTitle">胜利</h2>
         <div class="gd-result-vs">
           <div class="gd-result-team you" id="gdResultTeamYou">
-            <div class="gd-result-team-head">
-              <span class="gd-result-team-label">你方</span>
-              <span class="gd-result-level" id="gdResultLevelYou">级 2</span>
-            </div>
+            <span class="gd-result-team-label">我方</span>
             <div class="gd-result-players" id="gdResultPlayersYou"></div>
+            <div class="gd-result-team-flip" id="gdResultFlipYou"></div>
           </div>
           <div class="gd-result-vs-divider">VS</div>
           <div class="gd-result-team opp" id="gdResultTeamOpp">
-            <div class="gd-result-team-head">
-              <span class="gd-result-team-label">对方</span>
-              <span class="gd-result-level" id="gdResultLevelOpp">级 2</span>
-            </div>
+            <span class="gd-result-team-label">对方</span>
             <div class="gd-result-players" id="gdResultPlayersOpp"></div>
+            <div class="gd-result-team-flip" id="gdResultFlipOpp"></div>
           </div>
         </div>
-        <div class="gd-result-level-cards" id="gdRoundLevelCards"></div>
         <div class="gd-result-score" id="gdRoundScore"></div>
         <button class="gd-btn primary" id="gdRoundNext" type="button">继续 ▶</button>
       </div>
@@ -2294,7 +2297,7 @@ theme_color: "#fafaf9"
         <div class="gd-result-vs">
           <div class="gd-result-team you" id="gdMatchTeamYou">
             <div class="gd-result-team-head">
-              <span class="gd-result-team-label">你方</span>
+              <span class="gd-result-team-label">我方</span>
               <span class="gd-result-level" id="gdMatchLevelYou">级 A</span>
             </div>
             <div class="gd-result-players" id="gdMatchPlayersYou"></div>
@@ -2355,4 +2358,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260615c"></script>
+<script src="/assets/js/games/guandan.js?v=20260615d"></script>

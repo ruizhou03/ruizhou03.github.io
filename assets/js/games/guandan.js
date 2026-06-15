@@ -896,7 +896,7 @@
     roundLevelYou: $('gdResultLevelYou'), roundLevelOpp: $('gdResultLevelOpp'),
     roundPlayersYou: $('gdResultPlayersYou'), roundPlayersOpp: $('gdResultPlayersOpp'),
     roundTeamYou: $('gdResultTeamYou'), roundTeamOpp: $('gdResultTeamOpp'),
-    roundScore: $('gdRoundScore'), roundLevelCards: $('gdRoundLevelCards'),
+    roundScore: $('gdRoundScore'), roundFlipYou: $('gdResultFlipYou'), roundFlipOpp: $('gdResultFlipOpp'),
     matchOverlay: $('gdMatchOverlay'), matchTitle: $('gdMatchTitle'),
     matchAgain: $('gdMatchAgain'), matchSetup: $('gdMatchSetup'),
     matchLevelYou: $('gdMatchLevelYou'), matchLevelOpp: $('gdMatchLevelOpp'),
@@ -3009,15 +3009,39 @@
   function renderResultTeamPlayers(container, seats, seatToRank) {
     if (!container) return;
     container.innerHTML = '';
-    for (const s of seats) {
+    // 先走(名次靠前)在左 → 按名次升序排两列
+    const ordered = seats.slice().sort((a, b) => seatToRank[a] - seatToRank[b]);
+    for (const s of ordered) {
       const rank = seatToRank[s];
-      const row = document.createElement('div');
-      row.className = 'gd-result-player';
-      row.innerHTML =
-        '<span class="gd-result-rank" data-rank="' + rank + '">' + POS_NAMES[rank - 1] + '</span>' +
+      const col = document.createElement('div');
+      col.className = 'gd-result-player';
+      col.innerHTML =
         '<span class="gd-result-avatar">' + SEAT_AVATARS[s] + '</span>' +
-        '<span class="gd-result-name">' + seatName(s) + '</span>';
-      container.appendChild(row);
+        '<span class="gd-result-name">' + seatName(s) + '</span>' +
+        '<span class="gd-result-rank" data-rank="' + rank + '">' + POS_NAMES[rank - 1] + '</span>';
+      container.appendChild(col);
+    }
+  }
+
+  // 单队级牌翻牌（放本栏两列玩家下方）；胜方 before→after 翻面、败方静态；lc-win/lc-lose 由 CSS 描边
+  function renderTeamFlip(slot, before, after, isWinner) {
+    if (!slot) return;
+    slot.innerHTML = '';
+    slot.classList.toggle('lc-win', isWinner);
+    slot.classList.toggle('lc-lose', !isWinner);
+    const flip = document.createElement('div');
+    flip.className = 'gd-level-flip';
+    const inner = document.createElement('div');
+    inner.className = 'gd-level-flip-inner';
+    if (isWinner && before !== after) {
+      const front = buildLevelCardEl(before); front.classList.add('lc-front');
+      const back = buildLevelCardEl(after); back.classList.add('lc-back');
+      inner.appendChild(front); inner.appendChild(back);
+      flip.appendChild(inner); slot.appendChild(flip);
+      setTimeout(() => flip.classList.add('flipped'), 600);
+    } else {
+      inner.appendChild(buildLevelCardEl(before));
+      flip.appendChild(inner); slot.appendChild(flip);
     }
   }
 
@@ -3087,39 +3111,34 @@
     const seatToRank = {};
     for (let i = 0; i < 4; i++) seatToRank[ranking[i]] = i + 1;
 
-    // 大标题
+    // 大标题：整局结束才显示"胜利/失败"；每小局不写"我方头游"标题
     const youWon = winTeam === 0;
     if (matchWon) {
       els.roundTitle.textContent = youWon ? '胜利' : '失败';
+      els.roundTitle.style.display = '';
+      els.roundTitle.classList.toggle('win', youWon);
+      els.roundTitle.classList.toggle('lose', !youWon);
     } else {
-      els.roundTitle.textContent = youWon ? '我方头游' : '对方头游';
+      els.roundTitle.style.display = 'none';
     }
-    els.roundTitle.classList.toggle('win', youWon);
-    els.roundTitle.classList.toggle('lose', !youWon);
 
     // 队伍面板高亮
     els.roundTeamYou.classList.toggle('winning', winTeam === 0);
     els.roundTeamOpp.classList.toggle('winning', winTeam === 1);
 
-    // 级牌：胜方 before → after，败方维持当前。直接显示级牌变化，不写 +N / 队友几游
+    // 级牌：胜方 before → after，败方维持当前
     const youLvCurr = LEVEL_SEQ[state.levels[0]];
     const oppLvCurr = LEVEL_SEQ[state.levels[1]];
     const winnerBefore = LEVEL_SEQ[beforeIdx];
     const winnerAfter = LEVEL_SEQ[newIdx];
-    if (winTeam === 0) {
-      els.roundLevelYou.innerHTML = '级 <strong>' + winnerBefore + '</strong> <span class="arrow">→</span> <strong>' + winnerAfter + '</strong>';
-      els.roundLevelOpp.innerHTML = '级 <strong>' + oppLvCurr + '</strong>';
-    } else {
-      els.roundLevelYou.innerHTML = '级 <strong>' + youLvCurr + '</strong>';
-      els.roundLevelOpp.innerHTML = '级 <strong>' + winnerBefore + '</strong> <span class="arrow">→</span> <strong>' + winnerAfter + '</strong>';
-    }
 
-    // 玩家卡：0+2 = 你方；1+3 = 对方
+    // 玩家卡：0+2 = 我方；1+3 = 对方（每栏两列：先走/名次靠前在左）
     renderResultTeamPlayers(els.roundPlayersYou, [0, 2], seatToRank);
     renderResultTeamPlayers(els.roundPlayersOpp, [1, 3], seatToRank);
 
-    // 级牌翻牌动画
-    renderLevelCards(els.roundLevelCards, youLvCurr, oppLvCurr, winTeam, winnerBefore, winnerAfter);
+    // 各栏下方：本队级牌翻牌（胜方 before→after 翻面，败方静态）
+    renderTeamFlip(els.roundFlipYou, winTeam === 0 ? winnerBefore : youLvCurr, winTeam === 0 ? winnerAfter : youLvCurr, winTeam === 0);
+    renderTeamFlip(els.roundFlipOpp, winTeam === 1 ? winnerBefore : oppLvCurr, winTeam === 1 ? winnerAfter : oppLvCurr, winTeam === 1);
 
     // 分数展示
     if (els.roundScore) {
