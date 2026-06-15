@@ -7,6 +7,9 @@ manifest: /toolbox/guandan/manifest.json
 apple_touch_icon: /assets/icons/guandan-apple-touch-icon.png
 app_title: 掼蛋
 theme_color: "#fafaf9"
+# 服务端就给 <body> 带上全屏类：进页面首帧即全屏，杜绝"先停在非全屏再跳全屏"的闪烁。
+# （JS 启动时也会再加一次，幂等兜底。）
+body_class: gd-game-fullscreen
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
@@ -2364,4 +2367,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260615j"></script>
+<script src="/assets/js/games/guandan.js?v=20260615k"></script>

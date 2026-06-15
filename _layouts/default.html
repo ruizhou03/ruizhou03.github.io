@@ -110,7 +110,7 @@
   <link rel="stylesheet" href="https://unpkg.com/@waline/client@v2/dist/waline.css" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://unpkg.com/@waline/client@v2/dist/waline.css"></noscript>
 </head>
-<body class="{% if page.manifest %}app-shell {% endif %}{% if page.url contains '/toolbox/' %}is-toolbox{% endif %}">
+<body class="{% if page.manifest %}app-shell {% endif %}{% if page.url contains '/toolbox/' %}is-toolbox{% endif %}{% if page.body_class %} {{ page.body_class }}{% endif %}">
 
   <nav>
     <div class="nav-inner">
