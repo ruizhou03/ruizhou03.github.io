@@ -1028,10 +1028,13 @@
       if (opts.cid != null) el.dataset.cid = opts.cid;
       if (opts.selected) el.classList.add('selected');
       if (opts.groupStart) el.classList.add('group-start');
+      // 四象限版型：左上 ★；右上横排 JOKER(竖排时露)；左下竖排 JOKER(横排时露)；右下皇冠
+      const crown = (kind === 'big') ? '♛' : '♚';
       el.innerHTML =
-        '<span class="jk-normal"><span class="rk">★</span>' +
-        '<span class="pip"><span class="t">JOKER</span><span class="i">' + (kind === 'big' ? '♛' : '♚') + '</span></span></span>' +
-        '<span class="jk-vert"><span>J</span><span>O</span><span>K</span><span>E</span><span>R</span></span>';
+        '<span class="q q-tl">★</span>' +
+        '<span class="q q-tr jk-word-h">JOKER</span>' +
+        '<span class="q q-bl jk-word-v"><span>J</span><span>O</span><span>K</span><span>E</span><span>R</span></span>' +
+        '<span class="bigsuit jk-crown">' + crown + '</span>';
       return el;
     }
     // 出牌区可让逢人配画成它顶替的牌（opts.repRank/repSuit）；颜色/花色按"显示出来的"走
@@ -1041,6 +1044,8 @@
     let cls = 'gd-card ' + sizeClass + (red ? ' suit-red' : ' suit-black');
     // 整张深色高亮只给红桃级牌(逢人配)：普通级牌(♠♦♣)不高亮。逢人配顶替展示时仍深色 → 一张深色的"3"即配牌。
     if (level && isWild(c, level)) cls += ' is-level';
+    // J 在 Cormorant 里带下伸、整体偏长，单独把字号收一点点，免得竖排时探出被下张盖住
+    if (RANK_LABELS[dRank] === 'J') cls += ' rank-j';
     el.className = cls;
     if (opts.cid != null) el.dataset.cid = opts.cid;
     if (opts.selected) el.classList.add('selected');
@@ -2209,11 +2214,9 @@
   }
 
   function beginPlay(leader) {
-    // 新一局先走 5s 加倍/不加倍 阶段，所有人同步决策
-    if (state._needDoubleChoice) {
-      enterDoublingPhase(leader);
-      return;
-    }
+    // 升级规则下倍数无意义：移除开局加倍环节，直接进入出牌
+    state._needDoubleChoice = false;
+    state.openMult = 1;
     state.phase = PHASE.PLAYING;
     state.turn = leader;
     state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
@@ -2387,7 +2390,7 @@
         pairs: [{ giver: fourth, receiver: first, tributeCard: card, returnCard: null }],
         newLeader: fourth,   // 进贡者（末游）先出
       };
-      processTributePair(0);
+      collectThenSwap();
     });
   }
 
@@ -2425,7 +2428,7 @@
           ],
           newLeader,
         };
-        processTributePair(0);
+        collectThenSwap();
       });
     });
   }
@@ -2482,28 +2485,36 @@
   // 新流程：进贡和还贡分两阶段
   //   1) 决定 pair.returnCard（AI 立即选好；玩家由 UI 选完）—— 此时不飞
   //   2) swapTributePair：两张牌同时起飞、相互交换，再各塞入对方牌堆
-  function processTributePair(idx) {
+  // 进贡：先把所有牌选定（AI 收方立刻选还贡牌；玩家收方等其挑完），四张全就绪后再一起交换。
+  // 双下时这样就实现"等四个人都提交了才交换"；单贡是一对，逻辑相同。
+  function collectThenSwap() {
     const pt = state.pendingTribute;
-    if (!pt || idx >= pt.pairs.length) {
-      // 全部完成 → 按先出牌规则领出下一圈（newLeader 在 handleSingle/Double 里定好）
-      const newLeader = pt && pt.newLeader != null ? pt.newLeader : 0;
-      finishTribute(newLeader);
-      return;
-    }
-    const pair = pt.pairs[idx];
+    if (!pt) return;
     const level = currentLevelLabel();
-    if (pair.receiver === 0) {
-      // 玩家是接贡方 → 等待玩家挑还贡牌；提交后跑 swap。
-      // 动作行按钮已经会显示"还贡"，所以不需要 banner/toast 重复说明
-      state._activeTributePair = idx;
+    let playerIdx = -1;
+    pt.pairs.forEach((pair, idx) => {
+      if (pair.returnCard != null) return;        // 已定（玩家刚提交的、或之前 AI 选的）
+      if (pair.receiver === 0) playerIdx = idx;    // 玩家收方：稍后等其挑
+      else pair.returnCard = pickReturnCard(state.hands[pair.receiver], level);
+    });
+    if (playerIdx >= 0) {
+      // 等玩家挑还贡牌（动作行显示"还贡"）；挑完 confirmReturnTribute 会再调本函数
+      state._activeTributePair = playerIdx;
       state.selected.clear();
       renderAll();
       startTurnClock(0, autoReturnTribute, TRIBUTE_TIMEOUT_MS);
-    } else {
-      // AI 收方 → 立即决定还贡牌、然后 swap 动画
-      pair.returnCard = pickReturnCard(state.hands[pair.receiver], level);
-      swapTributePair(idx);
+      return;
     }
+    swapAllPairs();   // 四张牌全部就绪 → 同时交换所有对
+  }
+  function swapAllPairs() {
+    const pt = state.pendingTribute;
+    if (!pt) return;
+    let remaining = pt.pairs.length;
+    const newLeader = pt.newLeader != null ? pt.newLeader : 0;
+    pt.pairs.forEach((_, idx) => swapTributePair(idx, () => {
+      if (--remaining === 0) finishTribute(newLeader);
+    }));
   }
 
   // 进贡 4 段式（按用户反馈对齐欢乐斗地主体感）：
@@ -2511,7 +2522,7 @@
   //   P2 交换  —— 两张浮卡分别飞到对方的 play area
   //   P3 停留  —— 0.5s，让用户看清新位置
   //   P4 收牌  —— 把对方的牌塞进对方牌堆（count +1），玩家方走 just-inserted 弹动
-  function swapTributePair(idx) {
+  function swapTributePair(idx, onComplete) {
     const pair = state.pendingTribute.pairs[idx];
     const level = currentLevelLabel();
     const mkCombo = (card, label) => ({
@@ -2578,8 +2589,8 @@
           }
         });
       }
-      // 进入下一对（自己参与等 just-inserted 跑完；纯 AI 短停）
-      setTimeout(() => processTributePair(idx + 1), selfInvolved ? 720 : 400);
+      // 本对交换完成回调（swapAllPairs 收齐所有对后 finishTribute）
+      setTimeout(() => { if (onComplete) onComplete(); }, selfInvolved ? 720 : 400);
     }
   }
 
@@ -2681,7 +2692,7 @@
     for (const c of hand) {
       if (isJoker(c)) continue;
       const lab = RANK_LABELS[cardRankIdx(c)];
-      const lowOk = ['2','3','4','5','6','7','8','9','10'].includes(lab);
+      const lowOk = lab !== level && ['2','3','4','5','6','7','8','9','10'].includes(lab);  // 级牌是大牌，不算小牌
       if (!lowOk) continue;
       const w = singleWeight(c, level);
       if (w < bw) { bw = w; best = c; }
@@ -2734,7 +2745,7 @@
     if (!cur) return;
     const level = currentLevelLabel();
     const hand = state.hands[0];
-    const low = hand.filter(c => !isJoker(c) && ['2','3','4','5','6','7','8','9','10'].includes(RANK_LABELS[cardRankIdx(c)]));
+    const low = hand.filter(c => !isJoker(c) && RANK_LABELS[cardRankIdx(c)] !== level && ['2','3','4','5','6','7','8','9','10'].includes(RANK_LABELS[cardRankIdx(c)]));
     const pool = low.length ? low : hand.filter(c => !isJoker(c));
     pool.sort((a, b) => singleWeight(a, level) - singleWeight(b, level));
     if (!pool.length) return;
@@ -2754,7 +2765,8 @@
     state.selected.clear();
     stopTurnClock();
     state._activeTributePair = null;
-    swapTributePair(idx);
+    // 记下玩家还贡牌；若四张已齐 collectThenSwap 会一起交换，否则继续等下一个收方
+    collectThenSwap();
   }
 
   // ---- 出牌 ----
@@ -4057,14 +4069,13 @@
   }
   function syncPgoScoreSummary() {
     if (!els.pgoScore) return;
-    const st = state.stats[state.aiLevel] || { totalScore: 0, w: 0, l: 0 };
-    const total = st.totalScore | 0;
-    if (total === 0 && (st.w | 0) === 0 && (st.l | 0) === 0) {
+    const st = state.stats[state.aiLevel] || { w: 0, l: 0 };
+    if ((st.w | 0) === 0 && (st.l | 0) === 0) {
       els.pgoScore.innerHTML = '';
       return;
     }
-    const sign = total >= 0 ? '+' : '';
-    els.pgoScore.innerHTML = '本难度累计 <strong>' + sign + total + '</strong> 分（' + (st.w | 0) + '胜 ' + (st.l | 0) + '负）';
+    // 升级规则下不展示分数，只保留胜负记录
+    els.pgoScore.innerHTML = '本难度 <strong>' + (st.w | 0) + '</strong> 胜 <strong>' + (st.l | 0) + '</strong> 负';
   }
   els.pgoDiff.addEventListener('click', e => {
     const t = e.target.closest('.gs-pgo-mode-tab');

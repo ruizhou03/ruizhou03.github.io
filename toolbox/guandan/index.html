@@ -336,6 +336,8 @@ theme_color: "#fafaf9"
     font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum" 1, "lnum" 1;
     font-size: calc(var(--gd-card-w, 50px) * 0.38);
   }
+  /* J 偏长，单独缩一点点 */
+  .gd-card.rank-j .q-tl { font-size: calc(var(--gd-card-w, 50px) * 0.335); }
   /* ② 右上：花色正中（竖排顶栏可见） */
   .gd-card .q-tr {
     left: calc(var(--gd-card-w, 50px) * 0.39); top: 0; right: 0; height: calc(var(--gd-card-w, 50px) * 0.39);
@@ -360,34 +362,25 @@ theme_color: "#fafaf9"
   .gd-card .suit-svg { width: 1em; height: 1em; display: block; fill: currentColor; overflow: visible; }
   /* 左下花色默认隐藏：完整显示的牌(单卡/列底/结算翻牌)只露左上+右上+右下 */
   .gd-card .q-bl { display: none; }
-  /* 横排出牌区：恢复左下花色、隐藏右上花色(最右完整一张只露左上+左下+右下) */
-  .gd-played-row .gd-card .q-bl { display: flex; }
-  .gd-played-row .gd-card .q-tr { display: none; }
+  /* 横排出牌区(非进贡)：恢复左下花色、隐藏右上花色(最右完整一张只露左上+左下+右下)。
+     进贡是单张完整展示，沿用默认(露左上+右上+右下)，所以大小王显示正常样式而非竖排 JOKER */
+  .gd-played-row:not(.gd-tribute-row) .gd-card .q-bl { display: flex; }
+  .gd-played-row:not(.gd-tribute-row) .gd-card .q-tr { display: none; }
 
-  /* ===== 大小王（沿用原样：★ + JOKER + ♛/♚） ===== */
-  .gd-card.is-joker .jk-normal .rk {
-    position: absolute; top: 3px; left: 4px; font-weight: 400;
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: calc(var(--gd-card-w, 50px) * 0.38);
-  }
-  .gd-card.is-joker .jk-normal .pip {
-    position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%);
-    display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1; font-family: var(--font-body);
-  }
-  .gd-card.is-joker .jk-normal .pip .t { font-weight: 800; letter-spacing: 1px; font-size: calc(var(--gd-card-w, 50px) * 0.16); }
-  .gd-card.is-joker .jk-normal .pip .i { font-family: "Apple Symbols", "Segoe UI Symbol", monospace; font-size: calc(var(--gd-card-w, 50px) * 0.40); }
+  /* ===== 大小王：四象限版型（★ / JOKER / 皇冠），与常规牌同一套分割线 ===== */
   .gd-card.joker-big { color: var(--gd-joker-red); }
   .gd-card.joker-small { color: var(--gd-joker-grey); }
-  /* 横排被盖的王：左条竖排写 JOKER（颜色仍大红/小灰） */
-  .gd-card .jk-vert {
-    display: none; position: absolute; left: 0; top: 0;
-    width: calc(var(--gd-card-w, 50px) * 0.39); height: 100%;
-    flex-direction: column; align-items: center; justify-content: center;
-    font-family: var(--font-body); font-weight: 800; letter-spacing: 1px;
-    font-size: calc(var(--gd-card-w, 50px) * 0.22); line-height: 1.16;
+  .gd-card.is-joker .q-tl { font-family: "Apple Symbols", "Segoe UI Symbol", 'Cormorant Garamond', serif; }  /* 左上 ★ */
+  /* 右上：竖排时星星右边的 JOKER（横排被隐）。用窄衬线 + 小字号，确保不溢出 */
+  .gd-card.is-joker .q-tr { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; letter-spacing: 0; font-size: calc(var(--gd-card-w, 50px) * 0.15); }
+  /* 左下：横排时星星下方竖排 JOKER（默认/竖排被隐，仅横排出牌区露） */
+  .gd-card.is-joker .q-bl { flex-direction: column; align-items: center; justify-content: center; padding-top: calc(var(--gd-card-w, 50px) * 0.06); font-family: var(--font-body); font-weight: 800; letter-spacing: 1px; line-height: 1.05; font-size: calc(var(--gd-card-w, 50px) * 0.20); }
+  /* 右下：皇冠 */
+  .gd-card.is-joker .bigsuit {
+    display: flex; align-items: center; justify-content: center;
+    right: calc(var(--gd-card-w, 50px) * 0.05); bottom: calc(var(--gd-card-w, 50px) * 0.03);
+    font-family: "Apple Symbols", "Segoe UI Symbol", monospace; font-size: calc(var(--gd-card-w, 50px) * 0.6);
   }
-  .gd-played-row .gd-card.is-joker:not(:last-child) .jk-normal { display: none; }
-  .gd-played-row .gd-card.is-joker:not(:last-child) .jk-vert { display: flex; }
   .gd-card-back {
     display: inline-block;
     width: var(--gd-card-mini-w); height: var(--gd-card-mini-h);
@@ -1374,11 +1367,8 @@ theme_color: "#fafaf9"
   .gd-gameopts-body { animation: gd-opts-in 0.18s ease-out; }
   @keyframes gd-opts-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
-  .gd-result-score {
-    margin: 0.7rem 0 0.2rem;
-    font-size: 0.95rem; color: rgba(255,255,255,0.88);
-    text-align: center; line-height: 1.45;
-  }
+  /* 升级规则下分数无意义：结算/赛末加分不再展示 */
+  .gd-result-score { display: none !important; }
   .gd-result-score .delta { font-weight: 700; font-size: 1.4rem; }
   .gd-result-score .delta.win { color: #ffd66a; }
   .gd-result-score .delta.lose { color: #d8d8d8; }
@@ -1408,8 +1398,8 @@ theme_color: "#fafaf9"
   .gd-result-level-cards .lc-win .gd-level-flip::after {
     content: ''; position: absolute; inset: 0; border-radius: 5px; pointer-events: none; z-index: 5;
   }
-  .gd-result-level-cards .lc-lose .gd-level-flip::after { background: rgba(70,72,82,0.42); }
-  .gd-result-level-cards .lc-win .gd-level-flip::after { background: rgba(255,246,224,0.20); box-shadow: 0 0 10px rgba(255,214,106,0.55); }
+  .gd-result-level-cards .lc-lose .gd-level-flip::after { box-shadow: inset 0 0 0 2px rgba(150,152,162,0.9), 0 0 5px rgba(150,152,162,0.4); }
+  .gd-result-level-cards .lc-win .gd-level-flip::after { box-shadow: inset 0 0 0 2px rgba(214,172,82,0.95), 0 0 10px rgba(255,214,106,0.55); }
   .gd-level-flip-inner {
     position: relative;
     width: 100%; height: 100%;
@@ -2365,4 +2355,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260615b"></script>
+<script src="/assets/js/games/guandan.js?v=20260615c"></script>
