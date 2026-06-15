@@ -1,0 +1,31 @@
+\begin{tikzpicture}[font=\small]
+  % --- geometry of the spectrum ---
+  \def\W{14.0}        % total width of the arrow body
+  \def\H{1.4}         % half-height of the arrow body
+  \def\head{1.6}      % horizontal length of the arrowhead
+  \def\tip{2.05}      % half-height at the base of the arrowhead
+
+  % wide right-pointing arrow (least liquid on the left, most liquid on the right)
+  \draw[line width=0.8pt, rounded corners=2pt, fill=black!6]
+        (0,\H) -- (\W,\H) -- (\W,\tip)
+        -- (\W+\head,0)
+        -- (\W,-\tip) -- (\W,-\H) -- (0,-\H) -- cycle;
+
+  % --- four rounded boxes inside the arrow, left to right ---
+  \tikzset{libox/.style={draw, line width=0.8pt, rounded corners=5pt,
+                         minimum height=1.55cm, align=center,
+                         inner sep=4pt, anchor=center}}
+
+  \node[libox, minimum width=2.95cm] (b1) at (1.85,0)
+        {Government bonds,\\ funds, stocks};
+  \node[libox, minimum width=2.45cm] (b2) at (5.35,0)
+        {Time deposits};
+  \node[libox, minimum width=4.0cm] (b3) at (9.3,0)
+        {Checks,\\ demand deposits};
+  \node[libox, minimum width=1.75cm] (b4) at (12.85,0)
+        {Cash};
+
+  % --- caption beneath: increasing liquidity ---
+  \draw[-Latex, line width=0.9pt] (0,-2.55) -- (\W+\head,-2.55);
+  \node[below, anchor=north] at ({(\W+\head)/2},-2.62) {increasing liquidity};
+\end{tikzpicture}

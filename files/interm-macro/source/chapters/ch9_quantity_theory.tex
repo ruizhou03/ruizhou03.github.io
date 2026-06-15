@@ -1,0 +1,174 @@
+% !TEX root = ../main.tex
+\chapter{The Quantity Theory of Money and Inflation}
+\label{ch:quantity}
+
+Chapter~\ref{ch:money} described how money is created --- how the central bank and the commercial banks together expand the stock of currency and deposits that circulates in the economy. This chapter asks the natural sequel: what happens to the price level when that stock grows? The short answer, and the organizing idea of classical monetary economics, is that the price level is ultimately a monetary phenomenon. When the quantity of money rises faster than the quantity of goods, each unit of money chases more goods than before, and prices climb. A sustained, broad rise in the price level is what we call \emph{inflation}, and over long horizons it is driven by the growth rate of money.
+
+Before building the model that makes this precise, we pause on a prior question that students of macroeconomics almost always get backwards: \emph{why does inflation matter at all?} The popular complaint is that inflation eats into our purchasing power, leaving us poorer. We will see that this intuition, taken literally, is largely a confusion --- in a frictionless world incomes rise alongside prices, and the real costs of inflation lie elsewhere. Identifying where those costs really are, and where there are even some offsetting benefits, sharpens our understanding of what monetary policy can and cannot do. The chapter then develops the \emph{quantity theory of money}, summarized by the equation $MV = PY$, derives a simple expression for the inflation rate, recasts the same equation as a theory of money demand, and closes with the \emph{classical dichotomy} and the \emph{neutrality of money} --- the proposition that money does not affect real quantities in the long run. That proposition holds only when prices have fully adjusted; the breakdown of neutrality in the short run, when prices are sticky, is exactly the doorway into the Keynesian models of the following chapters.
+
+\section{Inflation as a Tax}
+
+A useful first lens on inflation is fiscal. When a government cannot or will not finance its spending through ordinary taxes or borrowing, it can simply print money to pay its bills. Each new unit of money it issues dilutes the purchasing power of every unit already in circulation. The holders of money are thereby made poorer in real terms, and the resources that money commanded are transferred to the government. The effect is indistinguishable from a tax levied on money balances.
+
+\defn{Seigniorage (the Inflation Tax)}{
+\emph{Seigniorage} is the real revenue a government obtains by issuing money. Equivalently, it is the \emph{inflation tax}: when the money stock grows and the price level rises, the real value of the money the public holds falls, and that lost purchasing power accrues to the issuer. The ``tax base'' is the real money balances $M/P$ the public chooses to hold, and the ``tax rate'' is the inflation rate $\pi$ that erodes them.
+}
+
+This is the traditional view that inflation amounts to levying an inflation tax. It is worth holding onto because it explains why governments under fiscal stress so often resort to the printing press, and why episodes of hyperinflation are almost always episodes of fiscal collapse: the inflation tax is the revenue source of last resort. It also frames the central question of the quantity theory in fiscal language --- if the government keeps expanding $M$ to finance spending, what does that do to $P$?
+
+\section{The Costs of Inflation}
+
+If inflation transfers resources and distorts decisions, where exactly are the costs borne? It is helpful to separate the genuine, first-order costs that economic theory identifies from the cost the public most fears, which turns out to be more apparent than real.
+
+\subsection{The Real Costs}
+
+\begin{enumerate}
+    \item \textbf{Shoe-leather costs (rising transaction costs).} When prices are expected to keep rising, holding money becomes expensive, and people economize on their money balances --- making more frequent trips to the bank, holding wealth in interest-bearing or real assets, and shortening the horizon of contracts. Long-term contracts become harder to write because both parties must constantly account for the changing price level. The name evokes the wear on one's shoes from extra trips to the bank; more broadly it captures all the real resources spent managing money holdings that would be unnecessary under stable prices.
+
+    \item \textbf{Menu costs (the cost of adjusting prices).} Firms must physically change their posted prices --- reprinting menus and catalogues, relabeling shelves, reprogramming systems --- and each such change consumes real resources. The higher the inflation rate, the more often prices must be revised, and the larger these costs grow.
+
+    \item \textbf{Distorted resource allocation.} Prices are the signals that guide resources to their most valued uses. When the general price level is rising, and rising at different rates for different goods, it becomes hard to tell a change in a good's \emph{relative} price --- which should redirect resources --- from a change in the overall price level, which should not. The \emph{signaling role of prices fails}, and resources are misallocated as a result.
+
+    \item \textbf{Redistribution between debtors and creditors.} Inflation that is higher than was anticipated when a loan was signed lowers the \emph{real} interest rate actually paid. A debtor repays in money that is worth less than expected, while a creditor receives less real value than the contract promised. Inflation therefore redistributes wealth from creditors (lenders) to debtors (borrowers): \emph{borrowers gain and lenders lose}.
+\end{enumerate}
+
+\subsection{Why ``Inflation Shrinks My Income'' is Not a First-Order Cost}
+
+Notice what is \emph{absent} from the list above: the reason most people give for fearing inflation, namely that rising prices shrink the purchasing power of their incomes and so make them poorer. In theory this concern does not hold up. If all prices in the economy rise in proportion, then wages, rents, and profits --- which are themselves prices --- should rise in the same proportion. A worker whose wage and whose grocery bill both double is no worse off. Real income, the ratio of nominal income to the price level, is unchanged. Inflation that is uniform and fully anticipated does not by itself reduce anyone's real income.
+
+\rmkb[Where the popular worry becomes real]{The theoretical argument assumes all prices and incomes move together and instantly. Reality departs from this in two ways. First, inflation is often \emph{structural}: different prices rise at different speeds, so the basket of goods a particular household buys may rise faster than its particular source of income. Second, wages and many prices are \emph{sticky} --- they do not adjust immediately. When the price of goods rises but a worker's nominal wage is fixed by contract for a year, that worker's real income genuinely falls for the duration. These frictions are exactly why the popular worry has bite in the short run. They are also the foundation of the Keynesian claim that fiscal and monetary policy can move real output in the short run: if prices adjusted instantly, there would be no short-run real effects to exploit. We return to this when we take up money neutrality at the end of the chapter, and develop it fully in Chapters~\ref{ch:keynes}--\ref{ch:adas}.}
+
+\section{The Benefits of Inflation}
+
+Inflation is not all cost. A moderate rate of inflation carries two benefits that are worth stating explicitly, both of which work through the same channel that produced the costs above.
+
+\begin{enumerate}
+    \item \textbf{It stimulates the demand for credit.} By lowering the real interest rate on existing debt, inflation makes borrowing cheaper in real terms and encourages firms and households to take on loans and invest. A higher demand for credit can support spending and economic activity.
+
+    \item \textbf{It adds flexibility to the labor market.} Nominal wages are notoriously difficult to cut: workers resist outright pay reductions, and contracts and norms make them \emph{downward-rigid}. Yet sometimes the labor market requires a fall in the real wage --- for instance when a firm faces weaker demand and would otherwise have to lay workers off. Inflation provides a way out. If the price level rises while nominal wages hold steady, the \emph{real} wage falls without anyone's pay being formally cut. Lower real wages make it cheaper for firms to employ workers, raising labor demand and supporting employment. In this way moderate inflation greases the wheels of the labor market.
+\end{enumerate}
+
+\section{The Quantity Theory of Money}
+
+We now turn from why inflation matters to what determines it. The classical answer is the \emph{quantity theory of money}, which begins from an accounting identity linking the quantity of money to the value of transactions it carries out.
+
+\defn{The Quantity Equation}{
+The \emph{quantity equation} (or equation of exchange) states that the quantity of money times the speed at which it circulates equals the money value of transactions:
+\[
+M \times V = P \times T,
+\]
+where $M$ is the nominal money stock, $V$ is the \emph{velocity of money} (the average number of times a unit of money changes hands per period), $P$ is the price level, and $T$ is the volume of transactions.
+}
+
+The volume of transactions $T$ is hard to measure directly, so in practice we replace it with real output (real GDP), denoted $Y$. With this substitution the right-hand side $P \times Y$ is just \emph{nominal} GDP, and the quantity equation becomes the form we will use throughout:
+\begin{equation}
+M \times V = P \times Y.
+\label{eq:qty-eqn}
+\end{equation}
+
+What turns this identity into a \emph{theory} is a set of statements about which terms are free to move and which are fixed in the short run.
+
+\asm{The Quantity-Theory Assumptions}{
+\begin{description}
+    \item[Output is set by the supply side.] Real output $Y$ is determined by the economy's potential --- its capital, labor, and technology --- and so is taken as given in the short run, independent of the money stock.
+    \item[Velocity is set by habit.] The velocity $V$ is governed by the transaction technology and payment habits of the economy (how people are paid, how often, and how they hold money). These habits change only slowly, so $V$ is roughly constant in the short run.
+\end{description}
+}
+
+\rmkb[Velocity and the interest rate]{Velocity is not literally a constant. It rises when the opportunity cost of holding money rises: when the interest rate climbs --- that is, when the price of liquidity goes up --- people hold less money relative to their spending, so each unit of money turns over more often and $V$ increases. The assumption is only that, over short horizons, $V$ moves little compared with the swings in $M$ and $P$ that interest us. This dependence of $V$ on the interest rate is precisely what the liquidity-preference reformulation in Section~\ref{sec:money-demand} will make explicit.}
+
+With $V$ and $Y$ fixed in the background, equation~\eqref{eq:qty-eqn} ties the price level directly to the money stock. To see this cleanly, take logarithms of both sides,
+\[
+\log M + \log V = \log P + \log Y,
+\]
+and differentiate with respect to time. Since the time derivative of $\log X$ is the growth rate $\Delta X / X$, this gives
+\begin{equation}
+\frac{\Delta M}{M} + \frac{\Delta V}{V} = \frac{\Delta P}{P} + \frac{\Delta Y}{Y},
+\label{eq:qty-growth}
+\end{equation}
+or in the language of percentage changes,
+\[
+\%\Delta M + \%\Delta V = \%\Delta P + \%\Delta Y.
+\]
+Equation~\eqref{eq:qty-growth} expresses the quantity equation as a relationship among \emph{growth rates}: the sum of money growth and velocity growth equals the sum of inflation and real output growth. Two conclusions follow.
+
+\state{Two conclusions of the quantity theory}{
+\begin{enumerate}
+    \item \textbf{Inflation is driven by money growth.} Holding the growth rates of velocity and real output fixed, any increase in the money growth rate $\Delta M / M$ passes through one-for-one to the inflation rate $\Delta P / P$. Sustained inflation is, at bottom, a consequence of sustained money creation.
+    \item \textbf{Money growth tracks nominal GDP growth.} Because $\Delta V / V \approx 0$, money growth $\Delta M / M$ moves roughly together with the growth of nominal GDP, $\%\Delta P + \%\Delta Y$. In practice the rate at which a central bank expands the money supply broadly matches the growth of nominal output.
+\end{enumerate}
+}
+
+Setting velocity growth $\Delta V / V$ to zero in \eqref{eq:qty-growth} and recalling that the inflation rate $\pi$ is the growth rate of the price level, $\pi = \Delta P / P$, we can solve for inflation directly:
+\begin{equation}
+\pi = \frac{\Delta M}{M} - \frac{\Delta Y}{Y}.
+\label{eq:inflation-rate}
+\end{equation}
+
+\defn{The Inflation Rate from Money Growth}{
+Under constant velocity, the inflation rate equals the gap between money growth and real output growth,
+\[
+\pi = \frac{\Delta M}{M} - \frac{\Delta Y}{Y}.
+\]
+}
+
+Equation~\eqref{eq:inflation-rate} gives a rough but illuminating estimate of inflation. Read it as follows: in theory the quantity of money in circulation ``ought'' to grow in step with the economy's real output, so that there is just enough money to carry out the additional real transactions at unchanged prices. The portion of money growth that \emph{exceeds} real growth has no extra goods to chase, and so spills over into higher prices. That excess is the inflation rate.
+
+\section{Money Demand and Liquidity Preference}
+\label{sec:money-demand}
+
+The quantity equation has so far been read as a theory of the price level. The same equation, rearranged, is also a theory of \emph{money demand} --- of how much money people wish to hold. Rearranging $MV = PY$ to isolate real balances,
+\begin{equation}
+\frac{M}{P} = \frac{Y}{V}.
+\label{eq:real-money}
+\end{equation}
+The left-hand side $M/P$ is the \emph{real money supply} --- the purchasing power of the money stock --- and in equilibrium it equals the quantity of real balances the public demands. The quantity equation thus describes \emph{liquidity preference}: the amount of money the economy needs to keep itself running. Two observations follow. First, the equation is fundamentally about money \emph{demand}. Second, it characterizes an \emph{equilibrium}: when the money market clears, the $M$ in the equation represents both the supply of money and the demand for it.
+
+Keynes generalized the right-hand side of \eqref{eq:real-money} into an explicit money-demand function. Rather than pinning real balances to $Y/V$ with a fixed velocity, he let the demand for real balances depend on income and on the interest rate through a \emph{liquidity-preference} function $L$:
+\begin{equation}
+\pr{\frac{M}{P}}^{\!d} = L(i, Y) = L\pr{r + \pi^{e},\, Y}.
+\label{eq:liq-pref}
+\end{equation}
+Here $i$ is the nominal interest rate, which by the Fisher relation is the sum of the real interest rate $r$ and expected inflation $\pi^{e}$, so $i = r + \pi^{e}$. The signs of the two arguments are central:
+\begin{enumerate}
+    \item \textbf{Money demand is increasing in income $Y$.} A higher level of real income means more spending and more transactions to finance, and so a greater need for money to carry them out. Thus $L$ rises with $Y$.
+    \item \textbf{Money demand is decreasing in the nominal interest rate $i$.} The interest rate is the opportunity cost of holding money: money held as cash or in non-interest-bearing accounts forgoes the return $i$ available on bonds and other assets. When $i$ rises, holding money becomes more costly, so people hold less of it --- equivalently, velocity rises and each unit of money does more work. Thus $L$ falls with $i$.
+\end{enumerate}
+
+\rmkb[Why money demand uses \emph{expected} inflation]{The opportunity cost that matters for a decision made \emph{today} about how much money to hold over the coming period is the \emph{nominal} interest rate, and the relevant nominal rate is the one that compensates for the inflation a saver \emph{expects} to occur, not the inflation that will be realized after the fact. Money demand is an \emph{ex ante} (forward-looking) concept, so it depends on \emph{expected} inflation $\pi^{e}$, which is why the second argument of $L$ is written $r + \pi^{e}$ rather than $r + \pi$.}
+
+On the other side of the market, the nominal money supply $M$ is set by the central bank. We treat this as an exogenous, independent policy decision: monetary authorities choose $M$ through administrative action, and that choice is taken as given by the rest of the model. Equilibrium in the money market requires that the real supply of money equal the real demand for it,
+\begin{equation}
+\frac{M}{P} = L(i, Y) = L\pr{r + \pi^{e},\, Y}.
+\label{eq:money-eqm}
+\end{equation}
+With the nominal money supply $M$ fixed by policy, the interest rate $i$ and the price level $P$ adjust so that \eqref{eq:money-eqm} holds. This equilibrium condition is the engine of the LM relation we will build in Chapter~\ref{ch:islm}.
+
+\section{The Classical Dichotomy and the Neutrality of Money}
+
+We can now state the central long-run proposition of monetary theory, and the precise sense in which it can fail in the short run --- the bridge to everything that follows.
+
+\defn{The Classical Dichotomy}{
+The \emph{classical dichotomy} is the separation of economic variables into \emph{real} quantities (output, employment, relative prices, the real interest rate) and \emph{nominal} quantities (the money stock, the price level, nominal wages). The dichotomy holds that nominal variables do not affect real variables: changes in the quantity of money move the price level but leave the real allocation untouched.
+}
+
+If the classical dichotomy holds, then the price level cannot alter real economic behavior. A change in the money stock and the policy that produces it has no effect on output, employment, or consumption --- they merely scale all nominal magnitudes up or down together. Money is then said to be \emph{neutral}.
+
+\thm{Neutrality of Money}{
+Money is \emph{neutral} if a change in the nominal money stock changes all nominal variables in the same proportion and leaves all real variables unchanged. Neutrality holds when \emph{every} price in the economy adjusts at the same time, in the same direction, and by the same proportion, so that no relative price is disturbed.
+}
+
+The condition for neutrality is demanding: it requires that all prices --- goods prices, wages, asset prices --- move together, instantaneously and proportionately. When that condition is met, doubling the money stock simply doubles the price level and every nominal wage and contract, leaving real wages, real output, and the real interest rate exactly where they were. This is the same neutrality result encountered in the simple monetary model of Chapter~\ref{ch:money}, now stated at the level of the whole economy.
+
+Reality, however, is full of frictions. Prices and wages are sticky: they are set in advance, revised infrequently, and do not all move at once. When the money stock changes but prices have not yet caught up, relative prices are temporarily disturbed, and the change in money \emph{does} move real quantities. In the short run, therefore, \emph{money is not neutral}, and monetary policy can influence the level of output and employment.
+
+\state{Neutrality is a long-run, not a short-run, property}{
+\begin{itemize}
+    \item \textbf{Short run:} prices are sticky, the classical dichotomy fails, and money is \emph{not} neutral. Monetary and fiscal policy can move real output and employment.
+    \item \textbf{Long run:} given enough time, every sticky price adjusts until the economy reaches a new equilibrium with no remaining price rigidity. The classical dichotomy is restored and money is neutral. Policy moves only the price level, not real quantities.
+\end{itemize}
+}
+
+This distinction is the organizing principle of the rest of the course. The economy has a \emph{long-run} equilibrium, anchored at potential output and governed by the supply side, where money is neutral and the classical dichotomy holds. It also has \emph{short-run} fluctuations --- the business cycle --- during which sticky prices let demand-side disturbances (and, less controllably, supply-side shocks such as movements in total factor productivity) push the economy away from potential. Over time, adjustment in prices, the interest rate, and related variables pulls a short-run equilibrium that has strayed from potential output back toward it.
+
+\rmkb[Keynes on the short run and the long run]{Keynes built his theory on exactly this division between a short run and a long run, distinguished by whether prices are sticky. In the short run, supply is flexible and prices are rigid, so monetary and fiscal policy can shift aggregate demand and thereby change the level of output; money is not neutral. In the long run, prices are fully flexible, aggregate supply is rigid at potential output, and money is neutral. The promise of the Keynesian framework is that policy can smooth the short-run fluctuations of the business cycle even though it cannot change the economy's long-run potential. The models of the following chapters --- the Keynesian cross (Chapter~\ref{ch:keynes}), IS--LM (Chapter~\ref{ch:islm}), and aggregate demand and supply (Chapter~\ref{ch:adas}) --- are the machinery that makes this promise operational.}

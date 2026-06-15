@@ -1,0 +1,185 @@
+% !TEX root = ../main.tex
+\chapter{Prices, Real Output, and Inflation Indices}
+\label{ch:prices}
+
+The national accounts of Chapter~\ref{ch:accounts} deliver a single number for the value of everything an economy produces in a year. But that number is measured in money, and money is a slippery yardstick: a 10\% rise in GDP could mean the economy produced 10\% more goods, or that it produced exactly as much and merely charged 10\% higher prices, or any mixture of the two. Before we can say whether a country is growing, or compare it with its own past or with another country, we must separate the part of a change in spending that reflects \emph{more output} from the part that reflects \emph{higher prices}. That separation is the business of this chapter.
+
+We proceed in two steps. First we split nominal GDP into a real quantity and a price level, which gives us the \emph{GDP deflator} and a clean decomposition of nominal growth into real growth plus inflation. With that in hand we can finally compare GDP across time and across countries, and we pause over the practical reporting conventions --- year-on-year versus quarter-on-quarter, and the seasonally-adjusted annualized rate --- that make published growth figures comparable. Second, we survey the family of price indices an economist actually consults: the consumer price index (CPI) and its ``core'' variant, the producer price index (PPI), and the personal consumption expenditures (PCE) index. The recurring theme is that there is no single ``the'' price level; each index answers a different question, and choosing the wrong one quietly distorts the answer. We close by comparing the CPI and the GDP deflator directly, because the differences between them --- fixed versus changing weights, imported versus domestic goods --- are exactly the kind of measurement subtlety that shows up in real policy debates.
+
+A note on scope. This chapter is about \emph{measuring} prices and inflation, not about \emph{explaining} them. Why the overall price level moves, what inflation costs society, the ``inflation tax'' levied by a government that prints money, and the quantity theory that ties money growth to inflation are all deferred to Chapter~\ref{ch:quantity}. Here we only build the rulers; the theory of why the things being measured move comes later.
+
+\section{Nominal and Real GDP}
+
+A change in nominal GDP from one year to the next confounds two distinct events: quantities may have changed, and prices may have changed. To isolate quantities we recompute output holding prices fixed at the level of some chosen \emph{base year}. This is the single idea behind the distinction between nominal and real GDP.
+
+\defn{Nominal and Real GDP}{
+\emph{Nominal GDP} values each good at the prices prevailing in the year it was produced,
+\[
+\text{Nominal GDP}_t = \sum_i p_{i,t}\, q_{i,t},
+\]
+where $p_{i,t}$ and $q_{i,t}$ are the price and quantity of good $i$ in year $t$. \emph{Real GDP} values the same quantities at the fixed prices of a base year $0$,
+\[
+\text{Real GDP}_t = \sum_i p_{i,0}\, q_{i,t}.
+\]
+Because real GDP holds prices constant, every change in it reflects a change in physical output rather than in prices.
+}
+
+\rmkb[Chinese data conventions]{China's National Bureau of Statistics reports the two series under names that translate as ``current-price GDP'' (\emph{xianjia GDP}), which is nominal GDP, and ``constant-price GDP'' (\emph{bubianjia GDP}), which is real GDP measured at a stated base year. The headline ``GDP growth rate'' and the published ``GDP index'' both refer to the growth of \emph{real} GDP. When reading any such series the first question to ask is always: which base year, and is this a current-price or constant-price figure?}
+
+\subsection{The GDP Deflator}
+
+If real GDP captures quantities, then whatever is left over when we compare nominal to real GDP must capture prices. That residual is the economy's broadest price index.
+
+\defn{GDP Deflator}{
+The \emph{GDP deflator} is the ratio of nominal to real GDP, conventionally scaled by $100$,
+\[
+\text{GDP deflator}_t = \frac{\text{Nominal GDP}_t}{\text{Real GDP}_t}\times 100
+= \frac{\sum_i p_{i,t}\, q_{i,t}}{\sum_i p_{i,0}\, q_{i,t}}\times 100 .
+\]
+It is a price index for \emph{all} of the goods that enter GDP, weighted by the \emph{current} year's quantities.
+}
+
+The deflator equals exactly $100$ in the base year, where nominal and real GDP coincide. As long as prices have, on average, risen since the base year --- the usual case in any economy with positive inflation --- the numerator exceeds the denominator and the deflator sits above $100$; before the base year it would lie below $100$. A handy mnemonic is that the deflator is greater than $100$ most of the time, precisely because the base year normally lies in the past.
+
+\subsection{Decomposing Nominal Growth}
+
+We can now make precise the loose statement that ``nominal growth is real growth plus inflation.'' Write $g^{N}$ for the growth rate of nominal GDP, $g^{R}$ for the growth rate of real GDP, and $\pi$ for the growth rate of the GDP deflator (the deflator inflation rate). Since nominal GDP is the product of real GDP and the deflator, its gross growth factor is the product of the other two:
+
+\thm{Growth Decomposition}{
+The gross growth factors satisfy
+\[
+1 + g^{N} = \pr{1 + g^{R}}\pr{1 + \pi}.
+\]
+Expanding and dropping the second-order cross term $g^{R}\pi$, which is small when both rates are small, gives the convenient approximation
+\[
+g^{N} \approx g^{R} + \pi .
+\]
+}
+
+\pf{
+By definition $\text{Nominal GDP} = \text{Real GDP}\times(\text{deflator}/100)$, so taking the ratio across two adjacent years,
+\[
+1 + g^{N}
+= \frac{\text{Nominal GDP}_{t+1}}{\text{Nominal GDP}_t}
+= \frac{\text{Real GDP}_{t+1}}{\text{Real GDP}_t}\cdot\frac{\text{deflator}_{t+1}}{\text{deflator}_t}
+= \pr{1 + g^{R}}\pr{1 + \pi}.
+\]
+Multiplying out, $1 + g^{N} = 1 + g^{R} + \pi + g^{R}\pi$, so $g^{N} = g^{R} + \pi + g^{R}\pi$. For rates on the order of a few percent the product $g^{R}\pi$ is on the order of hundredths of a percent and is dropped.
+}
+
+The decomposition is exact in its multiplicative form and only approximate when written additively; the gap is the cross term, which matters only when growth or inflation is large. This is the same compounding logic that governs interest: once a base year is fixed, in normal times nominal GDP drifts ever further above real GDP, and the deflator drifts ever further above $100$, because each year's price increase compounds on the last.
+
+\section{Comparing GDP Across Time and Space}
+
+The reason we went to the trouble of stripping prices out of GDP is that we want to \emph{compare}: this year against last, one country against another. Real GDP is what makes those comparisons meaningful.
+
+\subsection{Cross-Time and Cross-Country Comparison}
+
+To compare an economy with its own past we must remove the price factor, which is exactly what real GDP does: a rise in real GDP is a genuine increase in the volume of goods and services, not an artifact of inflation. To compare across countries we additionally convert to a common currency (and, for welfare comparisons, often adjust for differences in price levels via purchasing power parity, a refinement we set aside here). GDP thus furnishes a common basis both for tracking growth over time and for ranking economies at a point in time.
+
+It is worth keeping the limits of the measure in view even as we use it. GDP records the market value of production; it is silent on the distribution of that production, on wealth as opposed to income, on environmental degradation, on corruption, and on whether people are any happier for the activity it counts. None of this makes GDP useless --- across countries and across decades it is robustly and positively associated with the things we do care about, from life expectancy to literacy. The right conclusion is not that GDP can be discarded or replaced by a single better number, but that human welfare is multidimensional and is best read off several indicators at once, with GDP among the most informative of them.
+
+\subsection{Year-on-Year, Quarter-on-Quarter, and the Annualized Rate}
+
+High-frequency data raise a reporting problem that annual figures hide. A given quarter's output can be compared either with the \emph{same} quarter one year earlier (year-on-year growth) or with the \emph{immediately preceding} quarter (quarter-on-quarter growth), and the two tell different stories.
+
+\begin{itemize}
+    \item \textbf{Year-on-year} growth compares like quarter with like quarter, so it automatically nets out the regular seasonal pattern --- the fact that, say, retail sales always spike around a holiday. Its drawback is that it is slow: because it averages over a full year of intervening change, it can be late to reveal a turn in the economy.
+    \item \textbf{Quarter-on-quarter} growth is timely, registering a change as soon as it happens, but for the same reason it is contaminated by seasonality. To be usable it must be \emph{seasonally adjusted}, with the regular within-year pattern statistically removed before the growth rate is computed.
+\end{itemize}
+
+\rmkb[Two series that should agree, but need not]{The two conventions are not independent --- a consistent set of quarterly levels should reconcile the year-on-year and quarter-on-quarter growth rates --- yet in practice published Chinese year-on-year and quarter-on-quarter GDP figures have at times failed to confirm one another, a reminder that the seasonal-adjustment step is itself an estimate and that high-frequency macro data should be read with some tolerance.}
+
+Several economies --- the United States, Japan, and the euro area among them --- report a \emph{seasonally adjusted annualized rate} (SAAR). The idea is to take the current quarter's seasonally adjusted quarter-on-quarter growth and ask: \emph{if} the economy kept growing at this quarterly pace for four consecutive quarters, what annual growth rate would result? Formally, if $g$ is the quarter-on-quarter growth rate, the annualized rate is
+\[
+\text{SAAR} = \pr{1+g}^{4} - 1 .
+\]
+The annualized rate is timely and intuitive --- it states a quarterly reading in the familiar units of an annual rate --- but because it compounds a single quarter's growth four times, it also magnifies that quarter's noise, so the SAAR is considerably more volatile than year-on-year growth.
+
+\rmkb[Smoothed data and the scar effect]{A statistical agency may deliberately ``shave the peaks and fill the valleys'' to make a reported series look smoother than the underlying economy. Smoothing the \emph{output} series is one thing --- GDP can absorb it --- but the underlying shock to \emph{income} is not so easily papered over: a genuine downturn cuts incomes permanently for those affected, and spending falls by even more, both because incomes are lower and because households respond to the shock with precautionary saving, durably shifting their consumption and saving habits. The lasting damage a sharp contraction leaves on the level of activity, long after the contraction itself has passed, is called a \emph{scar effect}.}
+
+\section{Price Indices in Practice}
+
+The GDP deflator is comprehensive, but it is published infrequently and with a lag, and it is not the index most closely watched for the cost of living or for the pressures most relevant to monetary policy. In practice economists consult a small family of price indices, each constructed for a different purpose. We take them in turn.
+
+\subsection{The Consumer Price Index}
+
+\defn{Consumer Price Index (CPI)}{
+The \emph{consumer price index} measures the cost of a \emph{fixed basket} of goods and services representative of a typical household's consumption. Each category of consumption is assigned a weight reflecting its share in the representative household's budget, and the index tracks the cost of that fixed, weighted basket over time. It is, in short, a measure of the cost of living.
+}
+
+The CPI is built to answer one question: how much more (or less) does it cost this month to buy the same bundle of consumer goods that a typical family bought before? Because the basket and its weights are held fixed --- in China they are revised only about once every five years, and the detailed category weights are not published, though they can be backed out indirectly from other released figures --- the index isolates price changes from changes in what people buy.
+
+\rmkb[What is in the basket --- a China snapshot]{Food carries a large weight in the Chinese CPI; pork alone has historically been the single most heavily weighted commodity, and because pig farming follows a production cycle that is hard for policy to tame, pork prices swing widely and drag the index with them. The broader food-and-tobacco category sits around a quarter of the index. There is a general regularity here: the \emph{smaller} the food share of consumption, the \emph{higher} the standard of living --- this is Engel's law, that richer households spend a smaller fraction of income on food and more on everything that raises the quality of life. Housing enters the CPI chiefly through \emph{rents}: because owner-occupancy is high in China and buying a home is treated as investment rather than consumption, swings in house \emph{prices} do not enter the CPI directly, so a rapid run-up or collapse in property prices need not show up in the index at all. For the same reason, stock and bond prices --- assets, not consumption goods --- are excluded.}
+
+A standard convention treats CPI inflation above $2\%$ as inflation proper and inflation below $2\%$ as disinflation shading into deflation. Its great practical virtue is frequency: the CPI is published monthly, which makes it far more useful for real-time analysis than the quarterly, lagged deflator.
+
+\rmkb[The CPI is not the whole picture]{Relying on the CPI alone gives an incomplete reading of the economy. Through the mid-2000s the U.S. CPI was quiet even as house prices and subprime mortgage markets moved dramatically; the index simply did not see the build-up of financial risk that culminated in the 2008 crisis. The lesson drawn afterward was that consumer prices must be watched alongside asset prices --- housing and financial assets --- and that policymakers must attend to a wider set of macro indicators and to systemic risk, the stance now called \emph{macroprudential} policy.}
+
+\subsection{Cost-Push and Demand-Pull Inflation}
+
+Why prices rise matters as much as how fast, because the source of the pressure determines whether policy can do anything about it. It is useful to separate two channels.
+
+\defn{Cost-Push and Demand-Pull Inflation}{
+\emph{Cost-push inflation} originates on the \emph{supply} side: a rise in the cost of inputs --- energy, food, raw materials --- pushes prices up even when demand is unchanged. \emph{Demand-pull inflation} originates on the \emph{demand} side: stronger spending pulls prices up against a supply that adjusts only slowly.
+}
+
+The two have characteristic signatures in the data. Food and energy prices are driven largely by supply conditions --- harvests, weather, oil markets --- so a sharp rise in energy prices is the textbook case of cost-push inflation. Manufacturing output, by contrast, is produced under relatively stable supply conditions, so movements in manufactured-goods prices are typically traced to changes in demand, the textbook case of demand-pull inflation. The distinction is not merely descriptive: as we will see, it tells us which inflations monetary policy can hope to address.
+
+\subsection{Core CPI and the Logic of Monetary Policy}
+
+\defn{Core CPI}{
+\emph{Core CPI} is the consumer price index recomputed with the \emph{food and energy} components removed from the basket. By stripping out the most volatile, supply-driven prices, it tracks the underlying trend in prices more smoothly than the headline CPI.
+}
+
+The motivation for core CPI is precisely the cost-push/demand-pull distinction. Food and energy are the prices most subject to supply shocks --- the cost-push component --- and they are also the most volatile. Removing them leaves an index that fluctuates less and that, by construction, reflects mostly demand-side pressure rather than transient supply shocks.
+
+This is exactly what a central bank needs to see, and the reason is a structural one.
+
+\state{Why central banks watch core inflation}{
+Monetary policy works through aggregate \emph{demand}: easing or tightening shifts how much the economy wishes to spend. It does \emph{not} act on the supply side --- it cannot make oil cheaper or harvests larger. A central bank should therefore respond to the part of inflation it can actually influence, namely demand-pull inflation. Because core CPI nets out the supply-driven, cost-push component, it is the more reliable guide for monetary policy than the headline CPI.
+}
+
+The practical force of this principle is best seen when it is ignored, and the next two remarks record episodes in which the source of inflation was misdiagnosed.
+
+\rmkb[China 2008: tightening into a supply shock]{An unusually cold winter in early 2008 killed large numbers of pigs in southern China; pork prices spiked and a single month's CPI reading reached around $8\%$. At that spring's session of the National People's Congress the leadership proposed tightening the supply of base money. But the inflation was overwhelmingly cost-push --- a supply-side shock to pork, with underlying demand little changed --- so monetary tightening was the wrong instrument and accomplished little. Worse, the U.S. financial crisis was just beginning to reach China, and with exports so important to the economy the prudent move would have been to prepare to \emph{ease}. Growth slowed markedly in the second half of 2008, downward pressure mounted, and the autumn party conference duly called for loosening. A complete reversal of stance within a single year revealed how little forward-looking the policy framework was at the time.}
+
+\rmkb[China 2018 and the pork problem]{A familiar quip captured the 2018 surge in pork prices: ``add pork and it's all inflation; take pork out and it's all deflation.'' Monetary policy cannot touch the supply side, yet faced with a high \emph{headline} number --- and the public and market reactions it provokes --- a central bank can feel forced to tighten anyway. The danger is that tightening into a supply-driven inflation produces \emph{stagflation}: the inflation, being cost-push, is not cured, while the economy is pushed further down.}
+
+\rmkb[The U.S. supply-side inflation]{A contemporaneous U.S. episode made the same point. The inflation of the period was driven by energy shortages, a tight labor supply, and strained logistics --- all supply-side problems. The tight labor supply, for instance, owed partly to a generous welfare system depressing labor-force participation, not to overheated demand. Demand-side monetary policy was poorly matched to a supply-side problem and risked aggravating inflation rather than resolving it.}
+
+\subsection{The PCE Index}
+
+\defn{Personal Consumption Expenditures (PCE) Index}{
+The \emph{personal consumption expenditures} price index is the U.S. Federal Reserve's preferred measure of consumer inflation. It is constructed much like the CPI and moves broadly with it, but is computed separately by the Fed, which weights inflation heavily in its policy deliberations.
+}
+
+That the Fed maintains its own consumer-price measure, rather than simply taking the published CPI, signals how seriously a central bank takes the choice of price index. The PCE and CPI track each other closely but differ in coverage and weighting; the gap between them is small in normal times but real, and a central bank that targets inflation cares about which ruler it is holding.
+
+\subsection{The Producer Price Index}
+
+\defn{Producer Price Index (PPI)}{
+The \emph{producer price index} measures prices at the \emph{factory gate} --- the prices producers receive for their output, rather than the retail prices consumers pay. The factory-gate price is, roughly, cost plus profit plus tax, and it is also the wholesale price a merchant pays to acquire goods for resale.
+}
+
+The CPI and the GDP deflator both look at retail prices, the prices buyers face at the point of final sale; the PPI looks one step upstream, at the prices producers charge. This makes it a different and complementary instrument. The PPI excludes agricultural products, is tied closely to demand and directly to firms' profits, and is correspondingly sensitive to the business cycle, which makes it informative about firms' investment decisions.
+
+Its key threshold is zero. When the PPI is positive, output prices are rising and producers' margins are expanding; when it turns negative, producers' profits are squeezed, and the appetite to produce and invest contracts. This can become \emph{self-reinforcing}: falling producer prices depress profits and investment, which weakens activity and pushes prices down further, drawing the economy into a vicious circle in the short run --- or, with the signs reversed, a virtuous one.
+
+\rmkb[A deflationary reading]{In one illustrative month --- October 2022 --- China's CPI ran a little above $1\%$ while the PPI had already turned negative. With consumer-price inflation weak and producer prices outright falling, both consumption and investment demand were soft, and the economy was sliding toward deflation. Read together, the two indices diagnosed the slowdown more clearly than either could alone.}
+
+\section{CPI versus the GDP Deflator}
+
+We now have two broad price indices --- the CPI and the GDP deflator --- and it pays to compare them carefully, because they differ in three ways that matter, and because the comparison reveals a systematic bias in the CPI.
+
+\paragraph{Fixed weights and substitution bias.} The CPI is built on a \emph{fixed} basket: it asks what it costs to buy the same quantities, year after year, regardless of how relative prices move. The GDP deflator, by contrast, weights goods by the \emph{current} year's quantities, which adjust as relative prices change. This difference has a direction. When a good becomes relatively more expensive, households substitute away from it toward cheaper alternatives, so the true cost of maintaining a given standard of living rises by less than the cost of the old, fixed basket. By holding quantities fixed, the CPI ignores this substitution and therefore \emph{overstates} the rise in the cost of living --- it suffers from \emph{substitution bias}. The deflator, embedding the substitution through current-year weights, does not. To the same effect, the CPI is slow to credit the arrival of new products and the quality improvement of existing ones, both of which raise welfare without raising the cost of the fixed basket.
+
+\paragraph{Imports.} The two indices also differ in scope of origin. The GDP deflator covers \emph{domestically produced} goods only --- GDP, by definition, excludes imports. The CPI covers what consumers actually buy, which includes imported goods. A jump in the price of imported oil, for instance, raises the CPI directly but enters the GDP deflator only insofar as it affects the prices of domestic output.
+
+\paragraph{Domestic scope of goods.} Finally, the two indices cover different slices of the economy. The CPI tracks consumer goods alone. The GDP deflator tracks everything in GDP --- not just consumption but also investment, government purchases, and net exports. Consumer prices are an important component of the deflator, but only a component; the deflator's coverage is far broader. The two indices answer different questions, and in any given year they can diverge.
+
+\state{Reading the two indices}{
+The CPI is a fixed-basket cost-of-living index, published monthly, that includes imports and tends to \emph{overstate} inflation through substitution bias and the slow incorporation of new and improved goods. The GDP deflator is a current-weighted, domestic-only, all-of-GDP price index that incorporates substitution but is published less often and with a lag. Each is right for a different question: use the CPI for the cost of living and for timely readings, the deflator for the economy-wide price level behind real GDP.
+}
+
+This chapter has equipped us with the rulers --- nominal versus real magnitudes, the deflator, and the consumer- and producer-price indices --- and with a working sense of when each is the right one. What these instruments measure is the overall price level and its rate of change, inflation. \emph{Why} that level moves, what inflation does to borrowers and lenders, the revenue a government extracts by printing money, and the quantity-theory link between money and prices are the subject of Chapter~\ref{ch:quantity}; we now turn first, however, to the other great aggregate the accounts only hinted at --- the labor market and unemployment.

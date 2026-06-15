@@ -1,0 +1,52 @@
+\begin{tikzpicture}[scale=1.0]
+  % ============================ LEFT PANEL: money market ============================
+  \begin{scope}
+    % axes
+    \draw[-Latex] (0,0) -- (6.2,0) node[right] {$M$};
+    \draw[-Latex] (0,0) -- (0,5.6) node[above] {$r$};
+    % vertical money supply M^s
+    \draw[line width=1.0pt] (3.9,0) -- (3.9,5.3);
+    \node[above] at (3.9,5.3) {$M^{s}$};
+    % money demand M^{d1} (lower/left convex curve): hyperbola passing through (3.9, r1)
+    % r1 = 1.5 at M=3.9  => k1 = 1.5*3.9 = 5.85
+    \draw[smooth,samples=120,domain=1.18:5.9,variable=\x] plot ({\x},{5.85/\x});
+    \node[below right] at (5.9,5.85/5.9) {$M^{d1}$};
+    % money demand M^{d2} (upper/right convex curve): hyperbola passing through (3.9, r2)
+    % r2 = 2.85 at M=3.9  => k2 = 2.85*3.9 = 11.115
+    \draw[smooth,samples=120,domain=2.05:5.9,variable=\x] plot ({\x},{11.115/\x});
+    \node[below right] at (5.9,11.115/5.9) {$M^{d2}$};
+    % equilibrium points on the M^s line
+    \fill (3.9,1.5) circle (1.4pt);
+    \fill (3.9,2.85) circle (1.4pt);
+    % dashed horizontal guides to the r-axis
+    \draw[densely dashed] (0,1.5) -- (3.9,1.5);
+    \draw[densely dashed] (0,2.85) -- (3.9,2.85);
+    \node[left] at (0,1.5) {$r_1$};
+    \node[left] at (0,2.85) {$r_2$};
+    % up-arrow on the r-axis between r1 and r2
+    \draw[-Latex] (0.42,1.55) -- (0.42,2.80);
+    % small arrows in the blank gap between M^{d1} and M^{d2}, indicating the rightward/upward shift
+    \draw[-Latex] (2.0,3.55) -- (2.5,4.05);
+    \draw[-Latex] (2.85,2.6) -- (3.35,2.95);
+  \end{scope}
+
+  % ============================ CONNECTOR ============================
+  \node[scale=2.4] at (7.5,2.6) {$\Rightarrow$};
+
+  % ============================ RIGHT PANEL: LM curve ============================
+  \begin{scope}[xshift=9.0cm]
+    % axes
+    \draw[-Latex] (0,0) -- (6.2,0) node[right] {$Y$};
+    \draw[-Latex] (0,0) -- (0,5.6) node[above] {$r$};
+    % lower LM curve (convex, upward sloping): r = 0.55 + 0.10*(Y)^2 over a shifted range
+    \draw[smooth,samples=120,domain=0.4:5.2,variable=\x]
+        plot ({\x},{0.55+0.135*(\x)*(\x)});
+    % upper LM curve: same shape shifted up by ~0.9
+    \draw[smooth,samples=120,domain=0.4:4.85,variable=\x]
+        plot ({\x},{1.45+0.135*(\x)*(\x)});
+    \node[above left] at (4.85,1.45+0.135*4.85*4.85) {$\mathrm{LM}$};
+    % small up-arrows in the blank gap between the two LM curves (clear of both)
+    \draw[-Latex] (2.55,0.55+0.135*2.55*2.55+0.20) -- (2.55,1.45+0.135*2.55*2.55-0.14);
+    \draw[-Latex] (3.65,0.55+0.135*3.65*3.65+0.20) -- (3.65,1.45+0.135*3.65*3.65-0.14);
+  \end{scope}
+\end{tikzpicture}

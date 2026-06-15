@@ -1,0 +1,17 @@
+\begin{tikzpicture}[scale=1.0]
+  % axes
+  \draw[-Latex] (0,0) -- (5.6,0) node[right] {$x_t$};
+  \draw[-Latex] (0,0) -- (0,5.4) node[above] {$x_{t+1}$};
+  % 45-degree line x_{t+1}=x_t (dotted)
+  \draw[densely dotted] (0,0) -- (5.0,5.0);
+  \node[above] at (5.0,5.0) {$45^{\circ}$};
+  % law of motion f: concave, crosses the 45-line from above at x*=3
+  % f(x) = 3*sqrt(x/3) = sqrt(3)*sqrt(x); f(3)=3, f'(3)=1/2<1 (stable)
+  \draw[line width=1.0pt,smooth,samples=160,domain=0.02:5.1]
+        plot (\x,{sqrt(3)*sqrt(\x)});
+  \node[right] at (5.1,{sqrt(3)*sqrt(5.1)}) {$f(x_t)$};
+  % steady state at the crossing
+  \fill (3,3) circle (1.7pt);
+  \draw[densely dashed] (3,3) -- (3,0) node[below] {$x^{*}$};
+  \draw[densely dashed] (3,3) -- (0,3) node[left] {$x^{*}$};
+\end{tikzpicture}

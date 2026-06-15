@@ -1,0 +1,203 @@
+% !TEX root = ../main.tex
+\chapter{Population, Land, and the Malthusian Economy}
+\label{ch:malthus}
+
+The Solow model of Chapter~\ref{ch:solow} and its microfounded successor in Chapter~\ref{ch:neoclassical} share two silent commitments. They build output from capital and labor alone, and they treat the size of the population as something handed to the economy from outside --- a number that grows at a rate $n$ the modeler simply writes down. For the world those models were meant to explain --- a modern economy in which the binding scarce factor is reproducible capital and people respond to prosperity by having \emph{fewer} children --- both commitments are defensible. But they fail badly for the world that came before. In a pre-industrial agricultural society the scarce factor was not capital; it was \emph{land}, which is fixed and cannot be accumulated. And the population was not exogenous: how many people a society contained was itself the outcome of an economic decision, the decision of families about how many children to raise.
+
+This chapter studies the model that puts those two things back at the center. It is built on a stylized fact that, once seen, is hard to unsee: across the long agricultural era, technological progress did not make the average person better off. Better seeds, better ploughs, better irrigation showed up not as higher living standards but as \emph{more people} living at the same standard as before. The mechanism is the one Thomas Malthus described in 1798. When a technical improvement raises the yield of the land, families are briefly richer, so they raise more children; the population grows; the fixed stock of land is divided among more mouths; and the average yield per person is pushed back down to where it started. Land is the binding constraint, and population is the variable that the constraint silences. The whole point of the model is to make this trap precise --- and then to ask what eventually let humanity escape it.
+
+We proceed in three steps. First we restore land to the production function and explain why a fixed factor turns rising effort into diminishing returns --- the phenomenon of agricultural \emph{involution}. Then we write down and solve the household's problem, derive the law of motion for population, and locate the steady state where the Malthusian trap bites: living standards are pinned to subsistence and any improvement in technology is spent entirely on additional people. Finally we modify the cost of children to include a \emph{time} cost, which flattens the relationship between income and fertility and disarms the trap; combined with a quantity--quality tradeoff that turns that relationship on its head, this is the demographic transition.
+
+\section{Land as the Binding Factor}
+
+The growth models we have seen so far use a production function in capital $K$ and labor $L$ only. To describe an agricultural economy we add a third factor, land $T$, and write a Cobb--Douglas technology
+\begin{equation}
+F(K, L, T) = A\, K^{\alpha} L^{\beta} T^{\,1-\alpha-\beta},
+\label{eq:malthus-prod}
+\end{equation}
+where the exponents are positive and sum to one, so the technology has constant returns to scale across the three factors jointly. The term $A$ is total factor productivity, the level of technique.
+
+In a \emph{modern} economy land barely matters. There is so much of it relative to what production needs that the land constraint never binds, output is governed by capital and labor, and the land share $1-\alpha-\beta$ can be ignored with little loss --- which is exactly why Chapters~\ref{ch:solow} and~\ref{ch:neoclassical} dropped it. The situation reverses in an agricultural society. There the supply of arable land is effectively fixed, and once a growing population has put all of it under cultivation, land becomes a \emph{hard constraint}. Adding more workers to a fixed plot then runs into the law of diminishing returns with a vengeance: each extra pair of hands raises total output by less and less, and eventually the marginal product of labor falls far below the average product.
+
+\defn{Agricultural Involution}{
+\emph{Involution} (the ``high-level equilibrium trap'') is the situation in which a fixed factor --- here, land --- forces ever-greater inputs of labor to deliver ever-smaller marginal gains in output. Effort and ingenuity are poured into wringing a little more from the same plot of ground; total output may even keep rising, but the marginal product of the added labor collapses, and output \emph{per worker} stagnates. The extreme of meticulous, labor-saturated cultivation is the visible symptom of a society pressed hard against its land.
+}
+
+\rmkb[A name for a familiar pattern]{The word ``involution'' (and its Chinese rendering \emph{neijuan}) has lately escaped the agricultural-history seminar to describe office workers competing harder and harder for the same fixed prizes. The economic skeleton is identical: a fixed factor, intensifying effort, and a marginal return on that effort that has been driven nearly to zero. The Malthusian model is the original, agrarian instance of the pattern.}
+
+We can now state the central empirical regularity the model exists to explain.
+
+\state{The Malthusian stylized fact}{
+In an agricultural society one rarely observes any sustained improvement in living standards per person. What technological progress produces instead is a larger \emph{population} at an unchanged standard of living. An economy with this property --- where the gains from better technique are absorbed by more people rather than richer people --- is called a \emph{Malthusian economy}.
+}
+
+The task of the rest of the chapter is to derive this fact from optimizing behavior, so that we understand not just that it happens but exactly why.
+
+\section{The Household's Problem}
+
+Consider a representative family in the agricultural economy. It cares about its own consumption $C_t$ and about the number of children $n_t$ it raises, and it discounts the future at rate $\beta \in (0,1)$. Lifetime utility is
+\begin{equation}
+\max_{\{C_t,\, n_t\}_{t=0}^{\infty}} \;\sum_{t=0}^{\infty} \beta^{t}\pr{\log C_t + \log n_t}.
+\label{eq:malthus-obj}
+\end{equation}
+The log specification carries two pieces of economics worth pausing on. That children enter utility directly captures the agrarian reality that children were both a joy and an asset --- extra hands in the field and security in old age. That utility is logarithmic means consumption and children are imperfect substitutes with a unit elasticity, so the family always wants some of each and will split its resources between them in fixed proportions, as we are about to see.
+
+Each period the family faces a budget. Raising a child is costly: it takes $b$ units of the consumption good to bring up each one. Writing $c_t$ for per-family consumption and $y_t$ for per-family income, the resources spent on consumption and on children cannot exceed income,
+\begin{equation}
+c_t + b\, n_t = y_t,
+\label{eq:malthus-budget}
+\end{equation}
+where $b > 0$ is the goods cost of raising one child.
+
+What ties this family problem to the land constraint of the previous section is the way income $y_t$ is generated. Let $P_t$ be the size of the population --- this will be our \emph{state variable}, the slowly-moving stock that summarizes the economy's history. The total stock of land is fixed; normalize it to one. Then land per person is simply the reciprocal of the population,
+\begin{equation}
+L_t = \frac{1}{P_t}.
+\label{eq:malthus-land-per-person}
+\end{equation}
+Output per person depends on how much land each person has to work. We now specialize the production function~\eqref{eq:malthus-prod} to the agricultural case in which labor and land are the operative factors. To keep the bookkeeping clear, write the labor input as the number of workers $N_t$ (the symbol previously called $L$) and the fixed land stock as $T=1$, so that land per head is $L_t = T/P_t = 1/P_t$ as in~\eqref{eq:malthus-land-per-person} --- from here on the letter $L$ denotes land per person, not labor. Dividing the two-factor output $F(N_t, T)$ by the number of workers gives a per-person yield that is increasing and concave in land per head,
+\begin{equation}
+y_t = \frac{F(N_t, T)}{N_t} = f(L_t) = z_t\, L_t^{\theta} = \frac{z_t}{P_t^{\theta}},
+\qquad 0 < \theta < 1,
+\label{eq:malthus-yield}
+\end{equation}
+where $z_t$ is the level of agricultural technology (playing the role of $A$ above) and $\theta$ is the elasticity of yield with respect to land per head. The final equality uses $L_t = 1/P_t$ from~\eqref{eq:malthus-land-per-person}. Equation~\eqref{eq:malthus-yield} is the engine of the whole story: \textbf{a larger population means less land per person, hence lower income per person.} This is the channel through which the fixed factor reaches into every family's budget.
+
+\asm{The Malthusian Economy}{
+The model rests on the following maintained assumptions:
+\begin{itemize}
+    \item A representative family with preferences~\eqref{eq:malthus-obj} over consumption $C_t$ and number of children $n_t$, discounting at $\beta\in(0,1)$.
+    \item Each child costs $b$ units of the good to raise, giving the budget $c_t + b\,n_t = y_t$.
+    \item A fixed total stock of land, normalized to one, so land per person is $L_t = 1/P_t$.
+    \item A concave per-person yield $y_t = z_t L_t^{\theta} = z_t / P_t^{\theta}$ with $0<\theta<1$, where $z_t$ is the level of technology.
+    \item Population evolves through fertility: next period's population is this period's population times the number of children per family.
+\end{itemize}
+}
+
+\subsection{The Static Choice: How to Split Income}
+
+The family's full problem is dynamic, because the children it raises today swell tomorrow's population and so depress tomorrow's income through~\eqref{eq:malthus-yield}. But the choice of \emph{how to split a given income} $y_t$ between consumption and children is a purely within-period, static problem: holding $y_t$ fixed, the within-period payoff $\log c_t + \log n_t$ depends only on the period-$t$ choices. We can therefore solve the allocation period by period.
+
+\ex[The within-period allocation]{
+Given income $y_t$, choose $c_t$ and $n_t$ to maximize $\log c_t + \log n_t$ subject to the budget $c_t + b\,n_t = y_t$.
+}
+
+\sol{
+Form the Lagrangian
+\[
+\mathcal{L} = \log c_t + \log n_t + \lambda\pr{y_t - c_t - b\, n_t}.
+\]
+The first-order conditions are
+\[
+\pd{\mathcal{L}}{c_t}: \quad \frac{1}{c_t} = \lambda,
+\qquad
+\pd{\mathcal{L}}{n_t}: \quad \frac{1}{n_t} = \lambda\, b.
+\]
+Dividing the first by the second eliminates the multiplier and gives $n_t b = c_t$: the family spends exactly as much on raising children as it does on its own consumption. This is the signature of log--log preferences --- each good receives a constant budget share, here one half. Substituting $c_t = b\,n_t$ into the budget $c_t + b\,n_t = y_t$ yields $2 b\, n_t = y_t$, so
+\[
+n_t^{*} = \frac{y_t}{2b}, \qquad c_t^{*} = \frac{y_t}{2}.
+\]
+}
+
+The two policy rules are clean and intuitive. Half of income is consumed; the other half is spent raising children, which at a unit cost $b$ buys $y_t/(2b)$ of them. Crucially, \textbf{fertility rises with income}: a richer family raises more children. This single behavioral fact, combined with the land constraint, is everything we need to generate the Malthusian trap.
+
+\section{Population Dynamics and the Steady State}
+
+We now let the static rule feed the dynamics. Each family raises $n_t$ children, so the population in the next period is
+\begin{equation}
+P_{t+1} = n_t\, P_t.
+\label{eq:malthus-lom}
+\end{equation}
+(Read $n_t$ as children per family; with one adult per family, it is also the gross reproduction factor of the whole population.) Substituting the optimal fertility $n_t^{*} = y_t/(2b)$ and then the yield relation $y_t = z_t / P_t^{\theta}$ gives a single difference equation in the state $P_t$,
+\begin{equation}
+P_{t+1} = \frac{y_t}{2b}\, P_t = \frac{z_t}{2b}\, P_t^{\,1-\theta}.
+\label{eq:malthus-pdyn}
+\end{equation}
+The exponent $1-\theta$ lies strictly between zero and one, so the right-hand side is concave and increasing in $P_t$: the map has a unique, stable positive fixed point. Population that is too small grows (land is abundant, income is high, families have many children); population that is too large shrinks (land is scarce, income is low, families have few children). Either way the economy is driven toward a single resting point.
+
+\subsection{Solving for the Steady State}
+
+At a steady state the population is unchanging, $P_{t+1} = P_t = P_{\mathrm{ss}}$, and technology is fixed at $z_t = z$. Imposing this on~\eqref{eq:malthus-pdyn},
+\[
+P_{\mathrm{ss}} = \frac{z}{2b}\, P_{\mathrm{ss}}^{\,1-\theta}
+\quad\Longrightarrow\quad
+P_{\mathrm{ss}}^{\,\theta} = \frac{z}{2b}
+\quad\Longrightarrow\quad
+P_{\mathrm{ss}} = \pr{\frac{z}{2b}}^{1/\theta}.
+\]
+Everything else follows by substitution. Steady-state income per person is, from~\eqref{eq:malthus-yield},
+\[
+y_{\mathrm{ss}} = \frac{z}{P_{\mathrm{ss}}^{\,\theta}}
+= \frac{z}{\,z/(2b)\,} = 2b,
+\]
+and the optimal rules then give steady-state fertility and consumption,
+\[
+n_{\mathrm{ss}} = \frac{y_{\mathrm{ss}}}{2b} = 1,
+\qquad
+c_{\mathrm{ss}} = \frac{y_{\mathrm{ss}}}{2} = b.
+\]
+
+\thm{The Malthusian Steady State}{
+With a fixed stock of land, technology $z$, and the household problem above, the economy converges to a unique steady state with population
+\[
+P_{\mathrm{ss}} = \pr{\frac{z}{2b}}^{1/\theta},
+\]
+at which income per person, fertility, and consumption per person are
+\[
+y_{\mathrm{ss}} = 2b, \qquad n_{\mathrm{ss}} = 1, \qquad c_{\mathrm{ss}} = b.
+\]
+}
+
+Two features of this steady state deserve emphasis. First, $n_{\mathrm{ss}} = 1$: each family raises exactly one surviving child, so the population just replaces itself and stops growing. This is the natural reading of equilibrium --- a stationary population is not assumed, it is \emph{produced} by the economics. When land is so divided that income has fallen to $y_{\mathrm{ss}} = 2b$, families can afford precisely one child each, and the population stabilizes. Second, and more striking, the steady-state living standard $c_{\mathrm{ss}} = b$ is pinned to the cost of children alone. Living standards in the agricultural economy hover at a level set by biology and the cost of reproduction, not by the cleverness of the society's technology.
+
+\subsection{Why Technology Buys People, Not Prosperity}
+
+The payoff of the model is what it says about technological progress. Suppose the level of technique $z$ rises permanently --- better seeds, a heavier plough, a new crop rotation. Look at the steady-state expressions and ask what moves.
+
+The steady-state population rises:
+\[
+P_{\mathrm{ss}} = \pr{\frac{z}{2b}}^{1/\theta} \;\uparrow \qquad \text{as } z\uparrow.
+\]
+But income per person, fertility, and consumption per person are
+\[
+y_{\mathrm{ss}} = 2b, \qquad n_{\mathrm{ss}} = 1, \qquad c_{\mathrm{ss}} = b,
+\]
+none of which contains $z$. Technology has dropped out of every welfare measure. \textbf{A better technique raises the number of people the land can support, but not the standard at which any of them lives.} This is precisely the stylized fact we set out to explain, now derived rather than asserted: in the Malthusian world, progress is paid out in population.
+
+The mechanism, traced through the model, is a chain we can now state cleanly. A higher $z$ raises income $y_t$ for given population; higher income raises fertility $n_t^{*} = y_t/(2b)$; more children swell the population $P_{t+1} = n_t P_t$; a larger population means less land per head, $L_t = 1/P_t$; and less land per head pushes income $y_t = z/P_t^{\theta}$ back down. The economy slides along this chain until income has returned to $2b$ and fertility to one --- at a larger population. The temporary prosperity from better technology is, in the end, entirely converted into extra mouths.
+
+\rmkb[Control variables jump, state variables crawl]{It is worth noting the different speeds of adjustment. Fertility and consumption are \emph{control} variables: the family resets them instantly each period, so when $z$ jumps, income and fertility can jump with it. Population is a \emph{state} variable, a stock that can only change gradually through births and deaths. So a technological improvement produces an immediate burst of prosperity and a fertility boom, followed by a long, slow climb of the population to its new, higher steady state --- during which the early prosperity is gradually eroded away. The good times are real but transitory; the extra people are permanent.}
+
+\section{Escaping the Trap: The Time Cost of Children}
+
+The model as built is relentless: every advance is swallowed by population, and living standards never escape subsistence. Yet they manifestly did escape, beginning with industrialization. Something in the mechanism must break. The model's most important shortcoming points to what.
+
+We assumed the only cost of a child is the goods cost $b$. But raising a child also takes \emph{time} --- time that, in an economy where labor earns a wage, could have been spent working. The true cost of a child is therefore the goods spent on it \emph{plus} the wages forgone while caring for it. Let $w_t$ be the wage and let each child absorb a fraction $m$ of a unit of time, so the forgone earnings per child are $m\,w_t$. The budget, now written against the family's time endowment valued at the wage, becomes
+\begin{equation}
+c_t + \pr{b + m\, w_t}\, n_t = w_t.
+\label{eq:malthus-time-budget}
+\end{equation}
+The right-hand side is the value of the family's time if it worked the whole endowment; the term $(b + m w_t)$ is the \emph{full} cost of a child --- goods plus opportunity cost. The decisive new feature is that this full cost \emph{rises with the wage}: in a richer economy, the time a child consumes is more valuable, so children become more expensive.
+
+Solving the within-period problem exactly as before --- log--log preferences again split spending in half between consumption and children --- gives
+\[
+c_t^{*} = \frac{w_t}{2},
+\qquad
+n_t^{*} = \frac{w_t}{2\pr{b + m\, w_t}}.
+\]
+Now trace what happens as the wage rises. Consumption rises without limit, but fertility does not. As $w_t \to \infty$, the goods cost $b$ becomes negligible next to the time cost, and
+\[
+n_t^{*} = \frac{w_t}{2\pr{b + m w_t}} \longrightarrow \frac{1}{2m}.
+\]
+Fertility no longer explodes with income; the rising opportunity cost of children caps it. The runaway feedback that drove the Malthusian trap --- richer means more children means poorer --- has been disarmed at the source. As wages keep rising, the share of resources a family is willing to devote to the sheer \emph{number} of children stops growing and the family begins to substitute toward other uses of its income, including investing more in each child. This bending and capping of fertility as incomes rise is the demographic transition.
+
+\state{The demographic transition}{
+Once children carry a time cost as well as a goods cost, the full price of a child $(b + m w)$ rises with the wage. Fertility then ceases to rise without bound as the economy grows rich --- it flattens and asymptotes to $1/(2m)$ instead of exploding with income. The explosive Malthusian feedback is broken, and population converges rather than tracking technology forever upward. The outright \emph{decline} in fertility seen in rich countries comes from a further mechanism, the quantity--quality tradeoff developed in the remark below. Together these are the \emph{demographic transition}.
+}
+
+\rmkb[Why the time cost only bends fertility, and what finishes the job]{The plain log--log model with a time cost yields fertility $n^{*}=w/[2(b+mw)]$, which is in fact \emph{increasing} in the wage but bounded above by $1/(2m)$. So the time cost alone removes the explosive Malthusian feedback and caps fertility; it does not by itself produce the falling fertility we observe in rich countries. The piece that delivers an outright \emph{decline} is the quantity--quality tradeoff. Once families can also choose how much to invest in \emph{each} child --- schooling, health, human capital --- a higher wage makes quality more attractive at the margin, and families substitute away from many low-investment children toward few high-investment ones. The demographic transition is thus best read as a tradeoff between the \emph{quantity} and the \emph{quality} of children: human capital enters the production function, child quality becomes worth buying, and chosen fertility falls.}
+
+This same logic explains a well-documented pattern within modern economies: richer families and, in particular, higher-earning women tend to have fewer children. As mental rather than manual labor becomes the key input to production and as women's wages rise, the opportunity cost of the time children require climbs, and --- once the quantity--quality tradeoff lets families substitute toward investing in each child --- the quantity of children chosen falls. The rising time cost flattens the income--fertility relationship; the quantity--quality tradeoff inverts it. The Malthusian world, in which children were cheap and prosperity bred only more of them, has been turned exactly on its head.
+
+\rmkb[A note on population policy]{It is tempting to read the Malthusian model as a warrant for suppressing population growth, and twentieth-century population-control programs were argued partly in these terms. But the model that justifies such a view is the \emph{agricultural} one, in which output is bounded by a fixed factor and an extra person is one more mouth to feed from the same land. Once an economy has left agriculture --- once it runs on capital, ideas, and human capital, as in the Solow and neoclassical models --- that logic no longer applies. People are not merely consumers of a fixed pie; they generate large positive externalities, inventing, specializing, and expanding the very technology $z$ that the Malthusian model held fixed. Treating population as a pure burden imports Malthusian intuitions into a world that has outgrown them. The model is a faithful description of the agrarian past, not a prescription for an industrial present.}
+
+With land and endogenous population now in hand, we have completed the long-run, real side of the course: the Solow model, its microfounded version, and the Malthusian world that preceded modern growth. The next chapters turn from the real economy to the nominal one --- money, banking, and the price level --- beginning in Chapter~\ref{ch:money}.

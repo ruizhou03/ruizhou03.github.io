@@ -1,0 +1,600 @@
+% !TEX root = ../main.tex
+\chapter{Microfoundations of Growth: The Neoclassical Model}
+\label{ch:neoclassical}
+
+The Solow model of Chapter~\ref{ch:solow} took us a long way: with a single accumulation equation it explained why poor countries grow faster than rich ones, why an economy converges to a steady state, and why long-run growth must rest on technological progress rather than on thrift alone. But it bought this reach at a price. The saving rate $s$ was simply handed down from outside the model, a constant fixed by assumption. An economy in which households save a constant fraction of their income no matter what is, in effect, a \emph{planned} economy: nobody is asked whether saving that much is in their own interest, and the model is silent on whether the resulting capital stock is too high, too low, or just right.
+
+The neoclassical growth model repairs this gap by supplying the \emph{microfoundations} Solow lacked. We populate the economy with optimizing agents---households that choose consumption and saving to maximize utility, and firms that choose inputs to maximize profit---and we require that markets clear. The saving rate then ceases to be a parameter we impose; it becomes the \emph{outcome} of households trading off consumption today against consumption tomorrow, given the returns the market offers. Remarkably, when we work the optimization through, the long-run predictions look very much like Solow's: a stable steady state, convergence, and growth driven by technology. The difference is that now those predictions rest on individual choice, so we can ask welfare questions Solow could not even pose---is the competitive outcome efficient? could a planner do better?---and answer them.
+
+We build the apparatus in stages. We start with a static general-equilibrium economy to fix the logic of household optimization, firm optimization, and market clearing in their simplest setting. We then add time: a two-period endowment economy introduces the Euler equation and consumption smoothing; an overlapping-generations economy turns that two-period logic into a genuine theory of capital accumulation with a law of motion and a steady state; and an infinite-horizon cake-eating problem and its productive cousin, the social planner's problem, complete the picture and let us state the two welfare theorems that tie competition and efficiency together.
+
+\section{The Static General-Equilibrium Model}
+
+We begin with no capital accumulation at all. In a single period the capital stock cannot change---investment takes time to become productive---so we hold $K$ fixed and study how a representative household and a representative firm interact in two markets, for goods and for labor, within that period. This strips the problem down to its general-equilibrium core: optimizing agents on each side, prices that adjust until supply equals demand.
+
+\asm{The static neoclassical environment}{
+\begin{itemize}
+  \item Agents are identical, so we may study a single \emph{representative} household and a single \emph{representative} firm.
+  \item The household maximizes utility taking prices as given; the firm maximizes profit taking prices as given.
+  \item Markets clear: in each market, demand equals supply.
+  \item The capital stock $K$ is exogenous within the period (a state variable, not a choice).
+\end{itemize}
+}
+
+It is worth flagging at the outset where macroeconomics will differ in emphasis from the microeconomics the reader has seen. Two household choices organize everything that follows. The choice between \emph{labor and leisure}---how much to work---is fundamentally \emph{static}: it is resolved within a single period. The choice between \emph{consumption and saving}---how much to set aside for the future---is fundamentally \emph{dynamic}, and it is exactly this choice that, period after period, builds up the capital stock $K$. The static model isolates the first; the rest of the chapter develops the second.
+
+\subsection{The Household: Consumption and Leisure}
+
+The representative household derives utility from consumption $C$ and leisure $l$,
+\[
+U = U(C, l),
+\]
+and we assume the usual regularity: both goods are desirable, $U_C > 0$ and $U_l > 0$; the marginal rate of substitution is diminishing (indifference curves are convex); and both consumption and leisure are normal goods.
+
+The household is endowed with a fixed amount of time $H$, which it splits between leisure $l$ and work $H - l$. We normalize the price of the consumption good to one and let $w$ denote the real wage, so that $w$ is also the price of leisure---each hour not worked costs the household $w$ units of forgone consumption. Besides wage income, the household receives the firm's distributed profits $\pi$ and pays a lump-sum tax $T$. Its budget constraint is
+\[
+C = w(H - l) + \pi - T.
+\]
+Moving the wage value of leisure to the left-hand side puts the constraint in its most revealing form,
+\[
+C + w\,l = wH + \pi - T,
+\]
+which reads as a \emph{full-income} budget: the household's total resources, the right-hand side, equal the value of its entire time endowment plus profits net of taxes, and it spends those resources on consumption and on leisure priced at $w$. The right-hand side is a number the household takes as given.
+
+Maximizing $U(C,l)$ subject to this constraint, the standard tangency condition is that the marginal rate of substitution between leisure and consumption equals the relative price of leisure,
+\[
+\mathrm{MRS} = w \quad\Longrightarrow\quad C^*,\; l^*.
+\]
+The household's optimal labor supply is then $N^s = H - l^*$.
+
+\subsection{The Firm: Production and Labor Demand}
+
+The representative firm produces output with capital and labor through
+\[
+Y = z\,F(K, N^d),
+\]
+where $z$ is total factor productivity and $N^d$ is labor hired. We assume $F$ exhibits constant returns to scale, which is why we may treat the whole production side as a single price-taking firm: with CRS the scale of the individual firm is indeterminate, and the aggregate behaves like one representative producer. The technology has positive but diminishing marginal products,
+\[
+F_K > 0, \quad F_N > 0, \qquad F_{KK} < 0, \quad F_{NN} < 0.
+\]
+
+\rmkb[A correction to the classroom statement]{The lecture notes wrote the second-order conditions as $F_{KK}>0$ and $F_{NN}>0$. That is a slip: diminishing marginal products---the very feature that makes the model well behaved and gives convergence in the growth versions below---require the \emph{second} derivatives to be \emph{negative}, $F_{KK}<0$ and $F_{NN}<0$. The first derivatives are positive; the second derivatives are negative.}
+
+Within the period, $K$ is a fixed state variable, so the firm chooses only how much labor to hire. Its problem is
+\[
+\max_{N^d}\; \set{ z\,F(K, N^d) - w\,N^d }.
+\]
+The first-order condition equates the marginal product of labor to the real wage,
+\[
+\mathrm{MPN} = z\,F_N(K, N^d) = w \quad\Longrightarrow\quad N^{d*}.
+\]
+
+\rmk{Note the division of labor between the two conditions: $\mathrm{MRS}=w$ is the \emph{household's} optimality condition, $\mathrm{MPN}=w$ is the \emph{firm's}. The classroom shorthand ``$\mathrm{MPN}=\mathrm{MRS}=w$'' compresses both into one line, but they belong to different agents; they hold simultaneously only \emph{in equilibrium}, when the single wage $w$ has adjusted to make both sides content.}
+
+\subsection{Equilibrium and Walras' Law}
+
+An equilibrium is a wage $w$ at which both markets clear. In the labor market, the household's supply equals the firm's demand,
+\[
+H - l^* = N^{d*}.
+\]
+In the goods market, the household consumes exactly what the firm produces,
+\[
+C^* = Y^*.
+\]
+
+These two clearing conditions are not independent. By the household's budget constraint, the value of what it demands always equals the value of what it supplies; summed across markets, the excess demands must cancel. This is \emph{Walras' law}: in an economy with two markets, if one clears the other must clear too.
+
+\state{Walras' law}{
+In a general equilibrium with $n$ markets, the value of aggregate excess demand is identically zero. Consequently, if $n-1$ markets clear, the last one clears automatically. In our two-market economy, \textbf{once the labor market clears, the goods market clears as well}---we need only find the single wage $w$ that equates labor supply and labor demand.}
+
+It can be shown that there exists a \emph{unique} wage $w$ for which $H - l^* = N^{d*}$. At that wage the firm's profits $\pi$ are determined, the household's full income is determined, and the entire allocation $(C^*, l^*, N^{d*}, Y^*)$ falls out.
+
+\subsection{Income and Substitution Effects of a Wage Change}
+
+How does the equilibrium respond to a change in the wage? Because the wage is both the household's income per hour worked and the price of leisure, a change in $w$ sets off two competing forces.
+
+Consider a rise in $w$. The \emph{income effect}: the household is now richer, and since both consumption and leisure are normal goods, it wants more of each---consumption rises, and leisure also rises (work falls). The \emph{substitution effect}: leisure has become more expensive relative to consumption, so the household substitutes away from leisure toward consumption---consumption rises, and leisure falls (work rises).
+
+The two effects push consumption in the same direction, so a higher wage \emph{unambiguously raises consumption}. But they push leisure---and therefore labor supply---in opposite directions, so the net effect on hours worked is ambiguous in general. Whether labor supply rises or falls with the wage depends on which effect dominates.
+
+A clean special case makes the cancellation exact. Normalize the time endowment to one ($H=1$, so $C = w(1-l)$ when $\pi=T=0$) and take logarithmic preferences,
+\[
+\max_{C,\,l}\; \log C + \beta \log l
+\qquad \text{s.t.} \qquad C + w\,l = w.
+\]
+
+\ex[Log utility: income and substitution effects cancel]{
+Solve the household's problem and show that labor supply does not depend on the wage.}
+\sol{
+Substitute the budget constraint $C = w(1-l)$ into the objective to make it a function of $l$ alone:
+\[
+U(l) = \log\!\big(w(1-l)\big) + \beta \log l = \log w + \log(1-l) + \beta \log l.
+\]
+The first-order condition is
+\[
+\dd{U}{l} = \frac{-1}{1-l} + \frac{\beta}{l} = 0
+\quad\Longrightarrow\quad
+\beta(1-l) = l
+\quad\Longrightarrow\quad
+l^* = \frac{\beta}{1+\beta}.
+\]
+Hence labor supply is
+\[
+1 - l^* = \frac{1}{1+\beta},
+\]
+which is a constant: the wage $w$ has dropped out entirely. Under log utility the income and substitution effects on leisure exactly offset, so hours worked are independent of the wage. The entire effect of a higher wage flows into consumption: from the budget, $C^* = w(1-l^*) = w/(1+\beta)$ rises one-for-one with $w$.}
+
+This knife-edge result is not a coincidence of algebra; logarithmic utility is precisely the case in which the elasticity of substitution and the income elasticity are tuned so that the two effects cancel. It is the reason log utility recurs throughout this chapter: it gives the simplest closed-form solutions and isolates the dynamic mechanism we care about from distracting wealth effects on labor.
+
+\section{The Two-Period Endowment Economy}
+
+We now introduce time in its simplest form. Strip out production and firms for a moment and consider a household that lives for exactly two periods and receives an exogenous income in each---a windfall endowment, like manna. There is nothing to produce and no labor to supply; the only decision is \emph{when} to consume. This bare setting is enough to deliver the central object of dynamic macroeconomics, the Euler equation.
+
+The household maximizes lifetime utility
+\[
+\max_{C_1,\,C_2}\; U(C_1, C_2) = \log C_1 + \beta \log C_2,
+\]
+where $\beta \in (0,1)$ is the \emph{discount factor}---a number near $0.95$ that captures impatience, the fact that a unit of utility tomorrow is worth less than a unit today.
+
+\defn{Discount factor}{
+The \emph{discount factor} $\beta \in (0,1)$ is the weight a household places on next period's utility relative to this period's. A larger $\beta$ means more patience. The associated \emph{discount rate} $\rho$ satisfies $\beta = 1/(1+\rho)$.}
+
+Income arrives as $Y_1$ in period $1$ and $Y_2$ in period $2$, both exogenous. The household can move resources between periods only by saving an amount $S$ at the market interest rate $r$. Its period-by-period budget constraints are
+\[
+\ba
+C_1 + S &= Y_1, \\
+C_2 &= Y_2 + (1+r)\,S.
+\ea
+\]
+Saving in the first period earns gross return $1+r$ in the second. As in the static model, we treat $r$, $Y_1$, and $Y_2$ as given from the household's point of view: the macroeconomic forces that determine the interest rate lie outside this single household's control.
+
+Saving $S$ is the bridge linking the two periods. Eliminating it---solve the second constraint for $S$ and substitute into the first---collapses the two one-period budgets into a single \emph{intertemporal budget constraint},
+\[
+C_1 + \frac{C_2}{1+r} = Y_1 + \frac{Y_2}{1+r}.
+\]
+The interpretation is exactly what one would hope: the present value of lifetime consumption equals the present value of lifetime income.
+
+\subsection{The Euler Equation}
+
+At the optimum, the household cannot raise utility by shifting a marginal unit of consumption between periods. The tangency condition is that the intertemporal marginal rate of substitution equals the gross interest rate---the relative price of consumption today in terms of consumption tomorrow:
+\[
+\mathrm{MRS} = -\dd{C_2}{C_1}\bigg|_{U} = \frac{\mathrm{MU}_1}{\mathrm{MU}_2} = 1 + r.
+\]
+With $U = \log C_1 + \beta \log C_2$ we have $\mathrm{MU}_1 = 1/C_1$ and $\mathrm{MU}_2 = \beta/C_2$, so
+\[
+\frac{1/C_1}{\beta/C_2} = \frac{C_2}{\beta C_1} = 1 + r,
+\]
+which rearranges to the \emph{Euler equation}.
+
+\thm{Consumption Euler equation (two periods, log utility)}{
+The optimal consumption path satisfies
+\[
+\frac{C_2^*}{C_1^*} = \beta(1+r),
+\qquad\text{equivalently}\qquad
+C_2^* = \beta(1+r)\,C_1^*.
+\]}
+
+\pf{
+From the intertemporal budget $C_1 + C_2/(1+r) = W$ where $W := Y_1 + Y_2/(1+r)$ is lifetime wealth, the Lagrangian is
+\[
+\mathcal{L} = \log C_1 + \beta \log C_2 + \lambda\!\pr{W - C_1 - \frac{C_2}{1+r}}.
+\]
+The first-order conditions are
+\[
+\frac{1}{C_1} = \lambda, \qquad \frac{\beta}{C_2} = \frac{\lambda}{1+r}.
+\]
+Dividing the first by the second eliminates $\lambda$ and gives $\dfrac{C_2}{\beta C_1} = 1+r$, i.e. $C_2^* = \beta(1+r)\,C_1^*$.
+}
+
+One can reach the same condition without forming the intertemporal budget by substituting the constraints directly and maximizing over $S$:
+\[
+U(S) = \log\!\big(Y_1 - S\big) + \beta \log\!\big(Y_2 + (1+r)S\big),
+\qquad
+\frac{-1}{Y_1 - S} + \frac{\beta(1+r)}{Y_2 + (1+r)S} = 0,
+\]
+which again yields $C_2 = \beta(1+r)C_1$ once we substitute back $C_1 = Y_1 - S$ and $C_2 = Y_2 + (1+r)S$.
+
+\subsection{Consumption Smoothing}
+
+The Euler equation is the key to how households spread consumption over time. Suppose for a moment there were no impatience and no interest, $\beta = 1$ and $r = 0$. Then the Euler equation reads $C_2^* = C_1^*$: the household chooses to consume exactly the same amount in both periods, regardless of the time profile of its income. This is \emph{consumption smoothing}.
+
+\state{Why concavity implies smoothing}{
+Whenever utility is strictly concave (marginal utility positive and diminishing, $U'>0$, $U''<0$), the household prefers a smooth consumption path to a volatile one with the same present value. A unit of consumption taken from a high-consumption period and moved to a low-consumption period raises utility, because the marginal utility lost is smaller than the marginal utility gained. Smoothing is the behavioral content of diminishing marginal utility.}
+
+Once we restore impatience and interest, the path tilts but does not break. The Euler equation $C_2^* = \beta(1+r)C_1^*$ says the household smooths \emph{around} the factor $\beta(1+r)$. The intuition is exactly as one would guess: saving a unit into the next period earns interest, so resources grow by $(1+r)$, which tilts consumption toward the future; but next period's utility is discounted by $\beta$, which tilts it back toward the present. When $\beta(1+r) = 1$ these forces balance and consumption is flat; when $\beta(1+r) > 1$ the return outweighs impatience and consumption grows over time; when $\beta(1+r) < 1$ impatience wins and consumption declines.
+
+\subsection{The Value Function and Shadow Prices}
+
+Once the parameters $(Y_1, Y_2, r)$ are fixed, the optimization pins down a unique solution $(C_1^*, C_2^*, S^*)$ and therefore a unique maximized utility. Viewed as a function of those parameters, the maximized utility is the \emph{value function},
+\[
+U^* = V(Y_1, Y_2, r).
+\]
+The value function records the best the household can do given its circumstances. Its derivatives carry economic meaning. Differentiating with respect to first-period income, $\partial V / \partial Y_1$, measures how much an extra unit of windfall income in period $1$ raises lifetime welfare; this is exactly the \emph{shadow price} of period-1 resources---the Lagrange multiplier $\lambda$ from the optimization. At the optimum the multiplier equals the ratio of each good's marginal utility to its price,
+\[
+\frac{\partial U / \partial x_i}{p_i} = \lambda \qquad \text{for every choice } x_i,
+\]
+which is the familiar statement that, in equilibrium, the household equalizes the marginal utility per dollar across all margins. We will meet the value function and its shadow prices again in the infinite-horizon problems below, where this recursive way of thinking becomes indispensable.
+
+\section{The Overlapping-Generations Model}
+
+The two-period economy taught us how a single household allocates consumption over time, but it had no production and no capital, so it could not be a theory of \emph{growth}. The overlapping-generations (OLG) model repairs this by stacking two-period lives on top of one another so that, at any date, a young generation and an old generation coexist. The young work and save; their saving becomes the capital the next period inherits. In this way the dynamic saving decision of the two-period model becomes the engine of capital accumulation.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig5}
+\caption{The overlapping-generations timeline: each cohort works and saves when young, then lives off its accumulated saving when old, so that at every date a working young generation overlaps with a retired old generation.}
+\label{fig:macro-5}
+\end{figure}
+
+The structure is shown in Figure~\ref{fig:macro-5}. Each individual lives two periods. When young she supplies one unit of labor, earns the wage, consumes part of it and saves the rest; when old she no longer works and lives off her saving (now in the form of capital she rents to firms). Although any one person lives only two periods, the chain of overlapping generations extends without end, so the model is effectively an \emph{infinite-horizon} economy viewed one cohort at a time.
+
+\subsection{The Household}
+
+An individual born at $t$ supplies one unit of labor when young, so her wage income is $w_t$. Her budget constraints are
+\[
+\ba
+C_t + S_t &= w_t, \\
+C_{t+1} &= (1+r_{t+1})\,S_t,
+\ea
+\]
+where $S_t$ is saving and $r_{t+1}$ is the net return earned on it. The crucial accounting link is that one cohort's saving is held in the form of capital, so a young person's saving becomes the next period's capital stock,
+\[
+S_t = K_{t+1}.
+\]
+This single equation is what turns a sequence of two-period problems into a theory of accumulation: the capital a society works with tomorrow is exactly what the young choose to set aside today.
+
+With log preferences,
+\[
+U(C_t, C_{t+1}) = \ln C_t + \beta \ln C_{t+1},
+\]
+the saving decision is the same problem we just solved. The Euler equation $C_{t+1}/C_t = \beta(1+r_{t+1})$ together with the budget constraints gives an explicit saving rule.
+
+\ex[Saving in the OLG model]{
+With log utility and the budget constraints above, show that the young save a constant fraction of their wage, and hence that
+\[
+K_{t+1} = \frac{\beta}{1+\beta}\, w_t.
+\]}
+\sol{
+Substitute the constraints into the objective. With $C_t = w_t - S_t$ and $C_{t+1} = (1+r_{t+1})S_t$,
+\[
+U(S_t) = \ln(w_t - S_t) + \beta \ln\!\big((1+r_{t+1})S_t\big).
+\]
+The first-order condition in $S_t$ is
+\[
+\frac{-1}{w_t - S_t} + \frac{\beta}{S_t} = 0
+\quad\Longrightarrow\quad
+\beta(w_t - S_t) = S_t
+\quad\Longrightarrow\quad
+S_t = \frac{\beta}{1+\beta}\, w_t.
+\]
+The gross return $1+r_{t+1}$ cancels out---another consequence of log utility---so saving is a fixed fraction $\beta/(1+\beta)$ of the wage, independent of the interest rate. Since $S_t = K_{t+1}$,
+\[
+K_{t+1} = \frac{\beta}{1+\beta}\, w_t.
+\]}
+
+We keep $K$ explicit rather than substituting it away because it is the variable that links the two sides of the market---households supply it through saving, firms demand it for production---and it is also the variable that links one period to the next.
+
+\subsection{The Firm}
+
+The firm rents capital and hires labor each period to maximize profit,
+\[
+\max_{K,\,L}\; F(K, L) - w\,L - r\,K,
+\]
+with the Cobb--Douglas, labor-augmenting technology
+\[
+F(K, L) = K^{\alpha}\,(zL)^{1-\alpha}, \qquad 0 < \alpha < 1.
+\]
+The first-order conditions set each factor price equal to its marginal product,
+\[
+\ba
+w_t &= (1-\alpha)\,z_t^{\,1-\alpha}\, K_t^{\alpha}\, L_t^{-\alpha}, \\
+r_t &= \alpha\,z_t^{\,1-\alpha}\, K_t^{\alpha-1}\, L_t^{\,1-\alpha}.
+\ea
+\]
+
+\subsection{Market Equilibrium and the Law of Motion}
+
+In equilibrium the price of each factor is the same on the supply and demand sides, so we may substitute the firm's wage into the household's saving rule. The result is a difference equation for capital,
+\[
+K_{t+1} = \frac{\beta}{1+\beta}\, w_t = \frac{\beta}{1+\beta}\,(1-\alpha)\,z_t^{\,1-\alpha}\, L_t^{-\alpha}\, K_t^{\alpha}.
+\]
+Because there is no population variable anywhere in the problem and we normalized labor supply to one unit per young person, we set $L_t = 1$ and read every quantity as a per-capita magnitude. Provisionally fixing productivity at a constant level $z_t = z$, the law of motion becomes
+\[
+K_{t+1} = \frac{\beta(1-\alpha)}{1+\beta}\, z^{\,1-\alpha}\, K_t^{\alpha}.
+\]
+
+\begin{figure}[h]
+\centering
+\input{figures/fig6}
+\caption{The law of motion $K_{t+1}=f(K_t)$ for capital. Because $\alpha<1$ the curve is concave and crosses the $45^\circ$ line once at the steady state $K^{*}$, to which the economy converges from any positive starting point.}
+\label{fig:macro-6}
+\end{figure}
+
+Because the exponent $\alpha$ is less than one, the right-hand side is a concave, increasing function of $K_t$, and it crosses the $45^\circ$ line exactly once (Figure~\ref{fig:macro-6}). The crossing is the steady state, where capital reproduces itself, $K_{t+1} = K_t = K_{\mathrm{ss}}$.
+
+\ex[Steady-state capital]{
+Solve for $K_{\mathrm{ss}}$ from the law of motion.}
+\sol{
+At a steady state $K_{\mathrm{ss}} = \dfrac{\beta(1-\alpha)}{1+\beta}\, z^{\,1-\alpha}\, K_{\mathrm{ss}}^{\alpha}$. Dividing both sides by $K_{\mathrm{ss}}^{\alpha}$,
+\[
+K_{\mathrm{ss}}^{\,1-\alpha} = \frac{\beta(1-\alpha)}{1+\beta}\, z^{\,1-\alpha}
+\quad\Longrightarrow\quad
+K_{\mathrm{ss}} = z\pr{\frac{\beta(1-\alpha)}{1+\beta}}^{\frac{1}{1-\alpha}}.
+\]}
+
+By applying the law of motion period after period we have, in effect, extended the two-period OLG structure to infinitely many periods. And since no population term appears, every variable carries a per-capita reading. The law of motion also reproduces the Solow lessons: a country that starts with little capital lies far to the left in Figure~\ref{fig:macro-6}, where the curve is steep, so its capital---and output---grows quickly; similar economies converge to the same steady state. The deep reason, once again, is the diminishing marginal product of capital encoded in $\alpha < 1$.
+
+\subsection{Stable Versus Unstable Steady States}
+
+It is worth pausing on a general point about difference equations, because not every fixed point is a destination. Consider any first-order difference equation
+\[
+x_{t+1} = f(x_t), \qquad t = 1, 2, \dots
+\]
+This is the canonical \emph{law of motion}, or Markov-chain structure: tomorrow's value depends only on today's value, not on the full history. A steady state is a fixed point,
+\[
+x_{\mathrm{ss}} = f(x_{\mathrm{ss}}),
+\]
+a point where the graph of $f$ crosses the $45^\circ$ line. But solving $x = f(x)$ tells us only that a steady state \emph{exists}; it does not tell us whether the economy will actually move toward it.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig7}
+\caption{A \emph{stable} steady state: the law of motion crosses the $45^\circ$ line with slope less than one in absolute value, so trajectories started nearby are drawn back to the intersection.}
+\label{fig:macro-7}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\input{figures/fig8}
+\caption{An \emph{unstable} steady state: the law of motion crosses the $45^\circ$ line with slope greater than one, so the intersection repels nearby trajectories rather than attracting them.}
+\label{fig:macro-8}
+\end{figure}
+
+Stability is governed by the slope of $f$ at the crossing. If the curve crosses the $45^\circ$ line from above, with slope less than one in absolute value (Figure~\ref{fig:macro-7}), trajectories are pulled back toward the intersection and the steady state is \emph{stable}---it is a genuine attractor. If the curve crosses with slope greater than one (Figure~\ref{fig:macro-8}), the intersection \emph{repels} nearby paths, and the steady state is \emph{unstable}: it solves $x = f(x)$ but the economy never settles there. Our concave capital law of motion has slope $\alpha\, K_{\mathrm{ss}}^{\alpha-1}\cdot(\text{const}) < 1$ at the crossing, so $K_{\mathrm{ss}}$ is stable---the good case in Figure~\ref{fig:macro-7}.
+
+\subsection{Productivity Growth}
+
+So far we froze productivity at $z_t = z$. But $z$ measures the efficiency of labor---technology, organization, know-how---and it does not stand still. Suppose instead that productivity grows at a constant rate $g$,
+\[
+z_{t+1} = (1+g)\, z_t.
+\]
+
+\begin{figure}[h]
+\centering
+\input{figures/fig9}
+\caption{Productivity growth shifts the law of motion upward each period: as $z_t$ rises, the curve $K_{t+1}=f(K_t)$ moves out, dragging the moving target $K_{\mathrm{ss}}(z_t)$ steadily to the right and pulling the capital stock along a growth path.}
+\label{fig:macro-9}
+\end{figure}
+
+The law of motion still reads
+\[
+K_{t+1} = \frac{\beta}{1+\beta}\, w_t = \frac{\beta(1-\alpha)}{1+\beta}\, z_t^{\,1-\alpha}\, L_t^{-\alpha}\, K_t^{\alpha},
+\]
+and if we set $L_t = 1$ and temporarily treat $z_t$ as fixed, the same algebra as before gives a target level
+\[
+K_{\mathrm{ss}} = z_t\pr{\frac{\beta(1-\alpha)}{1+\beta}}^{\frac{1}{1-\alpha}}.
+\]
+But now $z_t$ is itself growing, so strictly speaking $K_{t+1} \ne f(K_t)$ with a time-invariant $f$, and the ``$K_{\mathrm{ss}}$'' above is not a true steady state. Instead, it is a \emph{moving target}: a growth path that drifts upward as $z_t$ rises (Figure~\ref{fig:macro-9}). If the capital stock strays off this path, the diminishing-returns force still pulls it back toward the path. In the long run, then, capital grows at the same rate as productivity,
+\[
+K_{t+1} = (1+g)\, K_t,
+\]
+since $K_{\mathrm{ss}}$ is proportional to $z_t$.
+
+Feeding this balanced growth into the production function, with $L_t = 1$,
+\[
+Y_{t+1} = K_{t+1}^{\alpha}\,(z_{t+1} L_{t+1})^{1-\alpha}
+        = \big[(1+g)K_t\big]^{\alpha}\big[(1+g)z_t L_{t+1}\big]^{1-\alpha}
+        = (1+g)\, Y_t,
+\]
+so output grows at the productivity rate $g$ as well. Long-run growth is technology-driven, exactly as in Solow.
+
+The same growth rate of $Y$ and $K$ has sharp implications for ratios and returns. The ratio $Y/K$ approaches a constant, since both grow at $g$. The return to capital is then also constant,
+\[
+r_t = \alpha\, z_t^{\,1-\alpha}\, K_t^{\alpha-1}\, L_t^{\,1-\alpha} = \frac{\alpha\, Y_t}{K_t},
+\]
+a fixed multiple of the (constant) output--capital ratio. The wage, in contrast, grows with productivity,
+\[
+w_t = \frac{(1-\alpha)\,Y_t}{L_t},
+\]
+rising at rate $g$ as output per worker rises.
+
+\state{The Kaldor stylized facts of postwar growth}{
+The neoclassical model reproduces the broad regularities of advanced economies since World War II:
+\begin{enumerate}
+  \item the output--capital ratio $Y/K$ is roughly constant;
+  \item the real return to capital $r$ is roughly constant;
+  \item the capital share of income $\alpha$ is roughly constant;
+  \item output per worker $Y/L$ and capital per worker $K/L$ grow at a common rate $g$.
+\end{enumerate}
+Both the Solow model and the neoclassical model are consistent with these facts; the neoclassical model earns them from optimization rather than assumption.}
+
+\section{The Cake-Eating Problem}
+
+We turn now from two-period lives to a single decision-maker with an infinite horizon. The \emph{cake-eating problem} is the cleanest infinite-horizon optimization: a consumer owns a stock of a resource---a cake---and must decide how fast to eat it. It has no production and no prices, only a stock that shrinks as it is consumed, and it teaches the recursive structure that underlies all the dynamic models in this chapter.
+
+The consumer maximizes discounted lifetime utility
+\[
+\max_{\set{C_t}_{t=0}^{\infty}}\; \sum_{t=0}^{\infty} \beta^t\, U(C_t)
+\]
+subject to the resource transition
+\[
+C_t + H_{t+1} = (1-\delta)\, H_t, \qquad \forall t,
+\]
+where $H_t$ is the stock of cake at the start of period $t$ and $\delta$ is a depreciation rate---the cake spoils a little each period. The vocabulary here is fundamental and recurs everywhere in dynamic macroeconomics.
+
+\defn{State and control variables}{
+A \emph{state} variable is what the decision-maker inherits at the start of a period and cannot change within it; here it is the stock $H_t$. A \emph{control} variable is what she chooses during the period; here it is $C_t$ (equivalently $H_{t+1}$, since the two are linked by the resource constraint). Each variable plays one role then the other: today's control $H_{t+1}$ becomes tomorrow's state.}
+
+\subsection{Solving the Problem}
+
+Attach a multiplier $\lambda_t$ to each period's constraint and form the Lagrangian
+\[
+\mathcal{L} = \sum_{t=0}^{\infty} \beta^t\, U(C_t) + \sum_{t=0}^{\infty} \lambda_t\!\pr{(1-\delta)H_t - C_t - H_{t+1}}.
+\]
+The first-order conditions in $C_t$, $C_{t+1}$, and the bridging stock $H_{t+1}$ are
+\[
+\ba
+C_t:&\quad \beta^t\, U'(C_t) = \lambda_t, \\
+C_{t+1}:&\quad \beta^{t+1}\, U'(C_{t+1}) = \lambda_{t+1}, \\
+H_{t+1}:&\quad \lambda_{t+1}(1-\delta) = \lambda_t.
+\ea
+\]
+The stock $H_{t+1}$ appears in the period-$t$ constraint (with a minus sign) and in the period-$(t+1)$ constraint (multiplied by $1-\delta$), which is why its first-order condition ties the two multipliers together. Eliminating the multipliers gives the Euler equation,
+\[
+\frac{U'(C_t)}{\beta\, U'(C_{t+1})} = 1 - \delta.
+\]
+Specializing to log utility $U(C_t) = \log C_t$, so that $U'(C) = 1/C$,
+\[
+\frac{C_{t+1}}{C_t} = \beta(1-\delta).
+\]
+
+\defn{Policy function}{
+A \emph{policy function} maps the current state into the optimal control---it traces out the path along which the optimized decision actually runs. Here it expresses consumption as a function of the inherited stock.}
+
+The Euler equation $C_{t+1} = \beta(1-\delta)\,C_t$ is the law of motion for consumption; combined with the resource constraint it delivers the policy function.
+
+\ex[The cake-eating policy function]{
+With log utility, find consumption as a function of the stock, and verify that it solves the problem. Let the total initial stock be $H_1 = H$.}
+\sol{
+Guess that consumption is proportional to the stock, $C_t = \gamma\, H_t$ for some constant $\gamma$ to be determined. The resource constraint then gives the stock's transition,
+\[
+H_{t+1} = (1-\delta)H_t - C_t = (1-\delta-\gamma)\,H_t,
+\]
+and therefore $C_{t+1} = \gamma\, H_{t+1} = \gamma(1-\delta-\gamma)\,H_t$. Imposing the Euler equation $C_{t+1}/C_t = \beta(1-\delta)$,
+\[
+\frac{\gamma(1-\delta-\gamma)H_t}{\gamma H_t} = 1-\delta-\gamma = \beta(1-\delta)
+\quad\Longrightarrow\quad
+\gamma = (1-\delta) - \beta(1-\delta) = (1-\beta)(1-\delta).
+\]
+Hence the policy function and the resulting paths are
+\[
+C_t = (1-\beta)(1-\delta)\, H_t,
+\qquad
+H_{t+1} = \beta(1-\delta)\, H_t.
+\]
+Starting from $H_1 = H$, the stock decays geometrically, $H_t = \big(\beta(1-\delta)\big)^{t-1} H$, so consumption is
+\[
+C_1 = (1-\beta)(1-\delta)\,H,
+\qquad
+C_t = (1-\beta)(1-\delta)\,\big(\beta(1-\delta)\big)^{t-1}\, H .
+\]
+If $\delta = 0$ this collapses to the classic cake-eating answer $C_t = (1-\beta)\,\beta^{\,t-1} H$: eat a constant fraction $1-\beta$ of what remains each period.}
+
+\rmkb[A correction to the classroom statement]{The lecture notes wrote the consumption fraction as $1 - \beta(1-\delta)$, giving $C_1 = \big(1-\beta(1-\delta)\big)H$. The correct constant is $(1-\beta)(1-\delta)$. The two agree only in the special case $\delta=0$, where both reduce to $1-\beta$; with positive depreciation the verified answer above is the right one, as one can check directly against the Euler equation.}
+
+\subsection{What the Cake-Eating Problem Teaches}
+
+The value of this exercise is conceptual rather than computational. Two lessons carry forward.
+
+First, identify the state and the control. Here the stock $H$ plays exactly the role that \emph{saving} played in the earlier models: it is the resource carried from the past into the present. Recognizing this correspondence is what lets us see all these models as variations on a single theme.
+
+Second, notice what the constraint represents. In the budget-constrained problems of the earlier sections, relative prices appeared and governed the trade-offs. In the cake-eating problem there is no price at all---the constraint is a pure \emph{resource constraint}, stating only how much of the good is physically available. This is precisely the form a constraint takes when a single decision-maker, rather than a market, allocates resources. It is the bridge to the planner's problem, to which we now turn.
+
+\state{Concepts over algebra}{
+The recurring discipline in dynamic macro is to be clear about what is a \emph{state} and what is a \emph{control}, and whether a constraint reflects \emph{prices} (a market allocation) or pure \emph{resources} (a planner's allocation). The mathematical form is secondary; the economic reading of state, control, and constraint is what makes the models comparable.}
+
+\section{The Social Planner's Problem and the Welfare Theorems}
+
+In a competitive general equilibrium, households maximize utility and firms maximize profit, and the whole allocation is driven by the interaction of supply and demand through prices. Imagine instead a benevolent \emph{social planner} who commands all the information in the economy and allocates resources directly, with no prices at all. When are the two allocations the same? The answer is one of the deepest results in economics.
+
+The planner solves
+\[
+\max_{\set{C_t}_{t=0}^{\infty}}\; \sum_{t=0}^{\infty} \beta^t\, U(C_t)
+\]
+subject to the economy's resource constraint
+\[
+c_t + i_t = y_t,
+\]
+which says output is split between consumption and investment---and notice, crucially, that no price appears. Output is produced from capital and labor by the same technology the firms used,
+\[
+y_t = F(k_t, n_t),
+\]
+and capital accumulates through
+\[
+k_{t+1} = (1-\delta)\,k_t + i_t,
+\]
+with $k_0$ given. The cake-eating problem is the special case $F \equiv 0$, in which the only ``resource'' is the stock left over from last period; the planner's problem generalizes it by letting the leftover stock be \emph{productive}---as if the uneaten cake were lent out to earn an extra output $F(k_t)$.
+
+Setting $n_t = 1$ and combining the resource constraint with the accumulation equation eliminates $i_t$,
+\[
+c_t + \big(k_{t+1} - (1-\delta)k_t\big) = F(k_t),
+\]
+so the planner's problem is
+\[
+\max_{\set{c_t}_{t=0}^{\infty}}\; \sum_{t=0}^{\infty} \beta^t\, U(c_t)
+\qquad \text{s.t.} \qquad
+c_t + k_{t+1} = F(k_t) + (1-\delta)k_t, \quad k_0 \text{ given}.
+\]
+
+\subsection{Solving the Planner's Problem}
+
+For transparency take the case of full depreciation, $\delta = 1$, so the constraint reads $c_t + k_{t+1} = F(k_t)$. The Lagrangian is
+\[
+\mathcal{L} = \sum_{t=0}^{\infty} \beta^t\, U(c_t) + \sum_{t=0}^{\infty} \lambda_t\!\pr{F(k_t) - k_{t+1} - c_t},
+\]
+with first-order conditions
+\[
+\ba
+c_t:&\quad \beta^t\, U'(c_t) = \lambda_t, \\
+c_{t+1}:&\quad \beta^{t+1}\, U'(c_{t+1}) = \lambda_{t+1}, \\
+k_{t+1}:&\quad \lambda_{t+1}\, F'(k_{t+1}) = \lambda_t.
+\ea
+\]
+Eliminating the multipliers gives the planner's Euler equation,
+\[
+\frac{U'(c_t)}{\beta\, U'(c_{t+1})} = F'(k_{t+1}).
+\]
+This is the cake-eating Euler equation with $1-\delta$ replaced by the marginal product of capital $F'(k_{t+1})$: the rate at which the resource ``grows'' is now the technology's return rather than a fixed survival rate.
+
+\ex[The Cobb--Douglas social planner]{
+With $F(k_t) = A\, k_t^{\theta}$ and log utility $U(c_t) = \log c_t$, solve for the capital law of motion and the steady state.}
+\sol{
+With log utility the Euler equation becomes
+\[
+\frac{c_{t+1}}{\beta\, c_t} = F'(k_{t+1}) = A\,\theta\, k_{t+1}^{\theta-1}.
+\]
+Using $c_t = A k_t^{\theta} - k_{t+1}$ from the constraint, substitute to get an equation in capital alone,
+\[
+\frac{A k_{t+1}^{\theta} - k_{t+2}}{\beta\,(A k_t^{\theta} - k_{t+1})} = A\,\theta\, k_{t+1}^{\theta-1}.
+\]
+The form of this equation suggests guessing $k_{t+1} = B\, k_t^{\theta}$ for a constant $B$. Then $c_t = A k_t^{\theta} - B k_t^{\theta} = (A-B)k_t^{\theta}$ and $c_{t+1} = (A-B)k_{t+1}^{\theta}$. Substituting into the Euler equation,
+\[
+\frac{(A-B)k_{t+1}^{\theta}}{\beta (A-B)k_t^{\theta}}
+= \frac{B^{\theta}}{\beta}\,k_t^{\theta^2-\theta}
+\;\overset{!}{=}\;
+A\theta\,(B k_t^{\theta})^{\theta-1}
+= A\theta\, B^{\theta-1}\,k_t^{\theta^2-\theta}.
+\]
+The powers of $k_t$ match, confirming the guess; equating coefficients,
+\[
+\frac{B^{\theta}}{\beta} = A\theta\, B^{\theta-1}
+\quad\Longrightarrow\quad
+B = A\beta\theta,
+\]
+so the law of motion is
+\[
+k_{t+1} = A\beta\theta\, k_t^{\theta}.
+\]
+Setting $k_{t+1} = k_t = k_{\mathrm{ss}}$ and dividing by $k_{\mathrm{ss}}^{\theta}$,
+\[
+k_{\mathrm{ss}}^{\,1-\theta} = A\beta\theta
+\quad\Longrightarrow\quad
+k_{\mathrm{ss}} = (A\beta\theta)^{\frac{1}{1-\theta}}.
+\]
+As with the OLG model, growth in the productivity level $A$ shifts this target upward, so the steady state moves along a growth path rather than standing still.}
+
+This planner's allocation has exactly the structure of the Solow steady state, but it is now derived from intertemporal \emph{optimization} rather than from an assumed saving rate. That is the whole point of the neoclassical program: the conclusions survive, but they rest on choice. And because the model is built from explicit preferences and technology, its parameters can be reinterpreted to capture more---for instance, a business cycle can be introduced by making productivity stochastic, $y_t = z\, A\, k_t^{\theta}$ with $z$ random (drawn from a distribution, or switching between high and low states). The planner's solution for a single representative agent then extends to the whole economy, since every agent is identical.
+
+\subsection{The Two Welfare Theorems}
+
+We can now state the relationship between the planner's allocation and the competitive equilibrium. Under suitable conditions the two coincide, and the bridge between them is exactly the set of prices that the planner's problem does \emph{not} contain. The planner's resource constraint carries shadow prices---the multipliers $\lambda_t$---and these shadow prices are precisely the competitive prices that would decentralize the planner's allocation.
+
+\thm{The two welfare theorems}{
+\begin{enumerate}
+  \item \textbf{First welfare theorem.} A competitive equilibrium allocation is Pareto optimal: given the right prices, the decentralized outcome in which each household maximizes utility and each firm maximizes profit cannot be improved upon for one agent without harming another.
+  \item \textbf{Second welfare theorem.} Any Pareto-optimal allocation---in particular the one a benevolent social planner would choose---can be supported as a competitive equilibrium, provided prices are set appropriately (and, if necessary, lump-sum transfers redistribute initial wealth).
+\end{enumerate}}
+
+The economic content is that markets and planning, despite their opposite organizing principles, reach the same destination in this frictionless world. The planner allocates by resource constraint and ignores prices; the market allocates by prices and ignores any central command. Yet the shadow prices implicit in the planner's optimization are exactly the market prices that make households and firms, acting only in their own interest, choose the planner's allocation on their own. This equivalence is what licenses us, throughout the rest of the course, to solve a planner's problem---which is often far easier---and read off the competitive equilibrium from it.
+
+\rmkb[Where this is heading]{The neoclassical model has given the saving rate a microeconomic foundation and, with it, a way to ask whether market outcomes are efficient. The welfare theorems answer ``yes'' in this benchmark economy. Much of the rest of macroeconomics is the study of what happens when the theorems \emph{fail}---when money, sticky prices, externalities, or missing markets drive a wedge between the competitive outcome and the planner's ideal, opening room for policy to improve on the market. The Malthusian economy of Chapter~\ref{ch:malthus} is the first such departure; monetary and Keynesian frictions follow.}

@@ -1,0 +1,68 @@
+% ============================================================
+%  commands.tex — Custom macros for Intermediate Macroeconomics
+%  (Se Yan, Guanghua / PKU). Adapted from the interm-econometrics
+%  course; trimmed to what macro needs, exam-tier tags removed.
+% ============================================================
+
+\usepackage{amsmath}
+
+% --- Environment shortcuts ---
+\newcommand{\ba}{\begin{aligned}}
+\newcommand{\ea}{\end{aligned}}
+\newcommand{\bc}{\begin{cases}}
+\newcommand{\ec}{\end{cases}}
+
+% --- Number sets ---
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\QQ}{\mathbb{Q}}
+\newcommand{\ZZ}{\mathbb{Z}}
+\newcommand{\NN}{\mathbb{N}}
+
+% --- Greek shortcut (only varepsilon; leave \alpha,\beta,\delta,\theta,
+%     \rho,\tau,\sigma,\pi etc. as their plain built-ins — macro uses them
+%     constantly and they must NOT be redefined) ---
+\newcommand{\ve}{\varepsilon}
+
+% --- Delimiters (auto-sized) ---
+\newcommand{\pr}[1]{\left(#1\right)}        % parentheses
+\newcommand{\br}[1]{\left[#1\right]}        % square brackets
+\newcommand{\set}[1]{\left\{#1\right\}}     % curly braces (set)
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\norm}[1]{\left\|#1\right\|}
+\newcommand{\floor}[1]{\left\lfloor #1 \right\rfloor}
+\newcommand{\ceil}[1]{\left\lceil #1 \right\rceil}
+
+% --- Operators ---
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\sgn}{sgn}
+
+% --- Probability / expectation (used for rational-expectations material) ---
+%   \E{x} -> E(x);  \E[t]{x} -> E_t(x);  the macro supplies its own parens,
+%   so write \E{X}, never \E(X).
+\newcommand{\given}{\,|\,}
+\renewcommand{\Pr}[1]{\operatorname{P}\!\left(#1\right)}
+\newcommand{\E}[2][]{\mathbb{E}_{#1}\!\pr{#2}}
+\newcommand{\Var}[2][]{\operatorname{Var}_{#1}\!\pr{#2}}
+\newcommand{\Cov}[2]{\operatorname{Cov}\!\pr{#1,#2}}
+
+% --- Calculus (upright differential d) ---
+\renewcommand{\d}{\mathrm{d}}
+\newcommand{\dd}[2]{\frac{\d #1}{\d #2}}
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\inv}[1]{{#1}^{-1}}
+
+% --- Small text helpers ---
+\newcommand{\st}{\text{ s.t. }}
+
+% --- Highlighting ---
+\newcommand{\hl}[1]{\textcolor{red!70!black}{\textbf{#1}}}
+
+% ------------------------------------------------------------
+% Notation conventions for this book (for the human typesetter,
+% not LaTeX): write multi-letter economic symbols upright with
+% \mathrm{...}, e.g. \mathrm{MPC}, \mathrm{GDP}, \mathrm{MRS},
+% \mathrm{NX}, \mathrm{TFP}. Write the Lagrangian as \mathcal{L}.
+% Steady-state values as k^{*} or k_{\mathrm{ss}}. Expected values
+% of prices/inflation as P^{e}, \pi^{e}.
+% ------------------------------------------------------------

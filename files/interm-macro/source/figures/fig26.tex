@@ -1,0 +1,31 @@
+\begin{tikzpicture}[scale=1.0]
+  % colours matching the original: orange LRAS, magenta SRAS, black AD
+  \definecolor{lrasclr}{RGB}{240,140,0}
+  \definecolor{srasclr}{RGB}{230,0,160}
+  % potential output level (where LRAS sits) and equilibrium price level
+  \def\Ystar{4.6}
+  \def\Pstar{3.0}
+  % axes
+  \draw[-Latex] (0,0) -- (9.2,0) node[right] {$Y$};
+  \draw[-Latex] (0,0) -- (0,6.6) node[above] {$P$};
+  % long-run aggregate supply: vertical line at potential output
+  \draw[lrasclr,line width=1.2pt] (\Ystar,0.15) -- (\Ystar,6.0)
+        node[above] {LRAS};
+  % short-run aggregate supply: flat at low Y, steepening (convex, J-shaped),
+  % monotone increasing, built to pass through the equilibrium (\Ystar,\Pstar):
+  %   p(x) = \Pstar + 0.94*(x-\Ystar) + 0.13*(x-\Ystar)^2  (vertex left of domain)
+  \draw[srasclr,line width=1.2pt,smooth,samples=140,domain=1.2:6.4]
+        plot (\x,{\Pstar+0.94*(\x-\Ystar)+0.13*(\x-\Ystar)*(\x-\Ystar)});
+  \node[srasclr] at (7.05,5.85) {SRAS};
+  % aggregate demand: downward-sloping straight line through the equilibrium
+  %   line of slope -0.9 through (\Ystar,\Pstar)
+  \draw[line width=1.2pt] (1.4,{\Pstar-0.9*(1.4-\Ystar)})
+        -- (6.8,{\Pstar-0.9*(6.8-\Ystar)});
+  \node at (1.85,5.95) {AD};
+  % equilibrium point where all three meet
+  \fill (\Ystar,\Pstar) circle (1.7pt);
+  % guide line to the price axis
+  \draw[densely dashed] (\Ystar,\Pstar) -- (0,\Pstar) node[left] {$P^{*}$};
+  % potential-output label on the Y axis
+  \node[below=4pt] at (\Ystar,0) {\shortstack{Potential\\ GDP}};
+\end{tikzpicture}

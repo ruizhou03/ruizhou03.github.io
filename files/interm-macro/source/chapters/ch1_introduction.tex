@@ -1,0 +1,104 @@
+% !TEX root = ../main.tex
+\chapter{Introduction: The Macroeconomic Way of Thinking}
+\label{ch:intro}
+
+Intermediate microeconomics leaves a student remarkably well equipped to reason about a single household, a single firm, or a single market. A consumer takes prices and income as given and chooses the bundle she likes best; a firm takes the wage and the rental rate as given and chooses how much to produce. The hard analytical work goes into the \emph{choice}, and the numbers that enter the choice --- this price, that income --- arrive from outside, already measured. Macroeconomics begins where that convenience ends. Its object of study is not a household or a firm but the economy \emph{as a whole}: the total output of a country, the average level of all prices, the fraction of willing workers who cannot find a job, the rate at which the standard of living rises over a generation. Nobody hands us those numbers. Before we can build a single model of the aggregate economy, we have to learn how to \emph{measure} it.
+
+This is the first thing that makes macroeconomics different, and it is the reason the book opens with three chapters on measurement before any model appears. But there is a second, deeper difference, and it shapes the entire subject. The behavior of the whole is not simply the sum of the behaviors of its parts. One household's decision to save more raises that household's wealth; if every household tries to save more at once, total spending falls, firms sell less, incomes drop, and the economy may end up saving no more than before. Aggregation is not addition. To say anything reliable about the whole we need theory --- and, as we will see, macroeconomists have built that theory in two very different styles, one prizing logical purity and the other prizing usefulness. This chapter sets up the questions the book will answer, the methods it will use, and the two intellectual traditions it draws on. It is the map for everything that follows.
+
+\section{What Macroeconomics Studies}
+
+Macroeconomics studies the economy as a whole rather than its individual pieces. The shift in object brings a shift in the first problem we must solve. In microeconomics, measurement is comparatively easy: a consumer treats income and prices as given exogenously, and a firm needs to track its costs, but the quantities involved are concrete and bounded. When we move to the level of an entire country, even the most basic quantities have to be \emph{constructed}. We do not observe ``the price'' the way a single shopper does; we observe millions of individual prices and must somehow combine them into a single \emph{price level} (Chapter~\ref{ch:prices}). We do not observe ``output''; we observe the production of countless firms in incommensurable units and must aggregate them into a measure such as gross domestic product (Chapter~\ref{ch:accounts}).
+
+\state{Macroeconomics: the study of the economy as a whole}{
+Microeconomics analyzes individual agents and markets, taking prices and incomes as \emph{given}. Macroeconomics analyzes aggregate quantities --- total output, the price level, the unemployment rate, the long-run growth rate --- which are not given but must first be \emph{measured and aggregated}. This is why the book begins with national income accounting (Chapter~\ref{ch:accounts}), price indices (Chapter~\ref{ch:prices}), and the labor market (Chapter~\ref{ch:labor}) before turning to any theory.
+}
+
+Because these aggregates are built rather than read off directly, they are also, to some degree, \emph{constructed numbers} --- and constructed numbers can be shaped by the choices made in constructing them. This is not the same as fabrication. A figure such as GDP is assembled through a definite statistical procedure from real underlying data, but the procedure involves judgment calls, and those judgment calls can be leaned on. A careful reader of macroeconomic data therefore cross-checks the headline aggregates against harder-to-manipulate physical proxies, and against the same series in other economies.
+
+\rmkb[Cross-checking the official numbers]{Because headline aggregates rest on construction choices, analysts often triangulate them against physical indicators that are difficult to dress up. A well-known example is the so-called Keqiang index, which gauges Chinese activity from electricity consumption, rail freight volume, and bank lending rather than from the reported output figure alone; the premise is that it is harder to fake the electricity a factory burns than the value it claims to have produced. Comparing the same series across economies --- China against the United States, say --- is a further sanity check. None of this means the official numbers are wrong; it means a serious macroeconomist treats every aggregate as a measurement with a method behind it, and asks what that method might miss.}
+
+\section{How Macroeconomists Work}
+
+Confronted with the aggregate economy, how does one actually do macroeconomics? The discipline proceeds in a characteristic way. It begins by collecting \emph{stylized facts} --- broad, robust regularities in the data, such as the observation that consumption moves closely with income, or that output and employment rise and fall together over the business cycle --- and then tries to explain them. The explanation can be pursued through several distinct methods, and it is worth distinguishing them at the outset, because the rest of the book uses all of them.
+
+\begin{itemize}
+    \item \textbf{Reduced-form analysis.} One runs regressions linking aggregate variables and reports the associations found in the data. This is evidence, and useful evidence, but it has two well-known limits. A regression coefficient need not reveal the underlying \emph{mechanism}; at best it documents a relationship. And the macroeconomy is a \emph{dynamic, interlocking system} in which variables feed back on one another, so the clean one-directional causal story that a single regression seems to tell is rarely warranted.
+    \item \textbf{Modeling.} One writes down an explicit model --- assumptions about agents, technology, and markets --- and derives its implications. The payoff is a \emph{predicted outcome} that follows logically from stated premises, so the source of any prediction can be traced and the model interrogated.
+    \item \textbf{Simulation.} One feeds historical data through a model to see how well its behavior matches what actually happened, testing the degree to which the theory fits the record.
+    \item \textbf{Calibration.} One pins down a model's parameters by drawing on accumulated empirical estimates --- stacks of prior studies and data --- rather than estimating every parameter afresh, and then asks what such a disciplined model implies.
+\end{itemize}
+
+These methods are complementary rather than competing. A stylized fact motivates a model; the model is calibrated from existing estimates; the calibrated model is simulated against history; reduced-form regressions supply both the original fact and a check on the model's predictions. The reader will see this cycle repeated, in miniature, in nearly every chapter.
+
+\rmkb[A note on sources and texts]{This course is taught in the neoclassical tradition, and the natural companion in English is Williamson's \emph{Macroeconomics}, which develops the subject from explicit microfoundations. For the institutional side --- how macroeconomic policy is actually conducted in China --- the lectures draw on material pairing macroeconomic theory with Chinese policy. For data, the standard wells are the National Bureau of Statistics of China, commercial macro databases such as CEIC and Wind, and, for international and U.S. series, the Federal Reserve Economic Data (FRED) service. Knowing where the numbers come from is part of knowing what they mean.}
+
+\section{Two Traditions: Neoclassical and Keynesian}
+
+There is a fundamental methodological fork in macroeconomics, and understanding it explains much of why the field looks the way it does. The two branches differ on a single question: should one build up from the individual, or start directly from the aggregate?
+
+\subsection{The neoclassical tradition: microfoundations}
+
+The neoclassical view draws no sharp line between microeconomics and macroeconomics. In this picture there is, in principle, nothing distinctively ``macro'' going on at all: the economy is the aggregation of its optimizing consumers and firms, and so macroeconomic outcomes should be derivable from, and consistent with, the microeconomic behavior of individuals. Modern neoclassical macroeconomics accordingly insists on \emph{microfoundations} --- every aggregate relationship must be grounded in the choices of agents who maximize utility or profit subject to constraints.
+
+The appeal of this discipline is real. A microfounded model is \emph{logically tight}: its conclusions follow rigorously from explicit assumptions about preferences, technology, and constraints, so one can always say exactly why a result holds and trace it back to a premise that can be debated. The cost is equally real. Human society contains a great many moving parts, and a clean, internally consistent logical system often struggles to capture all of them. Insisting that every macroeconomic phenomenon be derived from first principles can leave the resulting models with surprisingly weak \emph{explanatory power} for the messy economy we actually observe --- a frustration familiar to anyone who has tried to fit a beautiful model to stubborn data.
+
+\subsection{The Keynesian tradition: let the data speak}
+
+The Keynesian response is to change the starting point. Rather than building the aggregate up from individual optimization, one studies the aggregate \emph{directly}, reading the behavior of the whole off the aggregate data and letting the data speak --- even at the cost of leaving the microeconomic foundations unspecified.
+
+The canonical illustration is the aggregate consumption function. Instead of deriving how much a society consumes from each household's utility maximization, one looks at the aggregate consumption data and posits a simple relationship,
+\[
+C = C_0 + \mathrm{MPC}\cdot(Y - T),
+\]
+where $Y - T$ is aggregate disposable income (output net of taxes), $C_0$ is autonomous consumption, and $\mathrm{MPC}$ is the \emph{marginal propensity to consume} --- the fraction of an extra dollar of disposable income that is spent. The point to notice is that $\mathrm{MPC}$ has no microeconomic pedigree. It is not derived from any preference structure; it is a parameter fitted to the data because the data behave roughly that way. The same spirit appears later in the Solow model (Chapter~\ref{ch:solow}), which simply \emph{assumes} a constant saving rate rather than deriving saving from an intertemporal optimization problem.
+
+\state{The Keynesian bargain}{
+The Keynesian approach trades \emph{scientific purity for usefulness}. By starting from the aggregate and fitting relationships such as $C = C_0 + \mathrm{MPC}\cdot(Y-T)$ directly to the data, it forgoes a microeconomic derivation of those relationships. What it gains is a tractable, empirically grounded account aimed squarely at \emph{understanding the data themselves} --- a model that may explain the world well even though it cannot, by construction, say exactly why each agent behaves as the aggregate suggests.
+}
+
+Neither tradition is simply right. The neoclassical models are the more rigorous and will occupy most of our growth theory; the Keynesian models are the more immediately useful for short-run policy and will organize the back half of the book. A mature reading of macroeconomics holds both in mind at once.
+
+\rmkb[The aggregate was studied long before Keynes]{It would be a mistake to think macroeconomic questions began with Keynes. Classical economists studied the wealth of nations as a whole well before him --- Adam Smith's \emph{The Wealth of Nations} is, in a real sense, a work about the aggregate economy --- using the classical methods of their day. What Keynes changed was not the subject but the method: he made it respectable to model the aggregate on its own terms, without first reducing it to the individual.}
+
+\section{The Two Big Questions}
+
+For all its scattered detail, macroeconomics is organized around two questions, separated by their time horizon.
+
+\begin{itemize}
+    \item \textbf{Long-run economic growth.} Why are some countries rich and others poor, and what determines the long-run \emph{trend} of an economy's output over decades? This is the domain of growth theory --- the Solow model and its microfounded descendants (Chapters~\ref{ch:solow}--\ref{ch:malthus}).
+    \item \textbf{Short-run business cycles.} Why does output not grow smoothly along its trend but instead \emph{fluctuate} around it, with booms and recessions, and can policy smooth those fluctuations? This is the domain of short-run macroeconomics --- the Keynesian cross, IS--LM, and aggregate demand and supply (Chapters~\ref{ch:keynes}--\ref{ch:adas}).
+\end{itemize}
+
+A compact way to hold the two questions together is to think of the path of output as a trend plus a deviation:
+\[
+\underbrace{\text{observed output}}_{\text{what we see}}
+\;=\;
+\underbrace{\text{long-run growth trend}}_{\text{Chapters \ref{ch:solow}--\ref{ch:malthus}}}
+\;+\;
+\underbrace{\text{cyclical shocks around the trend}}_{\text{Chapters \ref{ch:keynes}--\ref{ch:adas}}}.
+\]
+Growth theory studies the trend; business-cycle theory studies the deviations from it. The book follows exactly this division: measure the aggregates first, then explain the trend, then explain the fluctuations.
+
+\section{The Goals of Macroeconomic Policy}
+
+Why does any of this matter for policy? Macroeconomic policy is conventionally aimed at four objectives, and the rest of the book can be read as a study of what stands in the way of achieving them.
+
+\begin{enumerate}
+    \item \textbf{Economic growth} --- raising output and living standards over the long run.
+    \item \textbf{Full employment} --- ensuring that everyone who actively wants work can find it.
+    \item \textbf{Controlling inflation} --- keeping the price level stable enough that money remains a reliable yardstick.
+    \item \textbf{External balance} --- keeping international payments in balance, a concern that arises once the economy is open to trade and capital flows.
+\end{enumerate}
+
+Three clarifications, each of which a later chapter develops, are worth flagging now.
+
+First, ``full employment'' does not mean a zero unemployment rate. It means that everyone actively searching for a job can find one, so that the \emph{cyclical} component of unemployment is zero and the measured unemployment rate reflects only the \emph{natural rate} --- the frictional and structural unemployment that persists even in good times as people move between jobs and industries. We make this precise in the labor-market chapter (Chapter~\ref{ch:labor}).
+
+Second, the goals are not jointly attainable. When fluctuations are driven by demand, employment and inflation tend to move together, so that pushing toward fuller employment tends to raise inflation and vice versa: the two cannot be optimized at once. This tension is the subject of the Phillips curve (Chapter~\ref{ch:phillips}), and it is the central dilemma of stabilization policy.
+
+\rmkb[External balance, Chinese style]{The external-balance objective looks different depending on a country's position in the world economy. China has run large and persistent \emph{trade surpluses} on the strength of its exports, and its central bank exercises near-complete control over the exchange rate. A standing question raised in the lectures is whether the resulting accumulation of foreign claims is worth as much as it appears: piling up external surpluses is, in a sense, lending the rest of the world your output, and the value of that ``saving'' depends on what it is eventually exchanged for. We return to open-economy questions only at the margins of this book, but it is worth noting early that ``external balance'' is a live and contested policy goal, not a settled accounting identity.}
+
+\section{A Word on the Character of the Subject}
+
+It is worth being honest, at the outset, about what kind of subject this is. Microeconomics is tidy: a well-posed problem typically has a clean optimization at its center and a definite answer. Macroeconomics is deliberately less tidy. The same fact can often be read through more than one model; the data rarely settle a dispute cleanly; and the most illuminating remark in a lecture is sometimes a one-line institutional aside --- how a central bank actually conducts an operation, why a particular policy failed in a particular year, how a particular country measures a particular series --- that fits no chapter perfectly. We will not pretend otherwise, and we will not force every such observation into a theorem. Where there is a model, we will be rigorous about it; where the lecture digresses into the texture of real economies, we will keep the digression, set off in a remark box. Read those boxes as part of the subject, not as loose ends. With the questions, the methods, and the temperament of macroeconomics now in view, we turn in the next chapter to the first task that any of them requires: measuring the aggregate economy.

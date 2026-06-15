@@ -1,0 +1,16 @@
+\begin{tikzpicture}[scale=1.0]
+  % axes
+  \draw[-Latex] (0,0) -- (5.6,0) node[right] {$x_t$};
+  \draw[-Latex] (0,0) -- (0,5.0) node[above] {$x_{t+1}$};
+  % 45-degree line x_{t+1}=x_t
+  \draw[densely dashed] (0,0) -- (4.6,4.6) node[above right] {$45^{\circ}$};
+  % law of motion f: convex, steeper than 45 line at the crossing
+  % f(x)=x^2/x* with x*=2.2 -> crosses 45-line at (x*,x*) with slope 2>1
+  \def\xs{2.2}
+  \draw[line width=1.1pt,smooth,samples=120,domain=0:3.18,variable=\x]
+        plot ({\x},{\x*\x/\xs}) node[right] {$f(x_t)$};
+  % steady state (unstable): crossing of f with the 45-degree line
+  \fill (\xs,\xs) circle (1.7pt);
+  \draw[densely dashed] (\xs,\xs) -- (\xs,0) node[below] {$x_{SS}$};
+  \draw[densely dashed] (\xs,\xs) -- (0,\xs) node[left] {$x_{SS}$};
+\end{tikzpicture}

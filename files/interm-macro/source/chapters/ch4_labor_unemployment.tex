@@ -1,0 +1,172 @@
+% !TEX root = ../main.tex
+\chapter{The Labor Market and Unemployment}
+\label{ch:labor}
+
+Of all the numbers a macroeconomist watches, the unemployment rate is the one that travels furthest from the seminar room. A point of GDP growth is an abstraction; a person without work is not. In many democracies the unemployment rate is read as a verdict on the government, and a long list of policies --- from interest-rate decisions to extensions of jobless benefits --- is tied to it more or less explicitly. This chapter builds the apparatus needed to read that number honestly: how the working-age population is sorted into those who count as unemployed and those who do not, why the unemployment rate is almost meaningless without the participation rate beside it, and why a healthy economy has positive unemployment rather than none at all.
+
+The plan is straightforward. We first partition the population, since the unemployment rate is a ratio and we must be clear about what goes into the numerator and the denominator. We then define the two headline ratios --- the unemployment rate and the labor-force participation rate --- and explain why they must always be read together. With the accounting in place, we classify unemployment into three types according to its cause: \emph{frictional}, \emph{structural}, and \emph{cyclical}. That classification delivers the chapter's central concept, the \emph{natural rate of unemployment}, which in turn defines what economists mean by ``full employment'' and by an economy's \emph{potential output}. Throughout, we keep an eye on the institutional and data-quality issues that make these numbers harder to interpret in practice than in theory, especially in the Chinese context.
+
+\section{Partitioning the Population}
+
+To turn ``unemployment'' into a measurable quantity we must first decide who is even a candidate for being unemployed. The official statistics build the partition in two stages, asking two questions in turn: \emph{can} this person work, and, if so, \emph{do they want to}?
+
+The first cut is by \textbf{ability to work}. Some members of the population are outside the labor market not by choice but by circumstance or rule: children, the institutionalized, full-time students, active-duty military personnel, and the incarcerated. These groups are excluded at the first stage regardless of their preferences, because they are not free to take a market job.
+
+Among those who are able to work, the second cut is by \textbf{willingness to work}. A person who is able to work and wants to work is counted in the \emph{labor force}; a person who is able to work but does not want to work --- a homemaker who has chosen to stay out of paid employment, an early retiree living off savings --- is counted as \emph{not in the labor force}. The labor force is thus the intersection of the two conditions: able \emph{and} willing.
+
+\defn{Labor Force and Its Components}{
+Among the working-age, non-institutionalized population:
+\begin{itemize}
+    \item The \emph{labor force} is everyone who is both \emph{able} to work and \emph{willing} to work. It splits into the \emph{employed} and the \emph{unemployed}.
+    \item The \emph{unemployed} are those who are able and willing to work --- actively seeking a job --- but are not currently working.
+    \item Those \emph{not in the labor force} are able to work but unwilling to work at prevailing conditions. This group includes homemakers and others who produce value without producing measured market output, as well as \emph{discouraged workers}.
+\end{itemize}
+}
+
+Two features of this partition deserve emphasis because they are exactly where the official count can mislead.
+
+First, the unemployed are not simply ``people without a job.'' A retiree and a toddler also lack jobs, but neither is unemployed: the retiree is unwilling, the toddler unable. To be counted as unemployed one must clear both bars --- able and willing --- and still be without work. Unemployment is the gap between the desire to work and the chance to do so.
+
+Second, \emph{discouraged workers} sit on the boundary and reveal a subtle weakness in the count. A discouraged worker is someone who would take a job but has given up actively searching, convinced that none is available. By the willingness criterion as the surveys apply it --- which keys on active search --- discouraged workers are classified as out of the labor force, not as unemployed. They therefore vanish from the numerator and the denominator of the unemployment rate alike. When a downturn pushes many job-seekers into discouragement, the measured unemployment rate can fall even though the labor market has worsened, precisely because the discouraged have been reclassified out of the labor force. This is one reason the unemployment rate cannot be read in isolation, a point we return to below.
+
+\rmkb[Two ways to count the jobless, and why China switched]{
+For a long time China relied on the \emph{registered} urban unemployment rate, which counted only those who walked into a local labor bureau and registered as unemployed to claim benefits. Because registration was incomplete and incentive-driven, this measure was a poor gauge of actual labor-market slack. China later began publishing a monthly \emph{surveyed} urban unemployment rate, built from household surveys in the manner of international practice, which improved both the reliability and the cross-country comparability of the data. The broader caveat is worth stating plainly: Chinese labor-market data have historically been weaker than the corresponding output and price data, and employment targets in official plans tend to be set conservatively (low), so that they are reliably met. Within the employment data, two groups --- factory workers and new university graduates --- are the most politically sensitive and the most closely watched.
+}
+
+\rmkb[Unemployment and the political cycle]{
+The weight placed on unemployment differs sharply across economies. In many Western democracies the unemployment rate is a central electoral and policy variable, and a great deal of macroeconomic policy is pegged to it. China's policy framework reacts far less directly to the unemployment number itself, leaning instead on other large real-economy indicators; but this does not make employment unimportant there, since labor-market conditions are tightly bound up with every other macroeconomic question. The difference is one of which dial the policymaker watches, not of whether employment matters.
+}
+
+\section{The Two Headline Ratios}
+
+With the partition fixed, the two rates that summarize it are simple ratios. The first measures slack \emph{within} the labor force; the second measures how large the labor force is relative to the population that could in principle supply it.
+
+\defn{Unemployment Rate}{
+The \emph{unemployment rate} is the share of the labor force that is unemployed,
+\[
+u = \frac{\text{unemployed}}{\text{labor force}}
+  = \frac{\text{unemployed}}{\text{unemployed} + \text{employed}}.
+\]
+Its denominator is the labor force, \emph{not} the whole population: people who are unwilling or unable to work are excluded from both top and bottom.
+}
+
+\defn{Labor-Force Participation Rate}{
+The \emph{labor-force participation rate} is the share of the able-to-work population that is actually in the labor force,
+\[
+\mathrm{LFPR} = \frac{\text{labor force}}{\text{working-age population}}.
+\]
+It measures, among those capable of working, the fraction who are \emph{willing} to do so.
+}
+
+The two rates answer different questions, and each is blind to what the other sees. The unemployment rate looks only inside the labor force; it says nothing about how many able people have chosen to stay outside it. The participation rate counts who is inside the labor force at all; it says nothing about how those inside are faring. Reported alone, either can be read in opposite ways.
+
+\state{Always read the unemployment rate beside the participation rate}{
+A falling unemployment rate is good news only if participation is holding up. If people leave the labor force --- retiring early, returning to school, or simply giving up the search and becoming discouraged workers --- both the numerator and the denominator of $u$ shrink, and the unemployment rate can fall even as the labor market deteriorates. A \emph{low unemployment rate does not by itself imply an ample supply of labor.}
+}
+
+The clearest illustration is an economy with generous transfers and benefits. When staying out of work is comfortable, many able workers choose not to participate; the participation rate falls, and because the discouraged and the voluntarily idle are not in the labor force, the measured unemployment rate falls too. Yet the result is not a booming labor market but a shrinking one --- the United States has at times shown exactly this pattern, a declining participation rate alongside a low unemployment rate and complaints of labor shortage. The unemployment rate looked strong; the participation rate revealed that the pool of available labor had thinned.
+
+\subsection{Nonfarm Payrolls}
+
+Survey-based rates are not the only labor-market data that move markets. In the United States the most closely watched single release is \emph{nonfarm payrolls} (NFP), the monthly change in the number of paid jobs outside the agricultural sector.
+
+\defn{Nonfarm Payrolls (NFP)}{
+\emph{Nonfarm payrolls} count the number of paid employees in the economy excluding the agricultural sector. The headline figure is the month-over-month change, interpreted as net job creation (or destruction).
+}
+
+Agriculture is stripped out deliberately. Farm employment is highly seasonal and volatile, swinging with the planting and harvest calendar in ways that say little about the underlying health of the labor market. Removing it leaves a cleaner read on how many jobs the economy is genuinely creating or shedding. Because NFP is a timely and direct measure of job creation, a release that deviates sharply from expectations can deliver a large shock to financial markets.
+
+\section{Why a Market Can Fail to Clear for People}
+
+We now turn from measurement to mechanism: \emph{why} is there unemployment at all? In an idealized competitive market, a surplus drives the price down until quantity supplied equals quantity demanded, and nothing is left unsold. The persistent existence of unemployment tells us that the labor market does not clear so cleanly. As an organizing principle: \emph{the presence of unemployment is a sign that there is friction in the market.} The three types of unemployment are three different kinds of friction.
+
+\subsection{Frictional Unemployment}
+
+The first kind of friction is simply that matching a worker to a job takes time. \emph{Frictional unemployment} is the unemployment that arises while people search for and sort into positions, even in an otherwise healthy economy.
+
+\defn{Frictional Unemployment}{
+\emph{Frictional unemployment} is unemployment arising from the time it takes to match workers with jobs. Workers lose or leave jobs for reasons unrelated to any deficiency in their ability, and finding the right new match --- the right firm, occupation, or location --- takes time to search and negotiate.
+}
+
+Some frictional unemployment is individual: a worker between jobs is in a matching spell, sampling offers until a suitable one appears. Some of it is sectoral: when an industry restructures, technology shifts, or economic activity migrates from one region to another, workers must move across firms, occupations, or locations, and the reallocation cannot happen instantly. Frictional unemployment is, in this sense, the unavoidable byproduct of a dynamic economy in which jobs are continually created and destroyed. It is not a symptom of weak demand --- workers lose jobs for reasons that have nothing to do with their competence --- but a symptom of the irreducible fact that \emph{search and matching take time}.
+
+\subsection{Structural Unemployment}
+
+The labor market is a peculiar market because its commodity is attached to a person, and people are not bid down to a market-clearing wage the way bushels of wheat are. \emph{Structural unemployment} is the unemployment that persists because the wage is held above the level that would clear the market, so that the quantity of labor supplied exceeds the quantity demanded and some willing workers cannot find jobs. There are three classic sources.
+
+\defn{Structural Unemployment}{
+\emph{Structural unemployment} is unemployment that persists because the wage is held above its market-clearing level, creating a chronic excess supply of labor. Its three standard sources are labor unions, minimum-wage legislation, and efficiency wages.
+}
+
+\paragraph{Unions and collective bargaining.}
+A labor union bargains collectively on behalf of its members, and the chief item on the agenda is higher wages. Starting from a market that would otherwise clear at the equilibrium wage, a negotiated (or administratively imposed) wage above that level raises the pay of those who keep their jobs but reduces the number of jobs firms are willing to offer, leaving some workers unemployed. In effect the union protects its \emph{insiders} --- the members who remain employed at the higher wage --- at the expense of the outsiders who are priced out of work.
+
+\paragraph{The minimum wage.}
+A legislated minimum wage is the government's version of the same mechanism. If it is set above the market-clearing wage for low-skill labor, it raises the incomes of those who keep their jobs while pricing the least productive workers out of employment --- a well-intentioned policy that can do harm. This is the populist trap: a measure that sounds like pure generosity to workers can, by ignoring how firms respond, leave the most vulnerable workers worse off. It raises a genuinely hard question --- what level of wage floor or welfare support is reasonable? --- to which market forces give one answer and political pressure another.
+
+\paragraph{Efficiency wages.}
+The third source is subtler, because here firms raise wages \emph{voluntarily}. Under \emph{efficiency-wage} theory, a firm facing imperfect information about its workers' effort may find it profitable to pay above the market-clearing wage in order to raise productivity: a wage premium reduces turnover, attracts better applicants, and gives existing workers something to lose, so they work harder and shirk less. The firm trades a higher wage bill for higher effort per worker. But the same premium that buys effort also means that the wage sits above the clearing level, so that, in aggregate, fewer workers are hired than would be at the competitive wage --- and the surplus shows up as unemployment.
+
+\rmkb[Structural unemployment is about people, not commodities]{
+All three sources --- unions, the minimum wage, and efficiency wages --- share a root cause: the labor market traffics in human beings, not anonymous goods. Wages are sticky downward, contracts and laws constrain them, fairness and morale shape effort, and information about who is working hard is imperfect. These ``human'' features are exactly what a frictionless commodity market lacks, and they are why the labor market does not simply clear.
+}
+
+\subsection{Cyclical Unemployment}
+
+The first two types are properties of the economy's normal functioning. The third is a property of the business cycle. \emph{Cyclical unemployment} is the unemployment that rises and falls with aggregate economic conditions: a recession contracts the demand for labor and throws workers out of jobs, while a boom does the reverse.
+
+\defn{Cyclical Unemployment}{
+\emph{Cyclical unemployment} is the component of unemployment caused by fluctuations in aggregate demand over the business cycle. It is positive in recessions, when the demand for labor falls, and can be negative in booms, when the economy is overheating.
+}
+
+In a boom, cyclical unemployment can in effect turn negative: firms cannot find enough workers and employees may be pushed into overtime, working more than they would freely choose. This overheating, however, is generally regarded as temporary rather than a durable state of the economy.
+
+\section{The Natural Rate, Full Employment, and Potential Output}
+
+We can now assemble the three types into the chapter's central organizing idea. Frictional and structural unemployment are \emph{long-run} features: they reflect the permanent architecture of the labor market --- search frictions, institutions, information --- and they would persist even in an economy with no demand shocks at all. Cyclical unemployment, by contrast, is the \emph{short-run} component, the part that comes and goes with booms and recessions. The natural rate isolates the long-run part.
+
+\defn{Natural Rate of Unemployment}{
+The \emph{natural rate of unemployment} is the sum of frictional and structural unemployment:
+\[
+u^{*} = u_{\text{frictional}} + u_{\text{structural}}.
+\]
+It is the unemployment rate that prevails when cyclical unemployment is zero. Because it is driven by long-run, structural factors, the natural rate cannot be moved by short-run macroeconomic policy.
+}
+
+The natural rate is what is left when the business cycle is switched off. A useful way to see this: when \emph{actual} GDP equals \emph{potential} GDP, exogenous demand shocks are essentially zero, cyclical unemployment is zero, and the observed unemployment rate is exactly the natural rate --- the sum of frictional and structural unemployment. Since the natural rate is set by long-run forces, short-run stabilization policy cannot lower it; the proper target of short-run policy is the \emph{cyclical} component alone.
+
+This sharpens what economists mean by ``full employment,'' a term that is easy to misread.
+
+\state{Full employment means zero \emph{cyclical} unemployment, not zero unemployment}{
+\emph{Full employment} is the state in which cyclical unemployment is zero and the measured unemployment rate equals the natural rate $u^{*}$. It does \emph{not} mean that the unemployment rate is zero. Even at full employment there is frictional unemployment (people are still between jobs) and structural unemployment (wages still sit above market-clearing in parts of the market). An economy with zero measured unemployment would not be healthy; it would be one with no room for workers to move between jobs at all.
+}
+
+The output counterpart of full employment is \emph{potential GDP}.
+
+\defn{Potential Output and the Potential Growth Rate}{
+\emph{Potential GDP} is the level of output the economy produces at full employment --- that is, when actual output has been stripped of short-run shocks and unemployment sits at its natural rate. The \emph{potential growth rate} is the economy's long-run growth rate once short-run fluctuations are removed, driven by capital accumulation and technological progress.
+}
+
+\rmkb[Potential output is a belief as much as a measurement]{
+Potential output and the potential growth rate are theoretical constructs: we never observe the economy with its shocks cleanly removed. In practice, an estimate of potential growth is closer to a \emph{belief}, usually formed by summarizing past experience and projecting it forward. When a government announces, say, a target to double the size of the economy by a given year --- which works out to roughly five percent average annual growth --- it is asserting a view about potential growth, not reporting a measured fact. The natural rate of unemployment has the same status: it is real and consequential, but it is inferred, not read off a dial.
+}
+
+To summarize the timing, frictional and structural unemployment are the long-run components, fixed by the structure of the labor market and untouchable by short-run policy; cyclical unemployment is the short-run component, the only part that demand-management policy can hope to move. Full employment is the point where that short-run component has been driven to zero and only the natural rate remains.
+
+\section{Demographics and Participation: Two Asides}
+
+The participation rate raises questions that lead naturally into demography, and two observations from the Chinese experience are worth recording, even though neither fits cleanly into the unemployment accounting above.
+
+\rmkb[Why Chinese female participation is so high]{
+Despite a long cultural tradition of women keeping house, China has among the highest female labor-force participation rates in the world. Two forces push in the same direction. The first is the level of \emph{household income}: where a single earner cannot support a family, both partners must work simply to get by, and participation is not really a choice. The second is \emph{technological change}: as production has shifted away from physical labor toward mental labor, the range of jobs and the productivity at which women can perform them have converged with men's, eroding the old occupational divide. As physical labor matters less and mental labor more, the historical premium on male strength fades.
+}
+
+The same shift toward mental labor reshapes fertility, and here the economics is worth writing down. Consider a household choosing consumption $C$ and the number of children $N$, with utility $U(C, N)$ and the budget constraint
+\[
+C + N P = w\,(1 - t N),
+\]
+where $w$ is the wage, $P$ is the goods cost of raising one child, and $t$ is the time required to raise each child. The term $w\,(1 - t N)$ is the household's earnings net of the time withdrawn from work to raise $N$ children: each child consumes a fraction $t$ of the parent's working time, so each child carries an \emph{opportunity cost} of $w t$ in foregone wages on top of its direct cost $P$.
+
+\rmkb[The quantity--quality tradeoff and the demographic transition]{
+Reading the budget constraint as the wage $w$ rises traces out the demographic transition. In the early stages of industrialization, $w$ grows rapidly while the time cost of children is still modest, so families respond to higher income by having \emph{more} children. As $w$ rises further, the time cost $w t$ of each child --- the wages a parent gives up --- comes to dominate, and children become expensive in the one resource that scales with income: the parent's time. Households then shift toward fewer children, investing more heavily in the \emph{human capital} of each; this is the classic \emph{quantity--quality tradeoff}. The fall in fertility that follows is the demographic transition, and it implies that population aging is not an accident of policy but an essentially unavoidable stage of development for a society built on mental labor.
+}

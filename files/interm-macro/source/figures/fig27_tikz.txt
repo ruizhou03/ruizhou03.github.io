@@ -1,0 +1,161 @@
+\begin{tikzpicture}[scale=1.0,
+    blackstg/.style={line width=1.0pt},
+    redstg/.style={line width=1.1pt,red},
+    bluestg/.style={line width=1.1pt,blue},
+    orangestg/.style={line width=1.2pt,orange}]
+  % =====================================================================
+  % shared horizontal coordinates (common Y axis): Y0 < Y3 < Y2 < Y1
+  % =====================================================================
+  \def\Yzero{1.9}
+  \def\Ythree{3.0}
+  \def\Ytwo{3.7}
+  \def\Yone{5.4}
+  \def\xmax{7.6}
+  % panel vertical offsets (top, middle, bottom baselines)
+  \def\offTop{14.2}
+  \def\offMid{7.1}
+  % axis heights
+  \def\HK{5.7}   % Keynesian-cross axis
+  \def\HR{4.5}   % IS-LM axis
+  \def\HP{4.5}   % AD-AS axis
+
+  % =====================================================================
+  % LONG VERTICAL GUIDES through all three panels
+  %   Y0 black-dotted, Y3 blue-dotted, Y2 red-dashed, Y1 black-dotted
+  % =====================================================================
+  \draw[densely dotted,black]      (\Yzero,0)  -- (\Yzero,\offTop+\HK-0.3);
+  \draw[densely dotted,blue]       (\Ythree,0) -- (\Ythree,\offTop+\HK-0.3);
+  \draw[densely dashed,red]        (\Ytwo,0)   -- (\Ytwo,\offTop+\HK-0.3);
+  \draw[densely dotted,black]      (\Yone,0)   -- (\Yone,\offTop+\HK-0.3);
+
+  % =====================================================================
+  % TOP PANEL: Keynesian cross (vertical axis AE, denoting AD)
+  % =====================================================================
+  \begin{scope}[yshift=\offTop cm]
+    \draw[-Latex] (0,0) -- (\xmax,0);
+    \draw[-Latex] (0,-0.0) -- (0,\HK) node[above left] {$\mathrm{AD}$};
+    % steep 45-degree line (rises from origin to above the top)
+    \draw[blackstg] (0.55,0) -- (4.0,\HK-0.2);
+    % family of parallel gentle up-sloping AE/AD lines, bottom->top:
+    %   black (lowest), blue, red, black (topmost)
+    \def\sk{0.42}                      % gentle slope (MPC look)
+    \def\bA{0.55}\def\bB{1.35}\def\bC{1.75}\def\bD{2.55} % left intercepts
+    % black (lowest)
+    \draw[blackstg] (0.0,\bA) -- (5.4,{\bA+\sk*5.4});
+    % blue
+    \draw[bluestg]  (0.0,\bB) -- (6.6,{\bB+\sk*6.6});
+    % red
+    \draw[redstg]   (0.0,\bC) -- (7.0,{\bC+\sk*7.0});
+    % black (topmost)
+    \draw[blackstg] (0.45,{\bD+\sk*0.45}) -- (6.6,{\bD+\sk*6.6});
+    % --- left black curved up-arrow (upward shift), between blue and top black
+    \draw[blackstg,densely dotted,-Latex]
+        (0.95,{\bB+\sk*0.95-0.05}) to[bend right=18] (0.95,{\bD+\sk*0.95+0.05});
+    % --- top-right return curls (bulge right, arrowheads land back-left on lower line tips)
+    % red dotted curl: top-black right tip -> red line tip (arrow points down-left)
+    \draw[redstg,densely dotted,-Latex]
+        (6.55,{\bD+\sk*6.55}) to[out=-20,in=20] (7.0,{\bC+\sk*7.0+0.22});
+    % blue dotted curl: red tip -> blue line tip (arrow points up-left)
+    \draw[bluestg,densely dotted,-Latex]
+        (7.0,{\bC+\sk*7.0-0.05}) to[out=-25,in=-20] (6.6,{\bB+\sk*6.6+0.25});
+    % output ticks
+    \node[below] at (\Yzero,0)  {$Y_{0}$};
+    \node[below] at (\Ythree,0) {$Y_{3}$};
+    \node[below] at (\Ytwo,0)   {$Y_{2}$};
+    \node[below] at (\Yone,0)   {$Y_{1}$};
+  \end{scope}
+
+  % =====================================================================
+  % MIDDLE PANEL: IS-LM (vertical axis r)
+  % =====================================================================
+  \begin{scope}[yshift=\offMid cm]
+    \draw[-Latex] (0,0) -- (\xmax,0);
+    \draw[-Latex] (0,0) -- (0,\HR) node[above left] {$r$};
+    \def\rzero{1.85}
+    \def\sL{0.52}    % LM slope (up)
+    \def\sI{0.60}    % IS slope magnitude (down)
+    % black LM through E0=(Y0,r0)
+    \draw[blackstg] (0.6,{\rzero+\sL*(0.6-\Yzero)})
+                 -- (6.6,{\rzero+\sL*(6.6-\Yzero)}) node[right] {$\mathrm{LM}$};
+    % blue LM shifted up-left (parallel), higher
+    \draw[bluestg]  (0.5,{\rzero+0.75+\sL*(0.5-\Yzero)})
+                 -- (5.0,{\rzero+0.75+\sL*(5.0-\Yzero)});
+    % black IS through E0=(Y0,r0)
+    \draw[blackstg] (0.9,{\rzero-\sI*(0.9-\Yzero)})
+                 -- (5.6,{\rzero-\sI*(5.6-\Yzero)});
+    % black IS shifted right (parallel), through ~(Y2+..)
+    \draw[blackstg] (2.4,{\rzero-\sI*(2.4-\Ytwo)})
+                 -- (7.0,{\rzero-\sI*(7.0-\Ytwo)}) node[below right] {$\mathrm{IS}$};
+    % dotted pointer toward IS label
+    \draw[densely dotted,-Latex] (6.0,1.4) -- (6.55,1.0);
+    % --- red arrows pointing up-right along the LM (3 small)
+    \draw[redstg,-Latex] (2.6,{\rzero+\sL*(2.6-\Yzero)-0.12})
+                      -- (3.05,{\rzero+\sL*(3.05-\Yzero)-0.12});
+    \draw[redstg,-Latex] (3.35,{\rzero+\sL*(3.35-\Yzero)-0.12})
+                      -- (3.8,{\rzero+\sL*(3.8-\Yzero)-0.12});
+    \draw[redstg,-Latex] (4.15,{\rzero+\sL*(4.15-\Yzero)-0.12})
+                      -- (4.6,{\rzero+\sL*(4.6-\Yzero)-0.12});
+    % --- blue dotted short arrow pointing up-left (toward blue LM)
+    \draw[bluestg,densely dotted,-Latex] (5.3,2.75) -- (4.8,3.25);
+    % r0 tick + dotted guide to E0
+    \draw[densely dotted] (0,\rzero) -- (\Yzero,\rzero);
+    \node[left] at (0,\rzero) {$r_{0}$};
+    % output ticks
+    \node[below] at (\Yzero,0)  {$Y_{0}$};
+    \node[below] at (\Ythree,0) {$Y_{3}$};
+    \node[below] at (\Ytwo,0)   {$Y_{2}$};
+    \node[below] at (\Yone,0)   {$Y_{1}$};
+  \end{scope}
+
+  % =====================================================================
+  % BOTTOM PANEL: AD-AS (vertical axis P)
+  % =====================================================================
+  \begin{scope}[yshift=0cm]
+    \draw[-Latex] (0,0) -- (\xmax,0);
+    \draw[-Latex] (0,0) -- (0,\HP) node[above left] {$P$};
+    \def\Pzero{1.85}
+    \def\sAS{0.62}   % AS slope (up)
+    \def\sAD{0.55}   % AD slope magnitude (down)
+    % LRAS vertical at Y0 (orange) with orange label upper-left of line
+    \draw[orangestg] (\Yzero,0.12) -- (\Yzero,\HP-0.2);
+    \node[orange,above right] at (\Yzero,\HP-0.95) {$\mathrm{LRAS}$};
+    % AS up-sloping through E0=(Y0,P0)
+    \draw[blackstg] (0.7,{\Pzero+\sAS*(0.7-\Yzero)})
+                 -- (5.4,{\Pzero+\sAS*(5.4-\Yzero)}) node[above right] {$\mathrm{AS}$};
+    % AD0 (black) through E0=(Y0,P0)
+    \draw[blackstg] (0.3,{\Pzero-\sAD*(0.3-\Yzero)})
+                 -- (5.0,{\Pzero-\sAD*(5.0-\Yzero)});
+    % AD label below the AD0 line's lower end
+    \node[below right] at (4.6,{\Pzero-\sAD*(4.6-\Yzero)}) {$\mathrm{AD}$};
+    % AD1 (red, shifted right) -- long line with red arrow down-right along it
+    \draw[redstg] (1.7,{\Pzero-\sAD*(1.7-\Ytwo)})
+               -- (6.4,{\Pzero-\sAD*(6.4-\Ytwo)});
+    \draw[redstg,-Latex] (2.5,{\Pzero-\sAD*(2.5-\Ytwo)})
+               -- (6.15,{\Pzero-\sAD*(6.15-\Ytwo)});
+    % AD2 (black) rightmost, parallel further right
+    \draw[blackstg] (2.7,{\Pzero-\sAD*(2.7-\Ytwo)+0.85})
+                 -- (7.1,{\Pzero-\sAD*(7.1-\Ytwo)+0.85});
+    % --- blue short arrows converging on the new equilibrium (AS at Y3)
+    % equilibrium point Eb = (Y3, P0+sAS*(Y3-Y0))
+    \pgfmathsetmacro{\Pthree}{\Pzero+\sAS*(\Ythree-\Yzero)}
+    % left arrow: up-right toward Eb
+    \draw[bluestg,-Latex] (2.45,{\Pthree-\sAS*(\Ythree-2.45)-0.18})
+                       -- (\Ythree-0.25,{\Pthree-\sAS*0.25-0.06});
+    % right arrow: up-left toward Eb (coming back along the red AD1)
+    \draw[bluestg,-Latex] (3.95,{\Pzero-\sAD*(3.95-\Ytwo)-0.06})
+                       -- (\Ythree+0.28,\Pthree-0.06);
+    % --- bottom-right black dotted return arrow (up toward AD2 lower-right end)
+    \draw[densely dotted,-Latex] (4.7,0.18) to[bend left=22] (6.5,{\Pzero-\sAD*(6.5-\Ytwo)+0.85-0.05});
+    % small red dotted curl near red arrowhead
+    \draw[redstg,densely dotted] (6.0,{\Pzero-\sAD*(6.0-\Ytwo)+0.18})
+        to[bend left=40] (6.45,{\Pzero-\sAD*(6.45-\Ytwo)+0.5});
+    % P0 tick + dotted guide to E0
+    \draw[densely dotted] (0,\Pzero) -- (\Yzero,\Pzero);
+    \node[left] at (0,\Pzero) {$P_{0}$};
+    % output ticks
+    \node[below] at (\Yzero,0)  {$Y_{0}$};
+    \node[below] at (\Ythree,0) {$Y_{3}$};
+    \node[below] at (\Ytwo,0)   {$Y_{2}$};
+    \node[below] at (\Yone,0)   {$Y_{1}$};
+  \end{scope}
+\end{tikzpicture}

@@ -1,0 +1,83 @@
+% !TEX root = ../main.tex
+\chapter{The Phillips Curve, Expectations, and the Conduct of Policy}
+\label{ch:phillips}
+
+The aggregate-supply curve says output rises above potential only when prices surprise on the upside. Translated into the language of inflation and unemployment, that same surprise becomes the Phillips curve --- the short-run menu between inflation and unemployment that policy appears to exploit. Whether it can be exploited turns entirely on expectations, and that question --- how the public forms its expectations, and whether policy can shape them --- organizes the modern debate over how monetary and fiscal policy should be run: actively or passively, by rule or by discretion. This final chapter follows that thread from the Phillips curve to the Taylor rule.
+
+\section{The Phillips Curve}
+
+Empirically, inflation and unemployment move in opposite directions over the cycle. The modern, expectations-augmented Phillips curve states this as
+\[
+\pi - \pi^{e} = -\beta\,(u - u^{n}) + v, \qquad \beta>0,
+\]
+where $u-u^{n}$ is cyclical unemployment (the deviation of unemployment from its natural rate), $v$ is a supply shock, and $\pi^{e}$ is expected inflation. Inflation runs above expectations when unemployment is below its natural rate.
+
+\defn{The Phillips Curve}{
+The \emph{expectations-augmented Phillips curve} relates surprise inflation to cyclical unemployment, $\pi-\pi^{e} = -\beta(u-u^{n}) + v$. The trade-off is between inflation and \emph{cyclical} unemployment, and it is stated relative to expected inflation.}
+
+\subsection{Derivation}
+
+The Phillips curve is the supply curve in disguise. Start from short-run aggregate supply, $Y=\overline{Y}+\alpha(P-P^{e})$, and solve for the price level,
+\[
+P = P^{e} + \frac{1}{\alpha}\,(Y-\overline{Y}).
+\]
+Because the relationship was read off the data, append the supply shock $v$ as the residual term and difference against last period's price level $P_{-1}$,
+\[
+P - P_{-1} = (P^{e}-P_{-1}) + \frac{1}{\alpha}\,(Y-\overline{Y}) + v,
+\]
+which, written in inflation rates, is $\pi - \pi^{e} = \dfrac{1}{k\alpha}\,(Y-\overline{Y}) + v$ for a constant of proportionality $k$. Finally invoke \emph{Okun's law}, the empirical regularity that output and unemployment move together --- roughly, each extra percentage point of unemployment corresponds to about two percentage points of lost GDP. Okun's law lets us replace the output gap with cyclical unemployment,
+\[
+\frac{1}{k\alpha}\,(Y-\overline{Y}) = -\beta\,(u-u^{n}),
+\]
+and substituting gives the Phillips curve. The relationship is correlational, not causal, but it quantifies a link that policy has repeatedly tried to use.
+
+\section{Expectations}
+
+Everything hinges on $\pi^{e}$. In a world of imperfect information or sticky prices, agents act on what they expect, and the entire position of the Phillips curve moves with that expectation. Two theories of expectation formation give very different policy conclusions.
+
+\subsection{Adaptive Expectations}
+
+\emph{Adaptive} expectations are formed by extrapolating the past. The simplest version sets $\pi^{e}=\pi_{-1}$, which turns the Phillips curve into a law of motion for inflation,
+\[
+\pi = \pi_{-1} - \beta\,(u-u^{n}) + v.
+\]
+Inflation has inertia: absent shocks, past inflation feeds into present and future inflation. This is essentially what a regression on historical data delivers, and therein lies its weakness --- it presumes the past relationships will continue to hold.
+
+\rmkb[The Lucas Critique]{Forecasting policy effects from historically estimated relationships is unreliable precisely because policy changes expectations. In Lucas's words: ``Forecasting the effects of policy changes has often been done using models estimated with historical data. Such predictions would not be valid if the policy change alters expectations in a way that changes the fundamental relationships between variables.'' When a regime changes, the historical correlations exhibit a \emph{structural break}, and adaptive forecasts fail.}
+
+\subsection{Rational Expectations}
+
+\emph{Rational} expectations use the model and all available information, not just the past --- expectations are, in effect, a forecast of one's own decisions and everyone else's. Analysis then cannot rest on regression alone; it requires a general-equilibrium model that, while it may not pin down individual causes, embeds every mechanism and produces a coherent shock--response. Under rational expectations a \emph{painless disinflation} is possible in principle: if the central bank can directly shift expectations with a credible signal, the supply curve shifts and inflation falls without a recession --- the sacrifice ratio need not bind. In the United States, rational expectations amounts to ``trust the Fed.'' Where the central bank's signals are too opaque to support quantitative expectations --- the policy logic hard to read --- rational expectations degenerate into rumor, and markets gyrate accordingly.
+
+\section{The Natural-Rate Hypothesis and Hysteresis}
+
+Underlying all of this is the \emph{natural-rate hypothesis}: there exists a potential level of output (and a natural rate of unemployment) at which the economy is in equilibrium, reached in the long run and always eventually returned to, with the short run a deviation from it. It is one of the organizing assumptions of macroeconomics.
+
+The competing view is \emph{hysteresis}: temporary shocks can move the long-run level itself, so potential output exists but is not a fixed number --- it depends on the economy's history. The pandemic is a natural example. A long spell of unemployment erodes workers' skills, so that when demand recovers they cannot find matching work and lose bargaining power; a prolonged downturn shifts consumption habits toward precautionary saving; supply chains relocate, capital depreciates, investment turns cautious. Each channel lets a transitory shock leave a permanent mark.
+
+\section{The Conduct of Policy}
+
+\subsection{Active versus Passive}
+
+An \emph{active} stance holds that in a slump the government has a duty to act --- to ease suffering and stimulate the economy. Two problems complicate activism.
+
+First, policy operates with \emph{lags}. The \emph{inside lag} is the time to recognize the need and enact a response --- confirming that the economy is contracting takes several indicators, and execution (especially of fiscal policy) requires coordination. The \emph{outside lag} is the time for the policy to affect the economy, which may overshoot. Second, the economy contains \emph{automatic stabilizers} --- institutions that smooth the cycle without deliberate action and without lags. A progressive income tax restrains the multiplier in a boom by taking a rising share of extra income; unemployment insurance supports income, and hence consumption, in a downturn; under a floating exchange rate, a strong export boom appreciates the currency and tempers demand.
+
+To use active policy well, a government must identify the phase of the cycle early --- watching leading indicators (composite indices, investment, PMI, real-estate financing) that turn before the cycle does, and, when the environment changes enough that historical relationships break, using a structural model rather than extrapolation. It must also \emph{lead} the public's expectations: if a rational public already anticipates a policy, the policy's effect is blunted. Suppose past data show that money growth lowers unemployment, so the public expects it; if the central bank then expands the money supply, expected inflation rises in step and unemployment does not fall --- the anticipated policy is neutral, and a different or surprising policy is needed.
+
+\subsection{Rules versus Discretion}
+
+The deeper choice is whether policy should follow a published \emph{rule} or be set at \emph{discretion}.
+
+\defn{Rules and Discretion}{
+A policy conducted \emph{by rule} is set and adjusted according to an explicit, public formula, so it can be anticipated. A policy conducted \emph{by discretion} responds case by case to circumstances and cannot be anticipated.}
+
+The canonical rule is the \emph{Taylor rule} for the federal funds rate, which sets the target rate from inflation and the output gap,
+\[
+r_{\mathrm{ff}} = 2 + 0.5\,(\pi - 2) - 0.5\cdot \mathrm{GDP\ gap}, \qquad
+\mathrm{GDP\ gap} = 100\cdot\frac{\overline{Y}-Y}{\overline{Y}},
+\]
+where $2\%$ is taken as the natural rate of inflation. Note the sign convention: the gap is defined as the \emph{shortfall} of output below potential, so subtracting it means that when output runs \emph{above} potential (a boom, $Y>\overline{Y}$, gap negative) the rule \emph{raises} the rate, and when output runs below potential it lowers the rate --- exactly the stabilizing response, equivalent to adding the conventional output gap $(Y-\overline{Y})/\overline{Y}$. This is a transparent, credible rule: the rate is set by formula, with independence and predictability, without second-guessing the source of an inflation. China, by contrast, aims to ``match'' $M_2$ growth to nominal GDP growth --- a target that sits awkwardly with the countercyclical role that the quantity theory assigns to money, and whose ``matching,'' and the forecast of nominal GDP it rests on, is itself discretionary.
+
+\state{The case for rules}{
+Several arguments favor rules over discretion. Policymakers may lack the requisite expertise; their judgments may rest on vague or shifting principles, possibly out of step with the public's; and they may be time-inconsistent, undermining the \emph{credibility} on which expectations --- and hence the policy's own effectiveness --- depend. Where the competence and consistency of discretionary policymakers are in doubt, a well-designed rule can do better.}

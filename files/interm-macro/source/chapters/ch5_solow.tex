@@ -1,0 +1,382 @@
+% !TEX root = ../main.tex
+\chapter{The Solow Growth Model}
+\label{ch:solow}
+
+Why is the average American roughly fifty times richer than the average person two centuries ago, and why are some countries today twenty times richer than others? Questions about the \emph{long run} --- about the slow drift of living standards over decades and generations --- are the province of growth theory, and they matter enormously: it is sustained growth in output per person that lifts consumption, raises life expectancy, and, by enlarging the total economic pie, makes redistribution and social stability possible even where inequality is high. Business cycles, the short-run fluctuations we study later, are best understood as deviations around this rising trend; in a useful slogan, the cycle is growth plus shocks. To make sense of the cycle we first need a theory of the trend.
+
+This chapter develops the first and simplest such theory, the \emph{Solow growth model}. Before introducing it, we pause to set up the general framework that all of macroeconomics's dynamic models share: a timeline, a state variable that summarizes where the economy is, control variables that the economy chooses, and a law of motion that carries the state forward in time. The Solow model is the leanest possible instance of this framework. Its defining shortcut --- and the single assumption that separates it from the neoclassical model of Chapter~\ref{ch:neoclassical} --- is that the saving rate is fixed exogenously rather than chosen by optimizing households. We will build the baseline model, find its steady state, ask which steady state is best (the golden rule), trace how the economy adjusts when policy changes the saving rate, and then extend the model to accommodate population growth and technical progress. The model will not explain everything, but it will explain a great deal, and it organizes the questions that the rest of growth theory tries to answer.
+
+\section{The Dynamic Framework of Macroeconomics}
+
+Microeconomics is largely static: a consumer chooses a bundle, a firm chooses a quantity, and we compare equilibria. Macroeconomic growth is irreducibly \emph{dynamic}. The central object is not a single choice but a sequence of choices linked through time, and the device that links them is the accumulation of \emph{capital}. Every dynamic macro model therefore begins by laying down a timeline.
+
+\state{Always set up a timeline}{
+To analyze any macroeconomic growth problem, write down a timeline indexed by periods $t = 1, 2, \dots$. In each period the economy inherits a stock of capital, makes choices that produce output and determine how much capital it carries into the next period, and the cycle repeats.
+}
+
+The capital stock plays a special role. At the start of period $t$ the stock $K_t$ is fixed --- it is whatever past investment has bequeathed --- so from the vantage point of period $t$ it is \emph{given}, a number the economy cannot change today. A variable of this kind is called a \emph{state variable}: it summarizes everything the economy needs to know about its past in order to decide what to do now. Against the given state, the economy chooses how to split current output between consumption and saving. These choices are the \emph{control variables}: consumption $C_t$ and saving $S_t$ are free to be set, and once they are set, next period's capital stock is determined. The rule that determines next period's stock is the \emph{law of motion of capital}, which tracks how the stock accumulates over time.
+
+\defn{State and Control Variables}{
+In a dynamic model, a \emph{state variable} is a quantity that is predetermined at the start of a period and summarizes the relevant history of the economy --- here the capital stock $K_t$. A \emph{control variable} is a quantity the economy chooses freely within the period --- here consumption $C_t$ and saving $S_t$. The state constrains the controls; the controls determine the next state.
+}
+
+To make these ideas concrete, consider a two-period example stripped of households and firms, displaying only the accounting identities that govern any economy. Output is produced from capital, $Y_i = F(K_i)$; in the first period output is split between consumption and saving, $C_1 + S_1 = Y_1$; the saving is invested, $I_1 = S_1$; capital depreciates at rate $\delta$ and is augmented by investment, so $K_2 = (1-\delta)K_1 + I_1$; and in the second period the household consumes its output plus the gross return on its saving, $C_2 = Y_2 + (1+r)S_1$. Collecting these,
+\[
+\ba
+C_1 + S_1 &= Y_1, \\
+C_2 &= Y_2 + (1+r) S_1, \\
+K_2 &= (1-\delta)K_1 + I_1, \qquad I_1 = S_1, \\
+Y_i &= F(K_i).
+\ea
+\]
+These are the laws by which the economy mechanically operates; they involve no optimization. This is precisely the level at which the Solow model works --- it imposes a fixed rule for how output is split and then lets the accounting carry the economy forward. The neoclassical model of Chapter~\ref{ch:neoclassical} will instead add microfoundations, deriving the consumption--saving split from a household that maximizes lifetime utility and from firms and markets that clear in general equilibrium. Concretely, the optimizing household solves
+\[
+\max \ \sum_{t=1}^{\infty} \beta^{t-1} U(C_t),
+\]
+subject to the same laws of motion. But whether or not we add optimization, the structure is the same: in each period $K_t$ is the state, and $C_t$ and $S_t$ are the controls.
+
+This structure has a deep consequence. Standing at period $t$ with the state $K_t$ in hand, each choice of $C_t$ pins down $S_t$, which pins down $K_{t+1}$. The map from today's state to tomorrow's state can therefore be written as a single function,
+\[
+K_{t+1} = g(K_t),
+\]
+called the \emph{policy function}. Following the policy function period after period traces out the entire optimal path of the economy. Two features of this map are worth naming. First, next period's state depends only on this period's state, not on the whole history of how the economy arrived there; the problem has the \emph{Markov} property. Second, the decision problem faced at every date has exactly the same structure --- only the inherited value of the state differs --- so the problem is \emph{recursive}. The infinite-horizon sequence of choices, daunting at first sight, collapses into one problem solved over and over with a different starting point. This recursivity is what makes dynamic macro tractable, and it underlies every growth model in this book.
+
+\section{The Solow Model: Assumptions}
+
+We now specialize the framework to Solow's economy. The model makes six maintained assumptions, which we gather in one place.
+
+\asm{The Solow Model}{
+\begin{enumerate}
+    \item \textbf{Aggregate production function.} Output is produced from capital and labor, $Y = F(K, L)$. The labor force $L$ is held fixed; the only quantity that moves is capital $K$.
+    \item \textbf{Constant returns to scale (CRS).} $F$ is homogeneous of degree one: scaling both inputs by any factor $\lambda$ scales output by $\lambda$.
+    \item \textbf{Diminishing marginal products and the Inada conditions.} Each input is productive but with diminishing returns,
+    \[
+    F_K > 0, \quad F_L > 0, \qquad F_{KK} < 0, \quad F_{LL} < 0,
+    \]
+    and the marginal product becomes unbounded as an input vanishes,
+    \[
+    \lim_{K \to 0} F_K(K, L) = \infty, \qquad \lim_{L \to 0} F_L(K, L) = \infty.
+    \]
+    \item \textbf{Closed economy with no government.} Net exports and government spending are zero, $\mathrm{NX} = G = 0$.
+    \item \textbf{Constant, exogenous saving rate.} A fixed fraction $s \in (0,1)$ of output is saved, $I = sY$, with $s$ given from outside the model.
+    \item \textbf{Capital accumulation.} Capital depreciates at rate $\delta$ and is augmented by investment,
+    \[
+    K' = (1-\delta) K + I,
+    \]
+    where a prime denotes the next period.
+\end{enumerate}
+}
+
+Two of these assumptions deserve comment before we use them.
+
+Constant returns to scale (Assumption 2) is what lets us pass freely between the aggregate economy and a representative ``per-worker'' description. Under CRS a firm can be split or merged without changing its productivity, so we may equally regard society as one giant firm hiring $L$ workers and $K$ machines, or as a single representative worker operating $k := K/L$ units of capital. Setting $\lambda = 1/L$ in the homogeneity property,
+\[
+\frac{Y}{L} = F\!\pr{\frac{K}{L}, 1} =: f(k),
+\]
+which defines the \emph{intensive} (per-worker) production function $y = f(k)$. The Inada conditions (Assumption 3) guarantee an interior solution: because the marginal product of capital is huge when capital is scarce and tiny when capital is abundant, the economy is always pulled away from the corners $k = 0$ and $k = \infty$ toward a sensible interior steady state.
+
+The closed-economy assumption (Assumption 4) lets us identify saving with investment. With $\mathrm{NX} = G = 0$ the output identity reads $Y = C + I$, while income is split into consumption and saving, $Y = C + S$; subtracting gives the fundamental closed-economy condition
+\[
+S = I.
+\]
+In per-worker terms, $y = c + i$, with $i = sy$ and $c = (1-s)y$.
+
+\state{What makes Solow ``Solow''}{
+The model's simplicity --- and the one assumption that sets it apart from the neoclassical model --- is that the \emph{saving rate $s$ is exogenous and constant}. Households do not choose how much to save by trading off present against future utility; a fixed share of income is mechanically saved. The neoclassical model of Chapter~\ref{ch:neoclassical} replaces this with an optimal, utility-maximizing consumption--saving choice. In this precise sense Solow describes a planned economy with a hard-wired saving rule.
+}
+
+\section{The Baseline Model: No Population Growth}
+
+We start with the simplest case, in which the labor force is constant. Because $L$ does not change, the per-worker law of motion has the same form as the aggregate one. Dividing $K' = (1-\delta)K + I$ by the constant $L$,
+\[
+k' = (1-\delta) k + i.
+\]
+The change in the per-worker capital stock from one period to the next is therefore
+\begin{equation}
+\Delta k = k' - k = i - \delta k = s\, y - \delta k = s\, f(k) - \delta k.
+\label{eq:solow-lom}
+\end{equation}
+Equation~\eqref{eq:solow-lom} is the heart of the Solow model. It is the law of motion of capital per worker, and reading it is reading the whole model. Capital per worker rises when gross investment per worker $s f(k)$ exceeds the capital lost to depreciation $\delta k$, and falls when it falls short. The dynamics are entirely intertemporal: today's split between consumption and investment determines tomorrow's capital stock, which determines tomorrow's output, and so on. This is the contrast with the static comparisons of microeconomics --- in macro growth, the action is in the law of motion.
+
+\subsection{The Steady State}
+
+The economy settles down when capital per worker stops changing. Setting $\Delta k = 0$ in \eqref{eq:solow-lom} gives the \emph{steady-state} condition
+\begin{equation}
+s\, f(k^*) = \delta k^*.
+\label{eq:solow-ss}
+\end{equation}
+
+\defn{Steady State}{
+A \emph{steady state} of the Solow economy is a level of capital per worker $k^*$ at which gross investment exactly replaces depreciated capital, $s f(k^*) = \delta k^*$, so that $\Delta k = 0$. At the steady state every per-worker variable --- $k^*$, $y^* = f(k^*)$, $c^* = (1-s) f(k^*)$, $i^* = s f(k^*)$ --- is constant over time.
+}
+
+The steady state is easiest to see graphically. Figure~\ref{fig:macro-2} plots three curves against capital per worker $k$: the production function $f(k)$, rising but concave by diminishing returns; the investment curve $s f(k)$, the same shape scaled down by $s$; and the depreciation line $\delta k$, a ray through the origin. Because $s f(k)$ starts above $\delta k$ near the origin (the Inada condition makes investment's slope infinite there) and is eventually overtaken by the straight line (diminishing returns flatten $f$), the two cross exactly once at $k^*$.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig2}
+\caption{The baseline Solow diagram. The economy converges to the steady state $k^*$ where the investment curve $s f(k)$ crosses the depreciation line $\delta k$; to the left of $k^*$ investment exceeds depreciation and $k$ rises, to the right it falls.}
+\label{fig:macro-2}
+\end{figure}
+
+The steady state is \emph{stable}: whenever the economy is displaced from $k^*$, it returns. To the left of $k^*$, investment $s f(k)$ lies above depreciation $\delta k$, so $\Delta k > 0$ and capital grows toward $k^*$; to the right, depreciation dominates, $\Delta k < 0$, and capital shrinks back toward $k^*$. The economics behind this convergence is the same diminishing returns that bent the production function: when capital is scarce, each additional machine is very productive and easily pays for its own depreciation, so the stock builds up; as capital accumulates, the marginal product falls until a new machine's output just covers the depreciation of the whole stock, at which point growth stops.
+
+\state{Growth from capital alone must stop}{
+In the baseline Solow model, accumulation of capital per worker eventually ceases. Because the marginal product of capital diminishes while depreciation grows linearly, there is a finite $k^*$ at which the two balance, and the economy stalls there. Sustained capital deepening cannot, by itself, sustain growth.
+}
+
+This conclusion carries a famous corollary about convergence. Two economies with the same technology, saving rate, and depreciation rate share the same $k^*$ and so converge to the same level of output per worker, regardless of where they started. A poor latecomer that begins with little capital grows fast at first --- its scarce capital earns a high return --- but slows as it approaches the common steady state. Early development is largely a story of capital accumulation, but precisely because that engine runs out, any \emph{lasting} differences in income across countries must come from somewhere other than capital. The baseline model is thus too simple to explain the persistent gaps we observe in the world; identifying what it is missing will drive the extensions below.
+
+\section{The Golden Rule}
+
+A higher saving rate produces a higher steady-state capital stock $k^*$ --- but is a richer steady state a happier one? Welfare in this economy is measured by consumption, not capital, and there the answer is not obvious. Steady-state consumption per worker is
+\[
+c^* = (1-s) f(k^*) = f(k^*) - \delta k^*,
+\]
+where the second equality uses the steady-state condition $s f(k^*) = \delta k^*$ to substitute investment for saving. Written this way, $c^*$ is the vertical gap between the production function $f(k^*)$ and the depreciation line $\delta k^*$: of everything produced, what is not eaten by depreciation can be consumed.
+
+Raising $s$ has two opposing effects on this gap. On one hand it pushes the economy to a larger $k^*$, where the economy produces more, $f(k^*)$ is higher, and there is more to go around. On the other hand, sustaining a larger capital stock requires devoting more output to merely replacing depreciation, $\delta k^*$, which eats into consumption. Somewhere between the extremes --- between saving nothing ($k^* = 0$, no output) and saving everything ($c^* = 0$, all output reinvested) --- consumption is maximized. That best steady state is the \emph{golden rule}.
+
+\thm{Golden-Rule Condition}{
+Among all steady states, consumption per worker is maximized at the capital stock $k_g^*$ satisfying
+\[
+f'(k_g^*) = \delta.
+\]
+The golden rule is the saving rate that delivers this steady state; combining the optimality condition with the steady-state condition $s f(k_g^*) = \delta k_g^*$,
+\[
+s_g = \frac{\delta k_g^*}{f(k_g^*)}.
+\]
+}
+
+\pf{
+Steady-state consumption $c^*(k^*) = f(k^*) - \delta k^*$ is a function of the steady-state capital stock that the saving rate selects. Maximizing over $k^*$,
+\[
+\frac{\d c^*}{\d k^*} = f'(k^*) - \delta = 0
+\quad\Longrightarrow\quad
+f'(k^*) = \delta.
+\]
+Geometrically this is a tangency: consumption is the gap between $f(k^*)$ and $\delta k^*$, and the gap is widest where the slope of the production function equals the slope $\delta$ of the depreciation line. Concavity of $f$ ensures this is a maximum. The expression for $s_g$ then follows by reading the steady-state condition $s f(k_g^*) = \delta k_g^*$ at $k_g^*$.
+}
+
+Figure~\ref{fig:macro-3} makes the geometry explicit. Steady-state consumption is the vertical distance between $f(k^*)$ and $\delta k^*$, and this distance is largest at the point $k_g^*$ where the production function runs parallel to the depreciation line --- that is, where $f'(k_g^*) = \delta$, the marginal product of capital equals the depreciation rate.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig3}
+\caption{The golden rule. Steady-state consumption is the gap between output $f(k^*)$ and depreciation $\delta k^*$; it is maximized at $k_g^*$, where the marginal product of capital equals the depreciation rate, $f'(k_g^*) = \delta$.}
+\label{fig:macro-3}
+\end{figure}
+
+\begin{remark}[``Effective'' depreciation]
+The $\delta$ in the golden-rule condition $f'(k_g^*) = \delta$ should be read as the \emph{effective} rate at which capital per worker is worn down. In the baseline model this is just physical depreciation $\delta$. Once we add population growth it becomes $\delta + n$, and once we add labor-augmenting technical progress it becomes $\delta + n + g$. The same condition --- marginal product of capital equals effective depreciation --- holds throughout; only what we plug in for ``effective depreciation'' changes.
+\end{remark}
+
+\subsection{The Golden Rule under Cobb--Douglas}
+
+The golden-rule saving rate takes a strikingly clean form when production is Cobb--Douglas. Let
+\[
+Y = A K^{\theta} L^{1-\theta}, \qquad 0 < \theta < 1,
+\]
+so the intensive production function is $y = f(k) = A k^{\theta}$.
+
+\ex[Golden-rule saving rate under Cobb--Douglas]{
+Show that with $Y = A K^{\theta} L^{1-\theta}$ the golden-rule saving rate is $s_g = \theta$.
+}
+\sol{
+The intensive function is $f(k) = A k^{\theta}$, with marginal product $f'(k) = \theta A k^{\theta - 1}$. The golden-rule condition $f'(k_g^*) = \delta$ gives
+\[
+\theta A (k_g^*)^{\theta-1} = \delta
+\quad\Longrightarrow\quad
+\delta = \theta\,\frac{A (k_g^*)^{\theta}}{k_g^*} = \theta\,\frac{f(k_g^*)}{k_g^*}.
+\]
+Substituting into the saving-rate formula,
+\[
+s_g = \frac{\delta k_g^*}{f(k_g^*)} = \frac{\theta\, f(k_g^*)/k_g^* \cdot k_g^*}{f(k_g^*)} = \theta.
+\]
+}
+
+The result $s_g = \theta$ is memorable: the golden-rule saving rate equals capital's share of output. In a competitive economy capital is paid its marginal product, so $\theta$ is exactly the fraction of national income that accrues to capital. The rule says, save and reinvest precisely the income that capital earns, no more and no less. Saving more than capital's share over-accumulates --- the extra machines do not pay for their own upkeep --- and saving less leaves the economy short of the consumption-maximizing stock. In this sense the golden rule asks that investment in capital be exactly cost-effective relative to capital's contribution to output.
+
+Two comparative statics round out the picture. A higher depreciation rate $\delta$ lowers golden-rule consumption: the economy must set aside more output simply to maintain its capital, leaving less to enjoy. A more productive technology --- a higher $f(k)$ at every $k$ --- raises golden-rule consumption, since the economy produces more efficiently; whether the accompanying golden-rule saving rate rises or falls, however, is ambiguous and depends on the shape of $f$.
+
+\section{Dynamic Adjustment after a Change in the Saving Rate}
+
+The steady state tells us where the economy ends up; it does not tell us how it gets there. Suppose a benevolent social planner judges the current saving rate to be too high --- the economy has over-accumulated past the golden rule --- and lowers it to $s_g$. How do consumption, investment, output, and capital respond over time? The answer turns entirely on a single distinction: which variables are \emph{flows} and which are \emph{stocks}.
+
+\state{Stocks adjust slowly, flows jump}{
+A \emph{flow} (a process measured per unit time, such as consumption $c$, investment $i$, or output $y$) can change discontinuously the instant a parameter changes. A \emph{stock} (a quantity accumulated over time, such as capital $k$) cannot jump; it can only be built up or run down gradually through the flow of investment. Tracing any macroeconomic adjustment comes down to keeping this distinction straight and knowing how each parameter acts.
+}
+
+At the moment the saving rate falls to $s_g$, capital per worker $k$ is still at its old, higher value --- a stock cannot change instantaneously. With $k$ momentarily fixed, output $y = f(k)$ is also unchanged on impact. But the way that fixed output is divided changes at once: investment $i = s_g y$ \emph{drops} immediately because $s_g$ is smaller, and consumption $c = (1 - s_g) y$ correspondingly \emph{jumps up} immediately. Both are flows, so both move on impact; and because output is momentarily unchanged, the fall in investment is exactly the rise in consumption.
+
+After the jump, the slow adjustment begins. With the lower saving rate, investment now falls short of depreciation, $s_g f(k) < \delta k$, so $\Delta k < 0$ and capital per worker drifts down toward the new, lower steady state. As $k$ falls, output $y = f(k)$ falls with it, following $k$ closely because $y$ is tied to $k$ through the production function. As output falls, both consumption and investment --- now fixed fractions of a shrinking output --- gradually decline as well. Consumption, having leapt up on impact, eases back down toward its new steady-state level, which is nonetheless higher than before (that was the point of moving to the golden rule). Figure~\ref{fig:macro-4} shows the four time paths: the sharp discontinuous jumps in the flows $i$ and $c$ at the date of the policy change, the smooth slide of the stock $k$, and output $y$ tracking $k$.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig4}
+\caption{Time paths of capital $k$, output $y$, consumption $c$, and investment $i$ after the saving rate is cut to $s_g$. The flows $i$ and $c$ jump discontinuously on impact (investment down, consumption up); the stock $k$ then declines slowly, dragging $y$, $c$, and $i$ down toward the new steady state.}
+\label{fig:macro-4}
+\end{figure}
+
+One further feature of the path is worth naming: convergence to the new steady state is slow and decelerating. As $k$ nears its new resting point the gap between investment and depreciation shrinks, so $\Delta k$ shrinks, and the economy creeps toward the steady state ever more gently. Reaching the new equilibrium is the work of many periods, not a single jump.
+
+\section{The Extended Solow Model}
+
+The baseline model holds the labor force fixed and assumes no technical change. Both are plainly counterfactual, and relaxing them is what lets the model speak to sustained growth. The guiding principle is the one stressed in the dynamic framework: a new factor enters only through the \emph{law of motion}; the static relationships are unchanged. Think through the intuition before reaching for the algebra.
+
+\subsection{Population Growth}
+
+Let the labor force grow at a constant rate $n$,
+\[
+\frac{\Delta L}{L} = n.
+\]
+The aggregate law of motion is untouched, $K' = (1-\delta) K + I$. What changes is the translation into per-worker terms, because the worker count itself is now rising. Writing $k = K/L$ and dividing by next period's larger labor force,
+\[
+k'(1 + n) = (1-\delta) k + i.
+\]
+Subtracting $k$ and simplifying,
+\[
+\ba
+\Delta k = k' - k
+&= i - \delta k - n k' \\
+&= i - \delta k - n k + n\!\pr{\frac{K}{L} - \frac{K'}{L'}} \\
+&\approx i - (\delta + n) k,
+\ea
+\]
+where the term $n\,(K/L - K'/L')$ is a product of two small changes and is negligible to first order. We arrive at the central result for population growth,
+\begin{equation}
+\Delta k \approx s f(k) - (\delta + n) k.
+\label{eq:solow-popn}
+\end{equation}
+
+The interpretation is immediate, and it is exactly what the intuition predicted. Compared with the baseline, the effective rate at which capital per worker is depleted rises from $\delta$ to $\delta + n$. Beyond replacing worn-out machines (the $\delta k$ term), the economy must now also \emph{equip the new workers} who join the labor force each period (the $n k$ term), simply to keep capital per worker from falling. In effect, population growth acts like extra depreciation. The steady-state condition becomes $s f(k^*) = (\delta + n) k^*$, and the golden-rule condition becomes $f'(k_g^*) = \delta + n$.
+
+\begin{remark}[Population growth, the Malthusian trap, and the limits of CRS]
+Because the return to capital is governed by diminishing marginal products while population growth keeps diluting the capital each worker has, faster population growth lowers steady-state capital per worker and hence output per worker --- everyone is poorer. Pushed to its extreme this is the logic of the \emph{Malthusian trap} (Chapter~\ref{ch:malthus}), in which any gain in income is dissipated by a larger population. The mechanism rests squarely on the constant-returns assumption. In reality the clustering of people can generate positive externalities --- ideas, specialization, dense markets --- so that society may exhibit \emph{increasing} returns. Moreover, fertility is a deliberate choice, and treating population growth as an endogenous decision rather than an exogenous parameter is the more satisfying modeling stance, one the Solow framework does not take.
+\end{remark}
+
+\subsection{Labor-Augmenting Technical Progress}
+
+To generate sustained growth in living standards we must add technical progress. Solow does so through a deliberately specific device: technology enters the production function as a multiplier on labor,
+\[
+Y = F(K, E \cdot L),
+\]
+where $E$ measures the \emph{efficiency of labor} and grows at a constant rate $g$. The product $E \cdot L$ is the supply of \emph{effective workers}. We ordinarily picture technical progress as a rising total-factor productivity that improves the use of all inputs; modeling it as \emph{labor-augmenting} is a tractable choice that lets the economy settle onto a clean balanced path. (If technology also augmented capital, it would amount to improving total-factor productivity directly.)
+
+The law of motion is again unchanged, $K' = (1-\delta)K + I$. Now we measure everything per \emph{effective} worker, defining $k = K/(EL)$ and $i = I/(EL)$. Because effective labor grows at rate $n + g$ (population at $n$, efficiency at $g$), dividing the law of motion by next period's effective labor gives
+\[
+k'(1+n)(1+g) = (1-\delta) k + i.
+\]
+Expanding and dropping the second-order term $ng$,
+\[
+k'(1 + n + g) = (1-\delta) k + i,
+\]
+which rearranges, by the same steps as before, to
+\begin{equation}
+\Delta k \approx s f(k) - (\delta + n + g) k.
+\label{eq:solow-tech}
+\end{equation}
+The effective depreciation rate is now $\delta + n + g$: capital per effective worker is worn down by physical depreciation, diluted by population growth, and diluted again by the growth in labor efficiency. In steady state $\Delta k = 0$ gives
+\[
+(\delta + n + g)\, k^* = s f(k^*) = i^*.
+\]
+
+The crucial question is what this implies for actual living standards, which are measured per \emph{person}, not per effective worker. In steady state $k^* = K/(EL)$ is constant, so capital and output \emph{per person} are
+\[
+\frac{K}{L} = k^* E = k^* E_0 (1+g)^t,
+\qquad
+\frac{Y}{L} = y^* E = y^* E_0 (1+g)^t.
+\]
+Although adding $g$ to effective depreciation lowers the steady-state $k^*$ (and hence $y^*$) measured in effective-worker units, the multiplicative factor $E_0(1+g)^t$ grows without bound and dominates completely. Output and capital per person therefore grow at the rate $g$ forever. This is the model's central achievement: \emph{labor-augmenting technical progress is the only source of permanent growth in income per person}. Meanwhile, aggregate output $Y$, being $EL$ times its effective-worker value, grows at the rate $n + g$.
+
+\begin{remark}[Technology as a public good]
+Why does labor-augmenting technology raise everyone's income rather than commanding a factor payment of its own? The key, in the model, is that efficiency $E$ is \emph{non-rivalrous}: my using an idea does not stop you from using it. Capital and labor are rivalrous factors, traded in factor markets and earning a return; technology is not a factor in this sense but a public good whose benefits accrue to the whole workforce. One can picture $E$ as a multiplier that lets society achieve, with $L$ people, what would otherwise require $E \cdot L$ people; when we tally human welfare we collapse those $E$ effective workers back into the $L$ real people, and the gains show up as ever-rising income per person. To the extent that patents, secrecy, or other frictions make technology partly excludable in reality, outcomes will diverge from the frictionless model.
+\end{remark}
+
+\subsection{Steady-State Growth Rates: Summary}
+
+The three versions of the model differ only in what grows in the long run. The intensive variables (per effective worker) are constant in every steady state by construction; the difference is in the per-capita and aggregate growth rates, summarized in Table~\ref{tab:solow-summary}.
+
+\begin{table}[h]
+\centering
+\caption{Long-run growth rates of variables in the steady state across the three versions of the Solow model.}
+\label{tab:solow-summary}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+In steady state & Baseline & Population growth & Population \& technical growth \\
+\midrule
+Per effective worker & constant & constant & constant \\
+Per capita & constant & constant & $g$ \\
+Aggregate & constant & $n$ & $n + g$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The table reads off the discussion above. With no growth in either labor or technology, everything is flat. With population growth alone, output per person is still flat in the long run --- the economy is bigger but no richer per head --- while aggregate output grows at $n$. Only when labor-augmenting technical progress is present does income per person grow, at rate $g$, with the aggregate growing at $n + g$.
+
+\section{More on the Solow Model}
+
+The Solow framework, for all its simplicity, supports a rich set of further observations. We collect the most useful here.
+
+\subsection{Three Stages of Growth}
+
+Empirically, countries appear to pass through three broad stages, each governed by a different growth mechanism.
+
+\begin{enumerate}
+    \item \textbf{The poverty trap} (GDP per capita below roughly \$3{,}000). Capital per worker is very low, so the marginal product of capital --- and hence the return to investment --- is very high. Economies in this stage can grow rapidly simply by accumulating capital, a process called \emph{capital deepening}. Rapid catch-up growth of this kind, such as China's, is exactly what the baseline Solow model predicts for a capital-scarce economy, not an anomaly.
+    \item \textbf{The middle-income transition.} As capital deepens, diminishing returns set in and the easy growth from accumulation fades. To keep growing, the economy must shift from factor accumulation to innovation-driven growth. This transition is difficult --- the failure to make it is the so-called \emph{middle-income trap} --- and navigating it typically requires sustained institutional reform.
+    \item \textbf{The high-income stage.} Here growth comes overwhelmingly from technological innovation, since further capital deepening yields little. This is the regime in which the $g$ term, not the saving rate, drives living standards.
+\end{enumerate}
+
+\subsection{Growth Accounting and the Solow Residual}
+
+To measure where growth actually comes from, suppose output follows a Cobb--Douglas path with total-factor productivity $z$,
+\[
+Y = z\, K^{\alpha} L^{1-\alpha}.
+\]
+Taking logs and differentiating yields the \emph{growth-accounting} decomposition,
+\begin{equation}
+\frac{\d Y}{Y} = \frac{\d z}{z} + \alpha\,\frac{\d K}{K} + (1-\alpha)\,\frac{\d L}{L}.
+\label{eq:growth-acct}
+\end{equation}
+Output growth is the sum of productivity growth and the contributions of capital and labor growth, each weighted by its income share. Historically $\alpha \approx 1/3$. In per-worker terms, $y = z k^{\alpha}$, and the decomposition collapses to
+\[
+\frac{\d y}{y} = \frac{\d z}{z} + \alpha\,\frac{\d k}{k}.
+\]
+
+The term $z$ is the \emph{Solow residual}: the part of output growth that is left over after the measured contributions of capital and labor have been subtracted out. It is residual precisely because it is not observed directly but inferred from \eqref{eq:growth-acct} as $\d z / z = \d Y/Y - \alpha\, \d K/K - (1-\alpha)\, \d L/L$.
+
+\defn{Solow Residual}{
+The \emph{Solow residual} $z$ (often called total-factor productivity) is the component of output not accounted for by the measured quantities of capital and labor. It captures everything that raises output given the inputs, including
+\begin{itemize}
+    \item human capital (the education and skill embodied in workers);
+    \item technological progress;
+    \item externalities (public-good spillovers, the opposite of excludable, fee-charging goods);
+    \item institutional quality (the organization of firms and managerial know-how, patent protection, control of corruption).
+\end{itemize}
+}
+
+Note the contrast with the labor-augmenting $E$ of the previous section: $E$ improved only labor, whereas the residual $z$ multiplies the whole production function and so raises the productivity of both capital and labor. A useful way to think about $z$ is that it is itself an \emph{outcome} --- the equilibrium product of investments in education, research, and institutions --- so one can analyze its level and growth with the same supply-and-demand logic used for any other equilibrium object. The policy levers that promote growth follow directly from the residual's contents: raise the saving rate, invest in human capital, encourage technological progress, and build the right institutions.
+
+\subsection{The Balanced Growth Path and Convergence}
+
+The steady state of the extended model is a \emph{balanced growth path} (BGP): a trajectory along which output, capital, and consumption all grow at constant (and mutually consistent) rates. As with the baseline steady state, the BGP is an attractor --- if the economy is knocked off it, the variables converge back to it over time.
+
+Two productivity measures help locate an economy along the path. \emph{Labor productivity} and \emph{capital productivity} are
+\[
+\frac{Y}{L} = z\!\pr{\frac{K}{L}}^{\!\alpha},
+\qquad
+\frac{Y}{K} = z\!\pr{\frac{K}{L}}^{\!\alpha - 1}.
+\]
+
+\begin{remark}[Labor productivity is not the wage]
+Labor productivity $Y/L$ should not be confused with the average wage, because $L$ here is the number of \emph{employed} workers, not the whole population; unemployment, labor-force participation, and demographics drive a wedge between output per worker and income per person.
+\end{remark}
+
+The Solow logic now delivers its sharpest lesson. Growth in the capital--labor ratio $K/L$ is \emph{not} sustainable --- diminishing returns guarantee it peters out --- whereas growth in the residual $z$ \emph{is} sustainable, and it raises both labor and capital productivity at once. Mature economies grow chiefly through rising total-factor productivity; the United States today, for instance, owes most of its growth to the residual rather than to capital deepening.
+
+Finally, the model speaks to convergence with an important qualification. The unconditional convergence of the baseline model --- everyone ends up equally rich --- holds only when economies share the same fundamentals. Because institutions and the path of technology differ across countries, economies converge not to a single common steady state but to their \emph{own} balanced growth paths. Countries that share similar institutions and technologies do converge to a common path, a phenomenon known as \emph{conditional} or \emph{club convergence}. The endogeneity of technical progress --- the fact that $g$ itself depends on policy, institutions, and research --- is precisely what the Solow model leaves unexplained, and it is where later growth theory begins.
+
+\state{What Solow does and does not explain}{
+The Solow model explains why capital-poor economies grow fast and then slow, why capital accumulation cannot sustain growth, and why long-run growth in living standards must come from technical progress. It does not explain where that technical progress comes from, nor why some countries' technology and institutions improve faster than others. It does not explain everything --- but it explains a great deal, and it frames the questions the neoclassical model (Chapter~\ref{ch:neoclassical}) takes up by replacing Solow's mechanical saving rule with optimizing households.
+}

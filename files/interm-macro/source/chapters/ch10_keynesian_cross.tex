@@ -1,0 +1,202 @@
+% !TEX root = ../main.tex
+\chapter{The Keynesian Cross and the Multiplier}
+\label{ch:keynes}
+
+The growth models of the preceding chapters described where the economy is headed. In the Solow and neoclassical frameworks (Chapters~\ref{ch:solow} and~\ref{ch:neoclassical}), and again whenever we wrote
+\[
+Y = F(K, L, \mathrm{TFP}),
+\]
+output is determined by the supply side: by the capital stock, the labor force, and the technology that turns them into goods. This is the right picture for the \emph{long run}, when prices and wages have had time to adjust and the economy sits at its productive potential. But it says nothing about why output rises and falls from one year to the next, why recessions happen, or why a government might think a tax cut could pull the economy out of a slump. For those questions we need a model of the \emph{short run}, in which output is determined not by what the economy is able to produce but by how much buyers want to spend.
+
+This chapter develops the simplest such model, due to Keynes. Its organizing identity is the demand-side decomposition of output already familiar from the national accounts (Chapter~\ref{ch:accounts}),
+\[
+Y = C + I + G + \mathrm{NX},
+\]
+read now as a statement about \emph{planned} spending rather than realized accounting. We will specify how each of the four components --- consumption, investment, government purchases, and net exports --- depends on income, add them into a single planned-expenditure schedule, and impose the requirement that planned spending equal output. The result is the \emph{Keynesian cross}, a diagram whose intersection pins down equilibrium output. Its most consequential lesson is the \emph{multiplier}: because part of any extra spending becomes someone's income and is partly spent again, a small push to demand moves output by more than the push itself.
+
+A word of warning about what this model is. Keynes's framework is, at bottom, \emph{static}. It contains no clean notion of the future: consumption responds only to \emph{current} income, investment is treated as independent of current output, and intertemporal considerations such as interest rates and lifetime wealth are either suppressed or folded into a single behavioral parameter. That is a genuine limitation, and later chapters (the IS--LM model of Chapter~\ref{ch:islm} and the dynamics of Chapter~\ref{ch:phillips}) restore some of what is missing here. But the very crudeness of the model is also the source of its durability: it captures the one force --- spending out of current income --- that the short-run data turn out to display most strongly, and it does so in a form simple enough to reason with.
+
+\section{Two Horizons for Output}
+
+It is worth stating plainly the contrast that motivates everything below. In the long run, output is a supply-side quantity: $Y = F(K, L, \mathrm{TFP})$ is fixed by the stocks of factors and the state of technology, and demand can do no more than determine prices. In the short run, with prices sticky and factors potentially idle, the causation runs the other way. The level of demand --- how much households, firms, the government, and foreigners wish to buy --- determines how much firms actually produce, and hence output and employment.
+
+The accounting identity $Y = C + I + G + \mathrm{NX}$ is true by definition in \emph{every} period, because the national accounts record realized purchases. The Keynesian move is to reinterpret the right-hand side as \emph{planned} or \emph{desired} expenditure and to ask when plans are consistent with the output they presuppose. Because spending corresponds to demand, we will treat planned expenditure as the economy's aggregate demand,
+\[
+\mathrm{AD} \;=\; C + I + G + \mathrm{NX},
+\]
+identifying the two without further apology. The identification is not perfectly rigorous --- aggregate demand in a fuller model also responds to the price level and the interest rate --- but in the short run demand fluctuates so much, and so much faster than potential output, that for the purposes of this chapter we may treat short-run movements in output as movements in demand and need not separate a short-run from a long-run schedule.
+
+\section{The Components of Planned Expenditure}
+
+We now write down a behavioral equation for each of the four components, building up the planned-expenditure schedule one term at a time. Throughout, $Y$ denotes income (equivalently output), $T$ denotes taxes net of transfers, and $Y - T$ is therefore \emph{disposable income}, the income households have left to spend or save.
+
+\subsection{Consumption}
+
+What determines how much a household consumes? In principle, a great deal: its current income, its expected future income (in the limit, its entire \emph{lifetime} income), its accumulated wealth (a stock, positively related to consumption), and intertemporal terms such as the interest rate and the rate at which it discounts the future. Keynes's model deliberately ignores almost all of this. Because it has no real dynamic structure --- no future periods in which to enjoy saved resources --- it cannot represent interest rates or lifetime income as separate forces. Consumption is made to depend on \emph{current} disposable income alone:
+
+\defn{The Keynesian Consumption Function}{
+Household consumption is a linear function of current disposable income,
+\[
+C \;=\; C_0 + \mathrm{MPC}\,\pr{Y - T},
+\]
+where $C_0 > 0$ is \emph{autonomous consumption} --- the amount consumed even at zero disposable income --- and $\mathrm{MPC} \in (0,1)$ is the \emph{marginal propensity to consume}, the fraction of each additional dollar of disposable income that is spent. The term $\mathrm{MPC}\,(Y-T)$ is \emph{induced consumption}, the part driven by income.
+}
+
+The crucial modeling convention is that \emph{every variable is current}: there is no expected future income in the equation. Whatever role the future, wealth, or interest rates play in shaping behavior is absorbed wholesale into the single parameter $\mathrm{MPC}$. A household that is patient, wealthy, or optimistic about the future simply has a different $\mathrm{MPC}$; the model does not say where that number comes from.
+
+\rmkb[A crude model that fits the data]{The consumption function is plainly incomplete --- it omits wealth, expectations, and the interest rate, all of which a richer theory would include. Keynes did not claim otherwise. His defense was empirical: the function is built from observation rather than from first principles, and disposable income is, in fact, the single factor that explains the most variation in aggregate consumption. One should read $C = C_0 + \mathrm{MPC}\,(Y-T)$ as the \emph{base} model, to which further terms (an interest-rate effect, a wealth effect) can be appended as the application demands.}
+
+\rmkb[Tax cuts and the marginal propensity to consume in China]{The size of the $\mathrm{MPC}$ has direct policy consequences, and they are institution-specific. Chinese tax relief has historically operated mainly through cuts to \emph{corporate} taxes --- which is also where the bulk of revenue is raised --- rather than through transfers to individuals; direct cash subsidies to households are uncommon. Combined with a comparatively low household $\mathrm{MPC}$, this means a given tax cut tends to feed through to consumption only weakly. Investment-based stimulus, by contrast, can act on both margins: in the short run it raises employment and demand, and in the long run it can shift the supply side by adding to productive capacity.}
+
+Saving is simply the part of disposable income not consumed, so the consumption function immediately implies a \emph{saving function}:
+\[
+S \;=\; \pr{Y - T} - C \;=\; -C_0 + \pr{1 - \mathrm{MPC}}\pr{Y - T}.
+\]
+The slope $1 - \mathrm{MPC}$ is the \emph{marginal propensity to save}: every dollar of disposable income is either spent or saved, so the two propensities sum to one.
+
+\subsection{Investment}
+
+A firm undertakes an investment project if it is profitable to do so. The natural criterion is net present value: discount the project's future income stream and its future cost stream back to the present and invest when the former exceeds the latter,
+\[
+\mathrm{NPV}(I) \;=\; \sum_{t=1}^{\infty} \frac{\text{Income}_t}{\pr{1 + r}^{t}} \;-\; \sum_{t=1}^{\infty} \frac{\text{Cost}_t}{\pr{1 + r}^{t}}.
+\]
+The trouble is the income side. Future revenues are deeply uncertain and largely resist quantification; in practice the decision rests on something closer to instinct than to calculation --- the famous \emph{animal spirits} Keynes invoked, by analogy with an animal's impulse to pursue prey. The cost side is more tractable. Investment must be financed, and the cost of finance rises with the interest rate $r$, so higher rates make fewer projects clear the hurdle. We therefore model investment as a decreasing function of the interest rate,
+\[
+I = I(r), \qquad I'(r) < 0,
+\]
+without committing to a particular functional form --- Keynes himself proposed none.
+
+\state{Investment does not depend on current income}{
+In the Keynesian model, investment is a function of the interest rate alone: $I = I(r)$, decreasing in $r$. It does \emph{not} depend on current output, household income, or wealth. Within the static model this is a deliberate simplification that keeps the determinants of $I$ and $Y$ separate.
+}
+
+\rmkb[The real-world caveat]{The assumption that investment is independent of current income is a clean theoretical stance, not a literal description of the world. In practice investment is strongly correlated with output: it responds to expectations of future demand, to government policy, to the wealth and confidence of those making the decisions, and to the availability of internal funds. Treating $I$ as exogenous to $Y$ is best read as a way of isolating one channel at a time; it is relaxed once we let investment respond to the interest rate that the IS--LM model of Chapter~\ref{ch:islm} determines jointly with output.}
+
+\subsection{Government Purchases}
+
+Government purchases of goods and services, $G$, are taken to be the outcome of a political and administrative process rather than a response to current economic variables. They are set by decision, not by the model, and we therefore treat $G$ as \emph{exogenous}: a constant, to be chosen by the policymaker. Taxes $T$ are treated the same way, as a policy instrument set from outside the model.
+
+\subsection{Net Exports}
+
+Net exports are exports minus imports,
+\[
+\mathrm{NX} = X - M.
+\]
+Exports $X$ are purchases of domestic goods by foreigners and so depend on \emph{foreign} income, with which they are positively related; from the point of view of the domestic model they are exogenous. Imports $M$ are domestic purchases of foreign goods and rise with domestic disposable income,
+\[
+M = \mathrm{MPM}\,\pr{Y - T},
+\]
+where $\mathrm{MPM}$ is the \emph{marginal propensity to import}, the fraction of each additional dollar of disposable income spent on foreign goods. For much of the analysis it is convenient, and common, to suppress this income dependence and treat $\mathrm{NX}$ as an exogenous constant as well; we will do so when deriving the multiplier and note in a remark how the income-sensitive case modifies the result.
+
+\section{Planned Expenditure and the Keynesian Cross}
+
+Adding the four components gives the planned-expenditure schedule as a function of income. Writing it out with the income-dependent terms displayed,
+\[
+\mathrm{AD} \;=\; C + I + G + \mathrm{NX}
+\;=\; \underbrace{C_0 + I(r) + G + X}_{\text{autonomous}}
+\;+\; \underbrace{\pr{\mathrm{MPC} - \mathrm{MPM}}}_{\text{slope}}\pr{Y - T}.
+\]
+The schedule is increasing in income but with a slope strictly less than one: a dollar more of income raises planned spending by $\mathrm{MPC} - \mathrm{MPM} < 1$, because part of the extra dollar is saved and part leaks abroad. In a diagram with planned expenditure on the vertical axis and income $Y$ on the horizontal axis, this is an upward-sloping line that is flatter than the $45^\circ$ line. (If imports are folded into the exogenous constant, the slope is simply $\mathrm{MPC} < 1$; what matters is only that it is positive and below one.)
+
+Equilibrium requires that plans be self-consistent: firms produce exactly what buyers wish to buy, so that planned expenditure equals output and there is no unintended accumulation or run-down of inventories.
+
+\defn{Short-Run Equilibrium}{
+The economy is in short-run equilibrium when planned aggregate expenditure equals output,
+\[
+\mathrm{AD} \;=\; Y,
+\]
+that is, when the planned-expenditure schedule meets the $45^\circ$ line along which expenditure and income are equal.
+}
+
+The $45^\circ$ line is the locus of all points at which the quantity demanded equals the quantity produced; it is the constraint that defines equilibrium. Because the planned-expenditure schedule has slope below one while the $45^\circ$ line has slope exactly one, the two lines must cross exactly once. Their intersection is the equilibrium level of output. This diagram is the \emph{Keynesian cross}, shown in Figure~\ref{fig:macro-12}.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig12}
+\caption{The Keynesian cross: equilibrium output occurs where the planned-expenditure schedule (slope below one) crosses the $45^\circ$ line along which expenditure equals income.}
+\label{fig:macro-12}
+\end{figure}
+
+\subsection{Stability of the Equilibrium}
+
+The intersection is not merely a point where the equations happen to balance; it is a \emph{stable} resting point, toward which the economy is pushed from either side. The adjustment mechanism runs through inventories and the production decisions of firms. Suppose output is temporarily above its equilibrium level, $Y_1 > Y_0$. At $Y_1$ the planned-expenditure line lies \emph{below} the $45^\circ$ line, so planned spending falls short of output: buyers want less than firms have produced. Goods pile up as unsold inventory, firms cut back production, and output drifts down toward $Y_0$. Conversely, if output is too low, $Y_2 < Y_0$, planned spending exceeds output, inventories are drawn down, firms expand production, and output rises back toward $Y_0$. From either side the economy converges to the crossing point, as illustrated in Figure~\ref{fig:macro-13}.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig13}
+\caption{Stability of the Keynesian-cross equilibrium: above $Y_0$ planned spending falls short of output and firms cut back; below $Y_0$ spending exceeds output and firms expand; output converges to $Y_0$ from either side.}
+\label{fig:macro-13}
+\end{figure}
+
+\rmkb[Equilibrium output need not be potential output]{In the long run the Keynesian-cross equilibrium ought to coincide with potential output --- the supply-determined level $Y = F(K,L,\mathrm{TFP})$. In the short run there is no such guarantee. The economy can settle at a stable equilibrium below potential, with idle capacity and unemployed labor, or above it, with the economy overheating. This gap between the equilibrium the model delivers and the potential output the long-run model delivers is precisely what gives short-run demand management its rationale.}
+
+\section{The Multiplier}
+
+The relative slopes of the two lines do more than guarantee that they cross. They also govern \emph{how far} the crossing point moves when the planned-expenditure schedule shifts. Suppose some component of autonomous spending rises, shifting the whole schedule up by an amount $\Delta D$. Because the schedule is flatter than the $45^\circ$ line, the horizontal distance the intersection travels, $\Delta Y$, exceeds the vertical shift $\Delta D$ that caused it: a small increase in autonomous spending buys a larger increase in output. This amplification is the \emph{multiplier effect}, and the factor by which the shift is magnified is the \emph{multiplier}. The geometry is shown in Figure~\ref{fig:macro-14}.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig14}
+\caption{The multiplier: an upward shift $\Delta D$ of the planned-expenditure schedule raises equilibrium output by $\Delta Y > \Delta D$, because the schedule is flatter than the $45^\circ$ line.}
+\label{fig:macro-14}
+\end{figure}
+
+To find the multiplier algebraically, treat $\mathrm{NX}$ as an exogenous constant and impose the equilibrium condition $\mathrm{AD} = Y$ on the planned-expenditure schedule
+\[
+\mathrm{AD} \;=\; C_0 + \mathrm{MPC}\,\pr{Y - T} + I + G + \mathrm{NX}.
+\]
+Setting $\mathrm{AD} = Y$ and solving for $Y$:
+\[
+\ba
+Y &= C_0 + \mathrm{MPC}\,\pr{Y - T} + I + G + \mathrm{NX}\\
+Y - \mathrm{MPC}\,Y &= C_0 - \mathrm{MPC}\,T + I + G + \mathrm{NX}\\
+\pr{1 - \mathrm{MPC}}\,Y &= C_0 - \mathrm{MPC}\,T + I + G + \mathrm{NX},
+\ea
+\]
+which gives the reduced-form solution for equilibrium output,
+\begin{equation}
+Y \;=\; \frac{1}{1 - \mathrm{MPC}}\,\pr{C_0 - \mathrm{MPC}\,T + I + G + \mathrm{NX}}.
+\label{eq:keynes-Y}
+\end{equation}
+Each multiplier is now read off as a partial derivative of $Y$ with respect to the corresponding exogenous variable.
+
+\thm{The Keynesian Multipliers}{
+In the equilibrium~\eqref{eq:keynes-Y}, the responses of output to the exogenous components are:
+\[
+\ba
+\text{Spending multiplier:} \quad & \pd{Y}{G} = \pd{Y}{I} = \pd{Y}{C_0} = \frac{1}{1 - \mathrm{MPC}} \;>\; 1,\\[4pt]
+\text{Tax multiplier:} \quad & \pd{Y}{T} = \frac{-\,\mathrm{MPC}}{1 - \mathrm{MPC}} \;<\; 0,\\[4pt]
+\text{Balanced-budget multiplier:} \quad & \dd{Y}{G}\bigg|_{\d T = \d G} = 1.
+\ea
+\]
+The spending multiplier exceeds one for any $\mathrm{MPC} \in (0,1)$; the tax multiplier is negative, and its \emph{magnitude} $\dfrac{\mathrm{MPC}}{1-\mathrm{MPC}}$ exceeds one if and only if $\mathrm{MPC} > \tfrac12$.
+}
+
+\pf{
+The spending multipliers follow by differentiating~\eqref{eq:keynes-Y}: since $C_0$, $I$, $G$, and $\mathrm{NX}$ all enter with coefficient $1/(1-\mathrm{MPC})$, each has the same multiplier $1/(1-\mathrm{MPC})$, which exceeds one because $0 < \mathrm{MPC} < 1$. The economic content is the round-by-round leakage story: an extra dollar of autonomous spending becomes a dollar of someone's income, of which a fraction $\mathrm{MPC}$ is re-spent, of which $\mathrm{MPC}$ is re-spent again, and so on. The induced output is the geometric series
+\[
+1 + \mathrm{MPC} + \mathrm{MPC}^2 + \cdots = \frac{1}{1 - \mathrm{MPC}}.
+\]
+Differentiating~\eqref{eq:keynes-Y} with respect to $T$ gives the tax multiplier $-\mathrm{MPC}/(1-\mathrm{MPC})$, negative because a tax increase cuts disposable income and hence spending. Its magnitude is smaller than the spending multiplier by exactly the factor $\mathrm{MPC}$: a tax change acts on demand only after passing through the consumption function, so its first-round effect is $\mathrm{MPC}\,\Delta T$ rather than the full $\Delta G$. Solving $\mathrm{MPC}/(1-\mathrm{MPC}) > 1$ gives $\mathrm{MPC} > 1 - \mathrm{MPC}$, i.e.\ $\mathrm{MPC} > \tfrac12$.
+
+For the balanced-budget multiplier, increase spending and taxes together by the same amount, $\Delta G = \Delta T \equiv \Delta$. By the two multipliers just found,
+\[
+\Delta Y = \frac{1}{1-\mathrm{MPC}}\,\Delta G - \frac{\mathrm{MPC}}{1-\mathrm{MPC}}\,\Delta T
+= \frac{1 - \mathrm{MPC}}{1 - \mathrm{MPC}}\,\Delta = \Delta.
+\]
+A fully tax-financed increase in government purchases raises output by exactly the amount of the increase: the balanced-budget multiplier is one.
+}
+
+The intuition behind the difference between the spending and tax multipliers is worth dwelling on, because it underlies the entire fiscal-policy debate. An increase in $G$ or in $I$ pushes the planned-expenditure schedule up by its full amount and so is magnified by the full factor $1/(1-\mathrm{MPC})$. A tax cut, by contrast, raises spending only indirectly: households receive the extra disposable income but spend only a fraction $\mathrm{MPC}$ of it, saving the rest. The schedule shifts up by only $\mathrm{MPC}\,\abs{\Delta T}$, so the tax change is the weaker instrument dollar for dollar. The balanced-budget result then says something striking: even a stimulus that is fully paid for by raising taxes is not neutral --- it still raises output one-for-one, because the spending injection works in full while the tax withdrawal is partly absorbed by lower saving.
+
+\rmkb[Net exports that respond to income]{If imports are kept income-sensitive rather than folded into the constant, $\mathrm{NX} = X - \mathrm{MPM}(Y-T)$, the equilibrium condition becomes $Y = C_0 + \mathrm{MPC}(Y-T) + I + G + X - \mathrm{MPM}(Y-T)$, and solving gives
+\[
+Y = \frac{1}{1 - \mathrm{MPC} + \mathrm{MPM}}\,\pr{C_0 - (\mathrm{MPC}-\mathrm{MPM})T + I + G + X}.
+\]
+The spending multiplier is now $1/(1 - \mathrm{MPC} + \mathrm{MPM})$, smaller than before: imports are an extra leakage, so each round of re-spending loses not only the saved fraction but also the part spent abroad. The qualitative lessons --- a positive spending multiplier above one, a smaller-magnitude negative tax multiplier --- are unchanged.}
+
+\state{Why the multiplier matters for policy}{
+The multiplier says that the effect of a change in spending, taxes, or investment is not confined to its own size: a small change in autonomous demand levers a larger change in output. When assessing any of these, one must account for the multiplied effect, not just the direct one. The asymmetry between the multipliers also has a policy edge --- for a given budgetary cost, an increase in government purchases moves output more than a tax cut of the same size. This is one reason that, when the economy faces downward pressure, the typical response is a fiscal expansion weighted toward spending. We return to fiscal policy in detail in Chapter~\ref{ch:fiscal}.
+}
+
+The Keynesian cross is, however, only half the short-run story. We have taken the interest rate $r$ as fixed when computing investment, and with it the whole autonomous block. But the interest rate is itself an equilibrium price, set in the market for money. Allowing $r$ to vary traces out a whole schedule of equilibrium output levels --- one Keynesian-cross equilibrium for each interest rate --- and combining that schedule with the money market is the task of the IS--LM model in Chapter~\ref{ch:islm}.

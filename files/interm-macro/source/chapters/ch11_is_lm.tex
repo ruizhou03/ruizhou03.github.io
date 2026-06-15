@@ -1,0 +1,141 @@
+% !TEX root = ../main.tex
+\chapter{The IS--LM Model}
+\label{ch:islm}
+
+The Keynesian cross of Chapter~\ref{ch:keynes} determines output for a \emph{given} interest rate: it tells us where planned expenditure crosses the $45^\circ$ line, but it takes the interest rate $r$ as a number handed down from outside. Yet $r$ is itself an equilibrium price --- the price of liquidity --- and it moves when output moves. The IS--LM model closes this loop. It holds the price level fixed (we are still in the short run) and asks for the pair $(Y,r)$ at which two markets clear simultaneously: the market for goods, summarized by the \emph{IS} curve, and the market for money, summarized by the \emph{LM} curve. Fiscal policy will turn out to act on the first curve and monetary policy on the second, and the interaction of the two is what makes the simple multiplier of the previous chapter an overstatement.
+
+\section{The IS Curve}
+
+The IS curve is the set of all $(Y,r)$ pairs at which the goods market is in equilibrium --- that is, at which planned expenditure equals output. Every point on it is a Keynesian-cross equilibrium for a particular interest rate. To see its shape, recall that investment falls when the interest rate rises, $I=I(r)$ with $I'(r)<0$. Solving the Keynesian cross with investment written as a function of $r$,
+\[
+Y^{*} = \frac{1}{1-\mathrm{MPC}}\,\big(C_0 - \mathrm{MPC}\cdot T + I(r) + G + \mathrm{NX}\big),
+\]
+so a lower interest rate raises investment, shifts the planned-expenditure line upward, and --- magnified by the multiplier --- raises equilibrium output. Output and the interest rate therefore move in opposite directions along the goods-market equilibrium locus.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig15}
+\caption{Deriving the IS curve. In the upper panel a fall in the interest rate from $r_0$ to $r_1$ raises investment, shifting planned expenditure up and moving the Keynesian-cross equilibrium from $Y_0$ to $Y_1$. Plotting each interest rate against the output it implies (lower panel) traces out the downward-sloping IS curve.}
+\label{fig:macro-15}
+\end{figure}
+
+\defn{The IS Curve}{
+The \emph{IS curve} is the locus of $(Y,r)$ pairs at which planned expenditure equals output (the goods market clears). Because a lower interest rate raises investment and hence equilibrium output, the IS curve slopes \emph{downward}.
+}
+
+Figure~\ref{fig:macro-15} stacks the two panels that produce it. Anything other than the interest rate that shifts the Keynesian-cross equilibrium --- a change in $G$, in taxes, in autonomous consumption or investment, or in net exports --- shifts the \emph{whole} IS curve; a change in the interest rate is a movement \emph{along} it.
+
+\section{The LM Curve}
+
+The LM curve comes from the money market. The quantity theory, $MV = PY$, can be read as a statement about money demand: to carry out a nominal volume of transactions $PY$ at a velocity $V$, the public wishes to hold
+\[
+M^{d} = \frac{PY}{V}.
+\]
+Velocity is not a constant here; it rises with the interest rate, $V=V(r)$, $V'(r)>0$, because a higher interest rate raises the opportunity cost of holding non-interest-bearing money, so each unit of money is turned over faster and less of it is demanded. The supply of money, by contrast, is set by the central bank and is independent of the interest rate: in the diagram it is a vertical line.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig16}
+\caption{The money market. The money supply $M^{s}$ is vertical (set by the central bank); money demand $M^{d}$ slopes down in the interest rate. Their intersection fixes the equilibrium interest rate.}
+\label{fig:macro-16}
+\end{figure}
+
+Equilibrium in Figure~\ref{fig:macro-16} pins down the interest rate that clears the money market for a given level of output and prices. Now raise output. Higher $Y$ means more transactions and thus greater money demand at every interest rate, shifting the demand curve to the right. With supply fixed, the interest rate must rise to choke money demand back to the available stock.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig17}
+\caption{A rise in output shifts money demand to the right; with the money supply fixed, the equilibrium interest rate rises from $r_0$ to $r_1$.}
+\label{fig:macro-17}
+\end{figure}
+
+Collecting these $(Y,r)$ pairs --- higher output requiring a higher interest rate to keep the money market in balance --- traces out the LM curve.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig18}
+\caption{The LM curve: the locus of output and interest-rate pairs at which the money market clears. It slopes upward because higher output raises money demand and hence the market-clearing interest rate.}
+\label{fig:macro-18}
+\end{figure}
+
+\defn{The LM Curve}{
+The \emph{LM curve} (liquidity preference--money supply) is the locus of $(Y,r)$ pairs at which the money market clears for a given real money supply. Because higher output raises money demand and therefore the equilibrium interest rate, the LM curve slopes \emph{upward}.
+}
+
+What shifts the entire LM curve? Anything that changes the real money supply $M/P$. An increase in the nominal money supply means that, at any level of output, the market clears at a lower interest rate, so the LM curve shifts down (equivalently, to the right).
+
+\begin{figure}[h]
+\centering
+\input{figures/fig19}
+\caption{An increase in the money supply (from $M^{s_1}$ to $M^{s_2}$) lowers the market-clearing interest rate at each level of output, shifting the LM curve down and to the right.}
+\label{fig:macro-19}
+\end{figure}
+
+A rise in the price level works in the opposite direction. The relevant quantity is the \emph{real} money supply $M/P$: a higher $P$ shrinks $M/P$ exactly as a cut in the nominal money supply would, raising money demand relative to supply and pushing the LM curve up.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig20}
+\caption{A rise in the price level raises nominal money demand (lowers the real money supply $M/P$); the market-clearing interest rate rises at each level of output and the LM curve shifts up.}
+\label{fig:macro-20}
+\end{figure}
+
+\state{Reading the two curves}{
+The IS curve summarizes the goods market and is shifted by \emph{fiscal} variables ($G$, $T$, autonomous spending). The LM curve summarizes the money market and is shifted by \emph{monetary} variables --- the nominal money supply and the price level, both acting through the real money supply $M/P$.
+}
+
+\section{Equilibrium}
+
+Plotting the two curves together, with output on the horizontal axis and the interest rate on the vertical axis, the unique crossing point gives the pair $(Y_0,r_0)$ at which \emph{both} markets clear. The arrow of causation runs both ways: the interest rate helps determine output through investment, and output helps determine the interest rate through money demand.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig21}
+\caption{IS--LM equilibrium: the downward-sloping IS curve and the upward-sloping LM curve cross at the unique pair $(Y_0,r_0)$ at which both the goods and money markets clear.}
+\label{fig:macro-21}
+\end{figure}
+
+The equilibrium is stable. Suppose some force pushed output above $Y_0$ --- say a policy interest rate set too low. At that higher output, money demand would outstrip the fixed supply and the interest rate would be bid up, choking off investment until output returned to the equilibrium. A change in the interest rate or in output moves the economy \emph{along} the curves; a change in any other determinant shifts a curve bodily.
+
+\section{Fiscal Policy in IS--LM}
+
+Consider an increase in government purchases. In the goods market this shifts the IS curve to the right. If the interest rate stayed at $r_0$, output would rise all the way to $Y_1$, the full Keynesian-cross multiplier acting on the larger $G$. But the move along the new IS curve toward its intersection with the unchanged LM curve tells a more sober story: as output rises, money demand rises, the interest rate is pushed up to $r_2$, and the higher interest rate crowds out private investment, pulling output back from $Y_1$ to $Y_2$, with $Y_0<Y_2<Y_1$.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig22}
+\caption{A rise in government purchases shifts the IS curve to the right. At a fixed interest rate output would reach $Y_1$; but the induced rise in the interest rate to $r_2$ crowds out investment, so the new equilibrium is at $Y_2$, with $Y_0<Y_2<Y_1$. The gap $Y_1-Y_2$ is the first crowding-out effect.}
+\label{fig:macro-22}
+\end{figure}
+
+\defn{The (First) Crowding-Out Effect}{
+The \emph{crowding-out effect} is the reduction in private investment caused by the rise in the interest rate that a fiscal expansion induces through the money market. It makes the realized output gain ($Y_2-Y_0$) smaller than the naive multiplier prediction ($Y_1-Y_0$).
+}
+
+A tax cut shifts the IS curve outward in the same way (through the tax multiplier rather than the spending multiplier), and the same crowding-out logic applies. The unifying statement is that \emph{fiscal policy acts on the IS curve}.
+
+\section{Monetary Policy in IS--LM}
+
+Now let the central bank increase the money supply. The IS curve is unaffected; the LM curve shifts down, because more money clears the market at a lower interest rate for any output. At the initial output the interest rate would fall; the lower rate stimulates investment and output rises along the IS curve to $Y_1$, with a new, lower equilibrium interest rate $r_1$.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig23}
+\caption{An increase in the money supply shifts the LM curve down. Output rises from $Y_0$ to $Y_1$ and the interest rate falls from $r_0$ to $r_1$.}
+\label{fig:macro-23}
+\end{figure}
+
+A rise in the price level runs the same machinery in reverse. Because it reduces the real money supply $M/P$, it shifts the LM curve up, raising the interest rate and lowering output.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig24}
+\caption{A rise in the price level (a fall in the real money supply $M/P$) shifts the LM curve up: the interest rate rises to $r_1$ and output falls to $Y_1$.}
+\label{fig:macro-24}
+\end{figure}
+
+This last experiment is worth pausing on, because it is the hinge between IS--LM and the aggregate-demand curve of the next chapter: \emph{a higher price level is equivalent, for the money market, to a smaller money supply}. Holding the nominal money stock fixed and varying $P$ therefore traces a relationship between the price level and equilibrium output --- which is exactly aggregate demand.
+
+\state{Summary}{
+Fiscal policy shifts the IS curve; monetary policy (and the price level) shift the LM curve. A fiscal expansion raises output but also the interest rate, crowding out investment; a monetary expansion raises output by lowering the interest rate. In every case the interest rate adjusts so that both markets clear at once.
+}

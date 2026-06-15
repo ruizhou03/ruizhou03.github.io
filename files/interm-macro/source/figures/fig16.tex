@@ -1,0 +1,16 @@
+\begin{tikzpicture}[scale=1.0]
+  % axes
+  \draw[-Latex] (0,0) -- (7.6,0) node[right] {$M$};
+  \draw[-Latex] (0,0) -- (0,5.8) node[above] {$r$};
+  % vertical money-supply line M^s (perfectly inelastic), thick = primary
+  \draw[line width=1.2pt] (4.3,0) -- (4.3,5.4) node[above] {$M^{s}$};
+  % downward-sloping money-demand curve M^d : r = k/(M - a)
+  % chosen so it crosses M^s at a sensible interior r
+  \draw[semithick,domain=0.95:7.2,smooth,variable=\x,samples=160]
+        plot ({\x},{1.55/(\x-0.55)+0.18}) node[right] {$M^{d}$};
+  % equilibrium point: x=4.3 on the demand curve
+  \pgfmathsetmacro{\req}{1.55/(4.3-0.55)+0.18}
+  \fill (4.3,\req) circle (1.6pt);
+  % dashed guide to the r axis
+  \draw[densely dashed] (4.3,\req) -- (0,\req) node[left] {$r^{*}$};
+\end{tikzpicture}

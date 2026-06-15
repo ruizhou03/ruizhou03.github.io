@@ -1,0 +1,37 @@
+\begin{tikzpicture}[scale=1.0]
+  % --- geometry parameters ---
+  \def\bw{2.0}   % box width  (one period)
+  \def\bh{0.9}   % box height (one generation level)
+  \def\ng{4}     % number of overlapping generations
+  % The bottom of generation g sits at level g (g=0,...,3),
+  % and its "Work" box starts at x = g*\bw.  Each generation
+  % occupies two consecutive period-boxes: Work then Retire.
+  %
+  % --- period-boundary dashed guide lines ---
+  % boundaries fall at x = 1,2,3,4 periods (in box-width units).
+  \pgfmathsetmacro{\xa}{1*\bw}
+  \pgfmathsetmacro{\xb}{2*\bw}
+  \pgfmathsetmacro{\xc}{3*\bw}
+  \pgfmathsetmacro{\xd}{4*\bw}
+  \pgfmathsetmacro{\toptop}{\ng*\bh+0.55}
+  \foreach \xx in {\xa,\xb,\xc,\xd}{
+    \draw[densely dashed] (\xx,-0.15) -- (\xx,\toptop);
+  }
+  % --- the staircase of generations ---
+  \foreach \g in {0,1,2,3}{
+    \pgfmathsetmacro{\xstart}{\g*\bw}
+    \pgfmathsetmacro{\ylo}{\g*\bh}
+    \pgfmathsetmacro{\yhi}{\g*\bh+\bh}
+    \pgfmathsetmacro{\xmid}{\xstart+\bw}
+    \pgfmathsetmacro{\xend}{\xstart+2*\bw}
+    % Work box
+    \draw (\xstart,\ylo) rectangle (\xmid,\yhi);
+    \node at ({\xstart+0.5*\bw},{\ylo+0.5*\bh}) {Work};
+    % Retire box
+    \draw (\xmid,\ylo) rectangle (\xend,\yhi);
+    \node at ({\xmid+0.5*\bw},{\ylo+0.5*\bh}) {Retire};
+  }
+  % --- Time axis (arrow) along the bottom ---
+  \draw[-Latex,line width=1.1pt] (-0.2,-0.55) -- ({5*\bw+0.4},-0.55)
+        node[below right] {Time};
+\end{tikzpicture}

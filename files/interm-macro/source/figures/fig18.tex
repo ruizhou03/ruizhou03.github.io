@@ -1,0 +1,9 @@
+\begin{tikzpicture}[scale=1.0]
+  % axes
+  \draw[-Latex] (0,0) -- (0,5.4) node[above] {$r$};
+  \draw[-Latex] (0,0) -- (7.6,0) node[right] {$Y$};
+  % LM curve: upward-sloping convex locus, nearly flat at low Y, steep at high Y
+  \draw[line width=1.2pt,smooth,samples=120,domain=0.5:6.2]
+        plot (\x,{0.7+0.085*(\x-0.5)^2});
+  \node[right] at (6.25,{0.7+0.085*(6.2-0.5)^2}) {$\mathrm{LM}$};
+\end{tikzpicture}

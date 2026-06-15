@@ -1,0 +1,40 @@
+\begin{tikzpicture}[scale=1.0]
+  % --- parameters: K_{t+1} = c * K_t^alpha, concave & increasing ---
+  % reach at K=2 (=c*2^al): \cone->~1.13, \ctwo->~1.40, \cthree->~1.70
+  \def\al{0.42}
+  \def\cone{0.845}  % lowest curve  (small z)
+  \def\ctwo{1.046}  % middle curve  (larger z)
+  \def\cthree{1.27} % highest curve (largest z)
+  % --- drawing scale: 1 unit of K -> 3.6cm ---
+  \def\S{3.6}
+  % --- axes ---
+  \draw[-Latex] (0,0) -- ({2.18*\S},0) node[right] {$K_{t}$};
+  \draw[-Latex] (0,0) -- (0,{2.18*\S}) node[above] {$K_{t+1}$};
+  % axis variable captions (textbook English)
+  \node[below=16pt] at ({1.09*\S},0) {Capital today};
+  \node[rotate=90,above=38pt] at (0,{1.09*\S}) {Capital tomorrow};
+  % --- tick marks and labels ---
+  \foreach \t in {0.5,1,1.5,2}{
+    \draw ({\t*\S},0) -- ({\t*\S},-0.07) node[below] {\small $\t$};
+    \draw (0,{\t*\S}) -- (-0.07,{\t*\S}) node[left] {\small $\t$};
+  }
+  \node[below left] at (0,0) {\small $0$};
+  % --- 45-degree dotted line ---
+  \draw[densely dotted,thick] (0,0) -- ({2.05*\S},{2.05*\S});
+  % --- three concave law-of-motion curves (black, house style) ---
+  \draw[line width=1pt,smooth,samples=160,domain=0.001:2]
+        plot ({\x*\S},{\cone*pow(\x,\al)*\S});
+  \draw[line width=1pt,smooth,samples=160,domain=0.001:2]
+        plot ({\x*\S},{\ctwo*pow(\x,\al)*\S});
+  \draw[line width=1pt,smooth,samples=160,domain=0.001:2]
+        plot ({\x*\S},{\cthree*pow(\x,\al)*\S});
+  % --- curve labels ---
+  \node[right] at ({2*\S},{\cone*pow(2,\al)*\S}) {\small $z_0$};
+  \node[right] at ({2*\S},{\ctwo*pow(2,\al)*\S}) {\small $z_1$};
+  \node[right] at ({2*\S},{\cthree*pow(2,\al)*\S}) {\small $z_2$};
+  % --- blue accent arrows: steady state migrates outward as z grows ---
+  % lower arrow near middle-curve crossing of 45-line (~K=1.05)
+  \draw[-Latex,line width=1.6pt,blue!75!black] ({1.02*\S},{0.94*\S}) -- ({1.16*\S},{1.12*\S});
+  % upper arrow near top-curve crossing of 45-line (~K=1.5)
+  \draw[-Latex,line width=1.6pt,blue!75!black] ({1.40*\S},{1.27*\S}) -- ({1.56*\S},{1.47*\S});
+\end{tikzpicture}

@@ -1,0 +1,127 @@
+% !TEX root = ../main.tex
+\chapter{Aggregate Demand, Aggregate Supply, and the Supply Side}
+\label{ch:adas}
+
+The IS--LM model held the price level fixed. To complete the short-run picture we let the price level move and ask how output and prices are jointly determined. The answer is an aggregate-demand curve, inherited from IS--LM, and an aggregate-supply curve, which encodes how firms respond to prices. Their intersection determines the short-run equilibrium; the long-run equilibrium, where prices have fully adjusted, sits on a vertical long-run supply curve at potential output. With this apparatus we can finally trace a fiscal expansion all the way through --- multiplier, then two crowding-out effects --- and see why, in the long run, demand stimulus changes only the price level.
+
+\section{The Aggregate-Demand Curve}
+
+Eliminating the interest rate between the IS and LM equations leaves a single relationship between the price level and equilibrium output. We met its mechanism at the end of the last chapter: a higher price level shrinks the real money supply $M/P$, shifts the LM curve up, raises the interest rate, and reduces investment and output. Equilibrium output is therefore a decreasing function of the price level, $Y^{d}=Y(P)$.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig25}
+\caption{Deriving the aggregate-demand curve. In the upper panel a higher price level lowers the real money supply, shifting LM up and reducing output from $Y_0$ to $Y_2$. Plotting price against the output it implies (lower panel) traces out the downward-sloping AD curve.}
+\label{fig:macro-25}
+\end{figure}
+
+\rmkb[Why AD slopes down]{The aggregate-demand curve is \emph{not} the microeconomic story in which buyers see a higher price and demand less. Here money may be perfectly neutral and the public perfectly rational, and the curve still slopes down: a higher price level reduces real balances, raises the interest rate, and crowds out investment. The downward slope is a statement about the money market and the interest rate, not about relative prices.}
+
+\defn{The Aggregate-Demand Curve}{
+The \emph{aggregate-demand (AD) curve} is the locus of $(Y,P)$ pairs consistent with IS--LM equilibrium. It slopes downward because a higher price level reduces real money balances, raising the interest rate and lowering investment and output. Monetary and fiscal policy both shift the AD curve; a change in the price level is a movement along it.}
+
+\section{The Aggregate-Supply Curve}
+
+In the long run, output is determined by capital, labor, and technology, not by the price level, so the long-run aggregate-supply (LRAS) curve is vertical at potential output $\overline{Y}$. In the short run, prices are sticky and supply responds to them. When the price level rises faster than costs (wages adjust with a lag), profit margins widen and firms expand production beyond the potential level, so the short-run aggregate-supply (SRAS) curve slopes upward. Its slope measures how sensitive supply is to prices: the more idle resources the economy has, the flatter SRAS is; when resources are fully employed, SRAS is nearly vertical.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig26}
+\caption{Aggregate supply and demand. Long-run aggregate supply (LRAS) is vertical at potential output; short-run aggregate supply (SRAS) slopes upward; aggregate demand (AD) slopes downward. In a full equilibrium all three pass through the same point.}
+\label{fig:macro-26}
+\end{figure}
+
+\state{Triple equilibrium}{
+In a full long-run equilibrium the long-run supply curve, the short-run supply curve, and the aggregate-demand curve all intersect at a single point, with output at its potential level $\overline{Y}$.}
+
+\section{A Fiscal Expansion from Start to Finish}
+
+We can now follow a rise in government purchases through all three diagrams at once --- the Keynesian cross, IS--LM, and AD--AS --- and watch output pass through four levels.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig27}
+\caption{The complete adjustment to a fiscal expansion. Black: the multiplier raises output to $Y_1$ at a fixed interest rate and price level. Red: allowing for liquidity preference, the interest rate rises and the first crowding-out effect pulls output back to $Y_2$. Blue: allowing the price level to rise, the second crowding-out effect pulls output back to $Y_3$. In the long run, rising costs return output to potential, $Y_0$. Throughout, $Y_0<Y_3<Y_2<Y_1$.}
+\label{fig:macro-27}
+\end{figure}
+
+The economy begins in long-run equilibrium at potential output $Y_0$. Government purchases then rise.
+\begin{enumerate}
+\item \emph{The multiplier ($Y_0\to Y_1$).} Planned expenditure rises, and through the multiplier output would reach $Y_1$ --- if the interest rate and the price level were held fixed. (When the IS curve fixes its horizontal shift we hold the interest rate fixed; when the AD curve fixes its shift we hold the price level fixed.)
+\item \emph{IS--LM, the first crowding-out ($Y_1\to Y_2$).} Allowing the interest rate to respond to the higher money demand, the rise in $r$ crowds out private investment and output falls back to $Y_2$.
+\item \emph{AD--AS, the second crowding-out ($Y_2\to Y_3$).} At $Y_2$ aggregate demand still exceeds short-run supply, so the price level rises. The higher price level shrinks real balances, raising the interest rate further and crowding out still more investment; output settles at $Y_3<Y_2$. This is the \emph{second crowding-out effect}.
+\item \emph{Short run to long run ($Y_3\to Y_0$).} Over time, costs (notably wages) rise toward the higher price level, profit margins are squeezed, and the short-run supply curve shifts left. Each leftward shift recreates an excess of demand over supply and pushes prices up again, until supply and demand meet back at potential output.
+\end{enumerate}
+
+\state{The two crowding-out effects}{
+First crowding-out: a demand expansion raises money demand, raises the interest rate, and lowers investment. Second crowding-out: the same demand expansion raises the \emph{price level}, which lowers real balances, raises the interest rate again, and lowers investment further. The multiplier is thus reduced twice, and the net effect on output can be small.}
+
+A few cautions are worth stating plainly. Prices change \emph{only} when supply and demand are out of balance. The IS--LM equilibrium is necessary for full equilibrium but not sufficient --- the price level must also clear the goods market against supply. And the long-run lesson is stark: with supply vertical, a pure demand stimulus raises only the price level, not output.
+
+\rmkb[``In the long run we are all dead'']{Keynes's quip is a defense, not a concession. Keynesian policy is aimed at the \emph{short run}: it is countercyclical, meant to pull an economy out of a slump quickly rather than to manufacture a boom on top of one. Whether the two crowding-out effects leave much of the multiplier intact depends on the relative slopes of the curves --- a flat LM or AD curve, or abundant idle resources, leaves the stimulus largely intact. When the LM curve is so flat that even large changes in output barely move the interest rate, the economy is in a \emph{liquidity trap}, monetary policy is impotent, and fiscal policy is at its most effective.}
+
+\section{The Supply Side}
+
+The experiments above all shifted demand. Shifts in supply behave very differently. Along a given short-run Phillips curve, inflation and unemployment move in opposite directions, so a demand-driven boom trades higher prices for lower unemployment. A negative \emph{supply} shock breaks this trade-off.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig28}
+\caption{A negative supply shock. The short-run supply curve shifts left: output falls and the price level rises at the same time --- stagflation.}
+\label{fig:macro-28}
+\end{figure}
+
+When short-run supply contracts, output falls (raising unemployment) and the price level rises (raising inflation) simultaneously --- the ``lose--lose'' outcome called \emph{stagflation} (stagnation plus inflation). Demand policy cannot fix it: stimulus would worsen the inflation, contraction would worsen the unemployment. The cure must come from the supply side --- raising firms' willingness and ability to produce. This is the logic of the 1980s supply-side school: cut marginal tax rates to restore the incentive to work and invest, exploiting the fact (developed in Chapter~\ref{ch:fiscal}) that beyond a point lower rates need not mean lower revenue.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig29}
+\caption{Long-run supply growth. The supply curve shifts right: output rises and the price level falls --- the ``win--win'' of genuine economic growth.}
+\label{fig:macro-29}
+\end{figure}
+
+An increase in long-run supply --- genuine growth in productive capacity --- is the mirror image: output rises and the price level falls. This is the deep meaning of economic growth: more output at a lower price level, the only ``free lunch'' in the model.
+
+\rmk{When analyzing a short-run supply \emph{shock} we hold long-run supply fixed; the short-run diagram can still display long-run changes as a comparison of two static snapshots.}
+
+\section{Microfoundations of the Short-Run Supply Curve}
+
+Why does short-run supply slope up at all? Three models give three reasons, but all deliver the same reduced form,
+\[
+Y = \overline{Y} + \alpha\,(P - P^{e}), \qquad \alpha>0,
+\]
+in which output exceeds potential only when the price level exceeds what was expected.
+
+\subsection{The Sticky-Wage Model}
+
+Workers and firms sign nominal wage contracts before the price level is known, fixing the nominal wage at $W=\omega\, P^{e}$, where $\omega$ is the target real wage. The realized real wage is then
+\[
+\frac{W}{P} = \omega\,\frac{P^{e}}{P}.
+\]
+When $P>P^{e}$ the real wage falls below target, firms hire more and output rises above potential; only when $P=P^{e}$ are employment and output at their potential levels. The model predicts a \emph{counter-cyclical} real wage --- falling in booms --- which the data contradict in the long run, though over short horizons the mechanism has some bite.
+
+\subsection{The Imperfect-Information Model}
+
+Here all wages and prices are perfectly flexible, but each producer observes only the nominal price of its own good, not the aggregate price level (which is learned only with a lag). Supply depends on the \emph{relative} price; lacking the price level, the firm uses its expectation $P^{e}$. If the general price level rises but the firm cannot yet see it, it mistakes the higher nominal price of its own good for a favorable \emph{relative}-price signal and produces more, so aggregate output exceeds potential. The assumption that the price level is known only after the fact is a realistic one.
+
+\subsection{The Sticky-Price Model}
+
+Output and prices move together, but the causation can run from $Y$ to $P$ as easily as from $P$ to $Y$. Each firm would like to set its price according to the price level and the state of demand,
+\[
+p = P + \alpha\,(Y - \overline{Y}), \qquad \alpha>0,
+\]
+charging more when output runs above potential. A firm free to change its price at will follows this rule. A firm that must commit to a price in advance (because of menu costs, long-term contracts, or customer relations) instead sets it on expectations,
+\[
+p = P^{e} + \alpha\,(Y^{e} - \overline{Y}),
+\]
+and for simplicity expects output at potential. Let a fraction $s$ of firms have sticky prices and $1-s$ be fully flexible. The equilibrium price level is the weighted average of the two groups' prices,
+\[
+P = s\,P^{e} + (1-s)\big[P + \alpha(Y-\overline{Y})\big],
+\]
+which rearranges to
+\[
+P = P^{e} + \left[\frac{(1-s)\,\alpha}{s}\right](Y-\overline{Y}),
+\qquad\text{equivalently}\qquad
+Y = \overline{Y} + \frac{s}{\alpha(1-s)}\,(P-P^{e}).
+\]
+If every firm were flexible ($s=0$), an increase in nominal income would pass entirely into prices: money would be neutral and supply vertical. It is the presence of price-stickers that gives the supply curve its positive slope. Unlike the sticky-wage model, the sticky-price model implies a \emph{pro-cyclical} real wage: a negative demand shock leads flexible firms to cut prices and sticky firms to cut output and labor demand, and the leftward shift in labor demand lowers the real wage --- which matches the data better.

@@ -1,0 +1,43 @@
+\begin{tikzpicture}
+  \begin{axis}[
+      width=12cm, height=7.2cm,
+      scale only axis,
+      axis lines=left,
+      xmin=0, xmax=1,
+      ymin=0, ymax=1,
+      xtick={0,0.2,0.4,0.6,0.8,1},
+      ytick={0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1},
+      xlabel={Tax Rate $\tau$},
+      ylabel={Labor Supply},
+      x label style={font=\small},
+      y label style={font=\small},
+      tick label style={font=\footnotesize},
+      axis line style={-Latex},
+      clip=false,
+    ]
+    % Labor supply  LS = 1 - 1/((1-tau)*20),  w = 20, defined on [0,0.95]
+    \addplot[red, line width=1.2pt, samples=200, domain=0:0.95]
+      {1 - 1/((1-x)*20)};
+    \node[red, anchor=south, font=\small] at (axis cs:0.32,0.92) {$1-l^{*}$};
+  \end{axis}
+
+  \begin{axis}[
+      width=12cm, height=7.2cm,
+      scale only axis,
+      axis y line=right,
+      axis x line=none,
+      xmin=0, xmax=1,
+      ymin=0, ymax=14,
+      ytick={0,2,4,6,8,10,12,14},
+      ylabel={Tax Revenue},
+      y label style={font=\small},
+      tick label style={font=\footnotesize},
+      axis line style={-Latex},
+      clip=false,
+    ]
+    % Revenue  R = 20*tau - tau/(1-tau),  defined on [0,0.95]
+    \addplot[blue, line width=1.2pt, samples=200, domain=0:0.95]
+      {20*x - x/(1-x)};
+    \node[blue, anchor=south west, font=\small] at (axis cs:0.78,12.0) {$R$};
+  \end{axis}
+\end{tikzpicture}

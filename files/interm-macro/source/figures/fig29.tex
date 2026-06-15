@@ -1,0 +1,21 @@
+\begin{tikzpicture}[scale=1.0]
+  % axes
+  \draw[-Latex] (0,0) -- (8.6,0) node[right] {$Y$};
+  \draw[-Latex] (0,0) -- (0,6.6) node[above] {$P$};
+  % vertical long-run supply curves (AS vertical: output fixed at full-employment level)
+  \def\ASx{3.0}   % original AS
+  \def\ASpx{5.4}  % shifted AS'
+  \draw[line width=1.1pt] (\ASx,0.0) -- (\ASx,6.1);
+  \draw[line width=1.1pt] (\ASpx,0.0) -- (\ASpx,6.1);
+  % aggregate demand: downward sloping, crossing both AS curves
+  % choose AD so that it intersects AS at (3, 4.0) and AS' at (5.4, 2.2)
+  \draw[line width=1.3pt] (1.2,5.5) -- (7.2,1.1);
+  % labels for the curves
+  \node[above] at (\ASx,6.1) {$\mathrm{AS}$};
+  \node[above] at (\ASpx,6.1) {$\mathrm{AS}'$};
+  \node[above left] at (1.55,5.25) {$\mathrm{AD}$};
+  % rightward shift arrow between the two AS curves
+  \draw[-Latex,densely dashed] (\ASx+0.25,5.55) -- (\ASpx-0.25,5.55);
+  \node[above] at ({(\ASx+\ASpx)/2},5.6) {growth};
+  % (equilibrium dots and dashed guides intentionally omitted, as in the original)
+\end{tikzpicture}

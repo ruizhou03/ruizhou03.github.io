@@ -1,0 +1,46 @@
+\begin{tikzpicture}[>=Stealth, line width=0.9pt]
+% ===================== TOP PANEL: IS-LM =====================
+% axes (plain lines as in the original)
+\draw (0,0) -- (0,6.7) node[above left] {$r$};
+\draw (0,0) -- (9.3,0);
+\node at (8.3,-0.45) {$Y$};
+
+% IS line (sloping down)
+\draw (1.7,5.8) -- (6.7,2.45) node[right] {$\mathrm{IS}$};
+
+% LM lines (two parallel, sloping up)
+% lower / right LM line
+\draw (2.6,2.4) -- (7.05,5.55);
+% upper / left LM line
+\draw (1.7,3.55) -- (8.4,8.35);
+% LM label near upper-right
+\node at (8.85,7.05) {$\mathrm{LM}$};
+
+% dotted shift arrow (up-right) between the lines, upper-right area
+\draw[densely dotted, ->] (7.25,5.0) -- (7.9,5.95);
+
+% crossings: upper-left at Y2 (x=3.3), lower-right at Y0 (x=4.5)
+% dashed verticals dropped to the Y axis
+\draw[densely dashed] (3.3,4.25) -- (3.3,0) node[below] {$Y_2$};
+\draw[densely dashed] (4.5,3.55) -- (4.5,0) node[below] {$Y_0$};
+
+% ===================== BOTTOM PANEL: AD =====================
+\begin{scope}[yshift=-9.0cm]
+% axes
+\draw (0,0) -- (0,6.1) node[above left] {$P$};
+\draw (0,0) -- (9.3,0);
+\node at (8.3,-0.45) {$Y$};
+
+% orange AD line (sloping down), unlabelled
+\draw[orange, line width=1.1pt] (1.65,5.2) -- (6.0,0.95);
+
+% dashed verticals continue down at Y2 and Y0, meeting orange line
+\draw[densely dashed] (3.3,5.4) -- (3.3,0) node[below] {$Y_2$};
+\draw[densely dashed] (4.5,5.4) -- (4.5,0) node[below] {$Y_0$};
+
+% dashed horizontals from meeting points (on orange line) left to P-axis
+% Y2 meeting point (higher); Y0 meeting point (lower)
+\draw[densely dashed] (0,3.59) -- (3.3,3.59);
+\draw[densely dashed] (0,2.42) -- (4.5,2.42);
+\end{scope}
+\end{tikzpicture}

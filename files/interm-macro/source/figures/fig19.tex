@@ -1,0 +1,46 @@
+\begin{tikzpicture}[scale=1.0]
+  %================ LEFT PANEL: money market ================
+  \begin{scope}[shift={(0,0)}]
+    % axes
+    \draw[-Latex] (0,0) -- (6.4,0) node[right] {$M$};
+    \draw[-Latex] (0,0) -- (0,5.6) node[above] {$r$};
+    % money demand M^d : downward-sloping convex curve (rectangular hyperbola)
+    \draw[semithick,smooth,samples=120,domain=0.62:5.9,variable=\x]
+          plot ({\x},{2.7/(\x-0.25)+0.55}) ;
+    \node[right] at (5.55,0.95) {$M^{d}$};
+    % two vertical money-supply lines
+    \def\Msa{3.3}\def\Msb{4.6}
+    \draw[semithick] (\Msa,0) -- (\Msa,5.1) node[above] {$M^{s_{1}}$};
+    \draw[semithick] (\Msb,0) -- (\Msb,5.1) node[above] {$M^{s_{2}}$};
+    % equilibrium interest rates: r1 at inner supply, r2 (lower) at outer supply
+    \pgfmathsetmacro{\rone}{2.7/(\Msa-0.25)+0.55}
+    \pgfmathsetmacro{\rtwo}{2.7/(\Msb-0.25)+0.55}
+    \fill (\Msa,\rone) circle (1.5pt);
+    \fill (\Msb,\rtwo) circle (1.5pt);
+    \draw[densely dashed] (0,\rone) -- (\Msa,\rone);
+    \draw[densely dashed] (0,\rtwo) -- (\Msb,\rtwo);
+    \node[left] at (0,\rone) {$r_{1}$};
+    \node[left] at (0,\rtwo) {$r_{2}$};
+  \end{scope}
+
+  %================ connector ================
+  \node at (7.6,2.7) {\Large $\Rightarrow$};
+
+  %================ RIGHT PANEL: LM shift ================
+  \begin{scope}[shift={(8.8,0)}]
+    % axes
+    \draw[-Latex] (0,0) -- (6.4,0) node[right] {$Y$};
+    \draw[-Latex] (0,0) -- (0,5.6) node[above] {$r$};
+    % upper (original) LM curve
+    \draw[semithick,smooth,samples=120,domain=0.7:4.2,variable=\x]
+          plot ({\x},{0.30*(\x-0.4)*(\x-0.4)+0.9});
+    % lower/right (shifted) LM curve
+    \draw[semithick,smooth,samples=120,domain=1.7:5.3,variable=\x]
+          plot ({\x},{0.30*(\x-1.4)*(\x-1.4)+0.55});
+    \node[above right] at (4.05,4.85) {$\mathrm{LM}$};
+    % small shift arrows sitting in the blank gap between the two LM curves,
+    % pointing down/right (direction of the shift) without touching either curve
+    \draw[-Latex,semithick] (2.6,2.05) -- (2.95,1.6);
+    \draw[-Latex,semithick] (3.4,3.0) -- (3.75,2.55);
+  \end{scope}
+\end{tikzpicture}

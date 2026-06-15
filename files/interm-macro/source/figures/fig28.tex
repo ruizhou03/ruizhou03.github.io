@@ -1,0 +1,31 @@
+\begin{tikzpicture}[scale=1.0]
+  % axes
+  \draw[-Latex] (0,0) -- (8.6,0) node[right] {$Y$};
+  \draw[-Latex] (0,0) -- (0,7.6) node[above] {$P$};
+
+  % long-run aggregate supply: vertical line
+  \draw[thick] (4.6,0) -- (4.6,7.2) node[above] {$\mathrm{LRAS}$};
+
+  % aggregate demand: downward sloping, fixed
+  \draw[thick] (1.4,6.4) -- (7.7,1.4);
+  \node[above left=-1pt and -1pt] at (1.55,6.3) {$\mathrm{AD}$};
+
+  % original short-run aggregate supply (upward sloping)
+  \draw[thick] (1.7,1.6) -- (7.6,5.5);
+  \node[right] at (7.6,5.5) {$\mathrm{AS}$};
+
+  % shifted short-run aggregate supply AS' (parallel, moved left/up)
+  \draw[thick] (0.6,3.1) -- (6.5,7.0);
+  \node[above] at (6.5,7.0) {$\mathrm{AS}'$};
+
+  % equilibria: original at AS x AD, new at AS' x AD
+  % AD: through (1.4,6.4)-(7.7,1.4): slope = (1.4-6.4)/(7.7-1.4) = -0.7937
+  %  P = 6.4 - 0.7937*(Y-1.4)
+  % AS: through (1.7,1.6)-(7.6,5.5): slope = 0.6610;  P = 1.6 + 0.6610*(Y-1.7)
+  % intersection E0: 6.4-0.7937(Y-1.4) = 1.6+0.6610(Y-1.7)
+  %  -> Y0 ~ 4.62, P0 ~ 4.13
+  % (equilibrium dots and dashed guides intentionally omitted, as in the original)
+
+  % leftward-shift arrow from AS toward AS' (in the blank gap between the two AS lines)
+  \draw[-Latex,densely dashed] (6.55,4.85) -- (5.45,5.6);
+\end{tikzpicture}

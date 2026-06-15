@@ -1,0 +1,57 @@
+\begin{tikzpicture}[scale=1.0,>=Latex]
+  % --- geometry parameters ---
+  % AE line: AD = a + m*Y, with m<1 (flatter than 45-degree line)
+  \def\m{0.5}            % MPC slope of the AE line
+  \def\al{1.2}           % intercept of the LOWER (initial) AE line
+  \def\dD{1.2}           % vertical upward shift Delta D
+  % upper intercept = al + dD
+  % equilibria: Y = a/(1-m)
+  \pgfmathsetmacro{\Yz}{\al/(1-\m)}          % Y_0
+  \pgfmathsetmacro{\Yo}{(\al+\dD)/(1-\m)}    % Y_1
+  \pgfmathsetmacro{\ADz}{\Yz}                 % AD at Y_0 (on 45 line)
+  \pgfmathsetmacro{\ADo}{\Yo}                 % AD at Y_1 (on 45 line)
+  \def\xmax{8.4}
+  \def\ymax{7.2}
+
+  % --- axes ---
+  \draw[-Latex] (0,0) -- (\xmax,0) node[right] {$Y$};
+  \draw[-Latex] (0,0) -- (0,\ymax) node[left] {$\mathrm{AD}$};
+
+  % --- 45-degree line ---
+  \def\Lf{6.6}
+  \draw[line width=1.1pt] (0,0) -- (\Lf,\Lf);
+  \node[above left=-1pt and 0pt] at (\Lf,\Lf) {$45^{\circ}$};
+
+  % --- AE lines (planned expenditure), thicker = primary feasible lines ---
+  \def\xR{7.6}
+  % lower (initial) AE line
+  \pgfmathsetmacro{\yLR}{\al+\m*\xR}
+  \draw[line width=1.3pt] (0,\al) -- (\xR,\yLR);
+  % upper (shifted) AE line
+  \pgfmathsetmacro{\yUR}{\al+\dD+\m*\xR}
+  \draw[line width=1.3pt] (0,\al+\dD) -- (\xR,\yUR);
+  \node[right] at (\xR,\yUR) {$C+I+G+\mathrm{NX}$};
+
+  % arrow showing the upward shift of the AE line
+  \draw[-Latex] (\xR-1.0,{\al+\m*(\xR-1.0)}) -- (\xR-1.0,{\al+\dD+\m*(\xR-1.0)});
+
+  % --- equilibria ---
+  \fill (\Yz,\ADz) circle (1.6pt);
+  \fill (\Yo,\ADo) circle (1.6pt);
+
+  % --- dropped guide lines to the x-axis ---
+  \draw[densely dotted] (\Yz,\ADz) -- (\Yz,0) node[below] {$Y_0$};
+  \draw[densely dotted] (\Yo,\ADo) -- (\Yo,0) node[below] {$Y_1$};
+
+  % --- Delta D : vertical gap between the two AE lines (left side) ---
+  \def\xD{1.4}
+  \pgfmathsetmacro{\yDlo}{\al+\m*\xD}
+  \pgfmathsetmacro{\yDhi}{\al+\dD+\m*\xD}
+  \draw[<->,green!55!black,line width=0.9pt] (\xD,\yDlo) -- (\xD,\yDhi);
+  \node[left=1pt,orange!85!black] at (\xD,{(\yDlo+\yDhi)/2}) {$\Delta D$};
+
+  % --- Delta Y : horizontal gap between Y_0 and Y_1 on the axis ---
+  \def\yDY{1.0}
+  \draw[<->,green!55!black,densely dotted,line width=1.0pt] (\Yz,\yDY) -- (\Yo,\yDY);
+  \node[above,orange!85!black] at ({(\Yz+\Yo)/2},\yDY) {$\Delta Y$};
+\end{tikzpicture}

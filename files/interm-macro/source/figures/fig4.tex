@@ -1,0 +1,72 @@
+\begin{tikzpicture}[scale=1.0]
+  % ===== shared panel geometry =====
+  % each panel is 5 wide, 3.6 tall; the jump happens at t = tj
+  \def\W{5.2}\def\H{3.6}\def\tj{0.9}
+  % horizontal offsets of the two columns and vertical offsets of the two rows
+  \def\xR{7.0}   % x-shift of the right column
+  \def\yB{-5.0}  % y-shift of the bottom row
+
+  % ---------- helper macro: one panel ----------
+  % #1 = (dx,dy) shift   #2 = vertical-axis variable label
+  % drawn relative to (0,0); axes go up to (\W,0) and (0,\H)
+
+  % ============ TOP-LEFT : k ============
+  \begin{scope}[shift={(0,0)}]
+    \draw[-Latex] (0,0) -- (\W,0) node[below right] {$t$};
+    \draw[-Latex] (0,0) -- (0,\H) node[left] {$k$};
+    \def\kstar{2.85}\def\kg{1.15}
+    % asymptote
+    \draw[densely dashed] (0,\kg) -- (\W,\kg);
+    \node[left] at (0,\kg) {$k_g^{*}$};
+    \node[left] at (0,\kstar) {$k^{*}$};
+    % flat at k*, then smooth decline toward k_g*
+    \draw[line width=1.1pt] (0,\kstar) -- (\tj,\kstar);
+    \draw[line width=1.1pt,smooth,samples=120,domain=\tj:\W]
+      plot (\x,{\kg + (\kstar-\kg)*exp(-1.05*(\x-\tj))});
+  \end{scope}
+
+  % ============ TOP-RIGHT : y ============
+  \begin{scope}[shift={(\xR,0)}]
+    \draw[-Latex] (0,0) -- (\W,0) node[below right] {$t$};
+    \draw[-Latex] (0,0) -- (0,\H) node[left] {$y$};
+    \def\ystar{2.85}\def\yg{1.15}
+    \draw[densely dashed] (0,\yg) -- (\W,\yg);
+    \node[left] at (0,\yg) {$y_g^{*}$};
+    \node[left] at (0,\ystar) {$y^{*}$};
+    \draw[line width=1.1pt] (0,\ystar) -- (\tj,\ystar);
+    \draw[line width=1.1pt,smooth,samples=120,domain=\tj:\W]
+      plot (\x,{\yg + (\ystar-\yg)*exp(-1.05*(\x-\tj))});
+  \end{scope}
+
+  % ============ BOTTOM-LEFT : c ============
+  \begin{scope}[shift={(0,\yB)}]
+    \draw[-Latex] (0,0) -- (\W,0) node[below right] {$t$};
+    \draw[-Latex] (0,0) -- (0,\H) node[left] {$c$};
+    \def\cstar{1.30}\def\cg{1.70}\def\cpk{2.95}
+    % asymptote c_g* sits ABOVE the starting level c*
+    \draw[densely dashed] (0,\cg) -- (\W,\cg);
+    \node[left] at (0,\cg) {$c_g^{*}$};
+    \node[left] at (0,\cstar) {$c^{*}$};
+    % flat at c*, then JUMP UP to the peak, then decline toward c_g*
+    \draw[line width=1.1pt] (0,\cstar) -- (\tj,\cstar);
+    \draw[line width=1.1pt] (\tj,\cstar) -- (\tj,\cpk);
+    \draw[line width=1.1pt,smooth,samples=120,domain=\tj:\W]
+      plot (\x,{\cg + (\cpk-\cg)*exp(-0.78*(\x-\tj))});
+  \end{scope}
+
+  % ============ BOTTOM-RIGHT : i ============
+  \begin{scope}[shift={(\xR,\yB)}]
+    \draw[-Latex] (0,0) -- (\W,0) node[below right] {$t$};
+    \draw[-Latex] (0,0) -- (0,\H) node[left] {$i$};
+    \def\istar{2.85}\def\ig{0.95}\def\idr{2.05}
+    % asymptote i_g* below
+    \draw[densely dashed] (0,\ig) -- (\W,\ig);
+    \node[left] at (0,\ig) {$i_g^{*}$};
+    \node[left] at (0,\istar) {$i^{*}$};
+    % flat at i*, then JUMP DOWN to a level, then decline toward i_g*
+    \draw[line width=1.1pt] (0,\istar) -- (\tj,\istar);
+    \draw[line width=1.1pt] (\tj,\istar) -- (\tj,\idr);
+    \draw[line width=1.1pt,smooth,samples=120,domain=\tj:\W]
+      plot (\x,{\ig + (\idr-\ig)*exp(-0.95*(\x-\tj))});
+  \end{scope}
+\end{tikzpicture}

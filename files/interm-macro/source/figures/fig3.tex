@@ -1,0 +1,41 @@
+\begin{tikzpicture}[scale=1.0]
+  % --- parameters of the production function f(k) = A*sqrt(k) ---
+  % choose A and delta so that the break-even line delta*k crosses f(k)
+  % inside the frame, with the golden-rule capital k_g = k^*/4 to its left.
+  \def\A{1.451}           % scale of f(k):  crossing at k^*=7.6
+  \def\del{0.526}         % slope of the depreciation / break-even line delta*k
+  % steady state where f(k)=delta*k:  k^* = (A/delta)^2
+  \pgfmathsetmacro{\kstar}{(\A/\del)^2}
+  % golden rule: f'(k_g)=A/(2 sqrt(k_g))=delta  =>  k_g = (A/(2 delta))^2 = k^*/4
+  \pgfmathsetmacro{\kg}{(\A/(2*\del))^2}
+  \pgfmathsetmacro{\fkg}{\A*sqrt(\kg)}     % height of f at k_g
+  \def\kmax{8.6}
+
+  % --- axes ---
+  \draw[-Latex] (0,0) -- (\kmax,0) node[right] {$k$};
+  \draw[-Latex] (0,0) -- (0,5.6) node[above] {output};
+
+  % --- depreciation / break-even line delta*k (black, per house style) ---
+  % extend slightly beyond the curve's end so it finishes visibly higher than f(k)
+  \draw[line width=1.0pt] (0,0) -- (\kmax,{\del*\kmax}) ;
+  \node at ({\kmax-0.85},{\del*(\kmax-0.85)+0.40}) {$\delta k$};
+
+  % --- production function f(k) = A sqrt(k)  (primary, red as in original) ---
+  \draw[red,line width=1.5pt,smooth,samples=200,domain=0:\kmax]
+        plot (\x,{\A*sqrt(\x)});
+  \node[red] at ({\kmax+0.32},{\A*sqrt(\kmax)-0.12}) {$f(k)$};
+
+  % --- tangent line to f(k) at the golden-rule point ---
+  % the golden rule is exactly where f'(k_g)=delta, so this tangent has slope
+  % EXACTLY delta and is therefore parallel to the delta*k line above.
+  % line: y = fkg + del*(x - kg), drawn long & symmetric so the parallelism is obvious.
+  % draw the tangent across most of the frame so its slope is visibly identical to delta*k
+  \pgfmathsetmacro{\txa}{0.0}
+  \pgfmathsetmacro{\txb}{\kmax-1.7}
+  \draw[line width=1.0pt] ({\txa},{\fkg+\del*(\txa-\kg)}) -- ({\txb},{\fkg+\del*(\txb-\kg)});
+  \node[align=center] at ({\kg+1.15},{\fkg+\del*1.15+0.42}) {$MPK = \delta$};
+
+  % --- golden-rule point on f(k) and dashed guide to the axis ---
+  \fill (\kg,\fkg) circle (1.4pt);
+  \draw[densely dashed] (\kg,\fkg) -- (\kg,0) node[below] {$k_g^{*}$};
+\end{tikzpicture}

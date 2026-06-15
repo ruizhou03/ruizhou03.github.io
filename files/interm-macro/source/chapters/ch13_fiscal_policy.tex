@@ -1,0 +1,113 @@
+% !TEX root = ../main.tex
+\chapter{Fiscal Policy: Ricardian Equivalence, the Laffer Curve, and Government Debt}
+\label{ch:fiscal}
+
+The Keynesian apparatus treated a fiscal expansion as a shift of the IS curve, financed by some unspecified mix of taxes and borrowing. The classical tradition objects that the financing is not a detail at all. A forward-looking household understands that a deficit today is a tax tomorrow, and plans accordingly --- so much so that, under sharp enough assumptions, the choice between taxes and debt has no effect on anything real. This chapter develops that claim, called Ricardian equivalence, in a clean two-period model; identifies the assumptions it leans on, and hence the realistic reasons it fails; and then turns to two questions the equivalence result reframes rather than settles: how high taxes can go before they become self-defeating (the Laffer curve), and whether government debt is a burden.
+
+\section{Ricardian Equivalence}
+
+Classical economists --- Smith, Ricardo --- held that markets solve most problems and that government is largely unnecessary. They could not, however, explain the Great Depression, which is where Keynes entered with a case for using government spending to prop up demand. The classical reply, later given rigorous microfoundations by the new classical school, is that government spending crowds out private consumption whether it is financed by taxes or by debt, because rational consumers see through the deficit: a bond sold today must be redeemed by a tax tomorrow.
+
+Consider an economy with a single representative consumer and a government, lasting two periods. The government spends only in the first period, $G_1=G$ and $G_2=0$, financing it with some combination of a first-period tax $t_1$ and bonds $b$, so that $G=t_1+b$. In the second period it raises a tax $t_2=(1+r)b$ to repay the bonds with interest. Its budget can be written in present value as
+\[
+G = t_1 + \frac{t_2}{1+r},
+\]
+the present value of taxes equals the present value of spending.
+
+\defn{Ricardian Equivalence}{
+\emph{Ricardian equivalence} is the proposition that, for a given path of government spending, the choice between tax finance and bond finance leaves the consumer's budget set --- and hence consumption and welfare --- unchanged. Only the present value of spending matters, not how it is financed.}
+
+The consumer has preferences $U(C_1,C_2)=u(C_1)+\beta\,u(C_2)$ and faces the period budgets
+\[
+C_1 = y_1 - t_1 - s, \qquad C_2 = y_2 - t_2 + (1+r)s,
+\]
+where $s$ is private saving. Since the only asset is the government bond, in equilibrium private saving equals the bonds issued, $s=b$. Combining the two period budgets to eliminate $s$, and then substituting the government budget, gives the consumer's lifetime budget constraint
+\[
+C_1 + \frac{C_2}{1+r}
+= y_1 + \frac{y_2}{1+r} - \left(t_1 + \frac{t_2}{1+r}\right)
+= y_1 + \frac{y_2}{1+r} - G.
+\]
+The present value of consumption equals the present value of income less the present value of spending. The split of $G$ between $t_1$ and $b$ has dropped out entirely.
+
+\state{The key point}{
+The consumer's lifetime budget depends on $G$ alone, not on whether $G$ is raised by taxes or by bonds. Two financing schemes with the same $G$ yield the same $(C_1,C_2)$. That is Ricardian equivalence.}
+
+\ex[Log utility]{Take $u(C)=\log C$, so the consumer solves
+\[
+\max_{s}\; \log(y_1 - t_1 - s) + \beta\log\big(y_2 - t_2 + (1+r)s\big).
+\]
+The first-order condition is
+\[
+\frac{1}{y_1 - t_1 - s} = \frac{\beta(1+r)}{y_2 - t_2 + (1+r)s},
+\]
+with solution
+\[
+b = s^{*} = \frac{\beta(1+r)(y_1 - t_1) - (y_2 - t_2)}{(1+\beta)(1+r)}.
+\]
+Compare the two polar financing schemes. Under \emph{pure taxation}, $G=t_1$, $b=0$, $t_2=0$, and the optimum requires $G = y_1 - \dfrac{y_2}{\beta(1+r)}$. Under \emph{pure bond finance}, $b=G$, $t_1=0$, $t_2=(1+r)G$, and substituting gives exactly the same condition $G = y_1 - \dfrac{y_2}{\beta(1+r)}$. The government spends the same amount in both cases, so $C_1$ and $C_2$ are identical: the equivalence holds, and by the same argument it holds for any tax--bond mix in between.}
+
+\subsection{The Assumptions, and Why They Fail}
+
+Equivalence is a theorem, and like any theorem it has premises.
+
+\asm{Premises of Ricardian Equivalence}{
+\begin{enumerate}
+\item \textbf{Perfect foresight / rationality:} the consumer anticipates $t_2=(1+r)b$ and optimizes over both periods.
+\item \textbf{The consumer lives both periods:} the same agent who benefits from the deficit also bears the future tax.
+\item \textbf{The taxpayer and the bondholder are the same consumer.}
+\item \textbf{Taxes are lump-sum.}
+\end{enumerate}}
+
+Each assumption, when it fails, breaks equivalence in an instructive way.
+\begin{itemize}
+\item \emph{Finite lives.} If consumers do not live to pay the future tax, a bond-financed deficit lets the current generation consume more and forces the next generation to consume less; consumption is no longer smoothed across the two. (Altruistic bequests can partially restore equivalence by linking the generations.)
+\item \emph{Taxpayer $\ne$ bondholder.} Two effects appear. A \emph{distributional} effect: those who buy fewer bonds now consume more, while those who must buy more later consume less. And an \emph{effect on saving and capital}: when a deficit is not fully matched by extra private saving, government borrowing absorbs funds that would have financed investment, reducing the capital stock.
+\item \emph{Distortionary taxes.} If the tax is not lump-sum but an income or \emph{ad valorem} tax (e.g.\ a progressive tax), it changes relative prices and distorts the allocation away from the efficient one. Taxing now creates a distortion now; borrowing and taxing later creates a distortion later. Because the timing of distortions now matters, the financing choice is no longer neutral --- which is the basis for \emph{tax smoothing}: spread distortionary taxes thinly over time, and lean on debt to do it.
+\end{itemize}
+
+\section{The Laffer Curve}
+
+Once taxes are distortionary, their level --- not just their timing --- matters, and raising the rate need not raise revenue. A static labor-supply model makes the point. A consumer with utility $U(C,l)=C+\log l$ over consumption and leisure $l$ faces a proportional tax $\tau$ on labor income; with the wage $w$ and total time normalized to one, the budget is
+\[
+C = (1-\tau)(1-l)\,w.
+\]
+Maximizing $C+\log l$ over $l$ gives the first-order condition $-(1-\tau)w + 1/l = 0$, so the optimal leisure and labor supply are
+\[
+l^{*} = \frac{1}{(1-\tau)w}, \qquad 1 - l^{*} = 1 - \frac{1}{(1-\tau)w}.
+\]
+Rewriting the budget as $C + (1-\tau)w\,l = (1-\tau)w$ shows that a higher $\tau$ \emph{lowers} the effective price of leisure $(1-\tau)w$, so by the substitution effect leisure rises and labor supply falls. Tax revenue is the rate times the (taxed) labor income,
+\[
+R = \tau w\,(1-l^{*}) = \tau w - \frac{\tau}{1-\tau}.
+\]
+The two terms have a clean reading: $\tau w$ is the \emph{potential-revenue effect}, the revenue if the consumer worked all the time; and $-\dfrac{\tau}{1-\tau}$ is the \emph{distortion effect}, with $\tau$ the rate and $1-\tau$ the distortion it induces.
+
+\begin{figure}[h]
+\centering
+\input{figures/fig30}
+\caption{The Laffer curve. As the tax rate rises, labor supply (left axis) falls, slowly at first and then steeply; tax revenue (right axis) traces an inverted U, rising while the rate effect dominates and falling once the shrinking tax base dominates.}
+\label{fig:macro-30}
+\end{figure}
+
+Differentiating, $\mathrm{d}R/\mathrm{d}\tau = w - 1/(1-\tau)^2$, which is zero at the revenue-maximizing rate; beyond it, revenue falls. Figure~\ref{fig:macro-30} shows the inverted-U shape: past the peak the tax base shrinks faster than the rate rises, so revenue declines. A \emph{prohibitive} tax rate is one beyond the peak, where labor supply has collapsed so far that raising the rate lowers total revenue; there the distortion of the optimal allocation is severe.
+
+\state{Implication}{
+High tax rates are very distortionary, so governments should \emph{smooth} distortions over time and rely more on debt. In wartime, when spending must spike, the textbook prescription is to raise rates only modestly and finance the bulk with bonds --- precisely tax smoothing in action.}
+
+\section{Government Debt}
+
+Three questions about public debt recur.
+
+\emph{Is government debt sustainable?} A sovereign's debt is unlike a household's. As long as the state exists, its debt can in principle be rolled over indefinitely --- new bonds issued to redeem old ones --- and never repaid in full. Comparisons of debt to GDP are common but imperfect: GDP is a flow while debt is a stock; governments hold large assets behind the debt; and as long as the regime and its credit endure, the debt is backed. Broadly, the debt is manageable, though a downgrade by ratings agencies can strike even when there is fiscal room.
+
+\emph{Is the debt a burden on the economy?} When the government borrows to spend, some people consume less today, and the burden is shared across generations through the future taxes. The usual occasion is a slump, in which the government spends to support demand. For the public, holding the bonds is itself a positive-return asset, secure so long as the debt is rolled over.
+
+\emph{Is there an optimal debt-to-tax ratio?} Under Ricardian equivalence, taxes and bonds are equivalent, so no optimal mix exists. But the equivalence relies on assumptions the real world violates --- chiefly lump-sum taxation --- so once taxes are distortionary the tax-smoothing argument returns and there is a genuine trade-off. Historically, the United States financed itself mainly through taxes around the Second World War; since the 1970s the balance has shifted toward debt, with steady tax revenue but expanding outlays and persistent deficits.
+
+\section{Social Security}
+
+Social-security spending is a large part of the government budget, and its design echoes the financing question.
+
+\defn{Two Social-Security Systems}{
+A \emph{defined-benefit} (pay-as-you-go) system funds today's retirees out of today's workers' contributions --- the young support the old. A \emph{defined-contribution} (fully funded) system invests each worker's contributions and pays them back, with investment returns, in retirement --- one supports one's own future self.}
+
+A crucial fact about pay-as-you-go systems is that the money in the ``account'' is not actually held in reserve; it has already been spent on current retirees. Such a system is robust to investment risk but acutely vulnerable to demographic change. As a population ages --- fewer workers supporting more retirees, the old-age dependency ratio rising --- a pay-as-you-go system tends toward deficit. Remedies are all unpalatable: higher contribution rates burden workers and firms; cutting benefits is politically impossible; raising the retirement age may be unavoidable. A fully funded system avoids the demographic squeeze but bears inflation and investment risk instead.

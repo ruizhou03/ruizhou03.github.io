@@ -1,0 +1,40 @@
+\begin{tikzpicture}[scale=1.0,line width=1pt]
+  % ===== faithful trace of orig-fig23.png (IS-LM monetary expansion) =====
+  % coordinate model: 1 unit = 100px of original; origin at axis corner (97,446)
+
+  % ----- axes -----
+  \draw (0,3.74) -- (0,-0.32);                 % vertical r-axis
+  \draw (-0.51,0) -- (7.31,0);                  % horizontal axis (no letter)
+  \node at (-0.42,3.66) {$r$};                  % r label top-left
+
+  % ----- IS curve (down-sloping, upper-left to lower-right) -----
+  \draw (0.53,3.11) -- (4.18,0.38);
+  \node[anchor=west] at (4.40,0.46) {$\mathrm{IS}$};
+
+  % ----- LM curve (upper of the two parallel up-sloping lines) -----
+  \draw (0.63,0.41) -- (5.33,3.26);
+  \node[anchor=west] at (5.55,3.50) {$\mathrm{LM}$};
+
+  % ----- LM' curve (parallel, shifted down-and-right; unlabelled in original) -----
+  \draw (2.13,0.36) -- (7.13,3.28);
+
+  % ----- dashed shift arrow on LM pointing down-right toward LM' -----
+  \draw[densely dashed,-{Latex[length=2.4mm]}] (5.28,2.96) -- (6.03,2.58);
+
+  % ----- horizontal dashed line at low r, from axis to ~Y1 vertical -----
+  \draw[densely dashed] (0.03,0.52) -- (4.03,0.52);
+
+  % ----- dotted vertical drop lines to the horizontal axis -----
+  \draw[densely dotted] (2.55,1.53) -- (2.55,0);   % Y0 (IS x LM)
+  \draw[densely dotted] (3.34,1.03) -- (3.34,0);   % Y2 (IS x LM')
+  \draw[densely dotted] (4.01,1.43) -- (4.01,0);   % Y1
+
+  % ----- tick labels below the horizontal axis -----
+  \node at (2.51,-0.42) {$Y_0$};
+  \node at (3.41,-0.44) {$Y_2$};
+  \node at (4.01,-0.44) {$Y_1$};
+
+  % ----- two orange convergence arrows (up-right) toward IS x LM' -----
+  \draw[orange,line width=1.2pt,-{Latex[length=2.2mm]}] (2.83,0.54) -- (3.08,0.80);
+  \draw[orange,line width=1.2pt,-{Latex[length=2.2mm]}] (2.71,1.24) -- (3.11,1.48);
+\end{tikzpicture}

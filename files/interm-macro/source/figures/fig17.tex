@@ -1,0 +1,32 @@
+\begin{tikzpicture}[scale=1.0]
+  % axes
+  \draw[-Latex] (0,0) -- (8.6,0) node[right] {$M$};
+  \draw[-Latex] (0,0) -- (0,6.4) node[above] {$r$};
+  % vertical money supply M^s fixed
+  \def\Ms{4.6}
+  \draw[line width=1.2pt] (\Ms,0) -- (\Ms,6.0);
+  \node[above] at (\Ms,6.0) {$M^{s}$};
+  % money demand curves: rectangular-hyperbola shape r = k/M
+  % M^{d_1} : original demand, equilibrium r_1 at M = Ms
+  \def\rone{1.7}
+  \pgfmathsetmacro{\kone}{\rone*\Ms}      % so that k/Ms = r_1
+  \draw[semithick,domain=1.55:8.1,smooth,variable=\x,samples=160]
+        plot ({\x},{\kone/\x});
+  \node[below right] at (8.1,{\kone/8.1}) {$M^{d_1}$};
+  % M^{d_2} : higher demand after GDP rises (shifted right), equilibrium r_2 at M = Ms
+  \def\rtwo{3.0}
+  \pgfmathsetmacro{\ktwo}{\rtwo*\Ms}      % so that k/Ms = r_2
+  \draw[semithick,domain=2.35:8.3,smooth,variable=\x,samples=160]
+        plot ({\x},{\ktwo/\x});
+  \node[right] at (8.3,{\ktwo/8.3}) {$M^{d_2}$};
+  % equilibrium points
+  \fill (\Ms,\rone) circle (1.6pt);
+  \fill (\Ms,\rtwo) circle (1.6pt);
+  % dashed guides to the r-axis
+  \draw[densely dashed] (\Ms,\rone) -- (0,\rone) node[left] {$r_1$};
+  \draw[densely dashed] (\Ms,\rtwo) -- (0,\rtwo) node[left] {$r_2$};
+  % upward arrow on the r-axis showing r rises
+  \draw[-Latex] (-0.62,\rone) -- (-0.62,\rtwo);
+  % single arrow showing the rightward shift of demand (in blank space)
+  \draw[-Latex] (5.0,1.55) -- (5.95,2.2);
+\end{tikzpicture}

@@ -1,0 +1,116 @@
+\documentclass[oneside,fontset=macnew,UTF8]{ctexbook}
+
+\usepackage{amsmath, amsthm, amssymb, amsfonts}
+\usepackage{thmtools}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{framed}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{environ}
+\usepackage{tcolorbox}
+\tcbuselibrary{theorems,skins,breakable}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{multicol}
+\usetikzlibrary{positioning, arrows.meta, patterns, calc, decorations.pathreplacing, decorations.markings, shapes.geometric, backgrounds}
+\usepackage[normalem]{ulem}
+\usepackage{colortbl}
+\usepackage{cancel}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=*,labelindent=0pt}
+
+\renewcommand{\proofname}{证明}
+
+\usepackage{fancyhdr}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\thepage}}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhead[L]{\textit{\leftmark}}
+\fancyhead[R]{\thepage}
+\fancyfoot[R]{\tiny 中级宏观经济学 \textemdash\ ruizhou03.com}
+
+\setstretch{1.25}
+\geometry{
+    textheight=9in, textwidth=5.5in, top=1in,
+    headheight=14pt, headsep=25pt, footskip=30pt
+}
+
+\def\notetitle{中级宏观经济学}
+\def\notesubtitle{一份自足的课程讲义}
+\def\noteauthor{颜色 教授 主讲 \\
+    北京大学光华管理学院 \quad 应用经济学系 \\
+    \vspace{0.5em}
+    周睿 整理、翻译并用 {\LaTeX} 排版}
+\def\notedate{2022 年秋 \\ \small（2026 年重排、统一并译为中文）}
+
+\input{theorems_zh.tex}
+\input{commands.tex}
+
+\begin{document}
+
+\title{\textbf{
+    \LARGE{\notetitle}\\
+    \vspace{0.5em}
+    \large\textit{\notesubtitle}
+    \vspace*{8\baselineskip}}
+}
+\author{\noteauthor}
+\date{\notedate}
+
+\maketitle
+\newpage
+
+\thispagestyle{empty}
+\section*{如何阅读本书}
+
+这是一门一学期\textbf{中级宏观经济学}课程的讲义，以新古典传统讲授。它写来是供从头读到尾的，像一本简短的教科书，而不是供临时翻查的公式表。
+
+宏观经济学问两个问题。第一个关乎\emph{长期}：为什么有的国家富、有的国家穷？是什么让一个经济体在几十年里持续增长？第二个关乎\emph{短期}：产出为什么会围绕其趋势波动？政策对此能有所作为吗？本书循此分野展开。我们先学习如何\emph{度量}总量经济——产出、价格和劳动力市场——因为后续每一个论证归根结底都是关于这些数字的命题。随后我们从索洛模型出发，一路构建长期增长理论，直至其有微观基础的后继模型，以及现代增长之前的马尔萨斯世界。接着我们研究货币与银行，以及把货币与价格联系起来的货币数量论。最后才转向短期：凯恩斯交叉、IS--LM 模型、总需求与总供给、财政政策及李嘉图等价所设的界限，以及菲利普斯曲线、预期，和“规则对相机抉择”之争。
+
+关于这门学科的一句提醒：宏观经济学不像微观经济学那样整洁。同一个事实可以用不止一个模型来解读，数据很少能干净利落地了结一场争论，而一位好的讲授者会旁逸斜出，谈到一些制度性的细节——中国的中央银行实际如何运作、某项政策为何在某一年失灵——这些并不能整齐地纳入任何单一的定理。凡能照亮理论之处，我们都把这些旁枝保留了下来，置于\textbf{注}框之中，而非把每一处观察都硬塞进一个并不真正契合的模型。请把这些框读作一门鲜活学科的肌理，而非未尽之处。
+
+\subsection*{各章的组织方式}
+
+每一章都以一段平实的中文\emph{引子}开篇，说明我们要回答什么问题、为何即将引入某个特定的工具。随后我们将这一想法形式化，推演其代数，并从图中读出经济学含义。定义和关键结论都用彩框标出，便于复习时迅速查找。本书每一幅图都是重新绘制的，没有任何扫描件。
+
+\subsection*{彩框颜色约定}
+
+\begin{itemize}
+    \item \tcbox[colback=green!10!white, colframe=green!10!white, size=fbox]{\textbf{绿色：定义}}——我们赖以构建的对象（GDP、自然失业率、货币乘数，\dots）。
+    \item \tcbox[colback=cyan!10!white, colframe=cyan!10!white, size=fbox]{\textbf{蓝色：定理 / 结论}}——各模型的核心结果。
+    \item \tcbox[colback=pink!20!white, colframe=pink!20!white, size=fbox]{\textbf{粉色：假设}}——一个模型所维持的前提，集中列于一处。
+    \item 全书还穿插着\textbf{例}（worked examples）、\textbf{注}（remarks）以及强调框。
+\end{itemize}
+
+\subsection*{记号约定}
+
+全书中，$Y$ 表示总产出（实际 GDP），$C$ 表示消费，$I$ 表示投资，$G$ 表示政府购买，$\mathrm{NX}=X-M$ 表示净出口。$K$ 表示资本存量，$L$（或 $N$）表示劳动；小写的 $k=K/L$ 与 $y=Y/L$ 是其人均（劳均）对应量。储蓄率记为 $s$，折旧率记为 $\delta$，人口增长率记为 $n$，劳动增强型技术进步率记为 $g$；稳态值加星号，如 $k^{*}$。价格与通胀方面：$P$ 是价格水平，$\pi$ 是其变化率，上标 $e$（如 $P^{e}$、$\pi^{e}$）表示预期值。利率方面：$r$ 是实际利率，$i=r+\pi^{e}$ 是名义利率。在跨期问题中，$\beta$ 是贴现因子，$\mathcal{L}$ 是拉格朗日函数。货币层次为 $M_0\subset M_1\subset M_2$。
+
+\newpage
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+\include{chapters_zh/ch1_introduction}
+\include{chapters_zh/ch2_national_accounts}
+\include{chapters_zh/ch3_prices_inflation}
+\include{chapters_zh/ch4_labor_unemployment}
+\include{chapters_zh/ch5_solow}
+\include{chapters_zh/ch6_neoclassical_growth}
+\include{chapters_zh/ch7_malthus}
+\include{chapters_zh/ch8_money_banking}
+\include{chapters_zh/ch9_quantity_theory}
+\include{chapters_zh/ch10_keynesian_cross}
+\include{chapters_zh/ch11_is_lm}
+\include{chapters_zh/ch12_ad_as}
+\include{chapters_zh/ch13_fiscal_policy}
+\include{chapters_zh/ch14_phillips_policy}
+
+\end{document}

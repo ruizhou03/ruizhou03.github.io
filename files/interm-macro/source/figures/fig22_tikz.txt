@@ -1,0 +1,61 @@
+\begin{tikzpicture}[scale=1.0]
+  % ----- coordinate model -----
+  % LM upward: r = lmA + lmS*(Y)
+  % IS downward: r = isA - isS*Y ; IS' = IS shifted right by d
+  \def\lmS{0.62}    % LM slope
+  \def\isS{0.85}    % IS slope (magnitude)
+  % Equilibrium E0 = (Y0,r0) where IS meets LM
+  \def\Yz{3.0}\def\rz{2.55}
+  \pgfmathsetmacro{\lmA}{\rz-\lmS*\Yz}   % LM intercept
+  \pgfmathsetmacro{\isA}{\rz+\isS*\Yz}   % IS intercept
+  % shift IS to IS': new intercept larger by isS*d
+  \def\d{2.0}
+  \pgfmathsetmacro{\isAp}{\isA+\isS*\d}
+  % E2 = (Y2,r2): IS' meets LM  -> lmA+lmS*Y = isAp - isS*Y
+  \pgfmathsetmacro{\Yt}{(\isAp-\lmA)/(\lmS+\isS)}
+  \pgfmathsetmacro{\rt}{\lmA+\lmS*\Yt}
+  % Y1: on IS' at r = r0  -> r0 = isAp - isS*Y1
+  \pgfmathsetmacro{\Yo}{(\isAp-\rz)/\isS}
+
+  % ----- axes -----
+  \draw[-Latex] (0,0) -- (8.6,0) node[right] {$Y$};
+  \draw[-Latex] (0,0) -- (0,5.6) node[above] {$r$};
+
+  % ----- LM (upward sloping, single black line) -----
+  \draw[thick] (0.6,{\lmA+\lmS*0.6}) -- (7.0,{\lmA+\lmS*7.0}) node[right] {$\mathrm{LM}$};
+
+  % ----- IS (original) -----
+  \draw[thick] (0.9,{\isA-\isS*0.9}) -- (5.7,{\isA-\isS*5.7});
+  \node[above right=0pt and 1pt] at (5.25,{\isA-\isS*5.25}) {$\mathrm{IS}$};
+  % ----- IS' (shifted right) -----
+  \draw[thick] ({0.9+\d},{\isA-\isS*0.9}) -- ({5.5+\d},{\isA-\isS*5.5}) node[above right=-1pt and 0pt] {$\mathrm{IS}'$};
+
+  % ----- equilibrium points -----
+  \fill (\Yz,\rz) circle (1.7pt);   % E0
+  \fill (\Yt,\rt) circle (1.7pt);   % E2
+
+  % ----- dashed guide at r0 level out to Y1 on IS' -----
+  \draw[densely dashed] (0,\rz) node[left] {$r_0$} -- (\Yo,\rz);
+
+  % ----- r2 guide -----
+  \draw[densely dashed] (0,\rt) node[left] {$r_2$} -- (\Yt,\rt);
+
+  % ----- vertical drop guides to Y axis -----
+  \draw[densely dotted] (\Yz,\rz) -- (\Yz,0) node[below] {$Y_0$};
+  \draw[densely dotted] (\Yt,\rt) -- (\Yt,0) node[below] {$Y_2$};
+  \draw[densely dotted] (\Yo,\rz) -- (\Yo,0) node[below] {$Y_1$};
+
+  % ----- G up annotation with shift arrow -----
+  \node at (1.9,5.15) {$G\uparrow$};
+  \draw[-Latex,densely dashed] (1.4,3.7) -- (2.3,4.5);
+
+  % ----- adjustment arrows (orange accent) -----
+  % bottom: the output sequence  Y0 -> Y1  (multiplier),  then  Y1 -> Y2  (crowding out)
+  \draw[orange,line width=1.3pt,-Latex] (\Yz,-0.62) to[bend right=22] (\Yo,-0.62);
+  \draw[orange,line width=1.0pt,-Latex] (\Yo,-1.12) to[bend left=30] (\Yt,-1.12);
+  % small convergence arrows ON the IS' and LM segments, pointing toward the new
+  % equilibrium E2 -- the direction the economy moves after the shock
+  \draw[orange,line width=0.9pt,-Latex] (3.50,{\lmA+\lmS*3.50}) -- (3.88,{\lmA+\lmS*3.88});
+  \draw[orange,line width=0.9pt,-Latex] (4.78,{\isAp-\isS*4.78}) -- (4.42,{\isAp-\isS*4.42});
+  \draw[orange,line width=0.9pt,-Latex] (3.95,{\lmA+\lmS*3.95}) -- (4.08,{\lmA+\lmS*4.08});
+\end{tikzpicture}

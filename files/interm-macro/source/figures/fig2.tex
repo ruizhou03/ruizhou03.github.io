@@ -1,0 +1,33 @@
+\begin{tikzpicture}[scale=1.0]
+  % f(k) = A*k^a ; sf(k) = s*A*k^a ; delta-line = d*k   (a<1/2: strongly concave)
+  \def\A{2.60}      % production scale
+  \def\s{0.55}      % savings rate
+  \def\a{0.33}      % Cobb-Douglas exponent (small => sharply concave f(k))
+  \def\d{0.95}      % depreciation slope (steep enough that delta*k crosses f(k) in-frame)
+  \def\xmax{8.0}    % rightmost k drawn
+  % steady state: s*A*(k*)^a = d*k*  =>  k* = (s*A/d)^(1/(1-a))
+  \pgfmathsetmacro{\ks}{(\s*\A/\d)^(1/(1-\a))}   % k*
+  \pgfmathsetmacro{\ys}{\d*\ks}                  % height at k* (on both line and sf)
+  % point where delta*k overtakes f(k):  k = (A/d)^(1/(1-a))
+  \pgfmathsetmacro{\kc}{(\A/\d)^(1/(1-\a))}      % crossing of delta*k and f(k)
+  % axes
+  \draw[-Latex] (0,0) -- (9.0,0) node[right] {$k$};
+  \draw[-Latex] (0,0) -- (0,6.2) node[above] {$y$};
+  % production function y=f(k)  (top concave curve)
+  \draw[line width=1.1pt,smooth,samples=140,domain=0:\xmax]
+        plot (\x,{\A*(\x)^\a});
+  \node[above] at (2.6,{\A*(2.6)^\a+0.18}) {$y=f(k)$};
+  % savings / investment curve sy=sf(k)  (lower concave copy)
+  \draw[line width=1.1pt,smooth,samples=140,domain=0:\xmax]
+        plot (\x,{\s*\A*(\x)^\a});
+  \node[right] at (\xmax,{\s*\A*(\xmax)^\a}) {$sy=sf(k)$};
+  % depreciation line delta*k  (straight through origin; visibly crosses f(k) past \kc)
+  \pgfmathsetmacro{\xline}{\kc+1.2}              % continue the line clearly above f(k)
+  \draw[line width=1.1pt] (0,0) -- (\xline,{\d*\xline});
+  \node[above right=-1pt and 0pt] at (\xline,{\d*\xline}) {$\delta k$};
+  % steady state marked with a star
+  \node[star,star points=5,star point ratio=2.2,fill=blue!70,draw=blue!70,
+        inner sep=0pt,minimum size=11pt] at (\ks,\ys) {};
+  % guide line to k* on the axis
+  \draw[densely dashed] (\ks,\ys) -- (\ks,0) node[below] {$k^{*}$};
+\end{tikzpicture}

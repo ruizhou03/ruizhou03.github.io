@@ -1,0 +1,16 @@
+\begin{tikzpicture}[scale=1.0]
+  % axes
+  \draw[-Latex] (0,0) -- (8.6,0) node[right] {$Y$};
+  \draw[-Latex] (0,0) -- (0,7.4) node[above] {$\mathrm{AD}$};
+  % 45-degree line (equilibrium condition AD=Y, slope 1, steeper) through origin
+  \draw[line width=1.2pt] (0,0) -- (7.1,7.1);
+  \node[above left=1pt and -2pt] at (7.1,7.1) {$45^{\circ}$};
+  % planned aggregate expenditure line: positive intercept, slope < 1 (flatter)
+  \draw[semithick] (0,1.6) -- (8.0,6.0);
+  \node[below right=-1pt and 1pt] at (8.0,6.0) {$\mathrm{AD} = C+I+G+\mathrm{NX}$};
+  % equilibrium: intersection of y=x with y=1.6+0.55x
+  % slope of AD line = (6.0-1.6)/8.0 = 0.55 ; eq: x = 1.6/(1-0.55) = 3.5556
+  \pgfmathsetmacro{\xeq}{1.6/(1-0.55)}
+  \fill (\xeq,\xeq) circle (1.7pt);
+  \draw[densely dashed] (\xeq,\xeq) -- (\xeq,0) node[below] {$Y_{0}$};
+\end{tikzpicture}

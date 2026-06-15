@@ -1,0 +1,77 @@
+\begin{tikzpicture}[
+    >=Latex,
+    font=\small,
+    sector/.style={
+      draw, fill=blue!12, shape=diamond, aspect=1.7,
+      inner sep=2pt, minimum width=30mm, minimum height=16mm,
+      align=center, font=\bfseries\small},
+    market/.style={
+      draw, fill=black!8, shape=cylinder, shape border rotate=90,
+      aspect=0.28, minimum width=22mm, minimum height=12mm,
+      inner sep=1pt, align=center, font=\small},
+    flow/.style={->, line width=0.9pt},
+    flab/.style={font=\itshape\small, fill=white, inner sep=1pt},
+    note/.style={font=\footnotesize, align=center, text=black!70}
+  ]
+
+  % ---- market nodes (cylinders), shared mid band ----
+  \node[market] (FM) at (-6.6,0)   {Factor\\markets};
+  \node[market] (GM) at (0,-0.2)   {Goods\\markets};
+  \node[market] (NM) at (6.6,0)    {Financial\\markets};
+
+  % ---- sector nodes (diamonds) ----
+  \node[sector] (HH) at (-3.7,2.4)  {Households};
+  \node[sector] (GV) at (2.6,2.4)   {Governments};
+  \node[sector] (FR) at (-3.4,-2.8) {Firms};
+  \node[sector] (RW) at (3.0,-2.8)  {Rest of\\the world};
+
+  % ====================================================
+  %  FACTOR-MARKET LOOP  (Y)
+  % ====================================================
+  % Factor markets up to Households
+  \draw[flow] (FM.north) .. controls (-6.6,2.4) and (-5.5,3.0) .. (HH.west)
+        node[flab,pos=0.45] {$Y$};
+  % Firms down/round to Factor markets
+  \draw[flow] (FR.west) .. controls (-6.0,-2.8) and (-6.6,-1.6) .. (FM.south)
+        node[flab,pos=0.55] {$Y$};
+
+  % ====================================================
+  %  GOODS-MARKET FLOWS
+  % ====================================================
+  % Households consumption C -> Goods markets
+  \draw[flow] (HH.south east) .. controls (-2.0,1.2) and (-1.2,0.9) .. (GM.north west)
+        node[flab,pos=0.55] {$C$};
+  % Government purchases G -> Goods markets
+  \draw[flow] (GV.south west) .. controls (1.4,1.2) and (0.9,0.9) .. (GM.north east)
+        node[flab,pos=0.5] {$G$};
+  % Goods markets -> Firms  (investment / firms' production receipts)  I
+  \draw[flow] (GM.south west) .. controls (-1.2,-1.6) and (-2.0,-1.9) .. (FR.north east)
+        node[flab,pos=0.55] {$I$};
+  % Rest of the world  <-> Goods markets   X - M
+  \draw[flow] (RW.north west) .. controls (1.2,-1.6) and (0.9,-1.0) .. (GM.south east)
+        node[flab,pos=0.55] {$X-M$};
+
+  % ====================================================
+  %  HOUSEHOLDS -> GOVERNMENTS  (taxes T)
+  % ====================================================
+  \draw[flow] (HH.north east) .. controls (-1.0,3.3) and (0.8,3.3) .. (GV.north west)
+        node[flab,pos=0.5] {$T$};
+
+  % ====================================================
+  %  FINANCIAL-MARKET FLOWS
+  % ====================================================
+  % Households' saving S : big top arc HH -> Financial markets
+  \draw[flow] (HH.north) .. controls (-3.7,4.8) and (7.4,4.6) .. (NM.north)
+        node[flab,pos=0.16] {$S$}
+        node[note,pos=0.5,above=1pt] {Households' saving};
+  % Governments <-> Financial markets : debt repayment or borrowing
+  \draw[flow] (GV.east) .. controls (5.2,2.4) and (6.9,1.6) .. (NM.north east);
+  \node[note] at (8.7,1.0) {Government\\debt repayment\\or borrowing};
+  % Rest of the world <-> Financial markets : foreign borrowing and lending
+  \draw[flow] (RW.east) .. controls (5.6,-2.8) and (6.9,-1.6) .. (NM.south);
+  \node[note] at (8.6,-1.1) {Foreign\\borrowing\\and lending};
+  % Financial markets -> Firms : firms' borrowing (long bottom arc)
+  \draw[flow] (NM.south) .. controls (7.2,-5.2) and (-3.4,-5.2) .. (FR.south)
+        node[note,pos=0.5,below=3pt] {Firms' borrowing};
+
+\end{tikzpicture}

@@ -1,0 +1,117 @@
+\documentclass[oneside]{book}
+
+\usepackage{amsmath, amsthm, amssymb, amsfonts}
+\usepackage{thmtools}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{framed}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{environ}
+\usepackage{tcolorbox}
+\tcbuselibrary{theorems,skins,breakable}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{multicol}
+\usetikzlibrary{positioning, arrows.meta, patterns, calc, decorations.pathreplacing, decorations.markings, shapes.geometric, backgrounds}
+\usepackage[normalem]{ulem}
+\usepackage{colortbl}
+\usepackage{cancel}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=*,labelindent=0pt}
+
+\usepackage{fancyhdr}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\thepage}}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhead[L]{\textit{\uppercase{\leftmark}}}
+\fancyhead[R]{\thepage}
+\fancyfoot[R]{\tiny Intermediate Macroeconomics \textemdash\ ruizhou03.com}
+
+\setstretch{1.2}
+\geometry{
+    textheight=9in, textwidth=5.5in, top=1in,
+    headheight=12pt, headsep=25pt, footskip=30pt
+}
+
+\def\notetitle{Intermediate Macroeconomics}
+\def\notesubtitle{A Self-Contained Course Companion}
+\def\noteauthor{Lecture course by \textbf{Prof. Se Yan} \\
+    Department of Applied Economics \\
+    Guanghua School of Management, Peking University \\
+    \vspace{0.5em}
+    Notes written and {\LaTeX}-typeset by Rui Zhou}
+\def\notedate{Fall 2022 \\ \small (rewritten and unified, 2026)}
+
+\input{theorems.tex}
+\input{commands.tex}
+
+\begin{document}
+
+\title{\textbf{
+    \LARGE{\notetitle}\\
+    \vspace{0.5em}
+    \large\textit{\notesubtitle}
+    \vspace*{8\baselineskip}}
+}
+\author{\noteauthor}
+\date{\notedate}
+
+\maketitle
+\newpage
+
+\thispagestyle{empty}
+\section*{How to Read This Book}
+
+This is a course companion for a one-semester \textbf{intermediate macroeconomics} course taught in the neoclassical tradition. It is written to be read straight through, like a short textbook, rather than skimmed like a formula sheet.
+
+Macroeconomics asks two questions. The first is about the \emph{long run}: why are some countries rich and others poor, and what makes an economy grow over decades? The second is about the \emph{short run}: why does output fluctuate around its trend, and can policy do anything about it? The book follows that division. We begin by learning how the aggregate economy is \emph{measured} --- output, prices, and the labor market --- because every later argument is ultimately a claim about these numbers. We then build the theory of long-run growth from the Solow model up through its microfounded descendants and the Malthusian world that preceded modern growth. Next we study money and banking and the quantity theory that links money to prices. Only then do we turn to the short run: the Keynesian cross, the IS--LM model, aggregate demand and supply, fiscal policy and the limits set by Ricardian equivalence, and finally the Phillips curve, expectations, and the rules-versus-discretion debate.
+
+A warning about the subject. Macroeconomics is less tidy than microeconomics. The same fact can be read through more than one model, the data rarely settle an argument cleanly, and a good lecturer will digress into institutional detail --- how China's central bank actually operates, why a particular policy failed in a particular year --- that does not fold neatly into any single theorem. We have kept those digressions where they illuminate the theory, set off in \textbf{remark} boxes, rather than forcing every observation into a model it does not quite fit. Read the boxes as the texture of a living subject, not as loose ends.
+
+\subsection*{How Each Chapter Is Organized}
+
+Each chapter opens with a short \emph{story} in plain English explaining what question we are answering and why we are about to introduce a particular tool. We then formalize the idea, work through the algebra, and read the economics off the diagrams. Definitions and key results are boxed so you can find them quickly when reviewing. Every figure in this book has been redrawn from scratch; none are scanned.
+
+\subsection*{Box Color Code}
+
+\begin{itemize}
+    \item \tcbox[colback=green!10!white, colframe=green!10!white, size=fbox]{\textbf{Green: Definition}} --- the objects we build on (GDP, the natural rate of unemployment, the money multiplier, \dots).
+    \item \tcbox[colback=cyan!10!white, colframe=cyan!10!white, size=fbox]{\textbf{Blue: Theorem / Result}} --- the central results of each model.
+    \item \tcbox[colback=pink!20!white, colframe=pink!20!white, size=fbox]{\textbf{Pink: Assumption}} --- the maintained hypotheses of a model, gathered in one place.
+    \item Worked \textbf{examples}, boxed \textbf{remarks}, and emphasis boxes appear throughout.
+\end{itemize}
+
+\subsection*{A Note on Notation}
+
+Throughout, $Y$ is aggregate output (real GDP), $C$ consumption, $I$ investment, $G$ government purchases, and $\mathrm{NX}=X-M$ net exports. $K$ denotes the capital stock and $L$ (or $N$) labor; lower-case $k=K/L$ and $y=Y/L$ are their per-worker counterparts. The savings rate is $s$, the depreciation rate $\delta$, population growth $n$, and labor-augmenting technical progress $g$; a steady-state value carries a star, as in $k^{*}$. Prices and inflation: $P$ is the price level and $\pi$ its growth rate, with a superscript $e$ (as in $P^{e}$, $\pi^{e}$) denoting an expectation. Interest rates: $r$ is the real rate and $i=r+\pi^{e}$ the nominal rate. In intertemporal problems $\beta$ is the discount factor and $\mathcal{L}$ the Lagrangian. Money aggregates are $M_0\subset M_1\subset M_2$.
+
+\newpage
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+\include{chapters/ch1_introduction}
+\include{chapters/ch2_national_accounts}
+\include{chapters/ch3_prices_inflation}
+\include{chapters/ch4_labor_unemployment}
+\include{chapters/ch5_solow}
+\include{chapters/ch6_neoclassical_growth}
+\include{chapters/ch7_malthus}
+\include{chapters/ch8_money_banking}
+\include{chapters/ch9_quantity_theory}
+\include{chapters/ch10_keynesian_cross}
+\include{chapters/ch11_is_lm}
+\include{chapters/ch12_ad_as}
+\include{chapters/ch13_fiscal_policy}
+\include{chapters/ch14_phillips_policy}
+
+\end{document}

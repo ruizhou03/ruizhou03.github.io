@@ -1,0 +1,22 @@
+\begin{tikzpicture}[scale=1.0]
+  % ---- parameters of the law of motion K_{t+1} = B * K_t^alpha ----
+  \def\al{0.5}             % concavity exponent (alpha < 1)
+  \def\Kss{5.2}            % steady-state capital (curve meets 45-degree line)
+  \pgfmathsetmacro{\B}{\Kss/pow(\Kss,\al)}   % B so that B*Kss^alpha = Kss
+  \def\xmax{8.0}
+  \def\ymax{7.2}
+  % ---- axes ----
+  \draw[-Latex] (0,0) -- (\xmax,0) node[right] {$K_t$};
+  \draw[-Latex] (0,0) -- (0,\ymax) node[above] {$K_{t+1}$};
+  % ---- 45-degree line K_{t+1} = K_t (dotted, as in the original) ----
+  \draw[densely dotted,line width=1.0pt] (0,0) -- (6.5,6.5);
+  \node[above left=1pt and -1pt] at (6.2,6.2) {$45^{\circ}$};
+  % ---- law of motion curve K_{t+1} = B*K_t^alpha (concave, through origin) ----
+  \draw[line width=1.1pt,smooth,samples=160,domain=0:6.9]
+        plot (\x,{\B*pow(\x,\al)});
+  \node[right] at (5.6,4.55) {$\dfrac{\beta}{1-\beta}\,(1-\alpha)\,z\,K_t^{\alpha}$};
+  % ---- steady state where curve meets the 45-degree line ----
+  \fill (\Kss,\Kss) circle (1.8pt);
+  \draw[densely dashed] (\Kss,\Kss) -- (\Kss,0) node[below] {$K_{SS}$};
+  \draw[densely dashed] (\Kss,\Kss) -- (0,\Kss) node[left] {$K_{SS}$};
+\end{tikzpicture}

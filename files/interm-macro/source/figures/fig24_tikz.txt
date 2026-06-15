@@ -1,0 +1,54 @@
+\begin{tikzpicture}[scale=1.05]
+  % ---- line parameters ----
+  % IS : r = a - b Y   (downward)
+  % LM : r = cL + d Y  (upward, original)
+  % LM': r = cP + d Y  (upward, shifted up/left after a rise in P)
+  \def\a{6.2}\def\b{0.42}\def\d{0.78}\def\cL{0.55}\def\cP{2.35}
+  \pgfmathsetmacro{\Yz}{(\a-\cL)/(\b+\d)}   % Y0
+  \pgfmathsetmacro{\rz}{\a-\b*\Yz}          % r0
+  \pgfmathsetmacro{\Yo}{(\a-\cP)/(\b+\d)}   % Y1
+  \pgfmathsetmacro{\ro}{\a-\b*\Yo}          % r1
+  \pgfmathsetmacro{\Yt}{(\Yz+\Yo)/2}        % Y2 (intermediate)
+
+  % ---- axes ----
+  \draw[-Latex] (0,0) -- (7.2,0) node[right] {$Y$};
+  \draw[-Latex] (0,0) -- (0,6.4) node[above] {$r$};
+
+  % ---- IS (downward) ----
+  \draw[line width=1.1pt,domain=0.7:6.6,smooth,variable=\x]
+        plot (\x,{\a-\b*\x}) ;
+  \node[below right] at (6.6,{\a-\b*6.6}) {$\mathrm{IS}$};
+
+  % ---- LM (original) ----
+  \pgfmathsetmacro{\xLMa}{1.0}
+  \pgfmathsetmacro{\xLMb}{6.3}
+  \draw[line width=1.1pt] (\xLMa,{\cL+\d*\xLMa}) -- (\xLMb,{\cL+\d*\xLMb});
+  \node[right] at (\xLMb,{\cL+\d*\xLMb}) {$\mathrm{LM}$};
+
+  % ---- LM' (shifted up/left) ----
+  \pgfmathsetmacro{\xLPa}{0.45}
+  \pgfmathsetmacro{\xLPb}{5.1}
+  \draw[line width=1.1pt] (\xLPa,{\cP+\d*\xLPa}) -- (\xLPb,{\cP+\d*\xLPb});
+  \node[above left] at (\xLPb,{\cP+\d*\xLPb}) {$\mathrm{LM}'$};
+
+  % ---- shift arrow ----
+  \draw[-Latex,densely dashed]
+       ({\Yz+1.1},{\cL+\d*(\Yz+1.1)+0.15})
+       -- ({\Yz+0.6},{\cP+\d*(\Yz+0.6)-0.05});
+
+  % ---- dashed guides: top connector and verticals ----
+  \draw[densely dashed] (0,\ro) -- (\Yo,\ro);
+  \draw[densely dashed] (\Yz,\rz) -- (\Yz,0) node[below] {$Y_0$};
+  \draw[densely dashed] (\Yo,\ro) -- (\Yo,0) node[below] {$Y_1$};
+  \draw[densely dashed] (\Yt,0) node[below] {$Y_2$} -- (\Yt,\ro);
+
+  % ---- equilibrium dots ----
+  \fill (\Yz,\rz) circle (1.7pt);   % old eq on IS-LM
+  \fill (\Yo,\ro) circle (1.7pt);   % new eq on IS-LM'
+
+  % ---- adjustment arrows (orange): both converge toward the new equilibrium ----
+  \draw[-Latex,orange,line width=1.1pt]
+       ({\Yo-0.55},{\ro-0.35}) -- ({\Yo+0.15},{\ro-0.08});
+  \draw[-Latex,orange,line width=1.1pt]
+       ({\Yt+0.55},{\ro+0.05}) -- ({\Yo+0.30},{\ro-0.02});
+\end{tikzpicture}
