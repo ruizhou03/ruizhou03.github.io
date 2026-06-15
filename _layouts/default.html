@@ -12,6 +12,10 @@
     pin @5 主版本号，自动吃 5.x 补丁更新，不会跨大版本 break。
   {%- endcomment -%}
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  {%- comment -%} 预加载 Cormorant 拉丁主字重：尽早就绪、缩短首屏 FOUT（牌面点数等"先变粗→再恢复"的字体换装闪烁）。Noto 中文是 101 个按字形范围懒加载的子集，无法实际预加载。 {%- endcomment -%}
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/files/cormorant-garamond-latin-700-normal.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/files/cormorant-garamond-latin-600-normal.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/files/cormorant-garamond-latin-400-normal.woff2">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/400.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/500.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/600.css">
