@@ -1039,8 +1039,8 @@
     const dRank = (opts.repRank != null) ? opts.repRank : cardRankIdx(c);
     const red = (dSuit === 1 || dSuit === 2);
     let cls = 'gd-card ' + sizeClass + (red ? ' suit-red' : ' suit-black');
-    // 整张深色：本牌真实点数 = 级（含红桃逢人配）。逢人配顶替展示时仍深色 → 一张深色的"3"即说明是配牌。
-    if (level && RANK_LABELS[cardRankIdx(c)] === level) cls += ' is-level';
+    // 整张深色高亮只给红桃级牌(逢人配)：普通级牌(♠♦♣)不高亮。逢人配顶替展示时仍深色 → 一张深色的"3"即配牌。
+    if (level && isWild(c, level)) cls += ' is-level';
     el.className = cls;
     if (opts.cid != null) el.dataset.cid = opts.cid;
     if (opts.selected) el.classList.add('selected');
@@ -1151,16 +1151,21 @@
       getComputedStyle(els.hand).getPropertyValue('--gd-card-h')
     ) || 72;
 
-    function renderCol(cards, opts) {
+    // items 可为 [cardInt...] 或 [{c, repRank, repSuit}...]（自定义组按牌型展示，逢人配画成它顶替的牌）
+    function renderCol(items, opts) {
       opts = opts || {};
       const col = document.createElement('div');
       col.className = 'gd-rank-col' + (opts.customClass ? (' ' + opts.customClass) : '');
       if (opts.weight != null) col.dataset.weight = String(opts.weight);
       if (opts.customId != null) col.dataset.customId = String(opts.customId);
-      col.style.height = ((cards.length - 1) * stackStep + cardH) + 'px';
-      cards.forEach((c, i) => {
+      col.style.height = ((items.length - 1) * stackStep + cardH) + 'px';
+      items.forEach((it, i) => {
+        const obj = (typeof it === 'object');
+        const c = obj ? it.c : it;
         const cardEl = buildCardEl(c, 'size-full', level, {
           cid: c, selected: state.selected.has(c),
+          repRank: obj ? it.repRank : null,
+          repSuit: obj ? it.repSuit : null,
         });
         cardEl.style.top = (i * stackStep) + 'px';
         cardEl.style.zIndex = String(i + 1);
@@ -1175,16 +1180,17 @@
     const normalGroups = customGroups.filter(g => g.type !== 'bomb');
 
     // 渲染顺序：炸弹组（强→弱）→ 默认列 → 普通自定义组（创建序）
+    // 自定义组用 comboDisplay：既给展示顺序、又把逢人配标成它顶替的牌（理牌堆里也显示成替换的数字）
     for (const g of bombGroups) {
-      const sorted = sortDisplayCards(g.cards.slice(), classifyType(g.cards, level), level);
-      renderCol(sorted, { customClass: 'gd-custom-col gd-custom-bomb', customId: g.id });
+      const disp = comboDisplay(g.cards.slice(), classifyType(g.cards, level), level);
+      renderCol(disp, { customClass: 'gd-custom-col gd-custom-bomb', customId: g.id });
     }
     for (const { weight, cards } of cols) {
       renderCol(cards, { weight });
     }
     for (const g of normalGroups) {
-      const sorted = sortDisplayCards(g.cards.slice(), classifyType(g.cards, level), level);
-      renderCol(sorted, { customClass: 'gd-custom-col gd-custom-normal', customId: g.id });
+      const disp = comboDisplay(g.cards.slice(), classifyType(g.cards, level), level);
+      renderCol(disp, { customClass: 'gd-custom-col gd-custom-normal', customId: g.id });
     }
     adaptHandSize();
   }
@@ -2698,12 +2704,16 @@
   // 可还任意非王。用于 updateActions 决定"还贡"按钮的 disabled。
   function isValidReturnCard(c) {
     if (isJoker(c)) return false;
-    const r = RANK_LABELS[cardRankIdx(c)];
-    const handHasLow = state.hands[0].some(x => {
+    const level = currentLevelLabel();
+    // 小牌 = 点数 2~10 且【不是级牌】。级牌即便数字 ≤10，本局也是大牌（凌驾于 10 之上），不算小牌。
+    const isLow = x => {
       if (isJoker(x)) return false;
-      return ['2','3','4','5','6','7','8','9','10'].includes(RANK_LABELS[cardRankIdx(x)]);
-    });
-    if (handHasLow) return ['2','3','4','5','6','7','8','9','10'].includes(r);
+      const rl = RANK_LABELS[cardRankIdx(x)];
+      if (rl === level) return false;
+      return ['2','3','4','5','6','7','8','9','10'].includes(rl);
+    };
+    const handHasLow = state.hands[0].some(isLow);
+    if (handHasLow) return isLow(c);
     return true;
   }
 
@@ -3000,9 +3010,9 @@
   }
 
   function buildLevelCardEl(rankLabel) {
-    // 结算翻牌：级牌(红桃)，用四象限版型 + 整张深色
+    // 结算翻牌：级牌(红桃)，四象限版型；用普通牌色（不加级牌深色高亮，输赢由蒙版区分）
     const el = document.createElement('span');
-    el.className = 'gd-card size-full suit-red is-level';
+    el.className = 'gd-card size-full suit-red';
     const p = SUITP[1];
     el.style.setProperty('--gd-tr', p.tr);
     el.style.setProperty('--gd-bl', p.bl);
@@ -3024,7 +3034,7 @@
     container.innerHTML = '';
     function makeTeam(label, lvBefore, lvAfter, isWinner) {
       const team = document.createElement('div');
-      team.className = 'gd-lc-team';
+      team.className = 'gd-lc-team ' + (isWinner ? 'lc-win' : 'lc-lose');
       const lbl = document.createElement('span');
       lbl.className = 'gd-lc-label';
       lbl.textContent = label;

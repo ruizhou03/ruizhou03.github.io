@@ -358,8 +358,10 @@ theme_color: "#fafaf9"
     opacity: var(--gd-op, 0.9);
   }
   .gd-card .suit-svg { width: 1em; height: 1em; display: block; fill: currentColor; overflow: visible; }
-  /* 按排列各隐一处花色：竖排(手牌列)隐左下、横排(出牌行)隐右上 */
-  .gd-rank-col .gd-card .q-bl { display: none; }
+  /* 左下花色默认隐藏：完整显示的牌(单卡/列底/结算翻牌)只露左上+右上+右下 */
+  .gd-card .q-bl { display: none; }
+  /* 横排出牌区：恢复左下花色、隐藏右上花色(最右完整一张只露左上+左下+右下) */
+  .gd-played-row .gd-card .q-bl { display: flex; }
   .gd-played-row .gd-card .q-tr { display: none; }
 
   /* ===== 大小王（沿用原样：★ + JOKER + ♛/♚） ===== */
@@ -566,7 +568,7 @@ theme_color: "#fafaf9"
     content: '正在查看队友手牌';
     position: absolute;
     inset: 0;
-    background: rgba(255,255,255,0.35);
+    background: none;            /* 去掉偏白蒙版，只保留底部提示文字 */
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -1386,9 +1388,10 @@ theme_color: "#fafaf9"
   }
 
   .gd-result-level-cards {
-    display: flex; justify-content: center; gap: 1.2rem;
+    display: flex; justify-content: space-around;   /* 两张级牌分居各自栏的中间，不挤在整框正中 */
     margin-top: 0.6rem; margin-bottom: 0.2rem;
   }
+  .gd-result-level-cards .gd-lc-team { flex: 1; }
   .gd-result-level-cards .gd-lc-team {
     display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
   }
@@ -1398,7 +1401,15 @@ theme_color: "#fafaf9"
   .gd-level-flip {
     perspective: 500px;
     width: 46px; height: 66px;
+    position: relative;
   }
+  /* 输赢蒙版：输方偏灰、赢方偏亮（盖在静态 perspective 容器上，不卷入 3D 翻转） */
+  .gd-result-level-cards .lc-lose .gd-level-flip::after,
+  .gd-result-level-cards .lc-win .gd-level-flip::after {
+    content: ''; position: absolute; inset: 0; border-radius: 5px; pointer-events: none; z-index: 5;
+  }
+  .gd-result-level-cards .lc-lose .gd-level-flip::after { background: rgba(70,72,82,0.42); }
+  .gd-result-level-cards .lc-win .gd-level-flip::after { background: rgba(255,246,224,0.20); box-shadow: 0 0 10px rgba(255,214,106,0.55); }
   .gd-level-flip-inner {
     position: relative;
     width: 100%; height: 100%;
@@ -2354,4 +2365,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260615a"></script>
+<script src="/assets/js/games/guandan.js?v=20260615b"></script>
