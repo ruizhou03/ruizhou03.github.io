@@ -12,6 +12,26 @@
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
   const SUIT_LABELS = ['♠','♥','♦','♣'];
+  // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
+  // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
+  const SVG_SUITS = {
+    0: { t: 'translate(500 500) scale(0.80349) translate(-626.5 -1393.0)', d: 'M679 1714 Q660 1815 712 1880Q624 1852 536 1880Q588 1815 574 1715Q548 1788 492.5 1836.5Q437 1885 380 1885Q295 1885 233.0 1813.0Q171 1741 171 1642Q171 1503 306 1344Q326 1319 361 1275Q401 1227 416 1209Q548 1048 619 906Q649 953 659 968L717 1051L786 1150Q844 1231 908 1303Q1082 1495 1082 1641Q1082 1739 1022.5 1810.0Q963 1881 881 1881Q810 1881 763.5 1842.5Q717 1804 679 1714Z' },
+    1: { t: 'translate(500 500) scale(0.80349) translate(-715.0 -1473.5)', d: 'M714 2046 658 1955Q540 1762 352 1581Q241 1473 196.5 1387.0Q152 1301 152 1195Q152 1075 235.0 988.0Q318 901 432 901Q590 901 716 1141Q850 906 1009 906Q1125 906 1201.5 992.0Q1278 1078 1278 1210Q1278 1299 1241.5 1387.5Q1205 1476 1146 1528L1067 1599Q960 1696 857 1848L803 1928Q790 1947 714 2046Z' },
+    2: { t: 'translate(500 500) scale(0.80349) translate(-616.0 -1475.5)', d: 'M1057 1475 617 2044 175 1479 616 907Z' },
+    3: { t: 'translate(500 500) scale(0.80349) translate(-709.0 -1402.0)', d: 'M762 1900Q708 1874 654 1900Q678 1812 689 1726Q629 1823 570.5 1863.0Q512 1903 431 1903Q327 1903 254.0 1830.0Q181 1757 181 1652Q181 1535 268.0 1462.0Q355 1389 494 1389L552 1390Q461 1255 461 1154Q461 1050 534.5 977.0Q608 904 713 904Q820 904 894.5 977.5Q969 1051 969 1157Q969 1253 867 1390Q919 1387 936 1387Q1067 1387 1152.0 1461.0Q1237 1535 1237 1649Q1237 1751 1162.0 1828.0Q1087 1905 988 1905Q903 1905 843.0 1862.5Q783 1820 728 1720Q745 1812 762 1900Z' },
+  };
+  function suitSVG(suit) {
+    const s = SVG_SUITS[suit];
+    return '<svg class="suit-svg" viewBox="0 0 1000 1000" aria-hidden="true"><g transform="' + s.t + '"><path d="' + s.d + '"/></g></svg>';
+  }
+  // 逐花色参数（编辑器调好的定稿）：tr/bl 角标大小、big 大花色大小、br/bb 右移/下沉、op 不透明度
+  const SUITP = {
+    0: { tr: 0.35, bl: 0.35, big: 1.13, br: -0.365, bb: -0.099, op: 0.9 },
+    1: { tr: 0.30, bl: 0.30, big: 0.95, br: -0.306, bb: -0.144, op: 0.9 },
+    2: { tr: 0.35, bl: 0.35, big: 1.17, br: -0.41,  bb: -0.177, op: 0.9 },
+    3: { tr: 0.35, bl: 0.35, big: 0.98, br: -0.283, bb: -0.081, op: 0.9 },
+  };
+  const GD_S_RATIO = 0.39;   // 左上正方形 / 横纵分割线 = 0.39W；竖排错位也用它（露横分割线以上）
   const LEVEL_SEQ = ['2','3','4','5','6','7','8','9','10','J','Q','K','A']; // 级牌进阶序
 
   // 炸弹 → 倍数（仿斗地主：每出一次累乘到 state.bombMult）
@@ -996,73 +1016,48 @@
   }
 
   // ---- 卡片渲染 ----
+  // 牌面 V2：四象限版型。常规牌 = 左上点数(正方形) + 右上花色 + 左下花色(靠上) + 右下超大花色(贴底出血)；
+  // 级牌/逢人配 = 整张深色(is-level)；逢人配出牌时用 repRank/repSuit 画成它顶替的牌、仍深色。
+  // 大小王沿用原样(★ + JOKER + ♛/♚)，横排被盖时由 CSS 切到左条竖排 JOKER。
   function buildCardEl(c, sizeClass, level, opts) {
     opts = opts || {};
     const el = document.createElement('span');
-    let cls = 'gd-card ' + sizeClass;
     if (isJoker(c)) {
-      cls += ' is-joker ' + (jokerKind(c) === 'big' ? 'joker-big' : 'joker-small');
-    } else {
-      // 出牌区可让逢人配画成它顶替的牌（opts.repRank/repSuit）；颜色按"显示出来的"花色走
-      const dSuit = (opts.repSuit != null) ? opts.repSuit : cardSuit(c);
-      const red = (dSuit === 1 || dSuit === 2);
-      cls += red ? ' suit-red' : ' suit-black';
-      if (level && isWild(c, level)) {
-        cls += ' is-wild';
-        if (opts.repRank != null) cls += ' is-wild-sub';   // 顶替展示 → 淡金底，仍带"配"标
-      } else if (level && RANK_LABELS[cardRankIdx(c)] === level) {
-        cls += ' is-level';                                 // 普通级牌 → 金"级"角标
-      }
+      const kind = jokerKind(c);
+      el.className = 'gd-card ' + sizeClass + ' is-joker joker-' + kind;
+      if (opts.cid != null) el.dataset.cid = opts.cid;
+      if (opts.selected) el.classList.add('selected');
+      if (opts.groupStart) el.classList.add('group-start');
+      el.innerHTML =
+        '<span class="jk-normal"><span class="rk">★</span>' +
+        '<span class="pip"><span class="t">JOKER</span><span class="i">' + (kind === 'big' ? '♛' : '♚') + '</span></span></span>' +
+        '<span class="jk-vert"><span>J</span><span>O</span><span>K</span><span>E</span><span>R</span></span>';
+      return el;
     }
+    // 出牌区可让逢人配画成它顶替的牌（opts.repRank/repSuit）；颜色/花色按"显示出来的"走
+    const dSuit = (opts.repSuit != null) ? opts.repSuit : cardSuit(c);
+    const dRank = (opts.repRank != null) ? opts.repRank : cardRankIdx(c);
+    const red = (dSuit === 1 || dSuit === 2);
+    let cls = 'gd-card ' + sizeClass + (red ? ' suit-red' : ' suit-black');
+    // 整张深色：本牌真实点数 = 级（含红桃逢人配）。逢人配顶替展示时仍深色 → 一张深色的"3"即说明是配牌。
+    if (level && RANK_LABELS[cardRankIdx(c)] === level) cls += ' is-level';
     el.className = cls;
     if (opts.cid != null) el.dataset.cid = opts.cid;
     if (opts.selected) el.classList.add('selected');
     if (opts.groupStart) el.classList.add('group-start');
-
-    if (isJoker(c)) {
-      const corner = document.createElement('span');
-      corner.className = 'corner tl';
-      const rk = document.createElement('span');
-      rk.className = 'rk'; rk.textContent = '★';
-      corner.appendChild(rk);
-      el.appendChild(corner);
-      const pip = document.createElement('span');
-      pip.className = 'pip';
-      const txt = document.createElement('span');
-      txt.className = 'joker-text'; txt.textContent = 'JOKER';
-      const icon = document.createElement('span');
-      icon.className = 'joker-icon';
-      icon.textContent = jokerKind(c) === 'big' ? '♛' : '♚';
-      pip.appendChild(txt); pip.appendChild(icon);
-      el.appendChild(pip);
-    } else {
-      const rankIdx = (opts.repRank != null) ? opts.repRank : cardRankIdx(c);
-      const suitIdx = (opts.repSuit != null) ? opts.repSuit : cardSuit(c);
-      const rkLabel = RANK_LABELS[rankIdx];
-      const suLabel = SUIT_LABELS[suitIdx];
-      const tl = document.createElement('span');
-      tl.className = 'corner tl';
-      const rkEl = document.createElement('span'); rkEl.className = 'rk'; rkEl.textContent = rkLabel;
-      const suEl = document.createElement('span'); suEl.className = 'su'; suEl.textContent = suLabel;
-      tl.appendChild(rkEl); tl.appendChild(suEl);
-      el.appendChild(tl);
-      const bl = document.createElement('span');
-      bl.className = 'corner bl';
-      const blSu = document.createElement('span'); blSu.className = 'su'; blSu.textContent = suLabel;
-      bl.appendChild(blSu);
-      const cardIsWild = level && isWild(c, level);
-      const cardIsLevel = !cardIsWild && level && RANK_LABELS[cardRankIdx(c)] === level;
-      if (cardIsWild || cardIsLevel) {
-        const badge = document.createElement('span');
-        badge.className = 'lvl-badge';
-        badge.textContent = cardIsWild ? '配' : '级';
-        bl.appendChild(badge);
-      }
-      el.appendChild(bl);
-      const pip = document.createElement('span');
-      pip.className = 'pip'; pip.textContent = suLabel;
-      el.appendChild(pip);
-    }
+    const p = SUITP[dSuit];
+    el.style.setProperty('--gd-tr', p.tr);
+    el.style.setProperty('--gd-bl', p.bl);
+    el.style.setProperty('--gd-big', p.big);
+    el.style.setProperty('--gd-br', p.br);
+    el.style.setProperty('--gd-bb', p.bb);
+    el.style.setProperty('--gd-op', p.op);
+    const sv = suitSVG(dSuit);
+    el.innerHTML =
+      '<span class="q q-tl">' + RANK_LABELS[dRank] + '</span>' +
+      '<span class="q q-tr">' + sv + '</span>' +
+      '<span class="q q-bl">' + sv + '</span>' +
+      '<span class="bigsuit">' + sv + '</span>';
     return el;
   }
 
@@ -1221,16 +1216,17 @@
     const userH = Math.round(defCardH * mult);
     const userStep = Math.round(defStep * mult);
     const MAX_HAND_COLS = 15;
-    let cardW = userW, cardH = userH, step = userStep;
+    let cardW = userW, cardH = userH;
     const neededW = MAX_HAND_COLS * userW + (MAX_HAND_COLS - 1) * gap;
     if (neededW > availW && mult <= 1) {
       cardW = Math.max(26, Math.floor((availW - (MAX_HAND_COLS - 1) * gap) / MAX_HAND_COLS));
       cardH = Math.round(defCardH * (cardW / defCardW));
-      step = Math.round(defStep * (cardW / defCardW));
     }
+    // 竖排错位 = 横向分割线 = 0.39W（只露分割线以上：点数+右上花色，无额外呼吸）
+    const step = Math.round(cardW * GD_S_RATIO);
     if (cardW !== defCardW) hand.style.setProperty('--gd-card-w', cardW + 'px');
     if (cardH !== defCardH) hand.style.setProperty('--gd-card-h', cardH + 'px');
-    if (step !== defStep) hand.style.setProperty('--gd-stack-step', step + 'px');
+    hand.style.setProperty('--gd-stack-step', step + 'px');
     cols.forEach(col => {
       const cards = col.querySelectorAll('.gd-card');
       col.style.height = ((cards.length - 1) * step + cardH) + 'px';
@@ -3004,23 +3000,22 @@
   }
 
   function buildLevelCardEl(rankLabel) {
+    // 结算翻牌：级牌(红桃)，用四象限版型 + 整张深色
     const el = document.createElement('span');
-    const red = true;
-    el.className = 'gd-card size-full' + (red ? ' suit-red' : ' suit-black');
-    const tl = document.createElement('span');
-    tl.className = 'corner tl';
-    const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = rankLabel;
-    const su = document.createElement('span'); su.className = 'su'; su.textContent = '♥';
-    tl.appendChild(rk); tl.appendChild(su);
-    el.appendChild(tl);
-    const bl = document.createElement('span');
-    bl.className = 'corner bl';
-    const blSu = document.createElement('span'); blSu.className = 'su'; blSu.textContent = '♥';
-    bl.appendChild(blSu);
-    el.appendChild(bl);
-    const pip = document.createElement('span');
-    pip.className = 'pip'; pip.textContent = '♥';
-    el.appendChild(pip);
+    el.className = 'gd-card size-full suit-red is-level';
+    const p = SUITP[1];
+    el.style.setProperty('--gd-tr', p.tr);
+    el.style.setProperty('--gd-bl', p.bl);
+    el.style.setProperty('--gd-big', p.big);
+    el.style.setProperty('--gd-br', p.br);
+    el.style.setProperty('--gd-bb', p.bb);
+    el.style.setProperty('--gd-op', p.op);
+    const sv = suitSVG(1);
+    el.innerHTML =
+      '<span class="q q-tl">' + rankLabel + '</span>' +
+      '<span class="q q-tr">' + sv + '</span>' +
+      '<span class="q q-bl">' + sv + '</span>' +
+      '<span class="bigsuit">' + sv + '</span>';
     return el;
   }
 

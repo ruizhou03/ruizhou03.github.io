@@ -43,7 +43,7 @@ theme_color: "#fafaf9"
     --gs-wrap-half: 440px;
     --gd-card-w: 50px;
     --gd-card-h: 72px;
-    --gd-card-overlap: 28px;   /* 出牌区叠牌露出的左侧窄带 */
+    --gd-card-overlap: 26px;   /* 出牌区叠牌露出左条 = 50-26 = 24px（≥ 分割线 19.5，含点数+左下花色）*/
     --gd-card-mini-w: 34px;
     --gd-card-mini-h: 50px;
     --gd-card-mini-overlap: 20px;
@@ -315,91 +315,77 @@ theme_color: "#fafaf9"
     box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55);
     position: relative;
     flex-shrink: 0;
+    overflow: hidden;                 /* 裁掉右下超大花色溢出右/下缘的部分 */
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
   }
-  /* 反重影：非首张卡顶部补一道矩形底条，遮住 border-radius 弧后
-     本该透出的下层花色 pip */
-  .gd-rank-col .gd-card.size-full + .gd-card.size-full::before {
-    content: '';
-    position: absolute;
-    top: -1px; left: -1px; right: -1px;
-    height: 7px;
-    background: var(--gd-card-bg);
-    z-index: -1;
-  }
+  .gd-card.size-full { width: var(--gd-card-w); height: var(--gd-card-h); }
+  .gd-card.size-mini { width: var(--gd-card-mini-w); height: var(--gd-card-mini-h); }
   .gd-card.suit-red { color: var(--gd-suit-red); }
   .gd-card.suit-black { color: var(--gd-suit-black); }
-  /* 角标：rank + 花色 水平排列。仿欢乐斗地主——堆叠列里只能看到每张牌顶部
-     一道窄带时也能看清花色（打同花顺时花色尤其关键）。 */
-  .gd-card .corner {
+  /* 级牌 / 逢人配：整张深色（深色即"这是级牌"信号；逢人配顶替时显示成它代替的牌、仍深色 → 深色的"3"即配牌） */
+  .gd-card.is-level { background: linear-gradient(160deg, #ece4d0 0%, #ddd1b2 100%); border-color: rgba(165,142,88,0.65); }
+
+  /* ===== 四象限：一横一纵在 0.39W 处切四格 ===== */
+  .gd-card .q { position: absolute; display: flex; line-height: 1; }
+  /* ① 左上正方形：点数，居中，统一字号（"10"不缩、字母不放大） */
+  .gd-card .q-tl {
+    left: 0; top: 0; width: calc(var(--gd-card-w, 50px) * 0.39); height: calc(var(--gd-card-w, 50px) * 0.39);
+    align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', Georgia, "Songti SC", serif; font-weight: 700;
+    font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum" 1, "lnum" 1;
+    font-size: calc(var(--gd-card-w, 50px) * 0.38);
+  }
+  /* ② 右上：花色正中（竖排顶栏可见） */
+  .gd-card .q-tr {
+    left: calc(var(--gd-card-w, 50px) * 0.39); top: 0; right: 0; height: calc(var(--gd-card-w, 50px) * 0.39);
+    align-items: center; justify-content: center;
+    font-size: calc(var(--gd-card-w, 50px) * var(--gd-tr, 0.35));
+  }
+  /* ③ 左下：花色，靠上贴近点数（横排左条可见） */
+  .gd-card .q-bl {
+    left: 0; top: calc(var(--gd-card-w, 50px) * 0.39); width: calc(var(--gd-card-w, 50px) * 0.39); bottom: 0;
+    align-items: flex-start; justify-content: center; padding-top: calc(var(--gd-card-w, 50px) * 0.05);
+    font-size: calc(var(--gd-card-w, 50px) * var(--gd-bl, 0.35));
+  }
+  /* ④ 右下：超大花色，贴底、右与下出血被牌缘裁切（逐花色定大小与位置 via --gd-big/br/bb/op） */
+  .gd-card .bigsuit {
     position: absolute;
-    display: flex; flex-direction: row; align-items: center;
-    gap: 2px;
-    line-height: 1;
-    font-family: 'Cormorant Garamond', Georgia, "Songti SC", serif;
+    right: calc(var(--gd-card-w, 50px) * var(--gd-br, -0.3));
+    bottom: calc(var(--gd-card-w, 50px) * var(--gd-bb, -0.1));
+    width: 1em; height: 1em;
+    font-size: calc(var(--gd-card-w, 50px) * var(--gd-big, 1.1));
+    opacity: var(--gd-op, 0.9);
   }
-  .gd-card .corner.tl { top: 3px; left: 4px; }
-  .gd-card .corner.bl { bottom: 3px; left: 4px; }
-  /* Cormorant 默认是 oldstyle 数字（3/5/7/9 带下伸、矮于大写字母），所以「字母看着比数字大」。
-     强制用 lining（等高大写）数字，让 10/9/8… 跟 J/Q/K/A 一样满高、一样醒目。 */
-  /* rank 用「定宽盒子」+ 左对齐：不论点数是 10(两位)/9(一位)/K(字母)，盒子宽度一样，
-     花色永远紧跟在盒子右侧的同一个 x 上 → 花色位置统一、不再错落。 */
-  .gd-card .corner .rk { font-weight: 700; font-variant-numeric: lining-nums; font-feature-settings: "lnum" 1; flex: 0 0 auto; text-align: left; }
-  .gd-card .corner .su { font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", monospace; }
-  .gd-card .pip {
-    position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", monospace;
-    opacity: 0.92;
+  .gd-card .suit-svg { width: 1em; height: 1em; display: block; fill: currentColor; overflow: visible; }
+  /* 按排列各隐一处花色：竖排(手牌列)隐左下、横排(出牌行)隐右上 */
+  .gd-rank-col .gd-card .q-bl { display: none; }
+  .gd-played-row .gd-card .q-tr { display: none; }
+
+  /* ===== 大小王（沿用原样：★ + JOKER + ♛/♚） ===== */
+  .gd-card.is-joker .jk-normal .rk {
+    position: absolute; top: 3px; left: 4px; font-weight: 400;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: calc(var(--gd-card-w, 50px) * 0.38);
   }
-  .gd-card.size-full { width: var(--gd-card-w); height: var(--gd-card-h); }
-  /* 角标/中心花色字号按卡宽等比缩放 —— 卡片缩小时字号同步缩小，永远协调。
-     50px 卡 → rk 14 / su 13 / pip 26（与旧基准一致）；40px 卡 → 11.2 / 10.4 / 20.8。
-     这样手牌不论被 adaptHandSize 缩到多大，都跟出牌区的牌「同一套比例」、一样精致。 */
-  /* 角标点数（1~K + 大小王的 ★）放大到 0.38 卡宽（50px 卡 → 19px，原 14px），配合上面的
-     lining 数字更醒目。纵向：大写高约 13px + top 3px，仍 < 列内错落 step 18；
-     横向：出牌区叠牌露出的左侧窄带也容得下「10」这种两位点数（见 --gd-card-overlap）。 */
-  /* rank 盒子宽度写死到 0.44 卡宽（刚好容下两位的「10」），花色因此永远从同一 x 起。
-     花色（角标 0.26→0.34、中心 0.52→0.62）整体做大一档，更醒目。 */
-  .gd-card.size-full .corner .rk { font-size: calc(var(--gd-card-w, 50px) * 0.38); width: calc(var(--gd-card-w, 50px) * 0.44); }
-  .gd-card.size-full .corner .su { font-size: calc(var(--gd-card-w, 50px) * 0.34); }
-  .gd-card.size-full .corner.bl .su { font-size: calc(var(--gd-card-w, 50px) * 0.26); }
-  .gd-card.size-full .pip { font-size: calc(var(--gd-card-w, 50px) * 0.62); }
-  .gd-card .corner.bl .lvl-badge {
-    font-size: calc(var(--gd-card-w, 50px) * 0.16);
-    color: var(--gd-accent-strong); font-weight: 700;
-    font-family: var(--font-body);
-    background: rgba(255,255,255,0.7); border-radius: 2px; padding: 0 1px;
-    line-height: 1.1;
+  .gd-card.is-joker .jk-normal .pip {
+    position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1; font-family: var(--font-body);
   }
-  .gd-card.size-mini { width: var(--gd-card-mini-w); height: var(--gd-card-mini-h); }
-  .gd-card.size-mini .corner .rk { font-size: 10px; }
-  .gd-card.size-mini .corner .su { font-size: 9px; }
-  .gd-card.size-mini .corner.bl .su { font-size: 7px; }
-  .gd-card.size-mini .corner.bl .lvl-badge { font-size: 6px; }
-  .gd-card.size-mini .pip { font-size: 18px; }
-  .gd-card.is-joker .pip {
-    display: flex; flex-direction: column; align-items: center;
-    line-height: 1; gap: 2px; font-family: var(--font-body); opacity: 1;
-  }
-  .gd-card.is-joker .pip .joker-text { font-weight: 800; letter-spacing: 1px; }
-  .gd-card.is-joker .pip .joker-icon { font-family: "Apple Symbols", "Segoe UI Symbol", monospace; }
-  .gd-card.is-joker .corner .rk { font-weight: 400; }
-  .gd-card.is-joker .corner .su { display: none; }
+  .gd-card.is-joker .jk-normal .pip .t { font-weight: 800; letter-spacing: 1px; font-size: calc(var(--gd-card-w, 50px) * 0.16); }
+  .gd-card.is-joker .jk-normal .pip .i { font-family: "Apple Symbols", "Segoe UI Symbol", monospace; font-size: calc(var(--gd-card-w, 50px) * 0.40); }
   .gd-card.joker-big { color: var(--gd-joker-red); }
   .gd-card.joker-small { color: var(--gd-joker-grey); }
-  .gd-card.size-full.is-joker .pip .joker-text { font-size: calc(var(--gd-card-w, 50px) * 0.16); }
-  .gd-card.size-full.is-joker .pip .joker-icon { font-size: calc(var(--gd-card-w, 50px) * 0.40); }
-  .gd-card.size-mini.is-joker .pip .joker-text { font-size: 6px; }
-  .gd-card.size-mini.is-joker .pip .joker-icon { font-size: 14px; }
-  /* 级/配 角标改由 DOM 元素放在左下角 .corner.bl 里，不再用 ::after —— 避免与左上角花色重叠 */
-  /* 逢人配在出牌区被画成它顶替的牌时：淡金底提示"这是万能牌顶上来的"，仍保留"配"标 */
-  .gd-card.is-wild-sub {
-    background:
-      linear-gradient(160deg, rgba(201,169,110,0.30) 0%, rgba(201,169,110,0.14) 100%),
-      linear-gradient(160deg, var(--gd-card-bg) 0%, var(--gd-card-bg-2) 100%);
+  /* 横排被盖的王：左条竖排写 JOKER（颜色仍大红/小灰） */
+  .gd-card .jk-vert {
+    display: none; position: absolute; left: 0; top: 0;
+    width: calc(var(--gd-card-w, 50px) * 0.39); height: 100%;
+    flex-direction: column; align-items: center; justify-content: center;
+    font-family: var(--font-body); font-weight: 800; letter-spacing: 1px;
+    font-size: calc(var(--gd-card-w, 50px) * 0.22); line-height: 1.16;
   }
+  .gd-played-row .gd-card.is-joker:not(:last-child) .jk-normal { display: none; }
+  .gd-played-row .gd-card.is-joker:not(:last-child) .jk-vert { display: flex; }
   .gd-card-back {
     display: inline-block;
     width: var(--gd-card-mini-w); height: var(--gd-card-mini-h);
@@ -432,7 +418,7 @@ theme_color: "#fafaf9"
      列横向并排（手牌多于屏宽时可滚）。长按某列可以拖到新位置，自定义理牌顺序；
      单击/拖选则照常多选。 */
   .gd-hand {
-    --gd-stack-step: 18px;       /* 列内每张牌的纵向偏移：仅露出 rank+suit 窄带 */
+    --gd-stack-step: 20px;       /* 列内纵向偏移 = 横向分割线 0.39W（露点数+右上花色，无呼吸）；adaptHandSize 会按卡宽重算 */
     --gd-col-gap: 4px;           /* 列之间的横向间距 */
     display: flex; flex-wrap: nowrap;
     align-items: flex-start;
@@ -2368,4 +2354,4 @@ theme_color: "#fafaf9"
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
-<script src="/assets/js/games/guandan.js?v=20260612a"></script>
+<script src="/assets/js/games/guandan.js?v=20260615a"></script>
