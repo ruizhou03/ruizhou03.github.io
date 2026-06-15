@@ -3465,6 +3465,20 @@
 
   function aiAct(seat) {
     if (state.phase !== PHASE.PLAYING) return;
+    if (state._testMode) {
+      // 测试模式：被压就过、轮到领出就打最小单张兜底，让玩家能反复领出各种牌型
+      if (state.out.includes(seat)) { afterMove(seat); return; }
+      const tr = state.trick;
+      const leading = !(tr.best && tr.bestSeat !== seat);
+      if (!leading) { commitPass(seat); return; }
+      const th = state.hands[seat];
+      if (!th.length) { afterMove(seat); return; }
+      const tlv = currentLevelLabel();
+      let sm = th[0], sw = singleWeight(th[0], tlv);
+      for (const c of th) { const w = singleWeight(c, tlv); if (w < sw) { sw = w; sm = c; } }
+      commitPlay(seat, classify([sm], tlv));
+      return;
+    }
     if (state.out.includes(seat)) { afterMove(seat); return; }
     const level = currentLevelLabel();
     const hand = state.hands[seat];
@@ -4150,6 +4164,138 @@
     refreshHs();
     els.pgo.classList.add('open');
   });
+
+  // ===========================================================
+  //  测试 / 演示模式：页面连打 TEST 触发。发一副含所有牌型 + 边界(8张炸弹/8尖/天王炸)
+  //  的手牌，AI 自动过让你逐个打出去看效果；左侧面板按钮演示他家牌型与各流程动画。
+  // ===========================================================
+  function buildTestHand() {
+    const C = (suit, rank, deck) => (deck || 0) * 54 + suit * 13 + rank;  // 0♠1♥2♦3♣ ; rank 0=2..12=A
+    const SJ = (deck) => (deck || 0) * 54 + 52;   // 小王
+    const BJ = (deck) => (deck || 0) * 54 + 53;   // 大王
+    const R = { '2':0,'3':1,'4':2,'5':3,'6':4,'7':5,'8':6,'9':7,'10':8,'J':9,'Q':10,'K':11,'A':12 };
+    const h = [];
+    h.push(SJ(0), SJ(1), BJ(0), BJ(1));                                    // 天王炸（双大双小）
+    for (let s = 0; s < 4; s++) h.push(C(s, R['3'], 0), C(s, R['3'], 1));  // 8 张同点炸弹(3)——测竖叠边界
+    for (let s = 0; s < 4; s++) h.push(C(s, R['A'], 0), C(s, R['A'], 1));  // 8 个尖(A)——测横排/竖叠边界
+    for (let s = 0; s < 4; s++) h.push(C(s, R['2'], 0), C(s, R['2'], 1));  // 全部级牌(级=2：♥为逢人配深色)
+    h.push(C(0,R['9'],0), C(1,R['10'],0), C(2,R['J'],0), C(3,R['Q'],0), C(0,R['K'],0)); // 顺子 9-10-J-Q-K(混色)
+    h.push(C(0,R['7'],0), C(1,R['7'],0), C(2,R['7'],0), C(0,R['8'],0), C(1,R['8'],0), C(2,R['8'],0)); // 钢板 777888
+    h.push(C(0,R['6'],0), C(1,R['6'],0), C(2,R['6'],0), C(0,R['5'],0), C(1,R['5'],0)); // 三带二 66655
+    h.push(C(3,R['4'],0), C(3,R['5'],0), C(3,R['6'],0), C(3,R['7'],0), C(3,R['8'],0)); // 同花顺 ♣4-8
+    h.push(C(1,R['9'],0), C(2,R['9'],0), C(0,R['10'],0), C(2,R['10'],0), C(0,R['J'],0), C(1,R['J'],0)); // 连对 99 1010 JJ
+    return h;
+  }
+
+  function enterTestMode() {
+    if (isNetworked()) return;
+    state.matchOptions = normalizeOptions(state.options);
+    state.levels = [0, 0];          // 级 = '2'
+    state.actingTeam = 0;
+    state._testMode = true;
+    state.autopilot = false;
+    state.out = [];
+    state.selected.clear();
+    state.customGroups = [];
+    state.handOrder = null;
+    state.lastPlay = [null, null, null, null];
+    state.busy = false;
+    state.bombMult = 1;
+    const h0 = buildTestHand();
+    const used = new Set(h0);
+    const left = [];
+    for (let c = 0; c < 108; c++) if (!used.has(c)) left.push(c);
+    state.hands = [h0, left.slice(0, 7), left.slice(7, 14), left.slice(14, 21)];
+    state.phase = PHASE.PLAYING;
+    state.turn = 0;
+    state.trick = { lead: 0, best: null, bestSeat: -1, passes: 0 };
+    if (els.pgo) els.pgo.classList.remove('open');
+    if (els.roundOverlay) els.roundOverlay.classList.remove('open');
+    if (els.matchOverlay) els.matchOverlay.classList.remove('open');
+    renderAll();
+    updateActions();
+    armTurnClock();
+    buildTestPanel();
+    toast('🧪 测试模式：已发全牌型手牌，AI 会自动过');
+  }
+
+  function demoOtherPlay(seat, cards, label) {
+    const combo = classify(cards, currentLevelLabel());
+    if (!combo) { toast('演示牌型构造失败：' + (label || '')); return; }
+    state.lastPlay[seat] = combo;
+    renderAll();
+  }
+  function demoTribute(double) {
+    const C = (s, r) => s * 13 + r;
+    const lv = currentLevelLabel();
+    const mk = (card, label) => ({ type: T.SINGLE, cards: [card], key: singleWeight(card, lv), bombStrength: 0, tributeLabel: label });
+    state.lastPlay = [null, null, null, null];
+    // 对方(1,3)垫底 → 进贡给你方(0,2)
+    state.lastPlay[1] = mk(C(0, 12), '进'); state.lastPlay[0] = mk(C(0, 6), '还');
+    if (double) { state.lastPlay[3] = mk(C(1, 12), '进'); state.lastPlay[2] = mk(C(1, 6), '还'); }
+    renderAll();
+  }
+  function demoResult() {
+    if (typeof showRoundOverlay === 'function') {
+      showRoundOverlay([0, 2, 1, 3], 0, 1, 0, 1, false);   // 你方头游+二游，级 2→3
+      if (els.roundOverlay) els.roundOverlay.classList.add('open');
+    }
+  }
+
+  function buildTestPanel() {
+    if (document.getElementById('gdTestPanel')) return;
+    const C = (s, r) => s * 13 + r;
+    const SJ = 52, BJ = 53;
+    const R = { '2':0,'3':1,'4':2,'5':3,'6':4,'7':5,'8':6,'9':7,'10':8,'J':9,'Q':10,'K':11,'A':12 };
+    const p = document.createElement('div');
+    p.id = 'gdTestPanel';
+    p.style.cssText = 'position:fixed;left:8px;top:8px;z-index:9998;width:118px;max-height:92vh;overflow:auto;' +
+      'background:rgba(20,30,45,0.92);border:1px solid #c9a96e;border-radius:10px;padding:8px;' +
+      'display:flex;flex-direction:column;gap:4px;font-family:var(--font-body,sans-serif);box-shadow:0 4px 14px rgba(0,0,0,0.4);';
+    const title = document.createElement('div');
+    title.textContent = '🧪 测试台'; title.style.cssText = 'color:#f5d142;font-weight:700;font-size:13px;text-align:center;margin-bottom:2px;';
+    p.appendChild(title);
+    const grp = (t) => { const d = document.createElement('div'); d.textContent = t; d.style.cssText = 'color:#c9a96e;font-size:10px;margin-top:5px;border-top:1px solid rgba(201,169,110,0.4);padding-top:3px;'; p.appendChild(d); };
+    const btn = (t, fn) => { const b = document.createElement('button'); b.textContent = t; b.style.cssText = 'font-size:11.5px;padding:5px 4px;border-radius:6px;border:1px solid rgba(201,169,110,0.5);background:#f7f2e6;color:#2b2a26;cursor:pointer;'; b.addEventListener('click', fn); p.appendChild(b); };
+
+    grp('他家出牌');
+    btn('对家·三带二', () => demoOtherPlay(2, [C(0,R['9']),C(1,R['9']),C(2,R['9']),C(0,R['10']),C(1,R['10'])], '三带二'));
+    btn('下家·四张炸', () => demoOtherPlay(1, [C(0,R['K']),C(1,R['K']),C(2,R['K']),C(3,R['K'])], '四炸'));
+    btn('上家·同花顺', () => demoOtherPlay(3, [C(0,R['4']),C(0,R['5']),C(0,R['6']),C(0,R['7']),C(0,R['8'])], '同花顺'));
+    btn('对家·天王炸', () => demoOtherPlay(2, [SJ, SJ + 54, BJ, BJ + 54], '天王炸'));
+    btn('逢人配替牌', () => demoOtherPlay(2, [C(0,R['9']),C(1,R['2']),C(0,R['J']),C(0,R['Q']),C(0,R['K'])], '逢人配替10'));
+
+    grp('流程/动画');
+    btn('接风', () => { if (typeof showJiefengFx === 'function') showJiefengFx(2, 0); });
+    btn('抗贡', () => { if (typeof showTributeBanner === 'function') showTributeBanner('🛡️ 抗贡成功', '握双大王，免进贡', 2200); });
+    btn('进贡(单)', () => demoTribute(false));
+    btn('进贡(双下)', () => demoTribute(true));
+    btn('结算面板', () => demoResult());
+
+    grp('其它');
+    btn('重发测试牌', () => {
+      state.hands[0] = buildTestHand(); state.lastPlay = [null, null, null, null];
+      state.selected.clear(); state.customGroups = []; state.out = [];
+      state.turn = 0; state.trick = { lead: 0, best: null, bestSeat: -1, passes: 0 };
+      renderAll(); updateActions();
+    });
+    btn('退出测试', () => { state._testMode = false; p.remove(); location.reload(); });
+    document.body.appendChild(p);
+  }
+
+  // 连打 TEST 触发测试模式
+  (function () {
+    let buf = '';
+    document.addEventListener('keydown', (e) => {
+      const tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      const k = (e.key || '').toLowerCase();
+      if (k.length === 1 && k >= 'a' && k <= 'z') {
+        buf = (buf + k).slice(-4);
+        if (buf === 'test') { buf = ''; enterTestMode(); }
+      }
+    });
+  })();
 
   // ===========================================================
   //  games-shell：战绩榜 / 昵称 / 评论
