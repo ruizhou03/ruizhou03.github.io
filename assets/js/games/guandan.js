@@ -2864,7 +2864,10 @@
 
     const remaining = alive.length;
     const bestSeat = state.trick.bestSeat;
-    if (bestSeat >= 0 && state.trick.passes >= remaining - 1 && remaining >= 1) {
+    // 收圈需「除当前最大牌持有者外其余在场者都过」。持有者若已出完(不在 remaining 里)，
+    // 则需全部 remaining 家都过，否则会跳过最后一位应答者（漏掉其压/炸机会）。
+    const needPass = remaining - (state.out.includes(bestSeat) ? 0 : 1);
+    if (bestSeat >= 0 && state.trick.passes >= needPass && remaining >= 1) {
       // 本圈结束 → 清场，最大者（若已出完则其下一个在场者）领出
       let nextLeader = bestSeat;
       let jiefengTo = -1;
@@ -2973,8 +2976,9 @@
 
     // 升级（封顶在 A：到了 A 不再溢出，需在 A 时拿头游才算赢）
     let newIdx = Math.min(LEVEL_SEQ.length - 1, beforeIdx + advance);
-    // 判定整局胜负：在 A 还拿到头游 → 该队赢下整局（“打过 A”）
-    const matchWon = wasAtA; // 之前已在 A，又拿头游 → 胜
+    // 判定整局胜负：过 A 须「一名头游 + 队友非末游」(名次 1+2 或 1+3，advance≥2)；
+    // 1+4（头游+末游）在 A 不算过，继续打 A（不退级、进贡照常）。
+    const matchWon = wasAtA && advance >= 2;
     if (!matchWon) state.levels[winTeam] = newIdx;
 
     // 赢方成为下一局“主级方”
