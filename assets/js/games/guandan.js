@@ -11,7 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.16.1';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.16.2';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -3682,16 +3682,33 @@
   // 权重组不同，不再用深度或噪声制造区别）。depth=2 在 self-play 模拟里相对
   // greedy 100% 胜，相对 depth=1 +9%，depth=3 不显著 → 甜蜜点。
   const LOOKAHEAD_DEPTH = 2;
-  // DanZero DMC 神经网络（高手档）。权重首次需要时异步拉取；未就绪/失败则回退启发式。
-  let _dmcState = 0; // 0 idle, 1 loading, 2 ready, 3 failed
-  function ensureDMC() {
-    if (typeof GuandanDMC === 'undefined' || _dmcState !== 0) return;
-    if (GuandanDMC.ready()) { _dmcState = 2; return; }
-    _dmcState = 1;
-    fetch('/assets/js/games/guandan-dmc.bin?v=20260616')
-      .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
-      .then(buf => { GuandanDMC.loadWeights(buf); _dmcState = 2; updateBuildBadge(); })
-      .catch(e => { console.warn('[guandan] DMC weights load failed, using heuristic:', e); _dmcState = 3; updateBuildBadge(); });
+  // DanZero DMC 神经网络（高手档）。进游戏即后台预下载；带进度；返回 Promise（永不 reject，
+  // 失败置 _dmcState=3）。下完才让高手上桌，期间不用「假高手」。
+  let _dmcState = 0, _dmcProgress = 0, _dmcPromise = null, _dmcProgressCb = null; // 0 idle,1 loading,2 ready,3 failed
+  function ensureDMC(onProgress) {
+    if (onProgress) _dmcProgressCb = onProgress;
+    if (typeof GuandanDMC === 'undefined') { _dmcState = 3; return Promise.resolve(); }
+    if (GuandanDMC.ready()) { _dmcState = 2; _dmcProgress = 1; return Promise.resolve(); }
+    if (_dmcPromise) return _dmcPromise;
+    _dmcState = 1; _dmcProgress = 0;
+    _dmcPromise = fetch('/assets/js/games/guandan-dmc.bin?v=20260616')
+      .then(r => {
+        if (!r.ok) throw new Error('http ' + r.status);
+        const total = +r.headers.get('content-length') || 5367812;
+        if (!r.body || !r.body.getReader) return r.arrayBuffer();
+        const reader = r.body.getReader(); let got = 0; const chunks = [];
+        return (function pump() {
+          return reader.read().then(({ done, value }) => {
+            if (done) { const out = new Uint8Array(got); let o = 0; for (const c of chunks) { out.set(c, o); o += c.length; } return out.buffer; }
+            chunks.push(value); got += value.length; _dmcProgress = Math.min(0.999, got / total);
+            if (_dmcProgressCb) { try { _dmcProgressCb(_dmcProgress); } catch (e) {} }
+            return pump();
+          });
+        })();
+      })
+      .then(buf => { GuandanDMC.loadWeights(buf); _dmcState = 2; _dmcProgress = 1; if (_dmcProgressCb) { try { _dmcProgressCb(1); } catch (e) {} } updateBuildBadge(); })
+      .catch(e => { console.warn('[guandan] DMC weights load failed:', e); _dmcState = 3; _dmcPromise = null; updateBuildBadge(); });
+    return _dmcPromise;
   }
   function chooseAIMove(seat, hand, prev, leading, level) {
     // 高手档用 DanZero 神经网络；网络只看公开信息（自己手牌+已出牌+张数+级牌）。
@@ -4199,8 +4216,19 @@
     els.gameOptsToggle.setAttribute('aria-expanded', String(open));
   });
   els.pgoStart.addEventListener('click', () => {
-    els.pgo.classList.remove('open');
-    startMatch();
+    // 高手档若神经网络还没下好：原地显示下载进度,下完才开始,不让「假高手」(启发式)上桌
+    const needNet = state.aiLevel === 'hard' && typeof GuandanDMC !== 'undefined' && !GuandanDMC.ready() && _dmcState !== 3;
+    if (!needNet) { els.pgo.classList.remove('open'); startMatch(); return; }
+    const btn = els.pgoStart;
+    if (!btn.dataset.orig) btn.dataset.orig = btn.innerHTML;
+    btn.style.pointerEvents = 'none'; btn.style.opacity = '0.85';
+    const tick = p => { btn.textContent = '下载高手模型 ' + Math.round(p * 100) + '%'; };
+    tick(_dmcProgress);
+    ensureDMC(tick).then(() => {
+      btn.style.pointerEvents = ''; btn.style.opacity = '';
+      if (_dmcState === 2) { btn.innerHTML = btn.dataset.orig; els.pgo.classList.remove('open'); startMatch(); }
+      else { btn.textContent = '模型载入失败,点此重试'; }
+    });
   });
   els.matchAgain.addEventListener('click', () => {
     els.matchOverlay.classList.remove('open');
@@ -4518,11 +4546,21 @@
 
   // 进入游戏即全屏：有未完成对局 → 弹恢复 modal；否则跳过 PGO 设置面板，直接发一局单机掼蛋。
   // （难度 / 玩法 / 联机仍可随时点右上角 ⚙️ 设置进 PGO 调整，下一盘生效。）
+  // 每次进入游戏都先走 Pregame（难度选择）页 + 后台预下载高手神经网络模型，
+  // 给下载争取时间，保证点「开始」时高手档已就绪（不用假高手顶替）。
+  function showPgo() {
+    state.phase = PHASE.IDLE;
+    renderAll();
+    refreshPgoStats();
+    syncPgoDiff();
+    refreshHs();
+    if (els.pgo) els.pgo.classList.add('open');
+    ensureDMC();   // 后台预下载,不阻塞
+  }
   (function maybeResumeOnLoad() {
     const snap = loadSession();
-    if (snap) { showResumeOverlay(snap); return; }
-    if (els.pgo) els.pgo.classList.remove('open');
-    startMatch();
+    if (snap) { showResumeOverlay(snap); ensureDMC(); return; }
+    showPgo();
   })();
 
   function showResumeOverlay(snap) {
@@ -4562,9 +4600,8 @@
     els.resumeDiscard.addEventListener('click', () => {
       clearSession();
       els.resumeOverlay.classList.remove('open');
-      // PGO 现已默认隐藏：放弃续局后直接开一局新的单机全屏掼蛋，别把用户留在空桌
-      els.pgo.classList.remove('open');
-      startMatch();
+      // 放弃续局 → 回到 Pregame（难度选择）页让用户重选档（同时后台已在预下载模型）
+      showPgo();
     });
   }
 

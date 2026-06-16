@@ -356,6 +356,7 @@ body_class: gd-game-fullscreen
   /* ④ 右下：超大花色，贴底、右与下出血被牌缘裁切（逐花色定大小与位置 via --gd-big/br/bb/op） */
   .gd-card .bigsuit {
     position: absolute;
+    display: flex; align-items: center; justify-content: center; line-height: 1;  /* ♠♣文字花色按框居中,与♥♦矢量对齐一致,缩放不跑偏 */
     right: calc(var(--gd-card-w, 50px) * var(--gd-br, -0.3));
     bottom: calc(var(--gd-card-w, 50px) * var(--gd-bb, -0.1));
     width: 1em; height: 1em;
@@ -2371,4 +2372,4 @@ body_class: gd-game-fullscreen
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
 <script src="/assets/js/games/guandan-dmc.js?v=20260616"></script>
-<script src="/assets/js/games/guandan.js?v=20260616dmc4"></script>
+<script src="/assets/js/games/guandan.js?v=20260616dmc5"></script>
