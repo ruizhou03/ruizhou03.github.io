@@ -11,7 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.16';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.16.1';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -3715,7 +3715,7 @@
     if (!el) {
       el = document.createElement('div');
       el.id = 'gdBuildBadge';
-      el.style.cssText = 'position:fixed;left:6px;bottom:5px;z-index:9998;font:600 10px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;color:rgba(255,255,255,0.5);background:rgba(0,0,0,0.32);padding:2px 7px;border-radius:7px;pointer-events:none;letter-spacing:.3px;white-space:nowrap;';
+      el.style.cssText = 'position:fixed;left:7px;bottom:6px;z-index:2147483646;font:700 11px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;color:rgba(255,255,255,0.82);background:rgba(20,20,30,0.62);padding:3px 8px;border-radius:8px;pointer-events:none;letter-spacing:.3px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.25);';
       document.body.appendChild(el);
     }
     let ai = '';
