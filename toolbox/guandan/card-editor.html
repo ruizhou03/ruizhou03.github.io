@@ -332,6 +332,13 @@
     font-size: calc(var(--gd-card-w, 50px) * var(--gd-big, 1.1));
     opacity: var(--gd-op, 0.9);
   }
+  /* 横排出牌(.gd-played-row)大花色：用横排专属 --gd-*H(与竖排分开设计);未设则回退竖排 --gd-* */
+  .gd-played-row .gd-card .bigsuit {
+    right: calc(var(--gd-card-w, 50px) * var(--gd-brH, var(--gd-br, -0.3)));
+    bottom: calc(var(--gd-card-w, 50px) * var(--gd-bbH, var(--gd-bb, -0.1)));
+    font-size: calc(var(--gd-card-w, 50px) * var(--gd-bigH, var(--gd-big, 1.1)));
+    opacity: var(--gd-opH, var(--gd-op, 0.9));
+  }
   .gd-card .suit-svg { width: 1em; height: 1em; display: block; fill: currentColor; overflow: visible; }
   /* ♠♣ 文字符号钉死系统符号字体(与游戏一致)：首帧即正确字形、不随 Web 字体加载闪烁 */
   .gd-card .q-tr, .gd-card .q-bl, .gd-card .bigsuit { font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols2", monospace; }
@@ -2047,7 +2054,7 @@ const SUITNAME=['黑桃','红桃','方块','梅花'],SUITKEY=['spade','heart','d
 const isRed=s=>(s===1||s===2);
 // 默认值 = 游戏当前线上真值（让编辑器一打开就跟游戏完全一致；改游戏后记得同步这里）
 const ST={ struct:{sr:0.38,rank:0.28,rankj:0.25},
-  suits:{0:{tr:0.21,bl:0.21,big:0.66,br:0.025,bb:0.335,op:1},1:{tr:0.19,bl:0.19,big:0.60,br:0.04,bb:0.2,op:1},2:{tr:0.22,bl:0.22,big:0.71,br:-0.01,bb:0.15,op:0.9},3:{tr:0.22,bl:0.22,big:0.66,br:0.02,bb:0.34,op:0.9}},
+  suits:{0:{tr:0.21,bl:0.21,big:0.66,br:0.025,bb:0.335,op:1,bigH:0.66,brH:0.025,bbH:0.335,opH:1},1:{tr:0.19,bl:0.19,big:0.60,br:0.04,bb:0.2,op:1,bigH:0.60,brH:0.04,bbH:0.2,opH:1},2:{tr:0.22,bl:0.22,big:0.71,br:-0.01,bb:0.15,op:0.9,bigH:0.71,brH:-0.01,bbH:0.15,opH:0.9},3:{tr:0.22,bl:0.22,big:0.66,br:0.02,bb:0.34,op:0.9,bigH:0.66,brH:0.02,bbH:0.34,opH:0.9}},
   level:{c1:'#ffffff',c2:'#ded2b5',cb:'#e6dcc7'},
   joker:{star:0.37,htext:0.18,vtext:0.185,vlh:1,vpad:0,crown:0.91,cr:0.02,cb:0.125,crown2:0.68} };
 const prev=document.getElementById('prev');
@@ -2062,7 +2069,7 @@ function applyGlobals(){
 function regCard(suit,rank,level){
   const p=ST.suits[suit];const e=document.createElement('span');
   e.className='gd-card size-full '+(isRed(suit)?'red':'black')+(rank==='J'?' rank-j':'')+(level?' is-level':'');
-  e.style.cssText='--gd-tr:'+p.tr+';--gd-bl:'+p.bl+';--gd-big:'+p.big+';--gd-br:'+p.br+';--gd-bb:'+p.bb+';--gd-op:'+p.op;
+  e.style.cssText='--gd-tr:'+p.tr+';--gd-bl:'+p.bl+';--gd-big:'+p.big+';--gd-br:'+p.br+';--gd-bb:'+p.bb+';--gd-op:'+p.op+';--gd-bigH:'+(p.bigH!=null?p.bigH:p.big)+';--gd-brH:'+(p.brH!=null?p.brH:p.br)+';--gd-bbH:'+(p.bbH!=null?p.bbH:p.bb)+';--gd-opH:'+(p.opH!=null?p.opH:p.op);
   const sv=suitSVG(suit);
   e.innerHTML='<span class="q q-tl">'+rank+'</span><span class="q q-tr">'+sv+'</span><span class="q q-bl">'+sv+'</span><span class="bigsuit">'+sv+'</span>';
   return e;
@@ -2121,12 +2128,18 @@ function buildCtl(){
     ctl.appendChild(sub);
     grp('当前花色：'+SUITNAME[suit]+'（逐花色独立）');
     const P=()=>ST.suits[suit];
-    slider('右上花色',()=>P().tr,v=>P().tr=v,0.15,0.7,0.005);
-    slider('左下花色',()=>P().bl,v=>P().bl=v,0.15,0.7,0.005);
-    slider('右下大花色',()=>P().big,v=>P().big=v,0.6,2.4,0.01);
-    slider('大花右移',()=>P().br,v=>P().br=v,-0.6,0.2,0.005);
-    slider('大花下沉',()=>P().bb,v=>P().bb=v,-0.6,0.5,0.005);
-    slider('大花透明',()=>P().op,v=>P().op=v,0.3,1,0.02);
+    slider('右上花色(竖排手牌)',()=>P().tr,v=>P().tr=v,0.15,0.7,0.005);
+    slider('左下花色(横排出牌)',()=>P().bl,v=>P().bl=v,0.15,0.7,0.005);
+    grp('右下大花色 · 竖排(手牌/单张)');
+    slider('大小',()=>P().big,v=>P().big=v,0.6,2.4,0.01);
+    slider('右移',()=>P().br,v=>P().br=v,-0.6,0.2,0.005);
+    slider('下沉',()=>P().bb,v=>P().bb=v,-0.6,0.5,0.005);
+    slider('透明',()=>P().op,v=>P().op=v,0.3,1,0.02);
+    grp('右下大花色 · 横排(出牌)');
+    slider('大小',()=>P().bigH,v=>P().bigH=v,0.6,2.4,0.01);
+    slider('右移',()=>P().brH,v=>P().brH=v,-0.6,0.2,0.005);
+    slider('下沉',()=>P().bbH,v=>P().bbH=v,-0.6,0.5,0.005);
+    slider('透明',()=>P().opH,v=>P().opH=v,0.3,1,0.02);
   } else if(tab==='level'){
     grp('红桃级牌（逢人配）底色 —— 版面同普通♥，仅深色不同');
     color('渐变色1',()=>ST.level.c1,v=>ST.level.c1=v);

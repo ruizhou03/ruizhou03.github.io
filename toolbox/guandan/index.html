@@ -363,6 +363,13 @@ body_class: gd-game-fullscreen
     font-size: calc(var(--gd-card-w, 50px) * var(--gd-big, 1.1));
     opacity: var(--gd-op, 0.9);
   }
+  /* 横排出牌(.gd-played-row)大花色：用横排专属 --gd-*H(与竖排分开设计);未设则回退竖排 --gd-* */
+  .gd-played-row .gd-card .bigsuit {
+    right: calc(var(--gd-card-w, 50px) * var(--gd-brH, var(--gd-br, -0.3)));
+    bottom: calc(var(--gd-card-w, 50px) * var(--gd-bbH, var(--gd-bb, -0.1)));
+    font-size: calc(var(--gd-card-w, 50px) * var(--gd-bigH, var(--gd-big, 1.1)));
+    opacity: var(--gd-opH, var(--gd-op, 0.9));
+  }
   /* ♠♣ 是文字符号(非矢量花色)：钉死系统符号字体，首帧即正确字形，不随 Web 字体(Cormorant/Noto)加载而闪烁(FOUT)。
      ♥♦ 是内联 SVG，font-family 对其无效；大小王 .is-joker 有更高优先级的自有字体，不受波及。 */
   .gd-card .q-tr, .gd-card .q-bl, .gd-card .bigsuit { font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols2", monospace; }
@@ -2372,4 +2379,4 @@ body_class: gd-game-fullscreen
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
 <script src="/assets/js/games/guandan-dmc.js?v=20260616int8"></script>
-<script src="/assets/js/games/guandan.js?v=20260616dmc8"></script>
+<script src="/assets/js/games/guandan.js?v=20260616dmc9"></script>

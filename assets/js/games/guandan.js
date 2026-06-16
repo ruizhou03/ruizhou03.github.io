@@ -11,7 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.16.5';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.16.6';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -30,10 +30,11 @@
   }
   // 逐花色参数（编辑器调好的定稿）：tr/bl 角标大小、big 大花色大小、br/bb 右移/下沉、op 不透明度
   const SUITP = {
-    0: { tr: 0.21, bl: 0.21, big: 0.66, br: 0.025, bb: 0.335, op: 1 },
-    1: { tr: 0.19, bl: 0.19, big: 0.60, br: 0.04,  bb: 0.2,   op: 1 },
-    2: { tr: 0.22, bl: 0.22, big: 0.71, br: -0.01, bb: 0.15,  op: 0.9 },
-    3: { tr: 0.22, bl: 0.22, big: 0.66, br: 0.02,  bb: 0.34,  op: 0.9 },
+    // big/br/bb/op = 右下大花色「竖排(手牌/单张)」; bigH/brH/bbH/opH = 「横排(出牌)」专属(初始=竖排值,在编辑器里分开调)
+    0: { tr: 0.21, bl: 0.21, big: 0.66, br: 0.025, bb: 0.335, op: 1, bigH: 0.66, brH: 0.025, bbH: 0.335, opH: 1 },
+    1: { tr: 0.19, bl: 0.19, big: 0.60, br: 0.04,  bb: 0.2,   op: 1, bigH: 0.60, brH: 0.04,  bbH: 0.2,   opH: 1 },
+    2: { tr: 0.22, bl: 0.22, big: 0.71, br: -0.01, bb: 0.15,  op: 0.9, bigH: 0.71, brH: -0.01, bbH: 0.15, opH: 0.9 },
+    3: { tr: 0.22, bl: 0.22, big: 0.66, br: 0.02,  bb: 0.34,  op: 0.9, bigH: 0.66, brH: 0.02, bbH: 0.34, opH: 0.9 },
   };
   const GD_S_RATIO = 0.38;   // 左上正方形 / 横纵分割线 = 0.39W；竖排错位也用它（露横分割线以上）
   const LEVEL_SEQ = ['2','3','4','5','6','7','8','9','10','J','Q','K','A']; // 级牌进阶序
@@ -1061,6 +1062,10 @@
     el.style.setProperty('--gd-br', p.br);
     el.style.setProperty('--gd-bb', p.bb);
     el.style.setProperty('--gd-op', p.op);
+    el.style.setProperty('--gd-bigH', p.bigH != null ? p.bigH : p.big);   // 横排出牌大花色(分开设计;缺省回退竖排)
+    el.style.setProperty('--gd-brH', p.brH != null ? p.brH : p.br);
+    el.style.setProperty('--gd-bbH', p.bbH != null ? p.bbH : p.bb);
+    el.style.setProperty('--gd-opH', p.opH != null ? p.opH : p.op);
     const sv = suitSVG(dSuit);
     el.innerHTML =
       '<span class="q q-tl">' + RANK_LABELS[dRank] + '</span>' +
