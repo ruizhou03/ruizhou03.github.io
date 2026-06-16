@@ -11,7 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.16.4';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.16.5';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -3691,10 +3691,10 @@
     if (GuandanDMC.ready()) { _dmcState = 2; _dmcProgress = 1; return Promise.resolve(); }
     if (_dmcPromise) return _dmcPromise;
     _dmcState = 1; _dmcProgress = 0;
-    _dmcPromise = fetch('/assets/js/games/guandan-dmc.bin?v=20260616')
+    _dmcPromise = fetch('/assets/js/games/guandan-dmc.bin?v=20260616int8')
       .then(r => {
         if (!r.ok) throw new Error('http ' + r.status);
-        const total = +r.headers.get('content-length') || 5367812;
+        const total = +r.headers.get('content-length') || 1359880;
         if (!r.body || !r.body.getReader) return r.arrayBuffer();
         const reader = r.body.getReader(); let got = 0; const chunks = [];
         return (function pump() {

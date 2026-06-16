@@ -96,10 +96,28 @@
   var L = null;                       // [{inD,outD,W,b}]
   var DIMS = [[567, 512], [512, 512], [512, 512], [512, 512], [512, 512], [512, 1]];
   function loadWeights(src) {         // src: ArrayBuffer | Float32Array
+    // int8 packed (≈1.36MB: int8 权重 | f32 偏置 | f32 逐列scale) vs float32 packed (≈5.37MB)
+    if (src instanceof ArrayBuffer && src.byteLength === 1359880) return loadWeightsInt8(src);
     var f32 = (src instanceof Float32Array) ? src : new Float32Array(src);
     L = []; var off = 0;
     for (var i = 0; i < DIMS.length; i++) { var inD = DIMS[i][0], outD = DIMS[i][1]; var W = f32.subarray(off, off + inD * outD); off += inD * outD; var b = f32.subarray(off, off + outD); off += outD; L.push({ inD: inD, outD: outD, W: W, b: b }); }
     if (off !== f32.length) { L = null; throw new Error('DMC weight length mismatch ' + off + '/' + f32.length); }
+    return true;
+  }
+  function loadWeightsInt8(buf) {      // int8 权重在加载时反量化成 float32；前向不变
+    var nW = 0, nB = 0, i, j, ii;
+    for (i = 0; i < DIMS.length; i++) { nW += DIMS[i][0] * DIMS[i][1]; nB += DIMS[i][1]; }
+    var q = new Int8Array(buf, 0, nW);
+    var bias = new Float32Array(buf.slice(nW, nW + nB * 4));
+    var scale = new Float32Array(buf.slice(nW + nB * 4, nW + nB * 4 + nB * 4));
+    L = []; var wo = 0, bo = 0;
+    for (i = 0; i < DIMS.length; i++) {
+      var inD = DIMS[i][0], outD = DIMS[i][1];
+      var W = new Float32Array(inD * outD);
+      for (ii = 0; ii < inD; ii++) { var base = ii * outD; for (j = 0; j < outD; j++) W[base + j] = q[wo + base + j] * scale[bo + j]; }
+      L.push({ inD: inD, outD: outD, W: W, b: bias.subarray(bo, bo + outD) });
+      wo += inD * outD; bo += outD;
+    }
     return true;
   }
   function ready() { return !!L; }
