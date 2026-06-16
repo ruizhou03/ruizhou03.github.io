@@ -1329,8 +1329,25 @@ function sanity() {
 }
 
 // ===========================================================
-// CLI
+// 作为库被 require 时导出纯引擎函数（给 RL 环境 / Python 移植做 parity oracle 用）
+// 不影响直接 `node sim-guandan.js <cmd>` 运行（下面 CLI 用 require.main 守卫）
 // ===========================================================
+module.exports = {
+  RANK_LABELS, LEVEL_SEQ,
+  isJoker, jokerKind, cardSuit, cardRankIdx, singleWeight, isWild,
+  buildDeck, shuffle, tally,
+  classify, classifyRaw, beats, isBombType,
+  genMoves, decompose, DEFAULT_W,
+  evaluateHand, groupValue, moveUtility,
+  chooseAIMove, chooseAIMoveGreedy, chooseAIMoveLookahead,
+  pickTributeCard, pickReturnCard, handleTribute,
+  simulateRound, simulateMatch, runMatches,
+};
+
+// ===========================================================
+// CLI（仅在直接 `node sim-guandan.js ...` 运行时执行）
+// ===========================================================
+if (require.main === module) {
 const cmd = process.argv[2] || 'sanity';
 if (cmd === 'sanity') sanity();
 else if (cmd === 'tune') tune({ matchesPerTrial: parseInt(process.argv[3], 10) || 60, iterations: 2 });
@@ -1377,3 +1394,4 @@ else if (cmd === 'compare') {
     '  · avg iter/round ' + r.avgIter.toFixed(0));
 }
 else { console.error('unknown cmd: ' + cmd); process.exit(1); }
+}

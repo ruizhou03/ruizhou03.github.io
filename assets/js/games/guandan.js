@@ -11,6 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+  const GD_BUILD = '2026.06.16';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -1482,6 +1483,7 @@
   }
 
   function renderAll() {
+    updateBuildBadge();
     const youLv = LEVEL_SEQ[state.levels[0]];
     const oppLv = LEVEL_SEQ[state.levels[1]];
     els.levelYou.textContent = youLv;
@@ -2200,6 +2202,7 @@
     const deck = shuffle(buildDeck());
     state.hands = [[], [], [], []];
     for (let i = 0; i < 108; i++) state.hands[i % 4].push(deck[i]);
+    if (typeof GuandanDMC !== 'undefined') { GuandanDMC.resetRound(); ensureDMC(); }
 
     // 决定先手：首局随机抽一家；之后由进贡/抗贡规则在 handleTribute 里改写
     // （这里的 leader 只是非进贡场景的兜底：传入的是上局头游）
@@ -2787,6 +2790,7 @@
     state.trick.best = combo;
     state.trick.bestSeat = seat;
     state.trick.passes = 0;
+    if (typeof GuandanDMC !== 'undefined') GuandanDMC.recordPlay(seat, combo.cards);
     if (afterLen === 0 && !state.out.includes(seat)) {
       state.out.push(seat);
     }
@@ -2848,6 +2852,7 @@
     if (isNetworked()) { sendNetworkedMove('pass'); return; }
     state.lastPlay[seat] = 'pass';
     state.trick.passes++;
+    if (typeof GuandanDMC !== 'undefined') GuandanDMC.recordPass(seat);
     renderAll();
     if (seat === 0) hidePlayActionsImmediate();
     saveSession();
@@ -3535,7 +3540,21 @@
       groupBombBase: 14, groupBombPerExtra: 8,
       handLenPenalty: 0.325, lookaheadDepth: 2,
     },
+    // 普通 = 原困难档 coord-best (Elo 1575.8)：神经网络上线后整体台阶上移
     normal: {
+      passBase: -4.658, passPartnerWin: 13.685, passPartnerLow: 4,
+      playFollowActive: 2.125, playFinish: 51,
+      playFinishPartnerWin: 35, playPartnerWinPenalty: -19.305,
+      playLeadLength: 0.35, playFollowLength: -0.12,
+      breakMult: 1.316, wildCost: 7, jokerCost: 5,
+      bombBase4: 6.8, bombPerExtra: 4,
+      bombLeadMult: 1, bombLeadLateBonus: 0.6,
+      bombFollowMult: 0.6, bombFollowOppLow: 1.3, bombFollowOppMed: 0.3,
+      groupBombBase: 14, groupBombPerExtra: 8,
+      handLenPenalty: 0.325, lookaheadDepth: 2,
+    },
+    // 新手 = 原普通档 run12_gen6 (Elo 1493)
+    easy: {
       passBase: -4.135, passPartnerWin: 11.089, passPartnerLow: 4,
       playFollowActive: 2.255, playFinish: 27.101,
       playFinishPartnerWin: 35, playPartnerWinPenalty: -23.474,
@@ -3546,18 +3565,6 @@
       bombFollowMult: 0.6, bombFollowOppLow: 1.3, bombFollowOppMed: 0.3,
       groupBombBase: 14, groupBombPerExtra: 8,
       handLenPenalty: 0.319, lookaheadDepth: 2,
-    },
-    easy: {
-      passBase: -3.241, passPartnerWin: 10.712, passPartnerLow: 4,
-      playFollowActive: 2.054, playFinish: 33.185,
-      playFinishPartnerWin: 35, playPartnerWinPenalty: -19.329,
-      playLeadLength: 0.35, playFollowLength: -0.12,
-      breakMult: 1.057, wildCost: 7, jokerCost: 5,
-      bombBase4: 0.910, bombPerExtra: 4,
-      bombLeadMult: 1, bombLeadLateBonus: 0.6,
-      bombFollowMult: 0.6, bombFollowOppLow: 1.3, bombFollowOppMed: 0.3,
-      groupBombBase: 14, groupBombPerExtra: 8,
-      handLenPenalty: 0.133,
     },
   };
   function aiWeights() {
@@ -3675,9 +3682,47 @@
   // 权重组不同，不再用深度或噪声制造区别）。depth=2 在 self-play 模拟里相对
   // greedy 100% 胜，相对 depth=1 +9%，depth=3 不显著 → 甜蜜点。
   const LOOKAHEAD_DEPTH = 2;
+  // DanZero DMC 神经网络（高手档）。权重首次需要时异步拉取；未就绪/失败则回退启发式。
+  let _dmcState = 0; // 0 idle, 1 loading, 2 ready, 3 failed
+  function ensureDMC() {
+    if (typeof GuandanDMC === 'undefined' || _dmcState !== 0) return;
+    if (GuandanDMC.ready()) { _dmcState = 2; return; }
+    _dmcState = 1;
+    fetch('/assets/js/games/guandan-dmc.bin?v=20260616')
+      .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(buf => { GuandanDMC.loadWeights(buf); _dmcState = 2; updateBuildBadge(); })
+      .catch(e => { console.warn('[guandan] DMC weights load failed, using heuristic:', e); _dmcState = 3; updateBuildBadge(); });
+  }
   function chooseAIMove(seat, hand, prev, leading, level) {
+    // 高手档用 DanZero 神经网络；网络只看公开信息（自己手牌+已出牌+张数+级牌）。
+    if (state.aiLevel === 'hard' && typeof GuandanDMC !== 'undefined') {
+      ensureDMC();
+      if (GuandanDMC.ready()) {
+        const moves = genMoves(hand, prev, level);
+        const selfLv = LEVEL_SEQ[state.levels[seat % 2]];
+        const oppoLv = LEVEL_SEQ[state.levels[1 - (seat % 2)]];
+        const pick = GuandanDMC.choose(seat, state.hands, state.out, level, selfLv, oppoLv, moves, leading);
+        if (!(leading && pick == null)) return pick;   // pick=combo 或 null(pass)；只拦「领出却想pass」
+      }
+    }
     const w = aiWeights();
     return chooseAIMoveLookahead(seat, hand, prev, leading, level, w, LOOKAHEAD_DEPTH);
+  }
+  // 版本 / AI 引擎 徽标（左下角，半透明）：刷新即可确认加载的版本 + 高手档用的是神经网络还是启发式
+  function updateBuildBadge() {
+    if (typeof document === 'undefined' || !document.body) return;
+    let el = document.getElementById('gdBuildBadge');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'gdBuildBadge';
+      el.style.cssText = 'position:fixed;left:6px;bottom:5px;z-index:9998;font:600 10px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;color:rgba(255,255,255,0.5);background:rgba(0,0,0,0.32);padding:2px 7px;border-radius:7px;pointer-events:none;letter-spacing:.3px;white-space:nowrap;';
+      document.body.appendChild(el);
+    }
+    let ai = '';
+    const lv = state && state.aiLevel;
+    if (lv === 'hard') ai = ' · 高手 ' + (_dmcState === 2 ? 'DanZero🧠' : _dmcState === 1 ? '载入中…' : _dmcState === 3 ? '启发式·载入失败' : '启发式');
+    else if (lv) ai = ' · ' + (lv === 'normal' ? '普通' : '新手') + ' 启发式';
+    el.textContent = 'v' + GD_BUILD + ai;
   }
   function chooseAIMoveGreedy(seat, hand, prev, leading, level, w) {
     const ctx = moveContext(seat);
