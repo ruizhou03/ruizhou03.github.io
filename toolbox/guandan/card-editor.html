@@ -319,7 +319,7 @@
   /* ③ 左下：花色，靠上贴近点数（横排左条可见） */
   .gd-card .q-bl {
     left: 0; top: calc(var(--gd-card-w, 50px) * 0.39); width: calc(var(--gd-card-w, 50px) * 0.39); bottom: 0;
-    align-items: flex-start; justify-content: center; padding-top: calc(var(--gd-card-w, 50px) * 0.05);
+    align-items: center; justify-content: center;  /* 左下花色按框居中(原写死靠上):缩放中心不动、对称放大 */
     font-size: calc(var(--gd-card-w, 50px) * var(--gd-bl, 0.35));
   }
   /* ④ 右下：超大花色，贴底、右与下出血被牌缘裁切（逐花色定大小与位置 via --gd-big/br/bb/op） */
