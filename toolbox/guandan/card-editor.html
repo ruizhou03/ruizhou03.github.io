@@ -315,12 +315,14 @@
     left: calc(var(--gd-card-w, 50px) * 0.39); top: 0; right: 0; height: calc(var(--gd-card-w, 50px) * 0.39);
     align-items: center; justify-content: center;
     font-size: calc(var(--gd-card-w, 50px) * var(--gd-tr, 0.35));
+    transform: translateY(calc(var(--gd-card-w, 50px) * var(--gd-try, 0)));  /* 右上角标上下偏移(统一/逐花色;正=下) */
   }
   /* ③ 左下：花色，靠上贴近点数（横排左条可见） */
   .gd-card .q-bl {
     left: 0; top: calc(var(--gd-card-w, 50px) * 0.39); width: calc(var(--gd-card-w, 50px) * 0.39); bottom: 0;
     align-items: center; justify-content: center;  /* 左下花色按框居中(原写死靠上):缩放中心不动、对称放大 */
     font-size: calc(var(--gd-card-w, 50px) * var(--gd-bl, 0.35));
+    transform: translateY(calc(var(--gd-card-w, 50px) * var(--gd-bly, 0)));  /* 左下角标上下偏移(统一/逐花色;正=下) */
   }
   /* ④ 右下：超大花色，贴底、右与下出血被牌缘裁切（逐花色定大小与位置 via --gd-big/br/bb/op） */
   .gd-card .bigsuit {
@@ -2053,8 +2055,8 @@ const RL=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
 const SUITNAME=['黑桃','红桃','方块','梅花'],SUITKEY=['spade','heart','diamond','club'];
 const isRed=s=>(s===1||s===2);
 // 默认值 = 游戏当前线上真值（让编辑器一打开就跟游戏完全一致；改游戏后记得同步这里）
-const ST={ struct:{sr:0.38,rank:0.28,rankj:0.25},
-  suits:{0:{tr:0.21,bl:0.21,big:0.66,br:0.025,bb:0.335,op:1,bigH:0.66,brH:0.025,bbH:0.335,opH:1},1:{tr:0.19,bl:0.19,big:0.60,br:0.04,bb:0.2,op:1,bigH:0.60,brH:0.04,bbH:0.2,opH:1},2:{tr:0.22,bl:0.22,big:0.71,br:-0.01,bb:0.15,op:0.9,bigH:0.71,brH:-0.01,bbH:0.15,opH:0.9},3:{tr:0.22,bl:0.22,big:0.66,br:0.02,bb:0.34,op:0.9,bigH:0.66,brH:0.02,bbH:0.34,opH:0.9}},
+const ST={ struct:{sr:0.38,rank:0.28,rankj:0.25,trYAll:0,blYAll:0},   // trYAll/blYAll = 右上/左下 角标花色「上下整体偏移」(统一调,四花色一起;正=下)
+  suits:{0:{tr:0.21,bl:0.21,big:0.66,br:0.025,bb:0.335,op:1,bigH:0.66,brH:0.025,bbH:0.335,opH:1,trY:0,blY:0},1:{tr:0.19,bl:0.19,big:0.60,br:0.04,bb:0.2,op:1,bigH:0.60,brH:0.04,bbH:0.2,opH:1,trY:0,blY:0},2:{tr:0.22,bl:0.22,big:0.71,br:-0.01,bb:0.15,op:0.9,bigH:0.71,brH:-0.01,bbH:0.15,opH:0.9,trY:0,blY:0},3:{tr:0.22,bl:0.22,big:0.66,br:0.02,bb:0.34,op:0.9,bigH:0.66,brH:0.02,bbH:0.34,opH:0.9,trY:0,blY:0}},
   level:{c1:'#ffffff',c2:'#ded2b5',cb:'#e6dcc7'},
   joker:{star:0.37,htext:0.18,vtext:0.185,vlh:1,vpad:0,crown:0.91,cr:0.02,cb:0.125,crown2:0.68} };
 const prev=document.getElementById('prev');
@@ -2069,7 +2071,8 @@ function applyGlobals(){
 function regCard(suit,rank,level){
   const p=ST.suits[suit];const e=document.createElement('span');
   e.className='gd-card size-full '+(isRed(suit)?'red':'black')+(rank==='J'?' rank-j':'')+(level?' is-level':'');
-  e.style.cssText='--gd-tr:'+p.tr+';--gd-bl:'+p.bl+';--gd-big:'+p.big+';--gd-br:'+p.br+';--gd-bb:'+p.bb+';--gd-op:'+p.op+';--gd-bigH:'+(p.bigH!=null?p.bigH:p.big)+';--gd-brH:'+(p.brH!=null?p.brH:p.br)+';--gd-bbH:'+(p.bbH!=null?p.bbH:p.bb)+';--gd-opH:'+(p.opH!=null?p.opH:p.op);
+  const trY=(ST.struct.trYAll||0)+(p.trY||0), blY=(ST.struct.blYAll||0)+(p.blY||0);   // 角标上下偏移 = 整体 + 本花色微调
+  e.style.cssText='--gd-tr:'+p.tr+';--gd-bl:'+p.bl+';--gd-big:'+p.big+';--gd-br:'+p.br+';--gd-bb:'+p.bb+';--gd-op:'+p.op+';--gd-bigH:'+(p.bigH!=null?p.bigH:p.big)+';--gd-brH:'+(p.brH!=null?p.brH:p.br)+';--gd-bbH:'+(p.bbH!=null?p.bbH:p.bb)+';--gd-opH:'+(p.opH!=null?p.opH:p.op)+';--gd-try:'+trY+';--gd-bly:'+blY;
   const sv=suitSVG(suit);
   e.innerHTML='<span class="q q-tl">'+rank+'</span><span class="q q-tr">'+sv+'</span><span class="q q-bl">'+sv+'</span><span class="bigsuit">'+sv+'</span>';
   return e;
@@ -2126,10 +2129,15 @@ function buildCtl(){
     const sub=document.createElement('div');sub.className='suitsub';
     ['♠','♥','♦','♣'].forEach((g,s)=>{const b=document.createElement('button');b.textContent=g;if(isRed(s))b.classList.add('red');if(s===suit)b.classList.add('on');b.onclick=()=>{suit=s;buildCtl();};sub.appendChild(b);});
     ctl.appendChild(sub);
+    grp('角标花色·上下统一（四花色一起 · 负=上移/正=下移）');
+    slider('右上花色·上下(全部)',()=>ST.struct.trYAll,v=>ST.struct.trYAll=v,-0.2,0.2,0.005);
+    slider('左下花色·上下(全部)',()=>ST.struct.blYAll,v=>ST.struct.blYAll=v,-0.2,0.2,0.005);
     grp('当前花色：'+SUITNAME[suit]+'（逐花色独立）');
     const P=()=>ST.suits[suit];
     slider('右上花色(竖排手牌)',()=>P().tr,v=>P().tr=v,0.15,0.7,0.005);
     slider('左下花色(横排出牌)',()=>P().bl,v=>P().bl=v,0.15,0.7,0.005);
+    slider('右上花色·上下(本花色微调)',()=>P().trY,v=>P().trY=v,-0.2,0.2,0.005);
+    slider('左下花色·上下(本花色微调)',()=>P().blY,v=>P().blY=v,-0.2,0.2,0.005);
     grp('右下大花色 · 竖排(手牌/单张)');
     slider('大小',()=>P().big,v=>P().big=v,0.6,2.4,0.01);
     slider('右移',()=>P().br,v=>P().br=v,-0.6,0.2,0.005);

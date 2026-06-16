@@ -346,12 +346,14 @@ body_class: gd-game-fullscreen
     left: calc(var(--gd-card-w, 50px) * 0.38); top: 0; right: 0; height: calc(var(--gd-card-w, 50px) * 0.38);
     align-items: center; justify-content: center;
     font-size: calc(var(--gd-card-w, 50px) * var(--gd-tr, 0.35));
+    transform: translateY(calc(var(--gd-card-w, 50px) * var(--gd-try, 0)));  /* 右上角标上下偏移(编辑器统一/逐花色;正=下) */
   }
   /* ③ 左下：花色，靠上贴近点数（横排左条可见） */
   .gd-card .q-bl {
     left: 0; top: calc(var(--gd-card-w, 50px) * 0.38); width: calc(var(--gd-card-w, 50px) * 0.38); bottom: 0;
     align-items: center; justify-content: center;  /* 左下花色按框居中(原写死靠上):缩放中心不动、对称放大 */
     font-size: calc(var(--gd-card-w, 50px) * var(--gd-bl, 0.35));
+    transform: translateY(calc(var(--gd-card-w, 50px) * var(--gd-bly, 0)));  /* 左下角标上下偏移(编辑器统一/逐花色;正=下) */
   }
   /* ④ 右下：超大花色，贴底、右与下出血被牌缘裁切（逐花色定大小与位置 via --gd-big/br/bb/op） */
   .gd-card .bigsuit {
@@ -2379,4 +2381,4 @@ body_class: gd-game-fullscreen
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
 <script src="/assets/js/games/guandan-dmc.js?v=20260616int8"></script>
-<script src="/assets/js/games/guandan.js?v=20260616dmc9"></script>
+<script src="/assets/js/games/guandan.js?v=20260616dmc10"></script>
