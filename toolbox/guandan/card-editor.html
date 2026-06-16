@@ -2016,6 +2016,7 @@ h1{font-family:"Cormorant Garamond",serif;font-weight:600;font-size:1.6rem;text-
 #prev{--gd-card-w:50px;--gd-card-h:72px;}  /* 与游戏一致：默认手牌/出牌 size-full = 50x72（可用「预览尺寸」滑杆放大查看，渲染仍忠实） */
 #prev .gd-rank-col{position:relative;width:var(--gd-card-w)}
 #prev .gd-played-row{display:flex}#prev .gd-played-row .gd-card{margin-left:calc(-1*var(--gd-card-w)*0.52)}#prev .gd-played-row .gd-card:first-child{margin-left:0}
+#prev .gd-played-row.gd-row-spread{gap:12px;flex-wrap:wrap}#prev .gd-played-row.gd-row-spread .gd-card{margin-left:0}  /* 横排·逐张:横排样式但不叠放,逐张看全 */
 /* ===== 覆盖游戏里硬编码的值 → 改用编辑器变量(#prev 提权)。逐花色 tr/bl/big/br/bb/op 游戏本就用 --gd-* 内联变量，编辑器直接给卡内联即可，无需覆盖 ===== */
 #prev .gd-card .q-tl{ width:calc(var(--gd-card-w)*var(--e-sr)); height:calc(var(--gd-card-w)*var(--e-sr)); font-size:calc(var(--gd-card-w)*var(--e-rank)); }
 #prev .gd-card.rank-j .q-tl{ font-size:calc(var(--gd-card-w)*var(--e-rankj)); }
@@ -2026,7 +2027,7 @@ h1{font-family:"Cormorant Garamond",serif;font-weight:600;font-size:1.6rem;text-
 #prev .gd-card.is-joker .q-tr{ font-size:calc(var(--gd-card-w)*var(--e-htext)); }
 #prev .gd-card.is-joker .q-bl{ font-size:calc(var(--gd-card-w)*var(--e-vtext)); line-height:var(--e-vlh); padding-top:calc(var(--gd-card-w)*var(--e-vpad)); }
 #prev .gd-card.is-joker .bigsuit{ font-size:calc(var(--gd-card-w)*var(--e-crown)); right:calc(var(--gd-card-w)*var(--e-cr)); bottom:calc(var(--gd-card-w)*var(--e-cb)); }
-#prev .gd-played-row .gd-card.is-joker .bigsuit{ left:calc(var(--gd-card-w)*var(--e-sr)); top:calc(var(--gd-card-w)*var(--e-sr)); font-size:calc(var(--gd-card-w)*var(--e-crown2)); }
+#prev .gd-played-row .gd-card.is-joker .bigsuit{ left:calc(var(--gd-card-w)*var(--e-sr)); top:calc(var(--gd-card-w)*var(--e-sr)); font-size:calc(var(--gd-card-w)*var(--e-crown2)); transform:translate(calc(var(--gd-card-w)*var(--e-c2x)),calc(var(--gd-card-w)*var(--e-c2y))); }
 .ctl{display:grid;grid-template-columns:96px 1fr 52px;gap:.45rem;align-items:center;margin-bottom:.45rem}
 .ctl label{font-size:.78rem;color:#4a4640}.ctl input[type=range]{width:100%;accent-color:#a87a2a}
 .ctl .val{font-family:"SF Mono",Menlo,monospace;font-size:.74rem;text-align:right;color:#5c574d;background:#f1ebdc;border-radius:4px;padding:1px 3px}
@@ -2055,10 +2056,10 @@ const RL=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
 const SUITNAME=['黑桃','红桃','方块','梅花'],SUITKEY=['spade','heart','diamond','club'];
 const isRed=s=>(s===1||s===2);
 // 默认值 = 游戏当前线上真值（让编辑器一打开就跟游戏完全一致；改游戏后记得同步这里）
-const ST={ struct:{sr:0.38,rank:0.28,rankj:0.25,trYAll:0,blYAll:0},   // trYAll/blYAll = 右上/左下 角标花色「上下整体偏移」(统一调,四花色一起;正=下)
-  suits:{0:{tr:0.21,bl:0.21,big:0.66,br:0.025,bb:0.335,op:1,bigH:0.66,brH:0.025,bbH:0.335,opH:1,trY:0,blY:0},1:{tr:0.19,bl:0.19,big:0.60,br:0.04,bb:0.2,op:1,bigH:0.60,brH:0.04,bbH:0.2,opH:1,trY:0,blY:0},2:{tr:0.22,bl:0.22,big:0.71,br:-0.01,bb:0.15,op:0.9,bigH:0.71,brH:-0.01,bbH:0.15,opH:0.9,trY:0,blY:0},3:{tr:0.22,bl:0.22,big:0.66,br:0.02,bb:0.34,op:0.9,bigH:0.66,brH:0.02,bbH:0.34,opH:0.9,trY:0,blY:0}},
+const ST={ struct:{sr:0.38,rank:0.28,rankj:0.25,trYAll:0.02,blYAll:-0.2},   // trYAll/blYAll = 右上/左下 角标花色「上下整体偏移」(统一调,四花色一起;正=下)
+  suits:{0:{tr:0.335,bl:0.34,big:1.13,br:-0.08,bb:-0.045,op:1,bigH:0.97,brH:-0.105,bbH:0.055,opH:1,trY:0.02,blY:-0.175},1:{tr:0.19,bl:0.2,big:0.6,br:0.17,bb:0.245,op:1,bigH:0.6,brH:0.04,bbH:0.2,opH:1,trY:0,blY:-0.2},2:{tr:0.22,bl:0.22,big:0.71,br:0.115,bb:0.19,op:0.9,bigH:0.71,brH:-0.01,bbH:0.15,opH:0.9,trY:0,blY:-0.2},3:{tr:0.325,bl:0.34,big:1.04,br:-0.04,bb:-0.015,op:0.9,bigH:0.96,brH:-0.02,bbH:-0.045,opH:1,trY:0,blY:-0.17}},
   level:{c1:'#ffffff',c2:'#ded2b5',cb:'#e6dcc7'},
-  joker:{star:0.37,htext:0.18,vtext:0.185,vlh:1,vpad:0,crown:0.91,cr:0.02,cb:0.125,crown2:0.68} };
+  joker:{star:0.37,htext:0.18,vtext:0.185,vlh:1,vpad:0,crown:0.91,cr:0.02,cb:0.125,crown2:0.68,crown2x:0,crown2y:0} };   // crown2x/crown2y = 横排皇冠 左右/上下 位置(占卡宽比例)
 const prev=document.getElementById('prev');
 function applyGlobals(){
   const s=ST.struct,l=ST.level,j=ST.joker;
@@ -2067,6 +2068,7 @@ function applyGlobals(){
   set('--e-lv1',l.c1);set('--e-lv2',l.c2);set('--e-lvb',l.cb);
   set('--e-star',j.star);set('--e-htext',j.htext);set('--e-vtext',j.vtext);set('--e-vlh',j.vlh);set('--e-vpad',j.vpad);
   set('--e-crown',j.crown);set('--e-cr',j.cr);set('--e-cb',j.cb);set('--e-crown2',j.crown2);
+  set('--e-c2x',j.crown2x||0);set('--e-c2y',j.crown2y||0);
 }
 function regCard(suit,rank,level){
   const p=ST.suits[suit];const e=document.createElement('span');
@@ -2087,9 +2089,11 @@ function ctxBlocks(makeList){
   function box(title,node){const d=document.createElement('div');const t=document.createElement('div');t.className='cap';t.textContent=title;d.appendChild(node);d.appendChild(t);return d;}
   const single=document.createElement('div');single.style.display='flex';single.style.gap='10px';makeList().forEach(c=>single.appendChild(c));
   const row=document.createElement('div');row.className='gd-played-row';makeList().forEach(c=>row.appendChild(c));
+  // 横排·逐张：每张都用横排出牌样式(露左下花色/横排大花色)，但不叠放，方便看清被盖住那张的花色
+  const rowS=document.createElement('div');rowS.className='gd-played-row gd-row-spread';makeList().forEach(c=>rowS.appendChild(c));
   const col=document.createElement('div');col.className='gd-rank-col';const cs=makeList();col.style.height=((cs.length-1)*step+H+6)+'px';cs.forEach((c,i)=>{c.style.position='absolute';c.style.left='0';c.style.top=(i*step)+'px';c.style.zIndex=i+1;col.appendChild(c);});
   const f=document.createDocumentFragment();
-  f.appendChild(box('单张',single));f.appendChild(box('横排出牌',row));f.appendChild(box('竖排手牌',col));
+  f.appendChild(box('横排·逐张(展开看全)',rowS));f.appendChild(box('单张',single));f.appendChild(box('横排出牌(实际叠放)',row));f.appendChild(box('竖排手牌',col));
   return f;
 }
 // ---- 标签 + 面板 ----
@@ -2163,7 +2167,9 @@ function buildCtl(){
     slider('皇冠·单卡',()=>J.crown,v=>J.crown=v,0.4,1.1,0.01);
     slider('皇冠·单卡右移',()=>J.cr,v=>J.cr=v,-0.2,0.25,0.005);
     slider('皇冠·单卡下移',()=>J.cb,v=>J.cb=v,-0.1,0.3,0.005);
-    slider('皇冠·横排',()=>J.crown2,v=>J.crown2=v,0.4,1.0,0.01);
+    slider('皇冠·横排·大小',()=>J.crown2,v=>J.crown2=v,0.4,1.0,0.01);
+    slider('皇冠·横排·左右(负=左/正=右)',()=>J.crown2x,v=>J.crown2x=v,-0.4,0.4,0.005);
+    slider('皇冠·横排·上下(负=上/正=下)',()=>J.crown2y,v=>J.crown2y=v,-0.4,0.4,0.005);
   } else {
     grp('结构（四象限分割线 / 点数字号）');const S=ST.struct;
     slider('正方形/分割线',()=>S.sr,v=>S.sr=v,0.3,0.55,0.005);

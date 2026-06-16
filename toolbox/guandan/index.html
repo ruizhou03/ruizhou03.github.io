@@ -402,6 +402,7 @@ body_class: gd-game-fullscreen
     left: calc(var(--gd-card-w, 50px) * 0.38); top: calc(var(--gd-card-w, 50px) * 0.38);
     right: 0; bottom: 0; width: auto; height: auto;
     font-size: calc(var(--gd-card-w, 50px) * 0.68);
+    transform: translate(calc(var(--gd-card-w, 50px) * 0), calc(var(--gd-card-w, 50px) * 0));  /* 横排皇冠 左右/上下 位置(编辑器 crown2x/crown2y;定稿后替换这两个 0) */
   }
   .gd-card-back {
     display: inline-block;
@@ -2381,4 +2382,4 @@ body_class: gd-game-fullscreen
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
 <script src="/assets/js/games/guandan-dmc.js?v=20260616int8"></script>
-<script src="/assets/js/games/guandan.js?v=20260616dmc10"></script>
+<script src="/assets/js/games/guandan.js?v=20260616dmc11"></script>
