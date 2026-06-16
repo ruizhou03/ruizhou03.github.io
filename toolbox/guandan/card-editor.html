@@ -1,0 +1,2160 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;700;800&display=swap" rel="stylesheet"><style>
+  /* ============================================================
+     掼蛋 调色板：与主站协调
+     - 牌桌：浅奶油羊皮纸 + 暖金细边（呼应斗地主页）
+     - 卡片：奶白纸面，暖金边框，红 #8b2e2e / 黑 #1a1a2e
+     - 强调色：暖金 #c9a96e（同 --color-highlight）
+     ============================================================ */
+  .guandan-wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 1rem;
+    /* 游戏区域：禁掉双击放大（manipulation 仍保留单击/滚动，不破坏按钮交互） */
+    touch-action: manipulation;
+    user-select: none; -webkit-user-select: none;
+    --gs-wrap-half: 440px;
+    --gd-card-w: 50px;
+    --gd-card-h: 72px;
+    --gd-card-overlap: 26px;   /* 出牌区叠牌露出左条 = 50-26 = 24px（≥ 分割线 19.5，含点数+左下花色）*/
+    --gd-card-mini-w: 34px;
+    --gd-card-mini-h: 50px;
+    --gd-card-mini-overlap: 20px;
+    --gd-card-bg: #fafaf9;
+    --gd-card-bg-2: #f5f4f0;
+    --gd-card-border: rgba(201,169,110,0.55);
+    --gd-suit-red: #8b2e2e;
+    --gd-suit-black: #1a1a2e;
+    --gd-felt-1: #f5f1e6;
+    --gd-felt-2: #ebe5d3;
+    --gd-felt-3: #ddd5be;
+    --gd-frame: #c9a96e;
+    --gd-frame-2: rgba(201,169,110,0.55);
+    --gd-text-on-felt: #1f2a3d;
+    --gd-text-on-felt-mute: rgba(31,42,61,0.62);
+    --gd-accent: #c9a96e;
+    --gd-accent-strong: #a87a2a;
+    --gd-joker-red: #8b2e2e;
+    --gd-joker-grey: #4a4a4a;
+    --gd-team-you: #1e6f4f;
+    --gd-team-opp: #8b2e2e;
+  }
+  :root[data-theme="dark"] .guandan-wrap {
+    --gd-card-bg: #ece8de;
+    --gd-card-bg-2: #ddd6c5;
+    --gd-felt-1: #ebe4ce;
+    --gd-felt-2: #ddd4b7;
+    --gd-felt-3: #cbbfa0;
+    --gd-joker-grey: #3a3a3a;
+  }
+
+  .guandan-wrap header { text-align: center; margin-bottom: 0.8rem; }
+  .guandan-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
+  .guandan-wrap header .sub { color: var(--color-light); font-style: normal; font-size: 0.92rem; }
+
+  /* ======== 级牌角标：原来横放在表格上方占 ~85px，现在挤到牌桌左上角小气泡里 ======== */
+  .gd-levelbar-corner {
+    position: absolute;
+    top: 0.55rem; left: calc(0.6rem + env(safe-area-inset-left, 0px));
+    display: flex; gap: 0.35rem;
+    z-index: 4;
+    pointer-events: none;
+  }
+  .gd-level-chip {
+    display: flex; flex-direction: row; align-items: baseline; gap: 0.3rem;
+    padding: 0.18rem 0.55rem;
+    border: 1px solid var(--color-border);
+    background: rgba(255,255,255,0.6);
+    border-radius: 999px;
+    font-family: var(--font-body);
+  }
+  .gd-level-chip .lab {
+    font-size: 0.66rem; color: var(--color-muted);
+    letter-spacing: 0.02em;
+  }
+  .gd-level-chip .val {
+    font-size: 0.95rem; font-weight: 700; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .gd-level-chip.you { border-color: var(--gd-team-you); }
+  .gd-level-chip.you .val { color: var(--gd-team-you); }
+  .gd-level-chip.opp { border-color: var(--gd-team-opp); }
+  .gd-level-chip.opp .val { color: var(--gd-team-opp); }
+  .gd-level-chip.score { border-color: var(--gd-accent-strong); }
+  .gd-level-chip.score .val {
+    color: var(--gd-accent-strong);
+    transition: transform 0.2s, color 0.2s;
+  }
+  .gd-level-chip.score.delta-up .val {
+    animation: gd-score-pulse-up 0.85s cubic-bezier(0.18, 0.9, 0.32, 1.3);
+  }
+  .gd-level-chip.score.delta-down .val {
+    animation: gd-score-pulse-down 0.85s cubic-bezier(0.18, 0.9, 0.32, 1.3);
+  }
+  @keyframes gd-score-pulse-up {
+    0%   { transform: scale(1); color: var(--gd-accent-strong); }
+    40%  { transform: scale(1.45); color: #1e6f4f; }
+    100% { transform: scale(1); color: var(--gd-accent-strong); }
+  }
+  @keyframes gd-score-pulse-down {
+    0%   { transform: scale(1); color: var(--gd-accent-strong); }
+    40%  { transform: scale(1.35); color: var(--gd-suit-red); }
+    100% { transform: scale(1); color: var(--gd-accent-strong); }
+  }
+  /* 当前主级用一颗右侧亮点提示，比写"◀ 当前主级"省地方又一目了然 */
+  .gd-level-chip.acting::after {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--gd-accent-strong);
+    box-shadow: 0 0 6px rgba(168,122,42,0.85);
+    margin-left: 0.15rem;
+    align-self: center;
+  }
+
+  /* ======== 牌桌 ======== */
+  .gd-table {
+    position: relative;
+    background:
+      radial-gradient(ellipse at 50% 35%, rgba(255,253,245,0.45) 0%, transparent 60%),
+      linear-gradient(160deg, var(--gd-felt-1) 0%, var(--gd-felt-2) 65%, var(--gd-felt-3) 100%);
+    border: 1px solid var(--gd-frame-2);
+    border-radius: 14px;
+    padding: 0.6rem 0.8rem 0.55rem;
+    box-shadow: inset 0 0 40px rgba(141,110,55,0.10);
+    min-height: 360px;
+  }
+
+  /* 三家：上(partner) / 左(opp 3) / 右(opp 1) */
+  /* 出牌区一律压在手牌之上（z-index>手牌的 1）：深摞往上叠时被它们盖住、不抢牌桌 */
+  .gd-seats-top { display: flex; justify-content: center; margin-bottom: 0.25rem; position: relative; z-index: 6; }
+  /* 中间一行：左右两家头像贴边，绝对定位，play 槽往中央延展；partner 出牌
+     占据 .gd-center 中间。这样侧位出 6+ 张钢板/同花顺也不会被裁。
+     高度 130：side 内容 ~92px（avatar col）+ partner play 80px，容下且不浪费。 */
+  .gd-seats-mid {
+    position: relative;
+    height: 130px;
+    z-index: 6;
+  }
+  /* 我的出牌行：在 mid 行下方、手牌上方。
+     z-index:6 盖在手牌(1)之上：深摞往上叠时，我自己出的牌盖在手牌上面；
+     pointer-events:none → 点击穿透回底下的手牌，被盖住的手牌依旧能点选。 */
+  .gd-myplay-row {
+    display: flex; justify-content: center; align-items: center;
+    height: 80px;
+    margin-top: 0.2rem;
+    position: relative;
+    z-index: 6;
+    pointer-events: none;
+  }
+  .gd-myplay-row .gd-played { width: auto; min-width: 0; }
+  /* 侧位：横向布局 [头像 | 出牌区]（右侧反过来）。绝对定位「相对牌桌」(已移出
+     seats-mid)，竖向钉死在上半场 38%（对家与我的出牌区之间），不随对家座位高度变化
+     而上下移。z-index:6 盖在手牌之上。 */
+  .gd-side {
+    display: flex; flex-direction: row; align-items: center;
+    gap: 0.28rem;
+    position: absolute;
+    top: 35%; transform: translateY(-50%);
+    z-index: 6;
+  }
+  /* 左右贴边时加上安全区内缩：横屏刘海/灵动岛在哪侧，那侧的玩家就让开它，不被遮挡 */
+  .gd-side-left  { left: calc(0.4rem + env(safe-area-inset-left, 0px)); flex-direction: row; }
+  .gd-side-right { right: calc(0.4rem + env(safe-area-inset-right, 0px)); flex-direction: row-reverse; }
+  /* 头像那一栏收窄(90→60)、间距收紧 —— 让左右对手出的牌更贴近自己头像、别往中间飘 */
+  .gd-side .gd-seat { flex: 0 0 auto; width: 60px; align-items: center; }
+  .gd-side .gd-name { white-space: nowrap; }
+  .gd-center {
+    /* partner 出牌靠顶（flex-start），让它明显高于侧位出牌（top:70% 下移） */
+    height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    gap: 0.3rem; padding: 0 0.3rem;
+  }
+
+  .gd-seat {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0.15rem; transition: opacity 0.2s;
+  }
+  .gd-seat.dim { opacity: 0.45; }
+  /* 横排座位（对家）：头像 | (名字/张数)，张数移到头像右边、整块更扁 */
+  .gd-seat.gd-seat-h { flex-direction: row; align-items: center; gap: 0.45rem; }
+  .gd-seat-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 0.05rem; }
+  .gd-seat-cnt { display: flex; align-items: center; gap: 0.32rem; }
+  .gd-avatar {
+    width: 46px; height: 46px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+    background: var(--color-bg);
+    border: 2px solid var(--color-border);
+    position: relative;
+  }
+  .gd-seat.turn .gd-avatar {
+    border-color: var(--gd-accent);
+    box-shadow: 0 0 0 3px rgba(201,169,110,0.35);
+    animation: gd-pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes gd-pulse {
+    0%,100% { box-shadow: 0 0 0 3px rgba(201,169,110,0.30); }
+    50%     { box-shadow: 0 0 0 6px rgba(201,169,110,0.12); }
+  }
+  .gd-avatar.team-you { border-color: var(--gd-team-you); }
+  .gd-avatar.team-opp { border-color: var(--gd-team-opp); }
+  .gd-clock {
+    position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%);
+    font-size: 0.62rem; background: var(--gd-accent-strong); color: #fff;
+    padding: 0 0.3rem; border-radius: 999px; font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .gd-name { font-size: 0.76rem; color: var(--gd-text-on-felt); font-weight: 600; }
+  .gd-name .tag {
+    font-size: 0.62rem; color: var(--gd-text-on-felt-mute); font-weight: 400;
+  }
+  .gd-count {
+    font-size: 0.72rem; color: var(--gd-text-on-felt-mute);
+    background: rgba(255,255,255,0.5); border: 1px solid var(--gd-frame-2);
+    padding: 0.05rem 0.45rem; border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.2s, background 0.2s, border-color 0.2s;
+  }
+  /* 报牌：余牌 ≤10 张时一直红色警示，第一次跨过时有 1s 弹动 */
+  .gd-count.warn {
+    color: var(--gd-suit-red);
+    border-color: rgba(200,40,40,0.55);
+    background: rgba(200,40,40,0.08);
+    font-weight: 700;
+  }
+  .gd-count.warn.first {
+    animation: gd-count-warn-pop 1s cubic-bezier(0.18, 0.9, 0.32, 1.3);
+  }
+  @keyframes gd-count-warn-pop {
+    0%   { transform: scale(1.45); background: rgba(200,40,40,0.45); color: #fff; }
+    60%  { transform: scale(1.05); background: rgba(200,40,40,0.18); }
+    100% { transform: scale(1); }
+  }
+  .gd-rank-badge {
+    font-size: 0.66rem; padding: 0.05rem 0.4rem; border-radius: 999px;
+    color: #fff; font-weight: 600;
+    /* 侧位座只有 60px 宽，「头游」会被挤成「头/游」竖排两行 ——
+       写死单行、不收缩，让它跟张数并成「张数 | 头游」横向一行两列。 */
+    white-space: nowrap; flex: 0 0 auto;
+  }
+  .gd-rank-badge.r1 { background: #c9a227; }
+  .gd-rank-badge.r2 { background: #6b8f9c; }
+  .gd-rank-badge.r3 { background: #b0784a; }
+  .gd-rank-badge.r4 { background: #8b2e2e; }
+
+  /* 出牌区：size-full 卡片，height 写死，宽方向若多于 4 张的炸弹会超出 —
+     overflow:hidden 兜底；常见 1~4 张组合都能完整显示。 */
+  .gd-played {
+    height: 80px; display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    overflow: hidden;
+  }
+  .gd-played-row {
+    display: flex; flex-wrap: nowrap;
+    justify-content: center; align-items: center;
+  }
+  .gd-played-row .gd-card.size-full { margin-left: calc(-1 * var(--gd-card-overlap)); }
+  .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
+  /* 侧位出牌槽：宽 320px（容 ~8 张 size-full 叠卡），从头像那侧往中央延展 */
+  .gd-side .gd-played {
+    height: 80px;
+    width: 320px;
+  }
+  .gd-side .gd-played-row .gd-card.size-full { margin-left: calc(-1 * var(--gd-card-overlap)); }
+  .gd-side .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
+  .gd-side-left  .gd-played-row { justify-content: flex-start; }
+  .gd-side-right .gd-played-row { justify-content: flex-end; }
+
+  /* ======== 注意力锁定（仿斗地主 applyAttentionFocus）========
+     轮到我时四家全亮；轮到 AI 时只亮当前 AI，其余三家 + 我的手牌都 dim 一档。
+     4 人桌 + 27 张手牌，视觉拥挤，dim 是大幅可读性提升。 */
+  .gd-seat, .gd-self-bar, .gd-hand {
+    transition: opacity 0.28s ease, filter 0.28s ease;
+  }
+  .gd-seat.is-dim, .gd-self-bar.is-dim {
+    opacity: 0.5;
+    filter: grayscale(0.4) saturate(0.75);
+  }
+  .gd-hand.is-dim { opacity: 0.72; }
+
+  /* ======== 卡片自绘 ======== */
+  .gd-card {
+    display: inline-block;
+    background: linear-gradient(160deg, var(--gd-card-bg) 0%, var(--gd-card-bg-2) 100%);
+    border: 1px solid var(--gd-card-border);
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55);
+    position: relative;
+    flex-shrink: 0;
+    overflow: hidden;                 /* 裁掉右下超大花色溢出右/下缘的部分 */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  .gd-card.size-full { width: var(--gd-card-w); height: var(--gd-card-h); }
+  .gd-card.size-mini { width: var(--gd-card-mini-w); height: var(--gd-card-mini-h); }
+  .gd-card.suit-red { color: var(--gd-suit-red); }
+  .gd-card.suit-black { color: var(--gd-suit-black); }
+  /* 级牌 / 逢人配：整张深色（深色即"这是级牌"信号；逢人配顶替时显示成它代替的牌、仍深色 → 深色的"3"即配牌） */
+  .gd-card.is-level { background: linear-gradient(160deg, #ffffff 0%, #ded2b5 100%); border-color: #e6dcc7; }
+
+  /* ===== 四象限：一横一纵在 0.39W 处切四格 ===== */
+  .gd-card .q { position: absolute; display: flex; line-height: 1; }
+  /* ① 左上正方形：点数，居中，统一字号（"10"不缩、字母不放大） */
+  .gd-card .q-tl {
+    left: 0; top: 0; width: calc(var(--gd-card-w, 50px) * 0.39); height: calc(var(--gd-card-w, 50px) * 0.39);
+    align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', Georgia, "Songti SC", serif; font-weight: 700;
+    font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum" 1, "lnum" 1;
+    font-size: calc(var(--gd-card-w, 50px) * 0.38);
+  }
+  /* J 偏长，单独缩一点点 */
+  .gd-card.rank-j .q-tl { font-size: calc(var(--gd-card-w, 50px) * 0.25); }
+  /* ② 右上：花色正中（竖排顶栏可见） */
+  .gd-card .q-tr {
+    left: calc(var(--gd-card-w, 50px) * 0.39); top: 0; right: 0; height: calc(var(--gd-card-w, 50px) * 0.39);
+    align-items: center; justify-content: center;
+    font-size: calc(var(--gd-card-w, 50px) * var(--gd-tr, 0.35));
+  }
+  /* ③ 左下：花色，靠上贴近点数（横排左条可见） */
+  .gd-card .q-bl {
+    left: 0; top: calc(var(--gd-card-w, 50px) * 0.39); width: calc(var(--gd-card-w, 50px) * 0.39); bottom: 0;
+    align-items: flex-start; justify-content: center; padding-top: calc(var(--gd-card-w, 50px) * 0.05);
+    font-size: calc(var(--gd-card-w, 50px) * var(--gd-bl, 0.35));
+  }
+  /* ④ 右下：超大花色，贴底、右与下出血被牌缘裁切（逐花色定大小与位置 via --gd-big/br/bb/op） */
+  .gd-card .bigsuit {
+    position: absolute;
+    right: calc(var(--gd-card-w, 50px) * var(--gd-br, -0.3));
+    bottom: calc(var(--gd-card-w, 50px) * var(--gd-bb, -0.1));
+    width: 1em; height: 1em;
+    font-size: calc(var(--gd-card-w, 50px) * var(--gd-big, 1.1));
+    opacity: var(--gd-op, 0.9);
+  }
+  .gd-card .suit-svg { width: 1em; height: 1em; display: block; fill: currentColor; overflow: visible; }
+  /* ♠♣ 文字符号钉死系统符号字体(与游戏一致)：首帧即正确字形、不随 Web 字体加载闪烁 */
+  .gd-card .q-tr, .gd-card .q-bl, .gd-card .bigsuit { font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols2", monospace; }
+  /* 左下花色默认隐藏：完整显示的牌(单卡/列底/结算翻牌)只露左上+右上+右下 */
+  .gd-card .q-bl { display: none; }
+  /* 横排出牌区(非进贡)：恢复左下花色、隐藏右上花色(最右完整一张只露左上+左下+右下)。
+     进贡是单张完整展示，沿用默认(露左上+右上+右下)，所以大小王显示正常样式而非竖排 JOKER */
+  .gd-played-row:not(.gd-tribute-row) .gd-card .q-bl { display: flex; }
+  .gd-played-row:not(.gd-tribute-row) .gd-card .q-tr { display: none; }
+
+  /* ===== 大小王：四象限版型（★ / JOKER / 皇冠），与常规牌同一套分割线 ===== */
+  .gd-card.joker-big { color: var(--gd-joker-red); }
+  .gd-card.joker-small { color: var(--gd-joker-grey); }
+  .gd-card.is-joker .q-tl { font-family: "Apple Symbols", "Segoe UI Symbol", 'Cormorant Garamond', serif; font-size: calc(var(--gd-card-w, 50px) * 0.37); }  /* 左上 ★ */
+  /* 右上：竖排时星星右边的 JOKER（横排被隐） */
+  .gd-card.is-joker .q-tr { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; letter-spacing: 0; font-size: calc(var(--gd-card-w, 50px) * 0.18); }
+  /* 左下：横排时星星下方竖排 JOKER（默认/竖排被隐，仅横排出牌区露）；靠上、贴稳左下不越界 */
+  .gd-card.is-joker .q-bl { flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 0; font-family: var(--font-body); font-weight: 800; letter-spacing: 1px; line-height: 1; font-size: calc(var(--gd-card-w, 50px) * 0.185); }
+  /* 右下：皇冠（竖排/单卡版面：大皇冠） */
+  .gd-card.is-joker .bigsuit {
+    display: flex; align-items: center; justify-content: center;
+    right: calc(var(--gd-card-w, 50px) * 0.05); bottom: calc(var(--gd-card-w, 50px) * 0.11);
+    font-family: "Apple Symbols", "Segoe UI Symbol", monospace; font-size: calc(var(--gd-card-w, 50px) * 0.91);
+  }
+  /* 横排出牌版面：皇冠居中于右下象限矩形（不挤角落），略小于单卡版，避开左条竖排 JOKER */
+  .gd-played-row .gd-card.is-joker .bigsuit {
+    left: calc(var(--gd-card-w, 50px) * 0.39); top: calc(var(--gd-card-w, 50px) * 0.39);
+    right: 0; bottom: 0; width: auto; height: auto;
+    font-size: calc(var(--gd-card-w, 50px) * 0.95);
+  }
+  .gd-card-back {
+    display: inline-block;
+    width: var(--gd-card-mini-w); height: var(--gd-card-mini-h);
+    border-radius: 5px; border: 1px solid var(--gd-frame);
+    background:
+      radial-gradient(circle at 50% 50%, rgba(201,169,110,0.40) 0%, transparent 50%),
+      repeating-linear-gradient(45deg, rgba(201,169,110,0.16) 0 4px, transparent 4px 8px),
+      linear-gradient(160deg, #2a4768 0%, #15253f 100%);
+    position: relative;
+  }
+  .gd-card-back::after {
+    content: '♦'; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(201,169,110,0.88); font-size: 16px;
+  }
+
+  /* ======== 我的座位（左下角，参照斗地主）+ 手牌（中下）========
+     把"我"挪到左下角，把视觉中心让给牌桌中央的出牌/trick 信息；
+     手牌仍然居中，27 张时左右都有富余空间不会盖住头像。 */
+  .gd-self-bar {
+    display: flex; align-items: center; gap: 0.55rem;
+    position: absolute;
+    left: 0.9rem;
+    bottom: 4.4rem;   /* 与手牌纵向中线齐高，再往下让出位置给 actions */
+    z-index: 3;
+  }
+  .gd-self-bar .gd-name { font-size: 0.8rem; line-height: 1.25; }
+  .gd-self-bar .gd-name .tag { font-size: 0.66rem; }
+  /* 按"点数"竖向堆叠成列；列内每张牌往下错开一个角的高度，露出 rank+suit 角标。
+     列横向并排（手牌多于屏宽时可滚）。长按某列可以拖到新位置，自定义理牌顺序；
+     单击/拖选则照常多选。 */
+  .gd-hand {
+    --gd-stack-step: 20px;       /* 列内纵向偏移 = 横向分割线 0.39W（露点数+右上花色，无呼吸）；adaptHandSize 会按卡宽重算 */
+    --gd-col-gap: 4px;           /* 列之间的横向间距 */
+    display: flex; flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: var(--gd-col-gap);
+    overflow-x: auto; overflow-y: visible;
+    /* 拖矩形框选时不要把卡上的"K / A"误选成文字 */
+    user-select: none; -webkit-user-select: none;
+    padding: 0.4rem 7rem 0.5rem 4.5rem;
+    min-height: calc(var(--gd-card-h) + 6 * var(--gd-stack-step) + 10px);
+    justify-content: safe center;
+    scrollbar-width: none;
+    touch-action: pan-x;
+    position: relative;
+    /* 自成层叠上下文且压在出牌区之下：深摞往上叠时，会被「我方/对家出牌区」盖住，
+       牌桌中央始终清爽（出牌区 pointer-events:none，点击照样穿透到底下手牌） */
+    z-index: 1;
+  }
+  .gd-hand::-webkit-scrollbar { display: none; }
+  .gd-rank-col {
+    position: relative;
+    width: var(--gd-card-w);
+    flex: 0 0 var(--gd-card-w);
+    transition: transform 0.14s ease;
+    cursor: grab;
+  }
+  .gd-rank-col.col-dragging {
+    cursor: grabbing;
+    z-index: 30;
+    transform: translateY(-4px) scale(1.04);
+    filter: drop-shadow(0 6px 14px rgba(0,0,0,0.25));
+  }
+  .gd-rank-col .gd-card.size-full {
+    position: absolute;
+    left: 0;
+    margin: 0;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.12s;
+    /* 列叠放时不再需要 group-start 间距 */
+  }
+  /* 选中态：灰化 + 半透明，不上抬不挪位。
+     2026-05 调淡：原来 grayscale 0.95 + brightness 0.62 + opacity 0.58 太重，
+     看着像出过的牌。现在 0.6 / 0.85 / 0.78 让选中的牌依旧可读、又跟未选牌
+     有明显区分。 */
+  .gd-rank-col .gd-card.size-full.selected {
+    filter: grayscale(0.6) brightness(0.85);
+    opacity: 0.78;
+    box-shadow: inset 0 0 0 2px var(--gd-accent), 0 1px 3px rgba(20,37,63,0.18);
+  }
+  /* 桌面 hover 预览：鼠标停在某张未选中的牌上时小幅抬升，让用户清楚
+     当前要点哪张（堆叠列里光看角标容易点错）。仿斗地主 .ddz-card.hover-preview */
+  @media (hover: hover) {
+    .gd-rank-col .gd-card.size-full:not(.selected):hover {
+      transform: translateY(-9px);
+      z-index: 50;
+      box-shadow: 0 5px 11px rgba(20,37,63,0.26);
+    }
+  }
+  /* 拖列时的插入位置指示条 */
+  .gd-col-gap-marker {
+    position: absolute;
+    top: 4px; bottom: 4px;
+    width: 3px;
+    background: var(--gd-accent);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 31;
+    box-shadow: 0 0 8px var(--gd-accent);
+  }
+
+  /* 操作行（不出/提示/出牌）在手牌上方；理牌行（理牌/还原/一键理牌）挪到
+     表桌"右下角"绝对定位，省 ~50px 纵向。手牌 padding-right 给按钮让位。 */
+  .gd-play-actions {
+    display: flex; gap: 0.55rem; justify-content: center; align-items: center;
+    flex-wrap: wrap; min-height: 2.4rem; margin-top: 0.3rem; margin-bottom: 0.7rem;
+  }
+  /* 出牌决策带：按钮 与「打出的牌 / 不出 / 加倍」叠进同一 grid 格 —— 互斥显示。
+     轮到我时按钮压在最上面；做出决定后按钮整体隐藏，同一格露出打出的牌 / 决定文字，
+     不再各占一行，纵向省一截。电脑/手机同一套。 */
+  .gd-play-band {
+    display: grid;
+    grid-template-areas: "stack";
+    justify-items: center; align-items: center;
+    margin: 0.2rem 0 0.5rem;
+  }
+  .gd-play-band > .gd-myplay-row,
+  .gd-play-band > .gd-play-actions { grid-area: stack; margin: 0; }
+  .gd-play-band > .gd-play-actions { position: relative; z-index: 7; }
+  .gd-sort-actions {
+    position: absolute;
+    right: 0.9rem;
+    bottom: 0.6rem;
+    display: flex; flex-direction: column; gap: 0.4rem; align-items: stretch;
+    z-index: 5;
+  }
+  .gd-sort-actions .gd-btn {
+    min-width: 96px;
+    /* 图标 + 文字横排对齐；横屏隐藏文字后图标自动居中 */
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.34rem;
+    /* 半透明白底（深浅色模式都白），万一手牌延伸到这一块也能看见底下的牌 */
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    /* 底是固定白，图标也固定深色 —— 否则深色模式下 currentColor 变浅、白底上看不清 */
+    color: #2b2b2b;
+    border-color: rgba(0,0,0,0.22);
+  }
+  @media (hover: hover) {
+    .gd-sort-actions .gd-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  /* 理牌行三个按钮的矢量图标：描边用 currentColor，跟随按钮文字色 / hover 高亮 */
+  .gd-btn-ic { flex: 0 0 auto; display: block; }
+  /* 托管：纯机器人图标按钮，跟在「我」的张数右边（头像右下方），不再绝对定位单开一行。
+     未托管=略灰；点亮(.on)=橙色高亮，表示「正在托管」。点一下切换。 */
+  .gd-autopilot-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.7rem; height: 1.7rem; padding: 0;
+    border: 1px solid var(--color-border);
+    background: rgba(255,255,255,0.85);
+    border-radius: 50%;
+    font-size: 0.95rem; line-height: 1;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.18s;
+    filter: grayscale(0.55); opacity: 0.82;
+  }
+  @media (hover: hover) {
+    .gd-autopilot-chip:hover { border-color: var(--color-accent); opacity: 1; filter: grayscale(0.2); }
+  }
+  .gd-autopilot-chip.on {
+    background: #e8843a;
+    border-color: #e8843a;
+    box-shadow: 0 0 10px rgba(232,132,58,0.6);
+    filter: none; opacity: 1;
+  }
+  /* 压不过上家：手牌整体灰显 + 禁交互 */
+  .gd-hand.no-play {
+    filter: grayscale(0.85) brightness(0.78);
+    opacity: 0.72;
+    pointer-events: none;
+  }
+  .gd-hand.is-spectating {
+    pointer-events: none;
+  }
+  .gd-hand.is-spectating::after {
+    content: '正在查看队友手牌';
+    position: absolute;
+    inset: 0;
+    background: none;            /* 去掉偏白蒙版，只保留底部提示文字 */
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 0.6rem;
+    color: rgba(31,42,61,0.45);
+    font-size: 0.88rem;
+    font-family: var(--font-body);
+    letter-spacing: 0.06em;
+    pointer-events: none;
+    z-index: 10;
+    border-radius: 6px;
+  }
+  .gd-spectate-note { display: none !important; }
+  /* 接风：中央横排大字 + 风筝图标 + 副标题（替代以前的 toast） */
+  .gd-jiefeng-banner {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 2rem; font-weight: 800;
+    color: #fff;
+    text-shadow:
+      0 0 8px rgba(120, 180, 240, 0.85),
+      0 0 24px rgba(60, 130, 210, 0.85),
+      0 4px 10px rgba(0, 0, 0, 0.55);
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+  }
+  .gd-jiefeng-banner .gd-jiefeng-icon {
+    font-size: 2.2rem;
+    filter: drop-shadow(0 2px 4px rgba(60, 130, 210, 0.6));
+    animation: gd-jiefeng-icon-rise 1.5s ease-out;
+  }
+  .gd-jiefeng-banner .gd-jiefeng-text {
+    /* 加深金色渐变，并配一圈深色描边阴影 —— 原来浅金落在暖奶油牌桌上对比太低、看不清，
+       现在金字本身更沉、外加深色描边，在任何底上都清楚。 */
+    background: linear-gradient(135deg, #f6d987, #dca221, #9a6c10);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none;   /* 盖掉父级蓝光，避免与深色描边糊在一起 */
+    filter:
+      drop-shadow(0 0 1px rgba(35, 25, 5, 0.95))
+      drop-shadow(0 2px 4px rgba(20, 25, 45, 0.7));
+  }
+  .gd-jiefeng-banner .gd-jiefeng-sub {
+    font-size: 0.85rem; letter-spacing: 0.06em;
+    color: #fff5d4; font-weight: 600;
+    opacity: 0.92;
+  }
+  @keyframes gd-jiefeng-icon-rise {
+    0%   { transform: translateY(8px) rotate(-15deg); opacity: 0; }
+    30%  { transform: translateY(-4px) rotate(8deg); opacity: 1; }
+    60%  { transform: translateY(0) rotate(-3deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+  }
+  /* 头像金光闪一下：接风的发起方/接收方各一次 */
+  .gd-avatar.gd-jiefeng-flash {
+    animation: gd-jiefeng-flash 1.3s ease-out;
+  }
+  @keyframes gd-jiefeng-flash {
+    0%   { box-shadow: 0 0 0 0 rgba(245, 209, 66, 0); }
+    25%  { box-shadow: 0 0 14px 6px rgba(245, 209, 66, 0.85); border-color: #f5d142; }
+    100% { box-shadow: 0 0 0 0 rgba(245, 209, 66, 0); }
+  }
+  /* legacy 类名兼容（如果别处还引用了） */
+  .gd-actions {
+    display: flex; gap: 0.55rem; justify-content: center;
+    flex-wrap: wrap; margin-top: 0.4rem; min-height: 2.4rem;
+  }
+  /* 自己回合的倒计时徽 —— 挂在动作行最左侧（仿斗地主 .ddz-self-clock） */
+  .gd-self-clock {
+    display: inline-flex; align-items: center; gap: 0.32rem;
+    padding: 0.28rem 0.7rem; border-radius: 999px;
+    background: var(--gd-card-bg);
+    border: 1.5px solid var(--gd-accent);
+    color: var(--gd-suit-black);
+    font-family: var(--font-body); font-weight: 700;
+    font-size: 0.86rem; font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    box-shadow: 0 1px 4px rgba(20,37,63,0.18);
+    pointer-events: none;
+  }
+  .gd-self-clock svg { color: var(--gd-accent); flex-shrink: 0; }
+  .gd-self-clock-num { display: inline-block; min-width: 1.6ch; text-align: right; }
+  .gd-self-clock[hidden] { display: none; }
+  .gd-self-clock.urgent {
+    background: var(--gd-suit-red); color: #fff; border-color: #fff5d4;
+    box-shadow: 0 0 12px rgba(200,40,40,0.6), 0 0 0 2px rgba(255,255,255,0.55);
+    animation: gd-clock-urgent 0.5s ease-in-out infinite alternate;
+  }
+  .gd-self-clock.urgent svg { color: #fff; }
+  @keyframes gd-clock-urgent {
+    from { transform: scale(1); }
+    to   { transform: scale(1.18); }
+  }
+  /* AI 回合的倒计时徽 —— 注入到 AI 出牌槽里；AI 一出牌即被牌覆盖消失 */
+  .gd-played .gd-played-clock {
+    display: inline-flex; align-items: center; gap: 0.28rem;
+    padding: 0.22rem 0.58rem; border-radius: 999px;
+    background: var(--gd-card-bg);
+    border: 1.5px solid var(--gd-accent);
+    color: var(--gd-suit-black);
+    font-family: var(--font-body); font-weight: 700;
+    font-size: 0.78rem; font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    box-shadow: 0 1px 4px rgba(20,37,63,0.18);
+    pointer-events: none;
+  }
+  .gd-played .gd-played-clock svg { color: var(--gd-accent); flex-shrink: 0; }
+  .gd-played .gd-played-clock-num { display: inline-block; min-width: 1.6ch; text-align: right; }
+  .gd-played .gd-played-clock.urgent {
+    background: var(--gd-suit-red); color: #fff; border-color: #fff5d4;
+    box-shadow: 0 0 10px rgba(200,40,40,0.5), 0 0 0 2px rgba(255,255,255,0.55);
+    animation: gd-clock-urgent 0.5s ease-in-out infinite alternate;
+  }
+  .gd-played .gd-played-clock.urgent svg { color: #fff; }
+  .gd-btn {
+    padding: 0.5rem 1.1rem; font-size: 0.92rem;
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    border-radius: 8px; cursor: pointer; color: var(--color-ink);
+    transition: all 0.16s; font-family: inherit;
+  }
+  @media (hover: hover) {
+    .gd-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  .gd-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .gd-btn.primary {
+    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+    font-weight: 600;
+  }
+  @media (hover: hover) {
+    .gd-btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+  }
+  .gd-btn.mini { padding: 0.32rem 0.7rem; font-size: 0.8rem; }
+  /* 理牌按钮亮起态：颜色继承斗地主 toggle chip 的视觉语言 */
+  .gd-btn.on {
+    background: var(--gd-accent);
+    border-color: var(--gd-accent);
+    color: #fff;
+  }
+  @media (hover: hover) {
+    .gd-btn.on:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }
+  }
+
+  /* 理牌模式下：列整体可拖；hand 上方加一行金色提示；列 hover 时微微抬升提示可抓 */
+  .gd-hand.is-arranging .gd-rank-col { cursor: grab; }
+  .gd-hand.is-arranging .gd-rank-col.col-dragging { cursor: grabbing; }
+  @media (hover: hover) {
+    .gd-hand.is-arranging .gd-rank-col:hover { transform: translateY(-3px); }
+  }
+  .gd-hand.is-arranging::before {
+    content: '⇆ 拖动列调整顺序，再点"理牌"退出';
+    position: absolute;
+    top: -2px; left: 50%; transform: translateX(-50%);
+    font-size: 0.74rem; color: var(--gd-accent-strong);
+    background: rgba(255,255,255,0.7);
+    padding: 0.1rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--gd-frame-2);
+    pointer-events: none;
+    font-family: var(--font-body);
+    white-space: nowrap;
+    z-index: 5;
+  }
+  /* 理牌模式下：把上一次出牌的"选中（灰）"视觉抑制掉——理牌不是在选要出的牌 */
+  .gd-hand.is-arranging .gd-card.size-full.selected {
+    filter: none;
+    opacity: 1;
+    box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55);
+  }
+
+  /* ======== 联机入口 + lobby ========
+     pgo 里嵌的 创建/加入 表单 + 进房后替代牌桌的大厅面板。
+     仿 doudizhu 的 .ddz-online-* + .ddz-lobby-*，但调成掼蛋的米/暖金调色。 */
+  .gd-online-tabs {
+    display: flex; gap: 0.4rem; margin-bottom: 0.7rem;
+    justify-content: center;
+  }
+  .gd-online-tab {
+    background: transparent; border: none; cursor: pointer;
+    padding: 0.4rem 0.8rem; font-size: 0.92rem;
+    color: rgba(255,255,255,0.65);
+    border-bottom: 2px solid transparent;
+    font-family: inherit;
+    transition: color 0.18s, border-color 0.18s;
+  }
+  @media (hover: hover) {
+    .gd-online-tab:hover { color: #fff; }
+  }
+  .gd-online-tab.active {
+    color: #ffe18d;
+    border-bottom-color: #ffe18d;
+    font-weight: 600;
+  }
+  .gd-online-form {
+    display: flex; flex-direction: column; gap: 0.55rem;
+    align-items: stretch; max-width: 280px; margin: 0 auto;
+  }
+  .gd-online-input {
+    padding: 0.55rem 0.8rem;
+    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    outline: none;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+  .gd-online-input::placeholder { color: rgba(255,255,255,0.45); }
+  .gd-online-input:focus {
+    border-color: #ffe18d;
+    background: rgba(255,255,255,0.12);
+  }
+  .gd-online-hint {
+    font-size: 0.82rem; color: rgba(255,255,255,0.72);
+    text-align: center; min-height: 1.2em;
+    line-height: 1.4;
+  }
+  .gd-online-hint.error { color: #ff9c9c; }
+  .gd-online-resume {
+    margin-top: 0.4rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px dashed rgba(255,255,255,0.25);
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.78);
+  }
+  .gd-online-resume .key {
+    color: #ffe18d; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin: 0 0.2rem;
+  }
+  .gd-online-resume .gd-btn.mini {
+    margin: 0.4rem 0.2rem 0;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border-color: rgba(255,255,255,0.3);
+  }
+
+  /* lobby：进房后铺满 .gd-table 区域。画幅尺寸跟正常游戏保持一致：
+       - 非全屏：继承 .guandan-wrap max-width: 880px
+       - 全屏：继承 body.gd-game-fullscreen .gd-table { max-width: 1100px }
+       - 高度：靠下面用 visibility:hidden 保留正常游戏的"手牌区"等占位，让 lobby 跟 PGO 同样高
+     座位排布跟正常游戏完全对齐：partner top-center / opp left-mid / opp right-mid / me 居中 bottom
+     游戏开始时 me 会滑到 bottom-left（对应 .gd-self-bar 位置）然后正式开打
+     中央正中两个按钮：邀请好友 + 离开房间 */
+  .gd-lobby {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    border-radius: 14px;
+    overflow: hidden;
+    /* 跟正常牌桌一样的羊皮纸底色（.gd-table 已经渲了，不用再叠一层） */
+  }
+  .gd-lobby[hidden] { display: none; }
+
+  /* 房号 chip：点击复制（直接代替单独的"复制房号"按钮）。
+     原本钉右上角，会跟 ⚙️🏆✕ 那三颗角钮叠在一起；改成坐在右上角按钮行「下方」一档，
+     竖屏 / 桌面都不再打架。横屏手机另有覆盖把它挪到左上（见下方 media query）。 */
+  .gd-lobby-room-chip {
+    position: absolute;
+    top: 3rem; right: 0.7rem;
+    padding: 0.28rem 0.75rem;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid var(--gd-frame-2);
+    border-radius: 999px;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    font-family: var(--font-body);
+    z-index: 4;
+    cursor: pointer;
+    transition: border-color 0.18s, background 0.18s;
+  }
+  @media (hover: hover) {
+    .gd-lobby-room-chip:hover {
+      border-color: var(--gd-accent-strong);
+      background: rgba(255,225,140,0.25);
+    }
+  }
+  .gd-lobby-room-chip span {
+    color: var(--gd-accent-strong);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    margin-left: 0.4rem;
+    letter-spacing: 0.06em;
+  }
+
+  /* 4 个座位绝对定位，对齐正常牌桌的 4 个位置 */
+  .gd-lobby-seat {
+    position: absolute;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 0.3rem;
+    z-index: 3;
+  }
+  /* 上方/左/右三座对齐对局同方位；"我"(at-bottom) 在大厅里居中正对对家，
+     只有点开始游戏(.starting)后才滑到 bottom-left 的对局座位。
+     头像尺寸 46px 与 .gd-avatar 一致。 */
+  .gd-lobby-seat.at-top {
+    top: 0.6rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  /* 左右两座对齐单机牌桌的 .gd-side（top 35% + 0.4rem + 安全区内缩）：横屏时刘海/灵动岛
+     在哪侧、那侧的玩家就让开它往中间收，左边不再被自拍摄像头挡住，整体也更紧凑。 */
+  .gd-lobby-seat.at-left {
+    top: 35%;
+    left: calc(0.4rem + env(safe-area-inset-left, 0px));
+    transform: translateY(-50%);
+  }
+  .gd-lobby-seat.at-right {
+    top: 35%;
+    right: calc(0.4rem + env(safe-area-inset-right, 0px));
+    transform: translateY(-50%);
+  }
+  /* "我"在大厅居中正对对家；开始游戏(.starting)时滑到 bottom-left 的对局自座 */
+  .gd-lobby-seat.at-bottom {
+    bottom: 1.2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: left 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+                bottom 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .gd-lobby.starting .gd-lobby-seat.at-bottom {
+    left: 0.9rem;
+    bottom: 4.4rem;
+    transform: none;
+  }
+  /* 开始游戏的过渡阶段：中央按钮 + 其他 3 个空座淡出，让"我"独占动画 */
+  .gd-lobby.starting .gd-lobby-center,
+  .gd-lobby.starting .gd-lobby-seat.at-top,
+  .gd-lobby.starting .gd-lobby-seat.at-left,
+  .gd-lobby.starting .gd-lobby-seat.at-right,
+  .gd-lobby.starting .gd-lobby-room-chip {
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+    pointer-events: none;
+  }
+  /* 头像 46px 与 .gd-avatar 同尺寸，开始游戏不会有"头变小"的瞬变 */
+  .gd-lobby-seat .avatar {
+    width: 46px; height: 46px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.55);
+    border: 2px solid var(--gd-frame-2);
+    font-size: 1.5rem;
+    color: rgba(31,42,61,0.5);
+    transition: border-color 0.18s, background 0.18s, transform 0.12s;
+  }
+  .gd-lobby-seat.empty .avatar {
+    background: rgba(255,255,255,0.4);
+    border-style: dashed;
+    cursor: pointer;
+    color: rgba(31,42,61,0.4);
+  }
+  @media (hover: hover) {
+    .gd-lobby-seat.empty .avatar:hover {
+      border-color: var(--gd-accent-strong);
+      background: rgba(255,225,140,0.25);
+      color: var(--gd-accent-strong);
+      transform: scale(1.04);
+    }
+  }
+  .gd-lobby-seat.team-you .avatar { border-color: rgba(30,111,79,0.55); }
+  .gd-lobby-seat.team-opp .avatar { border-color: rgba(139,46,46,0.55); }
+  /* 房主"换座选择"状态：被选中的座位头像加金黄边 + 外发光，二次点击或交换完毕后清除 */
+  .gd-lobby-seat.swap-selected .avatar {
+    border-color: #e5b500;
+    box-shadow: 0 0 0 3px rgba(229,181,0,0.35);
+  }
+  /* 座位"内容"包装层：头像/昵称/徽章/操作按钮 都装在里面，方便用 transform 做 FLIP
+     交换动画（换座位）+ 开局旋转动画。cell 本身的 absolute 定位不动，避免父级 layout
+     抖动；只让 inner 在 cell 内 translate 即可。默认无 transition —— JS 临时加。 */
+  .gd-lobby-seat .seat-inner {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 0.3rem;
+    will-change: transform;
+  }
+  /* 坐下点字 / 玩家昵称 */
+  .gd-lobby-seat .nick {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    text-align: center;
+    max-width: 9rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .gd-lobby-seat.empty .nick {
+    color: var(--color-muted);
+    font-weight: 500;
+    cursor: pointer;
+  }
+  /* 徽章行（房主/我/AI/离线） */
+  .gd-lobby-seat .badges {
+    display: flex; gap: 0.25rem; flex-wrap: nowrap; justify-content: center;
+    min-height: 1em;
+  }
+  .gd-lobby-seat .badge {
+    font-size: 0.62rem;
+    padding: 0.06rem 0.35rem;
+    border-radius: 999px;
+    background: var(--color-bg-warm);
+    color: var(--color-muted);
+    border: 1px solid var(--color-border);
+    font-weight: 600;
+  }
+  .gd-lobby-seat .badge.host {
+    background: linear-gradient(135deg, #ffe18d, #c9a227);
+    color: #fff; border-color: var(--gd-accent-strong);
+  }
+  .gd-lobby-seat .badge.me {
+    background: var(--gd-accent); color: #fff; border-color: var(--gd-accent);
+  }
+  .gd-lobby-seat .badge.ai {
+    background: #6b8f9c; color: #fff; border-color: #4f6f7b;
+  }
+  .gd-lobby-seat .badge.offline {
+    background: rgba(0,0,0,0.08); color: var(--color-muted);
+  }
+  /* 「添加机器人」浮泡：紧贴空座头像旁的小药丸（不溢出 lobby 边界） */
+  .gd-lobby-seat .add-ai-btn {
+    position: absolute;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.85);
+    border: 1px solid var(--gd-frame-2);
+    font-size: 0.72rem;
+    color: var(--color-ink);
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(20,37,63,0.15);
+  }
+  /* at-top: 浮泡放在头像右侧（贴着座位，不再甩到牌桌正中央） */
+  .gd-lobby-seat.at-top .add-ai-btn {
+    top: 0.4rem; left: 100%; margin-left: 0.4rem;
+  }
+  /* at-left: 浮泡放在右侧（朝向中央） */
+  .gd-lobby-seat.at-left .add-ai-btn {
+    top: 0; left: 100%; margin-left: 0.4rem;
+  }
+  /* at-right: 浮泡放在左侧（朝向中央） */
+  .gd-lobby-seat.at-right .add-ai-btn {
+    top: 0; right: 100%; margin-right: 0.4rem;
+  }
+  /* at-bottom: 我自己的位置，正常不显示 add-ai（房主不会自己空座；落座了就不显示）；
+     这里给个 fallback：靠头像右侧浮 */
+  .gd-lobby-seat.at-bottom .add-ai-btn {
+    top: 0; left: 100%; margin-left: 0.4rem;
+  }
+  @media (hover: hover) {
+    .gd-lobby-seat .add-ai-btn:hover {
+      border-color: var(--gd-accent-strong); color: var(--gd-accent-strong);
+    }
+  }
+  /* 房主对真人/AI 的操作行（踢/让位/移除） */
+  .gd-lobby-seat .seat-actions {
+    display: flex; gap: 0.25rem; flex-wrap: wrap; justify-content: center;
+  }
+  .gd-lobby-seat .seat-actions .gd-btn {
+    padding: 0.12rem 0.45rem; font-size: 0.66rem; line-height: 1.3;
+  }
+
+  /* 中央：正中放 2 个核心按钮（邀请好友 + 离开房间）；上方放 入座 N/4 + 开局按钮（条件显示） */
+  .gd-lobby-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; flex-direction: column;
+    align-items: center; gap: 0.55rem;
+    z-index: 2;
+    max-width: 80%;
+  }
+  .gd-lobby-meta {
+    font-size: 0.85rem; color: var(--color-muted);
+    text-align: center;
+  }
+  .gd-lobby-meta span {
+    color: var(--gd-accent-strong); font-weight: 700; margin: 0 0.15rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .gd-lobby-btn-row {
+    display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: center;
+  }
+  .gd-lobby-btn-row .gd-btn {
+    padding: 0.55rem 1.3rem;
+    border-radius: 999px;
+    font-size: 0.95rem;
+    min-width: 6rem;
+  }
+  .gd-lobby-start-row {
+    display: flex; justify-content: center;
+  }
+  .gd-lobby-start-row .gd-btn {
+    padding: 0.55rem 1.3rem;
+    border-radius: 999px;
+    font-size: 0.95rem;
+    min-width: 8rem;
+  }
+
+  /* lobby 显示期间，把游戏 UI 藏起来 — 关键：
+       - 在文档流里的元素（gd-seats-top / gd-seats-mid / gd-myplay-row / gd-hand / gd-play-actions）
+         用 visibility:hidden 而不是 display:none，让 .gd-table 保留正常游戏的高度（不会塌成 360px）
+       - 绝对定位的（gd-levelbar-corner / gd-self-bar / gd-autopilot-chip / gd-sort-actions）
+         它们不占文档流空间，可以直接 display:none
+     这样 lobby 跟 PGO 模式的 .gd-table 高度一致，"画幅"不再变 */
+  .gd-table.gd-in-lobby .gd-seats-top,
+  .gd-table.gd-in-lobby .gd-seats-mid,
+  .gd-table.gd-in-lobby .gd-myplay-row,
+  .gd-table.gd-in-lobby .gd-hand,
+  .gd-table.gd-in-lobby .gd-play-actions { visibility: hidden !important; }
+
+  .gd-table.gd-in-lobby .gd-levelbar-corner,
+  .gd-table.gd-in-lobby .gd-self-bar,
+  .gd-table.gd-in-lobby .gd-autopilot-chip,
+  .gd-table.gd-in-lobby .gd-sort-actions,
+  /* 左右对手座（绝对定位、钉死在牌桌中部）lobby 期间也得藏起来 ——
+     否则它们会透到大厅的「坐下 / 加机器人」上面，跟空座按钮打架。 */
+  .gd-table.gd-in-lobby .gd-side-left,
+  .gd-table.gd-in-lobby .gd-side-right { display: none !important; }
+
+  /* 窄屏：座位往里收一点；头像缩小 */
+  @media (max-width: 560px) {
+    .gd-lobby-seat .avatar { width: 50px; height: 50px; font-size: 1.45rem; }
+    .gd-lobby-seat .nick { font-size: 0.74rem; }
+    .gd-lobby-seat .add-ai-btn { font-size: 0.66rem; padding: 0.16rem 0.45rem; }
+    .gd-lobby-btn-row .gd-btn { padding: 0.4rem 0.9rem; font-size: 0.85rem; min-width: 5rem; }
+    .gd-lobby-start-row .gd-btn { padding: 0.4rem 0.9rem; font-size: 0.85rem; }
+  }
+
+  /* ======== 加倍阶段：play area 里显示"加倍 ×2"或"不加倍" ========
+     仿"不出"的大字浮窗。颜色：加倍=暖金（更醒目）/ 不加倍=灰墨 */
+  /* 加倍决策大字：跟"不出"(.gd-pass-big) 同款无底色纯文字。
+     加倍=红字（同"不出"）；不加倍=黑字 */
+  .gd-double-big {
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    padding: 0.15rem 0.85rem;
+    animation: gd-pass-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+  }
+  .gd-double-big.choice-yes {
+    color: var(--gd-suit-red);
+    text-shadow: 0 1px 0 #fff5d4, 0 2px 8px rgba(139,46,46,0.32);
+  }
+  .gd-double-big.choice-no {
+    color: #000;
+    text-shadow: 0 1px 0 #fff;
+  }
+
+  /* ======== 浮层（贡牌 / 回合结算 / 整局结束） ======== */
+  /* ======== 浮层（贡牌 / 回合结算 / 整局结束）—— 参照斗地主 .ddz-overlay 重做 ======== */
+  .gd-overlay {
+    position: absolute; inset: 0; z-index: 12;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, rgba(13,24,43,0.80) 0%, rgba(13,24,43,0.62) 100%);
+    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    border-radius: 14px; padding: 1rem; text-align: center;
+  }
+  .gd-overlay.open { display: flex; animation: gd-overlay-fadein 0.3s ease-out; }
+  @keyframes gd-overlay-fadein {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .gd-overlay .panel {
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: 14px; padding: 1.3rem 1.5rem; max-width: 440px; width: 100%;
+    max-height: 86vh; overflow-y: auto;
+    box-shadow: 0 8px 28px rgba(13,24,43,0.4);
+  }
+  /* 结算面板（仿欢乐斗地主 VS 双队）：大字标题 + 两个队伍面板 + 操作按钮 */
+  .gd-overlay .gd-result-panel {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    padding: 1.4rem 1.4rem 1.2rem;
+    max-width: 640px; width: 100%;
+    max-height: 92vh; overflow-y: auto;
+    box-shadow: 0 12px 38px rgba(13,24,43,0.45);
+  }
+  .gd-result-title {
+    font-family: var(--font-display);
+    font-size: 2.6rem; font-weight: 900;
+    margin: 0 0 1.1rem; text-align: center;
+    letter-spacing: 0.1em;
+    line-height: 1.05;
+    color: var(--gd-accent-strong);
+  }
+  .gd-result-title.win {
+    background: linear-gradient(135deg, #f5d142 10%, #c9a227 50%, #a87a2a 95%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 4px rgba(168,122,42,0.35));
+  }
+  .gd-result-title.lose {
+    background: linear-gradient(135deg, #5a7a99, #2c3e55);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 4px rgba(13,24,43,0.4));
+  }
+  .gd-result-vs {
+    display: flex; align-items: stretch; gap: 0.6rem;
+    margin-bottom: 1.1rem;
+  }
+  .gd-result-team {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 0.5rem;
+    padding: 0.85rem 0.85rem 0.9rem;
+    border-radius: 14px;
+    border: 1.5px solid var(--color-border);
+    background: rgba(255,255,255,0.55);
+    transition: transform 0.25s, box-shadow 0.25s;
+  }
+  .gd-result-team.you {
+    background: linear-gradient(135deg, rgba(30,111,79,0.08), rgba(30,111,79,0.02));
+    border-color: rgba(30,111,79,0.45);
+  }
+  .gd-result-team.opp {
+    background: linear-gradient(135deg, rgba(139,46,46,0.08), rgba(139,46,46,0.02));
+    border-color: rgba(139,46,46,0.45);
+  }
+  /* 胜方面板：金色高亮 + 微抬升 + 光晕 */
+  .gd-result-team.winning {
+    background: linear-gradient(135deg, rgba(245,209,66,0.28), rgba(201,162,39,0.08));
+    border-color: var(--gd-accent-strong);
+    box-shadow: 0 0 22px rgba(201,162,39,0.45), inset 0 1px 2px rgba(255,255,255,0.5);
+    transform: translateY(-2px);
+  }
+  .gd-result-team-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px dashed rgba(0,0,0,0.10);
+  }
+  .gd-result-team-label {
+    font-family: var(--font-display);
+    font-size: 1.05rem; font-weight: 700;
+    color: var(--color-ink);
+    letter-spacing: 0.04em;
+  }
+  .gd-result-level {
+    font-family: var(--font-body);
+    font-size: 0.82rem; color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .gd-result-level strong {
+    color: var(--gd-accent-strong);
+    font-weight: 700; font-size: 1.02rem;
+  }
+  .gd-result-level .arrow { margin: 0 0.18rem; color: var(--gd-accent-strong); }
+  /* 每栏两列：左=先走(名次靠前)玩家，右=后走玩家；每列头像/昵称/名次竖向堆叠 */
+  .gd-result-players {
+    display: flex; flex-direction: row; gap: 0.5rem; justify-content: center;
+  }
+  .gd-result-player {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+    padding: 0.45rem 0.4rem;
+    background: rgba(255,255,255,0.6);
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .gd-result-team-label { display: block; text-align: center; }
+  .gd-result-team-flip { display: flex; justify-content: center; margin-top: 0.5rem; }
+  .gd-result-rank {
+    font-family: var(--font-display);
+    font-weight: 700; font-size: 0.82rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 4px;
+    color: #fff;
+    min-width: 2.5em; text-align: center;
+    letter-spacing: 0.02em;
+  }
+  .gd-result-rank[data-rank="1"] { background: linear-gradient(135deg, #f5d142, #a87a2a); }
+  .gd-result-rank[data-rank="2"] { background: linear-gradient(135deg, #b8c5d0, #6b8f9c); }
+  .gd-result-rank[data-rank="3"] { background: linear-gradient(135deg, #d8a878, #b0784a); }
+  .gd-result-rank[data-rank="4"] { background: linear-gradient(135deg, #b34848, #8b2e2e); }
+  .gd-result-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem;
+    background: #fff;
+    border: 1.5px solid var(--color-border);
+    flex-shrink: 0;
+  }
+  .gd-result-name {
+    font-size: 0.84rem; font-weight: 600;
+    color: var(--color-ink);
+    max-width: 100%; text-align: center;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .gd-result-vs-divider {
+    align-self: center;
+    font-family: var(--font-display);
+    font-size: 1.4rem; font-weight: 900;
+    color: var(--gd-accent-strong);
+    letter-spacing: 0.06em;
+    padding: 0 0.1rem;
+  }
+  .gd-result-actions {
+    display: flex; gap: 0.6rem; justify-content: center;
+    flex-wrap: wrap; margin-top: 0.4rem;
+  }
+  @media (max-width: 560px) {
+    .gd-result-title { font-size: 2rem; }
+    .gd-result-vs { gap: 0.3rem; }
+    .gd-result-team { padding: 0.6rem 0.55rem; }
+    .gd-result-vs-divider { font-size: 1.1rem; }
+    .gd-result-avatar { width: 30px; height: 30px; font-size: 1rem; }
+  }
+  /* 大标题用金色 accent + display 字体，跟斗地主一致 */
+  .gd-overlay h2 {
+    color: var(--gd-accent-strong);
+    font-family: var(--font-display);
+    margin: 0 0 0.5rem; font-size: 1.8rem;
+    letter-spacing: 0.04em;
+  }
+  .gd-overlay .sub { color: var(--color-muted); font-size: 0.92rem; margin-bottom: 1rem; line-height: 1.6; }
+  .gd-rank-list { list-style: none; padding: 0; margin: 0 0 1rem; }
+  .gd-rank-list li {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.55rem 0.8rem; border: 1px solid var(--color-border);
+    border-radius: 10px; margin-bottom: 0.45rem; text-align: left;
+    transition: transform 0.2s;
+  }
+  .gd-rank-list li .pos {
+    font-weight: 700; min-width: 2.8em; font-size: 0.95rem;
+    color: var(--color-ink); font-family: var(--font-display);
+  }
+  .gd-rank-list li .who { flex: 1; color: var(--color-ink); font-weight: 600; }
+  .gd-rank-list li .who small { color: var(--color-muted); font-weight: 400; }
+  /* 头游条目：金色高亮 + 微抬升 */
+  .gd-rank-list li:nth-child(1) {
+    background: linear-gradient(135deg, rgba(245,178,80,0.18), rgba(255,225,140,0.10));
+    border-color: rgba(201,162,39,0.65);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(201,162,39,0.25);
+  }
+  .gd-rank-list li:nth-child(1) .pos { color: var(--gd-accent-strong); }
+  .gd-rank-list li.win-team { background: rgba(30,111,79,0.08); border-color: var(--gd-team-you); }
+  .gd-tribute-card { display: inline-flex; vertical-align: middle; margin: 0 0.2rem; }
+  .gd-tribute-pick { display: flex; flex-wrap: wrap; gap: 0.3rem; justify-content: center; margin: 0.6rem 0; }
+  .gd-tribute-pick .gd-card { cursor: pointer; }
+  .gd-tribute-pick .gd-card.selected {
+    box-shadow: 0 0 0 2px var(--gd-accent), 0 2px 6px rgba(0,0,0,0.25);
+    transform: translateY(-6px);
+  }
+  /* 还贡倒计时 chip：直接挂在标题"还贡"右侧 */
+  .gd-trib-clock {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.12rem 0.55rem;
+    border: 1.5px solid var(--gd-accent);
+    background: var(--gd-card-bg);
+    color: var(--gd-suit-black);
+    border-radius: 999px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    vertical-align: middle;
+  }
+  .gd-trib-clock-num { display: inline-block; min-width: 1.6ch; text-align: right; }
+  .gd-trib-clock.urgent {
+    background: var(--gd-suit-red); color: #fff; border-color: #fff5d4;
+    animation: gd-clock-urgent 0.5s ease-in-out infinite alternate;
+  }
+
+  /* ======== Pre-game overlay 难度小结 ======== */
+  .gd-pgo-stats {
+    display: flex; gap: 0.5rem; justify-content: center;
+    margin: 0.4rem 0 0.2rem; flex-wrap: wrap;
+  }
+  .gd-pgo-stat {
+    font-size: 0.78rem; color: rgba(255,255,255,0.75);
+    background: rgba(255,255,255,0.08);
+    padding: 0.25rem 0.7rem; border-radius: 999px;
+  }
+  .gd-pgo-stat strong { color: #fff; }
+
+  .gd-pgo-label {
+    font-size: 0.78rem; color: rgba(255,255,255,0.6);
+    margin: 0.7rem 0 0.3rem; letter-spacing: 0.04em;
+  }
+  .gd-pgo-score {
+    font-size: 0.82rem; color: rgba(255,255,255,0.75);
+    margin: 0.7rem 0 0.4rem; min-height: 1.1em;
+  }
+  .gd-pgo-score strong { color: #ffe18d; }
+
+  /* 玩法设置折叠面板：默认收起，单机 + 联机「创建房间」共用（JS 在两处间搬移） */
+  .gd-gameopts { margin: 0.7rem auto 0; }
+  .gd-gameopts-toggle {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    font-size: 0.82rem; color: rgba(255,255,255,0.6);
+    padding: 0.3rem 0.5rem; letter-spacing: 0.03em; transition: color 0.16s;
+    border-radius: 999px;
+  }
+  @media (hover: hover) { .gd-gameopts-toggle:hover { color: rgba(255,255,255,0.92); } }
+  .gd-gameopts-toggle .go-sum { font-size: 0.76rem; color: #ffe18d; opacity: 0.9; }
+  .gd-gameopts-toggle .go-chev { font-size: 0.66rem; transition: transform 0.2s; opacity: 0.8; }
+  .gd-gameopts-toggle[aria-expanded="true"] .go-chev { transform: rotate(180deg); }
+  .gd-gameopts-toggle[aria-expanded="true"] .go-sum { display: none; }
+  .gd-gameopts-body { animation: gd-opts-in 0.18s ease-out; }
+  @keyframes gd-opts-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+  /* 升级规则下分数无意义：结算/赛末加分不再展示 */
+  .gd-result-score { display: none !important; }
+  .gd-result-score .delta { font-weight: 700; font-size: 1.4rem; }
+  .gd-result-score .delta.win { color: #ffd66a; }
+  .gd-result-score .delta.lose { color: #d8d8d8; }
+  .gd-result-score .breakdown {
+    display: block; margin-top: 0.2rem;
+    font-size: 0.78rem; color: rgba(255,255,255,0.55);
+  }
+
+  .gd-result-level-cards {
+    display: flex; justify-content: space-around;   /* 两张级牌分居各自栏的中间，不挤在整框正中 */
+    margin-top: 0.6rem; margin-bottom: 0.2rem;
+  }
+  .gd-result-level-cards .gd-lc-team { flex: 1; }
+  .gd-result-level-cards .gd-lc-team {
+    display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+  }
+  .gd-result-level-cards .gd-lc-label {
+    font-size: 0.72rem; color: var(--color-muted); font-family: var(--font-body);
+  }
+  .gd-level-flip {
+    perspective: 500px;
+    width: 46px; height: 66px;
+    position: relative;
+  }
+  /* 输赢蒙版：输方偏灰、赢方偏亮（盖在静态 perspective 容器上，不卷入 3D 翻转） */
+  .gd-result-level-cards .lc-lose .gd-level-flip::after,
+  .gd-result-level-cards .lc-win .gd-level-flip::after,
+  .gd-result-team-flip.lc-lose .gd-level-flip::after,
+  .gd-result-team-flip.lc-win .gd-level-flip::after {
+    content: ''; position: absolute; inset: 0; border-radius: 5px; pointer-events: none; z-index: 5;
+  }
+  .gd-result-level-cards .lc-lose .gd-level-flip::after,
+  .gd-result-team-flip.lc-lose .gd-level-flip::after { box-shadow: inset 0 0 0 2px rgba(150,152,162,0.9), 0 0 5px rgba(150,152,162,0.4); }
+  .gd-result-level-cards .lc-win .gd-level-flip::after,
+  .gd-result-team-flip.lc-win .gd-level-flip::after { box-shadow: inset 0 0 0 2px rgba(214,172,82,0.95), 0 0 10px rgba(255,214,106,0.55); }
+  .gd-level-flip-inner {
+    position: relative;
+    width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.7s ease;
+  }
+  .gd-level-flip.flipped .gd-level-flip-inner {
+    transform: rotateY(180deg);
+  }
+  .gd-level-flip-inner > .gd-card {
+    position: absolute !important;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    width: 100% !important; height: 100% !important;
+  }
+  .gd-level-flip-inner > .gd-card.lc-back {
+    transform: rotateY(180deg);
+  }
+
+  .gd-resume-summary {
+    margin: 0.6rem auto 0.8rem; max-width: 26rem;
+    font-size: 0.92rem; color: var(--color-ink);
+    line-height: 1.8; text-align: center;
+  }
+  .gd-resume-summary .row {
+    display: block; margin-bottom: 0.25rem;
+  }
+  .gd-resume-summary .row.phase {
+    font-weight: 600; color: var(--gd-accent-strong);
+    margin-bottom: 0.5rem;
+  }
+  .gd-resume-summary .row .sep { color: var(--color-muted); margin: 0 0.5rem; }
+  .gd-resume-summary .key {
+    color: var(--gd-accent-strong); font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ======== about 规则块（内联，照 snake） ======== */
+  .guandan-wrap details.about {
+    max-width: 600px; margin: 1.4rem auto 0;
+    border: 1px solid var(--color-border); border-radius: 10px;
+    background: var(--color-bg-warm); overflow: hidden;
+  }
+  .guandan-wrap details.about summary {
+    cursor: pointer; padding: 0.7rem 1rem;
+    font-weight: 600; color: var(--color-ink);
+    list-style: none;
+  }
+  .guandan-wrap details.about summary::-webkit-details-marker { display: none; }
+  .guandan-wrap details.about summary::before { content: '📖 '; }
+  .guandan-wrap details.about[open] summary { border-bottom: 1px solid var(--color-border); }
+  .guandan-wrap details.about .body {
+    padding: 0.8rem 1.1rem; font-size: 0.88rem;
+    color: var(--color-muted); line-height: 1.7;
+  }
+  .guandan-wrap details.about .body strong { color: var(--color-ink); }
+  .guandan-wrap details.about .body code {
+    background: var(--color-bg); padding: 0.05rem 0.3rem;
+    border-radius: 4px; font-size: 0.85em;
+  }
+
+  /* ======== 响应式 ======== */
+  @media (max-width: 560px) {
+    .guandan-wrap { padding: 0.7rem; }
+    .guandan-wrap header h1 { font-size: 1.6rem; }
+    .guandan-wrap {
+      --gd-card-w: 40px;
+      --gd-card-h: 58px;
+      --gd-card-overlap: 24px;
+      --gd-card-mini-w: 28px;
+      --gd-card-mini-h: 41px;
+      --gd-card-mini-overlap: 17px;
+    }
+    .gd-side { width: 64px; }
+    .gd-table { padding: 0.55rem; }
+    .gd-hand { padding-left: 0.4rem; padding-right: 0.4rem; }
+    .gd-self-bar {
+      position: static;
+      margin: 0.5rem 0 0.3rem;
+      justify-content: center;
+    }
+    /* 窄屏：理牌行回 in-flow，横排居中 */
+    .gd-sort-actions {
+      position: static;
+      flex-direction: row;
+      margin-top: 0.3rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .gd-sort-actions .gd-btn { min-width: 0; background: var(--color-bg); }
+  }
+  @media (max-width: 380px) {
+    .guandan-wrap { --gd-card-w: 34px; --gd-card-h: 50px; --gd-card-overlap: 21px; }
+  }
+
+  .gd-toast {
+    position: fixed; left: 50%; bottom: 18%; transform: translateX(-50%);
+    background: rgba(13,24,43,0.92); color: #fff;
+    padding: 0.55rem 1.1rem; border-radius: 999px;
+    font-size: 0.9rem; z-index: 60; pointer-events: none;
+    opacity: 0; transition: opacity 0.25s;
+  }
+  .gd-toast.show { opacity: 1; }
+
+  /* 进贡/还贡：当一张牌落入"我"的手牌时做个 pop + 金色描边，模拟"塞入牌堆" */
+  .gd-card.just-inserted {
+    animation: gd-card-insert 0.65s cubic-bezier(0.18, 0.9, 0.32, 1.3);
+    box-shadow: 0 0 0 2px var(--gd-accent), 0 4px 10px rgba(20,37,63,0.3);
+  }
+  @keyframes gd-card-insert {
+    0%   { transform: scale(1.5) translateY(-18px); opacity: 0.3; }
+    50%  { transform: scale(1.1) translateY(0); opacity: 1; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  /* 矩形框选浮层：仿桌面文件管理器拖蓝框 —— 从一角拖到对角，相交的牌入选 */
+  .gd-marquee {
+    position: fixed;
+    pointer-events: none;
+    z-index: 70;
+    background: rgba(201,162,39,0.12);
+    border: 1px dashed var(--gd-accent);
+    border-radius: 3px;
+    display: none;
+  }
+
+  /* ======== 进贡 / 还贡 角标 ========
+     仿欢乐斗地主：进/还贡牌出牌时挂一个小色块在牌底部居中（半压在牌上），
+     "进"=金 / "还"=蓝灰，让用户一眼分清谁给的、谁还的。
+     .gd-played overflow:hidden 会裁掉外溢，所以放在 row 内部正下方位置（不溢出）。 */
+  .gd-played-row.gd-tribute-row { position: relative; padding-bottom: 0; }
+  .gd-tribute-tag {
+    position: absolute;
+    left: 50%;
+    bottom: 2px;
+    transform: translateX(-50%);
+    padding: 0.08rem 0.5rem;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 1.1;
+    border-radius: 4px;
+    color: #fff;
+    letter-spacing: 0.06em;
+    box-shadow: 0 1px 3px rgba(20,37,63,0.45);
+    pointer-events: none;
+    animation: gd-tribute-tag-pop 0.42s cubic-bezier(0.18, 0.9, 0.32, 1.3);
+    z-index: 2;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.35);
+    white-space: nowrap;
+  }
+  .gd-tribute-tag.tribute-give {
+    background: linear-gradient(135deg, #f5d142, #c9a227);
+    color: #4a3500;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.45);
+  }
+  .gd-tribute-tag.tribute-return {
+    background: linear-gradient(135deg, #5a7a99, #2c3e55);
+  }
+  @keyframes gd-tribute-tag-pop {
+    0%   { opacity: 0; transform: translate(-50%, 6px) scale(0.4); }
+    60%  { opacity: 1; transform: translate(-50%, 0) scale(1.1); }
+    100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  }
+
+  /* ======== 大字"不要"浮窗（替代以前的虚线 tag）========
+     仿欢乐斗地主：玩家弃出时不画小角标，而是在出牌位置浮一行大字，
+     0.9 秒后稳态停留为更小的标签。 */
+  .gd-pass-big {
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--gd-suit-red);
+    letter-spacing: 0.1em;
+    text-shadow: 0 1px 0 #fff5d4, 0 2px 8px rgba(139,46,46,0.32);
+    padding: 0.15rem 0.85rem;
+    animation: gd-pass-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+  }
+  @keyframes gd-pass-pop {
+    0%   { opacity: 0; transform: scale(0.4) rotate(-8deg); }
+    60%  { opacity: 1; transform: scale(1.15) rotate(2deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+
+  /* ======== 炸弹/同花顺/天王炸：起牌区红闪 + 整桌震屏 + 顶上大字 ======== */
+  .gd-played.fx-bomb {
+    background: radial-gradient(ellipse at center, rgba(200,40,40,0.28) 0%, transparent 70%);
+    animation: gd-shake 0.5s, gd-bomb-flash 0.7s ease-out;
+    border-radius: 8px;
+  }
+  .gd-played.fx-strflush {
+    background: radial-gradient(ellipse at center, rgba(245,178,80,0.32) 0%, transparent 70%);
+    animation: gd-shake 0.45s, gd-bomb-flash 0.7s ease-out;
+    border-radius: 8px;
+  }
+  .gd-played.fx-jokerbomb {
+    background: radial-gradient(ellipse at center, rgba(255,225,140,0.55) 0%, rgba(245,178,80,0.30) 40%, transparent 80%);
+    animation: gd-shake-strong 0.8s, gd-bomb-flash 1.1s ease-out;
+    border-radius: 8px;
+  }
+  @keyframes gd-shake {
+    0%, 100% { transform: translateX(0); }
+    18% { transform: translateX(-5px); }
+    32% { transform: translateX(5px); }
+    50% { transform: translateX(-3px); }
+    66% { transform: translateX(3px); }
+    82% { transform: translateX(-2px); }
+  }
+  @keyframes gd-shake-strong {
+    0%, 100% { transform: translate(0, 0); }
+    10%  { transform: translate(-9px, 4px) rotate(-0.4deg); }
+    22%  { transform: translate(9px, -5px) rotate(0.5deg); }
+    34%  { transform: translate(-7px, 5px) rotate(-0.3deg); }
+    48%  { transform: translate(6px, -4px); }
+    62%  { transform: translate(-4px, 3px); }
+    78%  { transform: translate(3px, -2px); }
+    92%  { transform: translate(-1px, 1px); }
+  }
+  @keyframes gd-bomb-flash {
+    0%   { box-shadow: inset 0 0 0 rgba(200,40,40,0); }
+    50%  { box-shadow: inset 0 0 30px rgba(200,40,40,0.55); }
+    100% { box-shadow: inset 0 0 0 rgba(200,40,40,0); }
+  }
+  /* 桌面整体震屏（天王炸时短促） */
+  .gd-table.mega-quake { animation: gd-mega-quake 0.9s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+  @keyframes gd-mega-quake {
+    0%   { transform: translate(0, 0); }
+    8%   { transform: translate(-10px, 5px) rotate(-0.3deg); }
+    18%  { transform: translate(10px, -7px) rotate(0.4deg); }
+    32%  { transform: translate(-8px, 6px); }
+    48%  { transform: translate(6px, -4px); }
+    66%  { transform: translate(-4px, 3px); }
+    82%  { transform: translate(2px, -2px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  /* 全桌中央"炸弹/同花顺/天王炸"大字浮屏：1.0 s 出现 + 渐隐 */
+  .gd-fx-banner {
+    position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%);
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 2.6rem;
+    color: #fff;
+    text-shadow:
+      0 0 8px rgba(255, 220, 100, 0.9),
+      0 0 24px rgba(245, 130, 40, 0.85),
+      0 4px 10px rgba(0, 0, 0, 0.6);
+    letter-spacing: 0.18em;
+    pointer-events: none;
+    z-index: 40;
+    animation: gd-fx-banner 1.1s ease-out forwards;
+    white-space: nowrap;
+  }
+  @keyframes gd-fx-banner {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(-6deg); }
+    25%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(0deg); }
+    55%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.05); }
+  }
+  /* 抗贡 banner：当前唯一调用 showTributeBanner 的场景，需要停留更久（~2s），
+     所以独立一条更慢的动画，把"可见保持"阶段拉长 */
+  .gd-fx-banner.gd-tribute-banner {
+    animation: gd-tribute-banner 2s ease-out forwards;
+  }
+  @keyframes gd-tribute-banner {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(-6deg); }
+    15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(0deg); }
+    30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+    85%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.05); }
+  }
+
+  /* ======== 游戏内「🏆 榜单」chip（替代退出全屏）========
+     永久全屏不跳出游戏外；玩法/战绩榜/评论改在游戏内浮层看，按钮挂头部角上。 */
+  .guandan-wrap header { position: relative; }
+  /* 设置(⚙️) / 榜单(🏆) / 退出(✕) 角标圆钮：去文字、纯图标 */
+  .gd-board-btn, .gd-exit-btn, .gd-settings-btn {
+    position: absolute; top: 0.6rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.95rem; height: 1.95rem; padding: 0;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-muted);
+    border-radius: 50%;
+    font-size: 1rem; line-height: 1;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.18s;
+    /* 必须高过 seats-top/出牌区那些 z-index:6 的层，否则它们铺满顶部一条、
+       盖住这俩按钮、把点击吃掉（=之前"按了没反应"的根因） */
+    z-index: 20;
+  }
+  .gd-board-btn { left: 0.6rem; }
+  .gd-exit-btn  { right: 0.6rem; }
+  .gd-settings-btn { right: 3rem; }
+  @media (hover: hover) {
+    .gd-board-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .gd-exit-btn:hover  { border-color: var(--gd-team-opp); color: var(--gd-team-opp); }
+    .gd-settings-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+
+  /* 游戏内「榜单/玩法/评论」浮层 */
+  .gd-board-modal {
+    position: fixed; inset: 0; z-index: 10001;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .gd-board-modal[hidden] { display: none; }
+  .gd-board-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(13,24,43,0.55);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  }
+  .gd-board-panel {
+    position: relative; z-index: 1;
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: 14px; padding: 1.5rem 1.2rem 1.2rem;
+    width: min(600px, 92vw); max-height: 88vh; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 12px 40px rgba(13,24,43,0.4);
+  }
+  .gd-board-close {
+    position: absolute; top: 0.5rem; right: 0.6rem;
+    width: 2rem; height: 2rem; border-radius: 50%;
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    font-size: 1.3rem; line-height: 1; cursor: pointer; color: var(--color-muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+  @media (hover: hover) { .gd-board-close:hover { border-color: var(--color-accent); color: var(--color-accent); } }
+  /* 退出本局：放在榜单浮层顶部，随时可中途弃局回到难度选择页 */
+  .gd-quit-btn {
+    display: block; width: 100%;
+    margin: 0 0 1rem; padding: 0.55rem 1rem;
+    border: 1px solid var(--gd-team-opp); border-radius: 10px;
+    background: rgba(139,46,46,0.06); color: var(--gd-team-opp);
+    font-family: var(--font-body); font-size: 0.9rem; font-weight: 600;
+    cursor: pointer;
+  }
+  @media (hover: hover) { .gd-quit-btn:hover { background: rgba(139,46,46,0.12); } }
+  .gd-board-panel details.about { margin: 0 0 1rem; }
+  .gd-board-panel #gd-wlb-mount,
+  .gd-board-panel #gd-nick-mount { margin: 0 0 0.8rem; }
+
+  /* 退出确认弹窗 */
+  .gd-confirm-modal { position: fixed; inset: 0; z-index: 10002; display: flex; align-items: center; justify-content: center; }
+  .gd-confirm-modal[hidden] { display: none; }
+  .gd-confirm-backdrop { position: absolute; inset: 0; background: rgba(13,24,43,0.5); }
+  .gd-confirm-panel {
+    position: relative; z-index: 1;
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: 14px; padding: 1.4rem 1.4rem 1.1rem;
+    width: min(340px, 86vw); text-align: center;
+    box-shadow: 0 12px 40px rgba(13,24,43,0.4);
+  }
+  .gd-confirm-msg { font-size: 1.05rem; font-weight: 600; color: var(--color-ink); line-height: 1.5; }
+  .gd-confirm-sub { font-size: 0.82rem; font-weight: 400; color: var(--color-muted); }
+  .gd-confirm-actions { display: flex; gap: 0.7rem; justify-content: center; margin-top: 1.1rem; }
+  .gd-confirm-actions .gd-btn { min-width: 5rem; }
+  .gd-confirm-actions .gd-btn.primary { background: var(--gd-team-opp); border-color: var(--gd-team-opp); color: #fff; }
+
+  /* ===== Pre-Game 页改暖色调：贴合牌桌的羊皮纸底 + 奶白卡片 + 暖金/藏蓝点缀（替掉
+     games-shell 自带的冷深蓝磨砂）。沿用同一套 gs-pgo-* 组件，只把字色/底色翻成深字浅底。 */
+  body.gd-game-fullscreen .gs-pgo-overlay {
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(255,253,245,0.5) 0%, transparent 62%),
+      linear-gradient(160deg, var(--gd-felt-1) 0%, var(--gd-felt-2) 60%, var(--gd-felt-3) 100%);
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  /* 不再用一张浅白卡片把设置框起来：内容直接坐在铺满全屏的羊皮纸背景上，
+     只保留一个居中可读的窄列宽度，去掉底色 / 边框 / 圆角 / 阴影那个矩形。 */
+  body.gd-game-fullscreen .gs-pgo-view {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 1.3rem 1.7rem 1.5rem;
+    width: min(360px, 90vw);
+    box-shadow: none;
+    color: var(--color-ink);   /* 文字一律深字（覆盖 games-shell 的白字默认） */
+  }
+  /* 掌踋 app 图标（暖奶油 tile 风），圆角方形 */
+  .gd-pgo-applogo {
+    width: 72px; height: 72px; border-radius: 18px; display: block; margin: 0 auto 0.5rem;
+    box-shadow: 0 4px 14px rgba(141,110,55,0.3);
+  }
+  /* 卡片内文字翻成深字（羊皮纸底） */
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-title { color: var(--color-ink); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-pgo-label { color: var(--color-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-picker { background: rgba(20,37,63,0.06); }
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab { color: var(--color-muted); }
+  @media (hover: hover) { body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab:hover { color: var(--color-ink); } }
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab.selected {
+    background: var(--gd-accent); color: #fff; box-shadow: 0 1px 4px rgba(141,110,55,0.4);
+  }
+  /* 开始/创建按钮：暖金实心；联机输入框翻成浅底深字 */
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-start-btn { background: var(--gd-accent-strong); box-shadow: 0 3px 10px rgba(141,110,55,0.35); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-online-tab { color: var(--color-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-online-tab.active { color: var(--color-ink); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-online-input {
+    background: rgba(20,37,63,0.05); border-color: var(--gd-frame-2); color: var(--color-ink);
+  }
+  body.gd-game-fullscreen .gs-pgo-view .gd-online-input::placeholder { color: var(--color-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-gameopts-toggle { color: var(--color-muted); }
+  /* 「玩法设置」那行的小结（同队进贡·分不限·20秒）原本是浅金 #ffe18d，落在暖色羊皮纸上
+     几乎看不清 —— 换成深琥珀，跟暖底拉开对比。下方「本难度累计」分数同理（原来是白字）。 */
+  body.gd-game-fullscreen .gs-pgo-view .gd-gameopts-toggle .go-sum { color: #8a6312; opacity: 1; }
+  body.gd-game-fullscreen .gs-pgo-view .gd-pgo-score { color: var(--color-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-pgo-score strong { color: var(--gd-accent-strong); }
+  /* 对局进行中从 ⚙️ 调出设置时，卡片左上角的「返回游戏」（关掉设置续局） */
+  .gd-pgo-close {
+    position: absolute; top: 0.7rem; left: 0.9rem;
+    background: none; border: none; color: var(--color-muted);
+    font-size: 0.82rem; cursor: pointer; padding: 0; font-family: inherit;
+  }
+  .gd-pgo-close[hidden] { display: none; }
+  body.gd-game-fullscreen .gs-pgo-view { position: relative; }
+
+  body.gd-game-fullscreen { overflow: hidden; }
+  body.gd-game-fullscreen .guandan-wrap {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    margin: 0;
+    padding: 0.6rem 0.6rem 0.4rem;
+    background: var(--color-bg);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* 让 header + 牌桌作为一组被剩余空白上下均分（仿斗地主 3370509）；
+       safe 关键字兜底——内容比视口还高时回退到 flex-start，不会把头部挤出屏 */
+    display: flex;
+    flex-direction: column;
+    justify-content: safe center;
+    max-width: none;
+  }
+  body.gd-game-fullscreen .guandan-wrap header { margin-bottom: 0.3rem; }
+  body.gd-game-fullscreen .guandan-wrap header h1 { font-size: 1.2rem; }
+  body.gd-game-fullscreen .guandan-wrap header .sub { display: none; }
+  /* width:100% 是关键——flex 列布局下 align-items:stretch 不会替我们撑宽
+     一个没显式 width 的子元素；不给的话 .gd-table 就缩到内容（PGO 浮层）
+     的天然宽度，看着像一根竖条 */
+  body.gd-game-fullscreen .gd-table { width: 100%; max-width: 1100px; margin: 0 auto; }
+  /* 玩法 / 战绩榜 / 评论 已移进游戏内「🏆 榜单」浮层（gd-board-modal），
+     由浮层的 [hidden] 控制显隐——永久全屏、不再跳出游戏外，所以这里不再隐藏它们。 */
+
+  /* ======== 手机竖屏：直接提示"请横屏"，不再硬塞竖屏牌桌 ========
+     掼蛋 4 家 + 27 张牌竖屏怎么排都挤；竖握手机时盖一层引导，转横屏才开打。
+     仅触屏(pointer:coarse)竖屏生效，桌面/平板横排不受影响。 */
+  .gd-rotate-hint { display: none; }
+  @media (orientation: portrait) and (pointer: coarse) {
+    .gd-rotate-hint {
+      display: flex; position: fixed; inset: 0; z-index: 100000;
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 1.1rem; padding: 2rem; text-align: center;
+      background: linear-gradient(160deg, var(--gd-felt-1) 0%, var(--gd-felt-3) 100%);
+      color: var(--color-ink);
+    }
+    .gd-rotate-phone {
+      width: 48px; height: 80px; border: 3px solid var(--gd-accent-strong);
+      border-radius: 11px; position: relative;
+      animation: gd-rotate-tilt 1.9s ease-in-out infinite;
+    }
+    .gd-rotate-phone::after {
+      content: ''; position: absolute; left: 50%; bottom: 6px; width: 16px; height: 3px;
+      background: var(--gd-accent-strong); border-radius: 2px; transform: translateX(-50%);
+    }
+    @keyframes gd-rotate-tilt {
+      0%, 28% { transform: rotate(0deg); }
+      68%, 100% { transform: rotate(-90deg); }
+    }
+    .gd-rotate-title { font-size: 1.3rem; font-weight: 700; }
+    .gd-rotate-sub { font-size: 0.9rem; color: var(--color-muted); max-width: 17rem; line-height: 1.65; }
+  }
+
+  /* ======== 触屏设备横屏：纵向收紧 + 给左下"我/托管"、右下理牌键让位 ========
+     用 (pointer: coarse) 判定「触屏 + 横屏」，不再用 max-height:560px —— 旋转时浏览器
+     会短暂报旧的竖屏高度(>560)，导致这套横屏布局瞬间失配、退回非全屏的「网页」样式
+     （表头露出、牌桌居中）。pointer/orientation 在旋转时更新更可靠，不会再掉出全屏。 */
+  @media (orientation: landscape) and (pointer: coarse) {
+    body.gd-game-fullscreen .guandan-wrap header { margin: 0; min-height: 0; }
+    body.gd-game-fullscreen .guandan-wrap header h1 { display: none; }
+    /* 横屏右上角从右到左：退出(✕) → 榜单(🏆) → 设置(⚙️) */
+    body.gd-game-fullscreen .gd-exit-btn {
+      right: calc(0.5rem + env(safe-area-inset-right, 0px));
+      top: calc(0.45rem + env(safe-area-inset-top, 0px));
+    }
+    body.gd-game-fullscreen .gd-board-btn {
+      left: auto;
+      right: calc(2.9rem + env(safe-area-inset-right, 0px));
+      top: calc(0.45rem + env(safe-area-inset-top, 0px));
+    }
+    body.gd-game-fullscreen .gd-settings-btn {
+      right: calc(5.3rem + env(safe-area-inset-right, 0px));
+      top: calc(0.45rem + env(safe-area-inset-top, 0px));
+    }
+    /* 横屏：三颗角钮全在右上，左上角空着（级牌角标在大厅里已隐藏）→ 房号挪去左上，
+       彻底跟那三颗钮分开，不再压在 ✕ 上面。 */
+    body.gd-game-fullscreen .gd-lobby-room-chip {
+      top: calc(0.5rem + env(safe-area-inset-top, 0px));
+      left: calc(0.6rem + env(safe-area-inset-left, 0px));
+      right: auto;
+    }
+    /* 画幅铺满：去掉外圈那圈奶油色边 + 金色细边 + 圆角，让羊皮纸牌桌一直延伸到
+       屏幕物理边缘（含刘海/圆角安全区），不再留一道贴合感差的浅色框；
+       安全区改用 env() 内缩到牌桌「内部」——背景照样满铺到边，只把内容顶离刘海。 */
+    body.gd-game-fullscreen .guandan-wrap {
+      padding: 0;
+      background: var(--gd-felt-1);
+    }
+    /* 牌桌 flex 撑满视口高度，手牌吃掉座位/出牌行之后的全部剩余高度 */
+    body.gd-game-fullscreen .gd-table {
+      flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+      max-width: none; border: 0; border-radius: 0;
+      padding:
+        calc(0.35rem + env(safe-area-inset-top, 0px))
+        calc(0.7rem + env(safe-area-inset-right, 0px))
+        calc(0.4rem + env(safe-area-inset-bottom, 0px))
+        calc(0.7rem + env(safe-area-inset-left, 0px));
+    }
+    body.gd-game-fullscreen .gd-seats-mid { height: 70px; }   /* 只剩对家出牌（出牌槽 64px） */
+    /* 出牌决策带（手机）：绝对定位、浮在手牌「上方」一层、盖在牌上 —— 手牌贴底往上长，
+       这条带浮在它上面。带本身不挡触摸（pointer-events:none），只有按钮可点：被按钮完全盖住的
+       牌，点击算点在按钮上（按钮优先、永不失效），但仍能用滑动选到。带只需让出约 6 张牌的高度，
+       更深的摞偶尔被盖住可接受（>6 张极少见）——所以手牌可以贴底自由往上长、无需为 8 张预留下方空间。 */
+    body.gd-game-fullscreen .gd-play-band {
+      position: absolute; left: 0; right: 0;
+      top: 46%; transform: translateY(-50%);
+      margin: 0; z-index: 6; pointer-events: none;
+    }
+    body.gd-game-fullscreen .gd-play-band > .gd-play-actions { flex-wrap: nowrap; min-height: 0; }
+    body.gd-game-fullscreen .gd-play-band .gd-btn { pointer-events: auto; }   /* 只有按钮接管点击 */
+    body.gd-game-fullscreen .gd-played,
+    body.gd-game-fullscreen .gd-side .gd-played { height: 64px; }
+    /* 左右对手（含出牌区）跟着「我」这块一起略往下：35% → 38% */
+    body.gd-game-fullscreen .gd-side { top: 38%; }
+    /* 出牌区(每个玩家打出去的牌)整张做小一些 42×60（≤ 槽高 64px，不被 overflow:hidden
+       裁断）。手牌仍 50×72，比出牌区大一圈 —— 故意不同尺寸，手牌更醒目好点。 */
+    body.gd-game-fullscreen .gd-played { --gd-card-w: 42px; --gd-card-h: 60px; }
+    body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full { margin-left: -22px; }
+    body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
+    /* 手牌：吃满剩余高度、列在底对齐。默认 step 24 恒定不变——深的一摞就让它
+       自然往上长、溢进手牌上方那片空地（overflow:visible 不裁切），错落间距与卡片
+       大小始终保持原样，绝不为了塞进画幅而压扁成数不清张数的一团。
+       左右留出"我/托管"和"理牌图标键"的宽度（含安全区），绝不压牌。 */
+    body.gd-game-fullscreen .gd-hand {
+      /* 手牌跟出牌区完全同尺寸同字号(等比公式)。整体再放大一档到 50×72。 */
+      --gd-card-w: 50px; --gd-card-h: 72px;
+      --gd-stack-step: 24px;
+      flex: 1 1 auto; min-height: 0;
+      /* 贴底、向上生长：手牌列底对齐牌桌下沿，深摞自然往上长、溢进上方空地（不裁切），
+         决策带在 43% 处盖在它上面（>6 张才会被盖到）。错落间距/卡片大小始终保持原样。 */
+      align-items: flex-end;
+      overflow: visible;
+      /* 整把牌再往下一点（底留 12px）+ 整体右移：左留 52px 让开左下角「张数/托管」chip 不再被牌压住，
+         右收到 28px 吃掉原来跟理牌键之间的空隙——净效果是手牌整体右移、左侧不再重合。含安全区。 */
+      padding: 0.15rem calc(28px + env(safe-area-inset-right, 0px)) 12px calc(52px + env(safe-area-inset-left, 0px));
+    }
+    /* 左下："我" 头像 | 张数 + 托管机器人 横排（张数与机器人都在头像右边、右下方），
+       不再竖排单开一行（挤进左侧 ~104px 内）。 */
+    body.gd-game-fullscreen .gd-self-bar {
+      left: calc(0.4rem + env(safe-area-inset-left, 0px));
+      bottom: calc(0.25rem + env(safe-area-inset-bottom, 0px)); margin: 0;
+      flex-direction: row; align-items: center; gap: 0.32rem;
+    }
+    body.gd-game-fullscreen .gd-self-bar .gd-name { display: none; }
+    body.gd-game-fullscreen .gd-autopilot-chip { width: 1.5rem; height: 1.5rem; font-size: 0.85rem; }
+    /* 张数与托管按钮挨太近 → 把托管按钮往下挪开一点，两者不再贴在一起 */
+    body.gd-game-fullscreen .gd-self-meta .gd-autopilot-chip { margin-top: 0.3rem; }
+    /* 右下：只留 还原/理牌 两个图标键（去文字、去一键理牌），紧凑竖排（挤进右侧 50px 内） */
+    body.gd-game-fullscreen .gd-sort-actions {
+      right: calc(0.4rem + env(safe-area-inset-right, 0px));
+      bottom: calc(0.25rem + env(safe-area-inset-bottom, 0px));
+      flex-direction: column; gap: 0.3rem; margin: 0;
+    }
+    body.gd-game-fullscreen .gd-sort-actions .gd-btn {
+      min-width: 0; width: 40px; height: 36px; padding: 0; font-size: 1.05rem; line-height: 1;
+    }
+    body.gd-game-fullscreen .gd-sort-actions .gd-btn-tx { display: none; }
+    body.gd-game-fullscreen #gdSortBtn { display: none; }   /* 一键理牌 横屏不显示 */
+
+    /* ===== 横屏结算面板（回合 / 整局）整体收紧，刚好一屏放下，不必下滑找「继续」=====
+       横屏视口高 ≤560px 时，默认的大标题 + 宽松内边距会把面板撑得比画幅高。
+       这里同比缩小标题/头像/间距，让标题+双队+积分+按钮一次全显。 */
+    .gd-overlay .gd-result-panel { padding: 0.7rem 1rem 0.75rem; max-height: 98vh; }
+    .gd-result-title { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .gd-result-vs { gap: 0.45rem; margin-bottom: 0.5rem; }
+    .gd-result-team { padding: 0.5rem 0.55rem 0.55rem; gap: 0.3rem; }
+    .gd-result-team-head { padding-bottom: 0.25rem; }
+    .gd-result-team-label { font-size: 0.92rem; }
+    .gd-result-level { font-size: 0.76rem; }
+    .gd-result-level strong { font-size: 0.92rem; }
+    .gd-result-players { gap: 0.3rem; }
+    .gd-result-player { padding: 0.25rem 0.45rem; gap: 0.45rem; }
+    .gd-result-avatar { width: 28px; height: 28px; font-size: 1rem; }
+    .gd-result-name { font-size: 0.82rem; }
+    .gd-result-rank { font-size: 0.74rem; padding: 0.12rem 0.45rem; }
+    .gd-result-vs-divider { font-size: 1.05rem; }
+    .gd-result-score { margin: 0.4rem 0 0.1rem; font-size: 0.84rem; line-height: 1.3; }
+    .gd-result-score .delta { font-size: 1.15rem; }
+    .gd-result-score .breakdown { font-size: 0.72rem; }
+    .gd-result-actions { margin-top: 0.35rem; }
+  }
+
+:root{--font-body:"Noto Serif SC",Georgia,serif;--font-display:"Cormorant Garamond",Georgia,serif;--color-ink:#2b2a26;--color-muted:#7a756a;--color-light:#9a9486;--color-border:#d8cfbf;--color-bg:#f3efe4;}
+body{margin:0;background:#f3efe4;font-family:"Noto Serif SC",serif}
+.wrap{max-width:1180px;margin:0 auto;padding:1.1rem 1rem 4rem}
+h1{font-family:"Cormorant Garamond",serif;font-weight:600;font-size:1.6rem;text-align:center;margin:0 0 .15rem}
+.sub{text-align:center;color:#7a756a;font-size:.84rem;margin-bottom:.8rem}
+.tabs{display:flex;gap:.4rem;justify-content:center;margin-bottom:1rem;flex-wrap:wrap}
+.tabs button{font-family:"Noto Serif SC";font-size:.9rem;padding:.5rem 1rem;border-radius:8px;border:1px solid rgba(201,169,110,.6);background:#fffdf7;color:#5c574d;cursor:pointer}
+.tabs button.on{background:#c9a96e;color:#fff;border-color:#a87a2a;font-weight:700}
+.layout{display:flex;gap:1.4rem;align-items:flex-start;flex-wrap:wrap}
+.left{flex:1 1 380px;position:sticky;top:.6rem}.right{flex:1 1 340px}
+.panel{background:#fffdf7;border:1px solid rgba(201,169,110,.5);border-radius:10px;padding:1rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(40,30,10,.06)}
+.panel h3{margin:0 0 .6rem;font-size:.92rem;color:#5c574d}
+.stage{background:#ebe5d3;border:1px solid rgba(201,169,110,.5);border-radius:8px;padding:.9rem;display:flex;gap:1.6rem;justify-content:center;align-items:flex-start;flex-wrap:wrap;min-height:120px}
+#prev{--gd-card-w:50px;--gd-card-h:72px;}  /* 与游戏一致：默认手牌/出牌 size-full = 50x72（可用「预览尺寸」滑杆放大查看，渲染仍忠实） */
+#prev .gd-rank-col{position:relative;width:var(--gd-card-w)}
+#prev .gd-played-row{display:flex}#prev .gd-played-row .gd-card{margin-left:calc(-1*var(--gd-card-w)*0.52)}#prev .gd-played-row .gd-card:first-child{margin-left:0}
+/* ===== 覆盖游戏里硬编码的值 → 改用编辑器变量(#prev 提权)。逐花色 tr/bl/big/br/bb/op 游戏本就用 --gd-* 内联变量，编辑器直接给卡内联即可，无需覆盖 ===== */
+#prev .gd-card .q-tl{ width:calc(var(--gd-card-w)*var(--e-sr)); height:calc(var(--gd-card-w)*var(--e-sr)); font-size:calc(var(--gd-card-w)*var(--e-rank)); }
+#prev .gd-card.rank-j .q-tl{ font-size:calc(var(--gd-card-w)*var(--e-rankj)); }
+#prev .gd-card .q-tr{ left:calc(var(--gd-card-w)*var(--e-sr)); height:calc(var(--gd-card-w)*var(--e-sr)); }
+#prev .gd-card .q-bl{ top:calc(var(--gd-card-w)*var(--e-sr)); width:calc(var(--gd-card-w)*var(--e-sr)); }
+#prev .gd-card.is-level{ background:linear-gradient(160deg,var(--e-lv1) 0%,var(--e-lv2) 100%); border-color:var(--e-lvb); }
+#prev .gd-card.is-joker .q-tl{ font-size:calc(var(--gd-card-w)*var(--e-star)); }
+#prev .gd-card.is-joker .q-tr{ font-size:calc(var(--gd-card-w)*var(--e-htext)); }
+#prev .gd-card.is-joker .q-bl{ font-size:calc(var(--gd-card-w)*var(--e-vtext)); line-height:var(--e-vlh); padding-top:calc(var(--gd-card-w)*var(--e-vpad)); }
+#prev .gd-card.is-joker .bigsuit{ font-size:calc(var(--gd-card-w)*var(--e-crown)); right:calc(var(--gd-card-w)*var(--e-cr)); bottom:calc(var(--gd-card-w)*var(--e-cb)); }
+#prev .gd-played-row .gd-card.is-joker .bigsuit{ left:calc(var(--gd-card-w)*var(--e-sr)); top:calc(var(--gd-card-w)*var(--e-sr)); font-size:calc(var(--gd-card-w)*var(--e-crown2)); }
+.ctl{display:grid;grid-template-columns:96px 1fr 52px;gap:.45rem;align-items:center;margin-bottom:.45rem}
+.ctl label{font-size:.78rem;color:#4a4640}.ctl input[type=range]{width:100%;accent-color:#a87a2a}
+.ctl .val{font-family:"SF Mono",Menlo,monospace;font-size:.74rem;text-align:right;color:#5c574d;background:#f1ebdc;border-radius:4px;padding:1px 3px}
+.ctl input[type=color]{width:100%;height:26px;padding:0;border:1px solid #ccc;border-radius:4px}
+.grp{font-size:.82rem;font-weight:700;color:#8b2e2e;margin:.5rem 0 .45rem;border-top:1px solid rgba(201,169,110,.4);padding-top:.2rem}
+.suitsub{display:flex;gap:.3rem;margin-bottom:.6rem}
+.suitsub button{flex:1;font-size:16px;padding:5px;border-radius:6px;border:1px solid rgba(201,169,110,.6);background:#fffdf7;cursor:pointer;font-family:"Apple Symbols","Segoe UI Symbol"}
+.suitsub button.on{background:#c9a96e;color:#fff}.suitsub button.red{color:#8b2e2e}.suitsub button.red.on{color:#fff}
+.btns{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap;align-items:center}
+button.act{font-family:"Noto Serif SC";font-size:.88rem;padding:.5rem 1rem;border-radius:8px;border:1px solid #a87a2a;background:#c9a96e;color:#fff;cursor:pointer;font-weight:600}
+button.ghost{background:#fffdf7;color:#5c574d;border-color:rgba(201,169,110,.6)}
+.copied{color:#2e7d4f;font-size:.8rem}
+.out{width:100%;min-height:90px;font-family:"SF Mono",Menlo,monospace;font-size:.72rem;border:1px solid rgba(201,169,110,.5);border-radius:8px;padding:.6rem;background:#fcf8ee;resize:vertical}
+.cap{font-size:.7rem;color:#8a8473;text-align:center;margin-top:.3rem}
+.tip{font-size:.78rem;color:#7a756a;margin:.2rem 0 .7rem;line-height:1.5}
+</style></head><body><div class="wrap"><h1>掼蛋 · 牌面统一编辑器</h1><div class="sub">普通牌(逐花色)/红桃级牌/大小王/结构 · 单张·横排·竖排三视图 · 与游戏同套 CSS,所见即所得</div><div class="tabs"><button class="on" data-t="reg">普通牌</button><button data-t="level">红桃级牌</button><button data-t="joker">大小王</button><button data-t="struct">结构</button></div><div class="layout"><div class="left guandan-wrap" id="prev"><div class="panel"><div class="stage" id="stage"></div></div></div><div class="right"><div class="panel"><div id="ctlmount"></div><div class="btns"><button class="act" id="exp">复制全部参数</button><button class="ghost act" id="reset">恢复默认</button><span class="copied" id="msg"></span></div></div><div class="panel"><h3>参数</h3><div class="tip">点「复制全部参数」→ <b>GD2-CARDS {…}</b> 进剪贴板,粘贴回对话。</div><textarea class="out" id="out" readonly></textarea></div></div></div></div><script>
+const SVG_SUITS = {
+    0: { t: 'translate(500 500) scale(0.80349) translate(-626.5 -1393.0)', d: 'M679 1714 Q660 1815 712 1880Q624 1852 536 1880Q588 1815 574 1715Q548 1788 492.5 1836.5Q437 1885 380 1885Q295 1885 233.0 1813.0Q171 1741 171 1642Q171 1503 306 1344Q326 1319 361 1275Q401 1227 416 1209Q548 1048 619 906Q649 953 659 968L717 1051L786 1150Q844 1231 908 1303Q1082 1495 1082 1641Q1082 1739 1022.5 1810.0Q963 1881 881 1881Q810 1881 763.5 1842.5Q717 1804 679 1714Z' },
+    1: { t: 'translate(500 500) scale(0.80349) translate(-715.0 -1473.5)', d: 'M714 2046 658 1955Q540 1762 352 1581Q241 1473 196.5 1387.0Q152 1301 152 1195Q152 1075 235.0 988.0Q318 901 432 901Q590 901 716 1141Q850 906 1009 906Q1125 906 1201.5 992.0Q1278 1078 1278 1210Q1278 1299 1241.5 1387.5Q1205 1476 1146 1528L1067 1599Q960 1696 857 1848L803 1928Q790 1947 714 2046Z' },
+    2: { t: 'translate(500 500) scale(0.80349) translate(-616.0 -1475.5)', d: 'M1057 1475 617 2044 175 1479 616 907Z' },
+    3: { t: 'translate(500 500) scale(0.80349) translate(-709.0 -1402.0)', d: 'M762 1900Q708 1874 654 1900Q678 1812 689 1726Q629 1823 570.5 1863.0Q512 1903 431 1903Q327 1903 254.0 1830.0Q181 1757 181 1652Q181 1535 268.0 1462.0Q355 1389 494 1389L552 1390Q461 1255 461 1154Q461 1050 534.5 977.0Q608 904 713 904Q820 904 894.5 977.5Q969 1051 969 1157Q969 1253 867 1390Q919 1387 936 1387Q1067 1387 1152.0 1461.0Q1237 1535 1237 1649Q1237 1751 1162.0 1828.0Q1087 1905 988 1905Q903 1905 843.0 1862.5Q783 1820 728 1720Q745 1812 762 1900Z' },
+  };
+const SUIT_CHARS={0:'♠',3:'♣'};  // ♠/♣ 用原本文字符号；♥/♦ 用矢量（与游戏一致）
+function suitSVG(s){if(SUIT_CHARS[s])return SUIT_CHARS[s];const o=SVG_SUITS[s];return '<svg class="suit-svg" viewBox="0 0 1000 1000"><g transform="'+o.t+'"><path d="'+o.d+'"/></g></svg>';}
+const RL=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const SUITNAME=['黑桃','红桃','方块','梅花'],SUITKEY=['spade','heart','diamond','club'];
+const isRed=s=>(s===1||s===2);
+// 默认值 = 游戏当前线上真值（让编辑器一打开就跟游戏完全一致；改游戏后记得同步这里）
+const ST={ struct:{sr:0.38,rank:0.28,rankj:0.25},
+  suits:{0:{tr:0.21,bl:0.21,big:0.66,br:0.025,bb:0.335,op:1},1:{tr:0.19,bl:0.19,big:0.60,br:0.04,bb:0.2,op:1},2:{tr:0.22,bl:0.22,big:0.71,br:-0.01,bb:0.15,op:0.9},3:{tr:0.22,bl:0.22,big:0.66,br:0.02,bb:0.34,op:0.9}},
+  level:{c1:'#ffffff',c2:'#ded2b5',cb:'#e6dcc7'},
+  joker:{star:0.37,htext:0.18,vtext:0.185,vlh:1,vpad:0,crown:0.91,cr:0.02,cb:0.125,crown2:0.68} };
+const prev=document.getElementById('prev');
+function applyGlobals(){
+  const s=ST.struct,l=ST.level,j=ST.joker;
+  const set=(k,v)=>prev.style.setProperty(k,v);
+  set('--e-sr',s.sr);set('--e-rank',s.rank);set('--e-rankj',s.rankj);
+  set('--e-lv1',l.c1);set('--e-lv2',l.c2);set('--e-lvb',l.cb);
+  set('--e-star',j.star);set('--e-htext',j.htext);set('--e-vtext',j.vtext);set('--e-vlh',j.vlh);set('--e-vpad',j.vpad);
+  set('--e-crown',j.crown);set('--e-cr',j.cr);set('--e-cb',j.cb);set('--e-crown2',j.crown2);
+}
+function regCard(suit,rank,level){
+  const p=ST.suits[suit];const e=document.createElement('span');
+  e.className='gd-card size-full '+(isRed(suit)?'red':'black')+(rank==='J'?' rank-j':'')+(level?' is-level':'');
+  e.style.cssText='--gd-tr:'+p.tr+';--gd-bl:'+p.bl+';--gd-big:'+p.big+';--gd-br:'+p.br+';--gd-bb:'+p.bb+';--gd-op:'+p.op;
+  const sv=suitSVG(suit);
+  e.innerHTML='<span class="q q-tl">'+rank+'</span><span class="q q-tr">'+sv+'</span><span class="q q-bl">'+sv+'</span><span class="bigsuit">'+sv+'</span>';
+  return e;
+}
+function jokCard(kind){const cr=kind==='big'?'♛':'♚';const e=document.createElement('span');
+  e.className='gd-card size-full is-joker joker-'+kind;
+  e.innerHTML='<span class="q q-tl">★</span><span class="q q-tr">JOKER</span><span class="q q-bl"><span>J</span><span>O</span><span>K</span><span>E</span><span>R</span></span><span class="bigsuit">'+cr+'</span>';
+  return e;}
+function ctxBlocks(makeList){
+  // 三种格式：单张 / 横排出牌 / 竖排手牌
+  const W=PREVIEW_W, H=Math.round(W*72/50), step=Math.round(ST.struct.sr*W);
+  function box(title,node){const d=document.createElement('div');const t=document.createElement('div');t.className='cap';t.textContent=title;d.appendChild(node);d.appendChild(t);return d;}
+  const single=document.createElement('div');single.style.display='flex';single.style.gap='10px';makeList().forEach(c=>single.appendChild(c));
+  const row=document.createElement('div');row.className='gd-played-row';makeList().forEach(c=>row.appendChild(c));
+  const col=document.createElement('div');col.className='gd-rank-col';const cs=makeList();col.style.height=((cs.length-1)*step+H+6)+'px';cs.forEach((c,i)=>{c.style.position='absolute';c.style.left='0';c.style.top=(i*step)+'px';c.style.zIndex=i+1;col.appendChild(c);});
+  const f=document.createDocumentFragment();
+  f.appendChild(box('单张',single));f.appendChild(box('横排出牌',row));f.appendChild(box('竖排手牌',col));
+  return f;
+}
+// ---- 标签 + 面板 ----
+let PREVIEW_W=50;  // 预览卡牌宽度(px)。默认 50 = 游戏真实大小；放大只为看清，调参判断以 50 为准
+let tab='reg', suit=0;
+const stage=document.getElementById('stage'), ctl=document.getElementById('ctlmount');
+// 预览尺寸滑杆：忠实地改变真实渲染宽度（不是 transform 缩放）。默认 50px = 游戏手牌/出牌大小。
+(function(){
+  const bar=document.createElement('div');
+  bar.style.cssText='display:flex;align-items:center;gap:.5rem;margin:0 0 .6rem;font-size:.78rem;color:#5c574d;flex-wrap:wrap';
+  bar.innerHTML='<span>预览尺寸</span><input type="range" id="szSlider" min="40" max="120" step="2" value="50" style="flex:1;min-width:120px"><span id="szVal" style="font-family:monospace">50px</span><span style="color:#8a8473">· 判断以 50px（游戏真实大小）为准</span>';
+  stage.parentNode.insertBefore(bar, stage);
+  const sz=bar.querySelector('#szSlider'), szv=bar.querySelector('#szVal');
+  sz.addEventListener('input',()=>{ PREVIEW_W=+sz.value; prev.style.setProperty('--gd-card-w',PREVIEW_W+'px'); prev.style.setProperty('--gd-card-h',Math.round(PREVIEW_W*72/50)+'px'); szv.textContent=PREVIEW_W+'px'; renderPrev(); });
+})();
+function renderPrev(){
+  stage.innerHTML='';
+  let mk;
+  if(tab==='reg') mk=()=>[regCard(0,'A'),regCard(1,'A'),regCard(2,'A'),regCard(3,'A')];
+  else if(tab==='level') mk=()=>[regCard(1,'10',true),regCard(1,'10',false)];   // ♥逢人配深 + ♠普通级牌(同色?) 这里都标 is-level 看深色
+  else if(tab==='joker') mk=()=>[jokCard('small'),jokCard('big')];
+  else mk=()=>[regCard(0,'10'),regCard(3,'J'),regCard(1,'A'),regCard(2,'Q')];   // struct: 看 10/J 是否容纳进正方形
+  stage.appendChild(ctxBlocks(mk));
+}
+function buildCtl(){
+  ctl.innerHTML='';
+  const grp=t=>{const d=document.createElement('div');d.className='grp';d.textContent=t;ctl.appendChild(d);};
+  const slider=(label,get,setv,min,max,stp)=>{const r=document.createElement('div');r.className='ctl';
+    r.innerHTML='<label>'+label+'</label><input type="range" min="'+min+'" max="'+max+'" step="'+stp+'"><span class="val"></span>';
+    const i=r.querySelector('input'),v=r.querySelector('.val');i.value=get();v.textContent=get();
+    i.addEventListener('input',()=>{setv(parseFloat(i.value));v.textContent=i.value;applyGlobals();renderPrev();});ctl.appendChild(r);};
+  const color=(label,get,setv)=>{const r=document.createElement('div');r.className='ctl';
+    r.innerHTML='<label>'+label+'</label><input type="color"><span class="val"></span>';
+    const i=r.querySelector('input'),v=r.querySelector('.val');i.value=get();v.textContent=get();
+    i.addEventListener('input',()=>{setv(i.value);v.textContent=i.value;applyGlobals();renderPrev();});ctl.appendChild(r);};
+  if(tab==='reg'){
+    const sub=document.createElement('div');sub.className='suitsub';
+    ['♠','♥','♦','♣'].forEach((g,s)=>{const b=document.createElement('button');b.textContent=g;if(isRed(s))b.classList.add('red');if(s===suit)b.classList.add('on');b.onclick=()=>{suit=s;buildCtl();};sub.appendChild(b);});
+    ctl.appendChild(sub);
+    grp('当前花色：'+SUITNAME[suit]+'（逐花色独立）');
+    const P=()=>ST.suits[suit];
+    slider('右上花色',()=>P().tr,v=>P().tr=v,0.15,0.7,0.005);
+    slider('左下花色',()=>P().bl,v=>P().bl=v,0.15,0.7,0.005);
+    slider('右下大花色',()=>P().big,v=>P().big=v,0.6,2.4,0.01);
+    slider('大花右移',()=>P().br,v=>P().br=v,-0.6,0.2,0.005);
+    slider('大花下沉',()=>P().bb,v=>P().bb=v,-0.6,0.5,0.005);
+    slider('大花透明',()=>P().op,v=>P().op=v,0.3,1,0.02);
+  } else if(tab==='level'){
+    grp('红桃级牌（逢人配）底色 —— 版面同普通♥，仅深色不同');
+    color('渐变色1',()=>ST.level.c1,v=>ST.level.c1=v);
+    color('渐变色2',()=>ST.level.c2,v=>ST.level.c2=v);
+    color('边框色',()=>ST.level.cb,v=>ST.level.cb=v);
+  } else if(tab==='joker'){
+    grp('大小王');const J=ST.joker;
+    slider('★ 大小',()=>J.star,v=>J.star=v,0.2,0.6,0.005);
+    slider('横排JOKER',()=>J.htext,v=>J.htext=v,0.08,0.32,0.005);
+    slider('竖排JOKER字号',()=>J.vtext,v=>J.vtext=v,0.1,0.34,0.005);
+    slider('竖排JOKER行距',()=>J.vlh,v=>J.vlh=v,0.85,1.5,0.01);
+    slider('竖排JOKER上距',()=>J.vpad,v=>J.vpad=v,0,0.2,0.005);
+    slider('皇冠·单卡',()=>J.crown,v=>J.crown=v,0.4,1.1,0.01);
+    slider('皇冠·单卡右移',()=>J.cr,v=>J.cr=v,-0.2,0.25,0.005);
+    slider('皇冠·单卡下移',()=>J.cb,v=>J.cb=v,-0.1,0.3,0.005);
+    slider('皇冠·横排',()=>J.crown2,v=>J.crown2=v,0.4,1.0,0.01);
+  } else {
+    grp('结构（四象限分割线 / 点数字号）');const S=ST.struct;
+    slider('正方形/分割线',()=>S.sr,v=>S.sr=v,0.3,0.55,0.005);
+    slider('点数字号',()=>S.rank,v=>S.rank=v,0.28,0.5,0.005);
+    slider('J 字号(偏长单调)',()=>S.rankj,v=>S.rankj=v,0.25,0.45,0.005);
+  }
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.t;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));buildCtl();renderPrev();}));
+document.getElementById('reset').addEventListener('click',()=>{location.reload();});
+document.getElementById('exp').addEventListener('click',()=>{
+  const line='GD2-CARDS '+JSON.stringify({struct:ST.struct,suits:{spade:ST.suits[0],heart:ST.suits[1],diamond:ST.suits[2],club:ST.suits[3]},level:ST.level,joker:ST.joker});
+  document.getElementById('out').value=line;
+  navigator.clipboard.writeText(line).then(()=>{document.getElementById('msg').textContent='✓ 已复制,粘贴给我';},()=>{document.getElementById('msg').textContent='复制失败,手动选下方';});
+});
+applyGlobals();buildCtl();renderPrev();
+</script></body></html>
