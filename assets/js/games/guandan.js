@@ -11,7 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.16.12';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.16.13';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -1253,9 +1253,9 @@
       col.style.height = ((cards.length - 1) * step + cardH) + 'px';
       cards.forEach((c, i) => { c.style.top = (i * step) + 'px'; });
     });
-    // 出牌决策带锚到「6 张深」的高度：随卡片大小自适应，不再死留过多空白。
-    // = 桌底+手牌底距(≈18px) + 6 张摞高(1 张 cardH + 5 个错位 step)；CSS 再叠加 env(safe-bottom)。
-    document.documentElement.style.setProperty('--gd-band-bottom', Math.round(18 + cardH + 5 * step) + 'px');
+    // 出牌决策带锚到「~6 张深」的高度：随卡片大小自适应，不再死留过多空白。
+    // = 桌底+手牌底距 + 6 张摞高(1 张 cardH + 5 个错位 step)，再整体下移 12px(用户要按钮再低一点)；CSS 叠加 env(safe-bottom)。
+    document.documentElement.style.setProperty('--gd-band-bottom', Math.round(6 + cardH + 5 * step) + 'px');
   }
 
   function renderPlayArea(seat) {

@@ -437,7 +437,7 @@ body_class: gd-game-fullscreen
      单击/拖选则照常多选。 */
   .gd-hand {
     --gd-stack-step: 20px;       /* 列内纵向偏移 = 横向分割线 0.39W（露点数+右上花色，无呼吸）；adaptHandSize 会按卡宽重算 */
-    --gd-col-gap: 2px;           /* 列之间的横向间距(收紧:列挨更近、给卡宽让路) */
+    --gd-col-gap: 1px;           /* 列之间的横向间距(几乎贴在一起) */
     display: flex; flex-wrap: nowrap;
     align-items: flex-start;
     gap: var(--gd-col-gap);
@@ -1966,8 +1966,11 @@ body_class: gd-game-fullscreen
     body.gd-game-fullscreen .gd-play-band .gd-btn { pointer-events: auto; }   /* 只有按钮接管点击 */
     body.gd-game-fullscreen .gd-played,
     body.gd-game-fullscreen .gd-side .gd-played { height: 70px; }
-    /* 左右对手（含出牌区）跟着「我」这块一起略往下：35% → 38% */
-    body.gd-game-fullscreen .gd-side { top: 38%; }
+    /* 开局整块出牌区往下平移(用户要更靠下、离手牌更近)：对家(顶部)整体下移 + 左右两家 38%→44% */
+    body.gd-game-fullscreen .gd-seats-top { margin-top: 4vh; }
+    body.gd-game-fullscreen .gd-side { top: 44%; }
+    /* 旁观队友手牌：把牌往上顶出底部一条，让「正在查看队友手牌」文字落在牌的下方、不再压牌 */
+    body.gd-game-fullscreen .gd-hand.is-spectating { padding-bottom: 34px; }
     /* 出牌区(每个玩家打出去的牌) 46×66 —— 与手牌完全同尺寸(用户要求一致)，槽高同步加大到 70px 不裁断。 */
     body.gd-game-fullscreen .gd-played { --gd-card-w: 46px; --gd-card-h: 66px; }
     body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full { margin-left: -24px; }
@@ -1986,10 +1989,9 @@ body_class: gd-game-fullscreen
       /* 看牌区超宽 → 横向滑动看牌（手指横滑；牌不缩、只平移）；overflow-y:clip 让 y 不出滚动条、深摞在 box 内向上长。 */
       overflow-x: auto; overflow-y: clip;
       /* 「看牌区」用左右 margin 划硬边界 —— overflow 在 box 边缘真正裁切(padding 做不到，会让牌透出到按钮下)。
-         左 64px：尽量往左收(用户要紧凑)，最左一列底角会略压到「张数/托管」chip 上，但点数在牌顶、露在 chip 之上仍可读；
-         右 52px：让开右下「理牌/还原」键(实测 ~17px 余量，牌不钻到键下)。列摆满就在此裁切并可横滑。
-         table 已按安全区内缩，这里不再加 env()，免得双重叠加把边界顶太里。 */
-      margin-left: 64px; margin-right: 52px;
+         左 70px：往左收得很紧、又基本让开左下「张数/托管」chip；右 52px：让开右下「理牌/还原」键(~17px 余量)。
+         列摆满就在此裁切并可横滑。table 已按安全区内缩，这里不再加 env()，免得双重叠加把边界顶太里。 */
+      margin-left: 70px; margin-right: 52px;
       padding: 0.15rem 0 12px 0;
     }
     /* 左下："我" 头像 | 张数 + 托管机器人 横排（张数与机器人都在头像右边、右下方），
@@ -2387,4 +2389,4 @@ body_class: gd-game-fullscreen
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
 <script src="/assets/js/games/guandan-dmc.js?v=20260616int8"></script>
-<script src="/assets/js/games/guandan.js?v=20260616dmc15"></script>
+<script src="/assets/js/games/guandan.js?v=20260616dmc16"></script>
