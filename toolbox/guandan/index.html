@@ -437,7 +437,7 @@ body_class: gd-game-fullscreen
      单击/拖选则照常多选。 */
   .gd-hand {
     --gd-stack-step: 20px;       /* 列内纵向偏移 = 横向分割线 0.39W（露点数+右上花色，无呼吸）；adaptHandSize 会按卡宽重算 */
-    --gd-col-gap: 4px;           /* 列之间的横向间距 */
+    --gd-col-gap: 2px;           /* 列之间的横向间距(收紧:列挨更近、给卡宽让路) */
     display: flex; flex-wrap: nowrap;
     align-items: flex-start;
     gap: var(--gd-col-gap);
@@ -2382,4 +2382,4 @@ body_class: gd-game-fullscreen
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
 <script src="/assets/js/games/guandan-dmc.js?v=20260616int8"></script>
-<script src="/assets/js/games/guandan.js?v=20260616dmc12"></script>
+<script src="/assets/js/games/guandan.js?v=20260616dmc13"></script>

@@ -11,7 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.16.9';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.16.10';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -1241,12 +1241,17 @@
     const userW = Math.round(defCardW * mult);
     const userH = Math.round(defCardH * mult);
     const userStep = Math.round(defStep * mult);
-    const MAX_HAND_COLS = 15;
+    // 按「实际列数」定卡宽（掼蛋最多 15 列：13 点数 + 大小王）。列放得下就用满 userW
+    //  —— 中档(mult=1)就是设计原寸，不再因死预留 15 列而被压小；只有真放不下（窄屏 + 列数逼近
+    // 上限）才等比缩到刚好铺满 availW，永不横向滚动。大/特大档(mult>1)用户主动要大：保持 userW、放不下就横滚。
+    const ncols = Math.min(cols.length, 15);
     let cardW = userW, cardH = userH;
-    const neededW = MAX_HAND_COLS * userW + (MAX_HAND_COLS - 1) * gap;
-    if (neededW > availW && mult <= 1) {
-      cardW = Math.max(26, Math.floor((availW - (MAX_HAND_COLS - 1) * gap) / MAX_HAND_COLS));
-      cardH = Math.round(defCardH * (cardW / defCardW));
+    if (mult <= 1) {
+      const fitW = Math.floor((availW - (ncols - 1) * gap) / ncols);
+      if (fitW < userW) {
+        cardW = Math.max(26, fitW);
+        cardH = Math.round(defCardH * (cardW / defCardW));
+      }
     }
     // 竖排错位 = 横向分割线 = 0.39W（只露分割线以上：点数+右上花色，无额外呼吸）
     const step = Math.round(cardW * GD_S_RATIO);
