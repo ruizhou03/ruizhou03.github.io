@@ -11,7 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.16.15';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.17.mp';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -1507,19 +1507,23 @@
     for (let s = 0; s < 4; s++) {
       const se = seatEls[s];
       const handLen = state.hands[s].length;
-      se.cnt.textContent = handLen;
-      // 报牌：≤10 张持续红色警示
-      se.cnt.classList.toggle('warn', handLen > 0 && handLen <= 10);
       se.seat.classList.toggle('turn', state.phase === PHASE.PLAYING && state.turn === s && !state.busy);
       const isOut = state.out.includes(s);
       se.seat.classList.toggle('dim', isOut);
       const rankPos = state.out.indexOf(s);
       if (rankPos >= 0) {
+        // 出完牌：名次标签（头游/二游/三游/末游）直接取代张数，不再「0 | 头游」两个并排。
         se.rk.hidden = false;
         se.rk.className = 'gd-rank-badge r' + (rankPos + 1);
         se.rk.textContent = ['头游','二游','三游','末游'][rankPos];
+        se.cnt.hidden = true;
+        se.cnt.classList.remove('warn');
       } else {
         se.rk.hidden = true;
+        se.cnt.hidden = false;
+        se.cnt.textContent = handLen;
+        // 报牌：≤10 张持续红色警示
+        se.cnt.classList.toggle('warn', handLen > 0 && handLen <= 10);
       }
       renderPlayArea(s);
     }
