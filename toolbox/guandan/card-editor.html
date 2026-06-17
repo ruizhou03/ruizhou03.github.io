@@ -297,6 +297,7 @@
   .gd-card.suit-black { color: var(--gd-suit-black); }
   /* 级牌 / 逢人配：整张深色（深色即"这是级牌"信号；逢人配顶替时显示成它代替的牌、仍深色 → 深色的"3"即配牌） */
   .gd-card.is-level { background: linear-gradient(160deg, #ffffff 0%, #ded2b5 100%); border-color: #e6dcc7; }
+  .gd-card.is-wild { color: #9a6a12; }   /* 红桃级牌(逢人配)描金;放 suit-red/black 之后→覆盖字色 */
 
   /* ===== 四象限：一横一纵在 0.39W 处切四格 ===== */
   .gd-card .q { position: absolute; display: flex; line-height: 1; }
@@ -2023,6 +2024,7 @@ h1{font-family:"Cormorant Garamond",serif;font-weight:600;font-size:1.6rem;text-
 #prev .gd-card .q-tr{ left:calc(var(--gd-card-w)*var(--e-sr)); height:calc(var(--gd-card-w)*var(--e-sr)); }
 #prev .gd-card .q-bl{ top:calc(var(--gd-card-w)*var(--e-sr)); width:calc(var(--gd-card-w)*var(--e-sr)); }
 #prev .gd-card.is-level{ background:linear-gradient(160deg,var(--e-lv1) 0%,var(--e-lv2) 100%); border-color:var(--e-lvb); }
+#prev .gd-card.is-wild{ color:var(--e-gold); }
 #prev .gd-card.is-joker .q-tl{ font-size:calc(var(--gd-card-w)*var(--e-star)); }
 #prev .gd-card.is-joker .q-tr{ font-size:calc(var(--gd-card-w)*var(--e-htext)); }
 #prev .gd-card.is-joker .q-bl{ font-size:calc(var(--gd-card-w)*var(--e-vtext)); line-height:var(--e-vlh); padding-top:calc(var(--gd-card-w)*var(--e-vpad)); }
@@ -2058,21 +2060,21 @@ const isRed=s=>(s===1||s===2);
 // 默认值 = 游戏当前线上真值（让编辑器一打开就跟游戏完全一致；改游戏后记得同步这里）
 const ST={ struct:{sr:0.38,rank:0.28,rankj:0.25,trYAll:0.02,blYAll:-0.2},   // trYAll/blYAll = 右上/左下 角标花色「上下整体偏移」(统一调,四花色一起;正=下)
   suits:{0:{tr:0.335,bl:0.34,big:1.13,br:-0.08,bb:-0.045,op:1,bigH:1.13,brH:-0.125,bbH:-0.135,opH:1,trY:0.02,blY:-0.175},1:{tr:0.19,bl:0.2,big:0.6,br:0.17,bb:0.245,op:1,bigH:0.6,brH:0.09,bbH:0.2,opH:1,trY:0,blY:-0.2},2:{tr:0.22,bl:0.22,big:0.74,br:0.115,bb:0.19,op:0.9,bigH:0.68,brH:0.075,bbH:0.175,opH:0.9,trY:0,blY:-0.2},3:{tr:0.325,bl:0.34,big:1.04,br:-0.04,bb:-0.015,op:0.9,bigH:0.99,brH:-0.055,bbH:-0.065,opH:1,trY:0,blY:-0.17}},
-  level:{c1:'#ffffff',c2:'#ded2b5',cb:'#e6dcc7'},
+  level:{c1:'#ffffff',c2:'#ded2b5',cb:'#e6dcc7',gold:'#9a6a12'},   // gold=红桃级牌(逢人配)花色+点数描金色
   joker:{star:0.37,htext:0.18,vtext:0.185,vlh:1.01,vpad:0,crown:0.91,cr:0.02,cb:0.115,crown2:0.79,crown2x:-0.06,crown2y:-0.01} };   // crown2x/crown2y = 横排皇冠 左右/上下 位置(占卡宽比例)
 const prev=document.getElementById('prev');
 function applyGlobals(){
   const s=ST.struct,l=ST.level,j=ST.joker;
   const set=(k,v)=>prev.style.setProperty(k,v);
   set('--e-sr',s.sr);set('--e-rank',s.rank);set('--e-rankj',s.rankj);
-  set('--e-lv1',l.c1);set('--e-lv2',l.c2);set('--e-lvb',l.cb);
+  set('--e-lv1',l.c1);set('--e-lv2',l.c2);set('--e-lvb',l.cb);set('--e-gold',l.gold||'#9a6a12');
   set('--e-star',j.star);set('--e-htext',j.htext);set('--e-vtext',j.vtext);set('--e-vlh',j.vlh);set('--e-vpad',j.vpad);
   set('--e-crown',j.crown);set('--e-cr',j.cr);set('--e-cb',j.cb);set('--e-crown2',j.crown2);
   set('--e-c2x',j.crown2x||0);set('--e-c2y',j.crown2y||0);
 }
 function regCard(suit,rank,level){
   const p=ST.suits[suit];const e=document.createElement('span');
-  e.className='gd-card size-full '+(isRed(suit)?'red':'black')+(rank==='J'?' rank-j':'')+(level?' is-level':'');
+  e.className='gd-card size-full '+(isRed(suit)?'suit-red':'suit-black')+(rank==='J'?' rank-j':'')+(level?' is-level':'')+((level&&suit===1)?' is-wild':'');
   const trY=(ST.struct.trYAll||0)+(p.trY||0), blY=(ST.struct.blYAll||0)+(p.blY||0);   // 角标上下偏移 = 整体 + 本花色微调
   e.style.cssText='--gd-tr:'+p.tr+';--gd-bl:'+p.bl+';--gd-big:'+p.big+';--gd-br:'+p.br+';--gd-bb:'+p.bb+';--gd-op:'+p.op+';--gd-bigH:'+(p.bigH!=null?p.bigH:p.big)+';--gd-brH:'+(p.brH!=null?p.brH:p.br)+';--gd-bbH:'+(p.bbH!=null?p.bbH:p.bb)+';--gd-opH:'+(p.opH!=null?p.opH:p.op)+';--gd-try:'+trY+';--gd-bly:'+blY;
   const sv=suitSVG(suit);
@@ -2113,7 +2115,7 @@ function renderPrev(){
   stage.innerHTML='';
   let mk;
   if(tab==='reg') mk=()=>[regCard(0,'A'),regCard(1,'A'),regCard(2,'A'),regCard(3,'A')];
-  else if(tab==='level') mk=()=>[regCard(1,'10',true),regCard(1,'10',false)];   // ♥逢人配深 + ♠普通级牌(同色?) 这里都标 is-level 看深色
+  else if(tab==='level') mk=()=>[regCard(0,'10',true),regCard(1,'10',true),regCard(2,'10',true),regCard(3,'10',true)];   // 四门级牌都用渐变底;♥(逢人配)描金
   else if(tab==='joker') mk=()=>[jokCard('small'),jokCard('big')];
   else mk=()=>[regCard(0,'10'),regCard(3,'J'),regCard(1,'A'),regCard(2,'Q')];   // struct: 看 10/J 是否容纳进正方形
   stage.appendChild(ctxBlocks(mk));
@@ -2153,10 +2155,11 @@ function buildCtl(){
     slider('下沉',()=>P().bbH,v=>P().bbH=v,-0.6,0.5,0.005);
     slider('透明',()=>P().opH,v=>P().opH=v,0.3,1,0.02);
   } else if(tab==='level'){
-    grp('红桃级牌（逢人配）底色 —— 版面同普通♥，仅深色不同');
+    grp('级牌（四门同渐变底）+ 红桃级牌(逢人配)描金 —— 金色要和渐变底拉开对比、看得清');
     color('渐变色1',()=>ST.level.c1,v=>ST.level.c1=v);
     color('渐变色2',()=>ST.level.c2,v=>ST.level.c2=v);
     color('边框色',()=>ST.level.cb,v=>ST.level.cb=v);
+    color('红桃金色',()=>ST.level.gold,v=>ST.level.gold=v);
   } else if(tab==='joker'){
     grp('大小王');const J=ST.joker;
     slider('★ 大小',()=>J.star,v=>J.star=v,0.2,0.6,0.005);

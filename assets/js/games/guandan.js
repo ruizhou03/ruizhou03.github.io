@@ -11,7 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.16.14';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.16.15';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -1051,8 +1051,10 @@
     const dRank = (opts.repRank != null) ? opts.repRank : cardRankIdx(c);
     const red = (dSuit === 1 || dSuit === 2);
     let cls = 'gd-card ' + sizeClass + (red ? ' suit-red' : ' suit-black');
-    // 整张深色高亮只给红桃级牌(逢人配)：普通级牌(♠♦♣)不高亮。逢人配顶替展示时仍深色 → 一张深色的"3"即配牌。
-    if (level && isWild(c, level)) cls += ' is-level';
+    // 级牌(本局这一级，♠♥♦♣ 四门都是)：整张渐变背景(is-level)。其中红桃级牌=逢人配：再描金(is-wild)。
+    // 用实际牌 c 的点数判级牌(逢人配顶替展示成别的牌时仍是级牌、仍描金 → 一张金色的"3"即配牌)。
+    if (level && RANK_LABELS[cardRankIdx(c)] === level) cls += ' is-level';
+    if (level && isWild(c, level)) cls += ' is-wild';
     // J 在 Cormorant 里带下伸、整体偏长，单独把字号收一点点，免得竖排时探出被下张盖住
     if (RANK_LABELS[dRank] === 'J') cls += ' rank-j';
     el.className = cls;
@@ -1254,8 +1256,8 @@
       cards.forEach((c, i) => { c.style.top = (i * step) + 'px'; });
     });
     // 出牌决策带锚到「~6 张深」的高度：随卡片大小自适应，不再死留过多空白。
-    // = 桌底+手牌底距 + 6 张摞高(1 张 cardH + 5 个错位 step)，再整体下移 12px(用户要按钮再低一点)；CSS 叠加 env(safe-bottom)。
-    document.documentElement.style.setProperty('--gd-band-bottom', Math.round(6 + cardH + 5 * step) + 'px');
+    // = 桌底+手牌底距 + 6 张摞高(1 张 cardH + 5 个错位 step)，再整体下移 20px(用户两次要按钮更低一点)；CSS 叠加 env(safe-bottom)。
+    document.documentElement.style.setProperty('--gd-band-bottom', Math.round(-2 + cardH + 5 * step) + 'px');
   }
 
   function renderPlayArea(seat) {
@@ -2180,6 +2182,10 @@
   function isNetworked() { return !!state.isNetworked; }
 
   function startMatch() {
+    // 回到本地单机局：清掉联机闩。state.isNetworked 是单向写入（只在 startNetworkedGame
+    // 置 true、此前从无复位），若同一会话先玩过联机再回单机，残留的 true 会让 scheduleAI()
+    // 顶部的 `if (isNetworked()) return;` 把 AI 调度整条吞掉 → 轮到 AI 永不出牌、游戏卡死。
+    state.isNetworked = false;
     // 冻结这一盘的玩法设置：只在开新一盘时从可编辑的 options 拷贝一次。
     // 这盘进行中（含局与局之间）engine 只读 matchOptions，改 PGO 设置要等下一盘才生效。
     state.matchOptions = normalizeOptions(state.options);
@@ -4986,6 +4992,8 @@
     stopOnlinePolling();
     onlineSessionClear();
     onlineState = null;
+    // 退房即解除联机闩，避免接下来开单机局时 AI 调度被 scheduleAI 的 isNetworked 早退吞掉。
+    state.isNetworked = false;
     if (onlineEls.lobby) {
       onlineEls.lobby.hidden = true;
       onlineEls.lobby.classList.remove('starting');

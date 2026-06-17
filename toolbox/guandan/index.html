@@ -326,8 +326,11 @@ body_class: gd-game-fullscreen
   .gd-card.size-mini { width: var(--gd-card-mini-w); height: var(--gd-card-mini-h); }
   .gd-card.suit-red { color: var(--gd-suit-red); }
   .gd-card.suit-black { color: var(--gd-suit-black); }
-  /* 级牌 / 逢人配：整张深色（深色即"这是级牌"信号；逢人配顶替时显示成它代替的牌、仍深色 → 深色的"3"即配牌） */
+  /* 级牌(本局这一级，♠♥♦♣ 四门都是)：整张奶油渐变背景，与普通牌区分。 */
   .gd-card.is-level { background: linear-gradient(160deg, #ffffff 0%, #ded2b5 100%); border-color: #e6dcc7; }
+  /* 红桃级牌(逢人配)：花色+点数描金。金色偏深(非纯金)，与奶油渐变(尤其右下 #ded2b5 那侧)拉开对比、看得清；
+     一张金色的"3"= 逢人配顶替成 3。放在 suit-red/black 之后 → 覆盖原红/黑字色。 */
+  .gd-card.is-wild { color: #9a6a12; }
 
   /* ===== 四象限：一横一纵在 0.39W 处切四格 ===== */
   .gd-card .q { position: absolute; display: flex; line-height: 1; }
@@ -1966,10 +1969,10 @@ body_class: gd-game-fullscreen
     body.gd-game-fullscreen .gd-play-band .gd-btn { pointer-events: auto; }   /* 只有按钮接管点击 */
     body.gd-game-fullscreen .gd-played,
     body.gd-game-fullscreen .gd-side .gd-played { height: 70px; }
-    /* 四家出牌区组成菱形：对家(顶)上移 + 左右两家(中点)一起上移，我自己(底=出牌带/出牌区)保持不动。
-       对家 margin-top -1vh(比自然位再高一点)，左右两家 top 44%→40%(往上挪到上下中点)。 */
-    body.gd-game-fullscreen .gd-seats-top { margin-top: -1vh; }
-    body.gd-game-fullscreen .gd-side { top: 40%; }
+    /* 四家出牌区组成菱形：对家(顶)、左右两家(上下中点)、我(底=出牌带)。整块连同出牌带一起略往下移一点点，
+       保持菱形：对家 margin-top -1vh→1vh、左右 40%→42%、出牌带 --gd-band-bottom 也同步下移(见 adaptHandSize)。 */
+    body.gd-game-fullscreen .gd-seats-top { margin-top: 1vh; }
+    body.gd-game-fullscreen .gd-side { top: 42%; }
     /* 旁观队友手牌：把牌往上顶出底部一条，让「正在查看队友手牌」文字落在牌的下方、不再压牌 */
     body.gd-game-fullscreen .gd-hand.is-spectating { padding-bottom: 34px; }
     /* 出牌区(每个玩家打出去的牌) 46×66 —— 与手牌完全同尺寸(用户要求一致)，槽高同步加大到 70px 不裁断。 */
@@ -2390,4 +2393,4 @@ body_class: gd-game-fullscreen
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
 <script src="/assets/js/games/guandan-dmc.js?v=20260616int8"></script>
-<script src="/assets/js/games/guandan.js?v=20260616dmc17"></script>
+<script src="/assets/js/games/guandan.js?v=20260616dmc18"></script>
