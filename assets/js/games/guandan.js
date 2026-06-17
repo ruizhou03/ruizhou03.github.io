@@ -1997,7 +1997,54 @@
   // ===========================================================
   // 服务器只下发当前座位的手牌 + 四家张数 + 当前桌面（lastPlay/trick）。
   // 客户端不从服务器拿到别人的手牌，对手手牌用 stub 占位（只显示张数/头像，不渲染卡面）。
+  // -----------------------------------------------------------
+  // 自视角旋转：服务端 viewForSeat 给的 turn/out/counts/lastPlay/trick 用的是【绝对座位号】、
+  // levels/actingTeam/matchWinner 用的是【绝对队伍号】。但本地渲染/结算那一整套（沿用单机）都
+  // 假设「座 0 = 我、队 0 = 我方、座 2 = 对家」。所以这里把整份服务端视图旋转成「我 = 本地座 0」，
+  // 下游代码一行都不用改就对了——这同时修好了非房主进牌桌后回合高亮/对家位置全错位的问题。
+  //   mySeat == 0（房主）时是恒等变换。幂等：转过的对象打 _selfRotated 标记，二次调用直接返回，
+  //   这样 startNetworkedGame → applyServerGameState 两道都调它也不会二次旋转。
+  function rotateGvToSelf(gv) {
+    if (!gv || gv._selfRotated) return gv;
+    const mySeat = (onlineState && typeof onlineState.mySeat === 'number') ? onlineState.mySeat : 0;
+    const L = (s) => (typeof s === 'number' && s >= 0) ? (s - mySeat + 4) % 4 : s;  // 服务端座位 → 本地座位
+    const rotArr4 = (arr) => { const o = [null, null, null, null]; for (let s = 0; s < 4; s++) o[(s - mySeat + 4) % 4] = arr[s]; return o; };
+    const r = Object.assign({}, gv);
+    r._selfRotated = true;
+    if (mySeat === 0) return r;   // 房主：恒等，省去无谓重排
+    if (Array.isArray(gv.counts)) r.counts = rotArr4(gv.counts);
+    if (typeof gv.turn === 'number') r.turn = L(gv.turn);
+    if (Array.isArray(gv.out)) r.out = gv.out.map(L);
+    if (Array.isArray(gv.lastPlay)) r.lastPlay = rotArr4(gv.lastPlay);
+    if (gv.trick) r.trick = {
+      lead: L(gv.trick.lead),
+      best: gv.trick.best,
+      bestSeat: (gv.trick.bestSeat != null && gv.trick.bestSeat >= 0) ? L(gv.trick.bestSeat) : gv.trick.bestSeat,
+      passes: gv.trick.passes,
+    };
+    if (mySeat & 1) {   // 我在奇数座 → 我方原本是队 1，旋转后队 0/1 互换
+      if (Array.isArray(gv.levels)) r.levels = [gv.levels[1], gv.levels[0]];
+      if (typeof gv.actingTeam === 'number') r.actingTeam = gv.actingTeam ^ 1;
+      if (typeof gv.matchWinner === 'number') r.matchWinner = gv.matchWinner ^ 1;
+    }
+    if (Array.isArray(gv.ranking)) r.ranking = gv.ranking.map(L);
+    // roundResult 里也带绝对座位(ranking)与绝对队伍(winTeam)；本地结算其实是从 state.out 重算、
+    // 不读它，但一并旋转以免日后有人直接读 state.roundResult 时在奇数座拿到错位数据。
+    if (gv.roundResult) {
+      const rr = Object.assign({}, gv.roundResult);
+      if (Array.isArray(rr.ranking)) rr.ranking = rr.ranking.map(L);
+      if ((mySeat & 1) && typeof rr.winTeam === 'number') rr.winTeam = rr.winTeam ^ 1;
+      r.roundResult = rr;
+    }
+    if (gv.tribute && Array.isArray(gv.tribute.pairs)) {
+      r.tribute = Object.assign({}, gv.tribute, {
+        pairs: gv.tribute.pairs.map(p => Object.assign({}, p, { giver: L(p.giver), receiver: L(p.receiver) })),
+      });
+    }
+    return r;
+  }
   function startNetworkedGame(gv) {
+    gv = rotateGvToSelf(gv);
     state.isNetworked = true;
     state.phase = gv.phase === 'tribute' ? PHASE.TRIBUTE : PHASE.PLAYING;
     state.matchOptions = normalizeOptions(state.options || { teamTribute: false, scoreCap: 0, turnSec: state.matchOptions ? state.matchOptions.turnSec : 20 });
@@ -2014,11 +2061,15 @@
     applyServerGameState(gv);
     renderAll();
     saveSession();
+    // 本局已就绪：开局动画/初始化都跑完了，从现在起轮询拉回的服务端对局可以持续灌进本地。
+    // （这把「轮询是否同步 game」与「开局动画只触发一次」彻底解耦——见 applyServerOnlineState。）
+    if (onlineState) onlineState._netGameReady = true;
   }
 
   // 每轮收到服务器状态时刷新本地的牌面/回合/出牌区
   function applyServerGameState(gv) {
     if (!gv || !state.isNetworked) return;
+    gv = rotateGvToSelf(gv);   // 统一旋转成自视角（我 = 本地座 0）后再渲染
     state.hands[0] = gv.myHand.slice();
     for (let s = 1; s < 4; s++) {
       const want = (gv.counts && gv.counts[s]) || 0;
@@ -3277,6 +3328,8 @@
     }
     // 整副结束 → 清掉 session
     clearSession();
+    // 联机整盘已结束：后端不支持原房重开整盘，把「再来一局」改成「离开房间」，点击退回房外。
+    if (els.matchAgain) els.matchAgain.textContent = isNetworked() ? '离开房间' : '再来一局';
     els.matchOverlay.classList.add('open');
     if (youWon) submitWin();
   }
@@ -4274,8 +4327,13 @@
   });
   els.matchAgain.addEventListener('click', () => {
     els.matchOverlay.classList.remove('open');
-    if (isNetworked()) nextRoundNet();
-    else startMatch();
+    if (isNetworked()) {
+      // 联机整盘已结束：后端 next_round 只在 round_end 生效、不支持原房重开整盘，
+      // 这里直接退回房外（避免反复弹同一个结算面板）。想再来一盘需重新建/加入房间。
+      leaveRoom();
+    } else {
+      startMatch();
+    }
   });
   els.matchSetup.addEventListener('click', () => {
     els.matchOverlay.classList.remove('open');
@@ -4929,12 +4987,13 @@
       srvState: 'lobby',
       swapSelected: null,
       swapPending: null,
-      preStartRotation: false,
       _animating: false,
       _swapPhase: null,        // null | 'animating' | 'holding'
       _expectedVersion: 0,     // 乐观操作期望服端推到的最小 version
       _revealPending: !isCreate, // 加入者：等第一条 server state 才揭开大厅（别先画空房）
-      _autoSatTried: false,    // 加入者：进房后自动找空座落座，只试一次
+      _autoSatTried: false,    // 加入者：进房后自动找空座落座（失败可重试）
+      _startedTransition: false, // lobby→playing 开局动画只触发一次
+      _netGameReady: false,    // 本局已初始化完，可以让轮询持续把服务端对局灌进来
     };
     if (onlineEls.roomCode) onlineEls.roomCode.textContent = joinData.code;
     if (isCreate) {
@@ -5142,13 +5201,17 @@
     if (!onlineState._animating && !onlineState._swapPhase) renderLobby(srv);
     // 加入者进房后自动落座（让房主立刻看到人、加入者明确不是房主）
     maybeAutoSit(srv);
-    // 联网模式中：每当服务器 game 状态变更，刷新本地牌局（AI 回合的进展 / 其他人出牌）
-    if (srv.state === 'playing' && srv.game && state.isNetworked && !onlineState._startedTransition) {
+    // 联网模式中：每当服务器 game 状态变更，刷新本地牌局（AI 回合的进展 / 其他人出牌）。
+    // 这里只在「本局已就绪」(_netGameReady) 后才灌——开局首帧由下面的 transition→startNetworkedGame
+    // 负责，初始化完成才打开持续同步。注意 gate 用的是 _netGameReady 而非 !_startedTransition：
+    // 后者开局后永久为 true，曾导致开局后轮询再不更新对局（对手/AI 回合永远同步不过来 → 各玩各的/卡死）。
+    if (srv.state === 'playing' && srv.game && state.isNetworked && onlineState._netGameReady) {
       applyServerGameState(srv.game);
     }
-    // 状态从 lobby → playing 的第一次跃迁：触发"我滑到 bottom-left"动画
+    // 状态从 lobby → playing 的第一次跃迁：开局初始化（只触发一次）
     if (wasState !== 'playing' && srv.state === 'playing' && !onlineState._startedTransition) {
       onlineState._startedTransition = true;
+      onlineState._netGameReady = false;   // 初始化期间先别让上面的轮询分支抢跑
       triggerLobbyToGameTransition(srv);
     }
   }
@@ -5171,59 +5234,35 @@
       try { persist(); } catch {}
     }
     rotateLobbyToSouth(() => {
-      if (onlineEls.lobby) {
-        onlineEls.lobby.hidden = true;
-        onlineEls.lobby.classList.remove('starting');
+      const enterTable = () => {
+        if (onlineEls.lobby) {
+          onlineEls.lobby.hidden = true;
+          onlineEls.lobby.classList.remove('starting');
+        }
+        if (els.table) els.table.classList.remove('gd-in-lobby');
+        if (els.pgo) els.pgo.classList.remove('open');
+      };
+      if (srv && srv.game) {
+        // 有座位 + 服务端权威对局 → 进牌桌，按服务端真牌渲染
+        enterTable();
+        startNetworkedGame(srv.game);
+      } else if (onlineState && typeof onlineState.mySeat === 'number') {
+        // 我有座位但服务端没带 game（极少见：旧版/降级后端）→ 兜底本地局
+        enterTable();
+        startMatch();
+      } else {
+        // 开局时我不在座位上：绝不静默开一局「假装是这个房间」的本地 3-AI 局——
+        // 那正是「房主和我各玩各的、各自 vs 3 AI」的元凶。留在大厅（会显示"本局进行中"），
+        // 给出明确提示，不误导成一局假对战。
+        setOnlineHint('本局已开始，你不在座位上、未参与本局。');
       }
-      if (els.table) els.table.classList.remove('gd-in-lobby');
-      if (els.pgo) els.pgo.classList.remove('open');
-      // Phase 2: 从服务器 game 视图初始化本地状态（替代 Phase 1 的本地 startMatch()）
-      if (srv && srv.game) startNetworkedGame(srv.game);
-      else startMatch();   // 兜底：如果服务器没带 game（旧版/降级），走本地局
     });
   }
-  // 开局旋转动画：lobby 是固定映射，我可能视觉上不在 bottom；现在打开 preStartRotation
-  // 重绘成"我在 bottom"，并用 FLIP 把 4 个 seat-inner 从旧位置平移过去再 transition 回 0。
-  // mySeat == 0（本来就在 bottom）的话不需要动画，直接 callback。
+  // 大厅现在就是「自视角」渲染（我恒在 bottom，见 displayIdxForSeat），开局不再需要把我从
+  // 侧/顶滑到 south——大厅座位本就落在与牌桌一致的位置。旧的 FLIP「滑到 south」动画在自视角
+  // 大厅下会按 mySeat 二次旋转、把座位甩错，故停用，直接收尾。保留函数名给调用处。
   function rotateLobbyToSouth(callback) {
-    if (!onlineState || !onlineEls.seatBottom) { callback(); return; }
-    const mySeat = (typeof onlineState.mySeat === 'number') ? onlineState.mySeat : 0;
-    if (mySeat === 0) { callback(); return; }
-    const cells = [onlineEls.seatBottom, onlineEls.seatRight, onlineEls.seatTop, onlineEls.seatLeft];
-    // 旋转前：server seat S 在 cells[S]。捕获每个 inner 的 rect。
-    const oldRects = {};
-    for (let s = 0; s < 4; s++) {
-      const inner = cells[s].querySelector('.seat-inner');
-      if (inner) oldRects[s] = inner.getBoundingClientRect();
-    }
-    // 打开旋转 + 重绘：现在 server seat S → cells[(S - mySeat + 4) % 4]
-    onlineState.preStartRotation = true;
-    onlineState._animating = true;
-    renderLobbyOptimistic();
-    // 对每个 display cell d，里面装的是 server seat (d + mySeat) % 4；它原本在 cells[s] = cells[(d + mySeat) % 4]，旧 rect 在 oldRects[s]
-    const inners = [];
-    for (let d = 0; d < 4; d++) {
-      const s = (d + mySeat) % 4;
-      const inner = cells[d].querySelector('.seat-inner');
-      if (!inner || !oldRects[s]) continue;
-      const newRect = inner.getBoundingClientRect();
-      const dx = oldRects[s].left - newRect.left;
-      const dy = oldRects[s].top - newRect.top;
-      inner.style.transition = 'none';
-      inner.style.transform = `translate(${dx}px, ${dy}px)`;
-      inners.push(inner);
-    }
-    // 强制 reflow，再加 transition 滑回 0
-    void document.body.offsetHeight;
-    const DUR_MS = 700;
-    for (const inner of inners) {
-      inner.style.transition = `transform ${DUR_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
-      inner.style.transform = '';
-    }
-    setTimeout(() => {
-      for (const inner of inners) { inner.style.transition = ''; }
-      callback();
-    }, DUR_MS + 60);
+    callback();
   }
   // 交换两座的 FLIP 动画：cell 本身不动，只动两个 seat-inner —— 各自从对方的旧位置
   // 平移到自己的当前位置（identity），用 transform transition 回 0 形成滑动效果。
@@ -5261,22 +5300,20 @@
   function escGdHtml(s) {
     return String(s).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c]);
   }
-  // 4 个座位 lobby 期间走"固定映射"：server seat S → 永远落在 LOBBY_POSITIONS[S]
+  // 4 个座位走「自视角映射」：server seat S → LOBBY_POSITIONS[(S - mySeat) % 4]
   //   pos 0 = bottom, 1 = right, 2 = top, 3 = left
-  // 不再绕"我"轮转 —— 每个玩家看到的座位布局都是绝对的：我坐 seat 2 就视觉在 top。
+  // 每个玩家都看到「自己在 bottom、队友在 top、两个对手在 left/right」——和开局后牌桌一致，
+  // 不会出现「别人视角里把房主摆在底部」。还没落座（mySeat 未知）时退回绝对映射，抢座前不乱跳。
   // 队伍颜色按奇偶（同奇偶 = 同队，mySeat 已知时跟随；未坐下时按 0/2 默认同队）。
-  // 开局瞬间（onlineState.preStartRotation = true）才打开"旋转到我在 south"映射，
-  // 配合 FLIP 动画把 4 个座位的 inner 平移过去。
   const LOBBY_POSITIONS = ['bottom', 'right', 'top', 'left'];
   const LOBBY_AI_ICONS = ['🤖', '🦊', '🤝', '🐱'];
 
-  // 给定 server seat 号，返回它当前应该落在哪个 display cell（DOM 元素）。
-  // lobby 期间是 identity；开局动画期间按 preStartRotation 把 mySeat 推到 bottom。
+  // 给定 server seat 号，返回它当前应该落在哪个 display cell（DOM 元素）。自视角：mySeat → bottom。
   function displayIdxForSeat(s) {
     if (!onlineState) return s;
-    if (!onlineState.preStartRotation) return s;
-    const mySeat = (typeof onlineState.mySeat === 'number') ? onlineState.mySeat : 0;
-    return (s - mySeat + 4) % 4;
+    const mySeat = (typeof onlineState.mySeat === 'number') ? onlineState.mySeat : null;
+    if (mySeat == null) return s;          // 还没落座：绝对映射（抢座前不乱跳）
+    return (s - mySeat + 4) % 4;           // 自视角：我恒在 bottom，队友在 top，两对手在 left/right
   }
   function displayCellForSeat(s) {
     const idx = displayIdxForSeat(s);
@@ -5443,7 +5480,10 @@
         inviteBtn.hidden = true;
         onlineEls.startBtn.hidden = false;
         onlineEls.startBtn.disabled = true;
-        onlineEls.startBtn.textContent = '🎲 抽签：座 ' + (srv.firstLeader + 1) + ' 首出';
+        // 用昵称而非绝对座号——大厅已是自视角，绝对座号和玩家眼前位置对不上。
+        const flP = seatedMap[srv.firstLeader];
+        const flName = flP ? flP.nick : ('座 ' + (srv.firstLeader + 1));
+        onlineEls.startBtn.textContent = '🎲 抽签：' + flName + ' 首出';
       }
     }
   }
@@ -5526,8 +5566,13 @@
     });
     onlineState.mySeat = seat;
     const r = await gdApi('sit', { body: { code: onlineState.code, token: onlineState.token, seat } });
-    if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
-    else applyActionResult(r);
+    if (!r.ok) {
+      revertOptimistic(snap);
+      // 落座失败（多半是座位被抢）→ 解除「自动落座只试一次」的闩，下一次大厅状态到来时
+      // 重试找别的空座，避免加入者卡在站着、开局时被当成未落座者而看不到真正的房间对局。
+      if (onlineState) onlineState._autoSatTried = false;
+      toast(errText(r.error));
+    } else applyActionResult(r);
   }
   async function sendAddAi(seat) {
     if (!onlineState) return;
@@ -5588,6 +5633,12 @@
   async function sendSwapSeats(seatA, seatB) {
     if (!onlineState) return;
     clearSwapTimers();
+    // 自视角下「我」恒在 bottom：若换到了我自己的座位，整盘会绕我旋转（不是两格对调），
+    // 两格平移 FLIP 不适用——改走 snap 重绘并同步更新 mySeat，避免动画把我画到侧/顶再硬跳回。
+    const meNow = (onlineState.players || []).find(p => p.id === onlineState.playerId);
+    const mySeatNow = meNow && typeof meNow.seat === 'number' ? meNow.seat : null;
+    const selfInvolved = mySeatNow === seatA || mySeatNow === seatB;
+
     const cellA = displayCellForSeat(seatA);
     const cellB = displayCellForSeat(seatB);
     const innerA = cellA && cellA.querySelector('.seat-inner');
@@ -5602,8 +5653,11 @@
       const b = players.find(p => p.seat === seatB);
       if (a && b) { a.seat = seatB; b.seat = seatA; }
     });
+    if (selfInvolved) onlineState.mySeat = (mySeatNow === seatA) ? seatB : seatA;
 
-    const animMs = flipSwapAnimation(seatA, seatB, oldRectA, oldRectB) || 0;
+    // self 换座没有合适的两格平移动画 → 直接 snap 重绘成新自视角；否则保留两格 FLIP 平移。
+    const animMs = selfInvolved ? 0 : (flipSwapAnimation(seatA, seatB, oldRectA, oldRectB) || 0);
+    if (selfInvolved) renderLobbyOptimistic();
 
     // 动画结束 → 切到 hold 阶段；hold 结束 → 清金边 + 重绘
     onlineState._swapAnimTimer = setTimeout(() => {
