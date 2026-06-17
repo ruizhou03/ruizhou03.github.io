@@ -11,7 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.17.mp2';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.17.mp3';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -5303,17 +5303,15 @@
         if (els.pgo) els.pgo.classList.remove('open');
       };
       if (srv && srv.game) {
-        // 有座位 + 服务端权威对局 → 进牌桌，按服务端真牌渲染
+        // 唯一进牌桌的路径：服务端权威对局 → 按服务端真牌渲染（真联机）
         enterTable();
         startNetworkedGame(srv.game);
       } else if (onlineState && typeof onlineState.mySeat === 'number') {
-        // 我有座位但服务端没带 game（极少见：旧版/降级后端）→ 兜底本地局
-        enterTable();
-        startMatch();
+        // 我有座位却没拿到服务端对局（异常：后端没下发 game）。铁律「零假联机」：
+        // 绝不退化成本地 3-AI 假局糊弄，明确报错让用户重进房间，由服务端重新喂真对局。
+        setOnlineHint('没能从服务器取到这局牌，请退出房间重进。');
       } else {
-        // 开局时我不在座位上：绝不静默开一局「假装是这个房间」的本地 3-AI 局——
-        // 那正是「房主和我各玩各的、各自 vs 3 AI」的元凶。留在大厅（会显示"本局进行中"），
-        // 给出明确提示，不误导成一局假对战。
+        // 开局时我不在座位上：同样绝不开本地假局——留在大厅（显示"本局进行中"），明确提示。
         setOnlineHint('本局已开始，你不在座位上、未参与本局。');
       }
     });
