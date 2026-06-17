@@ -2057,9 +2057,9 @@ const SUITNAME=['黑桃','红桃','方块','梅花'],SUITKEY=['spade','heart','d
 const isRed=s=>(s===1||s===2);
 // 默认值 = 游戏当前线上真值（让编辑器一打开就跟游戏完全一致；改游戏后记得同步这里）
 const ST={ struct:{sr:0.38,rank:0.28,rankj:0.25,trYAll:0.02,blYAll:-0.2},   // trYAll/blYAll = 右上/左下 角标花色「上下整体偏移」(统一调,四花色一起;正=下)
-  suits:{0:{tr:0.335,bl:0.34,big:1.13,br:-0.08,bb:-0.045,op:1,bigH:0.97,brH:-0.105,bbH:0.055,opH:1,trY:0.02,blY:-0.175},1:{tr:0.19,bl:0.2,big:0.6,br:0.17,bb:0.245,op:1,bigH:0.6,brH:0.04,bbH:0.2,opH:1,trY:0,blY:-0.2},2:{tr:0.22,bl:0.22,big:0.71,br:0.115,bb:0.19,op:0.9,bigH:0.71,brH:-0.01,bbH:0.15,opH:0.9,trY:0,blY:-0.2},3:{tr:0.325,bl:0.34,big:1.04,br:-0.04,bb:-0.015,op:0.9,bigH:0.96,brH:-0.02,bbH:-0.045,opH:1,trY:0,blY:-0.17}},
+  suits:{0:{tr:0.335,bl:0.34,big:1.13,br:-0.08,bb:-0.045,op:1,bigH:1.13,brH:-0.125,bbH:-0.135,opH:1,trY:0.02,blY:-0.175},1:{tr:0.19,bl:0.2,big:0.6,br:0.17,bb:0.245,op:1,bigH:0.6,brH:0.09,bbH:0.2,opH:1,trY:0,blY:-0.2},2:{tr:0.22,bl:0.22,big:0.74,br:0.115,bb:0.19,op:0.9,bigH:0.68,brH:0.075,bbH:0.175,opH:0.9,trY:0,blY:-0.2},3:{tr:0.325,bl:0.34,big:1.04,br:-0.04,bb:-0.015,op:0.9,bigH:0.99,brH:-0.055,bbH:-0.065,opH:1,trY:0,blY:-0.17}},
   level:{c1:'#ffffff',c2:'#ded2b5',cb:'#e6dcc7'},
-  joker:{star:0.37,htext:0.18,vtext:0.185,vlh:1,vpad:0,crown:0.91,cr:0.02,cb:0.125,crown2:0.68,crown2x:0,crown2y:0} };   // crown2x/crown2y = 横排皇冠 左右/上下 位置(占卡宽比例)
+  joker:{star:0.37,htext:0.18,vtext:0.185,vlh:1.01,vpad:0,crown:0.91,cr:0.02,cb:0.115,crown2:0.79,crown2x:-0.06,crown2y:-0.01} };   // crown2x/crown2y = 横排皇冠 左右/上下 位置(占卡宽比例)
 const prev=document.getElementById('prev');
 function applyGlobals(){
   const s=ST.struct,l=ST.level,j=ST.joker;

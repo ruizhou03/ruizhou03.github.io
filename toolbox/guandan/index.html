@@ -390,19 +390,19 @@ body_class: gd-game-fullscreen
   /* 右上：竖排时星星右边的 JOKER（横排被隐） */
   .gd-card.is-joker .q-tr { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; letter-spacing: 0; font-size: calc(var(--gd-card-w, 50px) * 0.18); }
   /* 左下：横排时星星下方竖排 JOKER（默认/竖排被隐，仅横排出牌区露）；靠上、贴稳左下不越界 */
-  .gd-card.is-joker .q-bl { flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 0; font-family: var(--font-body); font-weight: 800; letter-spacing: 1px; line-height: 1; font-size: calc(var(--gd-card-w, 50px) * 0.185); }
+  .gd-card.is-joker .q-bl { flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 0; font-family: var(--font-body); font-weight: 800; letter-spacing: 1px; line-height: 1.01; font-size: calc(var(--gd-card-w, 50px) * 0.185); }
   /* 右下：皇冠（竖排/单卡版面：大皇冠） */
   .gd-card.is-joker .bigsuit {
     display: flex; align-items: center; justify-content: center;
-    right: calc(var(--gd-card-w, 50px) * 0.02); bottom: calc(var(--gd-card-w, 50px) * 0.125);
+    right: calc(var(--gd-card-w, 50px) * 0.02); bottom: calc(var(--gd-card-w, 50px) * 0.115);
     font-family: "Apple Symbols", "Segoe UI Symbol", monospace; font-size: calc(var(--gd-card-w, 50px) * 0.91);
   }
   /* 横排出牌版面：皇冠居中于右下象限矩形（不挤角落），略小于单卡版，避开左条竖排 JOKER */
   .gd-played-row .gd-card.is-joker .bigsuit {
     left: calc(var(--gd-card-w, 50px) * 0.38); top: calc(var(--gd-card-w, 50px) * 0.38);
     right: 0; bottom: 0; width: auto; height: auto;
-    font-size: calc(var(--gd-card-w, 50px) * 0.68);
-    transform: translate(calc(var(--gd-card-w, 50px) * 0), calc(var(--gd-card-w, 50px) * 0));  /* 横排皇冠 左右/上下 位置(编辑器 crown2x/crown2y;定稿后替换这两个 0) */
+    font-size: calc(var(--gd-card-w, 50px) * 0.79);
+    transform: translate(calc(var(--gd-card-w, 50px) * -0.06), calc(var(--gd-card-w, 50px) * -0.01));  /* 横排皇冠 左右/上下 位置(编辑器 crown2x/crown2y) */
   }
   .gd-card-back {
     display: inline-block;
@@ -2382,4 +2382,4 @@ body_class: gd-game-fullscreen
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
 <script src="/assets/js/games/guandan-dmc.js?v=20260616int8"></script>
-<script src="/assets/js/games/guandan.js?v=20260616dmc11"></script>
+<script src="/assets/js/games/guandan.js?v=20260616dmc12"></script>
