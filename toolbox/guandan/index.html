@@ -1949,7 +1949,7 @@ body_class: gd-game-fullscreen
         calc(0.4rem + env(safe-area-inset-bottom, 0px))
         calc(0.7rem + env(safe-area-inset-left, 0px));
     }
-    body.gd-game-fullscreen .gd-seats-mid { height: 70px; }   /* 只剩对家出牌（出牌槽 64px） */
+    body.gd-game-fullscreen .gd-seats-mid { height: 76px; }   /* 只剩对家出牌（出牌槽 70px） */
     /* 出牌决策带（手机）：绝对定位、浮在手牌「上方」一层、盖在牌上 —— 手牌贴底往上长，
        这条带浮在它上面。带本身不挡触摸（pointer-events:none），只有按钮可点：被按钮完全盖住的
        牌，点击算点在按钮上（按钮优先、永不失效），但仍能用滑动选到。带只需让出约 6 张牌的高度，
@@ -1965,31 +1965,32 @@ body_class: gd-game-fullscreen
     body.gd-game-fullscreen .gd-play-band > .gd-play-actions { flex-wrap: nowrap; min-height: 0; }
     body.gd-game-fullscreen .gd-play-band .gd-btn { pointer-events: auto; }   /* 只有按钮接管点击 */
     body.gd-game-fullscreen .gd-played,
-    body.gd-game-fullscreen .gd-side .gd-played { height: 64px; }
+    body.gd-game-fullscreen .gd-side .gd-played { height: 70px; }
     /* 左右对手（含出牌区）跟着「我」这块一起略往下：35% → 38% */
     body.gd-game-fullscreen .gd-side { top: 38%; }
-    /* 出牌区(每个玩家打出去的牌)整张做小一些 42×60（≤ 槽高 64px，不被 overflow:hidden
-       裁断）。手牌仍 50×72，比出牌区大一圈 —— 故意不同尺寸，手牌更醒目好点。 */
-    body.gd-game-fullscreen .gd-played { --gd-card-w: 42px; --gd-card-h: 60px; }
-    body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full { margin-left: -22px; }
+    /* 出牌区(每个玩家打出去的牌) 46×66 —— 与手牌完全同尺寸(用户要求一致)，槽高同步加大到 70px 不裁断。 */
+    body.gd-game-fullscreen .gd-played { --gd-card-w: 46px; --gd-card-h: 66px; }
+    body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full { margin-left: -24px; }
     body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
     /* 手牌：吃满剩余高度、列在底对齐。默认 step 24 恒定不变——深的一摞就让它
        自然往上长、溢进手牌上方那片空地（overflow:visible 不裁切），错落间距与卡片
        大小始终保持原样，绝不为了塞进画幅而压扁成数不清张数的一团。
        左右留出"我/托管"和"理牌图标键"的宽度（含安全区），绝不压牌。 */
     body.gd-game-fullscreen .gd-hand {
-      /* 手牌卡宽「写死」，比出牌区(42)大一圈、好点好读。改这两个值即整体放大/缩小手牌。 */
-      --gd-card-w: 56px; --gd-card-h: 81px;
+      /* 手牌卡宽「写死」= 出牌区同尺寸(见下面 .gd-played)。改这两个值即整体放大/缩小手牌。 */
+      --gd-card-w: 46px; --gd-card-h: 66px;
       --gd-stack-step: 24px;
       flex: 1 1 auto; min-height: 0;
-      /* 贴底、向上生长：手牌列底对齐牌桌下沿，深摞往上长（box 够高、几乎不裁切）。
-         决策带锚在「6 张深」处盖在它上面（>6 张才会被盖到）。卡片大小写死、不随列数变。 */
+      /* 贴底、向上生长；决策带锚在「6 张深」处盖在它上面（>6 张才会被盖到）。卡片大小写死、不随列数变。 */
       align-items: flex-end;
-      /* 列摆不下看牌区就横向滑动看牌（不缩牌）；overflow-y:clip 让 y 不出滚动条、深摞在 box 内向上长。 */
+      /* 看牌区超宽 → 横向滑动看牌（手指横滑；牌不缩、只平移）；overflow-y:clip 让 y 不出滚动条、深摞在 box 内向上长。 */
       overflow-x: auto; overflow-y: clip;
-      /* 「看牌区」= 这对左右 padding 之间：左 80px 让开左下「张数/托管」chip，右 44px 让开右下「理牌/还原」键。
-         列摆满这块就横滑，绝不为塞下而缩牌。含安全区。 */
-      padding: 0.15rem calc(44px + env(safe-area-inset-right, 0px)) 12px calc(80px + env(safe-area-inset-left, 0px));
+      /* 「看牌区」用左右 margin 划硬边界 —— overflow 在 box 边缘真正裁切(padding 做不到，会让牌透出到按钮下)。
+         左 64px：尽量往左收(用户要紧凑)，最左一列底角会略压到「张数/托管」chip 上，但点数在牌顶、露在 chip 之上仍可读；
+         右 52px：让开右下「理牌/还原」键(实测 ~17px 余量，牌不钻到键下)。列摆满就在此裁切并可横滑。
+         table 已按安全区内缩，这里不再加 env()，免得双重叠加把边界顶太里。 */
+      margin-left: 64px; margin-right: 52px;
+      padding: 0.15rem 0 12px 0;
     }
     /* 左下："我" 头像 | 张数 + 托管机器人 横排（张数与机器人都在头像右边、右下方），
        不再竖排单开一行（挤进左侧 ~104px 内）。 */
@@ -2386,4 +2387,4 @@ body_class: gd-game-fullscreen
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
 <script src="/assets/js/games/guandan-dmc.js?v=20260616int8"></script>
-<script src="/assets/js/games/guandan.js?v=20260616dmc14"></script>
+<script src="/assets/js/games/guandan.js?v=20260616dmc15"></script>

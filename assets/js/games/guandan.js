@@ -11,7 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.16.11';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.16.12';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -1686,6 +1686,7 @@
       dragMode: null,
       mode: 'PENDING',
       inTribute,
+      startScrollLeft: els.hand.scrollLeft,   // 横滑看牌起点
     };
     e.preventDefault();
   }
@@ -1698,6 +1699,15 @@
 
     if (pState.mode === 'PENDING') {
       if (Math.abs(dx) < MOVE_THRESHOLD && Math.abs(dy) < MOVE_THRESHOLD) return;
+      // 横向滑 + 手牌超出看牌区(可滚) → 进入「滑动看牌」，不框选、不选牌；牌不变窄、只是平移看被挡的牌。
+      // 列都摆得下(不可滚)时，横向拖仍按原样做矩形框选(选一串顺子)。
+      const scrollable = els.hand.scrollWidth - els.hand.clientWidth > 2;
+      if (scrollable && Math.abs(dx) > Math.abs(dy)) {
+        pState.mode = 'SCROLL';
+        els.hand.scrollLeft = pState.startScrollLeft - dx;
+        e.preventDefault && e.preventDefault();
+        return;
+      }
       // 进贡 / 还贡阶段：整段禁用矩形框选；只认 first touch 的那张牌。即使用户滑出
       // 阈值距离也保持 PENDING — 让 pointerup 的"单击 = 选中起点牌"分支起作用。
       // 用 phase 判定（而非 give/pair 是否激活），杜绝框选绕过校验把非法牌选中。
@@ -1706,6 +1716,12 @@
       pState.dragMode = (pState.startCid != null && state.selected.has(pState.startCid)) ? 'remove' : 'add';
       pState.originalSelected = new Set(state.selected);
       applyRectSelection(pt.clientX, pt.clientY);
+      e.preventDefault && e.preventDefault();
+      return;
+    }
+
+    if (pState.mode === 'SCROLL') {
+      els.hand.scrollLeft = pState.startScrollLeft - dx;
       e.preventDefault && e.preventDefault();
       return;
     }
