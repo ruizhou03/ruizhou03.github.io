@@ -10,8 +10,11 @@
   // ===========================================================
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
+  // 联机会话（房间 token/code/playerId）。提到顶部声明，使启动期 maybeResumeOnLoad
+  // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
+  const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.17.mp3';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.17.mp4';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -984,6 +987,10 @@
   }
   let _saveSessionPending = false;
   function saveSession() {
+    // 联机局绝不写单机存档：否则它不带 isNetworked 标记、还含服务端下发的四家真牌，
+    // 一旦刷新/PWA 重开会被 restoreFromSession 当成单机局恢复 → 本地 3-AI 接管、真人消失。
+    // 联机的恢复走 ONLINE_SESSION_KEY 重连（见 maybeResumeOnLoad / tryReconnectOnline）。
+    if (state.isNetworked) return;
     if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.ROUND_END) return;
     if (state._doublingActive) return;   // 加倍阶段 5s 内不存档；状态短促且 lastPlay 是临时标签
     if (_saveSessionPending) return;
@@ -997,6 +1004,7 @@
     }, 0);
   }
   function saveSessionSync() {
+    if (state.isNetworked) return;   // 同 saveSession：联机局不落单机存档
     if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.ROUND_END) return;
     if (state._doublingActive) return;
     try {
@@ -1531,6 +1539,22 @@
     });
   }
 
+  // 写座位头像 emoji，但保留头像 div 里的时钟 <span>（首子节点是 emoji 文本）。
+  function setSeatAvatarEmoji(se, emoji) {
+    if (!se || !se.av) return;
+    const first = se.av.firstChild;
+    if (first && first.nodeType === 3) {
+      if (first.nodeValue !== emoji) first.nodeValue = emoji;
+    } else {
+      se.av.insertBefore(document.createTextNode(emoji), se.av.firstChild);
+    }
+  }
+  // 写座位昵称（仅对座 1/2/3：它们的 .gd-name 是纯文本；座 0 含 tag span，不动）。
+  function setSeatNameText(seatEl, name) {
+    const nameEl = seatEl && seatEl.querySelector('.gd-name');
+    if (nameEl && nameEl.textContent !== name) nameEl.textContent = name;
+  }
+
   function renderAll() {
     updateBuildBadge();
     const youLv = LEVEL_SEQ[state.levels[0]];
@@ -1562,6 +1586,12 @@
         se.cnt.textContent = handLen;
         // 报牌：≤10 张持续红色警示
         se.cnt.classList.toggle('warn', handLen > 0 && handLen <= 10);
+      }
+      // 座 1/2/3 的头像/昵称：联机时填真实玩家（真人 👤+昵称、AI 🤖+其名），
+      // 单机或联机信息暂缺时退回写死的 🤖 / AI 1·2·3——保证回到单机局不残留上一把的联机昵称。
+      if (s !== 0) {
+        setSeatAvatarEmoji(se, seatAvatarFor(s));
+        setSeatNameText(se.seat, seatName(s));
       }
       renderPlayArea(s);
     }
@@ -2090,6 +2120,11 @@
   function startNetworkedGame(gv) {
     gv = rotateGvToSelf(gv);
     state.isNetworked = true;
+    clearSession();                  // 抹掉进联机前可能残留的单机存档，避免日后刷新被它劫持
+    // 联机换局/开局都经这里：与本地 startRound/endMatch 对齐，清掉跨局粘连的托管 / 超时计数
+    state.autopilot = false;
+    state._consecutiveTimeouts = 0;
+    refreshAutopilotBtn();
     state.revealHands = false;       // 新局：关掉上一局的局终摊牌
     state.phase = gv.phase === 'tribute' ? PHASE.TRIBUTE : PHASE.PLAYING;
     state.matchOptions = normalizeOptions(state.options || { teamTribute: false, scoreCap: 0, turnSec: state.matchOptions ? state.matchOptions.turnSec : 20 });
@@ -2172,12 +2207,20 @@
     if (gv.phase === 'round_end') endRound();
     else if (gv.phase === 'match_end') { endRound(); endMatch(gv.matchWinner); }
     else if (gv.phase === 'tribute') {
+      // 服务端已进入下一局（进贡阶段）：撤掉可能残留的上局结算/战报浮层——多真人下，没点
+      // 「继续」的那家是靠轮询进的新局，它的结算面板不会被 onclick 关掉，会盖住新局挡操作。
+      closeEndOverlays();
       renderAll();
       saveSession();
       updateActions();
       if (gv.tribute && gv.tribute.myAction === 'give') {
         startTurnClock(0, () => {
-          if (state._activeTributeGive) sendNetworkedTribute('give', state._activeTributeGive.defaultCard);
+          // 5s 超时：用用户改选的同级牌（若有且合法）兜底，否则 defaultCard——与单机 resolveGiverCard 对齐
+          const g = state._activeTributeGive;
+          if (!g) return;
+          const sel = selectedCards();
+          const card = (sel.length === 1 && (g.validCards || []).includes(sel[0])) ? sel[0] : g.defaultCard;
+          sendNetworkedTribute('give', card);
         }, 5000);
       } else if (gv.tribute && gv.tribute.myAction === 'return') {
         startTurnClock(0, () => {
@@ -2186,6 +2229,8 @@
         }, 20000);
       }
     } else {
+      // 同上：进入可操作的出牌态，撤掉任何残留的结算/战报浮层（幂等，未开时 remove 无副作用）。
+      closeEndOverlays();
       renderAll();
       saveSession();
       if (gv.turn === 0 && gv.phase === 'playing') {
@@ -2196,6 +2241,11 @@
         updateActions();
       }
     }
+  }
+  // 关掉小局结算 / 整盘战报浮层（幂等）。联机靠服务端 game.phase 切回可操作态时调用。
+  function closeEndOverlays() {
+    if (els.roundOverlay) els.roundOverlay.classList.remove('open');
+    if (els.matchOverlay) els.matchOverlay.classList.remove('open');
   }
 
   // 联网模式下我的出牌/不出 → 发给服务器（不是本地 commit）
@@ -2275,8 +2325,14 @@
       state.bombMult = 1;
       state.customGroups = [];
       startNetworkedGame(r.data.state.game);
+      // 把轮询游标推到新局版本，并打断在途的旧长轮询：下一圈用 since=新版本拉取，
+      // 避免在途的旧 round_end 响应被重新灌入、也立刻同步到他家进度。
+      if (typeof r.data.state.version === 'number') onlineState.lastVersion = r.data.state.version;
+      pokePoll();
     } else {
+      // 没拿到新局（极少见：如此刻我已离座）。别卡在 IDLE——poke 一下让长轮询把权威态拉回来重渲。
       toast('开下一局失败');
+      pokePoll();
     }
   }
 
@@ -2476,10 +2532,27 @@
     registerDoubleChoice(0, choice);
   }
 
+  // 联机时把对手座位还原成真实玩家昵称/头像——否则牌桌与结算面板会把真人一律画成
+  // 写死的 🤖 AI 1/2/3，看起来就像「一个人对三个机器人」（这正是用户报告的现象）。
+  // 注意：applyServerGameState 已把服务端视图旋转成自视角（本地座 0 = 我），而
+  // onlineState.players 用的是服务端绝对座位号，故 本地座 s ↔ 服务端座 (s + mySeat) % 4。
+  function netPlayerForLocalSeat(s) {
+    if (!isNetworked() || !onlineState || typeof onlineState.mySeat !== 'number') return null;
+    const serverSeat = (s + onlineState.mySeat) % 4;
+    return (onlineState.players || []).find(p => typeof p.seat === 'number' && p.seat === serverSeat) || null;
+  }
   function seatName(s) {
-    // 不用「对家 / 对手·左 / 对手·右」方位标签（不同人视角下方位会错乱）：
-    // 三家电脑按固定编号 AI 1 / 2 / 3（座 0 是我）。结算面板、进贡 / 接风提示都走这里。
+    const p = netPlayerForLocalSeat(s);
+    if (p) return s === 0 ? '你' : p.nick;   // 本地座 0 恒为我
+    // 单机（或联机玩家信息暂缺）：固定编号 AI 1 / 2 / 3（座 0 是我）。方位标签会因视角错乱，故不用。
     return ['你', 'AI 1', 'AI 2', 'AI 3'][s];
+  }
+  // 座位头像 emoji：我恒 😎；联机真人 👤、联机 AI 🤖；单机退回 🤖。
+  function seatAvatarFor(s) {
+    if (s === 0) return '😎';
+    const p = netPlayerForLocalSeat(s);
+    if (p) return p.isAi ? '🤖' : '👤';
+    return '🤖';
   }
 
   // ---- 进贡 / 还贡 ----
@@ -3104,6 +3177,9 @@
   }
 
   function endRound() {
+    // 幂等：联机下服务端停在 round_end 期间，长轮询每 ~4s 会带回同一 round_end 态反复重入这里；
+    // 没有这道闩就会重复升级 state.levels、重复累计积分、重弹结算面板。单机每局只调一次，不受影响。
+    if (state.phase === PHASE.ROUND_END || state.phase === PHASE.MATCH_END) return;
     state.phase = PHASE.ROUND_END;
     const ranking = state.out.slice(0, 4);
     const first = ranking[0];
@@ -3139,10 +3215,12 @@
     const roundScore = capped ? cap : rawScore;
     state.lastRoundScore = (winTeam === 0) ? roundScore : -roundScore;
     state.lastRoundDetail = { openMult, bombMult, advance, winTeam, beforeIdx, newIdx, matchWon, cap: capped ? cap : 0 };
-    // 累计到当前难度总分
-    const stForScore = state.stats[state.aiLevel];
-    if (stForScore) stForScore.totalScore = (stForScore.totalScore | 0) + state.lastRoundScore;
-    persist();
+    // 累计到当前难度总分（仅单机：联机对局不计入「单机 vs AI」的积分/战绩，避免污染本地档位记录）
+    if (!isNetworked()) {
+      const stForScore = state.stats[state.aiLevel];
+      if (stForScore) stForScore.totalScore = (stForScore.totalScore | 0) + state.lastRoundScore;
+      persist();
+    }
     refreshScoreChip();   // 立即闪一下角标新分；不依赖下一次 renderAll
 
     // 局终摊牌：把没出完的家的剩牌平铺到各自出牌区，停留一会儿再弹结算面板（面板会盖住桌面）。
@@ -3170,7 +3248,7 @@
       const col = document.createElement('div');
       col.className = 'gd-result-player';
       col.innerHTML =
-        '<span class="gd-result-avatar">' + SEAT_AVATARS[s] + '</span>' +
+        '<span class="gd-result-avatar">' + seatAvatarFor(s) + '</span>' +
         '<span class="gd-result-name">' + seatName(s) + '</span>' +
         '<span class="gd-result-rank" data-rank="' + rank + '">' + POS_NAMES[rank - 1] + '</span>';
       container.appendChild(col);
@@ -3334,6 +3412,7 @@
   }
 
   function endMatch(winTeam) {
+    if (state.phase === PHASE.MATCH_END) return;   // 幂等：match_end 态同样会被长轮询反复带回
     state.phase = PHASE.MATCH_END;
     // 整局结束 → 关托管，重置超时计数（下一局从头来）
     state.autopilot = false;
@@ -3363,11 +3442,13 @@
     const bLabel = detail ? LEVEL_SEQ[detail.beforeIdx] : youLv;
     const aLabel = detail ? LEVEL_SEQ[detail.newIdx] : youLv;
     renderLevelCards(els.matchLevelCards, youLv, oppLv, winTeam, bLabel, aLabel);
-    // 战绩
+    // 战绩（仅单机计入：联机整盘不污染「单机 vs AI」的胜负/最高级记录）
     const st = state.stats[state.aiLevel];
-    if (youWon) st.w++; else st.l++;
-    state.stats.bestLevel = Math.max(state.stats.bestLevel || 0, state.levels[0]);
-    persist();
+    if (!isNetworked()) {
+      if (youWon) st.w++; else st.l++;
+      state.stats.bestLevel = Math.max(state.stats.bestLevel || 0, state.levels[0]);
+      persist();
+    }
     refreshHs();
     stopTurnClock();
     // 战报分数展示
@@ -3391,7 +3472,7 @@
     // 联机整盘已结束：后端不支持原房重开整盘，把「再来一局」改成「离开房间」，点击退回房外。
     if (els.matchAgain) els.matchAgain.textContent = isNetworked() ? '离开房间' : '再来一局';
     els.matchOverlay.classList.add('open');
-    if (youWon) submitWin();
+    if (youWon && !isNetworked()) submitWin();   // 排行榜只记单机 vs AI 战绩
   }
 
   // ===========================================================
@@ -4655,6 +4736,9 @@
   function quitToSetup() {
     closeBoard();
     stopTurnClock();
+    // 联机时「退出本局」= 退房：交给 leaveRoom 正规收尾（发 leave、停轮询、清联机会话、解联机闩、回 PGO）。
+    // 否则会残留 onlineState + 还在跑的长轮询，后续容易把状态搅乱。
+    if (onlineState) { leaveRoom(false); return; }
     state.phase = PHASE.IDLE;
     state.autopilot = false;
     state._consecutiveTimeouts = 0;
@@ -4718,6 +4802,15 @@
     ensureDMC();   // 后台预下载,不阻塞
   }
   (function maybeResumeOnLoad() {
+    // 优先级：有联机会话 → 重连回房间（绝不把联机局当单机存档恢复，否则就退化成 1 人对 3 AI）；
+    // 否则才看单机续局；都没有就进 PGO。联机重连是异步的，延到下一 tick 跑（确保模块级常量
+    // GUANDAN_API / onlineEls 等都已初始化），其间先停在 PGO 并提示「重连中」。
+    const online = onlineSessionLoad();
+    if (online) {
+      showPgo();
+      setTimeout(() => { tryReconnectOnline(online); }, 0);
+      return;
+    }
     const snap = loadSession();
     if (snap) { showResumeOverlay(snap); ensureDMC(); return; }
     showPgo();
@@ -4829,7 +4922,7 @@
   //  长轮询拉 state；本地用 onlineState 单独存房间快照，不污染单机 state
   // ===========================================================
   const GUANDAN_API = 'https://zircon-urge.fly.dev/api/guandan';
-  const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
+  // ONLINE_SESSION_KEY 已提到文件顶部声明（见 STORE_KEY 附近），此处不再重复定义。
 
   // 当前联机会话（null = 不在线）
   let onlineState = null;
@@ -4904,6 +4997,69 @@
   }
   function onlineSessionClear() {
     try { localStorage.removeItem(ONLINE_SESSION_KEY); } catch {}
+  }
+  function onlineSessionLoad() {
+    try {
+      const raw = localStorage.getItem(ONLINE_SESSION_KEY);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      if (!s || !s.code || !s.token || !s.playerId) return null;
+      return s;
+    } catch { return null; }
+  }
+
+  // 刷新 / PWA 重开后用存下的 token+code 重连回原房间。后端 resolvePlayer 支持凭 token 续连，
+  // 服务器是唯一信任源——重连成功就用服务端真状态重建大厅 / 进牌桌；失败（房间过期/被踢/解散/
+  // 网络）则清掉联机会话，退回单机续局或 PGO。绝不退化成本地 3-AI 假局。
+  async function tryReconnectOnline(online) {
+    setOnlineHint('正在重连房间…');
+    const r = await gdApi('state', { qs: { code: online.code, token: online.token, since: 0 } });
+    const srv = (r && r.ok) ? r.data : null;
+    if (!srv || srv.state === 'dissolved' || !srv.me) {
+      onlineSessionClear();
+      setOnlineHint(srv && srv.state === 'dissolved' ? '原房间已解散' : '');
+      const snap = loadSession();      // 退回单机续局（若有）或 PGO
+      if (snap) { showResumeOverlay(snap); ensureDMC(); }
+      else showPgo();
+      return;
+    }
+    // 重建联机会话句柄。srvState 故意先置 'lobby'：让 applyServerOnlineState 对一个已经
+    // playing 的房间触发 lobby→playing 跃迁 → 进牌桌（startNetworkedGame）；lobby 态则揭开大厅。
+    onlineState = {
+      code: online.code,
+      token: online.token,
+      playerId: online.playerId,
+      isHost: !!(srv.me && srv.me.isHost),
+      mySeat: (srv.me && typeof srv.me.seat === 'number') ? srv.me.seat : null,
+      lastVersion: 0,
+      polling: false,
+      pollAbort: null,
+      players: srv.players || [],
+      hostPlayerId: srv.hostPlayerId,
+      config: srv.config || null,
+      srvState: 'lobby',
+      swapSelected: null,
+      swapPending: null,
+      _animating: false,
+      _swapPhase: null,
+      _expectedVersion: 0,
+      _revealPending: srv.state === 'lobby',   // 大厅态才揭开 lobby；playing 态靠跃迁进牌桌
+      _autoSatTried: true,                      // 重连保留原座，不自动找空座
+      _startedTransition: false,
+      _netGameReady: false,
+    };
+    if (onlineEls.roomCode) onlineEls.roomCode.textContent = online.code;
+    // 同步房间配置到本地（难度/玩法），与 triggerLobbyToGameTransition 一致
+    if (srv.config) {
+      if (['easy','normal','hard'].includes(srv.config.aiLevel)) state.aiLevel = srv.config.aiLevel;
+      if (srv.config.options) state.options = normalizeOptions(srv.config.options);
+      try { syncPgoDiff(); persist(); } catch {}
+    }
+    ensureDMC();
+    setOnlineHint('');
+    // 交给既有机器：揭开大厅 / 触发进牌桌 / 起持续长轮询
+    applyServerOnlineState(srv);
+    startOnlinePolling();
   }
 
   // ---- identity ----
