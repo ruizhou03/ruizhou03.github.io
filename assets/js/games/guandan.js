@@ -11,7 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.16.13';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.16.14';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -4042,6 +4042,15 @@
         .map((m, i) => ({ m, i, brk: m.cards.reduce((n, c) => n + (grouped.has(c) ? 1 : 0), 0) }))
         .sort((a, b) => (a.brk - b.brk) || (a.i - b.i))
         .map(x => x.m);
+    }
+    // 把「当前难度 AI(=托管)会出的那一手」提到候选首位 —— 第一次按提示即托管推荐，再按则循环看其它选择。
+    // 与三家电脑、托管同一决策(chooseAIMove)：新手/普通=权重+lookahead，高手=DanZero 神经网络。
+    // AI 选择「不要」时(跟牌且压不过/战略保留)无牌可提，回退到上面的启发式最便宜一手。
+    const aiPick = chooseAIMove(0, state.hands[0], prev, !prev, level);
+    if (aiPick && Array.isArray(aiPick.cards) && aiPick.cards.length) {
+      const key = m => m.cards.slice().sort((a, b) => a - b).join(',');
+      const ak = key(aiPick);
+      moves = [aiPick, ...moves.filter(m => key(m) !== ak)];
     }
     state._hintIdx = (state._hintIdx == null) ? 0 : (state._hintIdx + 1) % moves.length;
     const pick = moves[state._hintIdx];
