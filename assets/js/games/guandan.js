@@ -11,7 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.16.10';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.16.11';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -1238,21 +1238,11 @@
     if (availW <= 0) return;
 
     const mult = state.cardSizeMult || 1;
-    const userW = Math.round(defCardW * mult);
-    const userH = Math.round(defCardH * mult);
-    const userStep = Math.round(defStep * mult);
-    // 按「实际列数」定卡宽（掼蛋最多 15 列：13 点数 + 大小王）。列放得下就用满 userW
-    //  —— 中档(mult=1)就是设计原寸，不再因死预留 15 列而被压小；只有真放不下（窄屏 + 列数逼近
-    // 上限）才等比缩到刚好铺满 availW，永不横向滚动。大/特大档(mult>1)用户主动要大：保持 userW、放不下就横滚。
-    const ncols = Math.min(cols.length, 15);
-    let cardW = userW, cardH = userH;
-    if (mult <= 1) {
-      const fitW = Math.floor((availW - (ncols - 1) * gap) / ncols);
-      if (fitW < userW) {
-        cardW = Math.max(26, fitW);
-        cardH = Math.round(defCardH * (cardW / defCardW));
-      }
-    }
+    // 卡宽「写死」：只由档位(小/中/大/特大)决定，绝不因列数多少而变大变小。
+    // 列摆不下「看牌区」(=.gd-hand 左右 padding 之间，左让开张数/托管 chip、右让开理牌/还原键)时，
+    // 由 .gd-hand 的 overflow-x 横向滑动看牌 —— 绝不缩牌、不变窄。
+    const cardW = Math.round(defCardW * mult);
+    const cardH = Math.round(defCardH * mult);
     // 竖排错位 = 横向分割线 = 0.39W（只露分割线以上：点数+右上花色，无额外呼吸）
     const step = Math.round(cardW * GD_S_RATIO);
     if (cardW !== defCardW) hand.style.setProperty('--gd-card-w', cardW + 'px');
@@ -1263,6 +1253,9 @@
       col.style.height = ((cards.length - 1) * step + cardH) + 'px';
       cards.forEach((c, i) => { c.style.top = (i * step) + 'px'; });
     });
+    // 出牌决策带锚到「6 张深」的高度：随卡片大小自适应，不再死留过多空白。
+    // = 桌底+手牌底距(≈18px) + 6 张摞高(1 张 cardH + 5 个错位 step)；CSS 再叠加 env(safe-bottom)。
+    document.documentElement.style.setProperty('--gd-band-bottom', Math.round(18 + cardH + 5 * step) + 'px');
   }
 
   function renderPlayArea(seat) {

@@ -1956,7 +1956,10 @@ body_class: gd-game-fullscreen
        更深的摞偶尔被盖住可接受（>6 张极少见）——所以手牌可以贴底自由往上长、无需为 8 张预留下方空间。 */
     body.gd-game-fullscreen .gd-play-band {
       position: absolute; left: 0; right: 0;
-      top: 46%; transform: translateY(-50%);
+      /* 锚到「6 张深」高度：--gd-band-bottom 由 adaptHandSize 按当前卡片大小算出(桌底+手牌底距+6 张摞高)，
+         不再死留过多空白；卡片越大、6 张越高，带也跟着抬，始终刚好让出 6 张。 */
+      bottom: calc(var(--gd-band-bottom, 200px) + env(safe-area-inset-bottom, 0px));
+      top: auto; transform: none;
       margin: 0; z-index: 6; pointer-events: none;
     }
     body.gd-game-fullscreen .gd-play-band > .gd-play-actions { flex-wrap: nowrap; min-height: 0; }
@@ -1975,17 +1978,18 @@ body_class: gd-game-fullscreen
        大小始终保持原样，绝不为了塞进画幅而压扁成数不清张数的一团。
        左右留出"我/托管"和"理牌图标键"的宽度（含安全区），绝不压牌。 */
     body.gd-game-fullscreen .gd-hand {
-      /* 手牌跟出牌区完全同尺寸同字号(等比公式)。整体再放大一档到 50×72。 */
-      --gd-card-w: 50px; --gd-card-h: 72px;
+      /* 手牌卡宽「写死」，比出牌区(42)大一圈、好点好读。改这两个值即整体放大/缩小手牌。 */
+      --gd-card-w: 56px; --gd-card-h: 81px;
       --gd-stack-step: 24px;
       flex: 1 1 auto; min-height: 0;
-      /* 贴底、向上生长：手牌列底对齐牌桌下沿，深摞自然往上长、溢进上方空地（不裁切），
-         决策带在 43% 处盖在它上面（>6 张才会被盖到）。错落间距/卡片大小始终保持原样。 */
+      /* 贴底、向上生长：手牌列底对齐牌桌下沿，深摞往上长（box 够高、几乎不裁切）。
+         决策带锚在「6 张深」处盖在它上面（>6 张才会被盖到）。卡片大小写死、不随列数变。 */
       align-items: flex-end;
-      overflow: visible;
-      /* 整把牌再往下一点（底留 12px）+ 整体右移：左留 52px 让开左下角「张数/托管」chip 不再被牌压住，
-         右收到 28px 吃掉原来跟理牌键之间的空隙——净效果是手牌整体右移、左侧不再重合。含安全区。 */
-      padding: 0.15rem calc(28px + env(safe-area-inset-right, 0px)) 12px calc(52px + env(safe-area-inset-left, 0px));
+      /* 列摆不下看牌区就横向滑动看牌（不缩牌）；overflow-y:clip 让 y 不出滚动条、深摞在 box 内向上长。 */
+      overflow-x: auto; overflow-y: clip;
+      /* 「看牌区」= 这对左右 padding 之间：左 80px 让开左下「张数/托管」chip，右 44px 让开右下「理牌/还原」键。
+         列摆满这块就横滑，绝不为塞下而缩牌。含安全区。 */
+      padding: 0.15rem calc(44px + env(safe-area-inset-right, 0px)) 12px calc(80px + env(safe-area-inset-left, 0px));
     }
     /* 左下："我" 头像 | 张数 + 托管机器人 横排（张数与机器人都在头像右边、右下方），
        不再竖排单开一行（挤进左侧 ~104px 内）。 */
@@ -2382,4 +2386,4 @@ body_class: gd-game-fullscreen
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
 <script src="/assets/js/games/guandan-dmc.js?v=20260616int8"></script>
-<script src="/assets/js/games/guandan.js?v=20260616dmc13"></script>
+<script src="/assets/js/games/guandan.js?v=20260616dmc14"></script>
