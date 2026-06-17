@@ -11,7 +11,7 @@
   const STORE_KEY = 'tool.guandan.v1';
   const SESSION_KEY = 'tool.guandan.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.17.mp';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.17.mp2';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -1262,6 +1262,12 @@
 
   function renderPlayArea(seat) {
     const slot = seatEls[seat].play;
+    // 局终摊牌：没出完的家把整手剩牌平铺到出牌区。座 0 是我、手牌已在底部展示，不重复摊；
+    // 对手手牌在联机里可能是 -1 占位（服务端未下发真牌），那种情况也跳过（不摊占位牌）。
+    if (state.revealHands && seat !== 0 && state.hands[seat] && state.hands[seat].length > 0 && state.hands[seat][0] !== -1) {
+      renderRevealedHand(seat);
+      return;
+    }
     const lp = state.lastPlay[seat];
     // 状态哈希：renderAll 被频繁调用，同一手"不要"/同一组牌不应每次重建 DOM —
     // 那会让 gd-pass-pop 动画反复重放（用户看到别人弃出时，自己的"不要"也跟着闪）
@@ -1305,6 +1311,38 @@
         row.appendChild(lab);
       }
       slot.appendChild(row);
+    }
+  }
+
+  // 局终摊牌：把某座剩余整手牌平铺到它的出牌区。先按默认叠盖渲染，再测量实际宽度；
+  // 若超出目标宽度（剩特别多牌时）就给每张追加负 margin 挤进上限，绝不横向铺满。
+  // 出牌区本身 overflow:hidden 再兜底。card 宽度走测量、不写死，兼容卡面缩放设置。
+  const REVEAL_MAX_W = 264;   // 摊牌行宽度上限(px)，略小于侧位出牌槽 320
+  function renderRevealedHand(seat) {
+    const slot = seatEls[seat].play;
+    if (!slot) return;
+    const hand = state.hands[seat];
+    const level = currentLevelLabel();
+    const sorted = hand.slice().sort((a, b) => singleWeight(b, level) - singleWeight(a, level));
+    const key = 'reveal:' + seat + ':' + sorted.join(',');
+    if (slot.dataset.lpKey === key) return;
+    slot.dataset.lpKey = key;
+    slot.innerHTML = '';
+    const row = document.createElement('div');
+    row.className = 'gd-played-row gd-reveal-row';
+    for (const c of sorted) row.appendChild(buildCardEl(c, 'size-full', level, {}));
+    slot.appendChild(row);
+    // 测量后压缩：超出上限就让每张再左移 extra，把整手挤进 REVEAL_MAX_W
+    const n = row.children.length;
+    if (n > 1) {
+      const w = row.scrollWidth;
+      if (w > REVEAL_MAX_W) {
+        const extra = (w - REVEAL_MAX_W) / (n - 1);
+        for (let i = 1; i < n; i++) {
+          const cur = parseFloat(getComputedStyle(row.children[i]).marginLeft) || 0;
+          row.children[i].style.marginLeft = (cur - extra) + 'px';
+        }
+      }
     }
   }
 
@@ -2045,11 +2083,14 @@
         pairs: gv.tribute.pairs.map(p => Object.assign({}, p, { giver: L(p.giver), receiver: L(p.receiver) })),
       });
     }
+    // 局终各家剩牌（服务端只在 round_end/match_end 下发）：按座位旋转，供出牌区摊牌
+    if (Array.isArray(gv.revealHands)) r.revealHands = rotArr4(gv.revealHands);
     return r;
   }
   function startNetworkedGame(gv) {
     gv = rotateGvToSelf(gv);
     state.isNetworked = true;
+    state.revealHands = false;       // 新局：关掉上一局的局终摊牌
     state.phase = gv.phase === 'tribute' ? PHASE.TRIBUTE : PHASE.PLAYING;
     state.matchOptions = normalizeOptions(state.options || { teamTribute: false, scoreCap: 0, turnSec: state.matchOptions ? state.matchOptions.turnSec : 20 });
     state.levels = gv.levels.slice();
@@ -2079,6 +2120,12 @@
       const want = (gv.counts && gv.counts[s]) || 0;
       const cur = (state.hands[s] && state.hands[s].length) || 0;
       if (cur !== want) state.hands[s] = new Array(want).fill(-1);
+    }
+    // 局终：服务端下发了各家剩牌(revealHands)，用真牌替换占位 → 出牌区可摊真牌（否则只有 -1 占位被跳过）
+    if (Array.isArray(gv.revealHands)) {
+      for (let s = 0; s < 4; s++) {
+        if (Array.isArray(gv.revealHands[s])) state.hands[s] = gv.revealHands[s].slice();
+      }
     }
     state.turn = gv.turn;
     state.phase = gv.phase === 'tribute' ? PHASE.TRIBUTE : gv.phase;
@@ -2263,6 +2310,8 @@
   // tributeResult: null（首局）| { from, to, card }（含还贡后）
   function startRound(prevRanking) {
     state.phase = PHASE.PLAYING;
+    state.revealHands = false;       // 新局：关掉上一局的局终摊牌
+
     // 新一局默认「不」继承上一局的托管：每局都要用户自己再点一次「🤖 托管」才接管。
     // （超时被动开启的计数也清零，新局从头算。）
     state.autopilot = false;
@@ -3027,6 +3076,7 @@
   // 本局是否结束：当一支队伍两名成员都已出完 → 立即结束（不必打到最后一人）
   // 触发结算前停 1s，让用户看清最后一手 + 结果，不要直接弹结算面板
   const END_ROUND_DELAY_MS = 1000;
+  const REVEAL_HOLD_MS = 1500;   // 局终摊牌后停留这么久再弹结算面板，让人看清各家剩牌
   function checkRoundOver() {
     if (state.out.length >= 3) {
       // 第 3 名确定后第 4 名自动确定
@@ -3095,7 +3145,13 @@
     persist();
     refreshScoreChip();   // 立即闪一下角标新分；不依赖下一次 renderAll
 
-    showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon);
+    // 局终摊牌：把没出完的家的剩牌平铺到各自出牌区，停留一会儿再弹结算面板（面板会盖住桌面）。
+    state.revealHands = true;
+    renderAll();
+    const showPanel = () => showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon);
+    const hasReveal = [1, 2, 3].some(s => state.hands[s] && state.hands[s].length > 0 && state.hands[s][0] !== -1);
+    if (hasReveal) setTimeout(showPanel, REVEAL_HOLD_MS);
+    else showPanel();
     saveSession();
   }
 
