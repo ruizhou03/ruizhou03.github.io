@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.19.mp9';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.19.mp10';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -2181,6 +2181,8 @@
     // 我已出完、服务端发来队友手牌 → 用真牌填本地座 2（队友），让「查看队友手牌」旁观真能看到牌。
     if (Array.isArray(gv.partnerHand)) state.hands[2] = gv.partnerHand.slice();
     state.turn = gv.turn;
+    // 服务器给的「本回合已用时」(turnElapsedMs)：armTurnClock 据此算统一剩余倒计时（切视角不重置）
+    state._turnElapsedMs = (typeof gv.turnElapsedMs === 'number') ? gv.turnElapsedMs : 0;
     state.phase = gv.phase === 'tribute' ? PHASE.TRIBUTE : gv.phase;
     state.out = gv.out.slice();
     const _prevLastPlay = Array.isArray(state.lastPlay) ? state.lastPlay.slice() : [null, null, null, null];
@@ -3641,6 +3643,15 @@
     hideAllClocks();
   }
   // 轮到某座位时挂上对应时钟。玩家超时 → 自动"不出"或打出最小单张领出
+  // 本回合「剩余」时长：联机用服务器下发的已用时(state._turnElapsedMs)算 上限-已用，
+  // 这样切视角/重连/任何重渲都显示同一条倒计时、不会重置回满额（修测试模式切座时钟重跳的 bug，
+  // 也让真实对战各端倒计时一致）。单机始终满额。留 ≥800ms 余量，避免一切进来就 0。
+  function turnRemainMs() {
+    const tm = turnMs();
+    if (tm === 0) return 0;
+    const elapsed = isNetworked() ? (state._turnElapsedMs || 0) : 0;
+    return Math.max(800, tm - elapsed);
+  }
   function armTurnClock() {
     if (state.phase !== PHASE.PLAYING) { stopTurnClock(); return; }
     if (state._doublingActive) return;     // 加倍阶段已挂 5s 时钟，别覆盖
@@ -3659,13 +3670,13 @@
         }, 450);
         return;
       }
-      const tm = turnMs();
-      if (tm === 0) { stopTurnClock(); return; }   // 不限：不挂时钟、不自动出
-      startTurnClock(0, autoPlayOnTimeout, tm);
+      const remain = turnRemainMs();
+      if (remain === 0) { stopTurnClock(); return; }   // 不限：不挂时钟、不自动出
+      startTurnClock(0, autoPlayOnTimeout, remain);
     } else {
-      const tm = turnMs();
-      if (tm === 0) { stopTurnClock(); return; }   // 不限：AI 也不显示时钟
-      startTurnClock(seat, null, tm);
+      const remain = turnRemainMs();
+      if (remain === 0) { stopTurnClock(); return; }   // 不限：AI 也不显示时钟
+      startTurnClock(seat, null, remain);
     }
   }
   // 玩家被动 / 托管的"自动出"共享同一份决策；isTimeout 控制是否计入超时计数
@@ -5594,21 +5605,24 @@
     }
   }
 
-  async function switchTestSeat(i) {
+  function switchTestSeat(i) {
     if (!testMode) return;
     stopOnlineSync();
     testMode.active = i;
     onlineState = makeTestOnlineState(testMode.seats[i]);
-    // 先清掉上一座的手牌，免得新视角加载完成前还显示着上一位玩家的牌（用户反馈的「手牌慢一拍」）。
-    state.hands = [[], [], [], []];
     state.selected.clear();
-    renderAll();
+    const cached = testMode.seats[i]._srv;
+    if (cached) {
+      // 即时用「上次看到的该座视图」渲染——无空屏、无等待往返，切视角瞬间完成。
+      applyServerOnlineState(cached);
+    } else {
+      // 首次看该座、无缓存 → 先清空手牌等加载（避免短暂显示上一位玩家的牌）。
+      state.hands = [[], [], [], []];
+      renderAll();
+    }
     renderTestSwitcher();
-    const r = await gdApi('state', { qs: { code: testMode.code, token: onlineState.token, since: 0 } });
-    if (!testMode) return;                          // 切换途中退出了
-    if (r.ok && r.data) applyServerOnlineState(r.data);
+    // 开 SSE/轮询：初帧立刻把该座最新态推/拉回来，刷新掉缓存里可能的陈旧（约 1 个往返内）。
     startOnlineSync();
-    renderTestSwitcher();
   }
 
   async function exitOnlineTestMode() {
@@ -5683,6 +5697,8 @@
     if (srvV > 0 && srvV < (onlineState.lastVersion || 0)) return;
 
     onlineState.lastVersion = srv.version || 0;
+    // 测试模式：缓存当前活跃座的最新视图，切回该座时即时渲染（无空屏、无等待），随后流/轮询再刷新
+    if (testMode && testMode.seats[testMode.active]) testMode.seats[testMode.active]._srv = srv;
     onlineState.players = srv.players || [];
     onlineState.hostPlayerId = srv.hostPlayerId;
     onlineState.config = srv.config;
