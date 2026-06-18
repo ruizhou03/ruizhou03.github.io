@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.18.mp5';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.18.mp6';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -2115,12 +2115,17 @@
     }
     // 局终各家剩牌（服务端只在 round_end/match_end 下发）：按座位旋转，供出牌区摊牌
     if (Array.isArray(gv.revealHands)) r.revealHands = rotArr4(gv.revealHands);
+    // 接风事件的 from/to 是绝对座位，旋转成自视角本地座（partnerHand 是「我队友的手牌」，
+    // 天然落本地座 2、值不需旋转，靠 Object.assign 原样带过）。
+    if (gv.jiefeng) r.jiefeng = { from: L(gv.jiefeng.from), to: L(gv.jiefeng.to), seq: gv.jiefeng.seq };
     return r;
   }
   function startNetworkedGame(gv) {
     gv = rotateGvToSelf(gv);
     state.isNetworked = true;
     clearSession();                  // 抹掉进联机前可能残留的单机存档，避免日后刷新被它劫持
+    state._endHandled = false;       // 复位本局结算/战报闩（见 endRound / endMatch）
+    state._matchEnded = false;
     // 联机换局/开局都经这里：与本地 startRound/endMatch 对齐，清掉跨局粘连的托管 / 超时计数
     state.autopilot = false;
     state._consecutiveTimeouts = 0;
@@ -2162,9 +2167,12 @@
         if (Array.isArray(gv.revealHands[s])) state.hands[s] = gv.revealHands[s].slice();
       }
     }
+    // 我已出完、服务端发来队友手牌 → 用真牌填本地座 2（队友），让「查看队友手牌」旁观真能看到牌。
+    if (Array.isArray(gv.partnerHand)) state.hands[2] = gv.partnerHand.slice();
     state.turn = gv.turn;
     state.phase = gv.phase === 'tribute' ? PHASE.TRIBUTE : gv.phase;
     state.out = gv.out.slice();
+    const _prevLastPlay = Array.isArray(state.lastPlay) ? state.lastPlay.slice() : [null, null, null, null];
     state.lastPlay = gv.lastPlay ? gv.lastPlay.slice() : [null, null, null, null];
     state.trick = {
       lead: gv.trick ? gv.trick.lead : gv.turn,
@@ -2205,7 +2213,7 @@
     }
 
     if (gv.phase === 'round_end') endRound();
-    else if (gv.phase === 'match_end') { endRound(); endMatch(gv.matchWinner); }
+    else if (gv.phase === 'match_end') endRound(true);   // 先摊牌，endRound 摊完自行进战报
     else if (gv.phase === 'tribute') {
       // 服务端已进入下一局（进贡阶段）：撤掉可能残留的上局结算/战报浮层——多真人下，没点
       // 「继续」的那家是靠轮询进的新局，它的结算面板不会被 onclick 关掉，会盖住新局挡操作。
@@ -2241,7 +2249,30 @@
         updateActions();
       }
     }
-    if (testMode) renderTestSwitcher();   // 测试模式：随服务端态刷新「该谁出牌 ▶」标记
+    // 炸弹特效：服务端态里「这一帧新出现」的炸弹放一次特效（含别家）。我自己那手已在乐观渲染里
+    // 放过、靠 _bombFxKey 去重，不重复。放在最后——此时各分支的 renderAll 已把出牌区画好。
+    for (let s = 0; s < 4; s++) {
+      const lp = state.lastPlay[s];
+      if (!lp || lp === 'pass' || !isBombType(lp.type)) continue;
+      const key = bombFxKey(s, lp.cards);
+      const prev = _prevLastPlay[s];
+      const prevKey = (prev && prev !== 'pass' && prev.cards) ? bombFxKey(s, prev.cards) : null;
+      if (key === prevKey || key === state._bombFxKey) continue;   // 上帧就在桌上 / 我刚乐观放过
+      state._bombFxKey = key;
+      playBombFx(s, lp);
+    }
+    // 接风特效：服务端给出 jiefeng={from,to,seq}（已旋转成本地座）→ 放一次「🪁 接风」。按 seq 去重。
+    if (gv.jiefeng && gv.jiefeng.seq !== state._lastJiefengSeq) {
+      state._lastJiefengSeq = gv.jiefeng.seq;
+      showJiefengFx(gv.jiefeng.from, gv.jiefeng.to);
+    }
+    if (testMode) {
+      // 记录「绝对当前出牌座」= (自视角本地座 + 我的座) % 4。它与正在看哪一座无关，所以切视角途中
+      // 标记不会乱跳到下一两家（之前直接拿 state.turn+mySeat 在切座的空窗里会用到上一座的旧 turn）。
+      testMode.serverTurn = (state.phase === PHASE.PLAYING && onlineState && typeof onlineState.mySeat === 'number')
+        ? ((state.turn + onlineState.mySeat) % 4) : -1;
+      renderTestSwitcher();
+    }
   }
   // 关掉小局结算 / 整盘战报浮层（幂等）。联机靠服务端 game.phase 切回可操作态时调用。
   function closeEndOverlays() {
@@ -2249,9 +2280,37 @@
     if (els.matchOverlay) els.matchOverlay.classList.remove('open');
   }
 
+  // 炸弹特效去重键：同一手炸弹（座位+牌）只放一次（乐观放过一次，服务器回包就不重复放）。
+  function bombFxKey(seat, cards) {
+    return seat + ':' + (cards || []).slice().sort((a, b) => a - b).join(',');
+  }
+  // 乐观渲染我（本地座 0）的一手：立刻反映到画面，不等服务器；之后由 applyServerGameState 校准。
+  function applyOptimisticMove(action, cards) {
+    if (action === 'play' && Array.isArray(cards) && cards.length) {
+      const combo = classify(cards.slice(), currentLevelLabel());
+      if (!combo) return;   // 兜不出牌型就不乐观渲染，老老实实等服务器
+      for (const c of cards) { const i = state.hands[0].indexOf(c); if (i >= 0) state.hands[0].splice(i, 1); }
+      state.lastPlay[0] = combo;
+      if (state.trick) { state.trick.best = combo; state.trick.bestSeat = 0; state.trick.passes = 0; }
+      if (state.hands[0].length === 0 && !state.out.includes(0)) state.out.push(0);
+      state.selected.clear();
+      hidePlayActionsImmediate();
+      renderAll();
+      if (isBombType(combo.type)) { state._bombFxKey = bombFxKey(0, cards); playBombFx(0, combo); }
+    } else if (action === 'pass') {
+      state.lastPlay[0] = 'pass';
+      hidePlayActionsImmediate();
+      renderAll();
+    }
+  }
+
   // 联网模式下我的出牌/不出 → 发给服务器（不是本地 commit）
   async function sendNetworkedMove(action, cards) {
     if (!state.isNetworked || !onlineState) return;
+    // 乐观渲染：先在本地立刻反映我这一手（出牌移出手牌 + 落到出牌区 + 炸弹特效 / 不出标签），
+    // 不等服务器往返。服务器确认后 applyServerGameState 用权威态覆盖；若被判非法也由它纠回。
+    // 这样手感即时，不再「点完牌要等半秒才出去」。
+    applyOptimisticMove(action, cards);
     state.busy = true;
     updateActions();
     const r = await gdApi('move', {
@@ -2267,7 +2326,9 @@
         if (err === 'not_your_turn') { /* 静默，只是慢了一点 */ }
         else toast(errText(err));
       } else {
+        // 网络错误等拿不到权威态：乐观渲染可能与服务器不一致，poke 一下让长轮询尽快把真态拉回纠正。
         toast(errText(err));
+        pokePoll();
       }
       return;
     }
@@ -2345,6 +2406,8 @@
     // 置 true、此前从无复位），若同一会话先玩过联机再回单机，残留的 true 会让 scheduleAI()
     // 顶部的 `if (isNetworked()) return;` 把 AI 调度整条吞掉 → 轮到 AI 永不出牌、游戏卡死。
     state.isNetworked = false;
+    state._endHandled = false;        // 复位结算/战报闩（见 endRound / endMatch）
+    state._matchEnded = false;
     // 冻结这一盘的玩法设置：只在开新一盘时从可编辑的 options 拷贝一次。
     // 这盘进行中（含局与局之间）engine 只读 matchOptions，改 PGO 设置要等下一盘才生效。
     state.matchOptions = normalizeOptions(state.options);
@@ -2367,6 +2430,7 @@
   // tributeResult: null（首局）| { from, to, card }（含还贡后）
   function startRound(prevRanking) {
     state.phase = PHASE.PLAYING;
+    state._endHandled = false;       // 复位本局结算闩（见 endRound）
     state.revealHands = false;       // 新局：关掉上一局的局终摊牌
 
     // 新一局默认「不」继承上一局的托管：每局都要用户自己再点一次「🤖 托管」才接管。
@@ -3177,10 +3241,13 @@
     return false;
   }
 
-  function endRound() {
-    // 幂等：联机下服务端停在 round_end 期间，长轮询每 ~4s 会带回同一 round_end 态反复重入这里；
-    // 没有这道闩就会重复升级 state.levels、重复累计积分、重弹结算面板。单机每局只调一次，不受影响。
-    if (state.phase === PHASE.ROUND_END || state.phase === PHASE.MATCH_END) return;
+  // forceMatchEnd：联机下服务端已判 match_end 时传 true（本地按级牌也会判出，但以服务端为准）。
+  function endRound(forceMatchEnd) {
+    // 幂等用独立闩 _endHandled，不能用 state.phase——联机 applyServerGameState 在调本函数前
+    // 已把 state.phase 设成 'round_end'/'match_end'（=PHASE.ROUND_END/MATCH_END），若拿 phase 判幂等
+    // 会在第一次就早退、永不弹结算面板（曾导致联机打完一局卡死、无结算）。每局开始时复位该闩。
+    if (state._endHandled) return;
+    state._endHandled = true;
     state.phase = PHASE.ROUND_END;
     const ranking = state.out.slice(0, 4);
     const first = ranking[0];
@@ -3199,7 +3266,7 @@
     let newIdx = Math.min(LEVEL_SEQ.length - 1, beforeIdx + advance);
     // 判定整局胜负：过 A 须「一名头游 + 队友非末游」(名次 1+2 或 1+3，advance≥2)；
     // 1+4（头游+末游）在 A 不算过，继续打 A（不退级、进贡照常）。
-    const matchWon = wasAtA && advance >= 2;
+    const matchWon = !!forceMatchEnd || (wasAtA && advance >= 2);
     if (!matchWon) state.levels[winTeam] = newIdx;
 
     // 赢方成为下一局“主级方”
@@ -3227,7 +3294,10 @@
     // 局终摊牌：把没出完的家的剩牌平铺到各自出牌区，停留一会儿再弹结算面板（面板会盖住桌面）。
     state.revealHands = true;
     renderAll();
-    const showPanel = () => showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon);
+    // 整盘结束（联机）：摊牌后直接进战报，不走「小局结算 → 继续」那条；其余走小局结算面板。
+    const showPanel = (matchWon && isNetworked())
+      ? () => endMatch(winTeam)
+      : () => showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon);
     const hasReveal = [1, 2, 3].some(s => state.hands[s] && state.hands[s].length > 0 && state.hands[s][0] !== -1);
     if (hasReveal) setTimeout(showPanel, REVEAL_HOLD_MS);
     else showPanel();
@@ -3413,7 +3483,8 @@
   }
 
   function endMatch(winTeam) {
-    if (state.phase === PHASE.MATCH_END) return;   // 幂等：match_end 态同样会被长轮询反复带回
+    if (state._matchEnded) return;   // 幂等用独立闩（同 endRound 理由：phase 已被联机预设，不能拿它判）
+    state._matchEnded = true;
     state.phase = PHASE.MATCH_END;
     // 整局结束 → 关托管，重置超时计数（下一局从头来）
     state.autopilot = false;
@@ -5448,6 +5519,10 @@
     stopOnlinePolling();
     testMode.active = i;
     onlineState = makeTestOnlineState(testMode.seats[i]);
+    // 先清掉上一座的手牌，免得新视角加载完成前还显示着上一位玩家的牌（用户反馈的「手牌慢一拍」）。
+    state.hands = [[], [], [], []];
+    state.selected.clear();
+    renderAll();
     renderTestSwitcher();
     const r = await gdApi('state', { qs: { code: testMode.code, token: onlineState.token, since: 0 } });
     if (!testMode) return;                          // 切换途中退出了
@@ -5487,11 +5562,8 @@
         '-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);';
       document.body.appendChild(bar);
     }
-    // 当前该出牌的座位（绝对座位号）：仅出牌阶段标。state.turn 是自视角本地座，换回绝对座。
-    let serverTurn = -1;
-    if (state.phase === PHASE.PLAYING && onlineState && typeof onlineState.mySeat === 'number') {
-      serverTurn = (state.turn + onlineState.mySeat) % 4;
-    }
+    // 当前该出牌的座位（绝对座位号）：由 applyServerGameState 写入 testMode.serverTurn，稳定不乱跳。
+    const serverTurn = (typeof testMode.serverTurn === 'number') ? testMode.serverTurn : -1;
     bar.innerHTML = '';
     const lbl = document.createElement('span');
     lbl.textContent = '🔬';
