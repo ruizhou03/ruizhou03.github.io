@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.18.mp7';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.18.mp8';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -5138,9 +5138,9 @@
     }
     ensureDMC();
     setOnlineHint('');
-    // 交给既有机器：揭开大厅 / 触发进牌桌 / 起持续长轮询
+    // 交给既有机器：揭开大厅 / 触发进牌桌 / 起持续同步（SSE 或长轮询）
     applyServerOnlineState(srv);
-    startOnlinePolling();
+    startOnlineSync();
   }
 
   // ---- identity ----
@@ -5304,7 +5304,7 @@
       // 等第一条 server state 回来（applyServerOnlineState 里的 _revealPending）再揭开大厅。
       setOnlineHint('加入中…');
     }
-    startOnlinePolling();
+    startOnlineSync();
   }
 
   // 揭开联机大厅：关掉 PGO 浮层、显示大厅、给牌桌挂 gd-in-lobby（藏掉牌局 UI）。
@@ -5345,7 +5345,7 @@
     if (opts.dissolveOnLeave) body.dissolveOnLeave = true;
     try { await gdApi('leave', { body }); } catch {}
     clearSwapTimers();
-    stopOnlinePolling();
+    stopOnlineSync();
     onlineSessionClear();
     onlineState = null;
     // 退房即解除联机闩，避免接下来开单机局时 AI 调度被 scheduleAI 的 isNetworked 早退吞掉。
@@ -5451,6 +5451,65 @@
     }
   }
 
+  // ── 实时传输切换：SSE（高级路径，默认关）↔ 长轮询（默认 + 兜底）──────────────
+  // 现状不推翻：联机底层默认仍走 startOnlinePolling。SSE 全部建好、随时可切：
+  //   开启 = localStorage.setItem('tool.guandan.sse','1') 后重连房间（且后端 stream 端点已部署）。
+  //   SSE 连不上/被代理屏蔽/端点未部署 → 自动回退长轮询，绝不卡住。
+  // startOnlineSync/stopOnlineSync 是统一入口；pokePoll 在 SSE 下天然 no-op（无 pollAbort）。
+  function sseEnabled() {
+    try { return localStorage.getItem('tool.guandan.sse') === '1'; } catch { return false; }
+  }
+  function startOnlineSync() {
+    if (sseEnabled()) startSseSync();
+    else startOnlinePolling();
+  }
+  function stopOnlineSync() {
+    stopSseSync();
+    stopOnlinePolling();
+  }
+  function startSseSync() {
+    if (!onlineState || onlineState._sse) return;
+    if (typeof EventSource === 'undefined') { startOnlinePolling(); return; }   // 老环境无 SSE → 轮询
+    const sess = onlineState;   // 绑定本次会话对象；切座/退房换掉 onlineState 后忽略旧连接
+    let es;
+    try {
+      es = new EventSource(GUANDAN_API + '?action=stream&code=' +
+        encodeURIComponent(sess.code) + '&token=' + encodeURIComponent(sess.token));
+    } catch (e) { startOnlinePolling(); return; }
+    sess._sse = es;
+    sess._sseOk = false;
+    es.onmessage = (ev) => {
+      if (onlineState !== sess || sess._sse !== es) return;   // 旧会话的残留消息，丢弃
+      if (!sess._sseOk) { sess._sseOk = true; if (sess._sseTimer) { clearTimeout(sess._sseTimer); sess._sseTimer = null; } }
+      try { applyServerOnlineState(JSON.parse(ev.data)); } catch {}
+    };
+    es.addEventListener('gone', () => {
+      if (onlineState === sess && sess._sse === es) { toast('房间已过期'); leaveRoom(true); }
+    });
+    es.onerror = () => {
+      if (onlineState !== sess || sess._sse !== es) return;
+      // CLOSED = 彻底断开(端点不存在/被拒)，不会自己重连 → 降级长轮询；CONNECTING = 正在自动重连，不动。
+      if (es.readyState === EventSource.CLOSED) {
+        sess._sse = null;
+        if (sess._sseTimer) { clearTimeout(sess._sseTimer); sess._sseTimer = null; }
+        startOnlinePolling();
+      }
+    };
+    // 初连兜底：3s 内一条都没收到 → SSE 多半不通（端点未部署/代理屏蔽）→ 关掉、降级轮询。
+    sess._sseTimer = setTimeout(() => {
+      if (onlineState === sess && sess._sse === es && !sess._sseOk) {
+        try { es.close(); } catch {}
+        sess._sse = null;
+        startOnlinePolling();
+      }
+    }, 3000);
+  }
+  function stopSseSync() {
+    if (!onlineState) return;
+    if (onlineState._sseTimer) { clearTimeout(onlineState._sseTimer); onlineState._sseTimer = null; }
+    if (onlineState._sse) { try { onlineState._sse.close(); } catch {} onlineState._sse = null; }
+  }
+
   // ===========================================================
   //  四视角测试模式（暗号 quad）
   //  在真实后端建一个「4 个真人」的房间，本机一人持有全部 4 个会话 token。
@@ -5521,7 +5580,7 @@
 
   async function switchTestSeat(i) {
     if (!testMode) return;
-    stopOnlinePolling();
+    stopOnlineSync();
     testMode.active = i;
     onlineState = makeTestOnlineState(testMode.seats[i]);
     // 先清掉上一座的手牌，免得新视角加载完成前还显示着上一位玩家的牌（用户反馈的「手牌慢一拍」）。
@@ -5532,7 +5591,7 @@
     const r = await gdApi('state', { qs: { code: testMode.code, token: onlineState.token, since: 0 } });
     if (!testMode) return;                          // 切换途中退出了
     if (r.ok && r.data) applyServerOnlineState(r.data);
-    startOnlinePolling();
+    startOnlineSync();
     renderTestSwitcher();
   }
 
@@ -5541,7 +5600,7 @@
     testMode = null;
     const bar = document.getElementById('gdTestBar');
     if (bar) bar.remove();
-    stopOnlinePolling();
+    stopOnlineSync();
     if (tm && tm.seats && tm.seats[0]) {           // 用房主 token 解散整间测试房
       try { await gdApi('leave', { body: { code: tm.code, token: tm.seats[0].token, dissolveOnLeave: true } }); } catch {}
     }
