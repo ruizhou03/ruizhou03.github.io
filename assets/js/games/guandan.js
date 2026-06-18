@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.18.mp8';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.19.mp9';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -2133,7 +2133,11 @@
     state._consecutiveTimeouts = 0;
     refreshAutopilotBtn();
     state.revealHands = false;       // 新局：关掉上一局的局终摊牌
-    state.phase = gv.phase === 'tribute' ? PHASE.TRIBUTE : PHASE.PLAYING;
+    // round_end/match_end 视图（切座/重连时可能遇到）如实置相位，交给随后的 applyServerGameState→endRound
+    // 处理，别硬置成 PLAYING（否则中间一帧会闪出可点的「出牌」UI）。
+    state.phase = (gv.phase === 'tribute') ? PHASE.TRIBUTE
+                : (gv.phase === 'playing') ? PHASE.PLAYING
+                : gv.phase;
     state.matchOptions = normalizeOptions(state.options || { teamTribute: false, scoreCap: 0, turnSec: state.matchOptions ? state.matchOptions.turnSec : 20 });
     state.levels = gv.levels.slice();
     state.actingTeam = gv.actingTeam;
@@ -2157,6 +2161,11 @@
   function applyServerGameState(gv) {
     if (!gv || !state.isNetworked) return;
     gv = rotateGvToSelf(gv);   // 统一旋转成自视角（我 = 本地座 0）后再渲染
+    // 新一局进行中(playing/tribute)→复位结算闩，确保该局结束时 endRound/endMatch 必触发一次。
+    // 关键修复：靠轮询/推送(而非自己点「继续」)进入下一局的玩家，过去不复位此闩 → 第 2 局起结算
+    // 永不弹、牌面卡住、像「出完牌又被要求出牌、反复结束不了」。round_end/match_end 不复位
+    // （否则长轮询重放同一终局态会重复结算）。
+    if (gv.phase === 'playing' || gv.phase === 'tribute') { state._endHandled = false; state._matchEnded = false; }
     state.hands[0] = gv.myHand.slice();
     for (let s = 1; s < 4; s++) {
       const want = (gv.counts && gv.counts[s]) || 0;
@@ -2309,6 +2318,10 @@
   // 联网模式下我的出牌/不出 → 发给服务器（不是本地 commit）
   async function sendNetworkedMove(action, cards) {
     if (!state.isNetworked || !onlineState) return;
+    // 防「出完牌后又被要求出牌」的死循环：不在出牌阶段 / 不是我的回合 / 我已出完 → 直接忽略本次提交，
+    // 既不乐观渲染也不发请求。否则服务端会以 not_playing / not_your_turn 退回，把刚打出的牌弹回手里、
+    // UI 再次提示出牌，反复触发（用户报告的局终死循环）。
+    if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.out.includes(0)) return;
     // 乐观渲染：先在本地立刻反映我这一手（出牌移出手牌 + 落到出牌区 + 炸弹特效 / 不出标签），
     // 不等服务器往返。服务器确认后 applyServerGameState 用权威态覆盖；若被判非法也由它纠回。
     // 这样手感即时，不再「点完牌要等半秒才出去」。
@@ -5456,8 +5469,11 @@
   //   开启 = localStorage.setItem('tool.guandan.sse','1') 后重连房间（且后端 stream 端点已部署）。
   //   SSE 连不上/被代理屏蔽/端点未部署 → 自动回退长轮询，绝不卡住。
   // startOnlineSync/stopOnlineSync 是统一入口；pokePoll 在 SSE 下天然 no-op（无 pollAbort）。
+  // SSE 默认开（后端 stream 端点已上线）：实时推送、他人出牌约 1 个网络往返即到。
+  // 想对比/退回长轮询：localStorage.setItem('tool.guandan.sse','0') 后重连房间即可。
+  // SSE 连不上/被代理屏蔽 → 自动回退长轮询，绝不卡住。
   function sseEnabled() {
-    try { return localStorage.getItem('tool.guandan.sse') === '1'; } catch { return false; }
+    try { return localStorage.getItem('tool.guandan.sse') !== '0'; } catch { return true; }
   }
   function startOnlineSync() {
     if (sseEnabled()) startSseSync();
