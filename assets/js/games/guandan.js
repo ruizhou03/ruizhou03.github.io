@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.18.mp6';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.18.mp7';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -832,14 +832,16 @@
 
   // 玩法可调选项的合法档位（UI 段选 + 房间 config 共用）
   const SCORE_CAP_OPTS = [0, 3, 5, 8];     // 0 = 不限
-  const TURN_SEC_OPTS = [10, 20, 30, 0];   // 0 = 不限
+  // 出牌时间统一为「25 秒上限 / 不限」两档（旧的 10/20/30 一律归一为 25；0 = 不限）。
+  const TURN_SEC_OPTS = [25, 0];
   // 同队进贡默认开（按官方名次规则，1、4 同队那局末游仍给队友头游进贡）
   function normalizeOptions(o) {
     o = o || {};
     return {
       teamTribute: (o.teamTribute === undefined) ? true : !!o.teamTribute,
       scoreCap: SCORE_CAP_OPTS.includes(o.scoreCap) ? o.scoreCap : 0,
-      turnSec: TURN_SEC_OPTS.includes(o.turnSec) ? o.turnSec : 20,
+      // 旧存档/旧房间的 10/20/30 都不在新档里 → 归一到 25（仍限时）；只有显式 0 才是不限。
+      turnSec: (o.turnSec === 0) ? 0 : 25,
     };
   }
 
@@ -2241,13 +2243,11 @@
       closeEndOverlays();
       renderAll();
       saveSession();
-      if (gv.turn === 0 && gv.phase === 'playing') {
-        updateActions();
-        armTurnClock();
-      } else {
-        applyAttentionFocus();
-        updateActions();
-      }
+      updateActions();
+      // 把出牌闹钟挂在「当前该出牌者」的座位上——所有视角都能看到「该谁出 + 还剩多久」。
+      // armTurnClock 内部分流：轮到我(座0)挂自时钟并在超时自动出牌/转托管；轮到别家挂只读倒计时
+      // 徽章（不替他出，由他本人设备超时兜底）。修了联机下「别人回合出牌区空着、毫无提示」。
+      armTurnClock();
     }
     // 炸弹特效：服务端态里「这一帧新出现」的炸弹放一次特效（含别家）。我自己那手已在乐观渲染里
     // 放过、靠 _bombFxKey 去重，不重复。放在最后——此时各分支的 renderAll 已把出牌区画好。
@@ -2294,11 +2294,13 @@
       if (state.trick) { state.trick.best = combo; state.trick.bestSeat = 0; state.trick.passes = 0; }
       if (state.hands[0].length === 0 && !state.out.includes(0)) state.out.push(0);
       state.selected.clear();
+      stopTurnClock();              // 我已出牌 → 收掉自己的倒计时
       hidePlayActionsImmediate();
       renderAll();
       if (isBombType(combo.type)) { state._bombFxKey = bombFxKey(0, cards); playBombFx(0, combo); }
     } else if (action === 'pass') {
       state.lastPlay[0] = 'pass';
+      stopTurnClock();              // 我已不出 → 收掉自己的倒计时
       hidePlayActionsImmediate();
       renderAll();
     }
@@ -3248,6 +3250,7 @@
     // 会在第一次就早退、永不弹结算面板（曾导致联机打完一局卡死、无结算）。每局开始时复位该闩。
     if (state._endHandled) return;
     state._endHandled = true;
+    stopTurnClock();                 // 本局已结束，收掉任何残留的出牌倒计时
     state.phase = PHASE.ROUND_END;
     const ranking = state.out.slice(0, 4);
     const first = ranking[0];
@@ -3553,12 +3556,13 @@
   // ===========================================================
   //  轮次倒计时（仿斗地主 clockEl / startTurnCountdown）
   // ===========================================================
-  const TURN_TIMEOUT_MS = 25000;
-  const AI_CLOCK_MS = 25000;   // AI 通常 < 1s 出牌 → 这个值大多走不完
-  // 出牌时间（毫秒）：来自本盘冻结的 matchOptions.turnSec；0 = 不限（不挂时钟、不自动出）
+  const TURN_LIMIT_MS = 25000;   // 单回合出牌上限：单机/联机统一 25 秒（用户定，参考斗地主）
+  const TURN_TIMEOUT_MS = TURN_LIMIT_MS;
+  const AI_CLOCK_MS = TURN_LIMIT_MS;   // AI 通常 < 1s 出牌 → 这个值大多走不完
+  // 出牌时间（毫秒）：统一上限 25s。matchOptions.turnSec === 0（设置里选「不限时」）才关闭计时；
+  // 其余任何值都用统一 25s（不再按 10/20/30 分档——上限对单机/联机一致）。
   function turnMs() {
-    const s = state.matchOptions.turnSec | 0;
-    return s > 0 ? s * 1000 : 0;
+    return (state.matchOptions.turnSec | 0) === 0 ? 0 : TURN_LIMIT_MS;
   }
   let turnClockTimer = null;
   let turnClockEndAt = 0;
@@ -5488,8 +5492,9 @@
     onlineSessionClear();        // 别让历史真实联机会话在重载时干扰
     toast('正在搭建 4 人测试房…');
     const base = gdGetDeviceId();
-    // 测试房关掉出牌计时（turnSec:0），免得切视角时本人被超时自动出牌打断手测
-    const opts = Object.assign({}, normalizeOptions(state.options), { turnSec: 0 });
+    // 测试房开启出牌计时（统一 25s），方便你直接验证倒计时闹钟在各视角的表现。
+    // 25s 足够手动切视角、出每一座的牌；超时才会自动出（也顺便验了超时逻辑）。
+    const opts = Object.assign({}, normalizeOptions(state.options), { turnSec: 25 });
     try {
       const c = await gdApi('create', { body: { nick: '测试·1', deviceId: base + '-t0', config: { aiLevel: state.aiLevel, options: opts } } });
       if (!c.ok) throw new Error(c.error || 'create_failed');
