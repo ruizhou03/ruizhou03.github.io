@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.17.mp4';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.18.mp5';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -2241,6 +2241,7 @@
         updateActions();
       }
     }
+    if (testMode) renderTestSwitcher();   // 测试模式：随服务端态刷新「该谁出牌 ▶」标记
   }
   // 关掉小局结算 / 整盘战报浮层（幂等）。联机靠服务端 game.phase 切回可操作态时调用。
   function closeEndOverlays() {
@@ -4604,7 +4605,8 @@
     document.body.appendChild(p);
   }
 
-  // 连打 TEST 触发测试模式
+  // 连打暗号触发测试模式：test = 单机测试；quad = 联机「四视角」测试（一人扮四家走真实联机流程）。
+  // 两个暗号都是「最近 4 个字母」匹配；quad 不含 test 后缀，互不误触。
   (function () {
     let buf = '';
     document.addEventListener('keydown', (e) => {
@@ -4614,6 +4616,7 @@
       if (k.length === 1 && k >= 'a' && k <= 'z') {
         buf = (buf + k).slice(-4);
         if (buf === 'test') { buf = ''; enterTestMode(); }
+        else if (buf === 'quad') { buf = ''; enterOnlineTestMode(); }
       }
     });
   })();
@@ -4926,6 +4929,9 @@
 
   // 当前联机会话（null = 不在线）
   let onlineState = null;
+  // 联机「四视角测试模式」（暗号 quad 触发）：本机一人持 4 个真人会话、可切换视角逐座出牌，
+  // 用真实后端跑完整联机流程来自测。null = 未开。{ on, code, seats:[{token,playerId,seat}], active }
+  let testMode = null;
 
   const onlineEls = {
     pgoPlayMode: $('gdPgoPlayMode'),
@@ -5329,15 +5335,18 @@
   // ---- polling ----
   async function startOnlinePolling() {
     if (!onlineState || onlineState.polling) return;
-    onlineState.polling = true;
-    while (onlineState && onlineState.polling && onlineState.token) {
+    // 绑定到「这次会话对象」：一旦 onlineState 被整体换掉（如测试模式切视角换成另一座的 token），
+    // 本循环的 myState !== onlineState，会干净地退出，不会与新会话的轮询并存（双轮询）。
+    const myState = onlineState;
+    myState.polling = true;
+    while (myState === onlineState && myState.polling && myState.token) {
       const ctrl = new AbortController();
-      onlineState.pollAbort = ctrl;
+      myState.pollAbort = ctrl;
       const r = await gdApi('state', {
-        qs: { code: onlineState.code, token: onlineState.token, since: onlineState.lastVersion },
+        qs: { code: myState.code, token: myState.token, since: myState.lastVersion },
         signal: ctrl.signal,
       }).catch(() => ({ ok: false, error: 'aborted' }));
-      if (!onlineState || !onlineState.polling) break;
+      if (myState !== onlineState || !myState.polling) break;
       if (r.ok && r.data) {
         applyServerOnlineState(r.data);
       } else if (r.status === 403 || r.status === 404) {
@@ -5351,7 +5360,7 @@
         await new Promise(rs => setTimeout(rs, 1500));
       }
     }
-    if (onlineState) { onlineState.polling = false; onlineState.pollAbort = null; }
+    if (myState === onlineState) { myState.polling = false; myState.pollAbort = null; }
   }
   function stopOnlinePolling() {
     if (onlineState) {
@@ -5365,6 +5374,147 @@
     if (onlineState && onlineState.pollAbort) {
       try { onlineState.pollAbort.abort(); } catch {}
     }
+  }
+
+  // ===========================================================
+  //  四视角测试模式（暗号 quad）
+  //  在真实后端建一个「4 个真人」的房间，本机一人持有全部 4 个会话 token。
+  //  底部一条测试条可在 4 个座位的视角间切换，逐座出牌——等于一个人扮演四家，
+  //  用完整的服务器权威联机流程（轮询 / 自视角旋转 / 出牌 / 进贡 / 换局）自测正确性。
+  //  设计：每个座位是独立 onlineState（自己的 token / mySeat）；切视角 = 换 onlineState +
+  //  重新拉该座视图渲染。游戏开始后牌桌 UI 与单机/普通联机完全一致，只多这条测试条。
+  // ===========================================================
+  function makeTestOnlineState(seatInfo) {
+    return {
+      code: testMode.code,
+      token: seatInfo.token,
+      playerId: seatInfo.playerId,
+      isHost: seatInfo.seat === 0,
+      mySeat: seatInfo.seat,
+      lastVersion: 0,
+      polling: false,
+      pollAbort: null,
+      players: [],
+      hostPlayerId: null,
+      config: null,
+      srvState: 'lobby',          // 故意置 lobby：让 applyServerOnlineState 对已 playing 的房触发进牌桌
+      swapSelected: null,
+      swapPending: null,
+      _animating: false,
+      _swapPhase: null,
+      _expectedVersion: 0,
+      _revealPending: false,      // 测试房已自动开局，不再回到大厅
+      _autoSatTried: true,
+      _startedTransition: false,
+      _netGameReady: false,
+      _isTest: true,
+    };
+  }
+
+  async function enterOnlineTestMode() {
+    if (testMode) { toast('已在测试模式'); return; }
+    if (onlineState) { try { await leaveRoom(true); } catch {} }
+    onlineSessionClear();        // 别让历史真实联机会话在重载时干扰
+    toast('正在搭建 4 人测试房…');
+    const base = gdGetDeviceId();
+    // 测试房关掉出牌计时（turnSec:0），免得切视角时本人被超时自动出牌打断手测
+    const opts = Object.assign({}, normalizeOptions(state.options), { turnSec: 0 });
+    try {
+      const c = await gdApi('create', { body: { nick: '测试·1', deviceId: base + '-t0', config: { aiLevel: state.aiLevel, options: opts } } });
+      if (!c.ok) throw new Error(c.error || 'create_failed');
+      const code = c.data.code;
+      const seats = [{ token: c.data.playerToken, playerId: c.data.playerId, seat: 0 }];
+      for (let i = 1; i < 4; i++) {
+        const j = await gdApi('join', { body: { code, nick: '测试·' + (i + 1), deviceId: base + '-t' + i } });
+        if (!j.ok) throw new Error(j.error || 'join_failed');
+        const token = j.data.playerToken;
+        const sr = await gdApi('sit', { body: { code, token, seat: i } });
+        if (!sr.ok) throw new Error(sr.error || 'sit_failed');
+        seats.push({ token, playerId: j.data.playerId, seat: i });
+      }
+      const st = await gdApi('start', { body: { code, token: seats[0].token } });
+      if (!st.ok) throw new Error(st.error || 'start_failed');
+      testMode = { on: true, code, seats, active: 0 };
+      await switchTestSeat(0);
+      toast('测试模式就绪：座1 视角，▶ 标记当前该出牌的座位');
+    } catch (e) {
+      testMode = null;
+      toast('测试房搭建失败：' + ((e && e.message) || e));
+    }
+  }
+
+  async function switchTestSeat(i) {
+    if (!testMode) return;
+    stopOnlinePolling();
+    testMode.active = i;
+    onlineState = makeTestOnlineState(testMode.seats[i]);
+    renderTestSwitcher();
+    const r = await gdApi('state', { qs: { code: testMode.code, token: onlineState.token, since: 0 } });
+    if (!testMode) return;                          // 切换途中退出了
+    if (r.ok && r.data) applyServerOnlineState(r.data);
+    startOnlinePolling();
+    renderTestSwitcher();
+  }
+
+  async function exitOnlineTestMode() {
+    const tm = testMode;
+    testMode = null;
+    const bar = document.getElementById('gdTestBar');
+    if (bar) bar.remove();
+    stopOnlinePolling();
+    if (tm && tm.seats && tm.seats[0]) {           // 用房主 token 解散整间测试房
+      try { await gdApi('leave', { body: { code: tm.code, token: tm.seats[0].token, dissolveOnLeave: true } }); } catch {}
+    }
+    onlineState = null;
+    state.isNetworked = false;
+    clearSession();
+    if (onlineEls.lobby) { onlineEls.lobby.hidden = true; onlineEls.lobby.classList.remove('starting'); }
+    if (els.table) els.table.classList.remove('gd-in-lobby');
+    showPgo();
+    toast('已退出测试模式');
+  }
+
+  // 底部测试条：4 个视角按钮（高亮当前视角、▶ 标记当前该出牌的座位）+ 退出。
+  function renderTestSwitcher() {
+    if (!testMode) { const ex = document.getElementById('gdTestBar'); if (ex) ex.remove(); return; }
+    let bar = document.getElementById('gdTestBar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'gdTestBar';
+      bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:6px;z-index:100000;' +
+        'display:flex;gap:6px;align-items:center;background:rgba(20,20,28,.92);color:#fff;' +
+        'padding:5px 9px;border-radius:999px;font-size:13px;box-shadow:0 2px 12px rgba(0,0,0,.45);' +
+        '-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);';
+      document.body.appendChild(bar);
+    }
+    // 当前该出牌的座位（绝对座位号）：仅出牌阶段标。state.turn 是自视角本地座，换回绝对座。
+    let serverTurn = -1;
+    if (state.phase === PHASE.PLAYING && onlineState && typeof onlineState.mySeat === 'number') {
+      serverTurn = (state.turn + onlineState.mySeat) % 4;
+    }
+    bar.innerHTML = '';
+    const lbl = document.createElement('span');
+    lbl.textContent = '🔬';
+    lbl.style.cssText = 'margin-right:1px;';
+    bar.appendChild(lbl);
+    for (let i = 0; i < 4; i++) {
+      const isActive = i === testMode.active;
+      const isTurn = i === serverTurn;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = '座' + (i + 1) + (isTurn ? ' ▶' : '');
+      b.style.cssText = 'border:none;border-radius:999px;padding:4px 9px;cursor:pointer;font:600 13px/1 inherit;' +
+        (isActive ? 'background:#e8b84b;color:#1a1a1a;' : 'background:rgba(255,255,255,.14);color:#fff;') +
+        (isTurn && !isActive ? 'box-shadow:0 0 0 2px #4ade80;' : '');
+      b.onclick = () => { if (i !== testMode.active) switchTestSeat(i); };
+      bar.appendChild(b);
+    }
+    const ex = document.createElement('button');
+    ex.type = 'button';
+    ex.textContent = '退出';
+    ex.style.cssText = 'border:none;border-radius:999px;padding:4px 9px;cursor:pointer;font:600 13px/1 inherit;background:rgba(255,90,90,.85);color:#fff;margin-left:3px;';
+    ex.onclick = exitOnlineTestMode;
+    bar.appendChild(ex);
   }
 
   function applyServerOnlineState(srv) {
