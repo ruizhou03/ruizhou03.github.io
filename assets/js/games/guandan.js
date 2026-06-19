@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.19.mp12';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.19.mp13';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -2200,7 +2200,7 @@
     // 一次算完、并到同一帧下发；这里不一次铺好，而是保留上帧桌面、按座次一家家亮(每家隔 OPP_REVEAL_GAP，
     // 含「不出」)，仿单机 scheduleAI 的思考停顿。收圈停留：让赢这圈的牌多停留 TRICK_HOLD_MS 再清桌(对齐单机 800ms)。
     // 任何更新的服务端帧都会作废在途定时器、以最新权威态收尾；round_end/tribute/测试模式 一律即时铺好。
-    const OPP_REVEAL_GAP = 480;   // 逐家亮牌间隔(ms)
+    const OPP_REVEAL_GAP = 100;   // 逐家亮牌间隔(ms)
     const TRICK_HOLD_MS = 700;    // 收圈赢牌停留(ms)
     const _lpKey = (p) => (p === 'pass') ? 'pass' : (p && p.cards) ? p.cards.slice().sort((a, b) => a - b).join(',') : '';
     // 这一帧「新出现的别家出牌」(座 1..3、有真出牌或不出、且与上帧不同值)——我自己(座0)已乐观渲染，不在此列。
