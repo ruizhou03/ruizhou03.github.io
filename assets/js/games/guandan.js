@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.19.mp10';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.19.mp11';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -3110,18 +3110,21 @@
   function playBombFx(seat, combo) {
     const slot = seatEls[seat].play;
     if (!slot) return;
+    // 张数：单机 classify() 的 combo 带 .len；联机服务端下发的 lastPlay 只有 {type,cards}（无 len，
+    // 见 guandan-engine viewForSeat）——所以联机里别家炸弹要从 cards 数出张数，否则横幅会显示「undefined 张炸弹」。
+    const n = (combo.len != null) ? combo.len : (combo.cards ? combo.cards.length : 0);
     let cls = 'fx-bomb';
-    let banner = combo.len + ' 张炸弹';
+    let banner = n + ' 张炸弹';
     if (combo.type === T.STR_FLUSH) { cls = 'fx-strflush'; banner = '同花顺'; }
     else if (combo.type === T.JOKER_BOMB) { cls = 'fx-jokerbomb'; banner = '天王炸'; }
-    else if (combo.len >= 6) banner = combo.len + ' 张炸';
+    else if (n >= 6) banner = n + ' 张炸';
     slot.classList.remove('fx-bomb', 'fx-strflush', 'fx-jokerbomb');
     // 强制 reflow 让动画能重新触发
     void slot.offsetWidth;
     slot.classList.add(cls);
     setTimeout(() => slot.classList.remove(cls), 1100);
     // 整桌震屏：仅天王炸 / 6+ 张炸 / 同花顺
-    const big = combo.type === T.JOKER_BOMB || combo.type === T.STR_FLUSH || combo.len >= 6;
+    const big = combo.type === T.JOKER_BOMB || combo.type === T.STR_FLUSH || n >= 6;
     if (big && els.table) {
       els.table.classList.remove('mega-quake');
       void els.table.offsetWidth;
@@ -3316,7 +3319,7 @@
     const showPanel = (matchWon && isNetworked())
       ? () => endMatch(winTeam)
       : () => showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon);
-    const hasReveal = [1, 2, 3].some(s => state.hands[s] && state.hands[s].length > 0 && state.hands[s][0] !== -1);
+    const hasReveal = [0, 1, 2, 3].some(s => state.hands[s] && state.hands[s].length > 0 && state.hands[s][0] !== -1);
     if (hasReveal) setTimeout(showPanel, REVEAL_HOLD_MS);
     else showPanel();
     saveSession();
