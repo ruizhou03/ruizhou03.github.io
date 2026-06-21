@@ -957,6 +957,14 @@ body_class: gd-game-fullscreen
     border-color: #e5b500;
     box-shadow: 0 0 0 3px rgba(229,181,0,0.35);
   }
+  /* 已选中某玩家、房主可点的空座 = 移动目标：虚线金框 + 轻微高亮，提示「点这把他移过来」 */
+  .gd-lobby-seat.empty.move-target {
+    outline: 2px dashed rgba(229,181,0,0.7);
+    outline-offset: -4px;
+    border-radius: 14px;
+    background: rgba(229,181,0,0.08);
+  }
+  .gd-lobby-seat.empty.move-target .nick { color: #b8860b; font-weight: 600; }
   /* 座位"内容"包装层：头像/昵称/徽章/操作按钮 都装在里面，方便用 transform 做 FLIP
      交换动画（换座位）+ 开局旋转动画。cell 本身的 absolute 定位不动，避免父级 layout
      抖动；只让 inner 在 cell 内 translate 即可。默认无 transition —— JS 临时加。 */
@@ -2391,4 +2399,4 @@ body_class: gd-game-fullscreen
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
 <script src="/assets/js/games/guandan-dmc.js?v=20260616int8"></script>
-<script src="/assets/js/games/guandan.js?v=20260621mp16"></script>
+<script src="/assets/js/games/guandan.js?v=20260621mp17"></script>

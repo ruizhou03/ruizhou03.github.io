@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.21.mp16';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.21.mp17';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -5917,11 +5917,48 @@
       }
     });
   }
-  // 大厅现在就是「自视角」渲染（我恒在 bottom，见 displayIdxForSeat），开局不再需要把我从
-  // 侧/顶滑到 south——大厅座位本就落在与牌桌一致的位置。旧的 FLIP「滑到 south」动画在自视角
-  // 大厅下会按 mySeat 二次旋转、把座位甩错，故停用，直接收尾。保留函数名给调用处。
+  // 开局衔接动画：大厅按「锚点」渲染（你可能被挪到了侧/顶），对局则恒「自己在底部」。开局时把四家座位
+  // 从锚点朝向 FLIP 平移到「自己在底部」朝向，再进牌桌——你能看到自己滑到底部，而不是凭空跳过去。
+  // 已在底部(锚点==mySeat 或没动过) → 直接收尾。兜底定时器保证 callback 必定只触发一次、对局必开。
   function rotateLobbyToSouth(callback) {
-    callback();
+    let done = false;
+    const finish = () => { if (done) return; done = true; callback(); };
+    if (!onlineState || typeof onlineState.mySeat !== 'number') { finish(); return; }
+    const anchor = (typeof onlineState._lobbyAnchor === 'number') ? onlineState._lobbyAnchor : onlineState.mySeat;
+    if (anchor === onlineState.mySeat || onlineState._swapPhase === 'animating') { finish(); return; }
+    // 1) 记下各家 seat-inner 当前(锚点朝向)位置
+    const oldRects = {};
+    for (let s = 0; s < 4; s++) {
+      const cell = displayCellForSeat(s);
+      const inner = cell && cell.querySelector('.seat-inner');
+      if (inner) oldRects[s] = inner.getBoundingClientRect();
+    }
+    // 2) 锚点改成 mySeat（自己落底）→ 重渲染到新朝向
+    onlineState._lobbyAnchor = onlineState.mySeat;
+    renderLobbyOptimistic();
+    // 3) FLIP：每家从旧位置平移回当前位置（identity），形成「转到自己在底部」的滑动
+    let pending = 0;
+    for (let s = 0; s < 4; s++) {
+      const cell = displayCellForSeat(s);
+      const inner = cell && cell.querySelector('.seat-inner');
+      const oldR = oldRects[s];
+      if (!inner || !oldR) continue;
+      const newR = inner.getBoundingClientRect();
+      const dx = oldR.left - newR.left, dy = oldR.top - newR.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+      pending++;
+      inner.style.transition = 'none';
+      inner.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      void inner.offsetWidth;   // 强制 reflow，让起点生效
+      inner.style.transition = 'transform 0.52s cubic-bezier(.22,.61,.36,1)';
+      inner.style.transform = '';
+      inner.addEventListener('transitionend', () => {
+        inner.style.transition = ''; inner.style.transform = '';
+        if (--pending === 0) finish();
+      }, { once: true });
+    }
+    if (pending === 0) finish();
+    else setTimeout(finish, 650);   // 兜底：动画没正常收尾也照常开局
   }
   // 交换两座的 FLIP 动画：cell 本身不动，只动两个 seat-inner —— 各自从对方的旧位置
   // 平移到自己的当前位置（identity），用 transform transition 回 0 形成滑动效果。
@@ -5967,12 +6004,17 @@
   const LOBBY_POSITIONS = ['bottom', 'right', 'top', 'left'];
   const LOBBY_AI_ICONS = ['🤖', '🦊', '🤝', '🐱'];
 
-  // 给定 server seat 号，返回它当前应该落在哪个 display cell（DOM 元素）。自视角：mySeat → bottom。
+  // 给定 server seat 号，返回它当前应该落在哪个 display cell（DOM 元素）。
+  // 大厅用「锚点」而非当前座：第一次有座位时记下锚点，之后换座/被移动都以锚点为准——画面不再随当前座
+  // 旋转，所以你能看到自己被挪到新位置（而不是被转回底部）。开局时才由 rotateLobbyToSouth 转到「自己在底部」
+  // 的对局视角。（对局中渲染走另一套 rotateGvToSelf，恒以 mySeat 为底，与此无关。）
   function displayIdxForSeat(s) {
     if (!onlineState) return s;
-    const mySeat = (typeof onlineState.mySeat === 'number') ? onlineState.mySeat : null;
-    if (mySeat == null) return s;          // 还没落座：绝对映射（抢座前不乱跳）
-    return (s - mySeat + 4) % 4;           // 自视角：我恒在 bottom，队友在 top，两对手在 left/right
+    if (onlineState._lobbyAnchor == null && typeof onlineState.mySeat === 'number') onlineState._lobbyAnchor = onlineState.mySeat;
+    const anchor = (typeof onlineState._lobbyAnchor === 'number') ? onlineState._lobbyAnchor
+                 : ((typeof onlineState.mySeat === 'number') ? onlineState.mySeat : null);
+    if (anchor == null) return s;          // 还没落座：绝对映射（抢座前不乱跳）
+    return (s - anchor + 4) % 4;
   }
   function displayCellForSeat(s) {
     const idx = displayIdxForSeat(s);
@@ -6032,15 +6074,26 @@
         nick.className = 'nick';
         const badges = document.createElement('div');
         badges.className = 'badges';
-        // 谁能点这个空座：
-        //   - 房主：随时可坐（也是房主换座的唯一方式 = 直接点目标空座）
-        //   - 非房主：只有 mySeat == null（还没初次入座）时能坐
-        const canSit = isHost || (mySeatRaw == null);
-        if (canSit) {
-          nick.textContent = '坐下';
-          const sit = () => sendSit(s);
-          av.addEventListener('click', sit);
-          nick.addEventListener('click', sit);
+        // 谁能点这个空座、点了干嘛：
+        //   - 房主：已选中某玩家头像 → 把那个玩家移到这个空座（含移房主自己）；没选中 → 提示先选头像。
+        //   - 非房主、还没初次入座(mySeat==null) → 自己坐到这（初次落座，旧行为）。
+        //   - 其余(非房主已坐) → 虚位，不可点。
+        const hostSel = (typeof onlineState.swapSelected === 'number' && seatedMap[onlineState.swapSelected]) ? onlineState.swapSelected : null;
+        const canInteract = isHost || (mySeatRaw == null);
+        if (canInteract) {
+          nick.textContent = isHost ? (hostSel != null ? '移到这' : '空位') : '坐下';
+          if (isHost && hostSel != null) cell.classList.add('move-target');
+          const onEmpty = () => {
+            if (isHost) {
+              const sel = (typeof onlineState.swapSelected === 'number' && seatedMap[onlineState.swapSelected]) ? onlineState.swapSelected : null;
+              if (sel != null) sendMoveSeat(sel, s);
+              else toast('先点一个玩家头像，再点空位把他移过去');
+            } else if (mySeatRaw == null) {
+              sendSit(s);
+            }
+          };
+          av.addEventListener('click', onEmpty);
+          nick.addEventListener('click', onEmpty);
         } else {
           nick.textContent = '虚位';
           av.style.cursor = 'default';
@@ -6232,6 +6285,26 @@
       if (onlineState) onlineState._autoSatTried = false;
       toast(errText(r.error));
     } else applyActionResult(r);
+  }
+  // 房主把已选中的玩家(头像金边)移到一个【空】座 —— 含移房主自己。锚点不变 → 画面不旋，被移的人挪到新格。
+  async function sendMoveSeat(fromSeat, toSeat) {
+    if (!onlineState || !onlineState.isHost || fromSeat === toSeat) return;
+    clearSwapTimers();
+    onlineState.swapSelected = null;
+    onlineState.swapPending = null;
+    onlineState._swapPhase = null;
+    onlineState._animating = false;
+    const snap = applyOptimistic(players => {
+      const mover = players.find(p => typeof p.seat === 'number' && p.seat === fromSeat);
+      if (mover) mover.seat = toSeat;
+    });
+    // 移的是房主自己 → 同步 mySeat（锚点不变 → 不旋转、自己挪到新格）
+    const meNow = (onlineState.players || []).find(p => p.id === onlineState.playerId);
+    if (meNow && typeof meNow.seat === 'number') onlineState.mySeat = meNow.seat;
+    renderLobbyOptimistic();
+    const r = await gdApi('move_seat', { body: { code: onlineState.code, token: onlineState.token, seatFrom: fromSeat, seatTo: toSeat } });
+    if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
+    else applyActionResult(r);
   }
   async function sendAddAi(seat) {
     if (!onlineState) return;
