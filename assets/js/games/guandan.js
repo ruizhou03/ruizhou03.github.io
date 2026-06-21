@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.21.mp14';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.21.mp15';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -2120,6 +2120,15 @@
     // 接风事件的 from/to 是绝对座位，旋转成自视角本地座（partnerHand 是「我队友的手牌」，
     // 天然落本地座 2、值不需旋转，靠 Object.assign 原样带过）。
     if (gv.jiefeng) r.jiefeng = { from: L(gv.jiefeng.from), to: L(gv.jiefeng.to), seq: gv.jiefeng.seq };
+    // 步进 trail：每帧快照都是绝对座位，整列旋转成自视角本地座，供客户端按节奏回放。
+    if (Array.isArray(gv.trail)) r.trail = gv.trail.map(st => Object.assign({}, st, {
+      seat: L(st.seat),
+      turn: L(st.turn),
+      lastPlay: Array.isArray(st.lastPlay) ? rotArr4(st.lastPlay) : st.lastPlay,
+      counts: Array.isArray(st.counts) ? rotArr4(st.counts) : st.counts,
+      out: Array.isArray(st.out) ? st.out.map(L) : st.out,
+      jiefeng: st.jiefeng ? { from: L(st.jiefeng.from), to: L(st.jiefeng.to), seq: st.jiefeng.seq } : null,
+    }));
     return r;
   }
   function startNetworkedGame(gv) {
@@ -2166,8 +2175,6 @@
     // 永不弹、牌面卡住、像「出完牌又被要求出牌、反复结束不了」。round_end/match_end 不复位
     // （否则长轮询重放同一终局态会重复结算）。
     if (gv.phase === 'playing' || gv.phase === 'tribute') { state._endHandled = false; state._matchEnded = false; }
-    // 「逐家亮牌」要用上一帧各家张数——必须在下面用 gv.counts 覆盖前先抓一份（亮到谁再把谁的背牌堆减下去）。
-    const _prevCounts = [0, 1, 2, 3].map(s => (state.hands[s] ? state.hands[s].length : 0));
     state.hands[0] = gv.myHand.slice();
     for (let s = 1; s < 4; s++) {
       const want = (gv.counts && gv.counts[s]) || 0;
@@ -2195,23 +2202,16 @@
       bestSeat: gv.trick ? gv.trick.bestSeat : -1,
       passes: gv.trick ? gv.trick.passes : 0,
     };
-    // ——「桌面如何上」由下方出牌阶段分支决定：即时铺好 / 逐家亮牌 / 收圈停留。此处先备好判定量。——
-    // 逐家亮牌(修「联机别家/AI 的牌一帧全弹出、瞬间到位、体感很怪」)：服务端 advanceAi 把我这手之后的多家
-    // 一次算完、并到同一帧下发；这里不一次铺好，而是保留上帧桌面、按座次一家家亮(每家隔 _revealGap()，
-    // 含「不出」)，仿单机 scheduleAI 的思考停顿。收圈停留：让赢这圈的牌多停留 TRICK_HOLD_MS 再清桌(对齐单机 800ms)。
-    // 任何更新的服务端帧都会作废在途定时器、以最新权威态收尾；round_end/tribute/测试模式 一律即时铺好。
-    // 逐家亮牌间隔：随机化(仿单机 scheduleAI 的 360+rand*320)——固定值读起来机械/像瞬间，
-    // 随机的「思考时长」才有真打牌的呼吸感。范围 ~300-580ms：比单机略快、又明显有停顿。
-    const _revealGap = () => 300 + Math.random() * 280;
-    const TRICK_HOLD_MS = 700;    // 收圈赢牌停留(ms)
-    const _lpKey = (p) => (p === 'pass') ? 'pass' : (p && p.cards) ? p.cards.slice().sort((a, b) => a - b).join(',') : '';
-    // 这一帧「新出现的别家出牌」(座 1..3、有真出牌或不出、且与上帧不同值)——我自己(座0)已乐观渲染，不在此列。
-    const _revealSeats = [1, 2, 3].filter(s => _nextLastPlay[s] && _lpKey(_nextLastPlay[s]) !== _lpKey(_prevLastPlay[s]));
-    // 收圈帧：上帧桌上有真牌、这帧 lastPlay 全空、且本圈最大由有变无。
-    const _prevHadRealPlay = _prevLastPlay.some(p => p && p !== 'pass');
-    const _isTrickClear = _nextLastPlay.every(p => !p) && _prevHadRealPlay
-      && !!(state.trick && state.trick.best) && !_nextTrick.best;
-    // 新帧到来：作废在途的逐家亮牌/收圈停留定时器（本帧最终态权威，必收尾到 _nextLastPlay）。
+    // ——「桌面如何上」：服务端把一次提交后自动跑完的多步(别家出牌/不出/收圈/新领出)逐帧记进 gv.trail，
+    // 这里按节奏逐帧回放——否则只能看到最终态，看不到别人「不出」、看不到收圈清桌、AI 像瞬间出牌。
+    // 回放间隔随机化(仿单机 scheduleAI 的思考停顿)：固定值读起来机械/像瞬间，随机才有打牌呼吸感。
+    const _revealGap = () => 300 + Math.random() * 280;   // ~300-580ms
+    const _trail = Array.isArray(gv.trail) ? gv.trail : [];
+    const _trailMaxSeq = _trail.length ? _trail[_trail.length - 1].tseq : 0;
+    // 新一局：trailCounter 每局从 0 重数 → 收到比本地游标小的 tseq 说明换局了，复位游标从头重放。
+    if (_trailMaxSeq < (state._lastTrailSeq || 0)) state._lastTrailSeq = 0;
+    const _trailNew = _trail.filter(st => st.tseq > (state._lastTrailSeq || 0));
+    // 新帧到来：作废在途的回放定时器（本帧最终态权威，必收尾到 _nextLastPlay）。
     const _tableGen = (state._tableGen = (state._tableGen || 0) + 1);
     if (state._tableTimer) { clearTimeout(state._tableTimer); state._tableTimer = null; state.busy = false; }
     let _deferredTable = false;
@@ -2247,8 +2247,8 @@
       }
     }
 
-    // 「即时铺好」最终桌面（round_end/match_end/tribute/无节奏的出牌帧 共用）。
-    const _applyTableNow = () => { state.lastPlay = _nextLastPlay.slice(); state.trick = _nextTrick; state.turn = gv.turn; };
+    // 「即时铺好」最终桌面（round_end/match_end/tribute/无新步可回放的出牌帧 共用）；并把回放游标推到最新。
+    const _applyTableNow = () => { state.lastPlay = _nextLastPlay.slice(); state.trick = _nextTrick; state.turn = gv.turn; state._lastTrailSeq = _trailMaxSeq; };
     // 把被延后的别家张数恢复到权威值（仅占位 -1 / 空的座，不动真牌如旁观队友手牌）。
     const _settleCount = (s) => {
       if (state.hands[s] && (state.hands[s].length === 0 || state.hands[s][0] === -1)) {
@@ -2280,65 +2280,51 @@
           sendNetworkedTribute('return', card);
         }, 20000);
       }
-    } else if (!testMode && _revealSeats.length) {
-      // 出牌阶段·逐家亮牌：保留上帧桌面（含我刚乐观出的那手），按座次一家家亮出别家这帧的新出牌。
+    } else if (!testMode && gv.phase === 'playing' && _trailNew.length > 1) {
+      // 出牌阶段·逐帧回放：把服务端这次跑出的多步(别家出牌/不出/收圈/新领出)按节奏一帧帧放出来——
+      // 看得到别人「不出」、看得到收圈清桌、AI 不再瞬间到位。第一帧立即上(动作低延迟)，其余按 _revealGap 间隔。
       _deferredTable = true;
       stopTurnClock();
-      state.lastPlay = _prevLastPlay.slice();
-      for (let s = 1; s < 4; s++) if (!_revealSeats.includes(s)) state.lastPlay[s] = _nextLastPlay[s];
-      // 待亮的别家张数先维持上帧（占位座才动；旁观队友真牌不动），亮到谁再减谁。
-      for (const s of _revealSeats) if (state.hands[s] && state.hands[s][0] === -1) state.hands[s] = new Array(_prevCounts[s]).fill(-1);
       state.busy = true;
-      closeEndOverlays();
-      renderAll();
-      updateActions();
-      let _i = 0;
-      const _revealStep = () => {
-        if (!state.isNetworked || state._tableGen !== _tableGen) return;   // 已离线 / 被更新的帧接管
-        if (_i >= _revealSeats.length) {
-          state._tableTimer = null;
-          _applyTableNow();
-          for (const s of _revealSeats) _settleCount(s);
-          state.busy = false;
-          renderAll(); saveSession(); updateActions(); armTurnClock();
-          if (gv.jiefeng && gv.jiefeng.seq !== state._lastJiefengSeq) {
-            state._lastJiefengSeq = gv.jiefeng.seq; showJiefengFx(gv.jiefeng.from, gv.jiefeng.to);
+      const applyTrailStep = (st) => {
+        state.lastPlay = Array.isArray(st.lastPlay) ? st.lastPlay.slice() : [null, null, null, null];
+        if (Array.isArray(st.out)) state.out = st.out.slice();
+        state.turn = st.turn;
+        state._lastTrailSeq = st.tseq;
+        // 各家张数随快照同步缩减（仅占位 -1/空的座，不动旁观队友真牌）
+        for (let s = 1; s < 4; s++) {
+          if (state.hands[s] && (state.hands[s].length === 0 || state.hands[s][0] === -1)) {
+            state.hands[s] = new Array((st.counts && st.counts[s]) || 0).fill(-1);
           }
+        }
+        renderAll();
+        const lp = state.lastPlay[st.seat];   // 这家若是炸弹：亮牌即放特效（_bombFxKey 去重，我乐观放过的不重放）
+        if (lp && lp !== 'pass' && isBombType(lp.type)) {
+          const k = bombFxKey(st.seat, lp.cards);
+          if (k !== state._bombFxKey) { state._bombFxKey = k; playBombFx(st.seat, lp); }
+        }
+        if (st.jiefeng && st.jiefeng.seq !== state._lastJiefengSeq) {   // 收圈带接风：放接风特效
+          state._lastJiefengSeq = st.jiefeng.seq; showJiefengFx(st.jiefeng.from, st.jiefeng.to);
+        }
+      };
+      closeEndOverlays();
+      applyTrailStep(_trailNew[0]);   // 第一帧立即上（动作低延迟）
+      updateActions();
+      let _i = 1;
+      const stepNext = () => {
+        if (!state.isNetworked || state._tableGen !== _tableGen) return;   // 已离线 / 被更新的帧接管
+        if (_i >= _trailNew.length) {
+          state._tableTimer = null;
+          state.busy = false;
+          _applyTableNow();                          // 收尾到权威最终态
+          for (let s = 1; s < 4; s++) _settleCount(s);
+          renderAll(); saveSession(); updateActions(); armTurnClock();
           return;
         }
-        const s = _revealSeats[_i++];
-        state.lastPlay[s] = _nextLastPlay[s];
-        _settleCount(s);
-        state.turn = s;                  // 高亮「正在出牌的这家」
-        renderAll();
-        const lp = state.lastPlay[s];     // 这家若是炸弹，亮牌即放特效（_bombFxKey 去重，不与最终态重放）
-        if (lp && lp !== 'pass' && isBombType(lp.type)) {
-          const k = bombFxKey(s, lp.cards);
-          if (k !== state._bombFxKey) { state._bombFxKey = k; playBombFx(s, lp); }
-        }
-        state._tableTimer = setTimeout(_revealStep, _revealGap());
+        applyTrailStep(_trailNew[_i++]);
+        state._tableTimer = setTimeout(stepNext, _revealGap());
       };
-      state._tableTimer = setTimeout(_revealStep, _revealGap());
-    } else if (!testMode && _isTrickClear) {
-      // 出牌阶段·收圈停留：保留赢这圈的那一手 TRICK_HOLD_MS 再清桌，对齐单机 afterMove 的 800ms 缓冲。
-      _deferredTable = true;
-      state.lastPlay = _prevLastPlay.slice();
-      state.trick = { lead: _nextTrick.lead, best: state.trick ? state.trick.best : null,
-                      bestSeat: state.trick ? state.trick.bestSeat : -1, passes: _nextTrick.passes };
-      state.busy = true;                 // 停留期间挡住操作，对齐单机收圈缓冲
-      closeEndOverlays();
-      renderAll();
-      updateActions();
-      state._tableTimer = setTimeout(() => {
-        if (!state.isNetworked || state._tableGen !== _tableGen) return;
-        state._tableTimer = null;
-        state.busy = false;
-        _applyTableNow();
-        renderAll(); saveSession(); updateActions(); armTurnClock();
-        if (gv.jiefeng && gv.jiefeng.seq !== state._lastJiefengSeq) {
-          state._lastJiefengSeq = gv.jiefeng.seq; showJiefengFx(gv.jiefeng.from, gv.jiefeng.to);
-        }
-      }, TRICK_HOLD_MS);
+      state._tableTimer = setTimeout(stepNext, _revealGap());
     } else {
       // 出牌阶段·即时铺好（无新别家出牌 / 测试模式 / 非收圈：如我自己刚出、单纯轮次推进、初始帧、切座快照）。
       _applyTableNow();
