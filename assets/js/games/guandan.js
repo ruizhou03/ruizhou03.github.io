@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.21.mp15';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.21.mp16';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -2129,6 +2129,13 @@
       out: Array.isArray(st.out) ? st.out.map(L) : st.out,
       jiefeng: st.jiefeng ? { from: L(st.jiefeng.from), to: L(st.jiefeng.to), seq: st.jiefeng.seq } : null,
     }));
+    // 进贡/还贡完成事件：座位旋成自视角本地座（牌值不旋）。
+    if (gv.tributeReveal) {
+      const tr = gv.tributeReveal;
+      r.tributeReveal = (tr.kind === 'swap')
+        ? { kind: 'swap', pairs: (tr.pairs || []).map(p => ({ giver: L(p.giver), receiver: L(p.receiver), tributeCard: p.tributeCard, returnCard: p.returnCard })) }
+        : { kind: 'resist', seats: (tr.seats || []).map(L) };
+    }
     return r;
   }
   function startNetworkedGame(gv) {
@@ -2211,6 +2218,9 @@
     // 新一局：trailCounter 每局从 0 重数 → 收到比本地游标小的 tseq 说明换局了，复位游标从头重放。
     if (_trailMaxSeq < (state._lastTrailSeq || 0)) state._lastTrailSeq = 0;
     const _trailNew = _trail.filter(st => st.tseq > (state._lastTrailSeq || 0));
+    // 本局进贡/还贡完成事件：内容去重，只在第一帧出牌时演一遍交换/抗贡。
+    const _tribSig = gv.tributeReveal ? JSON.stringify(gv.tributeReveal) : '';
+    const _newTribReveal = !!gv.tributeReveal && _tribSig !== state._lastTributeRevealSig;
     // 新帧到来：作废在途的回放定时器（本帧最终态权威，必收尾到 _nextLastPlay）。
     const _tableGen = (state._tableGen = (state._tableGen || 0) + 1);
     if (state._tableTimer) { clearTimeout(state._tableTimer); state._tableTimer = null; state.busy = false; }
@@ -2279,6 +2289,41 @@
           const card = pickReturnCard(state.hands[0], currentLevelLabel());
           sendNetworkedTribute('return', card);
         }, 20000);
+      }
+    } else if (!testMode && gv.phase === 'playing' && _newTribReveal) {
+      // 出牌阶段第一帧、且带着「本局刚完成的进贡/还贡」事件 → 先演一遍交换/抗贡，再落到当前态开打。
+      // 否则服务端瞬间换完进出牌阶段，谁都看不到进贡过程(用户报告)。sig 在演完才记，确保 POST+SSE 双帧只完整演一次。
+      _deferredTable = true;
+      stopTurnClock();
+      state.busy = true;
+      closeEndOverlays();
+      const _rev = gv.tributeReveal;
+      const _finishReveal = () => {
+        if (!state.isNetworked || state._tableGen !== _tableGen) return;
+        state._tableTimer = null;
+        state._lastTributeRevealSig = _tribSig;   // 演完才记 → 双帧只完整演一次、不被中途取消
+        state.busy = false;
+        _applyTableNow();                          // 收尾回当前权威态（抹掉进贡展示用的临时桌面）
+        for (let s = 1; s < 4; s++) _settleCount(s);
+        renderAll(); saveSession(); updateActions(); armTurnClock();
+      };
+      if (_rev.kind === 'resist') {
+        _applyTableNow();
+        renderAll();
+        const names = (_rev.seats || []).map(s => seatName(s)).join(' & ');
+        showTributeBanner('🛡️ 抗贡成功', (names ? names + ' ' : '') + '握双大王，免进贡', 1900);
+        state._tableTimer = setTimeout(_finishReveal, 2000);
+      } else {
+        // 把交换的两张牌摆到各自出牌区（进/还角标），只显示这桩交换，停留约 1.9s 让人看清。
+        const level = currentLevelLabel();
+        const mkCombo = (card, label) => ({ type: T.SINGLE, cards: [card], key: singleWeight(card, level), bombStrength: 0, tributeLabel: label });
+        state.lastPlay = [null, null, null, null];
+        for (const p of (_rev.pairs || [])) {
+          if (p.tributeCard != null) state.lastPlay[p.giver] = mkCombo(p.tributeCard, '进');
+          if (p.returnCard != null) state.lastPlay[p.receiver] = mkCombo(p.returnCard, '还');
+        }
+        renderAll();
+        state._tableTimer = setTimeout(_finishReveal, 1900);
       }
     } else if (!testMode && gv.phase === 'playing' && _trailNew.length > 1) {
       // 出牌阶段·逐帧回放：把服务端这次跑出的多步(别家出牌/不出/收圈/新领出)按节奏一帧帧放出来——
