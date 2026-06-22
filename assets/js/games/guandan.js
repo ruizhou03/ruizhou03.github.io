@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.21.mp17';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.22.mp18';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -478,9 +478,45 @@
     }
     return d; // 108
   }
+  // ===========================================================
+  //  调试台地基（暗号 dbug 开启；对生产环境零行为影响）
+  // ===========================================================
+  // 1) 可锁定的随机源：生产环境 _gdSeed 恒为 null → gdRandom() 就是 Math.random()，
+  //    发牌行为与改前完全一致。只有调试台锁种子后才切到 mulberry32 PRNG，让「同一
+  //    种子发同一副牌、AI 走同样的步」可复现 —— 用于改 AI 后「改前 vs 改后」逐手对比。
+  //    只有「洗牌发牌」和「首局先手」走 gdRandom（决定局面）；AI 思考延迟等纯动画仍用真随机。
+  let _gdSeed = null;          // null=真随机；非 null=已锁定的种子（uint32）
+  let _gdRngState = 0;
+  function _gdMulberry32() {
+    _gdRngState = (_gdRngState + 0x6D2B79F5) | 0;
+    let t = Math.imul(_gdRngState ^ (_gdRngState >>> 15), 1 | _gdRngState);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  function gdRandom() { return _gdSeed == null ? Math.random() : _gdMulberry32(); }
+  function gdSetSeed(seed) {
+    // seed: 数字 / 数字串 / 任意字符串（哈希成 uint32）；null/'' → 回到真随机
+    if (seed == null || seed === '') { _gdSeed = null; return null; }
+    let s;
+    if (typeof seed === 'number' && isFinite(seed)) s = seed | 0;
+    else {
+      const str = String(seed).trim();
+      if (/^-?\d+$/.test(str)) s = parseInt(str, 10) | 0;
+      else { s = 0; for (let i = 0; i < str.length; i++) s = (Math.imul(s, 31) + str.charCodeAt(i)) | 0; }
+    }
+    _gdSeed = s >>> 0;
+    _gdRngState = _gdSeed | 0;
+    return _gdSeed;
+  }
+  function _gdReseedForMatch() { if (_gdSeed != null) _gdRngState = _gdSeed | 0; }   // 每副重开复位 → 同种子复现
+  // 2) 节奏控制（单步/快进）与 3) AI 透视镜的运行态，默认全关
+  const _gdAiCtl = { mode: 'run', pending: null };   // 'run' | 'fast' | 'step'
+  const _gdXray = { on: false, last: null, log: [] };
+  let _gdPanelOn = false;
+
   function shuffle(a) {
     for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(gdRandom() * (i + 1));
       [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
@@ -2547,6 +2583,7 @@
     // 置 true、此前从无复位），若同一会话先玩过联机再回单机，残留的 true 会让 scheduleAI()
     // 顶部的 `if (isNetworked()) return;` 把 AI 调度整条吞掉 → 轮到 AI 永不出牌、游戏卡死。
     state.isNetworked = false;
+    _gdReseedForMatch();              // 调试台锁了种子 → 每副从同一点复位，发同一副牌（生产无影响）
     state._endHandled = false;        // 复位结算/战报闩（见 endRound / endMatch）
     state._matchEnded = false;
     // 冻结这一盘的玩法设置：只在开新一盘时从可编辑的 options 拷贝一次。
@@ -2605,7 +2642,7 @@
     // （这里的 leader 只是非进贡场景的兜底：传入的是上局头游）
     let leader;
     if (prevRanking && prevRanking.length) leader = prevRanking[0];
-    else leader = Math.floor(Math.random() * 4);   // 首局随机
+    else leader = Math.floor(gdRandom() * 4);   // 首局随机
     state.firstLeader = leader;
 
     // 进贡处理（非首局）
@@ -2757,7 +2794,7 @@
   function seatAvatarFor(s) {
     if (s === 0) return '😎';
     const p = netPlayerForLocalSeat(s);
-    if (p) return p.isAi ? '🤖' : '👤';
+    if (p) return playerAvatarOf(p, false);   // 与大厅同一套稳定头像（真人按服务端下标、AI🤖）
     return '🤖';
   }
 
@@ -3916,8 +3953,7 @@
     renderAll();
     armTurnClock();    // 给当前 AI 座挂时钟
     const seat = state.turn;
-    const delay = 360 + Math.random() * 320;
-    setTimeout(() => {
+    const fire = () => {
       // 先释放 busy ——否则 aiAct → commitPlay → afterMove → scheduleAI 这条链
       // 会被自己的 busy 守卫拦截，导致出完一手就卡住（图五 bug）。
       // aiAct 是同步的，期间没有事件循环让玩家插队，所以释放是安全的。
@@ -3926,7 +3962,17 @@
       try { aiAct(seat); }
       catch (e) { console.error('[guandan] aiAct', e); }
       updateActions();
-    }, delay);
+    };
+    // 调试台「单步」：不自动出，把这一步存起来，等面板点「下一步」再 fire（见 _gdStep）
+    if (_gdAiCtl.mode === 'step') {
+      stopTurnClock();
+      _gdAiCtl.pending = fire;
+      _gdSyncDebugStep();
+      return;
+    }
+    // 「快进」去掉拟人思考延迟；「正常」保留 360-680ms
+    const delay = (_gdAiCtl.mode === 'fast') ? 0 : (360 + Math.random() * 320);
+    setTimeout(fire, delay);
   }
 
   function aiAct(seat) {
@@ -4172,8 +4218,12 @@
         const moves = genMoves(hand, prev, level);
         const selfLv = LEVEL_SEQ[state.levels[seat % 2]];
         const oppoLv = LEVEL_SEQ[state.levels[1 - (seat % 2)]];
-        const pick = GuandanDMC.choose(seat, state.hands, state.out, level, selfLv, oppoLv, moves, leading);
-        if (!(leading && pick == null)) return pick;   // pick=combo 或 null(pass)；只拦「领出却想pass」
+        const dbg = _gdXray.on ? [] : null;   // 透视镜开启时让 DMC 顺手吐出每手 Q 值
+        const pick = GuandanDMC.choose(seat, state.hands, state.out, level, selfLv, oppoLv, moves, leading, dbg);
+        if (!(leading && pick == null)) {     // pick=combo 或 null(pass)；只拦「领出却想pass」
+          if (dbg) _gdRecordXray(seat, prev, leading, level, 'dmc', dbg, pick ? pick.cards : null);
+          return pick;
+        }
       }
     }
     const w = aiWeights();
@@ -4344,19 +4394,23 @@
       const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
       return classify([c], level);
     }
+    const rec = _gdXray.on ? [] : null;   // 透视镜：记下每手的 lookahead / greedy / 混合分
     let bestBlend = -Infinity, bestMove = null;
     for (const m of moves) {
       const lookV = rolloutValue(seat, m, level, depth, myTeam, w);
       const greedyU = moveUtility(m, seat, hand, prev, leading, level, ctx, w);
       const blend = lookV + 0.35 * greedyU;
+      if (rec) rec.push({ cards: m.cards.slice(), type: m.combo.type, len: m.combo.len, look: lookV, greedy: greedyU, score: blend, pass: false });
       if (blend > bestBlend) { bestBlend = blend; bestMove = m; }
     }
     if (!leading) {
       const lookV = rolloutValue(seat, null, level, depth, myTeam, w);
       const passU = moveUtility({ pass: true }, seat, hand, prev, leading, level, ctx, w);
       const blend = lookV + 0.35 * passU;
+      if (rec) rec.push({ cards: [], type: null, len: 0, look: lookV, greedy: passU, score: blend, pass: true });
       if (blend > bestBlend) { bestBlend = blend; bestMove = null; }
     }
+    if (rec) _gdRecordXray(seat, prev, leading, level, 'heuristic', rec, bestMove ? bestMove.cards : null);
     return bestMove ? bestMove.combo : null;
   }
 
@@ -4843,9 +4897,186 @@
         buf = (buf + k).slice(-4);
         if (buf === 'test') { buf = ''; enterTestMode(); }
         else if (buf === 'quad') { buf = ''; enterOnlineTestMode(); }
+        else if (buf === 'dbug') { buf = ''; toggleDebugPanel(); }
       }
     });
   })();
+
+  // ===========================================================
+  //  🛠 调试台（暗号 dbug 切换显隐；仅开发用，对线上真实玩家完全不可见）
+  //  四块能力：① 固定牌局复现(种子)  ② 单步/快进节奏  ③ AI 透视镜(候选+评分)
+  //           ④ 局面注入(导出/导入/替换手牌) + 上帝视角摊牌
+  // ===========================================================
+  function _gdEl(tag, css, text) { const e = document.createElement(tag); if (css) e.style.cssText = css; if (text != null) e.textContent = text; return e; }
+  function _gdBtn(label, css, fn) { const b = _gdEl('button', 'font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid rgba(201,169,110,0.5);background:#f7f2e6;color:#2b2a26;cursor:pointer;' + (css || ''), label); b.addEventListener('click', fn); return b; }
+  function _gdGrp(parent, t) { parent.appendChild(_gdEl('div', 'color:#c9a96e;font-size:10px;margin-top:7px;border-top:1px solid rgba(201,169,110,0.4);padding-top:4px;font-weight:700;', t)); }
+  function _gdCloseOverlays() { ['pgo', 'roundOverlay', 'matchOverlay'].forEach(k => { if (els[k]) els[k].classList.remove('open'); }); }
+
+  function toggleDebugPanel() { if (document.getElementById('gdDbgPanel')) closeDebugPanel(); else buildDebugPanel(); }
+  function closeDebugPanel() { const p = document.getElementById('gdDbgPanel'); if (p) p.remove(); _gdPanelOn = false; }
+
+  function buildDebugPanel() {
+    if (document.getElementById('gdDbgPanel')) return;
+    const p = _gdEl('div', 'position:fixed;right:8px;top:8px;z-index:9998;width:252px;max-height:94vh;overflow:auto;background:rgba(18,26,40,0.95);border:1px solid #c9a96e;border-radius:10px;padding:9px;display:flex;flex-direction:column;gap:5px;font-family:var(--font-body,sans-serif);box-shadow:0 6px 20px rgba(0,0,0,0.5);color:#e8eef5;');
+    p.id = 'gdDbgPanel';
+    const head = _gdEl('div', 'display:flex;align-items:center;justify-content:space-between;');
+    head.appendChild(_gdEl('div', 'color:#f5d142;font-weight:700;font-size:13px;', '🛠 调试台'));
+    head.appendChild(_gdBtn('×', 'padding:0 7px;font-size:14px;line-height:1;', closeDebugPanel));
+    p.appendChild(head);
+
+    // ① 固定牌局（种子）
+    _gdGrp(p, '🎲 固定牌局（种子）');
+    const seedLabel = _gdEl('div', 'font-size:10.5px;'); seedLabel.id = 'gdDbgSeedLabel'; p.appendChild(seedLabel);
+    const seedIn = _gdEl('input', 'width:100%;box-sizing:border-box;font-size:11px;padding:3px 5px;border-radius:5px;border:1px solid #889;background:#0d141f;color:#e8eef5;'); seedIn.id = 'gdDbgSeedInput'; seedIn.placeholder = '种子(数字或任意字串)'; p.appendChild(seedIn);
+    const seedRow = _gdEl('div', 'display:flex;gap:4px;');
+    seedRow.appendChild(_gdBtn('用此种子重开', 'flex:1;', () => { const v = seedIn.value.trim(); if (!v) { toast('请先输入种子'); return; } gdSetSeed(v); _gdCloseOverlays(); _gdAiCtl.pending = null; startMatch(); _gdUpdateSeedLabel(); }));
+    seedRow.appendChild(_gdBtn('🎲随机重开', 'flex:1;', () => { const s = (Math.floor(Math.random() * 4294967295)) >>> 0; gdSetSeed(s); seedIn.value = String(s); _gdCloseOverlays(); _gdAiCtl.pending = null; startMatch(); _gdUpdateSeedLabel(); }));
+    p.appendChild(seedRow);
+    const seedRow2 = _gdEl('div', 'display:flex;gap:4px;');
+    seedRow2.appendChild(_gdBtn('复制种子', 'flex:1;', () => { if (_gdSeed == null) { toast('当前未锁定种子'); return; } try { navigator.clipboard.writeText(String(_gdSeed)); toast('已复制种子 ' + _gdSeed); } catch (e) { toast('复制失败'); } }));
+    seedRow2.appendChild(_gdBtn('清除(真随机)', 'flex:1;', () => { gdSetSeed(null); seedIn.value = ''; _gdUpdateSeedLabel(); toast('已回到真随机'); }));
+    p.appendChild(seedRow2);
+
+    // ② 节奏（单步 / 快进）
+    _gdGrp(p, '⏯ 节奏（单步 / 快进）');
+    const paceRow = _gdEl('div', 'display:flex;gap:4px;');
+    [['正常', 'run'], ['快进', 'fast'], ['单步', 'step']].forEach(([t, m]) => { const b = _gdBtn(t, 'flex:1;', () => { _gdSetAiMode(m); _gdSyncPaceBtns(); }); b.dataset.mode = m; b.className = 'gd-dbg-pace'; paceRow.appendChild(b); });
+    p.appendChild(paceRow);
+    const stepBtn = _gdBtn('▶ 下一步 (AI)', '', _gdStep); stepBtn.id = 'gdDbgStepBtn'; p.appendChild(stepBtn);
+
+    // ③ AI 透视镜
+    _gdGrp(p, '🔬 AI 透视镜');
+    const xrow = _gdEl('div', 'display:flex;gap:4px;');
+    const xbtn = _gdBtn(_gdXray.on ? '透视：开' : '透视：关', 'flex:1;', () => { _gdXray.on = !_gdXray.on; xbtn.textContent = _gdXray.on ? '透视：开' : '透视：关'; xbtn.style.background = _gdXray.on ? '#f5d142' : '#f7f2e6'; _gdRenderXray(); });
+    xbtn.style.background = _gdXray.on ? '#f5d142' : '#f7f2e6'; xrow.appendChild(xbtn);
+    const rvbtn = _gdBtn('摊牌', 'flex:1;', _gdToggleReveal); rvbtn.id = 'gdDbgRevealBtn'; rvbtn.style.background = state.revealHands ? '#f5d142' : '#f7f2e6'; xrow.appendChild(rvbtn);
+    p.appendChild(xrow);
+    const xbody = _gdEl('div', 'font-size:10.5px;background:#0d141f;border-radius:6px;padding:5px;min-height:30px;max-height:38vh;overflow:auto;'); xbody.id = 'gdDbgXrayBody'; p.appendChild(xbody);
+
+    // ④ 局面注入
+    _gdGrp(p, '🧩 局面注入');
+    const ioRow = _gdEl('div', 'display:flex;gap:4px;');
+    ioRow.appendChild(_gdBtn('导出局面', 'flex:1;', _gdExportState));
+    ioRow.appendChild(_gdBtn('导入局面', 'flex:1;', _gdImportState));
+    p.appendChild(ioRow);
+    const ta = _gdEl('textarea', 'width:100%;box-sizing:border-box;height:58px;font-size:9px;font-family:monospace;background:#0d141f;color:#bcd;border:1px solid #889;border-radius:5px;'); ta.id = 'gdDbgIO'; ta.placeholder = '局面 JSON（导出后可手改 hands 再导入）'; p.appendChild(ta);
+    const dealRow = _gdEl('div', 'display:flex;gap:4px;');
+    const sel = _gdEl('select', 'font-size:11px;border-radius:5px;background:#0d141f;color:#e8eef5;border:1px solid #889;');
+    [['我(0)', '0'], ['下家(1)', '1'], ['对家(2)', '2'], ['上家(3)', '3']].forEach(([t, v]) => { const o = _gdEl('option', null, t); o.value = v; sel.appendChild(o); });
+    dealRow.appendChild(sel);
+    const tokIn = _gdEl('input', 'flex:1;min-width:0;font-size:11px;padding:3px 5px;border-radius:5px;border:1px solid #889;background:#0d141f;color:#e8eef5;'); tokIn.placeholder = '如 9 9 9 9 大王'; dealRow.appendChild(tokIn);
+    p.appendChild(dealRow);
+    p.appendChild(_gdBtn('替换该家手牌（调试·不校验张数）', '', () => { _gdDealTokensToSeat(parseInt(sel.value, 10), tokIn.value); }));
+
+    document.body.appendChild(p);
+    _gdPanelOn = true;
+    _gdUpdateSeedLabel(); _gdSyncPaceBtns(); _gdSyncDebugStep(); _gdRenderXray();
+  }
+
+  function _gdUpdateSeedLabel() {
+    const el = document.getElementById('gdDbgSeedLabel'); if (!el) return;
+    el.innerHTML = _gdSeed == null ? '当前：<b style="color:#9bb">未锁定（真随机）</b>' : ('当前种子：<b style="color:#9be39b">' + _gdSeed + '</b>');
+  }
+  function _gdSyncPaceBtns() {
+    const p = document.getElementById('gdDbgPanel'); if (!p) return;
+    p.querySelectorAll('.gd-dbg-pace').forEach(b => { const on = b.dataset.mode === _gdAiCtl.mode; b.style.background = on ? '#f5d142' : '#f7f2e6'; b.style.fontWeight = on ? '700' : '400'; });
+  }
+  function _gdSetAiMode(mode) {
+    _gdAiCtl.mode = mode;
+    // 从单步切回 正常/快进 时，把卡住的那一步放出去
+    if (mode !== 'step' && _gdAiCtl.pending) { const f = _gdAiCtl.pending; _gdAiCtl.pending = null; setTimeout(f, 0); }
+    _gdSyncDebugStep();
+  }
+  function _gdStep() { const f = _gdAiCtl.pending; _gdAiCtl.pending = null; _gdSyncDebugStep(); if (f) f(); }
+  function _gdSyncDebugStep() {
+    const b = document.getElementById('gdDbgStepBtn'); if (!b) return;
+    const armed = _gdAiCtl.mode === 'step' && !!_gdAiCtl.pending;
+    b.disabled = !armed; b.style.opacity = armed ? '1' : '0.4'; b.style.cursor = armed ? 'pointer' : 'default';
+  }
+  function _gdToggleReveal() {
+    state.revealHands = !state.revealHands;
+    const b = document.getElementById('gdDbgRevealBtn'); if (b) b.style.background = state.revealHands ? '#f5d142' : '#f7f2e6';
+    renderAll();
+    toast(state.revealHands ? '已摊开各家余牌' : '已收起摊牌');
+  }
+
+  // ---- AI 透视镜：记录 + 渲染 ----
+  function _gdCardsText(cards) { return (cards && cards.length) ? cards.map(cardText).join(' ') : '—'; }
+  function _gdComboNameOf(m) { return m.pass ? '不出' : comboName({ type: m.type, len: m.len }); }
+  function _gdRecordXray(seat, prev, leading, level, engine, cands, chosenCards) {
+    const sig = a => a.slice().sort((x, y) => x - y).join(',');
+    const chosenSig = chosenCards == null ? 'PASS' : sig(chosenCards);
+    const arr = cands.map(c => Object.assign({}, c, { chosen: (c.pass ? 'PASS' : sig(c.cards)) === chosenSig }));
+    arr.sort((a, b) => b.score - a.score);
+    _gdXray.last = {
+      seat, engine, level, leading,
+      prevText: leading ? '领出' : ('跟 ' + (prev ? (comboName(prev) + ' ' + _gdCardsText(prev.cards)) : '?')),
+      chosenText: chosenCards == null ? '不出 (pass)' : _gdCardsText(chosenCards),
+      ctx: moveContext(seat),
+      cands: arr,
+    };
+    _gdXray.log.unshift(_gdXray.last); if (_gdXray.log.length > 30) _gdXray.log.length = 30;
+    if (_gdPanelOn) _gdRenderXray();
+  }
+  function _gdRenderXray() {
+    const box = document.getElementById('gdDbgXrayBody'); if (!box) return;
+    if (!_gdXray.on) { box.innerHTML = '<div style="opacity:.55">透视已关（开启后每次 AI 出牌会在此列出它考虑过的所有打法 + 评分）</div>'; return; }
+    const rec = _gdXray.last;
+    if (!rec) { box.innerHTML = '<div style="opacity:.55">（等待 AI 出牌…）</div>'; return; }
+    const seatName = ['我(0)', '下家(1)', '对家(2)', '上家(3)'][rec.seat] || ('座' + rec.seat);
+    const eng = rec.engine === 'dmc' ? '神经网络 DanZero' : '启发式 lookahead';
+    const c = rec.ctx;
+    let h = '';
+    h += '<div style="color:#f5d142;font-weight:700">' + seatName + ' · ' + rec.prevText + '</div>';
+    h += '<div style="opacity:.8">引擎 ' + eng + '　级 ' + rec.level + '</div>';
+    h += '<div style="opacity:.8">实际出 → <b style="color:#9be39b">' + rec.chosenText + '</b></div>';
+    h += '<div style="opacity:.65;font-size:9.5px;margin-bottom:2px">对手最少剩 ' + c.opponentMin + ' 张 · 队友' + (c.partnerWinning ? '在赢' : '没赢') + '(剩' + c.partnerCount + ')</div>';
+    h += '<table style="width:100%;border-collapse:collapse">';
+    const top = rec.cands.slice(0, 16);
+    for (const m of top) {
+      const bg = m.chosen ? 'background:rgba(245,209,66,0.22)' : '';
+      h += '<tr style="' + bg + '">';
+      h += '<td style="text-align:right;color:#9be39b;padding:1px 4px;white-space:nowrap;font-variant-numeric:tabular-nums">' + (m.chosen ? '★' : '') + m.score.toFixed(2) + '</td>';
+      h += '<td style="padding:1px 3px;white-space:nowrap;opacity:.85">' + _gdComboNameOf(m) + '</td>';
+      h += '<td style="padding:1px 2px;color:#bcd">' + (m.pass ? '—' : m.cards.map(cardText).join(' ')) + '</td></tr>';
+    }
+    h += '</table>';
+    if (rec.cands.length > top.length) h += '<div style="opacity:.5;font-size:9.5px">… 还有 ' + (rec.cands.length - top.length) + ' 手</div>';
+    box.innerHTML = h;
+  }
+
+  // ---- 局面注入 ----
+  function _gdExportState() {
+    const ta = document.getElementById('gdDbgIO'); if (!ta) return;
+    try { ta.value = JSON.stringify(buildSessionSnapshot(), null, 1); toast('已导出当前局面到文本框'); }
+    catch (e) { toast('导出失败：' + e.message); }
+  }
+  function _gdImportState() {
+    const ta = document.getElementById('gdDbgIO'); if (!ta) return;
+    let snap; try { snap = JSON.parse(ta.value); } catch (e) { toast('JSON 解析失败'); return; }
+    if (!isResumableSnapshot(snap)) { toast('局面无效（需 phase=playing/round_end + 4 家手牌）'); return; }
+    _gdCloseOverlays(); _gdAiCtl.pending = null; state._testMode = false;
+    restoreFromSession(snap);
+    toast('已导入局面');
+  }
+  function _gdTokenCands(tok) {
+    const R = { '2': 0, '3': 1, '4': 2, '5': 3, '6': 4, '7': 5, '8': 6, '9': 7, '10': 8, 'j': 9, 'q': 10, 'k': 11, 'a': 12 };
+    tok = String(tok).trim().toLowerCase();
+    if (tok === '大王' || tok === 'bj' || tok === 'dw' || tok === 'dj' || tok === '大') return [53, 107];
+    if (tok === '小王' || tok === 'sj' || tok === 'xw' || tok === '小') return [52, 106];
+    const r = R[tok]; if (r == null) return [];
+    const out = []; for (let d = 0; d < 2; d++) for (let s = 0; s < 4; s++) out.push(d * 54 + s * 13 + r); return out;
+  }
+  function _gdDealTokensToSeat(seat, str) {
+    if (!str || !str.trim()) { toast('请输入牌，如 9 9 9 9 大王'); return; }
+    const used = new Set(); state.hands.forEach(h => h.forEach(c => { if (c >= 0) used.add(c); }));
+    state.hands[seat].forEach(c => { if (c >= 0) used.delete(c); });   // 该家旧牌释放，可重用
+    const hand = [], bad = [];
+    for (const t of str.trim().split(/\s+/)) { const cands = _gdTokenCands(t); const pick = cands.find(c => !used.has(c)); if (pick != null) { used.add(pick); hand.push(pick); } else bad.push(t); }
+    state.hands[seat] = hand; state.handOrder = null; state.selected.clear(); state.customGroups = [];
+    renderAll(); updateActions();
+    toast('已发 ' + hand.length + ' 张给 ' + (['我', '下家', '对家', '上家'][seat]) + (bad.length ? ('（未识别/用尽: ' + bad.join(',') + '）') : ''));
+  }
 
   // ===========================================================
   //  games-shell：战绩榜 / 昵称 / 评论
@@ -6002,7 +6233,16 @@
   // 不会出现「别人视角里把房主摆在底部」。还没落座（mySeat 未知）时退回绝对映射，抢座前不乱跳。
   // 队伍颜色按奇偶（同奇偶 = 同队，mySeat 已知时跟随；未坐下时按 0/2 默认同队）。
   const LOBBY_POSITIONS = ['bottom', 'right', 'top', 'left'];
-  const LOBBY_AI_ICONS = ['🤖', '🦊', '🤝', '🐱'];
+  const LOBBY_AI_ICONS = ['🤖', '🦊', '🤝', '🐱'];   // 旧·按座位（已弃用，见 playerAvatarOf）
+  // 稳定头像池：服务端给每个玩家分配一个固定下标(avatar)，和玩家绑死、和座位无关——换座/被移动头像都不变。
+  const GD_AVATAR_POOL = ['🦊', '🐯', '🐼', '🐱', '🐸', '🦁', '🐵', '🐶', '🐰', '🐷', '🐮', '🐔'];
+  function avatarEmoji(idx) { const n = GD_AVATAR_POOL.length; return GD_AVATAR_POOL[(((idx | 0) % n) + n) % n]; }
+  // 本人恒 😎（自我标记）；AI 恒 🤖；其余真人按服务端稳定下标取固定头像（换座不变）。lobby 与牌桌共用。
+  function playerAvatarOf(p, isMe) {
+    if (isMe) return '😎';
+    if (!p || p.isAi) return '🤖';
+    return (typeof p.avatar === 'number') ? avatarEmoji(p.avatar) : '👤';
+  }
 
   // 给定 server seat 号，返回它当前应该落在哪个 display cell（DOM 元素）。
   // 大厅用「锚点」而非当前座：第一次有座位时记下锚点，之后换座/被移动都以锚点为准——画面不再随当前座
@@ -6118,7 +6358,7 @@
         if (swapSel === s || swapPend === s) cell.classList.add('swap-selected');
         const av = document.createElement('div');
         av.className = 'avatar';
-        av.textContent = p.isAi ? '🤖' : (isMe ? '😎' : LOBBY_AI_ICONS[s] || '👤');
+        av.textContent = playerAvatarOf(p, isMe);   // 稳定头像：和玩家绑死、换座不变
         // 房主点已有玩家头像 → 进入/确认换座选择
         if (isHost) {
           av.style.cursor = 'pointer';
