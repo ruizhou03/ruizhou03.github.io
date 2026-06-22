@@ -147,12 +147,21 @@
   }
 
   // moves: array of {combo,cards} (from the host's genMoves). Returns chosen combo (with .cards) or null (pass).
-  function choose(seat, hands, over, level, selfLevel, oppoLevel, moves, leading) {
+  // dbgOut（可选）：传一个数组进来，会逐手 push {cards,type,len,score,pass}（每手的网络 Q 值），供调试台 AI 透视镜用。
+  function choose(seat, hands, over, level, selfLevel, oppoLevel, moves, leading, dbgOut) {
     if (!L) return undefined;        // not loaded
     precompute(build513(seat, hands, over, level, selfLevel, oppoLevel));
     var bestQ = -Infinity, best = null, q, m;
-    for (var i = 0; i < moves.length; i++) { m = moves[i]; q = scoreAction(card2array(m.cards)); if (q > bestQ) { bestQ = q; best = m; } }
-    if (!leading) { q = scoreAction(new Float32Array(54)); if (q > bestQ) { bestQ = q; best = null; } }
+    for (var i = 0; i < moves.length; i++) {
+      m = moves[i]; q = scoreAction(card2array(m.cards));
+      if (dbgOut) dbgOut.push({ cards: m.cards.slice(), type: m.combo.type, len: m.combo.len, score: q, pass: false });
+      if (q > bestQ) { bestQ = q; best = m; }
+    }
+    if (!leading) {
+      q = scoreAction(new Float32Array(54));
+      if (dbgOut) dbgOut.push({ cards: [], type: null, len: 0, score: q, pass: true });
+      if (q > bestQ) { bestQ = q; best = null; }
+    }
     return best ? best.combo : null;
   }
 
