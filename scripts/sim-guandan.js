@@ -896,7 +896,7 @@ function handleTribute(hands, ranking, level) {
 // ===========================================================
 // 单局（一小局）模拟
 // ===========================================================
-function simulateRound({ weightsByTeam, level = '2', firstLeader = 0, hands = null, rng = Math.random }) {
+function simulateRound({ weightsByTeam, level = '2', firstLeader = 0, hands = null, rng = Math.random, collect = null }) {
   if (!hands) {
     const deck = shuffle(buildDeck(), rng);
     hands = [[], [], [], []];
@@ -924,6 +924,7 @@ function simulateRound({ weightsByTeam, level = '2', firstLeader = 0, hands = nu
     const prev = (trick.best && trick.bestSeat !== seat) ? trick.best : null;
     const leading = !prev;
     const decision = chooseAIMove(seat, state.hands[seat], prev, leading, level, state, weightsByTeam[team], lvl, rng);
+    if (collect && collect[team]) _recMove(collect[team], decision, leading);
     if (!decision) {
       // pass
       state.lastPlay[seat] = 'pass';
@@ -986,7 +987,7 @@ function didRoundEnd(state) {
 // ===========================================================
 // 整副 match：含 tribute + 升级动态，打到一方过 A 为止
 // ===========================================================
-function simulateMatch({ weightsByTeam, rng = Math.random, maxRounds = 25 }) {
+function simulateMatch({ weightsByTeam, rng = Math.random, maxRounds = 25, collect = null }) {
   const levels = [0, 0];
   let actingTeam = 0;
   let lastRanking = null;
@@ -1004,7 +1005,7 @@ function simulateMatch({ weightsByTeam, rng = Math.random, maxRounds = 25 }) {
       firstLeader = newLeader;
     }
     // Play
-    const { ranking, iter } = simulateRound({ weightsByTeam, level, firstLeader, hands, rng });
+    const { ranking, iter } = simulateRound({ weightsByTeam, level, firstLeader, hands, rng, collect });
     totalIter += iter;
     lastRanking = ranking;
     const first = ranking[0];
@@ -1027,14 +1028,18 @@ function simulateMatch({ weightsByTeam, rng = Math.random, maxRounds = 25 }) {
 }
 
 // 比较 test vs baseline weights：跑 n 场整副 match，统计 test 队胜场
-function runMatches(weightsTest, weightsBaseline, n, rng = Math.random) {
+function runMatches(weightsTest, weightsBaseline, n, rng = Math.random, collect = null) {
   let testWins = 0, baselineWins = 0, totalRounds = 0, totalIter = 0;
   for (let i = 0; i < n; i++) {
     const swap = i % 2 === 1;
     const weightsByTeam = swap
       ? { 0: weightsBaseline, 1: weightsTest }
       : { 0: weightsTest, 1: weightsBaseline };
-    const { winner, rounds, totalIter: iters } = simulateMatch({ weightsByTeam, rng });
+    // 出牌分布收集：把 test/baseline 的累加器按本场 swap 映射到队 0/1（与 weightsByTeam 一致）
+    const roundCollect = collect
+      ? (swap ? { 0: collect.baseline, 1: collect.test } : { 0: collect.test, 1: collect.baseline })
+      : null;
+    const { winner, rounds, totalIter: iters } = simulateMatch({ weightsByTeam, rng, collect: roundCollect });
     totalRounds += rounds;
     totalIter += iters;
     const testTeam = swap ? 1 : 0;
@@ -1042,6 +1047,68 @@ function runMatches(weightsTest, weightsBaseline, n, rng = Math.random) {
     else baselineWins++;
   }
   return { testWins, baselineWins, n, avgRounds: totalRounds / n, avgIter: totalIter / Math.max(1, totalRounds) };
+}
+
+// ===========================================================
+// 回归对比（regress）：固定种子下让「候选 AI」vs「基线 AI」对打 N 副，
+// 报胜率 ± 95%CI + 退化判定 + 双方出牌风格对比。固定种子 → 可复现、改前改后可对拍。
+// ===========================================================
+function makeRng(seed) {
+  let s = (seed >>> 0) || 1;
+  return function () {
+    s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function _newStats() { return { turns: 0, plays: 0, passes: 0, cards: 0, bombs: 0, leads: 0, follows: 0, byType: {} }; }
+function _recMove(s, decision, leading) {
+  s.turns++;
+  if (!decision) { s.passes++; return; }
+  s.plays++;
+  s.cards += decision.cards.length;
+  s.byType[decision.type] = (s.byType[decision.type] || 0) + 1;
+  if (isBombType(decision.type)) s.bombs++;
+  if (leading) s.leads++; else s.follows++;
+}
+const _TYPE_NAME = {
+  single: '单张', pair: '对子', triple: '三张', triple_pair: '三带二', pair_str: '三连对',
+  triple_str: '钢板', straight: '顺子', bomb: '炸弹', str_flush: '同花顺', joker_bomb: '天王炸',
+};
+function _printDist(a, b) {
+  const pct = (x, tot) => (tot ? (100 * x / tot).toFixed(1) : '0.0') + '%';
+  const per = (x, tot) => tot ? (x / tot).toFixed(2) : '0.00';
+  const row = (label, av, bv) => console.log('  ' + label + '\t' + av + '\t' + bv);
+  console.log('  指标\t候选\t基线');
+  row('pass率(占回合)', pct(a.passes, a.turns), pct(b.passes, b.turns));
+  row('均牌数/出牌 ', per(a.cards, a.plays), per(b.cards, b.plays));
+  row('炸弹率(占出牌)', pct(a.bombs, a.plays), pct(b.bombs, b.plays));
+  for (const t of Object.keys(_TYPE_NAME)) {
+    const av = a.byType[t] || 0, bv = b.byType[t] || 0;
+    if (av === 0 && bv === 0) continue;
+    row(_TYPE_NAME[t] + '(占出牌)', pct(av, a.plays), pct(bv, b.plays));
+  }
+}
+function regress({ candW, baselineW, n, seed, candLabel, baselineLabel }) {
+  const rng = makeRng(seed);
+  const collect = { test: _newStats(), baseline: _newStats() };
+  console.log('=== regress：候选 (' + candLabel + ') vs 基线 (' + baselineLabel + ') ===');
+  console.log('N=' + n + ' 副 · seed=' + seed + '（固定种子→同一批牌局，可复现）');
+  const t0 = Date.now();
+  const r = runMatches(candW, baselineW, n, rng, collect);
+  const secs = ((Date.now() - t0) / 1000).toFixed(1);
+  const rate = r.testWins / r.n;
+  const ci = 1.96 * Math.sqrt(rate * (1 - rate) / r.n);
+  let verdict;
+  if (rate - ci > 0.5) verdict = '✅ 候选显著更强（95%CI 下界 > 50%）';
+  else if (rate + ci < 0.5) verdict = '🔴 退化：候选显著更弱（95%CI 上界 < 50%）';
+  else verdict = '⚪ 无显著差异（95%CI 跨过 50%，要更确信就加大 N）';
+  console.log('\n胜率（候选 vs 基线）：' + (rate * 100).toFixed(1) + '% ± ' + (ci * 100).toFixed(1) + '%   ' + verdict);
+  console.log('候选胜 ' + r.testWins + ' / ' + r.n + ' · 平均 ' + r.avgRounds.toFixed(1) + ' 小局/副 · 用时 ' + secs + 's');
+  console.log('\n出牌风格对比：');
+  _printDist(collect.test, collect.baseline);
+  return { rate, ci, collect };
 }
 
 // ===========================================================
@@ -1342,6 +1409,7 @@ module.exports = {
   chooseAIMove, chooseAIMoveGreedy, chooseAIMoveLookahead,
   pickTributeCard, pickReturnCard, handleTribute,
   simulateRound, simulateMatch, runMatches,
+  makeRng, regress,
 };
 
 // ===========================================================
@@ -1392,6 +1460,20 @@ else if (cmd === 'compare') {
     ' ± ' + (1.96 * se).toFixed(3) + ' (95% CI)' +
     '  · avg rounds/match ' + r.avgRounds.toFixed(1) +
     '  · avg iter/round ' + r.avgIter.toFixed(0));
+}
+else if (cmd === 'regress') {
+  // regress <candidate.json> [N=400] [baseline.json|DEFAULT_W] [seed=20260622]
+  // 固定种子让候选 vs 基线在同一批牌局对打，报胜率±CI + 退化判定 + 出牌风格对比（可复现，改前改后对拍）
+  const fs = require('fs');
+  const path = process.argv[3];
+  if (!path) { console.error('usage: node sim-guandan.js regress <candidate.json> [N=400] [baseline.json|DEFAULT_W] [seed=20260622]'); process.exit(1); }
+  const n = parseInt(process.argv[4], 10) || 400;
+  const baselineArg = process.argv[5];
+  const seed = process.argv[6] != null ? (parseInt(process.argv[6], 10) || 1) : 20260622;
+  const candW = Object.assign({}, DEFAULT_W, JSON.parse(fs.readFileSync(path, 'utf8')));
+  const useBaseFile = baselineArg && baselineArg !== 'DEFAULT_W';
+  const baselineW = useBaseFile ? Object.assign({}, DEFAULT_W, JSON.parse(fs.readFileSync(baselineArg, 'utf8'))) : DEFAULT_W;
+  regress({ candW, baselineW, n, seed, candLabel: path, baselineLabel: useBaseFile ? baselineArg : 'DEFAULT_W' });
 }
 else { console.error('unknown cmd: ' + cmd); process.exit(1); }
 }
