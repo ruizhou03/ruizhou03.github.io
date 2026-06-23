@@ -2279,6 +2279,7 @@
         } else {
           displayName = localAlias || m.nickname || shortId;
         }
+        const isShortId = displayName === shortId;   // no nickname set → show as muted monospace
         const roleLbl = m.role === 'owner' ? '主人' : (m.role === 'admin' ? '管理员' : '成员');
         const actions = [];
         // Anyone (except for themselves) can set a local alias for any other member
@@ -2296,7 +2297,7 @@
           ? ` <span style="color:var(--color-light);font-size:0.74rem;">(${escapeHtml(m.nickname)})</span>`
           : '';
         return `<li>
-          <span class="m-id ${self ? 'm-self' : ''}">${self ? '你 · ' : ''}${escapeHtml(displayName)}${aliasHint}</span>
+          <span class="m-id ${self ? 'm-self' : ''}${isShortId ? ' is-shortid' : ''}">${self ? '你 · ' : ''}${escapeHtml(displayName)}${aliasHint}</span>
           <span class="m-role ${m.role}">${roleLbl}</span>
           <span class="m-actions">${actions.join('')}</span>
         </li>`;
@@ -2631,6 +2632,10 @@
     else if ($profileModal.classList.contains('open')) closeProfileModal();
     else if ($mmModal.classList.contains('open')) $mmModal.classList.remove('open');
     else if ($intakeModal.classList.contains('open')) closeIntakeModal();
+    else if ($inboxModal.classList.contains('open')) closeInbox();
+    else if ($foodModal.classList.contains('open')) closeFoodModal();
+    else if ($fw.classList.contains('open')) { $fw.classList.remove('open'); }
+    else if ($tpModal.classList.contains('open')) closeTimePicker();
     else if ($modal.classList.contains('open')) closeModal();
   });
 

@@ -1297,8 +1297,12 @@
     flex: 1; min-width: 0;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     color: var(--color-ink);
+    font-size: 0.88rem;
+  }
+  .modal .members-list .m-id.is-shortid {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
+    color: var(--color-muted);
   }
   .modal .members-list .m-self { color: var(--color-accent); font-weight: 600; }
   .modal .members-list .m-role {
@@ -1397,7 +1401,7 @@
 
   .storage-warn {
     position: fixed;
-    top: 0; left: 0; right: 0;
+    top: env(safe-area-inset-top, 0px); left: 0; right: 0;
     background: #b07c75;
     color: #fff;
     padding: 0.55rem 1rem;
