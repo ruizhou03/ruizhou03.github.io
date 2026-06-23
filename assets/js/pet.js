@@ -1701,17 +1701,17 @@
       const yMax = yScale(target.max);
       if (target.min === target.max) {
         // Single line
-        html += `<line x1="${xA}" y1="${yA}" x2="${xB}" y2="${yMin}" stroke="#4a7c59" stroke-width="1.3" stroke-dasharray="5 3" opacity="0.75"/>`;
+        html += `<line x1="${xA}" y1="${yA}" x2="${xB}" y2="${yMin}" stroke="var(--pet-chart-target)" stroke-width="1.3" stroke-dasharray="5 3" opacity="0.75"/>`;
       } else {
-        html += `<polygon points="${xA},${yA} ${xB},${yMax} ${xB},${yMin}" fill="#4a7c59" opacity="0.10"/>`;
-        html += `<line x1="${xA}" y1="${yA}" x2="${xB}" y2="${yMin}" stroke="#4a7c59" stroke-width="1.1" stroke-dasharray="4 3" opacity="0.7"/>`;
-        html += `<line x1="${xA}" y1="${yA}" x2="${xB}" y2="${yMax}" stroke="#4a7c59" stroke-width="1.1" stroke-dasharray="4 3" opacity="0.7"/>`;
+        html += `<polygon points="${xA},${yA} ${xB},${yMax} ${xB},${yMin}" fill="var(--pet-chart-target)" opacity="0.10"/>`;
+        html += `<line x1="${xA}" y1="${yA}" x2="${xB}" y2="${yMin}" stroke="var(--pet-chart-target)" stroke-width="1.1" stroke-dasharray="4 3" opacity="0.7"/>`;
+        html += `<line x1="${xA}" y1="${yA}" x2="${xB}" y2="${yMax}" stroke="var(--pet-chart-target)" stroke-width="1.1" stroke-dasharray="4 3" opacity="0.7"/>`;
       }
       const lblY = Math.max(yMax, m.t + 12);
       const targetLbl = target.min === target.max
         ? `目标 ${fmtG(target.min * M)}${U}`
         : `目标 ${fmtG(target.min * M)}–${fmtG(target.max * M)}${U}`;
-      html += `<text x="${xB - 4}" y="${lblY - 4}" text-anchor="end" fill="#4a7c59" font-size="10">${targetLbl}</text>`;
+      html += `<text x="${xB - 4}" y="${lblY - 4}" text-anchor="end" fill="var(--pet-chart-target)" font-size="10">${targetLbl}</text>`;
     }
 
     if (points.length >= 2) {
@@ -1878,17 +1878,17 @@
       const yMin = yScale(target.min);
       const yMax = yScale(target.max);
       if (target.min === target.max) {
-        html += `<line x1="${m.l}" x2="${W - m.r}" y1="${yMin}" y2="${yMin}" stroke="#4a7c59" stroke-width="1.3" stroke-dasharray="5 3" opacity="0.8"/>`;
+        html += `<line x1="${m.l}" x2="${W - m.r}" y1="${yMin}" y2="${yMin}" stroke="var(--pet-chart-target)" stroke-width="1.3" stroke-dasharray="5 3" opacity="0.8"/>`;
       } else {
-        html += `<rect x="${m.l}" y="${yMax}" width="${innerW}" height="${yMin - yMax}" fill="#4a7c59" opacity="0.10"/>`;
-        html += `<line x1="${m.l}" x2="${W - m.r}" y1="${yMin}" y2="${yMin}" stroke="#4a7c59" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
-        html += `<line x1="${m.l}" x2="${W - m.r}" y1="${yMax}" y2="${yMax}" stroke="#4a7c59" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
+        html += `<rect x="${m.l}" y="${yMax}" width="${innerW}" height="${yMin - yMax}" fill="var(--pet-chart-target)" opacity="0.10"/>`;
+        html += `<line x1="${m.l}" x2="${W - m.r}" y1="${yMin}" y2="${yMin}" stroke="var(--pet-chart-target)" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
+        html += `<line x1="${m.l}" x2="${W - m.r}" y1="${yMax}" y2="${yMax}" stroke="var(--pet-chart-target)" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
       }
       const unitName = agg === 'day' ? '日' : (agg === 'week' ? '周' : '月');
       const tLbl = target.min === target.max
         ? `目标 ${fmtG(target.min * M)}${U}/${unitName}`
         : `目标 ${fmtG(target.min * M)}–${fmtG(target.max * M)} ${U}/${unitName}`;
-      html += `<text x="${W - m.r - 4}" y="${Math.max(yMax, m.t + 10) - 4}" text-anchor="end" fill="#4a7c59" font-size="10">${tLbl}</text>`;
+      html += `<text x="${W - m.r - 4}" y="${Math.max(yMax, m.t + 10) - 4}" text-anchor="end" fill="var(--pet-chart-target)" font-size="10">${tLbl}</text>`;
     }
 
     let anyIncomplete = false, anyProjected = false;
@@ -1898,7 +1898,7 @@
       const w = Math.max(1, barW - 3);
       const bh = (b.value / niceMax) * innerH;
       const y = m.t + innerH - bh;
-      const baseFill = b.isToday ? 'var(--color-accent)' : '#c9a96e';
+      const baseFill = b.isToday ? 'var(--color-accent)' : 'var(--pet-chart-bar)';
       const hasProj = b.projected && b.projected > b.value;
       if (b.incomplete) anyIncomplete = true;
       let topY = b.value > 0 ? y : m.t + innerH;
@@ -1906,14 +1906,14 @@
       if (hasProj) {
         anyProjected = true;
         const yp = m.t + innerH - (b.projected / niceMax) * innerH;
-        html += `<rect x="${x}" y="${yp}" width="${w}" height="${y - yp}" fill="#4a7c59" fill-opacity="0.10" stroke="#4a7c59" stroke-width="1" stroke-dasharray="3 2" rx="2"/>`;
+        html += `<rect x="${x}" y="${yp}" width="${w}" height="${y - yp}" fill="var(--pet-chart-target)" fill-opacity="0.10" stroke="var(--pet-chart-target)" stroke-width="1" stroke-dasharray="3 2" rx="2"/>`;
         topY = yp;
       }
       // 实际柱：不完整桶用半透明 + 虚线描边标出。读数（X 克）一律收进悬停浮窗，柱顶不再常驻数字。
       const incAttr = b.incomplete ? ' fill-opacity="0.5" stroke="' + baseFill + '" stroke-width="1" stroke-dasharray="3 2"' : '';
       html += `<rect x="${x}" y="${y}" width="${w}" height="${bh}" fill="${baseFill}"${incAttr} rx="2"/>`;
       if (i % labelEvery === 0 || i === n - 1) {
-        html += `<text x="${x + w / 2}" y="${H - 14}" text-anchor="middle" fill="${b.incomplete ? '#b9975f' : 'var(--color-light)'}" font-size="9.5">${escapeHtml(b.label)}</text>`;
+        html += `<text x="${x + w / 2}" y="${H - 14}" text-anchor="middle" fill="${b.incomplete ? 'var(--pet-chart-incomplete)' : 'var(--color-light)'}" font-size="9.5">${escapeHtml(b.label)}</text>`;
       }
       // 悬停命中区：整列（含柱间空隙）都算这根柱，浮窗里给读数
       const lbl = `<strong>${escapeHtml(b.label)}</strong>`;
@@ -1935,10 +1935,10 @@
 
     const totalEaten = bars.reduce((s, b) => s + b.value, 0);
     const aggName = agg === 'day' ? '日' : (agg === 'week' ? '周' : '月');
-    const incLegend = anyProjected ? ' · <span style="color:#4a7c59;">┈ 折算满' + periodName + '</span>'
-      : (anyIncomplete ? ' · <span style="color:#b9975f;">┈ 不完整</span>' : '');
+    const incLegend = anyProjected ? ' · <span style="color:var(--pet-chart-target);">┈ 折算满' + periodName + '</span>'
+      : (anyIncomplete ? ' · <span style="color:var(--pet-chart-incomplete);">┈ 不完整</span>' : '');
     $chartMeta.innerHTML = `
-      <span><span class="legend-dot" style="background:#c9a96e;"></span>每${aggName}吃量 <span class="legend-dot" style="background:var(--color-accent);margin-left:0.5rem;"></span>今日${incLegend}</span>
+      <span><span class="legend-dot" style="background:var(--pet-chart-bar);"></span>每${aggName}吃量 <span class="legend-dot" style="background:var(--color-accent);margin-left:0.5rem;"></span>今日${incLegend}</span>
       <span>共 ${fmtG(totalEaten * M)} ${U} · 日均 ${fmtG(avgCompleteDay * M)} ${U}<span style="color:var(--color-light);">（仅完整天）</span></span>
     `;
     $chartRangeLbl.textContent = `${startIso} → ${endIso} · 按${aggName}`;

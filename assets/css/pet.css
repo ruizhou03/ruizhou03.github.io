@@ -1,4 +1,19 @@
-  .pf-wrap { max-width: 880px; margin: 0 auto; padding: 1rem; }
+  /* Chart semantic colours — adapt to light/dark via CSS variables (pet.js SVG reads these) */
+  .pf-wrap {
+    --pet-chart-target: #4a7c59;       /* 目标线/达标绿 */
+    --pet-chart-target-bg: rgba(74,124,89,0.10);
+    --pet-chart-bar: #c9a96e;          /* 普通日柱色 */
+    --pet-chart-incomplete: #b9975f;   /* 不完整日标签 */
+    max-width: 880px; margin: 0 auto; padding: 1rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    .pf-wrap {
+      --pet-chart-target: #7fb98f;
+      --pet-chart-target-bg: rgba(127,185,143,0.12);
+      --pet-chart-bar: #8b7a5e;
+      --pet-chart-incomplete: #9c8a62;
+    }
+  }
   .pf-wrap header { text-align: center; margin-bottom: 1.4rem; }
   .pf-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem; }
   .pf-wrap header .sub { color: var(--color-light); font-style: normal; }
