@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.23.dbgfix';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.23.dbgui';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -1370,17 +1370,27 @@
     const hand = state.hands[seat];
     const level = currentLevelLabel();
     const sorted = hand.slice().sort((a, b) => singleWeight(b, level) - singleWeight(a, level));
-    const key = 'reveal:' + seat + ':' + sorted.join(',');
+    const key = 'reveal2:' + seat + ':' + sorted.join(',');
     if (slot.dataset.lpKey === key) return;
     slot.dataset.lpKey = key;
     slot.innerHTML = '';
-    const row = document.createElement('div');
-    row.className = 'gd-played-row gd-reveal-row';
-    for (const c of sorted) row.appendChild(buildCardEl(c, 'size-full', level, {}));
-    slot.appendChild(row);
-    // 测量后压缩：超出上限就让每张再左移 extra，把整手挤进 REVEAL_MAX_W
-    const n = row.children.length;
-    if (n > 1) {
+    // 分两行摊牌：整手平均劈成上/下两行，各自再压缩进 REVEAL_MAX_W —— 牌多时挤成一行根本看不清，两行每张露得更多
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;gap:3px;align-items:center;';
+    const half = Math.ceil(sorted.length / 2);
+    const groups = sorted.length > 1 ? [sorted.slice(0, half), sorted.slice(half)] : [sorted];
+    for (const cards of groups) {
+      if (!cards.length) continue;
+      const row = document.createElement('div');
+      row.className = 'gd-played-row gd-reveal-row';
+      for (const c of cards) row.appendChild(buildCardEl(c, 'size-full', level, {}));
+      wrap.appendChild(row);
+    }
+    slot.appendChild(wrap);
+    // 逐行测量压缩：超出上限就让该行每张左移 extra，把这一行挤进 REVEAL_MAX_W
+    for (const row of wrap.children) {
+      const n = row.children.length;
+      if (n <= 1) continue;
       const w = row.scrollWidth;
       if (w > REVEAL_MAX_W) {
         const extra = (w - REVEAL_MAX_W) / (n - 1);
@@ -4908,8 +4918,8 @@
   //           ④ 局面注入(导出/导入/替换手牌) + 上帝视角摊牌
   // ===========================================================
   function _gdEl(tag, css, text) { const e = document.createElement(tag); if (css) e.style.cssText = css; if (text != null) e.textContent = text; return e; }
-  function _gdBtn(label, css, fn) { const b = _gdEl('button', 'font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid rgba(201,169,110,0.5);background:#f7f2e6;color:#2b2a26;cursor:pointer;' + (css || ''), label); b.addEventListener('click', fn); return b; }
-  function _gdGrp(parent, t) { parent.appendChild(_gdEl('div', 'color:#c9a96e;font-size:10px;margin-top:7px;border-top:1px solid rgba(201,169,110,0.4);padding-top:4px;font-weight:700;', t)); }
+  function _gdBtn(label, css, fn) { const b = _gdEl('button', 'font-size:13px;padding:6px 8px;border-radius:6px;border:1px solid rgba(201,169,110,0.5);background:#f7f2e6;color:#2b2a26;cursor:pointer;' + (css || ''), label); b.addEventListener('click', fn); return b; }
+  function _gdGrp(parent, t) { parent.appendChild(_gdEl('div', 'color:#c9a96e;font-size:12px;margin-top:7px;border-top:1px solid rgba(201,169,110,0.4);padding-top:5px;font-weight:700;', t)); }
   function _gdCloseOverlays() { ['pgo', 'roundOverlay', 'matchOverlay'].forEach(k => { if (els[k]) els[k].classList.remove('open'); }); }
 
   function toggleDebugPanel() { if (document.getElementById('gdDbgPanel')) closeDebugPanel(); else buildDebugPanel(); }
@@ -4917,61 +4927,117 @@
 
   function buildDebugPanel() {
     if (document.getElementById('gdDbgPanel')) return;
-    // z-index 必须高于所有浮层（PGO 开始界面/结算/进贡最高到 100000），否则在开始界面打开时面板会被盖住、看不见（=用户反馈「dbug 没反应」的真因）
-    const p = _gdEl('div', 'position:fixed;right:8px;top:8px;z-index:2147483000;width:252px;max-height:94vh;overflow:auto;background:rgba(18,26,40,0.95);border:1px solid #c9a96e;border-radius:10px;padding:9px;display:flex;flex-direction:column;gap:5px;font-family:var(--font-body,sans-serif);box-shadow:0 6px 20px rgba(0,0,0,0.5);color:#e8eef5;');
+    // z-index 必须高于所有浮层（PGO 开始界面/结算/进贡最高到 100000），否则在开始界面打开时面板会被盖住、看不见（=曾经「dbug 没反应」的真因）
+    const p = _gdEl('div', 'position:fixed;right:8px;top:8px;z-index:2147483000;width:300px;max-height:94vh;overflow:hidden auto;background:rgba(18,26,40,0.96);border:1px solid #c9a96e;border-radius:11px;padding:10px;display:flex;flex-direction:column;gap:6px;font-family:var(--font-body,sans-serif);box-shadow:0 6px 22px rgba(0,0,0,0.55);color:#e8eef5;font-size:13px;');
     p.id = 'gdDbgPanel';
+    // 标题
     const head = _gdEl('div', 'display:flex;align-items:center;justify-content:space-between;');
-    head.appendChild(_gdEl('div', 'color:#f5d142;font-weight:700;font-size:13px;', '🛠 调试台'));
-    head.appendChild(_gdBtn('×', 'padding:0 7px;font-size:14px;line-height:1;', closeDebugPanel));
+    head.appendChild(_gdEl('div', 'color:#f5d142;font-weight:700;font-size:15px;', '🛠 调试台'));
+    head.appendChild(_gdBtn('×', 'padding:0 9px;font-size:17px;line-height:1;', closeDebugPanel));
     p.appendChild(head);
+    // Tab 栏
+    const TABS = ['种子·节奏', 'AI 透视', '造局面', '联机'];
+    const tabBar = _gdEl('div', 'display:flex;gap:3px;background:#0d141f;border-radius:8px;padding:3px;');
+    TABS.forEach(name => {
+      const tb = _gdEl('button', 'flex:1;font-size:12.5px;padding:6px 2px;border:none;border-radius:6px;background:transparent;color:#cdd6e2;cursor:pointer;font-weight:500;', name);
+      tb.dataset.tab = name; tb.className = 'gd-dbg-tab';
+      tb.addEventListener('click', () => _gdShowTab(name));
+      tabBar.appendChild(tb);
+    });
+    p.appendChild(tabBar);
+    const mkBody = name => { const d = _gdEl('div', 'display:none;flex-direction:column;gap:5px;'); d.className = 'gd-dbg-body'; d.dataset.tabbody = name; p.appendChild(d); return d; };
 
-    // ① 固定牌局（种子）
-    _gdGrp(p, '🎲 固定牌局（种子）');
-    const seedLabel = _gdEl('div', 'font-size:10.5px;'); seedLabel.id = 'gdDbgSeedLabel'; p.appendChild(seedLabel);
-    const seedIn = _gdEl('input', 'width:100%;box-sizing:border-box;font-size:11px;padding:3px 5px;border-radius:5px;border:1px solid #889;background:#0d141f;color:#e8eef5;'); seedIn.id = 'gdDbgSeedInput'; seedIn.placeholder = '种子(数字或任意字串)'; p.appendChild(seedIn);
-    const seedRow = _gdEl('div', 'display:flex;gap:4px;');
+    // ===== Tab 1：种子·节奏 =====
+    const t1 = mkBody('种子·节奏');
+    _gdGrp(t1, '🎲 固定牌局（种子）');
+    const seedLabel = _gdEl('div', 'font-size:12px;'); seedLabel.id = 'gdDbgSeedLabel'; t1.appendChild(seedLabel);
+    const seedIn = _gdEl('input', 'width:100%;box-sizing:border-box;font-size:13px;padding:5px 7px;border-radius:6px;border:1px solid #889;background:#0d141f;color:#e8eef5;'); seedIn.id = 'gdDbgSeedInput'; seedIn.placeholder = '种子(数字或任意字串)'; t1.appendChild(seedIn);
+    const seedRow = _gdEl('div', 'display:flex;gap:5px;');
     seedRow.appendChild(_gdBtn('用此种子重开', 'flex:1;', () => { const v = seedIn.value.trim(); if (!v) { toast('请先输入种子'); return; } gdSetSeed(v); _gdCloseOverlays(); _gdAiCtl.pending = null; startMatch(); _gdUpdateSeedLabel(); }));
     seedRow.appendChild(_gdBtn('🎲随机重开', 'flex:1;', () => { const s = (Math.floor(Math.random() * 4294967295)) >>> 0; gdSetSeed(s); seedIn.value = String(s); _gdCloseOverlays(); _gdAiCtl.pending = null; startMatch(); _gdUpdateSeedLabel(); }));
-    p.appendChild(seedRow);
-    const seedRow2 = _gdEl('div', 'display:flex;gap:4px;');
+    t1.appendChild(seedRow);
+    const seedRow2 = _gdEl('div', 'display:flex;gap:5px;');
     seedRow2.appendChild(_gdBtn('复制种子', 'flex:1;', () => { if (_gdSeed == null) { toast('当前未锁定种子'); return; } try { navigator.clipboard.writeText(String(_gdSeed)); toast('已复制种子 ' + _gdSeed); } catch (e) { toast('复制失败'); } }));
     seedRow2.appendChild(_gdBtn('清除(真随机)', 'flex:1;', () => { gdSetSeed(null); seedIn.value = ''; _gdUpdateSeedLabel(); toast('已回到真随机'); }));
-    p.appendChild(seedRow2);
-
-    // ② 节奏（单步 / 快进）
-    _gdGrp(p, '⏯ 节奏（单步 / 快进）');
-    const paceRow = _gdEl('div', 'display:flex;gap:4px;');
+    t1.appendChild(seedRow2);
+    _gdGrp(t1, '⏯ 节奏（单步 / 快进）');
+    const paceRow = _gdEl('div', 'display:flex;gap:5px;');
     [['正常', 'run'], ['快进', 'fast'], ['单步', 'step']].forEach(([t, m]) => { const b = _gdBtn(t, 'flex:1;', () => { _gdSetAiMode(m); _gdSyncPaceBtns(); }); b.dataset.mode = m; b.className = 'gd-dbg-pace'; paceRow.appendChild(b); });
-    p.appendChild(paceRow);
-    const stepBtn = _gdBtn('▶ 下一步 (AI)', '', _gdStep); stepBtn.id = 'gdDbgStepBtn'; p.appendChild(stepBtn);
+    t1.appendChild(paceRow);
+    const stepBtn = _gdBtn('▶ 下一步 (AI)', '', _gdStep); stepBtn.id = 'gdDbgStepBtn'; t1.appendChild(stepBtn);
 
-    // ③ AI 透视镜
-    _gdGrp(p, '🔬 AI 透视镜');
-    const xrow = _gdEl('div', 'display:flex;gap:4px;');
+    // ===== Tab 2：AI 透视 =====
+    const t2 = mkBody('AI 透视');
+    const xrow = _gdEl('div', 'display:flex;gap:5px;');
     const xbtn = _gdBtn(_gdXray.on ? '透视：开' : '透视：关', 'flex:1;', () => { _gdXray.on = !_gdXray.on; xbtn.textContent = _gdXray.on ? '透视：开' : '透视：关'; xbtn.style.background = _gdXray.on ? '#f5d142' : '#f7f2e6'; _gdRenderXray(); });
     xbtn.style.background = _gdXray.on ? '#f5d142' : '#f7f2e6'; xrow.appendChild(xbtn);
     const rvbtn = _gdBtn('摊牌', 'flex:1;', _gdToggleReveal); rvbtn.id = 'gdDbgRevealBtn'; rvbtn.style.background = state.revealHands ? '#f5d142' : '#f7f2e6'; xrow.appendChild(rvbtn);
-    p.appendChild(xrow);
-    const xbody = _gdEl('div', 'font-size:10.5px;background:#0d141f;border-radius:6px;padding:5px;min-height:30px;max-height:38vh;overflow:auto;'); xbody.id = 'gdDbgXrayBody'; p.appendChild(xbody);
+    t2.appendChild(xrow);
+    const xbody = _gdEl('div', 'font-size:12px;background:#0d141f;border-radius:7px;padding:6px;min-height:36px;max-height:62vh;overflow:auto;'); xbody.id = 'gdDbgXrayBody'; t2.appendChild(xbody);
 
-    // ④ 局面注入
-    _gdGrp(p, '🧩 局面注入');
-    const ioRow = _gdEl('div', 'display:flex;gap:4px;');
+    // ===== Tab 3：造局面 =====
+    const t3 = mkBody('造局面');
+    _gdGrp(t3, '🧩 导出 / 导入局面');
+    const ioRow = _gdEl('div', 'display:flex;gap:5px;');
     ioRow.appendChild(_gdBtn('导出局面', 'flex:1;', _gdExportState));
     ioRow.appendChild(_gdBtn('导入局面', 'flex:1;', _gdImportState));
-    p.appendChild(ioRow);
-    const ta = _gdEl('textarea', 'width:100%;box-sizing:border-box;height:58px;font-size:9px;font-family:monospace;background:#0d141f;color:#bcd;border:1px solid #889;border-radius:5px;'); ta.id = 'gdDbgIO'; ta.placeholder = '局面 JSON（导出后可手改 hands 再导入）'; p.appendChild(ta);
-    const dealRow = _gdEl('div', 'display:flex;gap:4px;');
-    const sel = _gdEl('select', 'font-size:11px;border-radius:5px;background:#0d141f;color:#e8eef5;border:1px solid #889;');
+    t3.appendChild(ioRow);
+    const ta = _gdEl('textarea', 'width:100%;box-sizing:border-box;height:64px;font-size:10px;font-family:monospace;background:#0d141f;color:#bcd;border:1px solid #889;border-radius:6px;'); ta.id = 'gdDbgIO'; ta.placeholder = '局面 JSON（导出后可手改 hands 再导入）'; t3.appendChild(ta);
+    _gdGrp(t3, '✋ 替换某家手牌');
+    const dealRow = _gdEl('div', 'display:flex;gap:5px;');
+    const sel = _gdEl('select', 'font-size:12.5px;border-radius:6px;background:#0d141f;color:#e8eef5;border:1px solid #889;padding:4px;');
     [['我(0)', '0'], ['下家(1)', '1'], ['对家(2)', '2'], ['上家(3)', '3']].forEach(([t, v]) => { const o = _gdEl('option', null, t); o.value = v; sel.appendChild(o); });
     dealRow.appendChild(sel);
-    const tokIn = _gdEl('input', 'flex:1;min-width:0;font-size:11px;padding:3px 5px;border-radius:5px;border:1px solid #889;background:#0d141f;color:#e8eef5;'); tokIn.placeholder = '如 9 9 9 9 大王'; dealRow.appendChild(tokIn);
-    p.appendChild(dealRow);
-    p.appendChild(_gdBtn('替换该家手牌（调试·不校验张数）', '', () => { _gdDealTokensToSeat(parseInt(sel.value, 10), tokIn.value); }));
+    const tokIn = _gdEl('input', 'flex:1;min-width:0;font-size:12.5px;padding:5px 7px;border-radius:6px;border:1px solid #889;background:#0d141f;color:#e8eef5;'); tokIn.placeholder = '如 9 9 9 9 大王'; dealRow.appendChild(tokIn);
+    t3.appendChild(dealRow);
+    t3.appendChild(_gdBtn('替换该家手牌（不校验张数）', '', () => { _gdDealTokensToSeat(parseInt(sel.value, 10), tokIn.value); }));
+    _gdGrp(t3, '🧪 测试牌型 / 他家演示');
+    t3.appendChild(_gdBtn('发全牌型测试手牌（座0）', '', _gdDealTestHand));
+    const C = (s, r) => s * 13 + r, SJ = 52, BJ = 53, R = { '2': 0, '3': 1, '4': 2, '5': 3, '6': 4, '7': 5, '8': 6, '9': 7, '10': 8, 'J': 9, 'Q': 10, 'K': 11, 'A': 12 };
+    const demoGrid = _gdEl('div', 'display:grid;grid-template-columns:1fr 1fr;gap:5px;');
+    const dbtn = (t, fn) => demoGrid.appendChild(_gdBtn(t, '', fn));
+    dbtn('对家·三带二', () => demoOtherPlay(2, [C(0, R['9']), C(1, R['9']), C(2, R['9']), C(0, R['10']), C(1, R['10'])], '三带二'));
+    dbtn('下家·四张炸', () => demoOtherPlay(1, [C(0, R['K']), C(1, R['K']), C(2, R['K']), C(3, R['K'])], '四炸'));
+    dbtn('上家·同花顺', () => demoOtherPlay(3, [C(0, R['4']), C(0, R['5']), C(0, R['6']), C(0, R['7']), C(0, R['8'])], '同花顺'));
+    dbtn('对家·天王炸', () => demoOtherPlay(2, [SJ, SJ + 54, BJ, BJ + 54], '天王炸'));
+    dbtn('接风特效', () => { if (typeof showJiefengFx === 'function') showJiefengFx(2, 0); });
+    dbtn('抗贡横幅', () => { if (typeof showTributeBanner === 'function') showTributeBanner('🛡️ 抗贡成功', '握双大王，免进贡', 2200); });
+    dbtn('进贡(单)', () => demoTribute(false));
+    dbtn('进贡(双下)', () => demoTribute(true));
+    dbtn('结算面板', () => demoResult());
+    t3.appendChild(demoGrid);
+
+    // ===== Tab 4：联机 =====
+    const t4 = mkBody('联机');
+    _gdGrp(t4, '🛰 联机四视角测试');
+    t4.appendChild(_gdEl('div', 'font-size:11.5px;opacity:.75;line-height:1.5;', '一台机子开一间 4 人房、自己扮四家走真实联机流程；开局后用顶部切换条切视角逐座出牌。等同暗号 quad。'));
+    t4.appendChild(_gdBtn('🚀 启动联机四视角测试', '', () => { closeDebugPanel(); enterOnlineTestMode(); }));
 
     document.body.appendChild(p);
     _gdPanelOn = true;
+    _gdShowTab('种子·节奏');
     _gdUpdateSeedLabel(); _gdSyncPaceBtns(); _gdSyncDebugStep(); _gdRenderXray();
+  }
+  function _gdShowTab(name) {
+    const p = document.getElementById('gdDbgPanel'); if (!p) return;
+    p.querySelectorAll('.gd-dbg-body').forEach(b => { b.style.display = (b.dataset.tabbody === name) ? 'flex' : 'none'; });
+    p.querySelectorAll('.gd-dbg-tab').forEach(b => { const on = b.dataset.tab === name; b.style.background = on ? '#f5d142' : 'transparent'; b.style.color = on ? '#2b2a26' : '#cdd6e2'; b.style.fontWeight = on ? '700' : '500'; });
+  }
+  // 融合自暗号 test：发一手全牌型手牌给座0、AI 自动过（不再弹旧的独立 🧪 测试台）
+  function _gdDealTestHand() {
+    if (isNetworked()) { toast('联机中不能发测试手牌'); return; }
+    _gdCloseOverlays();
+    state.matchOptions = normalizeOptions(state.options);
+    state.levels = [0, 0]; state.actingTeam = 0; state._testMode = true; state.autopilot = false;
+    state.out = []; state.selected.clear(); state.customGroups = []; state.handOrder = null;
+    state.lastPlay = [null, null, null, null]; state.busy = false; state.bombMult = 1;
+    const h0 = buildTestHand(); const used = new Set(h0); const left = [];
+    for (let c = 0; c < 108; c++) if (!used.has(c)) left.push(c);
+    state.hands = [h0, left.slice(0, 7), left.slice(7, 14), left.slice(14, 21)];
+    state.phase = PHASE.PLAYING; state.turn = 0;
+    state.trick = { lead: 0, best: null, bestSeat: -1, passes: 0 };
+    renderAll(); updateActions(); armTurnClock();
+    toast('🧪 已发全牌型测试手牌（座0），AI 自动过');
   }
 
   function _gdUpdateSeedLabel() {
