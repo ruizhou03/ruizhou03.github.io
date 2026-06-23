@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.23.dbgui';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.23.dbgui2';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -2311,8 +2311,24 @@
         state.hands[s] = new Array((gv.counts && gv.counts[s]) || 0).fill(-1);
       }
     };
-    if (gv.phase === 'round_end') { _applyTableNow(); endRound(); }
-    else if (gv.phase === 'match_end') { _applyTableNow(); endRound(true); }   // 先摊牌，endRound 摊完自行进战报
+    // 联机下 round_end/match_end 不能立刻 endRound：那会让 endRound 里 revealHands=true
+    // 把最后一手出牌盖掉、玩家根本看不到谁出了什么牌就跳到结算（用户报告 "他看不到我出牌"）。
+    // 先铺好桌面（lastPlay 可见）→ 停 END_ROUND_DELAY_MS → 再摊牌结算。单机 path 在
+    // checkRoundOver 里有同样的延时，联机补上。_applyTableNow 把桌面设到服务端权威最终态。
+    if (gv.phase === 'round_end') {
+      _applyTableNow();
+      closeEndOverlays();
+      renderAll(); saveSession(); updateActions();
+      state.busy = true;
+      state._tableTimer = setTimeout(() => { state.busy = false; endRound(); }, END_ROUND_DELAY_MS);
+    }
+    else if (gv.phase === 'match_end') {
+      _applyTableNow();
+      closeEndOverlays();
+      renderAll(); saveSession(); updateActions();
+      state.busy = true;
+      state._tableTimer = setTimeout(() => { state.busy = false; endRound(true); }, END_ROUND_DELAY_MS);
+    }
     else if (gv.phase === 'tribute') {
       _applyTableNow();
       // 服务端已进入下一局（进贡阶段）：撤掉可能残留的上局结算/战报浮层——多真人下，没点
