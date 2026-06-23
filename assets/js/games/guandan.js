@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.23.dbgui2';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.23.audio';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -513,6 +513,96 @@
   const _gdAiCtl = { mode: 'run', pending: null };   // 'run' | 'fast' | 'step'
   const _gdXray = { on: false, last: null, log: [] };
   let _gdPanelOn = false;
+
+  // ===========================================================
+  //  Web Audio 音效（纯代码合成，零外部文件；按用户偏好 localStorage 记静音态）
+  // ===========================================================
+  let _gaCtx = null, _gaMuted = false;
+  try { _gaMuted = localStorage.getItem('tool.guandan.muted') === '1'; } catch (e) { /* ignore */ }
+  function _gaCtxEnsure() {
+    if (_gaCtx) return _gaCtx;
+    try { _gaCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { /* autoplay policy */ }
+    if (_gaCtx && _gaCtx.state === 'suspended') _gaCtx.resume();
+    return _gaCtx;
+  }
+  function _gaMuteBtnEl() { return document.getElementById('gdMuteBtn'); }
+  function _gaRefreshMuteBtn() { const b = _gaMuteBtnEl(); if (b) b.textContent = _gaMuted ? '🔇' : '🔊'; }
+  _gaRefreshMuteBtn();
+  function toggleMute() {
+    _gaMuted = !_gaMuted;
+    try { localStorage.setItem('tool.guandan.muted', _gaMuted ? '1' : '0'); } catch (e) {}
+    _gaRefreshMuteBtn();
+  }
+  // 核心合成：振荡器 + 增益包络
+  function _gaBeep(freq, dur, type, vol, ramp) {
+    if (_gaMuted) return;
+    const ctx = _gaCtxEnsure(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator(); osc.type = type || 'sine'; osc.frequency.setValueAtTime(freq, t);
+    const g = ctx.createGain(); g.gain.setValueAtTime(vol || 0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + (dur || 0.08));
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t); osc.stop(t + (dur || 0.08) + 0.01);
+  }
+  function _gaNoise(dur, vol) {
+    if (_gaMuted) return;
+    const ctx = _gaCtxEnsure(); if (!ctx) return;
+    const t = ctx.currentTime; const len = (dur || 0.06) * ctx.sampleRate;
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const g = ctx.createGain(); g.gain.setValueAtTime(vol || 0.08, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + (dur || 0.06));
+    const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.setValueAtTime(2000, t);
+    src.connect(f); f.connect(g); g.connect(ctx.destination);
+    src.start(t); src.stop(t + (dur || 0.06) + 0.01);
+  }
+  // 具体音效
+  function _gaSfxPlay() { _gaBeep(660, 0.07, 'square', 0.08); _gaNoise(0.04, 0.05); }
+  function _gaSfxBomb() {
+    if (_gaMuted) return;
+    const ctx = _gaCtxEnsure(); if (!ctx) return;
+    const t = ctx.currentTime;
+    // 低音轰
+    for (let i = 0; i < 3; i++) {
+      const o = ctx.createOscillator(); o.type = 'sawtooth';
+      o.frequency.setValueAtTime(50 + i * 10, t + i * 0.06);
+      o.frequency.exponentialRampToValueAtTime(30, t + i * 0.06 + 0.15);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.18, t + i * 0.06);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.2);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t + i * 0.06); o.stop(t + i * 0.06 + 0.2);
+    }
+    // 高音炸裂
+    _gaBeep(1200, 0.1, 'square', 0.10);
+    setTimeout(() => _gaBeep(800, 0.06, 'square', 0.06), 50);
+    _gaNoise(0.1, 0.12);
+  }
+  function _gaSfxPass() { _gaBeep(300, 0.05, 'triangle', 0.06); }
+  function _gaSfxDeal() {
+    const notes = [440, 554, 659, 880]; let t = 0;
+    for (const f of notes) { setTimeout(() => _gaBeep(f, 0.1, 'sine', 0.07), t); t += 60; }
+  }
+  function _gaSfxWin() {
+    const notes = [523, 659, 784, 1047]; let t = 0;
+    for (const f of notes) { setTimeout(() => _gaBeep(f, 0.18, 'triangle', 0.1), t); t += 120; }
+  }
+  function _gaSfxLose() {
+    _gaBeep(330, 0.2, 'triangle', 0.08);
+    setTimeout(() => _gaBeep(262, 0.3, 'triangle', 0.08), 200);
+  }
+  function _gaSfxTick() { _gaBeep(1000, 0.03, 'square', 0.06); }
+  // 整局战报页专用退场音（不打 round end 的 win/lose，战报更隆重）
+  function _gaSfxMatchEnd(win) {
+    if (win) {
+      const notes = [523, 659, 784, 1047, 1319]; let t = 0;
+      for (const f of notes) { setTimeout(() => _gaBeep(f, 0.2, 'triangle', 0.12), t); t += 150; }
+    } else {
+      const notes = [440, 349, 330, 262]; let t = 0;
+      for (const f of notes) { setTimeout(() => _gaBeep(f, 0.25, 'triangle', 0.1), t); t += 200; }
+    }
+  }
 
   function shuffle(a) {
     for (let i = a.length - 1; i > 0; i--) {
@@ -2494,9 +2584,11 @@
       stopTurnClock();              // 我已出牌 → 收掉自己的倒计时
       hidePlayActionsImmediate();
       renderAll();
-      if (isBombType(combo.type)) { state._bombFxKey = bombFxKey(0, cards); playBombFx(0, combo); }
+      if (isBombType(combo.type)) { state._bombFxKey = bombFxKey(0, cards); playBombFx(0, combo); _gaSfxBomb(); }
+      else { _gaSfxPlay(); }
     } else if (action === 'pass') {
       state.lastPlay[0] = 'pass';
+      _gaSfxPass();
       stopTurnClock();              // 我已不出 → 收掉自己的倒计时
       hidePlayActionsImmediate();
       renderAll();
@@ -2663,6 +2755,7 @@
     state.hands = [[], [], [], []];
     for (let i = 0; i < 108; i++) state.hands[i % 4].push(deck[i]);
     if (typeof GuandanDMC !== 'undefined') { GuandanDMC.resetRound(); ensureDMC(); }
+    // 小局开打一瞬不放发牌音，只在玩家第一次"摸牌"时放（beginPlay 渲染时本函数已返回）
 
     // 决定先手：首局随机抽一家；之后由进贡/抗贡规则在 handleTribute 里改写
     // （这里的 leader 只是非进贡场景的兜底：传入的是上局头游）
@@ -2688,6 +2781,7 @@
     state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
     state.busy = false;
     renderAll();
+    _gaSfxDeal();
     saveSession();
     if (leader !== 0) scheduleAI();
     else { updateActions(); armTurnClock(); }
@@ -3286,7 +3380,8 @@
       const mult = bombMultiplierFor(combo);
       if (mult > 1) state.bombMult = (state.bombMult || 1) * mult;
       playBombFx(seat, combo);
-    }
+      _gaSfxBomb();
+    } else { _gaSfxPlay(); }
     // 玩家刚出牌后立即藏掉操作按钮，否则 renderAll 内的 updateActions 会因为
     // state.turn 仍是 0 而把按钮再渲一遍（直到 afterMove 把 turn 推走）
     if (seat === 0) hidePlayActionsImmediate();
@@ -3332,6 +3427,7 @@
     if (isNetworked()) { sendNetworkedMove('pass'); return; }
     state.lastPlay[seat] = 'pass';
     state.trick.passes++;
+    _gaSfxPass();
     if (typeof GuandanDMC !== 'undefined') GuandanDMC.recordPass(seat);
     renderAll();
     if (seat === 0) hidePlayActionsImmediate();
@@ -3621,11 +3717,13 @@
   }
 
   function showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon) {
+    const youWon = winTeam === 0;
+    if (matchWon) _gaSfxMatchEnd(youWon);
+    else if (youWon) _gaSfxWin(); else _gaSfxLose();
     const seatToRank = {};
     for (let i = 0; i < 4; i++) seatToRank[ranking[i]] = i + 1;
 
     // 大标题：整局结束才显示"胜利/失败"；每小局不写"我方头游"标题
-    const youWon = winTeam === 0;
     if (matchWon) {
       els.roundTitle.textContent = youWon ? '胜利' : '失败';
       els.roundTitle.style.display = '';
@@ -3772,6 +3870,7 @@
   let turnClockTimer = null;
   let turnClockEndAt = 0;
   let turnClockSeat = -1;
+  let turnClockLastSec = 10;   // 上轮 tick 的剩余秒数，防止同秒内多次滴答（tick 每 250ms 一次）
 
   function clockEl(seat) {
     if (seat === 0) return els.selfClock || null;
@@ -3807,6 +3906,7 @@
     stopTurnClock();
     turnClockEndAt = Date.now() + (durationMs || TURN_TIMEOUT_MS);
     turnClockSeat = seat;
+    turnClockLastSec = 10;
     const el = clockEl(seat);
     if (!el) return;
     el.hidden = false;
@@ -3818,6 +3918,7 @@
       if (numEl) numEl.textContent = String(s);
       else el.textContent = s + 's';
       el.classList.toggle('urgent', s <= 5);
+      if (s <= 5 && s !== turnClockLastSec) { turnClockLastSec = s; _gaSfxTick(); }
       if (left <= 0) {
         stopTurnClock();
         try { onTimeout && onTimeout(); } catch (e) { console.warn(e); }
@@ -3830,6 +3931,7 @@
     if (turnClockTimer) clearInterval(turnClockTimer);
     turnClockTimer = null;
     turnClockSeat = -1;
+    turnClockLastSec = 10;
     hideAllClocks();
   }
   // 轮到某座位时挂上对应时钟。玩家超时 → 自动"不出"或打出最小单张领出
@@ -5297,6 +5399,7 @@
   function openConfirmExit() { if (confirmExit) confirmExit.hidden = false; }
   function closeConfirmExit() { if (confirmExit) confirmExit.hidden = true; }
   if ($('gdExitBtn')) $('gdExitBtn').addEventListener('click', openConfirmExit);
+  if ($('gdMuteBtn')) $('gdMuteBtn').addEventListener('click', toggleMute);
   if ($('gdConfirmExitCancel')) $('gdConfirmExitCancel').addEventListener('click', closeConfirmExit);
   if ($('gdConfirmExitBackdrop')) $('gdConfirmExitBackdrop').addEventListener('click', closeConfirmExit);
   if ($('gdConfirmExitOk')) $('gdConfirmExitOk').addEventListener('click', () => { closeConfirmExit(); quitToSetup(); });
