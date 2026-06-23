@@ -14,7 +14,7 @@
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.22.mp18';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.06.23.dbgfix';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -4917,7 +4917,8 @@
 
   function buildDebugPanel() {
     if (document.getElementById('gdDbgPanel')) return;
-    const p = _gdEl('div', 'position:fixed;right:8px;top:8px;z-index:9998;width:252px;max-height:94vh;overflow:auto;background:rgba(18,26,40,0.95);border:1px solid #c9a96e;border-radius:10px;padding:9px;display:flex;flex-direction:column;gap:5px;font-family:var(--font-body,sans-serif);box-shadow:0 6px 20px rgba(0,0,0,0.5);color:#e8eef5;');
+    // z-index 必须高于所有浮层（PGO 开始界面/结算/进贡最高到 100000），否则在开始界面打开时面板会被盖住、看不见（=用户反馈「dbug 没反应」的真因）
+    const p = _gdEl('div', 'position:fixed;right:8px;top:8px;z-index:2147483000;width:252px;max-height:94vh;overflow:auto;background:rgba(18,26,40,0.95);border:1px solid #c9a96e;border-radius:10px;padding:9px;display:flex;flex-direction:column;gap:5px;font-family:var(--font-body,sans-serif);box-shadow:0 6px 20px rgba(0,0,0,0.5);color:#e8eef5;');
     p.id = 'gdDbgPanel';
     const head = _gdEl('div', 'display:flex;align-items:center;justify-content:space-between;');
     head.appendChild(_gdEl('div', 'color:#f5d142;font-weight:700;font-size:13px;', '🛠 调试台'));
