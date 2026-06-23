@@ -610,6 +610,8 @@
   const $weightInput = document.getElementById('weight-input');
   const $weightUnit = document.getElementById('weight-unit');
   const $weightSave = document.getElementById('weight-save');
+  const $weightTimeToggle = document.getElementById('weight-time-toggle');
+  const $weightTimeVal = document.getElementById('weight-time-val');
   const $weightHero = document.getElementById('weight-hero');
   const $whNum = document.getElementById('wh-num');
   const $whUnit = document.getElementById('wh-unit');
@@ -993,6 +995,22 @@
     imToggleKibbleField();
     pmRenderTargetInputs();
     refreshEstimatorPreview();
+    // Warn if a count-based food is picked as base (targets will show in absurd 份/天)
+    if (pmBaseId !== 'kibble') {
+      const pet = pmEditingPet() || currentPet();
+      const food = (pet && pet.foodLibrary || []).find(f => f.id === pmBaseId);
+      if (food && food.measure === 'count') {
+        $pmConvBase.style.borderColor = '#c0564b';
+        $pmConvBase.parentElement.querySelector('.hint')?.remove();
+        const hint = document.createElement('p');
+        hint.className = 'hint'; hint.style.cssText = 'margin:0.3rem 0 0; color:#c0564b;';
+        hint.textContent = '⚠️ 「' + food.name + '」是按份记的，选了它每日目标会显示成「份/天」，建议还是用干粮当主粮。';
+        $pmConvBase.parentElement.appendChild(hint);
+        return;
+      }
+    }
+    $pmConvBase.style.borderColor = '';
+    $pmConvBase.parentElement.querySelector('.hint')?.remove();
   });
   $pmKibbleKcal.addEventListener('input', () => {
     pmRenderTargetInputs();
@@ -1150,7 +1168,18 @@
         }
         if (r && Array.isArray(r.members)) p.members = r.members;
         if (typeof p.activitySeenAt !== 'number') p.activitySeenAt = Date.now();   // baseline so a fresh pull doesn't flag all history
-        if (r && Array.isArray(r.entries)) { p.entries = r.entries; reconcileBodyWeight(p); }
+        if (r && Array.isArray(r.entries)) {
+          // Merge instead of replace: keep local entries not yet on server (by id dedup).
+          // Server entries take priority for matching ids (server is source of truth for shared data).
+          const serverIds = new Set(r.entries.map(e => e.id));
+          const merged = [...r.entries];   // start with server entries
+          (p.entries || []).forEach(e => {
+            if (!serverIds.has(e.id)) merged.push(e);   // local-only (not yet pushed)
+          });
+          merged.sort((a, b) => a.ts - b.ts);
+          p.entries = merged;
+          reconcileBodyWeight(p);
+        }
         if (r && Array.isArray(r.timechanges)) p.timeChanges = r.timechanges;
         if (r && r.code) p.serverCode = r.code;
       } catch (e) {
@@ -1381,13 +1410,29 @@
   function wireEntryButtons(container, pet) {
     container.querySelectorAll('.er-del').forEach(btn => {
       btn.addEventListener('click', () => {
-        if (!confirm('删除这条记录？')) return;
         const p = currentPet(); if (!p) return;
         const eid = btn.dataset.eid;
+        const entry = (p.entries || []).find(x => x.id === eid);
+        const kind = (entry && entry.kind) || 'weigh';
+        // For weigh / remain entries that sit in a chain, warn about recomputation
+        let confirmMsg = '删除这条记录？';
+        if (kind === 'weigh' || kind === 'remain') {
+          const sorted = [...p.entries].filter(e => (e.kind || 'weigh') === kind).sort((a, b) => a.ts - b.ts);
+          const idx = sorted.findIndex(x => x.id === eid);
+          if (idx > 0 && idx < sorted.length - 1) {
+            confirmMsg = '删掉这条记录会重新计算它前后两次称重之间的「吃了多少」，确定删除？';
+          }
+        }
+        if (!confirm(confirmMsg)) return;
+        const snapshot = { id: eid, entry: Object.assign({}, entry) };  // shallow clone for undo
         p.entries = p.entries.filter(x => x.id !== eid);
         persist();
         render();
         pushDeleteEntry(p, eid);
+        // Undo toast
+        const entryLabel = kind === 'bodyweight' ? '⚖️ 体重' : '🍽 记录';
+        showLinkToast('已删除一条' + entryLabel,
+          () => { p.entries.push(snapshot.entry); p.entries.sort((a, b) => a.ts - b.ts); persist(); render(); });
       });
     });
     container.querySelectorAll('.er-edit').forEach(btn => {
@@ -2776,6 +2821,7 @@
       $timeVal.textContent = '现在';
       $timeToggle.classList.remove('custom');
     }
+    updateWeightTimeDisplay();
   }
   let pendingEntryTsEnd = null;   // 直接填模式可选的结束时间戳（构成时间段）
   function setPendingEntryTsEnd(ts) {
@@ -3358,6 +3404,7 @@
 
   function renderWeight(pet) {
     reconcileBodyWeight(pet);   // keep estimator's bodyWeight in step with the log
+    updateWeightTimeDisplay();  // sync time pill with pendingEntryTs
     const unit = pet.bodyWeightUnit || 'kg';
     $weightUnit.value = unit;
     $weightDiffUnit.value = unit;   // 做差也跟随宠物偏好单位（默认别老是 kg）
@@ -3384,11 +3431,11 @@
       const curTs = ws[ws.length - 1].ts;
       // earliest entry within the last 30 days (else the very first) for a delta
       const since = curTs - 30 * DAY_MS;
-      const ref = ws.find(w => w.ts >= since) || ws[0];
-      const dKg = curKg - Number(ref.kg);
+      const ref = ws.find(w => w.ts >= since);
+      const dKg = ref ? (curKg - Number(ref.kg)) : 0;
       const curStr = parseFloat(bwFromKg(curKg, unit).toFixed(2));
       let subHtml = '当前体重';
-      if (ws.length >= 2 && Math.abs(dKg) >= 0.005) {
+      if (ref && ws.length >= 2 && Math.abs(dKg) >= 0.005) {
         const dStr = parseFloat(Math.abs(bwFromKg(dKg, unit)).toFixed(2));
         const arrow = dKg > 0 ? '↑' : '↓';
         subHtml += ` · 近 30 天 <span class="wh-delta">${arrow}${dStr} ${unit}</span>`;
@@ -3461,15 +3508,65 @@
       svg += `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W - padR}" y2="${yy.toFixed(1)}" stroke="${grid}" stroke-width="1" stroke-dasharray="3 3"/>`;
       svg += `<text x="${padL - 6}" y="${(yy + 3).toFixed(1)}" text-anchor="end" font-size="11" fill="${muted}">${parseFloat(bwFromKg(kv, unit).toFixed(1))}</text>`;
     });
-    // line path
-    const pts = ws.map(w => `${x(w.ts).toFixed(1)},${y(Number(w.kg)).toFixed(1)}`);
-    svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="${accent}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-    // dots
-    ws.forEach(w => { svg += `<circle cx="${x(w.ts).toFixed(1)}" cy="${y(Number(w.kg)).toFixed(1)}" r="3" fill="${accent}"/>`; });
-    // x labels: first + last date
-    svg += `<text x="${padL}" y="${H - 8}" text-anchor="start" font-size="11" fill="${muted}">${shortMD(isoDate(t0))}</text>`;
-    svg += `<text x="${W - padR}" y="${H - 8}" text-anchor="end" font-size="11" fill="${muted}">${shortMD(isoDate(t1))}</text>`;
+    // Weight range band: use pet's target if available, else auto-compute from data
+    const target = pet.weightTargetMin && pet.weightTargetMax
+      ? { min: pet.weightTargetMin, max: pet.weightTargetMax }
+      : null;
+    if (target) {
+      const yTop = y(target.max), yBot = y(target.min);
+      const bandH = yBot - yTop;
+      if (bandH > 0) {
+        const sage = getComputedStyle(document.documentElement).getPropertyValue('--sage').trim() || '#5c8a6a';
+        svg += `<rect x="${padL}" y="${yTop}" width="${(W - padL - padR)}" height="${bandH}" fill="${sage}" opacity="0.08" rx="2"/>`;
+        svg += `<text x="${(W - padR - 2)}" y="${(yTop + 11)}" text-anchor="end" font-size="9.5" fill="${sage}" opacity="0.7">目标 ${parseFloat(bwFromKg(target.min, unit).toFixed(1))}–${parseFloat(bwFromKg(target.max, unit).toFixed(1))}</text>`;
+      }
+    }
+    // Line segments: dashes when gap > 70 days (don't fake continuous measurement)
+    for (let i = 1; i < ws.length; i++) {
+      const gap = (ws[i].ts - ws[i - 1].ts) / DAY_MS;
+      const dash = gap > 70 ? ' stroke-dasharray="5 4"' : '';
+      svg += `<line x1="${x(ws[i - 1].ts).toFixed(1)}" y1="${y(Number(ws[i - 1].kg)).toFixed(1)}" x2="${x(ws[i].ts).toFixed(1)}" y2="${y(Number(ws[i].kg)).toFixed(1)}" stroke="${accent}" stroke-width="2.5" stroke-linecap="round"${dash}/>`;
+    }
+    // Dots: white fill + accent stroke for clarity
+    ws.forEach(w => { svg += `<circle cx="${x(w.ts).toFixed(1)}" cy="${y(Number(w.kg)).toFixed(1)}" r="3.5" fill="#fff" stroke="${accent}" stroke-width="2"/>`; });
+    // x labels: mark each data point with mm/dd (skip some if overlapping — show all when ≤6, every other when more)
+    const labelStep = ws.length <= 6 ? 1 : 2;
+    ws.forEach((w, i) => {
+      if (i % labelStep !== 0 && i !== ws.length - 1) return;  // always show last
+      const anchor = i === 0 ? 'start' : (i === ws.length - 1 ? 'end' : 'middle');
+      svg += `<text x="${x(w.ts).toFixed(1)}" y="${H - 8}" text-anchor="${anchor}" font-size="10.5" fill="${muted}">${shortMD(isoDate(w.ts))}</text>`;
+    });
+    // Invisible hit areas for hover/touch tooltip
+    ws.forEach(w => {
+      svg += `<rect x="${(x(w.ts) - 10).toFixed(1)}" y="${padT}" width="20" height="${(H - padT - padB)}" fill="transparent" data-wts="${w.ts}" data-wkg="${Number(w.kg).toFixed(2)}"/>`;
+    });
     $weightChart.innerHTML = svg;
+    // Hover/touch tooltip via title attribute (weight-chart is inside .weight-chart-wrap)
+    const tipEl = document.getElementById('weight-chart-tip');
+    if (tipEl) tipEl.remove();
+    const wrap = $weightChart.parentElement;
+    const tip = document.createElement('div');
+    tip.id = 'weight-chart-tip';
+    tip.style.cssText = 'display:none;position:absolute;background:var(--color-ink, #1a1a2e);color:#fff;font-size:0.75rem;padding:0.35rem 0.6rem;border-radius:7px;pointer-events:none;white-space:nowrap;z-index:5;transform:translate(-50%,-130%);';
+    tip.textContent = '';
+    wrap.style.position = 'relative';
+    wrap.appendChild(tip);
+    const tooltipShow = (ev, w) => {
+      const rect = $weightChart.getBoundingClientRect();
+      const cx = (ev.touches ? ev.touches[0].clientX : ev.clientX);
+      const cy = (ev.touches ? ev.touches[0].clientY : ev.clientY);
+      tip.style.display = ''; tip.style.left = (cx - rect.left) + 'px'; tip.style.top = (cy - rect.top) + 'px';
+      tip.innerHTML = isoDate(w.ts).slice(5) + ' · <b>' + parseFloat(bwFromKg(Number(w.kg), unit).toFixed(2)) + ' ' + unit + '</b>';
+    };
+    const tooltipHide = () => { tip.style.display = 'none'; };
+    $weightChart.querySelectorAll('rect[data-wts]').forEach(r => {
+      const wts = parseInt(r.dataset.wts), wkg = parseFloat(r.dataset.wkg);
+      r.addEventListener('mouseenter', (ev) => tooltipShow(ev, {ts: wts, kg: wkg}));
+      r.addEventListener('mousemove', (ev) => tooltipShow(ev, {ts: wts, kg: wkg}));
+      r.addEventListener('mouseleave', tooltipHide);
+      r.addEventListener('touchstart', (ev) => { ev.preventDefault(); tooltipShow(ev, {ts: wts, kg: wkg}); });
+      r.addEventListener('touchend', tooltipHide);
+    });
   }
 
   function attemptSave() {
@@ -3492,6 +3589,17 @@
       $bowlRow.classList.add('shake', 'needs-bowl');
       setTimeout(() => $bowlRow.classList.remove('shake'), 400);
       $bowlWeight.focus();
+      return;
+    }
+    // Guard: reading lower than bowl weight in 含碗 mode → likely forgot to switch
+    if (withBowl && pet.bowlWeight > 0 && gramsReading < pet.bowlWeight) {
+      $mmBody.innerHTML = `
+        读数 <code>${fmtG(gramsReading)} g</code> 比空碗 <code>${fmtG(pet.bowlWeight)} g</code> 还轻。<br><br>
+        是不是记成<b>不含碗</b>了？切换到「不含碗」再记一次？
+      `;
+      $mmModal.dataset.reading = String(gramsReading);
+      $mmModal.dataset.withBowl = '1';
+      $mmModal.classList.add('open');
       return;
     }
     // 倒掉换新：作为新起点，跳过「最近记录/含碗模式」的提醒（这一称重不和上次作差）
@@ -3542,6 +3650,15 @@
   $weightSave.addEventListener('click', () => {
     if ((state.weightMethod || 'direct') === 'diff') saveWeightDiff(); else saveWeight();
   });
+  // Weight time-pill: same time picker as food panel, sharing pendingEntryTs
+  $weightTimeToggle.addEventListener('click', () => {
+    openTimePicker(pendingEntryTs || Date.now(), ts => setPendingEntryTs(ts), '这次称重的时间', () => resetEntryTime());
+  });
+  function updateWeightTimeDisplay() {
+    if ($weightTimeVal) {
+      $weightTimeVal.textContent = pendingEntryTs ? isoDate(pendingEntryTs) + ' ' + fmtTime(pendingEntryTs) : '现在';
+    }
+  }
   $weightInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveWeight(); } });
   $weightUnit.addEventListener('change', () => {
     const pet = currentPet(); if (!pet) return;
@@ -3642,6 +3759,7 @@
     $tpTitle.textContent = title || '选择时间';
     const local = tsToLocalInput(initialTs || Date.now()); // YYYY-MM-DDTHH:MM
     $tpDate.value = local.slice(0, 10);
+    $tpDate.max = todayBucketIso();   // grey out future dates in native calendar
     $tpTime.value = local.slice(11, 16);
     $tpModal.classList.add('open');
   }
@@ -3653,6 +3771,7 @@
     if (!$tpDate.value || !$tpTime.value) { alert('日期和时间都要选'); return; }
     const ts = localInputToTs($tpDate.value + 'T' + $tpTime.value);
     if (!ts) { alert('时间无效'); return; }
+    if (ts > Date.now() + 60000) { alert('时间不能晚于现在'); return; }
     const cb = tpOnConfirm;
     closeTimePicker();
     if (cb) cb(ts);
@@ -3971,6 +4090,11 @@
     if (!pet || !isAdminOrUp(pet)) return;
     const name = $fmName.value.trim();
     if (!name) { alert('给食物起个名'); return; }
+    // Soft-check for duplicate name (non-blocking — just a heads-up)
+    if (!fmEditingId) {
+      const dup = (pet.foodLibrary || []).find(x => x.name === name);
+      if (dup && !confirm('已经有一个叫"' + name + '"的食物，要再建一个同名的吗？')) return;
+    }
     if (fmKibbleMode) return saveKibble(pet, name);
     const measure = fmMeasureVal();
     const source = fmSourceVal();
@@ -4009,10 +4133,15 @@
       if (measure === 'gram') {
         const k100 = parseFloat($fmKcal100g.value);
         if (!Number.isFinite(k100) || k100 <= 0) { alert('填一下每 100 克多少大卡'); return; }
+        // Most cat/dog dry food is 300–450 kcal/100g; wet food 60–120.
+        // Flag anything wildly outside that range as a likely typo/swap (non-blocking).
+        if (k100 > 900 && !confirm('每100克 ' + k100 + ' 大卡看起来偏高（通常是 60–450）。包装上印的可能是每公斤或每袋？\n确定就是这个数字？')) return;
+        if (k100 < 30 && !confirm('每100克 ' + k100 + ' 大卡看起来偏低。确定吗？')) return;
         kcalPerUnit = k100 / 100;
       } else {
         const k = parseFloat($fmKcalCount.value);
         if (!Number.isFinite(k) || k <= 0) { alert('填一下每' + unitLabel + '多少大卡'); return; }
+        if (k > 500 && !confirm('每' + unitLabel + ' ' + k + ' 大卡看起来很高。是不是把每 100 克的数字填进来了？\n确定就是这个数字？')) return;
         kcalPerUnit = k;
       }
     }
@@ -4435,7 +4564,7 @@
   function updateInboxBadge() {
     const pet = currentPet();
     // Bell is available on any shared pet (so members can see the activity feed).
-    $inboxBtn.style.display = (pet && pet.shared) ? '' : 'none';
+    $inboxBtn.style.display = (pet && pet.shared && (pet.members || []).length > 1) ? '' : 'none';
     const n = inboxUnseenCount(pet);
     $inboxDot.style.display = n > 0 ? '' : 'none';
   }

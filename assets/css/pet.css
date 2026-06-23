@@ -72,7 +72,7 @@
     .pet-bar .icon-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
 
-  .empty-zone { text-align: center; padding: 3.5rem 2rem; color: var(--color-light); }
+  .empty-zone { text-align: center; padding: 3.5rem 2rem; color: var(--color-muted); }
   .empty-zone .empty-emoji { font-size: 3rem; margin-bottom: 1rem; opacity: 0.55; }
   .empty-zone .empty-actions {
     margin-top: 1.4rem;
@@ -767,16 +767,33 @@
   }
   .weight-box .reading-group.weight-reading { width: 100%; max-width: 380px; align-self: center; margin-inline: auto; }
   .weight-box .weight-diff .diff-result { max-width: 380px; align-self: center; width: 100%; box-sizing: border-box; }
-  /* RIGHT: 记体重 满高贴右边、和整卡贴合（直角，靠卡片 overflow:hidden 切圆角） */
-  .weight-box .save-btn {
-    flex: 0 0 134px; border: none; border-radius: 0;
+  /* Weight-action-row: save button + time-pill stacked (same style as food's action-col) */
+  .weight-box .weight-action-row {
+    flex: 0 0 134px; display: flex; flex-direction: column;
+  }
+  .weight-box .weight-action-row .save-btn {
+    flex: 1 1 auto; border: none; border-radius: 0;
     font: inherit; font-size: 1rem; font-weight: 600;
     background: var(--color-accent); color: #fff; cursor: pointer; white-space: nowrap;
     display: flex; align-items: center; justify-content: center; gap: 0.3rem;
+    transition: background 0.18s; min-height: 56px;
+  }
+  .weight-box .weight-action-row .save-btn:active { background: var(--color-accent-light); }
+  @media (hover: hover) { .weight-box .weight-action-row .save-btn:hover { background: var(--color-accent-light); } }
+  .weight-box .weight-action-row .time-pill {
+    width: 100%; border: none; border-top: 1px solid var(--color-border); border-radius: 0;
+    justify-content: center; background: var(--color-bg-warm); min-height: 40px;
+    font: inherit; font-size: 0.78rem; color: var(--color-muted); cursor: pointer;
+    display: flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.5rem;
     transition: background 0.18s;
   }
-  .weight-box .save-btn:active { background: var(--color-accent-light); }
-  @media (hover: hover) { .weight-box .save-btn:hover { background: var(--color-accent-light); } }
+  @media (hover: hover) { .weight-box .weight-action-row .time-pill:hover { color: var(--color-accent); background: var(--color-bg); } }
+  .weight-box .weight-action-row .time-pill .tp-ico { font-size: 1rem; }
+  .weight-box .weight-action-row .time-pill .tp-val { color: var(--color-accent); font-weight: 600; }
+  .weight-box .weight-action-row .time-pill .tp-edit { font-size: 0.7rem; opacity: 0.5; }
+  .weight-box .weight-action-row .time-pill.custom { background: var(--color-accent-soft); }
+
+  /* old save-btn (direct child, kept for compatibility during transition — will be removed) */
   /* 窄屏：拆成竖排，三段各自满宽、恢复内边距与圆角、高度自适应 */
   @media (max-width: 680px) {
     .weight-box { padding: 1.1rem; }
@@ -922,7 +939,7 @@
     background: var(--color-bg); border: 1px solid var(--color-border);
     border-radius: 14px; padding: 1.6rem;
     max-width: 480px; width: 100%;
-    max-height: 90vh; overflow-y: auto;
+    max-height: 90dvh; overflow-y: auto;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
   }
   .modal h2 {
@@ -1398,4 +1415,11 @@
     margin-left: 0.7rem;
     font-size: 0.78rem;
     cursor: pointer;
+  }
+
+  /* PWA standalone: leave room for home indicator bar */
+  @media (display-mode: standalone) {
+    .pf-wrap {
+      padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    }
   }

@@ -1,5 +1,6 @@
   <header>
     <h1>🐾 宠物中心</h1>
+    <p class="sub">记录爱宠的食量与体重 · 数据只存在你的设备上</p>
   </header>
 
   <div class="pet-bar" id="pet-bar">
@@ -74,11 +75,11 @@
           <!-- 填法切换：每种食物都能「直接填吃了多少」或「作差·记现在还剩」 -->
           <div class="method-toggle mode-toggle" id="method-toggle">
             <label data-m="direct" class="active"><input type="radio" name="rec-method" value="direct" checked><span id="mt-direct-lbl">直接填吃了多少</span></label>
-            <label data-m="diff"><input type="radio" name="rec-method" value="diff"><span id="mt-diff-lbl">作差</span></label>
+            <label data-m="diff"><input type="radio" name="rec-method" value="diff"><span id="mt-diff-lbl">作差·记还剩</span></label>
           </div>
           <div class="entry-main-row">
             <div class="reading-group">
-              <input type="number" class="reading" id="reading" step="any" placeholder="粮食称重" inputmode="decimal" />
+              <input type="number" class="reading" id="reading" step="any" min="0" placeholder="粮食称重" inputmode="decimal" />
               <select class="unit-pick" id="unit-pick">
                 <option value="g">g</option>
                 <option value="kg">kg</option>
@@ -184,7 +185,7 @@
           <!-- LEFT: 直接称 / 做差 stacked as a column (mirrors the food-type column) -->
           <div class="weight-method" id="weight-method">
             <label data-val="direct" class="active"><input type="radio" name="wmethod" value="direct" checked>直接称</label>
-            <label data-val="diff"><input type="radio" name="wmethod" value="diff">做差</label>
+            <label data-val="diff"><input type="radio" name="wmethod" value="diff">做差·抱着称</label>
           </div>
 
           <!-- MIDDLE: fixed-width fill block -->
@@ -222,7 +223,15 @@
             </div>
           </div>
 
-          <button type="button" class="save-btn" id="weight-save">⚖️ 记体重</button>
+          <div class="weight-action-row">
+            <button type="button" class="save-btn" id="weight-save">⚖️ 记体重</button>
+            <button type="button" class="time-pill" id="weight-time-toggle">
+              <span class="tp-ico">🕑</span>
+              <span class="tp-lbl">记录时间</span>
+              <span class="tp-val" id="weight-time-val">现在</span>
+              <span class="tp-edit">✎</span>
+            </button>
+          </div>
         </div>
       </div>
 

@@ -139,7 +139,7 @@
       <div class="field" id="im-kibble-field">
         <label>干粮每克多少大卡</label>
         <input type="number" id="pm-kibble-kcal" step="0.1" min="0" placeholder="3.8" inputmode="decimal" />
-        <p class="hint" style="margin: 0.3rem 0 0;">看粮袋上的热量，一般 3.5–4.2；不确定就按默认。</p>
+        <p class="hint" style="margin: 0.3rem 0 0;">看粮袋上的能量（一般 350–420 大卡/100 克）；不确定就按默认。</p>
       </div>
 
       <div class="sub-section">每日目标食量（选填）</div>
@@ -311,11 +311,11 @@
             克
           </div>
           <div class="fm-analysis-grid">
-            <div class="field"><label>粗蛋白质 %</label><input type="number" id="fm-an-protein" step="any" min="0" placeholder="比如 10" inputmode="decimal" /></div>
-            <div class="field"><label>粗脂肪 %</label><input type="number" id="fm-an-fat" step="any" min="0" placeholder="比如 5" inputmode="decimal" /></div>
-            <div class="field"><label>水分 %</label><input type="number" id="fm-an-moisture" step="any" min="0" placeholder="比如 80" inputmode="decimal" /></div>
-            <div class="field"><label>粗灰分 %<span class="opt">没有就不填</span></label><input type="number" id="fm-an-ash" step="any" min="0" placeholder="2" inputmode="decimal" /></div>
-            <div class="field"><label>粗纤维 %<span class="opt">没有就不填</span></label><input type="number" id="fm-an-fiber" step="any" min="0" placeholder="0.5" inputmode="decimal" /></div>
+            <div class="field"><label>粗蛋白质 %</label><input type="number" id="fm-an-protein" step="any" min="0" max="100" placeholder="比如 10" inputmode="decimal" /></div>
+            <div class="field"><label>粗脂肪 %</label><input type="number" id="fm-an-fat" step="any" min="0" max="100" placeholder="比如 5" inputmode="decimal" /></div>
+            <div class="field"><label>水分 %</label><input type="number" id="fm-an-moisture" step="any" min="0" max="100" placeholder="比如 80" inputmode="decimal" /></div>
+            <div class="field"><label>粗灰分 %<span class="opt">没有就不填</span></label><input type="number" id="fm-an-ash" step="any" min="0" max="100" placeholder="2" inputmode="decimal" /></div>
+            <div class="field"><label>粗纤维 %<span class="opt">没有就不填</span></label><input type="number" id="fm-an-fiber" step="any" min="0" max="100" placeholder="0.5" inputmode="decimal" /></div>
           </div>
           <div class="fm-est-result" id="fm-est-result">≈ — 大卡 / 100 克</div>
           <p class="hint" id="fm-basis-note" style="display:none; margin:0.5rem 0 0; color:var(--color-muted);"></p>
@@ -383,11 +383,11 @@
           <p class="hint" style="margin:0.8rem 0 0.6rem;">照包装「成分 / 保证分析值」那栏抄就行。带「≥」「≤」的不用管符号，直接填数字——例：「粗蛋白≥10%」填 10，「水分≤85%」填 85。</p>
           <div class="inline-unit" id="fw-gpu-field">一<span id="fw-unit-echo">份</span>大约<input type="number" id="fw-gpu" step="any" min="0" placeholder="14" inputmode="decimal" />克</div>
           <div class="fm-analysis-grid">
-            <div class="field"><label>粗蛋白质 %</label><input type="number" class="fw-an" data-k="protein" step="any" min="0" placeholder="比如 10" inputmode="decimal" /></div>
-            <div class="field"><label>粗脂肪 %</label><input type="number" class="fw-an" data-k="fat" step="any" min="0" placeholder="比如 5" inputmode="decimal" /></div>
-            <div class="field"><label>水分 %</label><input type="number" class="fw-an" data-k="moisture" step="any" min="0" placeholder="比如 80" inputmode="decimal" /></div>
-            <div class="field"><label>粗灰分 %<span class="opt">没有就不填</span></label><input type="number" class="fw-an" data-k="ash" step="any" min="0" placeholder="2" inputmode="decimal" /></div>
-            <div class="field"><label>粗纤维 %<span class="opt">没有就不填</span></label><input type="number" class="fw-an" data-k="fiber" step="any" min="0" placeholder="0.5" inputmode="decimal" /></div>
+            <div class="field"><label>粗蛋白质 %</label><input type="number" class="fw-an" data-k="protein" step="any" min="0" max="100" placeholder="比如 10" inputmode="decimal" /></div>
+            <div class="field"><label>粗脂肪 %</label><input type="number" class="fw-an" data-k="fat" step="any" min="0" max="100" placeholder="比如 5" inputmode="decimal" /></div>
+            <div class="field"><label>水分 %</label><input type="number" class="fw-an" data-k="moisture" step="any" min="0" max="100" placeholder="比如 80" inputmode="decimal" /></div>
+            <div class="field"><label>粗灰分 %<span class="opt">没有就不填</span></label><input type="number" class="fw-an" data-k="ash" step="any" min="0" max="100" placeholder="2" inputmode="decimal" /></div>
+            <div class="field"><label>粗纤维 %<span class="opt">没有就不填</span></label><input type="number" class="fw-an" data-k="fiber" step="any" min="0" max="100" placeholder="0.5" inputmode="decimal" /></div>
           </div>
           <div class="fm-est-result" id="fw-est">≈ — 大卡 / 100 克</div>
           <p class="hint" id="fw-basis-note" style="display:none; margin:0.5rem 0 0; color:var(--color-muted);"></p>

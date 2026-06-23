@@ -61,7 +61,7 @@
   .cl-widget .cl-eq span:nth-child(4){ height: 100%; animation-delay: .45s; }
   @keyframes cl-bar { 0%,100% { transform: scaleY(0.35);} 50% { transform: scaleY(1);} }
   .cl-widget .cl-status {
-    position: sticky; bottom: 0.8rem; z-index: 5;
+    position: sticky; bottom: calc(0.8rem + env(safe-area-inset-bottom, 0px)); z-index: 5;
     display: flex; align-items: center; justify-content: center; gap: 0.6rem;
     margin: 1.6rem auto 0; max-width: 24rem;
     min-height: 2.6rem; padding: 0.5rem 0.9rem;
@@ -242,7 +242,11 @@
     player.src = btn.getAttribute('data-src');
     player.currentTime = 0;
     var p = player.play();
-    if(p && p.catch){ p.catch(function(){}); }
+    if(p && p.catch){ p.catch(function(){
+      btn.classList.remove('playing'); current = null;
+      statusBar.classList.remove('on');
+      statusText.textContent = '⚠️ 音频加载失败，请检查网络后再试';
+    }); }
     btn.classList.add('playing');
     current = btn;
     var cc = getComputedStyle(btn.closest('.cl-group')).getPropertyValue('--cc');
