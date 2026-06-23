@@ -1,18 +1,45 @@
-  /* Chart semantic colours — adapt to light/dark via CSS variables (pet.js SVG reads these) */
+  /* Chart & UI semantic colours — adapt to light/dark via CSS variables */
   .pf-wrap {
     --pet-chart-target: #4a7c59;       /* 目标线/达标绿 */
     --pet-chart-target-bg: rgba(74,124,89,0.10);
     --pet-chart-bar: #c9a96e;          /* 普通日柱色 */
     --pet-chart-incomplete: #b9975f;   /* 不完整日标签 */
+    --pet-danger: #b07c75;             /* 暖红：警告/超标 */
+    --pet-danger-bg: rgba(176,124,117,0.10);
+    --pet-error: #d9534f;              /* 纯红：校验错误/必删 */
+    --pet-gold: #a87a2a;               /* 暖金：待定/管理员 */
+    --pet-gold-bg: rgba(168,122,42,0.10);
+    --pet-brown: #8b5a3c;             /* 深棕：添粮/已生效 */
+    --pet-brown-bg: rgba(139,90,60,0.10);
     max-width: 880px; margin: 0 auto; padding: 1rem;
   }
   @media (prefers-color-scheme: dark) {
-    .pf-wrap {
+    :root:not([data-theme="light"]) .pf-wrap {
       --pet-chart-target: #7fb98f;
       --pet-chart-target-bg: rgba(127,185,143,0.12);
       --pet-chart-bar: #8b7a5e;
       --pet-chart-incomplete: #9c8a62;
+      --pet-danger: #c07c76;
+      --pet-danger-bg: rgba(192,124,118,0.12);
+      --pet-error: #e06660;
+      --pet-gold: #c9a96e;
+      --pet-gold-bg: rgba(201,169,110,0.12);
+      --pet-brown: #a08055;
+      --pet-brown-bg: rgba(160,128,85,0.12);
     }
+  }
+  :root[data-theme="dark"] .pf-wrap {
+    --pet-chart-target: #7fb98f;
+    --pet-chart-target-bg: rgba(127,185,143,0.12);
+    --pet-chart-bar: #8b7a5e;
+    --pet-chart-incomplete: #9c8a62;
+    --pet-danger: #c07c76;
+    --pet-danger-bg: rgba(192,124,118,0.12);
+    --pet-error: #e06660;
+    --pet-gold: #c9a96e;
+    --pet-gold-bg: rgba(201,169,110,0.12);
+    --pet-brown: #a08055;
+    --pet-brown-bg: rgba(160,128,85,0.12);
   }
   .pf-wrap header { text-align: center; margin-bottom: 1.4rem; }
   .pf-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem; }
@@ -176,7 +203,7 @@
     background: var(--color-accent);
     border-radius: 999px;
   }
-  .rec-bar .rec-fill.over { background: #b07c75; }
+  .rec-bar .rec-fill.over { background: var(--pet-danger); }
   .rec-bar .rec-fill.under { background: var(--color-accent); opacity: 0.55; }
   .rec-bar .rec-marker {
     position: absolute; top: -3px; bottom: -3px;
@@ -676,26 +703,21 @@
     font-size: 0.84rem; font-variant-numeric: tabular-nums;
     padding: 0.1rem 0.55rem; border-radius: 4px;
   }
-  .entry-row .er-delta.eat { color: #4a7c59; background: rgba(74, 124, 89, 0.1); }
-  .entry-row .er-delta.refill { color: #8b5a3c; background: rgba(139, 90, 60, 0.1); }
+  .entry-row .er-delta.eat { color: var(--pet-chart-target); background: var(--pet-chart-target-bg); }
+  .entry-row .er-delta.refill { color: var(--pet-brown); background: var(--pet-brown-bg); }
   .entry-row .er-delta.first { color: var(--color-muted); background: var(--color-bg-warm); }
-  .entry-row .er-delta.unknown { color: #a87a2a; background: rgba(168, 122, 42, 0.1); }
-  .entry-row .er-delta.extra { color: #5a6a8b; background: rgba(90, 106, 139, 0.12); }
-  /* Brighten the badge text on dark theme (their light-mode hues are too dim). */
-  [data-theme="dark"] .entry-row .er-delta.eat { color: #7fb98f; background: rgba(127,185,143,0.14); }
-  [data-theme="dark"] .entry-row .er-delta.refill { color: #cba27e; background: rgba(203,162,126,0.14); }
-  [data-theme="dark"] .entry-row .er-delta.unknown { color: #d6b15a; background: rgba(214,177,90,0.14); }
-  [data-theme="dark"] .entry-row .er-delta.extra { color: #9fb0d6; background: rgba(159,176,214,0.14); }
+  .entry-row .er-delta.unknown { color: var(--pet-gold); background: var(--pet-gold-bg); }
+  .entry-row .er-delta.extra { color: var(--pet-chart-bar); background: rgba(201, 169, 110, 0.10); }
   .entry-row-extra .er-reading { color: var(--color-muted); }
-  .entry-row .er-actions { display: inline-flex; gap: 0.1rem; align-self: start; }
+  .entry-row .er-actions { display: inline-flex; gap: 0.35rem; align-self: start; }
   .entry-row .er-del, .entry-row .er-edit {
     border: none; background: transparent; color: var(--color-muted);
     cursor: pointer; font-size: 1rem; border-radius: 6px; line-height: 1;
-    min-width: 34px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center;
+    min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
   }
   .entry-row .er-edit { font-size: 0.92rem; }
   @media (hover: hover) {
-    .entry-row .er-del:hover { color: #b07c75; background: var(--color-bg-warm); }
+    .entry-row .er-del:hover { color: var(--pet-danger); background: var(--color-bg-warm); }
     .entry-row .er-edit:hover { color: var(--color-accent, #8b6f47); background: var(--color-bg-warm); }
   }
   .entries-list .empty-row { padding: 1.5rem; text-align: center; color: var(--color-light); font-size: 0.88rem; }
@@ -728,6 +750,7 @@
     border: 1px solid var(--color-border); border-radius: 999px;
     background: var(--color-bg); color: var(--color-muted);
     cursor: pointer; transition: all 0.18s;
+    min-height: 36px; min-width: 44px;  /* touch target ≥44px height when stacked */
   }
   .trend-tabs button.active {
     background: var(--color-accent); border-color: var(--color-accent); color: #fff;
@@ -930,10 +953,10 @@
   .tc-badge {
     font-size: 0.74rem; padding: 0.1rem 0.5rem; border-radius: 999px; margin-left: auto;
   }
-  .tc-badge.pending  { color: #a87a2a; background: rgba(168,122,42,0.12); }
-  .tc-badge.active   { color: #8b5a3c; background: rgba(139,90,60,0.12); }
+  .tc-badge.pending  { color: var(--pet-gold); background: rgba(168,122,42,0.12); }
+  .tc-badge.active   { color: var(--pet-brown); background: rgba(139,90,60,0.12); }
   .tc-badge.approved { color: #4a7c59; background: rgba(74,124,89,0.12); }
-  .tc-badge.rejected { color: #b07c75; background: rgba(176,124,117,0.14); }
+  .tc-badge.rejected { color: var(--pet-danger); background: rgba(176,124,117,0.14); }
   .tc-badge.act-badge { color: var(--color-muted); background: var(--color-bg-warm); }
   .inbox-sec-title {
     font-size: 0.8rem; font-weight: 600; color: var(--color-muted);
@@ -948,7 +971,7 @@
     cursor: pointer; background: var(--color-bg);
   }
   .tc-actions .tc-approve { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
-  .tc-actions .tc-reject { color: #b07c75; }
+  .tc-actions .tc-reject { color: var(--pet-danger); }
   .tc-note { color: var(--color-light); font-size: 0.78rem; margin-top: 0.3rem; }
   .modal {
     background: var(--color-bg); border: 1px solid var(--color-border);
@@ -968,9 +991,9 @@
   .modal .field.invalid .cs-trigger,
   .modal .field.invalid .age-inputs input,
   .modal .field.invalid .input-unit-group input,
-  .modal .field.invalid .input-unit-group select { border-color: #d9534f; }
-  .modal .field.invalid > label { color: #d9534f; }
-  .modal .field-err { color: #d9534f; font-size: 0.76rem; margin-top: 0.3rem; }
+  .modal .field.invalid .input-unit-group select { border-color: var(--pet-error); }
+  .modal .field.invalid > label { color: var(--pet-error); }
+  .modal .field-err { color: var(--pet-error); font-size: 0.76rem; margin-top: 0.3rem; }
   .modal .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
   .modal label {
     display: block; font-size: 0.85rem; color: var(--color-muted);
@@ -1247,10 +1270,10 @@
   }
   .modal-actions .del {
     background: transparent; border: 1px solid var(--color-border);
-    color: #b07c75; margin-right: auto;
+    color: var(--pet-danger); margin-right: auto;
   }
   @media (hover: hover) {
-    .modal-actions .del:hover { background: rgba(192, 57, 43, 0.08); border-color: #b07c75; }
+    .modal-actions .del:hover { background: rgba(192, 57, 43, 0.08); border-color: var(--pet-danger); }
   }
 
   /* Mode mismatch prompt */
@@ -1328,7 +1351,7 @@
     background: var(--color-bg-warm);
   }
   .modal .members-list .m-role.owner { background: rgba(74, 124, 89, 0.18); color: #4a7c59; font-weight: 600; }
-  .modal .members-list .m-role.admin { background: rgba(201, 169, 110, 0.2); color: #a87a2a; }
+  .modal .members-list .m-role.admin { background: rgba(201, 169, 110, 0.2); color: var(--pet-gold); }
   .modal .members-list .m-actions { display: flex; gap: 0.3rem; }
   .modal .members-list .m-actions button {
     font: inherit; font-size: 0.72rem;
@@ -1337,7 +1360,7 @@
     background: var(--color-bg); color: var(--color-muted);
     cursor: pointer;
   }
-  .modal .members-list .m-actions button.danger { color: #b07c75; }
+  .modal .members-list .m-actions button.danger { color: var(--pet-danger); }
   .modal .your-role {
     font-size: 0.82rem; color: var(--color-muted);
     margin-top: 0.4rem;
@@ -1391,7 +1414,7 @@
     background: var(--color-bg-warm);
   }
   .modal .my-pets-list .mp-role-badge.owner { background: rgba(74, 124, 89, 0.18); color: #4a7c59; font-weight: 600; }
-  .modal .my-pets-list .mp-role-badge.admin { background: rgba(201, 169, 110, 0.2); color: #a87a2a; }
+  .modal .my-pets-list .mp-role-badge.admin { background: rgba(201, 169, 110, 0.2); color: var(--pet-gold); }
   .modal .my-pets-list .mp-empty { padding: 1rem; text-align: center; color: var(--color-light); font-size: 0.85rem; }
   .modal .my-pets-list li { cursor: pointer; transition: background 0.15s; }
   @media (hover: hover) {
@@ -1417,7 +1440,7 @@
   .storage-warn {
     position: fixed;
     top: env(safe-area-inset-top, 0px); left: 0; right: 0;
-    background: #b07c75;
+    background: var(--pet-danger);
     color: #fff;
     padding: 0.55rem 1rem;
     font-size: 0.88rem;
@@ -1440,5 +1463,20 @@
   @media (display-mode: standalone) {
     .pf-wrap {
       padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
+  /* Prevent iOS Safari auto-zoom when focusing inputs <16px */
+  @media (max-width: 680px) {
+    .pf-wrap input, .pf-wrap select, .pf-wrap textarea {
+      font-size: max(16px, 0.9rem);
+    }
+  }
+
+  /* Respect user's prefers-reduced-motion: disable wiggle & EQ bar animations */
+  @media (prefers-reduced-motion: reduce) {
+    .cl-widget .cl-sound.playing .cl-emoji,
+    .cl-widget .cl-eq span {
+      animation: none !important;
     }
   }
