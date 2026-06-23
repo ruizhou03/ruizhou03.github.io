@@ -1,0 +1,46 @@
+% ============================================================
+%  commands.tex — Linear Algebra (MIT 18.06, after Gilbert Strang)
+%  Lean macro set; Strang-style plain notation (A, x, b; C(A), N(A)).
+% ============================================================
+
+\usepackage{amsmath}
+
+% environment shortcuts
+\newcommand{\ba}{\begin{aligned}}
+\newcommand{\ea}{\end{aligned}}
+\newcommand{\bc}{\begin{cases}}
+\newcommand{\ec}{\end{cases}}
+
+% delimiters
+\newcommand{\pr}[1]{\left(#1\right)}
+\newcommand{\br}[1]{\left[#1\right]}
+\newcommand{\set}[1]{\left\{#1\right\}}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\norm}[1]{\left\|#1\right\|}
+\newcommand{\inner}[2]{\left\langle #1,#2\right\rangle}
+
+% number sets
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\CC}{\mathbb{C}}
+\newcommand{\NN}{\mathbb{N}}
+
+% operators
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\trace}{trace}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\proj}{proj}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+% transpose: write  A\T  ->  A^{\mathsf T}
+\newcommand{\T}{^{\mathsf T}}
+% inverse transpose convenience
+\newcommand{\invT}{^{-\mathsf T}}
+
+% the four fundamental subspaces (Strang's notation C(A), N(A), ...)
+\newcommand{\Col}[1]{C(#1)}
+\newcommand{\Nul}[1]{N(#1)}
+
+% figure placeholder (Phase-1 drafting; replaced by TikZ later)
+\newcommand{\figph}[1]{%
+  \begin{center}\fcolorbox{gray!50}{gray!8}{\parbox{0.82\linewidth}{\centering\small\itshape
+  [Figure placeholder]\\ #1}}\end{center}}

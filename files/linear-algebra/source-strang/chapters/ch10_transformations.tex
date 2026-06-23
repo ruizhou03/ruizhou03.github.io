@@ -1,0 +1,428 @@
+% !TEX root = ../main.tex
+\chapter{Linear Transformations and Change of Basis}
+\label{ch:10}
+
+For nine chapters a matrix has been an array of numbers and $Ax$ has been a combination of its columns. That is the right working picture, but it hides where matrices come from. A matrix is the \emph{shadow} of something more basic and coordinate-free: a \emph{linear transformation}, a rule $T$ that takes vectors to vectors and respects addition and scaling. The transformation knows nothing about rows, columns, or numbers. It just says ``project onto this line'' or ``rotate by $45^\circ$'' or ``take the derivative.'' The matrix appears only after we commit to a \emph{basis}, which installs coordinates and turns the abstract rule into multiplication by an array.
+
+Two ideas follow from that one shift in viewpoint, and they organize the chapter. First, because the matrix depends on the basis we chose, the \emph{same} transformation has many matrices --- one per basis --- and they are all linked by the relation $B = M^{-1}AM$. That is the precise meaning of \emph{similar matrices}, and it is why a clever basis (eigenvectors, Fourier vectors, wavelets) can replace a complicated matrix by a simple one. We will see this pay off in image compression. Second, we return to the matrices that have no honest inverse --- rectangular ones, and square ones that are singular --- and ask for the best substitute. Full column rank buys a \emph{left} inverse; full row rank buys a \emph{right} inverse; and in the hardest case, where the rank is short on both sides, the singular value decomposition hands us the \emph{pseudoinverse} $A^{+}$, which inverts $A$ on the part of space where inversion is possible and gives the shortest least-squares solution everywhere else. The four fundamental subspaces, met in Chapter~\ref{ch:4}, run through all of it.
+
+\section{Linear Transformations Without Coordinates}
+
+In older courses linear algebra began here, with transformations, and only later brought in matrices. The geometric approach has a real advantage: it avoids coordinates until computation forces them on us, and it keeps the eye on what the map \emph{does} rather than on a grid of numbers.
+
+A \emph{transformation} $T$ is just a rule that assigns to each input vector $v$ an output vector $T(v)$. We write $T:\RR^n\to\RR^m$ when inputs live in $\RR^n$ and outputs in $\RR^m$. The transformations worth studying are the ones that interact properly with the two operations that define a vector space --- adding and scaling.
+
+\defn{Linear Transformation}{A transformation $T:\RR^n\to\RR^m$ is \textbf{linear} if it respects vector addition and scalar multiplication:
+\[
+   T(v+w) = T(v) + T(w)
+   \qquad\text{and}\qquad
+   T(cv) = c\,T(v)
+\]
+for all vectors $v,w$ and all scalars $c$. The two conditions combine into the single requirement
+\[
+   T(cv + dw) = c\,T(v) + d\,T(w),
+\]
+which says that $T$ carries every linear combination of inputs to the same linear combination of outputs.}
+
+Notice what the definition does \emph{not} mention: no rows, no columns, no numbers. It is a statement about combinations, and it is exactly the property that lets a transformation be pinned down by its action on a few vectors. One small consequence is worth recording: a linear transformation must fix the origin,
+\[
+   T(0) = T(0\cdot v) = 0\cdot T(v) = 0 .
+\]
+Any rule that moves the origin cannot be linear.
+
+\ex[Projection is linear]{Let $T:\RR^2\to\RR^2$ send each vector $v$ to its perpendicular projection $T(v)$ onto a fixed line through the origin. Geometrically this drops $v$ straight down onto the line. It is linear: projecting the sum $v+w$ gives the same point as projecting $v$ and $w$ separately and adding, and scaling $v$ scales its shadow. We have not chosen any basis, written any matrix, or computed anything --- yet we already know $T$ is linear and that $T(0)=0$.}
+
+\ex[Rotation is linear]{Let $T:\RR^2\to\RR^2$ rotate every vector counterclockwise by $45^\circ$ about the origin. Rotating a parallelogram rotates its diagonal, so $T(v+w)=T(v)+T(w)$; rotating a stretched vector stretches the rotated vector, so $T(cv)=cT(v)$. Again the rule is described, and seen to be linear, with no coordinates at all. This is the picture Strang likes: ask what happens to a drawing of a house in the plane, and the answer (a tilted house) is obvious from the geometry, while it would be hard to guess from a matrix of numbers.}
+
+\begin{center}
+\begin{tikzpicture}[scale=0.95,>=Stealth]
+  % house corners (original): base square (2,0)-(3.6,0)-(3.6,1.6)-(2,1.6),
+  % roof apex (2.8,2.5), door (2.55,0)-(3.05,0.8)
+  \pgfmathsetmacro{\axR}{(2.8-2.5)/sqrt(2)}
+  \pgfmathsetmacro{\ayR}{(2.8+2.5)/sqrt(2)}
+
+  % ---- light coordinate axes ----
+  \draw[->,gray] (-3.2,0)--(4.4,0) node[right,font=\scriptsize]{$x$};
+  \draw[->,gray] (0,-1.0)--(0,4.4) node[above,font=\scriptsize]{$y$};
+
+  % ============ ORIGINAL HOUSE (gray) ============
+  \begin{scope}[gray]
+    \draw[very thick] (2,0)--(3.6,0)--(3.6,1.6)--(2,1.6)--cycle; % walls
+    \draw[very thick] (2,1.6)--(2.8,2.5)--(3.6,1.6);            % roof
+    \draw[thick] (2.55,0)--(2.55,0.8)--(3.05,0.8)--(3.05,0);    % door
+  \end{scope}
+
+  % ============ ROTATED HOUSE (blue) — image under T ============
+  \begin{scope}[rotate around={45:(0,0)},blue!70!black]
+    \draw[very thick] (2,0)--(3.6,0)--(3.6,1.6)--(2,1.6)--cycle;
+    \draw[very thick] (2,1.6)--(2.8,2.5)--(3.6,1.6);
+    \draw[thick] (2.55,0)--(2.55,0.8)--(3.05,0.8)--(3.05,0);
+  \end{scope}
+
+  % ---- trace the roof apex from original to rotated position ----
+  \coordinate (Ap) at (2.8,2.5);
+  \coordinate (ApR) at (\axR,\ayR);
+  \fill[gray] (Ap) circle (1.6pt);
+  \fill[blue!70!black] (ApR) circle (1.6pt);
+  \pgfmathsetmacro{\rad}{sqrt(2.8*2.8+2.5*2.5)}
+  \pgfmathsetmacro{\angA}{atan2(2.5,2.8)}
+  \draw[->,thin,gray,dashed] (Ap) arc[start angle=\angA, end angle=\angA+45, radius=\rad];
+  \node[font=\scriptsize,gray] at (2.05,3.55) {$45^\circ$};
+
+  % labels
+  \node[gray,font=\scriptsize] at (2.8,-0.55) {house};
+  \node[blue!70!black,font=\scriptsize] at (-1.95,1.55) {$T(\text{house})$};
+\end{tikzpicture}
+\end{center}
+
+It is just as important to see what is \emph{not} linear, because the failures are instructive.
+
+\ex[Two non-examples]{The \emph{shift} $T(v)=v+v_0$ that slides the whole plane by a fixed nonzero vector $v_0$ is not linear: it moves the origin, $T(0)=v_0\neq0$. Concretely $T(2v)=2v+v_0$ while $2T(v)=2v+2v_0$, and these differ. (A map of this affine form is useful in graphics, but it is not a linear transformation.) The \emph{length} map $T(v)=\norm{v}$ also fails: it sends a vector to a single number, and $T(cv)=\abs{c}\norm{v}$, which is not $cT(v)$ when $c<0$. From here on $T$ always means a linear transformation.}
+
+\ex[Multiplication by a matrix]{Every matrix $A\in\RR^{m\times n}$ \emph{defines} a linear transformation $T(v)=Av$, because matrix multiplication distributes over addition and pulls out scalars:
+\[
+   A(v+w)=Av+Aw, \qquad A(cv)=c\,Av .
+\]
+For instance $A=\left[\begin{smallmatrix}1&0\\0&-1\end{smallmatrix}\right]$ leaves the $x$-component of a vector alone and flips the sign of the $y$-component --- it reflects the plane across the $x$-axis. A $2\times3$ matrix gives a linear map $\RR^3\to\RR^2$, squashing space down a dimension. The plan for the rest of the section is the converse: \emph{every} linear transformation, once we pick a basis, is multiplication by some matrix.}
+
+\subsection{A transformation is determined by its action on a basis}
+
+How much do we need to know about $T$ to know it completely --- to predict $T(v)$ for \emph{every} input $v$? Far less than you might fear. Linearity is a powerful constraint.
+
+Suppose we know $T(v_1)$ for one vector $v_1$. Then we know $T(cv_1)=c\,T(v_1)$ for every scalar multiple along that line. If we also know $T(v_2)$ for a second, independent vector, then for any combination we get
+\[
+   T(c_1 v_1 + c_2 v_2) = c_1 T(v_1) + c_2 T(v_2),
+\]
+so $T$ is determined on the entire plane they span. Push this to a full basis and the conclusion is complete.
+
+\thm{A Transformation Is Determined by a Basis}{Let $v_1,\dots,v_n$ be a basis for the input space $\RR^n$, and let $T:\RR^n\to\RR^m$ be linear. Then $T$ is completely determined by the $n$ output vectors $T(v_1),\dots,T(v_n)$. Indeed, every input has a unique expansion $v=c_1 v_1+\cdots+c_n v_n$, and
+\[
+   T(v) = c_1\,T(v_1) + c_2\,T(v_2) + \cdots + c_n\,T(v_n).
+\]}
+\pf{Because $v_1,\dots,v_n$ is a basis, every $v\in\RR^n$ is a combination $v=c_1v_1+\cdots+c_nv_n$, and the coefficients $c_i$ are unique (Chapter~\ref{ch:4}: spanning gives existence, independence gives uniqueness). Applying linearity term by term,
+\[
+   T(v)=T\!\Big(\sum_i c_i v_i\Big)=\sum_i c_i\,T(v_i).
+\]
+The right-hand side uses only the known vectors $T(v_i)$ and the coordinates $c_i$ of $v$. So $T(v)$ is determined for every $v$.}
+
+This theorem is the whole bridge from the coordinate-free world to matrices. The unique coefficients $c_1,\dots,c_n$ are the \emph{coordinates} of $v$ in the basis $v_1,\dots,v_n$. Coordinates come \emph{from} a basis; change the basis and the same vector gets new coordinates. The transformation itself does not change --- only its bookkeeping does.
+
+\section{The Matrix of a Linear Transformation}
+
+We now make the bridge explicit. To turn a linear transformation $T:\RR^n\to\RR^m$ into a matrix, we must choose \emph{two} bases: an input basis $v_1,\dots,v_n$ for $\RR^n$ to give coordinates to inputs, and an output basis $w_1,\dots,w_m$ for $\RR^m$ to give coordinates to outputs. The recipe for the matrix is forced on us by the theorem above.
+
+\state{How to build the matrix of $T$}{Fix an input basis $v_1,\dots,v_n$ and an output basis $w_1,\dots,w_m$. To find column $j$ of the matrix $A$, apply $T$ to the $j$-th input basis vector and expand the result in the output basis:
+\[
+   T(v_j) = a_{1j}w_1 + a_{2j}w_2 + \cdots + a_{mj}w_m .
+\]
+The coefficients $a_{1j},\dots,a_{mj}$ are exactly column $j$ of $A$. With this $A$, if $v$ has coordinates $c=(c_1,\dots,c_n)$ in the input basis, then $T(v)$ has coordinates $Ac$ in the output basis.}
+
+The rule looks circular at first, but it is the only thing it could be. Column $j$ records ``where the $j$-th input basis vector goes,'' written in the output basis. Linearity then propagates that information to every input, because $A c = \sum_j c_j(\text{column }j)$ reproduces $\sum_j c_j T(v_j) = T(v)$. The product $Ac$ being a combination of the columns --- the column picture from Chapter~\ref{ch:1} --- is exactly what makes this work.
+
+\subsection{Projection: a clever basis versus the standard one}
+
+The single best illustration is projection, because the right basis makes the matrix almost trivial and the wrong basis makes it messy --- for the very same transformation.
+
+\ex[Projection onto a line, in two bases]{Let $T:\RR^2\to\RR^2$ project onto a line $L$ through the origin, and use the same basis for input and output ($n=m=2$).
+
+\emph{Smart basis.} Choose $v_1=w_1$ to be a unit vector \emph{along} $L$ and $v_2=w_2$ a unit vector \emph{perpendicular} to $L$. Projection keeps the part along $L$ and kills the perpendicular part:
+\[
+   T(v_1)=v_1, \qquad T(v_2)=0 .
+\]
+Reading off coordinates in the basis $\{w_1,w_2\}$, the matrix is the diagonal
+\[
+   A=\begin{bmatrix} 1 & 0 \\ 0 & 0 \end{bmatrix},
+   \qquad
+   A\begin{bmatrix} c_1 \\ c_2\end{bmatrix}=\begin{bmatrix} c_1 \\ 0\end{bmatrix}.
+\]
+A perfect matrix: it simply zeroes the second coordinate. This is no accident --- $v_1,v_2$ are eigenvectors of the projection, with eigenvalues $1$ and $0$, and \textbf{in a basis of eigenvectors the matrix of any transformation is the diagonal matrix $\Lambda$ of eigenvalues} (Chapter~\ref{ch:7}).
+
+\emph{Standard basis.} Now project onto the line at $45^\circ$ but insist on the standard basis $e_1=(1,0)$, $e_2=(0,1)$. With $a=(1,1)/\sqrt2$ a unit vector along the line, the projection matrix is $P=aa\T$ (Chapter~\ref{ch:5}),
+\[
+   P=\frac{a\,a\T}{a\T a}=\begin{bmatrix} \tfrac12 & \tfrac12 \\[2pt] \tfrac12 & \tfrac12\end{bmatrix}.
+\]
+Same transformation, different basis, and a fuller matrix. The lesson Strang draws is that the difficulty lives in the basis, not in the transformation. The diagonal $\left[\begin{smallmatrix}1&0\\0&0\end{smallmatrix}\right]$ and the dense $\left[\begin{smallmatrix}1/2&1/2\\1/2&1/2\end{smallmatrix}\right]$ describe one and the same projection.}
+
+\subsection{The derivative is a matrix}
+
+Linear transformations are not confined to arrows in $\RR^n$. The space of polynomials is a vector space (Chapter~\ref{ch:4}), and differentiation is linear on it --- a striking example because calculus turns into a matrix multiply.
+
+\ex[The derivative as a matrix]{Let the input space be quadratic polynomials $c_1 + c_2 x + c_3 x^2$, with basis $v_1=1$, $v_2=x$, $v_3=x^2$. The derivative
+\[
+   T(c_1 + c_2 x + c_3 x^2) = c_2 + 2c_3 x
+\]
+lands in the space of linear polynomials, with output basis $w_1=1$, $w_2=x$. To build the matrix, differentiate each input basis vector and expand:
+\[
+   T(1)=0,\qquad T(x)=1=w_1,\qquad T(x^2)=2x=2w_2 .
+\]
+The three results, in output coordinates, are the columns of
+\[
+   A=\begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 2 \end{bmatrix},
+   \qquad
+   A\begin{bmatrix} c_1 \\ c_2 \\ c_3\end{bmatrix}=\begin{bmatrix} c_2 \\ 2c_3\end{bmatrix}.
+\]
+Differentiating $c_1+c_2x+c_3x^2$ has become multiplying its coordinate vector by $A$, and the output coordinates $(c_2,2c_3)$ are exactly the coefficients of $c_2+2c_3x$. The matrix \emph{is} the derivative, once a basis is fixed.}
+
+\rmkb[Where matrix multiplication comes from]{Two facts close the loop and explain operations we have used all along. If $T$ is invertible, then the inverse transformation $T^{-1}$ has matrix $A^{-1}$ --- undoing the map undoes the matrix. And if we do one transformation after another, $T_2\circ T_1$ (first $T_1:v\mapsto A_1v$, then $T_2:w\mapsto A_2w$), the combined transformation has matrix $A_2A_1$. \textbf{Matrix multiplication is defined the way it is precisely so that it matches composition of transformations.} The row-times-column rule is not arbitrary; it is forced by ``do $A_1$, then $A_2$.''}
+
+\section{Change of Basis and Similar Matrices}
+
+We have seen one transformation wear two different matrices, depending on the basis. The relationship between those matrices is not random --- it is a precise algebraic tie called \emph{similarity}, and it is the engine behind eigenvalues, diagonalization, and the compression scheme in the next section. First we settle how the \emph{coordinates of a vector} change, then how the \emph{matrix of a transformation} changes.
+
+\subsection{Coordinates of a vector}
+
+Suppose we install a new basis whose vectors are the columns of a matrix $W=\br{w_1\ w_2\ \cdots\ w_n}$. A vector $x$, written in the \emph{standard} basis, has new coordinates $c=(c_1,\dots,c_n)$ in the $w$-basis meaning $x=c_1w_1+\cdots+c_nw_n$. That sum is exactly $Wc$:
+
+\state{Change of basis for vectors}{If the columns of $W$ are the new basis vectors, then standard coordinates $x$ and new coordinates $c$ are related by
+\[
+   x = Wc, \qquad\text{equivalently}\qquad c = W^{-1}x .
+\]
+To \emph{express} $x$ in the new basis we solve for its coordinates $c=W^{-1}x$; to \emph{reconstruct} $x$ from coordinates we multiply $x=Wc$.}
+
+The matrix $W$ is invertible precisely because its columns are a basis (independent and spanning), so $W^{-1}$ exists and the dictionary between $x$ and $c$ goes both ways.
+
+\subsection{The matrix of a transformation under change of basis}
+
+Now the main event. One transformation $T$, two bases, two matrices --- how are they related? Suppose $T$ has matrix $A$ in the old basis and matrix $B$ in the new basis, with $M$ the change-of-basis matrix linking the two coordinate systems. Tracking a vector through both descriptions forces the relationship.
+
+\thm{Change of Basis Produces Similar Matrices}{Let $T$ be a linear transformation with matrix $A$ in one basis and matrix $B$ in another. If $M$ is the change-of-basis matrix from the new coordinates to the old (so an input written $u$ in the new basis is $Mu$ in the old), then
+\[
+   B = M^{-1} A\, M .
+\]
+Two matrices related this way are called \textbf{similar}.}
+\pf{Take an input with new coordinates $u$. Its old coordinates are $Mu$. Apply $T$ in old coordinates: the output, in old coordinates, is $A(Mu)$. Convert that output back to new coordinates by multiplying by $M^{-1}$: the output in new coordinates is $M^{-1}AMu$. But by definition $B$ is the matrix that sends new input coordinates straight to new output coordinates, so $Bu = M^{-1}AMu$ for every $u$. Hence $B=M^{-1}AM$.}
+
+Similarity is the algebraic fingerprint of ``same transformation, different basis.'' Similar matrices share everything that belongs to the transformation rather than to the basis: the same eigenvalues, the same determinant, the same rank, the same trace, the same characteristic polynomial. They differ only in the coordinates used to write them down.
+
+\ex[Diagonalization is a change of basis]{The eigenvalue factorization $A=S\Lambda S^{-1}$ from Chapter~\ref{ch:7} is exactly this theorem read backwards. Rearranged, $\Lambda = S^{-1}A S$, which is $B=M^{-1}AM$ with $M=S$ the eigenvector matrix and $B=\Lambda$. The message: \emph{in the basis of eigenvectors, the transformation's matrix is the diagonal $\Lambda$.} Diagonalizing a matrix means choosing the basis in which the transformation is simplest --- pure stretching along the eigenvector axes, with no mixing. When the basis is orthonormal eigenvectors (the symmetric case, Chapter~\ref{ch:8}), $M=Q$ is orthogonal and $M^{-1}=Q\T$, so the change of basis costs only a transpose.}
+
+\section{Application: Image Compression}
+
+Here is why a good basis is worth real money. The whole content of compression is: \emph{store the same information in a basis where most coordinates are nearly zero, then throw the small ones away.}
+
+Picture one black-and-white video frame at $512\times 512$ pixels. The camera records a brightness level for each of the $512^2$ pixels, so a single frame is a vector in a $512^2$-dimensional space. The \emph{standard basis} for that space has one vector per pixel, and transmitting all $512^2$ coordinates frame after frame would swamp any channel. The trouble is that the standard basis is blind to structure: there is no efficient way for it to say ``the whole frame is black,'' because that statement still costs one number per pixel.
+
+Change the basis and the costs change. Suppose one basis vector is the all-ones vector $(1,1,\dots,1)$ --- every pixel at the same brightness. Then a blank gray board is a \emph{single} coordinate, not $512^2$ of them. Add a vector that is half $+1$ and half $-1$ (bright on the left, dark on the right), a vector that alternates $+1,-1,+1,-1$ (fine stripes), and so on for the various patterns an image is built from. Smooth, large-scale features now live in just a few coordinates.
+
+\ex[Two good bases: Fourier and Haar]{The best-known choice is the \textbf{Fourier basis}, whose vectors are sampled cosines and sines (the real parts of the powers $\omega^{jk}$ from the Fourier matrix). The JPEG standard cuts each frame into $8\times 8$ blocks of $64$ pixels and rewrites every block in this cosine basis. A competing choice is the \textbf{Haar wavelet basis} for $\RR^8$,
+\[
+   \begin{bmatrix} 1\\1\\1\\1\\1\\1\\1\\1\end{bmatrix},\
+   \begin{bmatrix} 1\\1\\1\\1\\-1\\-1\\-1\\-1\end{bmatrix},\
+   \begin{bmatrix} 1\\1\\-1\\-1\\0\\0\\0\\0\end{bmatrix},\
+   \begin{bmatrix} 0\\0\\0\\0\\1\\1\\-1\\-1\end{bmatrix},\ \dots
+\]
+The first vector measures overall brightness; later vectors measure finer and finer differences, many of their entries being $0$. These vectors are orthogonal and can be scaled to orthonormal, which is what makes the next step cheap. JPEG2000 uses an improved wavelet basis of this kind.}
+
+The mechanics are nothing but change of basis. To rewrite a signal $x$ (standard, pixel coordinates) in a new basis with vectors as the columns of $W$, we want coordinates $c$ with
+\[
+   x = c_1 w_1 + \cdots + c_n w_n = Wc,
+   \qquad\text{so}\qquad
+   c = W^{-1}x .
+\]
+This is the change-of-basis formula again. Two properties make a basis good for compression:
+\begin{itemize}
+   \item \textbf{Fast transforms.} Multiplying by $W$ and by $W^{-1}$ must be cheap. The Fourier basis is ideal because the FFT computes $Wc$ and $W^{-1}x$ in $O(n\log n)$ time, and a wavelet transform is even faster. An \emph{orthonormal} basis is best of all: then $W^{-1}=W\T$, so the inverse transform is free.
+   \item \textbf{Sparse coordinates.} Most of the $c_i$ should come out small, safely set to zero without a visible change. Storing only the few large coefficients is the compression.
+\end{itemize}
+The pipeline is: take $x$, compute its $64$ coefficients $c$ losslessly in the new basis, then \emph{lossily} discard the coefficients below a threshold, leaving $\hat c$ with many zeros, and reconstruct $\hat x=\sum \hat c_i w_i\approx x$.
+
+\rmkb[Why not the eigenvector basis?]{In principle the perfect basis is the eigenvectors of the relevant transformation --- it diagonalizes everything. In practice computing that basis is far more expensive than a JPEG could ever afford. Fourier and wavelet bases are the engineering compromise: not optimal, but \emph{fixed} (the same for every image) and equipped with a fast transform. The best basis for a slide of algebra notes differs from the best basis for an action movie, but both pay off for the same reason --- they concentrate the picture into a handful of coordinates.}
+
+\section{Left and Right Inverses}
+
+We return to inverses, but now for matrices that are not square --- or that are square but singular. A genuine, two-sided inverse $A^{-1}$ satisfies $AA^{-1}=I=A^{-1}A$ and exists only when $A$ is square with full rank, $r=m=n$. Then $N(A)=\{0\}$ and $N(A\T)=\{0\}$: nothing is collapsed in either direction. When $A$ is rectangular, we cannot have a two-sided inverse, because either $A$ or $A\T$ has a nontrivial null space. But we can sometimes invert from \emph{one} side, and which side depends on which kind of full rank $A$ has.
+
+\subsection{Full column rank: a left inverse}
+
+Suppose $A$ is $m\times n$ with \emph{full column rank} $r=n$ (tall, independent columns). Then $N(A)=\{0\}$: the equation $Ax=b$ has \emph{at most} one solution --- exactly one when $b\in C(A)$, none otherwise. From Chapter~\ref{ch:5} we know the crucial fact that makes least squares work: when the columns of $A$ are independent, the $n\times n$ matrix $A\T A$ is invertible.
+
+\state{The left inverse}{If $A$ has full column rank $r=n$, then $A\T A$ is invertible and
+\[
+   A^{-1}_{\text{left}} = (A\T A)^{-1}A\T
+\]
+is a \textbf{left inverse}: it satisfies $A^{-1}_{\text{left}}\,A = (A\T A)^{-1}A\T A = I_n$. Multiplying $A$ on the \emph{left} by this matrix recovers the identity.}
+
+This is precisely the matrix that solved least squares: $\hat x=(A\T A)^{-1}A\T b$ is the best solution of an unsolvable $Ax=b$. The left inverse undoes $A$ from the left, but the \emph{other} product,
+\[
+   A\,A^{-1}_{\text{left}} = A(A\T A)^{-1}A\T = P,
+\]
+is the projection matrix onto the column space $C(A)$ (Chapter~\ref{ch:5}), not the identity --- it equals $I_m$ only when $m=n$. A tall matrix can be undone after it acts, but it cannot be undone before: there is no way to recover the directions of $\RR^m$ outside the column space, because $A$ never reached them.
+
+\subsection{Full row rank: a right inverse}
+
+The mirror image. Suppose $A$ is $m\times n$ with \emph{full row rank} $r=m$ (wide, independent rows). Then $N(A\T)=\{0\}$ and $C(A)=\RR^m$, so $Ax=b$ is solvable for \emph{every} $b$ --- in fact, with $n-m$ free variables, there are infinitely many solutions when $n>m$. Now $AA\T$ is the invertible one (it is $m\times m$ and full rank).
+
+\state{The right inverse}{If $A$ has full row rank $r=m$, then $AA\T$ is invertible and
+\[
+   A^{-1}_{\text{right}} = A\T(AA\T)^{-1}
+\]
+is a \textbf{right inverse}: it satisfies $A\,A^{-1}_{\text{right}} = AA\T(AA\T)^{-1} = I_m$. Multiplying $A$ on the \emph{right} by this matrix recovers the identity.}
+
+Symmetrically, the opposite product
+\[
+   A^{-1}_{\text{right}}\,A = A\T(AA\T)^{-1}A
+\]
+is the projection onto the row space $C(A\T)$, not the identity. The right inverse picks out, among the infinitely many solutions of $Ax=b$, the one lying in the row space.
+
+\rmkb[One table to remember]{The two one-sided inverses are transposes of each other's construction, and each lives where its $A\T A$ or $AA\T$ is invertible.
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+case & condition & inverse \\
+\midrule
+two-sided & $r=m=n$ & $A^{-1}$ \\
+left & $r=n<m$ (full column rank) & $(A\T A)^{-1}A\T$ \\
+right & $r=m<n$ (full row rank) & $A\T(AA\T)^{-1}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+The remaining and hardest case --- $r<m$ \emph{and} $r<n$, short rank on both sides --- has neither a left nor a right inverse. That is the case the pseudoinverse is built for.}
+
+\section{The Pseudoinverse \texorpdfstring{$A^{+}$}{A+}}
+
+When $A$ has $r<m$ and $r<n$, both $N(A)$ and $N(A\T)$ are nontrivial. A nonzero $x$ with $Ax=0$ kills information that no inverse can resurrect: there is no matrix sending $0$ back to $x$. So we cannot ask for a true inverse. But there is a clean part of the action that \emph{is} invertible, and the pseudoinverse inverts exactly that.
+
+The clean part is the heart of the four-subspaces picture. Recall (Chapter~\ref{ch:4}) that $A$ crushes the null space $N(A)$ to zero, and on the row space $C(A\T)$ --- the orthogonal complement of $N(A)$ inside $\RR^n$ --- it acts one-to-one onto the column space $C(A)$. Both of those spaces have dimension $r$. So restricted to the row space, $A$ is a genuine bijection onto the column space, and \emph{that} restriction can be inverted.
+
+\thm{Row Space and Column Space Are in One-to-One Correspondence}{Let $A$ be $m\times n$ of rank $r$. The map $x\mapsto Ax$ sends the row space $C(A\T)$ one-to-one onto the column space $C(A)$. That is, if $x\neq y$ are both in the row space, then $Ax\neq Ay$.}
+\pf{Suppose instead that $x\neq y$ lie in the row space but $Ax=Ay$. Then $A(x-y)=0$, so $x-y\in N(A)$. But the row space is a subspace, so the difference $x-y$ of two row-space vectors is again in the row space. Thus $x-y$ lies in both $N(A)$ and $C(A\T)$. By the Fundamental Theorem these are orthogonal complements (Chapter~\ref{ch:4}), meeting only at the origin, so $x-y=0$, i.e.\ $x=y$ --- contradicting $x\neq y$. Hence distinct row-space vectors have distinct images: the map is one-to-one, and since its image is all of $C(A)$ (every $Ax$ lies in $C(A)$, and the row-space part of any $x$ already produces it), it is onto.}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0,>=Stealth,font=\footnotesize]
+  % ---------- geometry constants ----------
+  \def\bw{4.6}   % box width
+  \def\bh{6.2}   % box height
+  \def\gap{3.4}  % horizontal gap between boxes
+  % wedge geometry (symmetric about horizontal axis through the origin)
+  \def\L{2.55}
+  \def\cx{2.311}  % \L*cos(25)
+  \def\cy{1.078}  % \L*sin(25)
+
+  \coordinate (Lo) at (0,0);
+  \coordinate (Ro) at ({\bw+\gap},0);
+
+  \draw[rounded corners=10pt,thick,gray!55] (Lo) rectangle ++(\bw,\bh);
+  \draw[rounded corners=10pt,thick,gray!55] (Ro) rectangle ++(\bw,\bh);
+
+  % ===================== LEFT: input space R^n =====================
+  \coordinate (OL) at ($(Lo)+(1.05,\bh*0.5)$);
+  % row space wedge (blue, up-right), null space wedge (red, down-right): perpendicular
+  \fill[blue!10]  (OL) -- ($(OL)+(1.95,1.30)$) -- ($(OL)+(2.55,0.62)$) -- cycle;
+  \fill[red!10]   (OL) -- ($(OL)+(2.55,-0.62)$) -- ($(OL)+(1.95,-1.30)$) -- cycle;
+  \draw[very thick,blue!70!black] (OL) -- ($(OL)+(\cx,\cy)$);
+  \draw[very thick,red!70!black]  (OL) -- ($(OL)+(\cx,-\cy)$);
+  % right-angle marker at OL
+  \draw[gray] ($(OL)+(0.544,0.254)$) -- ($(OL)+(0.811,0)$) -- ($(OL)+(0.544,-0.254)$);
+
+  % labels left
+  \node[blue!70!black,align=center] at ($(OL)+(2.35,1.95)$) {row space\\ $\Col{A\T}$\\ $\dim = r$};
+  \node[red!70!black,align=center]  at ($(OL)+(2.35,-1.95)$) {null space\\ $\Nul{A}$\\ $\dim = n-r$};
+  \node[font=\scriptsize,gray!55!black] at ($(Lo)+(\bw*0.5,\bh+0.30)$) {\itshape input space $\RR^n$};
+
+  % representative vector in the row space
+  \coordinate (XR) at ($(OL)+(1.50,0.70)$);
+  \fill[blue!70!black] (XR) circle (1.7pt);
+  \node[blue!70!black,below=1pt,font=\scriptsize] at (XR) {$x$};
+
+  \fill (OL) circle (1.5pt);
+  \node[left,font=\scriptsize] at (OL) {$0$};
+
+  % ===================== RIGHT: output space R^m =====================
+  \coordinate (OR) at ($(Ro)+(1.05,\bh*0.5)$);
+  \fill[blue!10]  (OR) -- ($(OR)+(1.95,1.30)$) -- ($(OR)+(2.55,0.62)$) -- cycle;
+  \fill[red!10]   (OR) -- ($(OR)+(2.55,-0.62)$) -- ($(OR)+(1.95,-1.30)$) -- cycle;
+  \draw[very thick,blue!70!black] (OR) -- ($(OR)+(\cx,\cy)$);
+  \draw[very thick,red!70!black]  (OR) -- ($(OR)+(\cx,-\cy)$);
+  \draw[gray] ($(OR)+(0.544,0.254)$) -- ($(OR)+(0.811,0)$) -- ($(OR)+(0.544,-0.254)$);
+
+  \node[blue!70!black,align=center] at ($(OR)+(2.35,1.95)$) {column space\\ $\Col{A}$\\ $\dim = r$};
+  \node[red!70!black,align=center]  at ($(OR)+(2.35,-1.95)$) {left null space\\ $\Nul{A\T}$\\ $\dim = m-r$};
+  \node[font=\scriptsize,gray!55!black] at ($(Ro)+(\bw*0.5,\bh+0.30)$) {\itshape output space $\RR^m$};
+
+  % image b = A x  in the column space
+  \coordinate (B) at ($(OR)+(1.50,0.70)$);
+  \fill[blue!70!black] (B) circle (1.7pt);
+  \node[blue!70!black,below right,font=\scriptsize] at (B) {$Ax$};
+
+  \fill (OR) circle (1.5pt);
+  \node[right,font=\scriptsize] at (OR) {$0$};
+
+  % ===================== the bijection: two opposing arrows =====================
+  % forward A : row space -> column space (one-to-one onto), arcs over the top
+  \draw[->,thick,blue!70!black] (XR) to[bend left=22] (B);
+  \node[blue!70!black,font=\scriptsize,fill=white,inner sep=1.5pt]
+       at ($(XR)!0.5!(B)+(0,1.30)$) {$A$ \ (one-to-one onto)};
+
+  % reverse A^+ : column space -> row space, arcs under the forward arrow
+  \draw[->,thick,blue!70!black,dashed] (B) to[bend left=22] (XR);
+  \node[blue!70!black,font=\scriptsize,fill=white,inner sep=1.5pt]
+       at ($(XR)!0.5!(B)+(0,0.30)$) {$A^{+}$ \ (inverts it)};
+
+  % ===================== the collapses to 0 =====================
+  % null space N(A) -> 0 in the output space (A crushes it)
+  \coordinate (XN) at ($(OL)+(1.50,-0.70)$);
+  \fill[red!70!black] (XN) circle (1.7pt);
+  \draw[->,thick,red!70!black,dashed] (XN) to[bend left=12] (OR);
+  \node[red!70!black,font=\scriptsize,align=center,fill=white,inner sep=1.5pt]
+       at ($(XN)+(1.55,0.46)$) {$A$ crushes\\ $\Nul{A}\to 0$};
+
+  % left null space N(A^T) -> 0 in the input space (A^+ sends it to 0)
+  \coordinate (YN) at ($(OR)+(1.50,-0.70)$);
+  \fill[red!70!black] (YN) circle (1.7pt);
+  \draw[->,thick,red!70!black,dashed] (YN) to[bend left=12] (OL);
+  \node[red!70!black,font=\scriptsize,align=center,fill=white,inner sep=1.5pt]
+       at ($(YN)+(-1.55,-0.46)$) {$A^{+}$ sends\\ $\Nul{A\T}\to 0$};
+\end{tikzpicture}
+\end{center}
+
+This bijection is what the pseudoinverse inverts. It returns each $Ax$ in the column space to the unique $x$ in the row space that produced it, and it sends everything in the left null space $N(A\T)$ to zero (those directions never came from any input we can recover).
+
+\defn{Pseudoinverse}{The \textbf{pseudoinverse} $A^{+}$ (also called the Moore--Penrose inverse) of an $m\times n$ matrix $A$ is the $n\times m$ matrix that inverts the row-space-to-column-space bijection: $A^{+}(Ax)=x$ for every $x$ in the row space $C(A\T)$, and $A^{+}y=0$ for every $y$ in the left null space $N(A\T)$. In symbols, $N(A^{+})=N(A\T)$.}
+
+\subsection{Building \texorpdfstring{$A^{+}$}{A+} from the SVD}
+
+The definition is geometric; the construction is the singular value decomposition (Chapter~\ref{ch:9}). The SVD is the perfect tool because it presents $A$ already split along the four subspaces.
+
+Write $A=U\Sigma V\T$, where $U$ ($m\times m$) and $V$ ($n\times n$) are orthogonal and $\Sigma$ ($m\times n$) holds the singular values $\sigma_1\ge\cdots\ge\sigma_r>0$ on its first $r$ diagonal entries, zeros elsewhere. The first $r$ columns of $V$ are an orthonormal basis for the row space, the first $r$ columns of $U$ an orthonormal basis for the column space, and $A$ stretches the $k$-th row-space axis by $\sigma_k$ onto the $k$-th column-space axis.
+
+Because $U$ and $V$ are orthogonal, $U^{-1}=U\T$ and $V^{-1}=V\T$, so inverting $A$ reduces to inverting $\Sigma$. And $\Sigma$ is ``diagonal,'' so we invert it the only sensible way: reciprocate the nonzero singular values and leave the zeros alone.
+
+\state{The pseudoinverse via SVD}{If $A=U\Sigma V\T$, then
+\[
+   A^{+} = V\,\Sigma^{+}\,U\T,
+\]
+where $\Sigma^{+}$ is the $n\times m$ matrix with $1/\sigma_1,\dots,1/\sigma_r$ on its first $r$ diagonal entries and zeros elsewhere. The product $\Sigma\Sigma^{+}$ is the $m\times m$ diagonal matrix with $r$ ones (then zeros); $\Sigma^{+}\Sigma$ is the $n\times n$ version. When $A$ is square and invertible ($r=m=n$), every $\sigma_i\neq0$, $\Sigma^{+}=\Sigma^{-1}$, and $A^{+}=A^{-1}$ collapses to the ordinary inverse.}
+
+The reason we reciprocate $\sigma_k$ but leave the zeros as zeros is the geometry: on the row space, $A$ multiplies the $k$-th axis by $\sigma_k$, so undoing it divides by $\sigma_k$; in the null-space directions, $A$ multiplied by $0$, and there is nothing to undo, so $A^{+}$ multiplies by $0$ there too. That is the only choice consistent with $N(A^{+})=N(A\T)$.
+
+\ex[A rank-one pseudoinverse]{Take the rank-one $A=\left[\begin{smallmatrix}1&2\\2&4\end{smallmatrix}\right]$, both columns multiples of $(1,2)$, so $r=1$, $m=n=2$. A two-sided inverse is impossible (the matrix is singular), yet $A^{+}$ exists. Writing $A=\sigma_1 u_1 v_1\T$ with unit vectors $u_1=v_1=(1,2)/\sqrt5$ and $\sigma_1=5$ (since $\norm{(1,2)}^2=5$ and $A=(1,2)(1,2)\T$), the pseudoinverse reciprocates the one nonzero singular value:
+\[
+   A^{+}=\tfrac{1}{\sigma_1}\,v_1 u_1\T
+        =\tfrac{1}{5}\cdot\frac{1}{5}\begin{bmatrix}1\\2\end{bmatrix}\begin{bmatrix}1&2\end{bmatrix}
+        =\frac{1}{25}\begin{bmatrix}1&2\\2&4\end{bmatrix}.
+\]
+Check the defining property on the row space: the row space is the line through $v_1$, and $A^{+}A$ projects onto it. Indeed $A^{+}A=\tfrac1{25}\left[\begin{smallmatrix}1&2\\2&4\end{smallmatrix}\right]\left[\begin{smallmatrix}1&2\\2&4\end{smallmatrix}\right]=\tfrac1{25}\left[\begin{smallmatrix}5&10\\10&20\end{smallmatrix}\right]=\tfrac15\left[\begin{smallmatrix}1&2\\2&4\end{smallmatrix}\right]$, the projection onto the line through $(1,2)$, exactly as the theory predicts.}
+
+\subsection{The pseudoinverse as the shortest least-squares solution}
+
+The pseudoinverse is not a curiosity. It is the single formula that solves $Ax=b$ ``as well as possible'' in \emph{every} case at once --- the unifying answer that ordinary, left, and right inverses each handled only in their special situation.
+
+\state{What $A^{+}b$ computes}{For any $A$ and any $b$, the vector
+\[
+   \hat x = A^{+}b
+\]
+is the \textbf{minimum-norm least-squares solution} of $Ax=b$:
+\begin{itemize}
+   \item among all $x$ that minimize $\norm{Ax-b}$ (the least-squares condition), $\hat x$ is the one of smallest length $\norm{x}$;
+   \item it always lies in the row space $C(A\T)$, the part of $\RR^n$ with no wasted null-space component.
+\end{itemize}}
+
+Each earlier inverse is a special case of this one. When $A$ is square and invertible, $A^{+}=A^{-1}$ and $\hat x$ is the exact solution. When $A$ has full column rank, $A^{+}=(A\T A)^{-1}A\T=A^{-1}_{\text{left}}$, and $\hat x$ is the least-squares solution of Chapter~\ref{ch:5}. When $A$ has full row rank, $A^{+}=A\T(AA\T)^{-1}=A^{-1}_{\text{right}}$, and $\hat x$ is the shortest of the infinitely many exact solutions. In the hardest case --- short rank on both sides, no left or right inverse --- $A^{+}b$ still returns the shortest best-fit. This is why statisticians reach for $A^{+}$ in regression: they cannot always promise their design matrix has independent columns, but $A^{+}$ returns a sensible answer regardless.
+
+\rmkb[Everything ties together here]{Look at what the pseudoinverse gathers up. The \emph{four fundamental subspaces} (Chapter~\ref{ch:4}) provide the stage: $A^{+}$ inverts the row-space-to-column-space bijection and zeroes the left null space. The \emph{SVD} (Chapter~\ref{ch:9}) provides the construction: orthogonal $U,V$ and a reciprocated $\Sigma$. \emph{Projection and least squares} (Chapter~\ref{ch:5}) provide the meaning: $AA^{+}$ projects onto $C(A)$, $A^{+}A$ projects onto $C(A\T)$, and $A^{+}b$ is the shortest best-fit solution. The pseudoinverse is the place where the four subspaces, the SVD, orthogonal matrices, and least squares are revealed to be one circle of ideas --- the right note on which to close the book.}
+
+\section{What to Carry Forward}
+
+A matrix was never the primary object; it is the coordinate shadow of a \emph{linear transformation}, a coordinate-free rule satisfying $T(v+w)=Tv+Tw$ and $T(cv)=cTv$. Choosing an input basis and an output basis turns $T$ into a matrix $A$ whose $j$-th column is $T(v_j)$ written in the output basis. Choose the basis well --- eigenvectors, Fourier vectors, wavelets --- and the matrix becomes simple (diagonal, or fast to apply); that single fact powers diagonalization and image compression alike.
+
+Because the matrix depends on the basis, one transformation has many matrices, all linked by $B=M^{-1}AM$: they are \emph{similar}, sharing eigenvalues, determinant, rank, and trace while differing only in coordinates. And when a matrix has no honest inverse, the rank decides the substitute: full column rank gives the left inverse $(A\T A)^{-1}A\T$, full row rank gives the right inverse $A\T(AA\T)^{-1}$, and the general case gives the pseudoinverse $A^{+}=V\Sigma^{+}U\T$, which inverts $A$ on the row space, kills the left null space, and returns the shortest least-squares solution $\hat x=A^{+}b$ for any $A$ and any $b$. Four subspaces, one number $r$, and the SVD --- the threads of the whole book pulled into a single knot.

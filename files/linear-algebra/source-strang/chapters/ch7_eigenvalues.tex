@@ -1,0 +1,401 @@
+% !TEX root = ../main.tex
+\chapter{Eigenvalues, Diagonalization, and Applications}
+\label{ch:7}
+
+Until now a matrix has been a verb: $A$ acts on a vector $x$ and produces a new vector $Ax$, usually pointing in a brand-new direction. This chapter hunts for the rare inputs on which $A$ does almost nothing interesting --- the vectors $x$ that $A$ merely \emph{stretches}, leaving their direction alone. For such an $x$ we have $Ax = \lambda x$ for some number $\lambda$: the matrix collapses, on that one line, to multiplication by a scalar. These special directions are the \emph{eigenvectors}, the stretching factors are the \emph{eigenvalues}, and finding them is the second great problem of the subject, standing beside the first ($Ax=b$).
+
+Why care about a handful of special directions? Because if we can find \emph{enough} of them --- a full set of $n$ independent eigenvectors --- we can change to coordinates in which $A$ is diagonal. In those coordinates the hard things become easy. Powers $A^k$, which would take $k$ matrix multiplications, become powers of single numbers $\lambda^k$. The matrix exponential $e^{At}$, which solves $du/dt = Au$, becomes ordinary scalar exponentials $e^{\lambda t}$. The long-run behavior of a Markov chain becomes ``keep the eigenvalue $\lambda = 1$, throw the rest away.'' Eigenvalues turn coupled, tangled systems into a bundle of independent one-dimensional problems. That is the whole story, and we tell it on small $2\times2$ examples you can check by hand.
+
+\section{Eigenvalues and Eigenvectors}
+
+A matrix $A$ takes a vector $x$ to $Ax$. For most $x$ the output points somewhere new. But certain special vectors come back parallel to themselves --- only their length (and possibly their sign) changes. Those are the directions worth knowing.
+
+\defn{Eigenvalue and Eigenvector}{Let $A$ be an $n\times n$ matrix. A nonzero vector $x\in\RR^n$ is an \emph{eigenvector} of $A$, with \emph{eigenvalue} $\lambda$, if
+\[
+   Ax = \lambda x .
+\]
+The output $Ax$ lies on the same line as $x$; the matrix acts on that line as multiplication by the single number $\lambda$. We require $x\ne 0$ (the zero vector satisfies $A0=\lambda 0$ for \emph{every} $\lambda$ and tells us nothing), but $\lambda=0$ is allowed.}
+
+The eigenvalue $\lambda$ can be zero: $Ax=0$ with $x\ne 0$ says $x$ is in the null space, so a singular matrix has $\lambda = 0$ as an eigenvalue, with the null space as its eigenvectors. The eigenvalue is never forced to be real --- a rotation has no real eigenvectors at all --- but the eigenvector is never zero.
+
+\rmkb[Read $Ax=\lambda x$ as ``no direction change'']{Geometrically, $A$ usually rotates and stretches. An eigenvector is a direction that does not rotate: $A$ only stretches it by $\lambda$. If $\lambda>1$ the vector grows, if $0<\lambda<1$ it shrinks, if $\lambda<0$ it flips and stretches, if $\lambda=0$ it is annihilated. The eigenvectors are the ``axes'' along which the action of $A$ is purely a scaling.}
+
+\subsection{Eigenvalues you can see without computing}
+
+Some matrices wear their eigenvectors on the outside.
+
+\ex[Projection: eigenvalues $1$ and $0$]{Let $P$ be the matrix that projects $\RR^3$ orthogonally onto a plane through the origin (Chapter~\ref{ch:5}). If $x$ already lies \emph{in} the plane, projecting changes nothing: $Px=x$, so $x$ is an eigenvector with $\lambda=1$. If $x$ is \emph{perpendicular} to the plane, its projection is the zero vector: $Px=0=0\cdot x$, an eigenvector with $\lambda=0$. The eigenvalues of any projection are just $1$ (the directions kept) and $0$ (the directions killed). Here the eigenvectors span all of $\RR^3$ --- two independent directions in the plane and one perpendicular to it.}
+
+\ex[A swap matrix: eigenvalues $1$ and $-1$]{The matrix
+\[
+   B=\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
+\]
+swaps the two components of a vector. The vector $(1,1)$ is unchanged by the swap, $B(1,1)=(1,1)$, so $\lambda=1$. The vector $(1,-1)$ becomes $(-1,1)=-(1,-1)$, so $\lambda=-1$. These two eigenvectors are perpendicular --- no accident, since $B=B\T$ is symmetric, and symmetric matrices always have orthogonal eigenvectors (Chapter~\ref{ch:8}). They span $\RR^2$.}
+
+These examples are lucky: the geometry handed us the eigenvectors. For a general matrix we need a method.
+
+\subsection{The characteristic equation \texorpdfstring{$\det(A-\lambda I)=0$}{det(A-lambda I)=0}}
+
+The equation $Ax=\lambda x$ has \emph{two} unknowns wrapped together: the number $\lambda$ and the vector $x$. The trick is to move everything to one side and refuse to divide:
+\[
+   Ax - \lambda x = 0
+   \quad\Longleftrightarrow\quad
+   (A-\lambda I)\,x = 0 .
+\]
+We are looking for a \emph{nonzero} $x$ in the null space of $A-\lambda I$. But a matrix has a nonzero null vector exactly when it is singular --- when its determinant vanishes. This converts the eigenvalue problem into a determinant problem, with $\lambda$ as the only unknown.
+
+\thm{The Characteristic Equation}{The number $\lambda$ is an eigenvalue of the $n\times n$ matrix $A$ if and only if $A-\lambda I$ is singular, that is,
+\[
+   \det(A-\lambda I)=0 .
+\]
+This is the \emph{characteristic equation}. Its left side is a polynomial of degree $n$ in $\lambda$ (the \emph{characteristic polynomial}), so $A$ has $n$ eigenvalues, counted with multiplicity. For each eigenvalue $\lambda$, the eigenvectors are the nonzero vectors in the null space $N(A-\lambda I)$.}
+\pf{A nonzero $x$ with $(A-\lambda I)x=0$ exists if and only if $A-\lambda I$ has a nontrivial null space, which happens exactly when $A-\lambda I$ is not invertible, i.e.\ $\det(A-\lambda I)=0$ (Chapter~\ref{ch:6}). Expanding the determinant of the $n\times n$ matrix $A-\lambda I$ gives a polynomial in $\lambda$ whose leading term is $(-\lambda)^n$, hence degree $n$; by the fundamental theorem of algebra it has $n$ roots in $\CC$.}
+
+The procedure is now mechanical:
+
+\state{How to find eigenvalues and eigenvectors}{
+\textbf{Step 1.} Form $A-\lambda I$ and compute the characteristic polynomial $\det(A-\lambda I)$.\\
+\textbf{Step 2.} Solve $\det(A-\lambda I)=0$ for the $n$ eigenvalues $\lambda_1,\dots,\lambda_n$.\\
+\textbf{Step 3.} For each $\lambda_i$, find the null space of $A-\lambda_i I$ by elimination; its nonzero vectors are the eigenvectors for $\lambda_i$.}
+
+\subsection{Trace and determinant: two free checks}
+
+Before computing, notice two shortcuts that come straight from the characteristic polynomial. Write it with its roots:
+\[
+   \det(A-\lambda I) = (\lambda_1-\lambda)(\lambda_2-\lambda)\cdots(\lambda_n-\lambda).
+\]
+Setting $\lambda=0$ gives $\det A = \lambda_1\lambda_2\cdots\lambda_n$. And matching the coefficient of $\lambda^{n-1}$ on both sides ties the sum of the roots to the sum of the diagonal entries.
+
+\thm{Trace and Determinant from Eigenvalues}{For any $n\times n$ matrix $A$ with eigenvalues $\lambda_1,\dots,\lambda_n$ (with multiplicity),
+\[
+   \lambda_1+\lambda_2+\cdots+\lambda_n = \trace A
+   \qquad\text{and}\qquad
+   \lambda_1\lambda_2\cdots\lambda_n = \det A .
+\]
+The eigenvalues \emph{sum} to the trace (the sum of the diagonal entries) and \emph{multiply} to the determinant.}
+\pf{Both sides of $\det(A-\lambda I) = \prod_i(\lambda_i-\lambda)$ are polynomials in $\lambda$. Put $\lambda=0$: the right side is $\prod_i \lambda_i$ and the left side is $\det A$, giving the product formula. For the sum, expand the determinant: the only term producing $\lambda^{n-1}$ comes from the product of the diagonal entries $(a_{11}-\lambda)\cdots(a_{nn}-\lambda)$, whose $\lambda^{n-1}$ coefficient is $(-1)^{n-1}(a_{11}+\cdots+a_{nn})=(-1)^{n-1}\trace A$. On the right, the $\lambda^{n-1}$ coefficient of $\prod_i(\lambda_i-\lambda)$ is $(-1)^{n-1}(\lambda_1+\cdots+\lambda_n)$. Matching gives $\trace A = \sum_i \lambda_i$.}
+
+For a $2\times2$ matrix these two facts are especially handy: the characteristic equation collapses to
+\[
+   \lambda^2 - (\trace A)\,\lambda + \det A = 0 .
+\]
+If you spot one eigenvalue, the trace hands you the other for free.
+
+\ex[A symmetric $2\times2$: $A=\left[\protect\begin{smallmatrix}3&1\\1&3\protect\end{smallmatrix}\right]$]{Compute the characteristic polynomial:
+\[
+   \det(A-\lambda I)=\det\begin{bmatrix} 3-\lambda & 1 \\ 1 & 3-\lambda\end{bmatrix}
+   =(3-\lambda)^2-1=\lambda^2-6\lambda+8.
+\]
+The coefficient $6$ is the trace ($3+3$) and the constant $8$ is the determinant ($9-1$), exactly as the formula $\lambda^2-(\trace A)\lambda+\det A$ predicts. Factoring,
+\[
+   \lambda^2-6\lambda+8=(\lambda-4)(\lambda-2)=0,
+   \qquad \lambda_1=4,\ \lambda_2=2.
+\]
+Check: $\lambda_1+\lambda_2=6=\trace A$ and $\lambda_1\lambda_2=8=\det A$. Now the eigenvectors.
+
+For $\lambda_1=4$, solve $(A-4I)x=0$:
+\[
+   A-4I=\begin{bmatrix} -1 & 1 \\ 1 & -1\end{bmatrix},
+   \qquad x_1=\begin{bmatrix} 1 \\ 1\end{bmatrix}.
+\]
+For $\lambda_2=2$, solve $(A-2I)x=0$:
+\[
+   A-2I=\begin{bmatrix} 1 & 1 \\ 1 & 1\end{bmatrix},
+   \qquad x_2=\begin{bmatrix} -1 \\ 1\end{bmatrix}.
+\]
+The two eigenvectors are perpendicular (again because $A=A\T$), and they are exactly the eigenvectors of the swap matrix $B$ above. That is no coincidence: $A = B+3I$, and adding $3I$ adds $3$ to every eigenvalue while leaving the eigenvectors fixed.}
+
+\rmkb[Shifting by $cI$ shifts the eigenvalues]{If $Ax=\lambda x$ then $(A+cI)x=(\lambda+c)x$: the same eigenvector, with eigenvalue $\lambda+c$. Shifting $A$ by a multiple of the identity slides all eigenvalues by $c$ and changes nothing else. But beware the general warning: for unrelated $A$ and $B$, the eigenvalues of $A+B$ are \emph{not} the sums $\lambda(A)+\lambda(B)$, and the eigenvalues of $AB$ are not the products --- those clean rules hold only when $A$ and $B$ share the same eigenvectors. The shift $A+cI$ works precisely because $A$ and $cI$ trivially share all eigenvectors.}
+
+\subsection{Two warnings: complex and repeated eigenvalues}
+
+Not every matrix has a tidy set of real, distinct eigenvalues. Two things can go wrong, and both matter later.
+
+\ex[A rotation: complex eigenvalues]{The matrix
+\[
+   Q=\begin{bmatrix} 0 & -1 \\ 1 & 0\end{bmatrix}
+\]
+rotates every vector in the plane by $90^\circ$. No real vector keeps its direction under a $90^\circ$ turn, so we expect trouble. Indeed
+\[
+   \det(Q-\lambda I)=\det\begin{bmatrix} -\lambda & -1 \\ 1 & -\lambda\end{bmatrix}=\lambda^2+1=0,
+   \qquad \lambda=\pm i .
+\]
+The eigenvalues are the imaginary numbers $i$ and $-i$. Note $\lambda_1+\lambda_2=0=\trace Q$ and $\lambda_1\lambda_2=1=\det Q$ still hold. Complex eigenvalues of a real matrix always come in conjugate pairs $a\pm bi$. Antisymmetric matrices like $Q$ (with $Q\T=-Q$) have purely imaginary eigenvalues; symmetric matrices, at the other extreme, have purely real ones.}
+
+\ex[A triangular matrix: a repeated eigenvalue with too few eigenvectors]{For a triangular matrix the eigenvalues sit right on the diagonal, because $\det(A-\lambda I)$ is the product of the diagonal entries of $A-\lambda I$. Take
+\[
+   A=\begin{bmatrix} 3 & 1 \\ 0 & 3\end{bmatrix},
+   \qquad \det(A-\lambda I)=(3-\lambda)(3-\lambda)=0,
+   \qquad \lambda=3,\,3 .
+\]
+The eigenvalue $3$ is repeated. Its eigenvectors solve $(A-3I)x=0$:
+\[
+   A-3I=\begin{bmatrix} 0 & 1 \\ 0 & 0\end{bmatrix}\,x=0
+   \quad\Longrightarrow\quad x=\begin{bmatrix} 1 \\ 0\end{bmatrix}.
+\]
+There is only \emph{one} independent eigenvector, not two. This matrix is \emph{defective}: a repeated eigenvalue did not supply enough eigenvectors to span $\RR^2$. We will see in a moment that exactly this shortage is what blocks diagonalization.}
+
+\section{Diagonalization: \texorpdfstring{$A=S\Lambda S^{-1}$}{A = S Lambda S inverse}}
+
+Here is the payoff. Suppose $A$ has $n$ independent eigenvectors. Put them, as columns, into a matrix $S$. Watch what $A$ does to all of them at once.
+
+Since $Ax_i=\lambda_i x_i$ for each eigenvector,
+\[
+   \begin{aligned}
+   AS &= A\begin{bmatrix} x_1 & x_2 & \cdots & x_n\end{bmatrix}
+       = \begin{bmatrix} \lambda_1 x_1 & \lambda_2 x_2 & \cdots & \lambda_n x_n\end{bmatrix}\\
+      &= \begin{bmatrix} x_1 & x_2 & \cdots & x_n\end{bmatrix}
+         \begin{bmatrix} \lambda_1 & & \\ & \ddots & \\ & & \lambda_n\end{bmatrix}
+       = S\Lambda ,
+   \end{aligned}
+\]
+where $\Lambda=\diag(\lambda_1,\dots,\lambda_n)$ is the diagonal matrix of eigenvalues. Each column of $AS$ is $A x_i = \lambda_i x_i$, which is the $i$th column of $S$ scaled by $\lambda_i$ --- and scaling the $i$th column is exactly what multiplying $S$ on the right by $\diag(\lambda_i)$ does. So $AS=S\Lambda$.
+
+Because the eigenvectors are independent, $S$ is invertible. Multiply by $S^{-1}$ from the left or right:
+\[
+   S^{-1}AS = \Lambda
+   \qquad\text{and equivalently}\qquad
+   A = S\Lambda S^{-1} .
+\]
+
+\thm{Diagonalization}{An $n\times n$ matrix $A$ is \emph{diagonalizable} if and only if it has $n$ linearly independent eigenvectors. In that case, with $S$ the matrix whose columns are the eigenvectors and $\Lambda=\diag(\lambda_1,\dots,\lambda_n)$ the matrix of corresponding eigenvalues,
+\[
+   A = S\Lambda S^{-1}, \qquad S^{-1}AS = \Lambda .
+\]
+The matrix $S$ is called the \emph{eigenvector matrix}; $\Lambda$ is the \emph{eigenvalue matrix}.}
+\pf{If $A$ has $n$ independent eigenvectors, the computation above gives $AS=S\Lambda$; independence makes $S$ invertible, so $A=S\Lambda S^{-1}$. Conversely, if $A=S\Lambda S^{-1}$ with $\Lambda$ diagonal, then $AS=S\Lambda$, and reading this column by column gives $A(\text{column }i\text{ of }S)=\lambda_i(\text{column }i\text{ of }S)$: the columns of $S$ are eigenvectors. They are independent because $S$ is invertible. So $A$ has $n$ independent eigenvectors.}
+
+\rmkb[Diagonalization is a change of coordinates]{Read $A=S\Lambda S^{-1}$ from right to left as a three-step recipe for $A$. First $S^{-1}$ rewrites the input in the eigenvector coordinate system (how much of each eigenvector is present). Then $\Lambda$ scales each eigen-coordinate by its $\lambda_i$ --- the easy diagonal action. Then $S$ translates back to the standard coordinates. In the eigenvector basis, $A$ \emph{is} the diagonal matrix $\Lambda$; the matrices $S$ and $S^{-1}$ are just the dictionaries in and out of that basis. This is the same change-of-basis idea that organizes Chapter~\ref{ch:10}.}
+
+\subsection{When is a matrix diagonalizable?}
+
+The theorem says everything hinges on having enough independent eigenvectors. When are we guaranteed them?
+
+\thm{Distinct Eigenvalues Give Independent Eigenvectors}{Eigenvectors that belong to distinct eigenvalues are linearly independent. Consequently, if an $n\times n$ matrix has $n$ distinct eigenvalues, it has $n$ independent eigenvectors and is diagonalizable.}
+\pf{Suppose, for a contradiction, that some eigenvectors with distinct eigenvalues are dependent, and take a shortest dependent relation $c_1 x_1+\cdots+c_k x_k=0$ with all $c_i\ne 0$ and the $\lambda_i$ distinct. Apply $A$: $\sum_i c_i\lambda_i x_i=0$. Now subtract $\lambda_k$ times the original relation: $\sum_{i=1}^{k-1} c_i(\lambda_i-\lambda_k)x_i=0$. The coefficients $c_i(\lambda_i-\lambda_k)$ are nonzero (distinct eigenvalues), giving a \emph{shorter} dependent relation --- contradiction. So the eigenvectors are independent.}
+
+So distinct eigenvalues are a sufficient (not necessary) condition, and "most" matrices have distinct eigenvalues and are diagonalizable. The danger lurks only at \emph{repeated} eigenvalues.
+
+\state{Repeated eigenvalues: diagonalizable or not}{A repeated eigenvalue \emph{may or may not} have enough eigenvectors.\\[2pt]
+$\bullet$\ The identity $I$ has eigenvalue $1$ repeated $n$ times, yet \emph{every} vector is an eigenvector --- a full set of $n$ of them. $I$ is diagonalizable (it already is diagonal).\\[2pt]
+$\bullet$\ The matrix $\left[\begin{smallmatrix}2&1\\0&2\end{smallmatrix}\right]$ has eigenvalue $2$ repeated twice but only \emph{one} independent eigenvector $(1,0)$. It is \emph{defective} and \emph{cannot} be diagonalized.\\[2pt]
+A repeated eigenvalue is diagonalizable exactly when its eigenspace $N(A-\lambda I)$ has dimension equal to the multiplicity of the root. When it falls short, no eigenvector matrix $S$ exists.}
+
+\rmkb[The two failures are different]{Be careful to separate two things. \emph{Complex eigenvalues} (like the rotation's $\pm i$) do not block diagonalization --- they just force us to work over $\CC$, where the rotation \emph{is} diagonalizable. What truly blocks diagonalization is a \emph{shortage of eigenvectors} at a repeated eigenvalue, as in $\left[\begin{smallmatrix}2&1\\0&2\end{smallmatrix}\right]$. Invertibility of $A$ is a separate matter again: a singular matrix ($\lambda=0$) can be perfectly diagonalizable. Diagonalizability is about $S$; invertibility is about $\Lambda$.}
+
+\section{Powers of a Matrix: \texorpdfstring{$A^k=S\Lambda^k S^{-1}$}{A^k = S Lambda^k S inverse} and Difference Equations}
+
+The first reward of diagonalization is that powers become trivial. Multiplying $A=S\Lambda S^{-1}$ by itself, the inner $S^{-1}S$ collapses to $I$:
+\[
+   A^2 = (S\Lambda S^{-1})(S\Lambda S^{-1}) = S\Lambda (S^{-1}S)\Lambda S^{-1} = S\Lambda^2 S^{-1}.
+\]
+The same telescoping repeats $k$ times.
+
+\thm{Powers of a Diagonalizable Matrix}{If $A=S\Lambda S^{-1}$ then for every positive integer $k$,
+\[
+   A^k = S\Lambda^k S^{-1},
+   \qquad
+   \Lambda^k = \diag(\lambda_1^k,\dots,\lambda_n^k).
+\]
+The eigenvectors of $A^k$ are the same as those of $A$; the eigenvalues are raised to the $k$th power. (Directly: $Ax=\lambda x$ gives $A^2x=\lambda Ax=\lambda^2 x$, and so on.)}
+
+Raising a full matrix to the $100$th power would be $99$ matrix multiplications; with diagonalization it is one cube-easy step, $\lambda_i^{100}$, sandwiched between $S$ and $S^{-1}$. And the eigenvalues immediately reveal the long-run behavior.
+
+\cor{Long-Run Behavior of $A^k$}{If $A$ has $n$ independent eigenvectors, then $A^k\to 0$ as $k\to\infty$ if and only if every eigenvalue satisfies $|\lambda_i|<1$. Eigenvalues with $|\lambda|>1$ make $A^k$ blow up; the eigenvalue of largest magnitude dominates.}
+
+\subsection{Difference equations \texorpdfstring{$u_{k+1}=Au_k$}{u(k+1) = A u(k)}}
+
+A great many processes step forward by multiplying the current state by a fixed matrix: $u_{k+1}=Au_k$. The solution is $u_k=A^k u_0$, and diagonalization turns that into pure scalar powers. The trick is to expand the starting vector $u_0$ in the eigenvector basis.
+
+Write $u_0 = c_1 x_1 + \cdots + c_n x_n = Sc$ (find the coefficients by $c=S^{-1}u_0$). Then applying $A$ scales each piece by its eigenvalue, and applying $A$ a total of $k$ times scales by $\lambda_i^k$:
+\[
+   u_k = A^k u_0 = c_1\lambda_1^k\,x_1 + c_2\lambda_2^k\,x_2 + \cdots + c_n\lambda_n^k\,x_n .
+\]
+Each eigenvector evolves \emph{independently}, growing or shrinking by its own factor $\lambda_i^k$. The coupled system has been uncoupled into $n$ separate one-dimensional ones.
+
+\state{Solving $u_{k+1}=Au_k$}{
+\textbf{(1)} Find the eigenvalues $\lambda_i$ and eigenvectors $x_i$ of $A$.\\
+\textbf{(2)} Write the start as a combination of eigenvectors: $u_0=\sum_i c_i x_i$, i.e.\ $c=S^{-1}u_0$.\\
+\textbf{(3)} Multiply each coefficient by $\lambda_i^k$: \ $u_k=\sum_i c_i\lambda_i^k\,x_i$.\\
+The largest $|\lambda_i|$ controls the long-run growth; eigenvalues with $|\lambda_i|<1$ fade away.}
+
+\ex[The Fibonacci numbers]{The Fibonacci sequence $0,1,1,2,3,5,8,13,\dots$ obeys $F_{k+2}=F_{k+1}+F_k$. This is one scalar equation of \emph{second} order, but the standard trick turns it into a first-order \emph{system}. Track two numbers at once, $u_k=\left[\begin{smallmatrix}F_{k+1}\\ F_k\end{smallmatrix}\right]$. Then
+\[
+   \begin{aligned}
+      F_{k+2}&=F_{k+1}+F_k,\\
+      F_{k+1}&=F_{k+1},
+   \end{aligned}
+   \qquad\Longrightarrow\qquad
+   u_{k+1}=\begin{bmatrix} 1 & 1 \\ 1 & 0\end{bmatrix}u_k = A u_k .
+\]
+The matrix $A=\left[\begin{smallmatrix}1&1\\1&0\end{smallmatrix}\right]$ is symmetric, so its eigenvalues are real. Its trace is $1$ and its determinant is $-1$, so by $\lambda^2-(\trace A)\lambda+\det A=0$,
+\[
+   \lambda^2-\lambda-1=0,
+   \qquad
+   \lambda_1=\frac{1+\sqrt5}{2}\approx1.618,
+   \qquad
+   \lambda_2=\frac{1-\sqrt5}{2}\approx-0.618 .
+\]
+Only $\lambda_1$ exceeds $1$ in magnitude, so it governs the growth: $F_k$ grows like $\lambda_1^k$, multiplying by the golden ratio each step, while the $\lambda_2^k$ term decays to $0$. Solving $(A-\lambda I)x=0$ gives eigenvectors $x_i=\left[\begin{smallmatrix}\lambda_i\\ 1\end{smallmatrix}\right]$. Expanding $u_0=\left[\begin{smallmatrix}F_1\\ F_0\end{smallmatrix}\right]=\left[\begin{smallmatrix}1\\ 0\end{smallmatrix}\right]$ in this basis gives $c_1=-c_2=1/\sqrt5$, and reading off the second component of $u_k=c_1\lambda_1^k x_1+c_2\lambda_2^k x_2$ yields the closed form
+\[
+   F_k=\frac{1}{\sqrt5}\left[\left(\frac{1+\sqrt5}{2}\right)^{\!k}-\left(\frac{1-\sqrt5}{2}\right)^{\!k}\right].
+\]
+An exact integer formula for every Fibonacci number, built entirely from eigenvalues.}
+
+\section{Differential Equations \texorpdfstring{$du/dt=Au$}{du/dt = Au} and the Matrix Exponential}
+
+Difference equations step in discrete jumps; differential equations flow continuously. The continuous analogue of $u_{k+1}=Au_k$ is
+\[
+   \frac{du}{dt}=Au,
+   \qquad u(0)\text{ given}.
+\]
+This couples the components of $u$ together: each derivative $du_i/dt$ depends on all the $u_j$. The same idea unties them --- expand in eigenvectors, where the matrix acts as a scalar.
+
+\subsection{Pure exponential solutions}
+
+Guess that one eigenvector evolves on its own as $u(t)=e^{\lambda t}x$, where $Ax=\lambda x$. Check it:
+\[
+   \frac{du}{dt}=\lambda e^{\lambda t}x
+   \qquad\text{and}\qquad
+   Au=e^{\lambda t}Ax=\lambda e^{\lambda t}x .
+\]
+They agree, so $e^{\lambda t}x$ really solves $du/dt=Au$. These ``pure'' exponential solutions are the continuous cousins of the terms $\lambda_i^k x_i$ from the difference equation: there $\lambda^k$, here $e^{\lambda t}$. Because the equation is linear, any combination of them is again a solution.
+
+\thm{General Solution of $du/dt=Au$}{If $A$ has independent eigenvectors $x_1,\dots,x_n$ with eigenvalues $\lambda_1,\dots,\lambda_n$, the general solution of $du/dt=Au$ is
+\[
+   u(t)=c_1 e^{\lambda_1 t}x_1 + c_2 e^{\lambda_2 t}x_2 + \cdots + c_n e^{\lambda_n t}x_n .
+\]
+The constants $c_i$ are fixed by the initial condition: $u(0)=\sum_i c_i x_i$, i.e.\ $c=S^{-1}u(0)$.}
+
+The eigenvalues now read off the \emph{stability} of the flow. Each term carries $e^{\lambda t}$; for real $\lambda$ it decays when $\lambda<0$ and grows when $\lambda>0$, and in general $e^{\lambda t}=e^{(\mathrm{Re}\,\lambda)t}(\cos+\,i\sin)$ decays exactly when $\mathrm{Re}\,\lambda<0$.
+
+\state{Stability from the eigenvalues}{For $du/dt=Au$:\\[2pt]
+$\bullet$\ \textbf{Stable} ($u(t)\to 0$) when \emph{every} eigenvalue has $\mathrm{Re}\,\lambda<0$.\\[2pt]
+$\bullet$\ \textbf{Steady state} when one eigenvalue is $\lambda=0$ and all others have $\mathrm{Re}\,\lambda<0$: the $\lambda=0$ eigenvector survives as $t\to\infty$, everything else decays.\\[2pt]
+$\bullet$\ \textbf{Blow-up} when some eigenvalue has $\mathrm{Re}\,\lambda>0$.\\[2pt]
+Contrast with difference equations, where the boundary is $|\lambda|=1$, not $\mathrm{Re}\,\lambda=0$: decay needs $|\lambda|<1$ for $A^k$, but $\mathrm{Re}\,\lambda<0$ for $e^{At}$.}
+
+\ex[A $2\times2$ flow with a steady state]{Take the system
+\[
+   \frac{du_1}{dt}=-u_1+2u_2,\qquad
+   \frac{du_2}{dt}=u_1-2u_2,
+   \qquad
+   A=\begin{bmatrix} -1 & 2 \\ 1 & -2\end{bmatrix},
+   \qquad u(0)=\begin{bmatrix} 1 \\ 0\end{bmatrix}.
+\]
+The columns of $A$ each sum to $0$, so $A$ is singular and $\lambda=0$ is one eigenvalue; the trace is $-3$, so the other is $\lambda_2=-3$. The eigenvectors:
+\[
+   \lambda_1=0:\ Ax=0 \Rightarrow x_1=\begin{bmatrix} 2 \\ 1\end{bmatrix},
+   \qquad
+   \lambda_2=-3:\ (A+3I)x=0 \Rightarrow x_2=\begin{bmatrix} 1 \\ -1\end{bmatrix}.
+\]
+The general solution is
+\[
+   u(t)=c_1 e^{0\cdot t}\begin{bmatrix} 2 \\ 1\end{bmatrix}+c_2 e^{-3t}\begin{bmatrix} 1 \\ -1\end{bmatrix}
+       = c_1\begin{bmatrix} 2 \\ 1\end{bmatrix}+c_2 e^{-3t}\begin{bmatrix} 1 \\ -1\end{bmatrix}.
+\]
+Fitting $u(0)=(1,0)$ gives $c_1=c_2=\tfrac13$. As $t\to\infty$ the $e^{-3t}$ term dies, leaving the \emph{steady state}
+\[
+   u(\infty)=\frac13\begin{bmatrix} 2 \\ 1\end{bmatrix}=\begin{bmatrix} 2/3 \\ 1/3\end{bmatrix}.
+\]
+The eigenvalue $\lambda=0$ pins down where the system settles; the eigenvalue $\lambda=-3$ sets how fast it gets there. Notice the total $u_1+u_2=1$ is conserved (the columns of $A$ sum to zero) --- ``stuff'' flows from $u_1$ to $u_2$ until balance.}
+
+\subsection{The matrix exponential \texorpdfstring{$e^{At}$}{e^{At}}}
+
+We can package the whole solution as $u(t)=e^{At}u(0)$, in exact analogy with the scalar $u(t)=e^{at}u(0)$ for $du/dt=au$. But what does it mean to exponentiate a \emph{matrix}? Copy the power series for $e^x$, replacing $x$ by the matrix $At$.
+
+\defn{Matrix Exponential}{For a square matrix $M$, define
+\[
+   e^{M}=I+M+\frac{M^2}{2!}+\frac{M^3}{3!}+\cdots=\sum_{n=0}^{\infty}\frac{M^n}{n!}.
+\]
+In particular $e^{At}=I+At+\dfrac{(At)^2}{2!}+\dfrac{(At)^3}{3!}+\cdots$. The series converges for every square matrix.}
+
+This series is the right object: differentiating term by term gives $\frac{d}{dt}e^{At}=Ae^{At}$, so $u(t)=e^{At}u(0)$ solves $du/dt=Au$ with the correct start. Summing infinitely many matrices is impractical, but diagonalization gives a closed form. Substitute $A=S\Lambda S^{-1}$, note $(S\Lambda S^{-1})^n=S\Lambda^n S^{-1}$, and factor $S$ and $S^{-1}$ out of every term:
+\[
+   e^{At}=\sum_{n=0}^\infty \frac{(S\Lambda S^{-1}t)^n}{n!}
+        =S\left(\sum_{n=0}^\infty \frac{(\Lambda t)^n}{n!}\right)S^{-1}
+        =S\,e^{\Lambda t}\,S^{-1}.
+\]
+
+\thm{Computing $e^{At}$ by Diagonalization}{If $A=S\Lambda S^{-1}$ is diagonalizable, then
+\[
+   e^{At}=S\,e^{\Lambda t}\,S^{-1},
+   \qquad
+   e^{\Lambda t}=\diag\!\left(e^{\lambda_1 t},\,e^{\lambda_2 t},\,\dots,\,e^{\lambda_n t}\right).
+\]
+The exponential of a diagonal matrix is just the diagonal of scalar exponentials. Thus $u(t)=e^{At}u(0)=S e^{\Lambda t}S^{-1}u(0)$, which expands to exactly $\sum_i c_i e^{\lambda_i t}x_i$ with $c=S^{-1}u(0)$.}
+\pf{For diagonal $\Lambda$, $\Lambda^n=\diag(\lambda_i^n)$, so the series $\sum_n (\Lambda t)^n/n!$ acts entry by entry on the diagonal and equals $\diag(e^{\lambda_i t})$. Inserting $A^n=S\Lambda^n S^{-1}$ into the definition and pulling the constant $S,S^{-1}$ through the (convergent) sum gives $e^{At}=S\,e^{\Lambda t}S^{-1}$.}
+
+\rmkb[Same diagonalization, two flavors of time]{The pattern is identical to powers. There, $A^k=S\Lambda^k S^{-1}$ replaced the matrix power by scalar powers $\lambda_i^k$. Here, $e^{At}=Se^{\Lambda t}S^{-1}$ replaces the matrix exponential by scalar exponentials $e^{\lambda_i t}$. Diagonalization is the single tool that linearizes both discrete and continuous dynamics: move to the eigenvector basis, solve $n$ scalar problems, move back. (Higher-order scalar ODEs $y''+by'+ky=0$ fold into this same machine by the companion-matrix trick that gave us Fibonacci.)}
+
+\section{Markov Matrices: the Eigenvalue \texorpdfstring{$\lambda=1$}{lambda = 1} and Steady States}
+
+A particularly important difference equation $u_{k+1}=Au_k$ comes from \emph{Markov matrices} --- the matrices of probability and of populations flowing between states.
+
+\defn{Markov Matrix}{A square matrix $A$ is a \emph{Markov matrix} if every entry is nonnegative and every column sums to $1$. The columns are probability vectors: column $j$ says where the contents of state $j$ go in one step. Powers $A^k$ of a Markov matrix are again Markov matrices.}
+
+Because each column sums to $1$, the total amount is conserved: $u_{k+1}=Au_k$ redistributes the entries of $u_k$ without changing their sum. So if $u_0$ holds a population of $1000$, so does every $u_k$. The question is how that population settles, and the answer is one special eigenvalue.
+
+\thm{Markov Matrices Have $\lambda=1$}{Every Markov matrix $A$ has $\lambda=1$ as an eigenvalue, and all its eigenvalues satisfy $|\lambda|\le 1$. The eigenvector for $\lambda=1$ has nonnegative entries; scaled to sum to $1$, it is the \emph{steady-state} distribution.}
+\pf{To show $\lambda=1$ is an eigenvalue we show $A-I$ is singular. Subtracting $1$ from each diagonal entry makes every column of $A-I$ sum to $0$ (each column of $A$ summed to $1$). But ``all columns sum to zero'' says the rows of $A-I$ add up to the zero row: the row vector $(1,1,\dots,1)$ satisfies $(1,\dots,1)(A-I)=0$. So $A-I$ has dependent rows, hence is singular, and $\det(A-I)=0$: $\lambda=1$ is an eigenvalue. (Equivalently, $A$ and $A\T$ share eigenvalues since $\det(A-\lambda I)=\det(A\T-\lambda I)$, and $A\T$ has row sums $1$, so $A\T(1,\dots,1)\T=(1,\dots,1)\T$.) The bound $|\lambda|\le 1$ follows because larger eigenvalues would make $A^k$ blow up, impossible when every $A^k$ is again Markov with entries in $[0,1]$.}
+
+Now run the difference equation. If $A$ has independent eigenvectors with $\lambda_1=1$ and $|\lambda_i|<1$ for $i\ge 2$, then
+\[
+   u_k = c_1\cdot 1^k\,x_1 + c_2\lambda_2^k\,x_2+\cdots+c_n\lambda_n^k\,x_n
+   \ \xrightarrow{\ k\to\infty\ }\ c_1 x_1 ,
+\]
+because every other $\lambda_i^k$ decays to $0$. The system forgets its start (except for the single number $c_1$) and converges to the $\lambda=1$ eigenvector. That is the steady state.
+
+\ex[Migration between two states]{Each year $10\%$ of California's people move to Massachusetts and $20\%$ of Massachusetts' people move to California; the rest stay. With the state vector $u=\left[\begin{smallmatrix}u_{\text{Cal}}\\ u_{\text{Mass}}\end{smallmatrix}\right]$,
+\[
+   u_{k+1}=\begin{bmatrix} 0.9 & 0.2 \\ 0.1 & 0.8\end{bmatrix}u_k = A u_k .
+\]
+Columns sum to $1$ --- a Markov matrix. One eigenvalue is $\lambda_1=1$; the trace $0.9+0.8=1.7$ then forces $\lambda_2=0.7$. The eigenvectors:
+\[
+   \lambda_1=1:\ (A-I)x=0\Rightarrow x_1=\begin{bmatrix} 2 \\ 1\end{bmatrix},
+   \qquad
+   \lambda_2=0.7:\ (A-0.7I)x=0\Rightarrow x_2=\begin{bmatrix} 1 \\ -1\end{bmatrix}.
+\]
+Starting from $u_0=\left[\begin{smallmatrix}0\\ 1000\end{smallmatrix}\right]$ (everyone in Massachusetts), expand $u_0=c_1 x_1+c_2 x_2$ to get $c_1=\tfrac{1000}{3}$, $c_2=-\tfrac{2000}{3}$, so
+\[
+   u_k=\frac{1000}{3}\,1^k\begin{bmatrix} 2 \\ 1\end{bmatrix}-\frac{2000}{3}\,(0.7)^k\begin{bmatrix} 1 \\ -1\end{bmatrix}.
+\]
+As $k\to\infty$ the $(0.7)^k$ term vanishes and
+\[
+   u_\infty=\frac{1000}{3}\begin{bmatrix} 2 \\ 1\end{bmatrix}=\begin{bmatrix} 2000/3 \\ 1000/3\end{bmatrix}:
+\]
+two-thirds end up in California, one-third in Massachusetts --- the steady state $x_1$ (normalized), reached from \emph{any} starting distribution. The eigenvalue $1$ gives the destination; the eigenvalue $0.7$ gives the rate of approach.}
+
+\rmkb[Steady state: $\lambda=1$ versus $\lambda=0$]{Watch the two settings side by side. For \emph{differential} equations $du/dt=Au$ the steady state lives in the eigenvector with $\lambda=0$ (it is the part with $e^{0\cdot t}=1$ frozen while $e^{\lambda t}\to 0$). For \emph{Markov} difference equations $u_{k+1}=Au_k$ the steady state lives in the eigenvector with $\lambda=1$ (the part with $1^k=1$ frozen while $\lambda^k\to 0$). Same idea, shifted by the difference between $e^{\lambda t}$ and $\lambda^k$ as the time-evolution factor.}
+
+\section{A Short Bridge: Fourier Series and Projection}
+
+The chapter has leaned on one move again and again: \emph{expand the input in a good basis, where each basis vector evolves on its own.} For eigenvectors that basis diagonalizes $A$. When the basis is also \emph{orthonormal}, finding the coefficients becomes effortless --- and that effortlessness is exactly what powers Fourier series.
+
+If $q_1,\dots,q_n$ are an orthonormal basis ($q_i\T q_j=0$ for $i\ne j$, and $q_i\T q_i=1$), then any vector $v=x_1 q_1+\cdots+x_n q_n$ has its coefficients given by a single dot product. Hit both sides with $q_i\T$ and all cross terms vanish:
+\[
+   q_i\T v = x_1\,q_i\T q_1+\cdots+x_n\,q_i\T q_n = x_i .
+\]
+So $x_i=q_i\T v$: each coordinate is a projection of $v$ onto one basis direction (Chapter~\ref{ch:5}). In matrix form, with $Q=[\,q_1\ \cdots\ q_n\,]$, this is $Qx=v$ with $x=Q^{-1}v=Q\T v$, since an orthonormal $Q$ has $Q^{-1}=Q\T$.
+
+\rmkb[Fourier series is this idea, infinitely]{Fourier series writes a periodic function as
+\[
+   f(x)=a_0+a_1\cos x+b_1\sin x+a_2\cos 2x+b_2\sin 2x+\cdots .
+\]
+The ``vectors'' are now functions, the ``basis'' is $1,\cos x,\sin x,\cos 2x,\dots$, and the inner product is an integral instead of a sum:
+\[
+   \inner{f}{g}=\int_0^{2\pi} f(x)\,g(x)\,dx .
+\]
+The basic functions are orthogonal under this inner product (for instance $\sin x$ and $\cos x$ integrate to zero against each other), so each Fourier coefficient is found by the same projection formula. For instance,
+\[
+   a_1=\frac1\pi\int_0^{2\pi}f(x)\cos x\,dx
+\]
+is the component of $f$ along $\cos x$. An infinite-dimensional orthonormal basis, but the eigenvector and projection logic of this chapter is unchanged.}
+
+\section{What to Carry Forward}
+
+A square matrix $A$ has special directions, its \emph{eigenvectors} $x$, on which it acts as plain scaling: $Ax=\lambda x$. We find the eigenvalues by solving $\det(A-\lambda I)=0$ and the eigenvectors as null spaces of $A-\lambda I$. Two cheap checks --- $\sum\lambda_i=\trace A$ and $\prod\lambda_i=\det A$ --- guard the arithmetic, and for $2\times2$ matrices they nearly do the work themselves through $\lambda^2-(\trace A)\lambda+\det A=0$.
+
+When $A$ has $n$ independent eigenvectors we can \emph{diagonalize}: $A=S\Lambda S^{-1}$, with eigenvectors in $S$ and eigenvalues in $\Lambda$. Distinct eigenvalues guarantee this; a repeated eigenvalue may fall short of eigenvectors and leave $A$ defective. Diagonalization is the master key. It makes powers easy, $A^k=S\Lambda^k S^{-1}$, solving difference equations $u_{k+1}=Au_k$ via $u_k=\sum c_i\lambda_i^k x_i$. It makes the matrix exponential easy, $e^{At}=Se^{\Lambda t}S^{-1}$, solving differential equations $du/dt=Au$ via $u(t)=\sum c_i e^{\lambda_i t}x_i$. The eigenvalues read off stability ($|\lambda|<1$ for $A^k\to 0$; $\mathrm{Re}\,\lambda<0$ for $e^{At}\to 0$) and steady states ($\lambda=1$ for Markov chains, $\lambda=0$ for continuous flows).
+
+\rmkb[Looking ahead]{One question dangles: \emph{which} matrices are sure to have a full set of independent eigenvectors? The cleanest answer is symmetry. A symmetric matrix $A=A\T$ always has real eigenvalues and a complete, \emph{orthonormal} set of eigenvectors --- so $S$ can be chosen orthogonal and $A=Q\Lambda Q\T$. That is the \emph{spectral theorem} of Chapter~\ref{ch:8}, and dropping the requirement that $A$ be square leads to the singular value decomposition of Chapter~\ref{ch:9}, where eigenvalues of $A\T A$ take over the role $\lambda$ played here.}

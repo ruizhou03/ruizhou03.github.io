@@ -1,0 +1,422 @@
+% !TEX root = ../main.tex
+\chapter{Symmetric and Positive Definite Matrices}
+\label{ch:8}
+
+Up to now an eigenvalue could be anything --- real, complex, repeated, defective. The matrix $A=S\Lambda S^{-1}$ might or might not have enough eigenvectors to diagonalize, and the eigenvector matrix $S$ was just some invertible matrix with no special structure. This chapter is about the family of matrices where everything goes right. A \emph{symmetric} matrix $A=A\T$ always has real eigenvalues, always has a full set of eigenvectors, and --- this is the gift --- those eigenvectors can be chosen \emph{orthonormal}. So $S$ becomes an \emph{orthogonal} matrix $Q$, the inverse $S^{-1}$ becomes the cheap transpose $Q\T$, and the diagonalization reads
+\[
+   A = Q\Lambda Q\T .
+\]
+This is the \textbf{spectral theorem}, the cleanest factorization in the subject, and most of the chapter unfolds from it.
+
+The second half asks a sharper question. Once we know a symmetric matrix has real eigenvalues, we want to know their \emph{signs}. A symmetric matrix whose eigenvalues are all positive is called \emph{positive definite}, and these matrices are everywhere: they are the matrices $A\T A$ of least squares, the covariance matrices of statistics, the stiffness matrices of mechanics, and --- the connection that closes the chapter --- the second-derivative (Hessian) matrices that detect a genuine minimum. We will collect four different-looking tests for positive definiteness (eigenvalues, determinants, pivots, and the energy $x\T Ax$) and watch them turn out to be the same test in four costumes. Strang likes to say that positive definite matrices bring the whole course together: pivots, determinants, eigenvalues, and stability all meet here.
+
+\section{Symmetric Matrices Have Real Eigenvalues}
+
+A symmetric matrix is one that equals its own transpose, $A=A\T$, so the entry in row $i$, column $j$ matches the entry in row $j$, column $i$. The matrix is a mirror image across its main diagonal. This is a strong constraint with strong rewards, and the first reward concerns the eigenvalues.
+
+For a general real matrix the eigenvalues can be complex --- a rotation matrix has eigenvalues $e^{\pm i\theta}$ with no real part at all (Chapter~\ref{ch:7}). One might expect symmetry to do something nice, and it does the nicest possible thing: it forces every eigenvalue back onto the real line.
+
+\thm{Real Eigenvalues of a Symmetric Matrix}{If $A$ is a real symmetric matrix, $A=A\T$, then every eigenvalue of $A$ is real.}
+
+\pf{
+Let $Ax=\lambda x$ with $x\neq 0$, where a priori $\lambda$ and $x$ may be complex. Write $\bar{z}$ for the complex conjugate. Conjugating the equation entrywise, and using that $A$ has real entries so $\bar A=A$,
+\[
+   A\bar x=\bar\lambda\,\bar x .
+\]
+Now transpose this and use $A\T=A$:
+\[
+   \bar x\T A=\bar\lambda\,\bar x\T .
+\]
+Multiply on the right by $x$:
+\[
+   \bar x\T A x=\bar\lambda\,\bar x\T x .
+\]
+On the other hand, multiply the original $Ax=\lambda x$ on the left by $\bar x\T$:
+\[
+   \bar x\T A x=\lambda\,\bar x\T x .
+\]
+The left sides are identical, so $\bar\lambda\,\bar x\T x=\lambda\,\bar x\T x$. The number $\bar x\T x$ is
+\[
+   \bar x\T x=\abs{x_1}^2+\abs{x_2}^2+\cdots+\abs{x_n}^2 ,
+\]
+a sum of squared magnitudes, which is strictly positive because $x\neq 0$. Dividing it out leaves $\bar\lambda=\lambda$, and a number equal to its own conjugate is real.}
+
+The quantity $\bar x\T x$ is worth a second look --- it is the right way to measure the squared length of a complex vector, and it reappears when we meet Hermitian matrices in Section~\ref{sec:complex}. For a \emph{real} eigenvector it is just the ordinary $x\T x=\norm{x}^2$.
+
+\rmkb[A bonus from the same computation]{The proof conjugated $Ax=\lambda x$ to get $A\bar x=\bar\lambda\,\bar x$. Read that line by itself: if $\lambda$ is an eigenvalue of a real matrix with eigenvector $x$, then $\bar\lambda$ is an eigenvalue with eigenvector $\bar x$. \textbf{For any real matrix, complex eigenvalues come in conjugate pairs.} Symmetry is what then collapses each pair onto the real axis.}
+
+\section{Orthogonal Eigenvectors and the Spectral Theorem}
+
+Real eigenvalues are only the first gift. The second is that eigenvectors belonging to \emph{different} eigenvalues are automatically perpendicular --- no work required, it falls out of symmetry.
+
+\thm{Eigenvectors of Distinct Eigenvalues Are Orthogonal}{Let $A=A\T$ be real symmetric, and suppose $Ax=\lambda x$ and $Ay=\mu y$ with $\lambda\neq\mu$. Then $x\T y=0$: the eigenvectors are orthogonal.}
+
+\pf{
+Compute $x\T A y$ two ways. Using $Ay=\mu y$,
+\[
+   x\T A y=x\T(\mu y)=\mu\,x\T y .
+\]
+Using $A=A\T$ and $Ax=\lambda x$, transpose $Ax=\lambda x$ to get $x\T A=\lambda x\T$, so
+\[
+   x\T A y=(\lambda x\T)y=\lambda\,x\T y .
+\]
+Subtracting, $(\lambda-\mu)\,x\T y=0$. Since $\lambda\neq\mu$, the factor $\lambda-\mu$ is nonzero, forcing $x\T y=0$.}
+
+So eigenvectors for distinct eigenvalues are orthogonal on the nose. When an eigenvalue is repeated, its eigenspace has dimension equal to the multiplicity (this is the part that needs proof, and it is exactly where symmetry rescues us from the defective matrices of Chapter~\ref{ch:7}), and \emph{within} that eigenspace we are free to pick an orthonormal basis by Gram--Schmidt (Chapter~\ref{ch:5}). Stitching the pieces together gives a full orthonormal set of $n$ eigenvectors. Normalizing each to unit length, collect them as the columns of a matrix $Q$. Orthonormal columns mean $Q\T Q=I$, i.e.\ $Q$ is an \emph{orthogonal} matrix with $Q^{-1}=Q\T$.
+
+\thm{Spectral Theorem}{Every real symmetric matrix $A=A\T$ can be factored as
+\[
+   A=Q\Lambda Q\T,
+\]
+where $\Lambda=\diag(\lambda_1,\dots,\lambda_n)$ holds the (real) eigenvalues and $Q$ is an orthogonal matrix ($Q\T Q=I$) whose columns are orthonormal eigenvectors of $A$. Conversely, any matrix of the form $Q\Lambda Q\T$ with real $\Lambda$ is symmetric.}
+
+\pf{
+With $n$ orthonormal eigenvectors $q_1,\dots,q_n$ as the columns of $Q$ and eigenvalues on the diagonal of $\Lambda$, the relations $Aq_k=\lambda_k q_k$ assemble columnwise into $AQ=Q\Lambda$. Right-multiplying by $Q^{-1}=Q\T$ gives $A=Q\Lambda Q\T$. For the converse, if $A=Q\Lambda Q\T$ then
+\[
+   A\T=(Q\Lambda Q\T)\T=Q\,\Lambda\T Q\T=Q\Lambda Q\T=A,
+\]
+because a diagonal matrix is its own transpose. So $A$ is symmetric.}
+
+This is the same diagonalization $A=S\Lambda S^{-1}$ from Chapter~\ref{ch:7}, but with the eigenvector matrix upgraded from a generic invertible $S$ to an orthogonal $Q$. The payoff is that $S^{-1}$, normally a separate computation, is handed to us for free as $Q\T$. Mathematicians call the set of eigenvalues the \emph{spectrum} of $A$, which is where the theorem gets its name; engineers call the same result the \emph{principal axis theorem}, for a reason we will see when we draw the ellipse of $x\T Ax$.
+
+\ex[A symmetric $2\times2$ diagonalized]{
+Take
+\[
+   A=\begin{bmatrix} 1 & 2\\ 2 & 1\end{bmatrix}.
+\]
+The eigenvalues solve $\det(A-\lambda I)=(1-\lambda)^2-4=0$, so $\lambda=3$ and $\lambda=-1$ (real, as promised). For $\lambda=3$, $(A-3I)x=0$ gives the eigenvector $(1,1)$; for $\lambda=-1$, the eigenvector is $(1,-1)$. These two are perpendicular --- $(1,1)\cdot(1,-1)=0$ --- exactly as the theorem guarantees, with no checking of the matrix beyond its symmetry. Normalizing each by $1/\sqrt2$,
+\[
+   Q=\frac{1}{\sqrt2}\begin{bmatrix} 1 & 1\\ 1 & -1\end{bmatrix},
+   \qquad
+   \Lambda=\begin{bmatrix} 3 & 0\\ 0 & -1\end{bmatrix},
+   \qquad
+   A=Q\Lambda Q\T .
+\]
+Here $Q$ is symmetric and orthogonal at once, so $Q\T=Q$; you can multiply $Q\Lambda Q$ out and recover $A$.}
+
+\subsection{Every Symmetric Matrix Is a Sum of Projections}
+
+The factorization $A=Q\Lambda Q\T$ has a reading that is easy to miss inside the matrix notation. Expand the product the way we expand any $Q\Lambda Q\T$ --- as a sum of rank-one pieces, one per eigenvalue:
+\[
+   A=Q\Lambda Q\T
+   =\begin{bmatrix} q_1 & \cdots & q_n\end{bmatrix}
+   \begin{bmatrix} \lambda_1 & & \\ & \ddots & \\ & & \lambda_n\end{bmatrix}
+   \begin{bmatrix} q_1\T \\ \vdots \\ q_n\T\end{bmatrix}
+   =\lambda_1 q_1 q_1\T+\lambda_2 q_2 q_2\T+\cdots+\lambda_n q_n q_n\T .
+\]
+Each term $q_k q_k\T$ is exactly the projection matrix onto the line through the unit vector $q_k$ (recall from Chapter~\ref{ch:5} that the projection onto a unit vector $q$ is $qq\T$). So the spectral theorem says something concrete and physical.
+
+\state{Spectral decomposition as projections}{Every symmetric matrix breaks into a weighted sum of perpendicular projections:
+\[
+   A=\lambda_1\,P_1+\lambda_2\,P_2+\cdots+\lambda_n\,P_n,
+   \qquad P_k=q_k q_k\T .
+\]
+Each $P_k$ projects onto one eigenvector direction, the $P_k$ are mutually orthogonal projections ($P_jP_k=0$ for $j\neq k$, $P_k^2=P_k$), and they sum to the identity ($P_1+\cdots+P_n=I$). Applying $A$ to any vector means: split the vector into its components along the eigen-directions, then stretch the $k$-th component by $\lambda_k$.}
+
+That last sentence is the whole geometric content of a symmetric matrix. It does nothing but stretch along $n$ perpendicular axes. There is no rotation, no shear --- the orthonormal eigenvectors are the axes, and the eigenvalues are the stretch factors.
+
+\section{Signs of the Eigenvalues: Pivots and Inertia}
+
+Knowing the eigenvalues are real, the next question is their \emph{signs} --- how many are positive, how many negative, how many zero. For differential equations the signs decide stability; for the minimum problem ahead they decide whether a critical point is a true minimum. But computing eigenvalues means solving $\det(A-\lambda I)=0$, an $n$-th degree equation, which is hopeless by hand for large $n$. Elimination, by contrast, is cheap. The remarkable fact is that elimination already knows the signs.
+
+\thm{Pivots and Eigenvalues Share Signs (Sylvester's Law of Inertia)}{Let $A=A\T$ be symmetric and invertible, factored by symmetric elimination into pivots $d_1,\dots,d_n$ (no row exchanges). Then the number of positive pivots equals the number of positive eigenvalues, and the number of negative pivots equals the number of negative eigenvalues:
+\[
+   \#\{\text{positive pivots}\}=\#\{\text{positive }\lambda\},
+   \qquad
+   \#\{\text{negative pivots}\}=\#\{\text{negative }\lambda\}.
+\]
+This count --- the triple (positives, negatives, zeros) --- is the \emph{inertia} of $A$.}
+
+We will not prove the law in full, but the mechanism is visible in the $LDL\T$ factorization. Symmetric elimination writes $A=LDL\T$ with $L$ lower triangular (ones on the diagonal) and $D=\diag(d_1,\dots,d_n)$ the pivots. The eigenvalues of $A$ and of $D$ are generally different numbers, yet they have the same \emph{signs}: passing from $A$ to $D$ via the invertible $L$ never moves an eigenvalue across zero. The pivots are the cheap shadow of the eigenvalues, accurate in sign even though wrong in value.
+
+This is more powerful than it looks, because of a shift trick. The eigenvalues of $A+bI$ are exactly $b$ more than the eigenvalues of $A$ (if $Ax=\lambda x$ then $(A+bI)x=(\lambda+b)x$). So to find out how many eigenvalues of $A$ exceed a chosen number $b$, count the positive pivots of $A-bI$. Sweeping $b$ across the line locates every eigenvalue between cheap elimination steps, without ever solving the characteristic equation.
+
+\ex[Counting signs without eigenvalues]{
+The symmetric matrix
+\[
+   A=\begin{bmatrix} 0 & 1\\ 1 & 0\end{bmatrix}
+\]
+has eigenvalues $+1$ and $-1$ (one of each sign). Elimination with a row exchange is awkward here, but the determinant test agrees: $\det A=-1<0$ means the two eigenvalues have opposite signs, so exactly one is negative. For a clean pivot example, take
+\[
+   B=\begin{bmatrix} 1 & 3\\ 3 & 1\end{bmatrix},
+   \qquad
+   B=LDL\T,\quad
+   D=\begin{bmatrix} 1 & 0\\ 0 & -8\end{bmatrix},
+\]
+since subtracting $3\times$row $1$ from row $2$ gives pivots $1$ and $1-9=-8$. One positive pivot, one negative pivot --- so one positive eigenvalue and one negative eigenvalue. Indeed the eigenvalues of $B$ are $4$ and $-2$. The pivots got the \emph{values} wrong but the \emph{signs} exactly right.}
+
+\section{Positive Definite Matrices}
+
+Now specialize to the best-behaved symmetric matrices of all: those whose eigenvalues are not merely real but strictly positive.
+
+\defn{Positive Definite Matrix}{A symmetric matrix $A=A\T$ is \textbf{positive definite} if all of its eigenvalues are strictly positive:
+\[
+   \lambda_1>0,\ \lambda_2>0,\ \dots,\ \lambda_n>0 .
+\]
+If the eigenvalues are merely nonnegative ($\lambda_k\ge 0$, allowing zeros), $A$ is \textbf{positive semidefinite}.}
+
+Checking every eigenvalue is exactly the test we just said is too expensive. The wonderful thing about positive definiteness is that it can be detected several other ways, each cheaper or more meaningful than computing eigenvalues. We collect them as a single theorem; the rest of the chapter is really the proof that these tests agree and the story of why the last one matters.
+
+\thm{Four Tests for Positive Definiteness}{For a symmetric matrix $A=A\T$, the following are equivalent. Each is a complete test for positive definiteness.
+\begin{itemize}[leftmargin=2.4em,labelwidth=1.8em,labelsep=0.6em,labelindent=0pt,align=left,itemsep=3pt]
+   \item[(1)] \textbf{Eigenvalue test.} All eigenvalues are positive: $\lambda_k>0$ for every $k$.
+   \item[(2)] \textbf{Determinant test.} All leading principal minors are positive: the determinant of every upper-left $k\times k$ block of $A$ is positive, for $k=1,\dots,n$.
+   \item[(3)] \textbf{Pivot test.} All $n$ pivots are positive (symmetric elimination, no row exchanges).
+   \item[(4)] \textbf{Energy test.} The quadratic form is positive away from the origin: $x\T Ax>0$ for every $x\neq 0$.
+\end{itemize}}
+
+A few words on why the four hang together. Tests (2) and (3) are linked by the fact that each pivot is a ratio of consecutive leading minors,
+\[
+   d_k=\frac{\det A_k}{\det A_{k-1}},
+\]
+where $A_k$ is the upper-left $k\times k$ block (and $\det A_0=1$). So the pivots are positive exactly when the leading minors are positive --- tests (2) and (3) are the same statement, read through the bookkeeping of elimination. Test (1) connects to (3) through inertia: positive pivots mean positive eigenvalues by Sylvester's law. And test (4), the energy, is the deepest --- it is the one that does not even mention computing anything about $A$, and it is the one that connects to minima. We prove the equivalence of (1) and (4) below, and treat the energy test as the real definition.
+
+\rmkb[Why the determinant alone is not enough]{
+A natural wrong guess is ``positive definite means positive determinant.'' But $\det A=\lambda_1\lambda_2\cdots\lambda_n$ is positive whenever an \emph{even} number of eigenvalues are negative. The matrix
+\[
+   \begin{bmatrix} -1 & 0\\ 0 & -3\end{bmatrix}
+\]
+has determinant $+3>0$, yet both eigenvalues are negative --- it is negative definite, the opposite of what we want. Test (2) repairs this by demanding that \emph{every} leading minor be positive, not just the last one. The first minor ($-1<0$) catches the imposter immediately.}
+
+\subsection{The energy \texorpdfstring{$x\T Ax$}{xTAx}}
+
+The fourth test introduces the quantity that ties the chapter to calculus. For a symmetric $A$, the scalar
+\[
+   x\T A x
+\]
+is called the \emph{quadratic form} or the \emph{energy} of $A$. Writing it out for a symmetric $2\times2$ matrix shows its shape. With
+\[
+   A=\begin{bmatrix} a & b\\ b & c\end{bmatrix},
+   \qquad x=\begin{bmatrix} x_1\\ x_2\end{bmatrix},
+\]
+we compute
+\[
+   x\T A x
+   =\begin{bmatrix} x_1 & x_2\end{bmatrix}
+    \begin{bmatrix} a x_1+b x_2\\ b x_1+c x_2\end{bmatrix}
+   =a x_1^2+2b\,x_1 x_2+c x_2^2 .
+\]
+This is a pure second-degree polynomial in $x_1,x_2$ --- no linear or constant term --- so its graph $z=x\T Ax$ passes through the origin and is tangent to the flat plane there. Positive definiteness asks: is the origin the bottom of a bowl (every other point higher), or could the surface dip below zero in some direction? That is precisely the question of a minimum, which is why test (4) is the bridge to calculus.
+
+\thm{Energy Test Equals Eigenvalue Test}{For a symmetric matrix $A$, the energy $x\T Ax>0$ for all $x\neq 0$ if and only if every eigenvalue of $A$ is positive.}
+
+\pf{
+Diagonalize by the spectral theorem, $A=Q\Lambda Q\T$. Substitute and change variables to $y=Q\T x$:
+\[
+   x\T A x=x\T Q\Lambda Q\T x=(Q\T x)\T\Lambda(Q\T x)=y\T\Lambda y
+   =\lambda_1 y_1^2+\lambda_2 y_2^2+\cdots+\lambda_n y_n^2 .
+\]
+Because $Q$ is invertible, $x$ ranges over all nonzero vectors exactly when $y$ does. If every $\lambda_k>0$, this weighted sum of squares is positive whenever some $y_k\neq0$, i.e.\ whenever $x\neq0$ --- so $A$ is positive definite. Conversely, if some $\lambda_j\le0$, choose $x=q_j$ (the $j$-th eigenvector), giving $y=e_j$ and $x\T Ax=\lambda_j\le 0$ at a nonzero vector --- so the energy test fails. The two conditions are equivalent.}
+
+The change of variables in this proof is the principal axis theorem at work: in the eigenvector coordinates $y$, the energy is a clean sum $\sum\lambda_k y_k^2$ with no cross terms. The eigenvectors are the axes along which the quadratic form decouples; the eigenvalues are the curvatures along those axes.
+
+\subsection{Completing the square: energy as a sum of squares with pivots}
+
+There is a second, hands-on way to see why positive pivots guarantee positive energy, and it is just elimination in disguise. Take the positive definite matrix
+\[
+   A=\begin{bmatrix} 2 & 6\\ 6 & 20\end{bmatrix},
+   \qquad
+   x\T A x=2x^2+12xy+20y^2 .
+\]
+Complete the square on the $x$ terms:
+\[
+   2x^2+12xy+20y^2
+   =2\bigl(x^2+6xy\bigr)+20y^2
+   =2\bigl(x+3y\bigr)^2-18y^2+20y^2
+   =2\,(x+3y)^2+2\,y^2 .
+\]
+Both squares carry positive coefficients, so the energy is a sum of two genuine squares and can never be negative; it is zero only when $x+3y=0$ and $y=0$, i.e.\ only at $x=y=0$. That is positive definiteness, proved by hand.
+
+Now look at where the numbers came from. Symmetric elimination on $A$ subtracts $3\times$row $1$ from row $2$:
+\[
+   \begin{bmatrix} 2 & 6\\ 6 & 20\end{bmatrix}
+   \xrightarrow{\ R_2-3R_1\ }
+   \begin{bmatrix} 2 & 6\\ 0 & 2\end{bmatrix}
+   =U,
+   \qquad
+   L=\begin{bmatrix} 1 & 0\\ 3 & 1\end{bmatrix}.
+\]
+The pivots are $2$ and $2$ --- exactly the coefficients in front of the two squares. And the multiplier $3$ is exactly the number inside the first square $(x+3y)$. This is no accident.
+
+\state{Completing the square is elimination}{For any symmetric $A=LDL\T$, the energy splits as
+\[
+   x\T A x=\sum_{k=1}^{n} d_k\,(\text{$k$-th row of $L\T x$})^2,
+\]
+a weighted sum of squares whose weights are the pivots $d_k$ and whose squared linear forms come from $L$. So \textbf{positive pivots $\iff$ a sum of \emph{positive} multiples of squares $\iff$ positive energy.} Completing the square by hand and running elimination are literally the same computation. When even one pivot is negative, that square contributes a downward direction, and the energy goes negative.}
+
+This makes the link between tests (3) and (4) tangible. The matrix
+\[
+   \begin{bmatrix} 2 & 6\\ 6 & 7\end{bmatrix}
+\]
+has $\det=14-36=-22<0$, so its eigenvalues have opposite signs and it is \emph{not} positive definite. Completing the square gives $2x^2+12xy+7y^2=2(x+3y)^2-11y^2$, which is negative at $x=-3,\,y=1$. The second pivot turned negative ($7-18=-11$), and the negative square is the downhill direction.
+
+\subsection{The boundary: positive semidefinite}
+
+Between the positive definite matrices and the indefinite ones sits the boundary case. Tune the corner entry of the last matrix until the determinant just hits zero:
+\[
+   A=\begin{bmatrix} 2 & 6\\ 6 & 18\end{bmatrix},
+   \qquad \det A=2\cdot18-36=0 .
+\]
+This $A$ is singular: it has eigenvalues $0$ and $20$, a single positive pivot, and rank $1$. Its energy
+\[
+   2x^2+12xy+18y^2=2\,(x+3y)^2
+\]
+is a single square --- it is $\ge 0$ always, but it equals zero along the whole line $x+3y=0$ (for instance at $x=3,\,y=-1$), not only at the origin. This is the model of a \emph{positive semidefinite} matrix: energy never negative, but flat in some direction. The eigenvalue $0$ is exactly that flat direction. Positive definite is the strict interior ($\lambda>0$, energy a sum of $n$ full squares); positive semidefinite is the closed boundary ($\lambda\ge0$, energy short by at least one square).
+
+\ex[A $3\times3$ positive definite matrix]{
+The second-difference matrix
+\[
+   A=\begin{bmatrix} 2 & -1 & 0\\ -1 & 2 & -1\\ 0 & -1 & 2\end{bmatrix}
+\]
+is positive definite, and all four tests agree. \emph{Determinants:} the leading minors are
+\[
+   \det[2]=2,\qquad
+   \det\begin{bmatrix} 2 & -1\\ -1 & 2\end{bmatrix}=3,\qquad
+   \det A=4,
+\]
+all positive. \emph{Pivots:} since each pivot is the ratio of consecutive leading minors (as noted above), the pivots are $2,\ \tfrac32,\ \tfrac43$ --- all positive, and their product $2\cdot\tfrac32\cdot\tfrac43=4$ matches $\det A$. \emph{Eigenvalues:} they work out to $2-\sqrt2,\ 2,\ 2+\sqrt2$, all positive, with product $4$. \emph{Energy:}
+\[
+   x\T A x=2x_1^2+2x_2^2+2x_3^2-2x_1x_2-2x_2x_3,
+\]
+which a sum-of-squares rearrangement (using the pivots $2,\tfrac32,\tfrac43$) shows is positive except at $x=0$. Four windows onto one fact.}
+
+\section{The Geometry: Minima, Hessians, and the Energy Bowl}
+
+We promised that positive definiteness is the linear-algebra heart of the second-derivative test from calculus. Here is the connection, made precise.
+
+\subsection{Why $x\T Ax$ is a bowl}
+
+The graph $z=x\T Ax$ of a positive definite form is a bowl opening upward, with its single lowest point at the origin. Cutting it horizontally at height $z=k>0$ gives the curve $x\T Ax=k$, which is an \emph{ellipse} (in $\RR^2$) or an \emph{ellipsoid} (in $\RR^n$) --- a closed, bounded curve precisely because the form is positive in every direction. Run the principal axis theorem on it: writing $A=Q\Lambda Q\T$ and $y=Q\T x$, the level set becomes
+\[
+   \lambda_1 y_1^2+\lambda_2 y_2^2+\cdots+\lambda_n y_n^2=k .
+\]
+This is an ellipsoid in standard position, axes along the coordinate directions $y$. Translating back, \textbf{the eigenvectors of $A$ point along the principal axes of the ellipsoid, and the eigenvalues set their lengths} --- a large $\lambda_k$ means a steep, short axis (you reach height $k$ quickly), a small $\lambda_k$ a long, shallow one. This is exactly why engineers call the spectral theorem the principal axis theorem.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ellipse: tilted, principal axes along eigenvectors
+  \begin{scope}[rotate=30]
+    \draw[thick,blue!60!black] (0,0) ellipse [x radius=2.2, y radius=1.1];
+    % principal axes
+    \draw[->,very thick,red!70!black] (0,0)--(2.2,0)
+         node[pos=1.06,below right,font=\scriptsize,red!70!black]{$q_1$ (small $\lambda_1$: long axis)};
+    \draw[->,very thick,red!70!black] (0,0)--(0,1.1)
+         node[pos=1.12,above,font=\scriptsize,red!70!black]{$q_2$ (large $\lambda_2$: short axis)};
+  \end{scope}
+  \node[font=\scriptsize] at (0,-2.1) {level curve $x\T Ax=k$};
+  \fill (0,0) circle (1.6pt);
+\end{tikzpicture}
+\end{center}
+
+If instead $A$ were indefinite, the graph would be a \emph{saddle}: rising in the directions of positive eigenvalues, falling in the directions of negative ones, with the origin a critical point that is neither a maximum nor a minimum. The level sets become hyperbolas, which run off to infinity --- the signature of a saddle rather than a bowl.
+
+\subsection{The Hessian and the second-derivative test}
+
+In single-variable calculus, a critical point $f'(x)=0$ is a minimum when $f''(x)>0$ --- the curve bends upward. For a function $f(x_1,\dots,x_n)$ of several variables, the role of $f''$ is played by the matrix of second partial derivatives, the \emph{Hessian}:
+\[
+   H=\begin{bmatrix}
+     f_{x_1x_1} & f_{x_1x_2} & \cdots & f_{x_1x_n}\\
+     f_{x_2x_1} & f_{x_2x_2} & \cdots & f_{x_2x_n}\\
+     \vdots & & \ddots & \vdots\\
+     f_{x_nx_1} & \cdots & & f_{x_nx_n}
+   \end{bmatrix}.
+\]
+The Hessian is \emph{symmetric}, because mixed partials are equal ($f_{x_ix_j}=f_{x_jx_i}$) for any smooth $f$ --- which is exactly why symmetric matrices are the right object for the minimum problem. Near a critical point (where all first derivatives vanish), Taylor's theorem says $f$ looks like its quadratic part,
+\[
+   f(x)\approx f(x_0)+\tfrac12\,(x-x_0)\T H\,(x-x_0),
+\]
+and the energy $(x-x_0)\T H(x-x_0)$ decides the shape.
+
+\state{The second-derivative test in $n$ variables}{At a critical point of $f$ (all first partials zero), let $H$ be the Hessian.
+\begin{itemize}
+   \item $H$ positive definite $\Rightarrow$ the energy is a bowl $\Rightarrow$ a \textbf{local minimum}.
+   \item $H$ negative definite $\Rightarrow$ a \textbf{local maximum}.
+   \item $H$ indefinite (mixed-sign eigenvalues) $\Rightarrow$ a \textbf{saddle point}.
+\end{itemize}
+The familiar $2\times2$ rule from calculus --- minimum when $f_{xx}>0$ and $f_{xx}f_{yy}-f_{xy}^2>0$ --- is exactly the determinant test (2) applied to $H$: the first leading minor $f_{xx}>0$ and the second leading minor $\det H>0$.}
+
+So the calculus test you memorized ($f_{xx}>0$ and $f_{xx}f_{yy}>f_{xy}^2$) was the determinant test for positive definiteness of the Hessian all along. The two pieces of that rule are precisely the two leading principal minors of $H$ being positive.
+
+\ex[Bowl versus saddle]{
+The form $f(x,y)=2x^2+12xy+20y^2$ has Hessian
+\[
+   H=\begin{bmatrix} 4 & 12\\ 12 & 40\end{bmatrix}
+   =2\begin{bmatrix} 2 & 6\\ 6 & 20\end{bmatrix},
+\]
+positive definite (leading minors $4>0$ and $4\cdot40-144=16>0$), so the origin is a minimum --- a bowl. Change the corner: $g(x,y)=2x^2+12xy+7y^2$ has $\det\!\left[\begin{smallmatrix}4&12\\12&14\end{smallmatrix}\right]=56-144<0$, so its Hessian is indefinite and the origin is a saddle. The two surfaces differ only in one coefficient, $20$ versus $7$, and that single number is the difference between a true minimum and no minimum at all.}
+
+\section{The Matrices \texorpdfstring{$A\T A$}{ATA}: Positive Semidefinite for Free}
+
+Positive definite matrices might seem like a special breed you would have to go looking for. In fact they manufacture themselves out of \emph{any} matrix, through the symmetric product $A\T A$ that ran the whole least-squares story of Chapter~\ref{ch:5}.
+
+Start with any $A\in\RR^{m\times n}$, rectangular or square. The product $A\T A$ is $n\times n$ and \emph{symmetric}, since $(A\T A)\T=A\T(A\T)\T=A\T A$. More is true: its energy is never negative.
+
+\thm{$A\T A$ Is Positive Semidefinite}{For any real matrix $A$, the matrix $A\T A$ is symmetric positive semidefinite. It is positive \emph{definite} if and only if the columns of $A$ are linearly independent (i.e.\ $A$ has full column rank, $N(A)=\{0\}$).}
+
+\pf{
+Symmetry was checked above. For the energy, compute for any $x$:
+\[
+   x\T(A\T A)x=(Ax)\T(Ax)=\norm{Ax}^2\ge 0 .
+\]
+A squared length is never negative, so $A\T A$ is positive semidefinite. Equality $\norm{Ax}^2=0$ holds exactly when $Ax=0$, i.e.\ when $x\in N(A)$. If the columns of $A$ are independent then $N(A)=\{0\}$, so $x\T(A\T A)x>0$ for every $x\neq0$ and $A\T A$ is positive definite. If the columns are dependent, some $x\neq0$ has $Ax=0$, giving zero energy at a nonzero vector --- only semidefinite.}
+
+This is why least squares works. The normal equations $A\T A\hat x=A\T b$ have a unique solution precisely when $A\T A$ is \emph{invertible}, and we now see that happens exactly when $A$ has independent columns --- the same full-column-rank condition that made the projection well defined. Positive definite is the strong form of invertible for symmetric matrices: not just $\det\neq0$, but every eigenvalue strictly on the positive side.
+
+\rmkb[Where positive definite matrices come from]{The reading $x\T(A\T A)x=\norm{Ax}^2$ explains the ubiquity of these matrices. A \emph{covariance matrix} in statistics is $\tfrac1m A\T A$ for a data matrix $A$ --- positive semidefinite because variances cannot be negative. A \emph{stiffness} or \emph{Gram matrix} in mechanics and geometry has entries $a_i\T a_j$, i.e.\ it is $A\T A$ for $A=[a_1\ \cdots\ a_n]$ --- positive definite exactly when the $a_i$ are independent. And the next chapter (Chapter~\ref{ch:9}) builds the singular value decomposition directly on the eigenvalues of $A\T A$, which are $\ge0$ for exactly the reason above; their square roots are the singular values of $A$.}
+
+\section{A Glance at Complex Matrices: Hermitian, Unitary, and Fourier}
+\label{sec:complex}
+
+Real symmetric matrices have a complex twin, and meeting it briefly explains why the recipe ``$A=A\T$'' has to be adjusted when entries become complex --- and it leads to the single most important complex matrix in all of computing.
+
+\subsection{Length and inner product for complex vectors}
+
+For a complex vector $z\in\CC^n$ the old formula $z\T z$ is wrong: it can vanish for nonzero $z$. For instance $z=(1,i)$ gives $z\T z=1+i^2=0$, yet $z\neq0$. The fix is to conjugate one factor. Write $z^H=\bar z\T$ (conjugate-transpose, the \emph{Hermitian transpose}, named for Hermite). Then
+\[
+   z^H z=\abs{z_1}^2+\abs{z_2}^2+\cdots+\abs{z_n}^2\ge 0
+\]
+is a genuine squared length, and the right inner product of two complex vectors is $y^H x$ rather than $y\T x$. This is the same $\bar x\T x$ that appeared in the proof that symmetric matrices have real eigenvalues --- there it quietly guaranteed $\bar x\T x>0$.
+
+\subsection{Hermitian and unitary matrices}
+
+With $H$ replacing $T$, the two starring families of the real theory carry straight over.
+
+\defn{Hermitian and Unitary Matrices}{A complex matrix $A$ is \textbf{Hermitian} if $A^H=A$ (its conjugate-transpose equals itself); this is the complex version of symmetric. A square complex matrix $U$ is \textbf{unitary} if $U^H U=I$ (its columns are orthonormal under the Hermitian inner product); this is the complex version of orthogonal.}
+
+A Hermitian matrix must have real diagonal entries (each satisfies $\bar a=a$), and its off-diagonal pairs are conjugates, as in
+\[
+   A=\begin{bmatrix} 2 & 3+i\\ 3-i & 5\end{bmatrix},
+   \qquad A^H=A .
+\]
+Everything good about real symmetric matrices holds for Hermitian ones, by the same proofs with $H$ in place of $T$: \textbf{Hermitian matrices have real eigenvalues and orthonormal eigenvectors}, and they diagonalize as $A=U\Lambda U^H$ with $U$ unitary --- the spectral theorem in complex dress. Unitary matrices are the complex isometries: like orthogonal matrices, they preserve length ($\norm{Ux}=\norm{x}$) and so have eigenvalues on the unit circle.
+
+\subsection{The Fourier matrix and the FFT}
+
+The most important unitary matrix in applications is the \emph{Fourier matrix} $F_n$, the engine of the discrete Fourier transform. Indexing rows and columns from $0$ to $n-1$ (the engineering convention) and setting $w=e^{2\pi i/n}$ --- a primitive $n$-th root of unity, $w^n=1$ --- its entries are
+\[
+   (F_n)_{jk}=w^{jk},
+   \qquad
+   F_4=\begin{bmatrix}
+     1 & 1 & 1 & 1\\
+     1 & i & -1 & -i\\
+     1 & -1 & 1 & -1\\
+     1 & -i & -1 & i
+   \end{bmatrix}
+   \quad(w=i).
+\]
+The columns of $F_n$ are orthogonal under the Hermitian inner product (each has length $\sqrt n$), so $\tfrac{1}{\sqrt n}F_n$ is unitary and the transform inverts simply: the inverse is $F_n^{-1}=\tfrac1n F_n^{H}=\tfrac1n\overline{F_n}$, so multiplying by the conjugate $\overline{F_n}$ and dividing by $n$ undoes it. Thus the discrete Fourier transform is, at heart, a change of basis into an orthonormal basis of complex exponentials --- exactly the spectral viewpoint of this chapter, now over $\CC$.
+
+The reason $F_n$ runs the digital world is the \emph{fast Fourier transform}. A naive multiply by $F_n$ costs about $n^2$ operations. But $F_{2n}$ factors into sparse pieces built from $F_n$,
+\[
+   F_{2n}=\begin{bmatrix} I & D\\ I & -D\end{bmatrix}
+          \begin{bmatrix} F_n & 0\\ 0 & F_n\end{bmatrix} P,
+\]
+where $D$ is diagonal (powers of $w$) and $P$ is the permutation that sorts even-indexed entries before odd. So a size-$2n$ transform reduces to two size-$n$ transforms plus $O(n)$ cheap work. Recursing all the way down replaces $n^2$ by about $\tfrac12 n\log_2 n$ operations. For $n=1024$ that is the difference between a million multiplications and roughly five thousand --- a couple hundredfold speedup, and the reason Fourier methods are everywhere from audio to image compression. The whole acceleration rides on the special orthogonal structure of $F_n$ --- the same structure, orthonormal eigen-directions, that made symmetric matrices so good in the first place.
+
+\section{What to Carry Forward}
+
+Symmetry is the property that makes the eigenvalue story end happily. A real symmetric matrix $A=A\T$ has real eigenvalues and a full set of orthonormal eigenvectors, so it factors as $A=Q\Lambda Q\T$ with $Q$ orthogonal --- the spectral theorem. Geometrically that means a symmetric matrix only stretches space along $n$ perpendicular axes, the eigenvectors, by the factors $\lambda_k$; and it decomposes into a weighted sum of perpendicular projections $\sum\lambda_k\,q_kq_k\T$.
+
+The signs of those eigenvalues are read off cheaply from the pivots (Sylvester's law of inertia), and when they are all positive we have a \emph{positive definite} matrix. The four tests --- positive eigenvalues, positive leading minors, positive pivots, positive energy $x\T Ax$ --- are one condition seen four ways, linked by the chain ``minors $\to$ pivots $\to$ sum of squares $\to$ energy $\to$ eigenvalues.'' The energy test is the one that matters most: it makes $x\T Ax$ a bowl, so a critical point of a multivariable function is a true minimum exactly when its symmetric Hessian is positive definite. The calculus rule $f_{xx}>0,\ f_{xx}f_{yy}>f_{xy}^2$ is just the determinant test in disguise.
+
+\rmkb[Looking ahead]{Positive (semi)definiteness is not a curiosity but the normal state of the matrices that arise in practice: every $A\T A$ is positive semidefinite, and positive definite exactly when $A$ has independent columns --- which is why least squares and covariance and Gram matrices are all built from it. The complex cousins, Hermitian and unitary matrices, repeat the entire theory over $\CC$ and hand us the Fourier matrix and the FFT. And the eigenvalues of $A\T A$, nonnegative for the reason in this chapter, become the squared \emph{singular values} of $A$ --- the foundation of the singular value decomposition $A=U\Sigma V\T$, the climax of the next chapter (Chapter~\ref{ch:9}), which extends $A=Q\Lambda Q\T$ from symmetric matrices to \emph{every} matrix, rectangular ones included.}

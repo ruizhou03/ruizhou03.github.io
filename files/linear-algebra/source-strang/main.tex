@@ -1,0 +1,112 @@
+\documentclass[oneside]{book}
+
+\usepackage{amsmath, amsthm, amssymb, amsfonts}
+\usepackage{thmtools}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{framed}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{environ}
+\usepackage{tcolorbox}
+\tcbuselibrary{theorems,skins,breakable}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{multicol}
+\usetikzlibrary{positioning, arrows.meta, patterns, calc, fit,
+    decorations.pathreplacing, shapes.geometric, 3d}
+\usepackage[normalem]{ulem}
+\usepackage{colortbl}
+\usepackage{cancel}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=*,labelindent=0pt}
+
+\usepackage{fancyhdr}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\thepage}}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhead[L]{\textit{\uppercase{\leftmark}}}
+\fancyhead[R]{\thepage}
+\fancyfoot[R]{\tiny Linear Algebra (MIT 18.06) \textemdash\ ruizhou03.com}
+
+\setstretch{1.2}
+\geometry{
+    textheight=9in, textwidth=5.5in, top=1in,
+    headheight=12pt, headsep=25pt, footskip=30pt
+}
+
+\def\notetitle{Linear Algebra}
+\def\notesubtitle{An MIT 18.06 Companion}
+\def\noteauthor{After the lectures of \textbf{Prof. Gilbert Strang} \\
+    Massachusetts Institute of Technology (18.06) \\
+    \vspace{0.5em}
+    Notes written and {\LaTeX}-typeset by Rui Zhou}
+\def\notedate{\small (rewritten from the 18.06 lectures and notes, 2026)}
+
+\input{theorems.tex}
+\input{commands.tex}
+
+\begin{document}
+
+\title{\textbf{
+    \LARGE{\notetitle}\\
+    \vspace{0.5em}
+    \large\textit{\notesubtitle}
+    \vspace*{8\baselineskip}}
+}
+\author{\noteauthor}
+\date{\notedate}
+
+\maketitle
+\newpage
+
+\thispagestyle{empty}
+\section*{How to Read This Book}
+
+This is a companion to a one-semester linear algebra course in the spirit of MIT's \textbf{18.06}, taught for decades by Gilbert Strang. It is written to be read straight through, like a short textbook, rather than skimmed like a formula sheet. Its goal is the one Strang sets in his first lecture: not just to \emph{solve} $Ax=b$, but to \emph{understand} it --- geometrically, as a statement about combinations of vectors, and structurally, through the spaces hiding inside every matrix.
+
+The book follows the arc of the course. We begin with the two pictures of a linear system --- the row picture and the \emph{column} picture --- and learn to solve it by elimination, recording the work as $A=LU$. We then step back and ask the questions that organize all of linear algebra: which right-hand sides $b$ can be reached (the column space), which solutions $x$ vanish (the null space), and how the \emph{four fundamental subspaces} of a matrix fit together. From there we add geometry (orthogonality, projection, least squares, $A=QR$), then determinants, then the eigenvalue story ($A = S\Lambda S^{-1}$ and its applications to powers, differential equations, and Markov chains), the special structure of symmetric and positive definite matrices, and finally the singular value decomposition --- the climax of the subject --- before closing with linear transformations and change of basis.
+
+\subsection*{How Each Chapter Is Organized}
+
+Each chapter opens with a short \emph{story} in plain English: what problem are we solving, and why are we about to introduce a particular idea? We then state the definitions and theorems, prove the central ones, and --- in Strang's style --- lean on small, concrete numerical examples to make the ideas tangible. Definitions and key results are boxed for quick review.
+
+\subsection*{Box Color Code}
+
+\begin{itemize}
+    \item \tcbox[colback=green!10!white, colframe=green!10!white, size=fbox]{\textbf{Green: Definition}} --- the objects we build on (subspaces, rank, eigenvalues, \dots).
+    \item \tcbox[colback=cyan!10!white, colframe=cyan!10!white, size=fbox]{\textbf{Blue: Theorem}} --- the main results, usually with a proof or sketch.
+    \item \tcbox[colback=pink!20!white, colframe=pink!20!white, size=fbox]{\textbf{Pink: Assumption}} --- the standing hypotheses on a matrix.
+    \item Worked \textbf{examples} and \textbf{remarks} appear in lightly ruled boxes throughout.
+\end{itemize}
+
+\subsection*{A Note on Notation}
+
+$A$ is an $m\times n$ matrix; $x$ and $b$ are column vectors. We write $A\T$ for the transpose, $A^{-1}$ for the inverse, $\rank A$ for the rank. The four fundamental subspaces are the column space $C(A)$, the null space $N(A)$, the row space $C(A\T)$, and the left null space $N(A\T)$. After elimination, $U$ is an upper-triangular form and $R$ its reduced row echelon form; pivots are the nonzero entries that remain. Eigenvalues are $\lambda$, and $\Lambda=\diag(\lambda_1,\dots,\lambda_n)$.
+
+\newpage
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+\include{chapters/ch1_geometry}
+\include{chapters/ch2_elimination}
+\include{chapters/ch3_vectorspaces}
+\include{chapters/ch4_foursubspaces}
+\include{chapters/ch5_orthogonality}
+\include{chapters/ch6_determinants}
+\include{chapters/ch7_eigenvalues}
+\include{chapters/ch8_symmetric}
+\include{chapters/ch9_svd}
+\include{chapters/ch10_transformations}
+
+\end{document}

@@ -1,0 +1,375 @@
+% !TEX root = ../main.tex
+\chapter{Solving Linear Equations by Elimination}
+\label{ch:2}
+
+In Chapter~\ref{ch:1} we learned to \emph{read} a system $Ax=b$ --- as intersecting planes, or, better, as a search for the right combination of the columns of $A$. Now we learn to \emph{solve} it. The method is the one a computer uses millions of times a second, the one you half-remember from school: systematically subtract one equation from another until the unknowns peel off one at a time. It is called \emph{elimination}, and Gauss organized it two hundred years ago.
+
+What is new here is not the arithmetic but the bookkeeping. Every elimination step --- ``subtract $3$ times row $1$ from row $2$'' --- \emph{is itself a matrix}, multiplying $A$ from the left. Stringing those steps together turns the messy process of elimination into a single clean statement about matrices: $A = LU$, the original matrix written as a lower triangular $L$ times an upper triangular $U$. The factorization $A=LU$ is elimination, remembered. It tells us how to solve $Ax=b$ fast, it exposes exactly when a matrix is invertible, and --- because $L$ and $U$ are triangular --- it is the form in which real software stores a matrix. Along the way we will pin down matrix multiplication itself (there are several illuminating ways to see it), build the inverse $A^{-1}$ by Gauss--Jordan, and handle the one thing that can go wrong --- a zero in a pivot position --- with a row exchange, the \emph{permutation} matrix $P$. We close with the transpose and the symmetric matrices $A=A\T$ that will run through the rest of the book.
+
+\section{Elimination: Forward and Back}
+
+Take three equations in three unknowns. Strang's running example for this chapter is
+\begin{equation}\label{eq:ch2-system}
+\ba
+   x + 2y + \phantom{1}z &= 2,\\
+  3x + 8y + \phantom{1}z &= 12,\\
+  \phantom{3x +\ } 4y + \phantom{1}z &= 2,
+\ea
+\qquad
+A=\begin{bmatrix} 1 & 2 & 1\\ 3 & 8 & 1\\ 0 & 4 & 1\end{bmatrix},
+\quad
+b=\begin{bmatrix} 2\\ 12\\ 2\end{bmatrix}.
+\end{equation}
+Elimination comes in two passes. The \emph{forward} pass uses the equations from the top down to clear out the unknowns below the diagonal, turning $A$ into an upper triangular matrix $U$. The \emph{back} pass --- back substitution --- then solves the triangular system from the bottom up.
+
+\subsection{The Forward Pass: Producing the Pivots}
+
+The first \emph{pivot} is the entry in the top-left corner, the $1$ in row~$1$, column~$1$. Its job is to clear the rest of column~$1$. The entry below it in row~$2$ is $3$, so we subtract $3$ times row~$1$ from row~$2$; the entry in row~$3$ is already $0$, so that row needs nothing. The multiplier we used, $3$, is worth remembering --- it will reappear as an entry of $L$.
+\[
+\begin{bmatrix} 1 & 2 & 1\\ 3 & 8 & 1\\ 0 & 4 & 1\end{bmatrix}
+\;\xrightarrow{\;\text{row}_2-3\,\text{row}_1\;}\;
+\begin{bmatrix} 1 & 2 & 1\\ 0 & 2 & -2\\ 0 & 4 & 1\end{bmatrix}.
+\]
+Column~$1$ is now clean. The second pivot is the entry that has surfaced in row~$2$, column~$2$: the $2$. Use it to clear column~$2$ below: the entry in row~$3$ is $4$, so subtract $2$ times row~$2$ from row~$3$ (multiplier $2$):
+\[
+\begin{bmatrix} 1 & 2 & 1\\ 0 & 2 & -2\\ 0 & 4 & 1\end{bmatrix}
+\;\xrightarrow{\;\text{row}_3-2\,\text{row}_2\;}\;
+\begin{bmatrix} 1 & 2 & 1\\ 0 & 2 & -2\\ 0 & 0 & 5\end{bmatrix}=U.
+\]
+We have arrived at $U$, upper triangular, with the three \emph{pivots} $1,2,5$ sitting on its diagonal. Below the diagonal is all zeros --- that is the whole point of the forward pass.
+
+\defn{Pivots, and the Triangular Form $U$}{In elimination, the \textbf{pivot} in a given step is the first nonzero entry in the row doing the eliminating; it occupies a diagonal position and is used to clear the entries directly below it. When elimination runs to completion with no zero in any pivot position, the result is an upper triangular matrix $U$ whose diagonal entries are the pivots. The number we multiply the pivot row by before subtracting --- the \textbf{multiplier} $\ell_{ij}$ for clearing row $i$ using pivot row $j$ --- records exactly how much of row $j$ was removed from row $i$.}
+
+\rmkb[Pivots may not be zero]{The pivot is a divisor: each multiplier is (entry to clear)$\,/\,$(pivot), and the back substitution will divide by the pivots too. So a pivot is never allowed to be $0$. If a $0$ turns up in a pivot position, we try to rescue it by swapping in a lower row that has a nonzero entry there --- a \emph{row exchange}, Section~\ref{sec:ch2-perm}. If no row below has a nonzero entry in that column, elimination has discovered that $A$ is \emph{singular}: there is no full set of pivots, and $Ax=b$ has no unique solution. The pivots are where invertibility lives.}
+
+\subsection{Carrying the Right-Hand Side; Back Substitution}
+
+The same operations must hit $b$. The cleanest way to do it by hand is to append $b$ as an extra column --- the \emph{augmented matrix} $\br{A \mid b}$ --- and eliminate the whole thing at once, so the right-hand side rides along automatically:
+\[
+\left[\begin{array}{ccc|c} 1 & 2 & 1 & 2\\ 3 & 8 & 1 & 12\\ 0 & 4 & 1 & 2\end{array}\right]
+\;\longrightarrow\;
+\left[\begin{array}{ccc|c} 1 & 2 & 1 & 2\\ 0 & 2 & -2 & 6\\ 0 & 4 & 1 & 2\end{array}\right]
+\;\longrightarrow\;
+\left[\begin{array}{ccc|c} 1 & 2 & 1 & 2\\ 0 & 2 & -2 & 6\\ 0 & 0 & 5 & -10\end{array}\right].
+\]
+(In the right-hand column: $12-3\cdot 2 = 6$, then $2-2\cdot 6 = -10$.) Elimination has turned the original $Ax=b$ into the triangular system $Ux=c$ with
+\[
+U=\begin{bmatrix} 1 & 2 & 1\\ 0 & 2 & -2\\ 0 & 0 & 5\end{bmatrix},
+\qquad
+c=\begin{bmatrix} 2\\ 6\\ -10\end{bmatrix}.
+\]
+Because the steps are reversible, $Ux=c$ and $Ax=b$ have exactly the same solutions. And a triangular system is solved instantly from the bottom up --- this is \emph{back substitution}. The last equation involves only $z$:
+\[
+5z=-10 \;\Rightarrow\; z=-2;\qquad
+2y-2z=6 \;\Rightarrow\; 2y=6-4 \;\Rightarrow\; y=1;\qquad
+x+2y+z=2 \;\Rightarrow\; x=2.
+\]
+So $x=(2,1,-2)$. Substituting back into~\eqref{eq:ch2-system} checks all three equations. The forward pass made the matrix triangular; the back pass read off the answer.
+
+\state{Elimination in one breath}{To solve $Ax=b$: (1) \emph{forward eliminate} --- use each pivot to clear the column below it, carrying $b$ along, until $A$ becomes upper triangular $U$ and $b$ becomes $c$; (2) \emph{back substitute} --- solve $Ux=c$ from the bottom equation up. The pivots are the diagonal entries of $U$; with no row exchanges the product of the pivots is the determinant of $A$ (Chapter~\ref{ch:6}; each row exchange flips the sign), and it is nonzero exactly when $A$ is invertible.}
+
+\section{Elimination as Matrix Multiplication}
+
+Here is the idea that converts elimination from a procedure into algebra. Each elimination step --- ``subtract $3$ times row~$1$ from row~$2$'' --- can be performed by \emph{multiplying $A$ on the left} by a particular matrix. To see why, we first need to be comfortable with how a matrix multiplies from the left, which is really a statement about combining \emph{rows}.
+
+\subsection{Rows, Columns, and the Product $Ax$}
+
+We already know from Chapter~\ref{ch:1} that $A$ times a \emph{column} vector $x$ is a combination of the \emph{columns} of $A$. The mirror image is just as useful: a \emph{row} vector times $A$ is a combination of the \emph{rows} of $A$.
+\[
+\begin{bmatrix} c_1 & c_2 & c_3\end{bmatrix}
+\begin{bmatrix} \text{---}\,\text{row}_1\,\text{---}\\ \text{---}\,\text{row}_2\,\text{---}\\ \text{---}\,\text{row}_3\,\text{---}\end{bmatrix}
+= c_1(\text{row}_1) + c_2(\text{row}_2) + c_3(\text{row}_3).
+\]
+A row vector on the left scoops up a combination of the rows; a column vector on the right scoops up a combination of the columns. \emph{Left-multiply to combine rows; right-multiply to combine columns.} Keep that slogan --- it is the whole secret of elimination matrices.
+
+\subsection{The Elimination Matrices $E_{ij}$}
+
+To subtract $3$ times row~$1$ from row~$2$ and leave the other rows alone, we want a matrix $E$ whose rows pick out exactly those combinations. Start from the identity $I$ (whose rows reproduce $A$ unchanged) and adjust the row that should change. Row~$2$ of the output must be $(\text{row}_2 - 3\,\text{row}_1)$, so we put $-3$ in the $(2,1)$ slot:
+\[
+E_{21}=\begin{bmatrix} 1 & 0 & 0\\ -3 & 1 & 0\\ 0 & 0 & 1\end{bmatrix},
+\qquad
+E_{21}A=\begin{bmatrix} 1 & 0 & 0\\ -3 & 1 & 0\\ 0 & 0 & 1\end{bmatrix}
+\begin{bmatrix} 1 & 2 & 1\\ 3 & 8 & 1\\ 0 & 4 & 1\end{bmatrix}
+=\begin{bmatrix} 1 & 2 & 1\\ 0 & 2 & -2\\ 0 & 4 & 1\end{bmatrix}.
+\]
+Read the middle row of $E_{21}$: it says ``new row~$2$ $= -3\cdot\text{row}_1 + 1\cdot\text{row}_2$,'' precisely the step we did by hand. The matrix $E_{ij}$ that subtracts $\ell_{ij}$ times row~$j$ from row~$i$ is the identity with the single extra entry $-\ell_{ij}$ in position $(i,j)$.
+
+The second forward step --- subtract $2$ times row~$2$ from row~$3$ --- is $E_{32}$ with a $-2$ in position $(3,2)$. (The step that would clear position $(3,1)$ is $E_{31}=I$, since that entry was already $0$.) Applying them in order builds $U$:
+\[
+E_{32}\,E_{21}\,A = U,
+\qquad
+E_{32}=\begin{bmatrix} 1 & 0 & 0\\ 0 & 1 & 0\\ 0 & -2 & 1\end{bmatrix}.
+\]
+By the associativity of matrix multiplication we may bundle the steps into one matrix $E=E_{32}E_{21}$, so that $EA=U$. The single matrix $E$ records the entire forward elimination.
+
+\state{The meaning of $EA=U$}{Forward elimination on $A$ (with no row exchanges) is left-multiplication by a product of elementary matrices $E=\cdots E_{32}E_{31}E_{21}$, each of which is the identity with one off-diagonal entry. The result is the upper triangular $U$:
+\[
+EA=U.
+\]
+Every step is reversible (you can always add back what you subtracted), so $E$ is invertible and $A=E^{-1}U$. That inverse is the matrix $L$, and it is the subject of Section~\ref{sec:ch2-LU}.}
+
+\subsection{Four Ways to Read a Matrix Product}
+\label{sec:ch2-mult}
+
+Before cashing in $EA=U$, it pays to slow down on matrix multiplication itself, because the product $AB$ is where every idea in this book is computed. Let $A$ be $m\times n$ and $B$ be $n\times p$, so the product $C=AB$ is $m\times p$. There are four equivalent ways to see it, and each is the right one for some purpose.
+
+\textbf{1. Entry by entry (row times column).} The standard rule: the $(i,j)$ entry of $C$ is row~$i$ of $A$ dotted with column~$j$ of $B$,
+\[
+c_{ij}=\sum_{k=1}^{n} a_{ik}\,b_{kj}.
+\]
+This is how you compute by hand, but it hides the structure.
+
+\textbf{2. Column by column.} The product $A$ times column~$j$ of $B$ \emph{is} column~$j$ of $C$. So
+\[
+\text{column } j \text{ of } AB = A\,(\text{column } j \text{ of } B):
+\]
+each column of $C$ is a combination of the columns of $A$. The \emph{columns of $C$ live in the column space of $A$.}
+
+\textbf{3. Row by row.} Symmetrically, row~$i$ of $A$ times the whole matrix $B$ is row~$i$ of $C$. Each row of $C$ is a combination of the rows of $B$ --- the \emph{rows of $C$ live in the row space of $B$.} This is the reading that powers elimination: $EA$ takes combinations of the rows of $A$.
+
+\textbf{4. Columns times rows (the outer-product sum).} Here is the one Strang loves and the one that returns in the SVD. A column of $A$ (size $m\times 1$) times a row of $B$ (size $1\times p$) is a full $m\times p$ matrix --- an \emph{outer product}. For example
+\[
+\begin{bmatrix} 2\\ 3\\ 4\end{bmatrix}
+\begin{bmatrix} 1 & 6\end{bmatrix}
+=\begin{bmatrix} 2 & 12\\ 3 & 18\\ 4 & 24\end{bmatrix}.
+\]
+Every column of this product is a multiple of $(2,3,4)$ and every row is a multiple of $(1,6)$, so its column space and its row space are each a single line --- it is a \emph{rank-one} matrix. The full product $AB$ is the \emph{sum} of these outer products, one per shared index $k$:
+\[
+AB=\sum_{k=1}^{n} (\text{column } k \text{ of } A)(\text{row } k \text{ of } B).
+\]
+A big matrix product is built from rank-one pieces. Hold onto this; it is the seed of the singular value decomposition in Chapter~\ref{ch:9}.
+
+\rmkb[A fifth way: blocks]{If the matrices are cut into blocks that line up, the product follows the same row-times-column rule with the \emph{blocks} as entries:
+\[
+\begin{bmatrix} A_1 & A_2\\ A_3 & A_4\end{bmatrix}
+\begin{bmatrix} B_1 & B_2\\ B_3 & B_4\end{bmatrix}
+=\begin{bmatrix} A_1B_1+A_2B_3 & A_1B_2+A_2B_4\\ A_3B_1+A_4B_3 & A_3B_2+A_4B_4\end{bmatrix}.
+\]
+Block multiplication is what lets us carry the identity $I$ alongside $A$ in Gauss--Jordan, and it is how numerical libraries chop a huge matrix into cache-sized pieces.}
+
+\section{The Inverse Matrix and Gauss--Jordan}
+\label{sec:ch2-inverse}
+
+For a square matrix, the most important question is whether it can be undone.
+
+\defn{Inverse Matrix}{A square matrix $A\in\RR^{n\times n}$ is \textbf{invertible} (or \textbf{nonsingular}) if there is a matrix $A^{-1}$ with
+\[
+A^{-1}A = I = AA^{-1}.
+\]
+The inverse, when it exists, is unique. If no such matrix exists, $A$ is \textbf{singular}.}
+
+Invertibility is exactly the nonsingular case of Chapter~\ref{ch:1}: $A^{-1}$ exists if and only if the columns of $A$ are independent, equivalently the only solution of $Ax=0$ is $x=0$. If instead some nonzero $x$ has $Ax=0$, no inverse can exist --- multiplying $Ax=0$ by a would-be $A^{-1}$ would give $x=0$, a contradiction. The matrix
+\[
+\begin{bmatrix} 1 & 3\\ 2 & 6\end{bmatrix}
+\begin{bmatrix} 3\\ -1\end{bmatrix}=\begin{bmatrix} 0\\ 0\end{bmatrix}
+\]
+is singular: $3$ times column~$1$ minus column~$2$ is zero, the columns lie on one line, and there is no inverse.
+
+\subsection{Solving for the Inverse Is Solving $Ax=b$, $n$ Times}
+
+What \emph{is} $A^{-1}$? Reading $AA^{-1}=I$ one column at a time (the column-by-column view of Section~\ref{sec:ch2-mult}) says: column~$j$ of $A^{-1}$ is the vector $x_j$ solving $Ax_j=e_j$, where $e_j$ is column~$j$ of the identity. Finding the inverse is nothing but solving $Ax=b$ for the $n$ special right-hand sides $e_1,\dots,e_n$. For
+\[
+A=\begin{bmatrix} 1 & 3\\ 2 & 7\end{bmatrix},
+\qquad
+\text{find } A^{-1}=\begin{bmatrix} a & c\\ b & d\end{bmatrix}
+\text{ with } A\begin{bmatrix} a\\ b\end{bmatrix}=\begin{bmatrix}1\\0\end{bmatrix},\;
+A\begin{bmatrix} c\\ d\end{bmatrix}=\begin{bmatrix}0\\1\end{bmatrix}.
+\]
+
+\subsection{Gauss--Jordan: Solve Them All at Once}
+
+The trick is to handle both right-hand sides simultaneously. Augment $A$ with the \emph{whole} identity, then eliminate. Gauss's forward pass clears below the pivots; Jordan's extra back pass clears \emph{above} them too, and finally scales each pivot to $1$. When the left block has become $I$, the right block has become $A^{-1}$:
+\[
+\left[\begin{array}{cc|cc} 1 & 3 & 1 & 0\\ 2 & 7 & 0 & 1\end{array}\right]
+\;\xrightarrow{\;\text{row}_2-2\,\text{row}_1\;}\;
+\left[\begin{array}{cc|cc} 1 & 3 & 1 & 0\\ 0 & 1 & -2 & 1\end{array}\right]
+\;\xrightarrow{\;\text{row}_1-3\,\text{row}_2\;}\;
+\left[\begin{array}{cc|cc} 1 & 0 & 7 & -3\\ 0 & 1 & -2 & 1\end{array}\right].
+\]
+So
+\[
+A^{-1}=\begin{bmatrix} 7 & -3\\ -2 & 1\end{bmatrix},
+\qquad\text{check}\qquad
+\begin{bmatrix} 1 & 3\\ 2 & 7\end{bmatrix}\begin{bmatrix} 7 & -3\\ -2 & 1\end{bmatrix}
+=\begin{bmatrix} 1 & 0\\ 0 & 1\end{bmatrix}.\;\checkmark
+\]
+
+\thm{Why Gauss--Jordan Produces $A^{-1}$}{Row-reducing $\br{A \mid I}$ to $\br{I \mid X}$ shows that $X=A^{-1}$. The whole reduction is left-multiplication by one invertible matrix $E$ (the product of the elementary steps). Applied to the left block, $EA=I$, so $E=A^{-1}$. Applied to the right block, $EI=E=X$. Hence $X=A^{-1}$. If elimination cannot turn the left block into $I$ --- a pivot is missing --- then $A$ is singular and has no inverse.}
+
+\rmkb[Two facts about inverses we will reuse]{For invertible $A,B$ of the same size, the inverse of a \emph{product} reverses the order, like socks and shoes:
+\[
+(AB)^{-1}=B^{-1}A^{-1},
+\]
+because $(AB)(B^{-1}A^{-1})=A(BB^{-1})A^{-1}=AA^{-1}=I$. And the inverse and transpose commute: $(A\T)^{-1}=(A^{-1})\T$, sometimes written $A\invT$.}
+
+\section{The Factorization $A = LU$}
+\label{sec:ch2-LU}
+
+Now we cash in. Forward elimination gave $EA=U$ with $E=E_{32}E_{31}E_{21}$. Instead of carrying the awkward product $E$, undo it: multiply by $E^{-1}$ on the left,
+\[
+EA=U \quad\Longrightarrow\quad A=E^{-1}U=LU,
+\qquad L:=E^{-1}.
+\]
+This is the most important factorization in computational linear algebra. The matrix $U$ is the upper triangular form we already produced. The new matrix $L=E^{-1}$ is \emph{lower} triangular with $1$'s on its diagonal --- and, remarkably, building it requires no work at all.
+
+\subsection{Why $L$ Is So Simple}
+
+Watch the two-by-two case first, because everything important is already visible there. Take
+\[
+A=\begin{bmatrix} 2 & 1\\ 8 & 7\end{bmatrix}.
+\]
+One step clears the $8$: subtract $4$ times row~$1$ from row~$2$ (multiplier $\ell_{21}=4$). The elimination matrix and its inverse are
+\[
+E_{21}=\begin{bmatrix} 1 & 0\\ -4 & 1\end{bmatrix},
+\qquad
+L=E_{21}^{-1}=\begin{bmatrix} 1 & 0\\ 4 & 1\end{bmatrix}.
+\]
+To \emph{invert} an elementary step, just flip the sign of its one off-diagonal entry: subtracting $4$ times row~$1$ is undone by \emph{adding} $4$ times row~$1$. So $L$ carries $+4$ where $E$ carried $-4$. Then
+\[
+\begin{bmatrix} 2 & 1\\ 8 & 7\end{bmatrix}
+=\underbrace{\begin{bmatrix} 1 & 0\\ 4 & 1\end{bmatrix}}_{L}
+\underbrace{\begin{bmatrix} 2 & 1\\ 0 & 3\end{bmatrix}}_{U}.
+\]
+The lone multiplier $4$ sits in $L$ exactly where it was eliminated, in position $(2,1)$.
+
+The three-by-three case shows the real payoff. We had $A=E_{21}^{-1}E_{31}^{-1}E_{32}^{-1}U$, so $L=E_{21}^{-1}E_{31}^{-1}E_{32}^{-1}$. One might fear that multiplying these inverses together scrambles the entries. It does not --- \emph{when there are no row exchanges, the multipliers drop straight into $L$ with no interaction.} For the running example~\eqref{eq:ch2-system} the multipliers were $\ell_{21}=3$, $\ell_{31}=0$, $\ell_{32}=2$, and indeed
+\[
+A=\begin{bmatrix} 1 & 2 & 1\\ 3 & 8 & 1\\ 0 & 4 & 1\end{bmatrix}
+=\underbrace{\begin{bmatrix} 1 & 0 & 0\\ 3 & 1 & 0\\ 0 & 2 & 1\end{bmatrix}}_{L}
+\underbrace{\begin{bmatrix} 1 & 2 & 1\\ 0 & 2 & -2\\ 0 & 0 & 5\end{bmatrix}}_{U}.
+\]
+Each multiplier $\ell_{ij}$ goes verbatim into position $(i,j)$ of $L$: the $3$, the $0$, the $2$. You can read the entire elimination history off $L$.
+
+\thm{$A=LU$ and the Multipliers}{If $A$ is reduced to the upper triangular $U$ by forward elimination \emph{without row exchanges}, then
+\[
+A = LU,
+\]
+where $U$ has the pivots on its diagonal and $L$ is lower triangular with $1$'s on its diagonal and the multiplier $\ell_{ij}$ in each below-diagonal position $(i,j)$. The factorization is unique once we fix the $1$'s on the diagonal of $L$.}
+
+\pf{Forward elimination is a product of elementary matrices $E_{ij}A=U$ (the factors applied left to right, each $E_{ij}$ subtracting a multiple of a higher row from the strictly lower row~$i$, clearing position $(i,j)$). Let $L$ be the inverses applied in reverse order, so $A=LU$. Each inverse $E_{ij}^{-1}$ is the identity with the single entry $+\ell_{ij}$ in position $(i,j)$. The crucial fact is that these particular inverses multiply with \emph{no carrying}: when we always subtract a higher row from a strictly lower one, the entry $+\ell_{ij}$ in $E_{ij}^{-1}$ never gets multiplied by an off-diagonal entry of another factor, so the product simply collects every $\ell_{ij}$ into its own slot. Hence $L$ is lower triangular with $1$'s on the diagonal and $\ell_{ij}$ below, and $A=LU$.}
+
+\rmkb[Why $L=E^{-1}$ is nicer than $E$]{The product $E=E_{32}E_{31}E_{21}$ that takes $A$ \emph{to} $U$ can develop ``cross terms'' --- combining two subtractions can plant a stray number where neither step put one. (Subtracting twice row~$1$ from row~$2$, then five times the new row~$2$ from row~$3$, leaves a $10$ in the corner of $E$.) But the \emph{inverse} order, $L=E_{21}^{-1}E_{31}^{-1}E_{32}^{-1}$, applies the undo-steps from the bottom up and never collides: the multipliers land untouched. This is exactly why we factor $A=LU$ rather than carry $EA=U$ --- $L$ is free, $E$ is not.}
+
+\subsection{Solving $Ax=b$ with $LU$}
+
+Once $A=LU$ is in hand, solving $Ax=b$ for \emph{any} right-hand side is two quick triangular sweeps:
+\[
+Ax=b \;\Longleftrightarrow\; L(Ux)=b
+\;\Longrightarrow\;
+\underbrace{Lc=b}_{\text{forward, solve for }c}\;,\quad
+\underbrace{Ux=c}_{\text{back, solve for }x}.
+\]
+Solving $Lc=b$ from the top down is the forward elimination of $b$ (it recreates the $c$ we found by augmenting); solving $Ux=c$ from the bottom up is back substitution. The expensive part --- producing $L$ and $U$ --- is done \emph{once}; after that each new $b$ costs only the two cheap triangular solves. That is why software stores a matrix as its $LU$ factors, not as $A^{-1}$.
+
+\rmkb[Splitting off the pivots: $A=LDU$]{Sometimes we pull the pivots out of $U$ into a diagonal matrix $D$, leaving $1$'s on the diagonal of what remains. For the $2\times2$ example,
+\[
+\begin{bmatrix} 2 & 1\\ 8 & 7\end{bmatrix}
+=\begin{bmatrix} 1 & 0\\ 4 & 1\end{bmatrix}
+\begin{bmatrix} 2 & 0\\ 0 & 3\end{bmatrix}
+\begin{bmatrix} 1 & \tfrac12\\ 0 & 1\end{bmatrix}
+=LDU.
+\]
+Now $L$ and $U$ both have unit diagonals and $D=\diag(\text{pivots})$ holds the pivots $2,3$. The symmetric form $A=LDL\T$ is what we will want for symmetric matrices below.}
+
+\subsection{The Cost of Elimination}
+
+Why does this matter for big matrices? Count the operations. Clearing column~$1$ of an $n\times n$ matrix touches roughly $n^2$ entries; column~$2$ touches an $(n-1)\times(n-1)$ block, and so on. The total is on the order of
+\[
+n^2+(n-1)^2+\cdots+1^2 \approx \tfrac13 n^3
+\]
+multiply-subtract operations to produce $L$ and $U$, plus a cheap $n^2$ for each right-hand side. Building $A^{-1}$ explicitly and multiplying $A^{-1}b$ would cost more and lose accuracy. Elimination --- stored as $A=LU$ --- is the workhorse precisely because it is the cheap, stable way to solve $Ax=b$.
+
+\section{Row Exchanges and Permutations: $PA = LU$}
+\label{sec:ch2-perm}
+
+We assumed all along that no pivot came out zero. When one does, $A=LU$ needs a small repair. The fix is a \emph{permutation matrix}.
+
+\defn{Permutation Matrix}{A \textbf{permutation matrix} $P$ is obtained by reordering the rows of the identity $I$. Multiplying $PA$ reorders the rows of $A$ in the same way; multiplying $AP$ reorders the columns. Every $P$ is invertible, and its inverse is its transpose:
+\[
+P^{-1}=P\T,\qquad\text{equivalently}\qquad P\T P = I.
+\]}
+For instance, the matrix that swaps the first two rows is
+\[
+P=\begin{bmatrix} 0 & 1 & 0\\ 1 & 0 & 0\\ 0 & 0 & 1\end{bmatrix},
+\qquad
+PA \text{ has rows } 2,1,3 \text{ of } A.
+\]
+That $P\T P=I$ is the column picture again: the columns of $P$ are the standard basis vectors $e_1,\dots,e_n$ in some order, so $e_i\T e_j$ is $1$ when $i=j$ and $0$ otherwise --- exactly $I$. (Note $PA\ne AP$ in general: multiplication is not commutative.)
+
+\subsection{When Elimination Needs a Swap}
+
+Suppose a $0$ appears in a pivot position but a row below has a nonzero entry in that column. Swap the two rows --- multiply by a permutation $P$ --- and elimination continues. If we knew in advance which swaps elimination would need, we could do them all up front, on $PA$, and then run clean elimination with no exchanges. That gives the general factorization.
+
+\thm{$PA=LU$ for Any Invertible $A$}{For every invertible square matrix $A$ there is a permutation matrix $P$ (recording the row exchanges) such that $PA$ factors with no further exchanges:
+\[
+PA = LU,
+\]
+with $L$ lower triangular ($1$'s on the diagonal) and $U$ upper triangular (nonzero pivots on the diagonal). When no exchanges are needed, $P=I$ and this is the earlier $A=LU$.}
+
+\ex[A swap forces a permutation]{The matrix
+\[
+A=\begin{bmatrix} 0 & 2\\ 3 & 4\end{bmatrix}
+\]
+has a $0$ in the first pivot position, so elimination stalls immediately. Swap the rows with $P=\br{\begin{smallmatrix}0&1\\1&0\end{smallmatrix}}$:
+\[
+PA=\begin{bmatrix} 3 & 4\\ 0 & 2\end{bmatrix},
+\]
+which is already upper triangular. So $PA=LU$ with $L=I$ and $U=\br{\begin{smallmatrix}3&4\\0&2\end{smallmatrix}}$. The pivots are $3$ and $2$; the original $A$ is invertible, but only after the exchange does it reveal its pivots.}
+
+\rmkb[How many permutations are there?]{There are $n!$ permutation matrices of size $n$ --- one for each reordering of $n$ rows. They are closed under multiplication and inverse (the inverse of a reordering is the reverse reordering, which is also the transpose), so they form a group. In practice good software always permutes to put the \emph{largest} available entry in the pivot position (``partial pivoting''), even when a nonzero pivot is available, because dividing by a large pivot keeps round-off small.}
+
+\section{Transposes and Symmetric Matrices}
+\label{sec:ch2-transpose}
+
+The last ingredient of the chapter is an operation we have used informally and now name. The \emph{transpose} flips a matrix across its diagonal, turning rows into columns.
+
+\defn{Transpose}{The \textbf{transpose} $A\T$ of an $m\times n$ matrix $A$ is the $n\times m$ matrix whose entries are
+\[
+(A\T)_{ij}=A_{ji}.
+\]
+Row $i$ of $A$ becomes column $i$ of $A\T$, and vice versa.}
+For example,
+\[
+\begin{bmatrix} 1 & 3\\ 2 & 3\\ 4 & 1\end{bmatrix}\T
+=\begin{bmatrix} 1 & 2 & 4\\ 3 & 3 & 1\end{bmatrix}.
+\]
+The transpose obeys two rules we will lean on constantly. It distributes over sums, $(A+B)\T=A\T+B\T$, and --- like the inverse --- it \emph{reverses the order} of a product:
+\[
+(AB)\T = B\T A\T.
+\]
+(Entry $(i,j)$ of $(AB)\T$ is entry $(j,i)$ of $AB$, which is row~$j$ of $A$ dotted with column~$i$ of $B$ --- and that is exactly row~$i$ of $B\T$ dotted with column~$j$ of $A\T$.) Combining the transpose with the inverse gives $(A^{-1})\T=(A\T)^{-1}$, since transposing $A^{-1}A=I$ yields $A\T(A^{-1})\T=I$.
+
+\subsection{Symmetric Matrices}
+
+The matrices that equal their own transpose are special enough to earn a name, and they will dominate the second half of the book (eigenvalues, positive definiteness, the SVD).
+
+\defn{Symmetric Matrix}{A square matrix $A$ is \textbf{symmetric} if
+\[
+A\T = A,
+\qquad\text{equivalently}\qquad A_{ij}=A_{ji}\ \text{for all } i,j.
+\]
+The matrix is mirror-symmetric across its main diagonal.}
+
+\thm{$A\T A$ Is Always Symmetric}{For \emph{any} matrix $A$ (square or not), the products $A\T A$ and $A A\T$ are symmetric.}
+\pf{Apply the order-reversing rule to $A\T A$, remembering $(A\T)\T=A$:
+\[
+(A\T A)\T = A\T (A\T)\T = A\T A.
+\]
+So $A\T A$ equals its own transpose. The same computation gives $(AA\T)\T=AA\T$.}
+
+This little fact is the hinge of least squares (Chapter~\ref{ch:5}): a rectangular $A$ is never invertible, but the symmetric square matrix $A\T A$ it spawns usually is, and it is the matrix that actually gets solved. Symmetry also makes the $LU$ story cleaner: when $A$ is symmetric (and no row exchanges are needed), elimination produces $U=DL\T$, so
+\[
+A = LDL\T,
+\]
+the same $L$ appearing on both sides. Half the work, and the symmetry is visible in the factors. We will meet symmetric matrices again and again --- they have real eigenvalues and orthogonal eigenvectors, the cleanest behavior any matrix can have.
+
+\section{What to Carry Forward}
+
+We turned the school-room procedure of elimination into clean linear algebra. The \emph{forward pass} drives $A$ to an upper triangular $U$ with the pivots on its diagonal; \emph{back substitution} then solves the triangular system. Every step is a left-multiplication by an elementary matrix, and bundling the steps gives $EA=U$ --- whose inverse is the \emph{whole content} of this chapter:
+\[
+A = LU
+\quad(\text{or } PA=LU \text{ if rows must be swapped}).
+\]
+The triangular $L$ stores the multipliers, $U$ stores the pivots, and together they let us solve $Ax=b$ for any $b$ by two cheap triangular sweeps. We learned to read a matrix product four ways --- entry, column, row, and the outer-product sum of rank-one pieces --- and used the column reading to build the inverse $A^{-1}$ by Gauss--Jordan, which is just $Ax=e_j$ solved $n$ times. The transpose and the symmetric matrices $A=A\T$ round out the toolkit.
+
+\state{The throughline}{Elimination decides everything. It produces the pivots, and the pivots decide invertibility: a full set of nonzero pivots means $A$ is nonsingular and $A=LU$ (after permutations $PA=LU$); a missing pivot means $A$ is singular. \textbf{Counting the pivots is the same as counting the independent columns} --- and that count, the \emph{rank} $r$, is where we go next. In Chapter~\ref{ch:3} we name the spaces ($\Col{A}$, $\Nul{A}$) that elimination has secretly been computing, and in Chapter~\ref{ch:4} we read all four fundamental subspaces straight off the reduced form.}

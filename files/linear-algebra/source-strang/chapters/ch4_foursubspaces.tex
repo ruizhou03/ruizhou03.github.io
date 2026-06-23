@@ -1,0 +1,373 @@
+% !TEX root = ../main.tex
+\chapter{Independence, Basis, and the Four Fundamental Subspaces}
+\label{ch:4}
+
+We have a vector space and we know how to recognize subspaces inside it. The two we care about most --- the column space $C(A)$ and the null space $N(A)$ --- both came out of a single matrix. But a subspace is an infinite set of vectors, and we cannot understand an infinite set by listing it. We need a small, finite handle on each space: a shortest list of vectors that still reaches everything in it. That list is a \emph{basis}, and the number of vectors in it is the \emph{dimension}. These two words turn vague spaces into objects we can count.
+
+The whole chapter is built on one number. Run elimination on $A$ and count the pivots; call that number the \emph{rank} $r$. We will see that $r$ is the dimension of the column space, $n-r$ is the dimension of the null space, $r$ is also the dimension of the row space, and $m-r$ is the dimension of the left null space. Four subspaces, two of them sitting in $\RR^m$ and two in $\RR^n$, and a single number $r$ that ties them together. The chapter ends with the picture that organizes all of linear algebra --- Strang's ``big picture'' of the four fundamental subspaces and how they fit, at right angles, inside $\RR^n$ and $\RR^m$.
+
+\section{Linear Independence}
+
+Start with the most basic question you can ask about a list of vectors: is any one of them redundant? Could you throw one away and still build everything you could build before? If yes, the list carries dead weight. If no, every vector pulls in a direction the others cannot reach, and we call the list \emph{independent}.
+
+The clean way to say this avoids the words ``redundant'' and ``reach.'' It asks instead: what combinations of the vectors give the zero vector?
+
+\defn{Linear Independence}{Vectors $v_1,v_2,\dots,v_n$ are \textbf{linearly independent} if the only combination that produces the zero vector is the trivial one:
+\[
+   c_1 v_1 + c_2 v_2 + \cdots + c_n v_n = 0
+   \quad\Longrightarrow\quad
+   c_1 = c_2 = \cdots = c_n = 0.
+\]
+If some combination with not-all-zero coefficients gives $0$, the vectors are \textbf{linearly dependent}.}
+
+Why is this the right definition? Suppose a nontrivial combination vanishes, say $c_1 v_1 + \cdots + c_n v_n = 0$ with $c_1 \ne 0$. Then we can solve for $v_1$:
+\[
+   v_1 = -\frac{c_2}{c_1}\,v_2 - \cdots - \frac{c_n}{c_1}\,v_n,
+\]
+so $v_1$ is a combination of the others --- it \emph{is} redundant. Dependence is exactly the situation where one vector is built from the rest. Independence rules that out.
+
+\rmkb[Geometry]{Two vectors are independent when they do not lie on the same line through the origin (neither is a multiple of the other). Three vectors are independent when they do not lie in the same plane through the origin. Each new independent vector must point out of the flat span of the ones before it.}
+
+\subsection{Independence and the Null Space}
+
+Here is the connection that makes independence computable, and it is pure column picture. Stack the vectors $v_1,\dots,v_n$ as the columns of a matrix $A$. Then a combination of the columns is exactly $Ax$:
+\[
+   c_1 v_1 + c_2 v_2 + \cdots + c_n v_n
+   \;=\;
+   A
+   \begin{bmatrix} c_1 \\ c_2 \\ \vdots \\ c_n \end{bmatrix}.
+\]
+Asking ``which combinations give zero?'' is asking ``which $x$ solve $Ax=0$?'' --- that is the null space all over again.
+
+\thm{Independence Test via $Ax=0$}{Let $A$ have columns $v_1,\dots,v_n$. The columns are linearly independent if and only if the null space contains only the zero vector, $N(A)=\{0\}$. Equivalently, the only solution of $Ax=0$ is $x=0$.}
+\pf{A nontrivial dependence $c_1 v_1 + \cdots + c_n v_n = 0$ is precisely a nonzero vector $x=(c_1,\dots,c_n)$ with $Ax=0$, i.e.\ a nonzero element of $N(A)$. So the columns are dependent exactly when $N(A)\ne\{0\}$, and independent exactly when $N(A)=\{0\}$.}
+
+This hands the whole question to elimination. Reduce $A$ and count pivots. If every column is a pivot column there are no free variables, the only solution of $Ax=0$ is $x=0$, and the columns are independent. If even one column is free, set that free variable to $1$ and you have produced a nonzero $x$ in the null space --- a dependence.
+
+\state{When you can rule out independence on sight}{Suppose $A$ is $m\times n$ with $m<n$ --- more columns than rows, a wide matrix. Then $Ax=0$ has more unknowns than equations, so there is at least one free variable, hence a nonzero solution. \textbf{Any set of $n$ vectors in $\RR^m$ with $n>m$ is automatically dependent.} You cannot have more independent vectors than the dimension of the space they live in.}
+
+\ex[Two $2\times2$ matrices: one independent, one not]{The columns of
+$\br{\begin{smallmatrix}1&2\\3&4\end{smallmatrix}}$ are independent: elimination gives the reduced form $\br{\begin{smallmatrix}1&0\\0&1\end{smallmatrix}}$, two pivots, no free variables, so $N(A)=\{0\}$. The columns of
+$\br{\begin{smallmatrix}1&3\\2&6\end{smallmatrix}}$ are dependent: the second column is $3$ times the first, elimination leaves $\br{\begin{smallmatrix}1&3\\0&0\end{smallmatrix}}$ with one pivot and a free variable, and $x=(3,-1)$ solves $Ax=0$.}
+
+\rmkb[A useful summary]{For the columns of $A$: if they are independent then every column is a pivot column, $\rank A = n$, and there are no free variables. If they are dependent then $\rank A < n$ and there is at least one free variable. Pivots count independent columns.}
+
+\section{Spanning, Basis, and Dimension}
+
+Independence is half of what we want; it says a list has no waste. The other half says the list is big enough --- that it actually builds the whole space.
+
+\defn{Spanning a Space}{Vectors $v_1,\dots,v_k$ \textbf{span} a space $S$ if every vector in $S$ is a combination of $v_1,\dots,v_k$. Equivalently, $S$ is the set of all such combinations.}
+
+The columns of $A$ span the column space $C(A)$ --- that is exactly how $C(A)$ was defined. Spanning vectors are allowed to be wasteful: you can throw in extra, dependent vectors and still span. Independent vectors are allowed to be too few: two independent vectors in $\RR^3$ span only a plane. A \emph{basis} asks for both at once --- enough to span, but no waste.
+
+\defn{Basis}{A \textbf{basis} for a vector space $S$ is a list of vectors $v_1,\dots,v_d$ that are
+\begin{itemize}[leftmargin=2.6em,labelwidth=2em,labelsep=0.6em,labelindent=0pt,align=left]
+   \item[(i)] linearly independent, and
+   \item[(ii)] span $S$.
+\end{itemize}}
+
+A basis is the perfect handle on a space. Because the vectors span, every $w\in S$ is \emph{some} combination $w = c_1 v_1 + \cdots + c_d v_d$. Because they are independent, that combination is \emph{unique} --- the coefficients $c_i$ are determined by $w$. (If $w$ had two representations, their difference would be a nontrivial combination giving $0$.) So a basis sets up an exact dictionary between vectors in $S$ and their lists of coefficients.
+
+\ex[The standard basis of $\RR^3$]{The columns of the identity,
+\[
+   \begin{bmatrix}1\\0\\0\end{bmatrix},\quad
+   \begin{bmatrix}0\\1\\0\end{bmatrix},\quad
+   \begin{bmatrix}0\\0\\1\end{bmatrix},
+\]
+form a basis for $\RR^3$. They are independent because $c_1 e_1 + c_2 e_2 + c_3 e_3 = (c_1,c_2,c_3)$ is zero only when all $c_i=0$, and they span because $(b_1,b_2,b_3) = b_1 e_1 + b_2 e_2 + b_3 e_3$. This is not the only basis: any three vectors that are the columns of an invertible $3\times3$ matrix form a basis of $\RR^3$, because invertibility means $Ax=0$ forces $x=0$ (independence) and $Ax=b$ is always solvable (spanning).}
+
+\ex[Not a basis]{The vectors $(1,1,2)$, $(2,2,5)$, $(3,3,8)$ do \emph{not} form a basis for $\RR^3$. Place them as columns; the matrix has two equal rows (rows $1$ and $2$ are both $(1,2,3)$), so it cannot be invertible. Reducing shows only two pivots: the three vectors are dependent and span just a plane, not all of $\RR^3$.}
+
+\subsection{Dimension}
+
+A space has many different bases. The next fact --- the one that makes ``dimension'' well defined --- is that they all have the \emph{same length}.
+
+\thm{Every Basis Has the Same Size}{If a space $S$ has a basis of $d$ vectors, then every basis of $S$ has exactly $d$ vectors. This common number $d$ is the \textbf{dimension} of $S$, written $\dim S$.}
+\pf{Let $v_1,\dots,v_d$ and $w_1,\dots,w_p$ both be bases of $S$, and suppose for contradiction $p>d$. Each $w_j$ lies in $S$, so it is a combination of the $v$'s: $w_j = \sum_{i=1}^d a_{ij} v_i$. Collect the coefficients into a $d\times p$ matrix $A=(a_{ij})$. Since $A$ is $d\times p$ with $p>d$ (wide), the system $Ac=0$ has a nonzero solution $c\in\RR^p$. For that $c$,
+\[
+   \sum_{j=1}^p c_j w_j
+   = \sum_{j=1}^p c_j \sum_{i=1}^d a_{ij} v_i
+   = \sum_{i=1}^d \Big(\sum_{j=1}^p a_{ij} c_j\Big) v_i
+   = \sum_{i=1}^d 0 \cdot v_i = 0,
+\]
+a nontrivial dependence among $w_1,\dots,w_p$ --- contradicting that the $w$'s are independent. So $p\le d$. By symmetry (swap the roles) $d\le p$, hence $p=d$.}
+
+\rmkb[Rank versus dimension]{Keep the words straight: a \emph{matrix} has a rank; a \emph{subspace} has a dimension. The rank of $A$ is a property of the array of numbers; the dimension of $C(A)$ is a property of the space those numbers carve out. The whole point of the chapter is that these two numbers agree.}
+
+So $\dim \RR^n = n$: every basis of $\RR^n$ has exactly $n$ vectors, because the standard basis has $n$. You cannot squeeze $n+1$ independent vectors into $\RR^n$, and $n-1$ vectors can never span it.
+
+\section{Bases for the Column Space and Null Space}
+
+Now we put independence, basis, and dimension to work on the two spaces a matrix already gave us. We do it on one running example and keep returning to it for the rest of the chapter.
+
+\ex[The running matrix]{Throughout this chapter we use
+\[
+   A = \begin{bmatrix} 1 & 2 & 3 & 1 \\ 1 & 1 & 2 & 1 \\ 1 & 2 & 3 & 1 \end{bmatrix},
+   \qquad m = 3,\; n = 4.
+\]
+Elimination on $A$ ends at the reduced row echelon form
+\[
+   R = \begin{bmatrix} 1 & 0 & 1 & 1 \\ 0 & 1 & 1 & 0 \\ 0 & 0 & 0 & 0 \end{bmatrix}.
+\]
+There are two pivots (in columns $1$ and $2$), so the rank is $r=2$. Columns $3$ and $4$ are free.}
+
+Let us read both spaces off this $R$.
+
+\subsection{A Basis for the Column Space}
+
+The four columns of $A$ span $C(A)$, but they are dependent --- look at $R$. The reduced form tells us the relations among columns, because $Ax=0$ and $Rx=0$ have the same solutions. From $R$, column $3$ equals column $1$ plus column $2$ (read off the entries $(1,1,0)$ in column $3$ of $R$); the same relation holds among the columns of $A$: indeed $(3,2,3)=(1,1,1)+(2,1,2)$. Column $4$ equals column $1$. The dependent columns add nothing new.
+
+The \emph{pivot columns} --- columns $1$ and $2$ --- are independent and they reach everything the others reach. They are a basis for $C(A)$.
+
+\thm{Pivot Columns Are a Basis for $C(A)$}{The pivot columns of $A$ (the columns that become pivot columns in $R$) form a basis for the column space $C(A)$. Therefore
+\[
+   \dim C(A) = \text{number of pivots} = r = \rank A.
+\]}
+\pf{Reduction does not change which columns depend on which: $Ax=0 \iff Rx=0$, so any dependence among columns of $A$ is a dependence among columns of $R$ and vice versa. In $R$ the pivot columns are independent (each pivot sits in a column with $1$ in its own pivot row and $0$ in the other pivot rows), so the corresponding columns of $A$ are independent too. Every free column of $R$ is a combination of the pivot columns of $R$ (that is what the free entries record), so every free column of $A$ is the same combination of the pivot columns of $A$. Hence the pivot columns span $C(A)$ and are independent: a basis. Their number is $r$.}
+
+\rmkb[Take the columns of $A$, not of $R$]{A warning Strang stresses: the column space of $R$ is \emph{not} the column space of $A$. Elimination changes the columns. In our example $C(A)$ lives in $\RR^3$ and contains $(1,1,1)$, but $C(R)$ contains only vectors with last entry $0$. The pivots tell you \emph{which} columns to take, but you must take them from the original $A$. So a basis for $C(A)$ here is $(1,1,1)$ and $(2,1,2)$, and $\dim C(A)=2$.}
+
+\subsection{A Basis for the Null Space}
+
+Now the other space. Because there are free variables, $N(A)$ is more than just the zero vector. We build a basis from \emph{special solutions}: one solution of $Ax=0$ for each free variable, setting that free variable to $1$ and the other free variables to $0$.
+
+In our example the free columns are $3$ and $4$, so there are two special solutions. From $R$, the pivot variables satisfy $x_1 = -x_3 - x_4$ and $x_2 = -x_3$.
+\begin{itemize}
+   \item Free variables $(x_3,x_4)=(1,0)$ give $x_1=-1$, $x_2=-1$: the special solution $s_1 = (-1,-1,1,0)$.
+   \item Free variables $(x_3,x_4)=(0,1)$ give $x_1=-1$, $x_2=0$: the special solution $s_2 = (-1,0,0,1)$.
+\end{itemize}
+You can check directly that $As_1=0$ and $As_2=0$.
+
+\thm{Special Solutions Are a Basis for $N(A)$}{The special solutions --- one for each free variable --- form a basis for the null space. Therefore
+\[
+   \dim N(A) = \text{number of free variables} = n - r.
+\]}
+\pf{\emph{Independence.} Look at the free-variable slots. The special solution $s_j$ has a $1$ in the slot of its own free variable and $0$ in the slots of the other free variables. So in a combination $\sum c_j s_j$, the entry in free slot $j$ is exactly $c_j$; for the combination to be $0$ every $c_j$ must be $0$. The special solutions are independent.
+
+\emph{Spanning.} Take any $x\in N(A)$. Let $c_j$ be its values in the free slots, and form $x - \sum c_j s_j$. This vector is again in $N(A)$ (a combination of null-space vectors), and by construction it has $0$ in every free slot. But a null-space vector with all free variables zero is forced to have all pivot variables zero as well (the pivot equations express each pivot variable in terms of the free ones), so it is the zero vector. Hence $x = \sum c_j s_j$. The special solutions span $N(A)$.
+
+The number of special solutions is the number of free variables, which is $n - r$.}
+
+In the running example $\dim N(A) = n-r = 4-2 = 2$, and $\{s_1,s_2\}$ is a basis. The column space lives in $\RR^3$ with dimension $2$; the null space lives in $\RR^4$ with dimension $2$. Already two of the four numbers, $r$ and $n-r$, have appeared.
+
+\section{The Four Fundamental Subspaces}
+
+Every $m\times n$ matrix $A$ comes with \emph{four} subspaces, not two. We have met the column space and the null space; the other two are the same construction applied to the transpose $A\T$.
+
+\defn{The Four Fundamental Subspaces}{For an $m\times n$ matrix $A$:
+\begin{itemize}
+   \item the \textbf{column space} $C(A)$ --- all combinations of the columns --- a subspace of $\RR^m$;
+   \item the \textbf{null space} $N(A)$ --- all solutions of $Ax=0$ --- a subspace of $\RR^n$;
+   \item the \textbf{row space} $C(A\T)$ --- all combinations of the rows, i.e.\ the column space of $A\T$ --- a subspace of $\RR^n$;
+   \item the \textbf{left null space} $N(A\T)$ --- all solutions $y$ of $A\T y = 0$ --- a subspace of $\RR^m$.
+\end{itemize}}
+
+The names ``row space'' and ``left null space'' deserve a word. The combinations of the rows of $A$ are the same as the combinations of the columns of $A\T$, so we just write $C(A\T)$. And $A\T y = 0$ is the same as $y\T A = 0$ (transpose both sides) --- here $y\T$ multiplies $A$ from the \emph{left}, which is why $N(A\T)$ is called the \emph{left} null space.
+
+Two of the spaces sit in $\RR^n$ (row space and null space, indexed by columns) and two sit in $\RR^m$ (column space and left null space, indexed by rows). We now find a basis and the dimension of each, all from the same elimination.
+
+\subsection{Column Space and Null Space (Reprise)}
+
+We already did these:
+\[
+   \dim C(A) = r \quad(\subseteq \RR^m),
+   \qquad
+   \dim N(A) = n-r \quad(\subseteq \RR^n).
+\]
+A basis for $C(A)$ is the pivot columns of $A$; a basis for $N(A)$ is the special solutions.
+
+\subsection{The Row Space}
+
+For the row space we could transpose $A$ and run elimination again --- but we do not have to. Elimination acts on \emph{rows}, taking combinations of them, so it never leaves the row space. And because every elementary row step is reversible, the rows of $A$ and the rows of $R$ build exactly the same combinations.
+
+\thm{The Nonzero Rows of $R$ Are a Basis for the Row Space}{The row space of $A$ equals the row space of $R$. The nonzero rows of $R$ (the $r$ rows containing pivots) form a basis for it, so
+\[
+   \dim C(A\T) = r.
+\]}
+\pf{Each row of $R$ is a combination of rows of $A$ (elimination only ever adds multiples of rows), so the row space of $R$ sits inside the row space of $A$. Elimination is reversible, so each row of $A$ is likewise a combination of rows of $R$; the two row spaces are equal. The nonzero rows of $R$ span that space. They are independent: each contains a pivot $1$ in a column where the other rows have $0$, so no nontrivial combination of them can vanish. Hence they are a basis, and there are $r$ of them.}
+
+\rmkb[The headline]{Notice what just happened: $\dim C(A) = r$ and $\dim C(A\T) = r$. \textbf{The row space and the column space have the same dimension.} The number of independent columns equals the number of independent rows. That common number is the rank $r$ --- the single most important number attached to a matrix.}
+
+In the running example the nonzero rows of $R$ are $(1,0,1,1)$ and $(0,1,1,0)$. These two vectors in $\RR^4$ are a basis for the row space $C(A\T)$, and $\dim C(A\T)=2=r$. (Unlike the column space, here we \emph{do} read the basis off $R$, because row operations preserve the row space.)
+
+\subsection{The Left Null Space}
+
+The fourth space is the null space of $A\T$. Since $A\T$ is $n\times m$ with rank $r$ (rows and columns of a matrix have the same rank, and $\rank A\T = \rank A$), the number of free columns of $A\T$ is $m-r$:
+\[
+   \dim N(A\T) = m - r.
+\]
+A basis comes for free from the same elimination, if we run it on the \emph{augmented} matrix $\br{A \;\; I}$. Row-reducing $A$ to $R$ is the same as left-multiplying by some invertible matrix $E$, and carrying $I$ along records that $E$:
+\[
+   E\,\br{A \;\; I} \;\longrightarrow\; \br{R \;\; E},
+   \qquad \text{so} \qquad EA = R.
+\]
+The bottom $m-r$ rows of $R$ are zero. So the bottom $m-r$ rows of $E$, when they multiply $A$, produce zero rows: each such row $y\T$ satisfies $y\T A = 0$, i.e.\ $A\T y = 0$. Those rows are independent (they are rows of an invertible $E$) and there are $m-r$ of them --- a basis for the left null space.
+
+\ex[The fourth space on the running matrix]{Carrying $I_3$ alongside $A$ and reducing gives
+\[
+   E = \begin{bmatrix} -1 & 2 & 0 \\ 1 & -1 & 0 \\ -1 & 0 & 1 \end{bmatrix},
+   \qquad
+   EA = \begin{bmatrix} 1 & 0 & 1 & 1 \\ 0 & 1 & 1 & 0 \\ 0 & 0 & 0 & 0 \end{bmatrix} = R.
+\]
+Here $m-r = 3-2 = 1$: there is one zero row in $R$, the third. The corresponding bottom row of $E$ is $y\T = (-1,0,1)$, and indeed $y\T A = -(\text{row }1) + (\text{row }3) = 0$ because rows $1$ and $3$ of $A$ are equal. So $N(A\T)$ is the line through $(-1,0,1)$ in $\RR^3$, with $\dim N(A\T)=1$.}
+
+\section{The Rank Theorem: One Number Ties It Together}
+
+Collect the four dimensions. They are not four independent facts --- they are four faces of one number $r$.
+
+\thm{Dimensions of the Four Subspaces}{Let $A$ be $m\times n$ with rank $r$. Then
+\[
+   \ba
+   \dim C(A) &= r,        & C(A) &\subseteq \RR^m, \\
+   \dim N(A) &= n-r,      & N(A) &\subseteq \RR^n, \\
+   \dim C(A\T) &= r,      & C(A\T) &\subseteq \RR^n, \\
+   \dim N(A\T) &= m-r,    & N(A\T) &\subseteq \RR^m.
+   \ea
+\]}
+
+The most-used consequence is the relation between the two spaces inside $\RR^n$. The column count $n$ splits into pivot columns and free columns:
+\[
+   \underbrace{r}_{\dim C(A\T)} \;+\; \underbrace{(n-r)}_{\dim N(A)} \;=\; n.
+\]
+
+\cor{Rank--Nullity Theorem}{For any $m\times n$ matrix $A$,
+\[
+   \dim C(A\T) + \dim N(A) = r + (n-r) = n,
+\]
+that is, $\rank A + \dim N(A) = n$. The number of pivot columns plus the number of free columns is the total number of columns.}
+
+There is a matching split inside $\RR^m$, between the column space and the left null space:
+\[
+   \dim C(A) + \dim N(A\T) = r + (m-r) = m.
+\]
+
+\state{Why this is the whole point}{Every dimension question about $A$ reduces to one computation: \textbf{run elimination and count the pivots.} That count is $r$. Then $C(A)$ and $C(A\T)$ have dimension $r$; $N(A)$ has dimension $n-r$; $N(A\T)$ has dimension $m-r$. Solvability of $Ax=b$ ($b$ must lie in $C(A)$), uniqueness of solutions (controlled by $N(A)$), independence of columns ($N(A)=\{0\}$), independence of rows ($N(A\T)=\{0\}$) --- all of it is governed by where $r$ falls relative to $m$ and $n$.}
+
+\subsection{Two Extreme Cases: Rank-One and Full-Rank}
+
+\ex[A rank-one matrix]{The matrix
+\[
+   A = \begin{bmatrix} 1 & 4 & 5 \\ 2 & 8 & 10 \end{bmatrix}
+   = \begin{bmatrix} 1 \\ 2 \end{bmatrix}\begin{bmatrix} 1 & 4 & 5 \end{bmatrix}
+\]
+has every column a multiple of $(1,2)$, so $\rank A = 1$. Here $m=2$, $n=3$, $r=1$. The column space is the line through $(1,2)$ in $\RR^2$, dimension $1$. The row space is the line through $(1,4,5)$ in $\RR^3$, dimension $1$ --- again equal to the column-space dimension, as it must be. The null space has dimension $n-r=2$ and the left null space has dimension $m-r=1$. Every rank-one matrix factors as $A = uv\T$ for column vectors $u,v$; these are the simplest nonzero matrices, and they are the building blocks of the singular value decomposition later.}
+
+\ex[Full row rank and a useful null space]{Take the single-row matrix $A=\br{1\ 1\ 1\ 1}$, so $m=1$, $n=4$, $r=1$. The equation $Ax=0$ says $x_1+x_2+x_3+x_4=0$ --- a $3$-dimensional subspace of $\RR^4$, matching $n-r=3$. A basis is the three special solutions
+\[
+   \begin{bmatrix}-1\\1\\0\\0\end{bmatrix},\quad
+   \begin{bmatrix}-1\\0\\1\\0\end{bmatrix},\quad
+   \begin{bmatrix}-1\\0\\0\\1\end{bmatrix}.
+\]
+The column space is all of $\RR^1$ (dimension $1$), the row space is the line through $(1,1,1,1)$ (dimension $1$), and the left null space is $\{0\}$ with dimension $m-r=0$ --- its basis is the empty set.}
+
+\section{The Big Picture}
+
+Two of the four subspaces live in $\RR^n$: the row space $C(A\T)$ of dimension $r$, and the null space $N(A)$ of dimension $n-r$. Their dimensions add to $n$. Two live in $\RR^m$: the column space $C(A)$ of dimension $r$, and the left null space $N(A\T)$ of dimension $m-r$, adding to $m$. The Fundamental Theorem of Linear Algebra says these pairs do not merely have complementary dimensions --- they meet \emph{at right angles}.
+
+\thm{Fundamental Theorem of Linear Algebra (Part 1)}{For any $m\times n$ matrix $A$:
+\begin{itemize}
+   \item In $\RR^n$, the row space and the null space are \textbf{orthogonal complements}: every vector in $C(A\T)$ is perpendicular to every vector in $N(A)$, and together their dimensions fill $\RR^n$ ($r + (n-r) = n$).
+   \item In $\RR^m$, the column space and the left null space are orthogonal complements: every vector in $C(A)$ is perpendicular to every vector in $N(A\T)$, and $r + (m-r) = m$.
+\end{itemize}}
+\pf{Take $x\in N(A)$, so $Ax=0$. Each entry of the vector $Ax$ is a row of $A$ dotted with $x$, and all of them are zero. So $x$ is orthogonal to every row of $A$, hence to every combination of rows --- that is, to all of $C(A\T)$. Thus $N(A)\perp C(A\T)$. Their dimensions sum to $(n-r)+r=n$, the dimension of the whole space, so they are orthogonal complements: together they span $\RR^n$ and meet only at $0$. Applying the same argument to $A\T$ (whose row space is $C(A)$ and whose null space is $N(A\T)$) gives the orthogonal splitting of $\RR^m$.}
+
+This is the picture to carry in your head for the rest of the course. On the left, the input space $\RR^n$ splits into the row space and the null space at right angles. On the right, the output space $\RR^m$ splits into the column space and the left null space at right angles. The matrix $A$ sends $\RR^n$ to $\RR^m$: it crushes the null space to zero, and it maps the row space one-to-one onto the column space (both of dimension $r$). Nothing of $A$ reaches the left null space --- that is the part of $\RR^m$ outside the column space, the directions in which $Ax=b$ has no solution.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0,>=Stealth,font=\footnotesize]
+  % ---------- geometry constants ----------
+  \def\bw{4.6}   % box width
+  \def\bh{6.2}   % box height
+  \def\gap{3.0}  % horizontal gap between boxes
+  % wedge geometry (symmetric about horizontal axis through the origin)
+  % central direction lines along (cos25, +-sin25); length \L
+  \def\L{2.55}
+  \def\cx{2.311}  % \L*cos(25)
+  \def\cy{1.078}  % \L*sin(25)
+
+  \coordinate (Lo) at (0,0);
+  \coordinate (Ro) at ({\bw+\gap},0);
+
+  \draw[rounded corners=10pt,thick,gray!55] (Lo) rectangle ++(\bw,\bh);
+  \draw[rounded corners=10pt,thick,gray!55] (Ro) rectangle ++(\bw,\bh);
+
+  % ===================== LEFT: input space R^n =====================
+  % origin sits left-of-center so the wedges open rightward into the box
+  \coordinate (OL) at ($(Lo)+(1.05,\bh*0.5)$);
+  % row space wedge (blue, up-right), null space wedge (red, down-right): perpendicular
+  \fill[blue!10]  (OL) -- ($(OL)+(1.95,1.30)$) -- ($(OL)+(2.55,0.62)$) -- cycle;
+  \fill[red!10]   (OL) -- ($(OL)+(2.55,-0.62)$) -- ($(OL)+(1.95,-1.30)$) -- cycle;
+  \draw[very thick,blue!70!black] (OL) -- ($(OL)+(\cx,\cy)$);
+  \draw[very thick,red!70!black]  (OL) -- ($(OL)+(\cx,-\cy)$);
+  % right-angle marker at OL (between the two perpendicular center lines)
+  \draw[gray] ($(OL)+(0.544,0.254)$) -- ($(OL)+(0.811,0)$) -- ($(OL)+(0.544,-0.254)$);
+
+  % labels left
+  \node[blue!70!black,align=center] at ($(OL)+(2.35,1.95)$) {row space\\ $\Col{A\T}$\\ $\dim = r$};
+  \node[red!70!black,align=center]  at ($(OL)+(2.35,-1.95)$) {null space\\ $\Nul{A}$\\ $\dim = n-r$};
+  \node[font=\scriptsize,gray!55!black] at ($(Lo)+(\bw*0.5,\bh+0.30)$) {\itshape input space $\RR^n$};
+
+  % representative vectors
+  \coordinate (XR) at ($(OL)+(1.50,0.70)$);
+  \fill[blue!70!black] (XR) circle (1.7pt);
+  \node[blue!70!black,below right,font=\scriptsize] at (XR) {$x_{\text{row}}$};
+  \coordinate (XN) at ($(OL)+(1.50,-0.70)$);
+  \fill[red!70!black] (XN) circle (1.7pt);
+  \node[red!70!black,above right,font=\scriptsize] at (XN) {$x_{\text{null}}$};
+
+  \fill (OL) circle (1.5pt);
+  \node[left,font=\scriptsize] at (OL) {$0$};
+
+  % ===================== RIGHT: output space R^m =====================
+  \coordinate (OR) at ($(Ro)+(1.05,\bh*0.5)$);
+  \fill[blue!10]  (OR) -- ($(OR)+(1.95,1.30)$) -- ($(OR)+(2.55,0.62)$) -- cycle;
+  \fill[red!10]   (OR) -- ($(OR)+(2.55,-0.62)$) -- ($(OR)+(1.95,-1.30)$) -- cycle;
+  \draw[very thick,blue!70!black] (OR) -- ($(OR)+(\cx,\cy)$);
+  \draw[very thick,red!70!black]  (OR) -- ($(OR)+(\cx,-\cy)$);
+  \draw[gray] ($(OR)+(0.544,0.254)$) -- ($(OR)+(0.811,0)$) -- ($(OR)+(0.544,-0.254)$);
+
+  \node[blue!70!black,align=center] at ($(OR)+(2.35,1.95)$) {column space\\ $\Col{A}$\\ $\dim = r$};
+  \node[red!70!black,align=center]  at ($(OR)+(2.35,-1.95)$) {left null space\\ $\Nul{A\T}$\\ $\dim = m-r$};
+  \node[font=\scriptsize,gray!55!black] at ($(Ro)+(\bw*0.5,\bh+0.30)$) {\itshape output space $\RR^m$};
+
+  % image b = A x_row
+  \coordinate (B) at ($(OR)+(1.50,0.70)$);
+  \fill[blue!70!black] (B) circle (1.7pt);
+  \node[blue!70!black,below right,font=\scriptsize] at (B) {$b=Ax$};
+
+  \fill (OR) circle (1.5pt);
+  \node[right,font=\scriptsize] at (OR) {$0$};
+
+  % ===================== the action of A =====================
+  % big bold arrow A across the gap, up high so it is clear of the dashed maps
+  \draw[-{Stealth[length=4mm]},line width=1.2pt]
+       ($(Lo)+(\bw,\bh-0.55)$) -- ($(Ro)+(0,\bh-0.55)$)
+       node[midway,above=1pt,font=\footnotesize] {$A$};
+
+  % row space -> column space (one-to-one); label above the arc apex with clearance
+  \draw[->,thick,blue!70!black,dashed] (XR) to[bend left=16] (B);
+  \node[blue!70!black,font=\scriptsize,fill=white,inner sep=1pt] at ($(XR)!0.5!(B)+(0,1.18)$) {one-to-one};
+
+  % null space -> single point 0 (collapses); label below the arc apex with clearance
+  \draw[->,thick,red!70!black,dashed] (XN) to[bend right=16] (OR);
+  \node[red!70!black,font=\scriptsize,align=center,fill=white,inner sep=1pt] at ($(XN)!0.5!(OR)+(0,-1.12)$) {collapses to $0$};
+\end{tikzpicture}
+\end{center}
+
+\rmkb[What each space controls]{Read the picture for what it tells you about $Ax=b$. \emph{Existence:} a solution exists exactly when $b$ lies in the column space $C(A)$; the left null space $N(A\T)$ measures the constraints $b$ must satisfy. \emph{Uniqueness:} the solution is unique exactly when the null space $N(A)$ is just $\{0\}$; otherwise any element of $N(A)$ can be added to a solution. The row space $C(A\T)$ holds the one ``particular'' solution that has no null-space component --- the shortest solution. We will return to this when we project onto these spaces and solve least squares.}
+
+\section{Matrices Are Vectors Too}
+
+Everything above used vectors in $\RR^n$, but the definitions of independence, span, basis, and dimension never mentioned coordinates --- they only used addition and scalar multiplication. So they apply to any vector space, and a good test case is a space whose ``vectors'' are themselves matrices.
+
+\ex[The space of $3\times3$ matrices]{Let $M$ be the set of all $3\times3$ matrices. We can add two such matrices and scale one by a number, the zero matrix is the additive identity, and all the space axioms hold --- so $M$ is a vector space. Choosing an element of $M$ means choosing $9$ numbers, so $\dim M = 9$ and $M$ ``looks like'' $\RR^9$. A basis is the nine matrices with a single $1$ and the rest $0$.
+
+Inside $M$ live natural subspaces. The symmetric matrices $S$ (those with $A=A\T$) have dimension $6$: three free entries on the diagonal and three above it, with the lower triangle forced. The upper triangular matrices $U$ also have dimension $6$. Their intersection $D = S\cap U$ is the diagonal matrices, dimension $3$. These dimensions obey the counting rule
+\[
+   \dim S + \dim U = \dim(S+U) + \dim(S\cap U),
+\]
+which here reads $6 + 6 = 9 + 3$, since the sum $S+U$ (all sums of a symmetric and an upper-triangular matrix) is all of $M$.}
+
+\rmkb[Subspace, but not the union]{$S\cup U$ --- matrices that are symmetric \emph{or} upper triangular --- is \emph{not} a subspace: add a symmetric matrix to an upper-triangular one and you usually land outside both, just as two lines through the origin in $\RR^2$ are not a subspace until you fill in the plane between them. The right object is the \emph{sum} $S+U$, which is a subspace.}
+
+The lesson is that ``vector space'' is about structure, not about arrows. Polynomials, functions, and solution sets of linear differential equations are all vector spaces, and the same words --- independence, basis, dimension, and the rank that ties the four subspaces together --- describe them all.

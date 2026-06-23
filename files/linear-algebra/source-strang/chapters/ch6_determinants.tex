@@ -1,0 +1,386 @@
+% !TEX root = ../main.tex
+\chapter{Determinants}
+\label{ch:6}
+
+We are halfway through the course, and we leave rectangular matrices behind. From here on the matrices are square, and the two big topics ahead are \emph{determinants} and \emph{eigenvalues}. The determinant comes first because the eigenvalue equation $\det(A-\lambda I)=0$ will lean on it directly.
+
+The determinant is a single number $\det A$ --- also written $\abs{A}$ --- attached to every square matrix $A$. It is a remarkable amount of information squeezed into one number. The headline fact is the cleanest test for invertibility we will ever have: $A$ is invertible exactly when $\det A\ne 0$, and singular exactly when $\det A=0$. You already know one determinant from school,
+\[
+\det\begin{bmatrix} a & b \\ c & d\end{bmatrix}=ad-bc ,
+\]
+and the whole chapter is about understanding where that formula comes from, what it generalizes to, and what it is good for.
+
+Strang's strategy --- and it is the right one --- is to resist writing down a big formula first. The determinant of an $n\times n$ matrix is a sum of $n!$ terms, and meeting that sum cold teaches you nothing. Instead we pin the determinant down by \emph{three properties} (think of them as axioms), and then \emph{derive} everything else: seven more properties, the big formula, the cofactor expansion, the inverse, Cramer's rule, and finally the geometric punchline that $\abs{\det A}$ is the volume of a box. Three rules in, a whole theory out.
+
+\section{The Three Defining Properties}
+
+Here are the three properties that \emph{define} the determinant. Every other fact in the chapter is a consequence of these.
+
+\defn{The Determinant}{The \emph{determinant} is the unique function $\det$ that assigns a number to each square matrix and satisfies three properties:
+\begin{itemize}[leftmargin=2.8em,labelwidth=2.2em,labelsep=0.6em,labelindent=0pt,align=left,itemsep=4pt]
+   \item[\textbf{(P1)}] \textbf{The identity has determinant $1$:} $\det I = 1$.
+   \item[\textbf{(P2)}] \textbf{Row exchange reverses the sign:} swapping any two rows of a matrix multiplies its determinant by $-1$.
+   \item[\textbf{(P3)}] \textbf{The determinant is linear in each row separately.} Holding all other rows fixed, the determinant is a linear function of the one row that changes. This has two parts. Scaling one row by $t$ scales the determinant by $t$:
+   \[
+   \det\begin{bmatrix} t a & t b \\ c & d\end{bmatrix} = t\,\det\begin{bmatrix} a & b \\ c & d\end{bmatrix};
+   \]
+   and a sum in one row splits the determinant into a sum:
+   \[
+   \det\begin{bmatrix} a+a' & b+b' \\ c & d\end{bmatrix}
+   = \det\begin{bmatrix} a & b \\ c & d\end{bmatrix}
+   + \det\begin{bmatrix} a' & b' \\ c & d\end{bmatrix}.
+   \]
+\end{itemize}}
+
+A word of warning about (P3), because it is the property people misread. Linearity is \emph{one row at a time}. It does \emph{not} say $\det(A+B)=\det A+\det B$ --- that is false (try two $2\times 2$ matrices). It says that if you change only the first row, leaving the second row alone, the determinant responds linearly to that one row. The other rows are frozen.
+
+Two quick consequences of (P1) and (P2) are worth seeing right away. From (P1), $\det\!\left[\begin{smallmatrix}1&0\\0&1\end{smallmatrix}\right]=1$. Exchange the two rows and (P2) says
+\[
+\det\begin{bmatrix} 0 & 1 \\ 1 & 0\end{bmatrix} = -1 .
+\]
+So a permutation matrix --- an identity with its rows shuffled --- has determinant $+1$ or $-1$ depending on whether it took an \emph{even} or \emph{odd} number of row exchanges to build it. That sign is the seed of the whole theory.
+
+\section{Seven Properties Derived from the Three}
+
+Now the payoff. Properties \textbf{(P4)} through \textbf{(P10)} are not new assumptions --- each one follows from (P1), (P2), (P3). We prove them in order, because later ones use earlier ones.
+
+\prop{(P4) Equal rows give determinant zero}{If two rows of $A$ are identical, then $\det A=0$.}
+\pf{Suppose rows $i$ and $j$ are equal. Exchanging them changes nothing about the matrix, so the determinant is unchanged. But (P2) says a row exchange flips the sign, so the determinant equals its own negative: $\det A=-\det A$. Therefore $\det A=0$.}
+
+\prop{(P5) Subtracting a multiple of one row from another doesn't change the determinant}{For $i\ne j$, subtracting $t$ times row $i$ from row $j$ leaves $\det A$ unchanged. These are exactly the row operations of elimination.}
+\pf{Apply linearity (P3) to row $j$, which becomes $(\text{row }j) - t\,(\text{row }i)$:
+\[
+\det\begin{bmatrix} \vdots \\ \text{row } i \\ \vdots \\ \text{row } j - t\,\text{row } i \\ \vdots \end{bmatrix}
+=\det\begin{bmatrix} \vdots \\ \text{row } i \\ \vdots \\ \text{row } j \\ \vdots \end{bmatrix}
+- t\,\det\begin{bmatrix} \vdots \\ \text{row } i \\ \vdots \\ \text{row } i \\ \vdots \end{bmatrix}.
+\]
+The first term is $\det A$. The second matrix has row $i$ appearing twice (once in its own slot, once in slot $j$), so by (P4) its determinant is $0$. Hence the whole thing is $\det A$.}
+
+This is the property that makes determinants \emph{computable}: the elimination steps that simplify a matrix do not change its determinant at all. In two dimensions the argument reads
+\[
+\det\begin{bmatrix} a & b \\ c-ta & d-tb\end{bmatrix}
+=\det\begin{bmatrix} a & b \\ c & d\end{bmatrix}
+- t\,\det\begin{bmatrix} a & b \\ a & b\end{bmatrix}
+=\det\begin{bmatrix} a & b \\ c & d\end{bmatrix} - 0 .
+\]
+
+\prop{(P6) A zero row gives determinant zero}{If any row of $A$ is entirely zero, then $\det A=0$.}
+\pf{The zero row is $0$ times itself, so by the scaling part of (P3) with $t=0$ we may pull out the factor $0$, giving $\det A = 0\cdot\det(\cdots)=0$.}
+
+\prop{(P7) The determinant of a triangular matrix is the product of its diagonal entries}{If $A$ is upper triangular (or lower triangular) with diagonal entries $d_1,d_2,\dots,d_n$, then
+\[
+\det A = d_1 d_2 \cdots d_n .
+\]}
+\pf{First suppose every $d_i\ne 0$. Because $A$ is triangular, we can use the elimination operations of (P5) --- which do not change the determinant --- to clear out every off-diagonal entry, arriving at the diagonal matrix $\diag(d_1,\dots,d_n)$. Now factor $d_i$ out of row $i$ using the scaling part of (P3), one row at a time:
+\[
+\det\diag(d_1,\dots,d_n) = d_1 d_2 \cdots d_n \,\det I = d_1 d_2 \cdots d_n
+\]
+by (P1). If instead some $d_i=0$, then elimination produces a row of zeros before we finish, and (P6) gives $\det A = 0$, which is also the product $d_1\cdots d_n$ since one factor is zero. Either way the formula holds.}
+
+This is the single most useful computational fact in the chapter. To find a determinant, run elimination down to a triangular form (the pivots sit on the diagonal), keep track of how many row exchanges you used, and multiply the pivots:
+\[
+\det A = (-1)^{(\#\text{ exchanges})}\,(\text{product of the pivots}) .
+\]
+That is exactly how a computer evaluates the determinant of a large matrix. It costs about $n^3/3$ operations --- nothing like the $n!$ terms of the big formula coming later.
+
+\ex[The $2\times2$ formula falls out of elimination]{With $a\ne 0$, one elimination step clears the lower-left corner:
+\[
+\begin{bmatrix} a & b \\ c & d\end{bmatrix}
+\;\longrightarrow\;
+\begin{bmatrix} a & b \\ 0 & d-\tfrac{c}{a}b\end{bmatrix}.
+\]
+By (P5) the determinant is unchanged, and now the matrix is triangular, so by (P7)
+\[
+\det\begin{bmatrix} a & b \\ c & d\end{bmatrix}
+= a\Bigl(d-\tfrac{c}{a}b\Bigr) = ad-bc . \quad\checkmark
+\]
+The pivots are $a$ and $d-\tfrac{c}{a}b$, and their product is the determinant.}
+
+\prop{(P8) The determinant detects singularity}{$\det A=0$ if and only if $A$ is singular (not invertible). Equivalently, $\det A\ne 0$ exactly when $A$ is invertible.}
+\pf{Run elimination on $A$. If $A$ is singular, elimination produces a row of zeros (a missing pivot), so by (P6) the determinant is $0$. If $A$ is nonsingular, elimination produces a full set of $n$ nonzero pivots $d_1,\dots,d_n$, and by (P7) the determinant is $\pm d_1 d_2\cdots d_n\ne 0$ (the sign records the row exchanges). So $\det A=0$ exactly in the singular case.}
+
+This is the property that makes the determinant matter. It ties together every thread of the first half of the book: $\det A\ne 0$ is the same as ``the columns are independent,'' the same as ``$N(A)=\{0\}$,'' the same as ``$Ax=b$ has exactly one solution for every $b$,'' the same as ``$\rank A=n$'' (see Chapter~\ref{ch:4}).
+
+\prop{(P9) The determinant of a product is the product of determinants}{For square matrices $A$ and $B$ of the same size,
+\[
+\det(AB) = (\det A)(\det B) .
+\]}
+
+We will not prove (P9) from scratch here --- the cleanest proof uses the $A=LU$ factorization, which we sketch for (P10) below --- but its consequences are immediate and constantly used.
+
+\rmkb[Consequences of the product rule]{
+A handful of corollaries come straight out of (P9):
+\begin{itemize}
+   \item \textbf{Inverse:} from $A^{-1}A=I$ and (P1), $(\det A^{-1})(\det A)=1$, so
+   \[
+   \det(A^{-1})=\frac{1}{\det A}\qquad(\text{when }A\text{ is invertible}).
+   \]
+   \item \textbf{Powers:} $\det(A^2)=(\det A)^2$, and in general $\det(A^k)=(\det A)^k$.
+   \item \textbf{Scaling the whole matrix:} multiplying \emph{every} row by $t$ scales the determinant once per row, so for an $n\times n$ matrix
+   \[
+   \det(tA)=t^{\,n}\det A .
+   \]
+\end{itemize}
+That last one is a volume statement in disguise: doubling all three edges of a box in $\RR^3$ multiplies its volume by $2^3=8$, which is exactly $\det(2A)=2^3\det A$.}
+
+\prop{(P10) The determinant of the transpose equals the determinant}{For every square matrix, $\det(A\T)=\det A$.}
+\pf{Use the factorization $A=LU$, where $L$ is lower triangular with $1$'s on its diagonal and $U$ is upper triangular with the pivots on its diagonal. By the product rule (P9), the claim $\det(A\T)=\det A$ becomes $\det(U\T L\T)=\det(LU)$, i.e.\ $\det(U\T)\det(L\T)=\det(L)\det(U)$. Now $L$ is triangular with diagonal $1$'s, so $\det L=\det(L\T)=1$ by (P7); and $U$ is triangular, so $\det(U\T)=\det U$ (transposing a triangular matrix keeps the same diagonal). Both sides are therefore equal to $\det U$. (When $A$ needs row exchanges, the same argument runs through $PA=LU$, and the permutation contributes $\pm 1$ on both sides.)}
+
+The point of (P10) is leverage. The three defining properties were stated for \emph{rows}. Because transposing swaps rows and columns without changing the determinant, every row property automatically becomes a \emph{column} property. So: exchanging two columns flips the sign; the determinant is linear in each column; a repeated column or a zero column makes the determinant $0$; and so on. Rows and columns play identical roles.
+
+\state{The ten properties at a glance}{
+From the three axioms (P1)--(P3) we have derived everything:
+\begin{itemize}[leftmargin=3.4em,labelwidth=2.8em,labelsep=0.6em,labelindent=0pt,align=left]
+   \item[(P4)] equal rows $\Rightarrow$ determinant $0$;
+   \item[(P5)] elimination steps don't change it;
+   \item[(P6)] a zero row $\Rightarrow$ determinant $0$;
+   \item[(P7)] triangular $\Rightarrow$ product of the diagonal;
+   \item[(P8)] $\det A=0 \iff A$ singular;
+   \item[(P9)] $\det(AB)=\det A\,\det B$;
+   \item[(P10)] $\det(A\T)=\det A$ (so columns behave like rows).
+\end{itemize}
+Two of these are the workhorses: (P7) lets you \emph{compute} a determinant by elimination, and (P8) tells you what the answer \emph{means}.}
+
+\rmkb[The one loose end]{There is a gap we have quietly stepped over. Property (P2) says a row exchange flips the sign, so the determinant of a permutation is $(-1)^{\#\text{exchanges}}$. But a given permutation can be reached by different numbers of exchanges --- could one route use seven swaps and another ten, giving both $-1$ and $+1$? If so the determinant would equal its own negative and the whole definition would collapse. It is a genuine theorem (the \emph{parity} of a permutation is well defined: an even permutation can never be reached by an odd number of swaps) that closes this gap. We take it as known; with it, the three properties really do define $\det$ uniquely.}
+
+\section{The Big Formula: a Sum of \texorpdfstring{$n!$}{n!} Terms}
+
+The three properties pin down the determinant, but so far our only recipe is ``run elimination.'' There is also an explicit closed formula, and deriving it is a beautiful application of linearity in the rows. We build it for $2\times 2$, watch the pattern in $3\times 3$, and then state it in general.
+
+\subsection{Building the \texorpdfstring{$2\times 2$}{2x2} formula from scratch}
+
+Take a general $2\times 2$ matrix and split each row into its two ``one-entry'' pieces using linearity (P3). The first row $(a,b)$ is $(a,0)+(0,b)$; the second row $(c,d)$ is $(c,0)+(0,d)$. Linearity in each row separately breaks the determinant into $2\times 2 = 4$ pieces:
+\[
+\det\begin{bmatrix} a & b \\ c & d\end{bmatrix}
+=\det\begin{bmatrix} a & 0 \\ c & 0\end{bmatrix}
++\det\begin{bmatrix} a & 0 \\ 0 & d\end{bmatrix}
++\det\begin{bmatrix} 0 & b \\ c & 0\end{bmatrix}
++\det\begin{bmatrix} 0 & b \\ 0 & d\end{bmatrix}.
+\]
+Now look at the four pieces. The first and last each have a zero \emph{column}, so by (P6)-for-columns they vanish. Only the two pieces that pick \emph{one entry from each row and each column} survive:
+\[
+=\;\det\begin{bmatrix} a & 0 \\ 0 & d\end{bmatrix}
++\det\begin{bmatrix} 0 & b \\ c & 0\end{bmatrix}
+\;=\; ad\,\det\!\begin{bmatrix} 1 & 0 \\ 0 & 1\end{bmatrix}
++ cb\,\det\!\begin{bmatrix} 0 & 1 \\ 1 & 0\end{bmatrix}
+\;=\; ad - bc .
+\]
+The surviving determinants are determinants of permutation matrices: the diagonal one is $+1$, the off-diagonal one is $-1$. The number of survivors is exactly $2!=2$.
+
+\subsection{The same idea in \texorpdfstring{$3\times 3$}{3x3}}
+
+Splitting each of the three rows into its three one-entry pieces gives $3\times 3\times 3=27$ little determinants. A piece survives only if it has no repeated column --- i.e.\ it picks one entry from each row \emph{and} each column. The number of such choices is $3!=6$, and these are the six permutations of $(1,2,3)$. Each survivor is the chosen product times the sign ($\pm1$) of its permutation:
+\[
+\det\begin{bmatrix} a_{11} & a_{12} & a_{13} \\ a_{21} & a_{22} & a_{23} \\ a_{31} & a_{32} & a_{33}\end{bmatrix}
+=\;
+\begin{aligned}[t]
+& a_{11}a_{22}a_{33} - a_{11}a_{23}a_{32} - a_{12}a_{21}a_{33} \\
+&{}+ a_{12}a_{23}a_{31} + a_{13}a_{21}a_{32} - a_{13}a_{22}a_{31} .
+\end{aligned}
+\]
+A handy mnemonic for $3\times 3$ (and \emph{only} $3\times 3$): the three products running ``down-and-to-the-right'' get a plus sign, the three running ``down-and-to-the-left'' get a minus sign. Do not try to extend this trick to $4\times 4$ --- it simply fails there.
+
+\subsection{The general formula}
+
+The pattern is now clear. For an $n\times n$ matrix there are $n!$ surviving terms, one for each permutation $(\alpha,\beta,\gamma,\dots,\omega)$ of $(1,2,\dots,n)$, each term taking one entry from every row and every column.
+
+\thm{The Big Formula}{For an $n\times n$ matrix $A=(a_{ij})$,
+\[
+\det A = \sum_{\text{all } n! \text{ permutations}} \bigl(\pm\bigr)\, a_{1\alpha}\,a_{2\beta}\,a_{3\gamma}\cdots a_{n\omega},
+\]
+where $(\alpha,\beta,\gamma,\dots,\omega)$ runs over all permutations of the column indices $(1,2,\dots,n)$, and the sign is $+$ for an even permutation and $-$ for an odd one (the determinant of the corresponding permutation matrix).}
+
+You can sanity-check the formula on the identity: every term contains a zero except the one from the trivial permutation $\alpha=1,\beta=2,\dots,\omega=n$, which contributes $a_{11}a_{22}\cdots a_{nn}=1$. So $\det I=1$, consistent with (P1). With more work one can verify (P2) and (P3) from the formula too; we take that on faith. The count $n!$ grows ferociously --- $2,6,24,120,\dots$ --- which is exactly why the elimination method (P7) is the one to use in practice.
+
+\ex[Mostly zeros: spotting the surviving permutations]{Compute
+\[
+\det\begin{bmatrix} 0 & 0 & 1 & 1 \\ 0 & 1 & 1 & 0 \\ 1 & 1 & 0 & 0 \\ 1 & 0 & 0 & 1\end{bmatrix}.
+\]
+With so many zeros, almost every one of the $4!=24$ terms dies. A term survives only if it picks a nonzero entry from each row and column. Hunting them down:
+\begin{itemize}
+   \item The choice $a_{14}a_{23}a_{32}a_{41}=1\cdot1\cdot1\cdot1$ uses columns $(4,3,2,1)$. Turning $(4,3,2,1)$ back into $(1,2,3,4)$ takes \emph{two} exchanges (swap the outer pair, then the inner pair), so the sign is $+$: this term is $+1$.
+   \item The choice $a_{13}a_{22}a_{31}a_{44}=1\cdot1\cdot1\cdot1$ uses columns $(3,2,1,4)$. That is \emph{one} exchange (swap positions $1$ and $3$) away from the identity, so the sign is $-$: this term is $-1$.
+\end{itemize}
+No other permutation avoids all the zeros. So $\det = (+1)+(-1)=0$. The matrix is singular, and indeed $(\text{row }1)-(\text{row }2)+(\text{row }3)-(\text{row }4)=0$ is a dependence among the rows.}
+
+\section{Cofactors: Expanding Along a Row}
+
+The big formula is correct but unwieldy. The \emph{cofactor expansion} reorganizes its $n!$ terms by factoring out the entries of one row, turning an $n\times n$ determinant into a combination of $(n-1)\times(n-1)$ determinants. It is the recursion that makes hand computation manageable, and it is the form we need for the inverse and for the eigenvalue polynomial later.
+
+\subsection{The idea: group the big formula by the first row}
+
+Go back to the $3\times 3$ big formula and gather all the terms containing $a_{11}$, then all containing $a_{12}$, then all containing $a_{13}$:
+\[
+\det A = a_{11}\underbrace{(a_{22}a_{33}-a_{23}a_{32})}_{C_{11}}
++ a_{12}\underbrace{(-a_{21}a_{33}+a_{23}a_{31})}_{C_{12}}
++ a_{13}\underbrace{(a_{21}a_{32}-a_{22}a_{31})}_{C_{13}} .
+\]
+Each parenthesis is (up to a sign) a $2\times 2$ determinant --- and not just any one. The factor multiplying $a_{11}$ uses only the entries \emph{not} in row $1$ or column $1$:
+\[
+C_{11}=+\det\begin{bmatrix} a_{22} & a_{23} \\ a_{32} & a_{33}\end{bmatrix},\quad
+C_{12}=-\det\begin{bmatrix} a_{21} & a_{23} \\ a_{31} & a_{33}\end{bmatrix},\quad
+C_{13}=+\det\begin{bmatrix} a_{21} & a_{22} \\ a_{31} & a_{32}\end{bmatrix}.
+\]
+The sign in front alternates $+,-,+$. This is the structure that holds in every dimension.
+
+\defn{Minor and Cofactor}{Let $A$ be $n\times n$. The \emph{minor} $M_{ij}$ is the determinant of the $(n-1)\times(n-1)$ matrix obtained by deleting row $i$ and column $j$ of $A$. The \emph{cofactor} of $a_{ij}$ is the signed minor
+\[
+C_{ij}=(-1)^{i+j}\,M_{ij} .
+\]
+The sign $(-1)^{i+j}$ follows the checkerboard pattern
+\[
+\begin{bmatrix} + & - & + & \cdots \\ - & + & - & \cdots \\ + & - & + & \cdots \\ \vdots & & & \ddots\end{bmatrix},
+\]
+positive when $i+j$ is even, negative when $i+j$ is odd.}
+
+\thm{Cofactor Expansion (Laplace Expansion)}{For any $n\times n$ matrix $A$, the determinant may be expanded along any row $i$:
+\[
+\det A = a_{i1}C_{i1}+a_{i2}C_{i2}+\cdots+a_{in}C_{in}=\sum_{j=1}^{n} a_{ij}C_{ij},
+\]
+or, because $\det A\T=\det A$, along any column $j$:
+\[
+\det A = a_{1j}C_{1j}+a_{2j}C_{2j}+\cdots+a_{nj}C_{nj}=\sum_{i=1}^{n} a_{ij}C_{ij}.
+\]}
+\pf{The cofactor $C_{ij}$ collects exactly the terms of the big formula that contain $a_{ij}$, with $a_{ij}$ divided out. Every term of the big formula contains exactly one entry from row $i$, so grouping all $n!$ terms by which row-$i$ entry they use partitions the sum into the $n$ groups $a_{ij}C_{ij}$. That the leftover factor in each group is $(-1)^{i+j}$ times the determinant of the matrix with row $i$ and column $j$ deleted is a bookkeeping check on the signs of the permutations; it works out to exactly the checkerboard sign. The column version follows by applying the row version to $A\T$.}
+
+\rmkb[The two-by-two cofactor sanity check]{Expanding $\det\!\left[\begin{smallmatrix}a&b\\c&d\end{smallmatrix}\right]$ along the first row: the cofactor of $a$ is $+\det[d]=d$, and the cofactor of $b$ is $-\det[c]=-c$. So $\det = a\cdot d + b\cdot(-c)=ad-bc$, as it must be. The minus sign on the $b$ term is the $(-1)^{1+2}$ from the checkerboard.}
+
+\subsection{Choose a good row or column}
+
+The freedom to expand along \emph{any} row or column is the practical gift here: pick the one with the most zeros, so that most cofactors are never computed.
+
+\ex[A tridiagonal recursion]{The $n\times n$ tridiagonal matrix of $1$'s --- with $1$'s on the diagonal and on the two adjacent diagonals, $0$'s elsewhere --- has a determinant that satisfies a tidy recursion. Write $D_n=\det A_n$. Expanding along the first row of
+\[
+A_4=\begin{bmatrix} 1 & 1 & 0 & 0 \\ 1 & 1 & 1 & 0 \\ 0 & 1 & 1 & 1 \\ 0 & 0 & 1 & 1\end{bmatrix}
+\]
+gives two surviving cofactors. The $a_{11}=1$ cofactor is $D_3$, the determinant of the lower-right $3\times 3$ tridiagonal block. The $a_{12}=1$ cofactor, after deleting row $1$ and column $2$ and applying the checkerboard minus sign, expands once more to leave $-1\cdot D_2$. So
+\[
+D_n = D_{n-1}-D_{n-2}.
+\]
+Starting from $D_1=1$ and $D_2=\det\!\left[\begin{smallmatrix}1&1\\1&1\end{smallmatrix}\right]=0$, the sequence is
+\[
+1,\;0,\;-1,\;-1,\;0,\;1,\;1,\;0,\;-1,\dots
+\]
+which repeats with period $6$. The determinant never grows --- a hint that these matrices hover near singularity.}
+
+\section{The Inverse Formula}
+
+Cofactors do more than compute a single number. Assembled correctly, they build the entire inverse $A^{-1}$. This is the explicit formula that the $2\times 2$ rule
+\[
+\begin{bmatrix} a & b \\ c & d\end{bmatrix}^{-1}
+=\frac{1}{ad-bc}\begin{bmatrix} d & -b \\ -c & a\end{bmatrix}
+\]
+is secretly an instance of. Notice the ingredients on the right: the leading factor $1/\det A$, and a matrix of cofactors. The general pattern keeps both.
+
+\defn{Cofactor Matrix}{The \emph{cofactor matrix} of $A$ is the $n\times n$ matrix $C$ whose $(i,j)$ entry is the cofactor $C_{ij}=(-1)^{i+j}M_{ij}$.}
+
+\thm{The Cofactor Formula for the Inverse}{If $A$ is invertible, then
+\[
+A^{-1}=\frac{1}{\det A}\,C\T ,
+\]
+where $C$ is the cofactor matrix. \emph{Mind the transpose:} the cofactors of row $i$ of $A$ go into column $i$ of $A^{-1}$.}
+\pf{We show $A\,C\T=(\det A)\,I$; dividing by $\det A$ then gives the formula. Look at the $(i,k)$ entry of $A\,C\T$. It is row $i$ of $A$ dotted with column $k$ of $C\T$ --- and column $k$ of $C\T$ is row $k$ of $C$, namely the cofactors $C_{k1},\dots,C_{kn}$:
+\[
+(A\,C\T)_{ik}=\sum_{j=1}^{n} a_{ij}\,C_{kj}.
+\]
+\emph{Diagonal entries ($i=k$).} The sum $\sum_j a_{ij}C_{ij}$ is exactly the cofactor expansion of $\det A$ along row $i$. So every diagonal entry equals $\det A$.
+
+\emph{Off-diagonal entries ($i\ne k$).} The sum $\sum_j a_{ij}C_{kj}$ uses the \emph{entries} of row $i$ but the \emph{cofactors} of row $k$. That is precisely the cofactor expansion (along row $k$) of a modified matrix in which row $k$ has been replaced by a copy of row $i$. This modified matrix has two equal rows (rows $i$ and $k$ are both row $i$ of $A$), so by (P4) its determinant is $0$. Hence every off-diagonal entry is $0$.
+
+Therefore $A\,C\T=(\det A)\,I$, and $A^{-1}=\frac{1}{\det A}C\T$.}
+
+\ex[Back to the $2\times 2$ case]{For $A=\left[\begin{smallmatrix}a&b\\c&d\end{smallmatrix}\right]$ the cofactors are single entries with signs: $C_{11}=+d$, $C_{12}=-c$, $C_{21}=-b$, $C_{22}=+a$. So
+\[
+C=\begin{bmatrix} d & -c \\ -b & a\end{bmatrix},\qquad
+C\T=\begin{bmatrix} d & -b \\ -c & a\end{bmatrix},\qquad
+A^{-1}=\frac{1}{ad-bc}\begin{bmatrix} d & -b \\ -c & a\end{bmatrix}.
+\]
+The transpose is what swaps the off-diagonal cofactors into place. This is the familiar rule, now seen as the $n=2$ case of the cofactor formula.}
+
+\rmkb[Why the cancellation works]{Strang's intuition: $\det A$ is a sum of products of $n$ entries, while each cofactor is a sum of products of $n-1$ entries. When $A$ multiplies $\tfrac{1}{\det A}C\T$, the missing entry on each side fills in so that the numerator becomes $\det A$ on the diagonal (giving $1$ after dividing) and a determinant-with-a-repeated-row off the diagonal (giving $0$). It is far easier to see this from the cofactor structure than from Gauss--Jordan elimination.}
+
+\section{Cramer's Rule}
+
+The inverse formula gives a startlingly explicit answer for the solution of $Ax=b$. When $A$ is invertible, $x=A^{-1}b=\frac{1}{\det A}C\T b$. Reading off the components of this product turns each unknown $x_j$ into a ratio of two determinants.
+
+\thm{Cramer's Rule}{Let $A$ be invertible and $Ax=b$. Then for each $j$,
+\[
+x_j=\frac{\det B_j}{\det A},
+\]
+where $B_j$ is the matrix formed by replacing the $j$-th column of $A$ with the right-hand side $b$ (and leaving every other column of $A$ alone).}
+\pf{From $x=\frac{1}{\det A}C\T b$, the $j$-th component is $x_j=\frac{1}{\det A}\sum_{i=1}^{n} C_{ij}\,b_i$ (the $j$-th row of $C\T$ is the $j$-th column of $C$, namely $C_{1j},\dots,C_{nj}$). Now the sum $\sum_i b_i C_{ij}$ is exactly the cofactor expansion, along column $j$, of the matrix whose column $j$ is $b$ and whose other columns are those of $A$ --- because the cofactors $C_{ij}$ depend only on the \emph{other} columns of $A$, which are untouched. That matrix is $B_j$, so $\sum_i b_i C_{ij}=\det B_j$, and $x_j=\det B_j/\det A$.}
+
+\ex[Cramer on a $2\times 2$ system]{Solve
+\[
+\begin{bmatrix} 2 & 1 \\ 1 & 3\end{bmatrix}\begin{bmatrix} x_1 \\ x_2\end{bmatrix}=\begin{bmatrix} 3 \\ 5\end{bmatrix}.
+\]
+Here $\det A = 2\cdot 3-1\cdot 1=5$. Replace column $1$ by $b$ to get $B_1$, and column $2$ by $b$ to get $B_2$:
+\[
+\det B_1=\det\begin{bmatrix} 3 & 1 \\ 5 & 3\end{bmatrix}=9-5=4,\qquad
+\det B_2=\det\begin{bmatrix} 2 & 3 \\ 1 & 5\end{bmatrix}=10-3=7.
+\]
+So $x_1=\tfrac{4}{5}$ and $x_2=\tfrac{7}{5}$. A quick check: $2\cdot\tfrac45+\tfrac75=\tfrac{8+7}{5}=3$ and $\tfrac45+3\cdot\tfrac75=\tfrac{4+21}{5}=5$. \checkmark}
+
+\rmkb[Beautiful, but not for computing]{Cramer's rule is a gem of theory --- it writes each unknown as a clean ratio of determinants, and that explicit form is invaluable when you want to see \emph{how} the solution depends on the data. But as a numerical method it is terrible: evaluating $n+1$ determinants of size $n$ is wildly more work than the single elimination ($A=LU$, then back-substitute) that solves $Ax=b$ directly. Use Cramer's rule to understand, not to compute.}
+
+\section{Determinant as Volume}
+
+We close with the geometric meaning that justifies why this one number is worth all the trouble. The determinant is not just an algebraic test for invertibility --- it is, in absolute value, a \emph{volume}.
+
+\thm{The Determinant Is a Volume}{Let $A$ be an $n\times n$ matrix. Then $\abs{\det A}$ is the volume of the $n$-dimensional box (parallelepiped) whose edges are the rows of $A$ --- equivalently the columns, since $\det A\T=\det A$. In $\RR^2$ this is the area of the parallelogram spanned by the two rows; in $\RR^3$, the volume of the parallelepiped spanned by the three rows.}
+
+The clean way to believe this is to check that ``volume of the box'' obeys the same three defining properties (P1), (P2), (P3) that define the determinant --- and if two functions of a matrix obey the same three defining rules, they are the same function (up to the sign that the absolute value erases).
+
+\begin{itemize}
+   \item \textbf{(P1) for volume.} When $A=I$ the box is the unit cube, volume $1$. So volume agrees with $\det I=1$.
+   \item \textbf{(P2) for volume.} Swapping two edges does not change the box, so it does not change the volume. The determinant flips sign, but $\abs{\det A}$ does not --- matched once we take absolute value. (More: for an orthogonal matrix $Q$ the box is a unit cube turned in space, volume $1$, and indeed $\det Q=\pm 1$.)
+   \item \textbf{(P3a) for volume.} Doubling one edge of the box doubles its volume; scaling that edge by $t$ scales the volume by $\abs{t}$. This matches the scaling part of (P3).
+   \item \textbf{(P3b) for volume.} The additive part is the only subtle one. It says that if one edge is split as a sum $v+v'$, the box on $v+v'$ has volume equal to the sum of the volumes of the boxes on $v$ and on $v'$ (the other edges shared). For a parallelogram this is a cut-and-paste fact: sliding along the shared base preserves area, and the two pieces reassemble correctly.
+\end{itemize}
+
+Since volume satisfies the same three rules, $\abs{\det A}$ \emph{is} the volume. Property (P4) is visible too: if two edges of the box coincide, the box is flat and has zero volume --- matching $\det A=0$ for a repeated row.
+
+\rmkb[A geometric reading of singularity]{Now (P8) has a picture. $\det A=0$ means the box has collapsed to zero volume: the edge vectors (rows, or columns) lie in a lower-dimensional flat through the origin --- in $\RR^3$, squashed into a plane or a line. That is exactly the singular case from Chapter~\ref{ch:1}: dependent columns, a nontrivial null space, no inverse. Invertibility is the box having genuine $n$-dimensional volume.}
+
+\ex[Areas of a parallelogram and a triangle]{The parallelogram with edge vectors $(a,b)$ and $(c,d)$ has area
+\[
+\abs{\det\begin{bmatrix} a & b \\ c & d\end{bmatrix}}=\abs{ad-bc}.
+\]
+The triangle formed by those same two edges is half the parallelogram, area $\tfrac12\abs{ad-bc}$. And a triangle with arbitrary vertices $(x_1,y_1)$, $(x_2,y_2)$, $(x_3,y_3)$ has area
+\[
+\frac12\left|\det\begin{bmatrix} x_1 & y_1 & 1 \\ x_2 & y_2 & 1 \\ x_3 & y_3 & 1\end{bmatrix}\right|,
+\]
+the extra column of $1$'s accounting for the fact that the vertices need not sit at the origin. Coordinates of corners in, area out --- the determinant is doing geometry.}
+
+\begin{center}
+\begin{tikzpicture}[scale=0.95,>=Stealth]
+  % parallelogram spanned by u=(3,0.6) and v=(1,2)
+  \coordinate (O) at (0,0);
+  \coordinate (U) at (3,0.6);
+  \coordinate (V) at (1,2);
+  \coordinate (UV) at (4,2.6);
+  \fill[blue!12] (O)--(U)--(UV)--(V)--cycle;
+  \draw[->,very thick,blue!70!black] (O)--(U)
+       node[midway,below right,font=\scriptsize] {$(a,b)$};
+  \draw[->,very thick,red!70!black] (O)--(V)
+       node[midway,above left,font=\scriptsize] {$(c,d)$};
+  \draw[blue!70!black] (V)--(UV);
+  \draw[red!70!black] (U)--(UV);
+  \node[font=\scriptsize] at (2.0,1.15) {area $=\abs{ad-bc}$};
+\end{tikzpicture}
+\end{center}
+\begin{center}
+\small\textit{The parallelogram spanned by the two rows of $A$; its area is $\abs{\det A}$.}
+\end{center}
+
+\section{What to Carry Forward}
+
+We built the determinant from three rules --- $\det I=1$, sign flip on row exchange, linearity in each row --- and out of them came the whole machine. Two derived properties carry the weight. Property (P7), the triangular product rule, makes the determinant \emph{computable}: eliminate, count exchanges, multiply the pivots. Property (P8), $\det A=0\iff A$ singular, makes it \emph{meaningful}: one number decides invertibility, independence, and solvability all at once.
+
+From the same three rules we derived the big formula (a signed sum of $n!$ products, one per permutation), the cofactor expansion (the recursion down to smaller determinants), and from cofactors both the inverse $A^{-1}=\frac{1}{\det A}C\T$ and Cramer's rule $x_j=\det B_j/\det A$. These explicit formulas are theoretical treasures and computational dead ends --- when you actually need to solve a system, eliminate. Finally, the determinant is a volume: $\abs{\det A}$ measures the box on the rows (or columns) of $A$, and singular matrices are exactly the ones whose box has collapsed to zero volume.
+
+\rmkb[Looking ahead]{The reason we needed determinants now is the next chapter. Eigenvalues are the numbers $\lambda$ for which $A-\lambda I$ is singular --- which by (P8) means
+\[
+\det(A-\lambda I)=0 .
+\]
+Expanding that determinant (cofactors will do it) produces the \emph{characteristic polynomial}, whose roots are the eigenvalues. Everything in Chapter~\ref{ch:7} starts here.}

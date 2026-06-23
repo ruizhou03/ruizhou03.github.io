@@ -1,0 +1,441 @@
+% !TEX root = ../main.tex
+\chapter{Similar Matrices, the Jordan Form, and the SVD}
+\label{ch:9}
+
+We have reached the summit of the course. The eigenvalue chapters taught us to read a square matrix by what it does to its own special directions: a diagonalizable $A$ factors as $A=S\Lambda S^{-1}$, and a symmetric $A$ does it even better, $A=Q\Lambda Q\T$, with perpendicular axes. But two clouds still hang over that story. First, $A=S\Lambda S^{-1}$ secretly says that $A$ and $\Lambda$ are the ``same'' matrix written in two coordinate systems --- and we never made that idea precise. Second, some matrices have too few eigenvectors to diagonalize at all, and rectangular matrices have no eigenvalues to speak of. This chapter clears both clouds.
+
+We start by naming the relation hiding inside $A=S\Lambda S^{-1}$: \emph{similarity}, $B=M^{-1}AM$. Similar matrices are the same linear map seen in different bases, so they share everything basis-free --- above all, their eigenvalues. Diagonalizing is the search for the simplest matrix similar to $A$. When no diagonal matrix is similar to $A$, Camille Jordan's theorem tells us the next-best representative, almost diagonal, with a few $1$'s above the diagonal recording the missing eigenvectors. Then comes the climax. The \emph{singular value decomposition} $A=U\Sigma V\T$ works for \emph{every} matrix, square or rectangular, diagonalizable or not. It takes the eigenvalue idea --- orthonormal axes and pure stretching --- and makes it succeed universally, by allowing two different orthonormal bases instead of one. The SVD hands us orthonormal bases for all four fundamental subspaces at once, and it says that every matrix, no matter how complicated, does nothing more than \emph{rotate, stretch, and rotate}.
+
+\section{Similar Matrices}
+
+The factorization $A=S\Lambda S^{-1}$ from Chapter~\ref{ch:7} has a meaning we have been circling without naming. It says $A$ and the diagonal matrix $\Lambda$ are linked by a particular kind of sandwich: a matrix on the left, its inverse on the right, the same matrix throughout. That sandwich is worth a definition of its own, because it organizes all square matrices into families.
+
+\defn{Similar Matrices}{Two square matrices $A$ and $B$ of the same size are \textbf{similar} if there is an invertible matrix $M$ with
+\[
+   B = M^{-1}AM .
+\]
+We write $A\sim B$. The passage from $A$ to $M^{-1}AM$ is a \emph{similarity transformation}.}
+
+The first thing to know is that similarity sorts every $n\times n$ matrix into families. It is an \emph{equivalence relation}: $A\sim A$ (take $M=I$); if $A\sim B$ then $B\sim A$ (replace $M$ by $M^{-1}$, since $A=MBM^{-1}=(M^{-1})^{-1}B(M^{-1})$); and if $A\sim B$ and $B\sim C$ then $A\sim C$ (compose the two $M$'s). So the $n\times n$ matrices break into disjoint \emph{similarity families}, and inside each family we will hunt for the simplest representative --- diagonal if we are lucky, ``nearly diagonal'' (Jordan form) if we are not.
+
+\subsection{Why similarity is a change of basis}
+
+The definition looks algebraic, but its content is geometric. Recall from the eigenvalue chapter that $A=S\Lambda S^{-1}$ means: to apply $A$, first write the input in the eigenvector basis (multiply by $S^{-1}$), then stretch each coordinate (multiply by $\Lambda$), then translate back to standard coordinates (multiply by $S$). The same reading works for any $M$. If $M$ holds a new basis in its columns, then $M^{-1}AM$ is \emph{the very same linear transformation $A$, written in the basis $M$}. Similar matrices are one map seen through different coordinate systems.
+
+\state{Similarity is sameness of map, difference of basis}{If $M=\begin{bmatrix} m_1 & \cdots & m_n\end{bmatrix}$ holds a basis of $\RR^n$ in its columns, then $B=M^{-1}AM$ is the matrix of the \emph{same} linear transformation as $A$, but with inputs and outputs expressed in the basis $m_1,\dots,m_n$ rather than the standard basis. Everything that does not depend on the choice of basis must agree for $A$ and $B$.}
+
+Chapter~\ref{ch:10} develops change of basis fully. For now, the slogan ``same map, new coordinates'' is exactly the tool we need to see why similar matrices share their deepest features.
+
+\subsection{Similar matrices have the same eigenvalues}
+
+The headline of the section follows in two lines. If $A$ and $B$ are similar, every eigenvalue of $A$ is an eigenvalue of $B$, with the eigenvector merely relabeled.
+
+\thm{Similar Matrices Share Their Eigenvalues}{If $B=M^{-1}AM$, then $A$ and $B$ have the same characteristic polynomial, hence the same eigenvalues with the same algebraic multiplicities. Moreover, if $Ax=\lambda x$ then $M^{-1}x$ is an eigenvector of $B$ for the same $\lambda$.}
+
+\pf{
+Take an eigenpair of $A$: $Ax=\lambda x$ with $x\neq0$. Insert $MM^{-1}=I$ and multiply on the left by $M^{-1}$:
+\[
+   A\,(MM^{-1})\,x=\lambda x
+   \quad\Longrightarrow\quad
+   M^{-1}A M\,(M^{-1}x)=\lambda\,(M^{-1}x),
+   \quad\text{i.e.}\quad
+   B\,(M^{-1}x)=\lambda\,(M^{-1}x).
+\]
+Since $M^{-1}$ is invertible and $x\neq0$, the vector $M^{-1}x$ is nonzero, so it is an eigenvector of $B$ with eigenvalue $\lambda$. For the stronger statement about the whole polynomial, use the multiplicativity of determinants:
+\[
+\begin{aligned}
+   \det(B-\lambda I)
+   &=\det(M^{-1}AM-\lambda M^{-1}M)
+   =\det\!\big(M^{-1}(A-\lambda I)M\big)\\
+   &=\det(M^{-1})\det(A-\lambda I)\det(M).
+\end{aligned}
+\]
+Because $\det(M^{-1})\det(M)=1$, the two characteristic polynomials are equal, so $A$ and $B$ have identical eigenvalues and multiplicities.}
+
+The same computation shows that the \emph{number} of independent eigenvectors is also preserved: $M^{-1}$ carries each eigenspace of $A$ one-to-one onto an eigenspace of $B$ of the same dimension. So similar matrices agree on eigenvalues, their multiplicities, and the count of eigenvectors. They generally do \emph{not} have the same eigenvectors --- those rotate with the basis --- and they need not have the same entries at all.
+
+\rmkb[Two free invariants: trace and determinant]{Two consequences of equal eigenvalues are worth keeping at your fingertips, because they are cheap to compute and catch most errors. Similar matrices have the same \emph{determinant} (the product of the eigenvalues) and the same \emph{trace} (their sum). The trace identity also follows directly from $\trace(XY)=\trace(YX)$: $\trace(M^{-1}AM)=\trace(AMM^{-1})=\trace A$. If two matrices disagree in trace or determinant, they cannot be similar --- no need to look further.}
+
+\ex[A whole family with eigenvalues $3$ and $1$]{
+Start from the symmetric matrix
+\[
+   A=\begin{bmatrix} 2 & 1\\ 1 & 2\end{bmatrix},
+   \qquad \trace A=4,\quad\det A=3,
+\]
+whose eigenvalues are $3$ and $1$. Diagonalizing makes $A$ similar to $\Lambda=\left[\begin{smallmatrix}3&0\\0&1\end{smallmatrix}\right]$. But $A$ is similar to many non-diagonal matrices too. Pick the simple change of basis
+\[
+   M=\begin{bmatrix} 1 & 4\\ 0 & 1\end{bmatrix},
+   \qquad
+   M^{-1}=\begin{bmatrix} 1 & -4\\ 0 & 1\end{bmatrix},
+\]
+and compute
+\[
+   B=M^{-1}AM
+   =\begin{bmatrix} 1 & -4\\ 0 & 1\end{bmatrix}
+    \begin{bmatrix} 2 & 1\\ 1 & 2\end{bmatrix}
+    \begin{bmatrix} 1 & 4\\ 0 & 1\end{bmatrix}
+   =\begin{bmatrix} -2 & -15\\ 1 & 6\end{bmatrix}.
+\]
+This $B$ looks nothing like $A$, yet $\trace B=4$ and $\det B=3$ --- the same eigenvalues $3$ and $1$. In fact the matrices similar to $A$ are \emph{all} the $2\times2$ matrices with eigenvalues $3$ and $1$; other members of the family include $\left[\begin{smallmatrix}3&7\\0&1\end{smallmatrix}\right]$ and $\left[\begin{smallmatrix}1&7\\0&3\end{smallmatrix}\right]$. Diagonalizing is choosing the cleanest representative, $\Lambda$, out of this infinite family.}
+
+\section{Repeated Eigenvalues and the Jordan Form}
+
+When the eigenvalues are distinct, similarity to a diagonal matrix is automatic --- the eigenvectors are independent (Chapter~\ref{ch:7}), so $S$ is invertible and $S^{-1}AS=\Lambda$. The trouble starts when an eigenvalue repeats and the matrix runs short of eigenvectors. Then no diagonal matrix is similar to $A$, and we need a substitute.
+
+\subsection{Two families with the same eigenvalues}
+
+The cleanest way to feel the problem is to fix the eigenvalues and watch the families split. Suppose both eigenvalues equal $4$. Two very different matrices have characteristic polynomial $(\lambda-4)^2$:
+\[
+   \begin{bmatrix} 4 & 0\\ 0 & 4\end{bmatrix}
+   \qquad\text{and}\qquad
+   \begin{bmatrix} 4 & 1\\ 0 & 4\end{bmatrix}.
+\]
+They are \emph{not} similar, even though their eigenvalues match. The first is special: the scalar matrix $4I$ commutes with everything, so $M^{-1}(4I)M=4M^{-1}M=4I$ for every invertible $M$. It is similar only to itself --- a family of one. It has a full set of eigenvectors (every vector is an eigenvector), so it is diagonal already.
+
+The second matrix is \emph{defective}. Solving $(A-4I)x=0$ means $\left[\begin{smallmatrix}0&1\\0&0\end{smallmatrix}\right]x=0$, which forces $x_2=0$: the eigenspace is only the line through $(1,0)$, one-dimensional. With two eigenvalues but a single eigenvector, no eigenvector matrix $S$ can be invertible, and $A$ cannot be diagonalized. This matrix heads its own family, and every matrix in that family has exactly one eigenvector.
+
+\rmkb[Diagonalizable is a property of the family]{Whether a matrix can be diagonalized is a property of its whole similarity family, since similar matrices have the same number of eigenvectors. The family of $4I$ is diagonalizable (it \emph{is} the diagonal matrix). The family of $\left[\begin{smallmatrix}4&1\\0&4\end{smallmatrix}\right]$ is not --- no member has enough eigenvectors. Counting eigenvectors decides the matter once and for all.}
+
+\subsection{Jordan blocks}
+
+Jordan found the ``most diagonal'' representative of each family. For a single repeated eigenvalue with a shortage of eigenvectors, that representative is a \emph{Jordan block}: the eigenvalue down the diagonal, a row of $1$'s just above it, zeros elsewhere.
+
+\defn{Jordan Block}{A \textbf{Jordan block} of size $k$ for the eigenvalue $\lambda$ is the $k\times k$ matrix
+\[
+   J_k(\lambda)=
+   \begin{bmatrix}
+     \lambda & 1 & & \\
+     & \lambda & \ddots & \\
+     & & \ddots & 1\\
+     & & & \lambda
+   \end{bmatrix}
+\]
+with $\lambda$ on the diagonal, $1$'s on the first superdiagonal, and $0$'s everywhere else. A block of size $k$ has the single eigenvalue $\lambda$ (repeated $k$ times) but only \emph{one} eigenvector, $e_1$; the $k-1$ ones above the diagonal record its $k-1$ missing eigenvectors.}
+
+A diagonal matrix is the special case where every Jordan block has size $1$. The general theorem assembles blocks down the diagonal of a big matrix.
+
+\thm{Jordan's Theorem}{Every square matrix $A$ is similar to a \textbf{Jordan matrix}
+\[
+   J = M^{-1}AM =
+   \begin{bmatrix}
+     J_1 & & \\
+     & \ddots & \\
+     & & J_d
+   \end{bmatrix},
+\]
+a block-diagonal matrix whose diagonal blocks $J_1,\dots,J_d$ are Jordan blocks. The Jordan matrix is unique up to the order of the blocks. The eigenvalues sit on the diagonal; the number of blocks equals the number of independent eigenvectors of $A$ (one eigenvector per block); and the total number of $1$'s above the diagonal is $n-d$, the count of \emph{missing} eigenvectors. Two matrices are similar if and only if they have the same Jordan form (same block sizes for the same eigenvalues).}
+
+We will not prove existence here --- it is the deepest theorem of the chapter, and computing $J$ for a defective matrix is beyond our running examples. What matters is the picture: every matrix is \emph{almost} diagonalizable, and the only obstruction is a handful of $1$'s above the diagonal, exactly as many as the eigenvectors it lacks.
+
+\rmkb[The two clean extremes]{The two ends of Jordan's theorem are the cases we already understand. If $A$ has $n$ distinct eigenvalues it has $n$ eigenvectors, so $d=n$, every block has size $1$, and $J=\Lambda$ is diagonal --- ordinary diagonalization. If $A$ is symmetric, the spectral theorem (Chapter~\ref{ch:8}) again gives a full set of eigenvectors, so $J=\Lambda$ with no $1$'s above the diagonal. The Jordan form earns its keep only for \emph{defective} matrices, the ones missing eigenvectors.}
+
+\subsection{Same eigenvalues need not mean similar}
+
+Equal eigenvalues, even the same number of eigenvectors, are not enough for similarity --- the block \emph{sizes} must match too. The standard example uses four-fold zero eigenvalues.
+
+\ex[Two nilpotent matrices that are not similar]{
+Consider
+\[
+   A=\begin{bmatrix}
+     0 & 1 & 0 & 0\\
+     0 & 0 & 1 & 0\\
+     0 & 0 & 0 & 0\\
+     0 & 0 & 0 & 0
+   \end{bmatrix},
+   \qquad
+   C=\begin{bmatrix}
+     0 & 1 & 0 & 0\\
+     0 & 0 & 0 & 0\\
+     0 & 0 & 0 & 1\\
+     0 & 0 & 0 & 0
+   \end{bmatrix}.
+\]
+Both have all four eigenvalues equal to $0$ (they are upper triangular with zero diagonal). Both have rank $2$, so both have null space of dimension $4-2=2$: \emph{each has exactly two independent eigenvectors.} On the surface they look identical --- same eigenvalues, same number of eigenvectors. Yet they are \emph{not} similar, and the Jordan form shows why. Reading off the blocks,
+\[
+   \begin{aligned}
+   A&=\begin{bmatrix} J_3(0) & \\ & J_1(0)\end{bmatrix}
+     \quad\text{(a $3\times3$ block and a $1\times1$ block)},\\[4pt]
+   C&=\begin{bmatrix} J_2(0) & \\ & J_2(0)\end{bmatrix}
+     \quad\text{(two $2\times2$ blocks)}.
+   \end{aligned}
+\]
+The block sizes differ, so $A\not\sim C$. A basis-free quantity catches the difference at once: square them. A short computation gives $\rank(A^2)=1$, while $\rank(C^2)=0$ (indeed $C^2=0$).
+Now $B=M^{-1}AM$ forces $B^2=M^{-1}A^2M$, so similar matrices have squares of equal rank. Here the ranks disagree, so $A$ and $C$ cannot be similar. The Jordan form is precisely the bookkeeping that distinguishes families like these.}
+
+\section{The Singular Value Decomposition}
+
+Now the climax. Diagonalization $A=S\Lambda S^{-1}$ is wonderful but fragile: it needs $A$ square, it needs enough eigenvectors, and even then $S$ is usually not orthogonal. The spectral theorem $A=Q\Lambda Q\T$ fixes the orthogonality but demands $A=A\T$. The singular value decomposition keeps everything good and drops every restriction.
+
+\state{The goal of the SVD}{We want a factorization that works for \emph{every} $A\in\RR^{m\times n}$ --- rectangular, defective, anything --- and that uses \emph{orthonormal} bases throughout. The price is one honest concession: a general matrix maps inputs in $\RR^n$ to outputs in $\RR^m$, so we will need \emph{two} orthonormal bases, one $V$ for the input space $\RR^n$ and one $U$ for the output space $\RR^m$, rather than a single eigenvector basis.}
+
+\subsection{The geometric idea: one orthonormal basis into another}
+
+Think of $A$ as the linear map that carries the row space of $A$ onto the column space of $A$ (Chapter~\ref{ch:4}: it sends $\RR^n$ to $\RR^m$, crushing the null space and mapping the row space one-to-one onto the column space). An orthonormal basis of the row space is easy to get --- Gram--Schmidt (Chapter~\ref{ch:5}) produces one immediately. But there is no reason a generic matrix should send that orthonormal basis to another \emph{orthogonal} set in the column space; it will usually skew the right angles.
+
+The SVD is the statement that, with the \emph{right} choice of orthonormal basis $v_1,\dots,v_r$ for the row space, the images come out orthogonal after all:
+\[
+   A v_i = \sigma_i\, u_i,
+   \qquad i=1,\dots,r,
+\]
+where the $u_i$ are orthonormal in the column space and the $\sigma_i>0$ are the stretching factors. Each input axis $v_i$ goes to an output axis $u_i$, stretched by $\sigma_i$ and otherwise rigid. The null spaces cause no trouble: the leftover $v$'s span $N(A)$ and get sent to $0$, recorded as zeros in $\Sigma$.
+
+\defn{Singular Values and Singular Vectors}{For $A\in\RR^{m\times n}$ of rank $r$, the \textbf{singular values} $\sigma_1\ge\sigma_2\ge\cdots\ge\sigma_r>0$ are the positive square roots of the nonzero eigenvalues of $A\T A$ (equivalently of $AA\T$). The orthonormal vectors $v_1,\dots,v_n$ (eigenvectors of $A\T A$) are the \textbf{right singular vectors}, and the orthonormal vectors $u_1,\dots,u_m$ (eigenvectors of $AA\T$) are the \textbf{left singular vectors}. They satisfy $Av_i=\sigma_i u_i$ for $i\le r$ and $Av_i=0$ for $i>r$.}
+
+\subsection{The theorem}
+
+Collecting the $v$'s as columns of $V$ and the $u$'s as columns of $U$, the relations $Av_i=\sigma_i u_i$ assemble columnwise into $AV=U\Sigma$. Since $V$ is orthogonal, $V^{-1}=V\T$, and multiplying on the right gives the factorization.
+
+\thm{Singular Value Decomposition}{Every matrix $A\in\RR^{m\times n}$ factors as
+\[
+   A = U\,\Sigma\,V\T,
+\]
+where $U$ is an $m\times m$ orthogonal matrix ($U\T U=I_m$), $V$ is an $n\times n$ orthogonal matrix ($V\T V=I_n$), and $\Sigma$ is an $m\times n$ ``diagonal'' matrix with the singular values $\sigma_1\ge\cdots\ge\sigma_r>0$ on its diagonal and zeros elsewhere. The columns of $V$ are orthonormal eigenvectors of $A\T A$; the columns of $U$ are orthonormal eigenvectors of $AA\T$; and the $\sigma_i^2$ are the corresponding (nonnegative) eigenvalues.}
+
+\pf{
+The construction \emph{is} the proof, and it rests entirely on the spectral theorem applied to the symmetric matrix $A\T A$. Suppose the factorization holds, $A=U\Sigma V\T$. Multiply by $A\T=V\Sigma\T U\T$ on the left:
+\[
+   A\T A
+   = V\Sigma\T U\T\,U\Sigma V\T
+   = V\,(\Sigma\T\Sigma)\,V\T,
+\]
+because $U\T U=I$. Now $\Sigma\T\Sigma$ is the $n\times n$ diagonal matrix $\diag(\sigma_1^2,\dots,\sigma_r^2,0,\dots,0)$, so this is exactly the spectral decomposition $A\T A=V\Lambda V\T$ of the symmetric matrix $A\T A$. That tells us how to \emph{build} $V$ and $\Sigma$ in the first place: $A\T A$ is symmetric, and by Chapter~\ref{ch:8} it is positive semidefinite (its energy is $x\T A\T Ax=\norm{Ax}^2\ge0$), so its eigenvalues are real and nonnegative. Diagonalize it, $A\T A=V\Lambda V\T$ with $V$ orthogonal; the eigenvalues $\lambda_i\ge0$ define the singular values $\sigma_i=\sqrt{\lambda_i}$.
+
+It remains to produce $U$ and verify $Av_i=\sigma_i u_i$. For each $i$ with $\sigma_i>0$, set
+\[
+   u_i=\frac{1}{\sigma_i}\,Av_i .
+\]
+These $u_i$ are orthonormal: using $A\T Av_j=\sigma_j^2 v_j$,
+\[
+   u_i\T u_j
+   =\frac{1}{\sigma_i\sigma_j}\,(Av_i)\T(Av_j)
+   =\frac{1}{\sigma_i\sigma_j}\,v_i\T(A\T A v_j)
+   =\frac{\sigma_j^2}{\sigma_i\sigma_j}\,v_i\T v_j
+   =\frac{\sigma_j}{\sigma_i}\,\delta_{ij}
+   =\delta_{ij},
+\]
+since the $v$'s are orthonormal. So $u_1,\dots,u_r$ are an orthonormal set in $\RR^m$, and by construction $Av_i=\sigma_i u_i$. Extend $u_1,\dots,u_r$ to an orthonormal basis $u_1,\dots,u_m$ of $\RR^m$ (Gram--Schmidt), and similarly the $v_i$ for $i>r$ are eigenvectors of $A\T A$ with eigenvalue $0$, hence lie in $N(A\T A)=N(A)$ and satisfy $Av_i=0$. All the relations $Av_i=\sigma_i u_i$ (with $\sigma_i=0$ for $i>r$) assemble into $AV=U\Sigma$, and right-multiplying by $V\T=V^{-1}$ gives $A=U\Sigma V\T$.}
+
+\rmkb[Where each piece lives, and why $U$ falls out of $AA\T$]{The same algebra run on the \emph{other} side explains $U$ directly. From $A=U\Sigma V\T$,
+\[
+   AA\T=U\Sigma V\T\,V\Sigma\T U\T=U\,(\Sigma\Sigma\T)\,U\T,
+\]
+so the columns of $U$ are orthonormal eigenvectors of the $m\times m$ symmetric matrix $AA\T$, with the \emph{same} nonzero eigenvalues $\sigma_i^2$. (The nonzero eigenvalues of $A\T A$ and $AA\T$ always agree --- only the number of extra zeros differs, accounting for the different sizes $n$ and $m$.) In practice you can find $V$ from $A\T A$ and then get $U$ for free from $u_i=Av_i/\sigma_i$, without diagonalizing $AA\T$ separately.}
+
+\section{Computing the SVD}
+
+The proof is a recipe. To factor $A=U\Sigma V\T$:
+\begin{enumerate}
+   \item Form the symmetric matrix $A\T A$ and diagonalize it: its orthonormal eigenvectors are the columns of $V$, its eigenvalues are $\sigma_i^2$.
+   \item Take $\sigma_i=\sqrt{\lambda_i}$ (positive square roots), ordered $\sigma_1\ge\sigma_2\ge\cdots$, and place them on the diagonal of $\Sigma$.
+   \item Recover each left singular vector from $u_i=Av_i/\sigma_i$ (for $\sigma_i>0$); fill out $U$ with an orthonormal basis of the left null space if needed.
+\end{enumerate}
+Two worked examples make the mechanics concrete --- first an invertible matrix, then one with a null space.
+
+\ex[An invertible $2\times2$ matrix]{
+Take
+\[
+   A=\begin{bmatrix} 4 & 4\\ -3 & 3\end{bmatrix}.
+\]
+\textbf{Step 1: diagonalize $A\T A$.}
+\[
+   A\T A
+   =\begin{bmatrix} 4 & -3\\ 4 & 3\end{bmatrix}
+    \begin{bmatrix} 4 & 4\\ -3 & 3\end{bmatrix}
+   =\begin{bmatrix} 25 & 7\\ 7 & 25\end{bmatrix}.
+\]
+This symmetric matrix has eigenvalues $25\pm7$, namely $\lambda_1=32$ and $\lambda_2=18$, with eigenvectors $(1,1)$ and $(1,-1)$ (orthogonal, as the spectral theorem promises). Normalizing,
+\[
+   v_1=\frac{1}{\sqrt2}\begin{bmatrix} 1\\ 1\end{bmatrix},
+   \qquad
+   v_2=\frac{1}{\sqrt2}\begin{bmatrix} 1\\ -1\end{bmatrix}.
+\]
+\textbf{Step 2: singular values.}
+\[
+   \sigma_1=\sqrt{32}=4\sqrt2,
+   \qquad
+   \sigma_2=\sqrt{18}=3\sqrt2 .
+\]
+\textbf{Step 3: left singular vectors.}
+\[
+   \begin{aligned}
+   Av_1&=\frac{1}{\sqrt2}\begin{bmatrix} 4+4\\ -3+3\end{bmatrix}
+   =\begin{bmatrix} 4\sqrt2\\ 0\end{bmatrix}
+   =\sigma_1\begin{bmatrix} 1\\ 0\end{bmatrix},\\[4pt]
+   Av_2&=\frac{1}{\sqrt2}\begin{bmatrix} 4-4\\ -3-3\end{bmatrix}
+   =\begin{bmatrix} 0\\ -3\sqrt2\end{bmatrix}
+   =\sigma_2\begin{bmatrix} 0\\ -1\end{bmatrix},
+   \end{aligned}
+\]
+so $u_1=(1,0)$ and $u_2=(0,-1)$. (Watch the sign: $Av_2$ points in the $-y$ direction, so $u_2=(0,-1)$, not $(0,1)$ --- letting $u_i=Av_i/\sigma_i$ fix the signs is the safe habit.) Assembling,
+\[
+   \begin{aligned}
+   A&=U\Sigma V\T\\
+    &=\begin{bmatrix} 1 & 0\\ 0 & -1\end{bmatrix}
+    \begin{bmatrix} 4\sqrt2 & 0\\ 0 & 3\sqrt2\end{bmatrix}
+    \frac{1}{\sqrt2}\begin{bmatrix} 1 & 1\\ 1 & -1\end{bmatrix}.
+   \end{aligned}
+\]
+Multiplying the three factors back out returns $A$ exactly. The whole geometry is in the diagonal $\Sigma$: $A$ stretches one perpendicular direction by $4\sqrt2$ and the other by $3\sqrt2$, with rigid rotations on either side.}
+
+\ex[A matrix with a null space]{
+Now a rank-one example,
+\[
+   A=\begin{bmatrix} 4 & 3\\ 8 & 6\end{bmatrix},
+\]
+whose second row is twice the first. It has a one-dimensional row space (multiples of $(4,3)$), a one-dimensional column space (multiples of $(4,8)$, i.e.\ $(1,2)$), and one-dimensional null and left null spaces.
+\[
+   A\T A
+   =\begin{bmatrix} 4 & 8\\ 3 & 6\end{bmatrix}
+    \begin{bmatrix} 4 & 3\\ 8 & 6\end{bmatrix}
+   =\begin{bmatrix} 80 & 60\\ 60 & 45\end{bmatrix}.
+\]
+This matrix is rank one, so one eigenvalue is $0$; the other equals the trace, $\lambda_1=80+45=125$. Thus $\sigma_1=\sqrt{125}=5\sqrt5$ and $\sigma_2=0$. The unit eigenvector for $\lambda_1$ lies along the row space, $v_1=\tfrac15(4,3)=(0.8,0.6)$, and $v_2=(0.6,-0.8)$ spans the null space. On the output side the column space direction is $u_1=\tfrac{1}{\sqrt5}(1,2)$, and $u_2=\tfrac{1}{\sqrt5}(2,-1)$ spans the left null space. The SVD is
+\[
+   A
+   =\underbrace{\frac{1}{\sqrt5}\begin{bmatrix} 1 & 2\\ 2 & -1\end{bmatrix}}_{U}
+    \underbrace{\begin{bmatrix} 5\sqrt5 & 0\\ 0 & 0\end{bmatrix}}_{\Sigma}
+    \underbrace{\begin{bmatrix} 0.8 & 0.6\\ 0.6 & -0.8\end{bmatrix}}_{V\T}.
+\]
+The single zero on the diagonal of $\Sigma$ is doing exactly the job advertised: it absorbs the null space, sending $v_2$ to $0$. Notice that the SVD has just handed us orthonormal bases for all four subspaces in one shot.}
+
+\section{The SVD and the Four Fundamental Subspaces}
+
+The second example is no accident. The singular value decomposition is the natural climax of the four-subspaces story (Chapter~\ref{ch:4}), because it produces \emph{orthonormal} bases for all four at once, perfectly matched so that $A$ acts as pure stretching between them.
+
+\state{Orthonormal bases for the four subspaces}{Write the SVD of a rank-$r$ matrix $A\in\RR^{m\times n}$ as $A=U\Sigma V\T$ with $V=[v_1\ \cdots\ v_n]$ and $U=[u_1\ \cdots\ u_m]$. Then:
+\[
+   \ba
+   v_1,\dots,v_r          &\ \text{is an orthonormal basis for the row space } C(A\T)\subseteq\RR^n,\\
+   v_{r+1},\dots,v_n      &\ \text{is an orthonormal basis for the null space } N(A)\subseteq\RR^n,\\
+   u_1,\dots,u_r          &\ \text{is an orthonormal basis for the column space } C(A)\subseteq\RR^m,\\
+   u_{r+1},\dots,u_m      &\ \text{is an orthonormal basis for the left null space } N(A\T)\subseteq\RR^m,
+   \ea
+\]
+and $A$ maps each row-space axis to a column-space axis by $Av_i=\sigma_i u_i$.}
+
+These are the ``right'' bases, the ones Chapter~\ref{ch:4} could promise existed but not name. The first columns of $V$ ($\sigma_i>0$) are eigenvectors of $A\T A$ with positive eigenvalue, so they lie in the row space; the last columns ($\sigma_i=0$) lie in $N(A\T A)=N(A)$. On the output side $u_i=Av_i/\sigma_i$ is a combination of columns of $A$, hence in $C(A)$, while the extra $u$'s fill out $N(A\T)$. The orthogonality of the four subspaces in pairs --- row space $\perp$ null space, column space $\perp$ left null space --- is built into the orthogonality of $V$ and $U$.
+
+\subsection{The sum of rank-one pieces}
+
+Just as the spectral theorem wrote a symmetric matrix as $\sum\lambda_k q_kq_k\T$, the SVD expands any matrix as a sum of rank-one pieces, one per singular value.
+
+\thm{The SVD as a Sum of Rank-One Matrices}{If $A=U\Sigma V\T$ has rank $r$, then
+\[
+   A=\sigma_1\,u_1 v_1\T+\sigma_2\,u_2 v_2\T+\cdots+\sigma_r\,u_r v_r\T .
+\]
+Each term $u_i v_i\T$ is a rank-one matrix (Chapter~\ref{ch:4}), and the singular values $\sigma_1\ge\cdots\ge\sigma_r$ order the pieces from most to least important.}
+
+\pf{
+Expand the product $U\Sigma V\T$ the same way we expanded $Q\Lambda Q\T$ in Chapter~\ref{ch:8}: the diagonal $\Sigma$ picks out one outer product per nonzero entry,
+\[
+   U\Sigma V\T
+   =\begin{bmatrix} u_1 & \cdots & u_m\end{bmatrix}
+    \Sigma
+    \begin{bmatrix} v_1\T\\ \vdots\\ v_n\T\end{bmatrix}
+   =\sum_{i=1}^r \sigma_i\,u_i v_i\T,
+\]
+since the only nonzero diagonal entries of $\Sigma$ are $\sigma_1,\dots,\sigma_r$.}
+
+\rmkb[Best low-rank approximation: why the SVD runs data science]{Because the pieces are ordered by size, keeping only the largest few gives the best possible approximation of $A$ by a low-rank matrix. Truncating after $k$ terms,
+\[
+   A_k=\sigma_1 u_1 v_1\T+\cdots+\sigma_k u_k v_k\T,
+\]
+is the closest rank-$k$ matrix to $A$ (the Eckart--Young theorem, measured in either the Frobenius or the spectral norm), and the error is governed by the discarded singular values $\sigma_{k+1},\dots$. This single fact powers image compression, noise removal, latent-semantic indexing, recommender systems, and \emph{principal component analysis}: the leading singular vectors are the directions of greatest variation in data. The SVD is the most useful matrix factorization in all of applied mathematics, and this is why.}
+
+\section{The Geometry: Rotate, Stretch, Rotate}
+
+Stand back and read $A=U\Sigma V\T$ as a sequence of three motions applied to a vector $x$, right to left. First $V\T$ acts. Since $V$ is orthogonal, $V\T$ is a \emph{rotation} (or rotation with a reflection): it preserves all lengths and angles, merely realigning the axes so that the right singular vectors $v_i$ become the coordinate directions. Next $\Sigma$ acts. It is diagonal, so it \emph{stretches} along those coordinate axes, scaling the $i$-th direction by the singular value $\sigma_i$ --- and, if $A$ is rectangular, dropping or appending zero coordinates to move from $\RR^n$ to $\RR^m$. Finally $U$ acts: another orthogonal matrix, another \emph{rotation}, aligning the stretched axes with the left singular vectors $u_i$ in the output space.
+
+\state{Every matrix is a rotation, a stretch, and a rotation}{For any $A=U\Sigma V\T$, applying $A$ to a vector means
+\[
+   x\ \xrightarrow{\ V\T\ }\ \text{(rotate)}\ \xrightarrow{\ \Sigma\ }\ \text{(stretch along axes)}\ \xrightarrow{\ U\ }\ \text{(rotate)}\ \to Ax .
+\]
+No matter how tangled $A$ looks, it does nothing more exotic than this. The rotations $U,V$ contribute no stretching --- they only spin space rigidly --- and \emph{all} the deformation lives in the singular values on the diagonal of $\Sigma$.}
+
+The cleanest way to see it is to watch what $A$ does to the unit circle (or the unit sphere in higher dimensions). The right singular vectors $v_1,v_2$ are a pair of perpendicular radii. The matrix sends them to $\sigma_1 u_1$ and $\sigma_2 u_2$ --- still perpendicular, because the $u$'s are orthonormal, but now of lengths $\sigma_1$ and $\sigma_2$. So $A$ carries the unit circle to an \emph{ellipse} whose semi-axes point along $u_1,u_2$ with lengths exactly the singular values. The largest singular value $\sigma_1$ is how far $A$ can stretch any unit vector; the smallest is how far it can shrink one. This is the picture to keep.
+
+\begin{center}
+\begin{tikzpicture}[scale=0.8,>=Stealth,
+    vv/.style={->,very thick,blue!70!black},
+    uu/.style={->,very thick,red!70!black},
+    ax/.style={->,gray!70},
+    panellbl/.style={font=\scriptsize,align=center},
+    arrlbl/.style={font=\footnotesize,midway,above}]
+
+  % panel geometry
+  \def\R{1.0}            % unit-circle radius
+  \def\sa{1.45}          % sigma_1 (long)
+  \def\sb{0.65}          % sigma_2 (short)
+  \def\dx{4.0}           % horizontal step between panel centers
+
+  % ==================== PANEL 1: unit circle, v1,v2 tilted =======
+  \begin{scope}[shift={(0,0)}]
+    \draw[ax] (-1.35,0)--(1.35,0);
+    \draw[ax] (0,-1.35)--(0,1.35);
+    \draw[thick,black] (0,0) circle (\R);
+    % v1 at 25 deg, v2 perpendicular (115 deg)
+    \draw[vv] (0,0)--(25:\R) node[pos=1.18,font=\scriptsize]{$v_1$};
+    \draw[uu] (0,0)--(115:\R) node[pos=1.18,font=\scriptsize]{$v_2$};
+    % right-angle marker between v1 and v2
+    \draw[gray] ($(25:0.22)$) -- ($(25:0.22)+(115:0.22)$) -- ($(115:0.22)$);
+    \node[panellbl] at (0,-1.85) {unit circle\\ in $\RR^n$};
+  \end{scope}
+
+  % arrow V^T
+  \draw[->,thick] (1.55,0)--(\dx-1.55,0) node[arrlbl,black]{$V\T$};
+
+  % ==================== PANEL 2: circle, v1->e1, v2->e2 ==========
+  \begin{scope}[shift={(\dx,0)}]
+    \draw[ax] (-1.35,0)--(1.35,0) node[pos=1.0,right,font=\scriptsize,black]{$e_1$};
+    \draw[ax] (0,-1.35)--(0,1.35) node[pos=1.0,above,font=\scriptsize,black]{$e_2$};
+    \draw[thick,black] (0,0) circle (\R);
+    \draw[vv] (0,0)--(\R,0) node[pos=1.2,below,font=\scriptsize]{$v_1$};
+    \draw[uu] (0,0)--(0,\R) node[pos=1.18,left,font=\scriptsize]{$v_2$};
+    \node[panellbl] at (0,-1.85) {rotated onto\\ the axes};
+  \end{scope}
+
+  % arrow Sigma
+  \draw[->,thick] (\dx+1.55,0)--(2*\dx-1.55,0) node[arrlbl,black]{$\Sigma$};
+
+  % ==================== PANEL 3: axis-aligned ellipse ===========
+  \begin{scope}[shift={(2*\dx,0)}]
+    \draw[ax] (-1.75,0)--(1.75,0);
+    \draw[ax] (0,-1.35)--(0,1.35);
+    \draw[thick,black] (0,0) ellipse [x radius=\sa, y radius=\sb];
+    \draw[vv] (0,0)--(\sa,0) node[pos=1.05,below,font=\scriptsize]{$\sigma_1$};
+    \draw[uu] (0,0)--(0,\sb) node[pos=1.25,left,font=\scriptsize]{$\sigma_2$};
+    \node[panellbl] at (0,-1.85) {stretched to\\ an ellipse};
+  \end{scope}
+
+  % arrow U
+  \draw[->,thick] (2*\dx+1.85,0)--(3*\dx-1.85,0) node[arrlbl,black]{$U$};
+
+  % ==================== PANEL 4: rotated ellipse ================
+  \begin{scope}[shift={(3*\dx,0)}]
+    \draw[ax] (-1.75,0)--(1.75,0);
+    \draw[ax] (0,-1.75)--(0,1.75);
+    \begin{scope}[rotate=25]
+      \draw[thick,black] (0,0) ellipse [x radius=\sa, y radius=\sb];
+      \draw[vv] (0,0)--(\sa,0) node[pos=1.22,font=\scriptsize]{$\sigma_1 u_1$};
+      \draw[uu] (0,0)--(0,\sb) node[pos=1.55,font=\scriptsize]{$\sigma_2 u_2$};
+      % right-angle marker between the two semi-axes
+      \draw[gray] (0.22,0)--(0.22,0.22)--(0,0.22);
+    \end{scope}
+    \node[panellbl] at (0,-1.95) {rotated into\\ $\RR^m$};
+  \end{scope}
+
+  % relation annotation underneath
+  \node[font=\footnotesize] at (1.5*\dx,-2.85) {$A v_i=\sigma_i u_i$: perpendicular radii $\mapsto$ perpendicular semi-axes};
+
+\end{tikzpicture}
+\end{center}
+
+\rmkb[How the three factorizations line up]{The course has built three diagonalizing factorizations, each more general than the last. For a matrix with $n$ independent eigenvectors, $A=S\Lambda S^{-1}$ diagonalizes, but $S$ need not be orthogonal and the picture can include shear. For a \emph{symmetric} matrix the eigenvectors become orthonormal and $A=Q\Lambda Q\T$ --- pure stretching along perpendicular axes, a single basis $Q$ doing double duty for input and output. The SVD $A=U\Sigma V\T$ keeps the orthonormality but pays for full generality with two bases: it applies to \emph{every} matrix, and when $A$ happens to be symmetric positive definite it collapses back to $A=Q\Lambda Q\T$ with $U=V=Q$ and $\sigma_i=\lambda_i$. The SVD is the spectral theorem set free from symmetry.}
+
+\section{What to Carry Forward}
+
+This chapter tied off the eigenvalue story and then transcended it. \emph{Similarity}, $B=M^{-1}AM$, names the relation that diagonalization quietly used: similar matrices are one linear map in two coordinate systems, so they share eigenvalues, multiplicities, eigenvector counts, trace, and determinant --- everything basis-free. Diagonalizing is choosing the simplest representative of a similarity family. When a matrix is \emph{defective} --- short on eigenvectors because of repeated eigenvalues --- no diagonal representative exists, and the \emph{Jordan form} provides the next best: block-diagonal, with a $1$ above the diagonal for each missing eigenvector. Two matrices are similar exactly when their Jordan forms match, block size for block size.
+
+The \emph{singular value decomposition} $A=U\Sigma V\T$ is the summit. It exists for every matrix, square or rectangular, by diagonalizing the symmetric positive semidefinite matrix $A\T A$: its eigenvectors are the columns of $V$, the square roots of its eigenvalues are the singular values $\sigma_i$, and $u_i=Av_i/\sigma_i$ gives the columns of $U$. The SVD delivers orthonormal bases for all four fundamental subspaces simultaneously, perfectly matched by $Av_i=\sigma_i u_i$; it expands $A$ into ordered rank-one pieces $\sum\sigma_i u_iv_i\T$, whose truncation is the best low-rank approximation and the engine of principal component analysis and data compression; and geometrically it reveals that every matrix is a \emph{rotation, a stretch, and a rotation}, turning the unit sphere into an ellipsoid with semi-axes the singular values.
+
+\rmkb[Looking ahead]{The thread running through these last chapters is a single question --- ``what is the simplest matrix similar (or otherwise equivalent) to $A$, and in what basis?'' Chapter~\ref{ch:10} answers it head-on: it develops \emph{change of basis} and \emph{linear transformations}, showing that every matrix in this book has been the coordinate expression of an underlying map, and that choosing coordinates wisely is what all our factorizations $A=LU$, $A=QR$, $A=S\Lambda S^{-1}$, $A=Q\Lambda Q\T$, and $A=U\Sigma V\T$ have really been doing. The SVD is the most democratic of these: it asks nothing of $A$ and gives back orthonormal axes and clean stretching for free.}

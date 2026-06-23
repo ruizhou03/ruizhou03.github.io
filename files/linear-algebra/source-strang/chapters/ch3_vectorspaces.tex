@@ -1,0 +1,361 @@
+% !TEX root = ../main.tex
+\chapter{Vector Spaces and the Solution of $Ax=b$}
+\label{ch:3}
+
+Elimination told us \emph{how} to solve a square system with one solution. Now we ask the harder and more honest questions. When does $Ax=b$ have a solution at all? When it does, is the solution unique --- and if not, what does the whole family of solutions look like? A rectangular matrix --- more equations than unknowns, or fewer --- almost never has the clean ``one solution for every $b$'' behavior of an invertible square matrix, and yet rectangular systems are exactly the ones that show up in real problems. To handle them we need a new language: the language of \emph{vector spaces}.
+
+The plan is to attach two spaces to every matrix $A$. The first, the \emph{column space} $C(A)$, lives on the output side and answers existence: $Ax=b$ is solvable exactly when $b$ lies in $C(A)$. The second, the \emph{null space} $N(A)$, lives on the input side and answers uniqueness: it collects every solution of $Ax=0$, and it controls how many solutions $Ax=b$ has once it has one. Elimination, run all the way down to the \emph{reduced row echelon form} $R$, reads both spaces off the matrix mechanically. By the end of the chapter we will be able to write down the complete solution of \emph{any} $Ax=b$ --- a particular solution plus the whole null space --- and to predict its shape from a single number, the rank $r$.
+
+\section{Spaces of Vectors}
+
+Before we can talk about the spaces hidden inside a matrix, we need to know what a space \emph{is}. The idea is to isolate the one operation we have used since the first page --- taking linear combinations --- and to call ``space'' any collection of vectors closed under it.
+
+\defn{Vector Space}{A \textbf{vector space} is a nonempty collection $V$ of vectors that is \emph{closed under linear combinations}: whenever $v$ and $w$ are in $V$ and $c,d$ are real numbers, the combination $cv+dw$ is again in $V$. (In full, addition and scalar multiplication must obey the usual eight rules --- commutativity and associativity of addition, distributive laws, a zero vector, and so on --- but closure is the property we check in practice.)}
+
+The model example is $\RR^n$, the space of all column vectors with $n$ real components. Add two such vectors or scale one by a number and you stay in $\RR^n$, so it is closed; $\RR^2$ is the $xy$-plane and $\RR^3$ is space. These are the spaces we draw. But the definition is deliberately blind to coordinates, and that is its power: the \emph{solutions} of $Ax=0$ will form a vector space, and so will spaces of matrices and functions, all governed by the same words.
+
+One demand is built into closure and worth saying out loud. Taking $c=d=0$ shows $0\cdot v+0\cdot w=0$ must lie in $V$: \textbf{every vector space contains the zero vector}. A collection that misses the origin cannot be a space.
+
+\ex[A collection that fails]{The set of vectors in $\RR^2$ with both components positive --- the open first quadrant --- is \emph{not} a vector space. It is closed under addition (two positive vectors add to a positive vector), but not under scalar multiplication: multiply $(1,1)$ by $-5$ and you get $(-5,-5)$, which has left the quadrant. It also fails the zero-vector test, since $(0,0)$ is not in the open quadrant. Closure under \emph{all} linear combinations, positive and negative, is the real requirement.}
+
+\subsection{Subspaces}
+
+Most spaces we care about sit inside a bigger one. A line through the origin lives inside the plane; the column space lives inside $\RR^m$. We give the relationship a name.
+
+\defn{Subspace}{A \textbf{subspace} of a vector space $V$ is a subset $S\subseteq V$ that is itself a vector space --- that is, $S$ is closed under linear combinations: if $v,w\in S$ and $c,d\in\RR$, then $cv+dw\in S$. In particular every subspace contains the zero vector.}
+
+To test whether a subset is a subspace you do \emph{not} recheck all eight axioms; they are inherited from $V$. You check two things: that $S$ contains $0$, and that $S$ is closed under combinations. That is the whole job.
+
+\ex[Lines through the origin, and one that is not]{Fix a nonzero vector $v\in\RR^2$. The set of all multiples $\set{cv : c\in\RR}$ is a line through the origin, and it is a subspace: $c_1v$ and $c_2v$ combine to $(d_1c_1+d_2c_2)v$, still a multiple of $v$. Now take a line that does \emph{not} pass through the origin --- say all points $(x,y)$ with $y=x+1$. Multiplying a point on it by $0$ gives $(0,0)$, which is off the line, so the line is not closed under scalar multiplication: not a subspace. Every subspace must run through the origin.}
+
+Cataloguing the subspaces of a small space makes the idea concrete.
+
+\state{The subspaces of $\RR^2$ and $\RR^3$}{
+The subspaces of $\RR^2$ are exactly:
+\begin{itemize}[leftmargin=2.4em,labelwidth=1.8em,labelsep=0.6em,labelindent=0pt,align=left]
+   \item[(1)] all of $\RR^2$;
+   \item[(2)] any line through the origin;
+   \item[(3)] the zero subspace $Z=\set{0}$.
+\end{itemize}
+The subspaces of $\RR^3$ are: all of $\RR^3$; any plane through the origin; any line through the origin; and $Z=\set{0}$. In every case the subspace is a ``flat'' through the origin, of some dimension from $0$ up to the whole space.}
+
+\subsection{New subspaces from old}
+
+Two ways of combining subspaces will matter. The first behaves; the second does not.
+
+\prop{Intersection of Subspaces}{If $S$ and $T$ are subspaces of $V$, then their intersection $S\cap T$ --- the vectors lying in \emph{both} --- is again a subspace.}
+\pf{The zero vector is in $S$ and in $T$, so it is in $S\cap T$. If $v,w\in S\cap T$, then $v,w\in S$ gives $cv+dw\in S$ (since $S$ is closed), and likewise $cv+dw\in T$. So $cv+dw$ lies in both, hence in $S\cap T$. The intersection is closed under combinations.}
+
+The \emph{union} $S\cup T$, by contrast, is usually \emph{not} a subspace. Take a plane $P$ and a line $L$ through the origin in $\RR^3$. A vector from $P$ added to a vector from $L$ generally lands in neither, so $P\cup L$ is not closed. Two lines through the origin in $\RR^2$ make the failure visible: their union is an ``X'', but adding a vector from one arm to a vector from the other lands off the X. The right way to combine subspaces additively is the \emph{sum} $S+T$ of all $v+w$ with $v\in S,\,w\in T$, which \emph{is} a subspace --- but the union is not.
+
+\section{The Column Space and Solvability of \texorpdfstring{$Ax=b$}{Ax=b}}
+
+Now we attach the first subspace to a matrix. Recall from Chapter~\ref{ch:1} the one sentence that organizes everything: the product $Ax$ is a \emph{linear combination of the columns of $A$}, weighted by the entries of $x$. As $x$ ranges over all of $\RR^n$, the vector $Ax$ sweeps out every combination of the columns. That swept-out set is a subspace, and it is the answer to ``which $b$ are reachable?''
+
+\defn{Column Space}{The \textbf{column space} of a matrix $A\in\RR^{m\times n}$, written $C(A)$, is the set of all linear combinations of its columns:
+\[
+   C(A)=\set{\,Ax : x\in\RR^n\,}\subseteq\RR^m .
+\]
+It is a subspace of $\RR^m$ (the output space): a combination of combinations of the columns is again a combination of the columns, so $C(A)$ is closed.}
+
+The column space is built to answer the existence question, and it does so by its very definition.
+
+\thm{Solvability of $Ax=b$}{The system $Ax=b$ has a solution if and only if $b$ lies in the column space $C(A)$.}
+\pf{If $Ax=b$ for some $x$, then $b=Ax$ is a combination of the columns of $A$, so $b\in C(A)$. Conversely, if $b\in C(A)$ then $b=x_1a_1+\cdots+x_na_n$ for some scalars $x_i$, where $a_1,\dots,a_n$ are the columns; collecting those scalars into the vector $x=(x_1,\dots,x_n)\T$ gives $Ax=b$. So solvability of $Ax=b$ is exactly membership of $b$ in $C(A)$.}
+
+\subsection{A rectangular example: when most \texorpdfstring{$b$}{b} are out of reach}
+
+The theorem earns its keep on a tall matrix, where the columns cannot possibly fill the output space.
+
+\ex[Four equations, three columns]{Consider
+\[
+   A=\begin{bmatrix} 1 & 1 & 2 \\ 2 & 1 & 3 \\ 3 & 1 & 4 \\ 4 & 1 & 5 \end{bmatrix},
+   \qquad m=4,\; n=3 .
+\]
+Here $Ax=b$ is four equations in three unknowns. The columns live in $\RR^4$, and three vectors can never fill four-dimensional space, so $C(A)$ is a \emph{proper} subspace of $\RR^4$ --- most right-hand sides $b$ are unreachable, and for those $Ax=b$ has no solution. How big is $C(A)$? Look at the columns: the third is the sum of the first two,
+\[
+   \begin{bmatrix}2\\3\\4\\5\end{bmatrix}
+   =\begin{bmatrix}1\\2\\3\\4\end{bmatrix}
+   +\begin{bmatrix}1\\1\\1\\1\end{bmatrix},
+\]
+so the third column contributes nothing new. The first two columns point in genuinely different directions, and their combinations sweep out a \emph{plane} (a two-dimensional subspace) through the origin in $\RR^4$. That plane is $C(A)$. A vector $b$ is reachable precisely when it lies on this plane, and then $Ax=b$ is solvable; off the plane there is no solution at all.}
+
+This is the typical situation for a rectangular matrix: the column space is a thin slice of the output space, and existence is a real constraint, not a formality.
+
+\section{The Null Space}
+
+The second subspace lives on the input side. Where the column space asks ``which $b$ can I hit?'', the null space asks ``which $x$ get crushed to zero?'' --- and it is the key to uniqueness.
+
+\defn{Null Space}{The \textbf{null space} of $A\in\RR^{m\times n}$, written $N(A)$, is the set of all solutions of the homogeneous equation $Ax=0$:
+\[
+   N(A)=\set{\,x\in\RR^n : Ax=0\,}\subseteq\RR^n .
+\]}
+
+The null space is a subspace --- and here the check is illuminating, because it shows directly that solution sets of homogeneous equations are spaces.
+
+\prop{$N(A)$ Is a Subspace of $\RR^n$}{The null space $N(A)$ is closed under linear combinations, hence a subspace of the input space $\RR^n$.}
+\pf{First $0\in N(A)$, since $A0=0$. Now suppose $x_1,x_2\in N(A)$, so $Ax_1=0$ and $Ax_2=0$. For any scalars $c,d$,
+\[
+   A(cx_1+dx_2)=c\,Ax_1+d\,Ax_2=c\cdot 0+d\cdot 0=0,
+\]
+so $cx_1+dx_2\in N(A)$. The null space is closed under combinations.}
+
+Notice the contrast with the column and null spaces of the \emph{same} rectangular matrix. For the $4\times3$ example above, $C(A)$ sits in $\RR^4$ (one coordinate per row), while $N(A)$ sits in $\RR^3$ (one coordinate per column). The two spaces live in different worlds. Its null space is the line of multiples of $(1,1,-1)$, since column $1$ plus column $2$ minus column $3$ is zero:
+\[
+   1\!\begin{bmatrix}1\\2\\3\\4\end{bmatrix}
+   +1\!\begin{bmatrix}1\\1\\1\\1\end{bmatrix}
+   -1\!\begin{bmatrix}2\\3\\4\\5\end{bmatrix}
+   =\begin{bmatrix}0\\0\\0\\0\end{bmatrix},
+   \qquad\text{so } A\begin{bmatrix}1\\1\\-1\end{bmatrix}=0 .
+\]
+
+\rmkb[Why the solution set of $Ax=b$ is usually \emph{not} a subspace]{The set of solutions of $Ax=b$ with $b\ne 0$ is \emph{not} a vector space: it misses the origin, because $A0=0\ne b$. Only the homogeneous equation $Ax=0$ has a solution set ($N(A)$) that is a subspace. The inhomogeneous solution set, as we will see, is a \emph{shifted} copy of $N(A)$ --- a plane that has been pushed off the origin by one particular solution.}
+
+\section{Solving \texorpdfstring{$Ax=0$}{Ax=0}: Pivots, Free Variables, and Special Solutions}
+
+We have defined $N(A)$, but a definition is not a computation. How do we actually find every solution of $Ax=0$? The answer is elimination --- the same row operations as before, now carrying $A$ all the way to its cleanest form. Row operations do not change the solutions of $Ax=0$ (adding a multiple of one equation to another leaves the solution set alone), so they do not change the null space. We may reduce freely.
+
+\ex[The running matrix]{For the rest of this chapter our example is the $3\times4$ matrix
+\[
+   A=\begin{bmatrix} 1 & 2 & 2 & 2 \\ 2 & 4 & 6 & 8 \\ 3 & 6 & 8 & 10 \end{bmatrix},
+   \qquad m=3,\; n=4 .
+\]
+The columns are dependent (column $2$ is twice column $1$), so we expect a nontrivial null space. Elimination subtracts $2\times$ row $1$ from row $2$ and $3\times$ row $1$ from row $3$, then clears below the next pivot, reaching the echelon form
+\[
+   U=\begin{bmatrix} 1 & 2 & 2 & 2 \\ 0 & 0 & 2 & 4 \\ 0 & 0 & 0 & 0 \end{bmatrix}.
+\]
+The third row collapsed to zero: row $3$ of $A$ was a combination of rows $1$ and $2$, and elimination exposed it. The pivots sit in columns $1$ and $3$, so there are two of them.}
+
+\defn{Rank, Pivot Columns, Free Columns}{The \textbf{rank} $r$ of $A$ is the number of pivots produced by elimination. The columns holding pivots are the \textbf{pivot columns}; the others are the \textbf{free columns}. The variables multiplying free columns are the \textbf{free variables}: they can be set to any values, and the pivot variables are then determined.}
+
+In the running example $r=2$. Columns $1$ and $3$ are pivot columns; columns $2$ and $4$ are free; so $x_2$ and $x_4$ are free variables. The count is already meaningful: $n-r=4-2=2$ free variables, and we will get one independent solution of $Ax=0$ from each.
+
+\subsection{Reduced row echelon form}
+
+We can push elimination one step further. Scale each pivot to $1$ and clear \emph{above} each pivot as well as below. The result is the \textbf{reduced row echelon form} $R$ --- the unique cleanest form of $A$, with pivots equal to $1$ and zeros everywhere else in the pivot columns.
+
+\ex[From $U$ to $R$]{Continuing the running example, divide row $2$ by $2$ and subtract $2\times$(new row $2$) from row $1$:
+\[
+   U=\begin{bmatrix} 1 & 2 & 2 & 2 \\ 0 & 0 & 2 & 4 \\ 0 & 0 & 0 & 0 \end{bmatrix}
+   \;\longrightarrow\;
+   \begin{bmatrix} 1 & 2 & 0 & -2 \\ 0 & 0 & 2 & 4 \\ 0 & 0 & 0 & 0 \end{bmatrix}
+   \;\longrightarrow\;
+   R=\begin{bmatrix} 1 & 2 & 0 & -2 \\ 0 & 0 & 1 & 2 \\ 0 & 0 & 0 & 0 \end{bmatrix}.
+\]
+Now the pivot columns ($1$ and $3$) hold the columns of the identity, $(1,0,0)$ and $(0,1,0)$. The free columns ($2$ and $4$) carry the numbers that tell us exactly how to solve $Ax=0$.}
+
+Why is $R$ worth the extra work? Because we can read the solutions of $Rx=0$ off the rows with no back-substitution. The pivot rows of $R$ say
+\[
+   \ba
+   x_1 + 2x_2 \;\;\;\;\;\;\;\;- 2x_4 &= 0, \\
+   \phantom{x_1+2x_2}\;\; x_3 + 2x_4 &= 0,
+   \ea
+   \qquad\text{i.e.}\qquad
+   \ba
+   x_1 &= -2x_2 + 2x_4, \\
+   x_3 &= \phantom{-2x_2}\; -2x_4 .
+   \ea
+\]
+Each pivot variable ($x_1,x_3$) is expressed directly in terms of the free variables ($x_2,x_4$). Choose the free variables, and the rest follows.
+
+\subsection{Special solutions}
+
+The systematic way to produce a basis of solutions is to turn on one free variable at a time.
+
+\defn{Special Solutions}{For each free variable, the \textbf{special solution} is the solution of $Ax=0$ obtained by setting that free variable to $1$, all other free variables to $0$, and solving for the pivot variables. There is one special solution per free variable, hence $n-r$ of them.}
+
+\ex[The two special solutions]{For the running matrix the free variables are $x_2,x_4$.
+\begin{itemize}
+   \item Set $(x_2,x_4)=(1,0)$: then $x_1=-2(1)+2(0)=-2$ and $x_3=-2(0)=0$, giving
+   \[
+      s_1=\begin{bmatrix}-2\\1\\0\\0\end{bmatrix}.
+   \]
+   This reflects that column $2$ is twice column $1$: $-2(\text{col }1)+1(\text{col }2)=0$.
+   \item Set $(x_2,x_4)=(0,1)$: then $x_1=2$ and $x_3=-2$, giving
+   \[
+      s_2=\begin{bmatrix}2\\0\\-2\\1\end{bmatrix}.
+   \]
+\end{itemize}
+A direct check confirms $As_1=0$ and $As_2=0$. Every solution of $Ax=0$ is a combination $c_1s_1+c_2s_2$, so
+\[
+   N(A)=\set{\,c_1 s_1+c_2 s_2 : c_1,c_2\in\RR\,}
+\]
+is a two-dimensional plane through the origin in $\RR^4$ --- one dimension for each free variable.}
+
+\thm{Special Solutions Describe the Null Space}{The special solutions of $Ax=0$ --- one for each free variable --- span the null space $N(A)$, and they are independent, so they form a basis. Consequently the null space has $n-r$ independent solutions:
+\[
+   \dim N(A)=n-r=(\text{number of free variables}).
+\]}
+\pf{\emph{Independence.} Look at the free-variable slots. Special solution $s_j$ carries a $1$ in the slot of its own free variable and $0$ in the slots of the other free variables. So in a combination $\sum c_j s_j$, the entry in free slot $j$ equals exactly $c_j$; for the combination to vanish, every $c_j$ must be $0$. The special solutions are independent. \emph{Spanning.} Take any $x\in N(A)$, let $c_j$ be its values in the free slots, and form $y=x-\sum c_j s_j$. Then $y\in N(A)$ (a combination of null-space vectors), and by construction $y$ has $0$ in every free slot. But the pivot equations express each pivot variable in terms of the free ones, so a null-space vector with all free variables zero has all pivot variables zero too: $y=0$. Hence $x=\sum c_j s_j$. The special solutions span $N(A)$, and there are $n-r$ of them.}
+
+\rmkb[The $I,F$ pattern and the null-space matrix]{When the pivot columns happen to come first, the reduced form has the block shape
+\[
+   R=\begin{bmatrix} I & F \\ 0 & 0 \end{bmatrix},
+\]
+with an $r\times r$ identity $I$ in the pivot columns and an $r\times(n-r)$ block $F$ in the free columns. Stacking the special solutions side by side gives the \textbf{null-space matrix}
+\[
+   N=\begin{bmatrix} -F \\ I \end{bmatrix},
+   \qquad\text{and indeed}\qquad
+   RN=\begin{bmatrix} I & F \\ 0 & 0 \end{bmatrix}\begin{bmatrix} -F \\ I \end{bmatrix}
+      =\begin{bmatrix} -F+F \\ 0 \end{bmatrix}=0 .
+\]
+The bottom $I$ (size $n-r$) puts a $1$ in each free slot in turn; the top $-F$ records the resulting pivot values. In general the free columns may be interleaved with the pivot columns, but the recipe is the same: $-F$ on the pivot rows, the identity on the free rows.}
+
+\section{Solving \texorpdfstring{$Ax=b$}{Ax=b}: The Complete Solution}
+
+With $N(A)$ in hand we can solve the inhomogeneous system $Ax=b$ completely. The strategy has three steps: check solvability, find \emph{one} particular solution, then add the entire null space.
+
+\subsection{Solvability conditions on \texorpdfstring{$b$}{b}}
+
+We already know the abstract test: $Ax=b$ is solvable iff $b\in C(A)$. Elimination turns this into concrete conditions on the entries of $b$. Whenever a combination of the rows of $A$ produces a zero row, the \emph{same} combination of the entries of $b$ must produce zero --- otherwise the equation $0=$(nonzero) appears and there is no solution.
+
+\ex[The solvability condition for the running matrix]{Row $3$ of $A$ equals row $1$ plus row $2$:
+\[
+   (3,6,8,10)=(1,2,2,2)+(2,4,6,8).
+\]
+So if $Ax=b$ holds, the third component of $b$ must equal the sum of the first two: $b_3=b_1+b_2$. We can see this by eliminating on the augmented matrix $\br{A \;\; b}$, carrying $b$ along:
+\[
+   \left[\begin{array}{cccc|c}
+   1 & 2 & 2 & 2 & b_1 \\
+   2 & 4 & 6 & 8 & b_2 \\
+   3 & 6 & 8 & 10 & b_3
+   \end{array}\right]
+   \;\longrightarrow\;
+   \left[\begin{array}{cccc|c}
+   1 & 2 & 2 & 2 & b_1 \\
+   0 & 0 & 2 & 4 & b_2-2b_1 \\
+   0 & 0 & 0 & 0 & b_3-b_2-b_1
+   \end{array}\right].
+\]
+The last row reads $0=b_3-b_2-b_1$. The system is solvable exactly when
+\[
+   b_3-b_1-b_2=0,
+\]
+which is precisely the condition that $b$ lie in the column space $C(A)$. The two conditions --- ``$b\in C(A)$'' and ``$b_3=b_1+b_2$'' --- are one and the same. A right-hand side that satisfies it is, for instance, $b=(1,5,6)$, since $6=1+5$.}
+
+\subsection{A particular solution}
+
+Once solvability holds, one solution is easy to find: set every free variable to zero and solve for the pivot variables.
+
+\ex[The particular solution for $b=(1,5,6)$]{Put $x_2=x_4=0$. The two pivot equations (from $R$, with the reduced right-hand side) become
+\[
+   \ba
+   x_1 + 2x_3 &= 1, \\
+   x_3 &= 3/2 ,
+   \ea
+\]
+where the reduced right side is $b_1=1$ in the first pivot row, and the second pivot row of $R$ has right-hand side $(b_2-2b_1)/2=(5-2)/2=3/2$ (the pivot $2$ has already been scaled to $1$), so $x_3=3/2$ and then $x_1=1-2(3/2)=-2$. The particular solution is
+\[
+   x_p=\begin{bmatrix}-2\\0\\3/2\\0\end{bmatrix},
+   \qquad\text{and indeed}\qquad
+   Ax_p=\begin{bmatrix}1\\5\\6\end{bmatrix}=b .
+\]
+Setting the free variables to zero is what makes this one solution stand out from the infinitely many to come.}
+
+\subsection{Adding the null space: the complete solution}
+
+The particular solution is one point; the full solution set is that point plus the entire null space. The reason is a one-line algebraic fact.
+
+\thm{Complete Solution of $Ax=b$}{Suppose $Ax=b$ is solvable, and let $x_p$ be any particular solution. Then the set of \emph{all} solutions is
+\[
+   x_{\text{complete}} = x_p + x_n,
+   \qquad x_n\in N(A),
+\]
+that is, $x_p$ plus every vector in the null space. Equivalently, the solution set is the null space shifted by $x_p$.}
+\pf{If $x_n\in N(A)$ then $A(x_p+x_n)=Ax_p+Ax_n=b+0=b$, so every such vector solves $Ax=b$. Conversely, if $x$ is any solution, then $A(x-x_p)=b-b=0$, so $x-x_p\in N(A)$; writing $x_n=x-x_p$ gives $x=x_p+x_n$ with $x_n$ in the null space. Thus the solutions are exactly $x_p+N(A)$.}
+
+\ex[The complete solution for the running matrix]{Combining the particular solution with the two special solutions found earlier, the complete solution of $Ax=b$ with $b=(1,5,6)$ is
+\[
+   x=\underbrace{\begin{bmatrix}-2\\0\\3/2\\0\end{bmatrix}}_{x_p}
+   \;+\;
+   c_1\underbrace{\begin{bmatrix}-2\\1\\0\\0\end{bmatrix}}_{s_1}
+   \;+\;
+   c_2\underbrace{\begin{bmatrix}2\\0\\-2\\1\end{bmatrix}}_{s_2},
+   \qquad c_1,c_2\in\RR .
+\]
+Geometrically the solutions form a two-dimensional plane in $\RR^4$ --- a shifted copy of the null-space plane, pushed off the origin by $x_p$. The particular solution names \emph{one} point on the plane; the special solutions span the directions you may slide within it. There are infinitely many solutions, all of this one form.}
+
+\rmkb[Particular plus homogeneous]{This $x_p+x_n$ structure is not special to matrices --- it is the shape of the solution set of \emph{every} linear equation, from $Ax=b$ to linear differential equations. One particular solution fixes the offset; the homogeneous solutions ($Ax=0$) fill in all the freedom. Find one, add the null space, and you have them all.}
+
+\section{The Four Cases: Rank and the Shape of the Solution}
+
+We can now see the whole landscape at once. Everything about the solutions of $Ax=b$ --- how many there are, for which $b$ they exist --- is decided by how the rank $r$ compares to the number of rows $m$ and columns $n$. Since $r$ counts pivots, and a matrix has at most one pivot per row and one per column, we always have $r\le m$ and $r\le n$. Three boundaries matter: whether $r=n$ (every column is a pivot column, so no free variables), and whether $r=m$ (every row has a pivot, so no zero rows and no solvability conditions). Crossing them gives four cases.
+
+\subsection{Full column rank: \texorpdfstring{$r=n$}{r=n}}
+
+When $r=n$ every column is a pivot column, so there are no free variables and no special solutions. The null space is just $\set{0}$, and the columns are independent.
+
+\state{$r=n$ (full column rank)}{
+The reduced form has the shape $R=\br{\begin{smallmatrix} I \\ 0 \end{smallmatrix}}$ --- an $n\times n$ identity stacked above $m-n$ zero rows. Since $N(A)=\set{0}$, a solution of $Ax=b$, \emph{if one exists}, is \textbf{unique}. But $r=n\le m$ allows zero rows in $R$, which impose solvability conditions on $b$. So
+\[
+   Ax=b \text{ has } \boxed{0 \text{ or } 1} \text{ solution}.
+\]
+There is $0$ when $b$ lies off the column space, $1$ when $b\in C(A)$. Independent columns are common in real applications, and they are exactly what makes least squares work later (Chapter~\ref{ch:5}).}
+
+\subsection{Full row rank: \texorpdfstring{$r=m$}{r=m}}
+
+When $r=m$ every row has a pivot, so $R$ has no zero rows. Elimination never produces the equation $0=$(something), so there are \emph{no} solvability conditions: $Ax=b$ is solvable for every $b\in\RR^m$. The column space is all of $\RR^m$.
+
+\state{$r=m$ (full row rank)}{
+The reduced form has the shape $R=\br{I\ \ F}$ --- an $m\times m$ identity in the pivot columns, followed by the $m\times(n-m)$ free block $F$. Since there are no zero rows, $C(A)=\RR^m$ and $Ax=b$ is solvable for \emph{every} $b$. But $r=m<n$ leaves $n-r=n-m$ free variables, hence a nontrivial null space. So
+\[
+   Ax=b \text{ has } \boxed{\infty} \text{ many solutions for every } b,
+\]
+a full $x_p+N(A)$ family of dimension $n-m$.}
+
+\subsection{Full rank, square: \texorpdfstring{$r=m=n$}{r=m=n}}
+
+When $r=m=n$ the matrix is square with a pivot in every row and column: it is \emph{invertible}. The reduced form is the identity, $R=I$. There are no zero rows (no solvability conditions) and no free variables (no null space, $N(A)=\set{0}$).
+
+\state{$r=m=n$ (invertible)}{
+With $R=I$, the system $Ax=b$ has \textbf{exactly one} solution for every $b\in\RR^m$:
+\[
+   Ax=b \text{ has } \boxed{1} \text{ solution}, \qquad x=A^{-1}b .
+\]
+This is the clean case from Chapter~\ref{ch:1} --- existence and uniqueness together, for every right-hand side. It is also the \emph{only} case where ``solve once and for all with $A^{-1}$'' makes sense.}
+
+\subsection{Deficient rank: \texorpdfstring{$r<m$}{r<m} and \texorpdfstring{$r<n$}{r<n}}
+
+The general case has zero rows in $R$ \emph{and} free variables. There are solvability conditions on $b$ (from the zero rows) and a nontrivial null space (from the free variables). This is our running example: $m=3$, $n=4$, $r=2$, so $r<m$ and $r<n$.
+
+\state{$r<m$ and $r<n$ (the general rectangular case)}{
+The reduced form has the shape $R=\br{\begin{smallmatrix} I & F \\ 0 & 0 \end{smallmatrix}}$, with both an $F$ block (free variables present) and zero rows (solvability conditions present). So
+\[
+   Ax=b \text{ has } \boxed{0 \text{ or } \infty} \text{ many solutions}.
+\]
+There is no solution when $b$ violates a solvability condition (lies off $C(A)$); when $b\in C(A)$ there are infinitely many, the family $x_p+N(A)$ of dimension $n-r$. Our running matrix sat here: for $b=(1,5,6)$ we found the full two-parameter plane of solutions.}
+
+\subsection{The four cases at a glance}
+
+Reading the reduced form $R$ tells the whole story. The table collects the four possibilities (with pivot columns ordered first, so the blocks appear cleanly).
+
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+ & $r=m=n$ & $r=n<m$ & $r=m<n$ & $r<m,\ r<n$ \\
+\midrule
+$R$ &
+$I$ &
+$\br{\begin{smallmatrix} I \\ 0 \end{smallmatrix}}$ &
+$\br{\,I\ \ F\,}$ &
+$\br{\begin{smallmatrix} I & F \\ 0 & 0 \end{smallmatrix}}$ \\[4pt]
+\# solutions of $Ax=b$ &
+$1$ & $0$ or $1$ & $\infty$ & $0$ or $\infty$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\state{The logic behind the table}{Two yes/no questions decide everything.
+\begin{itemize}
+   \item \textbf{Are the columns independent?} ($r=n$ vs.\ $r<n$.) If yes, $N(A)=\set{0}$ and a solution is unique when it exists. If no, there are free variables and a whole null space to add.
+   \item \textbf{Do the columns span $\RR^m$?} ($r=m$ vs.\ $r<m$.) If yes, $C(A)=\RR^m$ and $Ax=b$ is always solvable. If no, there are solvability conditions and some $b$ have no solution.
+\end{itemize}
+Uniqueness is governed by $N(A)$; existence is governed by $C(A)$. The rank $r$ is the one number that places a matrix into its case.}
+
+\section{What to Carry Forward}
+
+Two subspaces, read off one matrix, answer the two questions that drive the subject. The \emph{column space} $C(A)\subseteq\RR^m$ collects the reachable right-hand sides: $Ax=b$ has a solution exactly when $b\in C(A)$ --- existence. The \emph{null space} $N(A)\subseteq\RR^n$ collects the solutions of $Ax=0$: it is $\set{0}$ precisely when the columns are independent, and otherwise it measures the freedom in the solution --- uniqueness.
+
+The computational engine is elimination carried all the way to the reduced row echelon form $R$. From $R$ we read the rank $r$ (the number of pivots), the pivot and free columns, and the special solutions --- one per free variable --- that form a basis for $N(A)$. To solve $Ax=b$: check the solvability conditions read off the zero rows of $R$; find a particular $x_p$ by setting the free variables to zero; then write the complete solution as $x_p+N(A)$, one point plus the whole null-space plane.
+
+\rmkb[Looking ahead]{We have measured the null space ($\dim N(A)=n-r$) and asserted that the pivot columns of $A$ make a basis for the column space ($\dim C(A)=r$), but we have not yet said carefully what ``dimension'' and ``basis'' mean, nor why the row space should also have dimension $r$. That is the next chapter: independence, basis, dimension, and the \emph{four} fundamental subspaces --- column space, null space, row space, and left null space --- all tied together by the single number $r$. The picture that results is the backbone of the whole course.}

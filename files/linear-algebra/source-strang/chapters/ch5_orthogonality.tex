@@ -1,0 +1,488 @@
+% !TEX root = ../main.tex
+\chapter{Orthogonality, Projection, Least Squares, and $A=QR$}
+\label{ch:5}
+
+The four fundamental subspaces of Chapter~\ref{ch:4} told us \emph{how big} each space is. This chapter tells us how they sit --- at right angles. The row space and the null space are not just complementary in dimension; they are perpendicular, every vector in one orthogonal to every vector in the other. The same is true of the column space and the left null space. That is the second half of the Fundamental Theorem, and it turns the abstract ``big picture'' into a geometric one with right angles you can draw.
+
+Once the angles are right, a new and very practical question opens up. The real world hands us systems $Ax=b$ that have \emph{no} solution --- more equations than unknowns, measurements that do not quite agree. We cannot reach $b$, because $b$ is not in the column space. So we settle for the next best thing: the point $p$ in the column space that is \emph{closest} to $b$, and we solve $Ax=p$ instead. Finding that closest point is \emph{projection}, and using it to fit a line through scattered data is \emph{least squares} --- the most-used idea in all of applied linear algebra. We close with the cleanest possible bases, the orthonormal ones, and the Gram--Schmidt process that manufactures them, packaged as the factorization $A=QR$.
+
+\section{Orthogonal Vectors and Subspaces}
+
+``Orthogonal'' is just another word for perpendicular. Two vectors meet at a right angle exactly when a familiar test on their dot product holds, and the dot product is something we can compute for vectors in any dimension --- long after we can no longer see the angle.
+
+\defn{Orthogonal Vectors}{Two vectors $x,y\in\RR^n$ are \textbf{orthogonal} if their dot product is zero:
+\[
+   x\T y \;=\; x_1 y_1 + x_2 y_2 + \cdots + x_n y_n \;=\; 0 .
+\]
+We write $x\perp y$. The length of $x$ is $\norm{x}=\sqrt{x\T x}$, so $\norm{x}^2 = x\T x$.}
+
+Why is $x\T y=0$ the right test? Place $x$ and $y$ tail to tail. They are perpendicular exactly when the triangle with legs $x$ and $y$ and hypotenuse $x-y$ is a right triangle --- and Pythagoras says that happens exactly when $\norm{x}^2+\norm{y}^2=\norm{x-y}^2$. Expand the right side:
+\[
+   \norm{x-y}^2 = (x-y)\T(x-y) = x\T x - 2x\T y + y\T y = \norm{x}^2 + \norm{y}^2 - 2\,x\T y .
+\]
+This equals $\norm{x}^2+\norm{y}^2$ precisely when the cross term $x\T y$ vanishes. So the dot-product test and the right-angle picture say the same thing.
+
+\rmkb[The zero vector]{Every vector is orthogonal to the zero vector, since $x\T 0 = 0$ always. This is a convenience, not a paradox: the zero vector has no direction to disagree with, so it is perpendicular to everything --- and to itself.}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  \draw[->,very thick,blue!70!black] (0,0)--(2.6,0) node[below right,font=\scriptsize]{$x$};
+  \draw[->,very thick,red!70!black] (0,0)--(0,2.0) node[above left,font=\scriptsize]{$y$};
+  \draw[dashed,gray] (2.6,0)--(0,2.0) node[midway,above right,font=\scriptsize,black]{$x-y$};
+  % right-angle marker
+  \draw (0.28,0)--(0.28,0.28)--(0,0.28);
+\end{tikzpicture}
+\end{center}
+
+A whole \emph{subspace} can be perpendicular to another. We do not check one pair of vectors but all of them at once.
+
+\defn{Orthogonal Subspaces}{Subspaces $S$ and $T$ of $\RR^n$ are \textbf{orthogonal}, written $S\perp T$, if every vector in $S$ is orthogonal to every vector in $T$:
+\[
+   x\T y = 0 \qquad\text{for all } x\in S,\ y\in T .
+\]}
+
+The classic warning is the blackboard and the floor. They meet along a line, and you might call them ``perpendicular planes,'' but as \emph{subspaces} they are not orthogonal: a vector running along the bottom edge of the blackboard lies in both the blackboard and the floor, and a nonzero vector is never orthogonal to itself ($x\T x=\norm{x}^2>0$). For two subspaces to be orthogonal they may share only the zero vector.
+
+\ex[Orthogonal subspaces in the plane]{In $\RR^2$, the only subspaces are $\{0\}$, lines through the origin, and the whole plane. The zero subspace is orthogonal to everything. Two lines through the origin are orthogonal subspaces exactly when they cross at a right angle --- the $x$-axis and the $y$-axis, for instance. But a line and the whole plane can never be orthogonal: the plane contains the line itself, and the line is not perpendicular to itself.}
+
+\section{The Row Space Is Orthogonal to the Null Space}
+
+Now the payoff. The two subspaces inside $\RR^n$ that we built from a matrix --- the row space $C(A\T)$ and the null space $N(A)$ --- are automatically orthogonal. This is not a special property of special matrices. It falls out of the meaning of $Ax=0$.
+
+\thm{Row Space $\perp$ Null Space}{For any $m\times n$ matrix $A$, the null space $N(A)$ and the row space $C(A\T)$ are orthogonal subspaces of $\RR^n$:
+\[
+   x\in N(A),\ y\in C(A\T) \quad\Longrightarrow\quad x\T y = 0 .
+\]
+Likewise, in $\RR^m$, the left null space $N(A\T)$ is orthogonal to the column space $C(A)$.}
+\pf{Let $x\in N(A)$, so $Ax=0$. Reading $Ax$ one row at a time, each entry of $Ax$ is a row of $A$ dotted with $x$:
+\[
+   Ax = \begin{bmatrix} (\text{row }1)\cdot x \\ \vdots \\ (\text{row }m)\cdot x \end{bmatrix} = \begin{bmatrix} 0 \\ \vdots \\ 0 \end{bmatrix}.
+\]
+So $x$ is orthogonal to \emph{every} row of $A$. But then $x$ is orthogonal to every combination of the rows --- if $y = c_1 r_1 + \cdots + c_m r_m$ is any vector in the row space, then $x\T y = c_1(x\T r_1)+\cdots+c_m(x\T r_m)=0$. Hence $x\perp C(A\T)$. The column-space statement is the same fact applied to $A\T$, whose row space is $C(A)$ and whose null space is $N(A\T)$.}
+
+This is the geometric content the dimension count was hiding. In Chapter~\ref{ch:4} we found $\dim C(A\T)=r$ and $\dim N(A)=n-r$, so the two dimensions add up to $n$. Now we know they are perpendicular as well. Two subspaces whose dimensions fill the space and that meet at right angles deserve a name.
+
+\defn{Orthogonal Complement}{The \textbf{orthogonal complement} of a subspace $S\subseteq\RR^n$, written $S^{\perp}$, is the set of \emph{all} vectors orthogonal to everything in $S$:
+\[
+   S^{\perp} = \set{\, x\in\RR^n : x\T y = 0 \text{ for all } y\in S \,}.
+\]}
+
+Being orthogonal is not quite enough to be the complement; the complement must catch \emph{every} perpendicular vector. The row space and null space pass that stronger test.
+
+\thm{Fundamental Theorem of Linear Algebra, Part 2}{For any $m\times n$ matrix $A$, the row space and null space are orthogonal complements in $\RR^n$:
+\[
+   N(A) = C(A\T)^{\perp}, \qquad \dim C(A\T) + \dim N(A) = r + (n-r) = n .
+\]
+In $\RR^m$, the column space and the left null space are orthogonal complements:
+\[
+   N(A\T) = C(A)^{\perp}, \qquad \dim C(A) + \dim N(A\T) = r + (m-r) = m .
+\]}
+\pf{We saw $N(A)\perp C(A\T)$, so $N(A)\subseteq C(A\T)^{\perp}$. For equality we count dimensions. The complement $C(A\T)^{\perp}$ consists of the vectors perpendicular to an $r$-dimensional subspace of $\RR^n$; such a complement has dimension $n-r$, since a subspace and its perpendicular complement share only $0$ and together span $\RR^n$, so their dimensions add to $n$. But $N(A)$ already has dimension $n-r$ and sits inside it, so the two coincide. (A subspace cannot sit strictly inside another of the same dimension.) The column-space case is the same statement for $A\T$.}
+
+\rmkb[Orthogonal complements split the space]{When $S$ and $S^{\perp}$ are orthogonal complements in $\RR^n$, every vector $v\in\RR^n$ splits \emph{uniquely} as $v = v_S + v_{S^{\perp}}$ with $v_S\in S$ and $v_{S^{\perp}}\in S^{\perp}$. The dimensions add to $n$ and the only shared vector is $0$, so the pieces are determined. This splitting is exactly what projection will compute: given $b$, find its column-space part $p$ and its left-null-space part $e=b-p$.}
+
+\ex[Reading the orthogonality off a rank-one matrix]{Take
+\[
+   A = \begin{bmatrix} 1 & 2 & 5 \\ 2 & 4 & 10 \end{bmatrix},
+\]
+whose second row is twice the first, so $r=1$. The row space is the line through $(1,2,5)$ in $\RR^3$, dimension $1$. The null space is everything perpendicular to $(1,2,5)$ --- the solutions of $x_1+2x_2+5x_3=0$ --- which is a \emph{plane} through the origin, dimension $n-r = 3-1 = 2$. A line and a plane, perpendicular, filling $\RR^3$: that is the orthogonal-complement split, drawn for one small matrix.}
+
+\section{Projection onto a Line}
+
+We turn to the question that drives the rest of the chapter. Given a vector $b$ and a line through the origin in the direction $a$, which point $p$ on the line is \emph{closest} to $b$? Geometry answers instantly: drop a perpendicular from $b$ to the line. The foot of that perpendicular is $p$, and the leftover $e=b-p$ --- the \emph{error} --- is orthogonal to the line.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.1,>=Stealth]
+  % the line through a
+  \draw[thick] (-0.6,-0.3)--(4.0,2.0) node[right,font=\scriptsize]{line through $a$};
+  % a
+  \draw[->,very thick,blue!70!black] (0,0)--(1.6,0.8) node[below right,font=\scriptsize]{$a$};
+  % b
+  \draw[->,very thick,red!70!black] (0,0)--(2.4,2.3) node[above,font=\scriptsize]{$b$};
+  % p = projection of b onto line, foot of perpendicular
+  % line direction (2,1)/sqrt5; b=(2.4,2.3); t = (b.d)/(d.d)
+  % d=(2,1), b.d=2.4*2+2.3*1=7.1, d.d=5, t=1.42 -> p=(2.84,1.42)
+  \coordinate (P) at (2.84,1.42);
+  \draw[->,very thick,blue!40!black] (0,0)--(P);
+  \node[font=\scriptsize,below right] at (2.7,1.35) {$p=\hat x a$};
+  % error e = b - p
+  \draw[->,very thick,red!40!black] (P)--(2.4,2.3);
+  \node[font=\scriptsize,above left] at (2.55,1.95) {$e=b-p$};
+  % right angle at P
+  \draw (2.84-0.18,1.42-0.09) -- (2.84-0.09,1.42+0.09) -- (2.84+0.09,1.42);
+  \fill (P) circle (1.3pt);
+\end{tikzpicture}
+\end{center}
+
+Let us turn the picture into algebra. Since $p$ lies on the line, it is some multiple of $a$:
+\[
+   p = \hat x\, a \qquad\text{for an unknown scalar } \hat x .
+\]
+The one fact that pins down $\hat x$ is that the error $e = b - \hat x a$ is perpendicular to $a$:
+\[
+   a\T (b - \hat x a) = 0
+   \quad\Longrightarrow\quad
+   a\T b = \hat x\, a\T a
+   \quad\Longrightarrow\quad
+   \boxed{\;\hat x = \dfrac{a\T b}{a\T a}\;}.
+\]
+The closest point itself is
+\[
+   p = \hat x\, a = a\,\frac{a\T b}{a\T a}.
+\]
+Two sanity checks Strang likes: doubling $b$ doubles $p$ (the formula is linear in $b$), while doubling $a$ leaves $p$ unchanged --- $a$ appears once on top and twice on bottom, and only the \emph{direction} of $a$ matters, not its length.
+
+\subsection{The Projection Matrix for a Line}
+
+The map $b\mapsto p$ is linear, so it must be a matrix times $b$. Rearrange, keeping the order of the products straight ($a\T b$ is a number, $a\,a\T$ is a matrix):
+\[
+   p = a\,\frac{a\T b}{a\T a} = \frac{a\,a\T}{a\T a}\, b = P b,
+   \qquad\text{where}\qquad
+   P = \frac{a\,a\T}{a\T a}.
+\]
+Here $a\,a\T$ is an $n\times n$ matrix --- a column times a row --- not a scalar; only $a\T a$ in the denominator is a number. The matrix $P$ is the \textbf{projection matrix} onto the line through $a$.
+
+\ex[Projecting onto a line in $\RR^3$]{Let $a=(1,1,1)$ and $b=(1,2,3)$. Then $a\T a = 3$ and $a\T b = 6$, so
+\[
+   \hat x = \frac{6}{3} = 2,
+   \qquad
+   p = 2a = (2,2,2),
+   \qquad
+   e = b - p = (-1,0,1).
+\]
+Check the right angle: $a\T e = -1+0+1 = 0$. The projection matrix is
+\[
+   P = \frac{a\,a\T}{a\T a} = \frac13\begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix}\begin{bmatrix} 1 & 1 & 1 \end{bmatrix}
+   = \frac13\begin{bmatrix} 1 & 1 & 1 \\ 1 & 1 & 1 \\ 1 & 1 & 1 \end{bmatrix},
+\]
+and indeed $Pb = \tfrac13(6,6,6) = (2,2,2) = p$.}
+
+\prop{Properties of the Line Projection $P=\frac{a\,a\T}{a\T a}$}{The projection matrix onto a line satisfies
+\[
+   P\T = P \qquad\text{and}\qquad P^2 = P,
+\]
+and $\rank P = 1$ with column space the line through $a$.}
+\pf{For symmetry, $\bigl(a\,a\T\bigr)\T = a\,a\T$ and the scalar $a\T a$ is unchanged by transposing, so $P\T=P$. For idempotence,
+\[
+   P^2 = \frac{a\,a\T}{a\T a}\cdot\frac{a\,a\T}{a\T a}
+       = \frac{a\,(a\T a)\,a\T}{(a\T a)^2}
+       = \frac{a\,a\T}{a\T a} = P,
+\]
+where the middle $a\T a$ cancels one factor in the denominator. Geometrically $P^2=P$ says: project once and you land on the line; project again and a point already on the line does not move. Finally every output $Pb$ is a multiple of $a$, so the column space is the single line through $a$ and $\rank P=1$.}
+
+\section{Projection onto a Subspace}
+
+A line is the case of projecting onto a one-dimensional column space. The real prize is projecting $b$ onto a whole subspace --- the column space of an $m\times n$ matrix $A$ with independent columns $a_1,\dots,a_n$. The closest point $p$ is now a combination of \emph{all} the columns:
+\[
+   p = \hat x_1 a_1 + \cdots + \hat x_n a_n = A\hat x .
+\]
+We need the coefficient vector $\hat x$. The principle is identical to the line case: the error $e = b - A\hat x$ must be perpendicular to the subspace --- that is, perpendicular to \emph{every} column of $A$. One equation per column:
+\[
+   a_1\T (b - A\hat x) = 0,\ \ \dots,\ \ a_n\T (b - A\hat x) = 0 .
+\]
+Stack these $n$ equations into one. The rows $a_1\T,\dots,a_n\T$ are exactly the rows of $A\T$, so the whole system is
+\[
+   A\T (b - A\hat x) = 0 ,
+\]
+which rearranges into the central equation of the entire chapter.
+
+\thm{The Normal Equations}{Let $A$ be $m\times n$ with linearly independent columns, and let $b\in\RR^m$. The projection $p=A\hat x$ of $b$ onto the column space $C(A)$ is found by solving the \textbf{normal equations}
+\[
+   \boxed{\,A\T A\,\hat x = A\T b\,}.
+\]
+Because the columns of $A$ are independent, $A\T A$ is invertible, and
+\[
+   \hat x = (A\T A)^{-1}A\T b,
+   \qquad
+   p = A\hat x = A(A\T A)^{-1}A\T\, b .
+\]}
+\pf{The closest $p$ in $C(A)$ is characterized by $e=b-p\perp C(A)$, i.e.\ $A\T e=0$. Writing $p=A\hat x$ turns this into $A\T(b-A\hat x)=0$, that is $A\T A\hat x = A\T b$. Invertibility of $A\T A$ (proved in Section~\ref{sec:ch5-ATA}) makes $\hat x$ unique.}
+
+\rmkb[Where the error lives]{The condition $A\T e = 0$ says exactly that the error $e$ is in the null space of $A\T$ --- the \emph{left null space} of $A$. And we proved that $N(A\T)=C(A)^{\perp}$. So the projection splits $b$ into a piece $p$ in the column space and a piece $e$ in its orthogonal complement, $b = p + e$. The whole machine is the orthogonal-complement decomposition from Part 2 of the Fundamental Theorem, made computational.}
+
+\subsection{The Projection Matrix}
+
+Just as on the line, the map $b\mapsto p$ is linear, so $p = Pb$ for a matrix $P$. Reading it off the formula $p = A(A\T A)^{-1}A\T b$:
+\[
+   \boxed{\,P = A(A\T A)^{-1}A\T\,}.
+\]
+Resist the urge to ``simplify.'' If $A$ were square and invertible we could split $(A\T A)^{-1}=A^{-1}(A\T)^{-1}$ and watch everything collapse to $P=I$ --- which is correct (a square invertible $A$ has column space all of $\RR^m$, so $b$ is already in it and projects to itself). But for a genuinely rectangular $A$ there is no $A^{-1}$, and $P=A(A\T A)^{-1}A\T$ does not reduce. The formula generalizes the line case perfectly: there we divided by the number $a\T a$; here we multiply by the matrix $(A\T A)^{-1}$.
+
+\prop{Properties of the Projection Matrix $P=A(A\T A)^{-1}A\T$}{For $A$ with independent columns, $P$ satisfies
+\[
+   P\T = P \qquad\text{and}\qquad P^2 = P .
+\]
+Its column space is $C(A)$, and $I-P$ is the projection onto the orthogonal complement $N(A\T)$.}
+\pf{\emph{Symmetric:} using $(BC)\T=C\T B\T$ and $\bigl((A\T A)^{-1}\bigr)\T=(A\T A)^{-1}$ (since $A\T A$ is symmetric),
+\[
+   P\T = \bigl(A(A\T A)^{-1}A\T\bigr)\T = A\,(A\T A)^{-1}A\T = P .
+\]
+\emph{Idempotent:} the middle factors telescope,
+\[
+   P^2 = A(A\T A)^{-1}\underbrace{A\T A(A\T A)^{-1}}_{=\,I}A\T = A(A\T A)^{-1}A\T = P .
+\]
+Every output $Pb=A\hat x$ is a combination of columns of $A$, so $C(P)=C(A)$. Finally $(I-P)b = b-p = e$ lands in $N(A\T)$, and $I-P$ inherits $(I-P)\T=I-P$ and $(I-P)^2 = I-2P+P^2 = I-P$, so it too is a projection --- onto the complementary space.}
+
+\state{Two extreme inputs}{The projection $P$ sorts every $b$ by where it lives. If $b$ is already in the column space, $b=Ax$, then $Pb=b$ --- nothing to project. If $b$ is perpendicular to the column space, $b\in N(A\T)$, then $A\T b=0$, so $\hat x=0$ and $Pb=0$ --- it projects to the origin. A general $b$ is a mix of the two, $b=p+e$, and $P$ keeps the column-space part $p$ and discards $e$.}
+
+\section{Least Squares}
+
+Here is why projection matters. When $Ax=b$ has \emph{no} solution --- the common case with more equations than unknowns --- we cannot make $Ax$ equal $b$, because $Ax$ is trapped in the column space and $b$ is not. The honest goal is to make $Ax$ as \emph{close} to $b$ as possible: minimize the length of the error $Ax-b$. Minimizing the length is the same as minimizing its square, the sum of squared errors --- hence \emph{least squares}.
+
+\defn{Least-Squares Solution}{Given $A\in\RR^{m\times n}$ and $b\in\RR^m$, a \textbf{least-squares solution} $\hat x$ is one that minimizes the squared error
+\[
+   \norm{Ax-b}^2 = (Ax-b)\T(Ax-b) = e_1^2 + e_2^2 + \cdots + e_m^2 .
+\]}
+
+The minimizer is exactly the projection problem in disguise. Among all vectors $Ax$ in the column space, the one closest to $b$ is the projection $p$. So the best $A\hat x$ equals $p$, and $\hat x$ solves the very normal equations we already derived:
+\[
+   \boxed{\,A\T A\,\hat x = A\T b\,}.
+\]
+No calculus is needed --- geometry hands us the answer --- but calculus agrees: setting the partial derivatives of $\norm{Ax-b}^2$ to zero gives the same linear system.
+
+\subsection{Fitting a Straight Line}
+
+The canonical use is fitting a line $b = C + Dt$ to data points. With more than two points the line generally cannot pass through all of them, so we fit the closest line in the least-squares sense.
+
+\ex[The closest line through three points]{Fit a line $b=C+Dt$ to the points
+\[
+   (t,b) = (1,1),\ (2,2),\ (3,2).
+\]
+If the line passed through all three, we would need
+\[
+   \ba
+   C + D &= 1, \\
+   C + 2D &= 2, \\
+   C + 3D &= 2,
+   \ea
+   \qquad\text{i.e.}\qquad
+   \underbrace{\begin{bmatrix} 1 & 1 \\ 1 & 2 \\ 1 & 3 \end{bmatrix}}_{A}
+   \underbrace{\begin{bmatrix} C \\ D \end{bmatrix}}_{x}
+   = \underbrace{\begin{bmatrix} 1 \\ 2 \\ 2 \end{bmatrix}}_{b}.
+\]
+This $Ax=b$ has no solution --- three points, not collinear. Form the normal equations $A\T A\hat x = A\T b$. Compute
+\[
+   A\T A = \begin{bmatrix} 1 & 1 & 1 \\ 1 & 2 & 3 \end{bmatrix}\begin{bmatrix} 1 & 1 \\ 1 & 2 \\ 1 & 3 \end{bmatrix}
+   = \begin{bmatrix} 3 & 6 \\ 6 & 14 \end{bmatrix},
+   \qquad
+   A\T b = \begin{bmatrix} 1 & 1 & 1 \\ 1 & 2 & 3 \end{bmatrix}\begin{bmatrix} 1 \\ 2 \\ 2 \end{bmatrix}
+   = \begin{bmatrix} 5 \\ 11 \end{bmatrix}.
+\]
+The normal equations are
+\[
+   \ba
+   3\hat C + 6\hat D &= 5, \\
+   6\hat C + 14\hat D &= 11 .
+   \ea
+\]
+Subtract twice the first from the second: $(14-12)\hat D = 11-10$, so $\hat D = \tfrac12$, and then $3\hat C = 5-3 = 2$ gives $\hat C = \tfrac23$. The best line is
+\[
+   b = \tfrac23 + \tfrac12\,t .
+\]}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.05,>=Stealth]
+  \draw[->,gray] (-0.3,0)--(4.0,0) node[right,font=\scriptsize]{$t$};
+  \draw[->,gray] (0,-0.3)--(0,2.7) node[above,font=\scriptsize]{$b$};
+  \foreach \x in {1,2,3} \draw (\x,0.05)--(\x,-0.05) node[below,font=\scriptsize]{$\x$};
+  \foreach \y in {1,2} \draw (0.05,\y)--(-0.05,\y) node[left,font=\scriptsize]{$\y$};
+  % best line b = 2/3 + t/2: at t=0, 0.667; t=4, 2.667
+  \draw[thick,blue!70!black,domain=-0.2:3.9] plot (\x,{0.6667+0.5*\x})
+        node[right,font=\scriptsize] {$b=\tfrac23+\tfrac12 t$};
+  % data points
+  \fill[red!80!black] (1,1) circle (2pt);
+  \fill[red!80!black] (2,2) circle (2pt);
+  \fill[red!80!black] (3,2) circle (2pt);
+  % fitted values p_i: t=1 ->7/6=1.167; t=2->5/3=1.667; t=3->13/6=2.167
+  \fill[blue!60!black] (1,1.1667) circle (1.3pt);
+  \fill[blue!60!black] (2,1.6667) circle (1.3pt);
+  \fill[blue!60!black] (3,2.1667) circle (1.3pt);
+  % error bars (vertical)
+  \draw[red!50!black,thick] (1,1)--(1,1.1667);
+  \draw[red!50!black,thick] (2,2)--(2,1.6667);
+  \draw[red!50!black,thick] (3,2)--(3,2.1667);
+\end{tikzpicture}
+\end{center}
+
+\rmkb[Reading off the projection and the error]{The fitted values are the projection $p=A\hat x$ --- the heights of the line at $t=1,2,3$:
+\[
+   p_1 = \tfrac23+\tfrac12 = \tfrac76,\quad
+   p_2 = \tfrac23+1 = \tfrac53,\quad
+   p_3 = \tfrac23+\tfrac32 = \tfrac{13}{6}.
+\]
+The errors are the vertical gaps $e=b-p$:
+\[
+   e = \Bigl(1-\tfrac76,\ 2-\tfrac53,\ 2-\tfrac{13}{6}\Bigr) = \Bigl(-\tfrac16,\ \tfrac13,\ -\tfrac16\Bigr).
+\]
+Two checks confirm the geometry. The errors sum to zero, $-\tfrac16+\tfrac13-\tfrac16 = 0$ (that is $e$ orthogonal to the all-ones first column of $A$). And $e$ is orthogonal to the second column $(1,2,3)$: $-\tfrac16+\tfrac23-\tfrac12 = 0$. So $e\in N(A\T)$ and $p\in C(A)$, perpendicular, as projection demands.}
+
+\subsection{Why \texorpdfstring{$A\T A$}{ATA} Is Invertible}
+\label{sec:ch5-ATA}
+
+Everything above leaned on one assumption: $A\T A$ is invertible. This is where the column-independence hypothesis earns its keep. The key is that $A\T A$ has the \emph{same} null space as $A$.
+
+\thm{$N(A\T A) = N(A)$, and $A\T A$ Is Invertible iff $A$ Has Independent Columns}{For any $m\times n$ matrix $A$,
+\[
+   N(A\T A) = N(A) \qquad\text{and}\qquad \rank(A\T A) = \rank A .
+\]
+Consequently the square matrix $A\T A$ is invertible if and only if $A$ has linearly independent columns.}
+\pf{If $Ax=0$ then $A\T Ax = A\T 0 = 0$, so $N(A)\subseteq N(A\T A)$. Conversely suppose $A\T Ax=0$. Multiply on the left by $x\T$:
+\[
+   x\T A\T A x = 0
+   \quad\Longrightarrow\quad
+   (Ax)\T(Ax) = 0
+   \quad\Longrightarrow\quad
+   \norm{Ax}^2 = 0
+   \quad\Longrightarrow\quad
+   Ax = 0,
+\]
+since only the zero vector has zero length. So $N(A\T A)\subseteq N(A)$, and the two null spaces are equal. Equal null spaces force equal nullity, and since $A\T A$ has $n$ columns, $\rank(A\T A) = n - \dim N(A\T A) = n - \dim N(A) = \rank A$.
+
+Now $A\T A$ is $n\times n$. It is invertible iff its null space is $\{0\}$, iff $N(A)=\{0\}$, iff the columns of $A$ are independent.}
+
+\rmkb[Independent columns guarantee a unique fit]{This theorem is the license for least squares. As long as the columns of $A$ are independent --- and for a line fit they are, since $(1,1,1)$ and $(1,2,3)$ point in different directions --- the matrix $A\T A$ is invertible, the normal equations have exactly one solution $\hat x$, and the best line is unique. One easy way to \emph{guarantee} independent columns is to make them orthonormal, which is where we head next.}
+
+\section{Orthonormal Bases and Orthogonal Matrices}
+
+Independent columns make least squares work, but \emph{orthonormal} columns make it trivial. Orthonormal means perpendicular and unit length --- the best-behaved vectors there are.
+
+\defn{Orthonormal Vectors}{Vectors $q_1,q_2,\dots,q_n$ are \textbf{orthonormal} if
+\[
+   q_i\T q_j = \bc 0 & \text{if } i\ne j \quad(\text{perpendicular}),\\ 1 & \text{if } i=j \quad(\text{unit length}). \ec
+\]
+Orthonormal vectors are automatically independent: if $\sum c_i q_i = 0$, dot both sides with $q_j$ to get $c_j = 0$ for every $j$.}
+
+Collect orthonormal vectors as the columns of a matrix and call it $Q$. The orthonormality conditions are precisely the statement that $Q\T Q$ is the identity.
+
+\defn{Orthogonal Matrix}{A matrix $Q$ with orthonormal columns satisfies
+\[
+   Q\T Q = I .
+\]
+The $(i,j)$ entry of $Q\T Q$ is $q_i\T q_j$, which is $1$ on the diagonal and $0$ off it. If $Q$ is \emph{square} with orthonormal columns it is called an \textbf{orthogonal matrix}, and then $Q\T Q=I$ means $Q\T = Q^{-1}$: the inverse is just the transpose.}
+
+\ex[Three orthogonal matrices]{A permutation matrix shuffles the standard basis, so its columns are orthonormal:
+\[
+   Q = \begin{bmatrix} 0 & 0 & 1 \\ 1 & 0 & 0 \\ 0 & 1 & 0 \end{bmatrix},
+   \qquad
+   Q\T = Q^{-1} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ 1 & 0 & 0 \end{bmatrix}.
+\]
+A rotation of the plane is orthogonal:
+\[
+   Q = \begin{bmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{bmatrix},
+   \qquad Q\T Q = I
+\]
+because $\cos^2\theta+\sin^2\theta = 1$ and the two columns are perpendicular. And rescaling fixes a near-miss: $\left[\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\right]$ has perpendicular columns but length $\sqrt2$, so divide by $\sqrt2$:
+\[
+   Q = \frac{1}{\sqrt2}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix},
+   \qquad Q\T Q = I .
+\]}
+
+A rectangular $Q$ (more rows than columns) can still have orthonormal columns; then $Q\T Q = I$ holds, but $QQ\T$ is generally \emph{not} the identity --- it is the projection onto the column space, as we now see.
+
+\subsection{Projection with Orthonormal Columns}
+
+Watch the projection machinery collapse when $A=Q$ has orthonormal columns. Since $Q\T Q = I$, the inverse $(Q\T Q)^{-1}=I$ disappears, and
+\[
+   P = Q(Q\T Q)^{-1}Q\T = Q\,Q\T,
+   \qquad
+   \hat x = (Q\T Q)^{-1}Q\T b = Q\T b .
+\]
+The normal equations $Q\T Q\hat x = Q\T b$ become simply $\hat x = Q\T b$: \emph{no system to solve}. Each coefficient is one dot product,
+\[
+   \hat x_i = q_i\T b ,
+\]
+so the projection is $p = \sum_i (q_i\T b)\,q_i$ --- add up the components of $b$ along each orthonormal direction. If $Q$ is square these directions span the whole space, every $b$ is already inside, and $P=QQ\T = I$.
+
+\state{Why we want orthonormal columns}{With orthonormal columns there is nothing to invert. The coefficient of $b$ along direction $q_i$ is just $q_i\T b$, computed independently of the others. This decoupling --- changing one basis vector does not disturb the coefficients of the rest --- is the entire payoff of orthonormality, and the reason the next section builds an orthonormal basis from any starting basis.}
+
+\section{Gram--Schmidt and \texorpdfstring{$A=QR$}{A=QR}}
+
+We can always \emph{make} an orthonormal basis. Start with any independent vectors $a,b,c,\dots$ spanning a subspace; the \textbf{Gram--Schmidt} process produces orthonormal $q_1,q_2,q_3,\dots$ spanning the same subspace. The idea is exactly the projection we just learned: to make a new vector perpendicular to the directions already chosen, \emph{subtract off its projections} onto them.
+
+\subsection{The Process}
+
+Take the first vector as the first direction: $A_1 = a$. For the second, subtract from $b$ its projection onto $A_1$, leaving the part perpendicular to $A_1$ --- which is the error vector $e$ from before:
+\[
+   A_2 = b - \frac{A_1\T b}{A_1\T A_1}\,A_1 .
+\]
+By construction $A_1\T A_2 = A_1\T b - A_1\T b = 0$, so $A_2\perp A_1$. For a third vector $c$, subtract its projections onto \emph{both} $A_1$ and $A_2$:
+\[
+   A_3 = c - \frac{A_1\T c}{A_1\T A_1}\,A_1 - \frac{A_2\T c}{A_2\T A_2}\,A_2 .
+\]
+At the end, normalize each to unit length:
+\[
+   q_1 = \frac{A_1}{\norm{A_1}},\qquad q_2 = \frac{A_2}{\norm{A_2}},\qquad q_3 = \frac{A_3}{\norm{A_3}},\ \dots
+\]
+The $q$'s are orthonormal and span the same space as the original vectors at every stage.
+
+\ex[Gram--Schmidt on two vectors]{Take
+\[
+   a = \begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix},
+   \qquad
+   b = \begin{bmatrix} 1 \\ 0 \\ 2 \end{bmatrix}.
+\]
+Set $A_1 = a$. Then $A_1\T A_1 = 3$ and $A_1\T b = 1+0+2 = 3$, so
+\[
+   A_2 = b - \frac{A_1\T b}{A_1\T A_1}\,A_1
+       = \begin{bmatrix} 1 \\ 0 \\ 2 \end{bmatrix} - \frac{3}{3}\begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix}
+       = \begin{bmatrix} 0 \\ -1 \\ 1 \end{bmatrix}.
+\]
+Check: $A_1\T A_2 = 0-1+1 = 0$. Normalizing ($\norm{A_1}=\sqrt3$, $\norm{A_2}=\sqrt2$):
+\[
+   q_1 = \frac{1}{\sqrt3}\begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix},
+   \qquad
+   q_2 = \frac{1}{\sqrt2}\begin{bmatrix} 0 \\ -1 \\ 1 \end{bmatrix},
+   \qquad
+   Q = \begin{bmatrix} 1/\sqrt3 & 0 \\ 1/\sqrt3 & -1/\sqrt2 \\ 1/\sqrt3 & 1/\sqrt2 \end{bmatrix}.
+\]
+The two columns of $Q$ are orthonormal and span the same plane as $a$ and $b$.}
+
+\subsection{The Factorization \texorpdfstring{$A=QR$}{A=QR}}
+
+Elimination wrote $A=LU$; Gram--Schmidt writes $A=QR$. Where $L$ was lower triangular, $R$ is upper triangular, and $Q$ holds the orthonormal vectors we just built.
+
+To see why $R$ is triangular, note how Gram--Schmidt builds the $q$'s: $q_1$ comes only from $a_1$; $q_2$ comes from $a_1,a_2$; in general $q_k$ uses only $a_1,\dots,a_k$. Turn this around --- each original column is a combination of the $q$'s up to its own index:
+\[
+   a_1 = (q_1\T a_1)\,q_1,
+   \qquad
+   a_2 = (q_1\T a_2)\,q_1 + (q_2\T a_2)\,q_2,
+   \qquad \dots
+\]
+Because $q_j\T a_k = 0$ whenever $j>k$ (later $q$'s are perpendicular to earlier columns), these coefficients fill an \emph{upper}-triangular matrix. In matrix form, for $A=\br{a_1\ a_2}$,
+\[
+   \underbrace{\begin{bmatrix} a_1 & a_2 \end{bmatrix}}_{A}
+   = \underbrace{\begin{bmatrix} q_1 & q_2 \end{bmatrix}}_{Q}
+     \underbrace{\begin{bmatrix} q_1\T a_1 & q_1\T a_2 \\ 0 & q_2\T a_2 \end{bmatrix}}_{R} .
+\]
+
+\thm{The $QR$ Factorization}{Every $m\times n$ matrix $A$ with independent columns factors as
+\[
+   A = QR,
+\]
+where $Q$ is $m\times n$ with orthonormal columns ($Q\T Q=I$) and $R$ is $n\times n$ upper triangular and invertible. The entries of $R$ are the dot products
+\[
+   R_{jk} = q_j\T a_k \quad (j\le k),
+   \qquad\text{and}\qquad
+   R = Q\T A .
+\]}
+\pf{Gram--Schmidt produces the orthonormal columns of $Q$ and expresses each $a_k$ as a combination of $q_1,\dots,q_k$, so $A=QR$ with $R$ upper triangular and $R_{jk}=q_j\T a_k$. Multiplying $A=QR$ on the left by $Q\T$ and using $Q\T Q=I$ gives $R=Q\T A$. The diagonal entries $R_{kk}=q_k\T a_k = \norm{A_k}>0$ are nonzero, so $R$ is invertible.}
+
+\rmkb[Least squares becomes back-substitution]{With $A=QR$ the normal equations simplify beautifully. Substitute into $A\T A\hat x = A\T b$:
+\[
+   (QR)\T(QR)\,\hat x = (QR)\T b
+   \ \Longrightarrow\
+   R\T \underbrace{Q\T Q}_{I} R\,\hat x = R\T Q\T b
+   \ \Longrightarrow\
+   R\,\hat x = Q\T b ,
+\]
+canceling the invertible $R\T$. Since $R$ is upper triangular, $\hat x$ comes straight from back-substitution --- no $A\T A$ to form or invert. This numerically stable route is how least-squares problems are actually solved in practice.}
+
+\section{What to Carry Forward}
+
+Orthogonality turned the four-subspace picture from a statement about dimensions into one about right angles: in $\RR^n$ the row space and null space are orthogonal complements, and in $\RR^m$ so are the column space and left null space. That perpendicular splitting is what makes \emph{projection} possible --- every $b$ breaks uniquely into a part $p$ in the column space and a part $e=b-p$ in its complement, computed by the projection matrix $P=A(A\T A)^{-1}A\T$ with its signature properties $P\T=P$ and $P^2=P$.
+
+Projection solved the practical crisis of an unsolvable $Ax=b$: when $b$ is out of reach, hit the closest point $p$ instead, which is \emph{least squares}, governed by the normal equations $A\T A\hat x = A\T b$. The matrix $A\T A$ is invertible exactly when $A$ has independent columns, because $N(A\T A)=N(A)$. Fitting a line through scattered data is this idea at its most useful.
+
+Finally, \emph{orthonormal} columns make every formula collapse: $Q\T Q=I$, projection becomes $\hat x=Q\T b$ with no inverse, and Gram--Schmidt manufactures such columns from any basis, recorded as the factorization $A=QR$. With $QR$ in hand, least squares is just $R\hat x=Q\T b$ by back-substitution.
+
+\rmkb[Looking ahead]{We have now met two of the three great factorizations in outline: $A=LU$ from elimination (Chapter~\ref{ch:2}) and $A=QR$ from Gram--Schmidt here. The third, built from eigenvectors, diagonalizes a matrix and is the subject of the chapters ahead; when the eigenvectors can be chosen \emph{orthonormal} --- which happens precisely for symmetric matrices like the $A\T A$ of this chapter --- that factorization becomes $A=Q\Lambda Q\T$, and the whole story of orthogonality returns in full force.}
