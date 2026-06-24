@@ -50,6 +50,10 @@ ACCEPTED_UNDATED = {
     "files/monetary-econ/monetary-econ-hw-summary.pdf",
     "files/real-anal/hw-summary-with-sol.pdf",
     "files/tennis/tennis-exam-prep.pdf",
+    # 常青讲义合订本/知识点梳理：按主题（非年份）组织，title 已含「讲义」/「知识点梳理」
+    "files/linear-algebra/linear-algebra-strang.pdf",
+    "files/mao-thought/mao-thought-principles.pdf",
+    "files/marxism/marxism-principles.pdf",
 }
 
 YEAR_SUFFIX_RE = re.compile(r"-(19|20)\d{2}$")
