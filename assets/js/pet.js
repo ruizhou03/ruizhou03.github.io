@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD_VERSION = 'v2026.06.28b';
+  const BUILD_VERSION = 'v2026.06.28c';
   console.log('%c🐾 宠物中心 ' + BUILD_VERSION, 'color:#1e3a5f;font-weight:bold;font-size:13px');
 
   const STORE_KEY = 'tool.pet-food.v1';
@@ -34,6 +34,12 @@
     if (opts.petId) qs.set('petId', opts.petId);
     const method = opts.method || (opts.body ? 'POST' : 'GET');
     const headers = { 'X-Device-Id': DEVICE_ID };
+    // Attach this device's per-pet secret token so the backend can verify identity
+    // (deviceId alone is known to all members and isn't enough to act as them).
+    if (opts.petId) {
+      const tp = state.pets.find(p => p.serverPetId === opts.petId);
+      if (tp && tp.memberToken) headers['X-Pet-Token'] = tp.memberToken;
+    }
     if (opts.body) headers['Content-Type'] = 'application/json';
     const r = await fetch(`${API_BASE}?${qs}`, {
       method,
@@ -1204,7 +1210,23 @@
         if (r && r.pet && !p._metaDirty) {
           META_FIELDS.forEach(k => { if (r.pet[k] !== undefined) p[k] = r.pet[k]; });
         }
-        if (r && Array.isArray(r.members)) p.members = r.members;
+        if (r && Array.isArray(r.members)) {
+          // Detect newcomers so the owner/members get a 「新成员加入」notice instead of
+          // a stranger silently appearing. First pull baselines the whole roster.
+          const ids = r.members.map(m => m.deviceId);
+          if (!Array.isArray(p.knownMemberIds)) {
+            p.knownMemberIds = ids;                       // baseline, no notice
+          } else {
+            const fresh = ids.filter(id => id !== DEVICE_ID && !p.knownMemberIds.includes(id));
+            if (fresh.length) {
+              p.pendingNewMembers = [...new Set([...(p.pendingNewMembers || []), ...fresh])];
+              p.knownMemberIds = [...new Set([...p.knownMemberIds, ...fresh])];
+            }
+            // also absorb any departures so a re-join later re-notifies
+            p.knownMemberIds = p.knownMemberIds.filter(id => ids.includes(id));
+          }
+          p.members = r.members;
+        }
         if (typeof p.activitySeenAt !== 'number') p.activitySeenAt = Date.now();   // baseline so a fresh pull doesn't flag all history
         if (r && Array.isArray(r.entries)) {
           p.entries = mergeServerEntries(p.entries, r.entries);
@@ -2676,6 +2698,8 @@
           shared: true, serverPetId: r.petId, serverCode: r.code,
           members: r.members || [], entries: mergeServerEntries(existing.entries, r.entries),
         });
+        if (r.myToken) existing.memberToken = r.myToken;
+        existing.knownMemberIds = (r.members || []).map(m => m.deviceId);
         state.currentId = existing.id;
       } else {
         const newPet = {
@@ -2683,7 +2707,9 @@
           shared: true,
           serverPetId: r.petId,
           serverCode: r.code,
+          memberToken: r.myToken || null,
           members: r.members || [],
+          knownMemberIds: (r.members || []).map(m => m.deviceId),   // baseline roster on join
           entries: r.entries || [],
           createdAt: new Date().toISOString(),
           preferredUnit: 'g',
@@ -2723,7 +2749,9 @@
       p.shared = true;
       p.serverPetId = r.petId;
       p.serverCode = r.code;
+      if (r.myToken) p.memberToken = r.myToken;
       p.members = r.members || [];
+      p.knownMemberIds = (r.members || []).map(m => m.deviceId);   // baseline roster
       persist();
       // Refresh modal share UI
       renderShareSection(p);
@@ -2747,12 +2775,21 @@
     if (!state.editingId) return;
     const p = state.pets.find(x => x.id === state.editingId);
     if (!p || !p.serverPetId) return;
-    if (!confirm('生成新宠物码？旧的码会立刻失效。')) return;
+    if (!confirm('生成新宠物码？旧码立刻失效，之后要用新码才能加入。')) return;
+    // Regenerating only blocks NEW joins — people who already joined stay in.
+    // Offer to also remove them, for when you suspect the old code leaked.
+    const others = (p.members || []).filter(m => m.role !== 'owner').length;
+    let kickOthers = false;
+    if (others > 0) {
+      kickOthers = confirm(`当前还有 ${others} 位已加入的成员。\n\n确定 = 同时把他们移出（彻底清退，怀疑泄露时用）\n取消 = 只换码，已加入的成员保留`);
+    }
     try {
-      const r = await api('regenerate-code', { petId: p.serverPetId, body: {} });
+      const r = await api('regenerate-code', { petId: p.serverPetId, body: { kickOthers } });
       p.serverCode = r.code;
       $pmShareCode.textContent = r.code;
+      if (r && Array.isArray(r.members)) p.members = r.members;
       persist();
+      renderShareSection(p);
     } catch (e) {
       alert('失败：' + (e.message || 'unknown'));
     }
@@ -4564,7 +4601,8 @@
     const role = myRoleFor(pet);
     const seen = new Set(pet.tcSeen || []);
     const tcN = (pet.timeChanges || []).filter(tc => tcNotableFor(tc, role) && !seen.has(tc.id)).length;
-    return tcN + newActivityFor(pet).length;
+    const newMem = (pet.pendingNewMembers || []).filter(id => (pet.members || []).some(m => m.deviceId === id)).length;
+    return tcN + newActivityFor(pet).length + newMem;
   }
 
   // New records added by OTHER members since this device last opened the inbox.
@@ -4576,12 +4614,13 @@
       .filter(e => e.author && e.author !== DEVICE_ID && (e.addedAt || 0) > seenAt)
       .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
   }
-  // Full recent activity by OTHER members — always visible in the inbox so you can
-  // scroll back through what everyone did, not just what's new since last open.
+  // Full recent activity timeline — EVERYONE's records (incl. your own, marked 「我」),
+  // always visible so the inbox reads as a complete family timeline. The red dot still
+  // only lights for others' new records (newActivityFor), so your own don't nag you.
   function recentActivityFor(pet, limit) {
     if (!pet || !pet.shared) return [];
     return (pet.entries || [])
-      .filter(e => e.author && e.author !== DEVICE_ID)
+      .filter(e => e.author)
       .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0))
       .slice(0, limit || 50);
   }
@@ -4617,10 +4656,10 @@
   }
 
   function tcStatusLabel(tc) {
-    if (tc.status === 'pending')  return { cls: 'pending',  txt: '待审批' };
-    if (tc.status === 'active')   return { cls: 'active',   txt: '已生效·可驳回' };
-    if (tc.status === 'approved') return { cls: 'approved', txt: '已批准' };
-    return { cls: 'rejected', txt: '已驳回' };
+    if (tc.status === 'pending')  return { cls: 'pending',  txt: '等你确认' };
+    if (tc.status === 'active')   return { cls: 'active',   txt: '已改好·可撤销' };
+    if (tc.status === 'approved') return { cls: 'approved', txt: '已确认' };
+    return { cls: 'rejected', txt: '没采纳' };
   }
   function tcEntryBrief(pet, tc) {
     const e = (pet.entries || []).find(x => x.id === tc.entryId);
@@ -4650,30 +4689,42 @@
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     const acts = recentActivityFor(pet, 50);    // full history, not just unseen
     const seenAt = pet.activitySeenAt || 0;
+    const newMembers = (pet.pendingNewMembers || []).filter(id => (pet.members || []).some(m => m.deviceId === id));
 
-    if (tcs.length === 0 && acts.length === 0) { $inboxList.innerHTML = '<div class="empty-row">还没有家人一起记录的动态</div>'; return; }
+    if (tcs.length === 0 && acts.length === 0 && newMembers.length === 0) { $inboxList.innerHTML = '<div class="empty-row">还没有家人一起记录的动态</div>'; return; }
 
     let html = '';
+    // Section 0: new members who just joined (so a stranger can't slip in unnoticed)
+    if (newMembers.length) {
+      html += '<div class="inbox-sec-title">✦ 新成员加入</div>';
+      html += newMembers.map(id => {
+        const noName = hasNoNameFor(pet, id);
+        const nameBtn = noName
+          ? `<button class="act-alias" data-alias="${id}" title="给 TA 起个备注名">${escapeHtml(memberDisplayName(pet, id))} <span class="aa-add">＋备注</span></button>`
+          : `<span class="tc-who">${escapeHtml(memberDisplayName(pet, id))}</span>`;
+        return `<div class="tc-item act-item"><div class="tc-head">${nameBtn}<span style="color:var(--color-ink);font-size:0.86rem;">加入了一起记录</span><span class="tc-badge act-new">新</span></div></div>`;
+      }).join('');
+    }
     // Section 1: time-change requests / notices (actionable)
     if (tcs.length) {
-      html += '<div class="inbox-sec-title">⏱ 时间修改</div>';
+      html += '<div class="inbox-sec-title">⏱ 改了记录时间</div>';
       html += tcs.map(tc => {
         const st = tcStatusLabel(tc);
         const who = memberDisplayName(pet, tc.byDevice);
         const a = tcActions(tc, role);
         const actHtml = a.length ? `<div class="tc-actions">${a.map(x =>
-          x === 'approve' ? `<button class="tc-approve" data-tc="${tc.id}" data-dec="approve">批准</button>`
-                          : `<button class="tc-reject" data-tc="${tc.id}" data-dec="reject">驳回</button>`).join('')}</div>` : '';
+          x === 'approve' ? `<button class="tc-approve" data-tc="${tc.id}" data-dec="approve">确认</button>`
+                          : `<button class="tc-reject" data-tc="${tc.id}" data-dec="reject">不采纳</button>`).join('')}</div>` : '';
         let decided = '';
-        if (tc.status === 'approved' && tc.decidedBy) decided = `<div class="tc-note">由 ${escapeHtml(memberDisplayName(pet, tc.decidedBy))} 批准</div>`;
-        else if (tc.status === 'rejected' && tc.decidedBy) decided = `<div class="tc-note">由 ${escapeHtml(memberDisplayName(pet, tc.decidedBy))} 驳回</div>`;
+        if (tc.status === 'approved' && tc.decidedBy) decided = `<div class="tc-note">${escapeHtml(memberDisplayName(pet, tc.decidedBy))} 确认了</div>`;
+        else if (tc.status === 'rejected' && tc.decidedBy) decided = `<div class="tc-note">${escapeHtml(memberDisplayName(pet, tc.decidedBy))} 没采纳</div>`;
         let noteHtml = '';
-        if (tc.note === 'entry_deleted') noteHtml = '<div class="tc-note">记录已被删除</div>';
-        else if (tc.note === 'overwritten') noteHtml = '<div class="tc-note">时间已被其他改动覆盖，未回滚</div>';
+        if (tc.note === 'entry_deleted') noteHtml = '<div class="tc-note">这条记录已被删除</div>';
+        else if (tc.note === 'overwritten') noteHtml = '<div class="tc-note">这条时间后来又被改过，没有改回去</div>';
         return `<div class="tc-item">
           <div class="tc-head">
             <span class="tc-who">${escapeHtml(who)}</span>
-            <span style="color:var(--color-light);font-size:0.8rem;">改了「${tcEntryBrief(pet, tc)}」</span>
+            <span style="color:var(--color-light);font-size:0.8rem;">改了「${tcEntryBrief(pet, tc)}」的时间</span>
             <span class="tc-badge ${st.cls}">${st.txt}</span>
           </div>
           <div class="tc-times">${fmtDateTime(tc.oldTs)} <span class="tc-arrow">→</span> ${fmtDateTime(tc.newTs)}</div>
@@ -4687,11 +4738,14 @@
     if (acts.length) {
       html += '<div class="inbox-sec-title">🐾 家人动态</div>';
       html += acts.map(e => {
-        const isNew = (e.addedAt || 0) > seenAt;
-        const noName = hasNoNameFor(pet, e.author);
-        const nameBtn = noName
-          ? `<button class="act-alias" data-alias="${e.author}" title="给 TA 起个备注名">${escapeHtml(memberDisplayName(pet, e.author))} <span class="aa-add">＋备注</span></button>`
-          : `<span class="tc-who">${escapeHtml(memberDisplayName(pet, e.author))}</span>`;
+        const mine = e.author === DEVICE_ID;
+        const isNew = !mine && (e.addedAt || 0) > seenAt;   // your own records never show 「新」
+        const noName = !mine && hasNoNameFor(pet, e.author);
+        const nameBtn = mine
+          ? `<span class="tc-who tc-me">我</span>`
+          : (noName
+            ? `<button class="act-alias" data-alias="${e.author}" title="给 TA 起个备注名">${escapeHtml(memberDisplayName(pet, e.author))} <span class="aa-add">＋备注</span></button>`
+            : `<span class="tc-who">${escapeHtml(memberDisplayName(pet, e.author))}</span>`);
         return `<div class="tc-item act-item">
         <div class="tc-head">
           ${nameBtn}
@@ -4715,7 +4769,7 @@
   function decideTimeChange(tcId, decision) {
     const pet = currentPet();
     if (!pet || !pet.serverPetId) return;
-    if (decision === 'reject' && !confirm('确定驳回这条时间修改？')) return;
+    if (decision === 'reject' && !confirm('不采纳这次时间改动？记录时间会保持原样。')) return;
     pushDecideTimeChange(pet, tcId, decision).then(r => {
       if (r && Array.isArray(r.timechanges)) pet.timeChanges = r.timechanges;
       if (r && Array.isArray(r.entries)) pet.entries = mergeServerEntries(pet.entries, r.entries);
@@ -4741,6 +4795,7 @@
       (pet.timeChanges || []).forEach(tc => { if (tcNotableFor(tc, role)) seen.add(tc.id); });
       pet.tcSeen = [...seen];
       pet.activitySeenAt = Date.now();
+      pet.pendingNewMembers = [];   // new-member notices acknowledged
       persist();
     }
     $inboxModal.classList.remove('open');

@@ -957,6 +957,7 @@
   }
   .tc-item .tc-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.35rem; }
   .tc-item .tc-who { font-weight: 600; color: var(--color-ink); }
+  .tc-item .tc-who.tc-me { color: var(--color-accent); }
   .tc-item .tc-times { color: var(--color-muted); font-variant-numeric: tabular-nums; font-size: 0.85rem; }
   .tc-item .tc-arrow { color: var(--color-light); }
   .tc-badge {
