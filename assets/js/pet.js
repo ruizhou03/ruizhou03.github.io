@@ -1,6 +1,9 @@
 (function () {
   'use strict';
 
+  const BUILD_VERSION = 'v2026.06.24-A';
+  console.log('%c🐾 宠物中心 ' + BUILD_VERSION + ' (发布前整改版)', 'color:#1e3a5f;font-weight:bold;font-size:13px');
+
   const STORE_KEY = 'tool.pet-food.v1';
   const DEVICE_KEY = 'tool.pet-food.deviceId';
   const API_BASE  = 'https://zircon-urge.fly.dev/api/pet-food';

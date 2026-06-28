@@ -44,6 +44,15 @@
   .pf-wrap header { text-align: center; margin-bottom: 1.4rem; }
   .pf-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem; }
   .pf-wrap header .sub { color: var(--color-light); font-style: normal; }
+  .pf-wrap header .build-tag {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.72rem; letter-spacing: 0.02em;
+    color: var(--color-accent);
+    background: var(--color-accent-soft, rgba(30,58,95,0.12));
+    border-radius: 999px;
+    padding: 0.15rem 0.7rem;
+  }
 
   .pet-bar {
     display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;
