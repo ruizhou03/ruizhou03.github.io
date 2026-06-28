@@ -72,7 +72,8 @@
   {%- endcomment -%}
   <link rel="manifest" href="{{ page.manifest | default: '/manifest.json' | relative_url }}">
   <link rel="apple-touch-icon" href="{{ page.apple_touch_icon | default: '/assets/icons/apple-touch-icon.png' | relative_url }}">
-  <meta name="theme-color" content="{{ page.theme_color | default: '#1e3a5f' }}">
+  <meta name="theme-color" content="{{ page.theme_color | default: '#1e3a5f' }}" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="{{ page.theme_color_dark | default: '#1a1918' }}" media="(prefers-color-scheme: dark)">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="{{ page.app_title | default: 'Zircon' }}">
 

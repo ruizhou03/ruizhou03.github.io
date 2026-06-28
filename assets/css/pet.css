@@ -938,7 +938,8 @@
     backdrop-filter: blur(3px);
     z-index: 1500;
     display: none; align-items: center; justify-content: center;
-    padding: 1rem;
+    /* Keep the modal clear of the notch / home indicator in PWA full-screen */
+    padding: calc(1rem + env(safe-area-inset-top, 0px)) calc(1rem + env(safe-area-inset-right, 0px)) calc(1rem + env(safe-area-inset-bottom, 0px)) calc(1rem + env(safe-area-inset-left, 0px));
   }
   .modal-backdrop.open { display: flex; }
   .inbox-btn { position: relative; }
@@ -994,7 +995,10 @@
     background: var(--color-bg); border: 1px solid var(--color-border);
     border-radius: 14px; padding: 1.6rem;
     max-width: 480px; width: 100%;
-    max-height: 90dvh; overflow-y: auto;
+    /* Backdrop already pads the safe areas; cap height to what's left so the title
+       and the bottom action buttons stay on-screen even with keyboard / notch. */
+    max-height: calc(100dvh - 2rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
   }
   .modal h2 {
@@ -1012,6 +1016,7 @@
   .modal .field.invalid > label { color: var(--pet-error); }
   .modal .field-err { color: var(--pet-error); font-size: 0.76rem; margin-top: 0.3rem; }
   .modal .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+  @media (max-width: 420px) { .modal .field-grid { grid-template-columns: 1fr; } }
   .modal label {
     display: block; font-size: 0.85rem; color: var(--color-muted);
     margin-bottom: 0.3rem;

@@ -502,13 +502,13 @@
 
   // Returns the user's stored target range. If only one bound is set, both are equal (single line).
   function targetRange(pet) {
-    const min = Number.isFinite(pet.dailyTargetMin) && pet.dailyTargetMin > 0 ? pet.dailyTargetMin : null;
-    const max = Number.isFinite(pet.dailyTargetMax) && pet.dailyTargetMax > 0 ? pet.dailyTargetMax : null;
+    let min = Number.isFinite(pet.dailyTargetMin) && pet.dailyTargetMin > 0 ? pet.dailyTargetMin : null;
+    let max = Number.isFinite(pet.dailyTargetMax) && pet.dailyTargetMax > 0 ? pet.dailyTargetMax : null;
     if (min === null && max === null) return null;
-    return {
-      min: min !== null ? min : max,
-      max: max !== null ? max : min,
-    };
+    const lo = min !== null ? min : max;
+    const hi = max !== null ? max : min;
+    // If the user typed min > max, swap so the band/over-under logic doesn't invert.
+    return lo <= hi ? { min: lo, max: hi } : { min: hi, max: lo };
   }
 
   // Smart estimator: pure formula from species/breed/age/bodyWeight/activity/neutered.
@@ -1158,6 +1158,19 @@
       }));
   }
 
+  // Merge a server entries array onto a local one without dropping local records
+  // that haven't reached the server yet (still queued in _pendingOps). Server wins
+  // for matching ids; local-only ids are appended. Used by every sync path so none
+  // of them can silently overwrite a not-yet-synced record.
+  function mergeServerEntries(local, server) {
+    const srv = Array.isArray(server) ? server : [];
+    const serverIds = new Set(srv.map(e => e.id));
+    const merged = [...srv];
+    (local || []).forEach(e => { if (!serverIds.has(e.id)) merged.push(e); });
+    merged.sort((a, b) => a.ts - b.ts);
+    return merged;
+  }
+
   async function pullSharedPets() {
     const shared = state.pets.filter(p => p.shared && p.serverPetId);
     if (shared.length === 0) return;
@@ -1173,15 +1186,7 @@
         if (r && Array.isArray(r.members)) p.members = r.members;
         if (typeof p.activitySeenAt !== 'number') p.activitySeenAt = Date.now();   // baseline so a fresh pull doesn't flag all history
         if (r && Array.isArray(r.entries)) {
-          // Merge instead of replace: keep local entries not yet on server (by id dedup).
-          // Server entries take priority for matching ids (server is source of truth for shared data).
-          const serverIds = new Set(r.entries.map(e => e.id));
-          const merged = [...r.entries];   // start with server entries
-          (p.entries || []).forEach(e => {
-            if (!serverIds.has(e.id)) merged.push(e);   // local-only (not yet pushed)
-          });
-          merged.sort((a, b) => a.ts - b.ts);
-          p.entries = merged;
+          p.entries = mergeServerEntries(p.entries, r.entries);
           reconcileBodyWeight(p);
         }
         if (r && Array.isArray(r.timechanges)) p.timeChanges = r.timechanges;
@@ -1257,9 +1262,9 @@
 
   function petIconHtml(p) {
     if (p.avatar) {
-      return `<span class="pet-icon"><img src="${p.avatar}" alt=""></span>`;
+      return `<span class="pet-icon"><img src="${escapeHtml(p.avatar)}" alt=""></span>`;
     }
-    return `<span class="pet-icon">${p.emoji || '🐾'}</span>`;
+    return `<span class="pet-icon">${escapeHtml(p.emoji || '🐾')}</span>`;
   }
 
   // ===== Render =====
@@ -1338,9 +1343,13 @@
 
     const recent = lastNDays(7, todayIso);
     const recentExclToday = recent.filter(d => d !== todayIso);
+    // Denominator = days that have ANY food record (not just days with net-eaten>0),
+    // so a "no change" / 0-intake day you DID log still counts and doesn't bias the
+    // average upward. Days you never recorded stay excluded.
+    const recordedDays = new Set(deltas.map(d => bucketDateIso(d.ts)));
     let sum = 0, days = 0;
     recentExclToday.forEach(d => {
-      if (eatenMap.has(d)) { sum += eatenMap.get(d); days++; }
+      if (recordedDays.has(d)) { sum += (eatenMap.get(d) || 0); days++; }
     });
     const avg = days > 0 ? sum / days : NaN;
 
@@ -1373,6 +1382,7 @@
     renderWeight(pet);
     renderTrend(deltas, pet);
     updateInboxBadge();
+    if ($inboxModal.classList.contains('open')) renderInbox();   // live-refresh open inbox on new sync
     renderFoodSelector();
     applyRecordFoodUI();
     updateExtraEq();
@@ -1505,9 +1515,9 @@
     const eq = Number(e.kibbleEqG) || 0;
     const cntStr = fmtAmt(Number(e.count) || 1);
     const name = escapeHtml(e.foodName || '零食');
-    const emoji = e.emoji || '🍖';
+    const emoji = escapeHtml(e.emoji || '🍖');
     // gram-measured: "罐头 40g" ; count-measured: "猫条 ×2 根"
-    const amountStr = (e.measure === 'gram') ? `${cntStr}g` : `×${cntStr} ${e.unitLabel || '份'}`;
+    const amountStr = (e.measure === 'gram') ? `${cntStr}g` : `×${cntStr} ${escapeHtml(e.unitLabel || '份')}`;
     // 有结束时间戳 → 显示成时间段
     const timeStr = (Number.isFinite(e.tsEnd) && e.tsEnd > e.ts) ? `${fmtTime(e.ts)}–${fmtTime(e.tsEnd)}` : fmtTime(e.ts);
     return `
@@ -1525,8 +1535,8 @@
   function renderRemainRow(d, pet) {
     const e = d.entry;
     const name = escapeHtml(e.foodName || '食物');
-    const emoji = e.emoji || '🍖';
-    const unit = e.measure === 'gram' ? 'g' : (e.unitLabel || '份');
+    const emoji = escapeHtml(e.emoji || '🍖');
+    const unit = e.measure === 'gram' ? 'g' : escapeHtml(e.unitLabel || '份');
     const remStr = `${fmtAmt(Number(e.reading))} ${unit}`;
     let deltaHtml;
     if (d.type === 'remain-first') deltaHtml = `<span class="er-delta first">${emoji} ${name} · ${d.reset ? '🗑 倒掉换新·起点' : '记下起点'}</span>`;
@@ -1580,11 +1590,14 @@
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k).push(d);
     });
+    // Use the same cross-midnight-aware day totals as the today card / trend chart,
+    // so 「当日 X」on a day here can't disagree with what the chart shows for it.
+    const eatenMap = eatenByDate(deltas);
     const sortedDates = [...groups.keys()].sort().reverse();
     let html = '';
     sortedDates.forEach(date => {
       const items = groups.get(date);
-      const eaten = items.filter(x => EAT_TYPES.has(x.type) && x.amount > 0).reduce((s, x) => s + x.amount, 0);
+      const eaten = eatenMap.get(date) || 0;
       const sortedItems = [...items].sort((a, b) => b.ts - a.ts);
       html += `<div class="day-divider"><span>${date}</span><span>当日 <strong>${fmtEq(pet, eaten)}</strong> · ${items.length} 条记录</span></div>`;
       sortedItems.forEach(d => { html += renderEntryRow(d, pet); });
@@ -2409,12 +2422,11 @@
       if (ds.act === 'role') {
         await api('set-role', { petId: p.serverPetId, body: { targetDeviceId: target, role: ds.role } });
       } else if (ds.act === 'remove') {
-        if (!confirm('把这个成员移出？他们将立即失去访问权。')) return;
+        if (!confirm('把「' + memberDisplayName(p, target) + '」移出？他们将立即失去访问权。')) return;
         await api('remove-member', { petId: p.serverPetId, body: { targetDeviceId: target } });
       } else if (ds.act === 'transfer') {
-        const tm = (p.members || []).find(m => m.deviceId === target);
-        const tName = (tm && tm.nickname) || target.slice(2, 10);
-        if (!confirm('把主人身份转让给 ' + tName + '？你将变成管理员。')) return;
+        const tName = memberDisplayName(p, target);
+        if (!confirm('把主人身份转让给「' + tName + '」？你将变成管理员。')) return;
         await api('transfer', { petId: p.serverPetId, body: { newOwnerDeviceId: target } });
       }
       const r = await api('get', { petId: p.serverPetId });
@@ -2516,7 +2528,7 @@
     $myPetsList.innerHTML = pets.map(p => {
       const role = myRoleFor(p);
       const roleZh = role === 'owner' ? '主人' : role === 'admin' ? '管理员' : '成员';
-      const iconImg = p.avatar ? `<img src="${p.avatar}" alt="">` : (p.emoji || '🐾');
+      const iconImg = p.avatar ? `<img src="${escapeHtml(p.avatar)}" alt="">` : escapeHtml(p.emoji || '🐾');
       return `<li data-pet-id="${p.id}">
         <span class="mp-icon">${iconImg}</span>
         <span class="mp-name">${escapeHtml(p.name || '未命名')}</span>
@@ -2576,9 +2588,10 @@
       // Avoid dup if user already had this pet locally
       const existing = state.pets.find(p => p.serverPetId === r.petId);
       if (existing) {
+        await flushOps(existing);   // push any queued local records before merging
         Object.assign(existing, r.pet || {}, {
           shared: true, serverPetId: r.petId, serverCode: r.code,
-          members: r.members || [], entries: r.entries || [],
+          members: r.members || [], entries: mergeServerEntries(existing.entries, r.entries),
         });
         state.currentId = existing.id;
       } else {
@@ -2926,9 +2939,10 @@
   }
   // 食物图标：有照片用照片(小方图)，否则用 emoji。
   function foodIconHTML(item, fallback) {
+    // emoji / iconPhoto come from synced foodLibrary (any member can set them) → escape.
     return (item && item.iconPhoto)
-      ? `<img class="fc-photo" src="${item.iconPhoto}" alt="">`
-      : ((item && item.emoji) || fallback);
+      ? `<img class="fc-photo" src="${escapeHtml(item.iconPhoto)}" alt="">`
+      : escapeHtml((item && item.emoji) || fallback);
   }
   function renderFoodSelector() {
     const pet = currentPet();
@@ -4017,7 +4031,7 @@
   // 图标网格 = 照片格（拍照/选图）+ emoji；选 emoji 会清掉照片，反之照片优先、emoji 不再高亮。
   function fmRenderEmoji() {
     const photo = fmIconPhoto
-      ? `<button type="button" class="photo-cell active" data-photo="1" title="换图标照片"><img src="${fmIconPhoto}" alt=""></button>`
+      ? `<button type="button" class="photo-cell active" data-photo="1" title="换图标照片"><img src="${escapeHtml(fmIconPhoto)}" alt=""></button>`
       : `<button type="button" class="photo-cell" data-photo="1" title="拍照 / 从相册选">📷</button>`;
     $fmEmojiPick.innerHTML = photo + FOOD_EMOJIS.map(e =>
       `<button type="button" class="${!fmIconPhoto && e === fmEmoji ? 'active' : ''}" data-emoji="${e}">${e}</button>`).join('');
@@ -4285,7 +4299,7 @@
   }
   function fwRenderEmoji() {
     const photo = fwIconPhoto
-      ? `<button type="button" class="photo-cell active" data-photo="1" title="换图标照片"><img src="${fwIconPhoto}" alt=""></button>`
+      ? `<button type="button" class="photo-cell active" data-photo="1" title="换图标照片"><img src="${escapeHtml(fwIconPhoto)}" alt=""></button>`
       : `<button type="button" class="photo-cell" data-photo="1" title="拍照 / 从相册选">📷</button>`;
     $fwEmojiPick.innerHTML = photo + FOOD_EMOJIS.map(e =>
       `<button type="button" class="${!fwIconPhoto && e === fwEmoji ? 'active' : ''}" data-emoji="${e}">${e}</button>`).join('');
@@ -4418,7 +4432,7 @@
       e.ts = newTs; persist(); render();
       pushProposeTimeChange(pet, eid, newTs).then(r => {
         if (r && Array.isArray(r.timechanges)) pet.timeChanges = r.timechanges;
-        if (r && Array.isArray(r.entries)) pet.entries = r.entries;
+        if (r && Array.isArray(r.entries)) pet.entries = mergeServerEntries(pet.entries, r.entries);
         persist(); render();
       }).catch(err => {
         alert('改时间失败：' + (err && err.message || '网络问题')); pullSharedPets().then(render);
@@ -4427,7 +4441,7 @@
       // regular: submit a request, do NOT change locally yet.
       pushProposeTimeChange(pet, eid, newTs).then(r => {
         if (r && Array.isArray(r.timechanges)) pet.timeChanges = r.timechanges;
-        if (r && Array.isArray(r.entries)) pet.entries = r.entries;
+        if (r && Array.isArray(r.entries)) pet.entries = mergeServerEntries(pet.entries, r.entries);
         persist(); render();
         alert('已提交，等待主人或管理员批准后生效。');
       }).catch(err => {
@@ -4501,19 +4515,25 @@
     return isoDate(ts).slice(5);
   }
   // Plain-language description of a record for the activity feed.
+  // NB: emoji/unitLabel/foodName are member-supplied free text → always escapeHtml.
   function describeEntry(e, pet) {
+    const emoji = escapeHtml(e.emoji || '🍖');
     if (e.kind === 'extra') {
       const cnt = Number(e.count) || 0;
       const amt = e.measure === 'gram'
         ? `${parseFloat(cnt.toFixed(1))} g`
-        : `${parseFloat(cnt.toFixed(2))} ${e.unitLabel || '份'}`;
-      return `喂了 ${e.emoji || '🍖'} ${escapeHtml(e.foodName || '零食')} ${amt}`;
+        : `${parseFloat(cnt.toFixed(2))} ${escapeHtml(e.unitLabel || '份')}`;
+      return `喂了 ${emoji} ${escapeHtml(e.foodName || '零食')} ${amt}`;
+    }
+    if (e.kind === 'remain') {
+      const unit = e.measure === 'gram' ? 'g' : escapeHtml(e.unitLabel || '份');
+      return `记了 ${emoji} ${escapeHtml(e.foodName || '食物')} 还剩 ${fmtAmt(Number(e.reading) || 0)} ${unit}`;
     }
     if (e.kind === 'bodyweight') {
       const unit = pet.bodyWeightUnit || 'kg';
       return `记了体重 ${parseFloat(bwFromKg(Number(e.kg) || 0, unit).toFixed(2))} ${unit}`;
     }
-    return `记了一次喂食${e.withBowl ? '（含碗称重）' : '（称重）'}`;
+    return `记了一次称重${e.withBowl ? '（含碗）' : ''}`;
   }
 
   function tcStatusLabel(tc) {
@@ -4618,7 +4638,7 @@
     if (decision === 'reject' && !confirm('确定驳回这条时间修改？')) return;
     pushDecideTimeChange(pet, tcId, decision).then(r => {
       if (r && Array.isArray(r.timechanges)) pet.timeChanges = r.timechanges;
-      if (r && Array.isArray(r.entries)) pet.entries = r.entries;
+      if (r && Array.isArray(r.entries)) pet.entries = mergeServerEntries(pet.entries, r.entries);
       persist(); render(); renderInbox();
     }).catch(err => {
       // 409 already-decided: refresh to show current truth.
