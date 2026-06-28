@@ -966,6 +966,15 @@
   .tc-badge.approved { color: #4a7c59; background: rgba(74,124,89,0.12); }
   .tc-badge.rejected { color: var(--pet-danger); background: rgba(176,124,117,0.14); }
   .tc-badge.act-badge { color: var(--color-muted); background: var(--color-bg-warm); }
+  .tc-badge.act-new { color: #fff; background: var(--color-accent); margin-left: 0; }
+  /* Inline 「起备注」chip in the activity feed for still-anonymous members */
+  .tc-item .act-alias {
+    font: inherit; font-weight: 600; color: var(--color-muted);
+    background: none; border: 1px dashed var(--color-border); border-radius: 999px;
+    padding: 0.08rem 0.55rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;
+  }
+  .tc-item .act-alias .aa-add { font-weight: 400; font-size: 0.72rem; color: var(--color-accent); }
+  @media (hover: hover) { .tc-item .act-alias:hover { border-color: var(--color-accent); color: var(--color-accent); } }
   .inbox-sec-title {
     font-size: 0.8rem; font-weight: 600; color: var(--color-muted);
     margin: 0.5rem 0 0.5rem; padding-top: 0.3rem;

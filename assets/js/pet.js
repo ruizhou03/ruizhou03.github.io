@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD_VERSION = 'v2026.06.24';
+  const BUILD_VERSION = 'v2026.06.28';
   console.log('%c🐾 宠物中心 ' + BUILD_VERSION, 'color:#1e3a5f;font-weight:bold;font-size:13px');
 
   const STORE_KEY = 'tool.pet-food.v1';
@@ -1163,6 +1163,7 @@
     if (shared.length === 0) return;
     await Promise.all(shared.map(async p => {
       try {
+        await flushOps(p);   // push any queued records first, so the merge below doesn't look "local-only"
         const r = await api('get', { petId: p.serverPetId });
         // Don't apply server meta over a local edit that hasn't synced yet, or we'd
         // revert the user's just-saved change (e.g. a new food type's config).
@@ -1196,16 +1197,55 @@
     persist();
   }
 
-  async function pushAddEntry(pet, entry) {
-    if (!pet.shared || !pet.serverPetId) return;
-    try { await api('add-entry', { petId: pet.serverPetId, body: { entry } }); } catch (_) {}
+  // Reliable outbox: queue add/delete ops per pet and retry until the server
+  // confirms. A dropped network push must NOT silently lose a record — otherwise
+  // the recorder sees it locally but other members never do (the "5 recorded,
+  // admin sees 3" bug). Ops persist to localStorage so they survive a reload.
+  const _flushing = {};   // serverPetId -> bool, so one pet flushes one-at-a-time
+  function enqueueOp(pet, op) {
+    pet._pendingOps = pet._pendingOps || [];
+    pet._pendingOps.push(op);
+    persist();
+    flushOps(pet);
   }
-  async function pushDeleteEntry(pet, entryId) {
-    if (!pet.shared || !pet.serverPetId) return;
+  async function flushOps(pet) {
+    if (!pet || !pet.shared || !pet.serverPetId) return;
+    if (_flushing[pet.serverPetId]) return;
+    if (!pet._pendingOps || !pet._pendingOps.length) return;
+    _flushing[pet.serverPetId] = true;
     try {
-      const r = await api('delete-entry', { petId: pet.serverPetId, body: { entryId } });
-      if (r && Array.isArray(r.timechanges)) { pet.timeChanges = r.timechanges; persist(); }
-    } catch (_) {}
+      while (pet._pendingOps && pet._pendingOps.length) {
+        const op = pet._pendingOps[0];
+        try {
+          if (op.type === 'add') {
+            await api('add-entry', { petId: pet.serverPetId, body: { entry: op.entry } });
+          } else if (op.type === 'del') {
+            const r = await api('delete-entry', { petId: pet.serverPetId, body: { entryId: op.entryId } });
+            if (r && Array.isArray(r.timechanges)) pet.timeChanges = r.timechanges;
+          }
+          pet._pendingOps.shift();   // server confirmed → drop from outbox
+          persist();
+        } catch (e) {
+          break;   // network / server error → leave it queued, retry on next sync
+        }
+      }
+    } finally {
+      _flushing[pet.serverPetId] = false;
+    }
+  }
+  function pushAddEntry(pet, entry) {
+    if (!pet.shared || !pet.serverPetId) return;
+    enqueueOp(pet, { type: 'add', entry });
+  }
+  function pushDeleteEntry(pet, entryId) {
+    if (!pet.shared || !pet.serverPetId) return;
+    // If it was never synced (still queued as an add), just drop the add — no round-trip.
+    if (pet._pendingOps) {
+      const before = pet._pendingOps.length;
+      pet._pendingOps = pet._pendingOps.filter(o => !(o.type === 'add' && o.entry && o.entry.id === entryId));
+      if (pet._pendingOps.length !== before) { persist(); return; }
+    }
+    enqueueOp(pet, { type: 'del', entryId });
   }
   // Returns the server response (entries/timechanges) so callers can reconcile.
   async function pushProposeTimeChange(pet, entryId, newTs) {
@@ -2337,19 +2377,32 @@
     else $pmDelete.textContent = '🗑 删除';
   }
 
+  // Set a local-only alias for another member. Reused by the member list AND the
+  // activity feed so you can name an unfamiliar device wherever you run into it.
+  function setContactAlias(deviceId, onDone) {
+    const cur = state.contactNicknames[deviceId] || '';
+    const next = prompt('给 TA 起个备注名（只有你自己看得到，方便认人；留空则清除）：', cur);
+    if (next === null) return;
+    const trimmed = next.trim().slice(0, 40);
+    if (trimmed) state.contactNicknames[deviceId] = trimmed;
+    else delete state.contactNicknames[deviceId];
+    persist();
+    if (onDone) onDone();
+  }
+  // True when we have no human-readable name for this member yet (only their shortId).
+  function hasNoNameFor(pet, deviceId) {
+    if (!deviceId || deviceId === DEVICE_ID) return false;
+    if (state.contactNicknames[deviceId]) return false;
+    const m = (pet && pet.members || []).find(x => x.deviceId === deviceId);
+    return !(m && m.nickname);
+  }
+
   async function handleMemberAction(p, ds) {
     if (!p.serverPetId) return;
     const target = ds.target;
     // Local alias (no backend call)
     if (ds.act === 'alias') {
-      const cur = state.contactNicknames[target] || '';
-      const next = prompt('给这位成员设个本地备注名（仅你自己看得到，留空则清除）：', cur);
-      if (next === null) return;
-      const trimmed = next.trim().slice(0, 40);
-      if (trimmed) state.contactNicknames[target] = trimmed;
-      else delete state.contactNicknames[target];
-      persist();
-      renderShareSection(p);
+      setContactAlias(target, () => renderShareSection(p));
       return;
     }
     try {
@@ -4421,12 +4474,22 @@
   }
 
   // New records added by OTHER members since this device last opened the inbox.
+  // Drives the red dot only — the inbox itself shows the full history below.
   function newActivityFor(pet) {
     if (!pet || !pet.shared) return [];
     const seenAt = pet.activitySeenAt || 0;
     return (pet.entries || [])
       .filter(e => e.author && e.author !== DEVICE_ID && (e.addedAt || 0) > seenAt)
       .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+  }
+  // Full recent activity by OTHER members — always visible in the inbox so you can
+  // scroll back through what everyone did, not just what's new since last open.
+  function recentActivityFor(pet, limit) {
+    if (!pet || !pet.shared) return [];
+    return (pet.entries || [])
+      .filter(e => e.author && e.author !== DEVICE_ID)
+      .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0))
+      .slice(0, limit || 50);
   }
   function timeAgo(ts) {
     if (!ts) return '';
@@ -4485,9 +4548,10 @@
     const role = myRoleFor(pet);
     const tcs = (pet.timeChanges || []).filter(tc => tcVisibleFor(tc, role))
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    const acts = newActivityFor(pet);
+    const acts = recentActivityFor(pet, 50);    // full history, not just unseen
+    const seenAt = pet.activitySeenAt || 0;
 
-    if (tcs.length === 0 && acts.length === 0) { $inboxList.innerHTML = '<div class="empty-row">暂时没有新动态</div>'; return; }
+    if (tcs.length === 0 && acts.length === 0) { $inboxList.innerHTML = '<div class="empty-row">还没有家人一起记录的动态</div>'; return; }
 
     let html = '';
     // Section 1: time-change requests / notices (actionable)
@@ -4517,21 +4581,34 @@
         </div>`;
       }).join('');
     }
-    // Section 2: new records by other members (informational)
+    // Section 2: activity by other members — full history (newest first), with a
+    // 「新」flag on anything added since you last opened, and an inline 「起备注」
+    // shortcut whenever the actor still shows as an anonymous device id.
     if (acts.length) {
-      html += '<div class="inbox-sec-title">🐾 最近动态</div>';
-      html += acts.slice(0, 20).map(e => `<div class="tc-item act-item">
+      html += '<div class="inbox-sec-title">🐾 家人动态</div>';
+      html += acts.map(e => {
+        const isNew = (e.addedAt || 0) > seenAt;
+        const noName = hasNoNameFor(pet, e.author);
+        const nameBtn = noName
+          ? `<button class="act-alias" data-alias="${e.author}" title="给 TA 起个备注名">${escapeHtml(memberDisplayName(pet, e.author))} <span class="aa-add">＋备注</span></button>`
+          : `<span class="tc-who">${escapeHtml(memberDisplayName(pet, e.author))}</span>`;
+        return `<div class="tc-item act-item">
         <div class="tc-head">
-          <span class="tc-who">${escapeHtml(memberDisplayName(pet, e.author))}</span>
+          ${nameBtn}
           <span style="color:var(--color-ink);font-size:0.86rem;">${describeEntry(e, pet)}</span>
+          ${isNew ? '<span class="tc-badge act-new">新</span>' : ''}
           <span class="tc-badge act-badge">${timeAgo(e.addedAt)}</span>
         </div>
         <div class="tc-note">记录时间 ${fmtDateTime(e.ts)}</div>
-      </div>`).join('');
+      </div>`;
+      }).join('');
     }
     $inboxList.innerHTML = html;
     $inboxList.querySelectorAll('.tc-actions button').forEach(btn => {
       btn.addEventListener('click', () => decideTimeChange(btn.dataset.tc, btn.dataset.dec));
+    });
+    $inboxList.querySelectorAll('.act-alias').forEach(btn => {
+      btn.addEventListener('click', () => setContactAlias(btn.dataset.alias, () => renderInbox()));
     });
   }
 
