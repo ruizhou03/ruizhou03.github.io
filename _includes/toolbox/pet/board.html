@@ -1,7 +1,6 @@
   <header>
     <h1>🐾 宠物中心</h1>
     <p class="sub">记录爱宠的食量与体重 · 数据只存在你的设备上</p>
-    <p class="build-tag" id="build-tag">版本 v2026.06.24-A · 发布前整改版</p>
   </header>
 
   <div class="pet-bar" id="pet-bar">
@@ -267,3 +266,10 @@
       {% include cat-soundboard.html %}
     </div><!-- /panel-meow -->
   </div>
+
+  {%- comment -%}
+    隐藏式版本信标——极淡灰色小字放在整页最底部。公众几乎不会注意，
+    但站长每次部署后能靠它一眼确认线上是不是最新版（避免再被代理/SW 缓存误导）。
+    每次有实质改动时手动 bump 这里的版本号。
+  {%- endcomment -%}
+  <div class="build-tag" id="build-tag">v2026.06.24</div>
