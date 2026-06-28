@@ -11,7 +11,25 @@
     --pet-gold-bg: rgba(168,122,42,0.10);
     --pet-brown: #8b5a3c;             /* 深棕：添粮/已生效 */
     --pet-brown-bg: rgba(139,90,60,0.10);
+    /* Shape & elevation scale — one set of values so cards/menus/modals feel like a system */
+    --pet-r-card: 14px;               /* top-level content cards */
+    --pet-r-ctrl: 10px;               /* controls inside a card */
+    --pet-shadow-1: 0 1px 2px rgba(0,0,0,0.06);    /* buttons / chips */
+    --pet-shadow-2: 0 6px 18px rgba(0,0,0,0.12);   /* menus / drag / tooltip */
+    --pet-shadow-3: 0 16px 44px rgba(0,0,0,0.18);  /* modals */
     max-width: 880px; margin: 0 auto; padding: 1rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .pf-wrap {
+      --pet-shadow-1: 0 1px 2px rgba(0,0,0,0.3);
+      --pet-shadow-2: 0 6px 18px rgba(0,0,0,0.45);
+      --pet-shadow-3: 0 16px 44px rgba(0,0,0,0.6);
+    }
+  }
+  :root[data-theme="dark"] .pf-wrap {
+    --pet-shadow-1: 0 1px 2px rgba(0,0,0,0.3);
+    --pet-shadow-2: 0 6px 18px rgba(0,0,0,0.45);
+    --pet-shadow-3: 0 16px 44px rgba(0,0,0,0.6);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) .pf-wrap {
@@ -42,8 +60,8 @@
     --pet-brown-bg: rgba(160,128,85,0.12);
   }
   .pf-wrap header { text-align: center; margin-bottom: 1.4rem; }
-  .pf-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem; }
-  .pf-wrap header .sub { color: var(--color-light); font-style: normal; }
+  .pf-wrap header h1 { font-size: 2.15rem; color: var(--color-ink); margin-bottom: 0.4rem; letter-spacing: 0.01em; }
+  .pf-wrap header .sub { color: var(--color-muted); font-style: normal; }
   /* Hidden build beacon: faint grey footer text, used to confirm the live deploy */
   .pf-wrap > .build-tag {
     text-align: center;
@@ -95,7 +113,7 @@
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: 10px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--pet-shadow-2);
     min-width: 160px;
     padding: 0.25rem;
   }
@@ -113,7 +131,7 @@
   }
   .pet-bar .icon-btn {
     font: inherit; font-size: 0.85rem;
-    padding: 0.45rem 0.9rem;
+    padding: 0.45rem 0.9rem; min-height: 40px; display: inline-flex; align-items: center; justify-content: center;
     border: 1px solid var(--color-border); border-radius: 999px;
     background: var(--color-bg); color: var(--color-muted);
     cursor: pointer; transition: all 0.18s;
@@ -146,36 +164,37 @@
   }
 
   .summary-row {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;
-    margin-bottom: 0.7rem;
-  }
-  @media (max-width: 600px) {
-    .summary-row { grid-template-columns: 1fr 1fr; }
+    /* auto-fit: 4-across on desktop, naturally reflows to 2×2 on phones — one rule,
+       no breakpoint fight with the form/weight folds. */
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.5rem;
+    margin-bottom: 1rem;
   }
   .sum-card {
     text-align: center;
-    padding: 0.9rem 0.5rem;
+    padding: 1rem 0.6rem;
     background: var(--color-bg-warm);
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: var(--pet-r-card);
   }
+  /* The headline metric (今日已吃) leads the row with an accent cap. */
+  .sum-card.sc-lead { border-top: 2px solid var(--color-accent); }
   .sum-card .sc-num {
     font-family: var(--font-display); font-weight: 600;
-    font-size: 1.4rem; color: var(--color-ink); line-height: 1.1;
+    font-size: 1.55rem; color: var(--color-ink); line-height: 1.1;
     font-variant-numeric: tabular-nums;
   }
   .sum-card .sc-lbl { font-size: 0.76rem; color: var(--color-muted); margin-top: 0.35rem; }
   @media (max-width: 480px) {
-    .sum-card { padding: 0.75rem 0.4rem; }
-    .sum-card .sc-num { font-size: 1.25rem; }
+    .sum-card { padding: 0.8rem 0.45rem; }
+    .sum-card .sc-num { font-size: 1.4rem; }
     .sum-card .sc-lbl { font-size: 0.72rem; }
   }
 
   /* Recommendation strip */
   .rec-strip {
     background: var(--color-bg);
-    border: 1px solid var(--color-border); border-radius: 10px;
-    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--color-border); border-radius: var(--pet-r-card);
+    padding: 0.85rem 1rem;
     margin-bottom: 1.1rem;
     font-size: 0.85rem;
   }
@@ -224,7 +243,7 @@
      左右两列满高贴合卡片边缘、无缝。 */
   .entry-form {
     background: var(--color-bg);
-    border: 1px solid var(--color-border); border-radius: 12px;
+    border: 1px solid var(--color-border); border-radius: var(--pet-r-card);
     padding: 0; overflow: hidden; margin-bottom: 1rem;
   }
   .entry-form .entry-cols {
@@ -250,7 +269,7 @@
     flex: 1 1 auto; min-width: 0; padding: 0.9rem 1.2rem;
     display: flex; flex-direction: column; gap: 0.55rem; justify-content: center;
   }
-  .entry-form .fill-area > * { width: 100%; max-width: 340px; margin-inline: auto; }
+  .entry-form .fill-area > * { width: 100%; max-width: 420px; margin-inline: auto; }
   .entry-form .fill-area .extra-eq-row,
   .entry-form .fill-area .bowl-row { margin-top: 0; }
   /* RIGHT — 记一笔满高贴右边、直角和整卡贴合；记录时间作底部一条贴合的小行 */
@@ -259,11 +278,13 @@
     border-left: 1px solid var(--color-border);
   }
   .entry-form .action-col .save-btn {
-    flex: 1 1 auto; align-self: stretch; min-height: 56px; border: none; border-radius: 0;
+    flex: 1 1 auto; align-self: stretch; min-height: 56px; border: none;
+    border-radius: 0 var(--pet-r-card) 0 0;   /* follow the card's top-right corner */
     padding: 0.7rem 1rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem;
   }
   .entry-form .action-col .time-pill {
-    width: 100%; border: none; border-top: 1px solid var(--color-border); border-radius: 0;
+    width: 100%; border: none; border-top: 1px solid var(--color-border);
+    border-radius: 0 0 var(--pet-r-card) 0;    /* follow the card's bottom-right corner */
     justify-content: center; background: var(--color-bg-warm); min-height: 40px;
   }
   .entry-form .action-col .link-btn { display: none; }
@@ -416,7 +437,7 @@
   .entry-form .food-selector.fc-reordering { user-select: none; }
   .entry-form .food-selector .extra-chip.fc-dragging {
     position: relative; z-index: 5; cursor: grabbing;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.22); opacity: 0.97; transition: none;
+    box-shadow: var(--pet-shadow-2); opacity: 0.97; transition: none;
   }
   /* Narrow screens: 拆回竖排堆叠、恢复内边距与圆角、食物种类回到横向滚动一排。 */
   @media (max-width: 800px) {
@@ -497,9 +518,12 @@
   .entry-form .time-pill.custom .tp-val { color: var(--color-accent); }
   @media (hover: hover) { .entry-form .time-pill:hover { border-color: var(--color-accent); } }
 
-  /* Keyboard focus ring for the tool's custom controls (accessibility). */
+  /* Keyboard focus ring for the tool's custom controls (accessibility).
+     Use :has(input:focus-visible) for the segmented toggles so the ring only shows
+     on keyboard focus and doesn't linger after a click/tap. */
   .pf-wrap button:focus-visible, .pf-wrap select:focus-visible,
-  .extra-chip:focus-visible, .mode-toggle label:focus-within,
+  .extra-chip:focus-visible, .mode-toggle label:has(input:focus-visible),
+  .avatar-cell:focus-visible, .cs-trigger:focus-visible,
   .time-pill:focus-visible, .modal button:focus-visible, .modal input:focus-visible {
     outline: 2px solid var(--color-accent); outline-offset: 2px;
   }
@@ -619,11 +643,16 @@
   #food-wizard .big-choice.active .bc-title { color: var(--color-accent); }
 
   .section-title {
-    font-family: var(--font-display); font-size: 1.05rem; font-weight: 500;
-    color: var(--color-ink); margin: 1.4rem 0 0.6rem;
+    font-family: var(--font-display); font-size: 1.12rem; font-weight: 500;
+    color: var(--color-ink); margin: 1.8rem 0 0.6rem;
     display: flex; align-items: baseline; justify-content: space-between;
     gap: 0.6rem; flex-wrap: wrap;
   }
+  .section-title::before {
+    content: ''; position: absolute; margin-left: -0.7rem; margin-top: 0.15em;
+    width: 3px; height: 0.95em; border-radius: 2px; background: var(--color-accent);
+  }
+  .section-title { position: relative; }
   .section-title .right {
     font-size: 0.78rem; color: var(--color-muted); font-family: inherit;
   }
@@ -676,7 +705,7 @@
   @media (hover: hover) { [data-theme="dark"] .link-toast .lt-undo:hover { background: #7fb98f; color: #1a1a1a; } }
 
   .entries-list {
-    border: 1px solid var(--color-border); border-radius: 10px;
+    border: 1px solid var(--color-border); border-radius: var(--pet-r-card);
     background: var(--color-bg); overflow: hidden;
   }
   .entries-list.scroll { max-height: 360px; overflow-y: auto; }
@@ -784,7 +813,7 @@
   /* 一体式三段卡：左列「直接称/做差」整列一分为二 · 中间填写区 · 右列「记体重」，
      三段都满高贴合卡片、无缝；切两种模式整卡大小写死不变（高度固定）。 */
   .weight-box {
-    border: 1px solid var(--color-border); border-radius: 14px;
+    border: 1px solid var(--color-border); border-radius: var(--pet-r-card);
     background: var(--color-bg); margin-bottom: 1rem;
     padding: 0; overflow: hidden;
   }
@@ -858,7 +887,7 @@
   /* Featured current-weight card (mirrors the food board's stat cards). */
   .weight-hero {
     text-align: center; margin-bottom: 0.9rem;
-    padding: 1.05rem 1rem 1.1rem; border-radius: 14px;
+    padding: 1.05rem 1rem 1.1rem; border-radius: var(--pet-r-card);
     background: var(--color-bg-warm); border: 1px solid var(--color-border);
   }
   .weight-hero .wh-num {
@@ -903,7 +932,7 @@
 
   .chart-wrap {
     position: relative;
-    border: 1px solid var(--color-border); border-radius: 10px;
+    border: 1px solid var(--color-border); border-radius: var(--pet-r-card);
     background: var(--color-bg); padding: 1rem 1rem 0.6rem;
     margin-bottom: 1.2rem;
   }
@@ -915,7 +944,7 @@
     background: var(--color-ink); color: var(--color-bg);
     font-size: 0.72rem; line-height: 1.4; font-weight: 500;
     padding: 0.34rem 0.5rem; border-radius: 7px; white-space: nowrap;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    box-shadow: var(--pet-shadow-2);
     opacity: 0; transition: opacity 0.08s ease;
     font-variant-numeric: tabular-nums;
   }
@@ -948,7 +977,7 @@
     width: 9px; height: 9px; border-radius: 50%;
     background: #c0564b; border: 1.5px solid var(--color-bg);
   }
-  .inbox-list { max-height: 60vh; overflow-y: auto; margin: 0.4rem 0; }
+  .inbox-list { max-height: 60dvh; overflow-y: auto; margin: 0.4rem 0; }
   .inbox-list .empty-row { padding: 1.4rem; text-align: center; color: var(--color-light); font-size: 0.88rem; }
   .tc-item {
     border: 1px solid var(--color-border); border-radius: 10px;
@@ -994,18 +1023,28 @@
   .tc-note { color: var(--color-light); font-size: 0.78rem; margin-top: 0.3rem; }
   .modal {
     background: var(--color-bg); border: 1px solid var(--color-border);
-    border-radius: 14px; padding: 1.6rem;
+    border-radius: var(--pet-r-card); padding: 1.6rem;
     max-width: 480px; width: 100%;
     /* Backdrop already pads the safe areas; cap height to what's left so the title
        and the bottom action buttons stay on-screen even with keyboard / notch. */
     max-height: calc(100dvh - 2rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+    box-shadow: var(--pet-shadow-3);
   }
   .modal h2 {
     font-family: var(--font-display);
     font-size: 1.3rem; color: var(--color-ink); margin-bottom: 1rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
   }
+  .modal h2 .modal-close {
+    flex: 0 0 auto; min-width: 44px; min-height: 44px; margin: -0.6rem -0.5rem -0.6rem 0;
+    border: none; background: none; cursor: pointer;
+    color: var(--color-muted); font-size: 1.1rem; border-radius: var(--pet-r-ctrl);
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s;
+  }
+  @media (hover: hover) { .modal h2 .modal-close:hover { background: var(--color-bg-warm); color: var(--color-ink); } }
+  .modal h2 .modal-close:active { background: var(--color-bg-warm); }
   .modal .field { margin-bottom: 0.9rem; }
   /* 表单红框校验：必填项没填 / 不合理时标红 */
   .modal .field.invalid > input,
@@ -1496,6 +1535,12 @@
     .pf-wrap {
       padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
     }
+  }
+
+  /* Phones: tighten the tool's own padding so the content isn't a narrow column
+     (main.css already trims main's side padding for toolbox pages at ≤768). */
+  @media (max-width: 600px) {
+    .pf-wrap { padding: 0.75rem; }
   }
 
   /* Prevent iOS auto-zoom on focus for ALL touch devices (phones AND iPad portrait

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD_VERSION = 'v2026.06.28d';
+  const BUILD_VERSION = 'v2026.06.28e';
   console.log('%c🐾 宠物中心 ' + BUILD_VERSION, 'color:#1e3a5f;font-weight:bold;font-size:13px');
 
   const STORE_KEY = 'tool.pet-food.v1';
@@ -2813,9 +2813,8 @@
   $emptyAdd.addEventListener('click', () => openModal(null));
   $pmCancel.addEventListener('click', closeModal);
   $modal.addEventListener('click', e => { if (e.target === $modal) closeModal(); });
-  document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    if ($petAddMenu.classList.contains('open')) { $petAddMenu.classList.remove('open'); return; }
+  // Close whichever modal is currently open (used by Esc and the ✕ buttons).
+  function closeTopModal() {
     if ($cropModal.classList.contains('open')) closeCropModal();
     else if ($joinModal.classList.contains('open')) closeJoinModal();
     else if ($profileModal.classList.contains('open')) closeProfileModal();
@@ -2826,6 +2825,20 @@
     else if ($fw.classList.contains('open')) { $fw.classList.remove('open'); }
     else if ($tpModal.classList.contains('open')) closeTimePicker();
     else if ($modal.classList.contains('open')) closeModal();
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if ($petAddMenu.classList.contains('open')) { $petAddMenu.classList.remove('open'); return; }
+    closeTopModal();
+  });
+  // Inject a top-right ✕ close button into every modal header (so users don't have
+  // to scroll to the bottom cancel on long forms). Reuses closeTopModal.
+  document.querySelectorAll('.modal-backdrop > .modal > h2').forEach(h2 => {
+    if (h2.querySelector('.modal-close')) return;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'modal-close'; b.setAttribute('aria-label', '关闭'); b.textContent = '✕';
+    b.addEventListener('click', () => closeTopModal());
+    h2.appendChild(b);
   });
 
   $pmSave.addEventListener('click', () => {
