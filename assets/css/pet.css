@@ -841,7 +841,7 @@
 
   /* old save-btn (direct child, kept for compatibility during transition — will be removed) */
   /* 窄屏：拆成竖排，三段各自满宽、恢复内边距与圆角、高度自适应 */
-  @media (max-width: 680px) {
+  @media (max-width: 800px) {
     .weight-box { padding: 1.1rem; }
     .weight-box .weight-cols { flex-direction: column; align-items: stretch; height: auto; gap: 0.7rem; }
     .weight-box .weight-method {
@@ -1498,8 +1498,9 @@
     }
   }
 
-  /* Prevent iOS Safari auto-zoom when focusing inputs <16px */
-  @media (max-width: 680px) {
+  /* Prevent iOS auto-zoom on focus for ALL touch devices (phones AND iPad portrait
+     768/834px, which a width-only ≤680px rule missed). pointer:coarse = touch input. */
+  @media (pointer: coarse) {
     .pf-wrap input, .pf-wrap select, .pf-wrap textarea {
       font-size: max(16px, 0.9rem);
     }

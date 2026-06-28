@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD_VERSION = 'v2026.06.28c';
+  const BUILD_VERSION = 'v2026.06.28d';
   console.log('%c🐾 宠物中心 ' + BUILD_VERSION, 'color:#1e3a5f;font-weight:bold;font-size:13px');
 
   const STORE_KEY = 'tool.pet-food.v1';
@@ -4736,7 +4736,9 @@
     // 「新」flag on anything added since you last opened, and an inline 「起备注」
     // shortcut whenever the actor still shows as an anonymous device id.
     if (acts.length) {
-      html += '<div class="inbox-sec-title">🐾 家人动态</div>';
+      // Only label this section when something sits above it — otherwise the modal
+      // title「家人动态」already says it and a repeated header reads redundant.
+      if (newMembers.length || tcs.length) html += '<div class="inbox-sec-title">🐾 最近记录</div>';
       html += acts.map(e => {
         const mine = e.author === DEVICE_ID;
         const isNew = !mine && (e.addedAt || 0) > seenAt;   // your own records never show 「新」
