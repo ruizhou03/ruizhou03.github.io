@@ -17,7 +17,8 @@
     --pet-shadow-1: 0 1px 2px rgba(0,0,0,0.06);    /* buttons / chips */
     --pet-shadow-2: 0 6px 18px rgba(0,0,0,0.12);   /* menus / drag / tooltip */
     --pet-shadow-3: 0 16px 44px rgba(0,0,0,0.18);  /* modals */
-    max-width: 880px; margin: 0 auto; padding: 1rem;
+    --pf-pad: 1rem;
+    max-width: 880px; margin: 0 auto; padding: var(--pf-pad);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) .pf-wrap {
@@ -1540,8 +1541,32 @@
   /* Phones: tighten the tool's own padding so the content isn't a narrow column
      (main.css already trims main's side padding for toolbox pages at ≤768). */
   @media (max-width: 600px) {
-    .pf-wrap { padding: 0.75rem; }
+    .pf-wrap { --pf-pad: 0.75rem; padding: var(--pf-pad); }
   }
+
+  /* ===== Installed-PWA app bar ===== */
+  /* Visual props defined once; only `display` (+ hiding the decorative header and
+     zeroing main's top margin) is gated to the two standalone triggers below. */
+  .pf-appbar {
+    display: none;
+    align-items: center; justify-content: center; gap: 0.5rem;
+    position: sticky; top: 0; z-index: 60;
+    /* bleed up + out to the screen edges, cancelling .pf-wrap's padding */
+    margin: calc(-1 * var(--pf-pad)) calc(-1 * var(--pf-pad)) 1rem;
+    padding: calc(env(safe-area-inset-top, 0px) + 0.55rem) var(--pf-pad) 0.55rem;
+    background: var(--color-bg); border-bottom: 1px solid var(--color-border);
+  }
+  .pf-appbar .pf-appbar-title {
+    font-family: var(--font-display); font-size: 1.18rem; font-weight: 600; color: var(--color-ink);
+  }
+  @media (display-mode: standalone) {
+    .pf-appbar { display: flex; }
+    .pf-wrap > header { display: none; }
+    body.app-shell > main { margin-top: 0 !important; }
+  }
+  html.ios-standalone .pf-appbar { display: flex; }
+  html.ios-standalone .pf-wrap > header { display: none; }
+  html.ios-standalone body.app-shell > main { margin-top: 0 !important; }
 
   /* Prevent iOS auto-zoom on focus for ALL touch devices (phones AND iPad portrait
      768/834px, which a width-only ≤680px rule missed). pointer:coarse = touch input. */
