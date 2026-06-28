@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const BUILD_VERSION = 'v2026.06.28';
+  const BUILD_VERSION = 'v2026.06.28b';
   console.log('%c🐾 宠物中心 ' + BUILD_VERSION, 'color:#1e3a5f;font-weight:bold;font-size:13px');
 
   const STORE_KEY = 'tool.pet-food.v1';
@@ -238,8 +238,10 @@
     _storageWarnShown = true;
     const b = document.createElement('div');
     b.className = 'storage-warn';
-    b.innerHTML = '⚠️ 浏览器存储空间已满，新数据可能保存失败。 <button type="button" class="close-btn">关闭</button>';
-    b.querySelector('.close-btn').addEventListener('click', () => b.remove());
+    // Persistent (re-shows next time too): closing only hides this instance, the
+    // flag resets so a later failed write surfaces it again.
+    b.innerHTML = '⚠️ 存储空间已满，新记录会保存失败。请到「👤 我的档案 → 导出备份」存一份再清理旧数据。 <button type="button" class="close-btn">知道了</button>';
+    b.querySelector('.close-btn').addEventListener('click', () => { b.remove(); _storageWarnShown = false; });
     document.body.appendChild(b);
   }
 
@@ -342,24 +344,43 @@
       delete p.lifeStage;
     });
   }
+  function serializeState() {
+    return {
+      pets: state.pets,
+      currentId: state.currentId,
+      period: state.period,
+      customStart: state.customStart,
+      customEnd: state.customEnd,
+      board: state.board,
+      weightMethod: state.weightMethod,
+      weightPeriod: state.weightPeriod,
+      weightCustomStart: state.weightCustomStart,
+      weightCustomEnd: state.weightCustomEnd,
+      contactNicknames: state.contactNicknames,
+    };
+  }
+  // Returns true if the write landed, false if storage is full. Callers that just
+  // added a record should check this and roll back + warn on false, so the UI never
+  // says "已记录" for something that actually got dropped.
   function persist() {
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({
-        pets: state.pets,
-        currentId: state.currentId,
-        period: state.period,
-        customStart: state.customStart,
-        customEnd: state.customEnd,
-        board: state.board,
-        weightMethod: state.weightMethod,
-        weightPeriod: state.weightPeriod,
-        weightCustomStart: state.weightCustomStart,
-        weightCustomEnd: state.weightCustomEnd,
-        contactNicknames: state.contactNicknames,
-      }));
+      localStorage.setItem(STORE_KEY, JSON.stringify(serializeState()));
+      return true;
     } catch (e) {
-      if (e && e.name === 'QuotaExceededError') showStorageWarn();
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)) showStorageWarn();
+      return false;
     }
+  }
+  // Add a record and persist atomically: if storage is full, roll the record back
+  // out so we never tell the user "已记录" for something that didn't actually save.
+  function commitNewEntry(pet, newEntry) {
+    pet.entries.push(newEntry);
+    if (!persist()) {
+      pet.entries.pop();
+      alert('存储空间已满，这条没能保存。\n请到「👤 我的档案 → 导出备份」存一份，再清理旧数据后重试。');
+      return false;
+    }
+    return true;
   }
   function uuid(prefix) { return (prefix || 'p') + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7); }
 
@@ -1231,7 +1252,16 @@
           pet._pendingOps.shift();   // server confirmed → drop from outbox
           persist();
         } catch (e) {
-          break;   // network / server error → leave it queued, retry on next sync
+          // Permanent rejection (e.g. 403 no-permission delete): don't retry forever —
+          // drop the op and re-pull so server truth (the un-deleted record) comes back.
+          const st = e && e.status;
+          if (st && st >= 400 && st < 500 && st !== 429) {
+            pet._pendingOps.shift();
+            persist();
+            pullSharedPets().then(render).catch(() => {});
+            continue;
+          }
+          break;   // network / transient error → leave it queued, retry on next sync
         }
       }
     } finally {
@@ -1504,9 +1534,14 @@
   }
 
   function entryRowActions(e, pet) {
-    const edit = canEditEntryTime(e, pet)
+    // Same rule for edit-time AND delete: owner/admin can touch any record,
+    // a regular member only their own (mirrors the backend gate).
+    const mine = canEditEntryTime(e, pet);
+    const edit = mine
       ? `<button type="button" class="er-edit" data-eid="${e.id}" title="改时间" aria-label="修改这条记录的时间">✎</button>` : '';
-    return `<span class="er-actions">${edit}<button type="button" class="er-del" data-eid="${e.id}" title="删除" aria-label="删除这条记录">×</button></span>`;
+    const del = mine
+      ? `<button type="button" class="er-del" data-eid="${e.id}" title="删除" aria-label="删除这条记录">×</button>` : '';
+    return `<span class="er-actions">${edit}${del}</span>`;
   }
 
   function fmtAmt(n) { return Number.isInteger(n) ? String(n) : parseFloat(Number(n).toFixed(2)); }
@@ -2519,6 +2554,44 @@
     loadProfile().then(() => { $profileNickname.value = (cachedProfile && cachedProfile.nickname) || ''; }).catch(() => {});
   }
   function closeProfileModal() { $profileModal.classList.remove('open'); }
+
+  // ===== Backup: export / import (pure local, no cloud) =====
+  function exportBackup() {
+    const payload = { app: 'pet-center', v: 1, exportedAt: new Date().toISOString(), data: serializeState() };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const d = new Date();
+    const stamp = d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate());
+    const a = document.createElement('a');
+    a.href = url; a.download = `宠物中心备份-${stamp}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function importBackup(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      let parsed;
+      try { parsed = JSON.parse(String(reader.result)); } catch { alert('这个文件读不出来，确认是导出的备份 .json 吗？'); return; }
+      const data = (parsed && parsed.data) ? parsed.data : parsed;   // accept raw state too
+      if (!data || !Array.isArray(data.pets)) { alert('备份里没有宠物数据，换个文件试试。'); return; }
+      if (!confirm('从备份恢复？备份里的宠物与记录会并入当前数据（按记录 id 去重，不会重复，也不会删掉现有的）。')) return;
+      // Merge pets by id (or serverPetId); union their entries by entry id.
+      data.pets.forEach(ip => {
+        const local = state.pets.find(p => p.id === ip.id || (ip.serverPetId && p.serverPetId === ip.serverPetId));
+        if (local) {
+          local.entries = mergeServerEntries(local.entries, ip.entries || []);
+          ['foodLibrary', 'kibble', 'name', 'emoji', 'avatar'].forEach(k => { if (local[k] == null && ip[k] != null) local[k] = ip[k]; });
+        } else {
+          state.pets.push(ip);
+        }
+      });
+      if (data.contactNicknames) state.contactNicknames = Object.assign({}, data.contactNicknames, state.contactNicknames);
+      if (!state.currentId && state.pets.length) state.currentId = state.pets[0].id;
+      if (persist()) { render(); alert('恢复完成 ✓'); }
+    };
+    reader.readAsText(file);
+  }
+
   function renderMyPetsList() {
     const pets = state.pets;
     if (pets.length === 0) {
@@ -2550,6 +2623,16 @@
   $profileBtn.addEventListener('click', openProfileModal);
   $profileClose.addEventListener('click', closeProfileModal);
   $profileModal.addEventListener('click', e => { if (e.target === $profileModal) closeProfileModal(); });
+  const $backupExport = document.getElementById('backup-export');
+  const $backupImport = document.getElementById('backup-import');
+  const $backupFile = document.getElementById('backup-file');
+  if ($backupExport) $backupExport.addEventListener('click', exportBackup);
+  if ($backupImport) $backupImport.addEventListener('click', () => $backupFile.click());
+  if ($backupFile) $backupFile.addEventListener('change', () => {
+    const f = $backupFile.files && $backupFile.files[0];
+    if (f) importBackup(f);
+    $backupFile.value = '';
+  });
   $profileNickname.addEventListener('blur', async () => {
     const nickname = $profileNickname.value.trim().slice(0, 40);
     const cur = (cachedProfile && cachedProfile.nickname) || '';
@@ -3204,9 +3287,8 @@
       note: '',
       author: DEVICE_ID,
     };
-    pet.entries.push(newEntry);
     pet.preferredUnit = $unitPick.value || 'g';
-    persist();
+    if (!commitNewEntry(pet, newEntry)) return;
     $reading.value = '';
     $resetCheck.checked = false;
     resetEntryTime();
@@ -3283,8 +3365,7 @@
       note: '',
       author: DEVICE_ID,
     };
-    pet.entries.push(newEntry);
-    persist();
+    if (!commitNewEntry(pet, newEntry)) return;
     $reading.value = '';
     resetEntryTime();
     updateExtraEq();
@@ -3309,9 +3390,8 @@
       kcalPerUnit: kibbleKcalPerGOf(pet), kibbleEqG: grams,
       note: '', author: DEVICE_ID,
     };
-    pet.entries.push(newEntry);
     pet.preferredUnit = unit;
-    persist();
+    if (!commitNewEntry(pet, newEntry)) return;
     $reading.value = '';
     resetEntryTime();
     updateExtraEq();
@@ -3369,7 +3449,7 @@
       { id: uuid('e'), ts: pickedEntryTs(), addedAt: Date.now(), kind: 'bodyweight', reading: null, kg, author: DEVICE_ID, note: '' },
       extra || {}
     );
-    pet.entries.push(newEntry);
+    if (!commitNewEntry(pet, newEntry)) return;
     pet.bodyWeightUnit = unit;       // remember the unit the user weighs in
     reconcileBodyWeight(pet);
     // Weight → recommended food → target food linkage.

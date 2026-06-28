@@ -175,6 +175,13 @@
       </div>
       <div class="sub-section" style="border-top: none; padding-top: 0; margin-top: 0.8rem;">我的宠物</div>
       <ul class="my-pets-list" id="my-pets-list"></ul>
+      <div class="sub-section">数据备份</div>
+      <p class="hint" style="margin: 0 0 0.6rem;">记录存在本机。清缓存或换设备前先导出，换机后导入即可找回。</p>
+      <div class="backup-row">
+        <button type="button" class="backup-btn" id="backup-export">⬇️ 导出备份</button>
+        <button type="button" class="backup-btn" id="backup-import">⬆️ 从备份恢复</button>
+        <input type="file" id="backup-file" accept="application/json,.json" style="display:none;" />
+      </div>
       <div class="modal-actions">
         <button type="button" class="cancel" id="profile-close">关闭</button>
       </div>

@@ -1017,6 +1017,15 @@
   .modal .field-err { color: var(--pet-error); font-size: 0.76rem; margin-top: 0.3rem; }
   .modal .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
   @media (max-width: 420px) { .modal .field-grid { grid-template-columns: 1fr; } }
+  .backup-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  .backup-row .backup-btn {
+    flex: 1 1 0; min-width: 130px;
+    font: inherit; font-size: 0.86rem; padding: 0.55rem 0.8rem;
+    border: 1px solid var(--color-border); border-radius: 10px;
+    background: var(--color-bg); color: var(--color-ink); cursor: pointer;
+    transition: border-color 0.18s, color 0.18s;
+  }
+  @media (hover: hover) { .backup-row .backup-btn:hover { border-color: var(--color-accent); color: var(--color-accent); } }
   .modal label {
     display: block; font-size: 0.85rem; color: var(--color-muted);
     margin-bottom: 0.3rem;
