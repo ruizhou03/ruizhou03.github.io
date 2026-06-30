@@ -548,7 +548,7 @@ permalink: /toolbox/doudizhu/
     font-size: 0.9em;
   }
 
-  /* ======== 牌（CSS 自绘）：奶白纸面 + 暖金细边 ======== */
+  /* ======== 牌（四象限版型，从掼蛋迁移）：奶白纸面 + 暖金细边 ======== */
   .ddz-card {
     display: inline-block;
     background: linear-gradient(160deg, var(--ddz-card-bg) 0%, var(--ddz-card-bg-2) 100%);
@@ -557,54 +557,70 @@ permalink: /toolbox/doudizhu/
     box-shadow: 0 1px 3px rgba(20,37,63,0.18), inset 0 0 0 1px rgba(255,255,255,0.55);
     position: relative;
     flex-shrink: 0;
+    overflow: hidden;          /* 裁掉右下超大花色溢出右/下缘的部分 */
     -webkit-tap-highlight-color: transparent;
     touch-action: none;        /* 防止浏览器把触摸 swipe 当成滚动，让我们的 drag 选牌生效 */
   }
   .ddz-card.suit-red { color: var(--ddz-suit-red); }
   .ddz-card.suit-black { color: var(--ddz-suit-black); }
-  .ddz-card .corner {
+
+  /* 三种尺寸：外框尺寸 + 四象限缩放基准 --ddz-q-base（所有象限按它等比缩放，跟随卡宽/响应式收缩）*/
+  .ddz-card.size-full   { width: var(--ddz-card-w);        height: var(--ddz-card-h);        --ddz-q-base: var(--ddz-card-w); }
+  .ddz-card.size-mini   { width: var(--ddz-card-mini-w);   height: var(--ddz-card-mini-h);   --ddz-q-base: var(--ddz-card-mini-w); }
+  .ddz-card.size-bottom { width: var(--ddz-card-bottom-w); height: var(--ddz-card-bottom-h); --ddz-q-base: var(--ddz-card-bottom-w); }
+
+  /* ===== 四象限：一横一纵在 0.38W 处切四格 ===== */
+  .ddz-card .q { position: absolute; display: flex; line-height: 1; }
+  /* ① 左上正方形：点数，居中，统一字号（"10"不缩、字母不放大）*/
+  .ddz-card .q-tl {
+    left: 0; top: 0; width: calc(var(--ddz-q-base, 52px) * 0.38); height: calc(var(--ddz-q-base, 52px) * 0.38);
+    align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', Georgia, "Songti SC", serif; font-weight: 700;
+    font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum" 1, "lnum" 1;
+    font-size: calc(var(--ddz-q-base, 52px) * 0.28);
+  }
+  /* J 偏长，单独缩一点点 */
+  .ddz-card.rank-j .q-tl { font-size: calc(var(--ddz-q-base, 52px) * 0.25); }
+  /* ② 右上：花色正中（完整单张可见）*/
+  .ddz-card .q-tr {
+    left: calc(var(--ddz-q-base, 52px) * 0.38); top: 0; right: 0; height: calc(var(--ddz-q-base, 52px) * 0.38);
+    align-items: center; justify-content: center;
+    font-size: calc(var(--ddz-q-base, 52px) * var(--ddz-tr, 0.35));
+    transform: translateY(calc(var(--ddz-q-base, 52px) * var(--ddz-try, 0)));
+  }
+  /* ③ 左下：花色（横排叠牌时左条可见）*/
+  .ddz-card .q-bl {
+    left: 0; top: calc(var(--ddz-q-base, 52px) * 0.38); width: calc(var(--ddz-q-base, 52px) * 0.38); bottom: 0;
+    align-items: center; justify-content: center;
+    font-size: calc(var(--ddz-q-base, 52px) * var(--ddz-bl, 0.35));
+    transform: translateY(calc(var(--ddz-q-base, 52px) * var(--ddz-bly, 0)));
+  }
+  /* ④ 右下：超大花色，贴底、右与下出血被牌缘裁切（逐花色定大小与位置 via --ddz-big/br/bb/op）*/
+  .ddz-card .bigsuit {
     position: absolute;
-    display: flex; flex-direction: column; align-items: center;
-    line-height: 1;
-    font-family: 'Cormorant Garamond', Georgia, "Songti SC", serif;
+    display: flex; align-items: center; justify-content: center; line-height: 1;
+    right: calc(var(--ddz-q-base, 52px) * var(--ddz-br, -0.3));
+    bottom: calc(var(--ddz-q-base, 52px) * var(--ddz-bb, -0.1));
+    width: 1em; height: 1em;
+    font-size: calc(var(--ddz-q-base, 52px) * var(--ddz-big, 1.1));
+    opacity: var(--ddz-op, 0.9);
   }
-  .ddz-card .corner.tl { top: 4px; left: 5px; }
-  .ddz-card .corner.br { bottom: 4px; right: 5px; transform: rotate(180deg); }
-  .ddz-card .corner .rk { font-weight: 700; letter-spacing: 0; }
-  .ddz-card .pip {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", monospace;
-    opacity: 0.92;
-  }
+  /* ♠♣ 是文字符号：钉死系统符号字体，首帧即正确字形，不随 Web 字体(Cormorant/Noto)加载而闪烁(FOUT)。
+     ♥♦ 是内联 SVG，font-family 对其无效；大小王 .is-joker 有更高优先级的自有字体，不受波及。 */
+  .ddz-card .q-tr, .ddz-card .q-bl, .ddz-card .bigsuit { font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols2", monospace; }
+  .ddz-card .suit-svg { width: 1em; height: 1em; display: block; fill: currentColor; overflow: visible; }
 
-  /* 全尺寸（手牌）*/
-  .ddz-card.size-full {
-    width: var(--ddz-card-w);
-    height: var(--ddz-card-h);
+  /* 默认（完整单张：中央底牌 / 结算翻牌）：只露 左上+右上+右下，藏左下 */
+  .ddz-card .q-bl { display: none; }
+  /* 横排叠牌区（手牌 / 已出牌）：恢复左下花色、隐藏右上花色（叠放时左条露 点数+左下花色），并用横排专属大花色参数 */
+  .ddz-hand .ddz-card .q-bl, .ddz-played .ddz-card .q-bl { display: flex; }
+  .ddz-hand .ddz-card .q-tr, .ddz-played .ddz-card .q-tr { display: none; }
+  .ddz-hand .ddz-card .bigsuit, .ddz-played .ddz-card .bigsuit {
+    right: calc(var(--ddz-q-base, 52px) * var(--ddz-brH, var(--ddz-br, -0.3)));
+    bottom: calc(var(--ddz-q-base, 52px) * var(--ddz-bbH, var(--ddz-bb, -0.1)));
+    font-size: calc(var(--ddz-q-base, 52px) * var(--ddz-bigH, var(--ddz-big, 1.1)));
+    opacity: var(--ddz-opH, var(--ddz-op, 0.9));
   }
-  .ddz-card.size-full .corner .rk { font-size: 15px; }
-  .ddz-card.size-full .corner .su { font-size: 11px; margin-top: 1px; }
-  .ddz-card.size-full .pip { font-size: 28px; }
-
-  /* mini 尺寸（已出牌区）*/
-  .ddz-card.size-mini {
-    width: var(--ddz-card-mini-w);
-    height: var(--ddz-card-mini-h);
-  }
-  .ddz-card.size-mini .corner .rk { font-size: 11px; }
-  .ddz-card.size-mini .corner .su { font-size: 9px; }
-  .ddz-card.size-mini .pip { font-size: 20px; }
-
-  /* 底牌尺寸（中央三张）*/
-  .ddz-card.size-bottom {
-    width: var(--ddz-card-bottom-w);
-    height: var(--ddz-card-bottom-h);
-  }
-  .ddz-card.size-bottom .corner .rk { font-size: 11px; }
-  .ddz-card.size-bottom .corner .su { font-size: 9px; }
-  .ddz-card.size-bottom .pip { font-size: 19px; }
   /* 底牌已被地主打出 — 灰化 + 透明，提示"这张已经走了" */
   .ddz-card.size-bottom.is-played {
     opacity: 0.32;
@@ -628,42 +644,27 @@ permalink: /toolbox/doudizhu/
     transform-origin: center;
   }
 
-  /* ======== 经典 Joker：JOKER 文字 + 帽子图标，红 / 灰双色 ======== */
-  .ddz-card.is-joker .pip {
-    /* pip 容器：JOKER 文字 + 小冠 */
-    display: flex; flex-direction: column; align-items: center;
-    line-height: 1;
-    gap: 2px;
-    font-family: var(--font-body);
-    opacity: 1;
-  }
-  .ddz-card.is-joker .pip .joker-text {
-    font-weight: 800;
-    letter-spacing: 1.2px;
-  }
-  .ddz-card.is-joker .pip .joker-icon {
-    font-family: "Apple Symbols", "Segoe UI Symbol", monospace;
-    line-height: 1;
-  }
-  .ddz-card.is-joker .corner .rk {
-    font-weight: 400;
-    line-height: 1;
-  }
-  .ddz-card.size-full.is-joker .corner .rk { font-size: 15px; }
-  .ddz-card.size-mini.is-joker .corner .rk { font-size: 12px; }
-  .ddz-card.size-bottom.is-joker .corner .rk { font-size: 12px; }
-  /* 王不需要花色，留空 */
-  .ddz-card.is-joker .corner .su { display: none; }
-  /* 大王（红） / 小王（灰）双色 */
+  /* ======== 大小王：四象限版型（★ / JOKER / 皇冠），与常规牌同一套分割线 ======== */
   .ddz-card.joker-big   { color: var(--ddz-joker-red); }
   .ddz-card.joker-small { color: var(--ddz-joker-grey); }
-
-  .ddz-card.size-full.is-joker .pip .joker-text { font-size: 9px; }
-  .ddz-card.size-full.is-joker .pip .joker-icon { font-size: 22px; }
-  .ddz-card.size-mini.is-joker .pip .joker-text { font-size: 7px; }
-  .ddz-card.size-mini.is-joker .pip .joker-icon { font-size: 16px; }
-  .ddz-card.size-bottom.is-joker .pip .joker-text { font-size: 7px; }
-  .ddz-card.size-bottom.is-joker .pip .joker-icon { font-size: 15px; }
+  .ddz-card.is-joker .q-tl { font-family: "Apple Symbols", "Segoe UI Symbol", 'Cormorant Garamond', serif; font-size: calc(var(--ddz-q-base, 52px) * 0.37); }  /* 左上 ★ */
+  /* 右上：竖排/单张时星星右边的 JOKER（横排叠牌被隐）*/
+  .ddz-card.is-joker .q-tr { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; letter-spacing: 0; font-size: calc(var(--ddz-q-base, 52px) * 0.18); }
+  /* 左下：横排叠牌时星星下方竖排 JOKER（默认/单张被隐，仅横排叠牌区露）；靠上、贴稳左下不越界 */
+  .ddz-card.is-joker .q-bl { flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 0; font-family: var(--font-body); font-weight: 800; letter-spacing: 1px; line-height: 1.01; font-size: calc(var(--ddz-q-base, 52px) * 0.185); }
+  /* 右下：皇冠（竖排/单张版面：大皇冠）*/
+  .ddz-card.is-joker .bigsuit {
+    display: flex; align-items: center; justify-content: center;
+    right: calc(var(--ddz-q-base, 52px) * 0.02); bottom: calc(var(--ddz-q-base, 52px) * 0.115);
+    font-family: "Apple Symbols", "Segoe UI Symbol", monospace; font-size: calc(var(--ddz-q-base, 52px) * 0.91);
+  }
+  /* 横排叠牌版面：皇冠居中于右下象限矩形（不挤角落），略小于单张版，避开左条竖排 JOKER */
+  .ddz-hand .ddz-card.is-joker .bigsuit, .ddz-played .ddz-card.is-joker .bigsuit {
+    left: calc(var(--ddz-q-base, 52px) * 0.38); top: calc(var(--ddz-q-base, 52px) * 0.38);
+    right: 0; bottom: 0; width: auto; height: auto;
+    font-size: calc(var(--ddz-q-base, 52px) * 0.79);
+    transform: translate(calc(var(--ddz-q-base, 52px) * -0.06), calc(var(--ddz-q-base, 52px) * -0.01));
+  }
 
   /* 卡背：暖海军蓝 + 暖金交叉纹（与桌面同系） */
   .ddz-card-back {
@@ -1899,18 +1900,7 @@ permalink: /toolbox/doudizhu/
     .ddz-avatar { width: 46px; height: 46px; font-size: 1.4rem; }
     .ddz-avatar.is-landlord::after { font-size: 1rem; top: -10px; }
     .ddz-seat-ai { min-width: 78px; }
-    .ddz-card.size-full .corner .rk { font-size: 12px; }
-    .ddz-card.size-full .corner .su { font-size: 9px; }
-    .ddz-card.size-full .pip { font-size: 22px; }
-    .ddz-card.size-full.is-joker .pip .joker-text { font-size: 7px; }
-    .ddz-card.size-full.is-joker .pip .joker-icon { font-size: 16px; }
-    .ddz-card.size-full.is-joker .corner .rk { font-size: 12px; }
-    .ddz-card.size-mini.is-joker .corner .rk { font-size: 10px; }
-    .ddz-card.size-bottom.is-joker .corner .rk { font-size: 10px; }
-    .ddz-card.size-mini .corner .rk { font-size: 9px; }
-    .ddz-card.size-mini .corner .su { font-size: 8px; }
-    .ddz-card.size-mini .pip { font-size: 17px; }
-    .ddz-card.size-bottom .pip { font-size: 16px; }
+    /* 四象限版型字号按 --ddz-q-base(卡宽) 自动缩放，无需逐尺寸覆盖；仅卡背符号仍需收一点 */
     .ddz-card-back::after { font-size: 14px; }
     .ddz-overlay h2 { font-size: 1.5rem; }
     .ddz-double-q { font-size: 0.9rem; }
@@ -1935,13 +1925,7 @@ permalink: /toolbox/doudizhu/
       justify-content: safe center;    /* 放不下时左对齐而非把左边的牌挤到看不见 */
     }
     .ddz-hand .ddz-card.size-full.group-start { margin-left: 4px; }
-    /* 卡片字号微调（card-w 缩小后） */
-    .ddz-card.size-full .corner .rk { font-size: 10px; }
-    .ddz-card.size-full .corner .su { font-size: 8px; }
-    .ddz-card.size-full .pip { font-size: 18px; }
-    .ddz-card.size-mini .corner .rk { font-size: 8px; }
-    .ddz-card.size-mini .corner .su { font-size: 7px; }
-    .ddz-card.size-mini .pip { font-size: 14px; }
+    /* 四象限版型字号按 --ddz-q-base(卡宽) 自动缩放：上面已把 --ddz-card-w 收小，无需逐尺寸覆盖 */
   }
 
   /* 手机横屏（用户自愿旋转时）—— 不强制、不弹提示，转过来就更宽敞：

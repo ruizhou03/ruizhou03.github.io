@@ -501,19 +501,49 @@
   });
 
   // ============================================================
-  // 渲染：CSS 自绘卡片（角标 rank+suit + 中央 pip）
+  // 渲染：CSS 自绘卡片（四象限版型，从掼蛋迁移）
+  //   常规牌 = 左上点数(正方形) + 右上花色 + 左下花色(横排叠牌露左条) + 右下超大花色(贴底出血裁切)
+  //   大小王 = 左上 ★ + 右上/左下 JOKER + 右下皇冠
   // ============================================================
   const RANK_LABELS = ['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
   const SUIT_LABELS = ['♠','♥','♦','♣'];
 
+  // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓）=====
+  // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
+  const SVG_SUITS = {
+    0: { t: 'translate(500 500) scale(0.80349) translate(-626.5 -1393.0)', d: 'M679 1714 Q660 1815 712 1880Q624 1852 536 1880Q588 1815 574 1715Q548 1788 492.5 1836.5Q437 1885 380 1885Q295 1885 233.0 1813.0Q171 1741 171 1642Q171 1503 306 1344Q326 1319 361 1275Q401 1227 416 1209Q548 1048 619 906Q649 953 659 968L717 1051L786 1150Q844 1231 908 1303Q1082 1495 1082 1641Q1082 1739 1022.5 1810.0Q963 1881 881 1881Q810 1881 763.5 1842.5Q717 1804 679 1714Z' },
+    1: { t: 'translate(500 500) scale(0.80349) translate(-715.0 -1473.5)', d: 'M714 2046 658 1955Q540 1762 352 1581Q241 1473 196.5 1387.0Q152 1301 152 1195Q152 1075 235.0 988.0Q318 901 432 901Q590 901 716 1141Q850 906 1009 906Q1125 906 1201.5 992.0Q1278 1078 1278 1210Q1278 1299 1241.5 1387.5Q1205 1476 1146 1528L1067 1599Q960 1696 857 1848L803 1928Q790 1947 714 2046Z' },
+    2: { t: 'translate(500 500) scale(0.80349) translate(-616.0 -1475.5)', d: 'M1057 1475 617 2044 175 1479 616 907Z' },
+    3: { t: 'translate(500 500) scale(0.80349) translate(-709.0 -1402.0)', d: 'M762 1900Q708 1874 654 1900Q678 1812 689 1726Q629 1823 570.5 1863.0Q512 1903 431 1903Q327 1903 254.0 1830.0Q181 1757 181 1652Q181 1535 268.0 1462.0Q355 1389 494 1389L552 1390Q461 1255 461 1154Q461 1050 534.5 977.0Q608 904 713 904Q820 904 894.5 977.5Q969 1051 969 1157Q969 1253 867 1390Q919 1387 936 1387Q1067 1387 1152.0 1461.0Q1237 1535 1237 1649Q1237 1751 1162.0 1828.0Q1087 1905 988 1905Q903 1905 843.0 1862.5Q783 1820 728 1720Q745 1812 762 1900Z' },
+  };
+  // ♠(0) / ♣(3) 用文字符号（保留原本的「emoji 样子」）；♥(1) / ♦(2) 用矢量。
+  const SUIT_CHARS = { 0: '♠', 3: '♣' };
+  function suitSVG(suit) {
+    if (SUIT_CHARS[suit]) return SUIT_CHARS[suit];
+    const s = SVG_SUITS[suit];
+    return '<svg class="suit-svg" viewBox="0 0 1000 1000" aria-hidden="true"><g transform="' + s.t + '"><path d="' + s.d + '"/></g></svg>';
+  }
+  // 逐花色参数（掼蛋编辑器调好的定稿）：tr/bl 角标大小、big 大花色大小、br/bb 右移/下沉、op 不透明度
+  //   big/br/bb/op = 右下大花色「竖排(完整单张)」；bigH/brH/bbH/opH = 「横排(叠牌)」专属
+  //   trY/blY = 右上/左下 角标花色「逐花色上下微调」(占卡宽比例,正=下移/负=上移;与统一偏移相加)
+  const SUITP = {
+    0: { tr: 0.335, bl: 0.34, big: 1.13, br: -0.08, bb: -0.045, op: 1,   bigH: 1.13, brH: -0.125, bbH: -0.135, opH: 1,   trY: 0.02, blY: -0.175 },
+    1: { tr: 0.19,  bl: 0.2,  big: 0.6,  br: 0.17,  bb: 0.245,  op: 1,   bigH: 0.6,  brH: 0.09,   bbH: 0.2,    opH: 1,   trY: 0,    blY: -0.2 },
+    2: { tr: 0.22,  bl: 0.22, big: 0.74, br: 0.115, bb: 0.19,   op: 0.9, bigH: 0.68, brH: 0.075,  bbH: 0.175,  opH: 0.9, trY: 0,    blY: -0.2 },
+    3: { tr: 0.325, bl: 0.34, big: 1.04, br: -0.04, bb: -0.015, op: 0.9, bigH: 0.99, brH: -0.055, bbH: -0.065, opH: 1,   trY: 0,    blY: -0.17 },
+  };
+  const SUIT_TRY_ALL = 0.02;  // 右上花色(竖排) 整体上下
+  const SUIT_BLY_ALL = -0.2;  // 左下花色(横排) 整体上下
+
   function cardDisplayInfo(c) {
-    if (c === 52) return { isJoker: true, jokerKind: 'small', cornerRk: '★' };
-    if (c === 53) return { isJoker: true, jokerKind: 'big',   cornerRk: '★' };
+    if (c === 52) return { isJoker: true, jokerKind: 'small' };
+    if (c === 53) return { isJoker: true, jokerKind: 'big' };
     const r = E.cardRank(c);
     const s = E.cardSuit(c);
     return {
       rank: RANK_LABELS[r],
       suit: SUIT_LABELS[s],
+      suitIdx: s,
       red: (s === 1 || s === 2),
       isJoker: false,
     };
@@ -523,56 +553,47 @@
     opts = opts || {};
     const info = cardDisplayInfo(c);
     const el = document.createElement('span');
-    let cls = 'ddz-card ' + sizeClass;
+
     if (info.isJoker) {
-      cls += ' is-joker ' + (info.jokerKind === 'big' ? 'joker-big' : 'joker-small');
-    } else {
-      cls += ' ' + (info.red ? 'suit-red' : 'suit-black');
+      el.className = 'ddz-card ' + sizeClass + ' is-joker ' + (info.jokerKind === 'big' ? 'joker-big' : 'joker-small');
+      if (opts.cid != null) el.dataset.cid = opts.cid;
+      if (opts.selected) el.classList.add('selected');
+      // 四象限版型：左上 ★；右上横排 JOKER(竖排/单张露)；左下竖排 JOKER(横排叠牌露)；右下皇冠
+      const crown = (info.jokerKind === 'big') ? '♛' : '♚';
+      el.innerHTML =
+        '<span class="q q-tl">★</span>' +
+        '<span class="q q-tr jk-word-h">JOKER</span>' +
+        '<span class="q q-bl jk-word-v"><span>J</span><span>O</span><span>K</span><span>E</span><span>R</span></span>' +
+        '<span class="bigsuit jk-crown">' + crown + '</span>';
+      return el;
     }
+
+    const suit = info.suitIdx;
+    let cls = 'ddz-card ' + sizeClass + (info.red ? ' suit-red' : ' suit-black');
+    // J 在 Cormorant 里带下伸、整体偏长，单独把字号收一点点
+    if (info.rank === 'J') cls += ' rank-j';
     el.className = cls;
     if (opts.cid != null) el.dataset.cid = opts.cid;
     if (opts.selected) el.classList.add('selected');
-
-    if (info.isJoker) {
-      // 角标：JOKER 竖排文字
-      for (const pos of ['tl', 'br']) {
-        const corner = document.createElement('span');
-        corner.className = 'corner ' + pos;
-        const rk = document.createElement('span');
-        rk.className = 'rk';
-        rk.textContent = info.cornerRk;
-        corner.appendChild(rk);
-        el.appendChild(corner);
-      }
-      // pip：JOKER 文字 + 小冠图标
-      const pip = document.createElement('span');
-      pip.className = 'pip';
-      const txt = document.createElement('span');
-      txt.className = 'joker-text';
-      txt.textContent = 'JOKER';
-      const icon = document.createElement('span');
-      icon.className = 'joker-icon';
-      // ♛ (大王 - 红) / ♚ (小王 - 黑)，更经典的"小丑王冠"
-      icon.textContent = info.jokerKind === 'big' ? '♛' : '♚';
-      pip.appendChild(txt);
-      pip.appendChild(icon);
-      el.appendChild(pip);
-    } else {
-      // 普通牌：双角标 + 中央 pip
-      for (const pos of ['tl', 'br']) {
-        const corner = document.createElement('span');
-        corner.className = 'corner ' + pos;
-        const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = info.rank;
-        corner.appendChild(rk);
-        const su = document.createElement('span'); su.className = 'su'; su.textContent = info.suit;
-        corner.appendChild(su);
-        el.appendChild(corner);
-      }
-      const pip = document.createElement('span');
-      pip.className = 'pip';
-      pip.textContent = info.suit;
-      el.appendChild(pip);
-    }
+    const p = SUITP[suit];
+    el.style.setProperty('--ddz-tr', p.tr);
+    el.style.setProperty('--ddz-bl', p.bl);
+    el.style.setProperty('--ddz-big', p.big);
+    el.style.setProperty('--ddz-br', p.br);
+    el.style.setProperty('--ddz-bb', p.bb);
+    el.style.setProperty('--ddz-op', p.op);
+    el.style.setProperty('--ddz-bigH', p.bigH != null ? p.bigH : p.big);   // 横排叠牌大花色(分开设计;缺省回退竖排)
+    el.style.setProperty('--ddz-brH', p.brH != null ? p.brH : p.br);
+    el.style.setProperty('--ddz-bbH', p.bbH != null ? p.bbH : p.bb);
+    el.style.setProperty('--ddz-opH', p.opH != null ? p.opH : p.op);
+    el.style.setProperty('--ddz-try', SUIT_TRY_ALL + (p.trY || 0));   // 右上角标上下偏移 = 整体 + 本花色微调
+    el.style.setProperty('--ddz-bly', SUIT_BLY_ALL + (p.blY || 0));   // 左下角标上下偏移 = 整体 + 本花色微调
+    const sv = suitSVG(suit);
+    el.innerHTML =
+      '<span class="q q-tl">' + info.rank + '</span>' +
+      '<span class="q q-tr">' + sv + '</span>' +
+      '<span class="q q-bl">' + sv + '</span>' +
+      '<span class="bigsuit">' + sv + '</span>';
     return el;
   }
 
@@ -1063,10 +1084,18 @@
 
     // 用 srcEl 的 3 张底牌 children 作为基准位置
     const cardEls = Array.from(srcEl.querySelectorAll('.ddz-card'));
+    // 飞牌克隆挂到 document.body（脱离 .ddz-wrap），而四象限尺寸变量(--ddz-card-bottom-w/h)
+    // 只声明在 .ddz-wrap 上、不会向上传到 body —— 必须把当前(含响应式)的真值显式带到克隆上，
+    // 否则克隆宽高塌成 auto、--ddz-q-base 落到 52px 兜底导致花色暴涨被 overflow:hidden 裁掉。
+    const srcCS = getComputedStyle(srcEl);
+    const bottomW = srcCS.getPropertyValue('--ddz-card-bottom-w').trim();
+    const bottomH = srcCS.getPropertyValue('--ddz-card-bottom-h').trim();
     cardEls.forEach((origCard, i) => {
       const r = origCard.getBoundingClientRect();
       const cardId = bottomCards[i];
       const clone = buildCardEl(cardId, 'size-bottom');
+      if (bottomW) clone.style.setProperty('--ddz-card-bottom-w', bottomW);
+      if (bottomH) clone.style.setProperty('--ddz-card-bottom-h', bottomH);
       clone.classList.add('ddz-bottom-fly');
       clone.style.left = (r.left + r.width / 2) + 'px';
       clone.style.top  = (r.top  + r.height / 2) + 'px';
