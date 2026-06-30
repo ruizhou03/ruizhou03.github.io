@@ -1,3 +1,135 @@
+## 2026-06-30
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项；今日周二 DOW=2，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=30，未跑 monthly_stats）。距 6-29 巡检共 **0 个 commit**（HEAD 仍是 `baa12e4`，即昨日自动巡检 commit；自昨日 24:00 后无新提交，工作树纯净）。`bundle install` ✅ + `bundle exec ruby -e Jekyll::Commands::Build.process(...)` ✅ 通过、零 warning、零 error（6.934 s，cold build）。今日 `scripts/audit/run.sh` 全套审计 **13/13 每日项跑完**——`keywords_coverage`（散文 121 篇全部充足，与 6-27 / 6-28 / 6-29 完全一致）/ `images`（仅 `files/interm-macro/interm-macro-2022-zh.pdf` 2.13 MB 大文件，承接 6-16 ~ 6-29，markdown 入口正常）/ `material_type_enum`（**分布完全无变化**：Notes ×46 / Exams ×40 / 课程测评 ×18 / 经验之谈 ×5 / 错题本 ×3 / 写作 ×2 / 口语 ×1 / 词汇 ×1，承接 6-27 ~ 6-29）/ `filename_convention` / `hover_no_media` / `sibling_crosslink`（10 个 ≥3 篇 sub_category 组全互链）/ `img_caption_md` / `svg_italic_zh` / `bare_url` / `frontmatter_yaml` / `spotcheck`（10 项配额抽检见下）/ `backend_pulse`（HTTP 403，承接 6-04 ~ 6-29）—— 这 12 项全 clean。**仅 `bare_dollar` 报 1 条命中**：`_notes/study/adv-micro-psu/adv-micro-psu-2026.md`（body L91 = 文件 L106）的「正是 `$1-F(x)$` 这个概率质量」—— 这其实是**完整配对的 KaTeX 数学公式**（同句已有 `$\frac{1-F(x)}{f(x)}$` / `$x$` ×5 / `$1-F(x)$` / `$f(x)$` / `$(1-F)/f$` 等多组正确 `$...$` 配对，本句最末「自然出现。」前所有 `$` 偶数配齐），脚本误报源于其启发式只识别 `$\d+/\d+$`（数学分数）跳过，而 `$\d+-...` 形式没纳入跳过条件 —— 与昨日 6-29 修复的「`\$1-F(x)$`」是完全不同的两个位置：昨日是真错位（开头 `$` 被转义），今日 L106 这条是 6-29 修复后**正常**的 `$1-F(x)$` 配对，脚本启发式漏判而已。**不是文章问题**，列入 P2 审计脚本启发式增强。**今日 0 项自动修复**——审计仅一条命中且为脚本误报、所有内容审计全 clean、距上次巡检零新增 commit、抽检 10 项无新增内容问题。**P1 队列**：承接昨日两条 `study_order` 缺项——①承接 13 日的 `interm-econometrics`（**第 18 日承接**）、②承接 1 日的 `linear-algebra`（**第 7 日承接**），核对 `comm -23` 差集仍是这两条；都属 IA 设计判断、不擅改。**P2 新发现**：抽检 7/10 `_notes/tutoring/probability.md` 缺 `summary`，全目录扫描发现 `_notes/tutoring/` 10 篇里有 **7 篇**（exam-timing / math-thinking / probability / quadratic-inequality / solid-geometry / space-vectors / sphere）缺 summary——同 pattern 老文盘扫待办（与历史 P2 老文 `corp-fin/mid-2018.md` / `mao-thought-principles.md` 同类）；抽检 9/10 `_notes/life/paid-test-us-visa-types.md` 也缺 summary，但该文件是 `scripts/paywall/build_paid.py` 从 gitignored 的 `_paid/liuxue-test-visa.md` 自动生成，**不能直接改**（会被脚本下次重生覆盖）—— 需改源文件或脚本，列入 P2。
+
+### ✅ 本次已自动修复
+
+无。今日审计仅一条命中且为 `bare_dollar.py` 启发式误报（`$1-F(x)$` 是完整 KaTeX 数学配对），属脚本启发式漏判而非文章问题；其它 12 项审计全 clean，距上次巡检零新增 commit，没有可修复的「小而无争议」改动。
+
+### 📋 待你把关
+
+#### P0（紧急）
+无。
+
+#### P1（重要）
+
+1. **`_config.yml` 的 `study_order` 仍未列 `interm-econometrics` 文件夹**（承接 6-13 ~ 6-29，**第 18 日承接**）。`/notes/` landing 渲染遍历 `site.study_order`（`notes/index.html` L81），所以 `interm-econometrics-2023.md`（sub_category =「中级计量经济学」、120 页 Wooldridge 体系教科书式英文讲义、94 keywords 厚足覆盖）在 `/notes/index.html` 里**渲染不出来**（sitemap / search.json 仍正常工作，**仅** landing 缺）。今日核对：`ls _notes/study/` 仍 25 个目录、`study_order` 仍 23 条，`comm -23` 差集仍是 `interm-econometrics`、`linear-algebra` 两条，承接昨日不变。改否、改成什么名（保留现状 / 加进 `study_order` / 与 `interm-metrics/` 合并）属设计判断，仍请你拍板。
+
+2. **`_config.yml` 的 `study_order` 仍未列 `linear-algebra` 文件夹**（承接 6-24 ~ 6-29，**第 7 日承接**）—— `dfbb84c` 6-24 新建的 `_notes/study/linear-algebra/linear-algebra-strang.md` 因 `study_order` 没列 `linear-algebra`，**在 `/notes/index.html` 数学组里渲染不出来**（sitemap / search.json / `_site/notes/linear-algebra/linear-algebra-strang.html` 都正常输出，仅 landing 缺）。`_config.yml` 中数学组当前只有 `real-anal` 一条；自然位置是放在 `real-anal` 之前（线性代数比实分析更基础）。**但放在何处属顺序判断，且未来可能还会加中文版**（详见 P2#1），故仍写进待办由你拍板。
+
+#### P2（建议）
+
+1. **`linear-algebra-strang.md` 的 summary 引用「本站中文《线性代数讲义》」但仓库内仍不存在**（承接 6-24 ~ 6-29）—— `grep "course.*线性代数" _notes/study/` 仍只命中 strang 这一篇，未发现中文姊妹版。summary 最后一句「这是本站中文《线性代数讲义》之外，按 Strang 教法重构的英文姊妹篇」会让读者点过去找不到中文版。两种可能：① 中文版还在 LaTeX 化排队待上线 → 等中文版落地再放出；② 临时占位文案 → 删去「之外，按 Strang 教法重构的英文姊妹篇」这句、改成自足介绍。**属内容写作判断、请你拍板**。
+
+2. **`scripts/audit/bare_dollar.py` 启发式漏判 `$\d+-...$` 类数学配对**（今日**新发现**）—— 今日唯一一条 audit 命中即为该漏判：`_notes/study/adv-micro-psu/adv-micro-psu-2026.md` L106「正是 `$1-F(x)$` 这个概率质量」。脚本流程：见到 `$1`（数字），消费 `1` 后下一字符是 `-`（不在「`$\^_{}`」跳过集，也不是 `\d+/\d+` 分数 fallback 集），于是认作裸金额。但 `$1-F(x)$` 是平衡的 KaTeX 数学公式（开头 `$` 后续紧跟字面数学表达，而非货币 amount）。**建议修复**：把 L114-130 那段「数字后跟 `-`」也纳入跳过条件——具体可以是「`$\d+...` 后续若在同段同行内能找到下一个未转义 `$`、且 `$...$` 内容含字母 / `(` / `\\` 等数学token 而非纯逗号-小数点-空格-单位词」，则视为公式跳过。属审计脚本启发式增强、风险极低、纯减小 false-positive 命中——但仍是脚本逻辑改动，**自评不属"小而无争议"范畴，列入待办由你拍板**。
+
+3. **`scripts/audit/spotcheck.py` 的 `.tex 源` 探测启发式仍漏判带主题后缀和异目录情形**（承接 6-27 / 6-28 / 6-29）—— L185 `fp.with_suffix(".tex")` 只查同路径同基名 `.tex`。今日抽检 5/10 `files/adv-macro-psu/chapters/ch6.pdf` 又一次给出实证（`ls files/adv-macro-psu/chapters/` 实存 `ch6_neoclassical.tex`，spotcheck 报「.tex 源 不存在」），与 6-27 ~ 6-29 同类。其它 3 项 pdf_archive 抽检里（`files/adv-micro-pku/chapters/ch1.pdf` 80.4 KB / `files/psy-stat-I/demo-summary.pdf` 938.2 KB）确为真 PDF-only（核对：`ls files/adv-micro-pku/chapters/` 仅 ch1.pdf…ch6.pdf 无任何 `.tex` 源；`ls files/psy-stat-I/` 仅 7 个 PDF 无 source/ 子目录），不再加例。**建议修复同 6-29 P2#2**：把 `if tex.exists(): continue` 改成同时检测 ①`fp.with_suffix(".tex")`、②`<dir>/<stem>_*.tex` glob、③`<repo>/<files-dir>/<topic>/source/**/<stem>*.tex` glob 与 `**/*-<stem-tail>*.tex` glob。属审计脚本启发式增强、风险极低、纯减小 false-positive 抽签池——但仍是脚本逻辑改动，**自评不属"小而无争议"范畴，列入待办由你拍板**。
+
+4. **`_notes/tutoring/` 10 篇里 7 篇缺 `summary` 字段**（今日**新发现**，抽检 7/10 触发全目录扫描）—— `_notes/tutoring/` 下 10 篇辅导讲义（多数 PDF-only、45-50 行）里 `exam-timing.md` / `math-thinking.md` / `probability.md` / `quadratic-inequality.md` / `solid-geometry.md` / `space-vectors.md` / `sphere.md` 都缺 `summary`，只有 `math.md` / `physics.md` / `physics-basic-models.md` 三篇写了。这与历史 P2 老文 `corp-fin/mid-2018.md` / `mao-thought-principles.md` 同 pattern。今日抽检 7/10 命中 `probability.md`（front-matter 完整 layout=post / main_category=学习资料 / sub_category=数学 / course=数学 / discipline=初升高 / material_type=Notes / date=2026-01-20 / keywords ×29 充足覆盖核心搜索词「古典概型」/「几何概型」/「条件概率」/「等可能概型」/「树状图 列表法」等，**但缺 `summary`**）。归并入老文盘扫待办——属内容写作判断（站主了解课程内容、写一句更准），不擅改。
+
+5. **`_notes/life/paid-test-us-visa-types.md` 缺 `summary` 字段且无法直接改**（今日**新发现**，抽检 9/10）—— 这份文件是 `scripts/paywall/build_paid.py` 从 gitignored 的 `_paid/liuxue-test-visa.md` 自动生成的免费预览（文件首行注释「⚠ 本文件由 scripts/paywall/build_paid.py 从 _paid/liuxue-test-visa.md 自动生成…请勿手改这里」）。front-matter 含 paid=false / paid_slug=liuxue-test-visa / price=6 / column=liuxue / column_price=39 / member_price=15 / keywords ×28 充足覆盖「美国签证」/「F-1」/「F-2」/「J-1」/「OPT」/「STEM OPT」/「CPT」/「H-1B」/「O-1」/「L-1」/「TN」/「EB-2」/「EB-3」/「绿卡」/「身份转换」等核心搜索词，**但缺 `summary`**（`scripts/paywall/build_paid.py` 自动脚本未拷贝 summary 到生成产物，或源文件未写）。直接改自动生成的 `.md` 文件会被脚本下次重生覆盖；**真修复路径**是改源文件 `_paid/liuxue-test-visa.md` front-matter 加 summary，再重跑 paywall 脚本；或改脚本默认从源拷贝。**属脚本逻辑 + 内容写作判断**，写进待办由你拍板。
+
+6. **`toolbox/random/` hover 守卫内层缩进 cosmetic** —— 承接自 6-03。功能正确，纯排版风格小差异，可忽略。
+
+7. **mid-2015 与 anova-R 纯 PDF 存档可加同课程互链入口** —— 承接自 6-03。已有「同课程自动侧栏」覆盖（`sibling_crosslink.py` ✅）但缺手写互链段落引导。属内容写作决策。
+
+8. **掼蛋 6-18 ~ 6-24 期间联机改造 + 调试链路收尾共 23 个 commit 待真机/微信内置浏览器跑两局完整联机回归** —— 承接 6-27 ~ 6-29 P2#5/#6。重点回归：① 联机终局对方看到最后一手桌面（`0fcd7ed` mp19）；② 调试台 4-Tab + 字体放大 + 融合 test/quad（`97d9c72`）；③ Web Audio 合成音效（`7d9197a`）。沙箱无浏览器/音频出口无法替代真机回归。
+
+9. **宠物中心 6-28 共 9 commit（v2026.06.24-A → v2026.06.28f）三端 UX 大改 + 数据备份 + 身份 token + 共享同步加固待多浏览器/多设备验收** —— 承接 6-29 P2#7。三件大事：① **数据备份导出/恢复 + 存储满真提示回滚 + 删除权限前端收口**（`5696bec`）；② **身份 token 前端接入 + 加入通知/换码清退**（`dbba468`）；③ **三端设计打磨**（`b15db52` / `e84fd3f`）—— 手机正文宽度 / auto-fit 卡 / 圆角阴影体系 / 弹窗关闭键 / PWA standalone 顶栏 / 猫语面板视觉并入主面板，建议在 iPhone Safari + Android Chrome + 桌面 Chrome + 桌面 Firefox + 加装到主屏（PWA standalone）至少五个组合下，过一遍 board。沙箱无 GUI / 无真触屏，确确实实跑不了。
+
+10. **jukebox 16 首问题首 + 3 失败首待逐类修复** —— 6-17 `008ff4f` 落地 74 首安全改善后剩余的「英文歌 / 翻唱抓错 CD / ASR 漂移」等问题首站主可继续推进。属内容修复决策（承接自 6-18 ~ 6-29）。
+
+11. **5 条 DNS NameResolutionError 外链需站主在生产环境复验**（沿用 6-08 ~ 6-29，今日**周二未跑** `dead_links.py`，本条仅承接周一审计结论）—— `centretax.net` / `offcampus.psu.edu` / `www.hwdrivingschool.com` / `www.judicialinformation.com` / `www.textile-outlook.com`。
+
+12. **`dead_links.py` 把 SVG `xmlns="http://www.w3.org/2000/svg"` 命名空间字符串误判为外链**（沿用 6-08 ~ 6-29）—— audit 脚本 cosmetic（6-10 已有 SKIP_URL_PATTERNS 但仍偶发命中）；非阻塞。
+
+13. **抽检 3/10 · `_notes/study/corp-fin/mid-2018.md` 缺 `summary` 字段**（承接 6-28 / 6-29）—— 与本次 P2#4 `tutoring/` 7 篇 / P2#5 `paid-test-us-visa-types.md` 同 pattern；老文盘扫待办，日后补 summary 时一并涵盖。
+
+14. **抽检 3/10 · `_notes/study/mao-thought/mao-thought-principles.md` 缺 `summary` 字段**（承接 6-29）—— 同上 pattern；老文盘扫待办。
+
+### 🗂 仓库卫生
+
+**仓库结构较昨日无变化，无需再优化**——距上次巡检 0 个新 commit、`git status` clean、`git ls-files --others --exclude-standard` 空、`find . -name '.DS_Store' -o -name '*.bak' -o -name '*.orig' -o -name '*.tmp' -o -name '*~'` 全空、副本文件（`find . -name "* 2.*"`）全空 / 无密钥 / 凭证 / 个人路径痕迹。`_config.yml` 的 `exclude:` 列表已含 `DAILY_REVIEW.md`、`EMAIL_SUMMARY.md`、`SPOTCHECK_*`、`TOOLBOX_AUDIT_REPORT.md`、`docs/`、`scripts/`、`tools/`、`_paid/`、`audio/`、`backends/`、`.claude/`、`.githooks/` 等所有内部目录与产物，状态与昨日完全一致。`.gitignore` 状态未变。**结论**：与 6-15 ~ 6-29 同——仓库目录基线稳定，无可优化空间，跳过结构调整。
+
+### 🔬 抽检专项
+
+**抽检 1/10 · `game` · `toolbox/time/index.html`**（503 行 / 17.5 KB inline ·「时间工具」时区/倒计时/秒表工具 · 无独立 .js / .css）
+- 已修复：无。
+- 一致性 ✅：layout=default / title「时间工具 \| Rui Zhou」/ permalink=/toolbox/time/。**未接 `games-shell`**（无 identity.js / leaderboard.js / comments.js / qrcode.js 等引用）——但该「游戏」实质是**单人 utility（时区换算 / 倒计时 / 秒表）**而非对战游戏，不需要排行榜 / 评论 / 催更，**不接入合理**，类似 random / converter 等工具类。
+- 代码质量 ✅：503 行 << 1000 行软阈值；`@media (hover: hover)` 守卫（L26-28）已正确应用；`.tab-bar button.active` 用 `var(--color-accent)` 主题 token，深色模式自动适配。
+- UI / 视觉 ✅：圆角 14px 与 pet board 一致、按钮 padding 0.5rem 1.2rem、tab-bar 用 999px 胶囊形态、配色全走站点 token；`tz-block + tz-block` 用 dashed 分隔线、克制典雅。
+- 长期建议：无——utility 类工具，架构合理、IA 健康、调性符合站点。
+
+**抽检 2/10 · `pdf_archive` · `files/adv-micro-pku/chapters/ch1.pdf`**（80.4 KB · 北大高微 Choice Theory 章节）
+- 已修复：无。
+- 归属 ✅：被 `index.html` L601「Ch 1: Choice Theory」入口引用 `<a href="/files/adv-micro-pku/chapters/ch1.pdf">`；同目录 ch1.pdf…ch6.pdf 6 个章节碎片共同构成北大高微 PKU 章节书目，整书入口在 `_notes/study/adv-micro-pku/adv-micro-pku-2023.md`。
+- 体积合理性：80.4 KB << 5 MB；非孤儿、非候选 imgslim/pdfslim 对象。
+- LaTeX 化状态：✅ **真 PDF-only 存档**（核对：`ls files/adv-micro-pku/chapters/` 仅 ch1.pdf…ch6.pdf 6 个，**无 source/ 子目录、无任何 `.tex` 源**，与 P2#3 spotcheck 启发式漏判不同——这是真无源文件）。北大高微 PKU 2023 章节笔记原始 .tex 不在本仓库，章节 PDF 作为只读引用维持现状即可。
+- 长期建议：无。
+
+**抽检 3/10 · `lecture_note_pdf_only` · `_notes/study/china-hist/china-hist-2024.md`**（17 行 / 1.3 KB · 2024 北大通识「中国古代文化」课堂笔记 PDF-only 存档）
+- 已修复：无。
+- 一致性 ✅：`pdf_url: "/files/china-hist/china-hist-2024.pdf"` 路径有效；front-matter 完整（layout=post / main_category=学习资料 / sub_category=中国古代文化 / course=中国古代文化 / material_type=Notes / date=2024-09-01 / author=Zircon / discipline=通识 / permalink=/notes/china-hist/china-hist-2024 / **有 `summary` 字段且写满**：「北大通识课《中国古代文化》课堂笔记，按朝代和文化主题（思想、制度、文学、礼乐）梳理脉络。适合通识课学生备考或对中华传统文化感兴趣的读者按图索骥。」/ keywords ×26 厚足覆盖「中国古代文化 课程笔记」/「China ancient culture notes」/「中国古代史 笔记」/「PKU 中国古代文化」/「中国古代 思想史 / 制度史」/「诸子百家」/「儒释道」/「宋明理学」/「中国古代 礼乐」/「科举制度」/「中国古代 文学」/「中国古代 文化常识」等核心搜索词）。
+- 同 sub_category 互链 ✅：china-hist 是独子（同 sub_category 仅此一篇），无需互链；自动侧栏可选呈现「同 discipline=通识」分组。
+- LaTeX 化建议：③ **维持 PDF 存档即可**——通识选修课一次性课堂笔记、无更新需求、原始排版手写式较多、LaTeX 化收益低。
+- 长期建议：无。
+
+**抽检 4/10 · `lecture_note_pdf_only` · `_notes/study/interm-econometrics/interm-econometrics-2023.md`**（16 行 / 3.8 KB · 2023 春光华金融经济方向「中级计量经济学」120 页 Wooldridge 体系教科书式英文讲义 PDF-only）
+- 已修复：无。
+- 一致性 ✅：`pdf_url: "/files/interm-econometrics/interm-econometrics-2023.pdf"` 路径有效；front-matter 完整（layout=post / main_category=学习资料 / sub_category=中级计量经济学 / course=中级计量经济学 / material_type=Notes / date=2023-09-01 / author=Rui Zhou / discipline=经济学 / permalink=/notes/interm-econometrics/interm-econometrics-2023 / **有 `summary` 字段且写满**：「光华金融经济方向《中级计量经济学》（2023 春，宋晓军）整学期课堂笔记，重写并统一为一本自足的英文教科书式讲义（120 页，教科书彩色盒子排版，定义/定理/假设/例子分色）。以 Wooldridge 体系为脉络，从简单回归与 OLS 讲起，依次覆盖多元回归的估计（遗漏变量偏误为核心）、推断（t/F 检验与经典线性模型）、大样本渐进理论；再逐一放松假设——函数形式与拟合优度、虚拟变量与 Chow 检验、异方差（稳健标准误 / BP / White / WLS / FGLS）、设定与数据问题（RESET / 代理变量 / 测量误差 / 缺失数据 / LAD）、面板数据（DiD / 一阶差分 / 固定效应 / 随机效应 / CRE）、工具变量与 2SLS（弱工具、内生性检验、过度识别）。可对照 Wooldridge 教材自学或期末复习时通读。」/ keywords ×94 厚足覆盖「中级计量经济学」/「Intermediate Econometrics」/「Wooldridge」/「OLS」/「Gauss-Markov BLUE」/「OVB」/「multicollinearity VIF」/「Chow test」/「LPM」/「heteroskedasticity」/「robust standard error」/「White Eicker Huber」/「Breusch-Pagan」/「WLS / FGLS」/「RESET」/「proxy variable」/「measurement error attenuation bias」/「DiD」/「parallel trends」/「first difference」/「fixed effects」/「random effects」/「CRE Mundlak」/「Hausman」/「IV」/「2SLS」/「weak instrument」/「exclusion restriction」/「Sargan」/「Wu-Hausman」/「宋晓军」/「光华」/「PKU econometrics」等核心搜索词）。
+- **`/notes/` landing 渲染不出来**——`_config.yml` 的 `study_order` 未列 `interm-econometrics` 文件夹（承接 P1#1，**第 18 日承接**）。sitemap / search.json / `_site/notes/interm-econometrics/interm-econometrics-2023.html` 都正常输出，仅 landing 缺。
+- LaTeX 化建议：② **加入低优队列**——120 页教科书式英文讲义、若日后还要做迭代更新或被其他课程交叉引用、LaTeX 化收益高；但作者已毕业、迭代需求低、当前 PDF 排版完整可读，归低优。
+- 长期建议：解决 P1#1 study_order 缺项，让本篇能从 landing 渲染。
+
+**抽检 5/10 · `pdf_archive` · `files/adv-macro-psu/chapters/ch6.pdf`**（232.2 KB · PSU 高级宏观 Neoclassical Growth Model 章节碎片）
+- 已修复：无。
+- 归属 ✅：被 `index.html` L639「Ch 6: The Neoclassical Growth Model」入口引用 `<a href="/files/adv-macro-psu/chapters/ch6.pdf">`；同目录 ch1.pdf…ch12.pdf + 多份 `chN_<topic>.tex` 源文件共同构成 PSU 高宏 12 章章节书目，整书入口在 `_notes/study/adv-macro-psu/`。
+- 体积合理性：232.2 KB << 5 MB；非孤儿。
+- LaTeX 化状态：✅ **已 LaTeX 化**（核对：同目录实存 `ch6_neoclassical.tex` 源文件）—— 与昨日 `ch8.pdf`/`ch8_rbc.tex` 同模式（**主题后缀**：同目录、不同基名 `chN_<topic>.tex`），**与 6-27 ~ 6-29 spotcheck 启发式漏判 P2#3 完全一致**——`spotcheck.py` 因 L185 `fp.with_suffix(".tex")` 只查同基名，没识别 `ch6_neoclassical.tex` 是 `ch6.pdf` 的源；今日再次实证。
+- 长期建议：解决 P2#3 `spotcheck.py` 启发式增强，从此不会再误抽该类已 LaTeX 化对象。
+
+**抽检 6/10 · `lecture_note_pdf_only` · `_notes/study/corp-fin/mid-sample-1.md`**（17 行 / 1.0 KB · 2022 光华本科「公司财务管理」期中样卷 1 题面 PDF-only）
+- 已修复：无。
+- 一致性 ✅：`pdf_url: "/files/corp-fin/mid-sample-1.pdf"` 路径有效；front-matter 完整（layout=post / main_category=学习资料 / sub_category=公司财务管理 / course=公司财务管理 / material_type=Exams / date=2022-09-01 / author=Zircon / discipline=管理学 / permalink=/notes/corp-fin/mid-sample-1 / **有 `summary` 字段且写满**：「光华本科《公司财务管理》期中样卷 1 题面 PDF。配套答案见 mid-sample-1-sol.md；可掐时做完后对照。」/ keywords ×24 厚足覆盖「公司财务期中样卷 1」/「corp fin midterm sample 1」/「WACC」/「NPV」/「IRR」/「CAPM」/「资本结构」/「MM 定理」/「贝塔」/「股利政策」/「敏感性分析」/「光华 公司财务」/「PKU corp fin midterm」等核心搜索词）。串读链路：summary 末尾「配套答案见 mid-sample-1-sol.md」明确指引到答案版，符合"练题—对答案"的引导动线。
+- 同 sub_category 互链 ✅：`公司财务管理` 课程下 3+ 篇（mid-sample-1 / mid-sample-1-sol / mid-2018 等）自动侧栏互链。
+- LaTeX 化建议：③ **维持 PDF 存档即可**——一次性本科课程样卷题面 PDF、22 年至今无更新、LaTeX 化收益极低。
+- 长期建议：无。
+
+**抽检 7/10 · `note`（辅导讲义 · 概率必修二）· `_notes/tutoring/probability.md`**（47 行 / 1.1 KB · 2026-01-20 PDF-only 初升高数学辅导讲义）
+- 已修复：无。
+- front-matter 部分完整：layout=post / main_category=学习资料 / sub_category=数学 / course=数学 / discipline=初升高 / material_type=Notes / date=2026-01-20 / permalink=/notes/tutoring/probability / pdf_url=/files/tutoring/probability/Main.pdf / published=true / redirect_from=/notes/pre-high-school/probability（保留旧 URL 重定向 ✅）/ keywords ×29 厚足覆盖「初升高数学 概率」/「高中必修二 概率」/「概率初步」/「高一概率」/「junior high to senior high probability」/「中考后衔接 数学」/「古典概型」/「几何概型」/「条件概率 高中」/「独立事件 互斥事件」/「排列组合 概率」/「随机事件 概率」/「样本空间 事件」/「频率与概率」/「概率加法公式」/「概率乘法公式」/「等可能概型」/「概率 树状图」/「概率 列表法」等核心搜索词。
+- **缺 `summary` 字段**（与 `_notes/tutoring/` 同目录 7 篇老文同 pattern，全目录扫描见 P2#4：exam-timing / math-thinking / probability / quadratic-inequality / solid-geometry / space-vectors / sphere 都缺；只有 math / physics / physics-basic-models 三篇写了）。归并入老文盘扫待办（P2#4），属内容写作判断（站主了解学生年龄段、教材版本、用什么风格写一句更准），不擅改。
+- 同 sub_category 互链 ✅：tutoring 数学组多篇（math / math-thinking / exam-timing / quadratic-inequality / probability / solid-geometry / space-vectors / sphere）自动侧栏互链。
+- LaTeX 化建议：③ **维持 PDF 存档即可**——辅导期间一次性产出、PDF 排版含手写公式 / 图示、LaTeX 化收益低。
+- 长期建议：补 P2#4 summary 后整目录抽签池更健康。
+
+**抽检 8/10 · `pdf_archive` · `files/psy-stat-I/demo-summary.pdf`**（938.2 KB · 2022 PKU 心理统计Ⅰ课堂 R/SPSS 代码 demo 整理）
+- 已修复：无。
+- 归属 ✅：被 `_notes/study/psy-stat-I/demo-summary.md` 唯一引用 `pdf_url: "/files/psy-stat-I/demo-summary.pdf"`，路径有效。
+- 体积合理性：938.2 KB < 5 MB（接近但仍在阈值下）；非孤儿、非候选 imgslim/pdfslim 对象——内含代码截图 / R 输出截图，已合理压缩。
+- LaTeX 化状态：✅ **真 PDF-only 存档**（核对：`ls files/psy-stat-I/` 仅 7 个 PDF：anova-R / cheat-sheet-final-2022 / cheat-sheet-mid-2022 / demo-summary / final-2022 / hw-summary / mid-2022，**无 source/ 子目录、无任何 `.tex` 源**）。课堂 R/SPSS 代码截图汇编、原始材料是截图非可编辑代码、维持 PDF 存档合理。
+- markdown 入口 front-matter ✅：psy-stat-I/demo-summary.md **有 `summary` 字段且写满**：「心理统计Ⅰ课堂 R/SPSS 代码 demo 整理。把一学期讲过的 z/t 检验、方差分析、相关、回归、卡方等常用过程代码集中成查找手册，期末复习和后续作业上机时可直接抄改。」/ keywords ×27 充足。
+- 长期建议：无。
+
+**抽检 9/10 · `note`（生活攻略 · 美国签证完全指南付费）· `_notes/life/paid-test-us-visa-types.md`**（407 行 / 25.0 KB · 2026-03-18 付费文章免费预览，paywall 自动生成产物）
+- 已修复：无。
+- 文件首行注释明确：「⚠ 本文件由 scripts/paywall/build_paid.py 从 _paid/liuxue-test-visa.md 自动生成：只含免费预览，锁定正文在后端。请勿手改这里，改源文件后重跑脚本。」——**不能直接改**。
+- front-matter 部分完整：layout=post / title=「美国签证完全指南：从 F-1 到绿卡，每种身份能做什么、不能做什么（付费）」/ main_category=生活攻略 / sub_category=留学攻略 / date=2026-03-18 / author=周睿 / permalink=/life/paid-test/us-visa-types / published=true / keywords ×28 厚足覆盖「美国签证」/「F-1」/「F-2」/「J-1」/「J-2」/「OPT」/「STEM OPT」/「CPT」/「H-1B」/「O-1」/「L-1」/「TN 签证」/「绿卡」/「EB-2」/「EB-3」/「身份转换」/「签证能做什么」等核心搜索词；paid=false / paid_slug=liuxue-test-visa / price=6 / column=liuxue / column_price=39 / member_price=15 / afdian_url 等付费墙字段齐全。
+- **缺 `summary` 字段**——脚本 `scripts/paywall/build_paid.py` 没有从源文件 `_paid/liuxue-test-visa.md` 拷 summary，或源文件未写 summary。归 P2#5 待办，需改源文件 + 重跑脚本，或改脚本默认从源拷贝。
+- 图文 ✅：1 处 `<p class="img-caption">`，SVG 流程图「中国学生赴美：从 F-1 到绿卡的三条主流路径」清晰；svg 内仅英文 + 数字 + 短中文标签，无中文斜体。
+- 排版 ✅：开篇用「这是给谁看」+ 警示框「签证规则会频繁变动…复杂个案请咨询移民律师，本文不构成法律建议」声明 + 全景 SVG 图三个 hook，调性循证、严谨、为读者负责。
+- 长期建议：解决 P2#5 让 summary 进自动生成产物。
+
+**抽检 10/10 · `game` · `toolbox/sudoku/index.html`**（1177 行 / 42.3 KB inline ·「数独」单人解谜小游戏 · 无独立 .js / .css）
+- 已修复：无。
+- 一致性 ✅：layout=default / title「数独 \| Rui Zhou」/ permalink=/toolbox/sudoku/。**已接入 `games-shell`** 全套：games-shell.css（L7）+ identity.js / leaderboard.js / comments.js / nick-prompt.js / save-state.js / settlement.js 六组件（L379-384）；L809「games-shell 接入」段对接逻辑；适合单人解谜 + 「最快通关时间」排行榜场景。
+- 代码质量：1177 行略超 1000 行拆分软阈值但属可接受范围（数独引擎 + 难度生成 + UI + 排行榜接入 + 评论自洽，强行拆分反而 IA 散）；`@media (hover: hover)` 守卫（L87）已正确应用，触屏设备不会卡 hover 态。
+- UI / 视觉 ✅：`.sudoku-rank-row` 圆角 10px / `var(--color-bg-warm)` 暖底、`var(--color-border)` 边、`var(--color-ink)` 文字，全走站点 token；max-width 480px 适配手机竖屏。
+- 联机/排行榜 ✅：通过 `games-shell` 全套接入（排行榜 + 评论 + 催更）；属典型单人解谜 + 全榜 leaderboard 场景，适配恰当。
+- 长期建议：无——游戏架构合理、IA 健康、调性符合站点高端典雅。
+
+---
+
 ## 2026-06-29
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（16 项；今日周一 DOW=1，跑了 dead_links / orphan_files / pii_scan 三项周一项；DOM=29，未跑 monthly_stats）。距 6-28 巡检共 **9 个 commit**（`9f69751` → `e84fd3f`），全部是宠物中心一条线的 UX 打磨与功能加固，承接昨日 P2#6「待多浏览器/多设备验收」的同一作者持续推进：① `09f9b08` + `45a8603`「v2026.06.24 版本信标双子」——先加可见标 `2026.06.24-A`、再撤页头药丸改页脚低调灰字（避免吵正文）；② `7a1e38f` + `07d55e2`「6-28 巡查组 autofix」——共享同步防丢条 / 活动流持久化 / 成员辨识度 + 后续 XSS / 辨识度 / 同步合并 / 逻辑 / 三端打磨；③ `5696bec` + `dbba468` + `a95883a` + `b15db52` + `e84fd3f`「6-28 b/c/d/e/f 五连递增 patch」——数据备份导出/恢复 + 存储满真提示回滚 + 删除权限前端收口 / 身份 token 前端接入 + 家人动态含自己 + 通知文案软化 + 加入通知/换码清退 / 修通知箱标题重复 + 统一三端折叠断点 + iPad 防缩放 / 三端设计打磨（手机正文宽度 / auto-fit 卡 / 圆角阴影体系 / 弹窗关闭键）/ 猫语面板并入主面板视觉 + PWA standalone 专属顶栏。9 个 commit 全部聚焦 `_includes/toolbox/pet/` + `_includes/cat-soundboard.html` + `assets/css/pet.css` + `assets/js/pet.js` 四套文件、不溢出。`bundle install` ✅ + `bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` ✅ 通过、零 warning、零 error（cold build 13.114 s）。今日 `scripts/audit/run.sh` 全套审计 **13/13 每日项全 clean + 3/3 周一项跑完**——`keywords_coverage`（散文 121 篇全部充足，承接 6-27 / 6-28）/ `images`（仅 `files/interm-macro/interm-macro-2022-zh.pdf` 2.13 MB 大文件，承接 6-16 ~ 6-28，markdown 入口正常）/ `material_type_enum`（**分布完全无变化**：Notes ×46 / Exams ×40 / 课程测评 ×18 / 经验之谈 ×5 / 错题本 ×3 / 写作 ×2 / 口语 ×1 / 词汇 ×1，承接 6-28）/ `filename_convention` / `hover_no_media`（pet 大改后所有 `:hover` 仍齐用 `@media (hover: hover)` 守卫）/ `sibling_crosslink`（10 个 ≥3 篇 sub_category 组全互链）/ `bare_dollar` / `img_caption_md` / `svg_italic_zh` / `bare_url` / `frontmatter_yaml` / `spotcheck`（10 项配额抽检见下）/ `backend_pulse`（HTTP 403，承接 6-04 ~ 6-28）/ `dead_links`（260 条与上周一同源：wechat 403 ×几十条 + 几十条 DNS NameResolutionError 长链 + 5 条已知失活外链 + jsdelivr / fonts.googleapis 等 CDN 沙箱不可达）/ `orphan_files`（0 孤儿）/ `pii_scan`（18 篇含 PII，分布同上周一，无新增）。**今日 3 项自动修复**——巡读 `_notes/` 全文时发现 3 处 `\$<math>$` 转义错位（半个 `\$` 转义掉，后面 `$` 开了未配对的数学环境，致 KaTeX 渲染断裂）：① `_notes/life/fresh-vs-frozen-fish.md:56`「速率降至 \$1/100$」→「速率降至 $1/100$」（数学分数）/ ② `_notes/life/autorefractor.md:34`「短了 \$1/3$ 米」→「短了 $1/3$ 米」/ ③ `_notes/study/adv-micro-psu/adv-micro-psu-2026.md:106`「正是 \$1-F(x)$ 这个概率质量」→「正是 $1-F(x)$ 这个概率质量」。三处都属同模式打字错误（本想写 `$math$`、误把开头 `$` 转义成 `\$`），上下游同段已用正确 `$...$` 配对，没有歧义；修复后 cold rebuild 仍零 warning / 零 error（4.999 s）。**P1 队列**：承接昨日两条 `study_order` 缺项——①承接 13 日的 `interm-econometrics`（**第 17 日承接**）、②承接 1 日的 `linear-algebra`（**第 6 日承接**），核对 `comm -23` 差集仍是这两条；都属 IA 设计判断、不擅改。
@@ -1302,96 +1434,3 @@
 ### 💓 后端脉搏 / 📬 读者来信
 
 后端三件套（zircon-urge / leaderboards / zircon-comments waline）+ 付费墙 `/api/paid` / `/api/redeem` 端点本次 `backend_pulse.py` 仍全报 HTTP 403。与 5-27 ~ 6-16 同因（沙箱无 fly.io 出口），不阻塞巡检，未主动重启 fly app。**今日 11 个 commit 全部前端**（toolbox/guandan + assets/js/games），后端无新增依赖。
-
----
-
-## 2026-06-16
-
-> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周二 DOW=2，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=16，未跑 monthly_stats）。距 6-15 巡检共 **17 个 commit**（`ef30032` 之后 → `90a8395` 为止），两条主线：① **新内容上线 1 篇**——`ad03465`「中级宏观经济学讲义重制上线（中英双版）」：把光华《中级宏观经济学》（2022 秋·颜色 Se Yan）整学期课堂笔记重写为自足的教科书式讲义，**英文版 149 页 + 中文版 136 页双开**，共 14 章按「核算→长期增长→货币→短期波动」主线组织（国民收入核算、价格与通胀、劳动力市场、Solow 与黄金律、新古典增长 / OLG / 马尔萨斯、货币与银行、货币数量论、凯恩斯交叉、IS-LM、AD-AS、菲利普斯曲线 / 泰勒规则等），30 幅图（含 5 幅作者原手绘）。英文版**原地升级** `interm-macro-2022.md`（作者 Zircon→Rui Zhou、PDF 1713728→1699486 字节 −0.8%）；中文版**新增** `interm-macro-2022-zh.md` + `files/interm-macro/interm-macro-2022-zh.pdf`（2230405 字节 = 2.13 MB，CJK 字体嵌入正常）。新建 LaTeX 源（`source/main.tex` + `main_zh.tex` + `commands.tex` + `theorems.tex` + `theorems_zh.tex` + 14 章双语 `chapters/`、`chapters_zh/` + 30 张 `figures/`，共 75 文件 / ~8000 行）。继承自 6-13/6-15 的「LaTeX 教科书式讲义走真名 Rui Zhou」约定，本次双版均署名 Rui Zhou，全站此类讲义计 **3 篇**（interm-econometrics + monetary-econ + interm-macro 双版）。② **掼蛋 16 个 commit 系列 UX 收尾**——`f19ce55`/`8293af0`/`fffd89d`「牌面改版 V2 四象限 + 真实矢量花色」+ 后续逢人配/级牌高亮/还贡/旁观蒙版/双下进贡 + `f4c6fb1`「结算画面重构 + 大小王手调参数」+ `7d4bd96`「测试/演示模式（连打 TEST 触发）」+ `04adfc7`/`77e3431` 大小王皇冠分两版面 + `7edd463`「预加载 Cormorant 拉丁主字重 缩短 FOUT」+ `7c06ec2`/`dccfd69`/`9c76c2d`/`a4ad02d`/`031554b` 牌面参数微调 + `14a04a8`「修正『过A』判定与收圈差一」+ `0a85c9b`/`90a8395`「恢复原文字符号 + 钉死系统符号字体消除 FOUT」。共 `guandan.js` 7 次改、`toolbox/guandan/index.html` 13 次改、`_layouts/default.html` 2 次改（字体预加载）；全程 `hover_no_media` ✅ 守卫齐整，DOM 仍保持单机引擎纯前端。`bundle install` ✅ + `bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` ✅ 通过、零 warning、零 error（13.271 s，cold build）。今日 `scripts/audit/run.sh` 全套审计 **13/13 每日项全 clean**——`keywords_coverage`（散文 121 篇全部充足）/ `images`（仅新增中文版 PDF 2.13 MB 被列入「仓库内独立大文件」，已确认 markdown 入口 + sitemap + search 三处全部正确引用，CJK 字体嵌入致体积大于英文版属正常）/ `material_type_enum`（分布微调：Notes×44 ↑1 / Exams×40 / 课程测评×18 / 经验之谈×5 / 错题本×3 / 写作×2 / 口语×1 / 词汇×1，多出的 ×1 Notes 是新增中文版）/ `filename_convention` / `hover_no_media`（17 个 commit 后掼蛋所有 `:hover` 仍齐用 `@media (hover: hover)` 守卫）/ `sibling_crosslink`（9 个 ≥3 篇 sub_category 组全互链；已验证中英文版互相在「同课程」侧栏列出）/ `bare_dollar` / `img_caption_md` / `svg_italic_zh` / `bare_url` / `frontmatter_yaml` / `spotcheck`（10 项配额抽检列表）/ `backend_pulse`（HTTP 403，承接 6-04 ~ 6-15）。**今日 0 项自动修复**——17 个 commit 全部合规；唯一 P1（`study_order` 未列 `interm-econometrics`）继续从 6-13 / 6-14 / 6-15 承接，今日状态完全不变，属设计判断，按巡检规则不擅改。**关键自我对照**：本次中级宏观因文件夹原本就在 `study_order`（L81，新旧讲义都在 `interm-macro/` 同文件夹下），所以中英双版都正常显示在 `/notes/` landing（已验证 `grep -c "interm-macro" _site/notes/index.html` = 3，含 zh 版 1 处）——与 6-15 货币经济学同形，再次印证 P1#1 是「文件夹命名分歧」问题，不是 study_order 设计本身的问题。
-
-### ✅ 本次已自动修复
-
-**今日无自动修复项** —— 17 个 commit 全部合规：
-
-① **中级宏观讲义重制**双 markdown 入口 permalink / pdf_url 路径正确（`/notes/interm-macro/interm-macro-2022` + `/notes/interm-macro/interm-macro-2022-zh`；PDF 在 `/files/interm-macro/interm-macro-2022.pdf` + `/files/interm-macro/interm-macro-2022-zh.pdf`）；`/notes/` landing 渲染正常（验证：英文版 + 中文版 + interm-macro-review-2023 同 sub_category 三张卡正确并列）；同课程侧栏自动互链 ✅（英文版页面里中文版作为 sibling 显示，反之亦然）；课程别名 `_data/course_aliases.yml` L25「中级宏观经济学」别名已含 `intermediate macroeconomics macro zhongji hongguan 宏观经济学 宏观`，覆盖中英拼音三路检索；中文版 PDF 2.13 MB（>2MB 触发 images.py 大文件提示）属 LaTeX + CJK 字体嵌入正常体积——英文版 1.62 MB 刚好压在阈值下，中文版多出的 ~500 KB 主要是 noto-sans-cjk 字形子集；不需 imgslim/pdfslim 介入。
-
-② **掼蛋 16 个 UX commit**全部不改 API、不接新服务、不引入新依赖：纯前端引擎 / 结算 / 牌面 / 测试模式重构。`@media (hover: hover)` 守卫贯彻齐整、字体预加载（`7edd463`）放在 `_layouts/default.html` `<head>` 内对全站 FOUT 改善而非仅掼蛋一处、文字花色钉死系统符号字体的策略（`90a8395`）合理避免 web font 加载期闪烁。**形成中的设计共识**：手机端触屏游戏的「字体加载闪烁」与「全屏即开局」是优先级 1 的体验目标，今日多个 commit 都围绕此收敛，与 6-15 之前掼蛋方向连续。
-
-### 📋 待你把关
-
-#### P1（建议尽快，承接 6-13 / 6-14 / 6-15）
-
-1. **`_config.yml` 的 `study_order` 缺 `interm-econometrics`，新讲义在 `/notes/` landing 仍不可见** —— 承接 6-13 / 6-14 / 6-15 P1#1，今日状态**完全不变**：`grep -c "interm-econometrics" _site/notes/index.html` = 0；sitemap (2) + search.json (1) 仍能命中；同课程侧栏互链未受影响。三个走法照旧（A 在 `study_order` 追加一行 / B 把 `_notes/study/interm-econometrics/` 物理合并到既有 `_notes/study/interm-metrics/` 文件夹 / C 保持现状只靠搜索 + sitemap）。仍推荐方案 B 物理合并（与今日中级宏观、6-15 货币经济学的「原地升级 + 同文件夹」模式一致），等站主拍板。**关键补充**：本次中级宏观的中英双版处理证明了「同文件夹原地升级 / 新增」模式工作良好（landing + 侧栏 + sitemap + search 全 ✅）；若方案 B 处理 interm-econometrics，可参考本次同形操作。
-
-#### P2（看心情）
-
-1. **新付费墙系统在沙箱无后端出口验证** —— 承接 6-04 ~ 6-15 P2#1。`zircon-urge.fly.dev` 今日 `backend_pulse.py` 仍 HTTP 403。
-
-2. **`scripts/{daily_review,email_summary,flight_watch}.prompt.md` 与几处 SKILL.md 正文里仍称"zirconeey 站"** —— 沿用 6-05 ~ 6-15。属本地标识符，不影响线上。
-
-3. **`_notes/study/adv-metrics-pku/mid-2015.md`、`_notes/study/psy-stat-I/anova-R.md` 这两类纯 PDF 存档可考虑加同课程互链入口** —— 沿用 6-05 ~ 6-15 P2#4。设计取向项。
-
-4. **5 条 DNS NameResolutionError 外链需站主在生产环境复验**（沿用 6-08 ~ 6-15）—— centretax.net、offcampus.psu.edu、www.hwdrivingschool.com、www.judicialinformation.com、www.textile-outlook.com。今日周二未跑 `dead_links.py`；下周一会再扫一遍。
-
-5. **`_notes/life/paid-test-{us-banking-guide,us-visa-types}.md` 标题仍带"（付费）"后缀但 `paid:false`** —— 沿用 6-06 ~ 6-15。已确认两文件 front-matter 中 title 仍含「（付费）」尾缀，但 6-13 `e22f751` / `ba6ccff` 两次「取消付费」commit 已让 paid 实际为 false——属设计取向项（保留尾缀作历史标识 vs 移除尾缀让标题干净），由站主拍板。
-
-#### 🆕 本次新出现的观察（不是问题，是提示）
-
-- **「Rui Zhou」署名扩展到 3 篇 LaTeX 教科书式讲义**：interm-econometrics-2023（6-13）+ monetary-econ-2023（6-15）+ **interm-macro-2022 中英双版（今日，记作 1 篇）** = 共 **3 篇**（双版按一套讲义算）。`author: "Rui Zhou"` 字段计 **4 处**（中英两版分别一处）。**「LaTeX 教科书式讲义 → 真名」约定持续成立**——3 篇都对应 `source/main.tex + commands.tex + theorems.tex + chapters/` 完整 LaTeX 工程，形态高度同质。今日的中文版 + 双语 `chapters_zh/` + `main_zh.tex` + `theorems_zh.tex` 是新形态首例，将来若同一讲义出多语种 / 多版本，可参考此处的命名 pattern（无后缀 = 英文版 = 默认 / `_zh` 后缀 = 中文版）。
-
-- **PDF 体积分化属正常**：英文版 1.62 MB、中文版 2.13 MB，差 500 KB 主要是 CJK noto-sans 字形子集嵌入。`images.py` 仅中文版超阈值（>2 MB），英文版刚好压在阈值下——这两个体积都不大、都是 LaTeX 一次性最小化产物，不需 EXEMPT_FILES 豁免（与 6-15 monetary-econ 同理）。
-
-- **同一讲义出双版（中英对照）作为新形态**：今日是站内首次出现「同一课程笔记同时出英文和中文两个独立 markdown + 两个独立 PDF」，且两版互为 sibling（互在对方的侧栏列出）。这套模式适合"全英文 LaTeX 主源 + 中文翻译版"的场景（与 6-13 interm-econometrics、6-15 monetary-econ 不同——后两者只有英文版）。**不是问题**——是站主对学术内容形态的有意切换；若日后另两篇也补中文版，可形成正式 schema 标注。
-
-- **掼蛋 16 commit 收敛于「触屏体验 + 字体闪烁 + 演示模式」三件套**：今日 16 个 commit 中 `7edd463`（字体预加载）+ `0a85c9b`/`90a8395`（钉死系统符号字体消除 FOUT）共 3 个 commit 围绕首屏体验；`7d4bd96`（连打 TEST 触发演示模式）让站主在分享场合可一键演示；其余 13 个围绕牌面参数微调。**不是问题**——属设计上行；仅作记录。
-
-#### 🗒️ 待办清账（承接 6-15）
-
-- **图片 alt / caption 覆盖**：`images.py` 今日 ✅ 保持收口。
-- **后端脉搏**：本沙箱仍无 fly.io 出口，三件套 HTTP 403。
-- **Round-3 留下的 ~68 个 P1**：未在本次范围推进。
-- **`taichi-review-2023.md`「85 公里跑」**：未触碰。
-- **大图基线**：与 6-15 + 今日新增中文版 PDF 一致。
-
-### 🔬 抽检专项
-
-> 本次种子抽 10 项（强制配额 game / pdf_archive / lecture_note_pdf_only 各 ≥1，其余随机）。10 项一视同仁过审清单。
-
-- **抽检 1/10 · game · `toolbox/schulte/index.html`**（643 行 / 21.8KB，inline-only）—— ✅ 无问题。舒尔特方格注意力训练；单文件 inline 风格与同类小工具一致；hover 守卫齐全（`hover_no_media` ✅）；本周未改动。
-- **抽检 2/10 · pdf_archive · `files/adv-micro-psu/chapters/ch9.pdf`**（212.5 KB，章节切片）—— ✅ 无问题。属 adv-micro-psu 章节合订本体系一部分；同目录其他章节同形；体积 < 5 MB 不需 pdfslim；被 `_notes/study/adv-micro-psu/` 下笔记正确引用。
-- **抽检 3/10 · lecture_note_pdf_only · `_notes/study/adv-micro-psu/2025-midterm-1.md`**（16 行 / 1.3 KB，PDF 存档）—— ✅ 无问题。高级微观（PSU）2025 期中 1；front-matter 完整；走 post.html 自动导语兜底；本周未改动。**LaTeX 化评估**：维持 PDF 存档（单次期末考试卷不值得重制；与本次中级宏观的「整学期讲义」形态不同）。
-- **抽检 4/10 · pdf_archive · `files/adv-macro-psu/chapters/ch9.pdf`**（176.6 KB，章节切片）—— ✅ 无问题。adv-macro-psu 章节体系，同 adv-micro-psu 形态。
-- **抽检 5/10 · note · `_notes/life/spilled-liquid-cleanup.md`**（236 行 / 17.6 KB，生活之问）—— ✅ 无问题。「打翻液体后用纸吸还是用布擦」生活之问；2026-05-01；本周未改动；符合生活之问五段结构与循证文献调性。
-- **抽检 6/10 · game · `toolbox/gomoku/index.html`**（1280 行 / 48.7 KB，inline）—— ✅ 无问题。五子棋；单文件 1280 行属合理（含 AI 与 UI 完整）；本周未改动；`tiaoqi`/`gomoku` 同属棋类系列。
-- **抽检 7/10 · pdf_archive · `files/adv-micro-psu/chapters/ch8.pdf`**（305.3 KB）—— ✅ 同抽检 2 / 4 形态。
-- **抽检 8/10 · note · `_notes/life/us-renting-guide.md`**（474 行 / 21.7 KB，留学攻略）—— ✅ 无问题。美国租房完全指南；2026-04-21；本周未改动；结构合理 + keywords 充足。
-- **抽检 9/10 · note · `_notes/tutoring/physics-basic-models.md`**（49 行 / 1.2 KB，PDF 存档 + 导语）—— ✅ 无问题。高一物理基本模型；front-matter 完整；`pdf_url` 指向 `/files/tutoring/physics-basic-models/Main.pdf`；本周未改动。
-- **抽检 10/10 · pdf_archive · `files/causal-inference/final-2022.pdf`**（913.6 KB）—— ✅ 无问题。被 `_notes/study/causal-inference/final-2022.md` 引用；同目录 `final-2022.md` 已存在；体积合理；本周未改动。**LaTeX 化评估**：考试样卷不值得重制（同抽检 3 判断）。
-
-> 10 项一视同仁深审，今日无任何项触发深查。
-
----
-
-### 🗂 仓库卫生
-
-**仓库结构较 6-15 有新增**——17 个 commit 涉及多个文件：① `_notes/study/interm-macro/interm-macro-2022-zh.md`（16 行新增）；② `_notes/study/interm-macro/interm-macro-2022.md`（8 行 front-matter 改）；③ `files/interm-macro/interm-macro-2022-zh.pdf`（2230405 字节新增）；④ `files/interm-macro/interm-macro-2022.pdf`（1713728 → 1699486 字节）；⑤ `files/interm-macro/source/` **新增**（75 文件 / ~8000 行）；⑥ `toolbox/guandan/index.html`（13 次改）+ `assets/js/games/guandan.js`（7 次改）+ `_layouts/default.html`（2 次改，字体预加载）。**对照「仓库卫生 4a–e」逐项过：**
-
-a. **架构变化判断**：今日有新增结构性目录（`files/interm-macro/source/{chapters,chapters_zh,figures}/`）—— 结构层面**有变化**，继续 b–e。
-
-b. **敏感文件扫描**：`git ls-files | grep -iE '\.env$|credentials|\.DS_Store|token\.json|secret|\.pem$|\.key$'` ✅ 全空；`git ls-files | grep -E " 2\.|copy [0-9]\."` ✅ 全空（macOS 副本 0）；`git ls-files --others --exclude-standard` ✅ 空。
-
-c. **公开 vs 私用区分**：`files/interm-macro/source/` 与已有 `files/interm-econometrics/source/`、`files/monetary-econ/source/`、`files/causal-id/source/` 同形——LaTeX 源公开，便于读者克隆 / 编辑 / 重编译，属内容、不应排除。新增 `chapters_zh/` 子目录是中文翻译版章节，首次出现的 pattern，命名清晰（与 `chapters/` 并列、`main_zh.tex` / `theorems_zh.tex` 同 `_zh` 后缀），不需特别处理。
-
-d. **结构层面无冗余 / 命名混乱**：与既有三套 LaTeX source/ 同形 + 新增的 `chapters_zh/` / `main_zh.tex` / `theorems_zh.tex` 命名约定清晰一致。
-
-e. **红线全部守住**：未改写历史、未 force-push、未动 .git/、未删除被跟踪内容。
-
-**结论**：仓库卫生 ✅ 干净，LaTeX source/ 新增双语章节子目录符合既有 pattern，无新增 hygiene 隐患。
-
----
-
-### 💓 后端脉搏 / 📬 读者来信
-
-后端三件套（zircon-urge / leaderboards / zircon-comments waline）本次 `backend_pulse.py` 仍全报 HTTP 403。与 6-04 ~ 6-15 同因（沙箱无 fly.io 出口），不阻塞巡检，未主动重启 fly app。
-
----
