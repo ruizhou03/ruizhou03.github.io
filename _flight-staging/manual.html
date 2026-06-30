@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>机票捡漏 · 安装手册（设计稿）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1a1a2e;--text:#374151;--muted:#6b7280;--line:#e5e7eb;
+    --bg:#fafaf9;--warm:#f5f4f0;--cream:#f4eddc;
+    --navy:#1e3a5f;--navy-l:#2d5a8e;--gold:#c9a96e;--gold-d:#a8854a;--green:#3f7a4f;--red:#8b2e2e;
+    --serif:'Cormorant Garamond','Noto Serif SC','Songti SC',serif;
+    --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--serif);background:var(--bg);color:var(--text);line-height:1.72;font-size:17px;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(circle at 8% -4%,rgba(201,169,110,.10),transparent 36%);padding:0 18px 80px}
+  .wrap{max-width:740px;margin:0 auto;padding-top:36px}
+  .tag{position:fixed;top:10px;right:12px;background:var(--navy);color:#fff;font-size:.72rem;letter-spacing:.08em;padding:4px 11px;border-radius:999px;z-index:20;opacity:.85}
+  .kicker{font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-d);font-weight:600;margin:0 0 .4rem}
+  h1{font-size:2.3rem;color:var(--ink);font-weight:600;margin:0 0 .35rem}
+  .sub{color:var(--muted);margin:0 0 22px;font-size:1.06rem}
+
+  /* mode + os switches */
+  .switches{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:0 0 28px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:14px}
+  .swlab{font-size:.82rem;color:var(--navy);font-weight:600}
+  .seg{display:inline-flex;background:var(--warm);border:1px solid var(--line);border-radius:999px;padding:3px}
+  .seg button{font-family:var(--serif);font-size:.92rem;color:var(--muted);background:none;border:none;padding:6px 15px;border-radius:999px;cursor:pointer;transition:.15s;white-space:nowrap}
+  .seg button.on{background:var(--navy);color:#fff}
+  .seg.gold button.on{background:linear-gradient(var(--gold),var(--gold-d))}
+
+  .modeline{background:var(--cream);border:1px solid #e8dcc0;border-radius:12px;padding:12px 16px;margin:0 0 24px;font-size:.95rem;color:#5a4a2a}
+  .modeline b{color:var(--navy)}
+  .mode-simple .only-full-note{display:none}
+  .mode-full .only-simple-note{display:none}
+
+  /* steps with auto-renumber via CSS counter */
+  ol.steps{list-style:none;counter-reset:step;margin:0;padding:0}
+  li.step{position:relative;counter-increment:step;padding:0 0 26px 56px;border-left:2px solid var(--line);margin-left:17px}
+  li.step:last-child{border-left-color:transparent}
+  li.step::before{content:counter(step);position:absolute;left:-19px;top:-4px;width:36px;height:36px;border-radius:50%;background:var(--navy);color:#fff;font-weight:600;display:flex;align-items:center;justify-content:center;font-size:1.05rem;box-shadow:0 2px 8px rgba(30,58,95,.2)}
+  li.step.full::before{background:linear-gradient(var(--gold),var(--gold-d))}
+  .mode-simple li.step.full{display:none}
+  .step h2{font-size:1.3rem;color:var(--navy);font-weight:600;margin:0 0 4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .badge{font-size:.7rem;letter-spacing:.04em;color:#fff;background:linear-gradient(var(--gold),var(--gold-d));padding:2px 9px;border-radius:999px;font-weight:500}
+  .step p{margin:6px 0}
+  .step .tip{font-size:.9rem;color:var(--muted)}
+  .step ul{margin:8px 0;padding-left:1.2em}
+  .step li{margin:4px 0}
+
+  /* command box */
+  .cmd{position:relative;background:#1f2230;color:#e8e6e3;font-family:var(--mono);font-size:.86rem;line-height:1.7;border-radius:11px;padding:14px 86px 14px 16px;margin:12px 0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:keep-all}
+  .cmd .copy{position:absolute;top:10px;right:10px;font-family:var(--serif);font-size:.8rem;color:#1f2230;background:var(--gold);border:none;border-radius:7px;padding:5px 12px;cursor:pointer}
+  .cmd .copy:hover{background:#d8bd86}
+  .cmd .dim{color:#8b93a7}
+  .os-mac,.os-win,.os-linux{display:none}
+  .os-m .os-mac,.os-w .os-win,.os-l .os-linux{display:block}
+
+  /* terminal preview */
+  .term{background:#1f2230;border-radius:11px;overflow:hidden;margin:12px 0;font-family:var(--mono);font-size:.82rem}
+  .term .bar{background:#2a2e3e;padding:7px 12px;display:flex;gap:6px}
+  .term .bar i{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .term .bar i:nth-child(1){background:#ec6a5e}.term .bar i:nth-child(2){background:#f4bf4f}.term .bar i:nth-child(3){background:#61c554}
+  .term .scr{padding:14px 16px;color:#cdd2dd;line-height:1.75;white-space:pre-wrap}
+  .term .g{color:#9fd3ad}.term .y{color:#f4cf7a}.term .q{color:#8ec5ff}
+
+  /* key/email mini guide */
+  .guide{background:#fff;border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:10px;padding:14px 18px;margin:12px 0}
+  .guide ol{margin:0;padding-left:1.3em}
+  .guide ol li{margin:6px 0}
+  .guide .cost{font-size:.86rem;color:var(--green);margin-top:8px}
+  .callout{background:#eef3e9;border-radius:10px;padding:12px 16px;margin:12px 0;font-size:.92rem;color:#33523c}
+  .callout.warn{background:#fbf0ee;color:#7a3b32}
+  kbd{font-family:var(--mono);background:var(--warm);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:.82rem;color:var(--ink)}
+
+  /* faq */
+  .faq{margin-top:40px;border-top:1px solid var(--line);padding-top:8px}
+  details{border-bottom:1px solid var(--line);padding:6px 0}
+  summary{cursor:pointer;font-weight:600;color:var(--navy);padding:10px 0;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"＋";color:var(--gold-d);margin-right:10px}
+  details[open] summary::before{content:"－"}
+  details p{margin:0 0 10px;font-size:.96rem}
+  @media(max-width:520px){h1{font-size:1.85rem}.switches{flex-direction:column;align-items:flex-start;gap:12px}}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body class="mode-full os-m">
+<div class="tag">设计稿 · 安装手册</div>
+<div class="wrap">
+  <p class="kicker">机票捡漏 · 自带运行器</p>
+  <h1>把盯票装到你自己电脑上</h1>
+  <p class="sub">照着做，全程复制粘贴、不用改任何代码。配好后它每天替你盯票，便宜票一出现就按你选的方式喊你。</p>
+
+  <div class="switches">
+    <span class="swlab">你的模式</span>
+    <div class="seg gold" id="modeSeg"><button data-mode="simple">简单模式 · 零密钥</button><button class="on" data-mode="full">完整模式 · AI+邮件</button></div>
+    <span class="swlab" style="margin-left:auto">你的系统</span>
+    <div class="seg" id="osSeg"><button class="on" data-os="m">macOS</button><button data-os="w">Windows</button><button data-os="l">Linux</button></div>
+  </div>
+
+  <div class="modeline">
+    <span class="only-full-note"><b>完整模式</b>：用 AI 判断哪张票值得抢、做价格趋势分析，并给你发邮件简报。需要一个 Anthropic API key 和一个邮箱应用密码（下面手把手教，约 5 分钟）。</span>
+    <span class="only-simple-note"><b>简单模式</b>：只按你设的价格阈值盯票，结果显示在本地面板里、并弹桌面通知。<b>不需要任何密钥、不用配邮箱</b>，最快上手。随时可升级到完整模式。</span>
+  </div>
+
+  <ol class="steps">
+
+    <li class="step">
+      <h2>装个底座：Python</h2>
+      <p>运行器用 Python 跑。先看看你电脑有没有——打开终端（<span class="os-mac" style="display:inline">macOS：聚焦搜 <kbd>终端</kbd></span><span class="os-win" style="display:inline">Windows：开始菜单搜 <kbd>PowerShell</kbd></span><span class="os-linux" style="display:inline">Linux：你的终端</span>），粘贴：</p>
+      <div class="cmd"><span class="os-mac">python3 --version</span><span class="os-win">python --version</span><span class="os-linux">python3 --version</span><button class="copy">复制</button></div>
+      <p class="tip">看到 <code>Python 3.10</code> 以上就行。没有的话：<span class="os-mac" style="display:inline">去 python.org 下载安装，或 <code>brew install python</code>。</span><span class="os-win" style="display:inline">去 python.org 下载，安装时<b>勾上 “Add Python to PATH”</b>。</span><span class="os-linux" style="display:inline"><code>sudo apt install python3 python3-venv</code>。</span></p>
+    </li>
+
+    <li class="step">
+      <h2>拿到「你的」安装命令</h2>
+      <p>回到配置页，确认设置无误后点 <b>「生成我的盯票」</b>。网站会给你一行已经<b>带好你配置</b>的安装命令——直接复制（这里是示意）：</p>
+      <div class="cmd"><span class="os-mac">curl -fsSL https://ruizhou03.com/flight/get | bash <span class="dim"># 末尾会自动带上你的盯票编号</span></span><span class="os-win">irm https://ruizhou03.com/flight/get.ps1 | iex</span><span class="os-linux">curl -fsSL https://ruizhou03.com/flight/get | bash</span><button class="copy">复制</button></div>
+      <p class="tip">你也可以在配置页点「下载配置文件」，把 <code>flightwatch.json</code> 存到下载夹——安装器会自动找到它。整个配置只是一份数据，<b>不含任何代码</b>。</p>
+    </li>
+
+    <li class="step">
+      <h2>运行它</h2>
+      <p><span class="os-mac" style="display:inline">把上一步那行粘进终端、回车。</span><span class="os-win" style="display:inline">把那行粘进 PowerShell、回车（或双击下载的 <code>安装盯票.bat</code>）。</span><span class="os-linux" style="display:inline">粘进终端、回车。</span>它会自动装好浏览器内核和依赖，然后<b>一步步问你几个问题</b>：</p>
+      <div class="term">
+        <div class="bar"><i></i><i></i><i></i></div>
+        <div class="scr"><span class="g">✓</span> 正在安装盯票运行器…（约 1–2 分钟）
+<span class="g">✓</span> 已读取你的盯票配置：你的出发地 → 你的目的地
+
+<span class="only-full-note"><span class="q">?</span> 选择模式：  <span class="y">› 完整（AI+邮件）</span>
+<span class="q">?</span> 粘贴你的 Anthropic API key：  <span class="y">****************</span>
+<span class="q">?</span> 收件邮箱：  <span class="y">you@gmail.com</span>
+<span class="q">?</span> 邮箱应用密码（16 位）：  <span class="y">****************</span>
+</span><span class="only-simple-note"><span class="q">?</span> 选择模式：  <span class="y">› 简单（价格阈值，无需密钥）</span>
+<span class="q">?</span> 结果怎么看：  <span class="y">› 本地面板 + 桌面通知</span>
+</span>
+<span class="g">✓</span> 已设好定时：每天 10:00 / 22:00 自动盯票
+<span class="g">✓</span> 安装完成！正在跑第一轮抓取（约 15–30 分钟，期间无输出属正常，别关窗口）…</div>
+      </div>
+      <p class="tip only-simple-note">简单模式到这里就装完了，没有下面要密钥的两步——可以直接跳到最后一步。</p>
+    </li>
+
+    <li class="step full">
+      <h2>领一个 Anthropic API key <span class="badge">仅完整模式</span></h2>
+      <p>这是让 AI 帮你判断便宜票用的钥匙，安装器问到时粘贴进去即可。</p>
+      <div class="guide">
+        <ol>
+          <li>浏览器打开 <b>console.anthropic.com</b>，注册 / 登录。</li>
+          <li>左侧 <b>API Keys</b> → <b>Create Key</b> → 复制那串 <code>sk-ant-…</code>（<b>只显示这一次</b>，存好）。</li>
+          <li>在 <b>Billing</b> 里充一点额度（绑卡或预充值）。</li>
+        </ol>
+        <div class="cost">💡 盯票用量很省：每天 2 轮、判断几十条航班，一个月通常只花几美元。</div>
+      </div>
+    </li>
+
+    <li class="step full">
+      <h2>生成一个邮箱应用密码 <span class="badge">仅完整模式</span></h2>
+      <p>这样运行器才能用你的邮箱给你发盯票简报。<b>不是你的登录密码</b>，是一串专用的 16 位码（以 Gmail 为例）：</p>
+      <div class="guide">
+        <ol>
+          <li>打开 <b>Google 账号 → 安全性</b>，先开启 <b>两步验证</b>（必须先开才有下一步）。</li>
+          <li>搜索 <b>「应用专用密码 / App passwords」</b> → 取个名字（如 flightwatch）→ <b>生成</b>。</li>
+          <li>把那 16 位码复制，粘到安装器问「邮箱应用密码」处。</li>
+        </ol>
+      </div>
+      <div class="callout">用别的邮箱（Outlook/QQ/163）也行，原理一样：开 SMTP / 拿授权码。手册里会按你填的邮箱给对应指引。</div>
+    </li>
+
+    <li class="step">
+      <h2>完成 —— 它已经开始替你盯了</h2>
+      <p class="only-full-note">首轮跑完（约 15–30 分钟后）你会收到一封 <b>「已开始盯票」</b>确认邮件；之后每天 10:00 / 22:00 自动跑，捡到便宜票就给你发那张机票卡。</p>
+      <p class="only-simple-note">装好后会弹一条 <b>「已开始盯票」</b>桌面通知；之后每天自动跑，结果都在本地面板里，便宜票会再弹通知。打开面板：<code>flightwatch panel</code>。</p>
+      <div class="callout">真正在跑的全过程都在<b>你自己电脑上</b>，你的出行计划、邮箱、key 都不经过任何服务器，也不进任何公开仓库。</div>
+    </li>
+
+  </ol>
+
+  <div class="faq">
+    <h2 style="color:var(--ink);font-size:1.5rem">之后想改 / 排错</h2>
+    <details open><summary>想改航线、价格或优先级怎么办？</summary><p>回配置页改好 → 再点「生成我的盯票」→ 把新配置文件拖进去（或重跑那行命令）。设置是数据，随时换，不动代码。</p></details>
+    <details><summary>怎么确认它在正常跑？</summary><p>命令 <code>flightwatch status</code> 看上次运行时间和结果；<span class="only-full-note">完整模式每天都会来信（哪怕没便宜票也有「盯票正常」简报）；</span>本地面板里有运行日志。</p></details>
+    <details><summary>想暂停或卸载？</summary><p>暂停：<code>flightwatch pause</code>；恢复：<code>flightwatch on</code>；彻底卸载：<code>flightwatch uninstall</code>，一条命令清干净，不留垃圾。</p></details>
+    <details><summary>电脑关机 / 睡眠时会漏跑吗？</summary><p>大多不会漏：开机或从睡眠唤醒时，若还在当天的盯票时段窗口内（约上午 10–14 点 / 晚间 22–24 点）会自动补跑那一轮；若唤醒时已错过该窗口，则顺延到下一时段。电脑长期关机自然就不盯了——这是「自带运行器」跑在你机器上的本质。</p></details>
+    <details><summary>把配置发给朋友，他也能用吗？</summary><p>能。你的「配置码」纯数据可分享，他在自己电脑上照这份手册装一遍即可（完整模式各自用自己的 key、互不影响）。</p></details>
+  </div>
+</div>
+
+<script>
+  const body=document.body;
+  document.getElementById('modeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    document.querySelectorAll('#modeSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+    body.classList.toggle('mode-simple',b.dataset.mode==='simple');body.classList.toggle('mode-full',b.dataset.mode==='full');});
+  document.getElementById('osSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    document.querySelectorAll('#osSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+    body.classList.remove('os-m','os-w','os-l');body.classList.add('os-'+b.dataset.os);});
+  document.querySelectorAll('.cmd .copy').forEach(btn=>btn.addEventListener('click',()=>{
+    const vis=[...btn.parentNode.querySelectorAll(':scope>span')].find(s=>getComputedStyle(s).display!=='none');
+    const txt=vis?vis.textContent:btn.parentNode.textContent;
+    navigator.clipboard&&navigator.clipboard.writeText(txt.replace('复制','').trim());
+    const o=btn.textContent;btn.textContent='已复制';setTimeout(()=>btn.textContent=o,1200);}));
+</script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>机票捡漏 · 特价票卡片 + 详情（设计稿）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1a1a2e;--text:#374151;--muted:#6b7280;--line:#e5e7eb;
+    --bg:#fafaf9;--warm:#f5f4f0;--cream:#f4eddc;
+    --navy:#1e3a5f;--navy-l:#2d5a8e;--gold:#c9a96e;--gold-d:#a8854a;--green:#3f7a4f;--red:#8b2e2e;
+    --serif:'Cormorant Garamond','Noto Serif SC','Songti SC',serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--serif);background:#efece4;color:var(--text);line-height:1.65;font-size:17px;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(circle at 10% -5%,rgba(201,169,110,.10),transparent 40%);padding:0 16px 60px}
+  .wrap{max-width:680px;margin:0 auto;padding-top:34px}
+  .kicker{font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-d);font-weight:600;margin:0 0 .4rem}
+  h1{font-size:2.1rem;color:var(--ink);font-weight:600;margin:0 0 .3rem}
+  .sub{color:var(--muted);margin:0 0 26px}
+  .tag{position:fixed;top:10px;right:12px;background:var(--navy);color:#fff;font-size:.72rem;letter-spacing:.08em;padding:4px 11px;border-radius:999px;z-index:5;opacity:.85}
+
+  /* ── boarding-pass ticket ── */
+  .ticket{position:relative;display:flex;background:#fff;border:1px solid #e3ddd0;border-radius:18px;margin-bottom:22px;
+    box-shadow:0 10px 30px rgba(30,58,95,.08);overflow:hidden}
+  .t-main{flex:1;padding:20px 22px;min-width:0}
+  .t-stub{width:128px;flex:none;background:linear-gradient(160deg,#1e3a5f,#24456e);color:#fff;padding:20px 16px;display:flex;flex-direction:column;justify-content:space-between;position:relative}
+  /* perforation */
+  .ticket::before,.ticket::after{content:"";position:absolute;right:128px;width:20px;height:20px;background:#efece4;border-radius:50%;z-index:2}
+  .ticket::before{top:-10px;transform:translateX(10px)}
+  .ticket::after{bottom:-10px;transform:translateX(10px)}
+  .perf{position:absolute;top:0;bottom:0;right:128px;border-right:2px dashed #d9d2c4}
+
+  .t-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .logo{width:34px;height:34px;border-radius:9px;background:var(--cream);color:var(--navy);font-weight:700;font-size:.82rem;display:flex;align-items:center;justify-content:center;letter-spacing:.02em;border:1px solid #e8dcc0}
+  .t-head .air{font-weight:600;color:var(--ink)}
+  .t-head .fno{font-size:.82rem;color:var(--muted)}
+  .ribbon{margin-left:auto;font-size:.74rem;letter-spacing:.08em;color:#fff;background:linear-gradient(var(--gold),var(--gold-d));padding:3px 10px;border-radius:999px}
+
+  .od{display:flex;align-items:flex-start;gap:6px}
+  .od .pt{flex:1}
+  .od .code{font-size:2rem;font-weight:700;color:var(--ink);line-height:1;letter-spacing:.02em}
+  .od .city{font-size:.86rem;color:var(--muted);margin-top:2px}
+  .od .time{font-size:1.15rem;color:var(--navy);font-weight:600;margin-top:6px}
+  .od .date{font-size:.76rem;color:var(--muted)}
+  .od .mid{flex:1.1;text-align:center;padding-top:8px}
+  .od .mid .dur{font-size:.78rem;color:var(--muted)}
+  .od .path{display:flex;align-items:center;gap:4px;justify-content:center;margin:3px 0}
+  .od .path .ln{height:1px;flex:1;background:repeating-linear-gradient(90deg,#cfc8b8,#cfc8b8 4px,transparent 4px,transparent 8px)}
+  .od .path .pl{color:var(--gold-d);font-size:1rem}
+  .od .mid .stops{font-size:.8rem;color:var(--navy);font-weight:600}
+  .od .mid .stops.direct{color:var(--green)}
+  .od .arr{text-align:right}
+  .od .arr .city,.od .arr .date{text-align:right}
+  .od .plus1{font-size:.7rem;color:var(--red);vertical-align:super}
+
+  .meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;padding-top:14px;border-top:1px solid #f0ece2;font-size:.86rem;color:#5a5346}
+  .meta b{color:var(--ink);font-weight:600}
+  .meta .ok{color:var(--green)}
+  @media(max-width:520px){.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}}
+  .t-actions{margin-top:16px;display:flex;align-items:center;gap:12px}
+  .btn-detail{font-family:var(--serif);font-size:.95rem;font-weight:600;color:var(--navy);background:var(--warm);border:1px solid #e2dccd;border-radius:999px;padding:8px 18px;cursor:pointer}
+  .btn-detail:hover{background:var(--cream)}
+  .btn-go{font-family:var(--serif);font-size:.95rem;font-weight:600;color:#fff;background:var(--navy);border:1px solid var(--gold);border-radius:999px;padding:8px 20px;cursor:pointer;text-decoration:none;display:inline-block}
+  .btn-go:hover{background:var(--navy-l)}
+
+  .t-stub .why{font-size:.72rem;letter-spacing:.06em;color:#c9a96e;text-transform:uppercase}
+  .t-stub .price{font-size:2.05rem;font-weight:700;line-height:1;margin-top:4px}
+  .t-stub .cur{font-size:.95rem;font-weight:500;opacity:.85}
+  .t-stub .delta{font-size:.78rem;color:#9fd3ad;margin-top:4px}
+  .t-stub .barcode{height:42px;margin-top:14px;background:repeating-linear-gradient(90deg,#fff,#fff 2px,transparent 2px,transparent 4px,#fff 4px,#fff 5px,transparent 5px,transparent 9px);opacity:.85;border-radius:3px}
+  .t-stub .seat{font-size:.72rem;opacity:.8;margin-top:8px}
+
+  /* ── modal ── */
+  .ov{position:fixed;inset:0;background:rgba(26,26,46,.5);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:28px 14px;overflow:auto}
+  .ov.show{display:flex}
+  .modal{background:var(--bg);width:100%;max-width:560px;border-radius:18px;border:1px solid #e3ddd0;box-shadow:0 30px 80px rgba(0,0,0,.3);overflow:hidden;animation:pop .2s ease}
+  @keyframes pop{from{opacity:0;transform:translateY(12px)}to{opacity:1}}
+  .m-head{background:var(--navy);color:#fff;padding:18px 22px;position:relative}
+  .m-head .rt{font-size:1.35rem;font-weight:600}
+  .m-head .rs{font-size:.85rem;color:#bccadb;margin-top:2px}
+  .m-head .px{position:absolute;top:14px;right:16px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;border:none;font-size:1.1rem;cursor:pointer;line-height:1}
+  .m-body{padding:6px 22px 22px}
+  .m-sec{padding:16px 0;border-bottom:1px solid #ece8de}
+  .m-sec:last-child{border-bottom:none}
+  .m-sec h3{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-d);margin:0 0 12px;font-weight:600}
+  /* timeline：飞行段=实线墨蓝，中转连接=虚线暖金，两者一眼可分 */
+  .tl{position:relative}
+  .tl .r{position:relative;padding-left:30px}
+  .tl .ln{position:absolute;left:8px;width:3px;border-radius:2px;z-index:1}
+  .tl .ln.f{background:var(--navy)}                 /* 航段：实线墨蓝 */
+  .tl .ln.l{background:repeating-linear-gradient(180deg,var(--gold-d) 0 3px,transparent 3px,transparent 7px)} /* 中转：虚线暖金 */
+  .tl .ap{padding-top:3px;padding-bottom:3px}
+  .tl .ap .ltop{top:0;height:9px}
+  .tl .ap .lbot{top:19px;bottom:0}
+  .tl .ap .dot{position:absolute;left:3px;top:6px;width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid var(--navy);z-index:2}
+  .tl .aprow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .tl .apc{font-size:1.05rem;font-weight:600;color:var(--ink)}
+  .tl .tw{text-align:right;flex:none}
+  .tl .tm{font-size:1.05rem;font-weight:600;color:var(--navy)}
+  .tl .tm .day{font-size:.72rem;color:var(--red);margin-left:3px}
+  .tl .tz{display:block;font-size:.72rem;color:var(--muted);margin-top:-1px}
+  .tl .leg{padding-top:7px;padding-bottom:11px}
+  .tl .leg .ln,.tl .lay .ln{top:0;bottom:0}
+  .tl .leg .lg{font-size:.84rem;color:var(--muted)}
+  .tl .leg .lg .pf{color:var(--navy);margin-right:6px}
+  .tl .leg .lg b{color:#5a5346;font-weight:600}
+  .tl .lay{padding-top:3px;padding-bottom:11px}
+  .tl .lay .box{display:inline-block;font-size:.82rem;color:var(--gold-d);background:var(--cream);border:1px solid #e8dcc0;border-radius:8px;padding:6px 12px}
+  .kv{display:flex;justify-content:space-between;font-size:.92rem;padding:5px 0;color:#5a5346}
+  .kv b{color:var(--ink);font-weight:600}
+  .pill{display:inline-block;font-size:.78rem;padding:2px 9px;border-radius:999px;background:#eef3e9;color:var(--green);margin-left:6px}
+  .pill.warn{background:#fbf0ee;color:var(--red)}
+  .m-foot{padding:14px 22px;background:var(--warm);display:flex;gap:12px;align-items:center}
+  .m-foot .note{font-size:.78rem;color:var(--muted);flex:1}
+
+  @media(max-width:520px){
+    h1{font-size:1.7rem}
+    .ticket{flex-direction:column}
+    .t-stub{width:auto;flex-direction:row;align-items:center;justify-content:space-between}
+    .t-stub .barcode{display:none}
+    .ticket::before{right:auto;left:50%;top:auto;bottom:128px;transform:translateX(-50%)}
+    .ticket::after{right:auto;left:50%;top:auto;bottom:128px;transform:translateX(-50%)}
+    .perf{display:none}
+    .od .code{font-size:1.6rem}
+  }
+  @media(max-width:360px){.od .city,.od .date{font-size:.72rem}.od .time{font-size:1rem}}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="tag">设计稿 · 特价票卡片</div>
+<div class="wrap">
+  <p class="kicker">机票捡漏 · 捡到便宜票时长这样</p>
+  <h1>像收到一张真机票</h1>
+  <p class="sub">基本版面一眼看全：航司、航班号、起飞/到达时间、中转、时长、行李额、价格。要看中转政策和每段行李，点「查看详情」。</p>
+
+  <!-- TICKET 1 : direct -->
+  <div class="ticket">
+    <div class="perf"></div>
+    <div class="t-main">
+      <div class="t-head">
+        <img class="logo" src="https://images.kiwi.com/airlines/64/CA.png" onerror="this.style.display='none';this.nextElementSibling.style.display=''" style="width:36px;height:36px;border-radius:8px;object-fit:contain" alt="CA">
+        <span class="logo" style="width:36px;height:36px;display:none;background:#c0152f;color:#fff;border:1px solid #9e1126;border-radius:9px;font-size:.8rem;font-weight:700;align-items:center;justify-content:center">CA</span>
+        <div><div class="air">中国国际航空</div><div class="fno">CA 981 · 经济舱 (Y) · 波音 777-300ER</div></div>
+        <span class="ribbon">命中理想到达日</span>
+      </div>
+      <div class="od">
+        <div class="pt"><div class="code">PEK</div><div class="city">北京 · T3</div><div class="time">16:55</div><div class="date">7月31日 周五</div></div>
+        <div class="mid"><div class="dur">14 小时 30 分</div><div class="path"><span class="ln"></span><span class="pl">✈</span><span class="ln"></span></div><div class="stops direct">直飞</div></div>
+        <div class="pt arr"><div class="code">JFK</div><div class="city">纽约 · T1</div><div class="time">19:25</div><div class="date">7月31日 当日</div></div>
+      </div>
+      <div class="meta">
+        <span>🧳 托运 <b>2 件 × 23kg</b></span>
+        <span>🎒 手提 <b>1 件 × 8kg</b></span>
+        <span class="ok">✓ 直飞，无需过境签</span>
+        <span class="ok">✓ 白天到达</span>
+      </div>
+      <div class="t-actions">
+        <button class="btn-detail" onclick="openM('m1')">查看详情</button>
+        <a class="btn-go" href="#">去 Trip.com 订 →</a>
+      </div>
+    </div>
+    <div class="t-stub">
+      <div><div class="why">本程最低</div><div class="price"><span class="cur">$</span>788</div><div class="delta">↓ 比目标价低 $32</div></div>
+      <div><div class="barcode"></div><div class="seat">单程含税 · 1 名乘客</div></div>
+    </div>
+  </div>
+
+  <!-- TICKET 2 : 1 stop -->
+  <div class="ticket">
+    <div class="perf"></div>
+    <div class="t-main">
+      <div class="t-head">
+        <img src="https://images.kiwi.com/airlines/64/MF.png" width="28" height="28" style="border-radius:6px;object-fit:contain;flex:none" onerror="this.style.display='none'" alt="MF">
+        <span style="color:var(--muted);font-size:.85rem;flex:none;line-height:28px">+</span>
+        <img src="https://images.kiwi.com/airlines/64/KE.png" width="28" height="28" style="border-radius:6px;object-fit:contain;flex:none" onerror="this.style.display='none'" alt="KE">
+        <div><div class="air">厦门航空 + 大韩航空</div><div class="fno">MF 833 / KE 085 · 经济舱 (Y) · 787-9 + A380</div></div>
+        <span class="ribbon">全场最低</span>
+      </div>
+      <div class="od">
+        <div class="pt"><div class="code">XMN</div><div class="city">厦门 · T3</div><div class="time">09:40</div><div class="date">7月30日 周四</div></div>
+        <div class="mid"><div class="dur">19 小时 40 分</div><div class="path"><span class="ln"></span><span class="pl">✈</span><span class="ln"></span></div><div class="stops">1 次中转 · 仁川</div></div>
+        <div class="pt arr"><div class="code">EWR</div><div class="city">纽约 · 纽瓦克</div><div class="time">16:55</div><div class="date">7月30日 当日</div></div>
+      </div>
+      <div class="meta">
+        <span>🧳 托运 <b>2 件 × 23kg</b></span>
+        <span>🎒 手提 <b>1 件 × 10kg</b></span>
+        <span class="ok">✓ 联程直挂行李</span>
+        <span class="ok">✓ 仁川中转免过境签</span>
+      </div>
+      <div class="t-actions">
+        <button class="btn-detail" onclick="openM('m2')">查看详情</button>
+        <a class="btn-go" href="#">去 Trip.com 订 →</a>
+      </div>
+    </div>
+    <div class="t-stub">
+      <div><div class="why">全场最低</div><div class="price"><span class="cur">$</span>742</div><div class="delta">↓ 比目标价低 $38</div></div>
+      <div><div class="barcode"></div><div class="seat">单程含税 · 1 名乘客</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 1 -->
+<div class="ov" id="m1" onclick="if(event.target===this)closeM('m1')">
+  <div class="modal">
+    <div class="m-head"><div class="rt">北京 PEK → 纽约 JFK</div><div class="rs">国航 CA981 · 7月31日 · 直飞 · 全程 14 小时 30 分</div><button class="px" onclick="closeM('m1')">×</button></div>
+    <div class="m-body">
+      <div class="m-sec">
+        <h3>航段</h3>
+        <div class="tl">
+          <div class="r ap"><span class="ln f lbot"></span><span class="dot"></span><div class="aprow"><span class="apc">PEK 北京 · T3</span><span class="tw"><span class="tm">16:55</span><span class="tz">7月31日 · GMT+8</span></span></div></div>
+          <div class="r leg"><span class="ln f"></span><div class="lg"><img src="https://images.kiwi.com/airlines/64/CA.png" width="18" height="18" style="vertical-align:-3px;border-radius:3px;margin-right:5px" onerror="this.style.display='none'" alt="">国航 <b>CA981</b> · 波音 777-300ER · 经济舱 Y · 飞行 <b>14 小时 30 分</b> · 含餐食 2 次</div></div>
+          <div class="r ap"><span class="ln f ltop"></span><span class="dot"></span><div class="aprow"><span class="apc">JFK 纽约 · T1</span><span class="tw"><span class="tm">19:25 <span class="day">当日</span></span><span class="tz">7月31日 · GMT−4</span></span></div></div>
+        </div>
+      </div>
+      <div class="m-sec">
+        <h3>行李额（本程）</h3>
+        <div class="kv"><span>托运行李</span><b>2 件，每件 ≤ 23kg / 158cm</b></div>
+        <div class="kv"><span>手提行李</span><b>1 件 ≤ 8kg + 1 个人物品</b></div>
+      </div>
+      <div class="m-sec">
+        <h3>退改签</h3>
+        <div class="kv"><span>改期</span><b>起飞前收 $120 + 差价</b></div>
+        <div class="kv"><span>退票</span><b>起飞前收 $300，起飞后不退</b></div>
+      </div>
+    </div>
+    <div class="m-foot"><span class="note">价格与政策以 Trip.com 实时页面为准，此处为盯票快照。</span><a class="btn-go" href="#">去订这张 →</a></div>
+  </div>
+</div>
+
+<!-- MODAL 2 -->
+<div class="ov" id="m2" onclick="if(event.target===this)closeM('m2')">
+  <div class="modal">
+    <div class="m-head"><div class="rt">厦门 XMN → 纽约 EWR</div><div class="rs">厦航 MF833 + 大韩 KE085 · 7月30日 · 1 中转 · 全程 19 小时 40 分</div><button class="px" onclick="closeM('m2')">×</button></div>
+    <div class="m-body">
+      <div class="m-sec">
+        <h3>航段</h3>
+        <div class="tl">
+          <div class="r ap"><span class="ln f lbot"></span><span class="dot"></span><div class="aprow"><span class="apc">XMN 厦门 · T3</span><span class="tw"><span class="tm">09:40</span><span class="tz">7月30日 · GMT+8</span></span></div></div>
+          <div class="r leg"><span class="ln f"></span><div class="lg"><img src="https://images.kiwi.com/airlines/64/MF.png" width="18" height="18" style="vertical-align:-3px;border-radius:3px;margin-right:5px" onerror="this.style.display='none'" alt="">厦门航空 <b>MF833</b> · 波音 787-9 · 经济舱 Y · 飞行 <b>2 小时 25 分</b> · 无餐食</div></div>
+          <div class="r ap"><span class="ln f ltop"></span><span class="ln l lbot"></span><span class="dot"></span><div class="aprow"><span class="apc">ICN 首尔仁川 · T1</span><span class="tw"><span class="tm">13:05</span><span class="tz">7月30日 · GMT+9</span></span></div></div>
+          <div class="r lay"><span class="ln l"></span><span class="box">🕑 在仁川 ICN 中转 2 小时 10 分 · 换 T1 → T2 · 无需出关</span></div>
+          <div class="r ap"><span class="ln l ltop"></span><span class="ln f lbot"></span><span class="dot"></span><div class="aprow"><span class="apc">ICN 首尔仁川 · T2</span><span class="tw"><span class="tm">15:15</span><span class="tz">7月30日 · GMT+9</span></span></div></div>
+          <div class="r leg"><span class="ln f"></span><div class="lg"><img src="https://images.kiwi.com/airlines/64/KE.png" width="18" height="18" style="vertical-align:-3px;border-radius:3px;margin-right:5px" onerror="this.style.display='none'" alt="">大韩航空 <b>KE085</b> · 空客 A380 · 经济舱 Y · 飞行 <b>14 小时</b> · 含餐食 2 次</div></div>
+          <div class="r ap"><span class="ln f ltop"></span><span class="dot"></span><div class="aprow"><span class="apc">EWR 纽约纽瓦克</span><span class="tw"><span class="tm">16:55 <span class="day">当日</span></span><span class="tz">7月30日 · GMT−4</span></span></div></div>
+        </div>
+      </div>
+      <div class="m-sec">
+        <h3>行李额（逐航段）</h3>
+        <div class="kv"><span>MF833 厦门→仁川</span><b>托运 2 × 23kg · 手提 1 × 10kg</b></div>
+        <div class="kv"><span>KE085 仁川→纽约</span><b>托运 2 × 23kg · 手提 1 × 10kg</b></div>
+        <div class="kv"><span>行李直挂</span><b>厦门一次性挂到纽约<span class="pill">中转不用取</span></b></div>
+      </div>
+      <div class="m-sec">
+        <h3>中转政策</h3>
+        <div class="kv"><span>联程</span><b>一张票（MF/KE 联运）<span class="pill">误机有保障</span></b></div>
+        <div class="kv"><span>中转时长</span><b>2h10m<span class="pill">充裕</span></b></div>
+        <div class="kv"><span>过境签（韩国）</span><b>不需要<span class="pill">联程不出机场免签中转</span></b></div>
+        <div class="kv"><span>换航站楼</span><b>需从 T1 转 T2<span class="pill warn">留意接驳摆渡</span></b></div>
+      </div>
+      <div class="m-sec">
+        <h3>退改签</h3>
+        <div class="kv"><span>改期</span><b>起飞前收 ₩150,000 + 差价</b></div>
+        <div class="kv"><span>退票</span><b>起飞前收 ₩200,000</b></div>
+      </div>
+    </div>
+    <div class="m-foot"><span class="note">价格与政策以 Trip.com 实时页面为准，此处为盯票快照。</span><a class="btn-go" href="#">去订这张 →</a></div>
+  </div>
+</div>
+
+<script>
+  function openM(id){document.getElementById(id).classList.add('show');document.body.style.overflow='hidden'}
+  function closeM(id){document.getElementById(id).classList.remove('show');document.body.style.overflow=''}
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.ov.show').forEach(o=>{o.classList.remove('show');document.body.style.overflow=''})});
+</script>
+</body>
+</html>

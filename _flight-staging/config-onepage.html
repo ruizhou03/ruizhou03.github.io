@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>机票捡漏 · 盯票设置（设计稿）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1a1a2e; --text:#374151; --muted:#6b7280; --light:#9ca3af; --line:#e5e7eb;
+    --bg:#fafaf9; --warm:#f5f4f0; --cream:#f4eddc;
+    --navy:#1e3a5f; --navy-l:#2d5a8e; --gold:#c9a96e; --gold-d:#a8854a; --red:#8b2e2e; --green:#3f7a4f;
+    --serif:'Cormorant Garamond','Noto Serif SC','Songti SC',serif;
+    --radius:14px; --shadow:0 1px 2px rgba(30,58,95,.04),0 8px 24px rgba(30,58,95,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:var(--serif);color:var(--text);background:var(--bg);line-height:1.7;font-size:17px;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(circle at 12% -5%,rgba(201,169,110,.10),transparent 38%),radial-gradient(circle at 100% 0,rgba(30,58,95,.06),transparent 30%);padding-bottom:96px}
+  .wrap{max-width:860px;margin:0 auto;padding:34px 20px 0}
+  .kicker{font-size:.8rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-d);font-weight:600;margin:0 0 .5rem}
+  h1{font-weight:600;color:var(--ink);font-size:2.5rem;line-height:1.15;margin:0 0 .4rem;letter-spacing:.01em}
+  .sub{color:var(--muted);margin:0 0 30px;font-size:1.05rem}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:0 0 18px;position:relative;overflow:visible}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(var(--gold),var(--gold-d));border-radius:var(--radius) 0 0 var(--radius)}
+  .card h2{color:var(--navy);font-weight:600;font-size:1.32rem;margin:0 0 4px;display:flex;align-items:center;gap:.5rem}
+  .card .hint{color:var(--muted);font-size:.92rem;margin:0 0 16px}
+  .ico{width:1.45rem;height:1.45rem;display:inline-flex;align-items:center;justify-content:center;color:var(--gold-d)}
+  .row{display:flex;flex-wrap:wrap;gap:14px}
+  .field{flex:1 1 180px;min-width:150px}
+  .lab{display:block;font-size:.86rem;color:var(--navy);font-weight:600;margin:0 0 7px;letter-spacing:.02em}
+  .help{font-size:.8rem;color:var(--muted)}
+  input[type=text],input[type=number],input[type=email],input[type=time],input[type=date],input[type=datetime-local],select{
+    width:100%;font-family:var(--serif);font-size:1rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px;transition:.15s}
+  input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,169,110,.18);background:#fff}
+  .prefix{position:relative}
+  .prefix>span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gold-d);font-weight:600}
+  .prefix input{padding-left:26px}
+  .seg{display:inline-flex;background:var(--warm);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+  .seg button{font-family:var(--serif);font-size:.95rem;color:var(--muted);background:none;border:none;padding:7px 18px;border-radius:999px;cursor:pointer;transition:.15s;white-space:nowrap}
+  .seg button.on{background:var(--navy);color:#fff;box-shadow:0 2px 8px rgba(30,58,95,.25)}
+  /* chips */
+  .chips{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--cream);border:1px solid #e8dcc0;color:#5a4a2a;border-radius:999px;padding:6px 9px 6px 13px;font-size:.95rem;line-height:1}
+  .chip b{font-weight:600;color:var(--navy)}
+  .chip .code{font-size:.78rem;color:var(--gold-d);letter-spacing:.04em}
+  .chip .x{cursor:pointer;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#b09155;font-size:14px;background:rgba(168,133,74,.12)}
+  .chip .x:hover{background:var(--gold);color:#fff}
+  .chip.add{background:none;border:1px dashed var(--gold);color:var(--gold-d);cursor:pointer;padding:6px 14px}
+  .chip.add:hover{background:rgba(201,169,110,.1)}
+  .chip.danger{background:#fbf0ee;border-color:#e8cdc7;color:#7a3b32}
+  .chip.danger b{color:#8b2e2e}.chip.danger .x{color:#b06a5e;background:rgba(139,46,46,.1)}
+  /* searchable picker */
+  .pk{position:relative}
+  .pk-chips{display:flex;flex-wrap:wrap;gap:9px}
+  .pk-pop{position:absolute;left:0;top:100%;margin-top:6px;width:min(440px,100%);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 34px rgba(30,58,95,.18);padding:10px;z-index:30;display:none}
+  .pk-pop.show{display:block}
+  .pk-pop .pk-input{width:100%;margin-bottom:8px}
+  .pk-dd{max-height:280px;overflow:auto}
+  .pk-preset{display:flex;flex-wrap:wrap;gap:8px;padding:0 2px 8px;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .pk-preset button{font-family:var(--serif);font-size:.85rem;color:var(--gold-d);background:var(--cream);border:1px solid #e8dcc0;border-radius:999px;padding:5px 12px;cursor:pointer}
+  .pk-preset button:hover{background:var(--gold);color:#fff}
+  .pk-city{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer}
+  .pk-city:hover{background:var(--warm)}
+  .pk-city b{color:var(--ink)} .pk-city .pk-code{font-size:.78rem;color:var(--gold-d);letter-spacing:.04em}
+  .pk-city .pk-all{margin-left:auto;font-size:.78rem;color:#fff;background:var(--navy);border-radius:999px;padding:2px 10px}
+  .pk-ap{display:flex;align-items:center;gap:10px;padding:7px 10px 7px 24px;border-radius:8px;cursor:pointer;font-size:.92rem;color:var(--text)}
+  .pk-ap:hover{background:var(--warm)}
+  .pk-ap .pk-acode{font-weight:600;color:var(--navy);width:42px;flex:none}
+  .pk-empty{padding:14px;color:var(--muted);text-align:center;font-size:.9rem}
+  .pk-sep{height:1px;background:var(--line);margin:4px 8px}
+  /* calendar */
+  .cal{display:flex;gap:24px;flex-wrap:wrap}
+  .cal-m{flex:1;min-width:236px}
+  .cal-h{font-weight:600;color:var(--navy);margin:0 0 8px;text-align:center}
+  .cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-w{font-size:.74rem;color:var(--light);text-align:center;padding:2px 0}
+  .cal-d{font-family:var(--serif);font-size:.95rem;aspect-ratio:1;border:1px solid transparent;border-radius:9px;background:none;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;padding:0}
+  .cal-d:hover{box-shadow:inset 0 0 0 1.6px var(--gold)}
+  .cal.mode-arr .cal-d:hover{box-shadow:inset 0 0 0 1.6px #2c8e7a}
+  /* 单日历·双维度：出发=金(左上角)，到达=青(右下角)；☆候选 / ★(✦)理想；背景沿对角线劈成两半 */
+  .cal-d{--dep:transparent;--arr:transparent;background:linear-gradient(135deg,var(--dep) 0 50%,var(--arr) 50% 100%)}
+  .cal-d.dpc{--dep:rgba(201,169,110,.22)} .cal-d.dpi{--dep:rgba(201,169,110,.5)}
+  .cal-d.arc{--arr:rgba(44,142,122,.16)} .cal-d.ari{--arr:rgba(44,142,122,.42)}
+  .cal-d.dpi,.cal-d.ari{color:var(--ink);font-weight:600}
+  .cal-d::before{position:absolute;top:-1px;left:3px;font-size:.56rem;line-height:1.3;color:var(--gold-d)}
+  .cal-d.dpc::before{content:"☆"} .cal-d.dpi::before{content:"★"}
+  .cal-d::after{position:absolute;bottom:-1px;right:3px;font-size:.56rem;line-height:1.3;color:#2c8e7a}
+  .cal-d.arc::after{content:"☆"} .cal-d.ari::after{content:"✦"}
+  .cal-range{margin:4px 0 14px;color:var(--ink);font-size:.95rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cal-range input[type=month]{width:auto}
+  .cal-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:.84rem;color:var(--muted);align-items:center}
+  .lg-dot{display:inline-block;width:13px;height:13px;border-radius:4px;vertical-align:-2px;margin-right:5px}
+  /* advanced time window */
+  .tw{margin-top:18px;border-top:1px dashed var(--line);padding-top:6px}
+  .tw>summary{cursor:pointer;color:var(--navy);font-weight:600;list-style:none;padding:10px 0}
+  .tw>summary::-webkit-details-marker{display:none}
+  .tw>summary::before{content:"＋ ";color:var(--gold-d)}
+  .tw[open]>summary::before{content:"－ "}
+  .tw-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tw-row:last-child{border-bottom:none}
+  .tw-row .tw-l{flex:1;color:var(--ink);min-width:130px}
+  .tw-row input[type=datetime-local]{width:auto;opacity:.45;pointer-events:none;transition:.15s}
+  .tw-row.on input[type=datetime-local]{opacity:1;pointer-events:auto}
+  /* toggles + switches */
+  .switches{display:flex;flex-direction:column;gap:2px}
+  .sw{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 2px;border-bottom:1px solid var(--line)}
+  .sw:last-child{border-bottom:none}
+  .sw .swl{flex:1;min-width:0;color:var(--ink)}
+  .sw .swl small{display:block;font-size:.8rem;color:var(--muted)}
+  .sw .seg{flex:none}
+  .seg.compact button{padding:5px 11px;font-size:.88rem}
+  .toggle{flex:none;width:46px;height:26px;border-radius:999px;background:#d8d4cc;position:relative;cursor:pointer;transition:.2s;border:none;padding:0}
+  .toggle::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:.2s}
+  .toggle.on{background:var(--navy)}.toggle.on::after{transform:translateX(20px)}
+  .mini{flex:none;width:auto;font-family:var(--serif);font-size:.92rem;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+  .num-unit{display:inline-flex;align-items:center;gap:7px;flex:none}
+  .num-unit input{width:84px}.num-unit span{color:var(--muted);font-size:.92rem}
+  .inset{margin:10px 0 2px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.92rem;color:var(--muted)}
+  .inset input[type=time]{width:auto}
+  .hardtag{display:inline-block;font-size:.68rem;color:#7a3b32;background:#fbf0ee;border-radius:999px;padding:1px 8px;margin-left:4px;vertical-align:1px}
+  .softtag{display:inline-block;font-size:.68rem;color:var(--navy);background:#eaeef4;border-radius:999px;padding:1px 8px;margin-left:4px;vertical-align:1px}
+  /* topics accordion */
+  .topics{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .topic{border:1px solid var(--line);border-radius:13px;background:var(--bg);transition:box-shadow .15s,border-color .15s}
+  .topic.open{box-shadow:0 6px 22px rgba(30,58,95,.08);border-color:#dcd5c6;background:#fff}
+  .topic.dragging{opacity:.4}
+  .topic.over{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,169,110,.18)}
+  .topic-head{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer}
+  .topic .grip{color:#c9c4ba;font-size:1.1rem;cursor:grab;letter-spacing:-2px}
+  .topic .rank{width:26px;height:26px;flex:none;border-radius:50%;background:var(--navy);color:#fff;font-size:.9rem;display:flex;align-items:center;justify-content:center;font-weight:600}
+  .topic.top .rank{background:linear-gradient(var(--gold),var(--gold-d))}
+  .topic-main{flex:1;min-width:0}
+  .topic-name{color:var(--ink);font-weight:600}
+  .topic-sum{font-size:.82rem;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .t-arr{display:flex;flex-direction:column;gap:2px;flex:none}
+  .t-arr button{border:none;background:var(--warm);color:var(--muted);width:24px;height:18px;border-radius:5px;cursor:pointer;font-size:.7rem;line-height:1;padding:0}
+  .t-arr button:hover{background:var(--gold);color:#fff}
+  .chev{color:var(--muted);transition:transform .2s;flex:none;font-size:1.1rem}
+  .topic.open .chev{transform:rotate(180deg)}
+  .topic[data-nocollapse] .chev{display:none}
+  @media(hover:hover) and (pointer:fine){.t-arr{display:none}}  /* 有鼠标→拖柄排序，隐藏 ▲▼；触屏/窄屏保留 */
+  .topic-body{display:none;padding:4px 14px 14px 52px;border-top:1px solid var(--line)}
+  .topic.open .topic-body{display:block}
+  .card>.topic-body{display:block;padding:0;border-top:none}
+  .bnote{font-size:.84rem;color:var(--muted);margin:6px 0 8px}
+  .indent{margin-left:20px}
+  .date-simple{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .date-simple input[type=month]{width:auto}
+  /* delivery */
+  .deliv{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .dcard{border:1px solid var(--line);border-radius:12px;padding:13px 15px;cursor:pointer;display:flex;gap:11px;align-items:center;transition:.15s;background:var(--bg)}
+  .dcard:hover{border-color:var(--gold)} .dcard.on{border-color:var(--navy);background:#fff;box-shadow:0 0 0 2px rgba(30,58,95,.12)}
+  .dcard .de{font-size:1.35rem;line-height:1}.dcard .dt{font-weight:600;color:var(--ink)}
+  .dcard .tick{margin-left:auto;color:var(--navy);opacity:0;font-weight:700}.dcard.on .tick{opacity:1}
+  .subrow{margin-top:14px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end}
+  .reveal{margin-top:14px;border-top:1px dashed var(--line);padding-top:14px;display:none}
+  .reveal.show{display:block}
+  /* footer */
+  .bar{position:fixed;left:0;right:0;bottom:0;background:rgba(250,250,249,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:12px 20px calc(12px + env(safe-area-inset-bottom));z-index:40}
+  .bar-in{max-width:860px;margin:0 auto;display:flex;align-items:center;gap:16px}
+  .summary{flex:1;min-width:0}
+  .summary .sl{font-size:.74rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  .summary .sv{color:var(--ink);font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .summary .sv b{color:var(--navy)}
+  .btn-ghost{background:none;border:none;color:var(--gold-d);font-family:var(--serif);font-size:.95rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+  .btn-go{font-family:var(--serif);font-size:1.05rem;font-weight:600;color:#fff;background:var(--navy);border:1px solid var(--gold);border-radius:999px;padding:11px 26px;cursor:pointer;box-shadow:0 6px 18px rgba(30,58,95,.28);white-space:nowrap}
+  .btn-go:hover{background:var(--navy-l)}
+  .btn-go:disabled,.btn-go.disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+  .valnote{max-width:860px;margin:0 auto 8px;color:#8b2e2e;font-size:.85rem}
+  .tag{position:fixed;top:10px;right:12px;background:var(--navy);color:#fff;font-size:.72rem;letter-spacing:.08em;padding:4px 11px;border-radius:999px;z-index:50;opacity:.85}
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(10px);background:var(--navy);color:#fff;font-size:.92rem;padding:10px 18px;border-radius:999px;box-shadow:0 8px 24px rgba(30,58,95,.3);opacity:0;pointer-events:none;transition:.2s;z-index:60;max-width:90vw;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media(max-width:560px){h1{font-size:2rem}.bar-in{flex-wrap:wrap;gap:10px}.summary{flex:1 1 100%;order:-1}.btn-go{flex:1}.card{padding:18px 16px}.topic-body{padding-left:16px}.cal{gap:14px}}
+  /* ===== date widget v2 (一行两个月 grid + 出发/到达双层) ===== */
+  .cal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 24px}
+  .cal-m{min-width:0;flex:initial}   /* grid item：清掉旧 flex 布局的 min-width:236px，窄屏不撑破 */
+  @media(max-width:560px){.cal{grid-template-columns:1fr;gap:14px}}
+  .date-range{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--ink);font-size:.95rem;margin:2px 0 4px}
+  .date-range input[type=month]{width:auto}
+  .date-range .rng-note{color:var(--muted);font-size:.85rem}
+  .date-sec{margin-top:4px}
+  .date-sec-h{font-weight:600;color:var(--navy);font-size:1rem;margin:16px 0 10px;display:flex;align-items:center;gap:8px}
+  .date-sec-h .acc{width:11px;height:11px;border-radius:4px;flex:none}
+  .acc-dep{background:linear-gradient(var(--gold),var(--gold-d))}
+  .acc-arr{background:linear-gradient(#4db6a1,#2f9c86)}
+  .date-counts{font-size:.85rem;color:var(--muted);margin-top:10px}
+  .date-counts b{color:var(--navy)}
+  /* 到达日历换青绿色系，与出发金色区分 */
+  .datemode-row{display:flex;align-items:center;gap:8px;margin:14px 0 2px;color:var(--muted);font-size:.88rem;flex-wrap:wrap}
+  .datemode button[data-mode="arr"].on{background:#2c8e7a;box-shadow:0 2px 8px rgba(44,142,122,.3)}
+  /* 检查频率：段在上、参数面板在下，独立成框，间距统一 */
+  .freq-panel{margin-top:14px;background:var(--warm);border:1px solid var(--line);border-radius:12px;padding:13px 16px;display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap;color:var(--ink);font-size:.97rem}
+  .freq-panel .fl{color:var(--muted);font-size:.9rem}
+  .freq-panel input[type=time],.freq-panel select{width:auto;background:#fff}
+  .freq-panel .fsep{flex:none;width:1px;height:22px;background:var(--line);margin:0 2px}
+  .cal-d.today{box-shadow:inset 0 0 0 1px var(--gold)}
+  .cal-d.oor{opacity:.32;cursor:default;pointer-events:none}
+  .syncbadge{display:inline-block;font-size:.66rem;color:var(--navy);background:#eaeef4;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:2px;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+  @media(max-width:560px){body{padding-bottom:160px}}
+  @media(max-width:480px){.topic-name .syncbadge{display:none}}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="tag">设计稿 · 配置页</div>
+<div class="wrap">
+  <p class="kicker">周睿的百宝箱 · 机票捡漏</p>
+  <h1>设个盯票，剩下交给它</h1>
+
+  <!-- 1 行程 -->
+  <section class="card">
+    <h2><span class="ico">✈︎</span>行程</h2>
+    <div class="row" style="margin-bottom:18px">
+      <div class="field" style="flex:0 0 auto"><label class="lab">行程类型</label>
+        <div class="seg" data-seg><button class="on">单程</button><button>往返</button></div>
+      </div>
+      <div class="field"><label class="lab">舱位</label>
+        <select id="cabin"><option>经济舱</option><option>超级经济舱</option><option>商务舱</option><option>头等舱</option></select>
+      </div>
+      <div class="field" style="flex:0 0 120px"><label class="lab">乘客</label>
+        <select><option>1 人</option><option>2 人</option><option>3 人</option><option>4 人</option></select>
+      </div>
+      <div class="field" style="flex:0 0 130px"><label class="lab">类型</label>
+        <select><option>成人</option><option>学生</option><option>儿童</option></select>
+      </div>
+    </div>
+
+    <div style="margin-bottom:18px">
+      <label class="lab">出发地候选</label>
+      <div class="pk" data-picker="origin">
+        <div class="pk-chips" data-chips="origin">
+          <span class="chip add pk-add">+ 添加</span>
+        </div>
+        <div class="pk-pop"><input class="pk-input" type="text" placeholder="搜城市或机场代码，如 北京 / PEK"><div class="pk-dd"></div></div>
+      </div>
+    </div>
+
+    <div>
+      <label class="lab">到达地候选</label>
+      <div class="pk" data-picker="dest">
+        <div class="pk-chips" data-chips="dest">
+          <span class="chip add pk-add">+ 添加</span>
+        </div>
+        <div class="pk-pop"><input class="pk-input" type="text" placeholder="搜城市或机场代码，如 纽约 / JFK"><div class="pk-dd"></div></div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- 2 出行时间（卡片＝主编辑区；与底部「出行时间」条目实时双向同步） -->
+  <section class="card" id="dateCard">
+    <h2><span class="ico">❏</span>出行时间</h2>
+    <p class="hint">在同一张日历上标出你的出行时间：先在下方选「出发日」或「到达日」，点你能接受的日子（☆ 候选），再点一下升为 <b>★ 理想</b>，三点取消；按住可拖刷多天。</p>
+    <div data-datehost></div>
+  </section>
+
+  <!-- 3 直飞 / 中转（卡片＝主编辑区；与底部「直飞」条目实时双向同步） -->
+  <section class="card" id="stopCard">
+    <h2><span class="ico">🔁</span>直飞 / 中转</h2>
+    <div data-stophost></div>
+  </section>
+
+  <!-- 4 你最在乎什么 -->
+  <section class="card">
+    <h2><span class="ico">≡</span>你最在乎什么</h2>
+    <p class="hint">拖动排序（手机点 ▲▼）＝<b>越靠上越重要</b>；点开每一项就地设置它的具体要求。</p>
+    <ul class="topics" id="topics">
+      <li class="topic top" data-key="price">
+        <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">1</span>
+          <div class="topic-main"><div class="topic-name">价格</div><div class="topic-sum">未设置</div></div>
+          <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
+        <div class="topic-body">
+          <div class="row">
+            <div class="field"><label class="lab">目标价 · 跌到就提醒</label><div class="prefix"><span>$</span><input type="number" id="priceLow" placeholder="如 800"></div></div>
+            <div class="field"><label class="lab">预算上限 · 再贵不看</label><div class="prefix"><span>$</span><input type="number" id="priceHigh" placeholder="如 1500"></div></div>
+          </div>
+        </div>
+      </li>
+      <li class="topic" data-key="stop">
+        <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">2</span>
+          <div class="topic-main"><div class="topic-name">直飞 / 中转</div><div class="topic-sum">最多 1 次中转</div></div>
+          <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
+        <div class="topic-body"><p class="bnote">在上方「直飞 / 中转」卡片里设置；这里只决定它在你优先级里的位置。</p><button type="button" class="mini" onclick="document.getElementById('stopCard').scrollIntoView({behavior:'smooth',block:'center'})">去上方卡片设置 ↑</button></div>
+      </li>
+      <li class="topic" data-key="date">
+        <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">3</span>
+          <div class="topic-main"><div class="topic-name">出行时间</div><div class="topic-sum">日期窗口</div></div>
+          <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
+        <div class="topic-body"><p class="bnote">在上方「出行时间」卡片里设置；这里只决定它在你优先级里的位置。</p><button type="button" class="mini" onclick="document.getElementById('dateCard').scrollIntoView({behavior:'smooth',block:'center'})">去上方卡片设置 ↑</button></div>
+      </li>
+      <li class="topic" data-key="bag">
+        <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">4</span>
+          <div class="topic-main"><div class="topic-name">行李</div><div class="topic-sum">必须含托运 ≥ 1 件</div></div>
+          <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
+        <div class="topic-body">
+          <div class="sw" style="border:none;padding-left:0"><span class="swl">必须含托运行李</span><button class="toggle on" data-toggle data-reveal="bagcount"></button></div>
+          <div class="sw indent" style="border:none;padding-left:0" data-rev="bagcount"><span class="swl">至少托运件数</span><select class="mini"><option selected>1 件</option><option>2 件</option></select></div>
+          <div class="sw" style="border:none;padding-left:0"><span class="swl">必须含手提行李<small>有的特价票不含手提</small></span><button class="toggle" data-toggle id="togHandBag"></button></div>
+        </div>
+      </li>
+      <li class="topic" data-key="dur">
+        <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">5</span>
+          <div class="topic-main"><div class="topic-name">总时长</div><div class="topic-sum">全程 ≤ 34 小时</div></div>
+          <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
+        <div class="topic-body">
+          <div class="sw" style="border:none;padding-left:0"><span class="swl">另设全程时长上限</span><span data-rev="durcap" style="display:none;margin-right:16px" class="num-unit"><input type="number" value="34"><span>小时</span></span><button class="toggle" data-toggle data-reveal="durcap"></button></div>
+        </div>
+      </li>
+      <li class="topic" data-key="arr">
+        <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">6</span>
+          <div class="topic-main"><div class="topic-name">起降时段</div><div class="topic-sum">出发 — · 到达 07:00 – 21:00</div></div>
+          <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
+        <div class="topic-body">
+          <div class="sw" style="border:none;padding-left:0"><span class="swl">限定出发时段</span><span data-rev="deptimes" style="display:none;margin-right:16px;white-space:nowrap;font-size:.95rem;color:var(--ink)"><input type="time" value="08:00" style="width:auto"> — <input type="time" value="22:00" style="width:auto"></span><button class="toggle" data-toggle data-reveal="deptimes" id="togDepTimes"></button></div>
+          <div class="sw" style="border:none;padding-left:0"><span class="swl">限定到达时段</span><span data-rev="arrtimes" style="display:none;margin-right:16px;white-space:nowrap;font-size:.95rem;color:var(--ink)"><input type="time" value="07:00" style="width:auto"> — <input type="time" value="21:00" style="width:auto"></span><button class="toggle" data-toggle data-reveal="arrtimes"></button></div>
+        </div>
+      </li>
+    </ul>
+  </section>
+  <!-- 3 通知方式 -->
+  <section class="card">
+    <h2><span class="ico">✉</span>怎么通知你</h2>
+    <div class="deliv" data-deliv>
+      <div class="dcard on"><span class="de">📧</span><div class="dt">邮件</div><span class="tick">✓</span></div>
+      <div class="dcard"><span class="de">🌐</span><div class="dt">每天打开网站看</div><span class="tick">✓</span></div>
+      <div class="dcard"><span class="de">📱</span><div class="dt">APP 推送</div><span class="tick">✓</span></div>
+      <div class="dcard"><span class="de">💻</span><div class="dt">桌面通知</div><span class="tick">✓</span></div>
+    </div>
+    <div style="margin-top:16px">
+      <label class="lab">检查频率</label>
+      <div class="seg" id="freqSeg" style="margin-top:6px"><button data-n="1">每天 1 次</button><button class="on" data-n="2">每天 2 次</button><button data-n="more">更频繁</button></div>
+      <div id="freqTimes" class="freq-panel"></div>
+    </div>
+    <div class="reveal show" data-reveal="email">
+      <label class="lab">收件邮箱</label>
+      <input type="email" placeholder="you@example.com">
+    </div>
+  </section>
+</div>
+
+<div class="bar">
+  <div class="valnote" id="valNote" style="display:none"></div>
+  <div class="bar-in">
+    <div class="summary"><div class="sl">当前盯票</div>
+      <div class="sv">还没设置 —— 选出发 / 到达地、日期，设个目标价</div></div>
+    <button class="btn-ghost">预览邮件</button>
+    <button class="btn-go">保存并开始盯票</button>
+  </div>
+</div>
+
+<script>
+  /* ---------- 通用：segmented / toggle ---------- */
+  document.querySelectorAll('[data-seg]').forEach(seg=>seg.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b)return;
+    seg.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  }));
+  document.querySelectorAll('[data-toggle]').forEach(t=>t.addEventListener('click',e=>{e.stopPropagation();t.classList.toggle('on');
+    const rv=t.dataset.reveal; if(rv){const el=document.querySelector('[data-rev="'+rv+'"]'); if(el)el.style.display=t.classList.contains('on')?'':'none';}
+    if(typeof refresh==='function')refresh();
+  }));
+  /* ---------- 检查频率 → 自适应时间字段 ---------- */
+  (function(){
+    const seg=document.getElementById('freqSeg'), box=document.getElementById('freqTimes');
+    function draw(n){
+      if(n==='1') box.innerHTML='<span class="fl">每天</span><input type="time" value="10:00"><span class="fl">检查一次</span>';
+      else if(n==='2') box.innerHTML='<span class="fl">第 1 次</span><input type="time" value="09:00"><span class="fsep"></span><span class="fl">第 2 次</span><input type="time" value="21:00">';
+      else box.innerHTML='<span class="fl">从</span><input type="time" value="08:00"><span class="fl">起，每隔</span><select><option>2 小时</option><option selected>4 小时</option><option>6 小时</option></select><span class="fl">检查一次，到</span><input type="time" value="22:00"><span class="fl">为止</span>';
+    }
+    seg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');draw(b.dataset.n);});
+    draw('2');
+  })();
+
+  /* ---------- 出发/到达：带搜索的机场选择器 ---------- */
+  // 多机场城市（点城市=选全部机场）。生产环境换成完整 IATA 数据库即可，这里已覆盖主流。
+  const MULTI=[
+    {city:'北京',py:'beijing',code:'BJS',aps:[{c:'PEK',n:'首都'},{c:'PKX',n:'大兴'}]},
+    {city:'上海',py:'shanghai',code:'SHA',aps:[{c:'PVG',n:'浦东'},{c:'SHA',n:'虹桥'}]},
+    {city:'成都',py:'chengdu',code:'CTU',aps:[{c:'TFU',n:'天府'},{c:'CTU',n:'双流'}]},
+    {city:'东京',py:'tokyo',code:'TYO',aps:[{c:'HND',n:'羽田'},{c:'NRT',n:'成田'}]},
+    {city:'大阪',py:'osaka',code:'OSA',aps:[{c:'KIX',n:'关西'},{c:'ITM',n:'伊丹'}]},
+    {city:'首尔',py:'seoul',code:'SEL',aps:[{c:'ICN',n:'仁川'},{c:'GMP',n:'金浦'}]},
+    {city:'台北',py:'taipei',code:'TPE',aps:[{c:'TPE',n:'桃园'},{c:'TSA',n:'松山'}]},
+    {city:'曼谷',py:'bangkok',code:'BKK',aps:[{c:'BKK',n:'素万那普'},{c:'DMK',n:'廊曼'}]},
+    {city:'伦敦',py:'london',code:'LON',aps:[{c:'LHR',n:'希思罗'},{c:'LGW',n:'盖特威克'},{c:'STN',n:'斯坦斯特德'},{c:'LTN',n:'卢顿'}]},
+    {city:'巴黎',py:'paris',code:'PAR',aps:[{c:'CDG',n:'戴高乐'},{c:'ORY',n:'奥利'}]},
+    {city:'米兰',py:'milan',code:'MIL',aps:[{c:'MXP',n:'马尔彭萨'},{c:'LIN',n:'利纳泰'}]},
+    {city:'莫斯科',py:'moscow',code:'MOW',aps:[{c:'SVO',n:'谢列梅捷沃'},{c:'DME',n:'多莫杰多沃'}]},
+    {city:'伊斯坦布尔',py:'istanbul',code:'IST',aps:[{c:'IST',n:'新机场'},{c:'SAW',n:'萨比哈'}]},
+    {city:'纽约',py:'newyork',code:'NYC',aps:[{c:'JFK',n:'肯尼迪'},{c:'EWR',n:'纽瓦克'},{c:'LGA',n:'拉瓜迪亚'}]},
+    {city:'芝加哥',py:'chicago',code:'CHI',aps:[{c:'ORD',n:'奥黑尔'},{c:'MDW',n:'中途'}]},
+    {city:'华盛顿',py:'washington',code:'WAS',aps:[{c:'IAD',n:'杜勒斯'},{c:'DCA',n:'里根'}]}
+  ];
+  // 单机场城市：城市|拼音|IATA|机场名
+  const _S=`
+  广州|guangzhou|CAN|白云;深圳|shenzhen|SZX|宝安;重庆|chongqing|CKG|江北;杭州|hangzhou|HGH|萧山;南京|nanjing|NKG|禄口;
+  武汉|wuhan|WUH|天河;西安|xian|XIY|咸阳;长沙|changsha|CSX|黄花;郑州|zhengzhou|CGO|新郑;青岛|qingdao|TAO|胶东;
+  厦门|xiamen|XMN|高崎;福州|fuzhou|FOC|长乐;昆明|kunming|KMG|长水;大连|dalian|DLC|周水子;沈阳|shenyang|SHE|桃仙;
+  哈尔滨|haerbin|HRB|太平;长春|changchun|CGQ|龙嘉;天津|tianjin|TSN|滨海;济南|jinan|TNA|遥墙;合肥|hefei|HFE|新桥;
+  南昌|nanchang|KHN|昌北;太原|taiyuan|TYN|武宿;石家庄|shijiazhuang|SJW|正定;呼和浩特|huhehaote|HET|白塔;乌鲁木齐|wulumuqi|URC|地窝堡;
+  兰州|lanzhou|LHW|中川;西宁|xining|XNN|曹家堡;银川|yinchuan|INC|河东;贵阳|guiyang|KWE|龙洞堡;南宁|nanning|NNG|吴圩;
+  海口|haikou|HAK|美兰;三亚|sanya|SYX|凤凰;桂林|guilin|KWL|两江;丽江|lijiang|LJG|三义;张家界|zhangjiajie|DYG|荷花;
+  黄山|huangshan|TXN|屯溪;宁波|ningbo|NGB|栎社;温州|wenzhou|WNZ|龙湾;无锡|wuxi|WUX|硕放;常州|changzhou|CZX|奔牛;
+  南通|nantong|NTG|兴东;徐州|xuzhou|XUZ|观音;烟台|yantai|YNT|蓬莱;威海|weihai|WEH|大水泊;珠海|zhuhai|ZUH|金湾;
+  泉州|quanzhou|JJN|晋江;揭阳|jieyang|SWA|潮汕;湛江|zhanjiang|ZHA|吴川;义乌|yiwu|YIW|义乌;台州|taizhou|HYN|路桥;
+  舟山|zhoushan|HSN|普陀山;连云港|lianyungang|LYG|花果山;盐城|yancheng|YNZ|南洋;淮安|huaian|HIA|涟水;宜昌|yichang|YIH|三峡;
+  襄阳|xiangyang|XFN|刘集;南阳|nanyang|NNY|姜营;洛阳|luoyang|LYA|北郊;运城|yuncheng|YCU|张孝;大同|datong|DAT|云冈;
+  包头|baotou|BAV|二里半;鄂尔多斯|eerduosi|DSN|伊金霍洛;赤峰|chifeng|CIF|玉龙;呼伦贝尔|hulunbeier|HLD|海拉尔;延吉|yanji|YNJ|朝阳川;
+  牡丹江|mudanjiang|MDG|海浪;齐齐哈尔|qiqihaer|NDG|三家子;大庆|daqing|DQA|萨尔图;锦州|jinzhou|JNZ|锦州湾;丹东|dandong|DDG|浪头;
+  榆林|yulin|UYN|榆阳;延安|yanan|ENY|南泥湾;汉中|hanzhong|HZG|城固;敦煌|dunhuang|DNH|莫高;嘉峪关|jiayuguan|JGN|嘉峪关;
+  格尔木|geermu|GOQ|格尔木;库尔勒|kuerle|KRL|库尔勒;喀什|kashi|KHG|喀什;和田|hetian|HTN|和田;伊宁|yining|YIN|伊宁;
+  克拉玛依|kelamayi|KRY|克拉玛依;哈密|hami|HMI|哈密;拉萨|lasa|LXA|贡嘎;林芝|linzhi|LZY|米林;日喀则|rikaze|RKZ|和平;
+  西双版纳|xishuangbanna|JHG|嘎洒;芒市|mangshi|LUM|德宏;腾冲|tengchong|TCZ|驼峰;香格里拉|xianggelila|DIG|迪庆;九寨沟|jiuzhaigou|JZH|黄龙;
+  绵阳|mianyang|MIG|南郊;宜宾|yibin|YBP|五粮液;泸州|luzhou|LZO|云龙;南充|nanchong|NAO|高坪;达州|dazhou|DAX|河市;
+  西昌|xichang|XIC|青山;稻城|daocheng|DCY|亚丁;遵义|zunyi|ZYI|新舟;兴义|xingyi|ACX|万峰林;铜仁|tongren|TEN|凤凰;
+  安顺|anshun|AVA|黄果树;毕节|bijie|BFJ|飞雄;北海|beihai|BHY|福成;柳州|liuzhou|LZH|白莲;百色|baise|AEB|巴马;琼海|qionghai|BAR|博鳌;
+  香港|hongkong|HKG|国际;澳门|macau|MFM|国际;高雄|kaohsiung|KHH|小港;釜山|busan|PUS|金海;名古屋|nagoya|NGO|中部;
+  福冈|fukuoka|FUK|福冈;札幌|sapporo|CTS|新千岁;冲绳|okinawa|OKA|那霸;新加坡|singapore|SIN|樟宜;吉隆坡|kualalumpur|KUL|国际;
+  雅加达|jakarta|CGK|苏加诺;马尼拉|manila|MNL|尼诺伊;胡志明市|hochiminh|SGN|新山一;河内|hanoi|HAN|内排;金边|phnompenh|PNH|国际;
+  仰光|yangon|RGN|国际;万象|vientiane|VTE|瓦岱;巴厘岛|bali|DPS|伍拉莱;普吉|phuket|HKT|普吉;清迈|chiangmai|CNX|清迈;
+  宿务|cebu|CEB|麦克坦;槟城|penang|PEN|槟城;亚庇|kotakinabalu|BKI|亚庇;新德里|delhi|DEL|英迪拉;孟买|mumbai|BOM|贾特拉帕蒂;
+  班加罗尔|bangalore|BLR|肯佩高达;加尔各答|kolkata|CCU|国际;钦奈|chennai|MAA|国际;海德拉巴|hyderabad|HYD|拉吉夫;科伦坡|colombo|CMB|班达拉奈克;
+  达卡|dhaka|DAC|沙阿贾拉勒;加德满都|kathmandu|KTM|特里布万;马累|male|MLE|维拉纳;伊斯兰堡|islamabad|ISB|国际;拉合尔|lahore|LHE|阿拉马;
+  卡拉奇|karachi|KHI|真纳;迪拜|dubai|DXB|国际;阿布扎比|abudhabi|AUH|国际;多哈|doha|DOH|哈马德;利雅得|riyadh|RUH|哈立德;
+  吉达|jeddah|JED|阿卜杜勒;科威特|kuwait|KWI|国际;巴林|bahrain|BAH|国际;马斯喀特|muscat|MCT|国际;德黑兰|tehran|IKA|霍梅尼;
+  特拉维夫|telaviv|TLV|本古里安;开罗|cairo|CAI|国际;约翰内斯堡|johannesburg|JNB|塔博;内罗毕|nairobi|NBO|肯雅塔;法兰克福|frankfurt|FRA|国际;
+  慕尼黑|munich|MUC|国际;阿姆斯特丹|amsterdam|AMS|史基浦;苏黎世|zurich|ZRH|国际;日内瓦|geneva|GVA|国际;罗马|rome|FCO|菲乌米奇诺;
+  马德里|madrid|MAD|巴拉哈斯;巴塞罗那|barcelona|BCN|普拉特;里斯本|lisbon|LIS|波尔特拉;维也纳|vienna|VIE|国际;布鲁塞尔|brussels|BRU|国际;
+  哥本哈根|copenhagen|CPH|凯斯楚普;斯德哥尔摩|stockholm|ARN|阿兰达;奥斯陆|oslo|OSL|加勒穆恩;赫尔辛基|helsinki|HEL|万塔;都柏林|dublin|DUB|国际;
+  雅典|athens|ATH|国际;华沙|warsaw|WAW|肖邦;布拉格|prague|PRG|哈维尔;布达佩斯|budapest|BUD|李斯特;洛杉矶|losangeles|LAX|国际;
+  旧金山|sanfrancisco|SFO|国际;西雅图|seattle|SEA|塔科马;波士顿|boston|BOS|洛根;费城|philadelphia|PHL|国际;亚特兰大|atlanta|ATL|哈兹菲尔德;
+  达拉斯|dallas|DFW|沃斯堡;休斯顿|houston|IAH|布什;迈阿密|miami|MIA|国际;奥兰多|orlando|MCO|国际;拉斯维加斯|lasvegas|LAS|哈里里德;
+  凤凰城|phoenix|PHX|天港;丹佛|denver|DEN|国际;底特律|detroit|DTW|大都会;明尼阿波利斯|minneapolis|MSP|圣保罗;圣地亚哥|sandiego|SAN|国际;
+  波特兰|portland|PDX|国际;盐湖城|saltlakecity|SLC|国际;多伦多|toronto|YYZ|皮尔逊;温哥华|vancouver|YVR|国际;蒙特利尔|montreal|YUL|特鲁多;
+  卡尔加里|calgary|YYC|国际;墨西哥城|mexicocity|MEX|国际;悉尼|sydney|SYD|金斯福德;墨尔本|melbourne|MEL|图拉马林;布里斯班|brisbane|BNE|国际;
+  珀斯|perth|PER|国际;奥克兰|auckland|AKL|国际;圣保罗|saopaulo|GRU|瓜鲁柳斯;里约热内卢|riodejaneiro|GIG|加利昂`;
+  const CITIES=MULTI.concat(_S.split(';').map(s=>s.trim()).filter(Boolean).map(s=>{const p=s.split('|');return{city:p[0],py:p[1],code:p[2],aps:[{c:p[2],n:p[3]}]};}));
+  function searchCities(q){q=q.trim().toLowerCase();
+    const list=q? CITIES.filter(c=>c.city.includes(q)||c.py.includes(q)||c.code.toLowerCase().includes(q)||c.aps.some(a=>a.c.toLowerCase().includes(q)||a.n.includes(q))) : CITIES;
+    return list.slice(0,8);}
+  let _toastT=null;
+  function showToast(msg){let t=document.getElementById('pkToast');if(!t){t=document.createElement('div');t.id='pkToast';t.className='toast';t.setAttribute('role','status');t.setAttribute('aria-live','polite');document.body.appendChild(t);}t.textContent=msg;t.classList.add('show');clearTimeout(_toastT);_toastT=setTimeout(()=>t.classList.remove('show'),2000);}
+  const PRESETS={me:{label:'避开中东',codes:['DOH','DXB','IST','AUH','RUH','JED','KWI','BAH','MCT','IKA']}};
+  function findAp(code){for(const c of CITIES){const a=c.aps.find(x=>x.c===code);if(a)return{c,a};}return null;}
+  document.querySelectorAll('.pk').forEach(pk=>{
+    const chips=pk.querySelector('.pk-chips'), addBtn=pk.querySelector('.pk-add'), pop=pk.querySelector('.pk-pop'), input=pk.querySelector('.pk-input'), dd=pk.querySelector('.pk-dd');
+    const danger=pk.dataset.danger==='1', presetKey=pk.dataset.preset, cls='chip'+(danger?' danger':'');
+    const chipByKey=key=>[...chips.querySelectorAll('.chip')].find(c=>c.dataset.key===key);
+    function mkChip(key,label){const c=document.createElement('span');c.className=cls;c.dataset.key=key;c.innerHTML=label+'<span class="x">×</span>';chips.insertBefore(c,addBtn);}
+    function addCity(c,silent){
+      if(chipByKey('city:'+c.code)){if(!silent)showToast('「'+c.city+'（全部机场）」已经添加过了');return;}
+      let merged=0;c.aps.forEach(a=>{const ex=chipByKey('ap:'+a.c);if(ex){ex.remove();merged++;}});
+      mkChip('city:'+c.code,'<b>'+c.city+'</b><span class="code">'+c.aps.map(a=>a.c).join('·')+'</span>');
+      if(!silent)showToast(merged?('已选「'+c.city+'（全部机场）」，合并了 '+merged+' 个机场'):('已添加「'+c.city+'（全部机场）」'));
+    }
+    function addAirport(c,a,silent){
+      if(chipByKey('city:'+c.code)){if(!silent)showToast('「'+a.c+'」已包含在「'+c.city+'（全部机场）」里了');return;}
+      if(chipByKey('ap:'+a.c)){if(!silent)showToast('「'+c.city+a.n+' '+a.c+'」已经添加过了');return;}
+      mkChip('ap:'+a.c,'<b>'+c.city+a.n+'</b><span class="code">'+a.c+'</span>');if(!silent)showToast('已添加「'+c.city+a.n+' '+a.c+'」');
+    }
+    function applyPreset(){const p=PRESETS[presetKey];if(!p)return;let n=0;p.codes.forEach(code=>{const f=findAp(code);if(f&&!chipByKey('ap:'+f.a.c)&&!chipByKey('city:'+f.c.code)){addAirport(f.c,f.a,true);n++;}});showToast(p.label+'：已加入 '+n+' 个中转地');}
+    function open(){pop.classList.add('show');input.value='';render('');setTimeout(()=>input.focus(),0);}
+    function close(){pop.classList.remove('show');}
+    function render(q){ dd.innerHTML='';
+      if(presetKey&&!q){const pr=document.createElement('div');pr.className='pk-preset';const b=document.createElement('button');b.textContent='⚡ '+PRESETS[presetKey].label;b.onclick=()=>{applyPreset();render('');};pr.appendChild(b);dd.appendChild(pr);}
+      const items=searchCities(q);
+      if(!items.length){const e=document.createElement('div');e.className='pk-empty';e.textContent='没有匹配，换个词或机场代码试试';dd.appendChild(e);return;}
+      items.forEach((c,i)=>{const multi=c.aps.length>1;
+        const head=document.createElement('div');head.className='pk-city';
+        head.innerHTML='<b>'+c.city+'</b><span class="pk-code">'+c.code+'</span>'+(multi?'<span class="pk-all">选全部 '+c.aps.length+' 个机场</span>':'<span class="pk-all">添加</span>');
+        head.onclick=()=> multi?addCity(c):addAirport(c,c.aps[0]);
+        dd.appendChild(head);
+        if(multi)c.aps.forEach(a=>{const r=document.createElement('div');r.className='pk-ap';r.innerHTML='<span class="pk-acode">'+a.c+'</span>'+c.city+a.n+'机场';r.onclick=()=>addAirport(c,a);dd.appendChild(r);});
+        if(i<items.length-1){const s=document.createElement('div');s.className='pk-sep';dd.appendChild(s);}
+      });
+    }
+    addBtn.addEventListener('click',e=>{e.stopPropagation();pop.classList.contains('show')?close():open();});
+    input.addEventListener('input',()=>render(input.value));
+    input.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
+    chips.addEventListener('click',e=>{if(e.target.classList.contains('x'))e.target.closest('.chip').remove();});
+    document.addEventListener('click',e=>{if(!pk.contains(e.target))close();});
+  });
+
+  /* ---------- 出行日期 + 直飞/中转：共享状态 FW，双向同步两处宿主（卡片 + 优先级条目） ---------- */
+  const FW=(function(){
+    const pad=n=>String(n).padStart(2,'0');
+    const now=new Date(), cy=now.getFullYear(), cm=now.getMonth()+1, cd=now.getDate();
+    const todayStr=cy+'-'+pad(cm)+'-'+pad(cd);
+    const ym=(y,m)=>y+'-'+pad(m), ds=(y,m,d)=>y+'-'+pad(m)+'-'+pad(d);
+    const addMon=(y,m,k)=>{const t=y*12+(m-1)+k;return [Math.floor(t/12),(t%12)+1];};
+    const [ny,nm]=addMon(cy,cm,1);                 // 下个月
+    const W=['一','二','三','四','五','六','日'];
+    const R=()=>{if(typeof refresh==='function')refresh();};
+    // 默认窗口＝本月~下月；空态——无预选日期，用户自己在日历上点
+    const STATE={
+      date:{ from:ym(cy,cm), to:ym(ny,nm),
+        depCand:new Set(),
+        depIdeal:new Set(),
+        mode:'dep', arrCand:new Set(), arrIdeal:new Set() },
+      stop:{ max:'1', oneTicket:true, noOvernight:true, noTransitVisa:true, layover:12,
+        avoid:[{code:'DOH',city:'多哈'},{code:'DXB',city:'迪拜'},{code:'IST',city:'伊斯坦布尔'},{code:'AUH',city:'阿布扎比'}] }
+    };
+    const setsOf=g=>g==='arr'?[STATE.date.arrCand,STATE.date.arrIdeal]:[STATE.date.depCand,STATE.date.depIdeal];
+    function clampRange(){
+      const d=STATE.date; let [fy,fm]=d.from.split('-').map(Number),[ty,tm]=d.to.split('-').map(Number);
+      if(ty<fy||(ty===fy&&tm<fm)){ty=fy;tm=fm;}
+      if((ty-fy)*12+(tm-fm)>11){const r=addMon(fy,fm,11);ty=r[0];tm=r[1];}
+      d.from=ym(fy,fm); d.to=ym(ty,tm);
+    }
+    // 改窗口后，丢掉落在新窗口外的已选日（否则会变成看不见又取消不掉的"幽灵选中"）
+    function pruneDates(){const d=STATE.date,lo=d.from+'-01',tp=d.to.split('-').map(Number),hi=d.to+'-'+pad(new Date(tp[0],tp[1],0).getDate());
+      [d.depCand,d.depIdeal,d.arrCand,d.arrIdeal].forEach(set=>[...set].forEach(s=>{if(s<lo||s>hi)set.delete(s);}));}
+    // 单元格同时承载出发(金)+到达(青)两个维度：dpc/dpi=出发候选/理想，arc/ari=到达候选/理想
+    function cellCls(s){let cl='cal-d';
+      if(STATE.date.depIdeal.has(s))cl+=' dpi';else if(STATE.date.depCand.has(s))cl+=' dpc';
+      if(STATE.date.arrIdeal.has(s))cl+=' ari';else if(STATE.date.arrCand.has(s))cl+=' arc';
+      if(s===todayStr)cl+=' today';if(s<todayStr)cl+=' oor';return cl;}
+    function monthsHTML(){
+      let [fy,fm]=STATE.date.from.split('-').map(Number),[ty,tm]=STATE.date.to.split('-').map(Number);
+      let y=fy,m=fm,guard=0,out='';
+      while((y<ty||(y===ty&&m<=tm))&&guard++<13){
+        let cells=W.map(w=>'<div class="cal-w">'+w+'</div>').join('');
+        const startDow=(new Date(y,m-1,1).getDay()+6)%7, days=new Date(y,m,0).getDate();
+        for(let i=0;i<startDow;i++)cells+='<div></div>';
+        for(let d=1;d<=days;d++){const s=ds(y,m,d);cells+='<button type="button" class="'+cellCls(s)+'" data-cell="'+s+'">'+d+'</button>';}
+        out+='<div class="cal-m"><div class="cal-h">'+y+' 年 '+m+' 月</div><div class="cal-g">'+cells+'</div></div>';
+        m++;if(m>12){m=1;y++;}
+      }
+      return out;
+    }
+    function counts(){const d=STATE.date;
+      let s='出发 <b>'+(d.depCand.size+d.depIdeal.size)+'</b> 天'+(d.depIdeal.size?'（★'+d.depIdeal.size+' 理想）':'');
+      if(d.arrCand.size+d.arrIdeal.size)s+=' &nbsp;·&nbsp; 到达 <b>'+(d.arrCand.size+d.arrIdeal.size)+'</b> 天'+(d.arrIdeal.size?'（✦'+d.arrIdeal.size+' 理想）':'');
+      return s;}
+    function dateHTML(){
+      const d=STATE.date;
+      return '<div class="date-range"><span>出行日期落在</span>'
+        +'<input type="month" data-d="from" value="'+d.from+'"><span>至</span>'
+        +'<input type="month" data-d="to" value="'+d.to+'"><span class="rng-note">之间 · 最多 12 个月</span></div>'
+        +'<div class="datemode-row"><span class="fl">现在在标</span>'
+        +'<div class="seg compact datemode" data-datemode>'
+        +'<button class="'+(d.mode==='dep'?'on':'')+'" data-mode="dep">出发日</button>'
+        +'<button class="'+(d.mode==='arr'?'on':'')+'" data-mode="arr">到达日</button></div>'
+        +'<span class="fl">出发金色落左上角、到达青色落右下角；只标出发也行，到达可不填</span></div>'
+        +'<div class="cal mode-'+d.mode+'">'+monthsHTML()+'</div>'
+        +'<div class="date-counts">'+counts()+'</div>'
+        +'<div class="cal-legend"><span><span class="lg-dot" style="background:rgba(201,169,110,.5)"></span>金＝出发（左上）</span>'
+        +'<span><span class="lg-dot" style="background:rgba(44,142,122,.42)"></span>青＝到达（右下）</span>'
+        +'<span class="help">空心 ☆ 候选、实心 ★/✦ 理想；点一下候选、再点理想、三点取消，可拖刷</span></div>';
+    }
+    function stopHTML(){
+      const s=STATE.stop;
+      const seg=[['0','只要直飞'],['1','最多 1 次'],['2','最多 2 次'],['3','最多 3 次'],['9','不限']]
+        .map(o=>'<button class="'+(s.max===o[0]?'on':'')+'" data-stopmax="'+o[0]+'">'+o[1]+'</button>').join('');
+      let extra='';
+      if(s.max!=='0'){
+        const chips=s.avoid.map(a=>'<span class="chip danger" data-code="'+a.code+'"><b>'+a.city+'</b><span class="code">'+a.code+'</span><span class="x" data-rmavoid="'+a.code+'">×</span></span>').join('');
+        extra='<div class="indent"><div class="switches">'
+          +'<div class="sw"><span class="swl">必须联程一张票<small>排除自行转机拼接票</small></span><button class="toggle'+(s.oneTicket?' on':'')+'" data-d="oneTicket" role="switch" aria-checked="'+s.oneTicket+'" tabindex="0"></button></div>'
+          +'<div class="sw"><span class="swl">避免过夜中转</span><button class="toggle'+(s.noOvernight?' on':'')+'" data-d="noOvernight" role="switch" aria-checked="'+s.noOvernight+'" tabindex="0"></button></div>'
+          +'<div class="sw"><span class="swl">不需要办过境签<small>避开需过境签的中转国</small></span><button class="toggle'+(s.noTransitVisa?' on':'')+'" data-d="noTransitVisa" role="switch" aria-checked="'+s.noTransitVisa+'" tabindex="0"></button></div>'
+          +'<div class="sw"><span class="swl">单段中转时长上限</span><span class="num-unit"><input type="number" data-d="layover" value="'+s.layover+'" min="1" max="48"><span>小时</span></span></div></div>'
+          +'<div style="padding:8px 2px"><span class="swl" style="display:block;margin-bottom:8px">避开这些中转地</span>'
+          +'<div data-avoid style="position:relative"><div class="pk-chips">'+chips
+          +'<button type="button" class="chip add" data-avoidpreset style="border-style:solid">⚡ 避开中东</button>'
+          +'<span class="chip add" data-avoidadd>+ 添加</span></div>'
+          +'<div class="pk-pop" data-avoidpop><input type="text" class="pk-input" data-avoidsearch placeholder="搜要避开的中转地，如 迪拜 / DXB"><div class="pk-dd" data-avoiddd></div></div>'
+          +'</div></div></div>';
+      }
+      return '<div class="switches"><div class="sw"><span class="swl">中转次数</span><div class="seg compact" data-stopseg>'+seg+'</div></div>'+extra+'</div>';
+    }
+    const syncDate=()=>document.querySelectorAll('[data-datehost]').forEach(h=>{h.innerHTML=dateHTML();});
+    const syncStop=()=>document.querySelectorAll('[data-stophost]').forEach(h=>{h.innerHTML=stopHTML();});
+    /* 摘要文字 */
+    const fmtD=s=>{const p=s.split('-');return (+p[1])+'/'+(+p[2]);};
+    function rangeOf(g){const a=setsOf(g),all=[...a[0],...a[1]].sort();if(!all.length)return null;return {span:all.length>1?fmtD(all[0])+'–'+fmtD(all[all.length-1]):fmtD(all[0]),ideal:a[1].size};}
+    function dateSummary(){const dep=rangeOf('dep');if(!dep)return '日期窗口（未选）';let s='出发 '+dep.span+(dep.ideal?'（★'+dep.ideal+'天）':'');const a=rangeOf('arr');if(a)s+=' · 到达 '+a.span+(a.ideal?'（✦'+a.ideal+'）':'');return s;}
+    const depCount=()=>STATE.date.depCand.size+STATE.date.depIdeal.size;
+    function stopSummary(){const s=STATE.stop,lab={'0':'只要直飞','1':'最多 1 转','2':'最多 2 转','3':'最多 3 转','9':'中转不限'}[s.max];if(s.max==='0')return lab;const ex=[];if(s.oneTicket)ex.push('联程一票');if(s.noTransitVisa)ex.push('免过境签');if(s.avoid.length)ex.push('避开 '+s.avoid.length+' 地');return lab+(ex.length?' · '+ex.join(' · '):'');}
+    const stopShort=()=>({'0':'直飞','1':'最多 1 转','2':'最多 2 转','3':'最多 3 转','9':'不限中转'})[STATE.stop.max];
+    /* 日历拖刷（事件委派，重渲后仍生效；同一日期两处宿主一起重绘） */
+    let painting=false,moved=false,startCell=null,unsel=false;
+    const activeSets=()=>STATE.date.mode==='arr'?[STATE.date.arrCand,STATE.date.arrIdeal]:[STATE.date.depCand,STATE.date.depIdeal];
+    const repaintAll=s=>document.querySelectorAll('[data-cell="'+s+'"]').forEach(el=>el.className=cellCls(s));
+    function paint(s,off){const a=activeSets();if(off){a[0].delete(s);a[1].delete(s);}else{a[0].add(s);a[1].delete(s);}repaintAll(s);}
+    function cycle(s){const a=activeSets();if(a[1].has(s)){a[1].delete(s);a[0].delete(s);}else if(a[0].has(s)){a[0].delete(s);a[1].add(s);}else a[0].add(s);repaintAll(s);}
+    const cellIn=t=>t&&t.closest&&t.closest('[data-cell]');
+    const hostCell=c=>c&&c.closest('[data-datehost]');
+    const isOn=s=>{const a=activeSets();return a[0].has(s)||a[1].has(s);};   // 是否已选(仅看当前模式)，决定拖刷是涂还是擦
+    document.addEventListener('mousedown',e=>{const c=cellIn(e.target);if(!c||!hostCell(c)||c.classList.contains('oor'))return;painting=true;moved=false;startCell=c.dataset.cell;unsel=isOn(startCell);e.preventDefault();});
+    document.addEventListener('mouseover',e=>{if(!painting)return;const c=cellIn(e.target);if(!c||!hostCell(c)||c.classList.contains('oor'))return;if(c.dataset.cell!==startCell)moved=true;paint(c.dataset.cell,unsel);});
+    document.addEventListener('mouseup',()=>{if(!painting)return;if(!moved&&startCell)cycle(startCell);painting=false;startCell=null;syncDate();R();});
+    document.addEventListener('touchstart',e=>{const c=cellIn(e.target);if(!c||!hostCell(c)||c.classList.contains('oor'))return;painting=true;moved=false;startCell=c.dataset.cell;unsel=isOn(startCell);},{passive:true});
+    document.addEventListener('touchmove',e=>{if(!painting)return;const t=e.touches[0],el=document.elementFromPoint(t.clientX,t.clientY),c=cellIn(el);if(!c||!hostCell(c)||c.classList.contains('oor'))return;if(c.dataset.cell!==startCell)moved=true;e.preventDefault();paint(c.dataset.cell,unsel);},{passive:false});
+    document.addEventListener('touchend',()=>{if(!painting)return;if(!moved&&startCell)cycle(startCell);painting=false;startCell=null;syncDate();R();});
+    /* 点击委派：中转次数段 / 各开关 / 避开中转地 */
+    function addAvoid(code,city){if(!STATE.stop.avoid.some(a=>a.code===code))STATE.stop.avoid.push({code,city});}
+    function renderAvoidDD(wrap,q){const dd=wrap.querySelector('[data-avoiddd]');if(!dd)return;const items=searchCities(q);
+      dd.innerHTML=items.length?items.map(c=>'<div class="pk-city" data-pick="'+c.aps[0].c+'" data-city="'+c.city+'"><b>'+c.city+'</b><span class="pk-code">'+c.code+'</span><span class="pk-all">避开</span></div>').join(''):'<div class="pk-empty">没有匹配，换个词或机场代码试试</div>';}
+    document.addEventListener('click',e=>{
+      const t=e.target;
+      const sm=t.closest&&t.closest('[data-stopmax]'); if(sm&&t.closest('[data-stophost]')){STATE.stop.max=sm.dataset.stopmax;syncStop();R();return;}
+      const btn=t.closest&&t.closest('button[data-d]');
+      if(btn&&t.closest('[data-stophost]')&&['oneTicket','noOvernight','noTransitVisa'].includes(btn.dataset.d)){STATE.stop[btn.dataset.d]=!STATE.stop[btn.dataset.d];syncStop();R();return;}
+      const dm=t.closest&&t.closest('[data-mode]'); if(dm&&t.closest('[data-datemode]')){STATE.date.mode=dm.dataset.mode;syncDate();R();return;}
+      if(t.closest&&t.closest('[data-stophost]')){
+        const wrap=t.closest('[data-avoid]');
+        if(t.closest('[data-avoidadd]')&&wrap){const pop=wrap.querySelector('[data-avoidpop]');const willShow=!pop.classList.contains('show');document.querySelectorAll('[data-avoidpop].show').forEach(p=>p.classList.remove('show'));if(willShow){pop.classList.add('show');renderAvoidDD(wrap,'');const inp=wrap.querySelector('[data-avoidsearch]');inp.value='';setTimeout(()=>inp.focus(),0);}return;}
+        if(t.closest('[data-avoidpreset]')){const codes=(PRESETS.me&&PRESETS.me.codes)||['DOH','DXB','IST','AUH','RUH','JED','KWI','BAH','MCT','IKA'];let n=0;codes.forEach(code=>{const f=findAp(code);if(f&&!STATE.stop.avoid.some(a=>a.code===code)){addAvoid(code,f.c.city);n++;}});syncStop();R();showToast('避开中东：已加入 '+n+' 个中转地');return;}
+        const pick=t.closest('[data-pick]'); if(pick&&wrap){addAvoid(pick.dataset.pick,pick.dataset.city);syncStop();R();return;}
+        const rm=t.closest('[data-rmavoid]'); if(rm){STATE.stop.avoid=STATE.stop.avoid.filter(a=>a.code!==rm.dataset.rmavoid);syncStop();R();return;}
+      }
+      document.querySelectorAll('[data-avoidpop].show').forEach(p=>{const w=p.closest('[data-avoid]');if(w&&!w.contains(t))p.classList.remove('show');});
+    });
+    /* 月份范围 / 中转时长：用 change（已失焦，可整块重渲不丢焦点） */
+    document.addEventListener('change',e=>{
+      const dd=e.target.closest&&e.target.closest('[data-d]'); if(!dd)return;
+      if((dd.dataset.d==='from'||dd.dataset.d==='to')&&e.target.closest('[data-datehost]')){STATE.date[dd.dataset.d]=e.target.value;clampRange();pruneDates();syncDate();R();}
+      if(dd.dataset.d==='layover'&&e.target.closest('[data-stophost]')){STATE.stop.layover=e.target.value;syncStop();R();}
+    });
+    document.addEventListener('input',e=>{const inp=e.target.closest&&e.target.closest('[data-avoidsearch]');if(inp){const w=inp.closest('[data-avoid]');if(w)renderAvoidDD(w,inp.value);}});
+    document.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){const b=e.target.closest&&e.target.closest('button[data-d][role=switch]');if(b&&(b.closest('[data-stophost]')||b.closest('[data-datehost]'))){e.preventDefault();b.click();}}});
+    return {STATE,syncDate,syncStop,dateSummary,depCount,stopSummary,stopShort,init(){clampRange();syncDate();syncStop();}};
+  })();
+  window.FW=FW;
+
+  /* ---------- 通知方式多选 ---------- */
+  document.querySelector('[data-deliv]').addEventListener('click',e=>{
+    const c=e.target.closest('.dcard'); if(!c)return; c.classList.toggle('on');
+    const emailOn=[...document.querySelectorAll('.dcard')][0].classList.contains('on');
+    document.querySelector('[data-reveal="email"]').classList.toggle('show',emailOn);
+  });
+
+  /* ---------- 融合列表：展开 / 排序 ---------- */
+  const topics=document.getElementById('topics');
+  if(!topics)console.error('topics not found');
+  function renumber(){if(!topics)return;[...topics.children].forEach((li,i)=>{li.querySelector('.rank').textContent=i+1;li.classList.toggle('top',i===0);});}
+  function moveTopic(btn,dir,e){e.stopPropagation();const li=btn.closest('.topic');if(!li)return;if(dir===-1&&li.previousElementSibling)topics.insertBefore(li,li.previousElementSibling);else if(dir===1&&li.nextElementSibling)topics.insertBefore(li.nextElementSibling,li);renumber();}
+  let dragT=null;
+  // 只从拖柄 ⠿ 拖拽，滑块/控件区域不误拖
+  topics.addEventListener('mousedown',e=>{if(e.target.closest('.grip') && !e.target.closest('.topic-body')){const li=e.target.closest('.topic');li.draggable=true;}});
+  topics.addEventListener('mouseup',()=>{topics.querySelectorAll('.topic').forEach(t=>t.draggable=false);});
+  topics.addEventListener('dragstart',e=>{dragT=e.target.closest('.topic');dragT.classList.add('dragging');});
+  topics.addEventListener('dragend',()=>{dragT&&dragT.classList.remove('dragging');topics.querySelectorAll('.topic').forEach(t=>t.draggable=false);topics.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));renumber();dragT=null;});
+  topics.addEventListener('dragover',e=>{e.preventDefault();const li=e.target.closest('.topic');if(!li||li===dragT)return;
+    topics.querySelectorAll('.over').forEach(x=>x.classList.remove('over')); li.classList.add('over');
+    const r=li.getBoundingClientRect(); const after=e.clientY>r.top+r.height/2;
+    topics.insertBefore(dragT,after?li.nextElementSibling:li);});
+
+  /* 出行日期 / 直飞 的全部交互（含 dep/arr 切换、中转次数显隐）都由上面的 FW 引擎接管，
+     两处宿主（卡片 + 优先级条目）从同一份 STATE 重渲，天然双向同步。 */
+
+  /* ---------- 舱位联动价格上下限 ---------- */
+  document.getElementById('cabin').addEventListener('change',e=>{
+    const BOUNDS={'经济舱':{lo:400,hi:2800},'超级经济舱':{lo:900,hi:4200},'商务舱':{lo:1800,hi:9500},'头等舱':{lo:3500,hi:16000}};
+    const b=BOUNDS[e.target.value]||BOUNDS['经济舱'];
+    const pLo=document.getElementById('priceLow'), pHi=document.getElementById('priceHigh');
+    [pLo,pHi].forEach(x=>{x.min=b.lo;x.max=b.hi;});
+    pLo.value=Math.round(b.lo*1.15/10)*10;
+    pHi.value=Math.round((b.lo+(b.hi-b.lo)*0.42)/10)*10;
+    if(typeof refresh==='function')refresh();
+  });
+
+  /* ---------- 折叠摘要实时联动 + 空态校验 + 可达性 ---------- */
+  function setSum(key,val){const e=document.querySelector('.topic[data-key="'+key+'"] .topic-sum');if(e)e.textContent=val;}
+  function cnt(sel){return document.querySelectorAll(sel).length;}
+  function updateSummaries(){
+    const lo=document.getElementById('priceLow').value, hi=document.getElementById('priceHigh').value;
+    setSum('price',(lo||hi)?('目标 $'+(lo||'—')+' · 上限 $'+(hi||'—')):'未设置');
+    setSum('date',FW.dateSummary());
+    setSum('stop',FW.stopSummary());
+    const dt=document.querySelector('.topic[data-key="dur"]'), durOn=dt.querySelector('.toggle').classList.contains('on'), durV=dt.querySelector('input[type=number]').value;
+    setSum('dur',durOn?('全程 ≤ '+durV+' 小时'):'不限时长（按排序）');
+    const at=document.querySelector('.topic[data-key="arr"]'), depOn=document.getElementById('togDepTimes').classList.contains('on'),
+      arrOn=at.querySelector('.toggle:not(#togDepTimes)').classList.contains('on'),
+      depTm=at.querySelectorAll('[data-rev="deptimes"] input[type=time]'),
+      arrTm=at.querySelectorAll('[data-rev="arrtimes"] input[type=time]');
+    const parts=[];
+    if(depOn)parts.push('出发 '+depTm[0].value+'–'+depTm[1].value);
+    if(arrOn)parts.push('到达 '+arrTm[0].value+'–'+arrTm[1].value);
+    setSum('arr',parts.length?parts.join(' · '):'不限制起降时间');
+    const bt=document.querySelector('.topic[data-key="bag"]'), hasCheck=bt.querySelector('.toggle.on:not(#togHandBag)'), handOn=document.getElementById('togHandBag').classList.contains('on'), bags=hasCheck?(bt.querySelector('select.mini')?.value||'1 件'):'不限';
+    setSum('bag',(hasCheck?('含托运 ≥ '+bags):'托运不限')+(handOn?' · 含手提':''));
+    const ori=[...document.querySelectorAll('[data-chips="origin"] .chip:not(.add) b')].map(b=>b.textContent).join('·');
+    const des=[...document.querySelectorAll('[data-chips="dest"] .chip:not(.add) b')].map(b=>b.textContent).join('·');
+    const selN=FW.depCount();
+    const sv=document.querySelector('.summary .sv');
+    if(sv)sv.innerHTML='<b>'+(ori||'未选')+'</b> → <b>'+(des||'未选')+'</b> · '+(selN?selN+' 天出发':'日期窗口')+(lo?' · 目标 <b>$'+lo+'</b>':'')+' · '+FW.stopShort();
+  }
+  function validate(){
+    const p=[];
+    if(!cnt('[data-chips="origin"] .chip:not(.add)'))p.push('选个出发地');
+    if(!cnt('[data-chips="dest"] .chip:not(.add)'))p.push('选个到达地');
+    if(!FW.depCount())p.push('在日历上选几天出发日');
+    if(+document.getElementById('priceLow').value> +document.getElementById('priceHigh').value)p.push('目标价不能高于上限');
+    const btn=document.querySelector('.btn-go'), note=document.getElementById('valNote');
+    if(p.length){btn.classList.add('disabled');btn.disabled=true;note.textContent='还差：'+p.join('、');note.style.display='block';}
+    else{btn.classList.remove('disabled');btn.disabled=false;note.style.display='none';}
+  }
+  function refresh(){try{updateSummaries();}catch(e){console.error('refresh error:',e);}try{validate();}catch(e){}}
+  document.addEventListener('input',refresh);
+  document.addEventListener('change',refresh);
+  document.addEventListener('click',()=>setTimeout(refresh,0));
+  document.querySelectorAll('[data-toggle]').forEach(t=>{t.setAttribute('role','switch');t.setAttribute('tabindex','0');t.setAttribute('aria-checked',t.classList.contains('on'));
+    t.addEventListener('click',()=>t.setAttribute('aria-checked',t.classList.contains('on')));
+    t.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();t.click();}});});
+  document.querySelectorAll('.seg').forEach(s=>s.setAttribute('role','group'));
+  // 初始化所有 toggle 的 reveal 状态（页面加载时 toggle.default 可能与其 data-rev 的 inline style 不一致）
+  document.querySelectorAll('[data-toggle][data-reveal]').forEach(t=>{
+    const el=document.querySelector('[data-rev="'+t.dataset.reveal+'"]');
+    if(el)el.style.display=t.classList.contains('on')?'':'none';
+  });
+  FW.init();
+  renumber();
+  refresh();
+</script>
+</body>
+</html>
