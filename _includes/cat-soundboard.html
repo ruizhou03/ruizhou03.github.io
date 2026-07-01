@@ -142,6 +142,14 @@
           <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
           <span class="cl-emoji">😿</span><span class="cl-label">委屈喵</span><span class="cl-sub">可怜巴巴地恳求</span>
         </button>
+        <button class="cl-sound" data-src="/files/audio/cat-language/meow-food.mp3" data-name="等饭喵">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🍽️</span><span class="cl-label">等饭喵</span><span class="cl-sub">守着饭点催饭</span>
+        </button>
+        <button class="cl-sound" data-src="/files/audio/cat-language/meow-lonely.mp3" data-name="落单喵">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🚪</span><span class="cl-label">落单喵</span><span class="cl-sub">被单独留下 · 喊人来陪</span>
+        </button>
       </div>
     </section>
 
@@ -204,6 +212,8 @@
       <div class="cl-hint"><span class="cl-h-name">呼噜</span><span class="cl-h-txt">低频振动，更像自我安抚。满足时呼噜，紧张、看病、难受时同样会呼噜。</span></div>
       <div class="cl-hint"><span class="cl-h-name">连环喵</span><span class="cl-h-txt">急促、重复、音调拔高，就是「催」。常掺进接近婴儿哭声的频率，专门让人坐不住。</span></div>
       <div class="cl-hint"><span class="cl-h-name">委屈喵</span><span class="cl-h-txt">软乎乎、拖长的恳求音，讨要的升级版。听着可怜，效果拔群。</span></div>
+      <div class="cl-hint"><span class="cl-h-name">等饭喵</span><span class="cl-h-txt">守着饭点、对着人反复喵——「饿了，该开饭了」。研究里猫在等饭情境下的喵，比落单时更急更直接。</span></div>
+      <div class="cl-hint"><span class="cl-h-name">落单喵</span><span class="cl-h-txt">被单独关在房间、或陌生环境里发出的喵，是在喊人来陪。和等饭喵是同一套嗓子、不同心情。</span></div>
       <div class="cl-hint"><span class="cl-h-name">哈气</span><span class="cl-h-txt">这是请求不是攻击：到此为止。正确反应是停下、退后、给空间，别凑过去安抚。</span></div>
       <div class="cl-hint"><span class="cl-h-name">低吼</span><span class="cl-h-txt">比哈气更进一步的威胁，意思是「再逼我就真动手」。同样该退后。</span></div>
       <div class="cl-hint"><span class="cl-h-name">嚎叫</span><span class="cl-h-txt">拖长忽高忽低的低嚎，多见于发情、两猫对峙；老年猫夜里频繁嚎叫值得做次体检。</span></div>
@@ -213,7 +223,7 @@
     </div>
   </details>
 
-  <p class="cl-credit">音频均取自 Wikimedia Commons，经裁剪、降噪与响度归一化处理。喵：Dan Crosby（CC BY-SA 3.0）；连环喵：<a href="https://commons.wikimedia.org/wiki/File:Felis_silvestris_catus_meows.ogg">Felis silvestris catus meows</a>（CC BY-SA 3.0）；呼噜：Insanejeff（公有领域）；颤音：<a href="https://commons.wikimedia.org/wiki/File:Gurren_einer_Katze.ogg">Gurren einer Katze</a>（公有领域）；委屈喵：<a href="https://commons.wikimedia.org/wiki/File:Meow_of_a_pleading_cat.oga">Meow of a pleading cat</a>（公有领域）；哈气：Zabuhailo（CC0）；低吼：Luisalvaz（CC BY-SA 4.0）；嚎叫：JMK（CC BY-SA 4.0）；咯咯：Ali T（CC BY 2.0）；暹罗喵：freemaster2（CC0）。</p>
+  <p class="cl-credit">音频均取自 Wikimedia Commons，经裁剪、降噪与响度归一化处理。喵：Dan Crosby（CC BY-SA 3.0）；连环喵：<a href="https://commons.wikimedia.org/wiki/File:Felis_silvestris_catus_meows.ogg">Felis silvestris catus meows</a>（CC BY-SA 3.0）；呼噜：Insanejeff（公有领域）；颤音：<a href="https://commons.wikimedia.org/wiki/File:Gurren_einer_Katze.ogg">Gurren einer Katze</a>（公有领域）；委屈喵：<a href="https://commons.wikimedia.org/wiki/File:Meow_of_a_pleading_cat.oga">Meow of a pleading cat</a>（公有领域）；哈气：Zabuhailo（CC0）；低吼：Luisalvaz（CC BY-SA 4.0）；嚎叫：JMK（CC BY-SA 4.0）；咯咯：Ali T（CC BY 2.0）；暹罗喵：freemaster2（CC0）；等饭喵 / 落单喵：<a href="https://zenodo.org/records/4008297">CatMeows 数据集</a>（Ludovico 等，Zenodo，CC BY 4.0）。</p>
 </div>
 
 <script>
@@ -228,6 +238,12 @@
   var player = new Audio();
   player.loop = true;
   var current = null;
+  // 有效播放区间：卡片可选带 data-start / data-end（秒），只循环这一段有用的声音，
+  // 不必重编码源文件。两者都不填时 = 整段原生循环（默认，与原行为一致）。
+  var winStart = 0, winEnd = 0;
+  player.addEventListener('timeupdate', function(){
+    if(winEnd && player.currentTime >= winEnd){ try { player.currentTime = winStart; } catch(e){} }
+  });
 
   function reset(){
     player.pause();
@@ -241,14 +257,24 @@
 
   function play(btn){
     reset();
+    winStart = parseFloat(btn.getAttribute('data-start')) || 0;
+    winEnd = parseFloat(btn.getAttribute('data-end')) || 0;
+    player.loop = !winEnd;                       // 有区间时关整段循环，改由 timeupdate 在区间内循环
     player.src = btn.getAttribute('data-src');
-    player.currentTime = 0;
-    var p = player.play();
-    if(p && p.catch){ p.catch(function(){
-      btn.classList.remove('playing'); current = null;
-      statusBar.classList.remove('on');
-      statusText.textContent = '⚠️ 音频加载失败，请检查网络后再试';
-    }); }
+    var kick = function(){
+      try { player.currentTime = winStart; } catch(e){}
+      var p = player.play();
+      if(p && p.catch){ p.catch(function(){
+        btn.classList.remove('playing'); current = null;
+        statusBar.classList.remove('on');
+        statusText.textContent = '⚠️ 音频加载失败，请检查网络后再试';
+      }); }
+    };
+    if(winStart > 0 && player.readyState < 1){   // 需元数据就绪才能 seek 到非零起点
+      player.addEventListener('loadedmetadata', kick, { once: true });
+    } else {
+      kick();
+    }
     btn.classList.add('playing');
     current = btn;
     var cc = getComputedStyle(btn.closest('.cl-group')).getPropertyValue('--cc');
