@@ -19,7 +19,11 @@
 | 文件 | 职责 | 状态 |
 |---|---|---|
 | `config.py` | 盯票码 / flightwatch.json → 规范化 RunnerConfig（含 AI 厂商/模型注册表） | ✅ 已写 |
-| `scrape.py` | 抓 Trip.com（在私人 scraper 基础上补 往返/舱位/乘客类型/手提/到达时段） | ⏳ |
+| `scrape.py` | 抓 Trip.com（自包含·补 舱位/乘客数/手提/出发到达时段/过夜） | ✅ 已写并**真机验证**（Trip.com 实抓） |
+
+**Phase 2 全部完成**——整条 `run` 流水线已用真实 Trip.com 数据端到端跑通（config→scrape→judge_simple→panel）。
+
+抓取层已确认的真实字段：手提=`FREE_CARRY_ON_BAGGAGE`、托运=`FREE_CHECKED_BAGGAGE`、舱位由 URL `class` 参数控制、直飞=`DIRECT_FLIGHT`、学生票=`STUDENT` tag。**遗留缺口（诚实记录）**：①往返需返程日期，UI 暂无返程日选择器 → 当前按单程抓取并 log；②乘客类型（学生/儿童）能从 `STUDENT` tag 读到、但未接进 Trip.com 搜索 URL（乘客【数量】走 quantity 已通）；③价格日历 `GetLowPriceInCalender` best-effort，偶尔不返回（judge 趋势会优雅降级）。
 | `judge_api.py` | 完整模式：多厂商 AI 判断（Claude 原生 / OpenAI 兼容）+ 趋势 + 目标价 | ✅ 已写（桥+分发+判定/去重离线验证过） |
 | `judge_simple.py` | 简单模式：阈值比价、无 AI、零密钥 + 纯 Python 简报 | ✅ 已写（阈值/去重/报告离线验证过） |
 | `notify.py` | 桌面通知 / 邮件（用户自己 SMTP·按域名推 host）/ 本地面板 | ✅ 已写（渲染/路由/组装离线验证过） |
