@@ -191,11 +191,13 @@
   /* 到达日历换青绿色系，与出发金色区分 */
   .datemode-row{display:flex;align-items:center;gap:8px;margin:14px 0 2px;color:var(--muted);font-size:.88rem;flex-wrap:wrap}
   .datemode button[data-mode="arr"].on{background:#2c8e7a;box-shadow:0 2px 8px rgba(44,142,122,.3)}
-  /* 检查频率：段在上、参数面板在下，独立成框，间距统一 */
-  .freq-panel{margin-top:14px;background:var(--warm);border:1px solid var(--line);border-radius:12px;padding:13px 16px;display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap;color:var(--ink);font-size:.97rem}
-  .freq-panel .fl{color:var(--muted);font-size:.9rem}
-  .freq-panel input[type=time],.freq-panel select{width:auto;background:#fff}
-  .freq-panel .fsep{flex:none;width:1px;height:22px;background:var(--line);margin:0 2px}
+  /* 检查频率：并入通知卡·紧凑内联一行（标题+段选+时间同排，无独立大色块） */
+  .freqbox{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+  .freqbox .lab{margin:0}
+  .freq-inline{display:inline-flex;align-items:center;gap:6px 8px;flex-wrap:wrap;color:var(--ink);font-size:.95rem}
+  .freq-inline .fl{color:var(--muted);font-size:.9rem}
+  .freq-inline input[type=time],.freq-inline select{width:auto;background:#fff}
+  .freq-inline .fsep{display:none}
   .cal-d.today{box-shadow:inset 0 0 0 1px var(--gold)}
   .cal-d.oor{opacity:.32;cursor:default;pointer-events:none}
   .syncbadge{display:inline-block;font-size:.66rem;color:var(--navy);background:#eaeef4;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:2px;font-weight:600;letter-spacing:.02em;white-space:nowrap}
@@ -252,14 +254,14 @@
 
   <!-- 2 出行时间（卡片＝主编辑区；与底部「出行时间」条目实时双向同步） -->
   <section class="card" id="dateCard">
-    <h2><span class="ico">❏</span>出行时间</h2>
+    <h2><span class="ico">❏</span>出行时间<span class="syncbadge">↔ 与下方「出行时间」同步</span></h2>
     <p class="hint">在同一张日历上标出你的出行时间：先在下方选「出发日」或「到达日」，点你能接受的日子（☆ 候选），再点一下升为 <b>★ 理想</b>，三点取消；按住可拖刷多天。</p>
     <div data-datehost></div>
   </section>
 
   <!-- 3 直飞 / 中转（卡片＝主编辑区；与底部「直飞」条目实时双向同步） -->
   <section class="card" id="stopCard">
-    <h2><span class="ico">🔁</span>直飞 / 中转</h2>
+    <h2><span class="ico">🔁</span>直飞 / 中转<span class="syncbadge">↔ 与下方「直飞」同步</span></h2>
     <div data-stophost></div>
   </section>
 
@@ -281,15 +283,15 @@
       </li>
       <li class="topic" data-key="stop">
         <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">2</span>
-          <div class="topic-main"><div class="topic-name">直飞 / 中转</div><div class="topic-sum">最多 1 次中转</div></div>
+          <div class="topic-main"><div class="topic-name">直飞 / 中转<span class="syncbadge">↔ 与上方卡片同步</span></div><div class="topic-sum">最多 1 次中转</div></div>
           <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
-        <div class="topic-body"><p class="bnote">在上方「直飞 / 中转」卡片里设置；这里只决定它在你优先级里的位置。</p><button type="button" class="mini" onclick="document.getElementById('stopCard').scrollIntoView({behavior:'smooth',block:'center'})">去上方卡片设置 ↑</button></div>
+        <div class="topic-body"><div data-stophost></div></div>
       </li>
       <li class="topic" data-key="date">
         <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">3</span>
-          <div class="topic-main"><div class="topic-name">出行时间</div><div class="topic-sum">日期窗口</div></div>
+          <div class="topic-main"><div class="topic-name">出行时间<span class="syncbadge">↔ 与上方卡片同步</span></div><div class="topic-sum">日期窗口</div></div>
           <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
-        <div class="topic-body"><p class="bnote">在上方「出行时间」卡片里设置；这里只决定它在你优先级里的位置。</p><button type="button" class="mini" onclick="document.getElementById('dateCard').scrollIntoView({behavior:'smooth',block:'center'})">去上方卡片设置 ↑</button></div>
+        <div class="topic-body"><div data-datehost></div></div>
       </li>
       <li class="topic" data-key="bag">
         <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">4</span>
@@ -329,10 +331,10 @@
       <div class="dcard"><span class="de">📱</span><div class="dt">APP 推送</div><span class="tick">✓</span></div>
       <div class="dcard"><span class="de">💻</span><div class="dt">桌面通知</div><span class="tick">✓</span></div>
     </div>
-    <div style="margin-top:16px">
-      <label class="lab">检查频率</label>
-      <div class="seg" id="freqSeg" style="margin-top:6px"><button data-n="1">每天 1 次</button><button class="on" data-n="2">每天 2 次</button><button data-n="more">更频繁</button></div>
-      <div id="freqTimes" class="freq-panel"></div>
+    <div class="freqbox">
+      <span class="lab">检查频率</span>
+      <div class="seg compact" id="freqSeg"><button data-n="1">每天 1 次</button><button class="on" data-n="2">每天 2 次</button><button data-n="more">更频繁</button></div>
+      <div id="freqTimes" class="freq-inline"></div>
     </div>
     <div class="reveal show" data-reveal="email">
       <label class="lab">收件邮箱</label>
