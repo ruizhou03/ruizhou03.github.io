@@ -1,0 +1,17 @@
+{
+  "name": "机票监控",
+  "short_name": "机票监控",
+  "description": "配置航线与目标价，在自己电脑上每天自动盯 Trip.com 特价机票。",
+  "id": "/toolbox/flight/",
+  "start_url": "/toolbox/flight/",
+  "scope": "/toolbox/flight/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#fafaf9",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "/assets/icons/flight-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/flight-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/flight-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

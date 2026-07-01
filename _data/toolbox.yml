@@ -464,3 +464,10 @@
   url: /toolbox/ledger/
   category: 生活
   status: live
+
+- id: flight
+  name: 机票监控
+  icon: /assets/icons/flight-icon-192.png
+  url: /toolbox/flight/
+  category: 生活
+  status: live

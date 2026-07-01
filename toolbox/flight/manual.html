@@ -3,9 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>机票监控 · 安装手册（设计稿）</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+<title>机票监控 · 安装手册</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/500.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/600.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css">
 <style>
   :root{
     --ink:#1a1a2e;--text:#374151;--muted:#6b7280;--line:#e5e7eb;
@@ -98,17 +103,14 @@
 </style>
 </head>
 <body class="mode-full os-m">
-<div class="tag">设计稿 · 安装手册</div>
 <div class="wrap">
   <p class="kicker">机票监控 · 自带运行器</p>
   <h1>把盯票装到你自己电脑上</h1>
-  <p class="sub">照着做，全程复制粘贴、不用改任何代码。配好后它每天替你盯票，便宜票一出现就按你选的方式喊你。</p>
+  <p class="sub">照着做，全程复制粘贴、不用改任何代码。配好后它每天替你盯票，便宜票一出现就按你选的方式喊你。目前支持 macOS，Windows / Linux 版在做。</p>
 
   <div class="switches">
     <span class="swlab">你的模式</span>
     <div class="seg gold" id="modeSeg"><button data-mode="simple">简单模式 · 零密钥</button><button class="on" data-mode="full">完整模式 · AI+邮件</button></div>
-    <span class="swlab" style="margin-left:auto">你的系统</span>
-    <div class="seg" id="osSeg"><button class="on" data-os="m">macOS</button><button data-os="w">Windows</button><button data-os="l">Linux</button></div>
   </div>
 
   <div class="modeline">
@@ -120,21 +122,21 @@
 
     <li class="step">
       <h2>装个底座：Python</h2>
-      <p>运行器用 Python 跑。先看看你电脑有没有——打开终端（<span class="os-mac" style="display:inline">macOS：聚焦搜 <kbd>终端</kbd></span><span class="os-win" style="display:inline">Windows：开始菜单搜 <kbd>PowerShell</kbd></span><span class="os-linux" style="display:inline">Linux：你的终端</span>），粘贴：</p>
-      <div class="cmd"><span class="os-mac">python3 --version</span><span class="os-win">python --version</span><span class="os-linux">python3 --version</span><button class="copy">复制</button></div>
-      <p class="tip">看到 <code>Python 3.10</code> 以上就行。没有的话：<span class="os-mac" style="display:inline">去 python.org 下载安装，或 <code>brew install python</code>。</span><span class="os-win" style="display:inline">去 python.org 下载，安装时<b>勾上 “Add Python to PATH”</b>。</span><span class="os-linux" style="display:inline"><code>sudo apt install python3 python3-venv</code>。</span></p>
+      <p>运行器用 Python 跑。先看看你电脑有没有——打开终端（聚焦搜 <kbd>终端</kbd>），粘贴：</p>
+      <div class="cmd"><span class="os-mac">python3 --version</span><button class="copy">复制</button></div>
+      <p class="tip">看到 <code>Python 3.10</code> 以上就行。没有的话去 python.org 下载安装，或 <code>brew install python</code>。</p>
     </li>
 
     <li class="step">
       <h2>拿到「你的」安装命令</h2>
       <p>回到配置页，确认设置无误后点 <b>「生成我的盯票」</b>。网站会给你一行已经<b>带好你配置</b>的安装命令——直接复制（这里是示意）：</p>
-      <div class="cmd"><span class="os-mac">curl -fsSL https://ruizhou03.com/flight/get | bash <span class="dim"># 末尾会自动带上你的盯票编号</span></span><span class="os-win">irm https://ruizhou03.com/flight/get.ps1 | iex</span><span class="os-linux">curl -fsSL https://ruizhou03.com/flight/get | bash</span><button class="copy">复制</button></div>
+      <div class="cmd"><span class="os-mac">curl -fsSL https://ruizhou03.com/flight/get | bash <span class="dim"># 末尾会自动带上你的盯票编号</span></span><button class="copy">复制</button></div>
       <p class="tip">你也可以在配置页点「下载配置文件」，把 <code>flightwatch.json</code> 存到下载夹——安装器会自动找到它。整个配置只是一份数据，<b>不含任何代码</b>。</p>
     </li>
 
     <li class="step">
       <h2>运行它</h2>
-      <p><span class="os-mac" style="display:inline">把上一步那行粘进终端、回车。</span><span class="os-win" style="display:inline">把那行粘进 PowerShell、回车（或双击下载的 <code>安装盯票.bat</code>）。</span><span class="os-linux" style="display:inline">粘进终端、回车。</span>它会自动装好浏览器内核和依赖，然后<b>一步步问你几个问题</b>：</p>
+      <p>把上一步那行粘进终端、回车。它会自动装好浏览器内核和依赖，然后<b>一步步问你几个问题</b>：</p>
       <div class="term">
         <div class="bar"><i></i><i></i><i></i></div>
         <div class="scr"><span class="g">✓</span> 正在安装盯票运行器…（约 1–2 分钟）
@@ -215,9 +217,6 @@
   document.getElementById('modeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
     document.querySelectorAll('#modeSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
     body.classList.toggle('mode-simple',b.dataset.mode==='simple');body.classList.toggle('mode-full',b.dataset.mode==='full');});
-  document.getElementById('osSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-    document.querySelectorAll('#osSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-    body.classList.remove('os-m','os-w','os-l');body.classList.add('os-'+b.dataset.os);});
   document.querySelectorAll('.cmd .copy').forEach(btn=>btn.addEventListener('click',()=>{
     const vis=[...btn.parentNode.querySelectorAll(':scope>span')].find(s=>getComputedStyle(s).display!=='none');
     const txt=vis?vis.textContent:btn.parentNode.textContent;
