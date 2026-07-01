@@ -259,6 +259,7 @@
     pendingAvatar: null,    // dataURL while editing in modal
     historyOpen: false,
     period: 'today',
+    intradayIso: null,       // 今日时段视图正在看的那天（null=今天/实时；不持久化，刷新回今天）
     customStart: null,
     customEnd: null,
     board: 'food',           // active board tab: food / weight / meow
@@ -346,6 +347,24 @@
           activity: p.activity || 'normal', neutered: !!p.neutered,
         });
         if (r) { p.dailyTargetMin = r.min; p.dailyTargetMax = r.max; }
+      }
+      // Seed per-period target history: one period covering all existing data with the
+      // current target. We can't reconstruct when past targets started (no such record ever
+      // existed), so old buckets keep showing today's target — the stepped/historical line
+      // only becomes truly accurate for changes made from here on (no back-dating).
+      if (!Array.isArray(p.targetHistory)) {
+        p.targetHistory = [];
+        const hasT = (Number.isFinite(p.dailyTargetMin) && p.dailyTargetMin > 0) ||
+                     (Number.isFinite(p.dailyTargetMax) && p.dailyTargetMax > 0);
+        if (hasT) {
+          const ts = (p.entries || []).map(e => e && e.ts).filter(Number.isFinite);
+          const seedIso = ts.length ? isoDate(Math.min.apply(null, ts)) : todayBucketIso();
+          p.targetHistory.push({
+            from: seedIso,
+            min: (p.dailyTargetMin != null) ? p.dailyTargetMin : null,
+            max: (p.dailyTargetMax != null) ? p.dailyTargetMax : null,
+          });
+        }
       }
       delete p.lifeStage;
     });
@@ -536,6 +555,52 @@
     const hi = max !== null ? max : min;
     // If the user typed min > max, swap so the band/over-under logic doesn't invert.
     return lo <= hi ? { min: lo, max: hi } : { min: hi, max: lo };
+  }
+  // Normalize a raw (min,max) pair the same way targetRange does: single-bound → equal,
+  // swap if inverted, null if neither set.
+  function normTarget(min, max) {
+    const lo0 = Number.isFinite(min) && min > 0 ? min : null;
+    const hi0 = Number.isFinite(max) && max > 0 ? max : null;
+    if (lo0 === null && hi0 === null) return null;
+    const lo = lo0 !== null ? lo0 : hi0;
+    const hi = hi0 !== null ? hi0 : lo0;
+    return lo <= hi ? { min: lo, max: hi } : { min: hi, max: lo };
+  }
+  // Target range in effect on a given local-date ISO. Reads per-period targetHistory (each
+  // {from,min,max} = "effective from that date until the next period"); falls back to the
+  // current dailyTargetMin/Max mirror when no period covers the date. This is what lets each
+  // trend bucket be judged against the target that was actually set at the time.
+  function targetRangeAt(pet, iso) {
+    const hist = Array.isArray(pet.targetHistory) ? pet.targetHistory : null;
+    if (hist && hist.length) {
+      let chosen = null;
+      for (let i = 0; i < hist.length; i++) {
+        const h = hist[i];
+        if (h && typeof h.from === 'string' && h.from <= iso) {
+          if (!chosen || h.from >= chosen.from) chosen = h;
+        }
+      }
+      if (chosen) return normTarget(chosen.min, chosen.max);
+      // iso is before the first recorded period → use the earliest period as best guess.
+      let first = null;
+      for (let i = 0; i < hist.length; i++) { const h = hist[i]; if (h && typeof h.from === 'string' && (!first || h.from < first.from)) first = h; }
+      if (first) return normTarget(first.min, first.max);
+    }
+    return targetRange(pet);
+  }
+  // The one funnel for every target write: updates the current mirror AND records/updates
+  // TODAY's period in targetHistory (no back-dating — a change always takes effect "today",
+  // past buckets keep whatever period was in effect then). Used by manual edits AND the
+  // weight-auto-follow path, so auto-follow changes also step the historical reference line.
+  function setTarget(pet, min, max) {
+    pet.dailyTargetMin = (min != null) ? min : null;
+    pet.dailyTargetMax = (max != null) ? max : null;
+    if (!Array.isArray(pet.targetHistory)) pet.targetHistory = [];
+    const today = todayBucketIso();
+    const rec = pet.targetHistory.find(h => h && h.from === today);
+    if (rec) { rec.min = pet.dailyTargetMin; rec.max = pet.dailyTargetMax; }
+    else pet.targetHistory.push({ from: today, min: pet.dailyTargetMin, max: pet.dailyTargetMax });
+    pet.targetHistory.sort((a, b) => (a.from < b.from ? -1 : (a.from > b.from ? 1 : 0)));
   }
 
   // Smart estimator: pure formula from species/breed/age/bodyWeight/activity/neutered.
@@ -743,6 +808,11 @@
   const $trendCustom = document.getElementById('trend-custom');
   const $customStart = document.getElementById('custom-start');
   const $customEnd = document.getElementById('custom-end');
+  const $trendDaynav = document.getElementById('trend-daynav');
+  const $dnPrev = document.getElementById('dn-prev');
+  const $dnNext = document.getElementById('dn-next');
+  const $dnDate = document.getElementById('dn-date');
+  const $dnToday = document.getElementById('dn-today');
   const $chartMeta = document.getElementById('chart-meta');
   const $chartTip = document.getElementById('chart-tip');
 
@@ -1140,7 +1210,7 @@
   const META_FIELDS = [
     'name','emoji','avatar',
     'bowlWeight','bowlUnit',
-    'dailyTargetMin','dailyTargetMax','showTargetOnChart','targetFollowsRecommendation',
+    'dailyTargetMin','dailyTargetMax','targetHistory','showTargetOnChart','targetFollowsRecommendation',
     'species','breed','ageYears','bodyWeight','bodyWeightUnit','activity','neutered',
     'preferredUnit',
     'kibbleKcalPerG','kibble','foodLibrary','conversionBase',
@@ -1674,8 +1744,9 @@
       b.classList.toggle('active', b.dataset.p === state.period);
     });
     $trendCustom.style.display = state.period === 'custom' ? '' : 'none';
+    if ($trendDaynav) $trendDaynav.style.display = state.period === 'today' ? '' : 'none';
 
-    if (state.period === 'today') { drawIntraday(deltas, pet); return; }
+    if (state.period === 'today') { syncDayNav(); drawIntraday(deltas, pet, state.intradayIso); return; }
 
     let startIso, endIso;
     const todayIso = todayBucketIso();
@@ -1722,6 +1793,15 @@
     else if (agg === 'month') factor = 30; // approximate
     return { min: tr.min * factor, max: tr.max * factor, unit: agg };
   }
+  // Per-bucket target: the target in effect on `iso`, scaled to the aggregation period, so
+  // each bar can be drawn against the target that was actually set at that point in time.
+  function scaledTargetAt(pet, iso, agg) {
+    if (pet.showTargetOnChart === false) return null;
+    const tr = targetRangeAt(pet, iso);
+    if (!tr) return null;
+    const factor = agg === 'week' ? 7 : (agg === 'month' ? 30 : 1);
+    return { min: tr.min * factor, max: tr.max * factor };
+  }
 
   function renderEmptyChart(msg) {
     trendHit = null;
@@ -1729,9 +1809,9 @@
     $chartMeta.innerHTML = `<div style="text-align:center;width:100%;padding:1.5rem;color:var(--color-light);">${escapeHtml(msg)}</div>`;
   }
 
-  function drawIntraday(deltas, pet) {
-    const todayIso = todayBucketIso();
-    const { start: dayStart, end: dayEnd } = dayRangeMs(todayIso);
+  function drawIntraday(deltas, pet, dayIso) {
+    const viewIso = dayIso || todayBucketIso();   // 正在看的那天（null/未传=今天，实时）
+    const { start: dayStart, end: dayEnd } = dayRangeMs(viewIso);
 
     // 把今天所有消耗事件整理成 斜坡(ramp，时间段匀速涨) + 瞬时(step，某一刻一笔)，再扫描积分成累计曲线。
     // 用统一的 delta（startTs/endTs）—— 作差链、直接填、时间段都已归一，且能正确处理事件重叠（如罐头与干粮区间叠加）。
@@ -1777,7 +1857,7 @@
     const innerH = H - m.t - m.b;
 
     const M = convM(pet), U = convUnit(pet);   // 标签层换算（几何仍按等效干粮克数算）
-    const target = (pet.showTargetOnChart !== false) ? targetRange(pet) : null;
+    const target = (pet.showTargetOnChart !== false) ? targetRangeAt(pet, viewIso) : null;
     const dataMax = Math.max(1, ...points.map(p => p.c));
     const targetCeil = target ? target.max : 0;
     const niceMax = niceCeil(Math.max(dataMax, targetCeil));
@@ -1913,7 +1993,7 @@
     if (agg === 'day') {
       dayList.forEach(d => {
         const mm = dayMeta(d);
-        bars.push({ key: d, label: shortMD(d), value: mm.eaten, isToday: d === todayIso, sub: null, incomplete: mm.partial, projected: null });
+        bars.push({ key: d, label: shortMD(d), value: mm.eaten, isToday: d === todayIso, sub: null, incomplete: mm.partial, projected: null, target: scaledTargetAt(pet, d, 'day') });
       });
     } else if (agg === 'week') {
       const groups = new Map();
@@ -1933,7 +2013,7 @@
         for (let k = 0; k < 7; k++) { const dd = new Date(weekStart + k * DAY_MS); const mm = dayMeta(isoOf(dd.getFullYear(), dd.getMonth(), dd.getDate())); if (mm.complete) { compSum += mm.eaten; compCnt++; } }
         const incomplete = (tFirst != null) && ((weekStart < tFirst && weekEnd > tFirst) || (weekStart <= now && weekEnd > now));
         const projected = (incomplete && compCnt > 0) ? (compSum / compCnt) * 7 : null;   // 折算满周 = 完整天日均 × 7
-        bars.push({ key: monIso, label: shortMD(monIso), value: g.sum, isToday: false, sub: g.count < 7 ? `${g.count}d` : null, incomplete, projected, recordedDays: g.count });
+        bars.push({ key: monIso, label: shortMD(monIso), value: g.sum, isToday: false, sub: g.count < 7 ? `${g.count}d` : null, incomplete, projected, recordedDays: g.count, target: scaledTargetAt(pet, monIso, 'week') });
       });
     } else {
       const groups = new Map();
@@ -1952,7 +2032,7 @@
         for (let k = 1; k <= daysInMonth; k++) { const mm = dayMeta(isoOf(yy, mm0 - 1, k)); if (mm.complete) { compSum += mm.eaten; compCnt++; } }
         const incomplete = (tFirst != null) && ((monStart < tFirst && monEnd > tFirst) || (monStart <= now && monEnd > now));
         const projected = (incomplete && compCnt > 0) ? (compSum / compCnt) * daysInMonth : null;   // 折算满月 = 完整天日均 × 当月天数
-        bars.push({ key: ym, label: mm0 + '月', value: g.sum, isToday: false, sub: null, incomplete, projected, recordedDays: g.count });
+        bars.push({ key: ym, label: mm0 + '月', value: g.sum, isToday: false, sub: null, incomplete, projected, recordedDays: g.count, target: scaledTargetAt(pet, ym + '-01', 'month') });
       });
     }
 
@@ -1968,7 +2048,8 @@
     const innerH = H - m.t - m.b;
     const periodName = agg === 'week' ? '周' : '月';
     const dataMax = Math.max(1, ...bars.map(b => Math.max(b.value, b.projected || 0)));   // 含折算值，预测段也能放下
-    const niceMax = niceCeil(Math.max(dataMax, target ? target.max : 0));
+    const barTargetMax = Math.max(0, ...bars.map(b => (b.target ? b.target.max : 0)));    // 分段目标里最高的一段也要放得下
+    const niceMax = niceCeil(Math.max(dataMax, target ? target.max : 0, barTargetMax));
     const n = Math.max(1, bars.length);
     const barW = innerW / n;
     const yScale = v => m.t + innerH - (v / niceMax) * innerH;
@@ -1986,22 +2067,38 @@
     html += `<text x="6" y="${m.t + 4}" fill="var(--color-light)" font-size="9.5">${escapeHtml(U)}</text>`;
     html += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + innerH}" y2="${m.t + innerH}" stroke="var(--color-border)"/>`;
 
-    // Target band (drawn behind bars so bars overlay nicely)
-    if (target) {
-      const yMin = yScale(target.min);
-      const yMax = yScale(target.max);
-      if (target.min === target.max) {
-        html += `<line x1="${m.l}" x2="${W - m.r}" y1="${yMin}" y2="${yMin}" stroke="var(--pet-chart-target)" stroke-width="1.3" stroke-dasharray="5 3" opacity="0.8"/>`;
+    // Per-bucket target band (drawn behind bars): each bar is drawn against the target that
+    // was actually in effect for its date, so a target that changed over time shows as a
+    // STEPPED reference band instead of one flat line applied to all of history. Adjacent
+    // buckets sharing a target read as one continuous band; a change makes a visible step.
+    for (let i = 0; i < bars.length; ) {
+      const t = bars[i].target;
+      if (!t) { i++; continue; }
+      // 合并相邻、目标相同的桶成一段连续参考带；目标变了的地方自然出现台阶。
+      let j = i;
+      while (j + 1 < bars.length && bars[j + 1].target &&
+             bars[j + 1].target.min === t.min && bars[j + 1].target.max === t.max) j++;
+      const x0 = m.l + barW * i;
+      const x1 = Math.min(m.l + barW * (j + 1), W - m.r);
+      const yMin = yScale(t.min);
+      const yMax = yScale(t.max);
+      if (t.min === t.max) {
+        html += `<line x1="${x0}" x2="${x1}" y1="${yMin}" y2="${yMin}" stroke="var(--pet-chart-target)" stroke-width="1.3" stroke-dasharray="5 3" opacity="0.8"/>`;
       } else {
-        html += `<rect x="${m.l}" y="${yMax}" width="${innerW}" height="${yMin - yMax}" fill="var(--pet-chart-target)" opacity="0.10"/>`;
-        html += `<line x1="${m.l}" x2="${W - m.r}" y1="${yMin}" y2="${yMin}" stroke="var(--pet-chart-target)" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
-        html += `<line x1="${m.l}" x2="${W - m.r}" y1="${yMax}" y2="${yMax}" stroke="var(--pet-chart-target)" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
+        html += `<rect x="${x0}" y="${yMax}" width="${x1 - x0}" height="${yMin - yMax}" fill="var(--pet-chart-target)" opacity="0.10"/>`;
+        html += `<line x1="${x0}" x2="${x1}" y1="${yMin}" y2="${yMin}" stroke="var(--pet-chart-target)" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
+        html += `<line x1="${x0}" x2="${x1}" y1="${yMax}" y2="${yMax}" stroke="var(--pet-chart-target)" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
       }
+      i = j + 1;
+    }
+    // One label at top-right for the CURRENT (latest) target — the band itself shows history.
+    if (target) {
+      const yMaxCur = yScale(target.max);
       const unitName = agg === 'day' ? '日' : (agg === 'week' ? '周' : '月');
       const tLbl = target.min === target.max
         ? `目标 ${fmtG(target.min * M)}${U}/${unitName}`
         : `目标 ${fmtG(target.min * M)}–${fmtG(target.max * M)} ${U}/${unitName}`;
-      html += `<text x="${W - m.r - 4}" y="${Math.max(yMax, m.t + 10) - 4}" text-anchor="end" fill="var(--pet-chart-target)" font-size="10">${tLbl}</text>`;
+      html += `<text x="${W - m.r - 4}" y="${Math.max(yMaxCur, m.t + 10) - 4}" text-anchor="end" fill="var(--pet-chart-target)" font-size="10">${tLbl}</text>`;
     }
 
     let anyIncomplete = false, anyProjected = false;
@@ -2974,8 +3071,7 @@
     if (pmTargetG.min != null && pmTargetG.max != null && pmTargetG.min > pmTargetG.max) {
       alert('每日目标的下限不能大于上限'); return;
     }
-    pet.dailyTargetMin = (pmTargetG.min != null) ? pmTargetG.min : null;
-    pet.dailyTargetMax = (pmTargetG.max != null) ? pmTargetG.max : null;
+    setTarget(pet, (pmTargetG.min != null) ? pmTargetG.min : null, (pmTargetG.max != null) ? pmTargetG.max : null);
     if (recAppliedThisSession) pet.targetFollowsRecommendation = true;
     else if (targetEditedManually) pet.targetFollowsRecommendation = false;
     const kkRaw = parseFloat($pmKibbleKcal.value);
@@ -3569,8 +3665,7 @@
     const oldMin = pet.dailyTargetMin, oldMax = pet.dailyTargetMax;
     // No meaningful change → nothing to announce.
     if (Math.abs((oldMin || 0) - newMin) < 0.05 && Math.abs((oldMax || 0) - newMax) < 0.05) return;
-    pet.dailyTargetMin = newMin;
-    pet.dailyTargetMax = newMax;
+    setTarget(pet, newMin, newMax);
     const unit = pet.bodyWeightUnit || 'kg';
     const wOld = prevWeight ? `${parseFloat(bwFromKg(prevWeight, unit).toFixed(2))}` : '—';
     const wNew = parseFloat(bwFromKg(pet.bodyWeight, unit).toFixed(2));
@@ -3578,7 +3673,7 @@
     const oldStr = (oldMin || oldMax) ? `${fmtG((oldMin || oldMax) * M)}–${fmtG((oldMax || oldMin) * M)}` : '未设';
     showLinkToast(
       `体重 ${wOld}→${wNew} ${unit}，目标食量已从 <strong>${oldStr}</strong> 调到 <strong>${fmtG(newMin * M)}–${fmtG(newMax * M)} ${U}</strong>`,
-      () => { pet.dailyTargetMin = oldMin; pet.dailyTargetMax = oldMax; persist(); render(); schedulePushMeta(pet); }
+      () => { setTarget(pet, oldMin, oldMax); persist(); render(); schedulePushMeta(pet); }
     );
   }
   let linkToastTimer = null;
@@ -4915,6 +5010,7 @@
   $trendTabs.querySelectorAll('button').forEach(b => {
     b.addEventListener('click', () => {
       state.period = b.dataset.p;
+      state.intradayIso = null;   // 切换区间时今日视图回到今天，避免停在某个旧日期上
       if (state.period === 'custom' && (!state.customStart || !state.customEnd)) {
         const todayIso = todayBucketIso();
         const back = lastNDays(30, todayIso);
@@ -4927,6 +5023,38 @@
   });
   $customStart.addEventListener('change', () => { state.customStart = $customStart.value || null; persist(); render(); });
   $customEnd.addEventListener('change', () => { state.customEnd = $customEnd.value || null; persist(); render(); });
+
+  // ===== 今日时段 · 逐日翻看 =====
+  // 让底部趋势图的「今日时段」不再只锁定今天：◀/▶ 翻前后一天、可点日期跳，▶ 到今天为止。
+  // intradayIso 只在内存里（不持久化），刷新即回到今天的实时视图。
+  function syncDayNav() {
+    if (!$dnDate) return;
+    const today = todayBucketIso();
+    const view = state.intradayIso || today;
+    $dnDate.value = view;
+    $dnDate.max = today;                       // 原生日历也挡住未来
+    const isToday = view >= today;
+    if ($dnNext) $dnNext.disabled = isToday;
+    if ($dnToday) $dnToday.style.display = isToday ? 'none' : '';
+  }
+  function stepIntraday(deltaDays) {
+    const today = todayBucketIso();
+    const d = parseIsoDate(state.intradayIso || today);
+    d.setDate(d.getDate() + deltaDays);
+    let iso = isoDate(d);
+    if (iso > today) iso = today;              // 不能翻到未来
+    state.intradayIso = (iso >= today) ? null : iso;
+    render();
+  }
+  if ($dnPrev) $dnPrev.addEventListener('click', () => stepIntraday(-1));
+  if ($dnNext) $dnNext.addEventListener('click', () => stepIntraday(1));
+  if ($dnToday) $dnToday.addEventListener('click', () => { state.intradayIso = null; render(); });
+  if ($dnDate) $dnDate.addEventListener('change', () => {
+    const v = $dnDate.value; if (!v) return;
+    const today = todayBucketIso();
+    state.intradayIso = (v >= today) ? null : v;
+    render();
+  });
   setupTrendInteraction();
 
   $toggleHistory.addEventListener('click', () => {

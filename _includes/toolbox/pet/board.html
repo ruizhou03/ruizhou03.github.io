@@ -166,6 +166,12 @@
       <span>到</span>
       <input type="date" id="custom-end" />
     </div>
+    <div class="trend-daynav" id="trend-daynav" style="display: none;">
+      <button type="button" class="dn-arrow" id="dn-prev" aria-label="前一天">‹</button>
+      <input type="date" id="dn-date" class="dn-date" aria-label="选择要看的日期" />
+      <button type="button" class="dn-arrow" id="dn-next" aria-label="后一天">›</button>
+      <button type="button" class="dn-today" id="dn-today">今天</button>
+    </div>
     <div class="chart-wrap">
       <svg viewBox="0 0 600 240" id="trend-chart" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="chart-tip" id="chart-tip" hidden></div>
