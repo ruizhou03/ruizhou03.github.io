@@ -2457,6 +2457,10 @@
     if (trimmed) state.contactNicknames[deviceId] = trimmed;
     else delete state.contactNicknames[deviceId];
     persist();
+    // 备注是设备私有字段，却和宠物状态同存于被 CloudSync“整份覆盖”的 blob 里。设完立刻推一次，
+    // 否则只靠 30s 定时 / beforeunload 兜底，而 beforeunload 的 fetch 会在刷新时被浏览器掐断，
+    // 导致备注根本没上云；下次加载 pull 又用尚无此备注的云端快照把它盖掉 → 刷新即丢。
+    try { if (window.CloudSync && window.CloudSync.push) window.CloudSync.push(); } catch (_) {}
     if (onDone) onDone();
   }
   // True when we have no human-readable name for this member yet (only their shortId).
@@ -4972,7 +4976,15 @@
   function mergeInRemotePets() {
     let incoming = null;
     try { incoming = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (_) { return; }
-    if (!incoming || !Array.isArray(incoming.pets)) return;
+    if (!incoming) return;
+    // 本地备注（contactNicknames）是设备私有字段，却和宠物状态同存于被 CloudSync“整份覆盖”的 blob
+    // 里——拉取会用云端快照把本地备注一起盖掉。这里把本地备注并回来（本地为准），护住它不随 pull 丢。
+    const incomingContacts = (incoming.contactNicknames && typeof incoming.contactNicknames === 'object')
+      ? incoming.contactNicknames : {};
+    const mergedContacts = Object.assign({}, incomingContacts, state.contactNicknames || {});
+    const contactsNeedWrite = JSON.stringify(mergedContacts) !== JSON.stringify(incomingContacts);
+    state.contactNicknames = mergedContacts;
+    if (!Array.isArray(incoming.pets)) { if (contactsNeedWrite) { persist(); render(); } return; }
     const byId = new Map();
     state.pets.forEach(p => { if (p && p.id) byId.set(p.id, p); });   // 本地（内存）现有的先占位
     incoming.pets.forEach(rp => {                                     // 远端按 id 合并 / 补充
@@ -4984,7 +4996,10 @@
     const unchanged = merged.length === state.pets.length &&
       merged.every((p, i) => state.pets[i] && state.pets[i].id === p.id &&
                              (state.pets[i].entries || []).length === (p.entries || []).length);
-    if (unchanged) return;                                            // 没有新宠物 / 新条目就别折腾
+    if (unchanged) {                                                  // 没有新宠物 / 新条目
+      if (contactsNeedWrite) { persist(); render(); }                 // 但本地备注要写回，别被 pull 盖掉
+      return;
+    }
     state.pets = merged;
     if (!state.currentId || !state.pets.some(p => p.id === state.currentId)) {
       state.currentId = (state.pets[0] && state.pets[0].id) || null;
