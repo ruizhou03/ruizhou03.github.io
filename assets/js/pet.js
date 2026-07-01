@@ -326,6 +326,7 @@
       // Extras (treats/cans) folded into intake via kibble-equivalent grams.
       if (!Number.isFinite(p.kibbleKcalPerG) || p.kibbleKcalPerG <= 0) p.kibbleKcalPerG = 3.8;
       if (!Array.isArray(p.foodLibrary)) p.foodLibrary = [];
+      if (!Array.isArray(p.foodGroups)) p.foodGroups = [];   // 食物折叠分组（组织用，不带换算系数）
       // Back-fill measure/unitLabel on library items from the first extras version
       // (which stored kcalPerUnit as per-piece) → count-based, unit "份".
       p.foodLibrary.forEach(f => {
@@ -759,6 +760,7 @@
   const $foodModal = document.getElementById('food-modal');
   const $fmTitle = document.getElementById('fm-title');
   const $fmName = document.getElementById('fm-name');
+  const $fmGroup = document.getElementById('fm-group');
   const $fmEmojiPick = document.getElementById('fm-emoji-pick');
   const $fmMeasure = document.getElementById('fm-measure');
   const $fmUnitLabelField = document.getElementById('fm-unit-label-field');
@@ -1213,7 +1215,7 @@
     'dailyTargetMin','dailyTargetMax','targetHistory','showTargetOnChart','targetFollowsRecommendation',
     'species','breed','ageYears','bodyWeight','bodyWeightUnit','activity','neutered',
     'preferredUnit',
-    'kibbleKcalPerG','kibble','foodLibrary','conversionBase',
+    'kibbleKcalPerG','kibble','foodLibrary','foodGroups','conversionBase',
   ];
   function petMetaPatch(pet) {
     const out = {};
@@ -2703,7 +2705,7 @@
         const local = state.pets.find(p => p.id === ip.id || (ip.serverPetId && p.serverPetId === ip.serverPetId));
         if (local) {
           local.entries = mergeServerEntries(local.entries, ip.entries || []);
-          ['foodLibrary', 'kibble', 'name', 'emoji', 'avatar'].forEach(k => { if (local[k] == null && ip[k] != null) local[k] = ip[k]; });
+          ['foodLibrary', 'foodGroups', 'kibble', 'name', 'emoji', 'avatar'].forEach(k => { if (local[k] == null && ip[k] != null) local[k] = ip[k]; });
         } else {
           state.pets.push(ip);
         }
@@ -3181,25 +3183,83 @@
     const pet = currentPet();
     if (!pet) { $foodSelector.innerHTML = ''; return; }
     const lib = pet.foodLibrary || [];
+    const groups = Array.isArray(pet.foodGroups) ? pet.foodGroups : [];
+    const groupById = new Map(groups.map(g => [g.id, g]));
     // Selected food may have been deleted/synced away → fall back to kibble.
     if (recordFood !== 'kibble' && !lib.some(f => f.id === recordFood)) recordFood = 'kibble';
     const canEdit = isAdminOrUp(pet);
     const kb = pet.kibble || {};
     const kbName = kb.name || '干粮';
+    // If the current selection sits inside a collapsed folder, force that folder open so the
+    // user never loses sight of what's selected.
+    let forceOpenGid = null;
+    if (recordFood !== 'kibble') {
+      const sel = lib.find(f => f.id === recordFood);
+      if (sel && sel.groupId && groupById.has(sel.groupId)) forceOpenGid = sel.groupId;
+    }
+    const foodChip = (f, extra) => `<button type="button" class="extra-chip${canEdit ? ' fc-draggable' : ''}${extra || ''}${recordFood===f.id?' active':''}" data-food="${f.id}"><span class="fc-emoji">${foodIconHTML(f,'🍖')}</span><span class="fc-name">${escapeHtml(f.name)}</span>${canEdit ? `<span class="edit-food" data-edit="${f.id}" title="编辑">✎</span>` : ''}</button>`;
+
+    // 干粮固定第一条（不可拖、不可入组）
     let html = `<button type="button" class="extra-chip${recordFood==='kibble'?' active':''}" data-food="kibble"><span class="fc-emoji">${foodIconHTML(kb,'🥣')}</span><span class="fc-name">${escapeHtml(kbName)}</span>${canEdit ? `<span class="edit-food" data-edit="kibble" title="编辑">✎</span>` : ''}</button>`;
-    html += lib.map(f => `
-      <button type="button" class="extra-chip${canEdit ? ' fc-draggable' : ''}${recordFood===f.id?' active':''}" data-food="${f.id}"><span class="fc-emoji">${foodIconHTML(f,'🍖')}</span><span class="fc-name">${escapeHtml(f.name)}</span>${canEdit ? `<span class="edit-food" data-edit="${f.id}" title="编辑">✎</span>` : ''}</button>`).join('');
+
+    // 顶层是「单品」与「折叠组」的混排：按 foodLibrary 顺序走，遇到某组的第一个成员就在此处
+    // 落下组头 + 该组全部成员（折叠时只出组头）。子项渲染成扁平兄弟节点（加 .fc-child 缩进），
+    // 让既有的长按拖拽排序逻辑无需改动就能继续工作。
+    const rendered = new Set();
+    lib.forEach(f => {
+      const gid = (f.groupId && groupById.has(f.groupId)) ? f.groupId : null;
+      if (!gid) { html += foodChip(f, ''); return; }
+      if (rendered.has(gid)) return;
+      rendered.add(gid);
+      const g = groupById.get(gid);
+      const kids = lib.filter(x => x.groupId === gid);
+      const collapsed = (g.collapsed === true) && gid !== forceOpenGid;
+      html += `<button type="button" class="extra-chip fc-folder${collapsed ? ' collapsed' : ''}" data-group="${gid}"><span class="fc-caret">${collapsed ? '▸' : '▾'}</span><span class="fc-emoji">${escapeHtml(g.emoji || '🗂')}</span><span class="fc-name">${escapeHtml(g.name || '分组')}</span><span class="fc-count">${kids.length}</span>${canEdit ? `<span class="edit-food" data-editgroup="${gid}" title="编辑分组">✎</span>` : ''}</button>`;
+      if (!collapsed) html += kids.map(k => foodChip(k, ' fc-child')).join('');
+    });
     if (canEdit) html += `<button type="button" class="extra-chip add-chip" data-food="__new"><span class="fc-emoji">➕</span><span class="fc-name">新建</span></button>`;
     $foodSelector.innerHTML = html;
     $foodSelector.querySelectorAll('.extra-chip').forEach(chip => {
       chip.addEventListener('click', e => {
         if (fdDidReorder) return;   // 刚拖完那一下 click 不当选择处理
         if (e.target.dataset.edit) { openFoodModal(e.target.dataset.edit); return; }
+        if (e.target.dataset.editgroup) { openGroupEditor(e.target.dataset.editgroup); return; }
+        if (chip.dataset.group) { toggleGroupCollapsed(chip.dataset.group); return; }   // 组头 → 展开/收起
         const f = chip.dataset.food;
         if (f === '__new') { openFoodModal(null); return; }
         selectRecordFood(f);
       });
     });
+  }
+  // 折叠组：增删改与折叠开关。组只是「组织容器」，不带任何换算系数——每个成员仍保留各自的
+  // 等效干粮重量。组头不可被选来记账（点它＝展开/收起）。
+  function createFoodGroup(pet, name) {
+    if (!Array.isArray(pet.foodGroups)) pet.foodGroups = [];
+    const id = uuid('g');
+    pet.foodGroups.push({ id, name: (name || '分组').slice(0, 12), emoji: '🗂', collapsed: false });
+    return id;
+  }
+  function toggleGroupCollapsed(gid) {
+    const pet = currentPet(); if (!pet) return;
+    const g = (pet.foodGroups || []).find(x => x.id === gid); if (!g) return;
+    g.collapsed = !g.collapsed;
+    persist(); schedulePushMeta(pet);
+    renderFoodSelector();
+  }
+  function openGroupEditor(gid) {
+    const pet = currentPet(); if (!pet || !isAdminOrUp(pet)) return;
+    const g = (pet.foodGroups || []).find(x => x.id === gid); if (!g) return;
+    const next = prompt('分组名称（清空并确定＝删除分组，里面的食物升回顶层）：', g.name || '');
+    if (next === null) return;
+    const name = next.trim().slice(0, 12);
+    if (!name) {
+      (pet.foodLibrary || []).forEach(f => { if (f.groupId === gid) f.groupId = null; });   // 成员升回顶层
+      pet.foodGroups = (pet.foodGroups || []).filter(x => x.id !== gid);
+    } else {
+      g.name = name;
+    }
+    persist(); schedulePushMeta(pet);
+    renderFoodSelector();
   }
 
   // ===== 长按拖拽给食物排序（干粮固定顶、新建固定底；仅管理员；松手即生效）=====
@@ -3338,9 +3398,29 @@
   function fdCommit() {
     const pet = currentPet();
     if (!pet || !Array.isArray(pet.foodLibrary)) return;
-    const ids = fdEligible().map(c => c.dataset.food);
-    const rank = new Map(ids.map((id, i) => [id, i]));
-    pet.foodLibrary.sort((a, b) => (rank.has(a.id) ? rank.get(a.id) : 1e9) - (rank.has(b.id) ? rank.get(b.id) : 1e9));
+    // 按 DOM 顺序重建 foodLibrary。折叠组的成员不在 DOM 里，用「组头位置」作锚把它们按原相对
+    // 顺序注入回去——否则收起某组后再拖别的，会把这些看不见的成员甩到末尾、把组挪位。展开的组
+    // 成员本身就是扁平的 .fc-child chip，按各自 DOM 顺序落位（组内拖拽排序照样生效）。
+    const byId = new Map(pet.foodLibrary.map(f => [f.id, f]));
+    const childrenOf = new Map();
+    pet.foodLibrary.forEach(f => {
+      if (f.groupId) { if (!childrenOf.has(f.groupId)) childrenOf.set(f.groupId, []); childrenOf.get(f.groupId).push(f); }
+    });
+    const domFoodSet = new Set(Array.from($foodSelector.children)
+      .map(el => el.dataset && el.dataset.food).filter(Boolean));
+    const newLib = [], placed = new Set();
+    const place = f => { if (f && !placed.has(f.id)) { newLib.push(f); placed.add(f.id); } };
+    Array.from($foodSelector.children).forEach(el => {
+      const fid = el.dataset && el.dataset.food;
+      const gid = el.dataset && el.dataset.group;
+      if (fid && fid !== 'kibble' && fid !== '__new') place(byId.get(fid));
+      else if (gid) {
+        const kids = childrenOf.get(gid) || [];
+        if (!kids.some(k => domFoodSet.has(k.id))) kids.forEach(place);   // 折叠组：整组注入
+      }
+    });
+    pet.foodLibrary.forEach(place);   // 兜底：任何没被 DOM 覆盖的食物按原序补到末尾，绝不丢
+    pet.foodLibrary = newLib;
     persist();
     schedulePushMeta(pet);
   }
@@ -4110,6 +4190,17 @@
   // 5 列网格，保持整行：图标格(📷)+14 emoji = 15 格 = 3 整行（同头像那套 13+拍照格=14）。
   const FOOD_EMOJIS = ['🥣','🍚','🥫','🍗','🐔','🥩','🐟','🦐','🦴','🥚','🧀','🥛','🍪','💊'];
   let fmEditingId = null;
+  let fmGroupId = null;   // 编辑食物时选中的「所属分组」（null=不分组）
+  // 填充食物弹窗里的「分组」下拉：不分组 + 现有各组 + 新建分组。
+  function renderFmGroupOptions(pet, selectedGid) {
+    if (!$fmGroup) return;
+    const groups = Array.isArray(pet.foodGroups) ? pet.foodGroups : [];
+    let html = `<option value="">不分组（顶层单独一条）</option>`;
+    html += groups.map(g => `<option value="${g.id}"${g.id === selectedGid ? ' selected' : ''}>${escapeHtml((g.emoji || '🗂') + ' ' + (g.name || '分组'))}</option>`).join('');
+    html += `<option value="__new">＋ 新建分组…</option>`;
+    $fmGroup.innerHTML = html;
+    fmGroupId = selectedGid || null;
+  }
   let fmEmoji = '🍖';
   let fmIconPhoto = null;             // 食物图标用的照片(160px JPEG dataURL)；存在则优先于 emoji
   let fmKibbleMode = false;          // 编辑「干粮」基准时为 true（写 pet.kibbleKcalPerG，不进 foodLibrary）
@@ -4332,6 +4423,7 @@
     const f = (pet.foodLibrary || []).find(x => x.id === id);
     if (!f) return;
     $fmTitle.textContent = '编辑食物';
+    renderFmGroupOptions(pet, f.groupId || '');
     $fmName.value = f.name || '';
     fmEmoji = f.emoji || '🍖';
     fmIconPhoto = f.iconPhoto || null;
@@ -4450,7 +4542,7 @@
       }
     }
 
-    const data = { name, emoji: fmEmoji, iconPhoto: fmIconPhoto || null, measure, unitLabel, kcalPerUnit, kcalSource: source, analysis, gramsPerUnit, equivGrams };
+    const data = { name, emoji: fmEmoji, iconPhoto: fmIconPhoto || null, measure, unitLabel, kcalPerUnit, kcalSource: source, analysis, gramsPerUnit, equivGrams, groupId: fmGroupId || null };
     pet.foodLibrary = pet.foodLibrary || [];
     let savedId;
     if (fmEditingId) {
@@ -4485,6 +4577,18 @@
   });
   [$fmAnProtein, $fmAnFat, $fmAnMoisture, $fmAnAsh, $fmAnFiber, $fmGramsPerUnit].forEach(el =>
     el.addEventListener('input', fmUpdateEstimate));
+  if ($fmGroup) $fmGroup.addEventListener('change', () => {
+    if ($fmGroup.value === '__new') {
+      const pet = currentPet();
+      const name = (prompt('新分组名称（如：大罐头）：', '') || '').trim();
+      if (!name || !pet) { $fmGroup.value = fmGroupId || ''; return; }
+      const gid = createFoodGroup(pet, name);
+      persist(); schedulePushMeta(pet);
+      renderFmGroupOptions(pet, gid);
+    } else {
+      fmGroupId = $fmGroup.value || null;
+    }
+  });
   $fmSave.addEventListener('click', saveFood);
   $fmDelete.addEventListener('click', deleteFood);
   $fmCancel.addEventListener('click', closeFoodModal);
@@ -4591,6 +4695,7 @@
   function finishFoodWizard() {
     // Funnel wizard answers into the canonical edit-modal inputs, then save once.
     fmEditingId = null;
+    fmGroupId = null;       // 向导新建的食物默认不分组（之后可在编辑里归入某组）
     fmKibbleMode = false;   // 向导永远存的是库内食物，绝不能误走干粮分支
     $fmName.value = $fwName.value.trim();
     fmEmoji = fwEmoji;

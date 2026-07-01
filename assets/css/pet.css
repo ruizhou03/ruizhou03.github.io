@@ -433,6 +433,27 @@
     overflow: hidden; overflow-wrap: anywhere;
   }
   .entry-form .food-selector .edit-food { flex: 0 0 auto; margin-left: 0.1rem; }
+  /* 折叠组：组头（可点开/收起，不可记账）+ 缩进的成员 */
+  .entry-form .food-selector .fc-folder {
+    background: var(--color-bg-warm); border-color: var(--color-border); color: var(--color-muted);
+    font-weight: 600;
+  }
+  .entry-form .food-selector .fc-folder.active { background: var(--color-bg-warm); color: var(--color-muted); }
+  .entry-form .food-selector .fc-caret {
+    flex: 0 0 auto; font-size: 0.7rem; width: 0.9em; text-align: center; color: var(--color-light);
+  }
+  .entry-form .food-selector .fc-count {
+    flex: 0 0 auto; font-size: 0.72rem; font-weight: 500; color: var(--color-light);
+    background: var(--color-bg); border-radius: 999px; padding: 0.02rem 0.4rem; margin-left: auto;
+  }
+  .entry-form .food-selector .extra-chip.fc-child {
+    margin-left: 14px; position: relative;
+  }
+  /* 子项左侧的一根淡引导线，暗示层级归属 */
+  .entry-form .food-selector .extra-chip.fc-child::before {
+    content: ''; position: absolute; left: -8px; top: -0.24rem; bottom: -0.24rem;
+    width: 2px; background: var(--color-border); border-radius: 2px;
+  }
   /* 长按拖拽排序：抓手光标、拖起的悬浮态、排序中禁选中 */
   .entry-form .food-selector .fc-draggable { cursor: grab; }
   .entry-form .food-selector.fc-reordering { user-select: none; }
@@ -440,26 +461,19 @@
     position: relative; z-index: 5; cursor: grabbing;
     box-shadow: var(--pet-shadow-2); opacity: 0.97; transition: none;
   }
-  /* Narrow screens: 拆回竖排堆叠、恢复内边距与圆角、食物种类回到横向滚动一排。 */
+  /* Narrow screens: 保持「左窄竖列食物 + 右侧填写」的两栏（与电脑端一致，折叠目录才自然）；
+     操作区（记录时间 / 记一笔）靠 flex-wrap 折到整行下方。窄到放不下时填写区会自动换行。 */
   @media (max-width: 800px) {
     .entry-form { padding: 1rem; }
-    .entry-form .entry-cols { flex-direction: column; align-items: stretch; gap: 0; }
+    .entry-form .entry-cols { flex-direction: row; flex-wrap: wrap; align-items: stretch; gap: 0; }
     .entry-form .food-selector {
-      flex: 0 0 auto; width: auto; flex-direction: row; flex-wrap: nowrap;
-      max-height: none; overflow-x: auto; overflow-y: visible;
-      padding: 0 0 4px; margin-bottom: 0.85rem; border-right: none; background: none;
+      flex: 0 0 104px; align-self: stretch;
+      max-height: 320px;   /* 竖排、超出滚动，跟电脑端一样 */
     }
-    .entry-form .food-selector .extra-chip {
-      flex: 0 0 auto; width: auto; white-space: nowrap; line-height: normal;
-      border-radius: 999px; padding: 0.5rem 0.95rem;
-    }
-    .entry-form .food-selector .fc-name {
-      display: inline; -webkit-line-clamp: unset; white-space: nowrap; overflow: visible;
-    }
-    .entry-form .fill-area { flex: 1 1 auto; width: auto; padding: 0; }
+    .entry-form .fill-area { flex: 1 1 160px; width: auto; padding: 0 0 0 0.9rem; }
     .entry-form .fill-area > * { max-width: none; }
-    /* 记录时间 on top, 记一笔 as the big action at the bottom. */
-    .entry-form .action-col { width: 100%; border-left: none; margin-top: 0.7rem; }
+    /* 记录时间 on top, 记一笔 as the big action at the bottom（整行贴底）。 */
+    .entry-form .action-col { flex: 1 1 100%; width: 100%; border-left: none; margin-top: 0.7rem; }
     .entry-form .action-col .save-btn { order: 3; width: 100%; border-radius: 14px; min-height: 48px; }
     .entry-form .action-col .time-pill { border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-bg-warm); justify-content: flex-start; }
   }
