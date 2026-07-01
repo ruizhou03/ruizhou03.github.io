@@ -85,6 +85,16 @@
   details p{margin:0 0 10px;font-size:.96rem}
   @media(max-width:520px){h1{font-size:1.85rem}.switches{flex-direction:column;align-items:flex-start;gap:12px}}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+  .mdlpick{margin:10px 0 4px}
+  .mdlpick .mp-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .mdlpick select,.mdlpick input{font-family:var(--serif);font-size:.95rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 11px}
+  .mdlpick input{flex:1;min-width:180px}
+  .mdlpick .mp-links{font-size:.85rem;margin-bottom:8px}
+  .mdlpick .mp-links a{color:var(--gold-d);text-decoration:underline;text-underline-offset:2px}
+  .mdlpick .mp-links .tip{color:var(--muted);margin-left:10px}
+  .mdlpick .mp-val{position:relative;background:#1f2230;color:#e8e6e3;font-family:var(--mono);font-size:.85rem;border-radius:9px;padding:11px 76px 11px 14px;white-space:pre-wrap;overflow-wrap:anywhere}
+  .mdlpick .mp-val .copy{position:absolute;top:8px;right:8px;font-family:var(--serif);font-size:.8rem;color:#1f2230;background:var(--gold);border:none;border-radius:7px;padding:4px 11px;cursor:pointer}
+  .mdlpick .tip{font-size:.82rem;color:var(--muted);margin:8px 0 0}
 </style>
 </head>
 <body class="mode-full os-m">
@@ -102,7 +112,7 @@
   </div>
 
   <div class="modeline">
-    <span class="only-full-note"><b>完整模式</b>：用 AI 判断哪张票值得抢、做价格趋势分析，并给你发邮件简报。需要一个 Anthropic API key 和一个邮箱应用密码（下面手把手教，约 5 分钟）。</span>
+    <span class="only-full-note"><b>完整模式</b>：用 AI 判断哪张票值得抢、做价格趋势分析，并给你发邮件简报。需要你选的 AI 厂商的 API key 和一个邮箱应用密码（下面手把手教，约 5 分钟）。</span>
     <span class="only-simple-note"><b>简单模式</b>：只按你设的价格阈值盯票，结果显示在本地面板里、并弹桌面通知。<b>不需要任何密钥、不用配邮箱</b>，最快上手。随时可升级到完整模式。</span>
   </div>
 
@@ -131,7 +141,8 @@
 <span class="g">✓</span> 已读取你的盯票配置：你的出发地 → 你的目的地
 
 <span class="only-full-note"><span class="q">?</span> 选择模式：  <span class="y">› 完整（AI+邮件）</span>
-<span class="q">?</span> 粘贴你的 Anthropic API key：  <span class="y">****************</span>
+<span class="q">?</span> AI 模型（FLIGHTWATCH_MODEL）：  <span class="y">anthropic:claude-opus-4-8</span>
+<span class="q">?</span> 粘贴该厂商的 API key：  <span class="y">****************</span>
 <span class="q">?</span> 收件邮箱：  <span class="y">you@gmail.com</span>
 <span class="q">?</span> 邮箱应用密码（16 位）：  <span class="y">****************</span>
 </span><span class="only-simple-note"><span class="q">?</span> 选择模式：  <span class="y">› 简单（价格阈值，无需密钥）</span>
@@ -144,15 +155,26 @@
     </li>
 
     <li class="step full">
-      <h2>领一个 Anthropic API key <span class="badge">仅完整模式</span></h2>
-      <p>这是让 AI 帮你判断便宜票用的钥匙，安装器问到时粘贴进去即可。</p>
+      <h2>选 AI 厂商、领 key、定模型 <span class="badge">仅完整模式</span></h2>
+      <p>完整模式让 AI 判断哪张票值得抢、估触发价、写简报。你用<b>任意主流厂商</b>都行——Claude / GPT / DeepSeek / Kimi / GLM…——用你自己的 key。下面选好厂商和模型，得到一个 <code>FLIGHTWATCH_MODEL</code> 值，安装器问到时连同 key 一起粘进去。</p>
       <div class="guide">
         <ol>
-          <li>浏览器打开 <b>console.anthropic.com</b>，注册 / 登录。</li>
-          <li>左侧 <b>API Keys</b> → <b>Create Key</b> → 复制那串 <code>sk-ant-…</code>（<b>只显示这一次</b>，存好）。</li>
-          <li>在 <b>Billing</b> 里充一点额度（绑卡或预充值）。</li>
+          <li>选一个你有账号的厂商 → 去它官网领 API key（充一点额度）。</li>
+          <li>在它的<b>官方模型列表</b>查当前模型 ID，填到下面。</li>
         </ol>
-        <div class="cost">💡 盯票用量很省：每天 2 轮、判断几十条航班，一个月通常只花几美元。</div>
+        <div class="mdlpick">
+          <div class="mp-row">
+            <select id="mpProvider"></select>
+            <input id="mpModel" type="text" placeholder="模型 ID（见厂商文档）">
+          </div>
+          <div id="mpBaseRow" class="mp-row" style="display:none">
+            <input id="mpBase" type="text" placeholder="API base_url（自建 / 其它兼容端点）">
+          </div>
+          <div class="mp-links"><a id="mpDoc" href="#" target="_blank" rel="noopener">模型列表 →</a><span id="mpKey" class="tip"></span></div>
+          <div class="mp-val"><code id="mpVal">FLIGHTWATCH_MODEL=anthropic:claude-opus-4-8</code><button type="button" class="copy" id="mpCopy">复制</button></div>
+          <p class="tip">各厂商模型 ID 随时更新，务必以官方文档为准（Claude 的下拉是最新；其它厂商点上面链接查当前 ID）。</p>
+        </div>
+        <div class="cost">💡 用量很省：每天 2 轮、判断几十条航班，通常一个月几美元（具体看你选的厂商 / 模型定价）。</div>
       </div>
     </li>
 
@@ -201,6 +223,38 @@
     const txt=vis?vis.textContent:btn.parentNode.textContent;
     navigator.clipboard&&navigator.clipboard.writeText(txt.replace('复制','').trim());
     const o=btn.textContent;btn.textContent='已复制';setTimeout(()=>btn.textContent=o,1200);}));
+
+  /* 完整模式：AI 厂商 → 模型 → FLIGHTWATCH_MODEL 值（不硬编会过时的型号表，指向各厂商官方列表） */
+  const MP={
+    anthropic:{name:'Claude（Anthropic）',ex:'claude-opus-4-8',doc:'https://docs.claude.com/en/docs/about-claude/models/overview',key:'console.anthropic.com'},
+    openai:{name:'GPT（OpenAI）',ex:'gpt-4o',doc:'https://platform.openai.com/docs/models',key:'platform.openai.com'},
+    deepseek:{name:'DeepSeek',ex:'deepseek-chat',doc:'https://api-docs.deepseek.com/quick_start/pricing',key:'platform.deepseek.com'},
+    moonshot:{name:'Kimi（Moonshot）',ex:'moonshot-v1-32k',doc:'https://platform.moonshot.cn/docs',key:'platform.moonshot.cn'},
+    zhipu:{name:'GLM（智谱）',ex:'glm-4-plus',doc:'https://open.bigmodel.cn/dev/howuse/model',key:'open.bigmodel.cn'},
+    other:{name:'其他（OpenAI 兼容）',ex:'',doc:'',key:''},
+  };
+  (function(){
+    const pv=document.getElementById('mpProvider'), md=document.getElementById('mpModel'),
+      baseRow=document.getElementById('mpBaseRow'), base=document.getElementById('mpBase'),
+      doc=document.getElementById('mpDoc'), keyEl=document.getElementById('mpKey'),
+      val=document.getElementById('mpVal'), copy=document.getElementById('mpCopy');
+    if(!pv)return;
+    Object.entries(MP).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.name;pv.appendChild(o);});
+    function refresh(){
+      const p=MP[pv.value], other=pv.value==='other';
+      md.placeholder=p.ex?('模型 ID，如 '+p.ex):'模型 ID（见厂商文档）';
+      baseRow.style.display=other?'':'none';
+      if(p.doc){doc.style.display='';doc.href=p.doc;doc.textContent=p.name+' 模型列表 →';}else{doc.style.display='none';}
+      keyEl.textContent=p.key?('· 领 key：'+p.key):'';
+      const m=md.value.trim()||p.ex||'（填模型 ID）';
+      let s='FLIGHTWATCH_MODEL='+pv.value+':'+m;
+      if(other&&base.value.trim())s+='\nFLIGHTWATCH_BASE_URL='+base.value.trim();
+      val.textContent=s;
+    }
+    pv.addEventListener('change',refresh); md.addEventListener('input',refresh); base.addEventListener('input',refresh);
+    copy.addEventListener('click',()=>{navigator.clipboard&&navigator.clipboard.writeText(val.textContent);const o=copy.textContent;copy.textContent='已复制';setTimeout(()=>copy.textContent=o,1200);});
+    refresh();
+  })();
 </script>
 </body>
 </html>
