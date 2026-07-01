@@ -24,7 +24,7 @@
 | `judge_simple.py` | 简单模式：阈值比价、无 AI、零密钥 + 纯 Python 简报 | ✅ 已写（阈值/去重/报告离线验证过） |
 | `notify.py` | 桌面通知 / 邮件（用户自己 SMTP·按域名推 host）/ 本地面板 | ✅ 已写（渲染/路由/组装离线验证过） |
 | `platform.py` | darwin/win32/linux：通知 / 防休眠 / 文件年龄 / 打开文件 抽象 | ✅ 已写（mac 全实现·其余降级） |
-| `flightwatch.py` | CLI 入口：run / panel / status / pause / on / uninstall | ⏳ 下一个（编排 config→scrape→judge→notify） |
+| `flightwatch.py` | CLI 入口：run / panel / status / pause / on / uninstall | ✅ 已写（整条 pipeline 经 CLI 端到端验证过） |
 
 ## 数据流
 
