@@ -22,9 +22,9 @@
 | `scrape.py` | 抓 Trip.com（在私人 scraper 基础上补 往返/舱位/乘客类型/手提/到达时段） | ⏳ |
 | `judge_api.py` | 完整模式：多厂商 AI 判断（Claude 原生 / OpenAI 兼容）+ 趋势 + 目标价 | ✅ 已写（桥+分发+判定/去重离线验证过） |
 | `judge_simple.py` | 简单模式：阈值比价、无 AI、零密钥 + 纯 Python 简报 | ✅ 已写（阈值/去重/报告离线验证过） |
-| `notify.py` | 桌面通知 / 邮件 / 本地面板（走 platform 抽象） | ⏳ |
-| `platform.py` | darwin/win32/linux：调度 / 通知 / 防休眠 / 文件年龄 / 代理探测 | ⏳ |
-| `flightwatch.py` | CLI 入口：run / panel / status / pause / on / uninstall | ⏳ |
+| `notify.py` | 桌面通知 / 邮件（用户自己 SMTP·按域名推 host）/ 本地面板 | ✅ 已写（渲染/路由/组装离线验证过） |
+| `platform.py` | darwin/win32/linux：通知 / 防休眠 / 文件年龄 / 打开文件 抽象 | ✅ 已写（mac 全实现·其余降级） |
+| `flightwatch.py` | CLI 入口：run / panel / status / pause / on / uninstall | ⏳ 下一个（编排 config→scrape→judge→notify） |
 
 ## 数据流
 
