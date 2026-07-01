@@ -8,11 +8,11 @@ permalink: /toolbox/picker/
   .picker-wrap {
     max-width: 760px;
     margin: 0 auto;
-    padding: 2rem 1rem 4rem;
+    padding: 1.4rem 1rem 3rem;
   }
-  .picker-header { text-align: center; margin-bottom: 2rem; }
+  .picker-header { text-align: center; margin-bottom: 1.2rem; }
   .picker-header h1 {
-    font-size: 2.2rem; color: var(--color-ink); margin-bottom: 0.6rem;
+    font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem;
   }
   .picker-header p {
     color: var(--color-light); font-style: normal; margin: 0;
@@ -69,9 +69,9 @@ permalink: /toolbox/picker/
   .options-list { display: flex; flex-direction: column; gap: 0.7rem; }
   .option-row {
     display: grid;
-    grid-template-columns: 28px minmax(0, 1.6fr) minmax(160px, 1fr) 56px;
+    grid-template-columns: 28px minmax(0, 1.5fr) minmax(110px, 1fr) 58px 42px;
     align-items: center;
-    gap: 0.7rem;
+    gap: 0.6rem;
   }
   .option-row .opt-del {
     width: 28px; height: 28px; border-radius: 6px;
@@ -116,6 +116,21 @@ permalink: /toolbox/picker/
     background: var(--color-accent); border: 2px solid var(--color-bg);
     cursor: pointer;
   }
+  /* 权重数字框：可直接输入小数做精细调控（0.1、2.5…），去掉浏览器自带的上下箭头 */
+  .option-row .opt-weight-num {
+    width: 100%; min-width: 0; box-sizing: border-box;
+    -webkit-appearance: none; -moz-appearance: textfield; appearance: none;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    padding: 0.4rem 0.3rem;
+    font: inherit; font-size: 0.9rem; text-align: center;
+    color: var(--color-ink); background: var(--color-bg);
+    outline: none; transition: border-color 0.2s;
+  }
+  .option-row .opt-weight-num::-webkit-outer-spin-button,
+  .option-row .opt-weight-num::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  .option-row .opt-weight-num:focus { border-color: var(--color-accent); }
   .option-row .opt-pct {
     text-align: right;
     font-family: var(--font-body);
@@ -131,21 +146,23 @@ permalink: /toolbox/picker/
 
   .add-row {
     margin-top: 0.9rem;
-    display: flex; justify-content: center;
+    display: flex; justify-content: center; gap: 0.6rem; flex-wrap: wrap;
   }
   .add-row button {
     padding: 0.4rem 1rem; font-size: 0.9rem;
     border: 1px dashed var(--color-border); border-radius: 999px;
     background: transparent; color: var(--color-muted);
-    cursor: pointer; transition: all 0.2s;
+    cursor: pointer; transition: all 0.2s; font: inherit;
   }
   @media (hover: hover) {
-    .add-row button:hover {
+    .add-row button:hover:not(:disabled) {
     border-color: var(--color-accent); color: var(--color-accent);
     border-style: solid;
   }
   }
   .add-row button:disabled { opacity: 0.4; cursor: not-allowed; }
+  /* 恢复等权：实线边、跟"添加选项"区分开 */
+  .add-row .equal-btn { border-style: solid; }
 
   .mode-row {
     display: flex; align-items: center; gap: 1.2rem;
@@ -243,16 +260,41 @@ permalink: /toolbox/picker/
   }
   }
 
+  /* —— 舞台：转盘 + 结果/计票 ——
+     宽屏（≥760px）左右并排：转盘在左、结果与计票柱状图在右，一屏内两者都完整可见；
+     窄屏回到上下堆叠。滚动定位统一滚 .stage（JS 里按固定导航高度设 scroll-margin-top，
+     避免转盘顶部被顶部固定导航裁掉）。 */
+  .stage {
+    margin: 1.2rem auto 0;
+    /* scroll-margin-top 由 JS 按导航实际高度设置 */
+  }
+  .wheel-col { display: flex; flex-direction: column; align-items: center; }
+  .outcome-col { min-width: 0; }
+
+  @media (min-width: 760px) {
+    .stage {
+      display: grid;
+      grid-template-columns: auto minmax(240px, 360px);
+      justify-content: center;
+      align-items: center;
+      gap: 1.8rem;
+      max-width: 760px;
+    }
+    .outcome-col { align-self: center; }
+    /* 并排时结果/再抽按钮不必再撑最小高度，交给内容自然高度 */
+    .stage .result-zone { margin-top: 0; }
+    .stage .tally-panel { margin-top: 1rem; padding-top: 1rem; }
+    .stage .reset-row { margin-top: 1rem; }
+  }
+
   /* —— 转盘 ——
      宽度由三个约束的 min() 决定：320px 上限 + 88vw 防溢出 + 42vh 防手机上独占整屏
-     带 aspect-ratio: 1/1，所以高度 = 宽度
-     scroll-margin-top 留出 32px 给指针（指针 top:-8px + 22px 三角 = 30px 突出量） */
+     带 aspect-ratio: 1/1，所以高度 = 宽度 */
   .wheel-zone {
-    margin: 1.4rem auto 0;
+    margin: 0 auto;
     position: relative;
     width: min(320px, 88vw, 42vh);
     aspect-ratio: 1 / 1;
-    scroll-margin-top: 32px;
   }
   .wheel-pointer {
     position: absolute; top: -8px; left: 50%;
@@ -292,7 +334,7 @@ permalink: /toolbox/picker/
 
   /* —— 结果 —— */
   .result-zone {
-    margin-top: 1.6rem;
+    margin-top: 1.1rem;
     text-align: center;
     min-height: 2.4em;
   }
@@ -310,19 +352,19 @@ permalink: /toolbox/picker/
   /* —— 多次模式 计票面板 —— */
   .tally-panel {
     display: none;
-    margin-top: 1.4rem;
-    padding-top: 1.2rem;
+    margin-top: 1.1rem;
+    padding-top: 1rem;
     border-top: 1px dashed var(--color-border);
   }
   .tally-panel.show { display: block; }
   .tally-header {
     font-size: 0.88rem; color: var(--color-muted);
-    margin-bottom: 0.7rem; text-align: center;
+    margin-bottom: 0.6rem; text-align: center;
   }
   .tally-bars {
     display: flex; align-items: flex-end; justify-content: center;
-    gap: 0.7rem;
-    min-height: 150px; padding: 0.4rem 0.4rem 0;
+    gap: 0.6rem;
+    min-height: 132px; padding: 0.4rem 0.3rem 0;
   }
   .tally-col {
     display: flex; flex-direction: column; align-items: center;
@@ -370,7 +412,7 @@ permalink: /toolbox/picker/
   .tally-col.is-winner .tally-name { color: var(--color-ink); font-weight: 600; }
 
   .reset-row {
-    text-align: center; margin-top: 1.4rem; min-height: 2.4em;
+    text-align: center; margin-top: 1rem; min-height: 2.4em;
   }
   .reset-btn {
     padding: 0.45rem 1.2rem; font-size: 0.88rem;
@@ -555,11 +597,15 @@ permalink: /toolbox/picker/
 
   @media (max-width: 600px) {
     .picker-card { padding: 1.1rem 0.9rem; }
+    /* 手机端收起滑块，改由数字框做权重精调（触屏上打字比拖滑块更准）；
+       行变为 [删] [选项名] [权重数字] [%] 四列 */
     .option-row {
-      grid-template-columns: 26px minmax(0, 1.3fr) minmax(120px, 1fr) 46px;
+      grid-template-columns: 26px minmax(0, 1.4fr) 58px 40px;
       gap: 0.45rem;
     }
+    .option-row .opt-weight { display: none; }
     .option-row .opt-text { font-size: 0.9rem; padding: 0.4rem 0.55rem; }
+    .option-row .opt-weight-num { font-size: 0.85rem; padding: 0.4rem 0.2rem; }
     .option-row .opt-pct { font-size: 0.85rem; }
     .wheel-svg text { font-size: 11px; }
   }
@@ -586,6 +632,7 @@ permalink: /toolbox/picker/
     </div>
     <div class="options-list" id="options-list"></div>
     <div class="add-row">
+      <button type="button" class="equal-btn" id="equal-btn" title="把所有选项的权重恢复成完全一样">⚖ 恢复等权</button>
       <button type="button" id="add-btn">+ 添加选项</button>
     </div>
 
@@ -609,27 +656,32 @@ permalink: /toolbox/picker/
     </div>
   </div>
 
-  <div class="wheel-zone" id="wheel-zone">
-    <div class="wheel-pointer"></div>
-    <svg class="wheel-svg" id="wheel-svg" viewBox="0 0 200 200" aria-label="抽签转盘"></svg>
-  </div>
+  <div class="stage" id="stage">
+    <div class="wheel-col">
+      <div class="wheel-zone" id="wheel-zone">
+        <div class="wheel-pointer"></div>
+        <svg class="wheel-svg" id="wheel-svg" viewBox="0 0 200 200" aria-label="抽签转盘"></svg>
+      </div>
+      <div class="skip-row">
+        <button type="button" class="skip-btn" id="skip-btn" style="display: none;">跳过动画</button>
+      </div>
+    </div>
 
-  <div class="skip-row">
-    <button type="button" class="skip-btn" id="skip-btn" style="display: none;">跳过动画</button>
-  </div>
+    <div class="outcome-col">
+      <div class="result-zone">
+        <div class="result-line" id="result-line" aria-live="polite" aria-atomic="true">&nbsp;</div>
+        <button type="button" class="result-copy" id="result-copy-btn" style="display:none;" title="复制结果到剪贴板">📋 复制结果</button>
+      </div>
 
-  <div class="result-zone">
-    <div class="result-line" id="result-line" aria-live="polite" aria-atomic="true">&nbsp;</div>
-    <button type="button" class="result-copy" id="result-copy-btn" style="display:none;" title="复制结果到剪贴板">📋 复制结果</button>
-  </div>
+      <div class="tally-panel" id="tally-panel">
+        <div class="tally-header" id="tally-header">第 0 / 0 次</div>
+        <div class="tally-bars" id="tally-bars"></div>
+      </div>
 
-  <div class="tally-panel" id="tally-panel">
-    <div class="tally-header" id="tally-header">第 0 / 0 次</div>
-    <div class="tally-bars" id="tally-bars"></div>
-  </div>
-
-  <div class="reset-row" id="reset-row" style="display: none;">
-    <button type="button" class="reset-btn" id="reset-btn">🔁 再抽一次</button>
+      <div class="reset-row" id="reset-row" style="display: none;">
+        <button type="button" class="reset-btn" id="reset-btn">🔁 再抽一次</button>
+      </div>
+    </div>
   </div>
 
   <details class="about" id="history-details">
@@ -656,10 +708,11 @@ permalink: /toolbox/picker/
   <details class="about">
     <summary>关于这个工具</summary>
     <p>每次抽签都会重新生成随机数（用浏览器的 <code>Math.random()</code>），不存历史（除了你主动展开的"最近抽签"，存在本机 localStorage）、不联网、不收集任何数据。</p>
-    <p>"加权"采用累积分布抽样：所有权重加和归一化后，落在哪个区间就选哪个——跟轮盘赌一样直观。</p>
+    <p>"加权"采用累积分布抽样：所有权重加和归一化后，落在哪个区间就选哪个——跟轮盘赌一样直观。每项权重可以直接在数字框里输入小数（如 0.1、2.5）精细调控，且必须是正数；点"⚖ 恢复等权"可一键把所有权重拉平。</p>
+    <p>每次抽签都是相互独立、严格按权重的随机（同分布、无记忆）。如果你觉得"某一项好像一路都更容易被抽到"，那多半是错觉：随机序列天生会出现连号，人脑很容易把它读成"趋势"。放大到几百万次实测，各项频率跟设定权重完全吻合。</p>
     <p>多次模式不是"比谁更幸运"，而是"独立同分布抽样的简单多数"——理论上权重越高的越可能胜出，但小样本（3 次、5 次）下波动比较大，这正是好玩的地方。平票时按"第一时间到达最高票数"算赢。</p>
     <p>把当前清单分享给朋友：点上方"🔗 分享"——选项和权重都会编码到 URL hash 里，对方打开就同步了。</p>
-    <p>键盘：按 <kbd>空格</kbd> / <kbd>回车</kbd> 直接抽签（焦点不在输入框时）。</p>
+    <p>键盘：焦点不在输入框时，按 <kbd>空格</kbd> / <kbd>回车</kbd> 直接抽签；在选项名输入框里按 <kbd>回车</kbd> 跳到下一个选项，已经是最后一个就自动新建一个。</p>
   </details>
 </article>
 

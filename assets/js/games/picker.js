@@ -59,7 +59,7 @@
     state.options = profile.options.map(o => ({
       id: cryptoId(),
       text: o.text,
-      weight: o.weight,
+      weight: clampWeight(o.weight),   // 兼容旧方案里可能存过的 0 权重 → 收敛成正数
     }));
     state.draws = profile.draws || 1;
   }
@@ -172,7 +172,7 @@
   function encodeStateToHash() {
     const items = state.options
       .filter(o => (o.text || '').trim() !== '')
-      .map(o => `${encodeURIComponent(o.text.trim())}:${Math.max(0, Math.min(10, o.weight | 0))}`);
+      .map(o => `${encodeURIComponent(o.text.trim())}:${fmtWeight(o.weight)}`);
     if (items.length < 2) return '';
     const drawsPart = state.draws !== 1 ? `&draws=${state.draws}` : '';
     return `#options=${items.join(',')}${drawsPart}`;
@@ -201,12 +201,12 @@
         let text;
         try { text = decodeURIComponent(s.slice(0, colonIdx)); }
         catch (e) { return null; }
-        const w = parseInt(s.slice(colonIdx + 1), 10);
+        const w = parseFloat(s.slice(colonIdx + 1));
         if (!text) return null;
         return {
           id: cryptoId(),
           text: text.slice(0, 20),
-          weight: Math.max(0, Math.min(10, isNaN(w) ? 5 : w)),
+          weight: clampWeight(isNaN(w) ? EQUAL_WEIGHT : w),
         };
       }).filter(Boolean).slice(0, 10);
       if (items.length < 2) return false;
@@ -286,6 +286,8 @@
   // ── DOM 引用 ──────────────────────────
   const $list      = document.getElementById('options-list');
   const $addBtn    = document.getElementById('add-btn');
+  const $equalBtn  = document.getElementById('equal-btn');
+  const $stage     = document.getElementById('stage');
   const $drawsGrp  = document.getElementById('draws-group');
   const $drawsCustom = document.getElementById('draws-custom');
   const DRAWS_MAX = 100;
@@ -315,6 +317,27 @@
   const $ioExportBtn      = document.getElementById('io-export-btn');
   const $ioCopyBtn        = document.getElementById('io-copy-btn');
   const $ioImportBtn      = document.getElementById('io-import-btn');
+
+  // ── 权重：正数、可小数（一位）──────────
+  // 铁律：每项权重必须是正数（禁止 0 / 负数），否则"某项 100% 其余 0"这种设置就没意义了。
+  // 滑块只覆盖 0.1–10 的常用区间做快速拖动；数字框允许打到 MAX_WEIGHT，超出滑块量程时
+  // 滑块停在最大端。所有入口（拖动 / 输入 / 分享链接 / 导入 / 等权）都过 clampWeight。
+  const MIN_WEIGHT = 0.1;
+  const MAX_WEIGHT = 100;
+  const SLIDER_MAX = 10;
+  const EQUAL_WEIGHT = 5;   // "恢复等权"及新建选项用的默认权重（等权时具体取值无所谓，取滑块中段更好看）
+  function clampWeight(w) {
+    let n = Number(w);
+    if (!isFinite(n)) n = EQUAL_WEIGHT;
+    n = Math.round(n * 10) / 10;          // 归一到一位小数
+    if (n < MIN_WEIGHT) n = MIN_WEIGHT;
+    if (n > MAX_WEIGHT) n = MAX_WEIGHT;
+    return n;
+  }
+  function fmtWeight(w) {
+    // 整数不显示 ".0"：5 → "5"，2.5 → "2.5"
+    return String(Math.round(clampWeight(w) * 10) / 10);
+  }
 
   // ── helpers ───────────────────────────
   function cryptoId() {
@@ -358,7 +381,8 @@
       row.innerHTML = `
         <button type="button" class="opt-del" aria-label="删除选项" ${state.options.length <= 2 ? 'disabled' : ''}>✕</button>
         <input type="text" class="opt-text" value="${escapeHtml(opt.text)}" placeholder="选项 ${idx + 1}" maxlength="20" />
-        <input type="range" class="opt-weight" min="0" max="10" step="1" value="${opt.weight}" />
+        <input type="range" class="opt-weight" min="${MIN_WEIGHT}" max="${SLIDER_MAX}" step="0.1" value="${Math.min(SLIDER_MAX, opt.weight)}" aria-label="权重滑块" />
+        <input type="number" class="opt-weight-num" min="${MIN_WEIGHT}" max="${MAX_WEIGHT}" step="0.1" value="${fmtWeight(opt.weight)}" inputmode="decimal" aria-label="权重数值（正数，可小数）" />
         <span class="opt-pct">${pct.toFixed(0)}%</span>
       `;
       // 事件
@@ -380,14 +404,48 @@
           },
         });
       });
-      row.querySelector('.opt-text').addEventListener('input', (e) => {
+      const textInput = row.querySelector('.opt-text');
+      const slider    = row.querySelector('.opt-weight');
+      const numInput  = row.querySelector('.opt-weight-num');
+
+      textInput.addEventListener('input', (e) => {
         opt.text = e.target.value;
         markDirty();
         renderWheel();   // 文字变了要重画转盘
       });
-      row.querySelector('.opt-weight').addEventListener('input', (e) => {
-        opt.weight = Number(e.target.value);
+      // 回车 = 跳到下一个选项名输入框；已是最后一个且当前非空 → 自动新建一个并聚焦
+      textInput.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        advanceFromTextInput(opt.id, e.target.value);
+      });
+
+      // 拖滑块（覆盖 0.1–10 的快速区间）→ 同步数字框
+      slider.addEventListener('input', (e) => {
+        opt.weight = clampWeight(e.target.value);
+        numInput.value = fmtWeight(opt.weight);
         markDirty();
+        renderOptionsPct();
+        renderWheel();
+        updateSpinBtn();
+      });
+      // 数字框（精细，可小数、可超出滑块量程）→ 同步滑块。空串先放行，等 blur 再规范化
+      numInput.addEventListener('input', (e) => {
+        if (e.target.value.trim() === '') return;
+        const w = clampWeight(e.target.value);
+        opt.weight = w;
+        slider.value = Math.min(SLIDER_MAX, w);
+        markDirty();
+        renderOptionsPct();
+        renderWheel();
+        updateSpinBtn();
+      });
+      // 失焦：把空 / 越界 / 非法值收敛成合法正数并回填
+      numInput.addEventListener('blur', (e) => {
+        const w = clampWeight(e.target.value === '' ? opt.weight : e.target.value);
+        opt.weight = w;
+        e.target.value = fmtWeight(w);
+        slider.value = Math.min(SLIDER_MAX, w);
         renderOptionsPct();
         renderWheel();
         updateSpinBtn();
@@ -395,6 +453,33 @@
       $list.appendChild(row);
     });
   }
+  // 选项名输入框里按回车的推进逻辑（见 keydown 绑定）
+  function advanceFromTextInput(optId, currentValue) {
+    if (state.busy) return;
+    const rows = [...$list.querySelectorAll('.option-row')];
+    const idx = state.options.findIndex(o => o.id === optId);
+    if (idx < 0) return;
+    // 不是最后一个 → 直接跳到下一个选项名
+    if (idx < rows.length - 1) {
+      const next = rows[idx + 1].querySelector('.opt-text');
+      if (next) { next.focus(); next.select(); }
+      return;
+    }
+    // 已是最后一个：当前项还空着 / 已达 10 个上限 → 不堆空行，把焦点交给"抽"按钮收尾
+    if ((currentValue || '').trim() === '' || state.options.length >= 10) {
+      if (!$spinBtn.disabled) $spinBtn.focus();
+      return;
+    }
+    // 否则新建一个选项并聚焦
+    state.options.push({ id: cryptoId(), text: '', weight: EQUAL_WEIGHT });
+    markDirty();
+    renderAll();
+    const newRows = $list.querySelectorAll('.option-row');
+    const lastText = newRows[newRows.length - 1] &&
+      newRows[newRows.length - 1].querySelector('.opt-text');
+    if (lastText) lastText.focus();
+  }
+
   function renderOptionsPct() {
     const ws = effectiveWeights();
     const total = ws.reduce((a, b) => a + b, 0) || 1;
@@ -595,9 +680,10 @@
     clearHighlights();
     $result.innerHTML = '&nbsp;';
 
-    // 把转盘 zone 滚到视口顶——保证手机上转盘 + 结果 + 计票都同时可见
-    // 不用纠结"已经在视口里了要不要滚"——smooth scroll 距离零时本来也不会有视觉干扰
-    $wheel.parentElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // 把整个"舞台"（转盘 + 结果 + 计票）滚进视口，保证两者都完整可见。
+    // 关键：顶部导航是 position:fixed，会盖住视口顶端一整条；这里按导航实际高度设
+    // scroll-margin-top，避免转盘顶部 + 指针被裁掉（旧版固定 32px 补偿不了导航高度）。
+    scrollStageIntoView();
 
     let resultText = '';
     if (state.draws === 1) {
@@ -706,6 +792,14 @@
     return p ? p.name : '';
   }
 
+  function scrollStageIntoView() {
+    const nav = document.querySelector('nav');
+    const navH = nav ? Math.ceil(nav.getBoundingClientRect().height) : 0;
+    // +18：给指针（在转盘框上方 overhang ~8px）留余量 + 一点呼吸留白
+    $stage.style.scrollMarginTop = (navH + 18) + 'px';
+    $stage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function setSpinDisabled(disabled) {
     $spinBtn.disabled = disabled;
     $addBtn.disabled = disabled;
@@ -758,9 +852,19 @@
   // ── 事件绑定 ──────────────────────────
   $addBtn.addEventListener('click', () => {
     if (state.busy || state.options.length >= 10) return;
-    state.options.push({ id: cryptoId(), text: '', weight: 5 });
+    state.options.push({ id: cryptoId(), text: '', weight: EQUAL_WEIGHT });
     markDirty();
     renderAll();
+  });
+  // 恢复等权：把所有选项权重拉回同一个值（等权时具体取值无所谓）
+  $equalBtn.addEventListener('click', () => {
+    if (state.busy) return;
+    state.options.forEach(o => { o.weight = EQUAL_WEIGHT; });
+    markDirty();
+    renderOptions();   // 重画各行的滑块 / 数字框 / 百分比
+    renderWheel();
+    updateSpinBtn();
+    showToast('已恢复等权');
   });
   function setActivePreset(btnOrNull) {
     $drawsGrp.querySelectorAll('button[data-draws]').forEach(b => {
@@ -1002,7 +1106,7 @@
         .filter(o => o && typeof o.text === 'string')
         .map(o => ({
           text: o.text.slice(0, 20),
-          weight: Math.max(0, Math.min(10, Number(o.weight) | 0)),
+          weight: clampWeight(o.weight),
         }));
       if (opts.length < 2) continue;
       cleaned.push({
