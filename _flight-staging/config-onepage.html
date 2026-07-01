@@ -747,6 +747,38 @@
     const prev=document.querySelector('.btn-ghost');
     if(prev)prev.addEventListener('click',()=>window.open('email-digest.html','_blank'));
   })();
+
+  /* ---------- 可达性增强：运行时补 role/tabindex/键盘，不改结构 ---------- */
+  (function(){
+    // 通知方式卡 → checkbox 语义 + 键盘
+    document.querySelectorAll('[data-deliv] .dcard').forEach(c=>{
+      c.setAttribute('role','checkbox');c.setAttribute('tabindex','0');c.setAttribute('aria-checked',c.classList.contains('on'));
+      c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();c.click();}});
+    });
+    // 优先级条目标题 → button 语义 + 回车/空格展开
+    document.querySelectorAll('#topics .topic-head').forEach(h=>{
+      const t=h.closest('.topic');
+      h.setAttribute('role','button');h.setAttribute('tabindex','0');h.setAttribute('aria-expanded',t.classList.contains('open'));
+      h.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('.t-arr')){e.preventDefault();t.classList.toggle('open');h.setAttribute('aria-expanded',t.classList.contains('open'));}});
+    });
+    // 芯片删除× / 搜索候选 / 分段：补 role·tabindex·aria-pressed（含 FW 动态重渲）
+    function enhance(){
+      document.querySelectorAll('.chip .x').forEach(x=>{if(!x.hasAttribute('role')){x.setAttribute('role','button');x.setAttribute('tabindex','0');x.setAttribute('aria-label','删除');}});
+      document.querySelectorAll('.pk-city,.pk-ap').forEach(o=>{if(!o.hasAttribute('role')){o.setAttribute('role','option');o.setAttribute('tabindex','0');}});
+      document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.classList.contains('on')));
+    }
+    // 键盘（Enter/Space）触发点击：×删除 / 下拉候选选中（委派，重渲后仍生效）
+    document.addEventListener('keydown',e=>{const hit=e.target.closest&&e.target.closest('.chip .x,.pk-city,.pk-ap');if(hit&&(e.key==='Enter'||e.key===' ')){e.preventDefault();hit.click();}});
+    // 点击后同步 aria 状态
+    document.addEventListener('click',e=>{
+      if(e.target.closest&&e.target.closest('.seg'))setTimeout(enhance,0);
+      const h=e.target.closest&&e.target.closest('#topics .topic-head');if(h){const t=h.closest('.topic');h.setAttribute('aria-expanded',t.classList.contains('open'));}
+      const dc=e.target.closest&&e.target.closest('[data-deliv] .dcard');if(dc)dc.setAttribute('aria-checked',dc.classList.contains('on'));
+    });
+    enhance();
+    const mo=new MutationObserver(()=>enhance());
+    document.querySelectorAll('.pk,[data-datehost],[data-stophost]').forEach(n=>mo.observe(n,{childList:true,subtree:true}));
+  })();
 </script>
 </body>
 </html>

@@ -272,9 +272,32 @@
 </div>
 
 <script>
-  function openM(id){document.getElementById(id).classList.add('show');document.body.style.overflow='hidden'}
-  function closeM(id){document.getElementById(id).classList.remove('show');document.body.style.overflow=''}
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.ov.show').forEach(o=>{o.classList.remove('show');document.body.style.overflow=''})});
+  let _lastFocus=null;
+  function openM(id){
+    const ov=document.getElementById(id), modal=ov.querySelector('.modal'), title=modal.querySelector('.rt');
+    if(title&&!title.id)title.id=id+'t';
+    modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');
+    if(title)modal.setAttribute('aria-labelledby',title.id);
+    _lastFocus=document.activeElement;
+    ov.classList.add('show');document.body.style.overflow='hidden';
+    const c=ov.querySelector('.px');if(c)c.focus();
+  }
+  function closeM(id){
+    const ov=document.getElementById(id);ov.classList.remove('show');document.body.style.overflow='';
+    if(_lastFocus&&_lastFocus.focus)_lastFocus.focus();_lastFocus=null;
+  }
+  /* Esc 关闭 + Tab 焦点陷阱（限定在打开的弹窗内循环） */
+  document.addEventListener('keydown',e=>{
+    const ov=document.querySelector('.ov.show');if(!ov)return;
+    if(e.key==='Escape'){closeM(ov.id);return;}
+    if(e.key==='Tab'){
+      const f=[...ov.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(el=>el.offsetParent!==null);
+      if(!f.length)return;
+      const first=f[0], last=f[f.length-1];
+      if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+      else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+    }
+  });
 </script>
 </body>
 </html>
