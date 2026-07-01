@@ -85,10 +85,10 @@
   .cal-d.dpc{--dep:rgba(201,169,110,.22)} .cal-d.dpi{--dep:rgba(201,169,110,.5)}
   .cal-d.arc{--arr:rgba(44,142,122,.16)} .cal-d.ari{--arr:rgba(44,142,122,.42)}
   .cal-d.dpi,.cal-d.ari{color:var(--ink);font-weight:600}
-  .cal-d::before{position:absolute;top:-1px;left:3px;font-size:.56rem;line-height:1.3;color:var(--gold-d)}
+  .cal-d::before{position:absolute;top:2px;left:4px;font-size:.56rem;line-height:1.3;color:var(--gold-d)}
   .cal-d.dpc::before{content:"☆"} .cal-d.dpi::before{content:"★"}
-  .cal-d::after{position:absolute;bottom:-1px;right:3px;font-size:.56rem;line-height:1.3;color:#2c8e7a}
-  .cal-d.arc::after{content:"☆"} .cal-d.ari::after{content:"✦"}
+  .cal-d::after{position:absolute;bottom:2px;right:4px;font-size:.56rem;line-height:1.3;color:#2c8e7a}
+  .cal-d.arc::after{content:"✧"} .cal-d.ari::after{content:"✦"}
   .cal-range{margin:4px 0 14px;color:var(--ink);font-size:.95rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .cal-range input[type=month]{width:auto}
   .cal-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:.84rem;color:var(--muted);align-items:center}
@@ -548,7 +548,7 @@
         +'<div class="date-counts">'+counts()+'</div>'
         +'<div class="cal-legend"><span><span class="lg-dot" style="background:rgba(201,169,110,.5)"></span>金＝出发（左上）</span>'
         +'<span><span class="lg-dot" style="background:rgba(44,142,122,.42)"></span>青＝到达（右下）</span>'
-        +'<span class="help">空心 ☆ 候选、实心 ★/✦ 理想；点一下候选、再点理想、三点取消，可拖刷</span></div>';
+        +'<span class="help">点一下选为候选、再点升为理想、三点取消，可按住拖刷多天（出发 ☆→★ · 到达 ✧→✦）</span></div>';
     }
     function stopHTML(){
       const s=STATE.stop;
