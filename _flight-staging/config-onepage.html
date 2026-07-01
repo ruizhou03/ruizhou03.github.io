@@ -738,7 +738,7 @@
              arr:arrT.querySelector('.toggle:not(#togDepTimes)').classList.contains('on')?{from:arrTm[0]&&arrTm[0].value,to:arrTm[1]&&arrTm[1].value}:null},
       priority:[...document.querySelectorAll('#topics .topic')].map(t=>t.dataset.key),
       delivery:[...document.querySelectorAll('[data-deliv] .dcard')].map(c=>c.classList.contains('on')),
-      freq:{n:freqOn?freqOn.dataset.n:'2'},
+      freq:(function(){const ft=document.getElementById('freqTimes'),ti=ft?[...ft.querySelectorAll('input[type=time]')].map(i=>i.value):[],sel=ft?ft.querySelector('select'):null;return {n:freqOn?freqOn.dataset.n:'2',times:ti,start:ti[0],end:ti[ti.length-1],every_hours:sel?parseInt(sel.value):null};})(),
       email:val('[data-reveal="email"] input','')};
   }
   function encodeCode(obj){return 'fw_'+btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
