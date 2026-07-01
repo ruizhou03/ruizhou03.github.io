@@ -129,6 +129,37 @@
   document.querySelectorAll('.share button').forEach(btn=>btn.addEventListener('click',()=>{
     const inp=btn.parentNode.querySelector('input');navigator.clipboard&&inp&&navigator.clipboard.writeText(inp.value);
     const o=btn.textContent;btn.textContent='已复制';setTimeout(()=>btn.textContent=o,1200);}));
+
+  /* ---------- 从盯票码还原配置摘要（无码时保留静态示例） ---------- */
+  function decodeCode(code){try{let b=code.replace(/^#?fw_/,'').replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';return JSON.parse(decodeURIComponent(escape(atob(b))));}catch(e){return null;}}
+  window.__cfg=null;
+  (function(){
+    const raw=location.hash.slice(1);
+    if(raw){const cfg=decodeCode(raw);
+      if(cfg){window.__cfg=cfg;
+        const setKV=(label,v)=>{const kv=[...document.querySelectorAll('.card .kv')].find(k=>{const s=k.querySelector('span');return s&&s.textContent.trim()===label;});if(kv){const b=kv.querySelector('b');if(b)b.textContent=v;}};
+        const df=s=>{const p=s.split('-');return (+p[1])+'/'+(+p[2]);};
+        const d=cfg.date||{}, all=[...(d.depCand||[]),...(d.depIdeal||[])].sort();
+        let ds=all.length?df(all[0])+' – '+df(all[all.length-1]):'日期窗口';
+        if((d.depIdeal||[]).length)ds+=' · 理想 '+d.depIdeal.slice().sort().map(df).join('、');
+        setKV('出发地',(cfg.origin||[]).map(o=>o.label).join(' · ')||'—');
+        setKV('到达地',(cfg.dest||[]).map(o=>o.label).join(' · ')||'—');
+        setKV('日期',ds);
+        setKV('目标价 / 上限','$'+((cfg.price||{}).low||'—')+' / $'+((cfg.price||{}).high||'—'));
+        const st=cfg.stop||{}, bl=[], sl={'0':'只要直飞','1':'最多 1 转','2':'最多 2 转','3':'最多 3 转','9':'中转不限'}[st.max];
+        if(sl)bl.push(sl); if((cfg.bag||{}).checked)bl.push('含托运'); if(st.oneTicket)bl.push('联程一票'); if(st.noTransitVisa)bl.push('免过境签'); if((st.avoid||[]).length)bl.push('避开 '+st.avoid.length+' 地');
+        setKV('底线',bl.join(' · ')||'—');
+        const priBox=document.querySelector('.card .pri'), NM={price:'价格',stop:'直飞',date:'理想日',bag:'行李',dur:'时长',arr:'起降'};
+        if(priBox&&(cfg.priority||[]).length)priBox.innerHTML=cfg.priority.map((k,i)=>'<i>'+(i+1)+' '+(NM[k]||k)+'</i>').join('');
+        document.querySelectorAll('.share input').forEach(i=>i.value=raw.indexOf('fw_')===0?raw:'fw_'+raw);
+      }
+    }
+    const dl=[...document.querySelectorAll('.btn.ghost')].find(a=>/下载配置文件/.test(a.textContent));
+    if(dl)dl.addEventListener('click',e=>{e.preventDefault();
+      const cfg=window.__cfg||{v:1,note:'示例配置（未从盯票码生成）'};
+      const blob=new Blob([JSON.stringify(cfg,null,2)],{type:'application/json'}), url=URL.createObjectURL(blob), a=document.createElement('a');
+      a.href=url;a.download='flightwatch.json';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);});
+  })();
 </script>
 </body>
 </html>

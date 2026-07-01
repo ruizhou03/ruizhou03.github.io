@@ -221,10 +221,10 @@
         <select id="cabin"><option>经济舱</option><option>超级经济舱</option><option>商务舱</option><option>头等舱</option></select>
       </div>
       <div class="field" style="flex:0 0 120px"><label class="lab">乘客</label>
-        <select><option>1 人</option><option>2 人</option><option>3 人</option><option>4 人</option></select>
+        <select id="paxCount"><option>1 人</option><option>2 人</option><option>3 人</option><option>4 人</option></select>
       </div>
       <div class="field" style="flex:0 0 130px"><label class="lab">类型</label>
-        <select><option>成人</option><option>学生</option><option>儿童</option></select>
+        <select id="paxType"><option>成人</option><option>学生</option><option>儿童</option></select>
       </div>
     </div>
 
@@ -715,6 +715,38 @@
   FW.init();
   renumber();
   refresh();
+
+  /* ---------- 生成盯票码 → 跳交接页（纯前端 base64，无后端） ---------- */
+  function collectConfig(){
+    const S=FW.STATE;
+    const chips=sel=>[...document.querySelectorAll('[data-chips="'+sel+'"] .chip:not(.add)')].map(c=>({key:c.dataset.key,label:(c.querySelector('b')||{}).textContent||''}));
+    const bagT=document.querySelector('.topic[data-key="bag"]'), durT=document.querySelector('.topic[data-key="dur"]'), arrT=document.querySelector('.topic[data-key="arr"]');
+    const depTm=arrT.querySelectorAll('[data-rev="deptimes"] input[type=time]'), arrTm=arrT.querySelectorAll('[data-rev="arrtimes"] input[type=time]');
+    const freqOn=document.querySelector('#freqSeg button.on'), tripOn=document.querySelector('[data-seg] button.on');
+    const val=(sel,d)=>{const e=document.querySelector(sel);return e?e.value:d;};
+    return {v:1,
+      trip:{type:tripOn?tripOn.textContent:'单程',cabin:val('#cabin','经济舱'),pax:val('#paxCount','1 人'),paxType:val('#paxType','成人')},
+      origin:chips('origin'),dest:chips('dest'),
+      date:{from:S.date.from,to:S.date.to,mode:S.date.mode,depCand:[...S.date.depCand],depIdeal:[...S.date.depIdeal],arrCand:[...S.date.arrCand],arrIdeal:[...S.date.arrIdeal]},
+      stop:{max:S.stop.max,oneTicket:S.stop.oneTicket,noOvernight:S.stop.noOvernight,noTransitVisa:S.stop.noTransitVisa,layover:S.stop.layover,avoid:S.stop.avoid},
+      price:{low:val('#priceLow',''),high:val('#priceHigh','')},
+      bag:{checked:bagT.querySelector('.toggle[data-reveal="bagcount"]').classList.contains('on'),count:(bagT.querySelector('select.mini')||{}).value||'1 件',hand:document.getElementById('togHandBag').classList.contains('on')},
+      dur:{on:durT.querySelector('.toggle').classList.contains('on'),hours:(durT.querySelector('input[type=number]')||{}).value||''},
+      times:{dep:document.getElementById('togDepTimes').classList.contains('on')?{from:depTm[0]&&depTm[0].value,to:depTm[1]&&depTm[1].value}:null,
+             arr:arrT.querySelector('.toggle:not(#togDepTimes)').classList.contains('on')?{from:arrTm[0]&&arrTm[0].value,to:arrTm[1]&&arrTm[1].value}:null},
+      priority:[...document.querySelectorAll('#topics .topic')].map(t=>t.dataset.key),
+      delivery:[...document.querySelectorAll('[data-deliv] .dcard')].map(c=>c.classList.contains('on')),
+      freq:{n:freqOn?freqOn.dataset.n:'2'},
+      email:val('[data-reveal="email"] input','')};
+  }
+  function encodeCode(obj){return 'fw_'+btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+  (function(){
+    const go=document.querySelector('.btn-go');
+    if(go)go.addEventListener('click',()=>{if(go.disabled||go.classList.contains('disabled'))return;
+      try{location.href='handoff.html#'+encodeCode(collectConfig());}catch(e){console.error('生成盯票码失败',e);}});
+    const prev=document.querySelector('.btn-ghost');
+    if(prev)prev.addEventListener('click',()=>window.open('email-digest.html','_blank'));
+  })();
 </script>
 </body>
 </html>
