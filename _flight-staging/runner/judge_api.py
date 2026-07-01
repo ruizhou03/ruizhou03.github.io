@@ -148,12 +148,17 @@ def _brief(cfg, results, history, state):
 
 # ─────────────────────────── API 调用（可注入以便离线测试） ───────────────────────────
 
-def call_anthropic(system, user, schema, model=MODEL, effort=EFFORT):
-    """用官方 anthropic SDK 直连；结构化输出约束成给定 json_schema。"""
+def _schema_hint(schema):
+    return ("只返回一个 JSON 对象，严格符合下面的 schema——不要多余文字、不要 markdown 代码围栏：\n"
+            + json.dumps(schema, ensure_ascii=False))
+
+
+def call_anthropic(ai, system, user, schema, effort=EFFORT):
+    """Claude 原生 SDK；结构化输出约束成给定 json_schema（读 ANTHROPIC_API_KEY）。"""
     from anthropic import Anthropic
-    client = Anthropic()                      # 读 ANTHROPIC_API_KEY
+    client = Anthropic()
     resp = client.messages.create(
-        model=model,
+        model=ai.get("model") or MODEL,
         max_tokens=8000,
         system=system,
         output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
@@ -166,9 +171,38 @@ def call_anthropic(system, user, schema, model=MODEL, effort=EFFORT):
     return json.loads(text)
 
 
+def call_openai(ai, system, user, schema):
+    """OpenAI 兼容接口（GPT / DeepSeek / Kimi / GLM…）：chat.completions + JSON 模式。
+
+    key 读 OPENAI_API_KEY 或 FLIGHTWATCH_API_KEY；base_url 来自厂商注册表（config._ai）。
+    这些厂商的结构化输出支持不一，用最通用的 json_object + prompt 里附 schema。
+    """
+    from openai import OpenAI
+    key = os.environ.get("OPENAI_API_KEY") or os.environ.get("FLIGHTWATCH_API_KEY")
+    client = OpenAI(api_key=key, base_url=ai.get("base_url") or None)
+    resp = client.chat.completions.create(
+        model=ai.get("model"),
+        max_tokens=8000,
+        response_format={"type": "json_object"},
+        messages=[
+            {"role": "system", "content": system + "\n\n" + _schema_hint(schema)},
+            {"role": "user", "content": user},
+        ],
+    )
+    return json.loads(resp.choices[0].message.content)
+
+
+def call_model(ai, system, user, schema):
+    """按厂商 sdk 分发：anthropic 走原生 SDK，其余走 OpenAI 兼容接口。"""
+    ai = ai or {}
+    if ai.get("sdk", "anthropic") == "anthropic":
+        return call_anthropic(ai, system, user, schema)
+    return call_openai(ai, system, user, schema)
+
+
 # ─────────────────────────── 判断主流程 ───────────────────────────
 
-def run_judge(cfg, results, history, state, now_iso, call=call_anthropic):
+def run_judge(cfg, results, history, state, now_iso, call=call_model):
     """纯函数：吃配置/抓取/历史/状态 → (verdict, history, state)。call 可注入。
 
     Python 决定 should_notify（含去重），模型只做分析。history/state 就地更新。
@@ -193,19 +227,19 @@ def run_judge(cfg, results, history, state, now_iso, call=call_anthropic):
                      "cheapest_overall": cheapest_overall, "offer_count": len(offers)})
         del recs[:-HISTORY_KEEP]
 
-    # 2) 问模型（拿 deals / targets / 报告）
-    ai = call(SYSTEM, _brief(cfg, results, history, state), VERDICT_SCHEMA)
+    # 2) 问模型（按 cfg.ai 选厂商/模型；拿 deals / targets / 报告）
+    res = call(cfg.get("ai") or {}, SYSTEM, _brief(cfg, results, history, state), VERDICT_SCHEMA)
 
     # 3) 目标价写回 state
     targets = state.setdefault("targets", {})
-    for t in ai.get("targets", []) or []:
+    for t in res.get("targets", []) or []:
         if t.get("route_key") and t.get("target_price") is not None:
             targets[t["route_key"]] = {"target_price": t["target_price"], "note": t.get("note", "")}
 
     # 4) 去重 + 决定 should_notify（Python 权威，模型不决定）
     notified = state.setdefault("notified", {})
     fresh = []
-    for d in ai.get("deals", []) or []:
+    for d in res.get("deals", []) or []:
         rk, price = d.get("route_key"), d.get("price")
         if rk is None or price is None:
             continue
@@ -229,20 +263,20 @@ def run_judge(cfg, results, history, state, now_iso, call=call_anthropic):
         "run_at": now_iso,
         "should_notify": should,
         "reason": reason,
-        "summary": ai.get("summary", ""),
+        "summary": res.get("summary", ""),
         "deals": fresh,
-        "trend_md": ai.get("trend_md", ""),
+        "trend_md": res.get("trend_md", ""),
         "scrape_health": {"ok": sum(1 for s in searches if s.get("offers")),
                           "blocked": blocked, "no_data": no_data,
                           "total": len(searches)},
     }
-    return verdict, history, state, ai.get("report_md", "")
+    return verdict, history, state, res.get("report_md", "")
 
 
 # ─────────────────────────── 文件桥（运行器入口用） ───────────────────────────
 
 def judge_files(config_path, results_path, history_path, state_path,
-                verdict_path, report_path, now_iso, call=call_anthropic):
+                verdict_path, report_path, now_iso, call=call_model):
     """读盘 → run_judge → 写 history/state/verdict/report。运行器实际调这个。"""
     from . import config as cfgmod  # 复用 config.py 的规范化
     cfg = cfgmod.load(config_path) if not isinstance(config_path, dict) else config_path

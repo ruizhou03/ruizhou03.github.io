@@ -9,12 +9,49 @@
 """
 import base64
 import json
+import os
 from pathlib import Path
 
 # 舱位 → Trip.com class 参数（超经 yc 待抓包核实）
 CABIN_MAP = {"经济舱": "ys", "超级经济舱": "yc", "商务舱": "c", "头等舱": "f"}
 # 行程类型 → Trip.com triptype
 TRIP_MAP = {"单程": "ow", "往返": "rt"}
+
+# AI 厂商 → SDK 类型 + OpenAI 兼容 base_url。
+# Claude 用原生 anthropic SDK；其余（GPT/DeepSeek/Kimi/GLM…）走 OpenAI 兼容接口。
+# 未知厂商默认按 OpenAI 兼容处理（base_url 由 FLIGHTWATCH_BASE_URL 提供）。
+PROVIDERS = {
+    "anthropic": {"sdk": "anthropic", "base_url": None},
+    "openai":    {"sdk": "openai", "base_url": "https://api.openai.com/v1"},
+    "deepseek":  {"sdk": "openai", "base_url": "https://api.deepseek.com"},
+    "moonshot":  {"sdk": "openai", "base_url": "https://api.moonshot.cn/v1"},
+    "zhipu":     {"sdk": "openai", "base_url": "https://open.bigmodel.cn/api/paas/v4"},
+}
+
+
+def _ai(raw):
+    """规范化 AI 判断模型设置（厂商 + 模型 + SDK 路径 + base_url）。
+
+    优先级：环境变量 FLIGHTWATCH_MODEL（'provider:model' 或裸 'model'=anthropic）
+    > 配置里的 ai.{provider,model} > 默认 anthropic:claude-opus-4-8。
+    base_url 可用 FLIGHTWATCH_BASE_URL 覆盖（自建/代理端点）。
+    """
+    a = raw.get("ai") or {}
+    provider = a.get("provider") or "anthropic"
+    model = a.get("model") or "claude-opus-4-8"
+    ov = os.environ.get("FLIGHTWATCH_MODEL")
+    if ov:
+        if ":" in ov:
+            provider, model = ov.split(":", 1)
+        else:
+            model = ov
+    meta = PROVIDERS.get(provider, {"sdk": "openai", "base_url": None})
+    return {
+        "provider": provider,
+        "model": model,
+        "sdk": meta["sdk"],
+        "base_url": os.environ.get("FLIGHTWATCH_BASE_URL") or meta["base_url"],
+    }
 
 
 def decode_code(code):
@@ -147,6 +184,7 @@ def normalize(raw):
         "delivery": _delivery(raw.get("delivery")),
         "schedule": _schedule(raw.get("freq", {})),
         "email": raw.get("email", ""),
+        "ai": _ai(raw),
     }
 
 

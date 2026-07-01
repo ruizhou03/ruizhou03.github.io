@@ -5,8 +5,10 @@
 
 ## 设计决策（已定档）
 
-- **AI 判断改直连 Anthropic API**：用用户自己的 `sk-ant` key 打 `api.anthropic.com`，
-  Python 收 JSON 写盘 —— 不再用 `claude --dangerously-skip-permissions` 全权限 agent。
+- **AI 判断改直连厂商 API（多厂商，用户自选）**：网页里选厂商+模型生成标准值
+  `provider:model`（如 `deepseek:deepseek-chat`）。Claude 走原生 anthropic SDK，
+  GPT / DeepSeek / Kimi / GLM 等走 OpenAI 兼容接口。Python 收 JSON 写盘 ——
+  不再用 `claude --dangerously-skip-permissions` 全权限 agent。
 - **两档模式**：简单模式（阈值比价、不调 AI、桌面通知 + 本地面板、零密钥）/
   完整模式（AI 判断 + 趋势 + 邮件，需 key + 邮箱应用密码）。
 - **保留并补 UI 能力**：往返 / 舱位 / 乘客类型 / 手提行李 / 到达时段 都要真支持。
@@ -16,9 +18,9 @@
 
 | 文件 | 职责 | 状态 |
 |---|---|---|
-| `config.py` | 盯票码 / flightwatch.json → 规范化 RunnerConfig（前端↔后端桥） | ✅ 已写 |
+| `config.py` | 盯票码 / flightwatch.json → 规范化 RunnerConfig（含 AI 厂商/模型注册表） | ✅ 已写 |
 | `scrape.py` | 抓 Trip.com（在私人 scraper 基础上补 往返/舱位/乘客类型/手提/到达时段） | ⏳ |
-| `judge_api.py` | 完整模式：直连 Anthropic API 判断便宜票 + 趋势 + 目标价 | ✅ 已写（判定/去重逻辑离线验证过） |
+| `judge_api.py` | 完整模式：多厂商 AI 判断（Claude 原生 / OpenAI 兼容）+ 趋势 + 目标价 | ✅ 已写（桥+分发+判定/去重离线验证过） |
 | `judge_simple.py` | 简单模式：阈值比价、无 AI | ⏳ |
 | `notify.py` | 桌面通知 / 邮件 / 本地面板（走 platform 抽象） | ⏳ |
 | `platform.py` | darwin/win32/linux：调度 / 通知 / 防休眠 / 文件年龄 / 代理探测 | ⏳ |

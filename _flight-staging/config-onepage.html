@@ -204,6 +204,9 @@
   @media(max-width:560px){body{padding-bottom:160px}}
   @media(max-width:480px){.topic-name .syncbadge{display:none}}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+  .aival{margin-top:14px;display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+  .aival code{background:var(--warm);border:1px solid var(--line);border-radius:7px;padding:3px 9px;color:var(--navy)}
+  .aival .help{flex:1 1 100%}
 </style>
 </head>
 <body>
@@ -340,6 +343,25 @@
       <label class="lab">收件邮箱</label>
       <input type="email" placeholder="you@example.com">
     </div>
+  </section>
+
+  <!-- AI 分析模型（完整模式） -->
+  <section class="card">
+    <h2><span class="ico">🤖</span>AI 分析模型<span class="softtag">完整模式</span></h2>
+    <p class="hint">完整模式用 AI 判断便宜票、估触发价、写简报。选你【自己有 API key】的厂商和模型；简单模式（只按价格阈值）不需要它。</p>
+    <div class="row">
+      <div class="field"><label class="lab">厂商</label>
+        <select id="aiProvider"></select>
+      </div>
+      <div class="field"><label class="lab">模型</label>
+        <select id="aiModel"></select>
+      </div>
+    </div>
+    <div id="aiCustomWrap" style="display:none;margin-top:12px">
+      <label class="lab">自定义模型 ID</label>
+      <input type="text" id="aiModelCustom" placeholder="以厂商官方文档为准，如 gpt-4o / deepseek-chat">
+    </div>
+    <div class="aival"><span>标准值</span><code id="aiStdVal">anthropic:claude-opus-4-8</code><button type="button" class="mini" id="aiCopy">复制</button><span class="help">这个值填进运行器的 FLIGHTWATCH_MODEL；下拉里的模型仅供参考，实际以各厂商官方文档的模型 ID 为准。</span></div>
   </section>
 </div>
 
@@ -739,7 +761,8 @@
       priority:[...document.querySelectorAll('#topics .topic')].map(t=>t.dataset.key),
       delivery:[...document.querySelectorAll('[data-deliv] .dcard')].map(c=>c.classList.contains('on')),
       freq:(function(){const ft=document.getElementById('freqTimes'),ti=ft?[...ft.querySelectorAll('input[type=time]')].map(i=>i.value):[],sel=ft?ft.querySelector('select'):null;return {n:freqOn?freqOn.dataset.n:'2',times:ti,start:ti[0],end:ti[ti.length-1],every_hours:sel?parseInt(sel.value):null};})(),
-      email:val('[data-reveal="email"] input','')};
+      email:val('[data-reveal="email"] input',''),
+      ai:(window.__aiPick?window.__aiPick():{provider:'anthropic',model:'claude-opus-4-8'})};
   }
   function encodeCode(obj){return 'fw_'+btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
   (function(){
@@ -748,6 +771,31 @@
       try{location.href='handoff.html#'+encodeCode(collectConfig());}catch(e){console.error('生成盯票码失败',e);}});
     const prev=document.querySelector('.btn-ghost');
     if(prev)prev.addEventListener('click',()=>window.open('email-digest.html','_blank'));
+  })();
+
+  /* ---------- AI 分析模型选择器（完整模式）：厂商→模型→标准值 provider:model ---------- */
+  const AI_PROVIDERS={
+    anthropic:{name:'Claude（Anthropic）',models:['claude-opus-4-8','claude-sonnet-4-6','claude-haiku-4-5','claude-opus-4-7','claude-fable-5']},
+    openai:{name:'GPT（OpenAI）',models:['gpt-4o','gpt-4o-mini','o3-mini']},
+    deepseek:{name:'DeepSeek',models:['deepseek-chat','deepseek-reasoner']},
+    moonshot:{name:'Kimi（Moonshot）',models:['moonshot-v1-32k','moonshot-v1-128k']},
+    zhipu:{name:'GLM（智谱）',models:['glm-4-plus','glm-4-air']},
+  };
+  (function(){
+    const pSel=document.getElementById('aiProvider'), mSel=document.getElementById('aiModel'),
+          custWrap=document.getElementById('aiCustomWrap'), cust=document.getElementById('aiModelCustom'),
+          std=document.getElementById('aiStdVal'), copy=document.getElementById('aiCopy');
+    if(!pSel)return;
+    Object.entries(AI_PROVIDERS).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.name;pSel.appendChild(o);});
+    function fillModels(){mSel.innerHTML='';AI_PROVIDERS[pSel.value].models.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;mSel.appendChild(o);});const c=document.createElement('option');c.value='__custom__';c.textContent='自定义…';mSel.appendChild(c);}
+    function curModel(){return mSel.value==='__custom__'?(cust.value.trim()||''):mSel.value;}
+    function refreshStd(){custWrap.style.display=(mSel.value==='__custom__')?'':'none';const m=curModel();std.textContent=pSel.value+':'+(m||'（填模型 ID）');}
+    pSel.addEventListener('change',()=>{fillModels();refreshStd();});
+    mSel.addEventListener('change',refreshStd);
+    cust.addEventListener('input',refreshStd);
+    if(copy)copy.addEventListener('click',()=>{const m=curModel();if(!m)return;navigator.clipboard&&navigator.clipboard.writeText(pSel.value+':'+m);const o=copy.textContent;copy.textContent='已复制';setTimeout(()=>copy.textContent=o,1200);});
+    fillModels();refreshStd();
+    window.__aiPick=()=>({provider:pSel.value,model:curModel()});
   })();
 
   /* ---------- 可达性增强：运行时补 role/tabindex/键盘，不改结构 ---------- */
